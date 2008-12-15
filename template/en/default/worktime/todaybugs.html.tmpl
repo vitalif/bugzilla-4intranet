@@ -1,0 +1,150 @@
+[%# 1.0@bugzilla.org %]
+
+[% PROCESS global/variables.none.tmpl %]
+
+[% title = "Today Worktime" %]
+
+[% style_urls = [ "skins/standard/buglist.css" ] %]
+
+[% PROCESS global/header.html.tmpl
+  title = title
+  style = style
+%]
+
+<style>
+td{
+  font-family: "Lucida Console", monospace;
+  font-size: 9pt;
+}
+textarea {
+  font-family: monospace;
+  font-size: 10pt;
+}
+
+.rowP1 {
+   background-color: rgb(250,240,240);
+}
+.rowP2 {
+   background-color: rgb(240,240,240);
+}
+.rowP3 {
+   background-color: rgb(230,240,240);
+}
+.rowP4 {
+   background-color: rgb(220,230,240);
+}
+</style>
+
+<!-- <div style="float" align="right"> -->
+<table>
+  <tr>
+    <td align="left" width="30%">
+        My Bugs for last [% lastdays %] days.
+    </td>
+    <td width="20%">
+      <form name="lastdaysform" action="fill-day-worktime.cgi" method="get">
+      <input value="Select last days" type="submit">
+      <select name="lastdays">
+          <option value="1" [% " selected=\"selected\"" IF (!lastdays)||(lastdays==1) %]>1</option>
+          <option value="2" [% " selected=\"selected\"" IF (lastdays==2) %]>2</option>
+          <option value="3" [% " selected=\"selected\"" IF (lastdays==3) %]>3</option>
+          <option value="4" [% " selected=\"selected\"" IF (lastdays==4) %]>4</option>
+          <option value="5" [% " selected=\"selected\"" IF (lastdays==5) %]>5</option>
+          <option value="6" [% " selected=\"selected\"" IF (lastdays==6) %]>6</option>
+          <option value="7" [% " selected=\"selected\"" IF (lastdays==7) %]>7</option>
+      </select>
+      </form>
+    </td>
+    <td width="60%">
+      &nbsp;
+    </td>
+    <td width="10%">
+      <a href="[% Param('wiki_url') %]Today_Worktime"><b>Help</b></a>
+    </td>
+  </tr>
+</table>
+
+<form name="worktimeform" action="fill-day-worktime.cgi" method="post">
+  <input name="lastdays" type="hidden" value=[% lastdays %]>
+  <table class="bz_buglist" cellspacing="2" cellpadding="3" border="1" style="border-style:groove" width="100%">
+    <tr bgcolor="lightgrey">
+      <th width="30">Bug</th>
+      <th>Summary</th>
+      <th width="130" colspan="3"><small>[% PROCESS today_or_lastdays %]</small><br/>Hours Worked</th>
+      <th width="320" >Comment</th>
+      <th width="100" colspan="2"><small>total hours</small><br/>Worked/Left</th>
+    </tr>
+
+[% parity = 0 %]
+
+[% FOREACH bug = bugs %]
+  [% parity = (parity+1) % 3 %]  
+  <tr class="row[% bug.priority %]">
+    <td class="first-child" align="right">
+      [% bug.bug_id FILTER bug_link(bug.bug_id) %]
+    </td>
+    <td>
+      [% bug.short_desc %]
+    </td>
+    <td align="right">
+      [% bug.today_work_time %]
+    </td>
+    <td>
+      +
+    </td>
+    <td>
+      <input name="wtime_[% bug.bug_id %]" type="text" size="3" align="right" value="0"
+             onchange="javascript: document.worktimeform.newrtime_[% bug.bug_id %].value=Math.round(Math.max(0,[% bug.remaining_time %] - this.value)*100)/100;"
+      >
+    </td>
+    <td>
+      <!-- input name="comm_[% bug.bug_id %]" type="text" size="50" maxlength="80" value=""--> 
+      <textarea name="comm_[% bug.bug_id %]" rows="1" cols="50"></textarea>
+    </td>
+    <td align="right">
+      [% bug.all_work_time %]
+    </td>
+    <td align="right">
+      <input name="oldrtime_[% bug.bug_id %]" type="hidden" value="[% bug.remaining_time %]">
+      <input name="newrtime_[% bug.bug_id %]" readonly="true" style="background-color:rgb(210,230,230)"
+             type="text" size="3" align="right" value="[% bug.remaining_time %]">
+    </td>
+  </tr>
+[% END %]
+</table>
+<table width="100%"><tr>
+  <td align="center">Почасовка в стандартной форме</td>
+  <td align="center">
+  <textarea rows="5" cols="80" wrap="virtual" name="worktime"></textarea>
+</td></tr></table>
+<table width="100%"><tr>
+  <td align="center">
+    [% PROCESS today_or_lastdays %]
+    Hours Worked: <b><font size="+1"><tt>[% totaltime %]</tt></font></b>
+  </td><td width="150px" align="right">
+      [% IF prevdate1 %]
+      Worked Hours for the
+      <a href="summarize_time.cgi?start_date=[% prevdate1 %]&end_date=[% prevdate1 %]&my_activity=1&do_report=1">[% prevdate1 %]</a>
+      [% END %]
+  </td></tr>
+  <tr></td>
+  <td align="center">
+<input value="Commit" type="submit">
+</td></tr></table>
+</form>
+
+[%############################################################################%]
+[%# Page Footer                                                              #%]
+[%############################################################################%]
+
+[% PROCESS global/footer.html.tmpl %]
+
+
+[% BLOCK today_or_lastdays %]
+    [% IF lastdays>1 %]
+      Last [% lastdays %] Days
+    [% ELSE %]
+      Today 
+    [% END %]
+[% END %]
+
