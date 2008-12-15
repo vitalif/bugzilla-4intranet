@@ -38,54 +38,63 @@ use Bugzilla::Config::Common;
 $Bugzilla::Config::Attachment::sortkey = "025";
 
 sub get_param_list {
-  my $class = shift;
-  my @param_list = (
-  {
-  name => 'allow_attachment_deletion',
-  type => 'b',
-  default => 0
-  },
-  {
-  name => 'allow_attach_url',
-  type => 'b',
-  default => 0
-  },
-  {
-   name => 'maxpatchsize',
-   type => 't',
-   default => '1000',
-   checker => \&check_numeric
-  },
+    my $class      = shift;
+    my @param_list = (
+        {
+            name    => 'allow_attachment_deletion',
+            type    => 'b',
+            default => 0
+        },
 
-  {
-   name => 'maxattachmentsize',
-   type => 't',
-   default => '1000',
-   checker => \&check_numeric
-  },
+        {
+            name    => 'allow_attach_url',
+            type    => 'b',
+            default => 0
+        },
 
-  # The maximum size (in bytes) for patches and non-patch attachments.
-  # The default limit is 1000KB, which is 24KB less than mysql's default
-  # maximum packet size (which determines how much data can be sent in a
-  # single mysql packet and thus how much data can be inserted into the
-  # database) to provide breathing space for the data in other fields of
-  # the attachment record as well as any mysql packet overhead (I don't
-  # know of any, but I suspect there may be some.)
+        {
+            name    => 'maxpatchsize',
+            type    => 't',
+            default => '1000',
+            checker => \&check_numeric
+        },
 
-  {
-   name => 'maxlocalattachment',
-   type => 't',
-   default => '0',
-   checker => \&check_numeric
-  },
-  
-  {
-   name => 'convert_uncompressed_images',
-   type => 'b',
-   default => 0,
-   checker => \&check_image_converter
-  } );
-  return @param_list;
+        {
+            name    => 'maxattachmentsize',
+            type    => 't',
+            default => '1000',
+            checker => \&check_numeric
+        },
+
+        # The maximum size (in bytes) for patches and non-patch attachments.
+        # The default limit is 1000KB, which is 24KB less than mysql's default
+        # maximum packet size (which determines how much data can be sent in a
+        # single mysql packet and thus how much data can be inserted into the
+        # database) to provide breathing space for the data in other fields of
+        # the attachment record as well as any mysql packet overhead (I don't
+        # know of any, but I suspect there may be some.)
+
+        {
+            name    => 'maxlocalattachment',
+            type    => 't',
+            default => '0',
+            checker => \&check_numeric
+        },
+
+        {
+            name    => 'convert_uncompressed_images',
+            type    => 'b',
+            default => 0,
+            checker => \&check_image_converter
+        },
+
+        {
+            name    => 'inline_attachment_mime',
+            type    => 't',
+            default => '^text/|^image/',
+        },
+    );
+    return @param_list;
 }
 
 1;

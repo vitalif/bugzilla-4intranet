@@ -244,8 +244,12 @@ sub view {
     $filename =~ s/\\/\\\\/g; # escape backslashes
     $filename =~ s/"/\\"/g; # escape quotes
 
+    my $disposition = Bugzilla->params->{inline_attachment_mime};
+    $disposition = $disposition && $contenttype =~ /$disposition/is
+        ? "inline" : "attachment";
+
     print $cgi->header(-type=>"$contenttype; name=\"$filename\"",
-                       -content_disposition=> "inline; filename=\"$filename\"",
+                       -content_disposition=> "$disposition; filename=\"$filename\"",
                        -content_length => $attachment->datasize);
     disable_utf8();
     print $attachment->data;
