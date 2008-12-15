@@ -1,0 +1,66 @@
+=head2 Fri Dec 12 16:44:50 2008: C<Module> L<Data::HexDump|Data::HexDump>
+
+=over 4
+
+=item *
+
+C<installed into: /home/www/localhost/cgi-bin/bugs32/lib>
+
+=item *
+
+C<LINKTYPE: dynamic>
+
+=item *
+
+C<VERSION: 0.02>
+
+=item *
+
+C<EXE_FILES: hexdump>
+
+=back
+
+=head2 Fri Dec 12 16:44:51 2008: C<Module> L<Authen::Radius|Authen::Radius>
+
+=over 4
+
+=item *
+
+C<installed into: /home/www/localhost/cgi-bin/bugs32/lib>
+
+=item *
+
+C<LINKTYPE: dynamic>
+
+=item *
+
+C<VERSION: 0.13>
+
+=item *
+
+C<EXE_FILES: >
+
+=back
+
+=head2 Fri Dec 12 16:48:07 2008: C<Module> L<Image::Magick|Image::Magick>
+
+=over 4
+
+=item *
+
+C<installed into: /home/www/localhost/cgi-bin/bugs32/lib>
+
+=item *
+
+C<LINKTYPE: dynamic>
+
+=item *
+
+C<VERSION: 6.4.0>
+
+=item *
+
+C<EXE_FILES: >
+
+=back
+
