@@ -178,7 +178,10 @@
         [% urlquerypart FILTER html %]&amp;ctype=csv">CSV</a> |
         <a href="buglist.cgi?
         [% urlquerypart FILTER html %]&amp;title=
-        [%- title FILTER html %]&amp;ctype=atom">Feed</a> |
+        [%- title FILTER html %]&amp;ctype=atom">Buglist Feed</a> |
+        <a href="rss-comments.cgi?
+        [% urlquerypart FILTER html %]&amp;title=
+        [%- title FILTER html %]&amp;ctype=rss&amp;namedcmd=[% searchname FILTER html %]">Activity Feed</a> |
         <a href="buglist.cgi?
         [% urlquerypart FILTER html %]&amp;ctype=ics">iCalendar</a> |
         <a href="colchange.cgi?

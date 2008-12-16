@@ -1,0 +1,54 @@
+[%# 1.0@bugzilla.org %]
+[% PROCESS global/variables.none.tmpl %]
+[% USE date %]
+<?xml version="1.0" encoding="windows-1251"?>
+<?xml-stylesheet type="text/xsl" href="[% Param('urlbase') %]skins/standard/feed.xsl"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/">
+<channel>
+    <title>[% title FILTER xml %]</title>
+    <link>[% Param('urlbase') %]buglist.cgi?[%- urlquerypart.replace('ctype=rss[&]?','') FILTER xml %]</link>
+    <description>[% "$terms.Bugzilla:" FILTER xml %][% title FILTER xml %]</description>
+    <language>Ru</language>
+    <lastBuildDate>[% builddate %]</lastBuildDate>
+    [% FOREACH evt = events %]
+    <item>
+        <title>Bug [% evt.bug_id %]: [% evt.short_desc FILTER xml %]</title>
+        <guid isPermaLink="true">[% Param('urlbase') FILTER xml %]show_bug.cgi?id=[% evt.bug_id FILTER xml %]#[%evt.commentlink%]</guid>
+        <link>[% Param('urlbase') FILTER xml %]show_bug.cgi?id=[% evt.bug_id FILTER xml %]#[%evt.commentlink%]</link>
+        <pubDate>[% evt.datetime_rfc822 %]</pubDate>
+        <description><![CDATA[
+            [% IF escapetags > 0 %]
+                [% FILTER xml %]
+                [% IF buginfo > 0 %]
+                <table class="bug-info"><tr>
+                    <td>[% evt.bug_id %]</td><td>[% evt.product %]/[% evt.component %]</td><td>[% evt.bug_severity %]</td><td>[% evt.bug_status %]</td>
+                </tr></table>
+                [% END %]
+                <pre>
+                    [% evt.thetext FILTER wrap_comment FILTER quoteUrls %]
+                </pre>
+                [% IF UserInGroup(Param('timetrackinggroup')) && (evt.work_time != 0 ) %]
+                    <div class="item-worktime">[% evt.work_time %]</div>
+                [% END %]
+                <div class="item-signature"><a href="mailto:[% evt.login_name %]">[% evt.realname FILTER html %]</a></div>
+                [% END %]
+            [% ELSE %]
+                [% IF buginfo > 0 %]
+                <table class="bug-info"><tr>
+                    <td>[% evt.bug_id %]</td><td>[% evt.product %]/[% evt.component %]</td><td>[% evt.bug_severity %]</td><td>[% evt.bug_status %]</td>
+                </tr></table>
+                [% END %]
+                <pre>
+                [% evt.thetext FILTER wrap_comment FILTER quoteUrls %]
+                </pre>
+                [% IF UserInGroup(Param('timetrackinggroup')) && (evt.work_time != 0 ) %]
+                    <div class="item-worktime">[% evt.work_time %]</div>
+                [% END %]
+                <div class="item-signature"><a href="mailto:[% evt.login_name %]">[% evt.realname FILTER html %]</a></div>
+            [% END %]
+        ]]></description>
+        <author>[% evt.login_name FILTER html %] ([% evt.realname FILTER html %])</author>
+    </item>
+    [% END %]
+</channel>
+</rss>

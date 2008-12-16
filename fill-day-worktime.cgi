@@ -5,21 +5,10 @@
 
 use strict;
 use lib qw(. lib);
-use Data::Dumper;
 
 use Bugzilla;
-use Bugzilla::Constants;
-use Bugzilla::Util;
-use Bugzilla::Error;
 use Bugzilla::Bug;
-use Bugzilla::User;
-use Bugzilla::Hook;
-use Bugzilla::Product;
-use Bugzilla::Classification;
-use Bugzilla::Keyword;
-use Bugzilla::Token;
-use Bugzilla::Field;
-use Bugzilla::Status;
+use Bugzilla::Constants;
 
 my $user     = Bugzilla->login(LOGIN_REQUIRED);
 my $userid   = $user->id;
