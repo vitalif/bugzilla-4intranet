@@ -65,7 +65,7 @@ if (@idlist || @lines)
             my $wtime    = $cgi->param("wtime_$id");
             my $newrtime = $cgi->param("newrtime_$id");
             my $comment  = $cgi->param("comm_$id");
-            ProcessBug($id, $wtime, $comment, $newrtime);
+            ProcessBug($dbh, $id, $wtime, $comment, $newrtime);
         }
     }
     if (@lines)
@@ -78,7 +78,7 @@ if (@idlist || @lines)
                 $wtime = 0 if $wtime < 0;
                 my $id      = $10;
                 my $comment = $line;
-                ProcessBug($id, $wtime, $comment);
+                ProcessBug($dbh, $id, $wtime, $comment);
             }
         }
     }
@@ -142,7 +142,7 @@ exit;
 
 sub ProcessBug
 {
-    my ($id, $wtime, $comment, $newrtime) = @_;
+    my ($dbh, $id, $wtime, $comment, $newrtime) = @_;
     return unless $id;
     $dbh->bz_start_transaction();
     my $bug = new Bugzilla::Bug ($id);
