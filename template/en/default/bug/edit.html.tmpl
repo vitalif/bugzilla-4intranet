@@ -253,6 +253,7 @@
           %]
           <br>
           <div id="knob-buttons">
+            <input type="button" value="Preview" onclick="document.getElementById('wrapcommentpreview').style.display='table-cell';document.getElementById('commentpreview').src='page.cgi?id=previewcomment.html&comment='+escape(document.changeform.comment.value);scrTo('commentpreview')">
             <input type="submit" value="Commit" id="commit">
             [% IF bug.user.canmove %]
               <input type="submit" name="action" id="action" value="[% Param("move-button-text") %]">
@@ -269,7 +270,18 @@
               </td>
             </tr>
           </table>
-        </td></tr></table>
+        </td></tr>
+        <tr><td id="wrapcommentpreview" style="display: none">
+        <iframe id="commentpreview" style="height: auto; border-width: 0; width: 100%">
+        </iframe>
+        <script>
+        function hidepreview() { document.getElementById('wrapcommentpreview').style.display='none' }
+        function findPos(obj) { var curtop = 0; if (obj.offsetParent) { do { curtop += obj.offsetTop; } while (obj = obj.offsetParent); return [curtop]; } }
+        function scrTo(id) { window.scroll(0,findPos(document.getElementById(id))); }
+        </script>
+        <p style="text-align: right"><a href="javascript:void hidepreview()">Hide preview</a></p>
+        </td></tr>
+        </table>
         [% ELSE %]
           <fieldset>
             <legend>Note</legend>

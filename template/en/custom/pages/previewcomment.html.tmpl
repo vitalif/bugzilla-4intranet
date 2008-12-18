@@ -1,0 +1,14 @@
+[% USE Bugzilla %]
+[% cgi = Bugzilla.cgi %]
+<html>
+<script type="text/javascript">
+function resizeIframe() {
+    parent.document.getElementById('commentpreview').style.height = document.getElementById('cmt').scrollHeight+13;
+}
+</script>
+<body onLoad="resizeIframe()" onResize="resizeIframe()">
+<div style="border-style: dotted; border-width: 2px; border-color: #969696; background-color: #e8e8e8; padding: 5px" id="cmt">
+<p><pre>[%- cgi.param("comment") FILTER wrap_comment FILTER quoteUrls -%]</pre></p>
+</div>
+</body>
+</html>
