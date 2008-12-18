@@ -442,7 +442,7 @@ sub run_create_validators {
 
     ($params->{bug_status}, $params->{everconfirmed})
         = $class->_check_bug_status($params->{bug_status}, $product,
-                                    $params->{comment});
+                                    $params->{comment}, $params->{assigned_to});
 
     $params->{target_milestone} = $class->_check_target_milestone(
         $params->{target_milestone}, $product);
@@ -915,7 +915,7 @@ sub _check_bug_severity {
 }
 
 sub _check_bug_status {
-    my ($invocant, $new_status, $product, $comment) = @_;
+    my ($invocant, $new_status, $product, $comment, $assigned_to) = @_;
     my $user = Bugzilla->user;
     my @valid_statuses;
     my $old_status; # Note that this is undef for new bugs.
@@ -935,6 +935,12 @@ sub _check_bug_status {
         # UNCONFIRMED becomes an invalid status if votes_to_confirm is 0,
         # even if you are in editbugs.
         @valid_statuses = grep {$_->name ne 'UNCONFIRMED'} @valid_statuses;
+    }
+
+    if ($user->email ne $assigned_to)
+    {
+        # You can not assign bugs to other people
+        @valid_statuses = grep {$_->name ne 'ASSIGNED'} @valid_statuses;
     }
 
     # Check permissions for users filing new bugs.

@@ -10,6 +10,7 @@ use Bugzilla;
 use Bugzilla::Bug;
 use Bugzilla::Constants;
 use Bugzilla::Error;
+use Bugzilla::Util;
 
 my $user      = Bugzilla->login(LOGIN_REQUIRED);
 my $userid    = $user->id;

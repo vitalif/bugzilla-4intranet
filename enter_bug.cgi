@@ -493,7 +493,7 @@ if ( Bugzilla->params->{'usetargetmilestone'} ) {
 my $initial_statuses = Bugzilla::Status->can_change_to();
 # Exclude closed states from the UI, even if the workflow allows them.
 # The back-end code will still accept them, though.
-@$initial_statuses = grep { $_->is_open } @$initial_statuses;
+@$initial_statuses = grep { $_->name eq 'RESOLVED' || $_->is_open } @$initial_statuses;
 
 my @status = map { $_->name } @$initial_statuses;
 # UNCONFIRMED is illegal if votes_to_confirm = 0.

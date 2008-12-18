@@ -22,7 +22,7 @@
 
 body {
     background: #c8c8c8;
-    font-family: Helvetica, Arial, Geneva;
+    font-family: Verdana, Helvetica, Arial, Geneva;
     padding-left: 1em;
     padding-right: 1em;
 }
@@ -276,4 +276,18 @@ hr {
         margin: 0;
         padding: 0;
     }
+}
+
+textarea, select {
+    border-width: 1px;
+    border-style: solid;
+    border-color: #747e93;
+    font-family: Verdana;
+    font-size: 13px;
+}
+
+input:not([type="submit"]):not([type="button"]):not([type="checkbox"]) {
+    border-width: 1px;
+    border-style: solid;
+    border-color: #747e93;
 }
