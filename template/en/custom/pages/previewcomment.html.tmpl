@@ -3,11 +3,11 @@
 <html>
 <script type="text/javascript">
 function resizeIframe() {
-    parent.document.getElementById('commentpreview').style.height = document.getElementById('cmt').scrollHeight+13;
+    parent.document.getElementById('commentpreview').style.height = document.getElementById('cmt').scrollHeight + "px";
 }
 </script>
-<body onLoad="resizeIframe()" onResize="resizeIframe()">
-<div style="border-style: dotted; border-width: 2px; border-color: #969696; background-color: #e8e8e8; padding: 5px" id="cmt">
+<body onLoad="resizeIframe()" onResize="resizeIframe()" style="margin: 0; padding: 0">
+<div class="bz_comment" style="border-style: dotted; border-width: 2px; border-color: #969696; background-color: #e8e8e8; padding: 5px" id="cmt">
 <p><pre>[%- cgi.param("comment") FILTER wrap_comment FILTER quoteUrls -%]</pre></p>
 </div>
 </body>

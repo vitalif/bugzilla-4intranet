@@ -62,7 +62,10 @@ sub SETTINGS {
                             default => ${Bugzilla->languages}[0] },
     # 2007-07-02 altlist@gmail.com -- Bug 225731
     quote_replies      => { options => ['quoted_reply', 'simple_reply', 'off'],
-                            default => "quoted_reply" }
+                            default => "quoted_reply" },
+    # 2008-12-22 vfilippov@custis.ru -- Custis Bug 17481
+    remind_me_about_worktime => { options => ['on', 'off'], default => 'on' },
+    remind_me_about_flags    => { options => ['on', 'off'], default => 'on' },
     }
 };
 

@@ -494,6 +494,7 @@ sub update {
     my $self = shift;
 
     my $dbh = Bugzilla->dbh;
+    my $user = Bugzilla->user;
     # XXX This is just a temporary hack until all updating happens
     # inside this function.
     my $delta_ts = shift || $dbh->selectrow_array("SELECT NOW()");
@@ -581,7 +582,7 @@ sub update {
             
             # Add an activity entry for the other bug.
             LogActivityEntry($removed_id, $other, $self->id, '',
-                             Bugzilla->user->id, $delta_ts);
+                             $user->id, $delta_ts);
             # Update delta_ts on the other bug so that we trigger mid-airs.
             $dbh->do('UPDATE bugs SET delta_ts = ? WHERE bug_id = ?',
                      undef, $delta_ts, $removed_id);
@@ -592,7 +593,7 @@ sub update {
             
             # Add an activity entry for the other bug.
             LogActivityEntry($added_id, $other, '', $self->id,
-                             Bugzilla->user->id, $delta_ts);
+                             $user->id, $delta_ts);
             # Update delta_ts on the other bug so that we trigger mid-airs.
             $dbh->do('UPDATE bugs SET delta_ts = ? WHERE bug_id = ?',
                      undef, $delta_ts, $added_id);
@@ -633,7 +634,7 @@ sub update {
         my $qmarks  = join(',', ('?') x @values);
         $dbh->do("INSERT INTO longdescs (bug_id, who, bug_when, $columns)
                        VALUES (?,?,?,$qmarks)", undef,
-                 $self->bug_id, Bugzilla->user->id, $delta_ts, @values);
+                 $self->bug_id, $user->id, $delta_ts, @values);
         if ($comment->{work_time}) {
             LogActivityEntry($self->id, "work_time", "", $comment->{work_time},
                 Bugzilla->user->id, $delta_ts);
@@ -937,7 +938,7 @@ sub _check_bug_status {
         @valid_statuses = grep {$_->name ne 'UNCONFIRMED'} @valid_statuses;
     }
 
-    if ($user->email ne $assigned_to)
+    if ($assigned_to && $user->email ne $assigned_to)
     {
         # You can not assign bugs to other people
         @valid_statuses = grep {$_->name ne 'ASSIGNED'} @valid_statuses;

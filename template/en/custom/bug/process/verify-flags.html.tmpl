@@ -1,0 +1,49 @@
+[%# 1.0@bugzilla.org %]
+
+[% USE Bugzilla %]
+[% cgi = Bugzilla.cgi %]
+
+[% PROCESS global/variables.none.tmpl %]
+[% PROCESS global/header.html.tmpl %]
+
+<h3>Please, verify flags:</h3>
+
+<form action="process_bug.cgi" method="post">
+
+<input type="hidden" name="force_flags" value="1" />
+[% PROCESS "global/hidden-fields.html.tmpl" exclude=field_filter %]
+
+<table cellspacing="0" cellpadding="4" style="border-width: 1px 1px 0 1px; border-style: solid; border-color: gray">
+  <tr style="background-color: #e0e0e0">
+    <th style="text-align: left">Who</th>
+    <th style="text-align: left">What</th>
+    <th style="text-align: left">Requestee</th>
+    <th style="text-align: left">Status</th>
+  </tr>
+[% FOREACH flag = verify_flags %]
+  <tr>
+    <td style="border-width: 0 0 1px 0; border-style: solid; border-color: gray">
+      [% flag.setter.login %] ( [% flag.setter.name %] )
+    </td>
+    <td style="border-width: 0 0 1px 0; border-style: solid; border-color: gray">
+      "[% flag.type.description %]"
+    </td>
+    <td style="border-width: 0 0 1px 0; border-style: solid; border-color: gray">
+      [% cgi.param("requestee-$flag.id" ) %]
+    </td>
+    <td style="border-width: 0 0 1px 0; border-style: solid; border-color: gray">
+      <select id="flag-[% flag.id %]" name="flag-[% flag.id %]"
+        <option value="X"></option>
+        <option value="+">+</option>
+        <option value="-">-</option>
+        <option value="?" selected="selected">?</option>
+      </select>
+    </td>
+  </tr>
+[% END %]
+</table>
+
+<p><input type="submit" value="Commit" /></p>
+</form>
+
+[% PROCESS global/footer.html.tmpl %]

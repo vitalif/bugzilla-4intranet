@@ -420,6 +420,12 @@
   [% ELSIF error == "invalid_post_bug_submit_action" %]
     Invalid setting for post_bug_submit_action
 
+  [% ELSIF error == "invalid_remind_me_about_worktime" %]
+    Invalid setting for remind_me_about_worktime
+
+  [% ELSIF error == "invalid_remind_me_about_flags" %]
+    Invalid setting for remind_me_about_flags
+
   [% ELSE %]
     [%# Try to find hooked error messages %]
     [% error_message = Hook.process("errors") %]

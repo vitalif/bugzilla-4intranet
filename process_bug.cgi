@@ -96,8 +96,9 @@ sub should_set {
     # a checkbox.
     my ($field, $check_defined) = @_;
     my $cgi = Bugzilla->cgi;
-    if ( defined $cgi->param($field) 
-         || ($check_defined && defined $cgi->param("defined_$field")) )
+    if ((defined $cgi->param($field)
+        || ($check_defined && defined $cgi->param("defined_$field")))
+        && ($field ne 'comment' || $cgi->param('comment') !~ /^\s*$/so))
     {
         return 1;
     }
@@ -314,16 +315,64 @@ my %methods = (
     short_desc   => 'set_summary',
     bug_file_loc => 'set_url',
 );
-foreach my $b (@bug_objects) {
-    if (should_set('comment') || $cgi->param('work_time')) {
+
+foreach my $b (@bug_objects)
+{
+    # Validate flag requests and remind user about resetting them
+    if (should_set('comment') && @bug_objects == 1 &&
+        !$cgi->param('force_flags') &&
+        $user->settings->{remind_me_about_flags} &&
+        $user->settings->{remind_me_about_flags}->{value} &&
+        (lc $user->settings->{remind_me_about_flags}->{value} ne "off"))
+    {
+        my @ids = map /^flag-(\d+)$/ ? $1 : (), $cgi->param();
+        my @requery_flags;
+        my @filter;
+        foreach my $id (@ids)
+        {
+            my $status = $cgi->param("flag-$id");
+            if (($status eq '?') &&
+                trim($cgi->param("requestee-$id")) eq $user->login)
+            {
+                my $flag = (Bugzilla::Flag->match({ id => $id }) || [])->[0];
+                push @filter, "flag-$id";
+                push @requery_flags, $flag;
+            }
+        }
+        if (@requery_flags)
+        {
+            $vars->{verify_flags} = \@requery_flags;
+            $vars->{field_filter} = '^('.join('|',@filter).')$';
+            $template->process("bug/process/verify-flags.html.tmpl", $vars)
+                || ThrowTemplateError($template->error());
+            exit;
+        }
+    }
+    if (should_set('comment') || $cgi->param('work_time'))
+    {
+        # Validate worktime and remind user about entering it
+        if (@bug_objects == 1 &&                                            # only individual bugs
+            !$cgi->param('work_time') &&                                    # work_time==0
+            !$cgi->param('force_work_time') &&                              # work_time not validated by user
+            $user->groups->{Bugzilla->params->{timetrackinggroup}} &&       # user in group timetrackinggroup
+            $user->settings->{remind_me_about_worktime} &&                  # user wants to be reminded about worktime
+            $user->settings->{remind_me_about_worktime}->{value} &&
+            lc $user->settings->{remind_me_about_worktime}->{value} ne 'off')
+        {
+            $template->process("bug/process/verify-worktime.html.tmpl", $vars)
+                || ThrowTemplateError($template->error());
+            exit;
+        }
         # Add a comment as needed to each bug. This is done early because
         # there are lots of things that want to check if we added a comment.
         $b->add_comment(scalar($cgi->param('comment')),
             { isprivate => scalar $cgi->param('commentprivacy'),
               work_time => scalar $cgi->param('work_time') });
     }
-    foreach my $field_name (@set_fields) {
-        if (should_set($field_name)) {
+    foreach my $field_name (@set_fields)
+    {
+        if (should_set($field_name))
+        {
             my $method = $methods{$field_name};
             $method ||= "set_" . $field_name;
             $b->$method($cgi->param($field_name));
@@ -333,9 +382,11 @@ foreach my $b (@bug_objects) {
     $b->reset_qa_contact  if $cgi->param('set_default_qa_contact');
 
     # And set custom fields.
-    foreach my $field (@custom_fields) {
+    foreach my $field (@custom_fields)
+    {
         my $fname = $field->name;
-        if (should_set($fname, 1)) {
+        if (should_set($fname, 1))
+        {
             $b->set_custom_field($field, [$cgi->param($fname)]);
         }
     }

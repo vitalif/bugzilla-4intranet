@@ -275,9 +275,11 @@
         <iframe id="commentpreview" style="height: auto; border-width: 0; width: 100%">
         </iframe>
         <script>
+        /*<!--*/
         function hidepreview() { document.getElementById('wrapcommentpreview').style.display='none' }
         function findPos(obj) { var curtop = 0; if (obj.offsetParent) { do { curtop += obj.offsetTop; } while (obj = obj.offsetParent); return [curtop]; } }
         function scrTo(id) { window.scroll(0,findPos(document.getElementById(id))); }
+        //-->
         </script>
         <p style="text-align: right"><a href="javascript:void hidepreview()">Hide preview</a></p>
         </td></tr>
