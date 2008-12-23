@@ -32,16 +32,21 @@
 
   <script type="text/javascript">
   <!--
-  
+
   /* Outputs a link to call replyToComment(); used to reduce HTML output */
   function addReplyLink(id, real_id) {
       /* XXX this should really be updated to use the DOM Core's
        * createElement, but finding a container isn't trivial.
        */
+      var s = '[';
       [% IF user.settings.quote_replies.value != 'off' %]
-        document.write('[<a href="#add_comment" onclick="replyToComment(' + 
-                       id + ',' + real_id + ');">reply<' + '/a>]');
+        s += '<a href="#add_comment" onclick="replyToComment(' +
+             id + ',' + real_id + ');">reply<' + '/a>';
       [% END %]
+      s += ', clone to <a href="enter_bug.cgi?cloned_bug_id=[% bug.bug_id %]&amp;cloned_comment='+id+'">other</a>';
+      s += '/<a href="enter_bug.cgi?cloned_bug_id=[% bug.bug_id %]&amp;product=[% bug.product %]&amp;cloned_comment='+id+'">same</a> product';
+      s += ']';
+      document.write(s);
   }
 
   /* Adds the reply text to the `comment' textarea */

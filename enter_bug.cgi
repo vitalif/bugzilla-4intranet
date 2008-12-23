@@ -389,23 +389,23 @@ foreach my $field (@enter_bug_fields) {
 
 if ($cloned_bug_id) {
 
-    $default{'component_'}    = $cloned_bug->component;
-    $default{'priority'}      = $cloned_bug->priority;
-    $default{'bug_severity'}  = $cloned_bug->bug_severity;
-    $default{'rep_platform'}  = $cloned_bug->rep_platform;
-    $default{'op_sys'}        = $cloned_bug->op_sys;
+    $default{component_}   = $cloned_bug->component;
+    $default{priority}     = $cloned_bug->priority;
+    $default{bug_severity} = $cloned_bug->bug_severity;
+    $default{rep_platform} = $cloned_bug->rep_platform;
+    $default{op_sys}       = $cloned_bug->op_sys;
 
-    $vars->{'short_desc'}     = $cloned_bug->short_desc;
-    $vars->{'bug_file_loc'}   = $cloned_bug->bug_file_loc;
-    $vars->{'keywords'}       = $cloned_bug->keywords;
-    $vars->{'dependson'}      = $cloned_bug_id;
-    $vars->{'blocked'}        = "";
-    $vars->{'deadline'}       = $cloned_bug->deadline;
+    $vars->{short_desc}    = $cloned_bug->short_desc;
+    $vars->{bug_file_loc}  = $cloned_bug->bug_file_loc;
+    $vars->{keywords}      = $cloned_bug->keywords;
+    $vars->{dependson}     = "";
+    $vars->{blocked}       = $cloned_bug_id;
+    $vars->{deadline}      = $cloned_bug->deadline;
 
     if (defined $cloned_bug->cc) {
-        $vars->{'cc'}         = join (" ", @{$cloned_bug->cc});
+        $vars->{cc} = join (" ", @{$cloned_bug->cc});
     } else {
-        $vars->{'cc'}         = formvalue('cc');
+        $vars->{cc} = formvalue('cc');
     }
 
     foreach my $field (@enter_bug_fields) {
@@ -417,37 +417,41 @@ if ($cloned_bug_id) {
     # the first comment, if it has one. Either way, make a note
     # that this bug was cloned from another bug.
 
-    my $isprivate             = $cloned_bug->longdescs->[0]->{'isprivate'};
+    my $cloned_comment = formvalue('cloned_comment', 0);
+    my $isprivate      = $cloned_bug->longdescs->[$cloned_comment]->{isprivate};
 
-    $vars->{'comment'}        = "";
-    $vars->{'commentprivacy'} = 0;
+    $vars->{comment}        = "";
+    $vars->{commentprivacy} = 0;
 
-    if ( !($isprivate) || Bugzilla->user->is_insider ) {
-        $vars->{'comment'}        = $cloned_bug->longdescs->[0]->{'body'};
-        $vars->{'commentprivacy'} = $isprivate;
+    if (!$isprivate || Bugzilla->user->is_insider)
+    {
+        $vars->{cloned_comment} = $cloned_comment;
+        $vars->{comment} = $cloned_bug->longdescs->[$cloned_comment]->{body};
+        $vars->{comment} =~ s!bug\s*#?\s*(\d+)\s*,?\s*comment\s*#?\s*(\d+)!Bug $cloned_bug_id, comment $2!gso;
+        $vars->{commentprivacy} = $isprivate;
     }
 
 } # end of cloned bug entry form
 
 else {
 
-    $default{'component_'}    = formvalue('component');
-    $default{'priority'}      = formvalue('priority', Bugzilla->params->{'defaultpriority'});
-    $default{'bug_severity'}  = formvalue('bug_severity', Bugzilla->params->{'defaultseverity'});
-    $default{'rep_platform'}  = pickplatform();
-    $default{'op_sys'}        = pickos();
+    $default{component_}    = formvalue('component');
+    $default{priority}      = formvalue('priority', Bugzilla->params->{defaultpriority});
+    $default{bug_severity}  = formvalue('bug_severity', Bugzilla->params->{defaultseverity});
+    $default{rep_platform}  = pickplatform();
+    $default{op_sys}        = pickos();
 
-    $vars->{'short_desc'}     = formvalue('short_desc');
-    $vars->{'bug_file_loc'}   = formvalue('bug_file_loc', "http://");
-    $vars->{'keywords'}       = formvalue('keywords');
-    $vars->{'dependson'}      = formvalue('dependson');
-    $vars->{'blocked'}        = formvalue('blocked');
-    $vars->{'deadline'}       = formvalue('deadline');
+    $vars->{short_desc}     = formvalue('short_desc');
+    $vars->{bug_file_loc}   = formvalue('bug_file_loc', "http://");
+    $vars->{keywords}       = formvalue('keywords');
+    $vars->{dependson}      = formvalue('dependson');
+    $vars->{blocked}        = formvalue('blocked');
+    $vars->{deadline}       = formvalue('deadline');
 
-    $vars->{'cc'}             = join(', ', $cgi->param('cc'));
+    $vars->{cc}             = join(', ', $cgi->param('cc'));
 
-    $vars->{'comment'}        = formvalue('comment');
-    $vars->{'commentprivacy'} = formvalue('commentprivacy');
+    $vars->{comment}        = formvalue('comment');
+    $vars->{commentprivacy} = formvalue('commentprivacy');
 
 } # end of normal/bookmarked entry form
 
