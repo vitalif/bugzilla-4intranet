@@ -199,7 +199,29 @@ if (defined $cgi->param('delta_ts')
     exit;
 }
 
-$vars->{'title_tag'} = "bug_processed";
+$vars->{title_tag} = "bug_processed";
+
+# Log silent comments
+if ($vars->{commentsilent} = $cgi->param('commentsilent'))
+{
+    my $datadir = bz_locations()->{datadir};
+    my $fd;
+    if (-w "$datadir/silentlog")
+    {
+        my $mesg = "";
+        my $comment = substr($cgi->param('comment'),0,60);
+        $comment =~ s/\r*\n+/|/gso;
+        $mesg .= "Silent comment> " . time2str("%D %H:%M:%S ", time()); 
+        $mesg .= " Bug " . $cgi->param('id') . " User: " . Bugzilla->user->login;
+        $mesg .= " ($ENV{REMOTE_ADDR}) " if $ENV{REMOTE_ADDR};
+        $mesg .= " // $comment ";
+        if (open $fd, ">>$datadir/silentlog")
+        {
+            print $fd "$mesg\n";
+            close $fd;
+        }
+    }
+}
 
 # Set up the vars for navigational <link> elements
 my @bug_list;

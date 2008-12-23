@@ -37,19 +37,22 @@
 
 [% PROCESS global/variables.none.tmpl %]
 
-[% mail = SendBugMail(mailing_bugid, mailrecipients) %]
-
-<dl>
-[% PROCESS emails
-   description = "Email sent to"
-   names = mail.sent
-%]
-
-[% PROCESS emails
-   description = "Excluding"
-   names = mail.excluded
-%]
-</dl>
+[% IF NOT(commentsilent) OR commentsilent<=0 %]
+  [% mail = SendBugMail(mailing_bugid, mailrecipients) %]
+  <dl>
+  [% PROCESS emails
+     description = "Email sent to"
+     names = mail.sent
+  %]
+  [% PROCESS emails
+     description = "Excluding"
+     names = mail.excluded
+  %]
+  </dl>
+[% ELSE %]
+  [% StopBugMail(mailing_bugid) %]
+  Your changes marked as Silent. No mail is sent.
+[% END %]
 
 [%############################################################################%]
 [%# Block for a set of email addresses                                       #%]

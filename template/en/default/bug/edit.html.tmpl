@@ -243,6 +243,9 @@
                    onClick="updateCommentTagControl(this, form)">
             <label for="newcommentprivacy">Private</label>
           [% END %]
+            <input type="checkbox" name="commentsilent" value="1" 
+                   id="commentsilent">
+            <label for="commentsilent">Silent</label>
           <br>
           [% INCLUDE global/textarea.html.tmpl
                      name      = 'comment'
