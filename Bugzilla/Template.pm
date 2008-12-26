@@ -55,6 +55,9 @@ use IO::Dir;
 
 use base qw(Template);
 
+my ($custom_p, $custom_proto);
+$custom_proto = do (bz_locations()->{libpath} . "/extensions/custom_url.pl");
+
 # As per the Template::Base documentation, the _init() method is being called 
 # by the new() constructor. We take advantage of this in order to plug our
 # UTF-8-aware Parser object in neatly after the original _init() method has
@@ -207,6 +210,17 @@ sub quoteUrls {
                ($things[$count++] = "<a href=\"$tmp\">$tmp</a>") &&
                ("\0\0" . ($count-1) . "\0\0")
               ~egox;
+
+    if ($custom_proto && %$custom_proto)
+    {
+        $custom_p ||= join '|', keys %$custom_proto;
+        $text =~ s
+            ~\b($custom_p):([^\s<>\"\#]+)(\#[^\s<>\"\#]+)?
+            ~($tmp = &{$custom_proto->{$1}}(html_quote($2),$3)) &&
+             ($things[$count++] = "<a href=\"$tmp\">$&</a>") &&
+             ("\0\0" . ($count-1) . "\0\0")
+            ~gesox;
+    }
 
     # We have to quote now, otherwise the html itself is escaped
     # THIS MEANS THAT A LITERAL ", <, >, ' MUST BE ESCAPED FOR A MATCH

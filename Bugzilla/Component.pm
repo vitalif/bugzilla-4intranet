@@ -43,6 +43,7 @@ use constant DB_COLUMNS => qw(
     initialowner
     initialqacontact
     description
+    wiki_url
 );
 
 use constant REQUIRED_CREATE_FIELDS => qw(
@@ -416,10 +417,11 @@ sub product {
 ####      Accessors        ####
 ###############################
 
-sub id          { return $_[0]->{'id'};          }
-sub name        { return $_[0]->{'name'};        }
-sub description { return $_[0]->{'description'}; }
-sub product_id  { return $_[0]->{'product_id'};  }
+sub id          { return $_[0]->{id};          }
+sub name        { return $_[0]->{name};        }
+sub description { return $_[0]->{description}; }
+sub wiki_url    { return $_[0]->{wiki_url};    }
+sub product_id  { return $_[0]->{product_id};  }
 
 ###############################
 ####      Subroutines      ####

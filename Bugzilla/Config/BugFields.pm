@@ -119,7 +119,8 @@ sub get_param_list {
    choices => ['', @legal_OS],
    default => '',
    checker => \&check_opsys
-  } );
+  },
+  );
   return @param_list;
 }
 

@@ -1071,6 +1071,7 @@ use constant ABSTRACT_SCHEMA => {
                                                 COLUMN => 'userid',
                                                 DELETE => 'SET NULL'}},
             description      => {TYPE => 'MEDIUMTEXT', NOTNULL => 1},
+            wiki_url         => {TYPE => 'TINYTEXT', NOTNULL => 1},
         ],
         INDEXES => [
             components_product_id_idx => {FIELDS => [qw(product_id name)],

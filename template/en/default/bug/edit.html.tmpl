@@ -260,12 +260,16 @@
                      cols      = constants.COMMENT_COLS
           %]
           <br>
-          <div id="knob-buttons">
+          <div id="knob-buttons" style="text-align: right">
             <input type="button" value="Preview" onclick="document.getElementById('wrapcommentpreview').style.display='table-cell';document.getElementById('commentpreview').src='page.cgi?id=previewcomment.html&comment='+escape(document.changeform.comment.value);scrTo('commentpreview')">
             <input type="submit" value="Commit" id="commit">
             [% IF bug.user.canmove %]
               <input type="submit" name="action" id="action" value="[% Param("move-button-text") %]">
             [% END %]
+            <br>Look for [% terms.Bug %] in:
+            <a href="[% Param('viewvc_url') %]?view=query&comment=bug[% bug.bug_id %]+[% bug.bug_id %]&comment_match=fulltext&querysort=date&date=all">CVS&SVN</a>
+            /
+            <a href="[% bug.component_obj.wiki_url || Param('wiki_url') %][% terms.Bug %]_[% bug.bug_id %]">Wiki</a>
           </div>
           <table class="status">
             <tr>
