@@ -61,6 +61,27 @@
     [% END %]
   [% END %]
 </select>
+[% IF allow_other_user AND id %]
+<script language="JavaScript">
+function add_select_option (id)
+{
+  var a = prompt('Enter another user login:');
+  if (a)
+  {
+    var s = document.getElementById(id);
+    var o = document.createElement('OPTION');
+    o.text = a + ' (Custom selection)';
+    o.value = a.replace(/(^\s+)|(\s+$)/g, "");
+    s.options.add(o);
+    o.selected = true;
+  }
+}
+</script>
+[%# FIXME Kludge!! </td><td> %]
+</td>
+<td>
+<input type="button" onclick="add_select_option('[% id %]')" value="..." />
+[% END %]
 [% ELSE %]
 <input
   name="[% name FILTER html %]"

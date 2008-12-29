@@ -140,11 +140,40 @@
               <span style="white-space: nowrap;">
                 [% IF Param('usemenuforusers') %]
                   [% flag_custom_list = flag.type.grant_list %]
+                  [% flag_list_allow_other = 1 %]
+                  [% IF !flag_custom_list.count %]
+                    [% fcl = {} %]
+                    [% IF bug.cc %]
+                      [% FOREACH c = bug.cc %]
+                        [% fcl.$c = c _ ' (CC)' %]
+                      [% END %]
+                    [% END %]
+                    [% fcl.${bug.reporter.login} = bug.reporter.realname _ ' <' _ bug.reporter.login _ '> (Reporter)' %]
+                    [% fcl.${bug.assigned_to.login} = bug.assigned_to.realname _ ' <' _ bug.assigned_to.login _ '> (Assignee)' %]
+                    [% IF initialqacontact %]
+                      [% fcl.${initialqacontact} = initialqacontact _ ' (Component QA)' %]
+                    [% END %]
+                    [% IF Param('useqacontact') %]
+                      [% fcl.${bug.qa_contact.login} = bug.qa_contact.realname _ ' <' _ bug.qa_contact.login _ '> (QA)' %]
+                    [% END %]
+                    [% flag_custom_list = [] %]
+                    [% FOREACH k = fcl.keys %]
+                      [% flag_custom_list.push({
+                         'visible' => 1,
+                         'identity' => fcl.$k,
+                         'login' => k,
+                      }) %]
+                    [% END %]
+                  [% ELSE %]
+                    [% flag_list_allow_other = 0 %]
+                  [% END %]
                   [% IF !(type.is_active && type.is_requestable && type.is_requesteeble) %]
                     [%# We are here only because there was already a requestee. In this case,
                         the only valid action is to remove the requestee or leave it alone;
                         nothing else. %]
-                    [% flag_custom_list = [flag.requestee] %]
+                    [% flag_custom_list1 = [flag.requestee] %]
+                  [% ELSE %]
+                    [% flag_custom_list1 = flag_custom_list %]
                   [% END %]
                   [% INCLUDE global/userselect.html.tmpl
                              name     => "requestee-$flag.id"
@@ -152,7 +181,8 @@
                              value    => flag.requestee.login
                              multiple => 0
                              emptyok  => 1
-                             custom_userlist => flag_custom_list
+                             custom_userlist => flag_custom_list1
+                             allow_other_user => flag_list_allow_other
                   %]
                 [% ELSE %]
                   (<input type="text" size="30" maxlength="255"
@@ -168,7 +198,7 @@
         [% END %]
       </tr>
     [% END %]
-    
+
     [%# Step 1b: Display UI for setting flag. %]
     [% IF (!type.flags || type.flags.size == 0) && type.is_active %]
       <tr>
@@ -204,7 +234,8 @@
                              id       => "requestee_type-$type.id"
                              multiple => type.is_multiplicable * 3
                              emptyok  => !type.is_multiplicable
-                             custom_userlist => type.grant_list
+                             custom_userlist => flag_custom_list
+                             allow_other_user => flag_list_allow_other
                   %]
                 [% ELSE %]
                   (<input type="text" size="30" maxlength="255"
@@ -258,7 +289,8 @@
                            id       => "requestee_type-$type.id"
                            multiple => type.is_multiplicable * 3
                            emptyok  => !type.is_multiplicable
-                           custom_userlist => type.grant_list
+                           custom_userlist => flag_custom_list
+                           allow_other_user => flag_list_allow_other
                 %]
               [% ELSE %]
                 (<input type="text" size="30" maxlength="255"

@@ -286,7 +286,7 @@ textarea, select {
     font-size: 13px;
 }
 
-input:not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]) {
+input:not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]):not([type="reset"]) {
     border-width: 1px;
     border-style: solid;
     border-color: #747e93;
