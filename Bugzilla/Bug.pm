@@ -504,20 +504,33 @@ sub update {
 
     # Certain items in $changes have to be fixed so that they hold
     # a name instead of an ID.
-    foreach my $field (qw(product_id component_id)) {
+    foreach my $field (qw(product_id component_id))
+    {
         my $change = delete $changes->{$field};
-        if ($change) {
+        if ($change)
+        {
             my $new_field = $field;
             $new_field =~ s/_id$//;
             $changes->{$new_field} = 
                 [$self->{"_old_${new_field}_name"}, $self->$new_field];
         }
     }
-    foreach my $field (qw(qa_contact assigned_to)) {
-        if ($changes->{$field}) {
+
+    foreach my $field (qw(qa_contact assigned_to))
+    {
+        if ($changes->{$field})
+        {
             my ($from, $to) = @{ $changes->{$field} };
-            $from = $old_bug->$field->login if $from;
-            $to   = $self->$field->login    if $to;
+            if ($from)
+            {
+                $from = $old_bug->$field->login;
+                # Add previous Assignee and QA to CC list
+                $self->add_cc($from);
+            }
+            if ($to)
+            {
+                $to = $self->$field->login;
+            }
             $changes->{$field} = [$from, $to];
         }
     }
