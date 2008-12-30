@@ -592,7 +592,7 @@
             %]
             <br>
             <input type="checkbox" id="set_default_qa_contact" name="set_default_qa_contact" value="1">
-            <label for="set_default_qa_contact" id="set_default_qa_contact_label">Reset QA Contact to default</label>
+            <label for="set_default_qa_contact" id="set_default_qa_contact_label">Reset QA Contact to default ([% bug.component_obj.default_qa_contact.login %])</label>
           </div>
           <script type="text/javascript">
             [% IF bug.qa_contact != "" %]
