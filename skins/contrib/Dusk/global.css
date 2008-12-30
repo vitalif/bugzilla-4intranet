@@ -291,3 +291,71 @@ input:not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type
     border-style: solid;
     border-color: #747e93;
 }
+
+.grant_table {
+    border-width: 1px;
+    border-style: solid;
+    border-color: #747e93;
+    border-collapse: collapse;
+}
+
+.grant_table th {
+    background-color: #d8d8e6;
+}
+
+.grant_table tr {
+    border-width: 0 0 1px 0;
+    border-style: solid;
+    border-color: #747e93;
+}
+
+.grant_table td {
+    padding: 0;
+}
+
+.grant_table td.one, .grant_table th.one {
+    border-width: 0 1px 0 0;
+    border-style: solid;
+    border-color: #747e93;
+}
+
+.grant_table table {
+    width: 100%;
+    margin: 0;
+}
+
+.grant_table table td {
+    width: 50%;
+    padding: 2px;
+}
+
+.grant_table table td select {
+    width: 100%;
+    padding: 2px;
+}
+
+.grant_table table th {
+    background-color: transparent;
+}
+
+.grant_table table tr {
+    border-width: 0;
+}
+
+.editgr_grinfo {
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.editgr_grinfo td {
+    border-width: 1px;
+    border-style: solid;
+    border-color: #747e93;
+}
+
+.editgr_grinfo th {
+    background-color: #d8d8e6;
+    border-width: 1px;
+    border-style: solid;
+    border-color: #747e93;
+}

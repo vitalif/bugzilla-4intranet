@@ -35,23 +35,13 @@
 [% PROCESS global/header.html.tmpl
   title = title
   doc_section = "groups.html#edit-groups"
-  style = "
-    .grant_table { border-collapse: collapse; }
-    .grant_table td, .grant_table th {
-        padding-left: .5em;
-    }
-    .grant_table td.one, .grant_table th.one {
-        border-right: 1px solid black;
-        padding-right: .5em;
-    }
-  "
 %]
 
 <form method="post" action="editgroups.cgi">
   <input type="hidden" name="action" value="postchanges">
   <input type="hidden" name="group_id" value="[% group.id FILTER html %]">
 
-  <table border="1" cellpadding="4">
+  <table class="editgr_grinfo" cellpadding="4">
     <tr>
       <th>Group:</th>
       <td>
@@ -122,18 +112,22 @@
     </tr>
     <tr>
       <td class="one">
-        [% PROCESS select_pair name = "members" size = 10
-                   items_available = members_available
-                     items_current = members_current %]
+        [% PROCESS select_pair
+           name = "members"
+           size = 10
+           items_available = members_available
+           items_current = members_current
+        %]
       </td>
-  
-      <td>[% PROCESS select_pair name = "member_of" size = 10
-                     items_available = member_of_available
-                       items_current = member_of_current %]</td>
+      <td>
+        [% PROCESS select_pair
+           name = "member_of"
+           size = 10
+           items_available = member_of_available
+           items_current = member_of_current
+        %]
+      </td>
     </tr>
-  </table>
-
-  <table class="grant_table">
     <tr>
       <th class="one">
         Groups That Can Grant Membership in This Group<br>
@@ -184,10 +178,12 @@
     </table>
   [% END %]
 
+  <p>
   <input type="submit" value="Update Group">
   <input type="hidden" name="token" value="[% token FILTER html %]">
+  </p>
 </form>
-  
+
 <h4>Mass Remove</h4>
 
 <p>You can use this form to do mass-removal of users from groups.

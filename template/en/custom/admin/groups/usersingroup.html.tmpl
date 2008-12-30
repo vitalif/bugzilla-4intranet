@@ -1,0 +1,70 @@
+[%# 1.0@bugzilla.org %]
+
+[%# INTERFACE:
+  # group_id: number. The group ID.
+  # name:             Name of the group.
+  # description:      Name of the group.
+  # users: array with group objects having the properties:
+  #   - grpid: number. The ID of the group.
+  #   - grpname: string. The name of the group. [member]
+  #   - grpdesc: string. The description of the group.
+  #   - grpmember: boolean int. Is 1 if members of the group are to inherit
+  #                membership in the group being edited.
+  #   - blessmember: boolean int. Is 1 if members of the group are to be able
+  #                  to bless users into the group being edited.
+  #   - membercansee: boolean int. Is 1 if the members of the group are to
+  #                   be aware of the group being edited and its members.
+  #%]
+
+[% PROCESS global/variables.none.tmpl %]
+[% PROCESS global/header.html.tmpl
+  title = "Change Users in Group: $name"
+  style = "
+    .users { border-collapse: collapse; }
+    .users tr { border: 1px solid #747e93; }
+    .users th { background: #d8d8e6; border: 1px solid #747e93; }
+  "
+%]
+
+<form method="post" action="editusersingroup.cgi">
+  <input name="group" type="hidden" value=[% group_id %]>
+  <table class="editgr_grinfo" cellpadding="4">
+    <tr>
+      <th>Group:</th>
+      <td>
+          [% name FILTER html %]
+      </td>
+    </tr>
+    <tr>
+      <th>Description:</th>
+      <td>
+          [% description FILTER html %]
+      </td>
+    </tr>
+  </table>
+
+  <h4>Users in the group &laquo;[% name FILTER html %]&raquo;</h4>
+  <table class="users" cellspacing="0" cellpadding="2" width="80%">
+    <tr>
+      <th>Login</th><th>Name</th><th>Direct</th><th>Regexp</th>
+    </tr>
+    [% row = 0 %]
+    [% FOREACH user = users %]
+      [% row = row + 1 %]
+      <tr [% 'class="odd_row"' IF row % 2 %]>
+          <td><a target="edituser" href="editusers.cgi?action=edit&userid=[% user.userid %]">
+              [% user.login_name FILTER html %]</a>
+          </td>
+          <td>[% user.realname FILTER html %]</td>
+          <td align="center">[% user.direct_char  FILTER html %]</td>
+          <td align="center">[% user.regexp_char  FILTER html %]</td>
+      </tr>
+    [% END %]
+  </table>
+  <p>
+  Add multiple user to the group (comma/space/newline separated list of userlogins):
+  </p>
+  <textarea rows="3" cols="100" wrap="virtual" name="addusers"></textarea>
+  <p>
+  <input value="Add new users" type="submit">
+</form>
