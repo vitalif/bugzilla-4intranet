@@ -70,8 +70,8 @@
 
 [%###################  TABLE HEADER   ######################%]
 
-<table id="admin_table" border="1" cellpadding="4" cellspacing="0">
-  <tr bgcolor="#6666FF">
+<table id="admin_table" cellpadding="4" cellspacing="0">
+  <tr>
     [% FOREACH c = columns %]
       [%# Default to align left for headers %]
       <th align="[% (c.align || 'left') FILTER html %]">
@@ -83,9 +83,11 @@
 
 [%###################  TABLE CONTENT  ######################%]
 
+[% count = 0 %]
 [% FOREACH row = data %]
 
-  <tr>
+  [% count = count + 1 %]
+  <tr class="[%+ count % 2 == 1 ? 'odd' : 'even' +%]_row">
     [% FOREACH c = columns %]
 
       [%# Copy to local variables, as we may update these %]
@@ -141,7 +143,7 @@
           [% END %]
           <a href="[% link_uri %]">
         [% END %]
-        
+
         [% IF content_use_field %]
            [% colname = row.${c.name} %]
            [% field_descs.${colname} FILTER html %]
@@ -162,11 +164,11 @@
             [% END %]
           [% END %]
         [% END %]
-        
+
         [% IF contentlink %]
           </a>
         [% END %]
-         
+
       </td>
     [% END %]
   </tr>

@@ -38,6 +38,7 @@
 %]
 
 [% edit_contentlink = "editgroups.cgi?action=changeform&amp;group=%%id%%" %]
+[% editusers_contentlink = "editusersingroup.cgi?group=%%id%%" %]
 [% del_contentlink = "editgroups.cgi?action=del&amp;group=%%id%%" %]
 
 [% columns =
@@ -62,6 +63,11 @@
    }
    {name               => 'action'
     heading            => 'Action'
+   }
+   {name               => 'members'
+    heading            => 'members'
+    contentlink        => editusers_contentlink
+    content            => 'edit'
    }
   ]
 %]
@@ -128,7 +134,7 @@
      override_content => 1
      content => "user"
    }]
-%] 
+%]
 
 [% PROCESS admin/table.html.tmpl
   columns = columns
