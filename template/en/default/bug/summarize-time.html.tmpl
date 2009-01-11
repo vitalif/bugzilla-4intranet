@@ -29,9 +29,9 @@
     [% header = title %]
 [% END %]
 
-[% PROCESS global/header.html.tmpl 
-    title = title 
-    header = header 
+[% PROCESS global/header.html.tmpl
+    title = title
+    header = header
     style_urls = ["skins/standard/summarize-time.css"]
     doc_section = "timetracking.html"
     %]
@@ -280,6 +280,9 @@
       inactive %] id="inactive">
   <label for="inactive" accesskey="i">Also show <u>i</u>nactive
   [%+ terms.bugs %]</label>
+  <input type="checkbox" name="my_activity" [% 'checked="checked"' IF
+      my_activity %] id="my_activity">
+  <label for="my_activity" accesskey="a">Use my <u>a</u>ctivity</label>
 </td>
 </tr></table>
 
