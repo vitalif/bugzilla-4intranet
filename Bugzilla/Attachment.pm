@@ -444,9 +444,12 @@ sub _validate_filename {
     my ($throw_error) = @_;
     my $cgi = Bugzilla->cgi;
     defined $cgi->upload('data')
+        || ($cgi->param('text_attachment') !~ /^\s*$/so)
         || ($throw_error ? ThrowUserError("file_not_specified") : return 0);
 
     my $filename = $cgi->upload('data');
+    $filename = $cgi->param('description')
+        if !$filename && $cgi->param('text_attachment') !~ /^\s*$/so;
 
     # Remove path info (if any) from the file name.  The browser should do this
     # for us, but some are buggy.  This may not work on Mac file names and could
@@ -486,7 +489,13 @@ sub _validate_data {
 
     $data
         || ($cgi->param('bigfile'))
+        || ($cgi->param('text_attachment') !~ /^\s*$/so)
         || ($throw_error ? ThrowUserError("zero_length_file") : return 0);
+
+    if (!$data && $cgi->param('text_attachment') !~ /^\s*$/so)
+    {
+        $data = $cgi->param('text_attachment');
+    }
 
     # Windows screenshots are usually uncompressed BMP files which
     # makes for a quick way to eat up disk space. Let's compress them.
@@ -622,8 +631,15 @@ sub validate_content_type {
         $throw_error ? ThrowUserError("missing_content_type_method") : return 0;
     }
     elsif ($cgi->param('contenttypemethod') eq 'autodetect') {
-        my $contenttype =
-            $cgi->uploadInfo($cgi->param('data'))->{'Content-Type'};
+        my $contenttype;
+        if ($cgi->param('data'))
+        {
+            $contenttype = $cgi->uploadInfo($cgi->param('data'))->{'Content-Type'};
+        }
+        else
+        {
+            $contenttype = 'text/plain';
+        }
         # The user asked us to auto-detect the content type, so use the type
         # specified in the HTTP request headers.
         if ( !$contenttype ) {
