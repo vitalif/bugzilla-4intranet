@@ -203,42 +203,45 @@ sub SaveSettings {
     $vars->{'settings'} = $user->settings(1);
 }
 
-sub DoEmail {
+sub DoEmail
+{
     my $dbh = Bugzilla->dbh;
     my $user = Bugzilla->user;
-    
+
     ###########################################################################
     # User watching
     ###########################################################################
-    if (Bugzilla->params->{"supportwatchers"}) {
-        my $watched_ref = $dbh->selectcol_arrayref(
-            "SELECT profiles.login_name FROM watch INNER JOIN profiles" .
-            " ON watch.watched = profiles.userid" .
-            " WHERE watcher = ?" .
-            " ORDER BY profiles.login_name",
-            undef, $user->id);
-        $vars->{'watchedusers'} = $watched_ref;
-
-        my $watcher_ids = $dbh->selectcol_arrayref(
-            "SELECT watcher FROM watch WHERE watched = ?",
-            undef, $user->id);
-
-        my @watchers;
-        foreach my $watcher_id (@$watcher_ids) {
-            my $watcher = new Bugzilla::User($watcher_id);
-            push (@watchers, Bugzilla::User::identity($watcher));
+    if (Bugzilla->params->{supportwatchers})
+    {
+        my $userid = $user->id;
+        # WatcheD and WatcherR ID's together
+        my $wdwr_ids = $dbh->selectall_arrayref(
+            "SELECT watched, watcher FROM watch WHERE watcher=? OR watched=?",
+            undef, $userid, $userid
+        ) || [];
+        $vars->{watchedusers} = [];
+        $vars->{watchers} = [];
+        foreach (@$wdwr_ids)
+        {
+            if ($_->[1] eq $userid)
+            {
+                push @{$vars->{watchedusers}}, Bugzilla::User->new($_->[0]);
+            }
+            else
+            {
+                push @{$vars->{watchers}}, Bugzilla::User->new($_->[1]);
+            }
         }
-
-        @watchers = sort { lc($a) cmp lc($b) } @watchers;
-        $vars->{'watchers'} = \@watchers;
+        $vars->{watchedusers} = [ sort { $a->identity cmp $b->identity } @{$vars->{watchedusers}} ];
+        $vars->{watchers} = [ sort { $a->identity cmp $b->identity } @{$vars->{watchers}} ];
     }
 
     ###########################################################################
     # Role-based preferences
     ###########################################################################
-    my $sth = $dbh->prepare("SELECT relationship, event " . 
-                            "FROM email_setting " . 
-                            "WHERE user_id = ?");
+    my $sth = $dbh->prepare(
+        "SELECT relationship, event FROM email_setting WHERE user_id = ?"
+    );
     $sth->execute($user->id);
 
     my %mail;
@@ -246,16 +249,17 @@ sub DoEmail {
         $mail{$relationship}{$event} = 1;
     }
 
-    $vars->{'mail'} = \%mail;      
+    $vars->{mail} = \%mail;
 }
 
-sub SaveEmail {
+sub SaveEmail
+{
     my $dbh = Bugzilla->dbh;
     my $cgi = Bugzilla->cgi;
     my $user = Bugzilla->user;
 
-    if (Bugzilla->params->{"supportwatchers"}) {
-        Bugzilla::User::match_field($cgi, { 'new_watchedusers' => {'type' => 'multi'} });
+    if (Bugzilla->params->{supportwatchers}) {
+        Bugzilla::User::match_field($cgi, { new_watchedusers => { type => 'multi' } });
     }
 
     ###########################################################################
@@ -266,7 +270,7 @@ sub SaveEmail {
     # Delete all the user's current preferences
     $dbh->do("DELETE FROM email_setting WHERE user_id = ?", undef, $user->id);
 
-    # Repopulate the table - first, with normal events in the 
+    # Repopulate the table - first, with normal events in the
     # relationship/event matrix.
     # Note: the database holds only "off" email preferences, as can be implied 
     # from the name of the table - profiles_nomail.
@@ -276,20 +280,20 @@ sub SaveEmail {
             if (defined($cgi->param("email-$rel-$event"))
                 && $cgi->param("email-$rel-$event") == 1)
             {
-                $dbh->do("INSERT INTO email_setting " . 
-                         "(user_id, relationship, event) " . 
+                $dbh->do("INSERT INTO email_setting " .
+                         "(user_id, relationship, event) " .
                          "VALUES (?, ?, ?)",
                          undef, ($user->id, $rel, $event));
             }
         }
-        
+
         # Negative events: a ticked box means "don't send me mail."
         foreach my $event (NEG_EVENTS) {
             if (!defined($cgi->param("neg-email-$rel-$event")) ||
-                $cgi->param("neg-email-$rel-$event") != 1) 
+                $cgi->param("neg-email-$rel-$event") != 1)
             {
-                $dbh->do("INSERT INTO email_setting " . 
-                         "(user_id, relationship, event) " . 
+                $dbh->do("INSERT INTO email_setting " .
+                         "(user_id, relationship, event) " .
                          "VALUES (?, ?, ?)",
                          undef, ($user->id, $rel, $event));
             }
@@ -301,8 +305,8 @@ sub SaveEmail {
         if (defined($cgi->param("email-" . REL_ANY . "-$event"))
             && $cgi->param("email-" . REL_ANY . "-$event") == 1)
         {
-            $dbh->do("INSERT INTO email_setting " . 
-                     "(user_id, relationship, event) " . 
+            $dbh->do("INSERT INTO email_setting " .
+                     "(user_id, relationship, event) " .
                      "VALUES (?, ?, ?)",
                      undef, ($user->id, REL_ANY, $event));
         }
@@ -313,49 +317,65 @@ sub SaveEmail {
     ###########################################################################
     # User watching
     ###########################################################################
-    if (Bugzilla->params->{"supportwatchers"} 
-        && (defined $cgi->param('new_watchedusers')
-            || defined $cgi->param('remove_watched_users'))) 
+    if (Bugzilla->params->{supportwatchers} && (
+        $cgi->param('new_watchedusers') ||
+        $cgi->param('remove_watched_users') ||
+        $cgi->param('new_watchers') ||
+        $cgi->param('remove_watchers')
+    ))
     {
         $dbh->bz_start_transaction();
 
-        # Use this to protect error messages on duplicate submissions
-        my $old_watch_ids =
-            $dbh->selectcol_arrayref("SELECT watched FROM watch"
-                                   . " WHERE watcher = ?", undef, $user->id);
+        my $userid = $user->id;
+        my $add_wdwr = [];
+        my $del_wdwr = [];
 
-        # The new information given to us by the user.
-        my $new_watched_users = join(',', $cgi->param('new_watchedusers')) || '';
-        my @new_watch_names = split(/[,\s]+/, $new_watched_users);
-        my %new_watch_ids;
+        # New watched users
+        push @$add_wdwr,
+            map { [ login_to_id(trim($_), THROW_ERROR), $userid ] }
+            split /[,\s]+/,
+            join(',', $cgi->param('new_watchedusers')) || '';
 
-        foreach my $username (@new_watch_names) {
-            my $watched_userid = login_to_id(trim($username), THROW_ERROR);
-            $new_watch_ids{$watched_userid} = 1;
+        # New watchers
+        push @$add_wdwr,
+            map { [ $userid, login_to_id(trim($_), THROW_ERROR) ] }
+            split /[,\s]+/,
+            join(',', $cgi->param('new_watchers')) || '';
+
+        if ($cgi->param('remove_watched_users'))
+        {
+            # User wants to remove selected watched users
+            push @$del_wdwr,
+                map { [ login_to_id(trim($_), THROW_ERROR), $userid ] }
+                $cgi->param('watched_by_you');
         }
 
-        # Add people who were added.
-        my $insert_sth = $dbh->prepare('INSERT INTO watch (watched, watcher)'
-                                     . ' VALUES (?, ?)');
-        foreach my $add_me (keys(%new_watch_ids)) {
-            next if grep($_ == $add_me, @$old_watch_ids);
-            $insert_sth->execute($add_me, $user->id);
+        if ($cgi->param('remove_watchers'))
+        {
+            # User wants to remove selected watchers
+            push @$del_wdwr,
+                map { [ $userid, login_to_id(trim($_), THROW_ERROR) ] }
+                $cgi->param('watchers');
         }
 
-        if (defined $cgi->param('remove_watched_users')) {
-            my @removed = $cgi->param('watched_by_you');
-            # Remove people who were removed.
-            my $delete_sth = $dbh->prepare('DELETE FROM watch WHERE watched = ?'
-                                         . ' AND watcher = ?');
-            
-            my %remove_watch_ids;
-            foreach my $username (@removed) {
-                my $watched_userid = login_to_id(trim($username), THROW_ERROR);
-                $remove_watch_ids{$watched_userid} = 1;
-            }
-            foreach my $remove_me (keys(%remove_watch_ids)) {
-                $delete_sth->execute($remove_me, $user->id);
-            }
+        if (@$add_wdwr)
+        {
+            # Add new watchers / watched users
+            $dbh->do(
+                "REPLACE INTO watch (watched, watcher) VALUES " .
+                (join ",", ("(?,?)") x scalar @$add_wdwr),
+                undef, map { @$_ } @$add_wdwr
+            );
+        }
+
+        if (@$del_wdwr)
+        {
+            # Delete watchers / watched users
+            $dbh->do(
+                "DELETE FROM watch WHERE (watched, watcher) IN (" .
+                (join ",", ("(?,?)") x scalar @$del_wdwr) . ")",
+                undef, map { @$_ } @$del_wdwr
+            );
         }
 
         $dbh->bz_commit_transaction();

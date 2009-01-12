@@ -299,6 +299,13 @@ input:not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type
     border-collapse: collapse;
 }
 
+.bz_emailprefs {
+    border-width: 1px;
+    border-style: solid;
+    border-color: #747e93;
+    border-collapse: collapse;
+}
+
 .grant_table th {
     background-color: #d8d8e6;
 }
