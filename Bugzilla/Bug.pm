@@ -1946,7 +1946,8 @@ sub reset_qa_contact {
 }
 sub set_remaining_time { $_[0]->set('remaining_time', $_[1]); }
 # Used only when closing a bug or moving between closed states.
-sub _zero_remaining_time { $_[0]->{'remaining_time'} = 0; }
+# sub _zero_remaining_time { $_[0]->{'remaining_time'} = 0; }
+sub _zero_remaining_time { }
 sub set_reporter_accessible { $_[0]->set('reporter_accessible', $_[1]); }
 sub set_resolution {
     my ($self, $value, $params) = @_;
