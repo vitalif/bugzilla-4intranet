@@ -173,7 +173,7 @@ foreach my $result (@$results) {
     $row = "" if ($row eq $columns{''});
     $col = "" if ($col eq $columns{''});
     $tbl = "" if ($tbl eq $columns{''});
-    
+
     # account for the fact that names may start with '_' or '.'.  Change this 
     # so the template doesn't hide hash elements with those keys
     $row =~ s/^([._])/ $1/;
@@ -184,7 +184,7 @@ foreach my $result (@$results) {
     $names{"col"}{$col}++;
     $names{"row"}{$row}++;
     $names{"tbl"}{$tbl}++;
-    
+
     $col_isnumeric &&= ($col =~ /^-?\d+(\.\d+)?$/o);
     $row_isnumeric &&= ($row =~ /^-?\d+(\.\d+)?$/o);
     $tbl_isnumeric &&= ($tbl =~ /^-?\d+(\.\d+)?$/o);

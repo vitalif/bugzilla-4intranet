@@ -73,7 +73,7 @@ sub CreateImagemap {
             # bugtitle hash instead of mapdata allows us to get the summary even
             # when showsummary is off, and also gives us status and resolution.
             my $bugtitle = html_quote(clean_text($bugtitles{$bugid}));
-            $map .= qq{<area alt="bug $bugid" name="bug$bugid" shape="rect" } .
+            $map .= qq{<area alt="$bugtitle" name="bug$bugid" shape="rect" } .
                     qq{title="$bugtitle" href="$url" } .
                     qq{coords="$leftx,$topy,$rightx,$bottomy">\n};
         }
@@ -214,9 +214,7 @@ foreach my $k (keys(%seen)) {
         push(@params, "shape=box");
     }
 
-    if (is_open_state($stat)) {
-        push(@params, "color=green");
-    }
+    push(@params, "color=" . GetColorByState($stat) );
 
     if (@params) {
         print $fh "$k [" . join(',', @params) . "]\n";
@@ -236,6 +234,34 @@ foreach my $k (keys(%seen)) {
     }
 }
 
+sub GetColorByState {
+    my ($state) = (@_);
+    if ( $state eq "UNCONFIRMED" ) {
+        return "white";
+    }
+    if ( $state eq "NEW" ) {
+        return "orange";
+    }
+    if ( $state eq "ASSIGNED" ) {
+        return "yellow";
+    }
+    if ( $state eq "RESOLVED" ) {
+        return "green";
+    }
+    if ( $state eq "VERIFIED" ) {
+        return "slateblue";
+    }
+    if ( $state eq "CLOSED" ) {
+        return "lightgrey";
+    }
+    if ( $state eq "REOPENED" ) {
+        return "orangered";
+    }
+    if ( IsOpenedState($state)) {
+        return "green";
+    }
+    return "lightgrey";
+}
 
 print $fh "}\n";
 close $fh;
