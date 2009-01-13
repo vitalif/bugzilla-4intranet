@@ -690,6 +690,12 @@
     [% PROCESS dependencies
                dep = { title => "Depends&nbsp;on", fieldname => "dependson" } %]
   </tr>
+  [% IF bug.lastchangeddeps %]
+  <tr>
+    <td></td>
+    <td><font size="-2">Blockers completed <b>~[% bug.depscompletedpercent %]%</b>, last changed <b>[% bug.lastchangeddeps %]</b></font></td>
+  </tr>
+  [% END %]
   
   <tr>
     [% PROCESS dependencies accesskey = "b"

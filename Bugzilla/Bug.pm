@@ -2027,6 +2027,26 @@ sub set_summary           { $_[0]->set('short_desc',        $_[1]); }
 sub set_target_milestone  { $_[0]->set('target_milestone',  $_[1]); }
 sub set_url               { $_[0]->set('bug_file_loc',      $_[1]); }
 sub set_version           { $_[0]->set('version',           $_[1]); }
+sub depscompletedpercent  { $_[0]->checkdepsinfo; $_[0]->{depscompletedpercent}; }
+sub lastchangeddeps       { $_[0]->checkdepsinfo; $_[0]->{lastchangeddeps}; }
+
+sub checkdepsinfo
+{
+    my $self = shift;
+    my $dep = $self->dependson;
+    return if defined $self->{lastchangeddeps} || !$dep || !@$dep;
+    my $where = "bug_id IN (" . join(",", ("?") x @$dep) . ")";
+    my ($last, $rem) = Bugzilla->dbh->selectrow_array(
+        "SELECT MAX(delta_ts), SUM(remaining_time)" .
+        " FROM bugs WHERE $where", undef, @$dep
+    );
+    my ($work) = Bugzilla->dbh->selectrow_array(
+        "SELECT SUM(work_time) FROM longdescs WHERE $where",
+        undef, @$dep
+    );
+    $self->{lastchangeddeps} = $last;
+    $self->{depscompletedpercent} = int(100*$work/($work+$rem || 1));
+}
 
 ########################
 # "Add/Remove" Methods #

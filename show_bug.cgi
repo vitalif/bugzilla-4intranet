@@ -91,8 +91,8 @@ if ($single) {
 
 # Determine if Patch Viewer is installed, for Diff link
 eval {
-  require PatchReader;
-  $vars->{'patchviewerinstalled'} = 1;
+    require PatchReader;
+    $vars->{patchviewerinstalled} = 1;
 };
 
 $vars->{'bugs'} = \@bugs;
