@@ -103,25 +103,34 @@ else {
 }
 
 my %columns;
-$columns{'bug_severity'}     = "bugs.bug_severity";        
-$columns{'priority'}         = "bugs.priority";
-$columns{'rep_platform'}     = "bugs.rep_platform";
-$columns{'assigned_to'}      = "map_assigned_to.login_name";
-$columns{'reporter'}         = "map_reporter.login_name";
-$columns{'qa_contact'}       = "map_qa_contact.login_name";
-$columns{'bug_status'}       = "bugs.bug_status";
-$columns{'resolution'}       = "bugs.resolution";
-$columns{'component'}        = "map_components.name";
-$columns{'product'}          = "map_products.name";
-$columns{'classification'}   = "map_classifications.name";
-$columns{'version'}          = "bugs.version";
-$columns{'op_sys'}           = "bugs.op_sys";
-$columns{'votes'}            = "bugs.votes";
-$columns{'keywords'}         = "bugs.keywords";
-$columns{'target_milestone'} = "bugs.target_milestone";
+$columns{bug_severity}     = "bugs.bug_severity";
+$columns{priority}         = "bugs.priority";
+$columns{rep_platform}     = "bugs.rep_platform";
+$columns{assigned_to}      = "map_assigned_to.login_name";
+$columns{reporter}         = "map_reporter.login_name";
+$columns{qa_contact}       = "map_qa_contact.login_name";
+$columns{bug_status}       = "bugs.bug_status";
+$columns{resolution}       = "bugs.resolution";
+$columns{component}        = "map_components.name";
+$columns{product}          = "map_products.name";
+$columns{classification}   = "map_classifications.name";
+$columns{version}          = "bugs.version";
+$columns{op_sys}           = "bugs.op_sys";
+$columns{votes}            = "bugs.votes";
+$columns{keywords}         = "bugs.keywords";
+$columns{target_milestone} = "bugs.target_milestone";
 # One which means "nothing". Any number would do, really. It just gets SELECTed
 # so that we always select 3 items in the query.
 $columns{''}                 = "42217354";
+
+my $measures = {
+    etime => "bugs.estimated_time AS measure",
+    rtime => "bugs.remaining_time AS measure",
+    count => "1 AS measure",
+};
+my $measure = $cgi->param('measure');
+$measure = 'count' unless $measures->{$measure};
+$vars->{measure} = $measure;
 
 # Validate the values in the axis fields or throw an error.
 !$row_field 
@@ -135,11 +144,11 @@ $columns{''}                 = "42217354";
   || ThrowCodeError("report_axis_invalid", {fld => "z", val => $tbl_field});
 
 my @axis_fields = ($row_field, $col_field, $tbl_field);
-my @selectnames = map($columns{$_}, @axis_fields);
+my @selectnames = (map($columns{$_}, @axis_fields), $measure);
 
 # Clone the params, so that Bugzilla::Search can modify them
 my $params = new Bugzilla::CGI($cgi);
-my $search = new Bugzilla::Search('fields' => \@selectnames, 
+my $search = new Bugzilla::Search('fields' => \@selectnames,
                                   'params' => $params);
 my $query = $search->getSQL();
 
@@ -148,7 +157,7 @@ $::SIG{PIPE} = 'DEFAULT';
 
 my $results = $dbh->selectall_arrayref($query);
 
-# We have a hash of hashes for the data itself, and a hash to hold the 
+# We have a hash of hashes for the data itself, and a hash to hold the
 # row/col/table names.
 my %data;
 my %names;
@@ -163,7 +172,7 @@ my $row_isnumeric = 1;
 my $tbl_isnumeric = 1;
 
 foreach my $result (@$results) {
-    my ($row, $col, $tbl) = @$result;
+    my ($row, $col, $tbl, $bc) = @$result;
 
     # handle empty dimension member names
     $row = ' ' if ($row eq '');
@@ -174,16 +183,16 @@ foreach my $result (@$results) {
     $col = "" if ($col eq $columns{''});
     $tbl = "" if ($tbl eq $columns{''});
 
-    # account for the fact that names may start with '_' or '.'.  Change this 
+    # account for the fact that names may start with '_' or '.'.  Change this
     # so the template doesn't hide hash elements with those keys
     $row =~ s/^([._])/ $1/;
     $col =~ s/^([._])/ $1/;
     $tbl =~ s/^([._])/ $1/;
 
-    $data{$tbl}{$col}{$row}++;
-    $names{"col"}{$col}++;
-    $names{"row"}{$row}++;
-    $names{"tbl"}{$tbl}++;
+    $data{$tbl}{$col}{$row} += $bc;
+    $names{col}{$col} += $bc;
+    $names{row}{$row} += $bc;
+    $names{tbl}{$tbl} += $bc;
 
     $col_isnumeric &&= ($col =~ /^-?\d+(\.\d+)?$/o);
     $row_isnumeric &&= ($row =~ /^-?\d+(\.\d+)?$/o);
@@ -198,7 +207,7 @@ my @tbl_names = @{get_names($names{"tbl"}, $tbl_isnumeric, $tbl_field)};
 # gathered everything into the hashes and made sure we know the size of the
 # data, we reformat it into an array of arrays of arrays of data.
 push(@tbl_names, "-total-") if (scalar(@tbl_names) > 1);
-    
+
 my @image_data;
 foreach my $tbl (@tbl_names) {
     my @tbl_data;
@@ -219,7 +228,7 @@ foreach my $tbl (@tbl_names) {
 
         push(@tbl_data, \@col_data);
     }
-    
+
     unshift(@image_data, \@tbl_data);
 }
 
@@ -269,17 +278,20 @@ if ($action eq "wrap") {
     $vars->{'col_vals'} = join("&", $buffer =~ /[&?]($col_field=[^&]+)/g);
     $vars->{'row_vals'} = join("&", $buffer =~ /[&?]($row_field=[^&]+)/g);
     $vars->{'tbl_vals'} = join("&", $buffer =~ /[&?]($tbl_field=[^&]+)/g);
-    
+
     # We need a number of different variants of the base URL for different
     # URLs in the HTML.
-    $vars->{'buglistbase'} = $cgi->canonicalise_query(
-                                 "x_axis_field", "y_axis_field", "z_axis_field",
-                               "ctype", "format", "query_format", @axis_fields);
-    $vars->{'imagebase'}   = $cgi->canonicalise_query( 
-                    $tbl_field, "action", "ctype", "format", "width", "height");
-    $vars->{'switchbase'}  = $cgi->canonicalise_query( 
-                "query_format", "action", "ctype", "format", "width", "height");
-    $vars->{'data'} = \%data;
+    $vars->{buglistbase} = $cgi->canonicalise_query(
+        qw(x_axis_field y_axis_field z_axis_field ctype format query_format
+        measure), @axis_fields
+    );
+    $vars->{imagebase} = $cgi->canonicalise_query(
+        $tbl_field, qw(action ctype format width height measure),
+    );
+    $vars->{switchbase} = $cgi->canonicalise_query(
+        qw(query_format action ctype format width height measure)
+    );
+    $vars->{data} = \%data;
 }
 elsif ($action eq "plot") {
     # If action is "plot", we will be using a format as normal (pie, bar etc.)
@@ -327,7 +339,7 @@ exit;
 
 sub get_names {
     my ($names, $isnumeric, $field) = @_;
-  
+
     # These are all the fields we want to preserve the order of in reports.
     my %fields = ('priority'     => get_legal_field_values('priority'),
                   'bug_severity' => get_legal_field_values('bug_severity'),
@@ -335,20 +347,20 @@ sub get_names {
                   'op_sys'       => get_legal_field_values('op_sys'),
                   'bug_status'   => get_legal_field_values('bug_status'),
                   'resolution'   => [' ', @{get_legal_field_values('resolution')}]);
-    
+
     my $field_list = $fields{$field};
     my @sorted;
-    
+
     if ($field_list) {
         my @unsorted = keys %{$names};
-        
+
         # Extract the used fields from the field_list, in the order they 
         # appear in the field_list. This lets us keep e.g. severities in
         # the normal order.
         #
         # This is O(n^2) but it shouldn't matter for short lists.
         @sorted = map {lsearch(\@unsorted, $_) == -1 ? () : $_} @{$field_list};
-    }  
+    }
     elsif ($isnumeric) {
         # It's not a field we are preserving the order of, so sort it 
         # numerically...
@@ -358,6 +370,6 @@ sub get_names {
         # ...or alphabetically, as appropriate.
         @sorted = sort(keys(%{$names}));
     }
-  
+
     return \@sorted;
 }

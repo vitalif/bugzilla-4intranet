@@ -131,7 +131,7 @@
         [% FOREACH other_format = formats %]
           [% NEXT IF other_format.name == "pie" AND row_field AND col_field %]
           [% UNLESS other_format.name == format %]
-            <a href="[% formaturl %]&amp;format=[% other_format.name %]">
+            <a href="[% formaturl %]&amp;format=[% other_format.name %]&amp;measure=[% measure %]">
           [% END %]
           [% other_format.description FILTER html %]
           [% "</a>" UNLESS other_format.name == format %] | 
@@ -145,8 +145,7 @@
         </td>
 
         [% sizeurl = BLOCK %]report.cgi?
-          [% switchbase %]&amp;action=wrap&amp;format=
-          [% format FILTER html %][% END %]
+          [% switchbase %]&amp;action=wrap&amp;format=[% format FILTER html %]&amp;measure=[% measure FILTER html %][% END %]
         <td align="center">
           <a href="[% sizeurl %]&amp;width=[% width %]&amp;height=
                    [% height + 100 %]">Taller</a><br>
@@ -160,6 +159,33 @@
       [% END %]
     </tr>
   </table>
+
+  <table><tr><td>
+          [% IF measure !='rtime'%]
+            <a href="[% formaturl %]&amp;format=[% format %]&amp;measure=rtime">
+          [% END %]
+              Remaining time
+          [% IF measure !='rtime'%]
+              </a>
+          [% END %]
+          </td><td>|
+          [% IF measure !='etime'%]
+            <a href="[% formaturl %]&amp;format=[% format %]&amp;measure=etime">
+          [% END %]
+              Estimated time
+          [% IF measure !='etime'%]
+              </a>
+          [% END %]
+          </td><td>|
+          [% IF (NOT measure) || (measure !='count') %]
+            <a href="[% formaturl %]&amp;format=[% format %]&amp;measure=count">
+          [% END %]
+             Bugs count
+          [% IF (NOT measure) || (measure !='count') %]
+              </a>
+          [% END %]
+  </td></tr></table>
+
 
   <p>
     [% IF format == "table" %]
