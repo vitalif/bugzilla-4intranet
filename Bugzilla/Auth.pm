@@ -35,6 +35,7 @@ use Bugzilla::Error;
 use Bugzilla::Auth::Login::Stack;
 use Bugzilla::Auth::Verify::Stack;
 use Bugzilla::Auth::Persist::Cookie;
+use Bugzilla::CustisLocalBugzillas;
 
 sub new {
     my ($class, $params) = @_;
@@ -89,6 +90,26 @@ sub login {
     }
     $user->set_authorizer($self);
 
+    if ($user->settings->{redirect_me_to_my_bugzilla} eq "on")
+    {
+        my $loc = \%Bugzilla::CustisLocalBugzillas::localizer;
+        my $fullurl = Bugzilla->cgi->url();
+        foreach my $regemail (keys %$loc)
+        {
+            if ($user->login =~ /$regemail/s && $fullurl !~ /\Q$loc->{$regemail}\E/s)
+            {
+                my $relativeurl = Bugzilla->cgi->url(
+                    -path_info => 1,
+                    -query => 1,
+                    -relative => 1
+                );
+                my $url = $loc->{$regemail} . $relativeurl;
+                print Bugzilla->cgi->redirect(-location => $url);
+                exit;
+            }
+        }
+    }
+
     return $self->_handle_login_result($login_info, $type);
 }
 
@@ -97,7 +118,7 @@ sub can_change_password {
     my $verifier = $self->{_verifier}->{successful};
     $verifier  ||= $self->{_verifier};
     my $getter   = $self->{_info_getter}->{successful};
-    $getter      = $self->{_info_getter} 
+    $getter      = $self->{_info_getter}
         if (!$getter || $getter->isa('Bugzilla::Auth::Login::Cookie'));
     return $verifier->can_change_password &&
            $getter->user_can_create_account;

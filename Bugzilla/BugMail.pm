@@ -42,6 +42,7 @@ use Bugzilla::Product;
 use Bugzilla::Component;
 use Bugzilla::Status;
 use Bugzilla::Mailer;
+use Bugzilla::CustisLocalBugzillas;
 
 use Date::Parse;
 use Date::Format;
@@ -57,7 +58,7 @@ use constant BIT_WATCHING  => 2;
 # We need these strings for the X-Bugzilla-Reasons header
 # Note: this hash uses "," rather than "=>" to avoid auto-quoting of the LHS.
 use constant REL_NAMES => {
-    REL_ASSIGNEE      , "AssignedTo", 
+    REL_ASSIGNEE      , "AssignedTo",
     REL_REPORTER      , "Reporter",
     REL_QA            , "QAcontact",
     REL_CC            , "CC",
@@ -672,10 +673,12 @@ sub sendMail {
     };
 
     my $msg;
-    my $template = Bugzilla->template_inner($user->settings->{'lang'}->{'value'});
+    my $template = Bugzilla->template_inner($user->settings->{lang}->{value});
     $template->process("email/newchangedmail.txt.tmpl", $vars, \$msg)
-      || ThrowTemplateError($template->error());
+        || ThrowTemplateError($template->error());
     Bugzilla->template_inner("");
+
+    $msg = Bugzilla::CustisLocalBugzillas::CorrectLinksToLocalBugzilla($user->email, $msg);
 
     MessageToMTA($msg);
 
