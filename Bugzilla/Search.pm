@@ -508,6 +508,8 @@ sub init {
         ",(changedbefore|changedafter)" => \&_changedbefore_changedafter,
         ",(changedfrom|changedto)" => \&_changedfrom_changedto,
         ",changedby" => \&_changedby,
+        ",insearch" => \&_in_search_results,
+        ",notinsearch" => \&_not_in_search_results,
     );
     my @funcnames;
     while (@funcdefs) {
@@ -2046,23 +2048,128 @@ sub _changedfrom_changedto {
     $$term = "($table.bug_when IS NOT NULL)";
 }
 
-sub _changedby {
+sub _changedby
+{
     my $self = shift;
     my %func_args = @_;
     my ($chartid, $chartfields, $f, $v, $supptables, $term) =
         @func_args{qw(chartid chartfields f v supptables term)};
-    
+
     my $table = "act_$$chartid";
     my $fieldid = $$chartfields{$$f};
-    if (!$fieldid) {
+    if (!$fieldid)
+    {
         ThrowCodeError("invalid_field_name", {field => $$f});
     }
     my $id = login_to_id($$v, THROW_ERROR);
-    push(@$supptables, "LEFT JOIN bugs_activity AS $table " .
-                      "ON $table.bug_id = bugs.bug_id " .
-                      "AND $table.fieldid = $fieldid " .
-                      "AND $table.who = $id");
+    push @$supptables, "LEFT JOIN bugs_activity AS $table " .
+                       "ON $table.bug_id = bugs.bug_id " .
+                       "AND $table.fieldid = $fieldid " .
+                       "AND $table.who = $id";
     $$term = "($table.bug_when IS NOT NULL)";
+}
+
+sub _in_search_results
+{
+    my $self = shift;
+    my %func_args = @_;
+    my ($not_in, $f, $v, $term) =
+        @func_args{qw(__not_in f v term)};
+    my $query = LookupNamedQuery(trim($$v));
+    my $queryparams = new Bugzilla::CGI($query);
+    my $search = new Bugzilla::Search(
+        params => $queryparams,
+        fields => ["bugs.bug_id"],
+        user   => Bugzilla->user,
+    );
+    my $sqlquery = $search->getSQL();
+    unless ($not_in)
+    {
+        $$term = "($$f IN ($sqlquery))";
+    }
+    else
+    {
+        $$term = "($$f NOT IN ($sqlquery))";
+    }
+}
+
+sub _not_in_search_results
+{
+    return _in_search_results(@_, __not_in => 1);
+}
+
+sub LookupNamedQuery
+{
+    my ($name, $sharer_id, $query_type, $throw_error) = @_;
+    my $user = Bugzilla->login(LOGIN_REQUIRED);
+    my $dbh = Bugzilla->dbh;
+    my $owner_id;
+    $throw_error = 1 unless defined $throw_error;
+
+    # $name and $sharer_id are safe -- we only use them below in SELECT
+    # placeholders and then in error messages (which are always HTML-filtered).
+    $name || ThrowUserError("query_name_missing");
+    trick_taint($name);
+    if ($sharer_id)
+    {
+        $owner_id = $sharer_id;
+        detaint_natural($owner_id);
+        $owner_id || ThrowUserError('illegal_user_id', { userid => $sharer_id });
+    }
+    else
+    {
+        $owner_id = $user->id;
+    }
+
+    my @args = ($owner_id, $name);
+    my $extra = '';
+    # If $query_type is defined, then we restrict our search.
+    if (defined $query_type)
+    {
+        $extra = ' AND query_type = ? ';
+        detaint_natural($query_type);
+        push @args, $query_type;
+    }
+    my ($id, $result) = $dbh->selectrow_array(
+        "SELECT id, query FROM namedqueries WHERE userid = ? AND name = ? $extra",
+        undef, @args
+    );
+
+    # Some DBs (read: Oracle) incorrectly mark this string as UTF-8
+    # even though it has no UTF-8 characters in it, which prevents
+    # Bugzilla::CGI from later reading it correctly.
+    {
+        use utf8;
+        utf8::downgrade($result) if utf8::is_utf8($result);
+    }
+
+    if (!defined($result))
+    {
+        return 0 unless $throw_error;
+        ThrowUserError("missing_query", {
+            queryname => $name,
+            sharer_id => $sharer_id,
+        });
+    }
+
+    if ($sharer_id && $sharer_id ne $user->id)
+    {
+        my $group = $dbh->selectrow_array(
+            "SELECT group_id FROM namedquery_group_map WHERE namedquery_id = ?",
+            undef, $id
+        );
+        if (!grep { $_ == $group } values %{$user->groups})
+        {
+            ThrowUserError("missing_query", {
+                queryname => $name,
+                sharer_id => $sharer_id,
+            });
+        }
+    }
+
+    $result || ThrowUserError("buglist_parameters_required", { queryname => $name });
+
+    return $result;
 }
 
 1;

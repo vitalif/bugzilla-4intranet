@@ -11,6 +11,7 @@ use Bugzilla::Bug;
 use Bugzilla::Constants;
 use Bugzilla::Error;
 use Bugzilla::Util;
+use Bugzilla::Search;
 
 my $user      = Bugzilla->login(LOGIN_REQUIRED);
 my $userid    = $user->id;
@@ -26,7 +27,7 @@ $vars->{buginfo} = $cgi->param('buginfo');
 my $title = $cgi->param('namedcmd');
 if ($title)
 {
-    my $storedquery = LookupNamedQuery($dbh, $userid, $title);
+    my $storedquery = Bugzilla::Search::LookupNamedQuery($title, $userid);
     $cgi = new Bugzilla::CGI($storedquery);
 }
 
@@ -109,18 +110,3 @@ $template->process('list/comments.rss.tmpl', $vars)
     || ThrowTemplateError($template->error());
 
 exit;
-
-sub LookupNamedQuery
-{
-    my ($dbh, $userid, $name) = @_;
-    trick_taint($name);
-    my ($query) = $dbh->selectrow_array(
-        "SELECT query FROM namedqueries WHERE userid=? AND name=?",
-        undef, $userid, $name
-    );
-    ThrowUserError("missing_query", { queryname => $name })
-        unless defined $query;
-    ThrowUserError("buglist_parameters_required", { queryname => $name })
-        unless $query;
-    return $query;
-}

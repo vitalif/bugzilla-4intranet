@@ -217,68 +217,6 @@ sub DiffDate {
     return $date;
 }
 
-sub LookupNamedQuery {
-    my ($name, $sharer_id, $query_type, $throw_error) = @_;
-    my $user = Bugzilla->login(LOGIN_REQUIRED);
-    my $dbh = Bugzilla->dbh;
-    my $owner_id;
-    $throw_error = 1 unless defined $throw_error;
-
-    # $name and $sharer_id are safe -- we only use them below in SELECT
-    # placeholders and then in error messages (which are always HTML-filtered).
-    $name || ThrowUserError("query_name_missing");
-    trick_taint($name);
-    if ($sharer_id) {
-        $owner_id = $sharer_id;
-        detaint_natural($owner_id);
-        $owner_id || ThrowUserError('illegal_user_id', {'userid' => $sharer_id});
-    }
-    else {
-        $owner_id = $user->id;
-    }
-
-    my @args = ($owner_id, $name);
-    my $extra = '';
-    # If $query_type is defined, then we restrict our search.
-    if (defined $query_type) {
-        $extra = ' AND query_type = ? ';
-        detaint_natural($query_type);
-        push(@args, $query_type);
-    }
-    my ($id, $result) = $dbh->selectrow_array("SELECT id, query
-                                                 FROM namedqueries
-                                                WHERE userid = ? AND name = ?
-                                                      $extra",
-                                               undef, @args);
-
-    # Some DBs (read: Oracle) incorrectly mark this string as UTF-8
-    # even though it has no UTF-8 characters in it, which prevents
-    # Bugzilla::CGI from later reading it correctly.
-    utf8::downgrade($result) if utf8::is_utf8($result);
-
-    if (!defined($result)) {
-        return 0 unless $throw_error;
-        ThrowUserError("missing_query", {'queryname' => $name,
-                                         'sharer_id' => $sharer_id});
-    }
-
-    if ($sharer_id) {
-        my $group = $dbh->selectrow_array('SELECT group_id
-                                             FROM namedquery_group_map
-                                            WHERE namedquery_id = ?',
-                                          undef, $id);
-        if (!grep {$_ == $group} values(%{$user->groups()})) {
-            ThrowUserError("missing_query", {'queryname' => $name,
-                                             'sharer_id' => $sharer_id});
-        }
-    }
-    
-    $result
-       || ThrowUserError("buglist_parameters_required", {'queryname' => $name});
-
-    return $result;
-}
-
 # Inserts a Named Query (a "Saved Search") into the database, or
 # updates a Named Query that already exists..
 # Takes four arguments:
@@ -434,8 +372,9 @@ $filename =~ s/"/\\"/g; # escape quotes
 # Take appropriate action based on user's request.
 if ($cgi->param('cmdtype') eq "dorem") {  
     if ($cgi->param('remaction') eq "run") {
-        $buffer = LookupNamedQuery(scalar $cgi->param("namedcmd"),
-                                   scalar $cgi->param('sharer_id'));
+        $buffer = Bugzilla::Search::LookupNamedQuery(
+            scalar $cgi->param("namedcmd"), scalar $cgi->param('sharer_id')
+        );
         # If this is the user's own query, remember information about it
         # so that it can be modified easily.
         $vars->{'searchname'} = $cgi->param('namedcmd');
@@ -544,8 +483,10 @@ elsif (($cgi->param('cmdtype') eq "doit") && defined $cgi->param('remtype')) {
             my $is_new_name = 0;
             if ($query_name) {
                 # Make sure this name is not already in use by a normal saved search.
-                if (LookupNamedQuery($query_name, undef, QUERY_LIST, !THROW_ERROR)) {
-                    ThrowUserError('query_name_exists', {'name' => $query_name});
+                if (Bugzilla::Search::LookupNamedQuery(
+                    $query_name, undef, QUERY_LIST, !THROW_ERROR))
+                {
+                    ThrowUserError('query_name_exists', { name => $query_name });
                 }
                 $is_new_name = 1;
             }
@@ -556,10 +497,13 @@ elsif (($cgi->param('cmdtype') eq "doit") && defined $cgi->param('remtype')) {
             # exists, add/remove bugs to it, else create it. But if we are
             # considering an existing tag, then it has to exist and we throw
             # an error if it doesn't (hence the usage of !$is_new_name).
-            if (my $old_query = LookupNamedQuery($query_name, undef, LIST_OF_BUGS, !$is_new_name)) {
+            if (my $old_query = Bugzilla::Search::LookupNamedQuery(
+                $query_name, undef, LIST_OF_BUGS, !$is_new_name))
+            {
                 # We get the encoded query. We need to decode it.
                 my $old_cgi = new Bugzilla::CGI($old_query);
-                foreach my $bug_id (split /[\s,]+/, scalar $old_cgi->param('bug_id')) {
+                foreach my $bug_id (split /[\s,]+/, scalar $old_cgi->param('bug_id'))
+                {
                     $bug_ids{$bug_id} = 1 if detaint_natural($bug_id);
                 }
             }
