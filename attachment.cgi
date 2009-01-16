@@ -355,21 +355,21 @@ sub insert {
 
     # Detect if the user already used the same form to submit an attachment
     my $token = trim($cgi->param('token'));
-    if ($token) {
+    if ($token)
+    {
         my ($creator_id, $date, $old_attach_id) = Bugzilla::Token::GetTokenData($token);
-        unless ($creator_id 
-            && ($creator_id == $user->id) 
-                && ($old_attach_id =~ "^createattachment:")) 
+        unless ($creator_id && ($creator_id == $user->id) &&
+            ($old_attach_id =~ "^createattachment:"))
         {
             # The token is invalid.
             ThrowUserError('token_does_not_exist');
         }
-    
+
         $old_attach_id =~ s/^createattachment://;
-   
-        if ($old_attach_id) {
-            $vars->{'bugid'} = $bugid;
-            $vars->{'attachid'} = $old_attach_id;
+        if ($old_attach_id)
+        {
+            $vars->{bugid} = $bugid;
+            $vars->{attachid} = $old_attach_id;
             print $cgi->header();
             $template->process("attachment/cancel-create-dupe.html.tmpl",  $vars)
                 || ThrowTemplateError($template->error());
@@ -378,59 +378,85 @@ sub insert {
     }
 
     my $bug = new Bugzilla::Bug($bugid);
-    my $attachment =
-        Bugzilla::Attachment->insert_attachment_for_bug(THROW_ERROR, $bug, $user,
-                                                        $timestamp, $vars);
+    my $attachment = Bugzilla::Attachment->insert_attachment_for_bug(
+        THROW_ERROR, $bug, $user, $timestamp, $vars);
 
     # Insert a comment about the new attachment into the database.
-    my $comment = "Created an attachment (id=" . $attachment->id . ")\n" .
-                  $attachment->description . "\n";
-    $comment .= ("\n" . $cgi->param('comment')) if defined $cgi->param('comment');
+    my $comment =
+        "Created an attachment (id=" . $attachment->id . ")\n" .
+        $attachment->description . "\n";
+    $comment .= "\n" . $cgi->param('comment') if defined $cgi->param('comment');
 
     $bug->add_comment($comment, { isprivate => $attachment->isprivate });
 
-  # Assign the bug to the user, if they are allowed to take it
-  my $owner = "";
-  if ($cgi->param('takebug') && $user->in_group('editbugs', $bug->product_id)) {
-      # When taking a bug, we have to follow the workflow.
-      my $bug_status = $cgi->param('bug_status') || '';
-      ($bug_status) = grep {$_->name eq $bug_status} @{$bug->status->can_change_to};
+    # Assign the bug to the user, if they are allowed to take it
+    my $owner = "";
+    if ($cgi->param('takebug') && $user->in_group('editbugs', $bug->product_id))
+    {
+        # When taking a bug, we have to follow the workflow.
+        my $bug_status = $cgi->param('bug_status') || '';
+        ($bug_status) = grep {$_->name eq $bug_status} @{$bug->status->can_change_to};
 
-      if ($bug_status && $bug_status->is_open
-          && ($bug_status->name ne 'UNCONFIRMED' || $bug->product_obj->votes_to_confirm))
-      {
-          $bug->set_status($bug_status->name);
-          $bug->clear_resolution();
-      }
-      # Make sure the person we are taking the bug from gets mail.
-      $owner = $bug->assigned_to->login;
-      $bug->set_assigned_to($user);
-  }
-  $bug->update($timestamp);
+        if ($bug_status && $bug_status->is_open
+            && ($bug_status->name ne 'UNCONFIRMED' || $bug->product_obj->votes_to_confirm))
+        {
+            $bug->set_status($bug_status->name);
+            $bug->clear_resolution();
+        }
+        # Make sure the person we are taking the bug from gets mail.
+        $owner = $bug->assigned_to->login;
+        $bug->set_assigned_to($user);
+    }
+    $bug->update($timestamp);
 
-  if ($token) {
-      trick_taint($token);
-      $dbh->do('UPDATE tokens SET eventdata = ? WHERE token = ?', undef,
-               ("createattachment:" . $attachment->id, $token));
-  }
+    if ($token) {
+        trick_taint($token);
+        $dbh->do('UPDATE tokens SET eventdata = ? WHERE token = ?', undef,
+                 ("createattachment:" . $attachment->id, $token));
+    }
 
-  $dbh->bz_commit_transaction;
+    $dbh->bz_commit_transaction;
 
-  # Define the variables and functions that will be passed to the UI template.
-  $vars->{'mailrecipients'} =  { 'changer' => $user->login,
-                                 'owner'   => $owner };
-  $vars->{'attachment'} = $attachment;
-  # We cannot reuse the $bug object as delta_ts has eventually been updated
-  # since the object was created.
-  $vars->{'bugs'} = [new Bugzilla::Bug($bugid)];
-  $vars->{'header_done'} = 1;
-  $vars->{'contenttypemethod'} = $cgi->param('contenttypemethod');
-  $vars->{'use_keywords'} = 1 if Bugzilla::Keyword::keyword_count();
+    # Define the variables and functions that will be passed to the UI template.
+    $vars->{mailrecipients} = {
+        changer => $user->login,
+        owner   => $owner
+    };
+    $vars->{attachment} = $attachment;
 
-  print $cgi->header();
-  # Generate and return the UI (HTML page) from the appropriate template.
-  $template->process("attachment/created.html.tmpl", $vars)
-    || ThrowTemplateError($template->error());
+    # We cannot reuse the $bug object as delta_ts has eventually been updated
+    # since the object was created.
+    $vars->{bugs} = [new Bugzilla::Bug($bugid)];
+    $vars->{header_done} = 1;
+    $vars->{contenttypemethod} = $cgi->param('contenttypemethod');
+    $vars->{use_keywords} = 1 if Bugzilla::Keyword::keyword_count();
+
+    # Log silent attachments
+    if ($vars->{commentsilent} = $cgi->param('commentsilent'))
+    {
+        my $datadir = bz_locations()->{datadir};
+        my $fd;
+        if (-w "$datadir/silentlog")
+        {
+            my $mesg = "";
+            my $c = $comment;
+            $c =~ s/\r*\n+/|/gso;
+            $mesg .= "Silent comment> " . time2str("%D %H:%M:%S ", time()); 
+            $mesg .= " Bug " . $cgi->param('id') . " User: " . Bugzilla->user->login;
+            $mesg .= " ($ENV{REMOTE_ADDR}) " if $ENV{REMOTE_ADDR};
+            $mesg .= " // $c ";
+            if (open $fd, ">>$datadir/silentlog")
+            {
+                print $fd "$mesg\n";
+                close $fd;
+            }
+        }
+    }
+
+    print $cgi->header();
+    # Generate and return the UI (HTML page) from the appropriate template.
+    $template->process("attachment/created.html.tmpl", $vars)
+        || ThrowTemplateError($template->error());
 }
 
 # Displays a form for editing attachment properties.
