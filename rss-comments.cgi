@@ -23,6 +23,7 @@ my $cgi       = Bugzilla->cgi;
 my $template  = Bugzilla->template;
 my $dbh       = Bugzilla->dbh;
 
+$vars->{selfurl} = $cgi->canonicalise_query();
 $vars->{escapetags} = $cgi->param('escapetags');
 $vars->{buginfo} = $cgi->param('buginfo');
 
@@ -71,7 +72,7 @@ my $bugsquery = "
 
  SELECT
     b.bug_id, b.short_desc, pr.name AS product, cm.name AS component, b.bug_severity, b.bug_status,
-    0 AS work_time, '' AS thetext, '' AS commentlink,
+    0 AS work_time, '' AS thetext, DATE_FORMAT(a.bug_when,'%Y%m%d%H%i%s') AS commentlink,
     DATE_FORMAT(a.bug_when,'%Y-%m-%dT%H:%iZ') bug_when,
     DATE_FORMAT(a.bug_when,'%a, %d %b %Y %H:%i:%s $tz') datetime_rfc822,
     a.bug_when AS `when`, p.login_name, p.realname,
@@ -92,6 +93,7 @@ my $bugsquery = "
 
 $vars->{events} = $dbh->selectall_arrayref($bugsquery, {Slice => {}});
 
+my ($t, $o, $n);
 foreach (@{$vars->{events}})
 {
     if ($_->{fieldname})
@@ -105,9 +107,11 @@ foreach (@{$vars->{events}})
             $_->{old} = format_time_decimal($_->{old});
             $_->{new} = format_time_decimal($_->{new});
         }
-        my $t = "Changed '$_->{fielddesc}'";
-        $t .= " from '$_->{old}'" if length $_->{old};
-        $t .= " to '$_->{new}'" if length $_->{new};
+        $o = 1 && length $_->{old};
+        $n = 1 && length $_->{new};
+        $t = "Changed '$_->{fielddesc}' from '$_->{old}' to '$_->{new}'" if $o && $n;
+        $t = "Added to '$_->{fielddesc}': '$_->{new}'" if !$o && $n;
+        $t = "Removed '$_->{fielddesc}': '$_->{old}'" if $o && !$n;
         $_->{thetext} = $t;
     }
 }

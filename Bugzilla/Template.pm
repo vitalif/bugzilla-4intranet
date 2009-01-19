@@ -704,6 +704,14 @@ sub create {
                     return sub { wrap_comment($_[0], $cols) }
                 }, 1],
 
+            absolute_uris =>
+                sub {
+                    my $b = Bugzilla->params->{urlbase};
+                    $b =~ s/\/*$/\//so;
+                    $_[0] =~ s/(<a[^<>]*href\s*=\s*[\"\']\s*)(?![a-z]+:\/\/)([^\"\'<>]+[\"\'][^<>]*>)/$1$b$2/giso;
+                    $_[0];
+                },
+
             # We force filtering of every variable in key security-critical
             # places; we have a none filter for people to use when they 
             # really, really don't want a variable to be changed.
