@@ -13,6 +13,8 @@ use Bugzilla::Error;
 use Bugzilla::Util;
 use Bugzilla::Search;
 
+use POSIX qw(strftime);
+
 my $user      = Bugzilla->login(LOGIN_REQUIRED);
 my $userid    = $user->id;
 my $vars      = {};
@@ -45,15 +47,22 @@ my $search = new Bugzilla::Search(
 my $sqlquery = $search->getSQL();
 $sqlquery =~ s/GROUP\s+BY\s+`?bugs`?.`?bug_id`?//so;
 
-# Адский запрос
+my $tz = strftime('%z', localtime);
+
+# Monstrous query
+# first query gets new bugs' descriptions, and any comments added (not including duplicate
+# information).
+# second query gets any changes to the fields of a bug (eg assignee, status etc)
+
 my $bugsquery = "
  SELECT
     b.bug_id, b.short_desc, pr.name product, cm.name component, b.bug_severity, b.bug_status,
     l.work_time, l.thetext, DATE_FORMAT(l.bug_when,'%Y%m%d%H%i%s') AS commentlink,
     DATE_FORMAT(l.bug_when,'%Y-%m-%dT%H:%iZ') AS bug_when,
-    DATE_FORMAT(l.bug_when,'%a, %d %b %Y %H:%i:%s +0300') AS datetime_rfc822,
+    DATE_FORMAT(l.bug_when,'%a, %d %b %Y %H:%i:%s $tz') AS datetime_rfc822,
     l.bug_when AS `when`, p.login_name, p.realname,
-    NULL AS fieldname, NULL AS fielddesc, NULL AS attach_id, NULL AS old, NULL AS new
+    NULL AS fieldname, NULL AS fielddesc, NULL AS attach_id, NULL AS old, NULL AS new,
+    (b.creation_ts=l.bug_when) as is_new
  FROM bugs b, longdescs l, profiles p, products pr, components cm
  WHERE l.isprivate=0 AND b.bug_id IN ($sqlquery) AND b.bug_id=l.bug_id
     AND l.who=p.userid AND pr.id=b.product_id AND cm.id=b.component_id
@@ -64,9 +73,10 @@ my $bugsquery = "
     b.bug_id, b.short_desc, pr.name AS product, cm.name AS component, b.bug_severity, b.bug_status,
     0 AS work_time, '' AS thetext, '' AS commentlink,
     DATE_FORMAT(a.bug_when,'%Y-%m-%dT%H:%iZ') bug_when,
-    DATE_FORMAT(a.bug_when,'%a, %d %b %Y %H:%i:%s +0300') datetime_rfc822,
+    DATE_FORMAT(a.bug_when,'%a, %d %b %Y %H:%i:%s $tz') datetime_rfc822,
     a.bug_when AS `when`, p.login_name, p.realname,
-    f.name AS fieldname, f.description AS fielddesc, a.attach_id, a.removed AS old, a.added AS new
+    f.name AS fieldname, f.description AS fielddesc, a.attach_id, a.removed AS old, a.added AS new,
+    0 as is_new
  FROM bugs b
  JOIN bugs_activity a ON a.bug_id=b.bug_id
  JOIN profiles p ON p.userid=a.who
@@ -86,7 +96,7 @@ foreach (@{$vars->{events}})
 {
     if ($_->{fieldname})
     {
-        # это не комментарий, а bugs_activity
+        # this is not a comment; this is bugs_activity
         $_->{fielddesc} =~ s/^(Attachment\s+)?/Attachment #$_->{attach_id} /
             if $_->{attach_id};
         if ($_->{fieldname} eq 'estimated_time' ||
@@ -103,7 +113,7 @@ foreach (@{$vars->{events}})
 }
 
 $vars->{title} = $title;
-($vars->{builddate}) = $dbh->selectrow_array("SELECT DATE_FORMAT(NOW(),'%a, %d %b %Y %H:%i:%s MSK')");
+($vars->{builddate}) = $dbh->selectrow_array("SELECT DATE_FORMAT(NOW(),'%a, %d %b %Y %H:%i:%s $tz')");
 
 print $cgi->header(-type => 'text/xml');
 $template->process('list/comments.rss.tmpl', $vars)
