@@ -25,7 +25,7 @@
                     <td>[% evt.bug_id %]</td><td>[% evt.product %]/[% evt.component %]</td><td>[% evt.bug_severity %]</td><td>[% evt.bug_status %]</td>
                 </tr></table>
                 [% END %]
-                <div class="item-signature"><a href="mailto:[% evt.login_name %]">[% evt.realname FILTER html %]</a></div>
+                <div class="item-signature"><a href="[% Param("user_mailto") %][% evt.login_name %]">[% evt.realname FILTER html %]</a></div>
                 <pre>
                     [% evt.thetext FILTER wrap_comment FILTER quoteUrls FILTER absolute_uris %]
                 </pre>
@@ -39,7 +39,7 @@
                     <td>[% evt.bug_id %]</td><td>[% evt.product %]/[% evt.component %]</td><td>[% evt.bug_severity %]</td><td>[% evt.bug_status %]</td>
                 </tr></table>
                 [% END %]
-                <div class="item-signature"><a href="mailto:[% evt.login_name %]">[% evt.realname FILTER html %]</a></div>
+                <div class="item-signature"><a href="[% Param("user_mailto") %][% evt.login_name %]">[% evt.realname FILTER html %]</a></div>
                 <pre>
                 [% evt.thetext FILTER wrap_comment FILTER quoteUrls FILTER absolute_uris %]
                 </pre>

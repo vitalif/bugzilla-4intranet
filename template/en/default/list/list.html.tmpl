@@ -196,7 +196,7 @@
         [% END %]
 
         [% IF bugowners %]
-          <a href="mailto:
+          <a href="[% Param("user_mailto") %]
             [% bugowners FILTER html %]">Send&nbsp;Mail&nbsp;to&nbsp;[% terms.Bug %]&nbsp;Assignees</a> |
         [% END %]
 

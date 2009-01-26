@@ -49,7 +49,7 @@
 <p>
   <b>Creator</b>: 
   [% IF creator.email %]
-    <a href="mailto:[% creator.email FILTER html %]">
+    <a href="[% Param("user_mailto") %][% creator.email FILTER html %]">
     [% creator.email FILTER html %]</a>
   [% ELSE %]
     (automatically created by [% terms.Bugzilla %])

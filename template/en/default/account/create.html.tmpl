@@ -47,7 +47,7 @@
   account. <b>You will not be able to log in until you receive the email.</b>
   If it doesn't arrive within a reasonable amount of time, you may contact
   the maintainer of this [% terms.Bugzilla %] installation
-  at <a href="mailto:[% Param("maintainer") %]">[% Param("maintainer") %]</a>.
+  at <a href="[% Param("user_mailto") %][% Param("maintainer") %]">[% Param("maintainer") %]</a>.
 </p>
 
 [% IF Param('createemailregexp') == '.*' && Param('emailsuffix') == '' %]

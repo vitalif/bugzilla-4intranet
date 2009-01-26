@@ -105,7 +105,7 @@ document.write('<input type="button" value="Disable All Mail" onclick="SetCheckb
     <td>
       You are watching all [% terms.bugs %]. To be removed from this role,
       contact
-      <a href="mailto:[% Param("maintainer") %]">[% Param("maintainer") %]</a>.
+      <a href="[% Param("user_mailto") %][% Param("maintainer") %]">[% Param("maintainer") %]</a>.
     </td>
   </tr>
 [% END %]

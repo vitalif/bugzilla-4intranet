@@ -74,12 +74,12 @@
       <a name="[% comp.name FILTER html %]">[% comp.name FILTER html %]</a>
     </td>
     <td>
-      <a href="mailto:[% comp.default_assignee.email FILTER html %]">
+      <a href="[% Param("user_mailto") %][% comp.default_assignee.email FILTER html %]">
       [% comp.default_assignee.login FILTER html %]</a>
     </td>
     [% IF Param("useqacontact") %]
       <td>
-        <a href="mailto:[% comp.default_qa_contact.email FILTER html %]">
+        <a href="[% Param("user_mailto") %][% comp.default_qa_contact.email FILTER html %]">
         [% comp.default_qa_contact.login FILTER html %]</a>
       </td>
     [% END %]

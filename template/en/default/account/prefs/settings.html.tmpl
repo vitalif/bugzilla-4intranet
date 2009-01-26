@@ -33,7 +33,7 @@
   [% UNLESS has_settings_enabled %]
     <p class="criticalmessages">
       All user preferences have been disabled by the
-      <a href="mailto:[% Param("maintainer") %]">maintainer</a>
+      <a href="[% Param("user_mailto") %][% Param("maintainer") %]">maintainer</a>
       of this installation, and so you cannot customize any.
     </p>
   [% END %]

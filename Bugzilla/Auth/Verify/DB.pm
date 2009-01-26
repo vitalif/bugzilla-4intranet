@@ -42,7 +42,7 @@ sub check_credentials {
 
     my $username = $login_data->{username};
     my $user_id  = login_to_id($username);
-
+    
     return { failure => AUTH_NO_SUCH_USER } unless $user_id;
 
     $login_data->{bz_username} = $username;

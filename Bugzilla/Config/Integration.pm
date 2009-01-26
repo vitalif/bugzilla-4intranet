@@ -46,6 +46,12 @@ sub get_param_list
         type => 't',
         default => 'http://radey.office.custis.ru/rdwiki/index.php/',
     },
+
+    {
+        name => 'user_mailto',
+        type => 't',
+        default => 'mailto:',
+    },
     );
 }
 

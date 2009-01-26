@@ -89,7 +89,7 @@
     [% END %]
     Please wait a day and try again.
     If you're seeing this message after a day, then you should contact
-    <a href="mailto:[% Param('maintainer') %]">[% Param('maintainer') %]</a>
+    <a href="[% Param("user_mailto") %][% Param('maintainer') %]">[% Param('maintainer') %]</a>
     and reference this error.
 
   [% ELSIF error == "chart_datafile_corrupt" %]
