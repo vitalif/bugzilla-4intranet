@@ -18,6 +18,7 @@
   # Contributor(s): Myk Melez <myk@mozilla.org>
   #%]
 
+
 <script type="text/javascript">
 <!-- 
   // Enables or disables a requestee field depending on whether or not
@@ -100,6 +101,42 @@
   [% FOREACH type = flag_types %]
     
     [%# Step 1a: Display existing flag(s). %]
+    [% flag_custom_list = flag.type.grant_list %]
+    [% flag_list_allow_other = 1 %]
+    [% IF !flag_custom_list.count %]
+      [% fcl = {} %]
+      [% IF bug.cc %]
+        [% FOREACH c = bug.cc %]
+          [% fcl.$c = c _ ' (CC)' %]
+        [% END %]
+      [% END %]
+      [% fcl.${bug.reporter.login} = bug.reporter.realname _ ' <' _ bug.reporter.login _ '> (Reporter)' %]
+      [% fcl.${bug.assigned_to.login} = bug.assigned_to.realname _ ' <' _ bug.assigned_to.login _ '> (Assignee)' %]
+      [% IF bug AND bug.component_obj.initialqacontact %]
+        [% fcl.${bug.component_obj.default_qa_contact} = bug.component_obj.default_qa_contact.realname _ ' <' _ bug.component_obj.default_qa_contact.login _ '> (Component QA)' %]
+      [% END %]
+      [% IF Param('useqacontact') AND bug.qa_contact %]
+        [% fcl.${bug.qa_contact.login} = bug.qa_contact.realname _ ' <' _ bug.qa_contact.login _ '> (QA)' %]
+      [% END %]
+      [% flag_custom_list = [] %]
+      [% FOREACH k = fcl.keys %]
+        [% flag_custom_list.push({
+           'visible' => 1,
+           'identity' => fcl.$k,
+           'login' => k,
+        }) %]
+      [% END %]
+    [% ELSE %]
+      [% flag_list_allow_other = 0 %]
+    [% END %]
+    [% IF !(type.is_active && type.is_requestable && type.is_requesteeble) %]
+      [%# We are here only because there was already a requestee. In this case,
+          the only valid action is to remove the requestee or leave it alone;
+          nothing else. %]
+      [% flag_custom_list1 = [flag.requestee] %]
+    [% ELSE %]
+      [% flag_custom_list1 = flag_custom_list %]
+    [% END %]
     [% FOREACH flag = type.flags %]
       <tr>
         <td>
@@ -139,42 +176,6 @@
             [% IF (type.is_active && type.is_requestable && type.is_requesteeble) || flag.requestee %]
               <span style="white-space: nowrap;">
                 [% IF Param('usemenuforusers') %]
-                  [% flag_custom_list = flag.type.grant_list %]
-                  [% flag_list_allow_other = 1 %]
-                  [% IF !flag_custom_list.count %]
-                    [% fcl = {} %]
-                    [% IF bug.cc %]
-                      [% FOREACH c = bug.cc %]
-                        [% fcl.$c = c _ ' (CC)' %]
-                      [% END %]
-                    [% END %]
-                    [% fcl.${bug.reporter.login} = bug.reporter.realname _ ' <' _ bug.reporter.login _ '> (Reporter)' %]
-                    [% fcl.${bug.assigned_to.login} = bug.assigned_to.realname _ ' <' _ bug.assigned_to.login _ '> (Assignee)' %]
-                    [% IF bug AND bug.component_obj.initialqacontact %]
-                      [% fcl.${bug.component_obj.default_qa_contact} = bug.component_obj.default_qa_contact.realname _ ' <' _ bug.component_obj.default_qa_contact.login _ '> (Component QA)' %]
-                    [% END %]
-                    [% IF Param('useqacontact') AND bug.qa_contact %]
-                      [% fcl.${bug.qa_contact.login} = bug.qa_contact.realname _ ' <' _ bug.qa_contact.login _ '> (QA)' %]
-                    [% END %]
-                    [% flag_custom_list = [] %]
-                    [% FOREACH k = fcl.keys %]
-                      [% flag_custom_list.push({
-                         'visible' => 1,
-                         'identity' => fcl.$k,
-                         'login' => k,
-                      }) %]
-                    [% END %]
-                  [% ELSE %]
-                    [% flag_list_allow_other = 0 %]
-                  [% END %]
-                  [% IF !(type.is_active && type.is_requestable && type.is_requesteeble) %]
-                    [%# We are here only because there was already a requestee. In this case,
-                        the only valid action is to remove the requestee or leave it alone;
-                        nothing else. %]
-                    [% flag_custom_list1 = [flag.requestee] %]
-                  [% ELSE %]
-                    [% flag_custom_list1 = flag_custom_list %]
-                  [% END %]
                   [% INCLUDE global/userselect.html.tmpl
                              name     => "requestee-$flag.id"
                              id       => "requestee-$flag.id"
