@@ -690,6 +690,9 @@ EOT
                             $self->bz_drop_index('bugs_fulltext', $index);
                         }
                     }
+                    if ($table eq 'test_runs' && $name eq 'summary') {
+                        $self->bz_drop_index('test_runs', 'test_runs_summary_idx');
+                    }
 
                     print "Converting $table.$name to be stored as UTF-8...\n";
                     my $col_info = 

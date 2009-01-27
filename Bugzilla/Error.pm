@@ -32,6 +32,7 @@ use Bugzilla::Constants;
 use Bugzilla::WebService::Constants;
 use Bugzilla::Util;
 use Date::Format;
+use JSON;
 
 # We cannot use $^S to detect if we are in an eval(), because mod_perl
 # already eval'uates everything, so $^S = 1 in all cases under mod_perl!
@@ -113,6 +114,16 @@ sub _throw_error {
                 $code = ERROR_UNKNOWN_TRANSIENT if $name =~ /user/i;
             }
             die SOAP::Fault->faultcode($code)->faultstring($message);
+        }
+        elsif (Bugzilla->error_mode == ERROR_MODE_AJAX) {
+            # JSON can't handle strings across lines. 
+            $message =~ s/\n/ /gm;
+            my $err;
+            $err->{'success'} = JSON::false;
+            $err->{'error'} = $error;
+            $err->{'message'} = $message;
+            my $json = new JSON;
+            print $json->encode($err);
         }
     }
     exit;

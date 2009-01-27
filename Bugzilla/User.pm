@@ -335,6 +335,16 @@ sub queries_available {
     return $self->{queries_available};
 }
 
+sub testopia_queries {
+    my $self = shift;
+    my $dbh = Bugzilla->dbh;
+    my $ref = $dbh->selectall_arrayref(
+        "SELECT name, query FROM test_named_queries
+         WHERE userid = ? AND isvisible = 1",
+         {'Slice' =>{}}, $self->id);
+    return $ref;
+}
+
 sub settings {
     my ($self) = @_;
 
@@ -632,7 +642,7 @@ sub get_selectable_products {
     my $class_restricted = Bugzilla->params->{'useclassification'} && $class_id;
 
     if (!defined $self->{selectable_products}) {
-        my $query = "SELECT id " .
+        my $query = "(SELECT id, name AS pname " .
                     "  FROM products " .
                  "LEFT JOIN group_control_map " .
                     "    ON group_control_map.product_id = products.id ";
@@ -642,10 +652,17 @@ sub get_selectable_products {
             $query .= " AND group_control_map.membercontrol = " . CONTROLMAPMANDATORY;
         }
         $query .= "     AND group_id NOT IN(" . $self->groups_as_string . ") " .
-                  "   WHERE group_id IS NULL " .
-                  "ORDER BY name";
+                  "   WHERE group_id IS NULL) " ;
+                  
 
-        my $prod_ids = Bugzilla->dbh->selectcol_arrayref($query);
+        $query .= "UNION (SELECT id, tr_products.name AS pname FROM products AS tr_products ".
+                  "INNER JOIN test_plans ON tr_products.id = test_plans.product_id ".
+                  "INNER JOIN test_plan_permissions ON test_plan_permissions.plan_id = test_plans.plan_id ".
+                  "WHERE test_plan_permissions.userid = ?)";
+        
+        $query .= "ORDER BY pname ";    
+
+        my $prod_ids = Bugzilla->dbh->selectcol_arrayref($query,undef,$self->id);
         $self->{selectable_products} = Bugzilla::Product->new_from_list($prod_ids);
     }
 
@@ -925,6 +942,33 @@ sub derive_regexp_groups {
             $group_delete->execute($id, $group, GRANT_REGEXP) if $present;
         }
     }
+    # Now do the same for Testopia test plans.
+    $sth = $dbh->prepare("SELECT test_plan_permissions_regexp.plan_id, 
+                                 user_regexp, test_plan_permissions_regexp.permissions, 
+                                 test_plan_permissions.plan_id
+                          FROM test_plan_permissions_regexp
+                     LEFT JOIN test_plan_permissions 
+                            ON test_plan_permissions_regexp.plan_id = test_plan_permissions.plan_id
+                           AND test_plan_permissions.userid = ?
+                           AND test_plan_permissions.grant_type = ?");
+    
+    $sth->execute($id, GRANT_REGEXP);
+    my $plan_insert = $dbh->prepare(q{INSERT INTO test_plan_permissions
+                                       (userid, plan_id, permissions, grant_type)
+                                       VALUES (?, ?, ?, ?)});
+    my $plan_delete = $dbh->prepare(q{DELETE FROM test_plan_permissions
+                                       WHERE userid = ?
+                                         AND plan_id = ?
+                                         AND grant_type = ?});
+    
+    while (my ($planid, $regexp, $perms, $present) = $sth->fetchrow_array()) {
+        if (($regexp ne '') && ($self->{login} =~ m/$regexp/i)) {
+            $plan_insert->execute($id, $planid, $perms, GRANT_REGEXP) unless $present;
+        } else {
+            $plan_delete->execute($id, $planid, GRANT_REGEXP) if $present;
+        }
+    }
+    
 }
 
 sub product_responsibilities {

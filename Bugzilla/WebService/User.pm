@@ -125,6 +125,32 @@ sub create {
     return { id => type('int')->value($user->id) };
 }
 
+#################
+# User Lookup   #
+#################
+
+sub lookup_login_by_id {
+  my $self = shift;
+  my ($author_id) = @_;
+
+  my $user = new Bugzilla::User($author_id);
+
+  my $result = defined $user ? $user->login : '';
+  
+  # Result is user login string or empty string if failed
+  return $result;
+}
+
+sub lookup_id_by_login {
+  my $self = shift;
+  my ($author) = @_;
+
+  my $result = Bugzilla::User::login_to_id($author);
+  
+  # Result is user id or 0 if failed
+  return $result;
+}
+
 1;
 
 __END__

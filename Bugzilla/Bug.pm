@@ -2750,6 +2750,14 @@ sub bug_alias_to_id {
         "SELECT bug_id FROM bugs WHERE alias = ?", undef, $alias);
 }
 
+sub get_test_case_count {
+      my $self = shift;
+      my $dbh = Bugzilla->dbh;
+      my $row_count = $dbh->selectall_arrayref(
+              "SELECT DISTINCT case_id FROM test_case_bugs WHERE bug_id = ?",
+              undef, $self->bug_id);
+      return scalar @$row_count;
+}
 #####################################################################
 # Subroutines
 #####################################################################
