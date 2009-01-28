@@ -175,24 +175,16 @@
           <td>
             [% IF (type.is_active && type.is_requestable && type.is_requesteeble) || flag.requestee %]
               <span style="white-space: nowrap;">
-                [% IF Param('usemenuforusers') %]
                   [% INCLUDE global/userselect.html.tmpl
                              name     => "requestee-$flag.id"
                              id       => "requestee-$flag.id"
                              value    => flag.requestee.login
                              multiple => 0
                              emptyok  => 1
+                             usemenuforusers => 1
                              custom_userlist => flag_custom_list1
                              allow_other_user => flag_list_allow_other
                   %]
-                [% ELSE %]
-                  (<input type="text" size="30" maxlength="255"
-                          id="requestee-[% flag.id %]" 
-                          name="requestee-[% flag.id %]"
-                          [% IF flag.status == "?" && flag.requestee %]
-                            value="[% flag.requestee.login FILTER html %]"
-                          [% END %]>)
-                [% END %]
               </span>
             [% END %]
           </td>
@@ -229,20 +221,15 @@
           <td>
             [% IF type.is_requestable && type.is_requesteeble %]
               <span style="white-space: nowrap;">
-                [% IF Param('usemenuforusers') %]
-                  [% INCLUDE global/userselect.html.tmpl
-                             name     => "requestee_type-$type.id"
-                             id       => "requestee_type-$type.id"
-                             multiple => type.is_multiplicable * 3
-                             emptyok  => !type.is_multiplicable
-                             custom_userlist => flag_custom_list
-                             allow_other_user => flag_list_allow_other
-                  %]
-                [% ELSE %]
-                  (<input type="text" size="30" maxlength="255"
-                          id="requestee_type-[% type.id %]"
-                          name="requestee_type-[% type.id %]">)
-                [% END %]
+                [% INCLUDE global/userselect.html.tmpl
+                           name     => "requestee_type-$type.id"
+                           id       => "requestee_type-$type.id"
+                           multiple => type.is_multiplicable * 3
+                           emptyok  => !type.is_multiplicable
+                           usemenuforusers => 1
+                           custom_userlist => flag_custom_list
+                           allow_other_user => flag_list_allow_other
+                %]
               </span>
             [% END %]
           </td>
@@ -284,20 +271,15 @@
         <td>
           [% IF type.is_requestable && type.is_requesteeble %]
             <span style="white-space: nowrap;">
-              [% IF Param('usemenuforusers') %]
-                [% INCLUDE global/userselect.html.tmpl
-                           name     => "requestee_type-$type.id"
-                           id       => "requestee_type-$type.id"
-                           multiple => type.is_multiplicable * 3
-                           emptyok  => !type.is_multiplicable
-                           custom_userlist => flag_custom_list
-                           allow_other_user => flag_list_allow_other
-                %]
-              [% ELSE %]
-                (<input type="text" size="30" maxlength="255"
-                        id="requestee_type-[% type.id %]" 
-                        name="requestee_type-[% type.id %]">)
-              [% END %]
+              [% INCLUDE global/userselect.html.tmpl
+                         name     => "requestee_type-$type.id"
+                         id       => "requestee_type-$type.id"
+                         multiple => type.is_multiplicable * 3
+                         emptyok  => !type.is_multiplicable
+                         usemenuforusers => 1
+                         custom_userlist => flag_custom_list
+                         allow_other_user => flag_list_allow_other
+              %]
             </span>
           [% END %]
         </td>

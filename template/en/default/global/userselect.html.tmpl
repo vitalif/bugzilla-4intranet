@@ -27,7 +27,7 @@
   # custom_userlist: optional, specify a limited list of users to use
   #%]
 
-[% IF !nomenuforusers.defined && Param("usemenuforusers") %]
+[% IF !nomenuforusers.defined && (Param("usemenuforusers") || usemenuforusers.defined) %]
 <select name="[% name FILTER html %]"
   [% IF id %] id="[% id FILTER html %]" [% END %]
   [% IF onchange %] onchange="[% onchange FILTER html %]" [% END %]
