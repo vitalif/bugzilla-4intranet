@@ -44,13 +44,14 @@ use base qw(Exporter);
                              file_mod_time is_7bit_clean
                              bz_crypt generate_random_password
                              validate_email_syntax clean_text
-                             get_text disable_utf8);
+                             get_text disable_utf8 stem_text);
 
 use Bugzilla::Constants;
 
 use Date::Parse;
 use Date::Format;
 use Text::Wrap;
+use Lingua::Stem::RuUTF8;
 
 # This is from the perlsec page, slightly modified to remove a warning
 # From that page:
@@ -495,7 +496,7 @@ sub generate_random_password {
 sub validate_email_syntax {
     my ($addr) = @_;
     my $match = Bugzilla->params->{'emailregexp'};
-    my $ret = ($addr =~ /$match/ && $addr !~ /[\\\(\)<>&,;:"\[\] \t\r\n]/);
+    my $ret = ($addr =~ /$match/ && $addr !~ /[\\\(\)<>&,;:\"\[\] \t\r\n]/);
     if ($ret) {
         # We assume these checks to suffice to consider the address untainted.
         trick_taint($_[0]);
@@ -584,6 +585,27 @@ sub disable_utf8 {
     if (Bugzilla->params->{'utf8'}) {
         binmode STDOUT, ':raw'; # Turn off UTF8 encoding.
     }
+}
+
+# Bug 46221 - Russian Stemming in Bugzilla fulltext search
+sub stem_text
+{
+    my ($text, $allow_verbatim) = @_;
+    $text = [ split /(?<=\w)(?=\W)|(?<=\W)(?=\w)/, $text ];
+    my $q = 0;
+    for (@$text)
+    {
+        unless (/\W/)
+        {
+            $_ = Lingua::Stem::RuUTF8::stem_word($_) unless $q;
+        }
+        elsif ($allow_verbatim)
+        {
+            # If $allow_verbatim is TRUE then text in "double quotes" doesn't stem
+            $q = ($q + tr/\"/\"/) % 2;
+        }
+    }
+    return join '', @$text;
 }
 
 1;

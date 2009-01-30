@@ -750,28 +750,33 @@ sub _extract_multi_selects {
 }
 
 # Should be called any time you update short_desc or change a comment.
-sub _sync_fulltext {
+sub _sync_fulltext
+{
     my ($self, $new_bug) = @_;
     my $dbh = Bugzilla->dbh;
-    if ($new_bug) {
-        $dbh->do('INSERT INTO bugs_fulltext (bug_id, short_desc)
-                  SELECT bug_id, short_desc FROM bugs WHERE bug_id = ?',
-                 undef, $self->id);
+    my ($short_desc) = $dbh->selectrow_array(
+        "SELECT short_desc FROM bugs WHERE bug_id=?", undef, $self->id
+    );
+    my @comments = @{ $dbh->selectall_arrayref(
+        "SELECT thetext, isprivate FROM longdescs WHERE bug_id=?",
+        undef, $self->id
+    ) || [] };
+    my @no_private = grep { !$_->[1] } @comments;
+    my $all = join "\n", map { $_->[0] } @comments;
+    my $nopriv = join "\n", map { $_->[0] } @no_private;
+    # Bug 46221 - Russian Stemming in Bugzilla fulltext search
+    {
+        use utf8;
+        $short_desc = stem_text($short_desc);
+        $all = stem_text($all);
+        $nopriv = stem_text($nopriv);
     }
-    else {
-        $dbh->do('UPDATE bugs_fulltext SET short_desc = ? WHERE bug_id = ?',
-                 undef, $self->short_desc, $self->id);
-    }
-    my $comments = $dbh->selectall_arrayref(
-        'SELECT thetext, isprivate FROM longdescs WHERE bug_id = ?',
-        undef, $self->id);
-    my $all = join("\n", map { $_->[0] } @$comments);
-    my @no_private = grep { !$_->[1] } @$comments;
-    my $nopriv_string = join("\n", map { $_->[0] } @no_private);
-    $dbh->do('UPDATE bugs_fulltext SET comments = ?, comments_noprivate = ?
-               WHERE bug_id = ?', undef, $all, $nopriv_string, $self->id);
+    my $sql = "bugs_fulltext SET short_desc=?, comments=?, comments_noprivate=?";
+    my @bind = ($short_desc, $all, $nopriv, $self->id);
+    $sql = "INSERT INTO $sql, bug_id=?" if $new_bug;
+    $sql = "UPDATE $sql WHERE bug_id=?" unless $new_bug;
+    return $dbh->do($sql, undef, @bind);
 }
-
 
 # This is the correct way to delete bugs from the DB.
 # No bug should be deleted from anywhere else except from here.

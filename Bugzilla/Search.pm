@@ -751,8 +751,8 @@ sub init {
     my @supplist = (" ");
     foreach my $str (@supptables) {
 
-        if ($str =~ /^(LEFT|INNER|RIGHT)\s+JOIN/i) {
-            $str =~ /^(.*?)\s+ON\s+(.*)$/i;
+        if ($str =~ /^(LEFT|INNER|RIGHT)\s+JOIN/iso) {
+            $str =~ /^(.*?)\s+ON\s+(.*)$/iso;
             my ($leftside, $rightside) = ($1, $2);
             if (defined $suppseen{$leftside}) {
                 $supplist[$suppseen{$leftside}] .= " AND ($rightside)";
@@ -1208,7 +1208,7 @@ sub _long_desc_changedbefore_after {
     my ($chartid, $t, $v, $supptables, $term) =
         @func_args{qw(chartid t v supptables term)};
     my $dbh = Bugzilla->dbh;
-    
+
     my $operator = ($$t =~ /before/) ? '<' : '>';
     my $table = "longdescs_$$chartid";
     push(@$supptables, "LEFT JOIN longdescs AS $table " .
@@ -1218,53 +1218,53 @@ sub _long_desc_changedbefore_after {
     $$term = "($table.bug_when IS NOT NULL)";
 }
 
-sub _content_matches {
+sub _content_matches
+{
     my $self = shift;
     my %func_args = @_;
     my ($chartid, $supptables, $term, $groupby, $fields, $v) =
         @func_args{qw(chartid supptables term groupby fields v)};
     my $dbh = Bugzilla->dbh;
-    
+
     # "content" is an alias for columns containing text for which we
-    # can search a full-text index and retrieve results by relevance, 
+    # can search a full-text index and retrieve results by relevance,
     # currently just bug comments (and summaries to some degree).
     # There's only one way to search a full-text index, so we only
     # accept the "matches" operator, which is specific to full-text
     # index searches.
 
-    # Add the fulltext table to the query so we can search on it.
+    my $l = FULLTEXT_BUGLIST_LIMIT;
     my $table = "bugs_fulltext_$$chartid";
     my $comments_col = "comments";
-    $comments_col = "comments_noprivate" unless $self->{'user'}->is_insider;
-    push(@$supptables, "LEFT JOIN bugs_fulltext AS $table " .
-                       "ON bugs.bug_id = $table.bug_id");
-    
+    $comments_col = "comments_noprivate" unless $self->{user}->is_insider;
+
     # Create search terms to add to the SELECT and WHERE clauses.
-    my ($term1, $rterm1) = $dbh->sql_fulltext_search("$table.$comments_col", 
-                                                        $$v, 1);
-    my ($term2, $rterm2) = $dbh->sql_fulltext_search("$table.short_desc", 
-                                                        $$v, 2);
-    $rterm1 = $term1 if !$rterm1;
-    $rterm2 = $term2 if !$rterm2;
+    my $text = stem_text($$v, 1);
+    my ($term1, $rterm1) =
+        $dbh->sql_fulltext_search("bugs_fulltext.$comments_col", $text, 1);
+    $rterm1 ||= $term1;
+    my ($term2, $rterm2) =
+        $dbh->sql_fulltext_search("bugs_fulltext.short_desc", $text, 2);
+    $rterm2 ||= $term2;
 
-    # The term to use in the WHERE clause.
-    $$term = "$term1 > 0 OR $term2 > 0";
-    
-    # In order to sort by relevance (in case the user requests it),
-    # we SELECT the relevance value and give it an alias so we can
-    # add it to the SORT BY clause when we build it in buglist.cgi.
-    my $select_term = "($rterm1 + $rterm2) AS relevance";
+    # Bug 46221 - Russian Stemming in Bugzilla fulltext search
+    # Bugzilla's fulltext search mechanism is bad because
+    # MATCH(...) OR MATCH(...) is very slow in MySQL - it doesn't do
+    # fulltext index merge optimization. So we'll use a derived UNION table.
+    push @$supptables,
+        "INNER JOIN (
+            SELECT bug_id, SUM(relevance) AS relevance FROM (
+                (SELECT bug_id, $rterm1 AS relevance
+                FROM bugs_fulltext WHERE $term1 > 0 LIMIT $l)
+                UNION ALL
+                (SELECT bug_id, $rterm2 AS relevance
+                FROM bugs_fulltext WHERE $term2 > 0 LIMIT $l)
+            ) AS ${table}_0
+            GROUP BY bug_id
+        ) AS $table ON bugs.bug_id = $table.bug_id";
 
-    # Users can specify to display the relevance field, in which case
-    # it'll show up in the list of fields being selected, and we need
-    # to replace that occurrence with our select term.  Otherwise
-    # we can just add the term to the list of fields being selected.
-    if (grep($_ eq "relevance", @$fields)) {
-        @$fields = map($_ eq "relevance" ? $select_term : $_ , @$fields);
-    }
-    else {
-        push(@$fields, $select_term);
-    }
+    # All work done by INNER JOIN
+    $$term = "1";
 }
 
 sub _timestamp_compare {
@@ -1272,7 +1272,7 @@ sub _timestamp_compare {
     my %func_args = @_;
     my ($v, $q) = @func_args{qw(v q)};
     my $dbh = Bugzilla->dbh;
-    
+
     $$v = SqlifyDate($$v);
     $$q = $dbh->quote($$v);
 }
@@ -1283,7 +1283,7 @@ sub _commenter_exact {
     my ($chartid, $sequence, $supptables, $term, $v) =
         @func_args{qw(chartid sequence supptables term v)};
     my $user = $self->{'user'};
-    
+
     $$v =~ m/(%\\w+%)/;
     my $match = pronoun($1, $user);
     my $chartseq = $$chartid;

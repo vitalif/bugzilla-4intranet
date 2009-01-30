@@ -2965,7 +2965,7 @@ sub _change_text_types {
     $dbh->bz_alter_column('namedqueries', 'query',
         { TYPE => 'LONGTEXT', NOTNULL => 1 });
 
-} 
+}
 
 sub _check_content_length {
     my ($table_name, $field_name, $max_length, $id_field) = @_;
@@ -2993,67 +2993,58 @@ sub _check_content_length {
     }
 }
 
-sub _populate_bugs_fulltext {
+sub _populate_bugs_fulltext
+{
     my $dbh = Bugzilla->dbh;
-    my $fulltext = $dbh->selectrow_array('SELECT 1 FROM bugs_fulltext '
-                                         . $dbh->sql_limit(1));
+    my $fulltext = $dbh->selectrow_array
+        ("SELECT 1 FROM bugs_fulltext ".$dbh->sql_limit(1));
     # We only populate the table if it's empty...
-    if (!$fulltext) {
+    if (!$fulltext)
+    {
         # ... and if there are bugs in the bugs table.
-        my $bug_ids = $dbh->selectcol_arrayref('SELECT bug_id FROM bugs');
-        return if !@$bug_ids;
+        my @bug_ids = @{ $dbh->selectcol_arrayref("SELECT bug_id FROM bugs") };
+        return if !@bug_ids;
 
-        # Populating bugs_fulltext can be very slow for large installs,
-        # so we special-case any DB that supports GROUP_CONCAT, which is
-        # a much faster way to do things.
-        if (UNIVERSAL::can($dbh, 'sql_group_concat')) {
-            print "Populating bugs_fulltext...";
-            print " (this can take a long time.)\n";
-            # XXX This hack should probably be moved elsewhere.
-            if ($dbh->isa('Bugzilla::DB::Mysql')) {
-                $dbh->do('SET SESSION group_concat_max_len = 128000000');
-                $dbh->do('SET SESSION max_allowed_packet =   128000000');
+        # Bug 46221 - Russian Stemming in Bugzilla fulltext search
+        # We can't use GROUP_CONCAT because we need to stem each word
+        # And there could be tons of bugs, so we'll use N-bug portions
+        print "Populating bugs_fulltext... (this can take a long time.)\n";
+        my ($portion, $done, $total) = (256, 0, scalar @bug_ids);
+        my ($short, $all, $nopriv, $wh, $rows);
+        my ($sth, $sthn) = (undef, 0);
+        while (my @ids = splice @bug_ids, 0, $portion)
+        {
+            $rows = {};
+            $wh = "bug_id IN (" . join(",", ("?") x @ids) . ")";
+            ($short) = $dbh->selectall_arrayref(
+                "SELECT bug_id, short_desc FROM bugs WHERE $wh", undef, @ids
+            );
+            $all = $dbh->selectall_arrayref(
+                "SELECT bug_id, thetext, isprivate FROM longdescs WHERE $wh",
+                undef, @ids
+            );
+            $rows->{$_->[0]} = [ stem_text($_->[1]), '', '' ] for @$short;
+            for (@$all)
+            {
+                $_->[1] = stem_text($_->[1]);
+                $rows->{$_->[0]}->[1] .= $_->[1] . "\n";
+                $rows->{$_->[0]}->[2] .= $_->[1] . "\n"
+                    unless $_->[2];
             }
-            $dbh->do(
-                q{INSERT INTO bugs_fulltext (bug_id, short_desc, comments, 
-                                             comments_noprivate)
-                       SELECT bugs.bug_id, bugs.short_desc, }
-                     . $dbh->sql_group_concat('longdescs.thetext', '\'\n\'')
-              . ', ' . $dbh->sql_group_concat('nopriv.thetext',    '\'\n\'') .
-                      q{ FROM bugs 
-                              LEFT JOIN longdescs
-                                     ON bugs.bug_id = longdescs.bug_id
-                              LEFT JOIN longdescs AS nopriv
-                                     ON longdescs.comment_id = nopriv.comment_id
-                                        AND nopriv.isprivate = 0 }
-                     . $dbh->sql_group_by('bugs.bug_id', 'bugs.short_desc'));
-        }
-        # The slow way, without group_concat.
-        else {
-            print "Populating bugs_fulltext.short_desc...\n";
-            $dbh->do('INSERT INTO bugs_fulltext (bug_id, short_desc)
-                           SELECT bug_id, short_desc FROM bugs');
-
-            my $count = 1;
-            my $sth_all = $dbh->prepare('SELECT thetext FROM longdescs 
-                                          WHERE bug_id = ?');
-            my $sth_nopriv = $dbh->prepare(
-                'SELECT thetext FROM longdescs
-                  WHERE bug_id = ? AND isprivate = 0');
-            my $sth_update = $dbh->prepare(
-                'UPDATE bugs_fulltext SET comments = ?, comments_noprivate = ?
-                  WHERE bug_id = ?');
-
-            print "Populating bugs_fulltext comment fields...\n";
-            foreach my $id (@$bug_ids) { 
-                my $all = $dbh->selectcol_arrayref($sth_all, undef, $id);
-                my $nopriv = $dbh->selectcol_arrayref($sth_nopriv, undef, $id);
-                $sth_update->execute(join("\n", @$all), join("\n", @$nopriv), $id);
-                indicate_progress({ total   => scalar @$bug_ids, every => 100,
-                                    current => $count++ });
+            if ($sthn != @ids)
+            {
+                # Optimization: cache prepared statements
+                $sthn = @ids;
+                $sth = $dbh->prepare(
+                    "INSERT INTO bugs_fulltext (bug_id, short_desc, comments, comments_noprivate)" .
+                    " VALUES " . join(",", ("(?,?,?,?)") x @ids)
+                );
             }
-            print "\n";
+            $sth->execute(map { ($_, @{$rows->{$_}}) } @ids);
+            $done += @ids;
+            print "\r$done / $total ...";
         }
+        print "\n";
     }
 }
 

@@ -158,7 +158,7 @@ sub sql_limit {
 
 sub sql_string_concat {
     my ($self, @params) = @_;
-    
+
     return 'CONCAT(' . join(', ', @params) . ')';
 }
 
@@ -167,7 +167,7 @@ sub sql_fulltext_search {
 
     # Add the boolean mode modifier if the search string contains
     # boolean operators.
-    my $mode = ($text =~ /[+\-<>()~*"]/ ? "IN BOOLEAN MODE" : "");
+    my $mode = ($text =~ /[+\-<>()~*\"]/ ? "IN BOOLEAN MODE" : "");
 
     # quote the text for use in the MATCH AGAINST expression
     $text = $self->quote($text);
@@ -180,7 +180,7 @@ sub sql_fulltext_search {
 
 sub sql_istring {
     my ($self, $string) = @_;
-    
+
     return $string;
 }
 
