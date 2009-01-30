@@ -1239,7 +1239,7 @@ sub _content_matches
     $comments_col = "comments_noprivate" unless $self->{user}->is_insider;
 
     # Create search terms to add to the SELECT and WHERE clauses.
-    my $text = stem_text($$v, 1);
+    my $text = stem_text($$v);
     my ($term1, $rterm1) =
         $dbh->sql_fulltext_search("bugs_fulltext.$comments_col", $text, 1);
     $rterm1 ||= $term1;
