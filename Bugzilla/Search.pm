@@ -821,7 +821,7 @@ sub init {
         $query .= " ORDER BY " . join(',', @orderby);
     }
 
-    warn $self->{'sql'} = $query;
+    $self->{'sql'} = $query;
     $self->{'debugdata'} = \@debugdata;
 }
 
