@@ -821,7 +821,7 @@ sub init {
         $query .= " ORDER BY " . join(',', @orderby);
     }
 
-    $self->{'sql'} = $query;
+    warn $self->{'sql'} = $query;
     $self->{'debugdata'} = \@debugdata;
 }
 
@@ -878,11 +878,12 @@ sub SqlifyDate {
 sub build_subselect {
     my ($outer, $inner, $table, $cond) = @_;
     my $q = "SELECT $inner FROM $table WHERE $cond";
-    #return "$outer IN ($q)";
+    return "$outer IN ($q)";
     my $dbh = Bugzilla->dbh;
     my $list = $dbh->selectcol_arrayref($q);
     return "1=2" unless @$list; # Could use boolean type on dbs which support it
-    return $dbh->sql_in($outer, $list);}
+    return $dbh->sql_in($outer, $list);
+}
 
 sub GetByWordList {
     my ($field, $strs) = (@_);

@@ -166,7 +166,7 @@ sub quicksearch {
         $searchstring =~ s/\s+NOT\s+/ -/g;
 
         my @words = splitString($searchstring);
-        my $searchComments = 
+        my $searchComments =
             $#words < Bugzilla->params->{'quicksearch_comment_cutoff'};
         my @openStates = BUG_STATE_OPEN;
         my @closedStates;
@@ -177,11 +177,7 @@ sub quicksearch {
             push(@closedStates, $_) unless is_open_state($_);
         }
         foreach (@openStates) { $states{$_} = 1 }
-        if ($words[0] eq 'ALL') {
-            foreach (@$legal_statuses) { $states{$_} = 1 }
-            shift @words;
-        }
-        elsif ($words[0] eq 'OPEN') {
+        if ($words[0] eq 'OPEN') {
             shift @words;
         }
         elsif ($words[0] =~ /^\+[A-Z]+(,[A-Z]+)*$/) {
@@ -216,8 +212,8 @@ sub quicksearch {
             }
         }
         else {
-            # Default: search for unresolved bugs only.
-            # Put custom code here if you would like to change this behaviour.
+            # Default: search for ALL BUGS! (Vitaliy Filippov <vfilippov@custis.ru> 2009-01-30)
+            foreach (@$legal_statuses) { $states{$_} = 1 }
         }
 
         # If we have wanted resolutions, allow closed states
@@ -227,6 +223,7 @@ sub quicksearch {
 
         $cgi->param('bug_status', keys(%states));
         $cgi->param('resolution', keys(%resolutions));
+        my $content = '';
 
         # Loop over all main-level QuickSearch words.
         foreach my $qsword (@words) {
@@ -238,16 +235,8 @@ sub quicksearch {
             my $firstChar = substr($qsword, 0, 1);
             my $baseWord = substr($qsword, 1);
             my @subWords = split(/[\|,]/, $baseWord);
-            if ($firstChar eq '+') {
-                foreach (@subWords) {
-                    addChart('short_desc', 'substring', $qsword, $negate);
-                }
-            }
-            elsif ($firstChar eq '#') {
-                addChart('short_desc', 'anywords', $baseWord, $negate);
-                if ($searchComments) {
-                    addChart('longdesc', 'anywords', $baseWord, $negate);
-                }
+            if ($firstChar eq '+' || $firstChar eq '#') {
+                $content .= ' +' . join ' +', @subWords if @subWords;
             }
             elsif ($firstChar eq ':') {
                 foreach (@subWords) {
@@ -261,7 +250,7 @@ sub quicksearch {
                 }
             }
             elsif ($firstChar eq '[') {
-                addChart('short_desc', 'substring', $baseWord, $negate);
+                $content .= ' ' . $baseWord;
                 addChart('status_whiteboard', 'substring', $baseWord, $negate);
             }
             elsif ($firstChar eq '!') {
@@ -335,45 +324,7 @@ sub quicksearch {
 
                             }
                             else { # Default QuickSearch word
-
-                                if (!grep({lc($word) eq $_}
-                                          PRODUCT_EXCEPTIONS) &&
-                                    length($word)>2
-                                   ) {
-                                    addChart('product', 'substring',
-                                             $word, $negate);
-                                }
-                                if (!grep({lc($word) eq $_}
-                                          COMPONENT_EXCEPTIONS) &&
-                                    length($word)>2
-                                   ) {
-                                    addChart('component', 'substring',
-                                             $word, $negate);
-                                }
-                                if (grep({lc($word) eq $_}
-                                         map($_->name, Bugzilla::Keyword->get_all))) {
-                                    addChart('keywords', 'substring',
-                                             $word, $negate);
-                                    if (length($word)>2) {
-                                        addChart('short_desc', 'substring',
-                                                 $word, $negate);
-                                        addChart('status_whiteboard',
-                                                 'substring',
-                                                 $word, $negate);
-                                    }
-
-                                }
-                                else {
-
-                                    addChart('short_desc', 'substring',
-                                             $word, $negate);
-                                    addChart('status_whiteboard', 'substring',
-                                             $word, $negate);
-                                }
-                                if ($searchComments) {
-                                    addChart('longdesc', 'substring',
-                                             $word, $negate);
-                                }
+                                $content .= ' '.$word;
                             }
                             # URL field (for IP addrs, host.names,
                             # scheme://urls)
@@ -395,6 +346,7 @@ sub quicksearch {
             $and = 0;
             $or = 0;
         } # foreach (@words)
+        $cgi->param('content', $content);
 
         # Inform user about any unknown fields
         if (scalar(@unknownFields)) {
