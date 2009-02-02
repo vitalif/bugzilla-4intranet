@@ -45,7 +45,15 @@ sub get_param_list {
    type => 't',
    default => 'http://www.research.att.com/~north/cgi-bin/webdot.cgi/%urlbase%',
    checker => \&check_webdotbase
-  } );
+  },
+
+  {
+   name => 'graph_rankdir',
+   type => 's',
+   choices => ['LR', 'RL', 'TB', 'BT'],
+   default => 'LR'
+  },
+  );
   return @param_list;
 }
 

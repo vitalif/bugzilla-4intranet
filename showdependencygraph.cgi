@@ -98,11 +98,12 @@ sub AddLink {
 # The list of valid directions. Some are not proposed in the dropdrown
 # menu despite the fact that they are valid.
 my @valid_rankdirs = ('LR', 'RL', 'TB', 'BT');
+my $default_rankdir = Bugzilla->params->{graph_rankdir} || 'LR';
 
-my $rankdir = $cgi->param('rankdir') || 'TB';
+my $rankdir = $cgi->param('rankdir') || $default_rankdir;
 # Make sure the submitted 'rankdir' value is valid.
 if (lsearch(\@valid_rankdirs, $rankdir) < 0) {
-    $rankdir = 'TB';
+    $rankdir = $default_rankdir;
 }
 
 my $display = $cgi->param('display') || 'tree';
@@ -115,7 +116,7 @@ if (!defined $cgi->param('id') && $display ne 'doall') {
 my ($fh, $filename) = File::Temp::tempfile("XXXXXXXXXX",
                                            SUFFIX => '.dot',
                                            DIR => $webdotdir);
-my $urlbase = Bugzilla->params->{'urlbase'};
+my $urlbase = Bugzilla->params->{urlbase};
 
 print $fh "digraph G {";
 print $fh qq{

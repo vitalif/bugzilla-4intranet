@@ -49,15 +49,21 @@
 
 [% image_map %]
 
-<p>
-  Green circles represent open [% terms.bugs %].
-</p>
+<table cellpadding="2" style="margin-bottom: 16px"><tr>
+  <td>Bug States:</td>
+  <td style="border: 1px solid gray; background-color:#FFA000">NEW</td>
+  <td style="border: 1px solid gray; background-color:#FFFF00">ASSIGNED</td>
+  <td style="border: 1px solid gray; background-color:#00FF00">RESOLVED</td>
+  <td style="border: 1px solid gray; background-color:#675ACD">VERIFIED</td>
+  <td style="border: 1px solid gray; background-color:#D0D0D0">CLOSED</td>
+  <td style="border: 1px solid gray; background-color:#FF4000">REOPENED</td>
+</tr></table>
 
 [% IF image_map %]
-  <img src="[% image_url %]" alt="Dependency graph" usemap="#imagemap">
+  <img src="[% image_url %]" alt="Dependency graph" usemap="#imagemap" style="border: 1px solid gray">
 [% ELSE %]
   <a href="[% map_url %]">
-    <img src="[% image_url %]" alt="Dependency graph" ismap="ismap">
+    <img src="[% image_url %]" alt="Dependency graph" ismap="ismap" style="border: 1px solid gray">
   </a>
 [% END %]
 
