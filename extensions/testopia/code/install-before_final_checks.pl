@@ -1,4 +1,4 @@
-#!/usr/bin/perl -wT
+#!/usr/bin/perl -w
 # -*- Mode: perl; indent-tabs-mode: nil -*-
 #
 # The contents of this file are subject to the Mozilla Public
@@ -14,25 +14,15 @@
 # The Original Code is the Bugzilla Testopia System.
 #
 # The Initial Developer of the Original Code is Greg Hendricks.
-# Portions created by Greg Hendricks are Copyright (C) 2006
+# Portions created by Greg Hendricks are Copyright (C) 2009
 # Novell. All Rights Reserved.
 #
 # Contributor(s): Greg Hendricks <ghendricks@novell.com>
 
 use strict;
-use lib qw(. lib);
-
+use lib '.';
 use Bugzilla;
-use Bugzilla::Constants;
-use Bugzilla::Error;
+use Bugzilla::User::Setting;
 
-Bugzilla->login(LOGIN_REQUIRED);
-my $vars = {};
+add_setting('view_testopia', ['on', 'off'], 'on');
 
-my $template = Bugzilla->template;
-my $cgi = Bugzilla->cgi;
-print $cgi->header;
-
-$vars->{'txt'} = $cgi->param('text');
-$template->process("testopia/text.png.tmpl", $vars) 
-  || ThrowTemplateError($template->error());

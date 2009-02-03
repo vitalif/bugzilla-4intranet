@@ -20,7 +20,7 @@
 # Contributor(s): Greg Hendricks <ghendricks@novell.com>
 
 use strict;
-use lib ".";
+use lib qw(. lib);
 
 use Bugzilla;
 use Bugzilla::Constants;
@@ -62,8 +62,10 @@ if ($pid){
 
 $cgi->param('current_tab', 'plan');
 $cgi->param('pagesize', $cgi->param('limit'));
-$cgi->param('page', $cgi->param('start') == 0 ? 0 : $cgi->param('start')/$cgi->param('limit'));
 $cgi->param('name_type','allwordssubstr');
+if (exists $cgi->{'start'} || exists $cgi->{param}->{'start'}){
+    $cgi->param('page', $cgi->param('start') == 0 ? 0 : $cgi->param('start')/$cgi->param('limit'));    
+}
 
 my $search = Bugzilla::Testopia::Search->new($cgi);
 my $table = Bugzilla::Testopia::Table->new('plan', 'tr_list_plans.cgi', $cgi, undef, $search->query);

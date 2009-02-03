@@ -72,6 +72,7 @@ CaseGrid = function(params, cfg){
     params.current_tab = 'case';
     this.params = params;
     categoryCombo = new CaseCategoryCombo({
+        id: 'case_grid_cateogy_chooser',
         hiddenName: 'category',
         mode: 'remote',
         params: {}
@@ -125,7 +126,7 @@ CaseGrid = function(params, cfg){
              })),
          id: "sortkey"
         },
-		{header: "Summary", 
+        {header: "Summary", 
          width: 220, 
          dataIndex: 'summary', 
          id: "case_summary", 
@@ -135,21 +136,20 @@ CaseGrid = function(params, cfg){
                  allowBlank: false
              }))
         },
-		{header: "Author", width: 150, sortable: true, dataIndex: 'author'},
+        {header: "Author", width: 150, sortable: true, dataIndex: 'author', hidden: true},
         {header: "Default Tester", width: 150, sortable: true, dataIndex: 'tester',
          editor: new Ext.grid.GridEditor(new UserLookup({hiddenName:'tester'})),
          renderer: TestopiaComboRenderer.createDelegate(this)},
-		{header: "Created", width: 110, sortable: true, dataIndex: 'creation_date'},
-        {header: "Last Modified", width: 110, sortable: true, dataIndex: 'modified'},
+        {header: "Created", width: 110, sortable: true, dataIndex: 'creation_date', hidden: true},
+        {header: "Last Modified", width: 110, sortable: true, dataIndex: 'modified', hidden: true},
         {header: "Priority", width: 100, sortable: true, dataIndex: 'priority',
          editor: new Ext.grid.GridEditor(
              new PriorityCombo({
                  hiddenName: 'priority',
-                 id: 'case_grid_priority',
                  mode: 'remote'
              })
          ), renderer: TestopiaComboRenderer.createDelegate(this)
-        },		
+        },        
         {header: "Category", width: 100, sortable: true, dataIndex: 'category',
          editor: new Ext.grid.GridEditor(
                 categoryCombo,{listeners: {
@@ -167,14 +167,14 @@ CaseGrid = function(params, cfg){
         {header: "Status", width: 100, sortable: true, dataIndex: 'status',
          editor: new Ext.grid.GridEditor(new CaseStatusCombo('status')),
          renderer: TestopiaComboRenderer.createDelegate(this)},
-        {header: "Requirement", width: 40, sortable: true, dataIndex: 'requirement',
+        {header: "Requirement", width: 40, sortable: true, dataIndex: 'requirement', hidden: true,
         editor: new Ext.grid.GridEditor(
             new Ext.form.TextField({
                 name: 'requirement'
             }))
         },
-        {header: "Plan", width: 40, sortable: true, dataIndex: 'plan_id', renderer: tutil.plan_link, groupRenderer: function(v){return v;}},
-        {header: "Run Count", width: 40, sortable: false, dataIndex: 'run_count'}
+        {header: "Plan", width: 40, sortable: true, dataIndex: 'plan_id', hidden: true, renderer: tutil.plan_link, groupRenderer: function(v){return v;}},
+        {header: "Run Count", width: 40, sortable: false, dataIndex: 'run_count', hidden: true}
     ];
     this.view = new Ext.grid.GroupingView({
         forceFit: true,
@@ -188,6 +188,7 @@ CaseGrid = function(params, cfg){
         id: cfg.id || 'case_grid',
         loadMask: {msg:'Loading Test Cases...'},
         layout: 'fit',
+        stripeRows:true,
         region: 'center',
         autoExpandColumn: "case_summary",
         autoScroll: true,
@@ -506,7 +507,6 @@ Ext.extend(CaseGrid, Ext.grid.EditorGridPanel, {
                         Ext.Msg.prompt('Add to runs', '', function(btn, text){
                             if (btn == 'ok'){
                                 TestopiaUpdateMultiple('case', {addruns: text, ids: getSelectedObjects(grid,'case_id')}, grid);
-                                win.close();
                             }
                         });
                     }
@@ -870,7 +870,7 @@ NewCaseForm = function(plan_ids, product_id, run_id){
                                         },
                                         failure: testopiaError
                                     });
-                                }  	
+                                }      
                             }}
                         }]
                     }]
@@ -887,16 +887,16 @@ NewCaseForm = function(plan_ids, product_id, run_id){
                             listeners:{'initialize':function(h){
                                 if(!h.getValue()){
                                     var httpRequest = new Ext.data.Connection();
-                                	httpRequest.request({
-                                    	url: 'tr_quicksearch.cgi',
-                                    	params:{
-                                    		action: 'get_effect'
-                                    	}, 
-                                    	success:function(d){
-                                    		h.setValue(d.responseText);
-                                    	}, 
-                                    	failure: testopiaError
-                                	});  	
+                                    httpRequest.request({
+                                        url: 'tr_quicksearch.cgi',
+                                        params:{
+                                            action: 'get_effect'
+                                        }, 
+                                        success:function(d){
+                                            h.setValue(d.responseText);
+                                        }, 
+                                        failure: testopiaError
+                                    });      
                                 }
                             }}
                         }]
@@ -1314,7 +1314,7 @@ caseClonePopup = function(product_id, cases){
     for (var i=0; i < items.length; i++){
         items[i].destroy();
     }
-    var pchooser = new ProductCombo({mode: 'local', value: product_id});
+    var pchooser = new ProductCombo({id: 'case_clone_win_product_chooser', mode: 'local', value: product_id});
     pchooser.on('select', function(c,r,i){
         pg.store.baseParams = {ctype: 'json', product_id: r.get('id')};
         if (r.get('id') != product_id){

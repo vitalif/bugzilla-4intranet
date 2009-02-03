@@ -20,7 +20,7 @@
 # Contributor(s): Greg Hendricks <ghendricks@novell.com>
 
 use strict;
-use lib ".";
+use lib qw(. lib);
 
 use Bugzilla;
 use Bugzilla::Util;
@@ -86,7 +86,7 @@ if ($action eq 'upload') {
         }
     }
     
-    ThrowUserError('invalid_import_type', {type => $type}) unless $type =~ /text\/(xml|csv|x-comma-separated-values)/;
+    ThrowUserError('invalid_import_type', {type => $type}) unless $type =~ /text\/(plain|xml|csv|x-comma-separated-values)/;
         
     if ($type eq 'text/xml'){
         my $fh = $cgi->upload('data');

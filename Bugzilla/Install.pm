@@ -60,8 +60,6 @@ sub SETTINGS {
     # 2006-12-10 LpSolit@gmail.com -- Bug 297186
     lang               => { subclass => 'Lang',
                             default => ${Bugzilla->languages}[0] },
-    view_testopia      => { options => ['on', 'off'],
-                            default  => 'on' },
     # 2007-07-02 altlist@gmail.com -- Bug 225731
     quote_replies      => { options => ['quoted_reply', 'simple_reply', 'off'],
                             default => "quoted_reply" },

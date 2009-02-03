@@ -22,7 +22,7 @@
 package Bugzilla::Testopia::Classification;
 
 use strict;
-use JSON;
+
 use Bugzilla;
 use Bugzilla::Constants;
 use Bugzilla::Config;

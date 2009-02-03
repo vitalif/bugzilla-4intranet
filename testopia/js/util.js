@@ -20,6 +20,20 @@
  *                 Daniel Parker <dparker1@novell.com>
  */
 
+// FIX for Extjs bug in IE. Remove when upgrading to Extjs 2.3
+// See https://bugzilla.mozilla.org/show_bug.cgi?id=466605
+Ext.form.TriggerField.override({
+    afterRender : function(){
+        Ext.form.TriggerField.superclass.afterRender.call(this);
+        var y;
+        if(Ext.isIE && !this.hideTrigger && this.el.getY() != (y = this.trigger.getY())){
+            this.el.position();
+            this.el.setY(y);
+        }
+    }
+});
+// END FIX
+
 Ext.state.Manager.setProvider(new Ext.state.CookieProvider({expires: new Date(new Date().getTime()+(1000*60*60*24*30))}));
 Ext.data.Connection.timeout = 120000;
 Ext.Updater.defaults.timeout = 120000;
@@ -62,7 +76,10 @@ Ext.grid.CheckColumn.prototype = {
         return '<div class="x-grid3-check-col'+(v == '1' ?'-on':'')+' x-grid3-cc-'+this.id+'">&#160;</div>';
     }
 };
-
+var imgButtonTpl = new Ext.Template(
+    '<table border="0" cellpadding="0" cellspacing="0"><tbody><tr>' +
+    '<td><button type="button"><img src="{0}"></button></td>' +
+    '</tr></tbody></table>');
 TestopiaUtil = function(){
     this.statusIcon =  function (name){
         return '<img src="testopia/img/' + name + '_small.gif" alt="'+ name +'" title="'+ name +'">';
@@ -1015,9 +1032,9 @@ HistoryGrid = function(object, id){
     });
     this.columns = [
         {header: "What", width: 150, dataIndex: 'what', sortable: true},
-		{header: "Who", width: 180, sortable: true, dataIndex: 'who'},
-		{header: "When", width: 150, sortable: true, dataIndex: 'when'},
-		{header: "Old", width: 180, sortable: true, dataIndex: 'oldvalue'},		
+        {header: "Who", width: 180, sortable: true, dataIndex: 'who'},
+        {header: "When", width: 150, sortable: true, dataIndex: 'when'},
+        {header: "Old", width: 180, sortable: true, dataIndex: 'oldvalue'},        
         {id: 'new', header: "New", width: 180, sortable: true, dataIndex: 'newvalue'}
     ];
     HistoryGrid.superclass.constructor.call(this,{
@@ -1084,9 +1101,17 @@ Ext.override(Ext.form.Field, {
 });// End Override
 
 var TestopiaPager = function(type, store){
-    this.type = type; 
+    this.type = type;
+    var baseParams = clone(store.baseParams); 
     function doUpdate(){
         this.updateInfo();
+    }
+    function clone(orig){
+        var clone = {};
+        for (var i in orig){
+            clone[i] = orig[i]; 
+        }
+        return clone;
     }
     function viewallUpdate(){
         this.cursor = 0;
@@ -1146,6 +1171,13 @@ var TestopiaPager = function(type, store){
         var key = e.getKey();
         if(key == e.ENTER){
             var params = {start: 0, limit: sizer.getValue()};
+            if(this.getValue().length === 0){
+                store.baseParams = baseParams;
+                store.load({params: params});
+                Ext.getCmp(type + '_filtered_txt').hide();
+                return;
+            }
+            var params = {start: 0, limit: sizer.getValue()};
             var s = this.getValue();
             var term = s.match(/(^.*?):/);
             if (term) {
@@ -1195,40 +1227,44 @@ var TestopiaPager = function(type, store){
                         break;
                         
                 }
-                params[term] = q;
-                params[term + '_type'] = 'substring';
+                store.baseParams[term] = q;
+                store.baseParams[term + '_type'] = 'substring';
             }
             else {
                 if (type == 'case' || type == 'run') {
-                    params.summary = this.getValue();
-                    params.summary_type = 'allwordssubst';
+                    store.baseParams.summary = this.getValue();
+                    store.baseParams.summary_type = 'allwordssubst';
                 }
                 else 
                     if (type == 'caserun') {
-                        params.case_summary = this.getValue();
-                        params.case_summary_type = 'allwordssubst';
+                        store.baseParams.case_summary = this.getValue();
+                        store.baseParams.case_summary_type = 'allwordssubst';
                     }
                     else {
-                        params.name = this.getValue();
-                        params.name_type = 'allwordssubst';
+                        store.baseParams.name = this.getValue();
+                        store.baseParams.name_type = 'allwordssubst';
                     }
             }
             store.load({ 
               params: params
             });
+            Ext.getCmp(type + '_filtered_txt').show();
         }
         if((key == e.BACKSPACE || key == e.DELETE) && this.getValue().length === 0){
+            store.baseParams = baseParams;
             store.load({ 
                 params: {start: 0, limit: sizer.getValue()}
             });
+            Ext.getCmp(type + '_filtered_txt').hide();
         }
     });
+   
     sizer.on('render', function(){
         var tt = new Ext.ToolTip({
             target: type + '_paging_filter',
             title: 'Quick Search Filter',
             hideDelay: '500',
-            html: "Enter column and search term separated by ':'<br> <b>Example:</b> priority: P3" 
+            html: "Enter column and search term separated by ':'<br> <b>Example:</b> priority: P3<br>Blank field and ENTER to clear" 
         });
     });
     TestopiaPager.superclass.constructor.call(this,{
@@ -1249,7 +1285,7 @@ var TestopiaPager = function(type, store){
             new Ext.Toolbar.Spacer('_'),
             viewall,
             new Ext.Toolbar.Spacer('_'),
-            new ToolbarText({ text: '(FILTERED)', hidden: true, id:'filtered_txt', style: 'font-weight:bold;color:red'})
+            new ToolbarText({ text: '(FILTERED)', hidden: true, id: type + '_filtered_txt', style: 'font-weight:bold;color:red'})
         ]
     });
     this.on('render',this.setPager, this);
@@ -1304,7 +1340,7 @@ DashboardPanel = function(cfg){
                         
                         Ext.getCmp('dashboard_leftcol').add(newPortlet);
                         Ext.getCmp('dashboard_leftcol').doLayout();
-                		newPortlet.load({
+                        newPortlet.load({
                             url: url,
                             scripts: false
                         });
@@ -1358,7 +1394,7 @@ TestopiaUpdateMultiple = function(type, params, grid){
             TestopiaUtil.notify.msg('Test '+ type + 's updated', 'The selected {0}s were updated successfully', type);
             if (grid.selectedRows){
                 grid.store.baseParams.addcases = grid.selectedRows.join(',');
-                Ext.getCmp('filtered_txt').show();
+                Ext.getCmp(type + '_filtered_txt').show();
             }
             try {
                 Ext.getCmp('case_details_panel').store.reload();
@@ -1546,7 +1582,7 @@ linkPopup = function(params){
         plain: true,
         shadow: false,
         items: [new Ext.form.TextField({
-            value: encodeURI(l.protocol + '//' + l.host + pathprefix + '/' + file + '?' + jsonToSearch(params,'',['ctype'])),
+            value: l.protocol + '//' + l.host + pathprefix + '/' + file + '?' + jsonToSearch(params,'',['ctype']),
             width: 287
         })]
     });

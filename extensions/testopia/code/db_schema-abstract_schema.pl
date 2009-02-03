@@ -147,10 +147,6 @@ $schema->{test_attachments} = {
         },
         default_tester_id => {
             TYPE       => 'INT3',
-            REFERENCES => {
-                TABLE  => 'profiles',
-                COLUMN => 'userid',
-            }
         },
         creation_date  => { TYPE => 'DATETIME', NOTNULL => 1 },
         estimated_time => { TYPE => 'TIME' },
@@ -234,18 +230,10 @@ $schema->{test_attachments} = {
             }
         },
         assignee => {
-            TYPE       => 'INT3',
-            REFERENCES => {
-                TABLE  => 'profiles',
-                COLUMN => 'userid',
-            }
+            TYPE       => 'INT3'
         },
         testedby => {
-            TYPE       => 'INT3',
-            REFERENCES => {
-                TABLE  => 'profiles',
-                COLUMN => 'userid',
-            }
+            TYPE       => 'INT3'
         },
         case_run_status_id => {
             TYPE       => 'INT2',
@@ -315,10 +303,6 @@ $schema->{test_attachments} = {
         who               => {
             TYPE       => 'INT3',
             NOTNULL    => 1,
-            REFERENCES => {
-                TABLE  => 'profiles',
-                COLUMN => 'userid',
-            }
         },
         creation_ts => { TYPE => 'DATETIME', NOTNULL => 1 },
         action      => { TYPE => 'MEDIUMTEXT' },
@@ -367,11 +351,6 @@ $schema->{test_attachments} = {
         userid => {
             TYPE       => 'INT3',
             NOTNULL    => 1,
-            REFERENCES => {
-                TABLE  => 'profiles',
-                COLUMN => 'userid',
-                DELETE => 'CASCADE'
-            }
         },
     ],
     INDEXES => [
@@ -407,11 +386,6 @@ $schema->{test_attachments} = {
         userid => {
             TYPE       => 'INT3',
             NOTNULL    => 1,
-            REFERENCES => {
-                TABLE  => 'profiles',
-                COLUMN => 'userid',
-                DELETE => 'CASCADE'
-            }
         },
     ],
     INDEXES => [
@@ -446,11 +420,6 @@ $schema->{test_attachments} = {
         userid => {
             TYPE       => 'INT3',
             NOTNULL    => 1,
-            REFERENCES => {
-                TABLE  => 'profiles',
-                COLUMN => 'userid',
-                DELETE => 'CASCADE'
-            }
         },
     ],
     INDEXES => [
@@ -476,10 +445,6 @@ $schema->{test_attachments} = {
         author_id => {
             TYPE       => 'INT3',
             NOTNULL    => 1,
-            REFERENCES => {
-                TABLE  => 'profiles',
-                COLUMN => 'userid',
-            }
         },
         type_id => {
             TYPE       => 'INT2',
@@ -569,11 +534,6 @@ $schema->{test_attachments} = {
         who               => {
             TYPE       => 'INT3',
             NOTNULL    => 1,
-            REFERENCES => {
-                TABLE  => 'profiles',
-                COLUMN => 'userid',
-                DELETE => 'CASCADE'
-            }
         },
         creation_ts => { TYPE => 'DATETIME', NOTNULL => 1 },
         plan_text   => { TYPE => 'MEDIUMTEXT' },

@@ -62,6 +62,20 @@ ENVIRONMENT_DELETE_WARNING = 'You are about to delete the selected test environm
  *                 Daniel Parker <dparker1@novell.com>
  */
 
+// FIX for Extjs bug in IE. Remove when upgrading to Extjs 2.3
+// See https://bugzilla.mozilla.org/show_bug.cgi?id=466605
+Ext.form.TriggerField.override({
+    afterRender : function(){
+        Ext.form.TriggerField.superclass.afterRender.call(this);
+        var y;
+        if(Ext.isIE && !this.hideTrigger && this.el.getY() != (y = this.trigger.getY())){
+            this.el.position();
+            this.el.setY(y);
+        }
+    }
+});
+// END FIX
+
 Ext.state.Manager.setProvider(new Ext.state.CookieProvider({expires: new Date(new Date().getTime()+(1000*60*60*24*30))}));
 Ext.data.Connection.timeout = 120000;
 Ext.Updater.defaults.timeout = 120000;
@@ -104,7 +118,10 @@ Ext.grid.CheckColumn.prototype = {
         return '<div class="x-grid3-check-col'+(v == '1' ?'-on':'')+' x-grid3-cc-'+this.id+'">&#160;</div>';
     }
 };
-
+var imgButtonTpl = new Ext.Template(
+    '<table border="0" cellpadding="0" cellspacing="0"><tbody><tr>' +
+    '<td><button type="button"><img src="{0}"></button></td>' +
+    '</tr></tbody></table>');
 TestopiaUtil = function(){
     this.statusIcon =  function (name){
         return '<img src="testopia/img/' + name + '_small.gif" alt="'+ name +'" title="'+ name +'">';
@@ -1057,9 +1074,9 @@ HistoryGrid = function(object, id){
     });
     this.columns = [
         {header: "What", width: 150, dataIndex: 'what', sortable: true},
-		{header: "Who", width: 180, sortable: true, dataIndex: 'who'},
-		{header: "When", width: 150, sortable: true, dataIndex: 'when'},
-		{header: "Old", width: 180, sortable: true, dataIndex: 'oldvalue'},		
+        {header: "Who", width: 180, sortable: true, dataIndex: 'who'},
+        {header: "When", width: 150, sortable: true, dataIndex: 'when'},
+        {header: "Old", width: 180, sortable: true, dataIndex: 'oldvalue'},        
         {id: 'new', header: "New", width: 180, sortable: true, dataIndex: 'newvalue'}
     ];
     HistoryGrid.superclass.constructor.call(this,{
@@ -1126,9 +1143,17 @@ Ext.override(Ext.form.Field, {
 });// End Override
 
 var TestopiaPager = function(type, store){
-    this.type = type; 
+    this.type = type;
+    var baseParams = clone(store.baseParams); 
     function doUpdate(){
         this.updateInfo();
+    }
+    function clone(orig){
+        var clone = {};
+        for (var i in orig){
+            clone[i] = orig[i]; 
+        }
+        return clone;
     }
     function viewallUpdate(){
         this.cursor = 0;
@@ -1188,6 +1213,13 @@ var TestopiaPager = function(type, store){
         var key = e.getKey();
         if(key == e.ENTER){
             var params = {start: 0, limit: sizer.getValue()};
+            if(this.getValue().length === 0){
+                store.baseParams = baseParams;
+                store.load({params: params});
+                Ext.getCmp(type + '_filtered_txt').hide();
+                return;
+            }
+            var params = {start: 0, limit: sizer.getValue()};
             var s = this.getValue();
             var term = s.match(/(^.*?):/);
             if (term) {
@@ -1237,40 +1269,44 @@ var TestopiaPager = function(type, store){
                         break;
                         
                 }
-                params[term] = q;
-                params[term + '_type'] = 'substring';
+                store.baseParams[term] = q;
+                store.baseParams[term + '_type'] = 'substring';
             }
             else {
                 if (type == 'case' || type == 'run') {
-                    params.summary = this.getValue();
-                    params.summary_type = 'allwordssubst';
+                    store.baseParams.summary = this.getValue();
+                    store.baseParams.summary_type = 'allwordssubst';
                 }
                 else 
                     if (type == 'caserun') {
-                        params.case_summary = this.getValue();
-                        params.case_summary_type = 'allwordssubst';
+                        store.baseParams.case_summary = this.getValue();
+                        store.baseParams.case_summary_type = 'allwordssubst';
                     }
                     else {
-                        params.name = this.getValue();
-                        params.name_type = 'allwordssubst';
+                        store.baseParams.name = this.getValue();
+                        store.baseParams.name_type = 'allwordssubst';
                     }
             }
             store.load({ 
               params: params
             });
+            Ext.getCmp(type + '_filtered_txt').show();
         }
         if((key == e.BACKSPACE || key == e.DELETE) && this.getValue().length === 0){
+            store.baseParams = baseParams;
             store.load({ 
                 params: {start: 0, limit: sizer.getValue()}
             });
+            Ext.getCmp(type + '_filtered_txt').hide();
         }
     });
+   
     sizer.on('render', function(){
         var tt = new Ext.ToolTip({
             target: type + '_paging_filter',
             title: 'Quick Search Filter',
             hideDelay: '500',
-            html: "Enter column and search term separated by ':'<br> <b>Example:</b> priority: P3" 
+            html: "Enter column and search term separated by ':'<br> <b>Example:</b> priority: P3<br>Blank field and ENTER to clear" 
         });
     });
     TestopiaPager.superclass.constructor.call(this,{
@@ -1291,7 +1327,7 @@ var TestopiaPager = function(type, store){
             new Ext.Toolbar.Spacer('_'),
             viewall,
             new Ext.Toolbar.Spacer('_'),
-            new ToolbarText({ text: '(FILTERED)', hidden: true, id:'filtered_txt', style: 'font-weight:bold;color:red'})
+            new ToolbarText({ text: '(FILTERED)', hidden: true, id: type + '_filtered_txt', style: 'font-weight:bold;color:red'})
         ]
     });
     this.on('render',this.setPager, this);
@@ -1346,7 +1382,7 @@ DashboardPanel = function(cfg){
                         
                         Ext.getCmp('dashboard_leftcol').add(newPortlet);
                         Ext.getCmp('dashboard_leftcol').doLayout();
-                		newPortlet.load({
+                        newPortlet.load({
                             url: url,
                             scripts: false
                         });
@@ -1400,7 +1436,7 @@ TestopiaUpdateMultiple = function(type, params, grid){
             TestopiaUtil.notify.msg('Test '+ type + 's updated', 'The selected {0}s were updated successfully', type);
             if (grid.selectedRows){
                 grid.store.baseParams.addcases = grid.selectedRows.join(',');
-                Ext.getCmp('filtered_txt').show();
+                Ext.getCmp(type + '_filtered_txt').show();
             }
             try {
                 Ext.getCmp('case_details_panel').store.reload();
@@ -1588,7 +1624,7 @@ linkPopup = function(params){
         plain: true,
         shadow: false,
         items: [new Ext.form.TextField({
-            value: encodeURI(l.protocol + '//' + l.host + pathprefix + '/' + file + '?' + jsonToSearch(params,'',['ctype'])),
+            value: l.protocol + '//' + l.host + pathprefix + '/' + file + '?' + jsonToSearch(params,'',['ctype']),
             width: 287
         })]
     });
@@ -2163,6 +2199,7 @@ PlanGrid = function(params,cfg){
     var tutil = new TestopiaUtil();
     this.t = tutil;
     var versionbox = new ProductVersionCombo({
+         id: 'plan_grid_version_chooser',
          hiddenName: 'prod_version',
          mode: 'remote',
          params: {product_id: params.product_id}
@@ -2173,7 +2210,7 @@ PlanGrid = function(params,cfg){
 
     this.columns = [
         {header: "ID", width: 30, dataIndex: 'plan_id', sortable: true, renderer: tutil.planLink, hideable: false},
-		{header: "Name", 
+        {header: "Name", 
          width: 220, 
          dataIndex: 'name', 
          id: "plan_name", 
@@ -2183,9 +2220,9 @@ PlanGrid = function(params,cfg){
                  allowBlank: false
              }))
         },
-		{header: "Author", width: 150, sortable: true, dataIndex: 'author'},
-		{header: "Created", width: 110, sortable: true, dataIndex: 'creation_date', hidden: true},
-		{header: "Product", width: 180, sortable: true, dataIndex: 'product', hidden: true},		
+        {header: "Author", width: 150, sortable: true, dataIndex: 'author'},
+        {header: "Created", width: 110, sortable: true, dataIndex: 'creation_date', hidden: true},
+        {header: "Product", width: 180, sortable: true, dataIndex: 'product', hidden: true},        
         {header: "Product Version", width: 60, sortable: true, dataIndex: 'default_product_version',
          editor: new Ext.grid.GridEditor(
              versionbox,{listeners: {
@@ -2198,17 +2235,18 @@ PlanGrid = function(params,cfg){
                  }
              }}
          ), renderer: TestopiaComboRenderer.createDelegate(this)
-        },		
+        },        
         {header: "Type", width: 60, sortable: true,
          dataIndex: 'plan_type',
          editor: new Ext.grid.GridEditor(
              new PlanTypesCombo({
+                 id: 'plan_grid_ types_chooser',
                  hiddenName:'type',
                  mode: 'remote'
              })
          ), renderer: TestopiaComboRenderer.createDelegate(this)
-        },		
-        {header: "Cases", width: 20, sortable: false, dataIndex: 'case_count'},		
+        },        
+        {header: "Cases", width: 20, sortable: false, dataIndex: 'case_count'},        
         {header: "Runs", width: 20, sortable: false, dataIndex: 'run_count'}
     ];
 
@@ -2220,6 +2258,7 @@ PlanGrid = function(params,cfg){
         id: cfg.id || 'plan_grid',
         layout: 'fit',
         region: 'center',
+        stripeRows:true,
         loadMask: {msg:'Loading Test Plans...'},
         autoExpandColumn: "plan_name",
         autoScroll: true,
@@ -2357,6 +2396,7 @@ Ext.extend(PlanGrid, Ext.grid.EditorGridPanel, {
                                             labelWidth: '40',
                                             bodyStyle: 'padding: 5px',
                                             items: [new PlanTypesCombo({
+                                                id: 'plan_type_win_types_combo',
                                                 fieldLabel: 'Plan Type'
                                             })]
                                         })
@@ -2405,7 +2445,7 @@ Ext.extend(PlanGrid, Ext.grid.EditorGridPanel, {
                                 Testopia.Search.dashboard_urls.push(newPortlet.url);
                                 Ext.getCmp('dashboard_leftcol').add(newPortlet);
                                 Ext.getCmp('dashboard_leftcol').doLayout();
-                        		newPortlet.load({
+                                newPortlet.load({
                                     url: newPortlet.url
                                 });
                             }
@@ -2424,7 +2464,7 @@ Ext.extend(PlanGrid, Ext.grid.EditorGridPanel, {
                                 Testopia.Search.dashboard_urls.push(newPortlet.url);
                                 Ext.getCmp('dashboard_leftcol').add(newPortlet);
                                 Ext.getCmp('dashboard_leftcol').doLayout();
-                        		newPortlet.load({
+                                newPortlet.load({
                                     url: newPortlet.url
                                 });
                             }
@@ -2473,7 +2513,7 @@ Ext.extend(PlanGrid, Ext.grid.EditorGridPanel, {
                                                 Testopia.Search.dashboard_urls.push(newPortlet.url);
                                                 Ext.getCmp('dashboard_leftcol').add(newPortlet);
                                                 Ext.getCmp('dashboard_leftcol').doLayout();
-                                        		newPortlet.load({
+                                                newPortlet.load({
                                                     url: newPortlet.url
                                                 });
                                                win.close();
@@ -2603,24 +2643,26 @@ Ext.extend(PlanGrid, Ext.grid.EditorGridPanel, {
 });
 
 NewPlanForm = function(product_id){
-	var versionsBox = new ProductVersionCombo({
+    var versionsBox = new ProductVersionCombo({
+        id: 'new_plan_form_version_chooser',
         hiddenName: 'prod_version',
         fieldLabel: "<b>Product Version</b>",
         mode:'local',
         params: {product_id: product_id}
-	});
-	var productsBox = new ProductCombo({
+    });
+    var productsBox = new ProductCombo({
+        id: 'new_plan_form_product_chooser',
         hiddenName: 'product_id',
         fieldLabel: "<b>Product</b>",
         mode:'local',
         value: product_id
-	});
+    });
     productsBox.on('select', function(c,r,i){
         versionsBox.reset();
         versionsBox.store.baseParams.product_id = r.get('id');
-		versionsBox.store.load();
+        versionsBox.store.load();
         versionsBox.enable();
-	});
+    });
     
     NewPlanForm.superclass.constructor.call(this,{
         url: 'tr_new_plan.cgi',
@@ -2644,7 +2686,7 @@ NewPlanForm = function(product_id){
                     name: 'plan_name',
                     anchor:'95%',
                     allowBlank: false
-                }, new PlanTypesCombo({mode: 'local', hiddenName: 'type', fieldLabel: '<b>Plan Type</b>'})]
+                }, new PlanTypesCombo({id: 'new_plan_form_types_chooser', mode: 'local', hiddenName: 'type', fieldLabel: '<b>Plan Type</b>'})]
             },{
                 columnWidth: 0.5,
                 layout: 'form',
@@ -2713,6 +2755,7 @@ Ext.extend(NewPlanForm, Ext.form.FormPanel);
 
 Testopia.TestPlan.ClonePanel = function(plan){
     var pbox = new ProductCombo({
+        id: 'plan_clone_product_chooser',
         hiddenName: 'product_id',
         fieldLabel: 'Copy To Product',
         mode: 'local',
@@ -2720,7 +2763,7 @@ Testopia.TestPlan.ClonePanel = function(plan){
         value: plan.product_id
     });
     var vbox = new ProductVersionCombo({
-        id: 'clone_version',
+        id: 'plan_clone_version_chooser',
         hiddenName: 'prod_version',
         fieldLabel: 'Product Version',
         params: {product_id: plan.product_id},
@@ -2731,7 +2774,7 @@ Testopia.TestPlan.ClonePanel = function(plan){
         id: 'plan_clone_build_chooser',
         mode: 'local',
         hiddenName: 'new_run_build',
-        params: {product_id: plan.product_id}
+        params: {product_id: plan.product_id, activeonly: 1}
     });
     var ebox = new EnvironmentCombo({
         fieldLabel: 'Select an Environment',
@@ -3047,6 +3090,7 @@ CaseGrid = function(params, cfg){
     params.current_tab = 'case';
     this.params = params;
     categoryCombo = new CaseCategoryCombo({
+        id: 'case_grid_cateogy_chooser',
         hiddenName: 'category',
         mode: 'remote',
         params: {}
@@ -3100,7 +3144,7 @@ CaseGrid = function(params, cfg){
              })),
          id: "sortkey"
         },
-		{header: "Summary", 
+        {header: "Summary", 
          width: 220, 
          dataIndex: 'summary', 
          id: "case_summary", 
@@ -3110,21 +3154,20 @@ CaseGrid = function(params, cfg){
                  allowBlank: false
              }))
         },
-		{header: "Author", width: 150, sortable: true, dataIndex: 'author'},
+        {header: "Author", width: 150, sortable: true, dataIndex: 'author', hidden: true},
         {header: "Default Tester", width: 150, sortable: true, dataIndex: 'tester',
          editor: new Ext.grid.GridEditor(new UserLookup({hiddenName:'tester'})),
          renderer: TestopiaComboRenderer.createDelegate(this)},
-		{header: "Created", width: 110, sortable: true, dataIndex: 'creation_date'},
-        {header: "Last Modified", width: 110, sortable: true, dataIndex: 'modified'},
+        {header: "Created", width: 110, sortable: true, dataIndex: 'creation_date', hidden: true},
+        {header: "Last Modified", width: 110, sortable: true, dataIndex: 'modified', hidden: true},
         {header: "Priority", width: 100, sortable: true, dataIndex: 'priority',
          editor: new Ext.grid.GridEditor(
              new PriorityCombo({
                  hiddenName: 'priority',
-                 id: 'case_grid_priority',
                  mode: 'remote'
              })
          ), renderer: TestopiaComboRenderer.createDelegate(this)
-        },		
+        },        
         {header: "Category", width: 100, sortable: true, dataIndex: 'category',
          editor: new Ext.grid.GridEditor(
                 categoryCombo,{listeners: {
@@ -3142,14 +3185,14 @@ CaseGrid = function(params, cfg){
         {header: "Status", width: 100, sortable: true, dataIndex: 'status',
          editor: new Ext.grid.GridEditor(new CaseStatusCombo('status')),
          renderer: TestopiaComboRenderer.createDelegate(this)},
-        {header: "Requirement", width: 40, sortable: true, dataIndex: 'requirement',
+        {header: "Requirement", width: 40, sortable: true, dataIndex: 'requirement', hidden: true,
         editor: new Ext.grid.GridEditor(
             new Ext.form.TextField({
                 name: 'requirement'
             }))
         },
-        {header: "Plan", width: 40, sortable: true, dataIndex: 'plan_id', renderer: tutil.plan_link, groupRenderer: function(v){return v;}},
-        {header: "Run Count", width: 40, sortable: false, dataIndex: 'run_count'}
+        {header: "Plan", width: 40, sortable: true, dataIndex: 'plan_id', hidden: true, renderer: tutil.plan_link, groupRenderer: function(v){return v;}},
+        {header: "Run Count", width: 40, sortable: false, dataIndex: 'run_count', hidden: true}
     ];
     this.view = new Ext.grid.GroupingView({
         forceFit: true,
@@ -3163,6 +3206,7 @@ CaseGrid = function(params, cfg){
         id: cfg.id || 'case_grid',
         loadMask: {msg:'Loading Test Cases...'},
         layout: 'fit',
+        stripeRows:true,
         region: 'center',
         autoExpandColumn: "case_summary",
         autoScroll: true,
@@ -3481,7 +3525,6 @@ Ext.extend(CaseGrid, Ext.grid.EditorGridPanel, {
                         Ext.Msg.prompt('Add to runs', '', function(btn, text){
                             if (btn == 'ok'){
                                 TestopiaUpdateMultiple('case', {addruns: text, ids: getSelectedObjects(grid,'case_id')}, grid);
-                                win.close();
                             }
                         });
                     }
@@ -3845,7 +3888,7 @@ NewCaseForm = function(plan_ids, product_id, run_id){
                                         },
                                         failure: testopiaError
                                     });
-                                }  	
+                                }      
                             }}
                         }]
                     }]
@@ -3862,16 +3905,16 @@ NewCaseForm = function(plan_ids, product_id, run_id){
                             listeners:{'initialize':function(h){
                                 if(!h.getValue()){
                                     var httpRequest = new Ext.data.Connection();
-                                	httpRequest.request({
-                                    	url: 'tr_quicksearch.cgi',
-                                    	params:{
-                                    		action: 'get_effect'
-                                    	}, 
-                                    	success:function(d){
-                                    		h.setValue(d.responseText);
-                                    	}, 
-                                    	failure: testopiaError
-                                	});  	
+                                    httpRequest.request({
+                                        url: 'tr_quicksearch.cgi',
+                                        params:{
+                                            action: 'get_effect'
+                                        }, 
+                                        success:function(d){
+                                            h.setValue(d.responseText);
+                                        }, 
+                                        failure: testopiaError
+                                    });      
                                 }
                             }}
                         }]
@@ -4289,7 +4332,7 @@ caseClonePopup = function(product_id, cases){
     for (var i=0; i < items.length; i++){
         items[i].destroy();
     }
-    var pchooser = new ProductCombo({mode: 'local', value: product_id});
+    var pchooser = new ProductCombo({id: 'case_clone_win_product_chooser', mode: 'local', value: product_id});
     pchooser.on('select', function(c,r,i){
         pg.store.baseParams = {ctype: 'json', product_id: r.get('id')};
         if (r.get('id') != product_id){
@@ -4428,7 +4471,7 @@ CaseRunFilter = function (){
                 
                 ds.load({
                     callback: function(){
-                        Ext.getCmp('filtered_txt').hide();
+                        Ext.getCmp('caserun_filtered_txt').hide();
                         if (Ext.getCmp('caserun_grid').getSelectionModel().getCount() < 1){
                             Ext.getCmp('caserun-panel').caserun.disable();
                         }
@@ -4444,7 +4487,7 @@ CaseRunFilter = function (){
                 ds.baseParams.distinct = 1;
                 ds.load({
                     callback: function(){
-                        Ext.getCmp('filtered_txt').show();
+                        Ext.getCmp('caserun_filtered_txt').show();
                         if (Ext.getCmp('caserun_grid').getSelectionModel().getCount() < 1){
                             Ext.getCmp('caserun-panel').caserun.disable();
                         }
@@ -4461,7 +4504,7 @@ CaseRunListGrid = function(params, cfg){
     this.params = params;
     this.store = new Ext.data.GroupingStore({
         url: 'tr_list_caseruns.cgi',
-        baseParams: {ctype: 'json'},
+        baseParams: params,
         reader: new Ext.data.JsonReader({
             totalProperty: 'totalResultsAvailable',
             root: 'Result',
@@ -4488,13 +4531,17 @@ CaseRunListGrid = function(params, cfg){
         sortInfo: {field: 'run_id', direction: "ASC"},
         groupField: 'run_id'
     });
+    var ds = this.store;
+    ds.paramNames.sort = "order";
+    ds.on('beforeload',function(store, o){
+        store.baseParams.ctype = 'json';
+    });
     this.summary_sort = function(){
         this.store.sortInfo.field = 'summary';
         this.store.sortInfo.direction == 'DESC' ? this.store.sortInfo.direction = 'ASC' : this.store.sortInfo.direction = 'DESC';
         this.getView().mainHd.select('td').removeClass(this.getView().sortClasses);
         this.store.load();
     };
-    this.store.paramNames.sort = 'order';
     this.bbar = new TestopiaPager('caserun', this.store);
     this.columns = [
         {header: "Case", width: 50, dataIndex: 'case_id', sortable: true,groupRenderer: function(v){return v;},
@@ -4504,9 +4551,9 @@ CaseRunListGrid = function(params, cfg){
          renderer: tutil.runLink },
         {header: "Build", width: 50, dataIndex: 'build', sortable: true, id: 'caserun_list_build_col'},
         {header: "Environment", width: 50, dataIndex: 'environment', sortable: true},
-		{header: "Assignee", width: 150, sortable: true, dataIndex: 'assignee'},
+        {header: "Assignee", width: 150, sortable: true, dataIndex: 'assignee'},
         {header: "Tested By", width: 150, sortable: true, dataIndex: 'testedby'},
-		{header: "Status", width: 30, sortable: true, dataIndex: 'status', groupRenderer: function(v){return v;}, renderer: tutil.statusIcon},		
+        {header: "Status", width: 30, sortable: true, dataIndex: 'status', groupRenderer: function(v){return v;}, renderer: tutil.statusIcon},        
         {header: "Closed", width: 60, sortable: true, dataIndex: 'close_date'},
         {header: "Priority", width: 60, sortable: true, dataIndex: 'priority'},
         {header: "Category", width: 100, sortable: true,dataIndex: 'category'},
@@ -4539,9 +4586,29 @@ CaseRunListGrid = function(params, cfg){
             return 'x-grid3-row-expanded';
         }
     });
+    this.tbar = [new Ext.Toolbar.Fill(),
+        {
+            xtype: 'button',
+            id: 'save_caserun_list_btn',
+            icon: 'testopia/img/save.png',
+            iconCls: 'img_button_16x',
+            tooltip: 'Save this search',
+            handler: function(b,e){
+                saveSearch('caserun', Ext.getCmp(cfg.id || 'caserun_list_grid').store.baseParams);
+            }
+        },{
+            xtype: 'button',
+            id: 'link_case_list_btn',
+            icon: 'testopia/img/link.png',
+            iconCls: 'img_button_16x',
+            tooltip: 'Create a link to this list',
+            handler: function(b,e){
+                linkPopup(Ext.getCmp(cfg.id || 'caserun_list_grid').store.baseParams);
+            }
+         }];
 
     CaseRunListGrid.superclass.constructor.call(this,{
-        id: 'caserun_list_grid',
+        id: cfg.id || 'caserun_list_grid',
         title: 'Case Run History',
         loadMask: {msg:'Loading Test Cases...'},
         layout: 'fit',
@@ -4593,7 +4660,7 @@ Ext.extend(CaseRunListGrid, Ext.grid.GridPanel, {
     },
     onActivate: function(event){
         if (!this.store.getCount()){
-            this.store.load({params: this.params});
+            this.store.load();
         }
     }
 });
@@ -4716,13 +4783,13 @@ CaseRunGrid = function(params, run){
          editor: new Ext.grid.GridEditor(
              new EnvironmentCombo({params: {product_id: run.plan.product_id, isactive: 1}})
          ),renderer: envRenderer.createDelegate(this)},
-		{header: "Assignee", width: 150, sortable: true, dataIndex: 'assignee',
+        {header: "Assignee", width: 150, sortable: true, dataIndex: 'assignee',
          editor: new Ext.grid.GridEditor(
              new UserLookup({id: 'caserun_assignee'})
          ),renderer: TestopiaComboRenderer.createDelegate(this)},
-        {header: "Tested By", width: 150, sortable: true, dataIndex: 'testedby'},
+        {header: "Tested By", width: 150, sortable: true, dataIndex: 'testedby', hidden: true},
         {header: "Closed", width: 90, sortable: true, dataIndex: 'close_date'},
-		{header: "Status", width: 30, sortable: true, dataIndex: 'status', align: 'center', renderer: t.statusIcon},
+        {header: "Status", width: 30, sortable: true, dataIndex: 'status', align: 'center', renderer: t.statusIcon},
         {header: "Priority", width: 60, sortable: true, dataIndex: 'priority',
          editor: new Ext.grid.GridEditor(
              new PriorityCombo({id: 'caserun_priority'})
@@ -4753,11 +4820,6 @@ CaseRunGrid = function(params, run){
         }
     ];
 
-    var imgButtonTpl = new Ext.Template(
-        '<table border="0" cellpadding="0" cellspacing="0"><tbody><tr>' +
-        '<td><button type="button"><img src="{0}"></button></td>' +
-        '</tr></tbody></table>');
-    
     this.form = new Ext.form.BasicForm('testopia_helper_frm', {});
     this.bbar = new TestopiaPager('caserun', this.store);
     this.tbar = new Ext.Toolbar({
@@ -4879,7 +4941,6 @@ CaseRunGrid = function(params, run){
                 icon: 'testopia/img/edit.png',
                 iconCls: 'img_button_16x',
                 tooltip: 'Edit Selected Test Case',
-//                disabled: true,
                 handler: function(){
                     editFirstSelection(Ext.getCmp('caserun_grid'));
                 }
@@ -4889,7 +4950,6 @@ CaseRunGrid = function(params, run){
                 id: 'caserun_grid_delete_btn',
                 icon: 'testopia/img/delete.png',
                 iconCls: 'img_button_16x',
-//                disabled: true,
                 tooltip: 'Remove Selected Test Cases from This Run',
                 handler: this.deleteList.createDelegate(this)
             },
@@ -4934,10 +4994,11 @@ CaseRunGrid = function(params, run){
                 }
             },'rowselect': function (sm,n,r){
                 Ext.getCmp('case_details_panel').enable();
-                Ext.getCmp('tb_build').enable();
-                Ext.getCmp('tb_environment').enable();
-                Ext.getCmp('update_bugs').enable();
                 if (Ext.getCmp('run_status_cycle').text == 'RUNNING'){
+                    Ext.getCmp('summary_tb').enable();
+                    Ext.getCmp('tb_build').enable();
+                    Ext.getCmp('tb_environment').enable();
+                    Ext.getCmp('update_bugs').enable();
                     var items = sm.grid.getTopToolbar().items.items;
                     for (var i=0; i < items.length; i++){
                         items[i].enable();
@@ -5384,8 +5445,7 @@ CaseRun = function(){
         Ext.getCmp('effect_editor').setValue(r[0].get('results'));
         Ext.getCmp('setup_editor').setValue(r[0].get('setup'));
         Ext.getCmp('breakdown_editor').setValue(r[0].get('breakdown'));
-        Ext.getCmp('summary_tb').items.items[0].destroy();
-        Ext.getCmp('summary_tb').add(new Ext.Toolbar.TextItem('Case ' + r[0].get('case_id') + ' - ' + r[0].get('summary')));
+        Ext.getCmp('summary_tb').items.items[7].td.innerHTML = '<span class="ytb-text">' +'Case ' + r[0].get('case_id') + ' - ' + r[0].get('summary');
     });
     
     appendNote = function(){
@@ -5420,8 +5480,83 @@ CaseRun = function(){
     }
     var summary_tb = new Ext.Toolbar({
         id: 'summary_tb',
-        items: [new Ext.Toolbar.TextItem('')]
-    })
+        disabled: true,
+        items: [new Ext.Button({
+                template:imgButtonTpl,
+                text: 'testopia/img/IDLE.gif',
+                tooltip: 'Mark as IDLE (Not Run)',
+                handler: function(){
+                    TestopiaUpdateMultiple('caserun', { status_id: 1, ids: getSelectedObjects(Ext.getCmp('caserun_grid'),'caserun_id')}, Ext.getCmp('caserun_grid'));
+                }
+            }),new Ext.Button({
+                template:imgButtonTpl,
+                text: 'testopia/img/PASSED.gif',
+                tooltip: 'Mark as PASSED',
+                handler: function(){
+                    TestopiaUpdateMultiple('caserun', { status_id: 2, ids: getSelectedObjects(Ext.getCmp('caserun_grid'),'caserun_id'), update_bug: Ext.getCmp('update_bugs').getValue()}, Ext.getCmp('caserun_grid'));
+                }
+            }),new Ext.Button({
+                template:imgButtonTpl,
+                text: 'testopia/img/FAILED.gif',
+                tooltip: 'Mark as FAILED',
+                handler: function(){
+                    TestopiaUpdateMultiple('caserun', { status_id: 3, ids: getSelectedObjects(Ext.getCmp('caserun_grid'),'caserun_id'), update_bug: Ext.getCmp('update_bugs').getValue()}, Ext.getCmp('caserun_grid'));
+                }
+            }),new Ext.Button({
+                template:imgButtonTpl,
+                text: 'testopia/img/RUNNING.gif',
+                tooltip: 'Mark as RUNNING',
+                handler: function(){
+                    var reassign = 0;
+                    var isowner = 1;
+                    var sel = Ext.getCmp('caserun_grid').getSelectionModel().getSelections();
+                    for (var i=0; i < sel.length; i++){
+                        if (sel[i].get('assignee') != user_login){
+                            isowner = 0;
+                            break;
+                        }
+                    }
+                    if (isowner == 0){
+                        Ext.Msg.show({
+                            title: "Reassign Test Case?",
+                            msg: 'Setting this test case to Running will lock it so that only the assignee can update it. Would you like to make yourself the assignee?',
+                            buttons: Ext.MessageBox.YESNO,
+                            icon: Ext.MessageBox.QUESTION,
+                            fn: function(btn){
+                                if (btn == 'yes'){
+                                    reassign = 1;
+                                }
+                                TestopiaUpdateMultiple('caserun', { status_id: 4, reassign: reassign, ids: getSelectedObjects(Ext.getCmp('caserun_grid'),'caserun_id')}, Ext.getCmp('caserun_grid'));
+                            }
+                        });
+                    }
+                    else {
+                        TestopiaUpdateMultiple('caserun', { status_id: 4, reassign: reassign, ids: getSelectedObjects(Ext.getCmp('caserun_grid'),'caserun_id')}, Ext.getCmp('caserun_grid'));
+                    }
+                }
+            }),new Ext.Button({
+                template:imgButtonTpl,
+                text: 'testopia/img/PAUSED.gif',
+                tooltip: 'Mark as PAUSED',
+                handler: function(){
+                    TestopiaUpdateMultiple('caserun', { status_id: 5, ids: getSelectedObjects(Ext.getCmp('caserun_grid'),'caserun_id')}, Ext.getCmp('caserun_grid'));
+                }
+            }),new Ext.Button({
+                template:imgButtonTpl,
+                text: 'testopia/img/BLOCKED.gif',
+                tooltip: 'Mark as BLOCKED',
+                handler: function(){
+                    TestopiaUpdateMultiple('caserun', { status_id: 6, ids: getSelectedObjects(Ext.getCmp('caserun_grid'),'caserun_id')}, Ext.getCmp('caserun_grid'));
+                }
+            }),new Ext.Button({
+                template:imgButtonTpl,
+                text: 'testopia/img/ERROR.gif',
+                tooltip: 'Mark as ERROR',
+                handler: function(){
+                    TestopiaUpdateMultiple('caserun', { status_id: 7, ids: getSelectedObjects(Ext.getCmp('caserun_grid'),'caserun_id')}, Ext.getCmp('caserun_grid'));
+                }
+            }),new Ext.Toolbar.TextItem('')]
+    });
     CaseRun.superclass.constructor.call(this,{
         id: 'case_details_panel',
         layout: 'fit',
@@ -5431,7 +5566,7 @@ CaseRun = function(){
         style: 'padding-bottom: 10px',
         bodyBorder: false,
         collapsible: true,
-        height: 330,
+        height: 340,
         items:[{
             xtype: 'tabpanel',
             bodyBorder: false,
@@ -5743,7 +5878,7 @@ CaseBugsGrid = function(id){
                 url = url + store.fields.keys[i] + '=' + escape(store.getAt(0).get(store.fields.keys[i])) + '&';
             }
             url = url + 'caserun_id=' + caserun_id;
-            window.open(url, 'New Bug');
+            window.open(url);
         });
     };
     var ds = this.store;
@@ -6140,7 +6275,7 @@ RunGrid = function(params, cfg){
          hiddenName: 'build',
          id: 'run_grid_build',
          mode: 'remote',
-         params: {product_id: params.product_id}
+         params: {product_id: params.product_id, activeonly: 1}
     });
     var ecombo = new EnvironmentCombo({
          hiddenName: 'environment',
@@ -6157,20 +6292,19 @@ RunGrid = function(params, cfg){
 
     this.columns = [
         {header: "Run ID", width: 30,  dataIndex: "run_id", id: "run_id", sortable: true, renderer: tutil.runLink, hideable: false}, 
-        {header: "Plan ID", width: 30, dataIndex: "plan_id", sortable: true, renderer: tutil.planLink},
         {header: "Summary", width: 220, dataIndex: "summary", id: "run_name", sortable: true,
          editor: new Ext.grid.GridEditor(
             new Ext.form.TextField({
                 allowBlank: false
             })
          )}, 
-        {header: "Manager Name", width: 150, dataIndex: "manager", id:"manager_name_col", sortable: true,
+        {header: "Manager Name", width: 150, dataIndex: "manager", id:"manager_name_col", sortable: true, hidden: true,
          editor: new Ext.grid.GridEditor(new UserLookup({hiddenName:'manager'})),
          renderer: TestopiaComboRenderer.createDelegate(this)
         },
-        {header: "Start Date", width: 110, dataIndex: "start_date", sortable: true}, 
-        {header: "Stop Date", width: 110, dataIndex: "stop_date", sortable: true}, 
-        {header: "Build", width: 30, dataIndex: "build", id: "build_col", sortable: true,
+        {header: "Start Date", width: 110, dataIndex: "start_date", sortable: true, hidden: true}, 
+        {header: "Stop Date", width: 110, dataIndex: "stop_date", sortable: true, hidden: true}, 
+        {header: "Build", width: 110, dataIndex: "build", id: "build_col", sortable: true,
          editor: new Ext.grid.GridEditor(
             bcombo, 
             {listeners: {
@@ -6199,9 +6333,9 @@ RunGrid = function(params, cfg){
 
         ),renderer: TestopiaComboRenderer.createDelegate(this)
         }, 
-        {header: "Status", width: 110, dataIndex:"status",id: "status",sortable: true}, 
-        {header: "Case Count", width: 30, dataIndex: "case_count", sortable: false}, 
-        {header: "Product Version", width: 50, dataIndex: "product_version", id: "product_version",sortable: true,
+        {header: "Status", width: 50, dataIndex:"status",id: "status",sortable: true}, 
+        {header: "Case Count", width: 30, dataIndex: "case_count", sortable: false, hidden: true}, 
+        {header: "Product Version", width: 150, dataIndex: "product_version", id: "product_version",sortable: true, hidden: true,
         editor: new Ext.grid.GridEditor(
             vcombo,
             {listeners: {
@@ -6215,6 +6349,7 @@ RunGrid = function(params, cfg){
              }}
         ),renderer: TestopiaComboRenderer.createDelegate(this)
         },
+        {header: "Plan ID", width: 30, dataIndex: "plan_id", sortable: true, hidden: true, renderer: tutil.planLink},
         {header: "Complete", width: 110, dataIndex:"complete_pct",sortable: false, hideable: true,
         renderer: function(v,m,r){
             var val = '';
@@ -6243,6 +6378,7 @@ RunGrid = function(params, cfg){
         loadMask: {msg:'Loading Test Runs...'},
         autoExpandColumn: "run_summary",
         autoScroll: true,
+        stripeRows:true,
         sm: new Ext.grid.RowSelectionModel({
             singleSelect: false,
             listeners: {'rowselect':function(sm,i,r){
@@ -6356,7 +6492,7 @@ Ext.extend(RunGrid, Ext.grid.EditorGridPanel, {
                                     Testopia.Search.dashboard_urls.push(newPortlet.url);
                                     Ext.getCmp('dashboard_leftcol').add(newPortlet);
                                     Ext.getCmp('dashboard_leftcol').doLayout();
-                            		newPortlet.load({
+                                    newPortlet.load({
                                         url: newPortlet.url
                                     });
 
@@ -6376,7 +6512,7 @@ Ext.extend(RunGrid, Ext.grid.EditorGridPanel, {
                                     Testopia.Search.dashboard_urls.push(newPortlet.url);
                                     Ext.getCmp('dashboard_leftcol').add(newPortlet);
                                     Ext.getCmp('dashboard_leftcol').doLayout();
-                            		newPortlet.load({
+                                    newPortlet.load({
                                         url: newPortlet.url
                                     });
 
@@ -6429,7 +6565,7 @@ Ext.extend(RunGrid, Ext.grid.EditorGridPanel, {
                                                 Testopia.Search.dashboard_urls.push(newPortlet.url);
                                                 Ext.getCmp('dashboard_leftcol').add(newPortlet);
                                                 Ext.getCmp('dashboard_leftcol').doLayout();
-                                        		newPortlet.load({
+                                                newPortlet.load({
                                                     url: newPortlet.url
                                                 });
                                                win.close();
@@ -6814,7 +6950,7 @@ var NewRunForm = function(plan){
                             forceSelection: false,
                             allowBlank: false,
                             typeAhead: true,
-                            params: {product_id: plan.product_id},
+                            params: {product_id: plan.product_id, activeonly: 1},
                             emptyText: 'Select or type a new name'
                         }),
                         new EnvironmentCombo({
@@ -6943,11 +7079,7 @@ RunClonePanel = function(product_id, runs, caselist){
         id: 'run_clone_build_chooser',
         mode: 'local',
         hiddenName: 'new_run_build',
-        params: {product_id: product_id},
-        validator: function(a){
-            var foo = 1;
-            return false;
-        }
+        params: {product_id: product_id, activeonly: 1}
     });
     var ebox = new EnvironmentCombo({
         fieldLabel: 'Select an Environment',
@@ -7156,7 +7288,7 @@ RunClonePopup = function(product_id, runs, caselist){
     for (var i=0; i < items.length; i++){
         items[i].destroy();
     }
-    var pchooser = new ProductCombo({mode: 'local', value: product_id});
+    var pchooser = new ProductCombo({id: 'run_clone_win_product_chooser', mode: 'local', value: product_id});
     pchooser.on('select', function(c,r,i){
         pg.store.baseParams = {ctype: 'json', product_id: r.get('id')};
 
@@ -7362,7 +7494,7 @@ RunFilterGrid = function(run){
                         f[i].value = params[f[i].name];
                     }
                 }
-        		Ext.getCmp('caserun_grid').store.baseParams = params;
+                Ext.getCmp('caserun_grid').store.baseParams = params;
                 Ext.getCmp('caserun_grid').store.load();
             }}
         }),
@@ -7449,6 +7581,7 @@ Testopia.BugReport = function(params){
     });
 };
 Ext.extend(Testopia.BugReport, Ext.grid.GridPanel);
+
 /*
  * END OF FILE - /bnc-3.2/testopia/js/run.js
  */
@@ -7596,7 +7729,7 @@ Ext.extend(BuildGrid, Ext.grid.EditorGridPanel, {
                                 Testopia.Search.dashboard_urls.push(newPortlet.url);
                                 Ext.getCmp('dashboard_leftcol').add(newPortlet);
                                 Ext.getCmp('dashboard_leftcol').doLayout();
-                        		newPortlet.load({
+                                newPortlet.load({
                                     url: newPortlet.url
                                 });
                             }
@@ -7777,7 +7910,7 @@ CaseCategoryGrid = function(product_id){
                     Ext.MessageBox.alert('Message', 'Please select at least one Category to delete');
                 }
                 else{
-                	confirmCaseCategoryDelete(product_id);	
+                    confirmCaseCategoryDelete(product_id);    
                 }
             }
         }]
@@ -8743,7 +8876,7 @@ ReportGrid = function(cfg){
                     Ext.getCmp(current_col).add(newPortlet);
                     Ext.getCmp(current_col).doLayout();
                     Testopia.Search.dashboard_urls.push(r.get('query'));
-            		newPortlet.load({
+                    newPortlet.load({
                         scripts: true,
                         url: r.get('query')
                     });
@@ -8790,7 +8923,7 @@ Ext.extend(ReportGrid, Ext.grid.GridPanel, {
                         });
                         Ext.getCmp('object_panel').add(newTab);
                         Ext.getCmp('object_panel').activate('search' + r.get('name'));
-                		newTab.load({
+                        newTab.load({
                             url: r.get('query')
                         });
                     }

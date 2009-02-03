@@ -24,7 +24,7 @@
 #                 Andrew Nelson <anelson@novell.com>
 
 use strict;
-use lib ".";
+use lib qw(. lib);
 
 use Bugzilla;
 use Bugzilla::Util;
@@ -368,7 +368,6 @@ sub get_category_element_json {
 sub get_element_children {
     my ( $id, $draggable ) = (@_);
     my $element = Bugzilla::Testopia::Environment::Element->new($id);
-    print STDERR $element->canview;
     return unless $element->canview;
     print $element->children_to_json($draggable);
 }

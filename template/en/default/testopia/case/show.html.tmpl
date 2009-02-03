@@ -28,7 +28,7 @@
 [% PROCESS testopia/style.none.tmpl %]
 [% PROCESS testopia/blocks.html.tmpl %]
 
-[% title = "Test Case $case.id: $case.summary" %]
+[% title = "Test Case $case.id: $case.summary" FILTER html %]
 [% PROCESS global/header.html.tmpl %]
 
 <script type="text/javascript">
@@ -221,7 +221,7 @@ Ext.onReady(function(){
                     layout:'fit',
                     items:{
                         title: 'Action',
-                        height: 450,
+                        height: 420,
                         bodyBorder: false,
                         border: false,
                         layout: 'fit',
@@ -236,7 +236,7 @@ Ext.onReady(function(){
                     layout:'fit',
                     items:{
                         title: 'Expected Results',
-                        height: 450,
+                        height: 420,
                         bodyBorder: false,
                         border: false,
                         layout: 'fit',
@@ -259,7 +259,7 @@ Ext.onReady(function(){
                     layout:'fit',
                     items:{
                         title: 'Setup',
-                        height: 450,
+                        height: 420,
                         bodyBorder: false,
                         border: false,
                         layout: 'fit',
@@ -274,7 +274,7 @@ Ext.onReady(function(){
                     layout:'fit',
                     items:{
                         title: 'Breakdown',
-                        height: 450,
+                        height: 420,
                         bodyBorder: false,
                         border: false,
                         layout: 'fit',
@@ -291,7 +291,7 @@ Ext.onReady(function(){
                 }]
             },
             new HistoryGrid('case', [% case.id FILTER none %]),
-            new CaseRunListGrid({case_id: tcase.case_id, viewall: 1}),
+            new CaseRunListGrid({case_id: tcase.case_id, viewall: 1 },{id: 'case_history_grid'}),
             new AttachGrid(tcase),
             new CaseBugsGrid([% case.id FILTER none %]), 
             new CaseComponentsGrid(tcase.case_id),
@@ -453,7 +453,7 @@ Ext.onReady(function(){
             title: '[% title FILTER js %]',
             region: 'north',
             contentEl: 'case_overview',
-            height: 245,
+            height: 250,
             hideBorders: true
         },{
             xtype: 'tabpanel',
