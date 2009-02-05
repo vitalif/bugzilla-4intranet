@@ -25,4 +25,5 @@ return {
     fawiki => sub { processWikiUrl("fawiki", @_) },
     kswiki => sub { processWikiUrl("kswiki", @_) },
     rdwiki => sub { processWikiUrl("rdwiki", @_) },
+    gzwiki => sub { processWikiUrl("gzwiki", @_) },
 };

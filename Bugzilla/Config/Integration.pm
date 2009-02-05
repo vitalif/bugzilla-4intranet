@@ -48,6 +48,12 @@ sub get_param_list
     },
 
     {
+        name => 'gzwiki_url',
+        type => 't',
+        default => 'http://gazprom.office.custis.ru/gzwiki/index.php/',
+    },
+
+    {
         name => 'user_mailto',
         type => 't',
         default => 'mailto:',
