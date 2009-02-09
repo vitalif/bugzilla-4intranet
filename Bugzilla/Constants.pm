@@ -141,6 +141,7 @@ use File::Basename;
     ON_WINDOWS
 
     MAX_TOKEN_AGE
+    MAX_LOGINCOOKIE_AGE
 
     SAFE_PROTOCOLS
 
@@ -158,7 +159,7 @@ use File::Basename;
 # CONSTANTS
 #
 # Bugzilla version
-use constant BUGZILLA_VERSION => "3.2";
+use constant BUGZILLA_VERSION => "3.2.2";
 
 # These are unique values that are unlikely to match a string or a number,
 # to be used in criteria for match() functions and other things. They start
@@ -354,6 +355,8 @@ use constant FIELD_TYPE_DATETIME  => 5;
 
 # The maximum number of days a token will remain valid.
 use constant MAX_TOKEN_AGE => 3;
+# How many days a logincookie will remain valid if not used.
+use constant MAX_LOGINCOOKIE_AGE => 30;
 
 # Protocols which are considered as safe.
 use constant SAFE_PROTOCOLS => ('afs', 'cid', 'ftp', 'gopher', 'http', 'https',

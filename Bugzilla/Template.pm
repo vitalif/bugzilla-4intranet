@@ -41,6 +41,7 @@ use Bugzilla::Util;
 use Bugzilla::User;
 use Bugzilla::Error;
 use Bugzilla::Status;
+use Bugzilla::Token;
 use Bugzilla::Template::Parser;
 
 use Cwd qw(abs_path);
@@ -402,6 +403,13 @@ $Template::Stash::LIST_OPS->{ containsany } =
       return 0;
   };
 
+# Clone the array reference to leave the original one unaltered.
+$Template::Stash::LIST_OPS->{ clone } =
+  sub {
+      my $list = shift;
+      return [@$list];
+  };
+
 # Allow us to still get the scalar if we use the list operation ".0" on it,
 # as we often do for defaults in query.cgi and other places.
 $Template::Stash::SCALAR_OPS->{ 0 } = 
@@ -758,6 +766,9 @@ sub create {
                 $docs_urlbase =~ s/\%lang\%/$language/;
                 return $docs_urlbase;
             },
+
+            # Allow templates to generate a token themselves.
+            'issue_hash_token' => \&Bugzilla::Token::issue_hash_token,
 
             # These don't work as normal constants.
             DB_MODULE        => \&Bugzilla::Constants::DB_MODULE,

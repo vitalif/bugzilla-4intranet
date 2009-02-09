@@ -149,6 +149,7 @@
   <input type="hidden" name="delta_ts" value="[% bug.delta_ts %]">
   <input type="hidden" name="longdesclength" value="[% bug.longdescs.size %]">
   <input type="hidden" name="id" value="[% bug.bug_id %]">
+  <input type="hidden" name="token" value="[% issue_hash_token([bug.id, bug.delta_ts]) FILTER html %]">
 
   [% PROCESS section_title %]
   <table>
@@ -271,7 +272,7 @@
             /
             <a href="[% bug.component_obj.wiki_url || Param('wiki_url') %][% terms.Bug %]_[% bug.bug_id %]">Wiki</a>
           </div>
-          <table class="status">
+          <table class="status" cellspacing="0" cellpadding="0">
             <tr>
               <td class="field_label">
                 <b><a href="page.cgi?id=fields.html#status">Status</a></b>:
@@ -721,14 +722,11 @@
 
 [% BLOCK section_restrict_visibility %]
   [% RETURN UNLESS bug.groups.size %]
-  <table>
-    <tr>
-      <td class="field_label">
-        <label id="bz_restrict_group_visibility_label"><b> Restrict Group Visibility</b>:</label>
-      </td>
-      <td>
+
         [% inallgroups = 1 %]
         [% inagroup = 0 %]
+  [% emitted_description = 0 %]
+
         [% FOREACH group = bug.groups %]
           [% SET inallgroups = 0 IF NOT group.ingroup %]
           [% SET inagroup = 1 IF group.ison %]
@@ -737,6 +735,12 @@
 
           [% IF NOT emitted_description %]
             [% emitted_description = 1 %]
+      <table>
+        <tr>
+          <td class="field_label">
+            <label id="bz_restrict_group_visibility_label"><b>Restrict Group Visibility</b>:</label>
+          </td>
+          <td>
             <div id="bz_restrict_group_visibility_help">
               <b>Only users in all of the selected groups can view this [% terms.bug %]:</b>
               <br>
@@ -749,25 +753,28 @@
           [% IF group.ingroup %]
             <input type="hidden" name="defined_bit-[% group.bit %]" value="1">
           [% END %]
-          <input type="checkbox" value="1"
-                 name="bit-[% group.bit %]" id="bit-[% group.bit %]"
-                 [% " checked=\"checked\"" IF group.ison %]
-                 [% " disabled=\"disabled\"" IF NOT group.ingroup %]>
+    <input type="checkbox" value="1" name="bit-[% group.bit %]" id="bit-[% group.bit %]"
+           [% ' checked="checked"' IF group.ison %]
+           [% ' disabled="disabled"' IF NOT group.ingroup %]>
           <label for="bit-[% group.bit %]">[% group.description FILTER html_light %]</label>
           <br>
         [% END %]
 
+  [% IF emitted_description %]
         [% IF NOT inallgroups %]
-          <b>
-            Only members of a group can change the visibility of [% terms.abug %] for
-            that group.
-          </b>
+      <b>Only members of a group can change the visibility of [% terms.abug %] for that group.</b>
           <br>
         [% END %]
       </td>
     </tr>
+    [% "</table>" IF NOT inagroup %]
+  [% END %]
 
     [% IF inagroup %]
+    [% IF NOT emitted_description %]
+      [% emitted_description = 1 %]
+      <table>
+    [% END %]
     <tr>
       <td class="field_label">
         <label id="bz_enable_role_visibility_label"><b>Enable Role Visibility</b>:</label>
@@ -811,8 +818,8 @@
         </div>
       </td>
     </tr>
-    [% END %]
   </table>  
+  [% END %]
 [% END %]
 
 [%############################################################################%]
@@ -891,7 +898,6 @@
             [% INCLUDE global/userselect.html.tmpl
                 id => "newcc"
                 name => "newcc"
-                value => ""
                 size => 30
                 multiple => 5
               %]

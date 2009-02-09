@@ -32,6 +32,7 @@ Bugzilla::Hook</title>
     <li class='indexItem indexItem2'><a href='#install-requirements'>install-requirements</a>
     <li class='indexItem indexItem2'><a href='#install-update_db'>install-update_db</a>
     <li class='indexItem indexItem2'><a href='#db_schema-abstract_schema'>db_schema-abstract_schema</a>
+    <li class='indexItem indexItem2'><a href='#product-confirm_delete'>product-confirm_delete</a>
     <li class='indexItem indexItem2'><a href='#webservice'>webservice</a>
     <li class='indexItem indexItem2'><a href='#webservice-error_codes'>webservice-error_codes</a>
   </ul>
@@ -274,6 +275,19 @@ name="db_schema-abstract_schema"
 <dt><a 
 ><code  class="code">schema</code> - A hashref, in the format of <a href="../Bugzilla/DB/Schema.html#ABSTRACT_SCHEMA" class="podlinkpod"
 >&#34;ABSTRACT_SCHEMA&#34; in Bugzilla::DB::Schema</a>. Add new hash keys to make new table definitions. <em  class="code">checksetup.pl</em> will automatically add these tables to the database when run.</a></dt>
+</dl>
+
+<h2><a class='u' href='#___top' title='click to go to top of document'
+name="product-confirm_delete"
+>product-confirm_delete</a></h2>
+
+<p>Called before displaying the confirmation message when deleting a product.</p>
+
+<p>Params:</p>
+
+<dl>
+<dt><a name="vars_-_The_template_vars_hashref."
+><code  class="code">vars</code> - The template vars hashref.</a></dt>
 </dl>
 
 <h2><a class='u' href='#___top' title='click to go to top of document'

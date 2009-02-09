@@ -47,6 +47,7 @@ use Bugzilla::Product;
 use Bugzilla::Keyword;
 use Bugzilla::Field;
 use Bugzilla::Status;
+use Bugzilla::Token;
 
 use Date::Parse;
 
@@ -372,7 +373,8 @@ $filename =~ s/"/\\"/g; # escape quotes
 # Take appropriate action based on user's request.
 if ($cgi->param('cmdtype') eq "dorem") {  
     if ($cgi->param('remaction') eq "run") {
-        $buffer = Bugzilla::Search::LookupNamedQuery(
+        my $query_id;
+        ($buffer, $query_id) = Bugzilla::Search::LookupNamedQuery(
             scalar $cgi->param("namedcmd"), scalar $cgi->param('sharer_id')
         );
         # If this is the user's own query, remember information about it
@@ -381,6 +383,7 @@ if ($cgi->param('cmdtype') eq "dorem") {
         if (!$cgi->param('sharer_id') ||
             $cgi->param('sharer_id') == Bugzilla->user->id) {
             $vars->{'searchtype'} = "saved";
+            $vars->{'search_id'} = $query_id;
         }
         $params = new Bugzilla::CGI($buffer);
         $order = $params->param('order') || $order;
@@ -429,6 +432,10 @@ if ($cgi->param('cmdtype') eq "dorem") {
             # The user has no query of this name. Play along.
         }
         else {
+            # Make sure the user really wants to delete his saved search.
+            my $token = $cgi->param('token');
+            check_hash_token($token, [$query_id, $qname]);
+
             $dbh->do('DELETE FROM namedqueries
                             WHERE id = ?',
                      undef, $query_id);
@@ -483,10 +490,12 @@ elsif (($cgi->param('cmdtype') eq "doit") && defined $cgi->param('remtype')) {
             my $is_new_name = 0;
             if ($query_name) {
                 # Make sure this name is not already in use by a normal saved search.
-                if (Bugzilla::Search::LookupNamedQuery(
-                    $query_name, undef, QUERY_LIST, !THROW_ERROR))
+                my ($query, $query_id) =
+                    LookupNamedQuery($query_name, undef, QUERY_LIST, !THROW_ERROR);
+                if ($query)
                 {
-                    ThrowUserError('query_name_exists', { name => $query_name });
+                    ThrowUserError('query_name_exists', { name     => $query_name,
+                                                          query_id => $query_id });
                 }
                 $is_new_name = 1;
             }
@@ -1129,6 +1138,7 @@ if ($dotweak && scalar @bugs) {
     }
     $vars->{'dotweak'} = 1;
     $vars->{'use_keywords'} = 1 if Bugzilla::Keyword::keyword_count();
+    $vars->{'token'} = issue_session_token('buglist_mass_change');
 
     $vars->{'products'} = Bugzilla->user->get_enterable_products;
     $vars->{'platforms'} = get_legal_field_values('rep_platform');

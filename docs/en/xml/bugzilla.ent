@@ -28,8 +28,7 @@
 <!ENTITY min-email-mime-attachment-stripper-ver "any">
 <!ENTITY min-email-reply-ver "any">
 <!ENTITY min-mod_perl2-ver "1.999022">
-<!ENTITY min-cgi-ver "3.11">
-<!ENTITY min-mp-cgi-ver "3.11">
+<!ENTITY min-mp-cgi-ver "3.21">
 
  <!-- Database Versions --> 
 <!ENTITY min-dbd-pg-ver "1.45">

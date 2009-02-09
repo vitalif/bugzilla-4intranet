@@ -257,6 +257,8 @@
 
 [% Hook.process("additional-product-values") %]
 
+[% Hook.process("confirmation") %]
+
 [% IF product.bug_count == 0 || Param('allowbugdeletion') %]
 
   <p>Do you really want to delete this product?</p>

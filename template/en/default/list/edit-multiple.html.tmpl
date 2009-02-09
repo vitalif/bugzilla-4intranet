@@ -25,6 +25,7 @@
 
 [% dontchange = "--do_not_change--" %]
 <input type="hidden" name="dontchange" value="[% dontchange FILTER html %]">
+<input type="hidden" name="token" value="[% token FILTER html %]">
 
 <script type="text/javascript">
   var numelements = document.forms.changeform.elements.length;
@@ -173,7 +174,6 @@
            id => "assigned_to"
            name => "assigned_to"
            value => dontchange
-           do_not_change => dontchange
            size => 32
       %]
       <input type="checkbox" id="set_default_assignee" name="set_default_assignee" value="1">
@@ -189,7 +189,6 @@
              id => "qa_contact"
              name => "qa_contact"
              value => dontchange
-             do_not_change => dontchange
              size => 32
         %]
         <input type="checkbox" id="set_default_qa_contact" name="set_default_qa_contact" value="1">

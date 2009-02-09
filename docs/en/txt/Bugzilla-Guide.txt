@@ -1,9 +1,9 @@
 
-The Bugzilla Guide - 3.2 Release
+The Bugzilla Guide - 3.2.2 Release
 
 The Bugzilla Team
 
-   2008-11-29
+   2009-02-03
 
    This is the documentation for Bugzilla, a bug-tracking system from
    mozilla.org. Bugzilla is an enterprise-class piece of software that tracks
@@ -140,7 +140,7 @@ Chapter 1. About This Guide
 
 1.1. Copyright Information
 
-   This document is copyright (c) 2000-2008 by the various Bugzilla
+   This document is copyright (c) 2000-2009 by the various Bugzilla
    contributors who wrote it.
 
      Permission is granted to copy, distribute and/or modify this document
@@ -177,7 +177,7 @@ Chapter 1. About This Guide
 
 1.3. New Versions
 
-   This is the 3.2 version of The Bugzilla Guide. It is so named to match the
+   This is the 3.2.2 version of The Bugzilla Guide. It is so named to match the
    current version of Bugzilla.
 
    The latest version of this guide can always be found at
@@ -300,10 +300,6 @@ Chapter 2. Installing Bugzilla
    The Bugzilla server software is usually installed on Linux or Solaris. If
    you are installing on another OS, check Section 2.5 before you start your
    installation to see if there are any special instructions.
-
-   As an alternative to following these instructions, you may wish to try Arne
-   Schirmacher's unofficial and unsupported Bugzilla Installer, which installs
-   Bugzilla and all its prerequisites on Linux or Solaris systems.
 
    This guide assumes that you have administrative access to the Bugzilla
    machine. It not possible to install and run Bugzilla itself without
@@ -517,7 +513,7 @@ Chapter 2. Installing Bugzilla
    16. Email::MIME::Attachment::Stripper (any) for Inbound Email
    17. Email::Reply (any) for Inbound Email
    18. mod_perl2 (1.999022) for mod_perl
-   19. CGI (3.11) for mod_perl
+   19. CGI (3.21) for mod_perl
      _________________________________________________________________
 
 2.1.5.1. DBD::mysql
@@ -647,7 +643,7 @@ Chapter 2. Installing Bugzilla
    to be installed.
 
    Bugzilla also requires a more up-to-date version of the CGI perl module to
-   be installed, version 3.11 as opposed to 3.21
+   be installed, version 3.21 as opposed to 3.21
      _________________________________________________________________
 
 2.2. Configuration

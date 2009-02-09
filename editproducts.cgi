@@ -373,6 +373,8 @@ if ($action eq 'del') {
     
     Bugzilla::Hook::process("editproducts-confirm_delete", { vars => $vars });
     
+    Bugzilla::Hook::process("product-confirm_delete", { vars => $vars });
+    
     $template->process("admin/products/confirm-delete.html.tmpl", $vars)
         || ThrowTemplateError($template->error());
     exit;
