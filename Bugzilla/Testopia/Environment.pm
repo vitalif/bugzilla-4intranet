@@ -620,7 +620,7 @@ sub store_property_value {
         
     my $dbh = Bugzilla->dbh;
     $dbh->do("INSERT INTO test_environment_map (environment_id,property_id,element_id,value_selected)
-             VALUES (?,?,?,?)",undef, ($self->{'environment_id'}, $prop_id, $elem_id,$value_selected));          
+             VALUES (?,?,?,?)",undef, ($self->{'environment_id'}, $prop_id||undef, $elem_id,$value_selected));          
     return 1;
 }
 
