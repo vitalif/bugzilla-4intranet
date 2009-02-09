@@ -106,6 +106,12 @@ sub get_param_list {
             type    => 't',
             default => '^text/|^image/',
         },
+
+        {
+            name    => 'force_attach_bigfile',
+            type    => 'b',
+            default => 0,
+        },
     );
     return @param_list;
 }

@@ -789,6 +789,11 @@ sub insert_attachment_for_bug {
     $class->validate_is_patch($throw_error) || return;
     $class->validate_description($throw_error) || return;
 
+    if (Bugzilla->params->{force_attach_bigfile})
+    {
+        # Force uploading into files instead of DB
+        $cgi->param('bigfile', 1);
+    }
     if (Bugzilla->params->{'allow_attach_url'}
         && ($attachurl =~ /^(http|https|ftp):\/\/\S+/)
         && !defined $cgi->upload('data'))

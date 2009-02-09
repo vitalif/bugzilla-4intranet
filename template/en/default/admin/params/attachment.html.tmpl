@@ -80,6 +80,11 @@
                         "If set to zero, attachments will never be kept on the local " _
                         "filesystem.",
 
+  inline_attachment_mime => "Perl regular expression for detecting browser-viewable MIME content types.",
+
+  force_attach_bigfile => "If this option is on, all attachments (excluding copy-pasted text ones) " _
+                          "will be uploaded into local files instead of database.",
+
   convert_uncompressed_images => "If this option is on, attachments with content type image/bmp " _
                                  "will be converted to image/png and compressed before uploading to " _
                                  "the database to conserve disk space." }
