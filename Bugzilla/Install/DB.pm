@@ -21,6 +21,7 @@ package Bugzilla::Install::DB;
 # localconfig is available, and params are up to date. 
 
 use strict;
+use Encode;
 
 use Bugzilla::Constants;
 use Bugzilla::Hook;
@@ -2415,14 +2416,65 @@ sub _fix_attachments_submitter_id_idx {
                        [qw(submitter_id bug_id)]);
 }
 
-sub _copy_attachments_thedata_to_attach_data {
+sub _copy_attachments_thedata_to_attach_data
+{
     my $dbh = Bugzilla->dbh;
     # 2005-08-25 - bugreport@peshkin.net - Bug 305333
-    if ($dbh->bz_column_info("attachments", "thedata")) {
-        print "Migrating attachment data to its own table...\n";
-        print "(This may take a very long time)\n";
-        $dbh->do("INSERT INTO attach_data (id, thedata)
-                       SELECT attach_id, thedata FROM attachments");
+    if ($dbh->bz_column_info("attachments", "thedata"))
+    {
+        if (Bugzilla->params->{force_attach_bigfile})
+        {
+            # vfilippov@custis.ru CustIS Bug 40933
+            # Store all attachments in local files instead of DB blob's
+            my $attachdir = bz_locations()->{attachdir};
+            die "bz_locations() returned empty attachdir, or it's not writable"
+                unless $attachdir && -d $attachdir && -w $attachdir;
+            print "Storing attachment data in local directory $attachdir...\n";
+            print "(This may take a very long time)\n";
+            my ($total) = $dbh->selectrow_array("SELECT COUNT(*) FROM attachments");
+            my $buf = 16;
+            my $sth = $dbh->prepare("SELECT attach_id, thedata FROM attachments ORDER BY attach_id LIMIT ?, ?");
+            my ($attachid, $thedata, $hash);
+            my $i = 0;
+            local $| = 1;
+            print "\r$i/$total...";
+            while ($i < $total)
+            {
+                $sth->execute($i, $buf);
+                last if !$sth->rows;
+                while (($attachid, $thedata) = $sth->fetchrow_array)
+                {
+                    # Store attachment data
+                    $hash = ($attachid % 100) + 100;
+                    $hash =~ s/.*(\d\d)$/group.$1/;
+                    mkdir "$attachdir/$hash", 0770;
+                    chmod 0770, "$attachdir/$hash";
+                    if (open my $fh, ">$attachdir/$hash/attachment.$attachid")
+                    {
+                        binmode $fh;
+                        print $fh $thedata;
+                        close $fh;
+                    }
+                    else
+                    {
+                        my $a = $!;
+                        Encode::_utf8_on($a);
+                        print "\rFAILED saving attachment $attachid into $attachdir/$hash/attachment.$attachid: $a\n";
+                    }
+                    $i++;
+                    print "\r$i/$total...";
+                }
+                $sth->finish;
+            }
+            print "\nDone!\n";
+        }
+        else
+        {
+            print "Migrating attachment data to its own table...\n";
+            print "(This may take a very long time)\n";
+            $dbh->do("INSERT INTO attach_data (id, thedata)
+                          SELECT attach_id, thedata FROM attachments");
+        }
         $dbh->bz_drop_column("attachments", "thedata");
     }
 }
