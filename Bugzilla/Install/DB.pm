@@ -2431,16 +2431,26 @@ sub _copy_attachments_thedata_to_attach_data
                 unless $attachdir && -d $attachdir && -w $attachdir;
             print "Storing attachment data in local directory $attachdir...\n";
             print "(This may take a very long time)\n";
-            my ($total) = $dbh->selectrow_array("SELECT COUNT(*) FROM attachments");
+            my $ids = $dbh->selectcol_arrayref("SELECT attach_id FROM attachments") || [];
+            my $total = scalar @$ids;
             my $buf = 16;
-            my $sth = $dbh->prepare("SELECT attach_id, thedata FROM attachments ORDER BY attach_id LIMIT ?, ?");
+            my $sth = undef;
+            my $sthbind = 0;
             my ($attachid, $thedata, $hash);
             my $i = 0;
             local $| = 1;
             print "\r$i/$total...";
-            while ($i < $total)
+            while (my @cur = splice @$ids, 0, $buf)
             {
-                $sth->execute($i, $buf);
+                unless ($sth && @cur == $sthbind)
+                {
+                    $sthbind = @cur;
+                    $sth = $dbh->prepare(
+                        "SELECT attach_id, thedata FROM attachments WHERE attach_id IN (" .
+                        join(",", ("?") x $sthbind) . ")"
+                    );
+                }
+                $sth->execute(@cur);
                 last if !$sth->rows;
                 while (($attachid, $thedata) = $sth->fetchrow_array)
                 {
