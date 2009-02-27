@@ -874,35 +874,45 @@ sub insert_attachment_for_bug {
     # so it's safe.
     $sth = $dbh->prepare("INSERT INTO attach_data
                          (id, thedata) VALUES ($attachid, ?)");
-    trick_taint($data);
-    $sth->bind_param(1, $data, $dbh->BLOB_TYPE);
-    $sth->execute();
+    if (!$cgi->param('bigfile') && $data)
+    {
+        trick_taint($data);
+        $sth->bind_param(1, $data, $dbh->BLOB_TYPE);
+        $sth->execute();
+    }
 
     # If the file is to be stored locally, stream the file from the web server
     # to the local file without reading it into a local variable.
-    if ($cgi->param('bigfile')) {
+    if ($cgi->param('bigfile'))
+    {
         my $attachdir = bz_locations()->{'attachdir'};
-        my $fh = $cgi->upload('data');
         my $hash = ($attachid % 100) + 100;
         $hash =~ s/.*(\d\d)$/group.$1/;
         mkdir "$attachdir/$hash", 0770;
         chmod 0770, "$attachdir/$hash";
-        open(AH, ">$attachdir/$hash/attachment.$attachid");
+        open AH, ">$attachdir/$hash/attachment.$attachid" or die "Could not write into $attachdir/$hash/attachment.$attachid: $!";
         binmode AH;
-        my $sizecount = 0;
-        my $limit = (Bugzilla->params->{"maxlocalattachment"} * 1048576);
-        while (<$fh>) {
-            print AH $_;
-            $sizecount += length($_);
-            if ($sizecount > $limit) {
-                close AH;
-                close $fh;
-                unlink "$attachdir/$hash/attachment.$attachid";
-                $throw_error ? ThrowUserError("local_file_too_large") : return;
+        if (my $fh = $cgi->upload('data'))
+        {
+            my $sizecount = 0;
+            my $limit = (Bugzilla->params->{"maxlocalattachment"} * 1048576);
+            while (<$fh>) {
+                print AH $_;
+                $sizecount += length($_);
+                if ($sizecount > $limit) {
+                    close AH;
+                    close $fh;
+                    unlink "$attachdir/$hash/attachment.$attachid";
+                    $throw_error ? ThrowUserError("local_file_too_large") : return;
+                }
             }
+            close $fh;
+        }
+        elsif ($data)
+        {
+            print AH $data;
         }
         close AH;
-        close $fh;
     }
 
     # Make existing attachments obsolete.

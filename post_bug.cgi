@@ -274,6 +274,7 @@ if ($token) {
 
 if (Bugzilla->usage_mode == USAGE_MODE_EMAIL) {
     Bugzilla::BugMail::Send($id, $vars->{'mailrecipients'});
+    return $id;
 }
 else {
     print $cgi->header();

@@ -357,6 +357,7 @@ foreach my $b (@bug_objects)
 {
     # Validate flag requests and remind user about resetting them
     if (should_set('comment') && @bug_objects == 1 &&
+        Bugzilla->usage_mode != USAGE_MODE_EMAIL &&
         !$cgi->param('force_flags') &&
         $user->settings->{remind_me_about_flags} &&
         $user->settings->{remind_me_about_flags}->{value} &&
@@ -389,6 +390,7 @@ foreach my $b (@bug_objects)
     {
         # Validate worktime and remind user about entering it
         if (@bug_objects == 1 &&                                            # only individual bugs
+            Bugzilla->usage_mode != USAGE_MODE_EMAIL &&                     # when not via email_in.pl
             !$cgi->param('work_time') &&                                    # work_time==0
             !$cgi->param('force_work_time') &&                              # work_time not validated by user
             $user->groups->{Bugzilla->params->{timetrackinggroup}} &&       # user in group timetrackinggroup

@@ -541,10 +541,13 @@ sub insert {
         }
     }
 
-    print $cgi->header();
-    # Generate and return the UI (HTML page) from the appropriate template.
-    $template->process("attachment/created.html.tmpl", $vars)
-        || ThrowTemplateError($template->error());
+    unless (Bugzilla->usage_mode == USAGE_MODE_EMAIL)
+    {
+        print $cgi->header();
+        # Generate and return the UI (HTML page) from the appropriate template.
+        $template->process("attachment/created.html.tmpl", $vars)
+            || ThrowTemplateError($template->error());
+    }
 }
 
 # Displays a form for editing attachment properties.

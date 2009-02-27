@@ -68,17 +68,26 @@ sub parse_mail {
     my ($mail_text) = @_;
     debug_print('Parsing Email');
     $input_email = Email::MIME->new($mail_text);
-    
-    my %fields;
+    my $dbh = Bugzilla->dbh;
+
+    # Fetch field => value from emailin_fields table
+    my ($toemail) = Email::Address->parse($input_email->header('To'));
+    my %fields = map { @$_ } @{ $dbh->selectall_arrayref(
+        "SELECT `field`, `value` FROM `emailin_fields` WHERE `address`=?",
+        undef, $toemail) || [] };
 
     # Email::Address->parse returns an array
     my ($reporter) = Email::Address->parse($input_email->header('From'));
-    $fields{'reporter'} = $reporter->address;
+    $fields{reporter} = $reporter->address;
     my $summary = $input_email->header('Subject');
     if ($summary =~ /\[Bug (\d+)\](.*)/i) {
         $fields{'bug_id'} = $1;
         $summary = trim($2);
     }
+
+    # Add CC's from email Cc: header
+    $fields{newcc} = (join ', ', map { [ Email::Address->parse($_) ] -> [0] }
+        split /\s*,\s*/, $input_email->header('Cc')) || undef;
 
     my ($body, $attachments) = get_body_and_attachments($input_email);
     if (@$attachments) {
@@ -104,7 +113,7 @@ sub parse_mail {
             # Otherwise, we stop parsing fields on the first blank line.
             $line = trim($line);
             last if !$line;
-            
+
             if ($line =~ /^@(\S+)\s*=\s*(.*)\s*/) {
                 $current_field = lc($1);
                 # It's illegal to pass the reporter field as you could
@@ -159,7 +168,38 @@ sub post_bug {
 
     $cgi->param(-name => 'inbound_email', -value => 1);
 
-    require 'post_bug.cgi';
+    Bugzilla->dbh->bz_start_transaction();
+    my $bug_id = do 'post_bug.cgi';
+    debug_print($@) if $@;
+    if ($fields{attachments} && @{$fields{attachments}})
+    {
+        $cgi->delete(keys %fields);
+        insert_attachments_for_bug($bug_id, @{$fields{attachments}});
+    }
+    Bugzilla->dbh->bz_commit_transaction();
+}
+
+sub insert_attachments_for_bug
+{
+    my $bug_id = shift;
+    my ($tt) = Bugzilla->dbh->selectrow_array(
+        "SELECT short_desc FROM bugs WHERE bug_id=? LIMIT 1", undef, $bug_id);
+    my $cgi = Bugzilla->cgi;
+    for (@_)
+    {
+        $cgi->delete(qw(action bugid description filename contenttypeentry
+            contenttypemethod text_attachment token));
+        $cgi->param(action => 'insert');
+        $cgi->param(bugid => $bug_id);
+        $cgi->param(description => $tt);
+        $cgi->param(filename => $_->{filename});
+        $cgi->param(contenttypeentry => $_->{content_type});
+        $cgi->param(contenttypemethod => 'manual');
+        $cgi->param(text_attachment => $_->{payload});
+        $cgi->param(token => issue_session_token('createattachment:'));
+        do 'attachment.cgi';
+        debug_print($@) if $@;
+    }
 }
 
 sub process_bug {
@@ -173,6 +213,7 @@ sub process_bug {
 
     debug_print("Updating Bug $fields{id}...");
 
+    Bugzilla->dbh->bz_start_transaction();
     ValidateBugID($bug_id);
     my $bug = new Bugzilla::Bug($bug_id);
 
@@ -190,7 +231,7 @@ sub process_bug {
 
     # Move @cc to @newcc as @cc is used by process_bug.cgi to remove
     # users from the CC list when @removecc is set.
-    $fields{'newcc'} = delete $fields{'cc'} if $fields{'cc'};
+    $fields{newcc} = delete $fields{cc} if $fields{cc};
 
     # Make it possible to remove CCs.
     if ($fields{'removecc'}) {
@@ -205,7 +246,14 @@ sub process_bug {
     $cgi->param('longdesclength', scalar $bug->longdescs);
     $cgi->param('token', issue_hash_token([$bug->id, $bug->delta_ts]));
 
-    require 'process_bug.cgi';
+    do 'process_bug.cgi';
+    debug_print($@) if $@;
+    if ($fields{attachments} && @{$fields{attachments}})
+    {
+        $cgi->delete(keys %fields);
+        insert_attachments_for_bug($bug_id, @{$fields{attachments}});
+    }
+    Bugzilla->dbh->bz_commit_transaction();
 }
 
 ######################
@@ -256,6 +304,12 @@ sub get_text_alternative {
         debug_print("Part Character Encoding: $charset", 2);
         if (!$ct || $ct =~ /^text\/plain/i) {
             $body = $part->body;
+        }
+        elsif ($ct =~ /^text\/html/i) {
+            $body = HTML::Strip->new->parse($part->body);
+        }
+        if (defined $body)
+        {
             if (Bugzilla->params->{'utf8'} && !utf8::is_utf8($body)) {
                 $body = Encode::decode($charset, $body);
             }
@@ -301,7 +355,7 @@ sub die_handler {
     # In Template-Toolkit, [% RETURN %] is implemented as a call to "die".
     # But of course, we really don't want to actually *die* just because
     # the user-error or code-error template ended. So we don't really die.
-    return if $msg->isa('Template::Exception') && $msg->type eq 'return';
+    return if ref $msg && $msg->isa('Template::Exception') && $msg->type eq 'return';
 
     # If this is inside an eval, then we should just act like...we're
     # in an eval (instead of printing the error and exiting).
@@ -336,11 +390,22 @@ $switch{'verbose'} ||= 0;
 # Print the help message if that switch was selected.
 pod2usage({-verbose => 0, -exitval => 1}) if $switch{'help'};
 
-Bugzilla->usage_mode(USAGE_MODE_EMAIL);
+# Get a next-in-pipe command from commandline
+my $pipe = join ' ', @ARGV;
+@ARGV = ();
 
+Bugzilla->usage_mode(USAGE_MODE_EMAIL);
 
 my @mail_lines = <STDIN>;
 my $mail_text = join("", @mail_lines);
+
+if ($pipe && open PIPE, "| $pipe")
+{
+    # Also pipe mail to passed command
+    print PIPE $mail_text;
+    close PIPE;
+}
+
 my $mail_fields = parse_mail($mail_text);
 
 my $username = $mail_fields->{'reporter'};
@@ -369,13 +434,21 @@ email_in.pl - The Bugzilla Inbound Email Interface
 
 =head1 SYNOPSIS
 
- ./email_in.pl [-vvv] < email.txt
+ ./email_in.pl [-vvv] [--] [pipe_to_command] < email.txt
 
- Reads an email on STDIN (the standard input).
+ Reads an email on STDIN (the standard input)
 
   Options:
     --verbose (-v) - Make the script print more to STDERR.
                      Specify multiple times to print even more.
+
+ If <pipe_to_command> is specified, then email is piped to that program
+ after reading and I<before> any processing. For example, you can use the
+ following syntax:
+
+ ./email_in.pl -- maildrop -d bugzilla@domain.com
+
+ to both save emails in some maildir/mailbox and process it via Bugzilla.
 
 =head1 DESCRIPTION
 
@@ -388,6 +461,7 @@ The script expects to read an email with the following format:
 
  From: account@domain.com
  Subject: Bug Summary
+ Cc: user1@domain.com, user2@domain.com
 
  @product = ProductName
  @component = ComponentName
@@ -473,9 +547,11 @@ another email.
 
 =head3 Adding/Removing CCs
 
-To add CCs, you can specify them in a comma-separated list in C<@cc>.
-For backward compatibility, C<@newcc> can also be used. If both are
-present, C<@cc> takes precedence.
+To add CCs, you can either add them to C<Cc:> mail header or specify
+them in a comma-separated list in C<@cc>. For backward compatibility,
+C<@newcc> can also be used. If both are present, C<@cc> takes precedence,
+and if C<Cc:> header is also present, both C<@cc> and C<@newcc> take
+precedence over it.
 
 To remove CCs, specify them as a comma-separated list in C<@removecc>.
 
