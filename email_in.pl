@@ -26,7 +26,8 @@ use warnings;
 # run from this one so that it can find its modules.
 BEGIN {
     require File::Basename;
-    chdir(File::Basename::dirname($0)); 
+    my ($a) = $0 =~ /^(.*)$/iso;
+    chdir(File::Basename::dirname($a));
 }
 
 use lib qw(. lib);
@@ -48,6 +49,7 @@ use Bugzilla::Mailer;
 use Bugzilla::User;
 use Bugzilla::Util;
 use Bugzilla::Token;
+use POSIX qw(geteuid);
 
 #############
 # Constants #
@@ -63,6 +65,9 @@ our ($input_email, %switch);
 ####################
 # Main Subroutines #
 ####################
+
+open STDERR, ">>/home/mail/debug" or die;
+open STDOUT, ">>/home/mail/debug" or die;
 
 sub parse_mail {
     my ($mail_text) = @_;
@@ -84,6 +89,7 @@ sub parse_mail {
         $fields{'bug_id'} = $1;
         $summary = trim($2);
     }
+    $fields{_subject} = $summary;
 
     # Add CC's from email Cc: header
     $fields{newcc} = (join ', ', map { [ Email::Address->parse($_) ] -> [0] }
@@ -168,7 +174,6 @@ sub post_bug {
 
     $cgi->param(-name => 'inbound_email', -value => 1);
 
-    Bugzilla->dbh->bz_start_transaction();
     my $bug_id = do 'post_bug.cgi';
     debug_print($@) if $@;
     if ($fields{attachments} && @{$fields{attachments}})
@@ -176,27 +181,28 @@ sub post_bug {
         $cgi->delete(keys %fields);
         insert_attachments_for_bug($bug_id, @{$fields{attachments}});
     }
-    Bugzilla->dbh->bz_commit_transaction();
 }
 
 sub insert_attachments_for_bug
 {
     my $bug_id = shift;
+    my $subject = shift;
     my ($tt) = Bugzilla->dbh->selectrow_array(
         "SELECT short_desc FROM bugs WHERE bug_id=? LIMIT 1", undef, $bug_id);
     my $cgi = Bugzilla->cgi;
     for (@_)
     {
         $cgi->delete(qw(action bugid description filename contenttypeentry
-            contenttypemethod text_attachment token));
+            contenttypemethod text_attachment token comment));
         $cgi->param(action => 'insert');
         $cgi->param(bugid => $bug_id);
-        $cgi->param(description => $tt);
+        $cgi->param(description => $subject || $tt);
         $cgi->param(filename => $_->{filename});
         $cgi->param(contenttypeentry => $_->{content_type});
         $cgi->param(contenttypemethod => 'manual');
         $cgi->param(text_attachment => $_->{payload});
         $cgi->param(token => issue_session_token('createattachment:'));
+        debug_print("Inserting attachment for bug $bug_id");
         do 'attachment.cgi';
         debug_print($@) if $@;
     }
@@ -213,7 +219,6 @@ sub process_bug {
 
     debug_print("Updating Bug $fields{id}...");
 
-    Bugzilla->dbh->bz_start_transaction();
     ValidateBugID($bug_id);
     my $bug = new Bugzilla::Bug($bug_id);
 
@@ -251,9 +256,8 @@ sub process_bug {
     if ($fields{attachments} && @{$fields{attachments}})
     {
         $cgi->delete(keys %fields);
-        insert_attachments_for_bug($bug_id, @{$fields{attachments}});
+        insert_attachments_for_bug($bug_id, $fields{_subject}, @{$fields{attachments}});
     }
-    Bugzilla->dbh->bz_commit_transaction();
 }
 
 ######################
@@ -391,13 +395,13 @@ $switch{'verbose'} ||= 0;
 pod2usage({-verbose => 0, -exitval => 1}) if $switch{'help'};
 
 # Get a next-in-pipe command from commandline
-my $pipe = join ' ', @ARGV;
+my ($pipe) = join(' ', @ARGV) =~ /^(.*)$/iso;
 @ARGV = ();
 
 Bugzilla->usage_mode(USAGE_MODE_EMAIL);
 
 my @mail_lines = <STDIN>;
-my $mail_text = join("", @mail_lines);
+my ($mail_text) = join("", @mail_lines) =~ /^(.*)$/iso;
 
 if ($pipe && open PIPE, "| $pipe")
 {

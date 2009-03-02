@@ -447,7 +447,7 @@ sub _validate_filename {
         || ($cgi->param('text_attachment') !~ /^\s*$/so)
         || ($throw_error ? ThrowUserError("file_not_specified") : return 0);
 
-    my $filename = $cgi->upload('data');
+    my $filename = $cgi->upload('data') || $cgi->param('filename');
     $filename = $cgi->param('description')
         if !$filename && $cgi->param('text_attachment') !~ /^\s*$/so;
 
