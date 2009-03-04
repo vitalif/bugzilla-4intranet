@@ -120,11 +120,12 @@ my $urlbase = Bugzilla->params->{urlbase};
 
 print $fh "digraph G {";
 print $fh qq{
-graph [URL="${urlbase}query.cgi", rankdir=$rankdir]
+graph [URL="${urlbase}query.cgi", rankdir=$rankdir, overlap=false, splines=true]
 node [URL="${urlbase}show_bug.cgi?id=\\N", style=filled, color=lightgrey]
 };
 
 my %baselist;
+my %deps;
 
 if ($display eq 'doall') {
     my $dependencies = $dbh->selectall_arrayref(
@@ -133,6 +134,7 @@ if ($display eq 'doall') {
     foreach my $dependency (@$dependencies) {
         my ($blocked, $dependson) = @$dependency;
         AddLink($blocked, $dependson, $fh);
+        $deps{$dependson}++;
     }
 } else {
     foreach my $i (split('[\s,]+', $cgi->param('id'))) {
@@ -158,6 +160,7 @@ if ($display eq 'doall') {
                     push @stack, $dependson;
                 }
                 AddLink($blocked, $dependson, $fh);
+                $deps{$dependson}++;
             }
         }
     }
@@ -187,12 +190,12 @@ if ($display eq 'doall') {
 }
 
 my $sth = $dbh->prepare(
-              q{SELECT bug_status, resolution, short_desc
+              q{SELECT bug_status, resolution, short_desc, estimated_time
                   FROM bugs
                  WHERE bugs.bug_id = ?});
 foreach my $k (keys(%seen)) {
     # Retrieve bug information from the database
-    my ($stat, $resolution, $summary) = $dbh->selectrow_array($sth, undef, $k);
+    my ($stat, $resolution, $summary, $time) = $dbh->selectrow_array($sth, undef, $k);
     $stat ||= 'NEW';
     $resolution ||= '';
     $summary ||= '';
@@ -202,20 +205,26 @@ foreach my $k (keys(%seen)) {
         $resolution = $summary = '';
     }
 
-    $vars->{'short_desc'} = $summary if ($k eq $cgi->param('id'));
+    $vars->{short_desc} = $summary if $k eq $cgi->param('id');
 
-    my @params;
+    my @params = ("shape=box", "fontname=Sans",
+        "fillcolor=" . GetColorByState($stat, exists $baselist{$k}),
+        "color=" . GetColorByState($stat));
 
-    if ($summary ne "" && $cgi->param('showsummary')) {
+    my $important = $time > 40 || ($deps{$k}||0) > 4;
+    if ($important)
+    {
+        push @params, "width=3", "height=1.5", "fontsize=13";
+    }
+    else
+    {
+        push @params, "fontsize=10";
+    }
+
+    if ($summary ne "" && ($cgi->param('showsummary') || $important)) {
         $summary =~ s/([\\\"])/\\$1/g;
         push(@params, qq{label="$k\\n$summary"});
     }
-
-    if (exists $baselist{$k}) {
-        push(@params, "shape=box");
-    }
-
-    push(@params, "color=" . GetColorByState($stat) );
 
     if (@params) {
         print $fh "$k [" . join(',', @params) . "]\n";
@@ -230,44 +239,105 @@ foreach my $k (keys(%seen)) {
 
     # Show the bug summary in tooltips only if not shown on 
     # the graph and it is non-empty (the user can see the bug)
-    if (!$cgi->param('showsummary') && $summary ne "") {
+    if ($summary ne "") {
         $bugtitles{$k} .= " - $summary";
     }
 }
 
-sub GetColorByState {
-    my ($state) = (@_);
-    if ( $state eq "UNCONFIRMED" ) {
-        return "white";
-    }
-    if ( $state eq "NEW" ) {
-        return "orange";
-    }
-    if ( $state eq "ASSIGNED" ) {
-        return "yellow";
-    }
-    if ( $state eq "RESOLVED" ) {
-        return "green";
-    }
-    if ( $state eq "VERIFIED" ) {
-        return "slateblue";
-    }
-    if ( $state eq "CLOSED" ) {
-        return "lightgrey";
-    }
-    if ( $state eq "REOPENED" ) {
-        return "orangered";
-    }
-    if ( IsOpenedState($state)) {
-        return "green";
-    }
-    return "lightgrey";
+sub GetColorByState
+{
+    my ($state, $base) = (@_);
+    $base = $base ? 0 : 0x40;
+    my %colorbystate = (
+        UNCONFIRMED => 'ffffff',
+        NEW         => 'ff8000',
+        ASSIGNED    => 'ffff00',
+        RESOLVED    => '00ff00',
+        VERIFIED    => '675acd',
+        CLOSED      => 'd0d0d0',
+        REOPENED    => 'ff4000',
+        opened      => '00ff00',
+        closed      => 'c0c0c0',
+    );
+    my $color = sprintf("\"#%02x%02x%02x\"", map { int(ord($_)/0xff*(0xff-$base)) }
+        split //, pack 'H*',
+        $colorbystate{$state} ||
+        $colorbystate{is_open_state($state) ? 'opened' : 'closed'});
+    return $color;
 }
 
 print $fh "}\n";
 close $fh;
 
 chmod 0777, $filename;
+
+sub plainext
+{
+    my ($cmd) = @_;
+    my ($nodes, $edges) = ({}, {});
+    open DOT, $cmd;
+    binmode DOT;
+    while(<DOT>)
+    {
+        if (/^node\s+(\d+)\s+/so)
+        {
+            my $n = $1;
+            $nodes->{$n} = [ map { s/^"(.*)"$/$1/; $_ } $' =~ /(\"[^\"]*\"|\S+)/giso ];
+        }
+        elsif (/^edge\s+(\d+)\s+(\d+)/so && $1 && $2)
+        {
+            $edges->{$1}->{$2} += 1;
+            $edges->{$2}->{$1} += 0;
+        }
+    }
+    close DOT;
+    return ($nodes, $edges);
+}
+
+sub buildtree
+{
+    my $hash = shift;
+    my $track = shift;
+    my $r = {};
+    for (@_)
+    {
+        unless ($track->{$_})
+        {
+            $track->{$_} = 1;
+            $r->{$_} = buildtree($hash, $track, keys %{$hash->{$_}});
+        }
+    }
+    return $r;
+}
+
+sub makemap # hgap="'.int(($nodes->{$_}->[0]-$x)*20).'" vshift="'.int(($nodes->{$_}->[1]-$y)*20).'" 
+{
+    my ($nodes, $edges, $tree, $x, $y, $header) = @_;
+    my $map = '';
+    for (keys %$tree)
+    {
+        $map .= '<node background_color="'.$nodes->{$_}->[7].'" id="node_'.$_.'" text="'.$nodes->{$_}->[4].'">'."\n";
+        $map .= makemap($nodes, $edges, $tree->{$_}, $nodes->{$_}->[0], $nodes->{$_}->[1]);
+        for my $r (keys %{$edges->{$_} || {}})
+        {
+            $map .= '<arrowlink destination="node_'.$r.'" endarrow="default" />'."\n"
+                if $edges->{$_}->{$r};
+        }
+        $map .= '</node>' . "\n";
+    }
+    if ($header)
+    {
+        $map = <<EOF;
+<?xml version="1.0" encoding="UTF-8" ?>
+<map version="0.9.0">
+<node background_color="#0000a0" id="root" text="$header">
+$map
+</node>
+</map>
+EOF
+    }
+    return $map;
+}
 
 my $webdotbase = Bugzilla->params->{'webdotbase'};
 
@@ -276,8 +346,8 @@ if ($webdotbase =~ /^https?:/) {
      # 'sslbase' is in use.
      $webdotbase =~ s/%([a-z]*)%/Bugzilla->params->{$1}/eg;
      my $url = $webdotbase . $filename;
-     $vars->{'image_url'} = $url . ".gif";
-     $vars->{'map_url'} = $url . ".map";
+     $vars->{image_url} = $url . ".gif";
+     $vars->{map_url} = $url . ".map";
 } else {
     # Local dot installation
 
@@ -287,12 +357,21 @@ if ($webdotbase =~ /^https?:/) {
                                                      SUFFIX => '.png',
                                                      DIR => $webdotdir);
     binmode $pngfh;
-    open(DOT, "\"$webdotbase\" -Tpng $filename|");
+    open DOT, "\"$webdotbase\" -Tpng $filename|";
     binmode DOT;
     print $pngfh $_ while <DOT>;
     close DOT;
     close $pngfh;
-    
+
+#    my ($nodes, $edges) = plainext("\"$webdotbase\" -Tplain-ext $filename|");
+#    my $tree = buildtree($edges, {}, keys %baselist);
+#    my $map = makemap($nodes, $edges, $tree, $nodes->{0}->[0], $nodes->{0}->[1], 'Bug Dependency Graph');
+#    my ($mapfh, $mapfn) = File::Temp::tempfile(
+#        "XXXXXXXXXX", SUFFIX => '.mm', DIR => $webdotdir);
+#    binmode $mapfh;
+#    print $mapfh $map;
+#    close $mapfh;
+
     # On Windows $pngfilename will contain \ instead of /
     $pngfilename =~ s|\\|/|g if $^O eq 'MSWin32';
 
@@ -300,7 +379,7 @@ if ($webdotbase =~ /^https?:/) {
     # need to make that into a relative path.
     my $cgi_root = bz_locations()->{cgi_path};
     $pngfilename =~ s#^\Q$cgi_root\E/?##;
-    
+
     $vars->{'image_url'} = $pngfilename;
 
     # Then, generate a imagemap datafile that contains the corner data
