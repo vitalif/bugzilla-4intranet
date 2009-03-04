@@ -387,3 +387,8 @@ input:not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type
     border-style: solid;
     border-color: #747e93;
 }
+
+.editemin th {
+    background-color: #d0d0d0;
+    padding: 3px;
+}
