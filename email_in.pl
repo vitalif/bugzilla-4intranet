@@ -84,6 +84,18 @@ sub parse_mail {
     # Email::Address->parse returns an array
     my ($reporter) = Email::Address->parse($input_email->header('From'));
     $fields{reporter} = $reporter->address;
+    {
+        my $r;
+        if ($r = $reporter->phrase)
+        {
+            $r .= ' ' . $reporter->comment if $reporter->comment;
+        }
+        else
+        {
+            $r = $reporter->address;
+        }
+        $fields{_reporter_name} = $r;
+    }
     my $summary = $input_email->header('Subject');
     if ($summary =~ /\[Bug (\d+)\](.*)/i) {
         $fields{'bug_id'} = $1;
@@ -412,14 +424,28 @@ if ($pipe && open PIPE, "| $pipe")
 
 my $mail_fields = parse_mail($mail_text);
 
-my $username = $mail_fields->{'reporter'};
+my $username = $mail_fields->{reporter};
 # If emailsuffix is in use, we have to remove it from the email address.
-if (my $suffix = Bugzilla->params->{'emailsuffix'}) {
+if (my $suffix = Bugzilla->params->{emailsuffix}) {
     $username =~ s/\Q$suffix\E$//i;
 }
 
-my $user = Bugzilla::User->new({ name => $username })
-    || ThrowUserError('invalid_username', { name => $username });
+my $user = Bugzilla::User->new({ name => $username });
+
+unless ($user)
+{
+    unless (Bugzilla->params->{emailin_autoregister})
+    {
+        ThrowUserError('invalid_username', { name => $username });
+        exit;
+    }
+    $user = Bugzilla::User->create({
+        login_name      => $username,
+        realname        => $mail_fields->{_reporter_name},
+        cryptpassword   => undef,
+        disabledtext    => 'Auto-registered account',
+    });
+}
 
 Bugzilla->set_user($user);
 
