@@ -68,7 +68,7 @@ sub get_param_list {
 
   {
    name    => 'emailin_autoregister',
-   type    => 's',
+   type    => 'b',
    default => 1,
   },
   );
