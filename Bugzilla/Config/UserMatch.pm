@@ -64,7 +64,14 @@ sub get_param_list {
    name    => 'confirmuniqueusermatch',
    type    => 'b',
    default => 1,
-  } );
+  },
+
+  {
+   name    => 'emailin_autoregister',
+   type    => 's',
+   default => 1,
+  },
+  );
   return @param_list;
 }
 
