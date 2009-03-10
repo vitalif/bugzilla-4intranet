@@ -27,6 +27,8 @@
 
 [% PROCESS "global/field-descs.none.tmpl" %]
 
+[% SET field_descs.group_ids = "Group ID's to grant automatically" %]
+
 <form method="post" action="?">
 <input type="hidden" name="do" value="1">
 [% IF !mode_add %]

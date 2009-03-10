@@ -191,7 +191,7 @@ sub post_bug {
     if ($fields{attachments} && @{$fields{attachments}})
     {
         $cgi->delete(keys %fields);
-        insert_attachments_for_bug($bug_id, @{$fields{attachments}});
+        insert_attachments_for_bug($bug_id, $fields{_subject}, @{$fields{attachments}});
     }
 }
 
@@ -442,14 +442,28 @@ unless ($user)
     $user = Bugzilla::User->create({
         login_name      => $username,
         realname        => $mail_fields->{_reporter_name},
-        cryptpassword   => undef,
+        cryptpassword   => 'a3#',
         disabledtext    => 'Auto-registered account',
     });
 }
 
 Bugzilla->set_user($user);
 
-if ($mail_fields->{'bug_id'}) {
+if ($mail_fields->{group_ids})
+{
+    my @grp = $mail_fields->{group_ids} =~ /\d+/gso;
+    if (@grp)
+    {
+        Bugzilla->dbh->do(
+            "REPLACE INTO user_group_map (user_id, group_id, isbless, grant_type)
+            VALUES ".join(", ", ("(?,?,0,0)") x scalar @grp),
+            undef, map { $user->id, $_ } @grp
+        );
+    }
+    delete $mail_fields->{group_ids};
+}
+
+if ($mail_fields->{bug_id}) {
     process_bug($mail_fields);
 }
 else {
