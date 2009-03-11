@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# Lingua::Stem::Ru - UTF-8 ������
+# Lingua::Stem::Ru - UTF-8 стеммер Портера
 
 package Lingua::Stem::RuUTF8;
 
