@@ -54,6 +54,12 @@ sub get_param_list
     },
 
     {
+        name => 'dpwiki_url',
+        type => 't',
+        default => 'http://depobraz.office.custis.ru/dpwiki/index.php/',
+    },
+
+    {
         name => 'user_mailto',
         type => 't',
         default => 'mailto:',
