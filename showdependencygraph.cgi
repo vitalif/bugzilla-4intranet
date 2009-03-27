@@ -190,12 +190,12 @@ if ($display eq 'doall') {
 }
 
 my $sth = $dbh->prepare(
-              q{SELECT bug_status, resolution, short_desc, estimated_time
-                  FROM bugs
-                 WHERE bugs.bug_id = ?});
+              q{SELECT t1.bug_status, t1.resolution, t1.short_desc, t1.estimated_time, t1.assigned_to, t2.login_name
+                  FROM bugs AS t1 LEFT JOIN profiles AS t2 ON t2.userid=t1.assigned_to
+                 WHERE t1.bug_id = ?});
 foreach my $k (keys(%seen)) {
     # Retrieve bug information from the database
-    my ($stat, $resolution, $summary, $time) = $dbh->selectrow_array($sth, undef, $k);
+    my ($stat, $resolution, $summary, $time, $assignee, $asslogin) = $dbh->selectrow_array($sth, undef, $k);
     $stat ||= 'NEW';
     $resolution ||= '';
     $summary ||= '';
@@ -207,9 +207,20 @@ foreach my $k (keys(%seen)) {
 
     $vars->{short_desc} = $summary if $k eq $cgi->param('id');
 
-    my @params = ("shape=box", "fontname=Sans",
-        "fillcolor=" . GetColorByState($stat, exists $baselist{$k}),
+    my @params = ("fontname=Sans",
+        "fillcolor=" . GetColorByState($stat, 1),
         "color=" . GetColorByState($stat));
+
+    push @params, "peripheries=2" if exists $baselist{$k};
+
+    if ($assignee == Bugzilla->user->id)
+    {
+        push @params, "shape=box";
+    }
+    else
+    {
+        push @params, "shape=egg";
+    }
 
     my $important = $time > 40 || ($deps{$k}||0) > 4;
     if ($important)
@@ -235,7 +246,7 @@ foreach my $k (keys(%seen)) {
     # Push the bug tooltip texts into a global hash so that 
     # CreateImagemap sub (used with local dot installations) can
     # use them later on.
-    $bugtitles{$k} = trim("$stat $resolution");
+    $bugtitles{$k} = trim("[$asslogin] $stat $resolution");
 
     # Show the bug summary in tooltips only if not shown on 
     # the graph and it is non-empty (the user can see the bug)

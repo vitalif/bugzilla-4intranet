@@ -484,7 +484,27 @@ function handleWantsAttachment(wants_attachment) {
          cols           = constants.COMMENT_COLS
          defaultcontent = defaultcontent
        %]
-      <br>
+        <br>
+        <p style="text-align: left" id="showpreviewbtn"><a href="javascript:void showcommentpreview()">Preview</a></p>
+        <div id="wrapcommentpreview" style="display: none">
+        <iframe id="commentpreview" style="height: auto; border-width: 0; width: 100%">
+        </iframe>
+        <script>
+        /*<!--*/
+        function hidepreview() {
+            document.getElementById('wrapcommentpreview').style.display='none';
+            document.getElementById('showpreviewbtn').style.display='';
+        }
+        function showcommentpreview() {
+            document.getElementById('wrapcommentpreview').style.width=(document.Create.comment.offsetWidth-10)+'px';
+            document.getElementById('wrapcommentpreview').style.display='table-cell';
+            document.getElementById('commentpreview').src='page.cgi?id=previewcomment.html&comment='+escape(document.Create.comment.value);
+            document.getElementById('showpreviewbtn').style.display='none';
+        }
+        //-->
+        </script>
+        <p style="text-align: right"><a href="javascript:void showcommentpreview()">Update preview</a> &nbsp; <a href="javascript:void hidepreview()">Hide preview</a></p>
+        </div>
     </td>
   </tr>
 

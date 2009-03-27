@@ -625,6 +625,21 @@ sub create {
                 }
             },
 
+            links_targetblank => sub
+            {
+                my ($data) = @_;
+                my $sub = sub
+                {
+                    if ($_[0] =~ /target=[\"\']?[^<>]*/iso)
+                    {
+                        return $_[0];
+                    }
+                    return $_[0] . ' target="_blank"';
+                };
+                $data =~ s/<a(\s+[^<>]*)>/ '<a'.&$sub($1).'>' /egiso;
+                return $data;
+            },
+
             # Format a time for display (more info in Bugzilla::Util)
             time => \&Bugzilla::Util::format_time,
 
