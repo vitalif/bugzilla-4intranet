@@ -341,8 +341,7 @@ sub diff_strings {
     my ($oldstr, $newstr) = @_;
 
     # Split the old and new strings into arrays containing their values.
-    $oldstr =~ s/[\s,]+/ /g;
-    $newstr =~ s/[\s,]+/ /g;
+    s/[\s,]+/ /gso for $oldstr, $newstr;
     my @old = split(" ", $oldstr);
     my @new = split(" ", $newstr);
 
