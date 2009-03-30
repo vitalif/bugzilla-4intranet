@@ -55,6 +55,10 @@
             [% print_pipe = 1 %]
           [% END %]
         [% END %]
+          <li>
+            [% '<span class="separator">| </span>' IF print_pipe %]
+            <a href="fill-day-worktime.cgi" class="shared">TodayWorktime</a></li>
+          </li>
         [% new_line = print_pipe %]
         [% print_pipe = 0 %]
         [% FOREACH q = user.queries_subscribed %]

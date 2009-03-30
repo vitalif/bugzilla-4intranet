@@ -216,8 +216,8 @@ sub quoteUrls {
     {
         $custom_p ||= join '|', keys %$custom_proto;
         $text =~ s
-            ~\b($custom_p):([^\s<>\"\#]+)(\#[^\s<>\"\#]+)?
-            ~($tmp = &{$custom_proto->{$1}}(html_quote($2),$3)) &&
+            ~\b($custom_p):(?:\[\[(.*?)\]\]|([^\s<>\"\#]+))(?:\#\[\[(.*?)\]\]|\#([^\s<>\"\#]+))?
+            ~($tmp = &{$custom_proto->{$1}}(html_quote(trim($2)||$3), trim($4)||$5)) &&
              ($things[$count++] = "<a href=\"$tmp\">$&</a>") &&
              ("\0\0" . ($count-1) . "\0\0")
             ~gesox;

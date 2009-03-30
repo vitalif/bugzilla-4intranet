@@ -7,14 +7,18 @@ sub processWikiAnchor
 {
     my ($anchor) = (@_);
     return "" unless $anchor;
-    $anchor = url_quote(substr($anchor,1));
-    $anchor =~ s/%/./g;
+    $anchor = url_quote($anchor);
+    $anchor =~ s/%/./gso;
     return $anchor;
 }
 
 sub processWikiUrl
 {
-    Bugzilla->params->{$_[0]."_url"} . $_[1] . '#' . processWikiAnchor($_[2]);
+    my ($wiki, $url, $anchor) = @_;
+    $url = trim($url);
+    $url =~ s/\s+/ /gso;
+    $url = url_quote($url);
+    return Bugzilla->params->{"${wiki}_url"} . $url . '#' . processWikiAnchor($anchor);
 }
 
 return {
