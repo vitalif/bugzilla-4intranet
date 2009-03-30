@@ -111,7 +111,7 @@
         [% END %]
       [% END %]
       [% IF bug AND bug.component_obj.initialqacontact %]
-        [% fcl.${bug.component_obj.default_qa_contact} = bug.component_obj.default_qa_contact.realname _ ' <' _ bug.component_obj.default_qa_contact.login _ '> (Component QA)' %]
+        [% fcl.${bug.component_obj.default_qa_contact.login} = bug.component_obj.default_qa_contact.realname _ ' <' _ bug.component_obj.default_qa_contact.login _ '> (Component QA)' %]
       [% END %]
       [% fcl.${bug.reporter.login} = bug.reporter.realname _ ' <' _ bug.reporter.login _ '> (Reporter)' %]
       [% fcl.${bug.assigned_to.login} = bug.assigned_to.realname _ ' <' _ bug.assigned_to.login _ '> (Assignee)' %]
