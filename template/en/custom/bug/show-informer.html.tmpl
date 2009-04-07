@@ -1,0 +1,43 @@
+[%# The contents of this file are subject to the Mozilla Public
+  # License Version 1.1 (the "License"); you may not use this file
+  # except in compliance with the License. You may obtain a copy of
+  # the License at http://www.mozilla.org/MPL/
+  #
+  # Software distributed under the License is distributed on an "AS
+  # IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
+  # implied. See the License for the specific language governing
+  # rights and limitations under the License.
+  #
+  # The Original Code is the Bugzilla Bug Tracking System.
+  #
+  # The Initial Developer of the Original Code is Netscape Communications
+  # Corporation. Portions created by Netscape are
+  # Copyright (C) 1998 Netscape Communications Corporation. All
+  # Rights Reserved.
+  #
+  # Contributor(s): Gervase Markham <gerv@gerv.net>
+  #                 Vaskin Kissoyan <vkissoyan@yahoo.com>
+  #                 Bradley Baetz <bbaetz@student.usyd.edu.au>
+  #                 Max Kanat-Alexander <mkanat@bugzilla.org>
+  #%]
+
+[% PROCESS global/variables.none.tmpl %]
+[%# This script/template only handles one bug #%]
+[% bug = bugs.0 %]
+[% IF !bug.error %]
+[% filtered_desc = bug.short_desc FILTER html %]
+[% filtered_timestamp = bug.delta_ts FILTER time %]
+<html>
+<head>
+    <title>[% "$terms.Bug $bug.bug_id &ndash; $filtered_desc" %]</title>
+</head>
+<body style="font-size: 13px">
+    <h3 style="font-size: 15px; margin: 0"><b>[[% bug.bug_status %]]</b> <a target="_blank" href="/show_bug.cgi?id=[% bug.bug_id %]">[% terms.Bug %]&nbsp;[% bug.bug_id %]</a> &ndash; [% filtered_desc %]</h3>
+    <p style="margin: 8px 0 0 0">Product / component: <b>[% bug.product %] / [% bug.component %]</b>
+    [% IF bug.assigned_to %]
+    <br />Assigned to: <b>[% bug.assigned_to.login %]</b>
+    [% END %]
+    </p>
+</body>
+</html>
+[% END %]
