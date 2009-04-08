@@ -27,17 +27,25 @@
 [% IF !bug.error %]
 [% filtered_desc = bug.short_desc FILTER html %]
 [% filtered_timestamp = bug.delta_ts FILTER time %]
-<html>
-<head>
-    <title>[% "$terms.Bug $bug.bug_id &ndash; $filtered_desc" %]</title>
-</head>
-<body style="font-size: 13px">
-    <h3 style="font-size: 15px; margin: 0"><b>[[% bug.bug_status %]]</b> <a target="_blank" href="/show_bug.cgi?id=[% bug.bug_id %]">[% terms.Bug %]&nbsp;[% bug.bug_id %]</a> &ndash; [% filtered_desc %]</h3>
-    <p style="margin: 8px 0 0 0">Product / component: <b>[% bug.product %] / [% bug.component %]</b>
-    [% IF bug.assigned_to %]
-    <br />Assigned to: <b>[% bug.assigned_to.login %]</b>
-    [% END %]
-    </p>
+<html style="overflow: hidden; margin: 0">
+<head><title>[% "$terms.Bug $bug.bug_id &ndash; $filtered_desc" %]</title></head>
+<body style="text-align: center; overflow: hidden; font-size: 13px; margin: -1px 1px 0 1px; background-color: #[% IF bug.bug_status == "NEW" %]FFE040[% ELSIF bug.bug_status == "ASSIGNED" %]FFFFA0[% ELSIF bug.bug_status == "RESOLVED" %]A0FFA0[% ELSIF bug.bug_status == "VERIFIED" %]B79AFF[% ELSIF bug.bug_status == "CLOSED" %]DDDDDD[% ELSIF bug.bug_status == "REOPENED" %]A00000[% END %]">
+<div id="dat" style="white-space: nowrap; display: inline-block" title="[[% bug.bug_status %]] [% filtered_desc %]">
+[% IF bug.bug_status == "RESOLVED" OR bug.bug_status == "CLOSED" OR bug.bug_status == "VERIFIED" %]
+<strike>
+[% END %]
+    <b><a target="_blank" title="[[% bug.bug_status %]] [% filtered_desc %]" href="/show_bug.cgi?id=[% bug.bug_id %]">[% terms.Bug %]&nbsp;[% bug.bug_id %]</a>&nbsp;
+    [% bug.product %]/[% bug.component %]</b>&nbsp;
+    [% IF bug.assigned_to %][[% bug.assigned_to.login %]][% END %]
+[% IF bug.bug_status == "RESOLVED" OR bug.bug_status == "CLOSED" OR bug.bug_status == "VERIFIED" %]
+</strike>
+[% END %]
+</div>
 </body>
+</html>
+[% ELSE %]
+<html>
+<head><title>Unauthorized</title></head>
+<body style="text-align: center; overflow: hidden; background-color: #FFF0F0; font-size: 13px; margin: -1px 1px 0 1px">Unauthorized to see <a target="_blank" href="/show_bug.cgi?id=[% bug.bug_id %]">Bug [% bug.bug_id %]</a>.</body>
 </html>
 [% END %]
