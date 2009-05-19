@@ -326,19 +326,17 @@ sub init() {
     Error( "no urlbase set", "REOPEN", $exporter ) unless ($urlbase);
     my $def_product =
         new Bugzilla::Product( { name => $params->{"moved-default-product"} } )
-        || Error("Cannot import these bugs because an invalid default 
-                  product was defined for the target db."
-                  . $params->{"maintainer"} . " needs to fix the definitions of
-                  moved-default-product. \n", "REOPEN", $exporter);
+        || Error("an invalid default product was defined for the target DB. " .
+                  $params->{"maintainer"} . " needs to fix the definitions of " .
+                 "moved-default-product. \n", "REOPEN", $exporter);
     my $def_component = new Bugzilla::Component(
         {
             product => $def_product,
             name    => $params->{"moved-default-component"}
         })
-    || Error("Cannot import these bugs because an invalid default 
-              component was defined for the target db."
-              . $params->{"maintainer"} . " needs to fix the definitions of
-              moved-default-component.\n", "REOPEN", $exporter);
+    || Error("an invalid default component was defined for the target DB. " .
+             $params->{"maintainer"} . " needs to fix the definitions of " .
+             "moved-default-component.\n", "REOPEN", $exporter);
 }
     
 
@@ -474,6 +472,11 @@ sub process_bug {
    # append it to the log, which will go into the comments when we are done.
     foreach my $bugchild ( $bug->children() ) {
         Debug( "Parsing field: " . $bugchild->name, DEBUG_LEVEL );
+
+        # Skip the token if one is included. We don't want it included in
+        # the comments, and it is not used by the importer.
+        next if $bugchild->name eq 'token';
+
         if ( defined $all_fields{ $bugchild->name } ) {
             my @values = $bug->children_text($bugchild->name);
             if (scalar @values > 1) {
@@ -1354,7 +1357,7 @@ importxml - Import bugzilla bug data from xml.
  Options:
        -? --help        brief help message
        -v --verbose     print error and debug information. 
-                        Mulltiple -v increases verbosity
+                        Multiple -v increases verbosity
        -m --sendmail    send mail to recipients with log of bugs imported
        --attach_path    The path to the attachment files.
                         (Required if encoding="filename" is used for attachments.)

@@ -1,9 +1,9 @@
 
-The Bugzilla Guide - 3.2.2 Release
+The Bugzilla Guide - 3.2.3 Release
 
 The Bugzilla Team
 
-   2009-02-03
+   2009-03-30
 
    This is the documentation for Bugzilla, a bug-tracking system from
    mozilla.org. Bugzilla is an enterprise-class piece of software that tracks
@@ -177,7 +177,7 @@ Chapter 1. About This Guide
 
 1.3. New Versions
 
-   This is the 3.2.2 version of The Bugzilla Guide. It is so named to match the
+   This is the 3.2.3 version of The Bugzilla Guide. It is so named to match the
    current version of Bugzilla.
 
    The latest version of this guide can always be found at
@@ -719,7 +719,24 @@ Chapter 2. Installing Bugzilla
    information for improving your installation's security.
      _________________________________________________________________
 
-2.2.2.2.1. Allow small words in full-text indexes
+2.2.2.2.1. Allow large attachments and many comments
+
+   By default, MySQL will only allow you to insert things into the database
+   that are smaller than 64KB. Attachments may be larger than this. Also,
+   Bugzilla combines all comments on a single bug into one field for full-text
+   searching, and the combination of all comments on a single bug are very
+   likely to be larger than 64KB.
+
+   To change MySQL's default, you need to edit your MySQL configuration file,
+   which is usually /etc/my.cnf on Linux. We recommend that you allow at least
+   4MB packets by adding the "max_allowed_packet" parameter to your MySQL
+   configuration in the "[mysqld]" section, like this:
+[mysqld]
+# Allow packets up to 4MB
+max_allowed_packet=4M
+     _________________________________________________________________
+
+2.2.2.2.2. Allow small words in full-text indexes
 
    By default, words must be at least four characters in length in order to be
    indexed by MySQL's full-text indexes. This causes a lot of Bugzilla specific
@@ -736,7 +753,7 @@ Chapter 2. Installing Bugzilla
    http://www.mysql.com/doc/en/Fulltext_Fine-tuning.html.
      _________________________________________________________________
 
-2.2.2.2.2. Add a user to MySQL
+2.2.2.2.3. Add a user to MySQL
 
    You need to add a new MySQL user for Bugzilla to use. (It's not safe to have
    Bugzilla use the MySQL root account.) The following instructions assume the
@@ -757,7 +774,7 @@ Chapter 2. Installing Bugzilla
     mysql> FLUSH PRIVILEGES;
      _________________________________________________________________
 
-2.2.2.2.3. Permit attachments table to grow beyond 4GB
+2.2.2.2.4. Permit attachments table to grow beyond 4GB
 
    By default, MySQL will limit the size of a table to 4GB. This limit is
    present even if the underlying filesystem has no such limit. To set a higher
