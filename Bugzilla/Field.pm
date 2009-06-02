@@ -93,19 +93,21 @@ use constant DB_COLUMNS => (
     'mailhead',
     'sortkey',
     'obsolete',
+    'classificate',
     'enter_bug',
 );
 
 use constant REQUIRED_CREATE_FIELDS => qw(name description);
 
 use constant VALIDATORS => {
-    custom      => \&_check_custom,
-    description => \&_check_description,
-    enter_bug   => \&_check_enter_bug,
-    mailhead    => \&_check_mailhead,
-    obsolete    => \&_check_obsolete,
-    sortkey     => \&_check_sortkey,
-    type        => \&_check_type,
+    custom       => \&_check_custom,
+    description  => \&_check_description,
+    enter_bug    => \&_check_enter_bug,
+    mailhead     => \&_check_mailhead,
+    obsolete     => \&_check_obsolete,
+    classificate => \&_check_obsolete,
+    sortkey      => \&_check_sortkey,
+    type         => \&_check_type,
 };
 
 use constant UPDATE_COLUMNS => qw(
@@ -113,6 +115,7 @@ use constant UPDATE_COLUMNS => qw(
     mailhead
     sortkey
     obsolete
+    classificate
     enter_bug
 );
 
@@ -348,6 +351,18 @@ sub obsolete { return $_[0]->{obsolete} }
 
 =over
 
+=item C<classificate>
+
+a boolean specifying whether or not field's legal values must be restricted to the bug classification
+
+=back
+
+=cut
+
+sub classificate { return $_[0]->{classificate} }
+
+=over
+
 =item C<enter_bug>
 
 A boolean specifying whether or not this field should appear on 
@@ -407,6 +422,7 @@ They will throw an error if you try to set the values to something invalid.
 sub set_description    { $_[0]->set('description', $_[1]); }
 sub set_enter_bug      { $_[0]->set('enter_bug',   $_[1]); }
 sub set_obsolete       { $_[0]->set('obsolete',    $_[1]); }
+sub set_classificate   { $_[0]->set('classificate', $_[1]); }
 sub set_sortkey        { $_[0]->set('sortkey',     $_[1]); }
 sub set_in_new_bugmail { $_[0]->set('mailhead',    $_[1]); }
 
@@ -521,6 +537,8 @@ will be added to the C<bugs> table if it does not exist. Defaults to 0.
 editable on the bug creation form. Defaults to 0.
 
 C<obsolete> - boolean - Whether this field is obsolete. Defaults to 0.
+
+C<classificate> - boolean - Whether this field's legal values must be restricted to bug classification.
 
 =back
 

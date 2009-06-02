@@ -64,6 +64,7 @@ elsif ($action eq 'new') {
         mailhead    => scalar $cgi->param('new_bugmail'),
         enter_bug   => scalar $cgi->param('enter_bug'),
         obsolete    => scalar $cgi->param('obsolete'),
+        classificate => scalar $cgi->param('classificate'),
         custom      => 1,
     });
 
@@ -107,6 +108,7 @@ elsif ($action eq 'update') {
     $field->set_in_new_bugmail($cgi->param('new_bugmail'));
     $field->set_enter_bug($cgi->param('enter_bug'));
     $field->set_obsolete($cgi->param('obsolete'));
+    $field->set_classificate($cgi->param('classificate'));
     $field->update();
 
     delete_token($token);

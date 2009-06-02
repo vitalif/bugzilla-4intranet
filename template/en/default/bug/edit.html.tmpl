@@ -985,6 +985,7 @@
     <tr>
       [% PROCESS bug/field.html.tmpl value=bug.${field.name}
                                      editable = bug.check_can_change_field(field.name, 0, 1)
+                                     bug_object = bug
                                      value_span = 2 %]
     </tr>
   [% END %]

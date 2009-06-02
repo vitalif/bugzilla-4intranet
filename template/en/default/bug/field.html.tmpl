@@ -79,10 +79,21 @@
               [% dontchange FILTER html %]
             </option>
           [% END %]
-          [% FOREACH legal_value = field.legal_values %]
-            <option value="[% legal_value FILTER html %]"
-                [%- " selected=\"selected\"" IF value.contains(legal_value).size %]>
-                [%- legal_value FILTER html %]</option>
+          [% IF field.classificate AND bug_object.classification %]
+            [% SET classif_re = '\s+\(' _ bug_object.classification.replace('\W', '\\$1') _ '\)\s*$' %]
+            [% FOREACH legal_value = field.legal_values %]
+            [% IF NOT legal_value.match('\)\s*$') OR legal_value.match(classif_re) %]
+              <option value="[% legal_value FILTER html %]"
+                  [%- " selected=\"selected\"" IF value.contains(legal_value).size %]>
+                  [%- legal_value FILTER html %]</option>
+            [% END %]
+            [% END %]
+          [% ELSE %]
+            [% FOREACH legal_value = field.legal_values %]
+              <option value="[% legal_value FILTER html %]"
+                  [%- " selected=\"selected\"" IF value.contains(legal_value).size %]>
+                  [%- legal_value FILTER html %]</option>
+            [% END %]
           [% END %]
         </select>
         [%# When you pass an empty multi-select in the web interface,

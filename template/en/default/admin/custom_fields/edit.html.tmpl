@@ -83,8 +83,9 @@
                value="[% field.sortkey FILTER html %]">
       </td>
 
-      <th>&nbsp;</th>
-      <td>&nbsp;</td>
+      <th align="right"><label for="classificate">Restrict to classification:</label></th>
+      <td><input type="checkbox" id="classificate" name="classificate" value="1"
+                 [%- " checked" IF field.classificate %]></td>
     </tr>
     [% IF field.type == constants.FIELD_TYPE_SINGLE_SELECT
           || field.type == constants.FIELD_TYPE_MULTI_SELECT %]
