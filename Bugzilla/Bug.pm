@@ -155,6 +155,7 @@ sub VALIDATORS {
 };
 
 use constant UPDATE_VALIDATORS => {
+    reporter            => \&_check_reporter,
     assigned_to         => \&_check_assigned_to,
     bug_status          => \&_check_bug_status,
     cclist_accessible   => \&Bugzilla::Object::check_boolean,
@@ -327,9 +328,6 @@ sub create {
     $params->{comment} = '' unless defined $params->{comment};
 
     $class->check_required_create_fields($params);
-
-    # Save product object BEFORE run_create_validators
-    my $product = $params->{product};
     $params = $class->run_create_validators($params);
 
     # These are not a fields in the bugs table, so we don't pass them to
@@ -367,18 +365,10 @@ sub create {
     $bug->{creation_ts} = $timestamp;
 
     # Add the CCs
-    my ($ccg) = $product->description =~ /\[[Có]{2}:\s*([^\]]+)\s*\]/iso;
     my $sth_cc = $dbh->prepare('INSERT INTO cc (bug_id, who) VALUES (?,?)');
     foreach my $user_id (@$cc_ids)
     {
-        if (!$ccg || Bugzilla::User->new($user_id)->in_group($ccg))
-        {
-            $sth_cc->execute($bug->bug_id, $user_id);
-        }
-        else
-        {
-            # TODO print some warning
-        }
+        $sth_cc->execute($bug->bug_id, $user_id);
     }
 
     # Add in keywords
@@ -926,6 +916,12 @@ sub _check_assigned_to {
         # create() checks this another way, so we don't have to run this
         # check during create().
         $invocant->_check_strict_isolation_for_user($assignee) if ref $invocant;
+        my $prod = ref $invocant ? $invocant->product_obj : $component->product;
+        my ($ccg) = $prod->description =~ /\[[Có]{2}:\s*([^\]]+)\s*\]/iso;
+        if ($ccg && !$assignee->in_group($ccg))
+        {
+            ThrowUserError("cc_group_restriction", { user => $assignee->login });
+        }
     }
     return $id;
 }
@@ -1041,9 +1037,12 @@ sub _check_cc {
     return [map {$_->id} @{$component->initial_cc}] unless $ccs;
 
     my %cc_ids;
+    my ($ccg) = $component->product->description =~ /\[[Có]{2}:\s*([^\]]+)\s*\]/iso;
     foreach my $person (@$ccs) {
         next unless $person;
         my $id = login_to_id($person, THROW_ERROR);
+        my $user = Bugzilla::User->new($id);
+        next if $ccg && $user->in_group($ccg);
         $cc_ids{$id} = 1;
     }
 
@@ -1389,6 +1388,12 @@ sub _check_qa_contact {
         # If there is no QA contact, this check is not required.
         $invocant->_check_strict_isolation_for_user($qa_contact)
             if (ref $invocant && $id);
+        my $prod = ref $invocant ? $invocant->product_obj : $component->product;
+        my ($ccg) = $prod->description =~ /\[[Có]{2}:\s*([^\]]+)\s*\]/iso;
+        if ($ccg && !$qa_contact->in_group($ccg))
+        {
+            ThrowUserError("cc_group_restriction", { user => $qa_contact->login });
+        }
     }
 
     # "0" always means "undef", for QA Contact.
@@ -1418,6 +1423,18 @@ sub _check_reporter {
         # (meaning that he must be logged in first!).
         $reporter = Bugzilla->user->id;
         $reporter || ThrowCodeError('invalid_user');
+    }
+    if ($reporter && ref $invocant)
+    {
+        # Custis Bug 38616
+        # For situations of moving external bugs into internal
+        my $prod = $invocant->product_obj;
+        my ($ccg) = $prod->description =~ /\[[Có]{2}:\s*([^\]]+)\s*\]/iso;
+        my $user = Bugzilla::User->new($reporter);
+        if ($ccg && !$user->in_group($ccg))
+        {
+            ThrowUserError("cc_group_restriction", { user => $user->login });
+        }
     }
     return $reporter;
 }
