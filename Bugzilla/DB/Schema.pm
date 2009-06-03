@@ -1052,6 +1052,8 @@ use constant ABSTRACT_SCHEMA => {
                                   DEFAULT => 0},
             defaultmilestone  => {TYPE => 'varchar(20)',
                                   NOTNULL => 1, DEFAULT => "'---'"},
+            cc_group          => {TYPE => 'varchar(255)',
+                                  NOTNULL => 1},
         ],
         INDEXES => [
             products_name_idx   => {FIELDS => ['name'],

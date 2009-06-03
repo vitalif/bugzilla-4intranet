@@ -49,6 +49,7 @@ use constant DB_COLUMNS => qw(
    products.maxvotesperbug
    products.votestoconfirm
    products.defaultmilestone
+   products.cc_group
 );
 
 ###############################
@@ -260,6 +261,7 @@ sub max_votes_per_bug { return $_[0]->{'maxvotesperbug'};    }
 sub votes_to_confirm  { return $_[0]->{'votestoconfirm'};    }
 sub default_milestone { return $_[0]->{'defaultmilestone'};  }
 sub classification_id { return $_[0]->{'classification_id'}; }
+sub cc_group          { return $_[0]->{'cc_group'};          }
 
 ###############################
 ####      Subroutines    ######
@@ -313,6 +315,7 @@ Bugzilla::Product - Bugzilla product class.
     my votestoconfirm    = $product->votes_to_confirm;
     my $defaultmilestone = $product->default_milestone;
     my $classificationid = $product->classification_id;
+    my $cc_group         = $product->cc_group;
 
 =head1 DESCRIPTION
 

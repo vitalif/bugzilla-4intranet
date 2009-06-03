@@ -327,6 +327,9 @@ sub create {
     $params->{comment} = '' unless defined $params->{comment};
 
     $class->check_required_create_fields($params);
+
+    # Save product object BEFORE run_create_validators
+    my $product = $params->{product};
     $params = $class->run_create_validators($params);
 
     # These are not a fields in the bugs table, so we don't pass them to
@@ -365,8 +368,17 @@ sub create {
 
     # Add the CCs
     my $sth_cc = $dbh->prepare('INSERT INTO cc (bug_id, who) VALUES (?,?)');
-    foreach my $user_id (@$cc_ids) {
-        $sth_cc->execute($bug->bug_id, $user_id);
+    foreach my $user_id (@$cc_ids)
+    {
+        if (!$product->cc_group ||
+            Bugzilla::User->new($user_id)->in_group($product->cc_group))
+        {
+            $sth_cc->execute($bug->bug_id, $user_id);
+        }
+        else
+        {
+            # TODO print some warning
+        }
     }
 
     # Add in keywords
@@ -537,14 +549,17 @@ sub update {
 
     # CC
     my @old_cc = map {$_->id} @{$old_bug->cc_users};
-    my @new_cc = map {$_->id} @{$self->cc_users};
+    my @new_cc = @{$self->cc_users};
+    @new_cc = grep {$_->in_group($self->product_obj->cc_group)} @new_cc if $self->product_obj->cc_group;
+    @new_cc = map {$_->id} @new_cc;
     my ($removed_cc, $added_cc) = diff_arrays(\@old_cc, \@new_cc);
     
     if (scalar @$removed_cc) {
         $dbh->do('DELETE FROM cc WHERE bug_id = ? AND ' 
                  . $dbh->sql_in('who', $removed_cc), undef, $self->id);
     }
-    foreach my $user_id (@$added_cc) {
+    foreach my $user_id (@$added_cc)
+    {
         $dbh->do('INSERT INTO cc (bug_id, who) VALUES (?,?)',
                  undef, $self->id, $user_id);
     }

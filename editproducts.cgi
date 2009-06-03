@@ -229,6 +229,7 @@ if ($action eq 'new') {
         $cgi->param('maxvotesperbug') : 10000;
     my $votestoconfirm = $cgi->param('votestoconfirm') || 0;
     my $defaultmilestone = $cgi->param('defaultmilestone') || "---";
+    my $cc_group = $cgi->param('cc_group') || '';
 
     # The following variables are used in placeholders only.
     trick_taint($product_name);
@@ -236,6 +237,7 @@ if ($action eq 'new') {
     trick_taint($description);
     trick_taint($milestoneurl);
     trick_taint($defaultmilestone);
+    trick_taint($cc_group);
     detaint_natural($disallownew);
     detaint_natural($votesperuser);
     detaint_natural($maxvotesperbug);
@@ -244,11 +246,11 @@ if ($action eq 'new') {
     # Add the new product.
     $dbh->do('INSERT INTO products
               (name, description, milestoneurl, disallownew, votesperuser,
-               maxvotesperbug, votestoconfirm, defaultmilestone, classification_id)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+               maxvotesperbug, votestoconfirm, defaultmilestone, classification_id, cc_group)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
              undef, ($product_name, $description, $milestoneurl, $disallownew,
              $votesperuser, $maxvotesperbug, $votestoconfirm, $defaultmilestone,
-             $classification_id));
+             $classification_id, $cc_group));
 
     $product = new Bugzilla::Product({name => $product_name});
     
@@ -811,6 +813,7 @@ if ($action eq 'update') {
     my $maxvotesperbug      = trim($cgi->param('maxvotesperbug')      || 0);
     my $votestoconfirm      = trim($cgi->param('votestoconfirm')      || 0);
     my $defaultmilestone    = trim($cgi->param('defaultmilestone')    || '---');
+    my $cc_group            = trim($cgi->param('cc_group')            || '');
 
     my $checkvotes = 0;
 
@@ -895,6 +898,8 @@ if ($action eq 'update') {
         }
     }
 
+    # TODO uzhos, remove this nahren!!!
+
     $disallownew = $disallownew ? 1 : 0;
     if ($disallownew ne $product_old->disallow_new) {
         $dbh->do('UPDATE products SET disallownew = ? WHERE id = ?',
@@ -929,6 +934,12 @@ if ($action eq 'update') {
         trick_taint($product_name);
         $dbh->do('UPDATE products SET name = ? WHERE id = ?',
                  undef, ($product_name, $product_old->id));
+    }
+
+    if ($cc_group ne $product_old->cc_group) {
+        trick_taint($cc_group);
+        $dbh->do('UPDATE products SET cc_group = ? WHERE id = ?',
+                 undef, ($cc_group, $product_old->id));
     }
 
     $dbh->bz_commit_transaction();
