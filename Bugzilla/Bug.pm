@@ -367,11 +367,11 @@ sub create {
     $bug->{creation_ts} = $timestamp;
 
     # Add the CCs
+    my ($ccg) = $product->description =~ /\[[Có]{2}:\s*([^\]]+)\s*\]/iso;
     my $sth_cc = $dbh->prepare('INSERT INTO cc (bug_id, who) VALUES (?,?)');
     foreach my $user_id (@$cc_ids)
     {
-        if (!$product->cc_group ||
-            Bugzilla::User->new($user_id)->in_group($product->cc_group))
+        if (!$ccg || Bugzilla::User->new($user_id)->in_group($ccg))
         {
             $sth_cc->execute($bug->bug_id, $user_id);
         }
@@ -548,9 +548,10 @@ sub update {
     }
 
     # CC
+    my ($ccg) = $self->product_obj->description =~ /\[[Có]{2}:\s*([^\]]+)\s*\]/iso;
     my @old_cc = map {$_->id} @{$old_bug->cc_users};
     my @new_cc = @{$self->cc_users};
-    @new_cc = grep {$_->in_group($self->product_obj->cc_group)} @new_cc if $self->product_obj->cc_group;
+    @new_cc = grep {$_->in_group($ccg)} @new_cc if $ccg;
     @new_cc = map {$_->id} @new_cc;
     my ($removed_cc, $added_cc) = diff_arrays(\@old_cc, \@new_cc);
     

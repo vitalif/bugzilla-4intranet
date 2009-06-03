@@ -145,14 +145,6 @@
   [% updated = 1 %]
 [% END %]
 
-[% IF product.cc_group != old_product.cc_group %]
-  <p>
-  Updated product CC group from '[%+ old_product.cc_group FILTER html %]' to 
-  '[%+ product.cc_group FILTER html %]'.
-  </p>
-  [% updated = 1 %]
-[% END %]
-
 [% UNLESS updated %]
   <p>Nothing changed for product '[% product.name FILTER html %]'.</p>
 [% END %]
