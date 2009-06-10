@@ -126,28 +126,12 @@
     [% END %]
 
     [% IF group || reason %] and so [% END %] you are not authorized to
-    [% IF action == "access" %]
-      access
-    [% ELSIF action == "add" %]
+    [% IF action == "add" %]
       add new
-    [% ELSIF action == "begin" %]
-      begin
-    [% ELSIF action == "modify" %]
-      modify
-    [% ELSIF action == "delete" %]
-      delete
     [% ELSIF action == "edit" %]
       add, modify or delete
-    [% ELSIF action == "move" %]
-      move
-    [% ELSIF action == "run" %]
-      run
-    [% ELSIF action == "schedule" %]
-      schedule
-    [% ELSIF action == "use" %]
-      use
-    [% ELSIF action == "approve" %]
-      approve
+    [% ELSE %]
+      [%+ action %]
     [% END %]
 
     [% IF object == "administrative_pages" %]

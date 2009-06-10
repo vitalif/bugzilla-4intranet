@@ -1,0 +1,100 @@
+[%# 1.0@bugzilla.org %]
+
+[% USE Bugzilla %]
+[% cgi = Bugzilla.cgi %]
+[% title = 'Excel import' %]
+
+[% PROCESS "global/field-descs.none.tmpl" %]
+[% PROCESS global/header.html.tmpl %]
+
+[% IF form || show_error %]
+<h2>Mass Bug Import from Excel files</h2>
+
+[% IF show_error %]
+<p style="color:red"><b>
+[% IF error == "parse_error" %]
+    Excel format parse error occurred.
+[% ELSIF error == "empty" %]
+    The supplied file does not contain any bug descriptions, or the sheet with selected name was not found.
+[% ELSE %]
+    Unknown error: "[% error %]".
+[% END %]
+</b></p>
+[% END %]
+
+<script language="JavaScript">
+function addfield()
+{
+    fd = document.getElementById('flds');
+    sel = document.getElementById('newfld');
+    opt = sel.options[sel.selectedIndex];
+    tr = document.createElement('TR');
+    td = document.createElement('TD');
+    td.innerHTML = opt.text + ' for all bugs:&nbsp;';
+    tr.appendChild(td);
+    td = document.createElement('TD');
+    td.innerHTML = '<input type="text" name="f_' + opt.value + '" value="" />';
+    tr.appendChild(td);
+    fd.appendChild(tr);
+}
+</script>
+
+<form action="importxls.cgi" method="post" enctype="multipart/form-data">
+<table>
+<tbody>
+<tr><td>Select XLS/XLSX file to import:</td><td><input type="file" name="xls" /></td></tr>
+<tr><td>Enter sheet name to process<span style="color:red">*</span>:</td><td><input type="text" name="listname" value="[% listname %]" /></td></tr>
+<tr><td>Maximum bug duplicate age:</td><td><input type="text" size="5" name="bugdays" value="[% bugdays %]" /> days</td></tr>
+</tbody>
+<tbody id="flds">
+</tbody>
+</table>
+<p>
+<select id="newfld">
+    [% FOR f = field_descs.keys.sort %]
+    <option value="[% f %]">[% field_descs.${f} %]</option>
+    [% END %]
+</select> <input type="button" onclick="addfield()" value="Add field value for all bugs" />
+</p>
+<p><input type="submit" value="Parse File" /></p>
+</form>
+
+<span style="color:red">*</span> Empty sheet name means to process all sheets.
+[% ELSIF show_result %]
+[% IF result %]
+<p><b>Successfully imported [% result %] bugs.</b></p>
+[% ELSE %]
+<p>An import error occurred, no bugs were imported.</p>
+[% END %]
+<p><a href="importxls.cgi">Import another Excel file</a></p>
+[% ELSIF fields %]
+
+<form action="importxls.cgi" method="post">
+<input type="hidden" name="do_import" value="1" />
+[% FOR key = forall.keys %]
+<input type="hidden" name="f_[% key FILTER html %]" value="[% forall.${key} FILTER html %]" />
+[% END %]
+<table>
+<tr>
+    <td></td>
+[% FOR field = fields %]
+    <td>[% field_descs.${field} %]</td>
+[% END %]
+</tr>
+[% FOR bug = data %]
+<tr>
+    <td><input type="checkbox" name="b_enable_[% bug.num %]" value="1" [% IF bug.enabled %]checked[% END %] /></td>
+    [% FOR field = fields %]
+    <td><input type="text" name="b_[% field FILTER html %]_[% bug.num %]" value="[% bug.${field} FILTER html %]" /></td>
+    [% END %]
+</tr>
+[% END %]
+</table>
+<p><input type="submit" value="Enter bugs" /></p>
+</form>
+
+<p><a href="javascript:history.back()">Back</a></p>
+[% END %]
+
+[% PROCESS global/footer.html.tmpl %]
+
