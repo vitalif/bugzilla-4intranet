@@ -5,10 +5,15 @@
 [% title = 'Excel import' %]
 
 [% PROCESS "global/field-descs.none.tmpl" %]
+[% PROCESS global/header.html.tmpl %]
+
 [% field_descs.platform = field_descs.rep_platform %]
 [% field_descs.delete("rep_platform") %]
-
-[% PROCESS global/header.html.tmpl %]
+[% FOR k = field_descs.keys %]
+    [% IF k.match('\.|^(\[Bug creation\]|days_elapsed|owner_idle_time|changeddate|creation_ts|delta_ts)$') %]
+        [% field_descs.delete(k) %]
+    [% END %]
+[% END %]
 
 [% IF form || show_error %]
 <h2>Mass Bug Import from Excel files</h2>
@@ -83,20 +88,13 @@ function toggleallbugz(chk)
     for (i = 0; i < bugz.children.length; i++)
         document.getElementById('b_enabled_'+(""+bugz.children[i].id).substr(5)).checked = chk;
 }
+function fieldrename(field)
+{
+    document.getElementById('tp_'+field).style.display='none';
+    document.getElementById('t_'+field).style.display='';
+}
 </script>
 
-<form action="importxls.cgi" method="post">
-<input type="hidden" name="commit" value="1" />
-[% FOR key = forall.keys %]
-<input type="hidden" name="f_[% key FILTER html %]" value="[% forall.${key} FILTER html %]" />
-[% END %]
-<table>
-<tr>
-    <td><input type="checkbox" onclick="toggleallbugz(this.checked)" /></td>
-[% FOR field = fields %]
-    <td>[% IF field_descs.${field} %][% field_descs.${field} %][% ELSE %]<span style="color: #A0A0A0">[% field %]</span>[% END %]</td>
-[% END %]
-</tr>
 [% lens = {} %]
 [% FOR bug = data %]
     [% FOR field = fields %]
@@ -112,6 +110,27 @@ function toggleallbugz(chk)
         [% lens.${key} = 3 %]
     [% END %]
 [% END %]
+
+<form action="importxls.cgi" method="post">
+<input type="hidden" name="commit" value="1" />
+[% FOR key = forall.keys %]
+<input type="hidden" name="f_[% key FILTER html %]" value="[% forall.${key} FILTER html %]" />
+[% END %]
+<table>
+<tr>
+    <td><input type="checkbox" onclick="toggleallbugz(this.checked)" /></td>
+[% FOR field = fields %]
+    <td style="white-space: nowrap">
+        <p id="tp_[% field %]"><a href="javascript:void fieldrename('[% field.replace("['\"]", '\\$&') %]')">[% IF field_descs.${field} %][% field_descs.${field} %][% ELSE %]<span style="color: red">[% field %]</span>[% END %]</a></p>
+        <select id="t_[% field %]" name="t_[% field %]" style="display:none; width: 90px">
+            <option value="[% field %]">[% IF field_descs.${field} %][% field_descs.${field} %][% ELSE %]Unknown field - [% field %][% END %]</option>
+        [% FOR f = field_descs.keys.sort %]
+            <option value="[% f %]">[% field_descs.${f} %]</option>
+        [% END %]
+        </select>
+    </td>
+[% END %]
+</tr>
 <tbody id="bugz">
 [% FOR bug = data %]
 <tr id="bugz_[% bug.num %]">

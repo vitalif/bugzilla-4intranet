@@ -121,24 +121,56 @@ else
     my @keys = $cgi->param;
     my $bugs = {};
     my $forall = {};
+    my $tr = {};
+    # переименования полей багов
+    for (grep { /^t_/so } @keys)
+    {
+        if ($cgi->param($_) && $cgi->param($_) ne substr($_,2))
+        {
+            $tr->{substr($_,2)} = $cgi->param($_);
+        }
+    }
     for (@keys)
     {
         if (/^b_(.*?)_(\d+)$/so)
         {
-            $bugs->{$2}->{$1} = $cgi->param($_);
+            # поля багов
+            $bugs->{$2}->{$tr->{$1} || $1} = $cgi->param($_);
         }
         elsif (/^f_/so)
         {
+            # скрытые значения полей для всех багов (шаблон)
             $forall->{$'} = $cgi->param($_) if $cgi->param($_);
         }
     }
     my $r = 0;
+    my $ids = [];
+    my $f = 0;
+    Bugzilla->dbh->bz_start_transaction;
     for my $bug (values %$bugs)
     {
         $bug->{$_} ||= $forall->{$_} for keys %$forall;
-        $r += post_bug($bug) ? 1 : 0 if $bug->{enabled};
+        if ($bug->{enabled})
+        {
+            my $id = post_bug($bug);
+            if ($id)
+            {
+                $r++;
+                push @$ids, $id;
+            }
+            else
+            {
+                Bugzilla->dbh->bz_rollback_transaction;
+                $f = 1;
+                last;
+            }
+        }
     }
-    print $cgi->redirect(-location => 'importxls.cgi?result='.$r);
+    unless ($f)
+    {
+        Bugzilla->dbh->bz_commit_transaction;
+        print $cgi->redirect(-location => 'importxls.cgi?result='.$r);
+    }
 }
 
 # разобрать лист Excel
@@ -204,6 +236,7 @@ sub post_bug
     }
     my $um = Bugzilla->usage_mode;
     Bugzilla->usage_mode(USAGE_MODE_EMAIL);
+    Bugzilla->error_mode(ERROR_MODE_WEBPAGE);
     my $bug_id = do 'post_bug.cgi';
     Bugzilla->usage_mode($um);
     return $bug_id;
