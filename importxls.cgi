@@ -2,6 +2,7 @@
 # Bug 42133
 # Интерфейс множественного импорта багов из Excel-файлов
 
+use utf8;
 use strict;
 use lib qw(. lib);
 
@@ -17,6 +18,7 @@ use Bugzilla::User;
 # константы
 use constant BUG_DAYS => 92;
 use constant XLS_LISTNAME => 'Bugz';
+use constant MANDATORY_FIELDS => [qw(short_desc version platform product component)];
 use constant NAME_TR => {};
 
 # начинаем-с
@@ -34,7 +36,7 @@ $user->in_group('importxls') ||
         object => 'bugs',
     });
 
-my $listname = $cgi->param('listname');
+my $listname = $cgi->param('listname') || '';
 my $bugdays = $cgi->param('bugdays');
 ($bugdays) = $bugdays =~ /^\d+$/so;
 $bugdays ||= BUG_DAYS;
@@ -80,21 +82,30 @@ if (!$cgi->param('commit'))
                 if (/^f_/so && $cgi->param($_))
                 {
                     # шаблон для багов
-                    $f->{$'} = $_;
+                    $f->{$'} = $cgi->param($_);
                 }
             }
             # номера и проверка
             my $i = 0;
             my $sth = $dbh->prepare("SELECT COUNT(*) FROM `bugs` WHERE `short_desc`=? AND `delta_ts`>=DATE_SUB(CURDATE(),INTERVAL ? DAY)");
-            for (@{$table->{data}})
+            for my $bug (@{$table->{data}})
             {
                 # проверяем нет ли уже такого бага
-                $sth->execute($_->{short_desc}, $bugdays);
-                ($_->{enabled}) = $sth->fetchrow_array;
-                $_->{enabled} = !$_->{enabled};
-                $_->{num} = ++$i;
+                if ($bug->{short_desc})
+                {
+                    trick_taint($bug->{short_desc});
+                    $sth->execute($bug->{short_desc}, $bugdays);
+                    ($bug->{enabled}) = $sth->fetchrow_array;
+                    $bug->{enabled} = !$bug->{enabled};
+                }
+                $bug->{num} = ++$i;
             }
             # показываем табличку с багами
+            my %fhash = map { $_ => 1 } @{$table->{fields}};
+            for (@{ MANDATORY_FIELDS() })
+            {
+                push @{$table->{fields}}, $_ unless $fhash{$_} || $f->{$_};
+            }
             $vars->{fields} = $table->{fields};
             $vars->{data} = $table->{data};
             $vars->{forall} = $f;
@@ -191,7 +202,10 @@ sub post_bug
     {
         $cgi->param(-name => $field, -value => $fields{$field});
     }
+    my $um = Bugzilla->usage_mode;
+    Bugzilla->usage_mode(USAGE_MODE_EMAIL);
     my $bug_id = do 'post_bug.cgi';
+    Bugzilla->usage_mode($um);
     return $bug_id;
 }
 

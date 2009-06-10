@@ -5,6 +5,9 @@
 [% title = 'Excel import' %]
 
 [% PROCESS "global/field-descs.none.tmpl" %]
+[% field_descs.platform = field_descs.rep_platform %]
+[% field_descs.delete("rep_platform") %]
+
 [% PROCESS global/header.html.tmpl %]
 
 [% IF form || show_error %]
@@ -69,28 +72,58 @@ function addfield()
 <p><a href="importxls.cgi">Import another Excel file</a></p>
 [% ELSIF fields %]
 
+<h2>Select worksheet items to import as bugs</h2>
+
+[% field_descs.comment = field_descs.longdesc %]
+
+<script language="JavaScript">
+function toggleallbugz(chk)
+{
+    bugz = document.getElementById('bugz');
+    for (i = 0; i < bugz.children.length; i++)
+        document.getElementById('b_enabled_'+(""+bugz.children[i].id).substr(5)).checked = chk;
+}
+</script>
+
 <form action="importxls.cgi" method="post">
-<input type="hidden" name="do_import" value="1" />
+<input type="hidden" name="commit" value="1" />
 [% FOR key = forall.keys %]
 <input type="hidden" name="f_[% key FILTER html %]" value="[% forall.${key} FILTER html %]" />
 [% END %]
 <table>
 <tr>
-    <td></td>
+    <td><input type="checkbox" onclick="toggleallbugz(this.checked)" /></td>
 [% FOR field = fields %]
-    <td>[% field_descs.${field} %]</td>
+    <td>[% IF field_descs.${field} %][% field_descs.${field} %][% ELSE %]<span style="color: #A0A0A0">[% field %]</span>[% END %]</td>
 [% END %]
 </tr>
+[% lens = {} %]
 [% FOR bug = data %]
-<tr>
-    <td><input type="checkbox" name="b_enable_[% bug.num %]" value="1" [% IF bug.enabled %]checked[% END %] /></td>
     [% FOR field = fields %]
-    <td><input type="text" name="b_[% field FILTER html %]_[% bug.num %]" value="[% bug.${field} FILTER html %]" /></td>
+        [% IF bug.${field}.length > lens.${field} %]
+        [% lens.${field} = bug.${field}.length %]
+        [% END %]
+    [% END %]
+[% END %]
+[% FOR key = lens.keys %]
+    [% IF lens.${key} > 20 %]
+        [% lens.${key} = 20 %]
+    [% ELSIF lens.${key} < 3 %]
+        [% lens.${key} = 3 %]
+    [% END %]
+[% END %]
+<tbody id="bugz">
+[% FOR bug = data %]
+<tr id="bugz_[% bug.num %]">
+    <td><input type="checkbox" id="b_enabled_[% bug.num %]" name="b_enabled_[% bug.num %]" value="1" [% IF bug.enabled %]checked[% END %] /></td>
+    [% FOR field = fields %]
+    <td><input type="text" size="[% lens.${field} %]" name="b_[% field FILTER html %]_[% bug.num %]" value="[% bug.${field} %]" /></td>
     [% END %]
 </tr>
 [% END %]
+</tbody>
 </table>
-<p><input type="submit" value="Enter bugs" /></p>
+<p><input type="submit" value="Import selected bugs" /></p>
 </form>
 
 <p><a href="javascript:history.back()">Back</a></p>
