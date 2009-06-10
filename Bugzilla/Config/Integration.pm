@@ -60,6 +60,12 @@ sub get_param_list
     },
 
     {
+        name => 'hrwiki_url',
+        type => 't',
+        default => 'http://hrwiki.office.custis.ru/hrwiki/index.php/',
+    },
+
+    {
         name => 'user_mailto',
         type => 't',
         default => 'mailto:',

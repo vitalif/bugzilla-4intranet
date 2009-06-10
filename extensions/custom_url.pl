@@ -31,4 +31,5 @@ return {
     rdwiki => sub { processWikiUrl("rdwiki", @_) },
     gzwiki => sub { processWikiUrl("gzwiki", @_) },
     dpwiki => sub { processWikiUrl("dpwiki", @_) },
+    hrwiki => sub { processWikiUrl("hrwiki", @_) },
 };
