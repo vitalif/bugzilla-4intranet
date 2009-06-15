@@ -3,6 +3,7 @@
 # Интерфейс множественного импорта багов из Excel-файлов
 
 use utf8;
+use Encode;
 use strict;
 use lib qw(. lib);
 
@@ -19,7 +20,6 @@ use Bugzilla::User;
 use constant BUG_DAYS => 92;
 use constant XLS_LISTNAME => 'Bugz';
 use constant MANDATORY_FIELDS => [qw(short_desc version platform product component)];
-use constant NAME_TR => {};
 
 # начинаем-с
 my $user = Bugzilla->login(LOGIN_REQUIRED);
@@ -27,6 +27,15 @@ my $cgi = Bugzilla->cgi;
 my $dbh = Bugzilla->dbh;
 my $template = Bugzilla->template;
 my $vars = {};
+
+my $args = {};
+for ($cgi->param)
+{
+    my $v = $_;
+    utf8::decode($v) unless Encode::is_utf8($v);
+    $args->{$v} = $cgi->param($_);
+    utf8::decode($args->{$v}) unless Encode::is_utf8($args->{$v});
+}
 
 # проверяем группу
 $user->in_group('importxls') ||
@@ -37,8 +46,8 @@ $user->in_group('importxls') ||
     });
 
 my $listname = $cgi->param('listname') || '';
-my $bugdays = $cgi->param('bugdays');
-($bugdays) = $bugdays =~ /^\d+$/so;
+my $bugdays = $cgi->param('bugdays') || '';
+($bugdays) = $bugdays =~ /^(\d+)$/so;
 $bugdays ||= BUG_DAYS;
 trick_taint($listname);
 trick_taint($bugdays);
@@ -46,11 +55,31 @@ $vars->{listname} = $listname || XLS_LISTNAME;
 $vars->{bugdays} = $bugdays;
 
 my $upload;
-if (!$cgi->param('commit'))
+my $name_tr = {};
+my $bug_tpl = {};
+
+for (keys %$args)
+{
+    if (/^f_/so && $args->{$_})
+    {
+        # шаблон для багов
+        $bug_tpl->{$'} = $args->{$_};
+    }
+    elsif (/^t_/so && $args->{$_} && $args->{$_} ne $')
+    {
+        # переименования полей таблицы
+        $name_tr->{$'} = $args->{$_};
+    }
+}
+
+$vars->{bug_tpl} = $bug_tpl;
+$vars->{name_tr} = $name_tr;
+
+unless ($args->{commit})
 {
     unless ($upload = $cgi->upload('xls'))
     {
-        if (!defined $cgi->param('result'))
+        if (!defined $args->{result})
         {
             # показываем формочку выбора файла и заливки
             $vars->{form} = 1;
@@ -59,13 +88,20 @@ if (!$cgi->param('commit'))
         {
             # показываем результат импорта
             $vars->{show_result} = 1;
-            $vars->{result} = $cgi->param('result');
+            $vars->{result} = $args->{result};
+            my $newcgi = new Bugzilla::CGI({
+                listname => $listname,
+                bugdays  => $bugdays,
+                (map { ("f_$_" => $bug_tpl->{$_}) } keys %$bug_tpl),
+                (map { ("t_$_" => $name_tr->{$_}) } keys %$name_tr),
+            });
+            $vars->{importnext} = 'importxls.cgi?'.$newcgi->query_string;
         }
     }
     else
     {
         # показываем интерфейс с распаршенной таблицей и галочками (или с обломом)
-        my $table = parse_excel($upload, $cgi->param('xls'), $listname);
+        my $table = parse_excel($upload, $args->{xls}, $listname, $name_tr);
         if (!$table || $table->{error})
         {
             # ошибка
@@ -75,19 +111,9 @@ if (!$cgi->param('commit'))
         else
         {
             # распарсилось
-            my $f = {};
-            my @keys = $cgi->param;
-            for (@keys)
-            {
-                if (/^f_/so && $cgi->param($_))
-                {
-                    # шаблон для багов
-                    $f->{$'} = $cgi->param($_);
-                }
-            }
-            # номера и проверка
             my $i = 0;
             my $sth = $dbh->prepare("SELECT COUNT(*) FROM `bugs` WHERE `short_desc`=? AND `delta_ts`>=DATE_SUB(CURDATE(),INTERVAL ? DAY)");
+            # номера и проверка
             for my $bug (@{$table->{data}})
             {
                 # проверяем нет ли уже такого бага
@@ -101,14 +127,13 @@ if (!$cgi->param('commit'))
                 $bug->{num} = ++$i;
             }
             # показываем табличку с багами
-            my %fhash = map { $_ => 1 } @{$table->{fields}};
+            my %fhash = map { ($name_tr->{$_} || $_) => 1 } @{$table->{fields}};
             for (@{ MANDATORY_FIELDS() })
             {
-                push @{$table->{fields}}, $_ unless $fhash{$_} || $f->{$_};
+                push @{$table->{fields}}, $_ unless $fhash{$_} || $bug_tpl->{$_};
             }
             $vars->{fields} = $table->{fields};
             $vars->{data} = $table->{data};
-            $vars->{forall} = $f;
         }
     }
     print $cgi->header();
@@ -118,29 +143,13 @@ if (!$cgi->param('commit'))
 else
 {
     # выполняем импорт и отдаём редирект на результаты
-    my @keys = $cgi->param;
     my $bugs = {};
-    my $forall = {};
-    my $tr = {};
-    # переименования полей багов
-    for (grep { /^t_/so } @keys)
-    {
-        if ($cgi->param($_) && $cgi->param($_) ne substr($_,2))
-        {
-            $tr->{substr($_,2)} = $cgi->param($_);
-        }
-    }
-    for (@keys)
+    for (keys %$args)
     {
         if (/^b_(.*?)_(\d+)$/so)
         {
             # поля багов
-            $bugs->{$2}->{$tr->{$1} || $1} = $cgi->param($_);
-        }
-        elsif (/^f_/so)
-        {
-            # скрытые значения полей для всех багов (шаблон)
-            $forall->{$'} = $cgi->param($_) if $cgi->param($_);
+            $bugs->{$2}->{$name_tr->{$1} || $1} = $args->{$_};
         }
     }
     my $r = 0;
@@ -149,7 +158,7 @@ else
     Bugzilla->dbh->bz_start_transaction;
     for my $bug (values %$bugs)
     {
-        $bug->{$_} ||= $forall->{$_} for keys %$forall;
+        $bug->{$_} ||= $bug_tpl->{$_} for keys %$bug_tpl;
         if ($bug->{enabled})
         {
             my $id = post_bug($bug);
@@ -168,15 +177,22 @@ else
     }
     unless ($f)
     {
+        my $newcgi = new Bugzilla::CGI({
+            result   => $r,
+            listname => $listname,
+            bugdays  => $bugdays,
+            (map { ("f_$_" => $bug_tpl->{$_}) } keys %$bug_tpl),
+            (map { ("t_$_" => $name_tr->{$_}) } keys %$name_tr),
+        });
         Bugzilla->dbh->bz_commit_transaction;
-        print $cgi->redirect(-location => 'importxls.cgi?result='.$r);
+        print $cgi->redirect(-location => 'importxls.cgi?'.$newcgi->query_string);
     }
 }
 
 # разобрать лист Excel
 sub parse_excel
 {
-    my ($upload, $name, $only_list) = @_;
+    my ($upload, $name, $only_list, $name_tr) = @_;
     my $xls;
     if ($name =~ /\.xlsx$/iso)
     {
@@ -199,11 +215,6 @@ sub parse_excel
         my ($row_min, $row_max) = $page->row_range;
         my ($col_min, $col_max) = $page->col_range;
         my $head = get_row($page, $row_min, $col_min, $col_max);
-        for (@$head)
-        {
-            # замена имён
-            $_ = NAME_TR->{$_} || $_;
-        }
         $r->{fields} = $head;
         # обрабатываем саму таблицу
         for my $row (($row_min+1) .. $row_max)
