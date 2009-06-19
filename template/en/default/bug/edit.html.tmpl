@@ -120,7 +120,7 @@
 
       // prevent negative values if work_time > fRemainingTime
       new_time =
-          Math.max(fRemainingTime - document.changeform.work_time.value, 0.0);
+          Math.max(fRemainingTime - parseFloat(document.changeform.work_time.value), 0.0);
       // get upto 2 decimal places
       document.changeform.remaining_time.value =
           Math.round(new_time * 100)/100;
@@ -141,15 +141,33 @@
       }
   }
 
+  function changeform_onsubmit()
+  {
+    wt = parseFloat(document.changeform.work_time.value);
+    if ([% remind_about_worktime %] && (!wt || wt == NaN || wt <= 0))
+    {
+      wt = prompt("Please, verify working time:", "0");
+      if (wt == null || wt == undefined || (""+wt).length <= 0)
+      {
+        document.changeform.work_time.focus();
+        return false;
+      }
+      document.changeform.work_time.value = wt;
+      adjustRemainingTime();
+    }
+    return true;
+  }
+
   //-->
   </script>
 
-<form name="changeform" method="post" action="process_bug.cgi">
+<form name="changeform" method="post" action="process_bug.cgi" onsubmit="return changeform_onsubmit()">
 
   <input type="hidden" name="delta_ts" value="[% bug.delta_ts %]">
   <input type="hidden" name="longdesclength" value="[% bug.longdescs.size %]">
   <input type="hidden" name="id" value="[% bug.bug_id %]">
   <input type="hidden" name="token" value="[% issue_hash_token([bug.id, bug.delta_ts]) FILTER html %]">
+  <input type="hidden" name="force_work_time" value="1">
 
   [% PROCESS section_title %]
   <table>

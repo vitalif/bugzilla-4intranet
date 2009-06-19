@@ -388,20 +388,6 @@ foreach my $b (@bug_objects)
     }
     if (should_set('comment') || $cgi->param('work_time'))
     {
-        # Validate worktime and remind user about entering it
-        if (@bug_objects == 1 &&                                            # only individual bugs
-            Bugzilla->usage_mode != USAGE_MODE_EMAIL &&                     # when not via email_in.pl
-            !$cgi->param('work_time') &&                                    # work_time==0
-            !$cgi->param('force_work_time') &&                              # work_time not validated by user
-            $user->groups->{Bugzilla->params->{timetrackinggroup}} &&       # user in group timetrackinggroup
-            $user->settings->{remind_me_about_worktime} &&                  # user wants to be reminded about worktime
-            $user->settings->{remind_me_about_worktime}->{value} &&
-            lc $user->settings->{remind_me_about_worktime}->{value} ne 'off')
-        {
-            $template->process("bug/process/verify-worktime.html.tmpl", $vars)
-                || ThrowTemplateError($template->error());
-            exit;
-        }
         # Add a comment as needed to each bug. This is done early because
         # there are lots of things that want to check if we added a comment.
         $b->add_comment(scalar($cgi->param('comment')),

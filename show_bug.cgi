@@ -95,6 +95,14 @@ eval {
     $vars->{patchviewerinstalled} = 1;
 };
 
+$vars->{remind_about_worktime} =
+    $user &&
+    $user->groups->{Bugzilla->params->{timetrackinggroup}} &&       # user in group timetrackinggroup
+    $user->settings->{remind_me_about_worktime} &&                  # user wants to be reminded about worktime
+    $user->settings->{remind_me_about_worktime}->{value} &&
+    lc $user->settings->{remind_me_about_worktime}->{value} ne 'off'
+    ? 1 : 0;
+
 $vars->{'bugs'} = \@bugs;
 $vars->{'marks'} = \%marks;
 $vars->{'use_keywords'} = 1 if Bugzilla::Keyword::keyword_count();
