@@ -31,8 +31,8 @@ $sql =
 "SELECT profiles.login_name FROM profiles, watch
 WHERE profiles.userid=watch.watcher AND watch.watched=?
 ORDER BY
-    SUBSTR(profiles.login_name, INSTR(profiles.login_name, '@')+1),
-    LEFT(profiles.login_name, INSTR(profiles.login_name, '@'))";
+    SUBSTR(profiles.login_name, INSTR(profiles.login_name, '\@')+1),
+    LEFT(profiles.login_name, INSTR(profiles.login_name, '\@'))";
 
 foreach my $user (@{$vars->{users}})
 {
