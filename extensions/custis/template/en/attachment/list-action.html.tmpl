@@ -1,0 +1,15 @@
+<script language="JavaScript">
+<!--
+  function findattachment(id)
+  {
+    i = document.evaluate('//div[starts-with(@class,"bz_comment")]/pre[@class="bz_comment_text"]/span[1]/a[contains(.,"Created an attachment (id='+id+')")]', document, null, XPathResult.ANY_TYPE, null);
+    if (!i)
+      return false;
+    if (e = i.iterateNext())
+      scrollDocTo(e.parentElement.parentElement.parentElement);
+    return true;
+  }
+//-->
+</script>
+<br />
+<a href="javascript:void findattachment([% attachment.id %])">Comment</a>
