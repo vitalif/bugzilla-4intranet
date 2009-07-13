@@ -97,6 +97,20 @@
     [% bugs.size %] [%+ terms.bugs %] found.
   </span>
 [% END %]
+<script language="JavaScript">
+function showbugcomma()
+{
+  document.getElementById('showbugcommacmd').style.display = 'none';
+  document.getElementById('bugcomma').style.display = '';
+}
+</script>
+<div id="showbugcommacmd"><a href="javascript:void showbugcomma()">Display Bug ID list...</a></div>
+<div id="bugcomma" style="display: none">
+Bug ID list: 
+[% FOREACH id = buglist %]
+[% id FILTER html %] 
+[% END %]
+</div>
 
 [%############################################################################%]
 [%# Start of Change Form                                                     #%]
