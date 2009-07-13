@@ -24,10 +24,11 @@ use warnings;
 
 # MTAs may call this script from any directory, but it should always
 # run from this one so that it can find its modules.
+use Cwd qw(abs_path);
+use File::Basename qw(dirname);
 BEGIN {
-    require File::Basename;
-    my ($a) = $0 =~ /^(.*)$/iso;
-    chdir(File::Basename::dirname($a));
+    my ($a) = abs_path($0) =~ /^(.*)$/iso;
+    chdir dirname($a);
 }
 
 use lib qw(. lib);

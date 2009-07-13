@@ -8,6 +8,7 @@
 <!ENTITY min-template-ver "2.15">
 <!ENTITY min-email-send-ver "2.00">
 <!ENTITY min-email-mime-ver "1.861">
+<!ENTITY min-email-mime-encodings-ver "1.313">
 <!ENTITY min-email-mime-modifier-ver "1.442">
 <!ENTITY min-gd-ver "1.20">
 <!ENTITY min-chart-base-ver "1.0">

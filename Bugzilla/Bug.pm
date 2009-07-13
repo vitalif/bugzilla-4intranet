@@ -160,6 +160,7 @@ use constant UPDATE_VALIDATORS => {
     bug_status          => \&_check_bug_status,
     cclist_accessible   => \&Bugzilla::Object::check_boolean,
     dup_id              => \&_check_dup_id,
+    everconfirmed       => \&Bugzilla::Object::check_boolean,
     qa_contact          => \&_check_qa_contact,
     reporter_accessible => \&Bugzilla::Object::check_boolean,
     resolution          => \&_check_resolution,
@@ -2045,7 +2046,7 @@ sub set_status {
     
     if ($new_status->is_open) {
         # Check for the everconfirmed transition
-        $self->_set_everconfirmed(1) if $new_status->name ne 'UNCONFIRMED';
+        $self->_set_everconfirmed($new_status->name eq 'UNCONFIRMED' ? 0 : 1);
         $self->clear_resolution();
     }
     else {
@@ -3229,45 +3230,37 @@ sub RemoveVotes {
 # If a user votes for a bug, or the number of votes required to
 # confirm a bug has been reduced, check if the bug is now confirmed.
 sub CheckIfVotedConfirmed {
-    my ($id, $who) = (@_);
-    my $dbh = Bugzilla->dbh;
-
-    # XXX - Use bug methods to update the bug status and everconfirmed.
+    my $id = shift;
     my $bug = new Bugzilla::Bug($id);
 
-    my ($votes, $status, $everconfirmed, $votestoconfirm, $timestamp) =
-        $dbh->selectrow_array("SELECT votes, bug_status, everconfirmed, " .
-                              "       votestoconfirm, NOW() " .
-                              "FROM bugs INNER JOIN products " .
-                              "                  ON products.id = bugs.product_id " .
-                              "WHERE bugs.bug_id = ?",
-                              undef, $id);
-
     my $ret = 0;
-    if ($votes >= $votestoconfirm && !$everconfirmed) {
+    if (!$bug->everconfirmed && $bug->votes >= $bug->product_obj->votes_to_confirm) {
         $bug->add_comment('', { type => CMT_POPULAR_VOTES });
-        $bug->update();
 
-        if ($status eq 'UNCONFIRMED') {
-            my $fieldid = get_field_id("bug_status");
-            $dbh->do("UPDATE bugs SET bug_status = 'NEW', everconfirmed = 1, " .
-                     "delta_ts = ? WHERE bug_id = ?",
-                     undef, ($timestamp, $id));
-            $dbh->do("INSERT INTO bugs_activity " .
-                     "(bug_id, who, bug_when, fieldid, removed, added) " .
-                     "VALUES (?, ?, ?, ?, ?, ?)",
-                     undef, ($id, $who, $timestamp, $fieldid, 'UNCONFIRMED', 'NEW'));
+        if ($bug->bug_status eq 'UNCONFIRMED') {
+            # Get a valid open state.
+            my $new_status;
+            foreach my $state (@{$bug->status->can_change_to}) {
+                if ($state->is_open && $state->name ne 'UNCONFIRMED') {
+                    $new_status = $state->name;
+                    last;
+                }
+            }
+            ThrowCodeError('no_open_bug_status') unless $new_status;
+
+            # We cannot call $bug->set_status() here, because a user without
+            # canconfirm privs should still be able to confirm a bug by
+            # popular vote. We already know the new status is valid, so it's safe.
+            $bug->{bug_status} = $new_status;
+            $bug->{everconfirmed} = 1;
+            delete $bug->{'status'}; # Contains the status object.
         }
         else {
-            $dbh->do("UPDATE bugs SET everconfirmed = 1, delta_ts = ? " .
-                     "WHERE bug_id = ?", undef, ($timestamp, $id));
+            # If the bug is in a closed state, only set everconfirmed to 1.
+            # Do not call $bug->_set_everconfirmed(), for the same reason as above.
+            $bug->{everconfirmed} = 1;
         }
-
-        my $fieldid = get_field_id("everconfirmed");
-        $dbh->do("INSERT INTO bugs_activity " .
-                 "(bug_id, who, bug_when, fieldid, removed, added) " .
-                 "VALUES (?, ?, ?, ?, ?, ?)",
-                 undef, ($id, $who, $timestamp, $fieldid, '0', '1'));
+        $bug->update();
 
         $ret = 1;
     }
@@ -3343,6 +3336,7 @@ sub check_can_change_field {
 
     # *Only* users with (product-specific) "canconfirm" privs can confirm bugs.
     if ($field eq 'canconfirm'
+        || ($field eq 'everconfirmed' && $newvalue)
         || ($field eq 'bug_status'
             && $oldvalue eq 'UNCONFIRMED'
             && is_open_state($newvalue)))
@@ -3397,6 +3391,18 @@ sub check_can_change_field {
     {
         $$PrivilegesRequired = 2;
         return 0;
+    }
+    # - unconfirm bugs (confirming them is handled above)
+    if ($field eq 'everconfirmed') {
+        $$PrivilegesRequired = 2;
+        return 0;
+    }
+    # - change the status from one open state to another
+    if ($field eq 'bug_status'
+        && is_open_state($oldvalue) && is_open_state($newvalue)) 
+    {
+       $$PrivilegesRequired = 2;
+       return 0;
     }
 
     # The reporter is allowed to change anything else.
