@@ -643,6 +643,10 @@ sub sendMail
             Bugzilla->params->{'urlbase'} . "attachment.cgi?id=";
 
         $newcomments =~ s/(Created an attachment \(id=([0-9]+)\))/$1\n --> \(${showattachurlbase}$2\)/g;
+        for (@$commentArray)
+        {
+            $_->{body} =~ s/Created an attachment \(id=([0-9]+)\))/Created <a href="$showattachurlbase$1">an attachment<\/a>/g;
+        }
     }
 
     my $diffs = $difftext . "\n\n" . $newcomments;
