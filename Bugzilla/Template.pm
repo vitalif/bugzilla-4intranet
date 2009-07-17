@@ -46,6 +46,8 @@ use Bugzilla::Template::Parser;
 
 use Cwd qw(abs_path);
 use MIME::Base64;
+use MIME::QuotedPrint qw(encode_qp);
+use Encode qw(encode);
 # for time2str - replace by TT Date plugin??
 use Date::Format ();
 use File::Basename qw(dirname);
@@ -525,13 +527,19 @@ sub create {
                 $var =~ s/\@/\\x40/g; # anti-spam for email addresses
                 return $var;
             },
-            
+
             # Converts data to base64
             base64 => sub {
                 my ($data) = @_;
                 return encode_base64($data);
             },
-            
+
+            # Converts data to quoted-printable
+            quoted_printable => sub {
+                my ($data) = @_;
+                return encode_qp(encode("UTF-8", $data));
+            },
+
             # HTML collapses newlines in element attributes to a single space,
             # so form elements which may have whitespace (ie comments) need
             # to be encoded using &#013;

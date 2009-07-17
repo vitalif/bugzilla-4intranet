@@ -39,7 +39,16 @@ X-Bugzilla-Assigned-To: [% assignedto %]
 X-Bugzilla-Target-Milestone: [% targetmilestone %]
 X-Bugzilla-Changed-Fields: [% changedfields %]
 [%+ threadingmarker %]
+[% USE date %]
+[% SET boundary = "--" _ date.now %]
+Content-Type: multipart/alternative; boundary=[% boundary %]
+MIME-Version: 1.0
 
+--[% boundary %]
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+[% FILTER quoted_printable %]
 [%+ urlbase %]show_bug.cgi?id=[% bugid %] (prod:[% product %].[% comp %], pri:[% priority %], sev:[% severity %], miles:[% targetmilestone %])
 
 [%+ diffs %]
@@ -77,3 +86,103 @@ You are watching someone on the CC list of the [% terms.bug %].
 You are watching a voter for the [% terms.bug %].
   [% END %]
 [% END %]
+[% END %]
+
+--[% boundary %]
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+[% FILTER quoted_printable %]
+<style>
+<!--
+.difft { border-width: 0 0 1px 0; border-style: solid; border-color: #808080 }
+.difft td { border-width: 0 0 1px 0; border-style: solid; border-color: #808080 }
+.difft tr.n td { border-width: 0; }
+/*-->*/
+</style>
+<body [% IF severity == 'blocker' OR severity == 'critical' %]style="background-color: #FFC0C0"[% END %]>
+<p><a href="[%+ urlbase %]show_bug.cgi?id=[% bugid %]">Bug [% bugid %]</a>
+(prod:[% product %].[% comp %], pri:[% priority %], sev:[% severity %], miles:[% targetmilestone %])</p>
+
+[% IF diffarray AND diffarray.size > 0 %]
+<table class="difft" width="600px" style="border-collapse: collapse" cellpadding="3">
+[% FOR adiff = diffarray %]
+  [% SWITCH adiff.type %]
+    [% CASE "change" %]
+    <tr class="n"><td>[% adiff.what %]</td><td>[% adiff.old %]</td><td>[% adiff.new %]</td></tr>
+    [% CASE "who" %]
+    <tr><td colspan="3">
+        <a href="[% Param('user_mailto') %][% adiff.who %]">[% IF adiff.name %][% adiff.name %][% ELSE %][% adiff.who %][% END %]</a>
+        changed:
+    </td></tr>
+    <tr><th style="text-align: left">What</th><th style="text-align: left">Removed</th><th style="text-align: left">Added</th></tr>
+    [% CASE "dep" %]
+    <tr><td colspan="3">
+        <p><a href="[% urlbase %]show_bug.cgi?id=[% adiff.id %]">Bug [% adiff.id %]</a> depends
+        on <a href="[% urlbase %]show_bug.cgi?id=[% adiff.dep %]">bug [% adiff.dep %]</a>,
+        which changed state.</p>
+        <p><a href="[% urlbase %]show_bug.cgi?id=[% adiff.dep %]">Bug [% adiff.dep %]</a>
+        summary: [% adiff.summary %].
+    </td></tr>
+  [% END %]
+[% END %]
+</table>
+[% END %]
+
+[% IF commentarray AND commentarray.size > 0 %]
+  [% FOR comment = commentarray %]
+  <p>Comment #[% comment.seqnum %] from
+      <span class="vcard">
+          <a class="fn email" href="[% Param('user_mailto') %][% comment.author.email FILTER html %]">
+          [% (comment.author.name || comment.author.login) FILTER html %]</a>
+      </span>
+  [% comment.time %]</p>
+  [% IF comment.already_wrapped %]
+    [% wrapped_comment = comment.body %]
+  [% ELSE %]
+    [% wrapped_comment = comment.body FILTER wrap_comment %]
+  [% END %]
+  <pre class="bz_comment_text" style="border-width: 0 0 1px 0; border-style: solid; border-color: #808080">
+[%- wrapped_comment FILTER quoteUrls(bugid) -%]
+  </pre>
+  [% END %]
+[% END %]
+
+<p style="font-size: 12px; font-style: italic">
+-- <br />
+<a href="[% urlbase %]userprefs.cgi?tab=email">Configure [% terms.bug %]mail</a><br />
+------- You are receiving this mail because: -------<br />
+[% FOREACH relationship = reasons %]
+  [% SWITCH relationship %]
+    [% CASE constants.REL_ASSIGNEE %]
+You are the assignee for the [% terms.bug %].
+    [% CASE constants.REL_REPORTER %]
+You reported the [% terms.bug %].
+    [% CASE constants.REL_QA %]
+You are the QA contact for the [% terms.bug %].
+    [% CASE constants.REL_CC %]
+You are on the CC list for the [% terms.bug %]. <a href="[% urlbase %]unsubscribe.cgi?id=[% bugid %]">Remove yourself from the CC list</a>.
+    [% CASE constants.REL_VOTER %]
+You are a voter for the [% terms.bug %].
+    [% CASE constants.REL_GLOBAL_WATCHER %]
+You are watching all [% terms.bug %] changes.
+  [% END %]
+[% END %]
+[% FOREACH relationship = reasons_watch %]
+  [% SWITCH relationship %]
+    [% CASE constants.REL_ASSIGNEE %]
+      <br />You are watching the assignee of the [% terms.bug %].
+    [% CASE constants.REL_REPORTER %]
+      <br />You are watching the reporter.
+    [% CASE constants.REL_QA %]
+      <br />You are watching the QA contact of the [% terms.bug %].
+    [% CASE constants.REL_CC %]
+      <br />You are watching someone on the CC list of the [% terms.bug %].
+    [% CASE constants.REL_VOTER %]
+      <br />You are watching a voter for the [% terms.bug %].
+  [% END %]
+[% END %]
+</p>
+</body>
+[% END %]
+--[% boundary %]--

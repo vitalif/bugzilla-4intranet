@@ -239,6 +239,8 @@ sub Send {
                    $when_restriction
           ORDER BY bugs_activity.bug_when", undef, @args);
 
+    my @diff_array = [];
+
     my @new_depbugs;
     my $difftext = "";
     my $diffheader = "";
@@ -255,6 +257,7 @@ sub Send {
             $diffheader = "\n$fullwho changed:\n\n";
             $diffheader .= three_columns("What    ", "Removed", "Added");
             $diffheader .= ('-' x 76) . "\n";
+            push @diff_array, { type => 'who', name => $whoname, who => $who };
         }
         $what =~ s/^(Attachment )?/Attachment #$attachid / if $attachid;
         if( $fieldname eq 'estimated_time' ||
@@ -274,8 +277,14 @@ sub Send {
         $diffpart->{'header'} = $diffheader;
         $diffpart->{'fieldname'} = $fieldname;
         $diffpart->{'text'} = $difftext;
-        push(@diffparts, $diffpart);
-        push(@changedfields, $what);
+        push @diffparts, $diffpart;
+        push @changedfields, $what;
+        push @diff_array, {
+            type => 'change',
+            what => $what,
+            old  => $old,
+            new  => $new,
+        };
     }
     $values{'changed_fields'} = join(' ', @changedfields);
 
@@ -311,12 +320,16 @@ sub Send {
         my $thisdiff = "";
         my $lastbug = "";
         my $interestingchange = 0;
+        my @diff_tmp = ();
+        # TODO в данном месте ужасный код, лучше переписать к х**м
         foreach my $dependency_diff (@$dependency_diffs) {
             my ($depbug, $summary, $what, $old, $new) = @$dependency_diff;
 
             if ($depbug ne $lastbug) {
                 if ($interestingchange) {
                     $deptext .= $thisdiff;
+                    push @diff_array, @diff_tmp;
+                    @diff_tmp = ();
                 }
                 $lastbug = $depbug;
                 my $urlbase = Bugzilla->params->{"urlbase"};
@@ -327,6 +340,12 @@ sub Send {
                 $thisdiff .= three_columns("What    ", "Old Value", "New Value");
                 $thisdiff .= ('-' x 76) . "\n";
                 $interestingchange = 0;
+                push @diff_tmp, {
+                    type    => 'dep',
+                    id      => $id,
+                    dep     => $depbug,
+                    summary => $summary,
+                };
             }
             $thisdiff .= three_columns($fielddescription{$what}, $old, $new);
             if ($what eq 'bug_status'
@@ -334,18 +353,27 @@ sub Send {
             {
                 $interestingchange = 1;
             }
-            push(@depbugs, $depbug);
+            push @depbugs, $depbug;
+            push @diff_tmp, {
+                type => 'change',
+                what => $fielddescription{$what},
+                old  => $old,
+                new  => $new,
+            };
         }
 
-        if ($interestingchange) {
+        if ($interestingchange)
+        {
             $deptext .= $thisdiff;
+            push @diff_array, @diff_tmp;
+            @diff_tmp = ();
         }
         $deptext = trim($deptext);
 
-        if ($deptext) {
-            my $diffpart = {};
-            $diffpart->{'text'} = "\n" . trim("\n\n" . $deptext);
-            push(@diffparts, $diffpart);
+        if ($deptext)
+        {
+            push @diffparts, { text => "\n" . trim("\n\n" . $deptext) };
+            push @{$diff_array[$#diff_array][1]}, ;
         }
     }
 
@@ -446,6 +474,7 @@ sub Send {
 
     # Some comments are language specific. We cache them here.
     my %comments;
+    my %commentArray;
 
     foreach my $user_id (keys %recipients) {
         my %rels_which_want;
@@ -463,6 +492,7 @@ sub Send {
             unless (exists $comments{$lang}) {
                 Bugzilla->template_inner($lang);
                 $comments{$lang} = prepare_comments($raw_comments, $count);
+                $commentArray{$lang} = $raw_comments;
                 Bugzilla->template_inner("");
             }
 
@@ -482,7 +512,7 @@ sub Send {
                 }
             }
         }
-        
+
         if (scalar(%rels_which_want)) {
             # So the user exists, can see the bug, and wants mail in at least
             # one role. But do we want to send it to them?
@@ -513,19 +543,22 @@ sub Send {
                 $dep_ok)
             {
                 # OK, OK, if we must. Email the user.
-                $sent_mail = sendMail($user, 
-                                      \@headerlist,
-                                      \%rels_which_want, 
-                                      \%values,
-                                      \%defmailhead, 
-                                      \%fielddescription, 
-                                      \@diffparts,
-                                      $comments{$lang},
-                                      $anyprivate, 
-                                      ! $start, 
-                                      $id,
-                                      exists $watching{$user_id} ?
-                                             $watching{$user_id} : undef);
+                $sent_mail = sendMail(
+                    user    => $user,
+                    headers => \@headerlist,
+                    rels    => \%rels_which_want,
+                    values  => \%values,
+                    defhead => \%defmailhead,
+                    fields  => \%fielddescription,
+                    diffs   => \@diffparts,
+                    diffar  => \@diff_array,
+                    newcomm => $comments{$lang} || [],
+                    commarr => $commentArray{$lang} || [],
+                    anypriv => $anyprivate,
+                    isnew   => !$start,
+                    id      => $id,
+                    watch   => exists $watching{$user_id} ? $watching{$user_id} : undef,
+                );
             }
         }
        
@@ -543,10 +576,17 @@ sub Send {
     return {'sent' => \@sent, 'excluded' => \@excluded};
 }
 
-sub sendMail {
+sub sendMail
+{
+    my %arguments = @_;
     my ($user, $hlRef, $relRef, $valueRef, $dmhRef, $fdRef,
-        $diffRef, $newcomments, $anyprivate, $isnew,
-        $id, $watchingRef) = @_;
+        $diffRef, $diffArray, $newcomments, $commentArray, $anyprivate, $isnew,
+        $id, $watchingRef
+    ) = @arguments{qw(
+        user headers rels values defhead fields
+        diffs diffar newcomm commarr anypriv isnew
+        id watch
+    )};
 
     my %values = %$valueRef;
     my @headerlist = @$hlRef;
@@ -665,7 +705,10 @@ sub sendMail {
         reporter => $values{'reporter'},
         reportername => Bugzilla::User->new({name => $values{'reporter'}})->name,
         diffs => $diffs,
-        threadingmarker => $threadingmarker
+        diffarray => $diffArray,
+        threadingmarker => $threadingmarker,
+        newcomments => $newcomments,
+        commentarray => $commentArray,
     };
 
     my $msg;
@@ -716,6 +759,7 @@ sub prepare_comments {
     my $result = "";
     foreach my $comment (@$raw_comments) {
         if ($count) {
+            $comment->{seqnum} = $count;
             $result .= "\n\n--- Comment #$count from " . $comment->{'author'}->identity .
                        "  " . format_time($comment->{'time'}) . " ---\n";
         }
