@@ -599,21 +599,21 @@ sub sendMail
     my $diffheader = "";
     my $add_diff;
 
-    foreach my $diff (@diffparts) {
+    foreach my $diff (@diffparts)
+    {
         $add_diff = 0;
-        
-        if (exists($diff->{'fieldname'}) && 
+
+        if (exists($diff->{'fieldname'}) &&
             ($diff->{'fieldname'} eq 'estimated_time' ||
              $diff->{'fieldname'} eq 'remaining_time' ||
              $diff->{'fieldname'} eq 'work_time' ||
-             $diff->{'fieldname'} eq 'deadline')){
+             $diff->{'fieldname'} eq 'deadline')) {
             if ($user->groups->{Bugzilla->params->{"timetrackinggroup"}}) {
                 $add_diff = 1;
             }
-        } elsif (($diff->{'isprivate'}) 
-                 && Bugzilla->params->{'insidergroup'}
-                 && !($user->groups->{Bugzilla->params->{'insidergroup'}})
-                ) {
+        } elsif ($diff->{'isprivate'} &&
+            Bugzilla->params->{'insidergroup'} &&
+            !$user->groups->{Bugzilla->params->{'insidergroup'}}) {
             $add_diff = 0;
         } else {
             $add_diff = 1;
@@ -628,24 +628,23 @@ sub sendMail
             $difftext .= $diff->{'text'};
         }
     }
- 
+
     if ($difftext eq "" && $newcomments eq "" && !$isnew) {
-      # Whoops, no differences!
-      return 0;
+        # Whoops, no differences!
+        return 0;
     }
-    
+
     # If an attachment was created, then add an URL. (Note: the 'g'lobal
     # replace should work with comments with multiple attachments.)
 
-    if ( $newcomments =~ /Created an attachment \(/ ) {
-
+    if ($newcomments =~ /Created an attachment \(/) {
         my $showattachurlbase =
             Bugzilla->params->{'urlbase'} . "attachment.cgi?id=";
 
         $newcomments =~ s/(Created an attachment \(id=([0-9]+)\))/$1\n --> \(${showattachurlbase}$2\)/g;
         for (@$commentArray)
         {
-            $_->{body} =~ s/Created an attachment \(id=([0-9]+)\))/Created <a href="$showattachurlbase$1">an attachment<\/a>/g;
+            $_->{body} =~ s/Created an attachment \(id=([0-9]+)\)/Created <a href="$showattachurlbase$1">an attachment<\/a>/g;
         }
     }
 
@@ -677,47 +676,49 @@ sub sendMail
 
     my @headerrel   = map { REL_NAMES->{$_} } @reasons;
     my @watchingrel = map { REL_NAMES->{$_} } @reasons_watch;
-    push(@headerrel,   'None') unless @headerrel;
-    push(@watchingrel, 'None') unless @watchingrel;
+    push @headerrel,   'None' unless @headerrel;
+    push @watchingrel, 'None' unless @watchingrel;
     push @watchingrel, map { user_id_to_login($_) } @$watchingRef;
 
     my $threadingmarker = build_thread_marker($id, $user->id, $isnew);
 
     my $vars = {
-        isnew => $isnew,
-        to => $user->email,
-        bugid => $id,
-        alias => Bugzilla->params->{'usebugaliases'} ? $values{'alias'} : "",
-        classification => $values{'classification'},
-        product => $values{'product'},
-        comp => $values{'component'},
-        keywords => $values{'keywords'},
-        severity => $values{'bug_severity'},
-        status => $values{'bug_status'},
-        priority => $values{'priority'},
-        assignedto => $values{'assigned_to'},
-        assignedtoname => Bugzilla::User->new({name => $values{'assigned_to'}})->name,
-        targetmilestone => $values{'target_milestone'},
-        changedfields => $values{'changed_fields'},
-        summary => $values{'short_desc'},
-        reasons => \@reasons,
-        reasons_watch => \@reasons_watch,
-        reasonsheader => join(" ", @headerrel),
+        isnew              => $isnew,
+        to                 => $user->email,
+        bugid              => $id,
+        alias              => Bugzilla->params->{'usebugaliases'} ? $values{'alias'} : "",
+        classification     => $values{'classification'},
+        product            => $values{'product'},
+        comp               => $values{'component'},
+        keywords           => $values{'keywords'},
+        severity           => $values{'bug_severity'},
+        status             => $values{'bug_status'},
+        priority           => $values{'priority'},
+        assignedto         => $values{'assigned_to'},
+        assignedtoname     => Bugzilla::User->new({name => $values{'assigned_to'}})->name,
+        targetmilestone    => $values{'target_milestone'},
+        changedfields      => $values{'changed_fields'},
+        summary            => $values{'short_desc'},
+        reasons            => \@reasons,
+        reasons_watch      => \@reasons_watch,
+        reasonsheader      => join(" ", @headerrel),
         reasonswatchheader => join(" ", @watchingrel),
-        changer => $values{'changer'},
-        changername => $values{'changername'},
-        reporter => $values{'reporter'},
-        reportername => Bugzilla::User->new({name => $values{'reporter'}})->name,
-        diffs => $diffs,
-        diffarray => $diffArray,
-        threadingmarker => $threadingmarker,
-        newcomments => $newcomments,
-        commentarray => $commentArray,
+        changer            => $values{'changer'},
+        changername        => $values{'changername'},
+        reporter           => $values{'reporter'},
+        reportername       => Bugzilla::User->new({name => $values{'reporter'}})->name,
+        diffs              => $diffs,
+        diffarray          => $diffArray,
+        threadingmarker    => $threadingmarker,
+        newcomments        => $newcomments,
+        commentarray       => $commentArray,
     };
 
     my $msg;
     my $template = Bugzilla->template_inner($user->settings->{lang}->{value});
-    $template->process("email/newchangedmail.txt.tmpl", $vars, \$msg)
+    my $tmpl = '-'.$values{product};
+    $tmpl = '' unless $template->template_exists("email/newchangedmail$tmpl.txt.tmpl");
+    $template->process("email/newchangedmail$tmpl.txt.tmpl", $vars, \$msg)
         || ThrowTemplateError($template->error());
     Bugzilla->template_inner("");
 

@@ -157,6 +157,20 @@ sub get_format {
     };
 }
 
+# check whether a template exists
+sub template_exists
+{
+    my $self = shift;
+    my $file = shift or return;
+    my $include_path = $self->context->load_templates->[0]->include_path;
+    return unless ref $include_path eq 'ARRAY';
+    foreach my $path (@$include_path)
+    {
+        return $path if -e "$path/$file";
+    }
+    return undef;
+}
+
 # This routine quoteUrls contains inspirations from the HTML::FromText CPAN
 # module by Gareth Rees <garethr@cre.canon.co.uk>.  It has been heavily hacked,
 # all that is really recognizable from the original is bits of the regular
