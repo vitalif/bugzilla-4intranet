@@ -373,7 +373,6 @@ sub Send {
         if ($deptext)
         {
             push @diffparts, { text => "\n" . trim("\n\n" . $deptext) };
-            push @{$diff_array[$#diff_array][1]}, ;
         }
     }
 
