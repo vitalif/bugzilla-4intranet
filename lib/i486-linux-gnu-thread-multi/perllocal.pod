@@ -64,3 +64,25 @@ C<EXE_FILES: >
 
 =back
 
+=head2 Wed Jul 22 21:28:24 2009: C<Module> L<Email::MIME::Encodings|Email::MIME::Encodings>
+
+=over 4
+
+=item *
+
+C<installed into: /home/www/localhost/bugs32-up/lib>
+
+=item *
+
+C<LINKTYPE: dynamic>
+
+=item *
+
+C<VERSION: 1.313>
+
+=item *
+
+C<EXE_FILES: >
+
+=back
+
