@@ -2423,73 +2423,99 @@ sub _fix_attachments_submitter_id_idx {
 sub _copy_attachments_thedata_to_attach_data
 {
     my $dbh = Bugzilla->dbh;
+    my $convert_old = 0;
+    my $convert_new = 0;
     # 2005-08-25 - bugreport@peshkin.net - Bug 305333
     if ($dbh->bz_column_info("attachments", "thedata"))
     {
-        if (Bugzilla->params->{force_attach_bigfile})
+        # Need to move attachment data from table `attachments`
+        $convert_old = 1;
+    }
+    elsif ($dbh->bz_table_info("attach_data"))
+    {
+        ($convert_new) = $dbh->selectrow_array("SELECT COUNT(id) > 0 FROM attach_data");
+        # Only need to move attachment data from table `attach_data`
+        # to filesystem when force_attach_bigfile is TRUE
+        $convert_new &&= Bugzilla->params->{force_attach_bigfile};
+    }
+    if ($convert_old && !Bugzilla->params->{force_attach_bigfile})
+    {
+        print "Migrating attachment data to its own table...\n";
+        print "(This may take a very long time)\n";
+        $dbh->do("INSERT INTO attach_data (id, thedata) SELECT attach_id, thedata FROM attachments");
+    }
+    elsif ($convert_old && Bugzilla->params->{force_attach_bigfile} || $convert_new)
+    {
+        # A "portion" constant
+        my $buf = 16;
+        my ($sql_id, $sql_data);
+        if ($convert_old)
         {
-            # vfilippov@custis.ru CustIS Bug 40933
-            # Store all attachments in local files instead of DB blob's
-            my $attachdir = bz_locations()->{attachdir};
-            die "bz_locations() returned empty attachdir, or it's not writable"
-                unless $attachdir && -d $attachdir && -w $attachdir;
-            print "Storing attachment data in local directory $attachdir...\n";
-            print "(This may take a very long time)\n";
-            my $ids = $dbh->selectcol_arrayref("SELECT attach_id FROM attachments") || [];
-            my $total = scalar @$ids;
-            my $buf = 16;
-            my $sth = undef;
-            my $sthbind = 0;
-            my ($attachid, $thedata, $hash);
-            my $i = 0;
-            local $| = 1;
-            print "\r$i/$total...";
-            while (my @cur = splice @$ids, 0, $buf)
-            {
-                unless ($sth && @cur == $sthbind)
-                {
-                    $sthbind = @cur;
-                    $sth = $dbh->prepare(
-                        "SELECT attach_id, thedata FROM attachments WHERE attach_id IN (" .
-                        join(",", ("?") x $sthbind) . ")"
-                    );
-                }
-                $sth->execute(@cur);
-                last if !$sth->rows;
-                while (($attachid, $thedata) = $sth->fetchrow_array)
-                {
-                    # Store attachment data
-                    $hash = ($attachid % 100) + 100;
-                    $hash =~ s/.*(\d\d)$/group.$1/;
-                    mkdir "$attachdir/$hash", 0770;
-                    chmod 0770, "$attachdir/$hash";
-                    if (open my $fh, ">$attachdir/$hash/attachment.$attachid")
-                    {
-                        binmode $fh;
-                        print $fh $thedata;
-                        close $fh;
-                    }
-                    else
-                    {
-                        my $a = $!;
-                        Encode::_utf8_on($a);
-                        print "\rFAILED saving attachment $attachid into $attachdir/$hash/attachment.$attachid: $a\n";
-                    }
-                    $i++;
-                    print "\r$i/$total...";
-                }
-                $sth->finish;
-            }
-            print "\nDone!\n";
+            $sql_id = "SELECT attach_id FROM attachments";
+            $sql_data = "SELECT attach_id, thedata FROM attachments WHERE attach_id";
         }
         else
         {
-            print "Migrating attachment data to its own table...\n";
-            print "(This may take a very long time)\n";
-            $dbh->do("INSERT INTO attach_data (id, thedata)
-                          SELECT attach_id, thedata FROM attachments");
+            $sql_id = "SELECT id FROM attach_data";
+            $sql_data = "SELECT id, thedata FROM attach_data WHERE id";
         }
+        # vfilippov@custis.ru CustIS Bug 40933
+        # Store all attachments in local files instead of DB blob's
+        my $attachdir = bz_locations()->{attachdir};
+        die "bz_locations() returned empty attachdir, or it's not writable"
+            unless $attachdir && -d $attachdir && -w $attachdir;
+        print "Storing attachment data in local directory $attachdir...\n";
+        print "(This may take a very long time)\n";
+        my $ids = $dbh->selectcol_arrayref($sql_id) || [];
+        my $total = scalar @$ids;
+        my $sth = undef;
+        my $sthbind = 0;
+        my ($attachid, $thedata, $hash);
+        my $i = 0;
+        local $| = 1;
+        print "\r$i/$total...";
+        while (my @cur = splice @$ids, 0, $buf)
+        {
+            unless ($sth && @cur == $sthbind)
+            {
+                $sthbind = @cur;
+                $sth = $dbh->prepare("$sql_data IN (" . join(",", ("?") x $sthbind) . ")");
+            }
+            $sth->execute(@cur);
+            last if !$sth->rows;
+            while (($attachid, $thedata) = $sth->fetchrow_array)
+            {
+                # Store attachment data
+                $hash = ($attachid % 100) + 100;
+                $hash =~ s/.*(\d\d)$/group.$1/;
+                mkdir "$attachdir/$hash", 0770;
+                chmod 0770, "$attachdir/$hash";
+                if (open my $fh, ">$attachdir/$hash/attachment.$attachid")
+                {
+                    binmode $fh;
+                    print $fh $thedata;
+                    close $fh;
+                }
+                else
+                {
+                    my $a = $!;
+                    Encode::_utf8_on($a);
+                    print "\rFAILED saving attachment $attachid into $attachdir/$hash/attachment.$attachid: $a\n";
+                }
+                $i++;
+                print "\r$i/$total...";
+            }
+            $sth->finish;
+        }
+        print "\nDone!\n";
+    }
+    if ($convert_old)
+    {
         $dbh->bz_drop_column("attachments", "thedata");
+    }
+    if ($convert_new)
+    {
+        $dbh->do("TRUNCATE attach_data");
     }
 }
 
