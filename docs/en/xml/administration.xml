@@ -147,18 +147,6 @@
 
           <varlistentry>
             <term>
-              timezone
-            </term>
-            <listitem>
-              <para>
-                Timezone of server. The timezone is displayed with timestamps. If 
-                this parameter is left blank, the timezone is not displayed.
-              </para>
-            </listitem>
-          </varlistentry>
-
-          <varlistentry>
-            <term>
               utf8
             </term>
             <listitem>
@@ -264,32 +252,9 @@
           <title>Administrative Policies</title>
         <para>
         This page contains parameters for basic administrative functions.
-        Options include whether to allow the deletion of bugs and users, whether
-        to allow users to change their email address, and whether to allow
-        user watching (one user receiving all notifications of a selected
-        other user). 
+            Options include whether to allow the deletion of bugs and users,
+            and whether to allow users to change their email address.
         </para>
-
-        <variablelist>
-
-          <varlistentry>
-            <term>
-              supportwatchers
-            </term>
-            <listitem>
-              <para>
-                Turning on this option allows users to ask to receive copies 
-                of bug mail sent to another user.  Watching a user with
-                different group permissions is not a way to 'get around' the
-                system; copied emails are still subject to the normal groupset
-                permissions of a bug, and <quote>watchers</quote> will only be 
-                copied on emails from bugs they would normally be allowed to view. 
-              </para> 
-            </listitem>
-          </varlistentry>
-
-        </variablelist>
-
         </section>
 
         <section id="param-user-authentication">

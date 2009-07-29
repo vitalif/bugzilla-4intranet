@@ -87,14 +87,9 @@ use Bugzilla::Status;
 
 use MIME::Base64;
 use MIME::Parser;
-use Date::Format;
 use Getopt::Long;
 use Pod::Usage;
 use XML::Twig;
-
-# We want to capture errors and handle them here rather than have the Template
-# code barf all over the place.
-Bugzilla->usage_mode(Bugzilla::Constants::USAGE_MODE_CMDLINE);
 
 my $debug = 0;
 my $mail  = '';
@@ -574,8 +569,7 @@ sub process_bug {
     my $comments;
 
     $comments .= "\n\n--- Bug imported by $exporter_login ";
-    $comments .= time2str( "%Y-%m-%d %H:%M", time ) . " ";
-    $comments .= $params->{'timezone'};
+    $comments .= format_time(scalar localtime(time()), '%Y-%m-%d %R %Z') . " ";
     $comments .= " ---\n\n";
     $comments .= "This bug was previously known as _bug_ $bug_fields{'bug_id'} at ";
     $comments .= $urlbase . "show_bug.cgi?id=" . $bug_fields{'bug_id'} . "\n";
@@ -808,8 +802,7 @@ sub process_bug {
 
     # Process time fields
     if ( $params->{"timetrackinggroup"} ) {
-        my $date = format_time( $bug_fields{'deadline'}, "%Y-%m-%d" )
-          || undef;
+        my $date = validate_date( $bug_fields{'deadline'} ) ? $bug_fields{'deadline'} : undef;
         push( @values, $date );
         push( @query,  "deadline" );
         if ( defined $bug_fields{'estimated_time'} ) {

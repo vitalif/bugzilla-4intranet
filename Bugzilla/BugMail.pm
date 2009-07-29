@@ -217,6 +217,15 @@ sub Send {
 
     $values{'blocked'} = join(",", @$blockedlist);
 
+    my $grouplist = $dbh->selectcol_arrayref(
+        '    SELECT name FROM groups
+         INNER JOIN bug_group_map
+                 ON groups.id = bug_group_map.group_id
+                    AND bug_group_map.bug_id = ?',
+        undef, ($id));
+
+    $values{'bug_group'} = join(', ', @$grouplist);
+ 
     my @args = ($id);
 
     # If lastdiffed is NULL, then we don't limit the search on time.
@@ -376,7 +385,7 @@ sub Send {
         }
     }
 
-    my ($raw_comments, $anyprivate, $count) = get_comments_by_bug($id, $start, $end);
+    my ($comments, $anyprivate) = get_comments_by_bug($id, $start, $end);
 
     ###########################################################################
     # Start of email filtering code
@@ -438,7 +447,6 @@ sub Send {
         }
     }
     
-    if (Bugzilla->params->{"supportwatchers"}) {
         # Find all those user-watching anyone on the current list, who is not 
         # on it already themselves.
         my $involved = join(",", keys %recipients);
@@ -453,8 +461,7 @@ sub Send {
                 $recipients{$watch->[0]}->{$role} |= BIT_WATCHING
                     if $bits & BIT_DIRECT;
             }
-            push (@{$watching{$watch->[0]}}, $watch->[1]);
-        }
+        push(@{$watching{$watch->[0]}}, $watch->[1]);
     }
 
     # Global watcher
@@ -471,10 +478,6 @@ sub Send {
     my @sent;
     my @excluded;
 
-    # Some comments are language specific. We cache them here.
-    my %comments;
-    my %commentArray;
-
     foreach my $user_id (keys %recipients) {
         my %rels_which_want;
         my $sent_mail = 0;
@@ -483,25 +486,14 @@ sub Send {
         # Deleted users must be excluded.
         next unless $user;
 
-        # What's the language chosen by this user for email?
-        my $lang = $user->settings->{'lang'}->{'value'};
-
         if ($user->can_see_bug($id)) {
-            # It's time to format language specific comments.
-            unless (exists $comments{$lang}) {
-                Bugzilla->template_inner($lang);
-                $comments{$lang} = prepare_comments($raw_comments, $count);
-                $commentArray{$lang} = $raw_comments;
-                Bugzilla->template_inner("");
-            }
-
             # Go through each role the user has and see if they want mail in
             # that role.
             foreach my $relationship (keys %{$recipients{$user_id}}) {
                 if ($user->wants_bug_mail($id,
                                           $relationship, 
                                           $diffs, 
-                                          $comments{$lang},
+                                          $comments,
                                           $deptext,
                                           $changer,
                                           !$start))
@@ -519,9 +511,7 @@ sub Send {
             # If we are using insiders, and the comment is private, only send 
             # to insiders
             my $insider_ok = 1;
-            $insider_ok = 0 if (Bugzilla->params->{"insidergroup"} && 
-                                ($anyprivate != 0) && 
-                                (!$user->groups->{Bugzilla->params->{"insidergroup"}}));
+            $insider_ok = 0 if $anyprivate && !$user->is_insider;
 
             # We shouldn't send mail if this is a dependency mail (i.e. there 
             # is something in @depbugs), and any of the depending bugs are not 
@@ -551,8 +541,7 @@ sub Send {
                     fields  => \%fielddescription,
                     diffs   => \@diffparts,
                     diffar  => \@diff_array,
-                    newcomm => $comments{$lang} || [],
-                    commarr => $commentArray{$lang} || [],
+                    newcomm => $comments,
                     anypriv => $anyprivate,
                     isnew   => !$start,
                     id      => $id,
@@ -579,11 +568,11 @@ sub sendMail
 {
     my %arguments = @_;
     my ($user, $hlRef, $relRef, $valueRef, $dmhRef, $fdRef,
-        $diffRef, $diffArray, $newcomments, $commentArray, $anyprivate, $isnew,
+        $diffRef, $diffArray, $newcomments, $anyprivate, $isnew,
         $id, $watchingRef
     ) = @arguments{qw(
         user headers rels values defhead fields
-        diffs diffar newcomm commarr anypriv isnew
+        diffs diffar newcomm anypriv isnew
         id watch
     )};
 
@@ -606,13 +595,12 @@ sub sendMail
             ($diff->{'fieldname'} eq 'estimated_time' ||
              $diff->{'fieldname'} eq 'remaining_time' ||
              $diff->{'fieldname'} eq 'work_time' ||
-             $diff->{'fieldname'} eq 'deadline')) {
-            if ($user->groups->{Bugzilla->params->{"timetrackinggroup"}}) {
-                $add_diff = 1;
-            }
-        } elsif ($diff->{'isprivate'} &&
-            Bugzilla->params->{'insidergroup'} &&
-            !$user->groups->{Bugzilla->params->{'insidergroup'}}) {
+             $diff->{'fieldname'} eq 'deadline'))
+        {
+            $add_diff = 1 if $user->is_timetracker;
+        } elsif ($diff->{'isprivate'} 
+                 && !$user->is_insider)
+        {
             $add_diff = 0;
         } else {
             $add_diff = 1;
@@ -628,7 +616,7 @@ sub sendMail
         }
     }
 
-    if ($difftext eq "" && $newcomments eq "" && !$isnew) {
+    if (!$difftext && !$newcomments && !@$newcomments && !$isnew) {
         # Whoops, no differences!
         return 0;
     }
@@ -636,18 +624,14 @@ sub sendMail
     # If an attachment was created, then add an URL. (Note: the 'g'lobal
     # replace should work with comments with multiple attachments.)
 
-    if ($newcomments =~ /Created an attachment \(/) {
-        my $showattachurlbase =
-            Bugzilla->params->{'urlbase'} . "attachment.cgi?id=";
-
-        $newcomments =~ s/(Created an attachment \(id=([0-9]+)\))/$1\n --> \(${showattachurlbase}$2\)/g;
-        for (@$commentArray)
-        {
-            $_->{body} =~ s/Created an attachment \(id=([0-9]+)\)/Created <a href="$showattachurlbase$1">an attachment<\/a>/g;
-        }
+    my $showattachurlbase =
+        Bugzilla->params->{'urlbase'} . "attachment.cgi?id=";
+    for (@$newcomments)
+    {
+        $_->{body} =~ s/Created an attachment \(id=([0-9]+)\)/Created <a href="$showattachurlbase$1">an attachment<\/a>/g;
     }
 
-    my $diffs = $difftext . "\n\n" . $newcomments;
+    my $diffs = $difftext;
     if ($isnew) {
         my $head = "";
         foreach my $f (@headerlist) {
@@ -656,9 +640,7 @@ sub sendMail
             # If there isn't anything to show, don't include this header.
             next unless $value;
             # Only send estimated_time if it is enabled and the user is in the group.
-            if (($f ne 'estimated_time' && $f ne 'deadline')
-                || $user->groups->{Bugzilla->params->{'timetrackinggroup'}})
-            {
+            if (($f ne 'estimated_time' && $f ne 'deadline') || $user->is_timetracker) {
                 my $desc = $fielddescription{$f};
                 $head .= multiline_sprintf(FORMAT_DOUBLE, ["$desc:", $value],
                                            FORMAT_2_SIZE);
@@ -678,8 +660,6 @@ sub sendMail
     push @headerrel,   'None' unless @headerrel;
     push @watchingrel, 'None' unless @watchingrel;
     push @watchingrel, map { user_id_to_login($_) } @$watchingRef;
-
-    my $threadingmarker = build_thread_marker($id, $user->id, $isnew);
 
     my $vars = {
         isnew              => $isnew,
@@ -708,9 +688,8 @@ sub sendMail
         reportername       => Bugzilla::User->new({name => $values{'reporter'}})->name,
         diffs              => $diffs,
         diffarray          => $diffArray,
-        threadingmarker    => $threadingmarker,
-        newcomments        => $newcomments,
-        commentarray       => $commentArray,
+        new_comments       => $newcomments,
+        threadingmarker    => build_thread_marker($id, $user->id, $isnew),
     };
 
     my $msg;
@@ -749,32 +728,15 @@ sub get_comments_by_bug {
     my $raw = 1; # Do not format comments which are not of type CMT_NORMAL.
     my $comments = Bugzilla::Bug::GetComments($id, "oldest_to_newest", $start, $end, $raw);
 
+    foreach my $comment (@$comments) {
+        $comment->{count} = $count++;
+    }
+
     if (Bugzilla->params->{'insidergroup'}) {
         $anyprivate = 1 if scalar(grep {$_->{'isprivate'} > 0} @$comments);
     }
 
-    return ($comments, $anyprivate, $count);
-}
-
-# Prepare comments for the given language.
-sub prepare_comments {
-    my ($raw_comments, $count) = @_;
-
-    my $result = "";
-    foreach my $comment (@$raw_comments) {
-        if ($count) {
-            $comment->{seqnum} = $count;
-            $result .= "\n\n--- Comment #$count from " . $comment->{'author'}->identity .
-                       "  " . format_time($comment->{'time'}) . " ---\n";
-        }
-        # Format language specific comments. We don't update $comment->{'body'}
-        # directly, otherwise it would grow everytime you call format_comment()
-        # with a different language as some text may be appended to the existing one.
-        my $body = Bugzilla::Bug::format_comment($comment);
-        $result .= ($comment->{'already_wrapped'} ? $body : wrap_comment($body));
-        $count++;
-    }
-    return $result;
+    return ($comments, $anyprivate);
 }
 
 1;

@@ -20,7 +20,7 @@ Bugzilla::Object</title>
   <ul   class='indexList indexList2'>
     <li class='indexItem indexItem2'><a href='#Constructors'>Constructors</a>
     <li class='indexItem indexItem2'><a href='#Database_Manipulation'>Database Manipulation</a>
-    <li class='indexItem indexItem2'><a href='#Subclass_Helpers'>Subclass Helpers</a>
+    <li class='indexItem indexItem2'><a href='#Mutators'>Mutators</a>
     <li class='indexItem indexItem2'><a href='#Simple_Validators'>Simple Validators</a>
   </ul>
   <li class='indexItem indexItem1'><a href='#CLASS_FUNCTIONS'>CLASS FUNCTIONS</a>
@@ -188,7 +188,7 @@ name="Constructors"
 >&#34;ID_FIELD&#34;</a> column).</p>
 
 <p>If you pass in a hashref, you can pass a <code  class="code">name</code> key. The value of the <code  class="code">name</code> key is the case-insensitive name of the object (from <a href="#NAME_FIELD" class="podlinkpod"
->&#34;NAME_FIELD&#34;</a>) in the DB.</p>
+>&#34;NAME_FIELD&#34;</a>) in the DB. You can also pass in an <code  class="code">id</code> key which will be interpreted as the id of the object you want (overriding the <code  class="code">name</code> key).</p>
 
 <p><b>Additional Parameters Available for Subclasses</b></p>
 
@@ -278,6 +278,16 @@ name="Constructors"
 <p>A hashref, where the keys are column names of the table, pointing to the value that you want to match against for that column.</p>
 
 <p>There are two special values, the constants <code  class="code">NULL</code> and <code  class="code">NOT_NULL</code>, which means &#34;give me objects where this field is NULL or NOT NULL, respectively.&#34;</p>
+
+<p>In addition to the column keys, there are a few special keys that can be used to rig the underlying database queries. These are <code  class="code">LIMIT</code>, <code  class="code">OFFSET</code>, and <code  class="code">WHERE</code>.</p>
+
+<p>The value for the <code  class="code">LIMIT</code> key is expected to be an integer defining the number of objects to return, while the value for <code  class="code">OFFSET</code> defines the position, relative to the number of objects the query would normally return, at which to begin the result set. If <code  class="code">OFFSET</code> is defined without a corresponding <code  class="code">LIMIT</code> it is silently ignored.</p>
+
+<p>The <code  class="code">WHERE</code> key provides a mechanism for adding arbitrary WHERE clauses to the underlying query. Its value is expected to a hash reference whose keys are the columns, operators and placeholders, and the values are the placeholders&#39; bind value. For example:</p>
+
+<pre  class="code"> WHERE =&#62; { &#39;some_column &#62;= ?&#39; =&#62; $some_value }</pre>
+
+<p>would constrain the query to only those objects in the table whose &#39;some_column&#39; column has a value greater than or equal to $some_value.</p>
 
 <p>If you don&#39;t specify any criteria, calling this function is the same as doing <code  class="code">[$class-&#62;get_all]</code>.</p>
 
@@ -388,20 +398,32 @@ name="Database_Manipulation"
 ><b>Returns</b></a></dt>
 
 <dd>
+<p><b>In scalar context:</b></p>
+
 <p>A hashref showing what changed during the update. The keys are the column names from <a href="#UPDATE_COLUMNS" class="podlinkpod"
 >&#34;UPDATE_COLUMNS&#34;</a>. If a field was not changed, it will not be in the hash at all. If the field was changed, the key will point to an arrayref. The first item of the arrayref will be the old value, and the second item will be the new value.</p>
 
 <p>If there were no changes, we return a reference to an empty hash.</p>
+
+<p><b>In array context:</b></p>
+
+<p>Returns a list, where the first item is the above hashref. The second item is the object as it was in the database before update() was called. (This is mostly useful to subclasses of <code  class="code">Bugzilla::Object</code> that are implementing <code  class="code">update</code>.)</p>
 </dd>
 </dl>
+
+<dt><a name="remove_from_db"
+><code  class="code">remove_from_db</code></a></dt>
+
+<dd>
+<p>Removes this object from the database. Will throw an error if you can&#39;t remove it for some reason. The object will then be destroyed, as it is not safe to use the object after it has been removed from the database.</p>
 </dd>
 </dl>
 
 <h2><a class='u' href='#___top' title='click to go to top of document'
-name="Subclass_Helpers"
->Subclass Helpers</a></h2>
+name="Mutators"
+>Mutators</a></h2>
 
-<p>These functions are intended only for use by subclasses. If you call them from anywhere else, they will throw a <code  class="code">CodeError</code>.</p>
+<p>These are used for updating the values in objects, before calling <code  class="code">update</code>.</p>
 
 <dl>
 <dt><a name="set"
@@ -420,6 +442,8 @@ name="Subclass_Helpers"
 <p>See <a href="#VALIDATORS" class="podlinkpod"
 >&#34;VALIDATORS&#34;</a> for more information.</p>
 
+<p><b>NOTE</b>: This function is intended only for use by subclasses. If you call it from anywhere else, it will throw a <code  class="code">CodeError</code>.</p>
+
 <dt><a name="Params"
 ><b>Params</b></a></dt>
 
@@ -431,6 +455,27 @@ name="Subclass_Helpers"
 <dt><a name="$value_-_The_value_that_you&#39;re_setting_the_field_to."
 ><code  class="code">$value</code> - The value that you&#39;re setting the field to.</a></dt>
 </dl>
+
+<dt><a name="Returns_(nothing)"
+><b>Returns</b> (nothing)</a></dt>
+</dl>
+
+<dt><a name="set_all"
+><code  class="code">set_all</code></a></dt>
+
+<dd>
+<dl>
+<dt><a name="Description"
+><b>Description</b></a></dt>
+
+<dd>
+<p>This is a convenience function which is simpler than calling many different <code  class="code">set_</code> functions in a row. You pass a hashref of parameters and it calls <code  class="code">set_$key($value)</code> for every item in the hashref.</p>
+
+<dt><a name="Params"
+><b>Params</b></a></dt>
+
+<dd>
+<p>Takes a hashref of the fields that need to be set, pointing to the value that should be passed to the <code  class="code">set_</code> function that is called.</p>
 
 <dt><a name="Returns_(nothing)"
 ><b>Returns</b> (nothing)</a></dt>

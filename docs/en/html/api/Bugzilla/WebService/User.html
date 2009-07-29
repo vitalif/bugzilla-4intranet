@@ -18,6 +18,7 @@ Bugzilla::Webservice::User</title>
   <ul   class='indexList indexList2'>
     <li class='indexItem indexItem2'><a href='#Logging_In_and_Out'>Logging In and Out</a>
     <li class='indexItem indexItem2'><a href='#Account_Creation'>Account Creation</a>
+    <li class='indexItem indexItem2'><a href='#User_Info'>User Info</a>
   </ul>
 </ul>
 </div>
@@ -278,6 +279,180 @@ this means the password is under three characters.)</p>
 <p>The password specified is too long.
 (Usually,
 this means the password is over ten characters.)</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd>
+</dl>
+
+<h2><a class='u' href='#___top' title='click to go to top of document'
+name="User_Info"
+>User Info</a></h2>
+
+<dl>
+<dt><a name="get"
+><code  class="code">get</code></a></dt>
+
+<dd>
+<p><b>UNSTABLE</b></p>
+
+<dl>
+<dt><a name="Description"
+><b>Description</b></a></dt>
+
+<dd>
+<p>Gets information about user accounts in Bugzilla.</p>
+
+<dt><a name="Params"
+><b>Params</b></a></dt>
+
+<dd>
+<p><b>Note</b>: At least one of <code  class="code">ids</code>,
+<code  class="code">names</code>,
+or <code  class="code">match</code> must be specified.</p>
+
+<p><b>Note</b>: Users will not be returned more than once,
+so even if a user is matched by more than one argument,
+only one user will be returned.</p>
+
+<p>In addition to the parameters below,
+this method also accepts the standard <a href="../../Bugzilla/WebService.html#include_fields" class="podlinkpod"
+>include_fields</a> and <a href="../../Bugzilla/WebService.html#exclude_fields" class="podlinkpod"
+>exclude_fields</a> arguments.</p>
+
+<dl>
+<dt><a name="ids_(array)"
+><code  class="code">ids</code> (array)</a></dt>
+
+<dd>
+<p>An array of integers,
+representing user ids.</p>
+
+<p>Logged-out users cannot pass this parameter to this function.
+If they try,
+they will get an error.
+Logged-in users will get an error if they specify the id of a user they cannot see.</p>
+
+<dt><a name="names_(array)_-_An_array_of_login_names_(strings)."
+><code  class="code">names</code> (array) - An array of login names (strings).
+<dt><a name="match_(array)"
+><code  class="code">match</code> (array)</a></dt>
+
+<dd>
+<p>An array of strings.
+This works just like &#34;user matching&#34; in Bugzilla itself.
+Users will be returned whose real name or login name contains any one of the specified strings.
+Users that you cannot see will not be included in the returned list.</p>
+
+<p>Some Bugzilla installations have user-matching turned off,
+in which case you will only be returned exact matches.</p>
+
+<p>Most installations have a limit on how many matches are returned for each string,
+which defaults to 1000 but can be changed by the Bugzilla administrator.</p>
+
+<p>Logged-out users cannot use this argument,
+and an error will be thrown if they try.
+(This is to make it harder for spammers to harvest email addresses from Bugzilla,
+and also to enforce the user visibility restrictions that are implemented on some Bugzillas.)</p>
+</dd>
+</dl>
+
+<dt><a name="Returns"
+><b>Returns</b></a></dt>
+
+<dd>
+<p>A hash containing one item,
+<code  class="code">users</code>,
+that is an array of hashes.
+Each hash describes a user,
+and has the following items:</p>
+
+<dl>
+<dt><a name="id"
+>id</a></dt>
+
+<dd>
+<p><code  class="code">int</code> The unique integer ID that Bugzilla uses to represent this user.
+Even if the user&#39;s login name changes,
+this will not change.</p>
+
+<dt><a name="real_name"
+>real_name</a></dt>
+
+<dd>
+<p><code  class="code">string</code> The actual name of the user.
+May be blank.</p>
+
+<dt><a name="email"
+>email</a></dt>
+
+<dd>
+<p><code  class="code">string</code> The email address of the user.</p>
+
+<dt><a name="name"
+>name</a></dt>
+
+<dd>
+<p><code  class="code">string</code> The login name of the user.
+Note that in some situations this is different than their email.</p>
+
+<dt><a name="can_login"
+>can_login</a></dt>
+
+<dd>
+<p><code  class="code">boolean</code> A boolean value to indicate if the user can login into bugzilla.</p>
+
+<dt><a name="email_enabled"
+>email_enabled</a></dt>
+
+<dd>
+<p><code  class="code">boolean</code> A boolean value to indicate if bug-related mail will be sent to the user or not.</p>
+
+<dt><a name="login_denied_text"
+>login_denied_text</a></dt>
+
+<dd>
+<p><code  class="code">string</code> A text field that holds the reason for disabling a user from logging into bugzilla,
+if empty then the user account is enabled.
+Otherwise it is disabled/closed.</p>
+
+<p><b>Note</b>: If you are not logged in to Bugzilla when you call this function,
+you will only be returned the <code  class="code">id</code>,
+<code  class="code">name</code>,
+and <code  class="code">real_name</code> items.
+If you are logged in and not in editusers group,
+you will only be returned the <code  class="code">id</code>,
+<code  class="code">name</code>,
+<code  class="code">real_name</code>,
+<code  class="code">email</code>,
+and <code  class="code">can_login</code> items.</p>
+</dd>
+</dl>
+
+<dt><a name="Errors"
+><b>Errors</b></a></dt>
+
+<dd>
+<dl>
+<dt><a name="51_(Bad_Login_Name)"
+>51 (Bad Login Name)</a></dt>
+
+<dd>
+<p>You passed an invalid login name in the &#34;names&#34; array.</p>
+
+<dt><a name="304_(Authorization_Required)"
+>304 (Authorization Required)</a></dt>
+
+<dd>
+<p>You are logged in,
+but you are not authorized to see one of the users you wanted to get information about by user id.</p>
+
+<dt><a name="505_(User_Access_By_Id_or_User-Matching_Denied)"
+>505 (User Access By Id or User-Matching Denied)</a></dt>
+
+<dd>
+<p>Logged-out users cannot use the &#34;ids&#34; or &#34;match&#34; arguments to this function.</p>
 </dd>
 </dl>
 

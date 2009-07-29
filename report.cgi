@@ -102,26 +102,23 @@ else {
     }
 }
 
-my %columns;
-$columns{bug_severity}     = "bugs.bug_severity";
-$columns{priority}         = "bugs.priority";
-$columns{rep_platform}     = "bugs.rep_platform";
-$columns{assigned_to}      = "map_assigned_to.login_name";
-$columns{reporter}         = "map_reporter.login_name";
-$columns{qa_contact}       = "map_qa_contact.login_name";
-$columns{bug_status}       = "bugs.bug_status";
-$columns{resolution}       = "bugs.resolution";
-$columns{component}        = "map_components.name";
-$columns{product}          = "map_products.name";
-$columns{classification}   = "map_classifications.name";
-$columns{version}          = "bugs.version";
-$columns{op_sys}           = "bugs.op_sys";
-$columns{votes}            = "bugs.votes";
-$columns{keywords}         = "bugs.keywords";
-$columns{target_milestone} = "bugs.target_milestone";
-# One which means "nothing". Any number would do, really. It just gets SELECTed
-# so that we always select 3 items in the query.
-$columns{''}                 = "42217354";
+# Valid bug fields that can be reported on.
+my @columns = qw(
+    assigned_to
+    reporter
+    qa_contact
+    component
+    classification
+    version
+    votes
+    keywords
+    target_milestone
+);
+# Single-select fields (custom or not) are also accepted as valid.
+my @single_selects = Bugzilla->get_fields({ type => FIELD_TYPE_SINGLE_SELECT,
+                                            obsolete => 0 });
+push(@columns, map { $_->name } @single_selects);
+my %valid_columns = map { $_ => 1 } @columns;
 
 my $measures = {
     etime => "bugs.estimated_time AS measure",
@@ -134,21 +131,23 @@ $vars->{measure} = $measure;
 
 # Validate the values in the axis fields or throw an error.
 !$row_field 
-  || ($columns{$row_field} && trick_taint($row_field))
+  || ($valid_columns{$row_field} && trick_taint($row_field))
   || ThrowCodeError("report_axis_invalid", {fld => "x", val => $row_field});
 !$col_field 
-  || ($columns{$col_field} && trick_taint($col_field))
+  || ($valid_columns{$col_field} && trick_taint($col_field))
   || ThrowCodeError("report_axis_invalid", {fld => "y", val => $col_field});
 !$tbl_field 
-  || ($columns{$tbl_field} && trick_taint($tbl_field))
+  || ($valid_columns{$tbl_field} && trick_taint($tbl_field))
   || ThrowCodeError("report_axis_invalid", {fld => "z", val => $tbl_field});
 
-my @axis_fields = ($row_field, $col_field, $tbl_field);
-my @selectnames = (map($columns{$_}, @axis_fields), $measure);
+my @axis_fields = ($row_field || EMPTY_COLUMN, 
+                   $col_field || EMPTY_COLUMN,
+                   $tbl_field || EMPTY_COLUMN,
+                   $measure);
 
 # Clone the params, so that Bugzilla::Search can modify them
 my $params = new Bugzilla::CGI($cgi);
-my $search = new Bugzilla::Search('fields' => \@selectnames,
+my $search = new Bugzilla::Search('fields' => \@axis_fields, 
                                   'params' => $params);
 my $query = $search->getSQL();
 
@@ -179,9 +178,9 @@ foreach my $result (@$results) {
     $col = ' ' if ($col eq '');
     $tbl = ' ' if ($tbl eq '');
 
-    $row = "" if ($row eq $columns{''});
-    $col = "" if ($col eq $columns{''});
-    $tbl = "" if ($tbl eq $columns{''});
+    $row = "" if ($row eq EMPTY_COLUMN);
+    $col = "" if ($col eq EMPTY_COLUMN);
+    $tbl = "" if ($tbl eq EMPTY_COLUMN);
 
     # account for the fact that names may start with '_' or '.'.  Change this
     # so the template doesn't hide hash elements with those keys
@@ -235,7 +234,7 @@ foreach my $tbl (@tbl_names) {
 $vars->{'col_field'} = $col_field;
 $vars->{'row_field'} = $row_field;
 $vars->{'tbl_field'} = $tbl_field;
-$vars->{'time'} = time();
+$vars->{'time'} = localtime(time());
 
 $vars->{'col_names'} = \@col_names;
 $vars->{'row_names'} = \@row_names;

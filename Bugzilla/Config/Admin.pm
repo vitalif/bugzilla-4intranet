@@ -49,20 +49,14 @@ sub get_param_list {
   {
    name => 'allowemailchange',
    type => 'b',
-   default => 0
+   default => 1
   },
 
   {
    name => 'allowuserdeletion',
    type => 'b',
    default => 0
-  },
-
-  {
-   name => 'supportwatchers',
-   type => 'b',
-   default => 0
-  } );
+  });
   return @param_list;
 }
 

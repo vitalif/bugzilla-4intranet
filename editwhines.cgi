@@ -238,7 +238,6 @@ if ($cgi->param('update')) {
                     # get an id for the mailto address
                     if ($can_mail_others && $mailto) {
                         if ($mailto_type == MAILTO_USER) {
-                            # The user login has already been validated.
                             $mailto_id = login_to_id($mailto);
                         }
                         elsif ($mailto_type == MAILTO_GROUP) {
@@ -427,6 +426,7 @@ while (my ($query) = $sth->fetchrow_array) {
     push @{$vars->{'available_queries'}}, $query;
 }
 $vars->{'token'} = issue_session_token('edit_whine');
+$vars->{'local_timezone'} = Bugzilla->local_timezone->short_name_for_datetime(DateTime->now());
 
 $template->process("whine/schedule.html.tmpl", $vars)
   || ThrowTemplateError($template->error());

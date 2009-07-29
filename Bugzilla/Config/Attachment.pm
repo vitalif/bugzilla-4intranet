@@ -66,13 +66,6 @@ sub get_param_list {
         },
 
         {
-            name    => 'maxpatchsize',
-            type    => 't',
-            default => '1000',
-            checker => \&check_numeric
-        },
-
-        {
             name    => 'maxattachmentsize',
             type    => 't',
             default => '1000',

@@ -18,6 +18,16 @@
   * Contributor(s): Myk Melez <myk@mozilla.org>
   */
 
+.search_description {
+  margin: .5em 0;
+  padding: 0;
+}
+.search_description li {
+  list-style-type: none;
+  display: inline;
+  margin-right: 2em;
+}
+
 .bz_id_column {
 }
 
@@ -61,6 +71,28 @@ tr.bz_secure_mode_implied td.first-child {
 tr.bz_secure_mode_manual td.first-child {
 }
 
+td.bz_estimated_time_column,
+td.bz_remaining_time_column,
+td.bz_actual_time_column,
+td.bz_percentage_complete_column {
+    text-align: right;
+}
+
+td.bz_total_label {
+    font-weight: bold;
+}
+
+td.bz_total {
+    border-top-style: solid;
+    border-top-color: #929bb1;
+    border-top-width: 3px;
+    text-align: right;
+}
+
 #commit, #action {
   margin-top: .25em;
+}
+
+.bz_query_explain {
+    text-align: left;
 }

@@ -41,7 +41,7 @@ $vars->{urlquerypart} = $queryparams->canonicalise_query('order', 'cmdtype', 'qu
 
 my $search = new Bugzilla::Search(
     params => $queryparams,
-    fields => [ "bugs.bug_id" ],
+    fields => [ "bug_id" ],
     user   => $user
 );
 

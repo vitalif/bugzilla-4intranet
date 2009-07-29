@@ -96,6 +96,9 @@ if ($cgi->param('nukedefaultquery')) {
     $buffer = "";
 }
 
+# We are done with changes committed to the DB.
+$dbh = Bugzilla->switch_to_shadow_db;
+
 my $userdefaultquery;
 if ($userid) {
     $userdefaultquery = $dbh->selectrow_array(
@@ -116,7 +119,7 @@ sub PrefillForm {
     my $foundone = 0;
 
     # Nothing must be undef, otherwise the template complains.
-    foreach my $name ("bug_status", "resolution", "assigned_to",
+    my @list = ("bug_status", "resolution", "assigned_to",
                       "rep_platform", "priority", "bug_severity",
                       "classification", "product", "reporter", "op_sys",
                       "component", "version", "chfield", "chfieldfrom",
@@ -133,8 +136,13 @@ sub PrefillForm {
                       "x_axis_field", "y_axis_field", "z_axis_field",
                       "chart_format", "cumulate", "x_labels_vertical",
                       "category", "subcategory", "name", "newcategory",
-                      "newsubcategory", "public", "frequency") 
-    {
+                      "newsubcategory", "public", "frequency");
+    # These fields can also have default values (when used in reports).
+    my @custom_select_fields =
+      grep { $_->type == FIELD_TYPE_SINGLE_SELECT } Bugzilla->active_custom_fields;
+    push(@list, map { $_->name } @custom_select_fields);
+
+    foreach my $name (@list) {
         $default{$name} = [];
     }
  
@@ -343,7 +351,15 @@ if (($cgi->param('query_format') || $cgi->param('format') || "")
     $vars->{'category'} = Bugzilla::Chart::getVisibleSeries();
 }
 
+if ($cgi->param('format') && $cgi->param('format') =~ /^report-(table|graph)$/) {
+    # Get legal custom fields for tabular and graphical reports.
+    my @custom_fields_for_reports =
+      grep { $_->type == FIELD_TYPE_SINGLE_SELECT } Bugzilla->active_custom_fields;
+    $vars->{'custom_fields'} = \@custom_fields_for_reports;
+}
+
 $vars->{'known_name'} = $cgi->param('known_name');
+$vars->{'columnlist'} = $cgi->param('columnlist');
 
 
 # Add in the defaults.

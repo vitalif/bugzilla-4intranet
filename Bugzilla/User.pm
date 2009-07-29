@@ -48,6 +48,10 @@ use Bugzilla::User::Setting;
 use Bugzilla::Product;
 use Bugzilla::Classification;
 use Bugzilla::Field;
+use Bugzilla::Group;
+
+use Scalar::Util qw(blessed);
+use DateTime::TimeZone;
 
 use base qw(Bugzilla::Object Exporter);
 @Bugzilla::User::EXPORT = qw(is_available_username
@@ -362,6 +366,22 @@ sub settings {
     return $self->{'settings'};
 }
 
+sub timezone {
+    my $self = shift;
+
+    if (!defined $self->{timezone}) {
+        my $tz = $self->settings->{timezone}->{value};
+        if ($tz eq 'local') {
+            # The user wants the local timezone of the server.
+            $self->{timezone} = Bugzilla->local_timezone;
+        }
+        else {
+            $self->{timezone} = DateTime::TimeZone->new(name => $tz);
+        }
+    }
+    return $self->{timezone};
+}
+
 sub flush_queries_cache {
     my $self = shift;
 
@@ -374,75 +394,62 @@ sub groups {
     my $self = shift;
 
     return $self->{groups} if defined $self->{groups};
-    return {} unless $self->id;
+    return [] unless $self->id;
 
     my $dbh = Bugzilla->dbh;
-    my $groups = $dbh->selectcol_arrayref(q{SELECT DISTINCT groups.name, group_id
-                                              FROM groups, user_group_map
-                                             WHERE groups.id=user_group_map.group_id
-                                               AND user_id=?
-                                               AND isbless=0},
-                                          { Columns=>[1,2] },
-                                          $self->id);
+    my $groups_to_check = $dbh->selectcol_arrayref(
+        q{SELECT DISTINCT group_id
+            FROM user_group_map
+           WHERE user_id = ? AND isbless = 0}, undef, $self->id);
 
-    # The above gives us an arrayref [name, id, name, id, ...]
-    # Convert that into a hashref
-    my %groups = @$groups;
-    my @groupidstocheck = values(%groups);
-    my %groupidschecked = ();
     my $rows = $dbh->selectall_arrayref(
-                "SELECT DISTINCT groups.name, groups.id, member_id
+        "SELECT DISTINCT grantor_id, member_id
                             FROM group_group_map
-                      INNER JOIN groups
-                              ON groups.id = grantor_id
                            WHERE grant_type = " . GROUP_MEMBERSHIP);
-    my %group_names = ();
-    my %group_membership = ();
-    foreach my $row (@$rows) {
-        my ($member_name, $grantor_id, $member_id) = @$row; 
-        # Just save the group names
-        $group_names{$grantor_id} = $member_name;
         
-        # And group membership
-        push (@{$group_membership{$member_id}}, $grantor_id);
+    my %group_membership;
+    foreach my $row (@$rows) {
+        my ($grantor_id, $member_id) = @$row; 
+        push (@{ $group_membership{$member_id} }, $grantor_id);
     }
     
     # Let's walk the groups hierarchy tree (using FIFO)
     # On the first iteration it's pre-filled with direct groups 
     # membership. Later on, each group can add its own members into the
     # FIFO. Circular dependencies are eliminated by checking
-    # $groupidschecked{$member_id} hash values.
+    # $checked_groups{$member_id} hash values.
     # As a result, %groups will have all the groups we are the member of.
-    while ($#groupidstocheck >= 0) {
+    my %checked_groups;
+    my %groups;
+    while (scalar(@$groups_to_check) > 0) {
         # Pop the head group from FIFO
-        my $member_id = shift @groupidstocheck;
+        my $member_id = shift @$groups_to_check;
         
         # Skip the group if we have already checked it
-        if (!$groupidschecked{$member_id}) {
+        if (!$checked_groups{$member_id}) {
             # Mark group as checked
-            $groupidschecked{$member_id} = 1;
+            $checked_groups{$member_id} = 1;
             
             # Add all its members to the FIFO check list
             # %group_membership contains arrays of group members 
             # for all groups. Accessible by group number.
-            foreach my $newgroupid (@{$group_membership{$member_id}}) {
-                push @groupidstocheck, $newgroupid 
-                    if (!$groupidschecked{$newgroupid});
-            }
-            # Note on if clause: we could have group in %groups from 1st
-            # query and do not have it in second one
-            $groups{$group_names{$member_id}} = $member_id 
-                if $group_names{$member_id} && $member_id;
+            my $members = $group_membership{$member_id};
+            my @new_to_check = grep(!$checked_groups{$_}, @$members);
+            push(@$groups_to_check, @new_to_check);
+
+            $groups{$member_id} = 1;
         }
     }
-    $self->{groups} = \%groups;
+
+    $self->{groups} = Bugzilla::Group->new_from_list([keys %groups]);
 
     return $self->{groups};
 }
 
 sub groups_as_string {
     my $self = shift;
-    return (join(',',values(%{$self->groups})) || '-1');
+    my @ids = map { $_->id } @{ $self->groups };
+    return scalar(@ids) ? join(',', @ids) : '-1';
 }
 
 sub bless_groups {
@@ -451,54 +458,45 @@ sub bless_groups {
     return $self->{'bless_groups'} if defined $self->{'bless_groups'};
     return [] unless $self->id;
 
-    my $dbh = Bugzilla->dbh;
-    my $query;
-    my $connector;
-    my @bindValues;
-
     if ($self->in_group('editusers')) {
         # Users having editusers permissions may bless all groups.
-        $query = 'SELECT DISTINCT id, name, description FROM groups';
-        $connector = 'WHERE';
+        $self->{'bless_groups'} = [Bugzilla::Group->get_all];
+        return $self->{'bless_groups'};
     }
-    else {
+
+    my $dbh = Bugzilla->dbh;
+
         # Get all groups for the user where:
         #    + They have direct bless privileges
         #    + They are a member of a group that inherits bless privs.
-        $query = q{
-            SELECT DISTINCT groups.id, groups.name, groups.description
+    my @group_ids = map {$_->id} @{ $self->groups };
+    @group_ids = (-1) if !@group_ids;
+    my $query =
+        'SELECT DISTINCT groups.id
                        FROM groups, user_group_map, group_group_map AS ggm
                       WHERE user_group_map.user_id = ?
-                        AND ((user_group_map.isbless = 1
+                AND ( (user_group_map.isbless = 1
                               AND groups.id=user_group_map.group_id)
                              OR (groups.id = ggm.grantor_id
-                                 AND ggm.grant_type = ?
-                                 AND ggm.member_id IN(} .
-                                 $self->groups_as_string . 
-                               q{)))};
-        $connector = 'AND';
-        @bindValues = ($self->id, GROUP_BLESS);
-    }
+                         AND ggm.grant_type = ' . GROUP_BLESS . '
+                         AND ' . $dbh->sql_in('ggm.member_id', \@group_ids)
+                     . ') )';
 
     # If visibilitygroups are used, restrict the set of groups.
-    if (!$self->in_group('editusers')
-        && Bugzilla->params->{'usevisibilitygroups'}) 
-    {
+    if (Bugzilla->params->{'usevisibilitygroups'}) {
+        return [] if !$self->visible_groups_as_string;
         # Users need to see a group in order to bless it.
-        my $visibleGroups = join(', ', @{$self->visible_groups_direct()})
-            || return $self->{'bless_groups'} = [];
-        $query .= " $connector id in ($visibleGroups)";
+        $query .= " AND "
+            . $dbh->sql_in('groups.id', $self->visible_groups_inherited);
     }
 
-    $query .= ' ORDER BY name';
-
-    return $self->{'bless_groups'} =
-        $dbh->selectall_arrayref($query, {'Slice' => {}}, @bindValues);
+    my $ids = $dbh->selectcol_arrayref($query, undef, $self->id);
+    return $self->{'bless_groups'} = Bugzilla::Group->new_from_list($ids);
 }
 
 sub in_group {
     my ($self, $group, $product_id) = @_;
-    if (exists $self->groups->{$group}) {
+    if (scalar grep($_->name eq $group, @{ $self->groups })) {
         return 1;
     }
     elsif ($product_id && detaint_natural($product_id)) {
@@ -527,8 +525,7 @@ sub in_group {
 
 sub in_group_id {
     my ($self, $id) = @_;
-    my %j = reverse(%{$self->groups});
-    return exists $j{$id} ? 1 : 0;
+    return grep($_->id == $id, @{ $self->groups }) ? 1 : 0;
 }
 
 sub get_products_by_permission {
@@ -590,44 +587,72 @@ sub can_edit_product {
 }
 
 sub can_see_bug {
-    my ($self, $bugid) = @_;
+    my ($self, $bug_id) = @_;
+    return @{ $self->visible_bugs([$bug_id]) } ? 1 : 0;
+}
+
+sub visible_bugs {
+    my ($self, $bugs) = @_;
+    # Allow users to pass in Bug objects and bug ids both.
+    my @bug_ids = map { blessed $_ ? $_->id : $_ } @$bugs;
+
+    # We only check the visibility of bugs that we haven't
+    # checked yet.
+    # Bugzilla::Bug->update automatically removes updated bugs
+    # from the cache to force them to be checked again.
+    my $visible_cache = $self->{_visible_bugs_cache} ||= {};
+    my @check_ids = grep(!exists $visible_cache->{$_}, @bug_ids);
+
+    if (@check_ids) {
     my $dbh = Bugzilla->dbh;
-    my $sth  = $self->{sthCanSeeBug};
-    my $userid  = $self->id;
-    # Get fields from bug, presence of user on cclist, and determine if
-    # the user is missing any groups required by the bug. The prepared query
-    # is cached because this may be called for every row in buglists or
-    # every bug in a dependency list.
-    unless ($sth) {
-        $sth = $dbh->prepare("SELECT 1, reporter, assigned_to, qa_contact,
-                             reporter_accessible, cclist_accessible,
-                             COUNT(cc.who), COUNT(bug_group_map.bug_id)
+        my $user_id = $self->id;
+        my $sth;
+        # Speed up the can_see_bug case.
+        if (scalar(@check_ids) == 1) {
+            $sth = $self->{_sth_one_visible_bug};
+        }
+        $sth ||= $dbh->prepare(
+            # This checks for groups that the bug is in that the user
+            # *isn't* in. Then, in the Perl code below, we check if
+            # the user can otherwise access the bug (for example, by being
+            # the assignee or QA Contact).
+            #
+            # The DISTINCT exists because the bug could be in *several*
+            # groups that the user isn't in, but they will all return the
+            # same result for bug_group_map.bug_id (so DISTINCT filters
+            # out duplicate rows).
+            "SELECT DISTINCT bugs.bug_id, reporter, assigned_to, qa_contact,
+                    reporter_accessible, cclist_accessible, cc.who,
+                    bug_group_map.bug_id
                              FROM bugs
                              LEFT JOIN cc 
                                ON cc.bug_id = bugs.bug_id
-                               AND cc.who = $userid
+                                 AND cc.who = $user_id
                              LEFT JOIN bug_group_map 
                                ON bugs.bug_id = bug_group_map.bug_id
-                               AND bug_group_map.group_ID NOT IN(" .
-                               $self->groups_as_string .
-                               ") WHERE bugs.bug_id = ? 
-                               AND creation_ts IS NOT NULL " .
-                             $dbh->sql_group_by('bugs.bug_id', 'reporter, ' .
-                             'assigned_to, qa_contact, reporter_accessible, ' .
-                             'cclist_accessible'));
-    }
-    $sth->execute($bugid);
-    my ($ready, $reporter, $owner, $qacontact, $reporter_access, $cclist_access,
-        $isoncclist, $missinggroup) = $sth->fetchrow_array();
-    $sth->finish;
-    $self->{sthCanSeeBug} = $sth;
-    return ($ready
-            && ((($reporter == $userid) && $reporter_access)
+                                 AND bug_group_map.group_id NOT IN ("
+                                     . $self->groups_as_string . ')
+              WHERE bugs.bug_id IN (' . join(',', ('?') x @check_ids) . ')
+                    AND creation_ts IS NOT NULL ');
+        if (scalar(@check_ids) == 1) {
+            $self->{_sth_one_visible_bug} = $sth;
+        }
+
+        $sth->execute(@check_ids);
+        while (my $row = $sth->fetchrow_arrayref) {
+            my ($bug_id, $reporter, $owner, $qacontact, $reporter_access, 
+                $cclist_access, $isoncclist, $missinggroup) = @$row;
+            $visible_cache->{$bug_id} ||= 
+                ((($reporter == $user_id) && $reporter_access)
                 || (Bugzilla->params->{'useqacontact'} 
-                    && $qacontact && ($qacontact == $userid))
-                || ($owner == $userid)
+                     && $qacontact && ($qacontact == $user_id))
+                 || ($owner == $user_id)
                 || ($isoncclist && $cclist_access)
-                || (!$missinggroup)));
+                 || !$missinggroup) ? 1 : 0;
+        }
+    }
+
+    return [grep { $visible_cache->{blessed $_ ? $_->id : $_} } @$bugs];
 }
 
 sub can_see_product {
@@ -677,20 +702,12 @@ sub get_selectable_products {
 sub get_selectable_classifications {
     my ($self) = @_;
 
-    if (defined $self->{selectable_classifications}) {
-        return $self->{selectable_classifications};
-    }
-
+    if (!defined $self->{selectable_classifications}) {
     my $products = $self->get_selectable_products;
+        my %class_ids = map { $_->classification_id => 1 } @$products;
 
-    my $class;
-    foreach my $product (@$products) {
-        $class->{$product->classification_id} ||= 
-            new Bugzilla::Classification($product->classification_id);
+        $self->{selectable_classifications} = Bugzilla::Classification->new_from_list([keys %class_ids]);
     }
-    my @sorted_class = sort {$a->sortkey <=> $b->sortkey 
-                             || lc($a->name) cmp lc($b->name)} (values %$class);
-    $self->{selectable_classifications} = \@sorted_class;
     return $self->{selectable_classifications};
 }
 
@@ -839,7 +856,7 @@ sub visible_groups_inherited {
     return $self->{visible_groups_inherited} if defined $self->{visible_groups_inherited};
     return [] unless $self->id;
     my @visgroups = @{$self->visible_groups_direct};
-    @visgroups = @{$self->flatten_group_membership(@visgroups)};
+    @visgroups = @{Bugzilla::Group->flatten_group_membership(@visgroups)};
     $self->{visible_groups_inherited} = \@visgroups;
     return $self->{visible_groups_inherited};
 }
@@ -856,7 +873,7 @@ sub visible_groups_direct {
     my $sth;
    
     if (Bugzilla->params->{'usevisibilitygroups'}) {
-        my $glist = join(',',(-1,values(%{$self->groups})));
+        my $glist = $self->groups_as_string;
         $sth = $dbh->prepare("SELECT DISTINCT grantor_id
                                  FROM group_group_map
                                 WHERE member_id IN($glist)
@@ -901,7 +918,7 @@ sub queryshare_groups {
             }
         }
         else {
-            @queryshare_groups = values(%{$self->groups});
+            @queryshare_groups = map { $_->id } @{ $self->groups };
         }
     }
 
@@ -1020,36 +1037,12 @@ sub can_bless {
     if (!scalar(@_)) {
         # If we're called without an argument, just return 
         # whether or not we can bless at all.
-        return scalar(@{$self->bless_groups}) ? 1 : 0;
+        return scalar(@{ $self->bless_groups }) ? 1 : 0;
     }
 
     # Otherwise, we're checking a specific group
     my $group_id = shift;
-    return (grep {$$_{'id'} eq $group_id} (@{$self->bless_groups})) ? 1 : 0;
-}
-
-sub flatten_group_membership {
-    my ($self, @groups) = @_;
-
-    my $dbh = Bugzilla->dbh;
-    my $sth;
-    my @groupidstocheck = @groups;
-    my %groupidschecked = ();
-    $sth = $dbh->prepare("SELECT member_id FROM group_group_map
-                             WHERE grantor_id = ? 
-                               AND grant_type = " . GROUP_MEMBERSHIP);
-    while (my $node = shift @groupidstocheck) {
-        $sth->execute($node);
-        my $member;
-        while (($member) = $sth->fetchrow_array) {
-            if (!$groupidschecked{$member}) {
-                $groupidschecked{$member} = 1;
-                push @groupidstocheck, $member;
-                push @groups, $member unless grep $_ == $member, @groups;
-            }
-        }
-    }
-    return \@groups;
+    return grep($_->id == $group_id, @{ $self->bless_groups }) ? 1 : 0;
 }
 
 sub match {
@@ -1121,7 +1114,6 @@ sub match {
         && (Bugzilla->params->{'usermatchmode'} eq 'search')
         && (length($str) >= 3))
     {
-        $str = lc($str);
         trick_taint($str);
 
         my $query   = "SELECT DISTINCT login_name FROM profiles ";
@@ -1130,8 +1122,8 @@ sub match {
                                ON user_group_map.user_id = profiles.userid ";
         }
         $query     .= " WHERE (" .
-                $dbh->sql_position('?', 'LOWER(login_name)') . " > 0" . " OR " .
-                $dbh->sql_position('?', 'LOWER(realname)') . " > 0) ";
+                $dbh->sql_iposition('?', 'login_name') . " > 0" . " OR " .
+                $dbh->sql_iposition('?', 'realname') . " > 0) ";
         if (Bugzilla->params->{'usevisibilitygroups'}) {
             $query .= " AND isbless = 0" .
                       " AND group_id IN(" .
@@ -1429,8 +1421,9 @@ our %names_to_events = (
 # Note: the "+" signs before the constants suppress bareword quoting.
 sub wants_bug_mail {
     my $self = shift;
-    my ($bug_id, $relationship, $fieldDiffs, $commentField, $dependencyText,
+    my ($bug_id, $relationship, $fieldDiffs, $comments, $dependencyText,
         $changer, $bug_is_new) = @_;
+    my $comments_concatenated = join("\n", map { $_->{body} } (@$comments));
 
     # Make a list of the events which have happened during this bug change,
     # from the point of view of this user.    
@@ -1465,20 +1458,24 @@ sub wants_bug_mail {
         }
     }
 
+    if ($bug_is_new) {
+        # Notify about new bugs.
+        $events{+EVT_BUG_CREATED} = 1;
+
     # You role is new if the bug itself is.
     # Only makes sense for the assignee, QA contact and the CC list.
-    if ($bug_is_new
-        && ($relationship == REL_ASSIGNEE
+        if ($relationship == REL_ASSIGNEE
             || $relationship == REL_QA
-            || $relationship == REL_CC))
+            || $relationship == REL_CC)
     {
         $events{+EVT_ADDED_REMOVED} = 1;
     }
+    }
 
-    if ($commentField =~ /Created an attachment \(/) {
+    if ($comments_concatenated =~ /Created an attachment \(/) {
         $events{+EVT_ATTACHMENT} = 1;
     }
-    elsif ($commentField ne '') {
+    elsif (defined($$comments[0])) {
         $events{+EVT_COMMENT} = 1;
     }
     
@@ -1585,6 +1582,17 @@ sub is_global_watcher {
         $self->{'is_global_watcher'} = scalar(grep { $_ eq $self->login } @watchers) ? 1 : 0;
     }
     return  $self->{'is_global_watcher'};
+}
+
+sub is_timetracker {
+    my $self = shift;
+
+    if (!defined $self->{'is_timetracker'}) {
+        my $tt_group = Bugzilla->params->{'timetrackinggroup'};
+        $self->{'is_timetracker'} =
+            ($tt_group && $self->in_group($tt_group)) ? 1 : 0;
+    }
+    return $self->{'is_timetracker'};
 }
 
 sub get_userlist {
@@ -1925,12 +1933,15 @@ value          - the value of this setting for this user. Will be the same
 is_default     - a boolean to indicate whether the user has chosen to make
                  a preference for themself or use the site default.
 
+=item C<timezone>
+
+Returns the timezone used to display dates and times to the user,
+as a DateTime::TimeZone object.
+
 =item C<groups>
 
-Returns a hashref of group names for groups the user is a member of. The keys
-are the names of the groups, whilst the values are the respective group ids.
-(This is so that a set of all groupids for groups the user is in can be
-obtained by C<values(%{$user-E<gt>groups})>.)
+Returns an arrayref of L<Bugzilla::Group> objects representing
+groups that this user is a member of.
 
 =item C<groups_as_string>
 
@@ -1950,12 +1961,11 @@ Determines whether or not a user is in the given group by id.
 
 =item C<bless_groups>
 
-Returns an arrayref of hashes of C<groups> entries, where the keys of each hash
-are the names of C<id>, C<name> and C<description> columns of the C<groups>
-table.
+Returns an arrayref of L<Bugzilla::Group> objects.
+
 The arrayref consists of the groups the user can bless, taking into account
 that having editusers permissions means that you can bless all groups, and
-that you need to be aware of a group in order to bless a group.
+that you need to be able to see a group in order to bless it.
 
 =item C<get_products_by_permission($group)>
 
@@ -2082,14 +2092,6 @@ and 0 if the user should not be aware of the existence of the product.
 Returns a reference to an array of users.  The array is populated with hashrefs
 containing the login, identity and visibility.  Users that are not visible to this
 user will have 'visible' set to zero.
-
-=item C<flatten_group_membership>
-
-Accepts a list of groups and returns a list of all the groups whose members 
-inherit membership in any group on the list.  So, we can determine if a user
-is in any of the groups input to flatten_group_membership by querying the
-user_group_map for any user with DIRECT or REGEXP membership IN() the list
-of groups returned.
 
 =item C<direct_group_membership>
 

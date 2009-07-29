@@ -101,6 +101,7 @@ use File::Basename;
     POS_EVENTS
     EVT_OTHER EVT_ADDED_REMOVED EVT_COMMENT EVT_ATTACHMENT EVT_ATTACHMENT_DATA
     EVT_PROJ_MANAGEMENT EVT_OPENED_CLOSED EVT_KEYWORD EVT_CC EVT_DEPEND_BLOCK
+    EVT_BUG_CREATED
     
     NEG_EVENTS
     EVT_UNCONFIRMED EVT_CHANGED_BY_ME 
@@ -122,6 +123,8 @@ use File::Basename;
     FIELD_TYPE_MULTI_SELECT
     FIELD_TYPE_TEXTAREA
     FIELD_TYPE_DATETIME
+    FIELD_TYPE_BUG_ID
+    FIELD_TYPE_BUG_URLS
 
     USAGE_MODE_BROWSER
     USAGE_MODE_CMDLINE
@@ -149,9 +152,16 @@ use File::Basename;
     MAX_SMALLINT
 
     MAX_LEN_QUERY_NAME
+    MAX_CLASSIFICATION_SIZE
+    MAX_PRODUCT_SIZE
     MAX_MILESTONE_SIZE
     MAX_COMPONENT_SIZE
+    MAX_FIELD_VALUE_SIZE
     MAX_FREETEXT_LENGTH
+    MAX_BUG_URL_LENGTH
+
+    PASSWORD_DIGEST_ALGORITHM
+    PASSWORD_SALT_LENGTH
 );
 
 @Bugzilla::Constants::EXPORT_OK = qw(contenttypes);
@@ -159,7 +169,7 @@ use File::Basename;
 # CONSTANTS
 #
 # Bugzilla version
-use constant BUGZILLA_VERSION => "3.2.4";
+use constant BUGZILLA_VERSION => "3.4";
 
 # These are unique values that are unlikely to match a string or a number,
 # to be used in criteria for match() functions and other things. They start
@@ -306,11 +316,12 @@ use constant EVT_OPENED_CLOSED      => 6;
 use constant EVT_KEYWORD            => 7;
 use constant EVT_CC                 => 8;
 use constant EVT_DEPEND_BLOCK       => 9;
+use constant EVT_BUG_CREATED        => 10;
 
 use constant POS_EVENTS => EVT_OTHER, EVT_ADDED_REMOVED, EVT_COMMENT, 
                            EVT_ATTACHMENT, EVT_ATTACHMENT_DATA, 
                            EVT_PROJ_MANAGEMENT, EVT_OPENED_CLOSED, EVT_KEYWORD,
-                           EVT_CC, EVT_DEPEND_BLOCK;
+                           EVT_CC, EVT_DEPEND_BLOCK, EVT_BUG_CREATED;
 
 use constant EVT_UNCONFIRMED        => 50;
 use constant EVT_CHANGED_BY_ME      => 51;
@@ -352,6 +363,8 @@ use constant FIELD_TYPE_SINGLE_SELECT => 2;
 use constant FIELD_TYPE_MULTI_SELECT => 3;
 use constant FIELD_TYPE_TEXTAREA  => 4;
 use constant FIELD_TYPE_DATETIME  => 5;
+use constant FIELD_TYPE_BUG_ID  => 6;
+use constant FIELD_TYPE_BUG_URLS => 7;
 
 # The maximum number of days a token will remain valid.
 use constant MAX_TOKEN_AGE => 3;
@@ -421,14 +434,35 @@ use constant MAX_SMALLINT => 32767;
 # The longest that a saved search name can be.
 use constant MAX_LEN_QUERY_NAME => 64;
 
+# The longest classification name allowed.
+use constant MAX_CLASSIFICATION_SIZE => 64;
+
+# The longest product name allowed.
+use constant MAX_PRODUCT_SIZE => 64;
+
 # The longest milestone name allowed.
 use constant MAX_MILESTONE_SIZE => 20;
 
 # The longest component name allowed.
 use constant MAX_COMPONENT_SIZE => 64;
 
+# The maximum length for values of <select> fields.
+use constant MAX_FIELD_VALUE_SIZE => 64;
+
 # Maximum length allowed for free text fields.
 use constant MAX_FREETEXT_LENGTH => 255;
+
+# The longest a bug URL in a BUG_URLS field can be.
+use constant MAX_BUG_URL_LENGTH => 255;
+
+# This is the name of the algorithm used to hash passwords before storing
+# them in the database. This can be any string that is valid to pass to
+# Perl's "Digest" module. Note that if you change this, it won't take
+# effect until a user changes his password.
+use constant PASSWORD_DIGEST_ALGORITHM => 'SHA-256';
+# How long of a salt should we use? Note that if you change this, none
+# of your users will be able to log in until they reset their passwords.
+use constant PASSWORD_SALT_LENGTH => 8;
 
 sub bz_locations {
     # We know that Bugzilla/Constants.pm must be in %INC at this point.

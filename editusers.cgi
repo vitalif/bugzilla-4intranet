@@ -136,30 +136,35 @@ if ($action eq 'search') {
             } else {
                 $expr = "profiles.login_name";
             }
+
+            if ($matchstr =~ /^(regexp|notregexp|exact)$/) {
+                $matchstr ||= '.';
+            }
+            else {
+                $matchstr = '' unless defined $matchstr;
+            }
+            # We can trick_taint because we use the value in a SELECT only,
+            # using a placeholder.
+            trick_taint($matchstr);
+
             if ($matchtype eq 'regexp') {
-                $query .= $dbh->sql_regexp($expr, '?');
-                $matchstr = '.' unless $matchstr;
+                $query .= $dbh->sql_regexp($expr, '?', 0, $dbh->quote($matchstr));
             } elsif ($matchtype eq 'notregexp') {
-                $query .= $dbh->sql_not_regexp($expr, '?');
-                $matchstr = '.' unless $matchstr;
+                $query .= $dbh->sql_not_regexp($expr, '?', 0, $dbh->quote($matchstr));
             } elsif ($matchtype eq 'exact') {
                 $query .= $expr . ' = ?';
-                $matchstr = '.' unless $matchstr;
             } else { # substr or unknown
                 $query .= $dbh->sql_istrcmp($expr, '?', 'LIKE');
                 $matchstr = "%$matchstr%";
             }
             $nextCondition = 'AND';
-            # We can trick_taint because we use the value in a SELECT only,
-            # using a placeholder.
-            trick_taint($matchstr);
             push(@bindValues, $matchstr);
         }
 
         # Handle selection by group.
         if ($grouprestrict eq '1') {
             my $grouplist = join(',',
-                @{Bugzilla::User->flatten_group_membership($group->id)});
+                @{Bugzilla::Group->flatten_group_membership($group->id)});
             $query .= " $nextCondition ugm.group_id IN($grouplist) ";
         }
         $query .= ' ORDER BY profiles.login_name';
@@ -238,7 +243,7 @@ if ($action eq 'search') {
 
     # Update profiles table entry; silently skip doing this if the user
     # is not authorized.
-    my %changes;
+    my $changes = {};
     if ($editusers) {
         $otherUser->set_login($cgi->param('login'));
         $otherUser->set_name($cgi->param('name'));
@@ -246,7 +251,7 @@ if ($action eq 'search') {
             if $cgi->param('password');
         $otherUser->set_disabledtext($cgi->param('disabledtext'));
         $otherUser->set_disable_mail($cgi->param('disable_mail'));
-        %changes = %{$otherUser->update()};
+        $changes = $otherUser->update();
     }
 
     # Update group settings.
@@ -276,9 +281,9 @@ if ($action eq 'search') {
     #      would allow to display a friendlier error message on page reloads.
     userDataToVars($otherUserID);
     my $permissions = $vars->{'permissions'};
-    foreach (@{$user->bless_groups()}) {
-        my $id = $$_{'id'};
-        my $name = $$_{'name'};
+    foreach my $blessable (@{$user->bless_groups()}) {
+        my $id = $blessable->id;
+        my $name = $blessable->name;
 
         # Change memberships.
         my $groupid = $cgi->param("group_$id") || 0;
@@ -334,7 +339,7 @@ if ($action eq 'search') {
     delete_token($token);
 
     $vars->{'message'} = 'account_updated';
-    $vars->{'changed_fields'} = [keys %changes];
+    $vars->{'changed_fields'} = [keys %$changes];
     $vars->{'groups_added_to'} = \@groupsAddedTo;
     $vars->{'groups_removed_from'} = \@groupsRemovedFrom;
     $vars->{'groups_granted_rights_to_bless'} = \@groupsGrantedRightsToBless;
@@ -523,7 +528,6 @@ if ($action eq 'search') {
              $otherUserID);
     $dbh->do('DELETE FROM profiles_activity WHERE userid = ? OR who = ?', undef,
              ($otherUserID, $otherUserID));
-    $dbh->do('UPDATE quips SET userid = NULL where userid = ?', undef, $otherUserID);
     $dbh->do('DELETE FROM tokens WHERE userid = ?', undef, $otherUserID);
     $dbh->do('DELETE FROM user_group_map WHERE user_id = ?', undef,
              $otherUserID);
@@ -652,7 +656,7 @@ if ($action eq 'search') {
     $vars->{'profile_changes'} = $dbh->selectall_arrayref(
         "SELECT profiles.login_name AS who, " .
                 $dbh->sql_date_format('profiles_activity.profiles_when') . " AS activity_when,
-                fielddefs.description AS what,
+                fielddefs.name AS what,
                 profiles_activity.oldvalue AS removed,
                 profiles_activity.newvalue AS added
          FROM profiles_activity

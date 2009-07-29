@@ -59,9 +59,6 @@ if (chdir("graphs")) {
     chdir($cwd);
 }
 
-# This is a pure command line script.
-Bugzilla->usage_mode(USAGE_MODE_CMDLINE);
-
 my $dbh = Bugzilla->switch_to_shadow_db();
 
 
@@ -133,32 +130,6 @@ my $tend = time;
 &calculate_dupes();
 
 CollectSeriesData();
-
-{
-    local $ENV{'GATEWAY_INTERFACE'} = 'cmdline';
-    local $ENV{'REQUEST_METHOD'} = 'GET';
-    local $ENV{'QUERY_STRING'} = 'ctype=rdf';
-
-    my $perl = $^X;
-    trick_taint($perl);
-
-    # Generate a static RDF file containing the default view of the duplicates data.
-    open(CGI, "$perl -T duplicates.cgi |")
-        || die "can't fork duplicates.cgi: $!";
-    open(RDF, ">$datadir/duplicates.tmp")
-        || die "can't write to $datadir/duplicates.tmp: $!";
-    my $headers_done = 0;
-    while (<CGI>) {
-        print RDF if $headers_done;
-        $headers_done = 1 if $_ eq "\r\n";
-    }
-    close CGI;
-    close RDF;
-}
-if (-s "$datadir/duplicates.tmp") {
-    rename("$datadir/duplicates.rdf", "$datadir/duplicates-old.rdf");
-    rename("$datadir/duplicates.tmp", "$datadir/duplicates.rdf");
-}
 
 sub check_data_dir {
     my $dir = shift;
@@ -590,7 +561,7 @@ sub CollectSeriesData {
         # login name or a renamed product or component, etc.
         eval {
             my $search = new Bugzilla::Search('params' => $cgi,
-                                              'fields' => ["bugs.bug_id"],
+                                              'fields' => ["bug_id"],
                                               'user'   => $user);
             my $sql = $search->getSQL();
             $data = $shadow_dbh->selectall_arrayref($sql);

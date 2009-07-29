@@ -213,11 +213,18 @@ name="Other_Methods"
 <dd>
 <p>Returns a hash of hashes which holds the user&#39;s settings. The first key is the name of the setting, as found in setting.name. The second key is one of: is_enabled - true if the user is allowed to set the preference themselves; false to force the site defaults for themselves or must accept the global site default value default_value - the global site default for this setting value - the value of this setting for this user. Will be the same as the default_value if the user is not logged in, or if is_default is true. is_default - a boolean to indicate whether the user has chosen to make a preference for themself or use the site default.</p>
 
+<dt><a name="timezone"
+><code  class="code">timezone</code></a></dt>
+
+<dd>
+<p>Returns the timezone used to display dates and times to the user, as a DateTime::TimeZone object.</p>
+
 <dt><a name="groups"
 ><code  class="code">groups</code></a></dt>
 
 <dd>
-<p>Returns a hashref of group names for groups the user is a member of. The keys are the names of the groups, whilst the values are the respective group ids. (This is so that a set of all groupids for groups the user is in can be obtained by <code  class="code">values(%{$user-&#62;groups})</code>.)</p>
+<p>Returns an arrayref of <a href="../Bugzilla/Group.html" class="podlinkpod"
+>Bugzilla::Group</a> objects representing groups that this user is a member of.</p>
 
 <dt><a name="groups_as_string"
 ><code  class="code">groups_as_string</code></a></dt>
@@ -241,7 +248,10 @@ name="Other_Methods"
 ><code  class="code">bless_groups</code></a></dt>
 
 <dd>
-<p>Returns an arrayref of hashes of <code  class="code">groups</code> entries, where the keys of each hash are the names of <code  class="code">id</code>, <code  class="code">name</code> and <code  class="code">description</code> columns of the <code  class="code">groups</code> table. The arrayref consists of the groups the user can bless, taking into account that having editusers permissions means that you can bless all groups, and that you need to be aware of a group in order to bless a group.</p>
+<p>Returns an arrayref of <a href="../Bugzilla/Group.html" class="podlinkpod"
+>Bugzilla::Group</a> objects.</p>
+
+<p>The arrayref consists of the groups the user can bless, taking into account that having editusers permissions means that you can bless all groups, and that you need to be able to see a group in order to bless it.</p>
 
 <dt><a name="get_products_by_permission($group)"
 ><code  class="code">get_products_by_permission($group)</code></a></dt>
@@ -388,12 +398,6 @@ name="Other_Methods"
 
 <dd>
 <p>Returns a reference to an array of users. The array is populated with hashrefs containing the login, identity and visibility. Users that are not visible to this user will have &#39;visible&#39; set to zero.</p>
-
-<dt><a name="flatten_group_membership"
-><code  class="code">flatten_group_membership</code></a></dt>
-
-<dd>
-<p>Accepts a list of groups and returns a list of all the groups whose members inherit membership in any group on the list. So, we can determine if a user is in any of the groups input to flatten_group_membership by querying the user_group_map for any user with DIRECT or REGEXP membership IN() the list of groups returned.</p>
 
 <dt><a name="direct_group_membership"
 ><code  class="code">direct_group_membership</code></a></dt>

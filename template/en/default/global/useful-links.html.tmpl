@@ -27,8 +27,7 @@
 
 <ul id="useful-links">
   <li id="links-actions">
-    <div class="label">Actions: </div>
-      [% PROCESS "global/common-links.html.tmpl" qs_suffix = "_bottom" %]
+      [% PROCESS "global/common-links.html.tmpl" qs_suffix = "_bottom" in_ul = 1 %]
   </li>
 
   [%# Saved searches %]
@@ -38,10 +37,8 @@
   %]
     [% print_pipe = 0 %]
     <li id="links-saved">
-      <div class="label">
-        Saved Searches:
-      </div>
       <ul class="links">
+        <li class="label">Saved Searches:</li>
         [% IF user.showmybugslink %]
           [% filtered_username = user.login FILTER url_quote %]
           <li><a href="[% Param('mybugstemplate').replace('%userid%', filtered_username) %]">My [% terms.Bugs %]</a></li>

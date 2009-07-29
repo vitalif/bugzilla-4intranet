@@ -14,21 +14,16 @@
 #
 # Contributor(s): Marc Schumann <wurblzap@gmail.com>
 #                 Max Kanat-Alexander <mkanat@bugzilla.org>
+#                 Rosie Clarkson <rosie.clarkson@planningportal.gov.uk>
+#                 
+# Portions © Crown copyright 2009 - Rosie Clarkson (development@planningportal.gov.uk) for the Planning Portal
 
+# This is the base class for $self in WebService method calls. For the 
+# actual RPC server, see Bugzilla::WebService::Server and its subclasses.
 package Bugzilla::WebService;
-
 use strict;
-use Bugzilla::WebService::Constants;
-use Bugzilla::Util;
 use Date::Parse;
-
-sub fail_unimplemented {
-    my $this = shift;
-
-    die SOAP::Fault
-        ->faultcode(ERROR_UNIMPLEMENTED)
-        ->faultstring('Service Unimplemented');
-}
+use XMLRPC::Lite;
 
 sub datetime_format {
     my ($self, $date_string) = @_;
@@ -42,32 +37,6 @@ sub datetime_format {
     return $iso_datetime;
 }
 
-sub handle_login {
-    my ($classes, $action, $uri, $method) = @_;
-
-    my $class = $classes->{$uri};
-    eval "require $class";
-
-    return if $class->login_exempt($method);
-    Bugzilla->login();
-
-    # Even though we check for the need to redirect in
-    # Bugzilla->login() we check here again since Bugzilla->login()
-    # does not know what the current XMLRPC method is. Therefore
-    # ssl_require_redirect in Bugzilla->login() will have returned 
-    # false if system was configured to redirect for authenticated 
-    # sessions and the user was not yet logged in.
-    # So here we pass in the method name to ssl_require_redirect so
-    # it can then check for the extra case where the method equals
-    # User.login, which we would then need to redirect if not
-    # over a secure connection. 
-    my $full_method = $uri . "." . $method;
-    Bugzilla->cgi->require_https(Bugzilla->params->{'sslbase'})
-        if ssl_require_redirect($full_method);
-
-    return;
-}
-
 # For some methods, we shouldn't call Bugzilla->login before we call them
 use constant LOGIN_EXEMPT => { };
 
@@ -77,64 +46,12 @@ sub login_exempt {
     return $class->LOGIN_EXEMPT->{$method};
 }
 
-1;
-
-package Bugzilla::WebService::XMLRPC::Transport::HTTP::CGI;
-use strict;
-eval { require XMLRPC::Transport::HTTP; };
-our @ISA = qw(XMLRPC::Transport::HTTP::CGI);
-
-sub initialize {
-    my $self = shift;
-    my %retval = $self->SUPER::initialize(@_);
-    $retval{'serializer'} = Bugzilla::WebService::XMLRPC::Serializer->new;
-    return %retval;
-}
-
-sub make_response {
-    my $self = shift;
-
-    $self->SUPER::make_response(@_);
-
-    # XMLRPC::Transport::HTTP::CGI doesn't know about Bugzilla carrying around
-    # its cookies in Bugzilla::CGI, so we need to copy them over.
-    foreach (@{Bugzilla->cgi->{'Bugzilla_cookie_list'}}) {
-        $self->response->headers->push_header('Set-Cookie', $_);
+sub type {
+    my ($self, $type, $value) = @_;
+    if ($type eq 'dateTime') {
+        $value = $self->datetime_format($value);
     }
-}
-
-1;
-
-# This package exists to fix a UTF-8 bug in SOAP::Lite.
-# See http://rt.cpan.org/Public/Bug/Display.html?id=32952.
-package Bugzilla::WebService::XMLRPC::Serializer;
-use strict;
-# We can't use "use base" because XMLRPC::Serializer doesn't return
-# a true value.
-eval { require XMLRPC::Lite; };
-our @ISA = qw(XMLRPC::Serializer);
-
-sub new {
-    my $class = shift;
-    my $self = $class->SUPER::new(@_);
-    # This fixes UTF-8.
-    $self->{'_typelookup'}->{'base64'} =
-        [10, sub { !utf8::is_utf8($_[0]) && $_[0] =~ /[^\x09\x0a\x0d\x20-\x7f]/},
-        'as_base64'];
-    # This makes arrays work right even though we're a subclass.
-    # (See http://rt.cpan.org//Ticket/Display.html?id=34514)
-    $self->{'_encodingStyle'} = '';
-    return $self;
-}
-
-sub as_string {
-    my $self = shift;
-    my ($value) = @_;
-    # Something weird happens with XML::Parser when we have upper-ASCII 
-    # characters encoded as UTF-8, and this fixes it.
-    utf8::encode($value) if utf8::is_utf8($value) 
-                            && $value =~ /^[\x00-\xff]+$/;
-    return $self->SUPER::as_string($value);
+    return XMLRPC::Data->type($type)->value($value);
 }
 
 1;
@@ -285,3 +202,92 @@ an error 302, there won't be an error -302.
 Sometimes a function will throw an error that doesn't have a specific
 error code. In this case, the code will be C<-32000> if it's a "fatal"
 error, and C<32000> if it's a "transient" error.
+
+=head1 COMMON PARAMETERS
+
+Many Webservice methods take similar arguments. Instead of re-writing
+the documentation for each method, we document the parameters here, once,
+and then refer back to this documentation from the individual methods
+where these parameters are used.
+
+=head2 Limiting What Fields Are Returned
+
+Many WebService methods return an array of structs with various
+fields in the structs. (For example, L<Bugzilla::WebService::Bug/get>
+returns a list of C<bugs> that have fields like C<id>, C<summary>, 
+C<creation_time>, etc.)
+
+These parameters allow you to limit what fields are present in
+the structs, to possibly improve performance or save some bandwidth.
+
+=over
+
+=item C<include_fields> (array)
+
+An array of strings, representing the (case-sensitive) names of fields.
+Only the fields specified in this hash will be returned, the rest will
+not be included.
+
+If you specify an empty array, then this function will return empty
+hashes.
+
+Invalid field names are ignored.
+
+Example:
+
+  User.get( ids => [1], include_fields => ['id', 'name'] )
+
+would return something like:
+
+  { users => [{ id => 1, name => 'user@domain.com' }] }
+
+=item C<exclude_fields> (array)
+
+An array of strings, representing the (case-sensitive) names of fields.
+The fields specified will not be included in the returned hashes.
+
+If you specify all the fields, then this function will return empty
+hashes.
+
+Invalid field names are ignored.
+
+Specifying fields here overrides C<include_fields>, so if you specify a
+field in both, it will be excluded, not included.
+
+Example:
+
+  User.get( ids => [1], exclude_fields => ['name'] )
+
+would return something like:
+
+  { users => [{ id => 1, real_name => 'John Smith' }] }
+
+=back
+
+
+=head1 EXTENSIONS TO THE XML-RPC STANDARD
+
+=head2 Undefined Values
+
+Normally, XML-RPC does not allow empty values for C<int>, C<double>, or
+C<dateTime.iso8601> fields. Bugzilla does--it treats empty values as
+C<undef> (called C<NULL> or C<None> in some programming languages).
+
+Bugzilla also accepts an element called C<< <nil> >>, as specified by 
+the XML-RPC extension here: L<http://ontosys.com/xml-rpc/extensions.php>, 
+which is always considered to be C<undef>, no matter what it contains.
+
+Bugzilla does not use C<< <nil> >> values in returned data, because currently
+most clients do not support C<< <nil> >>. Instead, any fields with C<undef>
+values will be stripped from the response completely. Therefore
+B<the client must handle the fact that some expected fields may not be 
+returned>.
+
+=begin private
+
+nil is implemented by XMLRPC::Lite, in XMLRPC::Deserializer::decode_value
+in the CPAN SVN since 14th Dec 2008 
+L<http://rt.cpan.org/Public/Bug/Display.html?id=20569> and in Fedora's 
+perl-SOAP-Lite package in versions 0.68-1 and above.
+
+=end private

@@ -42,7 +42,8 @@ use Bugzilla::Component;
 # Make sure the user is logged in.
 my $user = Bugzilla->login();
 my $cgi = Bugzilla->cgi;
-my $dbh = Bugzilla->dbh;
+# Force the script to run against the shadow DB. We already validated credentials.
+Bugzilla->switch_to_shadow_db;
 my $template = Bugzilla->template;
 my $action = $cgi->param('action') || '';
 
@@ -68,8 +69,7 @@ if ($action eq 'queue') {
     queue();
 }
 else {
-    my $flagtypes = $dbh->selectcol_arrayref('SELECT DISTINCT(name) FROM flagtypes
-                                              ORDER BY name');
+    my $flagtypes = get_flag_types();
     my @types = ('all', @$flagtypes);
 
     my $vars = {};
@@ -96,7 +96,6 @@ exit;
 
 sub queue {
     my $cgi = Bugzilla->cgi;
-    # There are some user privilege checks to do. We do them against the main DB.
     my $dbh = Bugzilla->dbh;
     my $template = Bugzilla->template;
     my $user = Bugzilla->user;
@@ -142,7 +141,7 @@ sub queue {
            LEFT JOIN bug_group_map AS bgmap
                   ON bgmap.bug_id = bugs.bug_id
                  AND bgmap.group_id NOT IN (" .
-                     join(', ', (-1, values(%{$user->groups}))) . ")
+                     $user->groups_as_string . ")
            LEFT JOIN cc AS ccmap
                   ON ccmap.who = $userid
                  AND ccmap.bug_id = bugs.bug_id
@@ -166,9 +165,7 @@ sub queue {
     $query .= " AND flags.status = '?' " unless $status;
 
     # The set of criteria by which we filter records to display in the queue.
-    # We now move to the shadow DB to query the DB.
     my @criteria = ();
-    $dbh = Bugzilla->switch_to_shadow_db;
 
     # A list of columns to exclude from the report because the report conditions
     # limit the data being displayed to exact matches for those columns.
@@ -303,12 +300,8 @@ sub queue {
 
     # Get a list of request type names to use in the filter form.
     my @types = ("all");
-    my $flagtypes = $dbh->selectcol_arrayref(
-                         "SELECT DISTINCT(name) FROM flagtypes ORDER BY name");
+    my $flagtypes = get_flag_types();
     push(@types, @$flagtypes);
-
-    # We move back to the main DB to get the list of products the user can see.
-    $dbh = Bugzilla->switch_to_main_db;
 
     $vars->{'products'} = $user->get_selectable_products;
     $vars->{'excluded_columns'} = \@excluded_columns;
@@ -355,3 +348,14 @@ sub validateGroup {
     return $group;
 }
 
+# Returns all flag types which have at least one flag of this type.
+# If a flag type is inactive but still has flags, we want it.
+sub get_flag_types {
+    my $dbh = Bugzilla->dbh;
+    my $flag_types = $dbh->selectcol_arrayref('SELECT DISTINCT name
+                                                 FROM flagtypes
+                                                WHERE flagtypes.id IN
+                                                      (SELECT DISTINCT type_id FROM flags)
+                                             ORDER BY name');
+    return $flag_types;
+}

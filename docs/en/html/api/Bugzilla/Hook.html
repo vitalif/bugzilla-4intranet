@@ -23,15 +23,23 @@ Bugzilla::Hook</title>
   <li class='indexItem indexItem1'><a href='#SUBROUTINES'>SUBROUTINES</a>
   <li class='indexItem indexItem1'><a href='#HOOKS'>HOOKS</a>
   <ul   class='indexList indexList2'>
+    <li class='indexItem indexItem2'><a href='#auth-login_methods'>auth-login_methods</a>
+    <li class='indexItem indexItem2'><a href='#auth-verify_methods'>auth-verify_methods</a>
+    <li class='indexItem indexItem2'><a href='#bug-columns'>bug-columns</a>
+    <li class='indexItem indexItem2'><a href='#bug-end_of_create'>bug-end_of_create</a>
     <li class='indexItem indexItem2'><a href='#bug-end_of_update'>bug-end_of_update</a>
+    <li class='indexItem indexItem2'><a href='#bug-fields'>bug-fields</a>
     <li class='indexItem indexItem2'><a href='#buglist-columns'>buglist-columns</a>
     <li class='indexItem indexItem2'><a href='#colchange-columns'>colchange-columns</a>
+    <li class='indexItem indexItem2'><a href='#config-add_panels'>config-add_panels</a>
+    <li class='indexItem indexItem2'><a href='#config-modify_panels'>config-modify_panels</a>
     <li class='indexItem indexItem2'><a href='#enter_bug-entrydefaultvars'>enter_bug-entrydefaultvars</a>
     <li class='indexItem indexItem2'><a href='#flag-end_of_update'>flag-end_of_update</a>
     <li class='indexItem indexItem2'><a href='#install-before_final_checks'>install-before_final_checks</a>
     <li class='indexItem indexItem2'><a href='#install-requirements'>install-requirements</a>
     <li class='indexItem indexItem2'><a href='#install-update_db'>install-update_db</a>
     <li class='indexItem indexItem2'><a href='#db_schema-abstract_schema'>db_schema-abstract_schema</a>
+    <li class='indexItem indexItem2'><a href='#mailer-before_send'>mailer-before_send</a>
     <li class='indexItem indexItem2'><a href='#product-confirm_delete'>product-confirm_delete</a>
     <li class='indexItem indexItem2'><a href='#webservice'>webservice</a>
     <li class='indexItem indexItem2'><a href='#webservice-error_codes'>webservice-error_codes</a>
@@ -130,6 +138,72 @@ name="HOOKS"
 <p>This describes what hooks exist in Bugzilla currently. They are mostly in alphabetical order, but some related hooks are near each other instead of being alphabetical.</p>
 
 <h2><a class='u' href='#___top' title='click to go to top of document'
+name="auth-login_methods"
+>auth-login_methods</a></h2>
+
+<p>This allows you to add new login types to Bugzilla. (See <a href="../Bugzilla/Auth/Login.html" class="podlinkpod"
+>Bugzilla::Auth::Login</a>.)</p>
+
+<p>Params:</p>
+
+<dl>
+<dt><a name="modules"
+><code  class="code">modules</code></a></dt>
+
+<dd>
+<p>This is a hash--a mapping from login-type &#34;names&#34; to the actual module on disk. The keys will be all the values that were passed to <a href="../Bugzilla/Auth.html#login" class="podlinkpod"
+>&#34;login&#34; in Bugzilla::Auth</a> for the <code  class="code">Login</code> parameter. The values are the actual path to the module on disk. (For example, if the key is <code  class="code">DB</code>, the value is <em  class="code">Bugzilla/Auth/Login/DB.pm</em>.)</p>
+
+<p>For your extension, the path will start with <em  class="code">extensions/yourextension/lib/</em>. (See the code in the example extension.)</p>
+
+<p>If your login type is in the hash as a key, you should set that key to the right path to your module. That module&#39;s <code  class="code">new</code> method will be called, probably with empty parameters. If your login type is <i>not</i> in the hash, you should not set it.</p>
+
+<p>You will be prevented from adding new keys to the hash, so make sure your key is in there before you modify it. (In other words, you can&#39;t add in login methods that weren&#39;t passed to <a href="../Bugzilla/Auth.html#login" class="podlinkpod"
+>&#34;login&#34; in Bugzilla::Auth</a>.)</p>
+</dd>
+</dl>
+
+<h2><a class='u' href='#___top' title='click to go to top of document'
+name="auth-verify_methods"
+>auth-verify_methods</a></h2>
+
+<p>This works just like <a href="#auth-login_methods" class="podlinkpod"
+>&#34;auth-login_methods&#34;</a> except it&#39;s for login verification methods (See <a href="../Bugzilla/Auth/Verify.html" class="podlinkpod"
+>Bugzilla::Auth::Verify</a>.) It also takes a <code  class="code">modules</code> parameter, just like <a href="#auth-login_methods" class="podlinkpod"
+>&#34;auth-login_methods&#34;</a>.</p>
+
+<h2><a class='u' href='#___top' title='click to go to top of document'
+name="bug-columns"
+>bug-columns</a></h2>
+
+<p>This allows you to add new fields that will show up in every <a href="../Bugzilla/Bug.html" class="podlinkpod"
+>Bugzilla::Bug</a> object. Note that you will also need to use the <a href="#bug-fields" class="podlinkpod"
+>&#34;bug-fields&#34;</a> hook in conjunction with this hook to make this work.</p>
+
+<p>Params:</p>
+
+<dl>
+<dt><a name="columns_-_An_arrayref_containing_an_array_of_column_names._Push_your_column_name(s)_onto_the_array."
+><code  class="code">columns</code> - An arrayref containing an array of column names. Push your column name(s) onto the array.</a></dt>
+</dl>
+
+<h2><a class='u' href='#___top' title='click to go to top of document'
+name="bug-end_of_create"
+>bug-end_of_create</a></h2>
+
+<p>This happens at the end of <a href="../Bugzilla/Bug.html#create" class="podlinkpod"
+>&#34;create&#34; in Bugzilla::Bug</a>, after all other changes are made to the database. This occurs inside a database transaction.</p>
+
+<p>Params:</p>
+
+<dl>
+<dt><a name="bug_-_The_changed_bug_object,_with_all_fields_set_to_their_updated_values."
+><code  class="code">bug</code> - The changed bug object, with all fields set to their updated values.
+<dt><a name="timestamp_-_The_timestamp_used_for_all_updates_in_this_transaction."
+><code  class="code">timestamp</code> - The timestamp used for all updates in this transaction.</a></dt>
+</dl>
+
+<h2><a class='u' href='#___top' title='click to go to top of document'
 name="bug-end_of_update"
 >bug-end_of_update</a></h2>
 
@@ -145,6 +219,23 @@ name="bug-end_of_update"
 ><code  class="code">timestamp</code> - The timestamp used for all updates in this transaction.
 <dt><a name="changes_-_The_hash_of_changed_fields._$changes-&#62;{field}_=_[old,_new]"
 ><code  class="code">changes</code> - The hash of changed fields. <code  class="code">$changes-&#62;{field} = [old, new]</code></a></dt>
+</dl>
+
+<h2><a class='u' href='#___top' title='click to go to top of document'
+name="bug-fields"
+>bug-fields</a></h2>
+
+<p>Allows the addition of database fields from the bugs table to the standard list of allowable fields in a <a href="../Bugzilla/Bug.html" class="podlinkpod"
+>Bugzilla::Bug</a> object, so that you can call the field as a method.</p>
+
+<p>Note: You should add here the names of any fields you added in <a href="#bug-columns" class="podlinkpod"
+>&#34;bug-columns&#34;</a>.</p>
+
+<p>Params:</p>
+
+<dl>
+<dt><a name="columns_-_A_arrayref_containing_an_array_of_column_names._Push_your_column_name(s)_onto_the_array."
+><code  class="code">columns</code> - A arrayref containing an array of column names. Push your column name(s) onto the array.</a></dt>
 </dl>
 
 <h2><a class='u' href='#___top' title='click to go to top of document'
@@ -185,6 +276,45 @@ name="colchange-columns"
 <dt><a 
 ><code  class="code">columns</code> - An arrayref containing an array of column IDs. Any IDs added by this hook must have been defined in the the buglist-columns hook. See <a href="#buglist-columns" class="podlinkpod"
 >&#34;buglist-columns&#34;</a>.</a></dt>
+</dl>
+
+<h2><a class='u' href='#___top' title='click to go to top of document'
+name="config-add_panels"
+>config-add_panels</a></h2>
+
+<p>If you want to add new panels to the Parameters administrative interface, this is where you do it.</p>
+
+<p>Params:</p>
+
+<dl>
+<dt><a name="panel_modules"
+><code  class="code">panel_modules</code></a></dt>
+
+<dd>
+<p>A hashref, where the keys are the &#34;name&#34; of the module and the value is the Perl module containing that config module. For example, if the name is <code  class="code">Auth</code>, the value would be <code  class="code">Bugzilla::Config::Auth</code>.</p>
+
+<p>For your extension, the Perl module name must start with <code  class="code">extensions::yourextension::lib</code>. (See the code in the example extension.)</p>
+</dd>
+</dl>
+
+<h2><a class='u' href='#___top' title='click to go to top of document'
+name="config-modify_panels"
+>config-modify_panels</a></h2>
+
+<p>This is how you modify already-existing panels in the Parameters administrative interface. For example, if you wanted to add a new Auth method (modifying Bugzilla::Config::Auth) this is how you&#39;d do it.</p>
+
+<p>Params:</p>
+
+<dl>
+<dt><a name="panels"
+><code  class="code">panels</code></a></dt>
+
+<dd>
+<p>A hashref, where the keys are lower-case panel &#34;names&#34; (like <code  class="code">auth</code>, <code  class="code">admin</code>, etc.) and the values are hashrefs. The hashref contains a single key, <code  class="code">params</code>. <code  class="code">params</code> is an arrayref--the return value from <code  class="code">get_param_list</code> for that module. You can modify <code  class="code">params</code> and your changes will be reflected in the interface.</p>
+
+<p>Adding new keys to <code  class="code">panels</code> will have no effect. You should use <a href="#config-add_panels" class="podlinkpod"
+>&#34;config-add_panels&#34;</a> if you want to add new panels.</p>
+</dd>
 </dl>
 
 <h2><a class='u' href='#___top' title='click to go to top of document'
@@ -275,6 +405,20 @@ name="db_schema-abstract_schema"
 <dt><a 
 ><code  class="code">schema</code> - A hashref, in the format of <a href="../Bugzilla/DB/Schema.html#ABSTRACT_SCHEMA" class="podlinkpod"
 >&#34;ABSTRACT_SCHEMA&#34; in Bugzilla::DB::Schema</a>. Add new hash keys to make new table definitions. <em  class="code">checksetup.pl</em> will automatically add these tables to the database when run.</a></dt>
+</dl>
+
+<h2><a class='u' href='#___top' title='click to go to top of document'
+name="mailer-before_send"
+>mailer-before_send</a></h2>
+
+<p>Called right before <a href="../Bugzilla/Mailer.html" class="podlinkpod"
+>Bugzilla::Mailer</a> sends a message to the MTA.</p>
+
+<p>Params:</p>
+
+<dl>
+<dt><a name="email_-_The_Email::MIME_object_that&#39;s_about_to_be_sent."
+><code  class="code">email</code> - The <code  class="code">Email::MIME</code> object that&#39;s about to be sent.</a></dt>
 </dl>
 
 <h2><a class='u' href='#___top' title='click to go to top of document'

@@ -21,7 +21,7 @@ use strict;
 use base qw(Bugzilla::WebService);
 use Bugzilla::Product;
 use Bugzilla::User;
-import SOAP::Data qw(type);
+use Bugzilla::WebService::Util qw(validate);
 
 ##################################################
 # Add aliases here for method name compatibility #
@@ -46,7 +46,7 @@ sub get_accessible_products {
 
 # Get a list of actual products, based on list of ids
 sub get {
-    my ($self, $params) = @_;
+    my ($self, $params) = validate(@_, 'ids');
     
     # Only products that are in the users accessible products, 
     # can be allowed to be returned
@@ -63,9 +63,9 @@ sub get {
     my @products = 
         map {{
                internals   => $_,
-               id          => type('int')->value($_->id),
-               name        => type('string')->value($_->name),
-               description => type('string')->value($_->description), 
+               id          => $self->type('int', $_->id),
+               name        => $self->type('string', $_->name),
+               description => $self->type('string', $_->description),
              }
         } @requested_accessible;
 

@@ -22,34 +22,98 @@ use strict;
 
 package Bugzilla::Status;
 
-use base qw(Bugzilla::Object Exporter);
-@Bugzilla::Status::EXPORT = qw(BUG_STATE_OPEN is_open_state closed_bug_statuses);
+use Bugzilla::Error;
+
+use base qw(Bugzilla::Field::Choice Exporter);
+@Bugzilla::Status::EXPORT = qw(
+    BUG_STATE_OPEN
+    SPECIAL_STATUS_WORKFLOW_ACTIONS
+
+    is_open_state 
+    closed_bug_statuses
+);
 
 ################################
 #####   Initialization     #####
 ################################
 
-use constant DB_TABLE => 'bug_status';
-
-use constant DB_COLUMNS => qw(
-    id
-    value
-    sortkey
-    isactive
-    is_open
+use constant SPECIAL_STATUS_WORKFLOW_ACTIONS => qw(
+    none
+    duplicate
+    change_resolution
+    clearresolution
 );
 
-use constant NAME_FIELD => 'value';
-use constant LIST_ORDER => 'sortkey, value';
+use constant DB_TABLE => 'bug_status';
+
+# This has all the standard Bugzilla::Field::Choice columns plus "is_open"
+sub DB_COLUMNS {
+    return ($_[0]->SUPER::DB_COLUMNS, 'is_open');
+}
+
+sub VALIDATORS {
+    my $invocant = shift;
+    my $validators = $invocant->SUPER::VALIDATORS;
+    $validators->{is_open} = \&Bugzilla::Object::check_boolean;
+    $validators->{value} = \&_check_value;
+    return $validators;
+}
+
+#########################
+# Database Manipulation #
+#########################
+
+sub create {
+    my $class = shift;
+    my $self = $class->SUPER::create(@_);
+    add_missing_bug_status_transitions();
+    return $self;
+}
+
+sub remove_from_db {
+    my $self = shift;
+    my $dbh = Bugzilla->dbh;
+    my $id = $self->id;
+    $dbh->bz_start_transaction();
+    $self->SUPER::remove_from_db();
+    $dbh->do('DELETE FROM status_workflow
+               WHERE old_status = ? OR new_status = ?',
+              undef, $id, $id);
+    $dbh->bz_commit_transaction();
+}
 
 ###############################
 #####     Accessors        ####
 ###############################
 
-sub name      { return $_[0]->{'value'};    }
-sub sortkey   { return $_[0]->{'sortkey'};  }
 sub is_active { return $_[0]->{'isactive'}; }
 sub is_open   { return $_[0]->{'is_open'};  }
+
+sub is_static {
+    my $self = shift;
+    if ($self->name eq 'UNCONFIRMED'
+        || $self->name eq Bugzilla->params->{'duplicate_or_move_bug_status'}) 
+    {
+        return 1;
+    }
+    return 0;
+}
+
+##############
+# Validators #
+##############
+
+sub _check_value {
+    my $invocant = shift;
+    my $value = $invocant->SUPER::_check_value(@_);
+
+    if (grep { lc($value) eq lc($_) } SPECIAL_STATUS_WORKFLOW_ACTIONS) {
+        ThrowUserError('fieldvalue_reserved_word',
+                       { field => $invocant->field, value => $value });
+    }
+    return $value;
+}
+
 
 ###############################
 #####       Methods        ####

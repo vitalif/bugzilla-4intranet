@@ -53,14 +53,9 @@ sub check_credentials {
         "SELECT cryptpassword FROM profiles WHERE userid = ?",
         undef, $user_id);
 
-    # Wide characters cause crypt to die
-    if (Bugzilla->params->{'utf8'}) {
-        utf8::encode($password) if utf8::is_utf8($password);
-    }
-
     # Using the internal crypted password as the salt,
     # crypt the password the user entered.
-    my $entered_password_crypted = crypt($password, $real_password_crypted);
+    my $entered_password_crypted = bz_crypt($password, $real_password_crypted);
  
     return { failure => AUTH_LOGINFAILED }
         if $entered_password_crypted ne $real_password_crypted;
@@ -68,6 +63,16 @@ sub check_credentials {
     # The user's credentials are okay, so delete any outstanding
     # password tokens they may have generated.
     Bugzilla::Token::DeletePasswordTokens($user_id, "user_logged_in");
+
+    # If their old password was using crypt() or some different hash
+    # than we're using now, convert the stored password to using
+    # whatever hashing system we're using now.
+    my $current_algorithm = PASSWORD_DIGEST_ALGORITHM;
+    if ($real_password_crypted !~ /{\Q$current_algorithm\E}$/) {
+        my $new_crypted = bz_crypt($password);
+        $dbh->do('UPDATE profiles SET cryptpassword = ? WHERE userid = ?',
+                 undef, $new_crypted, $user_id);
+    }
 
     return $login_data;
 }

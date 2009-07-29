@@ -52,7 +52,6 @@ use base qw(Bugzilla::DB);
 use constant EMPTY_STRING  => '__BZ_EMPTY_STR__';
 use constant ISOLATION_LEVEL => 'READ COMMITTED';
 use constant BLOB_TYPE => { ora_type => ORA_BLOB };
-use constant GROUPBY_REGEXP => '((CASE\s+WHEN.+END)|(TO_CHAR\(.+\))|(\(SCORE.+\))|(\(MATCH.+\))|(\w+(\.\w+)?))(\s+AS\s+)?(.*)?$';
 
 sub new {
     my ($class, $user, $pass, $host, $dbname, $port) = @_;
@@ -65,13 +64,15 @@ sub new {
     $ENV{'NLS_LANG'} = '.AL32UTF8' if Bugzilla->params->{'utf8'};
 
     # construct the DSN from the parameters we got
-    my $dsn = "DBI:Oracle:host=$host;sid=$dbname";
+    my $dsn = "dbi:Oracle:host=$host;sid=$dbname";
     $dsn .= ";port=$port" if $port;
     my $attrs = { FetchHashKeyName => 'NAME_lc',  
                   LongReadLen => ( Bugzilla->params->{'maxattachmentsize'}
                                      || 1000 ) * 1024, 
                 };
     my $self = $class->db_new($dsn, $user, $pass, $attrs);
+    # Needed by TheSchwartz
+    $self->{private_bz_dsn} = $dsn;
 
     bless ($self, $class);
 
@@ -95,14 +96,39 @@ sub bz_last_key {
     return $last_insert_id;
 }
 
+sub bz_check_regexp {
+    my ($self, $pattern) = @_;
+
+    eval { $self->do("SELECT 1 FROM DUAL WHERE "
+          . $self->sql_regexp($self->quote("a"), $pattern, 1)) };
+
+    $@ && ThrowUserError('illegal_regexp',
+        { value => $pattern, dberror => $self->errstr });
+}
+
+sub bz_explain { 
+     my ($self, $sql) = @_; 
+     my $sth = $self->prepare("EXPLAIN PLAN FOR $sql"); 
+     $sth->execute();
+     my $explain = $self->selectcol_arrayref(
+         "SELECT PLAN_TABLE_OUTPUT FROM TABLE(DBMS_XPLAN.DISPLAY)");
+     return join("\n", @$explain); 
+} 
+
 sub sql_regexp {
-    my ($self, $expr, $pattern) = @_;
+    my ($self, $expr, $pattern, $nocheck, $real_pattern) = @_;
+    $real_pattern ||= $pattern;
+
+    $self->bz_check_regexp($real_pattern) if !$nocheck;
 
     return "REGEXP_LIKE($expr, $pattern)";
 }
 
 sub sql_not_regexp {
-    my ($self, $expr, $pattern) = @_;
+    my ($self, $expr, $pattern, $nocheck, $real_pattern) = @_;
+    $real_pattern ||= $pattern;
+
+    $self->bz_check_regexp($real_pattern) if !$nocheck;
 
     return "NOT REGEXP_LIKE($expr, $pattern)" 
 }
@@ -120,6 +146,13 @@ sub sql_string_concat {
     my ($self, @params) = @_;
 
     return 'CONCAT(' . join(', ', @params) . ')';
+}
+
+sub sql_string_until {
+    my ($self, $string, $substring) = @_;
+    return "SUBSTR($string, 1, " 
+           . $self->sql_position($substring, $string)
+           . " - 1)";
 }
 
 sub sql_to_days {
@@ -183,6 +216,15 @@ sub sql_in {
              $self->SUPER::sql_in($column_name, \@sub_in_list)); 
     }
     return "( " . join(" OR ", @in_str) . " )";
+}
+
+sub _bz_add_field_table {
+    my ($self, $name, $schema_ref, $type) = @_;
+    $self->SUPER::_bz_add_field_table($name, $schema_ref);
+    if (defined($type) && $type == FIELD_TYPE_MULTI_SELECT) {
+        my $uk_name = "UK_" . $self->_bz_schema->_hash_identifier($name . '_value');
+        $self->do("ALTER TABLE $name ADD CONSTRAINT $uk_name UNIQUE(value)");
+    }
 }
 
 sub bz_drop_table {
@@ -522,7 +564,7 @@ sub bz_setup_database {
                     }
   
                      my $tr_str = "CREATE OR REPLACE TRIGGER $trigger_name"
-                         . " AFTER  UPDATE  ON ". $to_table
+                         . " AFTER UPDATE OF $to_column ON $to_table "
                          . " REFERENCING "
                          . " NEW AS NEW "
                          . " OLD AS OLD "

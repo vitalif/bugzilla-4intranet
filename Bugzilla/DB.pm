@@ -52,7 +52,6 @@ use Storable qw(dclone);
 
 use constant BLOB_TYPE => DBI::SQL_BLOB;
 use constant ISOLATION_LEVEL => 'REPEATABLE READ';
-use constant GROUPBY_REGEXP => '(?:.*\s+AS\s+)?(\w+(\.\w+)?)(?:\s+(ASC|DESC))?$';
 
 # Set default values for what used to be the enum types.  These values
 # are no longer stored in localconfig.  If we are upgrading from a
@@ -274,7 +273,7 @@ EOT
 # List of abstract methods we are checking the derived class implements
 our @_abstract_methods = qw(REQUIRED_VERSION PROGRAM_NAME DBD_VERSION
                             new sql_regexp sql_not_regexp sql_limit sql_to_days
-                            sql_date_format sql_interval);
+                            sql_date_format sql_interval bz_explain);
 
 # This overridden import method will check implementation of inherited classes
 # for missing implementation of abstract methods
@@ -342,6 +341,12 @@ sub sql_string_concat {
     return '(' . join(' || ', @params) . ')';
 }
 
+sub sql_string_until {
+    my ($self, $string, $substring) = @_;
+    return "SUBSTRING($string FROM 1 FOR " .
+                      $self->sql_position($substring, $string) . " - 1)";
+}
+
 sub sql_in {
     my ($self, $column_name, $in_list_ref) = @_;
     return " $column_name IN (" . join(',', @$in_list_ref) . ") ";
@@ -389,6 +394,15 @@ sub bz_last_key {
 
     return $self->last_insert_id(Bugzilla->localconfig->{db_name}, undef, 
                                  $table, $column);
+}
+
+sub bz_check_regexp {
+    my ($self, $pattern) = @_;
+
+    eval { $self->do("SELECT " . $self->sql_regexp($self->quote("a"), $pattern, 1)) };
+
+    $@ && ThrowUserError('illegal_regexp', 
+        { value => $pattern, dberror => $self->errstr }); 
 }
 
 #####################################################################
@@ -493,8 +507,7 @@ sub bz_add_fk {
 
     my $col_def = $self->bz_column_info($table, $column);
     if (!$col_def->{REFERENCES}) {
-        $self->_check_references($table, $column, $def->{TABLE},
-                                 $def->{COLUMN});
+        $self->_check_references($table, $column, $def);
         print get_text('install_fk_add',
                        { table => $table, column => $column, fk => $def }) 
             . "\n" if Bugzilla->usage_mode == USAGE_MODE_CMDLINE;
@@ -672,12 +685,18 @@ sub bz_add_field_tables {
     my ($self, $field) = @_;
     
     $self->_bz_add_field_table($field->name,
-                                $self->_bz_schema->FIELD_TABLE_SCHEMA);
-    if ( $field->type == FIELD_TYPE_MULTI_SELECT ) {
-        $self->_bz_add_field_table('bug_' . $field->name,
+                               $self->_bz_schema->FIELD_TABLE_SCHEMA, $field->type);
+    if ($field->type == FIELD_TYPE_MULTI_SELECT) {
+        my $ms_table = "bug_" . $field->name;
+        $self->_bz_add_field_table($ms_table,
                 $self->_bz_schema->MULTI_SELECT_VALUE_TABLE);
-    }
 
+        $self->bz_add_fk($ms_table, 'bug_id', {TABLE => 'bugs',
+                                               COLUMN => 'bug_id',
+                                               DELETE => 'CASCADE'});
+        $self->bz_add_fk($ms_table, 'value',  {TABLE  => $field->name,
+                                               COLUMN => 'value'});
+    }
 }
 
 sub bz_drop_field_tables {
@@ -1191,33 +1210,57 @@ sub _bz_populate_enum_table {
 # This is used before adding a foreign key to a column, to make sure
 # that the database won't fail adding the key.
 sub _check_references {
-    my ($self, $table, $column, $foreign_table, $foreign_column) = @_;
+    my ($self, $table, $column, $fk) = @_;
+    my $foreign_table = $fk->{TABLE};
+    my $foreign_column = $fk->{COLUMN};
 
+    # We use table aliases because sometimes we join a table to itself,
+    # and we can't use the same table name on both sides of the join.
+    # We also can't use the words "table" or "foreign" because those are
+    # reserved words.
     my $bad_values = $self->selectcol_arrayref(
-        "SELECT DISTINCT $table.$column 
-           FROM $table LEFT JOIN $foreign_table
-                ON $table.$column = $foreign_table.$foreign_column
-          WHERE $foreign_table.$foreign_column IS NULL
-                AND $table.$column IS NOT NULL");
+        "SELECT DISTINCT tabl.$column 
+           FROM $table AS tabl LEFT JOIN $foreign_table AS forn
+                ON tabl.$column = forn.$foreign_column
+          WHERE forn.$foreign_column IS NULL
+                AND tabl.$column IS NOT NULL");
 
     if (@$bad_values) {
-        my $values = join(', ', @$bad_values);
-        print <<EOT;
-
-ERROR: There are invalid values for the $column column in the $table 
-table. (These values do not exist in the $foreign_table table, in the 
-$foreign_column column.)
-
-Before continuing with checksetup, you will need to fix these values,
-either by deleting these rows from the database, or changing the values
-of $column in $table to point to valid values in $foreign_table.$foreign_column.
-
-The bad values from the $table.$column column are:
-$values
-
-EOT
-        # I just picked a number above 2, to be considered "abnormal exit."
-        exit 3;
+        my $delete_action = $fk->{DELETE} || '';
+        if ($delete_action eq 'CASCADE') {
+            $self->do("DELETE FROM $table WHERE $column IN (" 
+                      . join(',', ('?') x @$bad_values)  . ")",
+                      undef, @$bad_values);
+            if (Bugzilla->usage_mode == USAGE_MODE_CMDLINE) {
+                print "\n", get_text('install_fk_invalid_fixed',
+                    { table => $table, column => $column,
+                      foreign_table => $foreign_table,
+                      foreign_column => $foreign_column,
+                      'values' => $bad_values, action => 'delete' }), "\n";
+            }
+        }
+        elsif ($delete_action eq 'SET NULL') {
+            $self->do("UPDATE $table SET $column = NULL
+                        WHERE $column IN ("
+                      . join(',', ('?') x @$bad_values)  . ")",
+                      undef, @$bad_values);
+            if (Bugzilla->usage_mode == USAGE_MODE_CMDLINE) {
+                print "\n", get_text('install_fk_invalid_fixed',
+                    { table => $table, column => $column,
+                      foreign_table => $foreign_table, 
+                      foreign_column => $foreign_column,
+                      'values' => $bad_values, action => 'null' }), "\n";
+            }
+        }
+        else {
+            print "\n", get_text('install_fk_invalid',
+                { table => $table, column => $column,
+                  foreign_table => $foreign_table,
+                  foreign_column => $foreign_column,
+                 'values' => $bad_values }), "\n";
+            # I just picked a number above 2, to be considered "abnormal exit"
+            exit 3
+        }
     }
 }
 
@@ -1518,6 +1561,11 @@ Abstract method, should be overridden by database specific code.
 
 =item C<$pattern> - the regular expression to search for (scalar)
 
+=item C<$nocheck> - true if the pattern should not be tested; false otherwise (boolean)
+
+=item C<$real_pattern> - the real regular expression to search for.
+This argument is used when C<$pattern> is a placeholder ('?').
+
 =back
 
 =item B<Returns>
@@ -1540,13 +1588,7 @@ Abstract method, should be overridden by database specific code.
 
 =item B<Params>
 
-=over
-
-=item C<$expr> - SQL expression for the text to be searched (scalar)
-
-=item C<$pattern> - the regular expression to search for (scalar)
-
-=back
+Same as L</sql_regexp>.
 
 =item B<Returns>
 
@@ -1771,6 +1813,25 @@ or values from table columns) together.
 =item B<Returns>
 
 Formatted SQL for concatenating specified strings
+
+=back
+
+=item C<sql_string_until>
+
+=over
+
+=item B<Description>
+
+Returns SQL for truncating a string at the first occurrence of a certain
+substring.
+
+=item B<Params>
+
+Note that both parameters need to be sql-quoted.
+
+=item C<$string> The string we're truncating
+
+=item C<$substring> The substring we're truncating at.
 
 =back
 

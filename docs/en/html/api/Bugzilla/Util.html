@@ -44,7 +44,6 @@ name="SYNOPSIS"
 <pre  class="code">  use Bugzilla::Util;
 
   # Functions for dealing with variable tainting
-  $rv = is_tainted($var);
   trick_taint($var);
   detaint_natural($var);
   detaint_signed($var);
@@ -53,6 +52,7 @@ name="SYNOPSIS"
   html_quote($var);
   url_quote($var);
   xml_quote($var);
+  email_filter($var);
 
   # Functions for decoding
   $rv = url_decode($var);
@@ -70,7 +70,6 @@ name="SYNOPSIS"
 
   # Functions for manipulating strings
   $val = trim(&#34; abc &#34;);
-  ($removed, $added) = diff_strings($old, $new);
   $wrapped = wrap_comment($comment);
 
   # Functions for formatting time
@@ -108,12 +107,6 @@ name="Tainting"
 <p>Several functions are available to deal with tainted variables. <b>Use these with care</b> to avoid security holes.</p>
 
 <dl>
-<dt><a name="is_tainted"
-><code  class="code">is_tainted</code></a></dt>
-
-<dd>
-<p>Determines whether a particular variable is tainted</p>
-
 <dt><a name="trick_taint($val)"
 ><code  class="code">trick_taint($val)</code></a></dt>
 
@@ -180,6 +173,12 @@ name="Quoting"
 
 <dd>
 <p>Converts the %xx encoding from the given URL back to its original form.</p>
+
+<dt><a name="email_filter"
+><code  class="code">email_filter</code></a></dt>
+
+<dd>
+<p>Removes the hostname from email addresses in the string, if the user currently viewing Bugzilla is logged out. If the user is logged-in, this filter just returns the input string.</p>
 </dd>
 </dl>
 
@@ -265,12 +264,6 @@ name="String_Manipulation"
 <dd>
 <p>Removes any leading or trailing whitespace from a string. This routine does not modify the existing string.</p>
 
-<dt><a name="diff_strings($oldstr,_$newstr)"
-><code  class="code">diff_strings($oldstr, $newstr)</code></a></dt>
-
-<dd>
-<p>Takes two strings containing a list of comma- or space-separated items and returns what items were removed from or added to the new one, compared to the old one. Returns a list, where the first entry is a scalar containing removed items, and the second entry is a scalar containing added items.</p>
-
 <dt><a name="wrap_hard($string,_$size)"
 ><code  class="code">wrap_hard($string, $size)</code></a></dt>
 
@@ -348,9 +341,10 @@ name="Formatting_Time"
 ><code  class="code">format_time($time)</code></a></dt>
 
 <dd>
-<p>Takes a time, converts it to the desired format and appends the timezone as defined in editparams.cgi, if desired. This routine will be expanded in the future to adjust for user preferences regarding what timezone to display times in.</p>
+<p>Takes a time and converts it to the desired format and timezone. If no format is given, the routine guesses the correct one and returns an empty array if it cannot. If no timezone is given, the user&#39;s timezone is used, as defined in his preferences.</p>
 
-<p>This routine is mainly called from templates to filter dates, see &#34;FILTER time&#34; in Templates.pm. In this case, $format is undefined and the routine has to &#34;guess&#34; the date format that was passed to $dbh-&#62;sql_date_format().</p>
+<p>This routine is mainly called from templates to filter dates, see &#34;FILTER time&#34; in <a href="../Bugzilla/Template.html" class="podlinkpod"
+>Bugzilla::Template</a>.</p>
 
 <dt><a name="format_time_decimal($time)"
 ><code  class="code">format_time_decimal($time)</code></a></dt>
@@ -378,13 +372,13 @@ name="Cryptography"
 >Cryptography</a></h2>
 
 <dl>
-<dt><a name="bz_crypt($password)"
-><code  class="code">bz_crypt($password)</code></a></dt>
+<dt><a name="bz_crypt($password,_$salt)"
+><code  class="code">bz_crypt($password, $salt)</code></a></dt>
 
 <dd>
-<p>Takes a string and returns a <code  class="code">crypt</code>ed value for it, using a random salt.</p>
+<p>Takes a string and returns a hashed (encrypted) value for it, using a random salt. An optional salt string may also be passed in.</p>
 
-<p>Please always use this function instead of the built-in perl &#34;crypt&#34; when initially encrypting a password.</p>
+<p>Please always use this function instead of the built-in perl <code  class="code">crypt</code> function, when checking or setting a password. Bugzilla does not use <code  class="code">crypt</code>.</p>
 
 <dt><a name="generate_random_password($password_length)"
 ><code  class="code">generate_random_password($password_length)</code></a></dt>

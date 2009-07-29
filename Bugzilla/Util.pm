@@ -31,13 +31,13 @@ package Bugzilla::Util;
 use strict;
 
 use base qw(Exporter);
-@Bugzilla::Util::EXPORT = qw(is_tainted trick_taint detaint_natural
+@Bugzilla::Util::EXPORT = qw(trick_taint detaint_natural
                              detaint_signed
                              html_quote url_quote xml_quote
                              css_class_quote html_light_quote url_decode
                              i_am_cgi get_netaddr correct_urlbase
                              lsearch ssl_require_redirect use_attachbase
-                             diff_arrays diff_strings
+                             diff_arrays
                              trim wrap_hard wrap_comment find_wrap_point
                              format_time format_time_decimal validate_date
                              validate_time
@@ -50,18 +50,13 @@ use Bugzilla::Constants;
 
 use Date::Parse;
 use Date::Format;
+use DateTime;
+use DateTime::TimeZone;
+use Digest;
+use Email::Address;
+use Scalar::Util qw(tainted);
 use Text::Wrap;
 use Lingua::Stem::RuUTF8;
-
-# This is from the perlsec page, slightly modified to remove a warning
-# From that page:
-#      This function makes use of the fact that the presence of
-#      tainted data anywhere within an expression renders the
-#      entire expression tainted.
-# Don't ask me how it works...
-sub is_tainted {
-    return not eval { my $foo = join('',@_), kill 0; 1; };
-}
 
 sub trick_taint {
     require Carp;
@@ -175,6 +170,20 @@ sub html_light_quote {
 
         return $scrubber->scrub($text);
     }
+}
+
+sub email_filter {
+    my ($toencode) = @_;
+    if (!Bugzilla->user->id) {
+        my @emails = Email::Address->parse($toencode);
+        if (scalar @emails) {
+            my @hosts = map { quotemeta($_->host) } @emails;
+            my $hosts_re = join('|', @hosts);
+            $toencode =~ s/\@(?:$hosts_re)//g;
+            return $toencode;
+        }
+    }
+    return $toencode;
 }
 
 # This originally came from CGI.pm, by Lincoln D. Stein
@@ -337,22 +346,6 @@ sub trim {
     return $str;
 }
 
-sub diff_strings {
-    my ($oldstr, $newstr) = @_;
-
-    # Split the old and new strings into arrays containing their values.
-    s/[\s,]+/ /gso for $oldstr, $newstr;
-    my @old = split(" ", $oldstr);
-    my @new = split(" ", $newstr);
-
-    my ($rem, $add) = diff_arrays(\@old, \@new);
-
-    my $removed = join (", ", @$rem);
-    my $added = join (", ", @$add);
-
-    return ($removed, $added);
-}
-
 sub wrap_comment {
     my ($comment, $cols) = @_;
     my $wrappedcomment = "";
@@ -414,38 +407,55 @@ sub wrap_hard {
 }
 
 sub format_time {
-    my ($date, $format) = @_;
+    my ($date, $format, $timezone) = @_;
 
     # If $format is undefined, try to guess the correct date format.    
-    my $show_timezone;
     if (!defined($format)) {
         if ($date =~ m/^(\d{4})[-\.](\d{2})[-\.](\d{2}) (\d{2}):(\d{2})(:(\d{2}))?$/) {
             my $sec = $7;
             if (defined $sec) {
-                $format = "%Y-%m-%d %T";
+                $format = "%Y-%m-%d %T %Z";
             } else {
-                $format = "%Y-%m-%d %R";
+                $format = "%Y-%m-%d %R %Z";
             }
         } else {
-            # Default date format. See Date::Format for other formats available.
-            $format = "%Y-%m-%d %R";
+            # Default date format. See DateTime for other formats available.
+            $format = "%Y-%m-%d %R %Z";
         }
-        # By default, we want the timezone to be displayed.
-        $show_timezone = 1;
-    }
-    else {
-        # Search for %Z or %z, meaning we want the timezone to be displayed.
-        # Till bug 182238 gets fixed, we assume Bugzilla->params->{'timezone'}
-        # is used.
-        $show_timezone = ($format =~ s/\s?%Z$//i);
     }
 
-    # str2time($date) is undefined if $date has an invalid date format.
-    my $time = str2time($date);
+    # strptime($date) returns an empty array if $date has an invalid date format.
+    my @time = strptime($date);
 
-    if (defined $time) {
-        $date = time2str($format, $time);
-        $date .= " " . Bugzilla->params->{'timezone'} if $show_timezone;
+    unless (scalar @time) {
+        # If an unknown timezone is passed (such as MSK, for Moskow), strptime() is
+        # unable to parse the date. We try again, but we first remove the timezone.
+        $date =~ s/\s+\S+$//;
+        @time = strptime($date);
+    }
+
+    if (scalar @time) {
+        # Fix a bug in strptime() where seconds can be undefined in some cases.
+        $time[0] ||= 0;
+
+        # strptime() counts years from 1900, and months from 0 (January).
+        # We have to fix both values.
+        my $dt = DateTime->new({year   => 1900 + $time[5],
+                                month  => ++$time[4],
+                                day    => $time[3],
+                                hour   => $time[2],
+                                minute => $time[1],
+                                # DateTime doesn't like fractional seconds.
+                                second => int($time[0]),
+                                # If importing, use the specified timezone, otherwise 
+                                # use the timezone specified by the server.
+                                time_zone => Bugzilla->local_timezone->offset_as_string($time[6]) 
+                                          || Bugzilla->local_timezone});
+
+        # Now display the date using the given timezone,
+        # or the user's timezone if none is given.
+        $dt->set_time_zone($timezone || Bugzilla->user->timezone);
+        $date = $dt->strftime($format);
     }
     else {
         # Don't let invalid (time) strings to be passed to templates!
@@ -475,33 +485,56 @@ sub file_mod_time {
 }
 
 sub bz_crypt {
-    my ($password) = @_;
+    my ($password, $salt) = @_;
 
-    # The list of characters that can appear in a salt.  Salts and hashes
-    # are both encoded as a sequence of characters from a set containing
-    # 64 characters, each one of which represents 6 bits of the salt/hash.
-    # The encoding is similar to BASE64, the difference being that the
-    # BASE64 plus sign (+) is replaced with a forward slash (/).
-    my @saltchars = (0..9, 'A'..'Z', 'a'..'z', '.', '/');
-
-    # Generate the salt.  We use an 8 character (48 bit) salt for maximum
-    # security on systems whose crypt uses MD5.  Systems with older
-    # versions of crypt will just use the first two characters of the salt.
-    my $salt = '';
-    for ( my $i=0 ; $i < 8 ; ++$i ) {
-        $salt .= $saltchars[rand(64)];
+    my $algorithm;
+    if (!defined $salt) {
+        # If you don't use a salt, then people can create tables of
+        # hashes that map to particular passwords, and then break your
+        # hashing very easily if they have a large-enough table of common
+        # (or even uncommon) passwords. So we generate a unique salt for
+        # each password in the database, and then just prepend it to
+        # the hash.
+        $salt = generate_random_password(PASSWORD_SALT_LENGTH);
+        $algorithm = PASSWORD_DIGEST_ALGORITHM;
     }
 
+    # We append the algorithm used to the string. This is good because then
+    # we can change the algorithm being used, in the future, without 
+    # disrupting the validation of existing passwords. Also, this tells
+    # us if a password is using the old "crypt" method of hashing passwords,
+    # because the algorithm will be missing from the string.
+    if ($salt =~ /{([^}]+)}$/) {
+        $algorithm = $1;
+    }
+
+    my $crypted_password;
+    if (!$algorithm) {
     # Wide characters cause crypt to die
     if (Bugzilla->params->{'utf8'}) {
         utf8::encode($password) if utf8::is_utf8($password);
     }
     
     # Crypt the password.
-    my $cryptedpassword = crypt($password, $salt);
+        $crypted_password = crypt($password, $salt);
+
+        # HACK: Perl has bug where returned crypted password is considered
+        # tainted. See http://rt.perl.org/rt3/Public/Bug/Display.html?id=59998
+        unless(tainted($password) || tainted($salt)) {
+            trick_taint($crypted_password);
+        } 
+    }
+    else {
+        my $hasher = Digest->new($algorithm);
+        # We only want to use the first characters of the salt, no
+        # matter how long of a salt we may have been passed.
+        $salt = substr($salt, 0, PASSWORD_SALT_LENGTH);
+        $hasher->add($password, $salt);
+        $crypted_password = $salt . $hasher->b64digest . "{$algorithm}";
+    }
 
     # Return the crypted password.
-    return $cryptedpassword;
+    return $crypted_password;
 }
 
 sub generate_random_password {
@@ -637,7 +670,6 @@ Bugzilla::Util - Generic utility functions for bugzilla
   use Bugzilla::Util;
 
   # Functions for dealing with variable tainting
-  $rv = is_tainted($var);
   trick_taint($var);
   detaint_natural($var);
   detaint_signed($var);
@@ -646,6 +678,7 @@ Bugzilla::Util - Generic utility functions for bugzilla
   html_quote($var);
   url_quote($var);
   xml_quote($var);
+  email_filter($var);
 
   # Functions for decoding
   $rv = url_decode($var);
@@ -663,7 +696,6 @@ Bugzilla::Util - Generic utility functions for bugzilla
 
   # Functions for manipulating strings
   $val = trim(" abc ");
-  ($removed, $added) = diff_strings($old, $new);
   $wrapped = wrap_comment($comment);
 
   # Functions for formatting time
@@ -700,10 +732,6 @@ Several functions are available to deal with tainted variables. B<Use these
 with care> to avoid security holes.
 
 =over 4
-
-=item C<is_tainted>
-
-Determines whether a particular variable is tainted
 
 =item C<trick_taint($val)>
 
@@ -766,6 +794,12 @@ is kept separate from html_quote partly for compatibility with previous code
 =item C<url_decode($val)>
 
 Converts the %xx encoding from the given URL back to its original form.
+
+=item C<email_filter>
+
+Removes the hostname from email addresses in the string, if the user
+currently viewing Bugzilla is logged out. If the user is logged-in,
+this filter just returns the input string.
 
 =back
 
@@ -842,14 +876,6 @@ If the item is not in the list, returns -1.
 Removes any leading or trailing whitespace from a string. This routine does not
 modify the existing string.
 
-=item C<diff_strings($oldstr, $newstr)>
-
-Takes two strings containing a list of comma- or space-separated items
-and returns what items were removed from or added to the new one, 
-compared to the old one. Returns a list, where the first entry is a scalar
-containing removed items, and the second entry is a scalar containing added
-items.
-
 =item C<wrap_hard($string, $size)>
 
 Wraps a string, so that a line is I<never> longer than C<$size>.
@@ -920,15 +946,13 @@ A string.
 
 =item C<format_time($time)>
 
-Takes a time, converts it to the desired format and appends the timezone
-as defined in editparams.cgi, if desired. This routine will be expanded
-in the future to adjust for user preferences regarding what timezone to
-display times in.
+Takes a time and converts it to the desired format and timezone.
+If no format is given, the routine guesses the correct one and returns
+an empty array if it cannot. If no timezone is given, the user's timezone
+is used, as defined in his preferences.
 
 This routine is mainly called from templates to filter dates, see
-"FILTER time" in Templates.pm. In this case, $format is undefined and
-the routine has to "guess" the date format that was passed to $dbh->sql_date_format().
-
+"FILTER time" in L<Bugzilla::Template>.
 
 =item C<format_time_decimal($time)>
 
@@ -953,12 +977,14 @@ of the "mtime" parameter of the perl "stat" function.
 
 =over 4
 
-=item C<bz_crypt($password)>
+=item C<bz_crypt($password, $salt)>
 
-Takes a string and returns a C<crypt>ed value for it, using a random salt.
+Takes a string and returns a hashed (encrypted) value for it, using a
+random salt. An optional salt string may also be passed in.
 
-Please always use this function instead of the built-in perl "crypt"
-when initially encrypting a password.
+Please always use this function instead of the built-in perl C<crypt>
+function, when checking or setting a password. Bugzilla does not use
+C<crypt>.
 
 =begin undocumented
 

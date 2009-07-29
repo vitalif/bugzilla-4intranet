@@ -63,7 +63,10 @@ sub _init {
     my $name_field = $class->NAME_FIELD;
     my $id_field   = $class->ID_FIELD;
 
-    my $id = $param unless (ref $param eq 'HASH');
+    my $id = $param;
+    if (ref $param eq 'HASH') {
+        $id = $param->{id};
+    }
     my $object;
 
     if (defined $id) {
@@ -114,12 +117,10 @@ sub check {
     if (!ref $param) {
         $param = { name => $param };
     }
-    # Don't allow empty names.
-    if (exists $param->{name}) {
-        $param->{name} = trim($param->{name});
-        $param->{name} || ThrowUserError('object_name_not_specified',
-                                          { class => $class });
-    }
+    # Don't allow empty names or ids.
+    my $check_param = exists $param->{id} ? $param->{id} : $param->{name};
+    $check_param = trim($check_param);
+    $check_param || ThrowUserError('object_not_specified', { class => $class });
     my $obj = $class->new($param)
         || ThrowUserError('object_does_not_exist', {%$param, class => $class});
     return $obj;
@@ -155,9 +156,30 @@ sub match {
 
     return [$class->get_all] if !$criteria;
 
-    my (@terms, @values);
+    my (@terms, @values, $postamble);
     foreach my $field (keys %$criteria) {
         my $value = $criteria->{$field};
+        
+        # allow for LIMIT and OFFSET expressions via the criteria.
+        next if $field eq 'OFFSET';
+        if ( $field eq 'LIMIT' ) {
+            next unless defined $value;
+            $postamble = $dbh->sql_limit( $value, $criteria->{OFFSET} );
+            next;
+        }
+        elsif ( $field eq 'WHERE' ) {
+            # the WHERE value is a hashref where the keys are
+            # "column_name operator ?" and values are the placeholder's
+            # value (either a scalar or an array of values).
+            foreach my $k (keys %$value) {
+                push(@terms, $k);
+                my @this_value = ref($value->{$k}) ? @{ $value->{$k} } 
+                                                   : ($value->{$k});
+                push(@values, @this_value);
+            }            
+            next;
+        }
+        
         if (ref $value eq 'ARRAY') {
             # IN () is invalid SQL, and if we have an empty list
             # to match against, we're just returning an empty
@@ -180,12 +202,12 @@ sub match {
         }
     }
 
-    my $where = join(' AND ', @terms);
-    return $class->_do_list_select($where, \@values);
+    my $where = join(' AND ', @terms) if scalar @terms;
+    return $class->_do_list_select($where, \@values, $postamble);
 }
 
 sub _do_list_select {
-    my ($class, $where, $values) = @_;
+    my ($class, $where, $values, $postamble) = @_;
     my $table = $class->DB_TABLE;
     my $cols  = join(',', $class->DB_COLUMNS);
     my $order = $class->LIST_ORDER;
@@ -196,6 +218,8 @@ sub _do_list_select {
     }
     $sql .= " ORDER BY $order";
 
+    $sql .= " $postamble" if $postamble;
+        
     my $dbh = Bugzilla->dbh;
     my $objects = $dbh->selectall_arrayref($sql, {Slice=>{}}, @$values);
     bless ($_, $class) foreach @$objects;
@@ -235,6 +259,14 @@ sub set {
     }
 
     $self->{$field} = $value;
+}
+
+sub set_all {
+    my ($self, $params) = @_;
+    foreach my $key (keys %$params) {
+        my $method = "set_$key";
+        $self->$method($params->{$key});
+    }
 }
 
 sub update {
@@ -280,7 +312,20 @@ sub update {
 
     $dbh->bz_commit_transaction();
 
+    if (wantarray) {
+        return (\%changes, $old_self);
+    }
+
     return \%changes;
+}
+
+sub remove_from_db {
+    my $self = shift;
+    my $table = $self->DB_TABLE;
+    my $id_field = $self->ID_FIELD;
+    Bugzilla->dbh->do("DELETE FROM $table WHERE $id_field = ?",
+                      undef, $self->id);
+    undef $self;
 }
 
 ###############################
@@ -511,7 +556,9 @@ as the value in the L</ID_FIELD> column).
 
 If you pass in a hashref, you can pass a C<name> key. The 
 value of the C<name> key is the case-insensitive name of the object 
-(from L</NAME_FIELD>) in the DB.
+(from L</NAME_FIELD>) in the DB. You can also pass in an C<id> key
+which will be interpreted as the id of the object you want (overriding the 
+C<name> key).
 
 B<Additional Parameters Available for Subclasses>
 
@@ -600,6 +647,26 @@ value that you want to match against for that column.
 There are two special values, the constants C<NULL> and C<NOT_NULL>,
 which means "give me objects where this field is NULL or NOT NULL,
 respectively."
+
+In addition to the column keys, there are a few special keys that
+can be used to rig the underlying database queries. These are 
+C<LIMIT>, C<OFFSET>, and C<WHERE>.
+
+The value for the C<LIMIT> key is expected to be an integer defining 
+the number of objects to return, while the value for C<OFFSET> defines
+the position, relative to the number of objects the query would normally 
+return, at which to begin the result set. If C<OFFSET> is defined without 
+a corresponding C<LIMIT> it is silently ignored.
+
+The C<WHERE> key provides a mechanism for adding arbitrary WHERE
+clauses to the underlying query. Its value is expected to a hash 
+reference whose keys are the columns, operators and placeholders, and the 
+values are the placeholders' bind value. For example:
+
+ WHERE => { 'some_column >= ?' => $some_value }
+
+would constrain the query to only those objects in the table whose
+'some_column' column has a value greater than or equal to $some_value.
 
 If you don't specify any criteria, calling this function is the same
 as doing C<[$class-E<gt>get_all]>.
@@ -698,6 +765,8 @@ updated, and they will only be updated if their values have changed.
 
 =item B<Returns>
 
+B<In scalar context:>
+
 A hashref showing what changed during the update. The keys are the column
 names from L</UPDATE_COLUMNS>. If a field was not changed, it will not be
 in the hash at all. If the field was changed, the key will point to an arrayref.
@@ -706,14 +775,27 @@ will be the new value.
 
 If there were no changes, we return a reference to an empty hash.
 
-=back
+B<In array context:>
+
+Returns a list, where the first item is the above hashref. The second item
+is the object as it was in the database before update() was called. (This
+is mostly useful to subclasses of C<Bugzilla::Object> that are implementing
+C<update>.)
 
 =back
 
-=head2 Subclass Helpers
+=item C<remove_from_db>
 
-These functions are intended only for use by subclasses. If
-you call them from anywhere else, they will throw a C<CodeError>.
+Removes this object from the database. Will throw an error if you can't
+remove it for some reason. The object will then be destroyed, as it is
+not safe to use the object after it has been removed from the database.
+
+=back
+
+=head2 Mutators
+
+These are used for updating the values in objects, before calling
+C<update>.
 
 =over
 
@@ -734,8 +816,10 @@ C<set> will call it with C<($value, $field)> as arguments, after running
 the validator for this particular field. C<_set_global_validator> does not
 return anything.
 
-
 See L</VALIDATORS> for more information.
+
+B<NOTE>: This function is intended only for use by subclasses. If
+you call it from anywhere else, it will throw a C<CodeError>.
 
 =item B<Params>
 
@@ -751,6 +835,27 @@ be the same as the name of the field in L</VALIDATORS>, if it exists there.
 =item B<Returns> (nothing)
 
 =back
+
+
+=item C<set_all>
+
+=over
+
+=item B<Description>
+
+This is a convenience function which is simpler than calling many different
+C<set_> functions in a row. You pass a hashref of parameters and it calls
+C<set_$key($value)> for every item in the hashref.
+
+=item B<Params>
+
+Takes a hashref of the fields that need to be set, pointing to the value
+that should be passed to the C<set_> function that is called.
+
+=item B<Returns> (nothing)
+
+=back
+
 
 =back
 

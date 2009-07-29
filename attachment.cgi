@@ -175,7 +175,7 @@ sub validateID {
      || ThrowUserError("invalid_attach_id", { attach_id => $cgi->param($param) });
   
     # Make sure the attachment exists in the database.
-    my $attachment = Bugzilla::Attachment->get($attach_id)
+    my $attachment = new Bugzilla::Attachment($attach_id)
       || ThrowUserError("invalid_attach_id", { attach_id => $attach_id });
 
     return $attachment if ($dont_validate_access || check_can_access($attachment));
@@ -187,8 +187,10 @@ sub check_can_access {
     my $user = Bugzilla->user;
 
     # Make sure the user is authorized to access this attachment's bug.
-    ValidateBugID($attachment->bug_id);
-    if ($attachment->isprivate && $user->id != $attachment->attacher->id && !$user->is_insider) {
+    Bugzilla::Bug->check($attachment->bug_id);
+    if ($attachment->isprivate && $user->id != $attachment->attacher->id 
+        && !$user->is_insider) 
+    {
         ThrowUserError('auth_failure', {action => 'access',
                                         object => 'attachment'});
     }
@@ -377,9 +379,8 @@ sub diff {
 # HTML page.
 sub viewall {
     # Retrieve and validate parameters
-    my $bugid = $cgi->param('bugid');
-    ValidateBugID($bugid);
-    my $bug = new Bugzilla::Bug($bugid);
+    my $bug = Bugzilla::Bug->check(scalar $cgi->param('bugid'));
+    my $bugid = $bug->id;
 
     my $attachments = Bugzilla::Attachment->get_attachments_by_bug($bugid);
 
@@ -397,13 +398,12 @@ sub viewall {
 # Display a form for entering a new attachment.
 sub enter {
   # Retrieve and validate parameters
-  my $bugid = $cgi->param('bugid');
-  ValidateBugID($bugid);
+  my $bug = Bugzilla::Bug->check(scalar $cgi->param('bugid'));
+  my $bugid = $bug->id;
   validateCanChangeBug($bugid);
   my $dbh = Bugzilla->dbh;
   my $user = Bugzilla->user;
 
-  my $bug = new Bugzilla::Bug($bugid, $user->id);
   # Retrieve the attachments the user can edit from the database and write
   # them into an array of hashes where each hash represents one attachment.
   my $canEdit = "";
@@ -416,7 +416,7 @@ sub enter {
 
   # Define the variables and functions that will be passed to the UI template.
   $vars->{'bug'} = $bug;
-  $vars->{'attachments'} = Bugzilla::Attachment->get_list($attach_ids);
+  $vars->{'attachments'} = Bugzilla::Attachment->new_from_list($attach_ids);
 
   my $flag_types = Bugzilla::FlagType::match({'target_type'  => 'attachment',
                                               'product_id'   => $bug->product_id,
@@ -440,8 +440,8 @@ sub insert {
     $dbh->bz_start_transaction;
 
     # Retrieve and validate parameters
-    my $bugid = $cgi->param('bugid');
-    ValidateBugID($bugid);
+    my $bug = Bugzilla::Bug->check(scalar $cgi->param('bugid'));
+    my $bugid = $bug->id;
     validateCanChangeBug($bugid);
     my ($timestamp) = Bugzilla->dbh->selectrow_array("SELECT NOW()");
 
@@ -469,9 +469,8 @@ sub insert {
         }
     }
 
-    my $bug = new Bugzilla::Bug($bugid);
-    my $attachment = Bugzilla::Attachment->insert_attachment_for_bug(
-        THROW_ERROR, $bug, $user, $timestamp, $vars);
+    my $attachment =
+        Bugzilla::Attachment->create(THROW_ERROR, $bug, $user, $timestamp, $vars);
 
     # Insert a comment about the new attachment into the database.
     my $comment =
@@ -560,32 +559,14 @@ sub insert {
 # Validations are done later when the user submits changes.
 sub edit {
   my $attachment = validateID();
-  my $dbh = Bugzilla->dbh;
 
-  # Retrieve a list of attachments for this bug as well as a summary of the bug
-  # to use in a navigation bar across the top of the screen.
   my $bugattachments =
       Bugzilla::Attachment->get_attachments_by_bug($attachment->bug_id);
   # We only want attachment IDs.
   @$bugattachments = map { $_->id } @$bugattachments;
 
-  my ($bugsummary, $product_id, $component_id) =
-      $dbh->selectrow_array('SELECT short_desc, product_id, component_id
-                               FROM bugs
-                              WHERE bug_id = ?', undef, $attachment->bug_id);
-
-  # Get a list of flag types that can be set for this attachment.
-  my $flag_types = Bugzilla::FlagType::match({ 'target_type'  => 'attachment' ,
-                                               'product_id'   => $product_id ,
-                                               'component_id' => $component_id });
-  foreach my $flag_type (@$flag_types) {
-    $flag_type->{'flags'} = Bugzilla::Flag->match({ 'type_id'   => $flag_type->id,
-                                                    'attach_id' => $attachment->id });
-  }
-  $vars->{'flag_types'} = $flag_types;
-  $vars->{'any_flags_requesteeble'} = grep($_->is_requesteeble, @$flag_types);
+  $vars->{'any_flags_requesteeble'} = grep($_->is_requesteeble, @{$attachment->flag_types});
   $vars->{'attachment'} = $attachment;
-  $vars->{'bugsummary'} = $bugsummary; 
   $vars->{'attachments'} = $bugattachments;
 
   print $cgi->header();
@@ -710,41 +691,54 @@ sub update {
             $cgi->param('ispatch'), $cgi->param('isobsolete'), 
             $cgi->param('isprivate'), $timestamp, $attachment->id));
 
-  my $updated_attachment = Bugzilla::Attachment->get($attachment->id);
+  my $updated_attachment = new Bugzilla::Attachment($attachment->id);
   # Record changes in the activity table.
   my $sth = $dbh->prepare('INSERT INTO bugs_activity (bug_id, attach_id, who, bug_when,
                                                       fieldid, removed, added)
                            VALUES (?, ?, ?, ?, ?, ?, ?)');
+  # Flag for updating Last-Modified timestamp if record changed
+  my $updated = 0;
 
   if ($attachment->description ne $updated_attachment->description) {
     my $fieldid = get_field_id('attachments.description');
     $sth->execute($bug->id, $attachment->id, $user->id, $timestamp, $fieldid,
                   $attachment->description, $updated_attachment->description);
+    $updated = 1;
   }
   if ($attachment->contenttype ne $updated_attachment->contenttype) {
     my $fieldid = get_field_id('attachments.mimetype');
     $sth->execute($bug->id, $attachment->id, $user->id, $timestamp, $fieldid,
                   $attachment->contenttype, $updated_attachment->contenttype);
+    $updated = 1;
   }
   if ($attachment->filename ne $updated_attachment->filename) {
     my $fieldid = get_field_id('attachments.filename');
     $sth->execute($bug->id, $attachment->id, $user->id, $timestamp, $fieldid,
                   $attachment->filename, $updated_attachment->filename);
+    $updated = 1;
   }
   if ($attachment->ispatch != $updated_attachment->ispatch) {
     my $fieldid = get_field_id('attachments.ispatch');
     $sth->execute($bug->id, $attachment->id, $user->id, $timestamp, $fieldid,
                   $attachment->ispatch, $updated_attachment->ispatch);
+    $updated = 1;
   }
   if ($attachment->isobsolete != $updated_attachment->isobsolete) {
     my $fieldid = get_field_id('attachments.isobsolete');
     $sth->execute($bug->id, $attachment->id, $user->id, $timestamp, $fieldid,
                   $attachment->isobsolete, $updated_attachment->isobsolete);
+    $updated = 1;
   }
   if ($attachment->isprivate != $updated_attachment->isprivate) {
     my $fieldid = get_field_id('attachments.isprivate');
     $sth->execute($bug->id, $attachment->id, $user->id, $timestamp, $fieldid,
                   $attachment->isprivate, $updated_attachment->isprivate);
+    $updated = 1;
+  }
+
+  if ($updated) {
+    $dbh->do("UPDATE bugs SET delta_ts = ? WHERE bug_id = ?", undef,
+             $timestamp, $bug->id);
   }
   
   # Commit the transaction now that we are finished updating the database.

@@ -103,7 +103,7 @@ sub grant_direct {
     my ($self, $type) = @_;
     $self->{grant_direct} ||= {};
     return $self->{grant_direct}->{$type} 
-        if defined $self->{members_direct}->{$type};
+        if defined $self->{grant_direct}->{$type};
     my $dbh = Bugzilla->dbh;
 
     my $ids = $dbh->selectcol_arrayref(
@@ -198,7 +198,30 @@ sub is_active_bug_group {
 
 sub _rederive_regexp {
     my ($self) = @_;
-    RederiveRegexp($self->user_regexp, $self->id);
+
+    my $dbh = Bugzilla->dbh;
+    my $sth = $dbh->prepare("SELECT userid, login_name, group_id
+                               FROM profiles
+                          LEFT JOIN user_group_map
+                                 ON user_group_map.user_id = profiles.userid
+                                    AND group_id = ?
+                                    AND grant_type = ?
+                                    AND isbless = 0");
+    my $sthadd = $dbh->prepare("INSERT INTO user_group_map
+                                 (user_id, group_id, grant_type, isbless)
+                                 VALUES (?, ?, ?, 0)");
+    my $sthdel = $dbh->prepare("DELETE FROM user_group_map
+                                 WHERE user_id = ? AND group_id = ?
+                                 AND grant_type = ? and isbless = 0");
+    $sth->execute($self->id, GRANT_REGEXP);
+    my $regexp = $self->user_regexp;
+    while (my ($uid, $login, $present) = $sth->fetchrow_array) {
+        if ($regexp ne '' and $login =~ /$regexp/i) {
+            $sthadd->execute($uid, $self->id, GRANT_REGEXP) unless $present;
+        } else {
+            $sthdel->execute($uid, $self->id, GRANT_REGEXP) if $present;
+        }
+    }
 }
 
 sub members_non_inherited {
@@ -214,6 +237,33 @@ sub members_non_inherited {
     $self->{members_non_inherited} = Bugzilla::User->new_from_list($member_ids);
     return $self->{members_non_inherited};
 }
+
+sub flatten_group_membership {
+    my ($self, @groups) = @_;
+
+    my $dbh = Bugzilla->dbh;
+    my $sth;
+    my @groupidstocheck = @groups;
+    my %groupidschecked = ();
+    $sth = $dbh->prepare("SELECT member_id FROM group_group_map
+                             WHERE grantor_id = ? 
+                               AND grant_type = " . GROUP_MEMBERSHIP);
+    while (my $node = shift @groupidstocheck) {
+        $sth->execute($node);
+        my $member;
+        while (($member) = $sth->fetchrow_array) {
+            if (!$groupidschecked{$member}) {
+                $groupidschecked{$member} = 1;
+                push @groupidstocheck, $member;
+                push @groups, $member unless grep $_ == $member, @groups;
+            }
+        }
+    }
+    return \@groups;
+}
+
+
+
 
 ################################
 #####  Module Subroutines    ###
@@ -264,35 +314,6 @@ sub ValidateGroupName {
     $sth->execute($name);
     my ($ret) = $sth->fetchrow_array();
     return $ret;
-}
-
-# This sub is not perldoc'ed because we expect it to go away and
-# just become the _rederive_regexp private method.
-sub RederiveRegexp {
-    my ($regexp, $gid) = @_;
-    my $dbh = Bugzilla->dbh;
-    my $sth = $dbh->prepare("SELECT userid, login_name, group_id
-                               FROM profiles
-                          LEFT JOIN user_group_map
-                                 ON user_group_map.user_id = profiles.userid
-                                AND group_id = ?
-                                AND grant_type = ?
-                                AND isbless = 0");
-    my $sthadd = $dbh->prepare("INSERT INTO user_group_map
-                                 (user_id, group_id, grant_type, isbless)
-                                 VALUES (?, ?, ?, 0)");
-    my $sthdel = $dbh->prepare("DELETE FROM user_group_map
-                                 WHERE user_id = ? AND group_id = ?
-                                 AND grant_type = ? and isbless = 0");
-    $sth->execute($gid, GRANT_REGEXP);
-    while (my ($uid, $login, $present) = $sth->fetchrow_array()) {
-        if (($regexp =~ /\S+/) && ($login =~ m/$regexp/i))
-        {
-            $sthadd->execute($uid, $gid, GRANT_REGEXP) unless $present;
-        } else {
-            $sthdel->execute($uid, $gid, GRANT_REGEXP) if $present;
-        }
-    }
 }
 
 ###############################
@@ -399,5 +420,13 @@ Returns an arrayref of L<Bugzilla::User> objects representing people who are
 "directly" in this group, meaning that they're in it because they match
 the group regular expression, or they have been actually added to the
 group manually.
+
+=item C<flatten_group_membership>
+
+Accepts a list of groups and returns a list of all the groups whose members 
+inherit membership in any group on the list.  So, we can determine if a user
+is in any of the groups input to flatten_group_membership by querying the
+user_group_map for any user with DIRECT or REGEXP membership IN() the list
+of groups returned.
 
 =back

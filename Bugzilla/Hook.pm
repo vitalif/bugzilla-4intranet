@@ -170,6 +170,74 @@ This describes what hooks exist in Bugzilla currently. They are mostly
 in alphabetical order, but some related hooks are near each other instead
 of being alphabetical.
 
+=head2 auth-login_methods
+
+This allows you to add new login types to Bugzilla.
+(See L<Bugzilla::Auth::Login>.)
+
+Params:
+
+=over
+
+=item C<modules>
+
+This is a hash--a mapping from login-type "names" to the actual module on
+disk. The keys will be all the values that were passed to 
+L<Bugzilla::Auth/login> for the C<Login> parameter. The values are the
+actual path to the module on disk. (For example, if the key is C<DB>, the
+value is F<Bugzilla/Auth/Login/DB.pm>.)
+
+For your extension, the path will start with 
+F<extensions/yourextension/lib/>. (See the code in the example extension.)
+
+If your login type is in the hash as a key, you should set that key to the
+right path to your module. That module's C<new> method will be called,
+probably with empty parameters. If your login type is I<not> in the hash,
+you should not set it.
+
+You will be prevented from adding new keys to the hash, so make sure your
+key is in there before you modify it. (In other words, you can't add in
+login methods that weren't passed to L<Bugzilla::Auth/login>.)
+
+=back
+
+=head2 auth-verify_methods
+
+This works just like L</auth-login_methods> except it's for
+login verification methods (See L<Bugzilla::Auth::Verify>.) It also
+takes a C<modules> parameter, just like L</auth-login_methods>.
+
+=head2 bug-columns
+
+This allows you to add new fields that will show up in every L<Bugzilla::Bug>
+object. Note that you will also need to use the L</bug-fields> hook in
+conjunction with this hook to make this work.
+
+Params:
+
+=over
+
+=item C<columns> - An arrayref containing an array of column names. Push
+your column name(s) onto the array.
+
+=back
+
+=head2 bug-end_of_create
+
+This happens at the end of L<Bugzilla::Bug/create>, after all other changes are
+made to the database. This occurs inside a database transaction.
+
+Params:
+
+=over
+
+=item C<bug> - The changed bug object, with all fields set to their updated
+values.
+
+=item C<timestamp> - The timestamp used for all updates in this transaction.
+
+=back
+
 =head2 bug-end_of_update
 
 This happens at the end of L<Bugzilla::Bug/update>, after all other changes are
@@ -186,6 +254,23 @@ values.
 
 =item C<changes> - The hash of changed fields. 
 C<$changes-E<gt>{field} = [old, new]>
+
+=back
+
+=head2 bug-fields
+
+Allows the addition of database fields from the bugs table to the standard
+list of allowable fields in a L<Bugzilla::Bug> object, so that
+you can call the field as a method.
+
+Note: You should add here the names of any fields you added in L</bug-columns>.
+
+Params:
+
+=over
+
+=item C<columns> - A arrayref containing an array of column names. Push
+your column name(s) onto the array.
 
 =back
 
@@ -230,6 +315,51 @@ Params:
 =item C<columns> - An arrayref containing an array of column IDs.  Any IDs
 added by this hook must have been defined in the the buglist-columns hook.
 See L</buglist-columns>.
+
+=back
+
+=head2 config-add_panels
+
+If you want to add new panels to the Parameters administrative interface,
+this is where you do it.
+
+Params:
+
+=over
+
+=item C<panel_modules>
+
+A hashref, where the keys are the "name" of the module and the value
+is the Perl module containing that config module. For example, if
+the name is C<Auth>, the value would be C<Bugzilla::Config::Auth>.
+
+For your extension, the Perl module name must start with 
+C<extensions::yourextension::lib>. (See the code in the example
+extension.)
+
+=back
+
+=head2 config-modify_panels
+
+This is how you modify already-existing panels in the Parameters
+administrative interface. For example, if you wanted to add a new
+Auth method (modifying Bugzilla::Config::Auth) this is how you'd
+do it.
+
+Params:
+
+=over
+
+=item C<panels>
+
+A hashref, where the keys are lower-case panel "names" (like C<auth>, 
+C<admin>, etc.) and the values are hashrefs. The hashref contains a
+single key, C<params>. C<params> is an arrayref--the return value from
+C<get_param_list> for that module. You can modify C<params> and
+your changes will be reflected in the interface.
+
+Adding new keys to C<panels> will have no effect. You should use
+L</config-add_panels> if you want to add new panels.
 
 =back
 
@@ -333,6 +463,18 @@ Params:
 L<Bugzilla::DB::Schema/ABSTRACT_SCHEMA>. Add new hash keys to make new table
 definitions. F<checksetup.pl> will automatically add these tables to the
 database when run.
+
+=back
+
+=head2 mailer-before_send
+
+Called right before L<Bugzilla::Mailer> sends a message to the MTA.
+
+Params:
+
+=over
+
+=item C<email> - The C<Email::MIME> object that's about to be sent.
 
 =back
 

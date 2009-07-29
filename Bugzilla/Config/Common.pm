@@ -35,7 +35,6 @@ package Bugzilla::Config::Common;
 use strict;
 
 use Socket;
-use Time::Zone;
 
 use Bugzilla::Util;
 use Bugzilla::Constants;
@@ -49,8 +48,8 @@ use base qw(Exporter);
        check_sslbase check_priority check_severity check_platform
        check_opsys check_shadowdb check_urlbase check_webdotbase
        check_netmask check_user_verify_class check_image_converter
-       check_mail_delivery_method check_notification check_timezone check_utf8
-       check_bug_status check_smtp_auth 
+       check_mail_delivery_method check_notification check_utf8
+       check_bug_status check_smtp_auth check_theschwartz_available
        check_maxattachmentsize
 );
 
@@ -278,10 +277,7 @@ sub check_user_verify_class {
     for my $class (split /,\s*/, $list) {
         my $res = check_multi($class, $entry);
         return $res if $res;
-        if ($class eq 'DB') {
-            # No params
-        }
-        elsif ($class eq 'RADIUS') {
+        if ($class eq 'RADIUS') {
             eval "require Authen::Radius";
             return "Error requiring Authen::Radius: '$@'" if $@;
             return "RADIUS servername (RADIUS_server) is missing" unless Bugzilla->params->{"RADIUS_server"};
@@ -292,9 +288,6 @@ sub check_user_verify_class {
             return "Error requiring Net::LDAP: '$@'" if $@;
             return "LDAP servername (LDAPserver) is missing" unless Bugzilla->params->{"LDAPserver"};
             return "LDAPBaseDN is empty" unless Bugzilla->params->{"LDAPBaseDN"};
-        }
-        else {
-            return "Unknown user_verify_class '$class' in check_user_verify_class";
         }
     }
     return "";
@@ -352,19 +345,20 @@ sub check_notification {
     return "";
 }
 
-sub check_timezone {
-    my $tz = shift;
-    unless (defined(tz_offset($tz))) {
-        return "must be empty or a legal timezone name, such as PDT or JST";
-    }
-    return "";
-}
-
 sub check_smtp_auth {
     my $username = shift;
     if ($username) {
         eval "require Authen::SASL";
         return "Error requiring Authen::SASL: '$@'" if $@;
+    }
+    return "";
+}
+
+sub check_theschwartz_available {
+    if (!eval { require TheSchwartz; require Daemon::Generic; }) {
+        return "Using the job queue requires that you have certain Perl"
+               . " modules installed. See the output of checksetup.pl"
+               . " for more information";
     }
     return "";
 }

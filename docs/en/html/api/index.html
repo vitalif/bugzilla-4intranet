@@ -2,13 +2,13 @@
 <html>
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <title>Bugzilla 3.2.4 API Documentation</title>
+    <title>Bugzilla 3.4 API Documentation</title>
   
 <link rel="stylesheet" title="style" type="text/css" href="./../../../style.css" media="all" >
 
 </head>
   <body class="contentspage">
-    <h1>Bugzilla 3.2.4 API Documentation</h1>
+    <h1>Bugzilla 3.4 API Documentation</h1>
 <dl class='superindex'>
 <dt><a name="Files">Files</a></dt>
 <dd>
@@ -46,6 +46,10 @@
   <td>Installs or upgrades modules from CPAN. This script does not run on Windows.</td>
 </tr>
 <tr class="even">
+  <th><a href="./jobqueue.html">jobqueue</a></th>
+  <td>Runs jobs in the background for Bugzilla.</td>
+</tr>
+<tr class="odd">
   <th><a href="./sanitycheck.html">sanitycheck</a></th>
   <td>Perl script to perform a sanity check at the command line</td>
 </tr>
@@ -60,7 +64,7 @@
 </tr>
 <tr class="odd">
   <th><a href="./Bugzilla/Attachment.html">Bugzilla::Attachment</a></th>
-  <td>a file related to a bug that a user has uploaded to the Bugzilla server</td>
+  <td>Bugzilla attachment class.</td>
 </tr>
 <tr class="even">
   <th><a href="./Bugzilla/Auth.html">Bugzilla::Auth</a></th>
@@ -123,116 +127,132 @@
   <td>a particular piece of information about bugs and useful routines for form field manipulation</td>
 </tr>
 <tr class="odd">
+  <th><a href="./Bugzilla/Field/Choice.html">Bugzilla::Field::Choice</a></th>
+  <td>A legal value for a &#60;select&#62;-type field.</td>
+</tr>
+<tr class="even">
   <th><a href="./Bugzilla/Flag.html">Bugzilla::Flag</a></th>
   <td>A module to deal with Bugzilla flag values.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
   <th><a href="./Bugzilla/FlagType.html">Bugzilla::FlagType</a></th>
   <td>A module to deal with Bugzilla flag types.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
   <th><a href="./Bugzilla/Group.html">Bugzilla::Group</a></th>
   <td>Bugzilla group class.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
   <th><a href="./Bugzilla/Hook.html">Bugzilla::Hook</a></th>
   <td>Extendable extension hooks for Bugzilla code</td>
 </tr>
-<tr class="odd">
+<tr class="even">
   <th><a href="./Bugzilla/Install.html">Bugzilla::Install</a></th>
   <td>Functions and variables having to do with installation.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
   <th><a href="./Bugzilla/Install/CPAN.html">Bugzilla::Install::CPAN</a></th>
   <td>Routines to install Perl modules from CPAN.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
   <th><a href="./Bugzilla/Install/DB.html">Bugzilla::Install::DB</a></th>
   <td>Fix up the database during installation.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
   <th><a href="./Bugzilla/Install/Filesystem.html">Bugzilla::Install::Filesystem</a></th>
   <td>Fix up the filesystem during installation.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
   <th><a href="./Bugzilla/Install/Localconfig.html">Bugzilla::Install::Localconfig</a></th>
   <td></td>
 </tr>
-<tr class="even">
+<tr class="odd">
   <th><a href="./Bugzilla/Install/Requirements.html">Bugzilla::Install::Requirements</a></th>
   <td>Functions and variables dealing with Bugzilla&#39;s perl-module requirements.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
   <th><a href="./Bugzilla/Install/Util.html">Bugzilla::Install::Util</a></th>
   <td>Utility functions that are useful both during installation and afterwards.</td>
 </tr>
+<tr class="odd">
+  <th><a href="./Bugzilla/JobQueue.html">Bugzilla::JobQueue</a></th>
+  <td>Interface between Bugzilla and TheSchwartz.</td>
+</tr>
 <tr class="even">
+  <th><a href="./Bugzilla/JobQueue/Runner.html">Bugzilla::JobQueue::Runner</a></th>
+  <td>A class representing the daemon that runs the job queue.</td>
+</tr>
+<tr class="odd">
   <th><a href="./Bugzilla/Keyword.html">Bugzilla::Keyword</a></th>
   <td>A Keyword that can be added to a bug.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
   <th><a href="./Bugzilla/Milestone.html">Bugzilla::Milestone</a></th>
   <td>Bugzilla product milestone class.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
   <th><a href="./Bugzilla/Object.html">Bugzilla::Object</a></th>
   <td>A base class for objects in Bugzilla.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
   <th><a href="./Bugzilla/Product.html">Bugzilla::Product</a></th>
   <td>Bugzilla product class.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
   <th><a href="./Bugzilla/Search/Saved.html">Bugzilla::Search::Saved</a></th>
   <td>A saved search</td>
 </tr>
-<tr class="odd">
+<tr class="even">
   <th><a href="./Bugzilla/Status.html">Bugzilla::Status</a></th>
   <td>Bug status class.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
   <th><a href="./Bugzilla/Template.html">Bugzilla::Template</a></th>
   <td>Wrapper around the Template Toolkit Template object</td>
 </tr>
-<tr class="odd">
+<tr class="even">
   <th><a href="./Bugzilla/Template/Parser.html">Bugzilla::Template::Parser</a></th>
   <td>Wrapper around the Template Toolkit Template::Parser object</td>
 </tr>
-<tr class="even">
+<tr class="odd">
   <th><a href="./Bugzilla/Template/Plugin/Bugzilla.html">Bugzilla::Template::Plugin::Bugzilla</a></th>
   <td></td>
 </tr>
-<tr class="odd">
+<tr class="even">
   <th><a href="./Bugzilla/Template/Plugin/Hook.html">Bugzilla::Template::Plugin::Hook</a></th>
   <td></td>
 </tr>
-<tr class="even">
+<tr class="odd">
   <th><a href="./Bugzilla/Template/Plugin/User.html">Bugzilla::Template::Plugin::User</a></th>
   <td></td>
 </tr>
-<tr class="odd">
+<tr class="even">
   <th><a href="./Bugzilla/Token.html">Bugzilla::Token</a></th>
   <td>Provides different routines to manage tokens.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
   <th><a href="./Bugzilla/Update.html">Bugzilla::Update</a></th>
   <td>Update routines for Bugzilla</td>
 </tr>
-<tr class="odd">
+<tr class="even">
   <th><a href="./Bugzilla/User.html">Bugzilla::User</a></th>
   <td>Object for a Bugzilla user</td>
 </tr>
-<tr class="even">
+<tr class="odd">
   <th><a href="./Bugzilla/User/Setting.html">Bugzilla::User::Setting</a></th>
   <td>Object for a user preference setting</td>
 </tr>
-<tr class="odd">
+<tr class="even">
   <th><a href="./Bugzilla/User/Setting/Lang.html">Bugzilla::User::Setting::Lang</a></th>
   <td>Object for a user preference setting for preferred language</td>
 </tr>
-<tr class="even">
+<tr class="odd">
   <th><a href="./Bugzilla/User/Setting/Skin.html">Bugzilla::User::Setting::Skin</a></th>
   <td>Object for a user preference setting for skins</td>
+</tr>
+<tr class="even">
+  <th><a href="./Bugzilla/User/Setting/Timezone.html">Bugzilla::User::Setting::Timezone</a></th>
+  <td>Object for a user preference setting for desired timezone</td>
 </tr>
 <tr class="odd">
   <th><a href="./Bugzilla/Util.html">Bugzilla::Util</a></th>
@@ -261,6 +281,10 @@
 <tr class="odd">
   <th><a href="./Bugzilla/WebService/User.html">Bugzilla::WebService::User</a></th>
   <td>The User Account and Login API</td>
+</tr>
+<tr class="even">
+  <th><a href="./Bugzilla/WebService/Util.html">Bugzilla::WebService::Util</a></th>
+  <td></td>
 </tr>
 </table></dd>
 

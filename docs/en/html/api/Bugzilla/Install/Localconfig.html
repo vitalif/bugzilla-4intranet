@@ -73,23 +73,46 @@ name="SUBROUTINES"
 >SUBROUTINES</a></h1>
 
 <dl>
-<dt><a name="read_localconfig($include_deprecated)"
-><code  class="code">read_localconfig($include_deprecated)</code></a></dt>
+<dt><a name="read_localconfig"
+><code  class="code">read_localconfig</code></a></dt>
 
 <dd>
-<p>Description: Reads the localconfig file and returns all valid values in a hashref.</p>
+<dl>
+<dt><a name="Description"
+><b>Description</b></a></dt>
 
-<p>Params: <code  class="code">$include_deprecated</code> - <code  class="code">true</code> if you want the returned hashref to also include variables listed in <code  class="code">OLD_LOCALCONFIG_VARS</code>, if they exist. Generally this is only for use by <code  class="code">update_localconfig</code>.</p>
+<dd>
+<p>Reads the localconfig file and returns all valid values in a hashref.</p>
 
-<p>Returns: A hashref of the localconfig variables. If an array is defined, it will be an arrayref in the returned hash. If a hash is defined, it will be a hashref in the returned hash. Only includes variables specified in <code  class="code">LOCALCONFIG_VARS</code> (and <code  class="code">OLD_LOCALCONFIG_VARS</code> if <code  class="code">$include_deprecated</code> is specified).</p>
+<dt><a name="Params"
+><b>Params</b></a></dt>
 
-<dt><a name="update_localconfig({_output_=&#62;_1_})"
-><code  class="code">update_localconfig({ output =&#62; 1 })</code></a></dt>
+<dd>
+<dl>
+<dt><a name="$include_deprecated"
+><code  class="code">$include_deprecated</code></a></dt>
+
+<dd>
+<p><code  class="code">true</code> if you want the returned hashref to include *any* variable currently defined in localconfig, even if it doesn&#39;t exist in <code  class="code">LOCALCONFIG_VARS</code>. Generally this is is only for use by <a href="#update_localconfig" class="podlinkpod"
+>&#34;update_localconfig&#34;</a>.</p>
+</dd>
+</dl>
+
+<dt><a name="Returns"
+><b>Returns</b></a></dt>
+
+<dd>
+<p>A hashref of the localconfig variables. If an array is defined in localconfig, it will be an arrayref in the returned hash. If a hash is defined, it will be a hashref in the returned hash. Only includes variables specified in <code  class="code">LOCALCONFIG_VARS</code>, unless <code  class="code">$include_deprecated</code> is true.</p>
+</dd>
+</dl>
+
+<dt><a name="update_localconfig"
+><code  class="code">update_localconfig</code></a></dt>
 
 <dd>
 <p>Description: Adds any new variables to localconfig that aren&#39;t currently defined there. Also optionally prints out a message about vars that *should* be there and aren&#39;t. Exits the program if it adds any new vars.</p>
 
-<p>Params: <code  class="code">output</code> - <code  class="code">true</code> if the function should display informational output and warnings. It will always display errors or any message which would cause program execution to halt.</p>
+<p>Params: <code  class="code">$output</code> - <code  class="code">true</code> if the function should display informational output and warnings. It will always display errors or any message which would cause program execution to halt.</p>
 
 <p>Returns: A hashref, with <code  class="code">old_vals</code> being an array of names of variables that were removed, and <code  class="code">new_vals</code> being an array of names of variables that were added to localconfig.</p>
 </dd>

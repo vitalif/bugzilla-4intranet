@@ -63,6 +63,8 @@ sub SETTINGS {
     # 2007-07-02 altlist@gmail.com -- Bug 225731
     quote_replies      => { options => ['quoted_reply', 'simple_reply', 'off'],
                             default => "quoted_reply" },
+    # 2008-08-27 LpSolit@gmail.com -- Bug 182238
+    timezone           => { subclass => 'Timezone', default => 'local' },
     # 2008-12-22 vfilippov@custis.ru -- Custis Bug 17481
     remind_me_about_worktime => { options => ['on', 'off'], default => 'on' },
     remind_me_about_flags    => { options => ['on', 'off'], default => 'on' },
@@ -275,7 +277,7 @@ sub create_admin {
 
     my $admin_group = new Bugzilla::Group({ name => 'admin' });
     my $admin_inheritors = 
-        Bugzilla::User->flatten_group_membership($admin_group->id);
+        Bugzilla::Group->flatten_group_membership($admin_group->id);
     my $admin_group_ids = join(',', @$admin_inheritors);
 
     my ($admin_count) = $dbh->selectrow_array(

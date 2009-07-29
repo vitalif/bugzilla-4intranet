@@ -16,7 +16,6 @@ Bugzilla::Classification</title>
   <li class='indexItem indexItem1'><a href='#SYNOPSIS'>SYNOPSIS</a>
   <li class='indexItem indexItem1'><a href='#DESCRIPTION'>DESCRIPTION</a>
   <li class='indexItem indexItem1'><a href='#METHODS'>METHODS</a>
-  <li class='indexItem indexItem1'><a href='#SUBROUTINES'>SUBROUTINES</a>
 </ul>
 </div>
 
@@ -38,20 +37,19 @@ name="SYNOPSIS"
     my $id = $classification-&#62;id;
     my $name = $classification-&#62;name;
     my $description = $classification-&#62;description;
+    my $sortkey = $classification-&#62;sortkey;
     my $product_count = $classification-&#62;product_count;
-    my $products = $classification-&#62;products;
-
-    my $hash_ref = Bugzilla::Classification::get_all_classifications();
-    my $classification = $hash_ref-&#62;{1};
-
-    my $classification =
-        Bugzilla::Classification::check_classification(&#39;AcmeClass&#39;);</pre>
+    my $products = $classification-&#62;products;</pre>
 
 <h1><a class='u' href='#___top' title='click to go to top of document'
 name="DESCRIPTION"
 >DESCRIPTION</a></h1>
 
-<p>Classification.pm represents a Classification object.</p>
+<p>Classification.pm represents a classification object. It is an implementation of <a href="../Bugzilla/Object.html" class="podlinkpod"
+>Bugzilla::Object</a>, and thus provides all methods that <a href="../Bugzilla/Object.html" class="podlinkpod"
+>Bugzilla::Object</a> provides.</p>
+
+<p>The methods that are specific to <code  class="code">Bugzilla::Classification</code> are listed below.</p>
 
 <p>A Classification is a higher-level grouping of Products.</p>
 
@@ -60,22 +58,6 @@ name="METHODS"
 >METHODS</a></h1>
 
 <dl>
-<dt><a name="new($param)"
-><code  class="code">new($param)</code></a></dt>
-
-<dd>
-<pre  class="code"> Description: The constructor is used to load an existing
-              classification by passing a classification
-              id or classification name using a hash.
-
- Params:      $param - If you pass an integer, the integer is the
-                      classification_id from the database that we
-                      want to read in. If you pass in a hash with
-                      &#39;name&#39; key, then the value of the name key
-                      is the name of a classification from the DB.
-
- Returns:     A Bugzilla::Classification object.</pre>
-
 <dt><a name="product_count()"
 ><code  class="code">product_count()</code></a></dt>
 
@@ -96,34 +78,6 @@ name="METHODS"
  Params:      none.
 
  Returns:     A reference to an array of Bugzilla::Product objects.</pre>
-</dd>
-</dl>
-
-<h1><a class='u' href='#___top' title='click to go to top of document'
-name="SUBROUTINES"
->SUBROUTINES</a></h1>
-
-<dl>
-<dt><a name="get_all_classifications()"
-><code  class="code">get_all_classifications()</code></a></dt>
-
-<dd>
-<pre  class="code"> Description: Returns all classifications.
-
- Params:      none.
-
- Returns:     Bugzilla::Classification object list.</pre>
-
-<dt><a name="check_classification($classification_name)"
-><code  class="code">check_classification($classification_name)</code></a></dt>
-
-<dd>
-<pre  class="code"> Description: Checks if the classification name passed in is a
-              valid classification.
-
- Params:      $classification_name - String with a classification name.
-
- Returns:     Bugzilla::Classification object.</pre>
 </dd>
 </dl>
 <p class="backlinkbottom"><b><a name="___bottom" href="../index.html" title="All Documents">&lt;&lt;</a></b></p>

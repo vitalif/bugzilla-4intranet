@@ -115,6 +115,13 @@ name="METHODS"
 >Bugzilla::Auth</a>, and <a href="./Bugzilla/User.html" class="podlinkpod"
 >Bugzilla::User</a>.</p>
 
+<dt><a name="page_requires_login"
+><code  class="code">page_requires_login</code></a></dt>
+
+<dd>
+<p>If the current page always requires the user to log in (for example, <code  class="code">enter_bug.cgi</code> or any page called with <code  class="code">?GoAheadAndLogIn=1</code>) then this will return something true. Otherwise it will return false. (This is set when you call <a href="#login" class="podlinkpod"
+>&#34;login&#34;</a>.)</p>
+
 <dt><a name="logout($option)"
 ><code  class="code">logout($option)</code></a></dt>
 
@@ -210,6 +217,19 @@ name="METHODS"
 <dd>
 <p>If you are running inside a code hook (see <a href="./Bugzilla/Hook.html" class="podlinkpod"
 >Bugzilla::Hook</a>) this is how you get the arguments passed to the hook.</p>
+
+<dt><a name="local_timezone"
+><code  class="code">local_timezone</code></a></dt>
+
+<dd>
+<p>Returns the local timezone of the Bugzilla installation, as a DateTime::TimeZone object. This detection is very time consuming, so we cache this information for future references.</p>
+
+<dt><a name="job_queue"
+><code  class="code">job_queue</code></a></dt>
+
+<dd>
+<p>Returns a <a href="./Bugzilla/JobQueue.html" class="podlinkpod"
+>Bugzilla::JobQueue</a> that you can use for queueing jobs. Will throw an error if job queueing is not correctly configured on this Bugzilla installation.</p>
 </dd>
 </dl>
 <p class="backlinkbottom"><b><a name="___bottom" href="index.html" title="All Documents">&lt;&lt;</a></b></p>

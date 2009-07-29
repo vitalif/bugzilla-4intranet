@@ -42,6 +42,7 @@ use Bugzilla::Auth::Persist::Cookie;
 use Bugzilla::CGI;
 use Bugzilla::DB;
 use Bugzilla::Install::Localconfig qw(read_localconfig);
+use Bugzilla::JobQueue;
 use Bugzilla::Template;
 use Bugzilla::User;
 use Bugzilla::Error;
@@ -51,6 +52,7 @@ use Bugzilla::Flag;
 
 use File::Basename;
 use File::Spec::Functions;
+use DateTime::TimeZone;
 use Safe;
 
 # This creates the request cache for non-mod_perl installations.
@@ -82,11 +84,14 @@ use constant SHUTDOWNHTML_EXIT_SILENTLY => [
 sub init_page {
     (binmode STDOUT, ':utf8') if Bugzilla->params->{'utf8'};
 
+
+    if (${^TAINT}) {
     # Some environment variables are not taint safe
     delete @::ENV{'PATH', 'IFS', 'CDPATH', 'ENV', 'BASH_ENV'};
     # Some modules throw undefined errors (notably File::Spec::Win32) if
     # PATH is undefined.
     $ENV{'PATH'} = '';
+    }
 
     # IIS prints out warnings to the webpage, so ignore them, or log them
     # to a file if the file exists.
@@ -223,6 +228,10 @@ sub sudo_request {
     # NOTE: If you want to log the start of an sudo session, do it here.
 }
 
+sub page_requires_login {
+    return $_[0]->request_cache->{page_requires_login};
+}
+
 sub login {
     my ($class, $type) = @_;
 
@@ -233,6 +242,13 @@ sub login {
     if (!defined $type || $type == LOGIN_NORMAL) {
         $type = $class->params->{'requirelogin'} ? LOGIN_REQUIRED : LOGIN_NORMAL;
     }
+
+    # Allow templates to know that we're in a page that always requires
+    # login.
+    if ($type == LOGIN_REQUIRED) {
+        $class->request_cache->{page_requires_login} = 1;
+    }
+
     my $authenticated_user = $authorizer->login($type);
     
     # At this point, we now know if a real person is logged in.
@@ -311,6 +327,12 @@ sub logout_request {
     # there. Don't rely on it: use Bugzilla->user->login instead!
 }
 
+sub job_queue {
+    my $class = shift;
+    $class->request_cache->{job_queue} ||= Bugzilla::JobQueue->new();
+    return $class->request_cache->{job_queue};
+}
+
 sub dbh {
     my $class = shift;
     # If we're not connected, then we must want the main db
@@ -346,7 +368,7 @@ sub error_mode {
         $class->request_cache->{error_mode} = $newval;
     }
     return $class->request_cache->{error_mode}
-        || Bugzilla::Constants::ERROR_MODE_WEBPAGE;
+        || (i_am_cgi() ? ERROR_MODE_WEBPAGE : ERROR_MODE_DIE);
 }
 
 sub usage_mode {
@@ -371,7 +393,7 @@ sub usage_mode {
         $class->request_cache->{usage_mode} = $newval;
     }
     return $class->request_cache->{usage_mode}
-        || Bugzilla::Constants::USAGE_MODE_BROWSER;
+        || (i_am_cgi()? USAGE_MODE_BROWSER : USAGE_MODE_CMDLINE);
 }
 
 sub installation_mode {
@@ -456,6 +478,16 @@ sub hook_args {
     my ($class, $args) = @_;
     $class->request_cache->{hook_args} = $args if $args;
     return $class->request_cache->{hook_args};
+}
+
+sub local_timezone {
+    my $class = shift;
+
+    if (!defined $class->request_cache->{local_timezone}) {
+        $class->request_cache->{local_timezone} =
+          DateTime::TimeZone->new(name => 'local');
+    }
+    return $class->request_cache->{local_timezone};
 }
 
 sub request_cache {
@@ -602,6 +634,13 @@ Logs in a user, returning a C<Bugzilla::User> object, or C<undef> if there is
 no logged in user. See L<Bugzilla::Auth|Bugzilla::Auth>, and
 L<Bugzilla::User|Bugzilla::User>.
 
+=item C<page_requires_login>
+
+If the current page always requires the user to log in (for example,
+C<enter_bug.cgi> or any page called with C<?GoAheadAndLogIn=1>) then
+this will return something true. Otherwise it will return false. (This is
+set when you call L</login>.)
+
 =item C<logout($option)>
 
 Logs out the current user, which involves invalidating user sessions and
@@ -693,5 +732,17 @@ is unreadable or is not valid perl, we C<die>.
 
 If you are running inside a code hook (see L<Bugzilla::Hook>) this
 is how you get the arguments passed to the hook.
+
+=item C<local_timezone>
+
+Returns the local timezone of the Bugzilla installation,
+as a DateTime::TimeZone object. This detection is very time
+consuming, so we cache this information for future references.
+
+=item C<job_queue>
+
+Returns a L<Bugzilla::JobQueue> that you can use for queueing jobs.
+Will throw an error if job queueing is not correctly configured on
+this Bugzilla installation.
 
 =back

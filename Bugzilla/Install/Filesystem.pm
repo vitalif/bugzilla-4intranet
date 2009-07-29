@@ -64,6 +64,7 @@ sub FILESYSTEM {
     my $libdir        = bz_locations()->{'libpath'};
     my $extlib        = bz_locations()->{'ext_libpath'};
     my $skinsdir      = bz_locations()->{'skinsdir'};
+    my $localconfig   = bz_locations()->{'localconfig'};
 
     my $ws_group      = Bugzilla->localconfig->{'webservergroup'};
 
@@ -116,7 +117,10 @@ sub FILESYSTEM {
         'customfield.pl'  => { perms => $owner_executable },
         'email_in.pl'     => { perms => $ws_executable },
         'sanitycheck.pl'  => { perms => $ws_executable },
+        'jobqueue.pl'     => { perms => $owner_executable },
         'install-module.pl' => { perms => $owner_executable },
+
+        "$localconfig.old" => { perms => $owner_readable },
 
         'docs/makedocs.pl'   => { perms => $owner_executable },
         'docs/style.css'       => { perms => $ws_readable },
@@ -294,12 +298,8 @@ EOT
         # It's harmless if it isn't accessible...
         "$datadir/.htaccess" => { perms    => $ws_readable, contents => <<EOT
 # Nothing in this directory is retrievable unless overridden by an .htaccess
-# in a subdirectory; the only exception is duplicates.rdf, which is used by
-# duplicates.xul and must be accessible from the web server
+# in a subdirectory.
 deny from all
-<Files duplicates.rdf>
-  allow from all
-</Files>
 EOT
 
 
@@ -378,6 +378,11 @@ EOT
         unlink "$datadir/versioncache";
     }
 
+    if (-e "$datadir/duplicates.rdf") {
+        print "Removing duplicates.rdf...\n";
+        unlink "$datadir/duplicates.rdf";
+        unlink "$datadir/duplicates-old.rdf";
+    }
 }
 
 # A simple helper for creating "empty" CSS files.

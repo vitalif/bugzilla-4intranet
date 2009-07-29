@@ -91,6 +91,22 @@ sub update_fielddefs_definition {
         }
     }
 
+    $dbh->bz_add_column('fielddefs', 'visibility_field_id', {TYPE => 'INT3'});
+    $dbh->bz_add_column('fielddefs', 'visibility_value_id', {TYPE => 'INT2'});
+    $dbh->bz_add_column('fielddefs', 'value_field_id', {TYPE => 'INT3'});
+    $dbh->bz_add_index('fielddefs', 'fielddefs_value_field_id_idx',
+                       ['value_field_id']);
+
+    # Bug 344878
+    if (!$dbh->bz_column_info('fielddefs', 'buglist')) {
+        $dbh->bz_add_column('fielddefs', 'buglist',
+            {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'});
+        # Set non-multiselect custom fields as valid buglist fields
+        # Note that default fields will be handled in Field.pm
+        $dbh->do('UPDATE fielddefs SET buglist = 1 WHERE custom = 1 AND type != ' . FIELD_TYPE_MULTI_SELECT);
+    }
+
+
     # Remember, this is not the function for adding general table changes.
     # That is below. Add new changes to the fielddefs table above this
     # comment.
@@ -531,6 +547,22 @@ sub update_table_definitions {
     $dbh->bz_alter_column('series', 'query',
         { TYPE => 'MEDIUMTEXT', NOTNULL => 1 });
 
+    # Add FK to multi select field tables
+    _add_foreign_keys_to_multiselects();
+
+    # 2008-07-28 tfu@redhat.com - Bug 431669
+    $dbh->bz_alter_column('group_control_map', 'product_id',
+        { TYPE => 'INT2', NOTNULL => 1 });
+
+    # 2008-09-07 LpSolit@gmail.com - Bug 452893
+    _fix_illegal_flag_modification_dates();
+
+    _add_visiblity_value_to_value_tables();
+
+    # 2009-03-02 arbingersys@gmail.com - Bug 423613
+    $dbh->bz_add_index('profiles', 'profiles_extern_id_idx',
+                       {TYPE => 'UNIQUE', FIELDS => [qw(extern_id)]});
+ 
     ################################################################
     # New --TABLE-- changes should go *** A B O V E *** this point #
     ################################################################
@@ -2986,7 +3018,25 @@ sub _initialize_workflow {
 
     # Make sure the bug status used by the 'duplicate_or_move_bug_status'
     # parameter has all the required transitions set.
-    Bugzilla::Status::add_missing_bug_status_transitions();
+    my $dup_status = Bugzilla->params->{'duplicate_or_move_bug_status'};
+    my $status_id = $dbh->selectrow_array(
+        'SELECT id FROM bug_status WHERE value = ?', undef, $dup_status);
+    # There's a minor chance that this status isn't in the DB.
+    $status_id || return;
+
+    my $missing_statuses = $dbh->selectcol_arrayref(
+        'SELECT id FROM bug_status
+                        LEFT JOIN status_workflow ON old_status = id
+                                                     AND new_status = ?
+          WHERE old_status IS NULL', undef, $status_id);
+
+    my $sth = $dbh->prepare('INSERT INTO status_workflow
+                             (old_status, new_status) VALUES (?, ?)');
+
+    foreach my $old_status_id (@$missing_statuses) {
+        next if ($old_status_id == $status_id);
+        $sth->execute($old_status_id, $status_id);
+    }
 }
 
 sub _make_lang_setting_dynamic {
@@ -3085,6 +3135,25 @@ sub _check_content_length {
     }
 }
 
+sub _add_foreign_keys_to_multiselects {
+    my $dbh = Bugzilla->dbh;
+
+    my $names = $dbh->selectcol_arrayref(
+        'SELECT name
+           FROM fielddefs
+          WHERE type = ' . FIELD_TYPE_MULTI_SELECT);
+
+    foreach my $name (@$names) {
+        $dbh->bz_add_fk("bug_$name", "bug_id", {TABLE  => 'bugs',
+                                                COLUMN => 'bug_id',
+                                                DELETE => 'CASCADE',});
+
+        $dbh->bz_add_fk("bug_$name", "value", {TABLE  => $name,
+                                               COLUMN => 'value',
+                                               DELETE => 'RESTRICT',});
+    }
+}
+
 sub _populate_bugs_fulltext
 {
     my $dbh = Bugzilla->dbh;
@@ -3137,6 +3206,29 @@ sub _populate_bugs_fulltext
             print "\r$done / $total ...";
         }
         print "\n";
+    }
+}
+
+sub _fix_illegal_flag_modification_dates {
+    my $dbh = Bugzilla->dbh;
+
+    my $rows = $dbh->do('UPDATE flags SET modification_date = creation_date
+                         WHERE modification_date < creation_date');
+    # If no rows are affected, $dbh->do returns 0E0 instead of 0.
+    print "$rows flags had an illegal modification date. Fixed!\n" if ($rows =~ /^\d+$/);
+}
+
+sub _add_visiblity_value_to_value_tables {
+    my $dbh = Bugzilla->dbh;
+    my @standard_fields = 
+        qw(bug_status resolution priority bug_severity op_sys rep_platform);
+    my $custom_fields = $dbh->selectcol_arrayref(
+        'SELECT name FROM fielddefs WHERE custom = 1 AND type IN(?,?)',
+        undef, FIELD_TYPE_SINGLE_SELECT, FIELD_TYPE_MULTI_SELECT);
+    foreach my $field (@standard_fields, @$custom_fields) {
+        $dbh->bz_add_column($field, 'visibility_value_id', {TYPE => 'INT2'});
+        $dbh->bz_add_index($field, "${field}_visibility_value_id_idx", 
+                           ['visibility_value_id']);
     }
 }
 

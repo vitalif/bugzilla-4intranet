@@ -113,23 +113,16 @@ sub should_set {
 # Create a list of objects for all bugs being modified in this request.
 my @bug_objects;
 if (defined $cgi->param('id')) {
-  my $id = $cgi->param('id');
-  ValidateBugID($id);
-
-  # Store the validated, and detainted id back in the cgi data, as
-  # lots of later code will need it, and will obtain it from there
-  $cgi->param('id', $id);
-  push(@bug_objects, new Bugzilla::Bug($id));
+  my $bug = Bugzilla::Bug->check(scalar $cgi->param('id'));
+  $cgi->param('id', $bug->id);
+  push(@bug_objects, $bug);
 } else {
-    my @ids;
     foreach my $i ($cgi->param()) {
         if ($i =~ /^id_([1-9][0-9]*)/) {
             my $id = $1;
-            ValidateBugID($id);
-            push(@ids, $id);
+            push(@bug_objects, Bugzilla::Bug->check($id));
         }
     }
-    @bug_objects = @{Bugzilla::Bug->new_from_list(\@ids)};
 }
 
 # Make sure there are bugs to process.
@@ -278,39 +271,36 @@ foreach my $bug (@bug_objects) {
     }
 }
 
-# For security purposes, and because lots of other checks depend on it,
-# we set the product first before anything else.
-my $product_change; # Used only for strict_isolation checks, right now.
-if (should_set('product')) {
-    foreach my $b (@bug_objects) {
-        my $changed = $b->set_product(scalar $cgi->param('product'),
-            { component        => scalar $cgi->param('component'),
-              version          => scalar $cgi->param('version'),
-              target_milestone => scalar $cgi->param('target_milestone'),
-              change_confirmed => scalar $cgi->param('confirm_product_change'),
-              other_bugs => \@bug_objects,
-            });
-        $product_change ||= $changed;
+my $product_change;
+foreach my $bug (@bug_objects) {
+    my $args;
+    if (should_set('product')) {
+        $args->{product} = scalar $cgi->param('product');
+        $args->{component} = scalar $cgi->param('component');
+        $args->{version} = scalar $cgi->param('version');
+        $args->{target_milestone} = scalar $cgi->param('target_milestone');
+        $args->{confirm_product_change} =  scalar $cgi->param('confirm_product_change');
+        $args->{other_bugs} = \@bug_objects;
     }
-}
         
-# strict_isolation checks mean that we should set the groups
-# immediately after changing the product.
-foreach my $b (@bug_objects) {
-    foreach my $group (@{$b->product_obj->groups_valid}) {
+    foreach my $group (@{$bug->product_obj->groups_valid}) {
         my $gid = $group->id;
         if (should_set("bit-$gid", 1)) {
             # Check ! first to avoid having to check defined below.
             if (!$cgi->param("bit-$gid")) {
-                $b->remove_group($gid);
+                push (@{$args->{remove_group}}, $gid);
             }
             # "== 1" is important because mass-change uses -1 to mean
             # "don't change this restriction"
             elsif ($cgi->param("bit-$gid") == 1) {
-                $b->add_group($gid);
+               push (@{$args->{add_group}}, $gid);
             }
         }
     }
+
+    # this will be deleted later when code moves to $bug->set_all
+    my $changed = $bug->set_all($args);
+    $product_change ||= $changed;
 }
 
 if ($cgi->param('id') && (defined $cgi->param('dependson')
@@ -319,10 +309,24 @@ if ($cgi->param('id') && (defined $cgi->param('dependson')
     $first_bug->set_dependencies(scalar $cgi->param('dependson'),
                                  scalar $cgi->param('blocked'));
 }
-# Right now, you can't modify dependencies on a mass change.
-else {
-    $cgi->delete('dependson');
-    $cgi->delete('blocked');
+elsif (should_set('dependson') || should_set('blocked')) {
+    foreach my $bug (@bug_objects) {
+        my %temp_deps;
+        foreach my $type (qw(dependson blocked)) {
+            $temp_deps{$type} = { map { $_ => 1 } @{$bug->$type} };
+            if (should_set($type) && $cgi->param($type . '_action') =~ /^(add|remove)$/) {
+                foreach my $id (split(/[,\s]+/, $cgi->param($type))) {
+                    if ($cgi->param($type . '_action') eq 'remove') {
+                        delete $temp_deps{$type}{$id};
+                    }
+                    else {
+                        $temp_deps{$type}{$id} = 1;
+                    }
+                }
+            }
+        }
+        $bug->set_dependencies([ keys %{$temp_deps{'dependson'}} ], [ keys %{$temp_deps{'blocked'}} ]);
+    }
 }
 
 my $any_keyword_changes;
@@ -405,6 +409,14 @@ foreach my $b (@bug_objects)
     }
     $b->reset_assigned_to if $cgi->param('set_default_assignee');
     $b->reset_qa_contact  if $cgi->param('set_default_qa_contact');
+
+    if (should_set('see_also')) {
+        my @see_also = split(',', $cgi->param('see_also'));
+        $b->add_see_also($_) foreach @see_also;
+    }
+    if (should_set('remove_see_also')) {
+        $b->remove_see_also($_) foreach $cgi->param('remove_see_also')
+    }
 
     # And set custom fields.
     foreach my $field (@custom_fields)
@@ -625,13 +637,13 @@ foreach my $bug (@bug_objects) {
     # an error later.
     delete $changed_deps{''};
 
-    # $msgs will store emails which have to be sent to voters, if any.
-    my $msgs;
+    # @msgs will store emails which have to be sent to voters, if any.
+    my @msgs;
     if ($changes->{'product'}) {
         # If some votes have been removed, RemoveVotes() returns
         # a list of messages to send to voters.
-        # We delay the sending of these messages till tables are unlocked.
-        $msgs = RemoveVotes($bug->id, 0, 'votes_bug_moved');
+        # We delay the sending of these messages till changes are committed.
+        @msgs = RemoveVotes($bug->id, 0, 'votes_bug_moved');
         CheckIfVotedConfirmed($bug->id);
     }
 
@@ -645,7 +657,7 @@ foreach my $bug (@bug_objects) {
     ###############
 
     # Now is a good time to send email to voters.
-    foreach my $msg (@$msgs) {
+    foreach my $msg (@msgs) {
         MessageToMTA($msg);
     }
 

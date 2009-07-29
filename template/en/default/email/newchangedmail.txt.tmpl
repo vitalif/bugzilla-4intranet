@@ -23,7 +23,7 @@ From: [% Param('mailfrom') %]
 To: [% to %]
 Subject: [[% terms.Bug %] [%+ bugid %]] [% 'New: ' IF isnew %][%+ summary %]
 X-Bugzilla-Reason: [% reasonsheader %]
-X-Bugzilla-Type: newchanged
+X-Bugzilla-Type: [% isnew ? 'new' : 'changed' %]
 X-Bugzilla-Watch-Reason: [% reasonswatchheader %]
 [% IF Param('useclassification') %]
 X-Bugzilla-Classification: [% classification %]
@@ -52,8 +52,13 @@ Content-Transfer-Encoding: quoted-printable
 [%+ urlbase %]show_bug.cgi?id=[% bugid %] (prod:[% product %].[% comp %], pri:[% priority %], sev:[% severity %], miles:[% targetmilestone %])
 
 [%+ diffs %]
+[% FOREACH comment = new_comments %]
 
--- 
+--- Comment #[% comment.count %] from [% comment.author.identity %] [%+ comment.time FILTER time %] ---
+[%+ PROCESS bug/format_comment.txt.tmpl comment = comment %]
+[% END %]
+
+-- [%# Protect the trailing space of the signature marker %]
 Configure [% terms.bug %]mail: [% urlbase %]userprefs.cgi?tab=email
 ------- You are receiving this mail because: -------
 [% FOREACH relationship = reasons %]

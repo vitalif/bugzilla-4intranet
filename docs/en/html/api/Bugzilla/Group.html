@@ -93,6 +93,12 @@ name="METHODS"
 <dd>
 <p>Returns an arrayref of <a href="../Bugzilla/User.html" class="podlinkpod"
 >Bugzilla::User</a> objects representing people who are &#34;directly&#34; in this group, meaning that they&#39;re in it because they match the group regular expression, or they have been actually added to the group manually.</p>
+
+<dt><a name="flatten_group_membership"
+><code  class="code">flatten_group_membership</code></a></dt>
+
+<dd>
+<p>Accepts a list of groups and returns a list of all the groups whose members inherit membership in any group on the list. So, we can determine if a user is in any of the groups input to flatten_group_membership by querying the user_group_map for any user with DIRECT or REGEXP membership IN() the list of groups returned.</p>
 </dd>
 </dl>
 <p class="backlinkbottom"><b><a name="___bottom" href="../index.html" title="All Documents">&lt;&lt;</a></b></p>

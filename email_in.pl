@@ -43,7 +43,7 @@ use Pod::Usage;
 use Encode;
 
 use Bugzilla;
-use Bugzilla::Bug qw(ValidateBugID);
+use Bugzilla::Bug;
 use Bugzilla::Constants qw(USAGE_MODE_EMAIL);
 use Bugzilla::Error;
 use Bugzilla::Mailer;
@@ -98,7 +98,7 @@ sub parse_mail {
         $fields{_reporter_name} = $r;
     }
     my $summary = $input_email->header('Subject');
-    if ($summary =~ /\[Bug (\d+)\](.*)/i) {
+    if ($summary =~ /\[\S+ (\d+)\](.*)/i) {
         $fields{'bug_id'} = $1;
         $summary = trim($2);
     }
@@ -232,8 +232,7 @@ sub process_bug {
 
     debug_print("Updating Bug $fields{id}...");
 
-    ValidateBugID($bug_id);
-    my $bug = new Bugzilla::Bug($bug_id);
+    my $bug = Bugzilla::Bug->check($bug_id);
 
     if ($fields{'bug_status'}) {
         $fields{'knob'} = $fields{'bug_status'};
@@ -291,7 +290,7 @@ sub get_body_and_attachments {
 
     my $body;
     my $attachments = [];
-    if ($ct =~ /^multipart\/alternative/i) {
+    if ($ct =~ /^multipart\/(alternative|signed)/i) {
         $body = get_text_alternative($email);
     }
     else {

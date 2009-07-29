@@ -55,12 +55,14 @@ my $format = $template->get_format("bug/show", scalar $cgi->param('format'),
 my @bugs = ();
 my %marks;
 
+# If the user isn't logged in, we use data from the shadow DB. If he plans
+# to edit the bug(s), he will have to log in first, meaning that the data
+# will be reloaded anyway, from the main DB.
+Bugzilla->switch_to_shadow_db unless $user->id;
+
 if ($single) {
     my $id = $cgi->param('id');
-    # Its a bit silly to do the validation twice - that functionality should
-    # probably move into Bug.pm at some point
-    ValidateBugID($id);
-    push @bugs, new Bugzilla::Bug($id);
+    push @bugs, Bugzilla::Bug->check($id);
     if (defined $cgi->param('mark')) {
         foreach my $range (split ',', $cgi->param('mark')) {
             if ($range =~ /^(\d+)-(\d+)$/) {
@@ -97,7 +99,7 @@ eval {
 
 $vars->{remind_about_worktime} =
     $user &&
-    $user->groups->{Bugzilla->params->{timetrackinggroup}} &&       # user in group timetrackinggroup
+    $user->is_timetracker &&                                        # user is timetracker
     $user->settings->{remind_me_about_worktime} &&                  # user wants to be reminded about worktime
     $user->settings->{remind_me_about_worktime}->{value} &&
     lc $user->settings->{remind_me_about_worktime}->{value} ne 'off'

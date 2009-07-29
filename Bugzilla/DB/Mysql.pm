@@ -50,6 +50,7 @@ use Bugzilla::Error;
 use Bugzilla::DB::Schema::Mysql;
 
 use List::Util qw(max);
+use Text::ParseWords;
 
 # This is how many comments of MAX_COMMENT_LENGTH we expect on a single bug.
 # In reality, you could have a LOT more comments than this, because 
@@ -63,7 +64,7 @@ sub new {
     my ($class, $user, $pass, $host, $dbname, $port, $sock) = @_;
 
     # construct the DSN from the parameters we got
-    my $dsn = "DBI:mysql:host=$host;database=$dbname";
+    my $dsn = "dbi:mysql:host=$host;database=$dbname";
     $dsn .= ";port=$port" if $port;
     $dsn .= ";mysql_socket=$sock" if $sock;
 
@@ -78,6 +79,9 @@ sub new {
     # all class local variables stored in DBI derived class needs to have
     # a prefix 'private_'. See DBI documentation.
     $self->{private_bz_tables_locked} = "";
+
+    # Needed by TheSchwartz
+    $self->{private_bz_dsn} = $dsn;
 
     bless ($self, $class);
     
@@ -125,13 +129,19 @@ sub sql_group_concat {
 }
 
 sub sql_regexp {
-    my ($self, $expr, $pattern) = @_;
+    my ($self, $expr, $pattern, $nocheck, $real_pattern) = @_;
+    $real_pattern ||= $pattern;
+
+    $self->bz_check_regexp($real_pattern) if !$nocheck;
 
     return "$expr REGEXP $pattern";
 }
 
 sub sql_not_regexp {
-    my ($self, $expr, $pattern) = @_;
+    my ($self, $expr, $pattern, $nocheck, $real_pattern) = @_;
+    $real_pattern ||= $pattern;
+
+    $self->bz_check_regexp($real_pattern) if !$nocheck;
 
     return "$expr NOT REGEXP $pattern";
 }
@@ -156,8 +166,21 @@ sub sql_fulltext_search {
     my ($self, $column, $text) = @_;
 
     # Add the boolean mode modifier if the search string contains
-    # boolean operators.
-    my $mode = ($text =~ /[+\-<>()~*\"]/ ? "IN BOOLEAN MODE" : "");
+    # boolean operators at the start or end of a word.
+    my $mode = '';
+    if ($text =~ /(?:^|\W)[+\-<>~"()]/ || $text =~ /[()"*](?:$|\W)/) {
+        $mode = 'IN BOOLEAN MODE';
+
+        # quote un-quoted compound words
+        my @words = quotewords('[\s()]+', 'delimiters', $text);
+        foreach my $word (@words) {
+            # match words that have non-word chars in the middle of them
+            if ($word =~ /\w\W+\w/ && $word !~ m/"/) {
+                $word = '"' . $word . '"';
+            }
+        }
+        $text = join('', @words);
+    }
 
     # quote the text for use in the MATCH AGAINST expression
     $text = $self->quote($text);
@@ -221,6 +244,30 @@ sub sql_group_by {
     return "GROUP BY $needed_columns";
 }
 
+sub bz_explain {
+    my ($self, $sql) = @_;
+    my $sth  = $self->prepare("EXPLAIN $sql");
+    $sth->execute();
+    my $columns = $sth->{'NAME'};
+    my $lengths = $sth->{'mysql_max_length'};
+    my $format_string = '|';
+    my $i = 0;
+    foreach my $column (@$columns) {
+        # Sometimes the column name is longer than the contents.
+        my $length = max($lengths->[$i], length($column));
+        $format_string .= ' %-' . $length . 's |';
+        $i++;
+    }
+
+    my $first_row = sprintf($format_string, @$columns);
+    my @explain_rows = ($first_row, '-' x length($first_row));
+    while (my $row = $sth->fetchrow_arrayref) {
+        my @fixed = map { defined $_ ? $_ : 'NULL' } @$row;
+        push(@explain_rows, sprintf($format_string, @fixed));
+    }
+
+    return join("\n", @explain_rows);
+}
 
 sub _bz_get_initial_schema {
     my ($self) = @_;
@@ -746,6 +793,46 @@ EOT
     if (Bugzilla->params->{'utf8'} && !$self->bz_db_is_utf8) {
         $self->_alter_db_charset_to_utf8();
     }
+
+     $self->_fix_defaults();
+}
+
+# When you import a MySQL 3/4 mysqldump into MySQL 5, columns that
+# aren't supposed to have defaults will have defaults. This is only
+# a minor issue, but it makes our tests fail, and it's good to keep
+# the DB actually consistent with what DB::Schema thinks the database
+# looks like. So we remove defaults from columns that aren't supposed
+# to have them
+sub _fix_defaults {
+    my $self = shift;
+    my $maj_version = substr($self->bz_server_version, 0, 1);
+    return if $maj_version < 5;
+
+    # The oldest column that could have this problem is bugs.assigned_to,
+    # so if it doesn't have the problem, we just skip doing this entirely.
+    my $assi_def = $self->_bz_raw_column_info('bugs', 'assigned_to');
+    my $assi_default = $assi_def->{COLUMN_DEF};
+    # This "ne ''" thing is necessary because _raw_column_info seems to
+    # return COLUMN_DEF as an empty string for columns that don't have
+    # a default.
+    return unless (defined $assi_default && $assi_default ne '');
+
+    foreach my $table ($self->_bz_real_schema->get_table_list()) {
+        foreach my $column ($self->bz_table_columns($table)) {
+        my $abs_def = $self->bz_column_info($table, $column);
+            if (!defined $abs_def->{DEFAULT}) {
+                # Get the exact default from the database without any
+                # "fixing" by bz_column_info_real.
+                my $raw_info = $self->_bz_raw_column_info($table, $column);
+                my $raw_default = $raw_info->{COLUMN_DEF};
+                if (defined $raw_default) {
+                    $self->bz_alter_column_raw($table, $column, $abs_def);
+                    $raw_default = "''" if $raw_default eq '';
+                    print "Removed incorrect DB default: $raw_default\n";
+                }
+            }
+        } # foreach $column
+    } # foreach $table
 }
 
 # There is a bug in MySQL 4.1.0 - 4.1.15 that makes certain SELECT
@@ -837,6 +924,12 @@ backwards-compatibility anyway, for versions of Bugzilla before 2.20.
 
 sub bz_column_info_real {
     my ($self, $table, $column) = @_;
+    my $col_data = $self->_bz_raw_column_info($table, $column);
+    return $self->_bz_schema->column_info_to_column($col_data);
+}
+
+sub _bz_raw_column_info {
+    my ($self, $table, $column) = @_;
 
     # DBD::mysql does not support selecting a specific column,
     # so we have to get all the columns on the table and find 
@@ -852,7 +945,7 @@ sub bz_column_info_real {
     if (!defined $col_data) {
         return undef;
     }
-    return $self->_bz_schema->column_info_to_column($col_data);
+    return $col_data;
 }
 
 =item C<bz_index_info_real($table, $index)>

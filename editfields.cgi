@@ -66,6 +66,10 @@ elsif ($action eq 'new') {
         obsolete    => scalar $cgi->param('obsolete'),
         classificate => scalar $cgi->param('classificate'),
         custom      => 1,
+        buglist     => (scalar $cgi->param('type') == FIELD_TYPE_MULTI_SELECT ? 0 : 1),
+        visibility_field_id => scalar $cgi->param('visibility_field_id'),
+        visibility_value_id => scalar $cgi->param('visibility_value_id'),
+        value_field_id => scalar $cgi->param('value_field_id'),
     });
 
     delete_token($token);
@@ -108,6 +112,9 @@ elsif ($action eq 'update') {
     $field->set_in_new_bugmail($cgi->param('new_bugmail'));
     $field->set_enter_bug($cgi->param('enter_bug'));
     $field->set_obsolete($cgi->param('obsolete'));
+    $field->set_visibility_field($cgi->param('visibility_field_id'));
+    $field->set_visibility_value($cgi->param('visibility_value_id'));
+    $field->set_value_field($cgi->param('value_field_id'));
     $field->set_classificate($cgi->param('classificate'));
     $field->update();
 

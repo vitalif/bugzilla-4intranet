@@ -46,9 +46,9 @@ sub user_visible_products {
        $query .= "AND group_control_map.membercontrol = " .
               CONTROLMAPMANDATORY . " ";
     }
-    if (%{Bugzilla->user->groups}) {
+    if (@{Bugzilla->user->groups}) {
        $query .= "AND group_id NOT IN(" . 
-              join(',', values(%{Bugzilla->user->groups})) . ") ";
+              join(',', map { $_->id } @{Bugzilla->user->groups}) . ") ";
     }
     $query .= "WHERE group_id IS NULL AND products.classification_id= ? ORDER BY products.name";
             

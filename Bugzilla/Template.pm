@@ -48,7 +48,6 @@ use Cwd qw(abs_path);
 use MIME::Base64;
 use MIME::QuotedPrint qw(encode_qp);
 use Encode qw(encode);
-# for time2str - replace by TT Date plugin??
 use Date::Format ();
 use File::Basename qw(dirname);
 use File::Find;
@@ -179,7 +178,7 @@ sub template_exists
 # If you want to modify this routine, read the comments carefully
 
 sub quoteUrls {
-    my ($text, $curr_bugid) = (@_);
+    my ($text, $curr_bugid, $already_wrapped) = (@_);
     return $text unless $text;
 
     # We use /g for speed, but uris can have other things inside them
@@ -193,6 +192,10 @@ sub quoteUrls {
     # escape the 2nd escape char we're using
     my $chr1 = chr(1);
     $text =~ s/\0/$chr1\0/g;
+
+    # If the comment is already wrapped, we should ignore newlines when
+    # looking for matching regexps. Else we should take them into account.
+    my $s = $already_wrapped ? qr/\s/ : qr/[[:blank:]]/;
 
     # However, note that adding the title (for buglinks) can affect things
     # In particular, attachment matches go before bug titles, so that titles
@@ -212,7 +215,7 @@ sub quoteUrls {
         map { qr/$_/ } grep($_, Bugzilla->params->{'urlbase'}, 
                             Bugzilla->params->{'sslbase'})) . ')';
     $text =~ s~\b(${urlbase_re}\Qshow_bug.cgi?id=\E([0-9]+)(\#c([0-9]+))?)\b
-              ~($things[$count++] = get_bug_link($3, $1, $5)) &&
+              ~($things[$count++] = get_bug_link($3, $1, { comment_num => $5 })) &&
                ("\0\0" . ($count-1) . "\0\0")
               ~egox;
 
@@ -259,7 +262,7 @@ sub quoteUrls {
                ("\0\0" . ($count-1) . "\0\0")
               ~egmx;
 
-    $text =~ s~\b(attachment\s*\#?\s*(\d+))
+    $text =~ s~\b(attachment$s*\#?$s*(\d+))
               ~($things[$count++] = get_attachment_link($2, $1)) &&
                ("\0\0" . ($count-1) . "\0\0")
               ~egmxi;
@@ -272,12 +275,12 @@ sub quoteUrls {
     # Also, we can't use $bug_re?$comment_re? because that will match the
     # empty string
     my $bug_word = get_text('term', { term => 'bug' });
-    my $bug_re = qr/\Q$bug_word\E\s*\#?\s*(\d+)/i;
-    my $comment_re = qr/comment\s*\#?\s*(\d+)/i;
-    $text =~ s~\b($bug_re(?:\s*,?\s*$comment_re)?|$comment_re)
+    my $bug_re = qr/\Q$bug_word\E$s*\#?$s*(\d+)/i;
+    my $comment_re = qr/comment$s*\#?$s*(\d+)/i;
+    $text =~ s~\b($bug_re(?:$s*,?$s*$comment_re)?|$comment_re)
               ~ # We have several choices. $1 here is the link, and $2-4 are set
                 # depending on which part matched
-               (defined($2) ? get_bug_link($2,$1,$3) :
+               (defined($2) ? get_bug_link($2, $1, { comment_num => $3 }) :
                               "<a href=\"$current_bugurl#c$4\">$1</a>")
               ~egox;
 
@@ -342,7 +345,7 @@ sub get_attachment_link {
 #    comment in the bug
 
 sub get_bug_link {
-    my ($bug_num, $link_text, $comment_num) = @_;
+    my ($bug_num, $link_text, $options) = @_;
     my $dbh = Bugzilla->dbh;
 
     if (!defined($bug_num) || ($bug_num eq "")) {
@@ -351,10 +354,14 @@ sub get_bug_link {
     my $quote_bug_num = html_quote($bug_num);
     detaint_natural($bug_num) || return "&lt;invalid bug number: $quote_bug_num&gt;";
 
-    my ($bug_state, $bug_res, $bug_desc) =
-        $dbh->selectrow_array('SELECT bugs.bug_status, resolution, short_desc
+    my ($bug_alias, $bug_state, $bug_res, $bug_desc) =
+        $dbh->selectrow_array('SELECT bugs.alias, bugs.bug_status, bugs.resolution, bugs.short_desc
                                FROM bugs WHERE bugs.bug_id = ?',
                                undef, $bug_num);
+
+    if ($options->{use_alias} && $link_text =~ /^\d+$/ && $bug_alias) {
+        $link_text = $bug_alias;
+    }
 
     if ($bug_state) {
         # Initialize these variables to be "" so that we don't get warnings
@@ -378,8 +385,8 @@ sub get_bug_link {
         $title = html_quote(clean_text($title));
 
         my $linkval = "show_bug.cgi?id=$bug_num";
-        if (defined $comment_num) {
-            $linkval .= "#c$comment_num";
+        if ($options->{comment_num}) {
+            $linkval .= "#c" . $options->{comment_num};
         }
         return qq{$pre<a href="$linkval" title="$title">$link_text</a>$post};
     }
@@ -588,20 +595,20 @@ sub create {
             css_class_quote => \&Bugzilla::Util::css_class_quote ,
 
             quoteUrls => [ sub {
-                               my ($context, $bug) = @_;
+                               my ($context, $bug, $already_wrapped) = @_;
                                return sub {
                                    my $text = shift;
-                                   return quoteUrls($text, $bug);
+                                   return quoteUrls($text, $bug, $already_wrapped);
                                };
                            },
                            1
                          ],
 
             bug_link => [ sub {
-                              my ($context, $bug) = @_;
+                              my ($context, $bug, $options) = @_;
                               return sub {
                                   my $text = shift;
-                                  return get_bug_link($bug, $text);
+                                  return get_bug_link($bug, $text, $options);
                               };
                           },
                           1
@@ -665,7 +672,15 @@ sub create {
             },
 
             # Format a time for display (more info in Bugzilla::Util)
-            time => \&Bugzilla::Util::format_time,
+            time => [ sub {
+                          my ($context, $format, $timezone) = @_;
+                          return sub {
+                              my $time = shift;
+                              return format_time($time, $format, $timezone);
+                          };
+                      },
+                      1
+                    ],
 
             # Bug 120030: Override html filter to obscure the '@' in user
             #             visible strings.
@@ -702,6 +717,8 @@ sub create {
             },
 
             html_light => \&Bugzilla::Util::html_light_quote,
+
+            email => \&Bugzilla::Util::email_filter,
 
             # iCalendar contentline filter
             ics => [ sub {
@@ -741,6 +758,10 @@ sub create {
                 $var =~ s/\&gt;/>/g;
                 $var =~ s/\&quot;/\"/g;
                 $var =~ s/\&amp;/\&/g;
+                # Now remove extra whitespace, and wrap it to 72 characters.
+                my $collapse_filter = $Template::Filters::FILTERS->{collapse};
+                $var = $collapse_filter->($var);
+                $var = wrap_comment($var, 72);
                 return $var;
             },
 

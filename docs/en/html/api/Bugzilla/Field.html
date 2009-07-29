@@ -151,11 +151,79 @@ name="Instance_Properties"
 </dl>
 
 <dl>
+<dt><a name="buglist"
+><code  class="code">buglist</code></a></dt>
+
+<dd>
+<p>A boolean specifying whether or not this field is selectable as a display or order column in buglist.cgi</p>
+</dd>
+</dl>
+
+<dl>
+<dt><a name="is_select"
+><code  class="code">is_select</code></a></dt>
+
+<dd>
+<p>True if this is a <code  class="code">FIELD_TYPE_SINGLE_SELECT</code> or <code  class="code">FIELD_TYPE_MULTI_SELECT</code> field. It is only safe to call <a href="#legal_values" class="podlinkpod"
+>&#34;legal_values&#34;</a> if this is true.</p>
+
 <dt><a name="legal_values"
 ><code  class="code">legal_values</code></a></dt>
 
 <dd>
-<p>A reference to an array with valid active values for this field.</p>
+<p>Valid values for this field, as an array of <a href="../Bugzilla/Field/Choice.html" class="podlinkpod"
+>Bugzilla::Field::Choice</a> objects.</p>
+</dd>
+</dl>
+
+<dl>
+<dt><a name="visibility_field"
+><code  class="code">visibility_field</code></a></dt>
+
+<dd>
+<p>What field controls this field&#39;s visibility? Returns a <code  class="code">Bugzilla::Field</code> object representing the field that controls this field&#39;s visibility.</p>
+
+<p>Returns undef if there is no field that controls this field&#39;s visibility.</p>
+</dd>
+</dl>
+
+<dl>
+<dt><a name="visibility_value"
+><code  class="code">visibility_value</code></a></dt>
+
+<dd>
+<p>If we have a <a href="#visibility_field" class="podlinkpod"
+>&#34;visibility_field&#34;</a>, then what value does that field have to be set to in order to show this field? Returns a <a href="../Bugzilla/Field/Choice.html" class="podlinkpod"
+>Bugzilla::Field::Choice</a> or undef if there is no <code  class="code">visibility_field</code> set.</p>
+</dd>
+</dl>
+
+<dl>
+<dt><a name="controls_visibility_of"
+><code  class="code">controls_visibility_of</code></a></dt>
+
+<dd>
+<p>An arrayref of <code  class="code">Bugzilla::Field</code> objects, representing fields that this field controls the visibility of.</p>
+</dd>
+</dl>
+
+<dl>
+<dt><a name="value_field"
+><code  class="code">value_field</code></a></dt>
+
+<dd>
+<p>The Bugzilla::Field that controls the list of values for this field.</p>
+
+<p>Returns undef if there is no field that controls this field&#39;s visibility.</p>
+</dd>
+</dl>
+
+<dl>
+<dt><a name="controls_values_of"
+><code  class="code">controls_values_of</code></a></dt>
+
+<dd>
+<p>An arrayref of <code  class="code">Bugzilla::Field</code> objects, representing fields that this field controls the values of.</p>
 </dd>
 </dl>
 
@@ -179,7 +247,15 @@ name="Instance_Mutators"
 <dt><a name="set_sortkey"
 ><code  class="code">set_sortkey</code>
 <dt><a name="set_in_new_bugmail"
-><code  class="code">set_in_new_bugmail</code></a></dt>
+><code  class="code">set_in_new_bugmail</code>
+<dt><a name="set_buglist"
+><code  class="code">set_buglist</code>
+<dt><a name="set_visibility_field"
+><code  class="code">set_visibility_field</code>
+<dt><a name="set_visibility_value"
+><code  class="code">set_visibility_value</code>
+<dt><a name="set_value_field"
+><code  class="code">set_value_field</code></a></dt>
 </dl>
 
 <h2><a class='u' href='#___top' title='click to go to top of document'
@@ -219,7 +295,9 @@ name="Class_Methods"
 <dt><a name="sortkey_-_integer_-_The_sortkey_of_the_field._Defaults_to_0."
 ><code  class="code">sortkey</code> - integer - The sortkey of the field. Defaults to 0.
 <dt><a name="enter_bug_-_boolean_-_Whether_this_field_is_editable_on_the_bug_creation_form._Defaults_to_0."
-><code  class="code">enter_bug</code> - boolean - Whether this field is editable on the bug creation form. Defaults to 0.</a></dt>
+><code  class="code">enter_bug</code> - boolean - Whether this field is editable on the bug creation form. Defaults to 0.
+<dt><a name="buglist_-_boolean_-_Whether_this_field_is_selectable_as_a_display_or_order_column_in_bug_lists._Defaults_to_0."
+><code  class="code">buglist</code> - boolean - Whether this field is selectable as a display or order column in bug lists. Defaults to 0.</a></dt>
 
 <dd>
 <p><code  class="code">obsolete</code> - boolean - Whether this field is obsolete. Defaults to 0.</p>

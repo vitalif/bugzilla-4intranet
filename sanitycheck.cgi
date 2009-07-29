@@ -223,6 +223,22 @@ if ($cgi->param('repair_creation_date')) {
 }
 
 ###########################################################################
+# Fix everconfirmed
+###########################################################################
+
+if ($cgi->param('repair_everconfirmed')) {
+    Status('everconfirmed_start');
+
+    my @confirmed_open_states = grep {$_ ne 'UNCONFIRMED'} BUG_STATE_OPEN;
+    my $confirmed_open_states = join(', ', map {$dbh->quote($_)} @confirmed_open_states);
+
+    $dbh->do("UPDATE bugs SET everconfirmed = 0 WHERE bug_status = 'UNCONFIRMED'");
+    $dbh->do("UPDATE bugs SET everconfirmed = 1 WHERE bug_status IN ($confirmed_open_states)");
+
+    Status('everconfirmed_end');
+}
+
+###########################################################################
 # Fix entries in Bugs full_text
 ###########################################################################
 
@@ -293,17 +309,12 @@ if ($cgi->param('remove_invalid_bug_references')) {
 
     $dbh->bz_start_transaction();
 
-    # Include custom multi-select fields to the list.
-    my @multi_selects = Bugzilla->get_fields({custom => 1, type => FIELD_TYPE_MULTI_SELECT});
-    my @addl_fields = map { 'bug_' . $_->name . '/' } @multi_selects;
-
     foreach my $pair ('attachments/', 'bug_group_map/', 'bugs_activity/',
                       'bugs_fulltext/', 'cc/',
                       'dependencies/blocked', 'dependencies/dependson',
                       'duplicates/dupe', 'duplicates/dupe_of',
-                      'flags/', 'keywords/', 'longdescs/', 'votes/',
-                      @addl_fields)
-    {
+                      'flags/', 'keywords/', 'longdescs/', 'votes/') {
+
         my ($table, $field) = split('/', $pair);
         $field ||= "bug_id";
 
@@ -462,10 +473,6 @@ CrossCheck("flagtypes", "id",
            ["flagexclusions", "type_id"],
            ["flaginclusions", "type_id"]);
 
-# Include custom multi-select fields to the list.
-my @multi_selects = Bugzilla->get_fields({custom => 1, type => FIELD_TYPE_MULTI_SELECT});
-my @addl_fields = map { ['bug_' . $_->name, 'bug_id'] } @multi_selects;
-
 CrossCheck("bugs", "bug_id",
            ["bugs_activity", "bug_id"],
            ["bug_group_map", "bug_id"],
@@ -479,8 +486,7 @@ CrossCheck("bugs", "bug_id",
            ["votes", "bug_id"],
            ["keywords", "bug_id"],
            ["duplicates", "dupe_of", "dupe"],
-           ["duplicates", "dupe", "dupe_of"],
-           @addl_fields);
+           ["duplicates", "dupe", "dupe_of"]);
 
 CrossCheck("groups", "id",
            ["bug_group_map", "group_id"],
@@ -953,13 +959,13 @@ BugCheck("bugs WHERE bug_status NOT IN ($open_states) AND resolution = ''",
 Status('bug_check_status_everconfirmed');
 
 BugCheck("bugs WHERE bug_status = 'UNCONFIRMED' AND everconfirmed = 1",
-         'bug_check_status_everconfirmed_error_text');
+         'bug_check_status_everconfirmed_error_text', 'repair_everconfirmed');
 
 my @confirmed_open_states = grep {$_ ne 'UNCONFIRMED'} BUG_STATE_OPEN;
 my $confirmed_open_states = join(', ', map {$dbh->quote($_)} @confirmed_open_states);
 
 BugCheck("bugs WHERE bug_status IN ($confirmed_open_states) AND everconfirmed = 0",
-         'bug_check_status_everconfirmed_error_text2');
+         'bug_check_status_everconfirmed_error_text2', 'repair_everconfirmed');
 
 Status('bug_check_votes_everconfirmed');
 

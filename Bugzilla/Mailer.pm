@@ -39,6 +39,7 @@ use base qw(Exporter);
 
 use Bugzilla::Constants;
 use Bugzilla::Error;
+use Bugzilla::Hook;
 use Bugzilla::Util;
 
 use Date::Format qw(time2str);
@@ -52,9 +53,14 @@ use Email::MIME::Modifier;
 use Email::Send;
 
 sub MessageToMTA {
-    my ($msg) = (@_);
+    my ($msg, $send_now) = (@_);
     my $method = Bugzilla->params->{'mail_delivery_method'};
     return if $method eq 'None';
+
+    if (Bugzilla->params->{'use_mailer_queue'} and !$send_now) {
+        Bugzilla->job_queue->insert('send_mail', { msg => $msg });
+        return;
+    }
 
     my $email;
     if (ref $msg) {
@@ -71,6 +77,17 @@ sub MessageToMTA {
         $email = new Email::MIME($msg);
     }
 
+    # We add this header to uniquely identify all email that we
+    # send as coming from this Bugzilla installation.
+    #
+    # We don't use correct_urlbase, because we want this URL to
+    # *always* be the same for this Bugzilla, in every email,
+    # and some emails we send when we're logged out (in which case
+    # some emails might get urlbase while the logged-in emails might 
+    # get sslbase). Also, we want this to stay the same even if
+    # the admin changes the "ssl" parameter.
+    $email->header_set('X-Bugzilla-URL', Bugzilla->params->{'urlbase'});
+    
     # We add this header to mark the mail as "auto-generated" and
     # thus to hopefully avoid auto replies.
     $email->header_set('Auto-Submitted', 'auto-generated');
@@ -156,6 +173,8 @@ sub MessageToMTA {
                     Hello => $hostname, 
                     Debug => Bugzilla->params->{'smtp_debug'};
     }
+
+    Bugzilla::Hook::process('mailer-before_send', { email => $email });
 
     if ($method eq "Test") {
         my $filename = bz_locations()->{'datadir'} . '/mailer.testfile';

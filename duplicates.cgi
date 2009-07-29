@@ -37,19 +37,6 @@ use Bugzilla::Search;
 use Bugzilla::Product;
 
 my $cgi = Bugzilla->cgi;
-
-# Go directly to the XUL version of the duplicates report (duplicates.xul)
-# if the user specified ctype=xul.  Adds params if they exist, and directs
-# the user to a signed copy of the script in duplicates.jar if it exists.
-if (defined $cgi->param('ctype') && $cgi->param('ctype') eq "xul") {
-    my $params = CanonicaliseParams($cgi->query_string(), ["format", "ctype"]);
-    my $url = (-e "duplicates.jar" ? "duplicates.jar!/" : "") . 
-          "duplicates.xul" . ($params ? "?$params" : "") . "\n\n";
-
-    print $cgi->redirect($url);
-    exit;
-}
-
 my $template = Bugzilla->template;
 my $vars = {};
 
@@ -212,14 +199,14 @@ if (scalar(%count)) {
         $params->param('product', join(',', @query_products));
     }
 
-    my $query = new Bugzilla::Search('fields' => [qw(bugs.bug_id
-                                                     map_components.name
-                                                     bugs.bug_severity
-                                                     bugs.op_sys
-                                                     bugs.target_milestone
-                                                     bugs.short_desc
-                                                     bugs.bug_status
-                                                     bugs.resolution
+    my $query = new Bugzilla::Search('fields' => [qw(bug_id
+                                                     component
+                                                     bug_severity
+                                                     op_sys
+                                                     target_milestone
+                                                     short_desc
+                                                     bug_status
+                                                     resolution
                                                     )
                                                  ],
                                      'params' => $params,

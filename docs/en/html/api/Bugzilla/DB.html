@@ -354,7 +354,11 @@ name="SQL_Generation"
 <dt><a name="$expr_-_SQL_expression_for_the_text_to_be_searched_(scalar)"
 ><code  class="code">$expr</code> - SQL expression for the text to be searched (scalar)
 <dt><a name="$pattern_-_the_regular_expression_to_search_for_(scalar)"
-><code  class="code">$pattern</code> - the regular expression to search for (scalar)</a></dt>
+><code  class="code">$pattern</code> - the regular expression to search for (scalar)
+<dt><a name="$nocheck_-_true_if_the_pattern_should_not_be_tested;_false_otherwise_(boolean)"
+><code  class="code">$nocheck</code> - true if the pattern should not be tested; false otherwise (boolean)
+<dt><a name="$real_pattern_-_the_real_regular_expression_to_search_for._This_argument_is_used_when_$pattern_is_a_placeholder_(&#39;?&#39;)."
+><code  class="code">$real_pattern</code> - the real regular expression to search for. This argument is used when <code  class="code">$pattern</code> is a placeholder (&#39;?&#39;).</a></dt>
 </dl>
 
 <dt><a name="Returns"
@@ -382,12 +386,8 @@ name="SQL_Generation"
 ><b>Params</b></a></dt>
 
 <dd>
-<dl>
-<dt><a name="$expr_-_SQL_expression_for_the_text_to_be_searched_(scalar)"
-><code  class="code">$expr</code> - SQL expression for the text to be searched (scalar)
-<dt><a name="$pattern_-_the_regular_expression_to_search_for_(scalar)"
-><code  class="code">$pattern</code> - the regular expression to search for (scalar)</a></dt>
-</dl>
+<p>Same as <a href="#sql_regexp" class="podlinkpod"
+>&#34;sql_regexp&#34;</a>.</p>
 
 <dt><a name="Returns"
 ><b>Returns</b></a></dt>
@@ -651,6 +651,29 @@ name="SQL_Generation"
 <dd>
 <p>Formatted SQL for concatenating specified strings</p>
 </dd>
+</dl>
+
+<dt><a name="sql_string_until"
+><code  class="code">sql_string_until</code></a></dt>
+
+<dd>
+<dl>
+<dt><a name="Description"
+><b>Description</b></a></dt>
+
+<dd>
+<p>Returns SQL for truncating a string at the first occurrence of a certain substring.</p>
+
+<dt><a name="Params"
+><b>Params</b></a></dt>
+
+<dd>
+<p>Note that both parameters need to be sql-quoted.</p>
+
+<dt><a name="$string_The_string_we&#39;re_truncating"
+><code  class="code">$string</code> The string we&#39;re truncating
+<dt><a name="$substring_The_substring_we&#39;re_truncating_at."
+><code  class="code">$substring</code> The substring we&#39;re truncating at.</a></dt>
 </dl>
 
 <dt><a name="sql_fulltext_search"

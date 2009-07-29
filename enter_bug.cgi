@@ -22,6 +22,7 @@
 #                 Joe Robins <jmrobins@tgix.com>
 #                 Gervase Markham <gerv@gerv.net>
 #                 Shane H. W. Travis <travis@sedsystems.ca>
+#                 Nitish Bezzala <nbezzala@yahoo.com>
 
 ##############################################################################
 #
@@ -302,8 +303,18 @@ sub pickos {
               /\(.*Windows.*NT.*\)/ && do {push @os, "Windows NT";};
             };
             /\(.*Mac OS X.*\)/ && do {
-              /\(.*Intel.*Mac OS X 10.5.*\)/ && do {push @os, "Mac OS X 10.5";};
+              /\(.*Mac OS X (?:|Mach-O |\()10.6.*\)/ && do {push @os, "Mac OS X 10.6";};
+              /\(.*Mac OS X (?:|Mach-O |\()10.5.*\)/ && do {push @os, "Mac OS X 10.5";};
+              /\(.*Mac OS X (?:|Mach-O |\()10.4.*\)/ && do {push @os, "Mac OS X 10.4";};
+              /\(.*Mac OS X (?:|Mach-O |\()10.3.*\)/ && do {push @os, "Mac OS X 10.3";};
+              /\(.*Mac OS X (?:|Mach-O |\()10.2.*\)/ && do {push @os, "Mac OS X 10.2";};
+              /\(.*Mac OS X (?:|Mach-O |\()10.1.*\)/ && do {push @os, "Mac OS X 10.1";};
+        # Unfortunately, OS X 10.4 was the first to support Intel. This is
+        # fallback support because some browsers refused to include the OS
+        # Version.
               /\(.*Intel.*Mac OS X.*\)/ && do {push @os, "Mac OS X 10.4";};
+        # OS X 10.3 is the most likely default version of PowerPC Macs
+        # OS X 10.0 is more for configurations which didn't setup 10.x versions
               /\(.*Mac OS X.*\)/ && do {push @os, ("Mac OS X 10.3", "Mac OS X 10.0", "Mac OS X");};
             };
             /\(.*32bit.*\)/ && do {push @os, "Windows 95";};
@@ -351,8 +362,8 @@ my $has_canconfirm = $user->in_group('canconfirm', $product->id);
 $cloned_bug_id = $cgi->param('cloned_bug_id');
 
 if ($cloned_bug_id) {
-    ValidateBugID($cloned_bug_id);
-    $cloned_bug = new Bugzilla::Bug($cloned_bug_id);
+    $cloned_bug = Bugzilla::Bug->check($cloned_bug_id);
+    $cloned_bug_id = $cloned_bug->id;
 }
 
 if (scalar(@{$product->components}) == 1) {
@@ -388,25 +399,33 @@ foreach my $field (@enter_bug_fields) {
     $vars->{$field->name} = formvalue($field->name);
 }
 
+# This allows the Field visibility and value controls to work with the
+# Product field as a parent.
+$default{'product'} = $product->name;
+
 if ($cloned_bug_id) {
 
-    $default{component_}   = $cloned_bug->component;
-    $default{priority}     = $cloned_bug->priority;
-    $default{bug_severity} = $cloned_bug->bug_severity;
-    $default{rep_platform} = $cloned_bug->rep_platform;
-    $default{op_sys}       = $cloned_bug->op_sys;
+    $default{'component_'}   = $cloned_bug->component;
+    $default{'priority'}     = $cloned_bug->priority;
+    $default{'bug_severity'} = $cloned_bug->bug_severity;
+    $default{'rep_platform'} = $cloned_bug->rep_platform;
+    $default{'op_sys'}       = $cloned_bug->op_sys;
 
-    $vars->{short_desc}    = $cloned_bug->short_desc;
-    $vars->{bug_file_loc}  = $cloned_bug->bug_file_loc;
-    $vars->{keywords}      = $cloned_bug->keywords;
-    $vars->{dependson}     = "";
-    $vars->{blocked}       = $cloned_bug_id;
-    $vars->{deadline}      = $cloned_bug->deadline;
+    $vars->{'short_desc'}    = $cloned_bug->short_desc;
+    $vars->{'bug_file_loc'}  = $cloned_bug->bug_file_loc;
+    $vars->{'keywords'}      = $cloned_bug->keywords;
+    $vars->{'dependson'}     = "";
+    $vars->{'blocked'}       = $cloned_bug_id;
+    $vars->{'deadline'}      = $cloned_bug->deadline;
 
     if (defined $cloned_bug->cc) {
         $vars->{cc} = join (", ", @{$cloned_bug->cc});
     } else {
         $vars->{cc} = formvalue('cc');
+    }
+
+    if ($cloned_bug->reporter->id != $user->id) {
+        $vars->{'cc'} = join (", ", $cloned_bug->reporter->login, $vars->{'cc'}); 
     }
 
     foreach my $field (@enter_bug_fields) {

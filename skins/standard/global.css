@@ -20,6 +20,7 @@
   *                 Vitaly Harisov <vitaly@rathedg.com>
   *                 Svetlana Harisova <light@rathedg.com>
   *                 Marc Schumann <wurblzap@gmail.com>
+  *                 Pascal Held <paheld@gmail.com>
   */
 
 /* global (begin) */
@@ -44,13 +45,14 @@
         padding-bottom: 2px;
     }
 
-    #header form {
-        font-size: 85%;
+    #header form, #header form input,
+    #footer form, #footer form input
+    {
+        font-size: 95%;
         display: inline;
     }
 
     #header .links {
-        font-size: 85%;
         border-left: 1px solid silver;
         border-right: 1px solid silver;
         border-bottom: 1px solid silver;
@@ -64,6 +66,19 @@
         margin: 0.3em 0em;
         padding: 0.3em;
         color: green;
+    }
+
+    form.mini_login input.bz_login  {
+        width: 10em;
+    }
+    form.mini_login input.bz_password {
+        width: 6em;
+    }
+    form.mini_login input.bz_remember {
+        margin: 0;
+    }
+    .bz_mini_login_help {
+        color: #777;
     }
 
 /* header (end)   */
@@ -116,7 +131,10 @@
 
 /* titles (end) */
 
-/* footer (begin) */
+/* footer (begin)
+ * See also the "header" section for styles that apply
+ * to both the header and footer. 
+ */
     #footer {
         clear: both;
         margin-top: 5px;
@@ -126,36 +144,27 @@
         border-bottom: 1px solid #ddd;
     }
 
-    #footer form {
-        display: inline;
-    }
-
-    #footer .btn,
-    #footer .txt {
-        font-size: 80%;
-    }
-
     #footer #useful-links {
-        display: table;
         padding-left: 1ex;
         padding-right: 1ex;
     }
 
-    #footer #links-actions,
-    #footer #links-saved,
-    #footer #links-special {
-        display: table-row;
+    #footer ul {
         list-style-type: none;
+    }
+    #links-saved ul {
+        display: inline;
+    }
+    #links-saved th {
+        vertical-align: top;
     }
 
     #footer .label {
-        display: table-cell;
         white-space: nowrap;
         vertical-align: top;
     }
 
     #footer .links {
-        display: table-cell;
         vertical-align: top;
     }
 /* footer (end) */
@@ -193,19 +202,19 @@
 /* tabs (end) */
 
 /* generic (begin) */
-    :link {
+    a {
         color: #039;
     }
 
-    :visited {
+    a:visited {
         color: #636;
     }
 
-    :link:hover, :visited:hover {
+    a:hover {
         color: #333;
     }
 
-    :link:active, :link:active {
+    a:active {
         color: #000;
     }
 
@@ -213,6 +222,11 @@
         cursor: pointer;
     }
 /* generic (end) */
+
+/* Links that control whether or not something is visible. */
+a.controller {
+    font-size: 115%;
+}
 
 div#docslinks {
     float: right;
@@ -243,6 +257,10 @@ div#docslinks {
     color: #a0a0a0;
 }
 
+/************/
+/* Comments */
+/************/
+
 .bz_comment {
     margin-bottom: 2em;
 }
@@ -263,16 +281,49 @@ div#docslinks {
      width: 50em;
 }
 
-.bz_first_comment {
+.bz_comment_user, .bz_comment_time, .bz_comment_number, 
+.bz_private_checkbox, .bz_comment_actions
+{
+    margin: 0 .5em;
+}
+
+.bz_comment_actions, .bz_comment_number, .bz_private_checkbox {
+    float: right;
+}
+
+.bz_collapse_comment {
+    text-decoration: none;
+}
+
+.bz_private_checkbox input { 
+    margin: 0;
+    vertical-align: middle;
 }
 
 .bz_comment_head, .bz_first_comment_head {
+    padding-top: .1em;
+    padding-bottom: .1em;
+    padding-left: .5em;
     background-color: #e0e0e0;
 }
+
+.bz_comment_user_images img {
+    vertical-align: bottom;
+}
+
 .bz_comment_hilite pre {
     background-color: lightgreen;
     margin: 0;
     padding: 1em 0;
+}
+
+/** End Comments **/
+
+.bz_default_hidden, .bz_tui_hidden, .bz_hidden_field, .bz_hidden_option {
+    /* We have !important because we want elements with these classes to always
+     * be hidden, even if there is some CSS that overrides it (we use these
+     * classes inside JavaScript to hide things). */
+    display: none !important;
 }
 
 span.quote {
@@ -420,6 +471,12 @@ div.user_match {
     border: 1px solid #404D6C;
 }
 
+.bug_urls {
+    margin: 0 0 1em 0;
+    padding: 0;
+    list-style-type: none;
+}
+
 form#Create th {
     text-align: right;
 }
@@ -431,4 +488,27 @@ form#Create .comment {
     margin: 0 0.5em;
     padding: 0.3em;
     height: 8ex;
+}
+
+.image_button {
+    background-repeat: no-repeat;
+    background-position: center center;
+    width: 30px;
+    height: 20px;
+}
+
+#select_button {
+    background-image: url(global/right.png);
+}
+
+#deselect_button {
+    background-image: url(global/left.png);
+}
+
+#up_button {
+    background-image: url(global/up.png);
+}
+
+#down_button {
+    background-image: url(global/down.png);
 }

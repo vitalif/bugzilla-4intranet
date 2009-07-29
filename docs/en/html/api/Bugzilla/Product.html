@@ -89,7 +89,10 @@ name="METHODS"
 <pre  class="code"> Description: Returns a hash (group id as key) with all product
               group controls.
 
- Params:      none.
+ Params:      $full_data (optional, false by default) - when true,
+              the number of bugs per group applicable to the product
+              is also returned. Moreover, bug groups which have no
+              special settings for the product are also returned.
 
  Returns:     A hash with group id as key and hash containing 
               a Bugzilla::Group object and the properties of group

@@ -2,14 +2,18 @@
 
 <!-- Module Versions -->
 <!ENTITY min-cgi-ver "3.21">
+<!ENTITY min-digest-sha-ver "any">
 <!ENTITY min-date-format-ver "2.21">
+<!ENTITY min-datetime-ver "0.28">
+<!ENTITY min-datetime-timezone-ver "0.71">
 <!ENTITY min-file-spec-ver "0.84">
 <!ENTITY min-dbi-ver "1.41">
-<!ENTITY min-template-ver "2.15">
+<!ENTITY min-template-ver "2.22">
 <!ENTITY min-email-send-ver "2.00">
 <!ENTITY min-email-mime-ver "1.861">
 <!ENTITY min-email-mime-encodings-ver "1.313">
 <!ENTITY min-email-mime-modifier-ver "1.442">
+<!ENTITY min-uri-ver "any">
 <!ENTITY min-gd-ver "1.20">
 <!ENTITY min-chart-base-ver "1.0">
 <!ENTITY min-template-plugin-gd-image-ver "any">
@@ -28,8 +32,9 @@
 <!ENTITY min-html-scrubber-ver "any">
 <!ENTITY min-email-mime-attachment-stripper-ver "any">
 <!ENTITY min-email-reply-ver "any">
+<!ENTITY min-theschwartz-ver "any">
+<!ENTITY min-daemon-generic-ver "any">
 <!ENTITY min-mod_perl2-ver "1.999022">
-<!ENTITY min-mp-cgi-ver "3.21">
 
  <!-- Database Versions --> 
 <!ENTITY min-dbd-pg-ver "1.45">

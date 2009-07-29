@@ -20,13 +20,13 @@ package Bugzilla::WebService::Constants;
 use strict;
 use base qw(Exporter);
 
-@Bugzilla::WebService::Constants::EXPORT = qw(
+our @EXPORT = qw(
     WS_ERROR_CODE
     ERROR_UNKNOWN_FATAL
     ERROR_UNKNOWN_TRANSIENT
-
     ERROR_AUTH_NODATA
-    ERROR_UNIMPLEMENTED
+
+    WS_DISPATCH
 );
 
 # This maps the error names in global/*-error.html.tmpl to numbers.
@@ -48,10 +48,12 @@ use base qw(Exporter);
 # comment that it was retired. Also, if an error changes its name, you'll
 # have to fix it here.
 use constant WS_ERROR_CODE => {
-    # Generic Bugzilla::Object errors are 50-99.
-    object_name_not_specified   => 50,
+    # Generic errors (Bugzilla::Object and others) are 50-99.    
+    object_not_specified        => 50,
     param_required              => 50,
+    params_required             => 50,
     object_does_not_exist       => 51,
+    xmlrpc_invalid_value        => 52,
     # Bug errors usually occupy the 100-200 range.
     improper_bug_id_field_value => 100,
     bug_id_does_not_exist       => 101,
@@ -79,12 +81,21 @@ use constant WS_ERROR_CODE => {
     invalid_field_name => 108,
     # Not authorized to edit the bug
     product_edit_denied => 109,
+    # Comment-related errors
+    comment_is_private => 110,
+    comment_id_invalid => 111,
+    # See Also errors
+    bug_url_invalid => 112,
+    bug_url_too_long => 112,
+    # Insidergroup Errors
+    user_not_insider => 113,
 
     # Authentication errors are usually 300-400.
     invalid_username_or_password => 300,
     account_disabled             => 301,
     auth_invalid_email           => 302,
     extern_id_conflict           => -303,
+    auth_failure                 => 304,
 
     # User errors are 500-600.
     account_exists        => 500,
@@ -97,6 +108,8 @@ use constant WS_ERROR_CODE => {
     # This is from strict_isolation, but it also basically means 
     # "invalid user."
     invalid_user_group    => 504,
+    user_access_by_id_denied    => 505,
+    user_access_by_match_denied => 505,
 };
 
 # These are the fallback defaults for errors not in ERROR_CODE.
@@ -104,7 +117,23 @@ use constant ERROR_UNKNOWN_FATAL     => -32000;
 use constant ERROR_UNKNOWN_TRANSIENT => 32000;
 
 use constant ERROR_AUTH_NODATA   => 410;
-use constant ERROR_UNIMPLEMENTED => 910;
 use constant ERROR_GENERAL       => 999;
+
+sub WS_DISPATCH {
+    # We "require" here instead of "use" above to avoid a dependency loop.
+    require Bugzilla::Hook;
+    my %hook_dispatch;
+    Bugzilla::Hook::process('webservice', { dispatch => \%hook_dispatch });
+
+    my $dispatch = {
+        'Bugzilla' => 'Bugzilla::WebService::Bugzilla',
+        'Bug'      => 'Bugzilla::WebService::Bug',
+        'User'     => 'Bugzilla::WebService::User',
+        'Product'  => 'Bugzilla::WebService::Product',
+        %hook_dispatch
+    };
+    return $dispatch;
+};
+
 
 1;

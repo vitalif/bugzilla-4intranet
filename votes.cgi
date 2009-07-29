@@ -52,7 +52,7 @@ my $bug_id = $cgi->param('bug_id');
 my $action = $cgi->param('action') || ($bug_id ? "show_bug" : "show_user");
 
 if ($action eq "show_bug" ||
-    ($action eq "show_user" && defined $cgi->param('user')))
+    ($action eq "show_user" && defined $cgi->param('user_id')))
 {
     Bugzilla->login();
 }
@@ -67,7 +67,10 @@ else {
 # Make sure the bug ID is a positive integer representing an existing
 # bug that the user is authorized to access.
 
-ValidateBugID($bug_id) if defined $bug_id;
+if (defined $bug_id) {
+    my $bug = Bugzilla::Bug->check($bug_id);
+    $bug_id = $bug->id;
+}
 
 ################################################################################
 # End Data/Security Validation
@@ -100,7 +103,9 @@ sub show_bug {
 
     $vars->{'bug_id'} = $bug_id;
     $vars->{'users'} =
-        $dbh->selectall_arrayref('SELECT profiles.login_name, votes.vote_count 
+        $dbh->selectall_arrayref('SELECT profiles.login_name,
+                                         profiles.userid AS id,
+                                         votes.vote_count
                                     FROM votes
                               INNER JOIN profiles 
                                       ON profiles.userid = votes.who
@@ -124,11 +129,11 @@ sub show_user {
     # If a bug_id is given, and we're editing, we'll add it to the votes list.
     $bug_id ||= "";
 
-    my $name = $cgi->param('user') || $user->login;
-    my $who = login_to_id($name, THROW_ERROR);
-    my $userid = $user->id;
+    my $who_id = $cgi->param('user_id') || $user->id;
+    my $who = Bugzilla::User->check({ id => $who_id });
 
-    my $canedit = (Bugzilla->params->{'usevotes'} && $userid == $who) ? 1 : 0;
+    my $canedit = (Bugzilla->params->{'usevotes'} && $user->id == $who->id) 
+                  ? 1 : 0;
 
     $dbh->bz_start_transaction();
 
@@ -137,10 +142,10 @@ sub show_user {
         # in the vote table, just so that things display right.
         my $has_votes = $dbh->selectrow_array('SELECT vote_count FROM votes 
                                                WHERE bug_id = ? AND who = ?',
-                                               undef, ($bug_id, $who));
+                                               undef, ($bug_id, $who->id));
         if (!$has_votes) {
             $dbh->do('INSERT INTO votes (who, bug_id, vote_count) 
-                      VALUES (?, ?, 0)', undef, ($who, $bug_id));
+                      VALUES (?, ?, 0)', undef, ($who->id, $bug_id));
         }
     }
 
@@ -165,7 +170,7 @@ sub show_user {
                                        WHERE votes.who = ?
                                          AND bugs.product_id = ?
                                     ORDER BY votes.bug_id',
-                                      undef, ($who, $product->id));
+                                      undef, ($who->id, $product->id));
 
         foreach (@$vote_list) {
             my ($id, $count, $summary) = @$_;
@@ -203,7 +208,7 @@ sub show_user {
     $dbh->bz_commit_transaction();
 
     $vars->{'canedit'} = $canedit;
-    $vars->{'voting_user'} = { "login" => $name };
+    $vars->{'voting_user'} = { "login" => $who->name };
     $vars->{'products'} = \@products;
     $vars->{'bug_id'} = $bug_id;
     $vars->{'all_bug_ids'} = \@all_bug_ids;
@@ -244,14 +249,15 @@ sub record_votes {
         }
     }
 
-    # Call ValidateBugID on each bug ID to make sure it is a positive
+    # Call check() on each bug ID to make sure it is a positive
     # integer representing an existing bug that the user is authorized 
     # to access, and make sure the number of votes submitted is also
     # a non-negative integer (a series of digits not preceded by a
     # minus sign).
     my %votes;
     foreach my $id (@buglist) {
-      ValidateBugID($id);
+      my $bug = Bugzilla::Bug->check($id);
+      $id = $bug->id;
       $votes{$id} = $cgi->param($id);
       detaint_natural($votes{$id}) 
         || ThrowUserError("votes_must_be_nonnegative");

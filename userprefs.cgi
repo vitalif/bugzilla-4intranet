@@ -92,12 +92,7 @@ sub SaveAccount {
 
         my $oldpassword = $cgi->param('Bugzilla_password');
 
-        # Wide characters cause crypt to die
-        if (Bugzilla->params->{'utf8'}) {
-            utf8::encode($oldpassword) if utf8::is_utf8($oldpassword);
-        } 
-
-        if (crypt($oldpassword, $oldcryptedpwd) ne $oldcryptedpwd) 
+        if (bz_crypt($oldpassword, $oldcryptedpwd) ne $oldcryptedpwd) 
         {
             ThrowUserError("old_password_incorrect");
         }
@@ -132,7 +127,6 @@ sub SaveAccount {
             $cgi->param('Bugzilla_password') 
               || ThrowUserError("old_password_required");
 
-            use Bugzilla::Token;
             # Block multiple email changes for the same user.
             if (Bugzilla::Token::HasEmailChangeToken($user->id)) {
                 ThrowUserError("email_change_in_progress");
@@ -188,6 +182,7 @@ sub SaveSettings {
     foreach my $name (@setting_list) {
         next if ! ($settings->{$name}->{'is_enabled'});
         my $value = $cgi->param($name);
+        next unless defined $value;
         my $setting = new Bugzilla::User::Setting($name);
 
         if ($value eq "${name}-isdefault" ) {
@@ -211,30 +206,27 @@ sub DoEmail
     ###########################################################################
     # User watching
     ###########################################################################
-    if (Bugzilla->params->{supportwatchers})
+    my $userid = $user->id;
+    # WatcheD and WatcherR ID's together
+    my $wdwr_ids = $dbh->selectall_arrayref(
+        "SELECT watched, watcher FROM watch WHERE watcher=? OR watched=?",
+        undef, $userid, $userid
+    ) || [];
+    $vars->{watchedusers} = [];
+    $vars->{watchers} = [];
+    foreach (@$wdwr_ids)
     {
-        my $userid = $user->id;
-        # WatcheD and WatcherR ID's together
-        my $wdwr_ids = $dbh->selectall_arrayref(
-            "SELECT watched, watcher FROM watch WHERE watcher=? OR watched=?",
-            undef, $userid, $userid
-        ) || [];
-        $vars->{watchedusers} = [];
-        $vars->{watchers} = [];
-        foreach (@$wdwr_ids)
+        if ($_->[1] eq $userid)
         {
-            if ($_->[1] eq $userid)
-            {
-                push @{$vars->{watchedusers}}, Bugzilla::User->new($_->[0]);
-            }
-            else
-            {
-                push @{$vars->{watchers}}, Bugzilla::User->new($_->[1]);
-            }
+            push @{$vars->{watchedusers}}, Bugzilla::User->new($_->[0]);
         }
-        $vars->{watchedusers} = [ sort { $a->identity cmp $b->identity } @{$vars->{watchedusers}} ];
-        $vars->{watchers} = [ sort { $a->identity cmp $b->identity } @{$vars->{watchers}} ];
+        else
+        {
+            push @{$vars->{watchers}}, Bugzilla::User->new($_->[1]);
+        }
     }
+    $vars->{watchedusers} = [ sort { $a->identity cmp $b->identity } @{$vars->{watchedusers}} ];
+    $vars->{watchers} = [ sort { $a->identity cmp $b->identity } @{$vars->{watchers}} ];
 
     ###########################################################################
     # Role-based preferences
@@ -258,9 +250,7 @@ sub SaveEmail
     my $cgi = Bugzilla->cgi;
     my $user = Bugzilla->user;
 
-    if (Bugzilla->params->{supportwatchers}) {
-        Bugzilla::User::match_field($cgi, { new_watchedusers => { type => 'multi' } });
-    }
+    Bugzilla::User::match_field($cgi, { new_watchedusers => { type => 'multi' } });
 
     ###########################################################################
     # Role-based preferences
@@ -317,12 +307,8 @@ sub SaveEmail
     ###########################################################################
     # User watching
     ###########################################################################
-    if (Bugzilla->params->{supportwatchers} && (
-        $cgi->param('new_watchedusers') ||
-        $cgi->param('remove_watched_users') ||
-        $cgi->param('new_watchers') ||
-        $cgi->param('remove_watchers')
-    ))
+    if ($cgi->param('new_watchedusers') || $cgi->param('remove_watched_users') ||
+        $cgi->param('new_watchers') || $cgi->param('remove_watchers'))
     {
         $dbh->bz_start_transaction();
 
@@ -426,7 +412,7 @@ sub DoSavedSearches {
         $vars->{'queryshare_groups'} =
             Bugzilla::Group->new_from_list($user->queryshare_groups);
     }
-    $vars->{'bless_group_ids'} = [map {$_->{'id'}} @{$user->bless_groups}];
+    $vars->{'bless_group_ids'} = [map { $_->id } @{$user->bless_groups}];
 }
 
 sub SaveSavedSearches {

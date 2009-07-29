@@ -60,7 +60,7 @@ sub new {
     $dbname ||= 'template1';
 
     # construct the DSN from the parameters we got
-    my $dsn = "DBI:Pg:dbname=$dbname";
+    my $dsn = "dbi:Pg:dbname=$dbname";
     $dsn .= ";host=$host" if $host;
     $dsn .= ";port=$port" if $port;
 
@@ -75,6 +75,8 @@ sub new {
     # all class local variables stored in DBI derived class needs to have
     # a prefix 'private_'. See DBI documentation.
     $self->{private_bz_tables_locked} = "";
+    # Needed by TheSchwartz
+    $self->{private_bz_dsn} = $dsn;
 
     bless ($self, $class);
 
@@ -93,13 +95,19 @@ sub bz_last_key {
 }
 
 sub sql_regexp {
-    my ($self, $expr, $pattern) = @_;
+    my ($self, $expr, $pattern, $nocheck, $real_pattern) = @_;
+    $real_pattern ||= $pattern;
+
+    $self->bz_check_regexp($real_pattern) if !$nocheck;
 
     return "$expr ~* $pattern";
 }
 
 sub sql_not_regexp {
-    my ($self, $expr, $pattern) = @_;
+    my ($self, $expr, $pattern, $nocheck, $real_pattern) = @_;
+    $real_pattern ||= $pattern;
+
+    $self->bz_check_regexp($real_pattern) if !$nocheck;
 
     return "$expr !~* $pattern" 
 }
@@ -165,6 +173,12 @@ sub bz_sequence_exists {
         'SELECT 1 FROM pg_statio_user_sequences WHERE relname = ?',
         undef, $seq_name);
     return $exists || 0;
+}
+
+sub bz_explain {
+    my ($self, $sql) = @_;
+    my $explain = $self->selectcol_arrayref("EXPLAIN ANALYZE $sql");
+    return join("\n", @$explain);
 }
 
 #####################################################################

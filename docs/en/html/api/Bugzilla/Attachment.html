@@ -26,7 +26,7 @@ Bugzilla::Attachment</title>
 name="NAME"
 >NAME</a></h1>
 
-<p>Bugzilla::Attachment - a file related to a bug that a user has uploaded to the Bugzilla server</p>
+<p>Bugzilla::Attachment - Bugzilla attachment class.</p>
 
 <h1><a class='u' href='#___top' title='click to go to top of document'
 name="SYNOPSIS"
@@ -35,29 +35,24 @@ name="SYNOPSIS"
 <pre  class="code">  use Bugzilla::Attachment;
 
   # Get the attachment with the given ID.
-  my $attachment = Bugzilla::Attachment-&#62;get($attach_id);
+  my $attachment = new Bugzilla::Attachment($attach_id);
 
   # Get the attachments with the given IDs.
-  my $attachments = Bugzilla::Attachment-&#62;get_list($attach_ids);</pre>
+  my $attachments = Bugzilla::Attachment-&#62;new_from_list($attach_ids);</pre>
 
 <h1><a class='u' href='#___top' title='click to go to top of document'
 name="DESCRIPTION"
 >DESCRIPTION</a></h1>
 
-<p>This module defines attachment objects, which represent files related to bugs that users upload to the Bugzilla server.</p>
+<p>Attachment.pm represents an attachment object. It is an implementation of <a href="../Bugzilla/Object.html" class="podlinkpod"
+>Bugzilla::Object</a>, and thus provides all methods that <a href="../Bugzilla/Object.html" class="podlinkpod"
+>Bugzilla::Object</a> provides.</p>
+
+<p>The methods that are specific to <code  class="code">Bugzilla::Attachment</code> are listed below.</p>
 
 <h2><a class='u' href='#___top' title='click to go to top of document'
 name="Instance_Properties"
 >Instance Properties</a></h2>
-
-<dl>
-<dt><a name="id"
-><code  class="code">id</code></a></dt>
-
-<dd>
-<p>the unique identifier for the attachment</p>
-</dd>
-</dl>
 
 <dl>
 <dt><a name="bug_id"
@@ -65,6 +60,15 @@ name="Instance_Properties"
 
 <dd>
 <p>the ID of the bug to which the attachment is attached</p>
+</dd>
+</dl>
+
+<dl>
+<dt><a name="bug"
+><code  class="code">bug</code></a></dt>
+
+<dd>
+<p>the bug object to which the attachment is attached</p>
 </dd>
 </dl>
 
@@ -194,6 +198,15 @@ name="Instance_Properties"
 </dd>
 </dl>
 
+<dl>
+<dt><a name="flag_types"
+><code  class="code">flag_types</code></a></dt>
+
+<dd>
+<p>Return all flag types available for this attachment as well as flags already set, grouped by flag type.</p>
+</dd>
+</dl>
+
 <h2><a class='u' href='#___top' title='click to go to top of document'
 name="Class_Methods"
 >Class Methods</a></h2>
@@ -253,8 +266,8 @@ name="Class_Methods"
 
 <p>Returns: 1 on success. Else an error is thrown.</p>
 
-<dt><a name="insert_attachment_for_bug($throw_error,_$bug,_$user,_$timestamp,_$hr_vars)"
-><code  class="code">insert_attachment_for_bug($throw_error, $bug, $user, $timestamp, $hr_vars)</code></a></dt>
+<dt><a name="create($throw_error,_$bug,_$user,_$timestamp,_$hr_vars)"
+><code  class="code">create($throw_error, $bug, $user, $timestamp, $hr_vars)</code></a></dt>
 
 <dd>
 <p>Description: inserts an attachment from CGI input for the given bug.</p>

@@ -67,6 +67,17 @@ if (length($buffer) == 0) {
     ThrowUserError("buglist_parameters_required");
 }
 
+#
+# If query was POSTed, clean the URL from empty parameters and redirect back to
+# itself. This will make advanced search URLs more tolerable.
+#
+if ($cgi->request_method() eq 'POST') {
+    $cgi->clean_search_url();
+
+    print $cgi->redirect(-url => $cgi->self_url());
+    exit;
+}
+
 # Determine whether this is a quicksearch query.
 my $searchstring = $cgi->param('quicksearch');
 if (defined($searchstring)) {
@@ -202,18 +213,17 @@ foreach my $chart (@charts) {
 # Utilities
 ################################################################################
 
-local our @weekday= qw( Sun Mon Tue Wed Thu Fri Sat );
 sub DiffDate {
     my ($datestr) = @_;
     my $date = str2time($datestr);
     my $age = time() - $date;
-    my ($s,$m,$h,$d,$mo,$y,$wd)= localtime $date;
+
     if( $age < 18*60*60 ) {
-        $date = sprintf "%02d:%02d:%02d", $h,$m,$s;
+        $date = format_time($datestr, '%H:%M:%S');
     } elsif( $age < 6*24*60*60 ) {
-        $date = sprintf "%s %02d:%02d", $weekday[$wd],$h,$m;
+        $date = format_time($datestr, '%a %H:%M');
     } else {
-        $date = sprintf "%04d-%02d-%02d", 1900+$y,$mo+1,$d;
+        $date = format_time($datestr, '%Y-%m-%d');
     }
     return $date;
 }
@@ -336,14 +346,14 @@ sub _close_standby_message {
 # Command Execution
 ################################################################################
 
-$cgi->param('cmdtype', "") if !defined $cgi->param('cmdtype');
-$cgi->param('remaction', "") if !defined $cgi->param('remaction');
+my $cmdtype   = $cgi->param('cmdtype')   || '';
+my $remaction = $cgi->param('remaction') || '';
 
 # Backwards-compatibility - the old interface had cmdtype="runnamed" to run
 # a named command, and we can't break this because it's in bookmarks.
-if ($cgi->param('cmdtype') eq "runnamed") {  
-    $cgi->param('cmdtype', "dorem");
-    $cgi->param('remaction', "run");
+if ($cmdtype eq "runnamed") {  
+    $cmdtype = "dorem";
+    $remaction = "run";
 }
 
 # Now we're going to be running, so ensure that the params object is set up,
@@ -361,7 +371,7 @@ $params ||= new Bugzilla::CGI($cgi);
 my @time = localtime(time());
 my $date = sprintf "%04d-%02d-%02d", 1900+$time[5],$time[4]+1,$time[3];
 my $filename = "bugs-$date.$format->{extension}";
-if ($cgi->param('cmdtype') eq "dorem" && $cgi->param('remaction') =~ /^run/) {
+if ($cmdtype eq "dorem" && $remaction =~ /^run/) {
     $filename = $cgi->param('namedcmd') . "-$date.$format->{extension}";
     # Remove white-space from the filename so the user cannot tamper
     # with the HTTP headers.
@@ -371,8 +381,8 @@ $filename =~ s/\\/\\\\/g; # escape backslashes
 $filename =~ s/"/\\"/g; # escape quotes
 
 # Take appropriate action based on user's request.
-if ($cgi->param('cmdtype') eq "dorem") {  
-    if ($cgi->param('remaction') eq "run") {
+if ($cmdtype eq "dorem") {  
+    if ($remaction eq "run") {
         my $query_id;
         ($buffer, $query_id) = Bugzilla::Search::LookupNamedQuery(
             scalar $cgi->param("namedcmd"), scalar $cgi->param('sharer_id')
@@ -389,14 +399,14 @@ if ($cgi->param('cmdtype') eq "dorem") {
         $order = $params->param('order') || $order;
 
     }
-    elsif ($cgi->param('remaction') eq "runseries") {
+    elsif ($remaction eq "runseries") {
         $buffer = LookupSeries(scalar $cgi->param("series_id"));
         $vars->{'searchname'} = $cgi->param('namedcmd');
         $vars->{'searchtype'} = "series";
         $params = new Bugzilla::CGI($buffer);
         $order = $params->param('order') || $order;
     }
-    elsif ($cgi->param('remaction') eq "forget") {
+    elsif ($remaction eq "forget") {
         my $user = Bugzilla->login(LOGIN_REQUIRED);
         # Copy the name into a variable, so that we can trick_taint it for
         # the DB. We know it's safe, because we're using placeholders in 
@@ -460,7 +470,7 @@ if ($cgi->param('cmdtype') eq "dorem") {
         exit;
     }
 }
-elsif (($cgi->param('cmdtype') eq "doit") && defined $cgi->param('remtype')) {
+elsif (($cmdtype eq "doit") && defined $cgi->param('remtype')) {
     if ($cgi->param('remtype') eq "asdefault") {
         my $user = Bugzilla->login(LOGIN_REQUIRED);
         InsertNamedQuery(DEFAULT_QUERY_NAME, $buffer);
@@ -506,8 +516,10 @@ elsif (($cgi->param('cmdtype') eq "doit") && defined $cgi->param('remtype')) {
             # exists, add/remove bugs to it, else create it. But if we are
             # considering an existing tag, then it has to exist and we throw
             # an error if it doesn't (hence the usage of !$is_new_name).
-            if (my $old_query = Bugzilla::Search::LookupNamedQuery(
-                $query_name, undef, LIST_OF_BUGS, !$is_new_name))
+            my ($old_query, $query_id) =
+                Bugzilla::Search::LookupNamedQuery($query_name, undef, LIST_OF_BUGS, !$is_new_name);
+
+            if ($old_query)
             {
                 # We get the encoded query. We need to decode it.
                 my $old_cgi = new Bugzilla::CGI($old_query);
@@ -521,8 +533,8 @@ elsif (($cgi->param('cmdtype') eq "doit") && defined $cgi->param('remtype')) {
             my $changes = 0;
             foreach my $bug_id (split(/[\s,]+/, $cgi->param('bug_ids'))) {
                 next unless $bug_id;
-                ValidateBugID($bug_id);
-                $bug_ids{$bug_id} = $keep_bug;
+                my $bug = Bugzilla::Bug->check($bug_id);
+                $bug_ids{$bug->id} = $keep_bug;
                 $changes = 1;
             }
             ThrowUserError('no_bug_ids',
@@ -533,9 +545,10 @@ elsif (($cgi->param('cmdtype') eq "doit") && defined $cgi->param('remtype')) {
             # Only keep bug IDs we want to add/keep. Disregard deleted ones.
             my @bug_ids = grep { $bug_ids{$_} == 1 } keys %bug_ids;
             # If the list is now empty, we could as well delete it completely.
-            ThrowUserError('no_bugs_in_list', {'tag' => $query_name})
-              unless scalar(@bug_ids);
-
+            if (!scalar @bug_ids) {
+                ThrowUserError('no_bugs_in_list', {name     => $query_name,
+                                                   query_id => $query_id});
+            }
             $new_query = "bug_id=" . join(',', sort {$a <=> $b} @bug_ids);
             $query_type = LIST_OF_BUGS;
         }
@@ -574,83 +587,7 @@ if (!$params->param('query_format')) {
 # Column Definition
 ################################################################################
 
-# Define the columns that can be selected in a query and/or displayed in a bug
-# list.  Column records include the following fields:
-#
-# 1. ID: a unique identifier by which the column is referred in code;
-#
-# 2. Name: The name of the column in the database (may also be an expression
-#          that returns the value of the column);
-#
-# 3. Title: The title of the column as displayed to users.
-# 
-# Note: There are a few hacks in the code that deviate from these definitions.
-#       In particular, when the list is sorted by the "votes" field the word 
-#       "DESC" is added to the end of the field to sort in descending order, 
-#       and the redundant short_desc column is removed when the client
-#       requests "all" columns.
-# Note: For column names using aliasing (SQL "<field> AS <alias>"), the column
-#       ID needs to be identical to the field ID for list ordering to work.
-
-local our $columns = {};
-sub DefineColumn {
-    my ($id, $name, $title) = @_;
-    $columns->{$id} = { 'name' => $name , 'title' => $title };
-}
-
-# Column:     ID                    Name                           Title
-DefineColumn("bug_id"            , "bugs.bug_id"                , "ID"               );
-DefineColumn("alias"             , "bugs.alias"                 , "Alias"            );
-DefineColumn("opendate"          , "bugs.creation_ts"           , "Opened"           );
-DefineColumn("changeddate"       , "bugs.delta_ts"              , "Changed"          );
-DefineColumn("bug_severity"      , "bugs.bug_severity"          , "Severity"         );
-DefineColumn("priority"          , "bugs.priority"              , "Priority"         );
-DefineColumn("rep_platform"      , "bugs.rep_platform"          , "Hardware"         );
-DefineColumn("assigned_to"       , "map_assigned_to.login_name" , "Assignee"         );
-DefineColumn("reporter"          , "map_reporter.login_name"    , "Reporter"         );
-DefineColumn("qa_contact"        , "map_qa_contact.login_name"  , "QA Contact"       );
-if ($format->{'extension'} eq 'html') {
-    DefineColumn("assigned_to_realname", "CASE WHEN map_assigned_to.realname = '' THEN map_assigned_to.login_name ELSE map_assigned_to.realname END AS assigned_to_realname", "Assignee"  );
-    DefineColumn("reporter_realname"   , "CASE WHEN map_reporter.realname    = '' THEN map_reporter.login_name    ELSE map_reporter.realname    END AS reporter_realname"   , "Reporter"  );
-    DefineColumn("qa_contact_realname" , "CASE WHEN map_qa_contact.realname  = '' THEN map_qa_contact.login_name  ELSE map_qa_contact.realname  END AS qa_contact_realname" , "QA Contact");
-} else {
-    DefineColumn("assigned_to_realname", "map_assigned_to.realname AS assigned_to_realname", "Assignee"  );
-    DefineColumn("reporter_realname"   , "map_reporter.realname AS reporter_realname"      , "Reporter"  );
-    DefineColumn("qa_contact_realname" , "map_qa_contact.realname AS qa_contact_realname"  , "QA Contact");
-}
-DefineColumn("bug_status"        , "bugs.bug_status"            , "Status"           );
-DefineColumn("resolution"        , "bugs.resolution"            , "Resolution"       );
-DefineColumn("short_short_desc"  , "bugs.short_desc"            , "Summary"          );
-DefineColumn("short_desc"        , "bugs.short_desc"            , "Summary"          );
-DefineColumn("status_whiteboard" , "bugs.status_whiteboard"     , "Whiteboard"       );
-DefineColumn("component"         , "map_components.name"        , "Component"        );
-DefineColumn("product"           , "map_products.name"          , "Product"          );
-DefineColumn("classification"    , "map_classifications.name"   , "Classification"   );
-DefineColumn("version"           , "bugs.version"               , "Version"          );
-DefineColumn("op_sys"            , "bugs.op_sys"                , "OS"               );
-DefineColumn("target_milestone"  , "bugs.target_milestone"      , "Target Milestone" );
-DefineColumn("votes"             , "bugs.votes"                 , "Votes"            );
-DefineColumn("keywords"          , "bugs.keywords"              , "Keywords"         );
-DefineColumn("estimated_time"    , "bugs.estimated_time"        , "Estimated Hours"  );
-DefineColumn("remaining_time"    , "bugs.remaining_time"        , "Remaining Hours"  );
-DefineColumn("actual_time"       , "(SUM(ldtime.work_time)*COUNT(DISTINCT ldtime.bug_when)/COUNT(bugs.bug_id)) AS actual_time", "Actual Hours");
-DefineColumn("percentage_complete",
-    "(CASE WHEN (SUM(ldtime.work_time)*COUNT(DISTINCT ldtime.bug_when)/COUNT(bugs.bug_id)) " .
-    "            + bugs.remaining_time = 0.0 " .
-    "THEN 0.0 " .
-    "ELSE 100*((SUM(ldtime.work_time)*COUNT(DISTINCT ldtime.bug_when)/COUNT(bugs.bug_id)) " .
-    "     /((SUM(ldtime.work_time)*COUNT(DISTINCT ldtime.bug_when)/COUNT(bugs.bug_id)) + bugs.remaining_time)) " .
-    "END) AS percentage_complete"                               , "% Complete"); 
-DefineColumn("relevance"         , "relevance"                  , "Relevance"        );
-DefineColumn("deadline"          , $dbh->sql_date_format('bugs.deadline', '%Y-%m-%d') . " AS deadline", "Deadline");
-
-foreach my $field (Bugzilla->active_custom_fields) {
-    # Multi-select fields are not (yet) supported in buglists.
-    next if $field->type == FIELD_TYPE_MULTI_SELECT;
-    DefineColumn($field->name, 'bugs.' . $field->name, $field->description);
-}
-
-Bugzilla::Hook::process("buglist-columns", {'columns' => $columns} );
+my $columns = Bugzilla::Search::COLUMNS;
 
 ################################################################################
 # Display Column Determination
@@ -748,6 +685,18 @@ if (lsearch(\@displaycolumns, "percentage_complete") >= 0) {
     push (@selectcolumns, "actual_time");
 }
 
+# Make sure that the login_name version of a field is always also
+# requested if the realname version is requested, so that we can
+# display the login name when the realname is empty.
+my @realname_fields = grep(/_realname$/, @displaycolumns);
+foreach my $item (@realname_fields) {
+    my $login_field = $item;
+    $login_field =~ s/_realname$//;
+    if (!grep($_ eq $login_field, @selectcolumns)) {
+        push(@selectcolumns, $login_field);
+    }
+}
+
 # Display columns are selected because otherwise we could not display them.
 push (@selectcolumns, @displaycolumns);
 
@@ -789,17 +738,6 @@ if ($format->{'extension'} eq 'atom') {
 }
 
 ################################################################################
-# Query Generation
-################################################################################
-
-# Convert the list of columns being selected into a list of column names.
-my @selectnames = map($columns->{$_}->{'name'}, @selectcolumns);
-
-# Remove columns with no names, such as percentage_complete
-#  (or a removed *_time column due to permissions)
-@selectnames = grep($_ ne '', @selectnames);
-
-################################################################################
 # Sort Order Determination
 ################################################################################
 
@@ -822,39 +760,47 @@ if (!$order || $order =~ /^reuse/i) {
     }
 }
 
-my $db_order = "";  # Modified version of $order for use with SQL query
 if ($order) {
     # Convert the value of the "order" form field into a list of columns
     # by which to sort the results.
     ORDER: for ($order) {
         /^Bug Number$/ && do {
-            $order = "bugs.bug_id";
+            $order = "bug_id";
             last ORDER;
         };
         /^Importance$/ && do {
-            $order = "bugs.priority, bugs.bug_severity";
+            $order = "priority,bug_severity";
             last ORDER;
         };
         /^Assignee$/ && do {
-            $order = "map_assigned_to.login_name, bugs.bug_status, bugs.priority, bugs.bug_id";
+            $order = "assigned_to,bug_status,priority,bug_id";
             last ORDER;
         };
         /^Last Changed$/ && do {
-            $order = "bugs.delta_ts, bugs.bug_status, bugs.priority, map_assigned_to.login_name, bugs.bug_id";
+            $order = "changeddate,bug_status,priority,assigned_to,bug_id";
             last ORDER;
         };
         do {
             my @order;
-            my @columnnames = map($columns->{lc($_)}->{'name'}, keys(%$columns));
             # A custom list of columns.  Make sure each column is valid.
             foreach my $fragment (split(/,/, $order)) {
                 $fragment = trim($fragment);
                 next unless $fragment;
-                # Accept an order fragment matching a column name, with
-                # asc|desc optionally following (to specify the direction)
-                if (grep($fragment =~ /^\Q$_\E(\s+(asc|desc))?$/, @columnnames, keys(%$columns))) {
-                    next if $fragment =~ /\brelevance\b/ && !$fulltext;
-                    push(@order, $fragment);
+                my ($column_name, $direction) = split_order_term($fragment);
+                $column_name = translate_old_column($column_name);
+
+                # Special handlings for certain columns
+                next if $column_name eq 'relevance' && !$fulltext;
+                                
+                # If we are sorting by votes, sort in descending order if
+                # no explicit sort order was given.
+                if ($column_name eq 'votes' && !$direction) {
+                    $direction = "DESC";
+                }
+
+                if (exists $columns->{$column_name}) {
+                    $direction = " $direction" if $direction;
+                    push(@order, "$column_name$direction");
                 }
                 else {
                     my $vars = { fragment => $fragment };
@@ -877,61 +823,17 @@ if ($order) {
 
 if (!$order) {
     # DEFAULT
-    $order = "bugs.bug_status, bugs.priority, map_assigned_to.login_name, bugs.bug_id";
+    $order = "bug_status,priority,assigned_to,bug_id";
 }
 
-# Make sure ORDER BY columns are included in the field list.
-foreach my $fragment (split(/,/, $order)) {
-    $fragment = trim($fragment);
-    if (!grep($fragment =~ /^\Q$_\E(\s+(asc|desc))?$/, @selectnames)) {
-        # Add order columns to selectnames
-        # The fragment has already been validated
-        $fragment =~ s/\s+(asc|desc)$//;
-
-        # While newer fragments contain IDs for aliased columns, older
-        # LASTORDER cookies (or bookmarks) may contain full names.
-        # Convert them to an ID here.
-        if ($fragment =~ / AS (\w+)/) {
-            $fragment = $1;
-        }
-
-        $fragment =~ tr/a-zA-Z\.0-9\-_//cd;
-
-        # If the order fragment is an ID, we need its corresponding name
-        # to be in the field list.
-        if (exists($columns->{$fragment})) {
-            $fragment = $columns->{$fragment}->{'name'};
-        }
-
-        push @selectnames, $fragment;
-    }
-}
-
-$db_order = $order;  # Copy $order into $db_order for use with SQL query
-
-# If we are sorting by votes, sort in descending order if no explicit
-# sort order was given
-$db_order =~ s/bugs.votes\s*(,|$)/bugs.votes desc$1/i;
-                             
-# the 'actual_time' field is defined as an aggregate function, but 
-# for order we just need the column name 'actual_time'
-my $aggregate_search = quotemeta($columns->{'actual_time'}->{'name'});
-$db_order =~ s/$aggregate_search/actual_time/g;
-
-# the 'percentage_complete' field is defined as an aggregate too
-$aggregate_search = quotemeta($columns->{'percentage_complete'}->{'name'});
-$db_order =~ s/$aggregate_search/percentage_complete/g;
-
-# Now put $db_order into a format that Bugzilla::Search can use.
-# (We create $db_order as a string first because that's the way
-# we did it before Bugzilla::Search took an "order" argument.)
-my @orderstrings = split(/,\s*/, $db_order);
+my @orderstrings = split(/,\s*/, $order);
 
 # Generate the basic SQL query that will be used to generate the bug list.
-my $search = new Bugzilla::Search('fields' => \@selectnames, 
+my $search = new Bugzilla::Search('fields' => \@selectcolumns, 
                                   'params' => $params,
                                   'order' => \@orderstrings);
 my $query = $search->getSQL();
+$vars->{'search_description'} = $search->search_description;
 
 if (defined $cgi->param('limit')) {
     my $limit = $cgi->param('limit');
@@ -952,7 +854,13 @@ elsif ($fulltext) {
 if ($cgi->param('debug')) {
     $vars->{'debug'} = 1;
     $vars->{'query'} = $query;
-    $vars->{'debugdata'} = $search->getDebugData();
+    # Explains are limited to admins because you could use them to figure
+    # out how many hidden bugs are in a particular product (by doing
+    # searches and looking at the number of rows the explain says it's
+    # examining).
+    if (Bugzilla->user->in_group('admin')) {
+        $vars->{'query_explain'} = $dbh->bz_explain($query);
+    }
 }
 
 # Time to use server push to display an interim message to the user until
@@ -998,6 +906,22 @@ $buglist_sth->execute();
 # Retrieve the query results one row at a time and write the data into a list
 # of Perl records.
 
+# If we're doing time tracking, then keep totals for all bugs.
+my $percentage_complete = lsearch(\@displaycolumns, 'percentage_complete') >= 0;
+my $estimated_time      = lsearch(\@displaycolumns, 'estimated_time') >= 0;
+my $remaining_time    = ((lsearch(\@displaycolumns, 'remaining_time') >= 0)
+                         || $percentage_complete);
+my $actual_time       = ((lsearch(\@displaycolumns, 'actual_time') >= 0)
+                         || $percentage_complete);
+
+my $time_info = { 'estimated_time' => 0,
+                  'remaining_time' => 0,
+                  'actual_time' => 0,
+                  'percentage_complete' => 0,
+                  'time_present' => ($estimated_time || $remaining_time ||
+                                     $actual_time || $percentage_complete),
+                };
+    
 my $bugowners = {};
 my $bugproducts = {};
 my $bugstatuses = {};
@@ -1020,16 +944,12 @@ while (my @row = $buglist_sth->fetchrow_array()) {
         $bug->{'changeddate'} =~ 
             s/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})$/$1-$2-$3 $4:$5:$6/;
 
-        # Put in the change date as a time, so that the template date plugin
-        # can format the date in any way needed by the template. ICS and Atom
-        # have specific, and different, date and time formatting.
-        $bug->{'changedtime'} = str2time($bug->{'changeddate'}, Bugzilla->params->{'timezone'});
+        $bug->{'changedtime'} = $bug->{'changeddate'}; # for iCalendar and Atom
         $bug->{'changeddate'} = DiffDate($bug->{'changeddate'});        
     }
 
     if ($bug->{'opendate'}) {
-        # Put in the open date as a time for the template date plugin.
-        $bug->{'opentime'} = str2time($bug->{'opendate'}, Bugzilla->params->{'timezone'});
+        $bug->{'opentime'} = $bug->{'opendate'}; # for iCalendar
         $bug->{'opendate'} = DiffDate($bug->{'opendate'});
     }
 
@@ -1045,6 +965,11 @@ while (my @row = $buglist_sth->fetchrow_array()) {
 
     # Add id to list for checking for bug privacy later
     push(@bugidlist, $bug->{'bug_id'});
+
+    # Compute time tracking info.
+    $time_info->{'estimated_time'} += $bug->{'estimated_time'} if ($estimated_time);
+    $time_info->{'remaining_time'} += $bug->{'remaining_time'} if ($remaining_time);
+    $time_info->{'actual_time'}    += $bug->{'actual_time'}    if ($actual_time);
 }
 
 # Check for bug privacy and set $bug->{'secure_mode'} to 'implied' or 'manual'
@@ -1077,6 +1002,15 @@ if (@bugidlist) {
     }
 }
 
+# Compute percentage complete without rounding.
+my $sum = $time_info->{'actual_time'}+$time_info->{'remaining_time'};
+if ($sum > 0) {
+    $time_info->{'percentage_complete'} = 100*$time_info->{'actual_time'}/$sum;
+}
+else { # remaining_time <= 0 
+    $time_info->{'percentage_complete'} = 0
+}                             
+
 ################################################################################
 # Template Variable Definition
 ################################################################################
@@ -1102,6 +1036,7 @@ $vars->{'urlquerypart'} = $params->canonicalise_query('order',
                                                       'query_based_on');
 $vars->{'order'} = $order;
 $vars->{'caneditbugs'} = 1;
+$vars->{'time_info'} = $time_info;
 
 if (!Bugzilla->user->in_group('editbugs')) {
     foreach my $product (keys %$bugproducts) {
@@ -1126,7 +1061,7 @@ if (scalar(@bugowners) > 1 && Bugzilla->user->in_group('editbugs')) {
 $vars->{'splitheader'} = $cgi->cookie('SPLITHEADER') ? 1 : 0;
 
 $vars->{'quip'} = GetQuip();
-$vars->{'currenttime'} = time();
+$vars->{'currenttime'} = localtime(time());
 
 # The following variables are used when the user is making changes to multiple bugs.
 if ($dotweak && scalar @bugs) {
@@ -1150,8 +1085,6 @@ if ($dotweak && scalar @bugs) {
     $vars->{'priorities'} = get_legal_field_values('priority');
     $vars->{'severities'} = get_legal_field_values('bug_severity');
     $vars->{'resolutions'} = get_legal_field_values('resolution');
-
-    $vars->{'unconfirmedstate'} = 'UNCONFIRMED';
 
     # Convert bug statuses to their ID.
     my @bug_statuses = map {$dbh->quote($_)} keys %$bugstatuses;
