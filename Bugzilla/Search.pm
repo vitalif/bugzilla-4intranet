@@ -319,7 +319,7 @@ sub init {
             $params->delete('resolution');
         }
     }
-    
+
     my @legal_fields = ("product", "version", "assigned_to", "reporter", 
                         "component", "classification", "target_milestone",
                         "bug_group");
@@ -913,8 +913,12 @@ sub init {
     # Make sure we create a legal SQL query.
     @andlist = ("1 = 1") if !@andlist;
 
-    my @sql_fields = map { $_ eq EMPTY_COLUMN ? EMPTY_COLUMN 
-                           : COLUMNS->{$_}->{name} . ' AS ' . $_ } @fields;
+    my @sql_fields = map { $_ eq EMPTY_COLUMN
+        ? EMPTY_COLUMN
+        : COLUMNS->{$_}->{name}
+            ? COLUMNS->{$_}->{name} . ' AS ' . $_
+            : $_ } @fields;
+
     my $query = "SELECT " . join(', ', @sql_fields) .
                 " FROM $suppstring" .
                 " LEFT JOIN bug_group_map " .
@@ -1447,6 +1451,10 @@ sub _content_matches
             ) AS ${table}_0
             GROUP BY bug_id
         ) AS $table ON bugs.bug_id = $table.bug_id";
+
+    # We build the relevance SQL by modifying the COLUMNS list directly,
+    # which is kind of a hack but works.
+    COLUMNS->{'relevance'}->{name} = "$table.relevance";
 
     # All work done by INNER JOIN
     $$term = "1";

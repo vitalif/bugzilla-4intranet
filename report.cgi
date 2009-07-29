@@ -143,7 +143,7 @@ $vars->{measure} = $measure;
 my @axis_fields = ($row_field || EMPTY_COLUMN, 
                    $col_field || EMPTY_COLUMN,
                    $tbl_field || EMPTY_COLUMN,
-                   $measure);
+                   $measures->{$measure});
 
 # Clone the params, so that Bugzilla::Search can modify them
 my $params = new Bugzilla::CGI($cgi);
@@ -285,7 +285,7 @@ if ($action eq "wrap") {
         measure), @axis_fields
     );
     $vars->{imagebase} = $cgi->canonicalise_query(
-        $tbl_field, qw(action ctype format width height measure),
+        $tbl_field, qw(action ctype format width height),
     );
     $vars->{switchbase} = $cgi->canonicalise_query(
         qw(query_format action ctype format width height measure)
