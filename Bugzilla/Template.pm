@@ -325,7 +325,7 @@ sub get_attachment_link {
         $title = html_quote(clean_text($title));
 
         $link_text =~ s/ \[details\]$//;
-        my $linkval = "attachment.cgi?id=$attachid";
+        my $linkval = correct_urlbase()."attachment.cgi?id=$attachid";
         # Whitespace matters here because these links are in <pre> tags.
         return qq|<span class="$className">|
                . qq|<a href="${linkval}" name="attach_${attachid}" title="$title">$link_text</a>|
@@ -384,7 +384,7 @@ sub get_bug_link {
         # Prevent code injection in the title.
         $title = html_quote(clean_text($title));
 
-        my $linkval = "show_bug.cgi?id=$bug_num";
+        my $linkval = correct_urlbase()."show_bug.cgi?id=$bug_num";
         if ($options->{comment_num}) {
             $linkval .= "#c" . $options->{comment_num};
         }

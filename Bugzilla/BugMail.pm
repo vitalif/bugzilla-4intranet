@@ -621,16 +621,6 @@ sub sendMail
         return 0;
     }
 
-    # If an attachment was created, then add an URL. (Note: the 'g'lobal
-    # replace should work with comments with multiple attachments.)
-
-    my $showattachurlbase =
-        Bugzilla->params->{'urlbase'} . "attachment.cgi?id=";
-    for (@$newcomments)
-    {
-        $_->{body} =~ s/Created an attachment \(id=([0-9]+)\)/Created <a href="$showattachurlbase$1">an attachment<\/a>/g;
-    }
-
     my $diffs = $difftext;
     if ($isnew) {
         my $head = "";
