@@ -32,7 +32,7 @@
     >
   </td>
 </tr>
-[% IF Param("maxlocalattachment") %]
+[% IF Param("maxlocalattachment") && !Param("force_attach_bigfile") %]
 <tr class="expert_fields">
   <th>BigFile:</th>
   <td>
