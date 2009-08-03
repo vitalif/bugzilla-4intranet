@@ -1,9 +1,9 @@
 
-The Bugzilla Guide - 3.4 Release
+The Bugzilla Guide - 3.4.1 Release
 
 The Bugzilla Team
 
-   2009-07-28
+   2009-08-01
 
    This is the documentation for Bugzilla, a bug-tracking system from
    mozilla.org. Bugzilla is an enterprise-class piece of software that tracks
@@ -177,7 +177,7 @@ Chapter 1. About This Guide
 
 1.3. New Versions
 
-   This is the 3.4 version of The Bugzilla Guide. It is so named to match the
+   This is the 3.4.1 version of The Bugzilla Guide. It is so named to match the
    current version of Bugzilla.
 
    The latest version of this guide can always be found at
@@ -444,19 +444,11 @@ Chapter 2. Installing Bugzilla
    list of required modules is reasonably long; however, you may already have
    several of them installed.
 
-   There is a meta-module called Bundle::Bugzilla, which installs all the other
-   modules with a single command. You should use this if you are running Perl
-   5.6.1 or above.
-
-   The preferred way of installing Perl modules is via CPAN on Unix, or PPM on
-   Windows (see Section 2.5.1.2). These instructions assume you are using CPAN;
-   if for some reason you need to install the Perl modules manually, see
-   Appendix C.
-   bash# perl -MCPAN -e 'install "<modulename>"'
-
-   If you using Bundle::Bugzilla, invoke the magic CPAN command on it.
-   Otherwise, you need to work down the list of modules that checksetup.pl says
-   are required, in the order given, invoking the command on each.
+   The preferred way of installing Perl modules is to use the install-module.pl
+   script on Unix, or PPM on Windows (see Section 2.5.1.2). If for some reason
+   you need to install the Perl modules manually, see Appendix C. For instance,
+   on Unix:
+   bash# perl install-module.pl <modulename>
 
    Tip
 
@@ -950,6 +942,11 @@ max_allowed_packet=4M
    also apply to many other places where they may or may not be appropriate. In
    most cases, including this one, it is better to be as restrictive as
    possible when granting extra access.
+
+       Note
+
+   On Windows, you may have to also add the ScriptInterpreterSource
+   Registry-Strict line, see Windows specific notes.
     3. checksetup.pl can set tighter permissions on Bugzilla's files and
        directories if it knows what group the web server runs as. Find the
        Group line in httpd.conf, place the value found there in the
@@ -1297,13 +1294,7 @@ ppm repository add theory58S http://theoryx5.uwinnipeg.ca/ppms/
    setting that variable, see the ActiveState documentation.
      _________________________________________________________________
 
-2.5.1.3. Code changes required to run on Win32
-
-   Bugzilla on Win32 is supported out of the box from version 2.20; this means
-   that no code changes are required to get Bugzilla running.
-     _________________________________________________________________
-
-2.5.1.4. Serving the web pages
+2.5.1.3. Serving the web pages
 
    As is the case on Unix based systems, any web server should be able to
    handle Bugzilla; however, the Bugzilla Team still recommends Apache whenever
@@ -1313,14 +1304,19 @@ ppm repository add theory58S http://theoryx5.uwinnipeg.ca/ppms/
 
    Note
 
-   If using Apache on windows, you can set the ScriptInterpreterSource
-   directive in your Apache config to avoid having to modify the first line of
-   every script to contain your path to Perl instead of /usr/bin/perl. When
-   setting ScriptInterpreterSource, do not forget to specify the -T flag to
-   enable the taint mode. For example: C:\Perl\bin\perl.exe -T.
+   The web server looks at /usr/bin/perl to call Perl. If you are using Apache
+   on windows, you can set the ScriptInterpreterSource directive in your Apache
+   config file to make it look at the right place: insert the line
+   ScriptInterpreterSource Registry-Strict
+
+   into your httpd.conf file, and create the key
+   HKEY_CLASSES_ROOT\.cgi\Shell\ExecCGI\Command
+
+   with C:\Perl\bin\perl.exe -T as value (adapt to your path if needed) in the
+   registry. When this is done, restart Apache.
      _________________________________________________________________
 
-2.5.1.5. Sending Email
+2.5.1.4. Sending Email
 
    To enable Bugzilla to send email on Windows, the server running the Bugzilla
    code must be able to connect to, or act as, an SMTP server.
@@ -2856,7 +2852,8 @@ ReadOnly: ENTRY, NA/NA, CANEDIT
    Note
 
    Milestone options will only appear for a Product if you turned on the
-   "usetargetmilestone" Param in the "Edit Parameters" screen.
+   "usetargetmilestone" parameter in the "Bug Fields" tab of the "Parameters"
+   page.
 
    To create new Milestones, set Default Milestones, and set Milestone URL:
 
@@ -5379,67 +5376,10 @@ mins') %]
 
 6.5. Integrating Bugzilla with Third-Party Tools
 
-6.5.1. Bonsai
-
-   Bonsai is a web-based tool for managing CVS, the Concurrent Versioning
-   System . Using Bonsai, administrators can control open/closed status of
-   trees, query a fast relational database back-end for change, branch, and
-   comment information, and view changes made since the last time the tree was
-   closed. Bonsai also integrates with Tinderbox, the Mozilla automated build
-   management system.
-     _________________________________________________________________
-
-6.5.2. CVS
-
-   CVS integration is best accomplished, at this point, using the Bugzilla
-   Email Gateway.
-
-   Follow the instructions in this Guide for enabling Bugzilla e-mail
-   integration. Ensure that your check-in script sends an email to your
-   Bugzilla e-mail gateway with the subject of "[Bug XXXX]", and you can have
-   CVS check-in comments append to your Bugzilla bug. If you want to have the
-   bug be closed automatically, you'll have to modify the
-   contrib/bugzilla_email_append.pl script.
-
-   There is also a CVSZilla project, based upon somewhat dated Bugzilla code,
-   to integrate CVS and Bugzilla through CVS' ability to email. Check it out
-   at: http://www.cvszilla.org/.
-
-   Another system capable of CVS integration with Bugzilla is Scmbug. This
-   system provides generic integration of Source code Configuration Management
-   with Bugtracking. Check it out at: http://freshmeat.net/projects/scmbug/.
-     _________________________________________________________________
-
-6.5.3. Perforce SCM
-
-   You can find the project page for Bugzilla and Teamtrack Perforce
-   integration (p4dti) at: http://www.ravenbrook.com/project/p4dti/ . "p4dti"
-   is now an officially supported product from Perforce, and you can find the
-   "Perforce Public Depot" p4dti page at
-   http://public.perforce.com/public/perforce/p4dti/index.html .
-
-   Integration of Perforce with Bugzilla, once patches are applied, is
-   seamless. Perforce replication information will appear below the comments of
-   each bug. Be certain you have a matching set of patches for the Bugzilla
-   version you are installing. p4dti is designed to support multiple defect
-   trackers, and maintains its own documentation for it. Please consult the
-   pages linked above for further information.
-     _________________________________________________________________
-
-6.5.4. Subversion
-
-   Subversion is a free/open-source version control system, designed to
-   overcome various limitations of CVS. Integration of Subversion with Bugzilla
-   is possible using Scmbug, a system providing generic integration of Source
-   Code Configuration Management with Bugtracking. Scmbug is available at
-   http://freshmeat.net/projects/scmbug/.
-     _________________________________________________________________
-
-6.5.5. Tinderbox/Tinderbox2
-
-   Tinderbox is a continuous-build system which can integrate with Bugzilla -
-   see http://www.mozilla.org/projects/tinderbox for details of Tinderbox, and
-   http://tinderbox.mozilla.org/showbuilds.cgi to see it in action.
+   Many utilities and applications can integrate with Bugzilla, either on the
+   client- or server-side. None of them is maintained by the Bugzilla
+   community, nor are they being tested during our QA tests, so use them at
+   your own risk. They are listed at https://wiki.mozilla.org/Bugzilla:Addons.
      _________________________________________________________________
 
 Appendix A. Troubleshooting

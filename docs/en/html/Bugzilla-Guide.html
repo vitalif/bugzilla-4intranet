@@ -2,7 +2,7 @@
 <HTML
 ><HEAD
 ><TITLE
->The Bugzilla Guide - 3.4 
+>The Bugzilla Guide - 3.4.1 
     Release</TITLE
 ><META
 NAME="GENERATOR"
@@ -43,7 +43,7 @@ CLASS="TITLEPAGE"
 CLASS="title"
 ><A
 NAME="AEN2"
->The Bugzilla Guide - 3.4 
+>The Bugzilla Guide - 3.4.1 
     Release</A
 ></H1
 ><H3
@@ -51,7 +51,7 @@ CLASS="corpauthor"
 >The Bugzilla Team</H3
 ><P
 CLASS="pubdate"
->2009-07-28<BR></P
+>2009-08-01<BR></P
 ><DIV
 ><DIV
 CLASS="abstract"
@@ -714,7 +714,7 @@ NAME="newversions"
 >1.3. New Versions</A
 ></H2
 ><P
->&#13;      This is the 3.4 version of The Bugzilla Guide. It is so named 
+>&#13;      This is the 3.4.1 version of The Bugzilla Guide. It is so named 
       to match the current version of Bugzilla. 
     </P
 ><P
@@ -1805,23 +1805,20 @@ CLASS="filename"
         may already have several of them installed.
       </P
 ><P
->&#13;        There is a meta-module called Bundle::Bugzilla, 
-        which installs all the other 
-        modules with a single command. You should use this if you are running
-        Perl 5.6.1 or above.
-      </P
-><P
->&#13;        The preferred way of installing Perl modules is via CPAN on Unix, 
+>&#13;        The preferred way of installing Perl modules is to use the
+        <TT
+CLASS="filename"
+>install-module.pl</TT
+> script on Unix,
         or PPM on Windows (see <A
 HREF="#win32-perl-modules"
 >Section 2.5.1.2</A
->). These
-        instructions assume you are using CPAN; if for some reason you need 
-        to install the Perl modules manually, see 
+>). If for
+        some reason you need to install the Perl modules manually, see
         <A
 HREF="#install-perlmodules-manual"
 >Appendix C</A
->.
+>. For instance, on Unix:
       </P
 ><TABLE
 BORDER="0"
@@ -1836,20 +1833,11 @@ CLASS="screen"
 ><SAMP
 CLASS="prompt"
 >bash#</SAMP
-> perl -MCPAN -e 'install "&#60;modulename&#62;"'</PRE
+> perl install-module.pl &#60;modulename&#62;</PRE
 ></FONT
 ></TD
 ></TR
 ></TABLE
-><P
->&#13;        If you using Bundle::Bugzilla, invoke the magic CPAN command on it.
-        Otherwise, you need to work down the 
-        list of modules that <TT
-CLASS="filename"
->checksetup.pl</TT
-> says are
-        required, in the order given, invoking the command on each.
-      </P
 ><DIV
 CLASS="tip"
 ><P
@@ -2784,7 +2772,7 @@ CLASS="section"
 ><HR><H5
 CLASS="section"
 ><A
-NAME="AEN479"
+NAME="AEN477"
 >2.2.2.2.2. Allow small words in full-text indexes</A
 ></H5
 ><P
@@ -2925,7 +2913,7 @@ CLASS="section"
 ><HR><H5
 CLASS="section"
 ><A
-NAME="AEN506"
+NAME="AEN504"
 >2.2.2.2.4. Permit attachments table to grow beyond 4GB</A
 ></H5
 ><P
@@ -3025,7 +3013,7 @@ CLASS="section"
 ><H5
 CLASS="section"
 ><A
-NAME="AEN522"
+NAME="AEN520"
 >2.2.2.3.1. Add a User to PostgreSQL</A
 ></H5
 ><P
@@ -3110,7 +3098,7 @@ CLASS="section"
 ><HR><H5
 CLASS="section"
 ><A
-NAME="AEN538"
+NAME="AEN536"
 >2.2.2.3.2. Configure PostgreSQL</A
 ></H5
 ><P
@@ -3171,7 +3159,7 @@ CLASS="section"
 ><H5
 CLASS="section"
 ><A
-NAME="AEN554"
+NAME="AEN552"
 >2.2.2.4.1. Create a New Tablespace</A
 ></H5
 ><P
@@ -3223,7 +3211,7 @@ CLASS="section"
 ><HR><H5
 CLASS="section"
 ><A
-NAME="AEN562"
+NAME="AEN560"
 >2.2.2.4.2. Add a User to Oracle</A
 ></H5
 ><P
@@ -3279,7 +3267,7 @@ CLASS="section"
 ><HR><H5
 CLASS="section"
 ><A
-NAME="AEN570"
+NAME="AEN568"
 >2.2.2.4.3. Configure the Web Server</A
 ></H5
 ><P
@@ -3317,7 +3305,7 @@ CLASS="section"
 ><HR><H3
 CLASS="section"
 ><A
-NAME="AEN576"
+NAME="AEN574"
 >2.2.3. checksetup.pl</A
 ></H3
 ><P
@@ -3517,6 +3505,41 @@ CLASS="computeroutput"
                     may or may not be appropriate. In most cases, including
                     this one, it is better to be as restrictive as possible
                     when granting extra access.
+                </P
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="note"
+><P
+></P
+><TABLE
+CLASS="note"
+WIDTH="100%"
+BORDER="0"
+><TR
+><TD
+WIDTH="25"
+ALIGN="CENTER"
+VALIGN="TOP"
+><IMG
+SRC="../images/note.gif"
+HSPACE="5"
+ALT="Note"></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#13;                    On Windows, you may have to also add the
+                    <SAMP
+CLASS="computeroutput"
+>ScriptInterpreterSource Registry-Strict</SAMP
+>
+                    line, see <A
+HREF="#win32-http"
+>Windows specific notes</A
+>.
                 </P
 ></TD
 ></TR
@@ -4137,7 +4160,7 @@ CLASS="section"
 ><HR><H3
 CLASS="section"
 ><A
-NAME="AEN726"
+NAME="AEN728"
 >2.3.1. Bug Graphs</A
 ></H3
 ><P
@@ -4867,21 +4890,8 @@ CLASS="section"
 ><HR><H4
 CLASS="section"
 ><A
-NAME="win32-code-changes"
->2.5.1.3. Code changes required to run on Win32</A
-></H4
-><P
->&#13;          Bugzilla on Win32 is supported out of the box from version 2.20; this
-          means that no code changes are required to get Bugzilla running.
-        </P
-></DIV
-><DIV
-CLASS="section"
-><HR><H4
-CLASS="section"
-><A
 NAME="win32-http"
->2.5.1.4. Serving the web pages</A
+>2.5.1.3. Serving the web pages</A
 ></H4
 ><P
 >&#13;          As is the case on Unix based systems, any web server should
@@ -4919,29 +4929,59 @@ ALT="Note"></TD
 ALIGN="LEFT"
 VALIGN="TOP"
 ><P
->&#13;            If using Apache on windows, you can set the <A
+>&#13;            The web server looks at <TT
+CLASS="filename"
+>/usr/bin/perl</TT
+> to
+            call Perl. If you are using Apache on windows, you can set the
+            <A
 HREF="http://httpd.apache.org/docs-2.0/mod/core.html#scriptinterpretersource"
 TARGET="_top"
 >ScriptInterpreterSource</A
 >
-            directive in your Apache config to avoid having to modify
-            the first line of every script to contain your path to Perl
-            instead of <TT
+            directive in your Apache config file to make it look at the
+            right place: insert the line
+            <TABLE
+BORDER="0"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="programlisting"
+>ScriptInterpreterSource Registry-Strict</PRE
+></FONT
+></TD
+></TR
+></TABLE
+>
+            into your <TT
 CLASS="filename"
->/usr/bin/perl</TT
->. When setting
-            <TT
-CLASS="filename"
->ScriptInterpreterSource</TT
->, do not forget
-            to specify the <B
-CLASS="command"
->-T</B
-> flag to enable the taint
-            mode. For example: <B
-CLASS="command"
->C:\Perl\bin\perl.exe -T</B
->.
+>httpd.conf</TT
+> file, and create the key
+            <TABLE
+BORDER="0"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="programlisting"
+>HKEY_CLASSES_ROOT\.cgi\Shell\ExecCGI\Command</PRE
+></FONT
+></TD
+></TR
+></TABLE
+>
+            with <CODE
+CLASS="option"
+>C:\Perl\bin\perl.exe -T</CODE
+> as value (adapt to your
+            path if needed) in the registry. When this is done, restart Apache.
           </P
 ></TD
 ></TR
@@ -4954,7 +4994,7 @@ CLASS="section"
 CLASS="section"
 ><A
 NAME="win32-email"
->2.5.1.5. Sending Email</A
+>2.5.1.4. Sending Email</A
 ></H4
 ><P
 >&#13;          To enable Bugzilla to send email on Windows, the server running the
@@ -9351,7 +9391,8 @@ ALIGN="LEFT"
 VALIGN="TOP"
 ><P
 >Milestone options will only appear for a Product if you turned
-      on the "usetargetmilestone" Param in the "Edit Parameters" screen.
+      on the "usetargetmilestone" parameter in the "Bug Fields" tab of the
+      "Parameters" page.
       </P
 ></TD
 ></TR
@@ -16372,160 +16413,17 @@ CLASS="section"
 NAME="integration"
 >6.5. Integrating Bugzilla with Third-Party Tools</A
 ></H2
-><DIV
-CLASS="section"
-><H3
-CLASS="section"
-><A
-NAME="bonsai"
->6.5.1. Bonsai</A
-></H3
 ><P
->Bonsai is a web-based tool for managing 
-    <A
-HREF="#cvs"
->CVS, the Concurrent Versioning System</A
->
-
-    . Using Bonsai, administrators can control open/closed status of trees,
-    query a fast relational database back-end for change, branch, and comment
-    information, and view changes made since the last time the tree was
-    closed. Bonsai
-    also integrates with  
-    <A
-HREF="#tinderbox"
->Tinderbox, the Mozilla automated build management system</A
+>&#13;      Many utilities and applications can integrate with Bugzilla,
+      either on the client- or server-side. None of them is maintained
+      by the Bugzilla community, nor are they being tested during our
+      QA tests, so use them at your own risk. They are listed at
+      <A
+HREF="https://wiki.mozilla.org/Bugzilla:Addons"
+TARGET="_top"
+>https://wiki.mozilla.org/Bugzilla:Addons</A
 >.
     </P
-></DIV
-><DIV
-CLASS="section"
-><HR><H3
-CLASS="section"
-><A
-NAME="cvs"
->6.5.2. CVS</A
-></H3
-><P
->CVS integration is best accomplished, at this point, using the
-    Bugzilla Email Gateway.</P
-><P
->Follow the instructions in this Guide for enabling Bugzilla e-mail
-    integration. Ensure that your check-in script sends an email to your
-    Bugzilla e-mail gateway with the subject of 
-    <SPAN
-CLASS="QUOTE"
->"[Bug XXXX]"</SPAN
->, 
-    and you can have CVS check-in comments append to your Bugzilla bug. If
-    you  want to have the bug be closed automatically, you'll have to modify
-    the <TT
-CLASS="filename"
->contrib/bugzilla_email_append.pl</TT
-> script.
-    </P
-><P
->There is also a CVSZilla project, based upon somewhat dated 
-    Bugzilla code, to integrate CVS and Bugzilla through CVS' ability to 
-    email. Check it out at: <A
-HREF="http://www.cvszilla.org/"
-TARGET="_top"
->http://www.cvszilla.org/</A
->.
-    </P
-><P
->Another system capable of CVS integration with Bugzilla is
-    Scmbug. This system provides generic integration of Source code
-    Configuration Management with Bugtracking. Check it out at: <A
-HREF="http://freshmeat.net/projects/scmbug/"
-TARGET="_top"
->http://freshmeat.net/projects/scmbug/</A
->.
-    </P
-></DIV
-><DIV
-CLASS="section"
-><HR><H3
-CLASS="section"
-><A
-NAME="scm"
->6.5.3. Perforce SCM</A
-></H3
-><P
->You can find the project page for Bugzilla and Teamtrack Perforce
-    integration (p4dti) at: 
-    <A
-HREF="http://www.ravenbrook.com/project/p4dti/"
-TARGET="_top"
->http://www.ravenbrook.com/project/p4dti/</A
->
-
-    . 
-    <SPAN
-CLASS="QUOTE"
->"p4dti"</SPAN
->
-
-    is now an officially supported product from Perforce, and you can find
-    the "Perforce Public Depot" p4dti page at 
-    <A
-HREF="http://public.perforce.com/public/perforce/p4dti/index.html"
-TARGET="_top"
->http://public.perforce.com/public/perforce/p4dti/index.html</A
->
-
-    .</P
-><P
->Integration of Perforce with Bugzilla, once patches are applied, is
-    seamless. Perforce replication information will appear below the comments
-    of each bug. Be certain you have a matching set of patches for the
-    Bugzilla version you are installing. p4dti is designed to support
-    multiple defect trackers, and maintains its own documentation for it.
-    Please consult the pages linked above for further information.</P
-></DIV
-><DIV
-CLASS="section"
-><HR><H3
-CLASS="section"
-><A
-NAME="svn"
->6.5.4. Subversion</A
-></H3
-><P
->Subversion is a free/open-source version control system,
-     designed to overcome various limitations of CVS. Integration of
-     Subversion with Bugzilla is possible using Scmbug, a system
-     providing generic integration of Source Code Configuration
-     Management with Bugtracking. Scmbug is available at <A
-HREF="http://freshmeat.net/projects/scmbug/"
-TARGET="_top"
->http://freshmeat.net/projects/scmbug/</A
->.</P
-></DIV
-><DIV
-CLASS="section"
-><HR><H3
-CLASS="section"
-><A
-NAME="tinderbox"
->6.5.5. Tinderbox/Tinderbox2</A
-></H3
-><P
->Tinderbox is a continuous-build system which can integrate with
-    Bugzilla - see
-    <A
-HREF="http://www.mozilla.org/projects/tinderbox"
-TARGET="_top"
->http://www.mozilla.org/projects/tinderbox</A
-> for details
-    of Tinderbox, and 
-    <A
-HREF="http://tinderbox.mozilla.org/showbuilds.cgi"
-TARGET="_top"
->http://tinderbox.mozilla.org/showbuilds.cgi</A
-> to see it
-    in action.</P
-></DIV
 ></DIV
 ></DIV
 ><DIV
@@ -16881,7 +16779,7 @@ NAME="trbl-relogin-everyone-share"
 >Example A-1. Examples of urlbase/cookiepath pairs for sharing login cookies</B
 ></P
 ><A
-NAME="AEN3285"
+NAME="AEN3256"
 ></A
 ><BLOCKQUOTE
 CLASS="BLOCKQUOTE"
@@ -16922,7 +16820,7 @@ NAME="trbl-relogin-everyone-restrict"
 >Example A-2. Examples of urlbase/cookiepath pairs to restrict the login cookie</B
 ></P
 ><A
-NAME="AEN3292"
+NAME="AEN3263"
 ></A
 ><BLOCKQUOTE
 CLASS="BLOCKQUOTE"
@@ -17760,7 +17658,7 @@ NAME="gfdl"
 ><P
 >Version 1.1, March 2000</P
 ><A
-NAME="AEN3465"
+NAME="AEN3436"
 ></A
 ><BLOCKQUOTE
 CLASS="BLOCKQUOTE"
@@ -18223,7 +18121,7 @@ NAME="gfdl-howto"
     of the License in the document and put the following copyright and
     license notices just after the title page:</P
 ><A
-NAME="AEN3555"
+NAME="AEN3526"
 ></A
 ><BLOCKQUOTE
 CLASS="BLOCKQUOTE"
@@ -18260,7 +18158,7 @@ CLASS="glossdiv"
 ><H1
 CLASS="glossdiv"
 ><A
-NAME="AEN3560"
+NAME="AEN3531"
 >0-9, high ascii</A
 ></H1
 ><DL
@@ -19170,7 +19068,7 @@ NAME="gloss-zarro"
         Terry had the following to say:
         </P
 ><A
-NAME="AEN3805"
+NAME="AEN3776"
 ></A
 ><TABLE
 BORDER="0"

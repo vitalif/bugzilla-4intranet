@@ -7,7 +7,7 @@
 NAME="GENERATOR"
 CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
 REL="HOME"
-TITLE="The Bugzilla Guide - 3.4 
+TITLE="The Bugzilla Guide - 3.4.1 
     Release"
 HREF="index.html"><LINK
 REL="UP"
@@ -38,7 +38,7 @@ CELLSPACING="0"
 ><TH
 COLSPAN="3"
 ALIGN="center"
->The Bugzilla Guide - 3.4 
+>The Bugzilla Guide - 3.4.1 
     Release</TH
 ></TR
 ><TR
@@ -619,23 +619,20 @@ CLASS="filename"
         may already have several of them installed.
       </P
 ><P
->&#13;        There is a meta-module called Bundle::Bugzilla, 
-        which installs all the other 
-        modules with a single command. You should use this if you are running
-        Perl 5.6.1 or above.
-      </P
-><P
->&#13;        The preferred way of installing Perl modules is via CPAN on Unix, 
+>&#13;        The preferred way of installing Perl modules is to use the
+        <TT
+CLASS="filename"
+>install-module.pl</TT
+> script on Unix,
         or PPM on Windows (see <A
 HREF="os-specific.html#win32-perl-modules"
 >Section 2.5.1.2</A
->). These
-        instructions assume you are using CPAN; if for some reason you need 
-        to install the Perl modules manually, see 
+>). If for
+        some reason you need to install the Perl modules manually, see
         <A
 HREF="install-perlmodules-manual.html"
 >Appendix C</A
->.
+>. For instance, on Unix:
       </P
 ><TABLE
 BORDER="0"
@@ -650,20 +647,11 @@ CLASS="screen"
 ><SAMP
 CLASS="prompt"
 >bash#</SAMP
-> perl -MCPAN -e 'install "&#60;modulename&#62;"'</PRE
+> perl install-module.pl &#60;modulename&#62;</PRE
 ></FONT
 ></TD
 ></TR
 ></TABLE
-><P
->&#13;        If you using Bundle::Bugzilla, invoke the magic CPAN command on it.
-        Otherwise, you need to work down the 
-        list of modules that <TT
-CLASS="filename"
->checksetup.pl</TT
-> says are
-        required, in the order given, invoking the command on each.
-      </P
 ><DIV
 CLASS="tip"
 ><P

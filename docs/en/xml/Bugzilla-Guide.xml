@@ -13,7 +13,6 @@
 <!ENTITY administration SYSTEM "administration.xml">
 <!ENTITY security SYSTEM "security.xml">
 <!ENTITY using SYSTEM "using.xml">
-<!ENTITY integration SYSTEM "integration.xml">
 <!ENTITY index SYSTEM "index.xml">
 <!ENTITY customization SYSTEM "customization.xml">
 <!ENTITY troubleshooting SYSTEM "troubleshooting.xml">
@@ -34,9 +33,9 @@
      For a devel release, simple bump bz-ver and bz-date
 -->
 
-<!ENTITY bz-ver "3.4">
+<!ENTITY bz-ver "3.4.1">
 <!ENTITY bz-nextver "3.6">
-<!ENTITY bz-date "2009-07-28">
+<!ENTITY bz-date "2009-08-01">
 <!ENTITY current-year "2009">
 
 <!ENTITY landfillbase "http://landfill.bugzilla.org/bugzilla-3.4-branch/">
