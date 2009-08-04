@@ -424,7 +424,7 @@ sub _check_bugs {
     
     foreach my $bug (@ids){
         trick_taint($bug);
-        Bugzilla::Bug::ValidateBugID($bug);
+        Bugzilla::Bug->check($bug);
         if (ref $invocant && $attach){
             my ($exists) = $dbh->selectrow_array(
                     "SELECT bug_id 
