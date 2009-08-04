@@ -111,6 +111,24 @@ sub new {
     return $self;
 }
 
+# DAMN CGI.pm AUTHORS for their newstyle_urls O_O O_O
+sub parse_params {
+    my($self,$tosplit) = @_;
+    # This was like: my(@pairs) = split(/[&;]/,$tosplit);
+    my(@pairs) = split(/&/,$tosplit);
+    my($param,$value);
+    foreach (@pairs) {
+        ($param,$value) = split('=',$_,2);
+        next unless defined $param;
+        next if $CGI::NO_UNDEF_PARAMS and not defined $value;
+        $value = '' unless defined $value;
+        $param = CGI::unescape($param);
+        $value = CGI::unescape($value);
+        $self->add_parameter($param);
+        push (@{$self->{param}{$param}},$value);
+    }
+}
+
 # We want this sorted plus the ability to exclude certain params
 sub canonicalise_query {
     my ($self, @exclude) = @_;
