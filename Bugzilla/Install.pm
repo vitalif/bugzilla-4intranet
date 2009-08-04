@@ -45,7 +45,7 @@ sub SETTINGS {
                             default => "oldest_to_newest" },
     # 2005-05-12 bugzilla@glob.com.au -- Bug 63536
     post_bug_submit_action => { options => ["next_bug", "same_bug", "nothing"],
-                                default => "next_bug" },
+                                default => "same_bug" },
     # 2005-06-29 wurblzap@gmail.com -- Bug 257767
     csv_colsepchar     => { options => [',',';'], default => ',' },
     # 2005-10-26 wurblzap@gmail.com -- Bug 291459
