@@ -1601,15 +1601,15 @@ searchToJson = function(url){
         var pair = pairs[i].split('=');
         if (params[pair[0]]){
             if (typeof params[pair[0]] == 'object'){
-                params[pair[0]].push(unescape(pair[1]));
+                params[pair[0]].push(decodeURI(pair[1]));
             }
             else{
                 params[pair[0]] = new Array(params[pair[0]]);
-                params[pair[0]].push(unescape(pair[1]));
+                params[pair[0]].push(decodeURI(pair[1]));
             }
         }
         else{
-            params[pair[0]] = unescape(pair[1]);
+            params[pair[0]] = decodeURI(pair[1]);
         }
     }
 
@@ -1624,11 +1624,11 @@ jsonToSearch = function(params, searchStr, drops){
         }
         if (typeof params[key] == 'object'){
             for(i=0; i<params[key].length; i++){
-                searchStr = searchStr + key + '=' + escape(params[key][i]) + '&';
+                searchStr = searchStr + key + '=' + encodeURI(params[key][i]) + '&';
             }
         }
         else{
-            searchStr = searchStr + key + '=' + escape(params[key]) + '&';
+            searchStr = searchStr + key + '=' + encodeURI(params[key]) + '&';
         }
     }
     if (searchStr.lastIndexOf('&') == searchStr.length - 1){

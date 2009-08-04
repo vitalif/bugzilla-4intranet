@@ -1516,7 +1516,7 @@ CaseBugsGrid = function(id){
         store.on('load',function(){
             var url = 'enter_bug.cgi?';
             for (var i=0; i<store.fields.keys.length; i++){
-                url = url + store.fields.keys[i] + '=' + escape(store.getAt(0).get(store.fields.keys[i])) + '&';
+                url = url + store.fields.keys[i] + '=' + encodeURI(store.getAt(0).get(store.fields.keys[i])) + '&';
             }
             url = url + 'caserun_id=' + caserun_id;
             window.open(url);
