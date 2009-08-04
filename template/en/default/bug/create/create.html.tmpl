@@ -274,13 +274,13 @@ TUI_hide_default('expert_fields');
       value = default.bug_severity %]
   </tr>
 
-  <tr>
+  <tr style="display:none">
     [% INCLUDE bug/field.html.tmpl
       bug = default, field = select_fields.rep_platform, editable = 1,
       value = default.rep_platform %]
   </tr>
 
-  <tr>
+  <tr style="display:none">
     [% INCLUDE bug/field.html.tmpl 
        bug = default, field = select_fields.op_sys, editable = 1, 
        value = default.op_sys %]
