@@ -28,6 +28,6 @@ if ($nq)
     {
         $q = $_->{query};
         $q =~ s/(\%[0-9A-F]{2})+/sure_utf8($&)/iegso;
-        $dbh->do("UPDATE namedqueries SET query=? WHERE id=?", $q, $_->{id}) if $q ne $_->{query};
+        $dbh->do("UPDATE namedqueries SET query=? WHERE id=?", undef, $q, $_->{id}) if $q ne $_->{query};
     }
 }
