@@ -847,8 +847,10 @@ NewCaseForm = function(plan_ids, product_id, run_id){
                 
                 layout: 'column',
                 title: 'Actions',
+                id: 'ncf_action_panel',
                 items: [{
-                    columnWidth: 0.5,
+                    columnWidth: 1.0,
+                    id: 'ncf_action_editor_col',
                     items:[{
                         title: 'Action',
                         layout: 'fit',
@@ -876,6 +878,10 @@ NewCaseForm = function(plan_ids, product_id, run_id){
                     }]
                 },{
                     columnWidth: 0.5,
+                    id: 'ncf_effect_editor_col',
+                    style:{
+                        display: 'none',
+                    },
                     items:[{
                         title: 'Expected Results',
                         layout: 'fit',
@@ -884,6 +890,7 @@ NewCaseForm = function(plan_ids, product_id, run_id){
                             name: 'tceffect',
                             xtype:'htmleditor',
                             scrollable:true,
+                            height:340,
                             listeners:{'initialize':function(h){
                                 if(!h.getValue()){
                                     var httpRequest = new Ext.data.Connection();
@@ -980,6 +987,26 @@ NewCaseForm = function(plan_ids, product_id, run_id){
                     }
                 }
                 catch (err){}
+            }
+        },{
+            text: 'Show Results Edit',
+            id: 'ncf_showhide_results_btn',
+            handler: function(){
+                d = document.getElementById('ncf_effect_editor_col');
+                if (d.style.display != 'none')
+                {
+                    Ext.getCmp('ncf_action_editor_col').columnWidth=1.0;
+                    Ext.getCmp('ncf_action_panel').doLayout();
+                    Ext.getCmp('ncf_showhide_results_btn').setText('Show Results Edit');
+                    d.style.display = 'none';
+                }
+                else
+                {
+                    Ext.getCmp('ncf_action_editor_col').columnWidth=0.5;
+                    Ext.getCmp('ncf_action_panel').doLayout();
+                    Ext.getCmp('ncf_showhide_results_btn').setText('Hide Results Edit');
+                    d.style.display = '';
+                }
             }
         }]
     });

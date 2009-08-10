@@ -213,13 +213,16 @@ Ext.onReady(function(){
             items: [
             {
                 layout: 'column',
+                columnWidth: 1.0,
                 title: 'Action / Expected Results',
                 tbar: new DocCompareToolbar('case',tcase.case_id),
                 id: 'action_panel',
+                [% SET showeffect = !case.text.effect.match('^\s*(<[^>]*>\s*)*$') %]
                 items: [{
-                    columnWidth:0.5,
+                    columnWidth: [% showeffect ? "0.5" : "1.0" %],
                     layout:'fit',
-                    items:{
+                    id: 'action_editor_col',
+                    items:[{
                         title: 'Action',
                         height: 420,
                         bodyBorder: false,
@@ -230,10 +233,16 @@ Ext.onReady(function(){
                             xtype:'htmleditor',
                             value: '[% case.text.action FILTER js %]'
                         }]
-                    }
+                    }]
                 },{
                     columnWidth:0.5,
+                    id:'effect_editor_col',
                     layout:'fit',
+                    [% UNLESS showeffect %]
+                    style:{
+                        display: 'none',
+                    },
+                    [% END %]
                     items:{
                         title: 'Expected Results',
                         height: 420,
@@ -250,6 +259,26 @@ Ext.onReady(function(){
                 buttons: [{ 
                     text: 'Update Action/Results',
                     handler: processText
+                },{
+                    text: '[% showeffect ? "Hide Results Edit" : "Show Results Edit" %]',
+                    id: 'showhide_results_btn',
+                    handler: function(){
+                        d = document.getElementById('effect_editor_col');
+                        if (d.style.display != 'none')
+                        {
+                            Ext.getCmp('action_editor_col').columnWidth=1.0;
+                            Ext.getCmp('action_panel').doLayout();
+                            Ext.getCmp('showhide_results_btn').setText('Show Results Edit');
+                            d.style.display = 'none';
+                        }
+                        else
+                        {
+                            Ext.getCmp('action_editor_col').columnWidth=0.5;
+                            Ext.getCmp('action_panel').doLayout();
+                            Ext.getCmp('showhide_results_btn').setText('Hide Results Edit');
+                            d.style.display = '';
+                        }
+                    }
                 }]
             },{
                 layout: 'column',
