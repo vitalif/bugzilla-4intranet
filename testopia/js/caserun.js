@@ -1084,6 +1084,8 @@ CaseRun = function(){
     store.on('load', function(s,r){
         Ext.getCmp('action_editor').setValue(r[0].get('action'));
         Ext.getCmp('effect_editor').setValue(r[0].get('results'));
+        if (!/^\s*(<[^>]*>\s*)*$/.match(r[0].get('results')))
+            Ext.getCmp('showhide_results_btn').handler();
         Ext.getCmp('setup_editor').setValue(r[0].get('setup'));
         Ext.getCmp('breakdown_editor').setValue(r[0].get('breakdown'));
         Ext.getCmp('summary_tb').items.items[7].td.innerHTML = '<span class="ytb-text">' +'Case ' + r[0].get('case_id') + ' - ' + r[0].get('summary');
@@ -1220,9 +1222,10 @@ CaseRun = function(){
                 title: 'Action / Expected Results',
                 id: 'action_panel',
                 items: [{
-                    columnWidth:0.5,
+                    columnWidth:1.0,
                     layout:'fit',
-                    items:{
+                    id:'action_editor_col',
+                    items:[{
                         title: 'Action',
                         height: Ext.state.Manager.get('bigtext_height', 230),
                         id: 'cr_action_panel',
@@ -1234,10 +1237,14 @@ CaseRun = function(){
                             id: 'action_editor',
                             xtype:'htmleditor'
                         }]
-                    }
+                    }]
                 },{
                     columnWidth:0.5,
+                    id:'effect_editor_col',
                     layout:'fit',
+                    style:{
+                        display: 'none',
+                    },
                     items:{
                         title: 'Expected Results',
                         height: Ext.state.Manager.get('bigtext_height', 230),
@@ -1255,6 +1262,26 @@ CaseRun = function(){
                 buttons: [{ 
                     text: 'Update Action/Results',
                     handler: processText.createDelegate(this)
+                },{
+                    text: 'Show Results Edit',
+                    id: 'showhide_results_btn',
+                    handler: function(){
+                        d = document.getElementById('effect_editor_col');
+                        if (d.style.display != 'none')
+                        {
+                            Ext.getCmp('action_editor_col').columnWidth=1.0;
+                            Ext.getCmp('action_panel').doLayout();
+                            Ext.getCmp('showhide_results_btn').setText('Show Results Edit');
+                            d.style.display = 'none';
+                        }
+                        else
+                        {
+                            Ext.getCmp('action_editor_col').columnWidth=0.5;
+                            Ext.getCmp('action_panel').doLayout();
+                            Ext.getCmp('showhide_results_btn').setText('Hide Results Edit');
+                            d.style.display = '';
+                        }
+                    }
                 }]
             },{
                 layout: 'column',
