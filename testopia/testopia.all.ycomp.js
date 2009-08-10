@@ -5023,7 +5023,7 @@ var store = this.store;
 store.on('load', function(s,r){
 Ext.getCmp('action_editor').setValue(r[0].get('action'));
 Ext.getCmp('effect_editor').setValue(r[0].get('results'));
-if (!/^\s*(<[^>]*>\s*)*$/.match(r[0].get('results')))
+if (!r[0].get('results').match(/^\s*(<[^>]*>\s*)*$/))
 Ext.getCmp('showhide_results_btn').handler();
 Ext.getCmp('setup_editor').setValue(r[0].get('setup'));
 Ext.getCmp('breakdown_editor').setValue(r[0].get('breakdown'));
