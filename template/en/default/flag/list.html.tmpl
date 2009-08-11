@@ -201,7 +201,6 @@
     [%# Step 1b: Display UI for setting flag. %]
     [% IF (!type.flags || type.flags.size == 0) && type.is_active %]
       <tr>
-        <td>&nbsp;</td>
         <td>
           <label title="[% type.description FILTER html %]"
                  for="flag_type-[% type.id %]">
