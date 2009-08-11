@@ -105,7 +105,13 @@ function set_assign_to() {
             last_initialowner = owner;
         }
 
-        document.getElementById('initial_cc').innerHTML = initialccs[index];
+        if (initialccs[index])
+        {
+            document.getElementById('initial_cc').innerHTML = initialccs[index];
+            document.getElementById('initial_cc_tr').style.display = '';
+        }
+        else
+            document.getElementById('initial_cc_tr').style.display = 'none';
         document.getElementById('comp_desc').innerHTML = comp_desc[index];
 
         [% IF Param("useqacontact") %]
@@ -180,29 +186,30 @@ TUI_hide_default('expert_fields');
 <input type="hidden" name="product" value="[% product.name FILTER html %]">
 <input type="hidden" name="token" value="[% token FILTER html %]">
 
+<p>
+[%# Migration note: The following file corresponds to the old Param
+  # 'entryheaderhtml'
+  #%]
+[% INCLUDE 'bug/create/user-message.html.tmpl' %]
+</p>
+
+<p>
+<a id="expert_fields_controller"
+   class="controller bz_default_hidden"
+   href="javascript:TUI_toggle_class('expert_fields')">
+  Hide Advanced Fields
+</a>
+
+[%# Show the link if the browser supports JS %]
+<script type="text/javascript">
+    YAHOO.util.Dom.removeClass('expert_fields_controller', 
+                               'bz_default_hidden');
+</script>
+</p>
+
 <table cellspacing="4" cellpadding="2" border="0">
 <tbody>
-  <tr>
-    <td colspan="4">
-    [%# Migration note: The following file corresponds to the old Param
-      # 'entryheaderhtml'
-      #%]
-    [% INCLUDE 'bug/create/user-message.html.tmpl' %]
-    </td>
-  </tr>
-
-  <tr>
-    <td colspan="4">
-        <a id="expert_fields_controller" class="controller bz_default_hidden"
-            href="javascript:TUI_toggle_class('expert_fields')">Hide
-        Advanced Fields</a>
-      [%# Show the link if the browser supports JS %]
-      <script type="text/javascript">
-          YAHOO.util.Dom.removeClass('expert_fields_controller', 
-                                     'bz_default_hidden');
-      </script>
-    </td>
-  </tr>
+  <tr><td colspan="4"><hr /></td></tr>
 
   <tr>
     <th>Product:</th>
@@ -258,9 +265,9 @@ TUI_hide_default('expert_fields');
   </tr>
 
   <tr>
-    <th rowspan="3">Version:</th>
-    <td rowspan="3">
-      <select name="version" size="5">
+    <th>Version:</th>
+    <td>
+      <select name="version">
         [%- FOREACH v = version %]
           <option value="[% v FILTER html %]"
             [% ' selected="selected"' IF v == default.version %]>[% v FILTER html -%]
@@ -270,7 +277,7 @@ TUI_hide_default('expert_fields');
     </td>
 
     [% INCLUDE bug/field.html.tmpl
-      bug = default, field = select_fields.bug_severity, editable = 1, 
+      bug = default, field = select_fields.bug_severity, editable = 1,
       value = default.bug_severity %]
   </tr>
 
@@ -326,9 +333,6 @@ TUI_hide_default('expert_fields');
 [% END %]
 
 <tbody class="expert_fields">
-  <tr>
-    <td colspan="4">&nbsp;</td>
-  </tr>
 
   <tr>
 [% IF bug_status.size <= 1 %]
@@ -340,15 +344,28 @@ TUI_hide_default('expert_fields');
     [% sel = { description => 'Initial State', name => 'bug_status' } %]
     [% INCLUDE select %]
 [% END %]
+  </tr>
 
-    <td>&nbsp;</td>
+  <tr><td colspan="4"><hr /></td></tr>
+
+  <tr>
+    <th><a href="page.cgi?id=fields.html#assigned_to">Assign To</a>:</th>
+    <td>
+      [% INCLUDE global/userselect.html.tmpl
+         name => "assigned_to"
+         value => assigned_to
+         disabled => assigned_to_disabled
+         size => 30
+         emptyok => 1
+         custom_userlist => assignees_list
+       %]
+      <noscript>(Leave blank to assign to component's default assignee)</noscript>
+    </td>
+
     [%# Calculate the number of rows we can use for flags %]
-    [% num_rows = 6 + (Param("useqacontact") ? 1 : 0) +
-                      (user.in_group(Param('timetrackinggroup')) ? 3 : 0) +
-                      (Param("usebugaliases") ? 1 : 0)
-    %]
+    [% num_rows = 2 + (Param("useqacontact") ? 1 : 0) %]
 
-    <td rowspan="[% num_rows FILTER html %]">
+    <td colspan="2" rowspan="[% num_rows FILTER html %]">
       [% IF product.flag_types.bug.size > 0 %]
         [% display_flag_headers = 0 %]
         [% any_flags_requesteeble = 0 %]
@@ -368,26 +385,11 @@ TUI_hide_default('expert_fields');
       [% END %]
     </td>
   </tr>
-
-  <tr>
-    <th><a href="page.cgi?id=fields.html#assigned_to">Assign To</a>:</th>
-    <td colspan="2">
-      [% INCLUDE global/userselect.html.tmpl
-         name => "assigned_to"
-         value => assigned_to
-         disabled => assigned_to_disabled
-         size => 30
-         emptyok => 1
-         custom_userlist => assignees_list
-       %]
-      <noscript>(Leave blank to assign to component's default assignee)</noscript>
-    </td>
-  </tr>
   
 [% IF Param("useqacontact") %]
     <tr>
       <th>QA Contact:</th>
-      <td colspan="2">
+      <td>
       [% INCLUDE global/userselect.html.tmpl
          name => "qa_contact"
          value => qa_contact
@@ -403,7 +405,7 @@ TUI_hide_default('expert_fields');
 
   <tr>
     <th>CC:</th>
-    <td colspan="2">
+    <td>
       [% INCLUDE global/userselect.html.tmpl
          name => "cc"
          value => cc
@@ -414,7 +416,7 @@ TUI_hide_default('expert_fields');
     </td>
   </tr>
 
-  <tr>
+  <tr id="initial_cc_tr" style="display:none">
     <th>Default CC:</th>
     <td colspan="2">
       <div id="initial_cc">
@@ -423,48 +425,34 @@ TUI_hide_default('expert_fields');
                as any to put it. -->
           <script type="text/javascript">set_assign_to();</script>
       </div>
-   </td>
-  </tr>
-  
-  <tr>
-    <td colspan="3">&nbsp;</td>
-  </tr>
-
-[% IF user.in_group(Param('timetrackinggroup')) %]
-  <tr>
-    <th>Estimated Hours:</th>
-    <td colspan="2">
-      <input name="estimated_time" size="6" maxlength="6" value="0.0">
     </td>
   </tr>
+
+  <tr><td colspan="4"><hr /></td></tr>
+
   <tr>
+[% IF user.in_group(Param('timetrackinggroup')) %]
+    <th>Estimated Hours:</th>
+    <td><input name="estimated_time" size="6" maxlength="6" value="0.0"></td>
+[% END %]
+    <th>Depends on:</th>
+    <td><input name="dependson" accesskey="d" value="[% dependson FILTER html %]"></td>
+  </tr>
+  <tr>
+[% IF user.in_group(Param('timetrackinggroup')) %]
     <th>Deadline:</th>
-    <td colspan="2">
+    <td>
       <input name="deadline" size="10" maxlength="10" value="[% deadline FILTER html %]">
       <small>(YYYY-MM-DD)</small>
     </td>
-  </tr>
-
-  <tr>
-    <td colspan="3">&nbsp;</td>
-  </tr>
 [% END %]
-
-[% IF Param("usebugaliases") %]
-  <tr>
-    <th>Alias:</th>
-    <td colspan="2">
-      <input name="alias" size="20">
-    </td>
+    <th>Blocks:</th>
+    <td><input name="blocked" accesskey="b" value="[% blocked FILTER html %]"></td>
   </tr>
-[% END %]
 
   <tr>
     <th>URL:</th>
-    <td colspan="2">
-      <input name="bug_file_loc" size="40"
-             value="[% bug_file_loc FILTER html %]">
-    </td>
+    <td colspan="2"><input name="bug_file_loc" size="40" value="[% bug_file_loc FILTER html %]"></td>
   </tr>
 </tbody>
 
@@ -483,6 +471,7 @@ TUI_hide_default('expert_fields');
 </tbody>
 
 <tbody>
+  <tr><td colspan="4"><hr /></td></tr>
 
   <tr>
     <th>Summary:</th>
@@ -491,10 +480,12 @@ TUI_hide_default('expert_fields');
              maxlength="255" spellcheck="true">
     </td>
   </tr>
+</tbody>
 
+<tbody>
   <tr>
     <th>Description:</th>
-    <td colspan="3">
+    <td colspan="3" style="padding-bottom: 0">
       [% defaultcontent = BLOCK %]
         [% IF cloned_bug_id %]
 +++ This [% terms.bug %] was initially created as a clone of [% terms.Bug %] #[% cloned_bug_id %][% IF cloned_comment %] comment [% cloned_comment %][% END %] +++
@@ -514,7 +505,7 @@ TUI_hide_default('expert_fields');
          defaultcontent = defaultcontent
        %]
         <br>
-        <p style="text-align: left" id="showpreviewbtn"><a href="javascript:void showcommentpreview()">Preview</a></p>
+        <p style="text-align: left; margin-bottom: 0" id="showpreviewbtn"><a href="javascript:void showcommentpreview()">Preview</a></p>
         <div id="wrapcommentpreview" style="display: none">
         <iframe name="commentpreview" id="commentpreview" style="height: auto; border-width: 0; width: 100%">
         </iframe>
@@ -532,7 +523,7 @@ TUI_hide_default('expert_fields');
         }
         //-->
         </script>
-        <p style="text-align: right"><a href="javascript:void showcommentpreview()">Update preview</a> &nbsp; <a href="javascript:void hidepreview()">Hide preview</a></p>
+        <p style="text-align: right; margin-bottom: 0"><a href="javascript:void showcommentpreview()">Update preview</a> &nbsp; <a href="javascript:void hidepreview()">Hide preview</a></p>
         </div>
     </td>
   </tr>
@@ -550,6 +541,8 @@ TUI_hide_default('expert_fields');
       </td>
     </tr>
   [% END %]
+
+  <tr><td colspan="4"><hr /></td></tr>
 
   <tr>
     <th>Attachment:</th>
@@ -592,25 +585,24 @@ TUI_hide_default('expert_fields');
     [% IF use_keywords %]
       <tr>
         <th><a href="describekeywords.cgi">Keywords</a>:</th>
+        [% UNLESS Param("usebugaliases") %]
         <td colspan="3">
-          <input id="keywords" name="keywords" size="40"
-                 value="[% keywords FILTER html %]"> (optional)
+        [% ELSE %]
+        <td>
+        [% END %]
+          <input id="keywords" name="keywords" size="40" value="[% keywords FILTER html %]">
         </td>
+      [% IF Param("usebugaliases") %]
+        <th>Alias:</th>
+        <td><input name="alias" size="20"></td>
+      [% END %]
+      </tr>
+    [% ELSIF Param("usebugaliases") %]
+      <tr>
+        <th>Alias:</th>
+        <td colspan="3"><input name="alias" size="20"></td>
       </tr>
     [% END %]
-
-    <tr>
-      <th>Depends on:</th>
-      <td colspan="3">
-        <input name="dependson" accesskey="d" value="[% dependson FILTER html %]">
-      </td>
-    </tr>
-    <tr>
-      <th>Blocks:</th>
-      <td colspan="3">
-        <input name="blocked" accesskey="b" value="[% blocked FILTER html %]">
-      </td>
-    </tr>
   [% END %]
 </tbody>
 
