@@ -334,7 +334,7 @@ span.quote {
 
 table#flags th,
 table#flags td {
-    vertical-align: middle;
+    vertical-align: top;
     text-align: left;
 }
 
@@ -448,7 +448,7 @@ div.user_match {
 }
 
 .field_label {
-    text-align: right;
+    text-align: left;
     vertical-align: top;
     font-weight: bold;
 }
