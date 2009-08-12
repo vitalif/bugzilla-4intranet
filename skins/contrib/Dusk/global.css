@@ -381,3 +381,7 @@ input:not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type
 form#Create th:first-child {
     text-align: left;
 }
+
+.flag_table td {
+    vertical-align: top;
+}
