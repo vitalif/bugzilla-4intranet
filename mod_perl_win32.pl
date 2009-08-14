@@ -29,7 +29,6 @@ use strict;
 # file.
 
 use Apache2::ServerUtil;
-use ModPerl::RegistryLoader ();
 use CGI ();
 CGI->compile(qw(:cgi -no_xhtml -oldstyle_urls :private_tempfiles
                 :unique_headers SERVER_PUSH :push));
@@ -68,18 +67,6 @@ if ($^O =~ /MSWin32/i)
 }
 
 $server->add_config([split("\n", $conf)]);
-
-# Have ModPerl::RegistryLoader pre-compile all CGI scripts.
-my $rl = new ModPerl::RegistryLoader();
-# If we try to do this in "new" it fails because it looks for a 
-# Bugzilla/ModPerl/ResponseHandler.pm
-$rl->{package} = 'Bugzilla::ModPerl::ResponseHandler';
-# Note that $cgi_path will be wrong if somebody puts the libraries
-# in a different place than the CGIs.
-foreach my $file (glob "$cgi_path/*.cgi") {
-    Bugzilla::Util::trick_taint($file);
-    $rl->handler($file, $file);
-}
 
 
 package Bugzilla::ModPerl::ResponseHandler;
