@@ -132,7 +132,7 @@
            'usevotes' => 0,
            'utf8' => 1,
            'viewvc_url' => 'http://viewvc.office.custis.ru/viewvc.py/',
-           'webdotbase' => '/usr/bin/dot',
+           'webdotbase' => '/usr/bin/twopi',
            'whinedays' => 7,
            'wiki_url' => 'http://wiki.office.custis.ru/wiki/index.php/'
          );
