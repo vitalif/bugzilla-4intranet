@@ -246,11 +246,16 @@ Bug ID list:
     [% END %]
     
     <td valign="middle" class="bz_query_edit">
+      <table><tr><td>
       [% editqueryname = searchname OR defaultsavename OR '' %]
       <a href="query.cgi?[% urlquerypart FILTER html %]
       [% IF editqueryname != '' %]&amp;known_name=
         [% editqueryname FILTER url_quote %]
       [% END %]">Edit&nbsp;Search</a>
+      </td></tr><tr><td>
+      <a href="query.cgi?format=report-table&amp;[% urlquerypart FILTER html FILTER remove('query_format=(advanced|simple)') %]
+      ">Summary&nbsp;Report</a>
+      </td></tr></table>
     </td>
       
     [% IF searchtype == "saved" %]
