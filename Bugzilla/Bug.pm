@@ -58,6 +58,17 @@ use base qw(Bugzilla::Object Exporter);
     editable_bug_fields
 );
 
+#sub import
+#{
+#    no strict 'refs';
+#    my $pkg = [caller]->[0];
+#    for(@Bugzilla::Bug::EXPORT)
+#    {
+#        *{$pkg."::".$_} = eval "\\&".$_;
+#	die $@ if $@;
+#    }
+#}
+
 #####################################################################
 # Constants
 #####################################################################
