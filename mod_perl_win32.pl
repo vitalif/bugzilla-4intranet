@@ -29,7 +29,7 @@ use strict;
 # file.
 
 use Apache2::ServerUtil;
-use CGI ();
+use CGI qw(-no_xhtml -oldstyle_urls :private_tempfiles :unique_headers SERVER_PUSH);
 CGI->compile(qw(:cgi -no_xhtml -oldstyle_urls :private_tempfiles
                 :unique_headers SERVER_PUSH :push));
 use Template::Config ();
