@@ -1217,13 +1217,13 @@
       <br>Look for [% terms.Bug %] in:
       <a href="[% Param('viewvc_url') %]?view=query&comment=bug[% bug.bug_id %]+[% bug.bug_id %]&comment_match=fulltext&querysort=date&date=all">CVS&SVN</a>
       /
-      <a href="[% bug.component_obj.wiki_url || Param('wiki_url') %][% terms.Bug %]_[% bug.bug_id %]">Wiki</a>
+      <a href="[% bug.component_obj.wiki_url || bug.product_obj.wiki_url || Param('wiki_url') %][% terms.Bug %]_[% bug.bug_id %]">Wiki</a>
     </div>
       [% ELSE %]
     <div class="knob-buttons">
       <a href="[% Param('viewvc_url') %]?view=query&comment=bug[% bug.bug_id %]+[% bug.bug_id %]&comment_match=fulltext&querysort=date&date=all">CVS&SVN</a>
       /
-      <a href="[% bug.component_obj.wiki_url || Param('wiki_url') %][% terms.Bug %]_[% bug.bug_id %]">Wiki</a>
+      <a href="[% bug.component_obj.wiki_url || bug.product_obj.wiki_url || Param('wiki_url') %][% terms.Bug %]_[% bug.bug_id %]">Wiki</a>
       <input type="submit" value="Commit" id="commit[% id FILTER css_class_quote %]">
       [% IF bug.user.canmove %]
         <input type="submit" name="action" id="action[% id FILTER css_class_quote %]" value="[% Param("move-button-text") %]">

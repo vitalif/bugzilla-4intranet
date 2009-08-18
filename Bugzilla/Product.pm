@@ -48,16 +48,17 @@ use constant NAME_FIELD => 'name';
 use constant LIST_ORDER => 'name';
 
 use constant DB_COLUMNS => qw(
-   id
-   name
-   classification_id
-   description
-   milestoneurl
-   disallownew
-   votesperuser
-   maxvotesperbug
-   votestoconfirm
-   defaultmilestone
+    id
+    name
+    classification_id
+    description
+    milestoneurl
+    disallownew
+    votesperuser
+    maxvotesperbug
+    votestoconfirm
+    defaultmilestone
+    wiki_url
 );
 
 use constant REQUIRED_CREATE_FIELDS => qw(
@@ -75,6 +76,7 @@ use constant UPDATE_COLUMNS => qw(
     votesperuser
     maxvotesperbug
     votestoconfirm
+    wiki_url
 );
 
 use constant VALIDATORS => {
@@ -605,6 +607,7 @@ sub set_disallow_new { $_[0]->set('disallownew', $_[1]); }
 sub set_votes_per_user { $_[0]->set('votesperuser', $_[1]); }
 sub set_votes_per_bug { $_[0]->set('maxvotesperbug', $_[1]); }
 sub set_votes_to_confirm { $_[0]->set('votestoconfirm', $_[1]); }
+sub set_wiki_url { $_[0]->set('wiki_url', $_[1]); }
 
 sub set_group_controls {
     my ($self, $group, $settings) = @_;
@@ -864,6 +867,7 @@ sub max_votes_per_bug { return $_[0]->{'maxvotesperbug'};    }
 sub votes_to_confirm  { return $_[0]->{'votestoconfirm'};    }
 sub default_milestone { return $_[0]->{'defaultmilestone'};  }
 sub classification_id { return $_[0]->{'classification_id'}; }
+sub wiki_url          { return $_[0]->{'wiki_url'};          }
 
 ###############################
 ####      Subroutines    ######
@@ -911,10 +915,11 @@ Bugzilla::Product - Bugzilla product class.
     my $name             = $product->name;
     my $description      = $product->description;
     my $milestoneurl     = $product->milestone_url;
-    my disallownew       = $product->disallow_new;
-    my votesperuser      = $product->votes_per_user;
-    my maxvotesperbug    = $product->max_votes_per_bug;
-    my votestoconfirm    = $product->votes_to_confirm;
+    my $disallownew      = $product->disallow_new;
+    my $votesperuser     = $product->votes_per_user;
+    my $maxvotesperbug   = $product->max_votes_per_bug;
+    my $votestoconfirm   = $product->votes_to_confirm;
+    my $wiki_url         = $product->wiki_url;
     my $defaultmilestone = $product->default_milestone;
     my $classificationid = $product->classification_id;
 

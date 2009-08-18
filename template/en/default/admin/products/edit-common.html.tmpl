@@ -76,6 +76,15 @@
              checked="checked"[% END %]>
   </td>
 </tr>
+<tr>
+  <th align="right">
+    <label for="wiki_url">Wiki URL:</label>
+  </th>
+  <td>
+    <input size="64" maxlength="64" name="wiki_url" value="[% product.wiki_url FILTER html %]" />
+    <br><em>Or use default setting when empty.</em>
+  </td>
+</tr>
 
 [% IF !Param('usevotes') %]
 <tr class="param_disabled">

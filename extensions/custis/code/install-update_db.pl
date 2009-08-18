@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# Перекодировка параметров сохранённых поисков из CP-1251 в UTF-8
+# ./checksetup'овые обновления базы
 
 use strict;
 use utf8;
@@ -18,6 +18,7 @@ sub sure_utf8
     return $s;
 }
 
+# Перекодировка параметров сохранённых поисков из CP-1251 в UTF-8
 print "Making sure saved queries are in UTF-8...\n";
 my $dbh = Bugzilla->dbh;
 my $nq = $dbh->selectall_arrayref("SELECT * FROM namedqueries WHERE query LIKE '%\\%%'", {Slice=>{}});
@@ -30,4 +31,15 @@ if ($nq)
         $q =~ s/(\%[0-9A-F]{2})+/sure_utf8($&)/iegso;
         $dbh->do("UPDATE namedqueries SET query=? WHERE id=?", undef, $q, $_->{id}) if $q ne $_->{query};
     }
+}
+
+# Добавляем колонку wiki_url в продукты и компоненты
+if (!$dbh->bz_column_info('products', 'buglist'))
+{
+    $dbh->bz_add_column('products', 'wiki_url', {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"});
+}
+
+if (!$dbh->bz_column_info('components', 'buglist'))
+{
+    $dbh->bz_add_column('components', 'wiki_url', {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"});
 }

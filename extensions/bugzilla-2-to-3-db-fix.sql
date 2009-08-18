@@ -1,6 +1,11 @@
 -- SQL скрипт изменений требуемых в нашей боевой базе багзиллы при обновлении с 2.x до 3.х
 -- Возможно, добавятся ещё новые кривости, но пока так.
 set names utf8;
+-- ДО ./checksetup.pl:
+alter table components change wiki_url wiki_url1 varchar(255) not null;
+-- ПОСЛЕ ./checksetup.pl:
+alter table components drop wiki_url;
+alter table components change wiki_url1 wiki_url varchar(255) not null;
 -- Убираем кривые значения из базы
 delete from profiles_activity where userid=83;
 delete from bugs_activity where attach_id=13529;

@@ -58,6 +58,7 @@ use constant UPDATE_COLUMNS => qw(
     initialowner
     initialqacontact
     description
+    wiki_url
 );
 
 use constant VALIDATORS => {
@@ -301,6 +302,7 @@ sub _create_series {
     }
 }
 
+sub set_wiki_url { $_[0]->set('wiki_url', $_[1]); }
 sub set_name { $_[0]->set('name', $_[1]); }
 sub set_description { $_[0]->set('description', $_[1]); }
 sub set_default_assignee {

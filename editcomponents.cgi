@@ -225,6 +225,7 @@ if ($action eq 'update') {
     my $default_assignee      = trim($cgi->param('initialowner')     || '');
     my $default_qa_contact    = trim($cgi->param('initialqacontact') || '');
     my $description           = trim($cgi->param('description')      || '');
+    my $wiki_url              = trim($cgi->param('wiki_url')         || '');
     my @initial_cc            = $cgi->param('initialcc');
 
     my $component =
@@ -234,6 +235,7 @@ if ($action eq 'update') {
     $component->set_description($description);
     $component->set_default_assignee($default_assignee);
     $component->set_default_qa_contact($default_qa_contact);
+    $component->set_wiki_url($wiki_url);
     $component->set_cc_list(\@initial_cc);
     my $changes = $component->update();
 

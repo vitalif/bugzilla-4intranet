@@ -291,6 +291,7 @@ if ($action eq 'update') {
     $product->set_votes_per_user(scalar $cgi->param('votesperuser'));
     $product->set_votes_per_bug(scalar $cgi->param('maxvotesperbug'));
     $product->set_votes_to_confirm(scalar $cgi->param('votestoconfirm'));
+    $product->set_wiki_url(scalar $cgi->param('wiki_url'));
 
     my $changes = $product->update();
 
