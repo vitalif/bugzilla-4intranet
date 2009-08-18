@@ -118,6 +118,14 @@
   [% checkvotes = 1 %]
 [% END %]
 
+[% IF changes.wiki_url.defined %]
+  <p>
+  Updated Wiki URL from
+  [%+ changes.wiki_url.0 FILTER html %] to
+  [%+ product.wiki_url FILTER html %].
+  </p>
+[% END %]
+
 [% IF !changes.keys.size %]
   <p>Nothing changed for product '[% product.name FILTER html %]'.</p>
 [% END %]

@@ -242,6 +242,9 @@
           <li>Default CC list deleted</li>
         [% END %]
       [% END %]
+      [% IF changes.wiki_url.defined %]
+        <li>Wiki URL updated to '[% comp.wiki_url FILTER html %]'</li>
+      [% END %]
     [% ELSE %]
       No changes made to <em>[% comp.name FILTER html %]</em>.
     [% END %]

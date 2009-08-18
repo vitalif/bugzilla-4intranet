@@ -101,6 +101,15 @@
       </td>
     </tr>
     <tr>
+      <td valign="top">
+        <label for="wiki_url">Wiki URL:</label>
+      </td>
+      <td>
+        <input size="64" maxlength="64" name="wiki_url" value="[% comp.wiki_url FILTER html %]" />
+        <br><em>Or use product setting when empty.</em>
+      </td>
+    </tr>
+    <tr>
       <td>[% terms.Bugs %]:</td>
       <td>
 [% IF comp.bug_count > 0 %]
