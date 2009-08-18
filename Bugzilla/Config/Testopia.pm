@@ -113,6 +113,13 @@ sub get_param_list {
    choices => ['ON', 'OFF', 'Developer'],
    default => 'OFF'
   },
+
+  {
+   name => 'test_case_wiki_action_iframe',
+   type => 't',
+   default => '<iframe src="$URL?useskin=chick" width="100%" height="100%"></iframe>',
+  },
+
 #  {
 #   name    => 'new-testrun-email-notif',
 #   type    => 'l',
