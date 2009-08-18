@@ -3706,7 +3706,7 @@ NewCaseForm = function(plan_ids, product_id, run_id){
         title: 'Create a New Test Case',
         bodyStyle:'padding:5px 5px 0',
         width: 1050,
-        height: 670,
+        height: 514,
         items: [{
             layout:'table',
             layoutConfig: {
@@ -3831,99 +3831,98 @@ NewCaseForm = function(plan_ids, product_id, run_id){
         },{
             xtype: 'tabpanel',
             id: 'ncf_tabs',
-            height: 356,
-            activeItem: 1,
+            height: 200,
+            activeItem: 0,
             items:[{
-                layout: 'column',
-                title: 'Setup Procedures',
-                items: [{
-                    columnWidth: 0.5,
-                    items:[{
-                        title: 'Setup',
-                        layout: 'fit',
-                        items: [{
-                            id: 'ncf-setup_doc',
-                            name: 'tcsetup',
-                            xtype:'htmleditor',
-                            scrollable:true
-                        }]
-                    }]
-                },{
-                    columnWidth: 0.5,
-                    items:[{
-                        title: 'Break Down',
-                        layout: 'fit',
-                        items: [{
-                            id: 'ncf-breakdown_doc',
-                            name: 'tcbreakdown',
-                            xtype:'htmleditor',
-                            scrollable:true
-                        }]
-                    }]
-                }]
-            },{
-                
-                layout: 'column',
-                title: 'Actions',
+                layout: 'anchor',
+                title: 'Description',
                 id: 'ncf_action_panel',
                 items: [{
-                    columnWidth: 1.0,
-                    id: 'ncf_action_editor_col',
-                    items:[{
-                        title: 'Action',
-                        layout: 'fit',
-                        items: [{
-                            id: 'ncf-action',
-                            name: 'tcaction',
-                            xtype:'htmleditor',
-                            scrollable:true,
-                            listeners:{'initialize':function(h){
-                                if (!h.getValue()) {
-                                    var httpRequest = new Ext.data.Connection();
-                                    httpRequest.request({
-                                        url: 'tr_quicksearch.cgi',
-                                        params: {
-                                            action: 'get_action'
-                                        },
-                                        success: function(d){
-                                            h.setValue(d.responseText);
-                                        },
-                                        failure: testopiaError
-                                    });
-                                }      
-                            }}
-                        }]
-                    }]
-                },{
-                    columnWidth: 0.5,
-                    id: 'ncf_effect_editor_col',
-                    style:{
-                        display: 'none',
+                    xtype: 'checkbox',
+                    id: 'ncf-usefromwiki',
+                    name: 'tcusefromwiki',
+                    boxLabel: 'Use from Wiki',
+                    checked: true,
+                    value: 1,
+                    listeners: {
+                        check: function(h, t) {
+                            document.getElementById('ncf_action_effect_editors').style.display = t ? 'none' : '';
+                            Ext.getCmp('ncf_action_panel').doLayout();
+                            if (t)
+                                document.getElementById('ncf-action-field').value = '';
+                            else
+                                document.getElementById('ncf-action-field').value = Ext.getCmp('ncf-action').value;
+                        },
                     },
-                    items:[{
-                        title: 'Expected Results',
-                        layout: 'fit',
-                        items: [{
-                            id: 'ncf-effect',
-                            name: 'tceffect',
-                            xtype:'htmleditor',
-                            scrollable:true,
-                            height:340,
-                            listeners:{'initialize':function(h){
-                                if(!h.getValue()){
-                                    var httpRequest = new Ext.data.Connection();
-                                    httpRequest.request({
-                                        url: 'tr_quicksearch.cgi',
-                                        params:{
-                                            action: 'get_effect'
-                                        }, 
-                                        success:function(d){
-                                            h.setValue(d.responseText);
-                                        }, 
-                                        failure: testopiaError
-                                    });      
-                                }
-                            }}
+                },{
+                    layout: 'column',
+                    id: 'ncf_action_effect_editors',
+                    style: { display: 'none' },
+                    items: [{
+                        columnWidth: 0.5,
+                        id: 'ncf_action_editor_col',
+                        items:[{
+                            title: 'Action',
+                            layout: 'fit',
+                            items: [{
+                                id: 'ncf-action',
+                                xtype:'htmleditor',
+                                scrollable:true,
+                                listeners:{'initialize':function(h){
+                                    if (!h.getValue()) {
+                                        var httpRequest = new Ext.data.Connection();
+                                        httpRequest.request({
+                                            url: 'tr_quicksearch.cgi',
+                                            params: {
+                                                action: 'get_action'
+                                            },
+                                            success: function(d){
+                                                h.setValue(d.responseText);
+                                            },
+                                            failure: testopiaError
+                                        });
+                                    }
+                                },
+                                'change':function(h){
+                                    if (!h._hid)
+                                        h._hid = document.getElementById('ncf-action-field');
+                                    h._hid.value = h.value;
+                                }}
+                            },{
+                                tag:   'input',
+                                type:  'hidden',
+                                name:  'tcaction',
+                                value: '',
+                                id:    'ncf-action-field',
+                            }]
+                        }]
+                    },{
+                        columnWidth: 0.5,
+                        id: 'ncf_effect_editor_col',
+                        items:[{
+                            title: 'Expected Results',
+                            layout: 'fit',
+                            items: [{
+                                id: 'ncf-effect',
+                                name: 'tceffect',
+                                xtype:'htmleditor',
+                                scrollable:true,
+                                listeners:{'initialize':function(h){
+                                    if(!h.getValue()){
+                                        var httpRequest = new Ext.data.Connection();
+                                        httpRequest.request({
+                                            url: 'tr_quicksearch.cgi',
+                                            params:{
+                                                action: 'get_effect'
+                                            }, 
+                                            success:function(d){
+                                                h.setValue(d.responseText);
+                                            }, 
+                                            failure: testopiaError
+                                        });      
+                                    }
+                                }}
+                            }]
                         }]
                     }]
                 }]
@@ -3933,7 +3932,7 @@ NewCaseForm = function(plan_ids, product_id, run_id){
             {
                 title: 'Components',
                 id: 'component_picker',
-                height: 250,
+                height: 200,
                 layout: 'fit',
                 xtype: 'grid',
                 store: new ComponentStore({product_id: product_id}, true),
@@ -4005,26 +4004,6 @@ NewCaseForm = function(plan_ids, product_id, run_id){
                     }
                 }
                 catch (err){}
-            }
-        },{
-            text: 'Show Results Edit',
-            id: 'ncf_showhide_results_btn',
-            handler: function(){
-                d = document.getElementById('ncf_effect_editor_col');
-                if (d.style.display != 'none')
-                {
-                    Ext.getCmp('ncf_action_editor_col').columnWidth=1.0;
-                    Ext.getCmp('ncf_action_panel').doLayout();
-                    Ext.getCmp('ncf_showhide_results_btn').setText('Show Results Edit');
-                    d.style.display = 'none';
-                }
-                else
-                {
-                    Ext.getCmp('ncf_action_editor_col').columnWidth=0.5;
-                    Ext.getCmp('ncf_action_panel').doLayout();
-                    Ext.getCmp('ncf_showhide_results_btn').setText('Hide Results Edit');
-                    d.style.display = '';
-                }
             }
         }]
     });

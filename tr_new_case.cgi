@@ -99,6 +99,18 @@ ThrowUserError('testopia-create-category', {'plan' => $plans[0] }) if scalar @ca
 if ($action eq 'add'){
     Bugzilla->error_mode(ERROR_MODE_AJAX);
     my @comps = split(',', $cgi->param("components"));
+    my $tcaction = $cgi->param('tcaction') || '';
+    my $summary = $cgi->param('summary') || '';
+    if ($cgi->param('tcusefromwiki'))
+    {
+        my $wiki_url;
+        $wiki_url ||= Bugzilla::Component->check({ id => $comps[0] })->wiki_url if @comps;
+        $wiki_url ||= $plans[0]->product->wiki_url if @plans;
+        $wiki_url ||= Bugzilla->params->{wiki_url};
+        $wiki_url .= url_quote(trim($summary));
+        $tcaction = Bugzilla->params->{test_case_wiki_action_iframe};
+        $tcaction =~ s/\$URL/$wiki_url/gs;
+    }
     my $case = Bugzilla::Testopia::TestCase->create({
             'alias'          => $cgi->param('alias') || '',
             'case_status_id' => $cgi->param('status') || '',
@@ -108,11 +120,11 @@ if ($action eq 'add'){
             'estimated_time' => $cgi->param("estimated_time") || '',
             'script'         => $cgi->param("script") || '',
             'arguments'      => $cgi->param("arguments") || '',
-            'summary'        => $cgi->param("summary") || '',
+            'summary'        => $summary,
             'requirement'    => $cgi->param("requirement") || '',
             'default_tester_id' => $cgi->param("tester") || '',
             'author_id'      => Bugzilla->user->id || '',
-            'action'         => $cgi->param("tcaction") || '',
+            'action'         => $tcaction,
             'effect'         => $cgi->param("tceffect") || '',
             'setup'          => $cgi->param("tcsetup") || '',
             'breakdown'      => $cgi->param("tcbreakdown") || '',
