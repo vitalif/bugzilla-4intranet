@@ -24,7 +24,7 @@ insert into cf_agreement (value, sortkey, isactive, visibility_value_id)
             1 as act,
             product_id as vis
         from agreements
-        where name not in ('!Без договора', '--', '---', '--- пусто')
+        where name not in ('!Без договора', '--', '---', '--- пусто', 'Unspec')
     ) as `t0`
     group by (case when instr(name,' (') > 0 then substr(`name`,1,instr(name,' (')-1) else `name` end);
 -- Устанавливаем правильные sortkey, такие, чтобы ограниченные значения были вверху,
@@ -43,4 +43,4 @@ update cf_agreement set sortkey=0 where value='---';
 update bugs, agreements, cf_agreement
 set bugs.cf_agreement=(case when instr(agreements.name,' (') > 0 then substr(agreements.`name`,1,instr(agreements.name,' (')-1) else agreements.`name` end)
 where bugs.agreement_id=agreements.id
-and agreements.name not in ('!Без договора', '--', '---', '--- пусто');
+and agreements.name not in ('!Без договора', '--', '---', '--- пусто', 'Unspec');
