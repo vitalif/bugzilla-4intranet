@@ -65,10 +65,6 @@ sub update_fielddefs_definition {
     $dbh->bz_add_column('fielddefs', 'enter_bug',
         {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'});
 
-    # Bug 14378 for cf_agreement
-    $dbh->bz_add_column('fielddefs', 'classificate',
-        {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'});
-
     # Change the name of the fieldid column to id, so that fielddefs
     # can use Bugzilla::Object easily. We have to do this up here, because
     # otherwise adding these field definitions will fail.
