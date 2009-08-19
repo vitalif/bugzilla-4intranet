@@ -14,7 +14,8 @@ delete from series_data where series_id in (647, 648, 649, 650, 651, 652, 681, 6
 delete from category_group_map where group_id in (17, 45, 30, 23, 21, 14, 15, 27, 49, 16, 10, 18, 19, 22, 35, 31);
 -- Убираем старые юзерские настройки
 delete from profile_setting where setting_name in ('go_to_next_bug', 'remind_me_about_worktime_newbug', 'remind_me_about_requests', 'create_bug_resolved');
--- Наполняем значениями поле "Договор" (должно быть уже создано = cf_agreement)
+-- Дальше ДОЛЖНО уже быть создано поле cf_agreement (договор) зависимое от продукта
+-- Наполняем значениями поле "Договор"
 insert into cf_agreement (value, sortkey, isactive, visibility_value_id)
     select name, sortkey, act, (case when count(`name`) > 1 then NULL else `vis` end)
     from (
@@ -44,3 +45,6 @@ update bugs, agreements, cf_agreement
 set bugs.cf_agreement=(case when instr(agreements.name,' (') > 0 then substr(agreements.`name`,1,instr(agreements.name,' (')-1) else agreements.`name` end)
 where bugs.agreement_id=agreements.id
 and agreements.name not in ('!Без договора', '--', '---', '--- пусто', 'Unspec');
+-- Удаляем старое поле "agreement" из fielddefs
+update bugs_activity set fieldid=(select fielddefs.id from fielddefs where fielddefs.name='cf_agreement') where fieldid=(select fielddefs.id from fielddefs where fielddefs.name='agreement');
+delete from fielddefs where name='agreement';
