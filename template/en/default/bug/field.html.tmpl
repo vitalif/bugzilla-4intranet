@@ -136,35 +136,23 @@
           [% ELSE %]
             [% legal_values = field.legal_values %]
           [% END %]
-          [% IF field.classificate AND bug_object.classification %]
-            [% SET classif_re = '\s+\(' _ bug_object.classification.replace('\W', '\\$1') _ '\)\s*$' %]
-            [% FOREACH lv = legal_values %]
-            [% legal_value = lv.value %]
-            [% IF NOT legal_value.match('\)\s*$') OR legal_value.match(classif_re) %]
-              <option value="[% legal_value FILTER html %]"
-                  [%- " selected=\"selected\"" IF value.contains(legal_value).size %]>
-                  [%- legal_value FILTER html %]</option>
-            [% END %]
-            [% END %]
-          [% ELSE %]
-            [% FOREACH legal_value = legal_values %]
-            [% SET control_value = legal_value.visibility_value %]
-            [% SET control_field = field.value_field %]
-            <option value="[% legal_value.name FILTER html %]"
-                    id="v[% legal_value.id FILTER html %]_
-                        [%- field.name FILTER html %]"
-              [%# We always show selected values, even if they should be
-                # hidden %]
-              [% IF value.contains(legal_value.name).size %]
-                selected="selected"
-              [% ELSIF (control_field && control_value
-                        && !bug.${control_field.name}.contains(control_value.name))
-                       || (field.name == "product" && legal_value.disallow_new)
-              %]
-                class="bz_hidden_option" disabled="disabled"
-              [% END %]>
-              [%- legal_value.name FILTER html %]</option>
-            [% END %]
+          [% FOREACH legal_value = legal_values %]
+          [% SET control_value = legal_value.visibility_value %]
+          [% SET control_field = field.value_field %]
+          <option value="[% legal_value.name FILTER html %]"
+                  id="v[% legal_value.id FILTER html %]_
+                      [%- field.name FILTER html %]"
+            [%# We always show selected values, even if they should be
+              # hidden %]
+            [% IF value.contains(legal_value.name).size %]
+              selected="selected"
+            [% ELSIF (control_field && control_value
+                      && !bug.${control_field.name}.contains(control_value.name))
+                     || (field.name == "product" && legal_value.disallow_new)
+            %]
+              class="bz_hidden_option" disabled="disabled"
+            [% END %]>
+            [%- legal_value.name FILTER html %]</option>
           [% END %]
         </select>
         [%# When you pass an empty multi-select in the web interface,
