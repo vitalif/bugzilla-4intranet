@@ -95,7 +95,6 @@ use constant DB_COLUMNS => qw(
     mailhead
     sortkey
     obsolete
-    classificate
     enter_bug
     buglist
     visibility_field_id
@@ -112,7 +111,6 @@ use constant VALIDATORS => {
     buglist      => \&Bugzilla::Object::check_boolean,
     mailhead     => \&_check_mailhead,
     obsolete     => \&_check_obsolete,
-    classificate => \&_check_obsolete,
     sortkey      => \&_check_sortkey,
     type         => \&_check_type,
     visibility_field_id => \&_check_visibility_field_id,
@@ -128,7 +126,6 @@ use constant UPDATE_COLUMNS => qw(
     mailhead
     sortkey
     obsolete
-    classificate
     enter_bug
     buglist
     visibility_field_id
@@ -449,18 +446,6 @@ sub obsolete { return $_[0]->{obsolete} }
 
 =over
 
-=item C<classificate>
-
-a boolean specifying whether or not field's legal values must be restricted to the bug classification
-
-=back
-
-=cut
-
-sub classificate { return $_[0]->{classificate} }
-
-=over
-
 =item C<enter_bug>
 
 A boolean specifying whether or not this field should appear on 
@@ -666,7 +651,6 @@ They will throw an error if you try to set the values to something invalid.
 sub set_description    { $_[0]->set('description', $_[1]); }
 sub set_enter_bug      { $_[0]->set('enter_bug',   $_[1]); }
 sub set_obsolete       { $_[0]->set('obsolete',    $_[1]); }
-sub set_classificate   { $_[0]->set('classificate', $_[1]); }
 sub set_sortkey        { $_[0]->set('sortkey',     $_[1]); }
 sub set_in_new_bugmail { $_[0]->set('mailhead',    $_[1]); }
 sub set_buglist        { $_[0]->set('buglist',     $_[1]); }
@@ -802,8 +786,6 @@ editable on the bug creation form. Defaults to 0.
 selectable as a display or order column in bug lists. Defaults to 0.
 
 C<obsolete> - boolean - Whether this field is obsolete. Defaults to 0.
-
-C<classificate> - boolean - Whether this field's legal values must be restricted to bug classification.
 
 =back
 
