@@ -217,6 +217,7 @@ Ext.onReady(function(){
                 title: 'Action / Expected Results',
                 tbar: new DocCompareToolbar('case',tcase.case_id),
                 id: 'action_panel',
+                [% SET case.text.effect = "" UNLESS case.text.effect.defined %]
                 [% SET showeffect = !case.text.effect.match('^\s*(<[^>]*>\s*)*$') %]
                 items: [{
                     columnWidth: [% showeffect ? "0.5" : "1.0" %],
@@ -279,44 +280,6 @@ Ext.onReady(function(){
                             d.style.display = '';
                         }
                     }
-                }]
-            },{
-                layout: 'column',
-                title: 'Set Up / Break Down',
-                items: [{
-                    columnWidth:0.5,
-                    layout:'fit',
-                    items:{
-                        title: 'Setup',
-                        height: 420,
-                        bodyBorder: false,
-                        border: false,
-                        layout: 'fit',
-                        items:[{
-                            id: 'setup_editor',
-                            xtype:'htmleditor',
-                            value: '[% case.text.setup FILTER js %]'
-                        }]
-                    }
-                },{
-                    columnWidth:0.5,
-                    layout:'fit',
-                    items:{
-                        title: 'Breakdown',
-                        height: 420,
-                        bodyBorder: false,
-                        border: false,
-                        layout: 'fit',
-                        items:[{
-                            id: 'breakdown_editor',
-                            xtype:'htmleditor',
-                            value: '[% case.text.breakdown FILTER js %]'
-                        }]
-                    }
-                }],
-                buttons: [{ 
-                    text: 'Update Setup/Breakdown',
-                    handler: processText
                 }]
             },
             new HistoryGrid('case', [% case.id FILTER none %]),
