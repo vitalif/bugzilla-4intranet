@@ -23,18 +23,25 @@
   # ...
   #%]
 
+[% SET EMPTY_RE = '^\s*(<[^>]*>\s*)*$' %]
 <table>
   <tr>
     <th>Version:</th><td>[% text.version FILTER none %]</td><th>Author:</th><td>[% text.author FILTER html %]</td>
   </tr>
 </table>
 <div id="plan_text_version">
+[% IF text.setup && !text.setup.match(EMPTY_RE) %]
 <h3>Setup</h3>
 [% text.setup FILTER html_light %]
+[% END %]
+[% IF text.breakdown && !text.breakdown.match(EMPTY_RE) %]
 <h3>Breakdown</h3>
 [% text.breakdown FILTER html_light %]
+[% END %]
 <h3>Action</h3>
 [% text.action FILTER html_light %]
+[% IF text.effect && !text.effect.match(EMPTY_RE) %]
 <h3>Expected Results</h3>
 [% text.effect FILTER html_light %]
+[% END %]
 </div>

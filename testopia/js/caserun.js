@@ -1219,7 +1219,7 @@ CaseRun = function(){
             tbar: summary_tb,
             items: [{
                 layout: 'column',
-                title: 'Action / Expected Results',
+                title: 'Description',
                 id: 'action_panel',
                 items: [{
                     columnWidth:1.0,
@@ -1284,46 +1284,6 @@ CaseRun = function(){
                     }
                 }]
             },{
-                layout: 'column',
-                title: 'Set Up / Break Down',
-                items: [{
-                    columnWidth:0.5,
-                    layout:'fit',
-                    items:{
-                        title: 'Setup',
-                        height: Ext.state.Manager.get('bigtext_height', 230),
-                        id: 'cr_setup_panel',
-                        bodyBorder: false,
-                        autoScroll: true,
-                        border: false,
-                        layout: 'fit',
-                        items:[{
-                            id: 'setup_editor',
-                            xtype:'htmleditor'
-                        }]
-                    }
-                },{
-                    columnWidth:0.5,
-                    layout:'fit',
-                    items:{
-                        title: 'Breakdown',
-                        height: Ext.state.Manager.get('bigtext_height', 230),
-                        id: 'cr_breakdown_panel',
-                        bodyBorder: false,
-                        autoScroll: true,
-                        border: false,
-                        layout: 'fit',
-                        items:[{
-                            id: 'breakdown_editor',
-                            xtype:'htmleditor'
-                        }]
-                    }
-                }],
-                buttons: [{ 
-                    text: 'Update Setup/Breakdown',
-                    handler: processText.createDelegate(this)
-                }]
-            },{
                 title:'Notes',
                 id: 'caserun_notes_panel',
                 border:false,
@@ -1361,6 +1321,51 @@ CaseRun = function(){
             new TestopiaObjectTags('case', 0)]
         }]
     });
+    if (Param_Show_Setup_Breakdown)
+    {
+        Ext.getCmp('caserun_center_region').add(new Ext.Panel({
+            layout: 'column',
+            title: 'Set Up / Break Down',
+            items: [{
+                columnWidth:0.5,
+                layout:'fit',
+                items:{
+                    title: 'Setup',
+                    height: Ext.state.Manager.get('bigtext_height', 230),
+                    id: 'cr_setup_panel',
+                    bodyBorder: false,
+                    autoScroll: true,
+                    border: false,
+                    layout: 'fit',
+                    items:[{
+                        id: 'setup_editor',
+                        xtype:'htmleditor'
+                    }]
+                }
+            },{
+                columnWidth:0.5,
+                layout:'fit',
+                items:{
+                    title: 'Breakdown',
+                    height: Ext.state.Manager.get('bigtext_height', 230),
+                    id: 'cr_breakdown_panel',
+                    bodyBorder: false,
+                    autoScroll: true,
+                    border: false,
+                    layout: 'fit',
+                    items:[{
+                        id: 'breakdown_editor',
+                        xtype:'htmleditor'
+                    }]
+                }
+            }],
+            buttons: [{ 
+                text: 'Update Setup/Breakdown',
+                handler: processText.createDelegate(this)
+            }]
+        }));
+        Ext.getCmp('caserun_center_region').doLayout();
+    }
 };
 Ext.extend(CaseRun, Ext.Panel, this);
 

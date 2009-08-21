@@ -989,6 +989,39 @@ NewCaseForm = function(plan_ids, product_id, run_id){
             }
         }]
     });
+    if (Param_Show_Setup_Breakdown)
+    {
+        Ext.getCmp('ncf_tabs').insert(0, new Ext.Panel({
+            layout: 'column',
+            title: 'Setup Procedures',
+            items: [{
+                columnWidth: 0.5,
+                items:[{
+                    title: 'Setup',
+                    layout: 'fit',
+                    items: [{
+                        id: 'ncf-setup_doc',
+                        name: 'tcsetup',
+                        xtype:'htmleditor',
+                        scrollable:true
+                    }]
+                }]
+            },{
+                columnWidth: 0.5,
+                items:[{
+                    title: 'Break Down',
+                    layout: 'fit',
+                    items: [{
+                        id: 'ncf-breakdown_doc',
+                        name: 'tcbreakdown',
+                        xtype:'htmleditor',
+                        scrollable:true
+                    }]
+                }]
+            }]
+        }));
+        Ext.getCmp('ncf_tabs').doLayout();
+    }
     Ext.getCmp('comp_product_combo').on('select', function(c,r,i){
         Ext.getCmp('component_picker').store.baseParams.product_id = r.get('id');
         Ext.getCmp('component_picker').store.load();
