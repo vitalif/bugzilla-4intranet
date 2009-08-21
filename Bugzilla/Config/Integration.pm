@@ -66,6 +66,12 @@ sub get_param_list
     },
 
     {
+        name => 'cbwiki_url',
+        type => 't',
+        default => 'http://cbr.office.custis.ru/cbwiki/index.php/',
+    },
+
+    {
         name => 'user_mailto',
         type => 't',
         default => 'mailto:',
