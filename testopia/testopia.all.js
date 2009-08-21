@@ -4007,6 +4007,39 @@ NewCaseForm = function(plan_ids, product_id, run_id){
             }
         }]
     });
+    if (Param_Show_Setup_Breakdown)
+    {
+        Ext.getCmp('ncf_tabs').insert(0, new Ext.Panel({
+            layout: 'column',
+            title: 'Setup Procedures',
+            items: [{
+                columnWidth: 0.5,
+                items:[{
+                    title: 'Setup',
+                    layout: 'fit',
+                    items: [{
+                        id: 'ncf-setup_doc',
+                        name: 'tcsetup',
+                        xtype:'htmleditor',
+                        scrollable:true
+                    }]
+                }]
+            },{
+                columnWidth: 0.5,
+                items:[{
+                    title: 'Break Down',
+                    layout: 'fit',
+                    items: [{
+                        id: 'ncf-breakdown_doc',
+                        name: 'tcbreakdown',
+                        xtype:'htmleditor',
+                        scrollable:true
+                    }]
+                }]
+            }]
+        }));
+        Ext.getCmp('ncf_tabs').doLayout();
+    }
     Ext.getCmp('comp_product_combo').on('select', function(c,r,i){
         Ext.getCmp('component_picker').store.baseParams.product_id = r.get('id');
         Ext.getCmp('component_picker').store.load();
@@ -5584,7 +5617,7 @@ CaseRun = function(){
             tbar: summary_tb,
             items: [{
                 layout: 'column',
-                title: 'Action / Expected Results',
+                title: 'Description',
                 id: 'action_panel',
                 items: [{
                     columnWidth:1.0,
@@ -5649,46 +5682,6 @@ CaseRun = function(){
                     }
                 }]
             },{
-                layout: 'column',
-                title: 'Set Up / Break Down',
-                items: [{
-                    columnWidth:0.5,
-                    layout:'fit',
-                    items:{
-                        title: 'Setup',
-                        height: Ext.state.Manager.get('bigtext_height', 230),
-                        id: 'cr_setup_panel',
-                        bodyBorder: false,
-                        autoScroll: true,
-                        border: false,
-                        layout: 'fit',
-                        items:[{
-                            id: 'setup_editor',
-                            xtype:'htmleditor'
-                        }]
-                    }
-                },{
-                    columnWidth:0.5,
-                    layout:'fit',
-                    items:{
-                        title: 'Breakdown',
-                        height: Ext.state.Manager.get('bigtext_height', 230),
-                        id: 'cr_breakdown_panel',
-                        bodyBorder: false,
-                        autoScroll: true,
-                        border: false,
-                        layout: 'fit',
-                        items:[{
-                            id: 'breakdown_editor',
-                            xtype:'htmleditor'
-                        }]
-                    }
-                }],
-                buttons: [{ 
-                    text: 'Update Setup/Breakdown',
-                    handler: processText.createDelegate(this)
-                }]
-            },{
                 title:'Notes',
                 id: 'caserun_notes_panel',
                 border:false,
@@ -5726,6 +5719,51 @@ CaseRun = function(){
             new TestopiaObjectTags('case', 0)]
         }]
     });
+    if (Param_Show_Setup_Breakdown)
+    {
+        Ext.getCmp('caserun_center_region').add(new Ext.Panel({
+            layout: 'column',
+            title: 'Set Up / Break Down',
+            items: [{
+                columnWidth:0.5,
+                layout:'fit',
+                items:{
+                    title: 'Setup',
+                    height: Ext.state.Manager.get('bigtext_height', 230),
+                    id: 'cr_setup_panel',
+                    bodyBorder: false,
+                    autoScroll: true,
+                    border: false,
+                    layout: 'fit',
+                    items:[{
+                        id: 'setup_editor',
+                        xtype:'htmleditor'
+                    }]
+                }
+            },{
+                columnWidth:0.5,
+                layout:'fit',
+                items:{
+                    title: 'Breakdown',
+                    height: Ext.state.Manager.get('bigtext_height', 230),
+                    id: 'cr_breakdown_panel',
+                    bodyBorder: false,
+                    autoScroll: true,
+                    border: false,
+                    layout: 'fit',
+                    items:[{
+                        id: 'breakdown_editor',
+                        xtype:'htmleditor'
+                    }]
+                }
+            }],
+            buttons: [{ 
+                text: 'Update Setup/Breakdown',
+                handler: processText.createDelegate(this)
+            }]
+        }));
+        Ext.getCmp('caserun_center_region').doLayout();
+    }
 };
 Ext.extend(CaseRun, Ext.Panel, this);
 

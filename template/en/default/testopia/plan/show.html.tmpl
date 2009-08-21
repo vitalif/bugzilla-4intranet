@@ -41,6 +41,8 @@
 [% PROCESS global/header.html.tmpl %]
 
 <script type="text/javascript">
+var Param_Show_Setup_Breakdown = [% Param('testopia-show-setup-breakdown') ? 1 : 0 %];
+
 var product_id;
 
 var plan = [% plan.TO_JSON FILTER html_light %];

@@ -3627,6 +3627,39 @@ catch (err){}
 }
 }]
 });
+if (Param_Show_Setup_Breakdown)
+{
+Ext.getCmp('ncf_tabs').insert(0, new Ext.Panel({
+layout: 'column',
+title: 'Setup Procedures',
+items: [{
+columnWidth: 0.5,
+items:[{
+title: 'Setup',
+layout: 'fit',
+items: [{
+id: 'ncf-setup_doc',
+name: 'tcsetup',
+xtype:'htmleditor',
+scrollable:true
+}]
+}]
+},{
+columnWidth: 0.5,
+items:[{
+title: 'Break Down',
+layout: 'fit',
+items: [{
+id: 'ncf-breakdown_doc',
+name: 'tcbreakdown',
+xtype:'htmleditor',
+scrollable:true
+}]
+}]
+}]
+}));
+Ext.getCmp('ncf_tabs').doLayout();
+}
 Ext.getCmp('comp_product_combo').on('select', function(c,r,i){
 Ext.getCmp('component_picker').store.baseParams.product_id = r.get('id');
 Ext.getCmp('component_picker').store.load();
@@ -5202,6 +5235,46 @@ d.style.display = '';
 }
 }]
 },{
+title:'Notes',
+id: 'caserun_notes_panel',
+border:false,
+bodyBorder: false,
+autoScroll: true,
+layout: 'fit',
+items: [{
+xtype: 'dataview',
+bodyBorder: false,
+store: store,
+itemSelector: 'div.breakdowndiv',
+loadingText: 'Loading...',
+tpl: new Ext.XTemplate(
+'<tpl for=".">',
+'<div id="notesdiv" style="margin: 5px; padding: 5px; border: 1px solid black;"><pre>{notes}</pre></div>',
+'</tpl>',
+'<div class="x-clear"><input id="caserun_append_note_fld" ></div>'
+)
+}],
+bbar:[{
+xtype: 'textfield',
+id: 'caserun_append_note_fld',
+width: 1000
+}],
+buttons:[{
+xtype: 'button',
+text: 'Append Note',
+handler: appendNote.createDelegate(this)
+}]
+},
+new CaseRunHistory(), 
+new AttachGrid({id: 0, type: 'caserun'}),
+new CaseBugsGrid(),
+new CaseComponentsGrid(),
+new TestopiaObjectTags('case', 0)]
+}]
+});
+if (Param_Show_Setup_Breakdown)
+{
+Ext.getCmp('caserun_center_region').add(new Ext.Panel({
 layout: 'column',
 title: 'Set Up / Break Down',
 items: [{
@@ -5241,44 +5314,9 @@ buttons: [{
 text: 'Update Setup/Breakdown',
 handler: processText.createDelegate(this)
 }]
-},{
-title:'Notes',
-id: 'caserun_notes_panel',
-border:false,
-bodyBorder: false,
-autoScroll: true,
-layout: 'fit',
-items: [{
-xtype: 'dataview',
-bodyBorder: false,
-store: store,
-itemSelector: 'div.breakdowndiv',
-loadingText: 'Loading...',
-tpl: new Ext.XTemplate(
-'<tpl for=".">',
-'<div id="notesdiv" style="margin: 5px; padding: 5px; border: 1px solid black;"><pre>{notes}</pre></div>',
-'</tpl>',
-'<div class="x-clear"><input id="caserun_append_note_fld" ></div>'
-)
-}],
-bbar:[{
-xtype: 'textfield',
-id: 'caserun_append_note_fld',
-width: 1000
-}],
-buttons:[{
-xtype: 'button',
-text: 'Append Note',
-handler: appendNote.createDelegate(this)
-}]
-},
-new CaseRunHistory(), 
-new AttachGrid({id: 0, type: 'caserun'}),
-new CaseBugsGrid(),
-new CaseComponentsGrid(),
-new TestopiaObjectTags('case', 0)]
-}]
-});
+}));
+Ext.getCmp('caserun_center_region').doLayout();
+}
 };
 Ext.extend(CaseRun, Ext.Panel, this);
 CaseRunHistory = function(){

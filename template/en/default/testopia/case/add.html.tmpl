@@ -39,6 +39,7 @@
 [% PROCESS global/header.html.tmpl %]
 
 <script type="text/javascript">
+var Param_Show_Setup_Breakdown = [% Param('testopia-show-setup-breakdown') ? 1 : 0 %];
 Ext.onReady(function(){
     Ext.QuickTips.init();
     var form = new NewCaseForm('[% tc.plans %]', [% product_id FILTER none %]);

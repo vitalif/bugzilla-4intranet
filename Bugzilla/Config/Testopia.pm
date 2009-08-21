@@ -120,6 +120,12 @@ sub get_param_list {
    default => '<iframe src="$URL?useskin=chick" width="100%" height="100%"></iframe>',
   },
 
+  {
+   name => 'testopia-show-setup-breakdown',
+   type => 'b',
+   default => 0,
+  },
+
 #  {
 #   name    => 'new-testrun-email-notif',
 #   type    => 'l',
