@@ -38,7 +38,7 @@ foreach my $id (@idlist)
     if (scalar($cgi->param("wtime_$id")) != 0 || $cgi->param("comm_$id") ||
         scalar($cgi->param("oldrtime_$id")) != scalar($cgi->param("newrtime_$id")))
     {
-        ValidateBugID($id);
+        Bugzilla::Bug->check($id);
         $changedbugs{$id} = 1;
     }
 }

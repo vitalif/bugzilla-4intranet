@@ -21,11 +21,10 @@ my $dbh = Bugzilla->dbh;
 my $template = Bugzilla->template;
 my $vars = {};
 
-my $bug = $cgi->param('id');
-Bugzilla::Bug::ValidateBugID($bug);
+my $bugid = $cgi->param('id');
+my $bug = Bugzilla::Bug->check($bugid);
 
-$cgi->param('id', $bug);
-$bug = Bugzilla::Bug->new($bug);
+$cgi->param('id', $bugid);
 $vars->{bug} = $bug;
 
 if (grep { $_->id == $user->id } @{$bug->cc_users})
