@@ -21,6 +21,8 @@
 
 [%# Remember to PROCESS rather than INCLUDE this template. %]
 
+[% IF NOT field_descs %]
+
 [% PROCESS global/variables.none.tmpl %]
 
 [% field_descs = { "[Bug creation]"          => "[$terms.Bug creation]",
@@ -159,3 +161,5 @@
 [% MACRO get_resolution(res) GET resolution_descs.$res || res %]
 
 [% Hook.process("end") %]
+
+[% END %]

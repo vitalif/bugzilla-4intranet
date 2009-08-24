@@ -406,9 +406,9 @@ $Template::Directive::WHILE_MAX = 1000000;
 
 # Use the Toolkit Template's Stash module to add utility pseudo-methods
 # to template variables.
-use Template::Stash;
+use Template::Stash::XS;
 
-$Template::Config::STASH = 'Template::Stash';
+$Template::Config::STASH = 'Template::Stash::XS';
 
 # Add "contains***" methods to list variables that search for one or more 
 # items in a list and return boolean values representing whether or not 

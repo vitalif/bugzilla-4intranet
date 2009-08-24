@@ -119,7 +119,7 @@
            'use_see_also' => 1,
            'usebugaliases' => '1',
            'useclassification' => '1',
-           'useentrygroupdefault' => 0,
+           'useentrygroupdefault' => 1,
            'usemenuforusers' => '0',
            'useqacontact' => '1',
            'user_info_class' => 'Env,CGI',
