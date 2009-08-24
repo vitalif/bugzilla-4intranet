@@ -31,8 +31,6 @@
   #              already_wrapped: Determines whether the comment is pre-wrapped
   #%]
 
-[% PROCESS 'global/field-descs.none.tmpl' %]
-
 [% IF comment.already_wrapped %]
   [% wrapped_comment = comment.body %]
 [% ELSE %]
