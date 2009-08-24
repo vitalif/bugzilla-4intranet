@@ -518,7 +518,7 @@ TUI_hide_default('expert_fields');
         function showcommentpreview() {
             document.getElementById('wrapcommentpreview').style.width=(document.Create.comment.offsetWidth-10)+'px';
             document.getElementById('wrapcommentpreview').style.display='table-cell';
-            window.frames['commentpreview'].location.replace('page.cgi?id=previewcomment.html&comment='+encodeURI(document.Create.comment.value));
+            window.frames['commentpreview'].location.replace('page.cgi?id=previewcomment.html&comment='+encodeURI(document.Create.comment.value).replace('#','%23'));
             document.getElementById('showpreviewbtn').style.display='none';
         }
         //-->
