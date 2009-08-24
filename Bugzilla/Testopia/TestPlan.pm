@@ -56,6 +56,7 @@ use base qw(Exporter Bugzilla::Object);
     name
     creation_date
     isactive
+    wiki
 
 =cut
 
@@ -69,6 +70,7 @@ use constant DB_COLUMNS => qw(
     type_id
     default_product_version
     name
+    wiki
     creation_date
     isactive
 );
@@ -177,6 +179,7 @@ sub _check_isactive {
 ####       Mutators        ####
 ###############################
 sub set_name        { $_[0]->set('name', $_[1]); }
+sub set_wiki        { $_[0]->set('wiki', $_[1]); }
 sub set_type        { $_[0]->set('type_id', $_[1]); }
 sub set_isactive    { $_[0]->set('isactive', $_[1]); }
 sub set_product_id  { $_[0]->set('product_id', $_[1]); }
@@ -1028,6 +1031,7 @@ sub product_version { return $_[0]->{'default_product_version'};  }
 sub product_id      { return $_[0]->{'product_id'};       }
 sub author          { return Bugzilla::User->new($_[0]->{'author_id'});  }
 sub name            { return $_[0]->{'name'};    }
+sub wiki            { return $_[0]->{'wiki'};    }
 sub type_id         { return $_[0]->{'type_id'};    }
 sub isactive        { return $_[0]->{'isactive'};  }
 

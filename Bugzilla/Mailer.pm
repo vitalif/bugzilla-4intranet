@@ -124,10 +124,7 @@ sub MessageToMTA {
                 utf8::decode($value);
             }
 
-            # avoid excessive line wrapping done by Encode.
-            local $Encode::Encoding{'MIME-Q'}->{'bpl'} = 998;
-
-            my $encoded = encode('MIME-Q', $value);
+            my $encoded = encode('MIME-Header', $value);
             $email->header_set($header, $encoded);
         }
     }
