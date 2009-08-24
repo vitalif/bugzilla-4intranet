@@ -1208,7 +1208,7 @@
   [% IF user.id %]
     [% IF NOT nobr %]
     <div class="knob-buttons" style="text-align:right">
-      <input type="button" value="Preview" onclick="document.getElementById('wrapcommentpreview').style.display='table-cell';window.frames['commentpreview'].location.replace('page.cgi?id=previewcomment.html&comment='+encodeURI(document.changeform.comment.value));scrTo('commentpreview')">
+      <input type="button" value="Preview" onclick="document.getElementById('wrapcommentpreview').style.display='table-cell';window.frames['commentpreview'].location.replace('page.cgi?id=previewcomment.html&comment='+encodeURI(document.changeform.comment.value).replace('#','%23'));scrTo('commentpreview')">
       <input type="submit" value="Commit" id="commit[% id FILTER css_class_quote %]">
       [% IF bug.user.canmove %]
         <input type="submit" name="action" id="action[% id FILTER css_class_quote %]" value="[% Param("move-button-text") %]">
