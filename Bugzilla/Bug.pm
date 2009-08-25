@@ -427,6 +427,8 @@ sub match {
 # C<estimated_time> - For time-tracking. Will be ignored if 
 #                     C<timetrackinggroup> is not set, or if the current
 #                     user is not a member of the timetrackinggroup.
+# C<work_time>      - For time-tracking. Will be ignored for the same
+#                     reasons as C<estimated_time>.
 # C<deadline>       - For time-tracking. Will be ignored for the same
 #                     reasons as C<estimated_time>.
 sub create {
@@ -456,7 +458,8 @@ sub create {
     my $groups     = delete $params->{groups};
     my $depends_on = delete $params->{dependson};
     my $blocked    = delete $params->{blocked};
-    my ($comment, $privacy) = ($params->{comment}, $params->{commentprivacy});
+    my ($work_time, $comment, $privacy) = ($params->{work_time}, $params->{comment}, $params->{commentprivacy});
+    delete $params->{work_time};
     delete $params->{comment};
     delete $params->{commentprivacy};
 
@@ -530,9 +533,9 @@ sub create {
 
     # And insert the comment. We always insert a comment on bug creation,
     # but sometimes it's blank.
-    my @columns = qw(bug_id who bug_when thetext);
-    my @values  = ($bug->bug_id, $bug->{reporter_id}, $timestamp, $comment);
-    # We don't include the "isprivate" column unless it was specified. 
+    my @columns = qw(bug_id who bug_when thetext work_time);
+    my @values = ($bug->bug_id, $bug->{reporter_id}, $timestamp, $comment, $work_time);
+    # We don't include the "isprivate" column unless it was specified.
     # This allows it to fall back to its database default.
     if (defined $privacy) {
         push(@columns, 'isprivate');
@@ -599,6 +602,8 @@ sub run_create_validators {
     if ($params->{estimated_time}) {
         $params->{remaining_time} = $params->{estimated_time};
     }
+
+    $params->{work_time} = $class->_check_time($params->{work_time}, 'work_time');
 
     $class->_check_strict_isolation($params->{cc}, $params->{assigned_to},
                                     $params->{qa_contact}, $product);
