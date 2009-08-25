@@ -28,6 +28,10 @@ X-Bugzilla-Watch-Reason: [% reasonswatchheader %]
 [% IF Param('useclassification') %]
 X-Bugzilla-Classification: [% classification %]
 [% END %]
+[% IF severity == 'blocker' OR severity == 'critical' %]
+Importance: high
+X-Priority: 1
+[% END %]
 X-Bugzilla-Product: [% product %]
 X-Bugzilla-Component: [% comp %]
 X-Bugzilla-Keywords: [% keywords %]
