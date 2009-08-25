@@ -146,7 +146,7 @@
     [% FOREACH flag = type.flags %]
       <tr>
         <td>
-          [% flag.setter.nick FILTER html %]:
+          <a href="#[% flag.creation_date FILTER timestamp %]">[% flag.setter.nick FILTER html %]</a>:
           <label title="[% type.description FILTER html %]"
                  for="flag-[% flag.id %]">
             [%- type.name FILTER html FILTER no_break -%]</label>

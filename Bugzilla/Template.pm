@@ -776,6 +776,12 @@ sub create {
                     $_[0];
                 },
 
+            timestamp =>
+                sub {
+                    $_[0] =~ s/\D+//gso;
+                    $_[0];
+                },
+
             # We force filtering of every variable in key security-critical
             # places; we have a none filter for people to use when they 
             # really, really don't want a variable to be changed.

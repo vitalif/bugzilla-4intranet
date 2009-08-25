@@ -77,6 +77,7 @@ use constant DB_COLUMNS => qw(
     flags.requestee_id
     flags.setter_id
     flags.status
+    flags.creation_date
 );
 
 use constant DB_TABLE => 'flags';
