@@ -57,6 +57,7 @@ use base qw(Bugzilla::Object Exporter);
     LogActivityEntry
     editable_bug_fields
 );
+@Bugzilla::Bug::EXPORT_OK = @Bugzilla::Bug::EXPORT;
 
 #####################################################################
 # Constants
