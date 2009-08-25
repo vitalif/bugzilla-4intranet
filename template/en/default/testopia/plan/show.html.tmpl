@@ -371,6 +371,58 @@ Ext.onReady(function(){
             failure: testopiaError
         });
     });
+
+    var edit_wiki_btn = new Ext.Button({
+        applyTo: 'plan_wiki_edit_btn',
+        template: button_16x_tmpl,
+        id:'edit_plan_wiki_btn',
+        icon: 'testopia/img/edit.png',
+        iconCls: 'img_button_16x',
+        tooltip: 'Edit Plan Wiki Category',
+        handler: function(){
+            Ext.getCmp('plan_wiki_edt').startEdit(Ext.get('plan_wiki'));
+        }
+    });
+    var plan_wiki_edt = new Ext.Editor(
+        new Ext.form.TextField({
+            width: Ext.get('plan_wiki').getWidth() < 200 ? 200 : Ext.get('plan_wiki').getWidth(),
+            name: 'plan_wiki'
+        }),{
+            alignment: 'tl-tl',
+            id: 'plan_wiki_edt',
+            ignoreNoChange: true,
+            updateEl: true,
+            completeOnEnter: true,
+            cancelOnEsc: true
+    });
+    plan_wiki_edt.on('complete', function(e,v,sv){
+        testopia_form.submit({
+            url: 'tr_process_plan.cgi',
+            params: {action: 'edit', wiki: v, plan_id: plan.plan_id},
+            success: function(){
+                TestopiaUtil.notify.msg('Plan updated', 'Plan {0} was updated successfully', 'wiki');
+            },
+            failure: testopiaError
+        });
+    });
+
+    var sync_wiki_btn = new Ext.Button({
+        applyTo: 'plan_wiki_sync_btn',
+        text:    'Synchronize',
+        id:      'edit_plan_wiki_btn',
+        tooltip: 'Synchronize Test Plan with Wiki Category',
+        handler: function(){
+            var w = Ext.get('plan_wiki').dom.innerHTML;
+            if (!w.match(/^\s*$/))
+            {
+                var l = window.location.href;
+                var m;
+                if (m = l.match(/^(.*?)\?/))
+                    l = m[1];
+                window.location.href = l + '?wikisync=1&plan_id=' + plan.plan_id;
+            }
+        }
+    });
 [% END %]
     Ext.getCmp('dashboardpanel').on('render', function(){
         Ext.getCmp('dashboardpanel').getTopToolbar().add({
@@ -400,15 +452,25 @@ Ext.onReady(function(){
 <table border="0" cellpadding="1" width="100%" id="plan_overview_table">
   <tbody align="left">
     <tr class="bz_row_header">
-      <th colspan="3">Plan Name</th>
+      <th>Plan Name</th>
+      <th colspan="2">Wiki category</th>
     </tr>
     <tr class="bz_row_data">
-      <td colspan="3">
+      <td>
         <table>
           <tr>
             <td><div id="plan_name">[% plan.name FILTER html %]</div></td>
             <td><div id="plan_name_edit_btn"></div></td>
             <td><div id="archive_flag" style="position: absolute; right:50px; top: 0px;" [% 'class="plan_archived"' IF NOT plan.isactive %]></div></td>
+          </tr>
+        </table>
+      </td>
+      <td colspan="2">
+        <table>
+          <tr>
+            <td><div id="plan_wiki">[% plan.wiki FILTER html %]</div></td>
+            <td><div id="plan_wiki_edit_btn"></div></td>
+            <td><div id="plan_wiki_sync_btn"></div></td>
           </tr>
         </table>
       </td>

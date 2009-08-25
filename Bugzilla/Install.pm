@@ -68,6 +68,7 @@ sub SETTINGS {
     # 2008-12-22 vfilippov@custis.ru -- Custis Bug 17481
     remind_me_about_worktime => { options => ['on', 'off'], default => 'on' },
     remind_me_about_flags    => { options => ['on', 'off'], default => 'on' },
+    remind_me_about_worktime_newbug => { options => ['on', 'off'], default => 'off' },
     }
 };
 
