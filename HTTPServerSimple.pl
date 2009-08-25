@@ -15,6 +15,7 @@ $CGI::USE_PARAM_SEMICOLONS = 0;
 
 my $server = Bugzilla::HTTPServerSimple->new(8157);
 *CORE::GLOBAL::exit = sub { die bless { rc => shift }, 'Bugzilla::HTTPServerSimple::FakeExit'; };
+$SIG{INT} = sub { CORE::exit(); };
 $server->run();
 
 package Bugzilla::HTTPServerSimple;
