@@ -360,20 +360,8 @@ sub get_bug_link {
     }
 
     if ($bug_state) {
-        # Initialize these variables to be "" so that we don't get warnings
-        # if we don't change them below (which is highly likely).
-        my ($pre, $title, $post) = ("", "", "");
-
-        $title = get_text('get_status', {status => $bug_state});
-        if ($bug_state eq 'UNCONFIRMED') {
-            $pre = "<i>";
-            $post = "</i>";
-        }
-        elsif (!is_open_state($bug_state)) {
-            $pre = '<span class="bz_closed">';
-            $title .= ' ' . get_text('get_resolution', {resolution => $bug_res});
-            $post = '</span>';
-        }
+        $bug_state = lc $bug_state;
+        my $title = get_text('get_status', {status => $bug_state});
         if (Bugzilla->user->can_see_bug($bug_num)) {
             $title .= " - $bug_desc";
         }
@@ -384,7 +372,7 @@ sub get_bug_link {
         if ($options->{comment_num}) {
             $linkval .= "#c" . $options->{comment_num};
         }
-        return qq{$pre<a href="$linkval" title="$title">$link_text</a>$post};
+        return qq{<span class="bz_st_$bug_state"><a href="$linkval" title="$title">$link_text</a></span>};
     }
     else {
         return qq{$link_text};
