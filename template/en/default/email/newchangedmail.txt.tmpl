@@ -149,7 +149,7 @@ body { font-size: 10pt; }
     [% wrapped_comment = comment.body FILTER wrap_comment %]
   [% END %]
   <pre class="bz_comment_text" style="border-width: 0 0 1px 0; border-style: solid; border-color: #808080">
-[%- wrapped_comment FILTER quoteUrls(bugid) -%]
+[%- wrapped_comment FILTER quoteUrls(bugid) FILTER absolute_uris -%]
   </pre>
   [% END %]
 [% END %]
