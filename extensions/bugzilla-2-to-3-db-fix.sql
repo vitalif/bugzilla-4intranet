@@ -13,7 +13,10 @@ delete from bugs_activity where attach_id=13950;
 delete from series_data where series_id in (647, 648, 649, 650, 651, 652, 681, 694, 695, 696, 697);
 delete from category_group_map where group_id in (17, 45, 30, 23, 21, 14, 15, 27, 49, 16, 10, 18, 19, 22, 35, 31);
 -- Убираем старые юзерские настройки
-delete from profile_setting where setting_name in ('go_to_next_bug', 'remind_me_about_worktime_newbug', 'remind_me_about_requests', 'create_bug_resolved');
+delete from profile_setting where setting_name in ('go_to_next_bug', 'remind_me_about_flags', 'create_bug_resolved');
+update profile_settings set setting_name='remind_me_about_flags' where setting_name='remind_me_about_requests';
+delete from setting_value where name in ('go_to_next_bug', 'remind_me_about_requests', 'create_bug_resolved');
+delete from setting where name in ('go_to_next_bug', 'remind_me_about_requests', 'create_bug_resolved');
 -- Дальше ДОЛЖНО уже быть создано поле cf_agreement (договор) зависимое от продукта
 -- Наполняем значениями поле "Договор"
 insert into cf_agreement (value, sortkey, isactive, visibility_value_id)
