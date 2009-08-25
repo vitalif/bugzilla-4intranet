@@ -18,6 +18,7 @@ $server->run();
 
 package Bugzilla::HTTPServerSimple;
 
+use Time::HiRes qw(gettimeofday tv_interval);
 use IO::SendFile qw(sendfile);
 use base qw(HTTP::Server::Simple::CGI);
 
@@ -44,9 +45,6 @@ sub handle_request
         close $fd;
         return 200;
     }
-    delete $INC{$script};
-    require $script;
-    return 404;
     if (!$subs{$script})
     {
         my $content;
@@ -68,11 +66,14 @@ sub handle_request
     }
     if ($subs{$script})
     {
+        my $start = [gettimeofday];
         eval { &{$subs{$script}}(); };
         if ($@)
         {
             warn "Error while running $script:\n$@";
         }
+        my $elapsed = tv_interval($start) * 1000;
+        warn "Served $script in $elapsed ms";
     }
     return 404;
 }

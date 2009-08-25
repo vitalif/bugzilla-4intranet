@@ -220,16 +220,15 @@ sub quoteUrls {
               ~egox;
 
     # non-mailto protocols
-    my $safe_protocols = join('|', SAFE_PROTOCOLS);
-    my $protocol_re = qr/($safe_protocols)/i;
+    my $safe_protocols = join '|', SAFE_PROTOCOLS;
 
-    $text =~ s~\b(${protocol_re}:  # The protocol:
-                  [^\s<>\"]+       # Any non-whitespace
-                  [\w\/])          # so that we end in \w or /
+    $text =~ s~\b((?:$safe_protocols): # The protocol:
+                  [^\s<>\"]+        # Any non-whitespace
+                  [\w\/])           # so that we end in \w or /
               ~($tmp = html_quote($1)) &&
                ($things[$count++] = "<a href=\"$tmp\">$tmp</a>") &&
                ("\0\0" . ($count-1) . "\0\0")
-              ~egox;
+              ~gesox;
 
     if ($custom_proto && %$custom_proto)
     {
@@ -252,8 +251,7 @@ sub quoteUrls {
     $text =~ s~</span >\n<span class="quote">~\n~g;
 
     # mailto:
-    # Use |<nothing> so that $1 is defined regardless
-    $text =~ s~\b(mailto:|)?([\w\.\-\+\=]+\@[\w\-]+(?:\.[\w\-]+)+)\b
+    $text =~ s~\b(mailto:)?([\w\.\-\+\=]+\@[\w\-]+(?:\.[\w\-]+)+)\b
               ~<a href=\"mailto:$2\">$1$2</a>~igx;
 
     # attachment links - handle both cases separately for simplicity
@@ -274,7 +272,7 @@ sub quoteUrls {
     # we have to do this in one pattern, and so this is semi-messy.
     # Also, we can't use $bug_re?$comment_re? because that will match the
     # empty string
-    my $bug_word = get_text('term', { term => 'bug' });
+    my $bug_word = get_term('bug');
     my $bug_re = qr/\Q$bug_word\E$s*\#?$s*(\d+)/i;
     my $comment_re = qr/comment$s*\#?$s*(\d+)/i;
     $text =~ s~\b($bug_re(?:$s*,?$s*$comment_re)?|$comment_re)
@@ -286,10 +284,8 @@ sub quoteUrls {
 
     # Old duplicate markers. These don't use $bug_word because they are old
     # and were never customizable.
-    $text =~ s~(?<=^\*\*\*\ This\ bug\ has\ been\ marked\ as\ a\ duplicate\ of\ )
-               (\d+)
-               (?=\ \*\*\*\Z)
-              ~get_bug_link($1, $1)
+    $text =~ s~(^\*\*\*\ This\ bug\ has\ been\ marked\ as\ a\ duplicate\ of\ )(\d+)(\ \*\*\*\Z)
+              ~$1.get_bug_link($2, $2).$3
               ~egmx;
 
     # Now remove the encoding hacks
