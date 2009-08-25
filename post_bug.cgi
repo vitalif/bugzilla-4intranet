@@ -167,6 +167,15 @@ $bug_params{'cc'}          = [$cgi->param('cc')];
 $bug_params{'groups'}      = \@selected_groups;
 $bug_params{'comment'}     = $comment;
 
+if ($user->is_timetracker)
+{
+    $bug_params{'work_time'} = $cgi->param('work_time') || 0;
+}
+else
+{
+    $bug_params{'work_time'} = 0;
+}
+
 my @multi_selects = grep {$_->type == FIELD_TYPE_MULTI_SELECT && $_->enter_bug}
                          Bugzilla->active_custom_fields;
 
