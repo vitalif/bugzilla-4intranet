@@ -632,6 +632,8 @@ sub update_activity {
 
         $removed = join(", ", @$removed);
         $added = join(", ", @$added);
+        trick_taint($removed);
+        trick_taint($added);
         my $field_id = get_field_id('flagtypes.name');
         $dbh->do('INSERT INTO bugs_activity
                   (bug_id, attach_id, who, bug_when, fieldid, removed, added)
