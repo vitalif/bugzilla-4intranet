@@ -352,15 +352,15 @@ sub wrap_comment
     my $wrappedcomment = "";
 
     $cols ||= COMMENT_COLS;
+    my $re = qr/^(.{0,$cols}(\s(?=\S)|\S(?=\s)))/s;
 
-    # If the line starts with ">", don't wrap it. Otherwise, wrap.
     foreach my $line (split /\r\n?|\n/, $comment)
     {
+        # If the line starts with ">", don't wrap it. Otherwise, wrap.
         if ($line !~ /^>/so)
         {
             $line =~ s/\t/    /gso;
-            $cols = qr/^(.{1,$cols})\b/s;
-            while ($line =~ s/$cols//)
+            while (length($line) > $cols && $line =~ s/$re//)
             {
                 $wrappedcomment .= $1 . "\n";
             }

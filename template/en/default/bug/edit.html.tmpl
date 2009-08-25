@@ -40,6 +40,10 @@
 
   <script type="text/javascript">
   <!--
+  function isIE()
+  {
+      return /msie/i.test(navigator.userAgent) && !/opera/i.test(navigator.userAgent);
+  }
 
   /* Outputs a link to call replyToComment(); used to reduce HTML output */
   function addReplyLink(id, real_id) {
@@ -1208,7 +1212,7 @@
   [% IF user.id %]
     [% IF NOT nobr %]
     <div class="knob-buttons" style="text-align:right">
-      <input type="button" value="Preview" onclick="document.getElementById('wrapcommentpreview').style.display='table-cell';window.frames['commentpreview'].location.replace('page.cgi?id=previewcomment.html&comment='+encodeURI(document.changeform.comment.value).replace('#','%23'));scrTo('commentpreview')">
+      <input type="button" value="Preview" onclick="document.getElementById('wrapcommentpreview').style.display=(isIE()?'inline-block':'table-cell');window.frames['commentpreview'].location.replace('page.cgi?id=previewcomment.html&comment='+encodeURI(document.changeform.comment.value).replace('#','%23'));scrTo('commentpreview')">
       <input type="submit" value="Commit" id="commit[% id FILTER css_class_quote %]">
       [% IF bug.user.canmove %]
         <input type="submit" name="action" id="action[% id FILTER css_class_quote %]" value="[% Param("move-button-text") %]">
