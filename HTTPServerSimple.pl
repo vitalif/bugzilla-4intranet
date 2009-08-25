@@ -14,6 +14,7 @@ CGI->compile(qw(:cgi -no_xhtml -oldstyle_urls :private_tempfiles
 $CGI::USE_PARAM_SEMICOLONS = 0;
 
 my $server = Bugzilla::HTTPServerSimple->new(8157);
+*CORE::GLOBAL::exit = sub { die bless { rc => shift }, 'Bugzilla::HTTPServerSimple::FakeExit'; };
 $server->run();
 
 package Bugzilla::HTTPServerSimple;
@@ -68,7 +69,7 @@ sub handle_request
     {
         my $start = [gettimeofday];
         eval { &{$subs{$script}}(); };
-        if ($@)
+        if ($@ && (!ref($@) || ref($@) ne 'Bugzilla::HTTPServerSimple::FakeExit'))
         {
             warn "Error while running $script:\n$@";
         }
@@ -77,6 +78,8 @@ sub handle_request
     }
     return 404;
 }
+
+package Bugzilla::HTTPServerSimple::FakeExit;
 
 1;
 __END__
