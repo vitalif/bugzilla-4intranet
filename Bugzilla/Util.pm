@@ -44,7 +44,7 @@ use base qw(Exporter);
                              file_mod_time is_7bit_clean
                              bz_crypt generate_random_password
                              validate_email_syntax clean_text
-                             get_text disable_utf8 stem_text);
+                             get_term get_text disable_utf8 stem_text);
 
 use Bugzilla::Constants;
 
@@ -346,33 +346,29 @@ sub trim {
     return $str;
 }
 
-sub wrap_comment {
+sub wrap_comment
+{
     my ($comment, $cols) = @_;
     my $wrappedcomment = "";
 
-    # Use 'local', as recommended by Text::Wrap's perldoc.
-    local $Text::Wrap::columns = $cols || COMMENT_COLS;
-    # Make words that are longer than COMMENT_COLS not wrap.
-    local $Text::Wrap::huge    = 'overflow';
-    # Don't mess with tabs.
-    local $Text::Wrap::unexpand = 0;
+    $cols ||= COMMENT_COLS;
 
     # If the line starts with ">", don't wrap it. Otherwise, wrap.
-    foreach my $line (split(/\r\n|\r|\n/, $comment)) {
-      if ($line =~ qr/^>/) {
-        $wrappedcomment .= ($line . "\n");
-      }
-      else {
-        # Due to a segfault in Text::Tabs::expand() when processing tabs with
-        # Unicode (see http://rt.perl.org/rt3/Public/Bug/Display.html?id=52104),
-        # we have to remove tabs before processing the comment. This restriction
-        # can go away when we require Perl 5.8.9 or newer.
-        $line =~ s/\t/    /g;
-        $wrappedcomment .= (wrap('', '', $line) . "\n");
-      }
+    foreach my $line (split /\r\n?|\n/, $comment)
+    {
+        if ($line !~ /^>/so)
+        {
+            $line =~ s/\t/    /gso;
+            $cols = qr/^(.{1,$cols})\b/s;
+            while ($line =~ s/$cols//)
+            {
+                $wrappedcomment .= $1 . "\n";
+            }
+        }
+        $wrappedcomment .= $line . "\n";
     }
 
-    chomp($wrappedcomment); # Text::Wrap adds an extra newline at the end.
+    chomp $wrappedcomment;
     return $wrappedcomment;
 }
 
@@ -595,6 +591,30 @@ sub clean_text {
     return trim($dtext);
 }
 
+# Довольно некрасивый хак для бага см.ниже - на багах с длинным числом комментов
+# quoteUrls вызывает на каждый коммент get_text('term', { term => 'bug' }),
+# что приводит к ужасной производительности. например, на баге с 703
+# комментами в 10-15 раз ухудшение по сравнению с Bugzilla 2.x.
+# Избавляемся от этого.
+sub get_term
+{
+    my ($term) = @_;
+    my $tt;
+    unless ($tt = Bugzilla->request_cache->{_variables_none_tmpl})
+    {
+        # создаём отдельный шаблон
+        $tt = Bugzilla::Template->create();
+        # хакаемся внутрь контекста и делаем process без localise
+        $tt = $tt->{SERVICE}->context;
+        $tt->process('global/variables.none.tmpl');
+        Bugzilla->request_cache->{_variables_none_tmpl} = $tt;
+    }
+    return $tt->stash->get(['terms', 0, $term, 0]);
+}
+
+# CustIS Bug 40933 ФАКМОЙМОЗГ! ВРОТМНЕНОГИ! КТО ТАК ПИШЕТ?!!!!
+# ВОТ он, антипаттерн разработки на TT, ведущий к тормозам...
+# ALSO CustIS Bug3 52322
 sub get_text {
     my ($name, $vars) = @_;
     my $template = Bugzilla->template_inner;
