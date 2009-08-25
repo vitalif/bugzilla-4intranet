@@ -433,7 +433,11 @@ TUI_hide_default('expert_fields');
   <tr>
 [% IF user.in_group(Param('timetrackinggroup')) %]
     <th>Estimated Hours:</th>
-    <td><input name="estimated_time" size="6" maxlength="6" value="0.0"></td>
+    <td>
+      <input name="estimated_time" size="6" maxlength="6" value="0.0">&nbsp;
+      <b>Hours Worked:</b>
+      <input name="work_time" id="work_time" value="0.0" size="6" maxlength="6">
+    </td>
 [% END %]
     <th>Depends on:</th>
     <td><input name="dependson" accesskey="d" value="[% dependson FILTER html %]"></td>
@@ -608,6 +612,15 @@ TUI_hide_default('expert_fields');
       </tr>
     [% END %]
   [% END %]
+  [% IF Param('usestatuswhiteboard') %]
+    <tr>
+      <th>Whiteboard:</th>
+      <td colspan="3">
+        <input id="status_whiteboard" name="status_whiteboard" size="40" value="[% status_whiteboard FILTER html %]">
+      </td>
+    </tr>
+  [% END %]
+  
 </tbody>
 
 <tbody class="expert_fields">
