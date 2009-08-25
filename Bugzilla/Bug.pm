@@ -1748,7 +1748,8 @@ sub _check_time {
     }
     my $tt_group = Bugzilla->params->{"timetrackinggroup"};
     return $current unless $tt_group && Bugzilla->user->in_group($tt_group);
-    
+
+    $time =~ tr/,/./;
     $time = trim($time) || 0;
     ValidateTime($time, $field);
     return $time;
