@@ -514,6 +514,7 @@ form#Create .comment {
 }
 
 /* Bug states  */
-.bz_st_closed { text-decoration: line-through; }
-.bz_st_verified { text-decoration: none; border: 1px dashed #2f6fab; background-color: #f9f9f9; line-height: 1.1em; }
+.bz_st_resolved { text-decoration: line-through; }
+.bz_st_closed { text-decoration: line-through; border: 1px dashed #2f6fab; background-color: #f9f9f9; line-height: 1.1em; }
+.bz_st_verified { text-decoration: line-through; border: 1px solid #2f6fab; background-color: #f9f9f9; line-height: 1.1em; }
 .bz_st_unconfirmed { font-style: italic; }

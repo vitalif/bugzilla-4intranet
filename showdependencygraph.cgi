@@ -347,13 +347,27 @@ if ($webdotbase =~ /^https?:/) {
                                                      SUFFIX => '.png',
                                                      DIR => $webdotdir);
     binmode $pngfh;
-    if (my $pid = open DOT, "\"$webdotbase\" -Tpng $filename|")
+    my $cmd = [$webdotbase, '-Tpng', $filename];
+    if ($dottimeout && $dottimeout > 0)
     {
-        local $SIG{ALRM} = sub { kill 9 => $pid };
-        alarm $dottimeout if $dottimeout && $dottimeout > 0;
+        # This creepy way is the only one that seems to be truly crossplatform
+        $cmd = "perl -e '\$SIG{ALRM} = sub { exit 1 }; alarm $dottimeout; exec(" .
+            join(",", map { 'q{'.$_.'}' } @$cmd) .
+            ");'";
+    }
+    else
+    {
+        $cmd = join " ", map { "'$_'" } @$cmd;
+    }
+    if (my $pid = open DOT, "$cmd|")
+    {
         binmode DOT;
         print $pngfh $_ while <DOT>;
         close DOT;
+    }
+    unless (tell $pngfh)
+    {
+        $vars->{timeout} = 1;
     }
     close $pngfh;
 
@@ -375,7 +389,19 @@ if ($webdotbase =~ /^https?:/) {
                                                      SUFFIX => '.map',
                                                      DIR => $webdotdir);
     binmode $mapfh;
-    open(DOT, "\"$webdotbase\" -Tismap $filename|");
+    $cmd = [$webdotbase, '-Tismap', $filename];
+    if ($dottimeout && $dottimeout > 0)
+    {
+        # This creepy way is the only one that seems to be truly crossplatform
+        $cmd = "perl -e '\$SIG{ALRM} = sub { exit 1 }; alarm $dottimeout; exec(" .
+            join(",", map { 'q{'.$_.'}' } @$cmd) .
+            ");'";
+    }
+    else
+    {
+        $cmd = join " ", map { "'$_'" } @$cmd;
+    }
+    open(DOT, "$cmd|");
     binmode DOT;
     print $mapfh $_ while <DOT>;
     close DOT;
