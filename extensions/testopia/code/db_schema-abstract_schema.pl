@@ -458,6 +458,7 @@ $schema->{test_attachments} = {
         },
         default_product_version => { TYPE => 'MEDIUMTEXT',   NOTNULL => 1 },
         name                    => { TYPE => 'varchar(255)', NOTNULL => 1 },
+        wiki                    => { TYPE => 'varchar(255)', NOTNULL => 1 },
         creation_date           => { TYPE => 'DATETIME',     NOTNULL => 1 },
         isactive                => { TYPE => 'BOOLEAN',      NOTNULL => 1, DEFAULT => '1' },
     ],
