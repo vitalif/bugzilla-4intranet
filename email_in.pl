@@ -67,9 +67,6 @@ our ($input_email, %switch);
 # Main Subroutines #
 ####################
 
-open STDERR, ">>/home/mail/debug" or die;
-open STDOUT, ">>/home/mail/debug" or die;
-
 sub parse_mail {
     my ($mail_text) = @_;
     debug_print('Parsing Email');
