@@ -40,10 +40,6 @@
 
   <script type="text/javascript">
   <!--
-  function isIE()
-  {
-      return /msie/i.test(navigator.userAgent) && !/opera/i.test(navigator.userAgent);
-  }
 
   /* Outputs a link to call replyToComment(); used to reduce HTML output */
   function addReplyLink(id, real_id) {
@@ -164,6 +160,10 @@
 
   //-->
   </script>
+
+<form name="commentpreviewform" style="display:none" target="commentpreview" method="POST" action="page.cgi?id=previewcomment.html">
+<input id="previewcommentvalue" type="hidden" name="comment" value="" />
+</form>
 
 <form name="changeform" method="post" action="process_bug.cgi" onsubmit="return changeform_onsubmit()">
 
@@ -299,14 +299,22 @@
           </table>
         </td></tr>
         <tr><td id="wrapcommentpreview" style="display: none">
-        <iframe name="commentpreview" id="commentpreview" style="height: auto; border-width: 0; width: 100%">
+        <iframe name="commentpreview" id="commentpreview" style="height: auto; border-width: 0; width: 100%; overflow: hidden">
         </iframe>
         <script>
         /*<!--*/
-        function hidepreview() { document.getElementById('wrapcommentpreview').style.display='none' }
+        function isIE() { return /msie/i.test(navigator.userAgent) && !/opera/i.test(navigator.userAgent); }
         function findPos(obj) { var curtop = 0; if (obj.offsetParent) { do { curtop += obj.offsetTop; } while (obj = obj.offsetParent); return [curtop]; } }
         function scrollDocTo(obj) { window.scroll(0,findPos(obj)); }
         function scrTo(id) { scrollDocTo(document.getElementById(id)); }
+        function hidepreview() { document.getElementById('wrapcommentpreview').style.display='none'; }
+        function showcommentpreview()
+        {
+            document.getElementById('wrapcommentpreview').style.display=(isIE()?'inline-block':'table-cell');
+            document.commentpreviewform.comment.value = document.changeform.comment.value;
+            document.commentpreviewform.submit();
+            scrTo('commentpreview');
+        }
         //-->
         </script>
         <p style="text-align: right"><a href="javascript:void hidepreview()">Hide preview</a></p>
@@ -1212,7 +1220,7 @@
   [% IF user.id %]
     [% IF NOT nobr %]
     <div class="knob-buttons" style="text-align:right">
-      <input type="button" value="Preview" onclick="document.getElementById('wrapcommentpreview').style.display=(isIE()?'inline-block':'table-cell');window.frames['commentpreview'].location.replace('page.cgi?id=previewcomment.html&comment='+encodeURI(document.changeform.comment.value).replace('#','%23'));scrTo('commentpreview')">
+      <input type="button" value="Preview" onclick="showcommentpreview()">
       <input type="submit" value="Commit" id="commit[% id FILTER css_class_quote %]">
       [% IF bug.user.canmove %]
         <input type="submit" name="action" id="action[% id FILTER css_class_quote %]" value="[% Param("move-button-text") %]">

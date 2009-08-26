@@ -197,6 +197,10 @@ TUI_hide_default('expert_fields');
   [% select_fields.${field.name} = field %]
 [% END %]
 
+<form name="commentpreviewform" style="display:none" target="commentpreview" method="POST" action="page.cgi?id=previewcomment.html">
+<input id="previewcommentvalue" type="hidden" name="comment" value="" />
+</form>
+
 <form name="Create" id="Create" method="post" action="post_bug.cgi"
       enctype="multipart/form-data" onsubmit="return Create_onsubmit()">
 <input type="hidden" name="product" value="[% product.name FILTER html %]">
@@ -527,23 +531,27 @@ TUI_hide_default('expert_fields');
         <br>
         <p style="text-align: left; margin-bottom: 0" id="showpreviewbtn"><a href="javascript:void showcommentpreview()">Preview</a></p>
         <div id="wrapcommentpreview" style="display: none">
-        <iframe name="commentpreview" id="commentpreview" style="height: auto; border-width: 0; width: 100%">
+        <iframe name="commentpreview" id="commentpreview" style="height: auto; border-width: 0; width: 100%; overflow: hidden">
         </iframe>
         <script>
         /*<!--*/
-        function hidepreview() {
-            document.getElementById('wrapcommentpreview').style.display='none';
-            document.getElementById('showpreviewbtn').style.display='';
-        }
-        function isIE()
+        function isIE() { return /msie/i.test(navigator.userAgent) && !/opera/i.test(navigator.userAgent); }
+        function findPos(obj) { var curtop = 0; if (obj.offsetParent) { do { curtop += obj.offsetTop; } while (obj = obj.offsetParent); return [curtop]; } }
+        function scrollDocTo(obj) { window.scroll(0,findPos(obj)); }
+        function scrTo(id) { scrollDocTo(document.getElementById(id)); }
+        function showcommentpreview()
         {
-            return /msie/i.test(navigator.userAgent) && !/opera/i.test(navigator.userAgent);
-        }
-        function showcommentpreview() {
             document.getElementById('wrapcommentpreview').style.width=(document.Create.comment.offsetWidth-10)+'px';
             document.getElementById('wrapcommentpreview').style.display=(isIE()?'inline-block':'table-cell');
-            window.frames['commentpreview'].location.replace('page.cgi?id=previewcomment.html&comment='+encodeURI(document.Create.comment.value).replace('#','%23'));
+            document.commentpreviewform.comment.value = document.Create.comment.value;
+            document.commentpreviewform.submit();
+            scrTo('commentpreview');
             document.getElementById('showpreviewbtn').style.display='none';
+        }
+        function hidepreview()
+        {
+            document.getElementById('wrapcommentpreview').style.display='none';
+            document.getElementById('showpreviewbtn').style.display='';
         }
         //-->
         </script>
