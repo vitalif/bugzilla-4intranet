@@ -282,29 +282,6 @@ close $fh;
 
 chmod 0777, $filename;
 
-sub plainext
-{
-    my ($cmd) = @_;
-    my ($nodes, $edges) = ({}, {});
-    open DOT, $cmd;
-    binmode DOT;
-    while(<DOT>)
-    {
-        if (/^node\s+(\d+)\s+/so)
-        {
-            my $n = $1;
-            $nodes->{$n} = [ map { s/^"(.*)"$/$1/; $_ } $' =~ /(\"[^\"]*\"|\S+)/giso ];
-        }
-        elsif (/^edge\s+(\d+)\s+(\d+)/so && $1 && $2)
-        {
-            $edges->{$1}->{$2} += 1;
-            $edges->{$2}->{$1} += 0;
-        }
-    }
-    close DOT;
-    return ($nodes, $edges);
-}
-
 sub buildtree
 {
     my $hash = shift;
@@ -350,6 +327,7 @@ EOF
     return $map;
 }
 
+my $dottimeout = int(Bugzilla->params->{localdottimeout});
 my $usetwopi = scalar $cgi->param('usetwopi') && Bugzilla->params->{webtwopibase} ? 1 : 0;
 my $webdotbase = Bugzilla->params->{ $usetwopi ? 'webtwopibase' : 'webdotbase' };
 
@@ -369,20 +347,15 @@ if ($webdotbase =~ /^https?:/) {
                                                      SUFFIX => '.png',
                                                      DIR => $webdotdir);
     binmode $pngfh;
-    open DOT, "\"$webdotbase\" -Tpng $filename|";
-    binmode DOT;
-    print $pngfh $_ while <DOT>;
-    close DOT;
+    if (my $pid = open DOT, "\"$webdotbase\" -Tpng $filename|")
+    {
+        local $SIG{ALRM} = sub { kill 9 => $pid };
+        alarm $dottimeout if $dottimeout && $dottimeout > 0;
+        binmode DOT;
+        print $pngfh $_ while <DOT>;
+        close DOT;
+    }
     close $pngfh;
-
-#    my ($nodes, $edges) = plainext("\"$webdotbase\" -Tplain-ext $filename|");
-#    my $tree = buildtree($edges, {}, keys %baselist);
-#    my $map = makemap($nodes, $edges, $tree, $nodes->{0}->[0], $nodes->{0}->[1], 'Bug Dependency Graph');
-#    my ($mapfh, $mapfn) = File::Temp::tempfile(
-#        "XXXXXXXXXX", SUFFIX => '.mm', DIR => $webdotdir);
-#    binmode $mapfh;
-#    print $mapfh $map;
-#    close $mapfh;
 
     # On Windows $pngfilename will contain \ instead of /
     $pngfilename =~ s|\\|/|g if $^O eq 'MSWin32';
