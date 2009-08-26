@@ -202,7 +202,7 @@ TUI_hide_default('expert_fields');
 </form>
 
 <form name="Create" id="Create" method="post" action="post_bug.cgi"
-      enctype="multipart/form-data" onsubmit="return Create_onsubmit()">
+      enctype="multipart/form-data">
 <input type="hidden" name="product" value="[% product.name FILTER html %]">
 <input type="hidden" name="token" value="[% token FILTER html %]">
 
@@ -535,14 +535,13 @@ TUI_hide_default('expert_fields');
         </iframe>
         <script>
         /*<!--*/
-        function isIE() { return /msie/i.test(navigator.userAgent) && !/opera/i.test(navigator.userAgent); }
         function findPos(obj) { var curtop = 0; if (obj.offsetParent) { do { curtop += obj.offsetTop; } while (obj = obj.offsetParent); return [curtop]; } }
         function scrollDocTo(obj) { window.scroll(0,findPos(obj)); }
         function scrTo(id) { scrollDocTo(document.getElementById(id)); }
         function showcommentpreview()
         {
             document.getElementById('wrapcommentpreview').style.width=(document.Create.comment.offsetWidth-10)+'px';
-            document.getElementById('wrapcommentpreview').style.display=(isIE()?'inline-block':'table-cell');
+            document.getElementById('wrapcommentpreview').style.display='inline-block';
             document.commentpreviewform.comment.value = document.Create.comment.value;
             document.commentpreviewform.submit();
             scrTo('commentpreview');
@@ -686,7 +685,7 @@ TUI_hide_default('expert_fields');
       <input type="submit" id="commit" value="Commit"
              onclick="if (this.form.short_desc.value == '')
              { alert('Please enter a summary sentence for this [% terms.bug %].');
-               return false; } return true;">
+               return false; } return Create_onsubmit();">
       &nbsp;&nbsp;&nbsp;&nbsp;
       <input type="submit" name="maketemplate" id="maketemplate"
              value="Remember values as bookmarkable template"

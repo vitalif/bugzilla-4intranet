@@ -61,12 +61,16 @@
 </tr>
 </table>
 
+[% IF timeout %]
+<p style="color:red">Timed out.</p>
+[% ELSE %]
 [% IF image_map %]
   <img src="[% image_url %]" alt="Dependency graph" usemap="#imagemap" style="border: 1px solid gray">
 [% ELSE %]
   <a href="[% map_url %]">
     <img src="[% image_url %]" alt="Dependency graph" ismap="ismap" style="border: 1px solid gray">
   </a>
+[% END %]
 [% END %]
 
 <hr>

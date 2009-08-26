@@ -10,7 +10,7 @@ function resizeIframe()
 </script>
 <body onLoad="resizeIframe()" onResize="resizeIframe()" style="margin: 0; padding: 0; overflow: hidden">
 <div class="bz_comment" style="border-style: dotted; border-width: 2px; border-color: #969696; background-color: #e8e8e8; padding: 5px">
-<p><pre>[%- cgi.param("comment") FILTER wrap_comment FILTER quoteUrls FILTER links_targetblank -%]</pre></p>
+<p><pre style="white-space: pre-wrap">[%- cgi.param("comment") FILTER wrap_comment FILTER quoteUrls FILTER links_targetblank -%]</pre></p>
 </div>
 </body>
 </html>
