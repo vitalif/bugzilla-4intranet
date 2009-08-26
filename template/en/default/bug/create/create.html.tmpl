@@ -79,7 +79,7 @@ var flags = new Array([% product.components.size %]);
 
 function Create_onsubmit()
 {
-  wt = parseFloat(document.Create.work_time.value);
+  wt = parseFloat(document.Create.work_time.value.replace(',','.'));
   if ([% remind_about_worktime_newbug %] && (!wt || wt == NaN || wt <= 0))
   {
     wt = prompt("Please, verify working time:", "0");
