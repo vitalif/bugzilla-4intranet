@@ -350,7 +350,8 @@ EOF
     return $map;
 }
 
-my $webdotbase = Bugzilla->params->{'webdotbase'};
+my $usetwopi = scalar $cgi->param('usetwopi') && Bugzilla->params->{webtwopibase} ? 1 : 0;
+my $webdotbase = Bugzilla->params->{ $usetwopi ? 'webtwopibase' : 'webdotbase' };
 
 if ($webdotbase =~ /^https?:/) {
      # Remote dot server. We don't hardcode 'urlbase' here in case
@@ -435,6 +436,7 @@ $vars->{'multiple_bugs'} = ($cgi->param('id') =~ /[ ,]/);
 $vars->{'display'} = $display;
 $vars->{'rankdir'} = $rankdir;
 $vars->{'showsummary'} = $cgi->param('showsummary');
+$vars->{'usetwopi'} = $usetwopi;
 
 # Generate and return the UI (HTML page) from the appropriate template.
 print $cgi->header();
