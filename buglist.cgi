@@ -1197,3 +1197,5 @@ $template->process($format->{'template'}, $vars)
 ################################################################################
 
 print $cgi->multipart_final() if $serverpush;
+
+1;

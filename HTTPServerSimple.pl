@@ -15,11 +15,12 @@ $CGI::USE_PARAM_SEMICOLONS = 0;
 
 my $server = Bugzilla::HTTPServerSimple->new(8157);
 *CORE::GLOBAL::exit = sub { die bless { rc => shift }, 'Bugzilla::HTTPServerSimple::FakeExit'; };
-$SIG{INT} = sub { CORE::exit(); };
+$SIG{INT} = sub { warn "Terminating"; CORE::exit(); };
 $server->run();
 
 package Bugzilla::HTTPServerSimple;
 
+use Bugzilla;
 use Time::HiRes qw(gettimeofday tv_interval);
 use IO::SendFile qw(sendfile);
 use base qw(HTTP::Server::Simple::CGI);
@@ -45,6 +46,17 @@ sub handle_request
     {
         sendfile(fileno(STDOUT), fileno($fd), 0, -s $script);
         close $fd;
+        return 200;
+    }
+    $Bugzilla::_request_cache = {};
+    if ($ENV{NYTPROF} && $INC{'Devel/NYTProf.pm'})
+    {
+        # use require() when running under NYTProf profiler
+        my $start = [gettimeofday];
+        delete $INC{$script};
+        require $script;
+        my $elapsed = tv_interval($start) * 1000;
+        warn "Served $script via require() in $elapsed ms";
         return 200;
     }
     if (!$subs{$script})
@@ -78,6 +90,22 @@ sub handle_request
         warn "Served $script in $elapsed ms";
     }
     return 404;
+}
+
+sub parse_headers
+{
+    my $self = shift;
+    my @headers;
+    my $chunk;
+    while ($chunk = <STDIN>)
+    {
+        $chunk =~ s/[\r\l\n\s]+$//so;
+        if ($chunk =~ /^([^()<>\@,;:\\"\/\[\]?={} \t]+):\s*(.*)/i) {
+            push @headers, $1 => $2;
+        }
+        last if $chunk =~ /^$/so;
+    }
+    return \@headers;
 }
 
 package Bugzilla::HTTPServerSimple::FakeExit;
