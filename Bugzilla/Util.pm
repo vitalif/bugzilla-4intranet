@@ -353,7 +353,7 @@ sub wrap_comment
 
     $cols ||= COMMENT_COLS;
     $cols-=2;
-    my $re = qr/^(.{0,$cols}(\s(?=\S)|\S(?=\s)))/s;
+    my $re = qr/^(.{0,$cols}(\s(?=\S)|\S(?=\s)))\s*/s;
     $cols+=2;
 
     foreach my $line (split /\r\n?|\n/, $comment)
@@ -367,7 +367,7 @@ sub wrap_comment
                 $wrappedcomment .= $1 . "\n";
             }
         }
-        $wrappedcomment .= $line . "\n";
+        $wrappedcomment .= $line . "\n" if $line;
     }
 
     chomp $wrappedcomment;
