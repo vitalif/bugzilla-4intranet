@@ -352,9 +352,9 @@ sub wrap_comment
     my $wrappedcomment = "";
 
     $cols ||= COMMENT_COLS;
-    $cols++;
+    $cols-=2;
     my $re = qr/^(.{0,$cols}(\s(?=\S)|\S(?=\s)))/s;
-    $cols--;
+    $cols+=2;
 
     foreach my $line (split /\r\n?|\n/, $comment)
     {
