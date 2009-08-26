@@ -152,7 +152,7 @@ body { font-size: 10pt; }
   [% ELSE %]
     [% wrapped_comment = comment.body FILTER wrap_comment %]
   [% END %]
-  <pre style="border-width: 0 0 1px 0; border-style: solid; border-color: #808080; white-space: pre-wrap; white-space: -moz-pre-wrap; white-space: -pre-wrap; white-space: -o-pre-wrap;">
+  <pre style="border-width: 0 0 1px 0; border-style: solid; border-color: #808080; white-space: pre-wrap; word-wrap: break-word; _white-space: pre;">
 [%- wrapped_comment FILTER quoteUrls(bugid) FILTER absolute_uris -%]
   </pre>
   [% END %]
