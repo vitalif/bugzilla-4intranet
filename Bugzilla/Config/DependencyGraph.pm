@@ -48,6 +48,13 @@ sub get_param_list {
   },
 
   {
+   name => 'webtwopibase',
+   type => 't',
+   default => '',
+   checker => \&check_webdotbase
+  },
+
+  {
    name => 'graph_rankdir',
    type => 's',
    choices => ['LR', 'RL', 'TB', 'BT'],
