@@ -60,6 +60,13 @@ sub get_param_list {
    choices => ['LR', 'RL', 'TB', 'BT'],
    default => 'LR'
   },
+
+  {
+   name => 'dottimeout',
+   type => 's',
+   default => '5'
+  },
+
   );
   return @param_list;
 }
