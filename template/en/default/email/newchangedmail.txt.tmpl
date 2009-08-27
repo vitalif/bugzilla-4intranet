@@ -107,13 +107,32 @@ Content-Transfer-Encoding: quoted-printable
 body { font-size: 10pt; }
 .difft { font-size: 10pt; border-width: 0 0 1px 0; border-style: solid; border-color: #808080 }
 .difft td { border-width: 0 0 1px 0; border-style: solid; border-color: #808080 }
-.difft tr.n td, .difft.fv td, .difft.fv { border-width: 0; }
+.difft tr.n td, .difft.fv td { border-width: 0; }
 .difft.fv th { text-align: left; }
 /*-->*/
 </style>
 <body [% IF severity == 'blocker' OR severity == 'critical' %]style="background-color: #FFC0C0"[% END %]>
 <p><a href="[%+ urlbase %]show_bug.cgi?id=[% bugid %]">Bug [% bugid %]</a>
 (prod:[% product %].[% comp %], pri:[% priority %], sev:[% severity %], miles:[% targetmilestone %])</p>
+
+[% IF new_comments AND new_comments.size > 0 %]
+  [% FOR comment = new_comments %]
+  <p>Comment #[% comment.count %] from
+      <span class="vcard">
+          <a class="fn email" href="[% Param('user_mailto') %][% comment.author.email FILTER html %]">
+          [% (comment.author.name || comment.author.login) FILTER html %]</a>
+      </span>
+  [% comment.time %]</p>
+  [% IF comment.already_wrapped %]
+    [% wrapped_comment = comment.body %]
+  [% ELSE %]
+    [% wrapped_comment = comment.body FILTER wrap_comment %]
+  [% END %]
+  <pre style="border-width: 0 0 1px 0; border-style: solid; border-color: #808080; white-space: pre-wrap; word-wrap: break-word; _white-space: pre;">
+[%- wrapped_comment FILTER quoteUrls(bugid) FILTER absolute_uris -%]
+  </pre>
+  [% END %]
+[% END %]
 
 [% IF isnew AND showfieldvalues.size > 0 %]
 <table class="difft fv">
@@ -146,25 +165,6 @@ body { font-size: 10pt; }
   [% END %]
 [% END %]
 </table>
-[% END %]
-
-[% IF new_comments AND new_comments.size > 0 %]
-  [% FOR comment = new_comments %]
-  <p>Comment #[% comment.count %] from
-      <span class="vcard">
-          <a class="fn email" href="[% Param('user_mailto') %][% comment.author.email FILTER html %]">
-          [% (comment.author.name || comment.author.login) FILTER html %]</a>
-      </span>
-  [% comment.time %]</p>
-  [% IF comment.already_wrapped %]
-    [% wrapped_comment = comment.body %]
-  [% ELSE %]
-    [% wrapped_comment = comment.body FILTER wrap_comment %]
-  [% END %]
-  <pre style="border-width: 0 0 1px 0; border-style: solid; border-color: #808080; white-space: pre-wrap; word-wrap: break-word; _white-space: pre;">
-[%- wrapped_comment FILTER quoteUrls(bugid) FILTER absolute_uris -%]
-  </pre>
-  [% END %]
 [% END %]
 
 <p style="font-size: 12px; font-style: italic">
