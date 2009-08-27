@@ -62,7 +62,7 @@ sub get_param_list {
   },
 
   {
-   name => 'dottimeout',
+   name => 'localdottimeout',
    type => 't',
    default => '5'
   },
