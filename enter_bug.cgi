@@ -424,6 +424,7 @@ if ($cloned_bug_id) {
     $vars->{'dependson'}     = "";
     $vars->{'blocked'}       = $cloned_bug_id;
     $vars->{'deadline'}      = $cloned_bug->deadline;
+    $vars->{'status_whiteboard'} = $cloned_bug->status_whiteboard;
 
     if (defined $cloned_bug->cc) {
         $vars->{cc} = join (", ", @{$cloned_bug->cc});
@@ -475,6 +476,7 @@ else {
     $vars->{short_desc}     = formvalue('short_desc');
     $vars->{bug_file_loc}   = formvalue('bug_file_loc', "http://");
     $vars->{keywords}       = formvalue('keywords');
+    $vars->{status_whiteboard} = formvalue('status_whiteboard');
     $vars->{dependson}      = formvalue('dependson');
     $vars->{blocked}        = formvalue('blocked');
     $vars->{deadline}       = formvalue('deadline');
