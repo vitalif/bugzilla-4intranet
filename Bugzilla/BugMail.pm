@@ -622,6 +622,7 @@ sub sendMail
     }
 
     my $diffs = $difftext;
+    my @showfieldvalues = (); # for HTML emails
     if ($isnew) {
         my $head = "";
         foreach my $f (@headerlist) {
@@ -630,10 +631,11 @@ sub sendMail
             # If there isn't anything to show, don't include this header.
             next unless $value;
             # Only send estimated_time if it is enabled and the user is in the group.
-            if (($f ne 'estimated_time' && $f ne 'deadline') || $user->is_timetracker) {
+            if (($f ne 'work_time' && $f ne 'estimated_time' && $f ne 'deadline') || $user->is_timetracker) {
                 my $desc = $fielddescription{$f};
                 $head .= multiline_sprintf(FORMAT_DOUBLE, ["$desc:", $value],
                                            FORMAT_2_SIZE);
+                push @showfieldvalues, { desc => $desc, value => $value };
             }
         }
         $diffs = $head . ($difftext ? "\n\n" : "") . $diffs;
@@ -653,6 +655,7 @@ sub sendMail
 
     my $vars = {
         isnew              => $isnew,
+        showfieldvalues    => \@showfieldvalues,
         to                 => $user->email,
         bugid              => $id,
         alias              => Bugzilla->params->{'usebugaliases'} ? $values{'alias'} : "",
