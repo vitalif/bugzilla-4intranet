@@ -108,11 +108,20 @@ body { font-size: 10pt; }
 .difft { font-size: 10pt; border-width: 0 0 1px 0; border-style: solid; border-color: #808080 }
 .difft td { border-width: 0 0 1px 0; border-style: solid; border-color: #808080 }
 .difft tr.n td { border-width: 0; }
+.difft.fv th { text-align: left; }
 /*-->*/
 </style>
 <body [% IF severity == 'blocker' OR severity == 'critical' %]style="background-color: #FFC0C0"[% END %]>
 <p><a href="[%+ urlbase %]show_bug.cgi?id=[% bugid %]">Bug [% bugid %]</a>
 (prod:[% product %].[% comp %], pri:[% priority %], sev:[% severity %], miles:[% targetmilestone %])</p>
+
+[% IF isnew AND showfieldvalues.size > 0 %]
+<table class="difft fv">
+[% FOR f = showfieldvalues %]
+  <tr><th>[% f.desc FILTER html %]:</th><td>[% f.value FILTER html %]</td></tr>
+[% END %]
+</table>
+[% END %]
 
 [% IF diffarray AND diffarray.size > 0 %]
 <table class="difft" width="600px" style="border-collapse: collapse" cellpadding="3">
