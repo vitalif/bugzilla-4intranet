@@ -205,6 +205,8 @@ TUI_hide_default('expert_fields');
       enctype="multipart/form-data">
 <input type="hidden" name="product" value="[% product.name FILTER html %]">
 <input type="hidden" name="token" value="[% token FILTER html %]">
+<input type="hidden" name="cloned_bug_id" value="[% cloned_bug_id FILTER html %]">
+<input type="hidden" name="cloned_comment" value="[% cloned_comment FILTER html %]">
 
 <p>
 [%# Migration note: The following file corresponds to the old Param
