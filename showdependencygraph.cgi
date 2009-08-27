@@ -189,13 +189,17 @@ if ($display eq 'doall') {
     }
 }
 
-my $sth = $dbh->prepare(
-              q{SELECT t1.bug_status, t1.resolution, t1.short_desc, t1.estimated_time, t1.assigned_to, t2.login_name
-                  FROM bugs AS t1 LEFT JOIN profiles AS t2 ON t2.userid=t1.assigned_to
-                 WHERE t1.bug_id = ?});
+my $sth = $dbh->prepare(q{
+    SELECT t1.bug_status, t1.resolution, t1.short_desc, t1.estimated_time, SUM(t3.work_time), t1.assigned_to, t2.login_name
+    FROM bugs AS t1
+    LEFT JOIN profiles AS t2 ON t2.userid=t1.assigned_to
+    LEFT JOIN longdescs AS t3 ON t3.bug_id=t1.bug_id AND t3.work_time > 0
+    WHERE t1.bug_id=?
+    GROUP BY t1.bug_id
+});
 foreach my $k (keys(%seen)) {
     # Retrieve bug information from the database
-    my ($stat, $resolution, $summary, $time, $assignee, $asslogin) = $dbh->selectrow_array($sth, undef, $k);
+    my ($stat, $resolution, $summary, $time, $wtime, $assignee, $asslogin) = $dbh->selectrow_array($sth, undef, $k);
     $stat ||= 'NEW';
     $resolution ||= '';
     $summary ||= '';
@@ -222,7 +226,7 @@ foreach my $k (keys(%seen)) {
         push @params, "shape=egg";
     }
 
-    my $important = $time > 40 || ($deps{$k}||0) > 4;
+    my $important = $time > 40 || $wtime > 40 || ($deps{$k}||0) > 4;
     if ($important)
     {
         push @params, "width=3", "height=1.5", "fontsize=13";
