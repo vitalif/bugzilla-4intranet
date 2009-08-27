@@ -29,8 +29,11 @@ unless ($user->in_group('admin'))
 my $params = {};
 for ($cgi->param)
 {
-    $params->{$_} = $cgi->param($_);
-    trick_taint($params->{$_});
+    if (defined $cgi->param($_))
+    {
+        $params->{$_} = $cgi->param($_);
+        trick_taint($params->{$_});
+    }
 }
 
 my $vars = {

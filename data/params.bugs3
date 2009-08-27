@@ -83,7 +83,7 @@
   <li>&nbsp;</li>
 </ol>',
            'new-case-results-template' => '',
-           'noresolveonopenblockers' => '1',
+           'noresolveonopenblockers' => '0',
            'proxy_url' => 'http://proxy.custis.ru:3128/',
            'querysharegroup' => 'editbugs',
            'quicksearch_comment_cutoff' => '4',
