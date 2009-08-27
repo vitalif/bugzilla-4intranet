@@ -427,21 +427,31 @@ if (my $suffix = Bugzilla->params->{emailsuffix}) {
     $username =~ s/\Q$suffix\E$//i;
 }
 
+# First try to select user with name $username
 my $user = Bugzilla::User->new({ name => $username });
 
+# Then try to find alias $username for some user
 unless ($user)
 {
-    unless (Bugzilla->params->{emailin_autoregister})
+    my $dbh = Bugzilla->dbh;
+    ($user) = $dbh->selectrow_array("SELECT userid FROM emailin_aliases WHERE address=?", undef, trim($mail_fields->{reporter}));
+    $user = Bugzilla::User->new({ id => $user }) if $user;
+    # Then check if autoregistration is enabled
+    unless ($user)
     {
-        ThrowUserError('invalid_username', { name => $username });
-        exit;
+        unless (Bugzilla->params->{emailin_autoregister})
+        {
+            ThrowUserError('invalid_username', { name => $username });
+            exit;
+        }
+        # Then try to autoregister unknown user
+        $user = Bugzilla::User->create({
+            login_name      => $username,
+            realname        => $mail_fields->{_reporter_name},
+            cryptpassword   => 'a3#',
+            disabledtext    => 'Auto-registered account',
+        });
     }
-    $user = Bugzilla::User->create({
-        login_name      => $username,
-        realname        => $mail_fields->{_reporter_name},
-        cryptpassword   => 'a3#',
-        disabledtext    => 'Auto-registered account',
-    });
 }
 
 Bugzilla->set_user($user);
