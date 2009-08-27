@@ -6,12 +6,6 @@ alter table components change wiki_url wiki_url1 varchar(255) not null;
 -- ПОСЛЕ ./checksetup.pl:
 alter table components drop wiki_url;
 alter table components change wiki_url1 wiki_url varchar(255) not null;
--- Убираем кривые значения из базы
-delete from profiles_activity where userid=83;
-delete from bugs_activity where attach_id=13529;
-delete from bugs_activity where attach_id=13950;
-delete from series_data where series_id in (647, 648, 649, 650, 651, 652, 681, 694, 695, 696, 697);
-delete from category_group_map where group_id in (17, 45, 30, 23, 21, 14, 15, 27, 49, 16, 10, 18, 19, 22, 35, 31);
 -- Убираем старые юзерские настройки
 create temporary table tmp2 as select user_id, 'post_bug_submit_action' AS setting_name, (case when setting_value='on' then 'next_bug' else 'same_bug' end) as setting_value from profile_setting where setting_name='go_to_next_bug';
 replace into profile_setting (user_id, setting_name, setting_value) select * from tmp2;
@@ -44,8 +38,8 @@ create temporary table tmp1 (id int not null auto_increment primary key, sortkey
 insert into tmp1 (sortkey) select distinct sortkey from cf_agreement where visibility_value_id IS NULL order by sortkey;
 update cf_agreement set sortkey=200+5*(select tmp1.id from tmp1 where tmp1.sortkey=cf_agreement.sortkey) where visibility_value_id IS NULL;
 drop table tmp1;
--- А --- в самом верху
-update cf_agreement set sortkey=0 where value='---';
+-- А --- между ними
+update cf_agreement set sortkey=195 where value='---';
 -- Записываем значения договора для всех багов
 update bugs, agreements, cf_agreement
 set bugs.cf_agreement=(case when instr(agreements.name,' (') > 0 then substr(agreements.`name`,1,instr(agreements.name,' (')-1) else agreements.`name` end)
