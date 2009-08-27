@@ -1721,15 +1721,26 @@ sub is_available_username {
     return 1;
 }
 
-sub login_to_id {
+sub login_to_id
+{
     my ($login, $throw_error) = @_;
-    my $dbh = Bugzilla->dbh;
-    # No need to validate $login -- it will be used by the following SELECT
-    # statement only, so it's safe to simply trick_taint.
-    trick_taint($login);
-    my $user_id = $dbh->selectrow_array("SELECT userid FROM profiles WHERE " .
-                                        $dbh->sql_istrcmp('login_name', '?'),
-                                        undef, $login);
+    my $cache = (Bugzilla->request_cache->{sub_login_to_id} ||= {});
+    my $user_id;
+    if (exists $cache->{$login})
+    {
+        $user_id = $cache->{$login};
+    }
+    else
+    {
+        my $dbh = Bugzilla->dbh;
+        # No need to validate $login -- it will be used by the following SELECT
+        # statement only, so it's safe to simply trick_taint.
+        trick_taint($login);
+        $cache->{$login} = $user_id = $dbh->selectrow_array(
+            "SELECT userid FROM profiles WHERE " . $dbh->sql_istrcmp('login_name', '?'),
+            undef, $login
+        );
+    }
     if ($user_id) {
         return $user_id;
     } elsif ($throw_error) {

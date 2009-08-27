@@ -423,12 +423,19 @@ sub process_attachment() {
 # As each bug is processed, it is inserted into the database and then
 # purged from memory to free it up for later bugs.
 
+# Hash of bug ID transitions
+my %was_known_as_id = ();
+
+# Hash of dependencies ($depends_to_import{$blocked}{$dependson} = 1)
+my %depends_to_import = ();
+
 sub process_bug {
     my ( $twig, $bug ) = @_;
     my $root             = $twig->root;
     my $maintainer       = $root->{'att'}->{'maintainer'};
     my $exporter_login   = $root->{'att'}->{'exporter'};
     my $exporter         = new Bugzilla::User({ name => $exporter_login });
+    my $exporterid       = $exporter->id;
     my $urlbase          = $root->{'att'}->{'urlbase'};
 
     # We will store output information in this variable.
@@ -458,13 +465,13 @@ sub process_bug {
     {
         $all_fields{$field} = 1;
     }
-    
+
     my %bug_fields;
     my $err = "";
 
-   # Loop through all the xml tags inside a <bug> and compare them to the
-   # lists of fields. If they match throw them into the hash. Otherwise
-   # append it to the log, which will go into the comments when we are done.
+    # Loop through all the xml tags inside a <bug> and compare them to the
+    # lists of fields. If they match throw them into the hash. Otherwise
+    # append it to the log, which will go into the comments when we are done.
     foreach my $bugchild ( $bug->children() ) {
         Debug( "Parsing field: " . $bugchild->name, DEBUG_LEVEL );
 
@@ -501,23 +508,20 @@ sub process_bug {
     }
 
     my @long_descs;
-    my $private = 0;
 
     # Parse long descriptions
     foreach my $comment ( $bug->children('long_desc') ) {
         Debug( "Parsing Long Description", DEBUG_LEVEL );
         my %long_desc;
-        $long_desc{'who'}       = $comment->field('who');
-        $long_desc{'bug_when'}  = $comment->field('bug_when');
-        $long_desc{'isprivate'} = $comment->{'att'}->{'isprivate'} || 0;
+        $long_desc{who}       = $comment->field('who');
+        $long_desc{bug_when}  = $comment->field('bug_when');
+        $long_desc{isprivate} = $comment->{att}->{isprivate} || 0;
+        # TODO validate work_time
+        $long_desc{work_time} = $comment->field('work_time') || 0;
 
-        # if one of the comments is private we need to set this flag
-        if ( $long_desc{'isprivate'} && $exporter->in_group($params->{'insidergroup'})) {
-            $private = 1;
-        }
         my $data = $comment->field('thetext');
-        if ( defined $comment->first_child('thetext')->{'att'}->{'encoding'}
-            && $comment->first_child('thetext')->{'att'}->{'encoding'} =~
+        if ( defined $comment->first_child('thetext')->{att}->{encoding}
+            && $comment->first_child('thetext')->{att}->{encoding} =~
             /base64/ )
         {
             $data = decode_base64($data);
@@ -536,50 +540,39 @@ sub process_bug {
         $data =~ s/([Bb]ugs?\s*\#?\s*(\d+))/$url$2/g;
 
         $long_desc{'thetext'} = $data;
+        unless ($long_desc{whoid} = login_to_id($long_desc{who}))
+        {
+            $long_desc{thetext} = "(by $long_desc{who})\n$long_desc{thetext}";
+            $long_desc{whoid} = $exporterid;
+        }
         push @long_descs, \%long_desc;
     }
 
-    # instead of giving each comment its own item in the longdescs
-    # table like it should have, lets cat them all into one big
-    # comment otherwise we would have to lie often about who
-    # authored the comment since commenters in one bugzilla probably
-    # don't have accounts in the other one.
-    # If one of the comments is private the whole comment will be
-    # private since we don't want to expose these unnecessarily
-    sub by_date { my @a; my @b; $a->{'bug_when'} cmp $b->{'bug_when'}; }
-    my @sorted_descs     = sort by_date @long_descs;
-    my $long_description = "";
-    for ( my $z = 0 ; $z <= $#sorted_descs ; $z++ ) {
-        if ( $z == 0 ) {
-            $long_description .= "\n\n\n---- Reported by ";
-        }
-        else {
-            $long_description .= "\n\n\n---- Additional Comments From ";
-        }
-        $long_description .= "$sorted_descs[$z]->{'who'} ";
-        $long_description .= "$sorted_descs[$z]->{'bug_when'}";
-        $long_description .= " ----";
-        $long_description .= "\n\n";
-        $long_description .= "THIS COMMENT IS PRIVATE \n"
-          if ( $sorted_descs[$z]->{'isprivate'} );
-        $long_description .= $sorted_descs[$z]->{'thetext'};
-        $long_description .= "\n";
-    }
-
     my $comments;
-
-    $comments .= "\n\n--- Bug imported by $exporter_login ";
+    $comments .= "--- Bug imported by $exporter_login ";
     $comments .= format_time(scalar localtime(time()), '%Y-%m-%d %R %Z') . " ";
     $comments .= " ---\n\n";
     $comments .= "This bug was previously known as _bug_ $bug_fields{'bug_id'} at ";
     $comments .= $urlbase . "show_bug.cgi?id=" . $bug_fields{'bug_id'} . "\n";
-    if ( defined $bug_fields{'dependson'} ) {
-        $comments .= "This bug depended on bug(s) " .
-                     join(' ', _to_array($bug_fields{'dependson'})) . ".\n";
+    if (defined $bug_fields{dependson})
+    {
+        my @dependson = _to_array($bug_fields{dependson});
+        $comments .= "This bug depended on bug(s) " . join(' ', @dependson) . ".\n";
+        if ($bug_fields{bug_id})
+        {
+            # remember dependencies to add them later
+            $depends_to_import{$bug_fields{bug_id}}{$_} = 1 for @dependson;
+        }
     }
-    if ( defined $bug_fields{'blocked'} ) {
-        $comments .= "This bug blocked bug(s) " .
-                     join(' ', _to_array($bug_fields{'blocked'})) . ".\n";
+    if (defined $bug_fields{blocked})
+    {
+        my @blocked = _to_array($bug_fields{blocked});
+        $comments .= "This bug blocked bug(s) " . join(' ', @blocked) . ".\n";
+        if ($bug_fields{bug_id})
+        {
+            # remember dependencies to add them later
+            $depends_to_import{$_}{$bug_fields{bug_id}} = 1 for @blocked;
+        }
     }
 
     # Now we process each of the fields in turn and make sure they contain
@@ -635,7 +628,7 @@ sub process_bug {
     # Product and Component if there is no valid default product and
     # component defined in the parameters, we wouldn't be here
     my $def_product =
-      new Bugzilla::Product( { name => $params->{"moved-default-product"} } );
+        new Bugzilla::Product( { name => $params->{"moved-default-product"} } );
     my $def_component = new Bugzilla::Component(
         {
             product => $def_product,
@@ -688,7 +681,7 @@ sub process_bug {
     # coming over is valid. If not we will use the first one in @versions
     # and warn them.
     my $version = new Bugzilla::Version(
-          { product => $product, name => $bug_fields{'version'} });
+        { product => $product, name => $bug_fields{'version'} });
 
     push( @query, "version" );
     if ($version) {
@@ -839,9 +832,8 @@ sub process_bug {
     }
 
     # Reporter Assignee QA Contact
-    my $exporterid = $exporter->id;
     my $reporterid = login_to_id( $bug_fields{'reporter'} )
-      if $bug_fields{'reporter'};
+        if $bug_fields{'reporter'};
     push( @query, "reporter" );
     if ( ( $bug_fields{'reporter'} ) && ($reporterid) ) {
         push( @values, $reporterid );
@@ -908,7 +900,7 @@ sub process_bug {
     my $is_open = is_open_state($bug_fields{'bug_status'}); 
     my $status = $bug_fields{'bug_status'} || undef;
     my $resolution = $bug_fields{'resolution'} || undef;
-    
+
     # Check everconfirmed 
     my $everconfirmed;
     if ($product->votes_to_confirm) {
@@ -928,7 +920,7 @@ sub process_bug {
         $resolution = "MOVED";
         $err .= "This bug was marked DUPLICATE in the database ";
         $err .= "it was moved from.\n    Changing resolution to \"MOVED\"\n";
-    } 
+    }
 
     # If there is at least 1 initial bug status different from UNCO, use it,
     # else use the open bug status with the lowest sortkey (different from UNCO).
@@ -1007,7 +999,7 @@ sub process_bug {
                    $err .= "   Setting resolution to MOVED\n";
                    $resolution = "MOVED";
                }
-            }   
+            }
         }
         else{ # $valid_status is false
             if($everconfirmed){  
@@ -1015,13 +1007,12 @@ sub process_bug {
             }
             else{
                 $status = "UNCONFIRMED";
-            }        
+            }
             $err .= "Bug has invalid status, setting status to \"$status\".\n";
             $err .= "   Previous status was \"";
             $err .=  $bug_fields{'bug_status'} . "\".\n";
             $resolution = undef;
         }
-                
     }
     else{ #has_status is false
         if($everconfirmed){  
@@ -1029,17 +1020,17 @@ sub process_bug {
         }
         else{
             $status = "UNCONFIRMED";
-        }        
+        }
         $err .= "Bug has no status, setting status to \"$status\".\n";
         $err .= "   Previous status was unknown\n";
         $resolution = undef;
     }
-                                 
+
     if (defined $resolution){
         push( @query,  "resolution" );
         push( @values, $resolution );
     }
-    
+
     # Bug status
     push( @query,  "bug_status" );
     push( @values, $status );
@@ -1252,15 +1243,21 @@ sub process_bug {
     # Insert longdesc and append any errors
     my $worktime = $bug_fields{'actual_time'} || 0.0;
     $worktime = 0.0 if (!$exporter->in_group($params->{'timetrackinggroup'}));
-    $long_description .= "\n" . $comments;
     if ($err) {
-        $long_description .= "\n$err\n";
+        $comments .= "\n$err";
     }
-    trick_taint($long_description);
-    $dbh->do("INSERT INTO longdescs 
-                     (bug_id, who, bug_when, work_time, isprivate, thetext) 
-                     VALUES (?,?,?,?,?,?)", undef,
-        $id, $exporterid, $timestamp, $worktime, $private, $long_description
+    trick_taint($comments);
+    push @long_descs, {
+        whoid     => $exporterid,
+        bug_when  => $timestamp,
+        work_time => 0,
+        isprivate => 0,
+        thetext   => $comments,
+    };
+    $dbh->do(
+        "INSERT INTO longdescs (bug_id, who, bug_when, work_time, isprivate, thetext)".
+        " VALUES ".join(",", ("(?,?,?,?,?,?)") x @long_descs), undef,
+        map { $id, @$_{qw(whoid bug_when work_time isprivate thetext)} } @long_descs
     );
     Bugzilla::Bug->new($id)->_sync_fulltext('new_bug');
 
@@ -1273,6 +1270,9 @@ sub process_bug {
             $sth_group->execute( $id, $group_id );
         }
     }
+
+    # Remember ID to new ID transition
+    $was_known_as_id{$bug_fields{bug_id}} = $id if $bug_fields{bug_id};
 
     $log .= "Bug ${urlbase}show_bug.cgi?id=$bug_fields{'bug_id'} ";
     $log .= "imported as bug $id.\n";
@@ -1289,6 +1289,34 @@ sub process_bug {
     # done with the xml data. Lets clear it from memory
     $twig->purge;
 
+}
+
+# Add dependencies between imported bugs
+sub fix_depends_for_imported_bugs
+{
+    Debug( "Adding dependencies between imported bugs", DEBUG_LEVEL );
+    my @dep = ();
+    for my $blocked (keys %depends_to_import)
+    {
+        if ($was_known_as_id{$blocked})
+        {
+            for my $dependson (keys %{$depends_to_import{$blocked}})
+            {
+                if ($was_known_as_id{$dependson})
+                {
+                    push @dep, $blocked, $dependson;
+                }
+            }
+        }
+    }
+    if (@dep)
+    {
+        return Bugzilla->dbh->do(
+            "INSERT INTO dependencies (blocked, dependson) VALUES " .
+            join(',', ("(?,?)") x (@dep/2)), undef, @dep
+        );
+    }
+    return 0;
 }
 
 Debug( "Reading xml", DEBUG_LEVEL );
@@ -1324,6 +1352,9 @@ my $twig = XML::Twig->new(
     start_tag_handlers => { bugzilla => \&init }
 );
 $twig->parse($xml);
+
+fix_depends_for_new_bugs();
+
 my $root       = $twig->root;
 my $maintainer = $root->{'att'}->{'maintainer'};
 my $exporter   = $root->{'att'}->{'exporter'};
