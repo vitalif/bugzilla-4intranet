@@ -185,7 +185,7 @@ sub post_bug {
     $cgi->param(-name => 'inbound_email', -value => 1);
 
     my $bug_id = do 'post_bug.cgi';
-    debug_print($@) if $@;
+    die $@ . "\n\nIncoming mail format for entering bugs:\n\@field = value\n\@field = value\n...\n\nBug text\n" if $@;
     if ($fields{attachments} && @{$fields{attachments}})
     {
         $cgi->delete(keys %fields);
