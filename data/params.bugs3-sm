@@ -32,7 +32,7 @@
            'confirmuniqueusermatch' => 1,
            'convert_uncompressed_images' => 0,
            'cookiedomain' => '',
-           'cookiepath' => '/bugs3',
+           'cookiepath' => '/bugzilla',
            'createemailregexp' => '.*',
            'cvsroot' => '',
            'cvsroot_get' => '',
