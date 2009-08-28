@@ -1353,7 +1353,7 @@ my $twig = XML::Twig->new(
 );
 $twig->parse($xml);
 
-fix_depends_for_new_bugs();
+fix_depends_for_imported_bugs();
 
 my $root       = $twig->root;
 my $maintainer = $root->{'att'}->{'maintainer'};
