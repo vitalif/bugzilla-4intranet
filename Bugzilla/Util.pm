@@ -279,7 +279,13 @@ sub ssl_require_redirect {
     return 0;
 }
 
-sub correct_urlbase {
+sub correct_urlbase
+{
+    if ($Bugzilla::CustisLocalBugzillas::HackIntoCorrectUrlbase)
+    {
+        # Отправка почты заказчикам со ссылками на свои багзиллы
+        return $Bugzilla::CustisLocalBugzillas::HackIntoCorrectUrlbase;
+    }
     my $ssl = Bugzilla->params->{'ssl'};
     return Bugzilla->params->{'urlbase'} if $ssl eq 'never';
 
