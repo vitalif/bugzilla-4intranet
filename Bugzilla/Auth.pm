@@ -90,7 +90,8 @@ sub login {
     }
     $user->set_authorizer($self);
 
-    if ($user->settings->{redirect_me_to_my_bugzilla} eq "on")
+    if ($user->settings->{redirect_me_to_my_bugzilla} &&
+        lc($user->settings->{redirect_me_to_my_bugzilla}->{value}) eq "on")
     {
         my $loc = \%Bugzilla::CustisLocalBugzillas::localizer;
         my $fullurl = Bugzilla->cgi->url();
