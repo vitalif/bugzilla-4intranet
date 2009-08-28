@@ -685,6 +685,9 @@ sub sendMail
         threadingmarker    => build_thread_marker($id, $user->id, $isnew),
     };
 
+    # Hack into urlbase and set it to be correct for current user
+    Bugzilla::CustisLocalBugzillas::HackIntoUrlbase($user->email);
+
     my $msg;
     my $template = Bugzilla->template_inner($user->settings->{lang}->{value});
     my $tmpl = '-'.$values{product};
@@ -693,9 +696,10 @@ sub sendMail
         || ThrowTemplateError($template->error());
     Bugzilla->template_inner("");
 
-    $msg = Bugzilla::CustisLocalBugzillas::CorrectLinksToLocalBugzilla($user->email, $msg);
-
     MessageToMTA($msg);
+
+    # Unhack urlbase :-)
+    Bugzilla::CustisLocalBugzillas::HackIntoUrlbase(undef);
 
     return 1;
 }

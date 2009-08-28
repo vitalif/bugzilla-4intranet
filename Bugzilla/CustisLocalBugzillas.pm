@@ -5,31 +5,51 @@ package Bugzilla::CustisLocalBugzillas;
 
 use strict;
 
-our %localizer = (
-    '[^\@]+\@custis\.ru'    => "http://bugs.office.custis.ru/bugs/",
-    '[^\@]+\@(sportmaster\.ru|ilion\.ru|sportmaster\.com\.ua|scn\.ru|mbr\.ru|ilion\.ru|vek\.ru|bis\.overta\.ru)' => "http://penguin.office.custis.ru/bugzilla/",
-    '[^\@]+\@(sobin\.ru)'   => "http://sobin.office.custis.ru/sbbugs/",
-    '[^\@]+\@(yandex\.ru)'  => "http://wws-fomin.office.custis.ru/bugzilla/",
-    '[^\@]+\@(hrendel\.ru)' => "http://ws-fomin.office.custis.ru/bugzilla/",
+our %local_urlbase = (
+    '[^\@]+\@custis\.ru'    => {
+        # своих сотрудников не принуждаем к конкретной багзилле
+        urlbase => "http://bugs.office.custis.ru/",
+    },
+    '[^\@]+\@(sportmaster\.ru|ilion\.ru|sportmaster\.com\.ua|scn\.ru|mbr\.ru|ilion\.ru|vek\.ru|bis\.overta\.ru)' => {
+        force   => 1,
+        urlbase => "http://penguin.office.custis.ru/bugzilla/",
+    },
+    '[^\@]+\@(sobin\.ru)'   => {
+        force   => 1,
+        urlbase => "http://sobin.office.custis.ru/sbbugs/",
+    },
 );
 
-sub CorrectLinksToLocalBugzilla
+# Urlbase, воспринимаемый функцией Bugzilla::Util::correct_urlbase
+our $HackIntoCorrectUrlbase = undef;
+my $oldurlbase;
+
+sub HackIntoUrlbase
 {
-    my ($userlogin, $msg) = (@_);
-    foreach my $regemail1 (keys %localizer)
+    my ($userlogin) = @_;
+    unless ($userlogin)
     {
-        if ($userlogin =~ /$regemail1/s)
+        Bugzilla->params->{urlbase} = $oldurlbase if $oldurlbase;
+        return $HackIntoCorrectUrlbase = undef;
+    }
+    foreach (keys %local_urlbase)
+    {
+        if ($userlogin =~ /$_/s && $local_urlbase{$_}{force})
         {
-            foreach my $regemail2 (keys %localizer)
-            {
-                if ($userlogin !~ /$regemail2/s)
-                {
-                    $msg =~ s/\Q$localizer{$regemail2}\E/$localizer{$regemail1}/gs;
-                }
-            }
+            $HackIntoCorrectUrlbase = $local_urlbase{$_}{urlbase};
+            last;
         }
     }
-    return $msg;
+    if ($HackIntoCorrectUrlbase)
+    {
+        $oldurlbase = Bugzilla->params->{urlbase};
+        Bugzilla->params->{urlbase} = $HackIntoCorrectUrlbase;
+    }
+    else
+    {
+        $oldurlbase = undef;
+    }
+    return $HackIntoCorrectUrlbase;
 }
 
 1;
