@@ -10,10 +10,10 @@ alter table components change wiki_url1 wiki_url varchar(255) not null;
 create temporary table tmp2 as select user_id, 'post_bug_submit_action' AS setting_name, (case when setting_value='on' then 'next_bug' else 'same_bug' end) as setting_value from profile_setting where setting_name='go_to_next_bug';
 replace into profile_setting (user_id, setting_name, setting_value) select * from tmp2;
 drop table tmp2;
-delete from profile_setting where setting_name in ('go_to_next_bug', 'remind_me_about_flags', 'create_bug_resolved');
+delete from profile_setting where setting_name in ('go_to_next_bug', 'remind_me_about_flags', 'create_bug_resolved', 'create_bug_assigned');
 update profile_setting set setting_name='remind_me_about_flags' where setting_name='remind_me_about_requests';
-delete from setting_value where name in ('go_to_next_bug', 'remind_me_about_requests', 'create_bug_resolved');
-delete from setting where name in ('go_to_next_bug', 'remind_me_about_requests', 'create_bug_resolved');
+delete from setting_value where name in ('go_to_next_bug', 'remind_me_about_requests', 'create_bug_resolved', 'create_bug_assigned');
+delete from setting where name in ('go_to_next_bug', 'remind_me_about_requests', 'create_bug_resolved', 'create_bug_assigned');
 -- Дальше ДОЛЖНО уже быть создано поле cf_agreement (договор) зависимое от продукта
 -- Наполняем значениями поле "Договор"
 insert into cf_agreement (value, sortkey, isactive, visibility_value_id)
