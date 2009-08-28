@@ -8,7 +8,7 @@ use strict;
 our %local_urlbase = (
     '[^\@]+\@custis\.ru'    => {
         # своих сотрудников не принуждаем к конкретной багзилле
-        urlbase => "http://bugs.office.custis.ru/",
+        urlbase => "http://bugs.office.custis.ru/bugs/",
     },
     '[^\@]+\@(sportmaster\.ru|ilion\.ru|sportmaster\.com\.ua|scn\.ru|mbr\.ru|ilion\.ru|vek\.ru|bis\.overta\.ru)' => {
         force   => 1,
