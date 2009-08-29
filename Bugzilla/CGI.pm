@@ -113,20 +113,9 @@ sub new {
 
 # DAMN CGI.pm AUTHORS for their newstyle_urls O_O O_O
 sub parse_params {
-    my($self,$tosplit) = @_;
-    # This was like: my(@pairs) = split(/[&;]/,$tosplit);
-    my(@pairs) = split(/&/,$tosplit);
-    my($param,$value);
-    foreach (@pairs) {
-        ($param,$value) = split('=',$_,2);
-        next unless defined $param;
-        next if $CGI::NO_UNDEF_PARAMS and not defined $value;
-        $value = '' unless defined $value;
-        $param = CGI::unescape($param);
-        $value = CGI::unescape($value);
-        $self->add_parameter($param);
-        push (@{$self->{param}{$param}},$value);
-    }
+    my $self = shift;
+    $CGI::USE_PARAM_SEMICOLONS = 0;
+    $self->SUPER::parse_params(@_);
 }
 
 # We want this sorted plus the ability to exclude certain params
@@ -193,10 +182,8 @@ sub clean_search_url {
         }
     }
 
-    # chfieldto is set to "Now" by default in query.cgi. But if none
-    # of the other chfield parameters are set, it's meaningless.
-    if (!defined $self->param('chfieldfrom') && !$self->param('chfield')
-        && !defined $self->param('chfieldvalue'))
+    # chfieldto is set to "Now" by default in query.cgi.
+    if ($self->param('chfieldto') eq 'Now')
     {
         $self->delete('chfieldto');
     }
