@@ -27,10 +27,11 @@ my $oldurlbase;
 sub HackIntoUrlbase
 {
     my ($userlogin) = @_;
+    $HackIntoCorrectUrlbase = undef;
     unless ($userlogin)
     {
         Bugzilla->params->{urlbase} = $oldurlbase if $oldurlbase;
-        return $HackIntoCorrectUrlbase = undef;
+        return $HackIntoCorrectUrlbase;
     }
     foreach (keys %local_urlbase)
     {
