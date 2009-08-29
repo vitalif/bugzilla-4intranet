@@ -97,14 +97,15 @@ sub login {
         my $fullurl = Bugzilla->cgi->url();
         foreach my $regemail (keys %$loc)
         {
-            if ($user->login =~ /$regemail/s && $fullurl !~ /\Q$loc->{$regemail}\E/s)
+            if ($user->login =~ /$regemail/s &&
+                $fullurl !~ /\Q$loc->{$regemail}->{urlbase}\E/s)
             {
                 my $relativeurl = Bugzilla->cgi->url(
                     -path_info => 1,
                     -query => 1,
                     -relative => 1
                 );
-                my $url = $loc->{$regemail} . $relativeurl;
+                my $url = $loc->{$regemail}->{urlbase} . $relativeurl;
                 print Bugzilla->cgi->redirect(-location => $url);
                 exit;
             }
