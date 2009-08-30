@@ -478,7 +478,8 @@ sub insert {
         $attachment->description . "\n";
     $comment .= "\n" . $cgi->param('comment') if defined $cgi->param('comment');
 
-    $bug->add_comment($comment, { isprivate => $attachment->isprivate });
+    my $work_time = scalar $cgi->param('work_time');
+    $bug->add_comment($comment, { isprivate => $attachment->isprivate, work_time => $work_time });
 
     # Assign the bug to the user, if they are allowed to take it
     my $owner = "";
