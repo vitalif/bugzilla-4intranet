@@ -31,6 +31,8 @@
   #              already_wrapped: Determines whether the comment is pre-wrapped
   #%]
 
+[% PROCESS global/variables.none.tmpl %]
+
 [% IF comment.already_wrapped %]
   [% wrapped_comment = comment.body %]
 [% ELSE %]
