@@ -7,6 +7,7 @@ sub processWikiAnchor
 {
     my ($anchor) = (@_);
     return "" unless $anchor;
+    $anchor =~ tr/ /_/;
     $anchor = url_quote($anchor);
     $anchor =~ s/%/./gso;
     return $anchor;
