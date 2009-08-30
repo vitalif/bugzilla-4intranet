@@ -223,7 +223,8 @@ if (defined $cgi->param('version')) {
 # after the bug is filed.
 
 # Add an attachment if requested.
-if (defined($cgi->upload('data')) || $cgi->param('attachurl')) {
+if (defined($cgi->upload('data')) || $cgi->param('attachurl') ||
+    $cgi->param('text_attachment')) {
     $cgi->param('isprivate', $cgi->param('commentprivacy'));
     my $attachment = Bugzilla::Attachment->create(!THROW_ERROR,
                                                   $bug, $user, $timestamp, $vars);
