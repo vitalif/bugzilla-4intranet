@@ -145,7 +145,7 @@
   function changeform_onsubmit()
   {
     wt = parseFloat(document.changeform.work_time.value.replace(',','.'));
-    if ([% remind_about_worktime %] && (!wt || wt == NaN || wt <= 0))
+    if ([% remind_about_worktime ? 1 : 0 %] && (!wt || wt == NaN || wt <= 0))
     {
       wt = prompt("Please, verify working time:", !wt || wt == NaN ? "0" : wt);
       if (wt == null || wt == undefined || (""+wt).length <= 0)
