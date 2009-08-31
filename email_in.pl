@@ -321,7 +321,9 @@ sub get_text_alternative {
             $body = $part->body;
         }
         elsif ($ct =~ /^text\/html/i) {
-            $body = HTML::Strip->new->parse($part->body);
+            $body = $part->body;
+            Bugzilla::Hook::process("emailin-filter_html", { body => \$body });
+            $body = HTML::Strip->new->parse($body);
         }
         if (defined $body)
         {
