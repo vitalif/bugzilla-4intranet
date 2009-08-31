@@ -56,7 +56,7 @@ my $tz = strftime('%z', localtime);
 # second query gets any changes to the fields of a bug (eg assignee, status etc)
 
 my $bugsquery = "
- SELECT
+ (SELECT
     b.bug_id, b.short_desc, pr.name product, cm.name component, b.bug_severity, b.bug_status,
     l.work_time, l.thetext, DATE_FORMAT(l.bug_when,'%Y%m%d%H%i%s') AS commentlink,
     DATE_FORMAT(l.bug_when,'%Y-%m-%dT%H:%iZ') AS bug_when,
@@ -64,13 +64,18 @@ my $bugsquery = "
     l.bug_when AS `when`, p.login_name, p.realname,
     NULL AS fieldname, NULL AS fielddesc, NULL AS attach_id, NULL AS old, NULL AS new,
     (b.creation_ts=l.bug_when) as is_new
- FROM bugs b, longdescs l, profiles p, products pr, components cm
- WHERE l.isprivate=0 AND b.bug_id IN ($sqlquery) AND b.bug_id=l.bug_id
-    AND l.who=p.userid AND pr.id=b.product_id AND cm.id=b.component_id
+ FROM longdescs l
+ LEFT JOIN bugs b ON b.bug_id=l.bug_id
+ LEFT JOIN profiles p ON p.userid=l.who
+ LEFT JOIN products pr ON pr.id=b.product_id
+ LEFT JOIN components cm ON cm.id=b.component_id
+ WHERE l.isprivate=0 AND l.bug_id IN ($sqlquery)
+ ORDER BY l.bug_when DESC
+ LIMIT 100)
 
  UNION ALL
 
- SELECT
+ (SELECT
     b.bug_id, b.short_desc, pr.name AS product, cm.name AS component, b.bug_severity, b.bug_status,
     0 AS work_time, '' AS thetext, DATE_FORMAT(a.bug_when,'%Y%m%d%H%i%s') AS commentlink,
     DATE_FORMAT(a.bug_when,'%Y-%m-%dT%H:%iZ') bug_when,
@@ -78,14 +83,16 @@ my $bugsquery = "
     a.bug_when AS `when`, p.login_name, p.realname,
     f.name AS fieldname, f.description AS fielddesc, a.attach_id, a.removed AS old, a.added AS new,
     0 as is_new
- FROM bugs b
- JOIN bugs_activity a ON a.bug_id=b.bug_id
- JOIN profiles p ON p.userid=a.who
- JOIN products pr ON pr.id=b.product_id
- JOIN components cm ON cm.id=b.component_id
- JOIN fielddefs f ON f.id=a.fieldid
+ FROM bugs_activity a
+ LEFT JOIN bugs b ON b.bug_id=a.bug_id
+ LEFT JOIN profiles p ON p.userid=a.who
+ LEFT JOIN products pr ON pr.id=b.product_id
+ LEFT JOIN components cm ON cm.id=b.component_id
+ LEFT JOIN fielddefs f ON f.id=a.fieldid
  LEFT JOIN attachments at ON at.attach_id=a.attach_id
- WHERE b.bug_id IN ($sqlquery) AND (at.isprivate IS NULL OR at.isprivate=0)
+ WHERE at.isprivate IS NULL OR at.isprivate=0 AND a.bug_id IN ($sqlquery)
+ ORDER BY a.bug_when DESC
+ LIMIT 100)
 
  ORDER BY `when` DESC
  LIMIT 100
