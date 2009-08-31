@@ -365,15 +365,22 @@ sub wrap_comment
     foreach my $line (split /\r\n?|\n/, $comment)
     {
         # If the line starts with ">", don't wrap it. Otherwise, wrap.
-        if ($line !~ /^>/so)
+        unless ($line)
         {
-            $line =~ s/\t/    /gso;
-            while (length($line) > $cols && $line =~ s/$re//)
-            {
-                $wrappedcomment .= $1 . "\n";
-            }
+            $wrappedcomment .= "\n";
         }
-        $wrappedcomment .= $line . "\n" if $line;
+        else
+        {
+            if ($line !~ /^>/so)
+            {
+                $line =~ s/\t/    /gso;
+                while (length($line) > $cols && $line =~ s/$re//)
+                {
+                    $wrappedcomment .= $1 . "\n";
+                }
+            }
+            $wrappedcomment .= $line . "\n" if $line;
+        }
     }
 
     chomp $wrappedcomment;
