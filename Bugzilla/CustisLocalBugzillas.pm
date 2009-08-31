@@ -6,15 +6,15 @@ package Bugzilla::CustisLocalBugzillas;
 use strict;
 
 our %local_urlbase = (
-    '[^\@]+\@custis\.ru'    => {
-        # своих сотрудников не принуждаем к конкретной багзилле
+    '[^\@]+\@custis\.ru$' => {
+        force   => 1,
         urlbase => "http://bugs.office.custis.ru/bugs/",
     },
     '[^\@]+\@(sportmaster\.ru|ilion\.ru|sportmaster\.com\.ua|scn\.ru|mbr\.ru|ilion\.ru|vek\.ru|bis\.overta\.ru)' => {
         force   => 1,
         urlbase => "http://penguin.office.custis.ru/bugzilla/",
     },
-    '[^\@]+\@(sobin\.ru)'   => {
+    '[^\@]+\@sobin\.ru$' => {
         force   => 1,
         urlbase => "http://sobin.office.custis.ru/sbbugs/",
     },
