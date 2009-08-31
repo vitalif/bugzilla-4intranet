@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# ./checksetup'Ï×ÙÅ ÏÂÎÏ×ÌÅÎÉÑ ÂÁÚÙ
+# ./checksetup'Ð¾Ð²Ñ‹Ðµ Ð¾Ð±Ð½Ð¾Ð²Ð»ÐµÐ½Ð¸Ñ Ð±Ð°Ð·Ñ‹
 
 use strict;
 use utf8;
@@ -18,9 +18,62 @@ sub sure_utf8
     return $s;
 }
 
-# ðÅÒÅËÏÄÉÒÏ×ËÁ ÐÁÒÁÍÅÔÒÏ× ÓÏÈÒÁÎ£ÎÎÙÈ ÐÏÉÓËÏ× ÉÚ CP-1251 × UTF-8
-print "Making sure saved queries are in UTF-8...\n";
 my $dbh = Bugzilla->dbh;
+
+# ÐŸÐµÑ€ÐµÐ½Ð¾Ñ CC Ð¿Ð¾ ÑƒÐ¼Ð¾Ð»Ñ‡Ð°Ð½Ð¸ÑŽ Ð¸Ð· Ð½Ð°ÑˆÐµÐ¹ Ð´Ð¾Ñ€Ð°Ð±Ð¾Ñ‚ÐºÐ¸ initialcclist Ð² Ð½Ð¾Ñ€Ð¼Ð°Ð»ÑŒÐ½Ñ‹Ð¹ Ð¼ÐµÑ…Ð°Ð½Ð¸Ð·Ð¼ component_cc
+my $ccour = $dbh->bz_column_info('components', 'initialcclist');
+unless ($ccour)
+{
+    $ccour = $dbh->selectall_arrayref("DESC components") || [];
+    $ccour = { map { ($_->[0] => 1) } @$ccour };
+    $ccour = $ccour->{initialcclist} ? 1 : undef;
+}
+
+if ($ccour)
+{
+    print "Migrating initialcclist to component_cc...\n";
+    my $cc = $dbh->selectall_arrayref("SELECT id, initialcclist FROM components") || [];
+    $dbh->do("CREATE TABLE IF NOT EXISTS old_component_initialcc (id smallint(6) not null auto_increment primary key, initialcclist tinytext not null)");
+    my $ins = $dbh->prepare("REPLACE INTO old_component_initialcc (id, initialcclist) VALUES (?, ?)");
+    my $addcc = $dbh->prepare("REPLACE INTO component_cc (user_id, component_id) VALUES (?, ?)");
+    my ($user, $uid, $list);
+    my $added = [];
+    foreach (@$cc)
+    {
+        $ins->execute(@$_);
+        if ($list = $_->[1])
+        {
+            $list = [ split /[\s,]+/, $list ];
+            for $user (@$list)
+            {
+                $user =~ s/^\s+|\s+$//so;
+                ($uid) = $dbh->selectrow_array("SELECT userid FROM profiles WHERE login_name=?", undef, $user);
+                unless ($uid)
+                {
+                    print "  ERROR: unknown default CC for component $_->[0]: '$user'\n";
+                }
+                else
+                {
+                    push @$added, [ $uid, $_->[0] ];
+                    $addcc->execute($uid, $_->[0]);
+                }
+            }
+        }
+    }
+    if ($dbh->bz_column_info('components', 'initialcclist'))
+    {
+        $dbh->bz_drop_column('components', 'initialcclist');
+    }
+    else
+    {
+        $dbh->do("ALTER TABLE components DROP initialcclist");
+    }
+    print "Successfully migrated ".scalar(@$added)." initial CC definitions\n";
+    print "  (old data backed up in old_component_initialcc table)\n";
+}
+
+# ÐŸÐµÑ€ÐµÐºÐ¾Ð´Ð¸Ñ€Ð¾Ð²ÐºÐ° Ð¿Ð°Ñ€Ð°Ð¼ÐµÑ‚Ñ€Ð¾Ð² ÑÐ¾Ñ…Ñ€Ð°Ð½Ñ‘Ð½Ð½Ñ‹Ñ… Ð¿Ð¾Ð¸ÑÐºÐ¾Ð² Ð¸Ð· CP-1251 Ð² UTF-8
+print "Making sure saved queries are in UTF-8...\n";
 my $nq = $dbh->selectall_arrayref("SELECT * FROM namedqueries WHERE query LIKE '%\\%%'", {Slice=>{}});
 if ($nq)
 {
@@ -33,7 +86,7 @@ if ($nq)
     }
 }
 
-# äÏÂÁ×ÌÑÅÍ ËÏÌÏÎËÕ wiki_url × ÐÒÏÄÕËÔÙ É ËÏÍÐÏÎÅÎÔÙ
+# Ð”Ð¾Ð±Ð°Ð²Ð»ÑÐµÐ¼ ÐºÐ¾Ð»Ð¾Ð½ÐºÑƒ wiki_url Ð² Ð¿Ñ€Ð¾Ð´ÑƒÐºÑ‚Ñ‹ Ð¸ ÐºÐ¾Ð¼Ð¿Ð¾Ð½ÐµÐ½Ñ‚Ñ‹
 if (!$dbh->bz_column_info('products', 'buglist'))
 {
     $dbh->bz_add_column('products', 'wiki_url', {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"});
