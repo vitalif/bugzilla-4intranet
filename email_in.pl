@@ -44,6 +44,7 @@ use Encode;
 
 use Bugzilla;
 use Bugzilla::Bug;
+use Bugzilla::Hook;
 use Bugzilla::Constants qw(USAGE_MODE_EMAIL);
 use Bugzilla::Error;
 use Bugzilla::Mailer;
@@ -113,6 +114,7 @@ sub parse_mail {
     debug_print("Body:\n" . $body, 3);
 
     $body = remove_leading_blank_lines($body);
+    Bugzilla::Hook::process("emailin-filter_body", { body => \$body });
     my @body_lines = split(/\r?\n/s, $body);
 
     # If there are fields specified.
