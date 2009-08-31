@@ -87,7 +87,8 @@
     [% END %]
 
       /* <textarea id="comment"> */
-      var textarea = document.getElementById('comment');
+      var textarea = document.getElementById('commentt');
+      //alert(textarea.value);
       textarea.value += replytext;
 
       textarea.focus();
@@ -279,7 +280,7 @@
           <br>
           [% INCLUDE global/textarea.html.tmpl
                      name      = 'comment'
-                     id        = 'comment'
+                     id        = 'commentt'
                      minrows   = 10
                      maxrows   = 25
                      cols      = constants.COMMENT_COLS
