@@ -32,3 +32,8 @@ $schema->{emailin_aliases} = {
         emailin_aliases_address => { FIELDS => ['address'], TYPE => 'UNIQUE' },
     ],
 };
+
+# Ну и зачем авторы убрали этот индекс?
+# Bug 53687
+# TODO в базе надо бы сделать правильное имя индекса
+push @{$schema->{longdescs}->{INDEXES}}, { FIELDS => ['who', 'bug_when'] };

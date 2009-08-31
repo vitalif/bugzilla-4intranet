@@ -2873,6 +2873,10 @@ sub _update_longdescs_who_index {
         $dbh->bz_drop_index('longdescs', 'longdescs_who_idx');
         $dbh->bz_add_index('longdescs', 'longdescs_who_idx', [qw(who bug_id)]);
     }
+    if (!$dbh->bz_index_info('longdescs', 'longdescs_who_bug_when_idx'))
+    {
+        $dbh->bz_add_index('longdescs', 'longdescs_who_bug_when_idx', [qw(who bug_when)]);
+    }
 }
 
 sub _fix_uppercase_custom_field_names {
