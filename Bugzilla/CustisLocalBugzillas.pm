@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# Для перенаправления в свою багзиллу
+# п■п╩я▐ п©п╣я─п╣п╫п╟п©я─п╟п╡п╩п╣п╫п╦я▐ п╡ я│п╡п╬я▌ п╠п╟пЁп╥п╦п╩п╩я┐
 
 package Bugzilla::CustisLocalBugzillas;
 
@@ -7,7 +7,7 @@ use strict;
 
 our %local_urlbase = (
     '[^\@]+\@custis\.ru'    => {
-        # своих сотрудников не принуждаем к конкретной багзилле
+        # я│п╡п╬п╦я┘ я│п╬я┌я─я┐п╢п╫п╦п╨п╬п╡ п╫п╣ п©я─п╦п╫я┐п╤п╢п╟п╣п╪ п╨ п╨п╬п╫п╨я─п╣я┌п╫п╬п╧ п╠п╟пЁп╥п╦п╩п╩п╣
         urlbase => "http://bugs.office.custis.ru/bugs/",
     },
     '[^\@]+\@(sportmaster\.ru|ilion\.ru|sportmaster\.com\.ua|scn\.ru|mbr\.ru|ilion\.ru|vek\.ru|bis\.overta\.ru)' => {
@@ -20,7 +20,7 @@ our %local_urlbase = (
     },
 );
 
-# Urlbase, воспринимаемый функцией Bugzilla::Util::correct_urlbase
+# Urlbase, п╡п╬я│п©я─п╦п╫п╦п╪п╟п╣п╪я▀п╧ я└я┐п╫п╨я├п╦п╣п╧ Bugzilla::Util::correct_urlbase
 our $HackIntoCorrectUrlbase = undef;
 my $oldurlbase;
 
