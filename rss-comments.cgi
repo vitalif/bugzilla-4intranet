@@ -90,7 +90,7 @@ my $bugsquery = "
  LEFT JOIN components cm ON cm.id=b.component_id
  LEFT JOIN fielddefs f ON f.id=a.fieldid
  LEFT JOIN attachments at ON at.attach_id=a.attach_id
- WHERE at.isprivate IS NULL OR at.isprivate=0 AND a.bug_id IN ($sqlquery)
+ WHERE (at.isprivate IS NULL OR at.isprivate=0) AND a.bug_id IN ($sqlquery)
  ORDER BY a.bug_when DESC
  LIMIT 100)
 
