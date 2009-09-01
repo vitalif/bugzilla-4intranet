@@ -22,6 +22,9 @@
 
 [% PROCESS global/variables.none.tmpl %]
 
+[% USE Bugzilla %]
+[% BLOCK userlink %]<a href="[% Param('user_mailto') %][% u.email | html %]">[% (u.name || u.login) | html %]</a>[% END %]
+
 [% bugidsummary = bug.bug_id _ ': ' _ bug.short_desc %]
 [% attidsummary = attachment.id _ ': ' _ attachment.description %]
 [% statuses = { '+' => "granted" , '-' => 'denied' , 'X' => "canceled" ,
@@ -50,10 +53,18 @@ Subject: [% flag.type.name %] [%+ subject_status %]: [[% terms.Bug %] [%+ bug.bu
   [Attachment [% attachment.id %]] [% attachment.description %][% END %]
 X-Bugzilla-Type: request
 [%+ threadingmarker %]
+[% USE date %]
+[% SET boundary = "--" _ date.now %]
+Content-Type: multipart/alternative; boundary=[% boundary %]
+MIME-Version: 1.0
 
+--[% boundary %]
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+[% FILTER quoted_printable %]
 [%+ USE wrap -%]
 [%- FILTER bullet = wrap(80) -%]
-
 [% IF on_behalf_of %]
 [% user.identity %] has reassigned [% flag.setter.identity %]'s request for [% flag.type.name %]
 [% to_identity %]:
@@ -73,10 +84,46 @@ Attachment [% attidsummary %]
 [%- END %]
 [%- FILTER bullet = wrap(80) %]
 
-[% USE Bugzilla %]
 [% IF Bugzilla.cgi.param("comment") && Bugzilla.cgi.param("comment").length > 0 %]
 ------- Additional Comments from [% user.identity %]
 [%+ Bugzilla.cgi.param("comment") %]
 [% END %]
 
 [%- END %]
+[% END %]
+
+--[% boundary %]
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+[% FILTER quoted_printable %]
+<body style="font-size: 10pt">
+<p>
+[% IF on_behalf_of %]
+ [% PROCESS userlink u=user %] has reassigned [% PROCESS userlink u=flag.setter %]'s request
+ for <b>[% flag.type.name %]</b> [% IF flag.requestee %]to [% PROCESS userlink u=flag.requestee %][% END %]:
+[% ELSE %]
+ [% PROCESS userlink u=user %] has [% statuses.${flag.status} %]
+ [% IF flag.status == '?' AND flag.setter.id == user.id %]
+  [% PROCESS userlink u=flag.requestee %] for
+ [% ELSIF flag.status != '?' AND flag.requester %]
+  [% PROCESS userlink u=flag.requester %]'s request for
+ [% END %]
+ <b>[% flag.type.name %]</b>:
+[% END %]
+</p>
+<p><a href="[% urlbase %]show_bug.cgi?id=[% bug.bug_id %]">[% terms.Bug %] [% bugidsummary %]</a></p>
+[% IF attachment %]
+<p><a href="[%+ urlbase %]attachment.cgi?id=[% attachment.id %]&action=edit">Attachment [% attidsummary %]</a></p>
+[% END %]
+[% IF Bugzilla.cgi.param("comment") && Bugzilla.cgi.param("comment").length > 0 %]
+<p>
+Additional Comments from [% PROCESS userlink u=user %]:
+<pre style="border-width: 0 0 1px 0; border-style: solid; border-color: #808080; white-space: pre-wrap; word-wrap: break-word; _white-space: pre;">
+[%- Bugzilla.cgi.param("comment") | wrap_comments | quoteUrls(bug.bug_id) | absolute_uris -%]
+</pre>
+</p>
+[% END %]
+</body>
+[% END %]
+--[% boundary %]--
