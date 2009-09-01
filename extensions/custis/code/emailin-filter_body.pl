@@ -10,6 +10,8 @@ for (${Bugzilla->hook_args->{body}})
         $ps =~ s/\n+(\r*\n+)+/\n/giso;
         $_ = $pr . $ps;
         s!from\s+.*?<http://plantime[^>]*search=([^>]*)>!from $1!giso;
+        s!(Comment\s+\#\d+)<[^<>]*>!$1!giso;
+        s!\n[^\n]*<http://plantime[^>]*search=[^>]*>\s+changed:[ \t\r]*\n.*?$!!iso;
         s/\s*\n--\s*Configure\s*bugmail<[^>]*>(([ \t\r]*\n[^\n]*)*)//iso;
     }
 }

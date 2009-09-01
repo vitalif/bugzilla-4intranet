@@ -117,7 +117,7 @@ body { font-size: 10pt; }
 
 [% IF new_comments AND new_comments.size > 0 %]
   [% FOR comment = new_comments %]
-  <p>Comment #[% comment.count %] from
+  <p><a href="[%+ urlbase %]show_bug.cgi?id=[% bugid %]#c[% comment.count %]">Comment #[% comment.count %]</a> from
       <span class="vcard">
           <a class="fn email" href="[% Param('user_mailto') %][% comment.author.email FILTER html %]">
           [% (comment.author.name || comment.author.login) FILTER html %]</a>
