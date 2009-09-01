@@ -248,8 +248,8 @@
   # 'bannerhtml'
   #%]
 
-
-<div id="header">
+<table>
+<tr><td id="header">
 
 [% INCLUDE global/banner.html.tmpl %]
 
@@ -276,9 +276,9 @@
 
 [% PROCESS "global/common-links.html.tmpl" qs_suffix = "_top" in_ul = 0 %]
 
-</div>
+</td></tr>
 
-<div id="bugzilla-body">
+<tr><td id="bugzilla-body">
 
 [% IF Param('announcehtml') %]
 [% Param('announcehtml') FILTER none %]

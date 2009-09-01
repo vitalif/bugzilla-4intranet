@@ -26,13 +26,13 @@
 
 [% INCLUDE "global/help.html.tmpl" %]
 
-</div>
+</td></tr>
 
 [%# Migration note: below this point, this file corresponds to the old Param
   # 'footerhtml'
   #%]
 
-<div id="footer">
+<tr><td id="footer">
   <div class="intro"></div>
 
 [%# Migration note: the old param 'blurbhtml' goes here %]
@@ -42,7 +42,8 @@
            [% PROCESS "global/useful-links.html.tmpl" %]
 
   <div class="outro"></div>
-</div>
+</tr>
+</table>
 
 </body>
 </html>
