@@ -28,6 +28,7 @@
 
 package Bugzilla::Bug;
 
+use utf8;
 use strict;
 
 use Bugzilla::Attachment;
@@ -693,7 +694,7 @@ sub update {
     }
 
     # CC
-    my ($ccg) = $self->product_obj->description =~ /\[[Có]{2}:\s*([^\]]+)\s*\]/iso;
+    my ($ccg) = $self->product_obj->description =~ /\[[CÐ¡]{2}:\s*([^\]]+)\s*\]/iso;
     my @old_cc = map {$_->id} @{$old_bug->cc_users};
     my @new_cc = @{$self->cc_users};
     @new_cc = grep {$_->in_group($ccg)} @new_cc if $ccg;
