@@ -78,32 +78,27 @@ if (@idlist || @lines)
 
 print $cgi->header();
 
-my $query = $dbh->selectrow_array(
-    "SELECT query FROM namedqueries" .
-    " WHERE userid=? AND name = 'MyWorktimeBugs'",
-    undef, $userid
-);
+my ($query, $query_id) = Bugzilla::Search::LookupNamedQuery('MyWorktimeBugs', undef, undef, 0);
 
 my $sqlquery = "";
-if (defined($query))
+if ($query_id)
 {
     my $queryparams = new Bugzilla::CGI($query);
     my $search      = new Bugzilla::Search(
         params => $queryparams,
         fields => [ "bugs.bug_id", "bugs.priority", "bugs.short_desc", "bugs.remaining_time" ],
-        user   => $user
+        user   => $user,
     );
     $sqlquery = $search->getSQL();
-    $sqlquery =~ s/GROUP\s+BY(\s+`?bugs\.[a-z_]+`?)+//iso;
 }
 
-$sqlquery = " UNION $sqlquery" if $sqlquery;
+$sqlquery = " UNION ($sqlquery)" if $sqlquery;
 
 my $bugsquery = "
  SELECT t.bug_id, t.priority, t.short_desc,
- ROUND(t.remaining_time,1) remaining_time, ROUND(SUM(l.work_time),2) all_work_time,
- ROUND(SUM(IF(l.bug_when > CONCAT(DATE_SUB(CURDATE(),INTERVAL $lastdays DAY),' 23:59:59')
- AND l.who=$userid,l.work_time,0)),2) today_work_time
+  ROUND(t.remaining_time,1) remaining_time, ROUND(SUM(l.work_time),2) all_work_time,
+  ROUND(SUM(IF(l.bug_when > CONCAT(DATE_SUB(CURDATE(),INTERVAL $lastdays DAY),' 23:59:59')
+  AND l.who=$userid,l.work_time,0)),2) today_work_time
  FROM (
   SELECT bugs.bug_id, bugs.priority, bugs.short_desc, bugs.remaining_time FROM longdescs ll, bugs
   WHERE ll.bug_when > CONCAT(DATE_SUB(CURDATE(),INTERVAL $lastdays DAY),' 23:59:59') AND ll.who=$userid AND ll.bug_id=bugs.bug_id
