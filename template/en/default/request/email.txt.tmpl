@@ -105,14 +105,14 @@ Content-Transfer-Encoding: quoted-printable
 [% ELSE %]
  [% PROCESS userlink u=user %] has [% statuses.${flag.status} %]
  [% IF flag.status == '?' AND flag.setter.id == user.id %]
-  [% PROCESS userlink u=flag.requestee %] for
+  [%+ PROCESS userlink u=flag.requestee %] for
  [% ELSIF flag.status != '?' AND flag.requester %]
-  [% PROCESS userlink u=flag.requester %]'s request for
+  [%+ PROCESS userlink u=flag.requester %]'s request for
  [% END %]
  <b>[% flag.type.name %]</b>:
 [% END %]
 </p>
-<p><a href="[% urlbase %]show_bug.cgi?id=[% bug.bug_id %]">[% terms.Bug %] [% bugidsummary %]</a></p>
+<p><a href="[% urlbase %]show_bug.cgi?id=[% bug.bug_id %]">[% terms.Bug %] [%+ bugidsummary %]</a></p>
 [% IF attachment %]
 <p><a href="[%+ urlbase %]attachment.cgi?id=[% attachment.id %]&action=edit">Attachment [% attidsummary %]</a></p>
 [% END %]
@@ -120,7 +120,7 @@ Content-Transfer-Encoding: quoted-printable
 <p>
 Additional Comments from [% PROCESS userlink u=user %]:
 <pre style="border-width: 0 0 1px 0; border-style: solid; border-color: #808080; white-space: pre-wrap; word-wrap: break-word; _white-space: pre;">
-[%- Bugzilla.cgi.param("comment") | wrap_comments | quoteUrls(bug.bug_id) | absolute_uris -%]
+[%- Bugzilla.cgi.param("comment") | wrap_comment | quoteUrls(bug.bug_id) | absolute_uris -%]
 </pre>
 </p>
 [% END %]
