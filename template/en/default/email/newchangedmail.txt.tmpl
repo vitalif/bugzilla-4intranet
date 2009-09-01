@@ -21,7 +21,7 @@
 [% PROCESS "global/variables.none.tmpl" %]
 From: [% Param('mailfrom') %]
 To: [% to %]
-Subject: [% 'Re: ' UNLESS isnew %][[% terms.Bug %] [%+ bugid %]] [% IF severity == 'blocker' %][BLOCKER] [% ELSIF severity == 'critical' %][CRITICAL] [% END %][%+ summary %]
+Subject: [% 'Re: ' UNLESS isnew %][[% terms.Bug %] [%+ bugid %]][% IF severity == 'blocker' %] [BLOCKER] [% ELSIF severity == 'critical' %] [CRITICAL] [% END %][%+ summary %]
 X-Bugzilla-Reason: [% reasonsheader %]
 X-Bugzilla-Type: [% isnew ? 'new' : 'changed' %]
 X-Bugzilla-Watch-Reason: [% reasonswatchheader %]
