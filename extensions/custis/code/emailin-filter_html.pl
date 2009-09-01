@@ -4,8 +4,8 @@ use strict;
 
 for (${Bugzilla->hook_args->{body}})
 {
-    s/<a[^<>]*>.*?<\/a\s*>/custis_rmlf($&)/gieso;
     s/<table[^<>]*class=[\"\']?difft[^<>]*>.*?<\/table\s*>//giso;
+    s/<a[^<>]*>.*?<\/a\s*>/custis_rmlf($&)/gieso;
 }
 
 sub custis_rmlf
