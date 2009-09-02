@@ -330,6 +330,7 @@ if ($do_report)
         if ($start_date)
         {
             $sql .= " AND bug_when>=?";
+            trick_taint($start_date);
             push @bind, $start_date;
         }
         if ($end_date)
@@ -338,6 +339,7 @@ if ($do_report)
             ($ey, $em, $ed) = date_adjust_up($ey+1900, $em+1, $ed+1);
             my $end_date2 = sprintf("%04d-%02d-%02d", $ey, $em, $ed);
             $sql .= " AND bug_when<?";
+            trick_taint($end_date2);
             push @bind, $end_date2;
         }
         @bugs = @{ Bugzilla->dbh->selectcol_arrayref($sql, undef, @bind) || [] };
