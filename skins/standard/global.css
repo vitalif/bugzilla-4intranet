@@ -522,3 +522,6 @@ form#Create .comment {
 table.alcontent { width: 100%; }
 
 #useful-links { margin-left: 0; }
+
+#field_container_see_also #see_also { max-width: 500px; }
+table.flag_table select { max-width: 400px; }
