@@ -574,6 +574,15 @@ sub run_create_validators {
         = $class->_check_bug_status($params->{bug_status}, $product,
                                     $params->{comment}, $params->{assigned_to});
 
+    if ($params->{bug_status} eq 'RESOLVED')
+    {
+        check_field('resolution', trim($params->{resolution}));
+    }
+    else
+    {
+        delete $params->{resolution};
+    }
+
     $params->{target_milestone} = $class->_check_target_milestone(
         $params->{target_milestone}, $product);
 
@@ -614,7 +623,6 @@ sub run_create_validators {
                                     $product);
 
     # You can't set these fields on bug creation (or sometimes ever).
-    delete $params->{resolution};
     delete $params->{votes};
     delete $params->{lastdiffed};
     delete $params->{bug_id};
@@ -1088,7 +1096,7 @@ sub _check_assigned_to {
         # check during create().
         $invocant->_check_strict_isolation_for_user($assignee) if ref $invocant;
         my $prod = ref $invocant ? $invocant->product_obj : $component->product;
-        my ($ccg) = $prod->description =~ /\[[C骫{2}:\s*([^\]]+)\s*\]/iso;
+        my ($ccg) = $prod->description =~ /\[[C小]{2}:\s*([^\]]+)\s*\]/iso;
         if ($ccg && !$assignee->in_group($ccg))
         {
             ThrowUserError("cc_group_restriction", { user => $assignee->login });
@@ -1208,7 +1216,7 @@ sub _check_cc {
     return [map {$_->id} @{$component->initial_cc}] unless $ccs;
 
     my %cc_ids;
-    my ($ccg) = $component->product->description =~ /\[[C骫{2}:\s*([^\]]+)\s*\]/iso;
+    my ($ccg) = $component->product->description =~ /\[[C小]{2}:\s*([^\]]+)\s*\]/iso;
     foreach my $person (@$ccs) {
         next unless $person;
         my $id = login_to_id($person, THROW_ERROR);
@@ -1560,7 +1568,7 @@ sub _check_qa_contact {
         $invocant->_check_strict_isolation_for_user($qa_contact)
             if (ref $invocant && $id);
         my $prod = ref $invocant ? $invocant->product_obj : $component->product;
-        my ($ccg) = $prod->description =~ /\[[C骫{2}:\s*([^\]]+)\s*\]/iso;
+        my ($ccg) = $prod->description =~ /\[[C小]{2}:\s*([^\]]+)\s*\]/iso;
         if ($ccg && !$qa_contact->in_group($ccg))
         {
             ThrowUserError("cc_group_restriction", { user => $qa_contact->login });
@@ -1600,7 +1608,7 @@ sub _check_reporter {
         # Custis Bug 38616
         # For situations of moving external bugs into internal
         my $prod = $invocant->product_obj;
-        my ($ccg) = $prod->description =~ /\[[C骫{2}:\s*([^\]]+)\s*\]/iso;
+        my ($ccg) = $prod->description =~ /\[[C小]{2}:\s*([^\]]+)\s*\]/iso;
         my $user = Bugzilla::User->new($reporter);
         if ($ccg && !$user->in_group($ccg))
         {

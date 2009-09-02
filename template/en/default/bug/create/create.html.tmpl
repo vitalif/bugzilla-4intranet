@@ -180,6 +180,18 @@ function handleWantsAttachment(wants_attachment) {
     }
 }
 
+function show_resolution_field(showhide)
+{
+    if (showhide)
+    {
+        document.getElementById('resolution_container').style.display = '';
+    }
+    else
+    {
+        document.getElementById('resolution_container').style.display = 'none';
+        document.Create.resolution.value = '';
+    }
+}
 
 TUI_alternates['expert_fields'] = 'Show Advanced Fields';
 // Hide the Advanced Fields by default, unless the user has a cookie
@@ -366,10 +378,23 @@ TUI_hide_default('expert_fields');
     [% sel = {
         description => 'Initial State',
         name => 'bug_status',
-        onchange => 'if(this.value=="ASSIGNED"){ document.Create.assigned_to.value="' _ user.login _ '" }',
+        onchange => 'if(this.value=="ASSIGNED"){ document.Create.assigned_to.value="' _ user.login _ '" } show_resolution_field(this.value=="RESOLVED");',
     } %]
     [% INCLUDE select %]
+  </td>
 [% END %]
+  </tr>
+
+  <tr id="resolution_container" style="display:none">
+  <th><a href="page.cgi?id=fields.html#resolution">Resolution</a>:</th>
+  <td>
+    <select name="resolution" id="resolution">
+    [%- FOREACH x = resolution %]
+      [% NEXT IF x == "MOVED" %]
+      <option value="[% x FILTER html %]">[% get_resolution(x) FILTER html %]</option>
+    [% END %]
+    </select>
+  </td>
   </tr>
 
   <tr><td colspan="4"><hr /></td></tr>
