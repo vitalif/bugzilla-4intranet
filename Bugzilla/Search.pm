@@ -818,6 +818,10 @@ sub init {
                 if ((!$chartfields{$f}) && ($chart != -1)) {
                     ThrowCodeError("invalid_field_name", {field => $f});
                 }
+                # CustIS Bug 53836
+                if (lc($v) eq "%user%" && $t eq "equals" && $f =~ /\.login_name/iso) {
+                    $v = $user->login;
+                }
 
                 # This is either from the internal chart (in which case we
                 # already know about it), or it was in %chartfields, so it is
