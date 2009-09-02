@@ -545,6 +545,7 @@ unless ($has_editbugs || $has_canconfirm) {
 }
 
 $vars->{'bug_status'} = \@status;
+$vars->{resolution} = [ grep ($_, @{get_legal_field_values('resolution')}) ];
 
 # Get the default from a template value if it is legitimate.
 # Otherwise, and only if the user has privs, set the default
