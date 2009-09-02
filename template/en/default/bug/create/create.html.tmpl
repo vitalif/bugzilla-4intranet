@@ -363,7 +363,11 @@ TUI_hide_default('expert_fields');
     <th>Initial State:</th>
     <td>[% get_status(default.bug_status) FILTER html %]</td>
 [% ELSE %]
-    [% sel = { description => 'Initial State', name => 'bug_status' } %]
+    [% sel = {
+        description => 'Initial State',
+        name => 'bug_status',
+        onchange => 'if(this.value=="ASSIGNED"){ document.Create.assigned_to.value="' _ user.login _ '" }',
+    } %]
     [% INCLUDE select %]
 [% END %]
   </tr>
@@ -716,7 +720,7 @@ TUI_hide_default('expert_fields');
   [% END %]
 
   <td>
-    <select name="[% sel.name %]" id="[% sel.name %]">
+    <select name="[% sel.name %]" id="[% sel.name %]"[% IF sel.onchange %] onchange='[% sel.onchange %]'[% END %]>
     [%- FOREACH x = ${sel.name} %]
       <option value="[% x FILTER html %]"
         [% " selected=\"selected\"" IF x == default.${sel.name} %]>

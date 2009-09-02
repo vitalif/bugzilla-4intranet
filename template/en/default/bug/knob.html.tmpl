@@ -38,7 +38,24 @@
     [% NEXT IF !bug.isopened && (bug.everconfirmed && bug_status.name == "UNCONFIRMED"
                                  || !bug.everconfirmed && bug_status.name == "REOPENED") %]
     [% IF NOT bug_status_select_displayed %]
-      <select name="bug_status" id="bug_status">
+      <script language="JavaScript">
+      <!--
+      function onchange_bug_status(s)
+      {
+          if (s.value=="ASSIGNED" && document.changeform.assigned_to.value != "[% user.login %]")
+          {
+              document.changeform.assigned_to.value="[% user.login %]";
+              showEditableField("bz_assignee_edit_action", new Array("bz_assignee_edit_container", "bz_assignee_input"));
+          }
+          else if (s.value=="VERIFIED" && document.changeform.qa_contact.value != "[% user.login %]")
+          {
+              document.changeform.qa_contact.value="[% user.login %]";
+              showEditableField("bz_qa_contact_edit_action", new Array("bz_qa_contact_edit_container", "bz_qa_contact_input"));
+          }
+      }
+      //-->
+      </script>
+      <select name="bug_status" id="bug_status" onchange='onchange_bug_status(this)'>
       [% bug_status_select_displayed = 1 %]
     [% END %]
     [% PROCESS initial_action %]
