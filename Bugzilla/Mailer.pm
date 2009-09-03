@@ -124,7 +124,7 @@ sub MessageToMTA {
                 utf8::decode($value);
             }
 
-            my $encoded = encode('MIME-Header', $value);
+            my $encoded = encode('MIME-B', $value);
             $email->header_set($header, $encoded);
         }
     }
