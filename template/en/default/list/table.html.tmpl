@@ -128,16 +128,18 @@
     </tr>
 [% END %]
 
+[%# CustIS Bug 53848 - orde = order.remove %]
+[%# - это не просто так, имя orde не должно совпадать с order, это баг багзилльщиков... %]
 [% BLOCK columnheader %]
   <th colspan="[% splitheader ? 2 : 1 %]">
     [% desc = '' %]
     [% IF (om = order.match("$id( DESC)?")) %]
       [% desc = ' DESC' IF NOT om.0 %]
     [% END %]
-    [% order = order.remove("$id( DESC)?,?") %]
+    [% orde = order.remove("$id( DESC)?,?") %]
     <a href="buglist.cgi?[% urlquerypart FILTER html %]&amp;order=
       [% id FILTER url_quote %][% desc FILTER url_quote %]
-      [% ",$order" FILTER url_quote IF order %]
+      [% ",$orde" FILTER url_quote IF orde %]
       [%-#%]&amp;query_based_on=
       [% defaultsavename OR searchname FILTER url_quote %]">
         [%- abbrev.$id.title || field_descs.$id || column.title -%]</a>
