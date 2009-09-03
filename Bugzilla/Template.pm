@@ -350,9 +350,9 @@ sub get_bug_link {
     my $quote_bug_num = html_quote($bug_num);
     detaint_natural($bug_num) || return "&lt;invalid bug number: $quote_bug_num&gt;";
 
-    my ($bug_alias, $bug_state, $bug_res, $bug_desc) =
-        $dbh->selectrow_array('SELECT bugs.alias, bugs.bug_status, bugs.resolution, bugs.short_desc
-                               FROM bugs WHERE bugs.bug_id = ?',
+    my ($bug_alias, $bug_state, $bug_res, $bug_desc, $bug_product, $bug_component) =
+        $dbh->selectrow_array('SELECT b.alias, b.bug_status, b.resolution, b.short_desc, p.name, c.name
+                               FROM bugs b, products p, components c WHERE b.bug_id=? AND p.id=b.product_id AND c.id=b.component_id',
                                undef, $bug_num);
 
     if ($options->{use_alias} && $link_text =~ /^\d+$/ && $bug_alias) {
@@ -360,10 +360,14 @@ sub get_bug_link {
     }
 
     if ($bug_state) {
-        $bug_state = lc $bug_state;
+        # CustIS Bug 53691
         my $title = get_text('get_status', {status => $bug_state});
+        if ($bug_state eq 'RESOLVED' && $bug_res)
+        {
+            $title .= ' ' . get_text('get_resolution', {resolution => $bug_res});
+        }
         if (Bugzilla->user->can_see_bug($bug_num)) {
-            $title .= " - $bug_desc";
+            $title .= " - $bug_product/$bug_component - $bug_desc";
         }
         # Prevent code injection in the title.
         $title = html_quote(clean_text($title));
