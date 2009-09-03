@@ -245,8 +245,7 @@ div#docslinks {
 .bz_inactive {
     text-decoration: line-through;
 }
-.bz_closed,
-.bz_CLOSED td {
+.bz_closed {
     text-decoration: line-through;
 }
 .bz_private {
@@ -525,3 +524,14 @@ table.alcontent { width: 100%; }
 
 #field_container_see_also #see_also { max-width: 500px; }
 table.flag_table select { max-width: 400px; }
+
+/* Bug states in the list */
+.bz_CLOSED {
+    background-image: url(global/closedbg.gif);
+    background-repeat: repeat-x;
+    background-position: 0 50%;
+}
+
+.bz_RESOLVED td {
+    text-decoration: line-through;
+}
