@@ -126,10 +126,12 @@
   function adjustRemainingTime() {
       // subtracts time spent from remaining time
       var new_time;
+      var wt = parseFloat(document.changeform.work_time.value.replace(',','.'));
+      if (wt != wt)
+          wt = 0;
 
       // prevent negative values if work_time > fRemainingTime
-      new_time =
-          Math.max(fRemainingTime - parseFloat(document.changeform.work_time.value), 0.0);
+      new_time = Math.max(fRemainingTime - wt, 0.0);
       // get upto 2 decimal places
       document.changeform.remaining_time.value =
           Math.round(new_time * 100)/100;
@@ -145,15 +147,20 @@
   function changeform_onsubmit()
   {
     wt = parseFloat(document.changeform.work_time.value.replace(',','.'));
-    if ([% remind_about_worktime ? 1 : 0 %] && (!wt || wt == NaN || wt <= 0))
+    if (wt != wt || [% remind_about_worktime ? 1 : 0 %] && (!wt || wt <= 0))
     {
-      wt = prompt("Please, verify working time:", !wt || wt == NaN ? "0" : wt);
-      if (wt == null || wt == undefined || (""+wt).length <= 0)
+      awt = prompt("Please, verify working time:", !wt || wt != wt ? "0" : wt);
+      if (awt == null || awt == undefined || (""+awt).length <= 0)
       {
+        if (wt != wt)
+        {
+          document.changeform.work_time.value = "0";
+          adjustRemainingTime();
+        }
         document.changeform.work_time.focus();
         return false;
       }
-      document.changeform.work_time.value = wt;
+      document.changeform.work_time.value = awt;
       adjustRemainingTime();
     }
     return true;
