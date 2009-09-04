@@ -21,7 +21,25 @@
   #                 Marc Schumann <wurblzap@gmail.com>
   #%]
 
-<tr>
+<script language="JavaScript">
+function switch_afot(fot)
+{
+    if (fot)
+    {
+        document.getElementById('afot_text_row').style.display='';
+        document.getElementById('afot_file_row').style.display='none';
+    }
+    else
+    {
+        document.getElementById('afot_text_row').style.display='none';
+        document.getElementById('afot_file_row').style.display='';
+    }
+}
+</script>
+<tr class="expert_fields">
+  <td></td><td><input onclick="switch_afot(false)" type="radio" name="att_file_or_text" id="afot_file" value="0" checked /> <label for="afot_file">Attach file</label> or <input onclick="switch_afot(true)" type="radio" name="att_file_or_text" id="afot_text" value="1" /> <label for="afot_text">Enter text</label> </td>
+</tr>
+<tr id="afot_file_row">
   <th><label for="data">File</label>:</th>
   <td>
     <em>Enter the path to the file on your computer.</em><br>
@@ -30,6 +48,13 @@
         onchange="DataFieldHandler()" 
       [% END %]
     >
+  </td>
+</tr>
+<tr class="expert_fields" id="afot_text_row" style="display: none">
+  <th><label for="text_attachment">Attachment text:</label></th>
+  <td>
+    <em>Enter attachment text here instead of selecting file.</em><br>
+    <textarea wrap="soft" id="text_attachment" name="text_attachment" rows="4" cols="80"></textarea>
   </td>
 </tr>
 [% IF Param("maxlocalattachment") && !Param("force_attach_bigfile") %]
@@ -94,13 +119,6 @@
       <input type="text" name="contenttypeentry" id="contenttypeentry"
              size="30" maxlength="200"
              onchange="if (this.value) this.form.contenttypemethod[2].checked = true;">
-  </td>
-</tr>
-<tr class="expert_fields">
-  <th><label for="text_attachment">Attachment text:</label></th>
-  <td>
-    <em>(optional) You can enter attachment text here instead of selecting file.</em><br>
-    <textarea wrap="soft" id="text_attachment" name="text_attachment" rows="4" cols="80"></textarea>
   </td>
 </tr>
 <tr class="expert_fields">
