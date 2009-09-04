@@ -964,6 +964,10 @@ sub _sync_fulltext
         $all = stem_text($all);
         $nopriv = stem_text($nopriv);
     }
+    # O_o как оно может быть здесь tainted - непонятно, но иногда стреляет
+    trick_taint($short_desc);
+    trick_taint($all);
+    trick_taint($nopriv);
     my $sql = "bugs_fulltext SET short_desc=?, comments=?, comments_noprivate=?";
     my @bind = ($short_desc, $all, $nopriv, $self->id);
     $sql = "INSERT INTO $sql, bug_id=?" if $new_bug;
