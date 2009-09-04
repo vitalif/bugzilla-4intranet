@@ -378,6 +378,7 @@ if ($cloned_bug_id) {
 if (scalar(@{$product->components}) == 1) {
     # Only one component; just pick it.
     $cgi->param('component', $product->components->[0]->name);
+    $cgi->param('version', $product->components->[0]->default_version);
 }
 
 my %default;
@@ -496,6 +497,8 @@ else {
 #   THEN use the version from the parent bug
 # ELSE IF a version is supplied in the URL
 #   THEN use it
+# ELSE IF there is a default version for the selected component
+#   THEN use it
 # ELSE IF there is a version in the cookie
 #   THEN use it (Posting a bug sets a cookie for the current version.)
 # ELSE
@@ -508,8 +511,10 @@ $vars->{'version'} = [map($_->name, @{$product->versions})];
 
 if ( ($cloned_bug_id) &&
      ($product->name eq $cloned_bug->product ) ) {
+    $vars->{overridedefaultversion} = 1;
     $default{'version'} = $cloned_bug->version;
 } elsif (formvalue('version')) {
+    $vars->{overridedefaultversion} = 1;
     $default{'version'} = formvalue('version');
 } elsif (defined $cgi->cookie("VERSION-" . $product->name) &&
     lsearch($vars->{'version'}, $cgi->cookie("VERSION-" . $product->name)) != -1) {

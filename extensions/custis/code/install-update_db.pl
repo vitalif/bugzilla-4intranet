@@ -86,13 +86,20 @@ if ($nq)
     }
 }
 
-# Добавляем колонку wiki_url в продукты и компоненты
+# Bug 13593 - Интеграция с Wiki
 if (!$dbh->bz_column_info('products', 'buglist'))
 {
-    $dbh->bz_add_column('products', 'wiki_url', {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"});
+    # Добавляем колонку wiki_url в продукты
+    $dbh->bz_add_column('products', wiki_url => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"});
 }
-
 if (!$dbh->bz_column_info('components', 'buglist'))
 {
-    $dbh->bz_add_column('components', 'wiki_url', {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"});
+    # Добавляем колонку wiki_url в компоненты
+    $dbh->bz_add_column('components', wiki_url => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"});
+}
+
+# Bug 53725 - Версия по умолчанию
+if (!$dbh->bz_column_info('components', 'default_version'))
+{
+    $dbh->bz_add_column('components', default_version => {TYPE => 'varchar(64)', NOTNULL => 1, DEFAULT => "''"});
 }

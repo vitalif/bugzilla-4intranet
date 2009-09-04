@@ -44,6 +44,7 @@ use constant DB_COLUMNS => qw(
     initialqacontact
     description
     wiki_url
+    default_version
 );
 
 use constant REQUIRED_CREATE_FIELDS => qw(
@@ -59,6 +60,7 @@ use constant UPDATE_COLUMNS => qw(
     initialqacontact
     description
     wiki_url
+    default_version
 );
 
 use constant VALIDATORS => {
@@ -71,6 +73,7 @@ use constant VALIDATORS => {
 
 use constant UPDATE_VALIDATORS => {
     name => \&_check_name,
+    default_version => \&_check_default_version,
 };
 
 ###############################
@@ -136,6 +139,7 @@ sub run_create_validators {
     my $product = delete $params->{product};
     $params->{product_id} = $product->id;
     $params->{name} = $class->_check_name($params->{name}, $product);
+    $params->{default_version} = $class->_check_default_version($params->{default_version}, $product);
 
     return $params;
 }
@@ -251,6 +255,18 @@ sub _check_cc_list {
     return [keys %cc_ids];
 }
 
+# CustIS Bug 53725 - Версия по умолчанию
+sub _check_default_version
+{
+    my ($invocant, $version, $product) = @_;
+    $version = trim($version);
+    return '' unless $version;
+    $product = $invocant->product unless ref $product;
+    scalar(grep { $_->name eq $version } @{ $product->versions })
+        || ThrowCodeError('illegal_field', { field => 'Default version' });
+    return $version;
+}
+
 ###############################
 ####       Methods         ####
 ###############################
@@ -302,6 +318,7 @@ sub _create_series {
     }
 }
 
+sub set_default_version { $_[0]->set('default_version', $_[1]); }
 sub set_wiki_url { $_[0]->set('wiki_url', $_[1]); }
 sub set_name { $_[0]->set('name', $_[1]); }
 sub set_description { $_[0]->set('description', $_[1]); }
@@ -424,6 +441,7 @@ sub name        { return $_[0]->{name};        }
 sub description { return $_[0]->{description}; }
 sub wiki_url    { return $_[0]->{wiki_url};    }
 sub product_id  { return $_[0]->{product_id};  }
+sub default_version { return $_[0]->{default_version}; }
 
 ###############################
 ####      Subroutines      ####

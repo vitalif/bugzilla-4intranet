@@ -1,4 +1,5 @@
 #!/usr/bin/perl -wT
+# Модификации схемы БД
 
 use strict;
 my $schema = Bugzilla->hook_args->{schema};
@@ -34,6 +35,12 @@ $schema->{emailin_aliases} = {
 };
 
 # Ну и зачем авторы убрали этот индекс?
-# Bug 53687
-# TODO в базе надо бы сделать правильное имя индекса
+# Bug 53687 - Тормозят запросы из Plantime в багзиллу
 push @{$schema->{longdescs}->{INDEXES}}, { FIELDS => ['who', 'bug_when'] };
+
+# Bug 13593 - Интеграция с Wiki
+push @{$schema->{components}->{FIELDS}}, wiki_url => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"};
+push @{$schema->{products}->{FIELDS}}, wiki_url => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"};
+
+# Bug 53725 - Версия по умолчанию
+push @{$schema->{components}->{FIELDS}}, default_version => {TYPE => 'varchar(64)', NOTNULL => 1, DEFAULT => "''"};
