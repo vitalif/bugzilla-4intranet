@@ -128,7 +128,16 @@
       var new_time;
       var wt = parseFloat(document.changeform.work_time.value.replace(',','.'));
       if (wt != wt)
-          wt = 0;
+      {
+        document.changeform.work_time.style.backgroundColor = '#FFC0C0';
+        document.changeform.remaining_time.style.backgroundColor = '#FFC0C0';
+        wt = 0;
+      }
+      else
+      {
+        document.changeform.work_time.style.backgroundColor = '';
+        document.changeform.remaining_time.style.backgroundColor = '';
+      }
 
       // prevent negative values if work_time > fRemainingTime
       new_time = Math.max(fRemainingTime - wt, 0.0);
@@ -146,23 +155,21 @@
 
   function changeform_onsubmit()
   {
-    wt = parseFloat(document.changeform.work_time.value.replace(',','.'));
-    if (wt != wt || [% remind_about_worktime ? 1 : 0 %] && (!wt || wt <= 0))
+    var wt = parseFloat(document.changeform.work_time.value.replace(',','.'));
+    var awt = wt;
+    if (wt != wt)
+      awt = 0;
+    else if ([% remind_about_worktime ? 1 : 0 %] && (!wt || wt <= 0))
     {
       awt = prompt("Please, verify working time:", !wt || wt != wt ? "0" : wt);
       if (awt == null || awt == undefined || (""+awt).length <= 0)
       {
-        if (wt != wt)
-        {
-          document.changeform.work_time.value = "0";
-          adjustRemainingTime();
-        }
         document.changeform.work_time.focus();
         return false;
       }
-      document.changeform.work_time.value = awt;
-      adjustRemainingTime();
     }
+    document.changeform.work_time.value = awt;
+    adjustRemainingTime();
     return true;
   }
 
@@ -1134,7 +1141,7 @@
         [% PROCESS formattimeunit time_unit=bug.actual_time %] +
         <input name="work_time" id="work_time"
                value="0" size="3" maxlength="6"
-               onchange="adjustRemainingTime();">
+               onchange="adjustRemainingTime();" onkeyup="adjustRemainingTime();">
       </td>
       <td>
         <input name="remaining_time" id="remaining_time"

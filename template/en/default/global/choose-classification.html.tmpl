@@ -18,6 +18,8 @@
 [%# INTERFACE:
   # classifications: an array of classification objects containing
   #                  at least one product accessible by the user.
+  # cloned_bug_id: ID of the bug being cloned.
+  # cloned_comment: ID of the comment being cloned.
   #%]
 
 [% IF target == "enter_bug.cgi" %]
@@ -33,6 +35,7 @@
     <th align="right">
       <a href="[% target FILTER url_quote %]?classification=__all
             [% IF cloned_bug_id %]&amp;cloned_bug_id=[% cloned_bug_id FILTER url_quote %][% END -%] 
+            [% IF cloned_comment.defined %]&amp;cloned_comment=[% cloned_comment FILTER url_quote %][% END -%]
             [%- IF format %]&amp;format=[% format FILTER url_quote %][% END %]">
       All</a>:
     </th>
@@ -48,6 +51,7 @@
     <th align="right">
       <a href="[% target FILTER url_quote %]?classification=[% class.name FILTER url_quote -%]
             [%- IF cloned_bug_id %]&amp;cloned_bug_id=[% cloned_bug_id FILTER url_quote %][% END -%] 
+            [%- IF cloned_comment.defined %]&amp;cloned_comment=[% cloned_comment FILTER url_quote %][% END -%]
             [%- IF format %]&amp;format=[% format FILTER url_quote %][% END %]">
       [% class.name FILTER html %]</a>:
     </th>
