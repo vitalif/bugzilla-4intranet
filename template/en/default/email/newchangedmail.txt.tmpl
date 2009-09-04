@@ -113,9 +113,9 @@ body { font-size: 10pt; }
 </style>
 <body>
 [% IF severity == 'blocker' OR severity == 'critical' %]
-<p><a style="font-size: 12pt; color: black; background-color: red; font-weight: bold;" href="[%+ urlbase %]show_bug.cgi?id=[% bugid %]">&nbsp;Bug [% bugid %] [[% severity | upper %]] - [% summary | html %]&nbsp;</a></p>
+<p><a style="font-size: 12pt; color: black; background-color: red; font-weight: bold;" href="[%+ urlbase %]show_bug.cgi?id=[% bugid %][% IF new_comments AND new_comments.size > 0 %]#c[% new_comments.0.count %][% END %]">&nbsp;Bug [% bugid %] [[% severity | upper %]] - [% summary | html %]&nbsp;</a></p>
 [% ELSE %]
-<p><a style="font-size: 12pt;" href="[%+ urlbase %]show_bug.cgi?id=[% bugid %]">Bug [% bugid %] - [% summary | html %]</a></p>
+<p><a style="font-size: 12pt;" href="[%+ urlbase %]show_bug.cgi?id=[% bugid %][% IF new_comments AND new_comments.size > 0 %]#c[% new_comments.0.count %][% END %]">Bug [% bugid %] - [% summary | html %]</a></p>
 [% END %]
 <div style="display: none">(prod:[% product %].[% comp %], pri:[% priority %], sev:[% severity %], miles:[% targetmilestone %])</div>
 
