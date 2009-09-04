@@ -722,7 +722,7 @@ sub get_comments_by_bug {
                                         undef, ($id, $start));
     }
 
-    my $raw = 1; # Do not format comments which are not of type CMT_NORMAL.
+    my $raw = 0; # Do not format comments which are not of type CMT_NORMAL.
     my $comments = Bugzilla::Bug::GetComments($id, "oldest_to_newest", $start, $end, $raw);
 
     foreach my $comment (@$comments) {

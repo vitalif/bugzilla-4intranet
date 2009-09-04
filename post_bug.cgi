@@ -145,6 +145,7 @@ push(@bug_fields, qw(
     bug_file_loc
     bug_severity
     bug_status
+    resolution
     dependson
     keywords
     short_desc

@@ -80,7 +80,9 @@ var flags = new Array([% product.components.size %]);
 function Create_onsubmit()
 {
   wt = parseFloat(document.Create.work_time.value.replace(',','.'));
-  if (wt != wt || wt < 0 || [% remind_about_worktime_newbug ? 1 : 0 %] && (!wt || wt == 0))
+  if (wt != wt || wt < 0)
+    wt = 0;
+  else if ([% remind_about_worktime_newbug ? 1 : 0 %] && (!wt || wt == 0))
   {
     wt = prompt("Please, verify working time:", "0");
     if (wt == null || wt == undefined || (""+wt).length <= 0)
@@ -88,8 +90,8 @@ function Create_onsubmit()
       document.Create.work_time.focus();
       return false;
     }
-    document.Create.work_time.value = wt;
   }
+  document.Create.work_time.value = wt;
   return true;
 }
 
