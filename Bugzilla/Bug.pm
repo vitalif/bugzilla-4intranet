@@ -1225,7 +1225,7 @@ sub _check_cc {
         next unless $person;
         my $id = login_to_id($person, THROW_ERROR);
         my $user = Bugzilla::User->new($id);
-        next if $ccg && $user->in_group($ccg);
+        next if $ccg && !$user->in_group($ccg);
         $cc_ids{$id} = 1;
     }
 
