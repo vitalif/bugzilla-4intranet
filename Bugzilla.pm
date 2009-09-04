@@ -54,6 +54,7 @@ use File::Basename;
 use File::Spec::Functions;
 use DateTime::TimeZone;
 use Safe;
+use Encode::MIME::Header ();
 
 # This creates the request cache for non-mod_perl installations.
 our $_request_cache = {};
@@ -73,6 +74,62 @@ use constant SHUTDOWNHTML_EXEMPT => [
 use constant SHUTDOWNHTML_EXIT_SILENTLY => [
     'whine.pl'
 ];
+
+#####################################################################
+# Hack into buggy Encode::MIME::Header
+#####################################################################
+
+{ # Block taken directly from Encode::MIME::Header v2.11
+my $especials =
+  join( '|' => map { quotemeta( chr($_) ) }
+      unpack( "C*", qq{()<>@,;:"'/[]?.=} ) );
+
+my $re_encoded_word = qr{
+    =\?                # begin encoded word
+    (?:[-0-9A-Za-z_]+) # charset (encoding)
+    (?:\*[A-Za-z]{1,8}(?:-[A-Za-z]{1,8})*)? # language (RFC 2231)
+    \?(?:[QqBb])\?     # delimiter
+    (?:.*?)            # Base64-encodede contents
+    \?=                # end encoded word
+}xo;
+
+# And changed only here: <<<
+my $re_especials = qr{$re_encoded_word}xo;
+# >>>
+
+*Encode::MIME::Header::encode = sub($$;$) {
+    my ( $obj, $str, $chk ) = @_;
+    my @line = ();
+    for my $line ( split /\r\n|[\r\n]/o, $str ) {
+        my ( @word, @subline );
+        for my $word ( split /($re_especials)/o, $line ) {
+            if (   $word =~ /[^\x00-\x7f]/o
+                or $word =~ /^$re_encoded_word$/o )
+            {
+                push @word, $obj->_encode($word);
+            }
+            else {
+                push @word, $word;
+            }
+        }
+        my $subline = '';
+        for my $word (@word) {
+            use bytes ();
+            if ( bytes::length($subline) + bytes::length($word) >
+                $obj->{bpl} )
+            {
+                push @subline, $subline;
+                $subline = '';
+            }
+            $subline .= $word;
+        }
+        $subline and push @subline, $subline;
+        push @line, join( "\n " => @subline );
+    }
+    $_[1] = '' if $chk;
+    return join( "\n", @line );
+}
+}
 
 #####################################################################
 # Global Code
