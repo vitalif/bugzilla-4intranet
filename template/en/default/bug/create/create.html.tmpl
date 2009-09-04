@@ -43,6 +43,8 @@ var initialowners = new Array([% product.components.size %]);
 var last_initialowner;
 var initialccs = new Array([% product.components.size %]);
 var components = new Array([% product.components.size %]);
+var componentdefaultversions = new Array([% product.components.size %]);
+var last_component = -1;
 var comp_desc = new Array([% product.components.size %]);
 var flags = new Array([% product.components.size %]);
 [% IF Param("useqacontact") %]
@@ -52,6 +54,7 @@ var flags = new Array([% product.components.size %]);
 [% count = 0 %]
 [%- FOREACH c = product.components %]
     components[[% count %]] = "[% c.name FILTER js %]";
+    componentdefaultversions[[% count %]] = "[% c.default_version FILTER js %]";
     comp_desc[[% count %]] = "[% c.description FILTER html_light FILTER js %]";
     initialowners[[% count %]] = "[% c.default_assignee.login FILTER js %]";
     [% flag_list = [] %]
@@ -116,11 +119,26 @@ function set_assign_to() {
     if (index != -1) {
         var owner = initialowners[index];
         var component = components[index];
+        var version = componentdefaultversions[index];
         if (assigned_to == last_initialowner
             || assigned_to == owner
             || assigned_to == '') {
             form.assigned_to.value = owner;
             last_initialowner = owner;
+        }
+
+        if ([% overridedefaultversion ? 0 : 1 %] &&
+            (((last_component < 0 || componentdefaultversions[last_component] == '') && form.version.value == "[% default.version FILTER js %]") ||
+            last_component >= 0 && form.version.value == componentdefaultversions[last_component]))
+        {
+            for (var i = 0; i < form.version.options.length; i++)
+            {
+                if (form.version.options[i].value == version)
+                {
+                    form.version.selectedIndex = i;
+                    break;
+                }
+            }
         }
 
         if (initialccs[index])
@@ -167,6 +185,8 @@ function set_assign_to() {
                 toggleRequesteeField(flagField, 1);
             }
         }
+
+        last_component = index;
     }
 }
 

@@ -1178,7 +1178,6 @@ use constant ABSTRACT_SCHEMA => {
                                   DEFAULT => 0},
             defaultmilestone  => {TYPE => 'varchar(20)',
                                   NOTNULL => 1, DEFAULT => "'---'"},
-            wiki_url          => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"},
         ],
         INDEXES => [
             products_name_idx   => {FIELDS => ['name'],
@@ -1203,7 +1202,6 @@ use constant ABSTRACT_SCHEMA => {
                                                 COLUMN => 'userid',
                                                 DELETE => 'SET NULL'}},
             description      => {TYPE => 'MEDIUMTEXT', NOTNULL => 1},
-            wiki_url         => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"},
         ],
         INDEXES => [
             components_product_id_idx => {FIELDS => [qw(product_id name)],
