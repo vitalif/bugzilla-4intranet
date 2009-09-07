@@ -218,14 +218,12 @@ use constant FIELD_TABLE_SCHEMA => {
         sortkey  => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0},
         isactive => {TYPE => 'BOOLEAN', NOTNULL => 1,
                      DEFAULT => 'TRUE'},
-        visibility_value_id => {TYPE => 'INT2'},
     ],
     # Note that bz_add_field_table should prepend the table name
     # to these index names.
     INDEXES => [
         value_idx   => {FIELDS => ['value'], TYPE => 'UNIQUE'},
         sortkey_idx => ['sortkey', 'value'],
-        visibility_value_id_idx => ['visibility_value_id'],
     ],
 };
 

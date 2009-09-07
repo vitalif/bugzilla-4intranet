@@ -119,11 +119,11 @@ if ($action eq 'new') {
     check_token_data($token, 'add_field_value');
 
     my $created_value = Bugzilla::Field::Choice->type($field)->create({
-        value   => scalar $cgi->param('value'), 
+        value   => scalar $cgi->param('value'),
         sortkey => scalar $cgi->param('sortkey'),
         is_open => scalar $cgi->param('is_open'),
-        visibility_value_id => scalar $cgi->param('visibility_value_id'),
     });
+    $created_value->set_visibility_values([ $cgi->param('visibility_value_id') ]);
 
     delete_token($token);
 
@@ -188,8 +188,9 @@ if ($action eq 'update') {
     $vars->{'value_old'} = $value->name;
     $value->set_name($cgi->param('value_new'));
     $value->set_sortkey($cgi->param('sortkey'));
-    $value->set_visibility_value($cgi->param('visibility_value_id'));
     $vars->{'changes'} = $value->update();
+    my $ch = $value->set_visibility_values([ $cgi->param('visibility_value_id') ]);
+    $vars->{'changes'}->{'visibility_values'} = $ch if defined $ch;
     delete_token($token);
     $vars->{'message'} = 'field_value_updated';
     display_field_values($vars);

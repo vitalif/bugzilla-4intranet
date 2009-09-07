@@ -61,25 +61,58 @@
     [% IF field.value_field %]
       <tr>
         <th align="right">
-          <label for="visibility_value_id">Only appears when
-           [%+ field.value_field.description FILTER html %] is set to:
-          </label>
+          Only appears when [%+ field.value_field.description FILTER html %] is set to:
         </th>
         <td>
-          <select name="visibility_value_id" id="visibility_value_id">
+          <input type="button" onclick="add_visibility_value()" value="Add an option" />
+          (Leave unset to have this value always appear.)
+        </td>
+      </tr>
+      [% vis_values = value.visibility_values %]
+      [% SET vis_values = [{ id => -1 }] IF !vis_values OR vis_values.size <= 0 %]
+      [% SET vv_i = 0 %]
+      <tr>
+        <td></td><td id="visibility_values_td">
+          [% FOR vv = vis_values %]
+          [% " or <br>" IF vv_i %]
+          <select name="visibility_value_id" id="visibility_value_id_[% vv_i %]">
             <option></option>
             [% FOREACH field_value = field.value_field.legal_values %]
               [% NEXT IF field_value.name == '' %]
               <option value="[% field_value.id FILTER none %]"
                [% ' selected="selected"' 
-                  IF field_value.id == value.visibility_value.id %]>
+                  IF field_value.id == vv.id %]>
                 [%- field_value.name FILTER html -%]
               </option>
             [% END %]
           </select>
-          <small>(Leave unset to have this value always appear.)</small>
+          [% SET vv_i = vv_i + 1 %]
+          [% END %]
         </td>
       </tr>
+      <script language="JavaScript">
+      <!--
+      function add_visibility_value()
+      {
+        var td = document.getElementById('visibility_values_td');
+        var sel = document.getElementById('visibility_value_id_0');
+        var o;
+        var n = document.createElement('span');
+        n.innerHTML = ' or <br>';
+        td.appendChild(n);
+        n = document.createElement('select');
+        n.name = "visibility_value_id";
+        for (var i = 0; i < sel.options.length; i++)
+        {
+          o = document.createElement('option');
+          o.value = sel.options[i].value;
+          o.text = sel.options[i].text;
+          n.options.add(o);
+        }
+        td.appendChild(n);
+      }
+      //-->
+      </script>
     [% END %]
   </table>
 

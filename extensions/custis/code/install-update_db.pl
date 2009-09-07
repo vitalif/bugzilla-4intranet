@@ -103,3 +103,24 @@ if (!$dbh->bz_column_info('components', 'default_version'))
 {
     $dbh->bz_add_column('components', default_version => {TYPE => 'varchar(64)', NOTNULL => 1, DEFAULT => "''"});
 }
+
+# Bug 53617 - Ограничение Custom Fields двумя и более значениями контролирующего поля
+my @standard_fields =
+    qw(bug_status resolution priority bug_severity op_sys rep_platform);
+my $custom_fields = $dbh->selectcol_arrayref(
+    'SELECT name FROM fielddefs WHERE custom = 1 AND type IN (?,?)',
+    undef, FIELD_TYPE_SINGLE_SELECT, FIELD_TYPE_MULTI_SELECT);
+foreach my $field (@standard_fields, @$custom_fields)
+{
+    next unless $dbh->bz_table_info($field);
+    if ($dbh->bz_column_info($field, 'visibility_value_id'))
+    {
+        print "Migrating $field visibility_value_id into fieldvaluecontrol\n";
+        $dbh->do(
+            "REPLACE INTO fieldvaluecontrol (field_id, visibility_value_id, value_id)".
+            " SELECT f.id, v.visibility_value_id, v.id FROM fielddefs f, $field v".
+            " WHERE f.name=? AND v.visibility_value_id IS NOT NULL", undef, $field);
+        # Пока не удаляем никаких колонок
+        #$dbh->bz_drop_column($field, 'visibility_value_id');
+    }
+}
