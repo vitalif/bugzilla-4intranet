@@ -16,6 +16,7 @@
   # Rights Reserved.
   #
   # Contributor(s): Myk Melez <myk@mozilla.org>
+  #                 Jesse Clark <jjclark1982@gmail.com>
   #%]
 
 [%############################################################################%]
@@ -86,14 +87,13 @@
       <th>&nbsp;</th>
       [% END %]
       <th colspan="[% splitheader ? 2 : 1 %]" class="first-child">
-        [% desc = '' %]
-        [% IF (om = order.match("^bug_id( DESC)?")) %]
-          [% desc = ' DESC' IF NOT om.0 %]
-        [% END %]
         <a href="buglist.cgi?
-                  [% urlquerypart FILTER html %]&amp;order=bug_id[% desc FILTER url_quote %]
+                  [% urlquerypart FILTER html %]&amp;order=
+                  [% PROCESS new_order id='bug_id' %]
                   [%-#%]&amp;query_based_on=
-                  [% defaultsavename OR searchname FILTER url_quote %]">ID</a>
+                  [% defaultsavename OR searchname FILTER url_quote %]">ID
+          [% PROCESS order_arrow id='bug_id' ~%]
+        </a>
       </th>
 
       [% IF splitheader %]
@@ -130,22 +130,42 @@
 
 [%# CustIS Bug 53848 %]
 [%# Mozilla Bug 515018 %]
+[%# Mozilla Bug 164009 %]
 [% BLOCK columnheader %]
   <th colspan="[% splitheader ? 2 : 1 %]">
-    [% desc = '' %]
-    [% IF (om = order.match("$id( DESC)?")) %]
-      [% desc = ' DESC' IF NOT om.0 %]
-    [% END %]
-    [% col_order = order.remove("$id( DESC)?,?") %]
     <a href="buglist.cgi?[% urlquerypart FILTER html %]&amp;order=
-      [% id FILTER url_quote %][% desc FILTER url_quote %]
-      [% ",$col_order" FILTER url_quote IF orde %]
+      [% PROCESS new_order %]
       [%-#%]&amp;query_based_on=
       [% defaultsavename OR searchname FILTER url_quote %]">
-        [%- abbrev.$id.title || field_descs.$id || column.title -%]</a>
+        [%- abbrev.$id.title || field_descs.$id || column.title -%]
+        [% PROCESS order_arrow ~%]
+    </a>
   </th>
 [% END %]
 
+[% BLOCK new_order %]
+  [% SET desc = '' %]
+  [% IF (om = order.match("${id}( DESC)?")) %]
+    [% SET desc = ' DESC' IF om.0 != ' DESC' %]
+  [% END %]
+  [% id _ desc FILTER url_quote %]
+  [% IF id != 'bug_id' AND order %]
+    [%-# Have to escape $ or it's seen as a variable by the parser. %]
+    [% ',' _ order.remove("${id}( DESC)?(,\s*|\$)") FILTER url_quote %]
+  [% END %]
+[% END %]
+
+[% BLOCK order_arrow %]
+  [% IF order.match("^${id} DESC") %]
+    <span class="bz_sort_order_primary">&#x25BC;</span>
+  [% ELSIF order.match("^${id}(,\s*|\$)") %]
+    <span class="bz_sort_order_primary">&#x25B2;</span>
+  [% ELSIF order.match("${id} DESC") %]
+    <span class="bz_sort_order_secondary">&#x25BC;</span>
+  [% ELSIF order.match("${id}(,\s*|\$)") %]
+    <span class="bz_sort_order_secondary">&#x25B2;</span>
+  [% END %]
+[% END %]
 
 [%############################################################################%]
 [%# Bug Table                                                                #%]
