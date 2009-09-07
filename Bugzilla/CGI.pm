@@ -406,22 +406,54 @@ sub redirect_to_urlbase {
 # cookie() with UTF-8 support...
 sub cookie
 {
-    my $self = shift;
-    if (wantarray)
-    {
-        my @a = $self->SUPER::cookie(@_);
-        if (Bugzilla->params->{utf8})
+    my($self,@p) = CGI::self_or_default(@_);
+    my($name,$value,$path,$domain,$secure,$expires,$httponly) =
+        CGI::rearrange(['NAME',['VALUE','VALUES'],'PATH','DOMAIN','SECURE','EXPIRES','HTTPONLY'],@p);
+
+    require CGI::Cookie;
+
+    # if no value is supplied, then we retrieve the
+    # value of the cookie, if any.  For efficiency, we cache the parsed
+    # cookies in our state variables.
+    unless ( defined($value) ) {
+        unless ($self->{'.cookies'})
         {
-            Encode::_utf8_on($_) for @a;
+            $self->{'.cookies'} = CGI::Cookie->fetch;
+            if (Bugzilla->params->{utf8})
+            {
+                my $v;
+                my @a;
+                for (keys %{$self->{'.cookies'}})
+                {
+                    $v = $self->{'.cookies'}->{$_}->value;
+                    Encode::_utf8_on($_);
+                    Encode::_utf8_on($v);
+                    push @a, $_, $v;
+                }
+                $self->{'.cookies'} = { @a };
+            }
         }
-        return @a;
+
+        # If no name is supplied, then retrieve the names of all our cookies.
+        return () unless $self->{'.cookies'};
+        return keys %{$self->{'.cookies'}} unless $name;
+        return () unless $self->{'.cookies'}->{$name};
+        return $self->{'.cookies'}->{$name} if defined($name) && $name ne '';
     }
-    else
-    {
-        my $a = $self->SUPER::cookie(@_);
-        Encode::_utf8_on($a) if Bugzilla->params->{utf8};
-        return $a;
-    }
+
+    # If we get here, we're creating a new cookie
+    return undef unless defined($name) && $name ne ''; # this is an error
+
+    my @param;
+    push(@param,'-name'=>$name);
+    push(@param,'-value'=>$value);
+    push(@param,'-domain'=>$domain) if $domain;
+    push(@param,'-path'=>$path) if $path;
+    push(@param,'-expires'=>$expires) if $expires;
+    push(@param,'-secure'=>$secure) if $secure;
+    push(@param,'-httponly'=>$httponly) if $httponly;
+
+    return new CGI::Cookie(@param);
 }
 
 1;
