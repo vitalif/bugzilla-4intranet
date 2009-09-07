@@ -412,6 +412,7 @@ foreach my $field (@enter_bug_fields) {
 # This allows the Field visibility and value controls to work with the
 # Product field as a parent.
 $default{'product'} = $product->name;
+$default{'product_obj'} = $product;
 
 if ($cloned_bug_id) {
 
