@@ -403,6 +403,27 @@ sub redirect_to_urlbase {
     exit;
 }
 
+# cookie() with UTF-8 support...
+sub cookie
+{
+    my $self = shift;
+    if (wantarray)
+    {
+        my @a = $self->SUPER::cookie(@_);
+        if (Bugzilla->params->{utf8})
+        {
+            Encode::_utf8_on($_) for @a;
+        }
+        return @a;
+    }
+    else
+    {
+        my $a = $self->SUPER::cookie(@_);
+        Encode::_utf8_on($a) if Bugzilla->params->{utf8};
+        return $a;
+    }
+}
+
 1;
 
 __END__
