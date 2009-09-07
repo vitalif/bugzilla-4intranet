@@ -70,7 +70,13 @@
           </label>
         </th>
         <td>
-          <select name="visibility_value_id" id="visibility_value_id">
+          <input type="button" onclick="add_visibility_value()" value="Add an option" />
+          (Leave unset to have this value always appear.)
+        </td>
+      </tr>
+      <tr>
+        <td></td><td id="visibility_values_td">
+          <select name="visibility_value_id" id="visibility_value_id_0">
             <option></option>
             [% FOREACH field_value = field.value_field.legal_values %]
               [% NEXT IF field_value.name == '' %]
@@ -79,9 +85,31 @@
               </option>
             [% END %]
           </select>
-          <small>(Leave unset to have this value always appear.)</small>
         </td>
       </tr>
+      <script language="JavaScript">
+      <!--
+      function add_visibility_value()
+      {
+        var td = document.getElementById('visibility_values_td');
+        var sel = document.getElementById('visibility_value_id_0');
+        var o;
+        var n = document.createElement('span');
+        n.innerHTML = ' or <br>';
+        td.appendChild(n);
+        n = document.createElement('select');
+        n.name = "visibility_value_id";
+        for (var i = 0; i < sel.options.length; i++)
+        {
+          o = document.createElement('option');
+          o.value = sel.options[i].value;
+          o.text = sel.options[i].text;
+          n.options.add(o);
+        }
+        td.appendChild(n);
+      }
+      //-->
+      </script>
     [% END %]
   </table>
   <input type="submit" id="create" value="Add">

@@ -17,8 +17,13 @@
 # The Original Code is the Bugzilla Bug Tracking System.
 #
 # Contributor(s): Max Kanat-Alexander <mkanat@bugzilla.org>
+#                 Vitaliy Filippov    <vitalif@mail.ru>
 
 use strict;
+
+##############################################
+# Class representing single value of a field #
+##############################################
 
 package Bugzilla::Field::Choice;
 
@@ -28,7 +33,7 @@ use Bugzilla::Config qw(SetParam write_params);
 use Bugzilla::Constants;
 use Bugzilla::Error;
 use Bugzilla::Field;
-use Bugzilla::Util qw(trim detaint_natural);
+use Bugzilla::Util qw(trim detaint_natural trick_taint diff_arrays);
 
 use Scalar::Util qw(blessed);
 
@@ -40,13 +45,11 @@ use constant DB_COLUMNS => qw(
     id
     value
     sortkey
-    visibility_value_id
 );
 
 use constant UPDATE_COLUMNS => qw(
     value
     sortkey
-    visibility_value_id
 );
 
 use constant NAME_FIELD => 'value';
@@ -57,7 +60,6 @@ use constant REQUIRED_CREATE_FIELDS => qw(value);
 use constant VALIDATORS => {
     value   => \&_check_value,
     sortkey => \&_check_sortkey,
-    visibility_value_id => \&_check_visibility_value_id,
 };
 
 use constant CLASS_MAP => {
@@ -191,6 +193,7 @@ sub remove_from_db {
                        { field => $self->field, value => $self });
     }
     $self->_check_if_controller();
+    $self->set_visibility_values([]);
     $self->SUPER::remove_from_db();
 }
 
@@ -269,33 +272,55 @@ sub is_static {
 sub controls_visibility_of_fields {
     my $self = shift;
     $self->{controls_visibility_of_fields} ||= Bugzilla::Field->match(
-        { visibility_field_id => $self->field->id, 
+        { visibility_field_id => $self->field->id,
           visibility_value_id => $self->id });
     return $self->{controls_visibility_of_fields};
 }
 
-sub visibility_value {
-    my $self = shift;
-    if ($self->{visibility_value_id}) {
-        $self->{visibility_value} ||=
-            Bugzilla::Field::Choice->type($self->field->value_field)->new(
-                $self->{visibility_value_id});
-    }
-    return $self->{visibility_value};
-}
-
-sub controlled_values {
+sub controlled_values
+{
     my $self = shift;
     return $self->{controlled_values} if defined $self->{controlled_values};
     my $fields = $self->field->controls_values_of;
     my %controlled_values;
+    # TODO move this into Bugzilla::Field::Choice::match() with MATCH_JOIN
+    #      but no MATCH_JOIN by now is available
     foreach my $field (@$fields) {
-        $controlled_values{$field->name} = 
-            Bugzilla::Field::Choice->type($field)
-            ->match({ visibility_value_id => $self->id });
+        my $type = Bugzilla::Field::Choice->type($field);
+        my $sql =
+            "SELECT f.".join(", f.", @{$type->DB_COLUMNS}).
+            " FROM fieldvaluecontrol c, ".$type->DB_TABLE." f".
+            " WHERE c.field_id=? AND c.visibility_value_id=? AND c.value_id=f.id";
+        # Обходим самозарождение греха при конкатенации DB_COLUMNS и DB_TABLE
+        trick_taint($sql);
+        my $f = Bugzilla->dbh->selectall_arrayref($sql, {Slice=>{}}, $field->id, $self->id) || [];
+        $f = [ map { bless $_, $type } @$f ];
+        $controlled_values{$field->name} = $f;
     }
     $self->{controlled_values} = \%controlled_values;
     return $self->{controlled_values};
+}
+
+sub visibility_values
+{
+    my $self = shift;
+    my $f;
+    unless ($f = $self->{visibility_values})
+    {
+        # TODO move this into Bugzilla::Field::Choice::match() with MATCH_JOIN
+        #      but no MATCH_JOIN by now is available
+        my $type = Bugzilla::Field::Choice->type($self->field->value_field);
+        my $sql =
+            "SELECT f.".join(", f.", $type->DB_COLUMNS).
+            " FROM fieldvaluecontrol c, ".$type->DB_TABLE." f".
+            " WHERE c.field_id=? AND c.visibility_value_id=f.id AND c.value_id=?";
+        # Обходим самозарождение греха при конкатенации DB_COLUMNS и DB_TABLE
+        trick_taint($sql);
+        $f = Bugzilla->dbh->selectall_arrayref($sql, {Slice=>{}}, $self->field->id, $self->id) || [];
+        $f = [ map { bless $_, $type } @$f ];
+        $self->{visibility_values} = $f;
+    }
+    return $f;
 }
 
 ############
@@ -304,10 +329,28 @@ sub controlled_values {
 
 sub set_name    { $_[0]->set('value', $_[1]);   }
 sub set_sortkey { $_[0]->set('sortkey', $_[1]); }
-sub set_visibility_value {
-    my ($self, $value) = @_;
-    $self->set('visibility_value_id', $value);
-    delete $self->{visibility_value};
+
+sub set_visibility_values
+{
+    my $self = shift;
+    my ($value_ids) = @_;
+    return undef if !ref $value_ids || $value_ids !~ 'ARRAY';
+    my $type = Bugzilla::Field::Choice->type($self->field->value_field);
+    @$value_ids = map { $_ ? $type->check({ id => $_ }) : () } @$value_ids;
+    my ($a, $r) = diff_arrays([map { $_->id } @$value_ids], [map { $_->id } @{$self->visibility_values}]);
+    return undef unless @$a || @$r;
+    Bugzilla->dbh->do(
+        "DELETE FROM fieldvaluecontrol WHERE field_id=? AND value_id=?",
+        undef, $self->field->id, $self->id);
+    if (@$value_ids)
+    {
+        Bugzilla->dbh->do(
+            "INSERT INTO fieldvaluecontrol (field_id, value_id, visibility_value_id) VALUES ".
+            join(",", ("(?,?,?)") x @$value_ids),
+            undef, map { ($self->field->id, $self->id, $_->id) } @$value_ids);
+    }
+    delete $self->{visibility_values};
+    return @$value_ids;
 }
 
 ##############
@@ -353,16 +396,6 @@ sub _check_sortkey {
                           { sortkey => $orig_value,
                             field   => $invocant->field });
     return $value;
-}
-
-sub _check_visibility_value_id {
-    my ($invocant, $value_id) = @_;
-    $value_id = trim($value_id);
-    my $field = $invocant->field->value_field;
-    return undef if !$field || !$value_id;
-    my $value_obj = Bugzilla::Field::Choice->type($field)
-                    ->check({ id => $value_id });
-    return $value_obj->id;
 }
 
 1;

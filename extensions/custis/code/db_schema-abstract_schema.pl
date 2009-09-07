@@ -44,3 +44,17 @@ push @{$schema->{products}->{FIELDS}}, wiki_url => {TYPE => 'varchar(255)', NOTN
 
 # Bug 53725 - Версия по умолчанию
 push @{$schema->{components}->{FIELDS}}, default_version => {TYPE => 'varchar(64)', NOTNULL => 1, DEFAULT => "''"};
+
+# Bug 53617 - Ограничение Custom Fields двумя и более значениями контролирующего поля
+$schema->{fieldvaluecontrol} = {
+    FIELDS => [
+        field_id => {TYPE => 'INT3', NOTNULL => 1},
+        value_id => {TYPE => 'INT2', NOTNULL => 1},
+        visibility_value_id => {TYPE => 'INT2', NOTNULL => 1},
+    ],
+    INDEXES => [
+        fieldvaluecontrol_primary_idx =>
+            {FIELDS => ['field_id', 'visibility_value_id', 'value_id'],
+             TYPE => 'UNIQUE'},
+    ],
+};

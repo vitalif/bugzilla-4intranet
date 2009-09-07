@@ -328,11 +328,17 @@
           <li>Sortkey updated to 
             <em>[% changes.sortkey.1 FILTER html %]</em>.</li>
         [% END %]
-        [% IF changes.visibility_value_id %]
-          [% IF value.visibility_value.defined %]
+        [% IF changes.visibility_values.defined %]
+          [% IF value.visibility_values.size > 0 %]
             <li>It only appears when 
               [%+ value.field.value_field.description FILTER html %] is set to
-              '[%+ value.visibility_value.name FILTER html %]'.</li>
+              [% SET vv_i = 0 %]
+              [% FOR vv = value.visibility_values %]
+              [% IF vv_i %] or [% END %]
+              '[%+ vv.name FILTER html %]'
+              [% SET vv_i = vv_i+1 %]
+              [% END %]
+            </li>
           [% ELSE %]
             <li>It now always appears, no matter what 
               [%+ value.field.value_field.description FILTER html %] is set to.

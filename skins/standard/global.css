@@ -524,3 +524,5 @@ table.alcontent { width: 100%; }
 
 #field_container_see_also #see_also { max-width: 500px; }
 table.flag_table select { max-width: 400px; }
+
+#visibility_values_td select { margin-bottom: 2px; }
