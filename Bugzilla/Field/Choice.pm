@@ -288,9 +288,10 @@ sub controlled_values
     foreach my $field (@$fields) {
         my $type = Bugzilla::Field::Choice->type($field);
         my $sql =
-            "SELECT f.".join(", f.", @{$type->DB_COLUMNS}).
+            "SELECT f.".join(", f.", $type->DB_COLUMNS).
             " FROM fieldvaluecontrol c, ".$type->DB_TABLE." f".
-            " WHERE c.field_id=? AND c.visibility_value_id=? AND c.value_id=f.id";
+            " WHERE c.field_id=? AND c.visibility_value_id=? AND c.value_id=f.id".
+            " ORDER BY f.sortkey";
         # Обходим самозарождение греха при конкатенации DB_COLUMNS и DB_TABLE
         trick_taint($sql);
         my $f = Bugzilla->dbh->selectall_arrayref($sql, {Slice=>{}}, $field->id, $self->id) || [];
@@ -299,6 +300,34 @@ sub controlled_values
     }
     $self->{controlled_values} = \%controlled_values;
     return $self->{controlled_values};
+}
+
+sub controlled_plus_generic
+{
+    my $self = shift;
+    return $self->{controlled_plus_generic} if defined $self->{controlled_plus_generic};
+    my $fields = $self->field->controls_values_of;
+    my %controlled_values;
+    # TODO move this into Bugzilla::Field::Choice::match() with MATCH_JOIN
+    #      but no MATCH_JOIN by now is available
+    foreach my $field (@$fields) {
+        my $type = Bugzilla::Field::Choice->type($field);
+        my $sql =
+            "(SELECT f.".join(", f.", $type->DB_COLUMNS).
+            " FROM fieldvaluecontrol c, ".$type->DB_TABLE." f".
+            " WHERE c.field_id=? AND c.visibility_value_id=? AND c.value_id=f.id)".
+            " UNION ALL (SELECT f.".join(", f.", $type->DB_COLUMNS).
+            " FROM ".$type->DB_TABLE." f LEFT JOIN fieldvaluecontrol c ON c.value_id=f.id AND c.field_id=?".
+            " WHERE c.field_id IS NULL)".
+            " ORDER BY sortkey";
+        # Обходим самозарождение греха при конкатенации DB_COLUMNS и DB_TABLE
+        trick_taint($sql);
+        my $f = Bugzilla->dbh->selectall_arrayref($sql, {Slice=>{}}, $field->id, $self->id, $field->id) || [];
+        $f = [ map { bless $_, $type } @$f ];
+        $controlled_values{$field->name} = $f;
+    }
+    $self->{controlled_plus_generic} = \%controlled_values;
+    return $self->{controlled_plus_generic};
 }
 
 sub visibility_values

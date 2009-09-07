@@ -502,6 +502,14 @@ sub legal_values {
     return $self->{'legal_values'};
 }
 
+sub restricted_legal_values
+{
+    my $self = shift;
+    my ($value) = @_;
+    return $self->legal_values unless $value;
+    return $value->controlled_plus_generic->{$self->name};
+}
+
 =pod
 
 =over
