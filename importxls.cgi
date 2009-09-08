@@ -9,6 +9,8 @@ use lib qw(. lib);
 
 use Bugzilla;
 use Bugzilla::Constants;
+use Bugzilla::Product;
+use Bugzilla::Component;
 use Bugzilla::Util;
 use Bugzilla::Error;
 use Bugzilla::Bug;
@@ -19,7 +21,7 @@ use Bugzilla::User;
 # константы
 use constant BUG_DAYS => 92;
 use constant XLS_LISTNAME => 'Bugz';
-use constant MANDATORY_FIELDS => [qw(short_desc version platform product component)];
+use constant MANDATORY_FIELDS => [qw(short_desc product component)];
 
 # начинаем-с
 my $user = Bugzilla->login(LOGIN_REQUIRED);
@@ -33,7 +35,8 @@ for ($cgi->param)
 {
     my $v = $_;
     utf8::decode($v) unless Encode::is_utf8($v);
-    $args->{$v} = $cgi->param($_);
+    $args->{$v} = [ $cgi->param($_) ];
+    $args->{$v} = $args->{$v}->[0] if @{$args->{$v}} <= 1;
     utf8::decode($args->{$v}) unless Encode::is_utf8($args->{$v});
 }
 
@@ -58,6 +61,8 @@ my $upload;
 my $name_tr = {};
 my $bug_tpl = {};
 
+$bug_tpl->{platform} = Bugzilla->params->{defaultplatform} if Bugzilla->params->{defaultplatform};
+
 for (keys %$args)
 {
     if (/^f_/so && $args->{$_})
@@ -75,6 +80,28 @@ for (keys %$args)
 $vars->{bug_tpl} = $bug_tpl;
 $vars->{name_tr} = $name_tr;
 
+# Функция угадывания поля
+my $fielddescs;
+$vars->{guess_field_name} = sub
+{
+    my ($name) = @_;
+    unless ($fielddescs)
+    {
+        $fielddescs = $_[1];
+        $fielddescs = [
+            map { $_ => $fielddescs->{$_} }
+            sort { length($fielddescs->{$b}) <=> length($fielddescs->{$a}) }
+            keys %$fielddescs
+        ];
+    }
+    for (my $i = 0; $i < @$fielddescs; $i+=2)
+    {
+        my ($k, $v) = ($fielddescs->[$i], $fielddescs->[$i+1]);
+        return $k if $name =~ /\Q$v\E/is;
+    }
+    return undef;
+};
+
 unless ($args->{commit})
 {
     unless ($upload = $cgi->upload('xls'))
@@ -89,6 +116,7 @@ unless ($args->{commit})
             # показываем результат импорта
             $vars->{show_result} = 1;
             $vars->{result} = $args->{result};
+            $vars->{bug_id} = $args->{bug_id};
             my $newcgi = new Bugzilla::CGI({
                 listname => $listname,
                 bugdays  => $bugdays,
@@ -179,6 +207,7 @@ else
     {
         my $newcgi = new Bugzilla::CGI({
             result   => $r,
+            bug_id   => $ids,
             listname => $listname,
             bugdays  => $bugdays,
             (map { ("f_$_" => $bug_tpl->{$_}) } keys %$bug_tpl),
@@ -239,15 +268,47 @@ sub get_row
 sub post_bug
 {
     my ($fields_in) = @_;
-    my %fields = %$fields_in;
     my $cgi = Bugzilla->cgi;
-    foreach my $field (keys %fields)
-    {
-        $cgi->param(-name => $field, -value => $fields{$field});
-    }
+    # имитируем почтовое использование с показом ошибок в браузер
     my $um = Bugzilla->usage_mode;
     Bugzilla->usage_mode(USAGE_MODE_EMAIL);
     Bugzilla->error_mode(ERROR_MODE_WEBPAGE);
+    unless ($fields_in->{version})
+    {
+        # угадаем версию
+        my ($product, $component);
+        eval
+        {
+            $product = Bugzilla::Product->check({ name => $fields_in->{product} });
+            $component = Bugzilla::Component->check({
+                product => $product,
+                name    => $fields_in->{component},
+            });
+        };
+        # если нет дефолтной версии в компоненте
+        unless ($fields_in->{version} = $component->default_version)
+        {
+            my $vers = [ map ($_->name, @{$product->versions}) ];
+            my $v;
+            if (($v = $cgi->cookie("VERSION-" . $product->name)) &&
+                (lsearch($vers, $v) != -1))
+            {
+                # возьмём из куки
+                $fields_in->{version} = $v;
+            }
+            else
+            {
+                # или просто последнюю, как и в enter_bug.cgi
+                $fields_in->{version} = $vers->[$#$vers];
+            }
+        }
+    }
+    # скармливаем параметры $cgi
+    foreach my $field (keys %$fields_in)
+    {
+        $cgi->param(-name => $field, -value => $fields_in->{$field});
+    }
+    # и дёргаем post_bug.cgi
     my $bug_id = do 'post_bug.cgi';
     Bugzilla->usage_mode($um);
     return $bug_id;
