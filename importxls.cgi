@@ -35,8 +35,14 @@ for ($cgi->param)
 {
     my $v = $_;
     utf8::decode($v) unless Encode::is_utf8($v);
-    $args->{$v} = [ $cgi->param($_) ];
-    $args->{$v} = $args->{$v}->[0] if @{$args->{$v}} <= 1;
+    if ($v eq 'bug_id')
+    {
+        $args->{$v} = [ $cgi->param($_) ];
+    }
+    else
+    {
+        $args->{$v} = $cgi->param($_);
+    }
     utf8::decode($args->{$v}) unless Encode::is_utf8($args->{$v});
 }
 
