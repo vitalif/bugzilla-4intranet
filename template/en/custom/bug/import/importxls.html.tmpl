@@ -76,7 +76,14 @@ function addfield()
 <span style="color:red">*</span> Empty sheet name means to process all sheets.
 [% ELSIF show_result %]
 [% IF result %]
-<p><b>Successfully imported [% result %] bugs.</b></p>
+<p><b>Successfully imported [% result %] bugs[% IF result > 0 %]:
+[% i = 0 %]
+[% FOR b = bug_id %]
+  [% ", " IF i %]
+  <a href="show_bug.cgi?id=[% b %]">[% b %]</a>
+  [% i = i+1 %]
+[% END %]
+[% END %].</b></p>
 [% ELSE %]
 <p>An import error occurred, no bugs were imported.</p>
 [% END %]
@@ -129,6 +136,10 @@ function fieldrename(field)
     <td><input type="checkbox" onclick="toggleallbugz(this.checked)" /></td>
 [% FOR field = fields %]
     <td style="white-space: nowrap">
+        [% IF NOT name_tr.${field} AND NOT field_descs.${field} %]
+            [% SET g = guess_field_name(field, field_descs) %]
+            [% SET name_tr.${field} = g IF g %]
+        [% END %]
         [% IF NOT name_tr.${field} %]
         <p id="tp_[% field %]"><a href="javascript:void fieldrename('[% field.replace("['\"]", '\\$&') %]')">[% IF field_descs.${field} %][% field_descs.${field} %][% ELSE %]<span style="color: red">[% field %]</span>[% END %]</a></p>
         [% END %]
