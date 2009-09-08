@@ -526,3 +526,6 @@ table.alcontent { width: 100%; }
 table.flag_table select { max-width: 400px; }
 
 #visibility_values_td select { margin-bottom: 2px; }
+
+.importxls_link { margin-left: 20px; }
+.importxls_link span { font-weight: bold; }
