@@ -72,7 +72,7 @@
 
 </table>
 
-[% IF user AND NOT cloned_bug_id AND user.in_group('importxls') %]
+[% IF user AND NOT Param('useclassification') AND NOT cloned_bug_id AND user.in_group('importxls') %]
 <hr>
 <p class="importxls_link"><span>See also:</span> <a href="importxls.cgi">Mass bug import from Excel files</a>.</p>
 [% END %]
