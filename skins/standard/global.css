@@ -370,7 +370,7 @@ dl dl > dt {
 /* Style of the attachment table and time tracking table */
 #attachment_table {
     border-collapse: collapse;
-    width: 40em;
+    width: 50em;
     border: 1px solid #333333;
 }
 
