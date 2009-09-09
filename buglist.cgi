@@ -501,7 +501,7 @@ elsif (($cmdtype eq "doit") && defined $cgi->param('remtype')) {
             if ($query_name) {
                 # Make sure this name is not already in use by a normal saved search.
                 my ($query, $query_id) =
-                    LookupNamedQuery($query_name, undef, QUERY_LIST, !THROW_ERROR);
+                    Bugzilla::Search::LookupNamedQuery($query_name, undef, QUERY_LIST, !THROW_ERROR);
                 if ($query)
                 {
                     ThrowUserError('query_name_exists', { name     => $query_name,
