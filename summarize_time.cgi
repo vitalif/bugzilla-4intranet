@@ -209,20 +209,22 @@ sub get_list {
 
     restrict_my_activity($date_bits, $date_values) if $my_activity;
     # Returns the total time worked on each bug *per developer*.
-    my $data = $dbh->selectall_arrayref(
-            qq{SELECT SUM(work_time) AS total_time, login_name, longdescs.bug_id
+    my %list;
+    if ($buglist)
+    {
+        my $data = $dbh->selectall_arrayref(
+              "SELECT SUM(work_time) AS total_time, login_name, longdescs.bug_id
                  FROM longdescs
            INNER JOIN profiles
                    ON longdescs.who = profiles.userid
            INNER JOIN bugs
                    ON bugs.bug_id = longdescs.bug_id
-                WHERE longdescs.bug_id IN ($buglist) $date_bits } .
+                WHERE longdescs.bug_id IN ($buglist) $date_bits " .
             $dbh->sql_group_by('longdescs.bug_id, login_name', 'longdescs.bug_when') .
-           qq{ HAVING SUM(work_time) > 0}, {Slice => {}}, @$date_values);
-
-    my %list;
-    # What this loop does is to push data having the same key in an array.
-    push(@{$list{ $_->{$keyname} }}, $_) foreach @$data;
+             " HAVING SUM(work_time) > 0", {Slice => {}}, @$date_values);
+        # What this loop does is to push data having the same key in an array.
+        push @{$list{ $_->{$keyname} }}, $_ foreach @$data;
+    }
     return \%list;
 }
 
