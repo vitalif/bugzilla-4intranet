@@ -48,9 +48,10 @@ my $users = get_domain_users();
 my $aliases = [];
 
 my $dbh = Bugzilla->dbh;
-my $sth = $dbh->prepare("REPLACE INTO emailin_aliases SET address=?, userid=?, fromldap=1");
+my $sth = $dbh->prepare("REPLACE INTO emailin_aliases SET address=?, userid=?, fromldap=1, isprimary=?");
 print "Clearing aliases having fromldap=1\n" if $verbose;
 $dbh->do("DELETE FROM emailin_aliases WHERE fromldap=1");
+my %a = ();
 foreach (@$users)
 {
     my $uid = [ map { login_to_id($_) } @$_ ];
@@ -67,11 +68,12 @@ foreach (@$users)
     if ($realid)
     {
         # found user
-        if ($verbose)
+        my $i = 0;
+        for (@$_)
         {
-            print "Adding alias $_ for user $realid ($reallogin)\n" for @$_;
+            print "Adding alias $_ for user $realid ($reallogin)\n" if $verbose;
+            $sth->execute($_, $realid, !($i++)) unless $a{$_}++;
         }
-        $sth->execute($_, $realid) for @$_;
     }
 }
 exit;
