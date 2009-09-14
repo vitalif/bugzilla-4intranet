@@ -2,7 +2,7 @@
 <HTML
 ><HEAD
 ><TITLE
->The Bugzilla Guide - 3.4.1 
+>The Bugzilla Guide - 3.4.2 
     Release</TITLE
 ><META
 NAME="GENERATOR"
@@ -43,7 +43,7 @@ CLASS="TITLEPAGE"
 CLASS="title"
 ><A
 NAME="AEN2"
->The Bugzilla Guide - 3.4.1 
+>The Bugzilla Guide - 3.4.2 
     Release</A
 ></H1
 ><H3
@@ -51,7 +51,7 @@ CLASS="corpauthor"
 >The Bugzilla Team</H3
 ><P
 CLASS="pubdate"
->2009-08-01<BR></P
+>2009-09-11<BR></P
 ><DIV
 ><DIV
 CLASS="abstract"
@@ -269,16 +269,11 @@ HREF="#security-os"
 ></DT
 ><DT
 >4.2. <A
-HREF="#security-mysql"
->MySQL</A
-></DT
-><DT
->4.3. <A
 HREF="#security-webserver"
 >Web server</A
 ></DT
 ><DT
->4.4. <A
+>4.3. <A
 HREF="#security-bugzilla"
 >Bugzilla</A
 ></DT
@@ -597,27 +592,6 @@ CLASS="LOT"
 >List of Examples</B
 ></DT
 ><DT
->4-1. <A
-HREF="#security-mysql-account-root"
->Assigning the MySQL <SPAN
-CLASS="QUOTE"
->"root"</SPAN
-> User a Password</A
-></DT
-><DT
->4-2. <A
-HREF="#security-mysql-account-anonymous"
->Disabling the MySQL <SPAN
-CLASS="QUOTE"
->"anonymous"</SPAN
-> User</A
-></DT
-><DT
->4-3. <A
-HREF="#security-mysql-network-ex"
->Disabling Networking in MySQL</A
-></DT
-><DT
 >A-1. <A
 HREF="#trbl-relogin-everyone-share"
 >Examples of urlbase/cookiepath pairs for sharing login cookies</A
@@ -714,7 +688,7 @@ NAME="newversions"
 >1.3. New Versions</A
 ></H2
 ><P
->&#13;      This is the 3.4.1 version of The Bugzilla Guide. It is so named 
+>&#13;      This is the 3.4.2 version of The Bugzilla Guide. It is so named 
       to match the current version of Bugzilla. 
     </P
 ><P
@@ -1959,11 +1933,6 @@ HREF="#install-modules-dbd-mysql"
 ></LI
 ><LI
 ><P
->&#13;            File::Spec (0.84)
-          </P
-></LI
-><LI
-><P
 >&#13;            <A
 HREF="#install-modules-template"
 >Template</A
@@ -2083,7 +2052,7 @@ HREF="#install-modules-patchreader"
 HREF="#install-modules-soap-lite"
 >SOAP::Lite</A
 >
-            (any) for the web service interface
+            (0.710.06) for the web service interface
           </P
 ></LI
 ><LI
@@ -2307,7 +2276,7 @@ CLASS="section"
 CLASS="section"
 ><A
 NAME="install-modules-soap-lite"
->2.1.5.8. SOAP::Lite (any)</A
+>2.1.5.8. SOAP::Lite (0.710.06)</A
 ></H4
 ><P
 >Installing SOAP::Lite enables your Bugzilla installation to be
@@ -2713,12 +2682,33 @@ ALT="Caution"></TD
 ALIGN="LEFT"
 VALIGN="TOP"
 ><P
->&#13;            MySQL's default configuration is very insecure.
-            <A
-HREF="#security-mysql"
->Section 4.2</A
-> has some good information for
-            improving your installation's security.
+>&#13;            MySQL's default configuration is insecure.
+            We highly recommend to run <TT
+CLASS="filename"
+>mysql_secure_installation</TT
+>
+            on Linux or the MySQL installer on Windows, and follow the instructions.
+            Important points to note are:
+            <P
+></P
+><OL
+TYPE="1"
+><LI
+><P
+>Be sure that the root account has a secure password set.</P
+></LI
+><LI
+><P
+>Do not create an anonymous account, and if it exists, say "yes"
+                to remove it.</P
+></LI
+><LI
+><P
+>If your web server and MySQL server are on the same machine,
+                you should disable the network access.</P
+></LI
+></OL
+>
           </P
 ></TD
 ></TR
@@ -2734,11 +2724,11 @@ NAME="mysql-max-allowed-packet"
 ></H5
 ><P
 >By default, MySQL will only allow you to insert things
-          into the database that are smaller than 64KB. Attachments
+          into the database that are smaller than 1MB. Attachments
           may be larger than this. Also, Bugzilla combines all comments
           on a single bug into one field for full-text searching, and the
-          combination of all comments on a single bug are very likely to
-          be larger than 64KB.</P
+          combination of all comments on a single bug could in some cases
+          be larger than 1MB.</P
 ><P
 >To change MySQL's default, you need to edit your MySQL
           configuration file, which is usually <TT
@@ -2772,7 +2762,7 @@ CLASS="section"
 ><HR><H5
 CLASS="section"
 ><A
-NAME="AEN477"
+NAME="AEN482"
 >2.2.2.2.2. Allow small words in full-text indexes</A
 ></H5
 ><P
@@ -2913,7 +2903,7 @@ CLASS="section"
 ><HR><H5
 CLASS="section"
 ><A
-NAME="AEN504"
+NAME="AEN509"
 >2.2.2.2.4. Permit attachments table to grow beyond 4GB</A
 ></H5
 ><P
@@ -3013,7 +3003,7 @@ CLASS="section"
 ><H5
 CLASS="section"
 ><A
-NAME="AEN520"
+NAME="AEN525"
 >2.2.2.3.1. Add a User to PostgreSQL</A
 ></H5
 ><P
@@ -3098,7 +3088,7 @@ CLASS="section"
 ><HR><H5
 CLASS="section"
 ><A
-NAME="AEN536"
+NAME="AEN541"
 >2.2.2.3.2. Configure PostgreSQL</A
 ></H5
 ><P
@@ -3159,7 +3149,7 @@ CLASS="section"
 ><H5
 CLASS="section"
 ><A
-NAME="AEN552"
+NAME="AEN557"
 >2.2.2.4.1. Create a New Tablespace</A
 ></H5
 ><P
@@ -3211,7 +3201,7 @@ CLASS="section"
 ><HR><H5
 CLASS="section"
 ><A
-NAME="AEN560"
+NAME="AEN565"
 >2.2.2.4.2. Add a User to Oracle</A
 ></H5
 ><P
@@ -3267,7 +3257,7 @@ CLASS="section"
 ><HR><H5
 CLASS="section"
 ><A
-NAME="AEN568"
+NAME="AEN573"
 >2.2.2.4.3. Configure the Web Server</A
 ></H5
 ><P
@@ -3305,7 +3295,7 @@ CLASS="section"
 ><HR><H3
 CLASS="section"
 ><A
-NAME="AEN574"
+NAME="AEN579"
 >2.2.3. checksetup.pl</A
 ></H3
 ><P
@@ -3360,7 +3350,7 @@ CLASS="filename"
         not remotely available by properly applying the access controls in
         <A
 HREF="#security-webserver-access"
->Section 4.3.1</A
+>Section 4.2.1</A
 >. You can run
         <TT
 CLASS="filename"
@@ -4035,7 +4025,7 @@ CLASS="filename"
 > directory are
           secured as described in <A
 HREF="#security-webserver-access"
->Section 4.3.1</A
+>Section 4.2.1</A
 >.
         </P
 ></DIV
@@ -4160,7 +4150,7 @@ CLASS="section"
 ><HR><H3
 CLASS="section"
 ><A
-NAME="AEN728"
+NAME="AEN733"
 >2.3.1. Bug Graphs</A
 ></H3
 ><P
@@ -4900,7 +4890,7 @@ NAME="win32-http"
           you choose, be sure to pay attention to the security notes
           in <A
 HREF="#security-webserver-access"
->Section 4.3.1</A
+>Section 4.2.1</A
 >. More
           information on configuring specific web servers can be found
           in <A
@@ -5294,7 +5284,7 @@ CLASS="section"
 ><H3
 CLASS="section"
 ><A
-NAME="AEN893"
+NAME="AEN898"
 >2.6.1. Introduction</A
 ></H3
 ><P
@@ -5314,7 +5304,7 @@ CLASS="section"
 ><HR><H3
 CLASS="section"
 ><A
-NAME="AEN897"
+NAME="AEN902"
 >2.6.2. MySQL</A
 ></H3
 ><P
@@ -5370,7 +5360,7 @@ CLASS="section"
 ><HR><H4
 CLASS="section"
 ><A
-NAME="AEN905"
+NAME="AEN910"
 >2.6.2.1. Running MySQL as Non-Root</A
 ></H4
 ><DIV
@@ -5378,7 +5368,7 @@ CLASS="section"
 ><H5
 CLASS="section"
 ><A
-NAME="AEN907"
+NAME="AEN912"
 >2.6.2.1.1. The Custom Configuration Method</A
 ></H5
 ><P
@@ -5422,7 +5412,7 @@ CLASS="section"
 ><HR><H5
 CLASS="section"
 ><A
-NAME="AEN911"
+NAME="AEN916"
 >2.6.2.1.2. The Custom Built Method</A
 ></H5
 ><P
@@ -5445,7 +5435,7 @@ CLASS="section"
 ><HR><H5
 CLASS="section"
 ><A
-NAME="AEN916"
+NAME="AEN921"
 >2.6.2.1.3. Starting the Server</A
 ></H5
 ><P
@@ -5573,7 +5563,7 @@ CLASS="section"
 ><HR><H3
 CLASS="section"
 ><A
-NAME="AEN932"
+NAME="AEN937"
 >2.6.3. Perl</A
 ></H3
 ><P
@@ -5677,7 +5667,7 @@ CLASS="section"
 ><HR><H3
 CLASS="section"
 ><A
-NAME="AEN954"
+NAME="AEN959"
 >2.6.5. HTTP Server</A
 ></H3
 ><P
@@ -5691,7 +5681,7 @@ CLASS="section"
 ><HR><H4
 CLASS="section"
 ><A
-NAME="AEN957"
+NAME="AEN962"
 >2.6.5.1. Running Apache as Non-Root</A
 ></H4
 ><P
@@ -5773,7 +5763,7 @@ CLASS="section"
 ><HR><H3
 CLASS="section"
 ><A
-NAME="AEN966"
+NAME="AEN971"
 >2.6.6. Bugzilla</A
 ></H3
 ><P
@@ -11190,7 +11180,7 @@ CLASS="section"
 ><HR><H3
 CLASS="section"
 ><A
-NAME="AEN2168"
+NAME="AEN2173"
 >3.15.4. Assigning Group Controls to Products</A
 ></H3
 ><P
@@ -11458,244 +11448,8 @@ CLASS="section"
 ><HR><H2
 CLASS="section"
 ><A
-NAME="security-mysql"
->4.2. MySQL</A
-></H2
-><DIV
-CLASS="section"
-><H3
-CLASS="section"
-><A
-NAME="security-mysql-account"
->4.2.1. The MySQL System Account</A
-></H3
-><P
->As mentioned in <A
-HREF="#security-os-accounts"
->Section 4.1.2</A
->, the MySQL
-      daemon should run as a non-privileged, unique user. Be sure to consult
-      the MySQL documentation or the documentation that came with your system
-      for instructions.
-      </P
-></DIV
-><DIV
-CLASS="section"
-><HR><H3
-CLASS="section"
-><A
-NAME="security-mysql-root"
->4.2.2. The MySQL <SPAN
-CLASS="QUOTE"
->"root"</SPAN
-> and <SPAN
-CLASS="QUOTE"
->"anonymous"</SPAN
-> Users</A
-></H3
-><P
->By default, MySQL comes with a <SPAN
-CLASS="QUOTE"
->"root"</SPAN
-> user with a
-      blank password and an <SPAN
-CLASS="QUOTE"
->"anonymous"</SPAN
-> user, also with a blank
-      password. In order to protect your data, the <SPAN
-CLASS="QUOTE"
->"root"</SPAN
-> user
-      should be given a password and the anonymous user should be disabled.
-      </P
-><DIV
-CLASS="example"
-><A
-NAME="security-mysql-account-root"
-></A
-><P
-><B
->Example 4-1. Assigning the MySQL <SPAN
-CLASS="QUOTE"
->"root"</SPAN
-> User a Password</B
-></P
-><TABLE
-BORDER="0"
-BGCOLOR="#E0E0E0"
-WIDTH="100%"
-><TR
-><TD
-><FONT
-COLOR="#000000"
-><PRE
-CLASS="screen"
->&#13;<SAMP
-CLASS="prompt"
->bash$</SAMP
-> mysql mysql
-<SAMP
-CLASS="prompt"
->mysql&#62;</SAMP
-> UPDATE user SET password = password('<TT
-CLASS="replaceable"
-><I
->new_password</I
-></TT
->') WHERE user = 'root';
-<SAMP
-CLASS="prompt"
->mysql&#62;</SAMP
-> FLUSH PRIVILEGES;
-        </PRE
-></FONT
-></TD
-></TR
-></TABLE
-></DIV
-><DIV
-CLASS="example"
-><A
-NAME="security-mysql-account-anonymous"
-></A
-><P
-><B
->Example 4-2. Disabling the MySQL <SPAN
-CLASS="QUOTE"
->"anonymous"</SPAN
-> User</B
-></P
-><TABLE
-BORDER="0"
-BGCOLOR="#E0E0E0"
-WIDTH="100%"
-><TR
-><TD
-><FONT
-COLOR="#000000"
-><PRE
-CLASS="screen"
->&#13;<SAMP
-CLASS="prompt"
->bash$</SAMP
-> mysql -u root -p mysql           <A
-NAME="security-mysql-account-anonymous-mysql"
-><IMG
-SRC="../images/callouts/1.gif"
-HSPACE="0"
-VSPACE="0"
-BORDER="0"
-ALT="(1)"></A
->
-<SAMP
-CLASS="prompt"
->Enter Password:</SAMP
-> <TT
-CLASS="replaceable"
-><I
->new_password</I
-></TT
->
-<SAMP
-CLASS="prompt"
->mysql&#62;</SAMP
-> DELETE FROM user WHERE user = '';
-<SAMP
-CLASS="prompt"
->mysql&#62;</SAMP
-> FLUSH PRIVILEGES;
-        </PRE
-></FONT
-></TD
-></TR
-></TABLE
-><DIV
-CLASS="calloutlist"
-><DL
-COMPACT="COMPACT"
-><DT
-><A
-HREF="#security-mysql-account-anonymous-mysql"
-><IMG
-SRC="../images/callouts/1.gif"
-HSPACE="0"
-VSPACE="0"
-BORDER="0"
-ALT="(1)"></A
-></DT
-><DD
->This command assumes that you have already completed
-            <A
-HREF="#security-mysql-account-root"
->Example 4-1</A
->.
-            </DD
-></DL
-></DIV
-></DIV
-></DIV
-><DIV
-CLASS="section"
-><HR><H3
-CLASS="section"
-><A
-NAME="security-mysql-network"
->4.2.3. Network Access</A
-></H3
-><P
->If MySQL and your web server both run on the same machine and you
-      have no other reason to access MySQL remotely, then you should disable
-      the network access. This, along with the suggestion in
-      <A
-HREF="#security-os-ports"
->Section 4.1.1</A
->, will help protect your system from
-      any remote vulnerabilities in MySQL.
-      </P
-><DIV
-CLASS="example"
-><A
-NAME="security-mysql-network-ex"
-></A
-><P
-><B
->Example 4-3. Disabling Networking in MySQL</B
-></P
-><P
->Simply enter the following in <TT
-CLASS="filename"
->/etc/my.cnf</TT
->:
-        <TABLE
-BORDER="0"
-BGCOLOR="#E0E0E0"
-WIDTH="100%"
-><TR
-><TD
-><FONT
-COLOR="#000000"
-><PRE
-CLASS="screen"
->&#13;[mysqld]
-# Prevent network access to MySQL.
-skip-networking
-        </PRE
-></FONT
-></TD
-></TR
-></TABLE
->
-        </P
-></DIV
-></DIV
-></DIV
-><DIV
-CLASS="section"
-><HR><H2
-CLASS="section"
-><A
 NAME="security-webserver"
->4.3. Web server</A
+>4.2. Web server</A
 ></H2
 ><DIV
 CLASS="section"
@@ -11703,7 +11457,7 @@ CLASS="section"
 CLASS="section"
 ><A
 NAME="security-webserver-access"
->4.3.1. Disabling Remote Access to Bugzilla Configuration Files</A
+>4.2.1. Disabling Remote Access to Bugzilla Configuration Files</A
 ></H3
 ><P
 >&#13;        There are many files that are placed in the Bugzilla directory
@@ -11972,7 +11726,7 @@ CLASS="section"
 CLASS="section"
 ><A
 NAME="security-bugzilla"
->4.4. Bugzilla</A
+>4.3. Bugzilla</A
 ></H2
 ><DIV
 CLASS="section"
@@ -11980,7 +11734,7 @@ CLASS="section"
 CLASS="section"
 ><A
 NAME="security-bugzilla-charset"
->4.4.1. Prevent users injecting malicious Javascript</A
+>4.3.1. Prevent users injecting malicious Javascript</A
 ></H3
 ><P
 >If you installed Bugzilla version 2.22 or later from scratch,
@@ -12759,7 +12513,7 @@ NAME="negation"
 >&#13;          At first glance, negation seems redundant. Rather than
           searching for
           <A
-NAME="AEN2540"
+NAME="AEN2500"
 ></A
 ><BLOCKQUOTE
 CLASS="BLOCKQUOTE"
@@ -12770,7 +12524,7 @@ CLASS="BLOCKQUOTE"
 >
           one could search for 
           <A
-NAME="AEN2542"
+NAME="AEN2502"
 ></A
 ><BLOCKQUOTE
 CLASS="BLOCKQUOTE"
@@ -12781,7 +12535,7 @@ CLASS="BLOCKQUOTE"
 >
           However, the search 
           <A
-NAME="AEN2544"
+NAME="AEN2504"
 ></A
 ><BLOCKQUOTE
 CLASS="BLOCKQUOTE"
@@ -12793,7 +12547,7 @@ CLASS="BLOCKQUOTE"
           would find every bug where anyone on the CC list did not contain 
           "@mozilla.org" while
           <A
-NAME="AEN2546"
+NAME="AEN2506"
 ></A
 ><BLOCKQUOTE
 CLASS="BLOCKQUOTE"
@@ -12807,7 +12561,7 @@ CLASS="BLOCKQUOTE"
           complex expressions to be built using terms OR'd together and then
           negated. Negation permits queries such as
           <A
-NAME="AEN2548"
+NAME="AEN2508"
 ></A
 ><BLOCKQUOTE
 CLASS="BLOCKQUOTE"
@@ -12820,7 +12574,7 @@ CLASS="BLOCKQUOTE"
           to find bugs that are neither 
           in the update product or in the documentation component or
           <A
-NAME="AEN2550"
+NAME="AEN2510"
 ></A
 ><BLOCKQUOTE
 CLASS="BLOCKQUOTE"
@@ -12848,7 +12602,7 @@ NAME="multiplecharts"
           a bug that has two different people cc'd on it, then you need 
           to use two boolean charts. A search for
           <A
-NAME="AEN2555"
+NAME="AEN2515"
 ></A
 ><BLOCKQUOTE
 CLASS="BLOCKQUOTE"
@@ -12863,7 +12617,7 @@ CLASS="BLOCKQUOTE"
           containing "foo@" and someone else containing "@mozilla.org",
           then you would need two boolean charts.
           <A
-NAME="AEN2557"
+NAME="AEN2517"
 ></A
 ><BLOCKQUOTE
 CLASS="BLOCKQUOTE"
@@ -13569,7 +13323,7 @@ CLASS="section"
 ><HR><H3
 CLASS="section"
 ><A
-NAME="AEN2693"
+NAME="AEN2653"
 >5.8.1. Autolinkification</A
 ></H3
 ><P
@@ -14444,7 +14198,7 @@ CLASS="section"
 ><HR><H4
 CLASS="section"
 ><A
-NAME="AEN2890"
+NAME="AEN2850"
 >5.11.2.1. Creating Charts</A
 ></H4
 ><P
@@ -14913,7 +14667,7 @@ CLASS="section"
 ><HR><H3
 CLASS="section"
 ><A
-NAME="AEN2950"
+NAME="AEN2910"
 >5.13.4. Saving Your Changes</A
 ></H3
 ><P
@@ -15252,12 +15006,12 @@ VALIGN="TOP"
           you run <B
 CLASS="command"
 >./checksetup.pl</B
-> after creating or
+> after 
           editing any templates in the <TT
 CLASS="filename"
 >template/en/default</TT
 >
-          directory, and after editing any templates in the 
+          directory, and after creating or editing any templates in the 
           <TT
 CLASS="filename"
 >custom</TT
@@ -16779,7 +16533,7 @@ NAME="trbl-relogin-everyone-share"
 >Example A-1. Examples of urlbase/cookiepath pairs for sharing login cookies</B
 ></P
 ><A
-NAME="AEN3256"
+NAME="AEN3216"
 ></A
 ><BLOCKQUOTE
 CLASS="BLOCKQUOTE"
@@ -16820,7 +16574,7 @@ NAME="trbl-relogin-everyone-restrict"
 >Example A-2. Examples of urlbase/cookiepath pairs to restrict the login cookie</B
 ></P
 ><A
-NAME="AEN3263"
+NAME="AEN3223"
 ></A
 ><BLOCKQUOTE
 CLASS="BLOCKQUOTE"
@@ -17440,24 +17194,6 @@ TARGET="_top"
 >
     </P
 ><P
->&#13;      File::Spec:
-      <P
-CLASS="literallayout"
-><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CPAN&nbsp;Download&nbsp;Page:&nbsp;<A
-HREF="http://search.cpan.org/dist/File-Spec/"
-TARGET="_top"
->http://search.cpan.org/dist/File-Spec/</A
-><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Documentation:&nbsp;<A
-HREF="http://perldoc.perl.org/File/Spec.html"
-TARGET="_top"
->http://perldoc.perl.org/File/Spec.html</A
-><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</P
->
-    </P
-><P
 >&#13;      Template-Toolkit:
       <P
 CLASS="literallayout"
@@ -17658,7 +17394,7 @@ NAME="gfdl"
 ><P
 >Version 1.1, March 2000</P
 ><A
-NAME="AEN3436"
+NAME="AEN3392"
 ></A
 ><BLOCKQUOTE
 CLASS="BLOCKQUOTE"
@@ -18121,7 +17857,7 @@ NAME="gfdl-howto"
     of the License in the document and put the following copyright and
     license notices just after the title page:</P
 ><A
-NAME="AEN3526"
+NAME="AEN3482"
 ></A
 ><BLOCKQUOTE
 CLASS="BLOCKQUOTE"
@@ -18158,7 +17894,7 @@ CLASS="glossdiv"
 ><H1
 CLASS="glossdiv"
 ><A
-NAME="AEN3531"
+NAME="AEN3487"
 >0-9, high ascii</A
 ></H1
 ><DL
@@ -18745,11 +18481,7 @@ TARGET="_top"
 ></DT
 ><DD
 ><P
->Much more detailed information about the suggestions in
-              <A
-HREF="#security-mysql"
->Section 4.2</A
->.
+>Information about how to protect your MySQL server.
               </P
 ></DD
 ></DL
@@ -19068,7 +18800,7 @@ NAME="gloss-zarro"
         Terry had the following to say:
         </P
 ><A
-NAME="AEN3776"
+NAME="AEN3731"
 ></A
 ><TABLE
 BORDER="0"

@@ -65,7 +65,9 @@ sub REQUIRED_MODULES {
         # Perl 5.10 requires CGI 3.33 due to a taint issue when
         # uploading attachments, see bug 416382.
         # Require CGI 3.21 for -httponly support, see bug 368502.
-        version => (vers_cmp($perl_ver, '5.10') > -1) ? '3.33' : '3.21'
+        version => (vers_cmp($perl_ver, '5.10') > -1) ? '3.33' : '3.21',
+        # CGI::Carp in 3.46 and 3.47 breaks Template Toolkit
+        blacklist => ['^3\.46$', '^3\.47$'],
     },
     {
         package => 'Digest-SHA',
@@ -91,11 +93,6 @@ sub REQUIRED_MODULES {
         package => 'DateTime-TimeZone',
         module  => 'DateTime::TimeZone',
         version => ON_WINDOWS ? '0.79' : '0.71'
-    },
-    {
-        package => 'PathTools',
-        module  => 'File::Spec',
-        version => '0.84'
     },
     {
         package => 'DBI',
@@ -229,9 +226,9 @@ sub OPTIONAL_MODULES {
     {
         package => 'SOAP-Lite',
         module  => 'SOAP::Lite',
-        version => 0,
-        # These versions (0.70 -> 0.710.05) are affected by bug 468009
-        blacklist => ['^0\.70', '^0\.710?\.0[1-5]$'],
+        # 0.710.04 is required for correct UTF-8 handling, but .04 and .05 are
+        # affected by bug 468009.
+        version => '0.710.06',
         feature => 'XML-RPC Interface'
     },
     {

@@ -101,7 +101,8 @@ Attachment [% attidsummary %]
 [%- END %]
 [%- FILTER bullet = wrap(80) %]
 
-[% IF Bugzilla.cgi.param("comment") && Bugzilla.cgi.param("comment").length > 0 %]
+[%-# .defined is necessary to avoid a taint issue in Perl < 5.10.1, see bug 509794. %]
+[% IF Bugzilla.cgi.param("comment").defined && Bugzilla.cgi.param("comment").length > 0 %]
 ------- Additional Comments from [% user.identity %]
 [%+ Bugzilla.cgi.param("comment") %]
 [% END %]
@@ -135,7 +136,7 @@ Content-Transfer-Encoding: quoted-printable
 <br><a href="[%+ urlbase %]attachment.cgi?id=[% attachment.id %]&action=edit">Attachment [% attidsummary %]</a>
 [% END %]
 </p>
-[% IF Bugzilla.cgi.param("comment") && Bugzilla.cgi.param("comment").length > 0 %]
+[% IF Bugzilla.cgi.param("comment").defined && Bugzilla.cgi.param("comment").length > 0 %]
 <p>
 Additional Comments from [% PROCESS userlink u=user %]:
 <pre style="border-width: 0 0 1px 0; border-style: solid; border-color: #808080; white-space: pre-wrap; word-wrap: break-word; _white-space: pre;">
