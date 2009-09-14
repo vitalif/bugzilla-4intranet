@@ -109,14 +109,15 @@ Content-Transfer-Encoding: quoted-printable
 [% FILTER quoted_printable %]
 <style>
 <!--
-.difft { border-bottom: 1px solid #808080; padding-bottom: 5pt; }
-.difft td { border-bottom: 1px solid #808080; }
-.difft tr.n td, .difft.fv td { border-width: 0; border-style: none; }
+body { font-family: Segoe UI, sans-serif; }
+.difft { padding-bottom: 5pt; font-size: 80%; }
 .difft.fv th { text-align: left; }
 .bz_st_UNCONFIRMED { font-style: italic; }
 .bz_st_RESOLVED { text-decoration: line-through; }
 .bz_st_VERIFIED { text-decoration: line-through; border: 1px dashed #2f6fab; background-color: #f9f9f9; line-height: 1.1em; }
 .bz_st_CLOSED { text-decoration: line-through; border: 1px solid #2f6fab; background-color: #f9f9f9; line-height: 1.1em; }
+pre { font-family: Consolas, monospace; font-size: 100%; }
+.difft.p6 { width: 100%; max-width: 600px; }
 /*-->*/
 </style>
 <body>
@@ -128,6 +129,8 @@ Content-Transfer-Encoding: quoted-printable
 [% END %]
 <br><span style="font-size: 90%">(prod:[% product %].[% comp %], pri:[% priority %], sev:[% severity %], miles:[% targetmilestone %])</span>
 </p>
+
+<hr color="#A0A0A0" size="1" />
 
 [% IF new_comments AND new_comments.size > 0 %]
   [% FOR comment = new_comments %]
@@ -142,9 +145,10 @@ Content-Transfer-Encoding: quoted-printable
   [% ELSE %]
     [% wrapped_comment = comment.body FILTER wrap_comment %]
   [% END %]
-  <pre style="border-width: 0 0 1px 0; border-style: solid; border-color: #808080; white-space: pre-wrap; word-wrap: break-word; _white-space: pre;">
+  <pre style="white-space: pre-wrap; word-wrap: break-word; _white-space: pre;">
 [%- wrapped_comment FILTER quoteUrls(bugid) FILTER absolute_uris -%]
   </pre>
+<hr color="#A0A0A0" size="1" />
   [% END %]
 [% END %]
 
@@ -154,15 +158,21 @@ Content-Transfer-Encoding: quoted-printable
   <tr><th>[% f.desc FILTER html %]:</th><td>[% f.value FILTER html %]</td></tr>
 [% END %]
 </table>
+<hr color="#A0A0A0" size="1" />
 [% END %]
 
 [% IF diffarray AND diffarray.size > 0 %]
-<table class="difft" width="600px" style="border-collapse: collapse" cellpadding="3">
 [% FOR adiff = diffarray %]
   [% SWITCH adiff.type %]
     [% CASE "change" %]
     <tr class="n"><td>[% adiff.what %]</td><td>[% adiff.old %]</td><td>[% adiff.new %]</td></tr>
     [% CASE "who" %]
+[% IF needclose %]
+</table>
+<hr color="#A0A0A0" size="1" />
+[% END %]
+[% SET needclose=1 %]
+<table class="difft p6" style="border-collapse: collapse" cellpadding="3">
     <tr><td colspan="3">
         <a href="[% Param('user_mailto') %][% adiff.who %]">[% IF adiff.name %][% adiff.name %][% ELSE %][% adiff.who %][% END %]</a>
         changed:
@@ -178,7 +188,10 @@ Content-Transfer-Encoding: quoted-printable
     </td></tr>
   [% END %]
 [% END %]
+[% IF needclose %]
 </table>
+<hr color="#A0A0A0" size="1" />
+[% END %]
 [% END %]
 
 <p style="font-size: 12px; font-style: italic">
