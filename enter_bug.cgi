@@ -484,6 +484,8 @@ else {
     $vars->{dependson}      = formvalue('dependson');
     $vars->{blocked}        = formvalue('blocked');
     $vars->{deadline}       = formvalue('deadline');
+    $vars->{work_time}      = 0+formvalue('work_time') || "0.0";
+    $vars->{estimated_time} = 0+formvalue('estimated_time') || "0.0";
 
     $vars->{cc}             = join(', ', $cgi->param('cc'));
 

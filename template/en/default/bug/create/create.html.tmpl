@@ -507,9 +507,9 @@ TUI_hide_default('expert_fields');
 [% IF user.in_group(Param('timetrackinggroup')) %]
     <th>Estimated Hours:</th>
     <td>
-      <input name="estimated_time" size="6" maxlength="6" value="0.0">&nbsp;
+      <input name="estimated_time" size="6" maxlength="6" value="[% estimated_time %]">&nbsp;
       <b>Hours Worked:</b>
-      <input name="work_time" id="work_time" value="0.0" size="6" maxlength="6">
+      <input name="work_time" id="work_time" value="[% work_time %]" size="6" maxlength="6">
     </td>
 [% END %]
     <th>Depends on:</th>
