@@ -672,7 +672,7 @@ sub get_selectable_products {
                  "LEFT JOIN group_control_map " .
                     "    ON group_control_map.product_id = products.id ";
         if (Bugzilla->params->{'useentrygroupdefault'}) {
-            $query .= " AND group_control_map.entry != 0 ";
+            $query .= " AND (group_control_map.entry != 0 OR group_control_map.membercontrol = " . CONTROLMAPMANDATORY . ")";
         } else {
             $query .= " AND group_control_map.membercontrol = " . CONTROLMAPMANDATORY;
         }
