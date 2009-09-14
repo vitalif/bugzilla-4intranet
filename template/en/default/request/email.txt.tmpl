@@ -115,6 +115,16 @@ Content-Type: text/html; charset=utf-8
 Content-Transfer-Encoding: quoted-printable
 
 [% FILTER quoted_printable %]
+<style>
+<!--
+body { font-family: Segoe UI, sans-serif; }
+.bz_st_UNCONFIRMED { font-style: italic; }
+.bz_st_RESOLVED { text-decoration: line-through; }
+.bz_st_VERIFIED { text-decoration: line-through; border: 1px dashed #2f6fab; background-color: #f9f9f9; line-height: 1.1em; }
+.bz_st_CLOSED { text-decoration: line-through; border: 1px solid #2f6fab; background-color: #f9f9f9; line-height: 1.1em; }
+pre { font-family: Consolas, monospace; font-size: 100%; }
+/*-->*/
+</style>
 <body>
 <p>
 [% IF on_behalf_of %]
