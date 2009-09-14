@@ -91,3 +91,22 @@ table#flags {
 .knob-buttons {
     float: right;
 }
+
+.cc_list_display {
+    list-style: none;
+    margin: 0px;
+    padding: 5px;
+    padding-right: 20px;
+    height: 100px;
+    overflow: auto;
+    float: left;
+    max-width: 465px;
+    border: 1px solid #CCC;
+    background-color: white;
+}
+
+.cc_list_display li {
+    margin: 0px;
+    padding: 0px;
+    white-space: nowrap;
+}

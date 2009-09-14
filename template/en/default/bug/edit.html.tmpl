@@ -916,41 +916,34 @@
         <label for="newcc" accesskey="a"><b>CC List</b>:</label>
       </td>
       <td>
-        [% IF user.id %]
-          [% IF NOT bug.cc || NOT bug.cc.contains(user.login) %]
-            [% has_role = bug.user.isreporter
-                          || bug.assigned_to.id == user.id
-                          || (Param('useqacontact')
-                              && bug.qa_contact
-                              && bug.qa_contact.id == user.id) %]
-            <input type="checkbox" id="addselfcc" name="addselfcc"
-              [% " checked=\"checked\""
-                   IF user.settings.state_addselfcc.value == 'always'
-                      || (!has_role
-                          && user.settings.state_addselfcc.value == 'cc_unless_role') %]>
-            <label for="addselfcc">Add me to CC list</label>
-            <br> 
-          [% END %]
+        [% IF user.id && (NOT bug.cc || NOT bug.cc.contains(user.login)) %]
+        <div id="cc_edit_add_self">
+          [% has_role = bug.user.isreporter || bug.assigned_to.id == user.id ||
+                        (Param('useqacontact') && bug.qa_contact && bug.qa_contact.id == user.id) %]
+          <input type="checkbox" id="addselfcc" name="addselfcc"
+            [% " checked=\"checked\""
+                 IF user.settings.state_addselfcc.value == 'always'
+                    || (!has_role
+                        && user.settings.state_addselfcc.value == 'cc_unless_role') %]>
+          <label for="addselfcc">Add me to CC list</label>
+        </div>
         [% END %]
-        [% bug.cc.size || 0  FILTER html %] 
-        [% IF bug.cc.size == 1 %]
-          user
-        [% ELSE %]
-          users
-        [% END %]
-        [% IF user.id %]
-          [% IF bug.cc.contains( user.email ) %]
-            including you
-          [% END %]
-        [% END %]
-        <span id="cc_edit_area_showhide_container" class="bz_default_hidden">
-          (<a href="#" id="cc_edit_area_showhide">[% IF user.id %]edit[% ELSE %]show[% END %]</a>)
-        </span>
+        <div id="cc_edit_area_showhide_container" class="bz_default_hidden">
+          <div id="cc_list_num_users">
+            [% bug.cc.size || 0  FILTER html %] user[% IF bug.cc.size > 1 %]s[% END %]
+            [% IF user.id AND bug.cc.contains(user.email) %] including you[% END %]
+            (<a href="#" id="cc_edit_area_showhide">[% IF user.id %]edit[% ELSE %]show[% END %]</a>)
+          </div>
+          <ul class="cc_list_display">
+            [% FOR c = bug.cc %]
+            <li>[% c FILTER email FILTER html %]</li>
+            [% END %]
+          </ul>
+        </div>
         <div id="cc_edit_area">
-          <br>
           [% IF user.id %]
           <div>
-              <div><label for="cc"><b>Add</b></label></div>
+            <div><label for="cc"><b>Add</b>: </label>
             [% INCLUDE global/userselect.html.tmpl
                 id => "newcc"
                 name => "newcc"
@@ -958,8 +951,9 @@
                 size => 30
                 multiple => 5
               %]
+            </div>
           </div>
-          <small><a href="show-mail-groups.cgi">Список почтовых групп</a><small>
+          <div><small><a href="show-mail-groups.cgi">Список почтовых групп</a><small></div>
         [% END %]
         [% IF bug.cc %]
           <select id="cc" name="cc" multiple="multiple" size="5">
