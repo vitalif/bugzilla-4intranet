@@ -55,10 +55,15 @@ Content-Transfer-Encoding: quoted-printable
 [% FILTER quoted_printable %]
 [%+ urlbase %]show_bug.cgi?id=[% bugid %] (prod:[% product %].[% comp %], pri:[% priority %], sev:[% severity %], miles:[% targetmilestone %])
 
+[%- IF diffs %]
+
 [%+ diffs %]
+[% END -%]
 [% FOREACH comment = new_comments %]
 
+[%- IF comment.count %]
 --- Comment #[% comment.count %] from [% comment.author.identity %] [%+ comment.time FILTER time %] ---
+[% END %]
 [%+ PROCESS bug/format_comment.txt.tmpl comment = comment %]
 [% END %]
 

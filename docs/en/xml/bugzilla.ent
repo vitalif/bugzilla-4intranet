@@ -6,7 +6,6 @@
 <!ENTITY min-date-format-ver "2.21">
 <!ENTITY min-datetime-ver "0.28">
 <!ENTITY min-datetime-timezone-ver "0.71">
-<!ENTITY min-file-spec-ver "0.84">
 <!ENTITY min-dbi-ver "1.41">
 <!ENTITY min-template-ver "2.22">
 <!ENTITY min-email-send-ver "2.00">
@@ -27,7 +26,7 @@
 <!ENTITY min-net-ldap-ver "any">
 <!ENTITY min-authen-sasl-ver "any">
 <!ENTITY min-authen-radius-ver "any">
-<!ENTITY min-soap-lite-ver "any">
+<!ENTITY min-soap-lite-ver "0.710.06">
 <!ENTITY min-html-parser-ver "3.40">
 <!ENTITY min-html-scrubber-ver "any">
 <!ENTITY min-email-mime-attachment-stripper-ver "any">

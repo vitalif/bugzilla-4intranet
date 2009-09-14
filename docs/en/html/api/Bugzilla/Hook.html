@@ -40,6 +40,7 @@ Bugzilla::Hook</title>
     <li class='indexItem indexItem2'><a href='#install-update_db'>install-update_db</a>
     <li class='indexItem indexItem2'><a href='#db_schema-abstract_schema'>db_schema-abstract_schema</a>
     <li class='indexItem indexItem2'><a href='#mailer-before_send'>mailer-before_send</a>
+    <li class='indexItem indexItem2'><a href='#page-before_template'>page-before_template</a>
     <li class='indexItem indexItem2'><a href='#product-confirm_delete'>product-confirm_delete</a>
     <li class='indexItem indexItem2'><a href='#webservice'>webservice</a>
     <li class='indexItem indexItem2'><a href='#webservice-error_codes'>webservice-error_codes</a>
@@ -419,6 +420,33 @@ name="mailer-before_send"
 <dl>
 <dt><a name="email_-_The_Email::MIME_object_that&#39;s_about_to_be_sent."
 ><code  class="code">email</code> - The <code  class="code">Email::MIME</code> object that&#39;s about to be sent.</a></dt>
+</dl>
+
+<h2><a class='u' href='#___top' title='click to go to top of document'
+name="page-before_template"
+>page-before_template</a></h2>
+
+<p>This is a simple way to add your own pages to Bugzilla. This hooks <code  class="code">page.cgi</code>, which loads templates from <em  class="code">template/en/default/pages</em>. For example, <code  class="code">page.cgi?id=fields.html</code> loads <em  class="code">template/en/default/pages/fields.html.tmpl</em>.</p>
+
+<p>This hook is called right before the template is loaded, so that you can pass your own variables to your own pages.</p>
+
+<p>Params:</p>
+
+<dl>
+<dt><a name="page_id"
+><code  class="code">page_id</code></a></dt>
+
+<dd>
+<p>This is the name of the page being loaded, like <code  class="code">fields.html</code>.</p>
+
+<p>Note that if two extensions use the same name, it is uncertain which will override the others, so you should be careful with how you name your pages.</p>
+
+<dt><a name="vars"
+><code  class="code">vars</code></a></dt>
+
+<dd>
+<p>This is a hashref--put variables into here if you want them passed to your template.</p>
+</dd>
 </dl>
 
 <h2><a class='u' href='#___top' title='click to go to top of document'
