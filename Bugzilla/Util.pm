@@ -676,6 +676,7 @@ sub disable_utf8 {
 sub stem_text
 {
     my ($text, $allow_verbatim) = @_;
+    Encode::_utf8_on($text) if Bugzilla->params->{utf8};
     $text = [ split /(?<=\w)(?=\W)|(?<=\W)(?=\w)/, $text ];
     my $q = 0;
     for (@$text)
@@ -684,10 +685,17 @@ sub stem_text
         {
             $_ = Lingua::Stem::RuUTF8::stem_word($_) unless $q;
         }
-        elsif ($allow_verbatim)
+        else
         {
-            # If $allow_verbatim is TRUE then text in "double quotes" doesn't stem
-            $q = ($q + tr/\"/\"/) % 2;
+            if ($allow_verbatim)
+            {
+                # If $allow_verbatim is TRUE then text in "double quotes" doesn't stem
+                $q = ($q + tr/\"/\"/) % 2;
+            }
+            if (!/\s$/so)
+            {
+                $_ .= ' ';
+            }
         }
     }
     return join '', @$text;

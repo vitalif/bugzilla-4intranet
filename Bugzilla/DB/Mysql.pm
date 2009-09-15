@@ -165,22 +165,29 @@ sub sql_string_concat {
 sub sql_fulltext_search {
     my ($self, $column, $text) = @_;
 
-    # Add the boolean mode modifier if the search string contains
-    # boolean operators at the start or end of a word.
-    my $mode = '';
-    if ($text =~ /(?:^|\W)[+\-<>~"()]/ || $text =~ /[()"*](?:$|\W)/) {
-        $mode = 'IN BOOLEAN MODE';
-
-        # quote un-quoted compound words
-        my @words = quotewords('[\s()]+', 'delimiters', $text);
-        foreach my $word (@words) {
+    # quote un-quoted compound words
+    my @words = quotewords('[\s()]+', 'delimiters', $text);
+    if ($text =~ /(?:^|\W)[+\-<>~"()]/ || $text =~ /[()"*](?:$|\W)/)
+    {
+        # already a boolean mode search
+        foreach my $word (@words)
+        {
             # match words that have non-word chars in the middle of them
-            if ($word =~ /\w\W+\w/ && $word !~ m/"/) {
+            if ($word =~ /\w\W+\w/ && $word !~ /\"/)
+            {
                 $word = '"' . $word . '"';
             }
         }
-        $text = join('', @words);
     }
+    else
+    {
+        # make search a boolean mode search
+        for (@words)
+        {
+            $_ = "+$_*" if /\w$/;
+        }
+    }
+    $text = join '', @words;
 
     # quote the text for use in the MATCH AGAINST expression
     $text = $self->quote($text);
@@ -188,7 +195,7 @@ sub sql_fulltext_search {
     # untaint the text, since it's safe to use now that we've quoted it
     trick_taint($text);
 
-    return "MATCH($column) AGAINST($text $mode)";
+    return ("MATCH($column) AGAINST($text IN BOOLEAN MODE)", "MATCH($column) AGAINST($text)");
 }
 
 sub sql_istring {
