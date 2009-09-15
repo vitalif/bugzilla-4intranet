@@ -28,6 +28,7 @@
 
 package Bugzilla::Util;
 
+use utf8;
 use strict;
 
 use base qw(Exporter);
