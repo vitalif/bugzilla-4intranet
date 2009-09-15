@@ -165,20 +165,31 @@ pre { font-family: Consolas, monospace; font-size: 100%; }
 [% FOR adiff = diffarray %]
   [% SWITCH adiff.type %]
     [% CASE "change" %]
+    [%# ------ What Removed Added ------ %]
+    [% IF NOT needclose %]
+<table class="difft p6" style="border-collapse: collapse" cellpadding="3">
+    [% SET needclose=1 %]
+    [% END %]
     <tr class="n"><td>[% adiff.what %]</td><td>[% adiff.old %]</td><td>[% adiff.new %]</td></tr>
     [% CASE "who" %]
-[% IF needclose %]
+    [%# ------ ... Changed ... ------ %]
+    [% IF needclose %]
 </table>
 <hr color="#A0A0A0" size="1" />
-[% END %]
-[% SET needclose=1 %]
+    [% END %]
 <table class="difft p6" style="border-collapse: collapse" cellpadding="3">
+    [% SET needclose=1 %]
     <tr><td colspan="3">
         <a href="[% Param('user_mailto') %][% adiff.who %]">[% IF adiff.name %][% adiff.name %][% ELSE %][% adiff.who %][% END %]</a>
         changed:
     </td></tr>
     <tr><th style="text-align: left">What</th><th style="text-align: left">Removed</th><th style="text-align: left">Added</th></tr>
     [% CASE "dep" %]
+    [%# ------ Bug ... Depends on ... ------ %]
+    [% IF NOT needclose %]
+<table class="difft p6" style="border-collapse: collapse" cellpadding="3">
+    [% SET needclose=1 %]
+    [% END %]
     <tr><td colspan="3">
         <p><a href="[% urlbase %]show_bug.cgi?id=[% adiff.id %]">Bug [% adiff.id %]</a> depends
         on <a href="[% urlbase %]show_bug.cgi?id=[% adiff.dep %]">bug [% adiff.dep %]</a>,
