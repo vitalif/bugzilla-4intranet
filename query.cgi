@@ -339,7 +339,14 @@ if ($cgi->cookie('LASTORDER')) {
     unshift(@orders, $deforder);
 }
 
-if ($cgi->param('order')) { $deforder = $cgi->param('order') }
+if ($cgi->param('order'))
+{
+    $deforder = $cgi->param('order');
+    if (lsearch(\@orders, $deforder) < 0)
+    {
+        unshift @orders, $deforder;
+    }
+}
 
 $vars->{'userdefaultquery'} = $userdefaultquery;
 $vars->{'orders'} = \@orders;
