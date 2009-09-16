@@ -147,9 +147,10 @@ pre { font-family: Consolas, monospace; font-size: 100%; }
 [% END %]
 </p>
 [% IF Bugzilla.cgi.param("comment").defined && Bugzilla.cgi.param("comment").length > 0 %]
+<hr color="#A0A0A0" size="1" />
 <p>
 Additional Comments from [% PROCESS userlink u=user %]:
-<pre style="border-width: 0 0 1px 0; border-style: solid; border-color: #808080; white-space: pre-wrap; word-wrap: break-word; _white-space: pre;">
+<pre style="white-space: pre-wrap; word-wrap: break-word; _white-space: pre;">
 [%- Bugzilla.cgi.param("comment") | wrap_comment | quoteUrls(bug.bug_id) | absolute_uris -%]
 </pre>
 </p>
