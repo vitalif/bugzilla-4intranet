@@ -47,7 +47,7 @@
   [% FOREACH order = orders %]
     <option value="[% order FILTER html %]"
       [% " selected" IF default.order.0 == order %]>
-         [% ordersdesc.$order FILTER html %]</option>
+         [% (ordersdesc.$order || "Custom: " _ order) FILTER html %]</option>
   [% END %]
   </select>
 </p>

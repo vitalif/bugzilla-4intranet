@@ -1031,8 +1031,7 @@ $vars->{'closedstates'} = [map {$_->name} closed_bug_statuses()];
 # a different sort order or when taking some action on the set of query
 # results).  To get this string, we call the Bugzilla::CGI::canoncalise_query
 # function with a list of elements to be removed from the URL.
-$vars->{'urlquerypart'} = $params->canonicalise_query('order',
-                                                      'cmdtype',
+$vars->{'urlquerypart'} = $params->canonicalise_query('cmdtype',
                                                       'query_based_on');
 $vars->{'order'} = $order;
 $vars->{'caneditbugs'} = 1;
