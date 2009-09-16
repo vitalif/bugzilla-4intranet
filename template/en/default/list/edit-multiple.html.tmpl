@@ -133,10 +133,6 @@
     [% END %]
   </tr>
   
-  <tr>
-    <th><label for="bug_status">Status:</label></th>
-    <td colspan="3">[% PROCESS status_section %]</td>
-  </tr>
   [% IF user.in_group(Param("timetrackinggroup")) %]
     <tr>
       <th><label for="estimated_time">Estimated Hours:</label></th>
@@ -348,6 +344,9 @@
   [% END %]
 
 [% END %]
+
+<label for="bug_status"><b>Status:</b></label> 
+[% PROCESS status_section %]
 <input type="submit" id="commit" value="Commit">
 
 [% IF Param('move-enabled') && user.is_mover %]
