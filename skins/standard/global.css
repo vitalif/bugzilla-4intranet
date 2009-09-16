@@ -529,3 +529,5 @@ table.flag_table select { max-width: 400px; }
 
 .importxls_link { margin-left: 20px; }
 .importxls_link span { font-weight: bold; }
+
+#commentt { width: 60em; font-size: 110%; }
