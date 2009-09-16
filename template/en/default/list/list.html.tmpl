@@ -248,7 +248,7 @@ Bug ID list:
     <td valign="middle" class="bz_query_edit">
       <table><tr><td>
       [% editqueryname = searchname OR defaultsavename OR '' %]
-      <a href="query.cgi?[% urlquerypart FILTER html %]
+      <a href="query.cgi?[% urlquerypart FILTER html %]&amp;order=[% order FILTER html %]
       [% IF editqueryname != '' %]&amp;known_name=
         [% editqueryname FILTER url_quote %]
       [% END %]">Edit&nbsp;Search</a>

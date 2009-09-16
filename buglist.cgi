@@ -583,6 +583,8 @@ if (!$params->param('query_format')) {
     $buffer = $params->query_string;
 }
 
+my $query_format = $params->param('query_format');
+
 ################################################################################
 # Column Definition
 ################################################################################
@@ -1031,7 +1033,8 @@ $vars->{'closedstates'} = [map {$_->name} closed_bug_statuses()];
 # a different sort order or when taking some action on the set of query
 # results).  To get this string, we call the Bugzilla::CGI::canoncalise_query
 # function with a list of elements to be removed from the URL.
-$vars->{'urlquerypart'} = $params->canonicalise_query('cmdtype',
+$vars->{'urlquerypart'} = $params->canonicalise_query('order',
+                                                      'cmdtype',
                                                       'query_based_on');
 $vars->{'order'} = $order;
 $vars->{'caneditbugs'} = 1;
@@ -1145,7 +1148,7 @@ my $contenttype;
 my $disposition = "inline";
 
 if ($format->{'extension'} eq "html" && !$agent) {
-    if ($order && !$cgi->param('sharer_id')) {
+    if ($order && !$cgi->param('sharer_id') && $query_format ne 'specific') {
         $cgi->send_cookie(-name => 'LASTORDER',
                           -value => $order,
                           -expires => 'Fri, 01-Jan-2038 00:00:00 GMT');
