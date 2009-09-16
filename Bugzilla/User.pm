@@ -666,26 +666,30 @@ sub get_selectable_products {
     my $class_id = shift;
     my $class_restricted = Bugzilla->params->{'useclassification'} && $class_id;
 
-    if (!defined $self->{selectable_products}) {
-        my $query = "(SELECT id, name AS pname " .
-                    "  FROM products " .
-                 "LEFT JOIN group_control_map " .
-                    "    ON group_control_map.product_id = products.id ";
-        if (Bugzilla->params->{'useentrygroupdefault'}) {
-            $query .= " AND (group_control_map.entry != 0 OR group_control_map.membercontrol = " . CONTROLMAPMANDATORY . ")";
-        } else {
-            $query .= " AND group_control_map.membercontrol = " . CONTROLMAPMANDATORY;
+    if (!defined $self->{selectable_products})
+    {
+        my $query =
+            "(SELECT id, name AS pname FROM products" .
+            " LEFT JOIN group_control_map g ON g.product_id = products.id " .
+            " AND g.membercontrol=" . CONTROLMAPMANDATORY .
+            " AND g.group_id NOT IN (" . $self->groups_as_string . ")" .
+            " WHERE group_id IS NULL) ";
+
+        if (Bugzilla->params->{useentrygroupdefault})
+        {
+            $query .=
+                " UNION (SELECT id, name AS pname FROM products" .
+                " LEFT JOIN group_control_map g ON g.product_id=products.id" .
+                " AND g.entry != 0 AND g.group_id NOT IN (".$self->groups_as_string.")" .
+                " WHERE g.group_id IS NULL) ";
         }
-        $query .= "     AND group_id NOT IN(" . $self->groups_as_string . ") " .
-                  "   WHERE group_id IS NULL) " ;
-                  
 
         $query .= "UNION (SELECT id, tr_products.name AS pname FROM products AS tr_products ".
                   "INNER JOIN test_plans ON tr_products.id = test_plans.product_id ".
                   "INNER JOIN test_plan_permissions ON test_plan_permissions.plan_id = test_plans.plan_id ".
                   "WHERE test_plan_permissions.userid = ?)";
-        
-        $query .= "ORDER BY pname ";    
+
+        $query .= "ORDER BY pname ";
 
         my $prod_ids = Bugzilla->dbh->selectcol_arrayref($query,undef,$self->id);
         $self->{selectable_products} = Bugzilla::Product->new_from_list($prod_ids);
