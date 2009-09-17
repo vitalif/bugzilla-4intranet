@@ -107,6 +107,9 @@ use constant VALIDATORS => {
     tags              => \&_check_tags,
     components        => \&_check_components,
     bugs              => \&_check_bugs,
+};
+
+use constant UPDATE_VALIDATORS => {
     category_id       => \&_check_category,
 };
 

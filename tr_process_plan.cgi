@@ -213,6 +213,7 @@ elsif ($action eq 'edit'){
     $plan->set_default_product_version($cgi->param('prod_version')) if $cgi->param('prod_version');
     $plan->set_type($cgi->param('type')) if $cgi->param('type');
     $plan->set_name($cgi->param('name')) if $cgi->param('name');
+    $plan->set_wiki($cgi->param('wiki')) if $cgi->param('wiki');
     
     if(exists $cgi->{"plandoc"} || exists $cgi->{'param'}->{"plandoc"}){
         my $newdoc = $cgi->param("plandoc");    
