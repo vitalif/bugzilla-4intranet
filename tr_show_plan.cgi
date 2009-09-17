@@ -28,6 +28,7 @@ use Bugzilla;
 use Bugzilla::Constants;
 use Bugzilla::Error;
 use Bugzilla::Util;
+use Bugzilla::Hook;
 use Bugzilla::Testopia::Util;
 use Bugzilla::Testopia::Table;
 use Bugzilla::Testopia::Constants;
@@ -53,6 +54,8 @@ unless ($plan_id){
 my $plan = Bugzilla::Testopia::TestPlan->new($plan_id);
 ThrowUserError("invalid-test-id-non-existent", {'type' => 'plan', id => $plan_id}) unless $plan;
 ThrowUserError("testopia-permission-denied", {'object' => $plan}) unless $plan->canview;
+
+Bugzilla::Hook::process('tr_show_plan-after_fetch', { plan => $plan, vars => $vars });
 
 $vars->{'table'} = Bugzilla::Testopia::Table->new('plan', 'tr_list_plans.cgi', $cgi);
 $vars->{'printdoc'} = 1 if ($cgi->param('ctype') eq 'print');

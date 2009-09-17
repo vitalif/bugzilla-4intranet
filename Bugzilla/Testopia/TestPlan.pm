@@ -76,7 +76,7 @@ use constant DB_COLUMNS => qw(
 );
 
 use constant REQUIRED_CREATE_FIELDS => qw(product_id author_id type_id default_product_version name);
-use constant UPDATE_COLUMNS         => qw(product_id type_id default_product_version name isactive);
+use constant UPDATE_COLUMNS         => qw(product_id type_id default_product_version name isactive wiki);
 
 use constant VALIDATORS => {
     product_id => \&_check_product,
