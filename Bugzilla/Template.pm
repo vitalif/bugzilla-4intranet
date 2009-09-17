@@ -43,6 +43,7 @@ use Bugzilla::Error;
 use Bugzilla::Status;
 use Bugzilla::Token;
 use Bugzilla::Template::Parser;
+use Bugzilla::Hook;
 
 use Cwd qw(abs_path);
 use MIME::Base64;
@@ -57,8 +58,8 @@ use IO::Dir;
 
 use base qw(Template);
 
-my ($custom_p, $custom_proto);
-$custom_proto = do (bz_locations()->{libpath} . "/extensions/custom_url.pl");
+my $custom_proto_regex;
+my $custom_proto;
 
 # As per the Template::Base documentation, the _init() method is being called 
 # by the new() constructor. We take advantage of this in order to plug our
@@ -230,11 +231,18 @@ sub quoteUrls {
                ("\0\0" . ($count-1) . "\0\0")
               ~gesox;
 
+    unless ($custom_proto)
+    {
+        # initialize custom protocols
+        $custom_proto = {};
+        Bugzilla::Hook::process('quote_urls-custom_proto', { custom_proto => $custom_proto });
+        $custom_proto_regex = join '|', keys %$custom_proto;
+    }
+
     if ($custom_proto && %$custom_proto)
     {
-        $custom_p ||= join '|', keys %$custom_proto;
         $text =~ s
-            ~\b($custom_p):(?:\[\[(.*?)(?:\#(.*?))?\]\]|([^\s<>\"\#]+)(?:\#([^\s<>\"\#]+))?)
+            ~\b($custom_proto_regex):(?:\[\[(.*?)(?:\#(.*?))?\]\]|([^\s<>\"\#]+)(?:\#([^\s<>\"\#]+))?)
             ~($tmp = &{$custom_proto->{$1}}(html_quote(trim($2)||$4), trim($2)?trim($3):$5)) &&
              ($things[$count++] = "<a href=\"$tmp\">$&</a>") &&
              ("\0\0" . ($count-1) . "\0\0")
