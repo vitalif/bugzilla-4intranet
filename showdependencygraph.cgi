@@ -190,16 +190,18 @@ if ($display eq 'doall') {
 }
 
 my $sth = $dbh->prepare(q{
-    SELECT t1.bug_status, t1.resolution, t1.short_desc, t1.estimated_time, SUM(t3.work_time), t1.assigned_to, t2.login_name
+    SELECT t1.bug_status, t1.resolution, t1.short_desc, t1.estimated_time, SUM(t3.work_time), t1.assigned_to, t2.login_name, t4.name, t5.name
     FROM bugs AS t1
     LEFT JOIN profiles AS t2 ON t2.userid=t1.assigned_to
     LEFT JOIN longdescs AS t3 ON t3.bug_id=t1.bug_id AND t3.work_time > 0
+    LEFT JOIN products AS t4 ON t4.id=t1.product_id
+    LEFT JOIN components AS t5 ON t5.id=t1.component_id
     WHERE t1.bug_id=?
     GROUP BY t1.bug_id
 });
 foreach my $k (keys(%seen)) {
     # Retrieve bug information from the database
-    my ($stat, $resolution, $summary, $time, $wtime, $assignee, $asslogin) = $dbh->selectrow_array($sth, undef, $k);
+    my ($stat, $resolution, $summary, $time, $wtime, $assignee, $asslogin, $product, $component) = $dbh->selectrow_array($sth, undef, $k);
     $stat ||= 'NEW';
     $resolution ||= '';
     $summary ||= '';
@@ -250,12 +252,12 @@ foreach my $k (keys(%seen)) {
     # Push the bug tooltip texts into a global hash so that 
     # CreateImagemap sub (used with local dot installations) can
     # use them later on.
-    $bugtitles{$k} = trim("[$asslogin] $stat $resolution");
+    $bugtitles{$k} = "[".trim("$stat $resolution")." $asslogin]";
 
     # Show the bug summary in tooltips only if not shown on 
     # the graph and it is non-empty (the user can see the bug)
     if ($summary ne "") {
-        $bugtitles{$k} .= " - $summary";
+        $bugtitles{$k} .= " $product/$component - $summary";
     }
 }
 
