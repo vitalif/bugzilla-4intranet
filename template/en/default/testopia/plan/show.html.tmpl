@@ -372,6 +372,15 @@ Ext.onReady(function(){
         });
     });
 
+    function plan_wiki_set_url()
+    {
+        var a = "[% (plan.product.wiki_url || Param('wiki_url')) FILTER js %]";
+        var re = /(\/*index\.php)?\/*$/i;
+        a = a.replace(re, '/index.php/Category:');
+        document.getElementById('plan_wiki').href = a +
+            document.getElementById('plan_wiki').innerHTML;
+    }
+    plan_wiki_set_url();
     var edit_wiki_btn = new Ext.Button({
         applyTo: 'plan_wiki_edit_btn',
         template: button_16x_tmpl,
@@ -400,6 +409,7 @@ Ext.onReady(function(){
             url: 'tr_process_plan.cgi',
             params: {action: 'edit', wiki: v, plan_id: plan.plan_id},
             success: function(){
+                plan_wiki_set_url();
                 TestopiaUtil.notify.msg('Plan updated', 'Plan {0} was updated successfully', 'wiki');
             },
             failure: testopiaError
@@ -468,7 +478,7 @@ Ext.onReady(function(){
       <td colspan="2">
         <table>
           <tr>
-            <td><div id="plan_wiki">[% plan.wiki FILTER html %]</div></td>
+            <td><div><a id="plan_wiki">[% plan.wiki FILTER html %]</a></div></td>
             <td><div id="plan_wiki_edit_btn"></div></td>
             <td><div id="plan_wiki_sync_btn"></div></td>
           </tr>
