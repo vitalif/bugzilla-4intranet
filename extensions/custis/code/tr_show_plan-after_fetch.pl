@@ -115,10 +115,10 @@ sub wiki_sync_case
         summary     => $page->{title},
     };
     my @fields = qw(tester alias estimated_time isautomated script arguments requirement dependson blocks tags bugs components status category priority);
-    my $fre = '<!--\s*Testopia_('.join('|', @fields).')\s*=\s*([^>]*?)\s*-->';
+    my $fre = '^\s*;\s*('.join('|', @fields).')\s*:([^\n]*)';
     while ($page->{revision_text} =~ /$fre/giso)
     {
-        $case->{lc $1} = $2;
+        $case->{lc $1} = trim($2);
     }
     $case->{$_} ||= '' for @fields;
     if (lc($case->{isautomated}) eq 'on' ||
