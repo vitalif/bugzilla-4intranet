@@ -84,7 +84,7 @@ textarea {
       [% bug.bug_id FILTER bug_link(bug.bug_id) %]
     </td>
     <td>
-      [% bug.short_desc %]
+      [% bug.short_desc FILTER html %]
     </td>
     <td align="right">
       [% bug.today_work_time %]
