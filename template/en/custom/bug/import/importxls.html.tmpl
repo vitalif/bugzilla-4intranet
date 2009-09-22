@@ -10,7 +10,7 @@
 [% field_descs.platform = field_descs.rep_platform %]
 [% field_descs.delete("rep_platform") %]
 [% FOR k = field_descs.keys %]
-    [% IF k.match('\.|^(\[Bug creation\]|days_elapsed|owner_idle_time|changeddate|creation_ts|delta_ts|longdesc)$') %]
+    [% IF k.match('\.|^(\[Bug creation\]|days_elapsed|owner_idle_time|changeddate|creation_ts|delta_ts)$') %]
         [% field_descs.delete(k) %]
     [% END %]
 [% END %]
@@ -93,6 +93,7 @@ function addfield()
 <h2>Select worksheet items to import as bugs</h2>
 
 [% field_descs.comment = field_descs.longdesc %]
+[% field_descs.delete("longdesc") %]
 
 <script language="JavaScript">
 function toggleallbugz(chk)
