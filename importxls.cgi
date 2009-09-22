@@ -109,7 +109,7 @@ my $guess_field_descs = [
 # Функция угадывания поля
 sub guess_field_name
 {
-    my ($name) = @_;
+    my ($name, $guess_field_descs) = @_;
     for (my $i = 0; $i < @$guess_field_descs; $i+=2)
     {
         my ($k, $v) = ($guess_field_descs->[$i], $guess_field_descs->[$i+1]);
@@ -174,7 +174,7 @@ unless ($args->{commit})
             my $g;
             for (@{$table->{fields}})
             {
-                if (!$name_tr->{$_} && ($g = guess_field_name($_)))
+                if (!$name_tr->{$_} && ($g = guess_field_name($_, $guess_field_descs)))
                 {
                     $name_tr->{$_} = $g;
                 }
