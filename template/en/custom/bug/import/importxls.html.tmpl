@@ -4,16 +4,7 @@
 [% cgi = Bugzilla.cgi %]
 [% title = 'Excel import' %]
 
-[% PROCESS "global/field-descs.none.tmpl" %]
 [% PROCESS global/header.html.tmpl %]
-
-[% field_descs.platform = field_descs.rep_platform %]
-[% field_descs.delete("rep_platform") %]
-[% FOR k = field_descs.keys %]
-    [% IF k.match('\.|^(\[Bug creation\]|days_elapsed|owner_idle_time|changeddate|creation_ts|delta_ts)$') %]
-        [% field_descs.delete(k) %]
-    [% END %]
-[% END %]
 
 [% IF form || show_error %]
 <h2>Mass Bug Import from Excel files</h2>
@@ -59,14 +50,14 @@ function addfield()
 </tbody>
 <tbody id="flds">
 [% FOR f = bug_tpl.keys %]
-<tr><td>[% field_descs.${f} %] for all bugs:&nbsp;</td><td><input type="text" name="f_[% f %]" value="[% bug_tpl.${f} %]" /></td></tr>
+<tr><td>[% import_field_descs.${f} %] for all bugs:&nbsp;</td><td><input type="text" name="f_[% f %]" value="[% bug_tpl.${f} %]" /></td></tr>
 [% END %]
 </tbody>
 </table>
 <p>
 <select id="newfld">
-    [% FOR f = field_descs.keys.sort %]
-    <option value="[% f %]">[% field_descs.${f} %]</option>
+    [% FOR f = import_field_descs.keys.sort %]
+    <option value="[% f %]">[% import_field_descs.${f} %]</option>
     [% END %]
 </select> <input type="button" onclick="addfield()" value="Add field value for all bugs" />
 </p>
@@ -91,9 +82,6 @@ function addfield()
 [% ELSIF fields %]
 
 <h2>Select worksheet items to import as bugs</h2>
-
-[% field_descs.comment = field_descs.longdesc %]
-[% field_descs.delete("longdesc") %]
 
 <script language="JavaScript">
 function toggleallbugz(chk)
@@ -137,17 +125,13 @@ function fieldrename(field)
     <td><input type="checkbox" onclick="toggleallbugz(this.checked)" /></td>
 [% FOR field = fields %]
     <td style="white-space: nowrap">
-        [% IF NOT name_tr.${field} AND NOT field_descs.${field} %]
-            [% SET g = guess_field_name(field, field_descs) %]
-            [% SET name_tr.${field} = g IF g %]
-        [% END %]
         [% IF NOT name_tr.${field} %]
-        <p id="tp_[% field %]"><a href="javascript:void fieldrename('[% field.replace("['\"]", '\\$&') %]')">[% IF field_descs.${field} %][% field_descs.${field} %][% ELSE %]<span style="color: red">[% field %]</span>[% END %]</a></p>
+        <p id="tp_[% field %]"><a href="javascript:void fieldrename('[% field.replace("['\"]", '\\$&') %]')">[% IF import_field_descs.${field} %][% import_field_descs.${field} %][% ELSE %]<span style="color: red">[% field %]</span>[% END %]</a></p>
         [% END %]
         <select id="t_[% field %]" name="t_[% field %]" style="[% IF NOT name_tr.${field} %]display:none; [% END %]width: 90px">
-            <option value="[% field %]">[% IF field_descs.${field} %][% field_descs.${field} %][% ELSE %]Unknown field - [% field %][% END %]</option>
-        [% FOR f = field_descs.keys.sort %]
-            <option value="[% f %]" [% IF name_tr.${field} == f %] selected[% END %]>[% field_descs.${f} %]</option>
+            <option value="[% field %]">Don&apos;t map: [% field %]</option>
+        [% FOR f = import_field_descs.keys.sort %]
+            <option value="[% f %]" [% IF name_tr.${field} == f %] selected[% END %]>[% import_field_descs.${f} %]</option>
         [% END %]
         </select>
     </td>

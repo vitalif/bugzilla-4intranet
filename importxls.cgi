@@ -86,27 +86,37 @@ for (keys %$args)
 $vars->{bug_tpl} = $bug_tpl;
 $vars->{name_tr} = $name_tr;
 
+# нужно всосать из шаблонов field_descs...
+# и несколько поменять... ;-/ поганый хак, конечно, а чё делать-то.
+my $ctx = $template->{SERVICE}->context;
+$ctx->process('global/field-descs.none.tmpl');
+my $field_descs = $ctx->stash->get(['field_descs', 0]);
+$field_descs->{platform} = $field_descs->{rep_platform};
+$field_descs->{comment} = $field_descs->{longdesc};
+for ((grep { /\./ } keys %$field_descs),
+     (qw/rep_platform days_elapsed owner_idle_time changeddate creation_ts delta_ts [Bug creation] longdesc/))
+{
+    delete $field_descs->{$_};
+}
+$vars->{import_field_descs} = $field_descs;
+
+my $guess_field_descs = [
+    map { $_ => $field_descs->{$_} }
+    sort { length($field_descs->{$b}) <=> length($field_descs->{$a}) }
+    keys %$field_descs
+];
+
 # Функция угадывания поля
-my $fielddescs;
-$vars->{guess_field_name} = sub
+sub guess_field_name
 {
     my ($name) = @_;
-    unless ($fielddescs)
+    for (my $i = 0; $i < @$guess_field_descs; $i+=2)
     {
-        $fielddescs = $_[1];
-        $fielddescs = [
-            map { $_ => $fielddescs->{$_} }
-            sort { length($fielddescs->{$b}) <=> length($fielddescs->{$a}) }
-            keys %$fielddescs
-        ];
-    }
-    for (my $i = 0; $i < @$fielddescs; $i+=2)
-    {
-        my ($k, $v) = ($fielddescs->[$i], $fielddescs->[$i+1]);
+        my ($k, $v) = ($guess_field_descs->[$i], $guess_field_descs->[$i+1]);
         return $k if $name =~ /\Q$v\E/is;
     }
     return undef;
-};
+}
 
 unless ($args->{commit})
 {
@@ -159,6 +169,15 @@ unless ($args->{commit})
                     $bug->{enabled} = !$bug->{enabled};
                 }
                 $bug->{num} = ++$i;
+            }
+            # угадываем имена полей
+            my $g;
+            for (@{$table->{fields}})
+            {
+                if (!$name_tr->{$_} && ($g = guess_field_name($_)))
+                {
+                    $name_tr->{$_} = $g;
+                }
             }
             # показываем табличку с багами
             my %fhash = map { ($name_tr->{$_} || $_) => 1 } @{$table->{fields}};
@@ -250,7 +269,7 @@ sub parse_excel
         my ($row_min, $row_max) = $page->row_range;
         my ($col_min, $col_max) = $page->col_range;
         my $head = get_row($page, $row_min, $col_min, $col_max);
-        $r->{fields} = $head;
+        $r->{fields} ||= $head;
         # обрабатываем саму таблицу
         for my $row (($row_min+1) .. $row_max)
         {
