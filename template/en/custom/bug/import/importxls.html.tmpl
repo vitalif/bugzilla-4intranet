@@ -10,7 +10,7 @@
 [% field_descs.platform = field_descs.rep_platform %]
 [% field_descs.delete("rep_platform") %]
 [% FOR k = field_descs.keys %]
-    [% IF k.match('\.|^(\[Bug creation\]|days_elapsed|owner_idle_time|changeddate|creation_ts|delta_ts)$') %]
+    [% IF k.match('\.|^(\[Bug creation\]|days_elapsed|owner_idle_time|changeddate|creation_ts|delta_ts|longdesc)$') %]
         [% field_descs.delete(k) %]
     [% END %]
 [% END %]
