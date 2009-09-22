@@ -94,7 +94,7 @@ my $field_descs = $ctx->stash->get(['field_descs', 0]);
 $field_descs->{platform} = $field_descs->{rep_platform};
 $field_descs->{comment} = $field_descs->{longdesc};
 for ((grep { /\./ } keys %$field_descs),
-     (qw/rep_platform days_elapsed owner_idle_time changeddate creation_ts delta_ts [Bug creation] longdesc/))
+     (qw/rep_platform days_elapsed owner_idle_time changeddate creation_ts delta_ts longdesc/, '[Bug creation]'))
 {
     delete $field_descs->{$_};
 }
