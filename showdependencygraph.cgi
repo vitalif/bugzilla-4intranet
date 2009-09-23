@@ -120,8 +120,10 @@ my $urlbase = Bugzilla->params->{urlbase};
 
 print $fh "digraph G {";
 print $fh qq{
-graph [URL="${urlbase}query.cgi", rankdir=$rankdir, overlap=false, splines=true]
-node [URL="${urlbase}show_bug.cgi?id=\\N", style=filled, color=lightgrey]
+ranksep=0.5;
+graph [URL="${urlbase}query.cgi" rankdir=$rankdir overlap=false splines=true]
+node [URL="${urlbase}show_bug.cgi?id=\\N" shape=note fontsize=10 fontname="Consolas" style=filled fillcolor=white]
+edge [color=blue arrowtail=none arrowhead=none len=0.5]
 };
 
 my %baselist;
@@ -190,7 +192,7 @@ if ($display eq 'doall') {
 }
 
 my $sth = $dbh->prepare(q{
-    SELECT t1.bug_status, t1.resolution, t1.short_desc, t1.estimated_time, SUM(t3.work_time), t1.assigned_to, t2.login_name, t4.name, t5.name
+    SELECT t1.bug_status, t1.resolution, t1.short_desc, t1.estimated_time, SUM(t3.work_time), t1.assigned_to, t2.login_name, t4.name, t5.name, t1.bug_severity
     FROM bugs AS t1
     LEFT JOIN profiles AS t2 ON t2.userid=t1.assigned_to
     LEFT JOIN longdescs AS t3 ON t3.bug_id=t1.bug_id AND t3.work_time > 0
@@ -201,10 +203,14 @@ my $sth = $dbh->prepare(q{
 });
 foreach my $k (keys(%seen)) {
     # Retrieve bug information from the database
-    my ($stat, $resolution, $summary, $time, $wtime, $assignee, $asslogin, $product, $component) = $dbh->selectrow_array($sth, undef, $k);
+    my ($stat, $resolution, $summary, $time, $wtime, $assignee, $asslogin, $product, $component, $bug_severity) = $dbh->selectrow_array($sth, undef, $k);
     $stat ||= 'NEW';
     $resolution ||= '';
     $summary ||= '';
+    my $truncatedsummary = substr($summary, 0, 32);
+    if (length($truncatedsummary) ne length($summary)) {
+        $truncatedsummary .= '...';
+    }
 
     # Resolution and summary are shown only if user can see the bug
     if (!Bugzilla->user->can_see_bug($k)) {
@@ -213,34 +219,54 @@ foreach my $k (keys(%seen)) {
 
     $vars->{short_desc} = $summary if $k eq $cgi->param('id');
 
-    my @params = ("fontname=Sans",
-        "fillcolor=" . GetColorByState($stat, 1),
-        "color=" . GetColorByState($stat));
+    my $bgnodecolor=GetColorByState($stat, 1);
+    my $nodecolor=GetColorByState($stat);
+    
+    my $assigneecolor="white";
+    $assigneecolor="red1" if $bug_severity eq "blocker";   
+    $assigneecolor="rosybrown1" if $bug_severity  eq "critical";   
+    
+    my @params = ("color=" . $nodecolor);
 
-    push @params, "peripheries=2" if exists $baselist{$k};
+    push @params, "fillcolor=azure2" if exists $baselist{$k};
+#     my $bgfillnodecolor="white";
+#     $bgfillnodecolor="red" if exists $baselist{$k};
 
-    if ($assignee == Bugzilla->user->id)
-    {
-        push @params, "shape=box";
-    }
-    else
-    {
-        push @params, "shape=egg";
-    }
+#     if ($assignee == Bugzilla->user->id)
+#     {
+#         push @params, "shape=box";
+#     }
+#     else
+#     {
+#         push @params, "shape=egg";
+#     }
 
     my $important = $time > 40 || $wtime > 40 || ($deps{$k}||0) > 4;
     if ($important)
     {
         push @params, "width=3", "height=1.5", "fontsize=13";
     }
-    else
-    {
-        push @params, "fontsize=10";
-    }
 
     if ($summary ne "" && ($cgi->param('showsummary') || $important)) {
         $summary =~ s/([\\\"])/\\$1/g;
-        push(@params, qq{label="$k\\n$summary"});
+#        push(@params, qq{label="$k\\n$summary"});
+        push(@params, qq{
+label=<
+<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">  
+<TR>
+<TD BGCOLOR=$bgnodecolor>$k</TD>
+<TD BGCOLOR="$assigneecolor"><FONT POINT-SIZE="8">$asslogin</FONT></TD>
+</TR> 
+<TR>
+<TD COLSPAN="2" ALIGN="TEXT">
+<FONT POINT-SIZE="8">
+$truncatedsummary
+</FONT> 
+</TD>
+</TR> 
+</TABLE>
+>
+             });
     }
 
     if (@params) {
