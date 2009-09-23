@@ -353,17 +353,18 @@ if ($webdotbase =~ /^https?:/) {
                                                      SUFFIX => '.png',
                                                      DIR => $webdotdir);
     binmode $pngfh;
+    my $quot = $^O =~ /MSWin/ ? '"' : "'";
     my $cmd = [$webdotbase, '-Tpng', $filename];
     if ($dottimeout && $dottimeout > 0)
     {
         # This creepy way is the only one that seems to be truly crossplatform
-        $cmd = "perl -e '\$SIG{ALRM} = sub { exit 1 }; alarm $dottimeout; exec(" .
+        $cmd = "perl -e $quot\$SIG{ALRM} = sub { exit 1 }; alarm $dottimeout; exec(" .
             join(",", map { 'q{'.$_.'}' } @$cmd) .
-            ");'";
+            ");$quot";
     }
     else
     {
-        $cmd = join " ", map { "'$_'" } @$cmd;
+        $cmd = join " ", map { $quot.$_.$quot } @$cmd;
     }
     if (my $pid = open DOT, "$cmd|")
     {
