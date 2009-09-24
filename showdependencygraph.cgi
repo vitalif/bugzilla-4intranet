@@ -426,13 +426,13 @@ if ($webdotbase =~ /^https?:/) {
     if ($dottimeout && $dottimeout > 0)
     {
         # This creepy way is the only one that seems to be truly crossplatform
-        $cmd = "perl -e '\$SIG{ALRM} = sub { exit 1 }; alarm $dottimeout; exec(" .
+        $cmd = "perl -e $quot\$SIG{ALRM} = sub { exit 1 }; alarm $dottimeout; exec(" .
             join(",", map { 'q{'.$_.'}' } @$cmd) .
-            ");'";
+            ");$quot";
     }
     else
     {
-        $cmd = join " ", map { "'$_'" } @$cmd;
+        $cmd = join " ", map { $quot.$_.$quot } @$cmd;
     }
     open(DOT, "$cmd|");
     binmode DOT;
