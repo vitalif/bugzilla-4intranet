@@ -735,6 +735,14 @@ elsif ($action eq 'next_bug') {
         my $bug = new Bugzilla::Bug($cgi->param('id'));
         ThrowCodeError("bug_error", { bug => $bug }) if $bug->error;
 
+        $vars->{remind_about_worktime} =
+            $user &&
+            $user->is_timetracker &&                                        # user is timetracker
+            $user->settings->{remind_me_about_worktime} &&                  # user wants to be reminded about worktime
+            $user->settings->{remind_me_about_worktime}->{value} &&
+            lc $user->settings->{remind_me_about_worktime}->{value} ne 'off'
+            ? 1 : 0;
+
         $vars->{'bugs'} = [$bug];
 
         $template->process("bug/show.html.tmpl", $vars)
