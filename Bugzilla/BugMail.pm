@@ -36,6 +36,7 @@ use Bugzilla::Error;
 use Bugzilla::User;
 use Bugzilla::Constants;
 use Bugzilla::Util;
+use Bugzilla::Hook;
 use Bugzilla::Bug;
 use Bugzilla::Classification;
 use Bugzilla::Product;
@@ -690,11 +691,12 @@ sub sendMail
     Bugzilla::CustisLocalBugzillas::HackIntoUrlbase($user->email);
 
     my $msg;
+    my $tmpl = '';
+
     my $template = Bugzilla->template_inner($user->settings->{lang}->{value});
-    my $tmpl = '-'.$values{product};
-    $tmpl = '' unless $template->template_exists("email/newchangedmail$tmpl.txt.tmpl");
-    $template->process("email/newchangedmail$tmpl.txt.tmpl", $vars, \$msg)
-        || ThrowTemplateError($template->error());
+    Bugzilla::Hook::process('bugmail-pre_template', { tmpl => \$tmpl, vars => $vars });
+    $tmpl = "email/newchangedmail.txt.tmpl" unless $template->template_exists($tmpl);
+    $template->process($tmpl, $vars, \$msg) || ThrowTemplateError($template->error());
     Bugzilla->template_inner("");
 
     MessageToMTA($msg);
