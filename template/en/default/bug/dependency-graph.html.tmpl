@@ -22,7 +22,6 @@
   # bug_id: integer. The number of the bug(s).
   # multiple_bugs: boolean. True if bug_id contains > 1 bug number.
   # doall: boolean. True if we are displaying every bug in the database.
-  # showsummary: boolean. True if we are showing bug summaries.
   # rankdir: string. "TB" if we are ranking top-to-bottom,
                      "LR" if left-to-right.
   # image_url: string. The URL of the graphic showing the dependencies.
@@ -79,50 +78,22 @@
   <table>
     <tr>
       <th align="left"><label for="id">[% terms.Bug %] numbers</label>:</th>
-      <td><input id="id" name="id" value="[% bug_id %]"></td>
-      <td>
-        <input type="checkbox" id="showsummary" name="showsummary" [% " checked" IF showsummary %]>
-        <label for="showsummary">Show the summaries of all displayed [% terms.bugs %]</label>
-      </td>
+      <td colspan="2"><input id="id" name="id" value="[% bug_id %]" size="60" /></td>
     </tr>
 
     <tr>
       <th align="left"><label for="display">Display:</label></th>
       <td colspan="2">
         <select id="display" name="display">
+          <option value="only" [% 'selected="selected"' IF display == "only" %]>
+            Show only [% terms.bugs %] specified in the query</option>
           <option value="tree"[% 'selected="selected"' IF (!display || display == "tree") %]>
             Restrict to [% terms.bugs %] having a direct relationship with entered [% terms.bugs %]</option>
           <option value="web" [% 'selected="selected"' IF display == "web" %]>
             Show all [% terms.bugs %] having any relationship with entered [% terms.bugs %]</option>
-          <option value="doall" [% 'selected="selected"' IF display == "doall" %]>
-            Show every [% terms.bug %] in the system with dependencies</option>
         </select>
       </td>
     </tr>
-
-    <tr>
-      <th align="left"><label for="rankdir">Orientation:</label></th>
-      <td colspan="2">
-        <select id="rankdir" name="rankdir">
-          <option value="TB"[% " selected" IF rankdir == "TB" %]>Top to bottom</option>
-          <option value="BT"[% " selected" IF rankdir == "BT" %]>Bottom to top</option>
-          <option value="LR"[% " selected" IF rankdir == "LR" %]>Left to right</option>
-          <option value="RL"[% " selected" IF rankdir == "RL" %]>Right to left</option>
-        </select>
-      </td>
-    </tr>
-
-[% IF Param('webtwopibase') %]
-    <tr>
-      <th align="left"><label for="usetwopi">Plotter:</label></th>
-      <td colspan="2">
-        <select id="usetwopi" name="usetwopi" style="width: 200px">
-          <option value="0"[% " selected" UNLESS usetwopi %]>Normal ([% Param('webdotbase') FILTER html %])</option>
-          <option value="1"[% " selected" IF usetwopi %]>Alternative ([% Param('webtwopibase') FILTER html %]) - may be slow</option>
-        </select>
-      </td>
-    </tr>
-[% END %]
   </table>
   <input type="submit" id="change" value="Change Parameters">
 </form>
