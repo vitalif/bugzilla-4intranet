@@ -249,7 +249,7 @@ sub Send {
                    $when_restriction
           ORDER BY bugs_activity.bug_when", undef, @args);
 
-    my @diff_array = [];
+    my @diff_array = ();
 
     my @new_depbugs;
     my $difftext = "";
