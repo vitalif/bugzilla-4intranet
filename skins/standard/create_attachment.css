@@ -104,3 +104,5 @@ tbody.file pre:empty {
 .warning {
   color: red
 }
+
+#comment { width: 50em; font-size: medium; font-family: monospace; }
