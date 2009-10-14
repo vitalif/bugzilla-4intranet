@@ -34,7 +34,7 @@ sub processWikiUrl
     return Bugzilla->params->{"${wiki}_url"} . $url . '#' . processWikiAnchor($anchor);
 }
 
-for my $wiki (qw/wiki smwiki smboa sbwiki fawiki kswiki rdwiki gzwiki dpwiki hrwiki cbwiki/)
+for my $wiki (qw/wiki smwiki smboa sbwiki fawiki kswiki rdwiki gzwiki dpwiki hrwiki cbwiki gzstable/)
 {
     Bugzilla->hook_args->{custom_proto}->{$wiki} = sub { processWikiUrl($wiki, @_) }
 }
