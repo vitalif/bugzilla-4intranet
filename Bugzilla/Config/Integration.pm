@@ -54,6 +54,12 @@ sub get_param_list
     },
 
     {
+        name => 'gzstable_url',
+        type => 't',
+        default => 'http://gazprom.office.custis.ru/gzstable/index.php/',
+    },
+
+    {
         name => 'dpwiki_url',
         type => 't',
         default => 'http://depobraz.office.custis.ru/dpwiki/index.php/',
