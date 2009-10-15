@@ -67,6 +67,18 @@ sub get_param_list {
    default => '5'
   },
 
+  {
+   name => 'graph_font',
+   type => 't',
+   default => '',
+  },
+
+  {
+   name => 'graph_font_size',
+   type => 't',
+   default => '8',
+  },
+
   );
   return @param_list;
 }

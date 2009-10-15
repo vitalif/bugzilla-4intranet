@@ -23,6 +23,7 @@
 
 use strict;
 use lib qw(. lib);
+use GD::Text;
 
 use Bugzilla;
 use Bugzilla::Constants;
