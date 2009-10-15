@@ -86,9 +86,9 @@ function addfield()
 <script language="JavaScript">
 function toggleallbugz(chk)
 {
-    bugz = document.getElementById('bugz');
-    for (i = 0; i < bugz.children.length; i++)
-        document.getElementById('b_enabled_'+(""+bugz.children[i].id).substr(5)).checked = chk;
+    var bgz = document.getElementById("bugz");
+    for (var i = 0; i < bgz.children.length; i++)
+        document.getElementById('b_enabled_'+(""+bgz.children[i].id).substr(5)).checked = chk;
 }
 function fieldrename(field)
 {
