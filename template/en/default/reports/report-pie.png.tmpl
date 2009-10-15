@@ -42,6 +42,14 @@
             suppress_angle => 2,
             start_angle    => 180);
     
+  graph.set_legend_font(Param('graph_font'), Param('graph_font_size'));
+  graph.set_title_font(Param('graph_font'), Param('graph_font_size'));
+  graph.set_x_label_font(Param('graph_font'), Param('graph_font_size'));
+  graph.set_y_label_font(Param('graph_font'), Param('graph_font_size'));
+  graph.set_x_axis_font(Param('graph_font'), Param('graph_font_size'));
+  graph.set_y_axis_font(Param('graph_font'), Param('graph_font_size'));
+  graph.set_values_font(Param('graph_font'), Param('graph_font_size'));
+
   graph.plot(data.0).png | stdout(1);
   END;
 -%]
