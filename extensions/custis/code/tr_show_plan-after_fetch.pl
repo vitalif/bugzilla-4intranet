@@ -1,11 +1,13 @@
 #!/usr/bin/perl
 # Bug 53254 - Синхронизация тест-плана с категорией MediaWiki
 
+use utf8;
 use strict;
 use Bugzilla::Util;
 use Bugzilla::User;
 use Bugzilla::Testopia::TestCase;
 
+use Encode;
 use URI;
 use XML::Parser;
 use HTML::Entities;
@@ -66,7 +68,10 @@ sub wiki_sync_handle_end
     my $element = shift;
     if ($element eq 'page')
     {
-        wiki_sync_case($self->{_ws_page}, $self->{_ws_wiki_url}, $self->{_ws_plan});
+        unless ($self->{_ws_page}->{title} =~ /^(Шаблон:|Template:)/iso)
+        {
+            wiki_sync_case($self->{_ws_page}, $self->{_ws_wiki_url}, $self->{_ws_plan});
+        }
         delete $self->{_ws_page};
         delete $self->{_ws_current};
     }
@@ -150,11 +155,12 @@ sub fetch_wiki_category_xml
     $_[0] = $wiki_url;
     my $uri = URI->new($wiki_url . '?title=Special:Export&action=submit')->canonical;
     # Дёргаем Special:Export и вытаскиваем список страниц категории
+    Encode::_utf8_off($category);
     my $response = $ua->request(POST $uri, [ addcat => "Добавить", catname => $category ]);
     if (!$response->is_success)
     {
         # TODO показать ошибку
-        #return "Could not POST $uri addcat=Добавить&catname=$category: ".$response->status_line;
+        die "Could not POST $uri addcat=Добавить&catname=$category: ".$response->status_line;
     }
     my $text = $response->content;
     ($text) = $text =~ m!<textarea[^<>]*>(.*?)</textarea>!iso;
@@ -168,7 +174,7 @@ sub fetch_wiki_category_xml
     if (!$response->is_success)
     {
         # TODO показать ошибку
-        #return "Could not retrieve export XML file: ".$response->status_line;
+        die "Could not retrieve export XML file: ".$response->status_line;
     }
     return $response->content;
 }
