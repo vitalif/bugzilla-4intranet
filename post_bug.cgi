@@ -306,7 +306,12 @@ if ($token) {
 }
 
 if (Bugzilla->usage_mode == USAGE_MODE_EMAIL) {
-    Bugzilla::BugMail::Send($id, $vars->{'mailrecipients'});
+    if (!$cgi->param('dontsendbugmail')) {
+        Bugzilla::BugMail::Send($id, $vars->{'mailrecipients'});
+    }
+    else {
+        Bugzilla->request_cache->{mailrecipients} = $vars->{mailrecipients};
+    }
     return $id;
 }
 else {

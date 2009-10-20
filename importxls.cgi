@@ -14,6 +14,7 @@ use Bugzilla::Component;
 use Bugzilla::Util;
 use Bugzilla::Error;
 use Bugzilla::Bug;
+use Bugzilla::BugMail;
 use Bugzilla::User;
 
 # Подгружаются по необходимости: Spreadsheet::ParseExcel, Spreadsheet::XSLX;
@@ -208,13 +209,14 @@ else
     my $r = 0;
     my $ids = [];
     my $f = 0;
+    my $bugmail = {};
     Bugzilla->dbh->bz_start_transaction;
     for my $bug (values %$bugs)
     {
         $bug->{$_} ||= $bug_tpl->{$_} for keys %$bug_tpl;
         if ($bug->{enabled})
         {
-            my $id = post_bug($bug);
+            my $id = post_bug($bug, $bugmail);
             if ($id)
             {
                 $r++;
@@ -238,6 +240,11 @@ else
             (map { ("f_$_" => $bug_tpl->{$_}) } keys %$bug_tpl),
             (map { ("t_$_" => $name_tr->{$_}) } keys %$name_tr),
         });
+        # и только теперь (по успешному завершению) рассылаем почту
+        foreach my $bug_id (keys %$bugmail)
+        {
+            Bugzilla::BugMail::Send($bug_id, $bugmail->{$bug_id});
+        }
         Bugzilla->dbh->bz_commit_transaction;
         print $cgi->redirect(-location => 'importxls.cgi?'.$newcgi->query_string);
     }
@@ -292,7 +299,7 @@ sub get_row
 # добавить баг
 sub post_bug
 {
-    my ($fields_in) = @_;
+    my ($fields_in, $bugmail) = @_;
     my $cgi = Bugzilla->cgi;
     # имитируем почтовое использование с показом ошибок в браузер
     my $um = Bugzilla->usage_mode;
@@ -311,7 +318,7 @@ sub post_bug
             });
         };
         # если нет дефолтной версии в компоненте
-        unless ($fields_in->{version} = $component->default_version)
+        if ($product && (!$component || !($fields_in->{version} = $component->default_version)))
         {
             my $vers = [ map ($_->name, @{$product->versions}) ];
             my $v;
@@ -336,6 +343,7 @@ sub post_bug
     # и дёргаем post_bug.cgi
     my $bug_id = do 'post_bug.cgi';
     Bugzilla->usage_mode($um);
+    $bugmail->{$bug_id} = Bugzilla->request_cache->{mailrecipients};
     return $bug_id;
 }
 
