@@ -340,6 +340,7 @@ sub post_bug
     {
         $cgi->param(-name => $field, -value => $fields_in->{$field});
     }
+    $cgi->param(-name => 'dontsendbugmail', -value => 1);
     # и дёргаем post_bug.cgi
     my $bug_id = do 'post_bug.cgi';
     Bugzilla->usage_mode($um);
