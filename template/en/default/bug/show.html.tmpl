@@ -39,7 +39,7 @@
     [% bodyclasses.push("bz_group_$group.name") %]
   [% END %]
   [% SET filtered_prodcomp = bug.product _ '/' _ bug.component | html %]
-  [% SET filtered_stat = bug.bug_status | html %]
+  [% SET filtered_stat = bug.bug_status _ ' ' _ bug.resolution | html %]
   [% PROCESS global/header.html.tmpl
     title = "$terms.Bug $bug.bug_id &ndash; $filtered_desc &ndash; $filtered_prodcomp &ndash; $filtered_stat"
     header = "$terms.Bug&nbsp;$bug.bug_id"
