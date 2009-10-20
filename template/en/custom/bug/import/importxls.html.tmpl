@@ -16,7 +16,7 @@
 [% ELSIF error == "empty" %]
     The supplied file does not contain any bug descriptions, or the sheet with selected name was not found.
 [% ELSE %]
-    Unknown error: "[% error %]".
+    Unknown error: "[% error | html %]".
 [% END %]
 </b></p>
 [% END %]
@@ -40,24 +40,24 @@ function addfield()
 
 <form action="importxls.cgi" method="post" enctype="multipart/form-data">
 [% FOR f = name_tr.keys %]
-<input type="hidden" name="t_[% f %]" value="[% name_tr.${f} %]" />
+<input type="hidden" name="t_[% f | html %]" value="[% name_tr.${f} | html %]" />
 [% END %]
 <table>
 <tbody>
 <tr><td>Select XLS/XLSX file to import:</td><td><input type="file" name="xls" /></td></tr>
 <tr><td>Enter sheet name to process<span style="color:red">*</span>:</td><td><input type="text" name="listname" value="[% listname FILTER html %]" /></td></tr>
-<tr><td>Maximum bug duplicate age:</td><td><input type="text" size="5" name="bugdays" value="[% bugdays %]" /> days</td></tr>
+<tr><td>Maximum bug duplicate age:</td><td><input type="text" size="5" name="bugdays" value="[% bugdays | html %]" /> days</td></tr>
 </tbody>
 <tbody id="flds">
 [% FOR f = bug_tpl.keys %]
-<tr><td>[% import_field_descs.${f} %] for all bugs:&nbsp;</td><td><input type="text" name="f_[% f %]" value="[% bug_tpl.${f} %]" /></td></tr>
+<tr><td>[% import_field_descs.${f} | html %] for all bugs:&nbsp;</td><td><input type="text" name="f_[% f | html %]" value="[% bug_tpl.${f} | html %]" /></td></tr>
 [% END %]
 </tbody>
 </table>
 <p>
 <select id="newfld">
     [% FOR f = import_field_descs.keys.sort %]
-    <option value="[% f %]">[% import_field_descs.${f} %]</option>
+    <option value="[% f | html %]">[% import_field_descs.${f} | html %]</option>
     [% END %]
 </select> <input type="button" onclick="addfield()" value="Add field value for all bugs" />
 </p>
@@ -67,18 +67,18 @@ function addfield()
 <span style="color:red">*</span> Empty sheet name means to process all sheets.
 [% ELSIF show_result %]
 [% IF result %]
-<p><b>Successfully imported [% result %] bugs[% IF result > 0 %]:
+<p><b>Successfully imported [% result | html %] bugs[% IF result > 0 %]:
 [% i = 0 %]
 [% FOR b = bug_id %]
   [% ", " IF i %]
-  <a href="show_bug.cgi?id=[% b %]">[% b %]</a>
+  <a href="show_bug.cgi?id=[% b | html %]">[% b | html %]</a>
   [% i = i+1 %]
 [% END %]
 [% END %].</b></p>
 [% ELSE %]
 <p>An import error occurred, no bugs were imported.</p>
 [% END %]
-<p><a href="[% importnext %]">Import another Excel file</a> - You can bookmark this link as a template.</p>
+<p><a href="[% importnext | html %]">Import another Excel file</a> - You can bookmark this link as a template.</p>
 [% ELSIF fields %]
 
 <h2>Select worksheet items to import as bugs</h2>
@@ -115,10 +115,10 @@ function fieldrename(field)
 
 <form action="importxls.cgi" method="post">
 <input type="hidden" name="commit" value="1" />
-<input type="hidden" name="bugdays" value="[% bugdays %]" />
-<input type="hidden" name="listname" value="[% listname FILTER html %]" />
+<input type="hidden" name="bugdays" value="[% bugdays | html %]" />
+<input type="hidden" name="listname" value="[% listname | html %]" />
 [% FOR key = bug_tpl.keys %]
-<input type="hidden" name="f_[% key FILTER html %]" value="[% bug_tpl.${key} FILTER html %]" />
+<input type="hidden" name="f_[% key | html %]" value="[% bug_tpl.${key} | html %]" />
 [% END %]
 <table>
 <tr>
@@ -126,12 +126,12 @@ function fieldrename(field)
 [% FOR field = fields %]
     <td style="white-space: nowrap">
         [% IF NOT name_tr.${field} %]
-        <p id="tp_[% field %]"><a href="javascript:void fieldrename('[% field.replace("['\"]", '\\$&') %]')">[% IF import_field_descs.${field} %][% import_field_descs.${field} %][% ELSE %]<span style="color: red">[% field %]</span>[% END %]</a></p>
+        <p id="tp_[% field | html %]"><a href="javascript:void fieldrename('[% field.replace("['\"]", '\\$&') | html %]')">[% IF import_field_descs.${field} %][% import_field_descs.${field} | html %][% ELSE %]<span style="color: red">[% field %]</span>[% END %]</a></p>
         [% END %]
-        <select id="t_[% field %]" name="t_[% field %]" style="[% IF NOT name_tr.${field} %]display:none; [% END %]width: 90px">
-            <option value="[% field %]">Don&apos;t map: [% field %]</option>
+        <select id="t_[% field | html %]" name="t_[% field | html %]" style="[% IF NOT name_tr.${field} %]display:none; [% END %]width: 90px">
+            <option value="[% field | html %]">Don&apos;t map: [% field | html %]</option>
         [% FOR f = import_field_descs.keys.sort %]
-            <option value="[% f %]" [% IF name_tr.${field} == f %] selected[% END %]>[% import_field_descs.${f} %]</option>
+            <option value="[% f | html %]" [% IF name_tr.${field} == f %] selected[% END %]>[% import_field_descs.${f} | html %]</option>
         [% END %]
         </select>
     </td>
@@ -139,10 +139,10 @@ function fieldrename(field)
 </tr>
 <tbody id="bugz">
 [% FOR bug = data %]
-<tr id="bugz_[% bug.num %]">
-    <td><input type="checkbox" id="b_enabled_[% bug.num %]" name="b_enabled_[% bug.num %]" value="1" [% IF bug.enabled %]checked[% END %] /></td>
+<tr id="bugz_[% bug.num | html %]">
+    <td><input type="checkbox" id="b_enabled_[% bug.num | html %]" name="b_enabled_[% bug.num | html %]" value="1" [% IF bug.enabled %]checked[% END %] /></td>
     [% FOR field = fields %]
-    <td><input type="text" size="[% lens.${field} %]" name="b_[% field FILTER html %]_[% bug.num %]" value="[% bug.${field} %]" /></td>
+    <td><input type="text" size="[% lens.${field} | html %]" name="b_[% field | html %]_[% bug.num | html %]" value="[% bug.${field} | html %]" /></td>
     [% END %]
 </tr>
 [% END %]
