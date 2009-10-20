@@ -426,7 +426,7 @@ sub cookie
                 for (keys %{$self->{'.cookies'}})
                 {
                     $v = $self->{'.cookies'}->{$_}->value;
-                    Encode::_utf8_on($_);
+                    Encode::_utf8_on($_) if ?[\x100-\xFFFF]?;
                     Encode::_utf8_on($v);
                     push @a, $_, $v;
                 }
