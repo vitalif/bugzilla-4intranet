@@ -1,11 +1,5 @@
-
-#header .label {
-    display: none;
-}
-
-#header li.tr_find {
-}
-#header li.tr_saved_search {
+#header .links.testopia_links .label, #footer .links.testopia_links .label {
+    vertical-align: middle;
 }
 
 #header .testopia_btn {
@@ -16,11 +10,6 @@
     border:none;
 }
 
-#footer li.tr_find {
-}
-
-#footer li.tr_saved_search {
-}
 #footer .tr_btn {
     background-color: #808285;
     font-size: 80%;

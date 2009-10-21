@@ -22,7 +22,7 @@
 [% DEFAULT qs_suffix = "" %]
 [% USE Bugzilla %]
 
-<ul class="links">
+<ul class="links[% IF standalone %] standalone[% END %]">
   <li><a href="./">Home</a></li>
   <li><span class="separator">| </span><a href="enter_bug.cgi">New</a></li>
   <li><span class="separator">| </span><a href="query.cgi">Search</a></li>

@@ -274,7 +274,11 @@
 </tr>
 </table>
 
-[% PROCESS "global/common-links.html.tmpl" qs_suffix = "_top" in_ul = 0 %]
+[% IF user.id AND user.settings.saved_searches_position.value == "header" %]
+[% PROCESS "global/useful-links.html.tmpl" %]
+[% ELSE %]
+[% PROCESS "global/common-links.html.tmpl" qs_suffix = "top" standalone = 1 %]
+[% END %]
 
 </td></tr>
 

@@ -52,20 +52,29 @@
         display: inline;
     }
 
-    #header .links {
-        border-left: 1px solid silver;
-        border-right: 1px solid silver;
-        border-bottom: 1px solid silver;
-        -moz-border-radius-bottomleft: 5px;
-        -moz-border-radius-bottomright: 5px;
-        padding: 0.5em;
-    }
-
     #message {
         border: 1px solid red;
         margin: 0.3em 0em;
         padding: 0.3em;
         color: green;
+    }
+
+    #header #useful-links {
+        padding-left: 1ex;
+        padding-right: 1ex;
+    }
+
+    #header ul {
+        list-style-type: none;
+    }
+
+    #header .label {
+        white-space: nowrap;
+        vertical-align: top;
+    }
+
+    #header .links {
+        vertical-align: top;
     }
 
     form.mini_login input.bz_login  {

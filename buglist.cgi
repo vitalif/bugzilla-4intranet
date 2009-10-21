@@ -381,7 +381,7 @@ $filename =~ s/\\/\\\\/g; # escape backslashes
 $filename =~ s/"/\\"/g; # escape quotes
 
 # Take appropriate action based on user's request.
-if ($cmdtype eq "dorem") {  
+if ($cmdtype eq "dorem") {
     if ($remaction eq "run") {
         my $query_id;
         ($buffer, $query_id) = Bugzilla::Search::LookupNamedQuery(
@@ -394,6 +394,12 @@ if ($cmdtype eq "dorem") {
             $cgi->param('sharer_id') == Bugzilla->user->id) {
             $vars->{'searchtype'} = "saved";
             $vars->{'search_id'} = $query_id;
+        }
+        if ($buffer =~ m!^[a-z][a-z0-9]*://!so)
+        {
+            # CustIS Bug 53697: Custom links in saved searches and footer/header
+            print $cgi->redirect(-location => $buffer);
+            exit;
         }
         $params = new Bugzilla::CGI($buffer);
         $order = $params->param('order') || $order;
