@@ -141,13 +141,7 @@ function set_assign_to() {
             }
         }
 
-        if (initialccs[index])
-        {
-            document.getElementById('initial_cc').innerHTML = initialccs[index];
-            document.getElementById('initial_cc_tr').style.display = '';
-        }
-        else
-            document.getElementById('initial_cc_tr').style.display = 'none';
+        document.Create.cc.value = initialccs[index];
         document.getElementById('comp_desc').innerHTML = comp_desc[index];
 
         [% IF Param("useqacontact") %]
@@ -486,18 +480,6 @@ TUI_hide_default('expert_fields');
          size => 30
          multiple => 5
        %]
-    </td>
-  </tr>
-
-  <tr id="initial_cc_tr" style="display:none">
-    <th>Default CC:</th>
-    <td colspan="2">
-      <div id="initial_cc">
-          <!-- This has to happen after everything above renders,
-               and onload doesn't work. So this is as good a place
-               as any to put it. -->
-          <script type="text/javascript">set_assign_to();</script>
-      </div>
     </td>
   </tr>
 

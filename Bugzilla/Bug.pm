@@ -1229,8 +1229,9 @@ sub _check_cc {
         $cc_ids{$id} = 1;
     }
 
-    # Enforce Default CC
-    $cc_ids{$_->id} = 1 foreach (@{$component->initial_cc});
+    # CustIS Bug 55095: Don't enforce default CC
+    ## Enforce Default CC
+    #$cc_ids{$_->id} = 1 foreach (@{$component->initial_cc});
 
     return [keys %cc_ids];
 }
