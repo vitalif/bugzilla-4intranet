@@ -25,6 +25,7 @@
 use strict;
 
 use lib qw(. lib);
+use URI;
 
 use Bugzilla;
 use Bugzilla::Constants;
@@ -405,8 +406,22 @@ sub DoPermissions {
 
 
 sub DoSavedSearches {
+    my $cgi = Bugzilla->cgi;
     my $dbh = Bugzilla->dbh;
     my $user = Bugzilla->user;
+
+    # CustIS Bug 53697 - Bookmarks
+    if ((my $name = trim($cgi->param('addbookmarkname'))) &&
+        (my $url = $cgi->param('addbookmarkurl')))
+    {
+        trick_taint($name);
+        trick_taint($url);
+        eval { $url = URI->new($url)->canonical->as_string; };
+        ThrowCodeError("invalid_url", { url => $url }) if $@;
+        $dbh->do('INSERT INTO namedqueries (userid, name, query) VALUES (?, ?, ?)', undef,
+            $user->id, $name, $url);
+        $dbh->commit;
+    }
 
     if ($user->queryshare_groups_as_string) {
         $vars->{'queryshare_groups'} =

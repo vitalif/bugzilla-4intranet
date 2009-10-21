@@ -113,3 +113,7 @@ th.title {
     text-align: center;
     vertical-align: middle;
 }
+
+blockquote table {
+    border-collapse: collapse;
+}

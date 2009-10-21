@@ -34,7 +34,7 @@ body {
     -moz-border-radius-topright: 5px;
 }
 
-#header .links, #footer {
+#header, #footer {
     background-color: #929bb1;
     color: #ddd;
 }
@@ -178,24 +178,24 @@ hr {
 
 /* footer */
 
-#footer {
+#header, #footer {
     border: 1px solid #747e93;
     width: 100%;
     -moz-border-radius: 5px;
 }
 
-#footer a {
+#header a, #footer a {
     color: white;
 }
 
-#footer #links-actions,
-#footer #links-edit,
-#footer #links-saved,
-#footer #links-special {
+#links-actions,
+#links-edit,
+#links-saved,
+#links-special {
     margin-top: 2ex;
 }
 
-#footer .links {
+.links {
     border-spacing: 30px;
     margin-bottom: 2ex;
 }
@@ -384,4 +384,12 @@ form#Create th:first-child {
 
 .flag_table td {
     vertical-align: top;
+}
+
+#header ul.links.testopia_links, #footer ul.links.testopia_links {
+    margin-top: 2ex;
+}
+
+.links.standalone {
+    padding: 0.5em;
 }
