@@ -2986,7 +2986,7 @@ sub user {
 
 sub choices {
     my $self = shift;
-    return $self->{'choices'} if exists $self->{'choices'};
+    return $self->{choices} if exists $self->{'choices'};
     return {} if $self->{'error'};
 
     $self->{'choices'} = {};
@@ -3010,7 +3010,7 @@ sub choices {
     };
 
     # Hack - this array contains "". See bug 106589.
-    $self->{choices}->{resolution} = grep ($_, @{get_legal_field_values('resolution')});
+    $self->{choices}->{resolution} = [ grep ($_, @{get_legal_field_values('resolution')}) ];
 
     $self->{choices}->{op_sys} = get_legal_field_values('op_sys') if Bugzilla->params->{useopsys};
     $self->{choices}->{rep_platform} = get_legal_field_values('rep_platform') if Bugzilla->params->{useplatform};
