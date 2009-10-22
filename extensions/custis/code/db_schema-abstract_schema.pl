@@ -59,3 +59,8 @@ $schema->{fieldvaluecontrol} = {
              TYPE => 'UNIQUE'},
     ],
 };
+
+# Bug 53635 - Переделка полей OS и Platform в Custom Fields
+push @{$schema->{fielddefs}->{FIELDS}}, isactive => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'};
+push @{$schema->{fielddefs}->{FIELDS}}, defaultvalue => {TYPE => 'MEDIUMTEXT'};
+
