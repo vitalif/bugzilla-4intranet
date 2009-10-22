@@ -138,13 +138,3 @@ if ($dbh->bz_table_info('test_fielddefs'))
         $dbh->do("INSERT INTO test_fielddefs (name, description, table_name) VALUES ('wiki', 'Wiki Category', 'test_plans')");
     }
 }
-
-# Bug 53635 - Переделка полей OS и Platform в Custom Fields
-unless ($dbh->bz_column_info('fielddefs', 'isactive'))
-{
-    $dbh->bz_add_column('fielddefs', isactive => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'});
-}
-unless ($dbh->bz_column_info('fielddefs', 'defaultvalue'))
-{
-    $dbh->bz_add_column('fielddefs', defaultvalue => {TYPE => 'MEDIUMTEXT'});
-}
