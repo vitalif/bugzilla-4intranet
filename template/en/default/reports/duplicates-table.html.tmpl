@@ -49,17 +49,19 @@
   <table border>
     <thead>
       <tr bgcolor="#CCCCCC">
-        [% FOREACH column = [ { name => "id", description => "$terms.Bug #" },
-                              { name => "count", description => "Dupe<br>Count" },
-                              { name => "delta",
-                                description => "Change in last<br>$changedsince day(s)" },
-                              { name => "component", description => "Component" },
-                              { name => "bug_severity", description => "Severity" },
-                              { name => "op_sys", description => "Op Sys" },
-                              { name => "target_milestone",
-                                description => "Target<br>Milestone" },
-                              { name => "short_desc", description => "Summary" } ]
-         %]
+        [% SET columns = [
+            { name => "id", description => "$terms.Bug #" },
+            { name => "count", description => "Dupe<br>Count" },
+            { name => "delta", description => "Change in last<br>$changedsince day(s)" },
+            { name => "component", description => "Component" },
+            { name => "bug_severity", description => "Severity" },
+           ]
+        %]
+        [% columns.push({ name => "op_sys", description => "Op Sys" }) IF Param('useopsys') %]
+        [% columns.push({ name => "target_milestone", description => "Target<br>Milestone" }) %]
+        [% columns.push({ name => "short_desc", description => "Summary" }) %]
+
+        [% FOREACH column = columns %]
 
           [%# Small hack to keep delta column out if we don't need it %]
           [% NEXT IF column.name == "delta" AND NOT dobefore %]
@@ -128,12 +130,14 @@
           </td>
 
           [% IF dobefore %]
-            <td><center>[% bug.delta %]</center></td>
+          <td><center>[% bug.delta %]</center></td>
           [% END %]
 
           <td>[% bug.component FILTER html %]</td>
           <td><center>[% bug.bug_severity FILTER html %]</center></td>
+          [% IF Param('useopsys') %]
           <td><center>[% bug.op_sys FILTER html %]</center></td>
+          [% END %]
           <td><center>[% bug.target_milestone FILTER html %]</center></td>
           <td>[% bug.short_desc FILTER html %]</td>
         </tr>

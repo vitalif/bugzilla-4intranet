@@ -199,38 +199,33 @@ if (scalar(%count)) {
         $params->param('product', join(',', @query_products));
     }
 
-    my $query = new Bugzilla::Search('fields' => [qw(bug_id
-                                                     component
-                                                     bug_severity
-                                                     op_sys
-                                                     target_milestone
-                                                     short_desc
-                                                     bug_status
-                                                     resolution
-                                                    )
-                                                 ],
-                                     'params' => $params,
-                                    );
+    my $query = new Bugzilla::Search(
+        fields => [
+            qw(bug_id component bug_severity target_milestone short_desc bug_status resolution),
+            (Bugzilla->params->{useopsys} ? ('op_sys') : ()),
+        ],
+        params => $params,
+    );
 
     my $results = $dbh->selectall_arrayref($query->getSQL());
 
     foreach my $result (@$results) {
         # Note: maximum row count is dealt with in the template.
 
-        my ($id, $component, $bug_severity, $op_sys, $target_milestone, 
-            $short_desc, $bug_status, $resolution) = @$result;
+        my ($id, $component, $bug_severity, $target_milestone,
+            $short_desc, $bug_status, $resolution, $op_sys) = @$result;
 
         push (@bugs, { id => $id,
                        count => $count{$id},
-                       delta => $delta{$id}, 
+                       delta => $delta{$id},
                        component => $component,
                        bug_severity => $bug_severity,
                        op_sys => $op_sys,
                        target_milestone => $target_milestone,
                        short_desc => $short_desc,
-                       bug_status => $bug_status, 
+                       bug_status => $bug_status,
                        resolution => $resolution });
-        push (@bug_ids, $id); 
+        push (@bug_ids, $id);
     }
 }
 

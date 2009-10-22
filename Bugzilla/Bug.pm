@@ -408,9 +408,9 @@ sub match {
 # C<bug_severity> - B<Required> The severity for the bug, a string.
 # C<creation_ts>  - B<Required> A SQL timestamp for when the bug was created.
 # C<short_desc>   - B<Required> A summary for the bug.
-# C<op_sys>       - B<Required> The OS the bug was found against.
+# C<op_sys>       - The OS the bug was found against.
 # C<priority>     - B<Required> The initial priority for the bug.
-# C<rep_platform> - B<Required> The platform the bug was found against.
+# C<rep_platform> - The platform the bug was found against.
 # C<version>      - B<Required> The version of the product the bug was found in.
 #
 # C<alias>        - An alias for this bug. Will be ignored if C<usebugaliases>
@@ -440,13 +440,13 @@ sub create {
 
     # These fields have default values which we can use if they are undefined.
     $params->{bug_severity} = Bugzilla->params->{defaultseverity}
-      unless defined $params->{bug_severity};
+        unless defined $params->{bug_severity};
     $params->{priority} = Bugzilla->params->{defaultpriority}
-      unless defined $params->{priority};
+        unless defined $params->{priority};
     $params->{op_sys} = Bugzilla->params->{defaultopsys}
-      unless defined $params->{op_sys};
+        unless defined $params->{op_sys};
     $params->{rep_platform} = Bugzilla->params->{defaultplatform}
-      unless defined $params->{rep_platform};
+        unless defined $params->{rep_platform};
     # Make sure a comment is always defined.
     $params->{comment} = '' unless defined $params->{comment};
 
@@ -1529,6 +1529,7 @@ sub _check_product {
 
 sub _check_op_sys {
     my ($invocant, $op_sys) = @_;
+    return Bugzilla->params->{defaultopsys} unless Bugzilla->params->{useopsys};
     $op_sys = trim($op_sys);
     check_field('op_sys', $op_sys);
     return $op_sys;
@@ -1590,6 +1591,7 @@ sub _check_remaining_time {
 
 sub _check_rep_platform {
     my ($invocant, $platform) = @_;
+    return Bugzilla->params->{defaultplatform} unless Bugzilla->params->{useplatform};
     $platform = trim($platform);
     check_field('rep_platform', $platform);
     return $platform;
@@ -1853,28 +1855,34 @@ sub _check_bugid_field {
 sub fields {
     my $class = shift;
 
-   my @fields =
-   (
+    my @fields =
+    (
         # Standard Fields
         # Keep this ordering in sync with bugzilla.dtd.
         qw(bug_id alias creation_ts short_desc delta_ts
            reporter_accessible cclist_accessible
            classification_id classification
-           product component version rep_platform op_sys
-           bug_status resolution dup_id see_also
+           product component version),
+        # Use platform?
+        Bugzilla->params->{useplatform} ? "rep_platform" : (),
+        # Use OS?
+        Bugzilla->params->{useopsys} ? "op_sys" : (),
+        # Standard Fields continued...
+        qw(bug_status resolution dup_id see_also
            bug_file_loc status_whiteboard keywords
            priority bug_severity target_milestone
            dependson blocked votes everconfirmed
            reporter assigned_to cc estimated_time
            remaining_time actual_time deadline),
 
-        # Conditional Fields
-        Bugzilla->params->{'useqacontact'} ? "qa_contact" : (),
+        # Use QA contact?
+        Bugzilla->params->{useqacontact} ? "qa_contact" : (),
+
         # Custom Fields
         map { $_->name } Bugzilla->active_custom_fields
     );
     Bugzilla::Hook::process("bug-fields", {'fields' => \@fields} );
-    
+
     return @fields;
 }
 
@@ -2991,24 +2999,23 @@ sub choices {
         @prodlist = sort @prodlist;
     }
 
+    $self->{choices} = {
+       product          => \@prodlist,
+       priority         => get_legal_field_values('priority'),
+       bug_severity     => get_legal_field_values('bug_severity'),
+       bug_status       => get_legal_field_values('bug_status'),
+       component        => [map($_->name, @{$self->product_obj->components})],
+       version          => [map($_->name, @{$self->product_obj->versions})],
+       target_milestone => [map($_->name, @{$self->product_obj->milestones})],
+    };
+
     # Hack - this array contains "". See bug 106589.
-    my @res = grep ($_, @{get_legal_field_values('resolution')});
+    $self->{choices}->{resolution} = grep ($_, @{get_legal_field_values('resolution')});
 
-    $self->{'choices'} =
-      {
-       'product' => \@prodlist,
-       'rep_platform' => get_legal_field_values('rep_platform'),
-       'priority'     => get_legal_field_values('priority'),
-       'bug_severity' => get_legal_field_values('bug_severity'),
-       'op_sys'       => get_legal_field_values('op_sys'),
-       'bug_status'   => get_legal_field_values('bug_status'),
-       'resolution'   => \@res,
-       'component'    => [map($_->name, @{$self->product_obj->components})],
-       'version'      => [map($_->name, @{$self->product_obj->versions})],
-       'target_milestone' => [map($_->name, @{$self->product_obj->milestones})],
-      };
+    $self->{choices}->{op_sys} = get_legal_field_values('op_sys') if Bugzilla->params->{useopsys};
+    $self->{choices}->{rep_platform} = get_legal_field_values('rep_platform') if Bugzilla->params->{useplatform};
 
-    return $self->{'choices'};
+    return $self->{choices};
 }
 
 sub votes {

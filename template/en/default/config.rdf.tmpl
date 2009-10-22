@@ -71,6 +71,7 @@
     </Seq>
   </bz:keyword>
 
+  [% IF Param('useplatform') %]
   <bz:platform>
     <Seq>
       [% FOREACH item = platform %]
@@ -78,7 +79,9 @@
       [% END %]
     </Seq>
   </bz:platform>
+  [% END %]
 
+  [% IF Param('useopsys') %]
   <bz:op_sys>
     <Seq>
       [% FOREACH item = op_sys %]
@@ -86,6 +89,7 @@
       [% END %]
     </Seq>
   </bz:op_sys>
+  [% END %]
 
   <bz:priority>
     <Seq>

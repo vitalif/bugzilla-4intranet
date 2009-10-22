@@ -387,8 +387,8 @@ $vars->{'product'}               = $product;
 
 $vars->{'priority'}              = get_legal_field_values('priority');
 $vars->{'bug_severity'}          = get_legal_field_values('bug_severity');
-$vars->{'rep_platform'}          = get_legal_field_values('rep_platform');
-$vars->{'op_sys'}                = get_legal_field_values('op_sys');
+$vars->{'rep_platform'}          = get_legal_field_values('rep_platform') if Bugzilla->params->{useplatform};
+$vars->{'op_sys'}                = get_legal_field_values('op_sys') if Bugzilla->params->{useopsys};
 
 $vars->{'use_keywords'}          = 1 if Bugzilla::Keyword::keyword_count();
 
@@ -419,8 +419,8 @@ if ($cloned_bug_id) {
     $default{'component_'}   = $cloned_bug->component;
     $default{'priority'}     = $cloned_bug->priority;
     $default{'bug_severity'} = $cloned_bug->bug_severity;
-    $default{'rep_platform'} = $cloned_bug->rep_platform;
-    $default{'op_sys'}       = $cloned_bug->op_sys;
+    $default{'rep_platform'} = $cloned_bug->rep_platform if Bugzilla->params->{useplatform};
+    $default{'op_sys'}       = $cloned_bug->op_sys if Bugzilla->params->{useopsys};
 
     $vars->{'assigned_to'} ||= $cloned_bug->component_obj->default_assignee->login;
     $vars->{'qa_contact'}  ||= $cloned_bug->component_obj->default_qa_contact->login;
@@ -480,8 +480,8 @@ else {
     $default{component_}    = formvalue('component');
     $default{priority}      = formvalue('priority', Bugzilla->params->{defaultpriority});
     $default{bug_severity}  = formvalue('bug_severity', Bugzilla->params->{defaultseverity});
-    $default{rep_platform}  = pickplatform();
-    $default{op_sys}        = pickos();
+    $default{rep_platform}  = pickplatform() if Bugzilla->params->{useplatform};
+    $default{op_sys}        = pickos() if Bugzilla->params->{useopsys};
 
     $vars->{short_desc}     = formvalue('short_desc');
     $vars->{bug_file_loc}   = formvalue('bug_file_loc', "http://");

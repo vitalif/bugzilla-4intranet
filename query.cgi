@@ -119,24 +119,25 @@ sub PrefillForm {
     my $foundone = 0;
 
     # Nothing must be undef, otherwise the template complains.
-    my @list = ("bug_status", "resolution", "assigned_to",
-                      "rep_platform", "priority", "bug_severity",
-                      "classification", "product", "reporter", "op_sys",
-                      "component", "version", "chfield", "chfieldfrom",
-                      "chfieldto", "chfieldvalue", "target_milestone",
-                      "email", "emailtype", "emailreporter",
-                      "emailassigned_to", "emailcc", "emailqa_contact",
-                      "emaillongdesc", "content",
-                      "changedin", "votes", "short_desc", "short_desc_type",
-                      "longdesc", "longdesc_type", "bug_file_loc",
-                      "bug_file_loc_type", "status_whiteboard",
-                      "status_whiteboard_type", "bug_id",
-                      "bugidtype", "keywords", "keywords_type",
-                      "deadlinefrom", "deadlineto",
-                      "x_axis_field", "y_axis_field", "z_axis_field",
-                      "chart_format", "cumulate", "x_labels_vertical",
-                      "category", "subcategory", "name", "newcategory",
-                      "newsubcategory", "public", "frequency");
+    # TODO Honor use* parameters (?)
+    my @list = qw(bug_status resolution assigned_to
+                  rep_platform priority bug_severity
+                  classification product reporter op_sys
+                  component version chfield chfieldfrom
+                  chfieldto chfieldvalue target_milestone
+                  email emailtype emailreporter
+                  emailassigned_to emailcc emailqa_contact
+                  emaillongdesc content
+                  changedin votes short_desc short_desc_type
+                  longdesc longdesc_type bug_file_loc
+                  bug_file_loc_type status_whiteboard
+                  status_whiteboard_type bug_id
+                  bugidtype keywords keywords_type
+                  deadlinefrom deadlineto
+                  x_axis_field y_axis_field z_axis_field
+                  chart_format cumulate x_labels_vertical
+                  category subcategory name newcategory
+                  newsubcategory public frequency);
     # These fields can also have default values (when used in reports).
     my @custom_select_fields =
       grep { $_->type == FIELD_TYPE_SINGLE_SELECT } Bugzilla->active_custom_fields;
@@ -145,11 +146,11 @@ sub PrefillForm {
     foreach my $name (@list) {
         $default{$name} = [];
     }
- 
+
     # we won't prefill the boolean chart data from this query if
     # there are any being submitted via params
     my $prefillcharts = (grep(/^field-/, $cgi->param)) ? 0 : 1;
- 
+
     # Iterate over the URL parameters
     foreach my $name ($buf->param()) {
         my @values = $buf->param($name);
@@ -263,8 +264,8 @@ if (Bugzilla->user->in_group(Bugzilla->params->{'timetrackinggroup'})) {
 @chfields = (sort(@chfields));
 $vars->{'chfield'} = \@chfields;
 $vars->{'bug_status'} = get_legal_field_values('bug_status');
-$vars->{'rep_platform'} = get_legal_field_values('rep_platform');
-$vars->{'op_sys'} = get_legal_field_values('op_sys');
+$vars->{'rep_platform'} = get_legal_field_values('rep_platform') if Bugzilla->params->{useplatform};
+$vars->{'op_sys'} = get_legal_field_values('op_sys') if Bugzilla->params->{useopsys};
 $vars->{'priority'} = get_legal_field_values('priority');
 $vars->{'bug_severity'} = get_legal_field_values('bug_severity');
 

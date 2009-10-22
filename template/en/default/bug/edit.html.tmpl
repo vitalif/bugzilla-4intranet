@@ -471,29 +471,34 @@
 
       [% PROCESS select selname => "version" %]
     </tr>
-    [%############%]    
-    [%# PLATFORM #%]
-    [%############%]    
-    <tr style="display:none">
+
+    [%###################%]
+    [%# PLATFORM AND OS #%]
+    [%###################%]
+    [% IF Param('useplatform') OR Param('useopsys') %]
+    <tr>
       <td class="field_label">
         <label for="rep_platform" accesskey="h"><b>Platform</b></label>:
       </td>
       <td class="field_value">
+       [% IF Param('useplatform') %]
        [% INCLUDE bug/field.html.tmpl
             bug = bug, field = select_fields.rep_platform,
             no_tds = 1, value = bug.rep_platform
             editable = bug.check_can_change_field('rep_platform', 0, 1) %]
+       [% END %]
+       [% IF Param('useopsys') %]
        [%+ INCLUDE bug/field.html.tmpl 
             bug = bug, field = select_fields.op_sys, 
             no_tds = 1, value = bug.op_sys
             editable = bug.check_can_change_field('op_sys', 0, 1) %]
+       [% END %]
        <script type="text/javascript">
          assignToDefaultOnChange(['product', 'component']);
        </script>
       </td>
     </tr>
-
-
+    [% END %]
 
 [% END %]
 

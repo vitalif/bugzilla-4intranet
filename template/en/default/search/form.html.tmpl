@@ -395,6 +395,7 @@ function doOnSelectProduct(selectmode) {
         </tr>
       </table>
     </td>
+    [% IF Param('useplatform') %]
     <td>
       <table>
         <tr>
@@ -408,6 +409,8 @@ function doOnSelectProduct(selectmode) {
         </tr>
       </table>
     </td>
+    [% END %]
+    [% IF Param('useopsys') %]
     <td>
       <table>
         <tr>
@@ -421,6 +424,7 @@ function doOnSelectProduct(selectmode) {
         </tr>
       </table>
     </td>
+    [% END %]
   </tr>
 </table>
 

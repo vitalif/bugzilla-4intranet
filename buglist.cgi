@@ -1088,8 +1088,8 @@ if ($dotweak && scalar @bugs) {
     Bugzilla->switch_to_shadow_db();
 
     $vars->{'products'} = Bugzilla->user->get_enterable_products;
-    $vars->{'platforms'} = get_legal_field_values('rep_platform');
-    $vars->{'op_sys'} = get_legal_field_values('op_sys');
+    $vars->{'platforms'} = get_legal_field_values('rep_platform') if Bugzilla->params->{useplatform};
+    $vars->{'op_sys'} = get_legal_field_values('op_sys') if Bugzilla->params->{useopsys};
     $vars->{'priorities'} = get_legal_field_values('priority');
     $vars->{'severities'} = get_legal_field_values('bug_severity');
     $vars->{'resolutions'} = get_legal_field_values('resolution');

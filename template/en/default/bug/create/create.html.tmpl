@@ -331,17 +331,21 @@ TUI_hide_default('expert_fields');
       value = default.bug_severity %]
   </tr>
 
-  <tr style="display:none">
+[% IF Param('useplatform') %]
+  <tr>
     [% INCLUDE bug/field.html.tmpl
       bug = default, field = select_fields.rep_platform, editable = 1,
       value = default.rep_platform %]
   </tr>
+[% END %]
 
-  <tr style="display:none">
+[% IF Param('useopsys') %]
+  <tr>
     [% INCLUDE bug/field.html.tmpl 
        bug = default, field = select_fields.op_sys, editable = 1, 
        value = default.op_sys %]
   </tr>
+[% END %]
 </tbody>
 
 <tbody class="expert_fields">
