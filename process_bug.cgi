@@ -490,6 +490,11 @@ if (defined $cgi->param('newcc')
     push(@cc_remove, split(/[\s,]+/, $cc_remove)) if $cc_remove;
 }
 
+for ($cgi->param)
+{
+    push @cc_add, trim($cgi->param($_)) if /^requestee-(\d+)$/so;
+}
+
 foreach my $b (@bug_objects) {
     $b->remove_cc($_) foreach @cc_remove;
     $b->add_cc($_) foreach @cc_add;
