@@ -422,6 +422,8 @@ if ($cloned_bug_id) {
     $default{'rep_platform'} = $cloned_bug->rep_platform;
     $default{'op_sys'}       = $cloned_bug->op_sys;
 
+    $vars->{'assigned_to'} ||= $cloned_bug->component_obj->default_assignee->login;
+    $vars->{'qa_contact'}  ||= $cloned_bug->component_obj->default_qa_contact->login;
     $vars->{'short_desc'}    = $cloned_bug->short_desc;
     $vars->{'bug_file_loc'}  = $cloned_bug->bug_file_loc;
     $vars->{'keywords'}      = $cloned_bug->keywords;
@@ -430,15 +432,19 @@ if ($cloned_bug_id) {
     $vars->{'deadline'}      = $cloned_bug->deadline;
     $vars->{'status_whiteboard'} = $cloned_bug->status_whiteboard;
 
+    my @cc;
     if (defined $cloned_bug->cc) {
-        $vars->{cc} = join (", ", @{$cloned_bug->cc});
+        @cc = @{$cloned_bug->cc};
+    } elsif (formvalue('cc')) {
+        @cc = split /[\s,]+/, formvalue('cc');
     } else {
-        $vars->{cc} = formvalue('cc');
+        @cc = map { $_->login } @{$cloned_bug->component_obj->initial_cc || []};
     }
 
     if ($cloned_bug->reporter->id != $user->id) {
-        $vars->{'cc'} = join (", ", $cloned_bug->reporter->login, $vars->{'cc'}); 
+        push @cc, $cloned_bug->reporter->login;
     }
+    $vars->{cc} = join ', ', @cc;
 
     foreach my $field (@enter_bug_fields) {
         my $field_name = $field->name;
