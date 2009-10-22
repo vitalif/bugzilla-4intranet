@@ -92,6 +92,7 @@
   <td>&nbsp;</td>
   <td><a href="page.cgi?id=fields.html#resolution">Resolution</a></td>
 </tr>
+[% IF Param('useplatform') %]
 <tr>
   <td>&nbsp;</td>
   <td><i>as-is</i></td>
@@ -102,6 +103,8 @@
     <i>(&ldquo;rep_platform&rdquo;)</i>
   </td>
 </tr>
+[% END %]
+[% IF Param('useopsys') %]
 <tr>
   <td>&nbsp;</td>
   <td>&nbsp;</td>
@@ -112,6 +115,7 @@
     <i>(&ldquo;op_sys&rdquo;)</i>
   </td>
 </tr>
+[% END %]
 <tr>
   <td>&nbsp;</td>
   <td><tt>p1,p2</tt> <i>or</i> <tt>p1-2</tt></td>

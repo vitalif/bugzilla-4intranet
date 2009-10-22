@@ -342,12 +342,12 @@ sub get_names {
     my ($names, $isnumeric, $field) = @_;
 
     # These are all the fields we want to preserve the order of in reports.
-    my %fields = ('priority'     => get_legal_field_values('priority'),
-                  'bug_severity' => get_legal_field_values('bug_severity'),
-                  'rep_platform' => get_legal_field_values('rep_platform'),
-                  'op_sys'       => get_legal_field_values('op_sys'),
-                  'bug_status'   => get_legal_field_values('bug_status'),
-                  'resolution'   => [' ', @{get_legal_field_values('resolution')}]);
+    my %fields = (priority     => get_legal_field_values('priority'),
+                  bug_severity => get_legal_field_values('bug_severity'),
+                  bug_status   => get_legal_field_values('bug_status'),
+                  resolution   => [' ', @{get_legal_field_values('resolution')}]);
+    $fields{rep_platform} = get_legal_field_values('rep_platform') if Bugzilla->params->{useplatform};
+    $fields{op_sys}       = get_legal_field_values('op_sys') if Bugzilla->params->{useopsys};
 
     my $field_list = $fields{$field};
     my @sorted;

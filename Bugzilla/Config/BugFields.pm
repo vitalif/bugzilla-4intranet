@@ -106,11 +106,23 @@ sub get_param_list {
   },
 
   {
+   name => 'useplatform',
+   type => 'b',
+   default => 1,
+  },
+
+  {
    name => 'defaultplatform',
    type => 's',
    choices => ['', @legal_platforms],
    default => '',
    checker => \&check_platform
+  },
+
+  {
+   name => 'useopsys',
+   type => 'b',
+   default => 1,
   },
 
   {

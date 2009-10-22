@@ -44,16 +44,18 @@ my $vars = {};
 
 # The master list not only says what fields are possible, but what order
 # they get displayed in.
-my @masterlist = ("opendate", "changeddate", "bug_severity", "priority",
-                  "rep_platform", "assigned_to", "assigned_to_realname",
+my @masterlist = ("opendate", "changeddate", "bug_severity", "priority");
+push @masterlist, "rep_platform" if Bugzilla->params->{useplatform};
+push @masterlist, "assigned_to", "assigned_to_realname",
                   "reporter", "reporter_realname", "bug_status",
-                  "resolution");
+                  "resolution";
 
 if (Bugzilla->params->{"useclassification"}) {
     push(@masterlist, "classification");
 }
 
-push(@masterlist, ("product", "component", "version", "op_sys"));
+push @masterlist, "product", "component", "version";
+push @masterlist, "op_sys" if Bugzilla->params->{useopsys};
 
 if (Bugzilla->params->{"usevotes"}) {
     push (@masterlist, "votes");

@@ -91,6 +91,7 @@
   </tr>
   <tr>
 
+    [% IF Param('useplatform') %]
     <th>
       <label for="rep_platform">
         <a href="page.cgi?id=fields.html#rep_platform">Platform</a>:
@@ -100,6 +101,7 @@
       [% PROCESS selectmenu menuname = "rep_platform"
                             menuitems = platforms %]
     </td>
+    [% END %]
 
     <th>
       <label for="bug_severity">
@@ -114,6 +116,7 @@
   </tr>
 
   <tr>
+    [% IF Param('useopsys') %]
     <th>
       <label for="op_sys">
         <a href="page.cgi?id=fields.html#op_sys">OS</a>:
@@ -123,6 +126,7 @@
       [% PROCESS selectmenu menuname = "op_sys"
                             menuitems = op_sys %]
     </td>
+    [% END %]
 
     [% IF Param("usetargetmilestone") %]
       <th><label for="target_milestone">Target Milestone:</label></th>

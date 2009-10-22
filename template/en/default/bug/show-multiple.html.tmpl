@@ -155,9 +155,9 @@
     </tr>
 
     [% PROCESS row cell = "version" %]
-    [% PROCESS row cell = "target_milestone"  IF Param('usetargetmilestone') %]
-    [% PROCESS row cell = "rep_platform" %]
-    [% PROCESS row cell = "op_sys"  %]
+    [% PROCESS row cell = "target_milestone" IF Param('usetargetmilestone') %]
+    [% PROCESS row cell = "rep_platform" IF Param('useplatform') %]
+    [% PROCESS row cell = "op_sys" IF Param('useopsys') %]
 
     [% IF bug.bug_file_loc %]
       <tr>
