@@ -57,6 +57,8 @@ use Digest;
 use Email::Address;
 use Scalar::Util qw(tainted);
 use Text::Wrap;
+use Text::TabularDisplay::Utf8;
+
 use Lingua::Stem::RuUTF8;
 
 sub trick_taint {
@@ -363,17 +365,39 @@ sub wrap_comment
     my $re = qr/^(.{0,$cols}([\s,](?=[^\s,])|[^\s,](?=[\s,])))\s*/s;
     $cols+=2;
 
+    my $table;
+    my $tablen;
+
     foreach my $line (split /\r\n?|\n/, $comment)
     {
-        # If the line starts with ">", don't wrap it. Otherwise, wrap.
-        unless ($line)
+        if ($table)
         {
-            $wrappedcomment .= "\n";
+            if (scalar($line =~ s/(\t+)/$1/gso) eq $tablen)
+            {
+                $table->add(split /\t+/, $line);
+                next;
+            }
+            else
+            {
+                $wrappedcomment .= $table->render . "\n";
+                $table = undef;
+                $tablen = undef;
+            }
         }
-        else
+        if ($line)
         {
+            # If the line starts with ">", don't wrap it. Otherwise, wrap.
             if ($line !~ /^>/so)
             {
+                my $n = scalar($line =~ s/(\t+)/$1/gso);
+                if ($n > 1)
+                {
+                    # Table
+                    $table = Text::TabularDisplay::Utf8->new;
+                    $table->add(split /\t+/, $line);
+                    $tablen = $n;
+                    next;
+                }
                 $line =~ s/\t/    /gso;
                 while (length($line) > $cols && $line =~ s/$re//)
                 {
@@ -382,8 +406,12 @@ sub wrap_comment
             }
             $wrappedcomment .= $line . "\n" if $line;
         }
+        else
+        {
+            $wrappedcomment .= "\n";
+        }
     }
-
+    $wrappedcomment .= $table->render if $table;
     chomp $wrappedcomment;
     return $wrappedcomment;
 }
