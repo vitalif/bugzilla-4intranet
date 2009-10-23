@@ -32,6 +32,7 @@
 
 package Bugzilla::Template;
 
+use utf8;
 use strict;
 
 use Bugzilla::Constants;
@@ -171,6 +172,14 @@ sub template_exists
     return undef;
 }
 
+sub nl2br
+{
+    my $a = shift;
+    $a =~ s/ /&nbsp;/giso;
+    $a =~ s/\n/<br\/>/giso;
+    return $a;
+}
+
 # This routine quoteUrls contains inspirations from the HTML::FromText CPAN
 # module by Gareth Rees <garethr@cre.canon.co.uk>.  It has been heavily hacked,
 # all that is really recognizable from the original is bits of the regular
@@ -249,6 +258,7 @@ sub quoteUrls {
     # THIS MEANS THAT A LITERAL ", <, >, ' MUST BE ESCAPED FOR A MATCH
 
     $text = html_quote($text);
+    $text =~ s!((?:[│─┌┐└┘├┴┬┤┼][^\n]*[│─┌┐└┘├┴┬┤┼][ \t]*(?:\n|$))+)!'<span style="white-space: nowrap">'.nl2br($1).'</span>'!geso;
 
     # Color quoted text
     $text =~ s~^(&gt;.+)$~<span class="quote">$1</span >~mg;
