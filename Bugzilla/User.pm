@@ -20,7 +20,7 @@
 # Contributor(s): Myk Melez <myk@mozilla.org>
 #                 Erik Stambaugh <erik@dasbistro.com>
 #                 Bradley Baetz <bbaetz@acm.org>
-#                 Joel Peshkin <bugreport@peshkin.net> 
+#                 Joel Peshkin <bugreport@peshkin.net>
 #                 Byron Jones <bugzilla@glob.com.au>
 #                 Shane H. W. Travis <travis@sedsystems.ca>
 #                 Max Kanat-Alexander <mkanat@bugzilla.org>
@@ -148,7 +148,7 @@ sub update {
     }
 
     # Logout the user if necessary.
-    Bugzilla->logout_user($self) 
+    Bugzilla->logout_user($self)
         if (exists $changes->{login_name} || exists $changes->{disabledtext}
             || exists $changes->{cryptpassword});
 
@@ -176,7 +176,7 @@ sub check_login_name_for_creation {
 
     # Check the name if it's a new user, or if we're changing the name.
     if (!ref($invocant) || $invocant->login ne $name) {
-        is_available_username($name) 
+        is_available_username($name)
             || ThrowUserError('account_exists', { email => $name });
     }
 
@@ -186,8 +186,8 @@ sub check_login_name_for_creation {
 sub _check_password {
     my ($self, $pass) = @_;
 
-    # If the password is '*', do not encrypt it or validate it further--we 
-    # are creating a user who should not be able to log in using DB 
+    # If the password is '*', do not encrypt it or validate it further--we
+    # are creating a user who should not be able to log in using DB
     # authentication.
     return $pass if $pass eq '*';
 
@@ -256,7 +256,7 @@ sub identity {
     return "" unless $self->id;
 
     if (!defined $self->{identity}) {
-        $self->{identity} = 
+        $self->{identity} =
           $self->name ? $self->name . " <" . $self->login. ">" : $self->login;
     }
 
@@ -310,7 +310,7 @@ sub queries_subscribed {
            FROM namedqueries_link_in_footer lif
                 INNER JOIN namedquery_group_map ngm
                 ON ngm.namedquery_id = lif.namedquery_id
-          WHERE lif.user_id = ? 
+          WHERE lif.user_id = ?
                 AND lif.namedquery_id NOT IN ($query_id_string)
                 AND ngm.group_id IN (" . $self->groups_as_string . ")",
           undef, $self->id);
@@ -406,15 +406,15 @@ sub groups {
         "SELECT DISTINCT grantor_id, member_id
                             FROM group_group_map
                            WHERE grant_type = " . GROUP_MEMBERSHIP);
-        
+
     my %group_membership;
     foreach my $row (@$rows) {
-        my ($grantor_id, $member_id) = @$row; 
+        my ($grantor_id, $member_id) = @$row;
         push (@{ $group_membership{$member_id} }, $grantor_id);
     }
-    
+
     # Let's walk the groups hierarchy tree (using FIFO)
-    # On the first iteration it's pre-filled with direct groups 
+    # On the first iteration it's pre-filled with direct groups
     # membership. Later on, each group can add its own members into the
     # FIFO. Circular dependencies are eliminated by checking
     # $checked_groups{$member_id} hash values.
@@ -424,14 +424,14 @@ sub groups {
     while (scalar(@$groups_to_check) > 0) {
         # Pop the head group from FIFO
         my $member_id = shift @$groups_to_check;
-        
+
         # Skip the group if we have already checked it
         if (!$checked_groups{$member_id}) {
             # Mark group as checked
             $checked_groups{$member_id} = 1;
-            
+
             # Add all its members to the FIFO check list
-            # %group_membership contains arrays of group members 
+            # %group_membership contains arrays of group members
             # for all groups. Accessible by group number.
             my $members = $group_membership{$member_id};
             my @new_to_check = grep(!$checked_groups{$_}, @$members);
@@ -625,10 +625,10 @@ sub visible_bugs {
                     reporter_accessible, cclist_accessible, cc.who,
                     bug_group_map.bug_id
                              FROM bugs
-                             LEFT JOIN cc 
+                             LEFT JOIN cc
                                ON cc.bug_id = bugs.bug_id
                                  AND cc.who = $user_id
-                             LEFT JOIN bug_group_map 
+                             LEFT JOIN bug_group_map
                                ON bugs.bug_id = bug_group_map.bug_id
                                  AND bug_group_map.group_id NOT IN ("
                                      . $self->groups_as_string . ')
@@ -640,11 +640,11 @@ sub visible_bugs {
 
         $sth->execute(@check_ids);
         while (my $row = $sth->fetchrow_arrayref) {
-            my ($bug_id, $reporter, $owner, $qacontact, $reporter_access, 
+            my ($bug_id, $reporter, $owner, $qacontact, $reporter_access,
                 $cclist_access, $isoncclist, $missinggroup) = @$row;
-            $visible_cache->{$bug_id} ||= 
+            $visible_cache->{$bug_id} ||=
                 ((($reporter == $user_id) && $reporter_access)
-                || (Bugzilla->params->{'useqacontact'} 
+                || (Bugzilla->params->{'useqacontact'}
                      && $qacontact && ($qacontact == $user_id))
                  || ($owner == $user_id)
                 || ($isoncclist && $cclist_access)
@@ -797,12 +797,12 @@ sub can_access_product {
 
 sub get_accessible_products {
     my $self = shift;
-    
+
     # Map the objects into a hash using the ids as keys
     my %products = map { $_->id => $_ }
                        @{$self->get_selectable_products},
                        @{$self->get_enterable_products};
-    
+
     return [ values %products ];
 }
 
@@ -875,7 +875,7 @@ sub visible_groups_direct {
 
     my $dbh = Bugzilla->dbh;
     my $sth;
-   
+
     if (Bugzilla->params->{'usevisibilitygroups'}) {
         my $glist = $self->groups_as_string;
         $sth = $dbh->prepare("SELECT DISTINCT grantor_id
@@ -970,15 +970,15 @@ sub derive_regexp_groups {
         }
     }
     # Now do the same for Testopia test plans.
-    $sth = $dbh->prepare("SELECT test_plan_permissions_regexp.plan_id, 
-                                 user_regexp, test_plan_permissions_regexp.permissions, 
+    $sth = $dbh->prepare("SELECT test_plan_permissions_regexp.plan_id,
+                                 user_regexp, test_plan_permissions_regexp.permissions,
                                  test_plan_permissions.plan_id
                           FROM test_plan_permissions_regexp
-                     LEFT JOIN test_plan_permissions 
+                     LEFT JOIN test_plan_permissions
                             ON test_plan_permissions_regexp.plan_id = test_plan_permissions.plan_id
                            AND test_plan_permissions.userid = ?
                            AND test_plan_permissions.grant_type = ?");
-    
+
     $sth->execute($id, GRANT_REGEXP);
     my $plan_insert = $dbh->prepare(q{INSERT INTO test_plan_permissions
                                        (userid, plan_id, permissions, grant_type)
@@ -987,7 +987,7 @@ sub derive_regexp_groups {
                                        WHERE userid = ?
                                          AND plan_id = ?
                                          AND grant_type = ?});
-    
+
     while (my ($planid, $regexp, $perms, $present) = $sth->fetchrow_array()) {
         if (($regexp ne '') && ($self->{login} =~ m/$regexp/i)) {
             $plan_insert->execute($id, $planid, $perms, GRANT_REGEXP) unless $present;
@@ -995,7 +995,7 @@ sub derive_regexp_groups {
             $plan_delete->execute($id, $planid, GRANT_REGEXP) if $present;
         }
     }
-    
+
 }
 
 sub product_responsibilities {
@@ -1039,7 +1039,7 @@ sub can_bless {
     my $self = shift;
 
     if (!scalar(@_)) {
-        # If we're called without an argument, just return 
+        # If we're called without an argument, just return
         # whether or not we can bless at all.
         return scalar(@{ $self->bless_groups }) ? 1 : 0;
     }
@@ -1074,7 +1074,7 @@ sub match {
 
     if ($wildstr =~ s/\*/\%/g # don't do wildcards if no '*' in the string
         # or if we only want exact matches
-        && Bugzilla->params->{'usermatchmode'} ne 'off') 
+        && Bugzilla->params->{'usermatchmode'} ne 'off')
     {
 
         # Build the query.
@@ -1150,7 +1150,7 @@ sub match {
 # Here's what it does:
 #
 # 1. Accepts a list of fields along with whether they may take multiple values
-# 2. Takes the values of those fields from the first parameter, a $cgi object 
+# 2. Takes the values of those fields from the first parameter, a $cgi object
 #    and passes them to match()
 # 3. Checks the results of the match and displays confirmation or failure
 #    messages as appropriate.
@@ -1166,7 +1166,7 @@ sub match {
 # is executed as normal.
 #
 # You also have the choice of *never* displaying the confirmation screen.
-# In this case, match_field will return one of the three USER_MATCH 
+# In this case, match_field will return one of the three USER_MATCH
 # constants described in the POD docs. To make match_field behave this
 # way, pass in MATCH_SKIP_CONFIRM as the third argument.
 #
@@ -1215,11 +1215,11 @@ sub match_field {
         else {
             my @field_names = grep(/$field_pattern/, $cgi->param());
             foreach my $field_name (@field_names) {
-                $expanded_fields->{$field_name} = 
+                $expanded_fields->{$field_name} =
                   { type => $fields->{$field_pattern}->{'type'} };
-                
-                # The field is a requestee field; in order for its name 
-                # to show up correctly on the confirmation page, we need 
+
+                # The field is a requestee field; in order for its name
+                # to show up correctly on the confirmation page, we need
                 # to find out the name of its flag type.
                 if ($field_name =~ /^requestee(_type)?-(\d+)$/) {
                     my $flag_type;
@@ -1405,7 +1405,7 @@ sub match_field {
 }
 
 # Changes in some fields automatically trigger events. The 'field names' are
-# from the fielddefs table. We really should be using proper field names 
+# from the fielddefs table. We really should be using proper field names
 # throughout.
 our %names_to_events = (
     'Resolution'             => EVT_OPENED_CLOSED,
@@ -1430,8 +1430,8 @@ sub wants_bug_mail {
     my $comments_concatenated = join("\n", map { $_->{body} } (@$comments));
 
     # Make a list of the events which have happened during this bug change,
-    # from the point of view of this user.    
-    my %events;    
+    # from the point of view of this user.
+    my %events;
     foreach my $ref (@$fieldDiffs) {
         my ($who, $whoname, $fieldName, $when, $old, $new) = @$ref;
         # A change to any of the above fields sets the corresponding event
@@ -1440,17 +1440,17 @@ sub wants_bug_mail {
         }
         else {
             # Catch-all for any change not caught by a more specific event
-            $events{+EVT_OTHER} = 1;            
+            $events{+EVT_OTHER} = 1;
         }
 
         # If the user is in a particular role and the value of that role
         # changed, we need the ADDED_REMOVED event.
         if (($fieldName eq "AssignedTo" && $relationship == REL_ASSIGNEE) ||
-            ($fieldName eq "QAContact" && $relationship == REL_QA)) 
+            ($fieldName eq "QAContact" && $relationship == REL_QA))
         {
             $events{+EVT_ADDED_REMOVED} = 1;
         }
-        
+
         if ($fieldName eq "CC") {
             my $login = $self->login;
             my $inold = ($old =~ /^(.*,\s*)?\Q$login\E(,.*)?$/);
@@ -1482,7 +1482,7 @@ sub wants_bug_mail {
     elsif (defined($$comments[0])) {
         $events{+EVT_COMMENT} = 1;
     }
-    
+
     # Dependent changed bugmails must have an event to ensure the bugmail is
     # emailed.
     if ($dependencyText ne '') {
@@ -1490,18 +1490,18 @@ sub wants_bug_mail {
     }
 
     my @event_list = keys %events;
-    
+
     my $wants_mail = $self->wants_mail(\@event_list, $relationship);
 
     # The negative events are handled separately - they can't be incorporated
     # into the first wants_mail call, because they are of the opposite sense.
-    # 
+    #
     # We do them separately because if _any_ of them are set, we don't want
     # the mail.
     if ($wants_mail && $changer && ($self->login eq $changer)) {
         $wants_mail &= $self->wants_mail([EVT_CHANGED_BY_ME], $relationship);
-    }    
-    
+    }
+
     if ($wants_mail) {
         my $dbh = Bugzilla->dbh;
         # We don't create a Bug object from the bug_id here because we only
@@ -1516,7 +1516,7 @@ sub wants_bug_mail {
             $wants_mail &= $self->wants_mail([EVT_UNCONFIRMED], $relationship);
         }
     }
-    
+
     return $wants_mail;
 }
 
@@ -1524,13 +1524,13 @@ sub wants_bug_mail {
 sub wants_mail {
     my $self = shift;
     my ($events, $relationship) = @_;
-    
-    # Don't send any mail, ever, if account is disabled 
+
+    # Don't send any mail, ever, if account is disabled
     # XXX Temporary Compatibility Change 1 of 2:
     # This code is disabled for the moment to make the behaviour like the old
     # system, which sent bugmail to disabled accounts.
     # return 0 if $self->{'disabledtext'};
-    
+
     # No mail if there are no events
     return 0 if !scalar(@$events);
 
@@ -1544,7 +1544,7 @@ sub wants_mail {
 
     my $dbh = Bugzilla->dbh;
 
-    my $wants_mail = 
+    my $wants_mail =
         $dbh->selectrow_array('SELECT 1
                                  FROM email_setting
                                 WHERE user_id = ?
@@ -1651,7 +1651,7 @@ sub create {
     foreach my $rel (RELATIONSHIPS) {
         foreach my $event (POS_EVENTS, NEG_EVENTS) {
             # These "exceptions" define the default email preferences.
-            # 
+            #
             # We enable mail unless the change was made by the user, or it's
             # just a CC list addition and the user is not the reporter.
             next if ($event == EVT_CHANGED_BY_ME);
@@ -1795,14 +1795,14 @@ Bugzilla::User - Object for a Bugzilla user
 
   my $user = new Bugzilla::User($id);
 
-  my @get_selectable_classifications = 
+  my @get_selectable_classifications =
       $user->get_selectable_classifications;
 
   # Class Functions
-  $user = Bugzilla::User->create({ 
-      login_name    => $username, 
-      realname      => $realname, 
-      cryptpassword => $plaintext_password, 
+  $user = Bugzilla::User->create({
+      login_name    => $username,
+      realname      => $realname,
+      cryptpassword => $plaintext_password,
       disabledtext  => $disabledtext,
       disable_mail  => 0});
 
@@ -1824,12 +1824,12 @@ methods listed below.
 
 =item C<USER_MATCH_MULTIPLE>
 
-Returned by C<match_field()> when at least one field matched more than 
+Returned by C<match_field()> when at least one field matched more than
 one user, but no matches failed.
 
 =item C<USER_MATCH_FAILED>
 
-Returned by C<match_field()> when at least one field failed to match 
+Returned by C<match_field()> when at least one field failed to match
 anything.
 
 =item C<USER_MATCH_SUCCESS>
@@ -1839,7 +1839,7 @@ user.
 
 =item C<MATCH_SKIP_CONFIRM>
 
-Passed in to match_field to tell match_field to never display a 
+Passed in to match_field to tell match_field to never display a
 confirmation screen.
 
 =back
@@ -1852,7 +1852,7 @@ confirmation screen.
 
 =item C<queries>
 
-Returns an arrayref of the user's own saved queries, sorted by name. The 
+Returns an arrayref of the user's own saved queries, sorted by name. The
 array contains L<Bugzilla::Search::Saved> objects.
 
 =item C<queries_subscribed>
@@ -1943,7 +1943,7 @@ is_enabled     - true if the user is allowed to set the preference themselves;
                  for themselves or must accept the global site default value
 default_value  - the global site default for this setting
 value          - the value of this setting for this user. Will be the same
-                 as the default_value if the user is not logged in, or if 
+                 as the default_value if the user is not logged in, or if
                  is_default is true.
 is_default     - a boolean to indicate whether the user has chosen to make
                  a preference for themself or use the site default.
@@ -1972,7 +1972,7 @@ this product.
 
 =item C<in_group_id>
 
-Determines whether or not a user is in the given group by id. 
+Determines whether or not a user is in the given group by id.
 
 =item C<bless_groups>
 
@@ -2187,10 +2187,10 @@ Params: login_name - B<Required> The login name for the new user.
             Even though the name says "crypt", you should just specify
             a plain-text password. If you specify '*', the user will not
             be able to log in using DB authentication.
-        disabledtext - The disable-text for the new user. If given, the user 
+        disabledtext - The disable-text for the new user. If given, the user
             will be disabled, meaning he cannot log in. Defaults to an
             empty string.
-        disable_mail - If 1, bug-related mail will not be  sent to this user; 
+        disable_mail - If 1, bug-related mail will not be  sent to this user;
             if 0, mail will be sent depending on the user's  email preferences.
 
 =item C<check>
@@ -2203,11 +2203,11 @@ user with that username. Returns a C<Bugzilla::User> object.
 Returns a boolean indicating whether or not the supplied username is
 already taken in Bugzilla.
 
-Params: $username (scalar, string) - The full login name of the username 
+Params: $username (scalar, string) - The full login name of the username
             that you are checking.
         $old_username (scalar, string) - If you are checking an email-change
             token, insert the "old" username that the user is changing from,
-            here. Then, as long as it's the right user for that token, he 
+            here. Then, as long as it's the right user for that token, he
             can change his username to $username. (That is, this function
             will return a boolean true value).
 
