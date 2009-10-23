@@ -258,7 +258,7 @@ sub quoteUrls {
     # THIS MEANS THAT A LITERAL ", <, >, ' MUST BE ESCAPED FOR A MATCH
 
     $text = html_quote($text);
-    $text =~ s!((?:[│─┌┐└┘├┴┬┤┼][^\n]*[│─┌┐└┘├┴┬┤┼][ \t]*(?:\n|$))+)!'<span style="white-space: nowrap">'.nl2br($1).'</span>'!geso;
+    $text =~ s!((?:[│─┌┐└┘├┴┬┤┼][^\n]*[│─┌┐└┘├┴┬┤┼][ \t]*(?:\n|$))+)!'<div style="white-space: nowrap; word-wrap: normal">'.nl2br($1).'</div>'!geso;
 
     # Color quoted text
     $text =~ s~^(&gt;.+)$~<span class="quote">$1</span >~mg;
