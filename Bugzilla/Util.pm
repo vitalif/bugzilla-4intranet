@@ -379,7 +379,7 @@ sub wrap_comment
             }
             else
             {
-                $wrappedcomment .= $table->render . "\n";
+                $wrappedcomment .= "<nowrap>\n" . $table->render . "\n<nowrap>\n";
                 $table = undef;
                 $tablen = undef;
             }
@@ -414,7 +414,7 @@ sub wrap_comment
             $wrappedcomment .= "\n";
         }
     }
-    $wrappedcomment .= $table->render if $table;
+    $wrappedcomment .= "<nowrap>\n" . $table->render . "\n<nowrap>" if $table;
     chomp $wrappedcomment;
     return $wrappedcomment;
 }
