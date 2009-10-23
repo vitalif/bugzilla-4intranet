@@ -286,7 +286,7 @@ sub correct_urlbase
 {
     if ($Bugzilla::CustisLocalBugzillas::HackIntoCorrectUrlbase)
     {
-        # ïÔĞÒÁ×ËÁ ĞÏŞÔÙ ÚÁËÁÚŞÉËÁÍ ÓÏ ÓÓÙÌËÁÍÉ ÎÁ Ó×ÏÉ ÂÁÇÚÉÌÌÙ
+        # ĞÑ‚Ğ¿Ñ€Ğ°Ğ²ĞºĞ° Ğ¿Ğ¾Ñ‡Ñ‚Ñ‹ Ğ·Ğ°ĞºĞ°Ğ·Ñ‡Ğ¸ĞºĞ°Ğ¼ ÑĞ¾ ÑÑÑ‹Ğ»ĞºĞ°Ğ¼Ğ¸ Ğ½Ğ° ÑĞ²Ğ¾Ğ¸ Ğ±Ğ°Ğ³Ğ·Ğ¸Ğ»Ğ»Ñ‹
         return $Bugzilla::CustisLocalBugzillas::HackIntoCorrectUrlbase;
     }
     my $ssl = Bugzilla->params->{'ssl'};
