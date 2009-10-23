@@ -366,13 +366,12 @@ sub wrap_comment
     $cols+=2;
 
     my $table;
-    my $tablen;
 
     foreach my $line (split /\r\n?|\n/, $comment)
     {
         if ($table)
         {
-            if (scalar($line =~ s/(\t+)/$1/gso) eq $tablen)
+            if (scalar($line =~ s/(\t+)/$1/gso) > 0)
             {
                 $table->add(split /\t+/, $line);
                 next;
@@ -381,7 +380,6 @@ sub wrap_comment
             {
                 $wrappedcomment .= $table->render . "\n";
                 $table = undef;
-                $tablen = undef;
             }
         }
         if ($line)
@@ -395,7 +393,6 @@ sub wrap_comment
                     # Table
                     $table = Text::TabularDisplay::Utf8->new;
                     $table->add(split /\t+/, $line);
-                    $tablen = $n;
                     next;
                 }
                 unless ($line =~ /^[│─┌┐└┘├┴┬┤┼].*[│─┌┐└┘├┴┬┤┼]$/iso)
