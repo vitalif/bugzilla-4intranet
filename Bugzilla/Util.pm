@@ -398,10 +398,13 @@ sub wrap_comment
                     $tablen = $n;
                     next;
                 }
-                $line =~ s/\t/    /gso;
-                while (length($line) > $cols && $line =~ s/$re//)
+                unless ($line =~ /^[│─┌┐└┘├┴┬┤┼].*[│─┌┐└┘├┴┬┤┼]$/iso)
                 {
-                    $wrappedcomment .= $1 . "\n";
+                    $line =~ s/\t/    /gso;
+                    while (length($line) > $cols && $line =~ s/$re//)
+                    {
+                        $wrappedcomment .= $1 . "\n";
+                    }
                 }
             }
             $wrappedcomment .= $line . "\n" if $line;
