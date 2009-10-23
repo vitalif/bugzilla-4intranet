@@ -189,7 +189,7 @@ my $bug = Bugzilla::Bug->create(\%bug_params);
 # Get the bug ID back.
 my $id = $bug->bug_id;
 
-# CustIS Bug3n 53590 - add a comment to cloned bug
+# CustIS Bug 53590 - add a comment to cloned bug
 my $cloned_bug_id = scalar $cgi->param('cloned_bug_id');
 my $cloned_comment = scalar $cgi->param('cloned_comment');
 if ($cloned_bug_id)

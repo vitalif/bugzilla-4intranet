@@ -89,7 +89,7 @@ sub multiline_sprintf {
         @line = map { defined $_ ? $_ : '' } @line;
         # And append a formatted line
         $formatted .= sprintf($format, @line);
-        # Remove trailing spaces, or they become lots of =20's in 
+        # Remove trailing spaces, or they become lots of =20's in
         # quoted-printable emails.
         $formatted =~ s/\s+$//;
         $formatted .= "\n";
@@ -147,7 +147,7 @@ sub Send {
 
     my ($start, $end) = ($values{start_time}, $values{end_time});
 
-    # User IDs of people in various roles. More than one person can 'have' a 
+    # User IDs of people in various roles. More than one person can 'have' a
     # role, if the person in that role has changed, or people are watching.
     my $reporter = $values{'reporter'};
     my @assignees = ($values{'assigned_to'});
@@ -175,17 +175,17 @@ sub Send {
     if ($forced->{'owner'}) {
         push (@assignees, login_to_id($forced->{'owner'}, THROW_ERROR));
     }
-    
+
     if ($forced->{'qacontact'}) {
         push (@qa_contacts, login_to_id($forced->{'qacontact'}, THROW_ERROR));
     }
-    
+
     if ($forced->{'cc'}) {
         foreach my $cc (@{$forced->{'cc'}}) {
             push(@ccs, login_to_id($cc, THROW_ERROR));
         }
     }
-    
+
     # Convert to names, for later display
     $values{'changer'} = $changer;
     # If no changer is specified, then it has no name.
@@ -226,7 +226,7 @@ sub Send {
         undef, ($id));
 
     $values{'bug_group'} = join(', ', @$grouplist);
- 
+
     my @args = ($id);
 
     # If lastdiffed is NULL, then we don't limit the search on time.
@@ -235,10 +235,10 @@ sub Send {
         $when_restriction = ' AND bug_when > ? AND bug_when <= ?';
         push @args, ($start, $end);
     }
-    
+
     my $diffs = $dbh->selectall_arrayref(
            "SELECT profiles.login_name, profiles.realname, fielddefs.description,
-                   bugs_activity.bug_when, bugs_activity.removed, 
+                   bugs_activity.bug_when, bugs_activity.removed,
                    bugs_activity.added, bugs_activity.attach_id, fielddefs.name
               FROM bugs_activity
         INNER JOIN fielddefs
@@ -311,7 +311,7 @@ sub Send {
         }
 
         my $dependency_diffs = $dbh->selectall_arrayref(
-           "SELECT bugs_activity.bug_id, bugs.short_desc, fielddefs.name, 
+           "SELECT bugs_activity.bug_id, bugs.short_desc, fielddefs.name,
                    bugs_activity.removed, bugs_activity.added
               FROM bugs_activity
         INNER JOIN bugs
@@ -331,7 +331,7 @@ sub Send {
         my $lastbug = "";
         my $interestingchange = 0;
         my @diff_tmp = ();
-        # TODO × ÄÁÎÎÏÍ ÍÅÓÔÅ ÕÖÁÓÎÙÊ ËÏÄ, ÌÕÞÛÅ ÐÅÒÅÐÉÓÁÔØ Ë È**Í
+        # TODO Ð² Ð´Ð°Ð½Ð½Ð¾Ð¼ Ð¼ÐµÑÑ‚Ðµ ÑƒÐ¶Ð°ÑÐ½Ñ‹Ð¹ ÐºÐ¾Ð´, Ð»ÑƒÑ‡ÑˆÐµ Ð¿ÐµÑ€ÐµÐ¿Ð¸ÑÐ°Ñ‚ÑŒ Ðº Ñ…**Ð¼
         foreach my $dependency_diff (@$dependency_diffs) {
             my ($depbug, $summary, $what, $old, $new) = @$dependency_diff;
 
@@ -390,27 +390,27 @@ sub Send {
     ###########################################################################
     # Start of email filtering code
     ###########################################################################
-    
+
     # A user_id => roles hash to keep track of people.
     my %recipients;
     my %watching;
-    
+
     # Now we work out all the people involved with this bug, and note all of
     # the relationships in a hash. The keys are userids, the values are an
     # array of role constants.
-    
+
     # Voters
     my $voters = $dbh->selectcol_arrayref(
         "SELECT who FROM votes WHERE bug_id = ?", undef, ($id));
-        
+
     $recipients{$_}->{+REL_VOTER} = BIT_DIRECT foreach (@$voters);
 
     # CCs
     $recipients{$_}->{+REL_CC} = BIT_DIRECT foreach (@ccs);
-    
+
     # Reporter (there's only ever one)
     $recipients{$reporter}->{+REL_REPORTER} = BIT_DIRECT;
-    
+
     # QA Contact
     if (Bugzilla->params->{'useqacontact'}) {
         foreach (@qa_contacts) {
@@ -422,7 +422,7 @@ sub Send {
     # Assignee
     $recipients{$_}->{+REL_ASSIGNEE} = BIT_DIRECT foreach (@assignees);
 
-    # The last relevant set of people are those who are being removed from 
+    # The last relevant set of people are those who are being removed from
     # their roles in this change. We get their names out of the diffs.
     foreach my $ref (@$diffs) {
         my ($who, $whoname, $what, $when, $old, $new) = (@$ref);
@@ -446,13 +446,13 @@ sub Send {
             }
         }
     }
-    
-        # Find all those user-watching anyone on the current list, who is not 
+
+        # Find all those user-watching anyone on the current list, who is not
         # on it already themselves.
         my $involved = join(",", keys %recipients);
 
-        my $userwatchers = 
-            $dbh->selectall_arrayref("SELECT watcher, watched FROM watch 
+        my $userwatchers =
+            $dbh->selectall_arrayref("SELECT watcher, watched FROM watch
                                       WHERE watched IN ($involved)");
 
         # Mark these people as having the role of the person they are watching
@@ -491,14 +491,14 @@ sub Send {
             # that role.
             foreach my $relationship (keys %{$recipients{$user_id}}) {
                 if ($user->wants_bug_mail($id,
-                                          $relationship, 
-                                          $diffs, 
+                                          $relationship,
+                                          $diffs,
                                           $comments,
                                           $deptext,
                                           $changer,
                                           !$start))
                 {
-                    $rels_which_want{$relationship} = 
+                    $rels_which_want{$relationship} =
                         $recipients{$user_id}->{$relationship};
                 }
             }
@@ -508,14 +508,14 @@ sub Send {
             # So the user exists, can see the bug, and wants mail in at least
             # one role. But do we want to send it to them?
 
-            # If we are using insiders, and the comment is private, only send 
+            # If we are using insiders, and the comment is private, only send
             # to insiders
             my $insider_ok = 1;
             $insider_ok = 0 if $anyprivate && !$user->is_insider;
 
-            # We shouldn't send mail if this is a dependency mail (i.e. there 
-            # is something in @depbugs), and any of the depending bugs are not 
-            # visible to the user. This is to avoid leaking the summaries of 
+            # We shouldn't send mail if this is a dependency mail (i.e. there
+            # is something in @depbugs), and any of the depending bugs are not
+            # visible to the user. This is to avoid leaking the summaries of
             # confidential bugs.
             my $dep_ok = 1;
             foreach my $dep_id (@depbugs) {
@@ -525,7 +525,7 @@ sub Send {
                 }
             }
 
-            # Make sure the user isn't in the nomail list, and the insider and 
+            # Make sure the user isn't in the nomail list, and the insider and
             # dep checks passed.
             if ($user->email_enabled &&
                 $insider_ok &&
@@ -549,15 +549,15 @@ sub Send {
                 );
             }
         }
-       
+
         if ($sent_mail) {
-            push(@sent, $user->login); 
-        } 
+            push(@sent, $user->login);
+        }
         else {
-            push(@excluded, $user->login); 
-        } 
+            push(@excluded, $user->login);
+        }
     }
-    
+
     $dbh->do('UPDATE bugs SET lastdiffed = ? WHERE bug_id = ?',
              undef, ($end, $id));
 
@@ -580,7 +580,7 @@ sub sendMail
     my @headerlist = @$hlRef;
     my %mailhead = %$dmhRef;
     my %fielddescription = %$fdRef;
-    my @diffparts = @$diffRef;    
+    my @diffparts = @$diffRef;
 
     # Build difftext (the actions) by verifying the user should see them
     my $difftext = "";
@@ -598,7 +598,7 @@ sub sendMail
              $diff->{'fieldname'} eq 'deadline'))
         {
             $add_diff = 1 if $user->is_timetracker;
-        } elsif ($diff->{'isprivate'} 
+        } elsif ($diff->{'isprivate'}
                  && !$user->is_insider)
         {
             $add_diff = 0;
@@ -607,7 +607,7 @@ sub sendMail
         }
 
         if ($add_diff) {
-            if (exists($diff->{'header'}) && 
+            if (exists($diff->{'header'}) &&
              ($diffheader ne $diff->{'header'})) {
                 $diffheader = $diff->{'header'};
                 $difftext .= $diffheader;
