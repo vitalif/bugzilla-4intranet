@@ -433,12 +433,13 @@ if ($cloned_bug_id) {
     $vars->{'status_whiteboard'} = $cloned_bug->status_whiteboard;
 
     my @cc;
-    if (defined $cloned_bug->cc) {
-        @cc = @{$cloned_bug->cc};
+    my $comp = Bugzilla::Component->new({ product => $product, name => $cloned_bug->component });
+    if ($comp) {
+        @cc = map { $_->login } @{$comp->initial_cc || []};
     } elsif (formvalue('cc')) {
         @cc = split /[\s,]+/, formvalue('cc');
-    } else {
-        @cc = map { $_->login } @{$cloned_bug->component_obj->initial_cc || []};
+    } elsif (defined $cloned_bug->cc) {
+        @cc = @{$cloned_bug->cc};
     }
 
     if ($cloned_bug->reporter->id != $user->id) {

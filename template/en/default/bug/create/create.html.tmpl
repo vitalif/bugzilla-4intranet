@@ -122,7 +122,8 @@ function set_assign_to() {
         var version = componentdefaultversions[index];
         if (assigned_to == last_initialowner
             || assigned_to == owner
-            || assigned_to == '') {
+            || assigned_to == ''
+            || assigned_to == "[% assigned_to FILTER js %]") {
             form.assigned_to.value = owner;
             last_initialowner = owner;
         }
@@ -148,7 +149,8 @@ function set_assign_to() {
             var contact = initialqacontacts[index];
             if (qa_contact == last_initialqacontact
                 || qa_contact == contact
-                || qa_contact == '') {
+                || qa_contact == ''
+                || qa_contact == "[% qa_contact FILTER js %]") {
                   form.qa_contact.value = contact;
                   last_initialqacontact = contact;
             }
