@@ -40,9 +40,9 @@
 [%# Migration note: useful-links.html.tmpl corresponds to %commandmenu% %]
 
 [% IF user.id AND user.settings.saved_searches_position.value == "header" %]
-[% PROCESS "global/common-links.html.tmpl" qs_suffix = "top" standalone = 1 %]
+[% PROCESS "global/common-links.html.tmpl" qs_suffix = "bottom" standalone = 1 %]
 [% ELSE %]
-[% PROCESS "global/useful-links.html.tmpl" %]
+[% PROCESS "global/useful-links.html.tmpl" qs_suffix = "bottom" %]
 [% END %]
 
   <div class="outro"></div>

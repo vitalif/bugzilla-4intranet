@@ -70,7 +70,7 @@ sub SETTINGS {
     remind_me_about_flags    => { options => ['on', 'off'], default => 'on' },
     remind_me_about_worktime_newbug => { options => ['on', 'off'], default => 'off' },
     # 2009-10-21 vfilippov@custis.ru -- Custis Bug 53697
-    saved_searches_position  => { options => ['footer', 'header'], default => 'footer' },
+    saved_searches_position  => { options => ['footer', 'header', 'both'], default => 'footer' },
     }
 };
 
