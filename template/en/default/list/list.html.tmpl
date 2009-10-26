@@ -217,6 +217,8 @@ Bug ID list:
         <a href="buglist.cgi?
         [% urlquerypart FILTER html %]&amp;ctype=csv">CSV</a> |
         <a href="buglist.cgi?
+        [% urlquerypart.replace('[&\?]columnlist=[^&]*', '') FILTER html %]&amp;columnlist=bug_severity%2Cpriority%2Cshort_desc%2Cestimated_time%2Cactual_time%2Ctarget_milestone&amp;format=scrum">Scrum</a> |
+        <a href="buglist.cgi?
         [% urlquerypart FILTER html %]&amp;title=
         [%- title FILTER html %]&amp;ctype=atom">Buglist Feed</a> |
         <a href="rss-comments.cgi?

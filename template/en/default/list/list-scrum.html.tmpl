@@ -1,0 +1,37 @@
+[% PROCESS "global/field-descs.none.tmpl" %]
+
+[% qorder = order FILTER url_quote IF order %]
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+                      "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <title>[% terms.Bug %] List[% IF searchname || defaultsavename %][% ": " _ (searchname || defaultsavename) | html %][% END %]</title>
+<style>
+.abug { float: left; background-color: white; margin: 0.1cm; font-size: 90%; width: 6cm; height: 5cm; }
+.abug td { text-align: center; }
+.dot { border: 1px dashed black; }
+.dot { white-space: nowrap; }
+.dot a { color: black; text-decoration: none; }
+.sevpri { font-size: 80%; vertical-align: bottom; }
+.desc { height: 100%; border: 1px solid black; vertical-align: top; }
+</style>
+</head>
+<body>
+[% FOR bug = bugs %]
+<table class="abug" cellspacing="5">
+<tr>
+    <td class="dot"><a href="show_bug.cgi?id=[% bug.bug_id %]">[% bug.bug_id | html %]</a></td>
+    <td class="sevpri">[% bug.bug_severity.substr(0, 3) | html %]&nbsp;[% bug.priority | html %]</td>
+    <td class="dot">[% bug.target_milestone %]</td>
+</tr>
+<tr>
+    <td colspan="3" class="desc">[% bug.short_desc | html %]</td>
+</tr>
+<tr>
+    <td colspan="3">[% bug.estimated_time > bug.work_time ? 0+bug.estimated_time : 0+bug.work_time %]</td>
+</tr>
+</table>
+[% END %]
+</body>
+</html>
