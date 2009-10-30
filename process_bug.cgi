@@ -171,6 +171,19 @@ if (defined $cgi->param('delta_ts')
         Bugzilla::Bug::GetBugActivity($first_bug->id, undef,
                                       scalar $cgi->param('delta_ts'));
 
+    # CustIS Bug 56327 - Change only fields the user wanted to changed
+    for my $op (@{$vars->{operations}})
+    {
+        for (@{$op->{changes}})
+        {
+            if ($cgi->param($_->{fieldname}) eq $_->{removed})
+            {
+                # If equal to old value -> change to the new value
+                $cgi->param($_->{fieldname}, $_->{added});
+            }
+        }
+    }
+
     $vars->{'title_tag'} = "mid_air";
 
     ThrowCodeError('undefined_field', { field => 'longdesclength' })
