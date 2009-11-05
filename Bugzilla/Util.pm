@@ -388,7 +388,7 @@ sub wrap_comment
             if ($line !~ /^>/so)
             {
                 my $n = scalar($line =~ s/(\t+)/$1/gso);
-                if ($n > 1 && length($line) < 200)
+                if ($n > 1 && length($line) < MAX_TABLE_COLS)
                 {
                     # Table
                     $table = Text::TabularDisplay::Utf8->new;
