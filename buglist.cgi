@@ -1130,12 +1130,28 @@ if ($dotweak && scalar @bugs) {
     # their version and component, so generate a list of products, a list of
     # versions for the product (if there is only one product on the list of
     # products), and a list of components for the product.
-    if (scalar(@products) == 1) {
-        my $product = new Bugzilla::Product({name => $products[0]});
-        $vars->{'versions'} = [map($_->name ,@{$product->versions})];
-        $vars->{'components'} = [map($_->name, @{$product->components})];
-        $vars->{'targetmilestones'} = [map($_->name, @{$product->milestones})]
-            if Bugzilla->params->{'usetargetmilestone'};
+    $_ = Bugzilla::Product->new({name => $_}) for @products;
+    my %h;
+    $vars->{components} = [ map($_->name, @{$products[0]->components}) ];
+    for my $i (1..$#products)
+    {
+        %h = map { $_->name => 1 } @{$products[$i]->components};
+        @{$vars->{components}} = grep { $h{$_} } @{$vars->{components}};
+    }
+    $vars->{versions} = [ map($_->name, @{$products[0]->versions}) ];
+    for my $i (1..$#products)
+    {
+        %h = map { $_->name => 1 } @{$products[$i]->versions};
+        @{$vars->{versions}} = grep { $h{$_} } @{$vars->{versions}};
+    }
+    if (Bugzilla->params->{usetargetmilestone})
+    {
+        $vars->{targetmilestones} = [ map($_->name, @{$products[0]->milestones}) ];
+        for my $i (1..$#products)
+        {
+            %h = map { $_->name => 1 } @{$products[$i]->milestones};
+            @{$vars->{targetmilestones}} = grep { $h{$_} } @{$vars->{targetmilestones}};
+        }
     }
 }
 
