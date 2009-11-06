@@ -140,6 +140,7 @@ sub ProcessBug
         if $comment || $wtime;
     $bug->remaining_time($newrtime) if $newrtime != $remaining_time;
     $bug->update();
+    $dbh->do('UPDATE bugs SET lastdiffed=NOW() WHERE bug_id=?', undef, $bug->id);
 
     $dbh->bz_commit_transaction();
 }
