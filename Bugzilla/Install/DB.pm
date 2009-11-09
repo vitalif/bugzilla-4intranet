@@ -554,8 +554,7 @@ sub update_table_definitions {
     _fix_illegal_flag_modification_dates();
 
     # 2009-03-02 arbingersys@gmail.com - Bug 423613
-    $dbh->bz_add_index('profiles', 'profiles_extern_id_idx',
-                       {TYPE => 'UNIQUE', FIELDS => [qw(extern_id)]});
+    _add_extern_id_index();
  
     ################################################################
     # New --TABLE-- changes should go *** A B O V E *** this point #
@@ -3214,6 +3213,17 @@ sub _fix_illegal_flag_modification_dates {
                          WHERE modification_date < creation_date');
     # If no rows are affected, $dbh->do returns 0E0 instead of 0.
     print "$rows flags had an illegal modification date. Fixed!\n" if ($rows =~ /^\d+$/);
+}
+
+sub _add_extern_id_index {
+    my $dbh = Bugzilla->dbh;
+    if (!$dbh->bz_index_info('profiles', 'profiles_extern_id_idx')) {
+        # Some Bugzillas have a multiple empty strings in extern_id,
+        # which need to be converted to NULLs before we add the index.
+        $dbh->do("UPDATE profiles SET extern_id = NULL WHERE extern_id = ''");
+        $dbh->bz_add_index('profiles', 'profiles_extern_id_idx',
+                           {TYPE => 'UNIQUE', FIELDS => [qw(extern_id)]});
+    }
 }
 
 1;
