@@ -78,6 +78,12 @@ sub get_param_list
     },
 
     {
+        name => 'orwiki_url',
+        type => 't',
+        default => 'http://lodge.office.custis.ru/orwiki/index.php/',
+    },
+
+    {
         name => 'user_mailto',
         type => 't',
         default => 'mailto:',
