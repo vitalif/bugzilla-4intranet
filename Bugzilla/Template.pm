@@ -808,6 +808,7 @@ sub create {
             'StopBugMail' => sub {
                 my ($id) = @_;
                 Bugzilla->dbh->do('UPDATE bugs SET lastdiffed=NOW() WHERE bug_id=?', undef, $id);
+                return '';
             },
 
             # Allow templates to access the "corect" URLBase value
