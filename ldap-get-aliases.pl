@@ -9,6 +9,13 @@
 #   LDAPBaseDN   => "dc=office,dc=custis,dc=ru",
 # }
 
+use Cwd qw(abs_path);
+use File::Basename qw(dirname);
+BEGIN {
+    my ($a) = abs_path($0) =~ /^(.*)$/iso;
+    chdir dirname($a);
+}
+
 use utf8;
 use strict;
 
