@@ -87,8 +87,9 @@ function addfield()
 function toggleallbugz(chk)
 {
     var bgz = document.getElementById("bugz");
-    for (var i = 0; i < bgz.children.length; i++)
-        document.getElementById('b_enabled_'+(""+bgz.children[i].id).substr(5)).checked = chk;
+    for (var i = 0; i < bgz.childNodes.length; i++)
+        if (bgz.childNodes[i].id && bgz.childNodes[i].id != "")
+            document.getElementById('b_enabled_'+(""+bgz.childNodes[i].id).substr(5)).checked = chk;
 }
 function fieldrename(field)
 {

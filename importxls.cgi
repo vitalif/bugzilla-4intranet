@@ -211,7 +211,7 @@ else
     my $f = 0;
     my $bugmail = {};
     Bugzilla->dbh->bz_start_transaction;
-    for my $bug (@$bugs{sort keys %$bugs})
+    for my $bug (@$bugs{sort {$a <=> $b} keys %$bugs})
     {
         $bug->{$_} ||= $bug_tpl->{$_} for keys %$bug_tpl;
         if ($bug->{enabled})
