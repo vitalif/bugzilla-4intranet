@@ -52,7 +52,7 @@ use Bugzilla::Attachment::PatchReader;
 use Bugzilla::Token;
 use Bugzilla::Keyword;
 
-use Encode qw(encode);
+use Encode;
 
 # For most scripts we don't make $cgi and $template global variables. But
 # when preparing Bugzilla for mod_perl, this script used these
@@ -338,16 +338,18 @@ sub view {
     $filename =~ s/\\/\\\\/g; # escape backslashes
     $filename =~ s/"/\\"/g; # escape quotes
 
-    # Avoid line wrapping done by Encode, which we don't need for HTTP
-    # headers. See discussion in bug 328628 for details.
-    local $Encode::Encoding{'MIME-Q'}->{'bpl'} = 10000;
-    $filename = encode('MIME-Q', $filename);
-
     my $disposition = Bugzilla->params->{inline_attachment_mime};
     $disposition = $disposition
         && Bugzilla->params->{allow_attachment_display}
         && $contenttype =~ /$disposition/is
         ? "inline" : "attachment";
+
+    if ($cgi->user_agent() =~ /MSIE/ && $cgi->user_agent() !~ /Opera/)
+    {
+        # Bug 57108 - russian filenames for MSIE
+        Encode::_utf8_off($filename);
+        Encode::from_to($filename, 'utf-8', 'cp1251');
+    }
 
     print $cgi->header(-type=>"$contenttype; name=\"$filename\"",
                        -content_disposition=> "$disposition; filename=\"$filename\"",
