@@ -1,9 +1,9 @@
 
-The Bugzilla Guide - 3.4.3 Release
+The Bugzilla Guide - 3.4.4 Release
 
 The Bugzilla Team
 
-   2009-11-05
+   2009-11-18
 
    This is the documentation for Bugzilla, a bug-tracking system from
    mozilla.org. Bugzilla is an enterprise-class piece of software that tracks
@@ -173,7 +173,7 @@ Chapter 1. About This Guide
 
 1.3. New Versions
 
-   This is the 3.4.3 version of The Bugzilla Guide. It is so named to match the
+   This is the 3.4.4 version of The Bugzilla Guide. It is so named to match the
    current version of Bugzilla.
 
    The latest version of this guide can always be found at

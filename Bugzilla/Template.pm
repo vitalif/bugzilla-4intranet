@@ -346,10 +346,6 @@ sub get_bug_link {
                                FROM bugs b, products p, components c WHERE b.bug_id=? AND p.id=b.product_id AND c.id=b.component_id',
                                undef, $bug_num);
 
-    if ($options->{use_alias} && $link_text =~ /^\d+$/ && $bug_alias) {
-        $link_text = $bug_alias;
-    }
-
     if ($bug_state) {
         # CustIS Bug 53691
         my $title = get_text('get_status', {status => $bug_state});
@@ -359,6 +355,9 @@ sub get_bug_link {
         }
         if (Bugzilla->user->can_see_bug($bug_num)) {
             $title .= " - $bug_product/$bug_component - $bug_desc";
+            if (Bugzilla->params->{usebugaliases} && $options->{use_alias} && $link_text =~ /^\d+$/ && $bug_alias) {
+                $link_text = $bug_alias;
+            }
         }
         # Prevent code injection in the title.
         $title = html_quote(clean_text($title));
