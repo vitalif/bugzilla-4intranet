@@ -128,6 +128,7 @@ if ($action eq 'new') {
     my $default_qa_contact = trim($cgi->param('initialqacontact') || '');
     my $description        = trim($cgi->param('description')      || '');
     my $wiki_url           = trim($cgi->param('wiki_url')         || '');
+    my $default_version    = trim($cgi->param('default_version')  || '');
     my @initial_cc         = $cgi->param('initialcc');
 
     my $component =
@@ -136,6 +137,7 @@ if ($action eq 'new') {
                                     description      => $description,
                                     initialowner     => $default_assignee,
                                     initialqacontact => $default_qa_contact,
+                                    default_version  => $default_version,
                                     wiki_url         => $wiki_url,
                                     initial_cc       => \@initial_cc });
 
