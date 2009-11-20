@@ -23,7 +23,7 @@
 <tr>
     <td class="dot"><a href="show_bug.cgi?id=[% bug.bug_id %]">[% bug.bug_id | html %]</a></td>
     <td class="sevpri">[% bug.bug_severity.substr(0, 3) | html %]&nbsp;[% bug.priority | html %]</td>
-    <td class="dot">[% bug.target_milestone %]</td>
+    <td class="dot">[% bug.target_milestone.substr(0, 6) %]</td>
 </tr>
 <tr>
     <td colspan="3" class="desc">[% bug.short_desc | html %]</td>
