@@ -44,9 +44,7 @@ function switch_afot(fot)
   <td>
     <em>Enter the path to the file on your computer.</em><br>
     <input type="file" id="data" name="data" size="50"
-      [% IF Param("allow_attach_url") %]
-        onchange="DataFieldHandler()" 
-      [% END %]
+        onchange="DataFieldHandler([% Param("allow_attach_url") ? 1 : 0 %])"
     >
   </td>
 </tr>
@@ -85,7 +83,7 @@ function switch_afot(fot)
   <th><label for="description">Description</label>:</th>
   <td>
     <em>Describe the attachment briefly.</em><br>
-    <input type="text" id="description" name="description" size="60" maxlength="200">
+    <input type="text" id="description" name="description" size="60" maxlength="200" onchange="this._changed=true">
   </td>
 </tr>
 <tr class="expert_fields">
