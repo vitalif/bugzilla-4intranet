@@ -647,7 +647,8 @@ foreach my $bug (@bug_objects) {
 
         # We may have zeroed the remaining time, if we moved into a closed
         # status, so we should inform the user about that.
-        if (!$bug->remaining_time && !is_open_state($new_status) && $changes->{remaining_time} &&
+        if (!is_open_state($new_status) && $changes->{remaining_time} &&
+            !$changes->{remaining_time}->[1] &&
             Bugzilla->user->in_group(Bugzilla->params->{timetrackinggroup}))
         {
             $vars->{message} = "remaining_time_zeroed";
