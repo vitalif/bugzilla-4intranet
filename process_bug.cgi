@@ -638,18 +638,19 @@ foreach my $bug (@bug_objects) {
     my %notify_deps;
     if ($changes->{'bug_status'}) {
         my ($old_status, $new_status) = @{ $changes->{'bug_status'} };
-        
+
         # If this bug has changed from opened to closed or vice-versa,
         # then all of the bugs we block need to be notified.
         if (is_open_state($old_status) ne is_open_state($new_status)) {
             $notify_deps{$_} = 1 foreach (@{$bug->blocked});
         }
-        
+
         # We may have zeroed the remaining time, if we moved into a closed
         # status, so we should inform the user about that.
-        if (!is_open_state($new_status) && $changes->{'remaining_time'}) {
-            $vars->{'message'} = "remaining_time_zeroed"
-              if Bugzilla->user->in_group(Bugzilla->params->{'timetrackinggroup'});
+        if (!$bug->remaining_time && !is_open_state($new_status) && $changes->{remaining_time} &&
+            Bugzilla->user->in_group(Bugzilla->params->{timetrackinggroup}))
+        {
+            $vars->{message} = "remaining_time_zeroed";
         }
     }
 
