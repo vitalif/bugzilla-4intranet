@@ -706,7 +706,7 @@ sub validate_content_type {
             return 0;
     }
 
-    if (valid_content_type($cgi->param('contenttype'))) {
+    if (!valid_content_type($cgi->param('contenttype'))) {
         $throw_error ?
             ThrowUserError("invalid_content_type",
                            { contenttype => $cgi->param('contenttype') }) :
