@@ -101,6 +101,12 @@ sub get_param_list {
         },
 
         {
+            name    => 'mime_types_file',
+            type    => 't',
+            default => '',
+        },
+
+        {
             name    => 'force_attach_bigfile',
             type    => 'b',
             default => 0,
