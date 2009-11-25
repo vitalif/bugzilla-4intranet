@@ -227,7 +227,7 @@ if (defined $cgi->param('version')) {
 if (defined($cgi->upload('data')) || $cgi->param('attachurl') ||
     $cgi->param('text_attachment')) {
     $cgi->param('isprivate', $cgi->param('commentprivacy'));
-    my $attachment = Bugzilla::Attachment->create(!THROW_ERROR,
+    my $attachment = Bugzilla::Attachment->create(THROW_ERROR,
                                                   $bug, $user, $timestamp, $vars);
 
     if ($attachment) {

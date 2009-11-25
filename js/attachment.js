@@ -67,11 +67,24 @@ function URLFieldHandler() {
     }
 }
 
-function DataFieldHandler() {
+function DataFieldHandler(AllowAttachUrl)
+{
     var field_data = document.getElementById("data");
+    var fd_empty = field_data.value.match(/^\s*$/);
+    var field_description = document.getElementById("description");
+    if (!field_description._changed && !fd_empty)
+    {
+        l = field_data.value.lastIndexOf('/')+1;
+        lw = field_data.value.lastIndexOf('\\')+1;
+        if (lw > l)
+            l = lw;
+        field_description.value = field_data.value.substr(l);
+    }
+    if (!AllowAttachUrl)
+        return;
     var greyfields = new Array("attachurl");
     var i, thisfield;
-    if (field_data.value.match(/^\s*$/)) {
+    if (fd_empty) {
         for (i = 0; i < greyfields.length; i++) {
             thisfield = document.getElementById(greyfields[i]);
             if (thisfield) {
