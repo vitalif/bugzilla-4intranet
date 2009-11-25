@@ -57,6 +57,7 @@ use Bugzilla::Flag;
 use Bugzilla::User;
 use Bugzilla::Util;
 use Bugzilla::Field;
+use LWP::MediaTypes;
 
 use base qw(Bugzilla::Object);
 
@@ -649,6 +650,9 @@ Returns:    1 on success.
 
 =cut
 
+sub valid_content_type { $_[0] =~ /^(application|audio|image|message|model|multipart|text|video)\/.+$/ }
+
+my $lwp_read_mime_types;
 sub validate_content_type {
     my ($class, $throw_error) = @_;
     my $cgi = Bugzilla->cgi;
@@ -661,6 +665,19 @@ sub validate_content_type {
         if ($cgi->param('data'))
         {
             $contenttype = $cgi->uploadInfo($cgi->param('data'))->{'Content-Type'};
+            if (!valid_content_type($contenttype) && Bugzilla->params->{mime_types_file})
+            {
+                if (!$lwp_read_mime_types)
+                {
+                    LWP::MediaTypes::read_media_types(Bugzilla->params->{mime_types_file});
+                    $lwp_read_mime_types = 1;
+                }
+                $contenttype = LWP::MediaTypes::guess_media_type($cgi->param('data'));
+            }
+            if (!valid_content_type($contenttype))
+            {
+                $contenttype = 'application/octet-stream';
+            }
         }
         else
         {
@@ -689,8 +706,7 @@ sub validate_content_type {
             return 0;
     }
 
-    if ( $cgi->param('contenttype') !~
-           /^(application|audio|image|message|model|multipart|text|video)\/.+$/ ) {
+    if (valid_content_type($cgi->param('contenttype'))) {
         $throw_error ?
             ThrowUserError("invalid_content_type",
                            { contenttype => $cgi->param('contenttype') }) :
