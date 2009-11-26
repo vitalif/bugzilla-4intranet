@@ -250,7 +250,7 @@ else
     }
 }
 
-# разобрать лист Excel
+# разобрать лист Excel или передать в parse_csv
 sub parse_excel
 {
     my ($upload, $name, $only_list, $name_tr) = @_;
@@ -261,11 +261,24 @@ sub parse_excel
         require Spreadsheet::XLSX;
         $xls = Spreadsheet::XLSX->new($upload);
     }
-    else
+    elsif ($name =~ /\.xls$/iso)
     {
         # Обычный формат
         require Spreadsheet::ParseExcel;
         $xls = Spreadsheet::ParseExcel->new->Parse($upload);
+    }
+    else
+    {
+        # CSV
+        {
+            # смешно, конечно, но в Taint Mode надо сначала снять taint,
+            # потом скопировать скаляр (!) передачей аргумента в функцию,
+            # и только потом делать Encode::_utf8_[on|off]
+            local $/ = undef;
+            $upload = <$upload>;
+        }
+        untaint($upload);
+        return parse_csv($upload, $name, $only_list, $name_tr);
     }
     return { error => 'parse_error' } unless $xls;
     my $r = { data => [] };
@@ -286,6 +299,54 @@ sub parse_excel
         }
     }
     return { error => 'empty' } unless @{$r->{data}};
+    return $r;
+}
+
+# Разобрать CSV-файл
+sub parse_csv
+{
+    my ($upload, $name, $only_list, $name_tr) = @_;
+    my $text = $upload;
+    ($text) = $text =~ /^(.*)$/so;
+    Encode::_utf8_on($text);
+    if (!utf8::valid($text))
+    {
+        Encode::_utf8_off($text);
+        Encode::from_to($text, 'cp1251', 'utf-8');
+        Encode::_utf8_on($text);
+    }
+    my $csv = Text::CSV->new({
+        binary => 1,
+        allow_loose_quotes => 1,
+        allow_loose_escapes => 1,
+        allow_whitespace => 1,
+    });
+    my $r = { data => [] };
+    my $fail = 0;
+    my $row;
+    foreach (split /\n/, $text)
+    {
+        s/\s*$//so;
+        s/^\s*//so;
+        if ($csv->parse($_))
+        {
+            if (!$r->{fields})
+            {
+                $r->{fields} = [ $csv->fields ];
+            }
+            else
+            {
+                $row = [ $csv->fields ];
+                $row = { map { ($r->{fields}->[$_] => $row->[$_]) } (0..$#{$r->{fields}}) };
+                push @{$r->{data}}, $row;
+            }
+        }
+        else
+        {
+            $fail++;
+        }
+    }
+    return { error => 'parse_error' } if (!$r->{fields} || !@{$r->{fields}}) && $fail;
     return $r;
 }
 
