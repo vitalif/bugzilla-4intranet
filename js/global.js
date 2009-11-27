@@ -13,7 +13,7 @@
 * Contributor(s): 
 *   Guy Pyrzak <guy.pyrzak@gmail.com>
 *   Max Kanat-Alexander <mkanat@bugzilla.org>
-*                 
+*
 */
 
 var mini_login_constants;
@@ -109,4 +109,46 @@ function check_mini_login_fields( suffix ) {
     }
     window.alert( mini_login_constants.warning );
     return false;
+}
+
+/* template/en/global/menuforusers.html.tmpl */
+
+function menuforusers_initcombo(id)
+{
+  var sel = document.getElementById(id+"_s");
+  var ed = document.getElementById(id);
+  if (!sel || !ed)
+    return;
+  ed.style.width = (sel.offsetWidth-sel.offsetHeight+2)+'px';
+  ed.style.borderWidth = 0;
+  menuforusers_tocombo(id);
+}
+
+function menuforusers_tocombo(id)
+{
+  var sel = document.getElementById(id+"_s");
+  var ed = document.getElementById(id);
+  if (!sel || !ed)
+    return;
+  var v = ed.value.toLowerCase();
+  for (var i = 0; i < sel.options.length; i++)
+  {
+    if (sel.options[i].value.toLowerCase().indexOf(v) >= 0 ||
+        sel.options[i].text.toLowerCase().indexOf(v) >= 0)
+    {
+      sel.selectedIndex = i;
+      menuforusers_fromcombo(id);
+      break;
+    }
+  }
+}
+
+function menuforusers_fromcombo(id)
+{
+  var sel = document.getElementById(id+"_s");
+  var ed = document.getElementById(id);
+  if (!sel || !ed)
+    return;
+  if (sel.selectedIndex >= 0)
+    ed.value = sel.options[sel.selectedIndex].value;
 }

@@ -1021,8 +1021,7 @@
     <tr>
       <td class="field_label" colspan="2">
         [% IF bug.flag_types.size > 0 %]
-          [% PROCESS "flag/list.html.tmpl"
-                                           flag_types = bug.flag_types
+          [% PROCESS "flag/list.html.tmpl" flag_types = bug.flag_types
                                            any_flags_requesteeble = bug.any_flags_requesteeble %]
         [% END %]
       </td>

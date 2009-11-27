@@ -540,3 +540,13 @@ table.flag_table select { max-width: 400px; }
 .importxls_link span { font-weight: bold; }
 
 #comment_status_commit #comment { width: 50em; font-size: medium; font-family: monospace; }
+
+.selectfree_ie iframe {
+display:none;
+display/**/:block;
+position:absolute;
+top:0;
+left:0;
+z-index:-1;
+filter:mask();
+}
