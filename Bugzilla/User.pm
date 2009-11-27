@@ -608,7 +608,7 @@ sub can_edit_bug
     my $cc = $bug->cc;
     foreach (@$cc)
     {
-        return 1 if $_ eq $self->login_name;
+        return 1 if $_ eq $self->login;
     }
     return 1 if $self->can_edit_product($bug->product_obj->id);
     ThrowUserError("product_edit_denied", { product => $bug->product }) if $throw_error;
