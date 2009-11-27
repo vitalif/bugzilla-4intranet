@@ -435,7 +435,7 @@ if ($cloned_bug_id) {
 
     my @cc;
     my $comp = Bugzilla::Component->new({ product => $product, name => $cloned_bug->component });
-    if ($comp) {
+    if ($comp && $product->id != $cloned_bug->product_id) {
         @cc = map { $_->login } @{$comp->initial_cc || []};
     } elsif (formvalue('cc')) {
         @cc = split /[\s,]+/, formvalue('cc');
