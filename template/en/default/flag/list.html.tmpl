@@ -30,16 +30,21 @@
     var id = flagField.name.replace(/flag(_type)?-(\d+)/, "requestee$1-$2");
     var requesteeField = document.getElementById(id);
     if (!requesteeField) return;
-    
+
     // Enable or disable the requestee field based on the value
     // of the flag field.
     if (flagField.value == "?") {
-        requesteeField.disabled = false;
-        if (!no_focus) requesteeField.focus();
-    } else                         
-        requesteeField.disabled = true;
+      requesteeField.disabled = false;
+      if (!no_focus) requesteeField.focus();
+    } else {
+      requesteeField.disabled = true;
+    }
+    // For combo-boxes
+    var rcombosel = document.getElementById(id+'_s');
+    if (rcombosel)
+      rcombosel.disabled = requesteeField.disabled;
   }
-  
+
   // Disables requestee fields when the window is loaded since they shouldn't
   // be enabled until the user requests that flag type.
   function disableRequesteeFields()
@@ -49,10 +54,10 @@
     //You cannot update Node lists, so you must create an array to combine the NodeLists
     var allElements = [];
     for( var i=0; i < inputElements.length; i++ ) {
-        allElements[allElements.length] = inputElements.item(i);
+      allElements[allElements.length] = inputElements.item(i);
     }
     for( var i=0; i < selectElements.length; i++ ) { //Combine inputs with selects
-        allElements[allElements.length] = selectElements.item(i);
+      allElements[allElements.length] = selectElements.item(i);
     }
     var inputElement, id, flagField;
     for ( var i=0 ; i<allElements.length ; i++ )
@@ -65,7 +70,13 @@
         id = inputElement.name.replace(/requestee(_type)?-(\d+)/, "flag$1-$2");
         flagField = document.getElementById(id);
         if (flagField && flagField.value != "?")
+        {
+          inputElement.disabled = true;
+          // For combo-boxes
+          inputElement = document.getElementById(inputElement.id+'_s');
+          if (inputElement)
             inputElement.disabled = true;
+        }
       }
     }
   }
