@@ -1428,6 +1428,26 @@ sub match_field {
 
 }
 
+# Get users
+sub watching_list
+{
+    my $self = shift;
+    my ($userid) = @_;
+    unless ($userid)
+    {
+        if (ref $self)
+        {
+            $userid = $self->id;
+        }
+        else
+        {
+            $userid = $self;
+        }
+    }
+    return map { Bugzilla::User->new($_) }
+        @{ Bugzilla->dbh->selectcol_arrayref("SELECT watcher FROM watch WHERE watched=?", undef, $userid) || [] };
+}
+
 # Changes in some fields automatically trigger events. The 'field names' are
 # from the fielddefs table. We really should be using proper field names
 # throughout.

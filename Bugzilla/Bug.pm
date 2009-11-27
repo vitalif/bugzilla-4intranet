@@ -2743,6 +2743,68 @@ sub flag_types {
                  bug_id       => $self->bug_id };
 
     $self->{'flag_types'} = Bugzilla::Flag::_flag_types($vars);
+
+    # Custom list for flag selection - moved from flag/list.html.tmpl
+    # Fucking templaty logic
+    my ($cl, $allow, $st);
+    my $user = Bugzilla->user;
+    foreach my $type (@{$self->{flag_types}})
+    {
+        # Build custom userlist for setting flag
+        $cl = {};
+        $cl->{$_->id} = [ $_, 'CC' ]       for @{$self->cc_users};
+        $cl->{$_->id} = [ $_, 'CompQA' ]   for $self->component_obj->default_qa_contact;
+        $cl->{$_->id} = [ $_, 'Reporter' ] for $self->reporter;
+        $cl->{$_->id} = [ $_, 'QA' ]       for $self->qa_contact;
+        $cl->{$_->id} = [ $_, 'Assignee' ] for $self->assigned_to;
+        $cl->{$_->id} = [ $_, 'Watcher' ]  for map { $_->[0]->watching_list } values %$cl;
+        $cl = [
+            map { {
+                login => $_->[0]->login,
+                identity => $_->[1] . ': ' . $_->[0]->identity,
+                visible  => 1
+            } }
+            sort { $a->[1].':'.$a->[0] cmp $b->[1].':'.$b->[0] }
+            values %$cl
+        ];
+        $type->{custom_list} = $cl;
+        $type->{allow_other} = 1;
+        foreach (@{$type->{flags}})
+        {
+            unless ($type->is_active && $type->is_requestable && $type->is_requesteeble)
+            {
+                # In case there was already a requestee, the only valid action
+                # is to remove the requestee or leave it alone.
+                $_->{custom_list} = [ {
+                    login    => $_->requestee->login,
+                    identity => $_->requestee->identity,
+                    visible  => 1,
+                } ];
+                $_->{allow_other} = 0;
+            }
+            else
+            {
+                # Else take type's custom list
+                $_->{custom_list} = $cl;
+                $_->{allow_other} = 1;
+            }
+            $st = [];
+            # TODO remove hardcoded status list
+            push @$st, 'X' if $user->can_request_flag($type);
+            if ($type->is_active)
+            {
+                push @$st, '?' if $type->is_requestable && $user->can_request_flag($type) || $_->status == '?';
+                push @$st, '+' if $user->can_set_flag($type) || $_->status == '+';
+                push @$st, '-' if $user->can_set_flag($type) || $_->status == '-';
+            }
+            else
+            {
+                push @$st, $_->status;
+            }
+            $_->{statuses} = $st;
+        }
+    }
+
     return $self->{'flag_types'};
 }
 

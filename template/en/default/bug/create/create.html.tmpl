@@ -144,7 +144,7 @@ function set_assign_to() {
         }
 
         /* CustIS Bug 57457 */
-        var l1 = document.Create.cc.value.split(/[\s,]*,[\s,]*/);
+        var l1 = document.Create.cc.value.split(/[\s,]+/);
         if (!l1[0].length)
             l1 = Array();
         var l2 = {};

@@ -35,19 +35,12 @@
   [% IF accesskey %] accesskey="[% accesskey FILTER html %]" [% END %]
   [% IF multiple %] multiple="multiple" size="[% multiple FILTER html %]" [% END %]
 >
-  [% IF emptyok %]
-    <option value=""></option>
-  [% END %]
-
-  [% UNLESS custom_userlist %]
-    [% custom_userlist = user.get_userlist %]
-  [% END %]
+  [% IF emptyok %]<option value=""></option>[% END %]
+  [% SET custom_userlist = user.get_userlist UNLESS custom_userlist %]
 
   [% SET selected = {} %]
   [% IF value.defined %]
-  [% FOREACH selected_value IN value.split(', ') %]
-    [% SET selected.$selected_value = 1 %]
-  [% END %]
+  [% SET selected.$selected_value = 1 FOREACH selected_value IN value.split(', ') %]
   [% END %]
 
   [% FOREACH tmpuser = custom_userlist %]
@@ -68,27 +61,6 @@
     <option value="[% selected_user FILTER html %]" selected="selected">[% selected_user FILTER html %]</option>
   [% END %]
 </select>
-[% IF allow_other_user AND id %]
-<script language="JavaScript">
-function add_select_option (id)
-{
-  var a = prompt('Enter another user login:');
-  if (a)
-  {
-    var s = document.getElementById(id);
-    var o = document.createElement('OPTION');
-    o.text = a + ' (Custom selection)';
-    o.value = a.replace(/(^\s+)|(\s+$)/g, "");
-    s.options.add(o);
-    o.selected = true;
-  }
-}
-</script>
-[%# FIXME Kludge!! </td><td> %]
-</td>
-<td>
-<input type="button" onclick="add_select_option('[% id %]')" value="..." />
-[% END %]
 [% ELSE %]
 <input
   name="[% name FILTER html %]"
@@ -100,5 +72,3 @@ function add_select_option (id)
   [% IF id %] id="[% id FILTER html %]" [% END %]
 >
 [% END %]
-
-
