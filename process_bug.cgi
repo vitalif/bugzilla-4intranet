@@ -278,10 +278,7 @@ else {
 # For each bug, we have to check if the user can edit the bug the product
 # is currently in, before we allow them to change anything.
 foreach my $bug (@bug_objects) {
-    if (!Bugzilla->user->can_edit_product($bug->product_obj->id) ) {
-        ThrowUserError("product_edit_denied",
-                      { product => $bug->product });
-    }
+    Bugzilla->user->can_edit_bug($bug, THROW_ERROR);
 }
 
 my $product_change;

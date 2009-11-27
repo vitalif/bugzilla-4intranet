@@ -591,6 +591,30 @@ sub can_see_bug {
     return @{ $self->visible_bugs([$bug_id]) } ? 1 : 0;
 }
 
+sub can_edit_bug
+{
+    my $self = shift;
+    my ($bug, $throw_error) = @_;
+    unless (ref $bug)
+    {
+        my $new = $throw_error ? 'check' : 'new';
+        $bug = Bugzilla::Bug->$new($bug);
+        return undef if $bug->{error};
+    }
+    return 1 if
+        $bug->assigned_to && $bug->assigned_to->id == $self->id ||
+        Bugzilla->params->{useqacontact} && $bug->qa_contact && $bug->qa_contact->id == $self->id ||
+        $bug->reporter && $bug->reporter->id == $self->id;
+    my $cc = $bug->cc;
+    foreach (@$cc)
+    {
+        return 1 if $_ eq $self->login_name;
+    }
+    return 1 if $self->can_edit_product($bug->product_obj->id);
+    ThrowUserError("product_edit_denied", { product => $bug->product }) if $throw_error;
+    return undef;
+}
+
 sub visible_bugs {
     my ($self, $bugs) = @_;
     # Allow users to pass in Bug objects and bug ids both.
