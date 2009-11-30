@@ -2753,10 +2753,10 @@ sub flag_types {
         # Build custom userlist for setting flag
         $cl = {};
         $cl->{$_->id} = [ $_, 'CC' ]       for @{$self->cc_users};
-        $cl->{$_->id} = [ $_, 'CompQA' ]   for $self->component_obj->default_qa_contact;
-        $cl->{$_->id} = [ $_, 'Reporter' ] for $self->reporter;
-        $cl->{$_->id} = [ $_, 'QA' ]       for $self->qa_contact;
-        $cl->{$_->id} = [ $_, 'Assignee' ] for $self->assigned_to;
+        $cl->{$_->id} = [ $_, 'CompQA' ]   for $self->component_obj->default_qa_contact || ();
+        $cl->{$_->id} = [ $_, 'Reporter' ] for $self->reporter || ();
+        $cl->{$_->id} = [ $_, 'QA' ]       for $self->qa_contact || ();
+        $cl->{$_->id} = [ $_, 'Assignee' ] for $self->assigned_to || ();
         $cl->{$_->id} = [ $_, 'Watcher' ]  for map { $_->[0]->watching_list } values %$cl;
         $cl = [
             map { {
