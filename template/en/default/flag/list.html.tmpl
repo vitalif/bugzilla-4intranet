@@ -181,6 +181,7 @@
                            name     => "requestee_type-$type.id"
                            id       => "requestee_type-$type.id"
                            value    => ""
+                           multiple         => type.is_multiplicable
                            emptyok          => !type.is_multiplicable
                            usemenuforusers  => type.custom_list
                            custom_userlist  => type.custom_list
