@@ -113,7 +113,7 @@ function check_mini_login_fields( suffix ) {
 
 /* template/en/global/menuforusers.html.tmpl */
 
-function menuforusers_initcombo(id)
+function menuforusers_initcombo(id, multi)
 {
   var sel = document.getElementById(id+"_s");
   var ed = document.getElementById(id);
@@ -124,31 +124,65 @@ function menuforusers_initcombo(id)
   menuforusers_tocombo(id);
 }
 
-function menuforusers_tocombo(id)
-{
-  var sel = document.getElementById(id+"_s");
-  var ed = document.getElementById(id);
-  if (!sel || !ed)
-    return;
-  var v = ed.value.toLowerCase();
-  for (var i = 0; i < sel.options.length; i++)
-  {
-    if (sel.options[i].value.toLowerCase().indexOf(v) >= 0 ||
-        sel.options[i].text.toLowerCase().indexOf(v) >= 0)
-    {
-      sel.selectedIndex = i;
-      menuforusers_fromcombo(id);
-      break;
-    }
+RegExp.escape = function(text) {
+  if (!arguments.callee.sRE) {
+    var specials = [
+      '/', '.', '*', '+', '?', '|',
+      '(', ')', '[', ']', '{', '}', '\\'
+    ];
+    arguments.callee.sRE = new RegExp(
+      '(\\' + specials.join('|\\') + ')', 'g'
+    );
   }
+  return text.replace(arguments.callee.sRE, '\\$1');
 }
 
-function menuforusers_fromcombo(id)
+function menuforusers_tocombo(id, multi)
 {
   var sel = document.getElementById(id+"_s");
   var ed = document.getElementById(id);
   if (!sel || !ed)
     return;
-  if (sel.selectedIndex >= 0)
-    ed.value = sel.options[sel.selectedIndex].value;
+  var v = ed.value.toLowerCase().split(/[\s,]+/);
+  for (var i = 0; i < v.length; i++)
+    v[i] = RegExp.escape(v[i].replace(/^\s+|\s+$/, ''));
+  v = v.join('|');
+  v = new RegExp(v);
+  for (var i = 0; i < sel.options.length; i++)
+  {
+    if (sel.options[i].value.toLowerCase().match(v) ||
+        sel.options[i].text.toLowerCase().match(v))
+    {
+      sel.options[i].selected = true;
+      if (!multi)
+        break;
+    }
+    else if (multi)
+      sel.options[i].selected = false;
+  }
+  menuforusers_fromcombo(id);
+}
+
+function menuforusers_fromcombo(id, multi)
+{
+  var sel = document.getElementById(id+"_s");
+  var ed = document.getElementById(id);
+  if (!sel || !ed)
+    return;
+  v = [];
+  for (var i = 0; i < sel.options.length; i++)
+    if (sel.options[i].selected)
+      v.push(sel.options[i].value);
+  ed.value = v.join(', ');
+}
+
+function menuforusers_showmulti(id)
+{
+  var sel = document.getElementById(id+"_s");
+  var btn = document.getElementById(id+"_b");
+  if (!sel || !btn)
+    return;
+  var show = sel.style.visibility == 'hidden' && !sel.disabled;
+  sel.style.visibility = show ? '' : 'hidden';
+  btn.src = 'images/dn' + (show ? 'push' : '') + '.gif';
 }
