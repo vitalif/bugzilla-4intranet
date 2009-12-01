@@ -143,24 +143,27 @@ function menuforusers_tocombo(id, multi)
   var ed = document.getElementById(id);
   if (!sel || !ed)
     return;
-  var v = ed.value.toLowerCase().split(/[\s,]+/);
-  for (var i = 0; i < v.length; i++)
-    v[i] = RegExp.escape(v[i].replace(/^\s+|\s+$/, ''));
-  v = v.join('|');
-  v = new RegExp(v);
-  for (var i = 0; i < sel.options.length; i++)
+  var nv = [];
+  var v = ed.value.split(/[\s,]+/);
+  var i, j;
+  for (i = 0; i < v.length; i++)
   {
-    if (sel.options[i].value.toLowerCase().match(v) ||
-        sel.options[i].text.toLowerCase().match(v))
+    for (j = 0; j < sel.options.length; j++)
     {
-      sel.options[i].selected = true;
-      if (!multi)
+      if (sel.options[i].value.toLowerCase().indexOf(v[i].toLowerCase()) >= 0 ||
+          sel.options[i].text.toLowerCase().indexOf(v[i].toLowerCase()) >= 0)
+      {
+        sel.options[i].selected = true;
+        nv.push(sel.options[i].value);
         break;
+      }
     }
-    else if (multi)
-      sel.options[i].selected = false;
+    if (j >= sel.options.length)
+      nv.push(v[i]);
+    if (!multi)
+      break;
   }
-  menuforusers_fromcombo(id);
+  ed.value = nv.join(', ');
 }
 
 function menuforusers_fromcombo(id, multi)
