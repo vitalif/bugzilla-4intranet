@@ -326,18 +326,6 @@ sub quicksearch {
                             else { # Default QuickSearch word
                                 $content .= ' '.$word;
                             }
-                            # URL field (for IP addrs, host.names,
-                            # scheme://urls)
-                            if ($word =~ m/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/
-                                  || $word =~ /^[A-Za-z]+(\.[A-Za-z]+)+/
-                                  || $word =~ /:[\\\/][\\\/]/
-                                  || $word =~ /localhost/
-                                  || $word =~ /mailto[:]?/
-                                  # || $word =~ /[A-Za-z]+[:][0-9]+/ #host:port
-                                  ) {
-                                addChart('bug_file_loc', 'substring',
-                                         $word, $negate);
-                            }
                         } # foreach my $word (split(/,/, $qsword))
                     } # votes and generic field detection
                 } # foreach (split(/\|/, $_))
