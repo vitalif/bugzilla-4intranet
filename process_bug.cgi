@@ -292,7 +292,7 @@ foreach my $bug (@bug_objects) {
         $args->{confirm_product_change} =  scalar $cgi->param('confirm_product_change');
         $args->{other_bugs} = \@bug_objects;
     }
-        
+
     foreach my $group (@{$bug->product_obj->groups_valid}) {
         my $gid = $group->id;
         if (should_set("bit-$gid", 1)) {
@@ -650,6 +650,13 @@ foreach my $bug (@bug_objects) {
         {
             $vars->{message} = "remaining_time_zeroed";
         }
+    }
+
+    if ($bug->{restricted_cc})
+    {
+        $vars->{restricted_cc} = $bug->{restricted_cc};
+        $vars->{cc_restrict_group} = $bug->{cc_restrict_group};
+        $vars->{message} = 'cc_list_restricted';
     }
 
     # To get a list of all changed dependencies, convert the "changes" arrays
