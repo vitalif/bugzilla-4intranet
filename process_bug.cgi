@@ -500,21 +500,6 @@ if (defined $cgi->param('newcc')
     push(@cc_remove, split(/[\s,]+/, $cc_remove)) if $cc_remove;
 }
 
-# CustIS Bug 55712 - Add flag requestees to CC
-for ($cgi->param)
-{
-    if (/^requestee_type-(\d+)$/so)
-    {
-        my $r = trim($cgi->param($_));
-        if ($bug_objects[0]->assigned_to->login ne $r &&
-            $bug_objects[0]->qa_contact->login ne $r &&
-            $bug_objects[0]->reporter->login ne $r)
-        {
-            push @cc_add, $r;
-        }
-    }
-}
-
 foreach my $b (@bug_objects) {
     $b->remove_cc($_) foreach @cc_remove;
     $b->add_cc($_) foreach @cc_add;
