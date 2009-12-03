@@ -446,15 +446,22 @@ sub _validate {
             # Throw an error if the user can't see the bug.
             # Note that if permissions on this bug are changed,
             # can_see_bug() will refer to old settings.
-            if (!$requestee->can_see_bug($bug_id)) {
-                # Bug 55712 - Add flag requestees to CC list
-                Bugzilla->cgi->param(-name => 'newcc', -value => [ Bugzilla->cgi->param('newcc'), $requestee->login ]);
-                #next if $skip_requestee_on_error;
-                #ThrowUserError('flag_requestee_unauthorized',
-                #               { flag_type  => $flag_type,
-                #                 requestee  => $requestee,
-                #                 bug_id     => $bug_id,
-                #                 attach_id  => $attach_id });
+            if (!$requestee->can_see_bug($bug_id))
+            {
+                if (Bugzilla->params->{auto_add_flag_requestees_to_cc})
+                {
+                    # Bug 55712 - Add flag requestees to CC list
+                    Bugzilla->cgi->param(-name => 'newcc', -value => [ Bugzilla->cgi->param('newcc'), $requestee->login ]);
+                }
+                else
+                {
+                    next if $skip_requestee_on_error;
+                    ThrowUserError('flag_requestee_unauthorized',
+                                   { flag_type  => $flag_type,
+                                     requestee  => $requestee,
+                                     bug_id     => $bug_id,
+                                     attach_id  => $attach_id });
+                }
             }
 
             # Throw an error if the target is a private attachment and
