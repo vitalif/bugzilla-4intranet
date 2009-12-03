@@ -120,6 +120,12 @@ sub get_param_list {
   },
 
   {
+   name => 'auto_add_flag_requestees_to_cc',
+   type => 'b',
+   default => 1,
+  },
+
+  {
    name => 'useopsys',
    type => 'b',
    default => 1,
