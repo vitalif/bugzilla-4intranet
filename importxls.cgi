@@ -259,7 +259,9 @@ sub parse_excel
     {
         # OOXML
         require Spreadsheet::XLSX;
-        $xls = Spreadsheet::XLSX->new($upload);
+        require Text::Iconv;
+        my $converter = Text::Iconv->new("utf-8", "windows-1251");
+        $xls = Spreadsheet::XLSX->new($upload->handle, $converter);
     }
     elsif ($name =~ /\.xls$/iso)
     {
@@ -277,7 +279,7 @@ sub parse_excel
             local $/ = undef;
             $upload = <$upload>;
         }
-        untaint($upload);
+        trick_taint($upload);
         return parse_csv($upload, $name, $only_list, $name_tr);
     }
     return { error => 'parse_error' } unless $xls;
@@ -354,7 +356,12 @@ sub parse_csv
 sub get_row
 {
     my ($page, $row, $col_min, $col_max) = @_;
-    return [ map { $_ = $page->get_cell($row, $_); $_ ? trim($_->value) : '' } ($col_min .. $col_max) ];
+    return [ map {
+        $_ = $page->get_cell($row, $_);
+        $_ = $_ ? $_->value : '';
+        Encode::_utf8_on($_);
+        trim($_);
+    } ($col_min .. $col_max) ];
 }
 
 # добавить баг
