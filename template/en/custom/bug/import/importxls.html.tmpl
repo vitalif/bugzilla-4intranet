@@ -143,7 +143,12 @@ function fieldrename(field)
 <tr id="bugz_[% bug.num | html %]">
     <td><input type="checkbox" id="b_enabled_[% bug.num | html %]" name="b_enabled_[% bug.num | html %]" value="1" [% IF bug.enabled %]checked[% END %] /></td>
     [% FOR field = fields %]
-    <td><input type="text" size="[% lens.${field} | html %]" name="b_[% field | html %]_[% bug.num | html %]" value="[% bug.${field} | html %]" /></td>
+    [% SET v = bug.${field} | html %]
+    [% IF v.match("\n") %]
+    <td><textarea style="font-family: monospace; font-size: 13px" rows="2" cols="40" name="b_[% field | html %]_[% bug.num | html %]">[% v %]</textarea></td>
+    [% ELSE %]
+    <td><input type="text" size="[% lens.${field} | html %]" name="b_[% field | html %]_[% bug.num | html %]" value="[% v %]" /></td>
+    [% END %]
     [% END %]
 </tr>
 [% END %]
