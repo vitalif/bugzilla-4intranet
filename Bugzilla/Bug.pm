@@ -2786,11 +2786,12 @@ sub flag_types {
             {
                 # In case there was already a requestee, the only valid action
                 # is to remove the requestee or leave it alone.
-                $_->{custom_list} = [ {
+                $_->{custom_list} = [];
+                push @{$_->{custom_list}}, {
                     login    => $_->requestee->login,
                     identity => $_->requestee->identity,
                     visible  => 1,
-                } ];
+                } if $_->requestee;
                 $_->{allow_other} = 0;
             }
             else
