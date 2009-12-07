@@ -8,7 +8,7 @@
 <head>
     <title>[% terms.Bug %] List[% IF searchname || defaultsavename %][% ": " _ (searchname || defaultsavename) | html %][% END %]</title>
 <style>
-.abug { float: left; background-color: white; margin: 0.5cm 0.1cm 0.1cm 0.1cm; font-size: 90%; width: 6cm; height: 5cm; font-weight: bold; }
+.abug { float: left; background-color: white; margin: 0.5cm 0.1cm 0.1cm 0.1cm; font-size: 90%; width: 6cm; height: 6cm; font-weight: bold; }
 .abug td { text-align: center; }
 .dot { border: 1px dashed black; }
 .dot { white-space: nowrap; }
@@ -21,9 +21,9 @@
 [% FOR bug = bugs %]
 <table class="abug" cellspacing="5">
 <tr>
-    <td class="dot"><a href="show_bug.cgi?id=[% bug.bug_id %]">[% bug.bug_id | html %]</a></td>
+    <td class="dot" width="1"><a href="show_bug.cgi?id=[% bug.bug_id %]">[% bug.bug_id | html %]</a></td>
     <td class="sevpri">[% bug.bug_severity.substr(0, 3) | html %]&nbsp;[% bug.priority | html %]</td>
-    <td class="dot">[% bug.target_milestone.substr(0, 6) %]</td>
+    <td class="dot">[% bug.target_milestone %]</td>
 </tr>
 <tr>
     <td colspan="3" class="desc">[% bug.short_desc | html %]</td>
