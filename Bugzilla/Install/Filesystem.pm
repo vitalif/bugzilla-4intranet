@@ -283,8 +283,8 @@ EOT
   Deny from all
 </FilesMatch>
 
-# Allow access to .png files created by a local copy of 'dot'
-<FilesMatch \\.png\$>
+# Allow access to .png and .svg files created by a local copy of 'dot'
+<FilesMatch \\.(png|svg)\$>
   Allow from all
 </FilesMatch>
 
