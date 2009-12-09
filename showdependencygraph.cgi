@@ -49,36 +49,16 @@ if (!defined $cgi->param('id') && $display ne 'doall') {
 # Connect to the shadow database if this installation is using one to improve
 # performance.
 
-my $webdotbase = Bugzilla->params->{webdotbase};
-my $webtwopibase = Bugzilla->params->{webtwopibase};
-
 my ($seen, $edges, $baselist, $deps) = GetEdges($display, $cgi->param('id'));
 my ($nodes, $bugtitles) = GetNodes($seen, $baselist, $deps, $vars);
-my $filename = MakeDot($edges, $nodes);
-
-# Remote dot server. We don't hardcode 'urlbase' here in case
-# 'sslbase' is in use.
-if ($webdotbase =~ /^https?:/)
+my ($clusters, $independent) = GetClusters($seen, $edges);
+my $graphs = [];
+for (@$clusters, $independent)
 {
-    $webdotbase =~ s/%([a-z]*)%/Bugzilla->params->{$1}/eg;
-    my $url = $webdotbase . $filename;
-    $vars->{image_url} = $url . ".gif";
-    $vars->{map_url} = $url . ".map";
-}
-# Local dot installation
-else
-{
-    # First, generate the png image file from the .dot source
-    my ($pngfh, $pngfilename) = DotTemp('.png');
-    DotInto($pngfh, $webdotbase, '-Tpng', $filename) or ($vars->{timeout} = 1);
-    $vars->{image_url} = DotRel($pngfilename);
-
-    # Then, generate a imagemap datafile that contains the corner data
-    # for drawn bug objects. Pass it on to CreateImagemap that
-    # turns this monster into html.
-    my ($mapfh, $mapfilename) = DotTemp('.map');
-    DotInto($mapfh, $webdotbase, '-Tismap', $filename) or ($vars->{timeout} = 1);
-    $vars->{image_map} = CreateImagemap($mapfilename, $bugtitles);
+    my $filename = MakeDot($edges, $nodes, $_);
+    my $gr = { cluster => $_, filename => $filename, alt => $_ eq $independent };
+    GetDotUrls($gr, $bugtitles);
+    push @$graphs, $gr;
 }
 
 # Cleanup any old .dot files created from previous runs.
@@ -88,11 +68,103 @@ my @bugs = keys %$baselist;
 $vars->{bug_id} = join ', ', @bugs;
 $vars->{multiple_bugs} = scalar(keys %$baselist) > 1;
 $vars->{display} = $display;
+$vars->{graphs} = $graphs;
 
 # Generate and return the UI (HTML page) from the appropriate template.
 print $cgi->header();
 $template->process("bug/dependency-graph.html.tmpl", $vars)
   || ThrowTemplateError($template->error());
+
+# Divide the overall graph into closed clusters
+sub GetClusters
+{
+    my ($seen, $edges) = @_;
+    my $twoway = {};
+    for my $b (keys %$edges)
+    {
+        for my $d (keys %{$edges->{$b}})
+        {
+            $twoway->{$b}->{$d} = 1;
+            $twoway->{$d}->{$b} = 1;
+        }
+    }
+    $seen = { %$seen };
+    my ($clusters, $independent) = ([], {});
+    my $cluster;
+    while (keys %$seen)
+    {
+        unless ($cluster && %$cluster)
+        {
+            my ($b) = keys %$seen;
+            $cluster = { $b => 1 };
+            delete $seen->{$b};
+        }
+        my $added = 0;
+        for (keys %$cluster)
+        {
+            for (keys %{$twoway->{$_}})
+            {
+                unless ($cluster->{$_})
+                {
+                    $cluster->{$_} = 1;
+                    delete $seen->{$_};
+                    $added++;
+                }
+            }
+        }
+        # кластер замкнут
+        unless ($added)
+        {
+            if (scalar(keys %$cluster) == 1)
+            {
+                my ($b) = keys %$cluster;
+                $independent->{$b} = 1;
+            }
+            else
+            {
+                push @$clusters, $cluster;
+            }
+            $cluster = undef;
+        }
+    }
+    return ($clusters, $independent);
+}
+
+# Get URLs for HTML usage
+sub GetDotUrls
+{
+    my ($inout, $bugtitles) = @_;
+    my $base = Bugzilla->params->{$inout->{alt} ? 'webtwopibase' : 'webdotbase'};
+    # Remote dot server. We don't hardcode 'urlbase' here in case
+    # 'sslbase' is in use.
+    if ($base =~ /^https?:/)
+    {
+        $inout->{image_url} = $base . $inout->{filename} . ".gif";
+        $inout->{map_url} = $base . $inout->{filename} . ".map";
+    }
+    # Local dot installation
+    else
+    {
+        # First, generate the svg image file from the .dot source
+        my ($pngfh, $pngfilename) = DotTemp('.svg');
+        DotInto($pngfh, $base, '-Tsvg', $inout->{filename}) or ($inout->{timeout} = 1);
+        $inout->{image_svg_url} = DotRel($pngfilename);
+
+        # Next, generate the png image file for those who don't support SVG
+        my ($pngfh, $pngfilename) = DotTemp('.png');
+        DotInto($pngfh, $base, '-Tpng', $inout->{filename}) or ($inout->{timeout} = 1);
+        $inout->{image_url} = DotRel($pngfilename);
+
+        # Then, generate a imagemap datafile that contains the corner data
+        # for drawn bug objects. Pass it on to CreateImagemap that
+        # turns this monster into html.
+        my ($mapfh, $mapfilename) = DotTemp('.map');
+        DotInto($mapfh, $base, '-Tismap', $inout->{filename}) or ($inout->{timeout} = 1);
+        $inout->{image_map_id} = 'imap' . $mapfilename;
+        $inout->{image_map_id} =~ s/\W+/_/gso;
+        $inout->{image_map} = CreateImagemap($mapfilename, $inout->{image_map_id}, $bugtitles);
+    }
+}
 
 # DotInto: Run local dot with timeout support and write output into filehandle
 sub DotInto
@@ -137,8 +209,9 @@ sub DotInto
 
 sub CreateImagemap
 {
-    my ($mapfilename, $bugtitles) = @_;
-    my $map = "<map name=\"imagemap\">\n";
+    my ($mapfilename, $mapid, $bugtitles) = @_;
+    $mapid ||= 'imagemap';
+    my $map = "<map name=\"$mapid\">\n";
     my $default;
 
     open MAP, "<$mapfilename";
@@ -171,13 +244,9 @@ sub CreateImagemap
 sub AddLink
 {
     my ($blocked, $dependson, $seen, $edges) = (@_);
-    my $key = "$blocked,$dependson";
-    if (!exists $edges->{$key})
-    {
-        $edges->{$key} = 1;
-        $seen->{$blocked} = 1;
-        $seen->{$dependson} = 1;
-    }
+    $edges->{$blocked}->{$dependson} = 1;
+    $seen->{$blocked} = 1;
+    $seen->{$dependson} = 1;
 }
 
 sub DotTemp
@@ -283,8 +352,8 @@ sub GetEdges
 sub GetNodes
 {
     my ($seen, $baselist, $deps, $vars) = @_;
-    return [] unless keys %$seen;
-    my $nodes = [];
+    return {} unless keys %$seen;
+    my $nodes = {};
     my $bugtitles = {};
     # Retrieve bug information from the database
     my $rows = Bugzilla->dbh->selectall_arrayref(
@@ -335,7 +404,7 @@ GROUP BY t1.bug_id", {Slice=>{}}, keys %$seen) || {};
             ($deps->{$row->{bug_id}} || 0) > 4;
         if ($important)
         {
-            push @params, "width=3", "height=1.5", "fontsize=13";
+            push @params, "height=1.5", "fontsize=13";
         }
 
         if ($row->{short_desc})
@@ -360,8 +429,6 @@ $row->{short_desc}
 EOF
         }
 
-        push @$nodes, $row->{bug_id} . (@params ? " [" . join(',', @params) . "]" : "");
-
         # Push the bug tooltip texts into a global hash so that
         # CreateImagemap sub (used with local dot installations) can
         # use them later on.
@@ -372,13 +439,20 @@ EOF
         if ($row->{short_desc}) {
             $bugtitles->{$row->{bug_id}} .= " $row->{product}/$row->{component} - $row->{short_desc}";
         }
+
+        my $t = $bugtitles->{$row->{bug_id}};
+        $t =~ s/([\\\"])/\\$1/gso;
+        push @params, "tooltip=\"$t\"";
+
+        $nodes->{$row->{bug_id}} = $row->{bug_id} . (@params ? " [" . join(',', @params) . "]" : "");
     }
     return ($nodes, $bugtitles);
 }
 
 sub MakeDot
 {
-    my ($edges, $nodes) = @_;
+    my ($edges, $nodes, $cluster) = @_;
+    $cluster ||= $edges;
     my ($fh, $filename) = DotTemp('.dot');
     my $urlbase = Bugzilla->params->{urlbase};
     no warnings 'utf8';
@@ -387,10 +461,10 @@ sub MakeDot
 ranksep=0.5;
 graph [URL="${urlbase}query.cgi" rankdir=LR overlap=false splines=true]
 node [URL="${urlbase}show_bug.cgi?id=\\N" shape=note fontsize=10 fontname="Consolas" style=filled fillcolor=white]
-edge [color=blue arrowtail=none arrowhead=none len=0.5]
+edge [color=blue len=0.5]
 EOF
-    OutLinks($edges, $fh);
-    print $fh "$_\n" foreach @$nodes;
+    OutLinks($edges, $cluster, $fh);
+    print $fh $nodes->{$_}, "\n" foreach keys %$cluster;
     print $fh "}\n";
     close $fh;
     chmod 0777, $filename;
@@ -399,12 +473,16 @@ EOF
 
 sub OutLinks
 {
-    my ($edges, $fh) = @_;
-    my ($blocked, $dependson);
-    for (keys %$edges)
+    my ($edges, $cluster, $fh) = @_;
+    for my $blocked (keys %$edges)
     {
-        ($blocked, $dependson) = split /,/, $_, 2;
-        print $fh "$blocked -> $dependson\n";
+        if ($cluster->{$blocked})
+        {
+            for my $dependson (keys %{$edges->{$blocked}})
+            {
+                print $fh "$blocked -> $dependson\n";
+            }
+        }
     }
 }
 

@@ -46,8 +46,6 @@
 
 [% PROCESS global/header.html.tmpl %]
 
-[% image_map %]
-
 <table cellpadding="2" style="margin-bottom: 16px; border: 1px solid gray; background-color: white">
 <tr>
   <td>Bug states:</td>
@@ -60,15 +58,24 @@
 </tr>
 </table>
 
-[% IF timeout %]
+[% FOR g = graphs %]
+[% IF g.timeout %]
 <p style="color:red">Timed out.</p>
+[% ELSIF g.image_map %]
+<p>
+  [% g.image_map %]
+  [% IF g.image_svg_url %]<object type="image/svg+xml" data="[% g.image_svg_url %]" style="border: 1px solid gray">[% END %]
+  <img src="[% g.image_url %]" alt="Dependency graph" usemap="#[% g.image_map_id | html %]" [% IF !g.image_svg_url %]style="border: 1px solid gray"[% END %] />
+  [% IF g.image_svg_url %]</object>[% END %]
+</p>
 [% ELSE %]
-[% IF image_map %]
-  <img src="[% image_url %]" alt="Dependency graph" usemap="#imagemap" style="border: 1px solid gray">
-[% ELSE %]
-  <a href="[% map_url %]">
-    <img src="[% image_url %]" alt="Dependency graph" ismap="ismap" style="border: 1px solid gray">
+<p>
+  <a href="[% g.map_url %]">
+  [% IF g.image_svg_url %]<object type="image/svg+xml" data="[% g.image_svg_url %]" style="border: 1px solid gray">[% END %]
+    <img src="[% g.image_url %]" alt="Dependency graph" ismap="ismap" [% IF !g.image_svg_url %]style="border: 1px solid gray"[% END %] />
+  [% IF g.image_svg_url %]</object>[% END %]
   </a>
+</p>
 [% END %]
 [% END %]
 
