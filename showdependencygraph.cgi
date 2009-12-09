@@ -146,20 +146,20 @@ sub GetDotUrls
     else
     {
         # First, generate the svg image file from the .dot source
-        my ($pngfh, $pngfilename) = DotTemp('.svg');
-        DotInto($pngfh, $base, '-Tsvg', $inout->{filename}) or ($inout->{timeout} = 1);
-        $inout->{image_svg_url} = DotRel($pngfilename);
+        my ($svgfh, $svgfilename) = DotTemp('.svg');
+        DotInto($svgfh, [ $base, '-Tsvg', $inout->{filename} ], sub { s/xlink:title=/xlink:show="new" xlink:title=/; $_; }) or ($inout->{timeout} = 1);
+        $inout->{image_svg_url} = DotRel($svgfilename);
 
         # Next, generate the png image file for those who don't support SVG
         my ($pngfh, $pngfilename) = DotTemp('.png');
-        DotInto($pngfh, $base, '-Tpng', $inout->{filename}) or ($inout->{timeout} = 1);
+        DotInto($pngfh, [ $base, '-Tpng', $inout->{filename} ]) or ($inout->{timeout} = 1);
         $inout->{image_url} = DotRel($pngfilename);
 
         # Then, generate a imagemap datafile that contains the corner data
         # for drawn bug objects. Pass it on to CreateImagemap that
         # turns this monster into html.
         my ($mapfh, $mapfilename) = DotTemp('.map');
-        DotInto($mapfh, $base, '-Tismap', $inout->{filename}) or ($inout->{timeout} = 1);
+        DotInto($mapfh, [ $base, '-Tismap', $inout->{filename} ]) or ($inout->{timeout} = 1);
         $inout->{image_map_id} = 'imap' . $mapfilename;
         $inout->{image_map_id} =~ s/\W+/_/gso;
         $inout->{image_map} = CreateImagemap($mapfilename, $inout->{image_map_id}, $bugtitles);
@@ -169,8 +169,7 @@ sub GetDotUrls
 # DotInto: Run local dot with timeout support and write output into filehandle
 sub DotInto
 {
-    my $intofh = shift;
-    my $cmd = [ @_ ];
+    my ($intofh, $cmd, $callback) = @_;
     my $r = 1;
     binmode $intofh;
     my $quot = $^O =~ /MSWin/ ? '"' : "'";
@@ -189,7 +188,14 @@ sub DotInto
     if (my $pid = open DOT, "$cmd|")
     {
         binmode DOT;
-        print $intofh $_ while <DOT>;
+        if ($callback)
+        {
+            print $intofh $callback->($_) while <DOT>;
+        }
+        else
+        {
+            print $intofh $_ while <DOT>;
+        }
         close DOT;
     }
     $r = undef unless tell $intofh;
