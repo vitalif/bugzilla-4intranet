@@ -58,7 +58,8 @@
   }
 
   /* Adds the reply text to the `comment' textarea */
-  function replyToComment(id, real_id) {
+  function replyToComment(id, real_id)
+  {
       var prefix = "(In reply to comment #" + id + ")\n";
       var replytext = "";
       [% IF user.settings.quote_replies.value == 'quoted_reply' %]
@@ -71,8 +72,20 @@
          */
         text = text.split(/\r|\n/);
 
-        for (var i=0; i < text.length; i++) {
-            replytext += "> " + text[i] + "\n"; 
+        var prev_ist = false, ist = false;
+        for (var i = 0; i < text.length; i++)
+        {
+            /* CustIS Bug 55876 - ASCII pseudographic tables */
+            ist = text[i].match('^(┌|│|└).*(┐|│|┘)$') ? true : false;
+            if (!ist)
+            {
+                replytext += "> ";
+                replytext += text[i];
+                replytext += "\n"; 
+            }
+            else if (!prev_ist)
+                replytext += "> (table cut off)\n";
+            prev_ist = ist;
         }
 
         replytext = prefix + replytext + "\n";
@@ -113,6 +126,8 @@
           var type = child.nodeType;
           if (type == Node.TEXT_NODE || type == Node.ENTITY_REFERENCE_NODE) {
               text += child.nodeValue;
+          } else if (child.nodeName.toLowerCase() == 'br') {
+              text += "\n";
           } else {
               /* recurse into nodes of other types */
               text += getText(child);
