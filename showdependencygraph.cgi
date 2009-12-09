@@ -387,6 +387,7 @@ GROUP BY t1.bug_id", {Slice=>{}}, keys %$seen) || {};
         # Resolution and summary are shown only if user can see the bug
         $row->{resolution} = $row->{short_desc} = '' unless Bugzilla->user->can_see_bug($row->{bug_id});
         $row->{bug_status} ||= 'NEW';
+        $row->{short_desc_uncut} = $row->{short_desc};
         if (length $row->{short_desc} > 32)
         {
             $row->{short_desc} = substr($row->{short_desc}, 0, 32) . '...';
@@ -443,7 +444,7 @@ EOF
         # Show the bug summary in tooltips only if not shown on
         # the graph and it is non-empty (the user can see the bug)
         if ($row->{short_desc}) {
-            $bugtitles->{$row->{bug_id}} .= " $row->{product}/$row->{component} - $row->{short_desc}";
+            $bugtitles->{$row->{bug_id}} .= " $row->{product}/$row->{component} - $row->{short_desc_uncut}";
         }
 
         my $t = $bugtitles->{$row->{bug_id}};
