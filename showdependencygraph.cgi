@@ -499,7 +499,7 @@ sub CleanupOldDots
     # Can't use glob, since even calling that fails taint checks for perl < 5.6
     my $webdotdir = bz_locations()->{webdotdir};
     opendir DIR, $webdotdir;
-    my @files = grep { /\.dot$|\.png$|\.map$/ && -f "$webdotdir/$_" } readdir(DIR);
+    my @files = grep { /\.dot$|\.png$|\.svg$|\.map$/ && -f "$webdotdir/$_" } readdir(DIR);
     closedir DIR;
     foreach my $f (@files)
     {
