@@ -1781,9 +1781,7 @@ sub _check_time {
     my $tt_group = Bugzilla->params->{"timetrackinggroup"};
     return $current unless $tt_group && Bugzilla->user->in_group($tt_group);
 
-    $time =~ tr/,/./;
-    $time = trim($time) || 0;
-    ValidateTime($time, $field);
+    $time = ValidateTime($time, $field);
     return $time;
 }
 
@@ -3199,19 +3197,29 @@ sub EmitDependList {
     return $list_ref;
 }
 
-sub ValidateTime {
+sub ValidateTime
+{
     my ($time, $field) = @_;
+
+    $time =~ tr/,/./;
+    $time = trim($time) || 0;
+
+    if ($time =~ /^(-?)(?:(?:(\d+):)?(\d+):(\d+)(?:\.(\d+))?)$/so)
+    {
+        # DD:HH:MM.SS
+        $time = $1 . (($2||0)*24 + $3 + $4/60 + ($5||0)/3600);
+    }
 
     # regexp verifies one or more digits, optionally followed by a period and
     # zero or more digits, OR we have a period followed by one or more digits
     # (allow negatives, though, so people can back out errors in time reporting)
-    if ($time !~ /^-?(?:\d+(?:\.\d*)?|\.\d+)$/) {
+    if ($time !~ /^-?(?:\d+(?:\.\d*)?|\.\d+)$/so) {
         ThrowUserError("number_not_numeric",
                        {field => "$field", num => "$time"});
     }
 
     # Only the "work_time" field is allowed to contain a negative value.
-    if ( ($time < 0) && ($field ne "work_time") ) {
+    if ($time < 0 && $field ne "work_time") {
         ThrowUserError("number_too_small",
                        {field => "$field", num => "$time", min_num => "0"});
     }
@@ -3220,6 +3228,8 @@ sub ValidateTime {
         ThrowUserError("number_too_large",
                        {field => "$field", num => "$time", max_num => "99999.99"});
     }
+
+    return $time;
 }
 
 sub GetComments {
