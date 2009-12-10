@@ -138,39 +138,57 @@
 
 [% IF user.in_group(Param('timetrackinggroup')) %]
   var fRemainingTime = [% bug.remaining_time %]; // holds the original value
-  function adjustRemainingTime() {
-      // subtracts time spent from remaining time
-      var new_time;
-      var wt = parseFloat(document.changeform.work_time.value.replace(',','.'));
-      if (wt != wt)
+  function bzParseTime(time)
+  {
+    time = time+"";
+    time = time.replace(',','.');
+    var re = /^\s*(-?)(?:(?:(\d+):)?(\d+):(\d+)(?:\.(\d+))?)\s*$/;
+    if (m = time.match(re))
+    {
+      for (var i = 2; i < 6; i++)
       {
-        document.changeform.work_time.style.backgroundColor = '#FFC0C0';
-        document.changeform.remaining_time.style.backgroundColor = '#FFC0C0';
-        wt = 0;
+        if (!m[i]) m[i] = 0;
+        else m[i] = parseInt(m[i]);
       }
-      else
-      {
-        document.changeform.work_time.style.backgroundColor = '';
-        document.changeform.remaining_time.style.backgroundColor = '';
-      }
+      if (!m[1]) m[1] = '';
+      time = m[1] + (m[2]*24 + m[3] + m[4]/60 + m[5]/3600);
+    }
+    return parseFloat(time);
+  }
+  function adjustRemainingTime()
+  {
+    // subtracts time spent from remaining time
+    var new_time;
+    var wt = bzParseTime(document.changeform.work_time.value);
+    if (wt != wt)
+    {
+      document.changeform.work_time.style.backgroundColor = '#FFC0C0';
+      document.changeform.remaining_time.style.backgroundColor = '#FFC0C0';
+      wt = 0;
+    }
+    else
+    {
+      document.changeform.work_time.style.backgroundColor = '';
+      document.changeform.remaining_time.style.backgroundColor = '';
+    }
 
-      // prevent negative values if work_time > fRemainingTime
-      new_time = Math.max(fRemainingTime - wt, 0.0);
-      // get upto 2 decimal places
-      document.changeform.remaining_time.value =
-          Math.round(new_time * 100)/100;
+    // prevent negative values if work_time > fRemainingTime
+    new_time = Math.max(fRemainingTime - wt, 0.0);
+    // get upto 2 decimal places
+    document.changeform.remaining_time.value =
+      Math.round(new_time * 100)/100;
   }
 
   function updateRemainingTime() {
-      // if the remaining time is changed manually, update fRemainingTime
-      fRemainingTime = document.changeform.remaining_time.value;
+    // if the remaining time is changed manually, update fRemainingTime
+    fRemainingTime = bzParseTime(document.changeform.remaining_time.value);
   }
 
 [% END %]
 
   function changeform_onsubmit()
   {
-    var wt = parseFloat(document.changeform.work_time.value.replace(',','.'));
+    var wt = bzParseTime(document.changeform.work_time.value);
     var awt = wt;
     if (wt != wt)
       awt = 0;
