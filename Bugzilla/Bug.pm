@@ -3204,10 +3204,15 @@ sub ValidateTime
     $time =~ tr/,/./;
     $time = trim($time) || 0;
 
-    if ($time =~ /^(-?)(?:(?:(\d+):)?(\d+):(\d+)(?:\.(\d+))?)$/so)
+    if ($time =~ /^(-?)(?:(\d+):(\d+)(?::(\d+))?)$/so)
     {
-        # DD:HH:MM.SS
-        $time = $1 . (($2||0)*24 + $3 + $4/60 + ($5||0)/3600);
+        # HH:MM[:SS]
+        $time = $1 . ($2 + $3/60 + ($4||0)/3600);
+    }
+    elsif ($time =~ /^(-?\d+(?:\.\d+)?)d$/so)
+    {
+        # days
+        $time = $1 * 24;
     }
 
     # regexp verifies one or more digits, optionally followed by a period and
