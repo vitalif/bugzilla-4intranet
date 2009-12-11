@@ -142,17 +142,18 @@
   {
     time = time+"";
     time = time.replace(',','.');
-    var re = /^\s*(-?)(?:(?:(\d+):)?(\d+):(\d+)(?:\.(\d+))?)\s*$/;
-    if (m = time.match(re))
+    if (m = time.match(/^\s*(-?)(?:(\d+):(\d+)(?::(\d+))?)\s*$/))
     {
-      for (var i = 2; i < 6; i++)
+      for (var i = 2; i < 5; i++)
       {
         if (!m[i]) m[i] = 0;
         else m[i] = parseInt(m[i]);
       }
       if (!m[1]) m[1] = '';
-      time = m[1] + (m[2]*24 + m[3] + m[4]/60 + m[5]/3600);
+      time = m[1] + (m[2] + m[3]/60 + m[4]/3600);
     }
+    else if (m = time.match(/^\s*(-?\d+(?:\.\d+)?)d\s*$/))
+      time = parseFloat(m[1])*24;
     return parseFloat(time);
   }
   function adjustRemainingTime()
@@ -1165,7 +1166,7 @@
         <input name="estimated_time" id="estimated_time"
                value="[% PROCESS formattimeunit
                                  time_unit=bug.estimated_time %]"
-               size="6" maxlength="6">
+               size="6">
       </td>
       <td>
         [% PROCESS formattimeunit
@@ -1174,14 +1175,14 @@
       <td>
         [% PROCESS formattimeunit time_unit=bug.actual_time %] +
         <input name="work_time" id="work_time"
-               value="0" size="3" maxlength="6"
+               value="0" size="3"
                onchange="adjustRemainingTime();" onkeyup="adjustRemainingTime();">
       </td>
       <td>
         <input name="remaining_time" id="remaining_time"
                value="[% PROCESS formattimeunit
                                  time_unit=bug.remaining_time %]"
-               size="6" maxlength="6" onchange="updateRemainingTime();">
+               size="6" onchange="updateRemainingTime();" onkeyup="updateRemainingTime();">
       </td>
       <td>
         [% PROCESS calculatepercentage act=bug.actual_time
