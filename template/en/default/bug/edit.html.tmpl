@@ -214,7 +214,14 @@
 <input id="previewcommentvalue" type="hidden" name="comment" value="" />
 </form>
 
-<form name="changeform" method="post" action="process_bug.cgi" onsubmit="return changeform_onsubmit()">
+[%# CustIS Bug 57315 - Force Fucking Firefox to reset form on Reload %]
+[% USE date %]
+[% SET cfname = 'changeform_' _ date.format(date.now, '%s') %]
+<form name="[% cfname %]" method="post" action="process_bug.cgi" onsubmit="return changeform_onsubmit()">
+<script language="JavaScript">
+document.forms.changeform = document.forms.[% cfname %];
+document.changeform = document.[% cfname %];
+</script>
 
   <input type="hidden" name="delta_ts" value="[% bug.delta_ts %]">
   <input type="hidden" name="longdesclength" value="[% bug.longdescs.size %]">
