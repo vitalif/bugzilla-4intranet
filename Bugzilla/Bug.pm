@@ -50,6 +50,7 @@ use List::Util qw(min);
 use Storable qw(dclone);
 use URI;
 use URI::QueryParam;
+use Date::Format qw(time2str);
 
 use base qw(Bugzilla::Object Exporter);
 @Bugzilla::Bug::EXPORT = qw(
@@ -822,7 +823,13 @@ sub update {
     }
 
     # Comments
-    foreach my $comment (@{$self->{added_comments} || []}) {
+    foreach my $comment (@{$self->{added_comments} || []})
+    {
+        if (Bugzilla->cgi->param('commentsilent'))
+        {
+            # log silent comments
+            SilentLog($self->bug_id, $comment->{thetext});
+        }
         my $columns = join(',', keys %$comment);
         my @values  = values %$comment;
         my $qmarks  = join(',', ('?') x @values);
@@ -3426,6 +3433,28 @@ sub GetBugActivity {
     }
 
     return(\@operations, $incomplete_data);
+}
+
+# Write into additional log file for silent comments
+sub SilentLog
+{
+    my ($bugid, $comment) = @_;
+    my $datadir = bz_locations()->{datadir};
+    my $fd;
+    if (-w "$datadir/silentlog")
+    {
+        my $mesg = "";
+        $comment =~ s/\r*\n+/|/gso;
+        $mesg .= "Silent comment> " . time2str("%D %H:%M:%S ", time());
+        $mesg .= " Bug $bugid User: " . Bugzilla->user->login;
+        $mesg .= " ($ENV{REMOTE_ADDR}) " if $ENV{REMOTE_ADDR};
+        $mesg .= " // $comment ";
+        if (open $fd, ">>$datadir/silentlog")
+        {
+            print $fd "$mesg\n";
+            close $fd;
+        }
+    }
 }
 
 # Update the bugs_activity table to reflect changes made in bugs.

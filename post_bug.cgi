@@ -96,7 +96,7 @@ if ($token) {
 if (defined $cgi->param('maketemplate')) {
     $vars->{'url'} = $cgi->canonicalise_query('token');
     $vars->{'short_desc'} = $cgi->param('short_desc');
-    
+
     print $cgi->header();
     $template->process("bug/create/make-template.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
@@ -272,7 +272,8 @@ if ($@) {
     $vars->{'flag_creation_error'} = $@;
 }
 
-# Email everyone the details of the new bug 
+# Email everyone the details of the new bug
+$vars->{commentsilent} = $cgi->param('commentsilent');
 $vars->{'mailrecipients'} = {'changer' => $user->login};
 
 $vars->{'id'} = $id;
