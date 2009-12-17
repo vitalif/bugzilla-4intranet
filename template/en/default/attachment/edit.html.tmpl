@@ -234,8 +234,8 @@
         [% END %]
 
         <div id="smallCommentFrame">
-          <b><small><label for="comment">Comment</label> (on the
-          [%+ terms.bug %]):</small></b><br>
+          <small><b><label for="comment">Comment</label> (on the
+          [%+ terms.bug %]):</b> <input type="checkbox" name="commentsilent" value="1" /> <label for="commentsilent">Silent</label></small><br>
             [% INCLUDE global/textarea.html.tmpl
               id      = 'comment'
               name    = 'comment'

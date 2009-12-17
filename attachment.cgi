@@ -519,6 +519,7 @@ sub insert {
     $dbh->bz_commit_transaction;
 
     # Define the variables and functions that will be passed to the UI template.
+    $vars->{commentsilent} = $cgi->param('commentsilent');
     $vars->{mailrecipients} = {
         changer => $user->login,
         owner   => $owner
@@ -531,28 +532,6 @@ sub insert {
     $vars->{header_done} = 1;
     $vars->{contenttypemethod} = $cgi->param('contenttypemethod');
     $vars->{use_keywords} = 1 if Bugzilla::Keyword::keyword_count();
-
-    # Log silent attachments
-    if ($vars->{commentsilent} = $cgi->param('commentsilent'))
-    {
-        my $datadir = bz_locations()->{datadir};
-        my $fd;
-        if (-w "$datadir/silentlog")
-        {
-            my $mesg = "";
-            my $c = $comment;
-            $c =~ s/\r*\n+/|/gso;
-            $mesg .= "Silent comment> " . time2str("%D %H:%M:%S ", time());
-            $mesg .= " Bug " . $cgi->param('id') . " User: " . Bugzilla->user->login;
-            $mesg .= " ($ENV{REMOTE_ADDR}) " if $ENV{REMOTE_ADDR};
-            $mesg .= " // $c ";
-            if (open $fd, ">>$datadir/silentlog")
-            {
-                print $fd "$mesg\n";
-                close $fd;
-            }
-        }
-    }
 
     unless (Bugzilla->usage_mode == USAGE_MODE_EMAIL)
     {
@@ -758,6 +737,7 @@ sub update {
     $bug->update();
 
     # Define the variables and functions that will be passed to the UI template.
+    $vars->{commentsilent} = $cgi->param('commentsilent');
     $vars->{'mailrecipients'} = { 'changer' => Bugzilla->user->login };
     $vars->{'attachment'} = $attachment;
     # We cannot reuse the $bug object as delta_ts has eventually been updated
@@ -813,6 +793,7 @@ sub delete_attachment {
         $vars->{'attachment'} = $attachment;
         $vars->{'date'} = $date;
         $vars->{'reason'} = clean_text($cgi->param('reason') || '');
+        $vars->{commentsilent} = $cgi->param('commentsilent');
         $vars->{'mailrecipients'} = { 'changer' => $user->login };
 
         $template->process("attachment/delete_reason.txt.tmpl", $vars, \$msg)
