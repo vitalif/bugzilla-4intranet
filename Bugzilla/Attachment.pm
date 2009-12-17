@@ -61,6 +61,8 @@ use LWP::MediaTypes;
 
 use base qw(Bugzilla::Object);
 
+use Encode;
+
 ###############################
 ####    Initialization     ####
 ###############################
@@ -460,6 +462,13 @@ sub _validate_filename {
     my $filename = $cgi->upload('data') || $cgi->param('filename');
     $filename = $cgi->param('description')
         if !$filename && $cgi->param('text_attachment') !~ /^\s*$/so;
+    if (Bugzilla->params->{utf8})
+    {
+        # CGI::upload() will probably return non-UTF8 string, so set UTF8 flag on
+        # utf8::decode() or Encode::_utf8_on() does not work on tainted values...
+        $filename = trick_taint_copy($filename);
+        Encode::_utf8_on($filename);
+    }
 
     # Remove path info (if any) from the file name.  The browser should do this
     # for us, but some are buggy.  This may not work on Mac file names and could

@@ -33,6 +33,7 @@ use strict;
 
 use base qw(Exporter);
 @Bugzilla::Util::EXPORT = qw(trick_taint detaint_natural
+                             trick_taint_copy
                              detaint_signed
                              html_quote url_quote xml_quote
                              css_class_quote html_light_quote url_decode
@@ -67,6 +68,11 @@ sub trick_taint {
     my $match = $_[0] =~ /^(.*)$/s;
     $_[0] = $match ? $1 : undef;
     return (defined($_[0]));
+}
+
+sub trick_taint_copy {
+    $_[0] =~ /^(.*)$/s;
+    return $1;
 }
 
 sub detaint_natural {
