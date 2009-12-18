@@ -66,7 +66,7 @@ function quicksearchHelpText(el_id, action){
   var el = document.getElementById(el_id);
   if ( action == "show") {
     if( el.value == "" ) {
-      el.value = quicksearch_message
+      el.value = quicksearch_message;
       YAHOO.util.Dom.addClass(el, "quicksearch_help_text");
     }
   } else {
@@ -128,13 +128,13 @@ YAHOO.util.Event.onDOMReady(onLoadActions);
       <td>
         <h1 id="welcome"> Welcome to [% terms.Bugzilla %]</h1>
         <div class="intro">[% Hook.process('intro') %]</div>
-        <a id="enter_bug" class="bz_common_actions"
+        <a tabindex=2 id="enter_bug" class="bz_common_actions"
            href="enter_bug.cgi"><span>File [% terms.aBug %]</span></a>
 
-        <a id="query" class="bz_common_actions"
+        <a tabindex=2 id="query" class="bz_common_actions"
            href="query.cgi"><span>Search</span></a>
 
-        <a id="account" class="bz_common_actions"
+        <a tabindex=2 id="account" class="bz_common_actions"
           [% IF user.id %]
             href="userprefs.cgi"><span>User Preferences</span></a>
           [% ELSIF Param('createemailregexp')
@@ -148,7 +148,7 @@ YAHOO.util.Event.onDOMReady(onLoadActions);
         <form id="quicksearchForm" name="quicksearchForm" action="buglist.cgi"
               onsubmit="return checkQuicksearch(this);">
           <div>
-            <input id="quicksearch_main" type="text" name="quicksearch"
+            <input tabindex=1 id="quicksearch_main" type="text" name="quicksearch" class="quicksearch_help_text"
               onfocus="quicksearchHelpText(this.id, 'hide');"
               onblur="quicksearchHelpText(this.id, 'show');"
             >
