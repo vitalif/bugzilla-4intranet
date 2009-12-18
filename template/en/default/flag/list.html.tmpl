@@ -140,7 +140,7 @@
                            value    => flag.requestee.login
                            emptyok  => 1
                            usemenuforusers  => flag.custom_list
-                           custom_userlist  => flag.custom_list
+                           custom_userlist  => flag.custom_list && flag.custom_list.ready_list
                            allow_other_user => flag.allow_other
                 %]
               </span>
@@ -184,7 +184,7 @@
                            multiple         => type.is_multiplicable
                            emptyok          => !type.is_multiplicable
                            usemenuforusers  => type.custom_list
-                           custom_userlist  => type.custom_list
+                           custom_userlist  => type.custom_list && type.custom_list.ready_list
                            allow_other_user => type.allow_other
                 %]
               </span>

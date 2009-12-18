@@ -30,6 +30,7 @@ use Bugzilla::Status;
 use Bugzilla::Install::Requirements;
 use Bugzilla::Mailer;
 use Bugzilla::Series;
+use Bugzilla::FlagType::UserList;
 
 # Currently, we only implement enough of the Bugzilla::Field::Choice
 # interface to control the visibility of other fields.
@@ -836,22 +837,42 @@ sub user_has_access {
           undef, $self->id);
 }
 
-sub flag_types {
+sub flag_types
+{
     my $self = shift;
 
-    if (!defined $self->{'flag_types'}) {
-        $self->{'flag_types'} = {};
-        foreach my $type ('bug', 'attachment') {
+    if (!defined $self->{flag_types})
+    {
+        $self->{flag_types} = {};
+        foreach my $type ('bug', 'attachment')
+        {
             my %flagtypes;
-            foreach my $component (@{$self->components}) {
-                foreach my $flagtype (@{$component->flag_types->{$type}}) {
-                    $flagtypes{$flagtype->{'id'}} ||= $flagtype;
+            foreach my $component (@{$self->components})
+            {
+                foreach my $flagtype (@{$component->flag_types->{$type}})
+                {
+                    if (!$flagtypes{$flagtype->{id}})
+                    {
+                        $flagtypes{$flagtype->{id}} = $flagtype;
+                    }
+                    else
+                    {
+                        # Merge custom user lists
+                        my $cl = new Bugzilla::FlagType::UserList;
+                        $cl->merge($flagtypes{$flagtype->{id}}->{custom_list});
+                        $cl->merge($flagtype->{custom_list});
+                        $flagtypes{$flagtype->{id}}->{custom_list} = $cl;
+                    }
                 }
             }
-            $self->{'flag_types'}->{$type} = [sort { $a->{'sortkey'} <=> $b->{'sortkey'}
-                                                    || $a->{'name'} cmp $b->{'name'} } values %flagtypes];
+            $self->{flag_types}->{$type} = [
+                sort { $a->{'sortkey'} <=> $b->{'sortkey'}
+                     || $a->{'name'} cmp $b->{'name'} }
+                values %flagtypes
+            ];
         }
     }
+
     return $self->{'flag_types'};
 }
 
