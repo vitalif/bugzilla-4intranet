@@ -28,6 +28,7 @@ use Bugzilla::Util;
 use Bugzilla::Error;
 use Bugzilla::User;
 use Bugzilla::FlagType;
+use Bugzilla::FlagType::UserList;
 use Bugzilla::Series;
 
 ###############################
@@ -388,10 +389,12 @@ sub default_qa_contact {
     return $self->{'default_qa_contact'};
 }
 
-sub flag_types {
+sub flag_types
+{
     my $self = shift;
 
-    if (!defined $self->{'flag_types'}) {
+    if (!defined $self->{'flag_types'})
+    {
         $self->{'flag_types'} = {};
         $self->{'flag_types'}->{'bug'} =
           Bugzilla::FlagType::match({ 'target_type'  => 'bug',
@@ -402,6 +405,17 @@ sub flag_types {
           Bugzilla::FlagType::match({ 'target_type'  => 'attachment',
                                       'product_id'   => $self->product_id,
                                       'component_id' => $self->id });
+
+        foreach my $type (@{$self->{flag_types}->{bug}}, @{$self->{flag_types}->{attachment}})
+        {
+            # Build custom userlist for setting flag (for enter_bug.cgi)
+            my $cl = new Bugzilla::FlagType::UserList;
+            $cl->add(Assignee => $_) for $self->default_assignee || ();
+            $cl->add(QA => $_) for $self->default_qa_contact || ();
+            $cl->add(CC => @{ $self->initial_cc || [] });
+            $type->{custom_list} = $cl;
+            $type->{allow_other} = 1;
+        }
     }
     return $self->{'flag_types'};
 }

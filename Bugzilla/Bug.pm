@@ -36,6 +36,7 @@ use Bugzilla::Constants;
 use Bugzilla::Field;
 use Bugzilla::Flag;
 use Bugzilla::FlagType;
+use Bugzilla::FlagType::UserList;
 use Bugzilla::Hook;
 use Bugzilla::Keyword;
 use Bugzilla::User;
@@ -2767,22 +2768,12 @@ sub flag_types {
     foreach my $type (@{$self->{flag_types}})
     {
         # Build custom userlist for setting flag
-        $cl = {};
-        $cl->{$_->id} = [ $_, 'CC' ]       for @{$self->cc_users};
-        $cl->{$_->id} = [ $_, 'CompQA' ]   for $self->component_obj->default_qa_contact || ();
-        $cl->{$_->id} = [ $_, 'Reporter' ] for $self->reporter || ();
-        $cl->{$_->id} = [ $_, 'QA' ]       for $self->qa_contact || ();
-        $cl->{$_->id} = [ $_, 'Assignee' ] for $self->assigned_to || ();
-        $cl->{$_->id} = [ $_, 'Watcher' ]  for map { $_->[0]->watching_list } values %$cl;
-        $cl = [
-            map { {
-                login => $_->[0]->login,
-                identity => $_->[1] . ': ' . $_->[0]->identity,
-                visible  => 1
-            } }
-            sort { $a->[1].':'.$a->[0] cmp $b->[1].':'.$b->[0] }
-            values %$cl
-        ];
+        $cl = new Bugzilla::FlagType::UserList;
+        $cl->add('CC', @{$self->cc_users || []});
+        $cl->add(CompQA => $_)   for $self->component_obj->default_qa_contact || ();
+        $cl->add(Reporter => $_) for $self->reporter || ();
+        $cl->add(QA => $_)       for $self->qa_contact || ();
+        $cl->add(Assignee => $_) for $self->assigned_to || ();
         $type->{custom_list} = $cl;
         $type->{allow_other} = 1;
         foreach (@{$type->{flags}})
@@ -2791,12 +2782,8 @@ sub flag_types {
             {
                 # In case there was already a requestee, the only valid action
                 # is to remove the requestee or leave it alone.
-                $_->{custom_list} = [];
-                push @{$_->{custom_list}}, {
-                    login    => $_->requestee->login,
-                    identity => $_->requestee->identity,
-                    visible  => 1,
-                } if $_->requestee;
+                $_->{custom_list} = new Bugzilla::FlagType::UserList;
+                $_->{custom_list}->add('', $_->requestee);
                 $_->{allow_other} = 0;
             }
             else
