@@ -37,6 +37,9 @@
   # atomlink: Atom link URL, May contain HTML
   #%]
 
+[% SET svn_rev = "$Revision$" %]
+[% SET svn_rev = svn_rev.split(' ').1 %]
+
 [% IF message %]
   [% PROCESS global/messages.html.tmpl %]
 [% END %]
@@ -190,8 +193,8 @@
             type="text/css">
     <![endif]-->
 
-    <script src="js/yui/yahoo-dom-event.js" type="text/javascript"></script>
-    <script src="js/global.js" type="text/javascript"></script>
+    <script src="js/yui/yahoo-dom-event.js?rev=[% svn_rev %]" type="text/javascript"></script>
+    <script src="js/global.js?rev=[% svn_rev %]" type="text/javascript"></script>
       <script type="text/javascript">
     <!--
         YAHOO.namespace('bugzilla');
