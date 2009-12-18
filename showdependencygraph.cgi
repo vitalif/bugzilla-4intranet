@@ -53,7 +53,7 @@ my ($seen, $edges, $baselist, $deps) = GetEdges($display, $cgi->param('id'));
 my ($nodes, $bugtitles) = GetNodes($seen, $baselist, $deps, $vars);
 my ($clusters, $independent) = GetClusters($seen, $edges);
 my $graphs = [];
-for (@$clusters, $independent)
+for (grep { %$_ } @$clusters, $independent)
 {
     my $filename = MakeDot($edges, $nodes, $_);
     my $gr = { cluster => $_, filename => $filename, alt => $_ eq $independent };
@@ -91,7 +91,7 @@ sub GetClusters
     $seen = { %$seen };
     my ($clusters, $independent) = ([], {});
     my $cluster;
-    while (keys %$seen)
+    while (%$seen)
     {
         unless ($cluster && %$cluster)
         {
@@ -113,7 +113,7 @@ sub GetClusters
             }
         }
         # кластер замкнут
-        unless ($added)
+        if (!$added || !%$seen)
         {
             if (scalar(keys %$cluster) == 1)
             {
