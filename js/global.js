@@ -113,6 +113,7 @@ function check_mini_login_fields( suffix ) {
 
 /* template/en/global/menuforusers.html.tmpl */
 
+var last_combobox_ev;
 function menuforusers_initcombo(id, multi)
 {
   var sel = document.getElementById(id+"_s");
@@ -122,6 +123,12 @@ function menuforusers_initcombo(id, multi)
   ed.style.width = (sel.offsetWidth-sel.offsetHeight+2)+'px';
   ed.style.borderWidth = 0;
   menuforusers_tocombo(id);
+  if (multi)
+  {
+    YAHOO.util.Event.addListener(document.body, "click", function(ev) { if(last_combobox_ev != ev) menuforusers_showmulti(id, false) });
+    YAHOO.util.Event.addListener(document.getElementById(id+'_b'), "click", function(ev) { last_combobox_ev = ev; menuforusers_showmulti(id) });
+    YAHOO.util.Event.addListener(document.getElementById(id), "click", function(ev) { last_combobox_ev = ev; });
+  }
 }
 
 RegExp.escape = function(text) {
@@ -179,13 +186,15 @@ function menuforusers_fromcombo(id, multi)
   ed.value = v.join(', ');
 }
 
-function menuforusers_showmulti(id)
+function menuforusers_showmulti(id, wha)
 {
   var sel = document.getElementById(id+"_s");
   var btn = document.getElementById(id+"_b");
   if (!sel || !btn)
     return;
   var show = sel.style.visibility == 'hidden' && !sel.disabled;
+  if (typeof(wha) != 'undefined')
+    show = wha;
   sel.style.visibility = show ? '' : 'hidden';
   btn.src = 'images/dn' + (show ? 'push' : '') + '.gif';
 }
