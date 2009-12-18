@@ -33,7 +33,7 @@
         onsubmit="if (this.quicksearch.value == '')
                   { alert('Please enter one or more search terms first.');
                     return false; } return true;">
-    <input class="txt" type="text" id="quicksearch[% qs_suffix FILTER html %]" name="quicksearch">
+    <input class="txt" [% IF qs_suffix == "top" %] tabindex=1 [% END %] type="text" id="quicksearch[% qs_suffix FILTER html %]" name="quicksearch">
     <input class="btn" type="submit" value="Find" id="find[% qs_suffix FILTER html %]">
     [%-# Work around FF bug: keep this on one line %]</form></li>
 
@@ -93,7 +93,7 @@
         <a href="createaccount.cgi">New&nbsp;Account</a>
       </li>
       [% END %]
-        
+
     [%# Only display one login form when we're on a LOGIN_REQUIRED page. That
       # way, we're guaranteed that the user will use the form that has 
       # hidden_fields in it (the center form) instead of this one. Also, it's
