@@ -60,7 +60,7 @@
   [% IF disabled %] disabled="[% disabled | html %]" [% END %]
   [% IF accesskey %] accesskey="[% accesskey | html %]" [% END %]
   id="[% id | html %]" style="height: 19px; padding: 0; margin: 0"
-  onchange="menuforusers_tocombo('[% id | js %]', 1); [% onchange | html %]" /><img id="[% id | html %]_b" style="margin-bottom:-4px" src="images/dn.gif" alt="dropdown list" title="dropdown list" onclick="menuforusers_showmulti('[% id | js %]')" />
+  onchange="menuforusers_tocombo('[% id | js %]', 1); [% onchange | html %]" /><img id="[% id | html %]_b" style="margin-bottom:-4px" src="images/dn.gif" alt="dropdown list" title="dropdown list" />
 <div class="selectfree_ie" style="position:relative:z-index:30;overflow:hidden">
 <select id="[% id | html %]_s"
     [% IF disabled %] disabled="[% disabled | html %]" [% END %]
