@@ -31,7 +31,7 @@
 
 [% PROCESS global/header.html.tmpl
    title = "$terms.Bugzilla Main Page"
-   header = "Main Page" 
+   header = "Main Page"
    header_addl_info = "version $constants.BUGZILLA_VERSION"
    style_urls = [ 'skins/standard/index.css' ]
 %]
@@ -55,11 +55,11 @@ function addSidebar() {
 var quicksearch_message = "Enter [% terms.abug %] # or some search terms";
 
 function checkQuicksearch( form ) {
-  if (form.quicksearch.value == '' || form.quicksearch.value == quicksearch_message ) { 
+  if (form.quicksearch.value == '' || form.quicksearch.value == quicksearch_message ) {
     alert('Please enter one or more search terms first.');
-    return false; 
+    return false;
   }
-  return true;         
+  return true;
 }
 
 function quicksearchHelpText(el_id, action){
@@ -73,7 +73,7 @@ function quicksearchHelpText(el_id, action){
     if( el.value == quicksearch_message ) {
       el.value = "";
       YAHOO.util.Dom.removeClass(el, "quicksearch_help_text");
-  }
+    }
   }
 }
 YAHOO.util.Event.onDOMReady(onLoadActions);
@@ -130,20 +130,20 @@ YAHOO.util.Event.onDOMReady(onLoadActions);
         <div class="intro">[% Hook.process('intro') %]</div>
         <a id="enter_bug" class="bz_common_actions"
            href="enter_bug.cgi"><span>File [% terms.aBug %]</span></a>
-      
-        <a id="query" class="bz_common_actions" 
+
+        <a id="query" class="bz_common_actions"
            href="query.cgi"><span>Search</span></a>
-      
+
         <a id="account" class="bz_common_actions"
           [% IF user.id %]
             href="userprefs.cgi"><span>User Preferences</span></a>
           [% ELSIF Param('createemailregexp')
-                   && user.authorizer.user_can_create_account 
+                   && user.authorizer.user_can_create_account
           %]
             href="createaccount.cgi"><span>Open a New Account</span></a>
           [% ELSE %]
             href="?GoAheadAndLogIn=1"><span>Log In</span></a>
-  [% END %]
+          [% END %]
 
         <form id="quicksearchForm" name="quicksearchForm" action="buglist.cgi"
               onsubmit="return checkQuicksearch(this);">
@@ -163,7 +163,7 @@ YAHOO.util.Event.onDOMReady(onLoadActions);
                  Install the Quick Search plugin
                 </a>
               </li>
-  </ul>
+            </ul>
             <ul class="additional_links">
               <li>
                 <a href="[% docs_urlbase FILTER html %]using.html">
@@ -173,12 +173,12 @@ YAHOO.util.Event.onDOMReady(onLoadActions);
               </li>
               <li>
                 <a href="page.cgi?id=release-notes.html" > Release Notes</a>
-    </li>
-  </ul>
-  </div>
-  [%# List items of links to more things users can do on this installation. %]
-  [% Hook.process("links") %]
-  </form>
+              </li>
+            </ul>
+          </div>
+          [%# List items of links to more things users can do on this installation. %]
+          [% Hook.process("links") %]
+          </form>
         <div class="outro">[% Hook.process('outro') %]</div>
       </td>
     </tr>
