@@ -388,7 +388,7 @@ sub wrap_comment
                 $table = undef;
             }
         }
-        if ($line)
+        if (length $line)
         {
             # If the line starts with ">", don't wrap it. Otherwise, wrap.
             if ($line !~ /^>/so)
@@ -410,7 +410,7 @@ sub wrap_comment
                     }
                 }
             }
-            $wrappedcomment .= $line . "\n" if $line;
+            $wrappedcomment .= $line . "\n" if length $line;
         }
         else
         {
