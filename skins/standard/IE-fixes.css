@@ -18,21 +18,6 @@
      word-wrap: break-word;
 }
 
-#footer #useful-links li {
-    padding-bottom: 0.8ex;
-}
+.links { display: inline; }
 
-#footer .label {
-    display: block;
-    float: left;
-    width: 8.2em;
-    padding-bottom: 0.1ex;
-}
-
-#footer #links-actions .label {
-    padding-top: 0.35em;
-}
-
-#footer .links {
-    display: inline;
-}
+.links-testopia { padding-top: 0.8em; }
