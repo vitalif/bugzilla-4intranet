@@ -99,6 +99,14 @@ sub wiki_sync_handle_char
     }
 }
 
+sub url_quote_noslash
+{
+    my ($s) = (@_);
+    $s = url_quote($s);
+    $s =~ s/\%2F/\//gso;
+    return $s;
+}
+
 sub wiki_sync_case
 {
     my ($page, $wiki_url, $plan) = @_;
@@ -109,7 +117,7 @@ sub wiki_sync_case
     );
     return 1 if $case;
     my $tcaction = Bugzilla->params->{test_case_wiki_action_iframe};
-    $tcaction =~ s!\$URL[^\?&\s\"\']*!$wiki_url.'/'.url_quote($page->{title})!gse;
+    $tcaction =~ s!\$URL[^\?&\s\"\']*!$wiki_url.'/'.url_quote_noslash($page->{title})!gse;
     $case = {
         author_id   => Bugzilla->user->id || '',
         action      => $tcaction,
