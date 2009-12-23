@@ -84,7 +84,7 @@
     [% IF user.settings.skin.value != 'standard' %]
       [% user_skin = user.settings.skin.value %]
     [% END %]
-    [% style_urls.unshift('skins/standard/global.css?rev=[% svn_rev %]') %]
+    [% style_urls.unshift('skins/standard/global.css?rev=' _ svn_rev) %]
 
     [%# CSS cascade, part 1: Standard Bugzilla stylesheet set (persistent).
       # Always present.
