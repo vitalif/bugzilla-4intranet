@@ -56,17 +56,17 @@ if ($action eq 'update'){
     Bugzilla->error_mode(ERROR_MODE_AJAX);
     my @caseruns;
     my @uneditable;
-    my $assignee_id; 
+    my $assignee_id;
     my $status_id;
     my $note = $cgi->param('note');
 
     trick_taint($note) if $note;
-    
+
     if ($cgi->param('applyall') eq 'true'){
         my $run = Bugzilla::Testopia::TestRun->new($cgi->param('run_id'));
         exit if $run->stop_date;
-        @caseruns = @{$run->current_caseruns()} if $run->canedit; 
-        
+        @caseruns = @{$run->current_caseruns()} if $run->canedit;
+
     }
     else{
         foreach my $id (split(',', $cgi->param('ids'))){
@@ -76,14 +76,14 @@ if ($action eq 'update'){
             }
             else {
                 push @uneditable, $caserun->case_id;
-            } 
+            }
         }
     }
-        
+
     $status_id = $cgi->param('status_id') if $cgi->param('status_id');
     $assignee_id = login_to_id(trim($cgi->param('assignee')),'THROW_ERROR') if $cgi->param('assignee');
     # If setting to running they can choose to make themselves the assignee.
-    $assignee_id = Bugzilla->user->id if $cgi->param('reassign'); 
+    $assignee_id = Bugzilla->user->id if $cgi->param('reassign');
     detaint_natural($status_id);
 
     foreach my $cr (@caseruns){
@@ -96,15 +96,15 @@ if ($action eq 'update'){
     }
 
     ThrowUserError('testopia-update-failed', {'object' => 'case-run', 'list' => join(',',@uneditable)}) if (scalar @uneditable);
-    exit unless scalar @caseruns; 
-    
+    exit unless scalar @caseruns;
+
     my $run = $caseruns[0]->run;
-    $vars->{'passed'} = $run->case_run_count(PASSED) / $run->case_run_count; 
+    $vars->{'passed'} = $run->case_run_count(PASSED) / $run->case_run_count;
     $vars->{'failed'} = $run->case_run_count(FAILED) / $run->case_run_count;
     $vars->{'blocked'} = $run->case_run_count(BLOCKED) / $run->case_run_count;
     $vars->{'complete'} = $run->percent_complete() . '%';
     $vars->{'success'} = JSON::true ;
-    
+
     print to_json($vars);
 }
 
@@ -124,7 +124,7 @@ elsif ($action eq 'delete'){
             push @uneditable, $case->id;
             next;
         }
-        
+
         $case->obliterate($cgi->param('single'));
     }
 
@@ -134,13 +134,13 @@ elsif ($action eq 'delete'){
 
 else {
     $vars->{'qname'} = $cgi->param('qname') if $cgi->param('qname');
-    
+
     # Take the search from the URL params and convert it to SQL
     $cgi->param('current_tab', 'case_run');
     $cgi->param('distinct', '1');
     my $search = Bugzilla::Testopia::Search->new($cgi);
     my $table = Bugzilla::Testopia::Table->new('case_run', 'tr_list_caseruns.cgi', $cgi, undef, $search->query);
-    
+
     print $cgi->header;
     $vars->{'json'} = $table->to_ext_json;
     $template->process($format->{'template'}, $vars)
