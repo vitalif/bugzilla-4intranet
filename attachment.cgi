@@ -239,20 +239,6 @@ sub validateContext
   return $context;
 }
 
-sub validateCanChangeBug
-{
-    my ($bugid) = @_;
-    my $dbh = Bugzilla->dbh;
-    my ($productid) = $dbh->selectrow_array(
-        "SELECT product_id
-         FROM bugs
-         WHERE bug_id = ?", undef, $bugid);
-
-    Bugzilla->user->can_edit_product($productid)
-      || ThrowUserError("illegal_attachment_edit_bug",
-                        { bug_id => $bugid });
-}
-
 ################################################################################
 # Functions
 ################################################################################
@@ -409,7 +395,7 @@ sub enter {
     # Retrieve and validate parameters
     my $bug = Bugzilla::Bug->check(scalar $cgi->param('bugid'));
     my $bugid = $bug->id;
-    validateCanChangeBug($bugid);
+    Bugzilla->user->can_edit_bug($bug, THROW_ERROR);
     my $dbh = Bugzilla->dbh;
     my $user = Bugzilla->user;
 
@@ -451,7 +437,7 @@ sub insert {
     # Retrieve and validate parameters
     my $bug = Bugzilla::Bug->check(scalar $cgi->param('bugid'));
     my $bugid = $bug->id;
-    validateCanChangeBug($bugid);
+    Bugzilla->user->can_edit_bug($bug, THROW_ERROR);
     my ($timestamp) = Bugzilla->dbh->selectrow_array("SELECT NOW()");
 
     # Detect if the user already used the same form to submit an attachment
@@ -578,7 +564,7 @@ sub update {
     my $attachment = validateID();
     my $bug = new Bugzilla::Bug($attachment->bug_id);
     $attachment->validate_can_edit($bug->product_id);
-    validateCanChangeBug($bug->id);
+    Bugzilla->user->can_edit_bug($bug, THROW_ERROR);
     Bugzilla::Attachment->validate_description(THROW_ERROR);
     Bugzilla::Attachment->validate_is_patch(THROW_ERROR);
     Bugzilla::Attachment->validate_content_type(THROW_ERROR) unless $cgi->param('ispatch');
@@ -770,7 +756,7 @@ sub delete_attachment {
 
     # Make sure the administrator is allowed to edit this attachment.
     my $attachment = validateID();
-    validateCanChangeBug($attachment->bug_id);
+    Bugzilla->user->can_edit_bug($attachment->bug, THROW_ERROR);
 
     $attachment->datasize || ThrowUserError('attachment_removed');
 
