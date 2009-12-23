@@ -1,6 +1,6 @@
 [% USE Bugzilla %]
 [% cgi = Bugzilla.cgi %]
-<html id="cmt" style="overflow: hidden">
+<html id="cmthtm" style="overflow: hidden">
 <head>
 <style type="text/css">
 /* Bug states  */
@@ -13,12 +13,12 @@
 <script type="text/javascript">
 function resizeIframe()
 {
-    parent.document.getElementById('commentpreview').style.height = document.getElementById('cmt').scrollHeight + "px";
-    parent.document.getElementById('commentpreview').style.width = document.getElementById('cmt').scrollWidth + "px";
+    parent.document.getElementById('commentpreview').style.height = (document.getElementById('cmt').scrollHeight+4) + "px";
+    parent.document.getElementById('commentpreview').style.width = document.getElementById('cmthtm').scrollWidth + "px";
 }
 </script>
 <body onLoad="resizeIframe()" onResize="resizeIframe()" style="margin: 0; padding: 0; overflow: hidden">
-<div class="bz_comment" style="border-style: dotted; border-width: 2px; border-color: #969696; background-color: #e8e8e8; padding: 5px">
+<div id="cmt" class="bz_comment" style="border-style: dotted; border-width: 2px; border-color: #969696; background-color: #e8e8e8; padding: 5px">
 <p><pre style="white-space: pre-wrap">[%- cgi.param("comment") FILTER wrap_comment FILTER quoteUrls FILTER links_targetblank -%]</pre></p>
 </div>
 </body>
