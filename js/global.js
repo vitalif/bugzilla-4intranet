@@ -113,7 +113,29 @@ function check_mini_login_fields( suffix ) {
 
 /* template/en/global/menuforusers.html.tmpl */
 
-var last_combobox_ev;
+function dump(arr,level)
+{
+    var dumped_text = "";
+    if(!level) level = 0;
+    var level_padding = "";
+    for(var j=0;j<level+1;j++)
+        level_padding += "    ";
+    if(typeof(arr) == 'object') {
+        for(var item in arr) {
+            var value = arr[item];
+            if(typeof(value) == 'object') {
+                dumped_text += level_padding + "'" + item + "' ...\n";
+                dumped_text += dump(value,level+1);
+            } else {
+                dumped_text += level_padding + "'" + item + "' => \"" + value + "\"\n";
+            }
+        }
+    } else {
+        dumped_text = "===>"+arr+"<===("+typeof(arr)+")";
+    }
+    return dumped_text;
+}
+
 function menuforusers_initcombo(id, multi)
 {
   var sel = document.getElementById(id+"_s");
@@ -125,9 +147,11 @@ function menuforusers_initcombo(id, multi)
   menuforusers_tocombo(id);
   if (multi)
   {
-    YAHOO.util.Event.addListener(document.body, "click", function(ev) { if(last_combobox_ev != ev) menuforusers_showmulti(id, false) });
-    YAHOO.util.Event.addListener(document.getElementById(id+'_b'), "click", function(ev) { last_combobox_ev = ev; menuforusers_showmulti(id) });
-    YAHOO.util.Event.addListener(document.getElementById(id), "click", function(ev) { last_combobox_ev = ev; });
+    YAHOO.util.Event.addListener(document.body, "click", function(ev) {
+      if (ev.srcElement.id != id && ev.srcElement.id != id+'_b' && ev.srcElement.id != id+'_s' && ev.srcElement.parentElement.id != id+'_s')
+        menuforusers_showmulti(id, false)
+    });
+    YAHOO.util.Event.addListener(document.getElementById(id+'_b'), "click", function(ev) { menuforusers_showmulti(id); });
   }
 }
 
