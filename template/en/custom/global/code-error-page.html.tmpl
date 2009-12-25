@@ -1,0 +1,87 @@
+[%# The contents of this file are subject to the Mozilla Public
+  # License Version 1.1 (the "License"); you may not use this file
+  # except in compliance with the License. You may obtain a copy of
+  # the License at http://www.mozilla.org/MPL/
+  #
+  # Software distributed under the License is distributed on an "AS
+  # IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
+  # implied. See the License for the specific language governing
+  # rights and limitations under the License.
+  #
+  # CustIS "nice error" template.
+  #
+  # Contributor(s): Vitaliy Filippov <vitalif@mail.ru>
+  #%]
+
+[%# We only want HTML error messages for ERROR_MODE_WEBPAGE %]
+[% USE Bugzilla %]
+[% IF Bugzilla.error_mode != constants.ERROR_MODE_WEBPAGE %]
+  [% IF Bugzilla.usage_mode == constants.USAGE_MODE_BROWSER %]
+    [% error_message FILTER none %]
+  [% ELSE %]
+    [% error_message FILTER txt %]
+  [% END %]
+  [% RETURN %]
+[% END %]
+
+[%# Template errors are special in the sense of possibility to
+  # raise a second error when trying to process other templates.
+  # So don't try to do it. %]
+[% IF error != "template_error" %]
+[% UNLESS header_done %]
+  [% PROCESS global/header.html.tmpl %]
+[% END %]
+
+[% PROCESS global/docslinks.html.tmpl
+   docslinks      = docslinks
+   admindocslinks = admindocslinks
+%]
+[% END %]
+
+<div style="margin: 20px; padding: 10px; font-size: 130%; float: left; font-family: sans-serif; border: 10px solid red">
+  <img src="images/kitten.png" style="float: left; margin-right: 10px" />
+  <p style="margin: 0">
+    Произошла внутренняя ошибка. Извините... Кто-то, похоже, погрыз провода.<br>
+  </p>
+  <div style="font-size: 150%; background-color: #ffd0d0">
+  <p style="margin: 0.5em 0 0 0">[% error_message.replace("\n\n", "</p><p>") FILTER none %]</p>
+  </div>
+  <p style="margin-bottom: 0px">
+  [% IF Param('report_code_errors_to_maintainer') %]
+    Ошибка автоматически отправлена <tt><a href="mailto:[% Param('maintainer') %]">[% Param('maintainer') %]</a></tt>.<br>
+    Так что он о ней, вероятно, знает, и скоро всё будет хорошо. А потом просто нажмите F5.<br>
+    Не пользуйтесь лифтами во время пожара!
+  [% ELSE %]
+    Пожалуйста, сохраните эту страницу и отправьте её по адресу <tt><a href="mailto:[% Param('maintainer') %]">[% Param('maintainer') %]</a></tt>
+    с информацией о том, какие Ваши действия привели к ошибке и некоторым количеством укора.
+    <tt>
+      <script type="text/javascript"> <!--
+        document.write("<p>URL: " +
+                        document.location.href.replace(/&/g,"&amp;")
+                                              .replace(/</g,"&lt;")
+                                              .replace(/>/g,"&gt;") + "</p>");
+      // -->
+      </script>
+    </tt>
+  [% END %]
+  </p>
+  <p style="margin-bottom: 0px">Ещё раз извините.</p>
+  [% IF Param('report_code_errors_to_maintainer') %]
+  <div style="float: right; margin-left: 10px; color: #404040; text-align: center; font-size: 90%">
+    <img src="images/pzil.jpg" alt="Администраторы уже выехали!" /><br>
+    Администраторы уже выехали!
+  </div>
+  [% END %]
+  [% IF variables %]
+  <pre>
+  Дополнительные данные:
+  [% FOREACH key = variables.keys %]
+    [%+ key FILTER html %]: [%+ variables.$key FILTER html %]
+  [% END %]
+  </pre>
+  [% END %]
+</div>
+
+[% IF error != "template_error" %]
+[% PROCESS global/footer.html.tmpl %]
+[% END %]

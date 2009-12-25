@@ -16,6 +16,7 @@
   # Rights Reserved.
   #
   # Contributor(s): Gervase Markham <gerv@gerv.net>
+  #                 Vitaliy Filippov <vitalif@mail.ru>
   #%]
 
 [%# INTERFACE:
@@ -32,9 +33,9 @@
   # in this file; if you do not wish to change it, use the "none" filter.
   #%]
 
-[% PROCESS "global/field-descs.none.tmpl" %]
-
 [% DEFAULT title = "Internal Error" %]
+
+[% PROCESS "global/variables.none.tmpl" %]
 
 [% error_message = BLOCK %]
   [% IF    error == "action_unrecognized" %]
@@ -42,9 +43,9 @@
                     'query.html#list' => "$terms.Bug lists"} %]
     I don't recognize the value (<em>[% action FILTER html %]</em>)
     of the <em>action</em> variable.
-  
+
   [% ELSIF error == "attachment_already_obsolete" %]
-    Attachment #[% attach_id FILTER html %] ([% description FILTER html %]) 
+    Attachment #[% attach_id FILTER html %] ([% description FILTER html %])
     is already obsolete.
 
   [% ELSIF error == "auth_invalid_email" %]
@@ -75,9 +76,9 @@
     <code>[% function FILTER html %]</code> function.
 
   [% ELSIF error == "bug_error" %]
-    Trying to retrieve [% terms.bug %] [%+ bug.bug_id FILTER html %] returned 
+    Trying to retrieve [% terms.bug %] [%+ bug.bug_id FILTER html %] returned
     the error [% bug.error FILTER html %].
-    
+
   [% ELSIF error == "chart_data_not_generated" %]
     [% admindocslinks = {'extraconfig.html' => 'Setting up Charting'} %]
     [% IF product %]
@@ -94,14 +95,14 @@
 
   [% ELSIF error == "chart_datafile_corrupt" %]
     The chart data file [% file FILTER html %] is corrupt.
-        
+
   [% ELSIF error == "chart_dir_nonexistent" %]
-    One of the directories <tt>[% dir FILTER html %]</tt> and 
+    One of the directories <tt>[% dir FILTER html %]</tt> and
     <tt>[% graph_dir FILTER html %]</tt> does not exist.
-  
+
   [% ELSIF error == "chart_file_open_fail" %]
     Unable to open the chart datafile <tt>[% filename FILTER html %]</tt>.
-  
+
   [% ELSIF error == "chart_lines_not_installed" %]
     [% admindocslinks = {'installation.html#install-perlmodules' => 'Installing Perl modules necessary for Charting'} %]
     Charts will not work without the Chart::Lines Perl module being installed.
@@ -113,7 +114,7 @@
     unless you specify something for the <code>$init_value</code> argument.
 
   [% ELSIF error == "column_not_null_no_default_alter" %]
-    You cannot alter the [% name FILTER html %] column to be NOT NULL 
+    You cannot alter the [% name FILTER html %] column to be NOT NULL
     without specifying a default or something for $set_nulls_to, because
     there are NULL values currently in it.
 
@@ -125,7 +126,7 @@
     Every cookie must have a value.
 
   [% ELSIF error == "env_no_email" %]
-    [% terms.Bugzilla %] did not receive an email address from the 
+    [% terms.Bugzilla %] did not receive an email address from the
     environment.
     [% IF Param("auth_env_email") %]
       This means that the '[% Param("auth_env_email") FILTER html %]'
@@ -181,13 +182,13 @@
   [% ELSIF error == "invalid_attach_id_to_obsolete" %]
      The attachment number of one of the attachments you wanted to obsolete,
      [% attach_id FILTER html %], is invalid.
-          
+
   [% ELSIF error == "invalid_column_name_cookie" %]
     [% title = "Invalid Column Name" %]
      The custom sort order specified in your cookie contains an invalid
-     column name <em>[% fragment FILTER html %]</em>. 
+     column name <em>[% fragment FILTER html %]</em>.
      The cookie has been cleared.
-         
+
   [% ELSIF error == "invalid_column_name_form" %]
     [% title = "Invalid Column Name" %]
      The custom sort order specified in your form submission contains an
@@ -220,9 +221,9 @@
     setting in [% constants.bz_locations.localconfig FILTER html %].
 
   [% ELSIF error == "mismatched_bug_ids_on_obsolete" %]
-    Attachment [% attach_id FILTER html %] ([% description FILTER html %]) 
-    is attached to [% terms.bug %] [%+ attach_bug_id FILTER html %], 
-    but you tried to flag it as obsolete while creating a new attachment to 
+    Attachment [% attach_id FILTER html %] ([% description FILTER html %])
+    is attached to [% terms.bug %] [%+ attach_bug_id FILTER html %],
+    but you tried to flag it as obsolete while creating a new attachment to
     [% terms.bug %] [%+ my_bug_id FILTER html %].
 
   [% ELSIF error == "flags_not_available" %]
@@ -233,13 +234,13 @@
     [% ELSE %]
       References to existing flags when creating
       a new attachment are invalid.
-    [% END %] 
+    [% END %]
 
   [% ELSIF error == "flag_requestee_disabled" %]
     [% title = "Flag not Requestable from Specific Person" %]
     You can't ask a specific person for
     <em>[% type.name FILTER html %]</em>.
-  
+
   [% ELSIF error == "flag_status_invalid" %]
     The flag status <em>[% status FILTER html %]</em>
     [% IF id %]
@@ -258,7 +259,7 @@
   [% ELSIF error == "flag_type_target_type_invalid" %]
     The target type was neither <em>[% terms.bug %]</em> nor <em>attachment</em>
     but rather <em>[% target_type FILTER html %]</em>.
-  
+
   [% ELSIF error == "invalid_field_name" %]
     Can't use [% field FILTER html %] as a field name.
 
@@ -279,7 +280,7 @@
 
   [% ELSIF error == "jobqueue_insert_failed" %]
    [% title = "Job Queue Failure" %]
-    Inserting a <code>[% job FILTER html %]</code> job into the Job 
+    Inserting a <code>[% job FILTER html %]</code> job into the Job
     Queue failed with the following error: [% errmsg FILTER html %]
 
   [% ELSIF error == "jobqueue_not_configured" %]
@@ -293,7 +294,7 @@
     to the <code>JOB_MAP</code> constant in <code>Bugzilla::JobQueue</code>.
 
   [% ELSIF error == "ldap_bind_failed" %]
-    Failed to bind to the LDAP server. The error message was: 
+    Failed to bind to the LDAP server. The error message was:
     <code>[% errstr FILTER html %]</code>
 
   [% ELSIF error == "ldap_cannot_retreive_attr" %]
@@ -306,8 +307,8 @@
     Could not start TLS with LDAP server: <code>[% error FILTER html %]</code>.
 
   [% ELSIF error == "ldap_search_error" %]
-    An error occurred while trying to search LDAP for 
-    &quot;[% username FILTER html %]&quot;: 
+    An error occurred while trying to search LDAP for
+    &quot;[% username FILTER html %]&quot;:
    <code>[% errstr FILTER html %]</code>
 
   [% ELSIF error == "ldap_server_not_defined" %]
@@ -320,13 +321,13 @@
 
   [% ELSIF error == "missing_bug_id" %]
     No [% terms.bug %] ID was given.
-    
+
   [% ELSIF error == "missing_series_id" %]
     Having inserted a series into the database, no series_id was returned for
-    it. Series: [% series.category FILTER html %] / 
-    [%+ series.subcategory FILTER html %] / 
+    it. Series: [% series.category FILTER html %] /
+    [%+ series.subcategory FILTER html %] /
     [%+ series.name FILTER html %].
-    
+
   [% ELSIF error == "need_quipid" %]
     A valid quipid is needed.
 
@@ -335,6 +336,7 @@
     moving the [% terms.bug %].
 
   [% ELSIF error == "no_open_bug_status" %]
+    [% PROCESS "global/field-descs.none.tmpl" %]
     [% title = "$terms.Bug Cannot Be Confirmed" %]
     There is no valid transition from
     [%+ get_status("UNCONFIRMED") FILTER html %] to an open state.
@@ -379,7 +381,7 @@
     [% END %]
 
     from
-   
+
     [% IF caller %]
         <code>[%+ caller FILTER html %]</code>, which is
     [% END %]
@@ -398,14 +400,14 @@
     The group field <em>[% group FILTER html %]</em> is invalid.
 
   [% ELSIF error == "report_axis_invalid" %]
-    <em>[% val FILTER html %]</em> is not a valid value for 
+    <em>[% val FILTER html %]</em> is not a valid value for
     [%+ IF    fld == "x" %]the horizontal axis
     [%+ ELSIF fld == "y" %]the vertical axis
     [%+ ELSIF fld == "z" %]the multiple tables/images
     [%+ ELSE %]a report axis[% END %] field.
 
   [% ELSIF error == "setting_info_invalid" %]
-    To create a new setting, you must supply a setting name, a list of 
+    To create a new setting, you must supply a setting name, a list of
     value/sortindex pairs, and the devault value.
 
   [% ELSIF error == "setting_name_invalid" %]
@@ -441,7 +443,7 @@
 
   [% ELSIF error == "undefined_field" %]
     Form field [% field FILTER html %] was not defined.
-    
+
   [% ELSIF error == "unknown_action" %]
     [% IF action %]
        Unknown action [% action FILTER html %]!
@@ -476,74 +478,20 @@
   [% ELSIF error == "invalid_remind_me_about_flags" %]
     Invalid setting for remind_me_about_flags
 
+  [% ELSIF error == "eval_error" %]
+    Generic code error: [% eval_error.replace("\n","<br>") %]
+
   [% ELSE %]
     [%# Try to find hooked error messages %]
     [% error_message = Hook.process("errors") %]
     [% IF NOT error_message %]
       [% title = "Internal error" %]
       An internal error has occurred, but [% terms.Bugzilla %] doesn't know
-      what <code>[% error FILTER html %]</code> means.
-
-      If you are a [% terms.Bugzilla %] end-user seeing this message, please save
-      this page and send it to [% Param('maintainer') %].
+      what <b><tt>[% error FILTER html %]</tt></b> means.
     [% ELSE %]
       [% error_message FILTER none %]
     [% END %]
   [% END %]
 [% END %]
 
-[%# We only want HTML error messages for ERROR_MODE_WEBPAGE %]
-[% USE Bugzilla %]
-[% IF Bugzilla.error_mode != constants.ERROR_MODE_WEBPAGE %]
-  [% IF Bugzilla.usage_mode == constants.USAGE_MODE_BROWSER %]
-    [% error_message FILTER none %]
-  [% ELSE %]
-    [% error_message FILTER txt %]
-  [% END %]
-  [% RETURN %]
-[% END %]
-
-[% UNLESS header_done %]
-  [% PROCESS global/header.html.tmpl %]
-[% END %]
-
-[% PROCESS global/docslinks.html.tmpl
-   docslinks      = docslinks
-   admindocslinks = admindocslinks
-%]
-
-<tt>
-  <p>
-    [% terms.Bugzilla %] has suffered an internal error. Please save this page and send
-    it to [% Param("maintainer") %] with details of what you were doing at
-    the time this message appeared.
-  </p>
-  <script type="text/javascript"> <!--
-    document.write("<p>URL: " + 
-                    document.location.href.replace(/&/g,"&amp;")
-                                          .replace(/</g,"&lt;")
-                                          .replace(/>/g,"&gt;") + "</p>");
-  // -->
-  </script>
-</tt>
-
-<table cellpadding="20">
-  <tr>
-    <td bgcolor="#ff0000">
-      <font size="+2">
-        [% error_message FILTER none %]
-      </font>
-    </td>
-  </tr>
-</table>
-
-[% IF variables %]
-  <pre>
-Variables:
-  [% FOREACH key = variables.keys %]
-    [%+ key FILTER html %]: [%+ variables.$key FILTER html %]
-  [% END %]
-  </pre>
-[% END %]
-
-[% PROCESS global/footer.html.tmpl %]
+[% PROCESS "global/code-error-page.html.tmpl" %]

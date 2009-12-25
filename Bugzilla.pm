@@ -26,15 +26,6 @@ package Bugzilla;
 
 use strict;
 
-# We want any compile errors to get to the browser, if possible.
-BEGIN {
-    # This makes sure we're in a CGI.
-    if ($ENV{SERVER_SOFTWARE} && !$ENV{MOD_PERL}) {
-        require CGI::Carp;
-        CGI::Carp->import('fatalsToBrowser');
-    }
-}
-
 use Bugzilla::Config;
 use Bugzilla::Constants;
 use Bugzilla::Auth;
@@ -55,6 +46,30 @@ use File::Spec::Functions;
 use DateTime::TimeZone;
 use Safe;
 use Encode::MIME::Header ();
+
+# We want any compile errors to get to the browser, if possible.
+BEGIN {
+    $SIG{__DIE__} = sub
+    {
+        if (ref($_[0]) eq 'Bugzilla::Error')
+        {
+            die($_[0]->{message});
+        }
+        else
+        {
+            my $msg = $_[0];
+            $msg =~ s/\s*$//so;
+            $msg = { eval_error => $msg };
+            if (eval { require Devel::StackTrace; })
+            {
+                # Append stack trace if Devel::StackTrace is available
+                $msg->{stack_trace} = Devel::StackTrace->new->as_string;
+            }
+            Bugzilla::Error::ThrowCodeError('eval_error', $msg);
+        }
+    };
+}
+
 
 # This creates the request cache for non-mod_perl installations.
 our $_request_cache = {};
