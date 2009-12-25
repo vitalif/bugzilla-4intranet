@@ -106,5 +106,13 @@
                           "If you are running a release candidate, you will get " _
                           "a notification for newer release candidates too.</li>" _
                           "<li>'disabled' will never notify you about new releases and no " _
-                          "connection will be established to a remote server.</li></ul>" }
+                          "connection will be established to a remote server.</li></ul>",
+
+  error_log => "Path to Bugzilla error log or empty string if you don't want to write an error log. " _
+               "Relative paths will be prepended with Bugzilla data directory.",
+
+  report_code_errors_to_maintainer => "Whether to send e-mail messages about each 'code' (internal) error to Bugzilla maintainer.",
+  report_user_errors_to_maintainer => "Whether to send e-mail messages about each 'user' (non-fatal) error to Bugzilla maintainer.",
+
+}
 %]

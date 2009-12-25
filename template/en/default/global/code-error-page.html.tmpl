@@ -1,0 +1,83 @@
+[%# The contents of this file are subject to the Mozilla Public
+  # License Version 1.1 (the "License"); you may not use this file
+  # except in compliance with the License. You may obtain a copy of
+  # the License at http://www.mozilla.org/MPL/
+  #
+  # Software distributed under the License is distributed on an "AS
+  # IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
+  # implied. See the License for the specific language governing
+  # rights and limitations under the License.
+  #
+  # The Original Code is the Bugzilla Bug Tracking System.
+  #
+  # The Initial Developer of the Original Code is Netscape Communications
+  # Corporation. Portions created by Netscape are
+  # Copyright (C) 1998 Netscape Communications Corporation. All
+  # Rights Reserved.
+  #
+  # Contributor(s): Gervase Markham <gerv@gerv.net>
+  #                 Vitaliy Filippov <vitalif@mail.ru>
+  #%]
+
+[%# We only want HTML error messages for ERROR_MODE_WEBPAGE %]
+[% USE Bugzilla %]
+[% IF Bugzilla.error_mode != constants.ERROR_MODE_WEBPAGE %]
+  [% IF Bugzilla.usage_mode == constants.USAGE_MODE_BROWSER %]
+    [% error_message FILTER none %]
+  [% ELSE %]
+    [% error_message FILTER txt %]
+  [% END %]
+  [% RETURN %]
+[% END %]
+
+[%# Template errors are special in the sense of possibility to
+  # raise a second error when trying to process other templates.
+  # So don't try to do it. %]
+[% IF error != "template_error" %]
+[% UNLESS header_done %]
+  [% PROCESS global/header.html.tmpl %]
+[% END %]
+
+[% PROCESS global/docslinks.html.tmpl
+   docslinks      = docslinks
+   admindocslinks = admindocslinks
+%]
+[% END %]
+
+<div style="padding: 20px; background-color: #ff8080; font-size: 130%">
+  <p style="margin: 0">
+    Sorry! [% terms.Bugzilla %] has suffered an internal error.<br>
+  [% IF Param('report_code_errors_to_maintainer') %]
+    Error was reported automatically to instance maintainer <tt><a href="mailto:[% Param('maintainer') %]">[% Param('maintainer') %]</a></tt>.
+    So he probably knows about it and is already on charge.
+  [% ELSE %]
+    Please save this page and send it to <tt><a href="mailto:[% Param('maintainer') %]">[% Param('maintainer') %]</a></tt> with details
+    of what you were doing at the time this message appeared.
+  [% END %]
+  </p>
+  <p style="font-size: 150%; margin: 0.5em 0 0 0">[% error_message.replace("\n\n", "</p><p>") FILTER none %]</p>
+  <p style="margin-bottom: 0px">We apologize for your inconvenience.</p>
+</div>
+
+<tt>
+  <script type="text/javascript"> <!--
+    document.write("<p>URL: " +
+                    document.location.href.replace(/&/g,"&amp;")
+                                          .replace(/</g,"&lt;")
+                                          .replace(/>/g,"&gt;") + "</p>");
+  // -->
+  </script>
+</tt>
+
+[% IF variables %]
+<pre>
+Variables:
+  [% FOREACH key = variables.keys %]
+    [%+ key FILTER html %]: [%+ variables.$key FILTER html %]
+  [% END %]
+</pre>
+[% END %]
+
+[% IF error != "template_error" %]
+[% PROCESS global/footer.html.tmpl %]
+[% END %]

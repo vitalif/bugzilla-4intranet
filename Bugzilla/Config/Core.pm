@@ -47,6 +47,24 @@ sub get_param_list {
   },
 
   {
+   name => 'error_log',
+   type => 't',
+   default => 'errorlog',
+  },
+
+  {
+   name => 'report_code_errors_to_maintainer',
+   type => 'b',
+   default => 1,
+  },
+
+  {
+   name => 'report_user_errors_to_maintainer',
+   type => 'b',
+   default => 0,
+  },
+
+  {
    name => 'urlbase',
    type => 't',
    default => '',
@@ -73,7 +91,6 @@ sub get_param_list {
    choices => ['never', 'authenticated sessions', 'always'],
    default => 'never'
   },
-
 
   {
    name => 'cookiedomain',
