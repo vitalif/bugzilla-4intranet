@@ -48,9 +48,14 @@ use Safe;
 use Encode::MIME::Header ();
 
 # We want any compile errors to get to the browser, if possible.
-BEGIN {
+BEGIN
+{
     $SIG{__DIE__} = sub
     {
+        if (Bugzilla::Error::_in_eval())
+        {
+            die @_;
+        }
         if (ref($_[0]) eq 'Bugzilla::Error')
         {
             die($_[0]->{message});
@@ -69,7 +74,6 @@ BEGIN {
         }
     };
 }
-
 
 # This creates the request cache for non-mod_perl installations.
 our $_request_cache = {};
