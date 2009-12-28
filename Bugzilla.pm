@@ -66,13 +66,18 @@ BEGIN
             utf8::decode($_[0]);
             my $msg = $_[0];
             $msg =~ s/\s*$//so;
-            $msg = { eval_error => $msg };
-            if (eval { require Devel::StackTrace; })
+            # We are not interested in getting "Software caused connection abort" errors
+            # on each "Stop" click in the browser.
+            if ($msg !~ /^(Программа вызвала сброс соединения|Software caused connection abort) at /iso)
             {
-                # Append stack trace if Devel::StackTrace is available
-                $msg->{stack_trace} = Devel::StackTrace->new->as_string;
+                $msg = { eval_error => $msg };
+                if (eval { require Devel::StackTrace; })
+                {
+                    # Append stack trace if Devel::StackTrace is available
+                    $msg->{stack_trace} = Devel::StackTrace->new->as_string;
+                }
+                Bugzilla::Error::ThrowCodeError('eval_error', $msg);
             }
-            Bugzilla::Error::ThrowCodeError('eval_error', $msg);
         }
     };
 }
