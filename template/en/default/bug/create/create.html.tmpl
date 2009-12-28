@@ -39,6 +39,8 @@
 <script type="text/javascript">
 <!--
 
+var last_cc = "[% cc | js %]";
+var cc_rem = {}, cc_add = {};
 var initialowners = new Array([% product.components.size %]);
 var last_initialowner;
 var initialccs = new Array([% product.components.size %]);
@@ -99,6 +101,39 @@ function Create_onsubmit()
   return true;
 }
 
+function array_hash(ar)
+{
+  var h = {};
+  if (ar.length == 1 && ar[0].length == 0)
+    return h;
+  for (i in ar)
+    h[ar[i]] = 1;
+  return h;
+}
+
+function diff_arrays(a1, a2)
+{
+  var h1 = array_hash(a1);
+  var h2 = array_hash(a2);
+  var add = {}, rem = {};
+  for (i in a1)
+    if (!h2[a1[i]])
+      rem[a1[i]] = 1;
+  for (i in a2)
+    if (!h1[a2[i]])
+      add[a2[i]] = 1;
+  return [ add, rem ];
+}
+
+function hash_join(h)
+{
+  var a = [];
+  for (i in h)
+    if (h[i])
+      a.push(i);
+  return a.join(", ");
+}
+
 function set_assign_to() {
     // Based on the selected component, fill the "Assign To:" field
     // with the default component owner, and the "QA Contact:" field
@@ -143,17 +178,35 @@ function set_assign_to() {
             }
         }
 
-        /* CustIS Bug 57457 */
-        var l1 = document.Create.cc.value.split(/[\s,]+/);
-        if (!l1[0].length)
-            l1 = Array();
-        var l2 = {};
-        for (var i = 0; i < l1.length; i++)
-            l2[l1[i]] = 1;
-        for (var i = 0; i < initialccs[index].length; i++)
-            if (!l2[initialccs[index][i]])
-                l1.push(initialccs[index][i]);
-        document.Create.cc.value = l1.join(", ");
+        /* CustIS Bug 57457 & Bug 58657 */
+        /** Infernal logic for High Usability
+         * Remembers modifications entered by user (added and removed CC), and
+         * builds new CC list from [% cc %] (initial value) +
+         * initialccs[index] (initial CC for component), preserving entry order.
+         ** Адская логика для Высокого Юзабилити
+         * Запоминает изменения, внесённые пользователем в список CC и
+         * строит новый список CC как объединение [% cc %] (начального значения) и
+         * initialccs[index] (CC по умолчанию для компонента), да ещё и сохраняет
+         * порядок ввода.
+         */
+        var cc_diff = diff_arrays(last_cc.split(/[\s,]+/), document.Create.cc.value.split(/[\s,]+/));
+        for (i in cc_rem)
+            if (cc_rem[i] && !cc_diff[0][i])
+                cc_diff[1][i] = 1;
+        for (i in cc_add)
+            if (cc_add[i] && !cc_diff[1][i])
+                cc_diff[0][i] = 1;
+        cc_add = cc_diff[0];
+        cc_rem = cc_diff[1];
+        var new_cc = array_hash("[% cc | js %]".split(/[\s,]+/));
+        for (i in initialccs[index])
+            if (initialccs[index][i])
+                new_cc[initialccs[index][i]] = 1;
+        for (i in cc_diff[0])
+            new_cc[i] = 1;
+        for (i in cc_diff[1])
+            new_cc[i] = 0;
+        last_cc = document.Create.cc.value = hash_join(new_cc);
         document.getElementById('comp_desc').innerHTML = comp_desc[index];
 
         [% IF Param("useqacontact") %]
