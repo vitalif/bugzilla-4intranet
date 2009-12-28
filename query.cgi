@@ -90,7 +90,7 @@ if ($userid) {
 if ($cgi->param('nukedefaultquery')) {
     if ($userid) {
         $dbh->do("DELETE FROM namedqueries" .
-                 " WHERE userid = ? AND name = ?", 
+                 " WHERE userid = ? AND name = ?",
                  undef, ($userid, DEFAULT_QUERY_NAME));
     }
     $buffer = "";
@@ -103,7 +103,7 @@ my $userdefaultquery;
 if ($userid) {
     $userdefaultquery = $dbh->selectrow_array(
         "SELECT query FROM namedqueries " .
-         "WHERE userid = ? AND name = ?", 
+         "WHERE userid = ? AND name = ?",
          undef, ($userid, DEFAULT_QUERY_NAME));
 }
 
@@ -139,9 +139,12 @@ sub PrefillForm {
                   category subcategory name newcategory
                   newsubcategory public frequency);
     # These fields can also have default values (when used in reports).
-    my @custom_select_fields =
-      grep { $_->type == FIELD_TYPE_SINGLE_SELECT } Bugzilla->active_custom_fields;
-    push(@list, map { $_->name } @custom_select_fields);
+    my @custom_select_fields = grep { $_->type == FIELD_TYPE_SINGLE_SELECT } Bugzilla->active_custom_fields;
+    push @list, map { $_->name } @custom_select_fields;
+
+    # CustIS Bug 58300 - Add custom field to search filters
+    my @custom_text_fields = grep { $_->type == FIELD_TYPE_FREETEXT || $_->type == FIELD_TYPE_TEXTAREA } Bugzilla->active_custom_fields;
+    push @list, map { $_->name, $_->name.'_type' } @custom_select_fields;
 
     foreach my $name (@list) {
         $default{$name} = [];
@@ -194,9 +197,9 @@ if (!scalar(@{$default{'chfieldto'}}) || $default{'chfieldto'}->[0] eq "") {
     $default{'chfieldto'} = ["Now"];
 }
 
-# if using groups for entry, then we don't want people to see products they 
+# if using groups for entry, then we don't want people to see products they
 # don't have access to. Remove them from the list.
-my @selectable_products = sort {lc($a->name) cmp lc($b->name)} 
+my @selectable_products = sort {lc($a->name) cmp lc($b->name)}
                                @{$user->get_selectable_products};
 Bugzilla::Product::preload(\@selectable_products);
 
@@ -359,6 +362,20 @@ if (($cgi->param('query_format') || $cgi->param('format') || "")
     $vars->{'category'} = Bugzilla::Chart::getVisibleSeries();
 }
 
+# CustIS Bug 58300 - Add custom fields to search filters
+# This logic is moved from search/form.html.tmpl
+$vars->{text_fields} = [
+    Bugzilla::Field->new({ name => "longdesc" }),
+    Bugzilla::Field->new({ name => "bug_file_loc" }),
+];
+if (Bugzilla->params->{usestatuswhiteboard})
+{
+    push @{$vars->{text_fields}}, Bugzilla::Field->new({ name => "status_whiteboard" });
+}
+push @{$vars->{text_fields}},
+    grep { $_->type == FIELD_TYPE_TEXTAREA || $_->type == FIELD_TYPE_FREETEXT }
+    Bugzilla->active_custom_fields;
+
 if ($cgi->param('format') && $cgi->param('format') =~ /^report-(table|graph)$/) {
     # Get legal custom fields for tabular and graphical reports.
     my @custom_fields_for_reports =
@@ -368,7 +385,6 @@ if ($cgi->param('format') && $cgi->param('format') =~ /^report-(table|graph)$/) 
 
 $vars->{'known_name'} = $cgi->param('known_name');
 $vars->{'columnlist'} = $cgi->param('columnlist');
-
 
 # Add in the defaults.
 $vars->{'default'} = \%default;
@@ -397,8 +413,8 @@ if (defined($vars->{'format'}) && IsValidQueryType($vars->{'format'})) {
 # If we submit back to ourselves (for e.g. boolean charts), we need to
 # preserve format information; hence query_format taking priority over
 # format.
-my $format = $template->get_format("search/search", 
-                                   $vars->{'query_format'} || $vars->{'format'}, 
+my $format = $template->get_format("search/search",
+                                   $vars->{'query_format'} || $vars->{'format'},
                                    scalar $cgi->param('ctype'));
 
 print $cgi->header($format->{'ctype'});
