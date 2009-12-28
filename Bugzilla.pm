@@ -24,6 +24,7 @@
 
 package Bugzilla;
 
+use utf8;
 use strict;
 
 use Bugzilla::Config;
@@ -62,6 +63,7 @@ BEGIN
         }
         else
         {
+            utf8::decode($_[0]);
             my $msg = $_[0];
             $msg =~ s/\s*$//so;
             $msg = { eval_error => $msg };
