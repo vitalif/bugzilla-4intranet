@@ -273,18 +273,20 @@ function doOnSelectProduct(selectmode) {
 
 [%# *** Comment URL Whiteboard Keywords *** %]
 
-  [% FOREACH field = [
-    { name => "longdesc", description => "A&nbsp;<u>C</u>omment",
-      accesskey => 'c' },
-    { name => "bug_file_loc", description => "The&nbsp;<u>U</u>RL",
-      accesskey => 'u' },
-    { name => "status_whiteboard", description => "<u>W</u>hiteboard",
-      accesskey => 'w' } ] %]
-
-    [% UNLESS field.name == 'status_whiteboard' AND NOT Param('usestatuswhiteboard') %]
+  [% tf_desc = {
+       longdesc          => "A&nbsp;<u>C</u>omment",
+       bug_file_loc      => "The&nbsp;<u>U</u>RL",
+       status_whiteboard => "<u>W</u>hiteboard",
+  } %]
+  [% tf_accesskey = {
+       longdesc          => 'c',
+       bug_file_loc      => 'u',
+       status_whiteboard => 'w',
+  } %]
+  [% FOREACH field = text_fields %]
     <tr>
       <th align="right">
-        <label for="[% field.name %]" accesskey="[% field.accesskey %]">[% field.description %]</label>:
+        <label for="[% field.name %]" accesskey="[% tf_accesskey.${field.name} %]">[% tf_desc.${field.name} || field.description %]</label>:
       </th>
       <td>
         [% type = field.name _ "_type" %]
@@ -297,7 +299,6 @@ function doOnSelectProduct(selectmode) {
       </td>
       <td></td>
     </tr>
-    [% END %]
   [% END %]
 
   [% IF have_keywords %]
