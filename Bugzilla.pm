@@ -53,7 +53,8 @@ BEGIN
 {
     $SIG{__DIE__} = sub
     {
-        if (Bugzilla::Error::_in_eval())
+        # We are either in application heat-up phase or in some eval()
+        if (!$ENV{GATEWAY_INTERFACE} || Bugzilla::Error::_in_eval())
         {
             die @_;
         }
