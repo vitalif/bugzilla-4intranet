@@ -71,11 +71,6 @@ BEGIN
             if ($msg !~ /^(Программа вызвала сброс соединения|Software caused connection abort) at /iso)
             {
                 $msg = { eval_error => $msg };
-                if (eval { require Devel::StackTrace; })
-                {
-                    # Append stack trace if Devel::StackTrace is available
-                    $msg->{stack_trace} = Devel::StackTrace->new->as_string;
-                }
                 Bugzilla::Error::ThrowCodeError('eval_error', $msg);
             }
         }
