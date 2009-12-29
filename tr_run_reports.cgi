@@ -20,7 +20,7 @@
 # Contributor(s): Greg Hendricks <ghendricks@novell.com>
 
 use strict;
-use lib qw(. lib);
+use lib qw(. lib extensions/testopia/lib);
 
 use Bugzilla;
 use Bugzilla::Constants;
@@ -28,45 +28,19 @@ use Bugzilla::Error;
 use Bugzilla::Util;
 use Bugzilla::User;
 
-use Bugzilla::Testopia::Util;
-use Bugzilla::Testopia::Constants;
-use Bugzilla::Testopia::Report;
-use Bugzilla::Testopia::TestRun;
-use Bugzilla::Testopia::Search;
+use Testopia::Util;
+use Testopia::Constants;
+use Testopia::Report;
+use Testopia::TestRun;
+use Testopia::Search;
+
+use JSON;
 
 my $vars = {};
 my $template = Bugzilla->template;
 my $cgi = Bugzilla->cgi;
 
 Bugzilla->login(LOGIN_REQUIRED);
-
-sub get_runs {
-    my ($plan_ids, $run_ids) = @_;
-    my @runs;
-    foreach my $g (@$plan_ids){
-        foreach my $id (split(',', $g)){
-            my $obj = Bugzilla::Testopia::TestPlan->new($id);
-            push @runs, @{$obj->test_runs} if $obj && $obj->canview;
-        }
-    }
-    foreach my $g (@$run_ids){
-        foreach my $id (split(',', $g)){
-            my $obj = Bugzilla::Testopia::TestRun->new($id);
-            push @runs, $obj if $obj && $obj->canview;
-        }
-    }
-    
-    unless (scalar @runs){
-        print "<b>No runs found</b>";
-        exit;
-    }
-    
-    my @run_ids;
-    foreach my $r (@runs){
-        push @run_ids, $r->id;
-    }
-    return (\@runs,\@run_ids);
-}
 
 my $type = $cgi->param('type') || '';
 $vars->{'qname'} = $cgi->param('qname');
@@ -157,13 +131,13 @@ elsif ($type eq 'execution'){
 
     foreach my $g (@plan_ids){
         foreach my $id (split(',', $g)){
-            my $obj = Bugzilla::Testopia::TestPlan->new($id);
+            my $obj = Testopia::TestPlan->new($id);
             push @runs, @{$obj->test_runs} if $obj && $obj->canview;
         }
     }
     foreach my $g (@run_ids){
         foreach my $id (split(',', $g)){
-            my $obj = Bugzilla::Testopia::TestRun->new($id);
+            my $obj = Testopia::TestRun->new($id);
             push @runs, $obj if $obj && $obj->canview;
         }
     }
@@ -186,8 +160,8 @@ elsif ($type eq 'execution'){
     
     trick_taint($chfieldfrom);
     trick_taint($chfieldto);
-    my $sql_chfrom = Bugzilla::Testopia::Search::SqlifyDate($chfieldfrom);
-    my $sql_chto   = Bugzilla::Testopia::Search::SqlifyDate($chfieldto);
+    my $sql_chfrom = Testopia::Search::SqlifyDate($chfieldfrom);
+    my $sql_chto   = Testopia::Search::SqlifyDate($chfieldto);
     
     my $total = $runs[0]->case_run_count_by_date($sql_chfrom, $sql_chto, undef, $tester, \@runs);
     my $passed = $runs[0]->case_run_count_by_date($sql_chfrom, $sql_chto, PASSED, $tester, \@runs);
@@ -244,13 +218,13 @@ elsif ($type eq 'bug'){
      
     foreach my $g (@plan_ids){
         foreach my $id (split(',', $g)){
-            my $obj = Bugzilla::Testopia::TestPlan->new($id);
+            my $obj = Testopia::TestPlan->new($id);
             push @runs, @{$obj->test_runs} if $obj && $obj->canview;
         }
     }
     foreach my $g (@run_ids){
         foreach my $id (split(',', $g)){
-            my $obj = Bugzilla::Testopia::TestRun->new($id);
+            my $obj = Testopia::TestRun->new($id);
             push @runs, $obj if $obj && $obj->canview;
         }
     }
@@ -322,10 +296,52 @@ elsif ($type eq 'priority'){
     exit;
 
 }
+elsif ($type eq 'worst'){
+    my $dbh = Bugzilla->dbh;
+    my @r = $cgi->param('run_ids');
+    my @plans = $cgi->param('plan_ids');
+    
+    my ($runs, $run_ids) = get_runs(\@plans, \@r);
+    my @runs = @$runs;
+    my @run_ids = @$run_ids;
+    my $json = new JSON;
+
+    my $query = 
+       "SELECT COUNT(case_id) AS top, case_id 
+          FROM test_case_runs 
+         WHERE run_id IN (". join(',', @$run_ids) .") 
+           AND case_run_status_id = ?
+      GROUP BY case_id 
+      ORDER BY top DESC 
+      LIMIT ?";
+    my $ref = $dbh->selectall_arrayref($query, {'Slice' =>{}}, (FAILED, 10));
+    foreach my $row (@$ref){
+        $row->{top} = int($row->{top});
+    }
+
+    $vars->{'stripheader'} = 1 if $cgi->param('noheader');
+    $vars->{'uid'} = int(rand(10000));
+    $vars->{'data'} = $json->encode($ref); 
+    $vars->{'runs'} = join(',',@run_ids);
+    $vars->{'plans'} = join(',',@plans);
+    
+    print $cgi->header;
+    $template->process("testopia/reports/bar.html.tmpl", $vars)
+       || ThrowTemplateError($template->error());
+    exit;    
+      
+}
+elsif ($type eq 'changed'){
+    my $query = 
+    "SELECT case_run_id, case_run_status_id, close_date, from test_case_runs t
+      INNER JOIN test_runs on test_runs.run_id = t.run_id 
+      WHERE test_runs.plan_id = ?
+      ORDER BY case_id, close_date DESC";
+}
 
 $cgi->param('current_tab', 'run');
 $cgi->param('viewall', 1);
-my $report = Bugzilla::Testopia::Report->new('run', 'tr_list_runs.cgi', $cgi);
+my $report = Testopia::Report->new('run', 'tr_list_runs.cgi', $cgi);
 $vars->{'report'} = $report;
 
 ### From Bugzilla report.cgi by Gervase Markham

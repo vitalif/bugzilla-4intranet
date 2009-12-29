@@ -573,7 +573,7 @@ sub request_cache {
         require Apache2::RequestUtil;
         return Apache2::RequestUtil->request->pnotes();
     }
-    return $_request_cache;
+    return $_request_cache ||= {};
 }
 
 # Private methods

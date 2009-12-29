@@ -20,7 +20,7 @@
 # Contributor(s): Greg Hendricks <ghendricks@novell.com>
 
 use strict;
-use lib qw(. lib);
+use lib qw(. lib extensions/testopia/lib);
 
 use Bugzilla;
 use Bugzilla::Bug;
@@ -28,13 +28,13 @@ use Bugzilla::Constants;
 use Bugzilla::Error;
 use Bugzilla::Util;
 use Bugzilla::User;
-use Bugzilla::Testopia::Util;
-use Bugzilla::Testopia::Search;
-use Bugzilla::Testopia::Table;
-use Bugzilla::Testopia::TestRun;
-use Bugzilla::Testopia::TestCase;
-use Bugzilla::Testopia::TestCaseRun;
-use Bugzilla::Testopia::Constants;
+use Testopia::Util;
+use Testopia::Search;
+use Testopia::Table;
+use Testopia::TestRun;
+use Testopia::TestCase;
+use Testopia::TestCaseRun;
+use Testopia::Constants;
 
 use JSON;
 
@@ -50,10 +50,10 @@ my $caserun;
 my $action = $cgi->param('action') || '';
 
 if ($cgi->param('caserun_id')){
-    $caserun = Bugzilla::Testopia::TestCaseRun->new($cgi->param('caserun_id'));
+    $caserun = Testopia::TestCaseRun->new($cgi->param('caserun_id'));
 }
 elsif ($cgi->param('run_id')){
-    $caserun = Bugzilla::Testopia::TestCaseRun->new($cgi->param('run_id'),
+    $caserun = Testopia::TestCaseRun->new($cgi->param('run_id'),
                                                        $cgi->param('case_id'),
                                                        $cgi->param('build_id'),
                                                        $cgi->param('env_id'));
@@ -113,8 +113,10 @@ elsif ($action eq 'update_note'){
 elsif ($action eq 'update_assignee'){
     print $cgi->header;
     ThrowUserError("testopia-read-only", {'object' => $caserun}) unless $caserun->canedit;
-    
-    my $assignee_id = login_to_id(trim($cgi->param('assignee')),'THROW_ERROR');
+    my $assignee_id;
+    if ($cgi->param('assignee')){
+        $assignee_id = login_to_id(trim($cgi->param('assignee')),'THROW_ERROR');
+    }
 
     $caserun->set_assignee($assignee_id);
     
@@ -137,8 +139,8 @@ elsif ($action eq 'update_priority'){
     print $cgi->header;
     ThrowUserError("testopia-read-only", {'object' => $caserun}) unless $caserun->canedit;
     
-    $caserun->case->set_priority($cgi->param('priority'));
-    $caserun->case->update();
+    $caserun->set_priority($cgi->param('priority'));
+    $caserun->update();
     
     print "{'success': true, caserun:" . $caserun->TO_JSON ."}";
     

@@ -35,7 +35,6 @@ $schema->{test_attachments} = {
         case_id => {
             TYPE       => 'INT4',
             NOTNULL    => 1,
-            UNSIGNED   => 1,
             REFERENCES => {
                 TABLE  => 'test_cases',
                 COLUMN => 'case_id',
@@ -44,7 +43,6 @@ $schema->{test_attachments} = {
         },
         case_run_id => {
             TYPE       => 'INT4',
-            UNSIGNED   => 1,
             REFERENCES => {
                 TABLE  => 'test_case_runs',
                 COLUMN => 'case_run_id',
@@ -73,7 +71,6 @@ $schema->{test_attachments} = {
         plan_id => {
             TYPE       => 'INT4',
             NOTNULL    => 1,
-            UNSIGNED   => 1,
             REFERENCES => {
                 TABLE  => 'test_plans',
                 COLUMN => 'plan_id',
@@ -122,7 +119,6 @@ $schema->{test_attachments} = {
         category_id => {
             TYPE       => 'INT2',
             NOTNULL    => 1,
-            UNSIGNED   => 1,
             REFERENCES => {
                 TABLE  => 'test_case_categories',
                 COLUMN => 'category_id',
@@ -134,7 +130,7 @@ $schema->{test_attachments} = {
             REFERENCES => {
                 TABLE  => 'priority',
                 COLUMN => 'id',
-                DELETE => 'CASCADE'
+                DELETE => 'RESTRICT'
             }
         },
         author_id => {
@@ -182,7 +178,6 @@ $schema->{test_attachments} = {
         },
         case_run_id => {
             TYPE       => 'INT4',
-            UNSIGNED   => 1,
             REFERENCES => {
                 TABLE  => 'test_case_runs',
                 COLUMN => 'case_run_id',
@@ -191,7 +186,6 @@ $schema->{test_attachments} = {
         },
         case_id => {
             TYPE       => 'INT4',
-            UNSIGNED   => 1,
             NOTNULL    => 1,
             REFERENCES => {
                 TABLE  => 'test_cases',
@@ -211,7 +205,6 @@ $schema->{test_attachments} = {
         case_run_id => { TYPE => 'INTSERIAL', PRIMARYKEY => 1, NOTNULL => 1 },
         run_id      => {
             TYPE       => 'INT4',
-            UNSIGNED   => 1,
             NOTNULL    => 1,
             REFERENCES => {
                 TABLE  => 'test_runs',
@@ -221,7 +214,6 @@ $schema->{test_attachments} = {
         },
         case_id => {
             TYPE       => 'INT4',
-            UNSIGNED   => 1,
             NOTNULL    => 1,
             REFERENCES => {
                 TABLE  => 'test_cases',
@@ -238,7 +230,6 @@ $schema->{test_attachments} = {
         case_run_status_id => {
             TYPE       => 'INT2',
             NOTNULL    => 1,
-            UNSIGNED   => 1,
             REFERENCES => {
                 TABLE  => 'test_case_run_status',
                 COLUMN => 'case_run_status_id',
@@ -248,7 +239,6 @@ $schema->{test_attachments} = {
         case_text_version => { TYPE => 'INT3', NOTNULL => 1 },
         build_id          => {
             TYPE       => 'INT4',
-            UNSIGNED   => 1,
             NOTNULL    => 1,
             REFERENCES => {
                 TABLE  => 'test_builds',
@@ -263,7 +253,6 @@ $schema->{test_attachments} = {
         sortkey      => { TYPE => 'INT4' },
         environment_id => {
             TYPE       => 'INT4',
-            UNSIGNED   => 1,
             NOTNULL    => 1,
             REFERENCES => {
                 TABLE  => 'test_environments',
@@ -271,6 +260,15 @@ $schema->{test_attachments} = {
                 DELETE => 'CASCADE'
             }
         },
+        priority_id => {
+            TYPE       => 'INT2',
+            REFERENCES => {
+                TABLE  => 'priority',
+                COLUMN => 'id',
+                DELETE => 'RESTRICT'
+            }
+        },
+        
     ],
     INDEXES => [
         case_run_case_id_idx    => ['case_id'],
@@ -285,13 +283,13 @@ $schema->{test_attachments} = {
         case_run_text_ver_idx => ['case_text_version'],
         case_run_build_idx_v2 => ['build_id'],
         case_run_env_idx_v2   => ['environment_id'],
+        case_run_priority_idx => ['priority_id'],
     ],
   },
   $schema->{test_case_texts} = {
     FIELDS => [
         case_id => {
             TYPE       => 'INT4',
-            UNSIGNED   => 1,
             NOTNULL    => 1,
             REFERENCES => {
                 TABLE  => 'test_cases',
@@ -330,7 +328,6 @@ $schema->{test_attachments} = {
     FIELDS => [
         tag_id => {
             TYPE       => 'INT4',
-            UNSIGNED   => 1,
             NOTNULL    => 1,
             REFERENCES => {
                 TABLE  => 'test_tags',
@@ -340,7 +337,6 @@ $schema->{test_attachments} = {
         },
         case_id => {
             TYPE       => 'INT4',
-            UNSIGNED   => 1,
             NOTNULL    => 1,
             REFERENCES => {
                 TABLE  => 'test_cases',
@@ -364,7 +360,6 @@ $schema->{test_attachments} = {
     FIELDS => [
         tag_id => {
             TYPE       => 'INT4',
-            UNSIGNED   => 1,
             NOTNULL    => 1,
             REFERENCES => {
                 TABLE  => 'test_tags',
@@ -374,7 +369,6 @@ $schema->{test_attachments} = {
         },
         run_id => {
             TYPE       => 'INT4',
-            UNSIGNED   => 1,
             NOTNULL    => 1,
             REFERENCES => {
                 TABLE  => 'test_runs',
@@ -399,7 +393,6 @@ $schema->{test_attachments} = {
     FIELDS => [
         tag_id => {
             TYPE       => 'INT4',
-            UNSIGNED   => 1,
             NOTNULL    => 1,
             REFERENCES => {
                 TABLE  => 'test_tags',
@@ -409,7 +402,6 @@ $schema->{test_attachments} = {
         },
         plan_id => {
             TYPE       => 'INT4',
-            UNSIGNED   => 1,
             NOTNULL    => 1,
             REFERENCES => {
                 TABLE  => 'test_plans',
@@ -449,7 +441,6 @@ $schema->{test_attachments} = {
         type_id => {
             TYPE       => 'INT2',
             NOTNULL    => 1,
-            UNSIGNED   => 1,
             REFERENCES => {
                 TABLE  => 'test_plan_types',
                 COLUMN => 'type_id',
@@ -485,7 +476,6 @@ $schema->{test_attachments} = {
         plan_id => {
             TYPE       => 'INT4',
             NOTNULL    => 1,
-            UNSIGNED   => 1,
             REFERENCES => {
                 TABLE  => 'test_plans',
                 COLUMN => 'plan_id',
@@ -507,7 +497,6 @@ $schema->{test_attachments} = {
         plan_id => {
             TYPE       => 'INT4',
             NOTNULL    => 1,
-            UNSIGNED   => 1,
             REFERENCES => {
                 TABLE  => 'test_plans',
                 COLUMN => 'plan_id',
@@ -523,7 +512,6 @@ $schema->{test_attachments} = {
     FIELDS => [
         plan_id => {
             TYPE       => 'INT4',
-            UNSIGNED   => 1,
             NOTNULL    => 1,
             REFERENCES => {
                 TABLE  => 'test_plans',
@@ -558,7 +546,6 @@ $schema->{test_attachments} = {
         run_id  => { TYPE => 'INTSERIAL', PRIMARYKEY => 1, NOTNULL => 1 },
         plan_id => {
             TYPE       => 'INT4',
-            UNSIGNED   => 1,
             NOTNULL    => 1,
             REFERENCES => {
                 TABLE  => 'test_plans',
@@ -568,7 +555,6 @@ $schema->{test_attachments} = {
         },
         environment_id => {
             TYPE       => 'INT4',
-            UNSIGNED   => 1,
             NOTNULL    => 1,
             REFERENCES => {
                 TABLE  => 'test_environments',
@@ -579,7 +565,6 @@ $schema->{test_attachments} = {
         product_version => { TYPE => 'MEDIUMTEXT' },
         build_id        => {
             TYPE       => 'INT4',
-            UNSIGNED   => 1,
             NOTNULL    => 1,
             REFERENCES => {
                 TABLE  => 'test_builds',
@@ -599,11 +584,6 @@ $schema->{test_attachments} = {
         },
         default_tester_id => {
             TYPE       => 'INT3',
-            REFERENCES => {
-                TABLE  => 'profiles',
-                COLUMN => 'userid',
-                DELETE => 'CASCADE'
-            }
         },
         start_date        => { TYPE => 'DATETIME', NOTNULL => 1 },
         stop_date         => { TYPE => 'DATETIME' },
@@ -628,7 +608,6 @@ $schema->{test_attachments} = {
     FIELDS => [
         plan_id => {
             TYPE       => 'INT4',
-            UNSIGNED   => 1,
             NOTNULL    => 1,
             REFERENCES => {
                 TABLE  => 'test_plans',
@@ -638,7 +617,6 @@ $schema->{test_attachments} = {
         },
         case_id => {
             TYPE       => 'INT4',
-            UNSIGNED   => 1,
             NOTNULL    => 1,
             REFERENCES => {
                 TABLE  => 'test_cases',
@@ -656,7 +634,6 @@ $schema->{test_attachments} = {
     FIELDS => [
         case_id => {
             TYPE       => 'INT4',
-            UNSIGNED   => 1,
             NOTNULL    => 1,
             REFERENCES => {
                 TABLE  => 'test_cases',
@@ -666,7 +643,6 @@ $schema->{test_attachments} = {
         },
         fieldid => {
             TYPE       => 'INT2',
-            UNSIGNED   => 1,
             NOTNULL    => 1,
             REFERENCES => {
                 TABLE  => 'test_fielddefs',
@@ -707,7 +683,6 @@ $schema->{test_attachments} = {
     FIELDS => [
         plan_id => {
             TYPE       => 'INT4',
-            UNSIGNED   => 1,
             NOTNULL    => 1,
             REFERENCES => {
                 TABLE  => 'test_plans',
@@ -717,7 +692,6 @@ $schema->{test_attachments} = {
         },
         fieldid => {
             TYPE       => 'INT2',
-            UNSIGNED   => 1,
             NOTNULL    => 1,
             REFERENCES => {
                 TABLE  => 'test_fielddefs',
@@ -748,7 +722,6 @@ $schema->{test_attachments} = {
     FIELDS => [
         case_id => {
             TYPE       => 'INT4',
-            UNSIGNED   => 1,
             NOTNULL    => 1,
             REFERENCES => {
                 TABLE  => 'test_cases',
@@ -776,7 +749,6 @@ $schema->{test_attachments} = {
     FIELDS => [
         run_id => {
             TYPE       => 'INT4',
-            UNSIGNED   => 1,
             NOTNULL    => 1,
             REFERENCES => {
                 TABLE  => 'test_runs',
@@ -786,7 +758,6 @@ $schema->{test_attachments} = {
         },
         fieldid => {
             TYPE       => 'INT2',
-            UNSIGNED   => 1,
             NOTNULL    => 1,
             REFERENCES => {
                 TABLE  => 'test_fielddefs',
@@ -817,7 +788,6 @@ $schema->{test_attachments} = {
     FIELDS => [
         run_id => {
             TYPE       => 'INT4',
-            UNSIGNED   => 1,
             NOTNULL    => 1,
             REFERENCES => {
                 TABLE  => 'test_runs',
@@ -852,7 +822,6 @@ $schema->{test_attachments} = {
         },
         eventid => {
             TYPE       => 'INT1',
-            UNSIGNED   => 1,
             NOTNULL    => 1,
             REFERENCES => {
                 TABLE  => 'test_events',
@@ -862,7 +831,6 @@ $schema->{test_attachments} = {
         },
         relationship_id => {
             TYPE       => 'INT1',
-            UNSIGNED   => 1,
             NOTNULL    => 1,
             REFERENCES => {
                 TABLE  => 'test_relationships',
@@ -880,14 +848,14 @@ $schema->{test_attachments} = {
   },
   $schema->{test_events} = {
     FIELDS => [
-        eventid => { TYPE => 'INT1', UNSIGNED => 1, PRIMARYKEY => 1, NOTNULL => 1 },
+        eventid => { TYPE => 'INT1', PRIMARYKEY => 1, NOTNULL => 1 },
         name    => { TYPE => 'varchar(50)' },
     ],
     INDEXES => [ test_event_name_idx => ['name'], ],
   },
   $schema->{test_relationships} = {
     FIELDS => [
-        relationship_id => { TYPE => 'INT1', UNSIGNED => 1, PRIMARYKEY => 1, NOTNULL => 1 },
+        relationship_id => { TYPE => 'INT1', PRIMARYKEY => 1, NOTNULL => 1 },
         name            => { TYPE => 'varchar(50)' },
     ],
   },
@@ -912,8 +880,8 @@ $schema->{test_attachments} = {
   },
   $schema->{test_case_dependencies} = {
     FIELDS => [
-        dependson => { TYPE => 'INT4', UNSIGNED => 1, NOTNULL => 1 },
-        blocked   => { TYPE => 'INT4', UNSIGNED => 1, NOTNULL => 1 },
+        dependson => { TYPE => 'INT4', NOTNULL => 1 },
+        blocked   => { TYPE => 'INT4', NOTNULL => 1 },
     ],
     INDEXES => [
         case_dependencies_primary_idx => { FIELDS => [qw(dependson blocked)], TYPE => 'UNIQUE' },
@@ -969,7 +937,6 @@ $schema->{test_attachments} = {
     FIELDS => [
         attachment_id => {
             TYPE       => 'INT4',
-            UNSIGNED   => 1,
             NOTNULL    => 1,
             REFERENCES => {
                 TABLE  => 'test_attachments',
@@ -1006,7 +973,6 @@ $schema->{test_attachments} = {
     FIELDS => [
         environment_id => {
             TYPE       => 'INT4',
-            UNSIGNED   => 1,
             NOTNULL    => 1,
             REFERENCES => {
                 TABLE  => 'test_environments',
@@ -1016,17 +982,10 @@ $schema->{test_attachments} = {
         },
         property_id => {
             TYPE       => 'INT4',
-            UNSIGNED   => 1,
             NOTNULL    => 1,
-            REFERENCES => {
-                TABLE  => 'test_environment_property',
-                COLUMN => 'property_id',
-                DELETE => 'CASCADE'
-            }
         },
         element_id => {
             TYPE       => 'INT4',
-            UNSIGNED   => 1,
             NOTNULL    => 1,
             REFERENCES => {
                 TABLE  => 'test_environment_element',
@@ -1047,7 +1006,6 @@ $schema->{test_attachments} = {
         element_id      => { TYPE => 'INTSERIAL', PRIMARYKEY => 1, NOTNULL => 1 },
         env_category_id => {
             TYPE       => 'INT4',
-            UNSIGNED   => 1,
             NOTNULL    => 1,
             REFERENCES => {
                 TABLE  => 'test_environment_category',
@@ -1056,7 +1014,7 @@ $schema->{test_attachments} = {
             }
         },
         name      => { TYPE => 'varchar(255)' },
-        parent_id => { TYPE => 'INT4', UNSIGNED => 1 },
+        parent_id => { TYPE => 'INT4' },
         isprivate => { TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0 },
     ],
     INDEXES => [
@@ -1083,7 +1041,6 @@ $schema->{test_attachments} = {
         property_id => { TYPE => 'INTSERIAL', PRIMARYKEY => 1, NOTNULL => 1 },
         element_id  => {
             TYPE       => 'INT4',
-            UNSIGNED   => 1,
             NOTNULL    => 1,
             REFERENCES => {
                 TABLE  => 'test_environment_element',

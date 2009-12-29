@@ -21,19 +21,19 @@
 #                 Joel Smith <jsmith@novell.com>
 
 use strict;
-use lib qw(. lib);
+use lib qw(. lib extensions/testopia/lib);
 
 use Bugzilla;
 use Bugzilla::Util;
 use Bugzilla::Error;
 use Bugzilla::Constants;
-use Bugzilla::Testopia::Constants;
-use Bugzilla::Testopia::Util;
-use Bugzilla::Testopia::TestRun;
-use Bugzilla::Testopia::TestCaseRun;
-use Bugzilla::Testopia::TestCase;
-use Bugzilla::Testopia::Search;
-use Bugzilla::Testopia::Table;
+use Testopia::Constants;
+use Testopia::Util;
+use Testopia::TestRun;
+use Testopia::TestCaseRun;
+use Testopia::TestCase;
+use Testopia::Search;
+use Testopia::Table;
 
 use JSON;
 
@@ -44,7 +44,7 @@ my $cgi = Bugzilla->cgi;
 print $cgi->header;
 
 my $action = $cgi->param('action') || '';
-my $run = Bugzilla::Testopia::TestRun->new($cgi->param('run_id'));
+my $run = Testopia::TestRun->new($cgi->param('run_id'));
 unless ($run){
     print $cgi->header;
     ThrowUserError('testopia-missing-object',{object => 'run'});
@@ -81,74 +81,33 @@ if ($action eq 'edit'){
 
 elsif ($action eq 'delete'){
     ThrowUserError("testopia-no-delete", {'object' => $run}) unless ($run->candelete);
+    
     $run->obliterate;
+    
     print "{'success': true}";
 }
 
 elsif ($action eq 'save_filter'){
-    my $dbh = Bugzilla->dbh;
     ThrowUserError('query_name_missing') unless $cgi->param('query_name');
     ThrowUserError("testopia-read-only", {'object' => $run}) unless $run->canedit;
     
-    my $qname = '__run_id_' . $run->id . '_' . $cgi->param('query_name');
-    my $query = $cgi->canonicalise_query('action');   
-
-    trick_taint($query);
-    trick_taint($qname);
+    $run->save_filter($cgi->param('query_name'));
     
-    my ($name) = $dbh->selectrow_array(
-        "SELECT name 
-           FROM test_named_queries 
-          WHERE name = ?",
-            undef,($qname));
-            
-    if ($name){
-        $dbh->do(
-            "UPDATE test_named_queries 
-                SET query = ?
-              WHERE name = ?",
-                undef,($query, $qname));
-    }
-    else{
-        my $quoted_qname = url_quote($qname);
-        $dbh->do("INSERT INTO test_named_queries 
-                  VALUES(?,?,?,?,?)",
-                  undef, (Bugzilla->user->id, $qname, 0, $query, SAVED_FILTER)); 
-        
-    }
     print "{'success':true}";
 }
 
 elsif ($action eq 'delete_filter'){
-    my $dbh = Bugzilla->dbh;
     ThrowUserError('query_name_missing') unless $cgi->param('query_name');
     ThrowUserError("testopia-read-only", {'object' => $run}) unless $run->canedit;
-    my $qname = $cgi->param('query_name');
-    trick_taint($qname);
-    $qname = '__run_id_' . $run->id . '_' . $qname;
     
-    $dbh->do(
-        "DELETE FROM test_named_queries 
-          WHERE name = ?",
-            undef,($qname));
+    $run->delete_filter($cgi->param('query_name'));
     
     print "{'success':true}";
 }
 
 elsif ($action eq 'getfilters'){
-    my $dbh = Bugzilla->dbh;
     ThrowUserError("testopia-read-only", {'object' => $run}) unless $run->canedit;
-    my $qnameregexp = '__run_id_' . $run->id . '_';
-    
-    my $filters = $dbh->selectall_arrayref(
-        "SELECT name, query 
-           FROM test_named_queries 
-          WHERE name REGEXP(?)",
-            {'Slice' => {}},($qnameregexp));
-    foreach my $f (@$filters){
-        $f->{'name'} =~ s/^__run_id_\d+_//;
-    }
-    print "{'filters':" . to_json($filters) . "}";
+    print "{'filters':" . to_json($run->get_filters) . "}";
 }
 
 else {
