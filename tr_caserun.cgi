@@ -20,11 +20,12 @@
 # Contributor(s): Greg Hendricks <ghendricks@novell.com>
 
 use strict;
-use lib qw(. lib extensions/testopia/lib);
+use lib qw(. lib);
+use Bugzilla::Constants;
+use lib (bz_locations()->{extensionsdir} . '/testopia/lib');
 
 use Bugzilla;
 use Bugzilla::Bug;
-use Bugzilla::Constants;
 use Bugzilla::Error;
 use Bugzilla::Util;
 use Bugzilla::User;

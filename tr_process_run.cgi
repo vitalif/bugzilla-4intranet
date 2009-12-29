@@ -21,12 +21,13 @@
 #                 Joel Smith <jsmith@novell.com>
 
 use strict;
-use lib qw(. lib extensions/testopia/lib);
+use lib qw(. lib);
+use Bugzilla::Constants;
+use lib (bz_locations()->{extensionsdir} . '/testopia/lib');
 
 use Bugzilla;
 use Bugzilla::Util;
 use Bugzilla::Error;
-use Bugzilla::Constants;
 use Testopia::Constants;
 use Testopia::Util;
 use Testopia::TestRun;

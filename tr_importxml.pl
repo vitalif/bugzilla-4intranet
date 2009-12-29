@@ -47,7 +47,6 @@ chdir $::path;
 use lib ( $::path, "extensions/testopia/lib" );
 
 use Bugzilla;
-use Bugzilla::Constants;
 use Testopia::Importer;
 
 use XML::Twig;
