@@ -9,6 +9,7 @@ use Testopia::TestCase;
 
 use Encode;
 use URI;
+use URI::Escape;
 use XML::Parser;
 use HTML::Entities;
 use HTTP::Request::Common;
@@ -163,7 +164,7 @@ sub fetch_wiki_category_xml
     $_[0] = $wiki_url;
     my $uri = URI->new($wiki_url . '?title=Special:Export&action=submit')->canonical;
     # Дёргаем Special:Export и вытаскиваем список страниц категории
-    Encode::_utf8_off($category);
+    utf8::decode($category);
     my $response = $ua->request(POST $uri, [ addcat => "Добавить", catname => $category ]);
     if (!$response->is_success)
     {
@@ -173,6 +174,7 @@ sub fetch_wiki_category_xml
     my $text = $response->content;
     ($text) = $text =~ m!<textarea[^<>]*>(.*?)</textarea>!iso;
     decode_entities($text);
+    utf8::decode($text);
     # Дёргаем Special:Export и вытаскиваем саму XML-ку с последними ревизиями
     $response = $ua->request(POST $uri, [
         wpDownload => 1,
