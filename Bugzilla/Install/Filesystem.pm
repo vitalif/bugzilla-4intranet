@@ -112,7 +112,6 @@ sub FILESYSTEM {
         'runtests.pl'     => { perms => $owner_executable },
         'testserver.pl'   => { perms => $ws_executable },
         'whine.pl'        => { perms => $ws_executable },
-        'tr_csv2xml.pl'   => { perms => $ws_executable },
         'tr_importxml.pl' => { perms => $ws_executable },
         'customfield.pl'  => { perms => $owner_executable },
         'email_in.pl'     => { perms => $ws_executable },

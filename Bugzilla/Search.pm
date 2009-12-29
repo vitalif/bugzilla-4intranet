@@ -269,6 +269,12 @@ sub init {
         push(@supptables, "LEFT JOIN longdescs AS ldtime " .
                           "ON ldtime.bug_id = bugs.bug_id");
     }
+    ### Testopia ###
+    if (grep($_ eq 'test_cases', @fields)){
+        push(@supptables, "LEFT JOIN test_case_bugs AS tcb " . 
+                           "ON bugs.bug_id = tcb.bug_id ");
+    }
+    ### end Testopia ###
 
     my $minvotes;
     if (defined $params->param('votes')) {
