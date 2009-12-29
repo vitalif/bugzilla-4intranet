@@ -22,17 +22,17 @@
 #                 Greg Hendricks <ghendricks@novell.com>
 
 use strict;
-use lib qw(. lib);
+use lib qw(. lib extensions/testopia/lib);
 
 use Bugzilla;
 use Bugzilla::Constants;
 use Bugzilla::Error;
 use Bugzilla::Util;
 use Bugzilla::Hook;
-use Bugzilla::Testopia::Util;
-use Bugzilla::Testopia::Table;
-use Bugzilla::Testopia::Constants;
-use Bugzilla::Testopia::TestPlan;
+use Testopia::Util;
+use Testopia::Table;
+use Testopia::Constants;
+use Testopia::TestPlan;
 
 my $vars = {};
 my $template = Bugzilla->template;
@@ -51,30 +51,30 @@ unless ($plan_id){
   exit;
 }
 
-my $plan = Bugzilla::Testopia::TestPlan->new($plan_id);
+my $plan = Testopia::TestPlan->new($plan_id);
 ThrowUserError("invalid-test-id-non-existent", {'type' => 'plan', id => $plan_id}) unless $plan;
 ThrowUserError("testopia-permission-denied", {'object' => $plan}) unless $plan->canview;
 
 Bugzilla::Hook::process('tr_show_plan-after_fetch', { plan => $plan, vars => $vars });
 
-$vars->{'table'} = Bugzilla::Testopia::Table->new('plan', 'tr_list_plans.cgi', $cgi);
-$vars->{'printdoc'} = 1 if ($cgi->param('ctype') eq 'print');
+$vars->{'table'} = Testopia::Table->new('plan', 'tr_list_plans.cgi', $cgi);
 $vars->{'plan'} = $plan;
     
 my $format = $template->get_format("testopia/plan/show", scalar $cgi->param('format'), scalar $cgi->param('ctype'));
 my $disp = "inline";
 # We set CSV files to be downloaded, as they are designed for importing
 # into other programs.
-if ( $format->{'extension'} eq "csv" || $format->{'extension'} eq "xml" ){
+if ( $format->{'extension'} =~ /(csv|xml)/ ){
     $disp = "attachment";
-    $vars->{'displaycolumns'} = \@Bugzilla::Testopia::Constants::TESTCASE_EXPORT;
+    $vars->{'displaycolumns'} = Testopia::TestCase::fields;
     $vars->{'table'} = $plan->test_cases;
+    $vars->{'show_footer'} = 1;
 }
     
 # Suggest a name for the file if the user wants to save it as a file.
 my @time = localtime(time());
 my $date = sprintf "%04d-%02d-%02d", 1900+$time[5],$time[4]+1,$time[3];
-my $filename = "testcases-$date.$format->{extension}";
+my $filename = "testplan_$plan_id-$date.$format->{extension}";
 print $cgi->header(-type => $format->{'ctype'},
                    -content_disposition => "$disp; filename=$filename");
     

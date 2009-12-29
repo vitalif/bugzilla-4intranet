@@ -61,9 +61,12 @@ sub testopiaUpdateDB {
     $dbh->bz_drop_table('test_plan_testers');
     $dbh->bz_drop_table('test_plan_group_map');
     $dbh->bz_drop_column('test_plans', 'editor_id');
-
-    $dbh->bz_add_column('test_case_bugs', 'case_id', {TYPE => 'INT4', UNSIGNED => 1});
-    $dbh->bz_add_column('test_case_runs', 'environment_id', {TYPE => 'INT4', UNSIGNED => 1, NOTNULL => 1}, 0);
+    
+    $dbh->bz_drop_fk('test_cases', 'priority_id') if $dbh->bz_column_info('test_cases','priority_id')->{REFERENCES}->{DELETE} eq 'CASCADE';
+    $dbh->bz_drop_fk('test_environment_map', 'property_id');
+    
+    $dbh->bz_add_column('test_case_bugs', 'case_id', {TYPE => 'INT4'});
+    $dbh->bz_add_column('test_case_runs', 'environment_id', {TYPE => 'INT4', NOTNULL => 1}, 0);
     $dbh->bz_add_column('test_case_tags', 'userid', {TYPE => 'INT3', NOTNULL => 1}, 0);
     $dbh->bz_add_column('test_case_texts', 'setup', {TYPE => 'MEDIUMTEXT'});
     $dbh->bz_add_column('test_case_texts', 'breakdown', {TYPE => 'MEDIUMTEXT'});
@@ -81,56 +84,153 @@ sub testopiaUpdateDB {
     $dbh->bz_add_column('test_case_status', 'description', {TYPE => 'MEDIUMTEXT'}, 0);
     $dbh->bz_add_column('test_case_run_status', 'description', {TYPE => 'MEDIUMTEXT'}, 0);
     $dbh->bz_add_column('test_case_runs', 'iscurrent', {TYPE => 'INT1', NOTNULL => 1, DEFAULT => 0}, 0);
+    $dbh->bz_add_column('test_case_runs', 'priority_id', {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0}, 0);
     $dbh->bz_add_column('test_named_queries', 'type', {TYPE => 'INT3', NOTNULL => 1, DEFAULT => 0}, 0);
     fixTables();
 
-    $dbh->bz_alter_column('test_attachment_data', 'attachment_id', {TYPE => 'INT4', UNSIGNED => 1, NOTNULL => 1});
+    $dbh->bz_alter_column('test_attachment_data', 'attachment_id', {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {
+                TABLE  => 'test_attachments',
+                COLUMN => 'attachment_id',
+                DELETE => 'CASCADE'
+            }});
     $dbh->bz_alter_column('test_attachments', 'attachment_id', {TYPE => 'INTSERIAL', PRIMARYKEY => 1, NOTNULL => 1});
     $dbh->bz_alter_column('test_attachments', 'creation_ts', {TYPE => 'DATETIME', NOTNULL => 1});
     $dbh->bz_alter_column('test_builds', 'build_id', {TYPE => 'INTSERIAL', PRIMARYKEY => 1, NOTNULL => 1});
-    $dbh->bz_alter_column('test_case_activity', 'case_id', {TYPE => 'INT4', UNSIGNED => 1, NOTNULL => 1});
-    $dbh->bz_alter_column('test_case_bugs', 'case_id', {TYPE => 'INT4', UNSIGNED => 1, NOTNULL => 1});
-    $dbh->bz_alter_column('test_case_bugs', 'case_run_id', {TYPE => 'INT4', UNSIGNED => 1});
-    $dbh->bz_alter_column('test_case_components', 'case_id', {TYPE => 'INT4', UNSIGNED => 1, NOTNULL => 1});
-    $dbh->bz_alter_column('test_case_dependencies', 'blocked', {TYPE => 'INT4', UNSIGNED => 1, NOTNULL => 1});
-    $dbh->bz_alter_column('test_case_dependencies', 'dependson', {TYPE => 'INT4', UNSIGNED => 1, NOTNULL => 1});
-    $dbh->bz_alter_column('test_case_plans', 'case_id', {TYPE => 'INT4', UNSIGNED => 1, NOTNULL => 1});
-    $dbh->bz_alter_column('test_case_plans', 'plan_id', {TYPE => 'INT4', UNSIGNED => 1, NOTNULL => 1});
-    $dbh->bz_alter_column('test_case_runs', 'build_id', {TYPE => 'INT4', UNSIGNED => 1, NOTNULL => 1});
-    $dbh->bz_alter_column('test_case_runs', 'case_id', {TYPE => 'INT4', UNSIGNED => 1, NOTNULL => 1});
+    $dbh->bz_alter_column('test_case_activity', 'case_id', {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {
+                TABLE  => 'test_cases',
+                COLUMN => 'case_id',
+                DELETE => 'CASCADE'
+            }});
+    $dbh->bz_alter_column('test_case_bugs', 'case_id', {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {
+                TABLE  => 'test_cases',
+                COLUMN => 'case_id',
+                DELETE => 'CASCADE'
+            }});
+    $dbh->bz_alter_column('test_case_bugs', 'case_run_id', {TYPE => 'INT4', REFERENCES => {
+                TABLE  => 'test_case_runs',
+                COLUMN => 'case_run_id',
+                DELETE => 'CASCADE'
+            }});
+    $dbh->bz_alter_column('test_case_components', 'case_id', {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {
+                TABLE  => 'test_cases',
+                COLUMN => 'case_id',
+                DELETE => 'CASCADE'
+            }});
+    $dbh->bz_alter_column('test_case_dependencies', 'blocked', {TYPE => 'INT4', NOTNULL => 1});
+    $dbh->bz_alter_column('test_case_dependencies', 'dependson', {TYPE => 'INT4', NOTNULL => 1});
+    $dbh->bz_alter_column('test_case_plans', 'case_id', {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {
+                TABLE  => 'test_cases',
+                COLUMN => 'case_id',
+                DELETE => 'CASCADE'
+            }});
+    $dbh->bz_alter_column('test_case_plans', 'plan_id', {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {
+                TABLE  => 'test_plans',
+                COLUMN => 'plan_id',
+                DELETE => 'CASCADE'
+            }});
+    $dbh->bz_alter_column('test_case_runs', 'build_id', {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {
+                TABLE  => 'test_builds',
+                COLUMN => 'build_id',
+                DELETE => 'CASCADE'
+            }});
+    $dbh->bz_alter_column('test_case_runs', 'case_id', {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {
+                TABLE  => 'test_cases',
+                COLUMN => 'case_id',
+                DELETE => 'CASCADE'
+            }});
     $dbh->bz_alter_column('test_case_runs', 'case_run_status_id', {TYPE => 'INT2', NOTNULL => 1});
     $dbh->bz_alter_column('test_case_runs', 'case_run_id', {TYPE => 'INTSERIAL', PRIMARYKEY => 1, NOTNULL => 1});
-    $dbh->bz_alter_column('test_case_runs', 'environment_id', {TYPE => 'INT4', UNSIGNED => 1, NOTNULL => 1});
+    $dbh->bz_alter_column('test_case_runs', 'environment_id', {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {
+                TABLE  => 'test_environments',
+                COLUMN => 'environment_id',
+                DELETE => 'CASCADE'
+            }});
     $dbh->bz_alter_column('test_case_runs', 'iscurrent', {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => '0'});
-    $dbh->bz_alter_column('test_case_runs', 'run_id', {TYPE => 'INT4', UNSIGNED => 1, NOTNULL => 1});
+    $dbh->bz_alter_column('test_case_runs', 'run_id', {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {
+                TABLE  => 'test_runs',
+                COLUMN => 'run_id',
+                DELETE => 'CASCADE'
+            }});
     $dbh->bz_alter_column('test_case_run_status', 'case_run_status_id', {TYPE => 'SMALLSERIAL', PRIMARYKEY => 1, NOTNULL => 1});
     $dbh->bz_alter_column('test_cases', 'case_id', {TYPE => 'INTSERIAL', PRIMARYKEY => 1, NOTNULL => 1});
     $dbh->bz_alter_column('test_cases', 'case_status_id', {TYPE => 'INT2', NOTNULL => 1});
     $dbh->bz_alter_column('test_case_status', 'case_status_id', {TYPE => 'SMALLSERIAL', PRIMARYKEY => 1, NOTNULL => 1});
-    $dbh->bz_alter_column('test_case_tags', 'case_id', {TYPE => 'INT4', UNSIGNED => 1, NOTNULL => 1});
-    $dbh->bz_alter_column('test_case_texts', 'case_id', {TYPE => 'INT4', UNSIGNED => 1, NOTNULL => 1});
-    $dbh->bz_alter_column('test_case_texts', 'creation_ts', {TYPE => 'DATETIME', NOTNULL => 1});
-    $dbh->bz_alter_column('test_environment_map', 'environment_id', {TYPE => 'INT4', UNSIGNED => 1, NOTNULL => 1});
-    $dbh->bz_alter_column('test_environment_map', 'property_id', {TYPE => 'INT4', UNSIGNED => 1});
+    $dbh->bz_alter_column('test_case_tags', 'case_id', {TYPE => 'INT4', UNSIGNED => 1, NOTNULL => 1, REFERENCES => {
+                TABLE  => 'test_cases',
+                COLUMN => 'case_id',
+                DELETE => 'CASCADE'
+            }});
+    $dbh->bz_alter_column('test_case_texts', 'case_id', {TYPE => 'INT4', UNSIGNED => 1, NOTNULL => 1, REFERENCES => {
+                TABLE  => 'test_cases',
+                COLUMN => 'case_id',
+                DELETE => 'CASCADE'
+            }});
+    $dbh->bz_alter_column('test_case_texts', 'creation_ts', {TYPE => 'DATETIME', NOTNULL => 1, REFERENCES => {
+                TABLE  => 'test_cases',
+                COLUMN => 'case_id',
+                DELETE => 'CASCADE'
+            }});
+    $dbh->bz_alter_column('test_environment_map', 'environment_id', {TYPE => 'INT4', UNSIGNED => 1, NOTNULL => 1, REFERENCES => {
+                TABLE  => 'test_cases',
+                COLUMN => 'case_id',
+                DELETE => 'CASCADE'
+            }});
+    $dbh->bz_alter_column('test_environment_map', 'property_id', {TYPE => 'INT4', UNSIGNED => 1});    
     $dbh->bz_alter_column('test_environment_property', 'property_id', {TYPE => 'INTSERIAL', PRIMARYKEY => 1, NOTNULL => 1});
     $dbh->bz_alter_column('test_environments', 'environment_id', {TYPE => 'INTSERIAL', PRIMARYKEY => 1, NOTNULL => 1});
     $dbh->bz_alter_column('test_named_queries', 'isvisible', {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 1});
-    $dbh->bz_alter_column('test_plan_activity', 'plan_id', {TYPE => 'INT4', UNSIGNED => 1, NOTNULL => 1});
+    $dbh->bz_alter_column('test_plan_activity', 'plan_id', {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {
+                TABLE  => 'test_plans',
+                COLUMN => 'plan_id',
+                DELETE => 'CASCADE'
+            }});
     $dbh->bz_alter_column('test_plans', 'plan_id', {TYPE => 'INTSERIAL', PRIMARYKEY => 1, NOTNULL => 1});
     $dbh->bz_alter_column('test_plans', 'type_id', {TYPE => 'INT2', NOTNULL => 1});
     $dbh->bz_alter_column('test_plan_types', 'type_id', {TYPE => 'SMALLSERIAL', NOTNULL => 1, PRIMARYKEY => 1}, 0);
-    $dbh->bz_alter_column('test_plan_tags', 'plan_id', {TYPE => 'INT4', UNSIGNED => 1, NOTNULL => 1});
+    $dbh->bz_alter_column('test_plan_tags', 'plan_id', {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {
+                TABLE  => 'test_tags',
+                COLUMN => 'tag_id',
+                DELETE => 'CASCADE'
+            }});
     $dbh->bz_alter_column('test_plan_texts', 'creation_ts', {TYPE => 'DATETIME', NOTNULL => 1});
-    $dbh->bz_alter_column('test_plan_texts', 'plan_id', {TYPE => 'INT4', UNSIGNED => 1, NOTNULL => 1});
+    $dbh->bz_alter_column('test_plan_texts', 'plan_id', {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {
+                TABLE  => 'test_plans',
+                COLUMN => 'plan_id',
+                DELETE => 'CASCADE'
+            }});
     $dbh->bz_alter_column('test_plan_texts', 'plan_text', {TYPE => 'MEDIUMTEXT'});
-    $dbh->bz_alter_column('test_run_activity', 'run_id', {TYPE => 'INT4', UNSIGNED => 1, NOTNULL => 1});
-    $dbh->bz_alter_column('test_run_cc', 'run_id', {TYPE => 'INT4', UNSIGNED => 1, NOTNULL => 1});
-    $dbh->bz_alter_column('test_runs', 'build_id', {TYPE => 'INT4', UNSIGNED => 1, NOTNULL => 1});
-    $dbh->bz_alter_column('test_runs', 'environment_id', {TYPE => 'INT4', UNSIGNED => 1, NOTNULL => 1});
-    $dbh->bz_alter_column('test_runs', 'plan_id', {TYPE => 'INT4', UNSIGNED => 1, NOTNULL => 1});
+    $dbh->bz_alter_column('test_run_activity', 'run_id', {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {
+                TABLE  => 'test_runs',
+                COLUMN => 'run_id',
+                DELETE => 'CASCADE'
+            }});
+    $dbh->bz_alter_column('test_run_cc', 'run_id', {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {
+                TABLE  => 'test_runs',
+                COLUMN => 'run_id',
+                DELETE => 'CASCADE'
+            }});
+    $dbh->bz_alter_column('test_runs', 'build_id', {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {
+                TABLE  => 'test_builds',
+                COLUMN => 'build_id',
+                DELETE => 'CASCADE'
+            }});
+    $dbh->bz_alter_column('test_runs', 'environment_id', {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {
+                TABLE  => 'test_environments',
+                COLUMN => 'environment_id',
+                DELETE => 'CASCADE'
+            }});
+    $dbh->bz_alter_column('test_runs', 'plan_id', {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {
+                TABLE  => 'test_plans',
+                COLUMN => 'plan_id',
+                DELETE => 'CASCADE'
+            }});
     $dbh->bz_alter_column('test_runs', 'run_id', {TYPE => 'INTSERIAL', PRIMARYKEY => 1, NOTNULL => 1});
     $dbh->bz_alter_column('test_runs', 'start_date', {TYPE => 'DATETIME', NOTNULL => 1});
-    $dbh->bz_alter_column('test_run_tags', 'run_id', {TYPE => 'INT4', UNSIGNED => 1, NOTNULL => 1});
+    $dbh->bz_alter_column('test_run_tags', 'run_id', {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {
+                TABLE  => 'test_runs',
+                COLUMN => 'run_id',
+                DELETE => 'CASCADE'
+            }});
 
     $dbh->bz_drop_index('test_attachments', 'AI_attachment_id');
     $dbh->bz_drop_index('test_attachments', 'attachment_id');
@@ -224,6 +324,7 @@ sub testopiaUpdateDB {
     $dbh->bz_add_index('test_case_runs', 'case_run_env_idx_v2', ['environment_id']);
     $dbh->bz_add_index('test_case_runs', 'case_run_status_idx', ['case_run_status_id']);
     $dbh->bz_add_index('test_case_runs', 'case_run_text_ver_idx', ['case_text_version']);
+    $dbh->bz_add_index('test_case_runs', 'case_run_priority_idx', ['priority_id']);
     $dbh->bz_add_index('test_cases', 'test_case_requirement_idx', ['requirement']);
     $dbh->bz_add_index('test_cases', 'test_case_status_idx', ['case_status_id']);
     $dbh->bz_add_index('test_cases', 'test_case_tester_idx', ['default_tester_id']);
@@ -500,11 +601,11 @@ sub fixTables {
     # Fix test_case_bugs table so that all case_id fields are not null.
     my ($count) = $dbh->selectrow_array("SELECT COUNT(*) FROM test_case_bugs WHERE case_id IS NULL");
     if ($count){
-        require Bugzilla::Testopia::TestCaseRun;
+        require Testopia::TestCaseRun;
         my $caseruns = $dbh->selectcol_arrayref("SELECT case_run_id FROM test_case_bugs WHERE case_id IS NULL");
         my $sth = $dbh->prepare_cached("UPDATE test_case_bugs SET case_id = ? WHERE case_run_id = ?");
         foreach my $cr (@$caseruns){
-            my $caserun = Bugzilla::Testopia::TestCaseRun->new($cr);
+            my $caserun = Testopia::TestCaseRun->new($cr);
             $sth->execute($caserun->case->id, $cr);
         }
     }
@@ -556,5 +657,19 @@ sub finalFixups {
             "WHERE name = 'estimated_time'")) {
         $dbh->do("INSERT INTO test_fielddefs (name, description, table_name) " .
                 "VALUES ('estimated_time', 'Estimated Time', 'test_cases')");
+    }
+    if ($dbh->selectrow_array("SELECT COUNT(*) FROM test_case_runs WHERE priority_id = 0")){
+        print "Updating case_run priorities...\n";
+        my $cases = $dbh->selectall_arrayref("SELECT case_id, priority_id FROM test_cases",{'Slice'=>{}});
+        my $sth = $dbh->prepare_cached("UPDATE test_case_runs SET priority_id = ? WHERE case_id = ?");
+        foreach my $c (@$cases){
+            $sth->execute($c->{priority_id},$c->{case_id})
+        }
+        # Anything left over should get the default priority
+        $dbh->do("UPDATE test_case_runs 
+                     SET priority_id = (SELECT id 
+                                          FROM priority 
+                                         WHERE value = ?) 
+                   WHERE priority_id = 0", undef, Bugzilla->params->{defaultpriority});
     }
 }

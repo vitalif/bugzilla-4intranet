@@ -5,7 +5,7 @@ use utf8;
 use strict;
 use Bugzilla::Util;
 use Bugzilla::User;
-use Bugzilla::Testopia::TestCase;
+use Testopia::TestCase;
 
 use Encode;
 use URI;
@@ -153,7 +153,7 @@ sub wiki_sync_case
     delete $case->{category};
     $case->{priority_id} = $case->{priority} || 'P3';
     delete $case->{priority};
-    return $case = Bugzilla::Testopia::TestCase->create($case);
+    return $case = Testopia::TestCase->create($case);
 }
 
 sub fetch_wiki_category_xml

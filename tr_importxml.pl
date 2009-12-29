@@ -44,34 +44,35 @@ BEGIN {
 }
 
 chdir $::path;
-use lib ($::path);
+use lib ( $::path, "extensions/testopia/lib" );
 
 use Bugzilla;
-use Bugzilla::Util;
-use Bugzilla::Config;
 use Bugzilla::Constants;
-use Bugzilla::Error;
-use Bugzilla::Testopia::Util;
-use Bugzilla::Testopia::TestRun;
-use Bugzilla::Testopia::Environment;
-use Bugzilla::Testopia::Xml;
+use Testopia::Importer;
 
 use XML::Twig;
 use Getopt::Long;
 use Pod::Usage;
 
 # Keep the template from spitting out garbage
-Bugzilla->usage_mode(Bugzilla::Constants::USAGE_MODE_CMDLINE);
+Bugzilla->usage_mode(USAGE_MODE_CMDLINE);
+Bugzilla->error_mode(ERROR_MODE_DIE);
 
 my $debug = 0;
 my $help  = 0;
 my $login = undef;
 my $pass  = undef; 
+my $product;
+my $plans;
 
-my $result = GetOptions("verbose|debug+" => \$debug,
+my $result = GetOptions(
+    "verbose|debug+" => \$debug,
                         "help|?"         => \$help,
                         "login=s"        => \$login,
-                        "pass=s"         => \$pass);
+    "pass=s"         => \$pass,
+    "product=s"      => \$product,
+    "plans=s"        => \$plans, 
+);
 
 pod2usage(0) if $help;
 
@@ -80,49 +81,46 @@ use constant ERR_LEVEL => 1;
 
 sub Debug {
     return unless ($debug);
-    my ($message, $level) = (@_);
-    print STDERR "ERR: ". $message ."\n" if ($level == ERR_LEVEL);
-    print STDERR "$message\n" if (($debug == $level) && ($level == DEBUG_LEVEL));
+    my ( $message, $level ) = (@_);
+    print STDERR "ERR: " . $message . "\n" if ( $level == ERR_LEVEL );
+    print STDERR "$message\n" if ( ( $debug == $level ) && ( $level == DEBUG_LEVEL ) );
 }
 
-Debug("Reading xml", DEBUG_LEVEL);
+Debug( "Reading xml", DEBUG_LEVEL );
 
 my $xml;
 my $filename;
-if ( $#ARGV == -1 )
-{
+if ( $#ARGV == -1 ) {
+
     # Read STDIN in slurp mode. VERY dangerous, but we live on the wild side ;-)
-    local($/);
+    local ($/);
     $xml = <>;
 }
-elsif ( $#ARGV == 0 )
-{
-    $filename = $ARGV[0];
+elsif ( $#ARGV == 0 ) {
+    $xml = $ARGV[0];
 }
-else
-{
+else {
     pod2usage(0);
 }
 
 # Log in if credentials are provided.
-if (defined $login)
-{
-    Debug("Logging in as '$login'", DEBUG_LEVEL);
+if ( defined $login ) {
+    Debug( "Logging in as '$login'", DEBUG_LEVEL );
 
     # Make sure no user is logged in
     Bugzilla->logout();
-
     my $cgi = Bugzilla->cgi();
-    $cgi->param("Bugzilla_login", $login);
-    $cgi->param("Bugzilla_password", $pass);
+    $cgi->param( "Bugzilla_login",    $login );
+    $cgi->param( "Bugzilla_password", $pass );
 
     Bugzilla->login();
 }
                         
-Debug("Parsing tree", DEBUG_LEVEL);
+Debug( "Parsing tree", DEBUG_LEVEL );
 
-my $testopiaXml = Bugzilla::Testopia::Xml->new();
-$testopiaXml->parse($xml,$filename);
+my $testopiaXml = new Testopia::Importer;
+$testopiaXml->debug($debug);
+$testopiaXml->parse( $xml, $product, $plans );
 
 exit 0;
 
@@ -142,6 +140,8 @@ tr_importxml - Import Testopia data from xml.
                         Multiple -v options increase verbosity.
        --login          Login ID (email address)
        --pass           Password
+       --product        Name of product to import plans into. (Overrides product value in XML)
+       --plans          Comma separated list of plan numbers to import cases into. (Overrides values in XML)
                         
        With no file read standard input.
 

@@ -20,7 +20,7 @@
 # Contributor(s): Greg Hendricks <ghendricks@novell.com>
 
 use strict;
-use lib qw(. lib);
+use lib qw(. lib extensions/testopia/lib);
 
 use Bugzilla;
 use Bugzilla::Bug;
@@ -28,13 +28,13 @@ use Bugzilla::Util;
 use Bugzilla::User;
 use Bugzilla::Error;
 use Bugzilla::Constants;
-use Bugzilla::Testopia::Util;
-use Bugzilla::Testopia::TestCase;
-use Bugzilla::Testopia::Category;
-use Bugzilla::Testopia::TestCaseRun;
-use Bugzilla::Testopia::TestTag;
-use Bugzilla::Testopia::Attachment;
-use Bugzilla::Testopia::Constants;
+use Testopia::Util;
+use Testopia::TestCase;
+use Testopia::Category;
+use Testopia::TestCaseRun;
+use Testopia::TestTag;
+use Testopia::Attachment;
+use Testopia::Constants;
 use JSON;
 
 Bugzilla->error_mode(ERROR_MODE_AJAX);
@@ -44,7 +44,7 @@ my $cgi = Bugzilla->cgi;
 
 my $action = $cgi->param('action') || '';
 
-my $case = Bugzilla::Testopia::TestCase->new($cgi->param('case_id'));
+my $case = Testopia::TestCase->new($cgi->param('case_id'));
 
 unless ($case){
     print $cgi->header;
@@ -98,7 +98,7 @@ elsif ($action eq 'link') {
     print $cgi->header; 	 
     my @plans; 	 
     foreach my $id (split(',', $cgi->param('plan_ids'))){ 	 
-        my $plan = Bugzilla::Testopia::TestPlan->new($id); 	 
+        my $plan = Testopia::TestPlan->new($id);      
         ThrowUserError("testopia-read-only", {'object' => $plan}) unless $plan->canedit; 	 
         push @plans, $plan; 	 
     } 	 
@@ -118,7 +118,7 @@ elsif ($action eq 'unlink'){
     my $plan_id = $cgi->param('plan_id');
     validate_test_id($plan_id, 'plan');
     ThrowUserError("testopia-read-only", {'object' => 'case'}) unless ($case->can_unlink_plan($plan_id));
-    ThrowUserError('testopia-case-unlink-failure') unless $case->unlink_plan($plan_id);
+    $case->unlink_plan($plan_id);
     
     print "{'success': true}";
 }
@@ -202,7 +202,7 @@ elsif($action eq 'getcomponents'){
     ThrowUserError("testopia-permission-denied", {'object' => $case}) unless $case->canview;
     my @comps;
     foreach my $c (@{$case->components}){
-        push @comps, {'id' => $c->id, 'name' => $c->name};
+        push @comps, {'id' => $c->id, 'name' => $c->name, 'product' => $c->product->name};
     }
     my $json = new JSON;
     print "{'comps':" . $json->encode(\@comps) . "}";   
@@ -213,10 +213,20 @@ elsif ($action eq 'case_to_bug'){
     
     ThrowUserError("testopia-read-only", {'object' => $case}) unless $case->canedit;
     $case->text;
-    $case->{text}->{action} =~ s/(<br[\s\/>]+|<p.*?>|<li.*?>)/\n\n/g;
-    $case->{text}->{action} =~ s/<.*?>//g;
+    foreach my $field qw(action effect) {
+        $case->{text}->{$field} =~ s/(<br[\s\/>]+|<p.*?>|<li.*?>)/\n/g;
+        $case->{text}->{$field} =~ s/<.*?>//g;
+        # Trivial HTML tag remover
+        $case->{text}->{$field} =~ s/<[^>]*>//g;
+        # And this basically reverses the html filter.
+        $case->{text}->{$field} =~ s/\&#64;/@/g;
+        $case->{text}->{$field} =~ s/\&lt;/</g;
+        $case->{text}->{$field} =~ s/\&gt;/>/g;
+        $case->{text}->{$field} =~ s/\&quot;/\"/g;
+        $case->{text}->{$field} =~ s/\&amp;/\&/g;
+    }
     my $vars;
-    $vars->{'caserun'} = Bugzilla::Testopia::TestCaseRun->new($cgi->param('caserun_id')) if $cgi->param('caserun_id');
+    $vars->{'caserun'} = Testopia::TestCaseRun->new($cgi->param('caserun_id')) if $cgi->param('caserun_id');
     $vars->{'case'} = $case;
 
     print $cgi->header(-type => 'text/xml');

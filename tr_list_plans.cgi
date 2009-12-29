@@ -21,27 +21,24 @@
 #                 Jeff Dayley <jedayley@novell.com>
  
 use strict;
-use lib qw(. lib);
+use lib qw(. lib extensions/testopia/lib);
 
 use Bugzilla;
 use Bugzilla::Config;
 use Bugzilla::Error;
 use Bugzilla::Constants;
 use Bugzilla::Util;
-use Bugzilla::Testopia::Util;
-use Bugzilla::Testopia::Search;
-use Bugzilla::Testopia::Table;
-use Bugzilla::Testopia::Constants;
+use Testopia::Util;
+use Testopia::Search;
+use Testopia::Table;
+use Testopia::Constants;
 
 my $vars = {};
 
 my $cgi = Bugzilla->cgi;
 my $template = Bugzilla->template;
 
-Bugzilla->error_mode(ERROR_MODE_AJAX);
 Bugzilla->login(LOGIN_REQUIRED);
-
-my $format = $template->get_format("testopia/plan/list", scalar $cgi->param('format'), scalar $cgi->param('ctype'));
 
 # prevent DOS attacks from multiple refreshes of large data
 $::SIG{TERM} = 'DEFAULT';
@@ -50,6 +47,7 @@ $::SIG{PIPE} = 'DEFAULT';
 my $action = $cgi->param('action') || '';
 
 if ($action eq 'update'){
+    Bugzilla->error_mode(ERROR_MODE_AJAX);
     print $cgi->header;
     my @plan_ids = split(',', $cgi->param('ids'));
     
@@ -58,7 +56,7 @@ if ($action eq 'update'){
     my $total = scalar @plan_ids;
     my @uneditable;
     foreach my $p (@plan_ids){
-        my $plan = Bugzilla::Testopia::TestPlan->new($p);
+        my $plan = Testopia::TestPlan->new($p);
         next unless $plan;
         
         unless ($plan->canedit){
@@ -75,14 +73,32 @@ if ($action eq 'update'){
     print "{'success': true}";    
 }
 else {
+    my $format = $template->get_format("testopia/plan/list", scalar $cgi->param('format'), scalar $cgi->param('ctype'));
+    if ( $format->{'extension'} =~ /(json)/ ){
+        Bugzilla->error_mode(ERROR_MODE_AJAX);
+    }
+    
     $vars->{'qname'} = $cgi->param('qname') if $cgi->param('qname');
     $cgi->param('current_tab', 'plan');
     $cgi->param('distinct', '1');
-    my $search = Bugzilla::Testopia::Search->new($cgi);
-    my $table = Bugzilla::Testopia::Table->new('plan', 'tr_list_plans.cgi', $cgi, undef, $search->query);
     
-    print $cgi->header;
+    my $search = Testopia::Search->new($cgi);
+    my $table = Testopia::Table->new('plan', 'tr_list_plans.cgi', $cgi, undef, $search->query);
+    my $disp = "inline";
+    # We set CSV files to be downloaded, as they are designed for importing
+    # into other programs.
+    if ( $format->{'extension'} =~ /(csv|xml)/ ){
+        $disp = "attachment";
+        $vars->{'displaycolumns'} = Testopia::TestCase::fields;
+    }
+    my @time = localtime(time());
+    my $date = sprintf "%04d-%02d-%02d", 1900+$time[5],$time[4]+1,$time[3];
+    my $filename = "testplans-$date.$format->{extension}";
+    print $cgi->header(-type => $format->{'ctype'},
+                   -content_disposition => "$disp; filename=$filename");
+
     $vars->{'json'} = $table->to_ext_json;
+    $vars->{'table'} = $table;
     $template->process($format->{'template'}, $vars)
         || ThrowTemplateError($template->error());
 }

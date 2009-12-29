@@ -29,6 +29,24 @@ sub OPTIONAL_MODULES {
         module  => 'GD::Graph3d',
         version => '0.63'
     },
+    {
+        package => 'XML Schema Validator',
+        module  => 'XML::Validator::Schema',
+        version => '1.10',
+        feature => 'XML Importing of test cases and plans'
+    },
+    {
+        package => 'XML Schema Parser',
+        module  => 'XML::SAX::ParserFactory',
+        version => 0,
+        feature => 'XML Importing of test cases and plans'
+    },
+    {
+        package => 'XML Twig',
+        module  => 'XML::Twig',
+        version => 0,
+        feature => 'XML Importing of test cases and plans'
+    }
     );
     
     return \@modules;
