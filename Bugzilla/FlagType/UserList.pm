@@ -46,6 +46,7 @@ sub add
     my $role = shift;
     for (@_)
     {
+        $_ || next;
         if ($self->{cl}->{$_->id})
         {
             $self->{cl}->{$_->id}->[1] = $role if $roleindex{$self->{cl}->{$_->id}->[1]} < $roleindex{$role};
