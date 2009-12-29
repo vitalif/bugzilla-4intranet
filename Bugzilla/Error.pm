@@ -38,6 +38,8 @@ use Data::Dumper;
 
 use overload '""' => sub { $_[0]->{message} };
 
+my $HAVE_DEVEL_STACKTRACE = eval { require Devel::StackTrace };
+
 # We cannot use $^S to detect if we are in an eval(), because mod_perl
 # already eval'uates everything, so $^S = 1 in all cases under mod_perl!
 sub _in_eval {
@@ -77,6 +79,11 @@ sub _throw_error
 
     $vars ||= {};
     $vars->{error} = $error;
+    if (!$vars->{stack_trace} && $HAVE_DEVEL_STACKTRACE)
+    {
+        # Append stack trace if Devel::StackTrace is available
+        $vars->{stack_trace} = Devel::StackTrace->new->as_string;
+    }
     my $mode = Bugzilla->error_mode;
 
     # Make sure any transaction is rolled back (if supported).
