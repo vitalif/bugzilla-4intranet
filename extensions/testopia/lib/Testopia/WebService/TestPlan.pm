@@ -24,12 +24,13 @@ package extensions::testopia::lib::Testopia::WebService::TestPlan;
 use strict;
 
 use base qw(Bugzilla::WebService);
-use lib qw(./extensions/testopia/lib);
 
 use Bugzilla::Constants;
 use Bugzilla::User;
 use Bugzilla::Util;
 use Bugzilla::Error;
+
+use lib (bz_locations()->{extensionsdir} . '/testopia/lib');
 
 use Testopia::TestPlan;
 use Testopia::Search;
