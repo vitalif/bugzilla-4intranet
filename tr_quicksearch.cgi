@@ -314,6 +314,11 @@ else{
             # For update multiple from tr_list_plans
             push @versions, {'id' => "--Do Not Change--", 'name' => "--Do Not Change--"};
         }
+        elsif (!$prod_id)
+        {
+            print '{versions:[]}';
+            exit;
+        }
         else{
             detaint_natural($prod_id);
             my $prod = $plan->lookup_product($prod_id);
