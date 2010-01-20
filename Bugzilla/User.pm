@@ -564,7 +564,7 @@ sub get_editable_products
         # restrict product list by classification
         $sql .= " $t classification_id=".int($classification_id);
     }
-    return Bugzilla->dbh->selectcol_arrayref($sql) || [];
+    return Bugzilla::Product->new_from_list(Bugzilla->dbh->selectcol_arrayref($sql) || []);
 }
 
 sub can_see_user {
