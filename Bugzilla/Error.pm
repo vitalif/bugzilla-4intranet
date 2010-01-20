@@ -42,13 +42,14 @@ my $HAVE_DEVEL_STACKTRACE = eval { require Devel::StackTrace };
 
 # We cannot use $^S to detect if we are in an eval(), because mod_perl
 # already eval'uates everything, so $^S = 1 in all cases under mod_perl!
-sub _in_eval {
-    my $in_eval = 0;
-    for (my $stack = 1; my $sub = (caller($stack))[3]; $stack++) {
+sub _in_eval
+{
+    for (my $stack = 1; my $sub = (caller($stack))[3]; $stack++)
+    {
         last if $sub =~ /^ModPerl/;
-        $in_eval = 1 if $sub =~ /^\(eval\)/;
+        return 1 if $sub =~ /^\(eval\)/;
     }
-    return $in_eval;
+    return 0;
 }
 
 # build error message for printing into error log or sending to maintainer e-mail
@@ -75,8 +76,8 @@ sub _error_message
 sub _throw_error
 {
     my ($type, $error, $vars) = @_;
-    my $dbh = Bugzilla->dbh;
 
+    my $msg;
     $vars ||= {};
     $vars->{error} = $error;
     if (!$vars->{stack_trace} && $HAVE_DEVEL_STACKTRACE)
@@ -86,10 +87,18 @@ sub _throw_error
     }
     my $mode = Bugzilla->error_mode;
 
+    if ($mode == ERROR_MODE_DIE)
+    {
+        die bless { message => ($msg ||= _error_message($type, $error, $vars)) };
+    }
+
+    # If we are within an eval(), do not do anything more
+    # as we are eval'uating some test on purpose.
+    exit if _in_eval();
+
     # Make sure any transaction is rolled back (if supported).
-    # If we are within an eval(), do not roll back transactions as we are
-    # eval'uating some test on purpose.
-    $dbh->bz_rollback_transaction() if ($dbh->bz_in_transaction() && !_in_eval());
+    my $dbh = Bugzilla->dbh;
+    $dbh->bz_rollback_transaction() if $dbh->bz_in_transaction();
 
     my $message;
     unless (Bugzilla->template->process("global/$type-error.html.tmpl", $vars, \$message))
@@ -108,8 +117,6 @@ sub _throw_error
         # If we failed processing template error, simply die
         $mode = ERROR_MODE_DIE;
     }
-
-    my $msg;
 
     # Report error into [$datadir/] params.error_log if requested
     if (my $logfile = Bugzilla->params->{error_log})
@@ -138,14 +145,13 @@ sub _throw_error
         MessageToMTA($t, 1);
     }
 
-    if ($mode == ERROR_MODE_WEBPAGE) {
+    if ($mode == ERROR_MODE_WEBPAGE)
+    {
         print Bugzilla->cgi->header();
         print $message;
     }
-    elsif ($mode == ERROR_MODE_DIE) {
-        die bless { message => ($msg ||= _error_message($type, $error, $vars)) };
-    }
-    elsif ($mode == ERROR_MODE_DIE_SOAP_FAULT) {
+    elsif ($mode == ERROR_MODE_DIE_SOAP_FAULT)
+    {
         # Clone the hash so we aren't modifying the constant.
         my %error_map = %{ WS_ERROR_CODE() };
         require Bugzilla::Hook;
@@ -158,7 +164,8 @@ sub _throw_error
         }
         die bless { message => SOAP::Fault->faultcode($code)->faultstring($message) };
     }
-    elsif ($mode == ERROR_MODE_AJAX) {
+    elsif ($mode == ERROR_MODE_AJAX)
+    {
         # JSON can't handle strings across lines.
         $message =~ s/\n/ /gm;
         my $err;
