@@ -58,7 +58,7 @@ $vars->{'doc_section'} = 'products.html';
 print $cgi->header();
 
 $user->in_group('editcomponents')
-  || scalar(@{$user->get_products_by_permission('editcomponents')})
+  || scalar(@{$user->get_editable_products})
   || ThrowUserError("auth_failure", {group  => "editcomponents",
                                      action => "edit",
                                      object => "products"});
@@ -87,7 +87,7 @@ if (Bugzilla->params->{'useclassification'}
     else {
         # Only keep classifications containing at least one product
         # which you can administer.
-        my $products = $user->get_products_by_permission('editcomponents');
+        my $products = $user->get_editable_products;
         my %class_ids = map { $_->classification_id => 1 } @$products;
         $class = Bugzilla::Classification->new_from_list([keys %class_ids]);
     }
@@ -110,20 +110,12 @@ if (!$action && !$product_name) {
 
     if (Bugzilla->params->{'useclassification'}) {
         $classification = Bugzilla::Classification->check($classification_name);
-        $products = $user->get_selectable_products($classification->id);
+        $products = $user->get_editable_products($classification->id);
         $vars->{'classification'} = $classification;
     } else {
-        $products = $user->get_selectable_products;
+        $products = $user->get_editable_products;
     }
 
-    # If the user has editcomponents privs for some products only,
-    # we have to restrict the list of products to display.
-    unless ($user->in_group('editcomponents')) {
-        $products = $user->get_products_by_permission('editcomponents');
-        if (Bugzilla->params->{'useclassification'}) {
-            @$products = grep {$_->classification_id == $classification->id} @$products;
-        }
-    }
     $vars->{'products'} = $products;
     $vars->{'showbugcounts'} = $cgi->param('showbugcounts') ? 1 : 0;
 
@@ -217,11 +209,11 @@ if ($action eq 'del') {
     }
     $vars->{'product'} = $product;
     $vars->{'token'} = issue_session_token('delete_product');
-    
+
     Bugzilla::Hook::process("editproducts-confirm_delete", { vars => $vars });
-    
+
     Bugzilla::Hook::process("product-confirm_delete", { vars => $vars });
-    
+
     $template->process("admin/products/confirm-delete.html.tmpl", $vars)
         || ThrowTemplateError($template->error());
     exit;
@@ -250,13 +242,7 @@ if ($action eq 'delete') {
           || ThrowTemplateError($template->error());
     }
     else {
-        my $products = $user->get_selectable_products;
-        # If the user has editcomponents privs for some products only,
-        # we have to restrict the list of products to display.
-        unless ($user->in_group('editcomponents')) {
-            $products = $user->get_products_by_permission('editcomponents');
-        }
-        $vars->{'products'} = $products;
+        $vars->{'products'} = $user->get_editable_products;
 
         $template->process("admin/products/list.html.tmpl", $vars)
           || ThrowTemplateError($template->error());

@@ -548,6 +548,25 @@ sub get_products_by_permission {
     return \@products;
 }
 
+# Moved from get_products_by_permission
+sub get_editable_products
+{
+    my ($self, $classification_id) = @_;
+    my $sql = "SELECT DISTINCT products.id FROM products";
+    my $t = "WHERE";
+    if (!$self->in_group('editcomponents'))
+    {
+        $sql .= ", group_control_map WHERE editcomponents=1 AND group_id IN (".$self->groups_as_string.")";
+        $t = "AND";
+    }
+    if ($classification_id)
+    {
+        # restrict product list by classification
+        $sql .= " $t classification_id=".int($classification_id);
+    }
+    return Bugzilla->dbh->selectcol_arrayref($sql) || [];
+}
+
 sub can_see_user {
     my ($self, $otherUser) = @_;
     my $query;

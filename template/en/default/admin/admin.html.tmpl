@@ -68,7 +68,7 @@
         find information more easily when doing searches or when filing new [% terms.bugs %].</dd>
 
         [% class = (user.in_group('editcomponents')
-                    || user.get_products_by_permission("editcomponents").size) ? "" : "forbidden" %]
+                    || user.get_editable_products.size) ? "" : "forbidden" %]
         <dt class="[% class %]"><a href="editproducts.cgi">Products</a></dt>
         <dd class="[% class %]">Edit all aspects of products, including group restrictions
         which let you define who can access [% terms.bugs %] being in these products. You

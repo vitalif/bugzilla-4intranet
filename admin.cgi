@@ -39,7 +39,7 @@ $user->in_group('admin')
   || $user->can_bless
   || (Bugzilla->params->{'useclassification'} && $user->in_group('editclassifications'))
   || $user->in_group('editcomponents')
-  || scalar(@{$user->get_products_by_permission('editcomponents')})
+  || scalar(@{$user->get_editable_products})
   || $user->in_group('creategroups')
   || $user->in_group('editkeywords')
   || $user->in_group('bz_canusewhines')

@@ -46,7 +46,7 @@ my $user = Bugzilla->login(LOGIN_REQUIRED);
 print $cgi->header();
 
 $user->in_group('editcomponents')
-  || scalar(@{$user->get_products_by_permission('editcomponents')})
+  || scalar(@{$user->get_editable_products})
   || ThrowUserError("auth_failure", {group  => "editcomponents",
                                      action => "edit",
                                      object => "milestones"});
@@ -66,13 +66,7 @@ my $token          = $cgi->param('token');
 #
 
 unless ($product_name) {
-    my $selectable_products = $user->get_selectable_products;
-    # If the user has editcomponents privs for some products only,
-    # we have to restrict the list of products to display.
-    unless ($user->in_group('editcomponents')) {
-        $selectable_products = $user->get_products_by_permission('editcomponents');
-    }
-    $vars->{'products'} = $selectable_products;
+    $vars->{'products'} = $user->get_editable_products;
     $vars->{'showbugcounts'} = $showbugcounts;
 
     $template->process("admin/milestones/select-product.html.tmpl", $vars)

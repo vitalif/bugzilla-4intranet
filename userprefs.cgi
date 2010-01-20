@@ -369,12 +369,12 @@ sub SaveEmail
     }
 }
 
-
-sub DoPermissions {
+sub DoPermissions
+{
     my $dbh = Bugzilla->dbh;
     my $user = Bugzilla->user;
     my (@has_bits, @set_bits);
-    
+
     my $groups = $dbh->selectall_arrayref(
                "SELECT DISTINCT name, description FROM groups WHERE id IN (" . 
                $user->groups_as_string . ") ORDER BY name");
@@ -392,18 +392,23 @@ sub DoPermissions {
         }
     }
 
-    # If the user has product specific privileges, inform him about that.
-    foreach my $privs (PER_PRODUCT_PRIVILEGES) {
-        next if $user->in_group($privs);
+    if (!$user->in_group('editcomponents'))
+    {
+        # There exists a distinct function for this
+        $vars->{local_editcomponents} = $user->get_editable_products;
+    }
+
+    foreach my $privs (PER_PRODUCT_PRIVILEGES)
+    {
+        next if $privs eq 'editcomponents' || $user->in_group($privs);
         $vars->{"local_$privs"} = $user->get_products_by_permission($privs);
     }
 
     $vars->{'has_bits'} = \@has_bits;
-    $vars->{'set_bits'} = \@set_bits;    
+    $vars->{'set_bits'} = \@set_bits;
 }
 
 # No SavePermissions() because this panel has no changeable fields.
-
 
 sub DoSavedSearches {
     my $cgi = Bugzilla->cgi;
