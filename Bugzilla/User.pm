@@ -836,9 +836,9 @@ sub check_can_admin_product {
     # First make sure the product name is valid.
     my $product = Bugzilla::Product::check_product($product_name);
 
-    ($self->in_group('editcomponents', $product->id)
-       && $self->can_see_product($product->name))
-         || ThrowUserError('product_admin_denied', {product => $product->name});
+    ($self->in_group('editcomponents', $product->id) && $self->can_see_product($product->name))
+        || $self->in_group('editcomponents')
+        || ThrowUserError('product_admin_denied', {product => $product->name});
 
     # Return the validated product object.
     return $product;
