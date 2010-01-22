@@ -46,7 +46,8 @@ use base qw(Exporter);
                              file_mod_time is_7bit_clean
                              bz_crypt generate_random_password
                              validate_email_syntax clean_text
-                             get_term get_text disable_utf8 stem_text);
+                             get_fielddesc get_term
+                             get_text disable_utf8 stem_text);
 
 use Bugzilla::Constants;
 
@@ -641,6 +642,21 @@ sub clean_text {
     return trim($dtext);
 }
 
+sub load_cached_fielddescs_template
+{
+    my $tt;
+    unless ($tt = Bugzilla->request_cache->{_global_field_descs_none_tmpl})
+    {
+        # создаём отдельный шаблон
+        $tt = Bugzilla::Template->create();
+        # хакаемся внутрь контекста и делаем process без localise
+        $tt = $tt->{SERVICE}->context;
+        $tt->process('global/field-descs.none.tmpl');
+        Bugzilla->request_cache->{_global_field_descs_none_tmpl} = $tt;
+    }
+    return $tt;
+}
+
 # Довольно некрасивый хак для бага см.ниже - на багах с длинным числом комментов
 # quoteUrls вызывает на каждый коммент get_text('term', { term => 'bug' }),
 # что приводит к ужасной производительности. например, на баге с 703
@@ -649,17 +665,15 @@ sub clean_text {
 sub get_term
 {
     my ($term) = @_;
-    my $tt;
-    unless ($tt = Bugzilla->request_cache->{_variables_none_tmpl})
-    {
-        # создаём отдельный шаблон
-        $tt = Bugzilla::Template->create();
-        # хакаемся внутрь контекста и делаем process без localise
-        $tt = $tt->{SERVICE}->context;
-        $tt->process('global/variables.none.tmpl');
-        Bugzilla->request_cache->{_variables_none_tmpl} = $tt;
-    }
+    my $tt = load_cached_fielddescs_template();
     return $tt->stash->get(['terms', 0, $term, 0]);
+}
+
+sub get_fielddesc
+{
+    my ($field) = @_;
+    my $tt = load_cached_fielddescs_template();
+    return $tt->stash->get(['field_descs', 0, $field, 0]);
 }
 
 # CustIS Bug 40933 ФАКМОЙМОЗГ! ВРОТМНЕНОГИ! КТО ТАК ПИШЕТ?!!!!
@@ -679,7 +693,6 @@ sub get_text {
     $message =~ s/^    //gm;
     return $message;
 }
-
 
 sub get_netaddr {
     my $ipaddr = shift;
