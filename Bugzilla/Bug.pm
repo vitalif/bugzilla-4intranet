@@ -2098,17 +2098,20 @@ sub set_product {
                 # Note that because of the eval { set } above, these are
                 # already set correctly if they're valid, otherwise they're
                 # set to some invalid value which the template will ignore.
-                component => $self->component,
-                version   => $self->version,
-                milestone => $milestone_ok ? $self->target_milestone
-                                           : $product->default_milestone
+                component  => $self->component,
+                version    => $self->version,
+                milestone  => $milestone_ok ? $self->target_milestone : $product->default_milestone
             };
+            $vars{component_ok} = $component_ok;
+            $vars{version_ok}   = $version_ok;
+            $vars{milestone_ok} = $milestone_ok;
             $vars{components} = [map { $_->name } @{$product->components}];
             $vars{milestones} = [map { $_->name } @{$product->milestones}];
             $vars{versions}   = [map { $_->name } @{$product->versions}];
         }
 
-        if (!$verified) {
+        if (!$verified)
+        {
             $vars{verify_bug_groups} = 1;
             my $dbh = Bugzilla->dbh;
             my @idlist = ($self->id);
@@ -2131,9 +2134,20 @@ sub set_product {
             $vars{'old_groups'} = Bugzilla::Group->new_from_list($gids);
         }
 
-        if (%vars) {
+        if (%vars)
+        {
             $vars{product} = $product;
             $vars{bug} = $self;
+            # Logic moved away from template
+            my @ex;
+            $version_ok || push @ex, 'version';
+            $component_ok || push @ex, 'component';
+            $milestone_ok || push @ex, 'target_milestone';
+            warn 'EX='.join ',', @ex;
+            $vars{incorrect_fields} = [ map { get_fielddesc($_) } @ex ];
+            $vars{verify_bug_groups} && push @ex, 'bit-\d+';
+            $vars{exclude_params_re} = '^' . join('|', @ex) . '$';
+            # Output "Verify new product details" page
             my $template = Bugzilla->template;
             $template->process("bug/process/verify-new-product.html.tmpl",
                 \%vars) || ThrowTemplateError($template->error());
