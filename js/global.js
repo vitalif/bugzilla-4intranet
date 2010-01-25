@@ -148,7 +148,11 @@ function menuforusers_initcombo(id, multi)
   if (multi)
   {
     YAHOO.util.Event.addListener(document.body, "click", function(ev) {
-      if (ev.srcElement.id != id && ev.srcElement.id != id+'_b' && ev.srcElement.id != id+'_s' && ev.srcElement.parentElement.id != id+'_s')
+      if (!ev) var ev = window.event;
+      var t = ev.target;
+      if (!t) t = ev.srcElement;
+      if (t.nodeType == 3) t = t.parentNode; // Safari bug
+      if (t.id != id && t.id != id+'_b' && t.id != id+'_s' && t.parentNode.id != id+'_s')
         menuforusers_showmulti(id, false)
     });
     YAHOO.util.Event.addListener(document.getElementById(id+'_b'), "click", function(ev) { menuforusers_showmulti(id); });
