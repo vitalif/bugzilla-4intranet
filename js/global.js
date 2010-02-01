@@ -226,3 +226,25 @@ function menuforusers_showmulti(id, wha)
   sel.style.visibility = show ? '' : 'hidden';
   btn.src = 'images/dn' + (show ? 'push' : '') + '.gif';
 }
+
+/* work time parser: "1,5" or "1:30" (HH:MM) = 1.5, "1.5d" (days) = 12 */
+function bzParseTime(time)
+{
+  time = time+"";
+  time = time.replace(',','.');
+  if (m = time.match(/^\s*(-?)(\d+):(\d+)\s*$/))
+  {
+    for (var i = 2; i < 5; i++)
+    {
+      if (!m[i]) m[i] = 0;
+      else m[i] = parseInt(m[i]);
+    }
+    if (!m[1]) m[1] = '';
+    time = Math.floor(parseFloat(m[1] + (m[2] + m[3]/60))*100+0.5)/100;
+  }
+  else if (m = time.match(/^\s*(-?\d+(?:\.\d+)?)d\s*$/))
+    time = parseFloat(m[1])*8;
+  else
+    time = parseFloat(time);
+  return time;
+}

@@ -52,6 +52,7 @@ use Storable qw(dclone);
 use URI;
 use URI::QueryParam;
 use Date::Format qw(time2str);
+use POSIX qw(floor);
 
 use base qw(Bugzilla::Object Exporter);
 @Bugzilla::Bug::EXPORT = qw(
@@ -3212,15 +3213,16 @@ sub ValidateTime
     $time =~ tr/,/./;
     $time = trim($time) || 0;
 
-    if ($time =~ /^(-?)(?:(\d+):(\d+)(?::(\d+))?)$/so)
+    if ($time =~ /^(-?)(\d+):(\d+)$/so)
     {
-        # HH:MM[:SS]
+        # HH:MM
         $time = $1 . ($2 + $3/60 + ($4||0)/3600);
+        $time = floor($time*100+0.5)/100;
     }
     elsif ($time =~ /^(-?\d+(?:\.\d+)?)d$/so)
     {
         # days
-        $time = $1 * 24;
+        $time = $1 * 8;
     }
 
     # regexp verifies one or more digits, optionally followed by a period and

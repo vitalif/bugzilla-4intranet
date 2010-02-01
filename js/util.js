@@ -271,3 +271,39 @@ function bz_toggleClass(anElement, aClass) {
         YAHOO.util.Dom.addClass(anElement, aClass);
     }
 }
+
+/* map { $_ => 1 } %h */
+function array_hash(ar)
+{
+  var h = {};
+  if (ar.length == 1 && ar[0].length == 0)
+    return h;
+  for (i in ar)
+    h[ar[i]] = 1;
+  return h;
+}
+
+/* [a,b,c], [d,b] ---> {d:1},{a:1,c:1} */
+function diff_arrays(a1, a2)
+{
+  var h1 = array_hash(a1);
+  var h2 = array_hash(a2);
+  var add = {}, rem = {};
+  for (i in a1)
+    if (!h2[a1[i]])
+      rem[a1[i]] = 1;
+  for (i in a2)
+    if (!h1[a2[i]])
+      add[a2[i]] = 1;
+  return [ add, rem ];
+}
+
+/* join ",", grep { $h{$_} } keys %h */
+function hash_join(h)
+{
+  var a = [];
+  for (i in h)
+    if (h[i])
+      a.push(i);
+  return a.join(", ");
+}
