@@ -85,7 +85,7 @@ var flags = new Array([% product.components.size %]);
 
 function Create_onsubmit()
 {
-  wt = parseFloat(document.Create.work_time.value.replace(',','.'));
+  wt = bzParseTime(document.Create.work_time.value);
   if (wt != wt || wt < 0)
     wt = 0;
   else if ([% remind_about_worktime_newbug ? 1 : 0 %] && (!wt || wt == 0))
@@ -99,39 +99,6 @@ function Create_onsubmit()
   }
   document.Create.work_time.value = wt;
   return true;
-}
-
-function array_hash(ar)
-{
-  var h = {};
-  if (ar.length == 1 && ar[0].length == 0)
-    return h;
-  for (i in ar)
-    h[ar[i]] = 1;
-  return h;
-}
-
-function diff_arrays(a1, a2)
-{
-  var h1 = array_hash(a1);
-  var h2 = array_hash(a2);
-  var add = {}, rem = {};
-  for (i in a1)
-    if (!h2[a1[i]])
-      rem[a1[i]] = 1;
-  for (i in a2)
-    if (!h1[a2[i]])
-      add[a2[i]] = 1;
-  return [ add, rem ];
-}
-
-function hash_join(h)
-{
-  var a = [];
-  for (i in h)
-    if (h[i])
-      a.push(i);
-  return a.join(", ");
 }
 
 function set_assign_to() {
