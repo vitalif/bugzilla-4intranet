@@ -65,7 +65,6 @@
 %]
 
 [% USE Bugzilla %]
-[% custom_fields = Bugzilla.get_fields({ custom => 1 }) %]
 
 [%# We want to display the type name of fields, not their type ID. %]
 [% overrides.type = {} %]
@@ -78,25 +77,63 @@
   %]
 [% END %]
 
-
 [% overrides.action.obsolete = {
      "1" => {
-     override_content => 1
-     content => "Delete"
-     override_contentlink => 1
-     contentlink => delete_contentlink
+       override_content => 1
+       content => "Delete"
+       override_contentlink => 1
+       contentlink => delete_contentlink
      }
    }
-%] 
+%]
+
+<h2>Custom fields</h2>
 
 [% PROCESS admin/table.html.tmpl
      columns = columns
      overrides = overrides
-     data = custom_fields
+     data = Bugzilla.get_fields({custom => 1})
 %]
 
 <p>
   <a href="editfields.cgi?action=add">Add a new custom field</a>
 </p>
+
+<h2>Standard fields</h2>
+
+[% columns = [
+     {
+       name => "name"
+       heading => "Edit field..."
+       contentlink => "editfields.cgi?action=edit&amp;name=%%name%%"
+     },
+     {
+       name => "description"
+       heading => "Description"
+     },
+     {
+       name => "sortkey"
+       heading => "Sortkey"
+     },
+     {
+       name => "type"
+       heading => "Type"
+     },
+     {
+       name => "mailhead"
+       heading => "In ${terms.Bug}mail on $terms.Bug Creation"
+     },
+     {
+       name => "obsolete"
+       heading => "Is Obsolete"
+     },
+   ]
+%]
+
+[% PROCESS admin/table.html.tmpl
+     columns = columns
+     overrides = overrides
+     data = Bugzilla.get_fields({custom => 0})
+%]
 
 [% PROCESS global/footer.html.tmpl %]

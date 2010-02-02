@@ -80,10 +80,6 @@ elsif ($action eq 'new') {
 }
 elsif ($action eq 'edit') {
     my $name = $cgi->param('name') || ThrowUserError('field_missing_name');
-    # Custom field names must start with "cf_".
-    if ($name !~ /^cf_/) {
-        $name = 'cf_' . $name;
-    }
     my $field = new Bugzilla::Field({'name' => $name});
     $field || ThrowUserError('customfield_nonexistent', {'name' => $name});
 
@@ -99,21 +95,22 @@ elsif ($action eq 'update') {
 
     # Validate fields.
     $name || ThrowUserError('field_missing_name');
-    # Custom field names must start with "cf_".
-    if ($name !~ /^cf_/) {
-        $name = 'cf_' . $name;
-    }
     my $field = new Bugzilla::Field({'name' => $name});
     $field || ThrowUserError('customfield_nonexistent', {'name' => $name});
 
     $field->set_description($cgi->param('desc'));
     $field->set_sortkey($cgi->param('sortkey'));
     $field->set_in_new_bugmail($cgi->param('new_bugmail'));
-    $field->set_enter_bug($cgi->param('enter_bug'));
     $field->set_obsolete($cgi->param('obsolete'));
-    $field->set_visibility_field($cgi->param('visibility_field_id'));
-    $field->set_visibility_value($cgi->param('visibility_value_id'));
-    $field->set_value_field($cgi->param('value_field_id'));
+    if ($field->custom)
+    {
+        # TODO enter_bug could be edited for non-custom fields, too.
+        # At the moment, though, it has no effect for non-custom fields.
+        $field->set_enter_bug($cgi->param('enter_bug'));
+        $field->set_visibility_field($cgi->param('visibility_field_id'));
+        $field->set_visibility_value($cgi->param('visibility_value_id'));
+        $field->set_value_field($cgi->param('value_field_id'));
+    }
     $field->update();
 
     delete_token($token);
@@ -129,6 +126,7 @@ elsif ($action eq 'del') {
 
     # Validate field.
     $name || ThrowUserError('field_missing_name');
+    # Do not allow deleting non-custom fields.
     # Custom field names must start with "cf_".
     if ($name !~ /^cf_/) {
         $name = 'cf_' . $name;
@@ -148,6 +146,7 @@ elsif ($action eq 'delete') {
 
     # Validate fields.
     $name || ThrowUserError('field_missing_name');
+    # Do not allow deleting non-custom fields.
     # Custom field names must start with "cf_".
     if ($name !~ /^cf_/) {
         $name = 'cf_' . $name;
@@ -158,10 +157,10 @@ elsif ($action eq 'delete') {
     # Calling remove_from_db will check if field can be deleted.
     # If the field cannot be deleted, it will throw an error.
     $field->remove_from_db();
-    
+
     $vars->{'field'}   = $field;
     $vars->{'message'} = 'custom_field_deleted';
-    
+
     delete_token($token);
 
     $template->process('admin/custom_fields/list.html.tmpl', $vars)
