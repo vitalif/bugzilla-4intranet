@@ -111,12 +111,15 @@ sub COLUMNS {
 
     # Next we define columns that have special SQL instead of just something
     # like "bugs.bug_id".
-    my $actual_time = '(SUM(ldtime.work_time)'
-        . ' * COUNT(DISTINCT ldtime.bug_when)/COUNT(bugs.bug_id))';
+
+    # ---- vfilippov@custis.ru 2010-02-02
+    # The previous sql code:
+    # "(SUM(ldtime.work_time) * COUNT(DISTINCT ldtime.bug_when)/COUNT(bugs.bug_id))"
+    # was probably written by Australopithecus.
+    my $actual_time = '(SELECT SUM(ldtime.work_time) FROM longdescs ldtime WHERE ldtime.bug_id=bugs.bug_id)';
     my %special_sql = (
         deadline    => $dbh->sql_date_format('bugs.deadline', '%Y-%m-%d'),
         actual_time => $actual_time,
-
         percentage_complete =>
             "(CASE WHEN $actual_time + bugs.remaining_time = 0.0"
               . " THEN 0.0"
@@ -265,10 +268,6 @@ sub init {
                           "ON bugs.component_id = map_components.id";
     }
 
-    if (grep($_ eq 'actual_time' || $_ eq 'percentage_complete', @fields)) {
-        push(@supptables, "LEFT JOIN longdescs AS ldtime " .
-                          "ON ldtime.bug_id = bugs.bug_id");
-    }
     ### Testopia ###
     if (grep($_ eq 'test_cases', @fields)){
         push(@supptables, "LEFT JOIN test_case_bugs AS tcb " . 
@@ -423,139 +422,186 @@ sub init {
         my $sql_chto   = $chfieldto   ? $dbh->quote(SqlifyDate($chfieldto))  :'';
         my $sql_chvalue = $chvalue ne '' ? $dbh->quote($chvalue) : '';
         trick_taint($sql_chvalue);
-        if(!@chfield) {
-            if ($sql_chfrom) {
-                my $term = "bugs.delta_ts >= $sql_chfrom";
-                push(@wherepart, $term);
-                $self->search_description({
-                    field => 'delta_ts', type => 'greaterthaneq',
-                    value => $chfieldfrom, term => $term,
-                });
-            }
-            if ($sql_chto) {
-                my $term = "bugs.delta_ts <= $sql_chto";
-                push(@wherepart, $term);
-                $self->search_description({
-                    field => 'delta_ts', type => 'lessthaneq',
-                    value => $chfieldto, term => $term,
-                });
-            }
-        } else {
-            my $bug_creation_clause;
-            my @list;
-            my @actlist;
-            foreach my $f (@chfield) {
-                if ($f eq "[Bug creation]") {
-                    # Treat [Bug creation] differently because we need to look
-                    # at bugs.creation_ts rather than the bugs_activity table.
-                    my @l;
-                    if ($sql_chfrom) {
-                        my $term = "bugs.creation_ts >= $sql_chfrom";
-                        push(@l, $term);
-                        $self->search_description({
-                            field => 'creation_ts', type => 'greaterthaneq',
-                            value => $chfieldfrom, term => $term,
-                        });
-                    }
-                    if ($sql_chto) {
-                        my $term = "bugs.creation_ts <= $sql_chto";
-                        push(@l, $term);
-                        $self->search_description({
-                            field => 'creation_ts', type => 'lessthaneq',
-                            value => $chfieldto, term => $term,
-                        });
-                    }
-                    $bug_creation_clause = "(" . join(' AND ', @l) . ")";
-                } else {
-                    push(@actlist, get_field_id($f));
+        my $from_term  = " AND actcheck.bug_when >= $sql_chfrom";
+        my $to_term    = " AND actcheck.bug_when <= $sql_chto";
+        my $value_term = " AND actcheck.added = $sql_chvalue";
+        # ---- vfilippov@custis.ru 2010-02-01
+        # Search using bugs.delta_ts is not correct. It's "LAST changed in", not "Changed in".
+        my $bug_creation_clause;
+        my @list;
+        my @actlist;
+        my $seen_longdesc;
+        my $need_commenter;
+        foreach my $f (@chfield)
+        {
+            my $term;
+            if ($f eq "[Bug creation]")
+            {
+                # Treat [Bug creation] differently because we need to look
+                # at bugs.creation_ts rather than the bugs_activity table.
+                my @l;
+                if ($sql_chfrom) {
+                    my $term = "bugs.creation_ts >= $sql_chfrom";
+                    push(@l, $term);
+                    $self->search_description({
+                        field => 'creation_ts', type => 'greaterthaneq',
+                        value => $chfieldfrom, term => $term,
+                    });
                 }
+                if ($sql_chto) {
+                    my $term = "bugs.creation_ts <= $sql_chto";
+                    push(@l, $term);
+                    $self->search_description({
+                        field => 'creation_ts', type => 'lessthaneq',
+                        value => $chfieldto, term => $term,
+                    });
+                }
+                $bug_creation_clause = "(" . join(' AND ', @l) . ")";
             }
-
-            # @actlist won't have any elements if the only field being searched
-            # is [Bug creation] (in which case we don't need bugs_activity).
-            if(@actlist) {
-                my $extra = " actcheck.bug_id = bugs.bug_id";
-                push(@list, "(actcheck.bug_when IS NOT NULL)");
-
-                my $from_term = " AND actcheck.bug_when >= $sql_chfrom";
-                $extra .= $from_term if $sql_chfrom;
-                my $to_term = " AND actcheck.bug_when <= $sql_chto";
-                $extra .= $to_term if $sql_chto;
-                my $value_term = " AND actcheck.added = $sql_chvalue";
-                $extra .= $value_term if $sql_chvalue;
-
-                push(@supptables, "LEFT JOIN bugs_activity AS actcheck " .
-                                  "ON $extra AND "
-                                 . $dbh->sql_in('actcheck.fieldid', \@actlist));
-
-                foreach my $field (@chfield) {
-                    next if $field eq "[Bug creation]";
-                    if ($sql_chvalue) {
-                        $self->search_description({
-                            field => $field, type => 'changedto',
-                            value => $chvalue, term  => $value_term,
-                        });
+            elsif ($f eq 'longdesc' || $f eq 'longdescs.isprivate' || $f eq 'commenter')
+            {
+                # Treat comment properties differently because we need to look at longdescs table.
+                if ($sql_chvalue)
+                {
+                    if ($f eq 'longdesc' && !$seen_longdesc)
+                    {
+                        # User is searching for a comment with specific text,
+                        # but that has no sense if $chvalue was already used for comment privacy.
+                        $seen_longdesc = [ $term = "INSTR(actcheck_comment.thetext, $sql_chvalue) > 0" ];
                     }
-                    if ($sql_chfrom) {
-                        $self->search_description({
-                            field => $field, type => 'changedafter',
-                            value => $chfieldfrom, term => $from_term,
-                        });
+                    elsif ($f eq 'commenter')
+                    {
+                        # User is searching for a comment with specific author
+                        $need_commenter = [ $term = "actcheck_commenter.login_name = $sql_chvalue" ];
                     }
-                    if ($sql_chvalue) {
+                    elsif (!$seen_longdesc)
+                    {
+                        # User is searching for a private / non-private comment for specific period,
+                        # but that has no sense if $chvalue was already used for comment text.
+                        $seen_longdesc = [ $term = "actcheck_comment.isprivate = ".($chvalue ? 1 : 0) ];
+                    }
+                    if ($term)
+                    {
                         $self->search_description({
-                            field => $field, type => 'changedbefore',
-                            value => $chfieldto, term => $to_term,
+                            field => $f, type => 'changedto',
+                            value => $chvalue, term => $term,
                         });
                     }
                 }
+                else
+                {
+                    $seen_longdesc = [];
+                }
             }
-
-            # Now that we're done using @list to determine if there are any
-            # regular fields to search (and thus we need bugs_activity),
-            # add the [Bug creation] criterion to the list so we can OR it
-            # together with the others.
-            push(@list, $bug_creation_clause) if $bug_creation_clause;
-
-            push(@wherepart, "(" . join(" OR ", @list) . ")");
+            else
+            {
+                push @actlist, get_field_id($f);
+                $term = 1;
+                if ($sql_chvalue)
+                {
+                    $self->search_description({
+                        field => $f, type => 'changedto',
+                        value => $chvalue, term => $value_term,
+                    });
+                }
+            }
+            if ($term)
+            {
+                if ($sql_chfrom)
+                {
+                    $self->search_description({
+                        field => $f, type => 'changedafter',
+                        value => $chfieldfrom, term => $from_term,
+                    });
+                }
+                if ($sql_chto)
+                {
+                    $self->search_description({
+                        field => $f, type => 'changedbefore',
+                        value => $chfieldto, term => $to_term,
+                    });
+                }
+            }
         }
+
+        my $extra;
+        if (!$bug_creation_clause && !$seen_longdesc || @actlist)
+        {
+            $extra = "actcheck.bug_id = bugs.bug_id";
+            $extra .= $from_term  if $sql_chfrom;
+            $extra .= $to_term    if $sql_chto;
+            $extra .= $value_term if $sql_chvalue;
+
+            if (@actlist)
+            {
+                # Restrict bug activity to selected fields
+                $extra .= " AND " . $dbh->sql_in('actcheck.fieldid', \@actlist);
+            }
+
+            push @supptables, "LEFT JOIN bugs_activity AS actcheck ON $extra";
+            push @list, "(actcheck.bug_when IS NOT NULL)";
+        }
+
+        $extra = "actcheck_comment.bug_id = bugs.bug_id";
+        $extra .= " AND actcheck_comment.bug_when >= $sql_chfrom" if $sql_chfrom;
+        $extra .= " AND actcheck_comment.bug_when <= $sql_chto" if $sql_chto;
+        if ($seen_longdesc)
+        {
+            $extra .= " AND ".$seen_longdesc->[0];
+        }
+        push @supptables, "LEFT JOIN longdescs AS actcheck_comment ON $extra";
+        push @list, "(actcheck_comment.bug_when IS NOT NULL)";
+        if ($need_commenter)
+        {
+            push @supptables,
+                "LEFT JOIN profiles AS actcheck_commenter" .
+                " ON actcheck_commenter.userid=actcheck_comment.who AND $need_commenter";
+        }
+
+        # Now that we're done using @list to determine if there are any
+        # regular fields to search (and thus we need bugs_activity),
+        # add the [Bug creation] criterion to the list so we can OR it
+        # together with the others.
+        push(@list, $bug_creation_clause) if $bug_creation_clause;
+
+        push(@wherepart, "(" . join(" OR ", @list) . ")");
     }
 
     my $sql_deadlinefrom;
     my $sql_deadlineto;
     if ($user->is_timetracker) {
-      my $deadlinefrom;
-      my $deadlineto;
+        my $deadlinefrom;
+        my $deadlineto;
 
-      if ($params->param('deadlinefrom')){
-        $deadlinefrom = $params->param('deadlinefrom');
-        validate_date($deadlinefrom)
-          || ThrowUserError('illegal_date', {date => $deadlinefrom,
-                                             format => 'YYYY-MM-DD'});
-        $sql_deadlinefrom = $dbh->quote($deadlinefrom);
-        trick_taint($sql_deadlinefrom);
-        my $term = "bugs.deadline >= $sql_deadlinefrom";
-        push(@wherepart, $term);
-        $self->search_description({
-            field => 'deadline', type => 'greaterthaneq',
-            value => $deadlinefrom, term => $term,
-        });
-      }
+        if ($params->param('deadlinefrom')){
+            $deadlinefrom = $params->param('deadlinefrom');
+            validate_date($deadlinefrom)
+                || ThrowUserError('illegal_date', {date => $deadlinefrom,
+                                                   format => 'YYYY-MM-DD'});
+            $sql_deadlinefrom = $dbh->quote($deadlinefrom);
+            trick_taint($sql_deadlinefrom);
+            my $term = "bugs.deadline >= $sql_deadlinefrom";
+            push(@wherepart, $term);
+            $self->search_description({
+                field => 'deadline', type => 'greaterthaneq',
+                value => $deadlinefrom, term => $term,
+            });
+        }
 
-      if ($params->param('deadlineto')){
-        $deadlineto = $params->param('deadlineto');
-        validate_date($deadlineto)
-          || ThrowUserError('illegal_date', {date => $deadlineto,
-                                             format => 'YYYY-MM-DD'});
-        $sql_deadlineto = $dbh->quote($deadlineto);
-        trick_taint($sql_deadlineto);
-        my $term = "bugs.deadline <= $sql_deadlineto";
-        push(@wherepart, $term);
-        $self->search_description({
-            field => 'deadline', type => 'lessthaneq',
-            value => $deadlineto, term => $term,
-        });
-      }
+        if ($params->param('deadlineto')){
+            $deadlineto = $params->param('deadlineto');
+            validate_date($deadlineto)
+                || ThrowUserError('illegal_date', {date => $deadlineto,
+                                                   format => 'YYYY-MM-DD'});
+            $sql_deadlineto = $dbh->quote($deadlineto);
+            trick_taint($sql_deadlineto);
+            my $term = "bugs.deadline <= $sql_deadlineto";
+            push(@wherepart, $term);
+            $self->search_description({
+                field => 'deadline', type => 'lessthaneq',
+                value => $deadlineto, term => $term,
+            });
+        }
     }
 
     my @textfields = ("short_desc", "longdesc", "bug_file_loc", "status_whiteboard");

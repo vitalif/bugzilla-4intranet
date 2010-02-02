@@ -3172,21 +3172,12 @@ sub update_comment {
     $current_comment_obj[0]->{'body'} = $new_comment;
 }
 
-# Represents which fields from the bugs table are handled by process_bug.cgi.
-sub editable_bug_fields {
-    my @fields = Bugzilla->dbh->bz_table_columns('bugs');
-    # Obsolete custom fields are not editable.
-    my @obsolete_fields = Bugzilla->get_fields({obsolete => 1, custom => 1});
-    @obsolete_fields = map { $_->name } @obsolete_fields;
-    foreach my $remove ("bug_id", "reporter", "creation_ts", "delta_ts", "lastdiffed", @obsolete_fields) {
-        my $location = lsearch(\@fields, $remove);
-        # Custom multi-select fields are not stored in the bugs table.
-        splice(@fields, $location, 1) if ($location > -1);
-    }
-    # Sorted because the old @::log_columns variable, which this replaces,
-    # was sorted.
-    return sort(@fields);
-}
+# FIXME // Vitaliy Filippov <vitalif@mail.ru> 2010-02-01 19:23
+# editable_bug_fields() is one more example of incorrect and unused generalization.
+# It does not represent which fields from the bugs table are handled by process_bug.cgi,
+# because process_bug.cgi itself does not use it at any point. In fact, it was used only
+# in 2 places: 1) the field list for boolean charts 2) in BugMail.pm to avoid 'SELECT *'.
+# Both of them are not related to "editable" at all.
 
 # XXX - When Bug::update() will be implemented, we should make this routine
 #       a private method.

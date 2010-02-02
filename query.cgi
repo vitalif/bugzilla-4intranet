@@ -241,52 +241,45 @@ push(@$legal_resolutions, "---"); # Oy, what a hack.
 # Another hack - this array contains "" for some reason. See bug 106589.
 $vars->{'resolution'} = [grep ($_, @$legal_resolutions)];
 
-my @chfields;
+# Fields for boolean charts
+my @fields = Bugzilla->get_fields({ obsolete => 0 });
+@fields = sort {lc($a->description) cmp lc($b->description)} @fields;
+$vars->{'fields'} = \@fields;
 
-push @chfields, "[Bug creation]";
+# "where one or more of the following changed:"
+# ---- vfilippov@custis.ru 2010-02-01
+# This is much much more correct than Bugzilla::Bug::editable_bug_fields().
+# We only need to exclude final and automatic fields.
+# FIXME remove hardcode
+my %exclude = map { $_ => 1 } qw(
+    noop bug_id delta_ts creation_ts days_elapsed owner_idle_time
+    everconfirmed percentage_complete
+);
+$vars->{'chfield'} = [ sort grep { !$exclude{$_} } map { $_->name } @fields ];
 
-# This is what happens when you have variables whose definition depends
-# on the DB schema, and then the underlying schema changes...
-foreach my $val (editable_bug_fields()) {
-    if ($val eq 'classification_id') {
-        $val = 'classification';
-    } elsif ($val eq 'product_id') {
-        $val = 'product';
-    } elsif ($val eq 'component_id') {
-        $val = 'component';
-    }
-    push @chfields, $val;
-}
+# Another hack...
+unshift @{$vars->{fields}}, { name => "noop", description => "---" };
 
-if (Bugzilla->user->in_group(Bugzilla->params->{'timetrackinggroup'})) {
-    push @chfields, "work_time";
-} else {
-    @chfields = grep($_ ne "estimated_time", @chfields);
-    @chfields = grep($_ ne "remaining_time", @chfields);
-}
-@chfields = (sort(@chfields));
-$vars->{'chfield'} = \@chfields;
-$vars->{'bug_status'} = get_legal_field_values('bug_status');
-$vars->{'rep_platform'} = get_legal_field_values('rep_platform') if Bugzilla->params->{useplatform};
-$vars->{'op_sys'} = get_legal_field_values('op_sys') if Bugzilla->params->{useopsys};
-$vars->{'priority'} = get_legal_field_values('priority');
+# Legal values for select fields
+$vars->{'bug_status'}   = get_legal_field_values('bug_status');
+$vars->{'priority'}     = get_legal_field_values('priority');
 $vars->{'bug_severity'} = get_legal_field_values('bug_severity');
+if (Bugzilla->params->{useplatform})
+{
+    # Only if turned on
+    $vars->{'rep_platform'} = get_legal_field_values('rep_platform');
+}
+if (Bugzilla->params->{useopsys})
+{
+    # Only if turned on
+    $vars->{'op_sys'} = get_legal_field_values('op_sys');
+}
+
+# NB // vfilippov@custis.ru 2010-02-01
+# Do we need to deny non-timetrackers searching on timetracking fields?
+# Timetracking information is not a secret.
 
 # Boolean charts
-my @fields = Bugzilla->get_fields({ obsolete => 0 });
-
-# If we're not in the time-tracking group, exclude time-tracking fields.
-if (!Bugzilla->user->in_group(Bugzilla->params->{'timetrackinggroup'})) {
-    foreach my $tt_field (qw(estimated_time remaining_time work_time
-                             percentage_complete deadline))
-    {
-        @fields = grep($_->name ne $tt_field, @fields);
-    }
-}
-
-@fields = sort {lc($a->description) cmp lc($b->description)} @fields;
-unshift(@fields, { name => "noop", description => "---" });
-$vars->{'fields'} = \@fields;
 
 # Creating new charts - if the cmd-add value is there, we define the field
 # value so the code sees it and creates the chart. It will attempt to select

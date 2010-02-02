@@ -132,8 +132,7 @@ sub Send {
     }
 
     my %values = %{$dbh->selectrow_hashref(
-        'SELECT ' . join(',', editable_bug_fields()) . ', reporter,
-                lastdiffed AS start_time, LOCALTIMESTAMP(0) AS end_time
+        'SELECT *, lastdiffed AS start_time, LOCALTIMESTAMP(0) AS end_time
            FROM bugs WHERE bug_id = ?',
         undef, $id)};
 
