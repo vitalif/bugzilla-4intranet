@@ -191,7 +191,6 @@ unless ($args->{commit})
         }
     }
     print $cgi->header();
-    warn '-------->' . join ',', @{$vars->{fields}};
     $template->process("bug/import/importxls.html.tmpl", $vars)
         || ThrowTemplateError($template->error());
 }
