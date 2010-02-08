@@ -191,6 +191,7 @@ unless ($args->{commit})
         }
     }
     print $cgi->header();
+    warn '-------->' . join ',', @{$vars->{fields}};
     $template->process("bug/import/importxls.html.tmpl", $vars)
         || ThrowTemplateError($template->error());
 }
@@ -259,9 +260,7 @@ sub parse_excel
     {
         # OOXML
         require Spreadsheet::XLSX;
-        require Text::Iconv;
-        my $converter = Text::Iconv->new("utf-8", "windows-1251");
-        $xls = Spreadsheet::XLSX->new($upload->handle, $converter);
+        $xls = Spreadsheet::XLSX->new($upload->handle);
     }
     elsif ($name =~ /\.xls$/iso)
     {
