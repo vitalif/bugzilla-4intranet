@@ -18,37 +18,33 @@
         <link>[% Param('urlbase') FILTER xml %]show_bug.cgi?id=[% evt.bug_id FILTER xml %]#[% evt.commentlink %]</link>
         <pubDate>[% evt.datetime_rfc822 %]</pubDate>
         <description><![CDATA[
-            [% IF escapetags > 0 %]
-                [% FILTER xml %]
-                [% IF buginfo > 0 %]
-                <table class="bug-info"><tr>
-                    <td>[% evt.bug_id %]</td><td>[% evt.product %]/[% evt.component %]</td><td>[% evt.bug_severity %]</td><td>[% evt.bug_status %]</td>
-                </tr></table>
-                [% END %]
-                <div class="item-signature"><a href="[% Param("user_mailto") %][% evt.login_name %]">[% evt.realname FILTER html %]</a></div>
-                <pre>
-                    [% evt.thetext FILTER wrap_comment FILTER quoteUrls FILTER absolute_uris %]
-                </pre>
-                [% IF UserInGroup(Param('timetrackinggroup')) && (evt.work_time != 0 ) %]
-                    <div class="item-worktime">[% evt.work_time %]</div>
-                [% END %]
-                [% END %]
-            [% ELSE %]
-                [% IF buginfo > 0 %]
-                <table class="bug-info"><tr>
-                    <td>[% evt.bug_id %]</td><td>[% evt.product %]/[% evt.component %]</td><td>[% evt.bug_severity %]</td><td>[% evt.bug_status %]</td>
-                </tr></table>
-                [% END %]
-                <div class="item-signature"><a href="[% Param("user_mailto") %][% evt.login_name %]">[% evt.realname FILTER html %]</a></div>
-                <pre>
+            [% IF buginfo > 0 %]
+            <table class="bug-info"><tr>
+                <td>[% evt.bug_id %]</td><td>[% evt.product %]/[% evt.component %]</td><td>[% evt.bug_severity %]</td><td>[% evt.bug_status %]</td>
+            </tr></table>
+            [% END %]
+            <div class="item-signature"><a href="[% Param("user_mailto") %][% evt.login_name %]">[% evt.realname FILTER html %]</a></div>
+            [% IF evt.thetext %]
+            <pre>
                 [% evt.thetext FILTER wrap_comment FILTER quoteUrls FILTER absolute_uris %]
-                </pre>
-                [% IF UserInGroup(Param('timetrackinggroup')) && (evt.work_time != 0 ) %]
-                    <div class="item-worktime">[% evt.work_time %]</div>
+            </pre>
+            [% END %]
+            [% IF evt.changes %]
+            <table>
+                <tr><td><b>What</b></td><td><b>Removed</b></td><td><b>Added</b></td></tr>
+                [% FOR ch = evt.changes %]
+                <tr><td>[% ch.desc | html %]</td><td>[% ch.old | html %]</td><td>[% ch.new | html %]</td></tr>
                 [% END %]
+            </table>
+            [% END %]
+            [% IF UserInGroup(Param('timetrackinggroup')) && (evt.work_time != 0 ) %]
+                <div class="item-worktime">[% evt.work_time %]</div>
             [% END %]
         ]]></description>
-        <author>[% evt.login_name FILTER html %] ([% evt.realname FILTER html %])</author>
+        <atom:author>
+            <atom:email>[% evt.login_name | xml %]</atom:email>
+            <atom:name>[% evt.realname FILTER html %]</atom:name>
+        </atom:author>
     </item>
     [% END %]
 </channel>
