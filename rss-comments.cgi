@@ -24,7 +24,6 @@ my $template  = Bugzilla->template;
 my $dbh       = Bugzilla->dbh;
 
 $vars->{selfurl} = $cgi->canonicalise_query();
-$vars->{escapetags} = $cgi->param('escapetags');
 $vars->{buginfo} = $cgi->param('buginfo');
 
 my $title = $cgi->param('namedcmd');
@@ -50,6 +49,9 @@ $sqlquery =~ s/GROUP\s+BY\s+`?bugs`?.`?bug_id`?//so;
 
 my $tz = strftime('%z', localtime);
 
+# Output feed build date BEFORE reading items
+($vars->{builddate}) = $dbh->selectrow_array("SELECT DATE_FORMAT(NOW(),'%a, %d %b %Y %H:%i:%s $tz')");
+
 # Monstrous query
 # first query gets new bugs' descriptions, and any comments added (not including duplicate
 # information).
@@ -63,7 +65,7 @@ my $bugsquery = "
     DATE_FORMAT(l.bug_when,'%a, %d %b %Y %H:%i:%s $tz') AS datetime_rfc822,
     l.bug_when AS `when`, p.login_name, p.realname,
     NULL AS fieldname, NULL AS fielddesc, NULL AS attach_id, NULL AS old, NULL AS new,
-    (b.creation_ts=l.bug_when) as is_new
+    (b.creation_ts=l.bug_when) as is_new, l.who
  FROM longdescs l
  LEFT JOIN bugs b ON b.bug_id=l.bug_id
  LEFT JOIN profiles p ON p.userid=l.who
@@ -82,7 +84,7 @@ my $bugsquery = "
     DATE_FORMAT(a.bug_when,'%a, %d %b %Y %H:%i:%s $tz') datetime_rfc822,
     a.bug_when AS `when`, p.login_name, p.realname,
     f.name AS fieldname, f.description AS fielddesc, a.attach_id, a.removed AS old, a.added AS new,
-    0 as is_new
+    0 as is_new, a.who
  FROM bugs_activity a
  LEFT JOIN bugs b ON b.bug_id=a.bug_id
  LEFT JOIN profiles p ON p.userid=a.who
@@ -91,18 +93,28 @@ my $bugsquery = "
  LEFT JOIN fielddefs f ON f.id=a.fieldid
  LEFT JOIN attachments at ON at.attach_id=a.attach_id
  WHERE (at.isprivate IS NULL OR at.isprivate=0) AND a.bug_id IN ($sqlquery)
- ORDER BY a.bug_when DESC
+ ORDER BY a.bug_when DESC, f.name ASC
  LIMIT 100)
 
  ORDER BY `when` DESC
  LIMIT 100
 ";
 
-$vars->{events} = $dbh->selectall_arrayref($bugsquery, {Slice => {}});
+my $events = $dbh->selectall_arrayref($bugsquery, {Slice => {}});
 
-my ($t, $o, $n);
-foreach (@{$vars->{events}})
+my ($t, $o, $n, $k);
+my $gkeys = [];
+my $group = {};
+foreach (@$events)
 {
+    # Group changes by bug_id, bug_when and who
+    $k = $_->{bug_id}.$_->{when}.$_->{who};
+    if (!$group->{$k})
+    {
+        push @$gkeys, $k;
+        $group->{$k} = [];
+    }
+    push @{$group->{$k}}, $_;
     if ($_->{fieldname})
     {
         # this is not a comment; this is bugs_activity
@@ -123,8 +135,34 @@ foreach (@{$vars->{events}})
     }
 }
 
+$vars->{events} = [];
+foreach $k (@$gkeys)
+{
+    my $ev;
+    foreach (sort { ($a->{fieldname}?1:0) cmp ($b->{fieldname}?1:0) } @{$group->{$k}})
+    {
+        $ev = $_, next if !$ev;
+        $ev->{work_time} += $_->{work_time};
+        if ($_->{fieldname})
+        {
+            push @{$ev->{changes}}, {
+                name => $_->{fieldname},
+                desc => $_->{fielddesc},
+                old  => $_->{old},
+                new  => $_->{new},
+            };
+            $ev->{changetext} .= "\n" . $_->{thetext};
+        }
+        else
+        {
+            $ev->{thetext} .= "\n" . $_->{thetext};
+        }
+    }
+    push @{$vars->{events}}, $ev;
+}
+
+# Output feed title
 $vars->{title} = $title;
-($vars->{builddate}) = $dbh->selectrow_array("SELECT DATE_FORMAT(NOW(),'%a, %d %b %Y %H:%i:%s $tz')");
 
 print $cgi->header(-type => 'text/xml');
 $template->process('list/comments.rss.tmpl', $vars)
