@@ -681,7 +681,8 @@ sub validate_content_type {
                     LWP::MediaTypes::read_media_types(Bugzilla->params->{mime_types_file});
                     $lwp_read_mime_types = 1;
                 }
-                $contenttype = LWP::MediaTypes::guess_media_type($cgi->param('data'));
+                my $file = $cgi->param('data');
+                $contenttype = LWP::MediaTypes::guess_media_type("$file");
             }
             if (!valid_content_type($contenttype))
             {
