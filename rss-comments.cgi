@@ -67,11 +67,12 @@ my $bugsquery = "
     NULL AS fieldname, NULL AS fielddesc, NULL AS attach_id, NULL AS old, NULL AS new,
     (b.creation_ts=l.bug_when) as is_new, l.who
  FROM longdescs l
+ INNER JOIN ($sqlquery) bugids ON l.bug_id=bugids.bug_id
  LEFT JOIN bugs b ON b.bug_id=l.bug_id
  LEFT JOIN profiles p ON p.userid=l.who
  LEFT JOIN products pr ON pr.id=b.product_id
  LEFT JOIN components cm ON cm.id=b.component_id
- WHERE l.isprivate=0 AND l.bug_id IN ($sqlquery)
+ WHERE l.isprivate=0
  ORDER BY l.bug_when DESC
  LIMIT 100)
 
@@ -86,13 +87,14 @@ my $bugsquery = "
     f.name AS fieldname, f.description AS fielddesc, a.attach_id, a.removed AS old, a.added AS new,
     0 as is_new, a.who
  FROM bugs_activity a
+ INNER JOIN ($sqlquery) bugids ON a.bug_id=bugids.bug_id
  LEFT JOIN bugs b ON b.bug_id=a.bug_id
  LEFT JOIN profiles p ON p.userid=a.who
  LEFT JOIN products pr ON pr.id=b.product_id
  LEFT JOIN components cm ON cm.id=b.component_id
  LEFT JOIN fielddefs f ON f.id=a.fieldid
  LEFT JOIN attachments at ON at.attach_id=a.attach_id
- WHERE (at.isprivate IS NULL OR at.isprivate=0) AND a.bug_id IN ($sqlquery)
+ WHERE (at.isprivate IS NULL OR at.isprivate=0)
  ORDER BY a.bug_when DESC, f.name ASC
  LIMIT 100)
 
