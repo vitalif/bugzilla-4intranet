@@ -2,7 +2,7 @@
 <file_events>
 [% FOREACH evt = events %]
 <event
-    date="[% evt.unix_when %]"
+    date="[% evt.unix_when %]000"
     author="[% evt.login_name | xml %]"
     action="[% evt.is_new > 0 ? 'A' : 'M' %]"
     filename="/[% evt.product | xml %]/[% evt.component | xml %]/[% evt.bug_id | xml %]"
