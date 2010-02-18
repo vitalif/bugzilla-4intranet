@@ -26,6 +26,11 @@ my $dbh       = Bugzilla->dbh;
 $vars->{selfurl} = $cgi->canonicalise_query();
 $vars->{buginfo} = $cgi->param('buginfo');
 
+our %FORMATS = qw(rss 1 showteamwork 1);
+my $format = $cgi->param('ctype');
+warn $format;
+$FORMATS{$format} or $format = 'rss';
+
 my $title = $cgi->param('namedcmd');
 if ($title)
 {
@@ -60,10 +65,11 @@ my $tz = strftime('%z', localtime);
 my $bugsquery = "
  (SELECT
     b.bug_id, b.short_desc, pr.name product, cm.name component, b.bug_severity, b.bug_status,
-    l.work_time, l.thetext, DATE_FORMAT(l.bug_when,'%Y%m%d%H%i%s') AS commentlink,
-    DATE_FORMAT(l.bug_when,'%Y-%m-%dT%H:%iZ') AS bug_when,
-    DATE_FORMAT(l.bug_when,'%a, %d %b %Y %H:%i:%s $tz') AS datetime_rfc822,
-    l.bug_when AS `when`, p.login_name, p.realname,
+    l.work_time, l.thetext,
+    DATE_FORMAT(l.bug_when,'%Y%m%d%H%i%s') commentlink,
+    DATE_FORMAT(l.bug_when,'%a, %d %b %Y %H:%i:%s $tz') datetime_rfc822,
+    UNIX_TIMESTAMP(l.bug_when) unix_when,
+    p.login_name, p.realname,
     NULL AS fieldname, NULL AS fielddesc, NULL AS attach_id, NULL AS old, NULL AS new,
     (b.creation_ts=l.bug_when) as is_new, l.who
  FROM longdescs l
@@ -79,11 +85,12 @@ my $bugsquery = "
  UNION ALL
 
  (SELECT
-    b.bug_id, b.short_desc, pr.name AS product, cm.name AS component, b.bug_severity, b.bug_status,
-    0 AS work_time, '' AS thetext, DATE_FORMAT(a.bug_when,'%Y%m%d%H%i%s') AS commentlink,
-    DATE_FORMAT(a.bug_when,'%Y-%m-%dT%H:%iZ') bug_when,
+    b.bug_id, b.short_desc, pr.name product, cm.name component, b.bug_severity, b.bug_status,
+    0 AS work_time, '' thetext,
+    DATE_FORMAT(a.bug_when,'%Y%m%d%H%i%s') commentlink,
     DATE_FORMAT(a.bug_when,'%a, %d %b %Y %H:%i:%s $tz') datetime_rfc822,
-    a.bug_when AS `when`, p.login_name, p.realname,
+    UNIX_TIMESTAMP(a.bug_when) unix_when,
+    p.login_name, p.realname,
     f.name AS fieldname, f.description AS fielddesc, a.attach_id, a.removed AS old, a.added AS new,
     0 as is_new, a.who
  FROM bugs_activity a
@@ -98,7 +105,7 @@ my $bugsquery = "
  ORDER BY a.bug_when DESC, f.name ASC
  LIMIT 100)
 
- ORDER BY `when` DESC
+ ORDER BY unix_when DESC
  LIMIT 100
 ";
 
@@ -110,7 +117,7 @@ my $group = {};
 foreach (@$events)
 {
     # Group changes by bug_id, bug_when and who
-    $k = $_->{bug_id}.$_->{when}.$_->{who};
+    $k = $_->{bug_id}.$_->{unix_when}.$_->{who};
     if (!$group->{$k})
     {
         push @$gkeys, $k;
@@ -167,7 +174,7 @@ foreach $k (@$gkeys)
 $vars->{title} = $title;
 
 print $cgi->header(-type => 'text/xml');
-$template->process('list/comments.rss.tmpl', $vars)
+$template->process('list/comments.'.$format.'.tmpl', $vars)
     || ThrowTemplateError($template->error());
 
 exit;
