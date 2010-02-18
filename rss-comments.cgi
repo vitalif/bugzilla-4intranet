@@ -27,9 +27,13 @@ $vars->{selfurl} = $cgi->canonicalise_query();
 $vars->{buginfo} = $cgi->param('buginfo');
 
 our %FORMATS = qw(rss 1 showteamwork 1);
+
+my $limit;
 my $format = $cgi->param('ctype');
-warn $format;
 $FORMATS{$format} or $format = 'rss';
+
+$limit = int($cgi->param('limit')) if $format eq 'showteamwork';
+$limit = 100 if $limit < 1 || !$limit;
 
 my $title = $cgi->param('namedcmd');
 if ($title)
@@ -80,7 +84,7 @@ my $bugsquery = "
  LEFT JOIN components cm ON cm.id=b.component_id
  WHERE l.isprivate=0
  ORDER BY l.bug_when DESC
- LIMIT 100)
+ LIMIT $limit)
 
  UNION ALL
 
@@ -103,10 +107,10 @@ my $bugsquery = "
  LEFT JOIN attachments at ON at.attach_id=a.attach_id
  WHERE (at.isprivate IS NULL OR at.isprivate=0)
  ORDER BY a.bug_when DESC, f.name ASC
- LIMIT 100)
+ LIMIT $limit)
 
  ORDER BY unix_when DESC
- LIMIT 100
+ LIMIT $limit
 ";
 
 my $events = $dbh->selectall_arrayref($bugsquery, {Slice => {}});
