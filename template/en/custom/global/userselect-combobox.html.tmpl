@@ -65,7 +65,7 @@
 <select id="[% id | html %]_s"
     [% IF disabled %] disabled="[% disabled | html %]" [% END %]
     onchange="menuforusers_fromcombo('[% id | js %]', 1)" multiple="multiple" size="[% custom_userlist.size+emptyok < 4 ? custom_userlist.size+emptyok : 4 %]"
-    style="position:absolute;visibility:hidden">
+    style="position:absolute;visibility:hidden;z-index:30">
   [% IF emptyok %]<option value=""></option>[% END %]
   [% FOREACH tmpuser = custom_userlist %]
     <option value="[% tmpuser.login | html %]">[% tmpuser.identity | html %]</option>
