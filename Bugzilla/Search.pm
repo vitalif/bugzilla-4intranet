@@ -545,7 +545,7 @@ sub init {
         $extra = "actcheck_comment.bug_id = bugs.bug_id";
         $extra .= " AND actcheck_comment.bug_when >= $sql_chfrom" if $sql_chfrom;
         $extra .= " AND actcheck_comment.bug_when <= $sql_chto" if $sql_chto;
-        if ($seen_longdesc)
+        if ($seen_longdesc && @$seen_longdesc)
         {
             $extra .= " AND ".$seen_longdesc->[0];
         }
