@@ -377,6 +377,11 @@ sub die_handler {
     # in an eval (instead of printing the error and exiting).
     die(@_) if $^S;
 
+    if (ref $msg eq 'Bugzilla::Error')
+    {
+        $msg = $msg->{message};
+    }
+
     # We can't depend on the MTA to send an error message, so we have
     # to generate one properly.
     warn $input_email;
