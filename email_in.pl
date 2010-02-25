@@ -45,7 +45,7 @@ use Encode;
 use Bugzilla;
 use Bugzilla::Bug;
 use Bugzilla::Hook;
-use Bugzilla::Constants qw(USAGE_MODE_EMAIL);
+use Bugzilla::Constants qw(USAGE_MODE_EMAIL ERROR_MODE_DIE);
 use Bugzilla::Error;
 use Bugzilla::Mailer;
 use Bugzilla::User;
@@ -410,6 +410,7 @@ my ($pipe) = join(' ', @ARGV) =~ /^(.*)$/iso;
 @ARGV = ();
 
 Bugzilla->usage_mode(USAGE_MODE_EMAIL);
+Bugzilla->error_mode(ERROR_MODE_DIE);
 
 my @mail_lines = <STDIN>;
 my ($mail_text) = join("", @mail_lines) =~ /^(.*)$/iso;
@@ -430,7 +431,6 @@ if (my $suffix = Bugzilla->params->{emailsuffix}) {
 }
 
 # First try to select user with name $username
-die "abc";
 my $user = Bugzilla::User->new({ name => $username });
 
 # Then try to find alias $username for some user
