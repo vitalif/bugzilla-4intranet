@@ -365,7 +365,6 @@ sub html_strip {
     return $var;
 }
 
-
 sub die_handler {
     my ($msg) = @_;
 
@@ -380,14 +379,13 @@ sub die_handler {
 
     # We can't depend on the MTA to send an error message, so we have
     # to generate one properly.
+    warn $input_email;
     if ($input_email) {
-       $msg =~ s/at .+ line.*$//ms;
-       $msg =~ s/^Compilation failed in require.+$//ms;
-       $msg = html_strip($msg);
-       my $from = Bugzilla->params->{'mailfrom'};
-       my $reply = reply(to => $input_email, from => $from, top_post => 1, 
-                         body => "$msg\n");
-       MessageToMTA($reply->as_string);
+        $msg = html_strip($msg);
+        my $from = Bugzilla->params->{'mailfrom'};
+        my $reply = reply(to => $input_email, from => $from, top_post => 1,
+                          body => "$msg\n");
+        MessageToMTA($reply->as_string);
     }
     print STDERR "$msg\n";
     # We exit with a successful value, because we don't want the MTA
@@ -432,6 +430,7 @@ if (my $suffix = Bugzilla->params->{emailsuffix}) {
 }
 
 # First try to select user with name $username
+die "abc";
 my $user = Bugzilla::User->new({ name => $username });
 
 # Then try to find alias $username for some user
