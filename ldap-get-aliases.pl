@@ -52,6 +52,7 @@ $configfile = $ARGV[0] || $configfile;
 my $config = require $configfile;
 
 my $users = get_domain_users();
+$users && @$users || exit;
 my $aliases = [];
 
 my $dbh = Bugzilla->dbh;
@@ -59,9 +60,12 @@ my $sth = $dbh->prepare("REPLACE INTO emailin_aliases SET address=?, userid=?, f
 print "Clearing aliases having fromldap=1\n" if $verbose;
 $dbh->do("DELETE FROM emailin_aliases WHERE fromldap=1");
 my %a = ();
+my @bind = map { @$_ } @$users;
+my $sql = "SELECT login_name, userid FROM profiles WHERE disabledtext='' AND login_name IN (" . join(",", ("?") x scalar @bind) . ")";
+my %uids = map { @$_ } @{ $dbh->selectall_arrayref($sql, undef, @bind) };
 foreach (@$users)
 {
-    my $uid = [ map { login_to_id($_) } @$_ ];
+    my $uid = [ map { $uids{$_} } @$_ ];
     my ($realid, $reallogin);
     foreach my $i (0..$#$uid)
     {
