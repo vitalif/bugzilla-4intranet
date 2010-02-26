@@ -472,7 +472,7 @@ sub init {
                     elsif ($f eq 'commenter')
                     {
                         # User is searching for a comment with specific author
-                        $need_commenter = [ $term = "actcheck_commenter.login_name = $sql_chvalue" ];
+                        $need_commenter = $term = "actcheck_commenter.login_name = $sql_chvalue";
                     }
                     elsif (!$seen_longdesc)
                     {
