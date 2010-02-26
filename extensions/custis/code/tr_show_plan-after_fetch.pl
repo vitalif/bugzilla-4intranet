@@ -165,7 +165,8 @@ sub fetch_wiki_category_xml
     my $uri = URI->new($wiki_url . '?title=Special:Export&action=submit')->canonical;
     # Дёргаем Special:Export и вытаскиваем список страниц категории
     utf8::decode($category);
-    my $response = $ua->request(POST $uri, [ addcat => "Добавить", catname => $category ]);
+    utf8::encode($category);
+    my $response = $ua->request(POST "$uri", [ addcat => 'Add', catname => $category, closure => 1 ]);
     if (!$response->is_success)
     {
         # TODO показать ошибку
@@ -175,6 +176,7 @@ sub fetch_wiki_category_xml
     ($text) = $text =~ m!<textarea[^<>]*>(.*?)</textarea>!iso;
     decode_entities($text);
     utf8::decode($text);
+    utf8::encode($text);
     # Дёргаем Special:Export и вытаскиваем саму XML-ку с последними ревизиями
     $response = $ua->request(POST $uri, [
         wpDownload => 1,
