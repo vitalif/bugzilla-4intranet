@@ -325,7 +325,7 @@ sub init {
         }
     }
 
-    my @legal_fields = ("product", "version", "assigned_to", "reporter",
+    my @legal_fields = ("product", "version", "assigned_to", "reporter", "qa_contact",
                         "component", "classification", "target_milestone",
                         "bug_group");
 
@@ -366,7 +366,7 @@ sub init {
             }
         }
         if ($params->param("emaillongdesc$id")) {
-                push(@clist, "commenter", $type, $email);
+            push(@clist, "commenter", $type, $email);
         }
         if (@clist) {
             push(@specialchart, \@clist);
@@ -527,7 +527,7 @@ sub init {
         my $extra;
         if (!$bug_creation_clause && !$seen_longdesc || @actlist)
         {
-            $extra = "actcheck.bug_id = bugs.bug_id";
+            $extra = '1';
             $extra .= $from_term  if $sql_chfrom;
             $extra .= $to_term    if $sql_chto;
             $extra .= $value_term if $sql_chvalue;
@@ -538,8 +538,7 @@ sub init {
                 $extra .= " AND " . $dbh->sql_in('actcheck.fieldid', \@actlist);
             }
 
-            push @supptables, "LEFT JOIN bugs_activity AS actcheck ON $extra";
-            push @list, "(actcheck.bug_when IS NOT NULL)";
+            push @list, "SELECT bug_id FROM bugs_activity AS actcheck WHERE $extra";
         }
 
         $extra = "actcheck_comment.bug_id = bugs.bug_id";
@@ -549,22 +548,21 @@ sub init {
         {
             $extra .= " AND ".$seen_longdesc->[0];
         }
-        push @supptables, "LEFT JOIN longdescs AS actcheck_comment ON $extra";
-        push @list, "(actcheck_comment.bug_when IS NOT NULL)";
-        if ($need_commenter)
-        {
-            push @supptables,
-                "LEFT JOIN profiles AS actcheck_commenter" .
-                " ON actcheck_commenter.userid=actcheck_comment.who AND $need_commenter";
-        }
+        push @list,
+            "SELECT bug_id FROM longdescs AS actcheck_comment" .
+            ($need_commenter ?
+                " LEFT JOIN profiles AS actcheck_commenter" .
+                " ON actcheck_commenter.userid=actcheck_comment.who AND $need_commenter" : '') .
+            " WHERE $extra";
 
         # Now that we're done using @list to determine if there are any
         # regular fields to search (and thus we need bugs_activity),
         # add the [Bug creation] criterion to the list so we can OR it
         # together with the others.
-        push(@list, $bug_creation_clause) if $bug_creation_clause;
+        @list = ("bugs.bug_id IN (" . join(' UNION ', @list) . ")");
+        push @list, $bug_creation_clause if $bug_creation_clause;
 
-        push(@wherepart, "(" . join(" OR ", @list) . ")");
+        push @wherepart, "(" . join(" OR ", @list) . ")";
     }
 
     my $sql_deadlinefrom;
@@ -659,8 +657,7 @@ sub init {
         "^(?:assigned_to|reporter|qa_contact),(?:notequals|equals|anyexact),%group\\.([^%]+)%" => \&_contact_exact_group,
         "^(?:assigned_to|reporter|qa_contact),(?:equals|anyexact),(%\\w+%)" => \&_contact_exact,
         "^(?:assigned_to|reporter|qa_contact),(?:notequals),(%\\w+%)" => \&_contact_notequals,
-        "^(assigned_to|reporter),(?!changed)" => \&_assigned_to_reporter_nonchanged,
-        "^qa_contact,(?!changed)" => \&_qa_contact_nonchanged,
+        "^(assigned_to|reporter|qa_contact),(?!changed)" => \&_contact_nonchanged,
         "^(?:cc),(?:notequals|equals|anyexact),%group\\.([^%]+)%" => \&_cc_exact_group,
         "^cc,(?:equals|anyexact),(%\\w+%)" => \&_cc_exact,
         "^cc,(?:notequals),(%\\w+%)" => \&_cc_notequals,
@@ -949,27 +946,28 @@ sub init {
         }
     }
 
-    my %suppseen = ("bugs" => 1);
-    my $suppstring = "bugs";
-    my @supplist = (" ");
-    foreach my $str (@supptables) {
-
-        if ($str =~ /^(LEFT|INNER|RIGHT)\s+JOIN/iso) {
+    my %suppseen;
+    foreach my $str (@supptables)
+    {
+        if ($str =~ /^(LEFT|INNER|RIGHT)\s+JOIN/iso)
+        {
             $str =~ /^(.*?)\s+ON\s+(.*)$/iso;
             my ($leftside, $rightside) = ($1, $2);
-            if (defined $suppseen{$leftside}) {
-                $supplist[$suppseen{$leftside}] .= " AND ($rightside)";
-            } else {
-                $suppseen{$leftside} = scalar @supplist;
-                push @supplist, " $leftside ON ($rightside)";
-            }
-        } else {
+            $suppseen{$leftside}{"($rightside)"} = 1;
+        }
+        else
+        {
             # Do not accept implicit joins using comma operator
             # as they are not DB agnostic
             ThrowCodeError("comma_operator_deprecated");
         }
     }
-    $suppstring .= join('', @supplist);
+
+    my $suppstring = "bugs ";
+    foreach (keys %suppseen)
+    {
+        $suppstring .= $_ . " ON ". join " AND ", keys %{$suppseen{$_}};
+    }
 
     # Make sure we create a legal SQL query.
     @andlist = ("1 = 1") if !@andlist;
@@ -1298,14 +1296,19 @@ sub _contact_exact_group {
     }
 }
 
+my $bug_user_map = "INNER JOIN bug_user_map USE KEY (bug_user_map_rel_user_id_idx) ON bug_user_map.bug_id=bugs.bug_id";
+
 sub _contact_exact {
     my $self = shift;
     my %func_args = @_;
-    my ($term, $f, $v) = @func_args{qw(term f v)};
+    my ($chartid, $supptables, $f, $t, $v, $term) =
+        @func_args{qw(chartid supptables f t v term)};
     my $user = $self->{'user'};
 
+    push @$supptables, $bug_user_map;
+
     $$v =~ m/(%\\w+%)/;
-    $$term = "bugs.$$f = " . pronoun($1, $user);
+    $$term = "bug_user_map.rel='$$f' AND bug_user_map.user_id=".pronoun($1, $user);
 }
 
 sub _contact_notequals {
@@ -1318,28 +1321,19 @@ sub _contact_notequals {
     $$term = "bugs.$$f <> " . pronoun($1, $user);
 }
 
-sub _assigned_to_reporter_nonchanged {
+sub _contact_nonchanged {
     my $self = shift;
     my %func_args = @_;
-    my ($f, $ff, $funcsbykey, $t, $term) =
-        @func_args{qw(f ff funcsbykey t term)};
+    my ($f, $ff, $supptables, $funcsbykey, $t, $term) =
+        @func_args{qw(f ff supptables funcsbykey t term)};
+
+    push @$supptables, $bug_user_map;
 
     my $real_f = $$f;
     $$f = "login_name";
     $$ff = "profiles.login_name";
     $$funcsbykey{",$$t"}($self, %func_args);
-    $$term = "bugs.$real_f IN (SELECT userid FROM profiles WHERE $$term)";
-}
-
-sub _qa_contact_nonchanged {
-    my $self = shift;
-    my %func_args = @_;
-    my ($supptables, $f) =
-        @func_args{qw(supptables f)};
-
-    push(@$supptables, "LEFT JOIN profiles AS map_qa_contact " .
-                       "ON bugs.qa_contact = map_qa_contact.userid");
-    $$f = "COALESCE(map_$$f.login_name,'')";
+    $$term = "bug_user_map.rel='$real_f' AND bug_user_map.user_id IN (SELECT userid FROM profiles WHERE $$term)";
 }
 
 sub _cc_exact_group {
@@ -1386,15 +1380,10 @@ sub _cc_exact {
 
     $$v =~ m/(%\\w+%)/;
     my $match = pronoun($1, $user);
-    my $chartseq = $$chartid;
-    if ($$chartid eq "") {
-        $chartseq = "CC$$sequence";
-        $$sequence++;
-    }
-    push(@$supptables, "LEFT JOIN cc AS cc_$chartseq " .
-                       "ON bugs.bug_id = cc_$chartseq.bug_id " .
-                       "AND cc_$chartseq.who = $match");
-    $$term = "cc_$chartseq.who IS NOT NULL";
+
+    push @$supptables, $bug_user_map;
+
+    $$term = "bug_user_map.user_id=$match AND bug_user_map.rel='cc'";
 }
 
 sub _cc_notequals {
@@ -1431,12 +1420,10 @@ sub _cc_nonchanged {
     $$f = "login_name";
     $$ff = "profiles.login_name";
     $$funcsbykey{",$$t"}($self, %func_args);
-    push(@$supptables, "LEFT JOIN cc AS cc_$chartseq " .
-                       "ON bugs.bug_id = cc_$chartseq.bug_id " .
-                       "AND cc_$chartseq.who IN" .
-                       "(SELECT userid FROM profiles WHERE $$term)"
-                       );
-    $$term = "cc_$chartseq.who IS NOT NULL";
+
+    push @$supptables, $bug_user_map;
+
+    $$term = "bug_user_map.user_id IN (SELECT userid FROM profiles WHERE $$term) AND bug_user_map.rel='cc'";
 }
 
 sub _long_desc_changedby {
@@ -1536,21 +1523,15 @@ sub _commenter_exact {
     my %func_args = @_;
     my ($chartid, $sequence, $supptables, $term, $v) =
         @func_args{qw(chartid sequence supptables term v)};
-    my $user = $self->{'user'};
+
+    push @$supptables, $bug_user_map;
 
     $$v =~ m/(%\\w+%)/;
-    my $match = pronoun($1, $user);
-    my $chartseq = $$chartid;
-    if ($$chartid eq "") {
-        $chartseq = "LD$$sequence";
-        $$sequence++;
-    }
-    my $table = "longdescs_$chartseq";
-    my $extra = $user->is_insider ? "" : "AND $table.isprivate < 1";
-    push(@$supptables, "LEFT JOIN longdescs AS $table " .
-                       "ON $table.bug_id = bugs.bug_id $extra " .
-                       "AND $table.who IN ($match)");
-    $$term = "$table.who IS NOT NULL";
+    my $match = pronoun($1, $self->{user});
+    $$term =
+        "(bug_user_map.user_id=$match) AND (bug_user_map.rel='commenter'" .
+        ($self->{user}->is_insider ? " OR bug_user_map.rel='privcommenter'" : "") .
+        ")";
 }
 
 sub _commenter {
@@ -1559,22 +1540,16 @@ sub _commenter {
     my ($chartid, $sequence, $supptables, $f, $ff, $t, $funcsbykey, $term) =
         @func_args{qw(chartid sequence supptables f ff t funcsbykey term)};
 
-    my $chartseq = $$chartid;
-    if ($$chartid eq "") {
-        $chartseq = "LD$$sequence";
-        $$sequence++;
-    }
-    my $table = "longdescs_$chartseq";
-    my $extra = $self->{'user'}->is_insider ? "" : "AND $table.isprivate < 1";
+    push @$supptables, $bug_user_map;
+
     $$f = "login_name";
     $$ff = "profiles.login_name";
     $$funcsbykey{",$$t"}($self, %func_args);
-    push(@$supptables, "LEFT JOIN longdescs AS $table " .
-                       "ON $table.bug_id = bugs.bug_id $extra " .
-                       "AND $table.who IN" .
-                       "(SELECT userid FROM profiles WHERE $$term)"
-                       );
-    $$term = "$table.who IS NOT NULL";
+
+    $$term =
+        "(bug_user_map.user_id IN (SELECT userid FROM profiles WHERE $$term)) AND (bug_user_map.rel='commenter'" .
+        ($self->{user}->is_insider ? " OR bug_user_map.rel='privcommenter'" : "") .
+        ")";
 }
 
 sub _long_desc {
