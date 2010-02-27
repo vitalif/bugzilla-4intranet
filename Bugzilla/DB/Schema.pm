@@ -350,6 +350,24 @@ use constant ABSTRACT_SCHEMA => {
         ],
     },
 
+    bug_user_map => {
+        FIELDS => [
+            bug_id  => {TYPE => 'INT3', NOTNULL => 1,
+                        REFERENCES => {TABLE  => 'bugs',
+                                       COLUMN => 'bug_id',
+                                       DELETE => 'CASCADE'}},
+            rel     => {TYPE => "ENUM('reporter','assigned_to','qa_contact','cc','commenter','privcommenter')", NOTNULL => 1},
+            user_id => {TYPE => 'INT3', NOTNULL => 1,
+                        REFERENCES => {TABLE  => 'profiles',
+                                       COLUMN => 'userid',
+                                       DELETE => 'CASCADE'}},
+        ],
+        INDEXES => [
+            bug_user_map_primary         => {FIELDS => [qw(bug_id rel user_id)], TYPE => 'UNIQUE'},
+            bug_user_map_rel_user_id_idx => {FIELDS => [qw(rel user_id)]},
+        ],
+    },
+
     cc => {
         FIELDS => [
             bug_id => {TYPE => 'INT3', NOTNULL => 1,
@@ -1480,7 +1498,7 @@ use constant ABSTRACT_SCHEMA => {
             status          => {TYPE => 'INT2'},
             completion_time => {TYPE => 'INT4'},
             delete_after    => {TYPE => 'INT4'},
-    ],
+        ],
         INDEXES => [
             ts_exitstatus_funcid_idx       => ['funcid'],
             ts_exitstatus_delete_after_idx => ['delete_after'],
