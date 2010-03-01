@@ -66,9 +66,6 @@ my $tz = strftime('%z', localtime);
 # information).
 # second query gets any changes to the fields of a bug (eg assignee, status etc)
 
-$dbh->do("CREATE TEMPORARY TABLE tmp_rss_bugids1 AS $sqlquery");
-$dbh->do("CREATE TEMPORARY TABLE tmp_rss_bugids2 AS SELECT * FROM tmp_rss_bugids1");
-
 my $bugsquery = "
  (SELECT
     b.bug_id, b.short_desc, pr.name product, cm.name component, b.bug_severity, b.bug_status,
@@ -80,7 +77,7 @@ my $bugsquery = "
     NULL AS fieldname, NULL AS fielddesc, NULL AS attach_id, NULL AS old, NULL AS new,
     (b.creation_ts=l.bug_when) as is_new, l.who
  FROM longdescs l
- INNER JOIN tmp_rss_bugids1 ON l.bug_id=tmp_rss_bugids1.bug_id
+ INNER JOIN ($sqlquery) bugids ON l.bug_id=bugids.bug_id
  LEFT JOIN bugs b ON b.bug_id=l.bug_id
  LEFT JOIN profiles p ON p.userid=l.who
  LEFT JOIN products pr ON pr.id=b.product_id
@@ -101,7 +98,7 @@ my $bugsquery = "
     f.name AS fieldname, f.description AS fielddesc, a.attach_id, a.removed AS old, a.added AS new,
     0 as is_new, a.who
  FROM bugs_activity a
- INNER JOIN tmp_rss_bugids2 ON a.bug_id=tmp_rss_bugids2.bug_id
+ INNER JOIN ($sqlquery) bugids ON a.bug_id=bugids.bug_id
  LEFT JOIN bugs b ON b.bug_id=a.bug_id
  LEFT JOIN profiles p ON p.userid=a.who
  LEFT JOIN products pr ON pr.id=b.product_id
@@ -117,9 +114,6 @@ my $bugsquery = "
 ";
 
 my $events = $dbh->selectall_arrayref($bugsquery, {Slice => {}});
-
-$dbh->do("DROP TABLE tmp_rss_bugids1");
-$dbh->do("DROP TABLE tmp_rss_bugids2");
 
 my ($t, $o, $n, $k);
 my $gkeys = [];
