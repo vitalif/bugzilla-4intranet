@@ -54,7 +54,7 @@ my $search = new Bugzilla::Search(
 );
 
 my $sqlquery = $search->getSQL();
-$sqlquery =~ s/GROUP\s+BY\s+`?bugs`?.`?bug_id`?//so;
+$sqlquery =~ s/ORDER\s+BY\s+`?bugs`?.`?bug_id`?//so;
 
 my $tz = strftime('%z', localtime);
 

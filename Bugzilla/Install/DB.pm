@@ -555,10 +555,7 @@ sub update_table_definitions {
 
     # 2009-03-02 arbingersys@gmail.com - Bug 423613
     _add_extern_id_index();
-
-    # 2010-02-27 vfilippov@custis.ru - CustIS Bug 60604
-    _populate_bug_user_map();
-
+ 
     ################################################################
     # New --TABLE-- changes should go *** A B O V E *** this point #
     ################################################################
@@ -3152,23 +3149,6 @@ sub _add_foreign_keys_to_multiselects {
                                                COLUMN => 'value',
                                                DELETE => 'RESTRICT',});
     }
-}
-
-sub _populate_bug_user_map
-{
-    my ($force) = @_;
-    my $dbh = Bugzilla->dbh;
-    $dbh->do("DELETE FROM bug_user_map") if $force;
-    my ($n) = $dbh->selectrow_array("SELECT COUNT(*) FROM bug_user_map");
-    return if $n;
-    print "Populating bug_user_map... (this may take some time, not very long.)\n";
-    $dbh->do($_) for split /\n/,
-"insert into bug_user_map select bug_id, 'assigned_to', assigned_to from bugs where assigned_to is not null
-insert into bug_user_map select bug_id, 'reporter', reporter from bugs where reporter is not null
-insert into bug_user_map select bug_id, 'qa_contact', qa_contact from bugs where qa_contact is not null
-insert into bug_user_map select bug_id, 'cc', who from cc
-insert into bug_user_map select distinct bug_id, 'commenter', who from longdescs where isprivate<1
-insert into bug_user_map select distinct bug_id, 'privcommenter', who from longdescs where isprivate>0";
 }
 
 sub _populate_bugs_fulltext

@@ -52,7 +52,6 @@ use Bugzilla::Keyword;
 
 use Date::Format;
 use Date::Parse;
-use Tie::IxHash;
 
 # A SELECTed expression that we use as a placeholder if somebody selects
 # <none> for the X, Y, or Z axis in report.cgi.
@@ -326,7 +325,7 @@ sub init {
         }
     }
 
-    my @legal_fields = ("product", "version", "assigned_to", "reporter", "qa_contact",
+    my @legal_fields = ("product", "version", "assigned_to", "reporter",
                         "component", "classification", "target_milestone",
                         "bug_group");
 
@@ -636,7 +635,6 @@ sub init {
     my $q;
     my $v;
     my $term;
-    my $negated;
     my %funcsbykey;
     my %func_args = (
         'chartid' => \$chartid,
@@ -654,13 +652,13 @@ sub init {
         'groupby' => \@groupby,
         'chartfields' => \%chartfields,
         'fields' => \@fields,
-        'negated' => \$negated,
     );
     my @funcdefs = (
         "^(?:assigned_to|reporter|qa_contact),(?:notequals|equals|anyexact),%group\\.([^%]+)%" => \&_contact_exact_group,
         "^(?:assigned_to|reporter|qa_contact),(?:equals|anyexact),(%\\w+%)" => \&_contact_exact,
         "^(?:assigned_to|reporter|qa_contact),(?:notequals),(%\\w+%)" => \&_contact_notequals,
-        "^(assigned_to|reporter|qa_contact),(?!changed)" => \&_contact_nonchanged,
+        "^(assigned_to|reporter),(?!changed)" => \&_assigned_to_reporter_nonchanged,
+        "^qa_contact,(?!changed)" => \&_qa_contact_nonchanged,
         "^(?:cc),(?:notequals|equals|anyexact),%group\\.([^%]+)%" => \&_cc_exact_group,
         "^cc,(?:equals|anyexact),(%\\w+%)" => \&_cc_exact,
         "^cc,(?:notequals),(%\\w+%)" => \&_cc_notequals,
@@ -853,7 +851,6 @@ sub init {
          $chart < 0 || $params->param("field$chart-0-0") ;
          $chart++) {
         $chartid = $chart >= 0 ? $chart : "";
-        $negated = $params->param("negate$chart") ? 1 : 0;
         my @chartandlist = ();
         for ($row = 0 ;
              $params->param("field$chart-$row-0") ;
@@ -925,7 +922,7 @@ sub init {
             }
         }
         if (@chartandlist) {
-            if ($negated) {
+            if ($params->param("negate$chart") ? 1 : 0) {
                 push(@andlist, "NOT(" . join(" AND ", @chartandlist) . ")");
             } else {
                 push(@andlist, "(" . join(" AND ", @chartandlist) . ")");
@@ -950,31 +947,29 @@ sub init {
         }
     }
 
-    my %suppseen;
-    tie %suppseen, 'Tie::IxHash';
-    foreach my $str (@supptables)
-    {
-        if ($str =~ /^(LEFT|INNER|RIGHT)\s+JOIN/iso)
-        {
+    my %suppseen = ("bugs" => 1);
+    my $suppstring = "bugs";
+    my @supplist = (" ");
+    foreach my $str (@supptables) {
+
+        if ($str =~ /^(LEFT|INNER|RIGHT)\s+JOIN/iso) {
             $str =~ /^(.*?)\s+ON\s+(.*)$/iso;
             my ($leftside, $rightside) = ($1, $2);
-            $suppseen{$leftside} or tie %{$suppseen{$leftside}}, 'Tie::IxHash';
-            $suppseen{$leftside}{"($rightside)"} = 1;
-        }
-        else
-        {
+            if (defined $suppseen{$leftside}) {
+                $supplist[$suppseen{$leftside}] .= " AND ($rightside)";
+            } else {
+                $suppseen{$leftside} = scalar @supplist;
+                push @supplist, " $leftside ON ($rightside)";
+            }
+        } else {
             # Do not accept implicit joins using comma operator
             # as they are not DB agnostic
             ThrowCodeError("comma_operator_deprecated");
         }
     }
+    $suppstring .= join('', @supplist);
 
-    my $suppstring = "bugs ";
-    foreach (keys %suppseen)
-    {
-        $suppstring .= $_ . " ON ". join " AND ", keys %{$suppseen{$_}};
-    }
-
+    # <vfilippov@custis.ru> AND(AND(OR)) is IMO pointless. Do OR(AND(OR)).
     @andlist = ("(" . join(" OR ", @andlist) . ")");
 
     # Make sure we create a legal SQL query.
@@ -1304,59 +1299,48 @@ sub _contact_exact_group {
     }
 }
 
-my $bug_user_map = "INNER JOIN bug_user_map USE KEY (bug_user_map_rel_user_id_idx) ON bug_user_map.bug_id=bugs.bug_id";
-
 sub _contact_exact {
     my $self = shift;
     my %func_args = @_;
-    my ($chartid, $supptables, $f, $t, $v, $term, $negated) =
-        @func_args{qw(chartid supptables f t v term negated)};
+    my ($term, $f, $v) = @func_args{qw(term f v)};
     my $user = $self->{'user'};
 
-    push @$supptables, $bug_user_map;
-
     $$v =~ m/(%\\w+%)/;
-    $$term = "bug_user_map.user_id=".pronoun($1, $user);
-
-    # We need to change AND to OR NOT for negated charts to
-    # not negate the bug_user_map.rel= condition itself
-    $$term .= $$negated ? " OR NOT " : " AND ";
-    $$term .= "(bug_user_map.rel='$$f')";
+    $$term = "bugs.$$f = " . pronoun($1, $user);
 }
 
 sub _contact_notequals {
     my $self = shift;
     my %func_args = @_;
-    my ($term, $f, $v, $negated) = @func_args{qw(term f v negated)};
+    my ($term, $f, $v) = @func_args{qw(term f v)};
     my $user = $self->{'user'};
 
     $$v =~ m/(%\\w+%)/;
-    $$term = "bug_user_map.user_id!=".pronoun($1, $user);
-
-    # We need to change AND to OR NOT for negated charts to
-    # not negate the bug_user_map.rel= condition itself
-    $$term .= $$negated ? " OR NOT " : " AND ";
-    $$term .= "(bug_user_map.rel='$$f')";
+    $$term = "bugs.$$f <> " . pronoun($1, $user);
 }
 
-sub _contact_nonchanged {
+sub _assigned_to_reporter_nonchanged {
     my $self = shift;
     my %func_args = @_;
-    my ($f, $ff, $supptables, $funcsbykey, $t, $term, $negated) =
-        @func_args{qw(f ff supptables funcsbykey t term negated)};
-
-    push @$supptables, $bug_user_map;
+    my ($f, $ff, $funcsbykey, $t, $term) =
+        @func_args{qw(f ff funcsbykey t term)};
 
     my $real_f = $$f;
     $$f = "login_name";
     $$ff = "profiles.login_name";
     $$funcsbykey{",$$t"}($self, %func_args);
-    $$term = "bug_user_map.user_id IN (SELECT userid FROM profiles WHERE $$term)";
+    $$term = "bugs.$real_f IN (SELECT userid FROM profiles WHERE $$term)";
+}
 
-    # We need to change AND to OR NOT for negated charts to
-    # not negate the bug_user_map.rel= condition itself
-    $$term .= $$negated ? " OR NOT " : " AND ";
-    $$term .= "(bug_user_map.rel='$real_f')";
+sub _qa_contact_nonchanged {
+    my $self = shift;
+    my %func_args = @_;
+    my ($supptables, $f) =
+        @func_args{qw(supptables f)};
+
+    push(@$supptables, "LEFT JOIN profiles AS map_qa_contact " .
+                       "ON bugs.qa_contact = map_qa_contact.userid");
+    $$f = "COALESCE(map_$$f.login_name,'')";
 }
 
 sub _cc_exact_group {
@@ -1397,21 +1381,21 @@ sub _cc_exact_group {
 sub _cc_exact {
     my $self = shift;
     my %func_args = @_;
-    my ($chartid, $sequence, $supptables, $term, $v, $negated) =
-        @func_args{qw(chartid sequence supptables term v negated)};
+    my ($chartid, $sequence, $supptables, $term, $v) =
+        @func_args{qw(chartid sequence supptables term v)};
     my $user = $self->{'user'};
 
     $$v =~ m/(%\\w+%)/;
     my $match = pronoun($1, $user);
-
-    push @$supptables, $bug_user_map;
-
-    $$term = "bug_user_map.user_id=$match";
-
-    # We need to change AND to OR NOT for negated charts to
-    # not negate the bug_user_map.rel= condition itself
-    $$term .= $$negated ? " OR NOT " : " AND ";
-    $$term .= "(bug_user_map.rel='cc')";
+    my $chartseq = $$chartid;
+    if ($$chartid eq "") {
+        $chartseq = "CC$$sequence";
+        $$sequence++;
+    }
+    push(@$supptables, "LEFT JOIN cc AS cc_$chartseq " .
+                       "ON bugs.bug_id = cc_$chartseq.bug_id " .
+                       "AND cc_$chartseq.who = $match");
+    $$term = "cc_$chartseq.who IS NOT NULL";
 }
 
 sub _cc_notequals {
@@ -1437,8 +1421,8 @@ sub _cc_notequals {
 sub _cc_nonchanged {
     my $self = shift;
     my %func_args = @_;
-    my ($chartid, $sequence, $f, $ff, $t, $funcsbykey, $supptables, $term, $v, $negated) =
-        @func_args{qw(chartid sequence f ff t funcsbykey supptables term v negated)};
+    my ($chartid, $sequence, $f, $ff, $t, $funcsbykey, $supptables, $term, $v) =
+        @func_args{qw(chartid sequence f ff t funcsbykey supptables term v)};
 
     my $chartseq = $$chartid;
     if ($$chartid eq "") {
@@ -1448,15 +1432,12 @@ sub _cc_nonchanged {
     $$f = "login_name";
     $$ff = "profiles.login_name";
     $$funcsbykey{",$$t"}($self, %func_args);
-
-    push @$supptables, $bug_user_map;
-
-    $$term = "bug_user_map.user_id IN (SELECT userid FROM profiles WHERE $$term)";
-
-    # We need to change AND to OR NOT for negated charts to
-    # not negate the bug_user_map.rel= condition itself
-    $$term .= $$negated ? " OR NOT " : " AND ";
-    $$term .= "(bug_user_map.rel='cc')";
+    push(@$supptables, "LEFT JOIN cc AS cc_$chartseq " .
+                       "ON bugs.bug_id = cc_$chartseq.bug_id " .
+                       "AND cc_$chartseq.who IN" .
+                       "(SELECT userid FROM profiles WHERE $$term)"
+                       );
+    $$term = "cc_$chartseq.who IS NOT NULL";
 }
 
 sub _long_desc_changedby {
@@ -1554,44 +1535,47 @@ sub _timestamp_compare {
 sub _commenter_exact {
     my $self = shift;
     my %func_args = @_;
-    my ($chartid, $sequence, $supptables, $term, $v, $negated) =
-        @func_args{qw(chartid sequence supptables term v negated)};
-
-    push @$supptables, $bug_user_map;
+    my ($chartid, $sequence, $supptables, $term, $v) =
+        @func_args{qw(chartid sequence supptables term v)};
+    my $user = $self->{'user'};
 
     $$v =~ m/(%\\w+%)/;
-    my $match = pronoun($1, $self->{user});
-
-    $$term = "(bug_user_map.user_id=$match) AND";
-
-    # We need to change AND to OR NOT for negated charts to
-    # not negate the bug_user_map.rel= condition itself
-    $$term .= $$negated ? " OR NOT " : " AND ";
-    $$term .= "(bug_user_map.rel='commenter'" .
-        ($self->{user}->is_insider ? " OR bug_user_map.rel='privcommenter'" : "") .
-        ")";
+    my $match = pronoun($1, $user);
+    my $chartseq = $$chartid;
+    if ($$chartid eq "") {
+        $chartseq = "LD$$sequence";
+        $$sequence++;
+    }
+    my $table = "longdescs_$chartseq";
+    my $extra = $user->is_insider ? "" : "AND $table.isprivate < 1";
+    push(@$supptables, "LEFT JOIN longdescs AS $table " .
+                       "ON $table.bug_id = bugs.bug_id $extra " .
+                       "AND $table.who IN ($match)");
+    $$term = "$table.who IS NOT NULL";
 }
 
 sub _commenter {
     my $self = shift;
     my %func_args = @_;
-    my ($chartid, $sequence, $supptables, $f, $ff, $t, $funcsbykey, $term, $negated) =
-        @func_args{qw(chartid sequence supptables f ff t funcsbykey term negated)};
+    my ($chartid, $sequence, $supptables, $f, $ff, $t, $funcsbykey, $term) =
+        @func_args{qw(chartid sequence supptables f ff t funcsbykey term)};
 
-    push @$supptables, $bug_user_map;
-
+    my $chartseq = $$chartid;
+    if ($$chartid eq "") {
+        $chartseq = "LD$$sequence";
+        $$sequence++;
+    }
+    my $table = "longdescs_$chartseq";
+    my $extra = $self->{'user'}->is_insider ? "" : "AND $table.isprivate < 1";
     $$f = "login_name";
     $$ff = "profiles.login_name";
     $$funcsbykey{",$$t"}($self, %func_args);
-
-    $$term = "(bug_user_map.user_id IN (SELECT userid FROM profiles WHERE $$term))";
-
-    # We need to change AND to OR NOT for negated charts to
-    # not negate the bug_user_map.rel= condition itself
-    $$term .= $$negated ? " OR NOT " : " AND ";
-    $$term .= "(bug_user_map.rel='commenter'" .
-        ($self->{user}->is_insider ? " OR bug_user_map.rel='privcommenter'" : "") .
-        ")";
+    push(@$supptables, "LEFT JOIN longdescs AS $table " .
+                       "ON $table.bug_id = bugs.bug_id $extra " .
+                       "AND $table.who IN" .
+                       "(SELECT userid FROM profiles WHERE $$term)"
+                       );
+    $$term = "$table.who IS NOT NULL";
 }
 
 sub _long_desc {
