@@ -554,14 +554,6 @@ sub create {
                                                    timestamp => $timestamp,
                                                  });
 
-    # Update bug_user_map
-    $bug->assigned_to and $dbh->do("INSERT INTO bug_user_map (bug_id, rel, user_id) VALUES (?, ?, ?)", undef, $bug->bug_id, 'assigned_to', $bug->assigned_to->id);
-    $bug->reporter    and $dbh->do("INSERT INTO bug_user_map (bug_id, rel, user_id) VALUES (?, ?, ?)", undef, $bug->bug_id, 'reporter',    $bug->reporter->id);
-    $bug->qa_contact  and $dbh->do("INSERT INTO bug_user_map (bug_id, rel, user_id) VALUES (?, ?, ?)", undef, $bug->bug_id, 'qa_contact',  $bug->qa_contact->id);
-    $dbh->do("INSERT INTO bug_user_map (bug_id, rel, user_id) SELECT bug_id, 'cc', who FROM cc WHERE bug_id=?", undef, $bug->bug_id);
-    $dbh->do("INSERT INTO bug_user_map (bug_id, rel, user_id) SELECT bug_id, 'commenter', who FROM longdescs WHERE bug_id=? AND isprivate=0", undef, $bug->bug_id);
-    $dbh->do("INSERT INTO bug_user_map (bug_id, rel, user_id) SELECT bug_id, 'privcommenter', who FROM longdescs WHERE bug_id=? AND isprivate=1", undef, $bug->bug_id);
-
     $dbh->bz_commit_transaction();
 
     # Because MySQL doesn't support transactions on the fulltext table,
@@ -679,9 +671,6 @@ sub update {
 
     my ($changes, $old_bug) = $self->SUPER::update(@_);
 
-    my $sth_map_add = $dbh->prepare("INSERT INTO bug_user_map (bug_id, rel, user_id) VALUES (".$self->bug_id.", ?, ?) ON DUPLICATE KEY UPDATE rel=VALUES(rel)");
-    my $sth_map_del = $dbh->prepare("DELETE FROM bug_user_map WHERE bug_id=".$self->bug_id." AND rel=? AND user_id=?");
-
     # Certain items in $changes have to be fixed so that they hold
     # a name instead of an ID.
     foreach my $field (qw(product_id component_id))
@@ -703,14 +692,12 @@ sub update {
             my ($from, $to) = @{ $changes->{$field} };
             if ($from)
             {
-                $sth_map_del->execute($field, $old_bug->$field->id);
                 $from = $old_bug->$field->login;
                 # Add previous Assignee and QA to CC list
                 $self->add_cc($from);
             }
             if ($to)
             {
-                $sth_map_add->execute($field, $self->$field->id);
                 $to = $self->$field->login;
             }
             $changes->{$field} = [$from, $to];
@@ -739,13 +726,11 @@ sub update {
     if (scalar @$removed_cc) {
         $dbh->do('DELETE FROM cc WHERE bug_id = ? AND '
                  . $dbh->sql_in('who', $removed_cc), undef, $self->id);
-        $sth_map_del->execute('cc', $_) for @$removed_cc;
     }
     foreach my $user_id (@$added_cc)
     {
         $dbh->do('INSERT INTO cc (bug_id, who) VALUES (?,?)',
                  undef, $self->id, $user_id);
-        $sth_map_add->execute('cc', $user_id);
     }
     # If any changes were found, record it in the activity log
     if (scalar @$removed_cc || scalar @$added_cc) {
@@ -853,24 +838,16 @@ sub update {
         $dbh->do("INSERT INTO longdescs (bug_id, who, bug_when, $columns)
                        VALUES (?,?,?,$qmarks)", undef,
                  $self->bug_id, $user->id, $delta_ts, @values);
-        $sth_map_add->execute($comment->{isprivate} ? 'privcommenter' : 'commenter', $user->id);
         if ($comment->{work_time}) {
             LogActivityEntry($self->id, "work_time", "", $comment->{work_time},
                 Bugzilla->user->id, $delta_ts);
         }
     }
 
-    if ($self->{comment_isprivate} && %{$self->{comment_isprivate}})
-    {
-        foreach my $comment_id (keys %{$self->{comment_isprivate}}) {
-            $dbh->do("UPDATE longdescs SET isprivate = ? WHERE comment_id = ?",
-                     undef, $self->{comment_isprivate}->{$comment_id}, $comment_id);
-            # XXX It'd be nice to track this in the bug activity.
-        }
-        # We need to rebuild commenter relations as some comments' privacies were changed
-        $dbh->do("DELETE FROM bug_user_map WHERE bug_id=? AND rel IN ('commenter', 'privcommenter')", undef, $self->bug_id);
-        $dbh->do("INSERT INTO bug_user_map (bug_id, rel, user_id) SELECT DISTINCT bug_id, 'commenter', who FROM longdescs WHERE bug_id=? AND isprivate=0", undef, $self->bug_id);
-        $dbh->do("INSERT INTO bug_user_map (bug_id, rel, user_id) SELECT DISTINCT bug_id, 'privcommenter', who FROM longdescs WHERE bug_id=? AND isprivate=1", undef, $self->bug_id);
+    foreach my $comment_id (keys %{$self->{comment_isprivate} || {}}) {
+        $dbh->do("UPDATE longdescs SET isprivate = ? WHERE comment_id = ?",
+                 undef, $self->{comment_isprivate}->{$comment_id}, $comment_id);
+        # XXX It'd be nice to track this in the bug activity.
     }
 
     # Insert the values into the multiselect value tables
