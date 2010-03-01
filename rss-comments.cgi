@@ -72,7 +72,7 @@ my $bugsquery = "
     l.work_time, l.thetext,
     DATE_FORMAT(l.bug_when,'%Y%m%d%H%i%s') commentlink,
     DATE_FORMAT(l.bug_when,'%a, %d %b %Y %H:%i:%s $tz') datetime_rfc822,
-    UNIX_TIMESTAMP(l.bug_when) unix_when,
+    l.bug_when,
     p.login_name, p.realname,
     NULL AS fieldname, NULL AS fielddesc, NULL AS attach_id, NULL AS old, NULL AS new,
     (b.creation_ts=l.bug_when) as is_new, l.who
@@ -93,7 +93,7 @@ my $bugsquery = "
     0 AS work_time, '' thetext,
     DATE_FORMAT(a.bug_when,'%Y%m%d%H%i%s') commentlink,
     DATE_FORMAT(a.bug_when,'%a, %d %b %Y %H:%i:%s $tz') datetime_rfc822,
-    UNIX_TIMESTAMP(a.bug_when) unix_when,
+    a.bug_when,
     p.login_name, p.realname,
     f.name AS fieldname, f.description AS fielddesc, a.attach_id, a.removed AS old, a.added AS new,
     0 as is_new, a.who
@@ -109,7 +109,7 @@ my $bugsquery = "
  ORDER BY a.bug_when DESC, f.name ASC
  LIMIT $limit)
 
- ORDER BY unix_when DESC
+ ORDER BY bug_when DESC
  LIMIT $limit
 ";
 
@@ -121,7 +121,7 @@ my $group = {};
 foreach (@$events)
 {
     # Group changes by bug_id, bug_when and who
-    $k = $_->{bug_id}.$_->{unix_when}.$_->{who};
+    $k = $_->{bug_id}.$_->{bug_when}.$_->{who};
     if (!$group->{$k})
     {
         push @$gkeys, $k;
