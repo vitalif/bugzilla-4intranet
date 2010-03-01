@@ -86,7 +86,7 @@ if ($query_id)
     my $queryparams = new Bugzilla::CGI($query);
     my $search      = new Bugzilla::Search(
         params => $queryparams,
-        fields => [ "bugs.bug_id", "bugs.priority", "bugs.short_desc", "bugs.remaining_time" ],
+        fields => [ "bugs.bug_id", "bugs.priority", "bugs.short_desc", "bugs.remaining_time", "bugs.product_id", "bugs.component_id" ],
         user   => $user,
     );
     $sqlquery = $search->getSQL();
@@ -95,19 +95,19 @@ if ($query_id)
 $sqlquery = " UNION ($sqlquery)" if $sqlquery;
 
 my $bugsquery = "
- SELECT t.bug_id, t.priority, t.short_desc,
+ SELECT t.bug_id, t.priority, t.short_desc, p.name product, c.name component,
   ROUND(t.remaining_time,1) remaining_time, ROUND(SUM(l.work_time),2) all_work_time,
   ROUND(SUM(IF(l.bug_when > CONCAT(DATE_SUB(CURDATE(),INTERVAL $lastdays DAY),' 23:59:59')
   AND l.who=$userid,l.work_time,0)),2) today_work_time
  FROM (
-  SELECT bugs.bug_id, bugs.priority, bugs.short_desc, bugs.remaining_time FROM longdescs ll, bugs
+  SELECT bugs.bug_id, bugs.priority, bugs.short_desc, bugs.remaining_time, bugs.product_id, bugs.component_id FROM longdescs ll, bugs
   WHERE ll.bug_when > CONCAT(DATE_SUB(CURDATE(),INTERVAL $lastdays DAY),' 23:59:59') AND ll.who=$userid AND ll.bug_id=bugs.bug_id
   UNION
-  SELECT bugs.bug_id, bugs.priority, bugs.short_desc, bugs.remaining_time FROM bugs_activity aa, bugs
+  SELECT bugs.bug_id, bugs.priority, bugs.short_desc, bugs.remaining_time, bugs.product_id, bugs.component_id FROM bugs_activity aa, bugs
   WHERE aa.bug_when > CONCAT(DATE_SUB(CURDATE(),INTERVAL $lastdays DAY),' 23:59:59') AND aa.who=$userid AND aa.bug_id=bugs.bug_id
   $sqlquery
- ) t, longdescs l
- WHERE t.bug_id = l.bug_id
+ ) t, longdescs l, products p, components c
+ WHERE t.bug_id = l.bug_id AND t.product_id=p.id AND t.component_id=c.id
  GROUP BY t.bug_id
  ORDER BY today_work_time DESC, priority ASC
  ";

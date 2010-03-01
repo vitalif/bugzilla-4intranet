@@ -69,6 +69,7 @@ textarea {
   <table class="bz_buglist" cellspacing="2" cellpadding="3" border="1" style="border-style:groove" width="100%">
     <tr bgcolor="lightgrey">
       <th width="30">Bug</th>
+      <th>Prod/Comp</th>
       <th>Summary</th>
       <th width="130" colspan="3"><small>[% PROCESS today_or_lastdays %]</small><br/>Hours Worked</th>
       <th width="320" >Comment</th>
@@ -82,6 +83,9 @@ textarea {
   <tr class="row[% bug.priority %]">
     <td class="first-child" align="right">
       [% bug.bug_id FILTER bug_link(bug.bug_id) %]
+    </td>
+    <td>
+      [% bug.product | html %]/[% bug.component | html %]
     </td>
     <td>
       [% bug.short_desc FILTER html %]
