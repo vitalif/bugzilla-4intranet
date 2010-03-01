@@ -52,6 +52,7 @@ use Bugzilla::Keyword;
 
 use Date::Format;
 use Date::Parse;
+use Tie::IxHash;
 
 # A SELECTed expression that we use as a placeholder if somebody selects
 # <none> for the X, Y, or Z axis in report.cgi.
@@ -950,12 +951,14 @@ sub init {
     }
 
     my %suppseen;
+    tie %suppseen, 'Tie::IxHash';
     foreach my $str (@supptables)
     {
         if ($str =~ /^(LEFT|INNER|RIGHT)\s+JOIN/iso)
         {
             $str =~ /^(.*?)\s+ON\s+(.*)$/iso;
             my ($leftside, $rightside) = ($1, $2);
+            $suppseen{$leftside} or tie %{$suppseen{$leftside}}, 'Tie::IxHash';
             $suppseen{$leftside}{"($rightside)"} = 1;
         }
         else
@@ -971,6 +974,8 @@ sub init {
     {
         $suppstring .= $_ . " ON ". join " AND ", keys %{$suppseen{$_}};
     }
+
+    @andlist = ("(" . join(" OR ", @andlist) . ")");
 
     # Make sure we create a legal SQL query.
     @andlist = ("1 = 1") if !@andlist;
