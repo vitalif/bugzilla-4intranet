@@ -974,7 +974,7 @@ sub init {
     $suppstring .= join('', @supplist);
 
     # <vfilippov@custis.ru> AND(AND(OR)) is IMO pointless. Do OR(AND(OR)).
-    @andlist = ("(" . join(" OR ", @andlist) . ")");
+    @andlist = ("(" . join(" OR ", @andlist) . ")") if @andlist;
     unshift @andlist, $specialchart_terms if $specialchart_terms;
 
     # Make sure we create a legal SQL query.
