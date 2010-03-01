@@ -1315,7 +1315,7 @@ sub _contact_exact {
 
     # We need to change AND to OR NOT for negated charts to
     # not negate the bug_user_map.rel= condition itself
-    $$term .= $negated ? " OR NOT " : " AND ";
+    $$term .= $$negated ? " OR NOT " : " AND ";
     $$term .= "(bug_user_map.rel='$$f')";
 }
 
@@ -1330,7 +1330,7 @@ sub _contact_notequals {
 
     # We need to change AND to OR NOT for negated charts to
     # not negate the bug_user_map.rel= condition itself
-    $$term .= $negated ? " OR NOT " : " AND ";
+    $$term .= $$negated ? " OR NOT " : " AND ";
     $$term .= "(bug_user_map.rel='$$f')";
 }
 
@@ -1350,7 +1350,7 @@ sub _contact_nonchanged {
 
     # We need to change AND to OR NOT for negated charts to
     # not negate the bug_user_map.rel= condition itself
-    $$term .= $negated ? " OR NOT " : " AND ";
+    $$term .= $$negated ? " OR NOT " : " AND ";
     $$term .= "(bug_user_map.rel='$real_f')";
 }
 
@@ -1405,7 +1405,7 @@ sub _cc_exact {
 
     # We need to change AND to OR NOT for negated charts to
     # not negate the bug_user_map.rel= condition itself
-    $$term .= $negated ? " OR NOT " : " AND ";
+    $$term .= $$negated ? " OR NOT " : " AND ";
     $$term .= "(bug_user_map.rel='cc')";
 }
 
@@ -1450,7 +1450,7 @@ sub _cc_nonchanged {
 
     # We need to change AND to OR NOT for negated charts to
     # not negate the bug_user_map.rel= condition itself
-    $$term .= $negated ? " OR NOT " : " AND ";
+    $$term .= $$negated ? " OR NOT " : " AND ";
     $$term .= "(bug_user_map.rel='cc')";
 }
 
@@ -1561,7 +1561,7 @@ sub _commenter_exact {
 
     # We need to change AND to OR NOT for negated charts to
     # not negate the bug_user_map.rel= condition itself
-    $$term .= $negated ? " OR NOT " : " AND ";
+    $$term .= $$negated ? " OR NOT " : " AND ";
     $$term .= "(bug_user_map.rel='commenter'" .
         ($self->{user}->is_insider ? " OR bug_user_map.rel='privcommenter'" : "") .
         ")";
@@ -1583,7 +1583,7 @@ sub _commenter {
 
     # We need to change AND to OR NOT for negated charts to
     # not negate the bug_user_map.rel= condition itself
-    $$term .= $negated ? " OR NOT " : " AND ";
+    $$term .= $$negated ? " OR NOT " : " AND ";
     $$term .= "(bug_user_map.rel='commenter'" .
         ($self->{user}->is_insider ? " OR bug_user_map.rel='privcommenter'" : "") .
         ")";
