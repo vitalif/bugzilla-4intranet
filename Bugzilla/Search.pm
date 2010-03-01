@@ -759,6 +759,7 @@ sub init {
         $row++;
     }
 
+    my $specialchart_terms;
 
 # A boolean chart is a way of representing the terms in a logical
 # expression.  Bugzilla builds SQL queries depending on how you enter
@@ -927,6 +928,9 @@ sub init {
             } else {
                 push(@andlist, "(" . join(" AND ", @chartandlist) . ")");
             }
+            if ($chart < 0) {
+                $specialchart_terms = pop @andlist;
+            }
         }
     }
 
@@ -971,6 +975,7 @@ sub init {
 
     # <vfilippov@custis.ru> AND(AND(OR)) is IMO pointless. Do OR(AND(OR)).
     @andlist = ("(" . join(" OR ", @andlist) . ")");
+    unshift @andlist, $specialchart_terms if $specialchart_terms;
 
     # Make sure we create a legal SQL query.
     @andlist = ("1 = 1") if !@andlist;
