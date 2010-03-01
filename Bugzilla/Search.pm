@@ -635,6 +635,7 @@ sub init {
     my $q;
     my $v;
     my $term;
+    my $negated;
     my %funcsbykey;
     my %func_args = (
         'chartid' => \$chartid,
@@ -652,6 +653,7 @@ sub init {
         'groupby' => \@groupby,
         'chartfields' => \%chartfields,
         'fields' => \@fields,
+        'negated' => \$negated,
     );
     my @funcdefs = (
         "^(?:assigned_to|reporter|qa_contact),(?:notequals|equals|anyexact),%group\\.([^%]+)%" => \&_contact_exact_group,
@@ -850,6 +852,7 @@ sub init {
          $chart < 0 || $params->param("field$chart-0-0") ;
          $chart++) {
         $chartid = $chart >= 0 ? $chart : "";
+        $negated = $params->param("negate$chart") ? 1 : 0;
         my @chartandlist = ();
         for ($row = 0 ;
              $params->param("field$chart-$row-0") ;
@@ -921,7 +924,7 @@ sub init {
             }
         }
         if (@chartandlist) {
-            if ($params->param("negate$chart")) {
+            if ($negated) {
                 push(@andlist, "NOT(" . join(" AND ", @chartandlist) . ")");
             } else {
                 push(@andlist, "(" . join(" AND ", @chartandlist) . ")");
@@ -1301,31 +1304,41 @@ my $bug_user_map = "INNER JOIN bug_user_map USE KEY (bug_user_map_rel_user_id_id
 sub _contact_exact {
     my $self = shift;
     my %func_args = @_;
-    my ($chartid, $supptables, $f, $t, $v, $term) =
-        @func_args{qw(chartid supptables f t v term)};
+    my ($chartid, $supptables, $f, $t, $v, $term, $negated) =
+        @func_args{qw(chartid supptables f t v term negated)};
     my $user = $self->{'user'};
 
     push @$supptables, $bug_user_map;
 
     $$v =~ m/(%\\w+%)/;
-    $$term = "bug_user_map.rel='$$f' AND bug_user_map.user_id=".pronoun($1, $user);
+    $$term = "bug_user_map.user_id=".pronoun($1, $user);
+
+    # We need to change AND to OR NOT for negated charts to
+    # not negate the bug_user_map.rel= condition itself
+    $$term .= $negated ? " OR NOT " : " AND ";
+    $$term .= "(bug_user_map.rel='$$f')";
 }
 
 sub _contact_notequals {
     my $self = shift;
     my %func_args = @_;
-    my ($term, $f, $v) = @func_args{qw(term f v)};
+    my ($term, $f, $v, $negated) = @func_args{qw(term f v negated)};
     my $user = $self->{'user'};
 
     $$v =~ m/(%\\w+%)/;
-    $$term = "bugs.$$f <> " . pronoun($1, $user);
+    $$term = "bug_user_map.user_id!=".pronoun($1, $user);
+
+    # We need to change AND to OR NOT for negated charts to
+    # not negate the bug_user_map.rel= condition itself
+    $$term .= $negated ? " OR NOT " : " AND ";
+    $$term .= "(bug_user_map.rel='$$f')";
 }
 
 sub _contact_nonchanged {
     my $self = shift;
     my %func_args = @_;
-    my ($f, $ff, $supptables, $funcsbykey, $t, $term) =
-        @func_args{qw(f ff supptables funcsbykey t term)};
+    my ($f, $ff, $supptables, $funcsbykey, $t, $term, $negated) =
+        @func_args{qw(f ff supptables funcsbykey t term negated)};
 
     push @$supptables, $bug_user_map;
 
@@ -1333,7 +1346,12 @@ sub _contact_nonchanged {
     $$f = "login_name";
     $$ff = "profiles.login_name";
     $$funcsbykey{",$$t"}($self, %func_args);
-    $$term = "bug_user_map.rel='$real_f' AND bug_user_map.user_id IN (SELECT userid FROM profiles WHERE $$term)";
+    $$term = "bug_user_map.user_id IN (SELECT userid FROM profiles WHERE $$term)";
+
+    # We need to change AND to OR NOT for negated charts to
+    # not negate the bug_user_map.rel= condition itself
+    $$term .= $negated ? " OR NOT " : " AND ";
+    $$term .= "(bug_user_map.rel='$real_f')";
 }
 
 sub _cc_exact_group {
@@ -1374,8 +1392,8 @@ sub _cc_exact_group {
 sub _cc_exact {
     my $self = shift;
     my %func_args = @_;
-    my ($chartid, $sequence, $supptables, $term, $v) =
-        @func_args{qw(chartid sequence supptables term v)};
+    my ($chartid, $sequence, $supptables, $term, $v, $negated) =
+        @func_args{qw(chartid sequence supptables term v negated)};
     my $user = $self->{'user'};
 
     $$v =~ m/(%\\w+%)/;
@@ -1383,7 +1401,12 @@ sub _cc_exact {
 
     push @$supptables, $bug_user_map;
 
-    $$term = "bug_user_map.user_id=$match AND bug_user_map.rel='cc'";
+    $$term = "bug_user_map.user_id=$match";
+
+    # We need to change AND to OR NOT for negated charts to
+    # not negate the bug_user_map.rel= condition itself
+    $$term .= $negated ? " OR NOT " : " AND ";
+    $$term .= "(bug_user_map.rel='cc')";
 }
 
 sub _cc_notequals {
@@ -1409,8 +1432,8 @@ sub _cc_notequals {
 sub _cc_nonchanged {
     my $self = shift;
     my %func_args = @_;
-    my ($chartid, $sequence, $f, $ff, $t, $funcsbykey, $supptables, $term, $v) =
-        @func_args{qw(chartid sequence f ff t funcsbykey supptables term v)};
+    my ($chartid, $sequence, $f, $ff, $t, $funcsbykey, $supptables, $term, $v, $negated) =
+        @func_args{qw(chartid sequence f ff t funcsbykey supptables term v negated)};
 
     my $chartseq = $$chartid;
     if ($$chartid eq "") {
@@ -1423,7 +1446,12 @@ sub _cc_nonchanged {
 
     push @$supptables, $bug_user_map;
 
-    $$term = "bug_user_map.user_id IN (SELECT userid FROM profiles WHERE $$term) AND bug_user_map.rel='cc'";
+    $$term = "bug_user_map.user_id IN (SELECT userid FROM profiles WHERE $$term)";
+
+    # We need to change AND to OR NOT for negated charts to
+    # not negate the bug_user_map.rel= condition itself
+    $$term .= $negated ? " OR NOT " : " AND ";
+    $$term .= "(bug_user_map.rel='cc')";
 }
 
 sub _long_desc_changedby {
@@ -1521,15 +1549,20 @@ sub _timestamp_compare {
 sub _commenter_exact {
     my $self = shift;
     my %func_args = @_;
-    my ($chartid, $sequence, $supptables, $term, $v) =
-        @func_args{qw(chartid sequence supptables term v)};
+    my ($chartid, $sequence, $supptables, $term, $v, $negated) =
+        @func_args{qw(chartid sequence supptables term v negated)};
 
     push @$supptables, $bug_user_map;
 
     $$v =~ m/(%\\w+%)/;
     my $match = pronoun($1, $self->{user});
-    $$term =
-        "(bug_user_map.user_id=$match) AND (bug_user_map.rel='commenter'" .
+
+    $$term = "(bug_user_map.user_id=$match) AND";
+
+    # We need to change AND to OR NOT for negated charts to
+    # not negate the bug_user_map.rel= condition itself
+    $$term .= $negated ? " OR NOT " : " AND ";
+    $$term .= "(bug_user_map.rel='commenter'" .
         ($self->{user}->is_insider ? " OR bug_user_map.rel='privcommenter'" : "") .
         ")";
 }
@@ -1537,8 +1570,8 @@ sub _commenter_exact {
 sub _commenter {
     my $self = shift;
     my %func_args = @_;
-    my ($chartid, $sequence, $supptables, $f, $ff, $t, $funcsbykey, $term) =
-        @func_args{qw(chartid sequence supptables f ff t funcsbykey term)};
+    my ($chartid, $sequence, $supptables, $f, $ff, $t, $funcsbykey, $term, $negated) =
+        @func_args{qw(chartid sequence supptables f ff t funcsbykey term negated)};
 
     push @$supptables, $bug_user_map;
 
@@ -1546,8 +1579,12 @@ sub _commenter {
     $$ff = "profiles.login_name";
     $$funcsbykey{",$$t"}($self, %func_args);
 
-    $$term =
-        "(bug_user_map.user_id IN (SELECT userid FROM profiles WHERE $$term)) AND (bug_user_map.rel='commenter'" .
+    $$term = "(bug_user_map.user_id IN (SELECT userid FROM profiles WHERE $$term))";
+
+    # We need to change AND to OR NOT for negated charts to
+    # not negate the bug_user_map.rel= condition itself
+    $$term .= $negated ? " OR NOT " : " AND ";
+    $$term .= "(bug_user_map.rel='commenter'" .
         ($self->{user}->is_insider ? " OR bug_user_map.rel='privcommenter'" : "") .
         ")";
 }
