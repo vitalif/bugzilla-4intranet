@@ -94,14 +94,12 @@ sub _throw_error
     }
     my $mode = Bugzilla->error_mode;
 
-    if ($mode == ERROR_MODE_DIE)
+    # If we are within an eval(), do not do anything more
+    # as we are eval'uating some test on purpose.
+    if ($mode == ERROR_MODE_DIE || _in_eval())
     {
         die bless { message => ($msg ||= _error_message($type, $error, $vars)) };
     }
-
-    # If we are within an eval(), do not do anything more
-    # as we are eval'uating some test on purpose.
-    exit if _in_eval();
 
     # Make sure any transaction is rolled back (if supported).
     my $dbh = Bugzilla->dbh;
