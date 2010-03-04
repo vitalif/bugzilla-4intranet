@@ -358,6 +358,8 @@ sub get_row
         $_ = $page->get_cell($row, $_);
         $_ = $_ ? $_->value : '';
         Encode::_utf8_on($_);
+        tr/‒–—/---/;
+        tr/―/-/;
         trim($_);
     } ($col_min .. $col_max) ];
 }
@@ -371,6 +373,7 @@ sub post_bug
     my $um = Bugzilla->usage_mode;
     Bugzilla->usage_mode(USAGE_MODE_EMAIL);
     Bugzilla->error_mode(ERROR_MODE_WEBPAGE);
+    $Bugzilla::Error::IN_EVAL++;
     unless ($fields_in->{version})
     {
         # угадаем версию
@@ -409,6 +412,7 @@ sub post_bug
     $cgi->param(-name => 'dontsendbugmail', -value => 1);
     # и дёргаем post_bug.cgi
     my $bug_id = do 'post_bug.cgi';
+    $Bugzilla::Error::IN_EVAL--;
     Bugzilla->usage_mode($um);
     $bugmail->{$bug_id} = Bugzilla->request_cache->{mailrecipients};
     return $bug_id;

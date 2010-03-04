@@ -1661,6 +1661,8 @@
 [% BLOCK object_name %]
   [% IF class == "Bugzilla::User" %]
     user
+  [% ELSIF class == "Bugzilla::Product" %]
+    product
   [% ELSIF class == "Bugzilla::Component" %]
     component
   [% ELSIF class == "Bugzilla::Version" %]

@@ -186,7 +186,9 @@ sub post_bug {
 
     $cgi->param(-name => 'inbound_email', -value => 1);
 
+    $Bugzilla::Error::IN_EVAL++;
     my $bug_id = do 'post_bug.cgi';
+    $Bugzilla::Error::IN_EVAL--;
     die $@ . "\n\nIncoming mail format for entering bugs:\n\@field = value\n\@field = value\n...\n\nBug text\n" if $@;
     if ($fields{attachments} && @{$fields{attachments}})
     {
@@ -215,7 +217,9 @@ sub insert_attachments_for_bug
         $cgi->param(text_attachment => $_->{payload});
         $cgi->param(token => issue_session_token('createattachment:'));
         debug_print("Inserting attachment for bug $bug_id");
+        $Bugzilla::Error::IN_EVAL++;
         do 'attachment.cgi';
+        $Bugzilla::Error::IN_EVAL--;
         debug_print($@) if $@;
     }
 }
@@ -262,7 +266,9 @@ sub process_bug {
     $cgi->param('longdesclength', scalar $bug->longdescs);
     $cgi->param('token', issue_hash_token([$bug->id, $bug->delta_ts]));
 
+    $Bugzilla::Error::IN_EVAL++;
     do 'process_bug.cgi';
+    $Bugzilla::Error::IN_EVAL--;
     debug_print($@) if $@;
     if ($fields{attachments} && @{$fields{attachments}})
     {
