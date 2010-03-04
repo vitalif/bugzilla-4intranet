@@ -359,7 +359,7 @@ sub get_row
         $_ = $_ ? $_->value : '';
         Encode::_utf8_on($_);
         tr/‒–—/---/;
-        tr/―/-/;
+        tr/―‑/--/;
         trim($_);
     } ($col_min .. $col_max) ];
 }
