@@ -40,16 +40,23 @@ use overload '""' => sub { $_[0]->{message} };
 
 my $HAVE_DEVEL_STACKTRACE = eval { require Devel::StackTrace };
 
+our $IN_EVAL = 0;
+
 # We cannot use $^S to detect if we are in an eval(), because mod_perl
 # already eval'uates everything, so $^S = 1 in all cases under mod_perl!
 sub _in_eval
 {
+    my $in = -$IN_EVAL;
     for (my $stack = 1; my $sub = (caller($stack))[3]; $stack++)
     {
         last if $sub =~ /^ModPerl/;
-        return 1 if $sub =~ /^\(eval\)/;
+        if ($sub =~ /^\(eval\)/)
+        {
+            $in++;
+            last if $in > 0;
+        }
     }
-    return 0;
+    return $in > 0;
 }
 
 # build error message for printing into error log or sending to maintainer e-mail
