@@ -12,46 +12,30 @@
 %]
 
 <style>
-td{
-  font-family: "Lucida Console", monospace;
-  font-size: 9pt;
-}
-textarea {
-  font-family: monospace;
-  font-size: 10pt;
-}
-
-.rowP1 {
-   background-color: rgb(250,240,240);
-}
-.rowP2 {
-   background-color: rgb(240,240,240);
-}
-.rowP3 {
-   background-color: rgb(230,240,240);
-}
-.rowP4 {
-   background-color: rgb(220,230,240);
-}
+.worktime td { font-family: "Lucida Console", monospace; font-size: 9pt; }
+.worktime textarea { font-family: monospace; font-size: 10pt; }
+.worktime .rowP1 { background-color: rgb(250,240,240); }
+.worktime .rowP2 { background-color: rgb(240,240,240); }
+.worktime .rowP3 { background-color: rgb(230,240,240); }
+.worktime .rowP4 { background-color: rgb(220,230,240); }
 </style>
 
-<!-- <div style="float" align="right"> -->
 <table>
   <tr>
     <td align="left" width="30%">
-        My Bugs for last [% lastdays %] days.
+      My Bugs for last [% lastdays %] days.
     </td>
     <td width="20%">
       <form name="lastdaysform" action="fill-day-worktime.cgi" method="get">
       <input value="Select last days" type="submit">
       <select name="lastdays">
-          <option value="1" [% " selected=\"selected\"" IF (!lastdays)||(lastdays==1) %]>1</option>
-          <option value="2" [% " selected=\"selected\"" IF (lastdays==2) %]>2</option>
-          <option value="3" [% " selected=\"selected\"" IF (lastdays==3) %]>3</option>
-          <option value="4" [% " selected=\"selected\"" IF (lastdays==4) %]>4</option>
-          <option value="5" [% " selected=\"selected\"" IF (lastdays==5) %]>5</option>
-          <option value="6" [% " selected=\"selected\"" IF (lastdays==6) %]>6</option>
-          <option value="7" [% " selected=\"selected\"" IF (lastdays==7) %]>7</option>
+        <option value="1" [% " selected=\"selected\"" IF (!lastdays)||(lastdays==1) %]>1</option>
+        <option value="2" [% " selected=\"selected\"" IF (lastdays==2) %]>2</option>
+        <option value="3" [% " selected=\"selected\"" IF (lastdays==3) %]>3</option>
+        <option value="4" [% " selected=\"selected\"" IF (lastdays==4) %]>4</option>
+        <option value="5" [% " selected=\"selected\"" IF (lastdays==5) %]>5</option>
+        <option value="6" [% " selected=\"selected\"" IF (lastdays==6) %]>6</option>
+        <option value="7" [% " selected=\"selected\"" IF (lastdays==7) %]>7</option>
       </select>
       </form>
     </td>
@@ -64,7 +48,7 @@ textarea {
   </tr>
 </table>
 
-<form name="worktimeform" action="fill-day-worktime.cgi" method="post">
+<form name="worktimeform" action="fill-day-worktime.cgi" method="post" class="worktime">
   <input name="lastdays" type="hidden" value=[% lastdays %]>
   <table class="bz_buglist" cellspacing="2" cellpadding="3" border="1" style="border-style:groove" width="100%">
     <tr bgcolor="lightgrey">
@@ -79,7 +63,7 @@ textarea {
 [% parity = 0 %]
 
 [% FOREACH bug = bugs %]
-  [% parity = (parity+1) % 3 %]  
+  [% parity = (parity+1) % 3 %]
   <tr class="row[% bug.priority %]">
     <td class="first-child" align="right">
       [% bug.bug_id FILTER bug_link(bug.bug_id) %]
@@ -143,12 +127,10 @@ textarea {
 
 [% PROCESS global/footer.html.tmpl %]
 
-
 [% BLOCK today_or_lastdays %]
     [% IF lastdays>1 %]
       Last [% lastdays %] Days
     [% ELSE %]
-      Today 
+      Today
     [% END %]
 [% END %]
-
