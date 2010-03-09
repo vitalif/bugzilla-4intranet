@@ -183,7 +183,7 @@ sub clean_search_url {
     }
 
     # chfieldto is set to "Now" by default in query.cgi.
-    if ($self->param('chfieldto') eq 'Now')
+    if (lc($self->param('chfieldto')) eq 'now')
     {
         $self->delete('chfieldto');
     }
