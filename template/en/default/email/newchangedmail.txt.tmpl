@@ -63,7 +63,7 @@ Content-Transfer-Encoding: quoted-printable
 [% FOREACH comment = new_comments %]
 
 [%- IF comment.count %]
---- Comment #[% comment.count %] from [% comment.author.identity %] [%+ comment.time FILTER time %] ---
+--- Comment #[% comment.count %] from [% comment.author.identity %] [%+ comment.time FILTER time(undef, to_user.timezone) %] ---
 [% END %]
 [%+ FILTER remove('^X') %][% PROCESS bug/format_comment.txt.tmpl %][% END %]
 [% END %]

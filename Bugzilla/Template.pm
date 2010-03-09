@@ -165,7 +165,7 @@ sub nl2br
 # If you want to modify this routine, read the comments carefully
 
 sub quoteUrls {
-    my ($text, $curr_bugid, $already_wrapped) = (@_);
+    my ($text, $curr_bugid) = (@_);
     return $text unless $text;
 
     # We use /g for speed, but uris can have other things inside them
@@ -576,10 +576,10 @@ sub create {
             css_class_quote => \&Bugzilla::Util::css_class_quote ,
 
             quoteUrls => [ sub {
-                               my ($context, $bug, $already_wrapped) = @_;
+                               my ($context, $bug) = @_;
                                return sub {
                                    my $text = shift;
-                                   return quoteUrls($text, $bug, $already_wrapped);
+                                   return quoteUrls($text, $bug);
                                };
                            },
                            1

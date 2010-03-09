@@ -49,7 +49,7 @@
       var s = '[';
       [% IF user.settings.quote_replies.value != 'off' %]
         s += '<a href="#add_comment" onclick="replyToComment(' +
-             id + ',' + real_id + ');">reply<' + '/a>';
+             id + ',' + real_id + '); return false;">reply<' + '/a>';
       [% END %]
       s += ', clone to <a href="enter_bug.cgi?cloned_bug_id=[% bug.bug_id %]&amp;cloned_comment='+id+'">other</a>';
       s += '/<a href="enter_bug.cgi?cloned_bug_id=[% bug.bug_id %]&amp;product=[% bug.product %]&amp;cloned_comment='+id+'">same</a> product';
