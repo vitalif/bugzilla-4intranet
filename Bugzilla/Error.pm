@@ -80,6 +80,12 @@ sub _error_message
     return $mesg;
 }
 
+sub throw
+{
+    my $self = shift;
+    ref $self and _throw_error($self->{type}, $self->{error}, $self->{vars});
+}
+
 sub _throw_error
 {
     my ($type, $error, $vars) = @_;
@@ -98,7 +104,7 @@ sub _throw_error
     # as we are eval'uating some test on purpose.
     if ($mode == ERROR_MODE_DIE || _in_eval())
     {
-        die bless { message => ($msg ||= _error_message($type, $error, $vars)) };
+        die bless { message => ($msg ||= _error_message($type, $error, $vars)), type => $type, error => $error, vars => $vars };
     }
 
     # Make sure any transaction is rolled back (if supported).

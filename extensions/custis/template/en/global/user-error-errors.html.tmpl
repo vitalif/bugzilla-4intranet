@@ -1,12 +1,11 @@
-[%# Note that error messages should generally be indented four spaces, like
-  # below, because when Bugzilla translates an error message into plain
-  # text, it takes four spaces off the beginning of the lines. 
-  #
-  # Note also that I prefixed my error name with "example", the name of my
-  # extension, so that I wouldn't conflict with other error names in
-  # Bugzilla or other extensions.
-  #%]
 [% IF error == "cc_group_restriction" %]
    [% title = "CC Group Restriction" %]
    User [% user %] is restricted to watch this bug.
+[% ELSIF error == "rms_fields_empty" %]
+   [% title = "Some required fields are empty" %]
+   [% SET fs = [] %]
+   [% fs.push("Sprint") IF s %]
+   [% fs.push("Status Whiteboard") IF w %]
+   [% fs.push("Agreement") IF a %]
+   You must fill in <b>[% fs.join(", ") %]</b> attribute[% IF fs.size > 1 %]s[% END %] before closing this bug!
 [% END %]
