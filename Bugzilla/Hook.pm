@@ -49,8 +49,12 @@ sub process {
             # Allow extensions to load their own libraries.
             local @INC = ("$extension/lib", @INC);
             do($extension.'/code/'.$name.'.pl');
-            ThrowCodeError('extension_invalid', 
-                { errstr => $@, name => $name, extension => $extension }) if $@;
+            if ($@)
+            {
+                $@->throw if ref($@) && $@->isa('Bugzilla::Error');
+                ThrowCodeError('extension_invalid', 
+                    { errstr => $@, name => $name, extension => $extension });
+            }
             # Flush stored data.
             Bugzilla->hook_args({});
         }
