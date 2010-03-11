@@ -163,7 +163,9 @@ name="Functions"
 <p>Function to connect to the shadow database, returning a new database handle. This routine <code  class="code">die</code>s if no shadow database is configured.</p>
 
 <dt><a name="Params_(none)"
-><b>Params</b> (none)
+><b>Params</b> (none)</a></dt>
+
+<dd>
 <dt><a name="Returns"
 ><b>Returns</b></a></dt>
 
@@ -210,7 +212,9 @@ name="Functions"
 <p>Creates an empty database with the name <code  class="code">$db_name</code>, if that database doesn&#39;t already exist. Prints an error message and exits if we can&#39;t create the database.</p>
 
 <dt><a name="Params_(none)"
-><b>Params</b> (none)
+><b>Params</b> (none)</a></dt>
+
+<dd>
 <dt><a name="Returns_(nothing)"
 ><b>Returns</b> (nothing)</a></dt>
 </dl>
@@ -232,17 +236,29 @@ name="Functions"
 <dd>
 <dl>
 <dt><a name="$driver_-_name_of_the_database_driver_to_use"
-><code  class="code">$driver</code> - name of the database driver to use
+><code  class="code">$driver</code> - name of the database driver to use</a></dt>
+
+<dd>
 <dt><a name="$host_-_host_running_the_database_we_are_connecting_to"
-><code  class="code">$host</code> - host running the database we are connecting to
+><code  class="code">$host</code> - host running the database we are connecting to</a></dt>
+
+<dd>
 <dt><a name="$dbname_-_name_of_the_database_to_connect_to"
-><code  class="code">$dbname</code> - name of the database to connect to
+><code  class="code">$dbname</code> - name of the database to connect to</a></dt>
+
+<dd>
 <dt><a name="$port_-_port_the_database_is_listening_on"
-><code  class="code">$port</code> - port the database is listening on
+><code  class="code">$port</code> - port the database is listening on</a></dt>
+
+<dd>
 <dt><a name="$sock_-_socket_the_database_is_listening_on"
-><code  class="code">$sock</code> - socket the database is listening on
+><code  class="code">$sock</code> - socket the database is listening on</a></dt>
+
+<dd>
 <dt><a name="$user_-_username_used_to_log_in_to_the_database"
-><code  class="code">$user</code> - username used to log in to the database
+><code  class="code">$user</code> - username used to log in to the database</a></dt>
+
+<dd>
 <dt><a name="$pass_-_password_used_to_log_in_to_the_database"
 ><code  class="code">$pass</code> - password used to log in to the database</a></dt>
 </dl>
@@ -297,15 +313,25 @@ name="Constructor"
 <dd>
 <dl>
 <dt><a name="$user_-_username_used_to_log_in_to_the_database"
-><code  class="code">$user</code> - username used to log in to the database
+><code  class="code">$user</code> - username used to log in to the database</a></dt>
+
+<dd>
 <dt><a name="$pass_-_password_used_to_log_in_to_the_database"
-><code  class="code">$pass</code> - password used to log in to the database
+><code  class="code">$pass</code> - password used to log in to the database</a></dt>
+
+<dd>
 <dt><a name="$host_-_host_running_the_database_we_are_connecting_to"
-><code  class="code">$host</code> - host running the database we are connecting to
+><code  class="code">$host</code> - host running the database we are connecting to</a></dt>
+
+<dd>
 <dt><a name="$dbname_-_name_of_the_database_to_connect_to"
-><code  class="code">$dbname</code> - name of the database to connect to
+><code  class="code">$dbname</code> - name of the database to connect to</a></dt>
+
+<dd>
 <dt><a name="$port_-_port_the_database_is_listening_on"
-><code  class="code">$port</code> - port the database is listening on
+><code  class="code">$port</code> - port the database is listening on</a></dt>
+
+<dd>
 <dt><a name="$sock_-_socket_the_database_is_listening_on"
 ><code  class="code">$sock</code> - socket the database is listening on</a></dt>
 </dl>
@@ -352,11 +378,17 @@ name="SQL_Generation"
 <dd>
 <dl>
 <dt><a name="$expr_-_SQL_expression_for_the_text_to_be_searched_(scalar)"
-><code  class="code">$expr</code> - SQL expression for the text to be searched (scalar)
+><code  class="code">$expr</code> - SQL expression for the text to be searched (scalar)</a></dt>
+
+<dd>
 <dt><a name="$pattern_-_the_regular_expression_to_search_for_(scalar)"
-><code  class="code">$pattern</code> - the regular expression to search for (scalar)
+><code  class="code">$pattern</code> - the regular expression to search for (scalar)</a></dt>
+
+<dd>
 <dt><a name="$nocheck_-_true_if_the_pattern_should_not_be_tested;_false_otherwise_(boolean)"
-><code  class="code">$nocheck</code> - true if the pattern should not be tested; false otherwise (boolean)
+><code  class="code">$nocheck</code> - true if the pattern should not be tested; false otherwise (boolean)</a></dt>
+
+<dd>
 <dt><a name="$real_pattern_-_the_real_regular_expression_to_search_for._This_argument_is_used_when_$pattern_is_a_placeholder_(&#39;?&#39;)."
 ><code  class="code">$real_pattern</code> - the real regular expression to search for. This argument is used when <code  class="code">$pattern</code> is a placeholder (&#39;?&#39;).</a></dt>
 </dl>
@@ -416,7 +448,9 @@ name="SQL_Generation"
 <dd>
 <dl>
 <dt><a name="$limit_-_number_of_rows_to_return_from_query_(scalar)"
-><code  class="code">$limit</code> - number of rows to return from query (scalar)
+><code  class="code">$limit</code> - number of rows to return from query (scalar)</a></dt>
+
+<dd>
 <dt><a name="$offset_-_number_of_rows_to_skip_before_counting_(scalar)"
 ><code  class="code">$offset</code> - number of rows to skip before counting (scalar)</a></dt>
 </dl>
@@ -508,7 +542,9 @@ name="SQL_Generation"
 <dd>
 <dl>
 <dt><a name="$date_-_date_or_name_of_date_type_column_(scalar)"
-><code  class="code">$date</code> - date or name of date type column (scalar)
+><code  class="code">$date</code> - date or name of date type column (scalar)</a></dt>
+
+<dd>
 <dt><a 
 ><code  class="code">$format</code> - format string for date output (scalar) (<code  class="code">%Y</code> = year, four digits, <code  class="code">%y</code> = year, two digits, <code  class="code">%m</code> = month, <code  class="code">%d</code> = day, <code  class="code">%a</code> = weekday name, 3 letters, <code  class="code">%H</code> = hour 00-23, <code  class="code">%i</code> = minute, <code  class="code">%s</code> = second)</a></dt>
 </dl>
@@ -540,7 +576,9 @@ name="SQL_Generation"
 <dd>
 <dl>
 <dt><a name="$interval_-_the_time_interval_requested_(e.g._&#39;30&#39;)_(integer)"
-><code  class="code">$interval</code> - the time interval requested (e.g. &#39;30&#39;) (integer)
+><code  class="code">$interval</code> - the time interval requested (e.g. &#39;30&#39;) (integer)</a></dt>
+
+<dd>
 <dt><a name="$units_-_the_units_the_interval_is_in_(e.g._&#39;MINUTE&#39;)_(string)"
 ><code  class="code">$units</code> - the units the interval is in (e.g. &#39;MINUTE&#39;) (string)</a></dt>
 </dl>
@@ -573,7 +611,9 @@ name="SQL_Generation"
 <dd>
 <dl>
 <dt><a name="$fragment_-_the_string_fragment_we_are_searching_for_(scalar)"
-><code  class="code">$fragment</code> - the string fragment we are searching for (scalar)
+><code  class="code">$fragment</code> - the string fragment we are searching for (scalar)</a></dt>
+
+<dd>
 <dt><a name="$text_-_the_text_to_search_(scalar)"
 ><code  class="code">$text</code> - the text to search (scalar)</a></dt>
 </dl>
@@ -612,7 +652,9 @@ name="SQL_Generation"
 <dd>
 <dl>
 <dt><a name="$needed_columns_-_string_with_comma_separated_list_of_columns_we_need_to_group_by_to_get_expected_result_(scalar)"
-><code  class="code">$needed_columns</code> - string with comma separated list of columns we need to group by to get expected result (scalar)
+><code  class="code">$needed_columns</code> - string with comma separated list of columns we need to group by to get expected result (scalar)</a></dt>
+
+<dd>
 <dt><a 
 ><code  class="code">$optional_columns</code> - string with comma separated list of all other columns we are querying for, but which are not in the required list.</a></dt>
 </dl>
@@ -671,7 +713,9 @@ name="SQL_Generation"
 <p>Note that both parameters need to be sql-quoted.</p>
 
 <dt><a name="$string_The_string_we&#39;re_truncating"
-><code  class="code">$string</code> The string we&#39;re truncating
+><code  class="code">$string</code> The string we&#39;re truncating</a></dt>
+
+<dd>
 <dt><a name="$substring_The_substring_we&#39;re_truncating_at."
 ><code  class="code">$substring</code> The substring we&#39;re truncating at.</a></dt>
 </dl>
@@ -695,7 +739,9 @@ name="SQL_Generation"
 <dd>
 <dl>
 <dt><a name="$column_-_name_of_column_to_search_(scalar)"
-><code  class="code">$column</code> - name of column to search (scalar)
+><code  class="code">$column</code> - name of column to search (scalar)</a></dt>
+
+<dd>
 <dt><a name="$text_-_text_to_search_for_(scalar)"
 ><code  class="code">$text</code> - text to search for (scalar)</a></dt>
 </dl>
@@ -725,9 +771,13 @@ name="SQL_Generation"
 <dd>
 <dl>
 <dt><a name="$left_-_What_should_be_on_the_left-hand-side_of_the_operation."
-><code  class="code">$left</code> - What should be on the left-hand-side of the operation.
+><code  class="code">$left</code> - What should be on the left-hand-side of the operation.</a></dt>
+
+<dd>
 <dt><a name="$right_-_What_should_be_on_the_right-hand-side_of_the_operation."
-><code  class="code">$right</code> - What should be on the right-hand-side of the operation.
+><code  class="code">$right</code> - What should be on the right-hand-side of the operation.</a></dt>
+
+<dd>
 <dt><a 
 ><code  class="code">$op</code> (optional) - What the operation is. Should be a valid ANSI SQL comparison operator, such as <code  class="code">=</code>, <code  class="code">&#60;</code>, <code  class="code">LIKE</code>, etc. Defaults to <code  class="code">=</code> if not specified.</a></dt>
 </dl>
@@ -802,7 +852,9 @@ name="SQL_Generation"
 <dd>
 <dl>
 <dt><a name="$column_name_-_Column_name_(e.g._bug_id)"
-><code  class="code">$column_name</code> - Column name (e.g. <code  class="code">bug_id</code>)
+><code  class="code">$column_name</code> - Column name (e.g. <code  class="code">bug_id</code>)</a></dt>
+
+<dd>
 <dt><a name="$in_list_ref_-_an_arrayref_containing_values_for_IN_()"
 ><code  class="code">$in_list_ref</code> - an arrayref containing values for <code  class="code">IN ()</code></a></dt>
 </dl>
@@ -850,7 +902,9 @@ name="General_Information_Methods"
 <dd>
 <dl>
 <dt><a name="$table_-_name_of_table_containing_serial_column_(scalar)"
-><code  class="code">$table</code> - name of table containing serial column (scalar)
+><code  class="code">$table</code> - name of table containing serial column (scalar)</a></dt>
+
+<dd>
 <dt><a name="$column_-_name_of_column_containing_serial_data_type_(scalar)"
 ><code  class="code">$column</code> - name of column containing serial data type (scalar)</a></dt>
 </dl>
@@ -884,7 +938,9 @@ name="Database_Setup_Methods"
 <p>For an upgrade or an initial installation, populates the tables that hold the legal values for the old &#34;enum&#34; fields: <code  class="code">bug_severity</code>, <code  class="code">resolution</code>, etc. Prints out information if it inserts anything into the DB.</p>
 
 <dt><a name="Params_(none)"
-><b>Params</b> (none)
+><b>Params</b> (none)</a></dt>
+
+<dd>
 <dt><a name="Returns_(nothing)"
 ><b>Returns</b> (nothing)</a></dt>
 </dl>
@@ -917,11 +973,17 @@ name="Schema_Modification_Methods"
 <dd>
 <dl>
 <dt><a name="$table_-_the_table_where_the_column_is_being_added"
-><code  class="code">$table</code> - the table where the column is being added
+><code  class="code">$table</code> - the table where the column is being added</a></dt>
+
+<dd>
 <dt><a name="$name_-_the_name_of_the_new_column"
-><code  class="code">$name</code> - the name of the new column
+><code  class="code">$name</code> - the name of the new column</a></dt>
+
+<dd>
 <dt><a name="\%definition_-_Abstract_column_definition_for_the_new_column"
-><code  class="code">\%definition</code> - Abstract column definition for the new column
+><code  class="code">\%definition</code> - Abstract column definition for the new column</a></dt>
+
+<dd>
 <dt><a 
 ><code  class="code">$init_value</code> (optional) - An initial value to set the column to. Required if your column is NOT NULL and has no DEFAULT set.</a></dt>
 </dl>
@@ -947,9 +1009,13 @@ name="Schema_Modification_Methods"
 <dd>
 <dl>
 <dt><a name="$table_-_The_table_the_new_index_is_on."
-><code  class="code">$table</code> - The table the new index is on.
+><code  class="code">$table</code> - The table the new index is on.</a></dt>
+
+<dd>
 <dt><a name="$name_-_A_name_for_the_new_index."
-><code  class="code">$name</code> - A name for the new index.
+><code  class="code">$name</code> - A name for the new index.</a></dt>
+
+<dd>
 <dt><a name="$definition_-_An_abstract_index_definition._Either_a_hashref_or_an_arrayref."
 ><code  class="code">$definition</code> - An abstract index definition. Either a hashref or an arrayref.</a></dt>
 </dl>
@@ -1004,7 +1070,9 @@ name="Schema_Modification_Methods"
 <dd>
 <dl>
 <dt><a name="$table_-_The_table_that_the_index_is_on."
-><code  class="code">$table</code> - The table that the index is on.
+><code  class="code">$table</code> - The table that the index is on.</a></dt>
+
+<dd>
 <dt><a name="$name_-_The_name_of_the_index_that_you_want_to_drop."
 ><code  class="code">$name</code> - The name of the index that you want to drop.</a></dt>
 </dl>
@@ -1054,11 +1122,17 @@ name="Schema_Modification_Methods"
 <dd>
 <dl>
 <dt><a name="$table_-_the_table_where_the_column_is"
-><code  class="code">$table</code> - the table where the column is
+><code  class="code">$table</code> - the table where the column is</a></dt>
+
+<dd>
 <dt><a name="$name_-_the_name_of_the_column_you_want_to_change"
-><code  class="code">$name</code> - the name of the column you want to change
+><code  class="code">$name</code> - the name of the column you want to change</a></dt>
+
+<dd>
 <dt><a name="\%new_def_-_An_abstract_column_definition_for_the_new_data_type_of_the_columm"
-><code  class="code">\%new_def</code> - An abstract column definition for the new data type of the columm
+><code  class="code">\%new_def</code> - An abstract column definition for the new data type of the columm</a></dt>
+
+<dd>
 <dt><a 
 ><code  class="code">$set_nulls_to</code> (Optional) - If you are changing the column to be NOT NULL, you probably also want to set any existing NULL columns to a particular value. Specify that value here. <b>NOTE</b>: The value should not already be SQL-quoted.</a></dt>
 </dl>
@@ -1084,7 +1158,9 @@ name="Schema_Modification_Methods"
 <dd>
 <dl>
 <dt><a name="$table_-_The_table_where_the_column_is"
-><code  class="code">$table</code> - The table where the column is
+><code  class="code">$table</code> - The table where the column is</a></dt>
+
+<dd>
 <dt><a name="$column_-_The_name_of_the_column_you_want_to_drop"
 ><code  class="code">$column</code> - The name of the column you want to drop</a></dt>
 </dl>
@@ -1110,9 +1186,13 @@ name="Schema_Modification_Methods"
 <dd>
 <dl>
 <dt><a name="$table_-_The_name_of_the_table_containing_the_column_that_you_want_to_rename"
-><code  class="code">$table</code> - The name of the table containing the column that you want to rename
+><code  class="code">$table</code> - The name of the table containing the column that you want to rename</a></dt>
+
+<dd>
 <dt><a name="$old_name_-_The_current_name_of_the_column_that_you_want_to_rename"
-><code  class="code">$old_name</code> - The current name of the column that you want to rename
+><code  class="code">$old_name</code> - The current name of the column that you want to rename</a></dt>
+
+<dd>
 <dt><a name="$new_name_-_The_new_name_of_the_column"
 ><code  class="code">$new_name</code> - The new name of the column</a></dt>
 </dl>
@@ -1140,7 +1220,9 @@ name="Schema_Modification_Methods"
 <dd>
 <dl>
 <dt><a name="$old_name_-_The_current_name_of_the_table."
-><code  class="code">$old_name</code> - The current name of the table.
+><code  class="code">$old_name</code> - The current name of the table.</a></dt>
+
+<dd>
 <dt><a name="$new_name_-_What_you&#39;re_renaming_the_table_to."
 ><code  class="code">$new_name</code> - What you&#39;re renaming the table to.</a></dt>
 </dl>
@@ -1178,7 +1260,9 @@ name="Schema_Information_Methods"
 <dd>
 <dl>
 <dt><a name="$table_-_The_name_of_the_table_the_column_is_in."
-><code  class="code">$table</code> - The name of the table the column is in.
+><code  class="code">$table</code> - The name of the table the column is in.</a></dt>
+
+<dd>
 <dt><a name="$column_-_The_name_of_the_column."
 ><code  class="code">$column</code> - The name of the column.</a></dt>
 </dl>
@@ -1208,7 +1292,9 @@ name="Schema_Information_Methods"
 <dd>
 <dl>
 <dt><a name="$table_-_The_table_the_index_is_on."
-><code  class="code">$table</code> - The table the index is on.
+><code  class="code">$table</code> - The table the index is on.</a></dt>
+
+<dd>
 <dt><a name="$index_-_The_name_of_the_index."
 ><code  class="code">$index</code> - The name of the index.</a></dt>
 </dl>
@@ -1289,11 +1375,17 @@ name="SUBCLASS_HELPERS"
 <dd>
 <dl>
 <dt><a name="$dsn_-_database_connection_string"
-><code  class="code">$dsn</code> - database connection string
+><code  class="code">$dsn</code> - database connection string</a></dt>
+
+<dd>
 <dt><a name="$user_-_username_used_to_log_in_to_the_database"
-><code  class="code">$user</code> - username used to log in to the database
+><code  class="code">$user</code> - username used to log in to the database</a></dt>
+
+<dd>
 <dt><a name="$pass_-_password_used_to_log_in_to_the_database"
-><code  class="code">$pass</code> - password used to log in to the database
+><code  class="code">$pass</code> - password used to log in to the database</a></dt>
+
+<dd>
 <dt><a 
 ><code  class="code">\%override_attrs</code> - set of attributes for DB connection (optional). You only have to set attributes that you want to be different from the default attributes set inside of <code  class="code">db_new</code>.</a></dt>
 </dl>

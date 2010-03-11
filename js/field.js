@@ -267,6 +267,16 @@ function showHideStatusItems(e, dupArrayInfo) {
     // finish doing stuff based on the selection.
     if ( el ) {
         showDuplicateItem(el);
+
+        // Make sure that fields whose visibility or values are controlled
+        // by "resolution" behave properly when resolution is hidden.
+        var resolution = document.getElementById('resolution');
+        if (resolution && resolution.options[0].value != '') {
+            resolution.bz_lastSelected = resolution.selectedIndex;
+            var emptyOption = new Option('', '');
+            resolution.insertBefore(emptyOption, resolution.options[0]);
+            emptyOption.selected = true;
+        }
         YAHOO.util.Dom.addClass('resolution_settings', 'bz_default_hidden');
         if (document.getElementById('resolution_settings_warning')) {
             YAHOO.util.Dom.addClass('resolution_settings_warning',
@@ -274,18 +284,24 @@ function showHideStatusItems(e, dupArrayInfo) {
         }
         YAHOO.util.Dom.addClass('duplicate_display', 'bz_default_hidden');
 
-        if ( el.value == dupArrayInfo[1] && dupArrayInfo[0] == "is_duplicate" ) {
+
+        if ( (el.value == dupArrayInfo[1] && dupArrayInfo[0] == "is_duplicate")
+             || bz_isValueInArray(close_status_array, el.value) ) 
+        {
             YAHOO.util.Dom.removeClass('resolution_settings', 
                                        'bz_default_hidden');
             YAHOO.util.Dom.removeClass('resolution_settings_warning', 
-                                       'bz_default_hidden');  
+                                       'bz_default_hidden');
+
+            // Remove the blank option we inserted.
+            if (resolution && resolution.options[0].value == '') {
+                resolution.removeChild(resolution.options[0]);
+                resolution.selectedIndex = resolution.bz_lastSelected;
+            }
         }
-        else if ( bz_isValueInArray(close_status_array, el.value) ) {
-            // hide duplicate and show resolution
-            YAHOO.util.Dom.removeClass('resolution_settings', 
-                                       'bz_default_hidden');
-            YAHOO.util.Dom.removeClass('resolution_settings_warning', 
-                                       'bz_default_hidden');
+
+        if (resolution) {
+            bz_fireEvent(resolution, 'change');
         }
     }
 }
@@ -300,8 +316,11 @@ function showDuplicateItem(e) {
             YAHOO.util.Dom.removeClass('duplicate_settings', 
                                        'bz_default_hidden');
             YAHOO.util.Dom.addClass('dup_id_discoverable', 'bz_default_hidden');
-            dup_id.focus();
-            dup_id.select();
+            // check to make sure the field is visible or IE throws errors
+            if( ! YAHOO.util.Dom.hasClass( dup_id, 'bz_default_hidden' ) ){
+                dup_id.focus();
+                dup_id.select();
+            }
         }
         else {
             YAHOO.util.Dom.addClass('duplicate_settings', 'bz_default_hidden');
@@ -318,8 +337,9 @@ function setResolutionToDuplicate(e, duplicate_or_move_bug_status) {
     var resolution = document.getElementById('resolution');
     YAHOO.util.Dom.addClass('dup_id_discoverable', 'bz_default_hidden');
     status.value = duplicate_or_move_bug_status;
+    bz_fireEvent(status, 'change');
     resolution.value = "DUPLICATE";
-    showHideStatusItems("", ["",""]);
+    bz_fireEvent(resolution, 'change');
     YAHOO.util.Event.preventDefault(e);
 }
 
