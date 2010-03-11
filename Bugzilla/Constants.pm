@@ -163,6 +163,8 @@ use File::Basename;
 
     PASSWORD_DIGEST_ALGORITHM
     PASSWORD_SALT_LENGTH
+    
+    CGI_URI_LIMIT
 );
 
 @Bugzilla::Constants::EXPORT_OK = qw(contenttypes);
@@ -170,7 +172,7 @@ use File::Basename;
 # CONSTANTS
 #
 # Bugzilla version
-use constant BUGZILLA_VERSION => "3.4.5";
+use constant BUGZILLA_VERSION => "3.4.6";
 
 # These are unique values that are unlikely to match a string or a number,
 # to be used in criteria for match() functions and other things. They start
@@ -465,6 +467,11 @@ use constant PASSWORD_DIGEST_ALGORITHM => 'SHA-256';
 # How long of a salt should we use? Note that if you change this, none
 # of your users will be able to log in until they reset their passwords.
 use constant PASSWORD_SALT_LENGTH => 8;
+
+# Certain scripts redirect to GET even if the form was submitted originally
+# via POST such as buglist.cgi. This value determines whether the redirect
+# can be safely done or not based on the web server's URI length setting.
+use constant CGI_URI_LIMIT => 8000;
 
 sub bz_locations {
     # We know that Bugzilla/Constants.pm must be in %INC at this point.

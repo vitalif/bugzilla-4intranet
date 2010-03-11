@@ -75,7 +75,9 @@ name="Utility_Functions"
 ><code  class="code">field</code> - The name of the field you want information about.
 This should be the same as the name you would use in <a href="#create" class="podlinkpod"
 >&#34;create&#34;</a>,
-below.
+below.</a></dt>
+
+<dd>
 <dt><a 
 ><code  class="code">product_id</code> - If you&#39;re picking a product-specific field,
 you have to specify the id of the product you want the values for.</a></dt>
@@ -506,7 +508,9 @@ and it is the error code for the invalid bug error.</p>
 <dd>
 <dl>
 <dt><a name="permissive_argument_added_to_this_method&#39;s_params_in_Bugzilla_3.4."
-><code  class="code">permissive</code> argument added to this method&#39;s params in Bugzilla <b>3.4</b>.
+><code  class="code">permissive</code> argument added to this method&#39;s params in Bugzilla <b>3.4</b>.</a></dt>
+
+<dd>
 <dt><a name="The_following_properties_were_added_to_this_method&#39;s_return_values_in_Bugzilla_3.4:"
 >The following properties were added to this method&#39;s return values in Bugzilla <b>3.4</b>:</a></dt>
 
@@ -518,21 +522,37 @@ and it is the error code for the invalid bug error.</p>
 <dd>
 <dl>
 <dt><a name="assigned_to"
->assigned_to
+>assigned_to</a></dt>
+
+<dd>
 <dt><a name="component"
->component
+>component</a></dt>
+
+<dd>
 <dt><a name="dupe_of"
->dupe_of
+>dupe_of</a></dt>
+
+<dd>
 <dt><a name="is_open"
->is_open
+>is_open</a></dt>
+
+<dd>
 <dt><a name="priority"
->priority
+>priority</a></dt>
+
+<dd>
 <dt><a name="product"
->product
+>product</a></dt>
+
+<dd>
 <dt><a name="resolution"
->resolution
+>resolution</a></dt>
+
+<dd>
 <dt><a name="severity"
->severity
+>severity</a></dt>
+
+<dd>
 <dt><a name="status"
 >status</a></dt>
 </dl>
@@ -929,33 +949,61 @@ name="Bug_Creation_and_Modification"
 
 <dl>
 <dt><a name="product_(string)_Required_-_The_name_of_the_product_the_bug_is_being_filed_against."
-><code  class="code">product</code> (string) <b>Required</b> - The name of the product the bug is being filed against.
+><code  class="code">product</code> (string) <b>Required</b> - The name of the product the bug is being filed against.</a></dt>
+
+<dd>
 <dt><a name="component_(string)_Required_-_The_name_of_a_component_in_the_product_above."
-><code  class="code">component</code> (string) <b>Required</b> - The name of a component in the product above.
+><code  class="code">component</code> (string) <b>Required</b> - The name of a component in the product above.</a></dt>
+
+<dd>
 <dt><a name="summary_(string)_Required_-_A_brief_description_of_the_bug_being_filed."
-><code  class="code">summary</code> (string) <b>Required</b> - A brief description of the bug being filed.
+><code  class="code">summary</code> (string) <b>Required</b> - A brief description of the bug being filed.</a></dt>
+
+<dd>
 <dt><a name="version_(string)_Required_-_A_version_of_the_product_above;_the_version_the_bug_was_found_in."
-><code  class="code">version</code> (string) <b>Required</b> - A version of the product above; the version the bug was found in.
+><code  class="code">version</code> (string) <b>Required</b> - A version of the product above; the version the bug was found in.</a></dt>
+
+<dd>
 <dt><a 
-><code  class="code">description</code> (string) <b>Defaulted</b> - The initial description for this bug. Some Bugzilla installations require this to not be blank.
+><code  class="code">description</code> (string) <b>Defaulted</b> - The initial description for this bug. Some Bugzilla installations require this to not be blank.</a></dt>
+
+<dd>
 <dt><a name="op_sys_(string)_Defaulted_-_The_operating_system_the_bug_was_discovered_on."
-><code  class="code">op_sys</code> (string) <b>Defaulted</b> - The operating system the bug was discovered on.
+><code  class="code">op_sys</code> (string) <b>Defaulted</b> - The operating system the bug was discovered on.</a></dt>
+
+<dd>
 <dt><a name="platform_(string)_Defaulted_-_What_type_of_hardware_the_bug_was_experienced_on."
-><code  class="code">platform</code> (string) <b>Defaulted</b> - What type of hardware the bug was experienced on.
+><code  class="code">platform</code> (string) <b>Defaulted</b> - What type of hardware the bug was experienced on.</a></dt>
+
+<dd>
 <dt><a 
-><code  class="code">priority</code> (string) <b>Defaulted</b> - What order the bug will be fixed in by the developer, compared to the developer&#39;s other bugs.
+><code  class="code">priority</code> (string) <b>Defaulted</b> - What order the bug will be fixed in by the developer, compared to the developer&#39;s other bugs.</a></dt>
+
+<dd>
 <dt><a name="severity_(string)_Defaulted_-_How_severe_the_bug_is."
-><code  class="code">severity</code> (string) <b>Defaulted</b> - How severe the bug is.
+><code  class="code">severity</code> (string) <b>Defaulted</b> - How severe the bug is.</a></dt>
+
+<dd>
 <dt><a 
-><code  class="code">alias</code> (string) - A brief alias for the bug that can be used instead of a bug number when accessing this bug. Must be unique in all of this Bugzilla.
+><code  class="code">alias</code> (string) - A brief alias for the bug that can be used instead of a bug number when accessing this bug. Must be unique in all of this Bugzilla.</a></dt>
+
+<dd>
 <dt><a name="assigned_to_(username)_-_A_user_to_assign_this_bug_to,_if_you_don&#39;t_want_it_to_be_assigned_to_the_component_owner."
-><code  class="code">assigned_to</code> (username) - A user to assign this bug to, if you don&#39;t want it to be assigned to the component owner.
+><code  class="code">assigned_to</code> (username) - A user to assign this bug to, if you don&#39;t want it to be assigned to the component owner.</a></dt>
+
+<dd>
 <dt><a name="cc_(array)_-_An_array_of_usernames_to_CC_on_this_bug."
-><code  class="code">cc</code> (array) - An array of usernames to CC on this bug.
+><code  class="code">cc</code> (array) - An array of usernames to CC on this bug.</a></dt>
+
+<dd>
 <dt><a 
-><code  class="code">qa_contact</code> (username) - If this installation has QA Contacts enabled, you can set the QA Contact here if you don&#39;t want to use the component&#39;s default QA Contact.
+><code  class="code">qa_contact</code> (username) - If this installation has QA Contacts enabled, you can set the QA Contact here if you don&#39;t want to use the component&#39;s default QA Contact.</a></dt>
+
+<dd>
 <dt><a 
-><code  class="code">status</code> (string) - The status that this bug should start out as. Note that only certain statuses can be set on bug creation.
+><code  class="code">status</code> (string) - The status that this bug should start out as. Note that only certain statuses can be set on bug creation.</a></dt>
+
+<dd>
 <dt><a name="target_milestone_(string)_-_A_valid_target_milestone_for_this_product."
 ><code  class="code">target_milestone</code> (string) - A valid target milestone for this product.</a></dt>
 </dl>
@@ -1047,11 +1095,17 @@ name="Bug_Creation_and_Modification"
 <dd>
 <dl>
 <dt><a name="id_(int)_Required_-_The_id_or_alias_of_the_bug_to_append_a_comment_to."
-><code  class="code">id</code> (int) <b>Required</b> - The id or alias of the bug to append a comment to.
+><code  class="code">id</code> (int) <b>Required</b> - The id or alias of the bug to append a comment to.</a></dt>
+
+<dd>
 <dt><a 
-><code  class="code">comment</code> (string) <b>Required</b> - The comment to append to the bug. If this is empty or all whitespace, an error will be thrown saying that you did not set the <code  class="code">comment</code> parameter.
+><code  class="code">comment</code> (string) <b>Required</b> - The comment to append to the bug. If this is empty or all whitespace, an error will be thrown saying that you did not set the <code  class="code">comment</code> parameter.</a></dt>
+
+<dd>
 <dt><a name="private_(boolean)_-_If_set_to_true,_the_comment_is_private,_otherwise_it_is_assumed_to_be_public."
-><code  class="code">private</code> (boolean) - If set to true, the comment is private, otherwise it is assumed to be public.
+><code  class="code">private</code> (boolean) - If set to true, the comment is private, otherwise it is assumed to be public.</a></dt>
+
+<dd>
 <dt><a 
 ><code  class="code">work_time</code> (double) - Adds this many hours to the &#34;Hours Worked&#34; on the bug. If you are not in the time tracking group, this value will be ignored.</a></dt>
 </dl>
@@ -1099,9 +1153,13 @@ name="Bug_Creation_and_Modification"
 <dd>
 <dl>
 <dt><a name="Added_in_Bugzilla_3.2."
->Added in Bugzilla <b>3.2</b>.
+>Added in Bugzilla <b>3.2</b>.</a></dt>
+
+<dd>
 <dt><a name="Modified_to_return_the_new_comment&#39;s_id_in_Bugzilla_3.4"
->Modified to return the new comment&#39;s id in Bugzilla <b>3.4</b>
+>Modified to return the new comment&#39;s id in Bugzilla <b>3.4</b></a></dt>
+
+<dd>
 <dt><a name="Modified_to_throw_an_error_if_you_try_to_add_a_private_comment_but_can&#39;t,_in_Bugzilla_3.4."
 >Modified to throw an error if you try to add a private comment but can&#39;t, in Bugzilla <b>3.4</b>.</a></dt>
 </dl>

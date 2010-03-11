@@ -761,6 +761,7 @@ sub get_selectable_classifications {
 sub can_enter_product {
     my ($self, $product_name, $warn) = @_;
     my $dbh = Bugzilla->dbh;
+    $warn ||= 0;
 
     if (!defined($product_name)) {
         return unless $warn == THROW_ERROR;
@@ -1116,6 +1117,7 @@ sub match {
     my $wildstr = $str;
 
     if ($wildstr =~ s/\*/\%/g # don't do wildcards if no '*' in the string
+        && $user->id
         # or if we only want exact matches
         && Bugzilla->params->{'usermatchmode'} ne 'off')
     {
@@ -1158,6 +1160,7 @@ sub match {
 
     # then try substring search
     if ((scalar(@users) == 0)
+        && $user->id
         && (Bugzilla->params->{'usermatchmode'} eq 'search')
         && (length($str) >= 3))
     {

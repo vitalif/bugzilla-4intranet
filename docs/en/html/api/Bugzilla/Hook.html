@@ -120,7 +120,9 @@ name="SUBROUTINES"
 <dd>
 <dl>
 <dt><a name="$name_-_The_name_of_the_hook_to_invoke."
-><code  class="code">$name</code> - The name of the hook to invoke.
+><code  class="code">$name</code> - The name of the hook to invoke.</a></dt>
+
+<dd>
 <dt><a name="$args_-_A_hashref._The_named_args_to_pass_to_the_hook._They_will_be_accessible_to_the_hook_via_&#34;hook_args&#34;_in_Bugzilla."
 ><code  class="code">$args</code> - A hashref. The named args to pass to the hook. They will be accessible to the hook via <a href="../Bugzilla.html#hook_args" class="podlinkpod"
 >&#34;hook_args&#34; in Bugzilla</a>.</a></dt>
@@ -199,7 +201,9 @@ name="bug-end_of_create"
 
 <dl>
 <dt><a name="bug_-_The_changed_bug_object,_with_all_fields_set_to_their_updated_values."
-><code  class="code">bug</code> - The changed bug object, with all fields set to their updated values.
+><code  class="code">bug</code> - The changed bug object, with all fields set to their updated values.</a></dt>
+
+<dd>
 <dt><a name="timestamp_-_The_timestamp_used_for_all_updates_in_this_transaction."
 ><code  class="code">timestamp</code> - The timestamp used for all updates in this transaction.</a></dt>
 </dl>
@@ -215,9 +219,13 @@ name="bug-end_of_update"
 
 <dl>
 <dt><a name="bug_-_The_changed_bug_object,_with_all_fields_set_to_their_updated_values."
-><code  class="code">bug</code> - The changed bug object, with all fields set to their updated values.
+><code  class="code">bug</code> - The changed bug object, with all fields set to their updated values.</a></dt>
+
+<dd>
 <dt><a name="timestamp_-_The_timestamp_used_for_all_updates_in_this_transaction."
-><code  class="code">timestamp</code> - The timestamp used for all updates in this transaction.
+><code  class="code">timestamp</code> - The timestamp used for all updates in this transaction.</a></dt>
+
+<dd>
 <dt><a name="changes_-_The_hash_of_changed_fields._$changes-&#62;{field}_=_[old,_new]"
 ><code  class="code">changes</code> - The hash of changed fields. <code  class="code">$changes-&#62;{field} = [old, new]</code></a></dt>
 </dl>
@@ -254,7 +262,9 @@ name="buglist-columns"
 <dd>
 <dl>
 <dt><a name="name_-_The_name_of_the_column_in_the_database."
-><code  class="code">name</code> - The name of the column in the database.
+><code  class="code">name</code> - The name of the column in the database.</a></dt>
+
+<dd>
 <dt><a name="title_-_The_title_of_the_column_as_displayed_to_users."
 ><code  class="code">title</code> - The title of the column as displayed to users.</a></dt>
 </dl>
@@ -344,11 +354,17 @@ name="flag-end_of_update"
 
 <dl>
 <dt><a name="bug_-_The_changed_bug_object."
-><code  class="code">bug</code> - The changed bug object.
+><code  class="code">bug</code> - The changed bug object.</a></dt>
+
+<dd>
 <dt><a name="timestamp_-_The_timestamp_used_for_all_updates_in_this_transaction."
-><code  class="code">timestamp</code> - The timestamp used for all updates in this transaction.
+><code  class="code">timestamp</code> - The timestamp used for all updates in this transaction.</a></dt>
+
+<dd>
 <dt><a name="old_flags_-_The_snapshot_of_flag_summaries_from_before_the_change."
-><code  class="code">old_flags</code> - The snapshot of flag summaries from before the change.
+><code  class="code">old_flags</code> - The snapshot of flag summaries from before the change.</a></dt>
+
+<dd>
 <dt><a 
 ><code  class="code">new_flags</code> - The snapshot of flag summaries after the change. Call <code  class="code">my ($removed, $added) = diff_arrays(old_flags, new_flags)</code> to get the list of changed flags, and search for a specific condition like <code  class="code">added eq &#39;review-&#39;</code>.</a></dt>
 </dl>
@@ -419,7 +435,9 @@ name="mailer-before_send"
 
 <dl>
 <dt><a name="email_-_The_Email::MIME_object_that&#39;s_about_to_be_sent."
-><code  class="code">email</code> - The <code  class="code">Email::MIME</code> object that&#39;s about to be sent.
+><code  class="code">email</code> - The <code  class="code">Email::MIME</code> object that&#39;s about to be sent.</a></dt>
+
+<dd>
 <dt><a name="mailer_args_-_An_arrayref_that&#39;s_passed_as_mailer_args_to_&#34;new&#34;_in_Email::Send."
 ><code  class="code">mailer_args</code> - An arrayref that&#39;s passed as <code  class="code">mailer_args</code> to <a href="../Email/Send.html#new" class="podlinkpod"
 >&#34;new&#34; in Email::Send</a>.</a></dt>
