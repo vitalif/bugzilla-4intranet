@@ -105,24 +105,38 @@ if (!$dbh->bz_column_info('components', 'default_version'))
 }
 
 # Bug 53617 - Ограничение Custom Fields двумя и более значениями контролирующего поля
-my @standard_fields =
-    qw(bug_status resolution priority bug_severity op_sys rep_platform);
-my $custom_fields = $dbh->selectcol_arrayref(
-    'SELECT name FROM fielddefs WHERE custom = 1 AND type IN (?,?)',
-    undef, FIELD_TYPE_SINGLE_SELECT, FIELD_TYPE_MULTI_SELECT);
-foreach my $field (@standard_fields, @$custom_fields)
+my @standard_fields = qw(bug_status resolution priority bug_severity op_sys rep_platform);
+my $custom_fields = $dbh->selectall_arrayref(
+    'SELECT * FROM fielddefs WHERE (custom=1 AND type IN (?,?)) OR name IN ('.
+    join(',',('?') x @standard_fields).')', {Slice=>{}},
+    FIELD_TYPE_SINGLE_SELECT, FIELD_TYPE_MULTI_SELECT, @standard_fields);
+foreach my $field (@$custom_fields)
 {
-    next unless $dbh->bz_table_info($field);
-    if ($dbh->bz_column_info($field, 'visibility_value_id'))
+    if ($dbh->bz_table_info($field->{name}) &&
+        $dbh->bz_column_info($field->{name}, 'visibility_value_id'))
     {
-        print "Migrating $field visibility_value_id into fieldvaluecontrol\n";
+        print "Migrating $field->{name}'s visibility_value_id into fieldvaluecontrol\n";
         $dbh->do(
             "REPLACE INTO fieldvaluecontrol (field_id, visibility_value_id, value_id)".
-            " SELECT f.id, v.visibility_value_id, v.id FROM fielddefs f, $field v".
-            " WHERE f.name=? AND v.visibility_value_id IS NOT NULL", undef, $field);
-        # Пока не удаляем никаких колонок
-        #$dbh->bz_drop_column($field, 'visibility_value_id');
+            " SELECT f.id, v.visibility_value_id, v.id FROM fielddefs f, `$field->{name}` v".
+            " WHERE f.name=? AND v.visibility_value_id IS NOT NULL", undef, $field->{name});
+        print "Making backup of table $field->{name}\n";
+        $dbh->do("CREATE TABLE `backup_$field->{name}_".time."` AS SELECT * FROM `$field->{name}`");
+        print "Dropping column $field->{name}.visibility_value_id\n";
+        #$dbh->bz_drop_column($field->{name}, 'visibility_value_id');
     }
+}
+
+if ($dbh->bz_column_info('fielddefs', 'visibility_value_id'))
+{
+    print "Migrating fielddefs's visibility_value_id into fieldvaluecontrol\n";
+    $dbh->do(
+        "REPLACE INTO fieldvaluecontrol (field_id, visibility_value_id, value_id)".
+        " SELECT id, visibility_value_id, 0 FROM fielddefs WHERE visibility_value_id IS NOT NULL");
+    print "Making backup of table fielddefs\n";
+    $dbh->do("CREATE TABLE `backup_fielddefs_".time."` AS SELECT * FROM fielddefs");
+    print "Dropping column fielddefs.visibility_value_id\n";
+    #$dbh->bz_drop_column('fielddefs', 'visibility_value_id');
 }
 
 # Testopia:

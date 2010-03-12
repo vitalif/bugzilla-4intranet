@@ -106,9 +106,15 @@
             </option>
           [% END %]
         </select>
-        <label for="visibility_value_id"><strong>is set to:</strong></label>
-        <select name="visibility_value_id" id="visibility_value_id">
-          <option value=""></option>
+        <label for="visibility_value_id"><strong>&nbsp;is set to one of:</strong></label>
+      </td>
+      <td rowspan="2">
+        <select style="min-width: 100px" id="visibility_value_id" name="visibility_value_id" size="3" multiple="multiple" [% IF loop.first %]id="visibility_value_id"[% END %]>
+          [% FOREACH value = field.visibility_field.legal_values %]
+          <option value="[% value.id FILTER html %]"[% ' selected="selected"' IF field.has_visibility_value(value.id) %]>
+            [% value.name FILTER html %]
+          </option>
+          [% END %]
         </select>
       </td>
     </tr>

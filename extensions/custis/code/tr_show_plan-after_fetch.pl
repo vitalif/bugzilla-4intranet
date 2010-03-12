@@ -164,29 +164,30 @@ sub fetch_wiki_category_xml
     $_[0] = $wiki_url;
     my $uri = URI->new($wiki_url . '?title=Special:Export&action=submit')->canonical;
     # Дёргаем Special:Export и вытаскиваем список страниц категории
-    utf8::decode($category);
-    utf8::encode($category);
-    my $response = $ua->request(POST "$uri", [ addcat => 'Add', catname => $category, closure => 1 ]);
+    my $r = POST "$uri", Content => "addcat=Add&catname=".url_quote($category)."&closure=1";
+    my $response = $ua->request($r);
     if (!$response->is_success)
     {
         # TODO показать ошибку
-        die "Could not POST $uri addcat=Добавить&catname=$category: ".$response->status_line;
+        die "Could not POST $uri addcat=Add&catname=$category: ".$response->status_line;
     }
     my $text = $response->content;
     ($text) = $text =~ m!<textarea[^<>]*>(.*?)</textarea>!iso;
-    decode_entities($text);
     utf8::decode($text);
-    utf8::encode($text);
+    decode_entities($text);
     # Дёргаем Special:Export и вытаскиваем саму XML-ку с последними ревизиями
-    $response = $ua->request(POST $uri, [
-        wpDownload => 1,
-        curonly    => 1,
-        pages      => $text,
-    ]);
+    $response = $ua->request(POST $uri, Content => "wpDownload=1&curonly=1&pages=".url_quote($text));
     if (!$response->is_success)
     {
         # TODO показать ошибку
         die "Could not retrieve export XML file: ".$response->status_line;
     }
-    return $response->content;
+    my $xml = $response->content;
+    if ($xml !~ /<\?\s*xml/so)
+    {
+        my ($line) = $xml =~ /^\s*([^\n]*)/so;
+        # TODO показать ошибку
+        die "Could not retrieve export XML file, got $line instead";
+    }
+    return $xml;
 }

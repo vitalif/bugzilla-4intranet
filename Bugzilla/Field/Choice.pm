@@ -193,7 +193,7 @@ sub remove_from_db {
                        { field => $self->field, value => $self });
     }
     $self->_check_if_controller();
-    $self->set_visibility_values([]);
+    $self->set_visibility_values(undef);
     $self->SUPER::remove_from_db();
 }
 
@@ -202,7 +202,7 @@ sub _check_if_controller {
     my $self = shift;
     my $vis_fields = $self->controls_visibility_of_fields;
     my $values     = $self->controlled_values;
-    if (@$vis_fields || scalar(keys %$values)) {
+    if (@$vis_fields || scalar grep { @{$values->{$_}} } keys %$values) {
         ThrowUserError('fieldvalue_is_controller',
             { value => $self, fields => [map($_->name, @$vis_fields)],
               vals => $values });
@@ -269,87 +269,99 @@ sub is_static {
     return 0;
 }
 
-sub controls_visibility_of_fields {
+sub controls_visibility_of_fields
+{
     my $self = shift;
-    $self->{controls_visibility_of_fields} ||= Bugzilla::Field->match(
-        { visibility_field_id => $self->field->id,
-          visibility_value_id => $self->id });
-    return $self->{controls_visibility_of_fields};
+    my $f;
+    unless ($f = $self->{controls_visibility_of_fields})
+    {
+        $f = Bugzilla->dbh->selectcol_arrayref(
+            "SELECT f.id FROM fielddefs f, fieldvaluecontrol c WHERE c.field_id=f.id".
+            " AND f.visibility_field_id=? AND c.visibility_value_id=? AND c.value_id=0",
+            undef, $self->field->id, $self->id
+        );
+        $f = Bugzilla::Field->match({ id => $f });
+        $self->{controls_visibility_of_fields} = $f;
+    }
+    return $f;
 }
 
 sub controlled_values
 {
     my $self = shift;
-    return $self->{controlled_values} if defined $self->{controlled_values};
-    my $fields = $self->field->controls_values_of;
-    my %controlled_values;
-    # TODO move this into Bugzilla::Field::Choice::match() with MATCH_JOIN
-    #      but no MATCH_JOIN by now is available
-    foreach my $field (@$fields) {
-        my $type = Bugzilla::Field::Choice->type($field);
-        my $sql =
-            "SELECT f.".join(", f.", $type->DB_COLUMNS).
-            " FROM fieldvaluecontrol c, ".$type->DB_TABLE." f".
-            " WHERE c.field_id=? AND c.visibility_value_id=? AND c.value_id=f.id".
-            " ORDER BY f.sortkey";
-        # Обходим самозарождение греха при конкатенации DB_COLUMNS и DB_TABLE
-        trick_taint($sql);
-        my $f = Bugzilla->dbh->selectall_arrayref($sql, {Slice=>{}}, $field->id, $self->id) || [];
-        $f = [ map { bless $_, $type } @$f ];
-        $controlled_values{$field->name} = $f;
+    my $controlled_values;
+    unless ($controlled_values = $self->{controlled_values})
+    {
+        $controlled_values = {};
+        my $fields = $self->field->controls_values_of;
+        foreach my $field (@$fields)
+        {
+            my $f = Bugzilla->dbh->selectcol_arrayref(
+                "SELECT value_id FROM fieldvaluecontrol WHERE field_id=? AND visibility_value_id=? AND value_id!=0",
+                undef, $field->id, $self->id);
+            if (@$f)
+            {
+                my $type = Bugzilla::Field::Choice->type($field);
+                $f = $type->match({ id => $f });
+            }
+            $controlled_values->{$field->name} = $f;
+        }
+        $self->{controlled_values} = $controlled_values;
     }
-    $self->{controlled_values} = \%controlled_values;
-    return $self->{controlled_values};
+    return $controlled_values;
 }
 
 sub controlled_plus_generic
 {
     my $self = shift;
-    return $self->{controlled_plus_generic} if defined $self->{controlled_plus_generic};
-    my $fields = $self->field->controls_values_of;
-    my %controlled_values;
-    # TODO move this into Bugzilla::Field::Choice::match() with MATCH_JOIN
-    #      but no MATCH_JOIN by now is available
-    foreach my $field (@$fields) {
-        my $type = Bugzilla::Field::Choice->type($field);
-        my $sql =
-            "(SELECT f.".join(", f.", $type->DB_COLUMNS).
-            " FROM fieldvaluecontrol c, ".$type->DB_TABLE." f".
-            " WHERE c.field_id=? AND c.visibility_value_id=? AND c.value_id=f.id)".
-            " UNION ALL (SELECT f.".join(", f.", $type->DB_COLUMNS).
-            " FROM ".$type->DB_TABLE." f LEFT JOIN fieldvaluecontrol c ON c.value_id=f.id AND c.field_id=?".
-            " WHERE c.field_id IS NULL)".
-            " ORDER BY sortkey";
-        # Обходим самозарождение греха при конкатенации DB_COLUMNS и DB_TABLE
-        trick_taint($sql);
-        my $f = Bugzilla->dbh->selectall_arrayref($sql, {Slice=>{}}, $field->id, $self->id, $field->id) || [];
-        $f = [ map { bless $_, $type } @$f ];
-        $controlled_values{$field->name} = $f;
+    my $controlled_values;
+    unless ($controlled_values = $self->{controlled_plus_generic})
+    {
+        my $fields = $self->field->controls_values_of;
+        foreach my $field (@$fields)
+        {
+            my $f = Bugzilla->dbh->selectcol_arrayref(
+                "SELECT value_id FROM fieldvaluecontrol WHERE field_id=? AND visibility_value_id=? AND value_id!=0
+                UNION ALL SELECT id FROM ".$field->name." f LEFT JOIN fieldvaluecontrol c ON c.value_id=f.id AND c.field_id=? WHERE c.visibility_value_id IS NULL",
+                undef, $field->id, $self->id, $field->id);
+            if (@$f)
+            {
+                my $type = Bugzilla::Field::Choice->type($field);
+                $f = $type->match({ id => $f });
+            }
+            $controlled_values->{$field->name} = $f;
+        }
+        $self->{controlled_plus_generic} = $controlled_values;
     }
-    $self->{controlled_plus_generic} = \%controlled_values;
-    return $self->{controlled_plus_generic};
+    return $controlled_values;
 }
 
 sub visibility_values
 {
     my $self = shift;
     my $f;
-    unless ($f = $self->{visibility_values})
+    if ($self->field->value_field && !($f = $self->{visibility_values}))
     {
-        # TODO move this into Bugzilla::Field::Choice::match() with MATCH_JOIN
-        #      but no MATCH_JOIN by now is available
-        my $type = Bugzilla::Field::Choice->type($self->field->value_field);
-        my $sql =
-            "SELECT f.".join(", f.", $type->DB_COLUMNS).
-            " FROM fieldvaluecontrol c, ".$type->DB_TABLE." f".
-            " WHERE c.field_id=? AND c.visibility_value_id=f.id AND c.value_id=?";
-        # Обходим самозарождение греха при конкатенации DB_COLUMNS и DB_TABLE
-        trick_taint($sql);
-        $f = Bugzilla->dbh->selectall_arrayref($sql, {Slice=>{}}, $self->field->id, $self->id) || [];
-        $f = [ map { bless $_, $type } @$f ];
+        $f = Bugzilla->dbh->selectcol_arrayref(
+            "SELECT visibility_value_id FROM fieldvaluecontrol WHERE field_id=? AND value_id=?",
+            undef, $self->field->id, $self->id);
+        if (@$f)
+        {
+            my $type = Bugzilla::Field::Choice->type($self->field->value_field);
+            $f = $type->match({ id => $f });
+        }
         $self->{visibility_values} = $f;
     }
     return $f;
+}
+
+sub has_visibility_value
+{
+    my $self = shift;
+    my ($value) = @_;
+    ref $value and $value = $value->id;
+    my %f = map { $_->id => 1 } @{$self->visibility_values};
+    return $f{$value};
 }
 
 ############
@@ -363,21 +375,7 @@ sub set_visibility_values
 {
     my $self = shift;
     my ($value_ids) = @_;
-    return undef if !ref $value_ids || $value_ids !~ 'ARRAY';
-    my $type = Bugzilla::Field::Choice->type($self->field->value_field);
-    @$value_ids = map { $_ ? $type->check({ id => $_ }) : () } @$value_ids;
-    my ($a, $r) = diff_arrays([map { $_->id } @$value_ids], [map { $_->id } @{$self->visibility_values}]);
-    return undef unless @$a || @$r;
-    Bugzilla->dbh->do(
-        "DELETE FROM fieldvaluecontrol WHERE field_id=? AND value_id=?",
-        undef, $self->field->id, $self->id);
-    if (@$value_ids)
-    {
-        Bugzilla->dbh->do(
-            "INSERT INTO fieldvaluecontrol (field_id, value_id, visibility_value_id) VALUES ".
-            join(",", ("(?,?,?)") x @$value_ids),
-            undef, map { ($self->field->id, $self->id, $_->id) } @$value_ids);
-    }
+    update_visibility_values($self->field->value_field, $self->field, $self->id, $self->visibility_values, $value_ids);
     delete $self->{visibility_values};
     return @$value_ids;
 }

@@ -459,7 +459,7 @@ document.changeform = document.[% cfname %];
     [%#############%]
     [%#  PRODUCT  #%]
     [%#############%]
-    
+
     <tr>
        [% IF bug.check_can_change_field('product', 0, 1) %]
          [% prod_list = user.get_enterable_products %]
@@ -470,11 +470,11 @@ document.changeform = document.[% cfname %];
 
        [% INCLUDE bug/field.html.tmpl
             bug = bug, field = select_fields.product,
-            override_legal_values = prod_list
+            override_legal_values = prod_list,
             desc_url = 'describecomponents.cgi', value = bug.product
             editable = bug.check_can_change_field('product', 0, 1) %]
     </tr>
-    [%###############%]    
+    [%###############%]
     [%#  Component  #%]
     [%###############%]
     <tr>

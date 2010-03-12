@@ -212,9 +212,10 @@ sub update_params {
     # --- REMOVE OLD PARAMS ---
 
     my %oldparams;
+    my %actual = map { $_->{name} => 1 } @param_list;
     # Remove any old params
     foreach my $item (keys %$param) {
-        if (!grep($_ eq $item, map ($_->{'name'}, @param_list))) {
+        if (!$actual{$item}) {
             $oldparams{$item} = $param->{$item};
             delete $param->{$item};
         }

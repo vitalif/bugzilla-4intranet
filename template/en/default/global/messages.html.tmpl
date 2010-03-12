@@ -358,18 +358,16 @@
         [% IF value.visibility_values.size > 0 %]
           <li>It only appears when
             [%+ value.field.value_field.description | html %] is set to
-            [% SET vv_i = 0 %]
             [% FOR vv = value.visibility_values %]
-            [% IF vv_i %] or [% END %]
-            '[%+ vv.name | html %]'
-            [% SET vv_i = vv_i+1 %]
+              '[%+ vv.name | html %]'
+              [% " or " UNLESS loop.last %]
             [% END %]
           </li>
         [% ELSE %]
           <li>It now always appears, no matter what
             [%+ value.field.value_field.description | html %] is set to.
           </li>
-      [% END %]
+        [% END %]
       [% END %]
     </ul>
   [% ELSE %]

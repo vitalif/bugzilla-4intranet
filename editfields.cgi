@@ -56,7 +56,7 @@ elsif ($action eq 'add') {
 elsif ($action eq 'new') {
     check_token_data($token, 'add_field');
 
-    $vars->{'field'} = Bugzilla::Field->create({
+    my $field = $vars->{'field'} = Bugzilla::Field->create({
         name        => scalar $cgi->param('name'),
         description => scalar $cgi->param('desc'),
         type        => scalar $cgi->param('type'),
@@ -67,9 +67,9 @@ elsif ($action eq 'new') {
         custom      => 1,
         buglist     => (scalar $cgi->param('type') == FIELD_TYPE_MULTI_SELECT ? 0 : 1),
         visibility_field_id => scalar $cgi->param('visibility_field_id'),
-        visibility_value_id => scalar $cgi->param('visibility_value_id'),
         value_field_id => scalar $cgi->param('value_field_id'),
     });
+    $field->set_visibility_values([ $cgi->param('visibility_value_id') ]);
 
     delete_token($token);
 
@@ -108,7 +108,7 @@ elsif ($action eq 'update') {
         # At the moment, though, it has no effect for non-custom fields.
         $field->set_enter_bug($cgi->param('enter_bug'));
         $field->set_visibility_field($cgi->param('visibility_field_id'));
-        $field->set_visibility_value($cgi->param('visibility_value_id'));
+        $field->set_visibility_values([ $cgi->param('visibility_value_id') ]);
         $field->set_value_field($cgi->param('value_field_id'));
     }
     $field->update();

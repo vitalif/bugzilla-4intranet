@@ -37,11 +37,11 @@ use Testopia::Constants;
 
 ###############################################################################
 # tr_new_plan.cgi
-# Presents a webform to the user for the creation of a new test plan. 
-# Creates a new testplan via Ajax 
+# Presents a webform to the user for the creation of a new test plan.
+# Creates a new testplan via Ajax
 #
 # INTERFACE:
-#    action: 
+#    action:
 #      undef - Present form for new plan creation
 #      "add" - Form has been submitted with plan data. Create the test
 #              plan.
@@ -55,7 +55,7 @@ use Testopia::Constants;
 #  file_desc1-5: string  - (OPTIONAL) Description of file to attach
 #
 #
-################################################################################ 
+################################################################################
 
 my $vars = {};
 my $template = Bugzilla->template;
@@ -70,20 +70,20 @@ my $action = $cgi->param('action') || '';
 if ($action eq 'add'){
     Bugzilla->error_mode(ERROR_MODE_AJAX);
     ThrowUserError("testopia-create-denied", {'object' => 'Test Plan'}) unless Bugzilla->user->in_group('Testers');
-    
+
     my $plan = Testopia::TestPlan->create({
-            'product_id' => $cgi->param('product_id'),
-            'author_id'  => Bugzilla->user->id,
-            'type_id'    => $cgi->param('type'),
-            'default_product_version' => $cgi->param('prod_version'),
-            'name'       => $cgi->param('plan_name'),
-            'text'       => $cgi->param("plandoc") || '',
+        'product_id' => $cgi->param('product_id'),
+        'author_id'  => Bugzilla->user->id,
+        'type_id'    => $cgi->param('type'),
+        'default_product_version' => $cgi->param('prod_version'),
+        'name'       => $cgi->param('plan_name'),
+        'text'       => $cgi->param("plandoc") || '',
     });
-    
+
     my $err = JSON::false;
     for (my $i=1; $i<5; $i++){
         next unless defined $cgi->upload("file$i");
-            
+
         my $fh = $cgi->upload("file$i");
         my $data;
         # enable 'slurp' mode
@@ -94,19 +94,19 @@ if ($action eq 'add'){
         Bugzilla->error_mode(ERROR_MODE_DIE);
         eval {
             my $attachment = Testopia::Attachment->create({
-                                plan_id      => $plan->id,
-                                submitter_id => Bugzilla->user->id,
-                                description  => $cgi->param("file_desc$i") || 'Attachment',
-                                filename     => $cgi->upload("file$i"),
-                                mime_type    => $cgi->uploadInfo($cgi->param("file$i"))->{'Content-Type'},
-                                contents     => $data
+                plan_id      => $plan->id,
+                submitter_id => Bugzilla->user->id,
+                description  => $cgi->param("file_desc$i") || 'Attachment',
+                filename     => $cgi->upload("file$i"),
+                mime_type    => $cgi->uploadInfo($cgi->param("file$i"))->{'Content-Type'},
+                contents     => $data
             });
         };
         if ($@){
             $err = JSON::true;
         }
     }
-    
+
     print "{success: true, plan: '". $plan->id ."', err: $err}";
 
 }
@@ -121,7 +121,7 @@ else {
         ThrowUserError('testopia-read-only', {'object' => $product}) unless $product->canedit;
         $vars->{'product'} = $product;
     }
-    
+
     ThrowUserError("testopia-create-denied", {'object' => 'Test Plan'}) unless Bugzilla->user->in_group('Testers');
     $vars->{'plan'} = Testopia::TestPlan->new({});
     $template->process("testopia/plan/add.html.tmpl", $vars) ||

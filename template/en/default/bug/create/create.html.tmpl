@@ -374,8 +374,8 @@ TUI_hide_default('expert_fields');
 
 [% IF Param('useopsys') %]
   <tr>
-    [% INCLUDE bug/field.html.tmpl 
-       bug = default, field = select_fields.op_sys, editable = 1, 
+    [% INCLUDE bug/field.html.tmpl
+       bug = default, field = select_fields.op_sys, editable = 1,
        value = default.op_sys %]
   </tr>
 [% END %]
@@ -392,7 +392,7 @@ TUI_hide_default('expert_fields');
 
     [% IF Param('letsubmitterchoosepriority') %]
       [% INCLUDE bug/field.html.tmpl
-        bug = default, field = select_fields.priority, editable = 1, 
+        bug = default, field = select_fields.priority, editable = 1,
         value = default.priority %]
     [% ELSE %]
       <td colspan="2">&nbsp;</td>
@@ -799,12 +799,11 @@ TUI_hide_default('expert_fields');
     </select>
 
     [% IF sel.name == "bug_status" %]
-       <script type="text/javascript">
-        <!--
-          [%+ INCLUDE "bug/field-events.js.tmpl" 
-                     field = select_fields.bug_status %]
-        //-->
-        </script>
+    <script type="text/javascript">
+    <!--
+      show_fields['bug_status'] = [% select_fields.bug_status.json_visibility %];
+    //-->
+    </script>
     [% END %]
   </td>
 [% END %]

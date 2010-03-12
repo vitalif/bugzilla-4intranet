@@ -55,6 +55,7 @@ use File::Find;
 use File::Path qw(rmtree mkpath);
 use File::Spec;
 use IO::Dir;
+use JSON;
 
 use base qw(Template);
 
@@ -528,6 +529,11 @@ sub create {
                 $var =~ s/\@/\\x40/g; # anti-spam for email addresses
                 $var =~ s/</\\x3c/g;
                 return $var;
+            },
+
+            json => sub {
+                my ($var) = @_;
+                return encode_json($var);
             },
 
             # Converts data to base64
