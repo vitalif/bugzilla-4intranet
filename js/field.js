@@ -21,6 +21,99 @@
 /* This library assumes that the needed YUI libraries have been loaded 
    already. */
 
+var show_fields = {};
+YAHOO.util.Event.addListener(window, 'load', initControlledFields);
+
+function initControlledFields()
+{
+    for (var i in show_fields)
+        initControlledField(i);
+}
+
+function initControlledField(i)
+{
+    var f = document.getElementById(i);
+    YAHOO.util.Event.addListener(f, 'change', handleControllerField, f);
+}
+
+function getSelectedIds(sel)
+{
+    var lm = sel.id.length+2;
+    var opt = {};
+    for (var i = 0; i < sel.options.length; i++)
+    {
+        if (sel.options[i].selected)
+        {
+            id = sel.options[i].id;
+            opt[id.substr(1, id.length-lm)] = true;
+        }
+    }
+    return opt;
+}
+
+function handleControllerField(e, controller)
+{
+    var vis, label_container, field_container, id;
+    var opt = getSelectedIds(controller);
+    for (var controlled_id in show_fields[controller.id]['fields'])
+    {
+        vis = false;
+        for (var value in show_fields[controller.id]['fields'][controlled_id])
+        {
+            if (opt[value])
+            {
+                vis = true;
+                break;
+            }
+        }
+        label_container = document.getElementById('field_label_' + controlled_id);
+        field_container = document.getElementById('field_container_' + controlled_id);
+        if (vis)
+        {
+            YAHOO.util.Dom.removeClass(label_container, 'bz_hidden_field');
+            YAHOO.util.Dom.removeClass(field_container, 'bz_hidden_field');
+        }
+        else
+        {
+            YAHOO.util.Dom.addClass(label_container, 'bz_hidden_field');
+            YAHOO.util.Dom.addClass(field_container, 'bz_hidden_field');
+        }
+    }
+    var item, controlled, copt, controlled_value;
+    for (var controlled_id in show_fields[controller.id]['values'])
+    {
+        controlled = document.getElementById(controlled_id);
+        copt = getSelectedIds(controlled);
+        bz_clearOptions(controlled);
+        for (var i in show_fields[controlled.id]['legal'])
+        {
+            controlled_value = show_fields[controlled.id]['legal'][i];
+            vis = false;
+            item = show_fields[controller.id]['values'][controlled_id][controlled_value[0]];
+            if (!item)
+                vis = true;
+            else
+            {
+                for (var value in item)
+                {
+                    if (opt[value])
+                    {
+                        vis = true;
+                        break;
+                    }
+                }
+            }
+            if (vis)
+            {
+                item = bz_createOptionInSelect(controlled, controlled_value[1], controlled_value[1]);
+                item.id = 'v'+controlled_value[0]+'_'+controlled_id;
+                if (copt[controlled_value[0]])
+                    item.selected = true;
+            }
+        }
+    }
+}
+
 function createCalendar(name) {
     var cal = new YAHOO.widget.Calendar('calendar_' + name, 
                                         'con_calendar_' + name);
@@ -373,190 +466,8 @@ function updateCommentTagControl(checkbox, form) {
     }
 }
 
-/**
- * Says that a field should only be displayed when another field has
- * a certain value. May only be called after the controller has already
- * been added to the DOM.
- */
-function showFieldWhen(controlled_id, controller_id, value) {
-    var controller = document.getElementById(controller_id);
-    // Note that we don't get an object for "controlled" here, because it
-    // might not yet exist in the DOM. We just pass along its id.
-    YAHOO.util.Event.addListener(controller, 'change', 
-        handleVisControllerValueChange, [controlled_id, controller, value]);
-}
-
-/**
- * Called by showFieldWhen when a field's visibility controller 
- * changes values. 
- */
-function handleVisControllerValueChange(e, args) {
-    var controlled_id = args[0];
-    var controller = args[1];
-    var value = args[2];
-
-    var label_container = 
-        document.getElementById('field_label_' + controlled_id);
-    var field_container =
-        document.getElementById('field_container_' + controlled_id);
-    if (bz_valueSelected(controller, value)) {
-        YAHOO.util.Dom.removeClass(label_container, 'bz_hidden_field');
-        YAHOO.util.Dom.removeClass(field_container, 'bz_hidden_field');
-    }
-    else {
-        YAHOO.util.Dom.addClass(label_container, 'bz_hidden_field');
-        YAHOO.util.Dom.addClass(field_container, 'bz_hidden_field');
-    }
-}
-
-function showValueWhen(controlled_field_id, controlled_value_ids, 
-                       controller_field_id, controller_value_id)
-{
-    var controller_field = document.getElementById(controller_field_id);
-    // Note that we don't get an object for the controlled field here, 
-    // because it might not yet exist in the DOM. We just pass along its id.
-    YAHOO.util.Event.addListener(controller_field, 'change',
-        handleValControllerChange, [controlled_field_id, controlled_value_ids,
-                                    controller_field, controller_value_id]);
-}
-
-function handleValControllerChange(e, args) {
-    var controlled_field = document.getElementById(args[0]);
-    var controlled_value_ids = args[1];
-    var controller_field = args[2];
-    var controller_value_id = args[3];
-
-    var controller_item = document.getElementById(
-        _value_id(controller_field.id, controller_value_id));
-
-    for (var i = 0; i < controlled_value_ids.length; i++) {
-        var item = getPossiblyHiddenOption(controlled_field,
-                                           controlled_value_ids[i]);
-        if (item.disabled && controller_item && controller_item.selected) {
-            item = showOptionInIE(item, controlled_field);
-            YAHOO.util.Dom.removeClass(item, 'bz_hidden_option');
-            item.disabled = false;
-        }
-        else if (!item.disabled) {
-            YAHOO.util.Dom.addClass(item, 'bz_hidden_option');
-            if (item.selected) {
-                item.selected = false;
-                bz_fireEvent(controlled_field, 'change');
-            }
-            item.disabled = true;
-            hideOptionInIE(item, controlled_field);
-        }
-    }
-}
-
 // A convenience function to generate the "id" tag of an <option>
 // based on the numeric id that Bugzilla uses for that value.
 function _value_id(field_name, id) {
     return 'v' + id + '_' + field_name;
 }
-
-/*********************************/
-/* Code for Hiding Options in IE */
-/*********************************/
-
-/* IE 7 and below (and some other browsers) don't respond to "display: none"
- * on <option> tags. However, you *can* insert a Comment Node as a
- * child of a <select> tag. So we just insert a Comment where the <option>
- * used to be. */
-var ie_hidden_options = new Array();
-function hideOptionInIE(anOption, aSelect) {
-    if (browserCanHideOptions(aSelect)) return;
-
-    var commentNode = document.createComment(anOption.value);
-    commentNode.id = anOption.id;
-    // This keeps the interface of Comments and Options the same for
-    // our other functions.
-    commentNode.disabled = true;
-    // replaceChild is very slow on IE in a <select> that has a lot of
-    // options, so we use replaceNode when we can.
-    if (anOption.replaceNode) {
-        anOption.replaceNode(commentNode);
-    }
-    else {
-        aSelect.replaceChild(commentNode, anOption);
-    }
-
-    // Store the comment node for quick access for getPossiblyHiddenOption
-    if (!ie_hidden_options[aSelect.id]) {
-        ie_hidden_options[aSelect.id] = new Array();
-    }
-    ie_hidden_options[aSelect.id][anOption.id] = commentNode;
-}
-
-function showOptionInIE(aNode, aSelect) {
-    if (browserCanHideOptions(aSelect)) return aNode;
-
-    // We do this crazy thing with innerHTML and createElement because
-    // this is the ONLY WAY that this works properly in IE.
-    var optionNode = document.createElement('option');
-    optionNode.innerHTML = aNode.data;
-    optionNode.value = aNode.data;
-    optionNode.id = aNode.id;
-    // replaceChild is very slow on IE in a <select> that has a lot of
-    // options, so we use replaceNode when we can.
-    if (aNode.replaceNode) {
-        aNode.replaceNode(optionNode);
-    }
-    else {
-        aSelect.replaceChild(optionNode, aNode);
-    }
-    delete ie_hidden_options[aSelect.id][optionNode.id];
-    return optionNode;
-}
-
-function initHidingOptionsForIE(select_name) {
-    var aSelect = document.getElementById(select_name);
-    if (browserCanHideOptions(aSelect)) return;
-
-    for (var i = 0; ;i++) {
-        var item = aSelect.options[i];
-        if (!item) break;
-        if (item.disabled) {
-          hideOptionInIE(item, aSelect);
-          i--; // Hiding an option means that the options array has changed.
-        }
-    }
-}
-
-function getPossiblyHiddenOption(aSelect, optionId) {
-    // Works always for <option> tags, and works for commentNodes
-    // in IE (but not in Webkit).
-    var id = _value_id(aSelect.id, optionId);
-    var val = document.getElementById(id);
-
-    // This is for WebKit and other browsers that can't "display: none"
-    // an <option> and also can't getElementById for a commentNode.
-    if (!val && ie_hidden_options[aSelect.id]) {
-        val = ie_hidden_options[aSelect.id][id];
-    }
-
-    return val;
-}
-
-var browser_can_hide_options;
-function browserCanHideOptions(aSelect) {
-    /* As far as I can tell, browsers that don't hide <option> tags
-     * also never have a X position for <option> tags, even if
-     * they're visible. This is the only reliable way I found to
-     * differentiate browsers. So we create a visible option, see
-     * if it has a position, and then remove it. */
-    if (typeof(browser_can_hide_options) == "undefined") {
-        var new_opt = bz_createOptionInSelect(aSelect, '', '');
-        var opt_pos = YAHOO.util.Dom.getX(new_opt);
-        aSelect.removeChild(new_opt);
-        if (opt_pos) {
-            browser_can_hide_options = true;
-        }
-        else {
-            browser_can_hide_options = false;
-        }
-    }
-    return browser_can_hide_options;
-}
-
-/* (end) option hiding code */

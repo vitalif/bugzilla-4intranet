@@ -88,7 +88,7 @@ sub update_fielddefs_definition {
     }
 
     $dbh->bz_add_column('fielddefs', 'visibility_field_id', {TYPE => 'INT3'});
-    $dbh->bz_add_column('fielddefs', 'visibility_value_id', {TYPE => 'INT2'});
+    # visibility_value_id is not added anymore during update - it's now in fieldvaluecontrol
     $dbh->bz_add_column('fielddefs', 'value_field_id', {TYPE => 'INT3'});
     $dbh->bz_add_index('fielddefs', 'fielddefs_value_field_id_idx',
                        ['value_field_id']);

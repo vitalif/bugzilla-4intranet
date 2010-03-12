@@ -39,14 +39,7 @@
   #                   with default field values being displayed on a page.
   #%]
 
-[% SET hidden = 0 %]
-[% IF field.visibility_field.defined %]
-  [% IF !bug.${field.visibility_field.name}
-         .contains(field.visibility_value.name) 
-  %]
-    [% SET hidden = 1 %]
-  [% END %]
-[% END %]
+[% SET hidden = !field.check_visibility(bug) %]
 
 [% IF NOT no_tds %]
   <th class="field_label [% ' bz_hidden_field' IF hidden %]"
@@ -137,17 +130,15 @@
             [% SET control_field = field.value_field.name %]
             [% SET control_field = "product_obj" IF control_field == "product" %]
             [% SET control_field = "component_obj" IF control_field == "component" %]
-            [% legal_values = field.restricted_legal_values(bug.${control_field}) %]
+            [% legal_values = field.restricted_legal_values(bug.$control_field) %]
           [% END %]
           [% FOREACH legal_value = legal_values %]
           <option value="[% legal_value.name FILTER html %]"
-                  id="v[% legal_value.id FILTER html %]_
-                      [%- field.name FILTER html %]"
-            [%# We always show selected values, even if they should be
-              # hidden %]
+                  id="v[% legal_value.id FILTER html %]_[% field.name FILTER html %]"
             [% IF value.contains(legal_value.name).size %]
               selected="selected"
-            [% END %]>
+            [% END %]
+                  >
             [%- legal_value.name FILTER html %]</option>
           [% END %]
         </select>
@@ -164,8 +155,7 @@
 
         <script type="text/javascript">
         <!--
-          initHidingOptionsForIE('[% field.name FILTER js %]');
-          [%+ INCLUDE "bug/field-events.js.tmpl" field = field %]
+          show_fields['[% field.name | js %]'] = [% field.json_visibility %];
         //-->
         </script>
 

@@ -71,13 +71,15 @@ package Bugzilla::Field;
 use strict;
 
 use base qw(Exporter Bugzilla::Object);
-@Bugzilla::Field::EXPORT = qw(check_field get_field_id get_legal_field_values);
+@Bugzilla::Field::EXPORT = qw(check_field get_field_id get_legal_field_values update_visibility_values);
 
 use Bugzilla::Constants;
 use Bugzilla::Error;
 use Bugzilla::Util;
 
 use Scalar::Util qw(blessed);
+use Encode;
+use JSON;
 
 ###############################
 ####    Initialization     ####
@@ -98,7 +100,6 @@ use constant DB_COLUMNS => qw(
     enter_bug
     buglist
     visibility_field_id
-    visibility_value_id
     value_field_id
 );
 
@@ -118,7 +119,6 @@ use constant VALIDATORS => {
 
 use constant UPDATE_VALIDATORS => {
     value_field_id      => \&_check_value_field_id,
-    visibility_value_id => \&_check_control_value,
 };
 
 use constant UPDATE_COLUMNS => qw(
@@ -129,7 +129,6 @@ use constant UPDATE_COLUMNS => qw(
     enter_bug
     buglist
     visibility_field_id
-    visibility_value_id
     value_field_id
 
     type
@@ -340,22 +339,6 @@ sub _check_visibility_field_id {
     return $field->id;
 }
 
-sub _check_control_value {
-    my ($invocant, $value_id, $field_id) = @_;
-    my $field;
-    if (blessed $invocant) {
-        $field = $invocant->visibility_field;
-    }
-    elsif ($field_id) {
-        $field = $invocant->new($field_id);
-    }
-    # When no field is set, no value is set.
-    return undef if !$field;
-    my $value_obj = Bugzilla::Field::Choice->type($field)
-                    ->check({ id => $value_id });
-    return $value_obj->id;
-}
-
 =pod
 
 =head2 Instance Properties
@@ -486,9 +469,9 @@ objects.
 
 =cut
 
-sub is_select { 
-    return ($_[0]->type == FIELD_TYPE_SINGLE_SELECT 
-            || $_[0]->type == FIELD_TYPE_MULTI_SELECT) ? 1 : 0 
+sub is_select {
+    return ($_[0]->type == FIELD_TYPE_SINGLE_SELECT
+            || $_[0]->type == FIELD_TYPE_MULTI_SELECT) ? 1 : 0
 }
 
 sub legal_values {
@@ -505,9 +488,9 @@ sub legal_values {
 sub restricted_legal_values
 {
     my $self = shift;
-    my ($value) = @_;
-    return $self->legal_values unless $value;
-    return $value->controlled_plus_generic->{$self->name};
+    my ($controller_value) = @_;
+    return $self->legal_values unless $controller_value;
+    return $controller_value->controlled_plus_generic->{$self->name};
 }
 
 =pod
@@ -528,36 +511,50 @@ Returns undef if there is no field that controls this field's visibility.
 sub visibility_field {
     my $self = shift;
     if ($self->{visibility_field_id}) {
-        $self->{visibility_field} ||= 
+        $self->{visibility_field} ||=
             $self->new($self->{visibility_field_id});
     }
     return $self->{visibility_field};
 }
 
-=pod
-
-=over
-
-=item C<visibility_value>
-
-If we have a L</visibility_field>, then what value does that field have to
-be set to in order to show this field? Returns a L<Bugzilla::Field::Choice>
-or undef if there is no C<visibility_field> set.
-
-=back
-
-=cut
-
-
-sub visibility_value {
+sub visibility_values
+{
     my $self = shift;
-    if ($self->{visibility_field_id}) {
-        require Bugzilla::Field::Choice;
-        $self->{visibility_value} ||=
-            Bugzilla::Field::Choice->type($self->visibility_field)->new(
-                $self->{visibility_value_id});
+    my $f;
+    if ($self->visibility_field && !($f = $self->{visibility_values}))
+    {
+        $f = Bugzilla->dbh->selectcol_arrayref(
+            "SELECT visibility_value_id FROM fieldvaluecontrol WHERE field_id=? AND value_id=0",
+            undef, $self->id);
+        if (@$f)
+        {
+            my $type = Bugzilla::Field::Choice->type($self->visibility_field);
+            $f = $type->match({ id => $f });
+        }
+        $self->{visibility_values} = $f;
     }
-    return $self->{visibility_value};
+    return $f;
+}
+
+sub has_visibility_value
+{
+    my $self = shift;
+    my ($value) = @_;
+    ref $value and $value = $value->id;
+    my %f = map { $_->id => 1 } @{$self->visibility_values};
+    return $f{$value};
+}
+
+# Check visibility of field for a bug
+sub check_visibility
+{
+    my $self = shift;
+    my ($bug) = @_;
+    my $field = $self->visibility_field;
+    $bug && $field or return 1;
+    $field = $bug->{$field->name};
+    my %f = map { $_->name => 1 } @{$self->visibility_values};
+    return $f{$field};
 }
 
 =pod
@@ -575,7 +572,7 @@ field controls the visibility of.
 
 sub controls_visibility_of {
     my $self = shift;
-    $self->{controls_visibility_of} ||= 
+    $self->{controls_visibility_of} ||=
         Bugzilla::Field->match({ visibility_field_id => $self->id });
     return $self->{controls_visibility_of};
 }
@@ -648,8 +645,6 @@ They will throw an error if you try to set the values to something invalid.
 
 =item C<set_visibility_field>
 
-=item C<set_visibility_value>
-
 =item C<set_value_field>
 
 =back
@@ -662,18 +657,26 @@ sub set_obsolete       { $_[0]->set('obsolete',    $_[1]); }
 sub set_sortkey        { $_[0]->set('sortkey',     $_[1]); }
 sub set_in_new_bugmail { $_[0]->set('mailhead',    $_[1]); }
 sub set_buglist        { $_[0]->set('buglist',     $_[1]); }
-sub set_visibility_field {
+
+sub set_visibility_field
+{
     my ($self, $value) = @_;
     $self->set('visibility_field_id', $value);
     delete $self->{visibility_field};
-    delete $self->{visibility_value};
+    delete $self->{visibility_values};
 }
-sub set_visibility_value {
-    my ($self, $value) = @_;
-    $self->set('visibility_value_id', $value);
-    delete $self->{visibility_value};
+
+sub set_visibility_values
+{
+    my $self = shift;
+    my ($value_ids) = @_;
+    update_visibility_values($self->visibility_field, $self, 0, $self->visibility_values, $value_ids);
+    delete $self->{visibility_values};
+    return @$value_ids;
 }
-sub set_value_field {
+
+sub set_value_field
+{
     my ($self, $value) = @_;
     $self->set('value_field_id', $value);
     delete $self->{value_field};
@@ -760,7 +763,9 @@ sub remove_from_db {
         $dbh->bz_drop_field_tables($self);
     }
 
-    $dbh->bz_commit_transaction()
+    $self->set_visibility_values(undef);
+
+    $dbh->bz_commit_transaction();
 }
 
 =pod
@@ -839,10 +844,6 @@ sub run_create_validators {
             "SELECT MAX(sortkey) + 100 FROM fielddefs") || 100;
     }
 
-    $params->{visibility_value_id} = 
-        $class->_check_control_value($params->{visibility_value_id},
-                                     $params->{visibility_field_id});
-
     my $type = $params->{type} || 0;
     $params->{value_field_id} = 
         $class->_check_value_field_id($params->{value_field_id},
@@ -850,17 +851,6 @@ sub run_create_validators {
              || $type == FIELD_TYPE_MULTI_SELECT) ? 1 : 0);
     return $params;
 }
-
-sub update {
-    my $self = shift;
-    my $changes = $self->SUPER::update(@_);
-    my $dbh = Bugzilla->dbh;
-    if ($changes->{value_field_id} && $self->is_select) {
-        $dbh->do("UPDATE " . $self->name . " SET visibility_value_id = NULL");
-    }
-    return $changes;
-}
-
 
 =pod
 
@@ -1089,6 +1079,66 @@ sub get_field_id {
     return $id
 }
 
+# Shared between Bugzilla::Field and Bugzilla::Field::Choice
+sub update_visibility_values
+{
+    my ($controller_field, $controlled_field, $controlled_value, $old_ids, $value_ids) = @_;
+    Bugzilla->dbh->do(
+        "DELETE FROM fieldvaluecontrol WHERE field_id=? AND value_id=?",
+        undef, $controlled_field->id, $controlled_value);
+    defined($value_ids) or return undef;
+    ref $value_ids or $value_ids = [ $value_ids ];
+    my $type = Bugzilla::Field::Choice->type($controller_field);
+    @$value_ids = map { $_ ? $type->check({ id => $_ }) : () } @$value_ids;
+    my ($a, $r) = diff_arrays([map { $_->id } @$value_ids], [map { $_->id } @$old_ids]);
+    if (@$value_ids)
+    {
+        Bugzilla->dbh->do(
+            "INSERT INTO fieldvaluecontrol (field_id, value_id, visibility_value_id) VALUES ".
+            join(",", ("(?,?,?)") x @$value_ids),
+            undef, map { ($controlled_field->id, $controlled_value, $_->id) } @$value_ids);
+    }
+}
+
+# Moved from bug/field-events.js.tmpl
+sub json_visibility
+{
+    my $self = shift;
+    my $show = { fields => {}, values => {} };
+    foreach my $controlled (@{$self->controls_visibility_of})
+    {
+        $show->{fields}->{$controlled->name} = { map { $_->id => 1 } @{$controlled->visibility_values} };
+    }
+    $show->{legal} = [ map { [ $_->id, $_->name ] } @{$self->legal_values} ];
+    foreach my $value (@{$self->legal_values})
+    {
+        foreach my $controlled_field (keys %{$value->controlled_values})
+        {
+            foreach my $controlled_value (@{$value->controlled_values->{$controlled_field}})
+            {
+                $show->{values}->{$controlled_field}->{$controlled_value->id}->{$value->id} = 1;
+            }
+        }
+    }
+    $show = encode_json($show);
+    Encode::_utf8_on($show);
+    return $show;
+}
+
 1;
 
 __END__
+
+[% FOREACH controlled_field = field.controls_visibility_of %]
+[% FOREACH val = controlled_field.visibility_values %]
+showFieldWhen['[% field.name | js %]']['[% val.name | js %]']['[% controlled_field.name | js %]'] = true;
+[% END %]
+[% END %]
+
+[% FOREACH legal_value = field.legal_values %]
+[% FOREACH controlled_field = legal_value.controlled_plus_generic.keys %]
+[% FOREACH val = legal_value.controlled_plus_generic.$controlled_field %]
+showValueWhen['[% field.name | js %]'][[% val.id %]]['[% controlled_field | js %]'][[% legal_value.id %]] = true;
+[% END %]
+[% END %]
+[% END %]

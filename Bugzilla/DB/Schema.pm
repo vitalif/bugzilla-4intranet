@@ -218,6 +218,8 @@ use constant FIELD_TABLE_SCHEMA => {
         sortkey  => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0},
         isactive => {TYPE => 'BOOLEAN', NOTNULL => 1,
                      DEFAULT => 'TRUE'},
+        # CustIS Bug 53617 - visibility_value_id is removed from here
+        # (migrated to fieldvaluecontrol table)
     ],
     # Note that bz_add_field_table should prepend the table name
     # to these index names.
@@ -664,10 +666,11 @@ use constant ABSTRACT_SCHEMA => {
                             DEFAULT => 'FALSE'},
             buglist     => {TYPE => 'BOOLEAN', NOTNULL => 1,
                             DEFAULT => 'FALSE'},
-            visibility_field_id => {TYPE => 'INT3', 
+            visibility_field_id => {TYPE => 'INT3',
                                     REFERENCES => {TABLE  => 'fielddefs',
                                                    COLUMN => 'id'}},
-            visibility_value_id => {TYPE => 'INT2'},
+            # CustIS Bug 53617 - visibility_value_id is removed from here
+            # (migrated to fieldvaluecontrol table)
             value_field_id => {TYPE => 'INT3',
                                REFERENCES => {TABLE  => 'fielddefs',
                                               COLUMN => 'id'}},
@@ -730,7 +733,6 @@ use constant ABSTRACT_SCHEMA => {
             bug_status_value_idx  => {FIELDS => ['value'],
                                        TYPE => 'UNIQUE'},
             bug_status_sortkey_idx => ['sortkey', 'value'],
-            bug_status_visibility_value_id_idx => ['visibility_value_id'],
         ],
     },
 
@@ -740,7 +742,6 @@ use constant ABSTRACT_SCHEMA => {
             resolution_value_idx   => {FIELDS => ['value'],
                                        TYPE => 'UNIQUE'},
             resolution_sortkey_idx => ['sortkey', 'value'],
-            resolution_visibility_value_id_idx => ['visibility_value_id'],
         ],
     },
 
@@ -750,7 +751,6 @@ use constant ABSTRACT_SCHEMA => {
             bug_severity_value_idx   => {FIELDS => ['value'],
                                          TYPE => 'UNIQUE'},
             bug_severity_sortkey_idx => ['sortkey', 'value'],
-            bug_severity_visibility_value_id_idx => ['visibility_value_id'],
         ],
     },
 
@@ -760,7 +760,6 @@ use constant ABSTRACT_SCHEMA => {
             priority_value_idx   => {FIELDS => ['value'],
                                      TYPE => 'UNIQUE'},
             priority_sortkey_idx => ['sortkey', 'value'],
-            priority_visibility_value_id_idx => ['visibility_value_id'],
         ],
     },
 
@@ -770,7 +769,6 @@ use constant ABSTRACT_SCHEMA => {
             rep_platform_value_idx   => {FIELDS => ['value'],
                                          TYPE => 'UNIQUE'},
             rep_platform_sortkey_idx => ['sortkey', 'value'],
-            rep_platform_visibility_value_id_idx => ['visibility_value_id'],
         ],
     },
 
@@ -780,7 +778,6 @@ use constant ABSTRACT_SCHEMA => {
             op_sys_value_idx   => {FIELDS => ['value'],
                                    TYPE => 'UNIQUE'},
             op_sys_sortkey_idx => ['sortkey', 'value'],
-            op_sys_visibility_value_id_idx => ['visibility_value_id'],
         ],
     },
 
