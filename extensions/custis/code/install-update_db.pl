@@ -123,7 +123,7 @@ foreach my $field (@$custom_fields)
         print "Making backup of table $field->{name}\n";
         $dbh->do("CREATE TABLE `backup_$field->{name}_".time."` AS SELECT * FROM `$field->{name}`");
         print "Dropping column $field->{name}.visibility_value_id\n";
-        #$dbh->bz_drop_column($field->{name}, 'visibility_value_id');
+        $dbh->bz_drop_column($field->{name}, 'visibility_value_id');
     }
 }
 
@@ -136,7 +136,7 @@ if ($dbh->bz_column_info('fielddefs', 'visibility_value_id'))
     print "Making backup of table fielddefs\n";
     $dbh->do("CREATE TABLE `backup_fielddefs_".time."` AS SELECT * FROM fielddefs");
     print "Dropping column fielddefs.visibility_value_id\n";
-    #$dbh->bz_drop_column('fielddefs', 'visibility_value_id');
+    $dbh->bz_drop_column('fielddefs', 'visibility_value_id');
 }
 
 # Testopia:
