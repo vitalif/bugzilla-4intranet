@@ -1001,7 +1001,7 @@ sub bz_start_transaction {
 
 sub bz_commit_transaction {
     my ($self) = @_;
-    
+
     if ($self->{private_bz_transaction_count} > 1) {
         $self->{private_bz_transaction_count}--;
     } elsif ($self->bz_in_transaction) {
