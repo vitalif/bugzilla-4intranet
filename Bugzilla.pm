@@ -541,7 +541,7 @@ sub active_custom_fields {
     my $class = shift;
     if (!exists $class->request_cache->{active_custom_fields}) {
         $class->request_cache->{active_custom_fields} =
-          Bugzilla::Field->match({ custom => 1, obsolete => 0 });
+            Bugzilla::Field->match({ custom => 1, obsolete => 0 });
     }
     return @{$class->request_cache->{active_custom_fields}};
 }
