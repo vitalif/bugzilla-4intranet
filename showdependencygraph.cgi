@@ -21,10 +21,11 @@
 # Contributor(s): Terry Weissman <terry@mozilla.org>
 #                 Gervase Markham <gerv@gerv.net>
 
+use utf8;
 use strict;
-
 use lib qw(. lib);
 
+use Encode;
 use File::Temp;
 
 use Bugzilla;
@@ -392,6 +393,7 @@ GROUP BY t1.bug_id", {Slice=>{}}, keys %$seen) || {};
         {
             $row->{short_desc} = substr($row->{short_desc}, 0, 32) . '...';
         }
+        Encode::_utf8_off($row->{$_}) for keys %$row;
         # Current bug
         $vars->{short_desc} = $row->{short_desc} if $row->{bug_id} eq Bugzilla->cgi->param('id');
 
