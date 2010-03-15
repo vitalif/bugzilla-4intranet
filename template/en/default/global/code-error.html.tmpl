@@ -172,9 +172,6 @@
     or <em>manual</em>, but was instead
     <em>[% contenttypemethod FILTER html %]</em>.
 
-  [% ELSIF error == "illegal_field" %]
-    A legal [% field FILTER html %] was not set.
-
   [% ELSIF error == "inactive_group" %]
     Attempted to add [% terms.bug %] to the '[% name FILTER html %]'
     group, which is not used for [% terms.bugs %].

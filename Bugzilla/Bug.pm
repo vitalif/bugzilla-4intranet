@@ -1751,7 +1751,7 @@ sub _check_target_milestone {
     $target = trim($target);
     $target = $product->default_milestone if !defined $target;
     check_field('target_milestone', $target,
-            [map($_->name, @{$product->milestones})]);
+            [map($_->name, @{$product->milestones})], undef, { product => $product });
     return $target;
 }
 
@@ -1773,7 +1773,7 @@ sub _check_version {
     my ($invocant, $version, $product) = @_;
     $version = trim($version);
     ($product = $invocant->product_obj) if ref $invocant;
-    check_field('version', $version, [map($_->name, @{$product->versions})]);
+    check_field('version', $version, [map($_->name, @{$product->versions})], undef, { product => $product });
     return $version;
 }
 

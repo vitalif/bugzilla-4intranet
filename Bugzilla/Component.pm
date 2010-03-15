@@ -264,7 +264,7 @@ sub _check_default_version
     return '' unless $version;
     $product = $invocant->product unless ref $product;
     scalar(grep { $_->name eq $version } @{ $product->versions })
-        || ThrowCodeError('illegal_field', { field => 'Default version' });
+        || ThrowUserError('illegal_field', { field => 'Default version' });
     return $version;
 }
 

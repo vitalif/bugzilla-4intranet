@@ -1018,6 +1018,7 @@ Params:      $name         - the field name
              $value        - the field value
              @legal_values - (optional) list of legal values
              $no_warn      - (optional) do not throw an error if true
+             \%args        - (optional) additional template variables for error message
 
 Returns:     1 on success; 0 on failure if $no_warn is true (else an
              error is thrown).
@@ -1027,7 +1028,7 @@ Returns:     1 on success; 0 on failure if $no_warn is true (else an
 =cut
 
 sub check_field {
-    my ($name, $value, $legalsRef, $no_warn) = @_;
+    my ($name, $value, $legalsRef, $no_warn, $args) = @_;
     my $dbh = Bugzilla->dbh;
 
     # If $legalsRef is undefined, we use the default valid values.
@@ -1044,7 +1045,7 @@ sub check_field {
 
         my $field = new Bugzilla::Field({ name => $name });
         my $field_desc = $field ? $field->description : $name;
-        ThrowCodeError('illegal_field', { field => $field_desc });
+        ThrowUserError('illegal_field', { field => $field_desc, value => $value, legals => $legalsRef, ($args ? %$args : ()) });
     }
     return 1;
 }
