@@ -224,7 +224,7 @@ else
             }
             else
             {
-                Bugzilla->dbh->bz_rollback_transaction;
+                Bugzilla->dbh->bz_in_transaction and Bugzilla->dbh->bz_rollback_transaction;
                 $f = 1;
                 last;
             }
