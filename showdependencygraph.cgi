@@ -306,21 +306,28 @@ sub GetEdges
 
         my @stack = keys %$baselist;
 
-        if ($display eq 'web')
+        # web: Any relationship with selected bugs
+        # openweb: Any relationship with selected bugs + state must be open
+        if ($display eq 'web' || $display eq 'openweb')
         {
-            my $sth = $dbh->prepare("SELECT blocked, dependson
-                                     FROM dependencies
-                                     WHERE blocked = ? OR dependson = ?");
+            my $openweb = $display eq 'openweb' ? 1 : 0;
+            my $sth = $dbh->prepare("SELECT blocked, dependson, bs.bug_status blocked_status, ds.bug_status dependson_status
+                                     FROM dependencies, bugs bs, bugs ds
+                                     WHERE (blocked=? OR dependson=?) AND bs.bug_id=blocked AND ds.bug_id=dependson");
             foreach my $id (@stack)
             {
                 my $dependencies = $dbh->selectall_arrayref($sth, undef, ($id, $id));
                 foreach my $dependency (@$dependencies)
                 {
-                    my ($blocked, $dependson) = @$dependency;
-                    if ($blocked != $id && !exists $seen->{$blocked}) {
+                    my ($blocked, $dependson, $bs, $ds) = @$dependency;
+                    if ($blocked != $id && !exists $seen->{$blocked})
+                    {
+                        next if $openweb && !is_open_state($bs); # skip AddLink also
                         push @stack, $blocked;
                     }
-                    if ($dependson != $id && !exists $seen->{$dependson}) {
+                    if ($dependson != $id && !exists $seen->{$dependson})
+                    {
+                        next if $openweb && !is_open_state($ds); # skip AddLink also
                         push @stack, $dependson;
                     }
                     AddLink($blocked, $dependson, $seen, $edges);
