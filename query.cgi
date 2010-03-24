@@ -138,13 +138,17 @@ sub PrefillForm {
                   chart_format cumulate x_labels_vertical
                   category subcategory name newcategory
                   newsubcategory public frequency);
-    # These fields can also have default values (when used in reports).
-    my @custom_select_fields = grep { $_->type == FIELD_TYPE_SINGLE_SELECT } Bugzilla->active_custom_fields;
-    push @list, map { $_->name } @custom_select_fields;
 
+    # These fields can also have default values (when used in reports).
     # CustIS Bug 58300 - Add custom field to search filters
-    my @custom_text_fields = grep { $_->type == FIELD_TYPE_FREETEXT || $_->type == FIELD_TYPE_TEXTAREA } Bugzilla->active_custom_fields;
-    push @list, map { $_->name, $_->name.'_type' } @custom_select_fields;
+    for my $field (Bugzilla->active_custom_fields)
+    {
+        push @list, $field->name;
+        if ($field->type == FIELD_TYPE_FREETEXT || $field->type == FIELD_TYPE_TEXTAREA)
+        {
+            push @list, $field->name . '_type';
+        }
+    }
 
     foreach my $name (@list) {
         $default{$name} = [];
