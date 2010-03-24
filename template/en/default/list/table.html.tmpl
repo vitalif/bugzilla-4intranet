@@ -61,6 +61,8 @@
     "op_sys"            => { maxlength => 4 } ,
     "target_milestone"  => { title => "TargetM" } ,
     "percentage_complete" => { format_value => "%d %%" } ,
+    "blocked"           => { wrap => 1, width => "8%" },
+    "dependson"         => { wrap => 1, width => "8%" },
   }
 %]
 
@@ -202,7 +204,7 @@
     </td>
 
     [% FOREACH column = displaycolumns %]
-    <td [% 'style="white-space: nowrap"' IF NOT abbrev.$column.wrap %]>
+    <td style="[% 'white-space: nowrap;' IF NOT abbrev.$column.wrap %][% 'width:' _ abbrev.$column.width IF abbrev.$column.width %]">
       [% IF abbrev.$column.maxlength %]
         <span title="
           [%- IF column == 'bug_status' %]
@@ -213,21 +215,23 @@
             [%- bug.$column FILTER html %]
           [% END %]">
       [% END %]
-      [% IF abbrev.$column.format_value %] 
-        [%- bug.$column FILTER format(abbrev.$column.format_value) FILTER html -%] 
+      [% IF abbrev.$column.format_value %]
+        [%- bug.$column FILTER format(abbrev.$column.format_value) FILTER html -%]
       [% ELSIF column == 'actual_time' ||
                column == 'remaining_time' ||
                column == 'estimated_time' %]
-        [% PROCESS formattimeunit time_unit=bug.$column %] 
+        [% PROCESS formattimeunit time_unit=bug.$column %]
       [% ELSIF column == 'bug_status' %]
         [%- get_status(bug.$column).truncate(abbrev.$column.maxlength, abbrev.$column.ellipsis) FILTER html %]
+      [% ELSIF column == 'blocked' OR column == 'dependson' %]
+        [% bug.$column | bug_list_link %]
       [% ELSIF column == 'resolution' %]
         [%- get_resolution(bug.$column).truncate(abbrev.$column.maxlength, abbrev.$column.ellipsis) FILTER html %]
 
       [%# Display the login name of the user if their real name is empty. %]
       [% ELSIF column.match('_realname$') && bug.$column == '' %]
         [% SET login_column = column.remove('_realname$') %]
-        [% bug.${login_column}.truncate(abbrev.$column.maxlength, 
+        [% bug.${login_column}.truncate(abbrev.$column.maxlength,
                                         abbrev.$column.ellipsis) FILTER html %]
 
       [% ELSE %]
@@ -242,7 +246,7 @@
   </tr>
 
   [%# At the end of every hundred bugs in the list, or at the end of the list,
-    # end the current table. 
+    # end the current table.
     #%]
   [% IF loop.last() || loop.count() % 100 == 0 %]
     [% IF loop.last() && time_info.time_present == 1 %]
