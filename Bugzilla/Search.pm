@@ -1489,8 +1489,6 @@ sub _content_matches
     # accept the "matches" operator, which is specific to full-text
     # index searches.
 
-    my $l = FULLTEXT_BUGLIST_LIMIT;
-    my $table = "bugs_fulltext_$$chartid";
     my $comments_col = "comments";
     $comments_col = "comments_noprivate" unless $self->{'user'}->is_insider;
 
@@ -1503,28 +1501,16 @@ sub _content_matches
         $dbh->sql_fulltext_search("bugs_fulltext.short_desc", $text, 2);
     $rterm2 ||= $term2;
 
+    # We build the relevance SQL by modifying the COLUMNS list directly,
+    # which is kind of a hack but works.
+    COLUMNS->{relevance}->{name} = "(SELECT $rterm1+$rterm2 FROM bugs_fulltext WHERE bugs_fulltext.bug_id=bugs.bug_id)";
+
     # Bug 46221 - Russian Stemming in Bugzilla fulltext search
     # Bugzilla's fulltext search mechanism is bad because
     # MATCH(...) OR MATCH(...) is very slow in MySQL - it doesn't do
-    # fulltext index merge optimization. So we'll use a derived UNION table.
-    push @$supptables,
-        "INNER JOIN (
-            SELECT bug_id, SUM(relevance) AS relevance FROM (
-                (SELECT bug_id, $rterm1 AS relevance
-                FROM bugs_fulltext WHERE $term1 > 0 LIMIT $l)
-                UNION ALL
-                (SELECT bug_id, $rterm2 AS relevance
-                FROM bugs_fulltext WHERE $term2 > 0 LIMIT $l)
-            ) AS ${table}_0
-            GROUP BY bug_id
-        ) AS $table ON bugs.bug_id = $table.bug_id";
-
-    # We build the relevance SQL by modifying the COLUMNS list directly,
-    # which is kind of a hack but works.
-    COLUMNS->{'relevance'}->{name} = "$table.relevance";
-
-    # All work done by INNER JOIN
-    $$term = "1";
+    # fulltext index merge optimization. So we use IN (...).
+    $$term = "bugs.bug_id IN (SELECT bug_id FROM bugs_fulltext WHERE $term1 > 0
+        UNION ALL SELECT bug_id FROM bugs_fulltext WHERE $term2 > 0)";
 }
 
 sub _timestamp_compare {
