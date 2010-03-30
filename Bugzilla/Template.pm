@@ -601,6 +601,8 @@ sub create {
                           1
                         ],
 
+            process => [ sub { my ($context) = @_; return sub { $context->process(@_) } }, 1 ],
+
             bug_list_link => sub
             {
                 my $buglist = shift;
