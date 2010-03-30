@@ -27,7 +27,7 @@
 
 [% PROCESS "global/field-descs.none.tmpl" %]
 
-[% msg.account_created = BLOCK %]
+[% BLOCK msg_account_created %]
   [% title = "User $otheruser.login created" %]
   A new user account [% otheruser.login | html %] has been created
   successfully.
@@ -40,13 +40,13 @@
   [% END %]
 [% END %]
 
-[% msg.account_creation_canceled = BLOCK %]
+[% BLOCK msg_account_creation_canceled %]
   [% title = "User Account Creation Canceled" %]
   The creation of the user account [% account | html %] has been
   canceled.
 [% END %]
 
-[% msg.account_updated = BLOCK %]
+[% BLOCK msg_account_updated %]
   [% IF changed_fields.size
         + groups_added_to.size + groups_removed_from.size
         + groups_granted_rights_to_bless.size + groups_denied_rights_to_bless.size %]
@@ -109,59 +109,59 @@
   [% END %]
 [% END %]
 
-[% msg.account_deleted = BLOCK %]
+[% BLOCK msg_account_deleted %]
   [% title = "User $otheruser.login deleted" %]
   The user account [% otheruser.login | html %] has been deleted
   successfully.
 [% END %]
 
-[% msg.account_disabled = BLOCK %]
+[% BLOCK msg_account_disabled %]
   The user account [% account | html %] is disabled, so you
   cannot change its password.
 [% END %]
 
-[% msg.attachment_creation_failed = BLOCK %]
+[% BLOCK msg_attachment_creation_failed %]
   The [% terms.bug %] was created successfully, but attachment creation
   failed.
   Please add your attachment by clicking the "Add an Attachment" link
   below.
 [% END %]
 
-[% msg.bug_group_description = BLOCK %]
+[% BLOCK msg_bug_group_description %]
   Access to [% terms.bugs %] in the [% product.name | html %] product
 [% END %]
 
-[% msg.buglist_adding_field = BLOCK %]
+[% BLOCK msg_buglist_adding_field %]
   [% title = "Adding field to search page..." %]
   [% link  = "Click here if the page does not redisplay automatically." %]
 [% END %]
 
-[% msg.buglist_updated_named_query = BLOCK %]
+[% BLOCK msg_buglist_updated_named_query %]
   [% title = "Search updated" %]
   Your search named <code><a
    href="buglist.cgi?cmdtype=runnamed&amp;namedcmd=[% queryname FILTER url_quote %]"
   >[% queryname | html %]</a></code> has been updated.
 [% END %]
 
-[% msg.buglist_new_default_query = BLOCK %]
+[% BLOCK msg_buglist_new_default_query %]
   OK, you now have a new default search.  You may
   also bookmark the result of any individual search.
 [% END %]
 
-[% msg.buglist_new_named_query = BLOCK %]
+[% BLOCK msg_buglist_new_named_query %]
   [% title = "Search created" %]
   OK, you have a new search named <code><a
    href="buglist.cgi?cmdtype=runnamed&amp;namedcmd=[% queryname FILTER url_quote %]"
   >[% queryname | html %]</a></code>.
 [% END %]
 
-[% msg.buglist_query_gone = BLOCK %]
+[% BLOCK msg_buglist_query_gone %]
   [% title = "Search is gone" %]
   [% link  = "Go back to the search page." %]
   OK, the <b>[% namedcmd | html %]</b> search is gone.
 [% END %]
 
-[% msg.buglist_sorted_by_relevance = BLOCK %]
+[% BLOCK msg_buglist_sorted_by_relevance %]
   [% terms.Bugs %] on this list are sorted by relevance, with the most
   relevant [% terms.bugs %] at the top.
   [% IF bugs.size == constants.FULLTEXT_BUGLIST_LIMIT %]
@@ -170,24 +170,24 @@
   [% END %]
 [% END %]
 
-[% msg.change_columns = BLOCK %]
+[% BLOCK msg_change_columns %]
   [% title = "Change columns" %]
   Resubmitting your search with new columns...
   Click <a href="[% redirect_url | html %]">here</a>
   if the page does not automatically refresh.
 [% END %]
 
-[% msg.classification_created = BLOCK %]
+[% BLOCK msg_classification_created %]
   [% title = "New Classification Created" %]
   The <em>[% classification.name | html %]</em> classification has been created.
 [% END %]
 
-[% msg.classification_deleted = BLOCK %]
+[% BLOCK msg_classification_deleted %]
   [% title = "Classification Deleted" %]
   The <em>[% classification.name | html %]</em> classification has been deleted.
 [% END %]
 
-[% msg.classification_updated = BLOCK %]
+[% BLOCK msg_classification_updated %]
     [% title = "Classification Updated" %]
   [% IF changes.keys.size %]
     Changes to the <em>[% classification.name | html %]</em> classification
@@ -212,12 +212,12 @@
   [% END %]
 [% END %]
 
-[% msg.component_created = BLOCK %]
+[% BLOCK msg_component_created %]
   [% title = "Component Created" %]
   The component <em>[% comp.name | html %]</em> has been created.
 [% END %]
 
-[% msg.component_deleted = BLOCK %]
+[% BLOCK msg_component_deleted %]
   [% title = "Component Deleted" %]
   The component <em>[% comp.name | html %]</em> has been deleted.
   [% IF comp.bug_count %]
@@ -226,7 +226,7 @@
   [% END %]
 [% END %]
 
-[% msg.component_updated = BLOCK %]
+[% BLOCK msg_component_updated %]
   [% title = "Component Updated" %]
   [% IF changes.keys.size %]
     Changes to the component <em>[% comp.name | html %]</em> have been saved:
@@ -269,25 +269,25 @@
   [% END %]
 [% END %]
 
-[% msg.custom_field_created = BLOCK %]
+[% BLOCK msg_custom_field_created %]
   [% title = "Custom Field Created" %]
   The new custom field '[% field.name | html %]' has been
   successfully created.
 [% END %]
 
-[% msg.custom_field_deleted = BLOCK %]
+[% BLOCK msg_custom_field_deleted %]
   [% title = "Custom Field Deleted" %]
   The custom field '[% field.name | html %]' has been
   successfully deleted.
 [% END %]
 
-[% msg.custom_field_updated = BLOCK %]
+[% BLOCK msg_custom_field_updated %]
   [% title = "Custom Field Updated" %]
   Properties of the '[% field.name | html %]' field have been
   successfully updated.
 [% END %]
 
-[% msg.default_settings_updated = BLOCK %]
+[% BLOCK msg_default_settings_updated %]
   [% IF changes_saved %]
     Changes to default preferences have been saved.
   [% ELSE %]
@@ -295,20 +295,20 @@
   [% END %]
 [% END %]
 
-[% msg.emailold_change_canceled = BLOCK %]
+[% BLOCK msg_emailold_change_canceled %]
   [% title = "Cancel Request to Change Email Address" %]
   The request to change the email address for your account to
   [%+ new_email | html %] has been canceled.
 [% END %]
 
-[% msg.email_change_canceled = BLOCK %]
+[% BLOCK msg_email_change_canceled %]
   [% title = "Cancel Request to Change Email Address" %]
   The request to change the email address for the
   account [%+ old_email | html %] to
   [%+ new_email | html %] has been canceled.
 [% END %]
 
-[% msg.email_change_canceled_reinstated = BLOCK %]
+[% BLOCK msg_email_change_canceled_reinstated %]
   [% title = "Cancel Request to Change Email Address" %]
   The request to change the email address for the
   account [%+ old_email | html %] to
@@ -316,7 +316,7 @@
  Your old account settings have been reinstated.
 [% END %]
 
-[% msg.field_value_created = BLOCK %]
+[% BLOCK msg_field_value_created %]
   [% title = "New Field Value Created" %]
   The value <em>[% value.name | html %]</em> has been added as a
   valid choice for the <em>[% field.description | html %]</em>
@@ -327,14 +327,14 @@
   [% END %]
 [% END %]
 
-[% msg.field_value_deleted = BLOCK %]
+[% BLOCK msg_field_value_deleted %]
   [% title = "Field Value Deleted" %]
   The value <em>[% value.name | html %]</em> of the
   <em>[% field.description | html %]</em>
   (<em>[% field.name | html %]</em>) field has been deleted.
 [% END %]
 
-[% msg.field_value_updated = BLOCK %]
+[% BLOCK msg_field_value_updated %]
   [% title = "Field Value Updated" %]
   [% IF changes.keys.size %]
     The <em>[% value_old | html %]</em> value of the
@@ -375,40 +375,40 @@
   [% END %]
 [% END %]
 
-[% msg.flag_cleared = BLOCK %]
+[% BLOCK msg_flag_cleared %]
   Some flags didn't apply in the new product/component
   and have been cleared.
 [% END %]
 
-[% msg.flag_creation_failed = BLOCK %]
+[% BLOCK msg_flag_creation_failed %]
   [% title = "Flag Creation Failure" %]
   An error occured while validating flags:
   [%+ flag_creation_error FILTER none %]
 [% END %]
 
-[% msg.get_field_desc = BLOCK %]
+[% BLOCK msg_get_field_desc %]
   [% field_descs.$field_name | html %]
 [% END %]
 
-[% msg.get_resolution = BLOCK %]
+[% BLOCK msg_get_resolution %]
   [% get_resolution(resolution) | html %]
 [% END %]
 
-[% msg.get_status = BLOCK %]
+[% BLOCK msg_get_status %]
   [% get_status(status) | html %]
 [% END %]
 
-[% msg.group_created = BLOCK %]
+[% BLOCK msg_group_created %]
   [% title = "New Group Created" %]
   The group <em>[% group.name | html %]</em> has been created.
 [% END %]
 
-[% msg.group_deleted = BLOCK %]
+[% BLOCK msg_group_deleted %]
   [% title = "Group Deleted" %]
   The group <em>[% name | html %]</em> has been deleted.
 [% END %]
 
-[% msg.group_membership_removed = BLOCK %]
+[% BLOCK msg_group_membership_removed %]
   [% title = "Group Membership Removed" %]
   [% IF users.size %]
     Explicit membership to the <em>[% group | html %]</em> group removed
@@ -421,7 +421,7 @@
   [% END %]
 [% END %]
 
-[% msg.group_updated = BLOCK %]
+[% BLOCK msg_group_updated %]
   [% IF changes.keys.size %]
     The following changes have been made to the '[% group.name | html %]'
     group:
@@ -487,16 +487,16 @@
   [% END %]
 [% END %]
 
-[% msg.job_queue_depth = BLOCK %]
+[% BLOCK msg_job_queue_depth %]
   [% count | html %] jobs in the queue.
 [% END %]
 
-[% msg.keyword_created = BLOCK %]
+[% BLOCK msg_keyword_created %]
   [% title = "New Keyword Created" %]
   The keyword <em>[% name | html %]</em> has been created.
 [% END %]
 
-[% msg.keyword_deleted = BLOCK %]
+[% BLOCK msg_keyword_deleted %]
   [% title = "Keyword Deleted" %]
   The <em>[% keyword.name | html %]</em> keyword has been deleted.
   <b>After you have finished editing keywords, you need to
@@ -505,7 +505,7 @@
   this can take several minutes).
 [% END %]
 
-[% msg.keyword_updated = BLOCK %]
+[% BLOCK msg_keyword_updated %]
   [% title = "Keyword Updated" %]
   [% IF changes.keys.size %]
     Changes to the <em>[% keyword.name | html %]</em> keyword have
@@ -529,7 +529,7 @@
   [% END %]
 [% END %]
 
-[% msg.logged_out = BLOCK %]
+[% BLOCK msg_logged_out %]
   [% title = "Logged Out" %]
   [% url = "index.cgi?GoAheadAndLogIn=1" %]
   [% link = "Log in again." %]
@@ -538,17 +538,17 @@
   prompted for a login the next time it is required.
 [% END %]
 
-[% msg.login_changed = BLOCK %]
+[% BLOCK msg_login_changed %]
   [% title = "$terms.Bugzilla Login Changed" %]
   Your [% terms.Bugzilla %] login has been changed.
 [% END %]
 
-[% msg.milestone_created = BLOCK %]
+[% BLOCK msg_milestone_created %]
   [% title = "Milestone Created" %]
   The milestone <em>[% milestone.name | html %]</em> has been created.
 [% END %]
 
-[% msg.milestone_deleted = BLOCK %]
+[% BLOCK msg_milestone_deleted %]
   [% title = "Milestone Deleted" %]
   The milestone <em>[% milestone.name | html %]</em> has been deleted.
   [% IF milestone.bug_count %]
@@ -557,7 +557,7 @@
   [% END %]
 [% END %]
 
-[% msg.milestone_updated = BLOCK %]
+[% BLOCK msg_milestone_updated %]
   [% title = "Milestone Updated" %]
   [% IF changes.size %]
     Changes to the milestone <em>[% milestone.name | html %]</em>
@@ -575,7 +575,7 @@
   [% END %]
 [% END %]
 
-[% msg.parameters_updated = BLOCK %]
+[% BLOCK msg_parameters_updated %]
   [% title = "Parameters Updated" %]
   [% IF param_changed.size > 0 %]
     [% FOREACH param = param_changed %]
@@ -595,102 +595,102 @@
   [% END%]
 [% END %]
 
-[% msg.password_change_canceled = BLOCK %]
+[% BLOCK msg_password_change_canceled %]
   [% title = "Cancel Request to Change Password" %]
   Your request has been canceled.
 [% END %]
 
-[% msg.password_change_request = BLOCK %]
+[% BLOCK msg_password_change_request %]
   [% title = "Request to Change Password" %]
   A token for changing your password has been emailed to you.
   Follow the instructions in that email to change your password.
 [% END %]
 
-[% msg.password_changed = BLOCK %]
+[% BLOCK msg_password_changed %]
   [% title = "Password Changed" %]
   Your password has been changed.
 [% END %]
 
-[% msg.flag_type_created = BLOCK %]
+[% BLOCK msg_flag_type_created %]
   [% title = BLOCK %]Flag Type '[% name | html %]' Created[% END %]
   The flag type <em>[% name | html %]</em> has been created.
 [% END %]
 
-[% msg.flag_type_changes_saved = BLOCK %]
+[% BLOCK msg_flag_type_changes_saved %]
   [% title = BLOCK %]Flag Type '[% name | html %]' Changes Saved[% END %]
   Your changes to the flag type <em>[% name | html %]</em>
   have been saved.
 [% END %]
 
-[% msg.flag_type_deleted = BLOCK %]
+[% BLOCK msg_flag_type_deleted %]
   [% title = BLOCK %]Flag Type '[% name | html %]' Deleted[% END %]
   The flag type <em>[% name | html %]</em> has been deleted.
 [% END %]
 
-[% msg.flag_type_deactivated = BLOCK %]
+[% BLOCK msg_flag_type_deactivated %]
   [% title = BLOCK %]Flag Type '[% flag_type.name | html %]' Deactivated[% END %]
   The flag type <em>[% flag_type.name | html %]</em> has been deactivated.
 [% END %]
 
-[% msg.install_admin_get_email = BLOCK %]
+[% BLOCK msg_install_admin_get_email %]
   Enter the e-mail address of the administrator:
 [% END %]
 
-[% msg.install_admin_get_name = BLOCK %]
+[% BLOCK msg_install_admin_get_name %]
   Enter the real name of the administrator:
 [% END %]
 
-[% msg.install_admin_get_password = BLOCK %]
+[% BLOCK msg_install_admin_get_password %]
   Enter a password for the administrator account:
 [% END %]
 
-[% msg.install_admin_created = BLOCK %]
+[% BLOCK msg_install_admin_created %]
   [% user.login | html %] is now set up as an administrator.
 [% END %]
 
-[% msg.install_admin_setup = BLOCK %]
+[% BLOCK msg_install_admin_setup %]
   Looks like we don't have an administrator set up yet.
   Either this is your first time using [% terms.Bugzilla %], or your
   administrator's privileges might have accidentally been deleted.
 [% END %]
 
-[% msg.install_column_add = BLOCK %]
+[% BLOCK msg_install_column_add %]
   Adding new column '[% column | html %]' to the '[% table | html %]' table...
 [% END %]
 
-[% msg.install_column_drop = BLOCK %]
+[% BLOCK msg_install_column_drop %]
   Deleting the '[% column | html %]' column from the '[% table | html %]' table...
 [% END %]
 
-[% msg.install_column_rename = BLOCK %]
+[% BLOCK msg_install_column_rename %]
   Renaming column '[% old | html %]' to '[% new | html %]'...
 [% END %]
 
-[% msg.install_confirm_password = BLOCK %]
+[% BLOCK msg_install_confirm_password %]
   Please retype the password to verify:
 [% END %]
 
-[% msg.install_default_classification = BLOCK %]
+[% BLOCK msg_install_default_classification %]
   Creating default classification '[% name | html %]'...
 [% END %]
 
-[% msg.install_default_product = BLOCK %]
+[% BLOCK msg_install_default_product %]
   Creating initial dummy product '[% name | html %]'...
 [% END %]
 
-[% msg.install_file_perms_fix = BLOCK %]
+[% BLOCK msg_install_file_perms_fix %]
   Fixing file permissions...
 [% END %]
 
-[% msg.install_fk_add = BLOCK %]
+[% BLOCK msg_install_fk_add %]
   Adding foreign key: [% table | html %].[% column | html %] -&gt; [% fk.TABLE | html %].[% fk.COLUMN | html %]...
 [% END %]
 
-[% msg.install_fk_drop = BLOCK %]
+[% BLOCK msg_install_fk_drop %]
   Dropping foreign key: [% table | html %].[% column | html %] -&gt; [% fk.TABLE | html %].[% fk.COLUMN | html %]...
 [% END %]
 
-[% msg.install_fk_invalid = BLOCK %]
+[% BLOCK msg_install_fk_invalid %]
   ERROR: There are invalid values for the [% column | html %] column in the [% table | html %]
   table. (These values do not exist in the [% foreign_table | html %] table, in the
   [% foreign_column | html %] column.)
@@ -703,44 +703,44 @@
   [%+ values.join(', ') | html %]
 [% END %]
 
-[% msg.install_fk_invalid_fixed = BLOCK %]
+[% BLOCK msg_install_fk_invalid_fixed %]
   WARNING: There were invalid values in [% table | html %].[% column | html %]
   that have been [% IF action == 'delete' %]deleted[% ELSE %]set to NULL[% END %]:
   [%+ values.join(', ') | html %]
 [% END %]
 
-[% msg.install_group_create = BLOCK %]
+[% BLOCK msg_install_group_create %]
   Creating group [% name | html %]...
 [% END %]
 
-[% msg.install_setting_new = BLOCK %]
+[% BLOCK msg_install_setting_new %]
   Adding a new user setting called '[% name | html %]'
 [% END %]
 
-[% msg.install_table_drop = BLOCK %]
+[% BLOCK msg_install_table_drop %]
   Dropping the '[% name | html %]' table...
 [% END %]
 
-[% msg.install_table_rename = BLOCK %]
+[% BLOCK msg_install_table_rename %]
   Renaming the '[% old | html %]' table to '[% new | html %]'...
 [% END %]
 
-[% msg.install_urlbase_default = BLOCK %]
+[% BLOCK msg_install_urlbase_default %]
   Now that you have installed [% terms.Bugzilla %], you should visit the
   'Parameters' page (linked in the footer of the Administrator
   account) to ensure it is set up as you wish - this includes
   setting the 'urlbase' option to the correct URL.
 [% END %]
 
-[% msg.install_reset_password = BLOCK %]
+[% BLOCK msg_install_reset_password %]
   Enter a new password for [% user.login | html %]:
 [% END %]
 
-[% msg.install_reset_password_done = BLOCK %]
+[% BLOCK msg_install_reset_password_done %]
   New password set.
 [% END %]
 
-[% msg.install_webservergroup_empty = BLOCK %]
+[% BLOCK msg_install_webservergroup_empty %]
   ****************************************************************************
   WARNING! You have not entered a value for the "webservergroup" parameter
   in localconfig. This means that certain files and directories which need
@@ -755,7 +755,7 @@
   ****************************************************************************
 [% END %]
 
-[% msg.install_webservergroup_not_in = BLOCK %]
+[% BLOCK msg_install_webservergroup_not_in %]
   Warning: you have entered a value for the "webservergroup" parameter in
   localconfig, but you are not either a) running this script as [% constants.ROOT_USER | html %];
   or b) a member of this group. This can cause permissions problems and
@@ -764,7 +764,7 @@
   member of the group, or remove the value of the "webservergroup" parameter.
 [% END %]
 
-[% msg.install_webservergroup_windows = BLOCK %]
+[% BLOCK msg_install_webservergroup_windows %]
   Warning: You have set webservergroup in [% constants.bz_locations.localconfig | html %]
   Please understand that this does not bring you any security when
   running under Windows.
@@ -772,14 +772,14 @@
   suitable for your system. Avoid unnecessary write access.
 [% END %]
 
-[% msg.product_created = BLOCK %]
+[% BLOCK msg_product_created %]
   [% title = "Product Created" %]
   The product <em>[% product.name | html %]</em> has been created. You will need to
   <a href="editcomponents.cgi?action=add&product=[% product.name FILTER url_quote %]">
   add at least one component</a> before anyone can enter [% terms.bugs %] against this product.
 [% END %]
 
-[% msg.product_deleted = BLOCK %]
+[% BLOCK msg_product_deleted %]
   [% title = "Product Deleted" %]
   The product <em>[% product.name | html %]</em> and all its versions,
   components, milestones and group controls have been deleted.
@@ -789,51 +789,51 @@
   [% END %]
 [% END %]
 
-[% msg.product_invalid = BLOCK %]
+[% BLOCK msg_product_invalid %]
   [% title = "$terms.Bugzilla Component Descriptions" %]
   The product <em>[% product | html %]</em> does not exist
   or you don't have access to it. The following is a list of the
   products you can choose from.
 [% END %]
 
-[% msg.remaining_time_zeroed = BLOCK %]
+[% BLOCK msg_remaining_time_zeroed %]
   The [% field_descs.remaining_time | html %] field has been
   set to zero automatically as part of closing this [% terms.bug %]
   or moving it from one closed state to another.
 [% END %]
 
-[% msg.sanitycheck = BLOCK %]
+[% BLOCK msg_sanitycheck %]
   [%# We use this way to call sanitycheck-specific messages so that
     # we can still use get_text(). %]
   [% PROCESS "admin/sanitycheck/messages.html.tmpl" %]
 [% END %]
 
-[% msg.series_all_open = BLOCK %]
+[% BLOCK msg_series_all_open %]
   All Open
 [% END %]
 
-[% msg.series_all_closed = BLOCK %]
+[% BLOCK msg_series_all_closed %]
   All Closed
 [% END %]
 
-[% msg.series_subcategory = BLOCK %]
+[% BLOCK msg_series_subcategory %]
   -All-
 [% END %]
 
-[% msg.sudo_started = BLOCK %]
+[% BLOCK msg_sudo_started %]
   [% title = "Sudo session started" %]
     The sudo session has been started.  For the next 6 hours, or until you
     end the session, everything you do you do as the user you are
     impersonating ([% target | html %]).
 [% END %]
 
-[% msg.sudo_ended = BLOCK %]
+[% BLOCK msg_sudo_ended %]
   [% title = "Sudo session complete" %]
     The sudo session has been ended.  From this point forward, everything you
     do you do as yourself.
 [% END %]
 
-[% msg.series_created = BLOCK %]
+[% BLOCK msg_series_created %]
   [% title = "Series Created" %]
     The series <em>[% series.category | html %] /
     [%+ series.subcategory | html %] /
@@ -846,7 +846,7 @@
     <a href="query.cgi?format=create-series">create another series</a>.
 [% END %]
 
-[% msg.shutdown = BLOCK %]
+[% BLOCK msg_shutdown %]
   [% title = "$terms.Bugzilla is Down" %]
   [% Param("shutdownhtml") %]
   [% IF userid %]
@@ -855,56 +855,56 @@
   [% END %]
 [% END %]
 
-[% msg.term = BLOCK %]
+[% BLOCK msg_term %]
   [% terms.$term | html %]
 [% END %]
 
-[% msg.unexpected_flag_types = BLOCK %]
+[% BLOCK msg_unexpected_flag_types %]
   Some flags could not be set. Please check your changes.
 [% END %]
 
-[% msg.user_match_failed = BLOCK %]
+[% BLOCK msg_user_match_failed %]
   You entered a username that did not match any known
   [% terms.Bugzilla %] users, so we have instead left
   the [% match_field | html %] field blank.
 [% END %]
 
-[% msg.user_match_multiple = BLOCK %]
+[% BLOCK msg_user_match_multiple %]
   You entered a username that matched more than one
   user, so we have instead left the [% match_field | html %]
   field blank.
 [% END %]
 
-[% msg.version_created = BLOCK %]
+[% BLOCK msg_version_created %]
   [% title = "Version Created" %]
   The version <em>[% version.name | html %]</em> of product
   <em>[% product.name | html %]</em> has been created.
 [% END %]
 
-[% msg.version_deleted = BLOCK %]
+[% BLOCK msg_version_deleted %]
   [% title = "Version Deleted" %]
   The version <em>[% version.name | html %]</em> of product
   <em>[% product.name | html %]</em> has been deleted.
 [% END %]
 
-[% msg.version_updated = BLOCK %]
-  [% title = "Version Updated" %]
+[% BLOCK msg_version_updated %]
+  [% SET title = "Version Updated" IF 1 %]
   Version renamed as <em>[% version.name | html %]</em>.
 [% END %]
 
-[% msg.workflow_updated = BLOCK %]
+[% BLOCK msg_workflow_updated %]
   The workflow has been updated.
 [% END %]
 
-[% msg.cc_list_restricted = BLOCK %]
+[% BLOCK msg_cc_list_restricted %]
   CC list restricted to group <em>[% cc_restrict_group | html %]</em>,
   <em>[% restricted_cc.join(', ') | html %]</em> removed.
 [% END %]
 
-[% message_tag = message %]
+[% message_tag = 'msg_' _ message %]
 [% message = BLOCK %]
-  [% IF msg.${message_tag} %]
-    [% msg.${message_tag} %]
+  [% IF 'msg_' _ message_tag %]
+    [% message_tag FILTER process %]
   [% ELSE %]
     [%# Give sensible error if error functions are used incorrectly. %]
     You are using [% terms.Bugzilla %]'s messaging functions incorrectly. You
