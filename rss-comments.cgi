@@ -7,6 +7,7 @@ use strict;
 use lib qw(. lib);
 
 use Bugzilla;
+use Bugzilla::User;
 use Bugzilla::Bug;
 use Bugzilla::Constants;
 use Bugzilla::Error;
@@ -27,6 +28,8 @@ $vars->{selfurl} = $cgi->canonicalise_query();
 $vars->{buginfo} = $cgi->param('buginfo');
 
 our %FORMATS = qw(rss 1 showteamwork 1);
+
+my $who = $cgi->param('who');
 
 my $limit;
 my $format = $cgi->param('ctype');
@@ -61,6 +64,18 @@ my $tz = strftime('%z', localtime);
 # Output feed build date BEFORE reading items
 ($vars->{builddate}) = $dbh->selectrow_array("SELECT DATE_FORMAT(NOW(),'%a, %d %b %Y %H:%i:%s $tz')");
 
+if ($who)
+{
+    if ($who =~ /^(\d+)$/so)
+    {
+        $who = Bugzilla::User->new($1);
+    }
+    else
+    {
+        $who = Bugzilla::User->new({ name => $who });
+    }
+}
+
 # Monstrous query
 # first query gets new bugs' descriptions, and any comments added (not including duplicate
 # information).
@@ -82,7 +97,7 @@ my $bugsquery = "
  LEFT JOIN profiles p ON p.userid=l.who
  LEFT JOIN products pr ON pr.id=b.product_id
  LEFT JOIN components cm ON cm.id=b.component_id
- WHERE l.isprivate=0
+ WHERE l.isprivate=0 ".($who ? " AND l.who=".$who->id : "")."
  ORDER BY l.bug_when DESC
  LIMIT $limit)
 
@@ -105,7 +120,7 @@ my $bugsquery = "
  LEFT JOIN components cm ON cm.id=b.component_id
  LEFT JOIN fielddefs f ON f.id=a.fieldid
  LEFT JOIN attachments at ON at.attach_id=a.attach_id
- WHERE (at.isprivate IS NULL OR at.isprivate=0)
+ WHERE (at.isprivate IS NULL OR at.isprivate=0) ".($who ? " AND a.who=".$who->id : "")."
  ORDER BY a.bug_when DESC, f.name ASC
  LIMIT $limit)
 
