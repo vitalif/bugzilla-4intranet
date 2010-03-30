@@ -292,7 +292,7 @@ sub init {
         if ($params->param('bugidtype') && $params->param('bugidtype') eq 'exclude') {
             $type = "nowords";
         }
-        push(@specialchart, ["bug_id", $type, join(',', $params->param('bug_id'))]);
+        push(@specialchart, ["bug_id", $type, join(', ', $params->param('bug_id'))]);
     }
 
     # If the user has selected all of either status or resolution, change to
@@ -336,7 +336,7 @@ sub init {
     foreach my $field ($params->param()) {
         if (lsearch(\@legal_fields, $field) != -1) {
             push(@specialchart, [$field, "anyexact",
-                                 join(',', $params->param($field))]);
+                                 join(', ', $params->param($field))]);
         }
     }
 
