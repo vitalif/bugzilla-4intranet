@@ -123,7 +123,7 @@
     [% ELSE %]
       [%+ v = desc_item.value %]
       [% IF multi_types.${desc_item.type} %]
-        [% v = v.replace(',', ', ') %]
+        [% v = v.replace('\s*,\s*', ', ') %]
       [% END %]
       [%+ v | html %]
     [% END %]
