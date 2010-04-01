@@ -131,7 +131,11 @@ sub MessageToMTA {
 
     my $from = $email->header('From');
     my $from_obj = $from ? [Email::Address->parse($from)]->[0] : undef;
-    $from_obj and $email->header_set('From', encode('MIME-Header', $from_obj->name) . ' <' . $from_obj->address . '>');
+    if ($from_obj && $from_obj->name)
+    {
+        $from = encode('MIME-Header', $from_obj->name) . ' <' . $from_obj->address . '>';
+        $email->header_set('From', $from);
+    }
 
     my ($hostname, @args);
     if ($method eq "Sendmail") {
