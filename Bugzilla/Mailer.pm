@@ -130,6 +130,8 @@ sub MessageToMTA {
     }
 
     my $from = $email->header('From');
+    my $from_obj = $from ? [Email::Address->parse($from)]->[0] : undef;
+    $from_obj and $email->header_set('From', encode('MIME-Header', $from_obj->name) . ' <' . $from_obj->address . '>');
 
     my ($hostname, @args);
     if ($method eq "Sendmail") {
@@ -138,15 +140,9 @@ sub MessageToMTA {
         }
         push @args, "-i";
         # We want to make sure that we pass *only* an email address.
-        if ($from) {
-            my ($email_obj) = Email::Address->parse($from);
-            if ($email_obj) {
-                my $from_email = $email_obj->address;
-                push(@args, "-f$from_email") if $from_email;
-            }
-        }
-        push(@args, "-ODeliveryMode=deferred")
-            if !Bugzilla->params->{"sendmailnow"};
+        push @args, "-f" . $from_obj->address if $from_obj;
+        push @args, "-ODeliveryMode=deferred"
+            unless Bugzilla->params->{"sendmailnow"};
     }
     else {
         # Sendmail adds a Date: header also, but others may not.
