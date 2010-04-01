@@ -28,6 +28,9 @@
   margin-right: 2em;
 }
 
+.search_description .search_field { font-weight: bold; }
+.search_description .search_value { font-size: 85%; }
+
 .bz_id_column {
 }
 
