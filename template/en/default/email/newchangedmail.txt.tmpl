@@ -19,7 +19,7 @@
   #%]
 
 [% PROCESS "global/variables.none.tmpl" %]
-From: [% Param('mailfrom') %]
+From: [% IF diffarray AND diffarray.size>0 AND diffarray.0.name %]"[% diffarray.0.name %]" <[% Param('mailfrom') %]>[% ELSIF new_comments AND new_comments.size>0 %]"[% new_comments.0.author.name %]" <[% Param('mailfrom') %]>[% ELSE %][% Param('mailfrom') %][% END %]
 To: [% to %]
 Subject: [% (isnew ? '' : 'Re: ') _ '[' _ terms.Bug _ ' ' _ bugid _ '] ' _ (severity == 'blocker' ? '[BLOCKER] ' : '') _ (severity == 'critical' ? '[CRITICAL] ' : '') _ summary %]
 X-Bugzilla-Reason: [% reasonsheader %]
