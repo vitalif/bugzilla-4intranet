@@ -108,16 +108,16 @@
 <ul class="search_description">
 [% FOREACH desc_item = search_description %]
   <li>
-    <strong>[% field_descs.${desc_item.field} FILTER html %]:</strong>
+    <span class="search_field">[% field_descs.${desc_item.field} FILTER html %]:</span>
     [% IF shown_types.${desc_item.type} || debug %]
       ([% search_descs.${desc_item.type} FILTER html %])
     [% END %]
     [% IF desc_item.field == 'bug_status' %]
-      <span style="font-size: 85%">[% FOREACH status IN desc_item.value.split(',') %]
+      <span class="search_value">[% FOREACH status IN desc_item.value.split(',') %]
         [%+ get_status(status) FILTER html %][% ', ' UNLESS loop.last %]
       [% END %]</span>
     [% ELSIF desc_item.field == 'resolution' %]
-      <span style="font-size: 85%">[% FOREACH resolution IN desc_item.value.split(',') %]
+      <span class="search_value">[% FOREACH resolution IN desc_item.value.split(',') %]
         [%+ get_resolution(resolution) FILTER html %][% ', ' UNLESS loop.last %]
       [% END %]</span>
     [% ELSE %]
@@ -125,7 +125,7 @@
       [% IF multi_types.${desc_item.type} %]
         [% v = v.replace('\s*,\s*', ', ') %]
       [% END %]
-      <span style="font-size: 85%">[%+ v | html %]</span>
+      <span class="search_value">[%+ v | html %]</span>
     [% END %]
     [% IF debug %]
       (<code>[% desc_item.term FILTER html %]</code>)
