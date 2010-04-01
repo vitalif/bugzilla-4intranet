@@ -149,14 +149,6 @@ sub MessageToMTA {
             if !Bugzilla->params->{"sendmailnow"};
     }
     else {
-        # Sendmail will automatically append our hostname to the From
-        # address, but other mailers won't.
-        my $urlbase = Bugzilla->params->{'urlbase'};
-        $urlbase =~ m|//([^:/]+)[:/]?|;
-        $hostname = $1;
-        $from .= "\@$hostname" if $from !~ /@/;
-        $email->header_set('From', $from);
-        
         # Sendmail adds a Date: header also, but others may not.
         if (!defined $email->header('Date')) {
             $email->header_set('Date', time2str("%a, %e %b %Y %T %z", time()));
