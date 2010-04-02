@@ -130,12 +130,6 @@ sub MessageToMTA {
     }
 
     my $from = $email->header('From');
-    my $from_obj = $from ? [Email::Address->parse($from)]->[0] : undef;
-    if ($from_obj && $from_obj->name)
-    {
-        $from = encode('MIME-Header', $from_obj->name) . ' <' . $from_obj->address . '>';
-        $email->header_set('From', $from);
-    }
 
     my ($hostname, @args);
     if ($method eq "Sendmail") {
@@ -144,11 +138,25 @@ sub MessageToMTA {
         }
         push @args, "-i";
         # We want to make sure that we pass *only* an email address.
-        push @args, "-f" . $from_obj->address if $from_obj;
-        push @args, "-ODeliveryMode=deferred"
-            unless Bugzilla->params->{"sendmailnow"};
+        if ($from) {
+            my ($email_obj) = Email::Address->parse($from);
+            if ($email_obj) {
+                my $from_email = $email_obj->address;
+                push(@args, "-f$from_email") if $from_email;
+            }
+        }
+        push(@args, "-ODeliveryMode=deferred")
+            if !Bugzilla->params->{"sendmailnow"};
     }
     else {
+        # Sendmail will automatically append our hostname to the From
+        # address, but other mailers won't.
+        my $urlbase = Bugzilla->params->{'urlbase'};
+        $urlbase =~ m|//([^:/]+)[:/]?|;
+        $hostname = $1;
+        $from .= "\@$hostname" if $from !~ /@/;
+        $email->header_set('From', $from);
+        
         # Sendmail adds a Date: header also, but others may not.
         if (!defined $email->header('Date')) {
             $email->header_set('Date', time2str("%a, %e %b %Y %T %z", time()));
