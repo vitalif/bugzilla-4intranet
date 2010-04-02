@@ -67,7 +67,7 @@
            'lxr_root' => '',
            'lxr_url' => '',
            'mail_delivery_method' => 'Sendmail',
-           'mailfrom' => 'bugzilla-daemon@custis.ru',
+           'mailfrom' => 'bugzilla-daemon',
            'maintainer' => 'vfilippov@custis.ru',
            'makeproductgroups' => '1',
            'maxattachmentsize' => '5000',
