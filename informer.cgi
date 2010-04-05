@@ -29,14 +29,17 @@ use Bugzilla::Constants;
 
 my $cgi = Bugzilla->cgi;
 my $id = $cgi->param('id');
-my $user = Bugzilla->user;
+
+# Ugly hack :(
+Bugzilla->params->{requirelogin} = 0;
+my $user = Bugzilla->login(LOGIN_NORMAL);
 my $bug = Bugzilla::Bug->new($id);
 my $str;
 my $format = lc $cgi->param('format') || 'short';
-if (!$user || !$bug->{error} && !$user->can_see_bug($bug->bug_id))
+if (!$user || !$bug->{error} && !$user->can_see_bug($bug))
 {
     # Access denied
-    $str = "Bug$id: нет доступа";
+    $str = "Bug $id: нет доступа";
     $bug = undef;
 }
 else
