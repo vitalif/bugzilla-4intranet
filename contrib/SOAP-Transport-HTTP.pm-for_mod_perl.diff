@@ -1,0 +1,46 @@
+--- HTTP.pm	2010-03-18 21:29:10.000000000 +0300
++++ HTTP.pm1	2010-04-17 01:52:42.000000000 +0400
+@@ -500,6 +500,13 @@ sub product_tokens {
+ 
+ # ======================================================================
+ 
++package SOAP::Transport::HTTP::CGIhack;
++use CGI;
++use vars qw(@ISA);
++@ISA = qw(CGI);
++
++sub init {}
++
+ package SOAP::Transport::HTTP::CGI;
+ 
+ use vars qw(@ISA);
+@@ -533,13 +540,15 @@ sub handle {
+     my $chunked = (defined $ENV{'HTTP_TRANSFER_ENCODING'}
+         && $ENV{'HTTP_TRANSFER_ENCODING'} =~ /^chunked.*$/) || 0;
+ 
++    my $r = SOAP::Transport::HTTP::CGIhack->new;
+ 
+     my $content = q{};
+ 
+     if ($chunked) {
+         my $buffer;
+-        binmode(STDIN);
+-        while ( read( STDIN, my $buffer, 1024 ) ) {
++#        binmode(STDIN);
++#        while ( read( STDIN, my $buffer, 1024 ) ) {
++        while ( $r->read_from_client( \ (my $buffer), 1024 ) ) {
+             $content .= $buffer;
+         }
+         $length = length($content);
+@@ -560,8 +569,9 @@ sub handle {
+         #my $content = q{};
+         if ( !$chunked ) {
+             my $buffer;
+-            binmode(STDIN);
+-            while ( sysread( STDIN, $buffer, $length ) ) {
++#            binmode(STDIN);
++            while ( $r->read_from_client( \$buffer, $length ) ) {
++#            while ( sysread( STDIN, $buffer, $length ) ) {
+                 $content .= $buffer;
+                 last if ( length($content) >= $length );
+             }
