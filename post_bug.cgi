@@ -184,6 +184,9 @@ foreach my $field (@multi_selects) {
     $bug_params{$field->name} = [$cgi->param($field->name)];
 }
 
+# CustIS Bug 63152 - Duplicated bugs on attachment create errors
+Bugzilla->dbh->bz_start_transaction;
+
 my $bug = Bugzilla::Bug->create(\%bug_params);
 
 # Get the bug ID back.
@@ -271,6 +274,9 @@ if ($@) {
     $vars->{'message'} = 'flag_creation_failed';
     $vars->{'flag_creation_error'} = $@;
 }
+
+# CustIS Bug 63152 - Duplicated bugs on attachment create errors
+Bugzilla->dbh->bz_commit_transaction;
 
 # Email everyone the details of the new bug
 $vars->{commentsilent} = $cgi->param('commentsilent');
