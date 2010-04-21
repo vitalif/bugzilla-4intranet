@@ -370,17 +370,22 @@ sub splitString
     my @quoteparts;
     my @parts;
 
-    my @quoteparts = split(/\"/, $string, -1);
+    my @quoteparts = split /\"/, $string, -1;
     my @parts;
     for my $i (0 .. $#quoteparts)
     {
         if ($i % 2)
         {
-            push @parts, '"'.$quoteparts[$i].'"';
+            $parts[$#parts] .= '"'.$quoteparts[$i].'"'
         }
         else
         {
-            push @parts, split /\s+/, $quoteparts[$i], -1;
+            my @p = split /\s+/, $quoteparts[$i], -1;
+            my $c = 0;
+            $p[0] or $c = 1, shift @p;
+            @parts && $parts[$#parts] or $c = 1, pop @parts;
+            $c or $parts[$#parts] .= shift @p;
+            push @parts, @p;
         }
     }
 
