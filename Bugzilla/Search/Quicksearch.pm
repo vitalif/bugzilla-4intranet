@@ -375,7 +375,7 @@ sub splitString {
     my $i = 0;
 
     # Now split on quote sign; be tolerant about unclosed quotes
-    @quoteparts = split(/"/, $string);
+    @quoteparts = split(/\"/, $string);
     foreach my $part (@quoteparts) {
         # After every odd quote, quote special chars
         $part = url_quote($part) if $i++ % 2;
@@ -392,7 +392,7 @@ sub splitString {
         # "+" must be quoted.
         s/(?<!^)\+/%2B/g;
         # Remove quotes
-        s/"//g;
+        s/\"//g;
     }
     return @parts;
 }
@@ -445,6 +445,7 @@ sub negateComparisonType {
 # Add a boolean chart
 sub addChart {
     my ($field, $comparisonType, $value, $negate) = @_;
+    warn "$field $comparisonType $value";
 
     $negate && ($comparisonType = negateComparisonType($comparisonType));
     makeChart("$chart-$and-$or", $field, $comparisonType, $value);
