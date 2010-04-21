@@ -174,32 +174,55 @@ sub quicksearch {
         my (%states, %resolutions);
 
         foreach (@$legal_statuses) {
-            push @closedStates, $_ unless is_open_state($_);
+            push(@closedStates, $_) unless is_open_state($_);
         }
-
-        if ($words[0] eq 'OPEN')
-        {
+        foreach (@openStates) { $states{$_} = 1 }
+        if ($words[0] eq 'OPEN') {
             shift @words;
-            %states = map { $_ => 1 } @openStates;
         }
-        elsif ($words[0] =~ /^[A-Z]+(,[A-Z]+)*$/)
-        {
-            # e.g. NEW,ASSI,REOP,FIX
-            my (%st, %res);
-            if (matchPrefixes(\%st, \%res, [split(/,/, $words[0])],
-                    $legal_statuses, $legal_resolutions))
-            {
+        elsif ($words[0] =~ /^\+[A-Z]+(,[A-Z]+)*$/) {
+            # e.g. +DUP,FIX
+            if (matchPrefixes(\%states,
+                              \%resolutions,
+                              [split(/,/, substr($words[0], 1))],
+                              \@closedStates,
+                              $legal_resolutions)) {
                 shift @words;
-                %states = %st;
-                %resolutions = %res;
+                # Allowing additional resolutions means we need to keep
+                # the "no resolution" resolution.
+                $resolutions{'---'} = 1;
+            }
+            else {
+                # Carry on if no match found.
             }
         }
-        else
-        {
+        elsif ($words[0] =~ /^[A-Z]+(,[A-Z]+)*$/) {
+            # e.g. NEW,ASSI,REOP,FIX
+            undef %states;
+            if (matchPrefixes(\%states,
+                              \%resolutions,
+                              [split(/,/, $words[0])],
+                              $legal_statuses,
+                              $legal_resolutions)) {
+                shift @words;
+            }
+            else {
+                # Carry on if no match found
+                foreach (@openStates) { $states{$_} = 1 }
+            }
+        }
+        else {
             # Default: search for ALL BUGS! (Vitaliy Filippov <vfilippov@custis.ru> 2009-01-30)
-            %states = map { $_ => 1 } @$legal_statuses;
+            foreach (@$legal_statuses) { $states{$_} = 1 }
         }
 
+        # If we have wanted resolutions, allow closed states
+        if (keys(%resolutions)) {
+            foreach (@closedStates) { $states{$_} = 1 }
+        }
+
+        $cgi->param('bug_status', keys(%states));
+        $cgi->param('resolution', keys(%resolutions));
         my $content = '';
 
         # Loop over all main-level QuickSearch words.
@@ -252,18 +275,7 @@ sub quicksearch {
                         # generic field1,field2,field3:value1,value2 notation
                         my @fields = split(/,/, $1);
                         my @values = split(/,/, $2);
-                        foreach my $field (@fields)
-                        {
-                            if ($field eq 'status')
-                            {
-                                my (%st, %res);
-                                if (matchPrefixes(\%st, \%res, \@values, $legal_statuses, $legal_resolutions))
-                                {
-                                    %states = %st;
-                                    %resolutions = %res;
-                                }
-                                last;
-                            }
+                        foreach my $field (@fields) {
                             # Skip and record any unknown fields
                             if (!defined(MAPPINGS->{$field})) {
                                 push(@unknownFields, $field);
@@ -324,14 +336,6 @@ sub quicksearch {
         } # foreach (@words)
         $cgi->param('content', $content);
 
-        # If we have wanted resolutions, allow closed states
-        if (keys %resolutions) {
-            foreach (@closedStates) { $states{$_} = 1 }
-        }
-
-        $cgi->param('bug_status', keys(%states));
-        $cgi->param('resolution', keys(%resolutions));
-
         # Inform user about any unknown fields
         if (scalar(@unknownFields)) {
             ThrowUserError("quicksearch_unknown_field",
@@ -371,7 +375,7 @@ sub splitString {
     my $i = 0;
 
     # Now split on quote sign; be tolerant about unclosed quotes
-    @quoteparts = split(/\"/, $string, -1);
+    @quoteparts = split(/"/, $string);
     foreach my $part (@quoteparts) {
         # After every odd quote, quote special chars
         $part = url_quote($part) if $i++ % 2;
@@ -381,14 +385,14 @@ sub splitString {
 
     # Now split on unescaped whitespace
     @parts = split(/\s+/, $string);
-    foreach (@parts)
-    {
-        if (/^".*"$/s)
-        {
-            # Decode previously encoded strings
-            $_ = url_decode($_);
-            Encode::_utf8_on($_);
-        }
+    foreach (@parts) {
+        # Protect plus signs from becoming a blank.
+        # If "+" appears as the first character, leave it alone
+        # as it has a special meaning. Strings which start with
+        # "+" must be quoted.
+        s/(?<!^)\+/%2B/g;
+        # Remove quotes
+        s/"//g;
     }
     return @parts;
 }
