@@ -26,7 +26,7 @@ use Bugzilla::WebService::Constants;
 # Use an eval here so that runtests.pl accepts this script even if SOAP-Lite
 # is not installed.
 eval { require Bugzilla::WebService::Server::XMLRPC; };
-$@ && ThrowCodeError('soap_not_installed');
+$@ && ThrowCodeError('soap_not_installed', { error => $@ });
 
 Bugzilla->usage_mode(USAGE_MODE_WEBSERVICE);
 

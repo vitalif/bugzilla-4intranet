@@ -21,9 +21,12 @@
 package Bugzilla::WebService::Server::XMLRPC;
 
 use strict;
+use SOAP::Transport::HTTP;
 use XMLRPC::Transport::HTTP;
 use Bugzilla::WebService::Server;
-our @ISA = qw(XMLRPC::Transport::HTTP::CGI Bugzilla::WebService::Server);
+
+our @ISA = qw(Bugzilla::WebService::Server);
+push @ISA, 'XMLRPC::Transport::HTTP::' . ($ENV{MOD_PERL} ? 'Apache' : 'CGI');
 
 use Bugzilla::WebService::Constants;
 
