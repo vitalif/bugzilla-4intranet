@@ -367,8 +367,6 @@ sub quicksearch {
 sub splitString
 {
     my $string = shift;
-    my @quoteparts;
-    my @parts;
 
     my @quoteparts = split /\"/, $string, -1;
     my @parts;
