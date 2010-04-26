@@ -45,7 +45,7 @@ function addfield()
 <table>
 <tbody>
 <tr><td>Select XLS/XLSX file to import:</td><td><input type="file" name="xls" /></td></tr>
-<tr><td>Enter sheet name to process<span style="color:red">*</span>:</td><td><input type="text" name="listname" value="[% listname FILTER html %]" /></td></tr>
+<tr><td>Enter sheet name to process<span style="color:red">*</span>:</td><td><input type="text" name="listname" value="[% listname | html %]" /></td></tr>
 <tr><td>Maximum bug duplicate age:</td><td><input type="text" size="5" name="bugdays" value="[% bugdays | html %]" /> days</td></tr>
 </tbody>
 <tbody id="flds">
@@ -127,7 +127,7 @@ function fieldrename(field)
 [% FOR field = fields %]
     <td style="white-space: nowrap">
         [% IF NOT name_tr.${field} %]
-        <p id="tp_[% field | html %]"><a href="javascript:void fieldrename('[% field.replace("['\"]", '\\$&') | html %]')">[% IF import_field_descs.${field} %][% import_field_descs.${field} | html %][% ELSE %]<span style="color: red">[% field %]</span>[% END %]</a></p>
+        <p id="tp_[% field | html %]"><a href="javascript:void fieldrename('[% field.replace("['\"]", '\\$&') | html %]')">[% IF import_field_descs.${field} %][% import_field_descs.${field} | html %][% ELSE %]<span style="color: red">[% field | html %]</span>[% END %]</a></p>
         [% END %]
         <select id="t_[% field | html %]" name="t_[% field | html %]" style="[% IF NOT name_tr.${field} %]display:none; [% END %]width: 90px">
             <option value="[% field | html %]">Don&apos;t map: [% field | html %]</option>
@@ -145,9 +145,9 @@ function fieldrename(field)
     [% FOR field = fields %]
     [% SET v = bug.${field} | html %]
     [% IF v.match("\n") %]
-    <td><textarea style="font-family: monospace; font-size: 13px" rows="2" cols="40" name="b_[% field | html %]_[% bug.num | html %]">[% v %]</textarea></td>
+    <td><textarea style="font-family: monospace; font-size: 13px" rows="2" cols="40" name="b_[% field | html %]_[% bug.num | html %]">[% v | html %]</textarea></td>
     [% ELSE %]
-    <td><input type="text" size="[% lens.${field} | html %]" name="b_[% field | html %]_[% bug.num | html %]" value="[% v %]" /></td>
+    <td><input type="text" size="[% lens.${field} | html %]" name="b_[% field | html %]_[% bug.num | html %]" value="[% v | html %]" /></td>
     [% END %]
     [% END %]
 </tr>
