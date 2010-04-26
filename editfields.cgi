@@ -31,7 +31,7 @@ my $vars = {};
 
 # Make sure the user is logged in and is an administrator.
 my $user = Bugzilla->login(LOGIN_REQUIRED);
-$user->in_group('admin')
+$user->in_group('editfields')
   || ThrowUserError('auth_failure', {group  => 'admin',
                                      action => 'edit',
                                      object => 'custom_fields'});
