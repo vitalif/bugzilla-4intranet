@@ -87,7 +87,7 @@
 
     <td class="admin_links">
       <dl>
-        [% class = user.in_group('admin') ? "" : "forbidden" %]
+        [% class = user.in_group('editfields') ? "" : "forbidden" %]
         <dt class="[% class %]"><a href="editfields.cgi">Custom Fields</a></dt>
         <dd class="[% class %]">[% terms.Bugzilla %] lets you define fields which are
         not implemented by default, based on your local and specific requirements.

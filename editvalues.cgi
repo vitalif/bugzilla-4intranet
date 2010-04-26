@@ -60,7 +60,7 @@ $vars->{'doc_section'} = 'edit-values.html';
 
 print $cgi->header();
 
-Bugzilla->user->in_group('admin') ||
+Bugzilla->user->in_group('editfields') ||
     ThrowUserError('auth_failure', {group  => "admin",
                                     action => "edit",
                                     object => "field_values"});
