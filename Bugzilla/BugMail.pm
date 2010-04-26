@@ -594,20 +594,16 @@ sub sendMail
             ($diff->{'fieldname'} eq 'estimated_time' ||
              $diff->{'fieldname'} eq 'remaining_time' ||
              $diff->{'fieldname'} eq 'work_time' ||
-             $diff->{'fieldname'} eq 'deadline'))
+             $diff->{'fieldname'} eq 'deadline') &&
+            $user->is_timetracker &&
+            (!$diff->{'isprivate'} || $user->is_insider))
         {
-            $add_diff = 1 if $user->is_timetracker;
-        } elsif ($diff->{'isprivate'}
-                 && !$user->is_insider)
-        {
-            $add_diff = 0;
-        } else {
             $add_diff = 1;
         }
 
         if ($add_diff) {
             if (exists($diff->{'header'}) &&
-             ($diffheader ne $diff->{'header'})) {
+                ($diffheader ne $diff->{'header'})) {
                 $diffheader = $diff->{'header'};
                 $difftext .= $diffheader;
             }
