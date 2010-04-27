@@ -28,6 +28,7 @@ use strict;
 use lib qw(. lib);
 
 use Bugzilla;
+use Bugzilla::Hook;
 use Bugzilla::Constants;
 use Bugzilla::Config qw(:admin);
 use Bugzilla::Util;
@@ -219,6 +220,9 @@ if ($action eq 'new') {
                   SELECT ?, products.id, 0, ?, ?, 0 FROM products',
                   undef, ($group->id, CONTROLMAPSHOWN, CONTROLMAPNA));
     }
+
+    Bugzilla::Hook::process('editgroups-post_create', { group => $group });
+
     delete_token($token);
 
     $vars->{'message'} = 'group_created';
@@ -398,6 +402,8 @@ if ($action eq 'delete') {
     $dbh->do('DELETE FROM groups WHERE id = ?',
               undef, $gid);
 
+    Bugzilla::Hook::process('editgroups-post_delete', { name => $name });
+
     delete_token($token);
 
     $vars->{'message'} = 'group_deleted';
@@ -416,6 +422,9 @@ if ($action eq 'delete') {
 if ($action eq 'postchanges') {
     check_token_data($token, 'edit_group');
     my $changes = doGroupChanges();
+
+    Bugzilla::Hook::process('editgroups-post_edit', {});
+
     delete_token($token);
 
     my $group = new Bugzilla::Group($cgi->param('group_id'));
@@ -468,6 +477,9 @@ if ($action eq 'remove_regexp') {
 
     $vars->{'users'}  = \@deleted;
     $vars->{'regexp'} = $regexp;
+
+    Bugzilla::Hook::process('editgroups-post_remove_regexp', { deleted => \@deleted });
+
     delete_token($token);
 
     $vars->{'message'} = 'group_membership_removed';
@@ -599,3 +611,4 @@ sub _do_remove {
         push(@{$changes->{$field}}, $remove->name);
     }
 }
+

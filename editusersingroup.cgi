@@ -5,6 +5,7 @@ use strict;
 use lib qw(. lib);
 
 use Bugzilla;
+use Bugzilla::Hook;
 use Bugzilla::Constants;
 use Bugzilla::User;
 use Bugzilla::Util;
@@ -77,6 +78,7 @@ my @users = split /(\s+,?\s*)/, $cgi->param('addusers');
 
 if (@users)
 {
+    my @added;
     foreach my $user (@users)
     {
         my $userid = login_to_id($user);
@@ -86,8 +88,10 @@ if (@users)
                 "INSERT IGNORE INTO user_group_map SET user_id=?, group_id=?, grant_type=?, isbless=?",
                 undef, $userid, $group_id, GRANT_DIRECT, 0
             );
+            push @added, $userid;
         }
     }
+    Bugzilla::Hook::process('editusersingroup-post_add', { added_ids => \@added, group_id => $group_id });
     my $url = "editusersingroup.cgi?group=$group_id";
     print $cgi->redirect(-location => $url);
     exit;

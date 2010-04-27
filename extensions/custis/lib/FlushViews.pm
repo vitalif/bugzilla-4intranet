@@ -1,0 +1,46 @@
+#!/usr/bin/perl
+
+package FlushViews;
+
+use strict;
+use Bugzilla::CGI;
+use Bugzilla::User;
+use Bugzilla::Search;
+
+our @ISA = qw(Exporter);
+our @EXPORT = qw(refresh_views);
+
+# CustIS Bug 61728 - external SQL interface to Bugzilla's bugs and longdescs tables
+sub refresh_views
+{
+    my ($users) = @_;
+    my %u = ( map { $_ => 1 } @{ $users || [] } );
+    my $dbh = Bugzilla->dbh;
+    my $r = $dbh->selectcol_arrayref('SHOW TABLES LIKE \'view$%$bugs\'');
+    for (@$r)
+    {
+        my (undef, $user, $query) = split /\$/, $_, -1;
+        !%u || $u{$user} or next;
+        my ($userid) = $dbh->selectrow_array('SELECT userid FROM profiles WHERE login_name LIKE ? ORDER BY userid LIMIT 1', undef, $user.'@%');
+        $userid or next;
+        my $userobj = Bugzilla::User->new($userid) or next;
+        my $q = $query;
+        $q =~ tr/_/ /;
+        my $storedquery = Bugzilla::Search::LookupNamedQuery($q, undef, undef, undef, $userobj) or next;
+        my $cgi = new Bugzilla::CGI($storedquery);
+        my $search = new Bugzilla::Search(
+            params => $cgi,
+            fields => [ 'bug_id', grep { $_ ne 'bug_id' } split /[ ,]+/, $cgi->param('columnlist') ],
+            user   => $userobj,
+        ) or next;
+        my $sqlquery = $search->getSQL();
+        $sqlquery =~ s/ORDER\s+BY\s+`?bugs`?.`?bug_id`?//so;
+        $dbh->do('DROP VIEW IF EXISTS `view$'.$user.'$'.$query.'$bugs`');
+        $dbh->do('DROP VIEW IF EXISTS `view$'.$user.'$'.$query.'$longdescs`');
+        $dbh->do('CREATE SQL SECURITY DEFINER VIEW `view$'.$user.'$'.$query.'$bugs` AS '.$sqlquery);
+        $dbh->do('CREATE SQL SECURITY DEFINER VIEW `view$'.$user.'$'.$query.'$longdescs` AS SELECT l.bug_id, u.login_name, l.bug_when, l.thetext, l.work_time FROM longdescs l INNER JOIN `view$'.$user.'$'.$query.'$bugs` b ON b.bug_id=l.bug_id INNER JOIN profiles u ON u.userid=l.who'.($userobj->is_insider?'':' WHERE l.isprivate=0'));
+    }
+}
+
+1;
+__END__
