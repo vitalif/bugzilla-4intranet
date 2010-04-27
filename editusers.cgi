@@ -24,6 +24,7 @@ use strict;
 use lib qw(. lib);
 
 use Bugzilla;
+use Bugzilla::Hook;
 use Bugzilla::Constants;
 use Bugzilla::Util;
 use Bugzilla::Error;
@@ -343,6 +344,8 @@ if ($action eq 'search') {
     userDataToVars($otherUserID);
     delete_token($token);
 
+    Bugzilla::Hook::process('editusers-post_update', {});
+
     $vars->{'message'} = 'account_updated';
     $vars->{'changed_fields'} = [keys %$changes];
     $vars->{'groups_added_to'} = \@groupsAddedTo;
@@ -641,6 +644,8 @@ if ($action eq 'search') {
 
     $dbh->bz_commit_transaction();
     delete_token($token);
+
+    Bugzilla::Hook::process('editusers-post_delete', {});
 
     $vars->{'message'} = 'account_deleted';
     $vars->{'otheruser'}{'login'} = $otherUser->login;

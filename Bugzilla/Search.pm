@@ -2350,8 +2350,8 @@ sub _not_in_search_results
 
 sub LookupNamedQuery
 {
-    my ($name, $sharer_id, $query_type, $throw_error) = @_;
-    my $user = Bugzilla->login(LOGIN_REQUIRED);
+    my ($name, $sharer_id, $query_type, $throw_error, $as_user) = @_;
+    my $user = $as_user || Bugzilla->login(LOGIN_REQUIRED);
     my $dbh = Bugzilla->dbh;
     my $owner_id;
     $throw_error = 1 unless defined $throw_error;
