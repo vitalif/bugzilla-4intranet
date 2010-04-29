@@ -25,6 +25,7 @@ package Bugzilla::Search::Saved;
 use base qw(Bugzilla::Object);
 
 use Bugzilla::CGI;
+use Bugzilla::Hook;
 use Bugzilla::Constants;
 use Bugzilla::Group;
 use Bugzilla::Error;
