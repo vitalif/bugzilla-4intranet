@@ -37,8 +37,10 @@ sub refresh_views
         $sqlquery =~ s/ORDER\s+BY\s+`?bugs`?.`?bug_id`?//so;
         $dbh->do('DROP VIEW IF EXISTS `view$'.$user.'$'.$query.'$bugs`');
         $dbh->do('DROP VIEW IF EXISTS `view$'.$user.'$'.$query.'$longdescs`');
+        $dbh->do('DROP VIEW IF EXISTS `view$'.$user.'$'.$query.'$bugs_activity`');
         $dbh->do('CREATE SQL SECURITY DEFINER VIEW `view$'.$user.'$'.$query.'$bugs` AS '.$sqlquery);
         $dbh->do('CREATE SQL SECURITY DEFINER VIEW `view$'.$user.'$'.$query.'$longdescs` AS SELECT l.bug_id, u.login_name, l.bug_when, l.thetext, l.work_time FROM longdescs l INNER JOIN `view$'.$user.'$'.$query.'$bugs` b ON b.bug_id=l.bug_id INNER JOIN profiles u ON u.userid=l.who'.($userobj->is_insider?'':' WHERE l.isprivate=0'));
+        $dbh->do('CREATE SQL SECURITY DEFINER VIEW `view$'.$user.'$'.$query.'$bugs_activity` AS SELECT a.bug_id, u.login_name, a.bug_when, f.name field_name, a.removed, a.added FROM bugs_activity a INNER JOIN `view$'.$user.'$'.$query.'$bugs` b ON b.bug_id=a.bug_id INNER JOIN profiles u ON u.userid=a.who INNER JOIN fielddefs f ON f.id=a.fieldid');
     }
 }
 

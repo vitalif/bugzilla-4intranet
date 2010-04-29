@@ -135,6 +135,19 @@ sub preload {
         $query->{link_in_footer} = ($links_in_footer{$query->id}) ? 1 : 0;
     }
 }
+
+sub update {
+    my $self = shift;
+    my @r;
+    if (wantarray) {
+        @r = $self->SUPER::update(@_);
+    } else {
+        @r = scalar $self->SUPER::update(@_);
+    }
+    Bugzilla::Hook::process('savedsearch-post-update', { search => $self });
+    return @r;
+}
+
 #####################
 # Complex Accessors #
 #####################
