@@ -245,7 +245,7 @@ sub quicksearch {
                     elsif ($or_operand =~ /^(?:flag:)?([^\?]+\?)([^\?]*)$/) {
                         # Flag and requestee shortcut
                         addChart('flagtypes.name', 'substring', $1, $negate);
-                        $chart++; $and = $or = 0; # Next chart for boolean AND
+                        $and++; $or = 0; # Next chart for boolean AND
                         addChart('requestees.login_name', 'substring', $2, $negate);
                     }
                     elsif ($or_operand =~ /^([^:]+):([^:]+)$/) {
@@ -318,8 +318,7 @@ sub quicksearch {
                     } # votes and generic field detection
                 } # foreach (split(/\|/, $_))
             } # "switch" $firstChar
-            $chart++;
-            $and = 0;
+            $and++;
             $or = 0;
         } # foreach (@words)
         $cgi->param('content', $content);
