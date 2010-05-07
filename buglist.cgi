@@ -95,6 +95,7 @@ if ($cgi->request_method() eq 'POST') {
 # Determine whether this is a quicksearch query.
 my $searchstring = $cgi->param('quicksearch');
 if (defined($searchstring)) {
+    $vars->{quicksearch} = $searchstring;
     $buffer = quicksearch($searchstring);
     # Quicksearch may do a redirect, in which case it does not return.
     # If it does return, it has modified $cgi->params so we can use them here
