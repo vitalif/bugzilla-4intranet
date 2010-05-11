@@ -58,19 +58,21 @@ Content-Transfer-Encoding: quoted-printable
 
 [%- IF diffs AND diffs.size > 0 %]
 [%- SET lastwho = "" %]
+[%- SET lastdep = 0 %]
 [%- FOR d = diffs %]
-[%- IF d.dep %]
+[%- IF d.dep AND d.dep != lastdep %]
+[%- SET lastdep = d.dep %]
 [%- # ------ Bug <bug> Depends on bug <dep>, which changed state ------ %]
-Bug [% d.bug_id %]</a> depends on bug [% d.dep %], which changed state.
+
+Bug [% d.bug_id %] depends on bug [% d.dep %], which changed state.
 
 Bug [% d.dep %] summary: [% d.short_desc %]
-[% urlbase %]show_bug.cgi?id=[% d.dep %]
-[%- ELSE %]
+[%+ urlbase %]show_bug.cgi?id=[% d.dep %]
+
+[%- END %]
 [%- IF d.login_name != lastwho %]
 [%- # ------ <user> Changed <bug> ------ %]
 [%- SET lastwho = d.login_name %]
-[%- IF !loop.first %]
-[%- END %]
 
 [% d.login_name %] changed:
 
@@ -80,7 +82,6 @@ Bug [% d.dep %] summary: [% d.short_desc %]
 [%- END %]
 [%- # ------ What Removed Added ------ %]
 [% three_columns(d.fielddesc, d.removed, d.added) %]
-[%- END %]
 [%- END %]
 [%- END %]
 [%- # comments %]
@@ -188,39 +189,37 @@ pre { font-family: Consolas, monospace; font-size: 100%; }
 
 [% IF diffs AND diffs.size > 0 %]
 [% SET lastwho = "" %]
+[% SET lastdep = 0 %]
 <table class="difft p6" style="border-collapse: collapse" cellpadding="3">
 [% FOR d = diffs %]
-  [% IF d.dep %]
 
-    [%# ------ Bug <bug> Depends on bug <dep>, which changed state ------ %]
-    <tr><td colspan="3">
-        <p><a href="[% urlbase %]show_bug.cgi?id=[% d.bug_id %]">Bug [% d.bug_id %]</a> depends
-        on <a href="[% urlbase %]show_bug.cgi?id=[% d.dep %]">bug [% d.dep %]</a>,
-        which changed state.</p>
-        <p><a href="[% urlbase %]show_bug.cgi?id=[% d.dep %]">Bug [% d.dep %]</a>
-        summary: [% d.short_desc %].
-    </td></tr>
+  [% IF d.dep AND d.dep != lastdep %]
+  [%# ------ Bug <bug> Depends on bug <dep>, which changed state ------ %]
+  [%- SET lastdep = d.dep %]
+  <tr><td colspan="3">
+      <p><a href="[% urlbase %]show_bug.cgi?id=[% d.bug_id %]">Bug [% d.bug_id %]</a> depends
+      on <a href="[% urlbase %]show_bug.cgi?id=[% d.dep %]">bug [% d.dep %]</a>,
+      which changed state.</p>
+      <p><a href="[% urlbase %]show_bug.cgi?id=[% d.dep %]">Bug [% d.dep %]</a>
+      summary: [% d.short_desc %].
+  </td></tr>
+  [% END %]
 
-  [% ELSE %]
-
-    [% IF d.login_name != lastwho %]
-
-    [%# ------ <user> Changed <bug> ------ %]
-    [% SET lastwho = d.login_name %]
-    [% IF !loop.first %]
+  [% IF d.login_name != lastwho %]
+  [%# ------ <user> Changed <bug> ------ %]
+  [% SET lastwho = d.login_name %]
+  [% IF !loop.first %]
 </table>
 <hr color="#A0A0A0" size="1" />
 <table class="difft p6" style="border-collapse: collapse" cellpadding="3">
-    [% END %]
+  [% END %]
     <tr><td colspan="3"><a href="[% Param('user_mailto') %][% d.login_name %]">[% d.realname || d.login_name %]</a> changed:</td></tr>
     <tr><th style="text-align: left">What</th><th style="text-align: left">Removed</th><th style="text-align: left">Added</th></tr>
-
-    [% END %]
-
-    [%# ------ What Removed Added ------ %]
-    <tr class="n"><td>[% d.fielddesc %]</td><td>[% d.removed %]</td><td>[% d.added %]</td></tr>
-
   [% END %]
+
+  [%# ------ What Removed Added ------ %]
+  <tr class="n"><td>[% d.fielddesc %]</td><td>[% d.removed %]</td><td>[% d.added %]</td></tr>
+
 [% END %]
 </table>
 <hr color="#A0A0A0" size="1" />

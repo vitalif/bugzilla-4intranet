@@ -280,7 +280,8 @@ sub Send {
 
         my $dependency_diffs = $dbh->selectall_arrayref(
            "SELECT bugs_activity.bug_id dep, bugs.short_desc, fielddefs.name fieldname,
-                   bugs_activity.removed, bugs_activity.added
+                   bugs_activity.removed, bugs_activity.added,
+                   profiles.login_name, profiles.realname
               FROM bugs_activity
         INNER JOIN bugs
                 ON bugs.bug_id = bugs_activity.bug_id
@@ -288,6 +289,8 @@ sub Send {
                 ON bugs_activity.bug_id = dependencies.dependson
         INNER JOIN fielddefs
                 ON fielddefs.id = bugs_activity.fieldid
+        INNER JOIN profiles
+                ON profiles.userid = bugs_activity.who
              WHERE dependencies.blocked = ?
                AND (fielddefs.name = 'bug_status'
                     OR fielddefs.name = 'resolution')
