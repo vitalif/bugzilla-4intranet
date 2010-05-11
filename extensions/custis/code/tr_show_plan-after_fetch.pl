@@ -175,8 +175,13 @@ sub fetch_wiki_category_xml
     ($text) = $text =~ m!<textarea[^<>]*>(.*?)</textarea>!iso;
     utf8::decode($text);
     decode_entities($text);
+    if (!$text)
+    {
+        die "No pages in category $category";
+    }
     # Дёргаем Special:Export и вытаскиваем саму XML-ку с последними ревизиями
-    $response = $ua->request(POST $uri, Content => "wpDownload=1&curonly=1&pages=".url_quote($text));
+    $r = POST $uri, Content => "wpDownload=1&curonly=1&pages=".url_quote($text);
+    $response = $ua->request($r);
     if (!$response->is_success)
     {
         # TODO показать ошибку
