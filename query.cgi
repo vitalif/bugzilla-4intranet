@@ -361,15 +361,15 @@ if (($cgi->param('query_format') || $cgi->param('format') || "")
 
 # CustIS Bug 58300 - Add custom fields to search filters
 # This logic is moved from search/form.html.tmpl
-$vars->{text_fields} = [
+$vars->{freetext_fields} = [
     Bugzilla::Field->new({ name => "longdesc" }),
     Bugzilla::Field->new({ name => "bug_file_loc" }),
 ];
 if (Bugzilla->params->{usestatuswhiteboard})
 {
-    push @{$vars->{text_fields}}, Bugzilla::Field->new({ name => "status_whiteboard" });
+    push @{$vars->{freetext_fields}}, Bugzilla::Field->new({ name => "status_whiteboard" });
 }
-push @{$vars->{text_fields}},
+push @{$vars->{freetext_fields}},
     grep { $_->type == FIELD_TYPE_TEXTAREA || $_->type == FIELD_TYPE_FREETEXT }
     Bugzilla->active_custom_fields;
 

@@ -283,7 +283,7 @@ function doOnSelectProduct(selectmode) {
        bug_file_loc      => 'u',
        status_whiteboard => 'w',
   } %]
-  [% FOREACH field = text_fields %]
+  [% FOREACH field = freetext_fields %]
     <tr>
       <th align="right">
         <label for="[% field.name %]" accesskey="[% tf_accesskey.${field.name} %]">[% tf_desc.${field.name} || field.description %]</label>:

@@ -1498,11 +1498,10 @@ sub wants_bug_mail {
     # Make a list of the events which have happened during this bug change,
     # from the point of view of this user.
     my %events;
-    foreach my $ref (@$fieldDiffs) {
-        my ($who, $whoname, $fieldName, $when, $old, $new) = @$ref;
+    foreach my $diff (@$fieldDiffs) {
         # A change to any of the above fields sets the corresponding event
-        if (defined($names_to_events{$fieldName})) {
-            $events{$names_to_events{$fieldName}} = 1;
+        if (defined($names_to_events{$diff->{fielddesc}})) {
+            $events{$names_to_events{$diff->{fielddesc}}} = 1;
         }
         else {
             # Catch-all for any change not caught by a more specific event
@@ -1511,16 +1510,16 @@ sub wants_bug_mail {
 
         # If the user is in a particular role and the value of that role
         # changed, we need the ADDED_REMOVED event.
-        if (($fieldName eq "AssignedTo" && $relationship == REL_ASSIGNEE) ||
-            ($fieldName eq "QAContact" && $relationship == REL_QA))
+        if (($diff->{fielddesc} eq "AssignedTo" && $relationship == REL_ASSIGNEE) ||
+            ($diff->{fielddesc} eq "QAContact" && $relationship == REL_QA))
         {
             $events{+EVT_ADDED_REMOVED} = 1;
         }
 
-        if ($fieldName eq "CC") {
+        if ($diff->{fielddesc} eq "CC") {
             my $login = $self->login;
-            my $inold = ($old =~ /^(.*,\s*)?\Q$login\E(,.*)?$/);
-            my $innew = ($new =~ /^(.*,\s*)?\Q$login\E(,.*)?$/);
+            my $inold = ($diff->{removed} =~ /^(.*,\s*)?\Q$login\E(,.*)?$/);
+            my $innew = ($diff->{added} =~ /^(.*,\s*)?\Q$login\E(,.*)?$/);
             if ($inold != $innew)
             {
                 $events{+EVT_ADDED_REMOVED} = 1;
