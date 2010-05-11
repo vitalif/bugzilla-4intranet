@@ -203,6 +203,9 @@ pre { font-family: Consolas, monospace; font-size: 100%; }
       <p><a href="[% urlbase %]show_bug.cgi?id=[% d.dep %]">Bug [% d.dep %]</a>
       summary: [% d.short_desc %].
   </td></tr>
+</table>
+<hr color="#A0A0A0" size="1" />
+<table class="difft p6" style="border-collapse: collapse" cellpadding="3">
   [% END %]
 
   [% IF d.login_name != lastwho %]
