@@ -236,9 +236,9 @@ sub Send {
     }
 
     my $diffs = $dbh->selectall_arrayref(
-           "SELECT profiles.login_name, profiles.realname, fielddefs.description,
+           "SELECT profiles.login_name, profiles.realname, fielddefs.description fielddesc,
                    bugs_activity.bug_when, bugs_activity.removed,
-                   bugs_activity.added, bugs_activity.attach_id, fielddefs.name
+                   bugs_activity.added, bugs_activity.attach_id, fielddefs.name fieldname
               FROM bugs_activity
         INNER JOIN fielddefs
                 ON fielddefs.id = bugs_activity.fieldid
@@ -246,56 +246,25 @@ sub Send {
                 ON profiles.userid = bugs_activity.who
              WHERE bugs_activity.bug_id = ?
                    $when_restriction
-          ORDER BY bugs_activity.bug_when", undef, @args);
-
-    my @diff_array = ();
+          ORDER BY bugs_activity.bug_when", {Slice=>{}}, @args);
 
     my @new_depbugs;
-    my $difftext = "";
-    my $diffheader = "";
-    my @diffparts;
-    my $lastwho = "";
-    my $fullwho;
-    my @changedfields;
-    foreach my $ref (@$diffs) {
-        my ($who, $whoname, $what, $when, $old, $new, $attachid, $fieldname) = (@$ref);
-        my $diffpart = {};
-        if ($who ne $lastwho) {
-            $lastwho = $who;
-            $fullwho = $whoname ? "$whoname <$who>" : $who;
-            $diffheader = "\n$fullwho changed:\n\n";
-            $diffheader .= three_columns("What    ", "Removed", "Added");
-            $diffheader .= ('-' x 76) . "\n";
-            push @diff_array, { type => 'who', name => $whoname, who => $who };
+    foreach my $diff (@$diffs) {
+        $diff->{attach_id} and $diff->{fielddesc} =~ s/^(Attachment )?/Attachment #$diff->{attach_id} /;
+        if ($diff->{fieldname} eq 'estimated_time' ||
+            $diff->{fieldname} eq 'remaining_time') {
+            $diff->{removed} = format_time_decimal($diff->{removed});
+            $diff->{added} = format_time_decimal($diff->{added});
         }
-        $what =~ s/^(Attachment )?/Attachment #$attachid / if $attachid;
-        if( $fieldname eq 'estimated_time' ||
-            $fieldname eq 'remaining_time' ) {
-            $old = format_time_decimal($old);
-            $new = format_time_decimal($new);
+        if ($diff->{fieldname} eq 'dependson') {
+            push(@new_depbugs, grep {$_ =~ /^\d+$/} split(/[\s,]+/, $diff->{added}));
         }
-        if ($fieldname eq 'dependson') {
-            push(@new_depbugs, grep {$_ =~ /^\d+$/} split(/[\s,]+/, $new));
-        }
-        if ($attachid) {
-            ($diffpart->{'isprivate'}) = $dbh->selectrow_array(
+        if ($diff->{attach_id}) {
+            ($diff->{isprivate}) = $dbh->selectrow_array(
                 'SELECT isprivate FROM attachments WHERE attach_id = ?',
-                undef, ($attachid));
+                undef, ($diff->{attach_id}));
         }
-        $difftext = three_columns($what, $old, $new);
-        $diffpart->{'header'} = $diffheader;
-        $diffpart->{'fieldname'} = $fieldname;
-        $diffpart->{'text'} = $difftext;
-        push @diffparts, $diffpart;
-        push @changedfields, $what;
-        push @diff_array, {
-            type => 'change',
-            what => $what,
-            old  => $old,
-            new  => $new,
-        };
     }
-    $values{'changed_fields'} = join(' ', @changedfields);
 
     my @depbugs;
     my $deptext = "";
@@ -310,7 +279,7 @@ sub Send {
         }
 
         my $dependency_diffs = $dbh->selectall_arrayref(
-           "SELECT bugs_activity.bug_id, bugs.short_desc, fielddefs.name,
+           "SELECT bugs_activity.bug_id dep_id, bugs.short_desc, fielddefs.name fieldname,
                    bugs_activity.removed, bugs_activity.added
               FROM bugs_activity
         INNER JOIN bugs
@@ -324,63 +293,34 @@ sub Send {
                     OR fielddefs.name = 'resolution')
                    $when_restriction
                    $dep_restriction
-          ORDER BY bugs_activity.bug_when, bugs.bug_id", undef, @args);
+          ORDER BY bugs_activity.bug_when, bugs.bug_id", {Slice=>{}}, @args);
 
         my $thisdiff = "";
         my $lastbug = "";
         my $interestingchange = 0;
         my @diff_tmp = ();
-        # TODO в данном месте ужасный код, лучше переписать к х**м
-        foreach my $dependency_diff (@$dependency_diffs) {
-            my ($depbug, $summary, $what, $old, $new) = @$dependency_diff;
-
-            if ($depbug ne $lastbug) {
+        foreach my $dep_diff (@$dependency_diffs) {
+            $dep_diff->{bug_id} = $id;
+            $dep_diff->{type} = 'dep';
+            if ($dep_diff->{dep} ne $lastbug) {
                 if ($interestingchange) {
-                    $deptext .= $thisdiff;
-                    push @diff_array, @diff_tmp;
-                    @diff_tmp = ();
+                    push @$diffs, @diff_tmp;
                 }
-                $lastbug = $depbug;
-                $thisdiff =
-                  "\nBug $id depends on bug $depbug, which changed state.\n\n" .
-                  "Bug $depbug Summary: $summary\n" .
-                  correct_urlbase() . "show_bug.cgi?id=$depbug\n\n";
-                $thisdiff .= three_columns("What    ", "Old Value", "New Value");
-                $thisdiff .= ('-' x 76) . "\n";
+                @diff_tmp = ();
+                $lastbug = $dep_diff->{dep};
                 $interestingchange = 0;
-                push @diff_tmp, {
-                    type    => 'dep',
-                    id      => $id,
-                    dep     => $depbug,
-                    summary => $summary,
-                };
             }
-            $thisdiff .= three_columns($fielddescription{$what}, $old, $new);
-            if ($what eq 'bug_status'
-                && is_open_state($old) ne is_open_state($new))
+            if ($dep_diff->{fieldname} eq 'bug_status'
+                && is_open_state($dep_diff->{removed}) ne is_open_state($dep_diff->{added}))
             {
                 $interestingchange = 1;
             }
-            push @depbugs, $depbug;
-            push @diff_tmp, {
-                type => 'change',
-                what => $fielddescription{$what},
-                old  => $old,
-                new  => $new,
-            };
+            push @depbugs, $dep_diff->{dep};
+            push @diff_tmp, $dep_diff;
         }
 
-        if ($interestingchange)
-        {
-            $deptext .= $thisdiff;
-            push @diff_array, @diff_tmp;
-            @diff_tmp = ();
-        }
-        $deptext = trim($deptext);
-
-        if ($deptext)
-        {
-            push @diffparts, { text => "\n" . trim($deptext) };
+        if ($interestingchange) {
+            push @$diffs, @diff_tmp;
         }
     }
 
@@ -423,24 +363,23 @@ sub Send {
 
     # The last relevant set of people are those who are being removed from
     # their roles in this change. We get their names out of the diffs.
-    foreach my $ref (@$diffs) {
-        my ($who, $whoname, $what, $when, $old, $new) = (@$ref);
-        if ($old) {
+    foreach my $diff (@$diffs) {
+        if ($diff->{removed}) {
             # You can't stop being the reporter, and mail isn't sent if you
             # remove your vote.
             # Ignore people whose user account has been deleted or renamed.
-            if ($what eq "CC") {
-                foreach my $cc_user (split(/[\s,]+/, $old)) {
+            if ($diff->{fielddesc} eq "CC") {
+                foreach my $cc_user (split(/[\s,]+/, $diff->{removed})) {
                     my $uid = login_to_id($cc_user);
                     $recipients{$uid}->{+REL_CC} = BIT_DIRECT if $uid;
                 }
             }
-            elsif ($what eq "QAContact") {
-                my $uid = login_to_id($old);
+            elsif ($diff->{fielddesc} eq "QAContact") {
+                my $uid = login_to_id($diff->{removed});
                 $recipients{$uid}->{+REL_QA} = BIT_DIRECT if $uid;
             }
-            elsif ($what eq "AssignedTo") {
-                my $uid = login_to_id($old);
+            elsif ($diff->{fielddesc} eq "AssignedTo") {
+                my $uid = login_to_id($diff->{removed});
                 $recipients{$uid}->{+REL_ASSIGNEE} = BIT_DIRECT if $uid;
             }
         }
@@ -538,8 +477,7 @@ sub Send {
                     values  => \%values,
                     defhead => \%defmailhead,
                     fields  => \%fielddescription,
-                    diffs   => \@diffparts,
-                    diffar  => \@diff_array,
+                    diffs   => $diffs,
                     newcomm => $comments,
                     anypriv => $anyprivate,
                     isnew   => !$start,
@@ -567,11 +505,11 @@ sub sendMail
 {
     my %arguments = @_;
     my ($user, $hlRef, $relRef, $valueRef, $dmhRef, $fdRef,
-        $diffRef, $diffArray, $newcomments, $anyprivate, $isnew,
+        $diffs, $newcomments, $anyprivate, $isnew,
         $id, $watchingRef
     ) = @arguments{qw(
         user headers rels values defhead fields
-        diffs diffar newcomm anypriv isnew
+        diffs newcomm anypriv isnew
         id watch
     )};
 
@@ -579,46 +517,34 @@ sub sendMail
     my @headerlist = @$hlRef;
     my %mailhead = %$dmhRef;
     my %fielddescription = %$fdRef;
-    my @diffparts = @$diffRef;
 
-    # Build difftext (the actions) by verifying the user should see them
+    # Filter changes by verifying the user should see them
     my $difftext = "";
     my $diffheader = "";
     my $add_diff;
 
-    foreach my $diff (@diffparts)
+    my $new_diffs = [];
+    foreach my $diff (@$diffs)
     {
-        $add_diff = 0;
-
         if (exists($diff->{'fieldname'}) &&
-            ($diff->{'fieldname'} eq 'estimated_time' ||
-             $diff->{'fieldname'} eq 'remaining_time' ||
-             $diff->{'fieldname'} eq 'work_time' ||
-             $diff->{'fieldname'} eq 'deadline') &&
-            $user->is_timetracker &&
+            ($diff->{'fieldname'} ne 'estimated_time' &&
+             $diff->{'fieldname'} ne 'remaining_time' &&
+             $diff->{'fieldname'} ne 'work_time' &&
+             $diff->{'fieldname'} ne 'deadline' ||
+             $user->is_timetracker) &&
             (!$diff->{'isprivate'} || $user->is_insider))
         {
-            $add_diff = 1;
-        }
-
-        if ($add_diff) {
-            if (exists($diff->{'header'}) &&
-                ($diffheader ne $diff->{'header'})) {
-                $diffheader = $diff->{'header'};
-                $difftext .= $diffheader;
-            }
-            $difftext .= $diff->{'text'};
+            push @$new_diffs, $diff;
         }
     }
 
-    if ($difftext eq "" && !scalar(@$newcomments) && !$isnew) {
+    $diffs = $new_diffs;
+
+    if (!@$diffs && !scalar(@$newcomments) && !$isnew) {
         # Whoops, no differences!
         return 0;
     }
 
-    my $diffs = $difftext;
-    # Remove extra newlines.
-    $diffs =~ s/^\n+//s; $diffs =~ s/\n+$//s;
     my @showfieldvalues = (); # for HTML emails
     if ($isnew) {
         my $head = "";
@@ -627,15 +553,11 @@ sub sendMail
             my $value = $values{$f};
             # If there isn't anything to show, don't include this header.
             next unless $value;
-            # Only send estimated_time if it is enabled and the user is in the group.
+            # Only send time tracking information if it is enabled and the user is in the group.
             if (($f ne 'work_time' && $f ne 'estimated_time' && $f ne 'deadline') || $user->is_timetracker) {
-                my $desc = $fielddescription{$f};
-                $head .= multiline_sprintf(FORMAT_DOUBLE, ["$desc:", $value],
-                                           FORMAT_2_SIZE);
-                push @showfieldvalues, { desc => $desc, value => $value };
+                push @showfieldvalues, { desc => $fielddescription{$f}, value => $value };
             }
         }
-        $diffs = $head . ($difftext ? "\n\n" : "") . $diffs;
     }
 
     my (@reasons, @reasons_watch);
@@ -654,7 +576,7 @@ sub sendMail
         isnew              => $isnew,
         showfieldvalues    => \@showfieldvalues,
         to                 => $user->email,
-        to_user => $user,
+        to_user            => $user,
         bugid              => $id,
         alias              => Bugzilla->params->{'usebugaliases'} ? $values{'alias'} : "",
         classification     => $values{'classification'},
@@ -667,7 +589,6 @@ sub sendMail
         assignedto         => $values{'assigned_to'},
         assignedtoname     => Bugzilla::User->new({name => $values{'assigned_to'}})->name,
         targetmilestone    => $values{'target_milestone'},
-        changedfields      => $values{'changed_fields'},
         summary            => $values{'short_desc'},
         reasons            => \@reasons,
         reasons_watch      => \@reasons_watch,
@@ -678,9 +599,9 @@ sub sendMail
         reporter           => $values{'reporter'},
         reportername       => Bugzilla::User->new({name => $values{'reporter'}})->name,
         diffs              => $diffs,
-        diffarray          => $diffArray,
         new_comments       => $newcomments,
         threadingmarker    => build_thread_marker($id, $user->id, $isnew),
+        three_columns      => \&three_columns,
     };
 
     # Hack into urlbase and set it to be correct for current user
