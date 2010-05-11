@@ -280,7 +280,7 @@ sub Send {
 
         my $dependency_diffs = $dbh->selectall_arrayref(
            "SELECT bugs_activity.bug_id dep, bugs.short_desc, fielddefs.name fieldname,
-                   bugs_activity.removed, bugs_activity.added,
+                   fielddefs.description fielddesc, bugs_activity.removed, bugs_activity.added,
                    profiles.login_name, profiles.realname
               FROM bugs_activity
         INNER JOIN bugs
