@@ -174,15 +174,18 @@
     var awt = wt;
     if (wt != wt)
       awt = 0;
-    else if ([% remind_about_worktime ? 1 : 0 %] && (!wt || wt <= 0))
+[%- # If product's notimetracking is TRUE, remind about positive worktime %]
+[% IF remind_about_worktime %]
+    else if (wt === null || wt === undefined || wt != wt || [% bug.product_obj.notimetracking ? "wt != 0" : "wt == 0" %])
     {
       awt = prompt("Please, verify working time:", !wt || wt != wt ? "0" : wt);
-      if (awt == null || awt == undefined || (""+awt).length <= 0)
+      if (awt === null || awt === undefined || (""+awt).length <= 0)
       {
         document.changeform.work_time.focus();
         return false;
       }
     }
+[% END %]
     document.changeform.work_time.value = awt;
     adjustRemainingTime();
     return true;

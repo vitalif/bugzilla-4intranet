@@ -126,6 +126,10 @@
   </p>
 [% END %]
 
+[% IF changes.notimetracking.defined %]
+  <p>Product is now preferred to be [% product.notimetracking ? "not " : "" %] time-tracked.</p>
+[% END %]
+
 [% IF !changes.keys.size %]
   <p>Nothing changed for product '[% product.name FILTER html %]'.</p>
 [% END %]

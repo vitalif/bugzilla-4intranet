@@ -86,6 +86,13 @@
   </td>
 </tr>
 
+<tr>
+  <th align="right">Prefer not to time-track this product:</th>
+  <td><input type="checkbox" name="notimetracking" value="1"
+       [% IF product.notimetracking %] checked="checked"[% END %] />
+  </td>
+</tr>
+
 [% IF !Param('usevotes') %]
 <tr class="param_disabled">
   <td colspan="2"

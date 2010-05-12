@@ -179,6 +179,8 @@ if ($action eq 'new') {
                                  votesperuser     => scalar $cgi->param('votesperuser'),
                                  maxvotesperbug   => scalar $cgi->param('maxvotesperbug'),
                                  votestoconfirm   => scalar $cgi->param('votestoconfirm'),
+                                 wiki_url         => scalar $cgi->param('wiki_url'),
+                                 notimetracking   => scalar $cgi->param('notimetracking'),
                                  create_series    => scalar $cgi->param('createseries')});
 
     delete_token($token);
@@ -288,6 +290,7 @@ if ($action eq 'update') {
     $product->set_votes_per_bug(scalar $cgi->param('maxvotesperbug'));
     $product->set_votes_to_confirm(scalar $cgi->param('votestoconfirm'));
     $product->set_wiki_url(scalar $cgi->param('wiki_url'));
+    $product->set_notimetracking(scalar $cgi->param('notimetracking'));
 
     my $changes = $product->update();
 

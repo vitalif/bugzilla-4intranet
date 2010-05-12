@@ -60,6 +60,7 @@ use constant DB_COLUMNS => qw(
     votestoconfirm
     defaultmilestone
     wiki_url
+    notimetracking
 );
 
 use constant REQUIRED_CREATE_FIELDS => qw(
@@ -78,6 +79,7 @@ use constant UPDATE_COLUMNS => qw(
     maxvotesperbug
     votestoconfirm
     wiki_url
+    notimetracking
 );
 
 use constant VALIDATORS => {
@@ -91,7 +93,8 @@ use constant VALIDATORS => {
     votesperuser     => \&_check_votes_per_user,
     maxvotesperbug   => \&_check_votes_per_bug,
     votestoconfirm   => \&_check_votes_to_confirm,
-    create_series    => \&Bugzilla::Object::check_boolean
+    create_series    => \&Bugzilla::Object::check_boolean,
+    notimetracking   => \&Bugzilla::Object::check_boolean,
 };
 
 ###############################
@@ -609,6 +612,7 @@ sub set_votes_per_user { $_[0]->set('votesperuser', $_[1]); }
 sub set_votes_per_bug { $_[0]->set('maxvotesperbug', $_[1]); }
 sub set_votes_to_confirm { $_[0]->set('votestoconfirm', $_[1]); }
 sub set_wiki_url { $_[0]->set('wiki_url', $_[1]); }
+sub set_notimetracking { $_[0]->set('notimetracking', $_[1]); }
 
 sub set_group_controls {
     my ($self, $group, $settings) = @_;
@@ -889,6 +893,7 @@ sub votes_to_confirm  { return $_[0]->{'votestoconfirm'};    }
 sub default_milestone { return $_[0]->{'defaultmilestone'};  }
 sub classification_id { return $_[0]->{'classification_id'}; }
 sub wiki_url          { return $_[0]->{'wiki_url'};          }
+sub notimetracking    { return $_[0]->{'notimetracking'};    }
 
 ###############################
 ####      Subroutines    ######
@@ -941,6 +946,7 @@ Bugzilla::Product - Bugzilla product class.
     my $maxvotesperbug   = $product->max_votes_per_bug;
     my $votestoconfirm   = $product->votes_to_confirm;
     my $wiki_url         = $product->wiki_url;
+    my $notimetracking   = $product->notimetracking;
     my $defaultmilestone = $product->default_milestone;
     my $classificationid = $product->classification_id;
 
