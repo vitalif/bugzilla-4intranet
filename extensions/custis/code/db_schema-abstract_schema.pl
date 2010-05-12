@@ -43,6 +43,9 @@ push @{$schema->{longdescs}->{INDEXES}}, { FIELDS => ['who', 'bug_when'] };
 push @{$schema->{components}->{FIELDS}}, wiki_url => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"};
 push @{$schema->{products}->{FIELDS}}, wiki_url => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"};
 
+# Bug 59357 - Отключение учёта времени в отдельных продуктах
+push @{$schema->{products}->{FIELDS}}, notimetracking => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0};
+
 # Bug 53725 - Версия по умолчанию
 push @{$schema->{components}->{FIELDS}}, default_version => {TYPE => 'varchar(64)', NOTNULL => 1, DEFAULT => "''"};
 

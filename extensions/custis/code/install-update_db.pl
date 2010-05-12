@@ -98,6 +98,13 @@ if (!$dbh->bz_column_info('components', 'buglist'))
     $dbh->bz_add_column('components', wiki_url => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"});
 }
 
+# Bug 59357 - Отключение учёта времени в отдельных продуктах
+if (!$dbh->bz_column_info('products', 'notimetracking'))
+{
+    # Добавляем колонку notimetracking в продукты
+    $dbh->bz_add_column('products', notimetracking => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0});
+}
+
 # Bug 53725 - Версия по умолчанию
 if (!$dbh->bz_column_info('components', 'default_version'))
 {
