@@ -373,7 +373,8 @@ sub splitString
     {
         if ($i % 2)
         {
-            $parts[$#parts] .= '"'.$quoteparts[$i].'"'
+            @parts or push @parts, '';
+            $parts[$#parts] .= '"'.$quoteparts[$i].'"';
         }
         else
         {
