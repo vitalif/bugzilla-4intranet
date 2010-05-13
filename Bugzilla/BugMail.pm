@@ -522,10 +522,6 @@ sub sendMail
     my %fielddescription = %$fdRef;
 
     # Filter changes by verifying the user should see them
-    my $difftext = "";
-    my $diffheader = "";
-    my $add_diff;
-
     my $new_diffs = [];
     foreach my $diff (@$diffs)
     {
