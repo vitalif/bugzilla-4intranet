@@ -95,6 +95,10 @@ if (defined $cgi->param('format') && $cgi->param('format') eq "table") {
     }
 }
 else {
+    if (!Bugzilla->feature('graphical_reports')) {
+        ThrowCodeError('feature_disabled', { feature => 'graphical_reports' });
+    }
+
     if ($row_field && !$col_field) {
         # 1D *charts* should be displayed horizontally (with an col_field only)
         $col_field = $row_field;
@@ -156,7 +160,7 @@ $::SIG{PIPE} = 'DEFAULT';
 
 my $results = $dbh->selectall_arrayref($query);
 
-# We have a hash of hashes for the data itself, and a hash to hold the
+# We have a hash of hashes for the data itself, and a hash to hold the 
 # row/col/table names.
 my %data;
 my %names;
@@ -181,8 +185,8 @@ foreach my $result (@$results) {
     $row = "" if ($row eq EMPTY_COLUMN);
     $col = "" if ($col eq EMPTY_COLUMN);
     $tbl = "" if ($tbl eq EMPTY_COLUMN);
-
-    # account for the fact that names may start with '_' or '.'.  Change this
+    
+    # account for the fact that names may start with '_' or '.'.  Change this 
     # so the template doesn't hide hash elements with those keys
     $row =~ s/^([._])/ $1/;
     $col =~ s/^([._])/ $1/;
@@ -192,7 +196,7 @@ foreach my $result (@$results) {
     $names{col}{$col} += $bc;
     $names{row}{$row} += $bc;
     $names{tbl}{$tbl} += $bc;
-
+    
     $col_isnumeric &&= ($col =~ /^-?\d+(\.\d+)?$/o);
     $row_isnumeric &&= ($row =~ /^-?\d+(\.\d+)?$/o);
     $tbl_isnumeric &&= ($tbl =~ /^-?\d+(\.\d+)?$/o);
@@ -206,7 +210,7 @@ my @tbl_names = @{get_names($names{"tbl"}, $tbl_isnumeric, $tbl_field)};
 # gathered everything into the hashes and made sure we know the size of the
 # data, we reformat it into an array of arrays of arrays of data.
 push(@tbl_names, "-total-") if (scalar(@tbl_names) > 1);
-
+    
 my @image_data;
 foreach my $tbl (@tbl_names) {
     my @tbl_data;
@@ -227,7 +231,7 @@ foreach my $tbl (@tbl_names) {
 
         push(@tbl_data, \@col_data);
     }
-
+    
     unshift(@image_data, \@tbl_data);
 }
 
@@ -277,7 +281,7 @@ if ($action eq "wrap") {
     $vars->{'col_vals'} = join("&", $buffer =~ /[&?]($col_field=[^&]+)/g);
     $vars->{'row_vals'} = join("&", $buffer =~ /[&?]($row_field=[^&]+)/g);
     $vars->{'tbl_vals'} = join("&", $buffer =~ /[&?]($tbl_field=[^&]+)/g);
-
+    
     # We need a number of different variants of the base URL for different
     # URLs in the HTML.
     $vars->{buglistbase} = $cgi->canonicalise_query(
@@ -340,28 +344,28 @@ exit;
 
 sub get_names {
     my ($names, $isnumeric, $field) = @_;
-
+    
     # These are all the fields we want to preserve the order of in reports.
-    my %fields = (priority     => get_legal_field_values('priority'),
-                  bug_severity => get_legal_field_values('bug_severity'),
-                  bug_status   => get_legal_field_values('bug_status'),
-                  resolution   => [' ', @{get_legal_field_values('resolution')}]);
-    $fields{rep_platform} = get_legal_field_values('rep_platform') if Bugzilla->params->{useplatform};
-    $fields{op_sys}       = get_legal_field_values('op_sys') if Bugzilla->params->{useopsys};
-
+    my %fields;
+    my @select_fields = Bugzilla->get_fields({ is_select => 1 });
+    foreach my $field (@select_fields) {
+        my @names =  map($_->name, @{$field->legal_values});
+        unshift @names, ' ' if $field->name eq 'resolution'; 
+        $fields{$field->name} = \@names;
+    } 
     my $field_list = $fields{$field};
     my @sorted;
-
+    
     if ($field_list) {
         my @unsorted = keys %{$names};
-
+        
         # Extract the used fields from the field_list, in the order they 
         # appear in the field_list. This lets us keep e.g. severities in
         # the normal order.
         #
         # This is O(n^2) but it shouldn't matter for short lists.
         @sorted = map {lsearch(\@unsorted, $_) == -1 ? () : $_} @{$field_list};
-    }
+    }  
     elsif ($isnumeric) {
         # It's not a field we are preserving the order of, so sort it 
         # numerically...
@@ -371,6 +375,6 @@ sub get_names {
         # ...or alphabetically, as appropriate.
         @sorted = sort(keys(%{$names}));
     }
-
+    
     return \@sorted;
 }

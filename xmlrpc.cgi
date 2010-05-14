@@ -22,13 +22,14 @@ use Bugzilla;
 use Bugzilla::Constants;
 use Bugzilla::Error;
 use Bugzilla::WebService::Constants;
+BEGIN {
+    if (!Bugzilla->feature('xmlrpc')) {
+        ThrowCodeError('feature_disabled', { feature => 'xmlrpc' });
+    }
+}
+use Bugzilla::WebService::Server::XMLRPC;
 
-# Use an eval here so that runtests.pl accepts this script even if SOAP-Lite
-# is not installed.
-eval { require Bugzilla::WebService::Server::XMLRPC; };
-$@ && ThrowCodeError('soap_not_installed', { error => $@ });
-
-Bugzilla->usage_mode(USAGE_MODE_WEBSERVICE);
+Bugzilla->usage_mode(USAGE_MODE_XMLRPC);
 
 # Fix the error code that SOAP::Lite uses for Perl errors.
 local $SOAP::Constants::FAULT_SERVER;

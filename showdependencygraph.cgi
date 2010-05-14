@@ -269,7 +269,7 @@ sub DotRel
 {
     my ($fn) = @_;
     # On Windows $pngfilename will contain \ instead of /
-    $fn =~ s|\\|/|g if $^O eq 'MSWin32';
+    $fn =~ s|\\|/|g if ON_WINDOWS;
     # Under mod_perl, pngfilename will have an absolute path, and we
     # need to make that into a relative path.
     my $cgi_root = bz_locations()->{cgi_path};

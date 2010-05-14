@@ -51,18 +51,6 @@ sub make_response {
     }
 }
 
-sub datetime_format {
-    my ($self, $date_string) = @_;
-
-    my $time = str2time($date_string);
-    my ($sec, $min, $hour, $mday, $mon, $year) = localtime $time;
-    # This format string was stolen from SOAP::Utils->format_datetime,
-    # which doesn't work but which has almost the right format string.
-    my $iso_datetime = sprintf('%d%02d%02dT%02d:%02d:%02d',
-        $year + 1900, $mon + 1, $mday, $hour, $min, $sec);
-    return $iso_datetime;
-}
-
 sub handle_login {
     my ($self, $classes, $action, $uri, $method) = @_;
     my $class = $classes->{$uri};
@@ -79,10 +67,23 @@ package Bugzilla::XMLRPC::Deserializer;
 use strict;
 # We can't use "use base" because XMLRPC::Serializer doesn't return
 # a true value.
-eval { require XMLRPC::Lite; };
+use XMLRPC::Lite;
 our @ISA = qw(XMLRPC::Deserializer);
 
 use Bugzilla::Error;
+use Scalar::Util qw(tainted);
+
+sub deserialize {
+    my $self = shift;
+    my ($xml) = @_;
+    my $som = $self->SUPER::deserialize(@_);
+    if (tainted($xml)) {
+        $som->{_bz_do_taint} = 1;
+    }
+    bless $som, 'Bugzilla::XMLRPC::SOM';
+    Bugzilla->input_params($som->paramsin || {}); 
+    return $som;
+}
 
 # Some method arguments need to be converted in some way, when they are input.
 sub decode_value {
@@ -108,10 +109,12 @@ sub decode_value {
     
     # We convert dateTimes to a DB-friendly date format.
     if ($type eq 'dateTime.iso8601') {
-        # We leave off the $ from the end of this regex to allow for possible
-        # extensions to the XML-RPC date standard.
-        $value =~ /^(\d{4})(\d{2})(\d{2})T(\d{2}):(\d{2}):(\d{2})/;
-        $value = "$1-$2-$3 $4:$5:$6";
+        if ($value !~ /T.*[\-+Z]/i) {
+           # The caller did not specify a timezone, so we assume UTC.
+           # pass 'Z' specifier to datetime_from to force it
+           $value = $value . 'Z';
+        }
+        $value = Bugzilla::WebService::Server::XMLRPC->datetime_format_inbound($value);
     }
 
     return $value;
@@ -141,6 +144,25 @@ sub _validation_subs {
 
 1;
 
+package Bugzilla::XMLRPC::SOM;
+use strict;
+use XMLRPC::Lite;
+our @ISA = qw(XMLRPC::SOM);
+use Bugzilla::WebService::Util qw(taint_data);
+
+sub paramsin {
+    my $self = shift;
+    return $self->{bz_params_in} if $self->{bz_params_in};
+    my $params = $self->SUPER::paramsin(@_);
+    if ($self->{_bz_do_taint}) {
+        taint_data($params);
+    }
+    $self->{bz_params_in} = $params;
+    return $self->{bz_params_in};
+}
+
+1;
+
 # This package exists to fix a UTF-8 bug in SOAP::Lite.
 # See http://rt.cpan.org/Public/Bug/Display.html?id=32952.
 package Bugzilla::XMLRPC::Serializer;
@@ -148,7 +170,7 @@ use Scalar::Util qw(blessed);
 use strict;
 # We can't use "use base" because XMLRPC::Serializer doesn't return
 # a true value.
-eval { require XMLRPC::Lite; };
+use XMLRPC::Lite;
 our @ISA = qw(XMLRPC::Serializer);
 
 sub new {
@@ -222,7 +244,6 @@ sub _strip_undefs {
     return $initial;
 }
 
-
 sub BEGIN {
     no strict 'refs';
     for my $type (qw(double i4 int dateTime)) {
@@ -233,7 +254,7 @@ sub BEGIN {
                 return as_nil();
             }
             else {
-                my $super_method = "SUPER::$method";
+                my $super_method = "SUPER::$method"; 
                 return $self->$super_method($value);
             }
         }
@@ -245,3 +266,80 @@ sub as_nil {
 }
 
 1;
+
+__END__
+
+=head1 NAME
+
+Bugzilla::WebService::Server::XMLRPC - The XML-RPC Interface to Bugzilla
+
+=head1 DESCRIPTION
+
+This documentation describes things about the Bugzilla WebService that
+are specific to XML-RPC. For a general overview of the Bugzilla WebServices,
+see L<Bugzilla::WebService>.
+
+=head1 XML-RPC
+
+The XML-RPC standard is described here: L<http://www.xmlrpc.com/spec>
+
+=head1 CONNECTING
+
+The endpoint for the XML-RPC interface is the C<xmlrpc.cgi> script in
+your Bugzilla installation. For example, if your Bugzilla is at
+C<bugzilla.yourdomain.com>, then your XML-RPC client would access the
+API via: C<http://bugzilla.yourdomain.com/xmlrpc.cgi>
+
+=head1 PARAMETERS
+
+C<dateTime> fields are the standard C<dateTime.iso8601> XML-RPC field. They
+should be in C<YYYY-MM-DDTHH:MM:SS> format (where C<T> is a literal T). As
+of Bugzilla B<3.6>, Bugzilla always expects C<dateTime> fields to be in the
+UTC timezone, and all returned C<dateTime> values are in the UTC timezone.
+
+All other fields are standard XML-RPC types.
+
+=head2 How XML-RPC WebService Methods Take Parameters
+
+All functions take a single argument, a C<< <struct> >> that contains all parameters.
+The names of the parameters listed in the API docs for each function are the
+C<< <name> >> element for the struct C<< <member> >>s.
+
+=head1 EXTENSIONS TO THE XML-RPC STANDARD
+
+=head2 Undefined Values
+
+Normally, XML-RPC does not allow empty values for C<int>, C<double>, or
+C<dateTime.iso8601> fields. Bugzilla does--it treats empty values as
+C<undef> (called C<NULL> or C<None> in some programming languages).
+
+Bugzilla accepts a timezone specifier at the end of C<dateTime.iso8601>
+fields that are specified as method arguments. The format of the timezone
+specifier is specified in the ISO-8601 standard. If no timezone specifier
+is included, the passed-in time is assumed to be in the UTC timezone.
+Bugzilla will never output a timezone specifier on returned data, because
+doing so would violate the XML-RPC specification. All returned times are in
+the UTC timezone.
+
+Bugzilla also accepts an element called C<< <nil> >>, as specified by the
+XML-RPC extension here: L<http://ontosys.com/xml-rpc/extensions.php>, which
+is always considered to be C<undef>, no matter what it contains.
+
+Bugzilla does not use C<< <nil> >> values in returned data, because currently
+most clients do not support C<< <nil> >>. Instead, any fields with C<undef>
+values will be stripped from the response completely. Therefore
+B<the client must handle the fact that some expected fields may not be 
+returned>.
+
+=begin private
+
+nil is implemented by XMLRPC::Lite, in XMLRPC::Deserializer::decode_value
+in the CPAN SVN since 14th Dec 2008
+L<http://rt.cpan.org/Public/Bug/Display.html?id=20569> and in Fedora's
+perl-SOAP-Lite package in versions 0.68-1 and above.
+
+=end private
+
+=head1 SEE ALSO
+
+L<Bugzilla::WebService>

@@ -112,7 +112,7 @@ if ($action eq 'add') {
 if ($action eq 'new') {
     check_token_data($token, 'add_component');
     # Do the user matching
-    Bugzilla::User::match_field ($cgi, {
+    Bugzilla::User::match_field ({
         'initialowner'     => { 'type' => 'single' },
         'initialqacontact' => { 'type' => 'single' },
         'initialcc'        => { 'type' => 'multi'  },
@@ -125,15 +125,19 @@ if ($action eq 'new') {
     my $default_version    = trim($cgi->param('default_version')  || '');
     my @initial_cc         = $cgi->param('initialcc');
 
-    my $component =
-      Bugzilla::Component->create({ name             => $comp_name,
-                                    product          => $product,
-                                    description      => $description,
-                                    initialowner     => $default_assignee,
-                                    initialqacontact => $default_qa_contact,
-                                    default_version  => $default_version,
-                                    wiki_url         => $wiki_url,
-                                    initial_cc       => \@initial_cc });
+    my $component = Bugzilla::Component->create({
+        name             => $comp_name,
+        product          => $product,
+        description      => $description,
+        initialowner     => $default_assignee,
+        initialqacontact => $default_qa_contact,
+        default_version  => $default_version,
+        wiki_url         => $wiki_url,
+        initial_cc       => \@initial_cc,
+        # XXX We should not be creating series for products that we
+        # didn't create series for.
+        create_series    => 1,
+   });
 
     $vars->{'message'} = 'component_created';
     $vars->{'comp'} = $component;
@@ -213,7 +217,7 @@ if ($action eq 'edit') {
 if ($action eq 'update') {
     check_token_data($token, 'edit_component');
     # Do the user matching
-    Bugzilla::User::match_field ($cgi, {
+    Bugzilla::User::match_field ({
         'initialowner'     => { 'type' => 'single' },
         'initialqacontact' => { 'type' => 'single' },
         'initialcc'        => { 'type' => 'multi'  },
@@ -222,9 +226,9 @@ if ($action eq 'update') {
     my $comp_old_name         = trim($cgi->param('componentold')     || '');
     my $default_assignee      = trim($cgi->param('initialowner')     || '');
     my $default_qa_contact    = trim($cgi->param('initialqacontact') || '');
-    my $default_version       = trim($cgi->param('default_version')  || '');
     my $description           = trim($cgi->param('description')      || '');
     my $wiki_url              = trim($cgi->param('wiki_url')         || '');
+    my $default_version       = trim($cgi->param('default_version')  || '');
     my @initial_cc            = $cgi->param('initialcc');
 
     my $component =

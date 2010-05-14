@@ -17,6 +17,7 @@
 # The Original Code is the Bugzilla Bug Tracking System.
 #
 # Contributor(s): Max Kanat-Alexander <mkanat@bugzilla.org>
+#                 Greg Hendricks <ghendricks@novell.com>
 #                 Vitaliy Filippov    <vitalif@mail.ru>
 
 use strict;
@@ -45,11 +46,13 @@ use constant DB_COLUMNS => qw(
     id
     value
     sortkey
+    isactive
 );
 
 use constant UPDATE_COLUMNS => qw(
     value
     sortkey
+    isactive
 );
 
 use constant NAME_FIELD => 'value';
@@ -60,6 +63,7 @@ use constant REQUIRED_CREATE_FIELDS => qw(value);
 use constant VALIDATORS => {
     value   => \&_check_value,
     sortkey => \&_check_sortkey,
+    isactive => \&Bugzilla::Object::check_boolean,
 };
 
 use constant CLASS_MAP => {
@@ -214,7 +218,8 @@ sub _check_if_controller {
 # Accessors #
 #############
 
-sub sortkey { return $_[0]->{'sortkey'}; }
+sub is_active { return $_[0]->{'isactive'}; }
+sub sortkey   { return $_[0]->{'sortkey'};  }
 
 sub bug_count {
     my $self = shift;
@@ -303,7 +308,7 @@ sub controlled_values
             {
                 my $type = Bugzilla::Field::Choice->type($field);
                 $f = $type->match({ id => $f });
-            }
+    }
             $controlled_values->{$field->name} = $f;
         }
         $self->{controlled_values} = $controlled_values;
@@ -317,7 +322,7 @@ sub controlled_plus_generic
     my $controlled_values;
     unless ($controlled_values = $self->{controlled_plus_generic})
     {
-        my $fields = $self->field->controls_values_of;
+    my $fields = $self->field->controls_values_of;
         foreach my $field (@$fields)
         {
             my $f = Bugzilla->dbh->selectcol_arrayref(
@@ -368,8 +373,9 @@ sub has_visibility_value
 # Mutators #
 ############
 
-sub set_name    { $_[0]->set('value', $_[1]);   }
-sub set_sortkey { $_[0]->set('sortkey', $_[1]); }
+sub set_is_active { $_[0]->set('isactive', $_[1]); }
+sub set_name      { $_[0]->set('value', $_[1]);    }
+sub set_sortkey   { $_[0]->set('sortkey', $_[1]);  }
 
 sub set_visibility_values
 {

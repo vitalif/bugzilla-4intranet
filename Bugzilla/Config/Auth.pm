@@ -35,7 +35,7 @@ use strict;
 
 use Bugzilla::Config::Common;
 
-$Bugzilla::Config::Auth::sortkey = "02";
+our $sortkey = 300;
 
 sub get_param_list {
   my $class = shift;
@@ -88,13 +88,6 @@ sub get_param_list {
    choices => ['on', 'defaulton', 'defaultoff', 'off'],
    default => 'on',
    checker => \&check_multi
-  },
-
-  {
-   name => 'loginnetmask',
-   type => 't',
-   default => '0',
-   checker => \&check_netmask
   },
 
   {

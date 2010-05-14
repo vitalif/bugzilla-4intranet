@@ -135,7 +135,7 @@
     <title>Optional Modules</title>
 
     <para>
-      Chart::Base:
+      Chart::Lines:
       <literallayout>
         CPAN Download Page: <ulink url="http://search.cpan.org/dist/Chart/"/>
         Documentation: <ulink url="http://search.cpan.org/dist/Chart/Chart.pod"/>
@@ -171,14 +171,6 @@
       <literallayout>
         CPAN Download Page: <ulink url="http://search.cpan.org/author/JKEISER/PatchReader/"/>
         Documentation: <ulink url="http://www.johnkeiser.com/mozilla/Patch_Viewer.html"/>
-      </literallayout>
-    </para>
-
-   <para>
-      Image::Magick:
-      <literallayout>
-        CPAN Download Page: <ulink url="http://search.cpan.org/dist/PerlMagick/"/>
-        Documentation: <ulink url="http://www.imagemagick.org/script/resources.php"/>
       </literallayout>
     </para>
    </section>

@@ -149,39 +149,8 @@ This subroutine is mainly used to decide to display the &#34;(My )Requests&#34; 
 </dl>
 
 <dl>
-<dt><a name="validate($bug_id,_$attach_id,_$skip_requestee_on_error)"
-><code  class="code">validate($bug_id,
-$attach_id,
-$skip_requestee_on_error)</code></a></dt>
-
-<dd>
-<p>Validates fields containing flag modifications.</p>
-
-<p>If the attachment is new,
-it has no ID yet and $attach_id is set to -1 to force its check anyway.</p>
-</dd>
-</dl>
-
-<dl>
-<dt><a name="process($bug,_$attachment,_$timestamp,_$hr_vars)"
-><code  class="code">process($bug,
-$attachment,
-$timestamp,
-$hr_vars)</code></a></dt>
-
-<dd>
-<p>Processes changes to flags.</p>
-
-<p>The bug and/or the attachment objects are the ones this flag is about,
-the timestamp is the date/time the bug was last touched (so that changes to the flag can be stamped with the same date/time).</p>
-</dd>
-</dl>
-
-<dl>
-<dt><a name="create($flag,_$bug,_$attachment,_$timestamp)"
+<dt><a name="create($flag,_$timestamp)"
 ><code  class="code">create($flag,
-$bug,
-$attachment,
 $timestamp)</code></a></dt>
 
 <dd>
@@ -190,60 +159,13 @@ $timestamp)</code></a></dt>
 </dl>
 
 <dl>
-<dt><a name="modify($bug,_$attachment,_$cgi,_$timestamp)"
-><code  class="code">modify($bug,
+<dt><a name="extract_flags_from_cgi($bug,_$attachment,_$hr_vars)"
+><code  class="code">extract_flags_from_cgi($bug,
 $attachment,
-$cgi,
-$timestamp)</code></a></dt>
-
-<dd>
-<p>Modifies flags in the database when a user changes them.</p>
-</dd>
-</dl>
-
-<dl>
-<dt><a name="retarget($flag,_$bug)"
-><code  class="code">retarget($flag,
-$bug)</code></a></dt>
-
-<dd>
-<p>Change the type of the flag,
-if possible.
-The new flag type must have the same name as the current flag type,
-must exist in the product and component the bug is in,
-and the current settings of the flag must pass validation.
-If no such flag type can be found,
-the type remains unchanged.</p>
-
-<p>Retargetting flags is a good way to keep flags when moving bugs from one product where a flag type is available to another product where the flag type is unavailable,
-but another flag type having the same name exists.
-Most of the time,
-if they have the same name,
-this means that they have the same meaning,
-but with different settings.</p>
-</dd>
-</dl>
-
-<dl>
-<dt><a name="clear($flag,_$bug,_$attachment)"
-><code  class="code">clear($flag,
-$bug,
-$attachment)</code></a></dt>
-
-<dd>
-<p>Remove a flag from the DB.</p>
-</dd>
-</dl>
-
-<dl>
-<dt><a name="FormToNewFlags($bug,_$attachment,_$cgi,_$hr_vars)"
-><code  class="code">FormToNewFlags($bug,
-$attachment,
-$cgi,
 $hr_vars)</code></a></dt>
 
 <dd>
-<p>Checks whether or not there are new flags to create and returns an array of flag objects.
+<p>Checks whether or not there are new flags to create and returns an array of hashes.
 This array is then passed to Flag::create().</p>
 </dd>
 </dl>

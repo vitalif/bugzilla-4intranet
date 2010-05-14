@@ -114,16 +114,19 @@ sub get_current_and_available {
                 if !grep($_->id == $group_option->id, @visible_to_me_current);
         }
 
-        # The group itself should never show up in the bless or 
-        # membership lists.
+        push(@bless_from_available, $group_option)
+            if !grep($_->id == $group_option->id, @bless_from_current);
+
+        # The group itself should never show up in the membership lists,
+        # and should show up in only one of the bless lists (otherwise
+        # you can try to allow it to bless itself twice, leading to a
+        # database unique constraint error).
         next if $group_option->id == $group->id;
 
         push(@members_available, $group_option)
             if !grep($_->id == $group_option->id, @members_current);
         push(@member_of_available, $group_option)
             if !grep($_->id == $group_option->id, @member_of_current);
-        push(@bless_from_available, $group_option)
-            if !grep($_->id == $group_option->id, @bless_from_current);
         push(@bless_to_available, $group_option)
            if !grep($_->id == $group_option->id, @bless_to_current);
     }
@@ -215,9 +218,8 @@ if ($action eq 'new') {
     # Permit all existing products to use the new group if makeproductgroups.
     if ($cgi->param('insertnew')) {
         $dbh->do('INSERT INTO group_control_map
-                  (group_id, product_id, entry, membercontrol,
-                   othercontrol, canedit)
-                  SELECT ?, products.id, 0, ?, ?, 0 FROM products',
+                  (group_id, product_id, membercontrol, othercontrol)
+                  SELECT ?, products.id, ?, ? FROM products',
                   undef, ($group->id, CONTROLMAPSHOWN, CONTROLMAPNA));
     }
 
@@ -244,64 +246,15 @@ if ($action eq 'new') {
 
 if ($action eq 'del') {
     # Check that an existing group ID is given
-    my $gid = CheckGroupID($cgi->param('group'));
-    my ($name, $desc, $isbuggroup) =
-        $dbh->selectrow_array("SELECT name, description, isbuggroup " .
-                              "FROM groups WHERE id = ?", undef, $gid);
-
-    # System groups cannot be deleted!
-    if (!$isbuggroup) {
-        ThrowUserError("system_group_not_deletable", { name => $name });
-    }
-    # Groups having a special role cannot be deleted.
-    my @special_groups;
-    foreach my $special_group (SPECIAL_GROUPS) {
-        if ($name eq Bugzilla->params->{$special_group}) {
-            push(@special_groups, $special_group);
-        }
-    }
-    if (scalar(@special_groups)) {
-        ThrowUserError('group_has_special_role', {'name'  => $name,
-                                                  'groups' => \@special_groups});
-    }
-
-    # Group inheritance no longer appears in user_group_map.
-    my $grouplist = join(',', @{Bugzilla::Group->flatten_group_membership($gid)});
-    my $hasusers =
-        $dbh->selectrow_array("SELECT 1 FROM user_group_map
-                               WHERE group_id IN ($grouplist) AND isbless = 0 " .
-                               $dbh->sql_limit(1)) || 0;
-
-    my ($shared_queries) =
+    my $group = Bugzilla::Group->check({ id => $cgi->param('group') });
+    $group->check_remove({ test_only => 1 });
+    $vars->{'shared_queries'} =
         $dbh->selectrow_array('SELECT COUNT(*)
                                  FROM namedquery_group_map
-                                WHERE group_id = ?',
-                              undef, $gid);
+                                WHERE group_id = ?', undef, $group->id);
 
-    my $bug_ids = $dbh->selectcol_arrayref('SELECT bug_id FROM bug_group_map
-                                            WHERE group_id = ?', undef, $gid);
-
-    my $hasbugs = scalar(@$bug_ids) ? 1 : 0;
-    my $buglist = join(',', @$bug_ids);
-
-    my $hasproduct = Bugzilla::Product->new({'name' => $name}) ? 1 : 0;
-
-    my $hasflags = $dbh->selectrow_array('SELECT 1 FROM flagtypes 
-                                           WHERE grant_group_id = ?
-                                              OR request_group_id = ? ' .
-                                          $dbh->sql_limit(1),
-                                          undef, ($gid, $gid)) || 0;
-
-    $vars->{'gid'}            = $gid;
-    $vars->{'name'}           = $name;
-    $vars->{'description'}    = $desc;
-    $vars->{'hasusers'}       = $hasusers;
-    $vars->{'hasbugs'}        = $hasbugs;
-    $vars->{'hasproduct'}     = $hasproduct;
-    $vars->{'hasflags'}       = $hasflags;
-    $vars->{'shared_queries'} = $shared_queries;
-    $vars->{'buglist'}        = $buglist;
-    $vars->{'token'}          = issue_session_token('delete_group');
+    $vars->{'group'} = $group;
+    $vars->{'token'} = issue_session_token('delete_group');
 
     print $cgi->header();
     $template->process("admin/groups/delete.html.tmpl", $vars)
@@ -317,94 +270,17 @@ if ($action eq 'del') {
 if ($action eq 'delete') {
     check_token_data($token, 'delete_group');
     # Check that an existing group ID is given
-    my $gid = CheckGroupID($cgi->param('group'));
-    my ($name, $isbuggroup) =
-        $dbh->selectrow_array("SELECT name, isbuggroup FROM groups " .
-                              "WHERE id = ?", undef, $gid);
-
-    # System groups cannot be deleted!
-    if (!$isbuggroup) {
-        ThrowUserError("system_group_not_deletable", { name => $name });
-    }
-    # Groups having a special role cannot be deleted.
-    my @special_groups;
-    foreach my $special_group (SPECIAL_GROUPS) {
-        if ($name eq Bugzilla->params->{$special_group}) {
-            push(@special_groups, $special_group);
-        }
-    }
-    if (scalar(@special_groups)) {
-        ThrowUserError('group_has_special_role', {'name'  => $name,
-                                                  'groups' => \@special_groups});
-    }
-
-    my $cantdelete = 0;
-
-    # Group inheritance no longer appears in user_group_map.
-    my $grouplist = join(',', @{Bugzilla::Group->flatten_group_membership($gid)});
-    my $hasusers =
-        $dbh->selectrow_array("SELECT 1 FROM user_group_map
-                               WHERE group_id IN ($grouplist) AND isbless = 0 " .
-                               $dbh->sql_limit(1)) || 0;
-
-    if ($hasusers && !defined $cgi->param('removeusers')) {
-        $cantdelete = 1;
-    }
-
-    my $hasbugs = $dbh->selectrow_array('SELECT 1 FROM bug_group_map
-                                         WHERE group_id = ? ' .
-                                         $dbh->sql_limit(1),
-                                         undef, $gid) || 0;
-    if ($hasbugs && !defined $cgi->param('removebugs')) {
-        $cantdelete = 1;
-    }
-
-    if (Bugzilla::Product->new({'name' => $name})
-        && !defined $cgi->param('unbind'))
-    {
-        $cantdelete = 1;
-    }
-
-    my $hasflags = $dbh->selectrow_array('SELECT 1 FROM flagtypes 
-                                           WHERE grant_group_id = ?
-                                              OR request_group_id = ? ' .
-                                          $dbh->sql_limit(1),
-                                          undef, ($gid, $gid)) || 0;
-    if ($hasflags && !defined $cgi->param('removeflags')) {
-        $cantdelete = 1;
-    }
-
-    $vars->{'gid'}        = $gid;
-    $vars->{'name'}       = $name;
-
-    ThrowUserError('group_cannot_delete', $vars) if $cantdelete;
-
-    $dbh->do('UPDATE flagtypes SET grant_group_id = ?
-               WHERE grant_group_id = ?',
-              undef, (undef, $gid));
-    $dbh->do('UPDATE flagtypes SET request_group_id = ?
-               WHERE request_group_id = ?',
-              undef, (undef, $gid));
-    $dbh->do('DELETE FROM namedquery_group_map WHERE group_id = ?',
-              undef, $gid);
-    $dbh->do('DELETE FROM user_group_map WHERE group_id = ?',
-              undef, $gid);
-    $dbh->do('DELETE FROM group_group_map 
-               WHERE grantor_id = ? OR member_id = ?',
-              undef, ($gid, $gid));
-    $dbh->do('DELETE FROM bug_group_map WHERE group_id = ?',
-              undef, $gid);
-    $dbh->do('DELETE FROM group_control_map WHERE group_id = ?',
-              undef, $gid);
-    $dbh->do('DELETE FROM whine_schedules
-               WHERE mailto_type = ? AND mailto = ?',
-              undef, (MAILTO_GROUP, $gid));
-    $dbh->do('DELETE FROM groups WHERE id = ?',
-              undef, $gid);
-
-    Bugzilla::Hook::process('editgroups-post_delete', { name => $name });
-
+    my $group = Bugzilla::Group->check({ id => $cgi->param('group') });
+    $vars->{'name'} = $group->name;
+    $group->remove_from_db({
+        remove_from_users => scalar $cgi->param('removeusers'),
+        remove_from_bugs  => scalar $cgi->param('removebugs'),
+        remove_from_flags => scalar $cgi->param('removeflags'),
+        remove_from_products => scalar $cgi->param('unbind'),
+    });
     delete_token($token);
+
+    Bugzilla::Hook::process('editgroups-post_delete', { group => $group });
 
     $vars->{'message'} = 'group_deleted';
     $vars->{'groups'} = [Bugzilla::Group->get_all];
@@ -611,4 +487,3 @@ sub _do_remove {
         push(@{$changes->{$field}}, $remove->name);
     }
 }
-

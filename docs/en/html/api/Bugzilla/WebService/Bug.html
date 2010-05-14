@@ -53,11 +53,268 @@ name="Utility_Functions"
 >Utility Functions</a></h2>
 
 <dl>
+<dt><a name="fields"
+><code  class="code">fields</code></a></dt>
+
+<dd>
+<p><b>UNSTABLE</b></p>
+
+<dl>
+<dt><a name="Description"
+><b>Description</b></a></dt>
+
+<dd>
+<p>Get information about valid bug fields,
+including the lists of legal values for each field.</p>
+
+<dt><a name="Params"
+><b>Params</b></a></dt>
+
+<dd>
+<p>You can pass either field ids or field names.</p>
+
+<p><b>Note</b>: If neither <code  class="code">ids</code> nor <code  class="code">names</code> is specified,
+then all non-obsolete fields will be returned.</p>
+
+<p>In addition to the parameters below,
+this method also accepts the standard <a href="../../Bugzilla/WebService.html#include_fields" class="podlinkpod"
+>include_fields</a> and <a href="../../Bugzilla/WebService.html#exclude_fields" class="podlinkpod"
+>exclude_fields</a> arguments.</p>
+
+<dl>
+<dt><a name="ids_(array)_-_An_array_of_integer_field_ids."
+><code  class="code">ids</code> (array) - An array of integer field ids.</a></dt>
+
+<dd>
+<dt><a name="names_(array)_-_An_array_of_strings_representing_field_names."
+><code  class="code">names</code> (array) - An array of strings representing field names.</a></dt>
+</dl>
+
+<dt><a name="Returns"
+><b>Returns</b></a></dt>
+
+<dd>
+<p>A hash containing a single element,
+<code  class="code">fields</code>.
+This is an array of hashes,
+containing the following keys:</p>
+
+<dl>
+<dt><a name="id"
+><code  class="code">id</code></a></dt>
+
+<dd>
+<p><code  class="code">int</code> An integer id uniquely idenfifying this field in this installation only.</p>
+
+<dt><a name="type"
+><code  class="code">type</code></a></dt>
+
+<dd>
+<p><code  class="code">int</code> The number of the fieldtype.
+The following values are defined:</p>
+
+<dl>
+<dt><a name="0_Unknown"
+><code  class="code">0</code> Unknown</a></dt>
+
+<dd>
+<dt><a name="1_Free_Text"
+><code  class="code">1</code> Free Text</a></dt>
+
+<dd>
+<dt><a name="2_Drop_Down"
+><code  class="code">2</code> Drop Down</a></dt>
+
+<dd>
+<dt><a name="3_Multiple-Selection_Box"
+><code  class="code">3</code> Multiple-Selection Box</a></dt>
+
+<dd>
+<dt><a name="4_Large_Text_Box"
+><code  class="code">4</code> Large Text Box</a></dt>
+
+<dd>
+<dt><a name="5_Date/Time"
+><code  class="code">5</code> Date/Time</a></dt>
+
+<dd>
+<dt><a name="6_Bug_Id"
+><code  class="code">6</code> Bug Id</a></dt>
+
+<dd>
+<dt><a name="7_Bug_URLs_(&#34;See_Also&#34;)"
+><code  class="code">7</code> Bug URLs (&#34;See Also&#34;)</a></dt>
+</dl>
+
+<dt><a name="is_custom"
+><code  class="code">is_custom</code></a></dt>
+
+<dd>
+<p><code  class="code">boolean</code> True when this is a custom field,
+false otherwise.</p>
+
+<dt><a name="name"
+><code  class="code">name</code></a></dt>
+
+<dd>
+<p><code  class="code">string</code> The internal name of this field.
+This is a unique identifier for this field.
+If this is not a custom field,
+then this name will be the same across all Bugzilla installations.</p>
+
+<dt><a name="display_name"
+><code  class="code">display_name</code></a></dt>
+
+<dd>
+<p><code  class="code">string</code> The name of the field,
+as it is shown in the user interface.</p>
+
+<dt><a name="is_on_bug_entry"
+><code  class="code">is_on_bug_entry</code></a></dt>
+
+<dd>
+<p><code  class="code">boolean</code> For custom fields,
+this is true if the field is shown when you enter a new bug.
+For standard fields,
+this is currently always false,
+even if the field shows up when entering a bug.
+(To know whether or not a standard field is valid on bug entry,
+see <a href="#create" class="podlinkpod"
+>&#34;create&#34;</a>.)</p>
+
+<dt><a name="visibility_field"
+><code  class="code">visibility_field</code></a></dt>
+
+<dd>
+<p><code  class="code">string</code> The name of a field that controls the visibility of this field in the user interface.
+This field only appears in the user interface when the named field is equal to one of the values in <code  class="code">visibility_values</code>.
+Can be null.</p>
+
+<dt><a name="visibility_values"
+><code  class="code">visibility_values</code></a></dt>
+
+<dd>
+<p><code  class="code">array</code> of <code  class="code">string</code>s This field is only shown when <code  class="code">visibility_field</code> matches one of these values.
+When <code  class="code">visibility_field</code> is null,
+then this is an empty array.</p>
+
+<dt><a name="value_field"
+><code  class="code">value_field</code></a></dt>
+
+<dd>
+<p><code  class="code">string</code> The name of the field that controls whether or not particular values of the field are shown in the user interface.
+Can be null.</p>
+
+<dt><a name="values"
+><code  class="code">values</code></a></dt>
+
+<dd>
+<p>This is an array of hashes,
+representing the legal values for select-type (drop-down and multiple-selection) fields.
+This is also populated for the <code  class="code">component</code>,
+<code  class="code">version</code>,
+and <code  class="code">target_milestone</code> fields,
+but not for the <code  class="code">product</code> field (you must use <a href="../../Bugzilla/WebService/Product.html#get_accessible_products" class="podlinkpod"
+>Product.get_accessible_products</a> for that.</p>
+
+<p>For fields that aren&#39;t select-type fields,
+this will simply be an empty array.</p>
+
+<p>Each hash has the following keys:</p>
+
+<dl>
+<dt><a name="name"
+><code  class="code">name</code></a></dt>
+
+<dd>
+<p><code  class="code">string</code> The actual value--this is what you would specify for this field in <a href="#create" class="podlinkpod"
+>&#34;create&#34;</a>,
+etc.</p>
+
+<dt><a name="sortkey"
+><code  class="code">sortkey</code></a></dt>
+
+<dd>
+<p><code  class="code">int</code> Values,
+when displayed in a list,
+are sorted first by this integer and then secondly by their name.</p>
+
+<dt><a name="visibility_values"
+><code  class="code">visibility_values</code></a></dt>
+
+<dd>
+<p>If <code  class="code">value_field</code> is defined for this field,
+then this value is only shown if the <code  class="code">value_field</code> is set to one of the values listed in this array.
+Note that for per-product fields,
+<code  class="code">value_field</code> is set to <code  class="code">&#39;product&#39;</code> and <code  class="code">visibility_values</code> will reflect which product(s) this value appears in.</p>
+
+<dt><a name="is_open"
+><code  class="code">is_open</code></a></dt>
+
+<dd>
+<p><code  class="code">boolean</code> For <code  class="code">bug_status</code> values,
+determines whether this status specifies that the bug is &#34;open&#34; (true) or &#34;closed&#34; (false).
+This item is only included for the <code  class="code">bug_status</code> field.</p>
+
+<dt><a name="can_change_to"
+><code  class="code">can_change_to</code></a></dt>
+
+<dd>
+<p>For <code  class="code">bug_status</code> values,
+this is an array of hashes that determines which statuses you can transition to from this status.
+(This item is only included for the <code  class="code">bug_status</code> field.)</p>
+
+<p>Each hash contains the following items:</p>
+
+<dl>
+<dt><a name="name"
+><code  class="code">name</code></a></dt>
+
+<dd>
+<p>the name of the new status</p>
+
+<dt><a name="comment_required"
+><code  class="code">comment_required</code></a></dt>
+
+<dd>
+<p>this <code  class="code">boolean</code> True if a comment is required when you change a bug into this status using this transition.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd>
+</dl>
+
+<dt><a name="Errors"
+><b>Errors</b></a></dt>
+
+<dd>
+<dl>
+<dt><a name="51_(Invalid_Field_Name_or_Id)"
+>51 (Invalid Field Name or Id)</a></dt>
+
+<dd>
+<p>You specified an invalid field name or id.</p>
+</dd>
+</dl>
+
+<dt><a name="History"
+><b>History</b></a></dt>
+
+<dd>
+<dl>
+<dt><a name="Added_in_Bugzilla_3.6."
+>Added in Bugzilla <b>3.6</b>.</a></dt>
+</dl>
+</dd>
+</dl>
+
 <dt><a name="legal_values"
 ><code  class="code">legal_values</code></a></dt>
 
 <dd>
-<p><b>EXPERIMENTAL</b></p>
+<p><b>DEPRECATED</b> - Use <a href="#fields" class="podlinkpod"
+>&#34;fields&#34;</a> instead.</p>
 
 <dl>
 <dt><a name="Description"
@@ -120,19 +377,194 @@ name="Bug_Information"
 >Bug Information</a></h2>
 
 <dl>
-<dt><a name="comments"
-><code  class="code">comments</code></a></dt>
+<dt><a name="attachments"
+><code  class="code">attachments</code></a></dt>
 
 <dd>
-<p><b>UNSTABLE</b></p>
+<p><b>EXPERIMENTAL</b></p>
 
 <dl>
 <dt><a name="Description"
 ><b>Description</b></a></dt>
 
 <dd>
-<p>This allows you to get data about comments,
-given a list of bugs and/or comment ids.</p>
+<p>It allows you to get data about attachments,
+given a list of bugs and/or attachment ids.</p>
+
+<p><b>Note</b>: Private attachments will only be returned if you are in the insidergroup or if you are the submitter of the attachment.</p>
+
+<dt><a name="Params"
+><b>Params</b></a></dt>
+
+<dd>
+<p><b>Note</b>: At least one of <code  class="code">ids</code> or <code  class="code">attachment_ids</code> is required.</p>
+
+<dl>
+<dt><a name="ids"
+><code  class="code">ids</code></a></dt>
+
+<dd>
+<p>See the description of the <code  class="code">ids</code> parameter in the <a href="#get" class="podlinkpod"
+>&#34;get&#34;</a> method.</p>
+
+<dt><a name="attachment_ids"
+><code  class="code">attachment_ids</code></a></dt>
+
+<dd>
+<p><code  class="code">array</code> An array of integer attachment ids.</p>
+</dd>
+</dl>
+
+<dt><a name="Returns"
+><b>Returns</b></a></dt>
+
+<dd>
+<p>A hash containing two elements: <code  class="code">bugs</code> and <code  class="code">attachments</code>.
+The return value looks like this:</p>
+
+<pre  class="code"> {
+     bugs =&#62; {
+         1345 =&#62; {
+             attachments =&#62; [
+                 { (attachment) },
+                 { (attachment) }
+             ]
+         },
+         9874 =&#62; {
+             attachments =&#62; [
+                 { (attachment) },
+                 { (attachment) }
+             ]
+
+         },
+     },
+
+     attachments =&#62; {
+         234 =&#62; { (attachment) },
+         123 =&#62; { (attachment) },
+     }
+ }</pre>
+
+<p>The attachments of any bugs that you specified in the <code  class="code">ids</code> argument in input are returned in <code  class="code">bugs</code> on output. <code  class="code">bugs</code> is a hash that has integer bug IDs for keys and contains a single key, <code  class="code">attachments</code>. That key points to an arrayref that contains attachments as a hash. (Fields for attachments are described below.)</p>
+
+<p>For any attachments that you specified directly in <code  class="code">attachment_ids</code>, they are returned in <code  class="code">attachments</code> on output. This is a hash where the attachment ids point directly to hashes describing the individual attachment.</p>
+
+<p>The fields for each attachment (where it says <code  class="code">(attachment)</code> in the diagram above) are:</p>
+
+<dl>
+<dt><a name="creation_time"
+><code  class="code">creation_time</code></a></dt>
+
+<dd>
+<p><code  class="code">dateTime</code> The time the attachment was created.</p>
+
+<dt><a name="last_change_time"
+><code  class="code">last_change_time</code></a></dt>
+
+<dd>
+<p><code  class="code">dateTime</code> The last time the attachment was modified.</p>
+
+<dt><a name="id"
+><code  class="code">id</code></a></dt>
+
+<dd>
+<p><code  class="code">int</code> The numeric id of the attachment.</p>
+
+<dt><a name="bug_id"
+><code  class="code">bug_id</code></a></dt>
+
+<dd>
+<p><code  class="code">int</code> The numeric id of the bug that the attachment is attached to.</p>
+
+<dt><a name="file_name"
+><code  class="code">file_name</code></a></dt>
+
+<dd>
+<p><code  class="code">string</code> The file name of the attachment.</p>
+
+<dt><a name="description"
+><code  class="code">description</code></a></dt>
+
+<dd>
+<p><code  class="code">string</code> The description for the attachment.</p>
+
+<dt><a name="content_type"
+><code  class="code">content_type</code></a></dt>
+
+<dd>
+<p><code  class="code">string</code> The MIME type of the attachment.</p>
+
+<dt><a name="is_private"
+><code  class="code">is_private</code></a></dt>
+
+<dd>
+<p><code  class="code">boolean</code> True if the attachment is private (only visible to a certain group called the &#34;insidergroup&#34;), False otherwise.</p>
+
+<dt><a name="is_obsolete"
+><code  class="code">is_obsolete</code></a></dt>
+
+<dd>
+<p><code  class="code">boolean</code> True if the attachment is obsolete, False otherwise.</p>
+
+<dt><a name="is_url"
+><code  class="code">is_url</code></a></dt>
+
+<dd>
+<p><code  class="code">boolean</code> True if the attachment is a URL instead of actual data, False otherwise. Note that such attachments only happen when the Bugzilla installation has at some point had the <code  class="code">allow_attach_url</code> parameter enabled.</p>
+
+<dt><a name="is_patch"
+><code  class="code">is_patch</code></a></dt>
+
+<dd>
+<p><code  class="code">boolean</code> True if the attachment is a patch, False otherwise.</p>
+
+<dt><a name="attacher"
+><code  class="code">attacher</code></a></dt>
+
+<dd>
+<p><code  class="code">string</code> The login name of the user that created the attachment.</p>
+</dd>
+</dl>
+
+<dt><a name="Errors"
+><b>Errors</b></a></dt>
+
+<dd>
+<p>This method can throw all the same errors as <a href="#get" class="podlinkpod"
+>&#34;get&#34;</a>. In addition, it can also throw the following error:</p>
+
+<dl>
+<dt><a name="304_(Auth_Failure,_Attachment_is_Private)"
+>304 (Auth Failure, Attachment is Private)</a></dt>
+
+<dd>
+<p>You specified the id of a private attachment in the <code  class="code">attachment_ids</code> argument, and you are not in the &#34;insider group&#34; that can see private attachments.</p>
+</dd>
+</dl>
+
+<dt><a name="History"
+><b>History</b></a></dt>
+
+<dd>
+<dl>
+<dt><a name="Added_in_Bugzilla_3.6."
+>Added in Bugzilla <b>3.6</b>.</a></dt>
+</dl>
+</dd>
+</dl>
+
+<dt><a name="comments"
+><code  class="code">comments</code></a></dt>
+
+<dd>
+<p><b>STABLE</b></p>
+
+<dl>
+<dt><a name="Description"
+><b>Description</b></a></dt>
+
+<dd>
+<p>This allows you to get data about comments, given a list of bugs and/or comment ids.</p>
 
 <dt><a name="Params"
 ><b>Params</b></a></dt>
@@ -140,8 +572,7 @@ given a list of bugs and/or comment ids.</p>
 <dd>
 <p><b>Note</b>: At least one of <code  class="code">ids</code> or <code  class="code">comment_ids</code> is required.</p>
 
-<p>In addition to the parameters below,
-this method also accepts the standard <a href="../../Bugzilla/WebService.html#include_fields" class="podlinkpod"
+<p>In addition to the parameters below, this method also accepts the standard <a href="../../Bugzilla/WebService.html#include_fields" class="podlinkpod"
 >include_fields</a> and <a href="../../Bugzilla/WebService.html#exclude_fields" class="podlinkpod"
 >exclude_fields</a> arguments.</p>
 
@@ -150,26 +581,19 @@ this method also accepts the standard <a href="../../Bugzilla/WebService.html#in
 ><code  class="code">ids</code></a></dt>
 
 <dd>
-<p><code  class="code">array</code> An array that can contain both bug IDs and bug aliases.
-All of the comments (that are visible to you) will be returned for the specified bugs.</p>
+<p><code  class="code">array</code> An array that can contain both bug IDs and bug aliases. All of the comments (that are visible to you) will be returned for the specified bugs.</p>
 
 <dt><a name="comment_ids"
 ><code  class="code">comment_ids</code></a></dt>
 
 <dd>
-<p><code  class="code">array</code> An array of integer comment_ids.
-These comments will be returned individually,
-separate from any other comments in their respective bugs.</p>
+<p><code  class="code">array</code> An array of integer comment_ids. These comments will be returned individually, separate from any other comments in their respective bugs.</p>
 
 <dt><a name="new_since"
 ><code  class="code">new_since</code></a></dt>
 
 <dd>
-<p><code  class="code">dateTime</code> If specified,
-the method will only return comments <i>newer</i> than this time.
-This only affects comments returned from the <code  class="code">ids</code> argument.
-You will always be returned all comments you request in the <code  class="code">comment_ids</code> argument,
-even if they are older than this date.</p>
+<p><code  class="code">dateTime</code> If specified, the method will only return comments <i>newer</i> than this time. This only affects comments returned from the <code  class="code">ids</code> argument. You will always be returned all comments you request in the <code  class="code">comment_ids</code> argument, even if they are older than this date.</p>
 </dd>
 </dl>
 
@@ -184,26 +608,15 @@ even if they are older than this date.</p>
 ><code  class="code">bugs</code></a></dt>
 
 <dd>
-<p>This is used for bugs specified in <code  class="code">ids</code>.
-This is a hash,
-where the keys are the numeric ids of the bugs,
-and the value is a hash with a single key,
-<code  class="code">comments</code>,
-which is an array of comments.
-(The format of comments is described below.)</p>
+<p>This is used for bugs specified in <code  class="code">ids</code>. This is a hash, where the keys are the numeric ids of the bugs, and the value is a hash with a single key, <code  class="code">comments</code>, which is an array of comments. (The format of comments is described below.)</p>
 
-<p>Note that any individual bug will only be returned once,
-so if you specify an id multiple times in <code  class="code">ids</code>,
-it will still only be returned once.</p>
+<p>Note that any individual bug will only be returned once, so if you specify an id multiple times in <code  class="code">ids</code>, it will still only be returned once.</p>
 
 <dt><a name="comments"
 ><code  class="code">comments</code></a></dt>
 
 <dd>
-<p>Each individual comment requested in <code  class="code">comment_ids</code> is returned here,
-in a hash where the numeric comment id is the key,
-and the value is the comment.
-(The format of comments is described below.)</p>
+<p>Each individual comment requested in <code  class="code">comment_ids</code> is returned here, in a hash where the numeric comment id is the key, and the value is the comment. (The format of comments is described below.)</p>
 </dd>
 </dl>
 
@@ -221,6 +634,12 @@ and the value is the comment.
 
 <dd>
 <p><code  class="code">int</code> The ID of the bug that this comment is on.</p>
+
+<dt><a name="attachment_id"
+>attachment_id</a></dt>
+
+<dd>
+<p><code  class="code">int</code> If the comment was made on an attachment, this will be the ID of that attachment. Otherwise it will be null.</p>
 
 <dt><a name="text"
 >text</a></dt>
@@ -244,8 +663,7 @@ and the value is the comment.
 >is_private</a></dt>
 
 <dd>
-<p><code  class="code">boolean</code> True if this comment is private (only visible to a certain group called the &#34;insidergroup&#34;),
-False otherwise.</p>
+<p><code  class="code">boolean</code> True if this comment is private (only visible to a certain group called the &#34;insidergroup&#34;), False otherwise.</p>
 </dd>
 </dl>
 
@@ -254,25 +672,34 @@ False otherwise.</p>
 
 <dd>
 <p>This method can throw all the same errors as <a href="#get" class="podlinkpod"
->&#34;get&#34;</a>.
-In addition,
-it can also throw the following errors:</p>
+>&#34;get&#34;</a>. In addition, it can also throw the following errors:</p>
 
 <dl>
 <dt><a name="110_(Comment_Is_Private)"
 >110 (Comment Is Private)</a></dt>
 
 <dd>
-<p>You specified the id of a private comment in the <code  class="code">comment_ids</code> argument,
-and you are not in the &#34;insider group&#34; that can see private comments.</p>
+<p>You specified the id of a private comment in the <code  class="code">comment_ids</code> argument, and you are not in the &#34;insider group&#34; that can see private comments.</p>
 
 <dt><a name="111_(Invalid_Comment_ID)"
 >111 (Invalid Comment ID)</a></dt>
 
 <dd>
-<p>You specified an id in the <code  class="code">comment_ids</code> argument that is invalid--either you specified something that wasn&#39;t a number,
-or there is no comment with that id.</p>
+<p>You specified an id in the <code  class="code">comment_ids</code> argument that is invalid--either you specified something that wasn&#39;t a number, or there is no comment with that id.</p>
 </dd>
+</dl>
+
+<dt><a name="History"
+><b>History</b></a></dt>
+
+<dd>
+<dl>
+<dt><a name="Added_in_Bugzilla_3.4."
+>Added in Bugzilla <b>3.4</b>.</a></dt>
+
+<dd>
+<dt><a name="attachment_id_was_added_to_the_return_value_in_Bugzilla_3.6."
+><code  class="code">attachment_id</code> was added to the return value in Bugzilla <b>3.6</b>.</a></dt>
 </dl>
 </dd>
 </dl>
@@ -281,7 +708,7 @@ or there is no comment with that id.</p>
 ><code  class="code">get</code></a></dt>
 
 <dd>
-<p><b>EXPERIMENTAL</b></p>
+<p><b>STABLE</b></p>
 
 <dl>
 <dt><a name="Description"
@@ -303,27 +730,15 @@ or there is no comment with that id.</p>
 <dd>
 <p>An array of numbers and strings.</p>
 
-<p>If an element in the array is entirely numeric,
-it represents a bug_id from the Bugzilla database to fetch.
-If it contains any non-numeric characters,
-it is considered to be a bug alias instead,
-and the bug with that alias will be loaded.</p>
+<p>If an element in the array is entirely numeric, it represents a bug_id from the Bugzilla database to fetch. If it contains any non-numeric characters, it is considered to be a bug alias instead, and the bug with that alias will be loaded.</p>
 
-<p>Note that it&#39;s possible for aliases to be disabled in Bugzilla,
-in which case you will be told that you have specified an invalid bug_id if you try to specify an alias.
-(It will be error 100.)</p>
+<p>Note that it&#39;s possible for aliases to be disabled in Bugzilla, in which case you will be told that you have specified an invalid bug_id if you try to specify an alias. (It will be error 100.)</p>
 
-<dt><a name="permissive_UNSTABLE"
-><code  class="code">permissive</code> <b>UNSTABLE</b></a></dt>
+<dt><a name="permissive_EXPERIMENTAL"
+><code  class="code">permissive</code> <b>EXPERIMENTAL</b></a></dt>
 
 <dd>
-<p><code  class="code">boolean</code> Normally,
-if you request any inaccessible or invalid bug ids,
-Bug.get will throw an error.
-If this parameter is True,
-instead of throwing an error we return an array of hashes with a <code  class="code">id</code>,
-<code  class="code">faultString</code> and <code  class="code">faultCode</code> for each bug that fails,
-and return normal information for the other bugs that were accessible.</p>
+<p><code  class="code">boolean</code> Normally, if you request any inaccessible or invalid bug ids, Bug.get will throw an error. If this parameter is True, instead of throwing an error we return an array of hashes with a <code  class="code">id</code>, <code  class="code">faultString</code> and <code  class="code">faultCode</code> for each bug that fails, and return normal information for the other bugs that were accessible.</p>
 </dd>
 </dl>
 
@@ -338,17 +753,14 @@ and return normal information for the other bugs that were accessible.</p>
 ><code  class="code">bugs</code></a></dt>
 
 <dd>
-<p>An array of hashes that contains information about the bugs with the valid ids.
-Each hash contains the following items:</p>
+<p>An array of hashes that contains information about the bugs with the valid ids. Each hash contains the following items:</p>
 
 <dl>
 <dt><a name="alias"
 >alias</a></dt>
 
 <dd>
-<p><code  class="code">string</code> The alias of this bug.
-If there is no alias or aliases are disabled in this Bugzilla,
-this will be an empty string.</p>
+<p><code  class="code">string</code> The alias of this bug. If there is no alias or aliases are disabled in this Bugzilla, this will be an empty string.</p>
 
 <dt><a name="assigned_to"
 >assigned_to</a></dt>
@@ -372,9 +784,7 @@ this will be an empty string.</p>
 >dupe_of</a></dt>
 
 <dd>
-<p><code  class="code">int</code> The bug ID of the bug that this bug is a duplicate of.
-If this bug isn&#39;t a duplicate of any bug,
-this will be an empty int.</p>
+<p><code  class="code">int</code> The bug ID of the bug that this bug is a duplicate of. If this bug isn&#39;t a duplicate of any bug, this will be an empty int.</p>
 
 <dt><a name="id"
 >id</a></dt>
@@ -382,23 +792,20 @@ this will be an empty int.</p>
 <dd>
 <p><code  class="code">int</code> The numeric bug_id of this bug.</p>
 
-<dt><a name="internals_UNSTABLE"
->internals <b>UNSTABLE</b></a></dt>
+<dt><a name="internals_DEPRECATED"
+>internals <b>DEPRECATED</b></a></dt>
 
 <dd>
-<p>A hash.
-The internals of a <a href="../../Bugzilla/Bug.html" class="podlinkpod"
->Bugzilla::Bug</a> object.
-This is extremely unstable,
-and you should only rely on this if you absolutely have to.
-The structure of the hash may even change between point releases of Bugzilla.</p>
+<p>A hash. The internals of a <a href="../../Bugzilla/Bug.html" class="podlinkpod"
+>Bugzilla::Bug</a> object. This is extremely unstable, and you should only rely on this if you absolutely have to. The structure of the hash may even change between point releases of Bugzilla.</p>
+
+<p>This will be disappearing in a future version of Bugzilla.</p>
 
 <dt><a name="is_open"
 >is_open</a></dt>
 
 <dd>
-<p><code  class="code">boolean</code> Returns true (1) if this bug is open,
-false (0) if it is closed.</p>
+<p><code  class="code">boolean</code> Returns true (1) if this bug is open, false (0) if it is closed.</p>
 
 <dt><a name="last_change_time"
 >last_change_time</a></dt>
@@ -422,8 +829,7 @@ false (0) if it is closed.</p>
 >resolution</a></dt>
 
 <dd>
-<p><code  class="code">string</code> The current resolution of the bug,
-or an empty string if the bug is open.</p>
+<p><code  class="code">string</code> The current resolution of the bug, or an empty string if the bug is open.</p>
 
 <dt><a name="severity"
 >severity</a></dt>
@@ -445,12 +851,11 @@ or an empty string if the bug is open.</p>
 </dd>
 </dl>
 
-<dt><a name="faults_UNSTABLE"
-><code  class="code">faults</code> <b>UNSTABLE</b></a></dt>
+<dt><a name="faults_EXPERIMENTAL"
+><code  class="code">faults</code> <b>EXPERIMENTAL</b></a></dt>
 
 <dd>
-<p>An array of hashes that contains invalid bug ids with error messages returned for them.
-Each hash contains the following items:</p>
+<p>An array of hashes that contains invalid bug ids with error messages returned for them. Each hash contains the following items:</p>
 
 <dl>
 <dt><a name="id"
@@ -463,15 +868,13 @@ Each hash contains the following items:</p>
 >faultString</a></dt>
 
 <dd>
-<p>c&#60;string&#62; This will only be returned for invalid bugs if the <code  class="code">permissive</code> argument was set when calling Bug.get,
-and it is an error indicating that the bug id was invalid.</p>
+<p>c&#60;string&#62; This will only be returned for invalid bugs if the <code  class="code">permissive</code> argument was set when calling Bug.get, and it is an error indicating that the bug id was invalid.</p>
 
 <dt><a name="faultCode"
 >faultCode</a></dt>
 
 <dd>
-<p>c&#60;int&#62; This will only be returned for invalid bugs if the <code  class="code">permissive</code> argument was set when calling Bug.get,
-and it is the error code for the invalid bug error.</p>
+<p>c&#60;int&#62; This will only be returned for invalid bugs if the <code  class="code">permissive</code> argument was set when calling Bug.get, and it is the error code for the invalid bug error.</p>
 </dd>
 </dl>
 </dd>
@@ -569,7 +972,7 @@ and it is the error code for the invalid bug error.</p>
 ><code  class="code">history</code></a></dt>
 
 <dd>
-<p><b>UNSTABLE</b></p>
+<p><b>EXPERIMENTAL</b></p>
 
 <dl>
 <dt><a name="Description"
@@ -589,15 +992,9 @@ and it is the error code for the invalid bug error.</p>
 <dd>
 <p>An array of numbers and strings.</p>
 
-<p>If an element in the array is entirely numeric,
-it represents a bug_id from the Bugzilla database to fetch.
-If it contains any non-numeric characters,
-it is considered to be a bug alias instead,
-and the data bug with that alias will be loaded.</p>
+<p>If an element in the array is entirely numeric, it represents a bug_id from the Bugzilla database to fetch. If it contains any non-numeric characters, it is considered to be a bug alias instead, and the data bug with that alias will be loaded.</p>
 
-<p>Note that it&#39;s possible for aliases to be disabled in Bugzilla,
-in which case you will be told that you have specified an invalid bug_id if you try to specify an alias.
-(It will be error 100.)</p>
+<p>Note that it&#39;s possible for aliases to be disabled in Bugzilla, in which case you will be told that you have specified an invalid bug_id if you try to specify an alias. (It will be error 100.)</p>
 </dd>
 </dl>
 
@@ -605,10 +1002,7 @@ in which case you will be told that you have specified an invalid bug_id if you 
 ><b>Returns</b></a></dt>
 
 <dd>
-<p>A hash containing a single element,
-<code  class="code">bugs</code>.
-This is an array of hashes,
-containing the following keys:</p>
+<p>A hash containing a single element, <code  class="code">bugs</code>. This is an array of hashes, containing the following keys:</p>
 
 <dl>
 <dt><a name="id"
@@ -621,16 +1015,13 @@ containing the following keys:</p>
 >alias</a></dt>
 
 <dd>
-<p><code  class="code">string</code> The alias of this bug.
-If there is no alias or aliases are disabled in this Bugzilla,
-this will be undef.</p>
+<p><code  class="code">string</code> The alias of this bug. If there is no alias or aliases are disabled in this Bugzilla, this will be undef.</p>
 
 <dt><a name="history"
 >history</a></dt>
 
 <dd>
-<p><code  class="code">array</code> An array of hashes,
-each hash having the following keys:</p>
+<p><code  class="code">array</code> An array of hashes, each hash having the following keys:</p>
 
 <dl>
 <dt><a name="when"
@@ -649,8 +1040,7 @@ each hash having the following keys:</p>
 >changes</a></dt>
 
 <dd>
-<p><code  class="code">array</code> An array of hashes which contain all the changes that happened to the bug at this time (as specified by <code  class="code">when</code>).
-Each hash contains the following items:</p>
+<p><code  class="code">array</code> An array of hashes which contain all the changes that happened to the bug at this time (as specified by <code  class="code">when</code>). Each hash contains the following items:</p>
 
 <dl>
 <dt><a name="field_name"
@@ -675,9 +1065,7 @@ Each hash contains the following items:</p>
 >attachment_id</a></dt>
 
 <dd>
-<p><code  class="code">int</code> The id of the attachment that was changed.
-This only appears if the change was to an attachment,
-otherwise <code  class="code">attachment_id</code> will not be present in this hash.</p>
+<p><code  class="code">int</code> The id of the attachment that was changed. This only appears if the change was to an attachment, otherwise <code  class="code">attachment_id</code> will not be present in this hash.</p>
 </dd>
 </dl>
 </dd>
@@ -720,23 +1108,11 @@ otherwise <code  class="code">attachment_id</code> will not be present in this h
 ><b>Params</b></a></dt>
 
 <dd>
-<p>Unless otherwise specified in the description of a parameter,
-bugs are returned if they match <i>exactly</i> the criteria you specify in these parameters.
-That is,
-we don&#39;t match against substrings--if a bug is in the &#34;Widgets&#34; product and you ask for bugs in the &#34;Widg&#34; product,
-you won&#39;t get anything.</p>
+<p>Unless otherwise specified in the description of a parameter, bugs are returned if they match <i>exactly</i> the criteria you specify in these parameters. That is, we don&#39;t match against substrings--if a bug is in the &#34;Widgets&#34; product and you ask for bugs in the &#34;Widg&#34; product, you won&#39;t get anything.</p>
 
-<p>Criteria are joined in a logical AND.
-That is,
-you will be returned bugs that match <i>all</i> of the criteria,
-not bugs that match <i>any</i> of the criteria.</p>
+<p>Criteria are joined in a logical AND. That is, you will be returned bugs that match <i>all</i> of the criteria, not bugs that match <i>any</i> of the criteria.</p>
 
-<p>Each parameter can be either the type it says,
-or an array of the types it says.
-If you pass an array,
-it means &#34;Give me bugs with <i>any</i> of these values.&#34; For example,
-if you wanted bugs that were in either the &#34;Foo&#34; or &#34;Bar&#34; products,
-you&#39;d pass:</p>
+<p>Each parameter can be either the type it says, or an array of the types it says. If you pass an array, it means &#34;Give me bugs with <i>any</i> of these values.&#34; For example, if you wanted bugs that were in either the &#34;Foo&#34; or &#34;Bar&#34; products, you&#39;d pass:</p>
 
 <pre  class="code"> product =&#62; [&#39;Foo&#39;, &#39;Bar&#39;]</pre>
 
@@ -922,7 +1298,7 @@ name="Bug_Creation_and_Modification"
 ><code  class="code">create</code></a></dt>
 
 <dd>
-<p><b>EXPERIMENTAL</b></p>
+<p><b>STABLE</b></p>
 
 <dl>
 <dt><a name="Description"
@@ -1080,7 +1456,7 @@ name="Bug_Creation_and_Modification"
 ><code  class="code">add_comment</code></a></dt>
 
 <dd>
-<p><b>EXPERIMENTAL</b></p>
+<p><b>STABLE</b></p>
 
 <dl>
 <dt><a name="Description"
@@ -1102,8 +1478,8 @@ name="Bug_Creation_and_Modification"
 ><code  class="code">comment</code> (string) <b>Required</b> - The comment to append to the bug. If this is empty or all whitespace, an error will be thrown saying that you did not set the <code  class="code">comment</code> parameter.</a></dt>
 
 <dd>
-<dt><a name="private_(boolean)_-_If_set_to_true,_the_comment_is_private,_otherwise_it_is_assumed_to_be_public."
-><code  class="code">private</code> (boolean) - If set to true, the comment is private, otherwise it is assumed to be public.</a></dt>
+<dt><a name="is_private_(boolean)_-_If_set_to_true,_the_comment_is_private,_otherwise_it_is_assumed_to_be_public."
+><code  class="code">is_private</code> (boolean) - If set to true, the comment is private, otherwise it is assumed to be public.</a></dt>
 
 <dd>
 <dt><a 
@@ -1121,6 +1497,12 @@ name="Bug_Creation_and_Modification"
 
 <dd>
 <dl>
+<dt><a name="54_(Hours_Worked_Too_Large)"
+>54 (Hours Worked Too Large)</a></dt>
+
+<dd>
+<p>You specified a <code  class="code">work_time</code> larger than the maximum allowed value of <code  class="code">99999.99</code>.</p>
+
 <dt><a name="100_(Invalid_Bug_Alias)"
 >100 (Invalid Bug Alias)</a></dt>
 
@@ -1144,6 +1526,12 @@ name="Bug_Creation_and_Modification"
 
 <dd>
 <p>You tried to add a private comment, but don&#39;t have the necessary rights.</p>
+
+<dt><a name="114_(Comment_Too_Long)"
+>114 (Comment Too Long)</a></dt>
+
+<dd>
+<p>You tried to add a comment longer than the maximum allowed length (65,535 characters).</p>
 </dd>
 </dl>
 
@@ -1162,6 +1550,14 @@ name="Bug_Creation_and_Modification"
 <dd>
 <dt><a name="Modified_to_throw_an_error_if_you_try_to_add_a_private_comment_but_can&#39;t,_in_Bugzilla_3.4."
 >Modified to throw an error if you try to add a private comment but can&#39;t, in Bugzilla <b>3.4</b>.</a></dt>
+
+<dd>
+<dt><a 
+>Before Bugzilla <b>3.6</b>, the <code  class="code">is_private</code> argument was called <code  class="code">private</code>, and you can still call it <code  class="code">private</code> for backwards-compatibility purposes if you wish.</a></dt>
+
+<dd>
+<dt><a name="Before_Bugzilla_3.6,_error_54_and_error_114_had_a_generic_error_code_of_32000."
+>Before Bugzilla <b>3.6</b>, error 54 and error 114 had a generic error code of 32000.</a></dt>
 </dl>
 </dd>
 </dl>
@@ -1170,7 +1566,7 @@ name="Bug_Creation_and_Modification"
 ><code  class="code">update_see_also</code></a></dt>
 
 <dd>
-<p><b>UNSTABLE</b></p>
+<p><b>EXPERIMENTAL</b></p>
 
 <dl>
 <dt><a name="Description"
@@ -1258,6 +1654,12 @@ name="Bug_Creation_and_Modification"
 
 <dd>
 <p>One of the URLs you provided did not look like a valid bug URL.</p>
+
+<dt><a name="115_(See_Also_Edit_Denied)"
+>115 (See Also Edit Denied)</a></dt>
+
+<dd>
+<p>You did not have the necessary rights to edit the See Also field for this bug.</p>
 </dd>
 </dl>
 
@@ -1268,6 +1670,10 @@ name="Bug_Creation_and_Modification"
 <dl>
 <dt><a name="Added_in_Bugzilla_3.4."
 >Added in Bugzilla <b>3.4</b>.</a></dt>
+
+<dd>
+<dt><a name="Before_Bugzilla_3.6,_error_115_had_a_generic_error_code_of_32000."
+>Before Bugzilla <b>3.6</b>, error 115 had a generic error code of 32000.</a></dt>
 </dl>
 </dd>
 </dl>

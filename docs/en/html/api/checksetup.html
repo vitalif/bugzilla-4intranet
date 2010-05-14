@@ -171,6 +171,10 @@ name="How_Checksetup_Works"
 <li>This is the major part of checksetup--updating the table definitions from one version of Bugzilla to another.
 <p>The code for this is in <a href="./Bugzilla/Install/DB.html#update_table_definitions" class="podlinkpod"
 >&#34;update_table_definitions&#34; in Bugzilla::Install::DB</a>.</p>
+
+<p>This includes creating the default Classification (using <a href="./Bugzilla/Install.html#create_default_classification" class="podlinkpod"
+>&#34;create_default_classification&#34; in Bugzilla::Install</a>) and setting up all the foreign keys for all tables, using <a href="./Bugzilla/DB.html#bz_setup_foreign_keys" class="podlinkpod"
+>&#34;bz_setup_foreign_keys&#34; in Bugzilla::DB</a>.</p>
 </li>
 
 <li>Creates the system groups--the ones like <code  class="code">editbugs</code>, <code  class="code">admin</code>, and so on. This is <a href="./Bugzilla/Install.html#update_system_groups" class="podlinkpod"
@@ -184,7 +188,7 @@ name="How_Checksetup_Works"
 <p>We also can make somebody an admin at this step, if the user specified the <code  class="code">--make-admin</code> switch.</p>
 </li>
 
-<li>Creates the default Classification, Product, and Component, using <a href="./Bugzilla/Install.html#create_default_product" class="podlinkpod"
+<li>Creates the default Product and Component, using <a href="./Bugzilla/Install.html#create_default_product" class="podlinkpod"
 >&#34;create_default_product&#34; in Bugzilla::Install</a>.</li>
 </ol>
 

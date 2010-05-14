@@ -65,7 +65,7 @@ use constant ISOLATION_LEVEL => 'REPEATABLE READ';
 use constant ENUM_DEFAULTS => {
     bug_severity  => ['blocker', 'critical', 'major', 'normal',
                       'minor', 'trivial', 'enhancement'],
-    priority     => ["P1","P2","P3","P4","P5"],
+    priority     => ["Highest", "High", "Normal", "Low", "Lowest", "---"],
     op_sys       => ["All","Windows","Mac OS","Linux","Other"],
     rep_platform => ["All","PC","Macintosh","Other"],
     bug_status   => ["UNCONFIRMED","NEW","ASSIGNED","REOPENED","RESOLVED",
@@ -271,9 +271,9 @@ EOT
 }
 
 # List of abstract methods we are checking the derived class implements
-our @_abstract_methods = qw(REQUIRED_VERSION PROGRAM_NAME DBD_VERSION
-                            new sql_regexp sql_not_regexp sql_limit sql_to_days
-                            sql_date_format sql_interval bz_explain);
+our @_abstract_methods = qw(new sql_regexp sql_not_regexp sql_limit sql_to_days
+                            sql_date_format sql_interval bz_explain
+                            sql_group_concat);
 
 # This overridden import method will check implementation of inherited classes
 # for missing implementation of abstract methods
@@ -286,7 +286,7 @@ sub import {
         # make sure all abstract methods are implemented
         foreach my $meth (@_abstract_methods) {
             $pkg->can($meth)
-                or croak("Class $pkg does not define method $meth");
+                or die("Class $pkg does not define method $meth");
         }
     }
 
@@ -537,6 +537,13 @@ sub bz_alter_column {
             ThrowCodeError('column_not_null_no_default_alter', 
                            { name => "$table.$name" }) if ($any_nulls);
         }
+        # Preserve foreign key definitions in the Schema object when altering
+        # types.
+        if (defined $current_def->{REFERENCES}) {
+            # Make sure we don't modify the caller's $new_def.
+            $new_def = dclone($new_def);
+            $new_def->{REFERENCES} = $current_def->{REFERENCES};
+        }
         $self->bz_alter_column_raw($table, $name, $new_def, $current_def,
                                    $set_nulls_to);
         $self->_bz_real_schema->set_column($table, $name, $new_def);
@@ -689,7 +696,7 @@ sub bz_add_field_tables {
     if ($field->type == FIELD_TYPE_MULTI_SELECT) {
         my $ms_table = "bug_" . $field->name;
         $self->_bz_add_field_table($ms_table,
-                $self->_bz_schema->MULTI_SELECT_VALUE_TABLE);
+            $self->_bz_schema->MULTI_SELECT_VALUE_TABLE);
 
         $self->bz_add_fk($ms_table, 'bug_id', {TABLE => 'bugs',
                                                COLUMN => 'bug_id',
@@ -830,6 +837,14 @@ sub bz_drop_table {
     }
 }
 
+sub bz_fk_info {
+    my ($self, $table, $column) = @_;
+    my $col_info = $self->bz_column_info($table, $column);
+    return undef if !$col_info;
+    my $fk = $col_info->{REFERENCES};
+    return $fk;
+}
+
 sub bz_rename_column {
     my ($self, $table, $old_name, $new_name) = @_;
 
@@ -870,6 +885,16 @@ sub bz_rename_table {
     $self->do($_) foreach @sql;
     $self->_bz_real_schema->rename_table($old_name, $new_name);
     $self->_bz_store_real_schema;
+}
+
+sub bz_set_next_serial_value {
+    my ($self, $table, $column, $value) = @_;
+    if (!$value) {
+        $value = $self->selectrow_array("SELECT MAX($column) FROM $table") || 0;
+        $value++;
+    }
+    my @sql = $self->_bz_real_schema->get_set_serial_sql($table, $column, $value);
+    $self->do($_) foreach @sql;
 }
 
 #####################################################################
@@ -1001,7 +1026,7 @@ sub bz_start_transaction {
 
 sub bz_commit_transaction {
     my ($self) = @_;
-
+    
     if ($self->{private_bz_transaction_count} > 1) {
         $self->{private_bz_transaction_count}--;
     } elsif ($self->bz_in_transaction) {

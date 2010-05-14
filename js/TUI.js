@@ -22,13 +22,13 @@
 /* This file provides JavaScript functions to be included when one wishes
  * to show/hide certain UI elements, and have the state of them being
  * shown/hidden stored in a cookie.
-  *
-  * TUI stands for Tweak UI.
-  *
+ * 
+ * TUI stands for Tweak UI.
+ *
  * Requires js/util.js and the YUI Dom and Cookie libraries.
-  * 
+ *
  * See template/en/default/bug/create/create.html.tmpl for a usage example.
-  */
+ */
 
 var TUI_HIDDEN_CLASS = 'bz_tui_hidden';
 var TUI_COOKIE_NAME  = 'TUI';
@@ -41,7 +41,7 @@ var TUI_alternates = new Array();
  * class is now hidden or shown.
  *
  * @param className   The name of the CSS class to hide.
-  */
+ */
 function TUI_toggle_class(className) {
     var elements = YAHOO.util.Dom.getElementsByClassName(className);
     for (var i = 0; i < elements.length; i++) {
@@ -51,7 +51,7 @@ function TUI_toggle_class(className) {
     _TUI_toggle_control_link(className);
 }
 
-      
+
 /**
  * Specifies that a certain class of items should be hidden by default,
  * if the user doesn't have a TUI cookie.
@@ -81,12 +81,12 @@ function _TUI_save_class_state(elements, aClass) {
     }
     else {
         _TUI_store(aClass, 1);
-  }
+    }
 }
 
 function _TUI_store(aClass, state) {
     YAHOO.util.Cookie.setSub(TUI_COOKIE_NAME, aClass, state,
-      {
+    {
         expires: new Date('January 1, 2038'),
         path: BUGZILLA.param.cookie_path
     });
@@ -99,9 +99,9 @@ function _TUI_restore() {
             var elements = YAHOO.util.Dom.getElementsByClassName(item);
             for (var i = 0; i < elements.length; i++) {
                 YAHOO.util.Dom.addClass(elements[i], 'bz_tui_hidden');
-    }
+            }
             _TUI_toggle_control_link(item);
-  }
+        }
     }
 }
 

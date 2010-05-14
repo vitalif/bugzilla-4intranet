@@ -55,9 +55,9 @@ use File::Basename;
     AUTH_LOGINFAILED
     AUTH_DISABLED
     AUTH_NO_SUCH_USER
+    AUTH_LOCKOUT
 
     USER_PASSWORD_MIN_LENGTH
-    USER_PASSWORD_MAX_LENGTH
 
     LOGIN_OPTIONAL
     LOGIN_NORMAL
@@ -79,6 +79,7 @@ use File::Basename;
 
     DEFAULT_COLUMN_LIST
     DEFAULT_QUERY_NAME
+    DEFAULT_MILESTONE
 
     QUERY_LIST
     LIST_OF_BUGS
@@ -92,6 +93,8 @@ use File::Basename;
     CMT_HAS_DUPE
     CMT_POPULAR_VOTES
     CMT_MOVED_TO
+    CMT_ATTACHMENT_CREATED
+    CMT_ATTACHMENT_UPDATED
 
     THROW_ERROR
     
@@ -103,7 +106,7 @@ use File::Basename;
     EVT_OTHER EVT_ADDED_REMOVED EVT_COMMENT EVT_ATTACHMENT EVT_ATTACHMENT_DATA
     EVT_PROJ_MANAGEMENT EVT_OPENED_CLOSED EVT_KEYWORD EVT_CC EVT_DEPEND_BLOCK
     EVT_BUG_CREATED
-    
+
     NEG_EVENTS
     EVT_UNCONFIRMED EVT_CHANGED_BY_ME 
         
@@ -127,14 +130,18 @@ use File::Basename;
     FIELD_TYPE_BUG_ID
     FIELD_TYPE_BUG_URLS
 
+    TIMETRACKING_FIELDS
+
     USAGE_MODE_BROWSER
     USAGE_MODE_CMDLINE
-    USAGE_MODE_WEBSERVICE
+    USAGE_MODE_XMLRPC
     USAGE_MODE_EMAIL
+    USAGE_MODE_JSON
 
     ERROR_MODE_WEBPAGE
     ERROR_MODE_DIE
     ERROR_MODE_DIE_SOAP_FAULT
+    ERROR_MODE_JSON_RPC
     ERROR_MODE_AJAX
 
     INSTALLATION_MODE_INTERACTIVE
@@ -146,8 +153,11 @@ use File::Basename;
 
     MAX_TOKEN_AGE
     MAX_LOGINCOOKIE_AGE
+    MAX_LOGIN_ATTEMPTS
+    LOGIN_LOCKOUT_INTERVAL
 
     SAFE_PROTOCOLS
+    LEGAL_CONTENT_TYPES
 
     MIN_SMALLINT
     MAX_SMALLINT
@@ -172,7 +182,7 @@ use File::Basename;
 # CONSTANTS
 #
 # Bugzilla version
-use constant BUGZILLA_VERSION => "3.4.6";
+use constant BUGZILLA_VERSION => "3.6";
 
 # These are unique values that are unlikely to match a string or a number,
 # to be used in criteria for match() functions and other things. They start
@@ -225,10 +235,10 @@ use constant AUTH_ERROR => 2;
 use constant AUTH_LOGINFAILED => 3;
 use constant AUTH_DISABLED => 4;
 use constant AUTH_NO_SUCH_USER  => 5;
+use constant AUTH_LOCKOUT => 6;
 
-# The minimum and maximum lengths a password must have.
-use constant USER_PASSWORD_MIN_LENGTH => 3;
-use constant USER_PASSWORD_MAX_LENGTH => 16;
+# The minimum length a password must have.
+use constant USER_PASSWORD_MIN_LENGTH => 6;
 
 use constant LOGIN_OPTIONAL => 0;
 use constant LOGIN_NORMAL => 1;
@@ -237,18 +247,6 @@ use constant LOGIN_REQUIRED => 2;
 use constant LOGOUT_ALL => 0;
 use constant LOGOUT_CURRENT => 1;
 use constant LOGOUT_KEEP_CURRENT => 2;
-
-use constant contenttypes =>
-  {
-   "html"=> "text/html" , 
-   "rdf" => "application/rdf+xml" , 
-   "atom"=> "application/atom+xml" ,
-   "xml" => "application/xml" , 
-   "js"  => "application/x-javascript" , 
-   "csv" => "text/csv" ,
-   "png" => "image/png" ,
-   "ics" => "text/calendar" ,
-  };
 
 use constant GRANT_DIRECT => 0;
 use constant GRANT_REGEXP => 2;
@@ -270,6 +268,9 @@ use constant DEFAULT_COLUMN_LIST => (
 # for the default settings.
 use constant DEFAULT_QUERY_NAME => '(Default query)';
 
+# The default "defaultmilestone" created for products.
+use constant DEFAULT_MILESTONE => '---';
+
 # The possible types for saved searches.
 use constant QUERY_LIST => 0;
 use constant LIST_OF_BUGS => 1;
@@ -286,6 +287,8 @@ use constant CMT_DUPE_OF => 1;
 use constant CMT_HAS_DUPE => 2;
 use constant CMT_POPULAR_VOTES => 3;
 use constant CMT_MOVED_TO => 4;
+use constant CMT_ATTACHMENT_CREATED => 5;
+use constant CMT_ATTACHMENT_UPDATED => 6;
 
 # Determine whether a validation routine should return 0 or throw
 # an error when the validation fails.
@@ -370,28 +373,58 @@ use constant FIELD_TYPE_DATETIME  => 5;
 use constant FIELD_TYPE_BUG_ID  => 6;
 use constant FIELD_TYPE_BUG_URLS => 7;
 
+# The fields from fielddefs that are blocked from non-timetracking users.
+# work_time is sometimes called actual_time.
+use constant TIMETRACKING_FIELDS =>
+    qw(estimated_time remaining_time work_time actual_time
+       percentage_complete deadline);
+
 # The maximum number of days a token will remain valid.
 use constant MAX_TOKEN_AGE => 3;
 # How many days a logincookie will remain valid if not used.
 use constant MAX_LOGINCOOKIE_AGE => 30;
+
+# Maximum failed logins to lock account for this IP
+use constant MAX_LOGIN_ATTEMPTS => 5;
+# If the maximum login attempts occur during this many minutes, the
+# account is locked.
+use constant LOGIN_LOCKOUT_INTERVAL => 30;
 
 # Protocols which are considered as safe.
 use constant SAFE_PROTOCOLS => ('afs', 'cid', 'ftp', 'gopher', 'http', 'https',
                                 'irc', 'mid', 'news', 'nntp', 'prospero', 'telnet',
                                 'view-source', 'wais');
 
+# Valid MIME types for attachments.
+use constant LEGAL_CONTENT_TYPES => ('application', 'audio', 'image', 'message',
+                                     'model', 'multipart', 'text', 'video');
+
+use constant contenttypes =>
+  {
+   "html"=> "text/html" ,
+   "rdf" => "application/rdf+xml" ,
+   "atom"=> "application/atom+xml" ,
+   "xml" => "application/xml" ,
+   "js"  => "application/x-javascript" ,
+   "csv" => "text/csv" ,
+   "png" => "image/png" ,
+   "ics" => "text/calendar" ,
+  };
+
 # Usage modes. Default USAGE_MODE_BROWSER. Use with Bugzilla->usage_mode.
 use constant USAGE_MODE_BROWSER    => 0;
 use constant USAGE_MODE_CMDLINE    => 1;
-use constant USAGE_MODE_WEBSERVICE => 2;
+use constant USAGE_MODE_XMLRPC     => 2;
 use constant USAGE_MODE_EMAIL      => 3;
+use constant USAGE_MODE_JSON       => 4;
 
 # Error modes. Default set by Bugzilla->usage_mode (so ERROR_MODE_WEBPAGE
 # usually). Use with Bugzilla->error_mode.
 use constant ERROR_MODE_WEBPAGE        => 0;
 use constant ERROR_MODE_DIE            => 1;
 use constant ERROR_MODE_DIE_SOAP_FAULT => 2;
-use constant ERROR_MODE_AJAX           => 3;
+use constant ERROR_MODE_JSON_RPC       => 3;
+use constant ERROR_MODE_AJAX           => 4;
 
 # The various modes that checksetup.pl can run in.
 use constant INSTALLATION_MODE_INTERACTIVE => 0;
@@ -425,12 +458,12 @@ use constant DB_MODULE => {
                 name => 'Oracle'},
 };
 
-# The user who should be considered "root" when we're giving
-# instructions to Bugzilla administrators.
-use constant ROOT_USER => $^O =~ /MSWin32/i ? 'Administrator' : 'root';
-
 # True if we're on Win32.
 use constant ON_WINDOWS => ($^O =~ /MSWin32/i);
+
+# The user who should be considered "root" when we're giving
+# instructions to Bugzilla administrators.
+use constant ROOT_USER => ON_WINDOWS ? 'Administrator' : 'root';
 
 use constant MIN_SMALLINT => -32768;
 use constant MAX_SMALLINT => 32767;

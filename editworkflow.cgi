@@ -89,7 +89,7 @@ elsif ($action eq 'update') {
     foreach my $new (@$statuses) {
         if (($new->is_open || $new->name eq 'RESOLVED') && $cgi->param('w_0_' . $new->id)) {
             $sth_insert->execute(undef, $new->id)
-                unless defined $workflow->{0}->{$new->id};
+              unless defined $workflow->{0}->{$new->id};
         }
         else {
             $sth_delnul->execute($new->id);

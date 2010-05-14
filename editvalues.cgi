@@ -68,8 +68,8 @@ Bugzilla->user->in_group('editfields') ||
 #
 # often-used variables
 #
-my $action  = trim($cgi->param('action')  || '');
-my $token   = $cgi->param('token');
+my $action = trim($cgi->param('action')  || '');
+my $token  = $cgi->param('token');
 
 # Fields listed here must not be edited from this interface.
 my @non_editable_fields = qw(product);
@@ -111,7 +111,6 @@ if ($action eq 'add') {
     exit;
 }
 
-
 #
 # action='new' -> add field value entered in the 'action=add' screen
 #
@@ -119,7 +118,7 @@ if ($action eq 'new') {
     check_token_data($token, 'add_field_value');
 
     my $created_value = Bugzilla::Field::Choice->type($field)->create({
-        value   => scalar $cgi->param('value'),
+        value   => scalar $cgi->param('value'), 
         sortkey => scalar $cgi->param('sortkey'),
         is_open => scalar $cgi->param('is_open'),
     });
@@ -188,6 +187,9 @@ if ($action eq 'update') {
     $vars->{'value_old'} = $value->name;
     $value->set_name($cgi->param('value_new'));
     $value->set_sortkey($cgi->param('sortkey'));
+    if (!($value->is_static || $value->is_default)) {
+        $value->set_is_active($cgi->param('is_active'));
+    }
     $vars->{'changes'} = $value->update();
     my $ch = $value->set_visibility_values([ $cgi->param('visibility_value_id') ]);
     $vars->{'changes'}->{'visibility_values'} = $ch if defined $ch;

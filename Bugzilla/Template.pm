@@ -35,27 +35,31 @@ package Bugzilla::Template;
 use utf8;
 use strict;
 
+use Bugzilla::Bug;
 use Bugzilla::Constants;
+use Bugzilla::Hook;
 use Bugzilla::Install::Requirements;
-use Bugzilla::Install::Util qw(install_string template_include_path include_languages);
+use Bugzilla::Install::Util qw(install_string template_include_path 
+                               include_languages);
+use Bugzilla::Keyword;
 use Bugzilla::Util;
 use Bugzilla::User;
 use Bugzilla::Error;
 use Bugzilla::Status;
 use Bugzilla::Token;
-use Bugzilla::Hook;
 
 use Cwd qw(abs_path);
 use MIME::Base64;
 use MIME::QuotedPrint qw(encode_qp);
 use Encode qw(encode);
 use Date::Format ();
-use File::Basename qw(dirname);
+use File::Basename qw(basename dirname);
 use File::Find;
 use File::Path qw(rmtree mkpath);
 use File::Spec;
 use IO::Dir;
 use JSON;
+use Scalar::Util qw(blessed);
 
 use base qw(Template);
 
@@ -166,7 +170,7 @@ sub nl2br
 # If you want to modify this routine, read the comments carefully
 
 sub quoteUrls {
-    my ($text, $curr_bugid) = (@_);
+    my ($text, $bug, $comment) = (@_);
     return $text unless $text;
 
     # We use /g for speed, but uris can have other things inside them
@@ -194,6 +198,26 @@ sub quoteUrls {
     my $count = 0;
     my $tmp;
 
+    my @hook_regexes;
+    Bugzilla::Hook::process('bug_format_comment',
+        { text => \$text, bug => $bug, regexes => \@hook_regexes,
+          comment => $comment });
+
+    foreach my $re (@hook_regexes) {
+        my ($match, $replace) = @$re{qw(match replace)};
+        if (ref($replace) eq 'CODE') {
+            $text =~ s/$match/($things[$count++] = $replace->({matches => [
+                                                               $1, $2, $3, $4,
+                                                               $5, $6, $7, $8, 
+                                                               $9, $10]}))
+                               && ("\0\0" . ($count-1) . "\0\0")/egx;
+        }
+        else {
+            $text =~ s/$match/($things[$count++] = $replace) 
+                              && ("\0\0" . ($count-1) . "\0\0")/egx;
+        }
+    }
+
     # Provide tooltips for full bug links (Bug 74355)
     my $urlbase_re = '(' . join('|',
         map { qr/$_/ } grep($_, Bugzilla->params->{'urlbase'}, 
@@ -204,11 +228,11 @@ sub quoteUrls {
               ~egox;
 
     # non-mailto protocols
-    my $safe_protocols = join '|', SAFE_PROTOCOLS;
+    my $safe_protocols = join('|', SAFE_PROTOCOLS);
 
     $text =~ s~\b((?:$safe_protocols): # The protocol:
-                  [^\s<>\"]+        # Any non-whitespace
-                  [\w\/])           # so that we end in \w or /
+                  [^\s<>\"]+       # Any non-whitespace
+                  [\w\/])          # so that we end in \w or /
               ~($tmp = html_quote($1)) &&
                ($things[$count++] = "<a href=\"$tmp\">$tmp</a>") &&
                ("\0\0" . ($count-1) . "\0\0")
@@ -243,28 +267,23 @@ sub quoteUrls {
     $text =~ s~</span >\n<span class="quote">~\n~g;
 
     # mailto:
-    $text =~ s~\b(mailto:)?([\w\.\-\+\=]+\@[\w\-]+(?:\.[\w\-]+)+)\b
-              ~<a href=\"mailto:$2\">$1$2</a>~igx;
+    $text =~ s~\b((mailto:)?)([\w\.\-\+\=]+\@[\w\-]+(?:\.[\w\-]+)+)\b
+              ~<a href=\"mailto:$3\">$1$3</a>~igx;
 
-    # attachment links - handle both cases separately for simplicity
-    $text =~ s~((?:^Created\ an\ |\b)attachment\s*\(id=(\d+)\)(\s*\[details\])?)
-              ~($things[$count++] = get_attachment_link($2, $1)) &&
-               ("\0\0" . ($count-1) . "\0\0")
-              ~egmx;
-
+    # attachment links
     $text =~ s~\b(attachment\s*\#?\s*(\d+))
               ~($things[$count++] = get_attachment_link($2, $1)) &&
                ("\0\0" . ($count-1) . "\0\0")
               ~egsxi;
 
     # Current bug ID this comment belongs to
-    my $current_bugurl = $curr_bugid ? "show_bug.cgi?id=$curr_bugid" : "";
+    my $current_bugurl = $bug ? ("show_bug.cgi?id=" . $bug->id) : "";
 
     # This handles bug a, comment b type stuff. Because we're using /g
     # we have to do this in one pattern, and so this is semi-messy.
     # Also, we can't use $bug_re?$comment_re? because that will match the
     # empty string
-    my $bug_word = get_term('bug');
+    my $bug_word = template_var('terms')->{bug};
     my $bug_re = qr/\Q$bug_word\E\s*\#?\s*(\d+)/i;
     my $comment_re = qr/comment\s*\#?\s*(\d+)/i;
     $text =~ s~\b($bug_re(?:\s*,?\s*$comment_re)?|$comment_re)
@@ -295,8 +314,8 @@ sub get_attachment_link {
     detaint_natural($attachid)
       || die "get_attachment_link() called with non-integer attachment number";
 
-    my ($bugid, $isobsolete, $desc) =
-        $dbh->selectrow_array('SELECT bug_id, isobsolete, description
+    my ($bugid, $isobsolete, $desc, $is_patch) =
+        $dbh->selectrow_array('SELECT bug_id, isobsolete, description, ispatch
                                FROM attachments WHERE attach_id = ?',
                                undef, $attachid);
 
@@ -314,9 +333,17 @@ sub get_attachment_link {
 
         $link_text =~ s/ \[details\]$//;
         my $linkval = correct_urlbase()."attachment.cgi?id=$attachid";
+
+        # If the attachment is a patch, try to link to the diff rather
+        # than the text, by default.
+        my $patchlink = "";
+        if ($is_patch and Bugzilla->feature('patch_viewer')) {
+            $patchlink = '&amp;action=diff';
+        }
+
         # Whitespace matters here because these links are in <pre> tags.
         return qq|<span class="$className">|
-               . qq|<a href="${linkval}" name="attach_${attachid}" title="$title">$link_text</a>|
+               . qq|<a href="${linkval}${patchlink}" name="attach_${attachid}" title="$title">$link_text</a>|
                . qq| <a href="${linkval}&amp;action=edit" title="$title">[details]</a>|
                . qq|</span>|;
     }
@@ -333,45 +360,36 @@ sub get_attachment_link {
 #    comment in the bug
 
 sub get_bug_link {
-    my ($bug_num, $link_text, $options) = @_;
+    my ($bug, $link_text, $options) = @_;
     my $dbh = Bugzilla->dbh;
 
-    if (!defined($bug_num) || ($bug_num eq "")) {
-        return "&lt;missing bug number&gt;";
+    if (!$bug) {
+        return html_quote('<missing bug number>');
     }
-    my $quote_bug_num = html_quote($bug_num);
-    detaint_natural($bug_num) || return "&lt;invalid bug number: $quote_bug_num&gt;";
 
-    my ($bug_alias, $bug_state, $bug_res, $bug_desc, $bug_product, $bug_component) =
-        $dbh->selectrow_array('SELECT b.alias, b.bug_status, b.resolution, b.short_desc, p.name, c.name
-                               FROM bugs b, products p, components c WHERE b.bug_id=? AND p.id=b.product_id AND c.id=b.component_id',
-                               undef, $bug_num);
-
-    if ($bug_state) {
-        # CustIS Bug 53691
-        my $title = get_text('get_status', {status => $bug_state});
-        if ($bug_state eq 'RESOLVED' && $bug_res)
-        {
-            $title .= ' ' . get_text('get_resolution', {resolution => $bug_res});
-        }
-        if (Bugzilla->user->can_see_bug($bug_num)) {
-            $title .= " - $bug_product/$bug_component - $bug_desc";
-            if (Bugzilla->params->{usebugaliases} && $options->{use_alias} && $link_text =~ /^\d+$/ && $bug_alias) {
-                $link_text = $bug_alias;
-            }
-        }
-        # Prevent code injection in the title.
-        $title = html_quote(clean_text($title));
-
-        my $linkval = correct_urlbase()."show_bug.cgi?id=$bug_num";
-        if ($options->{comment_num}) {
-            $linkval .= "#c" . $options->{comment_num};
-        }
-        return qq{<span class="bz_st_$bug_state"><a href="$linkval" title="$title">$link_text</a></span>};
+    $bug = blessed($bug) ? $bug : new Bugzilla::Bug($bug);
+    return $link_text if $bug->{error};
+    
+    my $title = get_text('get_status', { status => $bug->bug_status });
+    if ($bug->resolution) {
+        $title .= ' ' . get_text('get_resolution',
+                                 { resolution => $bug->resolution });
     }
-    else {
-        return qq{$link_text};
+    if (Bugzilla->user->can_see_bug($bug)) {
+        $title .= ' - ' . $bug->product.'/'.$bug->component . ' - ' . $bug->short_desc;
+        if (Bugzilla->params->{usebugaliases} && $options->{use_alias} && $link_text =~ /^\d+$/ && $bug->alias) {
+            $link_text = $bug->alias;
+        }
     }
+    # Prevent code injection in the title.
+    $title = html_quote(clean_text($title));
+
+    my $linkval = correct_urlbase()."show_bug.cgi?id=".$bug->id;
+    if ($options->{comment_num}) {
+        $linkval .= "#c" . $options->{comment_num};
+    }
+    # CustIS Bug 53691
+    return "<span class=\"bz_st_".$bug->bug_status."\"><a href=\"$linkval\" title=\"$title\">$link_text</a></span>";
 }
 
 ###############################################################################
@@ -388,6 +406,9 @@ $Template::Directive::WHILE_MAX = 1000000;
 use Template::Stash::XS;
 
 $Template::Config::STASH = 'Template::Stash::XS';
+
+# Allow keys to start with an underscore or a dot.
+$Template::Stash::PRIVATE = undef;
 
 # Add "contains***" methods to list variables that search for one or more 
 # items in a list and return boolean values representing whether or not 
@@ -457,19 +478,12 @@ sub create {
     my $class = shift;
     my %opts = @_;
 
-    # checksetup.pl will call us once for any template/lang directory.
-    # We need a possibility to reset the cache, so that no files from
-    # the previous language pollute the action.
-    if ($opts{'clean_cache'}) {
-        delete Bugzilla->request_cache->{template_include_path_};
-    }
+    # IMPORTANT - If you make any FILTER changes here, make sure to
+    # make them in t/004.template.t also, if required.
 
-    # IMPORTANT - If you make any configuration changes here, make sure to
-    # make them in t/004.template.t and checksetup.pl.
-
-    return $class->new({
+    my $config = {
         # Colon-separated list of directories containing templates.
-        INCLUDE_PATH => [\&getTemplateIncludePath],
+        INCLUDE_PATH => $opts{'include_path'} || getTemplateIncludePath(),
 
         # Remove white-space before template directives (PRE_CHOMP) and at the
         # beginning and end of templates and template blocks (TRIM) for better
@@ -478,10 +492,18 @@ sub create {
         PRE_CHOMP => 1,
         TRIM => 1,
 
+        # Bugzilla::Template::Plugin::Hook uses the absolute (in mod_perl)
+        # or relative (in mod_cgi) paths of hook files to explicitly compile
+        # a specific file. Also, these paths may be absolute at any time
+        # if a packager has modified bz_locations() to contain absolute
+        # paths.
+        ABSOLUTE => 1,
+        RELATIVE => $ENV{MOD_PERL} ? 0 : 1,
+
         COMPILE_DIR => bz_locations()->{'datadir'} . "/template",
 
         # Initialize templates (f.e. by loading plugins like Hook).
-        PRE_PROCESS => "global/initialize.none.tmpl",
+        PRE_PROCESS => ["global/initialize.none.tmpl"],
 
         ENCODING => Bugzilla->params->{'utf8'} ? 'UTF-8' : undef,
 
@@ -530,7 +552,7 @@ sub create {
                 $var =~ s/</\\x3c/g;
                 return $var;
             },
-
+            
             json => sub {
                 my ($var) = @_;
                 return encode_json($var);
@@ -541,7 +563,7 @@ sub create {
                 my ($data) = @_;
                 return encode_base64($data);
             },
-
+            
             # Converts data to quoted-printable
             quoted_printable => sub {
                 my ($data) = @_;
@@ -582,10 +604,10 @@ sub create {
             css_class_quote => \&Bugzilla::Util::css_class_quote ,
 
             quoteUrls => [ sub {
-                               my ($context, $bug) = @_;
+                               my ($context, $bug, $comment) = @_;
                                return sub {
                                    my $text = shift;
-                                   return quoteUrls($text, $bug);
+                                   return quoteUrls($text, $bug, $comment);
                                };
                            },
                            1
@@ -671,39 +693,7 @@ sub create {
                       1
                     ],
 
-            # Bug 120030: Override html filter to obscure the '@' in user
-            #             visible strings.
-            # Bug 319331: Handle BiDi disruptions.
-            html => sub {
-                my ($var) = Template::Filters::html_filter(@_);
-                # Obscure '@'.
-                $var =~ s/\@/\&#64;/g;
-                if (Bugzilla->params->{'utf8'}) {
-                    # Remove the following characters because they're
-                    # influencing BiDi:
-                    # --------------------------------------------------------
-                    # |Code  |Name                      |UTF-8 representation|
-                    # |------|--------------------------|--------------------|
-                    # |U+202a|Left-To-Right Embedding   |0xe2 0x80 0xaa      |
-                    # |U+202b|Right-To-Left Embedding   |0xe2 0x80 0xab      |
-                    # |U+202c|Pop Directional Formatting|0xe2 0x80 0xac      |
-                    # |U+202d|Left-To-Right Override    |0xe2 0x80 0xad      |
-                    # |U+202e|Right-To-Left Override    |0xe2 0x80 0xae      |
-                    # --------------------------------------------------------
-                    #
-                    # The following are characters influencing BiDi, too, but
-                    # they can be spared from filtering because they don't
-                    # influence more than one character right or left:
-                    # --------------------------------------------------------
-                    # |Code  |Name                      |UTF-8 representation|
-                    # |------|--------------------------|--------------------|
-                    # |U+200e|Left-To-Right Mark        |0xe2 0x80 0x8e      |
-                    # |U+200f|Right-To-Left Mark        |0xe2 0x80 0x8f      |
-                    # --------------------------------------------------------
-                    $var =~ s/[\x{202a}-\x{202e}]//g;
-                }
-                return $var;
-            },
+            html => \&Bugzilla::Util::html_quote,
 
             html_light => \&Bugzilla::Util::html_light_quote,
 
@@ -747,10 +737,18 @@ sub create {
                 $var =~ s/\&gt;/>/g;
                 $var =~ s/\&quot;/\"/g;
                 $var =~ s/\&amp;/\&/g;
-                # Now remove extra whitespace, and wrap it to 72 characters.
+                # Now remove extra whitespace...
                 my $collapse_filter = $Template::Filters::FILTERS->{collapse};
                 $var = $collapse_filter->($var);
-                $var = wrap_comment($var, 72);
+                # And if we're not in the WebService, wrap the message.
+                # (Wrapping the message in the WebService is unnecessary
+                # and causes awkward things like \n's appearing in error
+                # messages in JSON-RPC.)
+                unless (Bugzilla->usage_mode == USAGE_MODE_JSON
+                        or Bugzilla->usage_mode == USAGE_MODE_XMLRPC)
+                {
+                    $var = wrap_comment($var, 72);
+                }
                 return $var;
             },
 
@@ -799,17 +797,18 @@ sub create {
             # Currently logged in user, if any
             # If an sudo session is in progress, this is the user we're faking
             'user' => sub { return Bugzilla->user; },
+           
+            # Currenly active language
+            # XXX Eventually this should probably be replaced with something
+            # like Bugzilla->language.
+            'current_language' => sub {
+                my ($language) = include_languages();
+                return $language;
+            },
 
             # If an sudo session is in progress, this is the user who
             # started the session.
             'sudoer' => sub { return Bugzilla->sudoer; },
-
-            # SendBugMail - sends mail about a bug, using Bugzilla::BugMail.pm
-            'SendBugMail' => sub {
-                my ($id, $mailrecipients) = (@_);
-                require Bugzilla::BugMail;
-                Bugzilla::BugMail::Send($id, $mailrecipients);
-            },
 
             # StopBugMail - stops mail about a bug, modifying `lastdiffed`
             'StopBugMail' => sub {
@@ -840,24 +839,55 @@ sub create {
                 return $cache->{template_bug_fields};
             },
 
+            # Whether or not keywords are enabled, in this Bugzilla.
+            'use_keywords' => sub { return Bugzilla::Keyword->any_exist; },
+
+            'last_bug_list' => sub {
+                my @bug_list;
+                my $cgi = Bugzilla->cgi;
+                if ($cgi->cookie("BUGLIST")) {
+                    @bug_list = split(/:/, $cgi->cookie("BUGLIST"));
+                }
+                return \@bug_list;
+            },
+
+            'feature_enabled' => sub { return Bugzilla->feature(@_); },
+
+            # field_descs can be somewhat slow to generate, so we generate
+            # it only once per-language no matter how many times
+            # $template->process() is called.
+            'field_descs' => sub { return template_var('field_descs') },
+
+            'install_string' => \&Bugzilla::Install::Util::install_string,
+
             # These don't work as normal constants.
             DB_MODULE        => \&Bugzilla::Constants::DB_MODULE,
             REQUIRED_MODULES => 
                 \&Bugzilla::Install::Requirements::REQUIRED_MODULES,
             OPTIONAL_MODULES => sub {
                 my @optional = @{OPTIONAL_MODULES()};
-                @optional    = sort {$a->{feature} cmp $b->{feature}} 
-                                    @optional;
+                foreach my $item (@optional) {
+                    my @features;
+                    foreach my $feat_id (@{ $item->{feature} }) {
+                        push(@features, install_string("feature_$feat_id"));
+                    }
+                    $item->{feature} = \@features;
+                }
                 return \@optional;
             },
         },
+    };
 
-   }) || die("Template creation failed: " . $class->error());
+    local $Template::Config::CONTEXT = 'Bugzilla::Template::Context';
+
+    Bugzilla::Hook::process('template_before_create', { config => $config });
+    my $template = $class->new($config) 
+        || die("Template creation failed: " . $class->error());
+    return $template;
 }
 
 # Used as part of the two subroutines below.
-our (%_templates_to_precompile, $_current_path);
-
+our %_templates_to_precompile;
 sub precompile_templates {
     my ($output) = @_;
 
@@ -866,49 +896,37 @@ sub precompile_templates {
     if (-e "$datadir/template") {
         print install_string('template_removing_dir') . "\n" if $output;
 
-        # XXX This frequently fails if the webserver made the files, because
-        # then the webserver owns the directories. We could fix that by
-        # doing a chmod/chown on all the directories here.
+        # This frequently fails if the webserver made the files, because
+        # then the webserver owns the directories.
         rmtree("$datadir/template");
 
-        # Check that the directory was really removed
-        if(-e "$datadir/template") {
-            print "\n\n";
-            print "The directory '$datadir/template' could not be removed.\n";
-            print "Please remove it manually and rerun checksetup.pl.\n\n";
-            exit;
+        # Check that the directory was really removed, and if not, move it
+        # into data/deleteme/.
+        if (-e "$datadir/template") {
+            print STDERR "\n\n",
+                install_string('template_removal_failed', 
+                               { datadir => $datadir }), "\n\n";
+            mkpath("$datadir/deleteme");
+            my $random = generate_random_password();
+            rename("$datadir/template", "$datadir/deleteme/$random")
+              or die "move failed: $!";
         }
     }
 
     print install_string('template_precompile') if $output;
 
-    my $templatedir = bz_locations()->{'templatedir'};
-    # Don't hang on templates which use the CGI library
-    eval("use CGI qw(-no_debug)");
-    
-    my $dir_reader    = new IO::Dir($templatedir) || die "$templatedir: $!";
-    my @language_dirs = grep { /^[a-z-]+$/i } $dir_reader->read;
-    $dir_reader->close;
+    my $paths = template_include_path({ use_languages => Bugzilla->languages });
 
-    foreach my $dir (@language_dirs) {
-        next if ($dir eq 'CVS');
-        -d "$templatedir/$dir/default" || -d "$templatedir/$dir/custom" 
-            || next;
-        local $ENV{'HTTP_ACCEPT_LANGUAGE'} = $dir;
-        my $template = Bugzilla::Template->create(clean_cache => 1);
+    foreach my $dir (@$paths) {
+        my $template = Bugzilla::Template->create(include_path => [$dir]);
 
-        # Precompile all the templates found in all the directories.
         %_templates_to_precompile = ();
-        foreach my $subdir (qw(custom extension default), bz_locations()->{'project'}) {
-            next unless $subdir; # If 'project' is empty.
-            $_current_path = File::Spec->catdir($templatedir, $dir, $subdir);
-            next unless -d $_current_path;
-            # Traverse the template hierarchy.
-            find({ wanted => \&_precompile_push, no_chdir => 1 }, $_current_path);
-        }
+        # Traverse the template hierarchy.
+        find({ wanted => \&_precompile_push, no_chdir => 1 }, $dir);
         # The sort isn't totally necessary, but it makes debugging easier
         # by making the templates always be compiled in the same order.
         foreach my $file (sort keys %_templates_to_precompile) {
+            $file =~ s{^\Q$dir\E/}{};
             # Compile the template but throw away the result. This has the side-
             # effect of writing the compiled version to disk.
             $template->context->template($file);
@@ -918,28 +936,17 @@ sub precompile_templates {
     # Under mod_perl, we look for templates using the absolute path of the
     # template directory, which causes Template Toolkit to look for their 
     # *compiled* versions using the full absolute path under the data/template
-    # directory. (Like data/template/var/www/html/mod_perl/.) To avoid
+    # directory. (Like data/template/var/www/html/bugzilla/.) To avoid
     # re-compiling templates under mod_perl, we symlink to the
     # already-compiled templates. This doesn't work on Windows.
     if (!ON_WINDOWS) {
-        my $abs_root = dirname(abs_path($templatedir));
-        my $todir    = "$datadir/template$abs_root";
-        mkpath($todir);
-        # We use abs2rel so that the symlink will look like 
-        # "../../../../template" which works, while just 
-        # "data/template/template/" doesn't work.
-        my $fromdir = File::Spec->abs2rel("$datadir/template/template", $todir);
-        # We eval for systems that can't symlink at all, where "symlink" 
-        # throws a fatal error.
-        eval { symlink($fromdir, "$todir/template") 
-                   or warn "Failed to symlink from $fromdir to $todir: $!" };
+        # We do these separately in case they're in different locations.
+        _do_template_symlink(bz_locations()->{'templatedir'});
+        _do_template_symlink(bz_locations()->{'extensionsdir'});
     }
 
     # If anything created a Template object before now, clear it out.
     delete Bugzilla->request_cache->{template};
-    # This is the single variable used to precompile templates,
-    # which needs to be cleared as well.
-    delete Bugzilla->request_cache->{template_include_path_};
 
     print install_string('done') . "\n" if $output;
 }
@@ -950,9 +957,38 @@ sub _precompile_push {
     return if (-d $name);
     return if ($name =~ /\/CVS\//);
     return if ($name !~ /\.tmpl$/);
-   
-    $name =~ s/\Q$_current_path\E\///;
     $_templates_to_precompile{$name} = 1;
+}
+
+# Helper for precompile_templates
+sub _do_template_symlink {
+    my $dir_to_symlink = shift;
+
+    my $abs_path = abs_path($dir_to_symlink);
+
+    # If $dir_to_symlink is already an absolute path (as might happen
+    # with packagers who set $libpath to an absolute path), then we don't
+    # need to do this symlink.
+    return if ($abs_path eq $dir_to_symlink);
+
+    my $abs_root  = dirname($abs_path);
+    my $dir_name  = basename($abs_path);
+    my $datadir   = bz_locations()->{'datadir'};
+    my $container = "$datadir/template$abs_root";
+    mkpath($container);
+    my $target = "$datadir/template/$dir_name";
+    # Check if the directory exists, because if there are no extensions,
+    # there won't be an "data/template/extensions" directory to link to.
+    if (-d $target) {
+        # We use abs2rel so that the symlink will look like 
+        # "../../../../template" which works, while just 
+        # "data/template/template/" doesn't work.
+        my $relative_target = File::Spec->abs2rel($target, $container);
+
+        my $link_name = "$container/$dir_name";
+        symlink($relative_target, $link_name)
+          or warn "Could not make $link_name a symlink to $relative_target: $!";
+    }
 }
 
 1;

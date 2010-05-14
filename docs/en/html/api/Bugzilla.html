@@ -84,6 +84,19 @@ name="METHODS"
 <dd>
 <p>The current <code  class="code">cgi</code> object. Note that modules should <b>not</b> be using this in general. Not all Bugzilla actions are cgi requests. Its useful as a convenience method for those scripts/templates which are only use via CGI, though.</p>
 
+<dt><a name="input_params"
+><code  class="code">input_params</code></a></dt>
+
+<dd>
+<p>When running under the WebService, this is a hashref containing the arguments passed to the WebService method that was called. When running in a normal script, this is a hashref containing the contents of the CGI parameters.</p>
+
+<p>Modifying this hashref will modify the CGI parameters or the WebService arguments (depending on what <code  class="code">input_params</code> currently represents).</p>
+
+<p>This should be used instead of <a href="#cgi" class="podlinkpod"
+>&#34;cgi&#34;</a> in situations where your code could be being called by either a normal CGI script or a WebService method, such as during a code hook.</p>
+
+<p><b>Note:</b> When <code  class="code">input_params</code> represents the CGI parameters, any parameter specified more than once (like <code  class="code">foo=bar&#38;foo=baz</code>) will appear as an arrayref in the hash, but any value specified only once will appear as a scalar. This means that even if a value <i>can</i> appear multiple times, if it only <i>does</i> appear once, then it will be a scalar in <code  class="code">input_params</code>, not an arrayref.</p>
+
 <dt><a name="user"
 ><code  class="code">user</code></a></dt>
 
@@ -165,7 +178,9 @@ name="METHODS"
 ><code  class="code">usage_mode</code></a></dt>
 
 <dd>
-<p>Call either <code  class="code">Bugzilla-</code>usage_mode(Bugzilla::Constants::USAGE_MODE_CMDLINE)&#62; or <code  class="code">Bugzilla-</code>usage_mode(Bugzilla::Constants::USAGE_MODE_WEBSERVICE)&#62; near the beginning of your script to change this flag&#39;s default of <code  class="code">Bugzilla::Constants::USAGE_MODE_BROWSER</code> and to indicate that Bugzilla is being called in a non-interactive manner. This influences error handling because on usage mode changes, <code  class="code">usage_mode</code> calls <code  class="code">Bugzilla-</code>error_mode&#62; to set an error mode which makes sense for the usage mode.</p>
+<p>Call either <code  class="code">Bugzilla-</code>usage_mode(Bugzilla::Constants::USAGE_MODE_CMDLINE)&#62; or <code  class="code">Bugzilla-</code>usage_mode(Bugzilla::Constants::USAGE_MODE_XMLRPC)&#62; near the beginning of your script to change this flag&#39;s default of <code  class="code">Bugzilla::Constants::USAGE_MODE_BROWSER</code> and to indicate that Bugzilla is being called in a non-interactive manner.</p>
+
+<p>This influences error handling because on usage mode changes, <code  class="code">usage_mode</code> calls <code  class="code">Bugzilla-</code>error_mode&#62; to set an error mode which makes sense for the usage mode.</p>
 
 <p><code  class="code">Bugzilla-</code>usage_mode&#62; will return the current state of this flag.</p>
 
@@ -220,13 +235,6 @@ name="METHODS"
 <dd>
 <p>The current Parameters of Bugzilla, as a hashref. If <code  class="code">data/params</code> does not exist, then we return an empty hashref. If <code  class="code">data/params</code> is unreadable or is not valid perl, we <code  class="code">die</code>.</p>
 
-<dt><a name="hook_args"
-><code  class="code">hook_args</code></a></dt>
-
-<dd>
-<p>If you are running inside a code hook (see <a href="./Bugzilla/Hook.html" class="podlinkpod"
->Bugzilla::Hook</a>) this is how you get the arguments passed to the hook.</p>
-
 <dt><a name="local_timezone"
 ><code  class="code">local_timezone</code></a></dt>
 
@@ -239,6 +247,12 @@ name="METHODS"
 <dd>
 <p>Returns a <a href="./Bugzilla/JobQueue.html" class="podlinkpod"
 >Bugzilla::JobQueue</a> that you can use for queueing jobs. Will throw an error if job queueing is not correctly configured on this Bugzilla installation.</p>
+
+<dt><a name="feature"
+><code  class="code">feature</code></a></dt>
+
+<dd>
+<p>Tells you whether or not a specific feature is enabled. For names of features, see <code  class="code">OPTIONAL_MODULES</code> in <code  class="code">Bugzilla::Install::Requirements</code>.</p>
 </dd>
 </dl>
 <p class="backlinkbottom"><b><a name="___bottom" href="index.html" title="All Documents">&lt;&lt;</a></b></p>

@@ -73,11 +73,13 @@ if (Bugzilla->params->{"useqacontact"}) {
 if (Bugzilla->params->{"usestatuswhiteboard"}) {
     push(@masterlist, "status_whiteboard");
 }
-if (Bugzilla::Keyword::keyword_count()) {
+if (Bugzilla::Keyword->any_exist) {
     push(@masterlist, "keywords");
 }
-
-if (Bugzilla->user->in_group(Bugzilla->params->{"timetrackinggroup"})) {
+if (Bugzilla->has_flags) {
+    push(@masterlist, "flagtypes.name");
+}
+if (Bugzilla->user->is_timetracker) {
     push(@masterlist, ("estimated_time", "remaining_time", "actual_time",
                        "percentage_complete", "deadline")); 
 }
@@ -88,7 +90,7 @@ my @custom_fields = grep { $_->type != FIELD_TYPE_MULTI_SELECT }
                          Bugzilla->active_custom_fields;
 push(@masterlist, map { $_->name } @custom_fields);
 
-Bugzilla::Hook::process("colchange-columns", {'columns' => \@masterlist} );
+Bugzilla::Hook::process('colchange_columns', {'columns' => \@masterlist} );
 
 $vars->{'masterlist'} = \@masterlist;
 
@@ -145,9 +147,9 @@ if (defined $cgi->param('rememberedquery')) {
         $search->update();
     }
 
-        my $params = new Bugzilla::CGI($cgi->param('rememberedquery'));
-        $params->param('columnlist', join(",", @collist));
-        $vars->{'redirect_url'} = "buglist.cgi?".$params->query_string();
+    my $params = new Bugzilla::CGI($cgi->param('rememberedquery'));
+    $params->param('columnlist', join(",", @collist));
+    $vars->{'redirect_url'} = "buglist.cgi?".$params->query_string();
 
 
     # If we're running on Microsoft IIS, using cgi->redirect discards

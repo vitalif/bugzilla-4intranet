@@ -83,7 +83,7 @@
       
       <para>Any machine that doesn't have Perl on it is a sad machine indeed.
       If you don't have it and your OS doesn't provide official packages, 
-      visit <ulink url="http://www.perl.com"/>.
+      visit <ulink url="http://www.perl.org"/>.
       Although Bugzilla runs with Perl &min-perl-ver;,
       it's a good idea to be using the latest stable version.
       </para>
@@ -393,8 +393,8 @@
 
         <listitem>
           <para>
-            <link linkend="install-modules-chart-base">Chart::Base</link>
-            (&min-chart-base-ver;) for bug charting
+            <link linkend="install-modules-chart-lines">Chart::Lines</link>
+            (&min-chart-lines-ver;) for bug charting
           </para>
         </listitem>
 
@@ -441,12 +441,6 @@
 
         <listitem>
           <para>
-            Image::Magick (&min-image-magick-ver;) for converting BMP image attachments to PNG
-          </para>
-        </listitem>
-
-        <listitem>
-          <para>
             Net::LDAP
             (&min-net-ldap-ver;) for LDAP Authentication
           </para>
@@ -470,6 +464,20 @@
           <para>
             <link linkend="install-modules-soap-lite">SOAP::Lite</link>
             (&min-soap-lite-ver;) for the web service interface
+          </para>
+        </listitem>
+
+        <listitem>
+          <para>
+            JSON::RPC
+            (&min-json-rpc-ver;) for the JSON-RPC interface
+          </para>
+        </listitem>
+
+        <listitem>
+          <para>
+            Test::Taint
+            (&min-test-taint-ver;) for the web service interface
           </para>
         </listitem>
 
@@ -577,10 +585,10 @@
        </tip>
       </section>
 
-      <section id="install-modules-chart-base">
-        <title>Chart::Base (&min-chart-base-ver;)</title>
+      <section id="install-modules-chart-lines">
+        <title>Chart::Lines (&min-chart-lines-ver;)</title>
 
-        <para>The Chart::Base module is only required if you want graphical 
+        <para>The Chart::Lines module is only required if you want graphical 
         reports. 
         Note that earlier versions that 0.99c used GIFs, which are no longer
         supported by the latest versions of GD.</para>
@@ -2004,7 +2012,7 @@ pid-file=/home/foo/mymysql/the.pid
 
       <screen>
         <prompt>bash$</prompt>
-        <command>wget http://perl.com/CPAN/src/stable.tar.gz</command>
+        <command>wget http://perl.org/CPAN/src/stable.tar.gz</command>
         <prompt>bash$</prompt>
         <command>tar zvxf stable.tar.gz</command>
         <prompt>bash$</prompt>

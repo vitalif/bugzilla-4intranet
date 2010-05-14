@@ -60,6 +60,7 @@ sub _column_length
     return $len;
 }
 
+undef &Text::TabularDisplay::_column_length;
 *Text::TabularDisplay::_column_length = \&_column_length;
 
 # -------------------------------------------------------------------

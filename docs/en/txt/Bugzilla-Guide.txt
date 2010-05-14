@@ -1,9 +1,9 @@
 
-The Bugzilla Guide - 3.4.6 Release
+The Bugzilla Guide - 3.6 Release
 
 The Bugzilla Team
 
-   2010-03-07
+   2010-04-13
 
    This is the documentation for Bugzilla, a bug-tracking system from
    mozilla.org. Bugzilla is an enterprise-class piece of software that tracks
@@ -75,9 +75,9 @@ The Bugzilla Team
 
    6. Customizing Bugzilla
 
-        6.1. Custom Skins
-        6.2. Template Customization
-        6.3. The Bugzilla Extension Mechanism
+        6.1. Bugzilla Extensions
+        6.2. Custom Skins
+        6.3. Template Customization
         6.4. Customizing Who Can Change What
         6.5. Integrating Bugzilla with Third-Party Tools
 
@@ -91,9 +91,8 @@ The Bugzilla Team
         A.4. DBD::Sponge::db prepare failed
         A.5. cannot chdir(/var/spool/mqueue)
         A.6. Everybody is constantly being forced to relogin
-        A.7. Some users are constantly being forced to relogin
-        A.8. index.cgi doesn't show up unless specified in the URL
-        A.9. checksetup.pl reports "Client does not support authentication
+        A.7. index.cgi doesn't show up unless specified in the URL
+        A.8. checksetup.pl reports "Client does not support authentication
                 protocol requested by server..."
 
    B. Contrib
@@ -173,7 +172,7 @@ Chapter 1. About This Guide
 
 1.3. New Versions
 
-   This is the 3.4.6 version of The Bugzilla Guide. It is so named to match the
+   This is the 3.6 version of The Bugzilla Guide. It is so named to match the
    current version of Bugzilla.
 
    The latest version of this guide can always be found at
@@ -319,7 +318,7 @@ Chapter 2. Installing Bugzilla
 
    Any machine that doesn't have Perl on it is a sad machine indeed. If you
    don't have it and your OS doesn't provide official packages, visit
-   http://www.perl.com. Although Bugzilla runs with Perl 5.8.1, it's a good
+   http://www.perl.org. Although Bugzilla runs with Perl 5.8.1, it's a good
    idea to be using the latest stable version.
      _________________________________________________________________
 
@@ -481,25 +480,26 @@ Chapter 2. Installing Bugzilla
 
     1. GD (1.20) for bug charting
     2. Template::Plugin::GD::Image (any) for Graphical Reports
-    3. Chart::Base (1.0) for bug charting
+    3. Chart::Lines (2.1) for bug charting
     4. GD::Graph (any) for bug charting
     5. GD::Text (any) for bug charting
     6. XML::Twig (any) for bug import/export
     7. MIME::Parser (5.406) for bug import/export
     8. LWP::UserAgent (any) for Automatic Update Notifications
     9. PatchReader (0.9.4) for pretty HTML view of patches
-   10. Image::Magick (any) for converting BMP image attachments to PNG
-   11. Net::LDAP (any) for LDAP Authentication
-   12. Authen::SASL (any) for SASL Authentication
-   13. Authen::Radius (any) for RADIUS Authentication
-   14. SOAP::Lite (0.710.06) for the web service interface
-   15. HTML::Parser (3.40) for More HTML in Product/Group Descriptions
-   16. HTML::Scrubber (any) for More HTML in Product/Group Descriptions
-   17. Email::MIME::Attachment::Stripper (any) for Inbound Email
-   18. Email::Reply (any) for Inbound Email
-   19. TheSchwartz (any) for Mail Queueing
-   20. Daemon::Generic (any) for Mail Queueing
-   21. mod_perl2 (1.999022) for mod_perl
+   10. Net::LDAP (any) for LDAP Authentication
+   11. Authen::SASL (any) for SASL Authentication
+   12. Authen::Radius (any) for RADIUS Authentication
+   13. SOAP::Lite (0.710.06) for the web service interface
+   14. JSON::RPC (any) for the JSON-RPC interface
+   15. Test::Taint (any) for the web service interface
+   16. HTML::Parser (3.40) for More HTML in Product/Group Descriptions
+   17. HTML::Scrubber (any) for More HTML in Product/Group Descriptions
+   18. Email::MIME::Attachment::Stripper (any) for Inbound Email
+   19. Email::Reply (any) for Inbound Email
+   20. TheSchwartz (any) for Mail Queueing
+   21. Daemon::Generic (any) for Mail Queueing
+   22. mod_perl2 (1.999022) for mod_perl
      _________________________________________________________________
 
 2.1.5.1. DBD::mysql
@@ -543,9 +543,9 @@ Chapter 2. Installing Bugzilla
    versions of the GD module won't work for you.
      _________________________________________________________________
 
-2.1.5.4. Chart::Base (1.0)
+2.1.5.4. Chart::Lines (2.1)
 
-   The Chart::Base module is only required if you want graphical reports. Note
+   The Chart::Lines module is only required if you want graphical reports. Note
    that earlier versions that 0.99c used GIFs, which are no longer supported by
    the latest versions of GD.
      _________________________________________________________________
@@ -1493,7 +1493,7 @@ pid-file=/home/foo/mymysql/the.pid
    will have to build the sources yourself. The following commands should get
    your system installed with your own personal version of Perl:
         bash$
-        wget http://perl.com/CPAN/src/stable.tar.gz
+        wget http://perl.org/CPAN/src/stable.tar.gz
         bash$
         tar zvxf stable.tar.gz
         bash$
@@ -1667,7 +1667,7 @@ hmod o+r {} \; ; done
    If you have modified the code or templates of your Bugzilla, then upgrading
    requires a bit more thought and effort. A discussion of the various methods
    of updating compared with degree and methods of local customization can be
-   found in Section 6.2.2.
+   found in Section 6.3.2.
 
    The larger the jump you are trying to make, the more difficult it is going
    to be to upgrade if you have made local customizations. Upgrading from 3.0
@@ -1876,10 +1876,10 @@ Chapter 3. Administering Bugzilla
           https://www.foo.com/bugzilla/index.cgi, the "sslbase" should be set
           to https://www.foo.com/bugzilla/.
 
-   ssl
-          Determines when Bugzilla will force HTTPS (SSL) connections, using
-          the URL defined in sslbase. Options include "always", "never", and
-          "authenticated sessions".
+   ssl_redirect
+          If enabled, Bugzilla will force HTTPS (SSL) connections, by
+          automatically redirecting any users who try to use a non-SSL
+          connection.
 
    cookiedomain
           Defines the domain for Bugzilla cookies. This is typically left
@@ -2077,15 +2077,6 @@ Chapter 3. Administering Bugzilla
           Determines whether or not to automatically create groups when new
           products are created. If this is on, the groups will be used for
           querying bugs.
-
-   useentrygroupdefault
-          Bugzilla products can have a group associated with them, so that
-          certain users can only see bugs in certain products. When this
-          parameter is set to "on", this causes the initial group controls on
-          newly created products to place all newly-created bugs in the group
-          having the same name as the product immediately. After a product is
-          initially created, the group controls can be further adjusted without
-          interference by this mechanism.
 
    usevisibilitygroups
           If selected, user visibility will be restricted to members of groups,
@@ -3691,7 +3682,7 @@ Chapter 5. Using Bugzilla
    If you want to use Bugzilla, first you need to create an account. Consult
    with the administrator responsible for your installation of Bugzilla for the
    URL you should use to access it. If you're test-driving Bugzilla, use this
-   URL: http://landfill.bugzilla.org/bugzilla-3.4-branch/.
+   URL: http://landfill.bugzilla.org/bugzilla-3.6-branch/.
 
     1. On the home page index.cgi, click the "Open a new Bugzilla account"
        link, or the "New Account" link available in the footer of pages. Now
@@ -3835,7 +3826,7 @@ Chapter 5. Using Bugzilla
 
    The Bugzilla Search page is the interface where you can find any bug report,
    comment, or patch currently in the Bugzilla system. You can play with it
-   here: http://landfill.bugzilla.org/bugzilla-3.4-branch/query.cgi.
+   here: http://landfill.bugzilla.org/bugzilla-3.6-branch/query.cgi.
 
    The Search page has controls for selecting different possible values for all
    of the fields in a bug, as described above. For some fields, multiple values
@@ -4796,7 +4787,18 @@ Chapter 5. Using Bugzilla
 
 Chapter 6. Customizing Bugzilla
 
-6.1. Custom Skins
+6.1. Bugzilla Extensions
+
+   One of the best ways to customize Bugzilla is by writing a Bugzilla
+   Extension. Bugzilla Extensions let you modify both the code and UI of
+   Bugzilla in a way that can be distributed to other Bugzilla users and ported
+   forward to future versions of Bugzilla with minimal effort.
+
+   See the Bugzilla Extension documentation for information on how to write an
+   Extension.
+     _________________________________________________________________
+
+6.2. Custom Skins
 
    Bugzilla allows you to have multiple skins. These are custom CSS and
    possibly also custom images for Bugzilla. To create a new custom skin, you
@@ -4815,7 +4817,7 @@ Chapter 6. Customizing Bugzilla
    "Enabled" on the preference.
      _________________________________________________________________
 
-6.2. Template Customization
+6.3. Template Customization
 
    Administrators can configure the look and feel of Bugzilla without having to
    edit Perl files or face the nightmare of massive merge conflicts when they
@@ -4823,10 +4825,10 @@ Chapter 6. Customizing Bugzilla
 
    Templatization also makes localized versions of Bugzilla possible, for the
    first time. It's possible to have Bugzilla's UI language determined by the
-   user's browser. More information is available in Section 6.2.6.
+   user's browser. More information is available in Section 6.3.6.
      _________________________________________________________________
 
-6.2.1. Template Directory Structure
+6.3.1. Template Directory Structure
 
    The template directory structure starts with top level directory named
    template, which contains a directory for each installed localization. The
@@ -4844,7 +4846,7 @@ Chapter 6. Customizing Bugzilla
    templates.
      _________________________________________________________________
 
-6.2.2. Choosing a Customization Method
+6.3.2. Choosing a Customization Method
 
    If you want to edit Bugzilla's templates, the first decision you must make
    is how you want to go about doing so. There are two choices, and which you
@@ -4902,7 +4904,7 @@ Chapter 6. Customizing Bugzilla
    message.
      _________________________________________________________________
 
-6.2.3. How To Edit Templates
+6.3.3. How To Edit Templates
 
    Note
 
@@ -4935,7 +4937,7 @@ Chapter 6. Customizing Bugzilla
    internally, but your users don't need to know that.
      _________________________________________________________________
 
-6.2.4. Template Formats and Types
+6.3.4. Template Formats and Types
 
    Some CGI's have the ability to use more than one template. For example,
    buglist.cgi can output itself as RDF, or as two formats of HTML (complex and
@@ -4977,7 +4979,7 @@ Chapter 6. Customizing Bugzilla
    <cginame>.cgi?format=<formatname>&ctype=<type> .
      _________________________________________________________________
 
-6.2.5. Particular Templates
+6.3.5. Particular Templates
 
    There are a few templates you may be particularly interested in customizing
    for your installation.
@@ -5069,166 +5071,13 @@ Chapter 6. Customizing Bugzilla
    would appear in the initial comment.
      _________________________________________________________________
 
-6.2.6. Configuring Bugzilla to Detect the User's Language
+6.3.6. Configuring Bugzilla to Detect the User's Language
 
    Bugzilla honours the user's Accept: HTTP header. You can install templates
    in other languages, and Bugzilla will pick the most appropriate according to
    a priority order defined by you. Many language templates can be obtained
    from http://www.bugzilla.org/download.html#localizations. Instructions for
    submitting new languages are also available from that location.
-     _________________________________________________________________
-
-6.3. The Bugzilla Extension Mechanism
-
-   Warning
-
-   Note that the below paths are inconsistent and confusing. They will likely
-   be changed in Bugzilla 4.0.
-
-   Extensions are a way for extensions to Bugzilla to insert code into the
-   standard Bugzilla templates and source files without modifying these files
-   themselves. The extension mechanism defines a consistent API for extending
-   the standard templates and source files in a way that cleanly separates
-   standard code from extension code. Hooks reduce merge conflicts and make it
-   easier to write extensions that work across multiple versions of Bugzilla,
-   making upgrading a Bugzilla installation with installed extensions easier.
-   Furthermore, they make it easy to install and remove extensions as each
-   extension is nothing more than a simple directory structure.
-
-   There are two main types of hooks: code hooks and template hooks. Code hooks
-   allow extensions to invoke code at specific points in various source files,
-   while template hooks allow extensions to add elements to the Bugzilla user
-   interface.
-
-   A hook is just a named place in a standard source or template file where
-   extension source code or template files for that hook get processed. Each
-   extension has a corresponding directory in the Bugzilla directory tree
-   (BUGZILLA_ROOT/extensions/extension_name). Hooking an extension source file
-   or template to a hook is as simple as putting the extension file into
-   extension's template or code directory. When Bugzilla processes the source
-   file or template and reaches the hook, it will process all extension files
-   in the hook's directory. The hooks themselves can be added into any source
-   file or standard template upon request by extension authors.
-
-   To use hooks to extend Bugzilla, first make sure there is a hook at the
-   appropriate place within the source file or template you want to extend. The
-   exact appearance of a hook depends on if the hook is a code hook or a
-   template hook.
-
-   Code hooks appear in Bugzilla source files as a single method call in the
-   format Bugzilla::Hook->process("name");. For instance, enter_bug.cgi may
-   invoke the hook "enter_bug-entrydefaultvars". Thus, a source file at
-   BUGZILLA_ROOT/extensions/EXTENSION_NAME/code/enter_bug-entrydefaultvars.pl
-   will be automatically invoked when the code hook is reached.
-
-   Template hooks appear in the standard Bugzilla templates as a single
-   directive in the format [% Hook.process("name") %], where name is the unique
-   name of the hook.
-
-   If you aren't sure what you want to extend or just want to browse the
-   available hooks, either use your favorite multi-file search tool (e.g. grep)
-   to search the standard templates for occurrences of Hook.process or the
-   source files for occurrences of Bugzilla::Hook::process.
-
-   If there is no hook at the appropriate place within the Bugzilla source file
-   or template you want to extend, file a bug requesting one, specifying:
-
-   the source or template file for which you are requesting a hook;
-   where in the file you would like the hook to be placed (line number/position
-   for latest version of the file in CVS or description of location);
-   the purpose of the hook;
-   a link to information about your extension, if any.
-
-   The Bugzilla reviewers will promptly review each hook request, name the
-   hook, add it to the template or source file, and check the new version of
-   the template into CVS.
-
-   You may optionally attach a patch to the bug which implements the hook and
-   check it in yourself after receiving approval from a Bugzilla reviewer. The
-   developers may suggest changes to the location of the hook based on their
-   analysis of your needs or so the hook can satisfy the needs of multiple
-   extensions, but the process of getting hooks approved and checked in is not
-   as stringent as the process for general changes to Bugzilla, and any
-   extension, whether released or still in development, can have hooks added to
-   meet their needs.
-
-   After making sure the hook you need exists (or getting it added if not), add
-   your extension to the directory within the Bugzilla extensions tree
-   corresponding to the hook.
-
-   That's it! Now, when the source file or template containing the hook is
-   processed, your extension file will be processed at the point where the hook
-   appears.
-
-   For example, let's say you have an extension named Projman that adds project
-   management capabilities to Bugzilla. Projman has an administration interface
-   edit-projects.cgi, and you want to add a link to it into the navigation bar
-   at the bottom of every Bugzilla page for those users who are authorized to
-   administer projects.
-
-   The navigation bar is generated by the template file useful-links.html.tmpl,
-   which is located in the global/ subdirectory on the standard Bugzilla
-   template path BUGZILLA_ROOT/template/en/default/. Looking in
-   useful-links.html.tmpl, you find the following hook at the end of the list
-   of standard Bugzilla administration links:
-...
-    [% ', <a href="editkeywords.cgi">keywords</a>'
-       IF user.in_group('editkeywords') %]
-    [% Hook.process("edit") %]
-...
-
-   The corresponding extension file for this hook is
-   BUGZILLA_ROOT/extensions/projman/template/en/global/useful-links-edit.html.t
-   mpl. You then create that template file and add the following constant:
-...[% ', <a href="edit-projects.cgi">projects</a>' IF user.in_group('projman_ad
-mins') %]
-
-   Voila! The link now appears after the other administration links in the
-   navigation bar for users in the projman_admins group.
-
-   Now, let us say your extension adds a custom "project_manager" field to
-   enter_bug.cgi. You want to modify the CGI script to set the default project
-   manager to be productname@company.com. Looking at enter_bug.cgi, you see the
-   enter_bug-entrydefaultvars hook near the bottom of the file before the
-   default form values are set. The corresponding extension source file for
-   this hook is located at
-   BUGZILLA_ROOT/extensions/projman/code/enter_bug-entrydefaultvars.pl. You
-   then create that file and add the following:
-   $default{'project_manager'} = $product.'@company.com';
-
-   This code will be invoked whenever enter_bug.cgi is executed. Assuming that
-   the rest of the customization was completed (e.g. the custom field was added
-   to the enter_bug template and the required hooks were used in
-   process_bug.cgi), the new field will now have this default value.
-
-   Notes:
-
-     * If your extension includes entirely new templates in addition to
-       extensions of standard templates, it should store those new templates in
-       its BUGZILLA_ROOT/extensions/template/en/ directory. Extension template
-       directories, like the default/ and custom/ directories, are part of the
-       template search path, so putting templates there enables them to be
-       found by the template processor.
-       The template processor looks for templates first in the custom/
-       directory (i.e. templates added by the specific installation), then in
-       the extensions/ directory (i.e. templates added by extensions), and
-       finally in the default/ directory (i.e. the standard Bugzilla
-       templates). Thus, installation-specific templates override both default
-       and extension templates.
-     * If you are looking to customize Bugzilla, you can also take advantage of
-       template hooks. To do so, create a directory in
-       BUGZILLA_ROOT/template/en/custom/hook/ that corresponds to the hook you
-       wish to use, then place your customization templates into those
-       directories. For example, if you wanted to use the hook "end" in
-       global/useful-links.html.tmpl, you would create the directory
-       BUGZILLA_ROOT/template/en/custom/hook/
-       global/useful-links.html.tmpl/end/ and add your customization template
-       to this directory.
-       Obviously this method of customizing Bugzilla only lets you add code to
-       the standard source files and templates; you cannot change the existing
-       code. Nevertheless, for those customizations that only add code, this
-       method can reduce conflicts when merging changes, making upgrading your
-       customized Bugzilla installation easier.
      _________________________________________________________________
 
 6.4. Customizing Who Can Change What
@@ -5327,9 +5176,9 @@ mins') %]
 6.5. Integrating Bugzilla with Third-Party Tools
 
    Many utilities and applications can integrate with Bugzilla, either on the
-   client- or server-side. None of them is maintained by the Bugzilla
-   community, nor are they being tested during our QA tests, so use them at
-   your own risk. They are listed at https://wiki.mozilla.org/Bugzilla:Addons.
+   client- or server-side. None of them are maintained by the Bugzilla
+   community, nor are they tested during our QA tests, so use them at your own
+   risk. They are listed at https://wiki.mozilla.org/Bugzilla:Addons.
      _________________________________________________________________
 
 Appendix A. Troubleshooting
@@ -5485,29 +5334,7 @@ A.6. Everybody is constantly being forced to relogin
    browser (this is true starting with Bugzilla 2.18 and Bugzilla 2.16.5).
      _________________________________________________________________
 
-A.7. Some users are constantly being forced to relogin
-
-   First, make sure cookies are enabled in the user's browser.
-
-   If that doesn't fix the problem, it may be that the user's ISP implements a
-   rotating proxy server. This causes the user's effective IP address (the
-   address which the Bugzilla server perceives him coming from) to change
-   periodically. Since Bugzilla cookies are tied to a specific IP address, each
-   time the effective address changes, the user will have to log in again.
-
-   If you are using 2.18 (or later), there is a parameter called
-   "loginnetmask", which you can use to set the number of bits of the user's IP
-   address to require to be matched when authenticating the cookies. If you set
-   this to something less than 32, then the user will be given a checkbox for
-   "Restrict this login to my IP address" on the login screen, which defaults
-   to checked. If they leave the box checked, Bugzilla will behave the same as
-   it did before, requiring an exact match on their IP address to remain logged
-   in. If they uncheck the box, then only the left side of their IP address (up
-   to the number of bits you specified in the parameter) has to match to remain
-   logged in.
-     _________________________________________________________________
-
-A.8. index.cgi doesn't show up unless specified in the URL
+A.7. index.cgi doesn't show up unless specified in the URL
 
    You probably need to set up your web server in such a way that it will serve
    the index.cgi page as an index page.
@@ -5516,7 +5343,7 @@ A.8. index.cgi doesn't show up unless specified in the URL
    the DirectoryIndex line as mentioned in Section 2.2.4.1.
      _________________________________________________________________
 
-A.9. checksetup.pl reports "Client does not support authentication protocol
+A.8. checksetup.pl reports "Client does not support authentication protocol
 requested by server..."
 
    This error is occurring because you are using the new password encryption
@@ -5694,7 +5521,7 @@ C.2. Download Locations
 
 C.3. Optional Modules
 
-   Chart::Base:
+   Chart::Lines:
 
            CPAN Download Page: http://search.cpan.org/dist/Chart/
            Documentation: http://search.cpan.org/dist/Chart/Chart.pod
@@ -5720,11 +5547,6 @@ C.3. Optional Modules
            CPAN Download Page: http://search.cpan.org/author/JKEISER/PatchReade
    r/
            Documentation: http://www.johnkeiser.com/mozilla/Patch_Viewer.html
-
-   Image::Magick:
-
-           CPAN Download Page: http://search.cpan.org/dist/PerlMagick/
-           Documentation: http://www.imagemagick.org/script/resources.php
      _________________________________________________________________
 
 Appendix D. GNU Free Documentation License

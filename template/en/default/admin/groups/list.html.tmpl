@@ -75,12 +75,12 @@
 [% overrides.is_active_bug_group = {
      'is_active_bug_group' => {
        "0" => {
-     override_content => 1
-     content => "&nbsp;"
+          override_content => 1
+          content => "&nbsp;"
        }
        "1" => {
-     override_content => 1
-     content => "X"
+          override_content => 1
+          content => "X"
        }
      }
    }
@@ -88,8 +88,8 @@
    overrides.userregexp = {
      'userregexp' => {
        "" => {
-     override_content => 1
-     content => "&nbsp;"
+         override_content => 1
+         content => "&nbsp;"
        }
      }
    } 
@@ -109,24 +109,24 @@
 
 [% overrides.action.isbuggroup = {
      "1" => {
-     override_content => 1
-     content => "Delete"
-     override_contentlink => 1
-     contentlink => del_contentlink
+         override_content => 1
+         content => "Delete"
+         override_contentlink => 1
+         contentlink => del_contentlink
      }
    }
 
    overrides.type.isbuggroup = {
      "0" => {
-     override_content => 1
-     content => "system"
+         override_content => 1
+         content => "system"
      }
      "1" => {
-     override_content => 1
-     content => "user"
+         override_content => 1
+         content => "user"
      }
    }
-%]
+%] 
 
 [% PROCESS admin/table.html.tmpl
   columns = columns

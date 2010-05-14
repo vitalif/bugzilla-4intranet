@@ -31,7 +31,7 @@
 
 [% PROCESS global/header.html.tmpl
    title = "$terms.Bugzilla Main Page"
-   header = "Main Page"
+   header = "Main Page" 
    header_addl_info = "version $constants.BUGZILLA_VERSION"
    style_urls = [ 'skins/standard/index.css' ]
 %]
@@ -47,19 +47,19 @@ function onLoadActions() {
   document.getElementById('quicksearch_top').focus();
 }
 function addSidebar() {
-    var sidebarname=window.location.host;
-    if (!/bug/i.test(sidebarname))
-      sidebarname="[% terms.Bugzilla %] "+sidebarname;
-    window.sidebar.addPanel (sidebarname, "[% urlbase FILTER html %]sidebar.cgi", "");
+  var sidebarname=window.location.host;
+  if (!/bug/i.test(sidebarname))
+    sidebarname="[% terms.Bugzilla %] "+sidebarname;
+  window.sidebar.addPanel (sidebarname, "[% urlbase FILTER html %]sidebar.cgi", "");
 }
 var quicksearch_message = "Enter [% terms.abug %] # or some search terms";
 
 function checkQuicksearch( form ) {
-  if (form.quicksearch.value == '' || form.quicksearch.value == quicksearch_message ) {
+  if (form.quicksearch.value == '' || form.quicksearch.value == quicksearch_message ) { 
     alert('Please enter one or more search terms first.');
-    return false;
+    return false; 
   }
-  return true;
+  return true;         
 }
 
 function quicksearchHelpText(el_id, action){
@@ -97,10 +97,7 @@ document.getElementById('quicksearchtop').focus();
 
       <p class="notice">This message is only shown to logged in users with admin privs.
       You can configure this notification from the
-      <a href="editparams.cgi?section=core#upgrade_notification">Parameters</a> page.</p>
-    [% ELSIF release.error == "missing_package" %]
-      <p>Missing package '[% release.package FILTER html %]'. This package is required to
-      <a href="editparams.cgi?section=core#upgrade_notification">notify you about new releases</a>.</p>
+      <a href="editparams.cgi?section=general#upgrade_notification">Parameters</a> page.</p>
     [% ELSIF release.error == "cannot_download" %]
       <p>The local XML file '[% release.xml_file FILTER html %]' cannot be created.
       Please make sure the web server can write in this directory and that you can access
@@ -131,15 +128,15 @@ document.getElementById('quicksearchtop').focus();
         <div class="intro">[% Hook.process('intro') %]</div>
         <a tabindex=2 id="enter_bug" class="bz_common_actions"
            href="enter_bug.cgi"><span>File [% terms.aBug %]</span></a>
-
+      
         <a tabindex=2 id="query" class="bz_common_actions"
            href="query.cgi"><span>Search</span></a>
-
+      
         <a tabindex=2 id="account" class="bz_common_actions"
           [% IF user.id %]
             href="userprefs.cgi"><span>User Preferences</span></a>
           [% ELSIF Param('createemailregexp')
-                   && user.authorizer.user_can_create_account
+                   && user.authorizer.user_can_create_account 
           %]
             href="createaccount.cgi"><span>Open a New Account</span></a>
           [% ELSE %]
@@ -179,7 +176,7 @@ document.getElementById('quicksearchtop').focus();
           </div>
           [%# List items of links to more things users can do on this installation. %]
           [% Hook.process("links") %]
-          </form>
+        </form>
         <div class="outro">[% Hook.process('outro') %]</div>
       </td>
     </tr>

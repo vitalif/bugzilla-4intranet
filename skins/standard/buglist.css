@@ -28,6 +28,25 @@
   margin-right: 2em;
 }
 
+.zero_results, .zero_result_links {
+  font-size: 120%;
+  font-weight: bold;
+}
+
+.bz_buglist_header th {
+  text-align: left;
+}
+
+.bz_sort_order_primary,
+.bz_sort_order_secondary {
+    display: inline-block;
+    padding-left: .2em;
+    text-decoration: none;
+}
+.bz_sort_order_primary   { color: black; }
+.bz_sort_order_secondary { color: #777;  }
+
+
 .search_description .search_field { font-weight: bold; }
 .search_description .search_value { font-size: 85%; }
 

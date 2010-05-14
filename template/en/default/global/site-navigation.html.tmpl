@@ -20,7 +20,6 @@
   #%]
 
 [%# INTERFACE:
-  # bug_list: list of integers. List of bug numbers of current query (if any).
   # bug.bug_id: integer. Number of current bug (for navigation purposes)
   #%]
 
@@ -31,31 +30,6 @@
 
 [% IF NOT (cgi.user_agent("MSIE [1-6]") OR cgi.user_agent("Mozilla/4")) %]
   <link rel="Top" href="[% urlbase FILTER html %]">
-
-  [%# *** Bug List Navigation *** %]
-  [% IF bug_list && bug_list.size > 0 %]
-    <link rel="Up" href="buglist.cgi?regetlastlist=1">
-
-    <link rel="First" href="show_bug.cgi?id=[% bug_list.first %]">
-    <link rel="Last" href="show_bug.cgi?id=[% bug_list.last %]">
-
-    [% IF bug && bug.bug_id %]
-      [% current_bug_idx = lsearch(bug_list, bug.bug_id) %]
-      [% IF current_bug_idx != -1 %]
-
-        [% IF current_bug_idx > 0 %]
-          [% prev_bug = current_bug_idx - 1 %]
-          <link rel="Prev" href="show_bug.cgi?id=[% bug_list.$prev_bug %]">
-        [% END %]
-
-        [% IF current_bug_idx + 1 < bug_list.size %]
-          [% next_bug = current_bug_idx + 1 %]
-          <link rel="Next" href="show_bug.cgi?id=[% bug_list.$next_bug %]">
-        [% END %]
-
-      [% END %]
-    [% END %]
-  [% END %]
 
   [%# *** Attachment *** %]
   [% IF attachment && attachment.bug_id %]
@@ -92,7 +66,7 @@
   [% END %]
 
   [% FOREACH q = user.queries %]
-    <link rel="Saved&nbsp;Searches"
+    <link rel="Saved&nbsp;Searches" 
           title="[% q.name FILTER html %]"
           href="buglist.cgi?cmdtype=runnamed&amp;namedcmd=[% q.name FILTER url_quote %]">
   [% END %]
@@ -106,7 +80,7 @@
   [% END %]
 
   [%# *** Bugzilla Administration Tools *** %]
-  [% IF user.login %]
+  [% IF user.login %] 
     [% '<link rel="Administration" title="Parameters"   href="editparams.cgi">'    IF user.in_group('tweakparams') %]
     [% '<link rel="Administration" title="Users"        href="editusers.cgi">'     IF user.in_group('editusers') %]
     [%# TODO this is probably slow for non-admins... %]
@@ -116,5 +90,5 @@
     [% '<link rel="Administration" title="Keywords"     href="editkeywords.cgi">'  IF user.in_group('editkeywords') %]
     [% '<link rel="Administration" title="Whining"      href="editwhines.cgi">'    IF user.in_group('bz_canusewhines') %]
     [% '<link rel="Administration" title="Sanity Check" href="sanitycheck.cgi">'   IF user.in_group('editcomponents') %]
-  [% END %]
+  [% END %]  
 [% END %]

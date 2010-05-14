@@ -37,17 +37,18 @@ use base qw(Exporter);
                              detaint_signed
                              html_quote url_quote xml_quote
                              css_class_quote html_light_quote url_decode
-                             i_am_cgi get_netaddr correct_urlbase
-                             lsearch ssl_require_redirect use_attachbase
+                             i_am_cgi correct_urlbase remote_ip
+                             lsearch do_ssl_redirect_if_required use_attachbase
                              diff_arrays
                              trim wrap_hard wrap_comment find_wrap_point
                              format_time format_time_decimal validate_date
-                             validate_time
+                             validate_time datetime_from
                              file_mod_time is_7bit_clean
                              bz_crypt generate_random_password
                              validate_email_syntax clean_text
-                             get_fielddesc get_term
-                             get_text disable_utf8 stem_text);
+                             stem_text
+                             intersect
+                             get_text template_var disable_utf8);
 
 use Bugzilla::Constants;
 
@@ -57,7 +58,9 @@ use DateTime;
 use DateTime::TimeZone;
 use Digest;
 use Email::Address;
+use List::Util qw(first);
 use Scalar::Util qw(tainted);
+use Template::Filters;
 use Text::Wrap;
 use Text::TabularDisplay::Utf8;
 
@@ -78,26 +81,48 @@ sub trick_taint_copy {
 
 sub detaint_natural {
     my $match = $_[0] =~ /^(\d+)$/;
-    $_[0] = $match ? $1 : undef;
+    $_[0] = $match ? int($1) : undef;
     return (defined($_[0]));
 }
 
 sub detaint_signed {
     my $match = $_[0] =~ /^([-+]?\d+)$/;
-    $_[0] = $match ? $1 : undef;
-    # Remove any leading plus sign.
-    if (defined($_[0]) && $_[0] =~ /^\+(\d+)$/) {
-        $_[0] = $1;
-    }
+    # The "int()" call removes any leading plus sign.
+    $_[0] = $match ? int($1) : undef;
     return (defined($_[0]));
 }
 
+# Bug 120030: Override html filter to obscure the '@' in user
+#             visible strings.
+# Bug 319331: Handle BiDi disruptions.
 sub html_quote {
-    my ($var) = (@_);
-    $var =~ s/\&/\&amp;/g;
-    $var =~ s/</\&lt;/g;
-    $var =~ s/>/\&gt;/g;
-    $var =~ s/\"/\&quot;/g;
+    my ($var) = Template::Filters::html_filter(@_);
+    # Obscure '@'.
+    $var =~ s/\@/\&#64;/g;
+    if (Bugzilla->params->{'utf8'}) {
+        # Remove the following characters because they're
+        # influencing BiDi:
+        # --------------------------------------------------------
+        # |Code  |Name                      |UTF-8 representation|
+        # |------|--------------------------|--------------------|
+        # |U+202a|Left-To-Right Embedding   |0xe2 0x80 0xaa      |
+        # |U+202b|Right-To-Left Embedding   |0xe2 0x80 0xab      |
+        # |U+202c|Pop Directional Formatting|0xe2 0x80 0xac      |
+        # |U+202d|Left-To-Right Override    |0xe2 0x80 0xad      |
+        # |U+202e|Right-To-Left Override    |0xe2 0x80 0xae      |
+        # --------------------------------------------------------
+        #
+        # The following are characters influencing BiDi, too, but
+        # they can be spared from filtering because they don't
+        # influence more than one character right or left:
+        # --------------------------------------------------------
+        # |Code  |Name                      |UTF-8 representation|
+        # |------|--------------------------|--------------------|
+        # |U+200e|Left-To-Right Mark        |0xe2 0x80 0x8e      |
+        # |U+200f|Right-To-Left Mark        |0xe2 0x80 0x8f      |
+        # --------------------------------------------------------
+        $var =~ s/[\x{202a}-\x{202e}]//g;
+    }
     return $var;
 }
 
@@ -109,12 +134,7 @@ sub html_light_quote {
                    dfn samp kbd big small sub sup tt dd dt dl ul li ol
                    fieldset legend);
 
-    # Are HTML::Scrubber and HTML::Parser installed?
-    eval { require HTML::Scrubber;
-           require HTML::Parser;
-    };
-
-    if ($@) { # Package(s) not installed.
+    if (!Bugzilla->feature('html_desc')) {
         my $safe = join('|', @allow);
         my $chr = chr(1);
 
@@ -129,7 +149,7 @@ sub html_light_quote {
         $text =~ s#$chr($safe)$chr#<$1>#go;
         return $text;
     }
-    else { # Packages installed.
+    else {
         # We can be less restrictive. We can accept elements with attributes.
         push(@allow, qw(a blockquote q span));
 
@@ -207,7 +227,7 @@ sub url_quote {
 
 sub css_class_quote {
     my ($toencode) = (@_);
-    $toencode =~ s/ /_/g;
+    $toencode =~ s#[ /]#_#g;
     $toencode =~ s/([^a-zA-Z0-9_\-.])/uc sprintf("&#x%x;",ord($1))/eg;
     return $toencode;
 }
@@ -249,66 +269,51 @@ sub i_am_cgi {
     return exists $ENV{'SERVER_SOFTWARE'} ? 1 : 0;
 }
 
-sub ssl_require_redirect {
-    my $method = shift;
+# This exists as a separate function from Bugzilla::CGI::redirect_to_https
+# because we don't want to create a CGI object during XML-RPC calls
+# (doing so can mess up XML-RPC).
+sub do_ssl_redirect_if_required {
+    return if !i_am_cgi();
+    return if !Bugzilla->params->{'ssl_redirect'};
 
-    # If currently not in a protected SSL 
-    # connection, determine if a redirection is 
-    # needed based on value in Bugzilla->params->{ssl}.
-    # If we are already in a protected connection or
-    # sslbase is not set then no action is required.
-    if (uc($ENV{'HTTPS'}) ne 'ON' 
-        && $ENV{'SERVER_PORT'} != 443 
-        && Bugzilla->params->{'sslbase'} ne '')
-    {
-        # System is configured to never require SSL 
-        # so no redirection is needed.
-        return 0 
-            if Bugzilla->params->{'ssl'} eq 'never';
-            
-        # System is configured to always require a SSL
-        # connection so we need to redirect.
-        return 1
-            if Bugzilla->params->{'ssl'} eq 'always';
-
-        # System is configured such that if we are inside
-        # of an authenticated session, then we need to make
-        # sure that all of the connections are over SSL. Non
-        # authenticated sessions SSL is not mandatory.
-        # For XMLRPC requests, if the method is User.login
-        # then we always want the connection to be over SSL
-        # if the system is configured for authenticated
-        # sessions since the user's username and password
-        # will be passed before the user is logged in.
-        return 1 
-            if Bugzilla->params->{'ssl'} eq 'authenticated sessions'
-                && (Bugzilla->user->id 
-                    || (defined $method && $method eq 'User.login'));
-    }
-
-    return 0;
+    my $sslbase = Bugzilla->params->{'sslbase'};
+    
+    # If we're already running under SSL, never redirect.
+    return if uc($ENV{HTTPS} || '') eq 'ON';
+    # Never redirect if there isn't an sslbase.
+    return if !$sslbase;
+    Bugzilla->cgi->redirect_to_https();
 }
 
-sub correct_urlbase
-{
+sub correct_urlbase {
     if ($Bugzilla::CustisLocalBugzillas::HackIntoCorrectUrlbase)
     {
         # Отправка почты заказчикам со ссылками на свои багзиллы
         return $Bugzilla::CustisLocalBugzillas::HackIntoCorrectUrlbase;
     }
-    my $ssl = Bugzilla->params->{'ssl'};
-    return Bugzilla->params->{'urlbase'} if $ssl eq 'never';
-
+    my $ssl = Bugzilla->params->{'ssl_redirect'};
+    my $urlbase = Bugzilla->params->{'urlbase'};
     my $sslbase = Bugzilla->params->{'sslbase'};
-    if ($sslbase) {
-        return $sslbase if $ssl eq 'always';
-        # Authenticated Sessions
-        return $sslbase if Bugzilla->user->id;
-    }
 
-    # Set to "authenticated sessions" but nobody's logged in, or
-    # sslbase isn't set.
-    return Bugzilla->params->{'urlbase'};
+    if (!$sslbase) {
+        return $urlbase;
+    }
+    elsif ($ssl) {
+        return $sslbase;
+    }
+    else {
+        # Return what the user currently uses.
+        return (uc($ENV{HTTPS} || '') eq 'ON') ? $sslbase : $urlbase;
+    }
+}
+
+sub remote_ip {
+    my $ip = $ENV{'REMOTE_ADDR'} || '127.0.0.1';
+    my @proxies = split(/[\s,]+/, Bugzilla->params->{'inbound_proxies'});
+    if (first { $_ eq $ip } @proxies) {
+        $ip = $ENV{'HTTP_X_FORWARDED_FOR'} if $ENV{'HTTP_X_FORWARDED_FOR'};
+    }
+    return $ip;
 }
 
 sub use_attachbase {
@@ -391,7 +396,7 @@ sub wrap_comment
         }
         if (length $line)
         {
-            # If the line starts with ">", don't wrap it. Otherwise, wrap.
+    # If the line starts with ">", don't wrap it. Otherwise, wrap.
             if ($line !~ /^>/so)
             {
                 my $n = scalar($line =~ s/(\t+)/$1/gso);
@@ -401,15 +406,15 @@ sub wrap_comment
                     $table = Text::TabularDisplay::Utf8->new;
                     $table->add(split /\t+/, $line);
                     next;
-                }
+      }
                 unless ($line =~ /^[│─┌┐└┘├┴┬┤┼].*[│─┌┐└┘├┴┬┤┼]$/iso)
                 {
                     $line =~ s/\t/    /gso;
                     while (length($line) > $cols && $line =~ s/$re//)
                     {
                         $wrappedcomment .= $1 . "\n";
-                    }
-                }
+      }
+    }
             }
             $wrappedcomment .= $line . "\n" if length $line;
         }
@@ -458,7 +463,9 @@ sub format_time {
 
     # If $format is not set, try to guess the correct date format.
     if (!$format) {
-        if ($date =~ m/^(\d{4})[-\.](\d{2})[-\.](\d{2}) (\d{2}):(\d{2})(:(\d{2}))?$/) {
+        if (!ref $date
+            && $date =~ /^(\d{4})[-\.](\d{2})[-\.](\d{2}) (\d{2}):(\d{2})(:(\d{2}))?$/) 
+        {
             my $sec = $7;
             if (defined $sec) {
                 $format = "%Y-%m-%d %T %Z";
@@ -471,44 +478,52 @@ sub format_time {
         }
     }
 
-    # strptime($date) returns an empty array if $date has an invalid date format.
+    my $dt = ref $date ? $date : datetime_from($date, $timezone);
+    $date = defined $dt ? $dt->strftime($format) : '';
+    return trim($date);
+}
+
+sub datetime_from {
+    my ($date, $timezone) = @_;
+
+    # In the database, this is the "0" date.
+    return undef if $date =~ /^0000/;
+
+    # strptime($date) returns an empty array if $date has an invalid
+    # date format.
     my @time = strptime($date);
 
     unless (scalar @time) {
-        # If an unknown timezone is passed (such as MSK, for Moskow), strptime() is
-        # unable to parse the date. We try again, but we first remove the timezone.
+        # If an unknown timezone is passed (such as MSK, for Moskow),
+        # strptime() is unable to parse the date. We try again, but we first
+        # remove the timezone.
         $date =~ s/\s+\S+$//;
         @time = strptime($date);
     }
 
-    if (scalar @time) {
-        # Fix a bug in strptime() where seconds can be undefined in some cases.
-        $time[0] ||= 0;
+    return undef if !@time;
 
-        # strptime() counts years from 1900, and months from 0 (January).
-        # We have to fix both values.
-        my $dt = DateTime->new({year   => 1900 + $time[5],
-                                month  => ++$time[4],
-                                day    => $time[3],
-                                hour   => $time[2],
-                                minute => $time[1],
-                                # DateTime doesn't like fractional seconds.
-                                second => int($time[0]),
-                                # If importing, use the specified timezone, otherwise 
-                                # use the timezone specified by the server.
-                                time_zone => Bugzilla->local_timezone->offset_as_string($time[6]) 
-                                          || Bugzilla->local_timezone});
+    # strptime() counts years from 1900, and months from 0 (January).
+    # We have to fix both values.
+    my $dt = DateTime->new({
+        year   => $time[5] + 1900,
+        month  => $time[4] + 1,
+        day    => $time[3],
+        hour   => $time[2],
+        minute => $time[1],
+        # DateTime doesn't like fractional seconds.
+        # Also, sometimes seconds are undef.
+        second => int($time[0] || 0),
+        # If a timezone was specified, use it. Otherwise, use the
+        # local timezone.
+        time_zone => Bugzilla->local_timezone->offset_as_string($time[6]) 
+                     || Bugzilla->local_timezone,
+    });
 
-        # Now display the date using the given timezone,
-        # or the user's timezone if none is given.
-        $dt->set_time_zone($timezone || Bugzilla->user->timezone);
-        $date = $dt->strftime($format);
-    }
-    else {
-        # Don't let invalid (time) strings to be passed to templates!
-        $date = '';
-    }
-    return trim($date);
+    # Now display the date using the given timezone,
+    # or the user's timezone if none is given.
+    $dt->set_time_zone($timezone || Bugzilla->user->timezone);
+    return $dt;
 }
 
 sub format_time_decimal {
@@ -557,12 +572,12 @@ sub bz_crypt {
 
     my $crypted_password;
     if (!$algorithm) {
-    # Wide characters cause crypt to die
-    if (Bugzilla->params->{'utf8'}) {
-        utf8::encode($password) if utf8::is_utf8($password);
-    }
+        # Wide characters cause crypt to die
+        if (Bugzilla->params->{'utf8'}) {
+            utf8::encode($password) if utf8::is_utf8($password);
+        }
     
-    # Crypt the password.
+        # Crypt the password.
         $crypted_password = crypt($password, $salt);
 
         # HACK: Perl has bug where returned crypted password is considered
@@ -662,23 +677,9 @@ sub load_cached_fielddescs_template
 # что приводит к ужасной производительности. например, на баге с 703
 # комментами в 10-15 раз ухудшение по сравнению с Bugzilla 2.x.
 # Избавляемся от этого.
-sub get_term
-{
-    my ($term) = @_;
-    my $tt = load_cached_fielddescs_template();
-    return $tt->stash->get(['terms', 0, $term, 0]);
-}
-
-sub get_fielddesc
-{
-    my ($field) = @_;
-    my $tt = load_cached_fielddescs_template();
-    return $tt->stash->get(['field_descs', 0, $field, 0]);
-}
-
 # CustIS Bug 40933 ФАКМОЙМОЗГ! ВРОТМНЕНОГИ! КТО ТАК ПИШЕТ?!!!!
 # ВОТ он, антипаттерн разработки на TT, ведущий к тормозам...
-# ALSO CustIS Bug3 52322
+# ALSO CustIS Bug 52322
 sub get_text {
     my ($name, $vars) = @_;
     my $template = Bugzilla->template_inner;
@@ -694,25 +695,24 @@ sub get_text {
     return $message;
 }
 
-sub get_netaddr {
-    my $ipaddr = shift;
-
-    # Check for a valid IPv4 addr which we know how to parse
-    if (!$ipaddr || $ipaddr !~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) {
-        return undef;
+sub template_var {
+    my $name = shift;
+    my $cache = Bugzilla->request_cache->{util_template_var} ||= {};
+    my $template = Bugzilla->template_inner;
+    my $lang = Bugzilla->request_cache->{language};
+    return $cache->{$lang}->{$name} if defined $cache->{$lang};
+    my %vars;
+    # Note: If we suddenly start needing a lot of template_var variables,
+    # they should move into their own template, not field-descs.
+    my $result = $template->process('global/field-descs.none.tmpl', 
+                                    { vars => \%vars, in_template_var => 1 });
+    # Bugzilla::Error can't be "use"d in Bugzilla::Util.
+    if (!$result) {
+        require Bugzilla::Error;
+        Bugzilla::Error::ThrowTemplateError($template->error);
     }
-
-    my $addr = unpack("N", pack("CCCC", split(/\./, $ipaddr)));
-
-    my $maskbits = Bugzilla->params->{'loginnetmask'};
-
-    # Make Bugzilla ignore the IP address if loginnetmask is set to 0
-    return "0.0.0.0" if ($maskbits == 0);
-
-    $addr >>= (32-$maskbits);
-
-    $addr <<= (32-$maskbits);
-    return join(".", unpack("CCCC", pack("N", $addr)));
+    $cache->{$lang} = \%vars;
+    return $vars{$name};
 }
 
 sub disable_utf8 {
@@ -750,6 +750,18 @@ sub stem_text
     return join '', @$text;
 }
 
+sub intersect
+{
+    my $values = shift;
+    my %chk;
+    while (my $next = shift)
+    {
+        %chk = map { $_ => 1 } @$next;
+        @$values = grep { $chk{$_} } @$values;
+    }
+    return $values;
+}
+
 1;
 
 __END__
@@ -778,7 +790,6 @@ Bugzilla::Util - Generic utility functions for bugzilla
 
   # Functions that tell you about your environment
   my $is_cgi   = i_am_cgi();
-  my $net_addr = get_netaddr($ip_addr);
   my $urlbase  = correct_urlbase();
 
   # Functions for searching
@@ -793,6 +804,7 @@ Bugzilla::Util - Generic utility functions for bugzilla
 
   # Functions for formatting time
   format_time($time);
+  datetime_from($time, $timezone);
 
   # Functions for dealing with files
   $time = file_mod_time($filename);
@@ -860,8 +872,9 @@ be done in the template where possible.
 
 =item C<html_quote($val)>
 
-Returns a value quoted for use in HTML, with &, E<lt>, E<gt>, and E<34> being
-replaced with their appropriate HTML entities.
+Returns a value quoted for use in HTML, with &, E<lt>, E<gt>, E<34> and @ being
+replaced with their appropriate HTML entities.  Also, Unicode BiDi controls are
+deleted.
 
 =item C<html_light_quote($val)>
 
@@ -876,7 +889,7 @@ Quotes characters so that they may be included as part of a url.
 =item C<css_class_quote($val)>
 
 Quotes characters so that they may be used as CSS class names. Spaces
-are replaced by underscores.
+and forward slashes are replaced by underscores.
 
 =item C<xml_quote($val)>
 
@@ -908,17 +921,10 @@ Tells you whether or not you are being run as a CGI script in a web
 server. For example, it would return false if the caller is running
 in a command-line script.
 
-=item C<get_netaddr($ipaddr)>
-
-Given an IP address, this returns the associated network address, using
-C<Bugzilla->params->{'loginnetmask'}> as the netmask. This can be used
-to obtain data in order to restrict weak authentication methods (such as
-cookies) to only some addresses.
-
 =item C<correct_urlbase()>
 
 Returns either the C<sslbase> or C<urlbase> parameter, depending on the
-current setting for the C<ssl> parameter.
+current setting for the C<ssl_redirect> parameter.
 
 =item C<use_attachbase()>
 
@@ -1031,6 +1037,14 @@ A string.
 
 =back
 
+
+=item C<template_var>
+
+This is a method of getting the value of a variable from a template in
+Perl code. The available variables are in the C<global/field-descs.none.tmpl>
+template. Just pass in the name of the variable that you want the value of.
+
+
 =back
 
 =head2 Formatting Time
@@ -1051,6 +1065,15 @@ This routine is mainly called from templates to filter dates, see
 
 Returns a number with 2 digit precision, unless the last digit is a 0. Then it 
 returns only 1 digit precision.
+
+=item C<datetime_from($time, $timezone)>
+
+Returns a DateTime object given a date string. If the string is not in some
+valid date format that C<strptime> understands, we return C<undef>.
+
+You can optionally specify a timezone for the returned date. If not
+specified, defaults to the currently-logged-in user's timezone, or
+the Bugzilla server's local timezone if there isn't a logged-in user.
 
 =back
 

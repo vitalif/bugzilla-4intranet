@@ -27,6 +27,7 @@ package Bugzilla::Install::Util;
 use strict;
 
 use Bugzilla::Constants;
+use Bugzilla::Extension;
 
 use File::Basename;
 use POSIX qw(setlocale LC_CTYPE);
@@ -43,7 +44,7 @@ our @EXPORT_OK = qw(
     template_include_path
     vers_cmp
     get_console_locale
-    prevent_windows_dialog_boxes
+    init_console
 );
 
 sub bin_loc {
@@ -91,8 +92,8 @@ sub indicate_progress {
 
 sub install_string {
     my ($string_id, $vars) = @_;
-    _cache()->{template_include_path} ||= template_include_path();
-    my $path = _cache()->{template_include_path};
+    _cache()->{install_string_path} ||= template_include_path();
+    my $path = _cache()->{install_string_path};
     
     my $string_template;
     # Find the first template that defines this string.
@@ -105,6 +106,8 @@ sub install_string {
     
     die "No language defines the string '$string_id'"
         if !defined $string_template;
+
+    utf8::decode($string_template) if !utf8::is_utf8($string_template);
 
     $vars ||= {};
     my @replace_keys = keys %$vars;
@@ -122,20 +125,33 @@ sub install_string {
         }
         $string_template =~ s/\Q##$key##\E/$replacement/g;
     }
-    
+
     return $string_template;
 }
 
 sub include_languages {
+    # If we are in CGI mode (not in checksetup.pl) and if the function has
+    # been called without any parameter, then we cache the result of this
+    # function in Bugzilla->request_cache. This is done to improve the
+    # performance of the template processing.
+    my $to_be_cached = 0;
+    if (not @_) {
+        my $cache = _cache();
+        if (exists $cache->{include_languages}) {
+            return @{ $cache->{include_languages} };
+        }
+        $to_be_cached = 1;
+    }
     my ($params) = @_;
     $params ||= {};
 
     # Basically, the way this works is that we have a list of languages
     # that we *want*, and a list of languages that Bugzilla actually
     # supports. The caller tells us what languages they want, by setting
-    # $ENV{HTTP_ACCEPT_LANGUAGE} or $params->{only_language}. The languages
-    # we support are those specified in $params->{use_languages}. Otherwise
-    # we support every language installed in the template/ directory.
+    # $ENV{HTTP_ACCEPT_LANGUAGE}, using the "LANG" cookie or  setting
+    # $params->{only_language}. The languages we support are those
+    # specified in $params->{use_languages}. Otherwise we support every
+    # language installed in the template/ directory.
     
     my @wanted;
     if ($params->{only_language}) {
@@ -143,6 +159,15 @@ sub include_languages {
     }
     else {
         @wanted = _sort_accept_language($ENV{'HTTP_ACCEPT_LANGUAGE'} || '');
+        # Don't use the cookie if we are in "checksetup.pl". The test
+        # with $ENV{'SERVER_SOFTWARE'} is the same as in
+        # Bugzilla:Util::i_am_cgi.
+        if (exists $ENV{'SERVER_SOFTWARE'}) {
+            my $cgi = Bugzilla->cgi;
+            if (defined (my $lang = $cgi->cookie('LANG'))) {
+                unshift @wanted, $lang;
+            }
+        }
     }
     
     my @supported;
@@ -175,30 +200,75 @@ sub include_languages {
         push(@usedlanguages, 'en');
     }
 
+    # Cache the result if we are in CGI mode and called without parameter
+    # (see the comment at the top of this function).
+    if ($to_be_cached) {
+        _cache()->{include_languages} = \@usedlanguages;
+    }
+
     return @usedlanguages;
 }
+
+# Used by template_include_path
+sub _template_lang_directories {
+    my ($languages, $templatedir) = @_;
     
-sub template_include_path {
-    my @usedlanguages = include_languages(@_);
-    # Now, we add template directories in the order they will be searched:
-    
-    # First, we add extension template directories, because extension templates
-    # override standard templates. Extensions may be localized in the same way
-    # that Bugzilla templates are localized.
-    my @include_path;
-    my @extensions = glob(bz_locations()->{'extensionsdir'} . "/*");
-    foreach my $extension (@extensions) {
-        next if -e "$extension/disabled";
-        foreach my $lang (@usedlanguages) {
-            _add_language_set(\@include_path, $lang, "$extension/template");
+    my @add = qw(custom default);
+    my $project = bz_locations->{'project'};
+    unshift(@add, $project) if $project;
+
+    my @result;
+    foreach my $lang (@$languages) {
+        foreach my $dir (@add) {
+            my $full_dir = "$templatedir/$lang/$dir";
+            if (-d $full_dir) {
+                trick_taint($full_dir);
+                push(@result, $full_dir);
+            }
         }
     }
-    
-    # Then, we add normal template directories, sorted by language.
-    foreach my $lang (@usedlanguages) {
-        _add_language_set(\@include_path, $lang);
+    return @result;
+}
+
+# Used by template_include_path.
+sub _template_base_directories
+{
+    my @template_dirs;
+
+    Bugzilla::Extension::load_all();
+    my $dir;
+    foreach (Bugzilla::Extension::loaded())
+    {
+        $dir = extension_template_dir($_);
+        if (-d $dir)
+        {
+            push @template_dirs, $dir;
+        }
     }
-    
+
+    push(@template_dirs, bz_locations()->{'templatedir'});
+    return \@template_dirs;
+}
+
+sub template_include_path {
+    my ($params) = @_;
+    my @used_languages = include_languages(@_);
+    # Now, we add template directories in the order they will be searched:
+    my $template_dirs = _template_base_directories(); 
+
+    my @include_path;
+    foreach my $template_dir (@$template_dirs) {
+        my @lang_dirs = _template_lang_directories(\@used_languages, 
+                                                   $template_dir);
+        # Hooks get each set of extension directories separately.
+        if ($params->{hook}) {
+            push(@include_path, \@lang_dirs);
+        }
+        # Whereas everything else just gets a whole INCLUDE_PATH.
+        else {
+            push(@include_path, @lang_dirs);
+        }
+    }
     return \@include_path;
 }
 
@@ -260,24 +330,6 @@ sub _get_string_from_file {
     return $strings{$string_id};
 }
 
-# Used by template_include_path.
-sub _add_language_set {
-    my ($array, $lang, $templatedir) = @_;
-    
-    $templatedir ||= bz_locations()->{'templatedir'};
-    my @add = ("$templatedir/$lang/custom", "$templatedir/$lang/default");
-    
-    my $project = bz_locations->{'project'};
-    unshift(@add, "$templatedir/$lang/$project") if $project;
-    
-    foreach my $dir (@add) {
-        if (-d $dir) {
-            trick_taint($dir);
-            push(@$array, $dir);
-        }
-    }
-}
-
 # Make an ordered list out of a HTTP Accept-Language header (see RFC 2616, 14.4)
 # We ignore '*' and <language-range>;q=0
 # For languages with the same priority q the order remains unchanged.
@@ -333,6 +385,13 @@ sub get_console_locale {
     return $locale;
 }
 
+sub init_console {
+    eval { ON_WINDOWS && require Win32::Console::ANSI; };
+    $ENV{'ANSI_COLORS_DISABLED'} = 1 if ($@ || !-t *STDOUT);
+    $ENV{'HTTP_ACCEPT_LANGUAGE'} ||= get_console_locale();
+    prevent_windows_dialog_boxes();
+}
+
 sub prevent_windows_dialog_boxes {
     # This code comes from http://bugs.activestate.com/show_bug.cgi?id=82183
     # and prevents Perl modules from popping up dialog boxes, particularly
@@ -355,12 +414,13 @@ sub prevent_windows_dialog_boxes {
 }
 
 # This is like request_cache, but it's used only by installation code
-# for setup.cgi and things like that.
+# for checksetup.pl and things like that.
 our $_cache = {};
 sub _cache {
-    if ($ENV{MOD_PERL}) {
-        require Apache2::RequestUtil;
-        return Apache2::RequestUtil->request->pnotes();
+    # If the normal request_cache is available (which happens any time
+    # after the requirements phase) then we should use that.
+    if (eval { Bugzilla->request_cache; }) {
+        return Bugzilla->request_cache;
     }
     return $_cache;
 }
@@ -375,6 +435,15 @@ sub trick_taint {
     my $match = $_[0] =~ /^(.*)$/s;
     $_[0] = $match ? $1 : undef;
     return (defined($_[0]));
+}
+
+sub trim {
+    my ($str) = @_;
+    if ($str) {
+      $str =~ s/^\s+//g;
+      $str =~ s/\s+$//g;
+    }
+    return $str;
 }
 
 __END__
@@ -415,6 +484,10 @@ running, what perl version we're using, and what OS we're running on.
 
 Returns the language to use based on the LC_CTYPE value returned by the OS.
 If LC_CTYPE is of the form fr-CH, then fr is appended to the list.
+
+=item C<init_console>
+
+Sets the C<ANSI_COLORS_DISABLED> and C<HTTP_ACCEPT_LANGUAGE> environment variables.
 
 =item C<indicate_progress>
 

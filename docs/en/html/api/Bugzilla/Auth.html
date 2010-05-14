@@ -21,6 +21,7 @@ Bugzilla::Auth</title>
     <li class='indexItem indexItem2'><a href='#AUTH_LOGINFAILED'>AUTH_LOGINFAILED</a>
     <li class='indexItem indexItem2'><a href='#AUTH_NO_SUCH_USER'>AUTH_NO_SUCH_USER</a>
     <li class='indexItem indexItem2'><a href='#AUTH_DISABLED'>AUTH_DISABLED</a>
+    <li class='indexItem indexItem2'><a href='#AUTH_LOCKOUT'>AUTH_LOCKOUT</a>
   </ul>
   <li class='indexItem indexItem1'><a href='#LOGIN_TYPES'>LOGIN TYPES</a>
   <ul   class='indexList indexList2'>
@@ -109,6 +110,11 @@ name="AUTH_LOGINFAILED"
 
 <p>An incorrect username or password was given.</p>
 
+<p>The hashref may also contain a <code  class="code">failure_count</code> element,
+which specifies how many times the account has failed to log in within the lockout period (see <a href="#AUTH_LOCKOUT" class="podlinkpod"
+>&#34;AUTH_LOCKOUT&#34;</a>).
+This is used to warn the user when he is getting close to being locked out.</p>
+
 <h2><a class='u' href='#___top' title='click to go to top of document'
 name="AUTH_NO_SUCH_USER"
 ><code  class="code">AUTH_NO_SUCH_USER</code></a></h2>
@@ -132,6 +138,17 @@ name="AUTH_DISABLED"
 <p>The user successfully logged in,
 but their account has been disabled.
 Usually this is throw only by <code  class="code">Bugzilla::Auth::login</code>.</p>
+
+<h2><a class='u' href='#___top' title='click to go to top of document'
+name="AUTH_LOCKOUT"
+><code  class="code">AUTH_LOCKOUT</code></a></h2>
+
+<p>The user&#39;s account is locked out after having failed to log in too many times within a certain period of time (as specified by <a href="../Bugzilla/Constants.html#LOGIN_LOCKOUT_INTERVAL" class="podlinkpod"
+>&#34;LOGIN_LOCKOUT_INTERVAL&#34; in Bugzilla::Constants</a>).</p>
+
+<p>The hashref will also contain a <code  class="code">user</code> element,
+representing the <a href="../Bugzilla/User.html" class="podlinkpod"
+>Bugzilla::User</a> whose account is locked out.</p>
 
 <h1><a class='u' href='#___top' title='click to go to top of document'
 name="LOGIN_TYPES"

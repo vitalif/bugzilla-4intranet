@@ -29,8 +29,8 @@ use Support::Files;
 use Test::More tests => 16;
 
 BEGIN { 
-        use_ok(Bugzilla);
-        use_ok(Bugzilla::Util);
+    use_ok(Bugzilla);
+    use_ok(Bugzilla::Util);
 }
 
 # We need to override user preferences so we can get an expected value when
@@ -45,7 +45,7 @@ my $tz = Bugzilla->local_timezone->short_name_for_datetime(DateTime->new(year =>
 # XXX: test taint functions
 
 #html_quote():
-is(html_quote("<lala&>"),"&lt;lala&amp;&gt;",'html_quote');
+is(html_quote("<lala&@>"),"&lt;lala&amp;&#64;&gt;",'html_quote');
 
 #url_quote():
 is(url_quote("<lala&>gaa\"'[]{\\"),"%3Clala%26%3Egaa%22%27%5B%5D%7B%5C",'url_quote');

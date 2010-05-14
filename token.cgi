@@ -189,13 +189,13 @@ sub requestChangePassword {
 sub confirmChangePassword {
     my $token = shift;
     $vars->{'token'} = $token;
-    
+
     print $cgi->header();
     $template->process("account/password/set-forgotten-password.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
 }
 
-sub cancelChangePassword {    
+sub cancelChangePassword {
     my $token = shift;
     $vars->{'message'} = "password_change_canceled";
     Bugzilla::Token::Cancel($token, $vars->{'message'});
@@ -360,15 +360,7 @@ sub request_create_account {
     $vars->{'email'} = $login_name . Bugzilla->params->{'emailsuffix'};
     $vars->{'expiration_ts'} = ctime(str2time($date) + MAX_TOKEN_AGE * 86400);
 
-    # When 'ssl' equals 'always' or 'authenticated sessions', 
-    # we want this form to always be over SSL.
-    if ($cgi->protocol ne 'https' && Bugzilla->params->{'sslbase'} ne ''
-        && Bugzilla->params->{'ssl'} ne 'never')
-    {
-        $cgi->require_https(Bugzilla->params->{'sslbase'});
-    }
     print $cgi->header();
-
     $template->process('account/email/confirm-new.html.tmpl', $vars)
       || ThrowTemplateError($template->error());
 }
@@ -394,11 +386,15 @@ sub confirm_create_account {
     # Let the user know that his user account has been successfully created.
     $vars->{'message'} = 'account_created';
     $vars->{'otheruser'} = $otheruser;
-    $vars->{'login_info'} = 1;
+
+    # Log in the new user using credentials he just gave.
+    $cgi->param('Bugzilla_login', $otheruser->login);
+    $cgi->param('Bugzilla_password', $password);
+    Bugzilla->login(LOGIN_OPTIONAL);
 
     print $cgi->header();
 
-    $template->process('global/message.html.tmpl', $vars)
+    $template->process('index.html.tmpl', $vars)
       || ThrowTemplateError($template->error());
 }
 

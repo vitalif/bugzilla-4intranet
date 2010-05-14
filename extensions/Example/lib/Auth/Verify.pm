@@ -10,18 +10,22 @@
 # implied. See the License for the specific language governing
 # rights and limitations under the License.
 #
-# The Original Code is the Bugzilla Testopia System.
+# The Original Code is the Bugzilla Example Plugin.
 #
-# The Initial Developer of the Original Code is Greg Hendricks.
-# Portions created by Greg Hendricks are Copyright (C) 2006
-# Novell. All Rights Reserved.
+# The Initial Developer of the Original Code is Canonical Ltd.
+# Portions created by Canonical are Copyright (C) 2008 Canonical Ltd.
+# All Rights Reserved.
 #
-# Contributor(s): Greg Hendricks <ghendricks@novell.com>
+# Contributor(s): Max Kanat-Alexander <mkanat@bugzilla.org>
 
+package Bugzilla::Extension::Example::Auth::Verify;
 use strict;
-no warnings qw(void); # Avoid "useless use of a constant in void context"
-use Testopia::Constants;
+use base qw(Bugzilla::Auth::Verify);
+use Bugzilla::Constants;
 
-{
-    'version' => TESTOPIA_VERSION,
-};
+# A verifier that always fails.
+sub check_credentials {
+    return { failure => AUTH_NO_SUCH_USER };
+}
+
+1;

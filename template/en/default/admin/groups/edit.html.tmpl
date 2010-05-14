@@ -115,7 +115,7 @@
         [% PROCESS select_pair
            name = "members"
            size = 10
-           items_available = members_available
+                   items_available = members_available
            items_current = members_current
         %]
       </td>
@@ -123,7 +123,7 @@
         [% PROCESS select_pair
            name = "member_of"
            size = 10
-           items_available = member_of_available
+                     items_available = member_of_available
            items_current = member_of_current
         %]
       </td>
@@ -183,7 +183,7 @@
   <input type="hidden" name="token" value="[% token FILTER html %]">
   </p>
 </form>
-
+  
 <h4>Mass Remove</h4>
 
 <p>You can use this form to do mass-removal of users from groups.

@@ -100,13 +100,13 @@
 
           <varlistentry>
             <term>
-              ssl
+              ssl_redirect
             </term>
             <listitem>
               <para>
-                Determines when Bugzilla will force HTTPS (SSL) connections, using
-                the URL defined in <command>sslbase</command>. 
-                Options include "always", "never", and "authenticated sessions". 
+                If enabled, Bugzilla will force HTTPS (SSL) connections, by
+                automatically redirecting any users who try to use a non-SSL
+                connection.
               </para>
             </listitem>
           </varlistentry>
@@ -250,11 +250,11 @@
 
         <section id="param-admin-policies">
           <title>Administrative Policies</title>
-        <para>
-        This page contains parameters for basic administrative functions.
+          <para>
+            This page contains parameters for basic administrative functions.
             Options include whether to allow the deletion of bugs and users,
             and whether to allow users to change their email address.
-        </para>
+          </para>
         </section>
 
         <section id="param-user-authentication">
@@ -475,25 +475,6 @@
                 Determines whether or not to automatically create groups
                 when new products are created. If this is on, the groups will be
                 used for querying bugs.
-              </para>
-            </listitem>
-          </varlistentry>
-
-          <varlistentry>
-            <term>
-              useentrygroupdefault
-            </term>
-            <listitem>
-              <para>
-                Bugzilla products can have a group associated with them, so that
-                certain users can only see bugs in certain products. When this 
-                parameter is set to <quote>on</quote>, this 
-                causes the initial group controls on newly created products 
-                to place all newly-created bugs in the group 
-                having the same name as the product immediately.
-                After a product is initially created, the group controls
-                can be further adjusted without interference by 
-                this mechanism.
               </para>
             </listitem>
           </varlistentry>

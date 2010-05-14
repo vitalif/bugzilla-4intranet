@@ -107,9 +107,9 @@ elsif ($action eq 'update') {
         # TODO enter_bug could be edited for non-custom fields, too.
         # At the moment, though, it has no effect for non-custom fields.
         $field->set_enter_bug($cgi->param('enter_bug'));
-        $field->set_visibility_field($cgi->param('visibility_field_id'));
+    $field->set_visibility_field($cgi->param('visibility_field_id'));
         $field->set_visibility_values([ $cgi->param('visibility_value_id') ]);
-        $field->set_value_field($cgi->param('value_field_id'));
+    $field->set_value_field($cgi->param('value_field_id'));
     }
     $field->update();
 
@@ -157,10 +157,10 @@ elsif ($action eq 'delete') {
     # Calling remove_from_db will check if field can be deleted.
     # If the field cannot be deleted, it will throw an error.
     $field->remove_from_db();
-
+    
     $vars->{'field'}   = $field;
     $vars->{'message'} = 'custom_field_deleted';
-
+    
     delete_token($token);
 
     $template->process('admin/custom_fields/list.html.tmpl', $vars)

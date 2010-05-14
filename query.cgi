@@ -90,7 +90,7 @@ if ($userid) {
 if ($cgi->param('nukedefaultquery')) {
     if ($userid) {
         $dbh->do("DELETE FROM namedqueries" .
-                 " WHERE userid = ? AND name = ?",
+                 " WHERE userid = ? AND name = ?", 
                  undef, ($userid, DEFAULT_QUERY_NAME));
     }
     $buffer = "";
@@ -103,7 +103,7 @@ my $userdefaultquery;
 if ($userid) {
     $userdefaultquery = $dbh->selectrow_array(
         "SELECT query FROM namedqueries " .
-         "WHERE userid = ? AND name = ?",
+         "WHERE userid = ? AND name = ?", 
          undef, ($userid, DEFAULT_QUERY_NAME));
 }
 
@@ -119,26 +119,24 @@ sub PrefillForm {
     my $foundone = 0;
 
     # Nothing must be undef, otherwise the template complains.
-    # TODO Honor use* parameters (?)
-    my @list = qw(bug_status resolution assigned_to
-                  rep_platform priority bug_severity
-                  classification product reporter op_sys
-                  component version chfield chfieldfrom
-                  chfieldto chfieldvalue target_milestone
-                  email emailtype emailreporter
-                  emailassigned_to emailcc emailqa_contact
-                  emaillongdesc content
-                  changedin votes short_desc short_desc_type
-                  longdesc longdesc_type bug_file_loc
-                  bug_file_loc_type status_whiteboard
-                  status_whiteboard_type bug_id
-                  bugidtype keywords keywords_type
-                  deadlinefrom deadlineto
-                  x_axis_field y_axis_field z_axis_field
-                  chart_format cumulate x_labels_vertical
-                  category subcategory name newcategory
-                  newsubcategory public frequency);
-
+    my @list = ("bug_status", "resolution", "assigned_to",
+                      "rep_platform", "priority", "bug_severity",
+                      "classification", "product", "reporter", "op_sys",
+                      "component", "version", "chfield", "chfieldfrom",
+                      "chfieldto", "chfieldvalue", "target_milestone",
+                      "email", "emailtype", "emailreporter",
+                      "emailassigned_to", "emailcc", "emailqa_contact",
+                      "emaillongdesc", "content",
+                      "changedin", "votes", "short_desc", "short_desc_type",
+                      "longdesc", "longdesc_type", "bug_file_loc",
+                      "bug_file_loc_type", "status_whiteboard",
+                      "status_whiteboard_type", "bug_id",
+                      "bug_id_type", "keywords", "keywords_type",
+                      "deadlinefrom", "deadlineto",
+                      "x_axis_field", "y_axis_field", "z_axis_field",
+                      "chart_format", "cumulate", "x_labels_vertical",
+                      "category", "subcategory", "name", "newcategory",
+                      "newsubcategory", "public", "frequency");
     # These fields can also have default values (when used in reports).
     # CustIS Bug 58300 - Add custom field to search filters
     for my $field (Bugzilla->active_custom_fields)
@@ -153,11 +151,11 @@ sub PrefillForm {
     foreach my $name (@list) {
         $default{$name} = [];
     }
-
+ 
     # we won't prefill the boolean chart data from this query if
     # there are any being submitted via params
     my $prefillcharts = (grep(/^field-/, $cgi->param)) ? 0 : 1;
-
+ 
     # Iterate over the URL parameters
     foreach my $name ($buf->param()) {
         my @values = $buf->param($name);
@@ -201,9 +199,9 @@ if (!scalar(@{$default{'chfieldto'}}) || $default{'chfieldto'}->[0] eq "") {
     $default{'chfieldto'} = ["Now"];
 }
 
-# if using groups for entry, then we don't want people to see products they
+# if using groups for entry, then we don't want people to see products they 
 # don't have access to. Remove them from the list.
-my @selectable_products = sort {lc($a->name) cmp lc($b->name)}
+my @selectable_products = sort {lc($a->name) cmp lc($b->name)} 
                                @{$user->get_selectable_products};
 Bugzilla::Product::preload(\@selectable_products);
 
@@ -238,13 +236,6 @@ if (Bugzilla->params->{'usetargetmilestone'}) {
     $vars->{'target_milestone'} = \@milestones;
 }
 
-$vars->{'have_keywords'} = Bugzilla::Keyword::keyword_count();
-
-my $legal_resolutions = get_legal_field_values('resolution');
-push(@$legal_resolutions, "---"); # Oy, what a hack.
-# Another hack - this array contains "" for some reason. See bug 106589.
-$vars->{'resolution'} = [grep ($_, @$legal_resolutions)];
-
 # Fields for boolean charts
 my @fields = Bugzilla->get_fields({ obsolete => 0 });
 @fields = sort {lc($a->description) cmp lc($b->description)} @fields;
@@ -265,23 +256,19 @@ $vars->{'chfield'} = [ sort grep { !$exclude{$_} } map { $_->name } @fields ];
 unshift @{$vars->{fields}}, { name => "noop", description => "---" };
 
 # Legal values for select fields
-$vars->{'bug_status'}   = get_legal_field_values('bug_status');
-$vars->{'priority'}     = get_legal_field_values('priority');
-$vars->{'bug_severity'} = get_legal_field_values('bug_severity');
-if (Bugzilla->params->{useplatform})
-{
-    # Only if turned on
-    $vars->{'rep_platform'} = get_legal_field_values('rep_platform');
-}
-if (Bugzilla->params->{useopsys})
-{
-    # Only if turned on
-    $vars->{'op_sys'} = get_legal_field_values('op_sys');
-}
+$vars->{'bug_status'} = Bugzilla::Field->new({name => 'bug_status'})->legal_values;
+Bugzilla->params->{useplatform} and $vars->{'rep_platform'} = Bugzilla::Field->new({name => 'rep_platform'})->legal_values;
+Bugzilla->params->{useopsys} and $vars->{'op_sys'} = Bugzilla::Field->new({name => 'op_sys'})->legal_values;
+$vars->{'priority'} = Bugzilla::Field->new({name => 'priority'})->legal_values;
+$vars->{'bug_severity'} = Bugzilla::Field->new({name => 'bug_severity'})->legal_values;
+$vars->{'resolution'} = Bugzilla::Field->new({name => 'resolution'})->legal_values;
 
-# NB // vfilippov@custis.ru 2010-02-01
-# Do we need to deny non-timetrackers searching on timetracking fields?
-# Timetracking information is not a secret.
+# If we're not in the time-tracking group, exclude time-tracking fields.
+if (!Bugzilla->user->is_timetracker) {
+    foreach my $tt_field (TIMETRACKING_FIELDS) {
+        @{$vars->{fields}} = grep($_->name ne $tt_field, @{$vars->{fields}});
+    }
+}
 
 # Boolean charts
 
@@ -383,6 +370,7 @@ if ($cgi->param('format') && $cgi->param('format') =~ /^report-(table|graph)$/) 
 $vars->{'known_name'} = $cgi->param('known_name');
 $vars->{'columnlist'} = $cgi->param('columnlist');
 
+
 # Add in the defaults.
 $vars->{'default'} = \%default;
 
@@ -410,8 +398,8 @@ if (defined($vars->{'format'}) && IsValidQueryType($vars->{'format'})) {
 # If we submit back to ourselves (for e.g. boolean charts), we need to
 # preserve format information; hence query_format taking priority over
 # format.
-my $format = $template->get_format("search/search",
-                                   $vars->{'query_format'} || $vars->{'format'},
+my $format = $template->get_format("search/search", 
+                                   $vars->{'query_format'} || $vars->{'format'}, 
                                    scalar $cgi->param('ctype'));
 
 print $cgi->header($format->{'ctype'});

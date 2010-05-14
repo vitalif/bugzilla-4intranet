@@ -21,7 +21,7 @@ package Bugzilla::WebService::Bugzilla;
 use strict;
 use base qw(Bugzilla::WebService);
 use Bugzilla::Constants;
-use Bugzilla::Hook;
+use Bugzilla::Util qw(datetime_from);
 
 use DateTime;
 
@@ -38,45 +38,39 @@ sub version {
 
 sub extensions {
     my $self = shift;
-    my $extensions = Bugzilla::Hook::enabled_plugins();
-    foreach my $name (keys %$extensions) {
-        my $info = $extensions->{$name};
-        foreach my $data (keys %$info) {
-            $extensions->{$name}->{$data} = 
-                $self->type('string', $info->{$data});
-        }
+
+    my %retval;
+    foreach my $extension (@{ Bugzilla->extensions }) {
+        my $version = $extension->VERSION || 0;
+        my $name    = $extension->NAME;
+        $retval{$name}->{version} = $self->type('string', $version);
     }
-    return { extensions => $extensions };
+    return { extensions => \%retval };
 }
 
 sub timezone {
     my $self = shift;
-    my $offset = Bugzilla->local_timezone->offset_for_datetime(DateTime->now());
-    $offset = (($offset / 60) / 60) * 100;
-    $offset = sprintf('%+05d', $offset);
-    return { timezone => $self->type('string', $offset) };
+    # All Webservices return times in UTC; Use UTC here for backwards compat.
+    return { timezone => $self->type('string', "+0000") };
 }
 
 sub time {
     my ($self) = @_;
+    # All Webservices return times in UTC; Use UTC here for backwards compat.
+    # Hardcode values where appropriate
     my $dbh = Bugzilla->dbh;
 
     my $db_time = $dbh->selectrow_array('SELECT LOCALTIMESTAMP(0)');
+    $db_time = datetime_from($db_time, 'UTC');
     my $now_utc = DateTime->now();
-
-    my $tz = Bugzilla->local_timezone;
-    my $now_local = $now_utc->clone->set_time_zone($tz);
-    my $tz_offset = $tz->offset_for_datetime($now_local);
 
     return {
         db_time       => $self->type('dateTime', $db_time),
-        web_time      => $self->type('dateTime', $now_local),
+        web_time      => $self->type('dateTime', $now_utc),
         web_time_utc  => $self->type('dateTime', $now_utc),
-        tz_name       => $self->type('string', $tz->name),
-        tz_offset     => $self->type('string', 
-                                     $tz->offset_as_string($tz_offset)),
-        tz_short_name => $self->type('string', 
-                                     $now_local->time_zone_short_name),
+        tz_name       => $self->type('string', 'UTC'),
+        tz_offset     => $self->type('string', '+0000'),
+        tz_short_name => $self->type('string', 'UTC'),
     };
 }
 
@@ -135,16 +129,31 @@ in this Bugzilla.
 
 =item B<Returns>
 
-A hash with a single item, C<extesions>. This points to a hash. I<That> hash
-contains the names of extensions as keys, and information about the extension
-as values. One of the values that must be returned is the 'version' of the
-extension
+A hash with a single item, C<extensions>. This points to a hash. I<That> hash
+contains the names of extensions as keys, and the values are a hash.
+That hash contains a single key C<version>, which is the version of the
+extension, or C<0> if the extension hasn't defined a version.
+
+The return value looks something like this:
+
+ extensions => {
+     Example => {
+         version => '3.6',
+     },
+     BmpConvert => {
+         version => '1.0',
+     },
+ }
 
 =item B<History>
 
 =over
 
 =item Added in Bugzilla B<3.2>.
+
+=item As of Bugzilla B<3.6>, the names of extensions are canonical names
+that the extensions define themselves. Before 3.6, the names of the
+extensions depended on the directory they were in on the Bugzilla server.
 
 =back
 
@@ -159,9 +168,7 @@ Use L</time> instead.
 
 =item B<Description>
 
-Returns the timezone of the server Bugzilla is running on. This is
-important because all dates/times that the webservice interface
-returns will be in this timezone.
+Returns the timezone that Bugzilla expects dates and times in.
 
 =item B<Params> (none)
 
@@ -170,12 +177,21 @@ returns will be in this timezone.
 A hash with a single item, C<timezone>, that is the timezone offset as a
 string in (+/-)XXXX (RFC 2822) format.
 
+=item B<History>
+
+=over
+
+=item As of Bugzilla B<3.6>, the timezone returned is always C<+0000>
+(the UTC timezone).
+
+=back
+
 =back
 
 
 =item C<time>
 
-B<UNSTABLE>
+B<STABLE>
 
 =over
 
@@ -194,8 +210,8 @@ A struct with the following items:
 
 =item C<db_time>
 
-C<dateTime> The current time in Bugzilla's B<local time zone>, according 
-to the Bugzilla I<database server>.
+C<dateTime> The current time in UTC, according to the Bugzilla 
+I<database server>.
 
 Note that Bugzilla assumes that the database and the webserver are running
 in the same time zone. However, if the web server and the database server
@@ -204,8 +220,8 @@ rely on for doing searches and other input to the WebService.
 
 =item C<web_time>
 
-C<dateTime> This is the current time in Bugzilla's B<local time zone>, 
-according to Bugzilla's I<web server>.
+C<dateTime> This is the current time in UTC, according to Bugzilla's 
+I<web server>.
 
 This might be different by a second from C<db_time> since this comes from
 a different source. If it's any more different than a second, then there is
@@ -214,26 +230,23 @@ rely on the C<db_time>, not the C<web_time>.
 
 =item C<web_time_utc>
 
-The same as C<web_time>, but in the B<UTC> time zone instead of the local
-time zone.
+Identical to C<web_time>. (Exists only for backwards-compatibility with
+versions of Bugzilla before 3.6.)
 
 =item C<tz_name>
 
-C<string> The long name of the time zone that the Bugzilla web server is 
-in. Will usually look something like: C<America/Los Angeles>
+C<string> The literal string C<UTC>. (Exists only for backwards-compatibility
+with versions of Bugzilla before 3.6.) 
 
 =item C<tz_short_name>
 
-C<string> The "short name" of the time zone that the Bugzilla web server
-is in. This should only be used for display, and not relied on for your
-programs, because different time zones can have the same short name.
-(For example, there are two C<EST>s.)
-
-This will look something like: C<PST>.
+C<string> The literal string C<UTC>. (Exists only for backwards-compatibility
+with versions of Bugzilla before 3.6.)
 
 =item C<tz_offset>
 
-C<string> The timezone offset as a string in (+/-)XXXX (RFC 2822) format.
+C<string> The literal string C<+0000>. (Exists only for backwards-compatibility
+with versions of Bugzilla before 3.6.)
 
 =back
 
@@ -242,6 +255,10 @@ C<string> The timezone offset as a string in (+/-)XXXX (RFC 2822) format.
 =over
 
 =item Added in Bugzilla B<3.4>.
+
+=item As of Bugzilla B<3.6>, this method returns all data as though the server
+were in the UTC timezone, instead of returning information in the server's
+local timezone.
 
 =back
 

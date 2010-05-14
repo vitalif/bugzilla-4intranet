@@ -95,6 +95,7 @@
   'notsubstring'  => 1,
   'nowords'       => 1,
   'nowordssubstr' => 1,
+  'notmatches'    => 1,
 } %]
 [% SET multi_types = {
   'anyexact'       => 1,
@@ -112,20 +113,12 @@
     [% IF shown_types.${desc_item.type} || debug %]
       ([% search_descs.${desc_item.type} FILTER html %])
     [% END %]
-    [% IF desc_item.field == 'bug_status' %]
-      <span class="search_value">[% FOREACH status IN desc_item.value.split(',') %]
-        [%+ get_status(status) FILTER html %][% ', ' UNLESS loop.last %]
-      [% END %]</span>
-    [% ELSIF desc_item.field == 'resolution' %]
-      <span class="search_value">[% FOREACH resolution IN desc_item.value.split(',') %]
-        [%+ get_resolution(resolution) FILTER html %][% ', ' UNLESS loop.last %]
-      [% END %]</span>
-    [% ELSE %]
-      [%+ v = desc_item.value %]
-      [% IF multi_types.${desc_item.type} %]
-        [% v = v.replace('\s*,\s*', ', ') %]
+    [% IF multi_types.${desc_item.type} %]
+      [% FOREACH val IN desc_item.value.split(',') %]
+        <span class="search_value">[%+ display_value(desc_item.field, val) FILTER html %]</span>[% ',' UNLESS loop.last %]
       [% END %]
-      <span class="search_value">[%+ v | html %]</span>
+    [% ELSE %]
+      <span class="search_value">[%+ display_value(desc_item.field, desc_item.value) FILTER html %]</span>
     [% END %]
     [% IF debug %]
       (<code>[% desc_item.term FILTER html %]</code>)
@@ -181,13 +174,25 @@ Bug ID list:
 
 <span class="bz_result_count">
   [% IF bugs.size == 0 %]
-    [% terms.zeroSearchResults %].
+    <span class="zero_results">[% terms.zeroSearchResults %].</span>
   [% ELSIF bugs.size == 1 %]
     One [% terms.bug %] found.
   [% ELSE %]
     [% bugs.size %] [%+ terms.bugs %] found.
   [% END %]
 </span>
+
+[% IF bugs.size == 0 %]
+  <ul class="zero_result_links">
+    <li>[% PROCESS enter_bug_link %]</li>
+    [% IF one_product.defined %]
+      <li><a href="enter_bug.cgi">File a new [% terms.bug %] in a
+        different product</a></li>
+    [% END %]
+    <li><a href="[% PROCESS edit_search_url %]">Edit this search</a></li>
+    <li><a href="query.cgi">Start a new search</a></li>
+  </ul>
+[% END %]
 
 <br>
 
@@ -225,7 +230,7 @@ Bug ID list:
             <input type="submit" value="XML" id="xml">
         </form>
 
-        [% IF user.in_group(Param('timetrackinggroup')) %]
+        [% IF user.is_timetracker %]
           <form method="post" action="summarize_time.cgi">
             <input type="hidden" name="id" value="[% buglist_joined FILTER html %]">
             <input type="submit" id="timesummary" value="Time Summary">
@@ -274,11 +279,7 @@ Bug ID list:
     
     <td valign="middle" class="bz_query_edit">
       <table><tr><td>
-      [% editqueryname = searchname OR defaultsavename OR '' %]
-      <a href="query.cgi?[% urlquerypart FILTER html %]&amp;order=[% order FILTER html %]
-      [% IF editqueryname != '' %]&amp;known_name=
-        [% editqueryname FILTER url_quote %]
-      [% END %]">Edit&nbsp;Search</a>
+        <a href="[% PROCESS edit_search_url %]">Edit&nbsp;Search</a>
       </td></tr><tr><td>
       <a href="query.cgi?format=report-table&amp;[% urlquerypart FILTER html FILTER remove('query_format=(advanced|simple)') %]
       ">Summary&nbsp;Report</a>
@@ -311,10 +312,9 @@ Bug ID list:
   </tr>
 </table>
 
-[% IF cgi.param('product').size == 1 && cgi.param('product') != "" %]
+[% IF one_product.defined %]
   <p class="bz_query_single_product">
-    <a href="enter_bug.cgi?product=[% cgi.param('product') FILTER url_quote %]">File
-      a new [% terms.bug %] in the "[% cgi.param('product') FILTER html %]" product</a>
+    [% PROCESS enter_bug_link %]
   </p>
 [% END %]
 
@@ -323,3 +323,18 @@ Bug ID list:
 [%############################################################################%]
 
 [% PROCESS global/footer.html.tmpl %]
+
+[% BLOCK edit_search_url %]
+  [% editqueryname = searchname OR defaultsavename OR '' %]
+  query.cgi?[% urlquerypart | html %][% IF editqueryname != '' %]&amp;known_name=[% editqueryname | url_quote %][% END %]&amp;order=[% order | html %]
+[% END %]
+
+[% BLOCK enter_bug_link %]
+  <a href="enter_bug.cgi
+           [%- IF one_product.defined %]?product=
+             [%- one_product.name FILTER url_quote %][% END %]">File
+    a new [% terms.bug %]
+   [% IF one_product.defined %]
+     in the "[% one_product.name FILTER html %]" product
+   [% END %]</a>
+[% END %]

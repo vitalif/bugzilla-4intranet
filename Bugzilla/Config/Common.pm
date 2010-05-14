@@ -34,6 +34,7 @@ package Bugzilla::Config::Common;
 
 use strict;
 
+use Email::Address;
 use Socket;
 
 use Bugzilla::Util;
@@ -47,10 +48,10 @@ use base qw(Exporter);
     qw(check_multi check_numeric check_regexp check_url check_group
        check_sslbase check_priority check_severity check_platform
        check_opsys check_shadowdb check_urlbase check_webdotbase
-       check_netmask check_user_verify_class check_image_converter
+       check_user_verify_class
        check_mail_delivery_method check_notification check_utf8
        check_bug_status check_smtp_auth check_theschwartz_available
-       check_maxattachmentsize
+       check_maxattachmentsize check_email
 );
 
 # Checking functions for the various values
@@ -92,6 +93,14 @@ sub check_regexp {
     my ($value) = (@_);
     eval { qr/$value/ };
     return $@;
+}
+
+sub check_email {
+    my ($value) = @_;
+    if ($value !~ $Email::Address::mailbox) {
+        return "must be a valid email address.";
+    }
+    return "";
 }
 
 sub check_sslbase {
@@ -248,21 +257,6 @@ sub check_webdotbase {
     return "";
 }
 
-sub check_netmask {
-    my ($mask) = @_;
-    my $res = check_numeric($mask);
-    return $res if $res;
-    if ($mask < 0 || $mask > 32) {
-        return "an IPv4 netmask must be between 0 and 32 bits";
-    }
-    # Note that if we changed the netmask from anything apart from 32, then
-    # existing logincookies which aren't for a single IP won't work
-    # any more. We can't know which ones they are, though, so they'll just
-    # take space until they're periodically cleared, later.
-
-    return "";
-}
-
 sub check_user_verify_class {
     # doeditparams traverses the list of params, and for each one it checks,
     # then updates. This means that if one param checker wants to look at 
@@ -272,33 +266,31 @@ sub check_user_verify_class {
     # the login method as LDAP, we won't notice, but all logins will fail.
     # So don't do that.
 
+    my $params = Bugzilla->params;
     my ($list, $entry) = @_;
     $list || return 'You need to specify at least one authentication mechanism';
     for my $class (split /,\s*/, $list) {
         my $res = check_multi($class, $entry);
         return $res if $res;
         if ($class eq 'RADIUS') {
-            eval "require Authen::Radius";
-            return "Error requiring Authen::Radius: '$@'" if $@;
-            return "RADIUS servername (RADIUS_server) is missing" unless Bugzilla->params->{"RADIUS_server"};
-            return "RADIUS_secret is empty" unless Bugzilla->params->{"RADIUS_secret"};
+            if (!Bugzilla->feature('auth_radius')) {
+                return "RADIUS support is not available. Run checksetup.pl"
+                       . " for more details";
+            }
+            return "RADIUS servername (RADIUS_server) is missing"
+                if !$params->{"RADIUS_server"};
+            return "RADIUS_secret is empty" if !$params->{"RADIUS_secret"};
         }
         elsif ($class eq 'LDAP') {
-            eval "require Net::LDAP";
-            return "Error requiring Net::LDAP: '$@'" if $@;
-            return "LDAP servername (LDAPserver) is missing" unless Bugzilla->params->{"LDAPserver"};
-            return "LDAPBaseDN is empty" unless Bugzilla->params->{"LDAPBaseDN"};
+            if (!Bugzilla->feature('auth_ldap')) {
+                return "LDAP support is not available. Run checksetup.pl"
+                       . " for more details";
+            }
+            return "LDAP servername (LDAPserver) is missing" 
+                if !$params->{"LDAPserver"};
+            return "LDAPBaseDN is empty" if !$params->{"LDAPBaseDN"};
         }
     }
-    return "";
-}
-
-sub check_image_converter {
-    my ($value, $hash) = @_;
-    if ($value == 1){
-       eval "require Image::Magick";
-       return "Error requiring Image::Magick: '$@'" if $@;
-    } 
     return "";
 }
 
@@ -306,7 +298,7 @@ sub check_mail_delivery_method {
     my $check = check_multi(@_);
     return $check if $check;
     my $mailer = shift;
-    if ($mailer eq 'sendmail' && $^O =~ /MSWin32/i) {
+    if ($mailer eq 'sendmail' and ON_WINDOWS) {
         # look for sendmail.exe 
         return "Failed to locate " . SENDMAIL_EXE
             unless -e SENDMAIL_EXE;
@@ -342,20 +334,25 @@ sub check_notification {
                "about the next stable release, you should select " .
                "'latest_stable_release' instead";
     }
+    if ($option ne 'disabled' && !Bugzilla->feature('updates')) {
+        return "Some Perl modules are missing to get notifications about " .
+               "new releases. See the output of checksetup.pl for more information";
+    }
     return "";
 }
 
 sub check_smtp_auth {
     my $username = shift;
-    if ($username) {
-        eval "require Authen::SASL";
-        return "Error requiring Authen::SASL: '$@'" if $@;
+    if ($username and !Bugzilla->feature('smtp_auth')) {
+        return "SMTP Authentication is not available. Run checksetup.pl for"
+               . " more details";
     }
     return "";
 }
 
 sub check_theschwartz_available {
-    if (!eval { require TheSchwartz; require Daemon::Generic; }) {
+    my $use_queue = shift;
+    if ($use_queue && !Bugzilla->feature('jobqueue')) {
         return "Using the job queue requires that you have certain Perl"
                . " modules installed. See the output of checksetup.pl"
                . " for more information";

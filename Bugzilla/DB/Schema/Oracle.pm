@@ -145,6 +145,9 @@ sub get_fk_ddl {
     my $to_column = $references->{COLUMN} || confess "No column in reference";
     my $fk_name   = $self->_get_fk_name($table, $column, $references);
 
+    # 'ON DELETE RESTRICT' is enabled by default   
+    $delete = "" if ( defined $delete && $delete =~ /RESTRICT/i);
+
     my $fk_string = "\n     CONSTRAINT $fk_name FOREIGN KEY ($column)\n"
                     . "     REFERENCES $to_table($to_column)\n";
    
@@ -398,6 +401,31 @@ sub _get_create_seq_ddl {
     push (@ddl, $serial_sql);
 
     return @ddl;
+}
+
+sub get_set_serial_sql { 
+    my ($self, $table, $column, $value) = @_; 
+    my @sql;
+    my $seq_name = "${table}_${column}_SEQ";
+    push(@sql, "DROP SEQUENCE ${seq_name}");
+    push(@sql, $self->_get_create_seq_ddl($table, $column, $value));       
+    return @sql;
+} 
+
+sub get_drop_column_ddl {
+    my $self = shift;
+    my ($table, $column) = @_;
+    my @sql;
+    push(@sql, $self->SUPER::get_drop_column_ddl(@_));
+    my $dbh=Bugzilla->dbh;
+    my $trigger_name = uc($table . "_" . $column);
+    my $exist_trigger = $dbh->selectcol_arrayref(
+        "SELECT OBJECT_NAME FROM USER_OBJECTS
+         WHERE OBJECT_NAME = ?", undef, $trigger_name);
+    if(@$exist_trigger) {
+        push(@sql, "DROP TRIGGER $trigger_name");
+    }
+    return @sql;
 }
 
 1;

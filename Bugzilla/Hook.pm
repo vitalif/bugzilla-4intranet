@@ -18,69 +18,112 @@
 # Rights Reserved.
 #
 # Contributor(s): Zach Lipton <zach@zachlipton.com>
-#
+#                 Max Kanat-Alexander <mkanat@bugzilla.org>
 
 package Bugzilla::Hook;
 
-use Bugzilla::Constants;
-use Bugzilla::Util;
-use Bugzilla::Error;
-
 use strict;
+no strict 'subs';
+use Bugzilla::Util;
+use base 'Exporter';
+our @EXPORT = qw(set_hook run_hooks);
 
-sub process {
-    my ($name, $args) = @_;
-    
-    # get a list of all extensions
-    my @extensions = glob(bz_locations()->{'extensionsdir'} . "/*");
-    
-    # check each extension to see if it uses the hook
-    # if so, invoke the extension source file:
-    foreach my $extension (@extensions) {
-        # all of these variables come directly from code or directory names. 
-        # If there's malicious data here, we have much bigger issues to 
-        # worry about, so we can safely detaint them:
-        trick_taint($extension);
-        # Skip CVS directories and any hidden files/dirs.
-        next if $extension =~ m{/CVS$} || $extension =~ m{/\.[^/]+$};
-        next if -e "$extension/disabled";
-        if (-e $extension.'/code/'.$name.'.pl') {
-            Bugzilla->hook_args($args);
-            # Allow extensions to load their own libraries.
-            local @INC = ("$extension/lib", @INC);
-            do($extension.'/code/'.$name.'.pl');
-            if ($@)
-            {
-                $@->throw if ref($@) && $@->isa('Bugzilla::Error');
-                ThrowCodeError('extension_invalid', 
-                    { errstr => $@, name => $name, extension => $extension });
-            }
-            # Flush stored data.
-            Bugzilla->hook_args({});
-        }
-    }
+my %hooks;
+my @hook_stack;
+my %hook_hash;
+
+# Set extension hook or hooks
+sub set_hook
+{
+    my ($extension, $hook, $callable) = @_;
+    $hook =~ tr/-/_/;
+    $hooks{$hook}{$extension} = $callable;
 }
 
-sub enabled_plugins {
-    my $extdir = bz_locations()->{'extensionsdir'};
-    my @extensions = glob("$extdir/*");
-    my %enabled;
-    foreach my $extension (@extensions) {
-        trick_taint($extension);
-        my $extname = $extension;
-        $extname =~ s{^\Q$extdir\E/}{};
-        next if $extname eq 'CVS' || $extname =~ /^\./;
-        next if -e "$extension/disabled";
-        # Allow extensions to load their own libraries.
-        local @INC = ("$extension/lib", @INC);
-        $enabled{$extname} = do("$extension/info.pl");
-        ThrowCodeError('extension_invalid',
-                { errstr => $@, name => 'version',
-                  extension => $extension }) if $@;
+# An alias
+sub run_hooks
+{
+    goto &process;
+}
 
+# Process all hooks with name $name
+sub process
+{
+    my ($name, $args) = @_;
+    $name =~ tr/-/_/;
+
+    push @hook_stack, $name;
+    $hook_hash{$name}++;
+
+    my @process = values %{$hooks{$name}};
+    for my $f (@process)
+    {
+        if (!defined $f)
+        {
+            next;
+        }
+        elsif (ref $f eq 'ARRAY')
+        {
+            push @process, @$f;
+            next;
+        }
+        elsif (ref $f eq 'CODE')
+        {
+            # Fall through if()
+        }
+        elsif (!ref $f && $f =~ /^(.*)::[^:]*$/)
+        {
+            my $pk = $1;
+            if ($pk)
+            {
+                eval { require $pk };
+                if ($@)
+                {
+                    warn "Error autoloading hook package $pk: $@";
+                }
+            }
+        }
+        elsif (ref $f eq 'HASH' && $f->{type} eq 'file' &&
+            open my $fd, $f->{filename})
+        {
+            # Slurp file content into $hook_sub
+            my $sub;
+            {
+                local $/ = undef;
+                $sub = <$fd>;
+                trick_taint($sub);
+            }
+            close $fd;
+            $sub =~ s/Bugzilla->hook_args/\$args/gso;
+            my $pk = $f->{filename};
+            $pk =~ s/\W+/_/gso;
+            $pk = "Bugzilla::Hook::$pk";
+            $sub = eval "package $pk; sub { my (\$args) = \@_; $sub; return 1; };";
+            if ($@)
+            {
+                warn __PACKAGE__."::load(): error during loading $f->{filename} into a subroutine (note that Bugzilla->hook_args was replaced by \$args): $@";
+                next;
+            }
+            $f = $sub;
+        }
+        else
+        {
+            die "Don't know what to do with hook callable \"$f\". Is it really callable?";
+        }
+        # OK, call the function!
+        # When a hook returns TRUE, other hooks are also called
+        # When a hook returns FALSE, hook processing is stopped
+        &$f($args) || last;
     }
 
-    return \%enabled;
+    $hook_hash{$name}--;
+    pop @hook_stack;
+}
+
+sub in
+{
+    my $hook_name = shift;
+    return $hook_hash{$hook_name} || 0;
 }
 
 1;
@@ -105,36 +148,19 @@ hooks. When a piece of standard Bugzilla code wants to allow an extension
 to perform additional functions, it uses Bugzilla::Hook's L</process>
 subroutine to invoke any extension code if installed. 
 
-There is a sample extension in F<extensions/example/> that demonstrates
-most of the things described in this document, as well as many of the
-hooks available.
+The implementation of extensions is described in L<Bugzilla::Extension>.
+
+There is sample code for every hook in the Example extension, located in
+F<extensions/Example/Extension.pm>.
 
 =head2 How Hooks Work
 
-When a hook named C<HOOK_NAME> is run, Bugzilla will attempt to invoke any 
-source files named F<extensions/*/code/HOOK_NAME.pl>.
+When a hook named C<HOOK_NAME> is run, Bugzilla looks through all
+enabled L<extensions|Bugzilla::Extension> for extensions that implement
+a subroutined named C<HOOK_NAME>.
 
-So, for example, if your extension is called "testopia", and you
-want to have code run during the L</install-update_db> hook, you
-would have a file called F<extensions/testopia/code/install-update_db.pl>
-that contained perl code to run during that hook.
-
-=head2 Arguments Passed to Hooks
-
-Some L<hooks|/HOOKS> have params that are passed to them.
-
-These params are accessible through L<Bugzilla/hook_args>.
-That returns a hashref. Very frequently, if you want your
-hook to do anything, you have to modify these variables.
-
-=head2 Versioning Extensions
-
-Every extension must have a file in its root called F<info.pl>.
-This file must return a hash when called with C<do>.
-The hash must contain a 'version' key with the current version of the
-extension. Extension authors can also add any extra infomration to this hash if
-required, by adding a new key beginning with x_ which will not be used the
-core Bugzilla code. 
+See L<Bugzilla::Extension> for more details about how an extension
+can run code during a hook.
 
 =head1 SUBROUTINES
 
@@ -174,7 +200,25 @@ This describes what hooks exist in Bugzilla currently. They are mostly
 in alphabetical order, but some related hooks are near each other instead
 of being alphabetical.
 
-=head2 auth-login_methods
+=head2 attachment_process_data
+
+This happens at the very beginning process of the attachment creation.
+You can edit the attachment content itself as well as all attributes
+of the attachment, before they are validated and inserted into the DB.
+
+Params:
+
+=over
+
+=item C<data> - A reference pointing either to the content of the file
+being uploaded or pointing to the filehandle associated with the file.
+
+=item C<attributes> - A hashref whose keys are the same as
+L<Bugzilla::Attachment/create>. The data it contains hasn't been checked yet.
+
+=back
+
+=head2 auth_login_methods
 
 This allows you to add new login types to Bugzilla.
 (See L<Bugzilla::Auth::Login>.)
@@ -205,16 +249,16 @@ login methods that weren't passed to L<Bugzilla::Auth/login>.)
 
 =back
 
-=head2 auth-verify_methods
+=head2 auth_verify_methods
 
-This works just like L</auth-login_methods> except it's for
+This works just like L</auth_login_methods> except it's for
 login verification methods (See L<Bugzilla::Auth::Verify>.) It also
-takes a C<modules> parameter, just like L</auth-login_methods>.
+takes a C<modules> parameter, just like L</auth_login_methods>.
 
-=head2 bug-columns
+=head2 bug_columns
 
 This allows you to add new fields that will show up in every L<Bugzilla::Bug>
-object. Note that you will also need to use the L</bug-fields> hook in
+object. Note that you will also need to use the L</bug_fields> hook in
 conjunction with this hook to make this work.
 
 Params:
@@ -226,7 +270,7 @@ your column name(s) onto the array.
 
 =back
 
-=head2 bug-end_of_create
+=head2 bug_end_of_create
 
 This happens at the end of L<Bugzilla::Bug/create>, after all other changes are
 made to the database. This occurs inside a database transaction.
@@ -242,7 +286,22 @@ values.
 
 =back
 
-=head2 bug-end_of_update
+=head2 bug_end_of_create_validators
+
+This happens during L<Bugzilla::Bug/create>, after all parameters have
+been validated, but before anything has been inserted into the database.
+
+Params:
+
+=over
+
+=item C<params>
+
+A hashref. The validated parameters passed to C<create>.
+
+=back
+
+=head2 bug_end_of_update
 
 This happens at the end of L<Bugzilla::Bug/update>, after all other changes are
 made to the database. This generally occurs inside a database transaction.
@@ -251,23 +310,32 @@ Params:
 
 =over
 
-=item C<bug> - The changed bug object, with all fields set to their updated
-values.
+=item C<bug> 
 
-=item C<timestamp> - The timestamp used for all updates in this transaction.
+The changed bug object, with all fields set to their updated values.
 
-=item C<changes> - The hash of changed fields. 
-C<$changes-E<gt>{field} = [old, new]>
+=item C<old_bug>
+
+A bug object pulled from the database before the fields were set to
+their updated values (so it has the old values available for each field).
+
+=item C<timestamp> 
+
+The timestamp used for all updates in this transaction.
+
+=item C<changes> 
+
+The hash of changed fields. C<< $changes->{field} = [old, new] >>
 
 =back
 
-=head2 bug-fields
+=head2 bug_fields
 
 Allows the addition of database fields from the bugs table to the standard
 list of allowable fields in a L<Bugzilla::Bug> object, so that
 you can call the field as a method.
 
-Note: You should add here the names of any fields you added in L</bug-columns>.
+Note: You should add here the names of any fields you added in L</bug_columns>.
 
 Params:
 
@@ -278,7 +346,72 @@ your column name(s) onto the array.
 
 =back
 
-=head2 buglist-columns
+=head2 bug_format_comment
+
+Allows you to do custom parsing on comments before they are displayed. You do
+this by returning two regular expressions: one that matches the section you
+want to replace, and then another that says what you want to replace that
+match with.
+
+The matching and replacement will be run with the C</g> switch on the regex.
+
+Params:
+
+=over
+
+=item C<regexes>
+
+An arrayref of hashrefs.
+
+You should push a hashref containing two keys (C<match> and C<replace>)
+in to this array. C<match> is the regular expression that matches the
+text you want to replace, C<replace> is what you want to replace that
+text with. (This gets passed into a regular expression like 
+C<s/$match/$replace/>.)
+
+Instead of specifying a regular expression for C<replace> you can also
+return a coderef (a reference to a subroutine). If you want to use
+backreferences (using C<$1>, C<$2>, etc. in your C<replace>), you have to use
+this method--it won't work if you specify C<$1>, C<$2> in a regular expression
+for C<replace>. Your subroutine will get a hashref as its only argument. This
+hashref contains a single key, C<matches>. C<matches> is an arrayref that
+contains C<$1>, C<$2>, C<$3>, etc. in order, up to C<$10>. Your subroutine
+should return what you want to replace the full C<match> with. (See the code
+example for this hook if you want to see how this actually all works in code.
+It's simpler than it sounds.)
+
+B<You are responsible for HTML-escaping your returned data.> Failing to
+do so could open a security hole in Bugzilla.
+
+=item C<text>
+
+A B<reference> to the exact text that you are parsing.
+
+Generally you should not modify this yourself. Instead you should be 
+returning regular expressions using the C<regexes> array.
+
+The text has already been word-wrapped, but has not been parsed in any way
+otherwise. (So, for example, it is not HTML-escaped. You get "&", not 
+"&amp;".)
+
+=item C<bug>
+
+The L<Bugzilla::Bug> object that this comment is on. Sometimes this is
+C<undef>, meaning that we are parsing text that is not on a bug.
+
+=item C<comment>
+
+A hashref representing the comment you are about to parse, including
+all of the fields that comments contain when they are returned by
+by L<Bugzilla::Bug/longdescs>.
+
+Sometimes this is C<undef>, meaning that we are parsing text that is
+not a bug comment (but could still be some other part of a bug, like
+the summary line).
+
+=back
+
+=head2 buglist_columns
 
 This happens in buglist.cgi after the standard columns have been defined and
 right before the display column determination.  It gives you the opportunity
@@ -306,7 +439,49 @@ The definition is structured as:
 
 =back
 
-=head2 colchange-columns
+=head2 bugmail_recipients
+
+This allows you to modify the list of users who are going to be receiving
+a particular bugmail. It also allows you to specify why they are receiving
+the bugmail.
+
+Users' bugmail preferences will be applied to any users that you add
+to the list. (So, for example, if you add somebody as though they were
+a CC on the bug, and their preferences state that they don't get email
+when they are a CC, they won't get email.)
+
+This hook is called before watchers or globalwatchers are added to the
+recipient list.
+
+Params:
+
+=over
+
+=item C<bug>
+
+The L<Bugzilla::Bug> that bugmail is being sent about.
+
+=item C<recipients>
+
+This is a hashref. The keys are numeric user ids from the C<profiles>
+table in the database, for each user who should be receiving this bugmail.
+The values are hashrefs. The keys in I<these> hashrefs correspond to
+the "relationship" that the user has to the bug they're being emailed
+about, and the value should always be C<1>. The "relationships"
+are described by the various C<REL_> constants in L<Bugzilla::Constants>.
+
+Here's an example of adding userid C<123> to the recipient list
+as though he were on the CC list:
+
+ $recipients->{123}->{+REL_CC} = 1
+
+(We use C<+> in front of C<REL_CC> so that Perl interprets it as a constant
+instead of as a string.)
+
+=back
+
+
+=head2 colchange_columns
 
 This happens in F<colchange.cgi> right after the list of possible display
 columns have been defined and gives you the opportunity to add additional
@@ -317,12 +492,11 @@ Params:
 =over
 
 =item C<columns> - An arrayref containing an array of column IDs.  Any IDs
-added by this hook must have been defined in the the buglist-columns hook.
-See L</buglist-columns>.
+added by this hook must have been defined in the the L</buglist_columns> hook.
 
 =back
 
-=head2 config-add_panels
+=head2 config_add_panels
 
 If you want to add new panels to the Parameters administrative interface,
 this is where you do it.
@@ -343,7 +517,7 @@ extension.)
 
 =back
 
-=head2 config-modify_panels
+=head2 config_modify_panels
 
 This is how you modify already-existing panels in the Parameters
 administrative interface. For example, if you wanted to add a new
@@ -363,11 +537,13 @@ C<get_param_list> for that module. You can modify C<params> and
 your changes will be reflected in the interface.
 
 Adding new keys to C<panels> will have no effect. You should use
-L</config-add_panels> if you want to add new panels.
+L</config_add_panels> if you want to add new panels.
 
 =back
 
-=head2 enter_bug-entrydefaultvars
+=head2 enter_bug_entrydefaultvars
+
+B<DEPRECATED> - Use L</template_before_process> instead.
 
 This happens right before the template is loaded on enter_bug.cgi.
 
@@ -379,9 +555,9 @@ Params:
 
 =back
 
-=head2 flag-end_of_update
+=head2 flag_end_of_update
 
-This happens at the end of L<Bugzilla::Flag/process>, after all other changes
+This happens at the end of L<Bugzilla::Flag/update_flags>, after all other changes
 are made to the database and after emails are sent. It gives you a before/after
 snapshot of flags so you can react to specific flag changes.
 This generally occurs inside a database transaction.
@@ -393,7 +569,7 @@ Params:
 
 =over
 
-=item C<bug> - The changed bug object.
+=item C<object> - The changed bug or attachment object.
 
 =item C<timestamp> - The timestamp used for all updates in this transaction.
 
@@ -405,7 +581,53 @@ changed flags, and search for a specific condition like C<added eq 'review-'>.
 
 =back
 
-=head2 install-before_final_checks
+=head2 group_before_delete
+
+This happens in L<Bugzilla::Group/remove_from_db>, after we've confirmed
+that the group can be deleted, but before any rows have actually
+been removed from the database. This occurs inside a database
+transaction.
+
+Params:
+
+=over
+
+=item C<group> - The L<Bugzilla::Group> being deleted.
+
+=back
+
+=head2 group_end_of_create
+
+This happens at the end of L<Bugzilla::Group/create>, after all other
+changes are made to the database. This occurs inside a database transaction.
+
+Params:
+
+=over
+
+=item C<group> - The changed L<Bugzilla::Group> object, with all fields set
+to their updated values.
+
+=back
+
+=head2 group_end_of_update
+
+This happens at the end of L<Bugzilla::Group/update>, after all other 
+changes are made to the database. This occurs inside a database transaction.
+
+Params:
+
+=over
+
+=item C<group> - The changed L<Bugzilla::Group> object, with all fields set 
+to their updated values.
+
+=item C<changes> - The hash of changed fields. 
+C<< $changes->{$field} = [$old, $new] >>
+
+=back
+
+=head2 install_before_final_checks
 
 Allows execution of custom code before the final checks are done in 
 checksetup.pl.
@@ -420,44 +642,20 @@ A flag that indicates whether or not checksetup is running in silent mode.
 
 =back
 
-=head2 install-requirements
-
-Because of the way Bugzilla installation works, there can't be a normal
-hook during the time that F<checksetup.pl> checks what modules are
-installed. (C<Bugzilla::Hook> needs to have those modules installed--it's
-a chicken-and-egg problem.)
-
-So instead of the way hooks normally work, this hook just looks for two 
-subroutines (or constants, since all constants are just subroutines) in 
-your file, called C<OPTIONAL_MODULES> and C<REQUIRED_MODULES>,
-which should return arrayrefs in the same format as C<OPTIONAL_MODULES> and
-C<REQUIRED_MODULES> in L<Bugzilla::Install::Requirements>.
-
-These subroutines will be passed an arrayref that contains the current
-Bugzilla requirements of the same type, in case you want to modify
-Bugzilla's requirements somehow. (Probably the most common would be to
-alter a version number or the "feature" element of C<OPTIONAL_MODULES>.)
-
-F<checksetup.pl> will add these requirements to its own.
-
-Please remember--if you put something in C<REQUIRED_MODULES>, then
-F<checksetup.pl> B<cannot complete> unless the user has that module
-installed! So use C<OPTIONAL_MODULES> whenever you can.
-
-=head2 install-update_db
+=head2 install_update_db
 
 This happens at the very end of all the tables being updated
 during an installation or upgrade. If you need to modify your custom
 schema, do it here. No params are passed.
 
-=head2 db_schema-abstract_schema
+=head2 db_schema_abstract_schema
 
 This allows you to add tables to Bugzilla. Note that we recommend that you 
 prefix the names of your tables with some word, so that they don't conflict 
 with any future Bugzilla tables.
 
 If you wish to add new I<columns> to existing Bugzilla tables, do that
-in L</install-update_db>.
+in L</install_update_db>.
 
 Params:
 
@@ -470,7 +668,7 @@ database when run.
 
 =back
 
-=head2 mailer-before_send
+=head2 mailer_before_send
 
 Called right before L<Bugzilla::Mailer> sends a message to the MTA.
 
@@ -485,7 +683,173 @@ L<Email::Send/new>.
 
 =back
 
-=head2 page-before_template
+=head2 object_before_create
+
+This happens at the beginning of L<Bugzilla::Object/create>.
+
+Params:
+
+=over
+
+=item C<class>
+
+The name of the class that C<create> was called on. You can check this 
+like C<< if ($class->isa('Some::Class')) >> in your code, to perform specific
+tasks before C<create> for only certain classes.
+
+=item C<params>
+
+A hashref. The set of named parameters passed to C<create>.
+
+=back
+
+
+=head2 object_before_delete
+
+This happens in L<Bugzilla::Object/remove_from_db>, after we've confirmed
+that the object can be deleted, but before any rows have actually
+been removed from the database. This sometimes occurs inside a database
+transaction.
+
+Params:
+
+=over
+
+=item C<object> - The L<Bugzilla::Object> being deleted. You will probably
+want to check its type like C<< $object->isa('Some::Class') >> before doing
+anything with it.
+
+=back
+
+
+=head2 object_before_set
+
+Called during L<Bugzilla::Object/set>, before any actual work is done.
+You can use this to perform actions before a value is changed for
+specific fields on certain types of objects.
+
+Params:
+
+=over
+
+=item C<object>
+
+The object that C<set> was called on. You will probably want to
+do something like C<< if ($object->isa('Some::Class')) >> in your code to
+limit your changes to only certain subclasses of Bugzilla::Object.
+
+=item C<field>
+
+The name of the field being updated in the object.
+
+=item C<value> 
+
+The value being set on the object.
+
+=back
+
+=head2 object_end_of_create_validators
+
+Called at the end of L<Bugzilla::Object/run_create_validators>. You can
+use this to run additional validation when creating an object.
+
+If a subclass has overridden C<run_create_validators>, then this usually
+happens I<before> the subclass does its custom validation.
+
+Params:
+
+=over
+
+=item C<class>
+
+The name of the class that C<create> was called on. You can check this 
+like C<< if ($class->isa('Some::Class')) >> in your code, to perform specific
+tasks for only certain classes.
+
+=item C<params>
+
+A hashref. The set of named parameters passed to C<create>, modified and
+validated by the C<VALIDATORS> specified for the object.
+
+=back
+
+
+=head2 object_end_of_set
+
+Called during L<Bugzilla::Object/set>, after all the code of the function
+has completed (so the value has been validated and the field has been set
+to the new value). You can use this to perform actions after a value is
+changed for specific fields on certain types of objects.
+
+The new value is not specifically passed to this hook because you can
+get it as C<< $object->{$field} >>.
+
+Params:
+
+=over
+
+=item C<object>
+
+The object that C<set> was called on. You will probably want to
+do something like C<< if ($object->isa('Some::Class')) >> in your code to
+limit your changes to only certain subclasses of Bugzilla::Object.
+
+=item C<field>
+
+The name of the field that was updated in the object.
+
+=back
+
+
+=head2 object_end_of_set_all
+
+This happens at the end of L<Bugzilla::Object/set_all>. This is a
+good place to call custom set_ functions on objects, or to make changes
+to an object before C<update()> is called.
+
+Params:
+
+=over
+
+=item C<object>
+
+The L<Bugzilla::Object> which is being updated. You will probably want to
+do something like C<< if ($object->isa('Some::Class')) >> in your code to
+limit your changes to only certain subclasses of Bugzilla::Object.
+
+=item C<params>
+
+A hashref. The set of named parameters passed to C<set_all>.
+
+=back
+
+=head2 object_end_of_update
+
+Called during L<Bugzilla::Object/update>, after changes are made
+to the database, but while still inside a transaction.
+
+Params:
+
+=over
+
+=item C<object>
+
+The object that C<update> was called on. You will probably want to
+do something like C<< if ($object->isa('Some::Class')) >> in your code to
+limit your changes to only certain subclasses of Bugzilla::Object.
+
+=item C<old_object>
+
+The object as it was before it was updated.
+
+=item C<changes>
+
+The fields that have been changed, in the same format that
+L<Bugzilla::Object/update> returns.
+
+=back
+
+=head2 page_before_template
 
 This is a simple way to add your own pages to Bugzilla. This hooks C<page.cgi>,
 which loads templates from F<template/en/default/pages>. For example,
@@ -512,7 +876,9 @@ your template.
 
 =back
 
-=head2 product-confirm_delete
+=head2 product_confirm_delete
+
+B<DEPRECATED> - Use L</template_before_process> instead.
 
 Called before displaying the confirmation message when deleting a product.
 
@@ -521,6 +887,115 @@ Params:
 =over
 
 =item C<vars> - The template vars hashref.
+
+=back
+
+=head2 sanitycheck_check
+
+This hook allows for extra sanity checks to be added, for use by
+F<sanitycheck.cgi>.
+
+Params:
+
+=over
+
+=item C<status> - a CODEREF that allows status messages to be displayed
+to the user. (F<sanitycheck.cgi>'s C<Status>)
+
+=back
+
+=head2 product_end_of_create
+
+Called right after a new product has been created, allowing additional
+changes to be made to the new product's attributes. This occurs inside of
+a database transaction, so if the hook throws an error all previous
+changes will be rolled back including the creation of the new product.
+
+Params:
+
+=over
+
+=item C<product> - The new L<Bugzilla::Product> object that was just created.
+
+=back
+
+=head2 sanitycheck_repair
+
+This hook allows for extra sanity check repairs to be made, for use by
+F<sanitycheck.cgi>.
+
+Params:
+
+=over
+
+=item C<status> - a CODEREF that allows status messages to be displayed
+to the user. (F<sanitycheck.cgi>'s C<Status>)
+
+=back
+
+=head2 template_before_create
+
+This hook allows you to modify the configuration of L<Bugzilla::Template>
+objects before they are created. For example, you could add a new
+global template variable this way.
+
+Params:
+
+=over
+
+=item C<config>
+
+A hashref--the configuration that will be passed to L<Template/new>.
+See L<http://template-toolkit.org/docs/modules/Template.html#section_CONFIGURATION_SUMMARY>
+for information on how this configuration variable is structured (or just
+look at the code for C<create> in L<Bugzilla::Template>.)
+
+=back
+
+=head2 template_before_process
+
+This hook is called any time Bugzilla processes a template file, including
+calls to C<< $template->process >>, C<PROCESS> statements in templates,
+and C<INCLUDE> statements in templates. It is not called when templates
+process a C<BLOCK>, only when they process a file.
+
+This hook allows you to define additional variables that will be available to
+the template being processed, or to modify the variables that are currently
+in the template. It works exactly as though you inserted code to modify
+template variables at the top of a template.
+
+You probably want to restrict this hook to operating only if a certain 
+file is being processed (which is why you get a C<file> argument
+below). Otherwise, modifying the C<vars> argument will affect every single
+template in Bugzilla.
+
+B<Note:> This hook is not called if you are already in this hook.
+(That is, it won't call itself recursively.) This prevents infinite
+recursion in situations where this hook needs to process a template
+(such as if this hook throws an error).
+
+Params:
+
+=over
+
+=item C<vars>
+
+This is the entire set of variables that the current template can see.
+Technically, this is a L<Template::Stash> object, but you can just
+use it like a hashref if you want.
+
+=item C<file>
+
+The name of the template file being processed. This is relative to the
+main template directory for the language (i.e. for
+F<template/en/default/bug/show.html.tmpl>, this variable will contain
+C<bug/show.html.tmpl>).
+
+=item C<context>
+
+A L<Template::Context> object. Usually you will not have to use this, but
+if you need information about the template itself (other than just its
+name), you can get it from here.
 
 =back
 
@@ -557,7 +1032,7 @@ plugins).
 
 =back
 
-=head2 webservice-error_codes
+=head2 webservice_error_codes
 
 If your webservice extension throws custom errors, you can set numeric
 codes for those errors here.
@@ -575,3 +1050,7 @@ A hash that maps the names of errors (like C<invalid_param>) to numbers.
 See L<Bugzilla::WebService::Constants/WS_ERROR_CODE> for an example.
 
 =back
+
+=head1 SEE ALSO
+
+L<Bugzilla::Extension>
