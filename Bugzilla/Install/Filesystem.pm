@@ -30,6 +30,7 @@ use strict;
 use Bugzilla::Constants;
 use Bugzilla::Error;
 use Bugzilla::Install::Localconfig;
+use Bugzilla::Install::Util qw(install_string);
 use Bugzilla::Util;
 
 use File::Find;
@@ -44,6 +45,7 @@ our @EXPORT = qw(
     update_filesystem
     create_htaccess
     fix_all_file_permissions
+    fix_file_permissions
 );
 
 use constant HT_DEFAULT_DENY => <<EOT;
@@ -58,10 +60,10 @@ EOT
 # a perldoc. However, look at the various hashes defined inside this 
 # function to understand what it returns. (There are comments throughout.)
 #
-# The rationale for the file permissions is that the web server generally 
-# runs as apache, so the cgi scripts should not be writable for apache,
-# otherwise someone may find it possible to change the cgis when exploiting
-# some security flaw somewhere (not necessarily in Bugzilla!)
+# The rationale for the file permissions is that there is a group the
+# web server executes the scripts as, so the cgi scripts should not be writable
+# by this group. Otherwise someone may find it possible to change the cgis
+# when exploiting some security flaw somewhere (not necessarily in Bugzilla!)
 sub FILESYSTEM {
     my $datadir       = bz_locations()->{'datadir'};
     my $attachdir     = bz_locations()->{'attachdir'};
@@ -74,6 +76,7 @@ sub FILESYSTEM {
     my $localconfig   = bz_locations()->{'localconfig'};
 
     my $ws_group      = Bugzilla->localconfig->{'webservergroup'};
+    my $use_suexec    = Bugzilla->localconfig->{'use_suexec'};
 
     # The set of permissions that we use:
 
@@ -83,7 +86,7 @@ sub FILESYSTEM {
     # Executable by the owner only.
     my $owner_executable = 0700;
     # Readable by the web server.
-    my $ws_readable = $ws_group ? 0640 : 0644;
+    my $ws_readable = ($ws_group && !$use_suexec) ? 0640 : 0644;
     # Readable by the owner only.
     my $owner_readable = 0600;
     # Writeable by the web server.
@@ -91,7 +94,7 @@ sub FILESYSTEM {
 
     # DIRECTORIES
     # Readable by the web server.
-    my $ws_dir_readable  = $ws_group ? 0750 : 0755;
+    my $ws_dir_readable  = ($ws_group && !$use_suexec) ? 0750 : 0755;
     # Readable only by the owner.
     my $owner_dir_readable = 0700;
     # Writeable by the web server.
@@ -124,6 +127,7 @@ sub FILESYSTEM {
         'email_in.pl'     => { perms => $ws_executable },
         'sanitycheck.pl'  => { perms => $ws_executable },
         'jobqueue.pl'     => { perms => $owner_executable },
+        'migrate.pl'      => { perms => $owner_executable },
         'install-module.pl' => { perms => $owner_executable },
 
         "$localconfig.old" => { perms => $owner_readable },
@@ -134,9 +138,9 @@ sub FILESYSTEM {
         'docs/style.css'       => { perms => $ws_readable },
         'docs/*/rel_notes.txt' => { perms => $ws_readable },
         'docs/*/README.docs'   => { perms => $owner_readable },
-        "$datadir/bugzilla-update.xml" => { perms => $ws_writeable },
         "$datadir/params" => { perms => $ws_writeable },
         "$datadir/old-params.txt" => { perms => $owner_readable },
+        "$extensionsdir/create.pl" => { perms => $owner_executable },
     );
 
     # Directories that we want to set the perms on, but not
@@ -164,8 +168,6 @@ sub FILESYSTEM {
 
          # Readable directories
          "$datadir/mining"     => { files => $ws_readable,
-                                     dirs => $ws_dir_readable },
-         "$datadir/duplicates" => { files => $ws_readable,
                                      dirs => $ws_dir_readable },
          "$libdir/Bugzilla"    => { files => $ws_readable,
                                      dirs => $ws_dir_readable },
@@ -212,7 +214,7 @@ sub FILESYSTEM {
     my %create_dirs = (
         $datadir                => $ws_dir_full_control,
         "$datadir/mining"       => $ws_dir_readable,
-        "$datadir/duplicates"   => $ws_dir_readable,
+        "$datadir/extensions"   => $ws_dir_readable,
         $attachdir              => $ws_dir_writeable,
         $extensionsdir          => $ws_dir_readable,
         graphs                  => $ws_dir_writeable,
@@ -224,6 +226,8 @@ sub FILESYSTEM {
     # The name of each file, pointing at its default permissions and
     # default contents.
     my %create_files = (
+        "$datadir/extensions/additional" => { perms    => $ws_readable, 
+                                              contents => '' },
         # We create this file so that it always has the right owner
         # and permissions. Otherwise, the webserver creates it as
         # owned by itself, which can cause problems if jobqueue.pl
@@ -356,10 +360,10 @@ sub update_filesystem {
     foreach my $dir (sort keys %dirs) {
         unless (-d $dir) {
             print "Creating $dir directory...\n";
-            mkdir $dir || die $!;
+            mkdir $dir or die "mkdir $dir failed: $!";
             # For some reason, passing in the permissions to "mkdir"
             # doesn't work right, but doing a "chmod" does.
-            chmod $dirs{$dir}, $dir || die $!;
+            chmod $dirs{$dir}, $dir or warn "Cannot chmod $dir: $!";
         }
     }
 
@@ -410,6 +414,11 @@ EOT
         print "Removing duplicates.rdf...\n";
         unlink "$datadir/duplicates.rdf";
         unlink "$datadir/duplicates-old.rdf";
+    }
+
+    if (-e "$datadir/duplicates") {
+        print "Removing duplicates directory...\n";
+        rmtree("$datadir/duplicates");
     }
 }
 
@@ -573,12 +582,20 @@ sub _update_old_charts {
     } 
 }
 
+sub fix_file_permissions {
+    my ($file) = @_;
+    return if ON_WINDOWS;
+    my $perms = FILESYSTEM()->{all_files}->{$file}->{perms};
+    # Note that _get_owner_and_group is always silent here.
+    my ($owner_id, $group_id) = _get_owner_and_group();
+    _fix_perms($file, $owner_id, $group_id, $perms);
+}
 
 sub fix_all_file_permissions {
     my ($output) = @_;
 
-    my $ws_group = Bugzilla->localconfig->{'webservergroup'};
-    my $group_id = _check_web_server_group($ws_group, $output);
+    # _get_owner_and_group also checks that the webservergroup is valid.
+    my ($owner_id, $group_id) = _get_owner_and_group($output);
 
     return if ON_WINDOWS;
 
@@ -588,9 +605,6 @@ sub fix_all_file_permissions {
     my %recurse_dirs = %{$fs->{recurse_dirs}};
 
     print get_text('install_file_perms_fix') . "\n" if $output;
-
-    my $owner_id = POSIX::getuid();
-    $group_id = POSIX::getgid() unless defined $group_id;
 
     foreach my $dir (sort keys %dirs) {
         next unless -d $dir;
@@ -619,6 +633,16 @@ sub fix_all_file_permissions {
     _fix_cvs_dirs($owner_id, '.');
 }
 
+sub _get_owner_and_group {
+    my ($output) = @_;
+    my $group_id = _check_web_server_group($output);
+    return () if ON_WINDOWS;
+
+    my $owner_id = POSIX::getuid();
+    $group_id = POSIX::getgid() unless defined $group_id;
+    return ($owner_id, $group_id);
+}
+
 # A helper for fix_all_file_permissions
 sub _fix_cvs_dirs {
     my ($owner_id, $dir) = @_;
@@ -640,10 +664,16 @@ sub _fix_cvs_dirs {
 sub _fix_perms {
     my ($name, $owner, $group, $perms) = @_;
     #printf ("Changing $name to %o\n", $perms);
-    chown $owner, $group, $name 
-        || warn "Failed to change ownership of $name: $!";
+
+    # The webserver should never try to chown files.
+    if (Bugzilla->usage_mode == USAGE_MODE_CMDLINE) {
+        chown $owner, $group, $name
+            or warn install_string('chown_failed', { path => $name, 
+                                                     error => $! }) . "\n";
+    }
     chmod $perms, $name
-        || warn "Failed to change permissions of $name: $!";
+        or warn install_string('chmod_failed', { path => $name, 
+                                                 error => $! }) . "\n";
 }
 
 sub _fix_perms_recursively {
@@ -664,8 +694,9 @@ sub _fix_perms_recursively {
 }
 
 sub _check_web_server_group {
-    my ($group, $output) = @_;
+    my ($output) = @_;
 
+    my $group    = Bugzilla->localconfig->{'webservergroup'};
     my $filename = bz_locations()->{'localconfig'};
     my $group_id;
 
@@ -748,5 +779,11 @@ Params:      C<$output> - C<true> if you want this function to print
                  out information about what it's doing.
 
 Returns:     nothing
+
+=item C<fix_file_permissions>
+
+Given the name of a file, its permissions will be fixed according to
+how they are supposed to be set in Bugzilla's current configuration.
+If it fails to set the permissions, a warning will be printed to STDERR.
 
 =back

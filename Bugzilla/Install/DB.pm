@@ -25,6 +25,7 @@ use Encode;
 
 use Bugzilla::Constants;
 use Bugzilla::Hook;
+use Bugzilla::Install ();
 use Bugzilla::Install::Util qw(indicate_progress install_string);
 use Bugzilla::Util;
 use Bugzilla::Series;
@@ -415,11 +416,12 @@ sub update_table_definitions {
     _fix_attachments_submitter_id_idx();
     _copy_attachments_thedata_to_attach_data();
     _fix_broken_all_closed_series();
-
     # 2005-08-14 bugreport@peshkin.net -- Bug 304583
     # Get rid of leftover DERIVED group permissions
     use constant GRANT_DERIVED => 1;
     $dbh->do("DELETE FROM user_group_map WHERE grant_type = " . GRANT_DERIVED);
+
+    _rederive_regex_groups();
 
     # PUBLIC is a reserved word in Oracle.
     $dbh->bz_rename_column('series', 'public', 'is_public');
@@ -458,10 +460,14 @@ sub update_table_definitions {
     _move_data_nomail_into_db();
 
     # The products table lacked sensible defaults.
-    $dbh->bz_alter_column('products', 'milestoneurl',
-                          {TYPE => 'TINYTEXT', NOTNULL => 1, DEFAULT => "''"});
-    $dbh->bz_alter_column('products', 'disallownew',
-                          {TYPE => 'BOOLEAN', NOTNULL => 1,  DEFAULT => 0});
+    if ($dbh->bz_column_info('products', 'milestoneurl')) {
+        $dbh->bz_alter_column('products', 'milestoneurl',
+            {TYPE => 'TINYTEXT', NOTNULL => 1, DEFAULT => "''"});
+    }
+    if ($dbh->bz_column_info('products', 'disallownew')){
+        $dbh->bz_alter_column('products', 'disallownew',
+                              {TYPE => 'BOOLEAN', NOTNULL => 1,  DEFAULT => 0});
+    }
     $dbh->bz_alter_column('products', 'votesperuser', 
                           {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0});
     $dbh->bz_alter_column('products', 'votestoconfirm',
@@ -555,12 +561,53 @@ sub update_table_definitions {
 
     # 2009-03-02 arbingersys@gmail.com - Bug 423613
     _add_extern_id_index();
- 
+
+    # 2009-03-31 LpSolit@gmail.com - Bug 478972
+    $dbh->bz_alter_column('group_control_map', 'entry',
+                          {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'});
+    $dbh->bz_alter_column('group_control_map', 'canedit',
+                          {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'});
+
+    # 2009-01-16 oreomike@gmail.com - Bug 302420
+    $dbh->bz_add_column('whine_events', 'mailifnobugs',
+        { TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'});
+        
+    _convert_disallownew_to_isactive();
+
+    $dbh->bz_alter_column('bugs_activity', 'added', 
+        { TYPE => 'varchar(255)' });
+    $dbh->bz_add_index('bugs_activity', 'bugs_activity_added_idx', ['added']);
+
+    # 2009-09-28 LpSolit@gmail.com - Bug 519032
+    $dbh->bz_drop_column('series', 'last_viewed');
+
+    # 2009-09-28 LpSolit@gmail.com - Bug 399073
+    _fix_logincookies_ipaddr();
+
+    # 2009-11-01 LpSolit@gmail.com - Bug 525025
+    _fix_invalid_custom_field_names();
+
+    _set_attachment_comment_types();
+
+    $dbh->bz_drop_column('products', 'milestoneurl');
+
+    _add_allows_unconfirmed_to_product_table();
+    _convert_flagtypes_fks_to_set_null();
+    _fix_decimal_types();
+    _fix_series_creator_fk();
+
     ################################################################
     # New --TABLE-- changes should go *** A B O V E *** this point #
     ################################################################
 
-    Bugzilla::Hook::process('install-update_db');
+    Bugzilla::Hook::process('install_update_db');
+
+    # We do this here because otherwise the foreign key from 
+    # products.classification_id to classifications.id will fail
+    # (because products.classification_id defaults to "1", so on upgraded
+    # installations it's already been set before the first Classification
+    # exists).
+    Bugzilla::Install::create_default_classification();
 
     $dbh->bz_setup_foreign_keys();
 }
@@ -579,10 +626,11 @@ sub _update_pre_checksetup_bugzillas {
     $dbh->bz_add_column('bugs', 'qa_contact', {TYPE => 'INT3'});
     $dbh->bz_add_column('bugs', 'status_whiteboard',
                        {TYPE => 'MEDIUMTEXT', NOTNULL => 1, DEFAULT => "''"});
-    $dbh->bz_add_column('products', 'disallownew',
-                        {TYPE => 'BOOLEAN', NOTNULL => 1}, 0);
-    $dbh->bz_add_column('products', 'milestoneurl',
-                        {TYPE => 'TINYTEXT', NOTNULL => 1}, '');
+    if (!$dbh->bz_column_info('products', 'isactive')){
+        $dbh->bz_add_column('products', 'disallownew',
+                            {TYPE => 'BOOLEAN', NOTNULL => 1}, 0);
+    }
+
     $dbh->bz_add_column('components', 'initialqacontact',
                         {TYPE => 'TINYTEXT'});
     $dbh->bz_add_column('components', 'description',
@@ -1215,7 +1263,7 @@ sub _use_ip_instead_of_hostname_in_logincookies {
         # Now update the logincookies schema
         $dbh->bz_drop_column("logincookies", "hostname");
         $dbh->bz_add_column("logincookies", "ipaddr",
-                            {TYPE => 'varchar(40)', NOTNULL => 1}, '');
+                            {TYPE => 'varchar(40)'});
     }
 }
 
@@ -1838,7 +1886,6 @@ sub _setup_usebuggroups_backward_compatibility {
     #
     # If group_control_map is empty, backward-compatibility
     # usebuggroups-equivalent records should be created.
-    my $entry = Bugzilla->params->{'useentrygroupdefault'};
     my ($maps_exist) = $dbh->selectrow_array(
         "SELECT DISTINCT 1 FROM group_control_map");
     if (!$maps_exist) {
@@ -1855,11 +1902,9 @@ sub _setup_usebuggroups_backward_compatibility {
             if ($groupname eq $productname) {
                 # Product and group have same name.
                 $dbh->do("INSERT INTO group_control_map " .
-                         "(group_id, product_id, entry, membercontrol, " .
-                         "othercontrol, canedit) " .
-                         "VALUES ($groupid, $productid, $entry, " .
-                         CONTROLMAPDEFAULT . ", " .
-                         CONTROLMAPNA . ", 0)");
+                         "(group_id, product_id, membercontrol, othercontrol) " .
+                         "VALUES (?, ?, ?, ?)", undef,
+                         ($groupid, $productid, CONTROLMAPDEFAULT, CONTROLMAPNA));
             } else {
                 # See if this group is a product group at all.
                 my $sth2 = $dbh->prepare("SELECT id FROM products 
@@ -1870,11 +1915,9 @@ sub _setup_usebuggroups_backward_compatibility {
                     # If there is no product with the same name as this
                     # group, then it is permitted for all products.
                     $dbh->do("INSERT INTO group_control_map " .
-                             "(group_id, product_id, entry, membercontrol, " .
-                             "othercontrol, canedit) " .
-                             "VALUES ($groupid, $productid, 0, " .
-                             CONTROLMAPSHOWN . ", " .
-                             CONTROLMAPNA . ", 0)");
+                             "(group_id, product_id, membercontrol, othercontrol) " .
+                             "VALUES (?, ?, ?, ?)", undef,
+                             ($groupid, $productid, CONTROLMAPSHOWN, CONTROLMAPNA));
                 }
             }
         }
@@ -2199,17 +2242,9 @@ sub _clone_email_event {
     my ($source, $target) = @_;
     my $dbh = Bugzilla->dbh;
 
-    my $sth1 = $dbh->prepare("SELECT user_id, relationship FROM email_setting
-                              WHERE event = $source");
-    my $sth2 = $dbh->prepare("INSERT into email_setting " .
-                             "(user_id, relationship, event) VALUES (" .
-                             "?, ?, $target)");
-
-    $sth1->execute();
-
-    while (my ($userid, $relationship) = $sth1->fetchrow_array()) {
-        $sth2->execute($userid, $relationship);
-    }
+    $dbh->do("INSERT INTO email_setting (user_id, relationship, event)
+                   SELECT user_id, relationship, $target FROM email_setting
+                    WHERE event = $source");
 }
 
 sub _migrate_email_prefs_to_new_table {
@@ -2325,10 +2360,11 @@ sub _initialize_dependency_tree_changes_email_pref {
 
     foreach my $desc (keys %events) {
         my $event = $events{$desc};
-        my $sth = $dbh->prepare("SELECT COUNT(*) FROM email_setting 
-                                  WHERE event = $event");
-        $sth->execute();
-        if (!($sth->fetchrow_arrayref()->[0])) {
+        my $have_events = $dbh->selectrow_array(
+            "SELECT 1 FROM email_setting WHERE event = $event "
+            . $dbh->sql_limit(1));
+
+        if (!$have_events) {
             # No settings in the table yet, so we assume that this is the
             # first time it's being set.
             print "Initializing \"$desc\" email_setting ...\n";
@@ -2679,6 +2715,54 @@ EOT
     } # if (@$broken_nonopen_series)
 }
 
+# This needs to happen at two times: when we upgrade from 2.16 (thus creating 
+# user_group_map), and when we kill derived gruops in the DB.
+sub _rederive_regex_groups {
+    my $dbh = Bugzilla->dbh;
+
+    my $regex_groups_exist = $dbh->selectrow_array(
+        "SELECT 1 FROM groups WHERE userregexp = '' " . $dbh->sql_limit(1));
+    return if !$regex_groups_exist;
+
+    my $regex_derivations = $dbh->selectrow_array(
+        'SELECT 1 FROM user_group_map WHERE grant_type = ' . GRANT_REGEXP 
+        . ' ' . $dbh->sql_limit(1));
+    return if $regex_derivations;
+
+    print "Deriving regex group memberships...\n";
+
+    # Re-evaluate all regexps, to keep them up-to-date.
+    my $sth = $dbh->prepare(
+        "SELECT profiles.userid, profiles.login_name, groups.id, 
+                groups.userregexp, user_group_map.group_id
+           FROM (profiles CROSS JOIN groups)
+                LEFT JOIN user_group_map
+                       ON user_group_map.user_id = profiles.userid
+                          AND user_group_map.group_id = groups.id
+                          AND user_group_map.grant_type = ?
+          WHERE userregexp != '' OR user_group_map.group_id IS NOT NULL");
+
+    my $sth_add = $dbh->prepare(
+        "INSERT INTO user_group_map (user_id, group_id, isbless, grant_type)
+              VALUES (?, ?, 0, " . GRANT_REGEXP . ")");
+
+    my $sth_del = $dbh->prepare(
+        "DELETE FROM user_group_map
+          WHERE user_id  = ? AND group_id = ? AND isbless = 0 
+                AND grant_type = " . GRANT_REGEXP);
+
+    $sth->execute(GRANT_REGEXP);
+    while (my ($uid, $login, $gid, $rexp, $present) = 
+               $sth->fetchrow_array()) 
+    {
+        if ($login =~ m/$rexp/i) {
+            $sth_add->execute($uid, $gid) unless $present;
+        } else {
+            $sth_del->execute($uid, $gid) if $present;
+        }
+    }
+}
+
 sub _clean_control_characters_from_short_desc {
     my $dbh = Bugzilla->dbh;
 
@@ -2826,13 +2910,13 @@ sub _move_data_nomail_into_db {
                                       SET disable_mail = 1
                                     WHERE userid = ?');
         foreach my $user_to_check (keys %nomail) {
-            my $uid;
-            if ($uid = Bugzilla::User::login_to_id($user_to_check)) {
-                my $user = new Bugzilla::User($uid);
-                print "\tDisabling email for user ", $user->email, "\n";
-                $query->execute($user->id);
-                delete $nomail{$user->email};
-            }
+            my $uid = $dbh->selectrow_array(
+                'SELECT userid FROM profiles WHERE login_name = ?',
+                undef, $user_to_check);
+            next if !$uid;
+            print "\tDisabling email for user $user_to_check\n";
+            $query->execute($uid);
+            delete $nomail{$user_to_check};
         }
 
         # If there are any nomail entries remaining, move them to nomail.bad
@@ -2929,11 +3013,8 @@ sub _initialize_workflow {
     # and mark these statuses as 'closed', even if some of these statuses are
     # expected to be open statuses. Bug statuses we have no information about
     # are left as 'open'.
-    my @closed_statuses =
-      @{$dbh->selectcol_arrayref('SELECT DISTINCT bug_status FROM bugs
-                                  WHERE resolution != ?', undef, '')};
-
-    # Append the default list of closed statuses *unless* we detect at least
+    #
+    # We append the default list of closed statuses *unless* we detect at least
     # one closed state in the DB (i.e. with is_open = 0). This would mean that
     # the DB has already been updated at least once and maybe the admin decided
     # that e.g. 'RESOLVED' is now an open state, in which case we don't want to
@@ -2944,6 +3025,9 @@ sub _initialize_workflow {
                                                    WHERE is_open = 0');
 
     if (!$num_closed_states) {
+        my @closed_statuses =
+            @{$dbh->selectcol_arrayref('SELECT DISTINCT bug_status FROM bugs
+                                         WHERE resolution != ?', undef, '')};
         @closed_statuses =
           map {$dbh->quote($_)} (@closed_statuses, qw(RESOLVED VERIFIED CLOSED));
 
@@ -3104,7 +3188,7 @@ sub _change_text_types {
     $dbh->bz_alter_column('namedqueries', 'query',
         { TYPE => 'LONGTEXT', NOTNULL => 1 });
 
-}
+} 
 
 sub _check_content_length {
     my ($table_name, $field_name, $max_length, $id_field) = @_;
@@ -3136,41 +3220,48 @@ sub _add_foreign_keys_to_multiselects {
     my $dbh = Bugzilla->dbh;
 
     my $names = $dbh->selectcol_arrayref(
-        'SELECT name
-           FROM fielddefs
+        'SELECT name 
+           FROM fielddefs 
           WHERE type = ' . FIELD_TYPE_MULTI_SELECT);
 
     foreach my $name (@$names) {
         $dbh->bz_add_fk("bug_$name", "bug_id", {TABLE  => 'bugs',
                                                 COLUMN => 'bug_id',
                                                 DELETE => 'CASCADE',});
-
+                                                
         $dbh->bz_add_fk("bug_$name", "value", {TABLE  => $name,
                                                COLUMN => 'value',
                                                DELETE => 'RESTRICT',});
     }
 }
 
+# This subroutine is used in multiple places (for times when we update
+# the text of comments), so it takes an argument, $bug_ids, which causes
+# it to update bugs_fulltext for those bug_ids instead of populating the
+# whole table.
 sub _populate_bugs_fulltext
 {
+    my $bug_ids = shift;
+    $bug_ids = undef if $bug_ids && !@$bug_ids;
     my $dbh = Bugzilla->dbh;
     my $fulltext = $dbh->selectrow_array
         ("SELECT 1 FROM bugs_fulltext ".$dbh->sql_limit(1));
-    # We only populate the table if it's empty...
-    if (!$fulltext)
+    # We only populate the table if it's empty or if we've been given a
+    # set of bug ids.
+    if ($bug_ids || !$fulltext)
     {
         # ... and if there are bugs in the bugs table.
-        my @bug_ids = @{ $dbh->selectcol_arrayref("SELECT bug_id FROM bugs") };
-        return if !@bug_ids;
+        $bug_ids ||= $dbh->selectcol_arrayref("SELECT bug_id FROM bugs");
+        return if !$bug_ids;
 
         # Bug 46221 - Russian Stemming in Bugzilla fulltext search
         # We can't use GROUP_CONCAT because we need to stem each word
         # And there could be tons of bugs, so we'll use N-bug portions
         print "Populating bugs_fulltext... (this can take a long time.)\n";
-        my ($portion, $done, $total) = (256, 0, scalar @bug_ids);
+        my ($portion, $done, $total) = (256, 0, scalar @$bug_ids);
         my ($short, $all, $nopriv, $wh, $rows);
         my ($sth, $sthn) = (undef, 0);
-        while (my @ids = splice @bug_ids, 0, $portion)
+        while (my @ids = splice @$bug_ids, 0, $portion)
         {
             $rows = {};
             $wh = "bug_id IN (" . join(",", ("?") x @ids) . ")";
@@ -3195,7 +3286,7 @@ sub _populate_bugs_fulltext
                 $sthn = @ids;
                 $sth = $dbh->prepare(
                     "INSERT INTO bugs_fulltext (bug_id, short_desc, comments, comments_noprivate)" .
-                    " VALUES " . join(",", ("(?,?,?,?)") x @ids)
+                    " VALUES " . join(",", ("(?,?,?,?)") x @ids) . " ON UPDATE SET bug_id=bug_id"
                 );
             }
             $sth->execute(map { ($_, @{$rows->{$_}}) } @ids);
@@ -3223,6 +3314,155 @@ sub _add_extern_id_index {
         $dbh->do("UPDATE profiles SET extern_id = NULL WHERE extern_id = ''");
         $dbh->bz_add_index('profiles', 'profiles_extern_id_idx',
                            {TYPE => 'UNIQUE', FIELDS => [qw(extern_id)]});
+    }
+}
+
+sub _convert_disallownew_to_isactive {
+    my $dbh = Bugzilla->dbh;
+    if ($dbh->bz_column_info('products', 'disallownew')){
+        $dbh->bz_add_column('products', 'isactive', 
+                            { TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'});
+        
+        # isactive is the boolean reverse of disallownew.
+        $dbh->do('UPDATE products SET isactive = 0 WHERE disallownew = 1');
+        $dbh->do('UPDATE products SET isactive = 1 WHERE disallownew = 0');
+        
+        $dbh->bz_drop_column('products','disallownew');
+    }
+}
+
+sub _fix_logincookies_ipaddr {
+    my $dbh = Bugzilla->dbh;
+    return if !$dbh->bz_column_info('logincookies', 'ipaddr')->{NOTNULL};
+
+    $dbh->bz_alter_column('logincookies', 'ipaddr', {TYPE => 'varchar(40)'});
+    $dbh->do('UPDATE logincookies SET ipaddr = NULL WHERE ipaddr = ?',
+             undef, '0.0.0.0');
+}
+
+sub _fix_invalid_custom_field_names {
+    my @fields = Bugzilla->get_fields({ custom => 1 });
+
+    foreach my $field (@fields) {
+        next if $field->name =~ /^[a-zA-Z0-9_]+$/;
+        # The field name is illegal and can break the DB. Kill the field!
+        $field->set_obsolete(1);
+        eval { $field->remove_from_db(); };
+        print "Removing custom field '" . $field->name . "' (illegal name)... ";
+        print $@ ? "failed\n$@\n" : "succeeded\n";
+    }
+}
+
+sub _set_attachment_comment_type {
+    my ($type, $string) = @_;
+    my $dbh = Bugzilla->dbh;
+    # We check if there are any comments of this type already, first, 
+    # because this is faster than a full LIKE search on the comments,
+    # and currently this will run every time we run checksetup.
+    my $test = $dbh->selectrow_array(
+        "SELECT 1 FROM longdescs WHERE type = $type " . $dbh->sql_limit(1));
+    return [] if $test;
+    my %comments = @{ $dbh->selectcol_arrayref(
+        "SELECT comment_id, thetext FROM longdescs
+          WHERE thetext LIKE '$string%'", 
+        {Columns=>[1,2]}) };
+    my @comment_ids = keys %comments;
+    return [] if !scalar @comment_ids;
+    my $what = "update";
+    if ($type == CMT_ATTACHMENT_CREATED) {
+        $what = "creation";
+    }
+    print "Setting the type field on attachment $what comments...\n";
+    my $sth = $dbh->prepare(
+        'UPDATE longdescs SET thetext = ?, type = ?, extra_data = ?
+          WHERE comment_id = ?');
+    my $count = 0;
+    my $total = scalar @comment_ids;
+    foreach my $id (@comment_ids) {
+        $count++;
+        my $text = $comments{$id};
+        next if $text !~ /^\Q$string\E(\d+)/;
+        my $attachment_id = $1;
+        my @lines = split("\n", $text);
+        if ($type == CMT_ATTACHMENT_CREATED) {
+            # Now we have to remove the text up until we find a line that's
+            # just a single newline, because the old "Created an attachment"
+            # text included the attachment description underneath it, and in
+            # Bugzillas before 2.20, that could be wrapped into multiple lines,
+            # in the database.
+            while (1) {
+                my $line = shift @lines;
+                last if (!defined $line or trim($line) eq '');
+            }
+        }
+        else {
+            # However, the "From update of attachment" line is always just
+            # one line--the first line of the comment.
+            shift @lines;
+        }
+        $text = join("\n", @lines);
+        $sth->execute($text, $type, $attachment_id, $id);
+        indicate_progress({ total => $total, current => $count, 
+                            every => 25 });
+    }
+    return \@comment_ids;
+}
+
+sub _set_attachment_comment_types {
+    my $dbh = Bugzilla->dbh;
+    $dbh->bz_start_transaction();
+    my $created_ids = _set_attachment_comment_type(
+        CMT_ATTACHMENT_CREATED, 'Created an attachment (id=');
+    my $updated_ids = _set_attachment_comment_type(
+        CMT_ATTACHMENT_UPDATED, '(From update of attachment ');
+    $dbh->bz_commit_transaction();
+    return unless (@$created_ids or @$updated_ids);
+
+    my @comment_ids = (@$created_ids, @$updated_ids);
+
+    my $bug_ids = $dbh->selectcol_arrayref(
+        'SELECT DISTINCT bug_id FROM longdescs WHERE '
+        . $dbh->sql_in('comment_id', \@comment_ids));
+    _populate_bugs_fulltext($bug_ids);
+}
+
+sub _add_allows_unconfirmed_to_product_table {
+    my $dbh = Bugzilla->dbh;
+    if (!$dbh->bz_column_info('products', 'allows_unconfirmed')) {
+        $dbh->bz_add_column('products', 'allows_unconfirmed',
+            { TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE' });
+        $dbh->do('UPDATE products SET allows_unconfirmed = 1 
+                   WHERE votestoconfirm > 0');
+    }
+}
+
+sub _convert_flagtypes_fks_to_set_null {
+    my $dbh = Bugzilla->dbh;
+    foreach my $column (qw(request_group_id grant_group_id)) {
+        my $fk = $dbh->bz_fk_info('flagtypes', $column);
+        if ($fk and !defined $fk->{DELETE}) {
+            # checksetup will re-create the FK with the appropriate definition
+            # at the end of its table upgrades, so we just drop it here.
+            $dbh->bz_drop_fk('flagtypes', $column);
+        }
+    }
+}
+
+sub _fix_decimal_types {
+    my $dbh = Bugzilla->dbh;
+    my $type = {TYPE => 'decimal(7,2)', NOTNULL => 1, DEFAULT => '0'};
+    $dbh->bz_alter_column('bugs', 'estimated_time', $type);
+    $dbh->bz_alter_column('bugs', 'remaining_time', $type);
+    $dbh->bz_alter_column('longdescs', 'work_time', $type);
+}
+
+sub _fix_series_creator_fk {
+    my $dbh = Bugzilla->dbh;
+    my $fk = $dbh->bz_fk_info('series', 'creator');
+    # Change the FK from SET NULL to CASCADE. (It will be re-created
+    # automatically at the end of all DB changes.)
+    if ($fk and $fk->{DELETE} eq 'SET NULL') {
+        $dbh->bz_drop_fk('series', 'creator');
     }
 }
 

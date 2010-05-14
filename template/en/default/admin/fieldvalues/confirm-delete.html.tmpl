@@ -73,7 +73,7 @@
   <ul class="warningmessages">
     [% IF value.is_default %]
       <li>'[% value.name FILTER html %]' is the default value for
-          the '[% field.description FILTER html %]' field.
+        the '[% field.description FILTER html %]' field.
         [% IF user.in_group('tweakparams') %]
           You first have to <a href="editparams.cgi?section=bugfields">change
           the default value</a> for this field before you can delete
@@ -87,9 +87,9 @@
         [% IF value.bug_count > 1 %]
           There are [% value.bug_count FILTER html %] [%+ terms.bugs %] 
           with this field value.
-          [% ELSE %]
+        [% ELSE %]
           There is 1 [% terms.bug %] with this field value.
-          [% END %]
+        [% END %]
         You must change the field value on
           <a title="List of [% terms.bugs %] where '
                     [%- field.description FILTER html %]' is '
@@ -108,7 +108,7 @@
 
     [% IF value_count == 1 %]
       <li>'[% value.name FILTER html %]' is the last value for
-          '[%- field.description FILTER html %]', and so it can not be deleted.
+        '[%- field.description FILTER html %]', and so it can not be deleted.
       </li>
     [% END %]
 

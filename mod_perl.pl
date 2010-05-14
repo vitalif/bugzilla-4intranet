@@ -20,8 +20,8 @@ package Bugzilla::ModPerl;
 use strict;
 
 # If you have an Apache2::Status handler in your Apache configuration,
-# you need to load Apache2::Status *here*, so that Apache::DBI can
-# report information to Apache2::Status.
+# you need to load Apache2::Status *here*, so that any later-loaded modules
+# can report information to Apache2::Status.
 #use Apache2::Status ();
 
 # We don't want to import anything into the global scope during
@@ -33,21 +33,37 @@ use ModPerl::RegistryLoader ();
 use CGI ();
 CGI->compile(qw(:cgi -no_xhtml -oldstyle_urls :private_tempfiles
                 :unique_headers SERVER_PUSH :push));
+use File::Basename ();
 use Template::Config ();
 Template::Config->preload();
 
 use Bugzilla ();
 use Bugzilla::Constants ();
 use Bugzilla::CGI ();
+use Bugzilla::Extension ();
+use Bugzilla::Install::Requirements ();
 use Bugzilla::Mailer ();
 use Bugzilla::Template ();
 use Bugzilla::Util ();
+
+my ($sizelimit, $maxrequests) = ('', '');
+if (Bugzilla::Constants::ON_WINDOWS) {
+    $maxrequests = "MaxRequestsPerChild 25";
+} 
+elsif (0) {
+    require Apache2::SizeLimit;
+    # This means that every httpd child will die after processing
+    # a CGI if it is taking up more than 70MB of RAM all by itself.
+    $Apache2::SizeLimit::MAX_UNSHARED_SIZE = 70000;
+    $sizelimit = "PerlCleanupHandler Apache2::SizeLimit";
+}
 
 my $cgi_path = Bugzilla::Constants::bz_locations()->{'cgi_path'};
 
 # Set up the configuration for the web server
 my $server = Apache2::ServerUtil->server;
 my $conf = <<EOT;
+$maxrequests
 # Make sure each httpd child receives a different random seed (bug 476622)
 PerlChildInitHandler "sub { srand(); }"
 <Directory "$cgi_path">
@@ -55,6 +71,7 @@ PerlChildInitHandler "sub { srand(); }"
     # No need to PerlModule these because they're already defined in mod_perl.pl
     PerlResponseHandler Bugzilla::ModPerl::ResponseHandler
     PerlCleanupHandler  Bugzilla::ModPerl::CleanupHandler
+    $sizelimit
     PerlOptions +ParseHeaders
     Options +ExecCGI
     AllowOverride Limit
@@ -64,18 +81,23 @@ EOT
 
 $server->add_config([split("\n", $conf)]);
 
+# Pre-load all extensions
+$Bugzilla::extension_packages = Bugzilla::Extension->load_all();
+
 # Have ModPerl::RegistryLoader pre-compile all CGI scripts.
 my $rl = new ModPerl::RegistryLoader();
 # If we try to do this in "new" it fails because it looks for a 
 # Bugzilla/ModPerl/ResponseHandler.pm
 $rl->{package} = 'Bugzilla::ModPerl::ResponseHandler';
-# Note that $cgi_path will be wrong if somebody puts the libraries
-# in a different place than the CGIs.
+my $feature_files = Bugzilla::Install::Requirements::map_files_to_features();
 foreach my $file (glob "$cgi_path/*.cgi") {
+    my $base_filename = File::Basename::basename($file);
+    if (my $feature = $feature_files->{$base_filename}) {
+        next if !Bugzilla->feature($feature);
+    }
     Bugzilla::Util::trick_taint($file);
     $rl->handler($file, $file);
 }
-
 
 package Bugzilla::ModPerl::ResponseHandler;
 use strict;

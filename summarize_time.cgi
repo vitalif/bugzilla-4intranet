@@ -48,7 +48,7 @@ sub restrict_my_activity
 #
 
 sub date_adjust_down {
-
+   
     my ($year, $month, $day) = @_;
 
     if ($day == 0) {
@@ -71,7 +71,7 @@ sub date_adjust_down {
     }
 
     if (($month == 4 || $month == 6 || $month == 9 || $month == 11) &&
-        ($day == 31) )
+        ($day == 31) ) 
     {
         $day = 30;
     }
@@ -151,8 +151,8 @@ sub split_by_month {
         $sub_end = sprintf("%04d-%02d-%02d", $year_tmp, $month_tmp, $sd_tmp);
         push @months, [$sub_start, $sub_end];
     }
-
-    # This section handles the last (unfinished) month.
+    
+    # This section handles the last (unfinished) month. 
     $sub_end = sprintf("%04d-%02d-%02d", $ey + 1900, $em + 1, $ed);
     ($year_tmp, $month_tmp, $sd_tmp) = date_adjust_up($year, $month, $sd);
     $sub_start = sprintf("%04d-%02d-%02d", $year_tmp, $month_tmp, $sd_tmp);
@@ -170,7 +170,7 @@ sub sqlize_dates {
         trick_taint($start_date);
         $date_bits = " AND longdescs.bug_when > ?";
         push @date_values, $start_date;
-    }
+    } 
     if ($end_date) {
         # we need to add one day to end_date to catch stuff done today
         # do not forget to adjust date if it was the last day of month
@@ -178,7 +178,7 @@ sub sqlize_dates {
         ($ey, $em, $ed) = date_adjust_up($ey+1900, $em+1, $ed+1);
         $end_date = sprintf("%04d-%02d-%02d", $ey, $em, $ed);
 
-        $date_bits .= " AND longdescs.bug_when < ?";
+        $date_bits .= " AND longdescs.bug_when < ?"; 
         push @date_values, $end_date;
     }
     return ($date_bits, \@date_values);
@@ -212,7 +212,7 @@ sub get_list {
     my %list;
     if ($buglist)
     {
-        my $data = $dbh->selectall_arrayref(
+    my $data = $dbh->selectall_arrayref(
               "SELECT SUM(work_time) AS total_time, login_name, longdescs.bug_id
                  FROM longdescs
            INNER JOIN profiles
@@ -222,7 +222,7 @@ sub get_list {
                 WHERE longdescs.bug_id IN ($buglist) $date_bits " .
             $dbh->sql_group_by('longdescs.bug_id, login_name', 'longdescs.bug_when') .
              " HAVING SUM(work_time) > 0", {Slice => {}}, @$date_values);
-        # What this loop does is to push data having the same key in an array.
+    # What this loop does is to push data having the same key in an array.
         push @{$list{ $_->{$keyname} }}, $_ foreach @$data;
     }
     return \%list;
@@ -277,7 +277,7 @@ my $vars = {};
 
 Bugzilla->switch_to_shadow_db();
 
-$user->in_group(Bugzilla->params->{"timetrackinggroup"})
+$user->is_timetracker
     || ThrowUserError("auth_failure", {group  => "time-tracking",
                                        action => "access",
                                        object => "timetracking_summaries"});
@@ -306,7 +306,7 @@ if ($do_report)
     $end_date = trim $cgi->param('end_date');
 
     # Swap dates in case the user put an end_date before the start_date
-    if ($start_date && $end_date &&
+    if ($start_date && $end_date && 
         str2time($start_date) > str2time($end_date))
     {
         $vars->{warn_swap_dates} = 1;
@@ -431,4 +431,4 @@ my $format = $template->get_format("bug/summarize-time", undef, $ctype);
 # Get the proper content-type
 print $cgi->header(-type=> $format->{'ctype'});
 $template->process("$format->{'template'}", $vars)
-    || ThrowTemplateError($template->error());
+  || ThrowTemplateError($template->error());

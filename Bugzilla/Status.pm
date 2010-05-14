@@ -66,6 +66,7 @@ sub VALIDATORS {
 sub create {
     my $class = shift;
     my $self = $class->SUPER::create(@_);
+    delete Bugzilla->request_cache->{status_bug_state_open};
     add_missing_bug_status_transitions();
     return $self;
 }
@@ -80,6 +81,7 @@ sub remove_from_db {
                WHERE old_status = ? OR new_status = ?',
               undef, $id, $id);
     $dbh->bz_commit_transaction();
+    delete Bugzilla->request_cache->{status_bug_state_open};
 }
 
 ###############################
@@ -120,9 +122,12 @@ sub _check_value {
 ###############################
 
 sub BUG_STATE_OPEN {
-    # XXX - We should cache this list.
     my $dbh = Bugzilla->dbh;
-    return @{$dbh->selectcol_arrayref('SELECT value FROM bug_status WHERE is_open = 1')};
+    my $cache = Bugzilla->request_cache;
+    $cache->{status_bug_state_open} ||=
+        $dbh->selectcol_arrayref('SELECT value FROM bug_status 
+                                   WHERE is_open = 1');
+    return @{ $cache->{status_bug_state_open} };
 }
 
 # Tells you whether or not the argument is a valid "open" state.
@@ -169,28 +174,6 @@ sub can_change_to {
     }
 
     return $self->{'can_change_to'};
-}
-
-sub can_change_from {
-    my $self = shift;
-    my $dbh = Bugzilla->dbh;
-
-    if (!defined $self->{'can_change_from'}) {
-        my $old_status_ids = $dbh->selectcol_arrayref('SELECT old_status
-                                                         FROM status_workflow
-                                                   INNER JOIN bug_status
-                                                           ON id = old_status
-                                                        WHERE isactive = 1
-                                                          AND new_status = ?
-                                                          AND old_status IS NOT NULL',
-                                                        undef, $self->id);
-
-        # Allow the bug status to remain unchanged.
-        push(@$old_status_ids, $self->id);
-        $self->{'can_change_from'} = Bugzilla::Status->new_from_list($old_status_ids);
-    }
-
-    return $self->{'can_change_from'};
 }
 
 sub comment_required_on_change_from {
@@ -290,17 +273,6 @@ below.
               given the current bug status. If this method is called as a
               class method, then it returns all bug statuses available on
               bug creation.
-
- Params:      none.
-
- Returns:     A list of Bugzilla::Status objects.
-
-=item C<can_change_from>
-
- Description: Returns the list of active statuses a bug can be changed from
-              given the new bug status. If the bug status is available on
-              bug creation, this method doesn't return this information.
-              You have to call C<can_change_to> instead.
 
  Params:      none.
 

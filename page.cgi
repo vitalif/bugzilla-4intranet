@@ -35,6 +35,29 @@ use lib qw(. lib);
 use Bugzilla;
 use Bugzilla::Error;
 use Bugzilla::Hook;
+use Bugzilla::Search::Quicksearch;
+
+###############
+# Subroutines #
+###############
+
+# For quicksearch.html.
+sub quicksearch_field_names {
+    my $fields = Bugzilla::Search::Quicksearch::FIELD_MAP;
+    my %fields_reverse;
+    # Put longer names before shorter names.
+    my @nicknames = sort { length($b) <=> length($a) } (keys %$fields);
+    foreach my $nickname (@nicknames) {
+        my $db_field = $fields->{$nickname};
+        $fields_reverse{$db_field} ||= [];
+        push(@{ $fields_reverse{$db_field} }, $nickname);
+    }
+    return \%fields_reverse;
+}
+
+###############
+# Main Script #
+###############
 
 Bugzilla->login();
 
@@ -43,16 +66,18 @@ my $template = Bugzilla->template;
 
 my $id = $cgi->param('id');
 if ($id) {
-    # Remove all dodgy chars, and split into name and ctype.
-    $id =~ s/[^\w\-\.]//g;
-    $id =~ /(.*)\.(.*)/;
+    # Split into name and ctype, but be careful not to allow directory
+    # traversal.
+    $id =~ /^([\w\-\/]+)\.(\w+)$/;
     if (!$2) {
         # if this regexp fails to match completely, something bad came in
         ThrowCodeError("bad_page_cgi_id", { "page_id" => $id });
     }
 
-    my %vars;
-    Bugzilla::Hook::process('page-before_template', 
+    my %vars = ( 
+      quicksearch_field_names => \&quicksearch_field_names,
+    );
+    Bugzilla::Hook::process('page_before_template', 
                             { page_id => $id, vars => \%vars });
 
     my $format = $template->get_format("pages/$1", undef, $2);

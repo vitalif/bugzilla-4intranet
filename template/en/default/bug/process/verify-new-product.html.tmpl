@@ -41,12 +41,12 @@
 [% PROCESS "global/hidden-fields.html.tmpl" exclude = exclude_params_re %]
 
 <input type="hidden" name="confirm_product_change" value="1">
-
+    
 [%# Verify the version, component, and target milestone fields. %]
 <h3>Verify [% incorrect_fields.join(', ') %]</h3>
 
 <p>
-  You are moving the [% terms.bug %](s) to the product
+  You are moving the [% terms.bug %](s) to the product 
   <b>[% product.name FILTER html %]</b>, and the field(s)
   [%+ incorrect_fields.join(', ') %] are no longer correct.
   Please set the correct values for them now:
@@ -85,21 +85,22 @@
     </td>
     [% END %]
     [% IF !milestone_ok %]
-    <td>
-      <b>Target Milestone:</b><br>
+      <td>
+        <b>Target Milestone:</b><br>
       [% PROCESS "global/select-menu.html.tmpl"
                  name="target_milestone"
                  options=milestones
                  default=defaults.milestone
                  size=10 %]
-    </td>
+      </td>
     [% END %]
+    [% Hook.process('field') %]
   </tr>
 </table>
 
 [% IF verify_bug_groups %]
   <h3>Verify [% terms.Bug %] Group</h3>
-
+  
   [% IF old_groups.size %]
     <p>These groups are not legal for the '[% product.name FILTER html %]'
     product or you are not allowed to restrict [% terms.bugs %] to these groups.
@@ -184,3 +185,4 @@
 [% END %]
 
 [% PROCESS global/footer.html.tmpl %]
+

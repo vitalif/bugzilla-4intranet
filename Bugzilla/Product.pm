@@ -31,6 +31,7 @@ use Bugzilla::Install::Requirements;
 use Bugzilla::Mailer;
 use Bugzilla::Series;
 use Bugzilla::FlagType::UserList;
+use Bugzilla::Hook;
 
 # Currently, we only implement enough of the Bugzilla::Field::Choice
 # interface to control the visibility of other fields.
@@ -49,18 +50,18 @@ use constant NAME_FIELD => 'name';
 use constant LIST_ORDER => 'name';
 
 use constant DB_COLUMNS => qw(
-    id
-    name
-    classification_id
-    description
-    milestoneurl
-    disallownew
-    votesperuser
-    maxvotesperbug
-    votestoconfirm
-    defaultmilestone
-    wiki_url
-    notimetracking
+   id
+   name
+   wiki_url
+   notimetracking
+   classification_id
+   description
+   isactive
+   votesperuser
+   maxvotesperbug
+   votestoconfirm
+   defaultmilestone
+   allows_unconfirmed
 );
 
 use constant REQUIRED_CREATE_FIELDS => qw(
@@ -71,25 +72,25 @@ use constant REQUIRED_CREATE_FIELDS => qw(
 
 use constant UPDATE_COLUMNS => qw(
     name
+    wiki_url
+    notimetracking
     description
     defaultmilestone
-    milestoneurl
-    disallownew
+    isactive
     votesperuser
     maxvotesperbug
     votestoconfirm
-    wiki_url
-    notimetracking
+    allows_unconfirmed
 );
 
 use constant VALIDATORS => {
+    allows_unconfirmed => \&Bugzilla::Object::check_boolean,
     classification   => \&_check_classification,
     name             => \&_check_name,
     description      => \&_check_description,
     version          => \&_check_version,
     defaultmilestone => \&_check_default_milestone,
-    milestoneurl     => \&_check_milestone_url,
-    disallownew      => \&Bugzilla::Object::check_boolean,
+    isactive         => \&Bugzilla::Object::check_boolean,
     votesperuser     => \&_check_votes_per_user,
     maxvotesperbug   => \&_check_votes_per_bug,
     votestoconfirm   => \&_check_votes_to_confirm,
@@ -111,19 +112,25 @@ sub create {
 
     my $params = $class->run_create_validators(@_);
     # Some fields do not exist in the DB as is.
-    $params->{classification_id} = delete $params->{classification};
+    if (defined $params->{classification}) {
+        $params->{classification_id} = delete $params->{classification}; 
+    }
     my $version = delete $params->{version};
     my $create_series = delete $params->{create_series};
 
     my $product = $class->insert_create_data($params);
+    Bugzilla->user->clear_product_cache();
 
     # Add the new version and milestone into the DB as valid values.
-    Bugzilla::Version::create($version, $product);
-    Bugzilla::Milestone->create({name => $params->{defaultmilestone}, product => $product});
+    Bugzilla::Version->create({name => $version, product => $product});
+    Bugzilla::Milestone->create({ name => $product->default_milestone, 
+                                  product => $product });
 
     # Create groups and series for the new product, if requested.
     $product->_create_bug_group() if Bugzilla->params->{'makeproductgroups'};
     $product->_create_series() if $create_series;
+
+    Bugzilla::Hook::process('product_end_of_create', { product => $product });
 
     $dbh->bz_commit_transaction();
     return $product;
@@ -367,17 +374,26 @@ sub update {
     $dbh->bz_commit_transaction();
     # Changes have been committed.
     delete $self->{check_group_controls};
+    Bugzilla->user->clear_product_cache();
 
     # Now that changes have been committed, we can send emails to voters.
     foreach my $msg (@msgs) {
         MessageToMTA($msg);
     }
 
+    # And send out emails about changed bugs
+    require Bugzilla::BugMail;
+    foreach my $bug_id (@{ $changes->{'confirmed_bugs'} || [] }) {
+        my $sent_bugmail = Bugzilla::BugMail::Send(
+            $bug_id, { changer => Bugzilla->user->login });
+        $changes->{'confirmed_bugs_sent_bugmail'}->{$bug_id} = $sent_bugmail;
+    }
+
     return $changes;
 }
 
 sub remove_from_db {
-    my $self = shift;
+    my ($self, $params) = @_;
     my $user = Bugzilla->user;
     my $dbh = Bugzilla->dbh;
 
@@ -400,8 +416,33 @@ sub remove_from_db {
         }
     }
 
-    # XXX - This line can go away as soon as bug 427455 is fixed.
-    $dbh->do("DELETE FROM group_control_map WHERE product_id = ?", undef, $self->id);
+    if ($params->{delete_series}) {
+        my $series_ids =
+          $dbh->selectcol_arrayref('SELECT series_id
+                                      FROM series
+                                INNER JOIN series_categories
+                                        ON series_categories.id = series.category
+                                     WHERE series_categories.name = ?',
+                                    undef, $self->name);
+
+        if (scalar @$series_ids) {
+            $dbh->do('DELETE FROM series WHERE ' . $dbh->sql_in('series_id', $series_ids));
+        }
+
+        # If no subcategory uses this product name, completely purge it.
+        my $in_use =
+          $dbh->selectrow_array('SELECT 1
+                                   FROM series
+                             INNER JOIN series_categories
+                                     ON series_categories.id = series.subcategory
+                                  WHERE series_categories.name = ? ' .
+                                   $dbh->sql_limit(1),
+                                  undef, $self->name);
+        if (!$in_use) {
+            $dbh->do('DELETE FROM series_categories WHERE name = ?', undef, $self->name);
+        }
+    }
+
     $dbh->do("DELETE FROM products WHERE id = ?", undef, $self->id);
 
     $dbh->bz_commit_transaction();
@@ -570,10 +611,9 @@ sub _create_bug_group {
 
     # Associate the new group and new product.
     $dbh->do('INSERT INTO group_control_map
-              (group_id, product_id, entry, membercontrol, othercontrol, canedit)
-              VALUES (?, ?, ?, ?, ?, ?)',
-              undef, ($group->id, $self->id, Bugzilla->params->{'useentrygroupdefault'},
-                      CONTROLMAPDEFAULT, CONTROLMAPNA, 0));
+              (group_id, product_id, membercontrol, othercontrol)
+              VALUES (?, ?, ?, ?)',
+              undef, ($group->id, $self->id, CONTROLMAPDEFAULT, CONTROLMAPNA));
 }
 
 sub _create_series {
@@ -604,15 +644,15 @@ sub _create_series {
 }
 
 sub set_name { $_[0]->set('name', $_[1]); }
+sub set_wiki_url { $_[0]->set('wiki_url', $_[1]); }
+sub set_notimetracking { $_[0]->set('notimetracking', $_[1]); }
 sub set_description { $_[0]->set('description', $_[1]); }
 sub set_default_milestone { $_[0]->set('defaultmilestone', $_[1]); }
-sub set_milestone_url { $_[0]->set('milestoneurl', $_[1]); }
-sub set_disallow_new { $_[0]->set('disallownew', $_[1]); }
+sub set_is_active { $_[0]->set('isactive', $_[1]); }
 sub set_votes_per_user { $_[0]->set('votesperuser', $_[1]); }
 sub set_votes_per_bug { $_[0]->set('maxvotesperbug', $_[1]); }
 sub set_votes_to_confirm { $_[0]->set('votestoconfirm', $_[1]); }
-sub set_wiki_url { $_[0]->set('wiki_url', $_[1]); }
-sub set_notimetracking { $_[0]->set('notimetracking', $_[1]); }
+sub set_allows_unconfirmed { $_[0]->set('allows_unconfirmed', $_[1]); }
 
 sub set_group_controls {
     my ($self, $group, $settings) = @_;
@@ -710,8 +750,8 @@ sub group_controls {
         # Include name to the list, to allow us sorting data more easily.
         my $query = qq{SELECT id, name, entry, membercontrol, othercontrol,
                               canedit, editcomponents, editbugs, canconfirm
-                  FROM groups
-                  LEFT JOIN group_control_map
+                         FROM groups
+                              LEFT JOIN group_control_map
                               ON id = group_id 
                 $where_or_and product_id = ?
                 $and_or_where isbuggroup = 1};
@@ -866,15 +906,15 @@ sub flag_types
                         $cl->merge($flagtypes{$flagtype->{id}}->{custom_list});
                         $cl->merge($flagtype->{custom_list});
                         $flagtypes{$flagtype->{id}}->{custom_list} = $cl;
-                    }
                 }
             }
+        }
             $self->{flag_types}->{$type} = [
                 sort { $a->{'sortkey'} <=> $b->{'sortkey'}
                      || $a->{'name'} cmp $b->{'name'} }
                 values %flagtypes
             ];
-        }
+    }
     }
 
     return $self->{'flag_types'};
@@ -884,9 +924,9 @@ sub flag_types
 ####      Accessors      ######
 ###############################
 
+sub allows_unconfirmed { return $_[0]->{'allows_unconfirmed'}; }
 sub description       { return $_[0]->{'description'};       }
-sub milestone_url     { return $_[0]->{'milestoneurl'};      }
-sub disallow_new      { return $_[0]->{'disallownew'};       }
+sub is_active         { return $_[0]->{'isactive'};       }
 sub votes_per_user    { return $_[0]->{'votesperuser'};      }
 sub max_votes_per_bug { return $_[0]->{'maxvotesperbug'};    }
 sub votes_to_confirm  { return $_[0]->{'votestoconfirm'};    }
@@ -909,6 +949,17 @@ sub check_product {
     unless ($product) {
         ThrowUserError('product_doesnt_exist',
                        {'product' => $product_name});
+    }
+    return $product;
+}
+
+sub check {
+    my ($class, $params) = @_;
+    $params = { name => $params } if !ref $params;
+    $params->{_error} = 'product_access_denied';
+    my $product = $class->SUPER::check($params);
+    if (!Bugzilla->user->can_access_product($product)) {
+        ThrowUserError('product_access_denied', $params);
     }
     return $product;
 }
@@ -940,8 +991,7 @@ Bugzilla::Product - Bugzilla product class.
     my $id               = $product->id;
     my $name             = $product->name;
     my $description      = $product->description;
-    my $milestoneurl     = $product->milestone_url;
-    my $disallownew      = $product->disallow_new;
+    my $isactive         = $product->is_active;
     my $votesperuser     = $product->votes_per_user;
     my $maxvotesperbug   = $product->max_votes_per_bug;
     my $votestoconfirm   = $product->votes_to_confirm;
@@ -949,6 +999,7 @@ Bugzilla::Product - Bugzilla product class.
     my $notimetracking   = $product->notimetracking;
     my $defaultmilestone = $product->default_milestone;
     my $classificationid = $product->classification_id;
+    my $allows_unconfirmed = $product->allows_unconfirmed;
 
 =head1 DESCRIPTION
 

@@ -16,7 +16,6 @@ Bugzilla::Version</title>
   <li class='indexItem indexItem1'><a href='#SYNOPSIS'>SYNOPSIS</a>
   <li class='indexItem indexItem1'><a href='#DESCRIPTION'>DESCRIPTION</a>
   <li class='indexItem indexItem1'><a href='#METHODS'>METHODS</a>
-  <li class='indexItem indexItem1'><a href='#SUBROUTINES'>SUBROUTINES</a>
 </ul>
 </div>
 
@@ -32,42 +31,35 @@ name="SYNOPSIS"
 
 <pre  class="code">    use Bugzilla::Version;
 
-    my $version = new Bugzilla::Version(1, &#39;version_value&#39;);
+    my $version = new Bugzilla::Version({ name =&#62; $name, product =&#62; $product });
 
+    my $value = $version-&#62;name;
     my $product_id = $version-&#62;product_id;
-    my $value = $version-&#62;value;
+    my $product = $version-&#62;product;
 
-    $version-&#62;remove_from_db;
+    my $version = Bugzilla::Version-&#62;create(
+        { name =&#62; $name, product =&#62; $product });
 
-    my $updated = $version-&#62;update($version_name, $product);
+    $version-&#62;set_name($new_name);
+    $version-&#62;update();
 
-    my $version = $hash_ref-&#62;{&#39;version_value&#39;};
-
-    my $version = Bugzilla::Version::create($version_name, $product);</pre>
+    $version-&#62;remove_from_db;</pre>
 
 <h1><a class='u' href='#___top' title='click to go to top of document'
 name="DESCRIPTION"
 >DESCRIPTION</a></h1>
 
-<p>Version.pm represents a Product Version object.</p>
+<p>Version.pm represents a Product Version object. It is an implementation of <a href="../Bugzilla/Object.html" class="podlinkpod"
+>Bugzilla::Object</a>, and thus provides all methods that <a href="../Bugzilla/Object.html" class="podlinkpod"
+>Bugzilla::Object</a> provides.</p>
+
+<p>The methods that are specific to <code  class="code">Bugzilla::Version</code> are listed below.</p>
 
 <h1><a class='u' href='#___top' title='click to go to top of document'
 name="METHODS"
 >METHODS</a></h1>
 
 <dl>
-<dt><a name="new($product_id,_$value)"
-><code  class="code">new($product_id, $value)</code></a></dt>
-
-<dd>
-<pre  class="code"> Description: The constructor is used to load an existing version
-              by passing a product id and a version value.
-
- Params:      $product_id - Integer with a product id.
-              $value - String with a version value.
-
- Returns:     A Bugzilla::Version object.</pre>
-
 <dt><a name="bug_count()"
 ><code  class="code">bug_count()</code></a></dt>
 
@@ -77,45 +69,6 @@ name="METHODS"
  Params:      none.
 
  Returns:     Integer with the number of bugs.</pre>
-
-<dt><a name="remove_from_db()"
-><code  class="code">remove_from_db()</code></a></dt>
-
-<dd>
-<pre  class="code"> Description: Removes the version from the database.
-
- Params:      none.
-
- Retruns:     none.</pre>
-
-<dt><a name="update($name,_$product)"
-><code  class="code">update($name, $product)</code></a></dt>
-
-<dd>
-<pre  class="code"> Description: Update the value of the version.
-
- Params:      $name - String with the new version value.
-              $product - Bugzilla::Product object the version belongs to.
-
- Returns:     An integer - 1 if the version has been updated, else 0.</pre>
-</dd>
-</dl>
-
-<h1><a class='u' href='#___top' title='click to go to top of document'
-name="SUBROUTINES"
->SUBROUTINES</a></h1>
-
-<dl>
-<dt><a name="create($version_name,_$product)"
-><code  class="code">create($version_name, $product)</code></a></dt>
-
-<dd>
-<pre  class="code"> Description: Create a new version for the given product.
-
- Params:      $version_name - String with a version value.
-              $product - A Bugzilla::Product object.
-
- Returns:     A Bugzilla::Version object.</pre>
 </dd>
 </dl>
 <p class="backlinkbottom"><b><a name="___bottom" href="../index.html" title="All Documents">&lt;&lt;</a></b></p>

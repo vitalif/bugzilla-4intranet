@@ -66,7 +66,8 @@ name="Constructors_and_Database_Manipulation"
 ><code  class="code">new</code></a></dt>
 
 <dd>
-<p>Does not accept a bare <code  class="code">name</code> argument. Instead, accepts only an id.</p>
+<p>Takes either an id, or the named parameters <code  class="code">user</code> and <code  class="code">name</code>. <code  class="code">user</code> can be either a <a href="../../Bugzilla/User.html" class="podlinkpod"
+>Bugzilla::User</a> object or a numeric user id.</p>
 
 <p>See also: <a href="../../Bugzilla/Object.html#new" class="podlinkpod"
 >&#34;new&#34; in Bugzilla::Object</a>.</p>
@@ -104,11 +105,12 @@ name="Accessors"
 <dd>
 <p>Whether or not this search should be displayed in the footer for the <i>current user</i> (not the owner of the search, but the person actually using Bugzilla right now).</p>
 
-<dt><a name="bug_ids_only"
-><code  class="code">bug_ids_only</code></a></dt>
+<dt><a name="type"
+><code  class="code">type</code></a></dt>
 
 <dd>
-<p>True if the search contains only a list of Bug IDs.</p>
+<p>The numeric id of the type of search this is (from <a href="../../Bugzilla/Constants.html" class="podlinkpod"
+>Bugzilla::Constants</a>).</p>
 
 <dt><a name="shared_with_group"
 ><code  class="code">shared_with_group</code></a></dt>

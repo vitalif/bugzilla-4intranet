@@ -92,24 +92,6 @@
   'request.attach_id', 
 ],
 
-'reports/components.html.tmpl' => [
-  'numcols',
-],
-
-'reports/duplicates-table.html.tmpl' => [
-  'column.name', 
-  'column.description',
-  'bug.count', 
-  'bug.delta', 
-],
-
-'reports/duplicates.html.tmpl' => [
-  'bug_ids_string', 
-  'maxrows',
-  'changedsince',
-  'reverse',
-],
-
 'reports/keywords.html.tmpl' => [
   'keyword.bug_count', 
 ],
@@ -250,10 +232,6 @@
 ],
 
 'global/site-navigation.html.tmpl' => [
-  'bug_list.first', 
-  'bug_list.$prev_bug', 
-  'bug_list.$next_bug', 
-  'bug_list.last', 
   'bug.bug_id', 
   'bug.votes', 
 ],
@@ -298,13 +276,6 @@
   '" size=\"$size\"" IF size',
   '" maxlength=\"$maxlength\"" IF maxlength',
   '" spellcheck=\"$spellcheck\"" IF spellcheck',
-],
-
-'bug/navigate.html.tmpl' => [
-  'bug_list.first', 
-  'bug_list.last', 
-  'bug_list.$prev_bug', 
-  'bug_list.$next_bug', 
 ],
 
 'bug/show-multiple.html.tmpl' => [
@@ -390,7 +361,8 @@
 'attachment/edit.html.tmpl' => [
   'attachment.id', 
   'attachment.bug_id', 
-  'a', 
+  'a',
+  'editable_or_hide',
 ],
 
 'attachment/list.html.tmpl' => [
@@ -431,8 +403,6 @@
   'section_num',
   'current_line_old',
   'current_line_new',
-  'curr_old',
-  'curr_new'
 ],
 
 'admin/admin.html.tmpl' => [
@@ -457,7 +427,7 @@
 ],
 
 'admin/products/groupcontrol/edit.html.tmpl' => [
-  'group.id', 
+  'group.id',
   'constants.CONTROLMAPNA', 
   'constants.CONTROLMAPSHOWN',
   'constants.CONTROLMAPDEFAULT',

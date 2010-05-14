@@ -87,6 +87,58 @@ name="METHODS"
 >METHODS</a></h1>
 
 <dl>
+<dt><a name="check_remove"
+><code  class="code">check_remove</code></a></dt>
+
+<dd>
+<dl>
+<dt><a name="Description"
+><b>Description</b></a></dt>
+
+<dd>
+<p>Determines whether it&#39;s OK to remove this group from the database, and throws an error if it&#39;s not OK.</p>
+
+<dt><a name="Params"
+><b>Params</b></a></dt>
+
+<dd>
+<dl>
+<dt><a name="test_only"
+><code  class="code">test_only</code></a></dt>
+
+<dd>
+<p><code  class="code">boolean</code> If you want to only check if the group can be deleted <i>at all</i>, under any circumstances, specify <code  class="code">test_only</code> to just do the most basic tests (the other parameters will be ignored in this situation, as those tests won&#39;t be run).</p>
+
+<dt><a name="remove_from_users"
+><code  class="code">remove_from_users</code></a></dt>
+
+<dd>
+<p><code  class="code">boolean</code> True if it would be OK to remove all users who are in this group from this group.</p>
+
+<dt><a name="remove_from_bugs"
+><code  class="code">remove_from_bugs</code></a></dt>
+
+<dd>
+<p><code  class="code">boolean</code> True if it would be OK to remove all bugs that are in this group from this group.</p>
+
+<dt><a name="remove_from_flags"
+><code  class="code">remove_from_flags</code></a></dt>
+
+<dd>
+<p><code  class="code">boolean</code> True if it would be OK to stop all flagtypes that reference this group from referencing this group (e.g., as their grantgroup or requestgroup).</p>
+
+<dt><a name="remove_from_products"
+><code  class="code">remove_from_products</code></a></dt>
+
+<dd>
+<p><code  class="code">boolean</code> True if it would be OK to remove this group from all group controls on products.</p>
+</dd>
+</dl>
+
+<dt><a name="Returns_(nothing)"
+><b>Returns</b> (nothing)</a></dt>
+</dl>
+
 <dt><a name="members_non_inherited"
 ><code  class="code">members_non_inherited</code></a></dt>
 

@@ -31,8 +31,6 @@ name="SYNOPSIS"
 
 <pre  class="code"> use Bugzilla::Keyword;
 
- my $count = Bugzilla::Keyword::keyword_count;
-
  my $description = $keyword-&#62;description;
 
  my $keywords = Bugzilla::Keyword-&#62;get_all_with_bug_count();</pre>
@@ -54,16 +52,6 @@ name="SUBROUTINES"
 >Bugzilla::Object</a> for more subroutines that this object implements.</p>
 
 <dl>
-<dt><a name="keyword_count()"
-><code  class="code">keyword_count()</code></a></dt>
-
-<dd>
-<pre  class="code"> Description: A utility function to get the total number
-              of keywords defined. Mostly used to see
-              if there are any keywords defined at all.
- Params:      none
- Returns:     An integer, the count of keywords.</pre>
-
 <dt><a name="get_all_with_bug_count()"
 ><code  class="code">get_all_with_bug_count()</code></a></dt>
 

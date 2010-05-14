@@ -123,9 +123,9 @@
 
       [% ELSE %]
 
-      [%# Are there any specific overrides for this column? %]
+          [%# Are there any specific overrides for this column? %]
           [% FOREACH match_field = overrides.${c.name}.keys %]
-
+     
               [% override = overrides.${c.name}.${match_field}.${row.$match_field} %]
               [% NEXT UNLESS override %]
 
@@ -133,9 +133,9 @@
                   [% SET ${key} = override.${key} %]
               [% END %]
 
-          [% LAST %]
+              [% LAST %]
 
-        [% END %]
+          [% END %]
       [% END %]
 
       <td [% IF align %] align="[% align FILTER html %]" [% END %]
@@ -155,7 +155,7 @@
           [% END %]
           <a href="[% link_uri %]">
         [% END %]
-
+        
         [% IF content_use_field %]
            [% colname = row.${c.name} %]
            [% field_descs.${colname} FILTER html %]
@@ -176,11 +176,11 @@
             [% END %]
           [% END %]
         [% END %]
-
+        
         [% IF contentlink %]
           </a>
         [% END %]
-
+         
       </td>
     [% END %]
   </tr>

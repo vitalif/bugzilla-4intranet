@@ -21,7 +21,7 @@
   #                 Vitaliy Filippov <vitalif@mail.ru>
   #%]
 
-[%# Migration note: this whole file corresponds to the old %commandmenu%
+[%# Migration note: this whole file corresponds to the old %commandmenu% 
     substitution param in 'footerhtml' %]
 
 [% PROCESS global/variables.none.tmpl %]
@@ -32,9 +32,9 @@
   </li>
 
   [%# Saved searches %]
-
-  [% IF user.showmybugslink OR user.queries.size
-        OR user.queries_subscribed.size
+    
+  [% IF user.showmybugslink OR user.queries.size 
+        OR user.queries_subscribed.size 
   %]
     [% print_pipe = 0 %]
     <li id="links-saved">

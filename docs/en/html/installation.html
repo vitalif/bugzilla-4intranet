@@ -7,7 +7,7 @@
 NAME="GENERATOR"
 CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
 REL="HOME"
-TITLE="The Bugzilla Guide - 3.4.6 
+TITLE="The Bugzilla Guide - 3.6 
     Release"
 HREF="index.html"><LINK
 REL="UP"
@@ -38,7 +38,7 @@ CELLSPACING="0"
 ><TH
 COLSPAN="3"
 ALIGN="center"
->The Bugzilla Guide - 3.4.6 
+>The Bugzilla Guide - 3.6 
     Release</TH
 ></TR
 ><TR
@@ -260,9 +260,9 @@ CLASS="programlisting"
 >Any machine that doesn't have Perl on it is a sad machine indeed.
       If you don't have it and your OS doesn't provide official packages, 
       visit <A
-HREF="http://www.perl.com"
+HREF="http://www.perl.org"
 TARGET="_top"
->http://www.perl.com</A
+>http://www.perl.org</A
 >.
       Although Bugzilla runs with Perl 5.8.1,
       it's a good idea to be using the latest stable version.
@@ -846,10 +846,10 @@ HREF="installation.html#install-modules-gd"
 ><LI
 ><P
 >&#13;            <A
-HREF="installation.html#install-modules-chart-base"
->Chart::Base</A
+HREF="installation.html#install-modules-chart-lines"
+>Chart::Lines</A
 >
-            (1.0) for bug charting
+            (2.1) for bug charting
           </P
 ></LI
 ><LI
@@ -901,11 +901,6 @@ HREF="installation.html#install-modules-patchreader"
 ></LI
 ><LI
 ><P
->&#13;            Image::Magick (any) for converting BMP image attachments to PNG
-          </P
-></LI
-><LI
-><P
 >&#13;            Net::LDAP
             (any) for LDAP Authentication
           </P
@@ -929,6 +924,18 @@ HREF="installation.html#install-modules-soap-lite"
 >SOAP::Lite</A
 >
             (0.710.06) for the web service interface
+          </P
+></LI
+><LI
+><P
+>&#13;            JSON::RPC
+            (any) for the JSON-RPC interface
+          </P
+></LI
+><LI
+><P
+>&#13;            Test::Taint
+            (any) for the web service interface
           </P
 ></LI
 ><LI
@@ -1105,11 +1112,11 @@ CLASS="section"
 ><H3
 CLASS="section"
 ><A
-NAME="install-modules-chart-base"
->2.1.5.4. Chart::Base (1.0)</A
+NAME="install-modules-chart-lines"
+>2.1.5.4. Chart::Lines (2.1)</A
 ></H3
 ><P
->The Chart::Base module is only required if you want graphical 
+>The Chart::Lines module is only required if you want graphical 
         reports. 
         Note that earlier versions that 0.99c used GIFs, which are no longer
         supported by the latest versions of GD.</P

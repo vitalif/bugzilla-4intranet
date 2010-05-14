@@ -26,6 +26,8 @@ package Bugzilla::Install;
 
 use strict;
 
+use Bugzilla::Component;
+use Bugzilla::Config qw(:admin);
 use Bugzilla::Constants;
 use Bugzilla::Error;
 use Bugzilla::Group;
@@ -134,7 +136,10 @@ use constant DEFAULT_PRODUCT => {
     name => 'TestProduct',
     description => 'This is a test product.'
         . ' This ought to be blown away and replaced with real stuff in a'
-        . ' finished installation of bugzilla.'
+        . ' finished installation of bugzilla.',
+    version => Bugzilla::Version::DEFAULT_VERSION,
+    classification => 'Unclassified',
+    defaultmilestone => DEFAULT_MILESTONE,
 };
 
 use constant DEFAULT_COMPONENT => {
@@ -189,88 +194,43 @@ sub update_system_groups {
         $dbh->do('INSERT INTO group_group_map (grantor_id, member_id) 
                        VALUES (?,?)', undef, $sudo_protect->id, $sudo->id);
     }
+}
 
-    # Re-evaluate all regexps, to keep them up-to-date.
-    my $sth = $dbh->prepare(
-        "SELECT profiles.userid, profiles.login_name, groups.id, 
-                groups.userregexp, user_group_map.group_id
-           FROM (profiles CROSS JOIN groups)
-                LEFT JOIN user_group_map
-                ON user_group_map.user_id = profiles.userid
-                   AND user_group_map.group_id = groups.id
-                   AND user_group_map.grant_type = ?
-          WHERE userregexp != '' OR user_group_map.group_id IS NOT NULL");
+sub create_default_classification {
+    my $dbh = Bugzilla->dbh;
 
-    my $sth_add = $dbh->prepare(
-        "INSERT INTO user_group_map (user_id, group_id, isbless, grant_type)
-              VALUES (?, ?, 0, " . GRANT_REGEXP . ")");
-
-    my $sth_del = $dbh->prepare(
-        "DELETE FROM user_group_map
-          WHERE user_id  = ? AND group_id = ? AND isbless = 0 
-                AND grant_type = " . GRANT_REGEXP);
-
-    $sth->execute(GRANT_REGEXP);
-    while (my ($uid, $login, $gid, $rexp, $present) = $sth->fetchrow_array()) {
-        if ($login =~ m/$rexp/i) {
-            $sth_add->execute($uid, $gid) unless $present;
-        } else {
-            $sth_del->execute($uid, $gid) if $present;
-        }
+    # Make the default Classification if it doesn't already exist.
+    if (!$dbh->selectrow_array('SELECT 1 FROM classifications')) {
+        print get_text('install_default_classification',
+                       { name => DEFAULT_CLASSIFICATION->{name} }) . "\n";
+        Bugzilla::Classification->create(DEFAULT_CLASSIFICATION);
     }
-
 }
 
 # This function should be called only after creating the admin user.
 sub create_default_product {
     my $dbh = Bugzilla->dbh;
 
-    # Make the default Classification if it doesn't already exist.
-    if (!$dbh->selectrow_array('SELECT 1 FROM classifications')) {
-        my $class = DEFAULT_CLASSIFICATION;
-        print get_text('install_default_classification', 
-                       { name => $class->{name} }) . "\n";
-        $dbh->do('INSERT INTO classifications (name, description)
-                       VALUES (?, ?)',
-                 undef, $class->{name}, $class->{description});
-    }
-
     # And same for the default product/component.
     if (!$dbh->selectrow_array('SELECT 1 FROM products')) {
-        my $default_prod = DEFAULT_PRODUCT;
         print get_text('install_default_product', 
-                       { name => $default_prod->{name} }) . "\n";
+                       { name => DEFAULT_PRODUCT->{name} }) . "\n";
 
-        $dbh->do(q{INSERT INTO products (name, description)
-                        VALUES (?,?)}, 
-                 undef, $default_prod->{name}, $default_prod->{description});
+        my $product = Bugzilla::Product->create(DEFAULT_PRODUCT);
 
-        my $product = new Bugzilla::Product({name => $default_prod->{name}});
-
-        # The default version.
-        Bugzilla::Version::create(Bugzilla::Version::DEFAULT_VERSION, $product);
-
-        # And we automatically insert the default milestone.
-        $dbh->do(q{INSERT INTO milestones (product_id, value, sortkey)
-                        SELECT id, defaultmilestone, 0
-                          FROM products});
-
-        # Get the user who will be the owner of the Product.
-        # We pick the admin with the lowest id, or we insert
-        # an invalid "0" into the database, just so that we can
-        # create the component.
+        # Get the user who will be the owner of the Component.
+        # We pick the admin with the lowest id, which is probably the
+        # admin checksetup.pl just created.
         my $admin_group = new Bugzilla::Group({name => 'admin'});
         my ($admin_id)  = $dbh->selectrow_array(
             'SELECT user_id FROM user_group_map WHERE group_id = ?
            ORDER BY user_id ' . $dbh->sql_limit(1),
-            undef, $admin_group->id) || 0;
- 
-        my $default_comp = DEFAULT_COMPONENT;
+            undef, $admin_group->id);
+        my $admin = Bugzilla::User->new($admin_id);
 
-        $dbh->do("INSERT INTO components (name, product_id, description,
-                                          initialowner)
-                       VALUES (?, ?, ?, ?)", undef, $default_comp->{name},
-                 $product->id, $default_comp->{description}, $admin_id);
+        Bugzilla::Component->create({
+            %{ DEFAULT_COMPONENT() }, product => $product,
+            initialowner => $admin->login });
     }
 
 }
@@ -358,6 +318,12 @@ sub make_admin {
     eval { 
         $group_insert->execute($user->id, $editusers->id, 0, GRANT_DIRECT); 
     };
+
+    # If there is no maintainer set, make this user the maintainer.
+    if (!Bugzilla->params->{'maintainer'}) {
+        SetParam('maintainer', $user->email);
+        write_params();
+    }
 
     print "\n", get_text('install_admin_created', { user => $user }), "\n";
 }
@@ -450,9 +416,14 @@ Params:      none
 
 Returns:     nothing.
 
+=item C<create_default_classification>
+
+Creates the default "Unclassified" L<Classification|Bugzilla::Classification>
+if it doesn't already exist
+
 =item C<create_default_product()>
 
-Description: Creates the default product and classification if
+Description: Creates the default product and component if
              they don't exist.
 
 Params:      none

@@ -35,7 +35,7 @@ use strict;
 
 use Bugzilla::Config::Common;
 
-$Bugzilla::Config::UserMatch::sortkey = "14";
+our $sortkey = 1600;
 
 sub get_param_list {
   my $class = shift;
@@ -44,13 +44,6 @@ sub get_param_list {
    name => 'usemenuforusers',
    type => 'b',
    default => '0'
-  },
-
-  {
-   name => 'usermatchmode',
-   type => 's',
-   choices => ['off', 'wildcard', 'search'],
-   default => 'off'
   },
 
   {

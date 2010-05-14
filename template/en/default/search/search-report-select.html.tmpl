@@ -30,7 +30,7 @@
   [% rep_fields.push("rep_platform") IF Param('useplatform') %]
   [% rep_fields.push("op_sys") IF Param('useopsys') %]
   [% rep_fields.push("bug_status", "resolution", "bug_severity",
-                     "priority", "target_milestone", "assigned_to",
+                   "priority", "target_milestone", "assigned_to",
                      "reporter", "qa_contact", "votes") %]
 
   <select name="[% name FILTER html %]">
@@ -40,8 +40,8 @@
       [% NEXT IF field == "classification" AND !Param('useclassification') %]
       [% NEXT IF field == "target_milestone" AND !Param('usetargetmilestone') %]
       [% NEXT IF field == "qa_contact" AND !Param('useqacontact') %]
-      [% NEXT IF field == "votes" AND !Param('usevotes') %]
-      <option value="[% field FILTER html %]"
+      [% NEXT IF field == "votes" AND !Param('usevotes') %]      
+      <option value="[% field FILTER html %]" 
         [% " selected" IF default.$name.0 == field %]>
         [% field_descs.$field || field FILTER html %]</option>
     [% END %]

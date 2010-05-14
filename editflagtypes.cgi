@@ -407,11 +407,7 @@ sub update {
                                               WHERE flags.type_id = ?
                                                 AND i.type_id IS NULL',
                                              undef, $id);
-    my $flags = Bugzilla::Flag->new_from_list($flag_ids);
-    foreach my $flag (@$flags) {
-        my $bug = new Bugzilla::Bug($flag->bug_id);
-        Bugzilla::Flag::clear($flag, $bug, $flag->attachment);
-    }
+    Bugzilla::Flag->force_retarget($flag_ids);
 
     $flag_ids = $dbh->selectcol_arrayref('SELECT DISTINCT flags.id
                                             FROM flags
@@ -425,11 +421,7 @@ sub update {
                                              AND (bugs.component_id = e.component_id
                                                   OR e.component_id IS NULL)',
                                           undef, $id);
-    $flags = Bugzilla::Flag->new_from_list($flag_ids);
-    foreach my $flag (@$flags) {
-        my $bug = new Bugzilla::Bug($flag->bug_id);
-        Bugzilla::Flag::clear($flag, $bug, $flag->attachment);
-    }
+    Bugzilla::Flag->force_retarget($flag_ids);
 
     # Now silently remove requestees from flags which are no longer
     # specifically requestable.
@@ -454,7 +446,7 @@ sub update {
 
 
 sub confirmDelete {
-  my $flag_type = validateID();
+    my $flag_type = validateID();
 
     $vars->{'flag_type'} = $flag_type;
     $vars->{'token'} = issue_session_token('delete_flagtype');

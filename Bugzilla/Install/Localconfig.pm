@@ -67,9 +67,11 @@ EOT
     {
         name    => 'webservergroup',
         default => ON_WINDOWS ? '' : 'apache',
-        desc    => q{# This is the group your web server runs as.
+        desc    => q{# Usually, this is the group your web server runs as.
 # If you have a Windows box, ignore this setting.
-# If you do not have access to the group your web server runs under,
+# If you have use_suexec switched on below, this is the group Apache switches
+# to in order to run Bugzilla scripts.
+# If you do not have access to the group your scripts will run under,
 # set this to "". If you do set this to "", then your Bugzilla installation
 # will be _VERY_ insecure, because some files will be world readable/writable,
 # and so anyone who can get local access to your machine can do whatever they
@@ -77,6 +79,21 @@ EOT
 # and you cannot set this up any other way. YOU HAVE BEEN WARNED!
 # If you set this to anything other than "", you will need to run checksetup.pl
 # as} . ROOT_USER . qq{, or as a user who is a member of the specified group.\n}
+    },
+    {
+        name    => 'use_suexec',
+        default => 0,
+        desc    => <<EOT
+# Set this if Bugzilla runs in an Apache SuexecUserGroup environment.
+# (If your web server runs control panel software (cPanel, Plesk or similar),
+# or if your Bugzilla is to run in a shared hosting environment, then you are
+# almost certainly in an Apache SuexecUserGroup environment.)
+# If you have a Windows box, ignore this setting.
+# If set to 0, Bugzilla will set file permissions as tightly as possible.
+# If set to 1, Bugzilla will set file permissions so that it may work in an
+# SuexecUserGroup environment. The difference is that static files (CSS,
+# JavaScript and so on) will receive world read permissions.
+EOT
     },
     {
         name    => 'db_driver',
@@ -309,7 +326,12 @@ sub update_localconfig {
         if (!defined $localconfig->{$name}) {
             push(@new_vars, $name);
             $var->{default} = &{$var->{default}} if ref($var->{default}) eq 'CODE';
-            $localconfig->{$name} = $answer->{$name} || $var->{default};
+            if (exists $answer->{$name}) {
+                $localconfig->{$name} = $answer->{$name};
+            }
+            else {
+                $localconfig->{$name} = $var->{default};
+            }
         }
     }
 
@@ -353,11 +375,11 @@ EOT
 
     # Re-write localconfig
     open(my $fh, ">$filename") || die "$filename: $!";
-        foreach my $var (LOCALCONFIG_VARS) {
-                print $fh "\n", $var->{desc},
-                      Data::Dumper->Dump([$localconfig->{$var->{name}}], 
-                                         ["*$var->{name}"]);
-            }
+    foreach my $var (LOCALCONFIG_VARS) {
+        print $fh "\n", $var->{desc},
+                  Data::Dumper->Dump([$localconfig->{$var->{name}}],
+                                     ["*$var->{name}"]);
+   }
 
     if (@new_vars) {
         my $newstuff = join(', ', @new_vars);

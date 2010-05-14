@@ -74,7 +74,7 @@ foreach my $panel (keys %$param_panels) {
 my %hook_panels = map { $_->{name} => { params => $_->{param_list} } }
                       @panels;
 # Note that this hook is also called in Bugzilla::Config.
-Bugzilla::Hook::process('config-modify_panels', { panels => \%hook_panels });
+Bugzilla::Hook::process('config_modify_panels', { panels => \%hook_panels });
 
 $vars->{panels} = \@panels;
 
@@ -87,7 +87,7 @@ if ($action eq 'save' && $current_module) {
         my $name = $i->{'name'};
         my $value = $cgi->param($name);
 
-        if (defined $cgi->param("reset-$name")) {
+        if (defined $cgi->param("reset-$name") && !$i->{'no_reset'}) {
             $value = $i->{'default'};
         } else {
             if ($i->{'type'} eq 'm') {

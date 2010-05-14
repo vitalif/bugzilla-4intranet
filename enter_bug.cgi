@@ -209,44 +209,54 @@ sub pickplatform {
         # no choice is valid, we return "Other".
         for ($ENV{'HTTP_USER_AGENT'}) {
         #PowerPC
-            /\(.*PowerPC.*\)/i && do {@platform = "Macintosh"; last;};
-            /\(.*PPC.*\)/ && do {@platform = "Macintosh"; last;};
-            /\(.*AIX.*\)/ && do {@platform = "Macintosh"; last;};
+            /\(.*PowerPC.*\)/i && do {push @platform, ("PowerPC", "Macintosh");};
+        #AMD64, Intel x86_64
+            /\(.*amd64.*\)/ && do {push @platform, ("AMD64", "x86_64", "PC");};
+            /\(.*x86_64.*\)/ && do {push @platform, ("AMD64", "x86_64", "PC");};
+        #Intel Itanium
+            /\(.*IA64.*\)/ && do {push @platform, "IA64";};
         #Intel x86
-            /\(.*Intel.*\)/ && do {@platform = "PC"; last;};
-            /\(.*[ix0-9]86.*\)/ && do {@platform = "PC"; last;};
+            /\(.*Intel.*\)/ && do {push @platform, ("IA32", "x86", "PC");};
+            /\(.*[ix0-9]86.*\)/ && do {push @platform, ("IA32", "x86", "PC");};
         #Versions of Windows that only run on Intel x86
-            /\(.*Win(?:dows |)[39M].*\)/ && do {@platform = "PC"; last};
-            /\(.*Win(?:dows |)16.*\)/ && do {@platform = "PC"; last;};
+            /\(.*Win(?:dows |)[39M].*\)/ && do {push @platform, ("IA32", "x86", "PC");};
+            /\(.*Win(?:dows |)16.*\)/ && do {push @platform, ("IA32", "x86", "PC");};
         #Sparc
-            /\(.*sparc.*\)/ && do {@platform = "Sun"; last;};
-            /\(.*sun4.*\)/ && do {@platform = "Sun"; last;};
+            /\(.*sparc.*\)/ && do {push @platform, ("Sparc", "Sun");};
+            /\(.*sun4.*\)/ && do {push @platform, ("Sparc", "Sun");};
         #Alpha
-            /\(.*AXP.*\)/i && do {@platform = "DEC"; last;};
-            /\(.*[ _]Alpha.\D/i && do {@platform = "DEC"; last;};
-            /\(.*[ _]Alpha\)/i && do {@platform = "DEC"; last;};
+            /\(.*AXP.*\)/i && do {push @platform, ("Alpha", "DEC");};
+            /\(.*[ _]Alpha.\D/i && do {push @platform, ("Alpha", "DEC");};
+            /\(.*[ _]Alpha\)/i && do {push @platform, ("Alpha", "DEC");};
         #MIPS
-            /\(.*IRIX.*\)/i && do {@platform = "SGI"; last;};
-            /\(.*MIPS.*\)/i && do {@platform = "SGI"; last;};
+            /\(.*IRIX.*\)/i && do {push @platform, ("MIPS", "SGI");};
+            /\(.*MIPS.*\)/i && do {push @platform, ("MIPS", "SGI");};
         #68k
-            /\(.*68K.*\)/ && do {@platform = "Macintosh"; last;};
-            /\(.*680[x0]0.*\)/ && do {@platform = "Macintosh"; last;};
+            /\(.*68K.*\)/ && do {push @platform, ("68k", "Macintosh");};
+            /\(.*680[x0]0.*\)/ && do {push @platform, ("68k", "Macintosh");};
         #HP
-            /\(.*9000.*\)/ && do {@platform = "HP"; last;};
+            /\(.*9000.*\)/ && do {push @platform, ("PA-RISC", "HP");};
         #ARM
-#            /\(.*ARM.*\) && do {$platform = "ARM";};
+            /\(.*ARM.*\)/ && do {push @platform, ("ARM", "PocketPC");};
+        #PocketPC intentionally before PowerPC
+            /\(.*Windows CE.*PPC.*\)/ && do {push @platform, ("ARM", "PocketPC");};
+        #PowerPC
+            /\(.*PPC.*\)/ && do {push @platform, ("PowerPC", "Macintosh");};
+            /\(.*AIX.*\)/ && do {push @platform, ("PowerPC", "Macintosh");};
         #Stereotypical and broken
-            /\(.*Macintosh.*\)/ && do {@platform = "Macintosh"; last;};
-            /\(.*Mac OS [89].*\)/ && do {@platform = "Macintosh"; last;};
-            /\(Win.*\)/ && do {@platform = "PC"; last;};
-            /\(.*Win(?:dows[ -])NT.*\)/ && do {@platform = "PC"; last;};
-            /\(.*OSF.*\)/ && do {@platform = "DEC"; last;};
-            /\(.*HP-?UX.*\)/i && do {@platform = "HP"; last;};
-            /\(.*IRIX.*\)/i && do {@platform = "SGI"; last;};
-            /\(.*(SunOS|Solaris).*\)/ && do {@platform = "Sun"; last;};
+            /\(.*Windows CE.*\)/ && do {push @platform, ("ARM", "PocketPC");};
+            /\(.*Macintosh.*\)/ && do {push @platform, ("68k", "Macintosh");};
+            /\(.*Mac OS [89].*\)/ && do {push @platform, ("68k", "Macintosh");};
+            /\(.*Win64.*\)/ && do {push @platform, "IA64";};
+            /\(Win.*\)/ && do {push @platform, ("IA32", "x86", "PC");};
+            /\(.*Win(?:dows[ -])NT.*\)/ && do {push @platform, ("IA32", "x86", "PC");};
+            /\(.*OSF.*\)/ && do {push @platform, ("Alpha", "DEC");};
+            /\(.*HP-?UX.*\)/i && do {push @platform, ("PA-RISC", "HP");};
+            /\(.*IRIX.*\)/i && do {push @platform, ("MIPS", "SGI");};
+            /\(.*(SunOS|Solaris).*\)/ && do {push @platform, ("Sparc", "Sun");};
         #Braindead old browsers who didn't follow convention:
-            /Amiga/ && do {@platform = "Macintosh"; last;};
-            /WinMosaic/ && do {@platform = "PC"; last;};
+            /Amiga/ && do {push @platform, ("68k", "Macintosh");};
+            /WinMosaic/ && do {push @platform, ("IA32", "x86", "PC");};
         }
     }
 
@@ -267,7 +277,7 @@ sub pickos {
         # item in @os that is a valid platform choice. If
         # no choice is valid, we return "Other".
         for ($ENV{'HTTP_USER_AGENT'}) {
-            /\(.*IRIX.*\)/ && do {push @os, "IRIX"; };
+            /\(.*IRIX.*\)/ && do {push @os, "IRIX";};
             /\(.*OSF.*\)/ && do {push @os, "OSF/1";};
             /\(.*Linux.*\)/ && do {push @os, "Linux";};
             /\(.*Solaris.*\)/ && do {push @os, "Solaris";};
@@ -391,8 +401,6 @@ $vars->{'bug_severity'}          = get_legal_field_values('bug_severity');
 $vars->{'rep_platform'}          = get_legal_field_values('rep_platform') if Bugzilla->params->{useplatform};
 $vars->{'op_sys'}                = get_legal_field_values('op_sys') if Bugzilla->params->{useopsys};
 
-$vars->{'use_keywords'}          = 1 if Bugzilla::Keyword::keyword_count();
-
 $vars->{'assigned_to'}           = formvalue('assigned_to');
 $vars->{'assigned_to_disabled'}  = !$has_editbugs;
 $vars->{'cc_disabled'}           = 0;
@@ -424,20 +432,20 @@ $default{'product_obj'} = $product;
 
 if ($cloned_bug_id) {
 
-    $default{'component_'}   = $cloned_bug->component;
-    $default{'priority'}     = $cloned_bug->priority;
-    $default{'bug_severity'} = $cloned_bug->bug_severity;
-    $default{'rep_platform'} = $cloned_bug->rep_platform if Bugzilla->params->{useplatform};
-    $default{'op_sys'}       = $cloned_bug->op_sys if Bugzilla->params->{useopsys};
+    $default{'component_'}    = $cloned_bug->component;
+    $default{'priority'}      = $cloned_bug->priority;
+    $default{'bug_severity'}  = $cloned_bug->bug_severity;
+    $default{'rep_platform'}  = $cloned_bug->rep_platform if Bugzilla->params->{useplatform};
+    $default{'op_sys'}        = $cloned_bug->op_sys if Bugzilla->params->{useopsys};
 
-    $vars->{'assigned_to'} ||= $cloned_bug->component_obj->default_assignee->login;
-    $vars->{'qa_contact'}  ||= $cloned_bug->component_obj->default_qa_contact->login;
-    $vars->{'short_desc'}    = $cloned_bug->short_desc;
-    $vars->{'bug_file_loc'}  = $cloned_bug->bug_file_loc;
-    $vars->{'keywords'}      = $cloned_bug->keywords;
-    $vars->{'dependson'}     = "";
-    $vars->{'blocked'}       = $cloned_bug_id;
-    $vars->{'deadline'}      = $cloned_bug->deadline;
+    $vars->{'assigned_to'}  ||= $cloned_bug->component_obj->default_assignee->login;
+    $vars->{'qa_contact'}   ||= $cloned_bug->component_obj->default_qa_contact->login;
+    $vars->{'short_desc'}     = $cloned_bug->short_desc;
+    $vars->{'bug_file_loc'}   = $cloned_bug->bug_file_loc;
+    $vars->{'keywords'}       = $cloned_bug->keywords;
+    $vars->{'dependson'}      = "";
+    $vars->{'blocked'}        = $cloned_bug_id;
+    $vars->{'deadline'}       = $cloned_bug->deadline;
     $vars->{'status_whiteboard'} = $cloned_bug->status_whiteboard;
 
     my @cc;
@@ -449,7 +457,7 @@ if ($cloned_bug_id) {
     } elsif (defined $cloned_bug->cc) {
         @cc = @{$cloned_bug->cc};
     }
-
+    
     if ($cloned_bug->reporter->id != $user->id) {
         push @cc, $cloned_bug->reporter->login;
     }
@@ -463,49 +471,48 @@ if ($cloned_bug_id) {
     # We need to ensure that we respect the 'insider' status of
     # the first comment, if it has one. Either way, make a note
     # that this bug was cloned from another bug.
-    # We cannot use $cloned_bug->longdescs because this method
-    # depends on the "comment_sort_order" user pref, and we
-    # really want the first comment of the bug.
 
     my $cloned_comment = formvalue('cloned_comment', 0);
-    my $bug_desc = Bugzilla::Bug::GetComments($cloned_bug_id, 'oldest_to_newest');
-    my $isprivate = $bug_desc->[$cloned_comment]->{isprivate};
+    my $bug_desc = $cloned_bug->comments({ order => 'oldest_to_newest' });
+    my $isprivate = $bug_desc->[$cloned_comment]->is_private;
 
-    $vars->{comment}        = "";
-    $vars->{commentprivacy} = 0;
+    $vars->{'comment'}        = "";
+    $vars->{'commentprivacy'} = 0;
 
-    if (!$isprivate || Bugzilla->user->is_insider)
-    {
-        $vars->{cloned_comment} = $cloned_comment;
-        $vars->{comment} = $bug_desc->[$cloned_comment]->{body};
-        $vars->{comment} =~ s!bug\s*#?\s*(\d+)\s*,?\s*comment\s*#?\s*(\d+)!Bug $cloned_bug_id, comment $2!gso;
-        $vars->{commentprivacy} = $isprivate;
+    if (!$isprivate || Bugzilla->user->is_insider) {
+        # We use "body" to avoid any format_comment text, which would be
+        # pointless to clone.
+        $vars->{'cloned_comment'} = $cloned_comment;
+        $vars->{'comment'}        = $bug_desc->[$cloned_comment]->body;
+        $vars->{'comment'}        =~ s!bug\s*#?\s*(\d+)\s*,?\s*comment\s*#?\s*(\d+)!Bug $cloned_bug_id, comment $2!gso;
+        $vars->{'commentprivacy'} = $isprivate;
     }
 
 } # end of cloned bug entry form
 
 else {
 
-    $default{component_}    = formvalue('component');
-    $default{priority}      = formvalue('priority', Bugzilla->params->{defaultpriority});
-    $default{bug_severity}  = formvalue('bug_severity', Bugzilla->params->{defaultseverity});
-    $default{rep_platform}  = pickplatform() if Bugzilla->params->{useplatform};
-    $default{op_sys}        = pickos() if Bugzilla->params->{useopsys};
+    $default{'component_'}    = formvalue('component');
+    $default{'priority'}      = formvalue('priority', Bugzilla->params->{'defaultpriority'});
+    $default{'bug_severity'}  = formvalue('bug_severity', Bugzilla->params->{'defaultseverity'});
+    $default{'rep_platform'}  = pickplatform() if Bugzilla->params->{useplatform};
+    $default{'op_sys'}        = pickos() if Bugzilla->params->{useopsys};
 
-    $vars->{short_desc}     = formvalue('short_desc');
-    $vars->{bug_file_loc}   = formvalue('bug_file_loc', "http://");
-    $vars->{keywords}       = formvalue('keywords');
-    $vars->{status_whiteboard} = formvalue('status_whiteboard');
-    $vars->{dependson}      = formvalue('dependson');
-    $vars->{blocked}        = formvalue('blocked');
-    $vars->{deadline}       = formvalue('deadline');
-    $vars->{work_time}      = 0+formvalue('work_time') || "0.0";
-    $vars->{estimated_time} = 0+formvalue('estimated_time') || "0.0";
+    $vars->{'alias'}          = formvalue('alias');
+    $vars->{'short_desc'}     = formvalue('short_desc');
+    $vars->{'bug_file_loc'}   = formvalue('bug_file_loc', "http://");
+    $vars->{'keywords'}       = formvalue('keywords');
+    $vars->{'status_whiteboard'} = formvalue('status_whiteboard');
+    $vars->{'dependson'}      = formvalue('dependson');
+    $vars->{'blocked'}        = formvalue('blocked');
+    $vars->{'deadline'}       = formvalue('deadline');
+    $vars->{'estimated_time'} = 0+formvalue('estimated_time') || "0.0";
+    $vars->{'work_time'}      = 0+formvalue('work_time') || "0.0";
 
-    $vars->{cc}             = join(', ', $cgi->param('cc'));
+    $vars->{'cc'}             = join(', ', $cgi->param('cc'));
 
-    $vars->{comment}        = formvalue('comment');
-    $vars->{commentprivacy} = formvalue('commentprivacy');
+    $vars->{'comment'}        = formvalue('comment');
+    $vars->{'commentprivacy'} = formvalue('commentprivacy');
 
 } # end of normal/bookmarked entry form
 
@@ -558,8 +565,10 @@ my $initial_statuses = Bugzilla::Status->can_change_to();
 @$initial_statuses = grep { $_->name eq 'RESOLVED' || $_->is_open } @$initial_statuses;
 
 my @status = map { $_->name } @$initial_statuses;
-# UNCONFIRMED is illegal if votes_to_confirm = 0.
-@status = grep {$_ ne 'UNCONFIRMED'} @status unless $product->votes_to_confirm;
+# UNCONFIRMED is illegal if allows_unconfirmed is false.
+if (!$product->allows_unconfirmed) {
+    @status = grep {$_ ne 'UNCONFIRMED'} @status;
+}
 scalar(@status) || ThrowUserError('no_initial_bug_status');
 
 # If the user has no privs...
@@ -646,7 +655,7 @@ foreach my $row (@$grouplist) {
 
 $vars->{'group'} = \@groups;
 
-Bugzilla::Hook::process("enter_bug-entrydefaultvars", { vars => $vars });
+Bugzilla::Hook::process('enter_bug_entrydefaultvars', { vars => $vars });
 
 $vars->{'default'} = \%default;
 

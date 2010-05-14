@@ -31,8 +31,9 @@ use lib qw(. lib);
 use Bugzilla;
 use Bugzilla::Bug;
 use Bugzilla::Constants;
-use Bugzilla::Util;
 use Bugzilla::Error;
+use Bugzilla::Hook;
+use Bugzilla::Util;
 use Bugzilla::Status;
 
 ###########################################################################
@@ -140,14 +141,10 @@ if ($cgi->param('createmissinggroupcontrolmapentries')) {
     my $na    = CONTROLMAPNA;
     my $shown = CONTROLMAPSHOWN;
     my $insertsth = $dbh->prepare(
-        qq{INSERT INTO group_control_map (
-                       group_id, product_id, entry,
-                       membercontrol, othercontrol, canedit
-                      )
-               VALUES (
-                       ?, ?, 0,
-                       $shown, $na, 0
-                      )});
+        qq{INSERT INTO group_control_map
+                       (group_id, product_id, membercontrol, othercontrol)
+                VALUES (?, ?, $shown, $na)});
+
     my $updatesth = $dbh->prepare(qq{UPDATE group_control_map
                                         SET membercontrol = $shown
                                       WHERE group_id   = ?
@@ -387,6 +384,15 @@ if ($cgi->param('remove_old_whine_targets')) {
     Status('whines_obsolete_target_deletion_end');
 }
 
+###########################################################################
+# Repair hook
+###########################################################################
+
+Bugzilla::Hook::process('sanitycheck_repair', { status => \&Status });
+
+###########################################################################
+# Checks
+###########################################################################
 Status('checks_start');
 
 ###########################################################################
@@ -970,7 +976,8 @@ BugCheck("bugs WHERE bug_status IN ($confirmed_open_states) AND everconfirmed = 
 Status('bug_check_votes_everconfirmed');
 
 BugCheck("bugs INNER JOIN products ON bugs.product_id = products.id " .
-         "WHERE everconfirmed = 0 AND votestoconfirm <= votes",
+         "WHERE everconfirmed = 0 AND votestoconfirm > 0
+                AND votestoconfirm <= votes",
          'bug_check_votes_everconfirmed_error_text');
 
 ###########################################################################
@@ -1064,6 +1071,12 @@ foreach my $target (['groups', 'id', MAILTO_GROUP],
     }
 }
 Status('whines_obsolete_target_fix') if $display_repair_whines_link;
+
+###########################################################################
+# Check hook
+###########################################################################
+
+Bugzilla::Hook::process('sanitycheck_check', { status => \&Status });
 
 ###########################################################################
 # End

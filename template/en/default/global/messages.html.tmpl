@@ -28,15 +28,10 @@
 [% PROCESS "global/field-descs.none.tmpl" %]
 
 [% BLOCK msg_account_created %]
-  [% title = "User $otheruser.login created" %]
-  A new user account [% otheruser.login | html %] has been created
+  The user account [% otheruser.login | html %] has been created
   successfully.
   [% IF groups.size %]
     You may want to edit the group settings now, using the form below.
-  [% END %]
-  [% IF login_info %]
-    You can now go to the <a href="index.cgi">Log In</a> page to enter
-    this [% terms.Bugzilla %] installation.
   [% END %]
 [% END %]
 
@@ -206,6 +201,7 @@
       [% IF changes.sortkey.defined %]
         <li>Sortkey updated to '[% classification.sortkey | html %]'</li>
       [% END %]
+      [% Hook.process('classification_updated_fields') %]
     </ul>
   [% ELSE %]
     No changes made to <em>[% classification.name | html %]</em>.
@@ -264,6 +260,8 @@
     [% IF changes.wiki_url.defined %]
       <li>Wiki URL updated to '[% comp.wiki_url | html %]'</li>
     [% END %]
+    [% Hook.process('component_updated_fields') %]
+    </ul>
   [% ELSE %]
     No changes made to <em>[% comp.name | html %]</em>.
   [% END %]
@@ -314,6 +312,12 @@
   account [%+ old_email | html %] to
   [%+ new_email | html %] has been canceled.
  Your old account settings have been reinstated.
+[% END %]
+
+[% BLOCK msg_extension_created %]
+  An extension named [% name | html %] has been created
+  in [% path | html %]. Make sure you change "YOUR NAME" and 
+  "YOUR EMAIL ADDRESS" in the code to your name and your email address.
 [% END %]
 
 [% BLOCK msg_field_value_created %]
@@ -391,11 +395,11 @@
 [% END %]
 
 [% BLOCK msg_get_resolution %]
-  [% get_resolution(resolution) | html %]
+  [% display_value("resolution", resolution) | html %]
 [% END %]
 
 [% BLOCK msg_get_status %]
-  [% get_status(status) | html %]
+  [% display_value("bug_status", status) | html %]
 [% END %]
 
 [% BLOCK msg_group_created %]
@@ -487,6 +491,12 @@
   [% END %]
 [% END %]
 
+[% BLOCK msg_invalid_column_name %]
+  The custom sort order specified contains one or more invalid
+  column names: <em>[% invalid_fragments.join(', ') | html %]</em>.
+  They have been removed from the sort list.
+[% END %]
+
 [% BLOCK msg_job_queue_depth %]
   [% count | html %] jobs in the queue.
 [% END %]
@@ -541,6 +551,54 @@
 [% BLOCK msg_login_changed %]
   [% title = "$terms.Bugzilla Login Changed" %]
   Your [% terms.Bugzilla %] login has been changed.
+[% END %]
+
+[% BLOCK msg_migrate_component_created %]
+  Component created: [% comp.name | html %]
+  (in [% product.name | html %])
+[% END %]
+
+[% BLOCK msg_migrate_creating_bugs %]
+  Creating [% terms.bugs %]...
+[% END %]
+
+[% BLOCK msg_migrate_field_created %]
+  New custom field: [% field.description | html %]
+  ([% field.name | html %])
+[% END %]
+
+[% BLOCK msg_migrate_product_created %]
+  Product created: [% created.name | html %]
+[% END %]
+
+[% BLOCK msg_migrate_reading_bugs %]
+  Reading [% terms.bugs %]...
+[% END %]
+
+[% BLOCK msg_migrate_reading_products %]
+  Reading products...
+[% END %]
+
+[% BLOCK msg_migrate_reading_users %]
+  Reading users...
+[% END %]
+
+[% BLOCK msg_migrate_translating_bugs %]
+  Converting [% terms.bug %] values to be appropriate for 
+  [%+ terms.Bugzilla %]...
+[% END %]
+
+[% BLOCK msg_migrate_user_created %]
+  User created: [% created.email | html %]
+  [% IF password %] Password: [% password | html %][% END %]
+[% END %]
+
+[% BLOCK msg_migrate_value_created %]
+  [% IF product.defined %]
+    [% product.name | html %]
+  [% END %]
+  [%+ field_descs.${field.name} | html %] value
+  created: [% value | html %]
 [% END %]
 
 [% BLOCK msg_milestone_created %]
@@ -841,9 +899,14 @@
     has been created. Note that you may need to wait up to
     [%+ series.frequency * 2 %] days before there will be enough data for a
     chart of this series to be produced.
-    <br><br>
-    Go back or
-    <a href="query.cgi?format=create-series">create another series</a>.
+[% END %]
+
+[% BLOCK msg_series_deleted %]
+  [% title = "Series Deleted" %]
+  The series <em>[% series.category FILTER html %] /
+    [%+ series.subcategory FILTER html %] /
+    [%+ series.name FILTER html %]</em>
+    has been deleted.
 [% END %]
 
 [% BLOCK msg_shutdown %]
@@ -889,7 +952,13 @@
 
 [% BLOCK msg_version_updated %]
   [% SET title = "Version Updated" IF 1 %]
-  Version renamed as <em>[% version.name | html %]</em>.
+  [% IF changes.size %]
+    [% IF changes.value.defined %]
+      Version renamed to <em>[% version.name FILTER html %]</em>.
+    [% END %]
+  [% ELSE %]
+    No changes made to version <em>[% version.name FILTER html %]</em>.
+  [% END %]
 [% END %]
 
 [% BLOCK msg_workflow_updated %]
@@ -901,17 +970,23 @@
   <em>[% restricted_cc.join(', ') | html %]</em> removed.
 [% END %]
 
+[% IF message %]
 [% message_tag = 'msg_' _ message %]
 [% message = BLOCK %]
-  [% IF 'msg_' _ message_tag %]
-    [% message_tag FILTER process %]
-  [% ELSE %]
-    [%# Give sensible error if error functions are used incorrectly. %]
-    You are using [% terms.Bugzilla %]'s messaging functions incorrectly. You
-    passed in the string '[% message_tag %]'. The correct use is to pass
-    in a tag, and define that tag in the file messages.html.tmpl.<br>
-    <br>
-    If you are a [% terms.Bugzilla %] end-user seeing this message, please
-    save this page and send it to [% Param('maintainer') %].
-  [% END %]
+  [% message_tag FILTER process %]
+[% END %]
+
+[%# Give sensible error if error functions are used incorrectly. %]
+[% IF !message %]
+  You are using [% terms.Bugzilla %]'s messaging functions incorrectly. You
+  passed in the string '[% message_tag %]'. The correct use is to pass
+  in a tag, and define that tag in the file messages.html.tmpl.<br>
+  <br>
+  If you are a [% terms.Bugzilla %] end-user seeing this message, please
+  save this page and send it to [% Param('maintainer') %].
+[% END %]
+
+[% IF !message %]
+  [% message = Hook.process('messages') %]
+[% END %]
 [% END %]

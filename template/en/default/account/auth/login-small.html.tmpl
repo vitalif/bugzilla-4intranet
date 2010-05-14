@@ -24,16 +24,11 @@
   # then we are accessing the home page. %]
 
 [% login_target = cgi.url("-relative" => 1, "-query" => 1) %]
-[% IF !login_target %]
+[% IF !login_target OR login_target.match("^token.cgi") %]
  [% login_target = "index.cgi" %]
 [% END %]
 
-[%# If SSL is in use, use 'sslbase', else use 'urlbase'. %]
-[% IF Param("sslbase") != "" && Param("ssl") != "never" %]
-  [% login_target = Param("sslbase") _ login_target %]
-[% ELSE %]
-  [% login_target = Param("urlbase") _ login_target %]
-[% END %]
+[% login_target = urlbase _ login_target %]
 
 <li id="mini_login_container[% qs_suffix %]">
   <span class="separator">| </span>
@@ -58,7 +53,7 @@
            id="Bugzilla_password_dummy[% qs_suffix %]" value="password"
            onfocus="mini_login_on_focus('[% qs_suffix FILTER js %]')"
     >
-    [% IF Param('rememberlogin') == 'defaulton' || 
+    [% IF Param('rememberlogin') == 'defaulton' ||
           Param('rememberlogin') == 'defaultoff' 
     %]
       <input type="checkbox" id="Bugzilla_remember[% qs_suffix %]" 

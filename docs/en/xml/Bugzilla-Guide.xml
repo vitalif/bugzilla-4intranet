@@ -17,7 +17,6 @@
 <!ENTITY customization SYSTEM "customization.xml">
 <!ENTITY troubleshooting SYSTEM "troubleshooting.xml">
 <!ENTITY patches SYSTEM "patches.xml">
-<!ENTITY introduction SYSTEM "introduction.xml">
 <!ENTITY modules SYSTEM "modules.xml">
 
 <!-- Things to change for a stable release:
@@ -33,12 +32,12 @@
      For a devel release, simple bump bz-ver and bz-date
 -->
 
-<!ENTITY bz-ver "3.4.6">
-<!ENTITY bz-nextver "3.6">
-<!ENTITY bz-date "2010-03-07">
+<!ENTITY bz-ver "3.6">
+<!ENTITY bz-nextver "3.8">
+<!ENTITY bz-date "2010-04-13">
 <!ENTITY current-year "2010">
 
-<!ENTITY landfillbase "http://landfill.bugzilla.org/bugzilla-3.4-branch/">
+<!ENTITY landfillbase "http://landfill.bugzilla.org/bugzilla-3.6-branch/">
 <!ENTITY bz "http://www.bugzilla.org/">
 <!ENTITY bzg-bugs "<ulink url='https://bugzilla.mozilla.org/enter_bug.cgi?product=Bugzilla&amp;component=Documentation'>Bugzilla Documentation</ulink>">
 <!ENTITY mysql "http://www.mysql.com/">

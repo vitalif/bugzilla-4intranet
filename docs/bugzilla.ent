@@ -14,7 +14,7 @@
 <!ENTITY min-email-mime-modifier-ver "1.442">
 <!ENTITY min-uri-ver "any">
 <!ENTITY min-gd-ver "1.20">
-<!ENTITY min-chart-base-ver "1.0">
+<!ENTITY min-chart-lines-ver "2.1">
 <!ENTITY min-template-plugin-gd-image-ver "any">
 <!ENTITY min-gd-text-ver "any">
 <!ENTITY min-gd-graph-ver "any">
@@ -22,11 +22,12 @@
 <!ENTITY min-mime-parser-ver "5.406">
 <!ENTITY min-lwp-useragent-ver "any">
 <!ENTITY min-patchreader-ver "0.9.4">
-<!ENTITY min-image-magick-ver "any">
 <!ENTITY min-net-ldap-ver "any">
 <!ENTITY min-authen-sasl-ver "any">
 <!ENTITY min-authen-radius-ver "any">
 <!ENTITY min-soap-lite-ver "0.710.06">
+<!ENTITY min-json-rpc-ver "any">
+<!ENTITY min-test-taint-ver "any">
 <!ENTITY min-html-parser-ver "3.40">
 <!ENTITY min-html-scrubber-ver "any">
 <!ENTITY min-email-mime-attachment-stripper-ver "any">

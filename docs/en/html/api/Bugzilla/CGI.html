@@ -88,13 +88,14 @@ name="ADDITIONAL_FUNCTIONS"
 
 <p>As its only argument, it takes the name of the cookie to expire.</p>
 
-<dt><a name="require_https($baseurl)"
-><code  class="code">require_https($baseurl)</code></a></dt>
+<dt><a name="redirect_to_https"
+><code  class="code">redirect_to_https</code></a></dt>
 
 <dd>
-<p>This routine redirects the client to a different location using the https protocol. If the client is using XMLRPC, it will not retain the QUERY_STRING since XMLRPC uses POST.</p>
+<p>This routine redirects the client to the https version of the page that they&#39;re looking at, using the <code  class="code">sslbase</code> parameter for the redirection.</p>
 
-<p>It takes an optional argument which will be used as the base URL. If $baseurl is not provided, the current URL is used.</p>
+<p>Generally you should use <a href="../Bugzilla/Util.html#do_ssl_redirect_if_required" class="podlinkpod"
+>&#34;do_ssl_redirect_if_required&#34; in Bugzilla::Util</a> instead of calling this directly.</p>
 
 <dt><a name="redirect_to_urlbase"
 ><code  class="code">redirect_to_urlbase</code></a></dt>

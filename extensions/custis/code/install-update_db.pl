@@ -5,6 +5,7 @@ use strict;
 use utf8;
 use Encode;
 use URI::Escape;
+use Bugzilla::Constants;
 
 sub sure_utf8
 {

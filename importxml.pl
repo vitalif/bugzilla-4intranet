@@ -465,13 +465,13 @@ sub process_bug {
     {
         $all_fields{$field} = 1;
     }
-
+    
     my %bug_fields;
     my $err = "";
 
-    # Loop through all the xml tags inside a <bug> and compare them to the
-    # lists of fields. If they match throw them into the hash. Otherwise
-    # append it to the log, which will go into the comments when we are done.
+   # Loop through all the xml tags inside a <bug> and compare them to the
+   # lists of fields. If they match throw them into the hash. Otherwise
+   # append it to the log, which will go into the comments when we are done.
     foreach my $bugchild ( $bug->children() ) {
         Debug( "Parsing field: " . $bugchild->name, DEBUG_LEVEL );
 
@@ -508,25 +508,28 @@ sub process_bug {
     }
 
     my @long_descs;
+    my $private = 0;
 
     # Parse long descriptions
     foreach my $comment ( $bug->children('long_desc') ) {
         Debug( "Parsing Long Description", DEBUG_LEVEL );
         my %long_desc;
-        $long_desc{who}       = $comment->field('who');
-        $long_desc{bug_when}  = $comment->field('bug_when');
-        $long_desc{isprivate} = $comment->{att}->{isprivate} || 0;
+        $long_desc{'who'}       = $comment->field('who');
+        $long_desc{'bug_when'}  = $comment->field('bug_when');
+        $long_desc{'isprivate'} = $comment->{'att'}->{'isprivate'} || 0;
         # TODO validate work_time
-        $long_desc{work_time} = $comment->field('work_time') || 0;
+        $long_desc{'work_time'} = $comment->field('work_time') || 0;
 
         my $data = $comment->field('thetext');
-        if ( defined $comment->first_child('thetext')->{att}->{encoding}
-            && $comment->first_child('thetext')->{att}->{encoding} =~
+        if ( defined $comment->first_child('thetext')->{'att'}->{'encoding'}
+            && $comment->first_child('thetext')->{'att'}->{'encoding'} =~
             /base64/ )
         {
             $data = decode_base64($data);
         }
 
+        # For backwards-compatibility with Bugzillas before 3.6:
+        #
         # If we leave the attachment ID in the comment it will be made a link
         # to the wrong attachment. Since the new attachment ID is unknown yet
         # let's strip it out for now. We will make a comment with the right ID
@@ -544,7 +547,7 @@ sub process_bug {
         {
             $long_desc{thetext} = "(by $long_desc{who})\n$long_desc{thetext}";
             $long_desc{whoid} = $exporterid;
-        }
+    }
         push @long_descs, \%long_desc;
     }
 
@@ -628,7 +631,7 @@ sub process_bug {
     # Product and Component if there is no valid default product and
     # component defined in the parameters, we wouldn't be here
     my $def_product =
-        new Bugzilla::Product( { name => $params->{"moved-default-product"} } );
+      new Bugzilla::Product( { name => $params->{"moved-default-product"} } );
     my $def_component = new Bugzilla::Component(
         {
             product => $def_product,
@@ -681,7 +684,7 @@ sub process_bug {
     # coming over is valid. If not we will use the first one in @versions
     # and warn them.
     my $version = new Bugzilla::Version(
-        { product => $product, name => $bug_fields{'version'} });
+          { product => $product, name => $bug_fields{'version'} });
 
     push( @query, "version" );
     if ($version) {
@@ -833,7 +836,7 @@ sub process_bug {
 
     # Reporter Assignee QA Contact
     my $reporterid = login_to_id( $bug_fields{'reporter'} )
-        if $bug_fields{'reporter'};
+      if $bug_fields{'reporter'};
     push( @query, "reporter" );
     if ( ( $bug_fields{'reporter'} ) && ($reporterid) ) {
         push( @values, $reporterid );
@@ -900,10 +903,10 @@ sub process_bug {
     my $is_open = is_open_state($bug_fields{'bug_status'}); 
     my $status = $bug_fields{'bug_status'} || undef;
     my $resolution = $bug_fields{'resolution'} || undef;
-
+    
     # Check everconfirmed 
     my $everconfirmed;
-    if ($product->votes_to_confirm) {
+    if ($product->allows_unconfirmed) {
         $everconfirmed = $bug_fields{'everconfirmed'} || 0;
     }
     else {
@@ -920,7 +923,7 @@ sub process_bug {
         $resolution = "MOVED";
         $err .= "This bug was marked DUPLICATE in the database ";
         $err .= "it was moved from.\n    Changing resolution to \"MOVED\"\n";
-    }
+    } 
 
     # If there is at least 1 initial bug status different from UNCO, use it,
     # else use the open bug status with the lowest sortkey (different from UNCO).
@@ -999,7 +1002,7 @@ sub process_bug {
                    $err .= "   Setting resolution to MOVED\n";
                    $resolution = "MOVED";
                }
-            }
+            }   
         }
         else{ # $valid_status is false
             if($everconfirmed){  
@@ -1007,7 +1010,7 @@ sub process_bug {
             }
             else{
                 $status = "UNCONFIRMED";
-            }
+            }        
             $err .= "Bug has invalid status, setting status to \"$status\".\n";
             $err .= "   Previous status was \"";
             $err .=  $bug_fields{'bug_status'} . "\".\n";
@@ -1020,17 +1023,17 @@ sub process_bug {
         }
         else{
             $status = "UNCONFIRMED";
-        }
+        }        
         $err .= "Bug has no status, setting status to \"$status\".\n";
         $err .= "   Previous status was unknown\n";
         $resolution = undef;
     }
-
+                                 
     if (defined $resolution){
         push( @query,  "resolution" );
         push( @values, $resolution );
     }
-
+    
     # Bug status
     push( @query,  "bug_status" );
     push( @values, $status );
@@ -1189,7 +1192,7 @@ sub process_bug {
             $err .= "No attachment ID specified, dropping attachment\n";
             next;
         }
-        if (!$exporter->in_group($params->{'insidergroup'}) && $att->{'isprivate'}){
+        if (!$exporter->is_insider && $att->{'isprivate'}) {
             $err .= "Exporter not in insidergroup and attachment marked private.\n";
             $err .= "   Marking attachment public\n";
             $att->{'isprivate'} = 0;
@@ -1242,7 +1245,7 @@ sub process_bug {
 
     # Insert longdesc and append any errors
     my $worktime = $bug_fields{'actual_time'} || 0.0;
-    $worktime = 0.0 if (!$exporter->in_group($params->{'timetrackinggroup'}));
+    $worktime = 0.0 if (!$exporter->is_timetracker);
     if ($err) {
         $comments .= "\n$err";
     }

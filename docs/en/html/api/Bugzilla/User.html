@@ -18,7 +18,9 @@ Bugzilla::User</title>
   <li class='indexItem indexItem1'><a href='#CONSTANTS'>CONSTANTS</a>
   <li class='indexItem indexItem1'><a href='#METHODS'>METHODS</a>
   <ul   class='indexList indexList2'>
+    <li class='indexItem indexItem2'><a href='#Constructors'>Constructors</a>
     <li class='indexItem indexItem2'><a href='#Saved_and_Shared_Queries'>Saved and Shared Queries</a>
+    <li class='indexItem indexItem2'><a href='#Account_Lockout'>Account Lockout</a>
     <li class='indexItem indexItem2'><a href='#Other_Methods'>Other Methods</a>
   </ul>
   <li class='indexItem indexItem1'><a href='#CLASS_FUNCTIONS'>CLASS FUNCTIONS</a>
@@ -100,6 +102,20 @@ name="METHODS"
 >METHODS</a></h1>
 
 <h2><a class='u' href='#___top' title='click to go to top of document'
+name="Constructors"
+>Constructors</a></h2>
+
+<dl>
+<dt><a name="super_user"
+><code  class="code">super_user</code></a></dt>
+
+<dd>
+<p>Returns a user who is in all groups, but who does not really exist in the database. Used for non-web scripts like <a href="../checksetup.html" class="podlinkpod"
+>checksetup</a> that need to make database changes and so on.</p>
+</dd>
+</dl>
+
+<h2><a class='u' href='#___top' title='click to go to top of document'
 name="Saved_and_Shared_Queries"
 >Saved and Shared Queries</a></h2>
 
@@ -137,6 +153,31 @@ name="Saved_and_Shared_Queries"
 
 <dd>
 <p>An arrayref of group ids. The user can share their own queries with these groups.</p>
+</dd>
+</dl>
+
+<h2><a class='u' href='#___top' title='click to go to top of document'
+name="Account_Lockout"
+>Account Lockout</a></h2>
+
+<dl>
+<dt><a name="account_is_locked_out"
+><code  class="code">account_is_locked_out</code></a></dt>
+
+<dd>
+<p>Returns <code  class="code">1</code> if the account has failed to log in too many times recently, and thus is locked out for a period of time. Returns <code  class="code">0</code> otherwise.</p>
+
+<dt><a name="account_ip_login_failures"
+><code  class="code">account_ip_login_failures</code></a></dt>
+
+<dd>
+<p>Returns an arrayref of hashrefs, that contains information about the recent times that this account has failed to log in from the current remote IP. The hashes contain <code  class="code">ip_addr</code>, <code  class="code">login_time</code>, and <code  class="code">user_id</code>.</p>
+
+<dt><a name="note_login_failure"
+><code  class="code">note_login_failure</code></a></dt>
+
+<dd>
+<p>This notes that this account has failed to log in, and stores the fact in the database. The storing happens immediately, it does not wait for you to call <code  class="code">update</code>.</p>
 </dd>
 </dl>
 
@@ -289,6 +330,15 @@ name="Other_Methods"
 <dd>
 <p>Bugzilla allows for group inheritance. When data about the user (or any of the groups) changes, the database must be updated. Handling updated groups is taken care of by the constructor. However, when updating the email address, the user may be placed into different groups, based on a new email regexp. This method should be called in such a case to force reresolution of these groups.</p>
 
+<dt><a name="clear_product_cache"
+><code  class="code">clear_product_cache</code></a></dt>
+
+<dd>
+<p>Clears the stored values for <a href="#get_selectable_products" class="podlinkpod"
+>&#34;get_selectable_products&#34;</a>, <a href="#get_enterable_products" class="podlinkpod"
+>&#34;get_enterable_products&#34;</a>, etc. so that their data will be read from the database again. Used mostly by <a href="../Bugzilla/Product.html" class="podlinkpod"
+>Bugzilla::Product</a>.</p>
+
 <dt><a name="get_selectable_products"
 ><code  class="code">get_selectable_products</code></a></dt>
 
@@ -344,11 +394,12 @@ name="Other_Methods"
 
  Returns:     an array of product objects.</pre>
 
-<dt><a name="can_access_product(product_name)"
-><code  class="code">can_access_product(product_name)</code></a></dt>
+<dt><a name="can_access_product($product)"
+><code  class="code">can_access_product($product)</code></a></dt>
 
 <dd>
-<p>Returns 1 if the user can search or enter bugs into the specified product, and 0 if the user should not be aware of the existence of the product.</p>
+<p>Returns 1 if the user can search or enter bugs into the specified product (either a <a href="../Bugzilla/Product.html" class="podlinkpod"
+>Bugzilla::Product</a> or a product name), and 0 if the user should not be aware of the existence of the product.</p>
 
 <dt><a name="get_accessible_products"
 ><code  class="code">get_accessible_products</code></a></dt>
@@ -524,6 +575,50 @@ name="CLASS_FUNCTIONS"
 <p>Returns true if a password is valid (i.e. meets Bugzilla&#39;s requirements for length and content), else returns false. Untaints <code  class="code">$passwd1</code> if successful.</p>
 
 <p>If a second password is passed in, this function also verifies that the two passwords match.</p>
+
+<dt><a name="match_field($data,_$fields,_$behavior)"
+><code  class="code">match_field($data, $fields, $behavior)</code></a></dt>
+
+<dd>
+<dl>
+<dt><a name="Description"
+><b>Description</b></a></dt>
+
+<dd>
+<p>Wrapper for the <code  class="code">match()</code> function.</p>
+
+<dt><a name="Params"
+><b>Params</b></a></dt>
+
+<dd>
+<dl>
+<dt><a 
+><code  class="code">$fields</code> - A hashref with field names as keys and a hash as values. Each hash is of the form { &#39;type&#39; =&#62; &#39;single|multi&#39; }, which specifies whether the field can take a single login name only or several.</a></dt>
+
+<dd>
+<dt><a 
+><code  class="code">$data</code> (optional) - A hashref with field names as keys and field values as values. If undefined, <code  class="code">Bugzilla-&#62;input_params</code> is used.</a></dt>
+
+<dd>
+<dt><a 
+><code  class="code">$behavior</code> (optional) - If set to <code  class="code">MATCH_SKIP_CONFIRM</code>, no confirmation screen is displayed. In that case, the fields which don&#39;t match a unique user are left undefined. If not set, a confirmation screen is displayed if at least one field doesn&#39;t match any login name or match more than one.</a></dt>
+</dl>
+
+<dt><a name="Returns"
+><b>Returns</b></a></dt>
+
+<dd>
+<p>If the third parameter is set to <code  class="code">MATCH_SKIP_CONFIRM</code>, the function returns either <code  class="code">USER_MATCH_SUCCESS</code> if all fields can be set unambiguously, <code  class="code">USER_MATCH_FAILED</code> if at least one field doesn&#39;t match any user account, or <code  class="code">USER_MATCH_MULTIPLE</code> if some fields match more than one user account.</p>
+
+<p>If the third parameter is not set, then if all fields could be set unambiguously, nothing is returned, else a confirmation page is displayed.</p>
+
+<dt><a name="Note"
+><b>Note</b></a></dt>
+
+<dd>
+<p>This function must be called early in a script, before anything external is done with the data.</p>
+</dd>
+</dl>
 </dd>
 </dl>
 

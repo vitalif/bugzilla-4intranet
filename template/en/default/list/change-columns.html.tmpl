@@ -70,13 +70,13 @@
                 [% (field_descs.${column} || column) FILTER html %]
               </option>
             [% END %]
-  [% FOREACH column = masterlist %]
+            [% FOREACH column = masterlist %]
               [% IF lsearch(collist, column) == -1 %]
                 <option value="[% column FILTER html %]">
-      [% (field_descs.${column} || column) FILTER html %]
+                  [% (field_descs.${column} || column) FILTER html %]
                 </option>
               [% END %]
-  [% END %]
+            [% END %]
           </select>
         </td>
         <td>

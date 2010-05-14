@@ -17,28 +17,42 @@
 
 package Bugzilla::WebService::Server;
 use strict;
-use Bugzilla::Util qw(ssl_require_redirect);
+
 use Bugzilla::Error;
+use Bugzilla::Util qw(datetime_from);
+
+use Scalar::Util qw(blessed);
 
 sub handle_login {
     my ($self, $class, $method, $full_method) = @_;
     eval "require $class";
     ThrowCodeError('unknown_method', {method => $full_method}) if $@;
-    return if $class->login_exempt($method);
+    return if ($class->login_exempt($method) 
+               and !defined Bugzilla->input_params->{Bugzilla_login});
     Bugzilla->login();
+}
 
-    # Even though we check for the need to redirect in
-    # Bugzilla->login() we check here again since Bugzilla->login()
-    # does not know what the current XMLRPC method is. Therefore
-    # ssl_require_redirect in Bugzilla->login() will have returned 
-    # false if system was configured to redirect for authenticated 
-    # sessions and the user was not yet logged in.
-    # So here we pass in the method name to ssl_require_redirect so
-    # it can then check for the extra case where the method equals
-    # User.login, which we would then need to redirect if not
-    # over a secure connection. 
-    Bugzilla->cgi->require_https(Bugzilla->params->{'sslbase'})
-        if ssl_require_redirect($full_method);
+sub datetime_format_inbound {
+    my ($self, $time) = @_;
+    
+    my $converted = datetime_from($time, Bugzilla->local_timezone);
+    $time = $converted->ymd() . ' ' . $converted->hms();
+    return $time
+}
+
+sub datetime_format_outbound {
+    my ($self, $date) = @_;
+
+    my $time = $date;
+    if (blessed($date)) {
+        # We expect this to mean we were sent a datetime object
+        $time->set_time_zone('UTC');
+    } else {
+        # We always send our time in UTC, for consistency.
+        # passed in value is likely a string, create a datetime object
+        $time = datetime_from($date, 'UTC');
+    }
+    return $time->iso8601();
 }
 
 1;

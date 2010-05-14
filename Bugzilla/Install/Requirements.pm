@@ -26,19 +26,23 @@ package Bugzilla::Install::Requirements;
 use strict;
 
 use Bugzilla::Constants;
+use Bugzilla::Extension;
 use Bugzilla::Install::Util qw(vers_cmp install_string);
 use List::Util qw(max);
 use Safe;
+use Term::ANSIColor;
 
 use base qw(Exporter);
 our @EXPORT = qw(
     REQUIRED_MODULES
     OPTIONAL_MODULES
+    FEATURE_FILES
 
     check_requirements
     check_graphviz
     have_vers
     install_command
+    map_files_to_features
 );
 
 # This is how many *'s are in the top of each "box" message printed
@@ -135,9 +139,9 @@ sub REQUIRED_MODULES {
     },
     );
 
-    my $all_modules = _get_extension_requirements(
-        'REQUIRED_MODULES', \@modules);
-    return $all_modules;
+    my $extra_modules = _get_extension_requirements('REQUIRED_MODULES');
+    push(@modules, @$extra_modules);
+    return \@modules;
 };
 
 sub OPTIONAL_MODULES {
@@ -146,13 +150,14 @@ sub OPTIONAL_MODULES {
         package => 'GD',
         module  => 'GD',
         version => '1.20',
-        feature => 'Graphical Reports, New Charts, Old Charts'
+        feature => [qw(graphical_reports new_charts old_charts)],
     },
     {
         package => 'Chart',
-        module  => 'Chart::Base',
-        version => '1.0',
-        feature => 'New Charts, Old Charts'
+        module  => 'Chart::Lines',
+        # Versions below 2.1 cannot be detected accurately.
+        version => '2.1',
+        feature => [qw(new_charts old_charts)],
     },
     {
         package => 'Template-GD',
@@ -160,68 +165,62 @@ sub OPTIONAL_MODULES {
         # on Template-Toolkits after 2.14, and still works with 2.14 and lower.
         module  => 'Template::Plugin::GD::Image',
         version => 0,
-        feature => 'Graphical Reports'
+        feature => ['graphical_reports'],
     },
     {
         package => 'GDTextUtil',
         module  => 'GD::Text',
         version => 0,
-        feature => 'Graphical Reports'
+        feature => ['graphical_reports'],
     },
     {
         package => 'GDGraph',
         module  => 'GD::Graph',
         version => 0,
-        feature => 'Graphical Reports'
+        feature => ['graphical_reports'],
     },
     {
         package => 'XML-Twig',
         module  => 'XML::Twig',
         version => 0,
-        feature => 'Move Bugs Between Installations'
+        feature => ['moving', 'updates'],
     },
     {
         package => 'MIME-tools',
         # MIME::Parser is packaged as MIME::Tools on ActiveState Perl
         module  => ON_WINDOWS ? 'MIME::Tools' : 'MIME::Parser',
         version => '5.406',
-        feature => 'Move Bugs Between Installations'
+        feature => ['moving'],
     },
     {
         package => 'libwww-perl',
         module  => 'LWP::UserAgent',
         version => 0,
-        feature => 'Automatic Update Notifications'
+        feature => ['updates'],
     },
     {
         package => 'PatchReader',
         module  => 'PatchReader',
         version => '0.9.4',
-        feature => 'Patch Viewer'
-    },
-    {
-        package => 'PerlMagick',
-        module  => 'Image::Magick',
-        version => 0,
-        feature => 'Optionally Convert BMP Attachments to PNGs'
+        feature => ['patch_viewer'],
     },
     {
         package => 'perl-ldap',
         module  => 'Net::LDAP',
         version => 0,
-        feature => 'LDAP Authentication'
+        feature => ['auth_ldap'],
     },
     {
         package => 'Authen-SASL',
         module  => 'Authen::SASL',
         version => 0,
-        feature => 'SMTP Authentication'
+        feature => ['smtp_auth'],
     },
     {
         package => 'RadiusPerl',
         module  => 'Authen::Radius',
         version => 0,
-        feature => 'RADIUS Authentication'
+        feature => ['auth_radius'],
     },
     {
         package => 'SOAP-Lite',
@@ -229,20 +228,32 @@ sub OPTIONAL_MODULES {
         # 0.710.04 is required for correct UTF-8 handling, but .04 and .05 are
         # affected by bug 468009.
         version => '0.710.06',
-        feature => 'XML-RPC Interface'
+        feature => ['xmlrpc'],
+    },
+    {
+        package => 'JSON-RPC',
+        module  => 'JSON::RPC',
+        version => 0,
+        feature => ['jsonrpc'],
+    },
+    {
+        package => 'Test-Taint',
+        module  => 'Test::Taint',
+        version => 0,
+        feature => ['jsonrpc', 'xmlrpc'],
     },
     {
         # We need the 'utf8_mode' method of HTML::Parser, for HTML::Scrubber.
         package => 'HTML-Parser',
         module  => 'HTML::Parser',
         version => '3.40',
-        feature => 'More HTML in Product/Group Descriptions'
+        feature => ['html_desc'],
     },
     {
         package => 'HTML-Scrubber',
         module  => 'HTML::Scrubber',
         version => 0,
-        feature => 'More HTML in Product/Group Descriptions'
+        feature => ['html_desc'],
     },
 
     # Inbound Email
@@ -250,13 +261,13 @@ sub OPTIONAL_MODULES {
         package => 'Email-MIME-Attachment-Stripper',
         module  => 'Email::MIME::Attachment::Stripper',
         version => 0,
-        feature => 'Inbound Email'
+        feature => ['inbound_email'],
     },
     {
         package => 'Email-Reply',
         module  => 'Email::Reply',
         version => 0,
-        feature => 'Inbound Email'
+        feature => ['inbound_email'],
     },
 
     # Mail Queueing
@@ -264,13 +275,13 @@ sub OPTIONAL_MODULES {
         package => 'TheSchwartz',
         module  => 'TheSchwartz',
         version => 0,
-        feature => 'Mail Queueing',
+        feature => ['jobqueue'],
     },
     {
         package => 'Daemon-Generic',
         module  => 'Daemon::Generic',
         version => 0,
-        feature => 'Mail Queueing',
+        feature => ['jobqueue'],
     },
 
     # mod_perl
@@ -278,40 +289,52 @@ sub OPTIONAL_MODULES {
         package => 'mod_perl',
         module  => 'mod_perl2',
         version => '1.999022',
-        feature => 'mod_perl'
+        feature => ['mod_perl'],
     },
     );
 
-    my $all_modules = _get_extension_requirements(
-        'OPTIONAL_MODULES', \@modules);
-    return $all_modules;
+    my $extra_modules = _get_extension_requirements('OPTIONAL_MODULES');
+    push(@modules, @$extra_modules);
+    return \@modules;
 };
 
-# This implements the install-requirements hook described in Bugzilla::Hook.
-sub _get_extension_requirements {
-    my ($function, $base_modules) = @_;
-    my @all_modules;
-    # get a list of all extensions
-    my @extensions = glob(bz_locations()->{'extensionsdir'} . "/*");
-    foreach my $extension (@extensions) {
-        my $file = "$extension/code/install-requirements.pl";
-        if (-e $file) {
-            my $safe = new Safe;
-            # This is a very liberal Safe.
-            $safe->permit(qw(:browse require entereval caller));
-            $safe->rdo($file);
-            if ($@) {
-                warn $@;
-                next;
+# This maps features to the files that require that feature in order
+# to compile. It is used by t/001compile.t and mod_perl.pl.
+use constant FEATURE_FILES => (
+    jsonrpc       => ['Bugzilla/WebService/Server/JSONRPC.pm', 'jsonrpc.cgi'],
+    xmlrpc        => ['Bugzilla/WebService/Server/XMLRPC.pm', 'xmlrpc.cgi',
+                      'Bugzilla/WebService.pm', 'Bugzilla/WebService/*.pm'],
+    moving        => ['importxml.pl'],
+    auth_ldap     => ['Bugzilla/Auth/Verify/LDAP.pm'],
+    auth_radius   => ['Bugzilla/Auth/Verify/RADIUS.pm'],
+    inbound_email => ['email_in.pl'],
+    jobqueue      => ['Bugzilla/Job/*', 'Bugzilla/JobQueue.pm',
+                      'Bugzilla/JobQueue/*', 'jobqueue.pl'],
+    patch_viewer  => ['Bugzilla/Attachment/PatchReader.pm'],
+    updates       => ['Bugzilla/Update.pm'],
+);
+
+# This implements the REQUIRED_MODULES and OPTIONAL_MODULES stuff
+# described in in Bugzilla::Extension.
+sub _get_extension_requirements
+{
+    my ($function) = @_;
+    Bugzilla::Extension::load_all();
+    my $modules = [];
+    if ($function eq 'REQUIRED_MODULES' || $function eq 'OPTIONAL_MODULES')
+    {
+        no strict 'refs';
+        $function = "Bugzilla::Extension::".lc($function);
+        foreach (Bugzilla::Extension::loaded())
+        {
+            if (my $em = &$function($_))
+            {
+                ref $_->{feature} or $_->{feature} = [ $_->{feature} ];
+                push @$modules, @$em;
             }
-            my $modules = eval { &{$safe->varglob($function)}($base_modules) };
-            next unless $modules;
-            push(@all_modules, @$modules);
         }
     }
-
-    unshift(@all_modules, @$base_modules);
-    return \@all_modules;
+    return $modules;
 };
 
 sub check_requirements {
@@ -402,7 +425,8 @@ sub print_module_instructions {
         print '*' x TABLE_WIDTH . "\n";
         foreach my $package (@missing) {
             printf "* \%${longest_name}s * %-${remaining_space}s *\n",
-                   $package->{package}, $package->{feature};
+                   $package->{package}, 
+                   _translate_feature($package->{feature});
         }
     }
 
@@ -419,13 +443,13 @@ sub print_module_instructions {
             if (vers_cmp($perl_ver, '5.10') > -1) {
                 $url_to_theory58S = 'http://cpan.uwinnipeg.ca/PPMPackages/10xx/';
             }
-            print install_string('ppm_repo_add', 
-                                 { theory_url => $url_to_theory58S });
+            print colored(install_string('ppm_repo_add', 
+                                 { theory_url => $url_to_theory58S }), 'red');
             # ActivePerls older than revision 819 require an additional command.
             if (_get_activestate_build_id() < 819) {
                 print install_string('ppm_repo_up');
+            }
         }
-    }
 
         # If any output was required, we want to close the "table"
         print "*" x TABLE_WIDTH . "\n";
@@ -453,16 +477,30 @@ sub print_module_instructions {
     }
 
     if (my @missing = @{$check_results->{missing}}) {
-        print install_string('commands_required') . "\n";
+        print colored(install_string('commands_required'), 'red') . "\n";
         foreach my $package (@missing) {
             my $command = install_command($package);
             print "    $command\n";
         }
     }
 
-    if ($output && $check_results->{any_missing} && !ON_WINDOWS) {
+    if ($output && $check_results->{any_missing} && !ON_WINDOWS
+        && !$check_results->{hide_all}) 
+    {
         print install_string('install_all', { perl => $^X });
     }
+    if (!$check_results->{pass}) {
+        print colored(install_string('installation_failed'), 'red') . "\n\n";
+    }
+}
+
+sub _translate_feature {
+    my $features = shift;
+    my @strings;
+    foreach my $feature (@$features) {
+        push(@strings, install_string("feature_$feature"));
+    }
+    return join(', ', @strings);
 }
 
 sub check_graphviz {
@@ -543,8 +581,9 @@ sub have_vers {
         my $want_string  = $wanted ? "v$wanted" : install_string('any');
 
         $ok = "$ok:" if $ok;
-        printf "%s %19s %-9s $ok $vstr $black_string\n",
-            install_string('checking_for'), $package, "($want_string)";
+        my $str = sprintf "%s %19s %-9s $ok $vstr $black_string\n",
+                    install_string('checking_for'), $package, "($want_string)";
+        print $vok ? $str : colored($str, 'red');
     }
     
     return $vok ? 1 : 0;
@@ -567,6 +606,21 @@ sub install_command {
     return sprintf $command, $package;
 }
 
+# This does a reverse mapping for FEATURE_FILES.
+sub map_files_to_features {
+    my %features = FEATURE_FILES;
+    my %files;
+    foreach my $feature (keys %features) {
+        my @my_files = @{ $features{$feature} };
+        foreach my $pattern (@my_files) {
+            foreach my $file (glob $pattern) {
+                $files{$file} = $feature;
+            }
+        }
+    }
+    return \%files;
+}
+
 1;
 
 __END__
@@ -584,15 +638,41 @@ perl modules it requires.)
 
 =head1 CONSTANTS
 
-=over 4
+=over
 
 =item C<REQUIRED_MODULES>
 
 An arrayref of hashrefs that describes the perl modules required by 
-Bugzilla. The hashes have two keys, C<name> and C<version>, which
-represent the name of the module and the version that we require.
+Bugzilla. The hashes have three keys: 
+
+=over
+
+=item C<package> - The name of the Perl package that you'd find on
+CPAN for this requirement. 
+
+=item C<module> - The name of a module that can be passed to the
+C<install> command in C<CPAN.pm> to install this module.
+
+=item C<version> - The version of this module that we require, or C<0>
+if any version is acceptable.
 
 =back
+
+=item C<OPTIONAL_MODULES>
+
+An arrayref of hashrefs that describes the perl modules that add
+additional features to Bugzilla if installed. Its hashes have all
+the fields of L</REQUIRED_MODULES>, plus a C<feature> item--an arrayref
+of strings that describe what features require this module.
+
+=item C<FEATURE_FILES>
+
+A hashref that describes what files should only be compiled if a certain
+feature is enabled. The feature is the key, and the values are arrayrefs
+of file names (which are passed to C<glob>, so shell patterns work).
+
+=back
+
 
 =head1 SUBROUTINES
 
@@ -675,5 +755,10 @@ Returns:     C<1> if the check was successful, C<0> otherwise.
                            L</REQUIRED_MODULES>.
 
  Returns:     nothing
+
+=item C<map_files_to_features>
+
+Returns a hashref where file names are the keys and the value is the feature
+that must be enabled in order to compile that file.
 
 =back

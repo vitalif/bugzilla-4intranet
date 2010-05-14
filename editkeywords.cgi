@@ -158,10 +158,10 @@ if ($action eq 'del') {
     $vars->{'keyword'} = $keyword;
     $vars->{'token'} = issue_session_token('delete_keyword');
 
-        print $cgi->header();
-        $template->process("admin/keywords/confirm-delete.html.tmpl", $vars)
-            || ThrowTemplateError($template->error());
-        exit;
+    print $cgi->header();
+    $template->process("admin/keywords/confirm-delete.html.tmpl", $vars)
+      || ThrowTemplateError($template->error());
+    exit;
 }
 
 if ($action eq 'delete') {
@@ -169,8 +169,7 @@ if ($action eq 'delete') {
     my $keyword =  new Bugzilla::Keyword($key_id)
         || ThrowCodeError('invalid_keyword_id', { id => $key_id });
 
-    $dbh->do('DELETE FROM keywords WHERE keywordid = ?', undef, $keyword->id);
-    $dbh->do('DELETE FROM keyworddefs WHERE id = ?', undef, $keyword->id);
+    $keyword->remove_from_db();
 
     delete_token($token);
 

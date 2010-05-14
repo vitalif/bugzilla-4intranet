@@ -18,6 +18,10 @@
      word-wrap: break-word;
 }
 
+.component_table {
+    margin-top: .5em;
+}
+
 .links { display: inline; }
 
 .links-testopia { padding-top: 0.8em; }

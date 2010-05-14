@@ -21,25 +21,26 @@
 #                 Byron Jones <bugzilla@glob.com.au>
 #                 Marc Schumann <wurblzap@gmail.com>
 
+package Bugzilla::CGI;
 use strict;
 
-package Bugzilla::CGI;
+use Bugzilla::Constants;
+use Bugzilla::Error;
+use Bugzilla::Util;
+
+use File::Basename;
 
 BEGIN {
-    if ($^O =~ /MSWin32/i) {
+    if (ON_WINDOWS) {
         # Help CGI find the correct temp directory as the default list
         # isn't Windows friendly (Bug 248988)
         $ENV{'TMPDIR'} = $ENV{'TEMP'} || $ENV{'TMP'} || "$ENV{'WINDIR'}\\TEMP";
     }
 }
 
-use CGI qw(-no_xhtml -oldstyle_urls :private_tempfiles :unique_headers SERVER_PUSH);
-
+use CGI qw(-no_xhtml -oldstyle_urls :private_tempfiles
+           :unique_headers SERVER_PUSH);
 use base qw(CGI);
-
-use Bugzilla::Constants;
-use Bugzilla::Error;
-use Bugzilla::Util;
 
 # We need to disable output buffering - see bug 179174
 $| = 1;
@@ -72,15 +73,9 @@ sub new {
     $self->charset(Bugzilla->params->{'utf8'} ? 'UTF-8' : '');
 
     # Redirect to urlbase/sslbase if we are not viewing an attachment.
-    if (use_attachbase() && i_am_cgi()) {
-        my $cgi_file = $self->url('-path_info' => 0, '-query' => 0, '-relative' => 1);
-        $cgi_file =~ s/\?$//;
-        my $urlbase = Bugzilla->params->{'urlbase'};
-        my $sslbase = Bugzilla->params->{'sslbase'};
-        my $path_regexp = $sslbase ? qr/^(\Q$urlbase\E|\Q$sslbase\E)/ : qr/^\Q$urlbase\E/;
-        if ($cgi_file ne 'attachment.cgi' && $self->self_url !~ /$path_regexp/) {
-            $self->redirect_to_urlbase;
-        }
+    my $script = basename($0);
+    if ($self->url_is_attachment_base and $script ne 'attachment.cgi') {
+        $self->redirect_to_urlbase();
     }
 
     # Check for errors
@@ -122,6 +117,7 @@ sub parse_params {
 sub canonicalise_query {
     my ($self, @exclude) = @_;
 
+    $self->convert_old_params();
     # Reconstruct the URL by concatenating the sorted param=value pairs
     my @parameters;
     foreach my $key (sort($self->param())) {
@@ -146,6 +142,17 @@ sub canonicalise_query {
     return join("&", @parameters);
 }
 
+sub convert_old_params {
+    my $self = shift;
+
+    # bugidtype is now bug_id_type.
+    if ($self->param('bugidtype')) {
+        my $value = $self->param('bugidtype') eq 'exclude' ? 'nowords' : 'anyexact';
+        $self->param('bug_id_type', $value);
+        $self->delete('bugidtype');
+    }
+}
+
 sub clean_search_url {
     my $self = shift;
     # Delete any empty URL parameter.
@@ -164,9 +171,6 @@ sub clean_search_url {
             $self->delete($param);
         }
     }
-
-    # Delete certain parameters if the associated parameter is empty.
-    $self->delete('bugidtype')  if !$self->param('bug_id');
 
     # Delete leftovers from the login form
     $self->delete('Bugzilla_remember', 'GoAheadAndLogIn');
@@ -306,7 +310,7 @@ sub param {
         }
 
         return wantarray ? @result : $result[0];
-        }
+    }
     # And for various other functions in CGI.pm, we need to correctly
     # return the URL parameters in addition to the POST parameters when
     # asked for the list of parameters.
@@ -374,25 +378,26 @@ sub remove_cookie {
                        '-value'   => 'X');
 }
 
-# Redirect to https if required
-sub require_https {
-     my ($self, $url) = @_;
-     # Do not create query string if data submitted via XMLRPC
-     # since we want the data to be resubmitted over POST method.
-     my $query = Bugzilla->usage_mode == USAGE_MODE_WEBSERVICE ? 0 : 1;
-     # XMLRPC clients (SOAP::Lite at least) requires 301 to redirect properly
-     # and do not work with 302.
-     my $status = Bugzilla->usage_mode == USAGE_MODE_WEBSERVICE ? 301 : 302;
-     if (defined $url) {
-         $url .= $self->url('-path_info' => 1, '-query' => $query, '-relative' => 1);
-     } else {
-         $url = $self->self_url;
-         $url =~ s/^http:/https:/i;
-     }
-     print $self->redirect(-location => $url, -status => $status);
-     # When using XML-RPC with mod_perl, we need the headers sent immediately.
-     $self->r->rflush if $ENV{MOD_PERL};
-     exit;
+sub redirect_to_https {
+    my $self = shift;
+    my $sslbase = Bugzilla->params->{'sslbase'};
+    # If this is a POST, we don't want ?POSTDATA in the query string.
+    # We expect the client to re-POST, which may be a violation of
+    # the HTTP spec, but the only time we're expecting it often is
+    # in the WebService, and WebService clients usually handle this
+    # correctly.
+    $self->delete('POSTDATA');
+    my $url = $sslbase . $self->url('-path_info' => 1, '-query' => 1, 
+                                    '-relative' => 1);
+
+    # XML-RPC clients (SOAP::Lite at least) require a 301 to redirect properly
+    # and do not work with 302. Our redirect really is permanent anyhow, so
+    # it doesn't hurt to make it a 301.
+    print $self->redirect(-location => $url, -status => 301);
+
+    # When using XML-RPC with mod_perl, we need the headers sent immediately.
+    $self->r->rflush if $ENV{MOD_PERL};
+    exit;
 }
 
 # Redirect to the urlbase version of the current URL.
@@ -401,6 +406,61 @@ sub redirect_to_urlbase {
     my $path = $self->url('-path_info' => 1, '-query' => 1, '-relative' => 1);
     print $self->redirect('-location' => correct_urlbase() . $path);
     exit;
+}
+
+sub url_is_attachment_base {
+    my ($self, $id) = @_;
+    return 0 if !use_attachbase() or !i_am_cgi();
+    my $attach_base = Bugzilla->params->{'attachment_base'};
+    # If we're passed an id, we only want one specific attachment base
+    # for a particular bug. If we're not passed an ID, we just want to
+    # know if our current URL matches the attachment_base *pattern*.
+    my $regex;
+    if ($id) {
+        $attach_base =~ s/\%bugid\%/$id/;
+        $regex = quotemeta($attach_base);
+    }
+    else {
+        # In this circumstance we run quotemeta first because we need to
+        # insert an active regex meta-character afterward.
+        $regex = quotemeta($attach_base);
+        $regex =~ s/\\\%bugid\\\%/\\d+/;
+    }
+    $regex = "^$regex";
+    return ($self->self_url =~ $regex) ? 1 : 0;
+}
+
+##########################
+# Vars TIEHASH Interface #
+##########################
+
+# Fix the TIEHASH interface (scalar $cgi->Vars) to return and accept 
+# arrayrefs.
+sub STORE {
+    my $self = shift;
+    my ($param, $value) = @_;
+    if (defined $value and ref $value eq 'ARRAY') {
+        return $self->param(-name => $param, -value => $value);
+    }
+    return $self->SUPER::STORE(@_);
+}
+
+sub FETCH {
+    my ($self, $param) = @_;
+    return $self if $param eq 'CGI'; # CGI.pm did this, so we do too.
+    my @result = $self->param($param);
+    return undef if !scalar(@result);
+    return $result[0] if scalar(@result) == 1;
+    return \@result;
+}
+
+# For the Vars TIEHASH interface: the normal CGI.pm DELETE doesn't return 
+# the value deleted, but Perl's "delete" expects that value.
+sub DELETE {
+    my ($self, $param) = @_;
+    my $value = $self->FETCH($param);
+    $self->delete($param);
+    return $value;
 }
 
 # cookie() with UTF-8 support...
@@ -518,13 +578,13 @@ effectively removing the cookie.
 
 As its only argument, it takes the name of the cookie to expire.
 
-=item C<require_https($baseurl)>
+=item C<redirect_to_https>
 
-This routine redirects the client to a different location using the https protocol. 
-If the client is using XMLRPC, it will not retain the QUERY_STRING since XMLRPC uses POST.
+This routine redirects the client to the https version of the page that
+they're looking at, using the C<sslbase> parameter for the redirection.
 
-It takes an optional argument which will be used as the base URL.  If $baseurl
-is not provided, the current URL is used.
+Generally you should use L<Bugzilla::Util/do_ssl_redirect_if_required>
+instead of calling this directly.
 
 =item C<redirect_to_urlbase>
 

@@ -137,18 +137,18 @@
 
 [% BLOCK buglink %]
   [% FILTER bug_link(bugid) %]
-    <b>[%- bugid %]:</b>
+      <b>[%- bugid %]:</b>
     [%+ bug.short_desc FILTER html %]
   [% END %]
-  <a href="showdependencytree.cgi?id=[% bugid FILTER url_quote %]"
-     class="tree_link">
-    <img src="skins/standard/dependency-tree/tree.png"
-         title="See dependency tree for [% terms.bug %] [%+ bugid FILTER html %]">
-  </a>
+    <a href="showdependencytree.cgi?id=[% bugid FILTER url_quote %]"
+       class="tree_link">
+      <img src="skins/standard/dependency-tree/tree.png"
+           title="See dependency tree for [% terms.bug %] [%+ bugid FILTER html %]">
+    </a>
 [% END %]
 
 [% BLOCK buginfo %]
-  [% get_status(bug.bug_status) FILTER html -%] [%+ get_resolution(bug.resolution) FILTER html %];
+  [% display_value("bug_status", bug.bug_status) FILTER html -%] [%+ display_value("resolution", bug.resolution) FILTER html %];
   [%-%] assigned to [% bug.assigned_to.login FILTER email FILTER html %]
   [%-%][% "; Target: " _ bug.target_milestone IF bug.target_milestone %]
 [% END %]

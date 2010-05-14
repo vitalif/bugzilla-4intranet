@@ -294,7 +294,7 @@ You are currently not watching any users.
 
 <p><a name="new_watched_by_you" id="new_watched_by_you">Add users to my watch list (comma separated list)</a>:
   <input size="60" name="new_watchedusers" value="">
-</p>
+</p>            
 
 <hr>
 
@@ -305,7 +305,7 @@ You are currently not watching any users.
     <select id="watchers" name="watchers" multiple="multiple" size="5">
         [% FOREACH w = watchers %]
            <option value="[% w.login FILTER html %]">[% w.identity FILTER html %]</option>
-        [% END %]
+    [% END %]
     </select> <br />
     <input type="checkbox" id="remove_watchers" name="remove_watchers" value="1">
     <label for="remove_watchers">Remove selected users watching me</label>

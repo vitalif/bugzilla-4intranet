@@ -59,7 +59,6 @@ name="SYNOPSIS"
 
   # Functions that tell you about your environment
   my $is_cgi   = i_am_cgi();
-  my $net_addr = get_netaddr($ip_addr);
   my $urlbase  = correct_urlbase();
 
   # Functions for searching
@@ -74,6 +73,7 @@ name="SYNOPSIS"
 
   # Functions for formatting time
   format_time($time);
+  datetime_from($time, $timezone);
 
   # Functions for dealing with files
   $time = file_mod_time($filename);
@@ -142,7 +142,7 @@ name="Quoting"
 ><code  class="code">html_quote($val)</code></a></dt>
 
 <dd>
-<p>Returns a value quoted for use in HTML, with &#38;, &#60;, &#62;, and &#34; being replaced with their appropriate HTML entities.</p>
+<p>Returns a value quoted for use in HTML, with &#38;, &#60;, &#62;, &#34; and @ being replaced with their appropriate HTML entities. Also, Unicode BiDi controls are deleted.</p>
 
 <dt><a name="html_light_quote($val)"
 ><code  class="code">html_light_quote($val)</code></a></dt>
@@ -160,7 +160,7 @@ name="Quoting"
 ><code  class="code">css_class_quote($val)</code></a></dt>
 
 <dd>
-<p>Quotes characters so that they may be used as CSS class names. Spaces are replaced by underscores.</p>
+<p>Quotes characters so that they may be used as CSS class names. Spaces and forward slashes are replaced by underscores.</p>
 
 <dt><a name="xml_quote($val)"
 ><code  class="code">xml_quote($val)</code></a></dt>
@@ -195,17 +195,11 @@ name="Environment_and_Location"
 <dd>
 <p>Tells you whether or not you are being run as a CGI script in a web server. For example, it would return false if the caller is running in a command-line script.</p>
 
-<dt><a name="get_netaddr($ipaddr)"
-><code  class="code">get_netaddr($ipaddr)</code></a></dt>
-
-<dd>
-<p>Given an IP address, this returns the associated network address, using <code  class="code">Bugzilla-</code>params-&#62;{&#39;loginnetmask&#39;}&#62; as the netmask. This can be used to obtain data in order to restrict weak authentication methods (such as cookies) to only some addresses.</p>
-
 <dt><a name="correct_urlbase()"
 ><code  class="code">correct_urlbase()</code></a></dt>
 
 <dd>
-<p>Returns either the <code  class="code">sslbase</code> or <code  class="code">urlbase</code> parameter, depending on the current setting for the <code  class="code">ssl</code> parameter.</p>
+<p>Returns either the <code  class="code">sslbase</code> or <code  class="code">urlbase</code> parameter, depending on the current setting for the <code  class="code">ssl_redirect</code> parameter.</p>
 
 <dt><a name="use_attachbase()"
 ><code  class="code">use_attachbase()</code></a></dt>
@@ -333,6 +327,12 @@ name="String_Manipulation"
 <p>A string.</p>
 </dd>
 </dl>
+
+<dt><a name="template_var"
+><code  class="code">template_var</code></a></dt>
+
+<dd>
+<p>This is a method of getting the value of a variable from a template in Perl code. The available variables are in the <code  class="code">global/field-descs.none.tmpl</code> template. Just pass in the name of the variable that you want the value of.</p>
 </dd>
 </dl>
 
@@ -355,6 +355,14 @@ name="Formatting_Time"
 
 <dd>
 <p>Returns a number with 2 digit precision, unless the last digit is a 0. Then it returns only 1 digit precision.</p>
+
+<dt><a name="datetime_from($time,_$timezone)"
+><code  class="code">datetime_from($time, $timezone)</code></a></dt>
+
+<dd>
+<p>Returns a DateTime object given a date string. If the string is not in some valid date format that <code  class="code">strptime</code> understands, we return <code  class="code">undef</code>.</p>
+
+<p>You can optionally specify a timezone for the returned date. If not specified, defaults to the currently-logged-in user&#39;s timezone, or the Bugzilla server&#39;s local timezone if there isn&#39;t a logged-in user.</p>
 </dd>
 </dl>
 

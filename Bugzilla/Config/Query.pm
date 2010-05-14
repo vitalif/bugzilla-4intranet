@@ -35,7 +35,7 @@ use strict;
 
 use Bugzilla::Config::Common;
 
-$Bugzilla::Config::Query::sortkey = "12";
+our $sortkey = 1400;
 
 sub get_param_list {
   my $class = shift;
@@ -67,13 +67,6 @@ sub get_param_list {
    default => 'bug_status=NEW&bug_status=ASSIGNED&bug_status=REOPENED&emailassigned_to1=1&emailassigned_to2=1&emailreporter2=1&emailcc2=1&emailqa_contact2=1&order=Importance&long_desc_type=substring'
   },
 
-  {
-   name    => 'quicksearch_comment_cutoff',
-   type    => 't',
-   default => '4',
-   checker => \&check_numeric
-  },
-  
   {
    name => 'specific_search_allow_empty_words',
    type => 'b',

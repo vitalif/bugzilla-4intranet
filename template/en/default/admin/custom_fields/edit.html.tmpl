@@ -91,7 +91,7 @@
           [% FOREACH sel_field = Bugzilla.get_fields({ is_select => 1 }) %]
             [% NEXT IF sel_field.id == field.id %]
             <option value="[% sel_field.id FILTER html %]"
-             [% ' selected="selected"'
+             [% ' selected="selected"' 
                 IF sel_field.id == field.visibility_field.id %]>
               [% sel_field.description FILTER html %]
               ([% sel_field.name FILTER html %])
@@ -104,45 +104,45 @@
         <select style="min-width: 100px" id="visibility_value_id" name="visibility_value_id" size="3" multiple="multiple" [% IF loop.first %]id="visibility_value_id"[% END %]>
           [% FOREACH value = field.visibility_field.legal_values %]
           <option value="[% value.id FILTER html %]"[% ' selected="selected"' IF field.has_visibility_value(value.id) %]>
-            [% value.name FILTER html %]
-          </option>
-          [% END %]
+              [% value.name FILTER html %]
+            </option>
+          [% END %]   
         </select>
       </td>
       [% END %]
     </tr>
     [% IF field.is_select AND field.name != 'product' %]
-    <tr>
-      <th>&nbsp;</th>
-      <td>
-        <a href="editvalues.cgi?field=[% field.name FILTER url_quote %]">Edit
-          legal values for this field</a>.
-      </td>
+      <tr>
+        <th>&nbsp;</th>
+        <td>
+          <a href="editvalues.cgi?field=[% field.name FILTER url_quote %]">Edit
+            legal values for this field</a>.
+        </td>
 
       [% IF field.custom %]
-      <th>
-        <label for="value_field_id">
-          Field that controls the values<br>
-          that appear in this field:
-        </label>
-      </th>
+        <th>
+          <label for="value_field_id">
+            Field that controls the values<br>
+            that appear in this field:
+          </label>
+        </th>
 
-      <td>
-        <select name="value_field_id" id="value_field_id">
-          <option></option>
-          [% FOREACH sel_field = Bugzilla.get_fields({ is_select => 1 }) %]
-            [% NEXT IF sel_field.id == field.id %]
-            <option value="[% sel_field.id FILTER html %]"
-             [% ' selected="selected"'
-                IF sel_field.id == field.value_field.id %]>
-              [% sel_field.description FILTER html %]
-              ([% sel_field.name FILTER html %])
-            </option>
-          [% END %]
-        </select>
-      </td>
+        <td>
+          <select name="value_field_id" id="value_field_id">
+            <option></option>
+            [% FOREACH sel_field = Bugzilla.get_fields({ is_select => 1 }) %]
+              [% NEXT IF sel_field.id == field.id %]
+              <option value="[% sel_field.id FILTER html %]"
+               [% ' selected="selected"' 
+                  IF sel_field.id == field.value_field.id %]>
+                [% sel_field.description FILTER html %]
+                ([% sel_field.name FILTER html %])
+              </option>
+            [% END %]
+          </select>
+        </td>
       [% END %]
-    </tr>
+      </tr>
     [% END %]
     <tr>
       <th>&nbsp;</th>

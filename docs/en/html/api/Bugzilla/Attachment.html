@@ -222,30 +222,6 @@ name="Class_Methods"
 
 <p>Returns: a reference to an array of attachment objects.</p>
 
-<dt><a name="validate_is_patch()"
-><code  class="code">validate_is_patch()</code></a></dt>
-
-<dd>
-<p>Description: validates the &#34;patch&#34; flag passed in by CGI.</p>
-
-<p>Returns: 1 on success.</p>
-
-<dt><a name="validate_description()"
-><code  class="code">validate_description()</code></a></dt>
-
-<dd>
-<p>Description: validates the description passed in by CGI.</p>
-
-<p>Returns: 1 on success.</p>
-
-<dt><a name="validate_content_type()"
-><code  class="code">validate_content_type()</code></a></dt>
-
-<dd>
-<p>Description: validates the content type passed in by CGI.</p>
-
-<p>Returns: 1 on success.</p>
-
 <dt><a name="validate_can_edit($attachment,_$product_id)"
 ><code  class="code">validate_can_edit($attachment, $product_id)</code></a></dt>
 
@@ -254,7 +230,7 @@ name="Class_Methods"
 
 <p>Params: $attachment - the attachment object being edited. $product_id - the product ID the attachment belongs to.</p>
 
-<p>Returns: 1 on success. Else an error is thrown.</p>
+<p>Returns: 1 on success, 0 otherwise.</p>
 
 <dt><a name="validate_obsolete($bug)"
 ><code  class="code">validate_obsolete($bug)</code></a></dt>
@@ -266,15 +242,15 @@ name="Class_Methods"
 
 <p>Returns: 1 on success. Else an error is thrown.</p>
 
-<dt><a name="create($throw_error,_$bug,_$user,_$timestamp,_$hr_vars)"
-><code  class="code">create($throw_error, $bug, $user, $timestamp, $hr_vars)</code></a></dt>
+<dt><a name="create"
+><code  class="code">create</code></a></dt>
 
 <dd>
-<p>Description: inserts an attachment from CGI input for the given bug.</p>
+<p>Description: inserts an attachment into the given bug.</p>
 
-<p>Params: <code  class="code">$bug</code> - Bugzilla::Bug object - the bug for which to insert the attachment. <code  class="code">$user</code> - Bugzilla::User object - the user we&#39;re inserting an attachment for. <code  class="code">$timestamp</code> - scalar - timestamp of the insert as returned by SELECT NOW(). <code  class="code">$hr_vars</code> - hash reference - reference to a hash of template variables.</p>
+<p>Params: takes a hashref with the following keys: <code  class="code">bug</code> - Bugzilla::Bug object - the bug for which to insert the attachment. <code  class="code">data</code> - Either a filehandle pointing to the content of the attachment, or the content of the attachment itself. <code  class="code">description</code> - string - describe what the attachment is about. <code  class="code">filename</code> - string - the name of the attachment (used by the browser when downloading it). If the attachment is a URL, this parameter has no effect. <code  class="code">mimetype</code> - string - a valid MIME type. <code  class="code">creation_ts</code> - string (optional) - timestamp of the insert as returned by SELECT LOCALTIMESTAMP(0). <code  class="code">ispatch</code> - boolean (optional, default false) - true if the attachment is a patch. <code  class="code">isprivate</code> - boolean (optional, default false) - true if the attachment is private. <code  class="code">isurl</code> - boolean (optional, default false) - true if the attachment is a URL pointing to some external ressource. <code  class="code">store_in_file</code> - boolean (optional, default false) - true if the attachment must be stored in data/attachments/ instead of in the DB.</p>
 
-<p>Returns: the ID of the new attachment.</p>
+<p>Returns: The new attachment object.</p>
 
 <dt><a name="remove_from_db()"
 ><code  class="code">remove_from_db()</code></a></dt>

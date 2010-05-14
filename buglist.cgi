@@ -180,7 +180,6 @@ my $serverpush =
                 || $cgi->param('serverpush');
 
 my $order = $cgi->param('order') || "";
-my $order_from_cookie = 0;  # True if $order set using the LASTORDER cookie
 
 # The params object to use for the actual query itself
 my $params;
@@ -385,7 +384,7 @@ $filename =~ s/\\/\\\\/g; # escape backslashes
 $filename =~ s/"/\\"/g; # escape quotes
 
 # Take appropriate action based on user's request.
-if ($cmdtype eq "dorem") {
+if ($cmdtype eq "dorem") {  
     if ($remaction eq "run") {
         my $query_id;
         ($buffer, $query_id) = Bugzilla::Search::LookupNamedQuery(
@@ -660,7 +659,7 @@ if (trim($votes) && !grep($_ eq 'votes', @displaycolumns)) {
 
 # Remove the timetracking columns if they are not a part of the group
 # (happens if a user had access to time tracking and it was revoked/disabled)
-if (!Bugzilla->user->in_group(Bugzilla->params->{"timetrackinggroup"})) {
+if (!Bugzilla->user->is_timetracker) {
    @displaycolumns = grep($_ ne 'estimated_time', @displaycolumns);
    @displaycolumns = grep($_ ne 'remaining_time', @displaycolumns);
    @displaycolumns = grep($_ ne 'actual_time', @displaycolumns);
@@ -684,12 +683,7 @@ if (grep('relevance', @displaycolumns) && !$fulltext) {
 # Severity, priority, resolution and status are required for buglist
 # CSS classes.
 my @selectcolumns = ("bug_id", "bug_severity", "priority", "bug_status",
-                     "resolution");
-
-# if using classification, we also need to look in product.classification_id
-if (Bugzilla->params->{"useclassification"}) {
-    push (@selectcolumns,"product");
-}
+                     "resolution", "product");
 
 # remaining and actual_time are required for percentage_complete calculation:
 if (lsearch(\@displaycolumns, "percentage_complete") >= 0) {
@@ -710,13 +704,14 @@ foreach my $item (@realname_fields) {
 }
 
 # Display columns are selected because otherwise we could not display them.
-push (@selectcolumns, @displaycolumns);
+foreach my $col (@displaycolumns) {
+    push (@selectcolumns, $col) if !grep($_ eq $col, @selectcolumns);
+}
 
-# If the user is editing multiple bugs, we also make sure to select the product
-# and status because the values of those fields determine what options the user
+# If the user is editing multiple bugs, we also make sure to select the 
+# status, because the values of that field determines what options the user
 # has for modifying the bugs.
 if ($dotweak) {
-    push(@selectcolumns, "product") if !grep($_ eq 'product', @selectcolumns);
     push(@selectcolumns, "bug_status") if !grep($_ eq 'bug_status', @selectcolumns);
 }
 
@@ -766,8 +761,6 @@ if (!$order || $order =~ /^reuse/i) {
         # Cookies from early versions of Specific Search included this text,
         # which is now invalid.
         $order =~ s/ LIMIT 200//;
-        
-        $order_from_cookie = 1;
     }
     else {
         $order = '';  # Remove possible "reuse" identifier as unnecessary
@@ -795,7 +788,8 @@ if ($order) {
             last ORDER;
         };
         do {
-            my @order;
+            my (@order, @invalid_fragments);
+
             # A custom list of columns.  Make sure each column is valid.
             foreach my $fragment (split(/,/, $order)) {
                 $fragment = trim($fragment);
@@ -817,16 +811,14 @@ if ($order) {
                     push(@order, "$column_name$direction");
                 }
                 else {
-                    my $vars = { fragment => $fragment };
-                    if ($order_from_cookie) {
-                        $cgi->remove_cookie('LASTORDER');
-                        ThrowCodeError("invalid_column_name_cookie", $vars);
-                    }
-                    else {
-                        ThrowCodeError("invalid_column_name_form", $vars);
-                    }
+                    push(@invalid_fragments, $fragment);
                 }
             }
+            if (scalar @invalid_fragments) {
+                $vars->{'message'} = 'invalid_column_name';
+                $vars->{'invalid_fragments'} = \@invalid_fragments;
+            }
+
             $order = join(",", @order);
             # Now that we have checked that all columns in the order are valid,
             # detaint the order string.
@@ -961,7 +953,7 @@ while (my @row = $buglist_sth->fetchrow_array()) {
             s/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})$/$1-$2-$3 $4:$5:$6/;
 
         $bug->{'changedtime'} = $bug->{'changeddate'}; # for iCalendar and Atom
-        $bug->{'changeddate'} = DiffDate($bug->{'changeddate'});        
+        $bug->{'changeddate'} = DiffDate($bug->{'changeddate'});
     }
 
     if ($bug->{'opendate'}) {
@@ -1042,6 +1034,17 @@ $vars->{'displaycolumns'} = \@displaycolumns;
 $vars->{'openstates'} = [BUG_STATE_OPEN];
 $vars->{'closedstates'} = [map {$_->name} closed_bug_statuses()];
 
+# The iCal file needs priorities ordered from 1 to 9 (highest to lowest)
+# If there are more than 9 values, just make all the lower ones 9
+if ($format->{'extension'} eq 'ics') {
+    my $n = 1;
+    $vars->{'ics_priorities'} = {};
+    my $priorities = get_legal_field_values('priority');
+    foreach my $p (@$priorities) {
+        $vars->{'ics_priorities'}->{$p} = ($n > 9) ? 9 : $n++;
+    }
+}
+
 # The list of query fields in URL query string format, used when creating
 # URLs to the same query results page with different parameters (such as
 # a different sort order or when taking some action on the set of query
@@ -1079,6 +1082,25 @@ $vars->{'splitheader'} = $cgi->cookie('SPLITHEADER') ? 1 : 0;
 $vars->{'quip'} = GetQuip();
 $vars->{'currenttime'} = localtime(time());
 
+# See if there's only one product in all the results (or only one product
+# that we searched for), which allows us to provide more helpful links.
+my @products = keys %$bugproducts;
+my $one_product;
+if (scalar(@products) == 1) {
+    $one_product = new Bugzilla::Product({ name => $products[0] });
+}
+# This is used in the "Zarroo Boogs" case.
+elsif (my @product_input = $cgi->param('product')) {
+    if (scalar(@product_input) == 1 and $product_input[0] ne '') {
+        $one_product = new Bugzilla::Product({ name => $cgi->param('product') });
+    }
+}
+# We only want the template to use it if the user can actually 
+# enter bugs against it.
+if ($one_product && Bugzilla->user->can_enter_product($one_product)) {
+    $vars->{'one_product'} = $one_product;
+}
+
 # The following variables are used when the user is making changes to multiple bugs.
 if ($dotweak && scalar @bugs) {
     if (!$vars->{'caneditbugs'}) {
@@ -1088,7 +1110,6 @@ if ($dotweak && scalar @bugs) {
                                         object => 'multiple_bugs'});
     }
     $vars->{'dotweak'} = 1;
-    $vars->{'use_keywords'} = 1 if Bugzilla::Keyword::keyword_count();
   
     # issue_session_token needs to write to the master DB.
     Bugzilla->switch_to_main_db();
@@ -1131,35 +1152,15 @@ if ($dotweak && scalar @bugs) {
     $vars->{'new_bug_statuses'} = Bugzilla::Status->new_from_list($bug_status_ids);
 
     # The groups the user belongs to and which are editable for the given buglist.
-    my @products = keys %$bugproducts;
     $vars->{'groups'} = GetGroups(\@products);
 
-    # If all bugs being changed are in the same product, the user can change
-    # their version and component, so generate a list of products, a list of
-    # versions for the product (if there is only one product on the list of
-    # products), and a list of components for the product.
+    # Generate lists of components, versions and milestones common for all selected products.
     $_ = Bugzilla::Product->new({name => $_}) for @products;
-    my %h;
-    $vars->{components} = [ map($_->name, @{$products[0]->components}) ];
-    for my $i (1..$#products)
-    {
-        %h = map { $_->name => 1 } @{$products[$i]->components};
-        @{$vars->{components}} = grep { $h{$_} } @{$vars->{components}};
-    }
-    $vars->{versions} = [ map($_->name, @{$products[0]->versions}) ];
-    for my $i (1..$#products)
-    {
-        %h = map { $_->name => 1 } @{$products[$i]->versions};
-        @{$vars->{versions}} = grep { $h{$_} } @{$vars->{versions}};
-    }
+    $vars->{components} = intersect(map { [ map { $_->name } @{ $_->components } ] } @products);
+    $vars->{versions} = intersect(map { [ map { $_->name } @{ $_->versions } ] } @products);
     if (Bugzilla->params->{usetargetmilestone})
     {
-        $vars->{targetmilestones} = [ map($_->name, @{$products[0]->milestones}) ];
-        for my $i (1..$#products)
-        {
-            %h = map { $_->name => 1 } @{$products[$i]->milestones};
-            @{$vars->{targetmilestones}} = grep { $h{$_} } @{$vars->{targetmilestones}};
-        }
+        $vars->{targetmilestones} = intersect(map { [ map { $_->name } @{ $_->milestones } ] } @products);
     }
 }
 

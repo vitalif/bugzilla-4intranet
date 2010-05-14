@@ -13,7 +13,7 @@
 * Contributor(s): 
 *   Guy Pyrzak <guy.pyrzak@gmail.com>
 *   Max Kanat-Alexander <mkanat@bugzilla.org>
-*
+*                 
 */
 
 var mini_login_constants;
@@ -109,6 +109,15 @@ function check_mini_login_fields( suffix ) {
     }
     window.alert( mini_login_constants.warning );
     return false;
+}
+
+function set_language( value ) {
+    YAHOO.util.Cookie.set('LANG', value,
+    {
+        expires: new Date('January 1, 2038'),
+        path: BUGZILLA.param.cookie_path
+    });
+    window.location.reload()
 }
 
 /* template/en/global/menuforusers.html.tmpl */

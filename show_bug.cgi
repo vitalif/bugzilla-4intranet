@@ -91,34 +91,11 @@ if ($single) {
     }
 }
 
-# Determine if Patch Viewer is installed, for Diff link
-eval {
-    require PatchReader;
-    $vars->{patchviewerinstalled} = 1;
-};
-
-$vars->{remind_about_worktime} =
-    $user &&
-    $user->is_timetracker &&                                        # user is timetracker
-    $user->settings->{remind_me_about_worktime} &&                  # user wants to be reminded about worktime
-    $user->settings->{remind_me_about_worktime}->{value} &&
-    lc $user->settings->{remind_me_about_worktime}->{value} ne 'off'
-    ? 1 : 0;
-
 $vars->{'bugs'} = \@bugs;
 $vars->{'marks'} = \%marks;
-$vars->{'use_keywords'} = 1 if Bugzilla::Keyword::keyword_count();
 
 my @bugids = map {$_->bug_id} grep {!$_->error} @bugs;
 $vars->{'bugids'} = join(", ", @bugids);
-
-# Next bug in list (if there is one)
-my @bug_list;
-if ($cgi->cookie("BUGLIST")) {
-    @bug_list = split(/:/, $cgi->cookie("BUGLIST"));
-}
-
-$vars->{'bug_list'} = \@bug_list;
 
 # Work out which fields we are displaying (currently XML only.)
 # If no explicit list is defined, we show all fields. We then exclude any
@@ -132,7 +109,7 @@ if ($cgi->param("field")) {
     @fieldlist = $cgi->param("field");
 }
 
-unless (Bugzilla->user->in_group(Bugzilla->params->{"timetrackinggroup"})) {
+unless (Bugzilla->user->is_timetracker) {
     @fieldlist = grep($_ !~ /(^deadline|_time)$/, @fieldlist);
 }
 
