@@ -222,6 +222,7 @@
 /* generic (begin) */
     a {
         color: #039;
+        text-decoration: none;
     }
 
     a:visited {
