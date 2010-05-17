@@ -104,8 +104,12 @@ sub install_string {
         last if defined $string_template;
     }
     
-    die "No language defines the string '$string_id'"
-        if !defined $string_template;
+    if (!defined $string_template)
+    {
+        # Don't throw an error, it's a stupid way -- <vitalif@yourcmc.ru>
+        $string_template = $string_id;
+        $string_template =~ s/^feature_//so;
+    }
 
     utf8::decode($string_template) if !utf8::is_utf8($string_template);
 
