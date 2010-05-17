@@ -174,7 +174,7 @@ Bug ID list:
 
 <span class="bz_result_count">
   [% IF bugs.size == 0 %]
-    <span class="zero_results">[% terms.zeroSearchResults %].</span>
+    <br /><span class="zero_results">[% terms.zeroSearchResults %].</span>
   [% ELSIF bugs.size == 1 %]
     One [% terms.bug %] found.
   [% ELSE %]
@@ -194,7 +194,7 @@ Bug ID list:
   </ul>
 [% END %]
 
-<br>
+<br />
 
 [%############################################################################%]
 [%# Rest of Change Form                                                      #%]

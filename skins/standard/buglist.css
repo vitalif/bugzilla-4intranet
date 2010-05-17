@@ -33,6 +33,8 @@
   font-weight: bold;
 }
 
+.zero_result_links { margin: 0; }
+
 .bz_buglist_header th {
   text-align: left;
 }

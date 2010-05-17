@@ -109,6 +109,19 @@ use constant FIELD_OPERATOR => {
     owner_idle_time => 'greaterthan',
 };
 
+use constant EQ_FIELDS => {
+    classification   => 1,
+    product          => 1,
+    component        => 1,
+    version          => 1,
+    target_milestone => 1,
+    resolution       => 1,
+    severity         => 1,
+    priority         => 1,
+    op_sys           => 1,
+    rep_platform     => 1,
+};
+
 # We might want to put this into localconfig or somewhere
 use constant PRODUCT_EXCEPTIONS => (
     'row',   # [Browser]
@@ -293,7 +306,7 @@ sub _handle_status_and_resolution
     else
     {
         # Default: search for ALL BUGS! (Vitaliy Filippov <vfilippov@custis.ru> 2009-01-30)
-        %states = map { $_ => 1 } @$self->{legal_statuses};
+        %states = map { $_ => 1 } @{$self->{legal_statuses}};
     }
 
     $self->{states} = \%states;
@@ -352,7 +365,7 @@ sub _handle_field_names {
         $self->addChart('requestees.login_name', 'substring', $2, $negate);
         return 1;
     }
-    
+
     # generic field1,field2,field3:value1,value2 notation
     if ($or_operand =~ /^([^:]+):([^:]+)$/) {
         my @fields = split(/,/, $1);
@@ -380,9 +393,17 @@ sub _handle_field_names {
                 $self->{ambiguous_fields}->{$field} = $translated;
                 next;
             }
-            foreach my $value (@values) {
-                my $operator = FIELD_OPERATOR->{$translated} || 'substring';
-                $self->addChart($translated, $operator, $value, $negate);
+            my $operator = FIELD_OPERATOR->{$translated};
+            if (!$operator && EQ_FIELDS->{$translated})
+            {
+                Bugzilla->cgi->param($translated, @values);
+            }
+            else
+            {
+                $operator ||= 'substring';
+                foreach my $value (@values) {
+                    $self->addChart($translated, $operator, $value, $negate);
+                }
             }
         }
         return 1;
