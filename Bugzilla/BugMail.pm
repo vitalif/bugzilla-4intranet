@@ -469,6 +469,7 @@ sub Send {
             if ($user->email_enabled && $dep_ok) {
                 # OK, OK, if we must. Email the user.
                 $sent_mail = sendMail(
+                    bug     => $bug,
                     user    => $user,
                     headers => \@headerlist,
                     rels    => \%rels_which_want,
@@ -503,11 +504,11 @@ sub sendMail
     my %arguments = @_;
     my ($user, $hlRef, $relRef, $valueRef, $dmhRef, $fdRef,
         $diffs, $comments_in, $isnew,
-        $id, $watchingRef
+        $id, $watchingRef, $bug
     ) = @arguments{qw(
         user headers rels values defhead fields
         diffs newcomm isnew
-        id watch
+        id watch bug
     )};
 
     my @send_comments = @$comments_in;
@@ -575,6 +576,7 @@ sub sendMail
         showfieldvalues    => \@showfieldvalues,
         to                 => $user->email,
         to_user            => $user,
+        bug                => $bug,
         bugid              => $id,
         alias              => Bugzilla->params->{'usebugaliases'} ? $values{'alias'} : "",
         classification     => $values{'classification'},
