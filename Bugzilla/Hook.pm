@@ -23,7 +23,7 @@
 package Bugzilla::Hook;
 
 use strict;
-no strict 'subs';
+no strict 'refs';
 use Bugzilla::Util;
 use base 'Exporter';
 our @EXPORT = qw(set_hook run_hooks);
@@ -73,13 +73,14 @@ sub process
         }
         elsif (!ref $f && $f =~ /^(.*)::[^:]*$/)
         {
-            my $pk = $1;
+            my $pk = $1 . '.pm';
             if ($pk)
             {
                 eval { require $pk };
                 if ($@)
                 {
                     warn "Error autoloading hook package $pk: $@";
+                    next;
                 }
             }
         }

@@ -131,4 +131,4 @@ table#flags {
     white-space: nowrap;
 }
 
-#commentt { width: 50em; font-size: medium; font-family: monospace; }
+#comment_textarea { width: 50em; font-size: medium; font-family: monospace; }

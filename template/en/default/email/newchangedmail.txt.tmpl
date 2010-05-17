@@ -167,13 +167,8 @@ pre { font-family: Consolas, monospace; font-size: 100%; }
           [% (comment.author.name || comment.author.login) FILTER html %]</a>
       </span>
   [% comment.time %]</p>
-  [% IF comment.already_wrapped %]
-    [% wrapped_comment = comment.body %]
-  [% ELSE %]
-    [% wrapped_comment = comment.body FILTER wrap_comment %]
-  [% END %]
   <pre style="white-space: pre-wrap; word-wrap: break-word; _white-space: pre;">
-[%- wrapped_comment FILTER quoteUrls(bugid) FILTER absolute_uris -%]
+[%- comment.body_full({ wrap => 1 }) FILTER quoteUrls(bug, comment) FILTER absolute_uris -%]
   </pre>
 <hr color="#A0A0A0" size="1" />
   [% END %]

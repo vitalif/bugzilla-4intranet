@@ -293,12 +293,12 @@ document.changeform = document.[% cfname %];
                show_attachment_flags = bug.show_attachment_flags
     %]
 
-    [% PROCESS comment_box %]
   </td>
   <td>
     [% PROCESS section_restrict_visibility %]
   </td>
   </tr></table>
+    [% PROCESS comment_box %]
 
   [%# *** Additional Comments *** %]
   <div id="comments">
@@ -1117,8 +1117,7 @@ document.changeform = document.[% cfname %];
                id="newcommentprivacy"
                onClick="updateCommentTagControl(this, form)">
         <label for="newcommentprivacy">
-          Make comment private (visible only to members of the
-          <strong>[% Param('insidergroup') FILTER html %]</strong> group)
+          Make comment private
         </label>
         <input type="checkbox" name="commentsilent" value="1" 
                id="commentsilent">

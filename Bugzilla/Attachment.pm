@@ -526,7 +526,7 @@ sub _check_bug {
 sub _legal_content_type {
     my ($content_type) = @_;
     my $legal_types = join('|', LEGAL_CONTENT_TYPES);
-    return $content_type !~ /^($legal_types)\/.+$/;
+    return $content_type =~ /^($legal_types)\/.+$/;
 }
 
 sub _check_content_type {
@@ -991,7 +991,7 @@ sub get_content_type {
         # specified in the HTTP request headers.
         $content_type =
             $cgi->uploadInfo($cgi->param('data'))->{'Content-Type'};
-        if (!_valid_content_type($content_type) && Bugzilla->params->{mime_types_file})
+        if (!_legal_content_type($content_type) && Bugzilla->params->{mime_types_file})
         {
             if (!$lwp_read_mime_types)
             {
@@ -1001,7 +1001,7 @@ sub get_content_type {
             my $file = $cgi->param('data');
             $content_type = LWP::MediaTypes::guess_media_type("$file");
         }
-        if (!_valid_content_type($content_type))
+        if (!_legal_content_type($content_type))
         {
             $content_type = 'application/octet-stream';
         }
@@ -1030,5 +1030,5 @@ sub get_content_type {
     return $content_type;
 }
 
-
 1;
+__END__
