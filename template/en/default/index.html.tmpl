@@ -41,7 +41,7 @@
 <!--
 function onLoadActions() {
   quicksearchHelpText('quicksearch_main', 'show');
-  if( window.external.AddSearchProvider ){
+  if( window.external && window.external.AddSearchProvider ){
     YAHOO.util.Dom.removeClass('quicksearch_plugin', 'bz_default_hidden');
   }
   document.getElementById('quicksearch_top').focus();
@@ -77,7 +77,6 @@ function quicksearchHelpText(el_id, action){
   }
 }
 YAHOO.util.Event.onDOMReady(onLoadActions);
-document.getElementById('quicksearchtop').focus();
 //-->
 </script>
 

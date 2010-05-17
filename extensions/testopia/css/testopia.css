@@ -1,8 +1,6 @@
-#header .links.testopia_links .label, #footer .links.testopia_links .label {
-    vertical-align: middle;
-}
+#links-testopia, #links-testopia-saved { margin-top: 1ex; }
 
-#header .testopia_btn {
+#header .testopia_btn, #footer .testopia_btn {
     background-color:#546292;
     color:#ffffff;
     font-weight:bold;

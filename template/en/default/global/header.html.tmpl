@@ -294,9 +294,9 @@
 </tr>
 </table>
 
+[% IF Bugzilla.languages.size > 1 %]
 <table id="lang_links_container" cellpadding="0" cellspacing="0"
        class="bz_default_hidden"><tr><td>
-[% IF Bugzilla.languages.size > 1 %]
   <ul class="links">
   [% FOREACH lang = Bugzilla.languages.sort %]
     <li>[% IF NOT loop.first %]<span class="separator"> | </span>[% END %]
@@ -309,13 +309,13 @@
     </li>
   [% END %]
   </ul>
-[% END %]
 </td></tr></table>
+[% END %]
 
 [% IF user.id AND user.settings.saved_searches_position.value == "footer" %]
-[% PROCESS "global/common-links.html.tmpl" qs_suffix = "bottom" standalone = 1 %]
+[% PROCESS "global/common-links.html.tmpl" qs_suffix = "top" standalone = 1 %]
 [% ELSE %]
-[% PROCESS "global/useful-links.html.tmpl" qs_suffix = "bottom" %]
+[% PROCESS "global/useful-links.html.tmpl" qs_suffix = "top" %]
 [% END %]
 </div> [%# header %]
 
