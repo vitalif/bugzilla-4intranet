@@ -868,7 +868,9 @@ sub create {
                 my @optional = @{OPTIONAL_MODULES()};
                 foreach my $item (@optional) {
                     my @features;
-                    foreach my $feat_id (@{ $item->{feature} }) {
+                    my $feat = $item->{feature};
+                    ref $feat or $feat = [ $feat ];
+                    foreach my $feat_id (@$feat) {
                         push(@features, install_string("feature_$feat_id"));
                     }
                     $item->{feature} = \@features;

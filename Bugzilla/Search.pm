@@ -1510,8 +1510,6 @@ sub _content_matches
     my $table = "bugs_fulltext_$$chartid";
     my $comments_col = "comments";
     $comments_col = "comments_noprivate" unless $self->{'user'}->is_insider;
-    push(@$supptables, "LEFT JOIN bugs_fulltext AS $table " .
-                       "ON bugs.bug_id = $table.bug_id");
     
     # Create search terms to add to the SELECT and WHERE clauses.
     my ($term1, $rterm1) = $dbh->sql_fulltext_search("$table.$comments_col",

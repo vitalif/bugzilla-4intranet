@@ -2,6 +2,7 @@
 
 use strict;
 use Testopia::TestCase;
+use Bugzilla::Util;
 
 my $vars = Bugzilla->hook_args->{vars};
 my $cgi = Bugzilla->cgi;
