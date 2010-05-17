@@ -36,7 +36,16 @@ use File::Basename;
 use File::Spec::Functions;
 
 use base 'Exporter';
-our @EXPORT = qw(extension_info required_modules optional_modules extension_version extension_include extension_template_dir extension_code_dir set_hook);
+our @EXPORT = qw(
+    set_hook
+    extension_info
+    required_modules
+    optional_modules
+    extension_version
+    extension_include
+    extension_template_dir
+    extension_code_dir
+);
 
 my $extensions = {
 #   name => {
@@ -197,7 +206,6 @@ sub load
 }
 
 1;
-
 __END__
 
 =head1 NAME

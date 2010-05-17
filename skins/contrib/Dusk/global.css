@@ -180,13 +180,6 @@ hr {
     border-radius: 5px;
 }
 
-#links-actions,
-#links-edit,
-#links-saved,
-#links-special {
-    margin-top: 2ex;
-}
-
 .links {
     border-spacing: 30px;
     margin-bottom: 2ex;

@@ -212,7 +212,7 @@ sub include_languages {
 # Used by template_include_path
 sub _template_lang_directories {
     my ($languages, $templatedir) = @_;
-    
+
     my @add = qw(custom default);
     my $project = bz_locations->{'project'};
     unshift(@add, $project) if $project;
@@ -250,7 +250,8 @@ sub _template_base_directories
     return \@template_dirs;
 }
 
-sub template_include_path {
+sub template_include_path
+{
     my ($params) = @_;
     my @used_languages = include_languages(@_);
     # Now, we add template directories in the order they will be searched:
@@ -262,7 +263,7 @@ sub template_include_path {
                                                    $template_dir);
         # Hooks get each set of extension directories separately.
         if ($params->{hook}) {
-            push(@include_path, \@lang_dirs);
+            push(@include_path, \@lang_dirs) if @lang_dirs;
         }
         # Whereas everything else just gets a whole INCLUDE_PATH.
         else {

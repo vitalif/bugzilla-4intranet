@@ -81,6 +81,7 @@ sub _get_hooks {
         foreach my $template_dir (@$dir_set) {
             my $file = "$template_dir/hook/$extension_template";
             if (-e $file) {
+                warn "-e $file !";
                 my $template = $self->_context->template($file);
                 push(@hooks, $template);
                 # Don't run the hook for more than one language.
