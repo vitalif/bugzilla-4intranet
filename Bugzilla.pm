@@ -304,7 +304,9 @@ sub feature {
     my $feature_map = $cache->{feature_map};
     if (!$feature_map) {
         foreach my $package (@{ OPTIONAL_MODULES() }) {
-            foreach my $f (@{ $package->{feature} }) {
+            my $ff = $package->{feature};
+            ref $ff or $ff = [ $ff ];
+            foreach my $f (@$ff) {
                 $feature_map->{$f} ||= [];
                 push(@{ $feature_map->{$f} }, $package->{module});
             }
