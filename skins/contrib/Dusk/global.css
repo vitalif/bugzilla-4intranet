@@ -370,11 +370,3 @@ form#Create th:first-child {
 .flag_table td {
     vertical-align: top;
 }
-
-#header ul.links.testopia_links, #footer ul.links.testopia_links {
-    margin-top: 2ex;
-}
-
-.links.standalone {
-    padding: 0.5em;
-}

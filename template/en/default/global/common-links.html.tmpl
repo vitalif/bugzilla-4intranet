@@ -23,7 +23,8 @@
 [% DEFAULT qs_suffix = "" %]
 [% USE Bugzilla %]
 
-<ul class="links[% IF standalone %] standalone[% END %]">
+[% IF standalone %]<div style="margin: 5px">[% END %]
+<ul class="links">
   <li><a href="./">Home</a></li>
   <li><span class="separator">| </span><a href="enter_bug.cgi">New</a></li>
   <li><span class="separator">| </span><a href="describecomponents.cgi">Browse</a></li>
@@ -35,7 +36,7 @@
         onsubmit="if (this.quicksearch.value == '')
                   { alert('Please enter one or more search terms first.');
                     return false; } return true;">
-    <input class="txt" [% IF qs_suffix == "top" %] tabindex=1 [% END %] type="text" id="quicksearch[% qs_suffix FILTER html %]" name="quicksearch" value="[% quicksearch | html %]" />
+    <input class="txt" [% IF qs_suffix == "top" %] tabindex=1 [% END %] type="text" id="quicksearch_[% qs_suffix FILTER html %]" name="quicksearch" value="[% quicksearch | html %]" />
     <input class="btn" type="submit" value="Search" 
            id="find[% qs_suffix FILTER html %]">
     [%-# Work around FF bug: keep this on one line %]</form>
@@ -109,6 +110,8 @@
 </ul>
 
 [% Hook.process("link-row") %]
+[% IF standalone %]</div>[% END %]
+
 [% BLOCK link_to_documentation %]
     [% IF doc_section && Param('docs_urlbase') %]
       <li>

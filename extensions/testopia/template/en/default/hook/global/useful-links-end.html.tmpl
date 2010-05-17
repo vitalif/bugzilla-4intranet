@@ -19,9 +19,9 @@
   #%]
 [% IF user.login AND user.settings.view_testopia.value == 'on' AND user.in_group('Testers') %]
 
-<li class="links-testopia">
-<ul class="links testopia_links">
-  <li class="label" style="width: auto">Testopia:</li>
+<li id="links-testopia">
+<ul class="links">
+  <li>Testopia:</li>
   <li><a href="tr_show_product.cgi">Product Dashboard</a></li>
 [% IF user.in_group('Testers') %]
   <li><span class="separator">| </span><a href="tr_new_plan.cgi">New Plan</a></li>
@@ -60,7 +60,7 @@
   DEFAULT_CASE_STATUS = '[% Param('default-test-case-status') %]';
 </script>
 
-<li id="links-saved">
+<li id="links-testopia-saved">
   <ul class="links">
     <li class="label">Testopia Saved Searches:</li>
     <li><a href="tr_list_runs.cgi?current_tab=run&run_status=0&distinct=1">Current Runs</a></li>
