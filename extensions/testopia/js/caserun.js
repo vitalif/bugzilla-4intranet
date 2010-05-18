@@ -1680,7 +1680,7 @@ Testopia.TestCaseRun.Info = function(){
     Testopia.TestCaseRun.Info.superclass.constructor.call(this, {
         id: 'case_details_panel',
         layout: 'fit',
-        region: 'south',
+        region: 'north',
         split: true,
         border: false,
         style: 'padding-bottom: 10px',
@@ -1704,7 +1704,7 @@ Testopia.TestCaseRun.Info = function(){
                     id:'action_editor_col',
                     items:[{
                         title: 'Action',
-                        height: Ext.state.Manager.get('bigtext_height', 230),
+                        height: Ext.state.Manager.get('bigtext_height', 500),
                         id: 'cr_action_panel',
                         bodyBorder: false,
                         border: false,
@@ -1724,7 +1724,7 @@ Testopia.TestCaseRun.Info = function(){
                     },
                     items:{
                         title: 'Expected Results',
-                        height: Ext.state.Manager.get('bigtext_height', 230),
+                        height: Ext.state.Manager.get('bigtext_height', 500),
                         id: 'cr_results_panel',
                         bodyBorder: false,
                         border: false,
@@ -1803,7 +1803,7 @@ Testopia.TestCaseRun.Info = function(){
                 layout:'fit',
                 items:{
                     title: 'Setup',
-                    height: Ext.state.Manager.get('bigtext_height', 230),
+                    height: Ext.state.Manager.get('bigtext_height', 500),
                     id: 'cr_setup_panel',
                     bodyBorder: false,
                     autoScroll: true,
@@ -1819,7 +1819,7 @@ Testopia.TestCaseRun.Info = function(){
                 layout:'fit',
                 items:{
                     title: 'Breakdown',
-                    height: Ext.state.Manager.get('bigtext_height', 230),
+                    height: Ext.state.Manager.get('bigtext_height', 500),
                     id: 'cr_breakdown_panel',
                     bodyBorder: false,
                     autoScroll: true,
