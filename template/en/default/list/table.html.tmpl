@@ -78,18 +78,19 @@
 [%############################################################################%]
 
 [% tableheader = BLOCK %]
-  <table class="bz_buglist" cellspacing="0" cellpadding="4" width="100%">
+<table class="bz_buglist sortable" cellspacing="0" cellpadding="4" width="100%">
+  <thead>
     <tr class="bz_buglist_header bz_first_buglist_header">
       [% IF dotweak %]
       <th>&nbsp;</th>
       [% END %]
-      <th colspan="[% splitheader ? 2 : 1 %]" class="first-child">
+      [% i = lsearch(order_columns, 'bug_id') %]
+      <th colspan="[% splitheader ? 2 : 1 %]" class="first-child0 [% "sortable_column_0" %][% IF i>=0 %] sorted_[% i %] sorttable_sorted[% "_reverse" IF order_dir.$i %][% END %]">
         <a href="buglist.cgi?
                   [% urlquerypart FILTER html %]&amp;order=
                   [% PROCESS new_order id='bug_id' %]
                   [%-#%]&amp;query_based_on=
                   [% defaultsavename OR searchname FILTER url_quote %]">ID
-          [% PROCESS order_arrow id='bug_id' ~%]
         </a>
       </th>
 
@@ -98,7 +99,7 @@
         [% FOREACH id = displaycolumns %]
           [% NEXT UNLESS loop.count() % 2 == 0 %]
           [% column = columns.$id %]
-          [% PROCESS columnheader %]
+          [% PROCESS columnheader key=loop.count() %]
         [% END %]
 
         </tr><tr class="bz_buglist_header">
@@ -110,29 +111,30 @@
         [% FOREACH id = displaycolumns %]
           [% NEXT IF loop.count() % 2 == 0 %]
           [% column = columns.$id %]
-          [% PROCESS columnheader %]
+          [% PROCESS columnheader key=loop.count() %]
         [% END %]
 
       [% ELSE %]
 
         [% FOREACH id = displaycolumns %]
           [% column = columns.$id %]
-          [% PROCESS columnheader %]
+          [% PROCESS columnheader key=loop.count() %]
         [% END %]
 
       [% END %]
 
     </tr>
+  </thead>
 [% END %]
 
 [% BLOCK columnheader %]
-  <th colspan="[% splitheader ? 2 : 1 %]">
+  [% i = lsearch(order_columns, id) %]
+  <th colspan="[% splitheader ? 2 : 1 %]" class="[% "sortable_column_$key" %][% IF i>=0 %] sorted_[% i %] sorttable_sorted[% "_reverse" IF order_dir.$i %][% END %]">
     <a href="buglist.cgi?[% urlquerypart FILTER html %]&amp;order=
       [% PROCESS new_order %]
       [%-#%]&amp;query_based_on=
       [% defaultsavename OR searchname FILTER url_quote %]">
         [%- abbrev.$id.title || field_descs.$id || column.title -%]
-        [% PROCESS order_arrow ~%]
     </a>
   </th>
 [% END %]
@@ -148,24 +150,13 @@
   [% END %]
 [% END %]
 
-[% BLOCK order_arrow %]
-  [% IF order.match("^$id DESC") %]
-    <span class="bz_sort_order_primary">&#x25BC;</span>
-  [% ELSIF order.match("^$id(,\\s*|\$)") %]
-    <span class="bz_sort_order_primary">&#x25B2;</span>
-  [% ELSIF order.match("\\b$id DESC") %]
-    <span class="bz_sort_order_secondary">&#x25BC;</span>
-  [% ELSIF order.match("\\b$id(,\\s*|\$)") %]
-    <span class="bz_sort_order_secondary">&#x25B2;</span>
-  [% END %]
-[% END %]
-
 [%############################################################################%]
 [%# Bug Table                                                                #%]
 [%############################################################################%]
 
 [% tableheader %]
 
+<tbody class="sorttable_body">
 [% FOREACH bug = bugs %]
   [% count = loop.count() %]
 
@@ -226,7 +217,7 @@
   [% END %]
 
 [% END %]
-
+</tbody>
 </table>
 
 [% BLOCK time_summary_line %]
