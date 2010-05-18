@@ -305,8 +305,11 @@ foreach my $dep (@{$bug->dependson || []}, @{$bug->blocked || []}) {
 }
 $vars->{sentmail} = \@all_mail_results;
 
-print $cgi->header();
-$template->process("bug/create/created.html.tmpl", $vars)
-    || ThrowTemplateError($template->error());
+if (Bugzilla->usage_mode != USAGE_MODE_EMAIL)
+{
+    print $cgi->header();
+    $template->process("bug/create/created.html.tmpl", $vars)
+        || ThrowTemplateError($template->error());
+}
 
-1;
+$vars;

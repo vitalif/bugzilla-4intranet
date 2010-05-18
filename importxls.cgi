@@ -411,11 +411,16 @@ sub post_bug
     }
     $cgi->param(-name => 'dontsendbugmail', -value => 1);
     # и дёргаем post_bug.cgi
-    my $bug_id = do 'post_bug.cgi';
+    my $vars_out = do 'post_bug.cgi';
     $Bugzilla::Error::IN_EVAL--;
     Bugzilla->usage_mode($um);
-    $bugmail->{$bug_id} = Bugzilla->request_cache->{mailrecipients};
-    return $bug_id;
+    if ($vars_out)
+    {
+        my $bug_id = $vars_out->{bug}->id;
+        $bugmail->{$bug_id} = Bugzilla->request_cache->{mailrecipients};
+        return $bug_id;
+    }
+    return undef;
 }
 
 1;
