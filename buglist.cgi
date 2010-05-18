@@ -1054,6 +1054,9 @@ $vars->{'urlquerypart'} = $params->canonicalise_query('order',
                                                       'cmdtype',
                                                       'query_based_on');
 $vars->{'order'} = $order;
+$vars->{'order_columns'} = [ @orderstrings ];
+$vars->{'order_dir'} = [ map { s/ DESC$// ? 1 : 0 } @{$vars->{'order_columns'}} ];
+
 $vars->{'caneditbugs'} = 1;
 $vars->{'time_info'} = $time_info;
 
