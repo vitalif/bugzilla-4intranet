@@ -4340,7 +4340,7 @@ Testopia.TestCaseRun.Info = function(){
     Testopia.TestCaseRun.Info.superclass.constructor.call(this, {
         id: 'case_details_panel',
         layout: 'fit',
-        region: 'north',
+        region: 'south',
         split: true,
         border: false,
         style: 'padding-bottom: 10px',
