@@ -142,7 +142,7 @@
       // subtracts time spent from remaining time
       var new_time;
       var wt = bzParseTime(document.changeform.work_time.value);
-      if (wt != wt)
+      if (wt === null || wt === undefined || wt != wt)
       {
         document.changeform.work_time.style.backgroundColor = '#FFC0C0';
         document.changeform.remaining_time.style.backgroundColor = '#FFC0C0';

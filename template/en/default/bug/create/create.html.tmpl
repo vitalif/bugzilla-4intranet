@@ -92,7 +92,7 @@ function Create_onsubmit()
   else if (wt < 0)
     wt = 0;
 [% IF remind_about_worktime_newbug %]
-  else if (wt === null || [% product.notimetracking ? "wt != 0" : "wt == 0" %])
+  if (wt === null || [% product.notimetracking ? "wt != 0" : "wt == 0" %])
   {
     wt = prompt("Please, verify working time:", "0");
     if (wt == null || wt == undefined || (""+wt).length <= 0)
@@ -102,6 +102,8 @@ function Create_onsubmit()
     }
   }
 [% END %]
+  if (wt === null)
+    wt = 0;
   document.Create.work_time.value = wt;
   return true;
 }
