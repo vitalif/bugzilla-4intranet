@@ -201,7 +201,7 @@
 [%# CustIS Bug 57315 - Force Fucking Firefox to reset form on Reload %]
 [% USE date %]
 [% SET cfname = 'changeform_' _ date.format(date.now, '%s') %]
-<form name="[% cfname %]" method="post" action="process_bug.cgi" onsubmit="return changeform_onsubmit()">
+<form name="[% cfname %]" method="post" action="process_bug.cgi" onsubmit="return changeform_onsubmit()" onkeypress="ctrlEnter(event||window.event,this)">
 <script language="JavaScript">
 document.forms.changeform = document.forms.[% cfname %];
 document.changeform = document.[% cfname %];
