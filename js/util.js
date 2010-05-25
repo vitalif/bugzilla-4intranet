@@ -307,3 +307,11 @@ function hash_join(h)
       a.push(i);
   return a.join(", ");
 }
+
+/* CustIS Bug 64559 - Submit form on Ctrl-Enter */
+function ctrlEnter(event, formElem) {
+  if((event.ctrlKey) && ((event.keyCode == 0xA)||(event.keyCode == 0xD))) {
+    formElem.commit.click();
+    return false;
+  }
+}
