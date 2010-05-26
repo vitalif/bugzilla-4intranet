@@ -30,39 +30,39 @@
 
 [% login_target = urlbase _ login_target %]
 
-<li id="mini_login_container[% qs_suffix %]">
+<li id="mini_login_container_[% qs_suffix %]">
   <span class="separator">| </span>
-  <a id="login_link[% qs_suffix %]" href="?GoAheadAndLogIn=1"
-     onclick="return show_mini_login_form('[% qs_suffix %]')">Log In</a>
+  <a id="login_link_[% qs_suffix %]" href="?GoAheadAndLogIn=1"
+     onclick="return show_mini_login_form('_[% qs_suffix %]')">Log In</a>
   <form action="[% login_target FILTER html %]" method="POST" 
         class="mini_login bz_default_hidden"
-        id="mini_login[% qs_suffix FILTER html %]"
-        onsubmit="return check_mini_login_fields( '[% qs_suffix FILTER html %]' );"
+        id="mini_login_[% qs_suffix %]"
+        onsubmit="return check_mini_login_fields( '_[% qs_suffix %]' );"
   >
-    <input id="Bugzilla_login[% qs_suffix FILTER html %]" 
+    <input id="Bugzilla_login_[% qs_suffix %]" 
            class="bz_login"
            name="Bugzilla_login"
-           onfocus="mini_login_on_focus('[% qs_suffix FILTER js %]')"
+           onfocus="mini_login_on_focus('_[% qs_suffix %]')"
     >
     <input class="bz_password" 
-           id="Bugzilla_password[% qs_suffix FILTER html %]" 
+           id="Bugzilla_password_[% qs_suffix %]" 
            name="Bugzilla_password"
            type="password"
     >
     <input class="bz_password bz_default_hidden bz_mini_login_help" type="text" 
-           id="Bugzilla_password_dummy[% qs_suffix %]" value="password"
-           onfocus="mini_login_on_focus('[% qs_suffix FILTER js %]')"
+           id="Bugzilla_password_dummy_[% qs_suffix %]" value="password"
+           onfocus="mini_login_on_focus('_[% qs_suffix %]')"
     >
     [% IF Param('rememberlogin') == 'defaulton' ||
           Param('rememberlogin') == 'defaultoff' 
     %]
-      <input type="checkbox" id="Bugzilla_remember[% qs_suffix %]" 
+      <input type="checkbox" id="Bugzilla_remember_[% qs_suffix %]" 
              name="Bugzilla_remember" value="on" class="bz_remember"
                  [%+ "checked" IF Param('rememberlogin') == "defaulton" %]>
-      <label for="Bugzilla_remember[% qs_suffix %]">Remember</label>
+      <label for="Bugzilla_remember_[% qs_suffix %]">Remember</label>
     [% END %]
     <input type="submit" name="GoAheadAndLogIn" value="Log in" 
-            id="log_in[% qs_suffix %]">
+            id="log_in_[% qs_suffix %]">
     <script type="text/javascript">
       mini_login_constants = {
           "login" : "login",
@@ -87,30 +87,30 @@
         #%]
       if (YAHOO.env.ua.gecko || YAHOO.env.ua.ie || YAHOO.env.ua.opera) {
           YAHOO.util.Event.onDOMReady(function() {
-              init_mini_login_form('[% qs_suffix FILTER html %]');
+              init_mini_login_form('_[% qs_suffix %]');
           });
       }
       else {
           YAHOO.util.Event.on(window, 'load', function () {
               window.setTimeout(function() {
-                  init_mini_login_form('[% qs_suffix FILTER html %]');
+                  init_mini_login_form('_[% qs_suffix %]');
               }, 200);
           });
     }
     </script>
-    <a href="#" onclick="return hide_mini_login_form('[% qs_suffix %]')">[x]</a>
+    <a href="#" onclick="return hide_mini_login_form('_[% qs_suffix %]')">[x]</a>
   </form>
 </li>
-<li id="forgot_container[% qs_suffix %]">
+<li id="forgot_container_[% qs_suffix %]">
   <span class="separator">| </span>
-  <a id="forgot_link[% qs_suffix %]" href="?GoAheadAndLogIn=1#forgot"
-     onclick="return show_forgot_form('[% qs_suffix %]')">Forgot Password</a>
-  <form action="token.cgi" method="post" id="forgot_form[% qs_suffix %]"
+  <a id="forgot_link_[% qs_suffix %]" href="?GoAheadAndLogIn=1#forgot"
+     onclick="return show_forgot_form('_[% qs_suffix %]')">Forgot Password</a>
+  <form action="token.cgi" method="post" id="forgot_form_[% qs_suffix %]"
         class="mini_forgot bz_default_hidden">
     <label>Login: <input type="text" name="loginname" size="20"></label>
-    <input id="forgot_button[% qs_suffix %]" value="Reset Password" 
+    <input id="forgot_button_[% qs_suffix %]" value="Reset Password" 
            type="submit">
     <input type="hidden" name="a" value="reqpw">
-    <a href="#" onclick="return hide_forgot_form('[% qs_suffix %]')">[x]</a>
+    <a href="#" onclick="return hide_forgot_form('_[% qs_suffix %]')">[x]</a>
   </form>
 </li>

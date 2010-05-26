@@ -343,7 +343,7 @@ sub record_votes {
         my $v = $sth_getVotes->fetchrow_array || 0;
         $sth_updateVotes->execute($v, $id);
 
-        my $confirmed = CheckIfVotedConfirmed($id);
+        my $confirmed = Bugzilla::Bug::CheckIfVotedConfirmed($id);
         push (@updated_bugs, $id) if $confirmed;
     }
     $dbh->bz_commit_transaction();

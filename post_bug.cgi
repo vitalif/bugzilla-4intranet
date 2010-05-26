@@ -239,12 +239,20 @@ if (defined($cgi->upload('data')) || $cgi->param('attachurl') ||
     my $error_mode_cache = Bugzilla->error_mode;
     Bugzilla->error_mode(ERROR_MODE_DIE);
     eval {
+        my $data = scalar $cgi->param('attachurl') || $cgi->upload('data');
+        my $filename = '';
+        $filename = scalar $cgi->upload('data') || $cgi->param('filename') unless $cgi->param('attachurl');
+        if (scalar $cgi->param('text_attachment') !~ /^\s*$/so)
+        {
+            $data = $cgi->param('text_attachment');
+            $filename = $cgi->param('description');
+        }
         $attachment = Bugzilla::Attachment->create(
             {bug           => $bug,
              creation_ts   => $timestamp,
-             data          => scalar $cgi->param('attachurl') || $cgi->upload('data'),
+             data          => $data,
              description   => scalar $cgi->param('description'),
-             filename      => $cgi->param('attachurl') ? '' : scalar $cgi->upload('data'),
+             filename      => $filename,
              ispatch       => scalar $cgi->param('ispatch'),
              isprivate     => scalar $cgi->param('isprivate'),
              isurl         => scalar $cgi->param('attachurl'),

@@ -372,6 +372,7 @@ sub confirm_create_account {
 
     my $password = $cgi->param('passwd1') || '';
     validate_password($password, $cgi->param('passwd2') || '');
+
     # Make sure that these never show up anywhere in the UI.
     $cgi->delete('passwd1', 'passwd2');
 
@@ -390,6 +391,7 @@ sub confirm_create_account {
     # Log in the new user using credentials he just gave.
     $cgi->param('Bugzilla_login', $otheruser->login);
     $cgi->param('Bugzilla_password', $password);
+    delete Bugzilla->request_cache->{sub_login_to_id}->{$otheruser->login};
     Bugzilla->login(LOGIN_OPTIONAL);
 
     print $cgi->header();

@@ -322,7 +322,7 @@ sub controlled_plus_generic
     my $controlled_values;
     unless ($controlled_values = $self->{controlled_plus_generic})
     {
-    my $fields = $self->field->controls_values_of;
+        my $fields = $self->field->controls_values_of;
         foreach my $field (@$fields)
         {
             my $f = Bugzilla->dbh->selectcol_arrayref(
@@ -383,7 +383,7 @@ sub set_visibility_values
     my ($value_ids) = @_;
     update_visibility_values($self->field->value_field, $self->field, $self->id, $self->visibility_values, $value_ids);
     delete $self->{visibility_values};
-    return @$value_ids;
+    return $value_ids && scalar @$value_ids;
 }
 
 ##############

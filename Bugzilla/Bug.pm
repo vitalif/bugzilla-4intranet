@@ -2820,57 +2820,11 @@ sub flag_types {
     my $vars = { target_type  => 'bug',
                  product_id   => $self->{product_id},
                  component_id => $self->{component_id},
-                 bug_id       => $self->bug_id };
+                 bug_id       => $self->bug_id,
+                 bug_obj      => $self,
+               };
 
     $self->{'flag_types'} = Bugzilla::Flag->_flag_types($vars);
-
-    # Custom list for flag selection - moved from flag/list.html.tmpl
-    # Fucking templaty logic
-    my ($cl, $allow, $st);
-    my $user = Bugzilla->user;
-    foreach my $type (@{$self->{flag_types}})
-    {
-        # Build custom userlist for setting flag
-        $cl = new Bugzilla::FlagType::UserList;
-        $cl->add('CC', @{$self->cc_users || []});
-        $cl->add(CompQA => $_)   for $self->component_obj->default_qa_contact || ();
-        $cl->add(Reporter => $_) for $self->reporter || ();
-        $cl->add(QA => $_)       for $self->qa_contact || ();
-        $cl->add(Assignee => $_) for $self->assigned_to || ();
-        $type->{custom_list} = $cl;
-        $type->{allow_other} = 1;
-        foreach my $flag (@{$type->{flags}})
-        {
-            unless ($type->is_active && $type->is_requestable && $type->is_requesteeble)
-            {
-                # In case there was already a requestee, the only valid action
-                # is to remove the requestee or leave it alone.
-                $flag->{custom_list} = new Bugzilla::FlagType::UserList;
-                $flag->{custom_list}->add('', $flag->requestee);
-                $flag->{allow_other} = 0;
-            }
-            else
-            {
-                # Else take type's custom list
-                $flag->{custom_list} = $cl;
-                $flag->{allow_other} = 1;
-            }
-            $st = [];
-            # TODO remove hardcoded status list
-            push @$st, 'X' if $user->can_request_flag($type) || $flag->setter_id == $user->id;
-            if ($type->is_active)
-            {
-                push @$st, '?' if $type->is_requestable && $user->can_request_flag($type) || $flag->status == '?';
-                push @$st, '+' if $user->can_set_flag($type) || $flag->status == '+';
-                push @$st, '-' if $user->can_set_flag($type) || $flag->status == '-';
-            }
-            else
-            {
-                push @$st, $flag->status;
-            }
-            $flag->{statuses} = $st;
-        }
-    }
 
     return $self->{'flag_types'};
 }

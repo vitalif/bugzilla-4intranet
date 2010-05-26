@@ -1065,6 +1065,56 @@ sub _flag_types {
     # or component).
     @$flags = grep { exists $flagtypes{$_->type_id} } @$flags;
     push(@{$flagtypes{$_->type_id}->{flags}}, $_) foreach @$flags;
+
+    # Custom list for flag selection - moved from flag/list.html.tmpl
+    # Fucking templaty logic
+    my ($cl, $allow, $st);
+    my $user = Bugzilla->user;
+    my $bug = $vars->{bug_obj};
+    foreach my $type (@$flag_types)
+    {
+        # Build custom userlist for setting flag
+        $cl = new Bugzilla::FlagType::UserList;
+        $cl->add('CC', @{$bug->cc_users || []});
+        $cl->add(CompQA => $_)   for $bug->component_obj->default_qa_contact || ();
+        $cl->add(Reporter => $_) for $bug->reporter || ();
+        $cl->add(QA => $_)       for $bug->qa_contact || ();
+        $cl->add(Assignee => $_) for $bug->assigned_to || ();
+        $type->{custom_list} = $cl;
+        $type->{allow_other} = 1;
+        foreach my $flag (@{$type->{flags}})
+        {
+            unless ($type->is_active && $type->is_requestable && $type->is_requesteeble)
+            {
+                # In case there was already a requestee, the only valid action
+                # is to remove the requestee or leave it alone.
+                $flag->{custom_list} = new Bugzilla::FlagType::UserList;
+                $flag->{custom_list}->add('', $flag->requestee);
+                $flag->{allow_other} = 0;
+            }
+            else
+            {
+                # Else take type's custom list
+                $flag->{custom_list} = $cl;
+                $flag->{allow_other} = 1;
+            }
+            $st = [];
+            # TODO remove hardcoded status list
+            push @$st, 'X' if $user->can_request_flag($type) || $flag->setter_id == $user->id;
+            if ($type->is_active)
+            {
+                push @$st, '?' if $type->is_requestable && $user->can_request_flag($type) || $flag->status eq '?';
+                push @$st, '+' if $user->can_set_flag($type) || $flag->status eq '+';
+                push @$st, '-' if $user->can_set_flag($type) || $flag->status eq '-';
+            }
+            else
+            {
+                push @$st, $flag->status;
+            }
+            $flag->{statuses} = $st;
+        }
+    }
+
     return $flag_types;
 }
 
