@@ -161,7 +161,7 @@ sub report_columns {
 
 sub _check_status{
     my ($invocant, $status) = @_;
-    $status = trim($status);
+    $status = 'CONFIRMED';#trim($status);
     my $status_id;
     if ($status =~ /^\d+$/){
         $status_id = Testopia::Util::validate_selection($status, 'case_status_id', 'test_case_status');

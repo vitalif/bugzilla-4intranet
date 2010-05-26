@@ -917,10 +917,10 @@ Testopia.TestCase.Store = function(params, auto){
         }, {
             name: "priority",
             mapping: "priority"
-        }, {
+        }, /*{
             name: "status",
             mapping: "status"
-        }, {
+        },*/ {
             name: "run_count",
             mapping: "run_count"
         }, {
@@ -936,6 +936,7 @@ Testopia.TestCase.Store = function(params, auto){
 };
 Ext.extend(Testopia.TestCase.Store, Ext.data.JsonStore);
 
+/*
 Testopia.TestCase.StatusListStore = function(auto){
     Testopia.TestCase.StatusListStore.superclass.constructor.call(this, {
         url: 'tr_quicksearch.cgi',
@@ -956,6 +957,7 @@ Testopia.TestCase.StatusListStore = function(auto){
     });
 };
 Ext.extend(Testopia.TestCase.StatusListStore, Ext.data.JsonStore);
+*/
 
 Testopia.TestCase.ComponentStore = function(params, auto){
     params.action = 'getcomponents';
@@ -1007,6 +1009,7 @@ Ext.extend(Testopia.TestCase.PriorityStore, Ext.data.JsonStore);
 /*
  * Testopia.TestCase.StatusListCombo
  */
+/*
 Testopia.TestCase.StatusListCombo = function(cfg){
     Testopia.TestCase.StatusListCombo.superclass.constructor.call(this, {
         id: cfg.id || 'case_status_combo',
@@ -1029,6 +1032,7 @@ Testopia.TestCase.StatusListCombo = function(cfg){
     }, this);
 };
 Ext.extend(Testopia.TestCase.StatusListCombo, Ext.form.ComboBox);
+*/
 
 /*
  * Testopia.TestCase.ComponentCombo
@@ -1115,7 +1119,7 @@ Testopia.TestCase.Filter = function(){
         title: 'Search for Test Cases',
         region: 'north',
         layout: 'fit',
-        frame: true,
+        frame: false,
         collapsible: true,
         height: 120,
         items: [{
@@ -1190,10 +1194,10 @@ Testopia.TestCase.Grid = function(params, cfg){
             }, {
                 name: "priority",
                 mapping: "priority"
-            }, {
+            }, /*{
                 name: "status",
                 mapping: "status"
-            }, {
+            }, */{
                 name: "run_count",
                 mapping: "run_count"
             }, {
@@ -1317,14 +1321,14 @@ Testopia.TestCase.Grid = function(params, cfg){
         width: 110,
         sortable: true,
         dataIndex: 'component'
-    }, {
+    }, /*{
         header: "Status",
         width: 100,
         sortable: true,
         dataIndex: 'status',
         editor: new Testopia.TestCase.StatusListCombo('status'),
         renderer: Testopia.Util.ComboRenderer.createDelegate(this)
-    }, {
+    }, */{
         header: "Requirement",
         width: 40,
         sortable: true,
@@ -1529,7 +1533,7 @@ Ext.extend(Testopia.TestCase.Grid, Ext.grid.GridPanel, {
                             handler: function(){
                                 var win = new Ext.Window({
                                     title: 'Edit Category',
-                                    id: 'status-win',
+                                    id: 'category-win',
                                     plain: true,
                                     shadow: false,
                                     width: 300,
@@ -1558,7 +1562,7 @@ Ext.extend(Testopia.TestCase.Grid, Ext.grid.GridPanel, {
                                 });
                                 win.show(this);
                             }
-                        }, {
+                        }, /*{
                             text: 'Status',
                             handler: function(){
                                 var win = new Ext.Window({
@@ -1591,7 +1595,7 @@ Ext.extend(Testopia.TestCase.Grid, Ext.grid.GridPanel, {
                                 });
                                 win.show(this);
                             }
-                        }, {
+                        }, */{
                             text: 'Priority',
                             handler: function(){
                                 var win = new Ext.Window({
@@ -1996,14 +2000,14 @@ Testopia.TestCase.NewCaseForm = function(plan_ids, product_id, run_id){
             
             }, {
                 layout: 'form',
-                items: [new Testopia.TestCase.StatusListCombo({
+                items: [/*new Testopia.TestCase.StatusListCombo({
                     fieldLabel: '<b>Status</b>',
                     hiddenName: 'status',
                     mode: 'local',
                     value: DEFAULT_CASE_STATUS,
                     allowBlank: false,
                     id: 'ncf-casestatus'
-                }), {
+                }), */{
                     xtype: 'textfield',
                     fieldLabel: 'Add Tags',
                     id: 'ncf-addtags',
@@ -2737,12 +2741,12 @@ Testopia.TestCaseRun.Panel = function(params, run){
     this.caserun = cr;
     
     Testopia.TestCaseRun.Panel.superclass.constructor.call(this, {
-        layout: 'border',
+        layout: 'anchor',
         title: 'Test Cases',
         id: 'caserun-panel',
         border: false,
         bodyBorder: false,
-        items: [filter, cgrid, cr]
+        items: [cr, filter, cgrid]
     });
     cr.disable();
     this.on('activate', this.onActivate, this);
@@ -2760,13 +2764,12 @@ Testopia.TestCaseRun.Filter = function(){
         title: 'Search for Test Results',
         id: 'caserun_search',
         region: 'north',
+        height: 'auto',
         border: false,
         bodyBorder: false,
-        layout: 'fit',
         split: true,
         frame: true,
         collapsible: true,
-        height: 'auto',
         autoScroll: true,
         contentEl: 'caserun-filter-div',
         buttons: [new Ext.form.TextField({
@@ -3614,11 +3617,11 @@ Testopia.TestCaseRun.Grid = function(params, run){
         })]
     });
     Testopia.TestCaseRun.Grid.superclass.constructor.call(this, {
-        region: 'center',
         id: 'caserun_grid',
+//        region: 'north',
         border: false,
         bodyBorder: false,
-        height: '400',
+        height: '200',
         stripeRows: true,
         split: true,
         enableDragDrop: true,
@@ -3731,7 +3734,7 @@ Ext.extend(Testopia.TestCaseRun.Grid, Ext.grid.EditorGridPanel, {
                             handler: function(){
                                 var win = new Ext.Window({
                                     title: 'Edit Build',
-                                    id: 'status-win',
+                                    id: 'build-win',
                                     plain: true,
                                     shadow: false,
                                     width: 320,
@@ -3776,7 +3779,7 @@ Ext.extend(Testopia.TestCaseRun.Grid, Ext.grid.EditorGridPanel, {
                             handler: function(){
                                 var win = new Ext.Window({
                                     title: 'Edit Environment',
-                                    id: 'status-win',
+                                    id: 'env-win',
                                     plain: true,
                                     shadow: false,
                                     width: 320,
@@ -3858,7 +3861,7 @@ Ext.extend(Testopia.TestCaseRun.Grid, Ext.grid.EditorGridPanel, {
                             handler: function(){
                                 var win = new Ext.Window({
                                     title: 'Edit Category',
-                                    id: 'status-win',
+                                    id: 'category-win',
                                     plain: true,
                                     shadow: false,
                                     width: 300,
@@ -3894,7 +3897,7 @@ Ext.extend(Testopia.TestCaseRun.Grid, Ext.grid.EditorGridPanel, {
                             handler: function(){
                                 var win = new Ext.Window({
                                     title: 'Edit Assignee',
-                                    id: 'status-win',
+                                    id: 'assignee-win',
                                     plain: true,
                                     shadow: false,
                                     width: 320,
@@ -4191,8 +4194,11 @@ Testopia.TestCaseRun.Info = function(){
         Ext.getCmp('effect_editor').setValue(r[0].get('results'));
         if (!r[0].get('results').match(/^\s*(<[^>]*>\s*)*$/))
             Ext.getCmp('showhide_results_btn').handler();
-        Ext.getCmp('setup_editor').setValue(r[0].get('setup'));
-        Ext.getCmp('breakdown_editor').setValue(r[0].get('breakdown'));
+        if (Param_Show_Setup_Breakdown)
+        {
+            Ext.getCmp('setup_editor').setValue(r[0].get('setup'));
+            Ext.getCmp('breakdown_editor').setValue(r[0].get('breakdown'));
+        }
         Ext.getCmp('caserun_tb_summary').setText('Case ' + r[0].get('case_id') + ' - ' + r[0].get('summary'));
     });
     
@@ -4215,8 +4221,11 @@ Testopia.TestCaseRun.Info = function(){
     processText = function(){
         var testopia_form = new Ext.form.BasicForm('testopia_helper_frm', {});
         var params = {};
-        params.tcsetup = Ext.getCmp('setup_editor').getValue();
-        params.tcbreakdown = Ext.getCmp('breakdown_editor').getValue();
+        if (Param_Show_Setup_Breakdown)
+        {
+            params.tcsetup = Ext.getCmp('setup_editor').getValue();
+            params.tcbreakdown = Ext.getCmp('breakdown_editor').getValue();
+        }
         params.tcaction = Ext.getCmp('action_editor').getValue();
         params.tceffect = Ext.getCmp('effect_editor').getValue();
         params.case_id = Ext.getCmp('caserun_grid').getSelectionModel().getSelected().get('case_id');
@@ -8047,8 +8056,8 @@ Testopia.TestRun.NewRunForm = function(plan){
         plan = plan.data;
     }
     var casegrid = new Testopia.TestCase.Grid({
-        plan_id: plan.plan_id,
-        case_status: 'CONFIRMED'
+        plan_id: plan.plan_id/*,
+        case_status: 'CONFIRMED'*/
     }, {
         title: 'Select From Existing Cases',
         region: 'center',
@@ -8069,7 +8078,7 @@ Testopia.TestRun.NewRunForm = function(plan){
         }, '->', {
                 xtype: 'checkbox',
                 id: 'selectall'
-        }, ' ', ' Include all CONFIRMED Cases in Plan ' + plan.id);
+        }, ' ', /*' Include all CONFIRMED Cases in Plan '*/ 'Include all cases in plan ' + plan.id);
     });
 
     Testopia.TestRun.NewRunForm.superclass.constructor.call(this, {
@@ -8110,7 +8119,7 @@ Testopia.TestRun.NewRunForm = function(plan){
                     var filter = new Ext.form.BasicForm('case_filter');
                     var params = filter.getValues();
                     params.plan_id = plan.plan_id;
-                    params.status = 'CONFIRMED';
+                    /*params.status = 'CONFIRMED';*/
                     casegrid.store.baseParams = params;
                     casegrid.store.load();
                 }
@@ -8590,7 +8599,7 @@ Testopia.TestRun.AddCaseForm = function(run){
     }
     var casegrid = new Testopia.TestCase.Grid({
         plan_id: run.plan_id,
-        case_status: 'CONFIRMED',
+        /*case_status: 'CONFIRMED',*/
         exclude: run.run_id
     }, {
         title: 'Select From Existing Cases',
@@ -8646,7 +8655,7 @@ Testopia.TestRun.AddCaseForm = function(run){
                     var params = filter.getValues();
                     params.plan_id = run.plan_id;
                     params.exclude  = run.run_id;
-                    params.status = 'CONFIRMED';
+                    /*params.status = 'CONFIRMED';*/
                     params.limit = Ext.getCmp('case_pager').pageSize;
                     casegrid.store.baseParams = params;
                     casegrid.store.load();
@@ -8821,10 +8830,10 @@ Testopia.BugReport = function(params){
             }, {
                 name: "bug_id",
                 mapping: "bug_id"
-            }, {
+            }, /*{
                 name: "case_status",
                 mapping: "case_status"
-            }, {
+            }, */{
                 name: "bug_status",
                 mapping: "bug_status"
             }, {
@@ -8876,12 +8885,12 @@ Testopia.BugReport = function(params){
         dataIndex: 'bug_status',
         sortable: true,
         hideable: true
-    }, {
+    }, /*{
         header: 'Case Status',
         dataIndex: 'case_status',
         sortable: true,
         hideable: true
-    }, {
+    }, */{
         header: 'Severity',
         dataIndex: 'severity',
         sortable: true,

@@ -452,21 +452,8 @@ sub Send {
             # So the user exists, can see the bug, and wants mail in at least
             # one role. But do we want to send it to them?
 
-            # We shouldn't send mail if this is a dependency mail (i.e. there
-            # is something in @depbugs), and any of the depending bugs are not
-            # visible to the user. This is to avoid leaking the summaries of
-            # confidential bugs.
-            my $dep_ok = 1;
-            foreach my $dep_id (@depbugs) {
-                if (!$user->can_see_bug($dep_id)) {
-                   $dep_ok = 0;
-                   last;
-                }
-            }
-
-            # Make sure the user isn't in the nomail list, and the insider and
-            # dep checks passed.
-            if ($user->email_enabled && $dep_ok) {
+            # Make sure the user isn't in the nomail list.
+            if ($user->email_enabled) {
                 # OK, OK, if we must. Email the user.
                 $sent_mail = sendMail(
                     bug     => $bug,
@@ -521,13 +508,17 @@ sub sendMail
     my $new_diffs = [];
     foreach my $diff (@$diffs)
     {
+        # Exclude diffs with timetracking information for non-timetrackers
+        # Exclude diffs with private attachments for non-insiders
+        # Exclude dependency diffs with if dependencies are not visible to the user
         if (exists($diff->{'fieldname'}) &&
             ($diff->{'fieldname'} ne 'estimated_time' &&
              $diff->{'fieldname'} ne 'remaining_time' &&
              $diff->{'fieldname'} ne 'work_time' &&
              $diff->{'fieldname'} ne 'deadline' ||
              $user->is_timetracker) &&
-            (!$diff->{'isprivate'} || $user->is_insider))
+            (!$diff->{'isprivate'} || $user->is_insider) &&
+            (!$diff->{dep} || $user->can_see_bug($diff->{dep})))
         {
             push @$new_diffs, $diff;
         }
@@ -536,6 +527,7 @@ sub sendMail
     $diffs = $new_diffs;
 
     if (!$user->is_insider) {
+        # Exclude private comments for non-insiders
         @send_comments = grep { !$_->is_private } @send_comments;
     }
 

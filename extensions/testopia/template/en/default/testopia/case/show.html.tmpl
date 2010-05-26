@@ -78,9 +78,9 @@ Ext.onReady(function(){
             case 'alias': 
                 params.alias = value;
                 break;
-            case 'status': 
+            /*case 'status': 
                 params.status = value;
-                break;
+                break;*/
             case 'summary': 
                 params.summary = value;
                 break;
@@ -624,13 +624,13 @@ Ext.onReady(function(){
         submitEdits('priority', r.get('value'));
     });
 
-    var sbox = new Testopia.TestCase.StatusListCombo({
+    /*var sbox = new Testopia.TestCase.StatusListCombo({
         hiddenName: 'status',
         transform: 'status'
     });
     sbox.on('select', function(c,r,i){
         submitEdits('status', r.get('value'));
-    });
+    });*/
 
     var cbox = new Testopia.Category.Combo({
         hiddenName: 'category',
@@ -707,7 +707,7 @@ Ext.get('case_overview').show();
     <tr class="bz_row_header">
       <th>Category</th>
       <th>Priority</th>
-      <th>Status</th>
+      <!--<th>Status</th>-->
 
       </tr>
     <tr class="bz_row_data">
@@ -733,15 +733,15 @@ Ext.get('case_overview').show();
           </td><td> <img src='images/help.png' id="priority_help" style="cursor:pointer" onclick='window.open("testing_priorities.html","Priority Definitions","resizable=no, scrollbars=yes, width=550,height=420");'/></td></tr>
         </table>
       </td>
-      <td>[% IF case.canedit %]
-          [% PROCESS select sel = { name      => 'status',
+      <!--<td>[%# IF case.canedit %]
+          [%# PROCESS select sel = { name      => 'status',
                                     accesskey => 's', 
                                     list      => case.get_status_list
                                     default   => case.status } %]
-          [% ELSE %]
-          [% case.status FILTER html %]
-          [% END %]
-      </td>
+          [%# ELSE %]
+          [%# case.status FILTER html %]
+          [%# END %]
+      </td>-->
     </tr>
   </tbody>
 </table>

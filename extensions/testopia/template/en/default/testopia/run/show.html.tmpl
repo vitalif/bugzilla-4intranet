@@ -208,24 +208,21 @@ Ext.onReady(function(){
                     }
                 }]
             },
-            new Testopia.Util.HistoryList('run', [% run.id FILTER none %])
+            new Testopia.Util.HistoryList('run', [% run.id FILTER none %]),
+            {
+                id: 'run_overview_pane',
+                title: '[% title FILTER js %]',
+                headerAsText: true,
+                contentEl: 'run_overview',
+            }
             ]
-        },{
-            split: true,
-            id: 'run_overview_pane',
-            title: '[% title FILTER js %]',
-            headerAsText: true,
-            region: 'center',
-            collapsible: true,
-            contentEl: 'run_overview',
-            height: 'auto'
-        },{
-            collapsible: true,
+        }/*,{
+            collapsible: false,
             title: ' ',
+            region: 'south',
             split: true,
-            region:'east',
             layout: 'fit',
-            width: 200,
+            height: 200,
             items: [{
                 xtype: 'tabpanel',
                 activeTab: 0,
@@ -239,7 +236,7 @@ Ext.onReady(function(){
                     
                 ]
             }]
-        }]
+        }*/]
     });
 [% IF run.canedit %]   
   [% IF run.canstatus %] 
@@ -484,10 +481,10 @@ Ext.onReady(function(){
 <form id="attachmentgrideditform"></form>
 
 [%##### Overview #####%]
-<div id="run_overview" style="visibility:hidden">
+<div id="run_overview">
 <div id="run-tb-div"></div>
 <div id="caserun-tb-div"></div>
-<table border="0" cellpadding="1" width="100%">
+<table border="0" cellpadding="1">
   <tbody align="left">
     <tr class="bz_row_header">
       <th colspan="2">Run Summary</th>

@@ -32,18 +32,18 @@
     <legend><strong>Product</strong></legend>
 <table>
   <tr class="bz_row_header">
-    <th>Status</th>
+    <!--<th>Status</th>-->
     <th>Priority</th>
     <th>Automatic</th>
   </tr>
   <tr>
-    <td style="padding-right: 30px;">
-    [% PROCESS select sel = { name  => 'case_status_id',
-                  accesskey => 'c', 
-                  list      => case.get_status_list,
-                  elements  => 5,
-                  mult      => 1 } %]
-    </td>
+    <!--<td style="padding-right: 30px;">
+    [%# PROCESS select sel = { name  => 'case_status_id',
+      #            accesskey => 'c', 
+      #            list      => case.get_status_list,
+      #            elements  => 5,
+      #            mult      => 1 } %]
+    </td>-->
     <td style="padding-right: 30px;">
     [% PROCESS select sel = { name  => 'priority_id',
                   accesskey => 'p', 
