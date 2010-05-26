@@ -105,8 +105,8 @@ sub login {
             {
                 my $relativeurl = Bugzilla->cgi->url(
                     -path_info => 1,
-                    -query => 1,
-                    -relative => 1
+                    -query     => 1,
+                    -relative  => 1
                 );
                 my $url = $loc->{$regemail}->{urlbase} . $relativeurl;
                 print Bugzilla->cgi->redirect(-location => $url);

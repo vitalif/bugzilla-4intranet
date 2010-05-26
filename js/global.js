@@ -151,7 +151,13 @@ function menuforusers_initcombo(id, multi)
   var ed = document.getElementById(id);
   if (!sel || !ed)
     return;
+  var p = sel.parentNode;
+  /* We must move <select> out of its parent element temporarily,
+     because it can be invisible in some cases (i.e. New Bug form),
+     and have offsetWidth=offsetHeight=0 */
+  document.body.appendChild(sel);
   ed.style.width = (sel.offsetWidth-sel.offsetHeight+2)+'px';
+  p.appendChild(sel);
   ed.style.borderWidth = 0;
   menuforusers_tocombo(id);
   if (multi)

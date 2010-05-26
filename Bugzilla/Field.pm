@@ -673,7 +673,7 @@ sub set_visibility_values
     my ($value_ids) = @_;
     update_visibility_values($self->visibility_field, $self, 0, $self->visibility_values, $value_ids);
     delete $self->{visibility_values};
-    return @$value_ids;
+    return $value_ids && @$value_ids;
 }
 
 sub set_value_field
@@ -1099,6 +1099,7 @@ sub update_visibility_values
         undef, $controlled_field->id, $controlled_value);
     defined($value_ids) or return undef;
     ref $value_ids or $value_ids = [ $value_ids ];
+    @$value_ids or return undef;
     my $type = Bugzilla::Field::Choice->type($controller_field);
     @$value_ids = map { $_ ? $type->check({ id => $_ }) : () } @$value_ids;
     my ($a, $r) = diff_arrays([map { $_->id } @$value_ids], [map { $_->id } @$old_ids]);

@@ -1823,10 +1823,10 @@ sub login_to_id
     }
     else
     {
-    my $dbh = Bugzilla->dbh;
-    # No need to validate $login -- it will be used by the following SELECT
-    # statement only, so it's safe to simply trick_taint.
-    trick_taint($login);
+        my $dbh = Bugzilla->dbh;
+        # No need to validate $login -- it will be used by the following SELECT
+        # statement only, so it's safe to simply trick_taint.
+        trick_taint($login);
         $cache->{$login} = $user_id = $dbh->selectrow_array(
             "SELECT userid FROM profiles WHERE " . $dbh->sql_istrcmp('login_name', '?'),
             undef, $login

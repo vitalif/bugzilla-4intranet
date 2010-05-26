@@ -471,7 +471,9 @@ sub flag_types {
     my $vars = { target_type  => 'attachment',
                  product_id   => $self->bug->product_id,
                  component_id => $self->bug->component_id,
-                 attach_id    => $self->id };
+                 attach_id    => $self->id,
+                 bug_obj      => $self->bug,
+               };
 
     $self->{flag_types} = Bugzilla::Flag->_flag_types($vars);
     return $self->{flag_types};

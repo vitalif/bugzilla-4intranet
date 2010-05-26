@@ -131,7 +131,7 @@ sub check {
     # "there is no X with the name 0". This is true even for ids. So here,
     # we only check if the parameter is undefined or empty.
     if (!defined $param->{$check_param} or $param->{$check_param} eq '') {
-        ThrowUserError('object_not_specified', { class => $class });
+        ThrowCodeError('object_not_specified', { class => $class });
     }
 
     my $obj = $class->new($param);

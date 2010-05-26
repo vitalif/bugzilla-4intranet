@@ -44,7 +44,7 @@
     Произошла внутренняя ошибка. Извините... Кто-то, похоже, погрыз провода.<br>
   </p>
   <div style="font-size: 150%; background-color: #ffd0d0">
-  <p style="margin: 0.5em 0 0 0">[% error_message.replace("\n\n", "</p><p>") FILTER none %]</p>
+  <p style="margin: 0.5em 0 0 0" id="error_msg">[% error_message.replace("\n\n", "</p><p>") FILTER none %]</p>
   </div>
   <p style="margin-bottom: 0px">
   [% IF Param('report_code_errors_to_maintainer') %]

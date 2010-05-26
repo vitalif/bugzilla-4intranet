@@ -65,7 +65,7 @@
         font-weight: bold;
     }
 
-    #message {
+    .message {
         border: 1px solid red;
         margin: 0.3em 0em;
         padding: 0.3em;

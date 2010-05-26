@@ -122,7 +122,6 @@
     [% IF group %]
       you aren't a member of the '[% group FILTER html %]' group,
     [% END %]
-
     [% IF reason %]
       [% IF group %] and [% END %]
       [% IF reason == "cant_bless" %]
@@ -131,7 +130,6 @@
         there are visibility restrictions on certain user groups,
       [% END %]
     [% END %]
-
     [% IF group || reason %] and so [% END %] you are not authorized to
     [% IF action == "add" %]
       add new
@@ -140,7 +138,6 @@
     [% ELSE %]
       [%+ action %]
     [% END %]
-
     [% IF object == "administrative_pages" %]
       administrative pages
     [% ELSIF object == "attachment" %]
@@ -199,7 +196,6 @@
     [% ELSIF object == "workflow" %]
       the workflow
     [% END %].
-
     [% Hook.process("auth_failure") %]
 
   [% ELSIF error == "attachment_deletion_disabled" %]

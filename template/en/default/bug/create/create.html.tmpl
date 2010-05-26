@@ -225,15 +225,10 @@ function set_assign_to() {
 }
 
 function handleWantsAttachment(wants_attachment) {
-    if (wants_attachment) {
-        document.getElementById('attachment_false').style.display = 'none';
-        document.getElementById('attachment_true').style.display = 'block';
-    }
-    else {
-        document.getElementById('attachment_false').style.display = 'block';
-        document.getElementById('attachment_true').style.display = 'none';
-        clearAttachmentFields();
-    }
+    var f = document.getElementById('attachment_false');
+    var t = document.getElementById('attachment_true');
+    f.style.display = wants_attachment ? 'none' : '';
+    t.style.display = wants_attachment ? '' : 'none';
 }
 
 function show_resolution_field(showhide)

@@ -115,13 +115,7 @@
 
 [% BLOCK flag_row %]
   <tr>
-  [% IF first_cell_empty %]
-    <td>&nbsp;</td>
     <td>
-  [% ELSE %]
-    <td colspan="2">
-  [% END %]
-
       [% addl_text FILTER html %]
       <label title="[% type.description FILTER html %]" for="flag_type-[% type.id %]" style="white-space: nowrap">[%- type.name | html %]</label>
     </td>
