@@ -197,7 +197,7 @@ pre { font-family: Consolas, monospace; font-size: 100%; }
       on <a href="[% urlbase %]show_bug.cgi?id=[% d.dep %]">bug [% d.dep %]</a>,
       which changed state.</p>
       <p><a href="[% urlbase %]show_bug.cgi?id=[% d.dep %]">Bug [% d.dep %]</a>
-      summary: [% d.short_desc %].
+      summary: [% d.short_desc | html %].
   </td></tr>
 </table>
 <hr color="#A0A0A0" size="1" />
