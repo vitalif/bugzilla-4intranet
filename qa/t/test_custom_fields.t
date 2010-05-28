@@ -60,7 +60,7 @@ $sel->is_text_present_ok("The new custom field \'cf_qa_list_$bug1_id\' has been 
 
 $sel->click_ok("link=cf_qa_list_$bug1_id");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
-$sel->title_is("Edit the Custom Field \'cf_qa_list_$bug1_id\' (List$bug1_id)");
+$sel->title_like(qr/Edit the Custom Field 'cf_qa_list_$bug1_id' \(List$bug1_id\)/is);
 $sel->click_ok("link=Edit legal values for this field");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_is("Select value for the \'List$bug1_id\' (cf_qa_list_$bug1_id) field");
@@ -197,7 +197,7 @@ $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_is("Custom Fields");
 $sel->click_ok("link=cf_qa_list_$bug1_id");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
-$sel->title_is("Edit the Custom Field \'cf_qa_list_$bug1_id\' (List$bug1_id)");
+$sel->title_like(qr/Edit the Custom Field 'cf_qa_list_$bug1_id' \(List$bug1_id\)/is);
 $sel->click_ok("obsolete");
 $sel->value_is("obsolete", "on");
 $sel->click_ok("edit");
@@ -211,13 +211,20 @@ $sel->value_is("cf_qa_freetext_$bug1_id", "thanks");
 ok(!$sel->is_element_present("cf_qa_list_$bug1_id"), "The custom list is not visible");
 
 # Custom fields are also viewable by logged out users.
+# (When TestProduct is open for anonymous users)
 
 logout($sel);
 $sel->type_ok("quicksearch_top", $bug1_id);
 $sel->click_ok("find_top");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
-$sel->title_like(qr/^Bug $bug1_id/);
-$sel->is_text_present_ok("Freetext$bug1_id: thanks");
+if ($sel->get_title() =~ /^Bug $bug1_id/)
+{
+    $sel->value_is("cf_qa_freetext_$bug1_id", "thanks");
+}
+else
+{
+    $sel->title_like(qr/Access Denied/);
+}
 
 # Powerless users should still be able to CC themselves when
 # custom fields are in use.
@@ -227,7 +234,7 @@ $sel->type_ok("quicksearch_top", $bug1_id);
 $sel->click_ok("find_top");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_like(qr/^Bug $bug1_id/);
-$sel->is_text_present_ok("Freetext$bug1_id: thanks");
+$sel->value_is("cf_qa_freetext_$bug1_id", "thanks");
 $sel->click_ok("cc_edit_area_showhide");
 $sel->type_ok("newcc", $config->{unprivileged_user_login});
 $sel->click_ok("commit");
@@ -244,7 +251,7 @@ $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_is("Custom Fields");
 $sel->click_ok("link=cf_qa_freetext_$bug1_id");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
-$sel->title_is("Edit the Custom Field \'cf_qa_freetext_$bug1_id\' (Freetext$bug1_id)");
+$sel->title_like(qr/Edit the Custom Field 'cf_qa_freetext_$bug1_id' \(Freetext$bug1_id\)/is);
 $sel->click_ok("obsolete");
 $sel->value_is("obsolete", "on");
 $sel->click_ok("edit");

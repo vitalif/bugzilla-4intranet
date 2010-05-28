@@ -23,7 +23,7 @@ $sel->click_ok("find_top");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_like(qr/^Bug $test_bug_1/, "Display bug $test_bug_1");
 $sel->type_ok("work_time", 2.6);
-$sel->type_ok("comment", "I did some work");
+$sel->type_ok("comment_textarea", "I did some work"); # CustIS s/comment/comment_textarea/
 $sel->click_ok("commit");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_is("Bug $test_bug_1 processed");
@@ -48,6 +48,8 @@ $sel->remove_all_selections("bug_status");
 $sel->select_ok("field0-0-0", "label=Hours Worked");
 $sel->select_ok("type0-0-0", "label=is greater than");
 $sel->type_ok("value0-0-0", "0");
+$sel->type_ok("chfieldfrom", "2009-01-01");
+$sel->type_ok("chfieldto", "2009-04-30");
 $sel->click_ok("Search");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_is("Bug List");
