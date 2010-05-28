@@ -506,18 +506,15 @@ sub sendMail
 
     # Filter changes by verifying the user should see them
     my $new_diffs = [];
+    my $tt_fields = { map { $_ => 1 } TIMETRACKING_FIELDS };
     foreach my $diff (@$diffs)
     {
         # Exclude diffs with timetracking information for non-timetrackers
         # Exclude diffs with private attachments for non-insiders
         # Exclude dependency diffs with if dependencies are not visible to the user
-        if (exists($diff->{'fieldname'}) &&
-            ($diff->{'fieldname'} ne 'estimated_time' &&
-             $diff->{'fieldname'} ne 'remaining_time' &&
-             $diff->{'fieldname'} ne 'work_time' &&
-             $diff->{'fieldname'} ne 'deadline' ||
-             $user->is_timetracker) &&
-            (!$diff->{'isprivate'} || $user->is_insider) &&
+        if (exists($diff->{fieldname}) &&
+            (!$tt_fields->{$diff->{fieldname}} || $user->is_timetracker) &&
+            (!$diff->{isprivate} || $user->is_insider) &&
             (!$diff->{dep} || $user->can_see_bug($diff->{dep})))
         {
             push @$new_diffs, $diff;

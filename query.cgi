@@ -266,7 +266,7 @@ $vars->{'resolution'} = Bugzilla::Field->new({name => 'resolution'})->legal_valu
 # If we're not in the time-tracking group, exclude time-tracking fields.
 if (!Bugzilla->user->is_timetracker) {
     foreach my $tt_field (TIMETRACKING_FIELDS) {
-        @{$vars->{fields}} = grep($_->name ne $tt_field, @{$vars->{fields}});
+        @{$vars->{fields}} = grep($_->{name} ne $tt_field, @{$vars->{fields}});
     }
 }
 
@@ -369,7 +369,6 @@ if ($cgi->param('format') && $cgi->param('format') =~ /^report-(table|graph)$/) 
 
 $vars->{'known_name'} = $cgi->param('known_name');
 $vars->{'columnlist'} = $cgi->param('columnlist');
-
 
 # Add in the defaults.
 $vars->{'default'} = \%default;
