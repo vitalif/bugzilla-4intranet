@@ -14,6 +14,8 @@ use base qw(Exporter);
     trim
     url_quote
     random_string
+    pause
+    _ok
 
     log_in
     logout
@@ -32,13 +34,27 @@ use base qw(Exporter);
 );
 
 # How long we wait for pages to load.
-use constant WAIT_TIME => 60000;
+use constant WAIT_TIME => 120000;
 use constant CONF_FILE =>  "../config/selenium_test.conf";
 use constant CHROME_MODE => 1;
 
 #####################
 # Utility Functions #
 #####################
+
+sub _ok($$)
+{
+    ok($_[0], $_[1]) or pause(1);
+}
+
+sub pause
+{
+    my $i = $_[0] || 0;
+    my $c;
+    do { $c = [caller($i++)] } while ($c->[0] eq 'Test::WWW::Selenium' || $c->[0] eq 'WWW::Selenium' || $c->[0] eq 'QA::Util');
+    print STDERR "***PAUSED*** at ".$c->[1].":".$c->[2].". Press Enter to continue\n";
+    getc;
+}
 
 sub random_string {
     my $size = shift || 30; # default to 30 chars if nothing specified
@@ -86,7 +102,8 @@ sub get_selenium {
         host        => $config->{host},
         port        => $config->{port},
         browser     => $chrome_mode ? $config->{experimental_browser_launcher} : $config->{browser},
-        browser_url => $config->{browser_url}
+        browser_url => $config->{browser_url},
+        error_callback => \&pause,
     );
 
     return ($sel, $config);
@@ -151,9 +168,9 @@ sub logout {
 
 # Display the bug form to enter a bug in the given product.
 sub file_bug_in_product {
-    my ($sel, $product, $classification) = @_;
+    my ($sel, $product, $classification, $component) = @_;
 
-    $classification ||= "Unclassified";
+    $classification ||= "All";
     $sel->click_ok("link=New", undef, "Go create a new bug");
     $sel->wait_for_page_to_load(WAIT_TIME);
     my $title = $sel->get_title();
@@ -172,6 +189,7 @@ sub file_bug_in_product {
         ok(1, "Only one product available in $classification. Skipping the 'Choose product' page.")
     }
     $sel->title_is("Enter Bug: $product", "Display form to enter bug data");
+    $sel->select("component", $component ? "label=$component" : "index=0");
 }
 
 # Go to admin.cgi.
@@ -215,7 +233,7 @@ sub add_product {
     my $title = $sel->get_title();
     if ($title eq "Select Classification") {
         ok(1, "More than one enterable classification available. Display them in a list");
-        $sel->click_ok("//a[contains(\@href, 'editproducts.cgi?action=add&amp;classification=$classification')]",
+        $sel->click_ok("//a[contains(\@href, 'editproducts.cgi?action=add&classification=$classification')]",
                        undef, "Add product to $classification");
     }
     else {

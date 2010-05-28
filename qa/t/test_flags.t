@@ -42,20 +42,20 @@ $sel->click_ok("categoryAction-include");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_is("Create Flag Type for Bugs");
 my @inclusion = $sel->get_select_options("inclusion_to_remove");
-ok(scalar @inclusion == 2, "The inclusion list contains 2 elements");
-ok(grep($_ eq "QA-Selenium-TEST:__Any__", @inclusion), "QA-Selenium-TEST:__Any__ is in the inclusion list");
-ok(grep($_ eq "TestProduct:__Any__", @inclusion), "TestProduct:__Any__ is in the inclusion list");
+_ok(scalar @inclusion == 2, "The inclusion list contains 2 elements");
+_ok(grep($_ eq "QA-Selenium-TEST:__Any__", @inclusion), "QA-Selenium-TEST:__Any__ is in the inclusion list");
+_ok(grep($_ eq "TestProduct:__Any__", @inclusion), "TestProduct:__Any__ is in the inclusion list");
 my @exclusion = $sel->get_select_options("exclusion_to_remove");
-ok(scalar @exclusion == 1, "The exclusion list contains 1 element");
-ok($exclusion[0] eq "QA-Selenium-TEST:__Any__", "QA-Selenium-TEST:__Any__ is in the exclusion list");
+_ok(scalar @exclusion == 1, "The exclusion list contains 1 element");
+_ok($exclusion[0] eq "QA-Selenium-TEST:__Any__", "QA-Selenium-TEST:__Any__ is in the exclusion list");
 $sel->type_ok("sortkey", "900");
 $sel->value_is("cc_list", "");
 $sel->value_is("is_active", "on");
 $sel->value_is("is_requestable", "on");
 $sel->value_is("is_requesteeble", "on");
 $sel->value_is("is_multiplicable", "on");
-$sel->select_ok("grant_group", "label=admin");
-$sel->select_ok("request_group", "label=(no group)");
+$sel->select_ok("request_group", "label=admin");
+$sel->select_ok("grant_group", "label=(no group)");
 $sel->click_ok("save");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_is("Flag Type 'SeleniumBugFlag1Test' Created");
@@ -72,20 +72,20 @@ $sel->title_is("Create Flag Type Based on SeleniumBugFlag1Test");
 $sel->type_ok("name", "SeleniumBugFlag2Test");
 $sel->type_ok("description", "bugflag2");
 @inclusion = $sel->get_select_options("inclusion_to_remove");
-ok(scalar @inclusion == 2, "The inclusion list contains 2 elements");
-ok(grep($_ eq "QA-Selenium-TEST:__Any__", @inclusion), "QA-Selenium-TEST:__Any__ is in the inclusion list");
-ok(grep($_ eq "TestProduct:__Any__", @inclusion), "TestProduct:__Any__ is in the inclusion list");
+_ok(scalar @inclusion == 2, "The inclusion list contains 2 elements");
+_ok(grep($_ eq "QA-Selenium-TEST:__Any__", @inclusion), "QA-Selenium-TEST:__Any__ is in the inclusion list");
+_ok(grep($_ eq "TestProduct:__Any__", @inclusion), "TestProduct:__Any__ is in the inclusion list");
 @exclusion = $sel->get_select_options("exclusion_to_remove");
-ok(scalar @exclusion == 1, "The exclusion list contains 1 element");
-ok($exclusion[0] eq "QA-Selenium-TEST:__Any__", "QA-Selenium-TEST:__Any__ is in the exclusion list");
+_ok(scalar @exclusion == 1, "The exclusion list contains 1 element");
+_ok($exclusion[0] eq "QA-Selenium-TEST:__Any__", "QA-Selenium-TEST:__Any__ is in the exclusion list");
 $sel->type_ok("sortkey", "950");
 $sel->value_is("is_active", "on");
 $sel->value_is("is_requestable", "on");
 $sel->value_is("is_requesteeble", "on");
 $sel->value_is("is_multiplicable", "on");
 $sel->type_ok("cc_list", $config->{canconfirm_user_login});
-$sel->selected_label_is("grant_group", "admin");
 $sel->select_ok("request_group", "label=editbugs");
+$sel->select_ok("grant_group", "label=admin");
 $sel->click_ok("save");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_is("Flag Type 'SeleniumBugFlag2Test' Created");
@@ -107,8 +107,8 @@ $sel->value_is("is_requestable", "on");
 $sel->uncheck_ok("is_requesteeble");
 $sel->uncheck_ok("is_multiplicable");
 $sel->value_is("cc_list", "");
-$sel->select_ok("grant_group", "label=(no group)");
-$sel->selected_label_is("request_group", "(no group)");
+$sel->select_ok("request_group", "label=(no group)");
+$sel->selected_label_is("grant_group", "(no group)");
 $sel->click_ok("save");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_is("Flag Type 'SeleniumBugFlag3Test' Created");
@@ -134,12 +134,12 @@ $sel->click_ok("categoryAction-removeInclusion");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_is("Create Flag Type for Attachments");
 @inclusion = $sel->get_select_options("inclusion_to_remove");
-ok(scalar @inclusion == 1, "The inclusion list contains 1 element");
-ok($inclusion[0] eq "TestProduct:__Any__", "TestProduct:__Any__ is in the exclusion list");
+_ok(scalar @inclusion == 1, "The inclusion list contains 1 element");
+_ok($inclusion[0] eq "TestProduct:__Any__", "TestProduct:__Any__ is in the exclusion list");
 $sel->type_ok("sortkey", "700");
 $sel->value_is("cc_list", "");
-$sel->select_ok("grant_group", "label=editbugs");
-$sel->select_ok("request_group", "label=canconfirm");
+$sel->select_ok("request_group", "label=editbugs");
+$sel->select_ok("grant_group", "label=canconfirm");
 $sel->click_ok("save");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_is("Flag Type 'SeleniumAttachmentFlag1Test' Created");
@@ -156,13 +156,13 @@ $sel->title_is("Create Flag Type Based on SeleniumAttachmentFlag1Test");
 $sel->type_ok("name", "SeleniumAttachmentFlag2Test");
 $sel->type_ok("description", "attachmentflag2");
 @inclusion = $sel->get_select_options("inclusion_to_remove");
-ok(scalar @inclusion == 1, "The inclusion list contains 1 element");
-ok($inclusion[0] eq "TestProduct:__Any__", "TestProduct:__Any__ is in the exclusion list");
+_ok(scalar @inclusion == 1, "The inclusion list contains 1 element");
+_ok($inclusion[0] eq "TestProduct:__Any__", "TestProduct:__Any__ is in the exclusion list");
 $sel->type_ok("sortkey", "750");
 $sel->type_ok("cc_list", $config->{admin_user_login});
 $sel->uncheck_ok("is_multiplicable");
-$sel->select_ok("grant_group", "label=(no group)");
 $sel->select_ok("request_group", "label=(no group)");
+$sel->select_ok("grant_group", "label=(no group)");
 $sel->click_ok("save");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_is("Flag Type 'SeleniumAttachmentFlag2Test' Created");
@@ -215,14 +215,16 @@ $sel->is_element_present_ok("flag_type-$flagtype2_id");
 $sel->is_element_present_ok("requestee_type-$flagtype2_id");
 $sel->is_text_present_ok("SeleniumBugFlag3Test");
 $sel->is_element_present_ok("flag_type-$flagtype3_id");
-ok(!$sel->is_element_present("requestee_type-$flagtype3_id"), "SeleniumBugFlag3Test is not specifically requestable");
+_ok(!$sel->is_element_present("requestee_type-$flagtype3_id"), "SeleniumBugFlag3Test is not specifically requestable");
 
 # This is intentional to generate "flagmail". Some flags have a CC list
 # associated with them, some others don't. This is to catch crashes due to
 # the MTA.
 
 $sel->select_ok("flag_type-$flagtype1_id", "label=?");
+$sel->type_ok("requestee_type-$flagtype1_id", $config->{admin_user_login});
 $sel->select_ok("flag_type-$flagtype2_id", "label=?");
+$sel->type_ok("requestee_type-$flagtype2_id", $config->{admin_user_login});
 $sel->select_ok("flag_type-$flagtype3_id", "label=?");
 $sel->type_ok("comment", "Setting all 3 flags to ?");
 $sel->click_ok("commit");
@@ -244,9 +246,9 @@ $sel->is_text_present_ok("$config->{admin_user_username}: SeleniumBugFlag3Test")
 my $flag3_1_id = $sel->get_attribute('//select[@title="bugflag3"]@id');
 $flag3_1_id =~ s/flag-//;
 
-$sel->is_text_present_ok("addl. SeleniumBugFlag1Test");
-$sel->is_text_present_ok("addl. SeleniumBugFlag2Test");
-ok(!$sel->is_text_present("addl. SeleniumBugFlag3Test"), "SeleniumBugFlag3Test is not multiplicable");
+_ok($sel->get_text('flags') =~ /(?<!: )SeleniumBugFlag1Test/, "SeleniumBugFlag1Test is multiplicable");
+_ok($sel->get_text('flags') =~ /(?<!: )SeleniumBugFlag2Test/, "SeleniumBugFlag2Test is multiplicable");
+_ok($sel->get_text('flags') !~ /(?<!: )SeleniumBugFlag3Test/, "SeleniumBugFlag3Test is not multiplicable");
 $sel->select_ok("flag_type-$flagtype1_id", "label=+");
 $sel->select_ok("flag_type-$flagtype2_id", "label=-");
 $sel->click_ok("commit");
@@ -265,7 +267,7 @@ $sel->select_ok("flag_type-$flagtype2_id", "label=?");
 $sel->type_ok("requestee_type-$flagtype2_id", $config->{unprivileged_user_login});
 $sel->click_ok("commit");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
-$sel->title_is("Flag Requestee Not Authorized");
+$sel->title_is("Flag Requestee Needs Privileges");
 $sel->go_back_ok();
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_like(qr/^Bug $bug1_id /);
@@ -299,7 +301,7 @@ $sel->type_ok("description", "patch, v1");
 $sel->check_ok("ispatch");
 $sel->is_text_present_ok("SeleniumAttachmentFlag1Test");
 $sel->is_text_present_ok("SeleniumAttachmentFlag2Test");
-ok(!$sel->is_text_present("SeleniumAttachmentFlag3Test"), "Inactive SeleniumAttachmentFlag3Test flag type not displayed");
+_ok(!$sel->is_text_present("SeleniumAttachmentFlag3Test"), "Inactive SeleniumAttachmentFlag3Test flag type not displayed");
 
 # Let's generate some "flagmail", first with no requestee.
 
@@ -399,20 +401,21 @@ $sel->title_like(qr/^Bug $bug1_id /);
 # should be displayed besides the currently set "+".
 
 my @flag_states = $sel->get_select_options("flag-$flag2_1_id");
-ok(scalar(@flag_states) == 1 && $flag_states[0] eq '+', "Single flag state '+' available");
+_ok(scalar(@flag_states) == 1 && $flag_states[0] eq '+', "Single flag state '+' available");
 
-# Powerless users cannot set the flag to +, but setting it to ? is allowed.
-
-@flag_states = $sel->get_select_options("flag_type-$flagtype1_id");
-ok(scalar @flag_states == 2, "Two flag states available");
-ok(grep($_ eq '?', @flag_states), "Flag state '?' available");
+# С Х*Я ЛИ? У powerless нет привилегии editbugs.
+## Powerless users cannot set the flag to +, but setting it to ? is allowed.
+#
+#@flag_states = $sel->get_select_options("flag_type-$flagtype1_id");
+#_ok(scalar @flag_states == 2, "Two flag states available");
+#_ok(grep($_ eq '?', @flag_states), "Flag state '?' available");
 
 # A powerless user cannot edit someone else's attachment flags.
 
 $sel->click_ok("//a[\@href='attachment.cgi?id=$attachment2_id&action=edit']");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_is("Attachment $attachment2_id Details for Bug $bug1_id");
-ok(!$sel->is_element_present('//select[@title="attachmentflag2"]'),
+_ok(!$sel->is_element_present('//select[@title="attachmentflag2"]'),
    "Attachment flags are not editable by a powerless user");
 
 # Add an attachment and set flags on it.
@@ -430,7 +433,7 @@ $sel->value_is("autodetect", "on");
 
 # canconfirm/editbugs privs are required to edit this flag.
 
-ok(!$sel->is_editable("flag_type-$aflagtype1_id"), "Flag type non editable by powerless users");
+_ok(!$sel->is_editable("flag_type-$aflagtype1_id"), "Flag type non editable by powerless users");
 
 # No privs are required to edit this flag.
 
