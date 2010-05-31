@@ -148,7 +148,7 @@ sub wiki_sync_case
     $case->{components} = [ split /[\s,]*,[\s,]*/, trim($case->{components}) ];
     $case->{default_tester_id} = login_to_id(trim($case->{tester})) || '';
     delete $case->{tester};
-    $case->{case_status_id} = $case->{status} || 'PROPOSED';
+    $case->{case_status_id} = $case->{status} || Bugzilla->params->{'default-test-case-status'} || 'CONFIRMED';
     delete $case->{status};
     $case->{category_id} = $case->{category} || '--default--';
     delete $case->{category};
