@@ -42,6 +42,14 @@ ok(!$sel->is_editable("zoom_textareas"), "The 'zoom_textareas' user preference i
 $sel->click_ok("update");
 $sel->wait_for_page_to_load(WAIT_TIME);
 $sel->title_is("User Preferences");
+$sel->click_ok("link=Saved Searches");
+$sel->wait_for_page_to_load(WAIT_TIME);
+if ($sel->get_text('bugzilla-body') =~ /sel-tmp/)
+{
+    # Delete the saved search
+    $sel->click_ok('//a[contains(@href,"sel-tmp") and contains(text(),"Forget")]');
+    $sel->wait_for_page_to_load(WAIT_TIME);
+}
 
 # File a bug in the 'TestProduct' product. The form fields must follow user prefs.
 
@@ -69,7 +77,7 @@ $sel->type_ok("lob_newqueryname", "sel-tmp");
 $sel->type_ok("bug_ids", $bug1_id);
 $sel->click_ok("commit_list_of_bugs");
 $sel->wait_for_page_to_load(WAIT_TIME);
-$sel->title_is("Search created");
+$sel->title_like(qr/Search created/);
 my $text = trim($sel->get_text("message"));
 ok($text =~ /OK, you have a new search named sel-tmp./, "New saved search 'sel-tmp' created");
 $sel->click_ok("link=sel-tmp");
@@ -106,7 +114,7 @@ $sel->is_text_present_ok("2 bugs found");
 $sel->click_ok("link=$bug1_id");
 $sel->wait_for_page_to_load(WAIT_TIME);
 $sel->title_like(qr/^Bug $bug1_id /);
-$sel->type_ok("comment", "The next bug I should see is this one.");
+$sel->type_ok("comment_textarea", "The next bug I should see is this one.");
 $sel->click_ok("commit");
 $sel->wait_for_page_to_load(WAIT_TIME);
 $sel->title_is("Bug $bug1_id processed");
@@ -145,6 +153,17 @@ ok(!$sel->is_element_present("lob_action"), "Element 1/3 for tags is not display
 ok(!$sel->is_element_present("lob_newqueryname"), "Element 2/3 for tags is not displayed");
 ok(!$sel->is_element_present("commit_list_of_bugs"), "Element 3/3 for tags is not displayed");
 
+# Delete the saved search 'my_list'.
+$sel->click_ok("link=Preferences");
+$sel->wait_for_page_to_load(WAIT_TIME);
+$sel->click_ok("link=Saved Searches");
+$sel->wait_for_page_to_load(WAIT_TIME);
+if ($sel->get_text('bugzilla-body') =~ /my_list/)
+{
+    $sel->click_ok('//a[contains(@href,"my_list") and contains(text(),"Forget")]');
+    $sel->wait_for_page_to_load(WAIT_TIME);
+}
+
 # Create a new search named 'my_list'.
 
 open_advanced_search_page($sel);
@@ -173,8 +192,11 @@ $sel->title_is("Bug List: my_list");
 $sel->click_ok("link=$bug1_id");
 $sel->wait_for_page_to_load(WAIT_TIME);
 $sel->title_like(qr/^Bug $bug1_id .* First bug created/);
-$sel->value_is("addselfcc", "on");
-$sel->type_ok("comment", "I should be CC'ed and then I should see the next bug.");
+if ($sel->get_text('bugzilla-body') =~ /Add me to CC list/)
+{
+    $sel->value_is("addselfcc", "on");
+}
+$sel->type_ok("comment_textarea", "I should be CC'ed and then I should see the next bug.");
 $sel->click_ok("commit");
 $sel->wait_for_page_to_load(WAIT_TIME);
 $sel->title_is("Bug $bug1_id processed");
