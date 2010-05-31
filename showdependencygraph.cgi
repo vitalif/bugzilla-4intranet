@@ -400,9 +400,9 @@ GROUP BY t1.bug_id", {Slice=>{}}, keys %$seen) || {};
         {
             $row->{short_desc} = substr($row->{short_desc}, 0, 32) . '...';
         }
-        Encode::_utf8_off($row->{$_}) for keys %$row;
         # Current bug
         $vars->{short_desc} = $row->{short_desc} if $row->{bug_id} eq Bugzilla->cgi->param('id');
+        Encode::_utf8_off($row->{$_}) for keys %$row;
 
         my $bgnodecolor = GetColorByState($row->{bug_status}, 1);
         my $nodecolor = GetColorByState($row->{bug_status});
