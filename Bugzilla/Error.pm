@@ -125,8 +125,8 @@ sub _throw_error
         {
             _throw_error('code', 'template_error', $vars);
         }
-        # If we failed processing template error, simply die
-        $mode = ERROR_MODE_DIE;
+        # If we failed processing template error, just die
+        die bless { message => ($msg ||= _error_message($type, $error, $vars)), type => $type, error => $error, vars => $vars };
     }
 
     # Report error into [$datadir/] params.error_log if requested
@@ -161,19 +161,22 @@ sub _throw_error
         print Bugzilla->cgi->header();
         print $message;
     }
-    elsif ($mode == ERROR_MODE_DIE_SOAP_FAULT || Bugzilla->error_mode == ERROR_MODE_JSON_RPC)
+    elsif ($mode == ERROR_MODE_DIE_SOAP_FAULT || $mode == ERROR_MODE_JSON_RPC)
     {
         # Clone the hash so we aren't modifying the constant.
         my %error_map = %{ WS_ERROR_CODE() };
-        require Bugzilla::Hook;
-        Bugzilla::Hook::process('webservice_error_codes',
-                                { error_map => \%error_map });
+        eval
+        {
+            require Bugzilla::Hook;
+            Bugzilla::Hook::process('webservice_error_codes',
+                                    { error_map => \%error_map });
+        };
         my $code = $error_map{$error};
         if (!$code) {
             $code = ERROR_UNKNOWN_FATAL if $type eq 'code';
             $code = ERROR_UNKNOWN_TRANSIENT if $type eq 'user';
         }
-        if (Bugzilla->error_mode == ERROR_MODE_DIE_SOAP_FAULT) {
+        if ($mode == ERROR_MODE_DIE_SOAP_FAULT) {
             die bless { message => SOAP::Fault->faultcode($code)->faultstring($message) };
         }
         else {
@@ -190,7 +193,7 @@ sub _throw_error
             # we die with no message. JSON::RPC checks raise_error before
             # it checks $@, so it returns the proper error.
             die if _in_eval();
-            $server->response($server->error_response_header);
+            #$server->response($server->error_response_header); # FIXME VERY UGLY HACK
         }
     }
     elsif ($mode == ERROR_MODE_AJAX)
@@ -203,6 +206,10 @@ sub _throw_error
         $err->{'message'} = $message;
         my $json = new JSON;
         print $json->encode($err);
+    }
+    else
+    {
+        die "Fatal error: '$mode' is an unknown error reporting mode!";
     }
     exit;
 }

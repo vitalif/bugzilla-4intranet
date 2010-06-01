@@ -58,7 +58,7 @@ sub bz_call_fail {
         or diag("Returned: " . Dumper($call->result));
     if (defined $faultstring) {
         cmp_ok(trim($call->faultstring), '=~', $faultstring, 
-               $self->TYPE . ": Got correct fault for $method");
+               $self->TYPE . ": Got correct fault for $method"); #or pause();
     }
     ok($call->faultcode && $call->faultcode < 32000
        && $call->faultcode > -32000, 
