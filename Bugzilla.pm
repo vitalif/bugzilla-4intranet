@@ -277,22 +277,7 @@ sub template_inner {
 our $extension_packages;
 sub extensions {
     my ($class) = @_;
-    my $cache = $class->request_cache;
-    if (!$cache->{extensions}) {
-        # Under mod_perl, mod_perl.pl populates $extension_packages for us.
-        if (!$extension_packages) {
-            $extension_packages = Bugzilla::Extension->load_all();
-        }
-        my @extensions;
-        foreach my $package (@$extension_packages) {
-            my $extension = $package->new();
-            if ($extension->enabled) {
-                push(@extensions, $extension);
-            }        
-        }
-        $cache->{extensions} = \@extensions;
-    }
-    return $cache->{extensions};
+    return { map { $_ => extension_info($_) } Bugzilla::Extension::loaded() };
 }
 
 sub feature {

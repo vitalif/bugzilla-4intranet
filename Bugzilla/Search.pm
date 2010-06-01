@@ -2404,7 +2404,7 @@ sub _not_in_search_results
 sub LookupNamedQuery
 {
     my ($name, $sharer_id, $query_type, $throw_error) = @_;
-    $throw_error = 1 unless defined $throw_error;
+    $throw_error = THROW_ERROR unless defined $throw_error;
 
     Bugzilla->login(LOGIN_REQUIRED);
 
@@ -2412,11 +2412,18 @@ sub LookupNamedQuery
     my $query = Bugzilla::Search::Saved->$constructor(
         { user => $sharer_id, name => $name });
 
-    return $query if (!$query and !$throw_error);
-
-    if (defined $query_type and $query->type != $query_type) {
-        ThrowUserError("missing_query", { queryname => $name,
-                                          sharer_id => $sharer_id });
+    if (!$query ||
+        defined $query_type && $query->type != $query_type)
+    {
+        if ($throw_error)
+        {
+            ThrowUserError("missing_query", { queryname => $name,
+                                              sharer_id => $sharer_id });
+        }
+        else
+        {
+            return undef;
+        }
     }
 
     $query->url
