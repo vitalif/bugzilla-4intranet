@@ -1205,6 +1205,8 @@ sub match {
             # CustIS Bug 64855
             # try Levenshtein distance also, if enabled
             $query .= " OR levenshtein(?, login_name) < ?";
+            $query .= " OR (CASE WHEN INSTR(login_name, '\@') > 0 THEN levenshtein(?, SUBSTR(login_name, 1, INSTR(login_name, '\@')-1)) ELSE 0 END) < ?";
+            push @bind, $str, Bugzilla->params->{levenshteinusermatch};
             push @bind, $str, Bugzilla->params->{levenshteinusermatch};
         }
         $query .= ") ";
