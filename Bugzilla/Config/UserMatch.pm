@@ -64,6 +64,13 @@ sub get_param_list {
    type    => 'b',
    default => 1,
   },
+
+  {
+   name    => 'levenshteinusermatch',
+   type    => 't',
+   default => '0',
+   checker => \&check_numeric
+  },
   );
   return @param_list;
 }

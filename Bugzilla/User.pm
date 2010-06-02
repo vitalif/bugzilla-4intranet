@@ -1188,27 +1188,35 @@ sub match {
     }
 
     # then try substring search
-    if (!scalar(@users) && length($str) >= 3 && $user->id) {
+    if (!scalar(@users) && length($str) >= 3 && $user->id)
+    {
         trick_taint($str);
 
-        my $query   = "SELECT DISTINCT userid FROM profiles ";
+        my $query = "SELECT DISTINCT userid FROM profiles ";
         if (Bugzilla->params->{'usevisibilitygroups'}) {
-            $query .= "INNER JOIN user_group_map
-                               ON user_group_map.user_id = profiles.userid ";
+            $query .= "INNER JOIN user_group_map ON user_group_map.user_id = profiles.userid ";
         }
-        $query     .= " WHERE (" .
-                $dbh->sql_iposition('?', 'login_name') . " > 0" . " OR " .
-                $dbh->sql_iposition('?', 'realname') . " > 0) ";
+        $query .= " WHERE (" .
+            $dbh->sql_iposition('?', 'login_name') . " > 0" . " OR " .
+            $dbh->sql_iposition('?', 'realname') . " > 0";
+        my @bind = ($str, $str);
+        if (Bugzilla->params->{levenshteinusermatch} > 0)
+        {
+            # CustIS Bug 64855
+            # try Levenshtein distance also, if enabled
+            $query .= " OR levenshtein(?, login_name) < ?";
+            push @bind, $str, Bugzilla->params->{levenshteinusermatch};
+        }
+        $query .= ") ";
         if (Bugzilla->params->{'usevisibilitygroups'}) {
-            $query .= " AND isbless = 0" .
-                      " AND group_id IN(" .
-                join(', ', (-1, @{$user->visible_groups_inherited})) . ") ";
+            $query .= " AND isbless = 0 AND group_id IN(" . join(', ', (-1, @{$user->visible_groups_inherited})) . ") ";
         }
-        $query     .= " AND disabledtext = '' " if $exclude_disabled;
-        $query     .= $dbh->sql_limit($limit) if $limit;
-        my $user_ids = $dbh->selectcol_arrayref($query, undef, ($str, $str));
+        $query .= " AND disabledtext = '' " if $exclude_disabled;
+        $query .= $dbh->sql_limit($limit) if $limit;
+        my $user_ids = $dbh->selectcol_arrayref($query, undef, @bind);
         @users = @{Bugzilla::User->new_from_list($user_ids)};
     }
+
     return \@users;
 }
 
