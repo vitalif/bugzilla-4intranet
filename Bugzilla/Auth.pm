@@ -68,6 +68,8 @@ sub login {
         return $self->_handle_login_result($login_info, $type);
     }
 
+    Bugzilla->session($login_info->{session});
+
     # Now verify his username and password against the DB, LDAP, etc.
     if ($self->{_info_getter}->{successful}->requires_verification) {
         $login_info = $self->{_verifier}->check_credentials($login_info);

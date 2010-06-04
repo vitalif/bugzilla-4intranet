@@ -123,6 +123,13 @@ foreach ($cgi->param("excludefield")) {
 
 $vars->{'displayfields'} = \%displayfields;
 
+my $sd;
+if (Bugzilla->session && ($sd = Bugzilla->session_data) && $sd->{sent})
+{
+    Bugzilla->save_session_data({ sent => undef, finish => undef });
+    $vars->{sentmail} = $sd->{sent};
+}
+
 print $cgi->header($format->{'ctype'});
 
 $template->process("$format->{'template'}", $vars)

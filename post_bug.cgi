@@ -301,23 +301,31 @@ if ($token) {
 
 my $silent = $vars->{commentsilent} = $cgi->param('commentsilent') ? 1 : 0;
 my $recipients = { changer => $user->login };
-my $bug_sent = Bugzilla::BugMail::Send($id, $recipients, $silent);
+my $bug_sent = { sent_bugmail => Bugzilla::BugMail::Send($id, $recipients, $silent) };
 $bug_sent->{type} = 'created';
 $bug_sent->{id}   = $id;
 my @all_mail_results = ($bug_sent);
 foreach my $dep (@{$bug->dependson || []}, @{$bug->blocked || []}) {
-    my $dep_sent = Bugzilla::BugMail::Send($dep, $recipients, $silent);
+    my $dep_sent = { sent_bugmail => Bugzilla::BugMail::Send($dep, $recipients, $silent) };
     $dep_sent->{type} = 'dep';
     $dep_sent->{id}   = $dep;
     push(@all_mail_results, $dep_sent);
 }
+$_->{commentsilent} = $silent for @all_mail_results;
 $vars->{sentmail} = \@all_mail_results;
 
 if (Bugzilla->usage_mode != USAGE_MODE_EMAIL)
 {
-    print $cgi->header();
-    $template->process("bug/create/created.html.tmpl", $vars)
-        || ThrowTemplateError($template->error());
+    if (Bugzilla->save_session_data({ sent => \@all_mail_results }))
+    {
+        print $cgi->redirect(-location => 'show_bug.cgi?id='.$bug->id);
+    }
+    else
+    {
+        print $cgi->header();
+        $template->process("bug/create/created.html.tmpl", $vars)
+            || ThrowTemplateError($template->error());
+    }
 }
 
 $vars;
