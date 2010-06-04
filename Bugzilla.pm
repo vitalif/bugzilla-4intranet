@@ -274,6 +274,40 @@ sub template_inner {
     return $class->request_cache->{"template_inner_$lang"};
 }
 
+sub session
+{
+    my $class = shift;
+    $class->request_cache->{session} = shift || $class->request_cache->{session};
+    return $class->request_cache->{session};
+}
+
+sub session_data
+{
+    my ($class, $s) = @_;
+    my $c = $class->request_cache;
+    $c->{session} || return undef;
+    $INC{'JSON.pm'} || require JSON || return undef;
+    my $d = $c->{session}->{session_data} ? JSON::decode_json($c->{session}->{session_data}) : {};
+    if ($s && %$s)
+    {
+        for (keys %$s)
+        {
+            $d->{$_} = $s->{$_};
+            defined $d->{$_} or delete $d->{$_};
+        }
+        $c->{session}->{session_data} = JSON::encode_json($d);
+    }
+    return $d;
+}
+
+sub save_session_data
+{
+    my ($class, $s) = @_;
+    my $c = $class->request_cache;
+    $class->session_data($s) || return undef;
+    Bugzilla->dbh->do('UPDATE logincookies SET session_data=? WHERE cookie=?', undef, $c->{session}->{session_data}, $c->{session}->{cookie});
+}
+
 our $extension_packages;
 sub extensions {
     my ($class) = @_;

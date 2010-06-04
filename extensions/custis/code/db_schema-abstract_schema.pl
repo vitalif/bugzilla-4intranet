@@ -35,6 +35,9 @@ $schema->{emailin_aliases} = {
     ],
 };
 
+# Bug 64562 - надо идти на дом. страницу бага после постановки, а не на post_bug.cgi
+push @{$schema->{logincookies}->{FIELDS}}, session_data => {TYPE => 'blob'};
+
 # Ну и зачем авторы убрали этот индекс?
 # Bug 53687 - Тормозят запросы из Plantime в багзиллу
 push @{$schema->{longdescs}->{INDEXES}}, { FIELDS => ['who', 'bug_when'] };

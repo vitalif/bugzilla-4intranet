@@ -59,21 +59,18 @@ sub get_login_info {
         trick_taint($login_cookie);
         detaint_natural($user_id);
 
-        my $is_valid =
-          $dbh->selectrow_array('SELECT 1
-                                   FROM logincookies
-                                  WHERE cookie = ?
-                                        AND userid = ?
-                                        AND (ipaddr = ? OR ipaddr IS NULL)',
-                                 undef, ($login_cookie, $user_id, $ip_addr));
+        my $session = $dbh->selectall_arrayref('SELECT * FROM logincookies' .
+            ' WHERE cookie = ? AND userid = ? AND (ipaddr = ? OR ipaddr IS NULL)',
+            {Slice=>{}}, ($login_cookie, $user_id, $ip_addr)) || [];
+        $session = $session->[0];
 
         # If the cookie is valid, return a valid username.
-        if ($is_valid) {
+        if ($session) {
             # If we logged in successfully, then update the lastused 
             # time on the login cookie
             $dbh->do("UPDATE logincookies SET lastused = NOW() 
                        WHERE cookie = ?", undef, $login_cookie);
-            return { user_id => $user_id };
+            return { user_id => $user_id, session => $session };
         }
     }
 

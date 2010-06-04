@@ -31,6 +31,16 @@
   [% PROCESS global/header.html.tmpl %]
 [% END %]
 
+[% header_done = 1 %]
+
+[% FOREACH item = sentmail %]
+  [% PROCESS bug/process/results.html.tmpl
+     type = item.type
+     id = item.id
+     sent_bugmail = item.sent_bugmail
+   %]
+[% END %]
+
 [% IF nextbug %]
   <hr>
   <p>

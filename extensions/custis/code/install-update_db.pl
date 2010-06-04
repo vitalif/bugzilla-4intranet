@@ -160,3 +160,9 @@ if ($dbh->bz_table_info('test_fielddefs'))
         $dbh->do("INSERT INTO test_fielddefs (name, description, table_name) VALUES ('wiki', 'Wiki Category', 'test_plans')");
     }
 }
+
+# Bug 64562 - надо идти на дом. страницу бага после постановки, а не на post_bug.cgi
+if (!$dbh->bz_column_info('logincookies', 'session_data'))
+{
+    $dbh->bz_add_column('logincookies', session_data => {TYPE => 'blob'});
+}

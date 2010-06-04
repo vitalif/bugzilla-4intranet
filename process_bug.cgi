@@ -81,11 +81,7 @@ sub send_results {
     my $silent = $vars->{commentsilent} = Bugzilla->cgi->param('commentsilent') ? 1 : 0;
     $vars->{'sent_bugmail'} = 
         Bugzilla::BugMail::Send($bug_id, $vars->{'mailrecipients'}, $silent);
-    if (Bugzilla->usage_mode != USAGE_MODE_EMAIL) {
-        $template->process("bug/process/results.html.tmpl", $vars)
-            || ThrowTemplateError($template->error());
-    }
-    $vars->{'header_done'} = 1;
+    return $vars;
 }
 
 # Tells us whether or not a field should be changed by process_bug.
@@ -150,34 +146,33 @@ Bugzilla::User::match_field({
     'assigned_to'               => { 'type' => 'single' },
 });
 
-print $cgi->header() unless Bugzilla->usage_mode == USAGE_MODE_EMAIL;
-
 # Check for a mid-air collision. Currently this only works when updating
 # an individual bug.
 if (defined $cgi->param('delta_ts'))
 {
     my $delta_ts_z = datetime_from($cgi->param('delta_ts'));
     my $first_delta_tz_z =  datetime_from($first_bug->delta_ts);
-    if ($first_delta_tz_z ne $delta_ts_z) {
+    if ($first_delta_tz_z ne $delta_ts_z)
+    {
         ($vars->{'operations'}) =
             Bugzilla::Bug::GetBugActivity($first_bug->id, undef,
                                           scalar $cgi->param('delta_ts'));
 
-    # CustIS Bug 56327 - Change only fields the user wanted to changed
-    for my $op (@{$vars->{operations}})
-    {
-        for (@{$op->{changes}})
+        # CustIS Bug 56327 - Change only fields the user wanted to changed
+        for my $op (@{$vars->{operations}})
         {
-            if ($cgi->param($_->{fieldname}) eq $_->{removed})
+            for (@{$op->{changes}})
             {
-                # If equal to old value -> change to the new value
-                $cgi->param($_->{fieldname}, $_->{added});
+                if ($cgi->param($_->{fieldname}) eq $_->{removed})
+                {
+                    # If equal to old value -> change to the new value
+                    $cgi->param($_->{fieldname}, $_->{added});
+                }
             }
         }
-    }
 
         $vars->{'title_tag'} = "mid_air";
-    
+
         ThrowCodeError('undefined_field', { field => 'longdesclength' })
             if !defined $cgi->param('longdesclength');
 
@@ -190,6 +185,7 @@ if (defined $cgi->param('delta_ts'))
         # The token contains the old delta_ts. We need a new one.
         $cgi->param('token', issue_hash_token([$first_bug->id, $first_bug->delta_ts]));
         # Warn the user about the mid-air collision and ask them what to do.
+        print $cgi->header();
         $template->process("bug/process/midair.html.tmpl", $vars)
           || ThrowTemplateError($template->error());
         exit;
@@ -374,6 +370,7 @@ foreach my $b (@bug_objects)
         {
             $vars->{verify_flags} = \@requery_flags;
             $vars->{field_filter} = '^('.join('|',@filter).')$';
+            print $cgi->header();
             $template->process("bug/process/verify-flags.html.tmpl", $vars)
                 || ThrowTemplateError($template->error());
             exit;
@@ -493,6 +490,8 @@ foreach my $b (@bug_objects) {
     }
 }
 
+my $send_results = [];
+
 my $move_action = $cgi->param('action') || '';
 if ($move_action eq Bugzilla->params->{'move-button-text'}) {
     Bugzilla->params->{'move-enabled'} || ThrowUserError("move_bugs_disabled");
@@ -519,10 +518,11 @@ if ($move_action eq Bugzilla->params->{'move-button-text'}) {
 
     # Now send emails.
     foreach my $bug (@bug_objects) {
-        $vars->{'mailrecipients'} = { 'changer' => $user->login };
-        $vars->{'id'} = $bug->id;
-        $vars->{'type'} = "move";
-        send_results($bug->id, $vars);
+        push @$send_results, send_results($bug->id, {
+            mailrecipients => { 'changer' => $user->login },
+            id             => $bug->id,
+            type           => 'move',
+        });
     }
     # Prepare and send all data about these bugs to the new database
     my $to = Bugzilla->params->{'move-to-address'};
@@ -551,6 +551,11 @@ if ($move_action eq Bugzilla->params->{'move-button-text'}) {
 
     # End the response page.
     unless (Bugzilla->usage_mode == USAGE_MODE_EMAIL) {
+        foreach (@$send_results)
+        {
+            $template->process("bug/process/results.html.tmpl", { %$vars, %$_ })
+                || ThrowTemplateError($template->error());
+        }
         $template->process("bug/navigate.html.tmpl", $vars)
             || ThrowTemplateError($template->error());
         $template->process("global/footer.html.tmpl", $vars)
@@ -660,75 +665,81 @@ foreach my $bug (@bug_objects) {
     my $old_qa  = $changes->{'qa_contact'}  ? $changes->{'qa_contact'}->[0] : '';
     my $old_own = $changes->{'assigned_to'} ? $changes->{'assigned_to'}->[0] : '';
     my $old_cc  = $changes->{cc}            ? $changes->{cc}->[0] : '';
-    $vars->{'mailrecipients'} = {
-        cc        => [split(/[\s,]+/, $old_cc)],
-        owner     => $old_own,
-        qacontact => $old_qa,
-        changer   => Bugzilla->user->login };
 
-    $vars->{'id'} = $bug->id;
-    $vars->{'type'} = "bug";
-    
     # Let the user know the bug was changed and who did and didn't
     # receive email about the change.
-    send_results($bug->id, $vars);
+    push @$send_results, send_results($bug->id, {
+        mailrecipients => {
+            cc        => [split(/[\s,]+/, $old_cc)],
+            owner     => $old_own,
+            qacontact => $old_qa,
+            changer   => Bugzilla->user->login,
+        },
+        id => $bug->id,
+        type => "bug",
+    });
  
     # If the bug was marked as a duplicate, we need to notify users on the
     # other bug of any changes to that bug.
     my $new_dup_id = $changes->{'dup_id'} ? $changes->{'dup_id'}->[1] : undef;
     if ($new_dup_id) {
-        $vars->{'mailrecipients'} = { 'changer' => Bugzilla->user->login }; 
-
-        $vars->{'id'} = $new_dup_id;
-        $vars->{'type'} = "dupe";
-        
         # Let the user know a duplication notation was added to the 
         # original bug.
-        send_results($new_dup_id, $vars);
+        push @$send_results, send_results($new_dup_id, {
+            mailrecipients => { changer => Bugzilla->user->login },
+            id => $new_dup_id,
+            type => "dupe",
+        });
     }
 
     my %all_dep_changes = (%notify_deps, %changed_deps);
     foreach my $id (sort { $a <=> $b } (keys %all_dep_changes)) {
-        $vars->{'mailrecipients'} = { 'changer' => Bugzilla->user->login };
-        $vars->{'id'} = $id;
-        $vars->{'type'} = "dep";
-
         # Let the user (if he is able to see the bug) know we checked to
         # see if we should email notice of this change to users with a 
         # relationship to the dependent bug and who did and didn't 
         # receive email about it.
-        send_results($id, $vars);
+        push @$send_results, send_results($id, {
+            mailrecipients => { changer => Bugzilla->user->login },
+            id => $id,
+            type => "dep",
+        });
     }
 }
 
+my $bug;
 if (Bugzilla->usage_mode == USAGE_MODE_EMAIL) {
     # Do nothing.
 }
-elsif ($action eq 'next_bug' or $action eq 'same_bug') {
-    my $bug = $vars->{'bug'};
-    if ($bug and $user->can_see_bug($bug)) {
-        if ($action eq 'same_bug') {
-            # $bug->update() does not update the internal structure of
-            # the bug sufficiently to display the bug with the new values.
-            # (That is, if we just passed in the old Bug object, we'd get
-            # a lot of old values displayed.)
-            $bug = new Bugzilla::Bug($bug->id);
-            $vars->{'bug'} = $bug;
-        }
-        $vars->{'bugs'} = [$bug];
-        if ($action eq 'next_bug') {
-            $vars->{'nextbug'} = $bug->id;
-        }
-        $template->process("bug/show.html.tmpl", $vars)
-          || ThrowTemplateError($template->error());
+elsif (($action eq 'next_bug' or $action eq 'same_bug') && ($bug = $vars->{bug}) && $user->can_see_bug($bug)) {
+    if ($action eq 'same_bug') {
+        # $bug->update() does not update the internal structure of
+        # the bug sufficiently to display the bug with the new values.
+        # (That is, if we just passed in the old Bug object, we'd get
+        # a lot of old values displayed.)
+        $bug = new Bugzilla::Bug($bug->id);
+        $vars->{'bug'} = $bug;
+    }
+    # Do redirect and exit
+    if (Bugzilla->save_session_data({ sent => $send_results }))
+    {
+        print $cgi->redirect(-location => 'show_bug.cgi?id='.$bug->id);
         exit;
     }
-} elsif ($action ne 'nothing') {
+}
+
+print $cgi->header();
+if ($action ne 'nothing') {
     ThrowCodeError("invalid_post_bug_submit_action");
 }
 
 # End the response page.
-unless (Bugzilla->usage_mode == USAGE_MODE_EMAIL) {
+unless (Bugzilla->usage_mode == USAGE_MODE_EMAIL)
+{
+    foreach (@$send_results)
+    {
+        $template->process("bug/process/results.html.tmpl", { %$vars, %$_ })
+            || ThrowTemplateError($template->error());
+    }
     $template->process("bug/navigate.html.tmpl", $vars)
         || ThrowTemplateError($template->error());
     $template->process("global/footer.html.tmpl", $vars)
