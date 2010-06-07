@@ -132,7 +132,7 @@ sub init {
     
     my %columns;
     if ($type eq 'case'){
-#        $columns{'case_status'}     = "map_case_status.name";        
+        $columns{'case_status'}     = "map_case_status.name";        
         $columns{'priority'}        = "map_priority.value";
         $columns{'product'}         = "map_case_product.name";
         $columns{'component'}       = "map_case_components.name";

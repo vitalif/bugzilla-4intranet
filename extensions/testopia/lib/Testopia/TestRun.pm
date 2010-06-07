@@ -429,7 +429,7 @@ sub add_case_run {
     my $case = Testopia::TestCase->new($case_id);
     $sortkey = $case->sortkey unless $sortkey;
 
-#    return 0 if $case->status ne 'CONFIRMED';
+    return 0 if $case->status ne 'CONFIRMED';
     my $assignee = $case->default_tester ? $case->default_tester->id : undef;
     my $caserun = Testopia::TestCaseRun->create({
         'run_id'     => $self->{'run_id'},
