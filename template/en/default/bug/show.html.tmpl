@@ -28,6 +28,12 @@
 
 [% IF !header_done %]
   [% PROCESS "bug/show-header.html.tmpl" %]
+  [% IF last_title;
+     SET title = last_title;
+     END;
+     IF last_header;
+     SET header = last_header;
+     END %]
   [% PROCESS global/header.html.tmpl %]
 [% END %]
 

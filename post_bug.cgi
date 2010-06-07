@@ -316,7 +316,9 @@ $vars->{sentmail} = \@all_mail_results;
 
 if (Bugzilla->usage_mode != USAGE_MODE_EMAIL)
 {
-    if (Bugzilla->save_session_data({ sent => \@all_mail_results }))
+    my $title = template_var('terms')->{Bug}.' '.$bug->id.' Submitted – '.$bug->short_desc;
+    my $header = template_var('terms')->{Bug}.' '.$bug->id.' Submitted';
+    if (Bugzilla->save_session_data({ sent => \@all_mail_results, title => $title, header => $header }))
     {
         print $cgi->redirect(-location => 'show_bug.cgi?id='.$bug->id);
     }
