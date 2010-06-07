@@ -126,7 +126,9 @@ $vars->{'displayfields'} = \%displayfields;
 my $sd;
 if (Bugzilla->session && ($sd = Bugzilla->session_data) && $sd->{sent})
 {
-    Bugzilla->save_session_data({ sent => undef, finish => undef });
+    Bugzilla->save_session_data({ sent => undef, title => undef, header => undef });
+    $vars->{last_title} = $sd->{title};
+    $vars->{last_header} = $sd->{header};
     $vars->{sentmail} = $sd->{sent};
 }
 

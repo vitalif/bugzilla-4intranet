@@ -720,7 +720,16 @@ elsif (($action eq 'next_bug' or $action eq 'same_bug') && ($bug = $vars->{bug})
         $vars->{'bug'} = $bug;
     }
     # Do redirect and exit
-    if (Bugzilla->save_session_data({ sent => $send_results }))
+    my $title;
+    if (scalar(@bug_objects) == 1)
+    {
+        $title = template_var('terms')->{Bug} . ' ' . $bug->id . ' processed';
+    }
+    else
+    {
+        $title = template_var('terms')->{Bugs} . ' processed';
+    }
+    if (Bugzilla->save_session_data({ sent => $send_results, title => $title }))
     {
         print $cgi->redirect(-location => 'show_bug.cgi?id='.$bug->id);
         exit;
@@ -739,6 +748,7 @@ unless (Bugzilla->usage_mode == USAGE_MODE_EMAIL)
     {
         $template->process("bug/process/results.html.tmpl", { %$vars, %$_ })
             || ThrowTemplateError($template->error());
+        $vars->{header_done} = 1;
     }
     $template->process("bug/navigate.html.tmpl", $vars)
         || ThrowTemplateError($template->error());
