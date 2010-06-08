@@ -102,7 +102,8 @@ sub _throw_error
 
     # If we are within an eval(), do not do anything more
     # as we are eval'uating some test on purpose.
-    if ($mode == ERROR_MODE_DIE || _in_eval())
+    if ($mode == ERROR_MODE_DIE ||
+        $mode != ERROR_MODE_DIE_SOAP_FAULT && $mode != ERROR_MODE_JSON_RPC && _in_eval())
     {
         die bless { message => ($msg ||= _error_message($type, $error, $vars)), type => $type, error => $error, vars => $vars };
     }
@@ -177,7 +178,7 @@ sub _throw_error
             $code = ERROR_UNKNOWN_TRANSIENT if $type eq 'user';
         }
         if ($mode == ERROR_MODE_DIE_SOAP_FAULT) {
-            die bless { message => SOAP::Fault->faultcode($code)->faultstring($message) };
+            die SOAP::Fault->faultcode($code)->faultstring($message);
         }
         else {
             my $server = Bugzilla->_json_server;
@@ -193,7 +194,7 @@ sub _throw_error
             # we die with no message. JSON::RPC checks raise_error before
             # it checks $@, so it returns the proper error.
             die if _in_eval();
-            #$server->response($server->error_response_header); # FIXME VERY UGLY HACK
+            $server->response($server->error_response_header);
         }
     }
     elsif ($mode == ERROR_MODE_AJAX)
