@@ -40,5 +40,4 @@ Bugzilla->error_mode(ERROR_MODE_JSON_RPC);
 local @INC = (bz_locations()->{extensionsdir}, @INC);
 my $server = new Bugzilla::WebService::Server::JSONRPC;
 
-$Bugzilla::Error::IN_EVAL++;
 $server->dispatch(WS_DISPATCH)->handle();

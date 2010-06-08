@@ -60,15 +60,15 @@ use constant GLOBAL_GENERAL_FIELDS => qw(
     work_time
 );
 use constant STANDARD_SELECT_FIELDS => 
-    qw(bug_severity bug_status op_sys priority rep_platform resolution);
+    qw(bug_severity bug_status priority resolution);
 
-use constant ALL_SELECT_FIELDS => (STANDARD_SELECT_FIELDS, 
-    qw(cf_qa_status cf_single_select));
+use constant ALL_SELECT_FIELDS => (STANDARD_SELECT_FIELDS);
+#    qw(cf_qa_status cf_single_select));
 use constant PRODUCT_FIELDS => qw(version target_milestone component);
 use constant ALL_FIELDS => (GLOBAL_GENERAL_FIELDS, ALL_SELECT_FIELDS,
                             PRODUCT_FIELDS);
 
-use constant PUBLIC_PRODUCT  => 'Another Product';
+use constant PUBLIC_PRODUCT  => 'PublicProduct';
 use constant PRIVATE_PRODUCT => 'QA-Selenium-TEST';
 
 sub get_field {
