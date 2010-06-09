@@ -3286,7 +3286,7 @@ sub _populate_bugs_fulltext
                 $sthn = @ids;
                 $sth = $dbh->prepare(
                     "INSERT INTO bugs_fulltext (bug_id, short_desc, comments, comments_noprivate)" .
-                    " VALUES " . join(",", ("(?,?,?,?)") x @ids) . " ON UPDATE SET bug_id=bug_id"
+                    " VALUES " . join(",", ("(?,?,?,?)") x @ids) . " ON DUPLICATE KEY UPDATE SET bug_id=VALUES(bug_id)"
                 );
             }
             $sth->execute(map { ($_, @{$rows->{$_}}) } @ids);
