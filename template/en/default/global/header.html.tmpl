@@ -107,7 +107,9 @@
     [%# CSS cascade, part 2: Standard Bugzilla stylesheet set (selectable)
       # Present if skin selection is enabled.
       #%]
-    [% IF user.settings.skin.is_enabled %]
+    [%# Зачем стандартные стили упоминать дважды? То есть понятно, зачем -
+      # чтобы выбрать можно было. Но это не дело, оно ломает Opera 10.6. %]
+    [% IF 0 # user.settings.skin.is_enabled %]
       [% FOREACH style_url = style_urls %]
         <link href="[% style_url FILTER html %]"
               rel="[% 'alternate ' IF user_skin %]stylesheet"
