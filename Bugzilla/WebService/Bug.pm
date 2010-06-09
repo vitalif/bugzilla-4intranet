@@ -482,9 +482,8 @@ sub add_comment {
         || ThrowCodeError('param_required', { param => 'comment' });
     
     my $bug = Bugzilla::Bug->check($params->{id});
-    
-    Bugzilla->user->can_edit_product($bug->product_id)
-        || ThrowUserError("product_edit_denied", {product => $bug->product});
+
+    Bugzilla->user->can_edit_bug($bug, THROW_ERROR);
     
     # Backwards-compatibility for versions before 3.6    
     if (defined $params->{private}) {
@@ -527,9 +526,7 @@ sub update_see_also {
     my @bugs;
     foreach my $id (@{ $params->{ids} }) {
         my $bug = Bugzilla::Bug->check($id);
-        $user->can_edit_product($bug->product_id)
-            || ThrowUserError("product_edit_denied", 
-                              { product => $bug->product });
+        $user->can_edit_bug($bug, THROW_ERROR);
         push(@bugs, $bug);
         if ($remove) {
             $bug->remove_see_also($_) foreach @$remove;

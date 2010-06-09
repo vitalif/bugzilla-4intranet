@@ -363,7 +363,8 @@ sub send_cookie {
         unshift(@paramlist, $_ => $paramhash{$_});
     }
 
-    push(@{$self->{'Bugzilla_cookie_list'}}, $self->cookie(@paramlist));
+    my $c = $self->{Bugzilla_cookie_hash}->{$paramhash{'-name'}} = $self->cookie(@paramlist);
+    @{$self->{'Bugzilla_cookie_list'}} = values %{$self->{Bugzilla_cookie_hash}};
 }
 
 # Cookies are removed by setting an expiry date in the past.
