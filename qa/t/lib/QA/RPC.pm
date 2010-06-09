@@ -44,7 +44,7 @@ sub bz_call_success {
     }
     $test_name ||= "$method returned successfully";
     $self->_handle_undef_response($test_name) if !$call;
-    ok(!$call->fault, $self->TYPE . ": $test_name")
+    _ok(!$call->fault, $self->TYPE . ": $test_name")
         or diag($call->faultstring);
     return $call;
 }
@@ -54,13 +54,13 @@ sub bz_call_fail {
     $test_name ||= "$method failed (as intended)";
     my $call = $self->call($method, $args);
     $self->_handle_undef_response($test_name) if !$call;
-    ok(defined $call->fault, $self->TYPE . ": $test_name")
+    _ok(defined $call->fault, $self->TYPE . ": $test_name")
         or diag("Returned: " . Dumper($call->result));
     if (defined $faultstring) {
         cmp_ok(trim($call->faultstring), '=~', $faultstring, 
-               $self->TYPE . ": Got correct fault for $method"); #or pause();
+               $self->TYPE . ": Got correct fault for $method (test $test_name)") or pause();
     }
-    ok($call->faultcode && $call->faultcode < 32000
+    _ok($call->faultcode && $call->faultcode < 32000
        && $call->faultcode > -32000, 
        $self->TYPE . ': Fault code is set properly')
         or diag("Code: " . $call->faultcode 

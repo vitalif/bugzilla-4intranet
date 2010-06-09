@@ -709,13 +709,13 @@ sub visible_bugs {
         while (my $row = $sth->fetchrow_arrayref) {
             my ($bug_id, $reporter, $owner, $qacontact, $reporter_access, 
                 $cclist_access, $isoncclist, $missinggroup) = @$row;
-            $visible_cache->{$bug_id} ||= 
+            $visible_cache->{$bug_id} ||=
                 ((($reporter == $user_id) && $reporter_access)
                  || ($use_qa_contact
                      && $qacontact && ($qacontact == $user_id))
                  || ($owner == $user_id)
                  || ($isoncclist && $cclist_access)
-                 || !$missinggroup) ? 1 : 0;
+                 || !$missinggroup);
         }
     }
 

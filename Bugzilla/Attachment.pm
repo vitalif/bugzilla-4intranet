@@ -519,8 +519,7 @@ sub _check_bug {
     my $user = Bugzilla->user;
 
     $bug = ref $invocant ? $invocant->bug : $bug;
-    ($user->can_see_bug($bug->id) && $user->can_edit_product($bug->product_id))
-      || ThrowUserError("illegal_attachment_edit_bug", { bug_id => $bug->id });
+    $user->can_edit_bug($bug->id) || ThrowUserError("illegal_attachment_edit_bug", { bug_id => $bug->id });
 
     return $bug;
 }

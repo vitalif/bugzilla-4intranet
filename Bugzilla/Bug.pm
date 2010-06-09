@@ -1363,7 +1363,7 @@ sub _check_dependencies {
             # Under strict isolation, you can't modify a bug if you can't
             # edit it, even if you can see it.
             if (Bugzilla->params->{"strict_isolation"}) {
-                if (!$user->can_edit_product($delta_bug->{'product_id'})) {
+                if (!$user->can_edit_bug($delta_bug)) {
                     ThrowUserError("illegal_change_deps", {field => $type});
                 }
             }
@@ -1746,7 +1746,7 @@ sub _check_strict_isolation {
 sub _check_strict_isolation_for_user {
     my ($self, $user) = @_;
     return unless Bugzilla->params->{"strict_isolation"};
-    if (!$user->can_edit_product($self->{product_id})) {
+    if (!$user->can_edit_bug($self)) {
         ThrowUserError('invalid_user_group',
                        { users   => $user->login,
                          product => $self->product,
