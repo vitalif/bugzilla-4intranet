@@ -1512,10 +1512,11 @@ sub _content_matches
     $comments_col = "comments_noprivate" unless $self->{'user'}->is_insider;
     
     # Create search terms to add to the SELECT and WHERE clauses.
-    my ($term1, $rterm1) = $dbh->sql_fulltext_search("$table.$comments_col",
-                                                        $$v, 1);
-    my ($term2, $rterm2) = $dbh->sql_fulltext_search("$table.short_desc",
-                                                        $$v, 2);
+    my $text = stem_text($$v);
+    my ($term1, $rterm1) = $dbh->sql_fulltext_search("bugs_fulltext.$comments_col",
+                                                        $text, 1);
+    my ($term2, $rterm2) = $dbh->sql_fulltext_search("bugs_fulltext.short_desc",
+                                                        $text, 2);
     $rterm1 = $term1 if !$rterm1;
     $rterm2 = $term2 if !$rterm2;
 
@@ -1529,19 +1530,11 @@ sub _content_matches
     # "NOT" charts, but Bugzilla never uses those with fulltext
     # by default.)
     #
-    my $text = stem_text($$v);
-    my ($term1, $rterm1) =
-        $dbh->sql_fulltext_search("bugs_fulltext.$comments_col", $text, 1);
-    $rterm1 ||= $term1;
-    my ($term2, $rterm2) =
-        $dbh->sql_fulltext_search("bugs_fulltext.short_desc", $text, 2);
-    $rterm2 ||= $term2;
 
     # Bug 46221 - Russian Stemming in Bugzilla fulltext search
     # Bugzilla's fulltext search mechanism is bad because
     # MATCH(...) OR MATCH(...) is very slow in MySQL - it doesn't do
     # fulltext index merge optimization. So we use INNER JOIN to UNION.
-    my $table = "bugs_fulltext_$$chartid";
     push @$supptables, "INNER JOIN (SELECT bug_id FROM bugs_fulltext WHERE $term1 > 0
         UNION SELECT bug_id FROM bugs_fulltext WHERE $term2 > 0) AS $table ON bugs.bug_id=$table.bug_id";
 
