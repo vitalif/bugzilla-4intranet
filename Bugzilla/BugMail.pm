@@ -111,7 +111,13 @@ sub three_columns {
 # All the names are email addresses, not userids
 # values are scalars, except for cc, which is a list
 sub Send {
-    my ($id, $forced) = (@_);
+    my ($id, $forced, $silent) = (@_);
+
+    if ($silent)
+    {
+        Bugzilla->dbh->do('UPDATE bugs SET lastdiffed=NOW() WHERE bug_id = ?', undef, $id);
+        return { commentsilent => 1 };
+    }
 
     my @headerlist;
     my %defmailhead;
