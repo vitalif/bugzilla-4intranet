@@ -75,6 +75,17 @@ sub parse_mail {
     debug_print('Parsing Email');
     $input_email = Email::MIME->new($mail_text);
 
+    # RFC 3834 - Recommendations for Automatic Responses to Electronic Mail
+    # Automatic responses SHOULD NOT be issued in response to any
+    # message which contains an Auto-Submitted header field (see below),
+    # where that field has any value other than "no".
+    my $autosubmitted;
+    if (($autosubmitted = $input_email->header('Auto-Submitted')) && lc($autosubmitted) ne 'no')
+    {
+        debug_print("Rejecting email with Auto-Submitted = $autosubmitted");
+        exit 0;
+    }
+
     my $dbh = Bugzilla->dbh;
 
     # Fetch field => value from emailin_fields table
