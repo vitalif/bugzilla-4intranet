@@ -157,8 +157,8 @@ function menuforusers_initcombo(id, multi)
      and have offsetWidth=offsetHeight=0 */
   document.body.appendChild(sel);
   var w = (sel.offsetWidth-sel.offsetHeight+2);
-  if (w > 500)
-    w = 500;
+  if (w > 400)
+    w = 400;
   ed.style.width = w+'px';
   p.appendChild(sel);
   ed.style.borderWidth = 0;
