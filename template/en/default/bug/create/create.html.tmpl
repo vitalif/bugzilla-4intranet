@@ -26,6 +26,8 @@
 
 [% PROCESS "global/field-descs.none.tmpl" %]
 
+[% USE Bugzilla %]
+
 [% title = BLOCK %]Enter [% terms.Bug %]: [% product.name FILTER html %][% END %]
 
 [% PROCESS global/header.html.tmpl
@@ -91,7 +93,7 @@ function Create_onsubmit()
     wt = null;
   else if (wt < 0)
     wt = 0;
-[% IF remind_about_worktime_newbug %]
+[% IF Bugzilla.user.wants_worktime_reminder('new bug') %]
   if (wt === null || [% product.notimetracking ? "wt != 0" : "wt == 0" %])
   {
     wt = prompt("Please, verify working time:", "0");

@@ -65,13 +65,6 @@ my $vars = {};
 # All pages point to the same part of the documentation.
 $vars->{'doc_section'} = 'bugreports.html';
 
-$vars->{remind_about_worktime_newbug} =
-    $user->is_timetracker &&                                        # user is timetracker
-    $user->settings->{remind_me_about_worktime_newbug} &&           # user wants to be reminded about worktime
-    $user->settings->{remind_me_about_worktime_newbug}->{value} &&
-    lc $user->settings->{remind_me_about_worktime_newbug}->{value} ne 'off'
-    ? 1 : 0;
-
 my $product_name = trim($cgi->param('product') || '');
 # Will contain the product object the bug is created in.
 my $product;
