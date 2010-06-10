@@ -308,6 +308,7 @@ div#docslinks {
 .bz_private_checkbox, .bz_comment_actions
 {
     margin: 0 .5em;
+    white-space: nowrap;
 }
 
 .bz_comment_actions, .bz_comment_number, .bz_private_checkbox {
