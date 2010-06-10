@@ -156,7 +156,10 @@ function menuforusers_initcombo(id, multi)
      because it can be invisible in some cases (i.e. New Bug form),
      and have offsetWidth=offsetHeight=0 */
   document.body.appendChild(sel);
-  ed.style.width = (sel.offsetWidth-sel.offsetHeight+2)+'px';
+  var w = (sel.offsetWidth-sel.offsetHeight+2);
+  if (w > 500)
+    w = 500;
+  ed.style.width = w+'px';
   p.appendChild(sel);
   ed.style.borderWidth = 0;
   menuforusers_tocombo(id);
