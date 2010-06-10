@@ -476,7 +476,6 @@ Bugzilla->usage_mode(USAGE_MODE_EMAIL);
 Bugzilla->error_mode(ERROR_MODE_DIE);
 
 my @mail_lines = <STDIN>;
-my $mail_text = join("", @mail_lines);
 my ($mail_text) = join("", @mail_lines) =~ /^(.*)$/iso;
 
 if ($pipe && open PIPE, "| $pipe")
