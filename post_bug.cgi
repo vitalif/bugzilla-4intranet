@@ -24,6 +24,7 @@
 #                 Gervase Markham <gerv@gerv.net>
 #                 Marc Schumann <wurblzap@gmail.com>
 
+use utf8;
 use strict;
 use lib qw(. lib);
 
