@@ -110,6 +110,7 @@ table#flags {
 
 .knob-buttons {
     float: right;
+    text-align: right;
 }
 
 .cc_list_display {
