@@ -1676,7 +1676,6 @@
     User ID '[% userid FILTER html %]' is not valid integer.
 
   [% ELSE %]
-
     [%# Try to find hooked error messages %]
     [% error_message = Hook.process("errors") %]
 
