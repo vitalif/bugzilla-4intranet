@@ -317,7 +317,7 @@ document.changeform = document.[% cfname %];
 [% BLOCK section_title %]
   [%# That's the main table, which contains all editable fields. %]
   <div class="bz_alias_short_desc_container edit_form">
-      [% PROCESS commit_button id="_top" nobr=1 %]
+     [% PROCESS commit_button id="_top" nobr=1 %]
      <a href="show_bug.cgi?id=[% bug.bug_id %]">
         [%-# %]<b>[% terms.Bug %]&nbsp;[% bug.bug_id FILTER html %]</b>
      [%-# %]</a> -<span id="summary_alias_container" class="bz_default_hidden"> 
@@ -1119,10 +1119,10 @@ document.changeform = document.[% cfname %];
         <label for="newcommentprivacy">
           Make comment private
         </label>
+      [% END %]
         <input type="checkbox" name="commentsilent" value="1" 
                id="commentsilent">
         <label for="commentsilent">Silent</label>
-      [% END %]
 
       <!-- This table keeps the submit button aligned with the box. -->
       <table><tr><td>
@@ -1241,12 +1241,20 @@ document.changeform = document.[% cfname %];
 [% END %]
 [% BLOCK commit_button %]
   [% IF user.id %]
+    [% w = BLOCK %]
+      Look for [% terms.Bug %] in:
+      <a href="[% Param('viewvc_url') %]?view=query&comment=bug[% bug.bug_id %]+[% bug.bug_id %]&comment_match=fulltext&querysort=date&date=all">CVS&SVN</a>
+      /
+      <a href="[% bug.component_obj.wiki_url || bug.product_obj.wiki_url || Param('wiki_url') %][% terms.Bug %]_[% bug.bug_id %]">Wiki</a>
+    [% END %]
     <div class="knob-buttons">
+      [% IF nobr %][% w %][% END %]
       <input type="submit" value="Save Changes" 
              id="commit[% id FILTER css_class_quote %]">
       [% IF bug.user.canmove %]
         <input type="submit" name="action" id="action[% id FILTER css_class_quote %]" value="[% Param("move-button-text") %]">
       [% END %]
+      [% IF NOT nobr %]<br />[% w %][% END %]
     </div>
   [% END %]
 [% END %]
