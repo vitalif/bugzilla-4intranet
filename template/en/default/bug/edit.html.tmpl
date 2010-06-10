@@ -1248,7 +1248,7 @@ document.changeform = document.[% cfname %];
       <a href="[% bug.component_obj.wiki_url || bug.product_obj.wiki_url || Param('wiki_url') %][% terms.Bug %]_[% bug.bug_id %]">Wiki</a>
     [% END %]
     <div class="knob-buttons">
-      [% IF nobr %][% w %][% END %]
+      [% IF nobr %][% w %][% ELSE %]<input type="button" value="Preview" onclick="showcommentpreview()" tabindex="-1" />[% END %]
       <input type="submit" value="Save Changes" 
              id="commit[% id FILTER css_class_quote %]">
       [% IF bug.user.canmove %]
