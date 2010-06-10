@@ -146,6 +146,8 @@ Bugzilla::User::match_field({
     'assigned_to'               => { 'type' => 'single' },
 });
 
+print $cgi->header() unless Bugzilla->usage_mode == USAGE_MODE_EMAIL;
+
 # Check for a mid-air collision. Currently this only works when updating
 # an individual bug.
 if (defined $cgi->param('delta_ts'))
@@ -736,7 +738,6 @@ elsif (($action eq 'next_bug' or $action eq 'same_bug') && ($bug = $vars->{bug})
     }
 }
 
-print $cgi->header();
 if ($action ne 'nothing') {
     ThrowCodeError("invalid_post_bug_submit_action");
 }
