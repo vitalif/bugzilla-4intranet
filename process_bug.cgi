@@ -187,7 +187,6 @@ if (defined $cgi->param('delta_ts'))
         # The token contains the old delta_ts. We need a new one.
         $cgi->param('token', issue_hash_token([$first_bug->id, $first_bug->delta_ts]));
         # Warn the user about the mid-air collision and ask them what to do.
-        print $cgi->header();
         $template->process("bug/process/midair.html.tmpl", $vars)
           || ThrowTemplateError($template->error());
         exit;
@@ -372,7 +371,6 @@ foreach my $b (@bug_objects)
         {
             $vars->{verify_flags} = \@requery_flags;
             $vars->{field_filter} = '^('.join('|',@filter).')$';
-            print $cgi->header();
             $template->process("bug/process/verify-flags.html.tmpl", $vars)
                 || ThrowTemplateError($template->error());
             exit;
@@ -738,7 +736,7 @@ elsif (($action eq 'next_bug' or $action eq 'same_bug') && ($bug = $vars->{bug})
     }
 }
 
-if ($action ne 'nothing') {
+if ($action ne 'nothing' && $action ne 'next_bug' && $action ne 'same_bug') {
     ThrowCodeError("invalid_post_bug_submit_action");
 }
 
