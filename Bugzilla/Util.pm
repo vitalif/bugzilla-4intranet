@@ -657,21 +657,6 @@ sub clean_text {
     return trim($dtext);
 }
 
-sub load_cached_fielddescs_template
-{
-    my $tt;
-    unless ($tt = Bugzilla->request_cache->{_global_field_descs_none_tmpl})
-    {
-        # создаём отдельный шаблон
-        $tt = Bugzilla::Template->create();
-        # хакаемся внутрь контекста и делаем process без localise
-        $tt = $tt->{SERVICE}->context;
-        $tt->process('global/field-descs.none.tmpl');
-        Bugzilla->request_cache->{_global_field_descs_none_tmpl} = $tt;
-    }
-    return $tt;
-}
-
 # Довольно некрасивый хак для бага см.ниже - на багах с длинным числом комментов
 # quoteUrls вызывает на каждый коммент get_text('term', { term => 'bug' }),
 # что приводит к ужасной производительности. например, на баге с 703
@@ -704,8 +689,9 @@ sub template_var {
     my %vars;
     # Note: If we suddenly start needing a lot of template_var variables,
     # they should move into their own template, not field-descs.
+    my $output;
     my $result = $template->process('global/field-descs.none.tmpl', 
-                                    { vars => \%vars, in_template_var => 1 });
+                                    { vars => \%vars, in_template_var => 1 }, \$output);
     # Bugzilla::Error can't be "use"d in Bugzilla::Util.
     if (!$result) {
         require Bugzilla::Error;
