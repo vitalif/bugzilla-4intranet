@@ -48,12 +48,12 @@ my $action = $cgi->param('action') || '';
 my $case = Testopia::TestCase->new($cgi->param('case_id'));
 
 unless ($case){
-    print $cgi->header;
+    $cgi->send_header;
     ThrowUserError('testopia-missing-object',{object => 'case'});
 }
 
 if ($action eq 'edit'){
-    print $cgi->header;
+    $cgi->send_header;
     ThrowUserError("testopia-read-only", {'object' => $case}) unless $case->canedit;
 
     $case->set_alias($cgi->param('alias')) if exists $cgi->{param}->{'alias'} || exists $cgi->{'alias'};
@@ -82,7 +82,7 @@ if ($action eq 'edit'){
 
 elsif ($action eq 'update_doc'){
 
-    print $cgi->header;
+    $cgi->send_header;
     ThrowUserError("testopia-read-only", {'object' => $case}) unless $case->canedit;
 
     my $newtcaction = $cgi->param('tcaction') || '' if $cgi->param('tcaction');
@@ -96,7 +96,7 @@ elsif ($action eq 'update_doc'){
 }
 
 elsif ($action eq 'link') { 	 
-    print $cgi->header; 	 
+    $cgi->send_header; 	 
     my @plans; 	 
     foreach my $id (split(',', $cgi->param('plan_ids'))){ 	 
         my $plan = Testopia::TestPlan->new($id);      
@@ -115,7 +115,7 @@ elsif ($action eq 'link') {
 }
 
 elsif ($action eq 'unlink'){
-    print $cgi->header;
+    $cgi->send_header;
     my $plan_id = $cgi->param('plan_id');
     validate_test_id($plan_id, 'plan');
     ThrowUserError("testopia-read-only", {'object' => 'case'}) unless ($case->can_unlink_plan($plan_id));
@@ -125,7 +125,7 @@ elsif ($action eq 'unlink'){
 }
 
 elsif ($action eq 'detachbug'){
-    print $cgi->header;
+    $cgi->send_header;
     ThrowUserError("testopia-read-only", {'object' => $case}) unless $case->canedit;
     my @buglist;
     foreach my $bug (split(/[\s,]+/, $cgi->param('bug_id'))){
@@ -139,7 +139,7 @@ elsif ($action eq 'detachbug'){
 }
 
 elsif ($action eq 'delete'){
-    print $cgi->header;
+    $cgi->send_header;
     ThrowUserError("testopia-no-delete", {'object' => $case}) unless $case->candelete;
 
     $case->obliterate;
@@ -147,7 +147,7 @@ elsif ($action eq 'delete'){
 }
 
 elsif ($action eq 'addcomponent' || $action eq 'removecomponent'){
-    print $cgi->header;
+    $cgi->send_header;
     ThrowUserError("testopia-read-only", {'object' => $case}) unless $case->canedit;
     my $comp = $cgi->param('component_id');
     
@@ -166,7 +166,7 @@ elsif ($action eq 'addcomponent' || $action eq 'removecomponent'){
 }
 
 elsif ($action eq 'getbugs'){
-    print $cgi->header;
+    $cgi->send_header;
     ThrowUserError("testopia-permission-denied", {'object' => $case}) unless $case->canview;
     my @bugs;
     foreach my $bug (@{$case->bugs}){
@@ -188,7 +188,7 @@ elsif ($action eq 'getbugs'){
 }
 
 elsif ($action eq 'getplans'){
-    print $cgi->header;
+    $cgi->send_header;
     ThrowUserError("testopia-permission-denied", {'object' => $case}) unless $case->canview;
     my @plans;
     foreach my $p (@{$case->plans}){
@@ -199,7 +199,7 @@ elsif ($action eq 'getplans'){
 }
 
 elsif($action eq 'getcomponents'){
-    print $cgi->header;
+    $cgi->send_header;
     ThrowUserError("testopia-permission-denied", {'object' => $case}) unless $case->canview;
     my @comps;
     foreach my $c (@{$case->components}){
@@ -230,12 +230,12 @@ elsif ($action eq 'case_to_bug'){
     $vars->{'caserun'} = Testopia::TestCaseRun->new($cgi->param('caserun_id')) if $cgi->param('caserun_id');
     $vars->{'case'} = $case;
 
-    print $cgi->header(-type => 'text/xml');
+    $cgi->send_header(-type => 'text/xml');
     Bugzilla->template->process("testopia/case/new-bug.xml.tmpl", $vars) ||
         ThrowTemplateError(Bugzilla->template->error());
 }
 
 else {
-    print $cgi->header;
+    $cgi->send_header;
     ThrowUserError("testopia-no-action");
 }

@@ -77,7 +77,6 @@ my $vars = {};
 # Used to send email when an update is done.
 sub send_results {
     my ($bug_id, $vars) = @_;
-    my $template = Bugzilla->template;
     my $silent = $vars->{commentsilent} = Bugzilla->cgi->param('commentsilent') ? 1 : 0;
     $vars->{'sent_bugmail'} = 
         Bugzilla::BugMail::Send($bug_id, $vars->{'mailrecipients'}, $silent);
@@ -145,8 +144,6 @@ Bugzilla::User::match_field({
     'masscc'                    => { 'type' => 'multi'  },
     'assigned_to'               => { 'type' => 'single' },
 });
-
-print $cgi->header() unless Bugzilla->usage_mode == USAGE_MODE_EMAIL;
 
 # Check for a mid-air collision. Currently this only works when updating
 # an individual bug.

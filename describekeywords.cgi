@@ -41,6 +41,6 @@ Bugzilla->switch_to_shadow_db;
 $vars->{'keywords'} = Bugzilla::Keyword->get_all_with_bug_count();
 $vars->{'caneditkeywords'} = Bugzilla->user->in_group("editkeywords");
 
-print Bugzilla->cgi->header();
+Bugzilla->cgi->send_header();
 $template->process("reports/keywords.html.tmpl", $vars)
   || ThrowTemplateError($template->error());

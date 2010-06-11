@@ -43,7 +43,7 @@ $vars->{'doc_section'} = 'milestones.html';
 
 my $user = Bugzilla->login(LOGIN_REQUIRED);
 
-print $cgi->header();
+$cgi->send_header();
 
 $user->in_group('editcomponents')
   || scalar(@{$user->get_editable_products})

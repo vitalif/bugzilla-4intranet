@@ -55,7 +55,7 @@ my $search = Testopia::Search->new($cgi);
 my $table = Testopia::Table->new('environment', 'tr_list_environments.cgi', $cgi, undef, $search->query);
 
 if ($cgi->param('ctype') eq 'json'){
-    print $cgi->header;
+    $cgi->send_header;
     $vars->{'json'} = $table->to_ext_json;
     $template->process($format->{'template'}, $vars)
         || ThrowTemplateError($template->error());

@@ -84,7 +84,7 @@ if ($id) {
     
     $cgi->param('id', $id);
 
-    print $cgi->header($format->{'ctype'});
+    $cgi->send_header($format->{'ctype'});
 
     $template->process("$format->{'template'}", \%vars)
       || ThrowTemplateError($template->error());

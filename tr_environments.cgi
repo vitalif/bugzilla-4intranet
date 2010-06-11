@@ -54,7 +54,7 @@ our $cgi = Bugzilla->cgi;
 local our $vars     = {};
 local our $template = Bugzilla->template;
 
-print $cgi->header;
+$cgi->send_header;
 
 my $action = $cgi->param('action') || '';
 local our $env_id = trim( Bugzilla->cgi->param('env_id') ) || '';

@@ -102,7 +102,7 @@ if (!$vars->{mode_add})
     ) || [];
 }
 
-print $cgi->header();
+$cgi->send_header();
 $template->process("admin/editemailin.html.tmpl", $vars)
     || ThrowTemplateError($template->error());
 

@@ -90,7 +90,7 @@ if (! defined $cgi->param('product')) {
     $vars->{'datasets'} = \@datasets;
     $vars->{'products'} = \@myproducts;
 
-    print $cgi->header();
+    $cgi->send_header();
 
     $template->process('reports/old-charts.html.tmpl', $vars)
       || ThrowTemplateError($template->error());
@@ -125,7 +125,7 @@ else {
 
     $vars->{'url_image'} = $url_image;
 
-    print $cgi->header(-Content_Disposition=>'inline; filename=bugzilla_report.html');
+    $cgi->send_header(-Content_Disposition=>'inline; filename=bugzilla_report.html');
 
     $template->process('reports/old-charts.html.tmpl', $vars)
       || ThrowTemplateError($template->error());

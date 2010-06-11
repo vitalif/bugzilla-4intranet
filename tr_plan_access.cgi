@@ -41,7 +41,7 @@ local our $cgi = Bugzilla->cgi;
 Bugzilla->login(LOGIN_REQUIRED);
 Bugzilla->error_mode(ERROR_MODE_AJAX);
 
-print $cgi->header;
+$cgi->send_header;
 
 my $plan_id = trim($cgi->param('plan_id') || '');
 my $action = $cgi->param('action') || '';

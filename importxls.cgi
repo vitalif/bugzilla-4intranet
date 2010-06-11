@@ -190,7 +190,7 @@ unless ($args->{commit})
             $vars->{data} = $table->{data};
         }
     }
-    print $cgi->header();
+    $cgi->send_header();
     $template->process("bug/import/importxls.html.tmpl", $vars)
         || ThrowTemplateError($template->error());
 }

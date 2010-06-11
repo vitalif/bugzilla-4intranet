@@ -61,7 +61,7 @@ sub fail_nodata {
         ThrowUserError('login_required');
     }
 
-    print $cgi->header();
+    $cgi->send_header();
     $template->process("account/auth/login.html.tmpl",
                        { 'target' => $cgi->url(-relative=>1) }) 
         || ThrowTemplateError($template->error());

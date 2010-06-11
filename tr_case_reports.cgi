@@ -72,7 +72,7 @@ if ($type eq 'status-breakdown'){
     $vars->{'data'} = \@data;
     $vars->{'chart_title'} = 'Historic Status Breakdown';
     $vars->{'colors'} = (['#858aef', '#56e871', '#ed3f58', '#b8eae1', '#f1d9ab', '#e17a56']);
-    print $cgi->header;
+    $cgi->send_header;
     $template->process("testopia/reports/report-pie.png.tmpl", $vars)
        || ThrowTemplateError($template->error());
 }
@@ -123,7 +123,7 @@ else{
         $disp = "attachment";
     }
 
-    print $cgi->header(-type => $format->{'ctype'},
+    $cgi->send_header(-type => $format->{'ctype'},
                        -content_disposition => "$disp; filename=$filename");
 
     $vars->{'time'} = $date;

@@ -58,7 +58,7 @@ my $vars = {};
 # the documentation about legal values becomes bigger.
 $vars->{'doc_section'} = 'edit-values.html';
 
-print $cgi->header();
+$cgi->send_header();
 
 Bugzilla->user->in_group('editfields') ||
     ThrowUserError('auth_failure', {group  => "admin",

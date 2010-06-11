@@ -47,7 +47,7 @@ my $type = $cgi->param('type') || '';
 $vars->{'qname'} = $cgi->param('qname');
 
 if ($type eq 'completion'){
-    print $cgi->header;
+    $cgi->send_header;
     my $dbh = Bugzilla->dbh;
     my @r = $cgi->param('run_ids');
     my @p = $cgi->param('plan_ids');
@@ -97,7 +97,7 @@ if ($type eq 'completion'){
     exit;
 }
 elsif ($type eq 'status'){
-    print $cgi->header;
+    $cgi->send_header;
     my $dbh = Bugzilla->dbh;
     my @r = $cgi->param('run_ids');
     my @p = $cgi->param('plan_ids');
@@ -124,7 +124,7 @@ elsif ($type eq 'status'){
     exit;
 }
 elsif ($type eq 'execution'){
-    print $cgi->header;
+    $cgi->send_header;
     my $dbh = Bugzilla->dbh;
     my @run_ids  = $cgi->param('run_ids');
     my @plan_ids = $cgi->param('plan_ids');
@@ -204,14 +204,14 @@ elsif ($type eq 'bar'){
         [$cgi->param('b')],
     ];
 
-    print $cgi->header;
+    $cgi->send_header;
     $template->process("testopia/reports/completion.png.tmpl", $vars)
        || ThrowTemplateError($template->error());
     exit;
     
 }
 elsif ($type eq 'bug'){
-    print $cgi->header;
+    $cgi->send_header;
     my @run_ids  = $cgi->param('run_ids');
     my @plan_ids = $cgi->param('plan_ids');
     my @runs;
@@ -260,14 +260,14 @@ elsif ($type eq 'bug_grid'){
     $vars->{'stripheader'} = 1 if $cgi->param('noheader');
     $vars->{'uid'} = rand(10000);
     
-    print $cgi->header;
+    $cgi->send_header;
     $template->process("testopia/reports/bug-count.html.tmpl", $vars)
        || ThrowTemplateError($template->error());
     exit;    
 }
 
 elsif ($type eq 'priority'){
-    print $cgi->header;
+    $cgi->send_header;
     my $dbh = Bugzilla->dbh;
     my @r = $cgi->param('run_ids');
     my @plans = $cgi->param('plan_ids');
@@ -326,7 +326,7 @@ elsif ($type eq 'worst'){
     $vars->{'runs'} = join(',',@run_ids);
     $vars->{'plans'} = join(',',@plans);
     
-    print $cgi->header;
+    $cgi->send_header;
     $template->process("testopia/reports/bar.html.tmpl", $vars)
        || ThrowTemplateError($template->error());
     exit;    
@@ -385,7 +385,7 @@ if ( $format->{'extension'} eq "csv" || $format->{'extension'} eq "xml" ){
     $disp = "attachment";
 }
 
-print $cgi->header(-type => $format->{'ctype'},
+$cgi->send_header(-type => $format->{'ctype'},
                    -content_disposition => "$disp; filename=$filename");
 
 $vars->{'time'} = $date;

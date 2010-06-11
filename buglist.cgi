@@ -63,7 +63,7 @@ my $buffer = $cgi->query_string();
 Bugzilla->login();
 
 if (length($buffer) == 0) {
-    print $cgi->header(-refresh=> '10; URL=query.cgi');
+    $cgi->send_header(-refresh=> '10; URL=query.cgi');
     ThrowUserError("buglist_parameters_required");
 }
 
@@ -334,12 +334,12 @@ sub _close_standby_message {
 
     # Close the "please wait" page, then open the buglist page
     if ($serverpush) {
-        print $cgi->multipart_end();
-        print $cgi->multipart_start(-type                => $contenttype,
+        $cgi->send_multipart_end();
+        $cgi->send_multipart_start(-type                => $contenttype,
                                     -content_disposition => $disposition);
     }
     else {
-        print $cgi->header(-type                => $contenttype,
+        $cgi->send_header(-type                => $contenttype,
                            -content_disposition => $disposition);
     }
 }
@@ -469,7 +469,7 @@ if ($cmdtype eq "dorem") {
         # Now reset the cached queries
         $user->flush_queries_cache();
 
-        print $cgi->header();
+        $cgi->send_header();
         # Generate and return the UI (HTML page) from the appropriate template.
         $vars->{'message'} = "buglist_query_gone";
         $vars->{'namedcmd'} = $qname;
@@ -577,7 +577,7 @@ elsif (($cmdtype eq "doit") && defined $cgi->param('remtype')) {
 
         $vars->{'queryname'} = $query_name;
         
-        print $cgi->header();
+        $cgi->send_header();
         $template->process("global/message.html.tmpl", $vars)
           || ThrowTemplateError($template->error());
         exit;
@@ -874,8 +874,8 @@ if ($cgi->param('debug')) {
 # Time to use server push to display an interim message to the user until
 # the query completes and we can display the bug list.
 if ($serverpush) {
-    print $cgi->multipart_init();
-    print $cgi->multipart_start(-type => 'text/html');
+    $cgi->send_multipart_init();
+    $cgi->send_multipart_start(-type => 'text/html');
 
     # Generate and return the UI (HTML page) from the appropriate template.
     $template->process("list/server-push.html.tmpl", $vars)
@@ -1232,6 +1232,6 @@ $template->process($format->{'template'}, $vars)
 # Script Conclusion
 ################################################################################
 
-print $cgi->multipart_final() if $serverpush;
+$cgi->send_multipart_final() if $serverpush;
 
 1;

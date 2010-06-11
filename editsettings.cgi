@@ -31,7 +31,7 @@ my $user = Bugzilla->login(LOGIN_REQUIRED);
 my $cgi = Bugzilla->cgi;
 my $vars = {};
 
-print $cgi->header;
+$cgi->send_header;
 
 $user->in_group('tweakparams')
   || ThrowUserError("auth_failure", {group  => "tweakparams",

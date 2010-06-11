@@ -401,7 +401,7 @@ my $format = $template->get_format("search/search",
                                    $vars->{'query_format'} || $vars->{'format'}, 
                                    scalar $cgi->param('ctype'));
 
-print $cgi->header($format->{'ctype'});
+$cgi->send_header($format->{'ctype'});
 
 $template->process($format->{'template'}, $vars)
   || ThrowTemplateError($template->error());

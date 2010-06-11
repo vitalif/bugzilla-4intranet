@@ -78,7 +78,6 @@ if ($token) {
         $vars->{'bugid'} = $old_bug_id;
         $vars->{'allow_override'} = defined $cgi->param('ignore_token') ? 0 : 1;
 
-        print $cgi->header();
         $template->process("bug/create/confirm-create-dupe.html.tmpl", $vars)
            || ThrowTemplateError($template->error());
         exit;
@@ -96,7 +95,6 @@ if (defined $cgi->param('maketemplate')) {
     $vars->{'url'} = $cgi->canonicalise_query('token');
     $vars->{'short_desc'} = $cgi->param('short_desc');
     
-    print $cgi->header();
     $template->process("bug/create/make-template.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
     exit;
@@ -325,7 +323,6 @@ if (Bugzilla->usage_mode != USAGE_MODE_EMAIL)
     }
     else
     {
-        print $cgi->header();
         $template->process("bug/create/created.html.tmpl", $vars)
             || ThrowTemplateError($template->error());
     }

@@ -41,7 +41,7 @@ my $vars = {};
 
 my $user = Bugzilla->login(LOGIN_REQUIRED);
 
-print $cgi->header();
+$cgi->send_header();
 
 $user->in_group('editkeywords')
   || ThrowUserError("auth_failure", {group  => "editkeywords",
@@ -58,7 +58,7 @@ $vars->{'action'} = $action;
 if ($action eq "") {
     $vars->{'keywords'} = Bugzilla::Keyword->get_all_with_bug_count();
 
-    print $cgi->header();
+    $cgi->send_header();
     $template->process("admin/keywords/list.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
 
@@ -69,7 +69,7 @@ if ($action eq "") {
 if ($action eq 'add') {
     $vars->{'token'} = issue_session_token('add_keyword');
 
-    print $cgi->header();
+    $cgi->send_header();
 
     $template->process("admin/keywords/create.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
@@ -90,7 +90,7 @@ if ($action eq 'new') {
 
     delete_token($token);
 
-    print $cgi->header();
+    $cgi->send_header();
 
     $vars->{'message'} = 'keyword_created';
     $vars->{'name'} = $keyword->name;
@@ -115,7 +115,7 @@ if ($action eq 'edit') {
     $vars->{'keyword'} = $keyword;
     $vars->{'token'} = issue_session_token('edit_keyword');
 
-    print $cgi->header();
+    $cgi->send_header();
     $template->process("admin/keywords/edit.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
     exit;
@@ -139,7 +139,7 @@ if ($action eq 'update') {
 
     delete_token($token);
 
-    print $cgi->header();
+    $cgi->send_header();
 
     $vars->{'message'} = 'keyword_updated';
     $vars->{'keyword'} = $keyword;
@@ -158,7 +158,7 @@ if ($action eq 'del') {
     $vars->{'keyword'} = $keyword;
     $vars->{'token'} = issue_session_token('delete_keyword');
 
-    print $cgi->header();
+    $cgi->send_header();
     $template->process("admin/keywords/confirm-delete.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
     exit;
@@ -173,7 +173,7 @@ if ($action eq 'delete') {
 
     delete_token($token);
 
-    print $cgi->header();
+    $cgi->send_header();
 
     $vars->{'message'} = 'keyword_deleted';
     $vars->{'keywords'} = Bugzilla::Keyword->get_all_with_bug_count();

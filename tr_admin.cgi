@@ -39,7 +39,7 @@ use vars qw($vars);
 
 Bugzilla->login(LOGIN_REQUIRED);
 
-print $cgi->header;
+$cgi->send_header;
 ThrowUserError("testopia-read-only", {'object' => {'type' => 'Testopia administration'}}) unless Bugzilla->user->in_group('admin');   
 
 local our $plan = Testopia::TestPlan->new({});

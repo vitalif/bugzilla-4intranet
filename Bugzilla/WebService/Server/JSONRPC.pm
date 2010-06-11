@@ -71,7 +71,7 @@ sub response {
         }
     }
     my $cgi = $self->cgi;
-    print $cgi->header(-status => $response->code, @header_args);
+    $cgi->send_header(-status => $response->code, @header_args);
     print $response->content;
 }
 

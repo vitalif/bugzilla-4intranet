@@ -44,7 +44,7 @@ my $cgi = Bugzilla->cgi;
 my $vars = {};
 my $template = Bugzilla->template;
 
-print $cgi->header;
+$cgi->send_header;
 
 ThrowUserError("testopia-create-denied", {'object' => 'Test Environment'}) unless Bugzilla->user->in_group('Testers');
 

@@ -25,7 +25,7 @@ my $action = $cgi->param("action");
 
 print "Location: tr_show_product.cgi\n\n" unless $action;
 
-print $cgi->header;
+$cgi->send_header;
 
 my $obj;
 if ($cgi->param('object') eq 'plan'){
@@ -49,7 +49,7 @@ if ($action eq 'diff')
 {
     if ($type eq 'plan')
     {
-        print $cgi->header;
+        $cgi->send_header;
         
         my $plan = Testopia::TestPlan->new($id);
         

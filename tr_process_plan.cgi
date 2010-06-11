@@ -46,13 +46,13 @@ my $action = $cgi->param('action') || '';
 my $plan = Testopia::TestPlan->new($cgi->param('plan_id'));
 
 unless ($plan){
-    print $cgi->header;
+    $cgi->send_header;
     ThrowUserError('testopia-missing-object',{object => 'plan'});
 }
 
 ### Archive or Unarchive ###
 if ($action eq 'archive' || $action eq 'unarchive'){
-    print $cgi->header;
+    $cgi->send_header;
     
     ThrowUserError("testopia-read-only", {'object' => $plan}) unless $plan->canedit;
 
@@ -64,7 +64,7 @@ if ($action eq 'archive' || $action eq 'unarchive'){
 }
 
 elsif ($action eq 'clone'){
-    print $cgi->header;
+    $cgi->send_header;
     ThrowUserError("testopia-create-denied", {object => 'plan'}) unless (Bugzilla->user->in_group('Testers'));
     
     my $plan_name = $cgi->param('plan_name');
@@ -212,7 +212,7 @@ elsif ($action eq 'clone'){
 }
 
 elsif ($action eq 'delete'){
-    print $cgi->header;
+    $cgi->send_header;
     ThrowUserError("testopia-no-delete", {'object' => $plan}) unless ($plan->candelete);
 
     $plan->obliterate;
@@ -222,7 +222,7 @@ elsif ($action eq 'delete'){
 }
 
 elsif ($action eq 'edit'){
-    print $cgi->header;
+    $cgi->send_header;
     ThrowUserError("testopia-read-only", {'object' => $plan}) unless $plan->canedit;
     
     $plan->set_default_product_version($cgi->param('prod_version')) if $cgi->param('prod_version');
@@ -248,13 +248,13 @@ elsif ($action eq 'getfilter'){
     $vars->{'case'} = Testopia::TestCase->new({});
     $vars->{'plan'} = $plan;
 
-    print $cgi->header;
+    $cgi->send_header;
 
     Bugzilla->template->process("testopia/case/filter.html.tmpl", $vars) ||
         ThrowTemplateError(Bugzilla->template->error());
 }
 
 else {
-    print $cgi->header;
+    $cgi->send_header;
     ThrowUserError("testopia-no-action");
 }

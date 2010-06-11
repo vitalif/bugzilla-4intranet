@@ -53,7 +53,7 @@ $editusers
                                        action => "edit",
                                        object => "users"});
 
-print $cgi->header();
+$cgi->send_header();
 
 # Common CGI params
 my $action         = $cgi->param('action') || 'search';

@@ -31,7 +31,7 @@ my $cgi = Bugzilla->cgi;
 my $template = Bugzilla->template;
 my $user = Bugzilla->login(LOGIN_REQUIRED);
 
-print $cgi->header();
+$cgi->send_header();
 
 $user->in_group('admin')
   || $user->in_group('tweakparams')

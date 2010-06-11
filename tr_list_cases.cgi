@@ -61,7 +61,7 @@ $::SIG{PIPE} = 'DEFAULT';
 ###############
 if ($action eq 'update'){
     Bugzilla->error_mode(ERROR_MODE_AJAX);
-    print $cgi->header;
+    $cgi->send_header;
     my @case_ids = split(',', $cgi->param('ids'));
     ThrowUserError('testopia-none-selected', {'object' => 'case'}) unless (scalar @case_ids);
 
@@ -131,7 +131,7 @@ if ($action eq 'update'){
 
 elsif ($action eq 'clone'){
     Bugzilla->error_mode(ERROR_MODE_AJAX);
-    print $cgi->header;
+    $cgi->send_header;
 
     my @case_ids = split(',', $cgi->param('ids'));
     ThrowUserError('testopia-none-selected', {'object' => 'case'}) unless (scalar @case_ids);
@@ -234,7 +234,7 @@ elsif ($action eq 'clone'){
 
 elsif ($action eq 'delete'){
     Bugzilla->error_mode(ERROR_MODE_AJAX);
-    print $cgi->header;
+    $cgi->send_header;
     
     my @case_ids = split(",", $cgi->param('case_ids'));
     my @uneditable;
@@ -254,7 +254,7 @@ elsif ($action eq 'delete'){
 
 elsif ($action eq 'unlink'){
     Bugzilla->error_mode(ERROR_MODE_AJAX);
-    print $cgi->header;
+    $cgi->send_header;
     my $plan_id = $cgi->param('plan_id');
     validate_test_id($plan_id, 'plan');
     foreach my $id (split(",", $cgi->param('case_ids'))){
@@ -273,7 +273,7 @@ elsif ($action eq 'unlink'){
 
 elsif ($action eq 'update_bugs'){
     Bugzilla->error_mode(ERROR_MODE_AJAX);
-    print $cgi->header;
+    $cgi->send_header;
     
     my @ids = split(",", $cgi->param('ids'));
     my @objs;
@@ -311,7 +311,7 @@ else{
     $vars->{'table'} = $table;
     if ($cgi->param('ctype') eq 'json'){
         Bugzilla->error_mode(ERROR_MODE_AJAX);
-        print $cgi->header;
+        $cgi->send_header;
         $vars->{'json'} = $table->to_ext_json;
         $template->process($format->{'template'}, $vars)
             || ThrowTemplateError($template->error());
@@ -331,7 +331,7 @@ else{
     }
 
     # Suggest a name for the bug list if the user wants to save it as a file.
-    print $cgi->header(-type => $format->{'ctype'},
+    $cgi->send_header(-type => $format->{'ctype'},
                        -content_disposition => "$disp; filename=$filename");
                                            
     $template->process($format->{'template'}, $vars)

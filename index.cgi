@@ -57,7 +57,7 @@ if ($cgi->param('logout')) {
 ###############################################################################
 
 # Return the appropriate HTTP response headers.
-print $cgi->header();
+$cgi->send_header();
 
 if ($user->in_group('admin')) {
     # If 'urlbase' is not set, display the Welcome page.

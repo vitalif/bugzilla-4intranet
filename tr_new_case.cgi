@@ -57,7 +57,7 @@ Bugzilla->login(LOGIN_REQUIRED);
 my $cgi = Bugzilla->cgi;
 my $template = Bugzilla->template;
 
-print $cgi->header;
+$cgi->send_header;
 
 my $action = $cgi->param('action') || '';
 my @plan_id = split(',', $cgi->param('plan_id'));

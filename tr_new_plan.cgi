@@ -63,7 +63,7 @@ my $template = Bugzilla->template;
 Bugzilla->login(LOGIN_REQUIRED);
 
 my $cgi = Bugzilla->cgi;
-print $cgi->header;
+$cgi->send_header;
 
 my $action = $cgi->param('action') || '';
 

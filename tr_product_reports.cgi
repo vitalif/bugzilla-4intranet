@@ -36,7 +36,7 @@ my $vars = {};
 my $template = Bugzilla->template;
 my $cgi = Bugzilla->cgi;
 
-print $cgi->header;
+$cgi->send_header;
 use Data::Dumper;
 
 Bugzilla->login(LOGIN_REQUIRED);
@@ -120,7 +120,7 @@ if ($action eq 'draw'){
     $vars->{'data'} = \@data;
 
         
-    print $cgi->header;
+    $cgi->send_header;
     $template->process("testopia/reports/report-pie.png.tmpl", $vars)
        || ThrowTemplateError($template->error());
 }

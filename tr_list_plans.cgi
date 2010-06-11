@@ -49,7 +49,7 @@ my $action = $cgi->param('action') || '';
 
 if ($action eq 'update'){
     Bugzilla->error_mode(ERROR_MODE_AJAX);
-    print $cgi->header;
+    $cgi->send_header;
     my @plan_ids = split(',', $cgi->param('ids'));
     
     ThrowUserError('testopia-none-selected', {'object' => 'plan'}) unless (scalar @plan_ids);
@@ -95,7 +95,7 @@ else {
     my @time = localtime(time());
     my $date = sprintf "%04d-%02d-%02d", 1900+$time[5],$time[4]+1,$time[3];
     my $filename = "testplans-$date.$format->{extension}";
-    print $cgi->header(-type => $format->{'ctype'},
+    $cgi->send_header(-type => $format->{'ctype'},
                    -content_disposition => "$disp; filename=$filename");
 
     $vars->{'json'} = $table->to_ext_json;

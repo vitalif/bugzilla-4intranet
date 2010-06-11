@@ -90,7 +90,7 @@ else{
         $disp = "attachment";
     }
 
-    print $cgi->header(-type => $format->{'ctype'},
+    $cgi->send_header(-type => $format->{'ctype'},
                        -content_disposition => "$disp; filename=$filename");
 
     $vars->{'time'} = $date;

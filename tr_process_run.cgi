@@ -42,12 +42,12 @@ Bugzilla->error_mode(ERROR_MODE_AJAX);
 Bugzilla->login(LOGIN_REQUIRED);
 
 my $cgi = Bugzilla->cgi;
-print $cgi->header;
+$cgi->send_header;
 
 my $action = $cgi->param('action') || '';
 my $run = Testopia::TestRun->new($cgi->param('run_id'));
 unless ($run){
-    print $cgi->header;
+    $cgi->send_header;
     ThrowUserError('testopia-missing-object',{object => 'run'});
 }
 
@@ -112,7 +112,7 @@ elsif ($action eq 'getfilters'){
 }
 
 else {
-    print $cgi->header;
+    $cgi->send_header;
     ThrowUserError("testopia-no-action");
 }
     

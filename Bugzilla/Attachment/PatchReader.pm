@@ -36,7 +36,7 @@ sub process_diff {
         require PatchReader::DiffPrinter::raw;
         $last_reader->sends_data_to(new PatchReader::DiffPrinter::raw());
         # Actually print out the patch.
-        print $cgi->header(-type => 'text/plain',
+        $cgi->send_header(-type => 'text/plain',
                            -expires => '+3M');
         disable_utf8();
         $reader->iterate_string('Attachment ' . $attachment->id, $attachment->data);
@@ -117,7 +117,7 @@ sub process_interdiff {
         require PatchReader::DiffPrinter::raw;
         $last_reader->sends_data_to(new PatchReader::DiffPrinter::raw());
         # Actually print out the patch.
-        print $cgi->header(-type => 'text/plain',
+        $cgi->send_header(-type => 'text/plain',
                            -expires => '+3M');
         disable_utf8();
     }
@@ -276,7 +276,7 @@ sub setup_template_patch_reader {
                             && Bugzilla->params->{'cvsroot_get'} && !$vars->{'newid'};
 
     # Print everything out.
-    print $cgi->header(-type => 'text/html',
+    $cgi->send_header(-type => 'text/html',
                        -expires => '+3M');
 
     $last_reader->sends_data_to(new PatchReader::DiffPrinter::template($template,

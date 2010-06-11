@@ -125,7 +125,7 @@ sub get_searchable_objects{
 my $action = $cgi->param('action') || '';
     
 if ($action eq 'getversions'){
-    print $cgi->header;
+    $cgi->send_header;
     my @prod_ids;
     
     my $type = $cgi->param('type');
@@ -179,7 +179,7 @@ if ($action eq 'getversions'){
 }
 
 elsif ($action eq 'get_products'){
-    print $cgi->header;
+    $cgi->send_header;
     my @prod;
     if (Bugzilla->params->{'useclassification'}){
         my @classes = $cgi->param('class_ids');
@@ -201,7 +201,7 @@ elsif ($action eq 'get_products'){
 }
 
 elsif ($action eq 'get_categories'){
-    print $cgi->header;
+    $cgi->send_header;
     my @prod_ids = $cgi->param('prod_id');
     my $ret;
     
@@ -218,7 +218,7 @@ elsif ($action eq 'get_categories'){
     print $ret;
 }
 elsif ($action eq 'get_elements'){
-    print $cgi->header;
+    $cgi->send_header;
     my @cat_ids = $cgi->param('cat_id');
     my $ret;
     my @elmnts;
@@ -242,7 +242,7 @@ elsif ($action eq 'get_elements'){
 }
 
 elsif ($action eq 'get_properties'){
-    print $cgi->header;
+    $cgi->send_header;
     my @elmnt_ids = $cgi->param('elmnt_id');
     my $ret;
     
@@ -260,7 +260,7 @@ elsif ($action eq 'get_properties'){
     print $ret;
 }
 elsif ($action eq 'get_valid_exp'){
-    print $cgi->header;
+    $cgi->send_header;
     my @prop_ids = $cgi->param('prop_id');
     my $ret;
     
@@ -279,7 +279,7 @@ elsif ($action eq 'get_valid_exp'){
     print $ret;
 }
 elsif ($action eq 'save_query'){
-    print $cgi->header;
+    $cgi->send_header;
     my $query = $cgi->param('query_part');
     my $qname = $cgi->param('query_name');
     my $type = $cgi->param('type');
@@ -320,7 +320,7 @@ elsif ($action eq 'save_query'){
     print "{'success': true}";
 }
 elsif ($action eq 'delete_query'){
-    print $cgi->header;
+    $cgi->send_header;
     my $qname = $cgi->param('query_name');
     
     trick_taint($qname);
@@ -333,7 +333,7 @@ elsif ($action eq 'delete_query'){
 }
 
 elsif ($action eq 'get_saved_searches'){
-    print $cgi->header;
+    $cgi->send_header;
     my $type = $cgi->param('type');
     my $user = $cgi->param('userid') || Bugzilla->user->id;
     detaint_natural($type);
@@ -411,7 +411,7 @@ else{
         print "Location: tr_show_product.cgi?search=1 \n\n";
         exit;
     }
-    print $cgi->header;
+    $cgi->send_header;
     $vars->{'report'} = $cgi->param('report');
     $vars->{'current_tab'} = $tab;
     $template->process("testopia/search/advanced.html.tmpl", $vars)

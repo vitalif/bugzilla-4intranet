@@ -40,7 +40,7 @@ my $template = Bugzilla->template;
 
 my $useragent = $ENV{HTTP_USER_AGENT};
 if ($useragent =~ m:Mozilla/([1-9][0-9]*):i && $1 >= 5 && $useragent !~ m/compatible/i) {
-    print $cgi->header("application/vnd.mozilla.xul+xml");
+    $cgi->send_header("application/vnd.mozilla.xul+xml");
     # Generate and return the XUL from the appropriate template.
     $template->process("sidebar.xul.tmpl")
       || ThrowTemplateError($template->error());

@@ -50,7 +50,7 @@ $::SIG{PIPE} = 'DEFAULT';
 my $action = $cgi->param('action') || '';
 
 if ($action eq 'update'){
-    print $cgi->header;
+    $cgi->send_header;
     Bugzilla->error_mode(ERROR_MODE_AJAX);
     my @caseruns;
     my @uneditable;
@@ -109,7 +109,7 @@ if ($action eq 'update'){
 }
 
 elsif ($action eq 'delete'){
-    print $cgi->header;
+    $cgi->send_header;
     Bugzilla->error_mode(ERROR_MODE_AJAX);
     my @case_ids;
     if ($cgi->param('ids')){
@@ -187,7 +187,7 @@ else {
     my @time = localtime(time());
     my $date = sprintf "%04d-%02d-%02d", 1900+$time[5],$time[4]+1,$time[3];
     my $filename = "testresults-$date.$format->{extension}";
-    print $cgi->header(-type => $format->{'ctype'},
+    $cgi->send_header(-type => $format->{'ctype'},
                    -content_disposition => "$disp; filename=$filename");
 
     $vars->{'json'} = $table->to_ext_json;

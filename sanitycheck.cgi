@@ -82,7 +82,7 @@ else {
 }
 my $vars = {};
 
-print $cgi->header() unless Bugzilla->usage_mode == USAGE_MODE_CMDLINE;
+$cgi->send_header() unless Bugzilla->usage_mode == USAGE_MODE_CMDLINE;
 
 # Make sure the user is authorized to access sanitycheck.cgi.
 # As this script can now alter the group_control_map table, we no longer

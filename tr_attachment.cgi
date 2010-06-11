@@ -46,7 +46,7 @@ my $attach_id  = $cgi->param('attach_id');
 
 detaint_natural($attach_id) if $attach_id;
 if (!$attach_id and $cgi->param('ctype') ne 'json'){
-    print $cgi->header();
+    $cgi->send_header();
     $template->process("testopia/attachment/choose.html.tmpl", $vars) 
         || ThrowTemplateError($template->error());
     exit;
@@ -56,7 +56,7 @@ if (!$attach_id and $cgi->param('ctype') ne 'json'){
 ###    Edit    ###
 ##################
 if ($action eq 'edit') {
-    print $cgi->header;
+    $cgi->send_header;
     validate_test_id($attach_id,'attachment');
     my $attachment = Testopia::Attachment->new($attach_id);
     
@@ -75,7 +75,7 @@ if ($action eq 'edit') {
 ####################
 
 elsif ($action eq 'remove') {
-    print $cgi->header;
+    $cgi->send_header;
     my $item    = $cgi->param('object');
     my $item_id = $cgi->param('object_id');
     my $obj;
@@ -111,7 +111,7 @@ elsif ($action eq 'remove') {
 }
 
 elsif ($action eq 'add'){
-    print $cgi->header;
+    $cgi->send_header;
     
     my $item    = $cgi->param('object');
     my $item_id = $cgi->param('object_id');
@@ -160,7 +160,7 @@ elsif ($action eq 'add'){
 ################
 elsif ($action eq 'list') {
     my $format = $template->get_format("testopia/attachment/list", scalar $cgi->param('format'), scalar $cgi->param('ctype'));
-    print $cgi->header;
+    $cgi->send_header;
 
     my $item    = $cgi->param('object');
     my $item_id = $cgi->param('object_id');
@@ -207,7 +207,7 @@ else {
     $filename =~ s/\\/\\\\/g; # escape backslashes
     $filename =~ s/"/\\"/g; # escape quotes
     
-    print $cgi->header(-type => $attachment->mime_type . "; name=\"$filename\"",
+    $cgi->send_header(-type => $attachment->mime_type . "; name=\"$filename\"",
                        -content_disposition => "inline; filename=\"$filename\"",
                        -content_length      => $attachment->datasize);
     disable_utf8();

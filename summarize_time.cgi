@@ -429,6 +429,6 @@ $vars->{my_activity} = $my_activity;
 my $format = $template->get_format("bug/summarize-time", undef, $ctype);
 
 # Get the proper content-type
-print $cgi->header(-type=> $format->{'ctype'});
+$cgi->send_header(-type=> $format->{'ctype'});
 $template->process("$format->{'template'}", $vars)
   || ThrowTemplateError($template->error());

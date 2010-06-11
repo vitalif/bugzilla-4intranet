@@ -33,7 +33,7 @@ my $cgi = Bugzilla->cgi;
 my $dbh = Bugzilla->dbh;
 my $user = Bugzilla->login(LOGIN_REQUIRED);
 
-print $cgi->header();
+$cgi->send_header();
 
 $user->in_group('admin')
   || ThrowUserError('auth_failure', {group  => 'admin',

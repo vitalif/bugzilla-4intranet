@@ -42,7 +42,7 @@ my $cgi = Bugzilla->cgi;
 my $case_id = trim(Bugzilla->cgi->param('case_id')) || '';
 
 unless ($case_id){
-    print $cgi->header();
+    $cgi->send_header();
     $template->process("testopia/case/choose.html.tmpl", $vars) 
         || ThrowTemplateError($template->error());
   exit;
@@ -67,7 +67,7 @@ $vars->{'table'} = Testopia::Table->new('case', 'tr_list_cases.cgi', $cgi);
 my @time = localtime(time());
 my $date = sprintf "%04d-%02d-%02d", 1900+$time[5],$time[4]+1,$time[3];
 my $filename = "testcase-$case_id-$date.$format->{extension}";
-print $cgi->header(-type => $format->{'ctype'},
+$cgi->send_header(-type => $format->{'ctype'},
                    -content_disposition => "$disp; filename=$filename");
 
 $vars->{'case'} = $case;

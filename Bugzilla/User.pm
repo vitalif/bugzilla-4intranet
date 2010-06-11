@@ -1414,7 +1414,7 @@ sub match_field {
     $vars->{'matchsuccess'}  = $matchsuccess; # continue or fail
     $vars->{'matchmultiple'} = $match_multiple;
 
-    print $cgi->header();
+    $cgi->send_header();
 
     $template->process("global/confirm-user-match.html.tmpl", $vars)
       || ThrowTemplateError($template->error());

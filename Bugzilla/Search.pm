@@ -2002,13 +2002,12 @@ sub _keywords_nonchanged {
 
     my $k_table = "keywords_$$chartid";
     my $kd_table = "keyworddefs_$$chartid";
-    
-    push(@$supptables, "LEFT JOIN keywords AS $k_table " .
-                       "ON $k_table.bug_id = bugs.bug_id");
-    push(@$supptables, "LEFT JOIN keyworddefs AS $kd_table " .
-                       "ON $kd_table.id = $k_table.keywordid");
-    
-    $$f = "$kd_table.name";
+
+    # CustIS Bug 65346 - keyword search is broken in 3.6
+
+    $$f = "(SELECT IFNULL(GROUP_CONCAT($kd_table.name SEPARATOR ' '), '') FROM keywords AS $k_table " .
+        " LEFT JOIN keyworddefs AS $kd_table ON $kd_table.id=$k_table.keywordid" .
+        " WHERE $k_table.bug_id = bugs.bug_id)";
 }
 
 sub _dependson_nonchanged {
