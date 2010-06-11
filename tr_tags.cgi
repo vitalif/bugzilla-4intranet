@@ -44,7 +44,7 @@ local our $cgi = Bugzilla->cgi;
 local our $vars = {};
 local our $template = Bugzilla->template;
 
-print $cgi->header;
+$cgi->send_header;
 
 my $action   = $cgi->param('action') || '';
 my $type     = $cgi->param('type');

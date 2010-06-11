@@ -113,7 +113,7 @@ if ($product_name eq '') {
             $vars->{'cloned_bug_id'} = $cgi->param('cloned_bug_id');
             $vars->{'cloned_comment'} = $cgi->param('cloned_comment');
 
-            print $cgi->header();
+            $cgi->send_header();
             $template->process("global/choose-classification.html.tmpl", $vars)
                || ThrowTemplateError($template->error());
             exit;
@@ -146,7 +146,7 @@ if ($product_name eq '') {
         $vars->{'cloned_bug_id'} = $cgi->param('cloned_bug_id');
         $vars->{'cloned_comment'} = $cgi->param('cloned_comment');
 
-        print $cgi->header();
+        $cgi->send_header();
         $template->process("global/choose-product.html.tmpl", $vars)
           || ThrowTemplateError($template->error());
         exit;
@@ -656,7 +656,7 @@ my $format = $template->get_format("bug/create/create",
                                    scalar $cgi->param('format'), 
                                    scalar $cgi->param('ctype'));
 
-print $cgi->header($format->{'ctype'});
+$cgi->send_header($format->{'ctype'});
 $template->process($format->{'template'}, $vars)
   || ThrowTemplateError($template->error());          
 

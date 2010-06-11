@@ -45,7 +45,7 @@ my $product_id = $cgi->param('product_id');
 
 print "Location: tr_show_product.cgi?tab=build\n\n" unless $action; 
 
-print $cgi->header;
+$cgi->send_header;
 
 ThrowUserError("testopia-missing-parameter", {param => "product_id"}) unless $product_id;
 
@@ -111,7 +111,7 @@ elsif ($action eq 'report'){
     my $vars = {};
     my $template = Bugzilla->template;
     
-    print $cgi->header;
+    $cgi->send_header;
     
     my @build_ids  = $cgi->param('build_ids');
     my @builds;

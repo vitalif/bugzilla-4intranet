@@ -40,6 +40,6 @@ foreach my $user (@{$vars->{users}})
     $user->{list} = join ', ', map { $_->{login_name} } @$users_in_group;
 }
 
-print $cgi->header();
+$cgi->send_header();
 $template->process('list-of-mail-groups.html.tmpl', $vars)
   || ThrowTemplateError($template->error());

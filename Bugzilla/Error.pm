@@ -159,7 +159,7 @@ sub _throw_error
 
     if ($mode == ERROR_MODE_WEBPAGE)
     {
-        print Bugzilla->cgi->header();
+        Bugzilla->send_header;
         print $message;
     }
     elsif ($mode == ERROR_MODE_DIE_SOAP_FAULT || $mode == ERROR_MODE_JSON_RPC)
@@ -206,6 +206,7 @@ sub _throw_error
         $err->{'error'} = $error;
         $err->{'message'} = $message;
         my $json = new JSON;
+        Bugzilla->send_header;
         print $json->encode($err);
     }
     else

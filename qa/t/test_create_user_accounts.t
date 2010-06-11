@@ -44,7 +44,7 @@ $sel->click_ok("send");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_is("Too Soon For New Token");
 my $error_msg = trim($sel->get_text("error_msg"));
-ok($error_msg =~ /Please wait a while and try again/, "Too soon for this account");
+_ok($error_msg =~ /Please wait a while and try again/, "Too soon for this account");
 
 # These accounts do not pass the regexp.
 my @accounts = ('test@yahoo.com', 'test@bugzilla.net', 'test@bugzilla..test');
@@ -70,7 +70,7 @@ foreach my $account (@accounts) {
     $sel->wait_for_page_to_load_ok(WAIT_TIME);
     $sel->title_is("Invalid Email Address");
     my $error_msg = trim($sel->get_text("error_msg"));
-    ok($error_msg =~ /^The e-mail address you entered (\S+) didn't pass our syntax checking/, "Invalid email address detected");
+    _ok($error_msg =~ /^The e-mail address you entered (\S+) didn't pass our syntax checking/, "Invalid email address detected");
 }
 
 # This account already exists.
@@ -82,7 +82,7 @@ $sel->click_ok("send");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_is("Account Already Exists");
 $error_msg = trim($sel->get_text("error_msg"));
-ok($error_msg eq "There is already an account with the login name $config->{admin_user_login}.", "Account already exists");
+_ok($error_msg eq "There is already an account with the login name $config->{admin_user_login}.", "Account already exists");
 
 # Turn off user account creation.
 log_in($sel, $config, 'admin');
@@ -90,15 +90,15 @@ set_parameters($sel, { "User Authentication" => {"createemailregexp" => {type =>
 logout($sel);
 
 # Make sure that links pointing to createaccount.cgi are all deactivated.
-ok(!$sel->is_text_present("New Account"), "No link named 'New Account'");
+_ok(!$sel->is_text_present("New Account"), "No link named 'New Account'");
 $sel->click_ok("link=Home");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_is("Bugzilla Main Page");
-ok(!$sel->is_text_present("Open a New Account"), "No link named 'Open a New Account'");
+_ok(!$sel->is_text_present("Open a New Account"), "No link named 'Open a New Account'");
 $sel->open_ok("/$config->{bugzilla_installation}/createaccount.cgi");
 $sel->title_is("Account Creation Disabled");
 $error_msg = trim($sel->get_text("error_msg"));
-ok($error_msg =~ /^User account creation has been disabled. New accounts must be created by an administrator/,
+_ok($error_msg =~ /^User account creation has been disabled. New accounts must be created by an administrator/,
    "User account creation disabled");
 
 # Re-enable user account creation.

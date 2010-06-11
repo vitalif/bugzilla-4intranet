@@ -57,7 +57,7 @@ my $template = Bugzilla->template;
 my $env_id = $cgi->param('env_id');
 
 #*********************************************   UI Logic    ************************************************#
-print $cgi->header;
+$cgi->send_header;
 my $env = Testopia::Environment->new($env_id);
 ThrowUserError("testopia-read-only", {'object' => $env}) unless $env->canview;
 my $xml = Testopia::Environment::Xml->export($env_id);

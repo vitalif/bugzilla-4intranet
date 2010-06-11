@@ -45,7 +45,7 @@ my $cgi = Bugzilla->cgi;
 my $plan_id = trim(Bugzilla->cgi->param('plan_id'));
 
 unless ($plan_id){
-  print $cgi->header;
+  $cgi->send_header;
   $vars->{'form_action'} = 'tr_show_plan.cgi';
   $template->process("testopia/plan/choose.html.tmpl", $vars) 
       || ThrowTemplateError($template->error());
@@ -76,7 +76,7 @@ if ( $format->{'extension'} =~ /(csv|xml)/ ){
 my @time = localtime(time());
 my $date = sprintf "%04d-%02d-%02d", 1900+$time[5],$time[4]+1,$time[3];
 my $filename = "testplan_$plan_id-$date.$format->{extension}";
-print $cgi->header(-type => $format->{'ctype'},
+$cgi->send_header(-type => $format->{'ctype'},
                    -content_disposition => "$disp; filename=$filename");
     
 $vars->{'percentage'} = \&percentage;

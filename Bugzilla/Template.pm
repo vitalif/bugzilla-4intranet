@@ -993,6 +993,20 @@ sub _do_template_symlink {
     }
 }
 
+# Helper for $template->process()
+# Automatically sends CGI header
+sub process
+{
+    my $self = shift;
+    my ($template, $vars, $output) = @_;
+    if (!$output)
+    {
+        # if outputting via print(), check for sent header
+        Bugzilla->send_header;
+    }
+    $self->SUPER::process(@_);
+}
+
 1;
 
 __END__

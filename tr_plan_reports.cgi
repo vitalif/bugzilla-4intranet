@@ -45,7 +45,7 @@ if ($type eq 'build_coverage'){
     unless ($plan_id){
       $vars->{'form_action'} = 'tr_plan_reports.cgi';
       $vars->{'type'} = 'build_coverage';
-      print $cgi->header;
+      $cgi->send_header;
       $template->process("testopia/plan/choose.html.tmpl", $vars) 
           || ThrowTemplateError($template->error());
       exit;
@@ -79,7 +79,7 @@ if ($type eq 'build_coverage'){
     $vars->{'report'} = $report;
     $vars->{'plan'} = $plan;
 
-    print $cgi->header();
+    $cgi->send_header();
     if ($cgi->param('debug')){
         use Data::Dumper;        
         print Dumper($report);
@@ -95,7 +95,7 @@ elsif ($type eq 'bugcounts'){
     unless ($plan_id){
       $vars->{'form_action'} = 'tr_plan_reports.cgi';
       $vars->{'type'} = 'bugcounts';
-      print $cgi->header;
+      $cgi->send_header;
       $template->process("testopia/plan/choose.html.tmpl", $vars) 
           || ThrowTemplateError($template->error());
       exit;
@@ -117,7 +117,7 @@ elsif ($type eq 'bugcounts'){
     $vars->{'bug_table'} = $ref;
     $vars->{'plan'} = $plan;
 
-    print $cgi->header;
+    $cgi->send_header;
     $template->process("testopia/reports/bug-count.html.tmpl", $vars)
        || ThrowTemplateError($template->error());
 }
@@ -126,7 +126,7 @@ elsif ($type eq 'untested'){
     unless ($plan_id){
       $vars->{'form_action'} = 'tr_plan_reports.cgi';
       $vars->{'type'} = 'bugcounts';
-      print $cgi->header;
+      $cgi->send_header;
       $template->process("testopia/plan/choose.html.tmpl", $vars) 
           || ThrowTemplateError($template->error());
       exit;
@@ -151,7 +151,7 @@ elsif ($type eq 'untested'){
     $vars->{'case_count'} = scalar @$ref;
     $vars->{'plan_id'} = $plan_id;
     
-    print $cgi->header;
+    $cgi->send_header;
     $template->process("testopia/reports/untested.html.tmpl", $vars)
        || ThrowTemplateError($template->error());
 }
@@ -202,7 +202,7 @@ else{
         $disp = "attachment";
     }
 
-    print $cgi->header(-type => $format->{'ctype'},
+    $cgi->send_header(-type => $format->{'ctype'},
                        -content_disposition => "$disp; filename=$filename");
 
     $vars->{'time'} = $date;

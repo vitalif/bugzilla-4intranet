@@ -38,7 +38,7 @@ my $cgi = Bugzilla->cgi;
 
 Bugzilla->login(LOGIN_REQUIRED);
 
-print $cgi->header;
+$cgi->send_header;
 
 ###############################################################################
 # tr_show_product.cgi

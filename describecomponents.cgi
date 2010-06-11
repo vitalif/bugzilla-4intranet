@@ -36,7 +36,7 @@ my $cgi = Bugzilla->cgi;
 my $template = Bugzilla->template;
 my $vars = {};
 
-print $cgi->header();
+$cgi->send_header();
 
 # This script does nothing but displaying mostly static data.
 Bugzilla->switch_to_shadow_db;

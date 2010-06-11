@@ -55,7 +55,7 @@ my $vars = {};
 # improved and each action has its own section.
 $vars->{'doc_section'} = 'products.html';
 
-print $cgi->header();
+$cgi->send_header();
 
 $user->in_group('editcomponents')
   || scalar(@{$user->get_editable_products})

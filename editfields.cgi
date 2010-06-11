@@ -39,7 +39,7 @@ $user->in_group('editfields')
 my $action = trim($cgi->param('action') || '');
 my $token  = $cgi->param('token');
 
-print $cgi->header();
+$cgi->send_header();
 
 # List all existing custom fields if no action is given.
 if (!$action) {

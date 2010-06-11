@@ -60,12 +60,12 @@ elsif ($cgi->param('run_id')){
                                                        $cgi->param('env_id'));
 }
 else{
-    print $cgi->header;
+    $cgi->send_header;
     ThrowUserError('testopia-missing-parameter', {'param' => 'caserun_id or case_id and run_id'});
 }
 
 if ($action eq 'update_build'){
-    print $cgi->header;
+    $cgi->send_header;
     ThrowUserError("testopia-read-only", {'object' => $caserun}) unless $caserun->canedit;
     my $build_id = $cgi->param('build_id');
     detaint_natural($build_id);
@@ -77,7 +77,7 @@ if ($action eq 'update_build'){
 }
 
 elsif ($action eq 'update_environment'){
-    print $cgi->header;
+    $cgi->send_header;
     ThrowUserError("testopia-read-only", {'object' => $caserun}) unless $caserun->canedit;
     my $environment_id = $cgi->param('caserun_env');
     detaint_natural($environment_id);
@@ -89,7 +89,7 @@ elsif ($action eq 'update_environment'){
 }
 
 elsif ($action eq 'update_status'){
-    print $cgi->header;
+    $cgi->send_header;
     ThrowUserError("testopia-read-only", {'object' => $caserun}) unless $caserun->canedit;
     my $status_id = $cgi->param('status_id');
 
@@ -101,7 +101,7 @@ elsif ($action eq 'update_status'){
 }
 
 elsif ($action eq 'update_note'){
-    print $cgi->header;
+    $cgi->send_header;
     ThrowUserError("testopia-read-only", {'object' => $caserun}) unless $caserun->canedit;
     my $note = $cgi->param('note');
 
@@ -112,7 +112,7 @@ elsif ($action eq 'update_note'){
 }
 
 elsif ($action eq 'update_assignee'){
-    print $cgi->header;
+    $cgi->send_header;
     ThrowUserError("testopia-read-only", {'object' => $caserun}) unless $caserun->canedit;
     my $assignee_id;
     if ($cgi->param('assignee')){
@@ -125,7 +125,7 @@ elsif ($action eq 'update_assignee'){
 }
 
 elsif ($action eq 'update_sortkey'){
-    print $cgi->header;
+    $cgi->send_header;
     ThrowUserError("testopia-read-only", {'object' => $caserun}) unless $caserun->canedit;
     
     my $sortkey = $cgi->param('sortkey');
@@ -137,7 +137,7 @@ elsif ($action eq 'update_sortkey'){
 }
 
 elsif ($action eq 'update_priority'){
-    print $cgi->header;
+    $cgi->send_header;
     ThrowUserError("testopia-read-only", {'object' => $caserun}) unless $caserun->canedit;
     
     $caserun->set_priority($cgi->param('priority'));
@@ -148,7 +148,7 @@ elsif ($action eq 'update_priority'){
 }
 
 elsif ($action eq 'update_category'){
-    print $cgi->header;
+    $cgi->send_header;
     ThrowUserError("testopia-read-only", {'object' => $caserun}) unless $caserun->canedit;
     
     $caserun->case->set_category($cgi->param('category'));
@@ -159,7 +159,7 @@ elsif ($action eq 'update_category'){
 }
 
 elsif ($action eq 'getbugs'){
-    print $cgi->header;
+    $cgi->send_header;
     ThrowUserError("testopia-read-only", {'object' => $caserun}) unless $caserun->canedit;
     my $bugs;
     foreach my $bug (@{$caserun->bugs}){
@@ -173,7 +173,7 @@ elsif ($action eq 'getbugs'){
 
 elsif ($action eq 'gettext'){
     unless ($caserun->canview){
-        print $cgi->header;
+        $cgi->send_header;
         ThrowUserError("testopia-permission-denied", {'object' => $caserun});
     }
     
@@ -186,13 +186,13 @@ elsif ($action eq 'gettext'){
     
     $vars->{'text'} = $text;
     
-    print $cgi->header(-type => 'text/xml');
+    $cgi->send_header(-type => 'text/xml');
     Bugzilla->template->process("testopia/case/text.xml.tmpl", $vars) ||
         ThrowTemplateError(Bugzilla->template->error());
 }
 
 elsif ($action eq 'gethistory'){
-    print $cgi->header;
+    $cgi->send_header;
     ThrowUserError("testopia-permission-denied", {'object' => $caserun}) unless $caserun->canview;
     
     print '{"records":';

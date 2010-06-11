@@ -89,7 +89,7 @@ sub new {
         # multipart requests, and so should never happen unless there is a
         # browser bug.
 
-        print $self->header(-status => $err);
+        $self->send_header(-status => $err);
 
         # ThrowCodeError wants to print the header, so it grabs Bugzilla->cgi
         # which creates a new Bugzilla::CGI object, which fails again, which
@@ -286,6 +286,43 @@ sub header {
     }
 
     return $self->SUPER::header(@_) || "";
+}
+
+# Various send_* functions for tracing sent headers
+
+sub send_header
+{
+    my $self = shift;
+    $self->{_header_sent} = 1;
+    print $self->header(@_);
+}
+
+sub send_multipart_start
+{
+    my $self = shift;
+    $self->{_header_sent} = 1;
+    print $self->multipart_start(@_);
+}
+
+sub send_multipart_init
+{
+    my $self = shift;
+    $self->{_header_sent} = 1;
+    print $self->multipart_init(@_);
+}
+
+sub send_multipart_end
+{
+    my $self = shift;
+    $self->{_header_sent} = 1;
+    print $self->multipart_end(@_);
+}
+
+sub send_multipart_final
+{
+    my $self = shift;
+    $self->{_header_sent} = 1;
+    print $self->multipart_final(@_);
 }
 
 sub param {

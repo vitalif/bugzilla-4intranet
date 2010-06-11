@@ -1455,7 +1455,7 @@ sub _check_dup_id {
             $vars->{'cclist_accessible'} = $dupe_of_bug->cclist_accessible;
             $vars->{'original_bug_id'} = $dupe_of;
             $vars->{'duplicate_bug_id'} = $self->id;
-            print $cgi->header();
+            $cgi->send_header();
             $template->process("bug/process/confirm-duplicate.html.tmpl", $vars)
               || ThrowTemplateError($template->error());
             exit;

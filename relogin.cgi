@@ -196,6 +196,6 @@ else {
 }
 
 # Display the template
-print $cgi->header();
+$cgi->send_header();
 $template->process($target, $vars)
       || ThrowTemplateError($template->error());

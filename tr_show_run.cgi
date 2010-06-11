@@ -39,7 +39,7 @@ my $template = Bugzilla->template;
 Bugzilla->login(LOGIN_REQUIRED);
    
 my $cgi = Bugzilla->cgi;
-    print $cgi->header;
+    $cgi->send_header;
 local our $run_id = trim($cgi->param('run_id') || '');
 
 unless ($run_id){

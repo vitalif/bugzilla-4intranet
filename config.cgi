@@ -151,13 +151,13 @@ sub display_data {
     }
  
    if ($found304) {
-        print $cgi->header(-type => 'text/html',
+        $cgi->send_header(-type => 'text/html',
                            -ETag => $found304,
                            -status => '304 Not Modified');
     }
     else {
         # Return HTTP headers.
-        print $cgi->header (-ETag => $digest,
+        $cgi->send_header (-ETag => $digest,
                             -type => $format->{'ctype'});
         print $output;
     }

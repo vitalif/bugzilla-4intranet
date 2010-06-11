@@ -51,7 +51,7 @@ my $dbh = Bugzilla->dbh;
 
 Bugzilla->login(LOGIN_REQUIRED);
 
-print $cgi->header;
+$cgi->send_header;
 
 my $action = $cgi->param('action') || '';
 my $ctype = $cgi->param('ctype') || '';

@@ -356,6 +356,13 @@ sub cgi {
     return $class->request_cache->{cgi};
 }
 
+sub send_header {
+    my $class = shift;
+    return undef if $class->usage_mode == USAGE_MODE_EMAIL;
+    my $cgi = $class->cgi;
+    $cgi->{_header_sent} || $cgi->send_header(@_);
+}
+
 sub input_params {
     my ($class, $params) = @_;
     my $cache = $class->request_cache;

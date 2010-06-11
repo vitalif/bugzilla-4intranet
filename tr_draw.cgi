@@ -32,7 +32,7 @@ my $vars = {};
 
 my $template = Bugzilla->template;
 my $cgi = Bugzilla->cgi;
-print $cgi->header;
+$cgi->send_header;
 
 $vars->{'txt'} = $cgi->param('text');
 $template->process("testopia/text.png.tmpl", $vars) 

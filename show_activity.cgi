@@ -59,7 +59,7 @@ Bugzilla->switch_to_shadow_db;
 
 $vars->{'bug'} = $bug;
 
-print $cgi->header();
+$cgi->send_header();
 
 $template->process("bug/activity/show.html.tmpl", $vars)
   || ThrowTemplateError($template->error());

@@ -159,7 +159,7 @@ sub list {
     $vars->{'attachment_types'} = $attach_flagtypes;
 
     # Return the appropriate HTTP response headers.
-    print $cgi->header();
+    $cgi->send_header();
 
     # Generate and return the UI (HTML page) from the appropriate template.
     $template->process("admin/flag-type/list.html.tmpl", $vars)
@@ -205,7 +205,7 @@ sub edit {
     my @groups = Bugzilla::Group->get_all;
     $vars->{'groups'} = \@groups;
     # Return the appropriate HTTP response headers.
-    print $cgi->header();
+    $cgi->send_header();
 
     # Generate and return the UI (HTML page) from the appropriate template.
     $template->process("admin/flag-type/edit.html.tmpl", $vars)
@@ -268,7 +268,7 @@ sub processCategoryChange {
     $vars->{'token'} = $token;
 
     # Return the appropriate HTTP response headers.
-    print $cgi->header();
+    $cgi->send_header();
 
     # Generate and return the UI (HTML page) from the appropriate template.
     $template->process("admin/flag-type/edit.html.tmpl", $vars)
@@ -349,7 +349,7 @@ sub insert {
     $vars->{'attachment_types'} = Bugzilla::FlagType::match({'target_type' => 'attachment'});
 
     # Return the appropriate HTTP response headers.
-    print $cgi->header();
+    $cgi->send_header();
 
     $template->process("admin/flag-type/list.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
@@ -438,7 +438,7 @@ sub update {
     $vars->{'attachment_types'} = Bugzilla::FlagType::match({'target_type' => 'attachment'});
 
     # Return the appropriate HTTP response headers.
-    print $cgi->header();
+    $cgi->send_header();
 
     $template->process("admin/flag-type/list.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
@@ -451,7 +451,7 @@ sub confirmDelete {
     $vars->{'flag_type'} = $flag_type;
     $vars->{'token'} = issue_session_token('delete_flagtype');
     # Return the appropriate HTTP response headers.
-    print $cgi->header();
+    $cgi->send_header();
 
     # Generate and return the UI (HTML page) from the appropriate template.
     $template->process("admin/flag-type/confirm-delete.html.tmpl", $vars)
@@ -485,7 +485,7 @@ sub deleteType {
     $vars->{'attachment_types'} = Bugzilla::FlagType::match({'target_type' => 'attachment'});
 
     # Return the appropriate HTTP response headers.
-    print $cgi->header();
+    $cgi->send_header();
 
     $template->process("admin/flag-type/list.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
@@ -512,7 +512,7 @@ sub deactivate {
     $vars->{'attachment_types'} = Bugzilla::FlagType::match({'target_type' => 'attachment'});
 
     # Return the appropriate HTTP response headers.
-    print $cgi->header();
+    $cgi->send_header();
 
     # Generate and return the UI (HTML page) from the appropriate template.
     $template->process("admin/flag-type/list.html.tmpl", $vars)

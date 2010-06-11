@@ -54,7 +54,7 @@ $::SIG{PIPE} = 'DEFAULT';
 my $action = $cgi->param('action') || '';
 if ($action eq 'update'){
     Bugzilla->error_mode(ERROR_MODE_AJAX);
-    print $cgi->header;
+    $cgi->send_header;
     
     my @run_ids = split(',', $cgi->param('ids'));
     ThrowUserError('testopia-none-selected', {'object' => 'run'}) unless (scalar @run_ids);
@@ -84,7 +84,7 @@ if ($action eq 'update'){
 }
 
 elsif ($action eq 'clone'){
-    print $cgi->header;
+    $cgi->send_header;
     Bugzilla->error_mode(ERROR_MODE_AJAX);
     
     my @run_ids = split(',', $cgi->param('ids'));
@@ -173,7 +173,7 @@ elsif ($action eq 'clone'){
 }
 
 elsif ($action eq 'delete'){
-    print $cgi->header;
+    $cgi->send_header;
     Bugzilla->error_mode(ERROR_MODE_AJAX);
     my @run_ids = split(",", $cgi->param('run_ids'));
     my @uneditable;
@@ -192,7 +192,7 @@ elsif ($action eq 'delete'){
 }
 
 else {
-    print $cgi->header;
+    $cgi->send_header;
     $vars->{'qname'} = $cgi->param('qname') if $cgi->param('qname');
     $cgi->param('current_tab', 'run');
     $cgi->param('distinct', '1');

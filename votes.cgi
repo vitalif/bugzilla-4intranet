@@ -113,7 +113,7 @@ sub show_bug {
                                    WHERE votes.bug_id = ?',
                                   {'Slice' => {}}, $bug_id);
 
-    print $cgi->header();
+    $cgi->send_header();
     $template->process("bug/votes/list-for-bug.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
 }
@@ -214,7 +214,7 @@ sub show_user {
     $vars->{'bug_id'} = $bug_id;
     $vars->{'all_bug_ids'} = \@all_bug_ids;
 
-    print $cgi->header();
+    $cgi->send_header();
     $template->process("bug/votes/list-for-user.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
 }
@@ -239,7 +239,7 @@ sub record_votes {
     # that their votes will get nuked if they continue.
     if (scalar(@buglist) == 0) {
         if (!defined $cgi->param('delete_all_votes')) {
-            print $cgi->header();
+            $cgi->send_header();
             $template->process("bug/votes/delete-all.html.tmpl", $vars)
               || ThrowTemplateError($template->error());
             exit();
@@ -329,7 +329,7 @@ sub record_votes {
     }
 
     # Update the cached values in the bugs table
-    print $cgi->header();
+    $cgi->send_header();
     my @updated_bugs = ();
 
     my $sth_getVotes = $dbh->prepare("SELECT SUM(vote_count) FROM votes

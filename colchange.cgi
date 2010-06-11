@@ -158,7 +158,7 @@ if (defined $cgi->param('rememberedquery')) {
     if ($ENV{'SERVER_SOFTWARE'} =~ /Microsoft-IIS/
         || $ENV{'SERVER_SOFTWARE'} =~ /Sun ONE Web/)
     {
-      print $cgi->header(-type => "text/html",
+      $cgi->send_header(-type => "text/html",
                          -refresh => "0; URL=$vars->{'redirect_url'}");
     }
     else {
@@ -194,6 +194,6 @@ if (defined $cgi->param('query_based_on')) {
 }
 
 # Generate and return the UI (HTML page) from the appropriate template.
-print $cgi->header();
+$cgi->send_header();
 $template->process("list/change-columns.html.tmpl", $vars)
   || ThrowTemplateError($template->error());

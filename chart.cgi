@@ -187,7 +187,7 @@ elsif ($action eq "alter") {
 elsif ($action eq "confirm-delete") {
     $vars->{'series'} = assertCanEdit($series_id);
 
-    print $cgi->header();
+    $cgi->send_header();
     $template->process("reports/delete-series.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
 }
@@ -304,7 +304,7 @@ sub edit {
     $vars->{'category'} = Bugzilla::Chart::getVisibleSeries();
     $vars->{'default'} = $series;
 
-    print $cgi->header();
+    $cgi->send_header();
     $template->process("reports/edit-series.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
 }
@@ -317,11 +317,11 @@ sub plot {
 
     # Debugging PNGs is a pain; we need to be able to see the error messages
     if ($cgi->param('debug')) {
-        print $cgi->header();
+        $cgi->send_header();
         $vars->{'chart'}->dump();
     }
 
-    print $cgi->header($format->{'ctype'});
+    $cgi->send_header($format->{'ctype'});
     disable_utf8() if ($format->{'ctype'} =~ /^image\//);
 
     $template->process($format->{'template'}, $vars)
@@ -339,7 +339,7 @@ sub wrap {
     $vars->{'imagebase'} = $cgi->canonicalise_query(
                 "action", "action-wrap", "ctype", "format", "width", "height");
 
-    print $cgi->header();
+    $cgi->send_header();
     $template->process("reports/chart.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
 }
@@ -356,7 +356,7 @@ sub view {
     $vars->{'chart'} = $chart;
     $vars->{'category'} = Bugzilla::Chart::getVisibleSeries();
 
-    print $cgi->header();
+    $cgi->send_header();
 
     # If we have having problems with bad data, we can set debug=1 to dump
     # the data structure.

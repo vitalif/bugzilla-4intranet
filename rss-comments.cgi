@@ -192,7 +192,7 @@ foreach $k (@$gkeys)
 # Output feed title
 $vars->{title} = $title;
 
-print $cgi->header(-type => 'text/xml');
+$cgi->send_header(-type => 'text/xml');
 $template->process('list/comments.'.$format.'.tmpl', $vars)
     || ThrowTemplateError($template->error());
 

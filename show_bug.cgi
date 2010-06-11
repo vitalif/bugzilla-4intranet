@@ -43,7 +43,7 @@ my $single = !$cgi->param('format')
 
 # If we don't have an ID, _AND_ we're only doing a single bug, then prompt
 if (!$cgi->param('id') && $single) {
-    print Bugzilla->cgi->header();
+    Bugzilla->cgi->send_header();
     $template->process("bug/choose.html.tmpl", $vars) ||
       ThrowTemplateError($template->error());
     exit;
@@ -132,7 +132,7 @@ if (Bugzilla->session && ($sd = Bugzilla->session_data) && $sd->{sent})
     $vars->{sentmail} = $sd->{sent};
 }
 
-print $cgi->header($format->{'ctype'});
+$cgi->send_header($format->{'ctype'});
 
 $template->process("$format->{'template'}", $vars)
   || ThrowTemplateError($template->error());

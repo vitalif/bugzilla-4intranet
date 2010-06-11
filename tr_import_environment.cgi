@@ -68,7 +68,7 @@ our $message = '';
 $CGI::POST_MAX = 1024 * 500;        # max file size 500K
 
 #***************************************** UI Logic ************************************************************#
-print $cgi->header;
+$cgi->send_header;
 # Make sure the file isn't too big.
 if (!$env_filename && $cgi->cgi_error()) {
     $vars->{'tr_error'} .= "File size cannot exceed 500K.<BR/>";

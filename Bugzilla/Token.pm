@@ -215,7 +215,7 @@ sub check_hash_token {
         $vars->{'reason'} = (!$token) ?                   'missing_token' :
                             ($expected_token ne $token) ? 'invalid_token' :
                                                           'expired_token';
-        print Bugzilla->cgi->header();
+        Bugzilla->cgi->send_header();
         $template->process('global/confirm-action.html.tmpl', $vars)
           || ThrowTemplateError($template->error());
         exit;
@@ -396,7 +396,7 @@ sub check_token_data {
             $cgi->param('token', $token);
         }
 
-        print $cgi->header();
+        $cgi->send_header();
 
         $template->process('admin/confirm-action.html.tmpl', $vars)
           || ThrowTemplateError($template->error());

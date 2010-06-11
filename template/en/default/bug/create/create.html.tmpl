@@ -88,7 +88,7 @@ var flags = new Array([% product.components.size %]);
 
 function Create_onsubmit()
 {
-  wt = bzParseTime(document.Create.work_time.value);
+  var wt = bzParseTime(document.Create.work_time.value);
   if (wt !== null && (wt === undefined || wt != wt))
     wt = null;
   else if (wt < 0)

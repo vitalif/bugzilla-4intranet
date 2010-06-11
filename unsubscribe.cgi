@@ -38,7 +38,7 @@ else
     $vars->{not_in_cc} = 1;
 }
 
-print $cgi->header();
+$cgi->send_header();
 $template->process('bug/process/unsubscribe.html.tmpl', $vars)
     || ThrowTemplateError($template->error());
 

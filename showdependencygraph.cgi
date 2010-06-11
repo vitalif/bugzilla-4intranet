@@ -72,7 +72,7 @@ $vars->{display} = $display;
 $vars->{graphs} = $graphs;
 
 # Generate and return the UI (HTML page) from the appropriate template.
-print $cgi->header();
+$cgi->send_header();
 $template->process("bug/dependency-graph.html.tmpl", $vars)
   || ThrowTemplateError($template->error());
 

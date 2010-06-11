@@ -159,7 +159,7 @@ if ($term){
 
 # This is where we lookup items typed into Dojo combo boxes
 else{
-    print $cgi->header;
+    $cgi->send_header;
 
 # Environment Lookup
     if ($action eq 'getenvironments'){

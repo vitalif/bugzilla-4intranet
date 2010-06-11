@@ -29,7 +29,7 @@ my $template = Bugzilla->template;
 my $vars = {};
 
 # Return the appropriate HTTP response headers.
-print $cgi->header('application/xml');
+$cgi->send_header('application/xml');
 
 # Get the contents of favicon.ico
 my $filename = bz_locations()->{'libpath'} . "/images/favicon.ico";

@@ -47,7 +47,7 @@ my $vars = {};
 
 $vars->{'doc_section'} = 'myaccount.html';
 
-print $cgi->header();
+$cgi->send_header();
 
 # If we're using LDAP for login, then we can't create a new account here.
 unless (Bugzilla->user->authorizer->user_can_create_account) {
