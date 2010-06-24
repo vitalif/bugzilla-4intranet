@@ -26,7 +26,7 @@ sub refresh_views
         my $userobj = Bugzilla::User->new($userid) or next;
         my $q = $query;
         $q =~ tr/_/ /;
-        my $storedquery = Bugzilla::Search::LookupNamedQuery($q, undef, undef, 0, $userobj) or next;
+        my $storedquery = Bugzilla::Search::LookupNamedQuery($q, undef, undef, 0) or next;
         my $cgi = new Bugzilla::CGI($storedquery);
         my $search = new Bugzilla::Search(
             params => $cgi,
