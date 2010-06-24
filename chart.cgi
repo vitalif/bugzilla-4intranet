@@ -354,6 +354,7 @@ sub view {
 
     # Pass the state object to the display UI.
     $vars->{'chart'} = $chart;
+    $vars->{'selected'} = { map { $_ => 1 } getSelectedLines() };
     $vars->{'category'} = Bugzilla::Chart::getVisibleSeries();
 
     $cgi->send_header();

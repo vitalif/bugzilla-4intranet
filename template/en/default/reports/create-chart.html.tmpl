@@ -151,7 +151,7 @@ function subcatSelected() {
           <tr>
             [% IF loop.first %]
               <td align="center" rowspan="[% line.size %]">
-                <input type="checkbox" value="1" name="select[% newidx %]">
+                <input type="checkbox" value="1" name="select[% newidx %]" [% " checked" IF selected.$newidx %]>
               </td>
               <td rowspan="[% line.size %]">
                 <input type="text" size="20" name="label[% newidx %]"
