@@ -77,7 +77,7 @@ for (keys %$args)
         # шаблон для багов
         $bug_tpl->{$'} = $args->{$_};
     }
-    elsif (/^t_/so && $args->{$_} && $args->{$_} ne $')
+    elsif (/^t_/so && $args->{$_} ne $')
     {
         # переименования полей таблицы
         $name_tr->{$'} = $args->{$_};
@@ -175,13 +175,13 @@ unless ($args->{commit})
             my $g;
             for (@{$table->{fields}})
             {
-                if (!$name_tr->{$_} && ($g = guess_field_name($_, $guess_field_descs)))
+                if (!exists $name_tr->{$_} && ($g = guess_field_name($_, $guess_field_descs)))
                 {
                     $name_tr->{$_} = $g;
                 }
             }
             # показываем табличку с багами
-            my %fhash = map { ($name_tr->{$_} || $_) => 1 } @{$table->{fields}};
+            my %fhash = map { (exists $name_tr->{$_} ? $name_tr->{$_} : $_) => 1 } @{$table->{fields}};
             for (@{ MANDATORY_FIELDS() })
             {
                 push @{$table->{fields}}, $_ unless $fhash{$_} || $bug_tpl->{$_};
@@ -190,7 +190,6 @@ unless ($args->{commit})
             $vars->{data} = $table->{data};
         }
     }
-    $cgi->send_header();
     $template->process("bug/import/importxls.html.tmpl", $vars)
         || ThrowTemplateError($template->error());
 }
@@ -203,7 +202,7 @@ else
         if (/^b_(.*?)_(\d+)$/so)
         {
             # поля багов
-            $bugs->{$2}->{$name_tr->{$1} || $1} = $args->{$_};
+            $bugs->{$2}->{(exists $name_tr->{$1} ? $name_tr->{$1} : $1)} = $args->{$_};
         }
     }
     my $r = 0;
@@ -381,7 +380,7 @@ sub post_bug
         eval
         {
             $product = Bugzilla::Product->check({ name => $fields_in->{product} });
-            $component = Bugzilla::Component->check({
+            $component = Bugzilla::Component->new({
                 product => $product,
                 name    => $fields_in->{component},
             });
@@ -402,6 +401,10 @@ sub post_bug
                 # или просто последнюю, как и в enter_bug.cgi
                 $fields_in->{version} = $vers->[$#$vers];
             }
+        }
+        if (!$product)
+        {
+            return undef;
         }
     }
     # скармливаем параметры $cgi

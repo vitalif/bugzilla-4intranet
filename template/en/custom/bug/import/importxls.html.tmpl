@@ -130,7 +130,7 @@ function fieldrename(field)
         <p id="tp_[% field | html %]"><a href="javascript:void fieldrename('[% field.replace("['\"]", '\\$&') | html %]')">[% IF import_field_descs.${field} %][% import_field_descs.${field} | html %][% ELSE %]<span style="color: red">[% field | html %]</span>[% END %]</a></p>
         [% END %]
         <select id="t_[% field | html %]" name="t_[% field | html %]" style="[% IF NOT name_tr.${field} %]display:none; [% END %]width: 90px">
-            <option value="[% field | html %]">Don&apos;t map: [% field | html %]</option>
+            <option value="">Don&apos;t map: [% field | html %]</option>
         [% FOR f = import_field_descs.keys.sort %]
             <option value="[% f | html %]" [% IF name_tr.${field} == f %] selected[% END %]>[% import_field_descs.${f} | html %]</option>
         [% END %]
