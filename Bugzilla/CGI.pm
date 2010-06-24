@@ -293,6 +293,7 @@ sub header {
 sub send_header
 {
     my $self = shift;
+    $self->{_header_sent} || return undef;
     $self->{_header_sent} = 1;
     print $self->header(@_);
 }
