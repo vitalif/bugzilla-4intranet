@@ -163,29 +163,20 @@
   </table>
 
   <table><tr><td>
-          [% IF measure !='rtime'%]
-            <a href="[% formaturl %]&amp;format=[% format %]&amp;measure=rtime">
-          [% END %]
-              Remaining time
-          [% IF measure !='rtime'%]
-              </a>
-          [% END %]
-          </td><td>|
-          [% IF measure !='etime'%]
-            <a href="[% formaturl %]&amp;format=[% format %]&amp;measure=etime">
-          [% END %]
-              Estimated time
-          [% IF measure !='etime'%]
-              </a>
-          [% END %]
-          </td><td>|
-          [% IF (NOT measure) || (measure !='count') %]
-            <a href="[% formaturl %]&amp;format=[% format %]&amp;measure=count">
-          [% END %]
-             Bugs count
-          [% IF (NOT measure) || (measure !='count') %]
-              </a>
-          [% END %]
+    [% measure_descs = {
+      rtime => 'Remaining time'
+      etime => 'Estimated time'
+      wtime => 'Actual time'
+      count => 'Bugs count'
+    } %]
+    [% FOR m = measure_descs.keys.sort %]
+      [%+ IF measure != m %]<a href="[% formaturl %]&amp;format=[% format %]&amp;measure=[% m %]">[% END %]
+      [% measure_descs.$m %]
+      [% IF measure != m %]</a>[% END %]
+      [% IF NOT loop.last %]
+      |
+      [% END %]
+    [% END %]
   </td></tr></table>
 
 

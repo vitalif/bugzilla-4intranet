@@ -127,6 +127,7 @@ my %valid_columns = map { $_ => 1 } @columns;
 my $measures = {
     etime => "bugs.estimated_time AS measure",
     rtime => "bugs.remaining_time AS measure",
+    wtime => "(SELECT SUM(lwt.work_time) FROM longdescs lwt WHERE lwt.bug_id=bugs.bug_id) AS measure",
     count => "1 AS measure",
 };
 my $measure = $cgi->param('measure');
