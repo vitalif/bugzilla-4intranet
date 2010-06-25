@@ -385,7 +385,7 @@ sub get_bug_link {
     $title = html_quote(clean_text($title));
 
     my $linkval = correct_urlbase()."show_bug.cgi?id=".$bug->id;
-    if ($options->{comment_num}) {
+    if (defined $options->{comment_num}) {
         $linkval .= "#c" . $options->{comment_num};
     }
     # CustIS Bug 53691
@@ -1004,7 +1004,7 @@ sub process
         # if outputting via print(), check for sent header
         Bugzilla->send_header;
     }
-    $self->SUPER::process(@_);
+    return $self->SUPER::process(@_);
 }
 
 1;

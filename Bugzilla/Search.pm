@@ -308,7 +308,14 @@ sub init {
         my @legal_statuses =
           map {$_->name} @{Bugzilla::Field->new({name => 'bug_status'})->legal_values};
 
-        if (scalar(@bug_statuses) == scalar(@legal_statuses)
+        # Filter out any statuses that have been removed completely that are still 
+        # being used by the client
+        my @valid_statuses;
+        foreach my $status (@bug_statuses) {
+            push(@valid_statuses, $status) if grep($_ eq $status, @legal_statuses);
+        }
+        
+        if (scalar(@valid_statuses) == scalar(@legal_statuses)
             || $bug_statuses[0] eq "__all__")
         {
             $params->delete('bug_status');
@@ -320,6 +327,9 @@ sub init {
         elsif ($bug_statuses[0] eq "__closed__") {
             $params->param('bug_status', grep(!is_open_state($_), 
                                               @legal_statuses));
+        }
+        else {
+            $params->param('bug_status', @valid_statuses);
         }
     }
     
@@ -394,8 +404,8 @@ sub init {
         }
     }
 
-    my $chfieldfrom = trim(lc($params->param('chfieldfrom'))) || '';
-    my $chfieldto = trim(lc($params->param('chfieldto'))) || '';
+    my $chfieldfrom = trim(lc($params->param('chfieldfrom') || ''));
+    my $chfieldto = trim(lc($params->param('chfieldto') || ''));
     $chfieldfrom = '' if ($chfieldfrom eq 'now');
     $chfieldto = '' if ($chfieldto eq 'now');
     my @chfield = $params->param('chfield');
@@ -851,6 +861,12 @@ sub init {
     %chartfields = @{$dbh->selectcol_arrayref(
         q{SELECT name, id FROM fielddefs}, { Columns=>[1,2] })};
 
+    if (!$user->is_timetracker) {
+        foreach my $tt_field (TIMETRACKING_FIELDS) {
+            delete $chartfields{$tt_field};
+        }
+    }
+
     $row = 0;
     for ($chart=-1 ;
          $chart < 0 || $params->param("field$chart-0-0") ;
@@ -1259,8 +1275,7 @@ sub BuildOrderBy {
 sub split_order_term {
     my $fragment = shift;
     $fragment =~ /^(.+?)(?:\s+(ASC|DESC))?$/i;
-    my ($column_name, $direction) = (lc($1), uc($2));
-    $direction ||= "";
+    my ($column_name, $direction) = (lc($1), uc($2 || ''));
     return wantarray ? ($column_name, $direction) : $column_name;
 }
 
