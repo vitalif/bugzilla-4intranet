@@ -32,7 +32,7 @@ name="SYNOPSIS"
 <pre  class="code"> use Bugzilla::Install::CPAN;
 
  set_cpan_config();
- install_module(&#39;Module::Name&#39;, 1);</pre>
+ install_module(&#39;Module::Name&#39;);</pre>
 
 <h1><a class='u' href='#___top' title='click to go to top of document'
 name="DESCRIPTION"
@@ -65,8 +65,8 @@ name="SUBROUTINES"
 ><code  class="code">$name</code> - The name of the module, just like you&#39;d pass to the <code  class="code">install</code> command in the CPAN shell.</a></dt>
 
 <dd>
-<dt><a name="$notest_-_If_true,_we_skip_running_tests_on_this_module._This_can_greatly_speed_up_the_installation_time."
-><code  class="code">$notest</code> - If true, we skip running tests on this module. This can greatly speed up the installation time.</a></dt>
+<dt><a 
+><code  class="code">$test</code> - If true, we run tests on this module before installing, but we still force the install if the tests fail. This is only used when we internally install a newer CPAN module.</a></dt>
 </dl>
 
 <p>Note that calling this function prints a <b>lot</b> of information to STDOUT and STDERR.</p>

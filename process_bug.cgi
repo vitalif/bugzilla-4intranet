@@ -720,13 +720,13 @@ elsif (($action eq 'next_bug' or $action eq 'same_bug') && ($bug = $vars->{bug})
     my $title;
     if (scalar(@bug_objects) == 1)
     {
-        $title = template_var('terms')->{Bug} . ' ' . $bug->id . ' processed';
+        $title = template_var('terms')->{Bug} . ' ' . $bug_objects[0]->id . ' processed';
     }
     else
     {
         $title = template_var('terms')->{Bugs} . ' processed';
     }
-    if (Bugzilla->save_session_data({ sent => $send_results, title => $title }))
+    if (Bugzilla->save_session_data({ sent => $send_results, title => $title, nextbug => $action eq 'next_bug' ? 1 : 0 }))
     {
         print $cgi->redirect(-location => 'show_bug.cgi?id='.$bug->id);
         exit;

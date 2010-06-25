@@ -46,8 +46,11 @@ sub process {
     $template ||= $context->stash->get([ 'component', 0, 'name', 0 ]);
 
     # sanity check:
-    if ($template !~ /^[\w\.\/\-_\\]+$/) {
-        ThrowCodeError('template_invalid', { name => $template });
+    # WHAT IDIOT HAS CALLED SPECIAL TT VARIABLE 'component'?
+    if ($template !~ /^[\w\.\/\-_\\]+$/)
+    {
+        warn __PACKAGE__.": Template component.name = '$template' invalid, skipping hooks";
+        return;
     }
 
     my (undef, $path, $filename) = File::Spec->splitpath($template);
