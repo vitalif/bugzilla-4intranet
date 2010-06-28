@@ -441,7 +441,8 @@ sub today {
 }
 
 sub today_dash {
-    my ($dom, $mon, $year) = (localtime(time))[3, 4, 5];
+    my ($shift) = @_;
+    my ($dom, $mon, $year) = (localtime(time+$shift*86400))[3, 4, 5];
     return sprintf "%04d-%02d-%02d", 1900 + $year, ++$mon, $dom;
 }
 
@@ -471,7 +472,11 @@ sub CollectSeriesData {
     # (days_since_epoch + series_id) % frequency = 0. So they'll run every
     # <frequency> days, but the start date depends on the series_id.
     my $days_since_epoch = int(time() / (60 * 60 * 24));
-    my $today = $ARGV[0] || today_dash();
+    my $today = $ARGV[0];
+    if ($today !~ /^\d{4,}-\d{2}-\d{2}$/so)
+    {
+        $today = today_dash($today =~ /^(-?\d+)$/ ? $1 : 0);
+    }
 
     # We save a copy of the main $dbh and then switch to the shadow and get
     # that one too. Remember, these may be the same.
