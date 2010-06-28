@@ -389,6 +389,17 @@ my %default;
 
 $vars->{'product'}               = $product;
 
+# CustIS Bug 65812 - Flags are not restored from bug entry template
+{
+    my $types = $product->flag_types->{bug};
+    for (@$types)
+    {
+        $_->{default_value} = formvalue('flag_type-'.$_->id);
+        $_->{default_requestee} = formvalue('requestee_type-'.$_->id);
+    }
+    $vars->{product_flag_types} = $types;
+}
+
 $vars->{'priority'}              = get_legal_field_values('priority');
 $vars->{'bug_severity'}          = get_legal_field_values('bug_severity');
 $vars->{'rep_platform'}          = get_legal_field_values('rep_platform') if Bugzilla->params->{useplatform};
