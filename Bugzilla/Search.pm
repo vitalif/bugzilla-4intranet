@@ -457,27 +457,27 @@ sub init {
             my $term;
             if ($f eq "[Bug creation]")
             {
-                    # Treat [Bug creation] differently because we need to look
-                    # at bugs.creation_ts rather than the bugs_activity table.
-                    my @l;
-                    if ($sql_chfrom) {
-                        my $term = "bugs.creation_ts >= $sql_chfrom";
-                        push(@l, $term);
-                        $self->search_description({
-                            field => 'creation_ts', type => 'greaterthaneq',
-                            value => $chfieldfrom, term => $term,
-                        });
-                    }
-                    if ($sql_chto) {
-                        my $term = "bugs.creation_ts <= $sql_chto";
-                        push(@l, $term);
-                        $self->search_description({
-                            field => 'creation_ts', type => 'lessthaneq',
-                            value => $chfieldto, term => $term,
-                        });
-                    }
-                    $bug_creation_clause = "(" . join(' AND ', @l) . ")";
+                # Treat [Bug creation] differently because we need to look
+                # at bugs.creation_ts rather than the bugs_activity table.
+                my @l;
+                if ($sql_chfrom) {
+                    my $term = "bugs.creation_ts >= $sql_chfrom";
+                    push(@l, $term);
+                    $self->search_description({
+                        field => 'creation_ts', type => 'greaterthaneq',
+                        value => $chfieldfrom, term => $term,
+                    });
                 }
+                if ($sql_chto) {
+                    my $term = "bugs.creation_ts <= $sql_chto";
+                    push(@l, $term);
+                    $self->search_description({
+                        field => 'creation_ts', type => 'lessthaneq',
+                        value => $chfieldto, term => $term,
+                    });
+                }
+                $bug_creation_clause = "(" . join(' AND ', @l) . ")";
+            }
             elsif ($f eq 'longdesc' || $f eq 'longdescs.isprivate' || $f eq 'commenter')
             {
                 # Treat comment properties differently because we need to look at longdescs table.
@@ -488,11 +488,12 @@ sub init {
                         # User is searching for a comment with specific text,
                         # but that has no sense if $chvalue was already used for comment privacy.
                         $seen_longdesc = [ $term = "INSTR(actcheck_comment.thetext, $sql_chvalue) > 0" ];
-            }
+                    }
                     elsif ($f eq 'commenter')
                     {
                         # User is searching for a comment with specific author
                         $need_commenter = $term = "actcheck_commenter.login_name = $sql_chvalue";
+                        $value_term = " AND actcheck.who = (SELECT actcheck_profiles.userid FROM profiles actcheck_profiles WHERE actcheck_profiles.login_name = $sql_chvalue)";
                     }
                     elsif (!$seen_longdesc)
                     {
@@ -519,30 +520,30 @@ sub init {
                 $term = 1;
                 if ($sql_chvalue)
                 {
-                        $self->search_description({
+                    $self->search_description({
                         field => $f, type => 'changedto',
-                            value => $chvalue, term  => $value_term,
-                        });
-                    }
+                        value => $chvalue, term => $value_term,
+                    });
+                }
             }
             if ($term)
             {
                 if ($sql_chfrom)
                 {
-                        $self->search_description({
+                    $self->search_description({
                         field => $f, type => 'changedafter',
-                            value => $chfieldfrom, term => $from_term,
-                        });
-                    }
+                        value => $chfieldfrom, term => $from_term,
+                    });
+                }
                 if ($sql_chto)
                 {
-                        $self->search_description({
+                    $self->search_description({
                         field => $f, type => 'changedbefore',
-                            value => $chfieldto, term => $to_term,
-                        });
-                    }
+                        value => $chfieldto, term => $to_term,
+                    });
                 }
             }
+        }
 
         my $extra;
         if (!$bug_creation_clause && !$seen_longdesc || @actlist)
