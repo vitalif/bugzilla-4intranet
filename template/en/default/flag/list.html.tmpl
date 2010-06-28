@@ -127,11 +127,11 @@
               class="flag_select flag_type-[% type.id %]">
         <option value="X"></option>
         [% IF type.is_requestable && user.can_request_flag(type) %]
-          <option value="?">?</option>
+          <option value="?" [% " selected" IF type.default_value == "?" %]>?</option>
         [% END %]
         [% IF user.can_set_flag(type) %]
-          <option value="+">+</option>
-          <option value="-">-</option>
+          <option value="+" [% " selected" IF type.default_value == "+" %]>+</option>
+          <option value="-" [% " selected" IF type.default_value == "-" %]>-</option>
         [% END %]
       </select>
     </td>
@@ -142,7 +142,7 @@
             [% INCLUDE "global/userselect-combobox.html.tmpl"
                        name     => "requestee_type-$type.id"
                        id       => "requestee_type-$type.id"
-                       value    => ""
+                       value    => type.default_requestee
                        multiple         => type.is_multiplicable
                        emptyok          => !type.is_multiplicable
                        usemenuforusers  => type.custom_list
