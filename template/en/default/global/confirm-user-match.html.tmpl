@@ -107,6 +107,7 @@
   [% FOREACH field = matches %]
     <tr>
       <td align="left" valign="top">
+        [% IF NOT first_field; first_field = field.key; END %]
         [% PROCESS field_names field_name=field.key %]:
       </td>
       <td align="left" valign="top">
@@ -171,6 +172,11 @@
   [% END %]
 
   </table>
+  [% IF first_field %]
+  <script language="JavaScript">
+  document.getElementById('[% first_field %]').focus();
+  </script>
+  [% END %]
 
 [% IF matchsuccess == 1 %]
 
