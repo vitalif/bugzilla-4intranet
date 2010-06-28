@@ -1,0 +1,22 @@
+<div id="wrapcommentpreview" style="display: none">
+<div id="commentpreviewhtml"></div>
+<iframe name="commentpreviewframe" id="commentpreviewframe" style="display: none"></iframe>
+<script>
+/*<!--*/
+if (!window.findPos)
+{
+  window.findPos = function(obj) { var curtop = 0; if (obj.offsetParent) { do { curtop += obj.offsetTop; } while (obj = obj.offsetParent); return [curtop]; } }
+  window.scrollDocTo = function(obj) { window.scroll(0,findPos(obj)); }
+  window.scrTo = function(id) { scrollDocTo(document.getElementById(id)); }
+  window.hidepreview = function() { document.getElementById('wrapcommentpreview').style.display='none'; }
+  window.showcommentpreview = function() {
+    document.getElementById('wrapcommentpreview').style.display = '';
+    document.commentpreviewform.comment.value = document.getElementById('comment_textarea').value;
+    document.commentpreviewform.submit();
+    scrTo('wrapcommentpreview');
+  }
+}
+//-->
+</script>
+<p style="text-align: right; margin-top: 0"><a href="javascript:void(0)" onclick="hidepreview()">Hide preview</a></p>
+</div>

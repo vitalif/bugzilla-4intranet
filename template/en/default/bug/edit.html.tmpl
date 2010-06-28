@@ -194,9 +194,7 @@
   //-->
   </script>
 
-<form name="commentpreviewform" style="display:none" target="commentpreview" method="POST" action="page.cgi?id=previewcomment.html">
-<input id="previewcommentvalue" type="hidden" name="comment" value="" />
-</form>
+[% PROCESS "bug/comment-preview-form.html.tmpl" %]
 
 [%# CustIS Bug 57315 - Force Fucking Firefox to reset form on Reload %]
 [% USE date %]
@@ -1149,27 +1147,6 @@ document.changeform = document.[% cfname %];
           </tr>
         </table>
       </td></tr></table>
-      <div id="wrapcommentpreview" style="display: none">
-      <iframe name="commentpreview" id="commentpreview" style="height: auto; border-width: 0; width: 100%; overflow: hidden">
-      </iframe>
-      <script>
-      /*<!--*/
-      function findPos(obj) { var curtop = 0; if (obj.offsetParent) { do { curtop += obj.offsetTop; } while (obj = obj.offsetParent); return [curtop]; } }
-      function scrollDocTo(obj) { window.scroll(0,findPos(obj)); }
-      function scrTo(id) { scrollDocTo(document.getElementById(id)); }
-      function hidepreview() { document.getElementById('wrapcommentpreview').style.display='none'; }
-      function showcommentpreview()
-      {
-          document.getElementById('wrapcommentpreview').style.width=document.getElementById('comments').scrollWidth+'px';
-          document.getElementById('wrapcommentpreview').style.display='inline-block';
-          document.commentpreviewform.comment.value = document.changeform.comment.value;
-          document.commentpreviewform.submit();
-          scrTo('commentpreview');
-      }
-      //-->
-      </script>
-      <p style="text-align: right"><a href="javascript:void hidepreview()">Hide preview</a></p>
-      </div>
 
     [%# For logged-out users %]
     [% ELSE %]
