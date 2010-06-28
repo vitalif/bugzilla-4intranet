@@ -572,7 +572,7 @@ sub init {
         push @list,
             "SELECT bug_id FROM longdescs AS actcheck_comment" .
             ($need_commenter ?
-                " LEFT JOIN profiles AS actcheck_commenter" .
+                " INNER JOIN profiles AS actcheck_commenter" .
                 " ON actcheck_commenter.userid=actcheck_comment.who AND $need_commenter" : '') .
             " WHERE $extra";
 
