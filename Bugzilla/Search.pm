@@ -562,7 +562,7 @@ sub init {
             push @list, "SELECT bug_id FROM bugs_activity AS actcheck WHERE $extra";
         }
 
-        $extra = "actcheck_comment.bug_id = bugs.bug_id";
+        $extra = "1=1";
         $extra .= " AND actcheck_comment.bug_when >= $sql_chfrom" if $sql_chfrom;
         $extra .= " AND actcheck_comment.bug_when <= $sql_chto" if $sql_chto;
         if ($seen_longdesc && @$seen_longdesc)
