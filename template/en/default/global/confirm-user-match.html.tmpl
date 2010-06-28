@@ -107,7 +107,6 @@
   [% FOREACH field = matches %]
     <tr>
       <td align="left" valign="top">
-        [% IF NOT first_field; first_field = field.key; END %]
         [% PROCESS field_names field_name=field.key %]:
       </td>
       <td align="left" valign="top">
@@ -123,6 +122,7 @@
                     Please go back and try again with a more specific
                     name/address.
                   [% ELSE %]
+                    [% IF NOT first_field; first_field = field.key; END %]
                     [% IF query.value.status == 'trunc' %]
                       matched
                       more than the maximum
@@ -172,11 +172,9 @@
   [% END %]
 
   </table>
-  [% IF first_field %]
   <script language="JavaScript">
-  document.getElementById('[% first_field %]').focus();
+  document.getElementById('[% first_field || 'continue' %]').focus();
   </script>
-  [% END %]
 
 [% IF matchsuccess == 1 %]
 
