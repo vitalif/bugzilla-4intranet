@@ -144,4 +144,4 @@ table.attachment_info td {
     padding-top: 1em;
 }
 
-#comment { width: 50em; font-size: medium; font-family: monospace; }
+#comment_textarea { width: 50em; font-size: medium; font-family: monospace; }

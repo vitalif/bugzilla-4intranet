@@ -38,6 +38,8 @@
   doc_section = "attachments.html"
 %]
 
+[% PROCESS "bug/comment-preview-form.html.tmpl" %]
+
 <form name="entryform" method="post" action="attachment.cgi"
       enctype="multipart/form-data"
       onsubmit="return validateAttachmentForm(this)">
@@ -103,15 +105,17 @@
       <td>
         <em>(optional) Add a comment about this attachment to the [% terms.bug %].</em>
         <input type="checkbox" name="commentsilent" value="1" /> <label for="commentsilent">Silent</label>
-        <br>
+        <br />
         [% INCLUDE global/textarea.html.tmpl
           name    = 'comment'
-          id      = 'comment'
+          id      = 'comment_textarea'
           minrows = 6
           maxrows = 15
           cols    = constants.COMMENT_COLS
           wrap    = 'soft'
+          style   = 'width: 100%'
         %]
+        [% PROCESS "bug/comment-preview-div.html.tmpl" %]
       </td>
     </tr>
     [% IF user.is_insider %]
@@ -130,7 +134,7 @@
     [% END %]
     <tr>
       <th>&nbsp;</th>
-      <td><input type="submit" id="create" value="Submit"></td>
+      <td><input type="submit" id="create" value="Submit"> <input type="button" value="Preview comment" onclick="showcommentpreview()" tabindex="-1" /></td>
     </tr>
   </table>
 
