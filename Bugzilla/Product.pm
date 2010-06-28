@@ -906,15 +906,15 @@ sub flag_types
                         $cl->merge($flagtypes{$flagtype->{id}}->{custom_list});
                         $cl->merge($flagtype->{custom_list});
                         $flagtypes{$flagtype->{id}}->{custom_list} = $cl;
+                    }
                 }
             }
-        }
             $self->{flag_types}->{$type} = [
                 sort { $a->{'sortkey'} <=> $b->{'sortkey'}
                      || $a->{'name'} cmp $b->{'name'} }
                 values %flagtypes
             ];
-    }
+        }
     }
 
     return $self->{'flag_types'};
