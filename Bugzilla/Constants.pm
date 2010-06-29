@@ -35,6 +35,7 @@ use base qw(Exporter);
 
 # For bz_locations
 use File::Basename;
+use Cwd qw(abs_path);
 
 @Bugzilla::Constants::EXPORT = qw(
     BUGZILLA_VERSION
@@ -519,7 +520,7 @@ sub bz_locations {
     #
     # On mod_cgi this will be a relative path. On mod_perl it will be an
     # absolute path.
-    my $libpath = dirname(dirname($INC{'Bugzilla/Constants.pm'}));
+    my $libpath = abs_path(dirname(dirname($INC{'Bugzilla/Constants.pm'})));
     # We have to detaint $libpath, but we can't use Bugzilla::Util here.
     $libpath =~ /(.*)/;
     $libpath = $1;

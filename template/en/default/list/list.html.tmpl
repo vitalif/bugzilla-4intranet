@@ -240,20 +240,34 @@ Bug ID list:
       
       <td>&nbsp;</td>
       
+      [%# TODO extract these links into an array and move display into a loop %]
+
       <td valign="middle" class="bz_query_links">
         [% IF bugs.size > 1 && caneditbugs && !dotweak %]
         <a target="graphview" href="showdependencygraph.cgi?id=[% buglist_joined FILTER html %]">Graph</a> |
         [% END %]
         <a href="buglist.cgi?
-        [% urlquerypart FILTER html %]&amp;ctype=csv">CSV</a> |
-        <a href="buglist.cgi?
-        [% urlquerypart.replace('[&\?]columnlist=[^&]*', '') FILTER html %]&amp;columnlist=bug_severity%2Cpriority%2Cshort_desc%2Cestimated_time%2Cactual_time%2Ctarget_milestone&amp;format=scrum">Scrum</a> |
+        [% urlquerypart FILTER html %]&amp;ctype=csv">CSV</a>
+
+      </td><td>|</td><td valign="middle" class="bz_query_links">
+        <table><tr><td>
+          <a href="buglist.cgi?
+          [% urlquerypart.replace('[&\?]columnlist=[^&]*', '') FILTER html %]&amp;columnlist=bug_severity%2Cpriority%2Cshort_desc%2Cestimated_time%2Cactual_time%2Ctarget_milestone&amp;format=scrum">Scrum Cards</a>
+        </td></tr><tr><td>
+          <a href="editscrum.cgi?id=[% FOR id = buglist %],[% id %][% END %]">Estimates...</a>
+        </td></tr></table>
+      </td><td>|</td><td valign="middle" class="bz_query_links">
+        <table><tr><td>
         <a href="buglist.cgi?
         [% urlquerypart FILTER html %]&amp;title=
-        [%- title FILTER html %]&amp;ctype=atom">Buglist Feed</a> |
+        [%- title FILTER html %]&amp;ctype=atom">Buglist Feed</a>
+        </td></tr><tr><td>
         <a href="rss-comments.cgi?
         [% urlquerypart FILTER html %]&amp;title=
-        [%- title FILTER html %]&amp;ctype=rss&amp;namedcmd=[% searchname FILTER html %]">Activity Feed</a> |
+        [%- title FILTER html %]&amp;ctype=rss&amp;namedcmd=[% searchname FILTER html %]">Activity Feed</a>
+        </td></tr></table>
+      </td><td>|</td><td valign="middle" class="bz_query_links">
+
         <a href="buglist.cgi?
         [% urlquerypart FILTER html %]&amp;ctype=ics">iCalendar</a> |
         <a href="colchange.cgi?

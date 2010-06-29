@@ -1,0 +1,63 @@
+[% PROCESS global/header.html.tmpl
+  title = "Edit SCRUM card data for bugs"
+  style = style
+%]
+
+<p>Select sprint and type to edit time estimates. Both can be empty even when selected.</p>
+
+<form action="?" method="GET">
+<input type="hidden" name="id" value="[% ids | html %]" />
+<input type="checkbox" name="sprint_select" id="sprint_select" onchange="document.getElementById('sprint').disabled=(this.checked?false:true)" value="1" [% " checked" IF sprint_select %] /> <label for="sprint_select">Filter by sprint:</label> <input type="text" name="sprint" [% ' disabled="false"' IF NOT sprint_select %] id="sprint" value="[% sprint | html %]" />
+&nbsp; <input type="checkbox" name="type_select" id="type_select" onchange="document.getElementById('type').disabled=(this.checked?false:true)" value="1" [% " checked" IF type_select %] /> <label for="type_select">Filter by type:</label> <input type="text" name="type" id="type" [% ' disabled="false"' IF NOT type_select %] value="[% type | html %]" />
+&nbsp; <input type="submit" value=" Select " />
+</form>
+
+[% IF estimates %]
+<form action="?save=1" method="POST">
+<input type="hidden" name="sprint" value="[% sprint | html %]" />
+<input type="hidden" name="type" value="[% type | html %]" />
+<input type="hidden" name="id" value="[% ids | html %]" />
+<table cellpadding="3">
+  <tr style="background-color: #c0c0c0"><th>Bug</th><th>Sprint</th><th>Type</th><th>Time Estimate</th></tr>
+  [% FOR b = bugs %]
+  <tr>
+    <td><a href="show_bug.cgi?id=[% b.id %]">[% b.id %] - [% b.short_desc | html %]</a></td>
+    [% IF sprint %]
+    <td>[% sprint | html %]</td>
+    [% ELSE %]
+    <td style="background-color: #c0c0c0; color: gray">&lt;empty&gt;</td>
+    [% END %]
+    [% IF type %]
+    <td>[% type | html %]</td>
+    [% ELSE %]
+    <td style="background-color: #c0c0c0; color: gray">&lt;empty&gt;</td>
+    [% END %]
+    <td><input type="text" name="estimate_[% b.id %]" value="[% estimates.${b.id} | html %]" /></td>
+  </tr>
+  [% END %]
+</table>
+<input type="submit" value="Save estimates" />
+</form>
+[% ELSIF cards.size %]
+<table cellpadding="3">
+  <tr><th>Bug</th><th>Sprint</th><th>Type</th><th>Time Estimate</th></tr>
+  [% FOR c = cards %]
+  <tr>
+    <td><a href="show_bug.cgi?id=[% c.bug_id %]">[% c.bug.id %] - [% c.bug.short_desc | html %]</a></td>
+    [% IF c.sprint %]
+    <td>[% c.sprint | html %]</td>
+    [% ELSE %]
+    <td style="background-color: #c0c0c0; color: gray">&lt;empty&gt;</td>
+    [% END %]
+    [% IF c.type %]
+    <td>[% c.type | html %]</td>
+    [% ELSE %]
+    <td style="background-color: #c0c0c0; color: gray">&lt;empty&gt;</td>
+    [% END %]
+    <td align="center">[% c.estimate | html %]</td>
+  </tr>
+  [% END %]
+</table>
+[% END %]
+
+[% PROCESS global/footer.html.tmpl %]
