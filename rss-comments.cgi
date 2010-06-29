@@ -13,6 +13,7 @@ use Bugzilla::Constants;
 use Bugzilla::Error;
 use Bugzilla::Util;
 use Bugzilla::Search;
+use Bugzilla::Search::Saved;
 
 use POSIX qw(strftime);
 
