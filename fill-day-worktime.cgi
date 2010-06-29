@@ -9,6 +9,7 @@ use lib qw(. lib);
 use Bugzilla;
 use Bugzilla::Bug;
 use Bugzilla::Search;
+use Bugzilla::Search::Saved;
 use Bugzilla::Constants;
 
 my $user     = Bugzilla->login(LOGIN_REQUIRED);
