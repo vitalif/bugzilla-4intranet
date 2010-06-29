@@ -65,3 +65,16 @@ $schema->{fieldvaluecontrol} = {
              TYPE => 'UNIQUE'},
     ],
 };
+
+# Bug 45485 - Scrum-карточки из Bugzilla
+$schema->{scrum_cards} = {
+    FIELDS => [
+        bug_id   => {TYPE => 'INT3', NOTNULL => 1},
+        sprint   => {TYPE => 'varchar(255)', NOTNULL => 1},
+        type     => {TYPE => 'varchar(255)', NOTNULL => 1},
+        estimate => {TYPE => 'varchar(255)', NOTNULL => 1},
+    ],
+    INDEXES => [
+        scrum_cards_primary_idx => { FIELDS => ['bug_id', 'sprint', 'type'], TYPE => 'UNIQUE' },
+    ],
+};

@@ -38,6 +38,7 @@ use Bugzilla;
 use Bugzilla::Constants;
 use Bugzilla::Error;
 use Bugzilla::Util;
+use Bugzilla::Hook;
 use Bugzilla::Search;
 use Bugzilla::Search::Quicksearch;
 use Bugzilla::Search::Saved;
@@ -1171,6 +1172,7 @@ if ($dotweak && scalar @bugs) {
 # the "Remember search as" field.
 $vars->{'defaultsavename'} = $cgi->param('query_based_on');
 
+Bugzilla::Hook::process('after-buglist', { vars => $vars });
 
 ################################################################################
 # HTTP Header Generation

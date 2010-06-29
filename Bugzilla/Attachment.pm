@@ -846,16 +846,6 @@ sub create {
     my $attachment = $class->insert_create_data($params);
     my $attachid = $attachment->id;
 
-    # We only use $data here in this INSERT with a placeholder,
-    # so it's safe.
-    my $sth = $dbh->prepare("INSERT INTO attach_data
-                             (id, thedata) VALUES ($attachid, ?)");
-
-    my $data = $store_in_file ? "" : $fh;
-    trick_taint($data);
-    $sth->bind_param(1, $data, $dbh->BLOB_TYPE);
-    $sth->execute();
-
     # If the file is to be stored locally, stream the file from the web server
     # to the local file without reading it into a local variable.
     if ($store_in_file) {
@@ -885,6 +875,17 @@ sub create {
             print AH $fh;
         }
         close AH;
+    }
+    else
+    {
+        # We only use $fh here in this INSERT with a placeholder,
+        # so it's safe.
+        my $sth = $dbh->prepare("INSERT INTO attach_data
+                                 (id, thedata) VALUES ($attachid, ?)");
+
+        trick_taint($fh);
+        $sth->bind_param(1, $fh, $dbh->BLOB_TYPE);
+        $sth->execute();
     }
 
     # Return the new attachment object.
