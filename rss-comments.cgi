@@ -28,12 +28,13 @@ my $dbh       = Bugzilla->dbh;
 $vars->{selfurl} = $cgi->canonicalise_query();
 $vars->{buginfo} = $cgi->param('buginfo');
 
-our %FORMATS = qw(rss 1 showteamwork 1);
+our %FORMATS = map { $_ => 1 } qw(rss showteamwork);
 
 my $who = $cgi->param('who');
 
 my $limit;
 my $format = $cgi->param('ctype');
+trick_taint($format);
 $FORMATS{$format} or $format = 'rss';
 
 $limit = int($cgi->param('limit')) if $format eq 'showteamwork';
@@ -193,7 +194,7 @@ foreach $k (@$gkeys)
 # Output feed title
 $vars->{title} = $title;
 
-$cgi->send_header(-type => 'text/xml');
+Bugzilla->cgi->send_header(-type => 'text/xml');
 $template->process('list/comments.'.$format.'.tmpl', $vars)
     || ThrowTemplateError($template->error());
 

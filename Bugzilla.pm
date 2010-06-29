@@ -360,7 +360,7 @@ sub send_header {
     my $class = shift;
     return undef if $class->usage_mode == USAGE_MODE_EMAIL;
     my $cgi = $class->cgi;
-    $cgi->{_header_sent} || $cgi->send_header(@_);
+    $cgi->send_header(@_);
 }
 
 sub input_params {
