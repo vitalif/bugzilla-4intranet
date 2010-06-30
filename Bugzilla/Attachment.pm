@@ -888,6 +888,8 @@ sub create {
         $sth->execute();
     }
 
+    Bugzilla::Hook::process('attachment_post_create', { attachment => $attachment });
+
     # Return the new attachment object.
     return $attachment;
 }

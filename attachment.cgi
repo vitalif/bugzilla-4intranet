@@ -537,53 +537,79 @@ sub insert {
                                   work_time => scalar $cgi->param('work_time'),
                                   extra_data => $attachment->id });
 
-  # Assign the bug to the user, if they are allowed to take it
-  my $owner = "";
-  if ($cgi->param('takebug') && $user->in_group('editbugs', $bug->product_id)) {
-      # When taking a bug, we have to follow the workflow.
-      my $bug_status = $cgi->param('bug_status') || '';
-      ($bug_status) = grep {$_->name eq $bug_status} @{$bug->status->can_change_to};
+    # Assign the bug to the user, if they are allowed to take it
+    my $owner = "";
+    if ($cgi->param('takebug') && $user->in_group('editbugs', $bug->product_id)) {
+        # When taking a bug, we have to follow the workflow.
+        my $bug_status = $cgi->param('bug_status') || '';
+        ($bug_status) = grep {$_->name eq $bug_status} @{$bug->status->can_change_to};
 
-      if ($bug_status && $bug_status->is_open
-          && ($bug_status->name ne 'UNCONFIRMED' 
-              || $bug->product_obj->allows_unconfirmed))
-      {
-          $bug->set_status($bug_status->name);
-          $bug->clear_resolution();
-      }
-      # Make sure the person we are taking the bug from gets mail.
-      $owner = $bug->assigned_to->login;
-      $bug->set_assigned_to($user);
-  }
-  $bug->update($timestamp);
+        if ($bug_status && $bug_status->is_open
+            && ($bug_status->name ne 'UNCONFIRMED' 
+                || $bug->product_obj->allows_unconfirmed))
+        {
+            $bug->set_status($bug_status->name);
+            $bug->clear_resolution();
+        }
+        # Make sure the person we are taking the bug from gets mail.
+        $owner = $bug->assigned_to->login;
+        $bug->set_assigned_to($user);
+    }
+    $bug->update($timestamp);
 
-  if ($token) {
-      trick_taint($token);
-      $dbh->do('UPDATE tokens SET eventdata = ? WHERE token = ?', undef,
-               ("create_attachment:" . $attachment->id, $token));
-  }
+    if ($token) {
+        trick_taint($token);
+        $dbh->do('UPDATE tokens SET eventdata = ? WHERE token = ?', undef,
+                 ("create_attachment:" . $attachment->id, $token));
+    }
 
-  $dbh->bz_commit_transaction;
+    $dbh->bz_commit_transaction;
 
-  # Define the variables and functions that will be passed to the UI template.
-  $vars->{'attachment'} = $attachment;
-  # We cannot reuse the $bug object as delta_ts has eventually been updated
-  # since the object was created.
-  $vars->{'bugs'} = [new Bugzilla::Bug($bugid)];
-  $vars->{'header_done'} = 1;
-  $vars->{'contenttypemethod'} = $cgi->param('contenttypemethod');
+    # Define the variables and functions that will be passed to the UI template.
+    $vars->{'attachment'} = $attachment;
+    # We cannot reuse the $bug object as delta_ts has eventually been updated
+    # since the object was created.
+    $vars->{'bugs'} = [new Bugzilla::Bug($bugid)];
+    $vars->{'header_done'} = 1;
+    $vars->{'contenttypemethod'} = $cgi->param('contenttypemethod');
 
-  my $recipients = { 'changer' => $user->login, 'owner' => $owner };
-  my $silent = $vars->{commentsilent} = $cgi->param('commentsilent') ? 1 : 0;
-  $vars->{'sent_bugmail'} = Bugzilla::BugMail::Send($bugid, $recipients, $silent);
+    my $recipients = { 'changer' => $user->login, 'owner' => $owner };
+    my $silent = $vars->{commentsilent} = $cgi->param('commentsilent') ? 1 : 0;
+    my $sent_bugmail = Bugzilla::BugMail::Send($bugid, $recipients, $silent);
 
-  if (Bugzilla->usage_mode != USAGE_MODE_EMAIL)
-  {
-      $cgi->send_header();
-      # Generate and return the UI (HTML page) from the appropriate template.
-      $template->process("attachment/created.html.tmpl", $vars)
-        || ThrowTemplateError($template->error());
-  }
+    # Operation result to save into session (CustIS Bug 64562)
+    my $session_data = {
+        title => "Attachment ".$attachment->id." added to ".template_var('terms')->{Bug}." ".$attachment->bug_id,
+        sent => [ {
+            commentsilent  => $silent,
+            sent_bugmail   => $sent_bugmail,
+            mailrecipients => $recipients,
+            id             => $bugid,
+        } ],
+        sent_attrs => {
+            contenttypemethod => $vars->{contenttypemethod},
+            added_attachment => {
+                id          => $attachment->id,
+                bug_id      => $attachment->bug_id,
+                description => $attachment->description,
+                contenttype => $attachment->contenttype,
+            },
+        },
+    };
+
+    Bugzilla::Hook::process('attachment_post_create_result', { session_data => $session_data, vars => $vars });
+
+    if (Bugzilla->usage_mode != USAGE_MODE_EMAIL)
+    {
+        if (Bugzilla->save_session_data($session_data))
+        {
+            print $cgi->redirect(-location => 'show_bug.cgi?id='.$attachment->bug_id);
+            exit;
+        }
+        # Generate and return the UI (HTML page) from the appropriate template.
+        $template->process("attachment/created.html.tmpl", $vars)
+          || ThrowTemplateError($template->error());
+    }
 }
 
 # Displays a form for editing attachment properties.
@@ -591,27 +617,27 @@ sub insert {
 # is private and the user does not belong to the insider group.
 # Validations are done later when the user submits changes.
 sub edit {
-  my $attachment = validateID();
+    my $attachment = validateID();
 
-  my $bugattachments =
-      Bugzilla::Attachment->get_attachments_by_bug($attachment->bug_id);
-  # We only want attachment IDs.
-  @$bugattachments = map { $_->id } @$bugattachments;
+    my $bugattachments =
+        Bugzilla::Attachment->get_attachments_by_bug($attachment->bug_id);
+    # We only want attachment IDs.
+    @$bugattachments = map { $_->id } @$bugattachments;
 
-  my $any_flags_requesteeble =
-    grep { $_->is_requestable && $_->is_requesteeble } @{$attachment->flag_types};
-  # Useful in case a flagtype is no longer requestable but a requestee
-  # has been set before we turned off that bit.
-  $any_flags_requesteeble ||= grep { $_->requestee_id } @{$attachment->flags};
-  $vars->{'any_flags_requesteeble'} = $any_flags_requesteeble;
-  $vars->{'attachment'} = $attachment;
-  $vars->{'attachments'} = $bugattachments;
+    my $any_flags_requesteeble =
+        grep { $_->is_requestable && $_->is_requesteeble } @{$attachment->flag_types};
+    # Useful in case a flagtype is no longer requestable but a requestee
+    # has been set before we turned off that bit.
+    $any_flags_requesteeble ||= grep { $_->requestee_id } @{$attachment->flags};
+    $vars->{'any_flags_requesteeble'} = $any_flags_requesteeble;
+    $vars->{'attachment'} = $attachment;
+    $vars->{'attachments'} = $bugattachments;
 
-  $cgi->send_header();
+    $cgi->send_header();
 
-  # Generate and return the UI (HTML page) from the appropriate template.
-  $template->process("attachment/edit.html.tmpl", $vars)
-    || ThrowTemplateError($template->error());
+    # Generate and return the UI (HTML page) from the appropriate template.
+    $template->process("attachment/edit.html.tmpl", $vars)
+      || ThrowTemplateError($template->error());
 }
 
 # Updates an attachment record. Only users with "editbugs" privileges,
@@ -713,7 +739,7 @@ sub update {
 
     # Generate and return the UI (HTML page) from the appropriate template.
     $template->process("attachment/updated.html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
+        || ThrowTemplateError($template->error());
 }
 
 # Only administrators can delete attachments.

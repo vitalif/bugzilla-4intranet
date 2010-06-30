@@ -726,7 +726,7 @@ elsif (($action eq 'next_bug' or $action eq 'same_bug') && ($bug = $vars->{bug})
     {
         $title = template_var('terms')->{Bugs} . ' processed';
     }
-    if (Bugzilla->save_session_data({ sent => $send_results, title => $title, nextbug => $action eq 'next_bug' ? 1 : 0 }))
+    if (Bugzilla->save_session_data({ sent => $send_results, title => $title, sent_attrs => { nextbug => $action eq 'next_bug' ? 1 : 0 } }))
     {
         print $cgi->redirect(-location => 'show_bug.cgi?id='.$bug->id);
         exit;

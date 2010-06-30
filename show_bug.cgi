@@ -126,11 +126,11 @@ $vars->{'displayfields'} = \%displayfields;
 my $sd;
 if (Bugzilla->session && ($sd = Bugzilla->session_data) && $sd->{sent})
 {
-    Bugzilla->save_session_data({ sent => undef, title => undef, header => undef, nextbug => undef });
-    $vars->{nextbug} = $sd->{nextbug};
+    Bugzilla->save_session_data({ sent => undef, title => undef, header => undef, sent_attrs => undef });
     $vars->{last_title} = $sd->{title};
     $vars->{last_header} = $sd->{header};
     $vars->{sentmail} = $sd->{sent};
+    $vars->{$_} = $sd->{sent_attrs}->{$_} for keys %{$sd->{sent_attrs} || {}};
 }
 
 $cgi->send_header($format->{'ctype'});
