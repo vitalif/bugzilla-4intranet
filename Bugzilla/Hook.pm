@@ -79,7 +79,7 @@ sub process
                 eval { require $pk };
                 if ($@)
                 {
-                    warn "Error autoloading hook package $pk: $@";
+                    warn __PACKAGE__."::process(): Error autoloading hook package $pk: $@";
                     next;
                 }
             }
@@ -102,7 +102,7 @@ sub process
             $sub = eval "package $pk; sub { my (\$args) = \@_; $sub; return 1; };";
             if ($@)
             {
-                warn __PACKAGE__."::load(): error during loading $f->{filename} into a subroutine (note that Bugzilla->hook_args was replaced by \$args): $@";
+                warn __PACKAGE__."::process(): error during loading $f->{filename} into a subroutine (note that Bugzilla->hook_args was replaced by \$args): $@";
                 next;
             }
             $f = $sub;
