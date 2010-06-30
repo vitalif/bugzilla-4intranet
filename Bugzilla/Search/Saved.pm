@@ -22,14 +22,15 @@ use strict;
 
 package Bugzilla::Search::Saved;
 
-use base qw(Bugzilla::Object);
+use base qw(Bugzilla::Object Exporter);
+
+our @EXPORT = qw(IsValidQueryType);
 
 use Bugzilla::CGI;
 use Bugzilla::Hook;
 use Bugzilla::Constants;
 use Bugzilla::Group;
 use Bugzilla::Error;
-use Bugzilla::Search qw(IsValidQueryType);
 use Bugzilla::User;
 use Bugzilla::Util;
 
@@ -300,6 +301,16 @@ sub user {
 sub set_name       { $_[0]->set('name',       $_[1]); }
 sub set_url        { $_[0]->set('query',      $_[1]); }
 sub set_query_type { $_[0]->set('query_type', $_[1]); }
+
+# Validate that the query type is one we can deal with
+sub IsValidQueryType
+{
+    my ($queryType) = @_;
+    if (grep { $_ eq $queryType } qw(specific advanced)) {
+        return 1;
+    }
+    return 0;
+}
 
 1;
 

@@ -37,7 +37,6 @@ use base qw(Exporter);
 @Bugzilla::Search::EXPORT = qw(
     EMPTY_COLUMN
 
-    IsValidQueryType
     split_order_term
     translate_old_column
 );
@@ -50,7 +49,6 @@ use Bugzilla::User;
 use Bugzilla::Field;
 use Bugzilla::Status;
 use Bugzilla::Keyword;
-use Bugzilla::Search::Saved;
 
 use Date::Format;
 use Date::Parse;
@@ -1204,16 +1202,6 @@ sub pronoun {
     }
     if ($noun eq "%qacontact%") {
         return "bugs.qa_contact";
-    }
-    return 0;
-}
-
-# Validate that the query type is one we can deal with
-sub IsValidQueryType
-{
-    my ($queryType) = @_;
-    if (grep { $_ eq $queryType } qw(specific advanced)) {
-        return 1;
     }
     return 0;
 }
