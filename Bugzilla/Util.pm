@@ -718,7 +718,19 @@ sub stem_text
     {
         unless (/\W/)
         {
-            $_ = Lingua::Stem::RuUTF8::stem_word($_) unless $q;
+            # $q = 1 means verbatim
+            unless ($q)
+            {
+                if (/_/)
+                {
+                    # CustIS Bug 66033
+                    $_ = join ' ', map { Lingua::Stem::RuUTF8::stem_word($_) } ($_, split(/_/, $_));
+                }
+                else
+                {
+                    $_ = Lingua::Stem::RuUTF8::stem_word($_);
+                }
+            }
         }
         else
         {
