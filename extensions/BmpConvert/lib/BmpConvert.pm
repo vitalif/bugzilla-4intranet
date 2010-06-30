@@ -14,19 +14,25 @@ sub attachment_process_data
     return 1 unless $args->{attributes}->{mimetype} eq 'image/bmp';
 
     my $data = ${$args->{data}};
-    my $img = Image::Magick->new(magick => 'bmp');
+    my $img = Image::Magick->new(magick => 'bmp', verbose => 1);
 
+    my $x;
     # $data is a filehandle.
     if (ref $data) {
-        $img->Read(file => \*$data);
-        $img->set(magick => 'png');
+        local $/ = undef;
+        $data = <$data>;
     }
     # $data is a blob.
-    else {
-        $img->BlobToImage($data);
-        $img->set(magick => 'png');
+    $x = $img->BlobToImage($data);
+    warn __PACKAGE__.": Image::Magick said '$x' while reading BMP image" if "$x";
+
+    $img->set(magick => 'png');
+    if (!($data = $img->ImageToBlob()))
+    {
+        # Some failure
+        warn __PACKAGE__.": Image::Magick::ImageToBlob() failed";
+        return 1;
     }
-    $data = $img->ImageToBlob();
     undef $img;
 
     ${$args->{data}} = $data;
