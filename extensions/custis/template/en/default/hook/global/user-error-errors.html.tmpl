@@ -3,9 +3,11 @@
    User [% user %] is restricted to watch this bug.
 [% ELSIF error == "rms_fields_empty" %]
    [% title = "Some required fields are empty" %]
-   [% SET fs = [] %]
-   [% fs.push("Sprint") IF s %]
-   [% fs.push("Status Whiteboard") IF w %]
-   [% fs.push("Agreement") IF a %]
-   You must fill in <b>[% fs.join(", ") %]</b> attribute[% IF fs.size > 1 %]s[% END %] before closing this bug!
+   [% FOR nok = not_ok_bugs %]
+     [% fs = [] %]
+     [% fs.push("Sprint") IF nok.s %]
+     [% fs.push("Status Whiteboard") IF nok.w %]
+     [% fs.push("Agreement") IF nok.a %]
+     <a href="show_bug.cgi?id=[% nok.bug.id %]">[% terms.Bug %] [%+ nok.bug.id %] - [% nok.bug.short_desc | html %]</a>: You must fill in <b>[% fs.join(", ") %]</b> attribute[% IF fs.size > 1 %]s[% END %] before closing this bug!<br />
+   [% END %]
 [% END %]
