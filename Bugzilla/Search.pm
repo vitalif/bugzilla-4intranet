@@ -50,6 +50,7 @@ use Bugzilla::User;
 use Bugzilla::Field;
 use Bugzilla::Status;
 use Bugzilla::Keyword;
+use Bugzilla::Search::Saved;
 
 use Date::Format;
 use Date::Parse;
