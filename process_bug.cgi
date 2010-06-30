@@ -589,6 +589,13 @@ foreach my $b (@bug_objects) {
     }
 }
 
+Bugzilla::Hook::process('process_bug-pre_update', { bugs => \@bug_objects });
+
+# @msgs will store emails which have to be sent to voters, if any.
+my @msgs;
+
+$dbh->bz_start_transaction();
+
 ##############################
 # Do Actual Database Updates #
 ##############################
@@ -638,26 +645,15 @@ foreach my $bug (@bug_objects) {
     # an error later.
     delete $changed_deps{''};
 
-    # @msgs will store emails which have to be sent to voters, if any.
-    my @msgs;
     if ($changes->{'product'}) {
         # If some votes have been removed, RemoveVotes() returns
         # a list of messages to send to voters.
         # We delay the sending of these messages till changes are committed.
-        @msgs = RemoveVotes($bug->id, 0, 'votes_bug_moved');
+        push @msgs, RemoveVotes($bug->id, 0, 'votes_bug_moved');
         CheckIfVotedConfirmed($bug->id);
     }
 
     $dbh->bz_commit_transaction();
-
-    ###############
-    # Send Emails #
-    ###############
-
-    # Now is a good time to send email to voters.
-    foreach my $msg (@msgs) {
-        MessageToMTA($msg);
-    }
 
     my $old_qa  = $changes->{'qa_contact'}  ? $changes->{'qa_contact'}->[0] : '';
     my $old_own = $changes->{'assigned_to'} ? $changes->{'assigned_to'}->[0] : '';
@@ -665,7 +661,7 @@ foreach my $bug (@bug_objects) {
 
     # Let the user know the bug was changed and who did and didn't
     # receive email about the change.
-    push @$send_results, send_results($bug->id, {
+    push @$send_results, {
         mailrecipients => {
             cc        => [split(/[\s,]+/, $old_cc)],
             owner     => $old_own,
@@ -674,19 +670,19 @@ foreach my $bug (@bug_objects) {
         },
         id => $bug->id,
         type => "bug",
-    });
- 
+    };
+
     # If the bug was marked as a duplicate, we need to notify users on the
     # other bug of any changes to that bug.
     my $new_dup_id = $changes->{'dup_id'} ? $changes->{'dup_id'}->[1] : undef;
     if ($new_dup_id) {
         # Let the user know a duplication notation was added to the 
         # original bug.
-        push @$send_results, send_results($new_dup_id, {
+        push @$send_results, {
             mailrecipients => { changer => Bugzilla->user->login },
             id => $new_dup_id,
             type => "dupe",
-        });
+        };
     }
 
     my %all_dep_changes = (%notify_deps, %changed_deps);
@@ -695,12 +691,29 @@ foreach my $bug (@bug_objects) {
         # see if we should email notice of this change to users with a 
         # relationship to the dependent bug and who did and didn't 
         # receive email about it.
-        push @$send_results, send_results($id, {
+        push @$send_results, {
             mailrecipients => { changer => Bugzilla->user->login },
             id => $id,
             type => "dep",
-        });
+        };
     }
+}
+
+$dbh->bz_commit_transaction();
+
+###############
+# Send Emails #
+###############
+
+# Now is a good time to send email to voters.
+foreach my $msg (@msgs) {
+    MessageToMTA($msg);
+}
+
+# Send bugmail
+for (@$send_results)
+{
+    $_ = send_results($_->{id}, $_);
 }
 
 my $bug;

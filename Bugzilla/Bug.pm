@@ -672,8 +672,6 @@ sub update {
     # inside this function.
     my $delta_ts = shift || $dbh->selectrow_array('SELECT LOCALTIMESTAMP(0)');
 
-    Bugzilla::Hook::process('bug-pre_update', { bug => $self, timestamp => $delta_ts });
-
     my ($changes, $old_bug) = $self->SUPER::update(@_);
 
     # Certain items in $changes have to be fixed so that they hold
