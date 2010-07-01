@@ -20,7 +20,7 @@
 </head>
 <body>
 <form class="print_hide" action="?[% urlquerypart.replace('[&\?]columnlist=[^&]*', '') | html %]&amp;columnlist=bug_severity%2Cpriority%2Cshort_desc%2Cestimated_time%2Cactual_time%2Ctarget_milestone&amp;format=scrum" method="POST">
-<input type="checkbox" name="scrum_select" id="scrum_select" onchange="document.getElementById('scrum_attrs').style.display=(this.checked?'':'none')" value="1" [% " checked" IF scrum_select %] /> <label for="scrum_select">Use additional estimates (<a href="editscrum.cgi?type_select=1&sprint_select=1&id=[% FOR id = buglist %],[% id %][% END %]&sprint=[% scrum_sprint | url_quote | html %]&type=[% scrum_type | url_quote | html %]">edit</a>)</label>
+<input type="checkbox" name="scrum_select" id="scrum_select" onclick="document.getElementById('scrum_attrs').style.display=(this.checked?'':'none')" onchange="document.getElementById('scrum_attrs').style.display=(this.checked?'':'none')" value="1" [% " checked" IF scrum_select %] /> <label for="scrum_select">Use additional estimates (<a href="editscrum.cgi?type_select=1&sprint_select=1&id=[% FOR id = buglist %],[% id %][% END %]&sprint=[% scrum_sprint | url_quote | html %]&type=[% scrum_type | url_quote | html %]">edit</a>)</label>
 <span id="scrum_attrs" [% ' style="display:none"' IF NOT scrum_select %]>&nbsp; <label for="scrum_sprint">Sprint:</label> <input type="text" name="scrum_sprint" id="scrum_sprint" value="[% scrum_sprint | html %]" />
 &nbsp; <label for="scrum_type">Type:</label> <input type="text" name="scrum_type" id="scrum_type" value="[% scrum_type | html %]" />
 &nbsp; <input type="submit" value=" Select " /></span>
