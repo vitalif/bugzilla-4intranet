@@ -39,7 +39,7 @@ my $vars = {};
 
 my $user = Bugzilla->login(LOGIN_REQUIRED);
 
-my @bug_objects = map { Bugzilla::Bug->check($_) } sort($cgi->param('id') =~ /(\d+)/gso);
+my @bug_objects = map { Bugzilla::Bug->check($_) } ($cgi->param('id') =~ /(\d+)/gso);
 
 # Make sure there are bugs
 scalar(@bug_objects) || ThrowUserError("no_bugs_chosen", {action => 'scrum'});
