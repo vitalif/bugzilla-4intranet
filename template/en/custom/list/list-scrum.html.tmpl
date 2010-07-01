@@ -26,6 +26,7 @@
 &nbsp; <input type="submit" value=" Select " /></span>
 </form>
 [% FOR bug = bugs %]
+[% IF scrum_select AND scrum_estimates.${bug.bug_id} != "" %]
 <table class="abug" cellspacing="5">
 <tr>
     <td class="dot" width="1"><a href="show_bug.cgi?id=[% bug.bug_id %]">[% bug.bug_id | html %]</a></td>
@@ -39,6 +40,7 @@
     <td colspan="3">[% IF scrum_select %][% scrum_estimates.${bug.bug_id} %][% ELSE %][% bug.estimated_time ? 0+bug.estimated_time : 0+bug.work_time %][% END %]</td>
 </tr>
 </table>
+[% END %]
 [% END %]
 </body>
 </html>
