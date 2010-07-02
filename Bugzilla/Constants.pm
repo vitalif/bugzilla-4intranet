@@ -520,7 +520,8 @@ sub bz_locations {
     #
     # On mod_cgi this will be a relative path. On mod_perl it will be an
     # absolute path.
-    my $libpath = abs_path(dirname(dirname($INC{'Bugzilla/Constants.pm'})));
+    my $libpath = dirname(dirname($INC{'Bugzilla/Constants.pm'}));
+    $libpath = abs_path($libpath) if $libpath !~ m!^/!;
     # We have to detaint $libpath, but we can't use Bugzilla::Util here.
     $libpath =~ /(.*)/;
     $libpath = $1;
