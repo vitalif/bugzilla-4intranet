@@ -176,7 +176,7 @@ sub DotInto
     my $quot = $^O =~ /MSWin/ ? '"' : "'";
     my $dottimeout = int(Bugzilla->params->{localdottimeout});
     my ($r, $w, $pid);
-    pipe($r, $w);
+    pipe($r, $w) || die $!;
     $r || return undef;
     $SIG{CHLD} = sub { my $kid; do { $kid = waitpid(-1, POSIX::WNOHANG); } while $kid > 0; };
     $pid = fork();
@@ -190,8 +190,9 @@ sub DotInto
         {
             alarm($dottimeout);
         }
-        dup2(fileno($w), fileno(\*STDOUT));
-        exec(@$cmd) || exit;
+        # use 1 instead of fileno(\*STDOUT) under mod_perl
+        POSIX::dup2(fileno($w), 1) || die $!;
+        exec(@$cmd) || die $!;
     }
     close $w;
     local $/ = undef;
