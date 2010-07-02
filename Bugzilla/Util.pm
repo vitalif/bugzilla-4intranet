@@ -396,7 +396,7 @@ sub wrap_comment
         }
         if (length $line)
         {
-    # If the line starts with ">", don't wrap it. Otherwise, wrap.
+            # If the line starts with ">", don't wrap it. Otherwise, wrap.
             if ($line !~ /^>/so)
             {
                 my $n = scalar($line =~ s/(\t+)/$1/gso);
@@ -406,15 +406,15 @@ sub wrap_comment
                     $table = Text::TabularDisplay::Utf8->new;
                     $table->add(split /\t+/, $line);
                     next;
-      }
+                }
                 unless ($line =~ /^[│─┌┐└┘├┴┬┤┼].*[│─┌┐└┘├┴┬┤┼]$/iso)
                 {
                     $line =~ s/\t/    /gso;
                     while (length($line) > $cols && $line =~ s/$re//)
                     {
                         $wrappedcomment .= $1 . "\n";
-      }
-    }
+                    }
+                }
             }
             $wrappedcomment .= $line . "\n" if length $line;
         }
