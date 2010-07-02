@@ -374,7 +374,7 @@ sub wrap_comment
 
     $cols ||= COMMENT_COLS;
     $cols-=2;
-    my $re = qr/^(.{0,$cols}([\s,](?=[^\s,])|[^\s,](?=[\s,])))\s*/s;
+    my $re = qr/^(.{0,$cols}(\s(?=\S)|\S(?=\s)))\s*/s;
     $cols+=2;
 
     my $table;
