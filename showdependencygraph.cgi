@@ -25,6 +25,7 @@ use utf8;
 use strict;
 use lib qw(. lib);
 
+use POSIX qw(dup2);
 use Encode;
 use File::Temp;
 
@@ -171,35 +172,39 @@ sub GetDotUrls
 sub DotInto
 {
     my ($intofh, $cmd, $callback) = @_;
-    my $r = 1;
     binmode $intofh;
     my $quot = $^O =~ /MSWin/ ? '"' : "'";
     my $dottimeout = int(Bugzilla->params->{localdottimeout});
-    if ($dottimeout && $dottimeout > 0)
+    my ($r, $w, $pid);
+    pipe($r, $w);
+    $r || return undef;
+    $SIG{CHLD} = sub { my $kid; do { $kid = waitpid(-1, POSIX::WNOHANG); } while $kid > 0; };
+    $pid = fork();
+    if (!defined $pid)
     {
-        # This creepy way is the only one that seems to be truly crossplatform
-        $cmd = "perl -e $quot\$SIG{ALRM} = sub { exit 1 }; alarm $dottimeout; exec(" .
-            join(",", map { 'q{'.$_.'}' } @$cmd) .
-            ");$quot";
+        die "Bad fork";
+    }
+    elsif (!$pid)
+    {
+        if ($dottimeout && $dottimeout > 0)
+        {
+            alarm($dottimeout);
+        }
+        dup2(fileno($w), fileno(\*STDOUT));
+        exec(@$cmd) || exit;
+    }
+    close $w;
+    local $/ = undef;
+    if ($callback)
+    {
+        print $intofh ($callback->($_)) while $_ = <$r>;
     }
     else
     {
-        $cmd = join " ", map { $quot.$_.$quot } @$cmd;
+        print $intofh $_ while <$r>;
     }
-    if (my $pid = open DOT, "$cmd|")
-    {
-        binmode DOT;
-        if ($callback)
-        {
-            print $intofh $callback->($_) while <DOT>;
-        }
-        else
-        {
-            print $intofh $_ while <DOT>;
-        }
-        close DOT;
-    }
-    $r = undef unless tell $intofh;
+    close $r;
+    $r = tell $intofh ? 1 : undef;
     close $intofh;
     return $r;
 }
