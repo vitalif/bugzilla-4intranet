@@ -83,7 +83,7 @@
     </td>
     <td>
       <input name="wtime_[% bug.bug_id %]" type="text" size="3" align="right" value="0"
-             onchange="javascript: document.worktimeform.newrtime_[% bug.bug_id %].value=Math.round(Math.max(0,[% bug.remaining_time %] - this.value)*100)/100;"
+             onchange="javascript: document.worktimeform.newrtime_[% bug.bug_id %].value=Math.round(Math.max(0,[% bug.remaining_time %] - bzParseTime(this.value))*100)/100;"
       >
     </td>
     <td>
