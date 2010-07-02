@@ -837,6 +837,9 @@ sub extract_flags_from_cgi {
         # the existing flag for the first person (who may well be the existing
         # requestee), but we have to create new flags for each additional requestee.
         my @requestees = $cgi->param("requestee-$flag_id");
+
+        Bugzilla::Hook::process('flag_check_requestee_list', { flag => $flag, status => $status, requestees => \@requestees, skip => $skip });
+
         my $requestee_email;
         if ($status eq "?"
             && scalar(@requestees) > 1
@@ -905,6 +908,9 @@ sub extract_flags_from_cgi {
         trick_taint($status);
 
         my @logins = $cgi->param("requestee_type-$type_id");
+
+        Bugzilla::Hook::process('flag_check_requestee_list', { flag_type => $flag_type, status => $status, requestees => \@logins, skip => $skip });
+
         if ($status eq "?" && scalar(@logins)) {
             foreach my $login (@logins) {
                 push (@new_flags, { type_id   => $type_id,
