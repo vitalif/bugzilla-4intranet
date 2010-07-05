@@ -130,7 +130,7 @@
                     [% ELSE %]
                       matched:<br>
                     [% END %]
-                    <select name="[% field.key FILTER html %]"
+                    <select name="[% field.key FILTER html %]" onkeypress="var e=event||window.event;if((e.keyCode == 0xA)||(e.keyCode == 0xD))document.getElementById('continue').click()"
                      id="[% field.key FILTER html %]"
                       [% IF fields.${field.key}.type == 'multi' %]
                         multiple="multiple"

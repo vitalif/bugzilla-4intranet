@@ -386,7 +386,7 @@ sub init {
             }
         }
         if ($params->param("emaillongdesc$id")) {
-                push(@clist, "commenter", $type, $email);
+            push(@clist, "commenter", $type, $email);
         }
         if (@clist) {
             push(@specialchart, \@clist);
@@ -399,7 +399,7 @@ sub init {
         if ($type eq "anyexact") {
             foreach my $name (split(',', $email)) {
                 $name = trim($name);
-                login_to_id($name, THROW_ERROR) if $name;
+                login_to_id($name, THROW_ERROR) if $name && lc $name ne '%user%';
             }
         }
     }
@@ -896,8 +896,8 @@ sub init {
                     ThrowCodeError("invalid_field_name", {field => $f});
                 }
                 # CustIS Bug 53836
-                if (lc($v) eq "%user%" && $t eq "equals") {
-                    $v = $user->login;
+                if ($t eq "equals" || $t eq "exact" || $t eq "anyexact") {
+                    $v =~ s/\%user\%/$user->login/isge;
                 }
 
                 # This is either from the internal chart (in which case we
@@ -1072,7 +1072,7 @@ sub init {
         $query .= " ORDER BY " . join(',', @orderby);
     }
 
-    $self->{'sql'} = $query;
+    warn $self->{'sql'} = $query;
 }
 
 ###############################################################################
