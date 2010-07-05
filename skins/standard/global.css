@@ -569,3 +569,5 @@ left:0;
 z-index:-1;
 filter:mask();
 }
+
+.yui-calcontainer { z-index: 50; }
