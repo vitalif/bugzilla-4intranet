@@ -172,21 +172,22 @@
   [% END %]
 
   </table>
-  <script language="JavaScript">
-  document.getElementById('[% first_field || 'continue' %]').focus();
-  </script>
 
 [% IF matchsuccess == 1 %]
 
   [% PROCESS "global/hidden-fields.html.tmpl" exclude="^Bugzilla_(login|password)$" %]
 
   <p>
-    <input type="submit" id="continue" value="Continue">
+    <input type="submit" id="continue" value="Continue" />
   </p>
 
   </form>
 
 [% END %]
+
+  <script language="JavaScript">
+  document.getElementById('[% first_field || 'continue' %]').focus();
+  </script>
 
 [% PROCESS global/footer.html.tmpl %]
 
