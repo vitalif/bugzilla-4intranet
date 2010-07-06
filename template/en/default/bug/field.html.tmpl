@@ -134,14 +134,21 @@
             [% SET control_field = "component_obj" IF control_field == "component" %]
             [% legal_values = field.restricted_legal_values(bug.$control_field) %]
           [% END %]
+          [% value_found = 0 %]
           [% FOREACH legal_value = legal_values %]
             <option value="[% legal_value.name FILTER html %]"
                     id="v[% legal_value.id FILTER html %]_[% field.name FILTER html %]"
               [% IF value.contains(legal_value.name).size %]
                 selected="selected"
+                [% value_found = 1 %]
               [% END %]>
               [%- display_value(field.name, legal_value.name) FILTER html ~%]
             </option>
+          [% END %]
+          [% IF NOT value_found %]
+            [% FOR v = value %]
+            <option selected="selected" value="[% v | html %]">[% v | html %]</option>
+            [% END %]
           [% END %]
         </select>
         [%# When you pass an empty multi-select in the web interface,
