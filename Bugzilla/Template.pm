@@ -249,8 +249,8 @@ sub quoteUrls {
     if ($custom_proto && %$custom_proto)
     {
         $text =~ s
-            ~\b($custom_proto_regex):(?:\[\[(.*?)(?:\#(.*?))?\]\]|([^\s<>\"\#]+)(?:\#([^\s<>\"\#]+))?)
-            ~($tmp = &{$custom_proto->{$1}}(html_quote(trim($2)||$4), trim($2)?trim($3):$5)) &&
+            ~\b($custom_proto_regex):(?:\[\[(.*?)(?:\#(.*?))?\]\]|([^\s<>\#]+)(?:\#([^\s<>\"\#]+))?)
+            ~($tmp = html_quote(&{$custom_proto->{$1}}(trim($2)||$4, trim($2)?trim($3):$5))) &&
              ($things[$count++] = "<a href=\"$tmp\">$&</a>") &&
              ("\0\0" . ($count-1) . "\0\0")
             ~gesox;
