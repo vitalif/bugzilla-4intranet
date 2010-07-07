@@ -30,8 +30,8 @@
   [% rep_fields.push("rep_platform") IF Param('useplatform') %]
   [% rep_fields.push("op_sys") IF Param('useopsys') %]
   [% rep_fields.push("bug_status", "resolution", "bug_severity",
-                   "priority", "target_milestone", "assigned_to",
-                     "reporter", "qa_contact", "votes") %]
+                     "priority", "target_milestone", "assigned_to",
+                     "reporter", "qa_contact", "votes", "status_whiteboard") %]
 
   <select name="[% name FILTER html %]">
     <option value="">&lt;none&gt;</option>

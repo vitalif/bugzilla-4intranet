@@ -106,6 +106,7 @@ else {
     }
 }
 
+# Список полей должен быть в одном месте (а он сейчас ещё в search/search-report-select)
 # Valid bug fields that can be reported on.
 my @columns = qw(
     assigned_to
@@ -117,6 +118,7 @@ my @columns = qw(
     votes
     keywords
     target_milestone
+    status_whiteboard
 );
 # Single-select fields (custom or not) are also accepted as valid.
 my @single_selects = Bugzilla->get_fields({ type => FIELD_TYPE_SINGLE_SELECT,
