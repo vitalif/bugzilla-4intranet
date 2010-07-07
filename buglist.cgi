@@ -197,6 +197,7 @@ if (defined $cgi->param('regetlastlist')) {
     $params = new Bugzilla::CGI({
                                  bug_id => $bug_id,
                                  order => $order,
+                                 columnlist => scalar($cgi->param('columnlist')),
                                 });
 }
 

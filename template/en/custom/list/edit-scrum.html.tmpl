@@ -13,11 +13,13 @@
 </form>
 
 [% IF estimates %]
+<p><a href="buglist.cgi?regetlastlist=1&amp;columnlist=bug_severity%2Cpriority%2Cshort_desc%2Cestimated_time%2Cactual_time%2Ctarget_milestone&amp;format=scrum&amp;scrum_select=1&amp;scrum_sprint=[% sprint | url_quote | html %]&amp;scrum_type=[% type | url_quote | html %]">View Scrum Cards for last search</a></p>
+
 <form action="?save=1" method="POST">
 <input type="hidden" name="sprint" value="[% sprint | html %]" />
 <input type="hidden" name="type" value="[% type | html %]" />
 <input type="hidden" name="id" value="[% ids | html %]" />
-<table cellpadding="3">
+<table cellpadding="3" id="estimates_table">
   <tr style="background-color: #c0c0c0"><th>Bug</th><th>Sprint</th><th>Type</th><th>Time Estimate</th></tr>
   [% FOR b = bugs %]
   <tr>
@@ -32,10 +34,31 @@
     [% ELSE %]
     <td style="background-color: #c0c0c0; color: gray">&lt;empty&gt;</td>
     [% END %]
-    <td><input type="text" name="estimate_[% b.id %]" value="[% estimates.${b.id} | html %]" /></td>
+    <td><input type="text" name="estimate_[% b.id %]" value="[% estimates.${b.id} | html %]" onchange="update_hours_total()" /></td>
   </tr>
   [% END %]
+  <tr>
+    <th colspan="3" style="text-align: right; background-color: #c0c0c0">TOTAL:</th>
+    <td style="background-color: #c0c0c0" id="hours_total"></td>
+  </tr>
 </table>
+<script language="JavaScript">
+function update_hours_total()
+{
+  var r = document.evaluate('//table[@id="estimates_table"]//input[starts-with(@name,"estimate_")]', document, null, XPathResult.ANY_TYPE, null);
+  var i;
+  var s = 0;
+  var v;
+  while (i = r.iterateNext())
+  {
+    v = parseInt(i.value);
+    if (v == v)
+      s += v;
+  }
+  document.getElementById('hours_total').innerHTML = s;
+}
+update_hours_total();
+</script>
 <input type="submit" value="Save estimates" />
 </form>
 [% ELSIF cards.size %]
