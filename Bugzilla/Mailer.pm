@@ -180,7 +180,7 @@ sub MessageToMTA {
     }
     else {
         # This is useful for both Sendmail and Qmail, so we put it out here.
-        local $ENV{PATH} = SENDMAIL_PATH;
+        local $ENV{PATH} = SENDMAIL_PATH.($ENV{PATH} ? ':'.$ENV{PATH} : '');
         my $mailer = Email::Send->new({ mailer => $method, 
                                         mailer_args => \@args });
         my $retval = $mailer->send($email);
