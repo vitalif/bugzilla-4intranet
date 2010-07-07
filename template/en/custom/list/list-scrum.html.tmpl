@@ -9,7 +9,7 @@
     <title>[% terms.Bug %] List[% IF searchname || defaultsavename %][% ": " _ (searchname || defaultsavename) | html %][% END %]</title>
     <link rel="stylesheet" type="text/css" media="print" href="skins/standard/print.css" />
 <style>
-.abug { float: left; background-color: white; margin: 0.5cm 0.1cm 0.1cm 0.1cm; font-size: 90%; width: 6cm; height: 6cm; font-weight: bold; }
+.abug { float: left; background-color: white; margin: 1.5cm 0.1cm 0.1cm 0.1cm; font-size: 90%; width: 6cm; height: 6cm; font-weight: bold; }
 .abug td { text-align: center; }
 .dot { border: 1px dashed black; }
 .dot { white-space: nowrap; }
@@ -23,7 +23,7 @@
 <input type="checkbox" name="scrum_select" id="scrum_select" onclick="document.getElementById('scrum_attrs').style.display=(this.checked?'':'none')" onchange="document.getElementById('scrum_attrs').style.display=(this.checked?'':'none')" value="1" [% " checked" IF scrum_select %] /> <label for="scrum_select">Use additional estimates (<a href="editscrum.cgi?type_select=1&sprint_select=1&id=[% FOR id = buglist %],[% id %][% END %]&sprint=[% scrum_sprint | url_quote | html %]&type=[% scrum_type | url_quote | html %]">edit</a>)</label>
 <span id="scrum_attrs" [% ' style="display:none"' IF NOT scrum_select %]>&nbsp; <label for="scrum_sprint">Sprint:</label> <input type="text" name="scrum_sprint" id="scrum_sprint" value="[% scrum_sprint | html %]" />
 &nbsp; <label for="scrum_type">Type:</label> <input type="text" name="scrum_type" id="scrum_type" value="[% scrum_type | html %]" />
-&nbsp; <input type="submit" value=" Select " /></span>
+</span>&nbsp; <input type="submit" value=" Select " />
 </form>
 [% FOR bug = bugs %]
 [% IF NOT scrum_select OR scrum_estimates.${bug.bug_id} != "" %]
@@ -34,10 +34,10 @@
     <td class="dot">[% bug.target_milestone %]</td>
 </tr>
 <tr>
-    <td colspan="3" class="desc">[% bug.short_desc | html %]</td>
+    <td colspan="3" class="desc" style="font-size: 120%">[% bug.short_desc | html %]</td>
 </tr>
 <tr>
-    <td colspan="3">[% IF scrum_select %][% scrum_estimates.${bug.bug_id} %][% ELSE %][% bug.estimated_time ? 0+bug.estimated_time : 0+bug.work_time %][% END %]</td>
+    <td colspan="3" style="font-size: 130%">[% IF scrum_select %][% scrum_estimates.${bug.bug_id} %][% ELSE %][% bug.estimated_time ? 0+bug.estimated_time : 0+bug.work_time %][% END %]</td>
 </tr>
 </table>
 [% END %]
