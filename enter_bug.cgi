@@ -489,6 +489,11 @@ if ($cloned_bug_id) {
         $vars->{'cloned_comment'} = $cloned_comment;
         $vars->{'comment'}        = $bug_desc->[$cloned_comment]->body;
         $vars->{'comment'}        =~ s!bug\s*#?\s*(\d+)\s*,?\s*comment\s*#?\s*(\d+)!Bug $cloned_bug_id, comment $2!gso;
+        # CustIS Bug 66177: Attachment link in cloned comment
+        if ($bug_desc->[$cloned_comment]->type == CMT_ATTACHMENT_CREATED)
+        {
+            $vars->{comment} = "Created attachment ".$bug_desc->[$cloned_comment]->extra_data."\n$vars->{comment}";
+        }
         $vars->{'commentprivacy'} = $isprivate;
     }
 
