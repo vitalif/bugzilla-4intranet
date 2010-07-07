@@ -442,7 +442,6 @@ sub die_handler {
 
     # We can't depend on the MTA to send an error message, so we have
     # to generate one properly.
-    warn $input_email;
     if ($input_email) {
        $msg = html_strip($msg);
        my $from = Bugzilla->params->{'mailfrom'};
