@@ -79,12 +79,20 @@ if (defined $sprint && defined $type)
     if ($cgi->param('save'))
     {
         my $estimate = {};
+        my $del = {};
         foreach ($cgi->param)
         {
-            if (/^estimate_(\d+)$/s && $cgi->param($_))
+            if (/^estimate_(\d+)$/s)
             {
-                $estimate->{$1} = $cgi->param($_);
-                trick_taint($estimate->{$1});
+                if ($cgi->param($_))
+                {
+                    $estimate->{$1} = $cgi->param($_);
+                    trick_taint($estimate->{$1});
+                }
+                else
+                {
+                    $del->{$1} = 1;
+                }
             }
         }
         if (%$estimate)
@@ -92,6 +100,12 @@ if (defined $sprint && defined $type)
             $sql = 'REPLACE INTO scrum_cards (bug_id, sprint, type, estimate) VALUES '.
                 join(',', ('(?, ?, ?, ?)') x keys %$estimate);
             @bind = map { ($_, $sprint, $type, $estimate->{$_}) } keys %$estimate;
+            $dbh->do($sql, undef, @bind);
+        }
+        if (%$del)
+        {
+            $sql = 'DELETE FROM scrum_cards WHERE bug_id IN ('.join(',', ('?') x keys %$del).')';
+            @bind = keys %$del;
             $dbh->do($sql, undef, @bind);
         }
         print $cgi->redirect(-location => 'editscrum.cgi?sprint_select=1&type_select=1&sprint='.url_quote($sprint).'&type='.url_quote($type).'&id='.join(',', map { $_->id } @bug_objects));

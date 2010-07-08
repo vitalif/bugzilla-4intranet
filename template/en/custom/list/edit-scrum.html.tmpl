@@ -34,7 +34,7 @@
     [% ELSE %]
     <td style="background-color: #c0c0c0; color: gray">&lt;empty&gt;</td>
     [% END %]
-    <td><input type="text" name="estimate_[% b.id %]" value="[% estimates.${b.id} | html %]" onchange="update_hours_total()" /></td>
+    <td><input type="text" id="estimate_[% loop.count %]" name="estimate_[% b.id %]" value="[% estimates.${b.id} | html %]" onchange="update_hours_total()" /></td>
   </tr>
   [% END %]
   <tr>
@@ -45,15 +45,13 @@
 <script language="JavaScript">
 function update_hours_total()
 {
-  var r = document.evaluate('//table[@id="estimates_table"]//input[starts-with(@name,"estimate_")]', document, null, XPathResult.ANY_TYPE, null);
-  var i;
-  var s = 0;
-  var v;
-  while (i = r.iterateNext())
+  var i = 1, e, v, s = 0;
+  while (e = document.getElementById('estimate_'+i))
   {
-    v = parseInt(i.value);
+    v = parseInt(e.value);
     if (v == v)
       s += v;
+    i++;
   }
   document.getElementById('hours_total').innerHTML = s;
 }
