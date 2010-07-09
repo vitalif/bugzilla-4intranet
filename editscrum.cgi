@@ -97,8 +97,8 @@ if (defined $sprint && defined $type)
         }
         if (%$del)
         {
-            $sql = 'DELETE FROM scrum_cards WHERE bug_id IN ('.join(',', ('?') x keys %$del).')';
-            @bind = keys %$del;
+            $sql = 'DELETE FROM scrum_cards WHERE sprint=? AND type=? AND bug_id IN ('.join(',', ('?') x keys %$del).')';
+            @bind = ($sprint, $type, keys %$del);
             $dbh->do($sql, undef, @bind);
         }
         if (%$estimate)
