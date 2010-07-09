@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -wT
 # Сервер глобальной авторизации
 
 use utf8;
@@ -7,6 +7,7 @@ use lib qw(. lib);
 
 use Bugzilla;
 use Bugzilla::User;
+use Bugzilla::Util;
 use Bugzilla::Constants;
 
 use HTTP::Request::Common;
@@ -30,10 +31,12 @@ my $id;
 # только серверная сторона
 if (($id = $args->{ga_id}) && !$args->{ga_client})
 {
+    trick_taint($id);
     # приём ID и ключа от клиента
     my $key = $args->{ga_key};
     if ($key)
     {
+        trick_taint($key);
         $dbh->do("REPLACE INTO globalauth SET id=?, secret=?, expire=?", undef, $id, $key, time+$expire);
         $cgi->send_header;
         print "1"; # потенциально здесь любой JSON
