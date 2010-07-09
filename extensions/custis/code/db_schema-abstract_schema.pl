@@ -78,3 +78,15 @@ $schema->{scrum_cards} = {
         scrum_cards_primary_idx => { FIELDS => ['bug_id', 'sprint', 'type'], TYPE => 'UNIQUE' },
     ],
 };
+
+# Bug 63447 - Глобальная авторизация
+$schema->{globalauth} = {
+    FIELDS => [
+        id     => {TYPE => 'varchar(255)', NOTNULL => 1},
+        secret => {TYPE => 'varchar(255)', NOTNULL => 1},
+        expire => {TYPE => 'bigint', NOTNULL => 1},
+    ],
+    INDEXES => [
+        globalauth_primary_idx => { FIELDS => ['id'], TYPE => 'UNIQUE' },
+    ],
+};
