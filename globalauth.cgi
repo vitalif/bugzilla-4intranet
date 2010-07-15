@@ -67,6 +67,7 @@ if (($id = $args->{ga_id}) && !$args->{ga_client})
             my $authdata;
             if ($user && $user->id)
             {
+                # почтовые алиасы
                 my $rows = $dbh->selectall_arrayref("SELECT * FROM emailin_aliases WHERE userid=?", {Slice=>{}}, $user->id);
                 my $aliases = {};
                 my $primary_email;
@@ -80,12 +81,18 @@ if (($id = $args->{ga_id}) && !$args->{ga_client})
                 }
                 $aliases->{$user->email} = 1;
                 $primary_email ||= $user->email;
+                # собираем данные
                 $authdata = {
-                    user_email         => $primary_email,
-                    user_real_name     => $user->name,
-                    user_name          => $user->login,
-                    user_email_aliases => [ sort keys %$aliases ],
+                    user_email          => $primary_email,
+                    user_real_name      => $user->name,
+                    user_name           => $user->login,
+                    user_email_aliases  => [ sort keys %$aliases ],
+                    # включаем также информацию о правах пользователя
+                    user_groups         => [ map { $_->name } @{ $user->groups } ],
+                    selectable_products => [ map { $_->name } @{ $user->get_selectable_products } ],
+                    editable_products   => [ map { $_->name } @{ $user->get_editable_products } ],
                 };
+                # кодируем данные в JSON
                 $authdata = { ga_data => encode_json($authdata) };
             }
             else
