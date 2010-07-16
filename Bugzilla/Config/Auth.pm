@@ -69,7 +69,7 @@ sub get_param_list {
   {
    name => 'user_info_class',
    type => 's',
-   choices => [ 'CGI', 'Env', 'Env,CGI' ],
+   choices => [ 'CGI', 'Env', 'Env,CGI', 'FOF_Sudo,CGI', 'FOF_Sudo,Env,CGI' ],
    default => 'CGI',
    checker => \&check_multi
   },
@@ -121,7 +121,15 @@ sub get_param_list {
    type => 't',
    default => q:.*:,
    checker => \&check_regexp
-  } );
+  },
+
+  {
+   name => 'fof_sudo_server',
+   type => 't',
+   default => ''
+  },
+
+  );
   return @param_list;
 }
 
