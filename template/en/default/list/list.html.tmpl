@@ -260,11 +260,11 @@ Bug ID list:
         <table><tr><td>
         <a href="buglist.cgi?
         [% urlquerypart FILTER html %]&amp;title=
-        [%- title FILTER html %]&amp;ctype=atom">Buglist Feed</a>
+        [%- title FILTER html %]&amp;ctype=atom&amp;fof_sudo=[% Bugzilla.user.login | url_quote | html %]">Buglist Feed</a>
         </td></tr><tr><td>
         <a href="rss-comments.cgi?
         [% urlquerypart FILTER html %]&amp;title=
-        [%- title FILTER html %]&amp;ctype=rss&amp;namedcmd=[% searchname FILTER html %]">Activity Feed</a>
+        [%- title FILTER html %]&amp;ctype=rss&amp;namedcmd=[% searchname | html %]&amp;fof_sudo=[% Bugzilla.user.login | url_quote | html %]">Activity Feed</a>
         </td></tr></table>
       </td><td>|</td><td valign="middle" class="bz_query_links">
 
