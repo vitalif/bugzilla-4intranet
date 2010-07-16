@@ -129,6 +129,12 @@ sub get_param_list {
    default => ''
   },
 
+  {
+   name => 'fof_sudo_mynetworks',
+   type => 't',
+   default => ''
+  },
+
   );
   return @param_list;
 }
