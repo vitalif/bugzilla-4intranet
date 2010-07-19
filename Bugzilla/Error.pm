@@ -159,7 +159,7 @@ sub _throw_error
 
     if ($mode == ERROR_MODE_WEBPAGE)
     {
-        Bugzilla->send_header;
+        Bugzilla->cgi->send_header;
         print $message;
     }
     elsif ($mode == ERROR_MODE_DIE_SOAP_FAULT || $mode == ERROR_MODE_JSON_RPC)
