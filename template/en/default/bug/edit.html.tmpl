@@ -150,9 +150,12 @@
       }
       else
       {
-        document.changeform.work_time.style.backgroundColor = '';
-        document.changeform.remaining_time.style.backgroundColor = '';
+        document.changeform.work_time.style.backgroundColor = null;
+        document.changeform.remaining_time.style.backgroundColor = null;
       }
+      [% IF bug.product_obj.notimetracking %]
+      document.changeform.work_time.parentNode.style.backgroundColor = wt != 0 ? '#FFC0C0' : null;
+      [% END %]
 
       // prevent negative values if work_time > fRemainingTime
       new_time = Math.max(fRemainingTime - wt, 0.0);
