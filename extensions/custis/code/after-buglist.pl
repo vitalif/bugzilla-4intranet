@@ -22,4 +22,5 @@ if ($cgi->param('format') eq 'scrum')
         );
         $vars->{scrum_estimates} = { map { @$_ } @$e };
     }
+    ($vars->{scrum_table_rowsize}) = $cgi->param('scrum_row') =~ /^(\d+)$/so;
 }
