@@ -1024,6 +1024,8 @@ sub notify {
         my $lang = $recipients{$to} ?
           $recipients{$to}->settings->{'lang'}->{'value'} : $default_lang;
 
+        Bugzilla::Hook::process('flag-notify-pre-template', { vars => $vars });
+
         my $template = Bugzilla->template_inner($lang);
         my $message;
         $template->process("request/email.txt.tmpl", $vars, \$message)
@@ -1031,6 +1033,8 @@ sub notify {
 
         Bugzilla->template_inner("");
         MessageToMTA($message);
+
+        Bugzilla::Hook::process('flag-notify-post-send', { vars => $vars });
     }
 }
 

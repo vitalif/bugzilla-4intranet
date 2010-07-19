@@ -43,7 +43,6 @@ use Bugzilla::Product;
 use Bugzilla::Component;
 use Bugzilla::Status;
 use Bugzilla::Mailer;
-use Bugzilla::CustisLocalBugzillas;
 
 use Date::Parse;
 use Date::Format;
@@ -599,9 +598,6 @@ sub sendMail
         three_columns      => \&three_columns,
     };
 
-    # Hack into urlbase and set it to be correct for current user
-    Bugzilla::CustisLocalBugzillas::HackIntoUrlbase($user->email);
-
     my $msg;
     my $tmpl = '';
 
@@ -613,8 +609,7 @@ sub sendMail
 
     MessageToMTA($msg);
 
-    # Unhack urlbase :-)
-    Bugzilla::CustisLocalBugzillas::HackIntoUrlbase(undef);
+    Bugzilla::Hook::process('bugmail-post_send', { tmpl => \$tmpl, vars => $vars });
 
     return 1;
 }
