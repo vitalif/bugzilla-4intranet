@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # Для перенаправления в свою багзиллу
 
-package Bugzilla::CustisLocalBugzillas;
+package CustisLocalBugzillas;
 
 use strict;
 

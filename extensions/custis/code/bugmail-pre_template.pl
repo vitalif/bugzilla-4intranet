@@ -2,6 +2,7 @@
 
 use strict;
 use Bugzilla::Constants;
+use CustisLocalBugzillas;
 use Bugzilla::Util;
 use POSIX qw(strftime);
 
@@ -25,3 +26,6 @@ if (-w "$datadir/maillog" && open $fd, ">>$datadir/maillog")
     print $fd $s, "\n";
     close $fd;
 }
+
+# Hack into urlbase and set it to be correct for email recipient
+CustisLocalBugzillas::HackIntoUrlbase($vars->{to});

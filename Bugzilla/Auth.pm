@@ -38,7 +38,6 @@ use Bugzilla::User::Setting ();
 use Bugzilla::Auth::Login::Stack;
 use Bugzilla::Auth::Verify::Stack;
 use Bugzilla::Auth::Persist::Cookie;
-use Bugzilla::CustisLocalBugzillas;
 
 sub new {
     my ($class, $params) = @_;
@@ -95,27 +94,7 @@ sub login {
     }
     $user->set_authorizer($self);
 
-    if ($user->settings->{redirect_me_to_my_bugzilla} &&
-        lc($user->settings->{redirect_me_to_my_bugzilla}->{value}) eq "on")
-    {
-        my $loc = \%Bugzilla::CustisLocalBugzillas::local_urlbase;
-        my $fullurl = Bugzilla->cgi->url();
-        foreach my $regemail (keys %$loc)
-        {
-            if ($user->login =~ /$regemail/s &&
-                $fullurl !~ /\Q$loc->{$regemail}->{urlbase}\E/s)
-            {
-                my $relativeurl = Bugzilla->cgi->url(
-                    -path_info => 1,
-                    -query     => 1,
-                    -relative  => 1
-                );
-                my $url = $loc->{$regemail}->{urlbase} . $relativeurl;
-                print Bugzilla->cgi->redirect(-location => $url);
-                exit;
-            }
-        }
-    }
+    Bugzilla::Hook::process('auth-post-login', { user => $user });
 
     return $self->_handle_login_result($login_info, $type);
 }

@@ -286,10 +286,10 @@ sub do_ssl_redirect_if_required {
 }
 
 sub correct_urlbase {
-    if ($Bugzilla::CustisLocalBugzillas::HackIntoCorrectUrlbase)
+    if ($CustisLocalBugzillas::HackIntoCorrectUrlbase)
     {
         # Отправка почты заказчикам со ссылками на свои багзиллы
-        return $Bugzilla::CustisLocalBugzillas::HackIntoCorrectUrlbase;
+        return $CustisLocalBugzillas::HackIntoCorrectUrlbase;
     }
     my $ssl = Bugzilla->params->{'ssl_redirect'};
     my $urlbase = Bugzilla->params->{'urlbase'};
