@@ -30,9 +30,10 @@
 &nbsp; <input type="submit" value=" Select " />
 </form>
 [% "<table><tr>" IF scrum_table_rowsize %]
+[% i = 0 %]
 [% FOR bug = bugs %]
 [% IF NOT scrum_select OR scrum_estimates.${bug.bug_id} != "" %]
-[% "</tr><tr>" IF scrum_table_rowsize AND NOT loop.first AND ((loop.count - 1) % scrum_table_rowsize) == 0 %]
+[% "</tr><tr>" IF scrum_table_rowsize AND i AND (i % scrum_table_rowsize) == 0 %]
 [% "<td>" IF scrum_table_rowsize %]
 <table class="abug" cellspacing="5">
 <tr>
@@ -48,6 +49,7 @@
 </tr>
 </table>
 [% "</td>" IF scrum_table_rowsize %]
+[% i = i+1 %]
 [% END %]
 [% END %]
 [% "</tr></table>" IF scrum_table_rowsize %]
