@@ -91,6 +91,9 @@ if (($id = $args->{ga_id}) && !$args->{ga_client})
                     user_groups         => [ map { $_->name } @{ $user->groups } ],
                     selectable_products => [ map { $_->name } @{ $user->get_selectable_products } ],
                     editable_products   => [ map { $_->name } @{ $user->get_editable_products } ],
+                    # информация об источнике данных
+                    auth_source         => 'bugzilla',
+                    auth_server         => correct_urlbase().'/globalauth.cgi',
                 };
                 # кодируем данные в JSON
                 $authdata = { ga_data => encode_json($authdata) };
