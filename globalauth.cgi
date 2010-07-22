@@ -89,11 +89,12 @@ if (($id = $args->{ga_id}) && !$args->{ga_client})
                     user_email_aliases  => [ sort keys %$aliases ],
                     # включаем также информацию о правах пользователя
                     user_groups         => [ map { $_->name } @{ $user->groups } ],
-                    selectable_products => [ map { $_->name } @{ $user->get_selectable_products } ],
-                    editable_products   => [ map { $_->name } @{ $user->get_editable_products } ],
+                    #selectable_products => [ map { $_->name } @{ $user->get_selectable_products } ], # пока не нужно
+                    #editable_products   => [ map { $_->name } @{ $user->get_editable_products } ],   # пока не нужно
                     # информация об источнике данных
-                    auth_source         => 'bugzilla',
+                    auth_source         => 'Bugzilla',
                     auth_server         => correct_urlbase().'/globalauth.cgi',
+                    auth_site           => correct_urlbase(),
                 };
                 # кодируем данные в JSON
                 $authdata = { ga_data => encode_json($authdata) };
