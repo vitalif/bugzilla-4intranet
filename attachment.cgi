@@ -339,16 +339,26 @@ sub view {
     # Don't send a charset header with attachments--they might not be UTF-8.
     # However, we do allow people to explicitly specify a charset if they
     # want.
-    if ($contenttype !~ /\bcharset=/i) {
+    my $data = $attachment->data;
+    if ($contenttype !~ /\bcharset=/i)
+    {
+        # Detect UTF-8 encoding
+        my $is_utf8 = 0;
+        if ($contenttype =~ m!^text/!iso)
+        {
+            Encode::_utf8_on($data);
+            $is_utf8 = utf8::valid($data);
+            Encode::_utf8_off($data);
+        }
         # In order to prevent Apache from adding a charset, we have to send a
         # charset that's a single space.
-        $cgi->charset(' ');
+        $cgi->charset($is_utf8 ? 'utf-8' : ' ');
     }
     $cgi->send_header(-type=>"$contenttype; name=\"$filename\"",
                        -content_disposition=> "$disposition; filename=\"$filename\"",
                        -content_length => $attachment->datasize);
     disable_utf8();
-    print $attachment->data;
+    print $data;
 }
 
 sub interdiff {
