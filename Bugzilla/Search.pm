@@ -620,7 +620,7 @@ sub init {
     }  
 
     my @textfields = ("short_desc", "longdesc", "bug_file_loc", "status_whiteboard");
-    # CustIS Bug 58300 - Add custom field to search filters
+    # CustIS Bug 58300 - Add custom fields to search filters
     push @textfields,
         map { $_->name }
         grep { $_->type == FIELD_TYPE_FREETEXT || $_->type == FIELD_TYPE_TEXTAREA }

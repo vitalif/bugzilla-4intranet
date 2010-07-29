@@ -1080,6 +1080,15 @@ sub process_bug {
                 push(@query, $custom_field);
                 push(@values, $value);
             }
+        } elsif ($field->type == FIELD_TYPE_NUMERIC) {
+            eval { $value = Bugzilla::Bug->_check_numeric_field($value); };
+            if ($@) {
+                $err .= "Skipping illegal value \"$value\" in $custom_field.\n" ;
+            }
+            else {
+                push(@query, $custom_field);
+                push(@values, $value);
+            }
         } else {
             $err .= "Type of custom field $custom_field is an unhandled FIELD_TYPE: " .
                     $field->type . "\n";

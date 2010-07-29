@@ -67,15 +67,22 @@
 [% IF editable %]
   [% SWITCH field.type %]
     [% CASE constants.FIELD_TYPE_FREETEXT %]
-        <input id="[% field.name FILTER html %]" class="text_input"
-               name="[% field.name FILTER html %]"
-               value="[% value FILTER html %]" size="40"
-               maxlength="[% constants.MAX_FREETEXT_LENGTH FILTER none %]">
+      <input id="[% field.name FILTER html %]" class="text_input"
+             name="[% field.name FILTER html %]"
+             value="[% value FILTER html %]" size="40"
+             maxlength="[% constants.MAX_FREETEXT_LENGTH FILTER none %]" />
+    [% CASE constants.FIELD_TYPE_NUMERIC %]
+      <input id="[% field.name | html %]" class="numeric_input"
+             name="[% field.name | html %]"
+             value="[% value | html %]" size="14"
+             maxlength="[% constants.MAX_NUMERIC_LENGTH | none %]"
+             onchange="this.className = 'numeric_input' + (isNaN(this.value) ? ' numeric_invalid' : '');"
+             onkeyup="this.className = 'numeric_input' + (isNaN(this.value) ? ' numeric_invalid' : '');" />
     [% CASE constants.FIELD_TYPE_DATETIME %]
       <input name="[% field.name FILTER html %]" size="20"
              id="[% field.name FILTER html %]"
              value="[% value FILTER html %]"
-             onchange="updateCalendarFromField(this)">
+             onchange="updateCalendarFromField(this)" />
       <button type="button" class="calendar_button"
               id="button_calendar_[% field.name FILTER html %]"
               onclick="showCalendar('[% field.name FILTER js %]')">
@@ -91,7 +98,7 @@
     [% CASE constants.FIELD_TYPE_BUG_ID %]
         <span id="[% field.name FILTER html %]_input_area">
           <input name="[% field.name FILTER html %]" id="[% field.name FILTER html %]"
-                 value="[% value FILTER html %]" size="7">
+                 value="[% value FILTER html %]" size="7" />
         </span>
 
         [% IF bug.${field.name} %]  

@@ -571,3 +571,5 @@ filter:mask();
 }
 
 .yui-calcontainer { z-index: 50; }
+
+.numeric_invalid { background-color: #FFE0E0; }

@@ -124,6 +124,18 @@ use constant REQUIRED_CREATE_FIELDS => qw(
     version
 );
 
+our $CUSTOM_FIELD_VALIDATORS = {
+    FIELD_TYPE_UNKNOWN()        => \&_check_default_field,
+    FIELD_TYPE_FREETEXT()       => \&_check_freetext_field,
+    FIELD_TYPE_SINGLE_SELECT()  => \&_check_select_field,
+    FIELD_TYPE_MULTI_SELECT()   => \&_check_multi_select_field,
+    FIELD_TYPE_TEXTAREA()       => \&_check_default_field,
+    FIELD_TYPE_DATETIME()       => \&_check_datetime_field,
+    FIELD_TYPE_BUG_ID()         => \&_check_bugid_field,
+    FIELD_TYPE_BUG_URLS()       => \&_check_default_field,
+    FIELD_TYPE_NUMERIC()        => \&_check_numeric_field,
+};
+
 # There are also other, more complex validators that are called
 # from run_create_validators.
 sub VALIDATORS {
@@ -147,28 +159,9 @@ sub VALIDATORS {
         status_whiteboard => \&_check_status_whiteboard,
     };
 
-    # Set up validators for custom fields.    
+    # Set up validators for custom fields.
     foreach my $field (Bugzilla->active_custom_fields) {
-        my $validator;
-        if ($field->type == FIELD_TYPE_SINGLE_SELECT) {
-            $validator = \&_check_select_field;
-        }
-        elsif ($field->type == FIELD_TYPE_MULTI_SELECT) {
-            $validator = \&_check_multi_select_field;
-        }
-        elsif ($field->type == FIELD_TYPE_DATETIME) {
-            $validator = \&_check_datetime_field;
-        }
-        elsif ($field->type == FIELD_TYPE_FREETEXT) {
-            $validator = \&_check_freetext_field;
-        }
-        elsif ($field->type == FIELD_TYPE_BUG_ID) {
-            $validator = \&_check_bugid_field;
-        }
-        else {
-            $validator = \&_check_default_field;
-        }
-        $validators->{$field->name} = $validator;
+        $validators->{$field->name} = $CUSTOM_FIELD_VALIDATORS->{$field->type};
     }
 
     $cache->{bug_validators} = $validators;
@@ -1817,6 +1810,13 @@ sub _check_datetime_field {
 
 sub _check_default_field { return defined $_[1] ? trim($_[1]) : ''; }
 
+sub _check_numeric_field
+{
+    my ($invocant, $text) = @_;
+    ($text) = $text =~ /^(-?\d+(\.\d+)?)$/so;
+    return $text || 0;
+}
+
 sub _check_freetext_field {
     my ($invocant, $text) = @_;
 
@@ -1867,8 +1867,8 @@ sub _check_bugid_field {
 sub fields {
     my $class = shift;
 
-   my @fields =
-   (
+    my @fields =
+    (
         # Standard Fields
         # Keep this ordering in sync with bugzilla.dtd.
         qw(bug_id alias creation_ts short_desc delta_ts
@@ -1894,7 +1894,7 @@ sub fields {
         map { $_->name } Bugzilla->active_custom_fields
     );
     Bugzilla::Hook::process('bug_fields', {'fields' => \@fields} );
-    
+
     return @fields;
 }
 
