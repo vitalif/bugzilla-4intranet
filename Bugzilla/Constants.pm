@@ -130,6 +130,9 @@ use Cwd qw(abs_path);
     FIELD_TYPE_DATETIME
     FIELD_TYPE_BUG_ID
     FIELD_TYPE_BUG_URLS
+    FIELD_TYPE_NUMERIC
+
+    FIELD_TYPE__BOUNDARY
 
     TIMETRACKING_FIELDS
 
@@ -170,6 +173,7 @@ use Cwd qw(abs_path);
     MAX_COMPONENT_SIZE
     MAX_FIELD_VALUE_SIZE
     MAX_FREETEXT_LENGTH
+    MAX_NUMERIC_LENGTH
     MAX_BUG_URL_LENGTH
 
     PASSWORD_DIGEST_ALGORITHM
@@ -373,6 +377,10 @@ use constant FIELD_TYPE_TEXTAREA  => 4;
 use constant FIELD_TYPE_DATETIME  => 5;
 use constant FIELD_TYPE_BUG_ID  => 6;
 use constant FIELD_TYPE_BUG_URLS => 7;
+use constant FIELD_TYPE_NUMERIC => 8;
+
+# Upper boundary for FIELD_TYPE_* values
+use constant FIELD_TYPE__BOUNDARY => 8;
 
 # The fields from fielddefs that are blocked from non-timetracking users.
 # work_time is sometimes called actual_time.
@@ -490,6 +498,9 @@ use constant MAX_FIELD_VALUE_SIZE => 64;
 
 # Maximum length allowed for free text fields.
 use constant MAX_FREETEXT_LENGTH => 255;
+
+# Maximum length allowed for numeric fields.
+use constant MAX_NUMERIC_LENGTH => 64;
 
 # The longest a bug URL in a BUG_URLS field can be.
 use constant MAX_BUG_URL_LENGTH => 255;
