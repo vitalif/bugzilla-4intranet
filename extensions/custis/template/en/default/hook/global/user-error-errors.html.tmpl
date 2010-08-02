@@ -8,6 +8,6 @@
      [% fs.push("Sprint") IF nok.s %]
      [% fs.push("Status Whiteboard") IF nok.w %]
      [% fs.push("Agreement") IF nok.a %]
-     <a href="show_bug.cgi?id=[% nok.bug.id %]">[% terms.Bug %] [%+ nok.bug.id %] - [% nok.bug.short_desc | html %]</a>: You must fill in <b>[% fs.join(", ") %]</b> attribute[% IF fs.size > 1 %]s[% END %] before closing this bug!<br />
+     <a href="show_bug.cgi?id=[% nok.bug.id %]">[% terms.Bug %] [%+ nok.bug.id %] - [% nok.bug.short_desc | html %]</a>: You must fill in <b>[% fs.join(", ") %]</b> attribute[% IF fs.size > 1 %]s[% END %] before [% IF nok.bug.bug_status == "ASSIGNED" %]taking[% ELSE %]closing[% END %] this bug!<br />
    [% END %]
 [% END %]
