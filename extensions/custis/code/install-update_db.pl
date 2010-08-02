@@ -166,9 +166,3 @@ if (!$dbh->bz_column_info('logincookies', 'session_data'))
 {
     $dbh->bz_add_column('logincookies', session_data => {TYPE => 'blob'});
 }
-
-# Bug 55655 - Возможность смены типа или отключения стандартного поля "Приоритет"
-if (!$dbh->bz_column_info('fielddefs', 'enabled'))
-{
-    $dbh->bz_add_column('fielddefs', enabled => { TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 1 });
-}
