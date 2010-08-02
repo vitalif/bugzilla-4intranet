@@ -596,11 +596,8 @@ $vars->{resolution} = [ grep ($_, @{get_legal_field_values('resolution')}) ];
 
 if (formvalue('bug_status') && (lsearch(\@status, formvalue('bug_status')) >= 0)) {
     $default{'bug_status'} = formvalue('bug_status');
-} elsif (scalar @status == 1) {
+} else {
     $default{'bug_status'} = $status[0];
-}
-else {
-    $default{'bug_status'} = ($status[0] ne 'UNCONFIRMED') ? $status[0] : $status[1];
 }
 
 my $grouplist = $dbh->selectall_arrayref(

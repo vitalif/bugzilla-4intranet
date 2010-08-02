@@ -90,3 +90,6 @@ $schema->{globalauth} = {
         globalauth_primary_idx => { FIELDS => ['id'], TYPE => 'UNIQUE' },
     ],
 };
+
+# Bug 55655 - Возможность смены типа или отключения стандартного поля "Приоритет"
+push @{$schema->{fielddefs}->{FIELDS}}, enabled => { TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 1 };
