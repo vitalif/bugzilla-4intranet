@@ -102,7 +102,6 @@ use constant DB_COLUMNS => qw(
     buglist
     visibility_field_id
     value_field_id
-    enabled
 );
 
 use constant REQUIRED_CREATE_FIELDS => qw(name description);
@@ -116,7 +115,6 @@ use constant VALIDATORS => {
     obsolete    => \&_check_obsolete,
     sortkey     => \&_check_sortkey,
     type        => \&_check_type,
-    enabled     => \&Bugzilla::Object::check_boolean,
     visibility_field_id => \&_check_visibility_field_id,
 };
 
@@ -133,7 +131,7 @@ use constant UPDATE_COLUMNS => qw(
     buglist
     visibility_field_id
     value_field_id
-    enabled
+
     type
 );
 
@@ -430,19 +428,6 @@ a boolean specifying whether or not the field is obsolete;
 =cut
 
 sub obsolete { return $_[0]->{obsolete} }
-
-=over
-
-=item C<enabled>
-
-a true value tells Bugzilla not to display and not to use this field in any operations,
-though it could be present in the database.
-
-=back
-
-=cut
-
-sub enabled { return $_[0]->{enabled} }
 
 =over
 

@@ -650,17 +650,6 @@ sub get_fields {
     return @$fields;
 }
 
-sub field
-{
-    my $class = shift;
-    my $name = shift;
-    if (!exists $class->request_cache->{"field_$name"})
-    {
-        $class->request_cache->{"field_$name"} = Bugzilla::Field->new({ name => $name });
-    }
-    return $class->request_cache->{"field_$name"};
-}
-
 sub active_custom_fields {
     my $class = shift;
     if (!exists $class->request_cache->{active_custom_fields}) {
