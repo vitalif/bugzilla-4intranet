@@ -61,11 +61,45 @@ if ($action eq "menu") {
     exit;
 }
 
-my $col_field = $cgi->param('x_axis_field') || '';
-my $row_field = $cgi->param('y_axis_field') || '';
-my $tbl_field = $cgi->param('z_axis_field') || '';
+# FIXME Список полей должен быть в одном месте (а он сейчас ещё в search/search-report-select)
+# Valid bug fields that can be reported on.
+my @columns = qw(
+    assigned_to
+    reporter
+    qa_contact
+    component
+    classification
+    version
+    votes
+    keywords
+    target_milestone
+    status_whiteboard
+);
+# Single-select fields (custom or not) are also accepted as valid.
+my @single_selects = Bugzilla->get_fields({ type => FIELD_TYPE_SINGLE_SELECT,
+                                            obsolete => 0 });
+push(@columns, map { $_->name } @single_selects);
+my %valid_columns = map { $_ => 1 } @columns;
 
-if (!($col_field || $row_field || $tbl_field)) {
+my $field = {};
+for (qw(x y z))
+{
+    my $f = $cgi->param($_.'_axis_field') || '';
+    trick_taint($f);
+    if ($f)
+    {
+        if ($valid_columns{$f})
+        {
+            $field->{$_} = $f;
+        }
+        else
+        {
+            ThrowCodeError("report_axis_invalid", {fld => $_, val => $f});
+        }
+    }
+}
+
+if (!keys %$field) {
     ThrowUserError("no_axes_defined");
 }
 
@@ -88,10 +122,10 @@ if (defined($height)) {
 # horizontal 1D tables convert to the correct dimension when you ask to
 # display them as some sort of chart.
 if (defined $cgi->param('format') && $cgi->param('format') eq "table") {
-    if ($col_field && !$row_field) {    
+    if ($field->{x} && !$field->{y}) {    
         # 1D *tables* should be displayed vertically (with a row_field only)
-        $row_field = $col_field;
-        $col_field = '';
+        $field->{y} = $field->{x};
+        delete $field->{x};
     }
 }
 else {
@@ -99,69 +133,45 @@ else {
         ThrowCodeError('feature_disabled', { feature => 'graphical_reports' });
     }
 
-    if ($row_field && !$col_field) {
+    if ($field->{y} && !$field->{x}) {
         # 1D *charts* should be displayed horizontally (with an col_field only)
-        $col_field = $row_field;
-        $row_field = '';
+        $field->{x} = $field->{y};
+        delete $field->{y};
     }
 }
 
-# Список полей должен быть в одном месте (а он сейчас ещё в search/search-report-select)
-# Valid bug fields that can be reported on.
-my @columns = qw(
-    assigned_to
-    reporter
-    qa_contact
-    component
-    classification
-    version
-    votes
-    keywords
-    target_milestone
-    status_whiteboard
-);
-# Single-select fields (custom or not) are also accepted as valid.
-my @single_selects = Bugzilla->get_fields({ type => FIELD_TYPE_SINGLE_SELECT,
-                                            obsolete => 0 });
-push(@columns, map { $_->name } @single_selects);
-my %valid_columns = map { $_ => 1 } @columns;
-
 my $measures = {
-    etime => "bugs.estimated_time AS measure",
-    rtime => "bugs.remaining_time AS measure",
-    wtime => "(SELECT SUM(lwt.work_time) FROM longdescs lwt WHERE lwt.bug_id=bugs.bug_id) AS measure",
-    count => "1 AS measure",
+    etime => "bugs.estimated_time",
+    rtime => "bugs.remaining_time",
+    wtime => "(SELECT SUM(lwt.work_time) FROM longdescs lwt WHERE lwt.bug_id=bugs.bug_id)",
+    count => "1",
 };
 my $measure = $cgi->param('measure');
 $measure = 'count' unless $measures->{$measure};
 $vars->{measure} = $measure;
 
 # Validate the values in the axis fields or throw an error.
-!$row_field 
-  || ($valid_columns{$row_field} && trick_taint($row_field))
-  || ThrowCodeError("report_axis_invalid", {fld => "x", val => $row_field});
-!$col_field 
-  || ($valid_columns{$col_field} && trick_taint($col_field))
-  || ThrowCodeError("report_axis_invalid", {fld => "y", val => $col_field});
-!$tbl_field 
-  || ($valid_columns{$tbl_field} && trick_taint($tbl_field))
-  || ThrowCodeError("report_axis_invalid", {fld => "z", val => $tbl_field});
-
-my @axis_fields = ($row_field || EMPTY_COLUMN, 
-                   $col_field || EMPTY_COLUMN,
-                   $tbl_field || EMPTY_COLUMN,
-                   $measures->{$measure});
+my @group_by = values %$field;
+my @axis_fields = (@group_by, $measures->{$measure}.' measure');
 
 # Clone the params, so that Bugzilla::Search can modify them
 my $params = new Bugzilla::CGI($cgi);
-my $search = new Bugzilla::Search('fields' => \@axis_fields, 
-                                  'params' => $params);
+my $search = new Bugzilla::Search(
+    'fields' => \@axis_fields,
+    'params' => $params,
+);
 my $query = $search->getSQL();
+$query =
+    "SELECT ".
+    ($field->{x} || "''")." x, ".
+    ($field->{y} || "''")." y, ".
+    ($field->{z} || "''")." z, ".
+    "SUM(measure) r FROM ($query) _report_table GROUP BY ".join(", ", @group_by);
 
 $::SIG{TERM} = 'DEFAULT';
 $::SIG{PIPE} = 'DEFAULT';
 
-my $results = $dbh->selectall_arrayref($query);
+my $results = $dbh->selectall_arrayref($query, {Slice=>{}});
 
 # We have a hash of hashes for the data itself, and a hash to hold the 
 # row/col/table names.
@@ -173,47 +183,31 @@ my %names;
 #
 # We detect a numerical field, and sort appropriately, if all the values are
 # numeric.
-my $col_isnumeric = 1;
-my $row_isnumeric = 1;
-my $tbl_isnumeric = 1;
+my %isnumeric;
 
-foreach my $result (@$results) {
-    my ($row, $col, $tbl, $bc) = @$result;
+#Bugzilla->cgi->send_header;
+#use Data::Dumper;
+#print Dumper \%data, \@col_names, \@row_names, \@tbl_names;
 
-    # handle empty dimension member names
-    $row = ' ' if ($row eq '');
-    $col = ' ' if ($col eq '');
-    $tbl = ' ' if ($tbl eq '');
-
-    $row = "" if ($row eq EMPTY_COLUMN);
-    $col = "" if ($col eq EMPTY_COLUMN);
-    $tbl = "" if ($tbl eq EMPTY_COLUMN);
-    
-    # account for the fact that names may start with '_' or '.'.  Change this 
-    # so the template doesn't hide hash elements with those keys
-    $row =~ s/^([._])/ $1/;
-    $col =~ s/^([._])/ $1/;
-    $tbl =~ s/^([._])/ $1/;
-
-    $data{$tbl}{$col}{$row} += $bc;
-    $names{col}{$col} += $bc;
-    $names{row}{$row} += $bc;
-    $names{tbl}{$tbl} += $bc;
-    
-    $col_isnumeric &&= ($col =~ /^-?\d+(\.\d+)?$/o);
-    $row_isnumeric &&= ($row =~ /^-?\d+(\.\d+)?$/o);
-    $tbl_isnumeric &&= ($tbl =~ /^-?\d+(\.\d+)?$/o);
+foreach my $group (@$results)
+{
+    for (qw(x y z))
+    {
+        $isnumeric{$_} &&= ($group->{$_} =~ /^-?\d+(\.\d+)?$/o);
+        $names{$_}{$group->{$_}} = 1;
+    }
+    $data{$group->{z}}{$group->{x}}{$group->{y}} = $group->{r};
 }
 
-my @col_names = @{get_names($names{"col"}, $col_isnumeric, $col_field)};
-my @row_names = @{get_names($names{"row"}, $row_isnumeric, $row_field)};
-my @tbl_names = @{get_names($names{"tbl"}, $tbl_isnumeric, $tbl_field)};
+my @tbl_names = @{get_names($names{z}, $isnumeric{z}, $field->{z})};
+my @col_names = @{get_names($names{x}, $isnumeric{x}, $field->{x})};
+my @row_names = @{get_names($names{y}, $isnumeric{y}, $field->{y})};
 
 # The GD::Graph package requires a particular format of data, so once we've
 # gathered everything into the hashes and made sure we know the size of the
 # data, we reformat it into an array of arrays of arrays of data.
 push(@tbl_names, "-total-") if (scalar(@tbl_names) > 1);
-    
+
 my @image_data;
 foreach my $tbl (@tbl_names) {
     my @tbl_data;
@@ -238,9 +232,9 @@ foreach my $tbl (@tbl_names) {
     unshift(@image_data, \@tbl_data);
 }
 
-$vars->{'col_field'} = $col_field;
-$vars->{'row_field'} = $row_field;
-$vars->{'tbl_field'} = $tbl_field;
+$vars->{'tbl_field'} = $field->{z};
+$vars->{'col_field'} = $field->{x};
+$vars->{'row_field'} = $field->{y};
 $vars->{'time'} = localtime(time());
 
 $vars->{'col_names'} = \@col_names;
@@ -281,9 +275,9 @@ if ($action eq "wrap") {
     # We need to keep track of the defined restrictions on each of the 
     # axes, because buglistbase, below, throws them away. Without this, we
     # get buglistlinks wrong if there is a restriction on an axis field.
-    $vars->{'col_vals'} = join("&", $buffer =~ /[&?]($col_field=[^&]+)/g);
-    $vars->{'row_vals'} = join("&", $buffer =~ /[&?]($row_field=[^&]+)/g);
-    $vars->{'tbl_vals'} = join("&", $buffer =~ /[&?]($tbl_field=[^&]+)/g);
+    $vars->{'col_vals'} = join("&", $buffer =~ /[&?]($field->{y}=[^&]+)/g);
+    $vars->{'row_vals'} = join("&", $buffer =~ /[&?]($field->{x}=[^&]+)/g);
+    $vars->{'tbl_vals'} = join("&", $buffer =~ /[&?]($field->{z}=[^&]+)/g);
     
     # We need a number of different variants of the base URL for different
     # URLs in the HTML.
@@ -292,7 +286,7 @@ if ($action eq "wrap") {
         measure), @axis_fields
     );
     $vars->{imagebase} = $cgi->canonicalise_query(
-        $tbl_field, qw(action ctype format width height),
+        $field->{z}, qw(action ctype format width height),
     );
     $vars->{switchbase} = $cgi->canonicalise_query(
         qw(query_format action ctype format width height measure)
