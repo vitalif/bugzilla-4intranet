@@ -69,7 +69,7 @@ sub get_param_list {
    name    => 'levenshteinusermatch',
    type    => 't',
    default => '0',
-   checker => \&check_numeric
+   checker => sub { $_[0] =~ /^\d+(\.\d+)?$/so ? "" : "must be a float or integer value" },
   },
   );
   return @param_list;
