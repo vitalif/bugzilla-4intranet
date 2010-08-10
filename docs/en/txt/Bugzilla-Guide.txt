@@ -1,9 +1,9 @@
 
-The Bugzilla Guide - 3.6.1 Release
+The Bugzilla Guide - 3.6.2 Release
 
 The Bugzilla Team
 
-   2010-06-24
+   2010-08-05
 
    This is the documentation for Bugzilla, a bug-tracking system from
    mozilla.org. Bugzilla is an enterprise-class piece of software that tracks
@@ -172,7 +172,7 @@ Chapter 1. About This Guide
 
 1.3. New Versions
 
-   This is the 3.6.1 version of The Bugzilla Guide. It is so named to match the
+   This is the 3.6.2 version of The Bugzilla Guide. It is so named to match the
    current version of Bugzilla.
 
    The latest version of this guide can always be found at
@@ -430,10 +430,13 @@ Chapter 2. Installing Bugzilla
    list of required modules is reasonably long; however, you may already have
    several of them installed.
 
-   The preferred way of installing Perl modules is to use the install-module.pl
-   script on Unix, or PPM on Windows (see Section 2.5.1.2). If for some reason
-   you need to install the Perl modules manually, see Appendix C. For instance,
-   on Unix:
+   The preferred way to install missing Perl modules is to use the package
+   manager provided by your operating system (e.g "rpm" or "yum" on Linux
+   distros, or "ppm" on Windows if using ActivePerl, see Section 2.5.1.2). If
+   some Perl modules are still missing or are too old, then we recommend using
+   the install-module.pl script (doesn't work with ActivePerl on Windows). If
+   for some reason you really need to install the Perl modules manually, see
+   Appendix C. For instance, on Unix, you invoke install-module.pl as follows:
    bash# perl install-module.pl <modulename>
 
    Tip
@@ -500,86 +503,6 @@ Chapter 2. Installing Bugzilla
    20. TheSchwartz (any) for Mail Queueing
    21. Daemon::Generic (any) for Mail Queueing
    22. mod_perl2 (1.999022) for mod_perl
-     _________________________________________________________________
-
-2.1.5.1. DBD::mysql
-
-   The installation process will ask you a few questions about the desired
-   compilation target and your MySQL installation. For most of the questions
-   the provided default will be adequate, but when asked if your desired target
-   is the MySQL or mSQL packages, you should select the MySQL-related ones.
-   Later you will be asked if you wish to provide backwards compatibility with
-   the older MySQL packages; you should answer YES to this question. The
-   default is NO.
-
-   A host of 'localhost' should be fine. A testing user of 'test', with a null
-   password, should have sufficient access to run tests on the 'test' database
-   which MySQL creates upon installation.
-     _________________________________________________________________
-
-2.1.5.2. Template Toolkit (2.22)
-
-   When you install Template Toolkit, you'll get asked various questions about
-   features to enable. The defaults are fine, except that it is recommended you
-   use the high speed XS Stash of the Template Toolkit, in order to achieve
-   best performance.
-     _________________________________________________________________
-
-2.1.5.3. GD (1.20)
-
-   The GD module is only required if you want graphical reports.
-
-   Note
-
-   The Perl GD module requires some other libraries that may or may not be
-   installed on your system, including libpng and libgd. The full requirements
-   are listed in the Perl GD module README. If compiling GD fails, it's
-   probably because you're missing a required library.
-
-   Tip
-
-   The version of the GD module you need is very closely tied to the libgd
-   version installed on your system. If you have a version 1.x of libgd the 2.x
-   versions of the GD module won't work for you.
-     _________________________________________________________________
-
-2.1.5.4. Chart::Lines (2.1)
-
-   The Chart::Lines module is only required if you want graphical reports. Note
-   that earlier versions that 0.99c used GIFs, which are no longer supported by
-   the latest versions of GD.
-     _________________________________________________________________
-
-2.1.5.5. GD::Graph (any)
-
-   The GD::Graph module is only required if you want graphical reports.
-     _________________________________________________________________
-
-2.1.5.6. GD::Text (any)
-
-   The GD::Text module is only required if you want graphical reports.
-     _________________________________________________________________
-
-2.1.5.7. XML::Twig (any)
-
-   The XML::Twig module is only required if you want to import XML bugs using
-   the importxml.pl script. This is required to use Bugzilla's "move bugs"
-   feature; you may also want to use it for migrating from another bug
-   database.
-     _________________________________________________________________
-
-2.1.5.8. SOAP::Lite (0.710.06)
-
-   Installing SOAP::Lite enables your Bugzilla installation to be accessible at
-   a standardized Web Service interface (SOAP/XML-RPC) by third-party
-   applications via HTTP(S).
-     _________________________________________________________________
-
-2.1.5.9. PatchReader (0.9.4)
-
-   The PatchReader module is only required if you want to use Patch Viewer, a
-   Bugzilla feature to show code patches in your web browser in a more readable
-   form.
      _________________________________________________________________
 
 2.1.6. Mail Transfer Agent (MTA)
@@ -2430,7 +2353,9 @@ Chapter 3. Administering Bugzilla
    Don't disable all the administrator accounts!
      * <groupname>: If you have created some groups, e.g. "securitysensitive",
        then checkboxes will appear here to allow you to add users to, or remove
-       them from, these groups.
+       them from, these groups. The first checkbox gives the user the ability
+       to add and remove other users as members of this group. The second
+       checkbox adds the user himself as a member of the group.
      * canconfirm: This field is only used if you have enabled the
        "unconfirmed" status. If you enable this for a user, that user can then
        move bugs from "Unconfirmed" to a "Confirmed" status (e.g.: "New"
@@ -2547,9 +2472,6 @@ Chapter 3. Administering Bugzilla
 
    Description
           A brief description of the product
-
-   URL describing milestones for this product
-          If there is reference URL, provide it here
 
    Default milestone
           Select the default milestone for this product.
@@ -2842,7 +2764,7 @@ ReadOnly: ENTRY, NA/NA, CANEDIT
    "usetargetmilestone" parameter in the "Bug Fields" tab of the "Parameters"
    page.
 
-   To create new Milestones, set Default Milestones, and set Milestone URL:
+   To create new Milestones, and set Default Milestones:
 
     1. Select "Edit milestones" from the "Edit product" page.
     2. Select "Add" in the bottom right corner. text
@@ -2852,8 +2774,6 @@ ReadOnly: ENTRY, NA/NA, CANEDIT
        milestone appears. This is because milestones often do not occur in
        alphanumeric order For example, "Future" might be after "Release 1.2".
        Select "Add".
-    4. From the Edit product screen, you can enter the URL of a page which
-       gives information about your milestones and what they mean.
      _________________________________________________________________
 
 3.8. Flags
@@ -3227,9 +3147,12 @@ ReadOnly: ENTRY, NA/NA, CANEDIT
 
 3.10.3. Deleting Custom Fields
 
-   It is only possible to delete obsolete Custom Fields if the field has never
-   been used in the database. To remove a field which already has content, mark
-   it as obsolete.
+   Only custom fields which are marked as obsolete, and which never have been
+   used, can be deleted completely (else the integrity of the bug history would
+   be compromised). For custom fields marked as obsolete, a "Delete" link will
+   appear in the "Action" column. If the custom field has been used in the
+   past, the deletion will be rejected. But marking the field as obsolete is
+   sufficient to hide it from the user interface entirely.
      _________________________________________________________________
 
 3.11. Legal Values
@@ -3812,10 +3735,11 @@ Chapter 5. Using Bugzilla
 
 5.4. Life Cycle of a Bug
 
-   The life cycle, also known as work flow, of a bug is currently hardcoded
-   into Bugzilla. Figure 5-1 contains a graphical representation of this life
-   cycle. If you wish to customize this image for your site, the diagram file
-   is available in Dia's native XML format.
+   The life cycle of a bug, also known as workflow, is customizable to match
+   the needs of your organization, see Section 3.12. Figure 5-1 contains a
+   graphical representation of the default workflow using the default bug
+   statuses. If you wish to customize this image for your site, the diagram
+   file is available in Dia's native XML format.
 
    Figure 5-1. Lifecycle of a Bugzilla Bug
 

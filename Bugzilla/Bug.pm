@@ -929,7 +929,8 @@ sub update {
     # back, this change will *not* be rolled back. As we expect rollbacks
     # to be extremely rare, that is OK for us.
     $self->_sync_fulltext()
-        if $self->{added_comments} || $changes->{short_desc};
+        if $self->{added_comments} || $changes->{short_desc}
+           || $self->{comment_isprivate};
 
     # Remove obsolete internal variables.
     delete $self->{'_old_assigned_to'};
@@ -3444,12 +3445,6 @@ sub map_fields {
         my $field_name = FIELD_MAP->{$field} || $field;
         $field_values{$field_name} = $params->{$field};
     }
-
-    # This protects the WebService Bug.search method.
-    unless (Bugzilla->user->is_timetracker) {
-        delete @field_values{qw(estimated_time remaining_time deadline)};
-    }
-    
     return \%field_values;
 }
 

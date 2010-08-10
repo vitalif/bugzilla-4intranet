@@ -3290,6 +3290,7 @@ sub _populate_bugs_fulltext
             if ($sthn != @ids)
             {
                 # Optimization: cache prepared statements
+                # FIXME Bugzilla 3.6.2 tells us to use REPLACE for MySQL as it is probably faster
                 $sthn = @ids;
                 $sth = $dbh->prepare(
                     "INSERT INTO bugs_fulltext (bug_id, short_desc, comments, comments_noprivate)" .

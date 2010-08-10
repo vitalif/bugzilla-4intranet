@@ -704,7 +704,8 @@ sub init {
         "^component,(?!changed)" => \&_component_nonchanged,
         "^product,(?!changed)" => \&_product_nonchanged,
         "^classification,(?!changed)" => \&_classification_nonchanged,
-        "^keywords,(?:equals|notequals|anyexact|anyword|allwords|nowords)" => \&_keywords_exact,
+        "^keywords,(?:equals|anyexact|anyword|allwords)" => \&_keywords_exact,
+        "^keywords,(?:notequals|notregexp|notsubstring|nowords|nowordssubstr)" => \&_multiselect_negative,
         "^keywords,(?!changed)" => \&_keywords_nonchanged,
         "^dependson,(?!changed)" => \&_dependson_nonchanged,
         "^blocked,(?!changed)" => \&_blocked_nonchanged,
@@ -1309,7 +1310,8 @@ sub _contact_exact_group {
     $$v =~ m/%group\\.([^%]+)%/;
     my $group = $1;
     my $groupid = Bugzilla::Group::ValidateGroupName( $group, ($user));
-    $groupid || ThrowUserError('invalid_group_name',{name => $group});
+    ($groupid && $user->in_group_id($groupid))
+      || ThrowUserError('invalid_group_name',{name => $group});
     my @childgroups = @{Bugzilla::Group->flatten_group_membership($groupid)};
     my $table = "user_group_map_$$chartid";
     push (@$supptables, "LEFT JOIN user_group_map AS $table " .
@@ -1381,7 +1383,8 @@ sub _cc_exact_group {
     $$v =~ m/%group\\.([^%]+)%/;
     my $group = $1;
     my $groupid = Bugzilla::Group::ValidateGroupName( $group, ($user));
-    $groupid || ThrowUserError('invalid_group_name',{name => $group});
+    ($groupid && $user->in_group_id($groupid))
+      || ThrowUserError('invalid_group_name',{name => $group});
     my @childgroups = @{Bugzilla::Group->flatten_group_membership($groupid)};
     my $chartseq = $$chartid;
     if ($$chartid eq "") {
@@ -1966,7 +1969,7 @@ sub _keywords_exact {
     my %func_args = @_;
     my ($chartid, $v, $ff, $f, $t, $term, $supptables) =
         @func_args{qw(chartid v ff f t term supptables)};
-    
+
     my @list;
     my $table = "keywords_$$chartid";
     foreach my $value (split(/[\s,]+/, $$v)) {
@@ -2113,8 +2116,16 @@ sub _multiselect_negative {
         nowordssubstr => 'anywordssubstr',
     );
 
-    my $table = "bug_$$f";
-    $$ff = "$table.value";
+    my $table;
+    if ($$f eq 'keywords') {
+        $table = "keywords LEFT JOIN keyworddefs"
+                 . " ON keywords.keywordid = keyworddefs.id";
+        $$ff = "keyworddefs.name";
+    }
+    else {
+        $table = "bug_$$f";
+        $$ff = "$table.value";
+    }
     
     $$funcsbykey{",".$map{$$t}}($self, %func_args);
     $$term = "bugs.bug_id NOT IN (SELECT bug_id FROM $table WHERE $$term)";

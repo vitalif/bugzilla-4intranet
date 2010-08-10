@@ -96,7 +96,7 @@ name="How_Hooks_Work"
 >How Hooks Work</a></h2>
 
 <p>When a hook named <code  class="code">HOOK_NAME</code> is run, Bugzilla looks through all enabled <a href="../Bugzilla/Extension.html" class="podlinkpod"
->extensions</a> for extensions that implement a subroutined named <code  class="code">HOOK_NAME</code>.</p>
+>extensions</a> for extensions that implement a subroutine named <code  class="code">HOOK_NAME</code>.</p>
 
 <p>See <a href="../Bugzilla/Extension.html" class="podlinkpod"
 >Bugzilla::Extension</a> for more details about how an extension can run code during a hook.</p>
@@ -117,7 +117,8 @@ name="SUBROUTINES"
 <dd>
 <p>Invoke any code hooks with a matching name from any installed extensions.</p>
 
-<p>See <code  class="code">customization.xml</code> in the Bugzilla Guide for more information on Bugzilla&#39;s extension mechanism.</p>
+<p>See <a href="../Bugzilla/Extension.html" class="podlinkpod"
+>Bugzilla::Extension</a> for more information on Bugzilla&#39;s extension mechanism.</p>
 
 <dt><a name="Params"
 ><b>Params</b></a></dt>
@@ -128,9 +129,8 @@ name="SUBROUTINES"
 ><code  class="code">$name</code> - The name of the hook to invoke.</a></dt>
 
 <dd>
-<dt><a name="$args_-_A_hashref._The_named_args_to_pass_to_the_hook._They_will_be_accessible_to_the_hook_via_&#34;hook_args&#34;_in_Bugzilla."
-><code  class="code">$args</code> - A hashref. The named args to pass to the hook. They will be accessible to the hook via <a href="../Bugzilla.html#hook_args" class="podlinkpod"
->&#34;hook_args&#34; in Bugzilla</a>.</a></dt>
+<dt><a 
+><code  class="code">$args</code> - A hashref. The named args to pass to the hook. They will be passed as arguments to the hook method in the extension.</a></dt>
 </dl>
 
 <dt><a name="Returns_(nothing)"
@@ -159,8 +159,8 @@ name="attachment_process_data"
 
 <dd>
 <dt><a 
-><code  class="code">attributes</code> - A hashref whose keys are the same as <a href="../Bugzilla/Attachment.html#create" class="podlinkpod"
->&#34;create&#34; in Bugzilla::Attachment</a>. The data it contains hasn&#39;t been checked yet.</a></dt>
+><code  class="code">attributes</code> - A hashref whose keys are the same as the input to <a href="../Bugzilla/Attachment.html#create" class="podlinkpod"
+>&#34;create&#34; in Bugzilla::Attachment</a>. The data in this hashref hasn&#39;t been validated yet.</a></dt>
 </dl>
 
 <h2><a class='u' href='#___top' title='click to go to top of document'
@@ -180,7 +180,7 @@ name="auth_login_methods"
 <p>This is a hash--a mapping from login-type &#34;names&#34; to the actual module on disk. The keys will be all the values that were passed to <a href="../Bugzilla/Auth.html#login" class="podlinkpod"
 >&#34;login&#34; in Bugzilla::Auth</a> for the <code  class="code">Login</code> parameter. The values are the actual path to the module on disk. (For example, if the key is <code  class="code">DB</code>, the value is <em  class="code">Bugzilla/Auth/Login/DB.pm</em>.)</p>
 
-<p>For your extension, the path will start with <em  class="code">extensions/yourextension/lib/</em>. (See the code in the example extension.)</p>
+<p>For your extension, the path will start with <em  class="code">Bugzilla/Extension/Foo/</em>, where &#34;Foo&#34; is the name of your Extension. (See the code in the example extension.)</p>
 
 <p>If your login type is in the hash as a key, you should set that key to the right path to your module. That module&#39;s <code  class="code">new</code> method will be called, probably with empty parameters. If your login type is <i>not</i> in the hash, you should not set it.</p>
 
@@ -227,8 +227,8 @@ name="bug_end_of_create"
 ><code  class="code">bug</code> - The changed bug object, with all fields set to their updated values.</a></dt>
 
 <dd>
-<dt><a name="timestamp_-_The_timestamp_used_for_all_updates_in_this_transaction."
-><code  class="code">timestamp</code> - The timestamp used for all updates in this transaction.</a></dt>
+<dt><a name="timestamp_-_The_timestamp_used_for_all_updates_in_this_transaction,_as_a_SQL_date_string."
+><code  class="code">timestamp</code> - The timestamp used for all updates in this transaction, as a SQL date string.</a></dt>
 </dl>
 
 <h2><a class='u' href='#___top' title='click to go to top of document'
@@ -275,7 +275,7 @@ name="bug_end_of_update"
 ><code  class="code">timestamp</code></a></dt>
 
 <dd>
-<p>The timestamp used for all updates in this transaction.</p>
+<p>The timestamp used for all updates in this transaction, as a SQL date string.</p>
 
 <dt><a name="changes"
 ><code  class="code">changes</code></a></dt>
@@ -333,7 +333,7 @@ name="bug_format_comment"
 
 <p>Generally you should not modify this yourself. Instead you should be returning regular expressions using the <code  class="code">regexes</code> array.</p>
 
-<p>The text has already been word-wrapped, but has not been parsed in any way otherwise. (So, for example, it is not HTML-escaped. You get &#34;&#38;&#34;, not &#34;&#38;amp;&#34;.)</p>
+<p>The text has not been parsed in any way. (So, for example, it is not HTML-escaped. You get &#34;&#38;&#34;, not &#34;&#38;amp;&#34;.)</p>
 
 <dt><a name="bug"
 ><code  class="code">bug</code></a></dt>
@@ -346,8 +346,8 @@ name="bug_format_comment"
 ><code  class="code">comment</code></a></dt>
 
 <dd>
-<p>A hashref representing the comment you are about to parse, including all of the fields that comments contain when they are returned by by <a href="../Bugzilla/Bug.html#longdescs" class="podlinkpod"
->&#34;longdescs&#34; in Bugzilla::Bug</a>.</p>
+<p>A <a href="../Bugzilla/Comment.html" class="podlinkpod"
+>Bugzilla::Comment</a> object representing the comment you are about to parse.</p>
 
 <p>Sometimes this is <code  class="code">undef</code>, meaning that we are parsing text that is not a bug comment (but could still be some other part of a bug, like the summary line).</p>
 </dd>
@@ -357,7 +357,8 @@ name="bug_format_comment"
 name="buglist_columns"
 >buglist_columns</a></h2>
 
-<p>This happens in buglist.cgi after the standard columns have been defined and right before the display column determination. It gives you the opportunity to add additional display columns.</p>
+<p>This happens in <a href="../Bugzilla/Search.html#COLUMNS" class="podlinkpod"
+>&#34;COLUMNS&#34; in Bugzilla::Search</a>, which determines legal bug list columns for <em  class="code">buglist.cgi</em> and <em  class="code">colchange.cgi</em>. It gives you the opportunity to add additional display columns.</p>
 
 <p>Params:</p>
 
@@ -443,9 +444,9 @@ name="config_add_panels"
 ><code  class="code">panel_modules</code></a></dt>
 
 <dd>
-<p>A hashref, where the keys are the &#34;name&#34; of the module and the value is the Perl module containing that config module. For example, if the name is <code  class="code">Auth</code>, the value would be <code  class="code">Bugzilla::Config::Auth</code>.</p>
+<p>A hashref, where the keys are the &#34;name&#34; of the panel and the value is the Perl module representing that panel. For example, if the name is <code  class="code">Auth</code>, the value would be <code  class="code">Bugzilla::Config::Auth</code>.</p>
 
-<p>For your extension, the Perl module name must start with <code  class="code">extensions::yourextension::lib</code>. (See the code in the example extension.)</p>
+<p>For your extension, the Perl module would start with <code  class="code">Bugzilla::Extension::Foo</code>, where &#34;Foo&#34; is the name of your Extension. (See the code in the example extension.)</p>
 </dd>
 </dl>
 
@@ -501,8 +502,8 @@ name="flag_end_of_update"
 ><code  class="code">object</code> - The changed bug or attachment object.</a></dt>
 
 <dd>
-<dt><a name="timestamp_-_The_timestamp_used_for_all_updates_in_this_transaction."
-><code  class="code">timestamp</code> - The timestamp used for all updates in this transaction.</a></dt>
+<dt><a name="timestamp_-_The_timestamp_used_for_all_updates_in_this_transaction,_as_a_SQL_date_string."
+><code  class="code">timestamp</code> - The timestamp used for all updates in this transaction, as a SQL date string.</a></dt>
 
 <dd>
 <dt><a name="old_flags_-_The_snapshot_of_flag_summaries_from_before_the_change."
@@ -538,9 +539,13 @@ name="group_end_of_create"
 <p>Params:</p>
 
 <dl>
-<dt><a name="group_-_The_changed_Bugzilla::Group_object,_with_all_fields_set_to_their_updated_values."
-><code  class="code">group</code> - The changed <a href="../Bugzilla/Group.html" class="podlinkpod"
->Bugzilla::Group</a> object, with all fields set to their updated values.</a></dt>
+<dt><a name="group"
+><code  class="code">group</code></a></dt>
+
+<dd>
+<p>The new <a href="../Bugzilla/Group.html" class="podlinkpod"
+>Bugzilla::Group</a> object that was just created.</p>
+</dd>
 </dl>
 
 <h2><a class='u' href='#___top' title='click to go to top of document'
@@ -575,7 +580,7 @@ name="install_before_final_checks"
 ><code  class="code">silent</code></a></dt>
 
 <dd>
-<p>A flag that indicates whether or not checksetup is running in silent mode.</p>
+<p>A flag that indicates whether or not checksetup is running in silent mode. If this is true, messages that are <i>always</i> printed by checksetup.pl should be suppressed, but messages about any changes that are just being done this one time should be printed.</p>
 </dd>
 </dl>
 
@@ -583,13 +588,13 @@ name="install_before_final_checks"
 name="install_update_db"
 >install_update_db</a></h2>
 
-<p>This happens at the very end of all the tables being updated during an installation or upgrade. If you need to modify your custom schema, do it here. No params are passed.</p>
+<p>This happens at the very end of all the tables being updated during an installation or upgrade. If you need to modify your custom schema or add new columns to existing tables, do it here. No params are passed.</p>
 
 <h2><a class='u' href='#___top' title='click to go to top of document'
 name="db_schema_abstract_schema"
 >db_schema_abstract_schema</a></h2>
 
-<p>This allows you to add tables to Bugzilla. Note that we recommend that you prefix the names of your tables with some word, so that they don&#39;t conflict with any future Bugzilla tables.</p>
+<p>This allows you to add tables to Bugzilla. Note that we recommend that you prefix the names of your tables with some word (preferably the name of your Extension), so that they don&#39;t conflict with any future Bugzilla tables.</p>
 
 <p>If you wish to add new <i>columns</i> to existing Bugzilla tables, do that in <a href="#install_update_db" class="podlinkpod"
 >&#34;install_update_db&#34;</a>.</p>
@@ -806,6 +811,8 @@ name="page_before_template"
 
 <p>This hook is called right before the template is loaded, so that you can pass your own variables to your own pages.</p>
 
+<p>You can also use this to implement complex custom pages, by doing your own output and then calling <code  class="code">exit</code> at the end of the hook, thus preventing the normal <code  class="code">page.cgi</code> behavior from occurring.</p>
+
 <p>Params:</p>
 
 <dl>
@@ -815,7 +822,7 @@ name="page_before_template"
 <dd>
 <p>This is the name of the page being loaded, like <code  class="code">fields.html</code>.</p>
 
-<p>Note that if two extensions use the same name, it is uncertain which will override the others, so you should be careful with how you name your pages.</p>
+<p>Note that if two extensions use the same name, it is uncertain which will override the others, so you should be careful with how you name your pages. Usually extensions prefix their pages with a directory named after their extension, so for an extension named &#34;Foo&#34;, page ids usually look like <code  class="code">foo/mypage.html</code>.</p>
 
 <dt><a name="vars"
 ><code  class="code">vars</code></a></dt>
@@ -858,7 +865,8 @@ name="sanitycheck_check"
 name="product_end_of_create"
 >product_end_of_create</a></h2>
 
-<p>Called right after a new product has been created, allowing additional changes to be made to the new product&#39;s attributes. This occurs inside of a database transaction, so if the hook throws an error all previous changes will be rolled back including the creation of the new product.</p>
+<p>Called right after a new product has been created, allowing additional changes to be made to the new product&#39;s attributes. This occurs inside of a database transaction, so if the hook throws an error, all previous changes will be rolled back, including the creation of the new product. (However, note that such rollbacks should not normally be used, as some databases that Bugzilla supports have very bad rollback performance. If you want to validate input and throw errors before the Product is created, use <a href="#object_end_of_create_validators" class="podlinkpod"
+>&#34;object_end_of_create_validators&#34;</a> instead.)</p>
 
 <p>Params:</p>
 
@@ -953,16 +961,16 @@ name="webservice"
 ><code  class="code">dispatch</code></a></dt>
 
 <dd>
-<p>A hashref that you can specify the names of your modules and what Perl module handles the functions for that module. (This is actually sent to <a href="../SOAP/Lite.html#dispatch_with" class="podlinkpod"
+<p>A hashref where you can specify the names of your modules and which Perl module handles the functions for that module. (This is actually sent to <a href="../SOAP/Lite.html#dispatch_with" class="podlinkpod"
 >&#34;dispatch_with&#34; in SOAP::Lite</a>. You can see how that&#39;s used in <em  class="code">xmlrpc.cgi</em>.)</p>
 
-<p>The Perl module name must start with <code  class="code">extensions::yourextension::lib::</code> (replace <code  class="code">yourextension</code> with the name of your extension). The <code  class="code">package</code> declaration inside that module must also start with <code  class="code">extensions::yourextension::lib::</code> in that module&#39;s code.</p>
+<p>The Perl module name will most likely start with <code  class="code">Bugzilla::Extension::Foo::</code> (where &#34;Foo&#34; is the name of your extension).</p>
 
 <p>Example:</p>
 
-<pre  class="code">  $dispatch-&#62;{Example} = &#34;extensions::example::lib::Example&#34;;</pre>
+<pre  class="code">  $dispatch-&#62;{&#39;Example.Blah&#39;} = &#34;Bugzilla::Extension::Example::Webservice::Blah&#34;;</pre>
 
-<p>And then you&#39;d have a module <em  class="code">extensions/example/lib/Example.pm</em></p>
+<p>And then you&#39;d have a module <em  class="code">extensions/Example/lib/Webservice/Blah.pm</em>, and could call methods from that module like <code  class="code">Example.Blah.Foo()</code> using the WebServices interface.</p>
 
 <p>It&#39;s recommended that all the keys you put in <code  class="code">dispatch</code> start with the name of your extension, so that you don&#39;t conflict with the standard Bugzilla WebService functions (and so that you also don&#39;t conflict with other plugins).</p>
 </dd>
