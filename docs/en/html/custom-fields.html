@@ -7,7 +7,7 @@
 NAME="GENERATOR"
 CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
 REL="HOME"
-TITLE="The Bugzilla Guide - 3.6.1 
+TITLE="The Bugzilla Guide - 3.6.2 
     Release"
 HREF="index.html"><LINK
 REL="UP"
@@ -38,7 +38,7 @@ CELLSPACING="0"
 ><TH
 COLSPAN="3"
 ALIGN="center"
->The Bugzilla Guide - 3.6.1 
+>The Bugzilla Guide - 3.6.2 
     Release</TH
 ></TR
 ><TR
@@ -299,10 +299,16 @@ NAME="delete-custom-fields"
 >3.10.3. Deleting Custom Fields</A
 ></H2
 ><P
->&#13;        It is only possible to delete obsolete Custom Fields 
-        if the field has never been used in the database.
-        To remove a field which already has content,
-        mark it as obsolete.
+>&#13;        Only custom fields which are marked as obsolete, and which never
+        have been used, can be deleted completely (else the integrity
+        of the bug history would be compromised). For custom fields marked
+        as obsolete, a "Delete" link will appear in the <SPAN
+CLASS="QUOTE"
+>"Action"</SPAN
+>
+        column. If the custom field has been used in the past, the deletion
+        will be rejected. But marking the field as obsolete is sufficient
+        to hide it from the user interface entirely.
       </P
 ></DIV
 ></DIV

@@ -159,10 +159,6 @@
 [% BLOCK msg_buglist_sorted_by_relevance %]
   [% terms.Bugs %] on this list are sorted by relevance, with the most
   relevant [% terms.bugs %] at the top.
-  [% IF bugs.size == constants.FULLTEXT_BUGLIST_LIMIT %]
-    Only the [% constants.FULLTEXT_BUGLIST_LIMIT | html %]
-    most relevant [% terms.bugs %] are shown.
-  [% END %]
 [% END %]
 
 [% BLOCK msg_change_columns %]

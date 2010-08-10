@@ -52,13 +52,13 @@ sub filter ($$) {
 }
 
 sub taint_data {
-    my $params = shift;
-    return if !$params;
+    my @params = @_;
+    return if !@params;
     # Though this is a private function, it hasn't changed since 2004 and
     # should be safe to use, and prevents us from having to write it ourselves
     # or require another module to do it.
-    Test::Taint::_deeply_traverse(\&_delete_bad_keys, $params);
-    Test::Taint::taint_deeply($params);
+    Test::Taint::_deeply_traverse(\&_delete_bad_keys, \@params);
+    Test::Taint::taint_deeply(\@params);
 }
 
 sub _delete_bad_keys {
@@ -79,6 +79,11 @@ sub _delete_bad_keys {
 
 sub validate  {
     my ($self, $params, @keys) = @_;
+
+    # If $params is defined but not a reference, then we weren't
+    # sent any parameters at all, and we're getting @keys where
+    # $params should be.
+    return ($self, undef) if (defined $params and !ref $params);
     
     # If @keys is not empty then we convert any named 
     # parameters that have scalar values to arrayrefs
