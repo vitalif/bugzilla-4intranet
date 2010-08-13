@@ -54,6 +54,7 @@ sub get_login_info {
     if ($authdata)
     {
         trick_taint($authdata);
+        $authdata = decode_json($authdata);
         eval { $authdata = decode_json($authdata) };
         die $@ if $@;
         $authdata = undef if $@;
