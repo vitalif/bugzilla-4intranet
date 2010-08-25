@@ -248,12 +248,28 @@ sub quoteUrls {
 
     if ($custom_proto && %$custom_proto)
     {
-        $text =~ s
-            ~\b($custom_proto_regex):(?:\[\[(.*?)(?:\#(.*?))?\]\]|([^\s<>\#]+)(?:\#([^\s<>\"\#]+))?)
-            ~($tmp = html_quote(&{$custom_proto->{$1}}(trim($2)||$4, trim($2)?trim($3):$5))) &&
-             ($things[$count++] = "<a href=\"$tmp\">$&</a>") &&
-             ("\0\0" . ($count-1) . "\0\0")
-            ~gesox;
+        my @text = split /\b(($custom_proto_regex):(?:\[\[(.*?)(?:\#(.*?))?\]\]|([^\s<>\#]+)(?:\#([^\s<>\"\#]+))?))/is, $text;
+        $text = shift @text;
+        my $link;
+        while (@text)
+        {
+            my ($linktext, $proto, $verb_url, $verb_anchor, $url, $anchor) = splice @text, 0, 6;
+            if ($verb_url = trim($verb_url))
+            {
+                # remove line feeds and reply markers as the comment is already wrapped
+                s/\n(>\s*)*//gso for $verb_url, $verb_anchor;
+                $verb_anchor = trim($verb_anchor);
+                $link = &{$custom_proto->{$proto}}($verb_url, $verb_anchor);
+            }
+            else
+            {
+                $link = &{$custom_proto->{$proto}}($url, $anchor);
+            }
+            $things[$count] = "<a href=\"$link\">$linktext</a>";
+            $text .= "\0\0$count\0\0";
+            $text .= shift @text;
+            $count++;
+        }
     }
 
     # We have to quote now, otherwise the html itself is escaped
