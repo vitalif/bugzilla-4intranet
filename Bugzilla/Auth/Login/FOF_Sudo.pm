@@ -54,9 +54,7 @@ sub get_login_info {
     if ($authdata)
     {
         trick_taint($authdata);
-        eval { $authdata = decode_json($authdata) };
-        die $@ if $@;
-        $authdata = undef if $@;
+        $authdata = decode_json($authdata);
     }
     return { failure => AUTH_NODATA } unless $authdata && $authdata->{user_name};
 
