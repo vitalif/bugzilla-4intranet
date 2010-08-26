@@ -98,7 +98,7 @@ _ok(!$sel->is_text_present("Open a New Account"), "No link named 'Open a New Acc
 $sel->open_ok("/$config->{bugzilla_installation}/createaccount.cgi");
 $sel->title_is("Account Creation Disabled");
 $error_msg = trim($sel->get_text("error_msg"));
-_ok($error_msg =~ /^User account creation has been disabled. New accounts must be created by an administrator/,
+_ok($error_msg =~ /^User account creation has been disabled/,
    "User account creation disabled");
 
 # Re-enable user account creation.
