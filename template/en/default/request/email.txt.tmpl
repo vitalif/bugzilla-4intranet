@@ -29,7 +29,7 @@
 [% attidsummary = attachment.id _ ': ' _ attachment.description %]
 [% flagtype_name = flag ? flag.type.name : old_flag.type.name %]
 [% statuses = { '+' => "granted" , '-' => 'denied' , 'X' => "canceled" ,
-                '?' => "asked" } %]
+                '?' => "requested" } %]
 
 [% to_identity = "" %]
 [% on_behalf_of = 0 %]
@@ -134,13 +134,13 @@ pre { font-family: Consolas, monospace; font-size: 100%; }
  [% PROCESS userlink u=user %] has reassigned [% PROCESS userlink u=flag.setter %]'s request
  for <b>[% flag.type.name %]</b> [% IF flag.requestee %]to [% PROCESS userlink u=flag.requestee %][% END %]:
 [% ELSE %]
- [% PROCESS userlink u=user %] has [% statuses.${flag.status} %]
- [% IF flag.status == '?' AND flag.setter.id == user.id %]
+ [% PROCESS userlink u=user %] has [% flag.status ? statuses.${flag.status} : statuses.X %]
+ [% IF flag AND flag.status == '?' AND flag.setter.id == user.id %]
   [%+ PROCESS userlink u=flag.requestee %] for
- [% ELSIF flag.status != '?' AND flag.requester %]
-  [%+ PROCESS userlink u=flag.requester %]'s request for
+ [% ELSIF old_flag AND old_flag.status == '?' AND old_flag.setter %]
+  [%+ PROCESS userlink u=old_flag.setter %]'s request for
  [% END %]
- <b>[% flag.type.name %]</b>:
+ <b>[% flag ? flag.type.name : old_flag.type.name %]</b>:
 [% END %]
 </p>
 <p><a style="font-size: 120%" href="[% urlbase %]show_bug.cgi?id=[% bug.bug_id %]">[% terms.Bug %] [%+ bugidsummary %]</a>
