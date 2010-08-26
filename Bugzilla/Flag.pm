@@ -959,6 +959,13 @@ sub notify {
         return;
     }
 
+    # @TODO move "silent" indication out of cgi.commentsilent
+    if (Bugzilla->cgi->param('commentsilent'))
+    {
+        # Your changes are marked as Silent. No mail is sent.
+        return;
+    }
+
     my $addressee;
     # If the flag is set to '?', maybe the requestee wants a notification.
     if ($flag && $flag->requestee_id
