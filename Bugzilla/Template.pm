@@ -254,16 +254,24 @@ sub quoteUrls {
         while (@text)
         {
             my ($linktext, $proto, $verb_url, $verb_anchor, $url, $anchor) = splice @text, 0, 6;
-            if ($verb_url = trim($verb_url))
+            if (my $sub = $custom_proto->{lc $proto})
             {
-                # remove line feeds and reply markers as the comment is already wrapped
-                s/\n(>\s*)*//gso for $verb_url, $verb_anchor;
-                $verb_anchor = trim($verb_anchor);
-                $link = &{$custom_proto->{$proto}}($verb_url, $verb_anchor);
+                if ($verb_url = trim($verb_url))
+                {
+                    # remove line feeds and reply markers as the comment is already wrapped
+                    s/\n(>\s*)*//gso for $verb_url, $verb_anchor;
+                    $verb_anchor = trim($verb_anchor);
+                    $link = &$sub($verb_url, $verb_anchor);
+                }
+                else
+                {
+                    $link = &$sub($url, $anchor);
+                }
             }
             else
             {
-                $link = &{$custom_proto->{$proto}}($url, $anchor);
+                $text .= $linktext;
+                next;
             }
             $things[$count] = "<a href=\"$link\">$linktext</a>";
             $text .= "\0\0$count\0\0";
