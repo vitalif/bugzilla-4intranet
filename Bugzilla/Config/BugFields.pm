@@ -138,6 +138,12 @@ sub get_param_list {
    default => '',
    checker => \&check_opsys
   },
+
+  {
+   name => 'clear_requests_on_close',
+   type => 'b',
+   default => 1,
+  },
   );
   return @param_list;
 }

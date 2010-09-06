@@ -1649,6 +1649,15 @@ sub wants_worktime_reminder {
         ? 1 : 0;
 }
 
+sub wants_request_reminder {
+    my $self = shift;
+    return $self &&
+        $self->settings->{remind_me_about_flags} &&
+        $self->settings->{remind_me_about_flags}->{value} &&
+        lc $self->settings->{remind_me_about_flags}->{value} ne 'off'
+        ? 1 : 0;
+}
+
 sub get_userlist {
     my $self = shift;
 
