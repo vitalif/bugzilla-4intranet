@@ -45,7 +45,7 @@ if (($clear_on_close || $reset_own_flags) && !$cgi->param('force_flags'))
         foreach $flag (@$flags)
         {
             if ($flag->{status} eq '?' &&
-                ($clear_on_close || $flag->{requestee_id} eq Bugzilla->user->userid))
+                ($clear_on_close || $flag->{requestee_id} eq Bugzilla->user->id))
             {
                 if ($clear_on_close)
                 {
