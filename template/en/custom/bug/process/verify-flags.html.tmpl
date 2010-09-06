@@ -33,11 +33,11 @@
       [% cgi.param("requestee-$flag.id" ) %]
     </td>
     <td style="border-width: 0 0 1px 0; border-style: solid; border-color: gray">
-      <select id="flag-[% flag.id %]" name="flag-[% flag.id %]"
-        <option value="X"></option>
+      <select id="flag-[% flag.id %]" name="flag-[% flag.id %]">
+        <option value="X" [% 'selected="selected"' IF flag.status == 'X' %]>X</option>
         <option value="+">+</option>
         <option value="-">-</option>
-        <option value="?" selected="selected">?</option>
+        <option value="?" [% 'selected="selected"' IF flag.status == '?' %]>?</option>
       </select>
     </td>
   </tr>

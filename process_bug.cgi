@@ -107,9 +107,9 @@ sub should_set {
 # Create a list of objects for all bugs being modified in this request.
 my @bug_objects;
 if (defined $cgi->param('id')) {
-  my $bug = Bugzilla::Bug->check(scalar $cgi->param('id'));
-  $cgi->param('id', $bug->id);
-  push(@bug_objects, $bug);
+    my $bug = Bugzilla::Bug->check(scalar $cgi->param('id'));
+    $cgi->param('id', $bug->id);
+    push(@bug_objects, $bug);
 } else {
     foreach my $i ($cgi->param()) {
         if ($i =~ /^id_([1-9][0-9]*)/) {
@@ -280,6 +280,8 @@ foreach my $b (@bug_objects) {
     }
 }
 
+Bugzilla::Hook::process('process_bug-after_move', { bug_objects => \@bug_objects, vars => $vars });
+
 # Flags should be set AFTER the bug has been moved into another product/component.
 if ($cgi->param('id')) {
     my ($flags, $new_flags) = Bugzilla::Flag->extract_flags_from_cgi($first_bug, undef, $vars);
@@ -342,37 +344,6 @@ my %methods = (
 
 foreach my $b (@bug_objects)
 {
-    # Validate flag requests and remind user about resetting them
-    if (should_set('comment') && @bug_objects == 1 &&
-        Bugzilla->usage_mode != USAGE_MODE_EMAIL &&
-        !$cgi->param('force_flags') &&
-        $user->settings->{remind_me_about_flags} &&
-        $user->settings->{remind_me_about_flags}->{value} &&
-        (lc $user->settings->{remind_me_about_flags}->{value} ne "off"))
-    {
-        my @ids = map /^flag-(\d+)$/ ? $1 : (), $cgi->param();
-        my @requery_flags;
-        my @filter;
-        foreach my $id (@ids)
-        {
-            my $status = $cgi->param("flag-$id");
-            if (($status eq '?') &&
-                trim($cgi->param("requestee-$id")) eq $user->login)
-            {
-                my $flag = (Bugzilla::Flag->match({ id => $id }) || [])->[0];
-                push @filter, "flag-$id";
-                push @requery_flags, $flag;
-            }
-        }
-        if (@requery_flags)
-        {
-            $vars->{verify_flags} = \@requery_flags;
-            $vars->{field_filter} = '^('.join('|',@filter).')$';
-            $template->process("bug/process/verify-flags.html.tmpl", $vars)
-                || ThrowTemplateError($template->error());
-            exit;
-        }
-    }
     if (should_set('comment') || $cgi->param('work_time'))
     {
         # Add a comment as needed to each bug. This is done early because
