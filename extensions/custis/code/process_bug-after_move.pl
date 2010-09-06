@@ -20,6 +20,7 @@ if (($clear_on_close || $reset_own_flags) && !$cgi->param('force_flags'))
     my $flags;
     my @requery_flags;
     my $flag;
+    my $login;
     # 1) Check flag requests and remind user about resetting his own incoming requests.
     # 2) When closing bugs, clear all flag requests (CustIS Bug 68430).
     # Not used in mass update and email modes.
@@ -33,7 +34,11 @@ if (($clear_on_close || $reset_own_flags) && !$cgi->param('force_flags'))
                 {
                     $flag = Bugzilla::Flag->new({ id => $2 });
                     $flag->{status} = $cgi->param($1);
-                    $flag->{requestee_id} = login_to_id(trim($cgi->param("requestee-$2")));
+                    if (($login = trim($cgi->param("requestee-".$flag->{id}))) &&
+                        ($login = login_to_id($login)))
+                    {
+                        $flag->{requestee_id} = $login;
+                    }
                     push @$flags, $flag;
                 }
             }
