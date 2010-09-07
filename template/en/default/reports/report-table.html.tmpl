@@ -34,13 +34,21 @@
 
 [% col_field_disp = field_descs.$col_field || col_field %]
 [% row_field_disp = field_descs.$row_field || row_field %]
-  
+
+[% urlbase = buglistbase;
+IF row_field;
+  urlbase = urlbase.replace(row_field _ '_type=[^&]*&?', '');
+END;
+IF col_field;
+  urlbase = urlbase.replace(col_field _ '_type=[^&]*&?', '');
+END; %]
+
 [% IF tbl == "-total-" %]
-  [% urlbase = BLOCK %]buglist.cgi?[% buglistbase FILTER html %]
+  [% urlbase = BLOCK %]buglist.cgi?[% urlbase | html %]
   [% "&amp;$tbl_vals" IF tbl_vals %][% END %]
 [% ELSE %]
-  [% urlbase = BLOCK %]buglist.cgi?[% buglistbase FILTER html %]&amp;
-  [% tbl_field FILTER url_quote %]=[% tbl FILTER url_quote %][% END %]
+  [% urlbase = BLOCK %]buglist.cgi?[% urlbase | html %]&amp;
+  [% tbl_field | url_quote %]=[% tbl | url_quote %][% END %]
 [% END %]
 
 [% IF tbl_field %]
@@ -76,7 +84,7 @@
       [% FOREACH col = col_names %]
         [% col_totals.$col = 0 %]
         [% NEXT IF col == "" %]
-        
+
         [% col_idx = 1 - col_idx %]
         <td class="[% classes.$row_idx.$col_idx %]">
           [% PROCESS value_display value = col field = col_field %]
@@ -87,10 +95,10 @@
       </td>
     </tr>
   [% END %]
-  
+
   [% FOREACH row = row_names %]
     [% row_total = 0 %]
-    
+
     [% row_idx = 1 - row_idx %]
     <tr>
       <td class="[% classes.$row_idx.$col_idx %]" align="right">
@@ -100,13 +108,13 @@
         [% row_total = row_total + data.$tbl.$col.$row %]
         [% NEXT IF col == "" %]
         [% col_totals.$col = col_totals.$col + data.$tbl.$col.$row %]
-        
+
         [% col_idx = 1 - col_idx %]
         <td class="[% classes.$row_idx.$col_idx %]" align="center">
           [% IF data.$tbl.$col.$row AND data.$tbl.$col.$row > 0 %]
             <a href="[% urlbase %]&amp;
-              [% row_field FILTER url_quote %]=[% row FILTER url_quote %]&amp;
-              [% col_field FILTER url_quote %]=[% col FILTER url_quote %]">
+              [% PROCESS value_url value = row field = row_field %]&amp;
+              [% PROCESS value_url value = col field = col_field %]">
               [% data.$tbl.$col.$row %]</a>
           [% ELSE %]
             .
@@ -115,14 +123,14 @@
       [% END %] 
       <td class="ttotal" align="right">
         <a href="[% urlbase %]&amp;
-          [% row_field FILTER url_quote %]=[% row FILTER url_quote %]
+          [% PROCESS value_url value = row field = row_field %]
           [% "&amp;$col_vals" IF col_vals %]">
         [% row_total %]</a>
         [% grand_total = grand_total + row_total %]
       </td>
     </tr>
   [% END %]
-  
+
   <tr>
     [% row_idx = 1 - row_idx %]
     <td class="ttotal">
@@ -130,7 +138,7 @@
     </td>
     [% FOREACH col = col_names %]
       [% NEXT IF col == "" %]
-      
+
       <td class="ttotal" align="center">
         <a href="[% urlbase %]&amp;
           [% col_field FILTER url_quote %]=[% col FILTER url_quote %]
@@ -148,7 +156,6 @@
   </tr>
 </table>
 
-      
     </td>
   </tr>
 </table>
@@ -162,3 +169,11 @@
   [% END %]
   [% disp_value FILTER html FILTER replace('^ $','&nbsp;') %]
 [% END %] 
+
+[% BLOCK value_url %]
+  [% IF NOT value %]
+    [% field | url_quote %]_type=regexp&amp;[% field | url_quote %]=[% '^$' | url_quote %]
+  [% ELSE %]
+    [% field | url_quote %]=[% value | url_quote %]
+  [% END %]
+[% END %]
