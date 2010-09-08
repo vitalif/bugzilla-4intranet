@@ -459,7 +459,7 @@ TUI_hide_default('expert_fields');
     <select name="resolution" id="resolution">
     [%- FOREACH x = resolution %]
       [% NEXT IF x == "MOVED" %]
-      <option value="[% x FILTER html %]">[% get_resolution(x) FILTER html %]</option>
+      <option value="[% x FILTER html %]">[% display_value('resolution', x) FILTER html %]</option>
     [% END %]
     </select>
   </td>
