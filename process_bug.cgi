@@ -104,17 +104,20 @@ sub should_set {
 # Begin Data/Security Validation
 ######################################################################
 
+$dbh->bz_start_transaction();
+
 # Create a list of objects for all bugs being modified in this request.
+# <vitalif@mail.ru> Use SELECT ... FOR UPDATE to lock these bugs
 my @bug_objects;
 if (defined $cgi->param('id')) {
-    my $bug = Bugzilla::Bug->check(scalar $cgi->param('id'));
+    my $bug = Bugzilla::Bug->check({ id => scalar $cgi->param('id'), for_update => 1 });
     $cgi->param('id', $bug->id);
     push(@bug_objects, $bug);
 } else {
     foreach my $i ($cgi->param()) {
         if ($i =~ /^id_([1-9][0-9]*)/) {
             my $id = $1;
-            push(@bug_objects, Bugzilla::Bug->check($id));
+            push(@bug_objects, Bugzilla::Bug->check({ id => $id, for_update => 1 }));
         }
     }
 }
@@ -150,7 +153,7 @@ Bugzilla::User::match_field({
 if (defined $cgi->param('delta_ts'))
 {
     my $delta_ts_z = datetime_from($cgi->param('delta_ts'));
-    my $first_delta_tz_z =  datetime_from($first_bug->delta_ts);
+    my $first_delta_tz_z = datetime_from($first_bug->delta_ts);
     if ($first_delta_tz_z ne $delta_ts_z)
     {
         ($vars->{'operations'}) =
@@ -564,8 +567,6 @@ Bugzilla::Hook::process('process_bug-pre_update', { bugs => \@bug_objects });
 
 # @msgs will store emails which have to be sent to voters, if any.
 my @msgs;
-
-$dbh->bz_start_transaction();
 
 ##############################
 # Do Actual Database Updates #
