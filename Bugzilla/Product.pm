@@ -958,7 +958,7 @@ sub check {
     $params = { name => $params } if !ref $params;
     $params->{_error} = 'product_access_denied';
     my $product = $class->SUPER::check($params);
-    if (!Bugzilla->user->can_access_product($product)) {
+    if (!Bugzilla->user->can_see_product($product)) {
         ThrowUserError('product_access_denied', $params);
     }
     return $product;

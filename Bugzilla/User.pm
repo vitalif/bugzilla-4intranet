@@ -730,9 +730,9 @@ sub clear_product_cache {
 }
 
 sub can_see_product {
-    my ($self, $product_name) = @_;
-
-    return scalar(grep {$_->name eq $product_name} @{$self->get_selectable_products});
+    my ($self, $product) = @_;
+    $product = $product->name if ref $product;
+    return scalar(grep {$_->name eq $product} @{$self->get_selectable_products});
 }
 
 sub get_selectable_products {
@@ -740,23 +740,32 @@ sub get_selectable_products {
     my $class_id = shift;
     my $class_restricted = Bugzilla->params->{'useclassification'} && $class_id;
 
-    if (!defined $self->{selectable_products}) {
-        my $query =
-            "(SELECT id, name AS pname FROM products" .
-            " LEFT JOIN group_control_map g ON g.product_id = products.id " .
-            " AND g.membercontrol=" . CONTROLMAPMANDATORY .
-            " AND g.group_id NOT IN (" . $self->groups_as_string . ")" .
-            " WHERE group_id IS NULL)" .
-            " UNION (SELECT id, name AS pname FROM products" .
-            " LEFT JOIN group_control_map g ON g.product_id=products.id" .
-            " AND g.entry != 0 AND g.group_id NOT IN (".$self->groups_as_string.")" .
-            " WHERE g.group_id IS NULL)" .
-            " UNION (SELECT id, tr_products.name AS pname FROM products AS tr_products ".
-            " INNER JOIN test_plans ON tr_products.id = test_plans.product_id ".
-            " INNER JOIN test_plan_permissions ON test_plan_permissions.plan_id = test_plans.plan_id ".
-            " WHERE test_plan_permissions.userid = ?)" .
-            " ORDER BY pname";
-        my $prod_ids = Bugzilla->dbh->selectcol_arrayref($query, undef, $self->id);
+    if (!defined $self->{selectable_products})
+    {
+        my $prod_ids;
+        if ($self->in_group('editcomponents'))
+        {
+            $prod_ids = Bugzilla->dbh->selectcol_arrayref("SELECT id FROM products");
+        }
+        else
+        {
+            my $query =
+                "(SELECT id, name AS pname FROM products" .
+                " LEFT JOIN group_control_map g ON g.product_id = products.id " .
+                " AND g.membercontrol=" . CONTROLMAPMANDATORY .
+                " AND g.group_id NOT IN (" . $self->groups_as_string . ")" .
+                " WHERE group_id IS NULL)" .
+                " UNION (SELECT id, name AS pname FROM products" .
+                " LEFT JOIN group_control_map g ON g.product_id=products.id" .
+                " AND g.entry != 0 AND g.group_id NOT IN (".$self->groups_as_string.")" .
+                " WHERE g.group_id IS NULL)" .
+                " UNION (SELECT id, tr_products.name AS pname FROM products AS tr_products ".
+                " INNER JOIN test_plans ON tr_products.id = test_plans.product_id ".
+                " INNER JOIN test_plan_permissions ON test_plan_permissions.plan_id = test_plans.plan_id ".
+                " WHERE test_plan_permissions.userid = ?)" .
+                " ORDER BY pname";
+            $prod_ids = Bugzilla->dbh->selectcol_arrayref($query, undef, $self->id);
+        }
         $self->{selectable_products} = Bugzilla::Product->new_from_list($prod_ids);
     }
 
