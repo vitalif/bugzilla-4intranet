@@ -73,7 +73,7 @@ sub _init {
     if (ref $param eq 'HASH') {
         $id = $param->{id};
     }
-    my $object;
+    my ($object, $sql, @values);
 
     if (defined $id) {
         # We special-case if somebody specifies an ID, so that we can
@@ -85,9 +85,8 @@ sub _init {
         # Too large integers make PostgreSQL crash.
         return if $id > MAX_INT_32;
 
-        $object = $dbh->selectrow_hashref(qq{
-            SELECT $columns FROM $table
-             WHERE $id_field = ?}, undef, $id);
+        $sql = "$id_field = ?";
+        @values = ($id);
     } else {
         unless (defined $param->{name} || (defined $param->{'condition'} 
                                            && defined $param->{'values'}))
@@ -96,9 +95,8 @@ sub _init {
                                         function => $class . '::new' });
         }
 
-        my ($condition, @values);
         if (defined $param->{name}) {
-            $condition = $dbh->sql_istrcmp($name_field, '?');
+            $sql = $dbh->sql_istrcmp($name_field, '?');
             push(@values, $param->{name});
         }
         elsif (defined $param->{'condition'} && defined $param->{'values'}) {
@@ -107,15 +105,21 @@ sub _init {
                        { caller    => caller, 
                          function  => $class . '::new',
                          argument  => 'condition/values' });
-            $condition = $param->{'condition'};
+            $sql = $param->{'condition'};
             push(@values, @{$param->{'values'}});
         }
 
         map { trick_taint($_) } @values;
-        $object = $dbh->selectrow_hashref(
-            "SELECT $columns FROM $table WHERE $condition", undef, @values);
     }
 
+    # It is recommended to use FOR UPDATE when updating!
+    $sql = "SELECT $columns FROM $table WHERE $sql";
+    if (ref $param eq 'HASH' && $param->{for_update})
+    {
+        $sql .= " FOR UPDATE";
+    }
+
+    $object = $dbh->selectrow_hashref($sql, undef, @values);
     return $object;
 }
 
