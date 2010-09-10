@@ -379,7 +379,7 @@ if ($cloned_bug_id) {
     $cloned_bug_id = $cloned_bug->id;
 }
 
-if (scalar(@{$product->components}) == 1) {
+if (scalar(@{$product->active_components}) == 1) {
     # Only one component; just pick it.
     $cgi->param('component', $product->components->[0]->name);
     $cgi->param('version', $product->components->[0]->default_version);

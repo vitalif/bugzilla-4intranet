@@ -52,6 +52,9 @@ push @{$schema->{products}->{FIELDS}}, notimetracking => {TYPE => 'BOOLEAN', NOT
 # Bug 53725 - Версия по умолчанию
 push @{$schema->{components}->{FIELDS}}, default_version => {TYPE => 'varchar(64)', NOTNULL => 1, DEFAULT => "''"};
 
+# Bug 68921 - Закрытие компонента (так же как закрытие продукта), чтобы в него нельзя было ставить новые баги
+push @{$schema->{components}->{FIELDS}}, is_active => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 1};
+
 # Bug 53617 - Ограничение Custom Fields двумя и более значениями контролирующего поля
 $schema->{fieldvaluecontrol} = {
     FIELDS => [

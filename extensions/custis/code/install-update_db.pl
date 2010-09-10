@@ -112,6 +112,12 @@ if (!$dbh->bz_column_info('components', 'default_version'))
     $dbh->bz_add_column('components', default_version => {TYPE => 'varchar(64)', NOTNULL => 1, DEFAULT => "''"});
 }
 
+# Bug 68921 - Закрытие компонента (так же как закрытие продукта), чтобы в него нельзя было ставить новые баги
+if (!$dbh->bz_column_info('components', 'is_active'))
+{
+    $dbh->bz_add_column('components', is_active => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 1});
+}
+
 # Bug 53617 - Ограничение Custom Fields двумя и более значениями контролирующего поля
 my @standard_fields = qw(bug_status resolution priority bug_severity op_sys rep_platform);
 my $custom_fields = $dbh->selectall_arrayref(

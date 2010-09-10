@@ -832,8 +832,8 @@ sub can_enter_product {
     elsif (!$product->is_active) {
         ThrowUserError('product_disabled', { product => $product });
     }
-    # It could have no components...
-    elsif (!@{$product->components}) {
+    # It could have no active components...
+    elsif (!@{$product->active_components}) {
         ThrowUserError('missing_component', { product => $product });
     }
     # It could have no versions...
