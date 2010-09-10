@@ -143,10 +143,10 @@ pre { font-family: Consolas, monospace; font-size: 100%; }
  <b>[% flag ? flag.type.name : old_flag.type.name %]</b>:
 [% END %]
 </p>
-<p><a style="font-size: 120%" href="[% urlbase %]show_bug.cgi?id=[% bug.bug_id %]">[% terms.Bug %] [%+ bugidsummary %]</a>
-<br><span style="font-size: 90%">(prod:[% bug.product %].[% bug.component %], pri:[% bug.priority %], sev:[% bug.bug_severity %], miles:[% bug.target_milestone %])</span>
+<p><a style="font-size: 120%" href="[% urlbase %]show_bug.cgi?id=[% bug.bug_id %]#[% flag ? flag.creation_date : old_flag.creation_date | timestamp %]">[% terms.Bug %] [%+ bugidsummary %]</a>
+<br /><span style="font-size: 90%">(prod:[% bug.product %].[% bug.component %], pri:[% bug.priority %], sev:[% bug.bug_severity %], miles:[% bug.target_milestone %])</span>
 [% IF attachment %]
-<br><a href="[%+ urlbase %]attachment.cgi?id=[% attachment.id %]&action=edit">Attachment [% attidsummary %]</a>
+<br /><a href="[%+ urlbase %]attachment.cgi?id=[% attachment.id %]&action=edit">Attachment [% attidsummary %]</a>
 [% END %]
 </p>
 [% IF Bugzilla.cgi.param("comment").defined && Bugzilla.cgi.param("comment").length > 0 %]
