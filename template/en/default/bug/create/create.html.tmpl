@@ -44,20 +44,20 @@
 
 var last_cc = "[% cc | js %]";
 var cc_rem = {}, cc_add = {};
-var initialowners = new Array([% product.components.size %]);
+var initialowners = new Array([% product.active_components.size %]);
 var last_initialowner;
-var initialccs = new Array([% product.components.size %]);
-var components = new Array([% product.components.size %]);
-var componentdefaultversions = new Array([% product.components.size %]);
+var initialccs = new Array([% product.active_components.size %]);
+var components = new Array([% product.active_components.size %]);
+var componentdefaultversions = new Array([% product.active_components.size %]);
 var last_component = -1;
-var comp_desc = new Array([% product.components.size %]);
-var flags = new Array([% product.components.size %]);
+var comp_desc = new Array([% product.active_components.size %]);
+var flags = new Array([% product.active_components.size %]);
 [% IF Param("useqacontact") %]
-    var initialqacontacts = new Array([% product.components.size %]);
+    var initialqacontacts = new Array([% product.active_components.size %]);
     var last_initialqacontact;
 [% END %]
 [% count = 0 %]
-[%- FOREACH c = product.components %]
+[%- FOREACH c = product.active_components %]
     components[[% count %]] = "[% c.name FILTER js %]";
     componentdefaultversions[[% count %]] = "[% c.default_version FILTER js %]";
     comp_desc[[% count %]] = "[% c.description FILTER html_light FILTER js %]";
@@ -331,7 +331,7 @@ TUI_hide_default('expert_fields');
           [% qa_contacts_list = user.get_userlist.clone %]
         [% END %]
 
-        [%- FOREACH c = product.components %]
+        [%- FOREACH c = product.active_components %]
           <option value="[% c.name FILTER html %]"
             [% " selected=\"selected\"" IF c.name == default.component_ %]>
             [% c.name FILTER html -%]

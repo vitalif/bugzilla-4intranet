@@ -711,6 +711,22 @@ sub set_group_controls {
     $self->{check_group_controls} = 1;
 }
 
+sub active_components
+{
+    my $self = shift;
+    if (!defined $self->{active_components})
+    {
+        my $ids = Bugzilla->dbh->selectcol_arrayref(q{
+            SELECT id FROM components
+            WHERE product_id = ? AND is_active = 1
+            ORDER BY name}, undef, $self->id);
+
+        require Bugzilla::Component;
+        $self->{active_components} = Bugzilla::Component->new_from_list($ids);
+    }
+    return $self->{active_components};
+}
+
 sub components {
     my $self = shift;
     my $dbh = Bugzilla->dbh;
@@ -891,7 +907,7 @@ sub flag_types
         foreach my $type ('bug', 'attachment')
         {
             my %flagtypes;
-            foreach my $component (@{$self->components})
+            foreach my $component (@{$self->active_components})
             {
                 foreach my $flagtype (@{$component->flag_types->{$type}})
                 {
@@ -979,7 +995,8 @@ Bugzilla::Product - Bugzilla product class.
     my $product = new Bugzilla::Product(1);
     my $product = new Bugzilla::Product({ name => 'AcmeProduct' });
 
-    my @components      = $product->components();
+    my @components      = @{ $product->components() };
+    my @active_components = @{ $product->active_components() };
     my $groups_controls = $product->group_controls();
     my @milestones      = $product->milestones();
     my @versions        = $product->versions();

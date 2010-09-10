@@ -2091,7 +2091,7 @@ sub set_product {
         # other part of Bugzilla that checks $@.
         undef $@;
         Bugzilla->error_mode($old_error_mode);
-        
+
         my $verified = $params->{change_confirmed};
         my %vars;
         if (!$verified || !$component_ok || !$version_ok || !$milestone_ok) {
@@ -2106,7 +2106,7 @@ sub set_product {
             $vars{component_ok} = $component_ok;
             $vars{version_ok}   = $version_ok;
             $vars{milestone_ok} = $milestone_ok;
-            $vars{components} = [map { $_->name } @{$product->components}];
+            $vars{components} = [map { $_->name } @{$product->active_components}];
             $vars{milestones} = [map { $_->name } @{$product->milestones}];
             $vars{versions}   = [map { $_->name } @{$product->versions}];
         }
@@ -3140,7 +3140,7 @@ sub choices {
     my %choices = (
         bug_status => $self->statuses_available,
         product    => \@products,
-        component  => $self->product_obj->components,
+        component  => $self->product_obj->active_components,
         version    => $self->product_obj->versions,
         target_milestone => $self->product_obj->milestones,
     );

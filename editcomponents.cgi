@@ -134,10 +134,11 @@ if ($action eq 'new') {
         default_version  => $default_version,
         wiki_url         => $wiki_url,
         initial_cc       => \@initial_cc,
+        is_active        => scalar $cgi->param('is_active'),
         # XXX We should not be creating series for products that we
         # didn't create series for.
         create_series    => 1,
-   });
+    });
 
     $vars->{'message'} = 'component_created';
     $vars->{'comp'} = $component;
@@ -158,7 +159,7 @@ if ($action eq 'new') {
 if ($action eq 'del') {
     $vars->{'token'} = issue_session_token('delete_component');
     $vars->{'comp'} =
-      Bugzilla::Component->check({ product => $product, name => $comp_name });
+        Bugzilla::Component->check({ product => $product, name => $comp_name });
     $vars->{'product'} = $product;
 
     $template->process("admin/components/confirm-delete.html.tmpl", $vars)
@@ -241,6 +242,7 @@ if ($action eq 'update') {
     $component->set_default_version($default_version);
     $component->set_wiki_url($wiki_url);
     $component->set_cc_list(\@initial_cc);
+    $component->set_is_active(scalar $cgi->param('is_active'));
     my $changes = $component->update();
 
     $vars->{'message'} = 'component_updated';
