@@ -116,7 +116,7 @@ sub guess_field_name
     for (my $i = 0; $i < @$guess_field_descs; $i+=2)
     {
         ($k, $v) = ($guess_field_descs->[$i], $guess_field_descs->[$i+1]);
-        ($r = $k), last if $name =~ /\Q$v\E/is;
+        ($r = $k), last if $name =~ /\Q$v\E/is || $name eq $k;
     }
     return $r;
 }
