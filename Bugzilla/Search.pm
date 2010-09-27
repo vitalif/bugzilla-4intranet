@@ -437,7 +437,8 @@ sub init {
         }
     }
 
-    if ($chfieldfrom ne '' || $chfieldto ne '') {
+    if ($chfieldfrom ne '' || $chfieldto ne '')
+    {
         my $sql_chfrom = $chfieldfrom ? $dbh->quote(SqlifyDate($chfieldfrom)):'';
         my $sql_chto   = $chfieldto   ? $dbh->quote(SqlifyDate($chfieldto))  :'';
         my $sql_chvalue = $chvalue ne '' ? $dbh->quote($chvalue) : '';
@@ -447,9 +448,9 @@ sub init {
         my $value_term = " AND actcheck.added = $sql_chvalue";
         # ---- vfilippov@custis.ru 2010-02-01
         # Search using bugs.delta_ts is not correct. It's "LAST changed in", not "Changed in".
-            my $bug_creation_clause;
-            my @list;
-            my @actlist;
+        my $bug_creation_clause;
+        my @list;
+        my @actlist;
         my $seen_longdesc;
         my $need_commenter;
         foreach my $f (@chfield)

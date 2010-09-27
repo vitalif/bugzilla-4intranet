@@ -178,7 +178,8 @@ sub parse_mail {
     return \%fields;
 }
 
-sub post_bug {
+sub post_bug
+{
     my ($fields) = @_;
     debug_print('Posting a new bug...');
 
@@ -212,11 +213,11 @@ sub post_bug {
     }
 
     my ($retval, $non_conclusive_fields) =
-      Bugzilla::User::match_field({
-        'assigned_to'   => { 'type' => 'single' },
-        'qa_contact'    => { 'type' => 'single' },
-        'cc'            => { 'type' => 'multi'  }
-      }, $fields, MATCH_SKIP_CONFIRM);
+        Bugzilla::User::match_field({
+            assigned_to => { 'type' => 'single' },
+            qa_contact  => { 'type' => 'single' },
+            cc          => { 'type' => 'multi'  }
+        }, $fields, MATCH_SKIP_CONFIRM);
 
     if ($retval != USER_MATCH_SUCCESS) {
         ThrowUserError('user_match_too_many', {fields => $non_conclusive_fields});

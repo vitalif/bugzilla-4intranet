@@ -74,15 +74,6 @@ my $vars = {};
 # Subroutines
 ######################################################################
 
-# Used to send email when an update is done.
-sub send_results {
-    my ($bug_id, $vars) = @_;
-    my $silent = $vars->{commentsilent} = Bugzilla->cgi->param('commentsilent') ? 1 : 0;
-    $vars->{'sent_bugmail'} = 
-        Bugzilla::BugMail::Send($bug_id, $vars->{'mailrecipients'}, $silent);
-    return $vars;
-}
-
 # Tells us whether or not a field should be changed by process_bug.
 sub should_set {
     # check_defined is used for fields where there's another field
@@ -402,7 +393,7 @@ if (defined $cgi->param('id')) {
     if (should_set('reporter_accessible', 1)) {
         $first_bug->set_reporter_accessible($cgi->param('reporter_accessible'))
     }
-    
+
     # You can only mark/unmark comments as private on single bugs. If
     # you're not in the insider group, this code won't do anything.
     foreach my $field (grep(/^defined_isprivate/, $cgi->param())) {
@@ -422,7 +413,7 @@ if (defined $cgi->param('newcc')
     || defined $cgi->param('addselfcc')
     || defined $cgi->param('removecc')
     || defined $cgi->param('masscc')) {
-        
+
     # If masscc is defined, then we came from buglist and need to either add or
     # remove cc's... otherwise, we came from bugform and may need to do both.
     my ($cc_add, $cc_remove) = "";
@@ -489,9 +480,9 @@ if ($move_action eq Bugzilla->params->{'move-button-text'}) {
 
     # Now send emails.
     foreach my $bug (@bug_objects) {
-        push @$send_results, send_results($bug->id, {
+        push @$send_results, send_results({
             mailrecipients => { 'changer' => $user->login },
-            id             => $bug->id,
+            bug_id         => $bug->id,
             type           => 'move',
         });
     }
@@ -580,13 +571,13 @@ foreach my $bug (@bug_objects) {
     my %notify_deps;
     if ($changes->{'bug_status'}) {
         my ($old_status, $new_status) = @{ $changes->{'bug_status'} };
-        
+
         # If this bug has changed from opened to closed or vice-versa,
         # then all of the bugs we block need to be notified.
         if (is_open_state($old_status) ne is_open_state($new_status)) {
             $notify_deps{$_} = 1 foreach (@{$bug->blocked});
         }
-        
+
         # We may have zeroed the remaining time, if we moved into a closed
         # status, so we should inform the user about that.
         if (!is_open_state($new_status) && $changes->{remaining_time} &&
@@ -640,7 +631,7 @@ foreach my $bug (@bug_objects) {
             qacontact => $old_qa,
             changer   => Bugzilla->user->login,
         },
-        id => $bug->id,
+        bug_id => $bug->id,
         type => "bug",
     };
 
@@ -652,7 +643,7 @@ foreach my $bug (@bug_objects) {
         # original bug.
         push @$send_results, {
             mailrecipients => { changer => Bugzilla->user->login },
-            id => $new_dup_id,
+            bug_id => $new_dup_id,
             type => "dupe",
         };
     }
@@ -665,7 +656,7 @@ foreach my $bug (@bug_objects) {
         # receive email about it.
         push @$send_results, {
             mailrecipients => { changer => Bugzilla->user->login },
-            id => $id,
+            bug_id => $id,
             type => "dep",
         };
     }
@@ -677,23 +668,24 @@ $dbh->bz_commit_transaction();
 # Send Emails #
 ###############
 
+# TODO move votes removed mail to BugMail
 # Now is a good time to send email to voters.
 foreach my $msg (@msgs) {
     MessageToMTA($msg);
 }
 
 # Send bugmail
-for (@$send_results)
-{
-    $_ = send_results($_->{id}, $_);
-}
+send_results($_) for @$send_results;
+$vars->{sentmail} = $send_results;
 
 my $bug;
 if (Bugzilla->usage_mode == USAGE_MODE_EMAIL) {
     # Do nothing.
 }
-elsif (($action eq 'next_bug' or $action eq 'same_bug') && ($bug = $vars->{bug}) && $user->can_see_bug($bug)) {
-    if ($action eq 'same_bug') {
+elsif (($action eq 'next_bug' or $action eq 'same_bug') && ($bug = $vars->{bug}) && $user->can_see_bug($bug))
+{
+    if ($action eq 'same_bug')
+    {
         # $bug->update() does not update the internal structure of
         # the bug sufficiently to display the bug with the new values.
         # (That is, if we just passed in the old Bug object, we'd get
@@ -737,4 +729,5 @@ unless (Bugzilla->usage_mode == USAGE_MODE_EMAIL)
         || ThrowTemplateError($template->error());
 }
 
-1;
+$vars;
+__END__

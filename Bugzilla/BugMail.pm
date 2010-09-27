@@ -66,6 +66,23 @@ use constant REL_NAMES => {
     REL_GLOBAL_WATCHER, "GlobalWatcher"
 };
 
+use base qw(Exporter);
+our @EXPORT = qw(send_results);
+
+# Used to send email when an update is done.
+sub send_results
+{
+    shift if $_[0] eq __PACKAGE__;
+    my ($vars) = @_;
+    $vars->{commentsilent} = Bugzilla->cgi->param('commentsilent') ? 1 : 0;
+    if (Bugzilla->cgi->param('dontsendbugmail'))
+    {
+        return $vars;
+    }
+    $vars->{sent_bugmail} = Send($vars->{bug_id}, $vars->{mailrecipients}, $vars->{commentsilent});
+    return $vars;
+}
+
 # We use this instead of format because format doesn't deal well with
 # multi-byte languages.
 sub multiline_sprintf {

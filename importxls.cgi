@@ -1,6 +1,6 @@
 #!/usr/bin/perl -wT
 # Bug 42133
-# Интерфейс множественного импорта багов из Excel-файлов
+# Интерфейс множественного импорта/обновления багов из Excel-файлов
 
 use utf8;
 use Encode;
@@ -12,10 +12,13 @@ use Bugzilla::Constants;
 use Bugzilla::Product;
 use Bugzilla::Component;
 use Bugzilla::Util;
+use Bugzilla::Token;
 use Bugzilla::Error;
 use Bugzilla::Bug;
 use Bugzilla::BugMail;
 use Bugzilla::User;
+
+use Text::CSV;
 
 # Подгружаются по необходимости: Spreadsheet::ParseExcel, Spreadsheet::XSLX;
 
@@ -89,9 +92,7 @@ $vars->{name_tr} = $name_tr;
 
 # нужно всосать из шаблонов field_descs...
 # и несколько поменять... ;-/ поганый хак, конечно, а чё делать-то.
-my $ctx = $template->{SERVICE}->context;
-$ctx->process('global/field-descs.none.tmpl');
-my $field_descs = $ctx->stash->get(['field_descs', 0]);
+my $field_descs = { %{ template_var('field_descs') } };
 $field_descs->{platform} = $field_descs->{rep_platform};
 $field_descs->{comment} = $field_descs->{longdesc};
 for ((grep { /\./ } keys %$field_descs),
@@ -111,12 +112,13 @@ my $guess_field_descs = [
 sub guess_field_name
 {
     my ($name, $guess_field_descs) = @_;
+    my ($r, $k, $v);
     for (my $i = 0; $i < @$guess_field_descs; $i+=2)
     {
-        my ($k, $v) = ($guess_field_descs->[$i], $guess_field_descs->[$i+1]);
-        return $k if $name =~ /\Q$v\E/is;
+        ($k, $v) = ($guess_field_descs->[$i], $guess_field_descs->[$i+1]);
+        ($r = $k), last if $name =~ /\Q$v\E/is;
     }
-    return undef;
+    return $r;
 }
 
 unless ($args->{commit})
@@ -146,7 +148,24 @@ unless ($args->{commit})
     else
     {
         # показываем интерфейс с распаршенной таблицей и галочками (или с обломом)
-        my $table = parse_excel($upload, $args->{xls}, $listname, $name_tr);
+        my $table;
+        if ($args->{xls} !~ /\.(xlsx?)$/iso)
+        {
+            # CSV
+            {
+                # смешно, конечно, но в Taint Mode надо сначала снять taint,
+                # потом скопировать скаляр (!) передачей аргумента в функцию,
+                # и только потом делать Encode::_utf8_[on|off]
+                local $/ = undef;
+                $upload = <$upload>;
+            }
+            trick_taint($upload);
+            $table = parse_csv($upload, $args->{xls}, $name_tr, $args->{csv_delimiter});
+        }
+        else
+        {
+            $table = parse_excel($upload, $args->{xls}, $listname, $name_tr);
+        }
         if (!$table || $table->{error})
         {
             # ошибка
@@ -208,14 +227,24 @@ else
     my $r = 0;
     my $ids = [];
     my $f = 0;
-    my $bugmail = {};
+    my $bugmail = [];
     Bugzilla->dbh->bz_start_transaction;
     for my $bug (@$bugs{sort {$a <=> $b} keys %$bugs})
     {
         $bug->{$_} ||= $bug_tpl->{$_} for keys %$bug_tpl;
         if ($bug->{enabled})
         {
-            my $id = post_bug($bug, $bugmail);
+            my $id;
+            if ($bug->{bug_id} && Bugzilla::Bug->new($bug->{bug_id}))
+            {
+                # если уже есть баг с таким ID - обновляем
+                $id = process_bug($bug, $bugmail);
+            }
+            else
+            {
+                # если ещё нет - ставим новый
+                $id = post_bug($bug, $bugmail);
+            }
             if ($id)
             {
                 $r++;
@@ -240,10 +269,7 @@ else
             (map { ("t_$_" => $name_tr->{$_}) } keys %$name_tr),
         });
         # и только теперь (по успешному завершению) рассылаем почту
-        foreach my $bug_id (keys %$bugmail)
-        {
-            Bugzilla::BugMail::Send($bug_id, $bugmail->{$bug_id});
-        }
+        send_results($_) for @$bugmail;
         Bugzilla->dbh->bz_commit_transaction;
         print $cgi->redirect(-location => 'importxls.cgi?'.$newcgi->query_string);
     }
@@ -265,19 +291,6 @@ sub parse_excel
         # Обычный формат
         require Spreadsheet::ParseExcel;
         $xls = Spreadsheet::ParseExcel->new->Parse($upload);
-    }
-    else
-    {
-        # CSV
-        {
-            # смешно, конечно, но в Taint Mode надо сначала снять taint,
-            # потом скопировать скаляр (!) передачей аргумента в функцию,
-            # и только потом делать Encode::_utf8_[on|off]
-            local $/ = undef;
-            $upload = <$upload>;
-        }
-        trick_taint($upload);
-        return parse_csv($upload, $name, $only_list, $name_tr);
     }
     return { error => 'parse_error' } unless $xls;
     my $r = { data => [] };
@@ -302,14 +315,16 @@ sub parse_excel
 }
 
 # Разобрать CSV-файл
+# FIXME многострочное CSV не поддерживается
 sub parse_csv
 {
-    my ($upload, $name, $only_list, $name_tr) = @_;
+    my ($upload, $name, $name_tr, $delimiter) = @_;
     my $text = $upload;
     ($text) = $text =~ /^(.*)$/so;
     Encode::_utf8_on($text);
     if (!utf8::valid($text))
     {
+        # извне обычно приходит либо UTF-8, либо Windows-1251 (Excel)
         Encode::_utf8_off($text);
         Encode::from_to($text, 'cp1251', 'utf-8');
         Encode::_utf8_on($text);
@@ -319,12 +334,16 @@ sub parse_csv
         allow_loose_quotes => 1,
         allow_loose_escapes => 1,
         allow_whitespace => 1,
+        sep_char => $delimiter || ',',
     });
     my $r = { data => [] };
     my $fail = 0;
     my $row;
+    my $one_column = 1;
+    my $i = 0;
     foreach (split /\n/, $text)
     {
+        $i++;
         s/\s*$//so;
         s/^\s*//so;
         if ($csv->parse($_))
@@ -363,6 +382,8 @@ sub get_row
     } ($col_min .. $col_max) ];
 }
 
+# TODO объединить post_bug и process_bug с ими же из email_in.pl и importxml.pl и вынести куда-то
+
 # добавить баг
 sub post_bug
 {
@@ -373,20 +394,35 @@ sub post_bug
     Bugzilla->usage_mode(USAGE_MODE_EMAIL);
     Bugzilla->error_mode(ERROR_MODE_WEBPAGE);
     $Bugzilla::Error::IN_EVAL++;
+    my $product = eval { Bugzilla::Product->check({ name => $fields_in->{product} }) };
+    if (!$product)
+    {
+        return undef;
+    }
+    # добавляем дефолтные группы
+    my @gids;
+    my $controls = $product->group_controls;
+    foreach my $gid (keys %$controls)
+    {
+        if ($controls->{$gid}->{membercontrol} == CONTROLMAPDEFAULT && Bugzilla->user->in_group_id($gid) ||
+            $controls->{$gid}->{othercontrol} == CONTROLMAPDEFAULT && !Bugzilla->user->in_group_id($gid))
+        {
+            $fields_in->{"bit-$gid"} = 1;
+        }
+    }
     unless ($fields_in->{version})
     {
         # угадаем версию
-        my ($product, $component);
+        my $component;
         eval
         {
-            $product = Bugzilla::Product->check({ name => $fields_in->{product} });
             $component = Bugzilla::Component->new({
                 product => $product,
                 name    => $fields_in->{component},
             });
         };
         # если нет дефолтной версии в компоненте
-        if ($product && (!$component || !($fields_in->{version} = $component->default_version)))
+        if (!$component || !($fields_in->{version} = $component->default_version))
         {
             my $vers = [ map ($_->name, @{$product->versions}) ];
             my $v;
@@ -402,10 +438,6 @@ sub post_bug
                 $fields_in->{version} = $vers->[$#$vers];
             }
         }
-        if (!$product)
-        {
-            return undef;
-        }
     }
     # скармливаем параметры $cgi
     foreach my $field (keys %$fields_in)
@@ -420,7 +452,69 @@ sub post_bug
     if ($vars_out)
     {
         my $bug_id = $vars_out->{bug}->id;
-        $bugmail->{$bug_id} = Bugzilla->request_cache->{mailrecipients};
+        push @$bugmail, @{$vars_out->{sentmail}};
+        return $bug_id;
+    }
+    return undef;
+}
+
+sub process_bug
+{
+    my ($fields_in, $bugmail) = @_;
+
+    my $um = Bugzilla->usage_mode;
+    Bugzilla->usage_mode(USAGE_MODE_EMAIL);
+    Bugzilla->error_mode(ERROR_MODE_WEBPAGE);
+    Bugzilla->cgi->param(-name => 'dontsendbugmail', -value => 1);
+
+    my %fields = %$fields_in;
+
+    my $bug_id = $fields{'bug_id'};
+    $fields{'id'} = $bug_id;
+    delete $fields{'bug_id'};
+
+    my $bug = Bugzilla::Bug->check($bug_id);
+
+    $fields{product} ||= $bug->product;
+    $fields{component} ||= $bug->component;
+
+    if ($fields{'bug_status'}) {
+        $fields{'knob'} = $fields{'bug_status'};
+    }
+    # If no status is given, then we only want to change the resolution.
+    elsif ($fields{'resolution'}) {
+        $fields{'knob'} = 'change_resolution';
+        $fields{'resolution_knob_change_resolution'} = $fields{'resolution'};
+    }
+    if ($fields{'dup_id'}) {
+        $fields{'knob'} = 'duplicate';
+    }
+
+    # Move @cc to @newcc as @cc is used by process_bug.cgi to remove
+    # users from the CC list when @removecc is set.
+    $fields{newcc} = delete $fields{cc} if $fields{cc};
+
+    # Make it possible to remove CCs.
+    if ($fields{'removecc'}) {
+        $fields{'cc'} = [split(',', $fields{'removecc'})];
+        $fields{'removecc'} = 1;
+    }
+
+    my $cgi = Bugzilla->cgi;
+    foreach my $field (keys %fields) {
+        $cgi->param(-name => $field, -value => $fields{$field});
+    }
+    $cgi->param('longdesclength', scalar @{ $bug->comments });
+    $cgi->param('token', issue_hash_token([$bug->id, $bug->delta_ts]));
+
+    $Bugzilla::Error::IN_EVAL++;
+    my $vars_out = do 'process_bug.cgi';
+    $Bugzilla::Error::IN_EVAL--;
+    Bugzilla->usage_mode($um);
+
+    if ($vars_out)
+    {
+        push @$bugmail, @{$vars_out->{sentmail}};
         return $bug_id;
     }
     return undef;
