@@ -44,8 +44,8 @@ function addfield()
 [% END %]
 <table>
 <tbody>
-<tr><td>Select XLS/XLSX file to import:</td><td><input type="file" name="xls" /></td></tr>
-<tr><td>Enter sheet name to process<span style="color:red">*</span>:</td><td><input type="text" name="listname" value="[% listname | html %]" /></td></tr>
+<tr><td>Select XLS/XLSX/CSV file to import:</td><td><input type="file" name="xls" /></td></tr>
+<tr><td>Enter sheet name to process<span style="color:red">*</span>:</td><td><input type="text" name="listname" value="[% listname | html %]" /> or CSV delimiter: <input type="text" name="csv_delimiter" size="3" value="," /></td></tr>
 <tr><td>Maximum bug duplicate age:</td><td><input type="text" size="5" name="bugdays" value="[% bugdays | html %]" /> days</td></tr>
 </tbody>
 <tbody id="flds">
@@ -132,7 +132,7 @@ function fieldrename(field)
         <select id="t_[% field | html %]" name="t_[% field | html %]" style="[% IF NOT name_tr.${field} %]display:none; [% END %]width: 90px">
             <option value="">Don&apos;t map: [% field | html %]</option>
         [% FOR f = import_field_descs.keys.sort %]
-            <option value="[% f | html %]" [% IF name_tr.${field} == f OR NOT name_tr.${field} OR import_field_descs.${field} %] selected[% END %]>[% import_field_descs.${f} | html %]</option>
+            <option value="[% f | html %]" [% IF name_tr.${field} == f OR NOT name_tr.${field} OR import_field_descs.${field} == f %] selected[% END %]>[% import_field_descs.${f} | html %]</option>
         [% END %]
         </select>
     </td>

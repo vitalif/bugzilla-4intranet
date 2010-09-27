@@ -82,7 +82,7 @@ if ($token) {
            || ThrowTemplateError($template->error());
         exit;
     }
-}    
+}
 
 # do a match on the fields if applicable
 Bugzilla::User::match_field ({
@@ -94,7 +94,7 @@ Bugzilla::User::match_field ({
 if (defined $cgi->param('maketemplate')) {
     $vars->{'url'} = $cgi->canonicalise_query('token');
     $vars->{'short_desc'} = $cgi->param('short_desc');
-    
+
     $template->process("bug/create/make-template.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
     exit;
@@ -292,25 +292,26 @@ Bugzilla::Hook::process('post_bug_after_creation', { vars => $vars });
 
 ThrowCodeError("bug_error", { bug => $bug }) if $bug->error;
 
-if ($token) {
+if ($token)
+{
     trick_taint($token);
     $dbh->do('UPDATE tokens SET eventdata = ? WHERE token = ?', undef, 
              ("createbug:$id", $token));
 }
 
-my $silent = $vars->{commentsilent} = $cgi->param('commentsilent') ? 1 : 0;
-my $recipients = { changer => $user->login };
-my $bug_sent = { sent_bugmail => Bugzilla::BugMail::Send($id, $recipients, $silent) };
-$bug_sent->{type} = 'created';
-$bug_sent->{id}   = $id;
+my $bug_sent = { bug_id => $id, type => 'created', recipients => { changer => $user->login } };
+send_results($bug_sent);
 my @all_mail_results = ($bug_sent);
-foreach my $dep (@{$bug->dependson || []}, @{$bug->blocked || []}) {
-    my $dep_sent = { sent_bugmail => Bugzilla::BugMail::Send($dep, $recipients, $silent) };
-    $dep_sent->{type} = 'dep';
-    $dep_sent->{id}   = $dep;
-    push(@all_mail_results, $dep_sent);
+foreach my $dep (@{$bug->dependson || []}, @{$bug->blocked || []})
+{
+    my $dep_sent = {
+        type       => 'dep',
+        bug_id     => $dep,
+        recipients => $bug_sent->{recipients},
+    };
+    send_results($dep_sent);
+    push @all_mail_results, $dep_sent;
 }
-$_->{commentsilent} = $silent for @all_mail_results;
 $vars->{sentmail} = \@all_mail_results;
 
 if (Bugzilla->usage_mode != USAGE_MODE_EMAIL)
@@ -329,3 +330,4 @@ if (Bugzilla->usage_mode != USAGE_MODE_EMAIL)
 }
 
 $vars;
+__END__
