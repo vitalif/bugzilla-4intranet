@@ -172,3 +172,13 @@ if (!$dbh->bz_column_info('logincookies', 'session_data'))
 {
     $dbh->bz_add_column('logincookies', session_data => {TYPE => 'blob'});
 }
+
+# Bug 69766 - Default CSV charset for M1cr0$0ft Excel
+if (!$dbh->selectrow_array('SELECT name FROM setting WHERE name=\'csv_charset\' LIMIT 1'))
+{
+    $dbh->do('INSERT INTO setting (name, default_value, is_enabled) VALUES (\'csv_charset\', \'utf-8\', 1)');
+}
+if (!$dbh->selectrow_array('SELECT name FROM setting_value WHERE name=\'csv_charset\' LIMIT 1'))
+{
+    $dbh->do('INSERT INTO setting_value (name, value, sortindex) VALUES (\'csv_charset\', \'utf-8\', 10), (\'csv_charset\', \'windows-1251\', 20), (\'csv_charset\', \'koi8-r\', 30)');
+}
