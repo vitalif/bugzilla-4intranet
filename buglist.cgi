@@ -1226,9 +1226,29 @@ _close_standby_message($contenttype, $disposition, $serverpush);
 ################################################################################
 
 # Generate and return the UI (HTML page) from the appropriate template.
-$template->process($format->{'template'}, $vars)
+my $output;
+$template->process($format->{'template'}, $vars, \$output)
   || ThrowTemplateError($template->error());
 
+# CustIS Bug 69766 - Default CSV charset for M1cr0$0ft Excel
+if ($cgi->param('ctype') eq 'csv' &&
+    Bugzilla->user->settings->{csv_charset} &&
+    Bugzilla->user->settings->{csv_charset}->{value} ne 'utf-8')
+{
+    # Пара хаков:
+    # во-первых, _utf8_off не работает на бывшем когда-то tainted скаляре,
+    #   а from_to не работает на скаляре с включённым utf8 флагом, поэтому мы
+    #   его копируем и работаем с копией.
+    # во-вторых, заголовки выводятся с включённым utf8 флагом, а мы не хотим,
+    #   чтобы perl сам что-то перекодировал - поэтому в конце идёт _utf8_on.
+    trick_taint($output);
+    my $untaint = $output;
+    Encode::_utf8_off($untaint);
+    Encode::from_to($untaint, 'utf-8', Bugzilla->user->settings->{csv_charset}->{value});
+    $output = $untaint;
+    Encode::_utf8_on($output);
+}
+print $output;
 
 ################################################################################
 # Script Conclusion

@@ -18,8 +18,6 @@ use Bugzilla::Bug;
 use Bugzilla::BugMail;
 use Bugzilla::User;
 
-use Text::CSV;
-
 # Подгружаются по необходимости: Spreadsheet::ParseExcel, Spreadsheet::XSLX;
 
 # константы
@@ -152,14 +150,6 @@ unless ($args->{commit})
         if ($args->{xls} !~ /\.(xlsx?)$/iso)
         {
             # CSV
-            {
-                # смешно, конечно, но в Taint Mode надо сначала снять taint,
-                # потом скопировать скаляр (!) передачей аргумента в функцию,
-                # и только потом делать Encode::_utf8_[on|off]
-                local $/ = undef;
-                $upload = <$upload>;
-            }
-            trick_taint($upload);
             $table = parse_csv($upload, $args->{xls}, $name_tr, $args->{csv_delimiter});
         }
         else
@@ -275,6 +265,45 @@ else
     }
 }
 
+# функция чтения CSV-файлов
+# Multiline CSV compatible!
+sub csv_read_record
+{
+    my ($fh, $enc, $s, $q) = @_;
+    $q ||= '"';
+    $s ||= ',';
+    my $re_field = qr/^\s*(?:$q((?:[^$q]|$q$q)*)$q|([^$q$s]*))\s*($s)?/s;
+    my @parts = ();
+    my $line = "";
+    my $num_lines = 0;
+    my $l;
+    my $i;
+    while (<$fh>)
+    {
+        trick_taint($_);
+        $l = $_;
+        if ($enc && $enc ne 'utf-8')
+        {
+            Encode::from_to($l, $enc, 'utf-8');
+        }
+        Encode::_utf8_on($l);
+        $line .= $l;
+        while ($line =~ s/$re_field//)
+        {
+            $l = $1 || $2;
+            $l =~ s/$q$q/$q/gs;
+            push @parts, $l;
+            return \@parts if !$3;
+        }
+    }
+    if (length $line)
+    {
+        warn "eol before last field end\n";
+        warn "-->$line<--\n";
+    }
+    return @parts ? \@parts : undef;
+}
+
 # разобрать лист Excel или передать в parse_csv
 sub parse_excel
 {
@@ -319,52 +348,22 @@ sub parse_excel
 sub parse_csv
 {
     my ($upload, $name, $name_tr, $delimiter) = @_;
-    my $text = $upload;
-    ($text) = $text =~ /^(.*)$/so;
-    Encode::_utf8_on($text);
-    if (!utf8::valid($text))
-    {
-        # извне обычно приходит либо UTF-8, либо Windows-1251 (Excel)
-        Encode::_utf8_off($text);
-        Encode::from_to($text, 'cp1251', 'utf-8');
-        Encode::_utf8_on($text);
-    }
-    my $csv = Text::CSV->new({
-        binary => 1,
-        allow_loose_quotes => 1,
-        allow_loose_escapes => 1,
-        allow_whitespace => 1,
-        sep_char => $delimiter || ',',
-    });
+    my $s = Bugzilla->user->settings->{csv_charset};
     my $r = { data => [] };
-    my $fail = 0;
     my $row;
-    my $one_column = 1;
-    my $i = 0;
-    foreach (split /\n/, $text)
+    while ($row = csv_read_record($upload, $s && $s->{value}, $delimiter))
     {
-        $i++;
-        s/\s*$//so;
-        s/^\s*//so;
-        if ($csv->parse($_))
+        if (!$r->{fields})
         {
-            if (!$r->{fields})
-            {
-                $r->{fields} = [ $csv->fields ];
-            }
-            else
-            {
-                $row = [ $csv->fields ];
-                $row = { map { ($r->{fields}->[$_] => $row->[$_]) } (0..$#{$r->{fields}}) };
-                push @{$r->{data}}, $row;
-            }
+            $r->{fields} = $row;
         }
         else
         {
-            $fail++;
+            $row = { map { ($r->{fields}->[$_] => $row->[$_]) } (0..$#{$r->{fields}}) };
+            push @{$r->{data}}, $row;
         }
     }
-    return { error => 'parse_error' } if (!$r->{fields} || !@{$r->{fields}}) && $fail;
+    return { error => 'parse_error' } if !$r->{fields} || !@{$r->{fields}};
     return $r;
 }
 
