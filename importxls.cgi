@@ -259,6 +259,7 @@ else
             (map { ("t_$_" => $name_tr->{$_}) } keys %$name_tr),
         });
         # и только теперь (по успешному завершению) рассылаем почту
+        Bugzilla->cgi->delete('dontsendbugmail');
         send_results($_) for @$bugmail;
         Bugzilla->dbh->bz_commit_transaction;
         print $cgi->redirect(-location => 'importxls.cgi?'.$newcgi->query_string);
