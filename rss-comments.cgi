@@ -52,14 +52,23 @@ $title ||= $cgi->param('query_based_on') || "Bugs";
 my $queryparams = new Bugzilla::CGI($cgi);
 $vars->{urlquerypart} = $queryparams->canonicalise_query('order', 'cmdtype', 'query_based_on');
 
-my $search = new Bugzilla::Search(
+# Two different objects
+
+my $search1 = new Bugzilla::Search(
     params => $queryparams,
     fields => [ "bug_id" ],
     user   => $user
 );
 
-my $sqlquery = $search->getSQL();
-$sqlquery =~ s/ORDER\s+BY\s+`?bugs`?.`?bug_id`?//so;
+my $search2 = new Bugzilla::Search(
+    params => $queryparams,
+    fields => [ "bug_id" ],
+    user   => $user
+);
+
+my $sqlquery1 = $search1->getSQL();
+my $sqlquery2 = $search2->getSQL();
+s/ORDER\s+BY\s+`?bugs`?.`?bug_id`?//so for $sqlquery1, $sqlquery2;
 
 my $tz = strftime('%z', localtime);
 
@@ -94,7 +103,7 @@ my $bugsquery = "
     NULL AS fieldname, NULL AS fielddesc, NULL AS attach_id, NULL AS old, NULL AS new,
     (b.creation_ts=l.bug_when) as is_new, l.who
  FROM longdescs l
- INNER JOIN ($sqlquery) bugids ON l.bug_id=bugids.bug_id
+ INNER JOIN ($sqlquery1) bugids ON l.bug_id=bugids.bug_id
  LEFT JOIN bugs b ON b.bug_id=l.bug_id
  LEFT JOIN profiles p ON p.userid=l.who
  LEFT JOIN products pr ON pr.id=b.product_id
@@ -115,7 +124,7 @@ my $bugsquery = "
     f.name AS fieldname, f.description AS fielddesc, a.attach_id, a.removed AS old, a.added AS new,
     0 as is_new, a.who
  FROM bugs_activity a
- INNER JOIN ($sqlquery) bugids ON a.bug_id=bugids.bug_id
+ INNER JOIN ($sqlquery2) bugids ON a.bug_id=bugids.bug_id
  LEFT JOIN bugs b ON b.bug_id=a.bug_id
  LEFT JOIN profiles p ON p.userid=a.who
  LEFT JOIN products pr ON pr.id=b.product_id
