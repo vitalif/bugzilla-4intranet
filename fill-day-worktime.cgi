@@ -105,7 +105,7 @@ my $bugsquery = "
   WHERE ll.bug_when > CONCAT(DATE_SUB(CURDATE(),INTERVAL $lastdays DAY),' 23:59:59') AND ll.who=$userid AND ll.bug_id=bugs.bug_id
   UNION
   SELECT bugs.bug_id, bugs.priority, bugs.short_desc, bugs.remaining_time, bugs.product_id, bugs.component_id FROM bugs_activity aa, bugs
-  WHERE aa.bug_when > CONCAT(DATE_SUB(CURDATE(),INTERVAL $lastdays DAY),' 23:59:59') AND aa.who=$userid AND aa.bug_id=bugs.bug_id
+  WHERE aa.bug_when > CONCAT(DATE_SUB(CURDATE(),INTERVAL $lastdays DAY),' 23:59:59') AND aa.who=$userid AND aa.bug_id=bugs.bug_id AND aa.fieldid NOT IN (10, 40)
   $sqlquery
  ) t, longdescs l, products p, components c
  WHERE t.bug_id = l.bug_id AND t.product_id=p.id AND t.component_id=c.id
