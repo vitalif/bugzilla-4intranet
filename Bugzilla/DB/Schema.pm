@@ -215,7 +215,7 @@ use constant FIELD_TABLE_SCHEMA => {
     FIELDS => [
         id       => {TYPE => 'SMALLSERIAL', NOTNULL => 1,
                      PRIMARYKEY => 1},
-        value    => {TYPE => 'varchar(64)', NOTNULL => 1},
+        value    => {TYPE => 'varchar(255)', NOTNULL => 1},
         sortkey  => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0},
         isactive => {TYPE => 'BOOLEAN', NOTNULL => 1,
                      DEFAULT => 'TRUE'},
@@ -1553,7 +1553,7 @@ use constant ABSTRACT_SCHEMA => {
 use constant MULTI_SELECT_VALUE_TABLE => {
     FIELDS => [
         bug_id => {TYPE => 'INT3', NOTNULL => 1},
-        value  => {TYPE => 'varchar(64)', NOTNULL => 1},
+        value  => {TYPE => 'varchar(255)', NOTNULL => 1},
     ],
     INDEXES => [
         bug_id_idx => {FIELDS => [qw( bug_id value)], TYPE => 'UNIQUE'},
