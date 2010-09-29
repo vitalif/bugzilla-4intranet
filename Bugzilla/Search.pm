@@ -441,6 +441,16 @@ sub init {
     {
         my $sql_chfrom = $chfieldfrom ? $dbh->quote(SqlifyDate($chfieldfrom)):'';
         my $sql_chto   = $chfieldto   ? $dbh->quote(SqlifyDate($chfieldto))  :'';
+
+        # CustIS Bug 68921 - a dirty hack: "interval worktime" column
+        COLUMNS->{interval_time} = {
+            name  =>
+                "(SELECT IFNULL(SUM(ldtime.work_time),0) FROM longdescs ldtime".
+                " WHERE ldtime.bug_id=bugs.bug_id".($sql_chfrom?" AND ldtime.bug_when>=$sql_chfrom":"").
+                ($sql_chto?" AND ldtime.bug_when<=$sql_chto":"").")",
+            title => "Interval worktime",
+        };
+
         my $sql_chvalue = $chvalue ne '' ? $dbh->quote($chvalue) : '';
         trick_taint($sql_chvalue);
         my $from_term  = " AND actcheck.bug_when >= $sql_chfrom";

@@ -30,3 +30,6 @@ LEFT JOIN profiles col_p ON col_f.requestee_id=col_p.userid
 WHERE col_f.bug_id=bugs.bug_id AND col_ft.is_requesteeble=1 AND col_ft.is_requestable=1)",
     title => "Requests",
 };
+
+# CustIS Bug 68921 (see also Bugzilla::Search)
+$columns->{interval_time} = $columns->{actual_time};
