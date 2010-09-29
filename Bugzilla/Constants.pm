@@ -493,7 +493,7 @@ use constant MAX_MILESTONE_SIZE => 20;
 use constant MAX_COMPONENT_SIZE => 64;
 
 # The maximum length for values of <select> fields.
-use constant MAX_FIELD_VALUE_SIZE => 64;
+use constant MAX_FIELD_VALUE_SIZE => 255;
 
 # Maximum length allowed for free text fields.
 use constant MAX_FREETEXT_LENGTH => 255;
