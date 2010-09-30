@@ -299,7 +299,7 @@ if ($token)
              ("createbug:$id", $token));
 }
 
-my $bug_sent = { bug_id => $id, type => 'created', recipients => { changer => $user->login } };
+my $bug_sent = { bug_id => $id, type => 'created', mailrecipients => { changer => $user->login } };
 send_results($bug_sent);
 my @all_mail_results = ($bug_sent);
 foreach my $dep (@{$bug->dependson || []}, @{$bug->blocked || []})
