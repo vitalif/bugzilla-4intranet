@@ -50,20 +50,20 @@
       </tr>
       <tr>
         <td>
-          <select name="available_columns" id="available_columns" 
+          <select name="available_columns" id="available_columns"
                   size="15" multiple="multiple" onchange="updateView();"
-                  class="bz_default_hidden"> 
+                  class="bz_default_hidden">
           </select>
         </td>
         <td>
-          <input class="image_button bz_default_hidden" type="button" 
+          <input class="image_button bz_default_hidden" type="button"
                  id="select_button" name="select" onclick="move_select()">
           <br><br>
-          <input class="image_button bz_default_hidden" type="button" 
+          <input class="image_button bz_default_hidden" type="button"
                  id="deselect_button" name="deselect" onclick="move_deselect()">
         </td>
         <td>
-          <select name="selected_columns" id="selected_columns" 
+          <select name="selected_columns" id="selected_columns"
                   size="15" multiple="multiple" onchange="updateView();">
             [% FOREACH column = collist %]
                 <option value="[% column FILTER html %]" selected="selected">
@@ -80,7 +80,7 @@
           </select>
         </td>
         <td>
-          <input class="image_button bz_default_hidden" type="button" 
+          <input class="image_button bz_default_hidden" type="button"
                  id="up_button" name="up" onclick="move_up()">
           <br><br>
           <input class="image_button bz_default_hidden" type="button"
@@ -108,9 +108,9 @@
     <p>
       <input type="hidden" name="saved_search"
              value="[% saved_search.id FILTER html%]" >
-      <input type="checkbox" id="save_columns_for_search" checked="checked" 
+      <input type="checkbox" id="save_columns_for_search" checked="checked"
              name="save_columns_for_search" value="1">
-      <label for="save_columns_for_search">Save this column list only 
+      <label for="save_columns_for_search">Save this column list only
         for search '[% saved_search.name FILTER html %]'</label>
     </p>
   [% END %]
@@ -119,7 +119,7 @@
     <input type="submit" id="change" value="Change Columns">
   </p>
 
-  <input type="submit" id="resetit" name="resetit" 
+  <input type="submit" id="resetit" name="resetit"
          value="Reset to [% terms.Bugzilla %] default">
 </form>
 
