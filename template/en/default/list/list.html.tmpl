@@ -45,7 +45,7 @@
 [% PROCESS global/header.html.tmpl
   title = title
   style = style
-  atomlink = "buglist.cgi?$urlquerypart&title=$title&ctype=atom" 
+  atomlink = "buglist.cgi?$urlquerypart&title=$title&ctype=atom"
   javascript_urls = [ "js/util.js", "js/field.js", "js/yui/calendar.js", "js/sorttable.js" ]
   style_urls = [ "skins/standard/buglist.css", "skins/standard/yui/calendar.css" ]
   doc_section = "query.html#list"
@@ -147,9 +147,9 @@ function showbugcomma()
 </script>
 <div id="showbugcommacmd"><a href="javascript:void showbugcomma()">Display Bug ID list...</a></div>
 <div id="bugcomma" style="display: none">
-Bug ID list: 
+Bug ID list:
 [% FOREACH id = buglist %]
-[% id FILTER html %] 
+[% id FILTER html %]
 [% END %]
 </div>
 
@@ -237,9 +237,9 @@ Bug ID list:
           </form>
         [% END %]
       </td>
-      
+
       <td>&nbsp;</td>
-      
+
       [%# TODO extract these links into an array and move display into a loop %]
 
       <td valign="middle" class="bz_query_links">
@@ -290,7 +290,7 @@ Bug ID list:
         [% Hook.process("links") %]
       </td>
     [% END %]
-    
+
     <td valign="middle" class="bz_query_edit">
       <table><tr><td>
         <a href="[% PROCESS edit_search_url %]">Edit&nbsp;Search</a>
@@ -299,7 +299,7 @@ Bug ID list:
       ">Summary&nbsp;Report</a>
       </td></tr></table>
     </td>
-      
+
     [% IF searchtype == "saved" %]
       <td valign="middle" nowrap="nowrap" class="bz_query_forget">
         |
@@ -310,19 +310,19 @@ Bug ID list:
       </td>
     [% ELSE %]
       <td>&nbsp;</td>
-      
+
       <td valign="middle" class="bz_query_remember">
         <form method="get" action="buglist.cgi">
-          <input type="submit" id="remember" value="Remember search"> as 
-          <input type="hidden" name="newquery" 
+          <input type="submit" id="remember" value="Remember search"> as
+          <input type="hidden" name="newquery"
                  value="[% urlquerypart FILTER html %][% "&order=$qorder" FILTER html IF order %]">
           <input type="hidden" name="cmdtype" value="doit">
           <input type="hidden" name="remtype" value="asnamed">
           <input type="text" id="save_newqueryname" name="newqueryname" size="20"
-                 value="[% defaultsavename FILTER html %]"> 
-        </form> 
+                 value="[% defaultsavename FILTER html %]">
+        </form>
       </td>
-    [% END %]  
+    [% END %]
   </tr>
 </table>
 
