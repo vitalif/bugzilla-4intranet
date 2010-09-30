@@ -703,7 +703,7 @@ sub _bz_add_field_table {
 
 sub bz_add_field_tables {
     my ($self, $field) = @_;
-    
+
     $self->_bz_add_field_table($field->name,
                                $self->_bz_schema->FIELD_TABLE_SCHEMA, $field->type);
     if ($field->type == FIELD_TYPE_MULTI_SELECT) {
