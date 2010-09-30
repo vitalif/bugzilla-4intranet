@@ -21,24 +21,31 @@ function initChangeColumns() {
     var av_select = document.getElementById("available_columns");
     var sel_select = document.getElementById("selected_columns");
     YAHOO.util.Dom.removeClass(
-        ['avail_header', av_select, 'select_button', 
+        ['avail_header', av_select, 'select_button',
          'deselect_button', 'up_button', 'down_button'], 'bz_default_hidden');
     switch_options(sel_select, av_select, false);
     sel_select.selectedIndex = -1;
     updateView();
 }
 
-function switch_options(from_box, to_box, selected) {
-    for (var i = 0; i<from_box.options.length; i++) {
-        var opt = from_box.options[i];
-        if (opt.selected == selected) {
-            var newopt = new Option(opt.text, opt.value, opt.defaultselected, opt.selected);
-            to_box.options[to_box.options.length] = newopt;
-            from_box.options[i] = null;
-            i = i - 1;
+function switch_options(from_box, to_box, selected)
+{
+    var sel = [];
+    for (var i = 0; i < from_box.options.length; i++)
+        sel[i] = from_box.options[i].selected;
+    var newlist = [];
+    for (var i = from_box.options.length-1; i >= 0; i--)
+    {
+        if (sel[i] == selected)
+        {
+            var opt = from_box.options[i];
+            var newopt = new Option(opt.text, opt.value, opt.defaultselected, sel[i]);
+            newlist.unshift(newopt);
+            from_box.options.remove(i);
         }
-        
     }
+    for (var i in newlist)
+        to_box.options.add(newlist[i]);
 }
 
 function move_select() {
@@ -68,7 +75,7 @@ function move_up() {
         }
         else{
             last = opt;
-        }        
+        }
     }
     updateView();
 }
@@ -86,7 +93,7 @@ function move_down() {
         }
         else{
             last = opt;
-        }        
+        }
     }
     updateView();
 }
@@ -135,7 +142,7 @@ function change_submit() {
 }
 
 function unload() {
-	var sel_select = document.getElementById("selected_columns");
+    var sel_select = document.getElementById("selected_columns");
     for (var i = 0; i < sel_select.options.length; i++) {
         sel_select.options[i].selected = true;
     }
