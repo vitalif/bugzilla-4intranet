@@ -39,7 +39,7 @@ use Bugzilla::Bug;
 use Bugzilla::Constants;
 use Bugzilla::Hook;
 use Bugzilla::Install::Requirements;
-use Bugzilla::Install::Util qw(install_string template_include_path 
+use Bugzilla::Install::Util qw(install_string template_include_path
                                include_languages);
 use Bugzilla::Keyword;
 use Bugzilla::Util;
@@ -208,19 +208,19 @@ sub quoteUrls {
         if (ref($replace) eq 'CODE') {
             $text =~ s/$match/($things[$count++] = $replace->({matches => [
                                                                $1, $2, $3, $4,
-                                                               $5, $6, $7, $8, 
+                                                               $5, $6, $7, $8,
                                                                $9, $10]}))
                                && ("\0\0" . ($count-1) . "\0\0")/egx;
         }
         else {
-            $text =~ s/$match/($things[$count++] = $replace) 
+            $text =~ s/$match/($things[$count++] = $replace)
                               && ("\0\0" . ($count-1) . "\0\0")/egx;
         }
     }
 
     # Provide tooltips for full bug links (Bug 74355)
     my $urlbase_re = '(' . join('|',
-        map { qr/$_/ } grep($_, Bugzilla->params->{'urlbase'}, 
+        map { qr/$_/ } grep($_, Bugzilla->params->{'urlbase'},
                             Bugzilla->params->{'sslbase'})) . ')';
     $text =~ s~\b(${urlbase_re}\Qshow_bug.cgi?id=\E([0-9]+)(\#c([0-9]+))?)\b
               ~($things[$count++] = get_bug_link($3, $1, { comment_num => $5 })) &&
@@ -387,7 +387,7 @@ sub get_bug_link {
 
     $bug = blessed($bug) ? $bug : new Bugzilla::Bug($bug);
     return $link_text if $bug->{error};
-    
+
     my $title = get_text('get_status', { status => $bug->bug_status });
     if ($bug->resolution) {
         $title .= ' ' . get_text('get_resolution',
@@ -428,8 +428,8 @@ $Template::Config::STASH = 'Template::Stash::XS';
 # Allow keys to start with an underscore or a dot.
 $Template::Stash::PRIVATE = undef;
 
-# Add "contains***" methods to list variables that search for one or more 
-# items in a list and return boolean values representing whether or not 
+# Add "contains***" methods to list variables that search for one or more
+# items in a list and return boolean values representing whether or not
 # one/all/any item(s) were found.
 $Template::Stash::LIST_OPS->{ contains } =
   sub {
@@ -440,7 +440,7 @@ $Template::Stash::LIST_OPS->{ contains } =
 $Template::Stash::LIST_OPS->{ containsany } =
   sub {
       my ($list, $items) = @_;
-      foreach my $item (@$items) { 
+      foreach my $item (@$items) {
           return 1 if grep($_ eq $item, @$list);
       }
       return 0;
@@ -455,14 +455,14 @@ $Template::Stash::LIST_OPS->{ clone } =
 
 # Allow us to still get the scalar if we use the list operation ".0" on it,
 # as we often do for defaults in query.cgi and other places.
-$Template::Stash::SCALAR_OPS->{ 0 } = 
+$Template::Stash::SCALAR_OPS->{ 0 } =
   sub {
       return $_[0];
   };
 
 # Add a "substr" method to the Template Toolkit's "scalar" object
 # that returns a substring of a string.
-$Template::Stash::SCALAR_OPS->{ substr } = 
+$Template::Stash::SCALAR_OPS->{ substr } =
   sub {
       my ($scalar, $offset, $length) = @_;
       return substr($scalar, $offset, $length);
@@ -470,13 +470,13 @@ $Template::Stash::SCALAR_OPS->{ substr } =
 
 # Add a "truncate" method to the Template Toolkit's "scalar" object
 # that truncates a string to a certain length.
-$Template::Stash::SCALAR_OPS->{ truncate } = 
+$Template::Stash::SCALAR_OPS->{ truncate } =
   sub {
       my ($string, $length, $ellipsis) = @_;
       $ellipsis ||= "";
-      
+
       return $string if !$length || length($string) <= $length;
-      
+
       my $strlen = $length - length($ellipsis);
       my $newstr = substr($string, 0, $strlen) . $ellipsis;
       return $newstr;
@@ -570,7 +570,7 @@ sub create {
                 $var =~ s/</\\x3c/g;
                 return $var;
             },
-            
+
             json => sub {
                 my ($var) = @_;
                 return encode_json($var);
@@ -581,7 +581,7 @@ sub create {
                 my ($data) = @_;
                 return encode_base64($data);
             },
-            
+
             # Converts data to quoted-printable
             quoted_printable => sub {
                 my ($data) = @_;
@@ -609,17 +609,17 @@ sub create {
                 return $var;
             },
 
-            xml => \&Bugzilla::Util::xml_quote ,
+            xml => \&Bugzilla::Util::xml_quote,
 
             # This filter escapes characters in a variable or value string for
             # use in a query string.  It escapes all characters NOT in the
             # regex set: [a-zA-Z0-9_\-.].  The 'uri' filter should be used for
             # a full URL that may have characters that need encoding.
-            url_quote => \&Bugzilla::Util::url_quote ,
+            url_quote => \&Bugzilla::Util::url_quote,
 
             # This filter is similar to url_quote but used a \ instead of a %
             # as prefix. In addition it replaces a ' ' by a '_'.
-            css_class_quote => \&Bugzilla::Util::css_class_quote ,
+            css_class_quote => \&Bugzilla::Util::css_class_quote,
 
             quoteUrls => [ sub {
                                my ($context, $bug, $comment) = @_;
@@ -641,6 +641,7 @@ sub create {
                           1
                         ],
 
+            # "Dynamic" [% PROCESS ... %]
             process => [ sub { my ($context) = @_; return sub { $context->process(@_) } }, 1 ],
 
             bug_list_link => sub
@@ -674,7 +675,7 @@ sub create {
 
                 if ($data < 1024) {
                     return "$data bytes";
-                } 
+                }
                 else {
                     my $u;
                     foreach $u ('GB', 'MB', 'KB') {
@@ -733,7 +734,7 @@ sub create {
                              } else {
                                  $output = $var;
                              }
-                             
+
                              $output =~ s/(.{75,75})/$1\n /g;
 
                              return $output;
@@ -792,7 +793,7 @@ sub create {
                 },
 
             # We force filtering of every variable in key security-critical
-            # places; we have a none filter for people to use when they 
+            # places; we have a none filter for people to use when they
             # really, really don't want a variable to be changed.
             none => sub { return $_[0]; } ,
         },
@@ -815,7 +816,7 @@ sub create {
             # Currently logged in user, if any
             # If an sudo session is in progress, this is the user we're faking
             'user' => sub { return Bugzilla->user; },
-           
+
             # Currenly active language
             # XXX Eventually this should probably be replaced with something
             # like Bugzilla->language.
@@ -839,7 +840,7 @@ sub create {
             'urlbase' => sub { return Bugzilla::Util::correct_urlbase(); },
 
             # Allow templates to access docs url with users' preferred language
-            'docs_urlbase' => sub { 
+            'docs_urlbase' => sub {
                 my ($language) = include_languages();
                 my $docs_urlbase = Bugzilla->params->{'docs_urlbase'};
                 $docs_urlbase =~ s/\%lang\%/$language/;
@@ -852,7 +853,7 @@ sub create {
             # A way for all templates to get at Field data, cached.
             'bug_fields' => sub {
                 my $cache = Bugzilla->request_cache;
-                $cache->{template_bug_fields} ||= 
+                $cache->{template_bug_fields} ||=
                     { map { $_->name => $_ } Bugzilla->get_fields() };
                 return $cache->{template_bug_fields};
             },
@@ -880,7 +881,7 @@ sub create {
 
             # These don't work as normal constants.
             DB_MODULE        => \&Bugzilla::Constants::DB_MODULE,
-            REQUIRED_MODULES => 
+            REQUIRED_MODULES =>
                 \&Bugzilla::Install::Requirements::REQUIRED_MODULES,
             OPTIONAL_MODULES => sub {
                 my @optional = @{OPTIONAL_MODULES()};
@@ -901,7 +902,7 @@ sub create {
     local $Template::Config::CONTEXT = 'Bugzilla::Template::Context';
 
     Bugzilla::Hook::process('template_before_create', { config => $config });
-    my $template = $class->new($config) 
+    my $template = $class->new($config)
         || die("Template creation failed: " . $class->error());
     return $template;
 }
@@ -924,7 +925,7 @@ sub precompile_templates {
         # into data/deleteme/.
         if (-e "$datadir/template") {
             print STDERR "\n\n",
-                install_string('template_removal_failed', 
+                install_string('template_removal_failed',
                                { datadir => $datadir }), "\n\n";
             mkpath("$datadir/deleteme");
             my $random = generate_random_password();
@@ -954,7 +955,7 @@ sub precompile_templates {
     }
 
     # Under mod_perl, we look for templates using the absolute path of the
-    # template directory, which causes Template Toolkit to look for their 
+    # template directory, which causes Template Toolkit to look for their
     # *compiled* versions using the full absolute path under the data/template
     # directory. (Like data/template/var/www/html/bugzilla/.) To avoid
     # re-compiling templates under mod_perl, we symlink to the
@@ -1000,8 +1001,8 @@ sub _do_template_symlink {
     # Check if the directory exists, because if there are no extensions,
     # there won't be an "data/template/extensions" directory to link to.
     if (-d $target) {
-        # We use abs2rel so that the symlink will look like 
-        # "../../../../template" which works, while just 
+        # We use abs2rel so that the symlink will look like
+        # "../../../../template" which works, while just
         # "data/template/template/" doesn't work.
         my $relative_target = File::Spec->abs2rel($target, $container);
 
