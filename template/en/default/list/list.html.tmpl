@@ -79,53 +79,7 @@
   </h2>
 [% END %]
 
-[% SET shown_types = {
-  'notequals'     => 1,
-  'regexp'        => 1,
-  'notregexp'     => 1,
-  'lessthan'      => 1,
-  'lessthaneq'    => 1,
-  'greaterthan'   => 1,
-  'greaterthaneq' => 1,
-  'changedbefore' => 1,
-  'changedafter'  => 1,
-  'changedfrom'   => 1,
-  'changedto'     => 1,
-  'changedby'     => 1,
-  'notsubstring'  => 1,
-  'nowords'       => 1,
-  'nowordssubstr' => 1,
-  'notmatches'    => 1,
-} %]
-[% SET multi_types = {
-  'anyexact'       => 1,
-  'anywordssubstr' => 1,
-  'allwordssubstr' => 1,
-  'nowordssubstr'  => 1,
-  'anywords'       => 1,
-  'allwords'       => 1,
-  'nowords'        => 1,
-} %]
-<ul class="search_description">
-[% FOREACH desc_item = search_description %]
-  <li>
-    <span class="search_field">[% field_descs.${desc_item.field} FILTER html %]:</span>
-    [% IF shown_types.${desc_item.type} || debug %]
-      ([% search_descs.${desc_item.type} FILTER html %])
-    [% END %]
-    [% IF multi_types.${desc_item.type} %]
-      [% FOREACH val IN desc_item.value.split(',') %]
-        <span class="search_value">[%+ display_value(desc_item.field, val) FILTER html %]</span>[% ',' UNLESS loop.last %]
-      [% END %]
-    [% ELSE %]
-      <span class="search_value">[%+ display_value(desc_item.field, desc_item.value) FILTER html %]</span>
-    [% END %]
-    [% IF debug %]
-      (<code>[% desc_item.term FILTER html %]</code>)
-   [% END %]
-  </li>
-[% END %]
-</ul>
+[% PROCESS "list/description.html.tmpl" %]
 
 <hr>
 

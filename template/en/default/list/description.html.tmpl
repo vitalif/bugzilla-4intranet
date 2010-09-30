@@ -1,0 +1,22 @@
+[% IF search_description && search_description.size %]
+<ul class="search_description">
+[% FOREACH desc_item = search_description %]
+  <li>
+    <span class="search_field">[% field_descs.${desc_item.field} FILTER html %]:</span>
+    [% IF search_shown_types.${desc_item.type} || debug %]
+      ([% search_descs.${desc_item.type} FILTER html %])
+    [% END %]
+    [% IF search_multi_types.${desc_item.type} %]
+      [% FOREACH val IN desc_item.value.split(',') %]
+        <span class="search_value">[%+ display_value(desc_item.field, val) FILTER html %]</span>[% ',' UNLESS loop.last %]
+      [% END %]
+    [% ELSE %]
+      <span class="search_value">[%+ display_value(desc_item.field, desc_item.value) FILTER html %]</span>
+    [% END %]
+    [% IF debug %]
+      (<code>[% desc_item.term FILTER html %]</code>)
+    [% END %]
+  </li>
+[% END %]
+</ul>
+[% END %]
