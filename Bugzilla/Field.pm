@@ -279,7 +279,7 @@ sub _check_name {
     ($name =~ $name_regex && $name ne "cf_")
          || ThrowUserError('field_invalid_name', { name => $name });
 
-    # If it's custom, prepend cf_ to the custom field name to distinguish 
+    # If it's custom, prepend cf_ to the custom field name to distinguish
     # it from standard fields.
     if ($name !~ /^cf_/ && $is_custom) {
         $name = 'cf_' . $name;
@@ -433,7 +433,7 @@ sub obsolete { return $_[0]->{obsolete} }
 
 =item C<enter_bug>
 
-A boolean specifying whether or not this field should appear on 
+A boolean specifying whether or not this field should appear on
 enter_bug.cgi
 
 =back
@@ -471,9 +471,9 @@ objects.
 
 =cut
 
-sub is_select { 
-    return ($_[0]->type == FIELD_TYPE_SINGLE_SELECT 
-            || $_[0]->type == FIELD_TYPE_MULTI_SELECT) ? 1 : 0 
+sub is_select {
+    return ($_[0]->type == FIELD_TYPE_SINGLE_SELECT
+            || $_[0]->type == FIELD_TYPE_MULTI_SELECT) ? 1 : 0
 }
 
 sub legal_values {
@@ -513,7 +513,7 @@ Returns undef if there is no field that controls this field's visibility.
 sub visibility_field {
     my $self = shift;
     if ($self->{visibility_field_id}) {
-        $self->{visibility_field} ||= 
+        $self->{visibility_field} ||=
             $self->new($self->{visibility_field_id});
     }
     return $self->{visibility_field};
@@ -574,7 +574,7 @@ field controls the visibility of.
 
 sub controls_visibility_of {
     my $self = shift;
-    $self->{controls_visibility_of} ||= 
+    $self->{controls_visibility_of} ||=
         Bugzilla::Field->match({ visibility_field_id => $self->id });
     return $self->{controls_visibility_of};
 }
@@ -808,20 +808,25 @@ C<obsolete> - boolean - Whether this field is obsolete. Defaults to 0.
 
 sub create {
     my $class = shift;
-    my $field = $class->SUPER::create(@_);
+    my ($params) = @_;
+
+    # We must set up database schema BEFORE inserting a row into fielddefs!
+    $class->check_required_create_fields($params);
+    my $field_values = $class->run_create_validators($params);
+    my $obj = bless $field_values, ref($class)||$class;
 
     my $dbh = Bugzilla->dbh;
-    if ($field->custom) {
-        my $name = $field->name;
-        my $type = $field->type;
+    if ($obj->custom) {
+        my $name = $obj->name;
+        my $type = $obj->type;
         if (SQL_DEFINITIONS->{$type}) {
             # Create the database column that stores the data for this field.
             $dbh->bz_add_column('bugs', $name, SQL_DEFINITIONS->{$type});
         }
 
-        if ($field->is_select) {
+        if ($obj->is_select) {
             # Create the table that holds the legal values for this field.
-            $dbh->bz_add_field_tables($field);
+            $dbh->bz_add_field_tables($obj);
         }
 
         if ($type == FIELD_TYPE_SINGLE_SELECT) {
@@ -830,7 +835,8 @@ sub create {
         }
     }
 
-    return $field;
+    # Call real constructor
+    return $class->SUPER::create($params);
 }
 
 sub run_create_validators {
@@ -845,14 +851,14 @@ sub run_create_validators {
     }
 
     my $type = $params->{type} || 0;
-    
+
     if ($params->{custom} && !$type) {
         ThrowCodeError('field_type_not_specified');
     }
-    
-    $params->{value_field_id} = 
+
+    $params->{value_field_id} =
         $class->_check_value_field_id($params->{value_field_id},
-            ($type == FIELD_TYPE_SINGLE_SELECT 
+            ($type == FIELD_TYPE_SINGLE_SELECT
              || $type == FIELD_TYPE_MULTI_SELECT) ? 1 : 0);
     return $params;
 }
@@ -995,7 +1001,7 @@ sub populate_field_definitions {
 
     # This field has to be created separately, or the above upgrade code
     # might not run properly.
-    Bugzilla::Field->create({ name => $new_field_name, 
+    Bugzilla::Field->create({ name => $new_field_name,
                               description => $field_description })
         unless new Bugzilla::Field({ name => $new_field_name });
 
@@ -1037,9 +1043,9 @@ sub check_field {
     my $dbh = Bugzilla->dbh;
 
     # If $legalsRef is undefined, we use the default valid values.
-    # Valid values for this check are all possible values. 
+    # Valid values for this check are all possible values.
     # Using get_legal_values would only return active values, but since
-    # some bugs may have inactive values set, we want to check them too. 
+    # some bugs may have inactive values set, we want to check them too.
     unless (defined $legalsRef) {
         $legalsRef = Bugzilla::Field->new({name => $name})->legal_values;
         my @values = map($_->name, @$legalsRef);
