@@ -23,7 +23,7 @@
 
 [% PROCESS global/variables.none.tmpl %]
 
-[% SET search_descs = {
+[% search_descs = {
   "noop"           => "---",
   "equals"         => "is equal to",
   "notequals"      => "is not equal to",
@@ -52,6 +52,35 @@
   "notmatches"     => "does not match",
   "insearch"       => "matched by saved search",
   "notinsearch"    => "not matched by saved search",
+} %]
+
+[% search_shown_types = {
+  'notequals'     => 1,
+  'regexp'        => 1,
+  'notregexp'     => 1,
+  'lessthan'      => 1,
+  'lessthaneq'    => 1,
+  'greaterthan'   => 1,
+  'greaterthaneq' => 1,
+  'changedbefore' => 1,
+  'changedafter'  => 1,
+  'changedfrom'   => 1,
+  'changedto'     => 1,
+  'changedby'     => 1,
+  'notsubstring'  => 1,
+  'nowords'       => 1,
+  'nowordssubstr' => 1,
+  'notmatches'    => 1,
+} %]
+
+[% search_multi_types = {
+  'anyexact'       => 1,
+  'anywordssubstr' => 1,
+  'allwordssubstr' => 1,
+  'nowordssubstr'  => 1,
+  'anywords'       => 1,
+  'allwords'       => 1,
+  'nowords'        => 1,
 } %]
 
 [% field_types = { ${constants.FIELD_TYPE_UNKNOWN}       => "Unknown Type",
