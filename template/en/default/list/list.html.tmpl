@@ -226,7 +226,7 @@ Bug ID list:
 
   [% IF bugowners && user.id %]
   <div class="buglist-navbar">
-    <a href="[% Param("user_mailto") %][% bugowners | html %]">Send&nbsp;Mail&nbsp;to&nbsp;[% terms.Bug %]&nbsp;Assignees</a>
+    <a href="mailto:[% bugowners | html %]">Send&nbsp;Mail&nbsp;to&nbsp;[% terms.Bug %]&nbsp;Assignees</a>
   </div>
   [% END %]
 
