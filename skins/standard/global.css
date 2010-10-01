@@ -574,4 +574,4 @@ filter:mask();
 
 .numeric_invalid { background-color: #FFE0E0; }
 
-.buglist-navbar { float: left; margin: 4pt; font-size: 120%; padding: 2pt; border-bottom: 2px solid gray; }
+.buglist-navbar { float: left; margin: 4pt; font-size: 120%; padding: 2pt; }

@@ -203,7 +203,8 @@
         [%- bug.$column FILTER format(abbrev.$column.format_value) FILTER html -%]
       [% ELSIF column == 'actual_time' ||
                column == 'remaining_time' ||
-               column == 'estimated_time' %]
+               column == 'estimated_time' ||
+               column == 'interval_time' %]
         [% PROCESS formattimeunit time_unit=bug.$column %]
       [%# Display the login name of the user if their real name is empty. %]
       [% ELSIF column.match('_realname$') && bug.$column == '' %]
@@ -245,7 +246,8 @@
       [% IF column == 'actual_time' ||
             column == 'remaining_time' ||
             column == 'estimated_time' ||
-            column == 'percentage_complete' %]
+            column == 'percentage_complete' ||
+            column == 'interval_time' %]
         [% IF columns_to_span > 0 %]
           <td class="bz_total bz_total_label" colspan="
               [%- columns_to_span FILTER html %]"><b>Totals</b></td>
