@@ -131,7 +131,7 @@ sub HandleSuperWorktime
         }
         $cgi->delete('save_worktime');
         my ($bug, $t);
-        my ($tsfrom, $tsto) = (scalar($cgi->param('chfieldfrom')), scalar($cgi->param('chfieldto')));
+        my ($tsfrom, $tsto) = (scalar($cgi->param('chfieldfrom')) || '', scalar($cgi->param('chfieldto')) || '');
         trick_taint($tsfrom);
         trick_taint($tsto);
         foreach ($cgi->param)
