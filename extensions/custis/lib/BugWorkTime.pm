@@ -18,7 +18,7 @@ sub FixWorktime
     my $newrtime = $remaining_time - $wtime;
     $newrtime = 0 if $newrtime < 0;
 
-    $bug->add_comment($comment, {
+    $bug->add_comment($comment || "Fix worktime", {
         work_time => $wtime,
         bug_when  => $timestamp,
         who       => $userid || Bugzilla->user->id,
@@ -36,6 +36,8 @@ sub FixWorktime
 sub DistributeWorktime
 {
     my ($bug, $t, $comment, $timestamp, $from, $to) = @_;
+    $comment ||= "Fix worktime";
+
     my $dbh = Bugzilla->dbh;
     my ($sql, @bind);
     $sql = 'SELECT who, SUM(work_time) wt FROM longdescs WHERE bug_id=?';
