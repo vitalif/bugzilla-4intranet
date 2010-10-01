@@ -48,7 +48,7 @@ var tms = new Array();
     [%- FOREACH item = user.get_selectable_products(c.id) -%]
       [%- IF item.components.size -%]
         [%- sep FILTER js %]'[% item.name FILTER js %]'
-        [%- sep = ',' -%] 
+        [%- sep = ',' -%]
       [%- END -%]
     [%- END -%] ];
   [% nclass = nclass+1 %]
@@ -75,7 +75,7 @@ var tms = new Array();
 [% END %]
 
 /*
- * doOnSelectProduct determines which selection should get updated 
+ * doOnSelectProduct determines which selection should get updated
  *
  * - selectmode = 0  - init
  *   selectmode = 1  - classification selected
@@ -86,7 +86,7 @@ var tms = new Array();
  */
 function doOnSelectProduct(selectmode) {
     var f = document.forms[queryform];
-    var milestone = (typeof(f.target_milestone) == "undefined" ? 
+    var milestone = (typeof(f.target_milestone) == "undefined" ?
                                                null : f.target_milestone);
     if (selectmode == 0) {
         // If there is no classification selected, give us a chance to fill
@@ -131,7 +131,7 @@ function doOnSelectProduct(selectmode) {
       <input name="content" size="40" id="content"
              value="[% default.content.0 FILTER html %]">
       <script type="text/javascript"> <!--
-          document.forms['queryform'].content.focus(); 
+          document.forms['queryform'].content.focus();
       // -->
       </script>
     </td>
@@ -150,7 +150,7 @@ function doOnSelectProduct(selectmode) {
       <input name="short_desc" id="short_desc" size="40"
              value="[% default.short_desc.0 FILTER html %]">
       <script type="text/javascript"> <!--
-          document.forms[queryform].short_desc.focus(); 
+          document.forms[queryform].short_desc.focus();
       // -->
       </script>
     </td>
@@ -291,7 +291,7 @@ function doOnSelectProduct(selectmode) {
   [% FOREACH field = freetext_fields %]
     <tr>
       <th align="right">
-        <label for="[% field.name %]" 
+        <label for="[% field.name %]"
                accesskey="[% tf_accesskey.${field.name} %]">[% tf_desc.${field.name} || field.description %]</label>:
       </th>
       <td>
@@ -344,7 +344,7 @@ function doOnSelectProduct(selectmode) {
   [% END %]
 
   [% Hook.process('after_freetext_fields') %]
-  
+
 </table>
 
 <hr>
@@ -444,7 +444,7 @@ function doOnSelectProduct(selectmode) {
 
 <table>
   <tr>
-    <td>
+    <td style="vertical-align: top">
       <fieldset>
         <legend>
           <strong>
@@ -549,7 +549,7 @@ function doOnSelectProduct(selectmode) {
     [% END %]
   </tr>
 </table>
-<hr>
+<hr />
 <table>
   <tr>
     <td>
@@ -582,16 +582,14 @@ function doOnSelectProduct(selectmode) {
   [% END %]
 </table>
 
-
       </fieldset>
     </td>
-   
+
 [%# *** Bug Changes *** %]
 
-    <td valign="top">
+    <td style="vertical-align: top">
       <fieldset>
         <legend><strong>[% terms.Bug %] Changes</strong></legend>
-
 
 <dl class="bug_changes">
   <dt>
@@ -603,9 +601,9 @@ function doOnSelectProduct(selectmode) {
     and <input name="chfieldto" size="10" value="[% default.chfieldto.0 FILTER html %]">
     <br>(YYYY-MM-DD or relative dates)
   </dd>
-  <dt>
-    <label for="chfield">where one or more of the following changed</label>:
-  </dt>
+  <dt><label for="chfieldwho">By user:</label></dt>
+  <dd><input name="chfieldwho" id="chfieldwho" size="20" value="[% default.chfieldwho.0 | html %]" /> (user login)</dd>
+  <dt><label for="chfield">where one or more of the following changed</label>:</dt>
   <dd>
     [%# Create array, so we can sort it by description #%]
     [% chfields = [] %]

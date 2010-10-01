@@ -102,6 +102,9 @@
           [% PROCESS columnheader key=loop.count() %]
         [% END %]
 
+        [%# vitalif@mail.ru --- A "hook" into the bug row for building custom views based on table view %]
+        [% IF bug_header_callback %][% bug_header_callback FILTER process %][% END %]
+
         </tr><tr class="bz_buglist_header">
         [% IF dotweak %]
           <th>&nbsp;</th>
@@ -114,12 +117,18 @@
           [% PROCESS columnheader key=loop.count() %]
         [% END %]
 
+        [%# vitalif@mail.ru --- A "hook" into the bug row for building custom views based on table view %]
+        [% IF bug_header_callback %][% bug_header_callback FILTER process %][% END %]
+
       [% ELSE %]
 
         [% FOREACH id = displaycolumns %]
           [% column = columns.$id %]
           [% PROCESS columnheader key=loop.count() %]
         [% END %]
+
+        [%# vitalif@mail.ru --- A "hook" into the bug row for building custom views based on table view %]
+        [% IF bug_header_callback %][% bug_header_callback FILTER process %][% END %]
 
       [% END %]
 
@@ -177,6 +186,7 @@
       <input type="checkbox" name="id_[% bug.bug_id %]">
     </td>
     [% END %]
+
     <td class="first-child bz_id_column">
       <a name="b[% bug.bug_id %]"
          href="show_bug.cgi?id=[% bug.bug_id %]">[% bug.bug_id %]</a>
@@ -211,6 +221,9 @@
       [% END %]
     </td>
     [% END %]
+
+    [%# vitalif@mail.ru --- A "hook" into the bug row for building custom views based on table view %]
+    [% IF bug_table_callback %][% bug_table_callback FILTER process %][% END %]
 
   </tr>
 

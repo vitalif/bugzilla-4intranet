@@ -382,7 +382,7 @@ use constant FIELD_TYPE__BOUNDARY => 8;
 # work_time is sometimes called actual_time.
 use constant TIMETRACKING_FIELDS =>
     qw(estimated_time remaining_time work_time actual_time
-       percentage_complete deadline);
+       percentage_complete deadline interval_time); # see CustIS Bug 68921
 
 # The maximum number of days a token will remain valid.
 use constant MAX_TOKEN_AGE => 3;

@@ -37,7 +37,6 @@
 
 [% qorder = order FILTER url_quote IF order %]
 
-
 [%############################################################################%]
 [%# Page Header                                                              #%]
 [%############################################################################%]
@@ -103,7 +102,7 @@ function showbugcomma()
 <div id="bugcomma" style="display: none">
 Bug ID list:
 [% FOREACH id = buglist %]
-[% id FILTER html %]
+  [% id | html %]
 [% END %]
 </div>
 
@@ -164,121 +163,106 @@ Bug ID list:
 [%# Navigation Bar                                                           #%]
 [%############################################################################%]
 
-<table>
-  <tr>
-    [% IF bugs.size > 0 %]
-      <td valign="middle" class="bz_query_buttons">
-        <form method="post" action="show_bug.cgi">
-          [% FOREACH id = buglist %]
-            <input type="hidden" name="id" value="[% id FILTER html %]">
-          [% END %]
-          <input type="hidden" name="format" value="multiple">
-          <input type="submit" id="long_format" value="Long Format">
-        </form>
-        <form method="post" action="show_bug.cgi">
-            <input type="hidden" name="ctype" value="xml">
-          [% FOREACH id = buglist %]
-            <input type="hidden" name="id" value="[% id FILTER html %]">
-          [% END %]
-            <input type="hidden" name="excludefield" value="attachmentdata">
-            <input type="submit" value="XML" id="xml">
-        </form>
+<div>
+[% IF bugs.size > 0 %]
+  <div class="buglist-navbar" style="border-bottom-width: 0">
+    <form method="post" action="show_bug.cgi">
+      [% FOREACH id = buglist %]
+        <input type="hidden" name="id" value="[% id | html %]">
+      [% END %]
+      <input type="hidden" name="format" value="multiple">
+      <input type="submit" id="long_format" value="Long Format">
+    </form>
+    <form method="post" action="show_bug.cgi">
+        <input type="hidden" name="ctype" value="xml">
+      [% FOREACH id = buglist %]
+        <input type="hidden" name="id" value="[% id | html %]">
+      [% END %]
+        <input type="hidden" name="excludefield" value="attachmentdata">
+        <input type="submit" value="XML" id="xml">
+    </form>
+  [% IF user.is_timetracker %]
+    <form method="post" action="summarize_time.cgi">
+      <input type="hidden" name="id" value="[% buglist_joined | html %]">
+      <input type="submit" id="timesummary" value="Time Summary">
+    </form>
+  [% END %]
+  </div>
 
-        [% IF user.is_timetracker %]
-          <form method="post" action="summarize_time.cgi">
-            <input type="hidden" name="id" value="[% buglist_joined FILTER html %]">
-            <input type="submit" id="timesummary" value="Time Summary">
-          </form>
-        [% END %]
-      </td>
+  [%# TODO extract these links into an array and move display into a loop %]
 
-      <td>&nbsp;</td>
+  [% IF bugs.size > 1 && caneditbugs && !dotweak %]
+    <div class="buglist-navbar"><a target="graphview" href="showdependencygraph.cgi?id=[% buglist_joined | html %]">Graph</a></div>
+  [% END %]
 
-      [%# TODO extract these links into an array and move display into a loop %]
+  <div class="buglist-navbar"><a href="buglist.cgi?[% urlquerypart | html %]&amp;ctype=csv">CSV</a></div>
 
-      <td valign="middle" class="bz_query_links">
-        [% IF bugs.size > 1 && caneditbugs && !dotweak %]
-        <a target="graphview" href="showdependencygraph.cgi?id=[% buglist_joined FILTER html %]">Graph</a> |
-        [% END %]
-        <a href="buglist.cgi?
-        [% urlquerypart FILTER html %]&amp;ctype=csv">CSV</a>
+  <div class="buglist-navbar">
+    <a href="buglist.cgi?[% urlquerypart.replace('[&\?]columnlist=[^&]*', '') | html %]&amp;columnlist=bug_severity%2Cpriority%2Cshort_desc%2Cestimated_time%2Cactual_time%2Ctarget_milestone&amp;format=scrum">Scrum&nbsp;Cards</a>
+    <br />
+    <a href="editscrum.cgi?id=[% FOR id = buglist %],[% id %][% END %]">Estimates...</a>
+  </div>
 
-      </td><td>|</td><td valign="middle" class="bz_query_links">
-        <table><tr><td>
-          <a href="buglist.cgi?
-          [% urlquerypart.replace('[&\?]columnlist=[^&]*', '') FILTER html %]&amp;columnlist=bug_severity%2Cpriority%2Cshort_desc%2Cestimated_time%2Cactual_time%2Ctarget_milestone&amp;format=scrum">Scrum Cards</a>
-        </td></tr><tr><td>
-          <a href="editscrum.cgi?id=[% FOR id = buglist %],[% id %][% END %]">Estimates...</a>
-        </td></tr></table>
-      </td><td>|</td><td valign="middle" class="bz_query_links">
-        <table><tr><td>
-        <a href="buglist.cgi?
-        [% urlquerypart FILTER html %]&amp;title=
-        [%- title FILTER html %]&amp;ctype=atom&amp;fof_sudo=[% Bugzilla.user.login | url_quote | html %]">Buglist Feed</a>
-        </td></tr><tr><td>
-        <a href="rss-comments.cgi?
-        [% urlquerypart FILTER html %]&amp;title=
-        [%- title FILTER html %]&amp;ctype=rss&amp;namedcmd=[% searchname | html %]&amp;fof_sudo=[% Bugzilla.user.login | url_quote | html %]">Activity Feed</a>
-        </td></tr></table>
-      </td><td>|</td><td valign="middle" class="bz_query_links">
+  <div class="buglist-navbar">
+    <a href="buglist.cgi?[% urlquerypart | html %]&amp;title=[%- title | html %]&amp;ctype=atom&amp;fof_sudo=[% Bugzilla.user.login | url_quote | html %]">Buglist&nbsp;Feed</a>
+    <br />
+    <a href="rss-comments.cgi?[% urlquerypart | html %]&amp;title=[%- title | html %]&amp;ctype=rss&amp;namedcmd=[% searchname | html %]&amp;fof_sudo=[% Bugzilla.user.login | url_quote | html %]">Activity&nbsp;Feed</a>
+  </div>
 
-        <a href="buglist.cgi?
-        [% urlquerypart FILTER html %]&amp;ctype=ics">iCalendar</a> |
-        <a href="colchange.cgi?
-        [% urlquerypart FILTER html %]&amp;query_based_on=
-          [% defaultsavename OR searchname FILTER url_quote %]">Change&nbsp;Columns</a> |
+  <div class="buglist-navbar"><a href="buglist.cgi?[% urlquerypart | html %]&amp;ctype=ics">iCalendar</a></div>
 
-        [% IF bugs.size > 1 && caneditbugs && !dotweak %]
-          <a href="buglist.cgi?[% urlquerypart FILTER html %]
-            [%- "&order=$qorder" FILTER html IF order %]&amp;tweak=1"
-            >Change&nbsp;Several&nbsp;[% terms.Bugs %]&nbsp;at&nbsp;Once</a>
-          |
-        [% END %]
+  <div class="buglist-navbar"><a href="colchange.cgi?[% urlquerypart | html %]&amp;query_based_on=[% defaultsavename OR searchname | url_quote %]">Change&nbsp;Columns</a></div>
 
-        [% IF bugowners && user.id %]
-          <a href="[% Param("user_mailto") %]
-            [% bugowners FILTER html %]">Send&nbsp;Mail&nbsp;to&nbsp;[% terms.Bug %]&nbsp;Assignees</a> |
-        [% END %]
-
-        [%# Links to more things users can do with this bug list. %]
-        [% Hook.process("links") %]
-      </td>
+  [% IF bugs.size > 1 && caneditbugs && !dotweak || Bugzilla.user.in_group('superworktime') %]
+  <div class="buglist-navbar">
+    [% IF bugs.size > 1 && caneditbugs && !dotweak %]
+      <a href="buglist.cgi?[% urlquerypart | html %][%- "&order=$qorder" | html IF order %]&amp;tweak=1">Change&nbsp;Several&nbsp;[% terms.Bugs %]&nbsp;at&nbsp;Once</a><br />
     [% END %]
-
-    <td valign="middle" class="bz_query_edit">
-      <table><tr><td>
-        <a href="[% PROCESS edit_search_url %]">Edit&nbsp;Search</a>
-      </td></tr><tr><td>
-      <a href="query.cgi?format=report-table&amp;[% urlquerypart FILTER html FILTER remove('query_format=(advanced|simple)') %]
-      ">Summary&nbsp;Report</a>
-      </td></tr></table>
-    </td>
-
-    [% IF searchtype == "saved" %]
-      <td valign="middle" nowrap="nowrap" class="bz_query_forget">
-        |
-        <a href="buglist.cgi?cmdtype=dorem&amp;remaction=forget&amp;namedcmd=
-                [% searchname FILTER url_quote %]&amp;token=
-                [% issue_hash_token([search_id, searchname]) FILTER url_quote %]">
-          Forget&nbsp;Search&nbsp;'[% searchname FILTER html %]'</a>
-      </td>
-    [% ELSE %]
-      <td>&nbsp;</td>
-
-      <td valign="middle" class="bz_query_remember">
-        <form method="get" action="buglist.cgi">
-          <input type="submit" id="remember" value="Remember search"> as
-          <input type="hidden" name="newquery"
-                 value="[% urlquerypart FILTER html %][% "&order=$qorder" FILTER html IF order %]">
-          <input type="hidden" name="cmdtype" value="doit">
-          <input type="hidden" name="remtype" value="asnamed">
-          <input type="text" id="save_newqueryname" name="newqueryname" size="20"
-                 value="[% defaultsavename FILTER html %]">
-        </form>
-      </td>
+    [% IF Bugzilla.user.in_group('superworktime') %]
+      <a href="buglist.cgi?[% urlquerypart.replace('[&\?]format=[^&]*', '') | html %][%- "&order=$qorder" | html IF order %]&amp;format=superworktime">Fix WorkTime</a>
     [% END %]
-  </tr>
-</table>
+  </div>
+  [% END %]
+
+  [% IF bugowners && user.id %]
+  <div class="buglist-navbar">
+    <a href="[% Param("user_mailto") %][% bugowners | html %]">Send&nbsp;Mail&nbsp;to&nbsp;[% terms.Bug %]&nbsp;Assignees</a>
+  </div>
+  [% END %]
+
+  [%# Links to more things users can do with this bug list. %]
+  [% Hook.process("links") %]
+[% END %]
+
+  <div class="buglist-navbar bz_query_edit">
+    <a href="[% PROCESS edit_search_url %]">Edit&nbsp;Search</a>
+    <br />
+    <a href="query.cgi?format=report-table&amp;[% urlquerypart | html | remove('query_format=(advanced|simple)') %]">Summary&nbsp;Report</a>
+  </div>
+
+  [% IF searchtype == "saved" %]
+  <div style="float: left; white-space: nowrap" class="bz_query_forget">
+    <a href="buglist.cgi?cmdtype=dorem&amp;remaction=forget&amp;namedcmd=[% searchname | url_quote %]&amp;token=[% issue_hash_token([search_id, searchname]) | url_quote %]">
+      Forget&nbsp;Search&nbsp;'[% searchname | html %]'
+    </a>
+  </div>
+  [% ELSE %]
+  <div class="buglist-navbar" style="border-bottom-width: 0">
+    <form method="get" action="buglist.cgi">
+      <input type="submit" id="remember" value="Remember search"> as
+      <input type="hidden" name="newquery"
+             value="[% urlquerypart | html %][% "&order=$qorder" | html IF order %]">
+      <input type="hidden" name="cmdtype" value="doit">
+      <input type="hidden" name="remtype" value="asnamed">
+      <input type="text" id="save_newqueryname" name="newqueryname" size="20"
+             value="[% defaultsavename | html %]">
+    </form>
+  </div>
+  [% END %]
+
+</div>
+
+<hr style="clear: both" />
 
 [% IF one_product.defined && bugs.size %]
   <p class="bz_query_single_product">
