@@ -946,6 +946,7 @@ $buglist_sth->execute();
 # Retrieve the query results one row at a time and write the data into a list
 # of Perl records.
 
+# TODO перенести на общий механизм и чтобы в него вкручивалось interval_time
 # If we're doing time tracking, then keep totals for all bugs.
 my $percentage_complete = lsearch(\@displaycolumns, 'percentage_complete') >= 0;
 my $estimated_time      = lsearch(\@displaycolumns, 'estimated_time') >= 0;
@@ -953,11 +954,14 @@ my $remaining_time    = ((lsearch(\@displaycolumns, 'remaining_time') >= 0)
                          || $percentage_complete);
 my $actual_time       = ((lsearch(\@displaycolumns, 'actual_time') >= 0)
                          || $percentage_complete);
+my $interval_time     = ((lsearch(\@displaycolumns, 'interval_time') >= 0)
+                         || $percentage_complete);
 
 my $time_info = { 'estimated_time' => 0,
                   'remaining_time' => 0,
                   'actual_time' => 0,
                   'percentage_complete' => 0,
+                  'interval_time' => 0, # CustIS Bug 68921
                   'time_present' => ($estimated_time || $remaining_time ||
                                      $actual_time || $percentage_complete),
                 };
@@ -1010,6 +1014,8 @@ while (my @row = $buglist_sth->fetchrow_array()) {
     $time_info->{'estimated_time'} += $bug->{'estimated_time'} if ($estimated_time);
     $time_info->{'remaining_time'} += $bug->{'remaining_time'} if ($remaining_time);
     $time_info->{'actual_time'}    += $bug->{'actual_time'}    if ($actual_time);
+    $time_info->{'estimated_time'} += $bug->{'estimated_time'} if ($estimated_time);
+    $time_info->{'interval_time'}  += $bug->{'interval_time'}  if ($interval_time);
 }
 
 # Check for bug privacy and set $bug->{'secure_mode'} to 'implied' or 'manual'
