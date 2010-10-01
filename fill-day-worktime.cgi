@@ -12,6 +12,8 @@ use Bugzilla::Search;
 use Bugzilla::Search::Saved;
 use Bugzilla::Constants;
 
+use BugWorkTime; # extensions/custis/lib/
+
 my $user     = Bugzilla->login(LOGIN_REQUIRED);
 my $userid   = $user->id;
 
@@ -49,15 +51,11 @@ my @lines = split("\n", $cgi->param("worktime"));
 
 if (@idlist || @lines)
 {
-    if (@idlist)
+    foreach my $id (@idlist)
     {
-        foreach my $id (@idlist)
-        {
-            my $wtime    = $cgi->param("wtime_$id");
-            my $newrtime = $cgi->param("newrtime_$id");
-            my $comment  = $cgi->param("comm_$id");
-            ProcessBug($dbh, $id, $wtime, $comment, $newrtime);
-        }
+        $dbh->bz_start_transaction();
+        BugWorkTime::FixWorktime($id, scalar $cgi->param("wtime_$id"), scalar $cgi->param("comm_$id"));
+        $dbh->bz_commit_transaction();
     }
     if (@lines)
     {
@@ -125,23 +123,3 @@ $template->process('worktime/todaybugs.html.tmpl', $vars)
     || ThrowTemplateError($template->error());
 
 exit;
-
-sub ProcessBug
-{
-    my ($dbh, $id, $wtime, $comment, $newrtime) = @_;
-    return unless $id;
-    $dbh->bz_start_transaction();
-    my $bug = new Bugzilla::Bug ($id);
-
-    my $remaining_time = $bug->remaining_time;
-    $newrtime = $remaining_time - $wtime;
-    $newrtime = 0 if $newrtime < 0;
-
-    $bug->add_comment($comment || "Fix worktime", { work_time => $wtime })
-        if $comment || $wtime;
-    $bug->remaining_time($newrtime) if $newrtime != $remaining_time;
-    $bug->update();
-    $dbh->do('UPDATE bugs SET lastdiffed=NOW() WHERE bug_id=?', undef, $bug->id);
-
-    $dbh->bz_commit_transaction();
-}

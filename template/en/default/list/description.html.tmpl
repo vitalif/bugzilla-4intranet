@@ -1,20 +1,24 @@
 [% IF search_description && search_description.size %]
 <ul class="search_description">
-[% FOREACH desc_item = search_description %]
+[% FOREACH i = search_description %]
   <li>
-    <span class="search_field">[% field_descs.${desc_item.field} FILTER html %]:</span>
-    [% IF search_shown_types.${desc_item.type} || debug %]
-      ([% search_descs.${desc_item.type} FILTER html %])
+    [% IF i.field %]
+      <span class="search_field">[% field_descs.${i.field} | html %]:</span>
     [% END %]
-    [% IF search_multi_types.${desc_item.type} %]
-      [% FOREACH val IN desc_item.value.split(',') %]
-        <span class="search_value">[%+ display_value(desc_item.field, val) FILTER html %]</span>[% ',' UNLESS loop.last %]
+    [% IF search_shown_types.${i.type} || debug %]
+      ([% search_descs.${i.type} | html %])
+    [% END %]
+    [% IF i.type == "changedby" %]
+      <span class="search_value">[% i.value | html %]</span>
+    [% ELSIF search_multi_types.${i.type} %]
+      [% FOREACH val IN i.value.split(',') %]
+        <span class="search_value">[%+ display_value(i.field, val) | html %]</span>[% ',' UNLESS loop.last %]
       [% END %]
     [% ELSE %]
-      <span class="search_value">[%+ display_value(desc_item.field, desc_item.value) FILTER html %]</span>
+      <span class="search_value">[%+ display_value(i.field, i.value) | html %]</span>
     [% END %]
     [% IF debug %]
-      (<code>[% desc_item.term FILTER html %]</code>)
+      (<code>[% i.term | html %]</code>)
     [% END %]
   </li>
 [% END %]

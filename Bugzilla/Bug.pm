@@ -832,18 +832,21 @@ sub update {
             # log silent comments
             SilentLog($self->bug_id, $comment->{thetext});
         }
+        $comment->{bug_id} = $self->bug_id;
+        $comment->{who} ||= $user->id;
+        $comment->{bug_when} = $delta_ts if !$comment->{bug_when} || $comment->{bug_when} gt $delta_ts;
         my $columns = join(',', keys %$comment);
         my @values  = values %$comment;
         my $qmarks  = join(',', ('?') x @values);
-        $dbh->do("INSERT INTO longdescs (bug_id, who, bug_when, $columns)
-                       VALUES (?,?,?,$qmarks)", undef,
-                 $self->bug_id, $user->id, $delta_ts, @values);
-        if ($comment->{work_time}) {
+        $dbh->do("INSERT INTO longdescs ($columns) VALUES ($qmarks)", undef, @values);
+        if ($comment->{work_time})
+        {
+            # log worktime
             LogActivityEntry($self->id, "work_time", "", $comment->{work_time},
                 Bugzilla->user->id, $delta_ts);
         }
     }
-    
+
     foreach my $comment_id (keys %{$self->{comment_isprivate} || {}}) {
         $dbh->do("UPDATE longdescs SET isprivate = ? WHERE comment_id = ?",
                  undef, $self->{comment_isprivate}->{$comment_id}, $comment_id);

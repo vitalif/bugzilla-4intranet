@@ -441,13 +441,32 @@ sub init {
     {
         my $sql_chfrom = $chfieldfrom ? $dbh->quote(SqlifyDate($chfieldfrom)):'';
         my $sql_chto   = $chfieldto   ? $dbh->quote(SqlifyDate($chfieldto))  :'';
+        my $who_term;
+
+        # do a match on user login or name
+        my $chfieldwho = trim(lc($params->param('chfieldwho') || ''));
+        if ($chfieldwho)
+        {
+            $chfieldwho = $chfieldwho eq '%user%' ? $user : Bugzilla::User::match($chfieldwho, 1)->[0];
+            if ($chfieldwho)
+            {
+                $Bugzilla::Search::interval_who = $chfieldwho;
+                $chfieldwho = $chfieldwho->id;
+                $who_term = " AND actcheck.who=$chfieldwho";
+            }
+        }
 
         # CustIS Bug 68921 - a dirty hack: "interval worktime" column
+        $Bugzilla::Search::interval_from = SqlifyDate($chfieldfrom);
+        $Bugzilla::Search::interval_to = SqlifyDate($chfieldto);
         COLUMNS->{interval_time} = {
             name  =>
                 "(SELECT IFNULL(SUM(ldtime.work_time),0) FROM longdescs ldtime".
-                " WHERE ldtime.bug_id=bugs.bug_id".($sql_chfrom?" AND ldtime.bug_when>=$sql_chfrom":"").
-                ($sql_chto?" AND ldtime.bug_when<=$sql_chto":"").")",
+                " WHERE ldtime.bug_id=bugs.bug_id".
+                ($sql_chfrom?" AND ldtime.bug_when>=$sql_chfrom":"").
+                ($sql_chto  ?" AND ldtime.bug_when<=$sql_chto":"").
+                ($chfieldwho?" AND ldtime.who=$chfieldwho":"").
+                ")",
             title => "Interval worktime",
         };
 
@@ -553,6 +572,39 @@ sub init {
                         value => $chfieldto, term => $to_term,
                     });
                 }
+                if ($chfieldwho)
+                {
+                    $self->search_description({
+                        field => $f, type => 'changedby',
+                        value => user_id_to_login($chfieldwho), term => $who_term,
+                    });
+                }
+            }
+        }
+
+        if (!@chfield)
+        {
+            # Add search description for the case when no field was selected
+            if ($sql_chfrom)
+            {
+                $self->search_description({
+                    field => '', type => 'changedafter',
+                    value => $chfieldfrom, term => $from_term,
+                });
+            }
+            if ($sql_chto)
+            {
+                $self->search_description({
+                    field => '', type => 'changedbefore',
+                    value => $chfieldto, term => $to_term,
+                });
+            }
+            if ($chfieldwho)
+            {
+                $self->search_description({
+                    field => '', type => 'changedby',
+                    value => user_id_to_login($chfieldwho), term => $who_term,
+                });
             }
         }
 
@@ -563,6 +615,7 @@ sub init {
             $extra .= $from_term  if $sql_chfrom;
             $extra .= $to_term    if $sql_chto;
             $extra .= $value_term if $sql_chvalue;
+            $extra .= $who_term   if $who_term;
 
             if (@actlist)
             {
@@ -591,9 +644,10 @@ sub init {
         #   под фильтр попадёт очень много, ибо все их ID должны будут быть сохранены во временную
         #   таблицу. Но в среднем всё равно будет лучше.
         #   Т.е. данный вариант уязвим к низкой специфичности самого фильтра по дате изменения.
-        $extra = "1=1";
+        $extra = "1";
         $extra .= " AND actcheck_comment.bug_when >= $sql_chfrom" if $sql_chfrom;
         $extra .= " AND actcheck_comment.bug_when <= $sql_chto" if $sql_chto;
+        $extra .= " AND actcheck_comment.who = $chfieldwho" if $chfieldwho;
         if ($seen_longdesc && @$seen_longdesc)
         {
             $extra .= " AND ".$seen_longdesc->[0];
