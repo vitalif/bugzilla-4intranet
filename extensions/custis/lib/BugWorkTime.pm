@@ -102,7 +102,7 @@ sub HandleSuperWorktime
     {
         my $wt_user = $cgi->param('worktime_user') || undef;
         my $wt_date = $cgi->param('worktime_date');
-        my $comment = $cgi->param('comment') || 'Fix worktime';
+        my $comment = $cgi->param('comment');
         trick_taint($wt_date);
         my ($ts, $nd, $nt) = Bugzilla->dbh->selectrow_array('SELECT DATE(?), CURRENT_DATE(), CURRENT_TIME()', undef, $wt_date);
         $ts = $ts && $vars->{wt_admin} ? $ts : $nd;
@@ -139,19 +139,22 @@ sub HandleSuperWorktime
             if (/^wtime_(\d+)$/)
             {
                 $t = $cgi->param($_);
-                Bugzilla->dbh->bz_start_transaction();
-                if ($bug = Bugzilla::Bug->new({ id => $1, for_update => 1 }))
+                if ($t)
                 {
-                    if ($wt_user)
+                    Bugzilla->dbh->bz_start_transaction();
+                    if ($bug = Bugzilla::Bug->new({ id => $1, for_update => 1 }))
                     {
-                        BugWorkTime::FixWorktime($bug, $t, $comment, $ts, $wt_user->id);
+                        if ($wt_user)
+                        {
+                            BugWorkTime::FixWorktime($bug, $t, $comment, $ts, $wt_user->id);
+                        }
+                        else
+                        {
+                            BugWorkTime::DistributeWorktime($bug, $t, $comment, $ts, $tsfrom, $tsto);
+                        }
                     }
-                    else
-                    {
-                        BugWorkTime::DistributeWorktime($bug, $t, $comment, $ts, $tsfrom, $tsto);
-                    }
+                    Bugzilla->dbh->bz_commit_transaction();
                 }
-                Bugzilla->dbh->bz_commit_transaction();
                 $cgi->delete($_);
             }
         }

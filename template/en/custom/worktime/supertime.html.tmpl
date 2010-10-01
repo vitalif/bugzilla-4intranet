@@ -62,9 +62,10 @@
 <fieldset>
   <legend>Списать время:</legend>
   На дату: <input type="text" name="worktime_date" value="[% worktime_date | html %]" /> &nbsp;
-  <span id="wt_for_user">За пользователя:</span>
+  За пользователя:
 [% IF wt_admin %]
-  <input type="text" name="worktime_user" id="worktime_user" value="[% worktime_user | html %]" onkeypress="forall_check()" onchange="forall_check()" /> &nbsp;
+  <span id="wt_forall" onclick="document.getElementById('worktime_user').focus()" style="z-index: 2; position: relative; font-weight: bold; color: red"><span style="position: absolute">&nbsp;за&nbsp;всех&nbsp;участников</span></span>
+  <input type="text" name="worktime_user" id="worktime_user" value="[% worktime_user | html %]" onfocus="forall_focus()" onblur="forall_unfocus()" /> &nbsp;
 [% ELSE %]
   <b>[%+ Bugzilla.user.login | html %]</b> &nbsp;
 [% END %]
@@ -129,14 +130,16 @@ function divide_hours_check()
   var incorrect = val !== '' && (sum != sum || sum === null || sum === undefined);
   document.getElementById('divide_hours_cont').style.backgroundColor = incorrect ? '#ffe0e0' : '';
 }
-function forall_check()
+function forall_unfocus()
 {
-  var val = document.getElementById('worktime_user').value;
-  var span = document.getElementById('wt_for_user');
-  span.style = val ? '' : 'font-weight: bold; color: red';
-  span.innerHTML = val ? 'За пользователя:' : 'за всех участников:';
+  var ed = document.getElementById('worktime_user');
+  document.getElementById('wt_forall').style.display = ed.value ? 'none' : '';
 }
-forall_check();
+function forall_focus()
+{
+  document.getElementById('wt_forall').style.display = 'none';
+}
+forall_unfocus();
 </script>
 
 [% PROCESS global/footer.html.tmpl %]
