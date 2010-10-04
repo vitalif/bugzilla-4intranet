@@ -1014,7 +1014,6 @@ while (my @row = $buglist_sth->fetchrow_array()) {
     $time_info->{'estimated_time'} += $bug->{'estimated_time'} if ($estimated_time);
     $time_info->{'remaining_time'} += $bug->{'remaining_time'} if ($remaining_time);
     $time_info->{'actual_time'}    += $bug->{'actual_time'}    if ($actual_time);
-    $time_info->{'estimated_time'} += $bug->{'estimated_time'} if ($estimated_time);
     $time_info->{'interval_time'}  += $bug->{'interval_time'}  if ($interval_time);
 }
 
