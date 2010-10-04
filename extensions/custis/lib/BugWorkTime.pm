@@ -35,7 +35,7 @@ sub FixWorktime
 # пропорциональное или равномерное распределение времени по пользователям
 sub DistributeWorktime
 {
-    my ($bug, $t, $comment, $timestamp, $from, $to) = @_;
+    my ($bug, $t, $comment, $timestamp, $from, $to, $min_inc) = @_;
     $comment ||= "Fix worktime";
 
     my $dbh = Bugzilla->dbh;
@@ -63,6 +63,13 @@ sub DistributeWorktime
     {
         $nt = $sum > 0 ? $t*$propo->{$_}/$sum : $t/$n;
         $nt = int($nt*100)/100;
+        if ($nt < $min_inc)
+        {
+            # не размазываем время совсем уж мелкими суммами
+            $sum -= $propo->{$_};
+            $n--;
+            next;
+        }
         # корректируем ошибки округления, чтобы сумма всё равно сходилась
         $sum -= $propo->{$_};
         $t -= $nt;
@@ -150,7 +157,7 @@ sub HandleSuperWorktime
                         }
                         else
                         {
-                            BugWorkTime::DistributeWorktime($bug, $t, $comment, $ts, $tsfrom, $tsto);
+                            BugWorkTime::DistributeWorktime($bug, $t, $comment, $ts, $tsfrom, $tsto, scalar $cgi->param('divide_min_inc'));
                         }
                     }
                     Bugzilla->dbh->bz_commit_transaction();

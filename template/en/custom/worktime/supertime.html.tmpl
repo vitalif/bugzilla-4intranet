@@ -73,19 +73,21 @@
   Добавить комментарий: <input type="text" name="comment" value="[% comment | html %]" />
 </fieldset>
 
-</form>
-
 <fieldset id="divide_hours_cont">
   <legend>Распределение часов по багам:</legend>
   Сумма: <input type="text" id="divide_hours" onchange="divide_hours_check()" onkeypress="divide_hours_check()" /> &nbsp;
+  минимум&nbsp;по: <input type="text" id="divide_min_inc" name="divide_min_inc" value="0.1" /> &nbsp;
   <input value=" Распределить часы " type="button" onclick="divide_hours_click()" />
   (пропорционально / равномерно, будут добавлены к значениям в таблице)
 </fieldset>
+
+</form>
 
 <script language="JavaScript">
 var period_times = { [% FOREACH bug = bugs %][% IF NOT loop.first %],[% END %]'[% bug.bug_id %]':[% bug.interval_time || 0 %][% END %] };
 function divide_hours_click()
 {
+  var min_inc = bzParseTime(document.getElementById('divide_min_inc').value);
   var sum = bzParseTime(document.getElementById('divide_hours').value);
   if (!sum || sum != sum)
   {
@@ -111,6 +113,13 @@ function divide_hours_click()
     else
       inc = sum*period_times[i]/period_sum;
     inc = Math.round(inc*100)/100;
+    if (inc < min_inc)
+    {
+      [%# не списываем время совсем уж мелкими суммами %]
+      period_count--;
+      period_sum -= period_times[i];
+      continue;
+    }
     [%# Следующие 3 строчки - извратик, призванный корректировать
       # возникающую ошибку округления, чтобы реальная сумма
       # списываемых часов была более близка к заданной %]
