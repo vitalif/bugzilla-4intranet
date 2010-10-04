@@ -193,7 +193,11 @@ unless ($args->{commit})
             my %fhash = map { (exists $name_tr->{$_} ? $name_tr->{$_} : $_) => 1 } @{$table->{fields}};
             for (@{ MANDATORY_FIELDS() })
             {
-                push @{$table->{fields}}, $_ unless $fhash{$_} || $bug_tpl->{$_};
+                unless ($fhash{$_} || $bug_tpl->{$_})
+                {
+                    push @{$table->{fields}}, $_;
+                    $name_tr->{$_} = $_;
+                }
             }
             $vars->{fields} = $table->{fields};
             $vars->{data} = $table->{data};
@@ -477,7 +481,7 @@ sub process_bug
 
     $fields{product} ||= $bug->product;
     $fields{component} ||= $bug->component;
-    if ($fields{blocked} || $fields{dependson})
+    if (exists $fields{blocked} || exists $fields{dependson})
     {
         $fields{blocked} ||= join ',', @{ $bug->blocked };
         $fields{dependson} ||= join ',', @{ $bug->dependson };
