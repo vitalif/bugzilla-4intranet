@@ -241,7 +241,7 @@ Bug ID list:
   </div>
 
   [% IF searchtype == "saved" %]
-  <div style="float: left; white-space: nowrap" class="bz_query_forget">
+  <div class="buglist-navbar bz_query_forget">
     <a href="buglist.cgi?cmdtype=dorem&amp;remaction=forget&amp;namedcmd=[% searchname | url_quote %]&amp;token=[% issue_hash_token([search_id, searchname]) | url_quote %]">
       Forget&nbsp;Search&nbsp;'[% searchname | html %]'
     </a>
