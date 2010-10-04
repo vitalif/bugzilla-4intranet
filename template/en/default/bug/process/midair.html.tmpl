@@ -94,6 +94,8 @@ You have the following choices:
         <input type="hidden" name="id"             value="[% cgi.param("id") | html %]">
         <input type="hidden" name="delta_ts"       value="[% bug.delta_ts | html %]">
         <input type="hidden" name="comment"        value="[% cgi.param("comment") | html %]">
+        <input type="hidden" name="commentsilent"  value="[% cgi.param("commentsilent") | html %]">
+        <input type="hidden" name="work_time"      value="[% cgi.param("work_time") | html %]">
         <input type="hidden" name="commentprivacy" value="[% cgi.param("commentprivacy") | html %]">
         <input type="hidden" name="token"          value="[% cgi.param("token") | html %]">
         [%# Double mid-air collision needs longdesclength in params! %]
