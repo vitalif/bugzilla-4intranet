@@ -477,6 +477,11 @@ sub process_bug
 
     $fields{product} ||= $bug->product;
     $fields{component} ||= $bug->component;
+    if ($fields{blocked} || $fields{dependson})
+    {
+        $fields{blocked} ||= join ',', @{ $bug->blocked };
+        $fields{dependson} ||= join ',', @{ $bug->dependson };
+    }
 
     if ($fields{'bug_status'}) {
         $fields{'knob'} = $fields{'bug_status'};
