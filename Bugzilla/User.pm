@@ -1787,7 +1787,7 @@ sub clear_login_failures {
 sub account_ip_login_failures {
     my $self = shift;
     my $dbh = Bugzilla->dbh;
-    my $time = $dbh->sql_interval(LOGIN_LOCKOUT_INTERVAL, 'MINUTE');
+    my $time = $dbh->sql_interval(Bugzilla->params->{login_lockout_interval}, 'MINUTE');
     my $ip_addr = remote_ip();
     trick_taint($ip_addr);
     $self->{account_ip_login_failures} ||= Bugzilla->dbh->selectall_arrayref(

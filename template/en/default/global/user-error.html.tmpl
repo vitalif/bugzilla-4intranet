@@ -972,7 +972,7 @@
       If you do not enter the correct password after 
       [%+ remaining FILTER html %] more attempt(s), you will be
       locked out of this account for 
-      [%+ constants.LOGIN_LOCKOUT_INTERVAL FILTER html %] minutes.
+      [%+ Param('login_lockout_interval') FILTER html %] minutes.
     [% END %]
 
   [% ELSIF error == "json_rpc_post_only" %]
