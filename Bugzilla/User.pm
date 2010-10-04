@@ -1761,7 +1761,7 @@ sub create {
 sub account_is_locked_out {
     my $self = shift;
     my $login_failures = scalar @{ $self->account_ip_login_failures };
-    return $login_failures >= MAX_LOGIN_ATTEMPTS ? 1 : 0;
+    return Bugzilla->params->{max_login_attempts} && $login_failures >= Bugzilla->params->{max_login_attempts} ? 1 : 0;
 }
 
 sub note_login_failure {

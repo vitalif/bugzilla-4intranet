@@ -169,7 +169,7 @@ sub _handle_login_result {
     # the password was just wrong. (This makes it harder for a cracker
     # to find account names by brute force)
     elsif ($fail_code == AUTH_LOGINFAILED or $fail_code == AUTH_NO_SUCH_USER) {
-        my $remaining_attempts = MAX_LOGIN_ATTEMPTS 
+        my $remaining_attempts = Bugzilla->params->{max_login_attempts}
                                  - ($result->{failure_count} || 0);
         ThrowUserError("invalid_username_or_password", 
                        { remaining => $remaining_attempts });
@@ -188,8 +188,8 @@ sub _handle_login_result {
 
         # We want to know when the account will be unlocked. This is 
         # determined by the 5th-from-last login failure (or more/less than
-        # 5th, if MAX_LOGIN_ATTEMPTS is not 5).
-        my $determiner = $attempts->[scalar(@$attempts) - MAX_LOGIN_ATTEMPTS];
+        # 5th, if Bugzilla->params->{max_login_attempts} is not 5).
+        my $determiner = $attempts->[scalar(@$attempts) - Bugzilla->params->{max_login_attempts}];
         my $unlock_at = datetime_from($determiner->{login_time}, 
                                       Bugzilla->local_timezone);
         $unlock_at->add(minutes => Bugzilla->params->{login_lockout_interval});
