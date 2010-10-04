@@ -157,7 +157,6 @@ use Cwd qw(abs_path);
     MAX_LOGINCOOKIE_AGE
     MAX_SUDO_TOKEN_AGE
     MAX_LOGIN_ATTEMPTS
-    LOGIN_LOCKOUT_INTERVAL
 
     SAFE_PROTOCOLS
     LEGAL_CONTENT_TYPES
@@ -393,9 +392,6 @@ use constant MAX_SUDO_TOKEN_AGE => 21600;
 
 # Maximum failed logins to lock account for this IP
 use constant MAX_LOGIN_ATTEMPTS => 5;
-# If the maximum login attempts occur during this many minutes, the
-# account is locked.
-use constant LOGIN_LOCKOUT_INTERVAL => 30;
 
 # Protocols which are considered as safe.
 use constant SAFE_PROTOCOLS => ('afs', 'cid', 'ftp', 'gopher', 'http', 'https',

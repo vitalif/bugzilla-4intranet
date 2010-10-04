@@ -135,6 +135,13 @@ sub get_param_list {
    default => ''
   },
 
+  {
+   name => 'login_lockout_interval',
+   type => 's',
+   default => 30,
+   checker => sub { $_[0] =~ /^[1-9]\d*$/so ? "" : "must be a positive integer value" },
+  },
+
   );
   return @param_list;
 }

@@ -192,7 +192,7 @@ sub _handle_login_result {
         my $determiner = $attempts->[scalar(@$attempts) - MAX_LOGIN_ATTEMPTS];
         my $unlock_at = datetime_from($determiner->{login_time}, 
                                       Bugzilla->local_timezone);
-        $unlock_at->add(minutes => LOGIN_LOCKOUT_INTERVAL);
+        $unlock_at->add(minutes => Bugzilla->params->{login_lockout_interval});
 
         # If we were *just* locked out, notify the maintainer about the
         # lockout.
@@ -303,8 +303,8 @@ Usually this is throw only by C<Bugzilla::Auth::login>.
 =head2 C<AUTH_LOCKOUT>
 
 The user's account is locked out after having failed to log in too many
-times within a certain period of time (as specified by
-L<Bugzilla::Constants/LOGIN_LOCKOUT_INTERVAL>).
+times within a certain period of time (as specified by login_lockout_interval
+Bugzilla parameter).
 
 The hashref will also contain a C<user> element, representing the
 L<Bugzilla::User> whose account is locked out.
