@@ -136,6 +136,13 @@ sub get_param_list {
   },
 
   {
+   name => 'max_login_attempts',
+   type => 't',
+   default => 5,
+   checker => sub { $_[0] =~ /^\d+$/so ? "" : "must be a positive integer value or 0 (means no limit)" },
+  },
+
+  {
    name => 'login_lockout_interval',
    type => 't',
    default => 30,

@@ -26,7 +26,7 @@ Subject: [[% terms.Bugzilla %]] Account Lock-Out: [% locked_user.login %] ([% at
 X-Bugzilla-Type: admin
 
 The IP address [% attempts.0.ip_addr %] failed too many login attempts (
-[%- constants.MAX_LOGIN_ATTEMPTS +%]) for
+[%- Param('max_login_attempts') +%]) for
 the account [% locked_user.login %]. 
 
 The login attempts occurred at these times:
