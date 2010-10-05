@@ -21,6 +21,7 @@ package Bugzilla::Product;
 
 use Bugzilla::Constants;
 use Bugzilla::Util;
+use Bugzilla::User;
 use Bugzilla::Error;
 use Bugzilla::Group;
 use Bugzilla::Version;
@@ -954,6 +955,50 @@ sub notimetracking    { return $_[0]->{'notimetracking'};    }
 ###############################
 ####      Subroutines    ######
 ###############################
+
+# CustIS Bug 38616 - CC list restriction
+sub cc_restrict_group
+{
+    my $self = shift;
+    my ($ccg) = $self->description =~ /\[[CС]{2}:\s*([^\]]+)\s*\]/iso;
+    return $ccg;
+}
+
+sub restrict_cc
+{
+    my $self = shift;
+    my ($cclist, $field) = @_;
+    my $id = $field eq 'id';
+    my $login = $field eq 'login' || $field eq 'login_name';
+    my $group = $self->cc_restrict_group || return undef;
+    my @cclist = @$cclist;
+    if ($login)
+    {
+        @cclist = map { Bugzilla::User::login_to_id($_) } @cclist;
+    }
+    if ($id || $login)
+    {
+        @cclist = @{ Bugzilla::User->new_from_list(\@cclist) };
+    }
+    my (@ok, @remove);
+    for (@cclist)
+    {
+        $_->in_group($group) ? push(@ok, $_) : push(@remove, $_);
+    }
+    if ($login)
+    {
+        @$cclist = map { $_->login } @ok;
+    }
+    elsif ($id)
+    {
+        @$cclist = map { $_->id } @ok;
+    }
+    else
+    {
+        @$cclist = @ok;
+    }
+    return @remove ? \@remove : undef;
+}
 
 sub check_product {
     my ($product_name) = @_;

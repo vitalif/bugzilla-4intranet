@@ -416,7 +416,6 @@ $vars->{'cloned_bug_id'}         = $cloned_bug_id;
 
 $vars->{'token'}             = issue_session_token('createbug:');
 
-
 my @enter_bug_fields = grep { $_->enter_bug } Bugzilla->active_custom_fields;
 foreach my $field (@enter_bug_fields) {
     my $cf_name = $field->name;
@@ -461,10 +460,23 @@ if ($cloned_bug_id) {
     } elsif (defined $cloned_bug->cc) {
         @cc = @{$cloned_bug->cc};
     }
-    
+
     if ($cloned_bug->reporter->id != $user->id) {
         push @cc, $cloned_bug->reporter->login;
     }
+
+    # CustIS Bug 38616 - CC list restriction
+    if ($product->cc_restrict_group)
+    {
+        my $removed = $product->restrict_cc(\@cc, 'login_name');
+        if ($removed && @$removed)
+        {
+            $vars->{restricted_cc} = [ map { $_->login } @$removed ];
+            $vars->{cc_restrict_group} = $product->cc_restrict_group;
+            $vars->{message} = 'cc_list_restricted';
+        }
+    }
+
     $vars->{cc} = join ', ', @cc;
 
     foreach my $field (@enter_bug_fields) {

@@ -130,6 +130,11 @@ if (Bugzilla->session && ($sd = Bugzilla->session_data) && $sd->{sent})
     $vars->{last_title} = $sd->{title};
     $vars->{last_header} = $sd->{header};
     $vars->{sentmail} = $sd->{sent};
+    if ($sd->{message})
+    {
+        $vars->{message} = $sd->{message};
+        $vars->{$_} = $sd->{message_vars}->{$_} for keys %{$sd->{message_vars} || {}};
+    }
     $vars->{$_} = $sd->{sent_attrs}->{$_} for keys %{$sd->{sent_attrs} || {}};
 }
 
