@@ -500,6 +500,12 @@ sub create {
     my $ms_values = $class->_extract_multi_selects($params);
     my $bug = $class->insert_create_data($params);
 
+    # CustIS Bug 38616 - CC list restriction
+    if ($bug->product_obj->cc_restrict_group)
+    {
+        $bug->{restricted_cc} = $bug->product_obj->restrict_cc($cc_ids, 'id');
+    }
+
     # Add the group restrictions
     my $sth_group = $dbh->prepare(
         'INSERT INTO bug_group_map (bug_id, group_id) VALUES (?, ?)');
@@ -699,22 +705,15 @@ sub update {
     }
 
     # CC
-    my ($ccg) = $self->product_obj->description =~ /\[[CС]{2}:\s*([^\]]+)\s*\]/iso;
     my @old_cc = map {$_->id} @{$old_bug->cc_users};
     my @new_cc = @{$self->cc_users};
-    @new_cc = grep {$_->in_group($ccg)} @new_cc if $ccg;
-    my ($restricted_cc, undef) = diff_arrays($self->cc_users, \@new_cc);
-    if (scalar @$restricted_cc)
+
+    # CustIS Bug 38616 - CC list restriction
+    if ($self->product_obj->cc_restrict_group)
     {
-        # CustIS Bug 38616 - we must print a warning about that we've removed somebody from CC
-        # нужно вывести предупреждение о том, что кое-кого сюда подписывать нельзя!
-        $self->{cc_restrict_group} = $ccg;
-        $self->{restricted_cc} = [ map { $_->login } @$restricted_cc ];
+        $self->{restricted_cc} = $self->product_obj->restrict_cc(\@new_cc);
     }
-    else
-    {
-        delete $self->{restricted_cc};
-    }
+
     @new_cc = map {$_->id} @new_cc;
     my ($removed_cc, $added_cc) = diff_arrays(\@old_cc, \@new_cc);
 

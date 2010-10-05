@@ -592,7 +592,7 @@ foreach my $bug (@bug_objects) {
     if ($bug->{restricted_cc})
     {
         $vars->{restricted_cc} = $bug->{restricted_cc};
-        $vars->{cc_restrict_group} = $bug->{cc_restrict_group};
+        $vars->{cc_restrict_group} = $bug->product_obj->cc_restrict_group;
         $vars->{message} = 'cc_list_restricted';
     }
 
@@ -703,7 +703,21 @@ elsif (($action eq 'next_bug' or $action eq 'same_bug') && ($bug = $vars->{bug})
     {
         $title = template_var('terms')->{Bugs} . ' processed';
     }
-    if (Bugzilla->save_session_data({ sent => $send_results, title => $title, sent_attrs => { nextbug => $action eq 'next_bug' ? 1 : 0 } }))
+    my $ses = {
+        sent => $send_results,
+        title => $title,
+        sent_attrs => { nextbug => $action eq 'next_bug' ? 1 : 0 },
+    };
+    # CustIS Bug 38616 - CC list restriction
+    if (scalar(@bug_objects) == 1 && $bug_objects[0]->{restricted_cc})
+    {
+        $ses->{message_vars} = {
+            restricted_cc     => [ map { $_->login } @{ $bug_objects[0]->{restricted_cc} } ],
+            cc_restrict_group => $bug_objects[0]->product_obj->cc_restrict_group,
+        };
+        $ses->{message} = 'cc_list_restricted';
+    }
+    if (Bugzilla->save_session_data($ses))
     {
         print $cgi->redirect(-location => 'show_bug.cgi?id='.$bug->id);
         exit;

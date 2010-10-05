@@ -318,7 +318,21 @@ if (Bugzilla->usage_mode != USAGE_MODE_EMAIL)
 {
     my $title = template_var('terms')->{Bug}.' '.$bug->id.' Submitted – '.$bug->short_desc;
     my $header = template_var('terms')->{Bug}.' '.$bug->id.' Submitted';
-    if (Bugzilla->save_session_data({ sent => \@all_mail_results, title => $title, header => $header }))
+    my $ses = {
+        sent => \@all_mail_results,
+        title => $title,
+        header => $header,
+    };
+    # CustIS Bug 38616 - CC list restriction
+    if ($bug->{restricted_cc})
+    {
+        $ses->{message_vars} = {
+            restricted_cc     => [ map { $_->login } @{ $bug->{restricted_cc} } ],
+            cc_restrict_group => $bug->product_obj->cc_restrict_group,
+        };
+        $ses->{message} = 'cc_list_restricted';
+    }
+    if (Bugzilla->save_session_data($ses))
     {
         print $cgi->redirect(-location => 'show_bug.cgi?id='.$bug->id);
     }
