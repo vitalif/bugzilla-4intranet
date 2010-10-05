@@ -1095,9 +1095,9 @@ $vars->{'order_dir'} = [ map { s/ DESC$// ? 1 : 0 } @{$vars->{'order_columns'}} 
 $vars->{'caneditbugs'} = 1;
 $vars->{'time_info'} = $time_info;
 
-$vars->{query} = $params->Vars; # now used only in superworktime
-$vars->{query}->{chfieldfrom} = $Bugzilla::Search::interval_from;
-$vars->{query}->{chfieldto} = $Bugzilla::Search::interval_to;
+$vars->{query_params} = $params->Vars; # now used only in superworktime
+$vars->{query_params}->{chfieldfrom} = $Bugzilla::Search::interval_from;
+$vars->{query_params}->{chfieldto} = $Bugzilla::Search::interval_to;
 
 if (!Bugzilla->user->in_group('editbugs')) {
     foreach my $product (keys %$bugproducts) {
