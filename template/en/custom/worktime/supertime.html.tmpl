@@ -19,7 +19,13 @@
 <input type="hidden" name="format" value="superworktime" />
 [% FOR k = query_params.keys %]
 [% IF k != 'chfieldfrom' && k != 'chfieldto' && k != 'chfieldwho' && k != 'worktime_user' && k != 'worktime_date' && k != 'save_worktime' %]
-  <input type="hidden" name="[% k | html %]" value="[% query_params.${k} | html %]" />
+  [% IF query_params.${k}.size %]
+   [% FOR vk = query_params.${k} %]
+    <input type="hidden" name="[% k | html %]" value="[% vk | html %]" />
+   [% END %]
+  [% ELSE %]
+    <input type="hidden" name="[% k | html %]" value="[% query_params.${k} | html %]" />
+  [% END %]
 [% END %]
 [% END %]
   Дата:
