@@ -626,24 +626,7 @@ sub init {
             push @list, "SELECT bug_id FROM bugs_activity AS actcheck WHERE $extra";
         }
 
-        # Проблема:
-        # Комменты нужно проверять обязательно - при создании бага в bugs_activity
-        #   вообще ничего не попадает.
-        # Но проверять их тяжело, ибо нужно проверить две таблицы (bugs_activity и longdescs).
-        # Какие варианты?
-        # 1) LEFT JOIN на каждую таблицу или на их UNION и две проверки IS NOT NULL через "ИЛИ":
-        #    выбирает туеву хучу строк и mysql загибается (что в целом логично).
-        #    Т.е. данный вариант уязвим к большому числу изменений/комментов в багах (а оно всегда большое).
-        # 2) Подзапрос в каждую таблицу или в UNION - не оптимизируется по индексам
-        #    (как мы, наверное, помним, в MySQL все зависимые подзапросы выполняются "снаружи вовнутрь").
-        #    Т.е. данный вариант уязвим к отсутствию или малому числу дополнительных фильтров в запросе,
-        #    с которых его вообще можно начать выполнять и не делать фулскан.
-        # Вариант 3) попробуем сейчас - изображать из себя оптимизатор запросов
-        #   и создавать временную таблицу с подходящими под фильтр ID багов.
-        #   По логике конечно всё равно одно лечим, другое калечим. Проблемы будут, если багов
-        #   под фильтр попадёт очень много, ибо все их ID должны будут быть сохранены во временную
-        #   таблицу. Но в среднем всё равно будет лучше.
-        #   Т.е. данный вариант уязвим к низкой специфичности самого фильтра по дате изменения.
+        # http://wiki.office.custis.ru/Bugzilla_-_оптимизация_поиска_по_изменениям
         $extra = "1";
         $extra .= " AND actcheck_comment.bug_when >= $sql_chfrom" if $sql_chfrom;
         $extra .= " AND actcheck_comment.bug_when <= $sql_chto" if $sql_chto;
@@ -659,16 +642,17 @@ sub init {
                 " ON actcheck_commenter.userid=actcheck_comment.who AND $need_commenter" : '') .
             " WHERE $extra";
 
-        # create temporary table with a random name
-        my $tn = 'tmp_'.rand();
-        $tn =~ s/\.//;
         if ($bug_creation_clause)
         {
             push @list, "SELECT bug_id FROM bugs WHERE $bug_creation_clause";
         }
-        $dbh->do("CREATE TEMPORARY TABLE $tn AS " . join(' UNION ', @list));
 
-        push @supptables, "INNER JOIN $tn ON bugs.bug_id=$tn.bug_id";
+        if (@list == 1)
+        {
+            $list[0] =~ s/^SELECT/SELECT DISTINCT/;
+        }
+
+        push @supptables, "INNER JOIN (" . join(' UNION ', @list) . ") actcheck_union ON bugs.bug_id=actcheck_union.bug_id";
     }
 
     my $sql_deadlinefrom;
