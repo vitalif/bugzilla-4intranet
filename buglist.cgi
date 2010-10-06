@@ -883,9 +883,17 @@ if ($superworktime)
 {
     # Must come after Bugzilla::Search::getSQL
     my $d = $Bugzilla::Search::interval_to;
-    $d = $d ? "DATE(DATE_SUB('$d', INTERVAL 1 DAY))" : "CURRENT_DATE()";
+    if (Bugzilla->user->in_group('worktimeadmin'))
+    {
+        $d = "DATE(DATE_SUB('$d', INTERVAL 1 DAY))";
+        $vars->{worktime_user} = $cgi->param('worktime_user') || ($Bugzilla::Search::interval_who ? $Bugzilla::Search::interval_who->login : undef);
+    }
+    else
+    {
+        $d = "CURRENT_DATE()";
+        $vars->{worktime_user} = Bugzilla->user->login;
+    }
     ($vars->{worktime_date}) = $cgi->param('worktime_date') || Bugzilla->dbh->selectrow_array("SELECT $d");
-    $vars->{worktime_user} = $cgi->param('worktime_user') || ($Bugzilla::Search::interval_who ? $Bugzilla::Search::interval_who->login : undef);
 }
 
 ################################################################################
