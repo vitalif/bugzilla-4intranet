@@ -9,7 +9,7 @@
     <title>[% terms.Bug %] List[% IF searchname || defaultsavename %][% ": " _ (searchname || defaultsavename) | html %][% END %]</title>
     <link rel="stylesheet" type="text/css" media="print" href="skins/standard/print.css" />
 <style>
-.abug { float: left; background-color: white; margin: 1.5cm 0.1cm 0.1cm 0.1cm; font-size: 90%; width: 6cm; height: 6cm; font-weight: bold; }
+.abug { float: left; background-color: white; margin: 1.5cm 0.1cm 0.1cm 0.1cm; font-size: 90%; width: 6cm; height: 6cm; font-weight: bold; page-break-inside: avoid; }
 .abug td { text-align: center; }
 .dot { border: 1px dashed black; }
 .dot { white-space: nowrap; }
