@@ -118,7 +118,12 @@ foreach (@fieldlist) {
 }
 
 foreach ($cgi->param("excludefield")) {
-    $displayfields{$_} = undef;    
+    $displayfields{$_} = undef;
+}
+
+# CustIS Bug 70168
+if (my @f = $cgi->param("includefield")) {
+    %displayfields = map { $_ => 1 } grep { $displayfields{$_} } @f;
 }
 
 $vars->{'displayfields'} = \%displayfields;
