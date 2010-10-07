@@ -182,3 +182,9 @@ if (!$dbh->selectrow_array('SELECT name FROM setting_value WHERE name=\'csv_char
 {
     $dbh->do('INSERT INTO setting_value (name, value, sortindex) VALUES (\'csv_charset\', \'utf-8\', 10), (\'csv_charset\', \'windows-1251\', 20), (\'csv_charset\', \'koi8-r\', 30)');
 }
+
+# Bug 69325 - Настройка копирования / не копирования значения поля при клонировании бага
+if (!$dbh->bz_column_info('fielddefs', 'clone_bug'))
+{
+    $dbh->bz_add_column('fielddefs', clone_bug => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 1});
+}

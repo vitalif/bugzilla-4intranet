@@ -99,6 +99,7 @@ use constant DB_COLUMNS => qw(
     sortkey
     obsolete
     enter_bug
+    clone_bug
     buglist
     visibility_field_id
     value_field_id
@@ -107,12 +108,13 @@ use constant DB_COLUMNS => qw(
 use constant REQUIRED_CREATE_FIELDS => qw(name description);
 
 use constant VALIDATORS => {
-    custom      => \&_check_custom,
+    custom      => \&Bugzilla::Object::check_boolean,
     description => \&_check_description,
-    enter_bug   => \&_check_enter_bug,
+    enter_bug   => \&Bugzilla::Object::check_boolean,
+    clone_bug   => \&Bugzilla::Object::check_boolean,
     buglist     => \&Bugzilla::Object::check_boolean,
-    mailhead    => \&_check_mailhead,
-    obsolete    => \&_check_obsolete,
+    mailhead    => \&Bugzilla::Object::check_boolean,
+    obsolete    => \&Bugzilla::Object::check_boolean,
     sortkey     => \&_check_sortkey,
     type        => \&_check_type,
     visibility_field_id => \&_check_visibility_field_id,
@@ -128,6 +130,7 @@ use constant UPDATE_COLUMNS => qw(
     sortkey
     obsolete
     enter_bug
+    clone_bug
     buglist
     visibility_field_id
     value_field_id
@@ -251,18 +254,12 @@ sub match {
 # Validators #
 ##############
 
-sub _check_custom { return $_[1] ? 1 : 0; }
-
 sub _check_description {
     my ($invocant, $desc) = @_;
     $desc = clean_text($desc);
     $desc || ThrowUserError('field_missing_description');
     return $desc;
 }
-
-sub _check_enter_bug { return $_[1] ? 1 : 0; }
-
-sub _check_mailhead { return $_[1] ? 1 : 0; }
 
 sub _check_name {
     my ($invocant, $name, $is_custom) = @_;
@@ -292,8 +289,6 @@ sub _check_name {
 
     return $name;
 }
-
-sub _check_obsolete { return $_[1] ? 1 : 0; }
 
 sub _check_sortkey {
     my ($invocant, $sortkey) = @_;
@@ -441,6 +436,18 @@ enter_bug.cgi
 =cut
 
 sub enter_bug { return $_[0]->{enter_bug} }
+
+=over
+
+=item C<clone_bug>
+
+A boolean specifying whether or not this field should be copied on bug clone
+
+=back
+
+=cut
+
+sub clone_bug { return $_[0]->{clone_bug} }
 
 =over
 
@@ -637,6 +644,8 @@ They will throw an error if you try to set the values to something invalid.
 
 =item C<set_enter_bug>
 
+=item C<set_clone_bug>
+
 =item C<set_obsolete>
 
 =item C<set_sortkey>
@@ -655,6 +664,7 @@ They will throw an error if you try to set the values to something invalid.
 
 sub set_description    { $_[0]->set('description', $_[1]); }
 sub set_enter_bug      { $_[0]->set('enter_bug',   $_[1]); }
+sub set_clone_bug      { $_[0]->set('clone_bug',   $_[1]); }
 sub set_obsolete       { $_[0]->set('obsolete',    $_[1]); }
 sub set_sortkey        { $_[0]->set('sortkey',     $_[1]); }
 sub set_in_new_bugmail { $_[0]->set('mailhead',    $_[1]); }

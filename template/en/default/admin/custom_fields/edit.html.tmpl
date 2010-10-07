@@ -51,9 +51,19 @@
       </th>
       <td><input type="checkbox" id="enter_bug" name="enter_bug" value="1"
                  [%- " checked" IF field.enter_bug %]
-                 onchange="toggleCheckbox(this, 'new_bugmail');"></td>
+                 onchange="toggleCheckbox(this, 'new_bugmail');" /></td>
       [% END %]
     </tr>
+    [% IF field.custom %]
+    <tr>
+      <td colspan="2"></td>
+      <th align="right">
+        <label for="clone_bug">Is copied into the cloned [% terms.bug %]:</label>
+      </th>
+      <td><input type="checkbox" id="clone_bug" name="clone_bug" value="1"
+                 [%- " checked" IF field.clone_bug %] /></td>
+    </tr>
+    [% END %]
     <tr>
       <th align="right"><label for="desc">Description:</label></th>
       <td><input type="text" id="desc" name="desc" size="40"

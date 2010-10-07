@@ -63,6 +63,7 @@ elsif ($action eq 'new') {
         sortkey     => scalar $cgi->param('sortkey'),
         mailhead    => scalar $cgi->param('new_bugmail'),
         enter_bug   => scalar $cgi->param('enter_bug'),
+        clone_bug   => scalar $cgi->param('clone_bug'),
         obsolete    => scalar $cgi->param('obsolete'),
         custom      => 1,
         buglist     => (scalar $cgi->param('type') == FIELD_TYPE_MULTI_SELECT ? 0 : 1),
@@ -107,9 +108,10 @@ elsif ($action eq 'update') {
         # TODO enter_bug could be edited for non-custom fields, too.
         # At the moment, though, it has no effect for non-custom fields.
         $field->set_enter_bug($cgi->param('enter_bug'));
-    $field->set_visibility_field($cgi->param('visibility_field_id'));
+        $field->set_clone_bug($cgi->param('clone_bug'));
+        $field->set_visibility_field($cgi->param('visibility_field_id'));
         $field->set_visibility_values([ $cgi->param('visibility_value_id') ]);
-    $field->set_value_field($cgi->param('value_field_id'));
+        $field->set_value_field($cgi->param('value_field_id'));
     }
     $field->update();
 
