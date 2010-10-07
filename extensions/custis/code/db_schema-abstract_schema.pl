@@ -93,3 +93,6 @@ $schema->{globalauth} = {
         globalauth_primary_idx => { FIELDS => ['id'], TYPE => 'UNIQUE' },
     ],
 };
+
+# Bug 69325 - Настройка копирования / не копирования значения поля при клонировании бага
+push @{$schema->{fielddefs}->{FIELDS}}, clone_bug => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 1};

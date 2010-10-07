@@ -479,7 +479,14 @@ if ($cloned_bug_id) {
 
     $vars->{cc} = join ', ', @cc;
 
-    foreach my $field (@enter_bug_fields) {
+    # Copy values of custom fields marked with 'clone_bug = TRUE'
+    # But don't copy values of custom fields which are invisible for the new product
+    my @clone_bug_fields = grep { $_->clone_bug &&
+        (!$_->visibility_field || $_->visibility_field->name ne 'product' ||
+        $_->has_visibility_value($product))
+    } Bugzilla->active_custom_fields;
+    foreach my $field (@clone_bug_fields)
+    {
         my $field_name = $field->name;
         $vars->{$field_name} = $cloned_bug->$field_name;
     }

@@ -99,7 +99,7 @@ sub process
             my $pk = $f->{filename};
             $pk =~ s/\W+/_/gso;
             $pk = "Bugzilla::Hook::$pk";
-            $sub = eval "package $pk; sub { my (\$args) = \@_; $sub; return 1; };";
+            $sub = eval "package $pk; sub { my (\$args) = \@_;\n#line 1 \"$f->{filename}\"\n$sub; return 1; };";
             if ($@)
             {
                 warn __PACKAGE__."::process(): error during loading $f->{filename} into a subroutine (note that Bugzilla->hook_args was replaced by \$args): $@";
