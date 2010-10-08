@@ -1,0 +1,469 @@
+[% PROCESS "global/field-descs.none.tmpl" %]
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+                      "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <title>[% terms.Bug %] List[% IF searchname || defaultsavename %][% ": " _ (searchname || defaultsavename) | html %][% END %]</title>
+    <link rel="stylesheet" type="text/css" media="print" href="skins/standard/print.css" />
+    <script language="JavaScript" type="text/javascript" src="js/yui/yahoo-dom-event.js"></script>
+<style type="text/css">
+.dot { border: 1px dashed black; }
+.dot { white-space: nowrap; }
+.dot a { color: black; text-decoration: none; }
+.sevpri { font-size: 80%; vertical-align: bottom; }
+.desc { height: 100%; border: 1px solid black; vertical-align: top; font-size: 110%; }
+p { margin: 0.3em 0; }
+.card { margin: [% t.cmt %]cm [% t.cmr %]cm [% t.cmb %]cm [% t.cml %]cm; font-size: [% t.fs %]pt; width: [% t.cw %]cm; height: [% t.ch %]cm; font-weight: bold; border-collapse: separate; }
+.card td { text-align: center; }
+.margineditor { border: 1px solid black; margin: 0 auto; }
+.margineditor td { vertical-align: middle; text-align: center; padding: 0; width: 40px; }
+.margineditor input { width: 40px; border: 1px solid black; text-align: center; }
+.est { border: 0; text-align: center; background-color: #f0f0f0; }
+.page { border-collapse: collapse; }
+.cardtd { border: 1px dashed black; text-align: left; vertical-align: top; }
+.next { page-break-before: always; }
+@media screen {
+  .page { margin-top: 16px; }
+  .cardtd.selected { background: #E0E0FF; }
+  .cardtd.highlight { background: #FFE0E0; }
+}
+@media print {
+  @page { margin: 1cm; }
+  .print_hide { display: none; }
+}
+</style>
+</head>
+<body>
+
+<form method="GET" action="?" id="scrumform">
+<div class="print_hide">
+
+<input type="hidden" name="id" id="idlist_value" value="[% idlist %]" />
+
+[%# Параметры разметки %]
+<div style="float: left">
+<p>
+Карточек на листе:
+<input type="text" name="t_cols" maxlength="3" size="1" value="[% t.cols %]" />
+x
+<input type="text" name="t_rows" maxlength="3" size="1" value="[% t.rows %]" />
+</p>
+
+<p>
+Размер шрифта:
+<input type="text" name="t_fs" maxlength="3" size="2" value="[% t.fs %]" /> пунктов
+</p>
+
+<p>
+Размер листа:
+<input type="text" name="t_pw" maxlength="5" size="3" value="[% t.pw %]" />
+x
+<input type="text" name="t_ph" maxlength="5" size="3" value="[% t.ph %]" />
+(за вычетом полей)
+</p>
+
+<p>
+Размер карточки:
+<input type="text" name="t_cw" maxlength="5" size="3" value="[% t.cw %]" />
+x
+<input type="text" name="t_ch" maxlength="5" size="3" value="[% t.ch %]" />
+</p>
+</div>
+
+[%# cml = card margin left, cw = card width и т.п. %]
+<div style="float: left; margin-left: 20px; text-align: center">
+<p>Отступы от карточки:</p>
+<table class="margineditor">
+<tr>
+ <td></td>
+ <td><input type="text" name="t_cmt" maxlength="3" value="[% t.cmt %]" /></td>
+ <td></td>
+</tr>
+<tr>
+ <td><input type="text" name="t_cml" maxlength="3" value="[% t.cml %]" /></td>
+ <td style="border: 1px solid black; background: #e0e0e0;">
+  &nbsp;
+ </td>
+ <td><input type="text" name="t_cmr" maxlength="3" value="[% t.cmr %]" /></td>
+</tr>
+<tr>
+ <td></td>
+ <td><input type="text" name="t_cmb" maxlength="3" value="[% t.cmb %]" /></td>
+ <td></td>
+</tr>
+</table>
+(см.)
+</div>
+
+<p style="clear: both"><input type="submit" value=" Показать " /> <input type="button" value=" Удалить все карточки " onclick="deleteAllCards()" /> </p>
+
+<p>
+ Добавить баги: <input type="text" id="addbugs" value="" /> <input type="button" value=" Добавить " onclick="addNewCards()" /> (в конец списка)
+</p>
+
+<div id="btn_delete" style="float: left; border: 2px outset #b0b0b0; padding: 3px; background-color: #f0f0f0">
+ <img src="images/delete24.png" style="vertical-align: middle" /> Удалить
+</div>
+
+<div id="btn_cut" style="float: left; border: 2px outset #b0b0b0; padding: 3px; margin-left: 3px; background-color: #f0f0f0">
+ <img src="images/cut24.png" style="vertical-align: middle" /> Вырезать
+</div>
+
+<div id="btn_paste" style="float: left; border: 2px outset #b0b0b0; padding: 3px; margin-left: 3px; background-color: #f0f0f0">
+ <img src="images/paste24.png" style="vertical-align: middle" /> Вставить
+</div>
+
+<div id="btn_paste_beg" style="float: left; border: 2px outset #b0b0b0; padding: 3px; margin-left: 3px; background-color: #f0f0f0; display: none">
+ В начало
+</div>
+
+<p style="clear: both">
+ Выделяйте карточки Ctrl+Click. <span id="cut_status"></span>
+</p>
+
+<p>
+ Если вы хотите сохранить текущую ссылку как шаблон формы печати карточек, сначала нажмите "Показать", чтобы применить все изменения.
+</p>
+
+</div>
+
+<div id="pages">
+[% FOR page = pages %][% SET pagei = loop.index %]
+<table cellspacing="0" class="page [% IF NOT loop.first %]next[% END %]">
+[% FOR row = page.rows %][% SET rowi = loop.index %]
+<tr>
+ [% FOR bug = row.bugs %][% SET coli = loop.index %]
+ <td class="cardtd" id="cardtd_[% pagei %]_[% rowi %]_[% coli %]">
+  <table id="card_[% pagei %]_[% rowi %]_[% coli %]" class="card" cellspacing="5">
+  [% IF NOT bug %]
+   <tr><td>&nbsp;</td></tr>
+  [% ELSIF bug.error %]
+   <tr><td><span style="font-size: 200%">[% bug.bug_id %]</span><br />[% bug.error %]</td></tr>
+  [% ELSE %]
+   <tr>
+    <td class="dot"><a href="show_bug.cgi?id=[% bug.bug_id %]">[% bug.bug_id | html %]</a></td>
+    <td class="sevpri">[% bug.bug_severity.substr(0, 3) | html %]&nbsp;[% bug.priority | html %]</td>
+    <td class="dot">[% bug.target_milestone.substr(0, 5) %]</td>
+   </tr>
+   <tr>
+    <td colspan="3" class="desc" style="font-size: 120%">[% bug.short_desc | html %]</td>
+   </tr>
+   <tr>
+    <td colspan="3" style="font-size: 130%">
+     <input type="text" class="est" name="e[% bug.bug_id %]" value="[% estimates.${bug.bug_id} ? estimates.${bug.bug_id} : '' %]" />
+    </td>
+   </tr>
+  [% END %]
+  </table>
+ </td>
+ [% END %]
+</tr>
+[% END %]
+</table>
+[% END %]
+</div>
+</form>
+
+<script language="JavaScript">
+var pressedButton;
+var pasteMode = false;
+var ctrl = false;
+var highlitCard;
+var selectedcards = {};
+var cuttedcards = [];
+var cuttedids = [];
+var emptycell = "<tr><td>&nbsp;</td></tr>";
+var np = [% pages.size || "0" %];
+var nr = [% t.rows || "0" %];
+var nc = [% t.cols || "0" %];
+var idlist = [ [% idlist_js || "" %] ];
+function addNewCards()
+{
+  for (var i = idlist.length-1; i >= 0; i--)
+  {
+    if (idlist[i] === '')
+      idlist.pop();
+    else
+      break;
+  }
+  var val = document.getElementById('addbugs').value;
+  var re = /(\d+)/g;
+  var m;
+  while (m = re.exec(val))
+    idlist.push(m[1]);
+  document.getElementById('idlist_value').value = idlist.join(',');
+  document.getElementById('scrumform').submit();
+}
+function addNewIfEnter(ev, target)
+{
+  if (ev.keyCode == 10 || ev.keyCode == 13)
+  {
+    addNewCards();
+    return true;
+  }
+  return false;
+}
+function resetAll()
+{
+  if (pressedButton)
+  {
+    buttonStyle(null, pressedButton);
+    pressedButton = null;
+  }
+  deselectAll();
+  stopPaste();
+  return true;
+}
+function deselectAll()
+{
+  for (var i in selectedcards)
+  {
+    var e = document.getElementById('cardtd_'+i);
+    e.className = 'cardtd';
+  }
+  selectedcards = {};
+}
+function buttonStyle(ev, target)
+{
+  if (!pressedButton)
+  {
+    pressedButton = target;
+    target.style.borderStyle = 'inset';
+    target.style.padding = '4px 2px 2px 4px';
+  }
+  else if (pressedButton == target)
+  {
+    target.style.borderStyle = 'outset';
+    target.style.padding = '3px';
+    pressedButton = null;
+    if (target.id == 'btn_cut')
+      deleteSelectedCards(true);
+    else if (target.id == 'btn_delete')
+      deleteSelectedCards(false);
+    else if (target.id == 'btn_paste')
+      pasteCards();
+    else if (target.id == 'btn_paste_beg')
+      doPasteCards(0);
+    return true;
+  }
+  return false;
+}
+function selectCard(ev, target)
+{
+  if (pasteMode)
+  {
+    var m = /(\d+)_(\d+)_(\d+)/.exec(target.id.substr(7));
+    doPasteCards(parseInt(m[1])*nr*nc+parseInt(m[2])*nc+parseInt(m[3])+1);
+    return true;
+  }
+  else if (ctrl)
+  {
+    var issel = target.className == 'cardtd selected';
+    target.className = issel ? 'cardtd' : 'cardtd selected';
+    if (issel)
+      delete selectedcards[target.id.substr(7)];
+    else
+      selectedcards[target.id.substr(7)] = true;
+    return true;
+  }
+  return false;
+}
+function highlightCard(ev, target)
+{
+  if (pasteMode)
+  {
+    target.className = 'cardtd highlight';
+    highlitCard = target;
+  }
+}
+function unlightCard(ev, target)
+{
+  if (pasteMode)
+    target.className = 'cardtd';
+}
+function to_coord(i)
+{
+  var to_k = Math.floor(i / nr / nc);
+  var to_i = Math.floor((i / nc) % nr);
+  var to_j = Math.floor(i % nc);
+  return [to_k, to_i, to_j];
+}
+function deleteSelectedCards(cut)
+{
+  var shift = 0;
+  var coord = 0;
+  var n = nr * nc * np;
+  if (cut)
+  {
+    cuttedcards = [];
+    cuttedids = [];
+  }
+  for (var k = 0; k < np; k++)
+  {
+    for (var i = 0; i < nr; i++)
+    {
+      for (var j = 0; j < nc; j++, coord++)
+      {
+        var s = selectedcards[k+'_'+i+'_'+j];
+        var e = document.getElementById('card_'+k+'_'+i+'_'+j);
+        if (s)
+        {
+          if (cut)
+          {
+            cuttedcards.push(e.innerHTML);
+            cuttedids.push(idlist[coord]);
+          }
+          shift++;
+        }
+        else if (shift > 0)
+        {
+          var to = to_coord(coord-shift);
+          document.getElementById('card_'+to[0]+'_'+to[1]+'_'+to[2]).innerHTML = e.innerHTML;
+          idlist[coord-shift] = idlist[coord];
+        }
+        else if (coord + shift < n)
+          continue;
+        [%# во всех трёх случаях - если выделена для
+          # удаления, если перемещена в другую, или
+          # если находится в конце - очищаем %]
+        e.innerHTML = emptycell;
+        idlist[coord] = '';
+      }
+    }
+  }
+  if (cut && cuttedids.length)
+    document.getElementById('cut_status').innerHTML = 'Вырезано '+cuttedids.length+' карточек.';
+  deselectAll();
+  document.getElementById('idlist_value').value = idlist.join(',');
+}
+function deleteAllCards()
+{
+  idlist = [];
+  document.getElementById('idlist_value').value = idlist.join(',');
+  document.getElementById('pages').innerHTML = '';
+  document.getElementById('scrumform').submit();
+}
+function pasteCards()
+{
+  if (!pasteMode)
+  {
+    if (!cuttedids.length)
+    {
+      alert('Сначала выделите и вырежьте какие-нибудь карточки!');
+      return;
+    }
+    alert('Кликните на карточку, после которой нужно вставить вырезанное, либо на кнопку "В начало".');
+    deselectAll();
+    pasteMode = true;
+    document.getElementById('btn_paste_beg').style.display = '';
+  }
+}
+function doPasteCards(coord)
+{
+  stopPaste();
+  var nx = cuttedids.length;
+  if (nx <= 0)
+    return;
+  var n = nr * nc * np;
+  var from, to;
+  for (var i = n-nx-1; i >= coord; i--)
+  {
+    from = to_coord(i);
+    to = to_coord(i+nx);
+    document.getElementById('card_'+to[0]+'_'+to[1]+'_'+to[2]).innerHTML =
+        document.getElementById('card_'+from[0]+'_'+from[1]+'_'+from[2]).innerHTML;
+    idlist[i+nx] = idlist[i];
+  }
+  for (var i = 0; i < nx; i++)
+  {
+    to = to_coord(i+coord);
+    document.getElementById('card_'+to[0]+'_'+to[1]+'_'+to[2]).innerHTML = cuttedcards[i];
+    idlist[i+coord] = cuttedids[i];
+  }
+  cuttedids = [];
+  cuttedcards = [];
+  document.getElementById('cut_status').innerHTML = '';
+  document.getElementById('idlist_value').value = idlist.join(',');
+}
+function stopPaste()
+{
+  if (highlitCard)
+    highlitCard.className = 'cardtd';
+  document.getElementById('btn_paste_beg').style.display = 'none';
+  pasteMode = false;
+}
+function ctrlDown(ev, target)
+{
+  if (ev.keyCode == 17)
+  {
+    ctrl = true;
+    return true;
+  }
+  return false;
+}
+function ctrlUp(ev, target)
+{
+  if (ev.keyCode == 17)
+  {
+    ctrl = false;
+    return true;
+  }
+  return false;
+}
+var exAttachCount = 0;
+function exAttachHandler(ev, k, i, func)
+{
+  if (!ev) var ev = window.event;
+  var t = ev.target;
+  if (!t) t = ev.srcElement;
+  if (t.nodeType == 3) t = t.parentNode; // Safari bug
+  var nt = t;
+  while (nt && (!nt[k] || nt[k] != i))
+    nt = nt.parentNode;
+  var st;
+  if (st = func(ev, nt))
+  {
+    if (ev.stopPropagation)
+      ev.stopPropagation();
+    else
+      ev.cancelBubble = true;
+  }
+  return !st;
+}
+function exAttach(element, evname, func)
+{
+  var i = ++exAttachCount;
+  var k = '_exAt'+evname;
+  element[k] = i;
+  YAHOO.util.Event.addListener(element, evname, function(ev) { return exAttachHandler(ev, k, i, func); });
+}
+exAttach(document.getElementById('btn_delete'), "mousedown", buttonStyle);
+exAttach(document.getElementById('btn_delete'), "mouseup", buttonStyle);
+exAttach(document.getElementById('btn_cut'), "mousedown", buttonStyle);
+exAttach(document.getElementById('btn_cut'), "mouseup", buttonStyle);
+exAttach(document.getElementById('btn_paste'), "mousedown", buttonStyle);
+exAttach(document.getElementById('btn_paste'), "mouseup", buttonStyle);
+exAttach(document.getElementById('btn_paste_beg'), "mousedown", buttonStyle);
+exAttach(document.getElementById('btn_paste_beg'), "mouseup", buttonStyle);
+for (var k = 0; k < np; k++)
+{
+  for (var i = 0; i < nr; i++)
+  {
+    for (var j = 0; j < nc; j++)
+    {
+      var e = document.getElementById('cardtd_'+k+'_'+i+'_'+j);
+      exAttach(e, "mouseup", selectCard);
+      exAttach(e, "mouseover", highlightCard);
+      exAttach(e, "mouseout", unlightCard);
+    }
+  }
+}
+exAttach(document.body, "mouseup", resetAll);
+exAttach(document.body, "keydown", ctrlDown);
+exAttach(document.getElementById('addbugs'), "keypress", addNewIfEnter);
+exAttach(document.body, "keyup", ctrlUp);
+</script>
+
+</body>
+</html>
