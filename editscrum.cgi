@@ -114,6 +114,6 @@ if (defined $sprint && defined $type)
     $vars->{estimates} = { map { $_->{bug_id} => $_->{estimate} } @{$vars->{cards}} };
 }
 
-$template->process('list/edit-scrum.html.tmpl', $vars)
+$template->process('scrum/edit.html.tmpl', $vars)
     || ThrowTemplateError($template->error());
 exit;

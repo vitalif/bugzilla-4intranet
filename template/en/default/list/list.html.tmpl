@@ -102,7 +102,7 @@ function showbugcomma()
 <div id="bugcomma" style="display: none">
 Bug ID list:
 [% FOREACH id = buglist %]
-  [% id | html %]
+  [%+ id | html %]
 [% END %]
 </div>
 
@@ -198,9 +198,7 @@ Bug ID list:
   <div class="buglist-navbar"><a href="buglist.cgi?[% urlquerypart | html %]&amp;ctype=csv">CSV</a></div>
 
   <div class="buglist-navbar">
-    <a href="buglist.cgi?[% urlquerypart.replace('[&\?]columnlist=[^&]*', '') | html %]&amp;columnlist=bug_severity%2Cpriority%2Cshort_desc%2Cestimated_time%2Cactual_time%2Ctarget_milestone&amp;format=scrum">Scrum&nbsp;Cards</a>
-    <br />
-    <a href="editscrum.cgi?id=[% FOR id = buglist %],[% id %][% END %]">Estimates...</a>
+    <a href="scrum.cgi?id=[% buglist.join(',') %]">Scrum Cards</a>
   </div>
 
   <div class="buglist-navbar">
