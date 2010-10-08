@@ -524,6 +524,7 @@ sub init {
                         # User is searching for a comment with specific author
                         $need_commenter = $term = "actcheck_commenter.login_name = $sql_chvalue";
                         $value_term = " AND actcheck.who = (SELECT actcheck_profiles.userid FROM profiles actcheck_profiles WHERE actcheck_profiles.login_name = $sql_chvalue)";
+                        $seen_longdesc = [];
                     }
                     elsif (!$seen_longdesc)
                     {
@@ -609,7 +610,7 @@ sub init {
         }
 
         my $extra;
-        if (!$bug_creation_clause && !$seen_longdesc || @actlist)
+        if (!@chfield || @actlist)
         {
             $extra = '1';
             $extra .= $from_term  if $sql_chfrom;
@@ -627,20 +628,23 @@ sub init {
         }
 
         # http://wiki.office.custis.ru/Bugzilla_-_оптимизация_поиска_по_изменениям
-        $extra = "1";
-        $extra .= " AND actcheck_comment.bug_when >= $sql_chfrom" if $sql_chfrom;
-        $extra .= " AND actcheck_comment.bug_when <= $sql_chto" if $sql_chto;
-        $extra .= " AND actcheck_comment.who = $chfieldwho" if $chfieldwho;
-        if ($seen_longdesc && @$seen_longdesc)
+        if (!@chfield || $seen_longdesc)
         {
-            $extra .= " AND ".$seen_longdesc->[0];
+            $extra = "1";
+            $extra .= " AND actcheck_comment.bug_when >= $sql_chfrom" if $sql_chfrom;
+            $extra .= " AND actcheck_comment.bug_when <= $sql_chto" if $sql_chto;
+            $extra .= " AND actcheck_comment.who = $chfieldwho" if $chfieldwho;
+            if ($seen_longdesc && @$seen_longdesc)
+            {
+                $extra .= " AND ".$seen_longdesc->[0];
+            }
+            push @list,
+                "SELECT bug_id FROM longdescs AS actcheck_comment" .
+                ($need_commenter ?
+                    " INNER JOIN profiles AS actcheck_commenter" .
+                    " ON actcheck_commenter.userid=actcheck_comment.who AND $need_commenter" : '') .
+                " WHERE $extra";
         }
-        push @list,
-            "SELECT bug_id FROM longdescs AS actcheck_comment" .
-            ($need_commenter ?
-                " INNER JOIN profiles AS actcheck_commenter" .
-                " ON actcheck_commenter.userid=actcheck_comment.who AND $need_commenter" : '') .
-            " WHERE $extra";
 
         if ($bug_creation_clause)
         {
