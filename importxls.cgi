@@ -23,7 +23,8 @@ use Bugzilla::User;
 # константы
 use constant BUG_DAYS => 92;
 use constant XLS_LISTNAME => 'Bugz';
-use constant MANDATORY_FIELDS => [qw(short_desc product component)];
+
+my $MANDATORY_FIELDS = [qw(short_desc product component)];
 
 # начинаем-с
 my $user = Bugzilla->login(LOGIN_REQUIRED);
@@ -87,6 +88,7 @@ for (keys %$args)
 
 $vars->{bug_tpl} = $bug_tpl;
 $vars->{name_tr} = $name_tr;
+$vars->{mandatory_fields} = $MANDATORY_FIELDS;
 
 # нужно всосать из шаблонов field_descs...
 # и несколько поменять... ;-/ поганый хак, конечно, а чё делать-то.
@@ -190,15 +192,6 @@ unless ($args->{commit})
                 }
             }
             # показываем табличку с багами
-            my %fhash = map { (exists $name_tr->{$_} ? $name_tr->{$_} : $_) => 1 } @{$table->{fields}};
-            for (@{ MANDATORY_FIELDS() })
-            {
-                unless ($fhash{$_} || $bug_tpl->{$_})
-                {
-                    push @{$table->{fields}}, $_;
-                    $name_tr->{$_} = $_;
-                }
-            }
             $vars->{fields} = $table->{fields};
             $vars->{data} = $table->{data};
         }

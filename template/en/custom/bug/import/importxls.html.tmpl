@@ -84,17 +84,38 @@ function addfield()
 <h2>Select worksheet items to import as bugs</h2>
 
 <script language="JavaScript">
+var mandatory_columns = {
+[% FOR f = mandatory_fields %]
+  "[% f %]": "[% import_field_descs.${f} | js %]",
+[% END %]
+  "": ""
+};
+delete mandatory_columns[""];
+var columnIds = [ [% FOR f = fields %][% IF NOT loop.first %],[% END %]"[% f | js %]"[% END %] ];
 function toggleallbugz(chk)
 {
-    var bgz = document.getElementById("bugz");
-    for (var i = 0; i < bgz.childNodes.length; i++)
-        if (bgz.childNodes[i].id && bgz.childNodes[i].id != "")
-            document.getElementById('b_enabled_'+(""+bgz.childNodes[i].id).substr(5)).checked = chk;
+  var bgz = document.getElementById("bugz");
+  for (var i = 0; i < bgz.childNodes.length; i++)
+    if (bgz.childNodes[i].id && bgz.childNodes[i].id != "")
+      document.getElementById('b_enabled_'+(""+bgz.childNodes[i].id).substr(5)).checked = chk;
 }
 function fieldrename(field)
 {
-    document.getElementById('tp_'+field).style.display='none';
-    document.getElementById('t_'+field).style.display='';
+  document.getElementById('tp_'+field).style.display='none';
+  document.getElementById('t_'+field).style.display='';
+}
+function checkColumns()
+{
+  var found = {}, foundall = true;
+  for (var i in columnIds)
+    found[document.getElementById('t_'+columnIds[i]).value] = true;
+  var notfound = [];
+  for (var j in mandatory_columns)
+    if (!found[j])
+      notfound.push(mandatory_columns[j]);
+  if (notfound.length > 0)
+    alert('Поля "'+notfound.join('", "')+'" являются обязательными, но не выбраны вами!');
+  return notfound.length == 0;
 }
 </script>
 
@@ -114,7 +135,7 @@ function fieldrename(field)
     [% END %]
 [% END %]
 
-<form action="importxls.cgi" method="post">
+<form action="importxls.cgi" method="post" onsubmit="return checkColumns()">
 <input type="hidden" name="commit" value="1" />
 <input type="hidden" name="bugdays" value="[% bugdays | html %]" />
 <input type="hidden" name="listname" value="[% listname | html %]" />
