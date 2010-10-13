@@ -4,7 +4,7 @@
                       "http://www.w3.org/TR/html4/loose.dtd">
 <html>
 <head>
-    <title>[% terms.Bug %] List[% IF searchname || defaultsavename %][% ": " _ (searchname || defaultsavename) | html %][% END %]</title>
+    <title>Печать SCRUM-карточек[% IF searchname || defaultsavename %][% ": " _ (searchname || defaultsavename) | html %][% END %]</title>
     <link rel="stylesheet" type="text/css" media="print" href="skins/standard/print.css" />
     <script language="JavaScript" type="text/javascript" src="js/yui/yahoo-dom-event.js"></script>
 <style type="text/css">
@@ -99,7 +99,7 @@ x
 <p style="clear: both"><input type="submit" value=" Показать " /> <input type="button" value=" Удалить все карточки " onclick="deleteAllCards()" /> </p>
 
 <p>
- Добавить баги: <input type="text" id="addbugs" value="" /> <input type="button" value=" Добавить " onclick="addNewCards()" /> (в конец списка)
+ Добавить баги: <input type="text" id="addbugs" value="" /> <input type="button" value=" Добавить " onclick="addNewCards()" /> <input type="button" value=" Добавить пустой лист " onclick="addEmptyPage()" /> (в конец списка)
 </p>
 
 <div id="btn_delete" style="float: left; border: 2px outset #b0b0b0; padding: 3px; background-color: #f0f0f0">
@@ -193,6 +193,14 @@ function addNewCards()
   while (m = re.exec(val))
     idlist.push(m[1]);
   document.getElementById('idlist_value').value = idlist.join(',');
+  document.getElementById('scrumform').submit();
+}
+function addEmptyPage()
+{
+  for (var i = 0; i < nr*nc; i++)
+    idlist.push('');
+  document.getElementById('idlist_value').value = idlist.join(',');
+  document.writeln(idlist.join(','));
   document.getElementById('scrumform').submit();
 }
 function addNewIfEnter(ev, target)
@@ -372,14 +380,16 @@ function doPasteCards(coord)
     from = to_coord(i);
     to = to_coord(i+nx);
     document.getElementById('card_'+to[0]+'_'+to[1]+'_'+to[2]).innerHTML =
-        document.getElementById('card_'+from[0]+'_'+from[1]+'_'+from[2]).innerHTML;
+      document.getElementById('card_'+from[0]+'_'+from[1]+'_'+from[2]).innerHTML;
     idlist[i+nx] = idlist[i];
   }
   for (var i = 0; i < nx; i++)
   {
     to = to_coord(i+coord);
     document.getElementById('card_'+to[0]+'_'+to[1]+'_'+to[2]).innerHTML = cuttedcards[i];
+    document.getElementById('cardtd_'+to[0]+'_'+to[1]+'_'+to[2]).className = 'cardtd selected';
     idlist[i+coord] = cuttedids[i];
+    selectedcards[to[0]+'_'+to[1]+'_'+to[2]] = true;
   }
   cuttedids = [];
   cuttedcards = [];
