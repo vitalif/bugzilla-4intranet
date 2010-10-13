@@ -7,13 +7,14 @@ use Bugzilla::Util qw(trim);
 use Bugzilla::Error;
 
 my $cgi = Bugzilla->cgi;
+my $user = Bugzilla->login;
 my $args = $cgi->Vars;
 my $vars = {};
 
 # $l = Layout parameters
 my $l = {
-    cols => int($args->{t_cols}) > 0 ? int($args->{t_cols}) : undef,
-    rows => int($args->{t_rows}) > 0 ? int($args->{t_rows}) : undef,
+    cols => int($args->{t_cols} || 0) > 0 ? int($args->{t_cols} || 0) : undef,
+    rows => int($args->{t_rows} || 0) > 0 ? int($args->{t_rows} || 0) : undef,
     fs   => 12,
     pw   => 20,
     ph   => 25.2,
@@ -31,7 +32,7 @@ my $l = {
 
 for (qw(pw ph cw ch cmt cmr cmb cml fs pmt pmr pmb pml))
 {
-    $l->{$_} = $1 if $args->{"t_$_"} =~ /^([\d\.]+)$/ && $1 >= 0;
+    $l->{$_} = $1 if defined $args->{"t_$_"} && $args->{"t_$_"} =~ /^([\d\.]+)$/ && $1 >= 0;
 }
 
 my ($pw, $ph) = ($l->{pw} - $l->{pml} - $l->{pmr}, $l->{ph} - $l->{pmt} - $l->{pmb});
@@ -60,13 +61,23 @@ my $bugs = [];
 my $est = {};
 if ($args->{id})
 {
-    push @$bugs, split /,/, $args->{id};
+    push @$bugs, split /,/, $args->{id}, -1;
     for (@$bugs)
     {
         if ($_)
         {
             $_ = Bugzilla::Bug->new($_);
-            if (!$_->{error})
+        }
+    }
+    for (@$bugs)
+    {
+        if ($_ && !$_->{error})
+        {
+            if (!$user->can_see_bug($_))
+            {
+                $_ = bless { bug_id => $_->bug_id, error => 'AccessDenied' }, 'Bugzilla::Bug';
+            }
+            else
             {
                 $est->{$_->bug_id} = 0+$_->estimated_time;
             }
@@ -104,7 +115,7 @@ for (@$bugs)
 
 $vars->{pages} = $pages;
 $vars->{t} = $l;
-$vars->{idlist} = join ',', map { $_ && $_->id } @$bugs;
+$vars->{idlist} = join ',', map { $_ && $_->id ? $_->id : "" } @$bugs;
 $vars->{idlist_js} = join ',', map { $_ && $_->id ? $_->id : "''" } @$bugs;
 $vars->{estimates} = $est;
 
