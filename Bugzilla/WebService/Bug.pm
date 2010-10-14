@@ -70,7 +70,7 @@ sub fields {
     if (defined $params->{ids}) {
         my $ids = $params->{ids};
         foreach my $id (@$ids) {
-            my $loop_field = Bugzilla->get_field($id, THROW_USER_ERROR);
+            my $loop_field = Bugzilla->get_field($id, THROW_ERROR);
             push(@fields, $loop_field);
         }
     }
@@ -78,7 +78,7 @@ sub fields {
     if (defined $params->{names}) {
         my $names = $params->{names};
         foreach my $field_name (@$names) {
-            my $loop_field = Bugzilla->get_field($field_name, THROW_USER_ERROR);
+            my $loop_field = Bugzilla->get_field($field_name, THROW_ERROR);
             # Don't push in duplicate fields if we also asked for this field
             # in "ids".
             if (!grep($_->id == $loop_field->id, @fields)) {
