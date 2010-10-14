@@ -23,8 +23,7 @@ use Bugzilla::User;
 # константы
 use constant BUG_DAYS => 92;
 use constant XLS_LISTNAME => 'Bugz';
-
-my $MANDATORY_FIELDS = [qw(short_desc product component)];
+use constant MANDATORY_FIELDS => qw(short_desc product component);
 
 # начинаем-с
 my $user = Bugzilla->login(LOGIN_REQUIRED);
@@ -388,7 +387,7 @@ sub post_bug
     my $cgi = Bugzilla->cgi;
     # FIXME проверку обязательных полей можно куда-нибудь унести
     my @unexist;
-    for (@$MANDATORY_FIELDS)
+    for (MANDATORY_FIELDS)
     {
         if (!exists $fields_in->{$_})
         {
