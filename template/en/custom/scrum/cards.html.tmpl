@@ -151,7 +151,11 @@ x
    </tr>
    <tr>
     <td colspan="3" style="font-size: 130%">
-     <input type="text" class="est" name="e[% bug.bug_id %]" value="[% estimates.${bug.bug_id} ? estimates.${bug.bug_id} : '' %]" />
+     [% IF ! ind.${bug.bug_id}; ind.${bug.bug_id} = 0; END %]
+     <input type="text" class="est"
+       name="e[% bug.bug_id %][% IF ind.${bug.bug_id} %]_[% ind.${bug.bug_id} %][% END %]"
+       value="[% estimates.${bug.bug_id}.${ind.${bug.bug_id}} || "" | html %]" />
+     [% ind.${bug.bug_id} = ind.${bug.bug_id}+1 %]
     </td>
    </tr>
   [% END %]
