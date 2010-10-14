@@ -353,6 +353,7 @@ sub parse_csv
     {
         if (!$r->{fields})
         {
+            $_ = trim($_) for @$row;
             $r->{fields} = $row;
         }
         else
