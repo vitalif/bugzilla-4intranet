@@ -106,7 +106,7 @@ use constant SHUTDOWNHTML_EXIT_SILENTLY => [
 { # Block taken directly from Encode::MIME::Header v2.11
 my $especials =
   join( '|' => map { quotemeta( chr($_) ) }
-      unpack( "C*", qq{()<>@,;:"'/[]?.=} ) );
+      unpack( "C*", qq{()<>@,;:\"\'/[]?.=} ) );
 
 my $re_encoded_word = qr{
     =\?                # begin encoded word
@@ -655,23 +655,63 @@ sub switch_to_main_db {
     return $class->dbh_main;
 }
 
-sub get_fields {
+sub cache_fields
+{
     my $class = shift;
-    my $criteria = shift;
-    # This function may be called during installation, and Field::match
-    # may fail at that time. so we want to return an empty list in that
-    # case.
-    my $fields = eval { Bugzilla::Field->match($criteria) } || [];
-    return @$fields;
+    my $cache = $class->request_cache;
+    if (!$cache->{fields})
+    {
+        my $r = {};
+        my $f;
+        eval { $f = [ Bugzilla::Field->get_all ]; };
+        return undef if $@;
+        for (@$f)
+        {
+            $r->{id}->{$_->id} = $_;
+            $r->{name}->{$_->name} = $_;
+        }
+        $cache->{fields} = $r;
+    }
+    return $cache->{fields};
 }
 
-sub active_custom_fields {
+sub get_field
+{
     my $class = shift;
-    if (!exists $class->request_cache->{active_custom_fields}) {
-        $class->request_cache->{active_custom_fields} =
-          Bugzilla::Field->match({ custom => 1, obsolete => 0 });
+    my ($id_or_name, $throw_error) = @_;
+    my $c = $class->cache_fields;
+    $c = $id_or_name =~ /^\d+$/so ? $c->{id}->{$id_or_name} : $c->{name}->{$id_or_name};
+    if (!$c && $throw_error)
+    {
+        ThrowUserError('object_does_not_exist', {
+            ($id_or_name =~ /^\d+$/so ? 'id' : 'name') => $id_or_name,
+            class => 'Bugzilla::Field',
+        });
     }
-    return @{$class->request_cache->{active_custom_fields}};
+    return $c;
+}
+
+sub get_fields
+{
+    my $class = shift;
+    my $criteria = shift || {};
+    my $cache = $class->cache_fields;
+    my @fields = values %{$cache->{id}};
+    for my $k (keys %$criteria)
+    {
+        my %v = map { $_ => 1 } (ref $criteria->{$k} ? @{$criteria->{$k}} : $criteria->{$k});
+        @fields = grep { $v{$_->$k} } @fields;
+    }
+    return @fields;
+}
+
+sub active_custom_fields
+{
+    my $class = shift;
+    my $criteria = shift || {};
+    $criteria->{custom} = 1;
+    $criteria->{obsolete} = 0;
+    return $class->get_fields($criteria);
 }
 
 sub has_flags {

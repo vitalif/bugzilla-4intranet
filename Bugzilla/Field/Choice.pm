@@ -89,7 +89,7 @@ use constant DEFAULT_MAP => {
 
 sub type {
     my ($class, $field) = @_;
-    my $field_obj = blessed $field ? $field : Bugzilla::Field->check($field);
+    my $field_obj = blessed $field ? $field : Bugzilla->get_field($field, THROW_ERROR);
     my $field_name = $field_obj->name;
 
     if ($class->CLASS_MAP->{$field_name}) {
@@ -246,8 +246,7 @@ sub field {
     my $cache = Bugzilla->request_cache;
     # This is just to make life easier for subclasses. Our auto-generated
     # subclasses from type() already have this set.
-    $cache->{"field_$class"} ||=  
-        new Bugzilla::Field({ name => $class->DB_TABLE });
+    $cache->{"field_$class"} ||= Bugzilla->get_field($class->DB_TABLE);
     return $cache->{"field_$class"};
 }
 
@@ -285,7 +284,7 @@ sub controls_visibility_of_fields
             " AND f.visibility_field_id=? AND c.visibility_value_id=? AND c.value_id=0",
             undef, $self->field->id, $self->id
         );
-        $f = Bugzilla::Field->match({ id => $f });
+        $_ = Bugzilla->get_field($_) for @$f;
         $self->{controls_visibility_of_fields} = $f;
     }
     return $f;
@@ -308,7 +307,7 @@ sub controlled_values
             {
                 my $type = Bugzilla::Field::Choice->type($field);
                 $f = $type->match({ id => $f });
-    }
+            }
             $controlled_values->{$field->name} = $f;
         }
         $self->{controlled_values} = $controlled_values;

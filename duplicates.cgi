@@ -128,7 +128,7 @@ my $maxrows = formvalue("maxrows");
 my $openonly = formvalue("openonly");
 my $sortby = formvalue("sortby");
 if (!grep(lc($_) eq lc($sortby), qw(count delta id))) {
-    Bugzilla::Field->check($sortby);
+    Bugzilla->get_field($sortby, THROW_ERROR);
 }
 my $reverse = formvalue("reverse");
 # Reverse count and delta by default.

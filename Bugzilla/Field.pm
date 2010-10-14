@@ -284,7 +284,7 @@ sub _check_name {
 
     # Assure the name is unique. Names can't be changed, so we don't have
     # to worry about what to do on updates.
-    my $field = new Bugzilla::Field({ name => $name });
+    my $field = Bugzilla->get_field($name);
     ThrowUserError('field_already_exists', {'field' => $field }) if $field;
 
     return $name;
@@ -325,7 +325,7 @@ sub _check_visibility_field_id {
     my ($invocant, $field_id) = @_;
     $field_id = trim($field_id);
     return undef if !$field_id;
-    my $field = Bugzilla::Field->check({ id => $field_id });
+    my $field = Bugzilla->get_field($field_id);
     if (blessed($invocant) && $field->id == $invocant->id) {
         ThrowUserError('field_cant_control_self', { field => $field });
     }
@@ -526,6 +526,12 @@ sub visibility_field {
     return $self->{visibility_field};
 }
 
+sub visibility_field_id
+{
+    my $self = shift;
+    return $self->{visibility_field_id};
+}
+
 sub visibility_values
 {
     my $self = shift;
@@ -581,8 +587,7 @@ field controls the visibility of.
 
 sub controls_visibility_of {
     my $self = shift;
-    $self->{controls_visibility_of} ||=
-        Bugzilla::Field->match({ visibility_field_id => $self->id });
+    $self->{controls_visibility_of} ||= [ Bugzilla->get_fields({ visibility_field_id => $self->id }) ];
     return $self->{controls_visibility_of};
 }
 
@@ -608,6 +613,12 @@ sub value_field {
     return $self->{value_field};
 }
 
+sub value_field_id
+{
+    my $self = shift;
+    return $self->{value_field_id};
+}
+
 =pod
 
 =over
@@ -623,8 +634,7 @@ field controls the values of.
 
 sub controls_values_of {
     my $self = shift;
-    $self->{controls_values_of} ||=
-        Bugzilla::Field->match({ value_field_id => $self->id });
+    $self->{controls_values_of} ||= [ Bugzilla->get_fields({ value_field_id => $self->id }) ];
     return $self->{controls_values_of};
 }
 
@@ -1057,7 +1067,7 @@ sub check_field {
     # Using get_legal_values would only return active values, but since
     # some bugs may have inactive values set, we want to check them too.
     unless (defined $legalsRef) {
-        $legalsRef = Bugzilla::Field->new({name => $name})->legal_values;
+        $legalsRef = Bugzilla->get_field($name)->legal_values;
         my @values = map($_->name, @$legalsRef);
         $legalsRef = \@values;
 
@@ -1070,7 +1080,7 @@ sub check_field {
         return 0 if $no_warn; # We don't want an error to be thrown; return.
         trick_taint($name);
 
-        my $field = new Bugzilla::Field({ name => $name });
+        my $field = Bugzilla->get_field($name);
         my $field_desc = $field ? $field->description : $name;
         ThrowUserError('illegal_field', { field => $field_desc, value => $value, legals => $legalsRef, ($args ? %$args : ()) });
     }
