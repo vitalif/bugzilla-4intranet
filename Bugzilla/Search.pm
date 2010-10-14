@@ -404,6 +404,10 @@ sub init {
         }
     }
 
+    $Bugzilla::Search::interval_from = undef;
+    $Bugzilla::Search::interval_to = undef;
+    $Bugzilla::Search::interval_who = undef;
+
     my $chfieldfrom = trim(lc($params->param('chfieldfrom') || ''));
     my $chfieldto = trim(lc($params->param('chfieldto') || ''));
     $chfieldfrom = '' if ($chfieldfrom eq 'now');
