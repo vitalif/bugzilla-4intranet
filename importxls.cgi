@@ -88,7 +88,6 @@ for (keys %$args)
 
 $vars->{bug_tpl} = $bug_tpl;
 $vars->{name_tr} = $name_tr;
-$vars->{mandatory_fields} = $MANDATORY_FIELDS;
 
 # нужно всосать из шаблонов field_descs...
 # и несколько поменять... ;-/ поганый хак, конечно, а чё делать-то.
@@ -230,7 +229,7 @@ else
             else
             {
                 # если ещё нет - ставим новый
-                $id = post_bug($bug, $bugmail);
+                $id = post_bug($bug, $bugmail, $vars);
             }
             if ($id)
             {
@@ -385,8 +384,21 @@ sub get_row
 # добавить баг
 sub post_bug
 {
-    my ($fields_in, $bugmail) = @_;
+    my ($fields_in, $bugmail, $vars) = @_;
     my $cgi = Bugzilla->cgi;
+    # FIXME проверку обязательных полей можно куда-нибудь унести
+    my @unexist;
+    for (@$MANDATORY_FIELDS)
+    {
+        if (!exists $fields_in->{$_})
+        {
+            push @unexist, $vars->{import_field_descs}->{$_};
+        }
+    }
+    if (@unexist)
+    {
+        ThrowUserError('import_fields_mandatory', { fields => \@unexist });
+    }
     # имитируем почтовое использование с показом ошибок в браузер
     my $um = Bugzilla->usage_mode;
     Bugzilla->usage_mode(USAGE_MODE_EMAIL);

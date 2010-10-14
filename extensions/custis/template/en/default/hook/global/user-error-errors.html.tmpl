@@ -1,13 +1,15 @@
 [% IF error == "cc_group_restriction" %]
-   [% title = "CC Group Restriction" %]
-   User [% user %] is restricted to watch this bug.
+  [% title = "CC Group Restriction" %]
+  User [% user %] is restricted to watch this bug.
 [% ELSIF error == "rms_fields_empty" %]
-   [% title = "Some required fields are empty" %]
-   [% FOR nok = not_ok_bugs %]
-     [% fs = [] %]
-     [% fs.push("Sprint") IF nok.s %]
-     [% fs.push("Status Whiteboard") IF nok.w %]
-     [% fs.push("Agreement") IF nok.a %]
-     <a href="show_bug.cgi?id=[% nok.bug.id %]">[% terms.Bug %] [%+ nok.bug.id %] - [% nok.bug.short_desc | html %]</a>: You must fill in <b>[% fs.join(", ") %]</b> attribute[% IF fs.size > 1 %]s[% END %] before [% IF nok.bug.bug_status == "ASSIGNED" %]taking[% ELSE %]closing[% END %] this bug!<br />
-   [% END %]
+  [% title = "Some required fields are empty" %]
+  [% FOR nok = not_ok_bugs %]
+    [% fs = [] %]
+    [% fs.push("Sprint") IF nok.s %]
+    [% fs.push("Status Whiteboard") IF nok.w %]
+    [% fs.push("Agreement") IF nok.a %]
+    <a href="show_bug.cgi?id=[% nok.bug.id %]">[% terms.Bug %] [%+ nok.bug.id %] - [% nok.bug.short_desc | html %]</a>: You must fill in <b>[% fs.join(", ") %]</b> attribute[% IF fs.size > 1 %]s[% END %] before [% IF nok.bug.bug_status == "ASSIGNED" %]taking[% ELSE %]closing[% END %] this bug!<br />
+  [% END %]
+[% ELSIF error == "import_fields_mandatory" %]
+  The following fields: [% fields.join(", ") | html %] are required to enter new bugs.
 [% END %]
