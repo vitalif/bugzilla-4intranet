@@ -17,9 +17,20 @@
 <legend>Выборка трудозатрат:</legend>
 <form action="?" method="POST" />
 <input type="hidden" name="format" value="superworktime" />
+[% hidden_fields = {
+    'chfieldfrom'    => 1
+    'chfieldto'      => 1
+    'chfieldwho'     => 1
+    'worktime_user'  => 3
+    'worktime_date'  => 3
+    'save_worktime'  => 3
+    'format'         => 3
+    'comment'        => 2
+    'divide_min_inc' => 2
+} %]
 [% FOR k = query_params.keys %]
-[% IF k != 'chfieldfrom' && k != 'chfieldto' && k != 'chfieldwho' && k != 'worktime_user' && k != 'worktime_date' && k != 'save_worktime' %]
-  [% IF query_params.${k}.size %]
+[% IF !hidden_fields.$k || hidden_fields.$k == 2 %]
+  [% IF query_params.$k.size %]
    [% FOR vk = query_params.${k} %]
     <input type="hidden" name="[% k | html %]" value="[% vk | html %]" />
    [% END %]
@@ -48,7 +59,7 @@
 <input type="hidden" name="format" value="superworktime" />
 <input type="hidden" name="save_worktime" value="1" />
 [% FOR k = query_params.keys %]
-[% IF k != 'worktime_user' && k != 'worktime_date' && k != 'save_worktime' %]
+[% IF !hidden_fields.$k || hidden_fields.$k == 1 %]
 <input type="hidden" name="[% k | html %]" value="[% query_params.${k} | html %]" />
 [% END %]
 [% END %]

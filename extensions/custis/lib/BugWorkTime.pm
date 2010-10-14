@@ -54,6 +54,7 @@ sub DistributeWorktime
     }
     $sql .= ' GROUP BY who';
     my $propo = $dbh->selectall_hashref($sql, 'who', undef, @bind);
+    $propo = { map { $_ => $propo->{$_}->{wt} } keys %$propo };
     my $sum = 0;
     my $n = keys(%$propo) || return undef;
     $sum += $propo->{$_} for keys %$propo;
@@ -61,11 +62,12 @@ sub DistributeWorktime
     my $nt;
     for (keys %$propo)
     {
-        $nt = $sum > 0 ? $t*$propo->{$_}/$sum : $t/$n;
+        $nt = $sum ? $t*$propo->{$_}/$sum : $t/$n;
         $nt = int($nt*100)/100;
-        if ($nt < $min_inc)
+        if (abs($nt) < $min_inc || ($nt < 0) xor ($sum > 0))
         {
             # не размазываем время совсем уж мелкими суммами
+            # и размазываем только суммами того же знака, что и вся сумма
             $sum -= $propo->{$_};
             $n--;
             next;
