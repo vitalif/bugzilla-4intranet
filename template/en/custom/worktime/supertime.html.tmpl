@@ -79,7 +79,7 @@
 <fieldset>
   <legend>Списать время:</legend>
 [% IF wt_admin %]
-  На дату: <input type="text" name="worktime_date" value="[% worktime_date | html %]" /> &nbsp;
+  На дату: <input type="text" name="worktime_date" value="[% worktime_date | html %]" /> <span style="color: #aaa">(YYYY-MM-DD HH:MM:SS)</span> &nbsp;
   За пользователя:
   <div style="display:inline-block">
   <span id="wt_forall" onclick="document.getElementById('worktime_user').focus()" style="cursor: text; z-index: 2; padding-top: 3pt; position: absolute; font-weight: bold; color: red">&nbsp;за&nbsp;всех&nbsp;участников</span>
