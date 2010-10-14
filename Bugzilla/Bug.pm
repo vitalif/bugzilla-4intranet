@@ -3147,7 +3147,7 @@ sub choices {
         target_milestone => $self->product_obj->milestones,
     );
 
-    my $resolution_field = new Bugzilla::Field({ name => 'resolution' });
+    my $resolution_field = Bugzilla->get_field('resolution');
     # Don't include the empty resolution in drop-downs.
     my @resolutions = grep($_->name, @{ $resolution_field->legal_values });
     # And don't include MOVED in the list unless the bug is already MOVED.

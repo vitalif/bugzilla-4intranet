@@ -257,12 +257,12 @@ $vars->{'chfield'} = [ sort grep { !$exclude{$_} } map { $_->name } @fields ];
 unshift @{$vars->{fields}}, { name => "noop", description => "---" };
 
 # Legal values for select fields
-$vars->{'bug_status'} = Bugzilla::Field->new({name => 'bug_status'})->legal_values;
-Bugzilla->params->{useplatform} and $vars->{'rep_platform'} = Bugzilla::Field->new({name => 'rep_platform'})->legal_values;
-Bugzilla->params->{useopsys} and $vars->{'op_sys'} = Bugzilla::Field->new({name => 'op_sys'})->legal_values;
-$vars->{'priority'} = Bugzilla::Field->new({name => 'priority'})->legal_values;
-$vars->{'bug_severity'} = Bugzilla::Field->new({name => 'bug_severity'})->legal_values;
-$vars->{'resolution'} = Bugzilla::Field->new({name => 'resolution'})->legal_values;
+$vars->{'bug_status'} = Bugzilla->get_field('bug_status')->legal_values;
+Bugzilla->params->{useplatform} and $vars->{'rep_platform'} = Bugzilla->get_field('rep_platform')->legal_values;
+Bugzilla->params->{useopsys} and $vars->{'op_sys'} = Bugzilla->get_field('op_sys')->legal_values;
+$vars->{'priority'} = Bugzilla->get_field('priority')->legal_values;
+$vars->{'bug_severity'} = Bugzilla->get_field('bug_severity')->legal_values;
+$vars->{'resolution'} = Bugzilla->get_field('resolution')->legal_values;
 
 # If we're not in the time-tracking group, exclude time-tracking fields.
 if (!Bugzilla->user->is_timetracker) {
@@ -350,21 +350,19 @@ if (($cgi->param('query_format') || $cgi->param('format') || "")
 # CustIS Bug 58300 - Add custom fields to search filters
 # This logic is moved from search/form.html.tmpl
 $vars->{freetext_fields} = [
-    Bugzilla::Field->new({ name => "longdesc" }),
-    Bugzilla::Field->new({ name => "bug_file_loc" }),
+    Bugzilla->get_field('longdesc'),
+    Bugzilla->get_field('bug_file_loc')
 ];
 if (Bugzilla->params->{usestatuswhiteboard})
 {
-    push @{$vars->{freetext_fields}}, Bugzilla::Field->new({ name => "status_whiteboard" });
+    push @{$vars->{freetext_fields}}, Bugzilla->get_field('status_whiteboard');
 }
 push @{$vars->{freetext_fields}},
-    grep { $_->type == FIELD_TYPE_TEXTAREA || $_->type == FIELD_TYPE_FREETEXT }
-    Bugzilla->active_custom_fields;
+    Bugzilla->active_custom_fields({ type => [ FIELD_TYPE_TEXTAREA, FIELD_TYPE_FREETEXT ] });
 
 if ($cgi->param('format') && $cgi->param('format') =~ /^report-(table|graph)$/) {
     # Get legal custom fields for tabular and graphical reports.
-    my @custom_fields_for_reports =
-      grep { $_->type == FIELD_TYPE_SINGLE_SELECT } Bugzilla->active_custom_fields;
+    my @custom_fields_for_reports = Bugzilla->active_custom_fields({ type => FIELD_TYPE_SINGLE_SELECT });
     $vars->{'custom_fields'} = \@custom_fields_for_reports;
 }
 

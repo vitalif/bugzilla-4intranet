@@ -306,7 +306,7 @@ sub init {
         my @bug_statuses = $params->param('bug_status');
         # Also include inactive bug statuses, as you can query them.
         my @legal_statuses =
-          map {$_->name} @{Bugzilla::Field->new({name => 'bug_status'})->legal_values};
+          map {$_->name} @{Bugzilla->get_field('bug_status')->legal_values};
 
         # Filter out any statuses that have been removed completely that are still
         # being used by the client
@@ -336,7 +336,7 @@ sub init {
     if ($params->param('resolution')) {
         my @resolutions = $params->param('resolution');
         # Also include inactive resolutions, as you can query them.
-        my $legal_resolutions = Bugzilla::Field->new({name => 'resolution'})->legal_values;
+        my $legal_resolutions = Bugzilla->get_field('resolution')->legal_values;
         if (scalar(@resolutions) == scalar(@$legal_resolutions)) {
             $params->delete('resolution');
         }

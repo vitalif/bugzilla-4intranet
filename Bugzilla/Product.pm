@@ -586,7 +586,7 @@ sub field {
     my $invocant = shift;
     my $class = ref $invocant || $invocant;
     my $cache = Bugzilla->request_cache;
-    $cache->{"field_$class"} ||= new Bugzilla::Field({ name => 'product' });
+    $cache->{"field_$class"} ||= Bugzilla->get_field('product');
     return $cache->{"field_$class"};
 }
 

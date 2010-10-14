@@ -81,7 +81,7 @@ elsif ($action eq 'new') {
 }
 elsif ($action eq 'edit') {
     my $name = $cgi->param('name') || ThrowUserError('field_missing_name');
-    my $field = new Bugzilla::Field({'name' => $name});
+    my $field = Bugzilla->get_field($name);
     $field || ThrowUserError('customfield_nonexistent', {'name' => $name});
 
     $vars->{'field'} = $field;
@@ -96,7 +96,7 @@ elsif ($action eq 'update') {
 
     # Validate fields.
     $name || ThrowUserError('field_missing_name');
-    my $field = new Bugzilla::Field({'name' => $name});
+    my $field = Bugzilla->get_field($name);
     $field || ThrowUserError('customfield_nonexistent', {'name' => $name});
 
     $field->set_description($cgi->param('desc'));
@@ -133,7 +133,7 @@ elsif ($action eq 'del') {
     if ($name !~ /^cf_/) {
         $name = 'cf_' . $name;
     }
-    my $field = new Bugzilla::Field({'name' => $name});
+    my $field = Bugzilla->get_field($name);
     $field || ThrowUserError('customfield_nonexistent', {'name' => $name});
 
     $vars->{'field'} = $field;
@@ -153,7 +153,7 @@ elsif ($action eq 'delete') {
     if ($name !~ /^cf_/) {
         $name = 'cf_' . $name;
     }
-    my $field = new Bugzilla::Field({'name' => $name});
+    my $field = Bugzilla->get_field($name);
     $field || ThrowUserError('customfield_nonexistent', {'name' => $name});
 
     # Calling remove_from_db will check if field can be deleted.
