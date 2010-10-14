@@ -59,6 +59,7 @@ else
 
 my $bugs = [];
 my $est = {};
+
 if ($args->{id})
 {
     push @$bugs, split /,/, $args->{id}, -1;
@@ -77,15 +78,20 @@ if ($args->{id})
             }
             else
             {
-                $est->{$_->bug_id} = 0+$_->estimated_time;
+                push @{$est->{$_->bug_id}}, 0+$_->estimated_time;
             }
         }
     }
 }
 
-for (keys %$est)
+my $k;
+for my $id (keys %$est)
 {
-    $est->{$_} = $args->{"e$_"} if exists $args->{"e$_"};
+    for (0..$#{$est->{$id}})
+    {
+        $k = 'e'.$id.($_ ? '_'.$_ : '');
+        $est->{$id}->[$_] = $args->{$k} if exists $args->{$k};
+    }
 }
 
 if (@$bugs % ($l->{cols} * $l->{rows}))
