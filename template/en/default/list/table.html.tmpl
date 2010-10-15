@@ -266,5 +266,8 @@
         [% columns_to_span = columns_to_span + 1 %]
       [% END %]
     [% END %]
+
+    [%# vitalif@mail.ru --- A "hook" into the bug row for building custom views based on table view %]
+    [% IF bug_time_summary_line_callback %][% bug_time_summary_line_callback FILTER process %][% END %]
   </tr>
 [% END %]
