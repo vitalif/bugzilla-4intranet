@@ -69,11 +69,16 @@
 [% END %]
 
 [% BLOCK worktime_td %]
-<td><input type="text" name="wtime_[% bug.bug_id %]" id="wtime_[% bug.bug_id %]" value="" /></td>
+<td><input type="text" style="text-align: right" name="wtime_[% bug.bug_id %]" id="wtime_[% bug.bug_id %]" value="" onkeypress="refresh_total_wt()" onchange="refresh_total_wt()" /></td>
+[% END %]
+
+[% BLOCK worktime_total %]
+<td id="wtime_total" class="bz_total">0</td>
 [% END %]
 
 [% SET bug_table_callback = "worktime_td" %]
 [% SET bug_header_callback = "worktime_th" %]
+[% SET bug_time_summary_line_callback = "worktime_total" %]
 [% PROCESS list/table.html.tmpl %]
 
 <fieldset>
@@ -167,6 +172,18 @@ function forall_unfocus()
 function forall_focus()
 {
   document.getElementById('wt_forall').style.display = 'none';
+}
+function refresh_total_wt()
+{
+  var sum = 0;
+  for (var i in period_times)
+  {
+    ed = document.getElementById('wtime_'+i);
+    cur = bzParseTime(ed.value);
+    if (cur == cur && cur)
+      sum += cur;
+  }
+  document.getElementById('wtime_total').innerHTML = sum;
 }
 forall_unfocus();
 </script>
