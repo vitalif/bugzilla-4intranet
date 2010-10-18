@@ -204,7 +204,6 @@ function addEmptyPage()
   for (var i = 0; i < nr*nc; i++)
     idlist.push('');
   document.getElementById('idlist_value').value = idlist.join(',');
-  document.writeln(idlist.join(','));
   document.getElementById('scrumform').submit();
 }
 function addNewIfEnter(ev, target)
