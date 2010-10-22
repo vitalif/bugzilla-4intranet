@@ -1029,6 +1029,7 @@ sub bz_start_transaction {
     my ($self) = @_;
 
     if ($self->bz_in_transaction) {
+        $self->set_savepoint();
         $self->{private_bz_transaction_count}++;
     } else {
         # Turn AutoCommit off and start a new transaction
@@ -1056,17 +1057,47 @@ sub bz_commit_transaction {
     }
 }
 
-sub bz_rollback_transaction {
+sub bz_rollback_transaction
+{
     my ($self) = @_;
 
     # Unlike start and commit, if we rollback at any point it happens
     # instantly, even if we're in a nested transaction.
-    if (!$self->bz_in_transaction) {
+    if (!$self->bz_in_transaction)
+    {
         ThrowCodeError("not_in_transaction");
-    } else {
+    }
+    else
+    {
         $self->rollback();
         $self->{private_bz_transaction_count} = 0;
     }
+}
+
+sub bz_rollback_to_savepoint
+{
+    my $self = shift;
+    if ($self->{private_bz_transaction_count} <= 1)
+    {
+        $self->bz_rollback_transaction();
+    }
+    else
+    {
+        $self->{private_bz_transaction_count}--;
+        $self->rollback_to_savepoint();
+    }
+}
+
+sub set_savepoint
+{
+    my $self = shift;
+    $self->do('SAVEPOINT sp'.$self->{private_bz_transaction_count});
+}
+
+sub rollback_to_savepoint
+{
+    my $self = shift;
+    $self->do('ROLLBACK TO SAVEPOINT sp'.$self->{private_bz_transaction_count});
 }
 
 #####################################################################

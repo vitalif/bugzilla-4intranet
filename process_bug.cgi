@@ -61,6 +61,8 @@ use Bugzilla::Flag;
 use Bugzilla::Status;
 use Bugzilla::Token;
 
+use Checkers;
+
 use Storable qw(dclone);
 
 my $user = Bugzilla->login(LOGIN_REQUIRED);
@@ -556,8 +558,12 @@ foreach my $b (@bug_objects) {
 
 Bugzilla::Hook::process('process_bug-pre_update', { bugs => \@bug_objects });
 
+my $failed_checkers = [];
+
 # @msgs will store emails which have to be sent to voters, if any.
 my @msgs;
+
+$Checkers::THROW_ERROR = @bug_objects == 1;
 
 ##############################
 # Do Actual Database Updates #
@@ -567,6 +573,16 @@ foreach my $bug (@bug_objects) {
 
     my $timestamp = $dbh->selectrow_array(q{SELECT LOCALTIMESTAMP(0)});
     my $changes = $bug->update($timestamp);
+
+    if ($bug->{failed_checkers} && @{$bug->{failed_checkers}})
+    {
+        push @$failed_checkers, $bug;
+        if (grep { $_->is_fatal } @{$bug->{failed_checkers}})
+        {
+            # When we are here, rollback_to_savepoint is already done in Checkers.pm
+            next;
+        }
+    }
 
     my %notify_deps;
     if ($changes->{'bug_status'}) {
@@ -677,6 +693,7 @@ foreach my $msg (@msgs) {
 # Send bugmail
 send_results($_) for @$send_results;
 $vars->{sentmail} = $send_results;
+$vars->{failed_checkers} = $failed_checkers;
 
 my $bug;
 if (Bugzilla->usage_mode == USAGE_MODE_EMAIL) {
@@ -707,6 +724,8 @@ elsif (($action eq 'next_bug' or $action eq 'same_bug') && ($bug = $vars->{bug})
         sent => $send_results,
         title => $title,
         sent_attrs => { nextbug => $action eq 'next_bug' ? 1 : 0 },
+        # CustIS Bug 68921 - Correctness checkers
+        failed_checkers => Checkers::freeze_failed_checkers($failed_checkers),
     };
     # CustIS Bug 38616 - CC list restriction
     if (scalar(@bug_objects) == 1 && $bug_objects[0]->{restricted_cc})
@@ -736,6 +755,11 @@ unless (Bugzilla->usage_mode == USAGE_MODE_EMAIL)
         $template->process("bug/process/results.html.tmpl", { %$vars, %$_ })
             || ThrowTemplateError($template->error());
         $vars->{header_done} = 1;
+    }
+    if (!$vars->{header_done})
+    {
+        $template->process("global/header.html.tmpl", $vars)
+            || ThrowTemplateError($template->error());
     }
     $template->process("bug/navigate.html.tmpl", $vars)
         || ThrowTemplateError($template->error());

@@ -12,4 +12,6 @@
   [% END %]
 [% ELSIF error == "import_fields_mandatory" %]
   The following missing fields: [% fields.join(", ") | html %] are required to enter new bugs.
+[% ELSIF error == "checkers_failed" %]
+  [% PROCESS "failed-checkers.html.tmpl" f = failed %]
 [% END %]

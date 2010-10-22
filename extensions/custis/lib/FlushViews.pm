@@ -1,4 +1,5 @@
 #!/usr/bin/perl
+# CustIS Bug 61728 - external SQL interface to Bugzilla's bug tables
 
 package FlushViews;
 
@@ -10,7 +11,6 @@ use Bugzilla::Search;
 our @ISA = qw(Exporter);
 our @EXPORT = qw(refresh_views);
 
-# CustIS Bug 61728 - external SQL interface to Bugzilla's bugs and longdescs tables
 sub refresh_views
 {
     my ($users) = @_;
@@ -44,6 +44,16 @@ sub refresh_views
         $dbh->do('CREATE SQL SECURITY DEFINER VIEW `view$'.$user.'$'.$query.'$bugs_activity` AS SELECT a.bug_id, u.login_name, a.bug_when, f.name field_name, a.removed, a.added FROM bugs_activity a INNER JOIN `view$'.$user.'$'.$query.'$bugs` b ON b.bug_id=a.bug_id INNER JOIN profiles u ON u.userid=a.who INNER JOIN fielddefs f ON f.id=a.fieldid');
         $dbh->do('CREATE SQL SECURITY DEFINER VIEW `view$'.$user.'$'.$query.'$scrum_cards` AS SELECT s.* FROM scrum_cards s INNER JOIN `view$'.$user.'$'.$query.'$bugs` b ON b.bug_id=s.bug_id');
     }
+}
+
+# hooks:
+sub savedsearch_post_update
+{
+    my ($args) = @_;
+    my $name = $args->{search}->user->login;
+    $name =~ s/\@.*$//so;
+    refresh_views([ $name ]);
+    return 1;
 }
 
 1;

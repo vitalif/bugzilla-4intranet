@@ -1,0 +1,25 @@
+[%# Интерфейс: f = массив багов с заполненным полем failed_checkers = массиву Bugzilla::Checker %]
+[% lastbug = "" %]
+<p style="margin-top: 0">
+  Внесённые
+  [% IF f.size == 1 %]
+    в <a href="show_bug.cgi?id=[% f.0.bug_id %]">[% terms.Bug %] [%+ f.0.bug_id %]</a>
+  [% END %]
+  изменения не удовлетворяют следующим проверкам:
+</p>
+[% FOR bug = f %]
+[% IF f.size > 1 %]
+  <p><a href="show_bug.cgi?id=[% bug.bug_id %]">[% terms.Bug %] [%+ bug.bug_id %]</a>:</p>
+[% END %]
+[% FOR c = bug.failed_checkers %]
+<dl style="margin-bottom: 0">
+  <dt>[% c.name | html %]
+    <span style="font-weight: normal">([% c.is_fatal ? "обязательная" : "рекомендательная" %]
+    [%+ IF c.is_freeze %]защита от изменений[% ELSE %]проверка новых значений[% END %]):</span>
+  </dt>
+  <dd>
+    [% c.message | html %]
+  </dd>
+</dl>
+[% END %]
+[% END %]

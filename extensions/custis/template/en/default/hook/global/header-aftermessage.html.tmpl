@@ -1,0 +1,7 @@
+[% IF failed_checkers %]
+<div class="user-error-div">
+ <div class="user-error-div-first">
+  [% PROCESS "failed-checkers.html.tmpl" f = failed_checkers %]
+ </div>
+</div>
+[% END %]

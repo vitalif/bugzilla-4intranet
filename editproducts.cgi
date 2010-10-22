@@ -179,6 +179,7 @@ if ($action eq 'new') {
         allows_unconfirmed => scalar $cgi->param('allows_unconfirmed'),
         wiki_url         => scalar $cgi->param('wiki_url'),
         notimetracking   => scalar $cgi->param('notimetracking'),
+        extproduct       => scalar $cgi->param('extproduct'),
     );
     if (Bugzilla->params->{'usevotes'}) {
         $create_params{votesperuser}   = $cgi->param('votesperuser');
@@ -286,6 +287,7 @@ if ($action eq 'update') {
     $product->set_name($product_name);
     $product->set_wiki_url(scalar $cgi->param('wiki_url'));
     $product->set_notimetracking(scalar $cgi->param('notimetracking'));
+    $product->set_extproduct(scalar $cgi->param('extproduct'));
     $product->set_description(scalar $cgi->param('description'));
     $product->set_default_milestone(scalar $cgi->param('defaultmilestone'));
     $product->set_is_active(scalar $cgi->param('is_active'));

@@ -331,3 +331,5 @@
 [% IF message %]
 <div id="message" class="message">[% message %]</div>
 [% END %]
+
+[% Hook.process('aftermessage') %]

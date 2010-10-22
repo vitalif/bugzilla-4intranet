@@ -80,6 +80,8 @@ use constant DEFAULT_USER => {
     'disable_mail'   => 0,
 };
 
+my $SUPERUSER = {};
+
 use constant DB_TABLE => 'profiles';
 
 # XXX Note that Bugzilla::User->name does not return the same thing
@@ -136,16 +138,24 @@ sub new {
     return $class->SUPER::new(@_);
 }
 
-sub super_user {
+sub super_user
+{
     my $invocant = shift;
     my $class = ref($invocant) || $invocant;
     my ($param) = @_;
 
-    my $user = dclone(DEFAULT_USER);
-    $user->{groups} = [Bugzilla::Group->get_all];
-    $user->{bless_groups} = [Bugzilla::Group->get_all];
-    bless $user, $class;
-    return $user;
+    %$SUPERUSER = %{ DEFAULT_USER() };
+    $SUPERUSER->{groups} = [Bugzilla::Group->get_all];
+    $SUPERUSER->{bless_groups} = [Bugzilla::Group->get_all];
+    bless $SUPERUSER, $class;
+
+    return $SUPERUSER;
+}
+
+sub is_super_user
+{
+    my $self = shift;
+    return $self eq $SUPERUSER;
 }
 
 sub update {

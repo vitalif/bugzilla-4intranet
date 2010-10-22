@@ -1,6 +1,8 @@
 #!/usr/bin/perl
 # Bug 53254 - Синхронизация тест-плана с категорией MediaWiki
 
+package CustisTestPlanSync;
+
 use utf8;
 use strict;
 use Bugzilla::Util;
@@ -15,25 +17,29 @@ use HTML::Entities;
 use HTTP::Request::Common;
 use LWP::Simple qw($ua);
 
-my $cgi = Bugzilla->cgi;
-my $plan = Bugzilla->hook_args->{plan};
-my $vars = Bugzilla->hook_args->{vars};
-
-# Синхронизация по /tr_show_plan.cgi?wikisync=1
-if ($cgi->param('wikisync'))
+# Hook
+sub tr_show_plan_after_fetch
 {
-    my $wiki_url = $plan->product->wiki_url || Bugzilla->params->{wiki_url};
-    if ($wiki_url && $plan->wiki)
+    my $cgi = Bugzilla->cgi;
+    my $plan = $args->{plan};
+    my $vars = $args->{vars};
+
+    # Синхронизация по /tr_show_plan.cgi?wikisync=1
+    if ($cgi->param('wikisync'))
     {
-        my $xml = fetch_wiki_category_xml($wiki_url, $plan->wiki);
-        my $p = XML::Parser->new(Handlers => {
-            Start => \&wiki_sync_handle_start,
-            End   => \&wiki_sync_handle_end,
-            Char  => \&wiki_sync_handle_char,
-        });
-        $p->{_ws_wiki_url} = $wiki_url;
-        $p->{_ws_plan} = $plan;
-        $p->parse($xml);
+        my $wiki_url = $plan->product->wiki_url || Bugzilla->params->{wiki_url};
+        if ($wiki_url && $plan->wiki)
+        {
+            my $xml = fetch_wiki_category_xml($wiki_url, $plan->wiki);
+            my $p = XML::Parser->new(Handlers => {
+                Start => \&wiki_sync_handle_start,
+                End   => \&wiki_sync_handle_end,
+                Char  => \&wiki_sync_handle_char,
+            });
+            $p->{_ws_wiki_url} = $wiki_url;
+            $p->{_ws_plan} = $plan;
+            $p->parse($xml);
+        }
     }
 }
 
@@ -196,3 +202,6 @@ sub fetch_wiki_category_xml
     }
     return $xml;
 }
+
+1;
+__END__

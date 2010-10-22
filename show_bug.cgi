@@ -31,6 +31,8 @@ use Bugzilla::User;
 use Bugzilla::Keyword;
 use Bugzilla::Bug;
 
+use Checkers;
+
 my $cgi = Bugzilla->cgi;
 my $template = Bugzilla->template;
 my $vars = {};
@@ -131,10 +133,17 @@ $vars->{'displayfields'} = \%displayfields;
 my $sd;
 if (Bugzilla->session && ($sd = Bugzilla->session_data) && $sd->{sent})
 {
-    Bugzilla->save_session_data({ sent => undef, title => undef, header => undef, sent_attrs => undef });
+    Bugzilla->save_session_data({
+        sent => undef,
+        title => undef,
+        header => undef,
+        sent_attrs => undef,
+        failed_checkers => undef,
+    });
     $vars->{last_title} = $sd->{title};
     $vars->{last_header} = $sd->{header};
     $vars->{sentmail} = $sd->{sent};
+    $vars->{failed_checkers} = Checkers::unfreeze_failed_checkers($sd->{failed_checkers});
     if ($sd->{message})
     {
         $vars->{message} = $sd->{message};

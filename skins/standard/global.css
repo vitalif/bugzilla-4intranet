@@ -571,9 +571,9 @@ filter:mask();
 }
 
 .yui-calcontainer { z-index: 50; }
-
 .numeric_invalid { background-color: #FFE0E0; }
-
 .buglist-navbar { float: left; margin: 4pt; font-size: 120%; padding: 2pt; }
-
 .bz_interval_time_column { text-align: right; }
+
+.user-error-div { margin: 20px; padding: 10px; font-size: 130%; font-family: sans-serif; border: 10px solid red; background: white; }
+.user-error-div-first { font-size: 150%; background-color: #ffd0d0; padding: 10px; }

@@ -126,6 +126,11 @@
         and time, and get the result of these queries directly per email. This is a
         good way to create reminders and to keep track of the activity in your installation.</dd>
 
+        [% class = user.in_group('bz_editcheckers') ? "" : "forbidden" %]
+        <dt id="checkers" class="[% class %]"><a href="editcheckers.cgi">Checkers</a></dt>
+        <dd class="[% class %]">Set queries which will be run at each bug change and used as
+        predicates for checking change correctness.</dd>
+
         [% Hook.process('end_links_right') %]
       </dl>
     </td>

@@ -104,8 +104,11 @@
                    [% q.name FILTER url_quote %]">Edit</a>
         </td>
         <td>
-          [% IF q.used_in_whine %]
-            Remove from <a href="editwhines.cgi">whining</a> first
+          [% IF q.used_in_whine OR q.used_in_checkers %]
+            Remove from
+            [%+ IF q.used_in_whine %]<a href="editwhines.cgi">whining</a>[% " and " IF q.used_in_checkers %][% END %]
+            [%+ IF q.used_in_checkers %]<a href="editcheckers.cgi">checkers</a>[% END %]
+            first
           [% ELSE %]
             <a href="buglist.cgi?cmdtype=dorem&amp;remaction=forget&amp;namedcmd=
                      [% q.name FILTER url_quote %]&amp;token=
