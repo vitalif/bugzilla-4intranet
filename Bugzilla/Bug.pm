@@ -671,6 +671,8 @@ sub update {
     # inside this function.
     my $delta_ts = shift || $dbh->selectrow_array('SELECT LOCALTIMESTAMP(0)');
 
+    Bugzilla::Hook::process('bug_pre_update', { bug => $self });
+
     my ($changes, $old_bug) = $self->SUPER::update(@_);
 
     # Certain items in $changes have to be fixed so that they hold
@@ -840,6 +842,8 @@ sub update {
         $dbh->do("INSERT INTO longdescs ($columns) VALUES ($qmarks)", undef, @values);
         if ($comment->{work_time})
         {
+            $changes->{work_time} ||= [ '', 0 ];
+            $changes->{work_time}->[1] += $comment->{work_time};
             # log worktime
             LogActivityEntry($self->id, "work_time", "", $comment->{work_time},
                 Bugzilla->user->id, $delta_ts);
@@ -915,16 +919,16 @@ sub update {
         $changes->{'dup_id'} = [$old_dup || undef, $cur_dup || undef];
     }
 
-    Bugzilla::Hook::process('bug_end_of_update',
-        { bug => $self, timestamp => $delta_ts, changes => $changes,
-          old_bug => $old_bug });
-
     # If any change occurred, refresh the timestamp of the bug.
     if (scalar(keys %$changes) || $self->{added_comments}) {
         $dbh->do('UPDATE bugs SET delta_ts = ? WHERE bug_id = ?',
                  undef, ($delta_ts, $self->id));
         $self->{delta_ts} = $delta_ts;
     }
+
+    Bugzilla::Hook::process('bug_end_of_update',
+        { bug => $self, timestamp => $delta_ts, changes => $changes,
+          old_bug => $old_bug });
 
     # The only problem with this here is that update() is often called
     # in the middle of a transaction, and if that transaction is rolled
@@ -2735,6 +2739,8 @@ sub blocked {
 
 # Even bugs in an error state always have a bug_id.
 sub bug_id { $_[0]->{'bug_id'}; }
+
+sub failed_checkers { $_[0]->{failed_checkers} }
 
 sub cc {
     my ($self) = @_;

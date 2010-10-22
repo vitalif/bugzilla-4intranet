@@ -1,0 +1,144 @@
+[% PROCESS global/header.html.tmpl
+  title = "Правка предикатов корректности изменений"
+%]
+
+[% IF mode == "list" %]
+ <h3>Редактирование предикатов корректности</h3>
+ [% IF checkers.size %]
+  <p>Список определённых предикатов корректности:</p>
+  <dl>
+  [% FOR c = checkers %]
+   <dt>
+    [% c.name | html %]:
+    <a href="?mode=edit&query_id=[% c.query_id %]">править</a>,
+    <a href="javascript:void(0)" onclick="if(confirm('Действительно удалить эту проверку?')){window.location.href='?save=1&delete=1&query_id=[% c.query_id %]';}">удалить</a>
+   </dt>
+   <dd>
+    [% c.message | html %]
+    ([% c.is_fatal ? "обязательная" : "рекомендательная" %]
+    [%+ IF c.is_freeze %]защита от изменений[% ELSE %]проверка новых значений[% END %]).
+   </dd>
+  [% END %]
+  </dl>
+ [% ELSE %]
+  <p>Ещё не определено ни одного предиката корректности.</p>
+ [% END %]
+ <p><a href="?mode=edit&create=1">Добавить новый предикат.</a></p>
+[% ELSE %]
+ [% IF create %]
+  <h3>Добавление нового предиката</h3>
+ [% ELSE %]
+  <h3>Редактирование предиката [% checker.name | html %]</h3>
+ [% END %]
+ <form action="?save=1&edit=1" method="POST">
+ <input type="hidden" name="token" value="[% token | html %]" />
+ <table>
+  [% IF create %]
+   <input type="hidden" name="create" value="1" />
+   <tr>
+    <th>Сохранённый запрос:</th>
+    <td><select name="query_id">
+     [% FOREACH q = user.queries %]
+      <option value="[% q.id %]" [% " selected='selected'" IF checker.query_id == q.id %] >[% q.name | html %]</option>
+     [% END %]
+    </select></td>
+   </tr>
+  [% ELSE %]
+   <input type="hidden" name="query_id" value="[% checker.query_id %]" />
+  [% END %]
+  <tr>
+   <th>Сообщение об ошибке:</th>
+   <td><textarea name="message" rows="8" cols="80">[% checker.message | html %]</textarea></td>
+  </tr>
+  <tr>
+   <th>Параметры:</th>
+   <td>
+    <input type="checkbox" name="is_freeze" id="is_freeze" [% " checked='checked'" IF checker.is_freeze %] />
+    <label for="is_freeze">Режим заморозки багов (если нет, то режим проверки новых состояний)</label><br />
+    <input type="checkbox" name="is_fatal" id="is_fatal" [% " checked='checked'" IF checker.is_fatal %] />
+    <label for="is_fatal">Запрещать изменения? (если нет, только даётся предупреждение)</label><br />
+   </td>
+  </tr>
+  <tr>
+   <th style="background: #FFE0E0">Запрещать:</th>
+   <td style="background: #FFE0E0">
+    <input type="checkbox" name="deny_all" id="deny_all" onclick="this.blur(); return true;" onblur="showhide_allowdeny(this.checked)" [% " checked='checked'" IF checker.deny_all %] />
+    <label for="deny_all">Запрещать изменения всех полей</label> &nbsp;
+   </td>
+  </tr>
+  <tr id="except_fields_tr" style="background: #FFE0E0">
+   <th id="except_fields_title"></th>
+   <td id="except_fields">
+    <a href="javascript:void(0)" onclick="add_field()">Добавить отдельное поле</a>
+   </td>
+  </tr>
+  <tr><td></td><td><input type="submit" value=" Сохранить " /></td></tr>
+ </table>
+ </form>
+ <div id="one_field_copy" style="display:none">
+  поле:&nbsp;<select name="except_field_X" id="except_field_X">
+   <option value="">---</option>
+  [% FOR f = my_fielddefs %]
+   <option value="[% f.name | html %]">[% f.description | html %]</option>
+  [% END %]
+  </select> &nbsp;
+  новое&nbsp;значение:&nbsp;<input type="text" name="except_field_X_value" id="except_field_X_value" value="" /> (пусто=любое)
+ </div>
+<script language="JavaScript">
+var fieldids = { '':'' [% FOR f = my_fielddefs %],"[% f.name | js %]": [% loop.count %][% END %] };
+var except_field_index = 0;
+function showhide_allowdeny(chk)
+{
+  document.getElementById('except_fields_title').innerHTML = chk ? 'Но разрешать:' : '';
+  document.getElementById('except_fields_tr').style.backgroundColor = chk ? '#E0FFE0' : '#FFE0E0';
+}
+function add_field(fld, val)
+{
+  var d = document.createElement('div');
+  d.innerHTML = document.getElementById('one_field_copy').innerHTML.replace(/except_field_X/g, 'except_field_'+except_field_index);
+  document.getElementById('except_fields').appendChild(d);
+  if (fld && fieldids[fld])
+  {
+    document.getElementById('except_field_'+except_field_index).selectedIndex = fieldids[fld];
+    if (val)
+      document.getElementById('except_field_'+except_field_index+'_value').value = val;
+  }
+  except_field_index++;
+}
+[%# Загружаем текущее состояние дел %]
+showhide_allowdeny(document.getElementById('deny_all').checked);
+[% IF checker.except_fields.except_fields %]
+ [% FOR f = checker.except_fields.except_fields.keys %]
+add_field("[% f | js %]", "[% checker.except_fields.except_fields.$f | js %]");
+ [% END %]
+[% ELSE %]
+add_field();
+[% END %]
+</script>
+[% END %]
+
+[%# FIXME: перенести это в wiki. Тема: интеграция справки Bugzilla с Wiki %]
+<hr />
+
+<div style="border:5px solid #00A000">
+<div style="float:left;font-size:200%; border-bottom:5px solid #00A000; border-right: 5px solid #00A000;color:#00A000;background-color:white;padding: 5px; margin: 0 5px 0 0">?</div>
+<div style="margin:5px">
+
+<b>Предикаты корректности</b> &mdash; обычные сохранённые запросы поиска Bugzilla,
+служащие для проверки различных правил изменений багов.
+
+<p>Доступно два режима проверки:</p>
+
+<p><b>Проверка состояния:</b><br />
+При каждом изменении каждого бага система проверяет, соответствует ли его новое состояние
+(новые значения всех полей) сохранённому запросу поиска, и если да, то выдаёт предупреждение
+или ошибку с заданным текстом.</p>
+
+<p><b>Заморозка багов:</b><br />
+При каждом изменении каждого бага система проверяет, соответствует ли его <i>старое</i> состояние
+сохранённому запросу поиска, и если да, то выдаёт предупреждение или ошибку с заданным текстом.
+Опционально разрешается оставлять комментарии без списывания рабочего времени к таким багам.</p>
+</div>
+</div>
+
+[% PROCESS global/footer.html.tmpl %]

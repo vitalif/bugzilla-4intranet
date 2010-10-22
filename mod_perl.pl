@@ -111,10 +111,65 @@ sub handler : method {
     # here explicitly or init_page's shutdownhtml code won't work right.
     $0 = $ENV{'SCRIPT_FILENAME'};
 
+    if ($Bugzilla::RELOAD_MODULES)
+    {
+        reload();
+    }
     Bugzilla::init_page();
     return $class->SUPER::handler(@_);
 }
 
+my $STATS;
+
+sub reload
+{
+    my ($file, $mtime);
+    for my $key (keys %INC)
+    {
+        $file = $INC{$key} or next;
+        $file =~ /\.pm$/i or next; # do not reload *.pl *.cgi
+
+        $mtime = (stat $file)[9];
+        # Startup time as default
+        $STATS->{$file} = $^T unless defined $STATS->{$file};
+
+        # Modified
+        if ($mtime > $STATS->{$file})
+        {
+            print STDERR __PACKAGE__ . ": $key -> $file modified, reloading\n";
+            unload($key) or next;
+            eval { require $key };
+            if ($@)
+            {
+                warn $@;
+                $INC{$key} ||= $file;
+            }
+            $STATS->{$file} = $mtime;
+        }
+    }
+}
+
+sub unload
+{
+    my ($key) = @_;
+    my $file = $INC{$key} or return;
+    my @subs = grep { index($DB::sub{$_}, "$file:") == 0 } keys %DB::sub;
+    for my $sub (@subs)
+    {
+        eval { undef &$sub };
+        if ($@)
+        {
+            # TODO не выгружать то, что не можем выгрузить, ибо
+            # иначе часть выгружается, а часть нет, и потом всё
+            # равно всё дохнет.
+            warn "Can't unload sub '$sub' in '$file': $@";
+            return undef;
+        }
+        delete $DB::sub{$sub};
+    }
+    delete $INC{$key};
+    return 1;
+}
 
 package Bugzilla::ModPerl::CleanupHandler;
 use strict;

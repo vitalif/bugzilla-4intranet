@@ -55,6 +55,7 @@ use constant DB_COLUMNS => qw(
    name
    wiki_url
    notimetracking
+   extproduct
    classification_id
    description
    isactive
@@ -75,6 +76,7 @@ use constant UPDATE_COLUMNS => qw(
     name
     wiki_url
     notimetracking
+    extproduct
     description
     defaultmilestone
     isactive
@@ -655,6 +657,13 @@ sub set_votes_per_bug { $_[0]->set('maxvotesperbug', $_[1]); }
 sub set_votes_to_confirm { $_[0]->set('votestoconfirm', $_[1]); }
 sub set_allows_unconfirmed { $_[0]->set('allows_unconfirmed', $_[1]); }
 
+sub set_extproduct
+{
+    my ($self, $product) = @_;
+    $product = Bugzilla::Product->check({ id => $product }) if ref $product;
+    $self->set('extproduct', $product ? $product->id : undef);
+}
+
 sub set_group_controls {
     my ($self, $group, $settings) = @_;
 
@@ -951,6 +960,7 @@ sub default_milestone { return $_[0]->{'defaultmilestone'};  }
 sub classification_id { return $_[0]->{'classification_id'}; }
 sub wiki_url          { return $_[0]->{'wiki_url'};          }
 sub notimetracking    { return $_[0]->{'notimetracking'};    }
+sub extproduct        { return $_[0]->{'extproduct'};        }
 
 ###############################
 ####      Subroutines    ######

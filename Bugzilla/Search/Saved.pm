@@ -71,7 +71,7 @@ sub new {
     my $dbh = Bugzilla->dbh;
 
     my $user;
-    if (ref $param) {
+    if (ref $param && !$param->{id}) {
         $user = $param->{user} || Bugzilla->user;
         my $name = $param->{name};
         if (!defined $name) {
@@ -235,6 +235,16 @@ sub used_in_whine {
           WHERE whine_events.owner_userid = ? AND query_name = ?', undef, 
           $self->{userid}, $self->name) || 0;
     return $self->{used_in_whine};
+}
+
+sub used_in_checkers
+{
+    my $self = shift;
+    if (!exists $self->{used_in_checkers})
+    {
+        ($self->{used_in_checkers}) = Bugzilla->dbh->selectrow_array('SELECT 1 FROM checkers WHERE query_id=?', undef, $self->id);
+    }
+    return $self->{used_in_checkers};
 }
 
 sub link_in_footer {

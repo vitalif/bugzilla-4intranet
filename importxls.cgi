@@ -223,7 +223,7 @@ else
             if ($bug->{bug_id} && Bugzilla::Bug->new($bug->{bug_id}))
             {
                 # если уже есть баг с таким ID - обновляем
-                $id = process_bug($bug, $bugmail);
+                $id = process_bug($bug, $bugmail, $vars);
             }
             else
             {
@@ -469,7 +469,7 @@ sub post_bug
 
 sub process_bug
 {
-    my ($fields_in, $bugmail) = @_;
+    my ($fields_in, $bugmail, $vars) = @_;
 
     my $um = Bugzilla->usage_mode;
     Bugzilla->usage_mode(USAGE_MODE_EMAIL);
@@ -521,6 +521,7 @@ sub process_bug
     $cgi->param('longdesclength', scalar @{ $bug->comments });
     $cgi->param('token', issue_hash_token([$bug->id, $bug->delta_ts]));
 
+    # FIXME All this is an ugly hack. Bug::update() should call anything needed, not process_bug.cgi
     $Bugzilla::Error::IN_EVAL++;
     my $vars_out = do 'process_bug.cgi';
     $Bugzilla::Error::IN_EVAL--;
