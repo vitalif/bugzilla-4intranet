@@ -51,19 +51,19 @@ use constant NAME_FIELD => 'name';
 use constant LIST_ORDER => 'name';
 
 use constant DB_COLUMNS => qw(
-   id
-   name
-   wiki_url
-   notimetracking
-   extproduct
-   classification_id
-   description
-   isactive
-   votesperuser
-   maxvotesperbug
-   votestoconfirm
-   defaultmilestone
-   allows_unconfirmed
+    id
+    name
+    wiki_url
+    notimetracking
+    extproduct
+    classification_id
+    description
+    isactive
+    votesperuser
+    maxvotesperbug
+    votestoconfirm
+    defaultmilestone
+    allows_unconfirmed
 );
 
 use constant REQUIRED_CREATE_FIELDS => qw(
@@ -99,6 +99,7 @@ use constant VALIDATORS => {
     votestoconfirm   => \&_check_votes_to_confirm,
     create_series    => \&Bugzilla::Object::check_boolean,
     notimetracking   => \&Bugzilla::Object::check_boolean,
+    extproduct       => \&_check_extproduct,
 };
 
 ###############################
@@ -461,6 +462,13 @@ sub remove_from_db {
 ####      Validators       ####
 ###############################
 
+sub _check_extproduct
+{
+    my ($invocant, $product) = @_;
+    $product = $product ? Bugzilla::Product->check({ id => $product }) : undef;
+    return $product ? $product->id : undef;
+}
+
 sub _check_classification {
     my ($invocant, $classification_name) = @_;
 
@@ -660,7 +668,7 @@ sub set_allows_unconfirmed { $_[0]->set('allows_unconfirmed', $_[1]); }
 sub set_extproduct
 {
     my ($self, $product) = @_;
-    $product = Bugzilla::Product->check({ id => $product }) if ref $product;
+    $product = Bugzilla::Product->check({ id => $product }) if $product && !ref $product;
     $self->set('extproduct', $product ? $product->id : undef);
 }
 
