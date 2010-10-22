@@ -13,6 +13,12 @@ our @EXPORT = qw(refresh_views);
 
 sub refresh_views
 {
+    refresh_some_views();
+    return 1;
+}
+
+sub refresh_some_views
+{
     my ($users) = @_;
     my %u = ( map { $_ => 1 } @{ $users || [] } );
     my $dbh = Bugzilla->dbh;
@@ -52,7 +58,7 @@ sub savedsearch_post_update
     my ($args) = @_;
     my $name = $args->{search}->user->login;
     $name =~ s/\@.*$//so;
-    refresh_views([ $name ]);
+    refresh_some_views([ $name ]);
     return 1;
 }
 
