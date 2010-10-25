@@ -122,7 +122,7 @@ if (defined($height)) {
 # horizontal 1D tables convert to the correct dimension when you ask to
 # display them as some sort of chart.
 if (defined $cgi->param('format') && $cgi->param('format') eq "table") {
-    if ($field->{x} && !$field->{y}) {    
+    if ($field->{x} && !$field->{y}) {
         # 1D *tables* should be displayed vertically (with a row_field only)
         $field->{y} = $field->{x};
         delete $field->{x};
@@ -151,7 +151,8 @@ $measure = 'count' unless $measures->{$measure};
 $vars->{measure} = $measure;
 
 # Validate the values in the axis fields or throw an error.
-my @group_by = values %$field;
+my %a;
+my @group_by = grep { !($a{$_}++) } values %$field;
 my @axis_fields = (@group_by, $measures->{$measure}.' measure');
 
 # Clone the params, so that Bugzilla::Search can modify them
@@ -184,10 +185,6 @@ my %names;
 # We detect a numerical field, and sort appropriately, if all the values are
 # numeric.
 my %isnumeric;
-
-#Bugzilla->cgi->send_header;
-#use Data::Dumper;
-#print Dumper \%data, \@col_names, \@row_names, \@tbl_names;
 
 foreach my $group (@$results)
 {
