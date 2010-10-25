@@ -93,32 +93,12 @@ sub unfreeze_failed_checkers
     return \@r;
 }
 
-# hooks:
-
-sub bug_pre_update
+sub filter_failed_checkers
 {
-    my ($args) = @_;
-    my $bug = $args->{bug};
-    # запускаем проверки, работающие ДО внесения изменений (заморозка багов)
-    $bug->{failed_checkers} = check($bug->bug_id, 'freeze');
-    return 1;
-}
-
-sub bug_end_of_update
-{
-    my ($args) = @_;
-
-    my $bug = $args->{bug};
-    my $changes = { %{ $args->{changes} } }; # копируем хеш
-    $changes->{longdesc} = $args->{bug}->{added_comments} && @{ $args->{bug}->{added_comments} }
-        ? [ '', scalar @{$args->{bug}->{added_comments}} ] : undef;
-
-    # запускаем проверки, работающие ПОСЛЕ внесения изменений
-    push @{$bug->{failed_checkers}}, @{ check($bug->bug_id) };
-
+    my ($checkers, $changes) = @_;
     # фильтруем подошедшие проверки по изменённым полям
     my @rc;
-    for (@{$bug->{failed_checkers}})
+    for (@$checkers)
     {
         my $e = $_->except_fields->{except_fields};
         my $ok = 1;
@@ -150,7 +130,36 @@ sub bug_end_of_update
         }
         push @rc, $_ unless $ok;
     }
-    @{$bug->{failed_checkers}} = @rc;
+    @$checkers = @rc;
+}
+
+# hooks:
+
+sub bug_pre_update
+{
+    my ($args) = @_;
+    my $bug = $args->{bug};
+    # запускаем проверки, работающие ДО внесения изменений (заморозка багов)
+    $bug->{failed_checkers} = check($bug->bug_id, 'freeze');
+    return 1;
+}
+
+sub bug_end_of_update
+{
+    my ($args) = @_;
+
+    my $bug = $args->{bug};
+    my $changes = { %{ $args->{changes} } }; # копируем хеш
+    $changes->{longdesc} = $args->{bug}->{added_comments} && @{ $args->{bug}->{added_comments} }
+        ? [ '', scalar @{$args->{bug}->{added_comments}} ] : undef;
+
+    # запускаем проверки, работающие ПОСЛЕ внесения изменений
+    push @{$bug->{failed_checkers}}, @{ check($bug->bug_id) };
+
+    if (@{$bug->{failed_checkers}})
+    {
+        filter_failed_checkers($bug->{failed_checkers}, $changes);
+    }
 
     # ругаемся/откатываем изменения, если что-то есть
     if (@{$bug->{failed_checkers}})
@@ -167,7 +176,17 @@ sub post_bug_post_create
     my ($args) = @_;
     my $bug = $args->{bug};
     $bug->{failed_checkers} = check($bug->bug_id);
-    # при создании бага считается, что менялись все поля, поэтому проверки не фильтруем
+    if (@{$bug->{failed_checkers}})
+    {
+        # при создании бага не хочется дёргать всякие
+        # процедуры получения значений полей, поэтому
+        # работаем по упрощённому варианту
+        my $changes = {
+            map { $_->name => [ '', $bug->{$_->name} ] }
+            grep { $bug->{$_->name} }
+            Bugzilla->get_fields };
+        filter_failed_checkers($bug->{failed_checkers}, $changes);
+    }
     if (@{$bug->{failed_checkers}})
     {
         alert($bug);
