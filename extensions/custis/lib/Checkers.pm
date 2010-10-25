@@ -33,9 +33,16 @@ sub all
     return $c->{checkers};
 }
 
+# Запустить набор проверок по одному багу
+# $mask - маска из флагов, которые нужно проверять для фильтрации проверок
+# $flags - требуемые значения этих флагов
+# Т.е. check(..., CF_UPDATE, CF_FREEZE | CF_UPDATE) выберет проверки
+# с флагом CF_UPDATE, но без флага CF_FREEZE
 sub check
 {
-    my ($bug_id, $is_freeze) = @_;
+    my ($bug_id, $flags, $mask) = @_;
+    $mask ||= 0;
+    $flags ||= 0;
     $bug_id = $bug_id->bug_id if ref $bug_id;
     $bug_id = int($bug_id) || return;
     my $all = all();
@@ -43,7 +50,7 @@ sub check
     my ($s, $i);
     for (values %$all)
     {
-        if (!($is_freeze xor $_->is_freeze))
+        if (($_->flags & $mask) == $flags)
         {
             $s = $_->sql_code;
             $i = $_->id;
@@ -100,7 +107,7 @@ sub filter_failed_checkers
     my @rc;
     for (@$checkers)
     {
-        my $e = $_->except_fields->{except_fields};
+        my $e = $_->except_fields;
         my $ok = 1;
         if ($_->deny_all)
         {
@@ -140,7 +147,7 @@ sub bug_pre_update
     my ($args) = @_;
     my $bug = $args->{bug};
     # запускаем проверки, работающие ДО внесения изменений (заморозка багов)
-    $bug->{failed_checkers} = check($bug->bug_id, 'freeze');
+    $bug->{failed_checkers} = check($bug->bug_id, CF_FREEZE | CF_UPDATE, CF_FREEZE | CF_UPDATE);
     return 1;
 }
 
@@ -154,7 +161,7 @@ sub bug_end_of_update
         ? [ '', scalar @{$args->{bug}->{added_comments}} ] : undef;
 
     # запускаем проверки, работающие ПОСЛЕ внесения изменений
-    push @{$bug->{failed_checkers}}, @{ check($bug->bug_id) };
+    push @{$bug->{failed_checkers}}, @{ check($bug->bug_id, CF_UPDATE, CF_FREEZE | CF_UPDATE) };
 
     if (@{$bug->{failed_checkers}})
     {
@@ -175,18 +182,8 @@ sub post_bug_post_create
 {
     my ($args) = @_;
     my $bug = $args->{bug};
-    $bug->{failed_checkers} = check($bug->bug_id);
-    if (@{$bug->{failed_checkers}})
-    {
-        # при создании бага не хочется дёргать всякие
-        # процедуры получения значений полей, поэтому
-        # работаем по упрощённому варианту
-        my $changes = {
-            map { $_->name => [ '', $bug->{$_->name} ] }
-            grep { $bug->{$_->name} }
-            Bugzilla->get_fields };
-        filter_failed_checkers($bug->{failed_checkers}, $changes);
-    }
+    # При создании бага сия радость по изменениям не фильтруеццо!
+    $bug->{failed_checkers} = check($bug->bug_id, CF_CREATE, CF_CREATE);
     if (@{$bug->{failed_checkers}})
     {
         alert($bug);

@@ -142,7 +142,6 @@ sub reload
             if ($@)
             {
                 warn $@;
-                $INC{$key} ||= $file;
             }
             $STATS->{$file} = $mtime;
         }

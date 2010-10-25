@@ -311,6 +311,28 @@ sub install_update_db
         $dbh->bz_add_column('fielddefs', clone_bug => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 1});
     }
 
+    # Временное, можно удалить
+    if ($dbh->bz_column_info('checkers', 'is_freeze'))
+    {
+        use Bugzilla::Checker;
+        use JSON;
+        $dbh->bz_add_column('checkers', flags => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 1});
+        my $rows = $dbh->selectall_arrayref('SELECT * FROM checkers', {Slice=>{}});
+        for (@$rows)
+        {
+            $_->{except_fields} = $_->{except_fields} ? decode_json($_->{except_fields}) : {};
+            $dbh->do('UPDATE checkers SET flags=?, except_fields=? WHERE query_id=?', undef,
+                ($_->{is_freeze} ? 1 : 0) * CF_FREEZE |
+                ($_->{is_fatal} ? 1 : 0) * CF_FATAL |
+                ($_->{except_fields}->{deny_all} ? 1 : 0) * CF_DENY |
+                CF_CREATE | CF_UPDATE,
+                $_->{except_fields}->{except_fields} ? encode_json($_->{except_fields}->{except_fields}) : undef,
+                $_->{query_id});
+        }
+        $dbh->bz_drop_column('checkers', 'is_freeze');
+        $dbh->bz_drop_column('checkers', 'is_fatal');
+    }
+
     return 1;
 }
 

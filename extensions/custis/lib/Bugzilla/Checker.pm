@@ -3,27 +3,37 @@
 package Bugzilla::Checker;
 
 use strict;
-use base 'Bugzilla::Object';
+use base qw(Bugzilla::Object Exporter);
 
 use JSON;
 use Bugzilla::Search::Saved;
 
 use constant DB_TABLE => 'checkers';
 
+use constant {
+    CF_FREEZE => 0x01, # да => заморозка, нет => проверка значений
+    CF_FATAL  => 0x02, # да => ошибка, нет => предупреждение
+    CF_CREATE => 0x04, # да => проверять при создании бага, нет => не проверять
+    CF_UPDATE => 0x08, # да => проверять при обновлении бага, нет => не проверять
+    CF_DENY   => 0x10, # да => запрещать изменения всех полей, кроме..., нет => разрешать изменения всех полей, кроме...
+};
+
+our @EXPORT = qw(CF_FREEZE CF_FATAL CF_CREATE CF_UPDATE CF_DENY);
+
 use constant DB_COLUMNS => (
     # <Это состояние> задаётся соответствием запросу поиска.
     'query_id',
+    # Кто создал
     'user_id',
-    # Два типа:
-    # Check  = запрещается переход багов в это состояние из любого другого
-    #          ("проверка корректности изменений")
-    # Freeze = запрещается переход багов из этого состояния в любое другое
-    #          ("заморозка бага")
-    'is_freeze',
-    'is_fatal',
+    # Флаги
+    'flags',
+    # Сообщение об ошибке в случае некорректности
     'message',
     # SQL-код генерировать при каждом изменении бага долго, поэтому кэшируем
     'sql_code',
+    # Поля-исключения: если CF_DENY, то разрешить только их,
+    # если !(flags & CF_DENY), то запретить только их,
+    # если !(flags & CF_DENY) и их нет, то flags |= CF_DENY
     'except_fields',
 );
 use constant NAME_FIELD => 'message';
@@ -33,14 +43,12 @@ use constant LIST_ORDER => NAME_FIELD;
 use constant REQUIRED_CREATE_FIELDS => qw(query_id message);
 
 use constant VALIDATORS => {
-    query_id => \&check_query_id,
-    is_fatal => \&Bugzilla::Object::check_boolean,
-    is_freeze => \&Bugzilla::Object::check_boolean,
+    query_id => \&_check_query_id,
+    flags    => \&_check_flags,
 };
 
 use constant UPDATE_COLUMNS => (
-    'is_freeze',
-    'is_fatal',
+    'flags',
     'message',
     'sql_code',
     'except_fields',
@@ -77,7 +85,11 @@ sub refresh_sql
 sub create
 {
     my ($class, $params) = @_;
-    Bugzilla::Object::create(@_);
+    if ($params->{except_fields})
+    {
+        $params->{except_fields} = encode_json($params->{except_fields});
+    }
+    Bugzilla::Object::create($class, $params);
     my $self = $class->new($params->{query_id});
     $self->update if $self;
     return $self;
@@ -92,7 +104,7 @@ sub update
 }
 
 # Проверяем, что такой поиск существует и доступен пользователю
-sub check_query_id
+sub _check_query_id
 {
     my ($invocant, $value, $field) = @_;
     my $q = Bugzilla::Search::Saved->check({ id => $value });
@@ -112,14 +124,37 @@ sub check_query_id
     return $q->id;
 }
 
+# FIXME проверка должна быть здесь, но Bugzilla::Object не позволяет это реализовать:
+#       Ошибка, если CF_CREATE & (есть except_fields).
+sub _check_flags
+{
+    my ($invocant, $value, $field) = @_;
+    $value = int($value);
+    if ($value & (CF_FREEZE|CF_CREATE))
+    {
+        ThrowUserError('chk_freeze_create');
+    }
+    elsif (($value & CF_CREATE) && !($value & CF_DENY))
+    {
+        ThrowUserError('chk_create_allow');
+    }
+    return $value;
+}
+
 sub query_id        { $_[0]->{query_id} }
 sub user_id         { $_[0]->{user_id} }
-sub is_freeze       { $_[0]->{is_freeze} }
-sub is_fatal        { $_[0]->{is_fatal} }
 sub message         { $_[0]->{message} }
 sub sql_code        { $_[0]->{sql_code} }
+sub flags           { $_[0]->{flags} }
 
-# { deny_all => 1|0, except_fields => { field_name => value } }
+# Отдельные флаги
+sub is_freeze       { $_[0]->{flags} & CF_FREEZE }
+sub is_fatal        { $_[0]->{flags} & CF_FATAL }
+sub on_create       { $_[0]->{flags} & CF_CREATE }
+sub on_update       { $_[0]->{flags} & CF_UPDATE }
+sub deny_all        { $_[0]->{flags} & CF_DENY }
+
+# { field_name => value }
 # when value is undef, then the change of field with name=field_name to any value is an exception
 # when value is not undef, then only the change to value=value is an exception
 sub except_fields
@@ -130,12 +165,6 @@ sub except_fields
         $self->{except_fields_obj} = $self->{except_fields} ? decode_json($self->{except_fields}) : undef;
     }
     return $self->{except_fields_obj};
-}
-
-sub deny_all
-{
-    my $self = shift;
-    return $self->except_fields ? $self->except_fields->{deny_all} : 1;
 }
 
 sub name
@@ -166,8 +195,7 @@ sub user
 
 sub set_query_id        { $_[0]->set('query_id', Bugzilla::Search::Saved->check({ id => $_[1] })->id) }
 sub set_user_id         { $_[0]->set('user_id', Bugzilla::User->check({ userid => $_[1] })->id) }
-sub set_is_freeze       { $_[0]->set('is_freeze', $_[1]) }
-sub set_is_fatal        { $_[0]->set('is_fatal', $_[1]) }
+sub set_flags           { $_[0]->set('flags', $_[1]) }
 sub set_message         { $_[0]->set('message', $_[1]) }
 sub set_sql_code        { $_[0]->set('sql_code', $_[1]) }
 
