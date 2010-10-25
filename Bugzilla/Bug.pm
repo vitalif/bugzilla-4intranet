@@ -842,8 +842,6 @@ sub update {
         $dbh->do("INSERT INTO longdescs ($columns) VALUES ($qmarks)", undef, @values);
         if ($comment->{work_time})
         {
-            $changes->{work_time} ||= [ '', 0 ];
-            $changes->{work_time}->[1] += $comment->{work_time};
             # log worktime
             LogActivityEntry($self->id, "work_time", "", $comment->{work_time},
                 Bugzilla->user->id, $delta_ts);

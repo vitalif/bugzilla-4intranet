@@ -91,8 +91,11 @@ else
 {
     $vars->{token} = issue_session_token('editcheckers');
     $vars->{create} = $params->{create} ? 1 : 0;
+    # Есть специальное поле "longdesc", означающее добавление комментариев
     my $f = [ Bugzilla->get_fields ];
-    @$f = sort { lc $a->description cmp lc $b->description } grep { $_->name !~ /\.|^owner_idle_time$|^commenter$/ } @$f;
+    @$f = sort { lc $a->description cmp lc $b->description } grep { $_->name !~ /
+        \. | ^owner_idle_time$ | ^commenter$ | ^content$ | ^assignee_accessible$ |
+        ^creation_ts$ | ^days_elapsed$ | ^qacontact_accessible$ /xs } @$f;
     $vars->{my_fielddefs} = $f;
     if (!$vars->{create})
     {
