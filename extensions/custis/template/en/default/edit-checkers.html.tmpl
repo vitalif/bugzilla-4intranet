@@ -133,28 +133,12 @@ add_field();
 </script>
 [% END %]
 
-[%# FIXME: перенести это в wiki. Тема: интеграция справки Bugzilla с Wiki %]
+[%# FIXME Тема: интеграция справки Bugzilla с Wiki %]
 <hr />
 
-<div style="border:5px solid #00A000">
-<div style="float:left;font-size:200%; border-bottom:5px solid #00A000; border-right: 5px solid #00A000;color:#00A000;background-color:white;padding: 5px; margin: 0 5px 0 0">?</div>
-<div style="margin:5px">
-
-<b>Предикаты корректности</b> &mdash; обычные сохранённые запросы поиска Bugzilla,
-служащие для проверки различных правил изменений багов.
-
-<p>Доступно два режима проверки:</p>
-
-<p><b>Проверка состояния:</b><br />
-При каждом изменении каждого бага система проверяет, соответствует ли его новое состояние
-(новые значения всех полей) сохранённому запросу поиска, и если да, то выдаёт предупреждение
-или ошибку с заданным текстом.</p>
-
-<p><b>Заморозка багов:</b><br />
-При каждом изменении каждого бага система проверяет, соответствует ли его <i>старое</i> состояние
-сохранённому запросу поиска, и если да, то выдаёт предупреждение или ошибку с заданным текстом.
-Опционально разрешается оставлять комментарии без списывания рабочего времени к таким багам.</p>
-</div>
-</div>
+<table style="border:5px solid #00A000;border-collapse:collapse"><tr>
+<td style="border-right:5px solid #00A000;color:#00A000;background-color:white;padding:5px;font-size:200%">?</td>
+<td style="padding:5px"><a href="http://wiki.office.custis.ru/wiki/Bugzilla:_проверки_изменений_багов">wiki:[[Bugzilla: проверки изменений багов]]</a></td>
+</tr></table>
 
 [% PROCESS global/footer.html.tmpl %]
