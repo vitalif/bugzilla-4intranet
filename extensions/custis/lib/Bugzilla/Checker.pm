@@ -7,6 +7,7 @@ use base qw(Bugzilla::Object Exporter);
 
 use JSON;
 use Bugzilla::Search::Saved;
+use Bugzilla::Error;
 
 use constant DB_TABLE => 'checkers';
 
@@ -130,9 +131,9 @@ sub _check_flags
 {
     my ($invocant, $value, $field) = @_;
     $value = int($value);
-    if ($value & (CF_FREEZE|CF_CREATE))
+    if (($value & CF_FREEZE) && ($value & CF_CREATE))
     {
-        ThrowUserError('chk_freeze_create');
+        ThrowUserError('chk_create_freeze');
     }
     elsif (($value & CF_CREATE) && !($value & CF_DENY))
     {

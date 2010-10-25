@@ -35,7 +35,7 @@ if ($params->{save})
         my $except = {};
         for (keys %$params)
         {
-            if (/^except_field_(\d+)$/so)
+            if (/^except_field_(\d+)$/so && $params->{$_})
             {
                 $except->{$params->{$_}} =
                     $params->{"except_field_$1_value"} || undef;
