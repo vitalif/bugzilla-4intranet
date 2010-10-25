@@ -203,7 +203,7 @@ sub set_sql_code        { $_[0]->set('sql_code', $_[1]) }
 sub set_except_fields
 {
     my ($self, $value) = @_;
-    $self->set('except_fields', encode_json($value));
+    $self->set('except_fields', $value ? encode_json($value) : undef);
     delete $self->{except_fields_obj};
 }
 
