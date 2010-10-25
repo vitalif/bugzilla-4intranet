@@ -66,9 +66,19 @@ sub check
 
 sub alert
 {
-    my ($bug) = @_;
+    my ($bug, $is_new) = @_;
     if (my @fatals = grep { $_->is_fatal } @{$bug->{failed_checkers}})
     {
+        # откатываем изменения
+        # bugs_fulltext нужно откатывать отдельно...
+        if ($is_new)
+        {
+            Bugzilla->dbh->do('DELETE FROM bugs_fulltext WHERE bug_id=?', undef, $bug->bug_id);
+        }
+        else
+        {
+            $bug->_sync_fulltext;
+        }
         # нужно откатить изменения ТОЛЬКО ОДНОГО бага (см. process_bug.cgi)
         Bugzilla->dbh->bz_rollback_to_savepoint;
         if ($THROW_ERROR)
@@ -186,7 +196,7 @@ sub post_bug_post_create
     $bug->{failed_checkers} = check($bug->bug_id, CF_CREATE, CF_CREATE);
     if (@{$bug->{failed_checkers}})
     {
-        alert($bug);
+        alert($bug, 1);
     }
     return 1;
 }
