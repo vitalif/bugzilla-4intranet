@@ -19,8 +19,6 @@ my $cgi = Bugzilla->cgi;
 my $params = $cgi->Vars;
 my $vars = {};
 
-my @REAL_UPDATE_COLUMNS = qw(is_freeze is_fatal message);
-
 $user->in_group('bz_editcheckers')
   || ThrowUserError('auth_failure', {group  => 'bz_editcheckers',
                                      action => 'modify',
@@ -33,42 +31,52 @@ if ($params->{save})
     if ($params->{edit})
     {
         check_token_data($params->{token}, 'editcheckers');
+        # Заполняем поля-исключения
+        my $except = {};
+        for (keys %$params)
+        {
+            if (/^except_field_(\d+)$/so)
+            {
+                $except->{$params->{$_}} =
+                    $params->{"except_field_$1_value"} || undef;
+            }
+        }
+        $except = undef if !%$except;
+        if (!$params->{deny_all} && !$except)
+        {
+            $params->{deny_all} = 1;
+        }
+        my $flags =
+            ($params->{is_freeze} ? 1 : 0) * CF_FREEZE |
+            ($params->{is_fatal} ? 1 : 0)  * CF_FATAL  |
+            ($params->{on_update} ? 1 : 0) * CF_UPDATE |
+            ($params->{on_create} ? 1 : 0) * CF_CREATE |
+            ($params->{deny_all} ? 1 : 0)  * CF_DENY;
+        # Ошибка, если CF_CREATE & (есть except_fields).
+        if (($flags & CF_CREATE) && $except)
+        {
+            ThrowUserError('chk_create_except');
+        }
+        # Создаём/обновляем
         my $ch;
         if ($params->{create})
         {
             $ch = Bugzilla::Checker->create({
-                (map { ($_ => $params->{$_}) } 'query_id', @REAL_UPDATE_COLUMNS),
-                user_id => $user->id,
+                query_id => $params->{query_id},
+                user_id  => $user->id,
+                message  => $params->{query_id},
+                flags    => $flags,
+                except_fields => $except,
             });
         }
         else
         {
             $ch = Bugzilla::Checker->check({ id => $id });
-            my $f;
-            for (@REAL_UPDATE_COLUMNS)
-            {
-                $f = "set_$_";
-                $ch->$f($params->{$_});
-            }
+            $ch->set_message($params->{message});
+            $ch->set_flags($flags);
+            $ch->set_except_fields($except);
+            $ch->update;
         }
-        # поля-исключения: если deny_all=1, то разрешить только их,
-        # если deny_all=0, то запретить только их,
-        # если deny_all=0 и их нет, то deny_all=1
-        my $except = { deny_all => $params->{deny_all}, except_fields => {} };
-        for (keys %$params)
-        {
-            if (/^except_field_(\d+)$/so)
-            {
-                $except->{except_fields}->{$params->{$_}} =
-                    $params->{"except_field_$1_value"} || undef;
-            }
-        }
-        if (!%{$except->{except_fields}})
-        {
-            $except = undef;
-        }
-        $ch->set_except_fields($except);
-        $ch->update;
         delete_token($params->{token});
     }
     elsif ($params->{delete})
@@ -103,7 +111,7 @@ else
     }
     else
     {
-        $vars->{checker} = { deny_all => 1 };
+        $vars->{checker} = { is_fatal => 1, deny_all => 1, on_update => 1 };
     }
 }
 
