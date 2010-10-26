@@ -32,14 +32,17 @@ sub tr_show_plan_after_fetch
         if ($wiki_url && $plan->wiki)
         {
             my $xml = fetch_wiki_category_xml($wiki_url, $plan->wiki);
-            my $p = XML::Parser->new(Handlers => {
-                Start => \&wiki_sync_handle_start,
-                End   => \&wiki_sync_handle_end,
-                Char  => \&wiki_sync_handle_char,
-            });
-            $p->{_ws_wiki_url} = $wiki_url;
-            $p->{_ws_plan} = $plan;
-            $p->parse($xml);
+            if ($xml)
+            {
+                my $p = XML::Parser->new(Handlers => {
+                    Start => \&wiki_sync_handle_start,
+                    End   => \&wiki_sync_handle_end,
+                    Char  => \&wiki_sync_handle_char,
+                });
+                $p->{_ws_wiki_url} = $wiki_url;
+                $p->{_ws_plan} = $plan;
+                $p->parse($xml);
+            }
         }
     }
 }
@@ -184,7 +187,8 @@ sub fetch_wiki_category_xml
     decode_entities($text);
     if (!$text)
     {
-        die "No pages in category $category";
+        warn "No pages in category $category";
+        return '';
     }
     # Дёргаем Special:Export и вытаскиваем саму XML-ку с последними ревизиями
     $r = POST $uri, Content => "wpDownload=1&curonly=1&pages=".url_quote($text);
