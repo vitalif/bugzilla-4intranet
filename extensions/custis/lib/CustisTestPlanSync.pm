@@ -20,6 +20,7 @@ use LWP::Simple qw($ua);
 # Hook
 sub tr_show_plan_after_fetch
 {
+    my ($args) = @_;
     my $cgi = Bugzilla->cgi;
     my $plan = $args->{plan};
     my $vars = $args->{vars};
