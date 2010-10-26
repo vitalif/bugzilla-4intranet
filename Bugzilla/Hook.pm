@@ -37,7 +37,7 @@ sub set_hook
 {
     my ($extension, $hook, $callable) = @_;
     $hook =~ tr/-/_/;
-    $hooks{$hook}{$extension} = $callable;
+    push @{$hooks{$hook}{$extension}}, $callable;
 }
 
 # An alias
