@@ -59,8 +59,8 @@ sub get_products_by_classification
     }
     $cid = Bugzilla::Classification->check($cid)->id;
     return {
-        ids => [
-            map { $_->id }
+        products => [
+            map { { id => $_->id, name => $_->name } }
             grep { $_->classification_id eq $cid }
             @{ Bugzilla->user->get_enterable_products }
         ]
