@@ -73,15 +73,19 @@ sub update_value
         return {status => 'field_not_found'};
     }
     my $type = Bugzilla::Field::Choice->type($field);
-    my $value = $type->new({ name => $params->{new_value} });
-    if ($value)
-    {
-        return {status => 'value_already_exists'};
-    }
     $value = $type->new({ name => $params->{old_value} });
     if (!$value)
     {
         return {status => 'value_not_found'};
+    }
+    $params->{new_value} = $params->{old_value} unless defined $params->{new_value};
+    if ($params->{new_value} ne $params->{old_value})
+    {
+        my $newvalue = $type->new({ name => $params->{new_value} });
+        if ($newvalue)
+        {
+            return {status => 'value_already_exists'};
+        }
     }
     $value->set_value($params->{new_value});
     $value->set_sortkey($params->{sortkey});
