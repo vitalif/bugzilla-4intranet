@@ -124,14 +124,20 @@ sub set_visibility_values
     {
         return {status => 'field_not_found'};
     }
+    if (!$field->value_field)
+    {
+        return {status => 'fieldvalues_not_controlled'};
+    }
     my $type = Bugzilla::Field::Choice->type($field);
     my $value = $type->new({ name => $params->{value} });
     if (!$value)
     {
         return {status => 'value_not_found'};
     }
+    my $ids = $params->{ids} || [];
+    $ids = [ map { $_->id } Bugzilla::Field::Choice->type($field->value_field)->new_from_list($ids) ];
     $type->set_visibility_values($params->{ids});
-    return {status => 'ok'};
+    return {status => 'ok', ids => $ids};
 }
 
 1;
