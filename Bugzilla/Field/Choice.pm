@@ -193,7 +193,7 @@ sub remove_from_db {
                        { field => $self->field, value => $self });
     }
     if ($self->bug_count) {
-        ThrowUserError("fieldvalue_still_has_bugs",
+        ThrowUserError('fieldvalue_still_has_bugs',
                        { field => $self->field, value => $self });
     }
     $self->_check_if_controller();
@@ -205,14 +205,13 @@ sub remove_from_db {
 sub _check_if_controller {
     my $self = shift;
     my $vis_fields = $self->controls_visibility_of_fields;
-    my $values     = $self->controlled_values;
+    my $values     = $self->controls_visibility_of_field_values;
     if (@$vis_fields || scalar grep { @{$values->{$_}} } keys %$values) {
         ThrowUserError('fieldvalue_is_controller',
             { value => $self, fields => [map($_->name, @$vis_fields)],
               vals => $values });
     }
 }
-
 
 #############
 # Accessors #
@@ -276,83 +275,59 @@ sub is_static {
 sub controls_visibility_of_fields
 {
     my $self = shift;
-    my $f;
-    unless ($f = $self->{controls_visibility_of_fields})
-    {
-        $f = Bugzilla->dbh->selectcol_arrayref(
-            "SELECT f.id FROM fielddefs f, fieldvaluecontrol c WHERE c.field_id=f.id".
-            " AND f.visibility_field_id=? AND c.visibility_value_id=? AND c.value_id=0",
-            undef, $self->field->id, $self->id
-        );
-        $_ = Bugzilla->get_field($_) for @$f;
-        $self->{controls_visibility_of_fields} = $f;
-    }
-    return $f;
+    my $vid = $self->id;
+    my $fid = $self->field->id;
+    $self->{controls_visibility_of_fields} ||= [
+        map { Bugzilla->get_field($_->{field_id}) }
+        grep { !$_->{value_id} &&
+            $_->{visibility_value_id} == $vid &&
+            $_->{visibility_field_id} == $fid }
+        @{Bugzilla->fieldvaluecontrol}
+    ];
+    return $self->{controls_visibility_of_fields};
 }
 
-sub controlled_values
+sub controls_visibility_of_field_values
 {
     my $self = shift;
-    my $controlled_values;
-    unless ($controlled_values = $self->{controlled_values})
+    my $vid = $self->id;
+    my $fid = $self->field->id;
+    if (!$self->{controls_visibility_of_field_values})
     {
-        $controlled_values = {};
-        my $fields = $self->field->controls_values_of;
-        foreach my $field (@$fields)
+        my $r = {};
+        for (@{Bugzilla->fieldvaluecontrol})
         {
-            my $f = Bugzilla->dbh->selectcol_arrayref(
-                "SELECT value_id FROM fieldvaluecontrol WHERE field_id=? AND visibility_value_id=? AND value_id!=0",
-                undef, $field->id, $self->id);
-            if (@$f)
+            if ($_->{value_id} &&
+                $_->{visibility_value_id} == $vid &&
+                $_->{visibility_field_id} == $fid)
             {
-                my $type = Bugzilla::Field::Choice->type($field);
-                $f = $type->match({ id => $f });
+                push @{$r->{$_->{field_id}}}, $_->{value_id};
             }
-            $controlled_values->{$field->name} = $f;
         }
-        $self->{controlled_values} = $controlled_values;
+        $self->{controls_visibility_of_field_values} = { map {
+            Bugzilla->get_field($_)->name =>
+                Bugzilla::Field::Choice->type(Bugzilla->get_field($_))->new_from_list($r->{$_})
+        } keys %$r };
     }
-    return $controlled_values;
-}
-
-sub controlled_plus_generic
-{
-    my $self = shift;
-    my $controlled_values;
-    unless ($controlled_values = $self->{controlled_plus_generic})
-    {
-        my $fields = $self->field->controls_values_of;
-        foreach my $field (@$fields)
-        {
-            my $f = Bugzilla->dbh->selectcol_arrayref(
-                "SELECT value_id FROM fieldvaluecontrol WHERE field_id=? AND visibility_value_id=? AND value_id!=0
-                UNION ALL SELECT id FROM ".$field->name." f LEFT JOIN fieldvaluecontrol c ON c.value_id=f.id AND c.field_id=? WHERE c.visibility_value_id IS NULL",
-                undef, $field->id, $self->id, $field->id);
-            if (@$f)
-            {
-                my $type = Bugzilla::Field::Choice->type($field);
-                $f = $type->match({ id => $f });
-            }
-            $controlled_values->{$field->name} = $f;
-        }
-        $self->{controlled_plus_generic} = $controlled_values;
-    }
-    return $controlled_values;
+    return $self->{controls_visibility_of_field_values};
 }
 
 sub visibility_values
 {
     my $self = shift;
     my $f;
-    if ($self->field->value_field && !($f = $self->{visibility_values}))
+    if ($self->field->value_field_id && !($f = $self->{visibility_values}))
     {
-        $f = Bugzilla->dbh->selectcol_arrayref(
-            "SELECT visibility_value_id FROM fieldvaluecontrol WHERE field_id=? AND value_id=?",
-            undef, $self->field->id, $self->id);
+        my $hash = Bugzilla->fieldvaluecontrol_hash
+            ->{$self->field->value_field_id}
+            ->{values}
+            ->{$self->field->id}
+            ->{$self->id};
+        $f = $hash ? [ keys %$hash ] : [];
         if (@$f)
         {
             my $type = Bugzilla::Field::Choice->type($self->field->value_field);
-            $f = $type->match({ id => $f });
+            $f = $type->new_from_list($f);
         }
         $self->{visibility_values} = $f;
     }
@@ -364,8 +339,12 @@ sub has_visibility_value
     my $self = shift;
     my ($value) = @_;
     ref $value and $value = $value->id;
-    my %f = map { $_->id => 1 } @{$self->visibility_values};
-    return $f{$value};
+    return Bugzilla->fieldvaluecontrol_hash
+        ->{$self->field->value_field_id}
+        ->{values}
+        ->{$self->field->id}
+        ->{$self->id}
+        ->{$value};
 }
 
 ############

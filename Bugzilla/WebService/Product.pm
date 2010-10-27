@@ -44,17 +44,40 @@ sub get_accessible_products {
     return {ids => [map {$_->id} @{Bugzilla->user->get_accessible_products}]}; 
 }
 
+# Get the list of product IDs by classification name
+sub get_products_by_classification
+{
+    my ($self, $params) = @_;
+    if (!Bugzilla->params->{useclassification})
+    {
+        return {status => 'classification_is_off'};
+    }
+    my $cid = $params->{classification};
+    if (!$cid)
+    {
+        return {status => 'classification_not_specified'};
+    }
+    $cid = Bugzilla::Classification->check($cid)->id;
+    return {
+        ids => [
+            map { $_->id }
+            grep { $_->classification_id eq $cid }
+            @{ Bugzilla->user->get_enterable_products }
+        ]
+    };
+}
+
 # Get a list of actual products, based on list of ids
 sub get {
     my ($self, $params) = validate(@_, 'ids');
-    
-    # Only products that are in the users accessible products, 
+
+    # Only products that are in the users <s>accessible</s> enterable products,
     # can be allowed to be returned
-    my $accessible_products = Bugzilla->user->get_accessible_products;
+    my $accessible_products = Bugzilla->user->get_enterable_products;
 
     # Create a hash with the ids the user wants
     my %ids = map { $_ => 1 } @{$params->{ids}};
-    
+
     # Return the intersection of this, by grepping the ids from 
     # accessible products.
     my @requested_accessible = grep { $ids{$_->id} } @$accessible_products;

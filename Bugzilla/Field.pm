@@ -483,23 +483,33 @@ sub is_select {
             || $_[0]->type == FIELD_TYPE_MULTI_SELECT) ? 1 : 0
 }
 
-sub legal_values {
+sub legal_values
+{
     my $self = shift;
-
-    if (!defined $self->{'legal_values'}) {
+    return [] unless $self->is_select;
+    if (!defined $self->{legal_values})
+    {
         require Bugzilla::Field::Choice;
-        my @values = Bugzilla::Field::Choice->type($self)->get_all();
-        $self->{'legal_values'} = \@values;
+        $self->{legal_values} = [ Bugzilla::Field::Choice->type($self)->get_all() ];
     }
-    return $self->{'legal_values'};
+    return $self->{legal_values};
 }
 
 sub restricted_legal_values
 {
     my $self = shift;
     my ($controller_value) = @_;
-    return $self->legal_values unless $controller_value;
-    return $controller_value->controlled_plus_generic->{$self->name};
+    return $self->legal_values unless $controller_value && $self->value_field_id;
+    my $cid = $controller_value->id;
+    if (!$self->{restricted_legal_values}->{$cid})
+    {
+        my $hash = Bugzilla->fieldvaluecontrol_hash->{$self->value_field_id}->{values}->{$self->id};
+        $self->{restricted_legal_values}->{$cid} = [
+            grep { !exists $hash->{$_->id} || $hash->{$_->id}->{$cid} }
+            @{$self->legal_values}
+        ];
+    }
+    return $self->{restricted_legal_values}->{$cid};
 }
 
 =pod
@@ -1105,16 +1115,13 @@ Returns:     the corresponding field ID or an error if the field name
 
 =cut
 
-sub get_field_id {
+sub get_field_id
+{
     my ($name) = @_;
-    my $dbh = Bugzilla->dbh;
-
     trick_taint($name);
-    my $id = $dbh->selectrow_array('SELECT id FROM fielddefs
-                                    WHERE name = ?', undef, $name);
-
-    ThrowCodeError('invalid_field_name', {field => $name}) unless $id;
-    return $id
+    my $field = Bugzilla->get_field($name);
+    ThrowCodeError('invalid_field_name', {field => $name}) unless $field;
+    return $field->id;
 }
 
 # Shared between Bugzilla::Field and Bugzilla::Field::Choice
@@ -1140,25 +1147,18 @@ sub update_visibility_values
 }
 
 # Moved from bug/field-events.js.tmpl
+# Now uses one pass over cached fieldvaluecontrol table
 sub json_visibility
 {
     my $self = shift;
-    my $show = { fields => {}, values => {} };
-    foreach my $controlled (@{$self->controls_visibility_of})
-    {
-        $show->{fields}->{$controlled->name} = { map { $_->id => 1 } @{$controlled->visibility_values} };
-    }
-    $show->{legal} = [ map { [ $_->id, $_->name ] } @{$self->legal_values} ];
-    foreach my $value (@{$self->legal_values})
-    {
-        foreach my $controlled_field (keys %{$value->controlled_values})
-        {
-            foreach my $controlled_value (@{$value->controlled_values->{$controlled_field}})
-            {
-                $show->{values}->{$controlled_field}->{$controlled_value->id}->{$value->id} = 1;
-            }
-        }
-    }
+    my $show = {
+        legal  => [ map { [ $_->id, $_->name ] } @{$self->legal_values} ],
+        fields => {},
+        values => {},
+    };
+    my $hash = Bugzilla->fieldvaluecontrol_hash->{$self->id};
+    $show->{fields} = { map { Bugzilla->get_field($_)->name => $hash->{fields}->{$_} } keys %{$hash->{fields}} };
+    $show->{values} = { map { Bugzilla->get_field($_)->name => $hash->{values}->{$_} } keys %{$hash->{values}} };
     $show = encode_json($show);
     Encode::_utf8_on($show);
     return $show;
@@ -1181,3 +1181,24 @@ showValueWhen['[% field.name | js %]'][[% val.id %]]['[% controlled_field | js %
 [% END %]
 [% END %]
 [% END %]
+
+    for my $row (@{Bugzilla->fieldvaluecontrol})
+    {
+        $field_name = Bugzilla->get_field($row->{field_id})->name;
+        if ($row->{visibility_field_id} == $self->id)
+        {
+            if ($row->{value_id})
+            {
+                $show->{values}
+                    ->{$field_name}
+                    ->{$row->{value_id}}
+                    ->{$row->{visibility_value_id}} = 1;
+            }
+            else
+            {
+                $show->{fields}
+                    ->{$field_name}
+                    ->{$row->{visibility_value_id}} = 1;
+            }
+        }
+    }

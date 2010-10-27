@@ -705,6 +705,51 @@ sub get_fields
     return @fields;
 }
 
+# Cache for fieldvaluecontrol table
+sub fieldvaluecontrol
+{
+    my $class = shift;
+    if (!$class->request_cache->{fieldvaluecontrol})
+    {
+        $class->request_cache->{fieldvaluecontrol} = $class->dbh->selectall_arrayref(
+            'SELECT c.*, (CASE WHEN c.value_id=0 THEN f.visibility_field_id ELSE f.value_field_id END) visibility_field_id'.
+            ' FROM fieldvaluecontrol c, fielddefs f WHERE f.id=c.field_id'.
+            ' ORDER BY c.field_id, c.value_id, (CASE WHEN c.value_id=0 THEN f.visibility_field_id ELSE f.value_field_id END), c.visibility_value_id', {Slice=>{}}
+        );
+        my $has = {};
+        for (@{$class->request_cache->{fieldvaluecontrol}})
+        {
+            if ($_->{value_id})
+            {
+                $has->{$_->{visibility_field_id}}
+                    ->{values}
+                    ->{$_->{field_id}}
+                    ->{$_->{value_id}}
+                    ->{$_->{visibility_value_id}} = 1;
+             }
+             else
+             {
+                $has->{$_->{visibility_field_id}}
+                    ->{fields}
+                    ->{$_->{field_id}}
+                    ->{$_->{visibility_value_id}} = 1;
+             }
+        }
+        $class->request_cache->{fieldvaluecontrol_hash} = $has;
+    }
+    return $class->request_cache->{fieldvaluecontrol};
+}
+
+sub fieldvaluecontrol_hash
+{
+    my $class = shift;
+    if (!$class->request_cache->{fieldvaluecontrol_hash})
+    {
+        $class->fieldvaluecontrol;
+    }
+    return $class->request_cache->{fieldvaluecontrol_hash};
+}
+
 sub active_custom_fields
 {
     my $class = shift;

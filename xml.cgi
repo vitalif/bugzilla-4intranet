@@ -26,16 +26,97 @@ use strict;
 
 use lib qw(. lib);
 use Bugzilla;
+use Bugzilla::Constants;
+use Bugzilla::Util;
+use Bugzilla::WebService::Server::XMLSimple;
 
 my $cgi = Bugzilla->cgi;
 
-# Convert comma/space separated elements into separate params
-my @ids = ();
+my $args = $cgi->Vars;
+my $method = $args->{method};
 
-if (defined $cgi->param('id')) {
-    @ids = split (/[, ]+/, $cgi->param('id'));
+sub addmsg
+{
+    my ($result, $message) = @_;
+    if (ref $message && $message->isa('Bugzilla::Error'))
+    {
+        $result->{status} = $message->{error};
+        $result->{error_data} = $message->{vars};
+        delete $message->{vars}->{error};
+    }
+    else
+    {
+        $result->{message} = "$message";
+    }
 }
 
-my $ids = join('', map { $_ = "&id=" . $_ } @ids);
+if (!$method)
+{
+    # Backward compatibility: redirect to show_bug.cgi?ctype=xml
+    # Convert comma/space separated elements into separate params
+    my @ids = ();
 
-print $cgi->redirect("show_bug.cgi?ctype=xml$ids");
+    if (defined $cgi->param('id')) {
+        @ids = split (/[, ]+/, $cgi->param('id'));
+    }
+
+    my $ids = join('', map { $_ = "&id=" . $_ } @ids);
+
+    print $cgi->redirect("show_bug.cgi?ctype=xml$ids");
+}
+else
+{
+    # Very simple "REST/XML-RPC" server:
+    # Takes arguments from GET and POST parameters, returns XML.
+    Bugzilla->error_mode(ERROR_MODE_DIE);
+    Bugzilla->login;
+    my ($service, $result);
+    ($service, $method) = split /\./, $method;
+    $service =~ s/[^a-z0-9]+//giso;
+    if (!$Bugzilla::WebService::{$service.'::'} ||
+        !$Bugzilla::WebService::{$service.'::'}->{'XMLSimple::'})
+    {
+        eval { require "Bugzilla/WebService/$service.pm" };
+        if ($@)
+        {
+            $result = {
+                status  => 'bad_service',
+                service => $service,
+                method  => $method,
+            };
+            addmsg($result, $@);
+        }
+        else
+        {
+            # This perversion is needed to override Bugzilla::WebService->type() method
+            eval "\@Bugzilla::WebService::$service\::XMLSimple::ISA = qw(Bugzilla::WebService::Server::XMLSimple Bugzilla::WebService::$service)";
+        }
+    }
+    if ($Bugzilla::WebService::{$service.'::'} &&
+        $Bugzilla::WebService::{$service.'::'}->{'XMLSimple::'})
+    {
+        my $func_args = { %$args };
+        delete $func_args->{method};
+        my $pkg = 'Bugzilla::WebService::'.$service.'::XMLSimple';
+        eval { $result = $pkg->$method($func_args) };
+        if ($@)
+        {
+            $result = {
+                status  => 'error',
+                service => $service,
+                method  => $method,
+            };
+            addmsg($result, $@);
+        }
+        else
+        {
+            $result->{status} ||= 'ok';
+        }
+    }
+    # Send response
+    Bugzilla->send_header(-type => 'text/xml'.(Bugzilla->params->{utf8} ? '; charset=utf-8' : ''));
+    print '<?xml version="1.0"'.(Bugzilla->params->{utf8} ? ' encoding="UTF-8"' : '').' ?>';
+    print '<response>';
+    print xml_dump_simple($result);
+    print '</response>';
+}
