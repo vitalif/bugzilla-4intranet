@@ -1049,6 +1049,7 @@ sub bz_commit_transaction {
     
     if ($self->{private_bz_transaction_count} > 1) {
         $self->{private_bz_transaction_count}--;
+        $self->release_savepoint();
     } elsif ($self->bz_in_transaction) {
         $self->commit();
         $self->{private_bz_transaction_count} = 0;
@@ -1085,6 +1086,7 @@ sub bz_rollback_to_savepoint
     {
         $self->{private_bz_transaction_count}--;
         $self->rollback_to_savepoint();
+        $self->release_savepoint();
     }
 }
 
@@ -1098,6 +1100,12 @@ sub rollback_to_savepoint
 {
     my $self = shift;
     $self->do('ROLLBACK TO SAVEPOINT sp'.$self->{private_bz_transaction_count});
+}
+
+sub release_savepoint
+{
+    my $self = shift;
+    $self->do('RELEASE SAVEPOINT sp'.$self->{private_bz_transaction_count});
 }
 
 #####################################################################
