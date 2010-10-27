@@ -48,7 +48,8 @@ use base qw(Exporter);
                              validate_email_syntax clean_text
                              stem_text
                              intersect
-                             get_text template_var disable_utf8);
+                             get_text template_var disable_utf8
+                             xml_element xml_element_quote xml_dump_simple);
 
 use Bugzilla::Constants;
 
@@ -59,7 +60,7 @@ use DateTime::TimeZone;
 use Digest;
 use Email::Address;
 use List::Util qw(first);
-use Scalar::Util qw(tainted);
+use Scalar::Util qw(tainted blessed);
 use Template::Filters;
 use Text::Wrap;
 use Text::TabularDisplay::Utf8;
@@ -758,6 +759,60 @@ sub intersect
         @$values = grep { $chk{$_} } @$values;
     }
     return $values;
+}
+
+sub xml_element_quote
+{
+    my ($name, $args, $content) = @_;
+    xml_element($name, $args, xml_quote($content));
+}
+
+sub xml_element
+{
+    my ($name, $args, $content) = @_;
+    if (ref $args)
+    {
+        $args = join '', map { ' '.xml_quote($_).'="'.xml_quote($args->{$_}).'"' } keys %$args;
+    }
+    $name = xml_quote($name);
+    $args = '<'.$name.$args;
+    if (defined $content && $content eq '')
+    {
+        return $args.' />';
+    }
+    return $args.'>'.$content.'</'.$name.'>';
+}
+
+sub xml_dump_simple
+{
+    my ($data) = @_;
+    if (ref $data)
+    {
+        my $r;
+        if ($data =~ 'ARRAY')
+        {
+            $r = join '', map { xml_element('i', '', xml_dump_simple($_)) } @$data;
+        }
+        elsif ($data =~ 'HASH')
+        {
+            $r = join '', map { xml_element($_, '', xml_dump_simple($data->{$_})) } keys %$data;
+        }
+        elsif ($data =~ 'SCALAR')
+        {
+            # TODO потенциально можно сохранять ссылки
+            $r = xml_element('ref', '', xml_dump_simple($$data));
+        }
+        else
+        {
+            $r = xml_quote("$data");
+        }
+        if (my $p = blessed($data))
+        {
+            $r = xml_element('object', {class => $p}, $r);
+        }
+        return $r;
+    }
+    return xml_quote("$data");
 }
 
 1;
