@@ -86,9 +86,12 @@ sub update_value
         {
             return {status => 'value_already_exists'};
         }
+        $value->set_value($params->{new_value});
     }
-    $value->set_value($params->{new_value});
-    $value->set_sortkey($params->{sortkey});
+    if (exists $params->{sortkey})
+    {
+        $value->set_sortkey($params->{sortkey});
+    }
     $value->update;
     return {status => 'ok', id => $value->id};
 }
