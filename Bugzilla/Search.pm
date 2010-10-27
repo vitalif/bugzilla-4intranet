@@ -1112,7 +1112,7 @@ sub init {
         }
     }
 
-    $query .= " WHERE " . join(' AND ', (@wherepart, @andlist)) .
+    $query .= " WHERE (" . join(' AND ', (@wherepart, @andlist)) .
               " AND bugs.creation_ts IS NOT NULL ";
 
     if (!$user->is_super_user)
@@ -1132,6 +1132,7 @@ sub init {
         }
         $query .= ") ";
     }
+    $query .= ") ";
 
     # For some DBs, every field in the SELECT must be in the GROUP BY.
     foreach my $field (@fields) {
