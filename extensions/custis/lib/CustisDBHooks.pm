@@ -51,7 +51,7 @@ sub db_schema_abstract_schema
 
     # Ну и зачем авторы убрали этот индекс?
     # Bug 53687 - Тормозят запросы из Plantime в багзиллу
-    push @{$schema->{longdescs}->{INDEXES}}, { FIELDS => ['who', 'bug_when'] };
+    push @{$schema->{longdescs}->{INDEXES}}, longdescs_who_bug_when_idx => { FIELDS => ['who', 'bug_when'] };
 
     # Bug 13593 - Интеграция с Wiki
     push @{$schema->{components}->{FIELDS}}, wiki_url => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"};
@@ -61,7 +61,7 @@ sub db_schema_abstract_schema
     push @{$schema->{products}->{FIELDS}}, notimetracking => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0};
 
     # Bug 68921 - Связь внутренний/внешний продукт
-    push @{$schema->{products}->{FIELDS}}, extproduct => {TYPE => 'SMALLSERIAL', REFERENCES => {TABLE => 'products', COLUMN => 'id'}};
+    push @{$schema->{products}->{FIELDS}}, extproduct => {TYPE => 'INT2', REFERENCES => {TABLE => 'products', COLUMN => 'id'}};
 
     # Bug 53725 - Версия по умолчанию
     push @{$schema->{components}->{FIELDS}}, default_version => {TYPE => 'varchar(64)', NOTNULL => 1, DEFAULT => "''"};
