@@ -29,6 +29,7 @@
 [%############################################################################%]
 
 [% DEFAULT title = "$terms.Bug List" %]
+[% USE Bugzilla %]
 
 [%############################################################################%]
 [%# Bug Table                                                                #%]
@@ -38,7 +39,7 @@
 
   <head>
     <title>[% title FILTER html %]</title>
-    <base href="[% urlbase FILTER html %]">
+    <base href="[% urlbase FILTER html %]" [% IF Bugzilla.cgi.param('target') == '_blank' %] target="_blank"[% END %]>
     <link href="skins/standard/buglist.css" rel="stylesheet" type="text/css">
   </head>
 
