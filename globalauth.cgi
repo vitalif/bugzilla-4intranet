@@ -17,6 +17,8 @@ use URI::QueryParam;
 use URI::Escape;
 use JSON;
 
+my $gc_prob = 0.01;
+
 my $cgi  = Bugzilla->cgi;
 my $args = $cgi->Vars;
 my $check = $args->{ga_check} ? 1 : 0; # если 1 и пользователь не вошёл, входа не требовать
@@ -31,6 +33,10 @@ my $id;
 # только серверная сторона
 if (($id = $args->{ga_id}) && !$args->{ga_client})
 {
+    if (rand() < $gc_prob)
+    {
+        $dbh->do("DELETE FROM globalauth WHERE expire < UNIX_TIMESTAMP()");
+    }
     trick_taint($id);
     # приём ID и ключа от клиента
     my $key = $args->{ga_key};
