@@ -583,19 +583,15 @@ sub insert {
     $vars->{'header_done'} = 1;
     $vars->{'contenttypemethod'} = $cgi->param('contenttypemethod');
 
-    my $recipients = { 'changer' => $user->login, 'owner' => $owner };
-    my $silent = $vars->{commentsilent} = $cgi->param('commentsilent') ? 1 : 0;
-    my $sent_bugmail = Bugzilla::BugMail::Send($bugid, $recipients, $silent);
+    my $send_results = send_results({
+        mailrecipients => { 'changer' => $user->login, 'owner' => $owner },
+        bug_id         => $bugid,
+    });
 
     # Operation result to save into session (CustIS Bug 64562)
     my $session_data = {
         title => "Attachment ".$attachment->id." added to ".template_var('terms')->{Bug}." ".$attachment->bug_id,
-        sent => [ {
-            commentsilent  => $silent,
-            sent_bugmail   => $sent_bugmail,
-            mailrecipients => $recipients,
-            id             => $bugid,
-        } ],
+        sent => [$send_results],
         sent_attrs => {
             contenttypemethod => $vars->{contenttypemethod},
             added_attachment => {
