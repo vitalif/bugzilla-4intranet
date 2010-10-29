@@ -61,13 +61,19 @@ if (@idlist || @lines)
     {
         foreach my $line (@lines)
         {
-            if ($line =~ m/\s*(\d?\d.\d\d.[1-9]?\d?\d\d\s)?\s*((\d?\d):(\d\d)\s*-\s*(\d?\d):(\d\d)\s+)?([\w\/]+)\s*(-\s*(BUG|\()?\s*([1-9]\d*)(.*))?/iso)
+            if ($line && $line =~ m/\s*(\d?\d.\d\d.[1-9]?\d?\d\d\s)?\s*((\d?\d):(\d\d)\s*-\s*(\d?\d):(\d\d)\s+)?([\w\/]+)\s*(-\s*(BUG|\()?\s*([1-9]\d*)(.*))/iso)
             {
                 my $wtime = (($5 * 60 + $6) - ($3 * 60 + $4)) / 60;
                 $wtime = 0 if $wtime < 0;
                 my $id      = $10;
                 my $comment = $line;
+                if (!$id)
+                {
+                    ThrowUserError('object_not_specified', { class => 'Bugzilla::Bug' });
+                }
+                $dbh->bz_start_transaction();
                 BugWorkTime::FixWorktime($id, $wtime, $comment);
+                $dbh->bz_commit_transaction();
             }
         }
     }
