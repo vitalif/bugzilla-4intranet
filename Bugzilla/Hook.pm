@@ -26,18 +26,45 @@ use strict;
 no strict 'refs';
 use Bugzilla::Util;
 use base 'Exporter';
-our @EXPORT = qw(set_hook run_hooks);
+our @EXPORT = qw(set_hook add_hook run_hooks);
 
 my %hooks;
 my @hook_stack;
 my %hook_hash;
 
 # Set extension hook or hooks
+# The idea is to allow reloading main extension file:
+# If there is more than one hook in one extension,
+#  call set_hook to set first of them and add_hook to set others.
+# So, if main extension file is occasionally reloaded in runtime,
+#  the hook list would be correctly overwritten.
 sub set_hook
 {
     my ($extension, $hook, $callable) = @_;
+    die "set_hook($extension, $hook, undef) called" if !$callable;
     $hook =~ tr/-/_/;
-    push @{$hooks{$hook}{$extension}}, $callable;
+    $hooks{$hook}{$extension} = $callable;
+}
+
+# Add extension hook or hooks
+sub add_hook
+{
+    my ($extension, $hook, $callable) = @_;
+    die "add_hook($extension, $hook, undef) called" if !$callable;
+    $hook =~ tr/-/_/;
+    if (!$hooks{$hook}{$extension})
+    {
+        $hooks{$hook}{$extension} = $callable;
+    }
+    else
+    {
+        if (ref $hooks{$hook}{$extension} ne 'ARRAY')
+        {
+            $hooks{$hook}{$extension} = [ $hooks{$hook}{$extension} ];
+        }
+        $callable = [ $callable ] if ref $callable ne 'ARRAY';
+        push @{$hooks{$hook}{$extension}}, @$callable;
+    }
 }
 
 # An alias

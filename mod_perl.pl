@@ -127,7 +127,7 @@ sub reload
     for my $key (keys %INC)
     {
         $file = $INC{$key} or next;
-        $file =~ /\.pm$/i or next; # do not reload *.pl *.cgi
+        $file =~ /\.p[ml]$/i or next; # do not reload *.cgi
 
         $mtime = (stat $file)[9];
         # Startup time as default

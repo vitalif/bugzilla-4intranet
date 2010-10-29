@@ -52,7 +52,7 @@ set_hook('custis', 'editgroups_post_remove_regexp', 'FlushViews::refresh_views')
 set_hook('custis', 'editusersingroup_post_add',     'FlushViews::refresh_views');
 set_hook('custis', 'editusers_post_delete',         'FlushViews::refresh_views');
 set_hook('custis', 'editusers_post_update',         'FlushViews::refresh_views');
-set_hook('custis', 'savedsearch_post_update',       'FlushViews::savedsearch_post_update');
+set_hook('custis', 'savedsearch_post_update',       [ 'FlushViews::savedsearch_post_update' ]);
 
 # Хуки для синхронизации тест-плана Testopia с Wiki-категорией
 set_hook('custis', 'tr_show_plan_after_fetch',      'CustisTestPlanSync::tr_show_plan_after_fetch');
@@ -61,7 +61,7 @@ set_hook('custis', 'tr_show_plan_after_fetch',      'CustisTestPlanSync::tr_show
 set_hook('custis', 'bug_pre_update',                'Checkers::bug_pre_update');
 set_hook('custis', 'bug_end_of_update',             'Checkers::bug_end_of_update');
 set_hook('custis', 'post_bug_post_create',          'Checkers::post_bug_post_create');
-set_hook('custis', 'savedsearch_post_update',       'Checkers::savedsearch_post_update');
+add_hook('custis', 'savedsearch_post_update',       'Checkers::savedsearch_post_update');
 
 # Прочие хуки
 set_hook('custis', 'auth_post_login',               'CustisMiscHooks::auth_post_login');
