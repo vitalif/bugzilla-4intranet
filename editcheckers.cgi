@@ -64,7 +64,7 @@ if ($params->{save})
             $ch = Bugzilla::Checker->create({
                 query_id => $params->{query_id},
                 user_id  => $user->id,
-                message  => $params->{query_id},
+                message  => $params->{message},
                 flags    => $flags,
                 except_fields => $except,
             });
