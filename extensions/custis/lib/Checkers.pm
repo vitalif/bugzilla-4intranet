@@ -19,8 +19,8 @@ sub refresh_checker
 {
     my ($query) = @_;
     my $dbh = Bugzilla->dbh;
-    my $chk = Bugzilla::Checker->new($query->id) || return;
-    $chk->update;
+    my ($chk) = @{ Bugzilla::Checker->match({ query_id => $query->id }) };
+    $chk && $chk->update;
 }
 
 sub all
@@ -54,7 +54,7 @@ sub check
         {
             $s = $_->sql_code;
             $i = $_->id;
-            $s =~ s/^(.*)(GROUP\s+BY)/SELECT $i query_id FROM $1 AND bugs.bug_id=$bug_id $2/iso;
+            $s =~ s/^(.*)(GROUP\s+BY)/SELECT $i id FROM $1 AND bugs.bug_id=$bug_id $2/iso;
             push @$sql, $s;
         }
     }

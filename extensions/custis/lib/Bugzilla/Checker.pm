@@ -22,6 +22,7 @@ use constant {
 our @EXPORT = qw(CF_FREEZE CF_FATAL CF_CREATE CF_UPDATE CF_DENY);
 
 use constant DB_COLUMNS => (
+    'id',
     # <Это состояние> задаётся соответствием запросу поиска.
     'query_id',
     # Кто создал
@@ -38,7 +39,7 @@ use constant DB_COLUMNS => (
     'except_fields',
 );
 use constant NAME_FIELD => 'message';
-use constant ID_FIELD   => 'query_id';
+use constant ID_FIELD   => 'id';
 use constant LIST_ORDER => NAME_FIELD;
 
 use constant REQUIRED_CREATE_FIELDS => qw(query_id message);
@@ -49,6 +50,7 @@ use constant VALIDATORS => {
 };
 
 use constant UPDATE_COLUMNS => (
+    'query_id',
     'flags',
     'message',
     'sql_code',
@@ -90,9 +92,8 @@ sub create
     {
         $params->{except_fields} = encode_json($params->{except_fields});
     }
-    Bugzilla::Object::create($class, $params);
-    my $self = $class->new($params->{query_id});
-    $self->update if $self;
+    my $self = Bugzilla::Object::create($class, $params);
+    $self->update;
     return $self;
 }
 
@@ -142,6 +143,7 @@ sub _check_flags
     return $value;
 }
 
+sub id              { $_[0]->{id} }
 sub query_id        { $_[0]->{query_id} }
 sub user_id         { $_[0]->{user_id} }
 sub message         { $_[0]->{message} }
