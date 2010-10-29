@@ -67,7 +67,7 @@ if (@idlist || @lines)
                 $wtime = 0 if $wtime < 0;
                 my $id      = $10;
                 my $comment = $line;
-                ProcessBug($dbh, $id, $wtime, $comment);
+                BugWorkTime::FixWorktime($id, $wtime, $comment);
             }
         }
     }
