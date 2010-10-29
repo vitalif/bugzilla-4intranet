@@ -971,7 +971,7 @@ my $time_info = { 'estimated_time' => 0,
                   'percentage_complete' => 0,
                   'interval_time' => 0, # CustIS Bug 68921
                   'time_present' => ($estimated_time || $remaining_time ||
-                                     $actual_time || $percentage_complete),
+                                     $actual_time || $percentage_complete || $interval_time),
                 };
 
 my $bugowners = {};
