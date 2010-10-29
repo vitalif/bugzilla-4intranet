@@ -317,7 +317,6 @@ sub install_update_db
     {
         $dbh->bz_add_index('checkers', checkers_query_id_idx => { FIELDS => ['query_id'] });
         $dbh->bz_drop_index('checkers', 'checkers_primary_idx');
-        $dbh->bz_drop_index_raw('checkers', 'checkers_primary_idx');
         $dbh->bz_add_column('checkers', id => {TYPE => 'MEDIUMSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
     }
 
