@@ -9,9 +9,10 @@
   <dl>
   [% FOR c = checkers %]
    <dt>
-    [% c.name | html %]:
-    <a href="?mode=edit&query_id=[% c.query_id %]">править</a>,
-    <a href="javascript:void(0)" onclick="if(confirm('Действительно удалить эту проверку?')){window.location.href='?save=1&delete=1&query_id=[% c.query_id %]';}">удалить</a>
+    <a href="buglist.cgi?cmdtype=dorem&amp;remaction=run&amp;namedcmd=[% c.query.name | url_quote %]
+     [% IF c.query.shared_with_group.id %]&amp;sharer_id=[% c.query.user.id %][% END %]">[% c.name | html %]</a>:
+    <a href="?mode=edit&id=[% c.id %]">править</a>,
+    <a href="javascript:void(0)" onclick="if(confirm('Действительно удалить эту проверку?')){window.location.href='?save=1&delete=1&id=[% c.id %]';}">удалить</a>
    </dt>
    <dd>
     [% c.message | html %]
@@ -35,17 +36,21 @@
  <table>
   [% IF create %]
    <input type="hidden" name="create" value="1" />
-   <tr>
-    <th>Сохранённый запрос:</th>
-    <td><select name="query_id">
-     [% FOREACH q = user.queries %]
-      <option value="[% q.id %]" [% " selected='selected'" IF checker.query_id == q.id %] >[% q.name | html %]</option>
-     [% END %]
-    </select></td>
-   </tr>
   [% ELSE %]
-   <input type="hidden" name="query_id" value="[% checker.query_id %]" />
+   <input type="hidden" name="id" value="[% checker.id %]" />
   [% END %]
+  <tr>
+   <th>Сохранённый запрос:</th>
+   <td><select name="query_id">
+    [% FOREACH q = user.queries %]
+     [% SET found = 1 IF checker.query_id == q.id %]
+     <option value="[% q.id %]" [% " selected='selected'" IF checker.query_id == q.id %] >[% q.name | html %]</option>
+    [% END %]
+    [% IF checker.query_id AND !found %]
+     <option value="[% checker.query_id %]" selected='selected'>[% checker.query.name | html %]</option>
+    [% END %]
+   </select></td>
+  </tr>
   <tr>
    <th>Сообщение об ошибке:</th>
    <td><textarea name="message" rows="8" cols="80">[% checker.message | html %]</textarea></td>

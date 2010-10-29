@@ -24,7 +24,7 @@ $user->in_group('bz_editcheckers')
                                      action => 'modify',
                                      object => 'checkers'});
 
-my $id = $params->{query_id};
+my $id = $params->{id};
 defined($id) && detaint_natural($id);
 if ($params->{save})
 {
@@ -72,6 +72,7 @@ if ($params->{save})
         else
         {
             $ch = Bugzilla::Checker->check({ id => $id });
+            $ch->set_query_id($params->{query_id});
             $ch->set_message($params->{message});
             $ch->set_flags($flags);
             $ch->set_except_fields($except);
@@ -81,7 +82,7 @@ if ($params->{save})
     }
     elsif ($params->{delete})
     {
-        Bugzilla->dbh->do('DELETE FROM checkers WHERE query_id=?', undef, $id);
+        Bugzilla->dbh->do('DELETE FROM checkers WHERE id=?', undef, $id);
     }
     print $cgi->redirect(-location => 'editcheckers.cgi');
     exit;

@@ -114,6 +114,7 @@ sub db_schema_abstract_schema
     # Bug 68921 - Предикаты корректности из запросов поиска
     $schema->{checkers} = {
         FIELDS => [
+            id             => {TYPE => 'MEDIUMSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
             query_id       => {TYPE => 'INT3', NOTNULL => 1, REFERENCES => {TABLE => 'namedqueries', COLUMN => 'id'}},
             user_id        => {TYPE => 'INT3', REFERENCES => {TABLE => 'profiles', COLUMN => 'userid'}},
             is_freeze      => {TYPE => 'BOOLEAN'},
@@ -123,7 +124,7 @@ sub db_schema_abstract_schema
             except_fields  => {TYPE => 'BLOB'},
         ],
         INDEXES => [
-            checkers_primary_idx => { FIELDS => ['query_id'], TYPE => 'UNIQUE' },
+            checkers_query_id_idx => { FIELDS => ['query_id'] },
         ],
     };
     return 1;
@@ -312,25 +313,12 @@ sub install_update_db
     }
 
     # Временное, можно удалить
-    if ($dbh->bz_column_info('checkers', 'is_freeze'))
+    if (!$dbh->bz_column_info('checkers', 'id'))
     {
-        use Bugzilla::Checker;
-        use JSON;
-        $dbh->bz_add_column('checkers', flags => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 1});
-        my $rows = $dbh->selectall_arrayref('SELECT * FROM checkers', {Slice=>{}});
-        for (@$rows)
-        {
-            $_->{except_fields} = $_->{except_fields} ? decode_json($_->{except_fields}) : {};
-            $dbh->do('UPDATE checkers SET flags=?, except_fields=? WHERE query_id=?', undef,
-                ($_->{is_freeze} ? 1 : 0) * CF_FREEZE |
-                ($_->{is_fatal} ? 1 : 0) * CF_FATAL |
-                ($_->{except_fields}->{deny_all} ? 1 : 0) * CF_DENY |
-                CF_CREATE | CF_UPDATE,
-                $_->{except_fields}->{except_fields} ? encode_json($_->{except_fields}->{except_fields}) : undef,
-                $_->{query_id});
-        }
-        $dbh->bz_drop_column('checkers', 'is_freeze');
-        $dbh->bz_drop_column('checkers', 'is_fatal');
+        $dbh->bz_add_index('checkers', checkers_query_id_idx => { FIELDS => ['query_id'] });
+        $dbh->bz_drop_index('checkers', 'checkers_primary_idx');
+        $dbh->bz_drop_index_raw('checkers', 'checkers_primary_idx');
+        $dbh->bz_add_column('checkers', id => {TYPE => 'MEDIUMSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
     }
 
     return 1;
