@@ -72,7 +72,6 @@ sub refresh_sql
         $query = $self->query;
     }
     my $params = new Bugzilla::CGI($query->url);
-    $params->delete('bug_id_type', 'bug_id');
     my $search = new Bugzilla::Search(
         params => $params,
         fields => [ 'bug_id' ],
