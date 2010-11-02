@@ -238,20 +238,10 @@ if (Bugzilla->params->{'usetargetmilestone'}) {
 }
 
 # Fields for boolean charts
-my @fields = Bugzilla->get_fields({ obsolete => 0 });
-@fields = sort {lc($a->description) cmp lc($b->description)} @fields;
-$vars->{'fields'} = \@fields;
+$vars->{fields} = &Bugzilla::Search::CHART_FIELDS;
 
 # "where one or more of the following changed:"
-# ---- vfilippov@custis.ru 2010-02-01
-# This is much much more correct than Bugzilla::Bug::editable_bug_fields().
-# We only need to exclude final and automatic fields.
-# FIXME remove hardcode
-my %exclude = map { $_ => 1 } qw(
-    noop bug_id delta_ts creation_ts days_elapsed owner_idle_time
-    everconfirmed percentage_complete
-);
-$vars->{'chfield'} = [ sort grep { !$exclude{$_} } map { $_->name } @fields ];
+$vars->{chfield} = [ map { $_->name } @{ &Bugzilla::Search::CHANGEDFROMTO_FIELDS } ];
 
 # Another hack...
 unshift @{$vars->{fields}}, { name => "noop", description => "---" };
