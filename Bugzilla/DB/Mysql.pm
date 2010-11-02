@@ -138,7 +138,7 @@ sub sql_regexp {
 
     $self->bz_check_regexp($real_pattern) if !$nocheck;
 
-    return "$expr REGEXP $pattern";
+    return "IFNULL($expr,'') REGEXP $pattern";
 }
 
 sub sql_not_regexp {
@@ -147,7 +147,7 @@ sub sql_not_regexp {
 
     $self->bz_check_regexp($real_pattern) if !$nocheck;
 
-    return "$expr NOT REGEXP $pattern";
+    return "IFNULL($expr,'') NOT REGEXP $pattern";
 }
 
 sub sql_limit {
@@ -169,8 +169,8 @@ sub sql_string_concat {
 sub sql_fulltext_search {
     my ($self, $column, $text) = @_;
 
-        # quote un-quoted compound words
-        my @words = quotewords('[\s()]+', 'delimiters', $text);
+    # quote un-quoted compound words
+    my @words = quotewords('[\s()]+', 'delimiters', $text);
     if ($text =~ /(?:^|\W)[+\-<>~"()]/ || $text =~ /[()"*](?:$|\W)/)
     {
         # already a boolean mode search
