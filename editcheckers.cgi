@@ -93,7 +93,7 @@ $vars->{mode} = $modes->{$params->{mode}} || 'list';
 
 if ($vars->{mode} eq 'list')
 {
-    $vars->{checkers} = Bugzilla->dbh->selectall_arrayref('SELECT * FROM checkers WHERE user_id=?', {Slice=>{}}, $user->id);
+    $vars->{checkers} = Bugzilla->dbh->selectall_arrayref('SELECT * FROM checkers', {Slice=>{}});
     bless $_, 'Bugzilla::Checker' for @{$vars->{checkers}};
 }
 else
