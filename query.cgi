@@ -143,10 +143,7 @@ sub PrefillForm {
     for my $field (Bugzilla->active_custom_fields)
     {
         push @list, $field->name;
-        if ($field->type == FIELD_TYPE_FREETEXT || $field->type == FIELD_TYPE_TEXTAREA)
-        {
-            push @list, $field->name . '_type';
-        }
+        push @list, $field->name . '_type';
     }
 
     foreach my $name (@list) {

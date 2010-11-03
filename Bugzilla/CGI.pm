@@ -178,9 +178,7 @@ sub clean_search_url {
     foreach my $num (1,2) {
         # If there's no value in the email field, delete the related fields.
         if (!$self->param("email$num")) {
-            foreach my $field qw(type assigned_to reporter qa_contact
-                                 cc longdesc) 
-            {
+            foreach my $field (qw(type assigned_to reporter qa_contact cc longdesc)) {
                 $self->delete("email$field$num");
             }
         }
@@ -227,7 +225,8 @@ sub multipart_init {
     }
 
     # Set the MIME boundary and content-type
-    my $boundary = $param{'-boundary'} || '------- =_aaaaaaaaaa0';
+    my $boundary = $param{'-boundary'}
+        || '------- =_' . generate_random_password(16);
     delete $param{'-boundary'};
     $self->{'separator'} = "\r\n--$boundary\r\n";
     $self->{'final_separator'} = "\r\n--$boundary--\r\n";

@@ -534,7 +534,8 @@ sub _check_content_type {
     my ($invocant, $content_type) = @_;
 
     $content_type = 'text/plain' if (ref $invocant && ($invocant->isurl || $invocant->ispatch));
-    if (!_legal_content_type($content_type)) {
+    $content_type = trim($content_type);
+    if (!$content_type || !_legal_content_type($content_type)) {
         ThrowUserError("invalid_content_type", { contenttype => $content_type });
     }
     trick_taint($content_type);

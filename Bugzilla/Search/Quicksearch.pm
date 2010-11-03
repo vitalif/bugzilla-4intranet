@@ -30,6 +30,9 @@ use Bugzilla::Status;
 use Bugzilla::Field;
 use Bugzilla::Util;
 
+use List::Util qw(min max);
+use List::MoreUtils qw(firstidx);
+
 use base qw(Exporter);
 @Bugzilla::Search::Quicksearch::EXPORT = qw(quicksearch);
 
@@ -469,18 +472,30 @@ sub _translate_field_name {
 sub _special_field_syntax {
     my $self = shift;
     my ($word, $negate) = @_;
-    
+
     # P1-5 Syntax
     if ($word =~ m/^P(\d+)(?:-(\d+))?$/i) {
-        my $start = $1 - 1;
-        $start = 0 if $start < 0;
-        my $end = $2 - 1;
-
+        my ($p_start, $p_end) = ($1, $2);
         my $legal_priorities = get_legal_field_values('priority');
-        $end = scalar(@$legal_priorities) - 1
-            if $end > (scalar @$legal_priorities - 1);
+
+        # If Pn exists explicitly, use it.
+        my $start = firstidx { $_ eq "P$p_start" } @$legal_priorities;
+        my $end;
+        $end = firstidx { $_ eq "P$p_end" } @$legal_priorities if defined $p_end;
+
+        # If Pn doesn't exist explicitly, then we mean the nth priority.
+        if ($start == -1) {
+            $start = max(0, $p_start - 1);
+        }
         my $prios = $legal_priorities->[$start];
-        if ($end) {
+
+        if (defined $end) {
+            # If Pn doesn't exist explicitly, then we mean the nth priority.
+            if ($end == -1) {
+                $end = min(scalar(@$legal_priorities), $p_end) - 1;
+                $end = max(0, $end); # Just in case the user typed P0.
+            }
+            ($start, $end) = ($end, $start) if $end < $start;
             $prios = join(',', @$legal_priorities[$start..$end])
         }
         $self->addChart('priority', 'anyexact', $prios, $negate);
@@ -492,7 +507,7 @@ sub _special_field_syntax {
         $self->addChart('votes', 'greaterthan', $1, $negate);
         return 1;
     }
-    
+
     # Votes (votes>=xx, votes=>xx)
     if ($word =~ m/^votes(>=|=>)([0-9]+)$/) {
         $self->addChart('votes', 'greaterthan', $2-1, $negate);

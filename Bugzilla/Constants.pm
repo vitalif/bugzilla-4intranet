@@ -185,7 +185,7 @@ use Cwd qw(abs_path);
 # CONSTANTS
 #
 # Bugzilla version
-use constant BUGZILLA_VERSION => "3.6.2";
+use constant BUGZILLA_VERSION => "3.6.3";
 
 # These are unique values that are unlikely to match a string or a number,
 # to be used in criteria for match() functions and other things. They start
@@ -552,6 +552,7 @@ sub bz_locations {
         'datadir'     => "$libpath/$datadir",
         'attachdir'   => "$libpath/$datadir/attachments",
         'skinsdir'    => "$libpath/skins",
+        'graphsdir'   => "$libpath/graphs",
         # $webdotdir must be in the web server's tree somewhere. Even if you use a 
         # local dot, we output images to there. Also, if $webdotdir is 
         # not relative to the bugzilla root directory, you'll need to 
