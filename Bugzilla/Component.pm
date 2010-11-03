@@ -401,16 +401,15 @@ sub flag_types
 
     if (!defined $self->{'flag_types'})
     {
+        my $flagtypes = Bugzilla::FlagType::match({ product_id   => $self->product_id,
+                                                    component_id => $self->id });
+
         $self->{'flag_types'} = {};
         $self->{'flag_types'}->{'bug'} =
-          Bugzilla::FlagType::match({ 'target_type'  => 'bug',
-                                      'product_id'   => $self->product_id,
-                                      'component_id' => $self->id });
+          [grep { $_->target_type eq 'bug' } @$flagtypes];
 
         $self->{'flag_types'}->{'attachment'} =
-          Bugzilla::FlagType::match({ 'target_type'  => 'attachment',
-                                      'product_id'   => $self->product_id,
-                                      'component_id' => $self->id });
+          [grep { $_->target_type eq 'attachment' } @$flagtypes];
 
         foreach my $type (@{$self->{flag_types}->{bug}}, @{$self->{flag_types}->{attachment}})
         {

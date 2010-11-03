@@ -1326,7 +1326,7 @@ sub _check_dependencies {
 
     my %deps_in = (dependson => $depends_on || '', blocked => $blocks || '');
 
-    foreach my $type qw(dependson blocked) {
+    foreach my $type (qw(dependson blocked)) {
         my @bug_ids = ref($deps_in{$type})
             ? @{$deps_in{$type}}
             : split(/[\s,]+/, $deps_in{$type});
@@ -2523,6 +2523,15 @@ sub add_see_also {
     }
     elsif ($uri->scheme ne 'http' && $uri->scheme ne 'https') {
         ThrowUserError('bug_url_invalid', { url => $input, reason => 'http' });
+    }
+
+    # This stops the following edge cases from being accepted:
+    # * show_bug.cgi?id=1
+    # * /show_bug.cgi?id=1
+    # * http:///show_bug.cgi?id=1
+    if (!$uri->authority or $uri->path !~ m{/}) {
+        ThrowUserError('bug_url_invalid',
+                       { url => $input, reason => 'path_only' });
     }
 
     my $result;

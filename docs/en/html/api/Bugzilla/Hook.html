@@ -47,6 +47,7 @@ Bugzilla::Hook</title>
     <li class='indexItem indexItem2'><a href='#object_before_create'>object_before_create</a>
     <li class='indexItem indexItem2'><a href='#object_before_delete'>object_before_delete</a>
     <li class='indexItem indexItem2'><a href='#object_before_set'>object_before_set</a>
+    <li class='indexItem indexItem2'><a href='#object_end_of_create'>object_end_of_create</a>
     <li class='indexItem indexItem2'><a href='#object_end_of_create_validators'>object_end_of_create_validators</a>
     <li class='indexItem indexItem2'><a href='#object_end_of_set'>object_end_of_set</a>
     <li class='indexItem indexItem2'><a href='#object_end_of_set_all'>object_end_of_set_all</a>
@@ -223,8 +224,8 @@ name="bug_end_of_create"
 <p>Params:</p>
 
 <dl>
-<dt><a name="bug_-_The_changed_bug_object,_with_all_fields_set_to_their_updated_values."
-><code  class="code">bug</code> - The changed bug object, with all fields set to their updated values.</a></dt>
+<dt><a name="bug_-_The_created_bug_object."
+><code  class="code">bug</code> - The created bug object.</a></dt>
 
 <dd>
 <dt><a name="timestamp_-_The_timestamp_used_for_all_updates_in_this_transaction,_as_a_SQL_date_string."
@@ -692,6 +693,30 @@ name="object_before_set"
 
 <dd>
 <p>The value being set on the object.</p>
+</dd>
+</dl>
+
+<h2><a class='u' href='#___top' title='click to go to top of document'
+name="object_end_of_create"
+>object_end_of_create</a></h2>
+
+<p>Called at the end of <a href="../Bugzilla/Object.html#create" class="podlinkpod"
+>&#34;create&#34; in Bugzilla::Object</a>, after all other changes are made to the database. This occurs inside a database transaction.</p>
+
+<p>Params:</p>
+
+<dl>
+<dt><a name="class"
+><code  class="code">class</code></a></dt>
+
+<dd>
+<p>The name of the class that <code  class="code">create</code> was called on. You can check this like <code  class="code">if ($class-&#62;isa(&#39;Some::Class&#39;))</code> in your code, to perform specific tasks for only certain classes.</p>
+
+<dt><a name="object"
+><code  class="code">object</code></a></dt>
+
+<dd>
+<p>The created object.</p>
 </dd>
 </dl>
 
