@@ -73,6 +73,7 @@ else
     my ($service, $result);
     ($service, $method) = split /\./, $method;
     $service =~ s/[^a-z0-9]+//giso;
+    trick_taint($service);
     if (!$Bugzilla::WebService::{$service.'::'} ||
         !$Bugzilla::WebService::{$service.'::'}->{'XMLSimple::'})
     {
