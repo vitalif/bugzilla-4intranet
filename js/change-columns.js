@@ -46,6 +46,8 @@ function switch_options(from_box, to_box, selected)
     }
     for (var i in newlist)
         to_box.options.add(newlist[i]);
+    for (var i in sel)
+        from_box.options[i].selected = sel[i];
 }
 
 function move_select() {
