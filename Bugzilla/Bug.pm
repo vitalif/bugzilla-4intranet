@@ -3202,18 +3202,18 @@ sub bug_alias_to_id {
 }
 
 sub get_test_case_count {
-      my $self = shift;
-      my $dbh = Bugzilla->dbh;
-      my $row_count = $dbh->selectall_arrayref(
-              "SELECT DISTINCT case_id FROM test_case_bugs WHERE bug_id = ?",
-              undef, $self->bug_id);
-      return scalar @$row_count;
+    my $self = shift;
+    my $dbh = Bugzilla->dbh;
+    my $row_count = $dbh->selectall_arrayref(
+        "SELECT DISTINCT case_id FROM test_case_bugs WHERE bug_id = ?",
+        undef, $self->bug_id);
+    return scalar @$row_count;
 }
 #####################################################################
 # Subroutines
 #####################################################################
 
-# FIXME // Vitaliy Filippov <vitalif@mail.ru> 2010-02-01 19:23
+# NB // Vitaliy Filippov <vitalif@mail.ru> 2010-02-01 19:23
 # editable_bug_fields() is one more example of incorrect and unused generalization.
 # It does not represent which fields from the bugs table are handled by process_bug.cgi,
 # because process_bug.cgi itself does not use it at any point. In fact, it was used only
@@ -3228,13 +3228,13 @@ sub EmitDependList {
     my ($myfield, $targetfield, $bug_id) = (@_);
     my $dbh = Bugzilla->dbh;
     my $list_ref = $dbh->selectcol_arrayref(
-          "SELECT $targetfield
-             FROM dependencies
-                  INNER JOIN bugs ON dependencies.$targetfield = bugs.bug_id
-                  INNER JOIN bug_status ON bugs.bug_status = bug_status.value
-            WHERE $myfield = ?
-            ORDER BY is_open DESC, $targetfield",
-            undef, $bug_id);
+        "SELECT $targetfield
+           FROM dependencies
+     INNER JOIN bugs ON dependencies.$targetfield = bugs.bug_id
+     INNER JOIN bug_status ON bugs.bug_status = bug_status.value
+          WHERE $myfield = ?
+       ORDER BY is_open DESC, $targetfield",
+        undef, $bug_id);
     return $list_ref;
 }
 
@@ -3886,40 +3886,40 @@ sub _validate_attribute {
 }
 
 sub AUTOLOAD {
-  use vars qw($AUTOLOAD);
-  my $attr = $AUTOLOAD;
+    use vars qw($AUTOLOAD);
+    my $attr = $AUTOLOAD;
 
-  $attr =~ s/.*:://;
-  return unless $attr=~ /[^A-Z]/;
-  if (!_validate_attribute($attr)) {
-      require Carp;
-      Carp::confess("invalid bug attribute $attr");
-  }
+    $attr =~ s/.*:://;
+    return unless $attr=~ /[^A-Z]/;
+    if (!_validate_attribute($attr)) {
+        require Carp;
+        Carp::confess("invalid bug attribute $attr");
+    }
 
-  no strict 'refs';
-  *$AUTOLOAD = sub {
-      my $self = shift;
+    no strict 'refs';
+    *$AUTOLOAD = sub {
+        my $self = shift;
 
-      return $self->{$attr} if defined $self->{$attr};
+        return $self->{$attr} if defined $self->{$attr};
 
-      $self->{_multi_selects} ||= [Bugzilla->get_fields(
-          {custom => 1, type => FIELD_TYPE_MULTI_SELECT })];
-      if ( grep($_->name eq $attr, @{$self->{_multi_selects}}) ) {
-          # There is a bug in Perl 5.10.0, which is fixed in 5.10.1,
-          # which taints $attr at this point. trick_taint() can go
-          # away once we require 5.10.1 or newer.
-          trick_taint($attr);
+        $self->{_multi_selects} ||= [Bugzilla->get_fields(
+            {custom => 1, type => FIELD_TYPE_MULTI_SELECT })];
+        if ( grep($_->name eq $attr, @{$self->{_multi_selects}}) ) {
+            # There is a bug in Perl 5.10.0, which is fixed in 5.10.1,
+            # which taints $attr at this point. trick_taint() can go
+            # away once we require 5.10.1 or newer.
+            trick_taint($attr);
 
-          $self->{$attr} ||= Bugzilla->dbh->selectcol_arrayref(
-              "SELECT value FROM bug_$attr WHERE bug_id = ? ORDER BY value",
-              undef, $self->id);
-          return $self->{$attr};
-      }
+            $self->{$attr} ||= Bugzilla->dbh->selectcol_arrayref(
+                "SELECT value FROM bug_$attr WHERE bug_id = ? ORDER BY value",
+                undef, $self->id);
+            return $self->{$attr};
+        }
 
-      return '';
-  };
+        return '';
+    };
 
-  goto &$AUTOLOAD;
+    goto &$AUTOLOAD;
 }
 
 1;

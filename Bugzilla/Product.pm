@@ -102,11 +102,14 @@ use constant VALIDATORS => {
     extproduct       => \&_check_extproduct,
 };
 
+use constant EXCLUDE_CONTROLLED_FIELDS => ('component', 'target_milestone', 'version');
+
 ###############################
 ####     Constructors     #####
 ###############################
 
-sub create {
+sub create
+{
     my $class = shift;
     my $dbh = Bugzilla->dbh;
 
@@ -126,9 +129,17 @@ sub create {
     Bugzilla->user->clear_product_cache();
 
     # Add the new version and milestone into the DB as valid values.
-    Bugzilla::Version->create({name => $version, product => $product});
-    Bugzilla::Milestone->create({ name => $product->default_milestone, 
-                                  product => $product });
+    Bugzilla::Version->create({
+        name => $version,
+        product => $product,
+    });
+    Bugzilla::Milestone->create({
+        name => $product->default_milestone,
+        product => $product,
+    });
+
+    # Fill visibility values
+    $product->set_visibility_values([ $product->classification_id ]);
 
     # Create groups and series for the new product, if requested.
     $product->_create_bug_group() if Bugzilla->params->{'makeproductgroups'};
@@ -375,6 +386,10 @@ sub update {
             }
         }
     }
+
+    # Fill visibility values
+    $self->set_visibility_values([ $self->classification_id ]);
+
     $dbh->bz_commit_transaction();
     # Changes have been committed.
     delete $self->{check_group_controls};
@@ -446,6 +461,9 @@ sub remove_from_db {
             $dbh->do('DELETE FROM series_categories WHERE name = ?', undef, $self->name);
         }
     }
+
+    # Remove visibility values
+    $self->set_visibility_values(undef);
 
     $dbh->do("DELETE FROM products WHERE id = ?", undef, $self->id);
 
@@ -592,13 +610,7 @@ sub _check_votes {
 # Implement Bugzilla::Field::Choice #
 #####################################
 
-sub field {
-    my $invocant = shift;
-    my $class = ref $invocant || $invocant;
-    my $cache = Bugzilla->request_cache;
-    $cache->{"field_$class"} ||= Bugzilla->get_field('product');
-    return $cache->{"field_$class"};
-}
+sub field { Bugzilla->get_field('product') }
 
 use constant is_default => 0;
 
@@ -835,7 +847,7 @@ sub groups_mandatory_for {
 sub groups_valid {
     my ($self) = @_;
     return $self->{groups_valid} if defined $self->{groups_valid};
-    
+
     # Note that we don't check OtherControl below, because there is no
     # valid NA/* combination.
     my $ids = Bugzilla->dbh->selectcol_arrayref(
@@ -870,7 +882,7 @@ sub milestones {
         my $ids = $dbh->selectcol_arrayref(q{
             SELECT id FROM milestones
              WHERE product_id = ?}, undef, $self->id);
- 
+
         $self->{milestones} = Bugzilla::Milestone->new_from_list($ids);
     }
     return $self->{milestones};
@@ -1042,6 +1054,10 @@ sub check {
     }
     return $product;
 }
+
+# Product is a special case: it has access controls applied.
+# So return all products visible to current user.
+sub get_all { @{ Bugzilla->user->get_selectable_products } }
 
 1;
 

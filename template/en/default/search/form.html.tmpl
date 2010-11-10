@@ -22,86 +22,17 @@
 
 [% PROCESS "global/field-descs.none.tmpl" %]
 
+<script type="text/javascript" src="js/query-visibility.js"></script>
+
 <script type="text/javascript">
 
 var first_load = true;         [%# is this the first time we load the page? %]
 var last_sel = new Array();    [%# caches last selection %]
 
-[% IF Param('useclassification') %]
-var useclassification = true;
-var prods = new Array();
-[% ELSE %]
-var useclassification = false;
-[% END %]
-var cpts = new Array();
-var vers = new Array();
-[% IF Param('usetargetmilestone') %]
-var tms = new Array();
-[% END %]
+var useclassification = [% Param('useclassification') ? 'true' : 'false' %];
 
-[%# Create an array of products, indexed by the classification #%]
-
-[% nclass = 0 %]
-[% FOREACH c = classification %]
-  prods[[% nclass FILTER js %]] = [
-    [% sep = '' %]
-    [%- FOREACH item = user.get_selectable_products(c.id) -%]
-      [%- IF item.components.size -%]
-        [%- sep FILTER js %]'[% item.name FILTER js %]'
-        [%- sep = ',' -%]
-      [%- END -%]
-    [%- END -%] ];
-  [% nclass = nclass+1 %]
-[% END %]
-
-[%# Create three arrays of components, versions and target milestones, indexed
-  # numerically according to the product they refer to. #%]
-
-[% n = 0 %]
-[% FOREACH p = product %]
-  [% NEXT IF NOT p.components.size %]
-  [% IF Param('useclassification') %]
-  prods['[% p.name FILTER js %]'] = [% n %]
-  [% END %]
-  cpts[[% n %]] = [
-    [%- FOREACH item = p.components %]'[% item.name FILTER js %]'[% ", " UNLESS loop.last %] [%- END -%] ];
-  vers[[% n %]] = [
-    [%- FOREACH item = p.versions -%]'[%  item.name FILTER js %]'[% ", " UNLESS loop.last %] [%- END -%] ];
-  [% IF Param('usetargetmilestone') %]
-  tms[[% n %]]  = [
-     [%- FOREACH item = p.milestones %]'[% item.name FILTER js %]'[% ", " UNLESS loop.last %] [%- END -%] ];
-  [% END %]
-  [% n = n+1 %]
-[% END %]
-
-/*
- * doOnSelectProduct determines which selection should get updated
- *
- * - selectmode = 0  - init
- *   selectmode = 1  - classification selected
- *   selectmode = 2  - product selected
- *
- * globals:
- *   queryform - string holding the name of the selection form
- */
-function doOnSelectProduct(selectmode) {
-    var f = document.forms[queryform];
-    var milestone = (typeof(f.target_milestone) == "undefined" ?
-                                               null : f.target_milestone);
-    if (selectmode == 0) {
-        // If there is no classification selected, give us a chance to fill
-        // the select fields with values from the possibly selected product.
-        if (useclassification && f.classification.selectedIndex > -1) {
-            selectClassification(f.classification, f.product, f.component, f.version, milestone);
-        } else {
-            selectProduct(f.product, f.component, f.version, milestone, null);
-        }
-    } else if (selectmode == 1) {
-        selectClassification(f.classification, f.product, f.component, f.version, milestone);
-    } else {
-        selectProduct(f.product, f.component, f.version, milestone, null);
-    }
-}
+// TODO cache this client-side
+qfVisibility = [% json(Bugzilla.full_json_query_visibility) %];
 
 </script>
 
@@ -169,7 +100,7 @@ function doOnSelectProduct(selectmode) {
         <tr>
         [% Hook.process('before_selects_top') %]
         [% IF Param('useclassification') %]
-          <td valign="top">
+          <td valign="top" id="classification_cont">
             <table>
               <tr valign="bottom">
                 <th align="left">
@@ -177,22 +108,12 @@ function doOnSelectProduct(selectmode) {
                 </th>
               </tr>
               <tr valign="top">
-                <td align="left">
-                  <select name="classification" multiple="multiple" size="5" id="classification"
-                          onchange="doOnSelectProduct(1);">
-                    [% FOREACH cat = classification %]
-                      <option value="[% cat.name FILTER html %]"
-                        [% " selected" IF lsearch(default.classification, cat.name) != -1 %]>
-                        [% cat.name FILTER html %]
-                      </option>
-                    [% END %]
-                  </select>
-                </td>
+                [% PROCESS select sel = { name => 'classification', size => 5 } %]
               </tr>
             </table>
           </td>
         [% END %]
-          <td valign="top">
+          <td valign="top" id="product_cont">
             <table>
               <tr valign="bottom">
                 <th align="left">
@@ -200,23 +121,11 @@ function doOnSelectProduct(selectmode) {
                 </th>
               </tr>
               <tr valign="top">
-                [%# Can't use the select block here because of the onChange %]
-                <td align="left">
-                  <select name="product" multiple="multiple" size="5" id="product"
-                          onchange="doOnSelectProduct(2);">
-                    [% FOREACH p = product %]
-                      [% IF p.components.size %]
-                      <option value="[% p.name FILTER html %]"
-                        [% " selected" IF lsearch(default.product, p.name) != -1 %]>
-                        [% p.name FILTER html %]</option>
-                      [% END %]
-                    [% END %]
-                  </select>
-                </td>
+                [% PROCESS select sel = { name => 'product', size => 5 } %]
               </tr>
             </table>
           </td>
-          <td valign="top">
+          <td valign="top" id="component_cont">
             <table>
               <tr valign="bottom">
                 <th align="left">
@@ -224,22 +133,11 @@ function doOnSelectProduct(selectmode) {
                 </th>
               </tr>
               <tr valign="top">
-                [%# Can't use the select block here because 'component' is a toolkit
-                    reserved word - we use 'component_' instead. %]
-                <td align="left">
-                  <select name="component" id="component"
-                          multiple="multiple" size="5">
-                    [% FOREACH c = component_ %]
-                      <option value="[% c FILTER html %]"
-                        [% " selected" IF lsearch(default.component, c) != -1 %]>
-                        [% c FILTER html %]</option>
-                    [% END %]
-                  </select>
-                </td>
+                [% PROCESS select sel = { name => 'component', size => 5 } %]
               </tr>
             </table>
           </td>
-          <td valign="top">
+          <td valign="top" id="version_cont">
             <table>
               <tr valign="bottom">
                 <th align="left">
@@ -253,7 +151,7 @@ function doOnSelectProduct(selectmode) {
             </table>
           </td>
         [% IF Param('usetargetmilestone') %]
-          <td valign="top">
+          <td valign="top" id="target_milestone_cont">
             <table>
               <tr valign="bottom">
                 <th align="left">
@@ -272,6 +170,40 @@ function doOnSelectProduct(selectmode) {
       </table>
     </td>
   </tr>
+
+[%# *** Custom select fields *** %]
+[% IF Bugzilla.get_fields({ is_select => 1, obsolete => 0, custom => 1 }).size %]
+  <tr>
+    <td colspan="4">
+      <table>
+      <tr>
+      [% i = 0 %]
+      [% FOR f = Bugzilla.get_fields({ is_select => 1, obsolete => 0, custom => 1 }) %]
+        [% IF f.legal_values.size %]
+          [% IF i AND !(i % 4) %]
+          </tr>
+          <tr>
+          [% END %]
+          <td valign="top" id="[% f.name | html %]_cont">
+            <table>
+              <tr valign="bottom">
+                <th align="left">
+                  <label for="[% f.name | html %]">[% f.description | html %]</label>:
+                </th>
+              </tr>
+              <tr valign="top">
+                [% PROCESS select sel = { name => f.name, size => 5 } %]
+              </tr>
+            </table>
+          </td>
+          [% i = i+1 %]
+        [% END %]
+      [% END %]
+      </tr>
+      </table>
+    </td>
+  </tr>
+[% END %]
 
 [%# *** Comment URL Whiteboard Keywords *** %]
 
@@ -638,9 +570,9 @@ function doOnSelectProduct(selectmode) {
 
 [% BLOCK select %]
   <td align="left">
-    <select name="[% sel.name %]" id="[% sel.name %]"
+    <select name="[% sel.name | html %]" id="[% sel.name | html %]"
             multiple="multiple" size="[% sel.size %]">
-      [% FOREACH value = ${sel.name} %]
+      [% FOREACH value = Bugzilla.get_field(sel.name).legal_values %]
         [% IF value.id %]
           [%# This only applies for Resolution really %]
           [% v = value.name OR '---' -%]
@@ -656,5 +588,9 @@ function doOnSelectProduct(selectmode) {
         [% END %]
       [% END %]
     </select>
+    <script language="JavaScript">
+      if(document.getElementById('[% sel.name | js %]').offsetWidth > 250)
+        document.getElementById('[% sel.name | js %]').style.width = '250px';
+    </script>
   </td>
 [% END %]

@@ -36,7 +36,42 @@ use strict;
 use Bugzilla::Config::Common;
 use Bugzilla::Field;
 
+use constant USENAMES => {
+    useclassification   => 'classification',
+    usetargetmilestone  => 'target_milestone',
+    useqacontact        => 'qa_contact',
+    usestatuswhiteboard => 'status_whiteboard',
+    usevotes            => 'votes',
+    usebugaliases       => 'alias',
+    use_see_also        => 'see_also',
+    useplatform         => 'rep_platform',
+    useopsys            => 'op_sys',
+};
+
 our $sortkey = 600;
+
+# A bridge from products.classification_id to fielddefs.visibility_field
+sub set_useclassification
+{
+    my ($value, $param) = @_;
+    $_[0] = $value = $value ? 1 : 0;
+    my $vf = $value ? Bugzilla->get_field('classification')->id : undef;
+    my $f = Bugzilla->get_field('product');
+    $f->set_visibility_field($vf);
+    $f->set_obsolete($value);
+    $f->update;
+    return '';
+}
+
+# A bridge from useXXX to fielddefs.obsolete
+sub set_usefield
+{
+    my ($value, $param) = @_;
+    my $f = Bugzilla->get_field(USENAMES->{$param->{name}});
+    $f->set_obsolete($_[0] = $value ? 1 : 0);
+    $f->update;
+    return '';
+}
 
 sub get_param_list {
   my $class = shift;
@@ -50,43 +85,50 @@ sub get_param_list {
   {
    name => 'useclassification',
    type => 'b',
-   default => 0
+   default => 0,
+   checker => \&set_useclassification,
   },
 
   {
    name => 'usetargetmilestone',
    type => 'b',
-   default => 0
+   default => 0,
+   checker => \&set_usefield,
   },
 
   {
    name => 'useqacontact',
    type => 'b',
-   default => 0
+   default => 0,
+   checker => \&set_usefield,
   },
 
   {
    name => 'usestatuswhiteboard',
    type => 'b',
-   default => 0
+   default => 0,
+   checker => \&set_usefield,
   },
 
   {
    name => 'usevotes',
    type => 'b',
-   default => 0
+   default => 0,
+   checker => \&set_usefield,
   },
 
   {
    name => 'usebugaliases',
    type => 'b',
-   default => 0
+   default => 0,
+   checker => \&set_usefield,
   },
 
   {
    name => 'use_see_also',
    type => 'b',
-   default => 1
+   default => 1,
+   checker => \&set_usefield,
   },
 
   {
@@ -109,6 +151,7 @@ sub get_param_list {
    name => 'useplatform',
    type => 'b',
    default => 1,
+   checker => \&set_usefield,
   },
 
   {
@@ -129,6 +172,7 @@ sub get_param_list {
    name => 'useopsys',
    type => 'b',
    default => 1,
+   checker => \&set_usefield,
   },
 
   {

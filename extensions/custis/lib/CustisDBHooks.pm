@@ -312,12 +312,35 @@ sub install_update_db
         $dbh->bz_add_column('fielddefs', clone_bug => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 1});
     }
 
-    # Временное, можно удалить
-    if (!$dbh->bz_column_info('checkers', 'id'))
+    # Bug 69481 - Рефакторинг query.cgi с целью показа всех select полей общим механизмом
+    if (!$dbh->selectrow_array("SELECT 1 FROM fieldvaluecontrol c, fielddefs f WHERE f.name='component' AND c.field_id=f.id LIMIT 1"))
     {
-        $dbh->bz_add_index('checkers', checkers_query_id_idx => { FIELDS => ['query_id'] });
-        $dbh->bz_drop_index('checkers', 'checkers_primary_idx');
-        $dbh->bz_add_column('checkers', id => {TYPE => 'MEDIUMSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
+        my @ss = qw(classification product version rep_platform op_sys bug_status resolution bug_severity priority component target_milestone);
+        $dbh->do("UPDATE fielddefs SET type=".FIELD_TYPE_SINGLE_SELECT()." WHERE name IN ('".join('\',\'', @ss)."')");
+        for([ 'product',   'classification', 'products'   ],
+            [ 'component',        'product', 'components' ],
+            [ 'version',          'product', 'versions'   ],
+            [ 'target_milestone', 'product', 'milestones' ])
+        {
+            my ($id) = $dbh->selectrow_array('SELECT id FROM fielddefs WHERE name=?', undef, $_->[0]);
+            my ($pid) = $dbh->selectrow_array('SELECT id FROM fielddefs WHERE name=?', undef, $_->[1]);
+            $dbh->do('UPDATE fielddefs SET value_field_id=? WHERE id=?', undef, $pid, $id);
+            $dbh->do('DELETE FROM fieldvaluecontrol WHERE field_id=? AND value_id!=0', undef, $id);
+            $dbh->do(
+                'INSERT INTO fieldvaluecontrol (field_id, value_id, visibility_value_id)'.
+                ' SELECT ?, id, '.$_->[1].'_id FROM '.$_->[2], undef, $id
+            );
+        }
+        if (!Bugzilla->params->{useclassification})
+        {
+            $dbh->do('UPDATE fielddefs SET value_field_id=NULL WHERE name=?', undef, 'product');
+        }
+        require Bugzilla::Config::BugFields;
+        my $h = Bugzilla::Config::BugFields->USENAMES;
+        for (keys %$h)
+        {
+            $dbh->do('UPDATE fielddefs SET obsolete=? WHERE name=?', undef, Bugzilla->params->{$_} ? 1 : 0, $h->{$_});
+        }
     }
 
     return 1;

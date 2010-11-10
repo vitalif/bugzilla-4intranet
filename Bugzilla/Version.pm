@@ -20,10 +20,11 @@ use strict;
 
 package Bugzilla::Version;
 
-use base qw(Bugzilla::Object);
+use base qw(Bugzilla::Field::Choice);
 
 use Bugzilla::Install::Util qw(vers_cmp);
 use Bugzilla::Util;
+use Bugzilla::Field;
 use Bugzilla::Error;
 
 ################################
@@ -125,7 +126,20 @@ sub bug_count {
     return $self->{'bug_count'};
 }
 
-sub update {
+sub create
+{
+    my $class = shift;
+    my $self = $class->SUPER::create(@_);
+    if ($self)
+    {
+        # Fill visibility values
+        $self->set_visibility_values([ $self->product_id ]);
+    }
+    return $self;
+}
+
+sub update
+{
     my $self = shift;
     my ($changes, $old_self) = $self->SUPER::update(@_);
 
@@ -135,6 +149,10 @@ sub update {
                   WHERE version = ? AND product_id = ?',
                   undef, ($self->name, $old_self->name, $self->product_id));
     }
+
+    # Fill visibility values
+    $self->set_visibility_values([ $self->product_id ]);
+
     return $changes;
 }
 
@@ -147,6 +165,8 @@ sub remove_from_db {
     if ($self->bug_count) {
         ThrowUserError("version_has_bugs", { nb => $self->bug_count });
     }
+    # Remove visibility values
+    $self->set_visibility_values(undef);
     $self->SUPER::remove_from_db();
 }
 

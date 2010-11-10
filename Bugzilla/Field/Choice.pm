@@ -67,8 +67,12 @@ use constant VALIDATORS => {
 };
 
 use constant CLASS_MAP => {
-    bug_status => 'Bugzilla::Status',
-    product    => 'Bugzilla::Product',
+    bug_status       => 'Bugzilla::Status',
+    product          => 'Bugzilla::Product',
+    component        => 'Bugzilla::Component',
+    version          => 'Bugzilla::Version',
+    target_milestone => 'Bugzilla::Milestone',
+    classification   => 'Bugzilla::Classification',
 };
 
 use constant DEFAULT_MAP => {
@@ -77,6 +81,8 @@ use constant DEFAULT_MAP => {
     priority     => 'defaultpriority',
     bug_severity => 'defaultseverity',
 };
+
+use constant EXCLUDE_CONTROLLED_FIELDS => ();
 
 #################
 # Class Factory #
@@ -87,21 +93,27 @@ use constant DEFAULT_MAP => {
 # certain fields to have special types, like how bug_status's values
 # are Bugzilla::Status objects.
 
-sub type {
+sub type
+{
     my ($class, $field) = @_;
     my $field_obj = blessed $field ? $field : Bugzilla->get_field($field, THROW_ERROR);
     my $field_name = $field_obj->name;
 
-    if ($class->CLASS_MAP->{$field_name}) {
-        return $class->CLASS_MAP->{$field_name};
+    my $package;
+    if ($class->CLASS_MAP->{$field_name})
+    {
+        $package = $class->CLASS_MAP->{$field_name};
+        eval "require $package";
     }
-
-    # For generic classes, we use a lowercase class name, so as
-    # not to interfere with any real subclasses we might make some day.
-    my $package = "Bugzilla::Field::Choice::$field_name";
+    else
+    {
+        # For generic classes, we use a lowercase class name, so as
+        # not to interfere with any real subclasses we might make some day.
+        $package = "Bugzilla::Field::Choice::$field_name";
+    }
     Bugzilla->request_cache->{"field_$package"} = $field_obj;
 
-    # This package only needs to be created once. We check if the DB_TABLE
+    # The package only needs to be created once. We check if the DB_TABLE
     # glob for this package already exists, which tells us whether or not
     # we need to create the package (this works even under mod_perl, where
     # this package definition will persist across requests)).
@@ -201,15 +213,60 @@ sub remove_from_db {
     $self->SUPER::remove_from_db();
 }
 
-# Factored out to make life easier for subclasses.
-sub _check_if_controller {
+# Product field is a special case: it has access controls applied.
+# So if our values are controlled by product field value,
+# return only ones visible inside products visible to current user.
+sub get_all
+{
+    my $class = shift;
+    my @all = $class->SUPER::get_all();
+    my $f = $class->field;
+    if (!$f->value_field_id || $f->value_field->name ne 'product')
+    {
+        return @all;
+    }
+    my $h = Bugzilla->fieldvaluecontrol_hash
+        ->{Bugzilla->get_field('product')->id}
+        ->{values}
+        ->{$f->id};
+    my $visible_ids = { map { $_->id => 1 } Bugzilla::Product->get_all };
+    my $vis;
+    my @filtered;
+    for my $value (@all)
+    {
+        $vis = 0;
+        for (keys %{$h->{$value->id}})
+        {
+            if ($visible_ids->{$_})
+            {
+                $vis = 1;
+                last;
+            }
+        }
+        push @filtered, $value if $vis;
+    }
+    return @filtered;
+}
+
+sub _check_if_controller
+{
     my $self = shift;
-    my $vis_fields = $self->controls_visibility_of_fields;
-    my $values     = $self->controls_visibility_of_field_values;
-    if (@$vis_fields || scalar grep { @{$values->{$_}} } keys %$values) {
-        ThrowUserError('fieldvalue_is_controller',
-            { value => $self, fields => [map($_->name, @$vis_fields)],
-              vals => $values });
+    my %exclude = map { $_ => 1 } $self->EXCLUDE_CONTROLLED_FIELDS;
+    my $c_fields = $self->controls_visibility_of_fields;
+    my $c_values = $self->controls_visibility_of_field_values;
+    $c_fields = [ grep { !$exclude{$_->name} } @$c_fields ];
+    $c_values = {
+        map { $_ => $c_values->{$_} }
+        grep { !$exclude{$_} && $c_values->{$_} }
+        keys %$c_values
+    };
+    if (@$c_fields || %$c_values)
+    {
+        ThrowUserError('fieldvalue_is_controller', {
+            value  => $self,
+            fields => [ map { $_->name } @$c_fields ],
+            vals   => $c_values,
+        });
     }
 }
 
@@ -359,9 +416,9 @@ sub set_visibility_values
 {
     my $self = shift;
     my ($value_ids) = @_;
-    update_visibility_values($self->field->value_field, $self->field, $self->id, $self->visibility_values, $value_ids);
+    update_visibility_values($self->field, $self->id, $value_ids);
     delete $self->{visibility_values};
-    return $value_ids && scalar @$value_ids;
+    return 1;
 }
 
 ##############

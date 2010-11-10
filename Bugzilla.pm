@@ -706,6 +706,7 @@ sub get_fields
 }
 
 # Cache for fieldvaluecontrol table
+# FIXME remove values invisible for current user
 sub fieldvaluecontrol
 {
     my $class = shift;
@@ -748,6 +749,18 @@ sub fieldvaluecontrol_hash
         $class->fieldvaluecontrol;
     }
     return $class->request_cache->{fieldvaluecontrol_hash};
+}
+
+# TODO fetch this using <script src="..."></script> and use client-side caching
+sub full_json_query_visibility
+{
+    my $class = shift;
+    my $qv = {};
+    for ($class->get_fields({ is_select => 1, obsolete => 0 }))
+    {
+        $qv->{$_->name} = $_->json_query_visibility;
+    }
+    return $qv;
 }
 
 sub active_custom_fields

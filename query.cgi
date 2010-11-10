@@ -197,43 +197,6 @@ if (!scalar(@{$default{'chfieldto'}}) || $default{'chfieldto'}->[0] eq "") {
     $default{'chfieldto'} = ["Now"];
 }
 
-# if using groups for entry, then we don't want people to see products they 
-# don't have access to. Remove them from the list.
-my @selectable_products = sort {lc($a->name) cmp lc($b->name)} 
-                               @{$user->get_selectable_products};
-Bugzilla::Product::preload(\@selectable_products);
-
-# Create the component, version and milestone lists.
-my %components;
-my %versions;
-my %milestones;
-
-foreach my $product (@selectable_products) {
-    $components{$_->name} = 1 foreach (@{$product->components});
-    $versions{$_->name}   = 1 foreach (@{$product->versions});
-    $milestones{$_->name} = 1 foreach (@{$product->milestones});
-}
-
-my @components = sort(keys %components);
-my @versions = sort { vers_cmp (lc($a), lc($b)) } keys %versions;
-my @milestones = sort(keys %milestones);
-
-$vars->{'product'} = \@selectable_products;
-
-# Create data structures representing each classification
-if (Bugzilla->params->{'useclassification'}) {
-    $vars->{'classification'} = $user->get_selectable_classifications;
-}
-
-# We use 'component_' because 'component' is a Template Toolkit reserved word.
-$vars->{'component_'} = \@components;
-
-$vars->{'version'} = \@versions;
-
-if (Bugzilla->params->{'usetargetmilestone'}) {
-    $vars->{'target_milestone'} = \@milestones;
-}
-
 # Fields for boolean charts
 $vars->{fields} = &Bugzilla::Search::CHART_FIELDS;
 
@@ -242,14 +205,6 @@ $vars->{chfield} = [ map { $_->name } @{ &Bugzilla::Search::CHANGEDFROMTO_FIELDS
 
 # Another hack...
 unshift @{$vars->{fields}}, { name => "noop", description => "---" };
-
-# Legal values for select fields
-$vars->{'bug_status'} = Bugzilla->get_field('bug_status')->legal_values;
-Bugzilla->params->{useplatform} and $vars->{'rep_platform'} = Bugzilla->get_field('rep_platform')->legal_values;
-Bugzilla->params->{useopsys} and $vars->{'op_sys'} = Bugzilla->get_field('op_sys')->legal_values;
-$vars->{'priority'} = Bugzilla->get_field('priority')->legal_values;
-$vars->{'bug_severity'} = Bugzilla->get_field('bug_severity')->legal_values;
-$vars->{'resolution'} = Bugzilla->get_field('resolution')->legal_values;
 
 # If we're not in the time-tracking group, exclude time-tracking fields.
 if (!Bugzilla->user->is_timetracker) {

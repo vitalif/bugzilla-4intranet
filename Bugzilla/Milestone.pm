@@ -20,10 +20,11 @@ use strict;
 
 package Bugzilla::Milestone;
 
-use base qw(Bugzilla::Object);
+use base qw(Bugzilla::Field::Choice);
 
 use Bugzilla::Constants;
 use Bugzilla::Util;
+use Bugzilla::Field;
 use Bugzilla::Error;
 
 ################################
@@ -105,6 +106,18 @@ sub run_create_validators {
     return $params;
 }
 
+sub create
+{
+    my $class = shift;
+    my $self = $class->SUPER::create(@_);
+    if ($self)
+    {
+        # Fill visibility values
+        $self->set_visibility_values([ $self->product_id ]);
+    }
+    return $self;
+}
+
 sub update {
     my $self = shift;
     my $changes = $self->SUPER::update(@_);
@@ -121,6 +134,10 @@ sub update {
                   WHERE id = ? AND defaultmilestone = ?',
                  undef, ($self->name, $self->product_id, $changes->{value}->[0]));
     }
+
+    # Fill visibility values
+    $self->set_visibility_values([ $self->product_id ]);
+
     return $changes;
 }
 
@@ -156,6 +173,9 @@ sub remove_from_db {
                              Bugzilla->user->id, $timestamp);
         }
     }
+
+    # Remove visibility values
+    $self->set_visibility_values(undef);
 
     $dbh->do('DELETE FROM milestones WHERE id = ?', undef, $self->id);
 }
