@@ -815,7 +815,7 @@ TUI_hide_default('expert_fields');
     [% IF sel.name == "bug_status" %]
     <script type="text/javascript">
     <!--
-      show_fields['bug_status'] = [% select_fields.bug_status.json_visibility %];
+      show_fields['bug_status'] = [% select_fields.bug_status.json_visibility | json %];
     //-->
     </script>
     [% END %]

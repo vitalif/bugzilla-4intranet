@@ -110,6 +110,6 @@
                               ['[% "is_duplicate" IF bug.dup_id %]',
                                '[% bug.bug_status FILTER js %]'] );
 
-  show_fields['bug_status'] = [% select_fields.bug_status.json_visibility %];
-  show_fields['resolution'] = [% select_fields.resolution.json_visibility %];
+  show_fields['bug_status'] = [% select_fields.bug_status.json_visibility | json %];
+  show_fields['resolution'] = [% select_fields.resolution.json_visibility | json %];
 </script>

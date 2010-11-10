@@ -151,6 +151,7 @@ use constant SQL_DEFINITIONS => {
     FIELD_TYPE_NUMERIC,       { TYPE => 'DOUBLE', NOTNULL => 1, DEFAULT => '0' },
 };
 
+# FIXME add default value_fields here
 # Field definitions for the fields that ship with Bugzilla.
 # These are used by populate_field_definitions to populate
 # the fielddefs table.
@@ -702,7 +703,7 @@ sub set_visibility_values
 {
     my $self = shift;
     my ($value_ids) = @_;
-    update_visibility_values($self->visibility_field, $self, 0, $self->visibility_values, $value_ids);
+    update_visibility_values($self, 0, $value_ids);
     delete $self->{visibility_values};
     return $value_ids && @$value_ids;
 }
@@ -1127,23 +1128,34 @@ sub get_field_id
 # Shared between Bugzilla::Field and Bugzilla::Field::Choice
 sub update_visibility_values
 {
-    my ($controller_field, $controlled_field, $controlled_value, $old_ids, $value_ids) = @_;
+    my ($controlled_field, $controlled_value_id, $visibility_value_ids) = @_;
+    my $vis_field = $controlled_value_id
+        ? $controlled_field->value_field
+        : $controlled_field->visibility_field;
+    if (!$vis_field)
+    {
+        return undef;
+    }
+    $controlled_field = Bugzilla->get_field($controlled_field) if !ref $controlled_field;
+    $controlled_value_id = int($controlled_value_id);
+    if (@$visibility_value_ids)
+    {
+        my $type = Bugzilla::Field::Choice->type($vis_field);
+        $visibility_value_ids = [ map { $_->id } @{ $type->new_from_list($visibility_value_ids) } ];
+    }
     Bugzilla->dbh->do(
         "DELETE FROM fieldvaluecontrol WHERE field_id=? AND value_id=?",
-        undef, $controlled_field->id, $controlled_value);
-    defined($value_ids) or return undef;
-    ref $value_ids or $value_ids = [ $value_ids ];
-    @$value_ids or return undef;
-    my $type = Bugzilla::Field::Choice->type($controller_field);
-    @$value_ids = map { $_ ? $type->check({ id => $_ }) : () } @$value_ids;
-    my ($a, $r) = diff_arrays([map { $_->id } @$value_ids], [map { $_->id } @$old_ids]);
-    if (@$value_ids)
+        undef, $controlled_field->id, $controlled_value_id);
+    if (@$visibility_value_ids)
     {
+        my $f = $controlled_field->id;
         Bugzilla->dbh->do(
             "INSERT INTO fieldvaluecontrol (field_id, value_id, visibility_value_id) VALUES ".
-            join(",", ("(?,?,?)") x @$value_ids),
-            undef, map { ($controlled_field->id, $controlled_value, $_->id) } @$value_ids);
+            join(",", map { "($f, $controlled_value_id, $_)" } @$visibility_value_ids)
+        );
     }
+    delete Bugzilla->request_cache->{fieldvaluecontrol};
+    return 1;
 }
 
 # Moved from bug/field-events.js.tmpl
@@ -1151,54 +1163,39 @@ sub update_visibility_values
 sub json_visibility
 {
     my $self = shift;
-    my $show = {
+    my $data = {
         legal  => [ map { [ $_->id, $_->name ] } @{$self->legal_values} ],
         fields => {},
         values => {},
     };
     my $hash = Bugzilla->fieldvaluecontrol_hash->{$self->id};
-    $show->{fields} = { map { Bugzilla->get_field($_)->name => $hash->{fields}->{$_} } keys %{$hash->{fields}} };
-    $show->{values} = { map { Bugzilla->get_field($_)->name => $hash->{values}->{$_} } keys %{$hash->{values}} };
-    $show = encode_json($show);
-    Encode::_utf8_on($show);
-    return $show;
+    $data->{fields} = { map { Bugzilla->get_field($_)->name => $hash->{fields}->{$_} } keys %{$hash->{fields}} };
+    $data->{values} = { map { Bugzilla->get_field($_)->name => $hash->{values}->{$_} } keys %{$hash->{values}} };
+    return $data;
+}
+
+# Value visibility data for query form.
+# Difference is that in the query form, the values are identified
+#  by names instead of their IDs and that one name can correspond to
+#  several different IDs. At the moment this is needed only for
+#  component, version and target milestone fields.
+# Another difference is that we don't hide any fields.
+sub json_query_visibility
+{
+    my $self = shift;
+    my $hash = Bugzilla->fieldvaluecontrol_hash->{$self->id}->{values};
+    my $data = {
+        legal   => [],
+        name2id => {},
+        values  => { map { Bugzilla->get_field($_)->name => $hash->{$_} } keys %$hash },
+    };
+    for (@{$self->legal_values})
+    {
+        push @{$data->{name2id}->{$_->name}}, $_->id;
+    }
+    $data->{legal} = [ sort keys %{$data->{name2id}} ];
+    return $data;
 }
 
 1;
-
 __END__
-
-[% FOREACH controlled_field = field.controls_visibility_of %]
-[% FOREACH val = controlled_field.visibility_values %]
-showFieldWhen['[% field.name | js %]']['[% val.name | js %]']['[% controlled_field.name | js %]'] = true;
-[% END %]
-[% END %]
-
-[% FOREACH legal_value = field.legal_values %]
-[% FOREACH controlled_field = legal_value.controlled_plus_generic.keys %]
-[% FOREACH val = legal_value.controlled_plus_generic.$controlled_field %]
-showValueWhen['[% field.name | js %]'][[% val.id %]]['[% controlled_field | js %]'][[% legal_value.id %]] = true;
-[% END %]
-[% END %]
-[% END %]
-
-    for my $row (@{Bugzilla->fieldvaluecontrol})
-    {
-        $field_name = Bugzilla->get_field($row->{field_id})->name;
-        if ($row->{visibility_field_id} == $self->id)
-        {
-            if ($row->{value_id})
-            {
-                $show->{values}
-                    ->{$field_name}
-                    ->{$row->{value_id}}
-                    ->{$row->{visibility_value_id}} = 1;
-            }
-            else
-            {
-                $show->{fields}
-                    ->{$field_name}
-                    ->{$row->{visibility_value_id}} = 1;
-            }
-        }
-    }

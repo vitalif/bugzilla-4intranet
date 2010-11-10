@@ -18,7 +18,7 @@
  *                 Guy Pyrzak <guy.pyrzak@gmail.com>
  */
 
-/* This library assumes that the needed YUI libraries have been loaded 
+/* This library assumes that the needed YUI libraries have been loaded
    already. */
 
 var show_fields = {};

@@ -24,13 +24,14 @@ use Bugzilla::Util;
 use Bugzilla::Error;
 use Bugzilla::Product;
 
-use base qw(Bugzilla::Object);
+use base qw(Bugzilla::Field::Choice);
 
 ###############################
 ####    Initialization     ####
 ###############################
 
 use constant DB_TABLE => 'classifications';
+use constant NAME_FIELD => 'name';
 use constant LIST_ORDER => 'sortkey, name';
 
 use constant DB_COLUMNS => qw(
@@ -56,24 +57,28 @@ use constant VALIDATORS => {
     sortkey     => \&_check_sortkey,
 };
 
+use constant EXCLUDE_CONTROLLED_FIELDS => ('product');
+
 ###############################
 ####     Constructors     #####
 ###############################
-sub remove_from_db {
+sub remove_from_db
+{
     my $self = shift;
     my $dbh = Bugzilla->dbh;
 
     ThrowUserError("classification_not_deletable") if ($self->id == 1);
 
+    $self->_check_if_controller();
+
     $dbh->bz_start_transaction();
     # Reclassify products to the default classification, if needed.
-    $dbh->do("UPDATE products SET classification_id = 1
-              WHERE classification_id = ?", undef, $self->id);
+    $dbh->do("UPDATE products SET classification_id=1 WHERE classification_id=?", undef, $self->id);
+    $dbh->do("UPDATE fieldvaluecontrol SET visibility_value_id=1 WHERE  AND visibility_value_id=?", undef, $self->id);
 
     $self->SUPER::remove_from_db();
 
     $dbh->bz_commit_transaction();
-
 }
 
 ###############################
@@ -156,6 +161,9 @@ sub products {
 
 sub description { return $_[0]->{'description'}; }
 sub sortkey     { return $_[0]->{'sortkey'};     }
+
+# Return all visible classifications.
+sub get_all { @{ Bugzilla->user->get_selectable_classifications } }
 
 1;
 

@@ -571,11 +571,6 @@ sub create {
                 return $var;
             },
 
-            json => sub {
-                my ($var) = @_;
-                return encode_json($var);
-            },
-
             # Converts data to base64
             base64 => sub {
                 my ($data) = @_;
@@ -856,6 +851,13 @@ sub create {
                 $cache->{template_bug_fields} ||=
                     { map { $_->name => $_ } Bugzilla->get_fields() };
                 return $cache->{template_bug_fields};
+            },
+
+            'json' => sub {
+                my ($var) = @_;
+                $var = encode_json($var);
+                Encode::_utf8_on($var) if Bugzilla->params->{utf8};
+                return $var;
             },
 
             # Whether or not keywords are enabled, in this Bugzilla.

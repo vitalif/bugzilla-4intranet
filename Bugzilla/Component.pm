@@ -21,7 +21,7 @@ use strict;
 
 package Bugzilla::Component;
 
-use base qw(Bugzilla::Object);
+use base qw(Bugzilla::Field::Choice);
 
 use Bugzilla::Constants;
 use Bugzilla::Util;
@@ -36,6 +36,8 @@ use Bugzilla::Series;
 ###############################
 
 use constant DB_TABLE => 'components';
+
+use constant LIST_ORDER => 'product_id, name';
 
 use constant DB_COLUMNS => qw(
     id
@@ -128,6 +130,9 @@ sub create {
 
     my $component = $class->insert_create_data($params);
 
+    # Fill visibility values
+    $component->set_visibility_values([ $component->product_id ]);
+
     # We still have to fill the component_cc table.
     $component->_update_cc_list($cc_list) if $cc_list;
 
@@ -138,7 +143,8 @@ sub create {
     return $component;
 }
 
-sub run_create_validators {
+sub run_create_validators
+{
     my $class  = shift;
     my $params = $class->SUPER::run_create_validators(@_);
 
@@ -150,9 +156,13 @@ sub run_create_validators {
     return $params;
 }
 
-sub update {
+sub update
+{
     my $self = shift;
     my $changes = $self->SUPER::update(@_);
+
+    # Fill visibility values
+    $self->set_visibility_values([ $self->product_id ]);
 
     # Update the component_cc table if necessary.
     if (defined $self->{cc_ids}) {
@@ -189,6 +199,9 @@ sub remove_from_db {
     $dbh->do('DELETE FROM component_cc WHERE component_id = ?',
              undef, $self->id);
     $dbh->do('DELETE FROM components WHERE id = ?', undef, $self->id);
+
+    # Remove visibility values
+    $self->set_visibility_values(undef);
 
     $dbh->bz_commit_transaction();
 }
