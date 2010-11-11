@@ -34,6 +34,8 @@ use Bugzilla::Error;
 use constant DEFAULT_VERSION => 'unspecified';
 
 use constant DB_TABLE => 'versions';
+use constant FIELD_NAME => 'version';
+
 use constant NAME_FIELD => 'value';
 # This is "id" because it has to be filled in and id is probably the fastest.
 # We do a custom sort in new_from_list below.
@@ -129,7 +131,8 @@ sub bug_count {
 sub create
 {
     my $class = shift;
-    my $self = $class->SUPER::create(@_);
+    my ($params) = @_;
+    my $self = $class->SUPER::create($params);
     if ($self)
     {
         # Fill visibility values

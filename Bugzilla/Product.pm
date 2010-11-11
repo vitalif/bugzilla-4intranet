@@ -45,6 +45,7 @@ use constant DEFAULT_CLASSIFICATION_ID => 1;
 ###############################
 
 use constant DB_TABLE => 'products';
+use constant FIELD_NAME => 'product';
 # Reset these back to the Bugzilla::Object defaults, instead of the
 # Bugzilla::Field::Choice defaults.
 use constant NAME_FIELD => 'name';

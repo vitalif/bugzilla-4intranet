@@ -19,7 +19,7 @@ set_parameters($sel, {'Bug Fields'          => {'usetargetmilestone-on'         
 
 # 2nd step: Add the milestone "2.0" (with sortkey = 10) to the TestProduct product.
 
-edit_product($sel, "TestProduct");
+edit_product($sel, "TestProduct", "Archive");
 $sel->click_ok("link=Edit milestones:", undef, "Go to the Edit milestones page");
 $sel->wait_for_page_to_load(WAIT_TIME);
 $sel->title_is("Select milestone of product 'TestProduct'", "Display milestones");
@@ -36,7 +36,7 @@ $sel->wait_for_page_to_load(WAIT_TIME);
 $sel->title_is("Milestone Created", "Milestone Created");
 
 # 2.5nd step (custis): Get default component and its version
-edit_product($sel, "TestProduct");
+edit_product($sel, "TestProduct", 'Archive');
 $sel->click_ok("link=Edit components:", undef, "Go to the Edit components page");
 $sel->wait_for_page_to_load(WAIT_TIME);
 $sel->title_is("Select component of product 'TestProduct'", "Display components");

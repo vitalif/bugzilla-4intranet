@@ -1129,6 +1129,7 @@ sub get_field_id
 sub update_visibility_values
 {
     my ($controlled_field, $controlled_value_id, $visibility_value_ids) = @_;
+    $visibility_value_ids ||= [];
     my $vis_field = $controlled_value_id
         ? $controlled_field->value_field
         : $controlled_field->visibility_field;

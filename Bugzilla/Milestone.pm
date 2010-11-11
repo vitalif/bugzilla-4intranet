@@ -34,6 +34,8 @@ use Bugzilla::Error;
 use constant DEFAULT_SORTKEY => 0;
 
 use constant DB_TABLE => 'milestones';
+use constant FIELD_NAME => 'target_milestone';
+
 use constant NAME_FIELD => 'value';
 use constant LIST_ORDER => 'sortkey, value';
 
