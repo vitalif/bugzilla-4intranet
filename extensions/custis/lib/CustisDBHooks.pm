@@ -315,6 +315,7 @@ sub install_update_db
     # Bug 69481 - Рефакторинг query.cgi с целью показа всех select полей общим механизмом
     if (!$dbh->selectrow_array("SELECT 1 FROM fieldvaluecontrol c, fielddefs f WHERE f.name='component' AND c.field_id=f.id LIMIT 1"))
     {
+        print "Populating fieldvaluecontrol from bindings of standard fields\n";
         my @ss = qw(classification product version rep_platform op_sys bug_status resolution bug_severity priority component target_milestone);
         $dbh->do("UPDATE fielddefs SET type=".FIELD_TYPE_SINGLE_SELECT()." WHERE name IN ('".join('\',\'', @ss)."')");
         for([ 'product',   'classification', 'products'   ],
