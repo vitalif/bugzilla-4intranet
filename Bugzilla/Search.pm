@@ -281,7 +281,7 @@ sub init {
         if ($field->name eq 'product' || $field->name eq 'component')
         {
             # product and component are joined using ID
-            $special_order_join{$field->name} = "LEFT JOIN $name ON $name.".$type->ID_FIELD." = bugs.${name}_id";
+            $special_order_join{$field->name} = "LEFT JOIN $name ON $name.".$type->ID_FIELD." = bugs.".$field->name."_id";
         }
         else
         {
