@@ -339,7 +339,7 @@ sub install_update_db
         my $h = Bugzilla::Config::BugFields->USENAMES;
         for (keys %$h)
         {
-            $dbh->do('UPDATE fielddefs SET obsolete=? WHERE name=?', undef, Bugzilla->params->{$_} ? 1 : 0, $h->{$_});
+            $dbh->do('UPDATE fielddefs SET obsolete=? WHERE name=?', undef, Bugzilla->params->{$_} ? 0 : 1, $h->{$_});
         }
     }
 
