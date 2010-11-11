@@ -228,7 +228,7 @@ sub get_all
     my @filtered;
     for my $value (@all)
     {
-        $vis = 0;
+        $vis = $value->name eq '---' ? 1 : 0;
         for (keys %{$h->{$value->id}})
         {
             if ($visible_ids->{$_})

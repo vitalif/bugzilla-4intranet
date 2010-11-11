@@ -272,12 +272,21 @@ sub init {
     my @multi_select_fields = Bugzilla->get_fields({
         type     => [FIELD_TYPE_MULTI_SELECT, FIELD_TYPE_BUG_URLS],
         obsolete => 0 });
-    foreach my $field (@select_fields) {
-        my $name = $field->name;
-        next if $name eq 'product'; # products don't have sortkeys.
-        $special_order{$name} = [ "$name.sortkey", "$name.value" ],
-        $special_order_join{$name} =
-           "LEFT JOIN $name ON $name.value = bugs.$name";
+    foreach my $field (@select_fields)
+    {
+        next if $field eq 'product' || $field eq 'component';
+        my $type = Bugzilla::Field::Choice->type($field);
+        my $name = $type->DB_TABLE;
+        $special_order{$field->name} = [ map { "$name.$_" } split /\s*,\s*/, $type->LIST_ORDER ];
+        if ($field->name eq 'product' || $field->name eq 'component')
+        {
+            # product and component are joined using ID
+            $special_order_join{$field->name} = "LEFT JOIN $name ON $name.".$type->ID_FIELD." = bugs.${name}_id";
+        }
+        else
+        {
+            $special_order_join{$field->name} = "LEFT JOIN $name ON $name.".$type->NAME_FIELD." = bugs.$name";
+        }
     }
 
     my $dbh = Bugzilla->dbh;
