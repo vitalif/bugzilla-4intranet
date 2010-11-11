@@ -285,7 +285,7 @@ sub init {
         }
         else
         {
-            $special_order_join{$field->name} = "LEFT JOIN $name ON $name.".$type->NAME_FIELD." = bugs.$name";
+            $special_order_join{$field->name} = "LEFT JOIN $name ON $name.".$type->NAME_FIELD." = bugs.".$field->name;
         }
     }
 
