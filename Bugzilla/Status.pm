@@ -45,6 +45,7 @@ use constant SPECIAL_STATUS_WORKFLOW_ACTIONS => qw(
 );
 
 use constant DB_TABLE => 'bug_status';
+use constant FIELD_NAME => 'bug_status';
 
 # This has all the standard Bugzilla::Field::Choice columns plus "is_open"
 sub DB_COLUMNS {

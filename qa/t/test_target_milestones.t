@@ -17,7 +17,7 @@ set_parameters($sel, { "Bug Fields" => {"usetargetmilestone-on" => undef} });
 
 # Create a new milestone to the 'TestProduct' product.
 
-edit_product($sel, "TestProduct");
+edit_product($sel, "TestProduct", 'Archive');
 $sel->click_ok("link=Edit milestones:");
 $sel->wait_for_page_to_load(WAIT_TIME);
 $sel->title_is("Select milestone of product 'TestProduct'");
@@ -46,6 +46,7 @@ $sel->title_is("Bug $test_bug_1 processed");
 
 open_advanced_search_page($sel);
 $sel->is_text_present_ok("Target:");
+$sel->remove_all_selections_ok("bug_status");
 $sel->remove_all_selections_ok("product");
 $sel->add_selection_ok("product", "label=TestProduct");
 $sel->add_selection_ok("target_milestone", "label=TM1");
@@ -92,7 +93,7 @@ ok($text =~ /OK, the selenium_m0 search is gone./, "The selenium_m0 search is go
 
 set_parameters($sel, { "Bug Fields" => {"usetargetmilestone-on" => undef} });
 
-edit_product($sel, "TestProduct");
+edit_product($sel, "TestProduct", 'Archive');
 $sel->click_ok("link=Edit milestones:");
 $sel->wait_for_page_to_load(WAIT_TIME);
 $sel->title_is("Select milestone of product 'TestProduct'");

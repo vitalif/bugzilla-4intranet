@@ -31,6 +31,8 @@ use base qw(Bugzilla::Field::Choice);
 ###############################
 
 use constant DB_TABLE => 'classifications';
+use constant FIELD_NAME => 'classification';
+
 use constant NAME_FIELD => 'name';
 use constant LIST_ORDER => 'sortkey, name';
 

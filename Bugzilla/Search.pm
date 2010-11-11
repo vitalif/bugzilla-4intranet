@@ -200,7 +200,7 @@ sub CHART_FIELDS
 {
     if (!Bugzilla->request_cache->{search_chart_fields})
     {
-        my @fielddefs = Bugzilla->get_fields({obsolete => 0});
+        my @fielddefs = Bugzilla->get_fields;
         my %searchcols = %{ COLUMNS() };
         for (@fielddefs)
         {

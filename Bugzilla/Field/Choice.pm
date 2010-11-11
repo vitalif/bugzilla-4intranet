@@ -103,26 +103,30 @@ sub type
     if ($class->CLASS_MAP->{$field_name})
     {
         $package = $class->CLASS_MAP->{$field_name};
-        eval "require $package";
+        if (!defined *{"${package}::DB_TABLE"})
+        {
+            eval "require $package";
+        }
     }
     else
     {
         # For generic classes, we use a lowercase class name, so as
         # not to interfere with any real subclasses we might make some day.
         $package = "Bugzilla::Field::Choice::$field_name";
-    }
-    Bugzilla->request_cache->{"field_$package"} = $field_obj;
 
-    # The package only needs to be created once. We check if the DB_TABLE
-    # glob for this package already exists, which tells us whether or not
-    # we need to create the package (this works even under mod_perl, where
-    # this package definition will persist across requests)).
-    if (!defined *{"${package}::DB_TABLE"}) {
-        eval <<EOC;
-            package $package;
-            use base qw(Bugzilla::Field::Choice);
-            use constant DB_TABLE => '$field_name';
+        # The package only needs to be created once. We check if the DB_TABLE
+        # glob for this package already exists, which tells us whether or not
+        # we need to create the package (this works even under mod_perl, where
+        # this package definition will persist across requests)).
+        if (!defined *{"${package}::DB_TABLE"})
+        {
+            eval <<EOC;
+                package $package;
+                use base qw(Bugzilla::Field::Choice);
+                use constant DB_TABLE => '$field_name';
+                use constant FIELD_NAME => '$field_name';
 EOC
+        }
     }
 
     return $package;
@@ -147,20 +151,10 @@ sub new {
 # Database Manipulation #
 #########################
 
-# Our subclasses can take more arguments than we normally accept.
-# So, we override create() to remove arguments that aren't valid
-# columns. (Normally Bugzilla::Object dies if you pass arguments
-# that aren't valid columns.)
-sub create {
-    my $class = shift;
-    my ($params) = @_;
-    foreach my $key (keys %$params) {
-        if (!grep {$_ eq $key} $class->DB_COLUMNS) {
-            delete $params->{$key};
-        }
-    }
-    return $class->SUPER::create(@_);
-}
+# vitalif@mail.ru 2010-11-11 //
+# This is incorrect in create() to remove arguments that are not valid DB columns
+# BEFORE calling run_create_validators etc, as these methods can change
+# params hash (for example turn Bugzilla::Product to product_id field)
 
 sub update {
     my $self = shift;
@@ -296,14 +290,10 @@ sub bug_count {
     return $count;
 }
 
-sub field {
+sub field
+{
     my $invocant = shift;
-    my $class = ref $invocant || $invocant;
-    my $cache = Bugzilla->request_cache;
-    # This is just to make life easier for subclasses. Our auto-generated
-    # subclasses from type() already have this set.
-    $cache->{"field_$class"} ||= Bugzilla->get_field($class->DB_TABLE);
-    return $cache->{"field_$class"};
+    return Bugzilla->get_field($invocant->FIELD_NAME);
 }
 
 sub is_default {

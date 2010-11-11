@@ -54,11 +54,11 @@ our $sortkey = 600;
 sub set_useclassification
 {
     my ($value, $param) = @_;
-    $_[0] = $value = $value ? 1 : 0;
+    $_[0] = $value ? 1 : 0;
     my $vf = $value ? Bugzilla->get_field('classification')->id : undef;
     my $f = Bugzilla->get_field('product');
     $f->set_visibility_field($vf);
-    $f->set_obsolete($value);
+    $f->set_obsolete($value ? 0 : 1);
     $f->update;
     return '';
 }
@@ -68,7 +68,8 @@ sub set_usefield
 {
     my ($value, $param) = @_;
     my $f = Bugzilla->get_field(USENAMES->{$param->{name}});
-    $f->set_obsolete($_[0] = $value ? 1 : 0);
+    $_[0] = $value ? 1 : 0;
+    $f->set_obsolete($value ? 0 : 1);
     $f->update;
     return '';
 }
