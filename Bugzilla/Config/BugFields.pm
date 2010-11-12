@@ -57,7 +57,7 @@ sub set_useclassification
     $_[0] = $value ? 1 : 0;
     my $vf = $value ? Bugzilla->get_field('classification')->id : undef;
     my $f = Bugzilla->get_field('product');
-    $f->set_visibility_field($vf);
+    $f->set_value_field($vf);
     $f->set_obsolete($value ? 0 : 1);
     $f->update;
     return '';
