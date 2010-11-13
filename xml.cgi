@@ -71,7 +71,7 @@ else
     # Takes arguments from GET and POST parameters, returns XML.
     Bugzilla->usage_mode(USAGE_MODE_XMLRPC); # needed to catch login_required error
     Bugzilla->error_mode(ERROR_MODE_DIE);
-    eval { Bugzilla->login; };
+    eval { Bugzilla->login(~LOGIN_REQUIRED); };
     if ($@)
     {
         # catch login_required error
