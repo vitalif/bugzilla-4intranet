@@ -571,7 +571,7 @@ qfVisibility = [% json(Bugzilla.full_json_query_visibility) %];
 [% BLOCK select %]
   <td align="left">
     <select name="[% sel.name | html %]" id="[% sel.name | html %]"
-            multiple="multiple" size="[% sel.size %]">
+            multiple="multiple" size="[% sel.size %]" onload="if(this.offsetWidth>250){this.style.width='250px'}">
       [% FOREACH value = Bugzilla.get_field(sel.name).legal_values %]
         [% IF value.id %]
           [%# This only applies for Resolution really %]
@@ -588,9 +588,5 @@ qfVisibility = [% json(Bugzilla.full_json_query_visibility) %];
         [% END %]
       [% END %]
     </select>
-    <script language="JavaScript">
-      if(document.getElementById('[% sel.name | js %]').offsetWidth > 250)
-        document.getElementById('[% sel.name | js %]').style.width = '250px';
-    </script>
   </td>
 [% END %]
