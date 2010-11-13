@@ -66,11 +66,24 @@ if (!$method)
 }
 else
 {
+    my ($service, $result);
     # Very simple "REST/XML-RPC" server:
     # Takes arguments from GET and POST parameters, returns XML.
+    Bugzilla->usage_mode(USAGE_MODE_XMLRPC); # needed to catch login_required error
     Bugzilla->error_mode(ERROR_MODE_DIE);
-    Bugzilla->login;
-    my ($service, $result);
+    eval { Bugzilla->login; };
+    if ($@)
+    {
+        # catch login_required error
+        $result = {
+            status  => 'error',
+            service => $service,
+            method  => $method,
+        };
+        addmsg($result, $@);
+    }
+    Bugzilla->usage_mode(USAGE_MODE_BROWSER);
+    Bugzilla->error_mode(ERROR_MODE_DIE);
     ($service, $method) = split /\./, $method;
     $service =~ s/[^a-z0-9]+//giso;
     trick_taint($service);
@@ -93,7 +106,7 @@ else
             eval "\@Bugzilla::WebService::$service\::XMLSimple::ISA = qw(Bugzilla::WebService::Server::XMLSimple Bugzilla::WebService::$service)";
         }
     }
-    if ($Bugzilla::WebService::{$service.'::'} &&
+    if (!$result && $Bugzilla::WebService::{$service.'::'} &&
         $Bugzilla::WebService::{$service.'::'}->{'XMLSimple::'})
     {
         my $func_args = { %$args };
