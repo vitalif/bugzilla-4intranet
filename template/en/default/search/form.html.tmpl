@@ -30,6 +30,16 @@ var first_load = true;         [%# is this the first time we load the page? %]
 var last_sel = new Array();    [%# caches last selection %]
 
 var useclassification = [% Param('useclassification') ? 'true' : 'false' %];
+var checkwidths = [];
+
+YAHOO.util.Event.addListener(window, 'load', function() {
+  for (var i in checkwidths)
+  {
+    var s = document.getElementById(checkwidths[i]);
+    if (s && s.offsetWidth > 250)
+      s.style.width = '250px';
+  }
+});
 
 // TODO cache this client-side
 qfVisibility = [% json(Bugzilla.full_json_query_visibility) %];
@@ -571,7 +581,7 @@ qfVisibility = [% json(Bugzilla.full_json_query_visibility) %];
 [% BLOCK select %]
   <td align="left">
     <select name="[% sel.name | html %]" id="[% sel.name | html %]"
-            multiple="multiple" size="[% sel.size %]" onload="if(this.offsetWidth>250){this.style.width='250px'}">
+            multiple="multiple" size="[% sel.size %]">
       [% FOREACH value = Bugzilla.get_field(sel.name).legal_values %]
         [% IF value.id %]
           [%# This only applies for Resolution really %]
@@ -588,5 +598,8 @@ qfVisibility = [% json(Bugzilla.full_json_query_visibility) %];
         [% END %]
       [% END %]
     </select>
+    <script>
+      checkwidths.push('[% sel.name | js %]');
+    </script>
   </td>
 [% END %]
