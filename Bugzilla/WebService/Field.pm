@@ -29,7 +29,7 @@ sub get_values
             id => $_->id,
             name => $_->name,
             visibility_value_ids => [ map { $_->id } @{$_->visibility_values} ],
-        } } ];
+        } } @{$field->legal_values} ];
     }
     else
     {
@@ -73,7 +73,7 @@ sub update_value
         return {status => 'field_not_found'};
     }
     my $type = Bugzilla::Field::Choice->type($field);
-    $value = $type->new({ name => $params->{old_value} });
+    my $value = $type->new({ name => $params->{old_value} });
     if (!$value)
     {
         return {status => 'value_not_found'};
