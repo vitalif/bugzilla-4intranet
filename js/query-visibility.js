@@ -1,12 +1,17 @@
 /* JavaScript code to hide and show values of select fields on the query form */
 
 var qfVisibility = {};
+var qfHandling = {};
 YAHOO.util.Event.addListener(window, 'load', initQueryformFields);
 
 function initQueryformFields()
 {
   for (var i in qfVisibility)
+  {
+    if (!qfHandling[i])
+      handleQueryformField(null, document.getElementById(i));
     initQueryformField(i);
+  }
 }
 
 function initQueryformField(i)
@@ -57,6 +62,7 @@ function handleQueryformField(e, controller)
   var visibility_selected = getQueryformSelectedIds(controller);
   var controlled, controlled_selected;
   var opt, vis, vislist, value_id, item;
+  qfHandling[controller.id] = true;
   for (var controlled_id in qfVisibility[controller.id].values)
   {
     controlled = document.getElementById(controlled_id);

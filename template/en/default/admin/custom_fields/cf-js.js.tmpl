@@ -19,8 +19,8 @@
 
 // Disable a checkbox based on the state of another one.
 function toggleCheckbox(this_checkbox, other_checkbox_id) {
-    var other_checkbox = document.getElementById(other_checkbox_id);
-    other_checkbox.disabled = !this_checkbox.checked;
+  var other_checkbox = document.getElementById(other_checkbox_id);
+  other_checkbox.disabled = !this_checkbox.checked;
 }
 
 var select_values = new Array();
@@ -34,26 +34,25 @@ select_values[[% sel_field.id FILTER js %]] = [
 [% END %]
 
 function onChangeType(type_field) {
-    var value_field = document.getElementById('value_field_id');
-    if (type_field.value == [% constants.FIELD_TYPE_SINGLE_SELECT %]
-        || type_field.value == [% constants.FIELD_TYPE_MULTI_SELECT %])
-    {
-        value_field.disabled = false;
-    }
-    else {
-        value_field.disabled = true;
-    }
+  var value_field = document.getElementById('value_field_id');
+  if (type_field.value == [% constants.FIELD_TYPE_SINGLE_SELECT %]
+      || type_field.value == [% constants.FIELD_TYPE_MULTI_SELECT %])
+    value_field.disabled = false;
+  else
+    value_field.disabled = true;
 }
 
 function onChangeVisibilityField() {
-    var vis_field = document.getElementById('visibility_field_id');
-    var vis_value = document.getElementById('visibility_value_id');
+  var vis_field = document.getElementById('visibility_field_id');
+  var vis_value = document.getElementById('visibility_value_id');
+  var vis_label = document.getElementById('visibility_value_id_label');
 
-    if (vis_field.value) {
-        var values = select_values[vis_field.value];
-        bz_populateSelectFromArray(vis_value, values);
-    }
-    else {
-        bz_clearOptions(vis_value);
-    }
+  vis_value.style.display = vis_label.style.display = vis_field.value ? '' : 'none';
+  if (vis_field.value)
+  {
+    var values = select_values[vis_field.value];
+    bz_populateSelectFromArray(vis_value, values);
+  }
+  else
+    bz_clearOptions(vis_value);
 }
