@@ -39,6 +39,15 @@ WHERE col_f.bug_id=bugs.bug_id AND col_ft.is_requesteeble=1 AND col_ft.is_reques
 
     # CustIS Bug 68921 (see also Bugzilla::Search)
     $columns->{interval_time} = $columns->{actual_time};
+
+    # CustIS Bug 71955 - first comment to the bug
+    $columns->{comment0} = {
+        name  =>
+            "(SELECT thetext FROM longdescs ldc0 WHERE ldc0.bug_id = bugs.bug_id ".
+            (Bugzilla->user->is_insider ? "" : "AND ldc0.isprivate=0 ")." ORDER BY ldc0.bug_when LIMIT 1)",
+        title => "First comment",
+    };
+
     return 1;
 }
 
@@ -50,6 +59,7 @@ sub colchange_columns
     push @$columns, 'dependson', 'blocked';
     push @$columns, 'flags', 'requests';
     push @$columns, 'interval_time';
+    push @$columns, 'comment0';
 
     return 1;
 }
