@@ -45,7 +45,7 @@ WHERE col_f.bug_id=bugs.bug_id AND col_ft.is_requesteeble=1 AND col_ft.is_reques
         name  =>
             "(SELECT thetext FROM longdescs ldc0 WHERE ldc0.bug_id = bugs.bug_id ".
             (Bugzilla->user->is_insider ? "" : "AND ldc0.isprivate=0 ")." ORDER BY ldc0.bug_when LIMIT 1)",
-        title => "First comment",
+        title => "First Comment",
     };
 
     return 1;
