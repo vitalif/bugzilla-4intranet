@@ -72,7 +72,7 @@ qfVisibility = [% json(Bugzilla.full_json_query_visibility) %];
       <input name="content" size="40" id="content"
              value="[% default.content.0 FILTER html %]">
       <script type="text/javascript"> <!--
-          document.forms['queryform'].content.focus();
+          document.forms[queryform].content.focus();
       // -->
       </script>
     </td>
