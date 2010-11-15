@@ -43,6 +43,7 @@
 [% field_descs.reporter_realname    = field_descs.reporter    %]
 [% field_descs.qa_contact_realname  = field_descs.qa_contact  %]
 
+[%# FIXME migrate to styles? %]
 [% abbrev =
   {
     "bug_severity"         => { maxlength => 3 , title => "Sev" } ,
@@ -69,6 +70,7 @@
     "percentage_complete" => { format_value => "%d %%" } ,
     "blocked"           => { wrap => 1, width => "8%" },
     "dependson"         => { wrap => 1, width => "8%" },
+    "comment0"          => { wrap => 1 },
   }
 %]
 
