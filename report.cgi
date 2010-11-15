@@ -38,7 +38,7 @@ my $buffer = $cgi->query_string();
 # Go straight back to query.cgi if we are adding a boolean chart.
 if (grep(/^cmd-/, $cgi->param())) {
     my $params = $cgi->canonicalise_query("format", "ctype");
-    my $location = "query.cgi?format=" . $cgi->param('query_format') . 
+    my $location = "query.cgi?format=" . $cgi->param('query_format') .
       ($params ? "&$params" : "");
 
     print $cgi->redirect($location);
@@ -118,7 +118,7 @@ if (defined($height)) {
    $height <= 2000 || ThrowUserError("chart_too_large");
 }
 
-# These shenanigans are necessary to make sure that both vertical and 
+# These shenanigans are necessary to make sure that both vertical and
 # horizontal 1D tables convert to the correct dimension when you ask to
 # display them as some sort of chart.
 if (defined $cgi->param('format') && $cgi->param('format') eq "table") {
@@ -174,7 +174,7 @@ $::SIG{PIPE} = 'DEFAULT';
 
 my $results = $dbh->selectall_arrayref($query, {Slice=>{}});
 
-# We have a hash of hashes for the data itself, and a hash to hold the 
+# We have a hash of hashes for the data itself, and a hash to hold the
 # row/col/table names.
 my %data;
 my %names;
@@ -217,7 +217,7 @@ foreach my $tbl (@tbl_names) {
             if ($tbl ne "-total-") {
                 # This is a bit sneaky. We spend every loop except the last
                 # building up the -total- data, and then last time round,
-                # we process it as another tbl, and push() the total values 
+                # we process it as another tbl, and push() the total values
                 # into the image_data array.
                 $data{"-total-"}{$col}{$row} += $data{$tbl}{$col}{$row};
             }
@@ -225,7 +225,7 @@ foreach my $tbl (@tbl_names) {
 
         push(@tbl_data, \@col_data);
     }
-    
+
     unshift(@image_data, \@tbl_data);
 }
 
@@ -269,13 +269,13 @@ if ($action eq "wrap") {
     $vars->{'format'} = $formatparam;
     $formatparam = '';
 
-    # We need to keep track of the defined restrictions on each of the 
+    # We need to keep track of the defined restrictions on each of the
     # axes, because buglistbase, below, throws them away. Without this, we
     # get buglistlinks wrong if there is a restriction on an axis field.
     $vars->{'col_vals'} = join("&", $buffer =~ /[&?]($field->{y}=[^&]+)/g);
     $vars->{'row_vals'} = join("&", $buffer =~ /[&?]($field->{x}=[^&]+)/g);
     $vars->{'tbl_vals'} = join("&", $buffer =~ /[&?]($field->{z}=[^&]+)/g);
-    
+
     # We need a number of different variants of the base URL for different
     # URLs in the HTML.
     $vars->{buglistbase} = $cgi->canonicalise_query(
@@ -335,40 +335,30 @@ $template->process("$format->{'template'}", $vars)
 
 exit;
 
-
-sub get_names {
+sub get_names
+{
     my ($names, $isnumeric, $field) = @_;
-    
+
     # These are all the fields we want to preserve the order of in reports.
-    my %fields;
-    my @select_fields = Bugzilla->get_fields({ is_select => 1 });
-    foreach my $field (@select_fields) {
-        my @names =  map($_->name, @{$field->legal_values});
-        unshift @names, ' ' if $field->name eq 'resolution'; 
-        $fields{$field->name} = \@names;
-    } 
-    my $field_list = $fields{$field};
-    my @sorted;
-    
-    if ($field_list) {
-        my @unsorted = keys %{$names};
-        
-        # Extract the used fields from the field_list, in the order they 
-        # appear in the field_list. This lets us keep e.g. severities in
-        # the normal order.
-        #
-        # This is O(n^2) but it shouldn't matter for short lists.
-        @sorted = map {lsearch(\@unsorted, $_) == -1 ? () : $_} @{$field_list};
-    }  
-    elsif ($isnumeric) {
-        # It's not a field we are preserving the order of, so sort it 
+    my $f = Bugzilla->get_field($field);
+    if ($f && $f->is_select)
+    {
+        my $values = [ map { $_->name } @{ $f->legal_values } ];
+        unshift @$values, ' ' if $field eq 'resolution';
+        my %dup;
+        @$values = grep { exists($names->{$_}) && !($dup{$_}++) } @$values;
+        return $values;
+    }
+    elsif ($isnumeric)
+    {
+        # It's not a field we are preserving the order of, so sort it
         # numerically...
         sub numerically { $a <=> $b }
-        @sorted = sort numerically keys(%{$names});
-    } else {
-        # ...or alphabetically, as appropriate.
-        @sorted = sort(keys(%{$names}));
+        return [ sort numerically keys %$names ];
     }
-    
-    return \@sorted;
+    else
+    {
+        # ...or alphabetically, as appropriate.
+        return [ sort keys %$names ];
+    }
 }
