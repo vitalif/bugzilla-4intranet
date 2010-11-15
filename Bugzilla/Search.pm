@@ -1187,7 +1187,7 @@ sub init {
         # explicitly, below).
         next if (grep($_ eq $field, EMPTY_COLUMN,
                       qw(bug_id actual_time percentage_complete flagtypes.name)));
-        my $col = COLUMNS->{$field}->{name};
+        my $col = COLUMNS->{$field}->{name} || $field;
         push(@groupby, $col) if !grep($_ eq $col, @groupby);
     }
     # And all items from ORDER BY must be in the GROUP BY. The above loop
@@ -1199,7 +1199,6 @@ sub init {
         }
     }
     $query .= $dbh->sql_group_by("bugs.bug_id", join(', ', @groupby));
-
 
     if (@having) {
         $query .= " HAVING " . join(" AND ", @having);
