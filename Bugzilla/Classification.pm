@@ -83,6 +83,13 @@ sub remove_from_db
     $dbh->bz_commit_transaction();
 }
 
+sub update
+{
+    # Not Bugzilla::Field::Choice! It will try to overwrite
+    # bugs.classification, but no such field exists in the DB
+    Bugzilla::Object::update(@_);
+}
+
 ###############################
 ####      Validators       ####
 ###############################
