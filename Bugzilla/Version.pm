@@ -144,17 +144,31 @@ sub create
 sub update
 {
     my $self = shift;
+
+    my $dbh = Bugzilla->dbh;
+    $dbh->bz_start_transaction();
+
+    # Not Bugzilla::Field::Choice! It will overwrite other products' bug values
     my ($changes, $old_self) = Bugzilla::Object::update($self, @_);
 
-    if (exists $changes->{value}) {
-        my $dbh = Bugzilla->dbh;
-        $dbh->do('UPDATE bugs SET version = ?
-                  WHERE version = ? AND product_id = ?',
-                  undef, ($self->name, $old_self->name, $self->product_id));
+    if (exists $changes->{value})
+    {
+        # Record activity
+        $dbh->do(
+            'INSERT INTO bugs_activity (bug_id, who, bug_when, fieldid, added, removed)'.
+            ' SELECT bug_id, ?, NOW(), ?, ?, ? FROM bugs WHERE version = ? AND product_id = ?', undef,
+            Bugzilla->user->id, $self->field->id, $self->name, $old_self->name, $old_self->name, $self->product_id
+        );
+        # Rename version
+        $dbh->do(
+            'UPDATE bugs SET version = ? WHERE version = ? AND product_id = ?',
+            undef, $self->name, $old_self->name, $self->product_id
+        );
     }
 
     # Fill visibility values
     $self->set_visibility_values([ $self->product_id ]);
+    $dbh->bz_commit_transaction();
 
     return $changes;
 }

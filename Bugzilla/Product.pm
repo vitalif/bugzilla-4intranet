@@ -181,7 +181,9 @@ sub update {
 
     # Don't update the DB if something goes wrong below -> transaction.
     $dbh->bz_start_transaction();
-    my ($changes, $old_self) = $self->SUPER::update(@_);
+    # Bugzilla::Field::Choice is not a threat as we don't have 'value' field
+    # Yet do not call its update() for the future
+    my ($changes, $old_self) = Bugzilla::Object::update(@_);
 
     # We also have to fix votes.
     my @msgs; # Will store emails to send to voters.
