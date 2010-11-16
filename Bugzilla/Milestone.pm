@@ -120,21 +120,50 @@ sub create
     return $self;
 }
 
+sub update
+{
+    my $self = shift;
+
+    my $dbh = Bugzilla->dbh;
+    $dbh->bz_start_transaction();
+
+    # Not Bugzilla::Field::Choice! It will overwrite other products' bug values
+    my ($changes, $old_self) = Bugzilla::Object::update($self, @_);
+
+    if (exists $changes->{value})
+    {
+        # Record activity
+        $dbh->do(
+            'INSERT INTO bugs_activity (bug_id, who, bug_when, fieldid, added, removed)'.
+            ' SELECT bug_id, ?, NOW(), ?, ?, ? FROM bugs WHERE target_milestone = ? AND product_id = ?', undef,
+            Bugzilla->user->id, $self->field->id, $self->name, $changes->{value}->[0], $changes->{value}->[0], $self->product_id
+        );
+        # The milestone value is stored in the bugs table instead of its ID.
+        $dbh->do(
+            'UPDATE bugs SET target_milestone = ? WHERE target_milestone = ? AND product_id = ?',
+            undef, $self->name, $changes->{value}->[0], $self->product_id
+        );
+        # The default milestone also stores the value instead of the ID.
+        $dbh->do(
+            'UPDATE products SET defaultmilestone = ? WHERE id = ? AND defaultmilestone = ?',
+            undef, $self->name, $self->product_id, $changes->{value}->[0]
+        );
+    }
+
+    # Fill visibility values
+    $self->set_visibility_values([ $self->product_id ]);
+    $dbh->bz_commit_transaction();
+
+    return $changes;
+}
+
+
 sub update {
     my $self = shift;
     my $changes = Bugzilla::Object::update($self, @_);
 
     if (exists $changes->{value}) {
         my $dbh = Bugzilla->dbh;
-        # The milestone value is stored in the bugs table instead of its ID.
-        $dbh->do('UPDATE bugs SET target_milestone = ?
-                  WHERE target_milestone = ? AND product_id = ?',
-                 undef, ($self->name, $changes->{value}->[0], $self->product_id));
-
-        # The default milestone also stores the value instead of the ID.
-        $dbh->do('UPDATE products SET defaultmilestone = ?
-                  WHERE id = ? AND defaultmilestone = ?',
-                 undef, ($self->name, $self->product_id, $changes->{value}->[0]));
     }
 
     # Fill visibility values

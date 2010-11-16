@@ -160,6 +160,8 @@ sub run_create_validators
 sub update
 {
     my $self = shift;
+    # Bugzilla::Field::Choice is not a threat as we don't have 'value' field
+    # Yet do not call its update() for the future
     my $changes = Bugzilla::Object::update($self, @_);
 
     # Fill visibility values
