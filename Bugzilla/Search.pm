@@ -409,22 +409,26 @@ sub init {
         }
     }
 
-    foreach my $field ($params->param()) {
+    foreach my $field ($params->param())
+    {
         # "votes" got special treatment, above.
         next if $field eq 'votes';
-        if (grep { $_->name eq $field } @legal_fields) {
+        if (grep { $_->name eq $field } @legal_fields)
+        {
             my $type = $params->param("${field}_type");
-            if (!$type) {
-                if ($field eq 'keywords') {
+            if (!$type)
+            {
+                if ($field eq 'keywords')
+                {
                     $type = 'anywords';
                 }
-                else {
+                else
+                {
                     $type = 'anyexact';
                 }
             }
             $type = 'matches' if $field eq 'content';
-            push(@specialchart, [$field, $type,
-                                 join(',', $params->param($field))]);
+            push @specialchart, [$field, $type, [$params->param($field)]];
         }
     }
 
@@ -901,7 +905,6 @@ sub init {
             $params->param("type$chart-$row-$col", shift(@$ref));
             $params->param("value$chart-$row-$col", shift(@$ref));
             $col++;
-
         }
         $row++;
     }
@@ -2107,7 +2110,9 @@ sub _keywords_exact {
 
     my @list;
     my $table = "keywords_$$chartid";
-    foreach my $value (split(/[\s,]+/, $$v)) {
+    my @v = ref $$v ? @$$v : split /[\s,]+/, $$v;
+    $$v = join ', ', @$$v if ref $$v;
+    foreach my $value (@v) {
         if ($value eq '') {
             next;
         }
@@ -2275,7 +2280,9 @@ sub _multiselect_multiple {
     my $table = "bug_$$f";
     $$ff = "$table.value";
 
-    foreach my $word (split(/[\s,]+/, $$v)) {
+    my @v = ref $$v ? @$$v : split /[\s,]+/, $$v;
+    $$v = join ', ', @$$v if ref $$v;
+    foreach my $word (@v) {
         $$v = $word;
         $$funcsbykey{",".$$t}($self, %func_args);
         push(@terms, "bugs.bug_id IN
@@ -2404,7 +2411,9 @@ sub _anyexact {
     my $dbh = Bugzilla->dbh;
 
     my @list;
-    foreach my $w (split(/,/, $$v)) {
+    my @v = ref $$v ? @$$v : split /[\s,]+/, $$v;
+    $$v = join ', ', @$$v if ref $$v;
+    foreach my $w (@v) {
         if ($w eq "---" && $$f =~ /resolution/) {
             $w = "";
         }
