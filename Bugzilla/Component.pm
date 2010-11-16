@@ -160,7 +160,7 @@ sub run_create_validators
 sub update
 {
     my $self = shift;
-    my $changes = $self->SUPER::update(@_);
+    my $changes = Bugzilla::Object::update($self, @_);
 
     # Fill visibility values
     $self->set_visibility_values([ $self->product_id ]);

@@ -122,7 +122,7 @@ sub create
 
 sub update {
     my $self = shift;
-    my $changes = $self->SUPER::update(@_);
+    my $changes = Bugzilla::Object::update($self, @_);
 
     if (exists $changes->{value}) {
         my $dbh = Bugzilla->dbh;
