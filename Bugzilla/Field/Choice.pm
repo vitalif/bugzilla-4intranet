@@ -164,8 +164,8 @@ sub update {
     $dbh->bz_start_transaction();
 
     my ($changes, $old_self) = $self->SUPER::update(@_);
-    if (exists $changes->{value}) {
-        my ($old, $new) = @{ $changes->{value} };
+    if (exists $changes->{$self->NAME_FIELD}) {
+        my ($old, $new) = @{ $changes->{$self->NAME_FIELD} };
         if ($self->field->type == FIELD_TYPE_MULTI_SELECT) {
             $dbh->do("UPDATE bug_$fname SET value = ? WHERE value = ?",
                      undef, $new, $old);
