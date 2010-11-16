@@ -161,7 +161,7 @@ sub update
         );
         # Rename version
         $dbh->do(
-            'UPDATE bugs SET version = ? WHERE version = ? AND product_id = ?',
+            'UPDATE bugs SET version = ?, lastdiffed = NOW() WHERE version = ? AND product_id = ?',
             undef, $self->name, $old_self->name, $self->product_id
         );
     }
