@@ -174,7 +174,7 @@ sub update {
             $dbh->do(
                 "INSERT INTO bugs_activity (bug_id, who, bug_when, fieldid, added, removed)".
                 " SELECT bug_id, ?, NOW(), ?, ?, ? FROM bugs WHERE $fname = ?", undef,
-                Bugzilla->user->id, $self->field->id, $new, $old
+                Bugzilla->user->id, $self->field->id, $new, $old, $old
             );
             $dbh->do("UPDATE bugs SET $fname = ?, lastdiffed = NOW() WHERE $fname = ?",
                      undef, $new, $old);

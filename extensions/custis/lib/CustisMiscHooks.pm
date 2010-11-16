@@ -68,8 +68,12 @@ sub process_bug_after_move
     my $vars = $args->{vars};
 
     my $single = @$bug_objects == 1;
-    my $clear_on_close = $cgi->param('bug_status') eq 'CLOSED' && Bugzilla->params->{clear_requests_on_close};
-    my $verify_flags = $single && Bugzilla->usage_mode != USAGE_MODE_EMAIL && Bugzilla->user->wants_request_reminder;
+    my $clear_on_close =
+        $cgi->param('bug_status') eq 'CLOSED' &&
+        Bugzilla->user->settings->{clear_requests_on_close}->{value} eq 'on';
+    my $verify_flags = $single &&
+        Bugzilla->usage_mode != USAGE_MODE_EMAIL &&
+        Bugzilla->user->wants_request_reminder;
     my $reset_own_flags = $verify_flags && $cgi->param('comment') !~ /^\s*$/so;
 
     if (($clear_on_close || $reset_own_flags) && !$cgi->param('force_flags'))
