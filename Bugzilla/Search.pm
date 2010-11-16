@@ -416,8 +416,8 @@ sub init {
         if (grep { $_->name eq $field } @legal_fields)
         {
             my $type = $params->param("${field}_type");
-            my @values = $params->param($field);
-            next if !join '', @values;
+            my $values = [ $params->param($field) ];
+            next if !join '', @$values;
             if (!$type)
             {
                 if ($field eq 'keywords')
@@ -430,7 +430,8 @@ sub init {
                 }
             }
             $type = 'matches' if $field eq 'content';
-            push @specialchart, [$field, $type, \@values];
+            $values = join ',', @$values if $type ne 'anyexact';
+            push @specialchart, [$field, $type, $values];
         }
     }
 
