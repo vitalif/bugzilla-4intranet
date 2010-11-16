@@ -140,7 +140,7 @@ sub update
         );
         # The milestone value is stored in the bugs table instead of its ID.
         $dbh->do(
-            'UPDATE bugs SET target_milestone = ? WHERE target_milestone = ? AND product_id = ?',
+            'UPDATE bugs SET target_milestone = ?, lastdiffed = NOW() WHERE target_milestone = ? AND product_id = ?',
             undef, $self->name, $changes->{value}->[0], $self->product_id
         );
         # The default milestone also stores the value instead of the ID.
