@@ -510,13 +510,6 @@ sub insert {
         Encode::_utf8_on($filename);
     }
 
-    my $store_in_file = $cgi->param('bigfile');
-    if (Bugzilla->params->{force_attach_bigfile})
-    {
-        # Force uploading into files instead of DB when force_attach_bigfile = On
-        $store_in_file = 1;
-    }
-
     my $attachment = Bugzilla::Attachment->create(
         {bug           => $bug,
          creation_ts   => $timestamp,
@@ -527,7 +520,7 @@ sub insert {
          isprivate     => scalar $cgi->param('isprivate'),
          isurl         => scalar $cgi->param('attachurl'),
          mimetype      => $content_type,
-         store_in_file => $store_in_file,
+         store_in_file => scalar $cgi->param('bigfile'),
          });
 
     foreach my $obsolete_attachment (@obsolete_attachments) {

@@ -653,7 +653,9 @@ sub _check_is_url {
 sub _check_store_in_file {
     my ($invocant, $store_in_file) = @_;
 
-    if ($store_in_file && !Bugzilla->params->{'maxlocalattachment'}) {
+    if (($store_in_file || Bugzilla->params->{force_attach_bigfile}) &&
+        !Bugzilla->params->{'maxlocalattachment'})
+    {
         ThrowCodeError('attachment_local_storage_disabled');
     }
     return $store_in_file ? 1 : 0;
@@ -843,6 +845,12 @@ sub create {
     $params->{bug_id} = $bug->id;
     my $fh = delete $params->{data};
     my $store_in_file = delete $params->{store_in_file};
+
+    if (Bugzilla->params->{force_attach_bigfile})
+    {
+        # Force uploading into files instead of DB when force_attach_bigfile = On
+        $store_in_file = 1;
+    }
 
     my $attachment = $class->insert_create_data($params);
     my $attachid = $attachment->id;
