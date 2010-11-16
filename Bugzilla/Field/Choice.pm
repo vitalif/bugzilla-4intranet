@@ -171,7 +171,12 @@ sub update {
                      undef, $new, $old);
         }
         else {
-            $dbh->do("UPDATE bugs SET $fname = ? WHERE $fname = ?",
+            $dbh->do(
+                "INSERT INTO bugs_activity (bug_id, who, bug_when, fieldid, added, removed)".
+                " SELECT bug_id, ?, NOW(), ?, ?, ? FROM bugs WHERE $fname = ? FOR UPDATE", undef,
+                Bugzilla->user->id, $self->field->id, $new, $old
+            );
+            $dbh->do("UPDATE bugs SET $fname = ?, lastdiffed = NOW() WHERE $fname = ?",
                      undef, $new, $old);
         }
 

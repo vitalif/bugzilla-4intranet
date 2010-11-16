@@ -144,7 +144,7 @@ sub create
 sub update
 {
     my $self = shift;
-    my ($changes, $old_self) = $self->SUPER::update(@_);
+    my ($changes, $old_self) = Bugzilla::Object::update($self, @_);
 
     if (exists $changes->{value}) {
         my $dbh = Bugzilla->dbh;
