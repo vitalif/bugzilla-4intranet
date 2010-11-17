@@ -157,21 +157,6 @@ sub update
     return $changes;
 }
 
-
-sub update {
-    my $self = shift;
-    my $changes = Bugzilla::Object::update($self, @_);
-
-    if (exists $changes->{value}) {
-        my $dbh = Bugzilla->dbh;
-    }
-
-    # Fill visibility values
-    $self->set_visibility_values([ $self->product_id ]);
-
-    return $changes;
-}
-
 sub remove_from_db {
     my $self = shift;
     my $dbh = Bugzilla->dbh;
