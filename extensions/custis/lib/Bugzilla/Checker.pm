@@ -93,6 +93,7 @@ sub create
     }
     my $self = Bugzilla::Object::create($class, $params);
     $self->update;
+    $self->query->set_shared_with_group(Bugzilla::Group->check({ name => 'bz_editcheckers' }));
     return $self;
 }
 
@@ -101,6 +102,7 @@ sub update
 {
     my $self = shift;
     $self->refresh_sql;
+    $self->query->set_shared_with_group(Bugzilla::Group->check({ name => 'bz_editcheckers' }));
     $self->SUPER::update(@_);
 }
 

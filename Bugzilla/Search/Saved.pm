@@ -312,6 +312,61 @@ sub set_name       { $_[0]->set('name',       $_[1]); }
 sub set_url        { $_[0]->set('query',      $_[1]); }
 sub set_query_type { $_[0]->set('query_type', $_[1]); }
 
+sub set_link_in_footer
+{
+    my $self = shift;
+    my ($link) = @_;
+    if ($link && !$self->link_in_footer)
+    {
+        Bugzilla->dbh->do('INSERT INTO namedqueries_link_in_footer (namedquery_id, user_id) VALUES (?, ?)', undef, $self->id, Bugzilla->user->id);
+    }
+    elsif (!$link && $self->link_in_footer)
+    {
+        Bugzilla->dbh->do('DELETE FROM namedqueries_link_in_footer WHERE namedquery_id=? AND user_id=?', undef, $self->id, Bugzilla->user->id);
+    }
+    delete $self->{link_in_footer};
+}
+
+sub set_shared_with_group
+{
+    my $self = shift;
+    my ($group, $force_link_in_footer) = @_;
+    my $user = Bugzilla->user;
+    # Don't allow the user to share queries with groups he's not
+    # allowed to.
+    $group = undef if $group && !grep { $_ eq $group->id } @{$user->queryshare_groups};
+    # Don't remove namedqueries_link_in_footer entries for users
+    # subscribing to the shared query. The idea is that they will
+    # probably want to be subscribers again should the sharing
+    # user choose to share the query again.
+    my $dbh = Bugzilla->dbh;
+    $dbh->do('DELETE FROM namedquery_group_map WHERE namedquery_id=?', undef, $self->id);
+    if ($group)
+    {
+        # Share the query to $group
+        $dbh->do('INSERT INTO namedquery_group_map (namedquery_id, group_id) VALUES (?, ?)', undef, $self->id, $group->id);
+
+        # If we're sharing our query with a group we can bless, we
+        # have the ability to add link to our search to the footer of
+        # direct group members automatically.
+        my $force;
+        if ($force_link_in_footer && $user->can_bless($group->id) &&
+            ($force = $group->members_non_inherited) &&
+            (@$force = grep { $_->id != $user->id } @$force))
+        {
+            $dbh->do(
+                'DELETE FROM namedqueries_link_in_footer WHERE namedquery_id='.$self->id.
+                ' AND user_id IN ('.join(',', @$force).')'
+            );
+            $dbh->do(
+                'INSERT INTO namedqueries_link_in_footer (namedquery_id, user_id) VALUES '.
+                join(',', map { '('.$self->id.','.$_->id.')' } @$force)
+            );
+        }
+    }
+    $self->{shared_with_group} = $group;
+}
+
 # Validate that the query type is one we can deal with
 sub IsValidQueryType
 {
