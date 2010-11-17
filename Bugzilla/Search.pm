@@ -418,6 +418,7 @@ sub init {
             my $type = $params->param("${field}_type");
             my $values = [ $params->param($field) ];
             next if !join '', @$values;
+            $values = join ',', @$values;
             if (!$type)
             {
                 if ($field eq 'keywords')
@@ -427,10 +428,10 @@ sub init {
                 else
                 {
                     $type = 'anyexact';
+                    $values = [ $params->param($field) ];
                 }
             }
             $type = 'matches' if $field eq 'content';
-            $values = join ',', @$values if $type ne 'anyexact';
             push @specialchart, [$field, $type, $values];
         }
     }
