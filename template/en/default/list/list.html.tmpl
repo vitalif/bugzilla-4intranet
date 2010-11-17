@@ -213,7 +213,7 @@ Bug ID list:
 
   <div class="buglist-navbar"><a href="colchange.cgi?[% urlquerypart | html %]&amp;query_based_on=[% defaultsavename OR searchname | url_quote %]">Change&nbsp;Columns</a></div>
 
-  [% IF bugs.size > 1 && caneditbugs && !dotweak || Bugzilla.user.in_group('superworktime') %]
+  [% IF bugs.size > 1 && caneditbugs && !dotweak || Bugzilla.user.in_group('worktimeadmin') %]
   <div class="buglist-navbar">
     [% IF bugs.size > 1 && caneditbugs && !dotweak %]
       <a href="buglist.cgi?[% urlquerypart | html %][%- "&order=$qorder" | html IF order %]&amp;tweak=1">Change&nbsp;Several&nbsp;[% terms.Bugs %]&nbsp;at&nbsp;Once</a><br />
