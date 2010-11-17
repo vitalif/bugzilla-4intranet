@@ -78,13 +78,13 @@ function handleQueryformField(e, controller)
       {
         value_id = qfVisibility[controlled_id]['name2id'][controlled_value][j];
         item = qfVisibility[controller.id]['values'][controlled_id][value_id];
-        if (!item || !visibility_selected)
-          vis = true;
-        else
+        vis = true;
+        if (item && visibility_selected)
         {
-          vis = false;
           for (var value in item)
           {
+            if (vis)
+              vis = false;
             if (visibility_selected[value])
             {
               vis = true;
