@@ -275,7 +275,7 @@ TUI_hide_default('expert_fields');
 </form>
 
 <form name="Create" id="Create" method="post" action="post_bug.cgi"
-      enctype="multipart/form-data" onkeypress="ctrlEnter(event||window.event,this)">
+      enctype="multipart/form-data" onkeypress="return ctrlEnter(event||window.event,this)">
 <input type="hidden" name="product" value="[% product.name FILTER html %]">
 <input type="hidden" name="token" value="[% token FILTER html %]">
 <input type="hidden" name="cloned_bug_id" value="[% cloned_bug_id FILTER html %]">
