@@ -314,4 +314,5 @@ function ctrlEnter(event, formElem) {
     formElem.commit.click();
     return false;
   }
+  return true;
 }
