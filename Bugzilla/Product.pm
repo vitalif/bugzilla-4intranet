@@ -183,7 +183,7 @@ sub update {
     $dbh->bz_start_transaction();
     # Bugzilla::Field::Choice is not a threat as we don't have 'value' field
     # Yet do not call its update() for the future
-    my ($changes, $old_self) = Bugzilla::Object::update(@_);
+    my ($changes, $old_self) = Bugzilla::Object::update($self, @_);
 
     # We also have to fix votes.
     my @msgs; # Will store emails to send to voters.

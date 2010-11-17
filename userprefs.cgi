@@ -145,7 +145,6 @@ sub SaveAccount {
              undef, ($realname, $user->id));
 }
 
-
 sub DoSettings {
     my $user = Bugzilla->user;
 
@@ -196,7 +195,7 @@ sub DoEmail
 {
     my $dbh = Bugzilla->dbh;
     my $user = Bugzilla->user;
-    
+
     ###########################################################################
     # User watching
     ###########################################################################
@@ -366,7 +365,7 @@ sub DoPermissions
     my $dbh = Bugzilla->dbh;
     my $user = Bugzilla->user;
     my (@has_bits, @set_bits);
-    
+
     my $groups = $dbh->selectall_arrayref(
                "SELECT DISTINCT name, description FROM groups WHERE id IN (" . 
                $user->groups_as_string . ") ORDER BY name");
@@ -427,7 +426,8 @@ sub DoSavedSearches {
     $vars->{'bless_group_ids'} = [map { $_->id } @{$user->bless_groups}];
 }
 
-sub SaveSavedSearches {
+sub SaveSavedSearches
+{
     my $cgi = Bugzilla->cgi;
     my $dbh = Bugzilla->dbh;
     my $user = Bugzilla->user;
@@ -435,12 +435,6 @@ sub SaveSavedSearches {
     # We'll need this in a loop, so do the call once.
     my $user_id = $user->id;
 
-    my $sth_insert_nl = $dbh->prepare('INSERT INTO namedqueries_link_in_footer
-                                       (namedquery_id, user_id)
-                                       VALUES (?, ?)');
-    my $sth_delete_nl = $dbh->prepare('DELETE FROM namedqueries_link_in_footer
-                                             WHERE namedquery_id = ?
-                                               AND user_id = ?');
     my $sth_insert_ngm = $dbh->prepare('INSERT INTO namedquery_group_map
                                         (namedquery_id, group_id)
                                         VALUES (?, ?)');
@@ -450,74 +444,36 @@ sub SaveSavedSearches {
     my $sth_delete_ngm = $dbh->prepare('DELETE FROM namedquery_group_map
                                               WHERE namedquery_id = ?');
 
-    # Update namedqueries_link_in_footer for this user.
-    foreach my $q (@{$user->queries}, @{$user->queries_available}) {
-        if (defined $cgi->param("link_in_footer_" . $q->id)) {
-            $sth_insert_nl->execute($q->id, $user_id) if !$q->link_in_footer;
-        }
-        else {
-            $sth_delete_nl->execute($q->id, $user_id) if $q->link_in_footer;
-        }
-    }
+    # TODO batch update
 
     # For user's own queries, update namedquery_group_map.
-    foreach my $q (@{$user->queries}) {
-        my $group_id;
-
-        if ($user->in_group(Bugzilla->params->{'querysharegroup'})) {
-            $group_id = $cgi->param("share_" . $q->id) || '';
+    my $group;
+    foreach my $q (@{$user->queries})
+    {
+        if ($user->in_group(Bugzilla->params->{querysharegroup}))
+        {
+            $group = $cgi->param("share_" . $q->id);
+            $group = $group ? Bugzilla::Group->check({ id => $group }) : undef;
         }
+        $q->set_shared_with_group(
+            $group,
+            $cgi->param('force_' . $q->id)
+        );
+    }
 
-        if ($group_id) {
-            # Don't allow the user to share queries with groups he's not
-            # allowed to.
-            next unless grep($_ eq $group_id, @{$user->queryshare_groups});
-
-            # $group_id is now definitely a valid ID of a group the
-            # user can share queries with, so we can trick_taint.
-            detaint_natural($group_id);
-            if ($q->shared_with_group) {
-                $sth_update_ngm->execute($group_id, $q->id);
-            }
-            else {
-                $sth_insert_ngm->execute($q->id, $group_id);
-            }
-
-            # If we're sharing our query with a group we can bless, we 
-            # have the ability to add link to our search to the footer of
-            # direct group members automatically.
-            if ($user->can_bless($group_id) && $cgi->param('force_' . $q->id)) {
-                my $group = new Bugzilla::Group($group_id);
-                my $members = $group->members_non_inherited;
-                foreach my $member (@$members) {
-                    next if $member->id == $user->id;
-                    $sth_insert_nl->execute($q->id, $member->id)
-                        if !$q->link_in_footer($member);
-                }
-            }
-        }
-        else {
-            # They have unshared that query.
-            if ($q->shared_with_group) {
-                $sth_delete_ngm->execute($q->id);
-            }
-
-            # Don't remove namedqueries_link_in_footer entries for users
-            # subscribing to the shared query. The idea is that they will
-            # probably want to be subscribers again should the sharing
-            # user choose to share the query again.
-        }
+    # Update namedqueries_link_in_footer for this user.
+    foreach my $q (@{$user->queries}, @{$user->queries_available})
+    {
+        $q->set_link_in_footer(defined $cgi->param("link_in_footer_" . $q->id));
     }
 
     $user->flush_queries_cache;
-    
+
     # Update profiles.mybugslink.
     my $showmybugslink = defined($cgi->param("showmybugslink")) ? 1 : 0;
-    $dbh->do("UPDATE profiles SET mybugslink = ? WHERE userid = ?",
-             undef, ($showmybugslink, $user->id));    
-    $user->{'showmybugslink'} = $showmybugslink;
+    $dbh->do("UPDATE profiles SET mybugslink = ? WHERE userid = ?", undef, $showmybugslink, $user->id);
+    $user->{showmybugslink} = $showmybugslink;
 }
-
 
 ###############################################################################
 # Live code (not subroutine definitions) starts here

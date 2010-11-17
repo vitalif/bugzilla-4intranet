@@ -369,9 +369,6 @@ sub flatten_group_membership {
     return \@groups;
 }
 
-
-
-
 ################################
 #####  Module Subroutines    ###
 ################################
