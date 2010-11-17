@@ -2492,7 +2492,7 @@ sub _changedbefore_changedafter {
 
     my $operator = ($$t =~ /before/) ? '<' : '>';
     my $table = "act_$$chartid";
-    my $fieldid = CHART_FIELDS->{$$f}->{id};
+    my $fieldid = CHART_FIELDS_HASH->{$$f}->{id};
     if (!$fieldid) {
         ThrowCodeError("invalid_field_name", {field => $$f});
     }
@@ -2512,7 +2512,7 @@ sub _changedfrom_changedto {
 
     my $operator = ($$t =~ /from/) ? 'removed' : 'added';
     my $table = "act_$$chartid";
-    my $fieldid = CHART_FIELDS->{$$f}->{id};
+    my $fieldid = CHART_FIELDS_HASH->{$$f}->{id};
     if (!$fieldid) {
         ThrowCodeError("invalid_field_name", {field => $$f});
     }
@@ -2531,7 +2531,7 @@ sub _changedby
         @func_args{qw(chartid f v supptables term)};
 
     my $table = "act_$$chartid";
-    my $fieldid = CHART_FIELDS->{$$f}->{id};
+    my $fieldid = CHART_FIELDS_HASH->{$$f}->{id};
     if (!$fieldid)
     {
         ThrowCodeError("invalid_field_name", {field => $$f});
