@@ -1862,6 +1862,8 @@ sub _check_select_field {
 sub _check_bugid_field {
     my ($invocant, $value, $field) = @_;
     return undef if !$value;
+    # If there is no change, do not check the bug id, as it may be invisible for current user
+    return $invocant->{$field} if ref $invocant && $invocant->{$field} eq $value;
     return $invocant->check($value, $field)->id;
 }
 
