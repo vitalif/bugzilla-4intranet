@@ -86,6 +86,25 @@ sub throw
     ref $self and _throw_error($self->{type}, $self->{error}, $self->{vars});
 }
 
+my $frame_filter_finished = 0;
+sub _frame_filter
+{
+    my ($caller) = @_;
+    $caller = $caller->{caller};
+    # exclude several subs and all mod_perl stuff from stack trace
+    return 0 if
+        $caller->[3] eq 'Devel::StackTrace::new' ||
+        $caller->[3] eq 'Bugzilla::Error::ThrowCodeError' && $caller->[0] eq 'Bugzilla' && $caller->[2] == 82 ||
+        $caller->[3] eq 'Bugzilla::Error::_throw_error' && $caller->[0] eq 'Bugzilla::Error' ||
+        $frame_filter_finished;
+    if ($caller->[3] =~ /^ModPerl::ROOT::Bugzilla/)
+    {
+        $frame_filter_finished = 1;
+        return 0;
+    }
+    return 1;
+}
+
 sub _throw_error
 {
     my ($type, $error, $vars) = @_;
@@ -96,7 +115,8 @@ sub _throw_error
     if (!$vars->{stack_trace} && $HAVE_DEVEL_STACKTRACE)
     {
         # Append stack trace if Devel::StackTrace is available
-        $vars->{stack_trace} = Devel::StackTrace->new->as_string;
+        $frame_filter_finished = 0;
+        $vars->{stack_trace} = Devel::StackTrace->new(frame_filter => \&_frame_filter)->as_string;
     }
     my $mode = Bugzilla->error_mode;
 
