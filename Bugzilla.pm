@@ -55,32 +55,34 @@ use Encode::MIME::Header ();
 # We want any compile errors to get to the browser, if possible.
 BEGIN
 {
-    $SIG{__DIE__} = sub
-    {
-        # We are either in application heat-up phase or in some eval()
-        if (!$ENV{GATEWAY_INTERFACE} || Bugzilla::Error::_in_eval())
-        {
-            die @_;
-        }
-        if (ref($_[0]) eq 'Bugzilla::Error')
-        {
-            die($_[0]->{message});
-        }
-        else
-        {
-            utf8::decode($_[0]);
-            my $msg = $_[0];
-            $msg =~ s/\s*$//so;
-            # We are not interested in getting "Software caused connection abort" errors
-            # on each "Stop" click in the browser.
-            if ($msg !~ /^(Программа вызвала сброс соединения|Software caused connection abort) at /iso)
-            {
-                $msg = { eval_error => $msg };
-                Bugzilla::Error::ThrowCodeError('eval_error', $msg);
-            }
-        }
-    };
+    $SIG{__DIE__} = \&_die_error;
 }
+
+sub _die_error
+{
+    # We are either in application heat-up phase or in some eval()
+    if (!$ENV{GATEWAY_INTERFACE} || Bugzilla::Error::_in_eval())
+    {
+        die @_;
+    }
+    if (ref($_[0]) eq 'Bugzilla::Error')
+    {
+        die($_[0]->{message});
+    }
+    else
+    {
+        utf8::decode($_[0]);
+        my $msg = $_[0];
+        $msg =~ s/\s*$//so;
+        # We are not interested in getting "Software caused connection abort" errors
+        # on each "Stop" click in the browser.
+        if ($msg !~ /^(Программа вызвала сброс соединения|Software caused connection abort) at /iso)
+        {
+            $msg = { eval_error => $msg };
+            Bugzilla::Error::ThrowCodeError('eval_error', $msg);
+        }
+    }
+};
 
 #####################################################################
 # Constants

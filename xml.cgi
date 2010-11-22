@@ -90,7 +90,9 @@ else
     if (!$Bugzilla::WebService::{$service.'::'} ||
         !$Bugzilla::WebService::{$service.'::'}->{'XMLSimple::'})
     {
+        $Bugzilla::Error::IN_EVAL++;
         eval { require "Bugzilla/WebService/$service.pm" };
+        $Bugzilla::Error::IN_EVAL--;
         if ($@)
         {
             $result = {
@@ -112,7 +114,9 @@ else
         my $func_args = { %$args };
         delete $func_args->{method};
         my $pkg = 'Bugzilla::WebService::'.$service.'::XMLSimple';
+        $Bugzilla::Error::IN_EVAL++;
         eval { $result = $pkg->$method($func_args) };
+        $Bugzilla::Error::IN_EVAL--;
         if ($@)
         {
             $result = {
