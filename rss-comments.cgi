@@ -135,6 +135,9 @@ my $bugsquery = "
 
 my $events = $dbh->selectall_arrayref($bugsquery, {Slice => {}});
 
+Bugzilla->dbh->do("DROP TABLE _rss_comments_1");
+Bugzilla->dbh->do("DROP TABLE _rss_comments_2");
+
 my ($t, $o, $n, $k);
 my $gkeys = [];
 my $group = {};
