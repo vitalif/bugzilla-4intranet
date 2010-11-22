@@ -47,15 +47,15 @@ local our $cgi = Bugzilla->cgi;
 local our $template = Bugzilla->template;
 local our $vars = {};
 
-# We need this everywhere.
-$vars = get_products_and_components($vars);
-
 # Make sure the user is logged in and is an administrator.
 my $user = Bugzilla->login(LOGIN_REQUIRED);
 $user->in_group('editcomponents')
   || ThrowUserError("auth_failure", {group  => "editcomponents",
                                      action => "edit",
                                      object => "flagtypes"});
+
+# We need this everywhere.
+$vars = get_products_and_components($vars);
 
 ################################################################################
 # Main Body Execution
@@ -85,7 +85,7 @@ elsif ($action eq 'update')         { update($token);   }
 elsif ($action eq 'confirmdelete')  { confirmDelete();  } 
 elsif ($action eq 'delete')         { deleteType($token); }
 elsif ($action eq 'deactivate')     { deactivate($token); }
-else { 
+else {
     ThrowCodeError("action_unrecognized", { action => $action });
 }
 
@@ -166,7 +166,6 @@ sub list {
       || ThrowTemplateError($template->error());
 }
 
-
 sub edit {
     my ($action) = @_;
 
@@ -218,7 +217,7 @@ sub processCategoryChange {
     validateIsRequestable();
     validateIsRequesteeble();
     validateAllowMultiple();
-    
+
     my @inclusions = $cgi->param('inclusions');
     my @exclusions = $cgi->param('exclusions');
     if ($categoryAction eq 'include') {
@@ -243,7 +242,7 @@ sub processCategoryChange {
         my @exclusion_to_remove = $cgi->param('exclusion_to_remove');
         @exclusions = map {(lsearch(\@exclusion_to_remove, $_) < 0) ? $_ : ()} @exclusions;
     }
-    
+
     # Convert the array @clusions('prod_ID:comp_ID') back to a hash of
     # the form %clusions{'prod_name:comp_name'} = 'prod_ID:comp_ID'
     my %inclusions = clusion_array_to_hash(\@inclusions);
@@ -386,7 +385,7 @@ sub update {
                       $cgi->param('is_requesteeble'), $cgi->param('is_multiplicable'),
                       scalar($cgi->param('grant_gid')), scalar($cgi->param('request_gid')),
                       $id));
-    
+
     # Update the list of inclusions/exclusions for this flag type.
     validateAndSubmit($id);
 
@@ -444,7 +443,6 @@ sub update {
       || ThrowTemplateError($template->error());
 }
 
-
 sub confirmDelete {
     my $flag_type = validateID();
 
@@ -457,7 +455,6 @@ sub confirmDelete {
     $template->process("admin/flag-type/confirm-delete.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
 }
-
 
 sub deleteType {
     my $token = shift;
@@ -490,7 +487,6 @@ sub deleteType {
     $template->process("admin/flag-type/list.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
 }
-
 
 sub deactivate {
     my $token = shift;
