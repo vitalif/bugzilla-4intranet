@@ -179,7 +179,18 @@ sub _throw_error
 
     if ($mode == ERROR_MODE_WEBPAGE)
     {
-        Bugzilla->cgi->send_header;
+        if (Bugzilla->cgi->{_multipart_initialized})
+        {
+            Bugzilla->cgi->send_multipart_end();
+            Bugzilla->cgi->send_multipart_start(
+                -type => 'text/html',
+                -content_disposition => 'inline',
+            );
+        }
+        else
+        {
+            Bugzilla->cgi->send_header;
+        }
         print $message;
     }
     elsif ($mode == ERROR_MODE_DIE_SOAP_FAULT || $mode == ERROR_MODE_JSON_RPC)

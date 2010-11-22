@@ -245,7 +245,7 @@ sub multipart_init {
 # Have to add the cookies in.
 sub multipart_start {
     my $self = shift;
-    
+
     my %args = @_;
 
     # CGI.pm::multipart_start doesn't honour its own charset information, so
@@ -256,7 +256,7 @@ sub multipart_start {
         # and add the specified one
         $args{-type} .= '; charset=' . $self->charset();
     }
-        
+
     my $headers = $self->SUPER::multipart_start(%args);
     # Eliminate the one extra CRLF at the end.
     $headers =~ s/$CGI::CRLF$//;
@@ -267,6 +267,7 @@ sub multipart_start {
         $headers .= "Set-Cookie: ${cookie}${CGI::CRLF}";
     }
     $headers .= $CGI::CRLF;
+
     return $headers;
 }
 
@@ -301,6 +302,7 @@ sub send_multipart_start
 {
     my $self = shift;
     $self->{_header_sent} = 1;
+    $self->{_multipart_started}++;
     print $self->multipart_start(@_);
 }
 
@@ -308,6 +310,7 @@ sub send_multipart_init
 {
     my $self = shift;
     $self->{_header_sent} = 1;
+    $self->{_multipart_initialized} = 1;
     print $self->multipart_init(@_);
 }
 
@@ -315,6 +318,7 @@ sub send_multipart_end
 {
     my $self = shift;
     $self->{_header_sent} = 1;
+    $self->{_multipart_started}--;
     print $self->multipart_end(@_);
 }
 
@@ -322,6 +326,7 @@ sub send_multipart_final
 {
     my $self = shift;
     $self->{_header_sent} = 1;
+    $self->{_multipart_closed} = 1;
     print $self->multipart_final(@_);
 }
 
