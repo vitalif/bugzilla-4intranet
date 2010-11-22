@@ -419,11 +419,15 @@ sub init {
             my $values = [ $params->param($field) ];
             next if !join '', @$values;
             $values = join ',', @$values;
-            if (!$type)
+            if (!$type || $field eq 'content')
             {
                 if ($field eq 'keywords')
                 {
                     $type = 'anywords';
+                }
+                elsif ($field eq 'content')
+                {
+                    $type = 'matches';
                 }
                 else
                 {
@@ -431,7 +435,6 @@ sub init {
                     $values = [ $params->param($field) ];
                 }
             }
-            $type = 'matches' if $field eq 'content';
             push @specialchart, [$field, $type, $values];
         }
     }
