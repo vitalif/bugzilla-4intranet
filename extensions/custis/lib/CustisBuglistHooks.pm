@@ -4,6 +4,8 @@
 package CustisBuglistHooks;
 
 use strict;
+use Bugzilla::Search;
+use Bugzilla::Util;
 
 sub buglist_columns
 {
@@ -48,6 +50,13 @@ WHERE col_f.bug_id=bugs.bug_id AND col_ft.is_requesteeble=1 AND col_ft.is_reques
         title => "First Comment",
     };
 
+    ### Testopia ###
+    $columns->{test_cases} = {
+        title => "Test cases",
+        name  => "(SELECT GROUP_CONCAT(DISTINCT tcb.case_id SEPARATOR ', ') FROM test_case_bugs tcb WHERE tcb.bug_id=bugs.bug_id)",
+    };
+    ### end Testopia ###
+
     return 1;
 }
 
@@ -56,10 +65,12 @@ sub colchange_columns
     my ($args) = @_;
     my $columns = $args->{columns};
 
-    push @$columns, 'dependson', 'blocked';
-    push @$columns, 'flags', 'requests';
-    push @$columns, 'interval_time';
-    push @$columns, 'comment0';
+    my $defs = Bugzilla::Search->COLUMNS;
+    for (sort keys %$defs)
+    {
+        push @$columns, $_ if lsearch($columns, $_) < 0 && $_ ne 'bug_id' && $_ ne 'relevance';
+    }
+    @$columns = sort { $defs->{$a}->{title} cmp $defs->{$b}->{title} } @$columns;
 
     return 1;
 }

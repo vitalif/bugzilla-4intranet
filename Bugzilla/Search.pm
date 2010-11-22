@@ -150,27 +150,65 @@ sub COLUMNS {
     # should be displayed using their name.
     my @id_fields = qw(product component classification);
 
-    foreach my $col (@email_fields) {
+    foreach my $col (@email_fields)
+    {
         my $sql = "map_${col}.login_name";
         if (!Bugzilla->user->id) {
-             $sql = $dbh->sql_string_until($sql, $dbh->quote('@'));
+            $sql = $dbh->sql_string_until($sql, $dbh->quote('@'));
         }
         $special_sql{$col} = $sql;
         $columns{"${col}_realname"}->{name} = "map_${col}.realname";
+        $columns{$col}{joins} = $columns{"${col}_realname"}{joins} =
+            [ "INNER JOIN profiles AS map_$col ON bugs.$col = map_$col.userid" ];
     }
 
-    foreach my $col (@id_fields) {
+    foreach my $col (@id_fields)
+    {
         $special_sql{$col} = "map_${col}s.name";
+        $columns{$col}{joins} = [
+            "INNER JOIN ${col}s AS map_${col}s ON ".
+            ($col eq 'classification' ? "products" : "bugs").
+            ".${col}_id = map_${col}s.id"
+        ];
+        if ($col eq 'classification')
+        {
+            unshift @{$columns{$col}{joins}}, @{$columns{product}{joins}};
+        }
     }
 
     # Do the actual column-getting from fielddefs, now.
-    foreach my $field (Bugzilla->get_fields({ obsolete => 0, buglist => 1 })) {
+    foreach my $field (Bugzilla->get_fields({ obsolete => 0, buglist => 1 }))
+    {
         my $id = $field->name;
         $id = $old_names{$id} if exists $old_names{$id};
         my $sql = 'bugs.' . $field->name;
         $sql = $special_sql{$id} if exists $special_sql{$id};
-        $columns{$id} = { name => $sql, title => $field->description };
+        $columns{$id}{name} = $sql;
+        $columns{$id}{title} = $field->description;
+        # "Joins"
+        if ($field->type == FIELD_TYPE_BUG_ID)
+        {
+            my $join = [ "LEFT JOIN bugs bugs_$id ON bugs_$id.bug_id=bugs.$id" ];
+            foreach my $subfield (Bugzilla->get_fields({ obsolete => 0, buglist => 1 }))
+            {
+                my $subid = $subfield->name;
+                $subid = $old_names{$subid} || $subid;
+                if (!$special_sql{$subid})
+                {
+                    $columns{$id.'_'.$subid} = {
+                        name  => "bugs_$id.$subid",
+                        title => $field->description . ' ' . $subfield->description,
+                        joins => $join,
+                    };
+                }
+            }
+        }
     }
+
+    $columns{'flagtypes.name'}{joins} = [
+        "LEFT JOIN flags ON flags.bug_id = bugs.bug_id AND attach_id IS NULL",
+        "LEFT JOIN flagtypes ON flagtypes.id = flags.type_id"
+    ];
 
     # The short_short_desc column is identical to short_desc
     $columns{'short_short_desc'} = $columns{'short_desc'};
@@ -272,21 +310,14 @@ sub init {
     my @multi_select_fields = Bugzilla->get_fields({
         type     => [FIELD_TYPE_MULTI_SELECT, FIELD_TYPE_BUG_URLS],
         obsolete => 0 });
+
     foreach my $field (@select_fields)
     {
-        next if $field eq 'product' || $field eq 'component';
+        next if $field eq 'product' || $field eq 'component' || $field eq 'classification';
         my $type = Bugzilla::Field::Choice->type($field);
         my $name = $type->DB_TABLE;
         $special_order{$field->name} = [ map { "$name.$_" } split /\s*,\s*/, $type->LIST_ORDER ];
-        if ($field->name eq 'product' || $field->name eq 'component')
-        {
-            # product and component are joined using ID
-            $special_order_join{$field->name} = "LEFT JOIN $name ON $name.".$type->ID_FIELD." = bugs.".$field->name."_id";
-        }
-        else
-        {
-            $special_order_join{$field->name} = "LEFT JOIN $name ON $name.".$type->NAME_FIELD." = bugs.".$field->name;
-        }
+        $special_order_join{$field->name} = "LEFT JOIN $name ON $name.".$type->NAME_FIELD." = bugs.".$field->name;
     }
 
     my $dbh = Bugzilla->dbh;
@@ -299,51 +330,15 @@ sub init {
         }
     }
 
-    # First, deal with all the old hard-coded non-chart-based poop.
-    if (grep(/^assigned_to/, @fields)) {
-        push @supptables, "INNER JOIN profiles AS map_assigned_to " .
-                          "ON bugs.assigned_to = map_assigned_to.userid";
-    }
-
-    if (grep(/^reporter/, @fields)) {
-        push @supptables, "INNER JOIN profiles AS map_reporter " .
-                          "ON bugs.reporter = map_reporter.userid";
-    }
-
-    if (grep(/^qa_contact/, @fields)) {
-        push @supptables, "LEFT JOIN profiles AS map_qa_contact " .
-                          "ON bugs.qa_contact = map_qa_contact.userid";
-    }
-
-    if (grep($_ eq 'product' || $_ eq 'classification', @fields))
+    for my $field (@fields)
     {
-        push @supptables, "INNER JOIN products AS map_products " .
-                          "ON bugs.product_id = map_products.id";
+        for (@{ COLUMNS->{$field}->{joins} || [] })
+        {
+            push @supptables, $_ if lsearch(\@supptables, $_) < 0;
+        }
     }
 
-    if (grep($_ eq 'classification', @fields)) {
-        push @supptables,
-                "INNER JOIN classifications AS map_classifications " .
-                "ON map_products.classification_id = map_classifications.id";
-    }
-
-    if (grep($_ eq 'component', @fields)) {
-        push @supptables, "INNER JOIN components AS map_components " .
-                          "ON bugs.component_id = map_components.id";
-    }
-
-    ### Testopia ###
-    if (grep($_ eq 'test_cases', @fields)){
-        push(@supptables, "LEFT JOIN test_case_bugs AS tcb " .
-                           "ON bugs.bug_id = tcb.bug_id ");
-    }
-    ### end Testopia ###
-
-    if (grep($_ eq 'flagtypes.name', @fields)) {
-        push(@supptables, "LEFT JOIN flags ON flags.bug_id = bugs.bug_id AND attach_id IS NULL");
-        push(@supptables, "LEFT JOIN flagtypes ON flagtypes.id = flags.type_id");
-    }
-
+    # First, deal with all the old hard-coded non-chart-based poop.
     my $minvotes;
     if (defined $params->param('votes')) {
         my $c = trim($params->param('votes'));

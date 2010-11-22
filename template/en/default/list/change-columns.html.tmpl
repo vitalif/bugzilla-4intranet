@@ -66,14 +66,14 @@
           <select name="selected_columns" id="selected_columns"
                   size="15" multiple="multiple" onchange="updateView();">
             [% FOREACH column = collist %]
-                <option value="[% column FILTER html %]" selected="selected">
-                [% (field_descs.${column} || column) FILTER html %]
+              <option value="[% column FILTER html %]" selected="selected">
+                [% Bugzilla.request_cache.search_columns.${column}.title || column | html %]
               </option>
             [% END %]
             [% FOREACH column = masterlist %]
               [% IF lsearch(collist, column) == -1 %]
                 <option value="[% column FILTER html %]">
-                  [% (field_descs.${column} || column) FILTER html %]
+                  [% Bugzilla.request_cache.search_columns.${column}.title || column | html %]
                 </option>
               [% END %]
             [% END %]
