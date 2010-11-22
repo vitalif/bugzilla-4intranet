@@ -362,11 +362,11 @@ sub _close_standby_message {
     if ($serverpush) {
         $cgi->send_multipart_end();
         $cgi->send_multipart_start(-type                => $contenttype,
-                                    -content_disposition => $disposition);
+                                   -content_disposition => $disposition);
     }
     else {
         $cgi->send_header(-type                => $contenttype,
-                           -content_disposition => $disposition);
+                          -content_disposition => $disposition);
     }
 }
 

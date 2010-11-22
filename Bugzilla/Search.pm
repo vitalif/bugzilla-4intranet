@@ -167,7 +167,7 @@ sub COLUMNS {
         $special_sql{$col} = "map_${col}s.name";
         $columns{$col}{joins} = [
             "INNER JOIN ${col}s AS map_${col}s ON ".
-            ($col eq 'classification' ? "products" : "bugs").
+            ($col eq 'classification' ? "map_products" : "bugs").
             ".${col}_id = map_${col}s.id"
         ];
         if ($col eq 'classification')
@@ -196,7 +196,7 @@ sub COLUMNS {
                 if (!$special_sql{$subid})
                 {
                     $columns{$id.'_'.$subid} = {
-                        name  => "bugs_$id.$subid",
+                        name  => "bugs_$id.".$subfield->name,
                         title => $field->description . ' ' . $subfield->description,
                         joins => $join,
                     };
