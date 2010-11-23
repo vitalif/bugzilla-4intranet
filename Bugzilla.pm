@@ -65,9 +65,10 @@ sub _die_error
     {
         die @_;
     }
-    if (ref($_[0]) eq 'Bugzilla::Error')
+    if (ref $_[0] eq 'Bugzilla::Error')
     {
-        die($_[0]->{message});
+        # Bugzilla::Error has overloaded conversion to string
+        die @_;
     }
     else
     {
