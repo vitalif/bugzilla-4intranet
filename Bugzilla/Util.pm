@@ -68,8 +68,7 @@ use Text::TabularDisplay::Utf8;
 use Lingua::Stem::RuUTF8;
 
 sub trick_taint {
-    require Carp;
-    Carp::confess("Undef to trick_taint") unless defined $_[0];
+    die("Undef to trick_taint") unless defined $_[0];
     my $match = $_[0] =~ /^(.*)$/s;
     $_[0] = $match ? $1 : undef;
     return (defined($_[0]));

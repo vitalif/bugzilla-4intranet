@@ -246,13 +246,8 @@ foreach my $bug (@bug_objects) {
 my $product_change; # Used only for strict_isolation checks, right now.
 if (should_set('product')) {
     foreach my $b (@bug_objects) {
-        my $changed = $b->set_product(scalar $cgi->param('product'),
-            { component        => scalar $cgi->param('component'),
-              version          => scalar $cgi->param('version'),
-              target_milestone => scalar $cgi->param('target_milestone'),
-              change_confirmed => scalar $cgi->param('confirm_product_change'),
-              other_bugs => \@bug_objects,
-            });
+        $b->{_other_bugs} = \@bug_objects;
+        my $changed = $b->set_product(scalar $cgi->param('product'));
         $product_change ||= $changed;
     }
 }
@@ -350,11 +345,12 @@ foreach my $b (@bug_objects)
     }
     foreach my $field_name (@set_fields)
     {
-        if (should_set($field_name))
+        if (should_set($field_name) || $field_name =~ /^(component|target_milestone|version)$/ &&
+            should_set('product'))
         {
             my $method = $methods{$field_name};
             $method ||= "set_" . $field_name;
-            $b->$method($cgi->param($field_name));
+            $b->$method($cgi->param($field_name) || '');
         }
     }
     $b->reset_assigned_to if $cgi->param('set_default_assignee');

@@ -92,7 +92,8 @@ sub _init {
                                            && defined $param->{'values'}))
         {
             ThrowCodeError('bad_arg', { argument => 'param',
-                                        function => $class . '::new' });
+                                        function => $class . '::new',
+                                        value    => $param });
         }
 
         if (defined $param->{name}) {
@@ -445,28 +446,27 @@ sub check_required_create_fields {
     }
 }
 
-sub run_create_validators {
+sub run_create_validators
+{
     my ($class, $params) = @_;
 
     my $validators = $class->VALIDATORS;
+    my %field_values = %$params;
 
-    my %field_values;
+    local $Bugzilla::Object::CREATE_PARAMS = \%field_values;
+
     # We do the sort just to make sure that validation always
     # happens in a consistent order.
-    foreach my $field (sort keys %$params) {
-        my $value;
-        if (exists $validators->{$field}) {
+    foreach my $field (sort keys %field_values)
+    {
+        if (exists $validators->{$field})
+        {
             my $validator = $validators->{$field};
-            local $Bugzilla::Object::CREATE_PARAMS = $params;
-            $value = $class->$validator($params->{$field}, $field);
-        }
-        else {
-            $value = $params->{$field};
+            $field_values{$field} = $class->$validator($field_values{$field}, $field);
         }
         # We want people to be able to explicitly set fields to NULL,
         # and that means they can be set to undef.
-        trick_taint($value) if defined $value && !ref($value);
-        $field_values{$field} = $value;
+        trick_taint($field_values{$field}) if defined $field_values{$field} && !ref $field_values{$field};
     }
 
     Bugzilla::Hook::process('object_end_of_create_validators',
