@@ -787,14 +787,19 @@ sub get_selectable_products {
     return $self->{selectable_products};
 }
 
-sub get_selectable_classifications {
+sub get_selectable_classifications
+{
     my ($self) = @_;
-
-    if (!defined $self->{selectable_classifications}) {
+    if (!defined $self->{selectable_classifications})
+    {
+        # Return classifications with at least one visible product
+        # + all empty classifications
         my $products = $self->get_selectable_products;
-        my %class_ids = map { $_->classification_id => 1 } @$products;
-
-        $self->{selectable_classifications} = Bugzilla::Classification->new_from_list([keys %class_ids]);
+        my $class_ids = Bugzilla->dbh->selectcol_arrayref(
+            "SELECT DISTINCT c.id FROM classifications c".
+            " LEFT JOIN products p ON p.classification_id=c.id".
+            " WHERE p.id IN (".join(",", map { $_->id } @$products).") OR p.id IS NULL");
+        $self->{selectable_classifications} = Bugzilla::Classification->new_from_list($class_ids);
     }
     return $self->{selectable_classifications};
 }
