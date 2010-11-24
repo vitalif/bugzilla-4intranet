@@ -30,4 +30,8 @@
   Для проверки значений конкретных полей пользуйтесь изменением запроса поиска,
   на основании которого создан предикат.
   Нажмите «Назад», установите флажок «Запрещать изменения всех полей» и пересохраните предикат.
+[% ELSIF error == "invalid_field_value" %]
+  The value <b>"[% value_obj.name | html %]"</b> of field <b>[% value_obj.field.description | html %]</b>
+  is unavailable for the selected value "<b>[% controller | html %]</b>" of
+  the controlling field <b>[% value_obj.field.value_field.description | html %]</b>.
 [% END %]

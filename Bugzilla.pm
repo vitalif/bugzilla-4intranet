@@ -682,6 +682,7 @@ sub get_field
 {
     my $class = shift;
     my ($id_or_name, $throw_error) = @_;
+    return $id_or_name if ref $id_or_name;
     my $c = $class->cache_fields;
     $c = $id_or_name =~ /^\d+$/so ? $c->{id}->{$id_or_name} : $c->{name}->{$id_or_name};
     if (!$c && $throw_error)

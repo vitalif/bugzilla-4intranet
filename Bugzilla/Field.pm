@@ -546,12 +546,14 @@ sub visibility_field_id
 sub visibility_values
 {
     my $self = shift;
+    return undef if !$self->visibility_field_id;
     my $f;
     if ($self->visibility_field && !($f = $self->{visibility_values}))
     {
-        $f = Bugzilla->dbh->selectcol_arrayref(
-            "SELECT visibility_value_id FROM fieldvaluecontrol WHERE field_id=? AND value_id=0",
-            undef, $self->id);
+        $f = [ keys %{Bugzilla->fieldvaluecontrol_hash
+            ->{$self->visibility_field_id}
+            ->{fields}
+            ->{$self->id} || {} } ];
         if (@$f)
         {
             my $type = Bugzilla::Field::Choice->type($self->visibility_field);
@@ -565,22 +567,26 @@ sub visibility_values
 sub has_visibility_value
 {
     my $self = shift;
+    return 1 if !$self->visibility_field_id;
     my ($value) = @_;
-    ref $value and $value = $value->id;
-    my %f = map { $_->id => 1 } @{$self->visibility_values};
-    return $f{$value};
+    $value = $value->id if ref $value;
+    my $hash = Bugzilla->fieldvaluecontrol_hash
+        ->{$self->visibility_field_id}
+        ->{fields}
+        ->{$self->id};
+    return !$hash || !%$hash || $hash->{$value};
 }
 
 # Check visibility of field for a bug
 sub check_visibility
 {
     my $self = shift;
-    my ($bug) = @_;
-    my $field = $self->visibility_field;
-    $bug && $field or return 1;
-    $field = $bug->{$field->name};
-    my %f = map { $_->name => 1 } @{$self->visibility_values};
-    return $f{$field};
+    my $bug = shift || return 1;
+    my $vf = $self->visibility_field || return 1;
+    my $m = $vf->name;
+    $m = blessed $bug ? $bug->$m : $bug->{$m};
+    my $value = Bugzilla::Field::Choice->type($vf)->new({ name => $m }) || return 1;
+    return $self->has_visibility_value($value);
 }
 
 =pod
