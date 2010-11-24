@@ -389,6 +389,7 @@ sub visibility_values
 sub has_visibility_value
 {
     my $self = shift;
+    return 1 if $self->name eq '---';
     my ($value) = @_;
     return 1 if !$self->field->value_field_id;
     $value = $value->id if ref $value;
@@ -404,6 +405,7 @@ sub has_visibility_value
 sub check_visibility
 {
     my $self = shift;
+    return 1 if $self->name eq '---';
     my $bug = shift || return 1;
     my $vf = $self->field->value_field || return 1;
     my $m = $vf->name;

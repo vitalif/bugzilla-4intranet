@@ -500,17 +500,17 @@ sub restricted_legal_values
 {
     my $self = shift;
     my ($controller_value) = @_;
+    $controller_value = $controller_value->id if ref $controller_value;
     return $self->legal_values unless $controller_value && $self->value_field_id;
-    my $cid = $controller_value->id;
-    if (!$self->{restricted_legal_values}->{$cid})
+    if (!$self->{restricted_legal_values}->{$controller_value})
     {
         my $hash = Bugzilla->fieldvaluecontrol_hash->{$self->value_field_id}->{values}->{$self->id};
-        $self->{restricted_legal_values}->{$cid} = [
-            grep { $_->name eq '---' || !exists $hash->{$_->id} || $hash->{$_->id}->{$cid} }
+        $self->{restricted_legal_values}->{$controller_value} = [
+            grep { $_->name eq '---' || !exists $hash->{$_->id} || $hash->{$_->id}->{$controller_value} }
             @{$self->legal_values}
         ];
     }
-    return $self->{restricted_legal_values}->{$cid};
+    return $self->{restricted_legal_values}->{$controller_value};
 }
 
 =pod

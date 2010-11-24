@@ -56,6 +56,7 @@ use URI;
 use URI::QueryParam;
 use Date::Format qw(time2str);
 use POSIX qw(floor);
+use Scalar::Util qw(blessed);
 
 use base qw(Bugzilla::Object Exporter);
 @Bugzilla::Bug::EXPORT = qw(
@@ -591,9 +592,14 @@ sub create {
     return $bug;
 }
 
-sub run_create_validators {
+my $dependent_validators;
+sub run_create_validators
+{
     my $class  = shift;
     my $params = $class->SUPER::run_create_validators(@_);
+
+    # Check dependent field values
+    check_dependent_fields($dependent_validators, $params);
 
     my $product = $params->{product};
     $params->{product_id} = $product->id;
@@ -662,33 +668,144 @@ sub run_create_validators {
     return $params;
 }
 
+# Check values of the dependent fields
+sub check_dependent_fields
+{
+    my ($validators, $params) = @_;
+    my $incorrect_fields = {};
+    foreach my $field_name (keys %{$validators || {}})
+    {
+        my $value = $validators->{$field_name};
+        my $field = Bugzilla->get_field($field_name);
+        # Check field visibility
+        if (!$field->check_visibility($params))
+        {
+            # Field is invisible and must be cleared
+            if ($field->type == FIELD_TYPE_SINGLE_SELECT)
+            {
+                $params->{$field_name} = '---';
+            }
+            elsif ($field->type == FIELD_TYPE_MULTI_SELECT)
+            {
+                $params->{$field_name} = [];
+            }
+            elsif ($field->type == FIELD_TYPE_BUG_ID)
+            {
+                $params->{$field_name} = undef;
+            }
+            else
+            {
+                $params->{$field_name} = '';
+            }
+        }
+        # Check field value visibility for select fields
+        if (my $f = $field->value_field)
+        {
+            my $n = $f->name;
+            $value = [ $value ] if !ref $value || blessed $value;
+            foreach (@$value)
+            {
+                if (!ref $_ || !$_->check_visibility($params))
+                {
+                    # Field value is incorrect for the value of controlling field and must be modified
+                    if (!$incorrect_fields->{$field_name})
+                    {
+                        my $controller = blessed $params ? $params->$n : $params->{$n};
+                        if (!blessed $controller)
+                        {
+                            $controller = Bugzilla::Field::Choice->type($f)->new({ name => $controller });
+                        }
+                        $incorrect_fields->{$field_name} = {
+                            field => $field,
+                            options => [ map { $_->name } @{ $field->restricted_legal_values($controller) } ],
+                            values => [],
+                            value_names => [],
+                            controller => $controller,
+                        };
+                    }
+                    push @{$incorrect_fields->{$field_name}->{values}}, $_;
+                    push @{$incorrect_fields->{$field_name}->{value_names}}, ref $_ ? $_->name : $_;
+                }
+            }
+        }
+    }
+    # When moving bugs between products, verify groups
+    my $verify_bug_groups = undef;
+    if (blessed $params && $params->{product_changed})
+    {
+        # FIXME do not refer to cgi here?
+        if (!Bugzilla->cgi->param('verify_bug_groups') &&
+            Bugzilla->cgi->param('id'))
+        {
+            # Display group verification message only for single bug changes
+            # Get the ID of groups which are no longer valid in the new product.
+            my $gids = Bugzilla->dbh->selectcol_arrayref(
+                'SELECT bgm.group_id
+                   FROM bug_group_map AS bgm
+                  WHERE bgm.bug_id=?
+                    AND bgm.group_id NOT IN
+                        (SELECT gcm.group_id
+                           FROM group_control_map AS gcm
+                           WHERE gcm.product_id = ?
+                                 AND ( (gcm.membercontrol != ?
+                                        AND gcm.group_id IN ('
+                                        . Bugzilla->user->groups_as_string . '))
+                                       OR gcm.othercontrol != ?) )',
+                undef, $params->id, $params->product_obj->id, CONTROLMAPNA, CONTROLMAPNA);
+            $verify_bug_groups = Bugzilla::Group->new_from_list($gids);
+        }
+        # Remove groups that aren't valid in the new product. This will also
+        # have the side effect of removing the bug from groups that aren't
+        # active anymore.
+        #
+        # We copy this array because the original array is modified while we're
+        # working, and that confuses "foreach".
+        my @current_groups = @{$params->groups_in};
+        foreach my $group (@current_groups) {
+            if (!grep($group->id == $_->id, @{$params->product_obj->groups_valid})) {
+                $params->remove_group($group);
+            }
+        }
+        # Make sure the bug is in all the mandatory groups for the new product.
+        foreach my $group (@{$params->product_obj->groups_mandatory_for(Bugzilla->user)}) {
+            $params->add_group($group);
+        }
+    }
+
+    # If we're not in browser, throw an error
+    if (Bugzilla->usage_mode != USAGE_MODE_BROWSER && %$incorrect_fields)
+    {
+        ThrowUserError('incorrect_field_values', {
+            incorrect_fields => [ values %$incorrect_fields ],
+        });
+    }
+
+    if (Bugzilla->usage_mode == USAGE_MODE_BROWSER && (%$incorrect_fields || $verify_bug_groups))
+    {
+        Bugzilla->template->process('bug/process/verify-field-values.html.tmpl', {
+            product => $verify_bug_groups && $params->product_obj,
+            old_groups => $verify_bug_groups,
+            verify_bug_groups => $verify_bug_groups && 1,
+            incorrect_fields => [ values %$incorrect_fields ],
+            incorrect_field_descs => [ map { $_->{field}->description } values %$incorrect_fields ],
+            exclude_params_re => '^(' . join('|', keys %$incorrect_fields) . ')$',
+        });
+        Bugzilla->dbh->rollback;
+        exit;
+    }
+
+    # Clear $validators
+    $_[0] = undef;
+}
+
 sub update
 {
     my $self = shift;
 
     # First check dependent field values
-    if ($self->{_check_select_fields})
+    if ($self->{dependent_validators})
     {
-        my $object;
-        my $m;
-        for my $field (keys %{$self->{_check_select_fields}})
-        {
-            $object = $self->{_check_select_fields}->{$field};
-            if (!$object->field->check_visibility($self))
-            {
-                # FIXME is this correct?
-                $self->{$object->field->name} = '---';
-            }
-            if (!$object->check_visibility($self))
-            {
-                $m = $object->field->value_field->name;
-                ThrowUserError('invalid_field_value', {
-                    value_obj  => $object,
-                    controller => $self->$m,
-                });
-            }
-        }
-        delete $self->{_check_select_fields};
+        check_dependent_fields($self->{dependent_validators}, $self);
     }
 
     my $dbh = Bugzilla->dbh;
@@ -1319,6 +1436,11 @@ sub _check_component {
     $name || ThrowUserError("require_component");
     ($product = $invocant->product_obj) if ref $invocant;
     my $obj = Bugzilla::Component->check({ product => $product, name => $name });
+    if (!$obj)
+    {
+        $invocant->dependent_validators->{component} = $name;
+        return '';
+    }
     return $obj;
 }
 
@@ -1778,14 +1900,24 @@ sub _check_strict_isolation_for_user {
     }
 }
 
-sub _check_target_milestone {
+sub _check_target_milestone
+{
     my ($invocant, $target, $product) = @_;
     $product = $invocant->product_obj if ref $invocant;
-
     $target = trim($target);
-    $target = $product->default_milestone if !defined $target;
-    my $object = Bugzilla::Milestone->check(
-        { product => $product, name => $target });
+    # Reporters can move bugs between products but not set the TM.
+    # So reset it to the default value.
+    if (!defined $target || !Bugzilla->params->{usetargetmilestone} ||
+        blessed $invocant && !$invocant->check_can_change_field('target_milestone', 0, 1))
+    {
+        $target = $product->default_milestone;
+    }
+    my $object = Bugzilla::Milestone->new({ product => $product, name => $target });
+    if (!$object)
+    {
+        $invocant->dependent_validators->{target_milestone} = $target;
+        return '';
+    }
     return $object->name;
 }
 
@@ -1802,12 +1934,17 @@ sub _check_time {
     return $time;
 }
 
-sub _check_version {
+sub _check_version
+{
     my ($invocant, $version, $product) = @_;
     $version = trim($version);
     ($product = $invocant->product_obj) if ref $invocant;
-    my $object =
-        Bugzilla::Version->check({ product => $product, name => $version });
+    my $object = Bugzilla::Version->new({ product => $product, name => $version });
+    if (!$object)
+    {
+        $invocant->dependent_validators->{version} = $version;
+        return '';
+    }
     return $object->name;
 }
 
@@ -1879,6 +2016,15 @@ sub _check_multi_select_field {
     return \@checked_values;
 }
 
+sub dependent_validators
+{
+    my $invocant = shift;
+    my $tmp = ref $invocant
+        ? ($invocant->{dependent_validators} ||= {})
+        : ($dependent_validators ||= {});
+    return $tmp;
+}
+
 sub _check_select_field
 {
     my ($invocant, $value, $field) = @_;
@@ -1888,59 +2034,30 @@ sub _check_select_field
     # Check dependent field values
     if ($field->visibility_field_id || $field->value_field_id)
     {
-        if (ref $invocant)
+        my $tmp = $invocant->dependent_validators;
+        # Remember the call and perform check later
+        if ($field->type == FIELD_TYPE_MULTI_SELECT)
         {
-            # Updating - remember the call and perform check later,
-            # when all fields will be set
-            if ($field->type == FIELD_TYPE_MULTI_SELECT)
-            {
-                push @{$invocant->{_check_select_fields}->{$field->name}}, $object;
-            }
-            else
-            {
-                $invocant->{_check_select_fields}->{$field->name} = $object;
-            }
+            push @{$tmp->{$field->name}}, $object;
         }
         else
         {
-            # Creating - all values are already in $Bugzilla::Object::CREATE_PARAMS,
-            # so we can check the value against the value of controlling field
-            my $params = $Bugzilla::Object::CREATE_PARAMS;
-            # Check field visibility
-            if (my $f = $field->visibility_field)
-            {
-                # Re-run validator for controlling field
-                my $vv = VALIDATORS->{$f->name};
-                $params->{$f->name} = $invocant->$vv($params->{$f->name}, $f->name);
-                if (!$field->check_visibility($params))
-                {
-                    # Field is invisible and must be cleared
-                    return '---';
-                }
-            }
-            # Check field value visibility
-            if (my $f = $field->value_field)
-            {
-                # Re-run validator for controlling field
-                my $vv = VALIDATORS->{$f->name};
-                $params->{$f->name} = $invocant->$vv($params->{$f->name}, $f->name);
-                if (!$object->check_visibility($params))
-                {
-                    # Field value is incorrect for the value of controlling field and must be modified
-                    ThrowUserError('invalid_field_value', {
-                        value_obj  => $object,
-                        controller => $params->{$f->name},
-                    });
-                }
-            }
+            $tmp->{$field->name} = $object;
         }
     }
     return $object->name;
 }
 
-sub _check_bugid_field {
+sub _check_bugid_field
+{
     my ($invocant, $value, $field) = @_;
     return undef if !$value;
+    # Check if the field is not visible anymore
+    # FIXME probably move it somewhere
+    if (Bugzilla->get_field($field)->visibility_field_id)
+    {
+        $invocant->dependent_validators->{$field} = undef;
+    }
     # If there is no change, do not check the bug id, as it may be invisible for current user
     return $invocant->{$field} if ref $invocant && $invocant->{$field} eq $value;
     return $invocant->check($value, $field)->id;
@@ -2125,13 +2242,15 @@ sub set_flags {
 sub set_op_sys         { $_[0]->set('op_sys',        $_[1]); }
 sub set_platform       { $_[0]->set('rep_platform',  $_[1]); }
 sub set_priority       { $_[0]->set('priority',      $_[1]); }
-sub set_product {
+
+sub set_product
+{
     my ($self, $name, $params) = @_;
     my $old_product = $self->product_obj;
     my $product = $self->_check_product($name);
 
-    my $product_changed = 0;
-    if ($old_product->id != $product->id) {
+    if ($old_product->id != $product->id)
+    {
         $self->{product_id}  = $product->id;
         $self->{product}     = $product->name;
         $self->{product_obj} = $product;
@@ -2139,143 +2258,10 @@ sub set_product {
         $self->{_old_product_name} = $old_product->name;
         # Delete fields that depend upon the old Product value.
         delete $self->{choices};
-        $product_changed = 1;
+        $self->{product_changed} = 1;
     }
 
-    $params ||= {};
-    my $comp_name = $params->{component} || $self->component;
-    my $vers_name = $params->{version}   || $self->version;
-    my $tm_name   = $params->{target_milestone};
-    # This way, if usetargetmilestone is off and we've changed products,
-    # set_target_milestone will reset our target_milestone to
-    # $product->default_milestone. But if we haven't changed products,
-    # we don't reset anything.
-    if (!defined $tm_name
-        && (Bugzilla->params->{'usetargetmilestone'} || !$product_changed))
-    {
-        $tm_name = $self->target_milestone;
-    }
-
-    if ($product_changed && Bugzilla->usage_mode == USAGE_MODE_BROWSER) {
-        # Try to set each value with the new product.
-        # Have to set error_mode because Throw*Error calls exit() otherwise.
-        my $old_error_mode = Bugzilla->error_mode;
-        Bugzilla->error_mode(ERROR_MODE_DIE);
-        my $component_ok = eval { $self->set_component($comp_name);      1; };
-        my $version_ok   = eval { $self->set_version($vers_name);        1; };
-        my $milestone_ok = 1;
-        # Reporters can move bugs between products but not set the TM.
-        if ($self->check_can_change_field('target_milestone', 0, 1)) {
-            $milestone_ok = eval { $self->set_target_milestone($tm_name); 1; };
-        }
-        else {
-            # Have to set this directly to bypass the validators.
-            $self->{target_milestone} = $product->default_milestone;
-        }
-        # If there were any errors thrown, make sure we don't mess up any
-        # other part of Bugzilla that checks $@.
-        undef $@;
-        Bugzilla->error_mode($old_error_mode);
-
-        my $verified = $params->{change_confirmed};
-        my %vars;
-        if (!$verified || !$component_ok || !$version_ok || !$milestone_ok) {
-            $vars{defaults} = {
-                # Note that because of the eval { set } above, these are
-                # already set correctly if they're valid, otherwise they're
-                # set to some invalid value which the template will ignore.
-                component => $self->component,
-                version   => $self->version,
-                milestone  => $milestone_ok ? $self->target_milestone : $product->default_milestone
-            };
-            $vars{component_ok} = $component_ok;
-            $vars{version_ok}   = $version_ok;
-            $vars{milestone_ok} = $milestone_ok;
-            $vars{components} = [map { $_->name } @{$product->active_components}];
-            $vars{milestones} = [map { $_->name } @{$product->milestones}];
-            $vars{versions}   = [map { $_->name } @{$product->versions}];
-        }
-
-        if (!$verified)
-        {
-            $vars{verify_bug_groups} = 1;
-            my $dbh = Bugzilla->dbh;
-            my @idlist = ($self->id);
-            push(@idlist, map {$_->id} @{ $params->{other_bugs} })
-                if $params->{other_bugs};
-            # Get the ID of groups which are no longer valid in the new product.
-            my $gids = $dbh->selectcol_arrayref(
-                'SELECT bgm.group_id
-                   FROM bug_group_map AS bgm
-                  WHERE bgm.bug_id IN (' . join(',', ('?') x @idlist) . ')
-                    AND bgm.group_id NOT IN
-                        (SELECT gcm.group_id
-                           FROM group_control_map AS gcm
-                           WHERE gcm.product_id = ?
-                                 AND ( (gcm.membercontrol != ?
-                                        AND gcm.group_id IN ('
-                                        . Bugzilla->user->groups_as_string . '))
-                                       OR gcm.othercontrol != ?) )',
-                undef, (@idlist, $product->id, CONTROLMAPNA, CONTROLMAPNA));
-            $vars{'old_groups'} = Bugzilla::Group->new_from_list($gids);
-        }
-
-        if (%vars)
-        {
-            $vars{product} = $product;
-            $vars{bug} = $self;
-            # Logic moved away from template
-            my @ex;
-            $version_ok || push @ex, 'version';
-            $component_ok || push @ex, 'component';
-            $milestone_ok || push @ex, 'target_milestone';
-            my $fd = template_var('field_descs');
-            $vars{incorrect_fields} = [ map { $fd->{$_} } @ex ];
-            $vars{verify_bug_groups} && push @ex, 'bit-\d+';
-            $vars{exclude_params_re} = '^' . join('|', @ex) . '$';
-            # Output "Verify new product details" page
-            my $template = Bugzilla->template;
-            $template->process("bug/process/verify-new-product.html.tmpl",
-                \%vars) || ThrowTemplateError($template->error());
-            exit;
-        }
-    }
-    else {
-        # When we're not in the browser (or we didn't change the product), we
-        # just die if any of these are invalid.
-        $self->set_component($comp_name);
-        $self->set_version($vers_name);
-        if ($product_changed && !$self->check_can_change_field('target_milestone', 0, 1)) {
-            # Have to set this directly to bypass the validators.
-            $self->{target_milestone} = $product->default_milestone;
-        }
-        else {
-            $self->set_target_milestone($tm_name);
-        }
-    }
-
-    if ($product_changed) {
-        # Remove groups that aren't valid in the new product. This will also
-        # have the side effect of removing the bug from groups that aren't
-        # active anymore.
-        #
-        # We copy this array because the original array is modified while we're
-        # working, and that confuses "foreach".
-        my @current_groups = @{$self->groups_in};
-        foreach my $group (@current_groups) {
-            if (!grep($group->id == $_->id, @{$product->groups_valid})) {
-                $self->remove_group($group);
-            }
-        }
-
-        # Make sure the bug is in all the mandatory groups for the new product.
-        foreach my $group (@{$product->groups_mandatory_for(Bugzilla->user)}) {
-            $self->add_group($group);
-        }
-    }
-
-    # XXX This is temporary until all of process_bug uses update();
-    return $product_changed;
+    return $self->{product_changed};
 }
 
 sub set_qa_contact {

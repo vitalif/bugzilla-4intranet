@@ -1172,6 +1172,9 @@ document.changeform = document.[% cfname %];
   <td>
     [% IF bug.check_can_change_field(selname, 0, 1) 
           AND bug.choices.${selname}.size > 1 %]
+      <script language="JavaScript">
+        show_fields['[% selname %]'] = [% json(Bugzilla.get_field(selname).json_visibility) %];
+      </script>
       <select id="[% selname %]" name="[% selname %]">
         [% FOREACH x = bug.choices.${selname} %]
           <option value="[% x.name FILTER html %]"
@@ -1182,6 +1185,7 @@ document.changeform = document.[% cfname %];
       </select>
     [% ELSE %]
       [% bug.${selname} FILTER html %]
+      <input type="hidden" name="[% selname | html %]" value="[% bug.$selname | html %]" />
     [% END %]
   </td>
 [% END %]
