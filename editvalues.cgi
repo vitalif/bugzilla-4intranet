@@ -117,10 +117,10 @@ if ($action eq 'add') {
 if ($action eq 'new') {
     check_token_data($token, 'add_field_value');
 
-    my $created_value = Bugzilla::Field::Choice->type($field)->create({
-        value   => scalar $cgi->param('value'), 
-        sortkey => scalar $cgi->param('sortkey'),
-        is_open => scalar $cgi->param('is_open'),
+    my $type = Bugzilla::Field::Choice->type($field);
+    # Some types have additional parameters inside REQUIRED_CREATE_FIELDS
+    my $created_value = $type->create({
+        map { $_ => scalar $cgi->param($_) } ($type->DB_COLUMNS, $type->REQUIRED_CREATE_FIELDS)
     });
     $created_value->set_visibility_values([ $cgi->param('visibility_value_id') ]);
 

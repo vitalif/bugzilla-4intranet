@@ -802,7 +802,18 @@ sub remove_from_db {
 
     $self->set_visibility_values(undef);
 
+    delete Bugzilla->request_cache->{fields};
+
     $dbh->bz_commit_transaction();
+}
+
+# Overridden update() method - flushes field cache
+sub update
+{
+    my $self = shift;
+    my ($changes, $old_self) = $self->SUPER::update(@_);
+    delete Bugzilla->request_cache->{fields};
+    return wantarray ? ($changes, $old_self) : $changes;
 }
 
 =pod
@@ -873,7 +884,12 @@ sub create {
     }
 
     # Call real constructor
-    return $class->SUPER::create($params);
+    my $self = $class->SUPER::create($params);
+
+    # Flush field cache
+    delete Bugzilla->request_cache->{fields};
+
+    return $self;
 }
 
 sub run_create_validators {
