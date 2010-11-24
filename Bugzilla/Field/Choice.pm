@@ -390,13 +390,26 @@ sub has_visibility_value
 {
     my $self = shift;
     my ($value) = @_;
-    ref $value and $value = $value->id;
-    return Bugzilla->fieldvaluecontrol_hash
+    return 1 if !$self->field->value_field_id;
+    $value = $value->id if ref $value;
+    my $hash = Bugzilla->fieldvaluecontrol_hash
         ->{$self->field->value_field_id}
         ->{values}
         ->{$self->field->id}
-        ->{$self->id}
-        ->{$value};
+        ->{$self->id};
+    return !$hash || !%$hash || $hash->{$value};
+}
+
+# Check visibility of field value for a bug
+sub check_visibility
+{
+    my $self = shift;
+    my $bug = shift || return 1;
+    my $vf = $self->field->value_field || return 1;
+    my $m = $vf->name;
+    $m = blessed $bug ? $bug->$m : $bug->{$m};
+    my $value = Bugzilla::Field::Choice->type($vf)->new({ name => $m }) || return 1;
+    return $self->has_visibility_value($value);
 }
 
 ############

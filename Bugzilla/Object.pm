@@ -457,6 +457,7 @@ sub run_create_validators {
         my $value;
         if (exists $validators->{$field}) {
             my $validator = $validators->{$field};
+            local $Bugzilla::Object::CREATE_PARAMS = $params;
             $value = $class->$validator($params->{$field}, $field);
         }
         else {

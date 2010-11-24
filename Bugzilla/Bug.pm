@@ -662,8 +662,34 @@ sub run_create_validators {
     return $params;
 }
 
-sub update {
+sub update
+{
     my $self = shift;
+
+    # First check dependent field values
+    if ($self->{_check_select_fields})
+    {
+        my $object;
+        my $m;
+        for my $field (keys %{$self->{_check_select_fields}})
+        {
+            $object = $self->{_check_select_fields}->{$field};
+            if (!$object->field->check_visibility($self))
+            {
+                # FIXME is this correct?
+                $self->{$object->field->name} = '---';
+            }
+            if (!$object->check_visibility($self))
+            {
+                $m = $object->field->value_field->name;
+                ThrowUserError('invalid_field_value', {
+                    value_obj  => $object,
+                    controller => $self->$m,
+                });
+            }
+        }
+        delete $self->{_check_select_fields};
+    }
 
     my $dbh = Bugzilla->dbh;
     my $user = Bugzilla->user;
@@ -1853,9 +1879,62 @@ sub _check_multi_select_field {
     return \@checked_values;
 }
 
-sub _check_select_field {
+sub _check_select_field
+{
     my ($invocant, $value, $field) = @_;
+    $field = Bugzilla->get_field($field);
+    # Check if there is such a value at all
     my $object = Bugzilla::Field::Choice->type($field)->check($value);
+    # Check dependent field values
+    if ($field->visibility_field_id || $field->value_field_id)
+    {
+        if (ref $invocant)
+        {
+            # Updating - remember the call and perform check later,
+            # when all fields will be set
+            if ($field->type == FIELD_TYPE_MULTI_SELECT)
+            {
+                push @{$invocant->{_check_select_fields}->{$field->name}}, $object;
+            }
+            else
+            {
+                $invocant->{_check_select_fields}->{$field->name} = $object;
+            }
+        }
+        else
+        {
+            # Creating - all values are already in $Bugzilla::Object::CREATE_PARAMS,
+            # so we can check the value against the value of controlling field
+            my $params = $Bugzilla::Object::CREATE_PARAMS;
+            # Check field visibility
+            if (my $f = $field->visibility_field)
+            {
+                # Re-run validator for controlling field
+                my $vv = VALIDATORS->{$f->name};
+                $params->{$f->name} = $invocant->$vv($params->{$f->name}, $f->name);
+                if (!$field->check_visibility($params))
+                {
+                    # Field is invisible and must be cleared
+                    return '---';
+                }
+            }
+            # Check field value visibility
+            if (my $f = $field->value_field)
+            {
+                # Re-run validator for controlling field
+                my $vv = VALIDATORS->{$f->name};
+                $params->{$f->name} = $invocant->$vv($params->{$f->name}, $f->name);
+                if (!$object->check_visibility($params))
+                {
+                    # Field value is incorrect for the value of controlling field and must be modified
+                    ThrowUserError('invalid_field_value', {
+                        value_obj  => $object,
+                        controller => $params->{$f->name},
+                    });
+                }
+            }
+        }
+    }
     return $object->name;
 }
 
