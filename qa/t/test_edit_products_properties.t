@@ -208,8 +208,12 @@ $sel->click_ok("submit");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_is("Updating Product 'Kill me nicely'");
 $sel->is_text_present_ok("Updated number of votes needed to confirm a bug");
+$sel->type_ok("quicksearch_top", $bug1_id);
+$sel->click_ok("find_top");
+$sel->wait_for_page_to_load_ok(WAIT_TIME);
+$sel->title_like(qr/^Bug $bug1_id /);
 $text = trim($sel->get_text("bugzilla-body"));
-ok($text =~ /Bug $bug1_id confirmed by number of votes/, "Bug $bug1_id is confirmed by popular votes");
+ok($text =~ /This bug has been confirmed by popular vote/, "Bug $bug1_id is confirmed by popular votes");
 
 # Edit the bug.
 
