@@ -64,39 +64,55 @@ function move_deselect() {
     updateView();
 }
 
-function move_up() {
+function move_up()
+{
     var sel_select = document.getElementById("selected_columns");
-    var last = sel_select.options[0];
-    var dummy = new Option("", "", false, false);
-    for (var i = 1; i<sel_select.options.length; i++) {
+    if (sel_select.options.length < 2)
+        return;
+    var newopt = [ sel_select.options[0] ];
+    for (var i = 1; i < sel_select.options.length; i++)
+    {
         var opt = sel_select.options[i];
-        if (opt.selected) {
-            sel_select.options[i] = dummy;
-            sel_select.options[i-1] = opt;
-            sel_select.options[i] = last;
+        if (opt.selected)
+        {
+            newopt.push(newopt[i-1]);
+            newopt[i-1] = opt;
         }
-        else{
-            last = opt;
-        }
+        else
+            newopt.push(opt);
     }
+    for (var i in newopt)
+        sel_select.options[i] = newopt[i];
     updateView();
 }
 
-function move_down() {
+function move_down()
+{
     var sel_select = document.getElementById("selected_columns");
-    var last = sel_select.options[sel_select.options.length-1];
-    var dummy = new Option("", "", false, false);
-    for (var i = sel_select.options.length-2; i >= 0; i--) {
+    if (sel_select.options.length < 2)
+        return;
+    var newopt = [ sel_select.options[sel_select.options.length-1] ];
+    var sel = [ sel_select.options[sel_select.options.length-1].selected ];
+    for (var i = sel_select.options.length-2; i >= 0; i--)
+    {
         var opt = sel_select.options[i];
-        if (opt.selected) {
-            sel_select.options[i] = dummy;
-            sel_select.options[i + 1] = opt;
-            sel_select.options[i] = last;
+        if (opt.selected)
+        {
+            newopt.unshift(newopt[0]);
+            newopt[1] = opt;
+            sel.unshift(sel[0]);
+            sel[1] = opt.selected;
         }
-        else{
-            last = opt;
+        else
+        {
+            newopt.unshift(opt);
+            sel.unshift(opt.selected);
         }
     }
+    for (var i in newopt)
+        sel_select.options[i] = newopt[i];
+    for (var i in sel)
+        sel_select.options[i].selected = sel[i];
     updateView();
 }
 
