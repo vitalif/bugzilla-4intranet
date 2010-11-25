@@ -37,6 +37,7 @@ use Bugzilla::Series;
 
 use constant DB_TABLE => 'components';
 use constant FIELD_NAME => 'component';
+use constant NAME_FIELD => 'name';
 
 use constant LIST_ORDER => 'product_id, name';
 
