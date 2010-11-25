@@ -159,7 +159,7 @@ sub COLUMNS {
         $special_sql{$col} = $sql;
         $columns{"${col}_realname"}->{name} = "map_${col}.realname";
         $columns{$col}{joins} = $columns{"${col}_realname"}{joins} =
-            [ "INNER JOIN profiles AS map_$col ON bugs.$col = map_$col.userid" ];
+            [ "LEFT JOIN profiles AS map_$col ON bugs.$col = map_$col.userid" ];
     }
 
     foreach my $col (@id_fields)
@@ -313,7 +313,7 @@ sub init {
 
     foreach my $field (@select_fields)
     {
-        next if $field eq 'product' || $field eq 'component' || $field eq 'classification';
+        next if $field->name eq 'product' || $field->name eq 'component' || $field->name eq 'classification';
         my $type = Bugzilla::Field::Choice->type($field);
         my $name = $type->DB_TABLE;
         $special_order{$field->name} = [ map { "$name.$_" } split /\s*,\s*/, $type->LIST_ORDER ];
@@ -1508,8 +1508,11 @@ sub _qa_contact_nonchanged {
     my ($supptables, $f) =
         @func_args{qw(supptables f)};
 
-    push(@$supptables, "LEFT JOIN profiles AS map_qa_contact " .
-                       "ON bugs.qa_contact = map_qa_contact.userid");
+    if (!grep { /map_qa_contact/ } @$supptables)
+    {
+        push(@$supptables, "LEFT JOIN profiles AS map_qa_contact " .
+                           "ON bugs.qa_contact = map_qa_contact.userid");
+    }
     $$f = "COALESCE(map_$$f.login_name,'')";
 }
 
@@ -2094,8 +2097,11 @@ sub _classification_nonchanged {
         @func_args{qw(chartid v ff f funcsbykey t supptables term)};
 
     # Generate the restriction condition
-    push @$supptables, "INNER JOIN products AS map_products " .
-                      "ON bugs.product_id = map_products.id";
+    if (!grep { /map_product/ } @$supptables)
+    {
+        push @$supptables, "INNER JOIN products AS map_products " .
+                           "ON bugs.product_id = map_products.id";
+    }
     $$f = $$ff = "classifications.name";
     $$funcsbykey{",$$t"}($self, %func_args);
     $$term = build_subselect("map_products.classification_id",
