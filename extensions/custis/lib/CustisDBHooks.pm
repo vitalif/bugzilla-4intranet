@@ -354,6 +354,21 @@ sub install_update_db
         $dbh->do('INSERT INTO setting_value (name, value, sortindex) VALUES (\'silent_affects_flags\', \'send\', 10), (\'silent_affects_flags\', \'do_not_send\', 20)');
     }
 
+    # Группа admin_index для доступа к admin.cgi
+    if (!$dbh->selectrow_array("SELECT name FROM groups WHERE name='admin_index'"))
+    {
+        $dbh->do(
+            "INSERT INTO groups (name, description, isbuggroup, isactive)".
+            " VALUES ('admin_index', 'Users who can enter Administration area', 0, 1)"
+        );
+        $dbh->do(
+            "INSERT INTO group_group_map (member_id, grantor_id, grant_type)".
+            " SELECT g.id, ai.id, 0 FROM groups ai, groups g WHERE ai.name='admin_index'".
+            " AND g.name IN ('".join("','", qw(admin tweakparams editusers editclassifications
+            editcomponents creategroups editfields editkeywords bz_canusewhines bz_editcheckers))."')"
+        );
+    }
+
     return 1;
 }
 
