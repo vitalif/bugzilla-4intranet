@@ -1435,7 +1435,7 @@ sub _check_component {
     $name = trim($name);
     $name || ThrowUserError("require_component");
     ($product = $invocant->product_obj) if ref $invocant;
-    my $obj = Bugzilla::Component->check({ product => $product, name => $name });
+    my $obj = Bugzilla::Component->new({ product => $product, name => $name });
     if (!$obj)
     {
         $invocant->dependent_validators->{component} = $name;
@@ -2168,7 +2168,7 @@ sub set_component  {
     my ($self, $name) = @_;
     my $old_comp  = $self->component_obj;
     my $component = $self->_check_component($name);
-    if ($old_comp->id != $component->id) {
+    if ($component && $old_comp->id != $component->id) {
         $self->{component_id}  = $component->id;
         $self->{component}     = $component->name;
         $self->{component_obj} = $component;

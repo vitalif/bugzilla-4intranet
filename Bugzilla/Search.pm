@@ -199,6 +199,7 @@ sub COLUMNS {
                         name  => "bugs_$id.".$subfield->name,
                         title => $field->description . ' ' . $subfield->description,
                         joins => $join,
+                        subid => $subid,
                     };
                 }
             }

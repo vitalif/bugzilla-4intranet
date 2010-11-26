@@ -344,6 +344,16 @@ sub install_update_db
         }
     }
 
+    # Bug 72510 - Настройка действия/недействия Silent на почту о флагах
+    if (!$dbh->selectrow_array('SELECT name FROM setting WHERE name=\'silent_affects_flags\' LIMIT 1'))
+    {
+        $dbh->do('INSERT INTO setting (name, default_value, is_enabled) VALUES (\'silent_affects_flags\', \'send\', 1)');
+    }
+    if (!$dbh->selectrow_array('SELECT name FROM setting_value WHERE name=\'silent_affects_flags\' LIMIT 1'))
+    {
+        $dbh->do('INSERT INTO setting_value (name, value, sortindex) VALUES (\'silent_affects_flags\', \'send\', 10), (\'silent_affects_flags\', \'do_not_send\', 20)');
+    }
+
     return 1;
 }
 

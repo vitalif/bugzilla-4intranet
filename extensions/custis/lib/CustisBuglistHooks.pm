@@ -40,7 +40,8 @@ WHERE col_f.bug_id=bugs.bug_id AND col_ft.is_requesteeble=1 AND col_ft.is_reques
     };
 
     # CustIS Bug 68921 (see also Bugzilla::Search)
-    $columns->{interval_time} = $columns->{actual_time};
+    $columns->{interval_time} = { %{$columns->{actual_time}} };
+    $columns->{interval_time}->{title} = 'Period worktime';
 
     # CustIS Bug 71955 - first comment to the bug
     $columns->{comment0} = {
