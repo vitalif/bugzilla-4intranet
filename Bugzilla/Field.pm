@@ -506,7 +506,7 @@ sub restricted_legal_values
     {
         my $hash = Bugzilla->fieldvaluecontrol_hash->{$self->value_field_id}->{values}->{$self->id};
         $self->{restricted_legal_values}->{$controller_value} = [
-            grep { $_->name eq '---' || !exists $hash->{$_->id} || $hash->{$_->id}->{$controller_value} }
+            grep { !exists $hash->{$_->id} || $hash->{$_->id}->{$controller_value} }
             @{$self->legal_values}
         ];
     }

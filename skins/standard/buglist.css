@@ -129,6 +129,8 @@ td.bz_total {
     text-align: left;
 }
 
+.bz_interval_time_column { text-align: right; }
+
 /* Bug states  */
 .bz_st_UNCONFIRMED, .bz_UNCONFIRMED td.first-child a { font-style: italic; }
 .bz_st_RESOLVED, .bz_RESOLVED td.first-child a { text-decoration: line-through; }
