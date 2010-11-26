@@ -732,6 +732,14 @@ sub visible_bugs {
     return [grep { $visible_cache->{blessed $_ ? $_->id : $_} } @$bugs];
 }
 
+sub administration_visible
+{
+    my $self = shift;
+    return $self->in_group('admin_index') ||
+        $self->can_bless ||
+        scalar(@{$self->get_editable_products});
+}
+
 sub clear_product_cache {
     my $self = shift;
     delete $self->{enterable_products};
