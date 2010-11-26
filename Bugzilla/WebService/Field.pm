@@ -41,7 +41,9 @@ sub get_values
     };
 }
 
-# { field => 'имя_поля', value => 'имя_значения', sortkey => число_для_сортировки }
+# { field => 'имя_поля', value => 'имя_значения',
+#   sortkey => число_для_сортировки,
+#   другие колонки из $type->DB_COLUMNS }
 sub add_value
 {
     my ($self, $params) = @_;
@@ -56,14 +58,26 @@ sub add_value
     {
         return {status => 'value_already_exists'};
     }
-    $value = $type->create({
-        value   => $params->{value},
-        sortkey => $params->{sortkey},
-    });
+    my $row = {};
+    for ($type->DB_COLUMNS)
+    {
+        if ($_ eq $type->NAME_FIELD)
+        {
+            $row->{$_} = $params->{value};
+        }
+        elsif (exists $params->{$_})
+        {
+            $row->{$_} = $params->{$_};
+        }
+    }
+    $value = $type->create($row);
     return {status => 'ok', id => $value->id};
 }
 
-# { field => 'имя_поля', old_value => 'имя_значения', new_value => 'новое_имя_значения', sortkey => новый_sortkey }
+# { field => 'имя_поля', old_value => 'имя_значения',
+#   value => 'новое_имя_значения', sortkey => новый_sortkey,
+#   isactive => новый_isactive,
+#   любые другие колонки из $type->DB_COLUMNS }
 sub update_value
 {
     my ($self, $params) = @_;
@@ -78,19 +92,25 @@ sub update_value
     {
         return {status => 'value_not_found'};
     }
-    $params->{new_value} = $params->{old_value} unless defined $params->{new_value};
-    if ($params->{new_value} ne $params->{old_value})
+    $params->{value} = $params->{old_value} unless defined $params->{value};
+    if ($params->{value} ne $params->{old_value})
     {
-        my $newvalue = $type->new({ name => $params->{new_value} });
+        my $newvalue = $type->new({ name => $params->{value} });
         if ($newvalue)
         {
             return {status => 'value_already_exists'};
         }
-        $value->set_name($params->{new_value});
+        $value->set_name($params->{value});
     }
-    if (exists $params->{sortkey})
+    # Остальные колонки
+    for ($type->DB_COLUMNS)
     {
-        $value->set_sortkey($params->{sortkey});
+        if ($_ ne $type->NAME_FIELD &&
+            exists $params->{$_})
+        {
+            my $m = "set_$_";
+            $value->$m($params->{$_});
+        }
     }
     $value->update;
     return {status => 'ok', id => $value->id};

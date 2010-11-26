@@ -419,6 +419,8 @@ sub check_visibility
 ############
 
 sub set_is_active { $_[0]->set('isactive', $_[1]); }
+*set_isactive = *set_is_active;
+
 sub set_name      { $_[0]->set('value', $_[1]);    }
 sub set_sortkey   { $_[0]->set('sortkey', $_[1]);  }
 
