@@ -60,9 +60,6 @@ th.sorted_5 { background-color: #dcdcdc; }
 .search_description .search_field { font-weight: bold; }
 .search_description .search_value { font-size: 85%; }
 
-.bz_id_column {
-}
-
 .bz_row_odd {
     background-color: #F7F7F7;
     color: #000000;
@@ -81,9 +78,6 @@ th.sorted_5 { background-color: #dcdcdc; }
 /* Align columns in the "change multiple bugs" form to the right. */
 table#form tr th { text-align: right; }
 
-table.bz_buglist td, table.bz_buglist th { 
-}
-
 /* we use a first-child class and not the pseudo-class because IE
  * doesn't support it :-( */
 tr.bz_secure td.first-child { 
@@ -95,19 +89,6 @@ tr.bz_secure td.first-child {
 
 th.first-child, td.first-child {
   padding-left: 20px;
-}
-
-tr.bz_secure_mode_implied td.first-child {
-}
-
-tr.bz_secure_mode_manual td.first-child {
-}
-
-td.bz_estimated_time_column,
-td.bz_remaining_time_column,
-td.bz_actual_time_column,
-td.bz_percentage_complete_column {
-    text-align: right;
 }
 
 td.bz_total_label {
@@ -129,7 +110,26 @@ td.bz_total {
     text-align: left;
 }
 
-.bz_interval_time_column { text-align: right; }
+/* Bug list column styles */
+.bz_buglist td { white-space: nowrap; }
+
+.bz_buglist .bz_interval_time_column,
+.bz_buglist .bz_estimated_time_column,
+.bz_buglist .bz_remaining_time_column,
+.bz_buglist .bz_actual_time_column,
+.bz_buglist .bz_percentage_complete_column {
+    text-align: right;
+}
+
+.bz_buglist .bz_short_desc_column,
+.bz_buglist .bz_short_short_desc_column,
+.bz_buglist .bz_status_whiteboard_column,
+.bz_buglist .bz_keywords_column,
+.bz_buglist .bz_flagtypes_name_column,
+.bz_buglist .bz_comment0_column { white-space: normal; }
+
+.bz_buglist .bz_blocked_column,
+.bz_buglist .bz_dependson_column { width: 8%; }
 
 /* Bug states  */
 .bz_st_UNCONFIRMED, .bz_UNCONFIRMED td.first-child a { font-style: italic; }
