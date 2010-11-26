@@ -43,7 +43,6 @@
 [% field_descs.reporter_realname    = field_descs.reporter    %]
 [% field_descs.qa_contact_realname  = field_descs.qa_contact  %]
 
-[%# FIXME migrate to styles? %]
 [% abbrev =
   {
     "bug_severity"         => { maxlength => 3 , title => "Sev" } ,
@@ -57,20 +56,14 @@
     "qa_contact"           => { maxlength => 30 , ellipsis => "..." , title => "QAContact" } ,
     "qa_contact_realname"  => { maxlength => 20 , ellipsis => "..." , title => "QAContact" } ,
     "resolution"        => { maxlength => 4 } ,
-    "short_desc"        => { wrap => 1 } ,
-    "short_short_desc"  => { maxlength => 60 , ellipsis => "..." , wrap => 1 } ,
-    "status_whiteboard" => { title => "Whiteboard" , wrap => 1 } ,
-    "keywords"          => { wrap => 1 } ,
-    "flagtypes.name"    => { wrap => 1 } ,
+    "short_short_desc"  => { maxlength => 60 , ellipsis => "..." } ,
+    "status_whiteboard" => { title => "Whiteboard" } ,
     "component"         => { maxlength => 8 , title => "Comp" } ,
     "product"           => { maxlength => 8 } ,
     "version"           => { maxlength => 5 , title => "Vers" } ,
     "op_sys"            => { maxlength => 4 } ,
     "target_milestone"  => { title => "TargetM" } ,
     "percentage_complete" => { format_value => "%d %%" } ,
-    "blocked"           => { wrap => 1, width => "8%" },
-    "dependson"         => { wrap => 1, width => "8%" },
-    "comment0"          => { wrap => 1 },
   }
 %]
 
@@ -197,8 +190,7 @@
     </td>
 
     [% FOREACH column = displaycolumns %]
-    <td style="[% 'white-space: nowrap;' IF NOT abbrev.$column.wrap %][% 'width:' _ abbrev.$column.width IF abbrev.$column.width %]"
-        class="bz_[% column FILTER css_class_quote %]_column
+    <td class="bz_[% column FILTER css_class_quote %]_column
         [%- IF Bugzilla.request_cache.search_columns.$column.subid %] bz_[% Bugzilla.request_cache.search_columns.$column.subid | css_class_quote %]_column[% END %]">
       [% IF abbrev.$column.maxlength %]
         <span title="[%- display_value(column, bug.$column) FILTER html %]">
