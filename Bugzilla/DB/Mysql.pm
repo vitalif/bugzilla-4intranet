@@ -73,7 +73,7 @@ sub new {
         # Needs to be explicitly specified for command-line processes.
         mysql_auto_reconnect => 1,
     );
-    
+
     my $self = $class->db_new($dsn, $user, $pass, \%attrs);
 
     # This makes sure that if the tables are encoded as UTF-8, we
@@ -88,7 +88,7 @@ sub new {
     $self->{private_bz_dsn} = $dsn;
 
     bless ($self, $class);
-    
+
     # Bug 321645 - disable MySQL strict mode, if set
     my ($var, $sql_mode) = $self->selectrow_array(
         "SHOW VARIABLES LIKE 'sql\\_mode'");
@@ -188,7 +188,8 @@ sub sql_fulltext_search {
         # make search a boolean mode search
         for (@words)
         {
-            $_ = "+$_*" if /\w$/;
+            if (/^\d+$/) { $_ = "+$_"; }
+            elsif (/\w$/) { $_ = "+$_*"; }
         }
     }
     $text = join '', @words;
