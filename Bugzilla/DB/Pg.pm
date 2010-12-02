@@ -227,8 +227,8 @@ sub bz_setup_database {
     $self->bz_drop_index('longdescs', 'longdescs_thetext_idx');
     # Same for all the comments fields in the fulltext table.
     $self->bz_drop_index('bugs_fulltext', 'bugs_fulltext_comments_idx');
-    $self->bz_drop_index('bugs_fulltext', 
-                         'bugs_fulltext_comments_noprivate_idx');
+    $self->bz_drop_index('bugs_fulltext', 'bugs_fulltext_comments_noprivate_idx');
+    $self->bz_drop_index('bugs_fulltext', 'bugs_fulltext_short_desc_idx');
 
     # PostgreSQL also wants an index for calling LOWER on
     # login_name, which we do with sql_istrcmp all over the place.
