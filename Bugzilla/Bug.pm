@@ -1124,7 +1124,9 @@ sub _sync_fulltext
     my @no_private = grep { !$_->[1] } @comments;
     my $all = join "\n", map { $_->[0] } @comments;
     my $nopriv = join "\n", map { $_->[0] } @no_private;
-    # Bug 46221 - Russian Stemming in Bugzilla fulltext search
+    # Bug 46221 - Russian Snowball Stemmer in Bugzilla fulltext search
+    # Not for PostgreSQL: it has built-in Snowball stemmer
+    if (!$dbh->isa('Bugzilla::DB::Pg'))
     {
         use utf8;
         $short_desc = stem_text($short_desc);
@@ -1135,10 +1137,16 @@ sub _sync_fulltext
     trick_taint($short_desc);
     trick_taint($all);
     trick_taint($nopriv);
-    my $sql = "bugs_fulltext SET short_desc=?, comments=?, comments_noprivate=?";
     my @bind = ($short_desc, $all, $nopriv, $self->id);
-    $sql = "INSERT INTO $sql, bug_id=?" if $new_bug;
-    $sql = "UPDATE $sql WHERE bug_id=?" unless $new_bug;
+    my $sql;
+    if ($new_bug)
+    {
+        $sql = "INSERT INTO bugs_fulltext (short_desc, comments, comments_noprivate, bug_id) VALUES (?, ?, ?, ?)";
+    }
+    else
+    {
+        $sql = "UPDATE bugs_fulltext SET short_desc=?, comments=?, comments_noprivate=? WHERE bug_id=?";
+    }
     return $dbh->do($sql, undef, @bind);
 }
 

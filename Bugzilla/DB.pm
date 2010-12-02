@@ -352,7 +352,9 @@ sub sql_in {
     return " $column_name IN (" . join(',', @$in_list_ref) . ") ";
 }
 
-sub sql_fulltext_search {
+# returns (boolean query, relevance query)
+sub sql_fulltext_search
+{
     my ($self, $column, $text) = @_;
 
     # This is as close as we can get to doing full text search using
@@ -389,7 +391,9 @@ sub sql_fulltext_search {
     @words = map("LOWER($column) LIKE $_", @words);
 
     # search for occurrences of all specified words in the column
-    return "CASE WHEN (" . join(" AND ", @words) . ") THEN 1 ELSE 0 END";
+    my $term = "(CASE WHEN (" . join(" AND ", @words) . ") THEN 1 ELSE 0 END)";
+
+    return ($term, $term);
 }
 
 #####################################################################

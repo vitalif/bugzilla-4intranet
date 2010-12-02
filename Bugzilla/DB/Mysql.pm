@@ -162,11 +162,13 @@ sub sql_limit {
 
 sub sql_string_concat {
     my ($self, @params) = @_;
-    
+
     return 'CONCAT(' . join(', ', @params) . ')';
 }
 
-sub sql_fulltext_search {
+# returns (boolean query, relevance query)
+sub sql_fulltext_search
+{
     my ($self, $column, $text) = @_;
 
     # quote un-quoted compound words
@@ -200,12 +202,15 @@ sub sql_fulltext_search {
     # untaint the text, since it's safe to use now that we've quoted it
     trick_taint($text);
 
-    return ("MATCH($column) AGAINST($text IN BOOLEAN MODE)", "MATCH($column) AGAINST($text)");
+    return (
+        "MATCH($column) AGAINST($text IN BOOLEAN MODE)",
+        "MATCH($column) AGAINST($text)"
+    );
 }
 
 sub sql_istring {
     my ($self, $string) = @_;
-    
+
     return $string;
 }
 
@@ -225,13 +230,13 @@ sub sql_date_format {
     my ($self, $date, $format) = @_;
 
     $format = "%Y.%m.%d %H:%i:%s" if !$format;
-    
+
     return "DATE_FORMAT($date, " . $self->quote($format) . ")";
 }
 
 sub sql_interval {
     my ($self, $interval, $units) = @_;
-    
+
     return "INTERVAL $interval $units";
 }
 

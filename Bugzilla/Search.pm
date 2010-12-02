@@ -1672,15 +1672,8 @@ sub _content_matches
 
     # Create search terms to add to the SELECT and WHERE clauses.
     my $text = stem_text($$v);
-    my ($term1, $rterm1) = $dbh->sql_fulltext_search("bugs_fulltext.$comments_col",
-                                                        $text, 1);
-    my ($term2, $rterm2) = $dbh->sql_fulltext_search("bugs_fulltext.short_desc",
-                                                        $text, 2);
-    $rterm1 = $term1 if !$rterm1;
-    $rterm2 = $term2 if !$rterm2;
-
-    # The term to use in the WHERE clause.
-    $$term = "$term1 > 0 OR $term2 > 0";
+    my ($term1, $rterm1) = $dbh->sql_fulltext_search("bugs_fulltext.$comments_col", $text);
+    my ($term2, $rterm2) = $dbh->sql_fulltext_search("bugs_fulltext.short_desc", $text);
 
     # In order to sort by relevance (in case the user requests it),
     # we SELECT the relevance value so we can add it to the ORDER BY
@@ -1691,18 +1684,25 @@ sub _content_matches
     #
 
     # Bug 46221 - Russian Stemming in Bugzilla fulltext search
-    # Bugzilla's fulltext search mechanism is bad because
-    # MATCH(...) OR MATCH(...) is very slow in MySQL - it doesn't do
-    # fulltext index merge optimization. So we use INNER JOIN to UNION.
-    push @$supptables, "INNER JOIN (SELECT bug_id FROM bugs_fulltext WHERE $term1 > 0
-        UNION SELECT bug_id FROM bugs_fulltext WHERE $term2 > 0) AS $table ON bugs.bug_id=$table.bug_id";
+    if ($dbh->isa('Bugzilla::DB::Mysql'))
+    {
+        # MATCH(...) OR MATCH(...) is very slow in MySQL - it does no
+        # fulltext index merge optimization. So we use INNER JOIN to UNION.
+        push @$supptables, "INNER JOIN (SELECT bug_id FROM bugs_fulltext WHERE $term1
+            UNION SELECT bug_id FROM bugs_fulltext WHERE $term2) AS $table ON bugs.bug_id=$table.bug_id";
+
+        # All work done by INNER JOIN
+        $$term = "1";
+    }
+    else
+    {
+        push @$supptables, "INNER JOIN bugs_fulltext ON bugs_fulltext.bug_id=bugs.bug_id";
+        $$term = "$term1 OR $term2";
+    }
 
     # We build the relevance SQL by modifying the COLUMNS list directly,
     # which is kind of a hack but works.
     COLUMNS->{relevance}->{name} = "(SELECT $rterm1+$rterm2 FROM bugs_fulltext WHERE bugs_fulltext.bug_id=bugs.bug_id)";
-
-    # All work done by INNER JOIN
-    $$term = "1";
 }
 
 sub _timestamp_compare {
