@@ -42,6 +42,7 @@ function switch_options(from_box, to_box, selected)
             var newopt = new Option(opt.text, opt.value, opt.defaultselected, sel[i]);
             newlist.unshift(newopt);
             from_box.removeChild(opt);
+            sel.splice(i, 1);
         }
     }
     for (var i in newlist)

@@ -521,6 +521,8 @@ form#Create .comment {
 .image_button {
     background-repeat: no-repeat;
     background-position: center center;
+    background-color: white;
+    border: 1px outset gray;
     width: 30px;
     height: 20px;
 }
