@@ -224,6 +224,18 @@ sub quicksearch {
     my @params_to_strip = ('quicksearch', 'load', 'run');
     my $modified_query_string = $cgi->canonicalise_query(@params_to_strip);
 
+    my $order;
+    if ($order = $cgi->cookie('LASTORDER'))
+    {
+        $order =~ s/relevance(\s*(a|de)sc)?,|,relevance(\s*(a|de)sc)?//iso;
+        $order = "relevance DESC,$order";
+    }
+    else
+    {
+        $order = "relevance DESC";
+    }
+    $cgi->param('order', $order);
+
     if ($cgi->param('load')) {
         my $urlbase = correct_urlbase();
         # Param 'load' asks us to display the query in the advanced search form.

@@ -263,7 +263,7 @@ if ($userid) {
 
 # Sort order
 my $deforder;
-my @orders = ('Bug Number', 'Importance', 'Assignee', 'Last Changed');
+my @orders = ('Bug Number', 'Importance', 'Assignee', 'Last Changed', 'relevance');
 
 if ($cgi->cookie('LASTORDER')) {
     $deforder = "Reuse same sort as last time";
