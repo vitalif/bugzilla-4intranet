@@ -273,7 +273,7 @@ sub CHANGEDFROMTO_FIELDS
     if (!Bugzilla->request_cache->{search_changedfromto_fields})
     {
         my $ids = Bugzilla->dbh->selectcol_arrayref('SELECT DISTINCT fieldid FROM bugs_activity');
-        my $tt_fields = Bugzilla->user->is_timetracker ? { map { $_ => 1 } TIMETRACKING_FIELDS } : {};
+        my $tt_fields = Bugzilla->user->is_timetracker ? {} : { map { $_ => 1 } TIMETRACKING_FIELDS };
         my $fields = [
             sort { $a->description cmp $b->description }
             grep { !$tt_fields->{$_->name} }
