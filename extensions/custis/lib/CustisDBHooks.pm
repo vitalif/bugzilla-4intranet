@@ -47,7 +47,7 @@ sub db_schema_abstract_schema
     };
 
     # Bug 64562 - надо идти на дом. страницу бага после постановки, а не на post_bug.cgi
-    push @{$schema->{logincookies}->{FIELDS}}, session_data => {TYPE => 'blob'};
+    push @{$schema->{logincookies}->{FIELDS}}, session_data => {TYPE => 'LONGBLOB'};
 
     # Ну и зачем авторы убрали этот индекс?
     # Bug 53687 - Тормозят запросы из Plantime в багзиллу
@@ -121,7 +121,7 @@ sub db_schema_abstract_schema
             is_fatal       => {TYPE => 'BOOLEAN'},
             message        => {TYPE => 'varchar(255)', NOTNULL => 1},
             sql_code       => {TYPE => 'LONGTEXT'},
-            except_fields  => {TYPE => 'BLOB'},
+            except_fields  => {TYPE => 'LONGBLOB'},
         ],
         INDEXES => [
             checkers_query_id_idx => { FIELDS => ['query_id'] },
@@ -139,12 +139,6 @@ sub install_update_db
 
     # Перенос CC по умолчанию из нашей доработки initialcclist в нормальный механизм component_cc
     my $ccour = $dbh->bz_column_info('components', 'initialcclist');
-    unless ($ccour)
-    {
-        $ccour = $dbh->selectall_arrayref("DESC components") || [];
-        $ccour = { map { ($_->[0] => 1) } @$ccour };
-        $ccour = $ccour->{initialcclist} ? 1 : undef;
-    }
 
     if ($ccour)
     {
@@ -181,17 +175,13 @@ sub install_update_db
         {
             $dbh->bz_drop_column('components', 'initialcclist');
         }
-        else
-        {
-            $dbh->do("ALTER TABLE components DROP initialcclist");
-        }
         print "Successfully migrated ".scalar(@$added)." initial CC definitions\n";
         print "  (old data backed up in old_component_initialcc table)\n";
     }
 
     # Перекодировка параметров сохранённых поисков из CP-1251 в UTF-8
     print "Making sure saved queries are in UTF-8...\n";
-    my $nq = $dbh->selectall_arrayref("SELECT * FROM namedqueries WHERE query LIKE '%\\%%'", {Slice=>{}});
+    my $nq = $dbh->selectall_arrayref("SELECT * FROM namedqueries WHERE POSITION('%' IN query) > 0", {Slice=>{}});
     if ($nq)
     {
         my $q;
@@ -293,7 +283,7 @@ sub install_update_db
     # Bug 64562 - надо идти на дом. страницу бага после постановки, а не на post_bug.cgi
     if (!$dbh->bz_column_info('logincookies', 'session_data'))
     {
-        $dbh->bz_add_column('logincookies', session_data => {TYPE => 'blob'});
+        $dbh->bz_add_column('logincookies', session_data => {TYPE => 'LONGBLOB'});
     }
 
     # Bug 69766 - Default CSV charset for M1cr0$0ft Excel
