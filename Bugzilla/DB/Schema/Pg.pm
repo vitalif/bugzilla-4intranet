@@ -40,24 +40,6 @@ sub _initialize {
 
     $self = $self->SUPER::_initialize(@_);
 
-    # Remove FULLTEXT index types from the schemas.
-    foreach my $table (keys %{ $self->{schema} }) {
-        if ($self->{schema}{$table}{INDEXES}) {
-            foreach my $index (@{ $self->{schema}{$table}{INDEXES} }) {
-                if (ref($index) eq 'HASH') {
-                    delete($index->{TYPE}) if (exists $index->{TYPE} 
-                        && $index->{TYPE} eq 'FULLTEXT');
-                }
-            }
-            foreach my $index (@{ $self->{abstract_schema}{$table}{INDEXES} }) {
-                if (ref($index) eq 'HASH') {
-                    delete($index->{TYPE}) if (exists $index->{TYPE} 
-                        && $index->{TYPE} eq 'FULLTEXT');
-                }
-            }
-        }
-    }
-
     $self->{db_specific} = {
 
         BOOLEAN =>      'smallint',
@@ -89,6 +71,19 @@ sub _initialize {
 
 } #eosub--_initialize
 #--------------------------------------------------------------------
+
+sub _get_create_index_ddl
+{
+    my $self = shift;
+    my ($table, $name, $index_fields, $index_type) = @_;
+    if ($index_type eq 'FULLTEXT')
+    {
+        $index_fields = @$index_fields > 1 ? join(" || ' ' || ", @$index_fields) : $index_fields->[0];
+        my $language = Bugzilla->localconfig->{postgres_fulltext_language};
+        return "CREATE INDEX $name ON $table USING gin(to_tsvector('$language', $index_fields))";
+    }
+    return $self->SUPER::_get_create_index_ddl(@_);
+}
 
 sub get_rename_column_ddl {
     my ($self, $table, $old_name, $new_name) = @_;

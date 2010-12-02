@@ -2101,8 +2101,8 @@ sub get_add_index_ddl {
         $index_fields = $definition;
         $index_type = '';
     }
-    
-    return $self->_get_create_index_ddl($table, $name, $index_fields, 
+
+    return $self->_get_create_index_ddl($table, $name, $index_fields,
                                         $index_type);
 }
 

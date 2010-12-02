@@ -154,7 +154,7 @@ sub sql_to_days {
 
 sub sql_date_format {
     my ($self, $date, $format) = @_;
-    
+
     $format = "%Y.%m.%d %H:%i:%s" if !$format;
 
     $format =~ s/\%Y/YYYY/g;
@@ -171,17 +171,29 @@ sub sql_date_format {
 
 sub sql_interval {
     my ($self, $interval, $units) = @_;
-    
+
     return "$interval * INTERVAL '1 $units'";
 }
 
 sub sql_string_concat {
     my ($self, @params) = @_;
-    
+
     # Postgres 7.3 does not support concatenating of different types, so we
     # need to cast both parameters to text. Version 7.4 seems to handle this
     # properly, so when we stop support 7.3, this can be removed.
     return '(CAST(' . join(' AS text) || CAST(', @params) . ' AS text))';
+}
+
+# GIN fulltext search for PostgreSQL
+# returns (boolean query, relevance query)
+sub sql_fulltext_search
+{
+    my $self = shift;
+    my ($column, $text) = @_;
+    return (
+        '(to_tsvector('.$column.') @@ to_tsquery('.$self->quote($text).'))',
+        '(ts_rank(to_tsvector('.$column.'), to_tsquery('.$self->quote($text).')))',
+    );
 }
 
 # Tell us whether or not a particular sequence exists in the DB.
@@ -225,10 +237,6 @@ sub bz_setup_database {
     # field, because it can't have index data longer than 2770
     # characters on that field.
     $self->bz_drop_index('longdescs', 'longdescs_thetext_idx');
-    # Same for all the comments fields in the fulltext table.
-    $self->bz_drop_index('bugs_fulltext', 'bugs_fulltext_comments_idx');
-    $self->bz_drop_index('bugs_fulltext', 'bugs_fulltext_comments_noprivate_idx');
-    $self->bz_drop_index('bugs_fulltext', 'bugs_fulltext_short_desc_idx');
 
     # PostgreSQL also wants an index for calling LOWER on
     # login_name, which we do with sql_istrcmp all over the place.
