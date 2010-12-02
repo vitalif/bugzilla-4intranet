@@ -58,6 +58,8 @@ WHERE col_f.bug_id=bugs.bug_id AND col_ft.is_requesteeble=1 AND col_ft.is_reques
     };
     ### end Testopia ###
 
+    $columns->{relevance}->{title} = 'Relevance';
+
     return 1;
 }
 
@@ -69,7 +71,7 @@ sub colchange_columns
     my $defs = Bugzilla::Search->COLUMNS;
     for (sort keys %$defs)
     {
-        push @$columns, $_ if lsearch($columns, $_) < 0 && $_ ne 'bug_id' && $_ ne 'relevance';
+        push @$columns, $_ if lsearch($columns, $_) < 0 && $_ ne 'bug_id';
     }
     @$columns = sort { $defs->{$a}->{title} cmp $defs->{$b}->{title} } @$columns;
 

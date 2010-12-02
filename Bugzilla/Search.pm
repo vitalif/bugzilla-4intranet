@@ -1024,6 +1024,13 @@ sub init {
                 if (!CHART_FIELDS_HASH->{$f} && $chart != -1) {
                     ThrowCodeError("invalid_field_name", {field => $f});
                 }
+                if (COLUMNS->{$f})
+                {
+                    for (@{ COLUMNS->{$f}->{joins} || [] })
+                    {
+                        push @supptables, $_ if lsearch(\@supptables, $_) < 0;
+                    }
+                }
                 # CustIS Bug 53836
                 if ($t eq "equals" || $t eq "exact" || $t eq "anyexact") {
                     $v =~ s/\%user\%/$user->login/isge;
@@ -1227,7 +1234,6 @@ sub SqlifyDate {
         my ($sec, $min, $hour, $mday, $month, $year, $wday) = localtime(time());
         return sprintf("%4d-%02d-%02d 00:00:00", $year+1900, $month+1, $mday);
     }
-
 
     if ($str =~ /^(-|\+)?(\d+)([hHdDwWmMyY])$/) {   # relative date
         my ($sign, $amount, $unit, $date) = ($1, $2, lc $3, time);

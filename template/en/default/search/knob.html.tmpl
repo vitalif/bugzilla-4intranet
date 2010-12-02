@@ -37,7 +37,9 @@
    "Bug Number"   => "$terms.Bug Number",
    "Importance"   => "Importance",
    "Assignee"     => "Assignee",
-   "Last Changed" => "Last Changed" } %]
+   "Last Changed" => "Last Changed",
+   "relevance"    => "Relevance to full-text search",
+} %]
 
 <input type="hidden" name="cmdtype" value="doit">
 
@@ -46,7 +48,7 @@
   <select name="order" id="order">
   [% FOREACH order = orders %]
     <option value="[% order FILTER html %]"
-      [% " selected" IF default.order.0 == order %]>
+      [% " selected='selected'" IF default.order.0 == order %]>
          [% (ordersdesc.$order || "Custom: " _ order) FILTER html %]</option>
   [% END %]
   </select>
