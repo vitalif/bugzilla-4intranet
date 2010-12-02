@@ -49,7 +49,7 @@ use Bugzilla::Util ();
 my ($sizelimit, $maxrequests) = ('', '');
 if (Bugzilla::Constants::ON_WINDOWS) {
     $maxrequests = "MaxRequestsPerChild 25";
-} 
+}
 elsif (0) {
     require Apache2::SizeLimit;
     # This means that every httpd child will die after processing
@@ -121,6 +121,12 @@ sub handler : method {
 
 my $STATS;
 
+# To reload Perl modules on-the-fly (debug purposes),
+# add the following to Apache config before "PerlConfigRequire ......./bugzilla3/mod_perl.pl;"
+# <Perl>
+#   $Bugzilla::RELOAD_MODULES = 1;
+#   $^P |= 0x10;
+# </Perl>
 sub reload
 {
     my ($file, $mtime);
