@@ -73,7 +73,7 @@ th.sorted_5 { background-color: #dcdcdc; }
 /* Style bug rows according to severity. */
 .bz_blocker { color: red; font-weight: bold; }
 .bz_critical { color: red; }
-.bz_enhancement { color: #666; background-color: white; }
+.bz_enhancement { color: #666; }
 
 /* Align columns in the "change multiple bugs" form to the right. */
 table#form tr th { text-align: right; }
