@@ -195,7 +195,11 @@ Bug ID list:
     <div class="buglist-navbar"><a target="graphview" href="showdependencygraph.cgi?id=[% buglist_joined | html %]">Graph</a></div>
   [% END %]
 
-  <div class="buglist-navbar"><a href="buglist.cgi?[% urlquerypart | html %]&amp;ctype=csv">CSV</a></div>
+  <div class="buglist-navbar">
+    <a href="buglist.cgi?[% urlquerypart | html %]&amp;ctype=csv">CSV</a>
+    <br />
+    <a href="buglist.cgi?format=simple&amp;[% urlquerypart.replace('[&\?]format=[^&]*', '') | html %]" target="_blank">Print</a>
+  </div>
 
   <div class="buglist-navbar">
     <a href="scrum.cgi?id=[% buglist.join(',') %]">Scrum Cards</a>
@@ -237,7 +241,7 @@ Bug ID list:
   <div class="buglist-navbar bz_query_edit">
     <a href="[% PROCESS edit_search_url %]">Edit&nbsp;Search</a>
     <br />
-    <a href="query.cgi?format=report-table&amp;[% urlquerypart | html | remove('query_format=(advanced|simple)') %]">Summary&nbsp;Report</a>
+    <a href="query.cgi?format=report-table&amp;[% urlquerypart | remove('query_format=(advanced|simple)') | html %]">Summary&nbsp;Report</a>
   </div>
 
   [% IF searchtype == "saved" %]
