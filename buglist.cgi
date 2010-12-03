@@ -895,15 +895,20 @@ if ($superworktime)
     my $d = $Bugzilla::Search::interval_to;
     if (Bugzilla->user->in_group('worktimeadmin'))
     {
-        $d = "DATE(DATE_SUB('$d', INTERVAL 1 DAY))";
+        # Use DateTime instead of SQL functions to be more DBMS-independent
+        $d =~ s/\d( .*)?$/ 00:00:00/;
+        $d ||= POSIX::strftime("%Y-%m-%d 00:00:00", localtime);
+        $d = datetime_from($d);
+        $d->subtract(days => 1);
+        $d = $d->ymd;
         $vars->{worktime_user} = $cgi->param('worktime_user') || ($Bugzilla::Search::interval_who ? $Bugzilla::Search::interval_who->login : undef);
     }
     else
     {
-        $d = "CURRENT_DATE()";
+        $d = POSIX::strftime("%Y-%m-%d %H:%M:%S", localtime);
         $vars->{worktime_user} = Bugzilla->user->login;
     }
-    ($vars->{worktime_date}) = $cgi->param('worktime_date') || Bugzilla->dbh->selectrow_array("SELECT $d");
+    ($vars->{worktime_date}) = $cgi->param('worktime_date') || $d;
 }
 
 ################################################################################

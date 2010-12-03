@@ -343,24 +343,38 @@ sub install_update_db
         $dbh->do('INSERT INTO setting_value (name, value, sortindex) VALUES (\'silent_affects_flags\', \'send\', 10), (\'silent_affects_flags\', \'do_not_send\', 20)');
     }
 
-    # Группа admin_index для доступа к admin.cgi
-    if (!$dbh->selectrow_array("SELECT name FROM groups WHERE name='admin_index'"))
+    # Специальные группы
+    my $special_groups = [
+        [ 'bz_editcheckers', 'Users who can edit Bugzilla Correctness Checkers',        [ 'admin' ] ],
+        [ 'editfields',      'Users who can edit Bugzilla fields and values',           [ 'admin' ] ],
+        [ 'importxls',       'Users who are allowed to use Excel Import feature',       [ 'editbugs' ] ],
+        [ 'worktimeadmin',   'Users who are allowed to use extended Fix Worktime form', [ 'admin' ] ],
+        [ 'admin_index',     'Users who can enter Administration area', [ qw(admin tweakparams
+            editusers editclassifications editcomponents creategroups editfields editkeywords
+            bz_canusewhines bz_editcheckers) ] ],
+    ];
+    foreach my $group (@$special_groups)
     {
-        $dbh->do(
-            "INSERT INTO groups (name, description, isbuggroup, isactive)".
-            " VALUES ('admin_index', 'Users who can enter Administration area', 0, 1)"
-        );
-        $dbh->do(
-            "INSERT INTO group_group_map (member_id, grantor_id, grant_type)".
-            " SELECT g.id, ai.id, 0 FROM groups ai, groups g WHERE ai.name='admin_index'".
-            " AND g.name IN ('".join("','", qw(admin tweakparams editusers editclassifications
-            editcomponents creategroups editfields editkeywords bz_canusewhines bz_editcheckers))."')"
-        );
+        if (!$dbh->selectrow_array('SELECT name FROM groups WHERE name=?', undef, $group->[0]))
+        {
+            print "Adding group '$group->[0]'\n";
+            $dbh->do(
+                'INSERT INTO groups (name, description, isbuggroup, isactive) VALUES (?, ?, 0, 1)',
+                undef, $group->[0], $group->[1]
+            );
+            $dbh->do(
+                'INSERT INTO group_group_map (member_id, grantor_id, grant_type)'.
+                ' SELECT g.id, ai.id, 0 FROM groups ai, groups g WHERE ai.name=?'.
+                ' AND g.name IN (\''.join("','", @{$group->[2]}).'\')', undef, $group->[0]
+            );
+        }
     }
 
     return 1;
 }
 
+# Проверка кодировки URL-кодированной строки - если не UTF-8, перекодирует в UTF-8 из CP1251
+# (TODO remove hardcoded CP1251)
 sub _sure_utf8
 {
     my ($s) = @_;

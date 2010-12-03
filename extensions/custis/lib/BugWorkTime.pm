@@ -3,6 +3,7 @@
 package BugWorkTime;
 
 use strict;
+use POSIX;
 use Bugzilla;
 use Bugzilla::Bug;
 use Bugzilla::Util;
@@ -112,16 +113,26 @@ sub HandleSuperWorktime
         my $wt_user = $cgi->param('worktime_user') || undef;
         my $wt_date = $cgi->param('worktime_date');
         my $comment = $cgi->param('comment');
-        trick_taint($wt_date);
-        my ($ts, $nd, $nt) = Bugzilla->dbh->selectrow_array('SELECT DATE(?), CURRENT_DATE(), CURRENT_TIME()', undef, $wt_date);
-        $ts = $ts && $vars->{wt_admin} ? $ts : $nd;
-        $ts .= ' ' . $nt;
+        # Парсим дату
+        $wt_date .= POSIX::strftime(' %H:%M:%S', localtime) if $wt_date !~ / /;
+        eval
+        {
+            $wt_date = from_datetime($wt_date);
+            $wt_date = $wt_date->ymd . ' ' . $wt_date->hms;
+        };
+        # Если не распарсилось или мы не можем списывать задним числом - undef
+        if ($@ || !$vars->{wt_admin})
+        {
+            $wt_date = undef;
+        }
         if (!$vars->{wt_admin})
         {
+            # Если мы не можем списывать задним юзером - текущий юзер
             $wt_user = Bugzilla->user;
         }
         elsif ($wt_user)
         {
+            # Ищем юзера, если больше одного - предлагаем выбор
             my $matches = Bugzilla::User::match($wt_user);
             if (scalar(@$matches) != 1)
             {
@@ -133,10 +144,6 @@ sub HandleSuperWorktime
                 exit;
             }
             $wt_user = $matches->[0];
-        }
-        elsif ($Bugzilla::Search::interval_who)
-        {
-            $wt_user = $Bugzilla::Search::interval_who;
         }
         $cgi->delete('save_worktime');
         my ($bug, $t);
@@ -155,11 +162,13 @@ sub HandleSuperWorktime
                     {
                         if ($wt_user)
                         {
-                            BugWorkTime::FixWorktime($bug, $t, $comment, $ts, $wt_user->id);
+                            # списываем время на одного юзера
+                            BugWorkTime::FixWorktime($bug, $t, $comment, $wt_date, $wt_user->id);
                         }
                         else
                         {
-                            BugWorkTime::DistributeWorktime($bug, $t, $comment, $ts, $tsfrom, $tsto, scalar $cgi->param('divide_min_inc'));
+                            # распределяем время по участникам
+                            BugWorkTime::DistributeWorktime($bug, $t, $comment, $wt_date, $tsfrom, $tsto, scalar $cgi->param('divide_min_inc'));
                         }
                     }
                     Bugzilla->dbh->bz_commit_transaction();
