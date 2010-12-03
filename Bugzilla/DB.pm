@@ -304,7 +304,6 @@ sub sql_istrcmp
 {
     my ($self, $left, $right, $op) = @_;
     $op ||= "=";
-    return "$left ILIKE $right" if $op eq '=';
     return $self->sql_istring($left) . " $op " . $self->sql_istring($right);
 }
 

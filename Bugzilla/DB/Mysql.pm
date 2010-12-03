@@ -222,13 +222,6 @@ sub sql_istring {
     return $string;
 }
 
-# Case-insensitive collation is used in MySQL
-sub sql_istrcmp {
-    my ($self, $a, $b, $op) = @_;
-    $op ||= "=";
-    return "$a $op $b";
-}
-
 sub sql_from_days {
     my ($self, $days) = @_;
 
