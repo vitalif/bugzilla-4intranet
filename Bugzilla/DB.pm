@@ -300,16 +300,17 @@ sub import {
     $Exporter::ExportLevel-- if $is_exporter;
 }
 
-sub sql_istrcmp {
+sub sql_istrcmp
+{
     my ($self, $left, $right, $op) = @_;
     $op ||= "=";
-
+    return "$left ILIKE $right" if $op eq '=';
     return $self->sql_istring($left) . " $op " . $self->sql_istring($right);
 }
 
-sub sql_istring {
+sub sql_istring
+{
     my ($self, $string) = @_;
-
     return "LOWER($string)";
 }
 

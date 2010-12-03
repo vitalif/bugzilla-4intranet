@@ -196,6 +196,17 @@ sub sql_fulltext_search
     );
 }
 
+sub real_table_list
+{
+    my $self = shift;
+    my ($table_like, $table_type) = @_;
+    return $self->selectcol_arrayref(
+        'SELECT table_name FROM information_schema.tables WHERE table_name LIKE ?'.
+        ' AND table_type=? AND table_catalog=current_database() AND table_schema=current_schema()',
+        undef, $table_like, lc($table_type) eq 'view' ? 'VIEW' : 'BASE TABLE'
+    );
+}
+
 # Tell us whether or not a particular sequence exists in the DB.
 sub bz_sequence_exists {
     my ($self, $seq_name) = @_;

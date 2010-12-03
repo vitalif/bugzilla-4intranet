@@ -113,6 +113,13 @@ sub new {
     return $self;
 }
 
+sub real_table_list
+{
+    my $self = shift;
+    my ($table_like, $table_type) = @_;
+    return $self->selectcol_arrayref('SHOW TABLES LIKE ?', undef, $table_like);
+}
+
 # when last_insert_id() is supported on MySQL by lowest DBI/DBD version
 # required by Bugzilla, this implementation can be removed.
 sub bz_last_key {
@@ -208,10 +215,18 @@ sub sql_fulltext_search
     );
 }
 
+# Case-insensitive collation is used in MySQL
 sub sql_istring {
     my ($self, $string) = @_;
 
     return $string;
+}
+
+# Case-insensitive collation is used in MySQL
+sub sql_istrcmp {
+    my ($self, $a, $b, $op) = @_;
+    $op ||= "=";
+    return "$a $op $b";
 }
 
 sub sql_from_days {

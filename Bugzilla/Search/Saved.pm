@@ -79,7 +79,7 @@ sub new {
                 {argument => 'name',
                  function => "${class}::new"});
         }
-        my $condition = 'userid = ? AND name = ?';
+        my $condition = 'userid = ? AND '.$dbh->sql_istrcmp('name', '?');
         my $user_id = blessed $user ? $user->id : $user;
         detaint_natural($user_id)
           || ThrowCodeError('param_must_be_numeric',
