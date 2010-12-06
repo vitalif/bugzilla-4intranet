@@ -177,11 +177,7 @@ sub sql_interval {
 
 sub sql_string_concat {
     my ($self, @params) = @_;
-
-    # Postgres 7.3 does not support concatenating of different types, so we
-    # need to cast both parameters to text. Version 7.4 seems to handle this
-    # properly, so when we stop support 7.3, this can be removed.
-    return '(CAST(' . join(' AS text) || CAST(', @params) . ' AS text))';
+    return join ' || ', @params;
 }
 
 # GIN fulltext search for PostgreSQL

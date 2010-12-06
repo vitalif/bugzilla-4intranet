@@ -99,29 +99,37 @@ if ($query_id)
 
 $sqlquery = " UNION ($sqlquery)" if $sqlquery;
 
+my $tm = "CURRENT_DATE - ".$dbh->sql_interval($lastdays-1, 'DAY');
+
 my $bugsquery = "
- SELECT t.bug_id, t.priority, t.short_desc, p.name product, c.name component,
-  ROUND(t.remaining_time,1) remaining_time, ROUND(SUM(l.work_time),2) all_work_time,
-  ROUND(SUM(IF(l.bug_when > CONCAT(DATE_SUB(CURDATE(),INTERVAL $lastdays DAY),' 23:59:59')
-  AND l.who=$userid,l.work_time,0)),2) today_work_time
- FROM (
-  SELECT bugs.bug_id, bugs.priority, bugs.short_desc, bugs.remaining_time, bugs.product_id, bugs.component_id FROM longdescs ll, bugs
-  WHERE ll.bug_when > CONCAT(DATE_SUB(CURDATE(),INTERVAL $lastdays DAY),' 23:59:59') AND ll.who=$userid AND ll.bug_id=bugs.bug_id
+ SELECT b.bug_id, b.priority, b.short_desc, p.name product, c.name component,
+  ROUND(b.remaining_time,1) remaining_time,
+  ROUND(SUM(l.work_time),2) all_work_time,
+  ROUND(SUM(
+   CASE WHEN l.bug_when >= $tm AND l.who=$userid
+   THEN l.work_time
+   ELSE 0 END
+  ),2) today_work_time
+ FROM bugs b, longdescs l, products p, components c
+ WHERE b.bug_id IN
+ (
+  SELECT bugs.bug_id FROM longdescs ll, bugs
+  WHERE ll.bug_when >= $tm AND ll.who=? AND ll.bug_id=bugs.bug_id
   UNION
-  SELECT bugs.bug_id, bugs.priority, bugs.short_desc, bugs.remaining_time, bugs.product_id, bugs.component_id FROM bugs_activity aa, bugs
-  WHERE aa.bug_when > CONCAT(DATE_SUB(CURDATE(),INTERVAL $lastdays DAY),' 23:59:59') AND aa.who=$userid AND aa.bug_id=bugs.bug_id
+  SELECT bugs.bug_id FROM bugs_activity aa, bugs
+  WHERE aa.bug_when >= $tm AND aa.who=? AND aa.bug_id=bugs.bug_id
   $sqlquery
- ) t, longdescs l, products p, components c
- WHERE t.bug_id = l.bug_id AND t.product_id=p.id AND t.component_id=c.id
- GROUP BY t.bug_id
+ )
+ AND b.product_id=p.id AND b.component_id=c.id
+ GROUP BY b.bug_id, b.priority, b.short_desc, p.name, c.name, b.remaining_time
  ORDER BY today_work_time DESC, priority ASC
  ";
 
-$vars->{bugs} = $dbh->selectall_arrayref($bugsquery, {Slice=>{}}) || [];
+$vars->{bugs} = $dbh->selectall_arrayref($bugsquery, {Slice=>{}}, $userid, $userid) || [];
 
 ($vars->{timestamp}) = $dbh->selectrow_array("SELECT NOW()");
-($vars->{totaltime}) = $dbh->selectrow_array("SELECT ROUND(SUM(work_time),2) FROM longdescs WHERE bug_when > CONCAT(DATE_SUB(CURDATE(),INTERVAL ? DAY),' 23:59:59') AND who=?", undef, $lastdays, $userid);
-($vars->{prevdate1}) = $dbh->selectrow_array("SELECT DATE(MAX(bug_when)) FROM longdescs WHERE bug_when < CURDATE() AND who=?", undef, $userid);
+($vars->{totaltime}) = $dbh->selectrow_array("SELECT ROUND(SUM(work_time),2) FROM longdescs WHERE bug_when >= CURRENT_DATE - ".$dbh->sql_interval('?', 'DAY')." AND who=?", undef, $lastdays-1, $userid);
+($vars->{prevdate1}) = $dbh->selectrow_array("SELECT DATE(MAX(bug_when)) FROM longdescs WHERE bug_when < CURRENT_DATE AND who=?", undef, $userid);
 
 $vars->{totaltime} ||= 0;
 

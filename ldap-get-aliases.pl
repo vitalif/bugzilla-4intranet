@@ -56,7 +56,7 @@ $users && @$users || exit;
 my $aliases = [];
 
 my $dbh = Bugzilla->dbh;
-my $sth = $dbh->prepare("REPLACE INTO emailin_aliases SET address=?, userid=?, fromldap=1, isprimary=?");
+my $sth = $dbh->prepare("INSERT INTO emailin_aliases SET address=?, userid=?, fromldap=1, isprimary=?");
 print "Clearing aliases having fromldap=1\n" if $verbose;
 $dbh->do("DELETE FROM emailin_aliases WHERE fromldap=1");
 my %a = ();
