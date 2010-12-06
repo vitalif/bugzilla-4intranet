@@ -357,7 +357,7 @@ sub set_shared_with_group
         {
             $dbh->do(
                 'DELETE FROM namedqueries_link_in_footer WHERE namedquery_id='.$self->id.
-                ' AND user_id IN ('.join(',', @$force).')'
+                ' AND user_id IN ('.join(',', map { $_->id } @$force).')'
             );
             $dbh->do(
                 'INSERT INTO namedqueries_link_in_footer (namedquery_id, user_id) VALUES '.
