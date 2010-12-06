@@ -4,6 +4,7 @@ package BugWorkTime;
 
 use strict;
 use POSIX;
+
 use Bugzilla;
 use Bugzilla::Bug;
 use Bugzilla::Util;
@@ -117,7 +118,7 @@ sub HandleSuperWorktime
         $wt_date .= POSIX::strftime(' %H:%M:%S', localtime) if $wt_date !~ / /;
         eval
         {
-            $wt_date = from_datetime($wt_date);
+            $wt_date = datetime_from($wt_date);
             $wt_date = $wt_date->ymd . ' ' . $wt_date->hms;
         };
         # Если не распарсилось или мы не можем списывать задним числом - undef
@@ -144,6 +145,10 @@ sub HandleSuperWorktime
                 exit;
             }
             $wt_user = $matches->[0];
+        }
+        else
+        {
+            $wt_user = undef;
         }
         $cgi->delete('save_worktime');
         my ($bug, $t);

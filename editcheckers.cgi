@@ -100,6 +100,8 @@ else
     @$f = sort { lc $a->description cmp lc $b->description } grep { $_->name !~ /
         \. | ^owner_idle_time$ | ^commenter$ | ^content$ | ^assignee_accessible$ |
         ^creation_ts$ | ^days_elapsed$ | ^qacontact_accessible$ /xs } @$f;
+    # Ещё есть специальное поле "work_time_date", означающее списание времени задним числом
+    push @$f, { description => 'Backdated worktime', name => 'work_time_date' };
     $vars->{my_fielddefs} = $f;
     if (!$vars->{create})
     {
