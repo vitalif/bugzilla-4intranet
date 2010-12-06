@@ -52,11 +52,6 @@ if ($params->{save})
             ($params->{on_update} ? 1 : 0) * CF_UPDATE |
             ($params->{on_create} ? 1 : 0) * CF_CREATE |
             ($params->{deny_all} ? 1 : 0)  * CF_DENY;
-        # Ошибка, если CF_CREATE & (есть except_fields).
-        if (($flags & CF_CREATE) && $except)
-        {
-            ThrowUserError('chk_create_except');
-        }
         # Создаём/обновляем
         my $ch;
         if ($params->{create})

@@ -127,20 +127,10 @@ sub _check_query_id
     return $q->id;
 }
 
-# FIXME проверка должна быть здесь, но Bugzilla::Object не позволяет это реализовать:
-#       Ошибка, если CF_CREATE & (есть except_fields).
 sub _check_flags
 {
     my ($invocant, $value, $field) = @_;
     $value = int($value);
-    if (($value & CF_FREEZE) && ($value & CF_CREATE))
-    {
-        ThrowUserError('chk_create_freeze');
-    }
-    elsif (($value & CF_CREATE) && !($value & CF_DENY))
-    {
-        ThrowUserError('chk_create_allow');
-    }
     return $value;
 }
 
