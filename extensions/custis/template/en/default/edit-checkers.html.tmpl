@@ -68,6 +68,7 @@
     <label for="is_fatal">Запрещать изменения? (если нет, только даётся предупреждение)</label><br />
    </td>
   </tr>
+  <tr><th colspan="2">Запрещения изменений полей действуют только при обновлении багов:</th></tr>
   <tr>
    <th style="background: #FFE0E0">Запрещать:</th>
    <td style="background: #FFE0E0">
@@ -98,18 +99,7 @@ var fieldids = { '':'' [% FOR f = my_fielddefs %],"[% f.name | js %]": [% loop.c
 var except_field_index = 0;
 function showhide_allowdeny()
 {
-  var chk;
-  chk = document.getElementById('deny_all').checked;
-  if (!chk)
-    document.getElementById('on_create').checked = false;
-  document.getElementById('on_create').disabled = !chk;
-  document.getElementById('label_for_on_create').style.color = chk ? '' : 'gray';
-  chk = document.getElementById('on_update').checked && !document.getElementById('on_create').checked;
-  if (!chk)
-    document.getElementById('is_freeze').checked = false;
-  document.getElementById('label_for_is_freeze').style.color = chk ? '' : 'gray';
-  document.getElementById('is_freeze').disabled = !chk;
-  chk = document.getElementById('deny_all').checked;
+  var chk = document.getElementById('deny_all').checked;
   document.getElementById('except_fields_title').innerHTML = chk ? 'Но разрешать:' : '';
   document.getElementById('except_fields_tr').style.backgroundColor = chk ? '#E0FFE0' : '#FFE0E0';
 }
