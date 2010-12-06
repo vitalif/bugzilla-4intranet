@@ -8,6 +8,8 @@
 package Checkers;
 
 use strict;
+use POSIX qw(strftime);
+
 use Bugzilla;
 use Bugzilla::Checker;
 use Bugzilla::Search::Saved;
@@ -112,7 +114,7 @@ sub unfreeze_failed_checkers
 
 sub filter_failed_checkers
 {
-    my ($checkers, $changes) = @_;
+    my ($checkers, $changes, $bug) = @_;
     # фильтруем подошедшие проверки по изменённым полям
     my @rc;
     for (@$checkers)
@@ -138,7 +140,30 @@ sub filter_failed_checkers
             # запретить изменения полей-исключений на значения-исключения
             for (keys %$e)
             {
-                if ($changes->{$_} && (!defined $e->{$_} || $changes->{$_}->[1] eq $e->{$_}))
+                # специальное псевдо-поле, означающее списание времени задним числом
+                # а значение этого псевдо-поля означает списание времени датой меньшей этого значения
+                # т.е. например запретить изменения поля "work_time_date" на дату "2010-09-01"
+                # значит запретить списывать время задним числом на даты раньше 2010-09-01
+                if ($_ eq 'work_time_date')
+                {
+                    my $today_date = strftime('%Y-%m-%d', localtime);
+                    my $min_backdate = $changes->{$_} || $today_date;
+                    my $min_comment_date;
+                    foreach (@{$bug->{added_comments} || []})
+                    {
+                        my $cd = $_->{bug_when} || $today_date;
+                        if (!$min_comment_date || $cd lt $min_comment_date)
+                        {
+                            $min_comment_date = $cd;
+                        }
+                    }
+                    if ($min_comment_date && $min_backdate gt $min_comment_date)
+                    {
+                        $ok = 0;
+                        last;
+                    }
+                }
+                elsif ($changes->{$_} && (!defined $e->{$_} || $changes->{$_}->[1] eq $e->{$_}))
                 {
                     $ok = 0;
                     last;
@@ -175,7 +200,7 @@ sub bug_end_of_update
 
     if (@{$bug->{failed_checkers}})
     {
-        filter_failed_checkers($bug->{failed_checkers}, $changes);
+        filter_failed_checkers($bug->{failed_checkers}, $changes, $bug);
     }
 
     # ругаемся/откатываем изменения, если что-то есть
