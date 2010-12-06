@@ -491,7 +491,8 @@ sub insert_create_data {
     my $table = $class->DB_TABLE;
     $dbh->do("INSERT INTO $table (" . join(', ', @field_names)
              . ") VALUES ($qmarks)", undef, @values);
-    my $id = $dbh->bz_last_key($table, $class->ID_FIELD);
+    my $id = $field_values->{$class->ID_FIELD} ||
+        $dbh->bz_last_key($table, $class->ID_FIELD);
 
     my $object = $class->new($id);
 

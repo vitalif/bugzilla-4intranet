@@ -76,7 +76,7 @@ sub _get_create_index_ddl
 {
     my $self = shift;
     my ($table, $name, $index_fields, $index_type) = @_;
-    if ($index_type eq 'FULLTEXT')
+    if ($index_type && $index_type eq 'FULLTEXT')
     {
         $index_fields = @$index_fields > 1 ? join(" || ' ' || ", @$index_fields) : $index_fields->[0];
         my $language = Bugzilla->localconfig->{postgres_fulltext_language};

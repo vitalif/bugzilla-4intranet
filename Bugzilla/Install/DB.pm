@@ -3267,7 +3267,7 @@ sub _populate_bugs_fulltext
         print "Populating bugs_fulltext... (this can take a long time.)\n";
         my ($portion, $done, $total) = (256, 0, scalar @$bug_ids);
         my ($short, $all, $nopriv, $wh, $rows);
-        my ($sth, $sthn) = (undef, 0);
+        my ($sth, $sth_del, $sthn) = (undef, undef, 0);
         while (my @ids = splice @$bug_ids, 0, $portion)
         {
             $rows = {};
@@ -3279,24 +3279,28 @@ sub _populate_bugs_fulltext
                 "SELECT bug_id, thetext, isprivate FROM longdescs WHERE $wh",
                 undef, @ids
             );
-            $rows->{$_->[0]} = [ stem_text($_->[1]), '', '' ] for @$short;
+            $rows->{$_->[0]} = [ $_->[1], '', '' ] for @$short;
             for (@$all)
             {
-                $_->[1] = stem_text($_->[1]);
                 $rows->{$_->[0]}->[1] .= $_->[1] . "\n";
                 $rows->{$_->[0]}->[2] .= $_->[1] . "\n"
                     unless $_->[2];
             }
+            if (!$dbh->isa('Bugzilla::DB::Pg'))
+            {
+                $_ = stem_text($_) for @{$rows->{$_->[0]}};
+            }
             if ($sthn != @ids)
             {
                 # Optimization: cache prepared statements
-                # FIXME Bugzilla 3.6.2 tells us to use REPLACE for MySQL as it is probably faster
                 $sthn = @ids;
+                $sth_del = $dbh->prepare("DELETE FROM bugs_fulltext WHERE bug_id IN (".join(",", ("?") x $sthn).")");
                 $sth = $dbh->prepare(
                     "INSERT INTO bugs_fulltext (bug_id, short_desc, comments, comments_noprivate)" .
-                    " VALUES " . join(",", ("(?,?,?,?)") x @ids) . " ON DUPLICATE KEY UPDATE short_desc=VALUES(short_desc), comments=VALUES(comments), comments_noprivate=VALUES(comments_noprivate)"
+                    " VALUES " . join(",", ("(?,?,?,?)") x $sthn)
                 );
             }
+            $sth_del->execute(@ids);
             $sth->execute(map { ($_, @{$rows->{$_}}) } @ids);
             $done += @ids;
             print "\r$done / $total ...";
