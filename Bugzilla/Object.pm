@@ -479,6 +479,11 @@ sub insert_create_data {
     my ($class, $field_values) = @_;
     my $dbh = Bugzilla->dbh;
 
+    if (!defined $field_values->{$class->ID_FIELD})
+    {
+        delete $field_values->{$class->ID_FIELD};
+    }
+
     my (@field_names, @values);
     while (my ($field, $value) = each %$field_values) {
         $class->_check_field($field, 'create');
