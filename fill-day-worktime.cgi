@@ -110,17 +110,18 @@ my $bugsquery = "
    THEN l.work_time
    ELSE 0 END
   ),2) today_work_time
- FROM bugs b, longdescs l, products p, components c
- WHERE b.bug_id IN
- (
+ FROM bugs b
+ LEFT JOIN longdescs l ON l.bug_id=b.bug_id
+ INNER JOIN products p ON p.id=b.product_id
+ INNER JOIN components c ON c.id=b.component_id
+ INNER JOIN (
   SELECT bugs.bug_id FROM longdescs ll, bugs
   WHERE ll.bug_when >= $tm AND ll.who=? AND ll.bug_id=bugs.bug_id
   UNION
   SELECT bugs.bug_id FROM bugs_activity aa, bugs
   WHERE aa.bug_when >= $tm AND aa.who=? AND aa.bug_id=bugs.bug_id
   $sqlquery
- )
- AND b.product_id=p.id AND b.component_id=c.id
+ ) t ON t.bug_id=b.bug_id
  GROUP BY b.bug_id, b.priority, b.short_desc, p.name, c.name, b.remaining_time
  ORDER BY today_work_time DESC, priority ASC
  ";
