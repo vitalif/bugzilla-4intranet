@@ -41,7 +41,7 @@ $sel->is_checked_ok('//a[@id="comment_link_0"]/../..//div//input[@type="checkbox
 $sel->click_ok("link=Add an attachment");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_is("Create New Attachment for Bug #$bug1_id");
-$sel->type_ok("data", "/var/www/html/selenium/bugzilla/patch.diff");
+$sel->type_ok("text_attachment", "Some patch /var/www/html/selenium/bugzilla/patch.diff");
 $sel->type_ok("description", "public attachment, v2");
 $sel->check_ok("ispatch");
 # The existing attachment name must be displayed, to mark it as obsolete.
@@ -160,8 +160,11 @@ $sel->go_back_ok();
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 logout($sel);
 log_in($sel, $config, 'admin');
-set_parameters($sel, { 
+set_parameters($sel, {
     "Group Security" => {"insidergroup" => { type => "select", 
                                              value => "QA-Selenium-TEST" }},
 });
+
+delete_bugs($sel, $config, [$bug1_id]);
+
 logout($sel);
