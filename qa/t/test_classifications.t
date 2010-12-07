@@ -139,4 +139,7 @@ $sel->title_is("Classification Deleted");
 set_parameters($sel, { "Bug Fields" => {"useclassification-off" => undef} });
 $sel->open_ok("/$config->{bugzilla_installation}/editclassifications.cgi");
 $sel->title_is("Classification Not Enabled");
+
+delete_bugs($sel, $config, [$bug1_id]);
+
 logout($sel);

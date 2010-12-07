@@ -7,6 +7,7 @@ use Test::More "no_plan";
 use QA::Util;
 
 my ($sel, $config) = get_selenium();
+my ($bug1_id, $bug2_id);
 log_in($sel, $config, 'admin');
 
 # Create new bug to test custom fields
@@ -17,7 +18,7 @@ $sel->type_ok("comment", "I only want the ID of this bug to generate a unique cu
 $sel->click_ok("commit");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_like(qr/Bug \d+ Submitted/, "Bug created");
-my $bug1_id = $sel->get_value('//input[@name="id" and @type="hidden"]');
+$bug1_id = $sel->get_value('//input[@name="id" and @type="hidden"]');
 
 # Create custom fields
 
@@ -93,7 +94,7 @@ $sel->type_ok("comment", "hops!");
 $sel->click_ok("commit");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_like(qr/Bug \d+ Submitted/, "Bug created");
-my $bug2_id = $sel->get_value('//input[@name="id" and @type="hidden"]');
+$bug2_id = $sel->get_value('//input[@name="id" and @type="hidden"]');
 
 # Both fields are editable.
 
@@ -242,9 +243,13 @@ $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_is("Bug $bug1_id processed");
 logout($sel);
 
-# Disable the remaining free text field.
+# Delete bugs $bug1_id and $bug2_id
 
 log_in($sel, $config, 'admin');
+delete_bugs($sel, $config, [$bug1_id, $bug2_id]);
+
+# Disable the remaining free text field.
+
 go_to_admin($sel);
 $sel->click_ok("link=Custom Fields");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
@@ -257,4 +262,22 @@ $sel->value_is("obsolete", "on");
 $sel->click_ok("edit");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_is("Custom Field Updated");
+
+# Delete our custom fields
+for (qw(Freetext List))
+{
+    my ($n, $d) = ('cf_qa_'.lc($_).'_'.$bug1_id, $_.$bug1_id);
+    go_to_admin($sel);
+    $sel->click_ok("link=Custom Fields");
+    $sel->wait_for_page_to_load_ok(WAIT_TIME);
+    $sel->title_is("Custom Fields");
+    $sel->click_ok("//a[contains(\@href, 'editfields.cgi?action=del&name=$n')]");
+    $sel->wait_for_page_to_load_ok(WAIT_TIME);
+    $sel->title_is("Delete the Custom Field '$n' ($d)");
+    $sel->click_ok("link=Delete field '$d'");
+    $sel->wait_for_page_to_load_ok(WAIT_TIME);
+    $sel->title_is("Custom Field Deleted");
+    _ok(!$sel->is_element_present("//a[contains(\@href, 'editfields.cgi?action=del&name=$n')]"), 'The field is not displayed from cache');
+}
+
 logout($sel);
