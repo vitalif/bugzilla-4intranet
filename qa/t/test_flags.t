@@ -1,6 +1,8 @@
 use strict;
 use warnings;
 use lib qw(lib);
+use Cwd qw(abs_path);
+use File::Basename qw(dirname);
 
 use Test::More "no_plan";
 
@@ -11,6 +13,7 @@ use QA::Util;
 my ($sel, $config) = get_selenium(CHROME_MODE);
 
 my $master_group = $config->{master_group};
+my $test_patch_file = abs_path(dirname($0).'/../config/testfile.diff');
 
 # First create a flag type for bugs.
 
@@ -19,6 +22,28 @@ go_to_admin($sel);
 $sel->click_ok("link=Flags");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_is("Administer Flag Types");
+
+# Delete flag types left from previous unsuccessful runs
+for ('flag_types_bugs', 'flag_types_attachments')
+{
+    my $flagtype_count = $sel->get_xpath_count("//table[\@id='$_']/tbody/tr");
+    for (my $i = 2; $i <= $flagtype_count; $i++)
+    {
+        my $flag_name = $sel->get_text("//table[\@id='$_']/tbody/tr[$i]/td[1]");
+        if ($flag_name =~ /Selenium(Bug|Attachment)Flag\d*Test/)
+        {
+            $sel->click_ok("//table[\@id='$_']/tbody/tr[$i]//a[contains(\@href,'action=confirmdelete')]");
+            $sel->wait_for_page_to_load_ok(WAIT_TIME);
+            $sel->title_is("Confirm Deletion of Flag Type '$flag_name'");
+            $sel->click_ok("link=Yes, delete");
+            $sel->wait_for_page_to_load_ok(WAIT_TIME);
+            $sel->title_is("Flag Type '$flag_name' Deleted");
+            $flagtype_count = $sel->get_xpath_count("//table[\@id='$_']/tbody/tr");
+            $i--;
+        }
+    }
+}
+
 $sel->click_ok("link=Create Flag Type for Bugs");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_is("Create Flag Type for Bugs");
@@ -33,21 +58,21 @@ $sel->add_selection_ok("inclusion_to_remove", "label=__Any__:__Any__");
 $sel->click_ok("categoryAction-removeInclusion");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_is("Create Flag Type for Bugs");
-$sel->select_ok("product", "label=QA-Selenium-TEST");
+$sel->select_ok("product", "label=TestProduct2");
 $sel->click_ok("categoryAction-exclude");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_is("Create Flag Type for Bugs");
-$sel->select_ok("product", "label=QA-Selenium-TEST");
+$sel->select_ok("product", "label=TestProduct2");
 $sel->click_ok("categoryAction-include");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_is("Create Flag Type for Bugs");
 my @inclusion = $sel->get_select_options("inclusion_to_remove");
 _ok(scalar @inclusion == 2, "The inclusion list contains 2 elements");
-_ok(grep($_ eq "QA-Selenium-TEST:__Any__", @inclusion), "QA-Selenium-TEST:__Any__ is in the inclusion list");
+_ok(grep($_ eq "TestProduct2:__Any__", @inclusion), "TestProduct2:__Any__ is in the inclusion list");
 _ok(grep($_ eq "TestProduct:__Any__", @inclusion), "TestProduct:__Any__ is in the inclusion list");
 my @exclusion = $sel->get_select_options("exclusion_to_remove");
 _ok(scalar @exclusion == 1, "The exclusion list contains 1 element");
-_ok($exclusion[0] eq "QA-Selenium-TEST:__Any__", "QA-Selenium-TEST:__Any__ is in the exclusion list");
+_ok($exclusion[0] eq "TestProduct2:__Any__", "TestProduct2:__Any__ is in the exclusion list");
 $sel->type_ok("sortkey", "900");
 $sel->value_is("cc_list", "");
 $sel->value_is("is_active", "on");
@@ -73,11 +98,11 @@ $sel->type_ok("name", "SeleniumBugFlag2Test");
 $sel->type_ok("description", "bugflag2");
 @inclusion = $sel->get_select_options("inclusion_to_remove");
 _ok(scalar @inclusion == 2, "The inclusion list contains 2 elements");
-_ok(grep($_ eq "QA-Selenium-TEST:__Any__", @inclusion), "QA-Selenium-TEST:__Any__ is in the inclusion list");
+_ok(grep($_ eq "TestProduct2:__Any__", @inclusion), "TestProduct2:__Any__ is in the inclusion list");
 _ok(grep($_ eq "TestProduct:__Any__", @inclusion), "TestProduct:__Any__ is in the inclusion list");
 @exclusion = $sel->get_select_options("exclusion_to_remove");
 _ok(scalar @exclusion == 1, "The exclusion list contains 1 element");
-_ok($exclusion[0] eq "QA-Selenium-TEST:__Any__", "QA-Selenium-TEST:__Any__ is in the exclusion list");
+_ok($exclusion[0] eq "TestProduct2:__Any__", "TestProduct2:__Any__ is in the exclusion list");
 $sel->type_ok("sortkey", "950");
 $sel->value_is("is_active", "on");
 $sel->value_is("is_requestable", "on");
@@ -283,7 +308,7 @@ $sel->title_like(qr/^Bug $bug1_id /);
 
 $sel->select_ok("flag-$flag1_1_id", "value=X");
 $sel->select_ok("flag-$flag2_1_id", "label=+");
-$sel->select_ok("flag-$flag3_1_id", "label=-");
+#$sel->select_ok("flag-$flag3_1_id", "label=-");
 $sel->click_ok("commit");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_is("Bug $bug1_id processed");
@@ -296,7 +321,7 @@ $sel->title_like(qr/^Bug $bug1_id /);
 $sel->click_ok("link=Add an attachment");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_is("Create New Attachment for Bug #$bug1_id");
-$sel->type_ok("data", "/var/www/html/selenium/bugzilla/patch.diff");
+$sel->type_ok("data", $test_patch_file);
 $sel->type_ok("description", "patch, v1");
 $sel->check_ok("ispatch");
 $sel->is_text_present_ok("SeleniumAttachmentFlag1Test");
@@ -323,7 +348,7 @@ my $attachment1_id = $1;
 $sel->click_ok("//a[contains(text(),'Create Another Attachment to Bug $bug1_id')]");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_is("Create New Attachment for Bug #$bug1_id");
-$sel->type_ok("data", "/var/www/html/selenium/bugzilla/patch.diff");
+$sel->type_ok("data", $test_patch_file);
 $sel->type_ok("description", "patch, v2");
 $sel->check_ok("ispatch");
 # Mark the previous attachment as obsolete.
@@ -347,7 +372,7 @@ my $attachment2_id = $1;
 $sel->click_ok("//a[contains(text(),'Create Another Attachment to Bug $bug1_id')]");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_is("Create New Attachment for Bug #$bug1_id");
-$sel->type_ok("data", "/var/www/html/selenium/bugzilla/patch.diff");
+$sel->type_ok("data", $test_patch_file);
 $sel->type_ok("description", "patch, v3");
 $sel->click_ok("list");
 $sel->select_ok("contenttypeselection", "label=plain text (text/plain)");
@@ -426,7 +451,7 @@ $sel->title_like(qr/^Bug $bug1_id/);
 $sel->click_ok("link=Add an attachment");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_is("Create New Attachment for Bug #$bug1_id");
-$sel->type_ok("data", "/var/www/html/selenium/bugzilla/patch.diff");
+$sel->type_ok("data", $test_patch_file);
 $sel->type_ok("description", "patch, v4");
 $sel->value_is("ispatch", "off");
 $sel->value_is("autodetect", "on");
@@ -486,4 +511,7 @@ foreach my $flagtype ([$flagtype1_id, "SeleniumBugFlag1Test"], [$flagtype2_id, "
     my $msg = trim($sel->get_text("message"));
     ok($msg eq "The flag type $flag_name has been deleted.", "Flag type $flag_name deleted");
 }
+
+delete_bugs($sel, $config, [$bug1_id]);
+
 logout($sel);

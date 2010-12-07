@@ -1,0 +1,13 @@
+Index: Bugzilla/User.pm
+===================================================================
+--- Bugzilla/User.pm	(revision 980)
++++ Bugzilla/User.pm	(working copy)
+@@ -994,7 +994,8 @@
+ # This function defines the groups a user may share a query with.
+ # More restrictive sites may want to build this reference to a list of group IDs
+ # from bless_groups instead of mirroring visible_groups_inherited, perhaps.
++# Less restrictive sites may want to allow user to share a query with any group.
+ sub queryshare_groups {
+     my $self = shift;
+     my @queryshare_groups;
+ 
