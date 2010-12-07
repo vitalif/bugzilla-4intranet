@@ -91,7 +91,7 @@ if ($query_id)
     my $queryparams = new Bugzilla::CGI($query);
     my $search      = new Bugzilla::Search(
         params => $queryparams,
-        fields => [ "bugs.bug_id", "bugs.priority", "bugs.short_desc", "bugs.remaining_time", "bugs.product_id", "bugs.component_id" ],
+        fields => [ "bugs.bug_id" ],
         user   => $user,
     );
     $sqlquery = $search->getSQL();
