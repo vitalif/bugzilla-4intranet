@@ -173,4 +173,7 @@ $sel->wait_for_page_to_load(WAIT_TIME);
 # 11th step: turn musthavemilestoneonaccept back to OFF.
 
 set_parameters($sel, {'Bug Change Policies' => {'musthavemilestoneonaccept-off' => undef}});
+
+delete_bugs($sel, $config, [$bug1_id, $bug2_id, $bug3_id]);
+
 logout($sel);
