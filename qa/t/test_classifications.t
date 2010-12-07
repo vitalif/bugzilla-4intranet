@@ -38,7 +38,7 @@ if ($sel->is_text_present("ctwo")) {
     $sel->title_is("Classification Deleted");
 }
 
-$sel->click_ok("link=Add");
+$sel->click_ok("link=Add a new classification");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_is("Add new classification");
 $sel->type_ok("classification", "cone");
