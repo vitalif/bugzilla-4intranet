@@ -186,9 +186,11 @@ sub sql_fulltext_search
 {
     my $self = shift;
     my ($column, $text) = @_;
+    my $language = Bugzilla->localconfig->{postgres_fulltext_language};
+    $language = $self->quote($language).',';
     return (
-        '(to_tsvector('.$column.') @@ to_tsquery('.$self->quote($text).'))',
-        '(ts_rank(to_tsvector('.$column.'), to_tsquery('.$self->quote($text).')))',
+        '(to_tsvector('.$language.$column.') @@ to_tsquery('.$self->quote($text).'))',
+        '(ts_rank(to_tsvector('.$language.$column.'), to_tsquery('.$self->quote($text).')))',
     );
 }
 
