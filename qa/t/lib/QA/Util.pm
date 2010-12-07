@@ -20,6 +20,7 @@ use base qw(Exporter);
     log_in
     logout
     file_bug_in_product
+    delete_bugs
     go_to_admin
     edit_product
     add_product
@@ -315,6 +316,53 @@ sub set_parameters {
     }
 }
 
-1;
+sub delete_bugs
+{
+    my ($sel, $config, $bugs) = @_;
+    # Enable allowbugdeletion
+    set_parameters($sel, { "Administrative Policies" => {"allowbugdeletion-on" => undef } });
+    edit_product($sel, 'TestProduct', 'Unclassified');
+    $sel->click_ok("link=Edit components:");
+    $sel->wait_for_page_to_load_ok(WAIT_TIME);
+    $sel->title_is("Select component of product 'TestProduct'");
+    my $text = trim($sel->get_text("bugzilla-body"));
+    if ($text !~ /KillerComponent/)
+    {
+        # Create KillerComponent
+        $sel->click_ok("link=Add");
+        $sel->wait_for_page_to_load_ok(WAIT_TIME);
+        $sel->type_ok("component", "KillerComponent");
+        $sel->type_ok("description", "Component killing bugs");
+        $sel->type_ok("initialowner", $config->{unprivileged_user_login});
+        $sel->type_ok("initialqacontact", $config->{unprivileged_user_login});
+        $sel->click_ok("create");
+        $sel->wait_for_page_to_load_ok(WAIT_TIME);
+    }
+    # Move bugs into KillerComponent
+    for (@$bugs)
+    {
+        $sel->type_ok("quicksearch_top", $_);
+        $sel->click_ok("find_top");
+        $sel->wait_for_page_to_load_ok(WAIT_TIME);
+        $sel->title_like(qr/^Bug $_/);
+        $sel->select_ok("product", "label=TestProduct");
+        $sel->select_ok("component", "label=KillerComponent");
+        $sel->click_ok("commit");
+        $sel->wait_for_page_to_load_ok(WAIT_TIME);
+        $sel->title_is("Bug $_ processed");
+    }
+    # Delete KillerComponent and all bugs in it
+    edit_product($sel, 'TestProduct', 'Unclassified');
+    $sel->click_ok("link=Edit components:");
+    $sel->wait_for_page_to_load_ok(WAIT_TIME);
+    $sel->title_is("Select component of product 'TestProduct'");
+    $sel->click_ok("//a[contains(\@href, 'editcomponents.cgi?action=del&product=TestProduct&component=KillerComponent')]");
+    $sel->wait_for_page_to_load_ok(WAIT_TIME);
+    $sel->title_is("Delete component 'KillerComponent' from 'TestProduct' product");
+    $sel->click_ok("delete");
+    $sel->wait_for_page_to_load_ok(WAIT_TIME);
+    $sel->title_is("Component Deleted");
+}
 
+1;
 __END__

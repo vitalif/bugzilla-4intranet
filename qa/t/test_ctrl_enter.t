@@ -29,3 +29,5 @@ $sel->key_press("comment_textarea", "\\13");
 $sel->control_key_up;
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_is("Bug $bug1_id processed");
+
+delete_bugs($sel, $config, [$bug1_id]);
