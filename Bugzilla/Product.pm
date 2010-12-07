@@ -406,9 +406,11 @@ sub update {
     # And send out emails about changed bugs
     require Bugzilla::BugMail;
     foreach my $bug_id (@{ $changes->{'confirmed_bugs'} || [] }) {
-        my $sent_bugmail = Bugzilla::BugMail::Send(
-            $bug_id, { changer => Bugzilla->user->login });
-        $changes->{'confirmed_bugs_sent_bugmail'}->{$bug_id} = $sent_bugmail;
+        $changes->{'confirmed_bugs_sent_bugmail'}->{$bug_id} = Bugzilla::BugMail::send_results({
+            mailrecipients => { changer => Bugzilla->user->login },
+            bug_id => $bug_id,
+            type => "votes",
+        });
     }
 
     return $changes;

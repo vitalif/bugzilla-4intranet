@@ -175,15 +175,10 @@
   sufficient votes...<br>
   [% IF changes.confirmed_bugs.size %]
     [% FOREACH id = changes.confirmed_bugs %]
-
       [%# This is INCLUDED instead of PROCESSED to avoid variables getting
           overwritten, which happens otherwise %]
-      [% INCLUDE bug/process/results.html.tmpl
-        type = 'votes'
-        header_done = 1
-        sent_bugmail = changes.confirmed_bugs_sent_bugmail.$id
-        id = id
-      %]
+      [% FOR k = changes.confirmed_bugs_sent_bugmail.$id.keys; $k = changes.confirmed_bugs_sent_bugmail.$id.$k; END %]
+      [% INCLUDE bug/process/results.html.tmpl header_done = 1 %]
     [% END %]
   [% ELSE %]
     &rarr;there were none.

@@ -55,10 +55,12 @@ sub set_useclassification
 {
     my ($value, $param) = @_;
     $_[0] = $value ? 1 : 0;
-    my $vf = $value ? Bugzilla->get_field('classification')->id : undef;
-    my $f = Bugzilla->get_field('product');
-    $f->set_value_field($vf);
+    my $f = Bugzilla->get_field('classification');
     $f->set_obsolete($value ? 0 : 1);
+    $f->update;
+    my $vf = $value ? $f->id : undef;
+    $f = Bugzilla->get_field('product');
+    $f->set_value_field($vf);
     $f->update;
     return '';
 }
