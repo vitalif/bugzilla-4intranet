@@ -1745,6 +1745,8 @@
     group
   [% ELSIF class == "Bugzilla::Product" %]
     product
+  [% ELSIF class == "Bugzilla::Classification" %]
+    classification
   [% ELSIF class == "Bugzilla::Search::Saved" %]
     saved search
   [% ELSIF ( matches = class.match('^Bugzilla::Field::Choice::(.+)') ) %]

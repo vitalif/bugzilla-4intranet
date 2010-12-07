@@ -96,6 +96,16 @@ sub bz_last_key {
     return $last_insert_id;
 }
 
+sub bz_sequence_restart
+{
+    my $self = shift;
+    my ($table, $field, $start_value) = @_;
+    $self->do(
+        'ALTER SEQUENCE '.$self->quote_identifier($table.'_'.$field.'_seq').
+        ' RESTART WITH '.$self->quote($start_value)
+    );
+}
+
 sub bz_check_regexp {
     my ($self, $pattern) = @_;
 
