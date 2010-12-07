@@ -76,9 +76,10 @@ use Bugzilla::Extension;
 # Pre-load all extensions
 $Bugzilla::extension_packages = Bugzilla::Extension->load_all();
 
-# Tables not copied or copied manually
 my %seen_tables = (
+    # Copied manually:
     'fielddefs'     => 1,
+    # Ignored:
     'series_data'   => 1,
     'bz_schema'     => 1,
     'attach_data'   => 1,
@@ -181,6 +182,10 @@ for (keys %$fielddefs)
     }
 }
 
+# Alter fielddefs autoincrement value manually
+my ($maxkey) = $to->selectrow_array('SELECT MAX(id) FROM fielddefs');
+alter_sequence($to, 'fielddefs', 'id', $maxkey);
+
 for my $table (@copy_tables)
 {
     print "Selecting $table\n";
@@ -204,7 +209,7 @@ for my $table (@copy_tables)
         print "Removing column $bad_key\n";
         delete $_->{$bad_key} for @$data;
     }
-    my $maxkey = 0;
+    $maxkey = 0;
     if (my $ai = $autoincrement->{$table})
     {
         for (@$data)
@@ -226,15 +231,21 @@ for my $table (@copy_tables)
     # Initialize auto-increment values
     if (my $ai = $autoincrement->{$table})
     {
-        $maxkey = int($maxkey+1);
-        if (Bugzilla->dbh->isa('Bugzilla::DB::Mysql'))
-        {
-            $to->do("ALTER TABLE `$table` AUTOINCREMENT=$maxkey"); #!
-        }
-        elsif (Bugzilla->dbh->isa('Bugzilla::DB::Pg'))
-        {
-            $to->do("ALTER SEQUENCE ${table}_${ai}_seq RESTART WITH $maxkey"); #!
-        }
+        alter_sequence($to, $table, $ai, $maxkey); #!
+    }
+}
+
+sub alter_sequence
+{
+    my ($dbh, $table, $field, $maxkey) = @_;
+    $maxkey = int($maxkey)+1;
+    if ($dbh->isa('Bugzilla::DB::Mysql'))
+    {
+        $dbh->do("ALTER TABLE `$table` AUTOINCREMENT=$maxkey");
+    }
+    elsif ($dbh->isa('Bugzilla::DB::Pg'))
+    {
+        $dbh->do("ALTER SEQUENCE ${table}_${field}_seq RESTART WITH $maxkey");
     }
 }
 
