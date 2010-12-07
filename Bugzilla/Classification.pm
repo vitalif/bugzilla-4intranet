@@ -76,11 +76,14 @@ sub remove_from_db
     $dbh->bz_start_transaction();
     # Reclassify products to the default classification, if needed.
     $dbh->do("UPDATE products SET classification_id=1 WHERE classification_id=?", undef, $self->id);
-    $dbh->do(
-        "UPDATE fieldvaluecontrol c, fielddefs f SET c.visibility_value_id=1".
-        " WHERE c.field_id=f.id AND f.visibility_field_id=? AND visibility_value_id=?",
-        undef, $self->field->id, $self->id
-    );
+    my @dependent_fields = map { $_->id } Bugzilla->get_fields({ visibility_field_id => $self->field->id });
+    if (@dependent_fields)
+    {
+        $dbh->do(
+            "UPDATE fieldvaluecontrol SET visibility_value_id=1 WHERE field_id IN (".
+            join(",", @dependent_fields).") AND visibility_value_id=?", undef, $self->id
+        );
+    }
 
     Bugzilla::Object::remove_from_db($self);
 
