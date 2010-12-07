@@ -896,7 +896,7 @@ if ($superworktime)
     if (Bugzilla->user->in_group('worktimeadmin'))
     {
         # Use DateTime instead of SQL functions to be more DBMS-independent
-        $d =~ s/\d( .*)?$/ 00:00:00/;
+        $d =~ s/(\d)( .*)?$/$1 00:00:00/;
         $d ||= POSIX::strftime("%Y-%m-%d 00:00:00", localtime);
         $d = datetime_from($d);
         $d->subtract(days => 1);
