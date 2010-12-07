@@ -147,7 +147,7 @@ sub filter_failed_checkers
                 if ($_ eq 'work_time_date')
                 {
                     my $today_date = strftime('%Y-%m-%d', localtime);
-                    my $min_backdate = $changes->{$_} || $today_date;
+                    my $min_backdate = $e->{$_} || $today_date;
                     my $min_comment_date;
                     foreach (@{$bug->{added_comments} || []})
                     {
