@@ -20,12 +20,14 @@ use base qw(Exporter);
     log_in
     logout
     file_bug_in_product
-    delete_bugs
     go_to_admin
     edit_product
     add_product
     open_advanced_search_page
     set_parameters
+
+    delete_bugs
+    delete_flag_types
 
     get_selenium
     get_rpc_clients
@@ -349,6 +351,11 @@ sub delete_bugs
         $sel->select_ok("component", "label=KillerComponent");
         $sel->click_ok("commit");
         $sel->wait_for_page_to_load_ok(WAIT_TIME);
+        if ($sel->get_title() =~ /Verify/)
+        {
+            $sel->click_ok("change_product");
+            $sel->wait_for_page_to_load_ok(WAIT_TIME);
+        }
         $sel->title_is("Bug $_ processed");
     }
     # Delete KillerComponent and all bugs in it
@@ -362,6 +369,36 @@ sub delete_bugs
     $sel->click_ok("delete");
     $sel->wait_for_page_to_load_ok(WAIT_TIME);
     $sel->title_is("Component Deleted");
+}
+
+sub delete_flag_types
+{
+    my ($sel, $config, $regexp) = @_;
+    go_to_admin($sel);
+    $sel->click_ok("link=Flags");
+    $sel->wait_for_page_to_load_ok(WAIT_TIME);
+    $sel->title_is("Administer Flag Types");
+    for ('flag_types_bugs', 'flag_types_attachments')
+    {
+        my $flagtype_count = $sel->get_xpath_count("//table[\@id='$_']/tbody/tr");
+        for (my $i = 2; $i <= $flagtype_count; $i++)
+        {
+            my $flag_name = trim($sel->get_text("//table[\@id='$_']/tbody/tr[$i]/td[1]"));
+            if ($flag_name =~ /$regexp/)
+            {
+                $sel->click_ok("//table[\@id='$_']/tbody/tr[$i]//a[contains(\@href,'action=confirmdelete')]");
+                $sel->wait_for_page_to_load_ok(WAIT_TIME);
+                $sel->title_is("Confirm Deletion of Flag Type '$flag_name'");
+                $sel->click_ok("link=Yes, delete");
+                $sel->wait_for_page_to_load_ok(WAIT_TIME);
+                $sel->title_is("Flag Type '$flag_name' Deleted");
+                my $msg = trim($sel->get_text("message"));
+                _ok($msg eq "The flag type $flag_name has been deleted.", "Flag type $flag_name deleted");
+                $flagtype_count = $sel->get_xpath_count("//table[\@id='$_']/tbody/tr");
+                $i--;
+            }
+        }
+    }
 }
 
 1;

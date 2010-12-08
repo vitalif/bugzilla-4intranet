@@ -18,6 +18,9 @@ my ($sel, $config) = get_selenium(CHROME_MODE);
 # Start by creating a flag type for bugs.
 
 log_in($sel, $config, 'admin');
+
+delete_flag_types($sel, $config, qr/^selenium(_review)?$/);
+
 go_to_admin($sel);
 $sel->click_ok("link=Flags");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
@@ -172,8 +175,6 @@ $sel->select_ok("product", "label=TestProduct2");
 $sel->type_ok("comment", "Moving to TestProduct2 / c1. The flag should be preserved.");
 $sel->click_ok("commit");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
-$sel->title_is("Verify New Product Details...");
-$sel->select_ok("component", "label=c1");
 $sel->click_ok("change_product");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_is("Bug $bug1_id processed");
@@ -208,6 +209,7 @@ _ok(!$sel->is_editable("flag_type-$flagtype1_id"), "The selenium bug flag type i
 $sel->select_ok("component", "label=c1");
 $sel->is_editable_ok("flag_type-$flagtype1_id", "The selenium bug flag type is not selectable");
 $sel->select_ok("flag_type-$flagtype1_id", "label=?");
+$sel->type_ok("requestee_type-$flagtype1_id", " ");
 $sel->type_ok("short_desc", "Create a new selenium flag for c2");
 $sel->type_ok("comment", ".");
 $sel->click_ok("commit");
@@ -307,7 +309,7 @@ $sel->select_ok("product", "label=TestProduct");
 $sel->type_ok("comment", "selenium flag will be lost. I don't have editbugs privs.");
 $sel->click_ok("commit");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
-$sel->title_is("Verify New Product Details...");
+$sel->title_is("Verify Field Values");
 $sel->select_ok("component", "index=0") if $sel->is_text_present("Component:");
 $sel->select_ok("target_milestone", "index=0") if $sel->is_text_present("Target Milestone:");
 $sel->select_ok("version", "index=0") if $sel->is_text_present("Version:");
@@ -322,26 +324,11 @@ _ok(!$sel->is_editable("flag_type-$flagtype1_id"), "Flag type 'selenium' not edi
 _ok(!$sel->is_element_present("flag_type-$flagtype2_id"), "Flag type not available in c1");
 logout($sel);
 
-# Time to delete created flag types.
+# Time to delete created flag types and bugs.
 
 log_in($sel, $config, 'admin');
-go_to_admin($sel);
-$sel->click_ok("link=Flags");
-$sel->wait_for_page_to_load_ok(WAIT_TIME);
-$sel->title_is("Administer Flag Types");
 
-foreach my $flagtype ([$flagtype1_id, "selenium"], [$flagtype2_id, "selenium"],
-                      [$aflagtype1_id, "selenium_review"], [$aflagtype2_id, "selenium_review"])
-{
-    my $flag_id = $flagtype->[0];
-    my $flag_name = $flagtype->[1];
-    $sel->click_ok("//a[\@href='editflagtypes.cgi?action=confirmdelete&id=$flag_id']");
-    $sel->wait_for_page_to_load_ok(WAIT_TIME);
-    $sel->title_is("Confirm Deletion of Flag Type '$flag_name'");
-    $sel->click_ok("link=Yes, delete");
-    $sel->wait_for_page_to_load_ok(WAIT_TIME);
-    $sel->title_is("Flag Type '$flag_name' Deleted");
-    my $msg = trim($sel->get_text("message"));
-    ok($msg eq "The flag type $flag_name has been deleted.", "Flag type $flag_name deleted");
-}
+delete_flag_types($sel, $config, qr/^selenium(_review)?$/);
+delete_bugs($sel, $config, [$bug1_id, $bug2_id]);
+
 logout($sel);

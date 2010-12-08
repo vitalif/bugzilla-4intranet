@@ -19,30 +19,9 @@ my $test_patch_file = abs_path(dirname($0).'/../config/testfile.diff');
 
 log_in($sel, $config, 'admin');
 go_to_admin($sel);
-$sel->click_ok("link=Flags");
-$sel->wait_for_page_to_load_ok(WAIT_TIME);
-$sel->title_is("Administer Flag Types");
 
 # Delete flag types left from previous unsuccessful runs
-for ('flag_types_bugs', 'flag_types_attachments')
-{
-    my $flagtype_count = $sel->get_xpath_count("//table[\@id='$_']/tbody/tr");
-    for (my $i = 2; $i <= $flagtype_count; $i++)
-    {
-        my $flag_name = $sel->get_text("//table[\@id='$_']/tbody/tr[$i]/td[1]");
-        if ($flag_name =~ /Selenium(Bug|Attachment)Flag\d*Test/)
-        {
-            $sel->click_ok("//table[\@id='$_']/tbody/tr[$i]//a[contains(\@href,'action=confirmdelete')]");
-            $sel->wait_for_page_to_load_ok(WAIT_TIME);
-            $sel->title_is("Confirm Deletion of Flag Type '$flag_name'");
-            $sel->click_ok("link=Yes, delete");
-            $sel->wait_for_page_to_load_ok(WAIT_TIME);
-            $sel->title_is("Flag Type '$flag_name' Deleted");
-            $flagtype_count = $sel->get_xpath_count("//table[\@id='$_']/tbody/tr");
-            $i--;
-        }
-    }
-}
+delete_flag_types($sel, $config, qr/Selenium(Bug|Attachment)Flag\d*Test/);
 
 $sel->click_ok("link=Create Flag Type for Bugs");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
@@ -489,29 +468,9 @@ $sel->click_ok("update");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_like(qr/Changes Submitted to Attachment \d+ of Bug \d+/);
 
-# It's time to delete all created flag types.
+# It's time to delete all created flag types and bugs.
 
-go_to_admin($sel);
-$sel->click_ok("link=Flags");
-$sel->wait_for_page_to_load_ok(WAIT_TIME);
-$sel->title_is("Administer Flag Types");
-
-foreach my $flagtype ([$flagtype1_id, "SeleniumBugFlag1Test"], [$flagtype2_id, "SeleniumBugFlag2Test"],
-                      [$flagtype3_id, "SeleniumBugFlag3Test"], [$aflagtype1_id, "SeleniumAttachmentFlag1Test"],
-                      [$aflagtype2_id, "SeleniumAttachmentFlag2Test"], [$aflagtype3_id, "SeleniumAttachmentFlag3Test"])
-{
-    my $flag_id = $flagtype->[0];
-    my $flag_name = $flagtype->[1];
-    $sel->click_ok("//a[\@href='editflagtypes.cgi?action=confirmdelete&id=$flag_id']");
-    $sel->wait_for_page_to_load_ok(WAIT_TIME);
-    $sel->title_is("Confirm Deletion of Flag Type '$flag_name'");
-    $sel->click_ok("link=Yes, delete");
-    $sel->wait_for_page_to_load_ok(WAIT_TIME);
-    $sel->title_is("Flag Type '$flag_name' Deleted");
-    my $msg = trim($sel->get_text("message"));
-    ok($msg eq "The flag type $flag_name has been deleted.", "Flag type $flag_name deleted");
-}
-
+delete_flag_types($sel, $config, qr/Selenium(Bug|Attachment)Flag\d*Test/);
 delete_bugs($sel, $config, [$bug1_id]);
 
 logout($sel);

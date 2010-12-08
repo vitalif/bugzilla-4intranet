@@ -62,6 +62,7 @@ set_hook('custis', 'bug_pre_update',                'Checkers::bug_pre_update');
 set_hook('custis', 'bug_end_of_update',             'Checkers::bug_end_of_update');
 set_hook('custis', 'post_bug_post_create',          'Checkers::post_bug_post_create');
 add_hook('custis', 'savedsearch_post_update',       'Checkers::savedsearch_post_update');
+set_hook('custis', 'install_before_final_checks',   'Checkers::install_before_final_checks');
 
 # Прочие хуки
 set_hook('custis', 'auth_post_login',               'CustisMiscHooks::auth_post_login');
