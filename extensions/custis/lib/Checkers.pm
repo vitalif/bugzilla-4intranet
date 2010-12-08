@@ -233,5 +233,13 @@ sub savedsearch_post_update
     return 1;
 }
 
+# Конец checksetup'а - обновляем SQL-код проверок
+sub install_before_final_checks
+{
+    Bugzilla->request_cache->{user} = Bugzilla::User->super_user;
+    eval { $_->update } for Bugzilla::Checker->get_all;
+    return 1;
+}
+
 1;
 __END__

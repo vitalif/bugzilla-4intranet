@@ -336,6 +336,7 @@ sub set_flag {
 
         # Extract the current flag object from the object.
         my ($obj_flagtype) = grep { $_->id == $flag->type_id } @{$obj->flag_types};
+
         # If no flagtype can be found for this flag, this means the bug is being
         # moved into a product/component where the flag is no longer valid.
         # So either we can attach the flag to another flagtype having the same
@@ -530,6 +531,7 @@ sub update_flags {
     if ($self->isa('Bugzilla::Bug')
         && ($self->{_old_product_name} || $self->{_old_component_name}))
     {
+        delete $self->{flag_types}; # very important (cleans cached flag types)
         my @removed = $class->force_cleanup($self);
         push(@old_summaries, @removed);
     }
@@ -553,7 +555,7 @@ sub retarget {
     my $success = 0;
     foreach my $flagtype (@flagtypes) {
         next if !$flagtype->is_active;
-        next if (!$flagtype->is_multiplicable && scalar @{$flagtype->{flags}});
+        next if (!$flagtype->is_multiplicable && grep { $_->id != $self->id } @{$flagtype->{flags}});
         next unless (($self->status eq '?' && $self->setter->can_request_flag($flagtype))
                      || $self->setter->can_set_flag($flagtype));
 
@@ -595,7 +597,8 @@ sub force_cleanup {
                 AND (bugs.component_id = e.component_id OR e.component_id IS NULL)',
          undef, $bug->id);
 
-    push(@removed , $class->force_retarget($flag_ids, $bug));
+    push @removed, $class->force_retarget($flag_ids, $bug);
+
     return @removed;
 }
 
