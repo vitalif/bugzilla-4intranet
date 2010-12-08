@@ -96,7 +96,7 @@ sub parse_mail {
         undef, $toemail) || [] };
 
     my $summary = $input_email->header('Subject');
-    if ($summary =~ /\[\S+ (\d+)\](.*)/i) {
+    if ($summary =~ /\[\s*Bug\s*(\d+)\s*\](.*)/i) {
         $fields{'bug_id'} = $1;
         $summary = trim($2);
     }
@@ -463,6 +463,7 @@ sub die_handler {
 ###############
 
 $SIG{__DIE__} = \&die_handler;
+Bugzilla::Extension->load_all();
 
 GetOptions(\%switch, 'help|h', 'verbose|v+');
 $switch{'verbose'} ||= 0;
