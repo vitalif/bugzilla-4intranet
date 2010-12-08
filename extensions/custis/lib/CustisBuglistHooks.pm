@@ -11,20 +11,21 @@ sub buglist_columns
 {
     my ($args) = @_;
     my $columns = $args->{columns};
+    my $dbh = Bugzilla->dbh;
 
     $columns->{dependson} = {
-        name  => "(SELECT GROUP_CONCAT(bugblockers.dependson SEPARATOR ',') FROM dependencies bugblockers WHERE bugblockers.blocked=bugs.bug_id)",
+        name  => "(SELECT ".$dbh->sql_group_concat('bugblockers.dependson', "','")." FROM dependencies bugblockers WHERE bugblockers.blocked=bugs.bug_id)",
         title => "Bug dependencies",
     };
 
     $columns->{blocked} = {
-        name  => "(SELECT GROUP_CONCAT(bugblocked.blocked SEPARATOR ',') FROM dependencies bugblocked WHERE bugblocked.dependson=bugs.bug_id)",
+        name  => "(SELECT ".$dbh->sql_group_concat('bugblocked.blocked', "','")." FROM dependencies bugblocked WHERE bugblocked.dependson=bugs.bug_id)",
         title => "Bugs blocked",
     };
 
     $columns->{flags} = {
         name  =>
-"(SELECT GROUP_CONCAT(CONCAT(col_ft.name,col_f.status) SEPARATOR ', ')
+"(SELECT ".$dbh->sql_group_concat($dbh->sql_string_concat('col_ft.name', 'col_f.status'), "', '")."
 FROM flags col_f JOIN flagtypes col_ft ON col_f.type_id=col_ft.id
 WHERE col_f.bug_id=bugs.bug_id AND (col_ft.is_requesteeble=0 OR col_ft.is_requestable=0))",
         title => "Flags",
@@ -32,7 +33,14 @@ WHERE col_f.bug_id=bugs.bug_id AND (col_ft.is_requesteeble=0 OR col_ft.is_reques
 
     $columns->{requests} = {
         name  =>
-"(SELECT GROUP_CONCAT(CONCAT(col_ft.name,col_f.status,CASE WHEN col_p.login_name IS NULL THEN '' ELSE CONCAT(' ',col_p.login_name) END) SEPARATOR ', ')
+"(SELECT ".
+    $dbh->sql_group_concat(
+        $dbh->sql_string_concat(
+            'col_ft.name', 'col_f.status',
+            'CASE WHEN col_p.login_name IS NULL THEN \'\' ELSE '.
+                $dbh->sql_string_concat("' '", 'col_p.login_name').' END'
+        ), "', '"
+    )."
 FROM flags col_f JOIN flagtypes col_ft ON col_f.type_id=col_ft.id
 LEFT JOIN profiles col_p ON col_f.requestee_id=col_p.userid
 WHERE col_f.bug_id=bugs.bug_id AND col_ft.is_requesteeble=1 AND col_ft.is_requestable=1)",
@@ -54,7 +62,7 @@ WHERE col_f.bug_id=bugs.bug_id AND col_ft.is_requesteeble=1 AND col_ft.is_reques
     ### Testopia ###
     $columns->{test_cases} = {
         title => "Test cases",
-        name  => "(SELECT GROUP_CONCAT(DISTINCT tcb.case_id SEPARATOR ', ') FROM test_case_bugs tcb WHERE tcb.bug_id=bugs.bug_id)",
+        name  => "(SELECT ".$dbh->sql_group_concat("case_id", "', '")." FROM (SELECT DISTINCT tcb.case_id FROM test_case_bugs tcb WHERE tcb.bug_id=bugs.bug_id) t)",
     };
     ### end Testopia ###
 

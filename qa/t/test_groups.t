@@ -313,4 +313,7 @@ $sel->click_ok("link=Forget Search 'Selenium bugs'");
 $sel->wait_for_page_to_load(WAIT_TIME);
 $sel->title_is("Search is gone");
 $sel->is_text_present_ok("OK, the Selenium bugs search is gone.");
+
+delete_bugs($sel, $config, [$bug1_id, $bug2_id, $bug3_id, $bug4_id]);
+
 logout($sel);

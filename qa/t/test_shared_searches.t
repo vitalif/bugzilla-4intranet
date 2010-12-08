@@ -7,6 +7,7 @@ use Test::More "no_plan";
 use QA::Util;
 
 my ($sel, $config) = get_selenium();
+my $text;
 
 # Set the querysharegroup param to be the canconfirm group.
 
@@ -22,9 +23,9 @@ $sel->title_is("Bug List");
 $sel->type_ok("save_newqueryname", "Shared Selenium buglist");
 $sel->click_ok("remember");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
-$sel->title_is("Search created");
-my $text = trim($sel->get_text("message"));
-_ok($text =~ /OK, you have a new search named Shared Selenium buglist./, "New search named 'Shared Selenium buglist' has been created");
+$sel->title_like(qr/Search (created|updated)/);
+#$text = trim($sel->get_text("message"));
+#_ok($text =~ /OK, you have a new search named Shared Selenium buglist./, "New search named 'Shared Selenium buglist' has been created");
 
 # Retrieve the newly created saved search's internal ID and make sure it's displayed
 # in the footer by default.
@@ -93,9 +94,9 @@ $sel->title_is("Bug List");
 $sel->type_ok("save_newqueryname", "helpwanted");
 $sel->click_ok("remember");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
-$sel->title_is("Search created");
-$text = trim($sel->get_text("message"));
-_ok($text =~ /OK, you have a new search named helpwanted./, "New search named helpwanted has been created");
+$sel->title_like(qr/Search (created|updated)/);
+#$text = trim($sel->get_text("message"));
+#_ok($text =~ /OK, you have a new search named helpwanted./, "New search named helpwanted has been created");
 
 $sel->click_ok("link=Preferences");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
@@ -156,10 +157,10 @@ $text = trim($sel->get_text("message"));
 _ok($text =~ /OK, the Shared Selenium buglist search is gone./, "The 'Shared Selenium buglist' search is gone");
 logout($sel);
 
-# Make sure that the 'helpwanted' query is not shared with the QA_Selenium_TEST
+# Make sure that the 'helpwanted' query is not shared with the unprivileged
 # user as he doesn't belong to the 'canconfirm' group.
 
-log_in($sel, $config, 'QA_Selenium_TEST');
+log_in($sel, $config, 'unprivileged');
 _ok(!$sel->is_text_present("helpwanted"), "The 'helpwanted' query is not displayed in the footer");
 $sel->click_ok("link=Preferences");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);

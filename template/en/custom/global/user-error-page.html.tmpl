@@ -36,10 +36,11 @@
 
 <div class="user-error-div">
 
-<div class="user-error-div-first">
 [% IF error_message.match('^\s*<[a-z]') %]
+<div class="user-error-div-first" id="error_msg">
  [% error_message %]
 [% ELSE %]
+<div class="user-error-div-first">
  <p style="margin-top: 0; margin-bottom: 0" id="error_msg">[% error_message.replace("\n\n", "</p><p style='margin-bottom: 0'>") FILTER none %]</p>
 [% END %]
 </div>

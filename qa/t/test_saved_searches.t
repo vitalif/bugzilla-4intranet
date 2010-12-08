@@ -10,7 +10,7 @@ my ($sel, $config) = get_selenium();
 
 # If a saved search named 'SavedSearchTEST1' exists, remove it.
 
-log_in($sel, $config, 'QA_Selenium_TEST');
+log_in($sel, $config, 'unprivileged');
 $sel->click_ok("link=Preferences");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_is("User Preferences");
