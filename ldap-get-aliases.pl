@@ -119,16 +119,16 @@ sub get_domain_users
         @smtp = $user_entry->get_value("proxyAddresses");
         if ($mail)
         {
-            $mail = [ $mail ];
+            $mail = { lc $mail => 1 };
             foreach my $y (@smtp)
             {
                 if ($y =~ m/smtp/i)
                 {
                     $y =~ s/^smtp://i;
-                    push @$mail, $y;
+                    $mail->{lc $y} = 1;
                 }
             }
-            push @$users, $mail;
+            push @$users, [ keys %$mail ];
         }
     }
 
