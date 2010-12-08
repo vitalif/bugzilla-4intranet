@@ -442,7 +442,7 @@ sub login {
     }
 
     my $authenticated_user = $authorizer->login($type);
-    
+
     # At this point, we now know if a real person is logged in.
     # We must now check to see if an sudo session is in progress.
     # For a session to be in progress, the following must be true:
@@ -834,6 +834,7 @@ sub END {
 }
 
 init_page() if !$ENV{MOD_PERL};
+Bugzilla::Extension->load_all() if !$ENV{MOD_PERL};
 
 1;
 

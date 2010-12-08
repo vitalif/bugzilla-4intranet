@@ -463,7 +463,6 @@ sub die_handler {
 ###############
 
 $SIG{__DIE__} = \&die_handler;
-Bugzilla::Extension->load_all();
 
 GetOptions(\%switch, 'help|h', 'verbose|v+');
 $switch{'verbose'} ||= 0;
