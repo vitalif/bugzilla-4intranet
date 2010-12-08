@@ -46,7 +46,7 @@ $sel->type_ok("description", "public attachment, v2");
 $sel->check_ok("ispatch");
 # The existing attachment name must be displayed, to mark it as obsolete.
 $sel->is_text_present_ok("private attachment, v1");
-$sel->type_ok("comment", "this patch is public. Everyone can see it.");
+$sel->type_ok("comment_textarea", "this patch is public. Everyone can see it.");
 $sel->value_is("isprivate", "off");
 $sel->click_ok("create");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
@@ -95,7 +95,7 @@ $sel->check_ok("ispatch");
 # The user doesn't have editbugs privs.
 $sel->is_text_present_ok("[no attachments can be made obsolete]");
 $sel->type_ok("description", "My patch, which I should see, always");
-$sel->type_ok("comment", "This is my patch!");
+$sel->type_ok("comment_textarea", "This is my patch!");
 $sel->click_ok("create");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_like(qr/^Attachment \d+ added to Bug \d+/);
@@ -120,7 +120,7 @@ $sel->click_ok('//a[@href="attachment.cgi?id=' . $attachment2_id . '&action=edit
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_is("Attachment $attachment2_id Details for Bug $bug1_id");
 $sel->check_ok("isprivate");
-$sel->type_ok("comment", "Making the powerless user's patch private.");
+$sel->type_ok("comment_textarea", "Making the powerless user's patch private.");
 $sel->click_ok("update");
 $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_is("Changes Submitted to Attachment $attachment2_id of Bug $bug1_id");
@@ -161,8 +161,8 @@ $sel->wait_for_page_to_load_ok(WAIT_TIME);
 logout($sel);
 log_in($sel, $config, 'admin');
 set_parameters($sel, {
-    "Group Security" => {"insidergroup" => { type => "select", 
-                                             value => "QA-Selenium-TEST" }},
+    "Group Security" => {"insidergroup" => { type => "select",
+                                             value => "InsiderGroup" }},
 });
 
 delete_bugs($sel, $config, [$bug1_id]);

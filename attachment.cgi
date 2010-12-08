@@ -731,9 +731,13 @@ sub update {
     $vars->{'attachment'} = $attachment;
     $vars->{'bugs'} = [$bug];
     $vars->{'header_done'} = 1;
-    my $silent = $vars->{commentsilent} = $cgi->param('commentsilent') ? 1 : 0;
-    $vars->{'sent_bugmail'} = 
-        Bugzilla::BugMail::Send($bug->id, { 'changer' => $user->login }, $silent);
+
+    # TODO save this into session and redirect
+    my $sent = send_results({
+        bug_id => $bug->id,
+        mailrecipients => { 'changer' => $user->login },
+    });
+    $vars->{$_} = $sent->{$_} for keys %$sent;
 
     $cgi->send_header();
 
@@ -805,9 +809,12 @@ sub delete_attachment {
         $vars->{'bugs'} = [$bug];
         $vars->{'header_done'} = 1;
 
-        my $silent = $vars->{commentsilent} = $cgi->param('commentsilent') ? 1 : 0;
-        $vars->{'sent_bugmail'} =
-            Bugzilla::BugMail::Send($bug->id, { 'changer' => $user->login }, $silent);
+        # TODO save this into session and redirect
+        my $sent = send_results({
+            bug_id => $bug->id,
+            mailrecipients => { 'changer' => $user->login },
+        });
+        $vars->{$_} = $sent->{$_} for keys %$sent;
 
         $template->process("attachment/updated.html.tmpl", $vars)
           || ThrowTemplateError($template->error());

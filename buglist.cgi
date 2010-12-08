@@ -584,7 +584,7 @@ elsif (($cmdtype eq "doit") && defined $cgi->param('remtype')) {
                 ThrowUserError('no_bugs_in_list', {name     => $query_name,
                                                    query_id => $query_id});
             }
-            $new_query = "bug_id=" . join(',', sort {$a <=> $b} @bug_ids);
+            $new_query = "bug_id_type=anyexact&bug_id=" . join(',', sort {$a <=> $b} @bug_ids);
             $query_type = LIST_OF_BUGS;
         }
         my $tofooter = 1;

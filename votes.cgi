@@ -352,9 +352,13 @@ sub record_votes {
     $vars->{'title_tag'} = 'change_votes';
 
     foreach my $bug_id (@updated_bugs) {
-        $vars->{'id'} = $bug_id;
-        $vars->{'sent_bugmail'} = Bugzilla::BugMail::Send($bug_id,
-            { 'changer' => Bugzilla->user->login });
+        # TODO save this into session and redirect
+        my $sent = send_results({
+            bug_id => $bug_id,
+            mailrecipients => { 'changer' => Bugzilla->user->login },
+            type => "votes",
+        });
+        $vars->{$_} = $sent->{$_} for keys %$sent;
 
         $template->process("bug/process/results.html.tmpl", $vars)
           || ThrowTemplateError($template->error());

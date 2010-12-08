@@ -683,7 +683,7 @@ sub init {
         my $extra;
         if (!@chfield || @actlist)
         {
-            $extra = '1';
+            $extra = "1=1";
             $extra .= $from_term  if $sql_chfrom;
             $extra .= $to_term    if $sql_chto;
             $extra .= $value_term if $sql_chvalue;
@@ -701,7 +701,7 @@ sub init {
         # http://wiki.office.custis.ru/Bugzilla_-_оптимизация_поиска_по_изменениям
         if (!@chfield || $seen_longdesc)
         {
-            $extra = "1";
+            $extra = "1=1";
             $extra .= " AND actcheck_comment.bug_when >= $sql_chfrom" if $sql_chfrom;
             $extra .= " AND actcheck_comment.bug_when <= $sql_chto" if $sql_chto;
             $extra .= " AND actcheck_comment.who = $chfieldwho" if $chfieldwho;
@@ -1692,7 +1692,7 @@ sub _content_matches
             UNION SELECT bug_id FROM bugs_fulltext WHERE $term2) AS $table ON bugs.bug_id=$table.bug_id";
 
         # All work done by INNER JOIN
-        $$term = "1";
+        $$term = "1=1";
     }
     else
     {
@@ -2169,7 +2169,7 @@ sub _keywords_nonchanged {
 
     # CustIS Bug 65346 - keyword search is broken in 3.6
 
-    $$f = "(SELECT IFNULL(GROUP_CONCAT($kd_table.name SEPARATOR ' '), '') FROM keywords AS $k_table " .
+    $$f = "(SELECT COALESCE(".Bugzilla->dbh->sql_group_concat("$kd_table.name", "' '").", '') FROM keywords AS $k_table " .
         " LEFT JOIN keyworddefs AS $kd_table ON $kd_table.id=$k_table.keywordid" .
         " WHERE $k_table.bug_id = bugs.bug_id)";
 }

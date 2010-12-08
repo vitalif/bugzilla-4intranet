@@ -685,7 +685,7 @@ sub visible_bugs {
         my $sth;
         # Speed up the can_see_bug case.
         if (scalar(@check_ids) == 1) {
-            $sth = $self->{_sth_one_visible_bug};
+            $sth = Bugzilla->dbh->{_sth_one_visible_bug};
         }
         $sth ||= $dbh->prepare(
             # This checks for groups that the bug is in that the user
@@ -711,7 +711,7 @@ sub visible_bugs {
               WHERE bugs.bug_id IN (' . join(',', ('?') x @check_ids) . ')
                     AND creation_ts IS NOT NULL ');
         if (scalar(@check_ids) == 1) {
-            $self->{_sth_one_visible_bug} = $sth;
+            Bugzilla->dbh->{_sth_one_visible_bug} = $sth;
         }
 
         $sth->execute(@check_ids);
