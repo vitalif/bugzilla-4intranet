@@ -23,6 +23,7 @@
 [% PROCESS "global/field-descs.none.tmpl" %]
 
 <script type="text/javascript" src="js/query-visibility.js"></script>
+<script type="text/javascript" src="fieldvaluecontrol.cgi?type=search"></script>
 
 <script type="text/javascript">
 
@@ -40,9 +41,6 @@ YAHOO.util.Event.addListener(window, 'load', function() {
       s.style.width = '250px';
   }
 });
-
-// TODO cache this client-side
-qfVisibility = [% json(Bugzilla.full_json_query_visibility) %];
 
 </script>
 

@@ -63,7 +63,7 @@ sub SEARCH_CACHE
     return (Bugzilla->request_cache->{search_def_cache} ||= {});
 }
 
-sub clean_search_cache
+sub clear_search_cache
 {
     %{SEARCH_CACHE()} = ();
 }

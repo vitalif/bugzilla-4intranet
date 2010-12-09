@@ -48,7 +48,7 @@ use base qw(Exporter);
                              validate_email_syntax clean_text
                              stem_text
                              intersect
-                             get_text template_var disable_utf8
+                             get_text template_var disable_utf8 bz_encode_json
                              xml_element xml_element_quote xml_dump_simple);
 
 use Bugzilla::Constants;
@@ -64,6 +64,7 @@ use Scalar::Util qw(tainted blessed);
 use Template::Filters;
 use Text::Wrap;
 use Text::TabularDisplay::Utf8;
+use JSON;
 
 use Lingua::Stem::RuUTF8;
 
@@ -812,6 +813,14 @@ sub xml_dump_simple
         return $r;
     }
     return xml_quote("$data");
+}
+
+sub bz_encode_json
+{
+    my ($var) = @_;
+    $var = encode_json($var);
+    Encode::_utf8_on($var) if Bugzilla->params->{utf8};
+    return $var;
 }
 
 1;

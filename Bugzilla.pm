@@ -408,7 +408,7 @@ sub set_user {
 }
 
 sub sudoer {
-    my $class = shift;    
+    my $class = shift;
     return $class->request_cache->{sudoer};
 }
 
@@ -678,6 +678,12 @@ sub cache_fields
     return $cache->{fields};
 }
 
+sub clear_field_cache
+{
+    my $class = shift;
+    delete $class->request_cache->{fields};
+}
+
 sub get_field
 {
     my $class = shift;
@@ -710,19 +716,18 @@ sub get_fields
 }
 
 # Cache for fieldvaluecontrol table
-# FIXME remove values invisible for current user
 sub fieldvaluecontrol
 {
     my $class = shift;
-    if (!$class->request_cache->{fieldvaluecontrol})
+    if (!$class->cache_fields->{fieldvaluecontrol})
     {
-        $class->request_cache->{fieldvaluecontrol} = $class->dbh->selectall_arrayref(
+        $class->cache_fields->{fieldvaluecontrol} = $class->dbh->selectall_arrayref(
             'SELECT c.*, (CASE WHEN c.value_id=0 THEN f.visibility_field_id ELSE f.value_field_id END) visibility_field_id'.
             ' FROM fieldvaluecontrol c, fielddefs f WHERE f.id=c.field_id'.
             ' ORDER BY c.field_id, c.value_id, (CASE WHEN c.value_id=0 THEN f.visibility_field_id ELSE f.value_field_id END), c.visibility_value_id', {Slice=>{}}
         );
         my $has = {};
-        for (@{$class->request_cache->{fieldvaluecontrol}})
+        for (@{$class->cache_fields->{fieldvaluecontrol}})
         {
             if ($_->{value_id})
             {
@@ -731,31 +736,30 @@ sub fieldvaluecontrol
                     ->{$_->{field_id}}
                     ->{$_->{value_id}}
                     ->{$_->{visibility_value_id}} = 1;
-             }
-             else
-             {
+            }
+            else
+            {
                 $has->{$_->{visibility_field_id}}
                     ->{fields}
                     ->{$_->{field_id}}
                     ->{$_->{visibility_value_id}} = 1;
-             }
+            }
         }
-        $class->request_cache->{fieldvaluecontrol_hash} = $has;
+        $class->cache_fields->{fieldvaluecontrol_hash} = $has;
     }
-    return $class->request_cache->{fieldvaluecontrol};
+    return $class->cache_fields->{fieldvaluecontrol};
 }
 
 sub fieldvaluecontrol_hash
 {
     my $class = shift;
-    if (!$class->request_cache->{fieldvaluecontrol_hash})
+    if (!$class->cache_fields->{fieldvaluecontrol_hash})
     {
         $class->fieldvaluecontrol;
     }
-    return $class->request_cache->{fieldvaluecontrol_hash};
+    return $class->cache_fields->{fieldvaluecontrol_hash};
 }
 
-# TODO fetch this using <script src="..."></script> and use client-side caching
 sub full_json_query_visibility
 {
     my $class = shift;

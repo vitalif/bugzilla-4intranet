@@ -84,6 +84,8 @@ sub remove_from_db
             join(",", @dependent_fields).") AND visibility_value_id=?", undef, $self->id
         );
     }
+    # Touch the field
+    Bugzilla->dbh->do("UPDATE fielddefs SET delta_ts=NOW() WHERE name=?", undef, 'classification');
 
     Bugzilla::Object::remove_from_db($self);
 

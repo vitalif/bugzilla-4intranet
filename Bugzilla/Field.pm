@@ -81,6 +81,7 @@ use Bugzilla::Util;
 use Scalar::Util qw(blessed);
 use Encode;
 use JSON;
+use POSIX;
 
 ###############################
 ####    Initialization     ####
@@ -103,6 +104,7 @@ use constant DB_COLUMNS => qw(
     buglist
     visibility_field_id
     value_field_id
+    delta_ts
 );
 
 use constant REQUIRED_CREATE_FIELDS => qw(name description);
@@ -134,8 +136,8 @@ use constant UPDATE_COLUMNS => qw(
     buglist
     visibility_field_id
     value_field_id
-
     type
+    delta_ts
 );
 
 # How various field types translate into SQL data definitions.
@@ -811,8 +813,10 @@ sub remove_from_db {
 sub update
 {
     my $self = shift;
+    $self->{delta_ts} = POSIX::strftime('%Y-%m-%d %H:%M:%S', localtime);
     my ($changes, $old_self) = $self->SUPER::update(@_);
     delete Bugzilla->request_cache->{fields};
+    Bugzilla::Search->clear_search_cache;
     return wantarray ? ($changes, $old_self) : $changes;
 }
 
@@ -892,7 +896,8 @@ sub create {
     return $self;
 }
 
-sub run_create_validators {
+sub run_create_validators
+{
     my $class = shift;
     my $dbh = Bugzilla->dbh;
     my $params = $class->SUPER::run_create_validators(@_);
@@ -1060,8 +1065,6 @@ sub populate_field_definitions {
 
 }
 
-
-
 =head2 Data Validation
 
 =over
@@ -1177,7 +1180,10 @@ sub update_visibility_values
             join(",", map { "($f, $controlled_value_id, $_)" } @$visibility_value_ids)
         );
     }
-    delete Bugzilla->request_cache->{fieldvaluecontrol};
+    # Clear field cache
+    Bugzilla->clear_field_cache;
+    # Touch the field
+    Bugzilla->dbh->do("UPDATE fielddefs SET delta_ts=NOW() WHERE id=?", undef, $controlled_field->id);
     return 1;
 }
 

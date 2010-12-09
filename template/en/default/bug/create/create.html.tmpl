@@ -35,7 +35,7 @@
   style_urls = [ 'skins/standard/create_attachment.css',
                  'skins/standard/yui/calendar.css' ]
   javascript_urls = [ "js/attachment.js", "js/util.js", "js/yui/calendar.js",
-                      "js/field.js", "js/TUI.js" ]
+                      "js/field.js", "js/TUI.js", "fieldvaluecontrol.cgi?type=bug" ]
   onload = 'set_assign_to();'
 %]
 
@@ -811,14 +811,6 @@ TUI_hide_default('expert_fields');
       </option>
     [% END %]
     </select>
-
-    [% IF sel.name == "bug_status" %]
-    <script type="text/javascript">
-    <!--
-      show_fields['bug_status'] = [% json(select_fields.bug_status.json_visibility) %];
-    //-->
-    </script>
-    [% END %]
   </td>
 [% END %]
 

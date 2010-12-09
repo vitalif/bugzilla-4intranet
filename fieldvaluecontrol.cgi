@@ -1,5 +1,6 @@
 #!/usr/bin/perl -wT
 # Bug 70605 - Client-side caching of field control data
+# TODO touch fields on every checksetup run
 
 use strict;
 use lib qw(. lib);
@@ -10,8 +11,6 @@ use POSIX;
 use Bugzilla;
 use Bugzilla::Util;
 use Bugzilla::Constants;
-
-my $VERSION = "$Revision$";
 
 my $args = Bugzilla->cgi->Vars;
 my $user = Bugzilla->login(~LOGIN_REQUIRED);

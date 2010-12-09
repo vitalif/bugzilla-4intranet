@@ -1,7 +1,5 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-# ------------------------------------------------------------------------
-# For Bug 12253
+# CustIS Bug 12253
 
 use strict;
 use lib qw(. lib);
@@ -31,13 +29,13 @@ $sql =
 "SELECT profiles.login_name FROM profiles, watch
 WHERE profiles.userid=watch.watcher AND watch.watched=?
 ORDER BY
-    SUBSTR(profiles.login_name, INSTR(profiles.login_name, '\@')+1),
-    LEFT(profiles.login_name, INSTR(profiles.login_name, '\@'))";
+    SUBSTR(profiles.login_name, ".$dbh->sql_position("'\@'", 'profiles.login_name')."+1),
+    SUBSTR(profiles.login_name, 1, ".$dbh->sql_position("'\@'", 'profiles.login_name').")";
 
 foreach my $user (@{$vars->{users}})
 {
-    my $users_in_group = $dbh->selectall_arrayref($sql, {Slice=>{}}, $user->{userid});
-    $user->{list} = join ', ', map { $_->{login_name} } @$users_in_group;
+    my $users_in_group = $dbh->selectcol_arrayref($sql, undef, $user->{userid});
+    $user->{list} = join ', ', @$users_in_group;
 }
 
 $cgi->send_header();
