@@ -162,6 +162,7 @@ sub sql_date_format {
     $format =~ s/\%m/MM/g;
     $format =~ s/\%d/DD/g;
     $format =~ s/\%a/Dy/g;
+    $format =~ s/\%b/Mon/g;
     $format =~ s/\%H/HH24/g;
     $format =~ s/\%i/MI/g;
     $format =~ s/\%s/SS/g;

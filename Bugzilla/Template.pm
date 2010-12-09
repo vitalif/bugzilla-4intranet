@@ -58,7 +58,6 @@ use File::Find;
 use File::Path qw(rmtree mkpath);
 use File::Spec;
 use IO::Dir;
-use JSON;
 use Scalar::Util qw(blessed);
 
 use base qw(Template);
@@ -853,12 +852,7 @@ sub create {
                 return $cache->{template_bug_fields};
             },
 
-            'json' => sub {
-                my ($var) = @_;
-                $var = encode_json($var);
-                Encode::_utf8_on($var) if Bugzilla->params->{utf8};
-                return $var;
-            },
+            'json' => \&Bugzilla::Util::bz_encode_json,
 
             # Whether or not keywords are enabled, in this Bugzilla.
             'use_keywords' => sub { return Bugzilla::Keyword->any_exist; },

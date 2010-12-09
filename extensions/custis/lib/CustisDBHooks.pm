@@ -111,6 +111,9 @@ sub db_schema_abstract_schema
     # Bug 69325 - Настройка копирования / не копирования значения поля при клонировании бага
     push @{$schema->{fielddefs}->{FIELDS}}, clone_bug => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 1};
 
+    # Bug 70605 - Кэширование зависимостей полей для поиска и формы бага на клиентской стороне
+    push @{$schema->{fielddefs}->{FIELDS}}, delta_ts => {TYPE => 'DATETIME'};
+
     # Bug 68921 - Предикаты корректности из запросов поиска
     $schema->{checkers} = {
         FIELDS => [
@@ -126,6 +129,7 @@ sub db_schema_abstract_schema
             checkers_query_id_idx => { FIELDS => ['query_id'] },
         ],
     };
+
     return 1;
 }
 
@@ -193,42 +197,20 @@ sub install_update_db
     }
 
     # Bug 13593 - Интеграция с Wiki
-    if (!$dbh->bz_column_info('products', 'buglist'))
-    {
-        # Добавляем колонку wiki_url в продукты
-        $dbh->bz_add_column('products', wiki_url => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"});
-    }
-    if (!$dbh->bz_column_info('components', 'buglist'))
-    {
-        # Добавляем колонку wiki_url в компоненты
-        $dbh->bz_add_column('components', wiki_url => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"});
-    }
+    $dbh->bz_add_column('products', wiki_url => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"});
+    $dbh->bz_add_column('components', wiki_url => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"});
 
     # Bug 59357 - Отключение учёта времени в отдельных продуктах
-    if (!$dbh->bz_column_info('products', 'notimetracking'))
-    {
-        # Добавляем колонку notimetracking в продукты
-        $dbh->bz_add_column('products', notimetracking => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0});
-    }
+    $dbh->bz_add_column('products', notimetracking => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0});
 
     # Bug 68921 - Связь внешний/внутренний продукт
-    if (!$dbh->bz_column_info('products', 'extproduct'))
-    {
-        # Добавляем колонку extproduct в продукты
-        $dbh->bz_add_column('products', extproduct => {TYPE => 'INT2', REFERENCES => {TABLE => 'products', COLUMN => 'id'}});
-    }
+    $dbh->bz_add_column('products', extproduct => {TYPE => 'INT2', REFERENCES => {TABLE => 'products', COLUMN => 'id'}});
 
     # Bug 53725 - Версия по умолчанию
-    if (!$dbh->bz_column_info('components', 'default_version'))
-    {
-        $dbh->bz_add_column('components', default_version => {TYPE => 'varchar(64)', NOTNULL => 1, DEFAULT => "''"});
-    }
+    $dbh->bz_add_column('components', default_version => {TYPE => 'varchar(64)', NOTNULL => 1, DEFAULT => "''"});
 
     # Bug 68921 - Закрытие компонента (так же как закрытие продукта), чтобы в него нельзя было ставить новые баги
-    if (!$dbh->bz_column_info('components', 'is_active'))
-    {
-        $dbh->bz_add_column('components', is_active => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 1});
-    }
+    $dbh->bz_add_column('components', is_active => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 1});
 
     # Bug 53617 - Ограничение Custom Fields двумя и более значениями контролирующего поля
     my @standard_fields = qw(bug_status resolution priority bug_severity op_sys rep_platform);
@@ -280,10 +262,7 @@ sub install_update_db
     }
 
     # Bug 64562 - надо идти на дом. страницу бага после постановки, а не на post_bug.cgi
-    if (!$dbh->bz_column_info('logincookies', 'session_data'))
-    {
-        $dbh->bz_add_column('logincookies', session_data => {TYPE => 'LONGBLOB'});
-    }
+    $dbh->bz_add_column('logincookies', session_data => {TYPE => 'LONGBLOB'});
 
     # Bug 69766 - Default CSV charset for M1cr0$0ft Excel
     if (!$dbh->selectrow_array('SELECT name FROM setting WHERE name=\'csv_charset\' LIMIT 1'))
@@ -296,10 +275,7 @@ sub install_update_db
     }
 
     # Bug 69325 - Настройка копирования / не копирования значения поля при клонировании бага
-    if (!$dbh->bz_column_info('fielddefs', 'clone_bug'))
-    {
-        $dbh->bz_add_column('fielddefs', clone_bug => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 1});
-    }
+    $dbh->bz_add_column('fielddefs', clone_bug => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 1});
 
     # Bug 69481 - Рефакторинг query.cgi с целью показа всех select полей общим механизмом
     if (!$dbh->selectrow_array("SELECT 1 FROM fieldvaluecontrol c, fielddefs f WHERE f.name='component' AND c.field_id=f.id LIMIT 1"))
@@ -368,6 +344,13 @@ sub install_update_db
                 ' AND g.name IN (\''.join("','", @{$group->[2]}).'\')', undef, $group->[0]
             );
         }
+    }
+
+    # Bug 70605 - Кэширование зависимостей полей для поиска и формы бага на клиентской стороне
+    if (!$dbh->bz_column_info('fielddefs', 'delta_ts'))
+    {
+        $dbh->bz_add_column('fielddefs', delta_ts => {TYPE => 'DATETIME'});
+        $dbh->do('UPDATE fielddefs SET delta_ts=NOW()');
     }
 
     return 1;

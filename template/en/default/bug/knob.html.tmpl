@@ -109,7 +109,4 @@
   YAHOO.util.Event.addListener( window, 'load',  showHideStatusItems,
                               ['[% "is_duplicate" IF bug.dup_id %]',
                                '[% bug.bug_status FILTER js %]'] );
-
-  show_fields['bug_status'] = [% json(select_fields.bug_status.json_visibility) %];
-  show_fields['resolution'] = [% json(select_fields.resolution.json_visibility) %];
 </script>

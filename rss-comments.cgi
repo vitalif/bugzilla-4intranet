@@ -1,7 +1,5 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-# ------------------------------------------------------------------------
-# For Bug 16210
+# CustIS Bug 16210 - Bug comments and activity RSS feed
 
 use strict;
 use lib qw(. lib);
@@ -15,10 +13,9 @@ use Bugzilla::Util;
 use Bugzilla::Search;
 use Bugzilla::Search::Saved;
 
-use POSIX qw(strftime);
+use POSIX;
 
 my $user      = Bugzilla->login(LOGIN_REQUIRED);
-my $userid    = $user->id;
 my $vars      = {};
 
 my $cgi       = Bugzilla->cgi;
@@ -28,6 +25,7 @@ my $dbh       = Bugzilla->dbh;
 $vars->{selfurl} = $cgi->canonicalise_query();
 $vars->{buginfo} = $cgi->param('buginfo');
 
+# See http://lib.custis.ru/ShowTeamWork for &ctype=showteamwork
 our %FORMATS = map { $_ => 1 } qw(rss showteamwork);
 
 my $who = $cgi->param('who');
@@ -37,13 +35,14 @@ my $format = $cgi->param('ctype');
 trick_taint($format);
 $FORMATS{$format} or $format = 'rss';
 
+# Determine activity limit (100 by default)
 $limit = int($cgi->param('limit')) if $format eq 'showteamwork';
 $limit = 100 if $limit < 1 || !$limit;
 
 my $title = $cgi->param('namedcmd');
 if ($title)
 {
-    my $storedquery = Bugzilla::Search::LookupNamedQuery($title, $userid);
+    my $storedquery = Bugzilla::Search::LookupNamedQuery($title, $user->id);
     $cgi = new Bugzilla::CGI($storedquery);
 }
 
@@ -52,6 +51,7 @@ $title ||= $cgi->param('query_based_on') || "Bugs";
 my $queryparams = new Bugzilla::CGI($cgi);
 $vars->{urlquerypart} = $queryparams->canonicalise_query('order', 'cmdtype', 'query_based_on');
 
+# Create Bugzilla::Search
 my $search = new Bugzilla::Search(
     params => $queryparams,
     fields => [ "bug_id" ],
@@ -61,10 +61,10 @@ my $search = new Bugzilla::Search(
 my $sqlquery = $search->getSQL();
 $sqlquery =~ s/ORDER\s+BY\s+`?bugs`?.`?bug_id`?//so;
 
-my $tz = strftime('%z', localtime);
+my $tz = POSIX::strftime('%z', localtime);
 
-# Output feed build date BEFORE reading items
-($vars->{builddate}) = $dbh->selectrow_array("SELECT DATE_FORMAT(NOW(),'%a, %d %b %Y %H:%i:%s $tz')");
+# Get feed build date BEFORE reading items
+($vars->{builddate}) = $dbh->selectrow_array('SELECT '.$dbh->sql_date_format('NOW()', '%a, %d %b %Y %H:%i:%s '.$tz));
 
 if ($who)
 {
@@ -79,25 +79,32 @@ if ($who)
 }
 
 # Monstrous query
-# first query gets new bugs' descriptions, and any comments added (not including duplicate
-# information).
+# first query gets new bugs' descriptions, and any comments added (not including duplicate information)
 # second query gets any changes to the fields of a bug (eg assignee, status etc)
 
-Bugzilla->dbh->do("CREATE TEMPORARY TABLE _rss_comments_1 AS $sqlquery");
-Bugzilla->dbh->do("CREATE TEMPORARY TABLE _rss_comments_2 AS SELECT * FROM _rss_comments_1");
+my ($join1, $join2) = ("($sqlquery)", "($sqlquery)");
+if ($dbh->isa('Bugzilla::DB::Mysql'))
+{
+    # MySQL query optimizer is stupid and often fails
+    # to execute complex queries optimally, so help it with a temporary table
+    $join1 = '_rss_comments_1';
+    $join2 = '_rss_comments_2';
+    $dbh->do("CREATE TEMPORARY TABLE $join1 AS $sqlquery");
+    $dbh->do("CREATE TEMPORARY TABLE $join2 AS SELECT * FROM $join1");
+}
 
 my $bugsquery = "
  (SELECT
     b.bug_id, b.short_desc, pr.name product, cm.name component, b.bug_severity, b.bug_status,
     l.work_time, l.thetext,
-    DATE_FORMAT(l.bug_when,'%Y%m%d%H%i%s') commentlink,
-    DATE_FORMAT(l.bug_when,'%a, %d %b %Y %H:%i:%s $tz') datetime_rfc822,
+    ".$dbh->sql_date_format('l.bug_when', '%Y%m%d%H%i%s')." commentlink,
+    ".$dbh->sql_date_format('l.bug_when', '%a, %d %b %Y %H:%i:%s '.$tz)." datetime_rfc822,
     l.bug_when,
     p.login_name, p.realname,
     NULL AS fieldname, NULL AS fielddesc, NULL AS attach_id, NULL AS old, NULL AS new,
     (b.creation_ts=l.bug_when) as is_new, l.who
  FROM longdescs l
- INNER JOIN _rss_comments_1 bugids ON l.bug_id=bugids.bug_id
+ INNER JOIN $join1 bugids ON l.bug_id=bugids.bug_id
  LEFT JOIN bugs b ON b.bug_id=l.bug_id
  LEFT JOIN profiles p ON p.userid=l.who
  LEFT JOIN products pr ON pr.id=b.product_id
@@ -111,14 +118,14 @@ my $bugsquery = "
  (SELECT
     b.bug_id, b.short_desc, pr.name product, cm.name component, b.bug_severity, b.bug_status,
     0 AS work_time, '' thetext,
-    DATE_FORMAT(a.bug_when,'%Y%m%d%H%i%s') commentlink,
-    DATE_FORMAT(a.bug_when,'%a, %d %b %Y %H:%i:%s $tz') datetime_rfc822,
+    ".$dbh->sql_date_format('a.bug_when', '%Y%m%d%H%i%s')." commentlink,
+    ".$dbh->sql_date_format('a.bug_when', '%a, %d %b %Y %H:%i:%s '.$tz)." datetime_rfc822,
     a.bug_when,
     p.login_name, p.realname,
     f.name AS fieldname, f.description AS fielddesc, a.attach_id, a.removed AS old, a.added AS new,
-    0 as is_new, a.who
+    0=1 as is_new, a.who
  FROM bugs_activity a
- INNER JOIN _rss_comments_2 bugids ON a.bug_id=bugids.bug_id
+ INNER JOIN $join2 bugids ON a.bug_id=bugids.bug_id
  LEFT JOIN bugs b ON b.bug_id=a.bug_id
  LEFT JOIN profiles p ON p.userid=a.who
  LEFT JOIN products pr ON pr.id=b.product_id
@@ -135,8 +142,11 @@ my $bugsquery = "
 
 my $events = $dbh->selectall_arrayref($bugsquery, {Slice => {}});
 
-Bugzilla->dbh->do("DROP TABLE _rss_comments_1");
-Bugzilla->dbh->do("DROP TABLE _rss_comments_2");
+if ($dbh->isa('Bugzilla::DB::Mysql'))
+{
+    $dbh->do("DROP TABLE $join1");
+    $dbh->do("DROP TABLE $join2");
+}
 
 my ($t, $o, $n, $k);
 my $gkeys = [];
@@ -171,6 +181,7 @@ foreach (@$events)
     }
 }
 
+# Concatenate comments with activity information
 $vars->{events} = [];
 foreach $k (@$gkeys)
 {
