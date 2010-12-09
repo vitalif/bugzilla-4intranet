@@ -129,7 +129,7 @@ td.bz_total {
 .bz_buglist .bz_comment0_column { white-space: normal; }
 
 .bz_buglist .bz_blocked_column,
-.bz_buglist .bz_dependson_column { width: 8%; }
+.bz_buglist .bz_dependson_column { width: 8%; white-space: normal; }
 
 /* Bug states  */
 .bz_st_UNCONFIRMED, .bz_UNCONFIRMED td.first-child a { font-style: italic; }
