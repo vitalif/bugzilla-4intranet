@@ -31,6 +31,7 @@ optional_modules('custis', $OPTIONAL_MODULES);
 # Изменения схемы БД
 set_hook('custis', 'db_schema_abstract_schema',     'CustisDBHooks::db_schema_abstract_schema');
 set_hook('custis', 'install_update_db',             'CustisDBHooks::install_update_db');
+set_hook('custis', 'install_update_fielddefs',      'CustisDBHooks::install_update_fielddefs');
 
 # Хуки в показ списка багов
 set_hook('custis', 'buglist_columns',               'CustisBuglistHooks::buglist_columns');

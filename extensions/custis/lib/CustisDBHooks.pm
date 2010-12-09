@@ -274,9 +274,6 @@ sub install_update_db
         $dbh->do('INSERT INTO setting_value (name, value, sortindex) VALUES (\'csv_charset\', \'utf-8\', 10), (\'csv_charset\', \'windows-1251\', 20), (\'csv_charset\', \'koi8-r\', 30)');
     }
 
-    # Bug 69325 - Настройка копирования / не копирования значения поля при клонировании бага
-    $dbh->bz_add_column('fielddefs', clone_bug => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 1});
-
     # Bug 69481 - Рефакторинг query.cgi с целью показа всех select полей общим механизмом
     if (!$dbh->selectrow_array("SELECT 1 FROM fieldvaluecontrol c, fielddefs f WHERE f.name='component' AND c.field_id=f.id LIMIT 1"))
     {
@@ -345,6 +342,16 @@ sub install_update_db
             );
         }
     }
+
+    return 1;
+}
+
+sub install_update_fielddefs
+{
+    my $dbh = Bugzilla->dbh;
+
+    # Bug 69325 - Настройка копирования / не копирования значения поля при клонировании бага
+    $dbh->bz_add_column('fielddefs', clone_bug => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 1});
 
     # Bug 70605 - Кэширование зависимостей полей для поиска и формы бага на клиентской стороне
     if (!$dbh->bz_column_info('fielddefs', 'delta_ts'))
