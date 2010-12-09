@@ -199,7 +199,7 @@
         [%- bug.$column FILTER format(abbrev.$column.format_value) FILTER html -%]
       [% ELSIF Bugzilla.get_field(column).type == constants.FIELD_TYPE_BUG_ID %]
         [% bug.$column FILTER bug_link(bug.$column) IF bug.$column %]
-      [% ELSIF column == 'actual_time' ||
+      [% ELSIF column == 'work_time' ||
                column == 'remaining_time' ||
                column == 'estimated_time' ||
                column == 'interval_time' %]
@@ -241,7 +241,7 @@
       [% columns_to_span = columns_to_span + 1 %]
     [% END %]
     [% FOREACH column = displaycolumns %]
-      [% IF column == 'actual_time' ||
+      [% IF column == 'work_time' ||
             column == 'remaining_time' ||
             column == 'estimated_time' ||
             column == 'percentage_complete' ||

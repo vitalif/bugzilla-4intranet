@@ -116,7 +116,7 @@ td.bz_total {
 .bz_buglist .bz_interval_time_column,
 .bz_buglist .bz_estimated_time_column,
 .bz_buglist .bz_remaining_time_column,
-.bz_buglist .bz_actual_time_column,
+.bz_buglist .bz_work_time_column,
 .bz_buglist .bz_percentage_complete_column {
     text-align: right;
 }

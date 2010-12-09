@@ -44,7 +44,7 @@ my $vars = {};
 
 # The master list not only says what fields are possible, but what order
 # they get displayed in.
-my @masterlist = ("opendate", "changeddate", "bug_severity", "priority");
+my @masterlist = ("creation_ts", "delta_ts", "bug_severity", "priority");
 push @masterlist, "rep_platform" if Bugzilla->params->{useplatform};
 push @masterlist, "assigned_to", "assigned_to_realname",
                   "reporter", "reporter_realname", "bug_status",
@@ -80,8 +80,7 @@ if (Bugzilla->has_flags) {
     push(@masterlist, "flagtypes.name");
 }
 if (Bugzilla->user->is_timetracker) {
-    push(@masterlist, ("estimated_time", "remaining_time", "actual_time",
-                       "percentage_complete", "deadline")); 
+    push(@masterlist, "estimated_time", "remaining_time", "work_time", "percentage_complete", "deadline");
 }
 
 push(@masterlist, ("short_desc", "short_short_desc"));
@@ -151,7 +150,6 @@ if (defined $cgi->param('rememberedquery')) {
     $params->param('columnlist', join(",", @collist));
     $vars->{'redirect_url'} = "buglist.cgi?".$params->query_string();
 
-
     # If we're running on Microsoft IIS, $cgi->redirect discards
     # the Set-Cookie lines. In mod_perl, $cgi->redirect with cookies
     # causes the page to be rendered as text/plain.
@@ -161,14 +159,14 @@ if (defined $cgi->param('rememberedquery')) {
         || $ENV{'SERVER_SOFTWARE'} =~ /Microsoft-IIS/
         || $ENV{'SERVER_SOFTWARE'} =~ /Sun ONE Web/)
     {
-      $cgi->send_header(-type => "text/html",
-                         -refresh => "0; URL=$vars->{'redirect_url'}");
+        $cgi->send_header(-type => "text/html",
+                          -refresh => "0; URL=$vars->{'redirect_url'}");
     }
     else {
-      print $cgi->redirect($vars->{'redirect_url'});
-      exit;
+        print $cgi->redirect($vars->{'redirect_url'});
+        exit;
     }
-    
+
     $template->process("global/message.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
     exit;
@@ -180,6 +178,12 @@ if (defined $cgi->param('columnlist')) {
     @collist = split(/ /, $cgi->cookie('COLUMNLIST'));
 } else {
     @collist = DEFAULT_COLUMN_LIST;
+}
+
+# Respect aliases
+{
+    my $a = Bugzilla::Search->FIELD_ALIASES;
+    $_ = $a->{$_} || $_ for @collist;
 }
 
 $vars->{'collist'} = \@collist;

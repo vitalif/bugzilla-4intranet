@@ -88,13 +88,14 @@ for (keys %$args)
 $vars->{bug_tpl} = $bug_tpl;
 $vars->{name_tr} = $name_tr;
 
+# FIXME переделать на стандарт
 # нужно всосать из шаблонов field_descs...
 # и несколько поменять... ;-/ поганый хак, конечно, а чё делать-то.
 my $field_descs = { %{ template_var('field_descs') } };
 $field_descs->{platform} = $field_descs->{rep_platform};
 $field_descs->{comment} = $field_descs->{longdesc};
 for ((grep { /\./ } keys %$field_descs),
-     (qw/rep_platform days_elapsed owner_idle_time changeddate creation_ts delta_ts longdesc/, '[Bug creation]'))
+     (qw/rep_platform days_elapsed owner_idle_time changeddate opendate creation_ts delta_ts longdesc/, '[Bug creation]'))
 {
     delete $field_descs->{$_};
 }

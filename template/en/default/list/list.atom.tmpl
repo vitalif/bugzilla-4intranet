@@ -87,11 +87,11 @@
         <td>[% bug.target_milestone FILTER html %]</td>
       [% END %]
       </tr><tr class="bz_feed_creation_date">
-        <td>[% columns.opendate.title FILTER html %]</td>
-        <td>[% bug.opendate FILTER html %]</td>
+        <td>[% columns.creation_ts.title FILTER html %]</td>
+        <td>[% bug.creation_ts FILTER html %]</td>
       </tr><tr class="bz_feed_changed_date">
-        <td>[% columns.changeddate.title FILTER html %]</td>
-        <td>[% bug.changeddate FILTER html -%]</td>
+        <td>[% columns.delta_ts.title FILTER html %]</td>
+        <td>[% bug.delta_ts FILTER html -%]</td>
       </tr>
       </table>
       [% END %]

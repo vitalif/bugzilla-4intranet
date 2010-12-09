@@ -58,20 +58,63 @@ use Date::Parse;
 # <none> for the X, Y, or Z axis in report.cgi.
 use constant EMPTY_COLUMN => '-1';
 
+sub SEARCH_CACHE
+{
+    return (Bugzilla->request_cache->{search_def_cache} ||= {});
+}
+
+sub clean_search_cache
+{
+    %{SEARCH_CACHE()} = ();
+}
+
 # Some fields are not sorted on themselves, but on other fields.
 # We need to have a list of these fields and what they map to.
 # Each field points to an array that contains the fields mapped
 # to, in order.
-use constant SPECIAL_ORDER => {
-    'target_milestone' => [ 'ms_order.sortkey','ms_order.value' ],
-};
-
-# When we add certain fields to the ORDER BY, we need to then add a
+# Also when we add certain fields to the ORDER BY, we need to then add a
 # table join to the FROM statement. This hash maps input fields to
 # the join statements that need to be added.
-use constant SPECIAL_ORDER_JOIN => {
-    'target_milestone' => 'LEFT JOIN milestones AS ms_order ON ms_order.value = bugs.target_milestone AND ms_order.product_id = bugs.product_id',
-};
+sub SPECIAL_ORDER
+{
+    my $cache = SEARCH_CACHE;
+    return $cache->{special_order} if $cache->{special_order};
+    my $special_order = {
+        'target_milestone' => {
+            fields => [ 'ms_order.sortkey', 'ms_order.value' ],
+            joins  => [ 'LEFT JOIN milestones AS ms_order ON ms_order.value = bugs.target_milestone AND ms_order.product_id = bugs.product_id' ],
+        },
+    };
+    my @select_fields = Bugzilla->get_fields({ type => FIELD_TYPE_SINGLE_SELECT });
+    foreach my $field (@select_fields)
+    {
+        next if $field->name eq 'product' ||
+            $field->name eq 'component' ||
+            $field->name eq 'classification';
+        my $type = Bugzilla::Field::Choice->type($field);
+        my $name = $type->DB_TABLE;
+        $special_order->{$field->name} = {
+            fields => [ map { "$name.$_" } split /\s*,\s*/, $type->LIST_ORDER ],
+            joins  => [ "LEFT JOIN $name ON $name.".$type->NAME_FIELD." = bugs.".$field->name ],
+        };
+    }
+    Bugzilla::Hook::process('search_special_order', { columns => $special_order });
+    return $cache->{special_order} = $special_order;
+}
+
+# Backward-compatibility for old field names. Goes old_name => new_name.
+sub FIELD_ALIASES
+{
+    my $cache = SEARCH_CACHE;
+    return $cache->{field_aliases} if $cache->{field_aliases};
+    my $field_aliases = {
+        opendate    => 'creation_ts',
+        changeddate => 'delta_ts',
+        actual_time => 'work_time',
+    };
+    Bugzilla::Hook::process('search_field_aliases', { aliases => $field_aliases });
+    return $cache->{field_aliases} = $field_aliases;
+}
 
 # This constant defines the columns that can be selected in a query
 # and/or displayed in a bug list.  Column records include the following
@@ -95,10 +138,11 @@ use constant SPECIAL_ORDER_JOIN => {
 # we have to do a lot of work inside the subroutine to get the data,
 # and we don't want it to happen at compile time, so we have it as a
 # subroutine.
-sub COLUMNS {
+sub COLUMNS
+{
     my $dbh = Bugzilla->dbh;
-    my $cache = Bugzilla->request_cache;
-    return $cache->{search_columns} if defined $cache->{search_columns};
+    my $cache = SEARCH_CACHE();
+    return $cache->{columns} if $cache->{columns};
 
     # These are columns that don't exist in fielddefs, but are valid buglist
     # columns. (Also see near the bottom of this function for the definition
@@ -110,42 +154,24 @@ sub COLUMNS {
         qa_contact_realname  => { title => 'QA Contact' },
     );
 
-    # Next we define columns that have special SQL instead of just something
-    # like "bugs.bug_id".
-
     # ---- vfilippov@custis.ru 2010-02-02
     # The previous sql code:
     # "(SUM(ldtime.work_time) * COUNT(DISTINCT ldtime.bug_when)/COUNT(bugs.bug_id))"
     # was probably written by Australopithecus.
     my $actual_time = '(SELECT SUM(ldtime.work_time) FROM longdescs ldtime WHERE ldtime.bug_id=bugs.bug_id)';
+
     my %special_sql = (
-        deadline    => $dbh->sql_date_format('bugs.deadline', '%Y-%m-%d'),
-        actual_time => $actual_time,
-
+        deadline => $dbh->sql_date_format('bugs.deadline', '%Y-%m-%d'),
+        work_time => $actual_time,
         percentage_complete =>
-            "(CASE WHEN $actual_time + bugs.remaining_time = 0.0"
-              . " THEN 0.0"
-              . " ELSE 100"
-                   . " * ($actual_time / ($actual_time + bugs.remaining_time))"
-              . " END)",
-
-        'flagtypes.name' => $dbh->sql_group_concat('DISTINCT '
-                            . $dbh->sql_string_concat('flagtypes.name', 'flags.status'), "', '"),
-    );
-
-    # Backward-compatibility for old field names. Goes new_name => old_name.
-    # These are here and not in translate_old_column because the rest of the
-    # code actually still uses the old names, while the fielddefs table uses
-    # the new names (which is not the case for the fields handled by
-    # translate_old_column).
-    my %old_names = (
-        creation_ts => 'opendate',
-        delta_ts    => 'changeddate',
-        work_time   => 'actual_time',
+            "(CASE WHEN $actual_time + bugs.remaining_time = 0.0 THEN 0.0" .
+            " ELSE 100 * ($actual_time / ($actual_time + bugs.remaining_time)) END)",
+        'flagtypes.name' => $dbh->sql_group_concat('DISTINCT ' . $dbh->sql_string_concat('flagtypes.name', 'flags.status'), "', '"),
     );
 
     # Fields that are email addresses
     my @email_fields = qw(assigned_to reporter qa_contact);
+
     # Other fields that are stored in the bugs table as an id, but
     # should be displayed using their name.
     my @id_fields = qw(product component classification);
@@ -177,10 +203,9 @@ sub COLUMNS {
     }
 
     # Do the actual column-getting from fielddefs, now.
-    foreach my $field (Bugzilla->get_fields({ obsolete => 0, buglist => 1 }))
+    foreach my $field (Bugzilla->get_fields({ buglist => 1 }))
     {
         my $id = $field->name;
-        $id = $old_names{$id} if exists $old_names{$id};
         my $sql = 'bugs.' . $field->name;
         $sql = $special_sql{$id} if exists $special_sql{$id};
         $columns{$id}{name} = $sql;
@@ -192,7 +217,6 @@ sub COLUMNS {
             foreach my $subfield (Bugzilla->get_fields({ obsolete => 0, buglist => 1 }))
             {
                 my $subid = $subfield->name;
-                $subid = $old_names{$subid} || $subid;
                 if (!$special_sql{$subid})
                 {
                     $columns{$id.'_'.$subid} = {
@@ -216,8 +240,8 @@ sub COLUMNS {
 
     Bugzilla::Hook::process('buglist_columns', { columns => \%columns });
 
-    $cache->{search_columns} = \%columns;
-    return $cache->{search_columns};
+    $cache->{columns} = \%columns;
+    return $cache->{columns};
 }
 
 # Create a new Search
@@ -237,40 +261,34 @@ sub new {
 # Fields for Boolean Charts
 sub CHART_FIELDS
 {
-    if (!Bugzilla->request_cache->{search_chart_fields})
+    my $cache = SEARCH_CACHE();
+    if (!$cache->{chart_fields})
     {
-        my @fielddefs = Bugzilla->get_fields;
-        my %searchcols = %{ COLUMNS() };
-        for (@fielddefs)
+        my $hash = { map { $_->{name} => $_ } Bugzilla->get_fields };
+        my %cols = %{ COLUMNS() };
+        for (keys %cols)
         {
-            delete $searchcols{$_->name};
-            delete $searchcols{$_->name.'_realname'};
+            if (!$hash->{$_} && (!/^(.*)_realname$/ || !$hash->{$1}) && $cols{$_}{name})
+            {
+                $hash->{$_} = {
+                    name => $_,
+                    description => $cols{$_}{title},
+                };
+            }
         }
-        for (keys %searchcols)
-        {
-            push @fielddefs, { name => $_, description => $searchcols{$_}{title} } if $searchcols{$_}{name};
-        }
-        my $hash = { map { $_->{name} => $_ } @fielddefs };
         if (!Bugzilla->user->is_timetracker)
         {
             delete $hash->{$_} for TIMETRACKING_FIELDS;
         }
-        @fielddefs = sort { lc($a->{description}) cmp lc($b->{description}) } values %$hash;
-        Bugzilla->request_cache->{search_chart_fields} = \@fielddefs;
-        Bugzilla->request_cache->{search_chart_fields_hash} = $hash;
+        $cache->{chart_fields} = $hash;
     }
-    return Bugzilla->request_cache->{search_chart_fields};
-}
-
-sub CHART_FIELDS_HASH
-{
-    CHART_FIELDS();
-    return Bugzilla->request_cache->{search_chart_fields_hash};
+    return $cache->{chart_fields};
 }
 
 sub CHANGEDFROMTO_FIELDS
 {
-    if (!Bugzilla->request_cache->{search_changedfromto_fields})
+    my $cache = SEARCH_CACHE();
+    if (!$cache->{changedfromto_fields})
     {
         my $ids = Bugzilla->dbh->selectcol_arrayref('SELECT DISTINCT fieldid FROM bugs_activity');
         my $tt_fields = Bugzilla->user->is_timetracker ? {} : { map { $_ => 1 } TIMETRACKING_FIELDS };
@@ -279,12 +297,13 @@ sub CHANGEDFROMTO_FIELDS
             grep { !$tt_fields->{$_->name} }
             map { Bugzilla->get_field($_) } @$ids
         ];
-        Bugzilla->request_cache->{search_changedfromto_fields} = $fields;
+        $cache->{changedfromto_fields} = $fields;
     }
-    return Bugzilla->request_cache->{search_changedfromto_fields};
+    return $cache->{changedfromto_fields};
 }
 
-sub init {
+sub init
+{
     my $self = shift;
     my @fields = @{ $self->{'fields'} || [] };
     my $params = $self->{'params'};
@@ -302,35 +321,31 @@ sub init {
     my @specialchart;
     my @andlist;
 
-    my %special_order      = %{SPECIAL_ORDER()};
-    my %special_order_join = %{SPECIAL_ORDER_JOIN()};
-
-    my @select_fields =
-        Bugzilla->get_fields({ type => FIELD_TYPE_SINGLE_SELECT });
+    my $special_order = SPECIAL_ORDER();
 
     my @multi_select_fields = Bugzilla->get_fields({
         type     => [FIELD_TYPE_MULTI_SELECT, FIELD_TYPE_BUG_URLS],
         obsolete => 0 });
 
-    foreach my $field (@select_fields)
-    {
-        next if $field->name eq 'product' || $field->name eq 'component' || $field->name eq 'classification';
-        my $type = Bugzilla::Field::Choice->type($field);
-        my $name = $type->DB_TABLE;
-        $special_order{$field->name} = [ map { "$name.$_" } split /\s*,\s*/, $type->LIST_ORDER ];
-        $special_order_join{$field->name} = "LEFT JOIN $name ON $name.".$type->NAME_FIELD." = bugs.".$field->name;
-    }
-
     my $dbh = Bugzilla->dbh;
 
+    for (@fields)
+    {
+        $_ = FIELD_ALIASES->{$_} if FIELD_ALIASES->{$_};
+    }
+
     # All items that are in the ORDER BY must be in the SELECT.
-    foreach my $orderitem (@inputorder) {
+    foreach my $orderitem (@inputorder)
+    {
         my $column_name = split_order_term($orderitem);
-        if (!grep($_ eq $column_name, @fields)) {
-            push(@fields, $column_name);
+        $column_name = FIELD_ALIASES->{$_} if FIELD_ALIASES->{$_};
+        if (!grep($_ eq $column_name, @fields))
+        {
+            push @fields, $column_name;
         }
     }
 
+    # Add table joins
     for my $field (@fields)
     {
         for (@{ COLUMNS->{$field}->{joins} || [] })
@@ -733,9 +748,9 @@ sub init {
     my $sql_deadlinefrom;
     my $sql_deadlineto;
     if ($user->is_timetracker) {
-      if ($params->param('deadlinefrom')) {
-        my $deadlinefrom = $params->param('deadlinefrom');
-        $sql_deadlinefrom = $dbh->quote(SqlifyDate($deadlinefrom));
+        if ($params->param('deadlinefrom')) {
+            my $deadlinefrom = $params->param('deadlinefrom');
+            $sql_deadlinefrom = $dbh->quote(SqlifyDate($deadlinefrom));
             trick_taint($sql_deadlinefrom);
             my $term = "bugs.deadline >= $sql_deadlinefrom";
             push(@wherepart, $term);
@@ -745,9 +760,9 @@ sub init {
             });
         }
 
-      if ($params->param('deadlineto')) {
-        my $deadlineto = $params->param('deadlineto');
-        $sql_deadlineto = $dbh->quote(SqlifyDate($deadlineto));
+        if ($params->param('deadlineto')) {
+            my $deadlineto = $params->param('deadlineto');
+            $sql_deadlineto = $dbh->quote(SqlifyDate($deadlineto));
             trick_taint($sql_deadlineto);
             my $term = "bugs.deadline <= $sql_deadlineto";
             push(@wherepart, $term);
@@ -817,6 +832,8 @@ sub init {
         "^long_?desc,changedby" => \&_long_desc_changedby,
         "^long_?desc,changedbefore" => \&_long_desc_changedbefore_after,
         "^long_?desc,changedafter" => \&_long_desc_changedbefore_after,
+        "^long_?desc,changedfrom" => \&_changedfrom_changedto,
+        "^long_?desc,changedto" => \&_changedfrom_changedto,
         "^content,(?:not)?matches" => \&_content_matches,
         "^content," => sub { ThrowUserError("search_content_without_matches"); },
         "^(?:deadline|creation_ts|delta_ts),(?:lessthan|greaterthan|equals|notequals),(?:-|\\+)?(?:\\d+)(?:[dDwWmMyY])\$" => \&_timestamp_compare,
@@ -828,6 +845,8 @@ sub init {
         "^work_time,changedby" => \&_work_time_changedby,
         "^work_time,changedbefore" => \&_work_time_changedbefore_after,
         "^work_time,changedafter" => \&_work_time_changedbefore_after,
+        "^work_time,changedfrom" => \&_changedfrom_changedto,
+        "^work_time,changedto" => \&_changedfrom_changedto,
         "^work_time," => \&_work_time,
         "^percentage_complete," => \&_percentage_complete,
         "^bug_group,(?!changed)" => \&_bug_group_nonchanged,
@@ -1019,9 +1038,10 @@ sub init {
                     $t ne "equals" && $t ne "notequals" && $t ne "exact") {
                     next;
                 }
+                $f = FIELD_ALIASES->{$f} if FIELD_ALIASES->{$f};
                 # chart -1 is generated by other code above, not from the user-
                 # submitted form, so we'll blindly accept any values in chart -1
-                if (!CHART_FIELDS_HASH->{$f} && $chart != -1) {
+                if (!CHART_FIELDS->{$f} && $chart != -1) {
                     ThrowCodeError("invalid_field_name", {field => $f});
                 }
                 if (COLUMNS->{$f})
@@ -1096,17 +1116,21 @@ sub init {
     # The ORDER BY clause goes last, but can require modifications
     # to other parts of the query, so we want to create it before we
     # write the FROM clause.
-    foreach my $orderitem (@inputorder) {
-        BuildOrderBy(\%special_order, $orderitem, \@orderby);
+    foreach my $orderitem (@inputorder)
+    {
+        BuildOrderBy($special_order, $orderitem, \@orderby);
     }
+
     # Now JOIN the correct tables in the FROM clause.
     # This is done separately from the above because it's
     # cleaner to do it this way.
-    foreach my $orderitem (@inputorder) {
+    foreach my $orderitem (@inputorder)
+    {
         # Grab the part without ASC or DESC.
         my $column_name = split_order_term($orderitem);
-        if ($special_order_join{$column_name}) {
-            push(@supptables, $special_order_join{$column_name});
+        for (@{ $special_order->{$column_name}->{joins} || [] })
+        {
+            push @supptables, $_ if lsearch(\@supptables, $_) < 0;
         }
     }
 
@@ -1196,6 +1220,7 @@ sub init {
 
     # For some DBs, every field in the SELECT must be in the GROUP BY.
     foreach my $field (@fields) {
+        # FIXME
         # These fields never go into the GROUP BY (bug_id goes in
         # explicitly, below).
         next if (grep($_ eq $field, EMPTY_COLUMN,
@@ -1203,14 +1228,18 @@ sub init {
         my $col = COLUMNS->{$field}->{name} || $field;
         push(@groupby, $col) if !grep($_ eq $col, @groupby);
     }
+
     # And all items from ORDER BY must be in the GROUP BY. The above loop
     # doesn't catch items that were put into the ORDER BY from SPECIAL_ORDER.
-    foreach my $item (@inputorder) {
+    foreach my $item (@inputorder)
+    {
         my $column_name = split_order_term($item);
-        if ($special_order{$column_name}) {
-            push(@groupby, @{ $special_order{$column_name} });
+        if ($special_order->{$column_name}->{fields})
+        {
+            push @groupby, @{ $special_order->{$column_name}->{fields} };
         }
     }
+
     $query .= $dbh->sql_group_by("bugs.bug_id", join(', ', @groupby));
 
     if (@having) {
@@ -1378,7 +1407,8 @@ sub pronoun {
 # mean is "B DESC, C ASC". So $reverseorder is only used if we call
 # BuildOrderBy recursively, to let it know that we're "reversing" the
 # order. That is, that we wanted "A DESC", not "A".
-sub BuildOrderBy {
+sub BuildOrderBy
+{
     my ($special_order, $orderitem, $stringlist, $reverseorder) = (@_);
 
     my ($orderfield, $orderdirection) = split_order_term($orderitem);
@@ -1395,8 +1425,8 @@ sub BuildOrderBy {
     }
 
     # Handle fields that have non-standard sort orders, from $specialorder.
-    if ($special_order->{$orderfield}) {
-        foreach my $subitem (@{$special_order->{$orderfield}}) {
+    if ($special_order->{$orderfield}->{fields}) {
+        foreach my $subitem (@{$special_order->{$orderfield}->{fields}}) {
             # DESC on a field with non-standard sort order means
             # "reverse the normal order for each field that we map to."
             BuildOrderBy($special_order, $subitem, $stringlist,
@@ -1407,7 +1437,7 @@ sub BuildOrderBy {
     # Aliases cannot contain dots in them. We convert them to underscores.
     $orderfield =~ s/\./_/g if exists COLUMNS->{$orderfield};
 
-    push(@$stringlist, trim($orderfield . ' ' . $orderdirection));
+    push @$stringlist, trim($orderfield . ' ' . $orderdirection);
 }
 
 # Splits out "asc|desc" from a sort order item.
@@ -2504,7 +2534,7 @@ sub _changedbefore_changedafter {
 
     my $operator = ($$t =~ /before/) ? '<' : '>';
     my $table = "act_$$chartid";
-    my $fieldid = CHART_FIELDS_HASH->{$$f}->{id};
+    my $fieldid = CHART_FIELDS->{$$f}->{id};
     if (!$fieldid) {
         ThrowCodeError("invalid_field_name", {field => $$f});
     }
@@ -2524,7 +2554,7 @@ sub _changedfrom_changedto {
 
     my $operator = ($$t =~ /from/) ? 'removed' : 'added';
     my $table = "act_$$chartid";
-    my $fieldid = CHART_FIELDS_HASH->{$$f}->{id};
+    my $fieldid = CHART_FIELDS->{$$f}->{id};
     if (!$fieldid) {
         ThrowCodeError("invalid_field_name", {field => $$f});
     }
@@ -2543,7 +2573,7 @@ sub _changedby
         @func_args{qw(chartid f v supptables term)};
 
     my $table = "act_$$chartid";
-    my $fieldid = CHART_FIELDS_HASH->{$$f}->{id};
+    my $fieldid = CHART_FIELDS->{$$f}->{id};
     if (!$fieldid)
     {
         ThrowCodeError("invalid_field_name", {field => $$f});
