@@ -498,6 +498,19 @@ sub legal_values
     return $self->{legal_values};
 }
 
+sub legal_value_names
+{
+    my $self = shift;
+    return [] unless $self->is_select;
+    if (!$self->{legal_value_names})
+    {
+        require Bugzilla::Field::Choice;
+        my $type = Bugzilla::Field::Choice->type($self);
+        $self->{legal_value_names} = $type->get_all_names();
+    }
+    return $self->{legal_value_names};
+}
+
 sub restricted_legal_values
 {
     my $self = shift;
@@ -804,7 +817,7 @@ sub remove_from_db {
 
     $self->set_visibility_values(undef);
 
-    delete Bugzilla->request_cache->{fields};
+    Bugzilla->refresh_cache_fields;
 
     $dbh->bz_commit_transaction();
 }
@@ -815,9 +828,19 @@ sub update
     my $self = shift;
     $self->{delta_ts} = POSIX::strftime('%Y-%m-%d %H:%M:%S', localtime);
     my ($changes, $old_self) = $self->SUPER::update(@_);
-    delete Bugzilla->request_cache->{fields};
-    Bugzilla::Search->clear_search_cache;
+    Bugzilla->refresh_cache_fields;
     return wantarray ? ($changes, $old_self) : $changes;
+}
+
+# Update field change timestamp (needed for cache flushing)
+sub touch
+{
+    my $self = shift;
+    $self->{delta_ts} = POSIX::strftime('%Y-%m-%d %H:%M:%S', localtime);
+    Bugzilla->dbh->do(
+        "UPDATE fielddefs SET delta_ts=? WHERE id=?",
+        undef, $self->{delta_ts}, $self->id
+    );
 }
 
 =pod
@@ -865,6 +888,7 @@ sub create {
     # We must set up database schema BEFORE inserting a row into fielddefs!
     $class->check_required_create_fields($params);
     my $field_values = $class->run_create_validators($params);
+    $field_values->{delta_ts} = POSIX::strftime('%Y-%m-%d %H:%M:%S', localtime);
     my $obj = bless $field_values, ref($class)||$class;
 
     my $dbh = Bugzilla->dbh;
@@ -890,8 +914,8 @@ sub create {
     # Call real constructor
     my $self = $class->SUPER::create($params);
 
-    # Flush field cache
-    delete Bugzilla->request_cache->{fields};
+    # Refresh fields inside single request
+    Bugzilla->refresh_cache_fields;
 
     return $self;
 }
@@ -1180,10 +1204,8 @@ sub update_visibility_values
             join(",", map { "($f, $controlled_value_id, $_)" } @$visibility_value_ids)
         );
     }
-    # Clear field cache
-    Bugzilla->clear_field_cache;
     # Touch the field
-    Bugzilla->dbh->do("UPDATE fielddefs SET delta_ts=NOW() WHERE id=?", undef, $controlled_field->id);
+    $controlled_field->touch;
     return 1;
 }
 

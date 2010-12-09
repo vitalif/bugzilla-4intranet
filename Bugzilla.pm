@@ -661,10 +661,34 @@ sub switch_to_main_db {
 sub cache_fields
 {
     my $class = shift;
-    my $cache = $class->request_cache;
-    if (!$cache->{fields})
+    my $rc = $class->request_cache;
+    #return _fill_fields_cache($rc->{fields} ||= {});
+    if (!$rc->{fields_delta_ts})
     {
-        my $r = {};
+        ($rc->{fields_delta_ts}) = Bugzilla->dbh->selectrow_array(
+            "SELECT MAX(delta_ts) FROM fielddefs");
+    }
+    $Bugzilla::CACHE_FIELDS ||= {};
+    if (!$Bugzilla::CACHE_FIELDS->{_cache_ts} ||
+        $rc->{fields_delta_ts} gt $Bugzilla::CACHE_FIELDS->{_cache_ts})
+    {
+        %{$Bugzilla::CACHE_FIELDS} = ();
+        _fill_fields_cache($Bugzilla::CACHE_FIELDS);
+    }
+    return $Bugzilla::CACHE_FIELDS;
+}
+
+sub refresh_cache_fields
+{
+    my $class = shift;
+    delete $class->request_cache->{fields_delta_ts};
+}
+
+sub _fill_fields_cache
+{
+    my ($r) = @_;
+    if (!$r->{id})
+    {
         my $f;
         eval { $f = [ Bugzilla::Field->get_all ]; };
         return undef if $@;
@@ -672,16 +696,13 @@ sub cache_fields
         {
             $r->{id}->{$_->id} = $_;
             $r->{name}->{$_->name} = $_;
+            if (!$r->{_cache_ts} || $r->{_cache_ts} lt $_->{delta_ts})
+            {
+                $r->{_cache_ts} = $_->{delta_ts};
+            }
         }
-        $cache->{fields} = $r;
     }
-    return $cache->{fields};
-}
-
-sub clear_field_cache
-{
-    my $class = shift;
-    delete $class->request_cache->{fields};
+    return $r;
 }
 
 sub get_field
@@ -719,15 +740,16 @@ sub get_fields
 sub fieldvaluecontrol
 {
     my $class = shift;
-    if (!$class->cache_fields->{fieldvaluecontrol})
+    my $cache = $class->cache_fields;
+    if (!$cache->{fieldvaluecontrol})
     {
-        $class->cache_fields->{fieldvaluecontrol} = $class->dbh->selectall_arrayref(
+        $cache->{fieldvaluecontrol} = $class->dbh->selectall_arrayref(
             'SELECT c.*, (CASE WHEN c.value_id=0 THEN f.visibility_field_id ELSE f.value_field_id END) visibility_field_id'.
             ' FROM fieldvaluecontrol c, fielddefs f WHERE f.id=c.field_id'.
             ' ORDER BY c.field_id, c.value_id, (CASE WHEN c.value_id=0 THEN f.visibility_field_id ELSE f.value_field_id END), c.visibility_value_id', {Slice=>{}}
         );
         my $has = {};
-        for (@{$class->cache_fields->{fieldvaluecontrol}})
+        for (@{$cache->{fieldvaluecontrol}})
         {
             if ($_->{value_id})
             {
@@ -745,19 +767,20 @@ sub fieldvaluecontrol
                     ->{$_->{visibility_value_id}} = 1;
             }
         }
-        $class->cache_fields->{fieldvaluecontrol_hash} = $has;
+        $cache->{fieldvaluecontrol_hash} = $has;
     }
-    return $class->cache_fields->{fieldvaluecontrol};
+    return $cache->{fieldvaluecontrol};
 }
 
 sub fieldvaluecontrol_hash
 {
     my $class = shift;
-    if (!$class->cache_fields->{fieldvaluecontrol_hash})
+    my $cache = $class->cache_fields;
+    if (!$cache->{fieldvaluecontrol_hash})
     {
         $class->fieldvaluecontrol;
     }
-    return $class->cache_fields->{fieldvaluecontrol_hash};
+    return $cache->{fieldvaluecontrol_hash};
 }
 
 sub full_json_query_visibility
@@ -794,7 +817,7 @@ sub local_timezone {
 
     if (!defined $class->request_cache->{local_timezone}) {
         $class->request_cache->{local_timezone} =
-          DateTime::TimeZone->new(name => 'local');
+            DateTime::TimeZone->new(name => 'local');
     }
     return $class->request_cache->{local_timezone};
 }
@@ -816,8 +839,6 @@ sub request_cache {
     }
     return $_request_cache ||= {};
 }
-
-sub search_cache { Bugzilla::Search::SEARCH_CACHE() }
 
 # Private methods
 

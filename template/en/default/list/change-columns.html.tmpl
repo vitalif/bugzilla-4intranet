@@ -67,13 +67,13 @@
                   size="15" multiple="multiple" onchange="updateView();">
             [% FOREACH column = collist %]
               <option value="[% column FILTER html %]" selected="selected">
-                [% Bugzilla.search_cache.columns.${column}.title || column | html %]
+                [% Bugzilla.cache_fields.columns.${column}.title || column | html %]
               </option>
             [% END %]
             [% FOREACH column = masterlist %]
               [% IF lsearch(collist, column) == -1 %]
                 <option value="[% column FILTER html %]">
-                  [% Bugzilla.search_cache.columns.${column}.title || column | html %]
+                  [% Bugzilla.cache_fields.columns.${column}.title || column | html %]
                 </option>
               [% END %]
             [% END %]

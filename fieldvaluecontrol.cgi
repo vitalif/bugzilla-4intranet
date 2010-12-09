@@ -16,8 +16,10 @@ my $args = Bugzilla->cgi->Vars;
 my $user = Bugzilla->login(~LOGIN_REQUIRED);
 
 my $ctype = 'text/javascript'.(Bugzilla->params->{utf8} ? '; charset=utf-8' : '');
-my ($touched) = Bugzilla->dbh->selectrow_array('SELECT MAX(delta_ts) FROM fielddefs');
-$touched = datetime_from($touched)->epoch;
+
+# Refresh field cache
+Bugzilla->cache_fields;
+my $touched = datetime_from(Bugzilla->request_cache->{fields_delta_ts})->epoch;
 
 my $user_tag = 'JS'.($args->{type}||'x').($user->id||0);
 my ($req_tag) = ($ENV{HTTP_IF_NONE_MATCH} || '') =~ /(JS[a-z0-9_]{3,})/iso;

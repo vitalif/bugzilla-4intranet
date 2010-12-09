@@ -58,16 +58,6 @@ use Date::Parse;
 # <none> for the X, Y, or Z axis in report.cgi.
 use constant EMPTY_COLUMN => '-1';
 
-sub SEARCH_CACHE
-{
-    return (Bugzilla->request_cache->{search_def_cache} ||= {});
-}
-
-sub clear_search_cache
-{
-    %{SEARCH_CACHE()} = ();
-}
-
 # Some fields are not sorted on themselves, but on other fields.
 # We need to have a list of these fields and what they map to.
 # Each field points to an array that contains the fields mapped
@@ -77,7 +67,7 @@ sub clear_search_cache
 # the join statements that need to be added.
 sub SPECIAL_ORDER
 {
-    my $cache = SEARCH_CACHE;
+    my $cache = Bugzilla->cache_fields;
     return $cache->{special_order} if $cache->{special_order};
     my $special_order = {
         'target_milestone' => {
@@ -105,15 +95,15 @@ sub SPECIAL_ORDER
 # Backward-compatibility for old field names. Goes old_name => new_name.
 sub COLUMN_ALIASES
 {
-    my $cache = SEARCH_CACHE;
-    return $cache->{COLUMN_ALIASES} if $cache->{COLUMN_ALIASES};
+    my $cache = Bugzilla->cache_fields;
+    return $cache->{column_aliases} if $cache->{column_aliases};
     my $COLUMN_ALIASES = {
         opendate    => 'creation_ts',
         changeddate => 'delta_ts',
         actual_time => 'work_time',
     };
-    Bugzilla::Hook::process('search_COLUMN_ALIASES', { aliases => $COLUMN_ALIASES });
-    return $cache->{COLUMN_ALIASES} = $COLUMN_ALIASES;
+    Bugzilla::Hook::process('search_column_aliases', { aliases => $COLUMN_ALIASES });
+    return $cache->{column_aliases} = $COLUMN_ALIASES;
 }
 
 # This constant defines the columns that can be selected in a query
@@ -141,7 +131,7 @@ sub COLUMN_ALIASES
 sub COLUMNS
 {
     my $dbh = Bugzilla->dbh;
-    my $cache = SEARCH_CACHE();
+    my $cache = Bugzilla->cache_fields;
     return $cache->{columns} if $cache->{columns};
 
     # These are columns that don't exist in fielddefs, but are valid buglist
@@ -261,7 +251,7 @@ sub new {
 # Fields for Boolean Charts
 sub CHART_FIELDS
 {
-    my $cache = SEARCH_CACHE();
+    my $cache = Bugzilla->cache_fields;
     if (!$cache->{chart_fields})
     {
         my $hash = { map { $_->{name} => $_ } Bugzilla->get_fields };
@@ -287,7 +277,7 @@ sub CHART_FIELDS
 
 sub CHANGEDFROMTO_FIELDS
 {
-    my $cache = SEARCH_CACHE();
+    my $cache = Bugzilla->cache_fields;
     if (!$cache->{changedfromto_fields})
     {
         my $ids = Bugzilla->dbh->selectcol_arrayref('SELECT DISTINCT fieldid FROM bugs_activity');
