@@ -712,10 +712,10 @@ if (grep('relevance', @displaycolumns) && !$fulltext) {
 my @selectcolumns = ("bug_id", "bug_severity", "priority", "bug_status",
                      "resolution", "product");
 
-# remaining and actual_time are required for percentage_complete calculation:
+# remaining and work_time are required for percentage_complete calculation:
 if (lsearch(\@displaycolumns, "percentage_complete") >= 0) {
     push (@selectcolumns, "remaining_time");
-    push (@selectcolumns, "actual_time");
+    push (@selectcolumns, "work_time");
 }
 
 # Make sure that the login_name version of a field is always also
@@ -743,7 +743,7 @@ if ($dotweak) {
 }
 
 if ($format->{'extension'} eq 'ics') {
-    push(@selectcolumns, "opendate") if !grep($_ eq 'opendate', @selectcolumns);
+    push(@selectcolumns, "creation_ts") if !grep($_ eq 'creation_ts', @selectcolumns);
 }
 
 if ($format->{'extension'} eq 'atom') {
@@ -753,8 +753,8 @@ if ($format->{'extension'} eq 'atom') {
     # This is the list of fields that are needed by the Atom filter.
     my @required_atom_columns = (
         'short_desc',
-        'opendate',
-        'changeddate',
+        'creation_ts',
+        'delta_ts',
         'reporter',
         'reporter_realname',
         'priority',
@@ -811,7 +811,7 @@ if ($order) {
             last ORDER;
         };
         /^Last Changed$/ && do {
-            $order = "changeddate,bug_status,priority,assigned_to,bug_id";
+            $order = "delta_ts,bug_status,priority,assigned_to,bug_id";
             last ORDER;
         };
         do {
@@ -975,18 +975,18 @@ my $percentage_complete = lsearch(\@displaycolumns, 'percentage_complete') >= 0;
 my $estimated_time      = lsearch(\@displaycolumns, 'estimated_time') >= 0;
 my $remaining_time    = ((lsearch(\@displaycolumns, 'remaining_time') >= 0)
                          || $percentage_complete);
-my $actual_time       = ((lsearch(\@displaycolumns, 'actual_time') >= 0)
+my $work_time         = ((lsearch(\@displaycolumns, 'work_time') >= 0)
                          || $percentage_complete);
 my $interval_time     = ((lsearch(\@displaycolumns, 'interval_time') >= 0)
                          || $percentage_complete);
 
 my $time_info = { 'estimated_time' => 0,
                   'remaining_time' => 0,
-                  'actual_time' => 0,
+                  'work_time' => 0,
                   'percentage_complete' => 0,
                   'interval_time' => 0, # CustIS Bug 68921
                   'time_present' => ($estimated_time || $remaining_time ||
-                                     $actual_time || $percentage_complete || $interval_time),
+                                     $work_time || $percentage_complete || $interval_time),
                 };
 
 my $bugowners = {};
@@ -1007,17 +1007,14 @@ while (my @row = $buglist_sth->fetchrow_array()) {
     }
 
     # Process certain values further (i.e. date format conversion).
-    if ($bug->{'changeddate'}) {
-        $bug->{'changeddate'} =~
+    if ($bug->{'delta_ts'}) {
+        $bug->{'delta_ts'} =~
             s/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})$/$1-$2-$3 $4:$5:$6/;
-
-        $bug->{'changedtime'} = $bug->{'changeddate'}; # for iCalendar and Atom
-        $bug->{'changeddate'} = DiffDate($bug->{'changeddate'});
+        $bug->{'delta_ts_diff'} = DiffDate($bug->{'delta_ts'});
     }
 
-    if ($bug->{'opendate'}) {
-        $bug->{'opentime'} = $bug->{'opendate'}; # for iCalendar
-        $bug->{'opendate'} = DiffDate($bug->{'opendate'});
+    if ($bug->{'creation_ts'}) {
+        $bug->{'creation_ts_diff'} = DiffDate($bug->{'creation_ts'});
     }
 
     # Record the assignee, product, and status in the big hashes of those things.
@@ -1034,10 +1031,10 @@ while (my @row = $buglist_sth->fetchrow_array()) {
     push(@bugidlist, $bug->{'bug_id'});
 
     # Compute time tracking info.
-    $time_info->{'estimated_time'} += $bug->{'estimated_time'} if ($estimated_time);
-    $time_info->{'remaining_time'} += $bug->{'remaining_time'} if ($remaining_time);
-    $time_info->{'actual_time'}    += $bug->{'actual_time'}    if ($actual_time);
-    $time_info->{'interval_time'}  += $bug->{'interval_time'}  if ($interval_time);
+    $time_info->{'estimated_time'} += $bug->{'estimated_time'} if $estimated_time;
+    $time_info->{'remaining_time'} += $bug->{'remaining_time'} if $remaining_time;
+    $time_info->{'work_time'}      += $bug->{'work_time'}      if $work_time;
+    $time_info->{'interval_time'}  += $bug->{'interval_time'}  if $interval_time;
 }
 
 # Check for bug privacy and set $bug->{'secure_mode'} to 'implied' or 'manual'
@@ -1071,9 +1068,9 @@ if (@bugidlist) {
 }
 
 # Compute percentage complete without rounding.
-my $sum = $time_info->{'actual_time'}+$time_info->{'remaining_time'};
+my $sum = $time_info->{'work_time'} + $time_info->{'remaining_time'};
 if ($sum > 0) {
-    $time_info->{'percentage_complete'} = 100*$time_info->{'actual_time'}/$sum;
+    $time_info->{'percentage_complete'} = 100*$time_info->{'work_time'}/$sum;
 }
 else { # remaining_time <= 0
     $time_info->{'percentage_complete'} = 0

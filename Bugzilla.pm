@@ -813,6 +813,8 @@ sub request_cache {
     return $_request_cache ||= {};
 }
 
+sub search_cache { Bugzilla::Search::SEARCH_CACHE() }
+
 # Private methods
 
 # Per-process cleanup. Note that this is a plain subroutine, not a method,
