@@ -182,7 +182,7 @@ if (defined $cgi->param('columnlist')) {
 
 # Respect aliases
 {
-    my $a = Bugzilla::Search->FIELD_ALIASES;
+    my $a = Bugzilla::Search->COLUMN_ALIASES;
     $_ = $a->{$_} || $_ for @collist;
 }
 
