@@ -1,7 +1,7 @@
 [% IF search_description && search_description.size %]
 <ul class="search_description">
-[% c = Bugzilla.search_cache.chart_fields %]
-[% a = Bugzilla.search_cache.field_aliases %]
+[% c = Bugzilla.cache_fields.chart_fields %]
+[% a = Bugzilla.cache_fields.field_aliases %]
 [% FOREACH i = search_description %]
   <li>
     [% IF i.field %]

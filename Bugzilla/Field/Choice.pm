@@ -156,6 +156,13 @@ sub new {
 # BEFORE calling run_create_validators etc, as these methods can change
 # params hash (for example turn Bugzilla::Product to product_id field)
 
+sub create
+{
+    my $self = shift;
+    $self->field->touch;
+    $self->SUPER::create(@_);
+}
+
 sub update {
     my $self = shift;
     my $dbh = Bugzilla->dbh;
@@ -187,6 +194,7 @@ sub update {
         }
     }
 
+    $self->field->touch;
     $dbh->bz_commit_transaction();
     return wantarray ? ($changes, $old_self) : $changes;
 }
@@ -209,6 +217,7 @@ sub remove_from_db {
     }
     $self->_check_if_controller();
     $self->set_visibility_values(undef);
+    $self->field->touch;
     $self->SUPER::remove_from_db();
 }
 
@@ -233,7 +242,7 @@ sub get_all
     my @filtered;
     for my $value (@all)
     {
-        $vis = $value->name eq '---' || !$h->{$value->id} || !%{$h->{$value->id}} ? 1 : 0;
+        $vis = !$h->{$value->id} || !%{$h->{$value->id}} ? 1 : 0;
         for (keys %{$h->{$value->id}})
         {
             if ($visible_ids->{$_})
@@ -245,6 +254,63 @@ sub get_all
         push @filtered, $value if $vis;
     }
     return @filtered;
+}
+
+sub get_all_names
+{
+    my $class = shift;
+    my $f = $class->field;
+    my $where = grep { $_ eq 'isactive' } $class->DB_COLUMNS;
+    $where = $where ? [ "$where>0" ] : [];
+    # Apply product access controls
+    if ($f->value_field_id && $f->value_field->name eq 'product')
+    {
+        my $h = Bugzilla->fieldvaluecontrol_hash
+            ->{Bugzilla->get_field('product')->id}
+            ->{values}
+            ->{$f->id};
+        # Products visible to current user
+        my $visible_prods = { map { $_->id => 1 } Bugzilla::Product->get_all };
+        # IDs of invisible values
+        my $invisible_ids = [];
+        for my $id (keys %$h)
+        {
+            if ($h->{$id} && %{$h->{$id}})
+            {
+                VISIBLE: {
+                    for (keys %{$h->{$id}})
+                    {
+                        last VISIBLE if $visible_prods->{$_};
+                    }
+                    push @$invisible_ids, $id;
+                }
+            }
+        }
+        if (@$invisible_ids)
+        {
+            push @$where, 'id NOT IN ('.join(',', @$invisible_ids).')';
+        }
+    }
+    $where = join ' AND ', @$where;
+    $where and $where = " WHERE $where";
+    my $order = $class->LIST_ORDER;
+    $order =~ s/(\s+(A|DE)SC)(?!\w)//giso;
+    my $col = Bugzilla->dbh->selectcol_arrayref(
+        'SELECT DISTINCT '.$class->NAME_FIELD.','.$class->LIST_ORDER.
+        ' FROM '.$class->DB_TABLE.$where.
+        ' ORDER BY '.$class->LIST_ORDER
+    );
+    my $dup = {};
+    my $names = [];
+    for (@$col)
+    {
+        if (!$dup->{$_})
+        {
+            push @$names, $_;
+            $dup->{$_} = 1;
+        }
+    }
+    return $names;
 }
 
 sub _check_if_controller
