@@ -103,10 +103,11 @@ sub update_fielddefs_definition {
         $dbh->do('UPDATE fielddefs SET buglist = 1 WHERE custom = 1 AND type != ' . FIELD_TYPE_MULTI_SELECT);
     }
 
-
     # Remember, this is not the function for adding general table changes.
     # That is below. Add new changes to the fielddefs table above this
     # comment.
+
+    Bugzilla::Hook::process('install_update_fielddefs');
 }
 
 # Small changes can be put directly into this function.
