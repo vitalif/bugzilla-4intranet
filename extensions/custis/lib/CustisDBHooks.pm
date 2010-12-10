@@ -371,6 +371,9 @@ sub install_update_fielddefs
         );
     }
 
+    # Bug 70605 - Делаем вид, что изменили какое-то поле, чтобы при checksetup автоматически сбросился кэш
+    $dbh->do('UPDATE fielddefs SET delta_ts=NOW() WHERE name=\'delta_ts\'');
+
     return 1;
 }
 
