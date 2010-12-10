@@ -111,11 +111,13 @@ sub COLUMN_ALIASES
 # and/or displayed in a bug list. These are hashes of hashes. The key is field
 # name, and the value is a hash with following data:
 #
-# 1. name: SQL code for field value.
-# 2. joins: arrayref of table join SQL code needed to use this value.
-# 3. title: The title of the column as displayed to users.
-# 4. nobuglist: 1 for fields that cannot be displayed in bug list.
-# 5. nocharts: 1 for fields that cannot be used in Boolean Charts.
+# FIXME change hash key names (id -> name, name -> sql, subid -> subname)
+# 1. id: equals to the key of outer hash (field name).
+# 2. name: SQL code for field value.
+# 3. joins: arrayref of table join SQL code needed to use this value.
+# 4. title: The title of the column as displayed to users.
+# 5. nobuglist: 1 for fields that cannot be displayed in bug list.
+# 6. nocharts: 1 for fields that cannot be used in Boolean Charts.
 #
 # STATIC_COLUMNS is a constant and is freely cached between requests.
 # COLUMNS is a subroutine that takes STATIC_COLUMNS, copies the hash,
@@ -227,6 +229,8 @@ sub STATIC_COLUMNS
     $columns{short_short_desc} = $columns{short_desc};
 
     Bugzilla::Hook::process('buglist_static_columns', { columns => \%columns });
+
+    $columns{$_}{id} = $_ for keys %columns;
 
     $cache->{columns} = \%columns;
     return $cache->{columns};
