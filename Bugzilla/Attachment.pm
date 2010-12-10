@@ -919,7 +919,8 @@ sub run_create_validators {
     return $params;
 }
 
-sub update {
+sub update
+{
     my $self = shift;
     my $dbh = Bugzilla->dbh;
     my $user = Bugzilla->user;
@@ -932,24 +933,24 @@ sub update {
         $changes->{'flagtypes.name'} = [$removed, $added];
     }
 
-    # Record changes in the activity table.
-    my $sth = $dbh->prepare('INSERT INTO bugs_activity (bug_id, attach_id, who, bug_when,
-                                                        fieldid, removed, added)
-                             VALUES (?, ?, ?, ?, ?, ?, ?)');
-
-    foreach my $field (keys %$changes) {
-        my $change = $changes->{$field};
-        $field = "attachments.$field" unless $field eq "flagtypes.name";
-        my $fieldid = get_field_id($field);
-        $sth->execute($self->bug_id, $self->id, $user->id, $timestamp,
-                      $fieldid, $change->[0], $change->[1]);
+    # Log activity
+    my $c;
+    foreach my $field (keys %$changes)
+    {
+        $c = $changes->{$field};
+        $field = "attachments.$field" unless $field eq 'flagtypes.name';
+        Bugzilla::Bug::LogActivityEntry(
+            $self->bug_id, $field, $c->[0], $c->[1],
+            $user->id, $timestamp, $self->id
+        );
     }
 
-    if (scalar(keys %$changes)) {
-      $dbh->do('UPDATE attachments SET modification_time = ? WHERE attach_id = ?',
-               undef, ($timestamp, $self->id));
-      $dbh->do('UPDATE bugs SET delta_ts = ? WHERE bug_id = ?',
-               undef, ($timestamp, $self->bug_id));
+    if (scalar keys %$changes)
+    {
+        $dbh->do('UPDATE attachments SET modification_time = ? WHERE attach_id = ?',
+                 undef, $timestamp, $self->id);
+        $dbh->do('UPDATE bugs SET delta_ts = ? WHERE bug_id = ?',
+                 undef, $timestamp, $self->bug_id);
     }
 
     return $changes;

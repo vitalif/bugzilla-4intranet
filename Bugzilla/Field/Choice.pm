@@ -173,11 +173,14 @@ sub update {
     my ($changes, $old_self) = $self->SUPER::update(@_);
     if (exists $changes->{$self->NAME_FIELD}) {
         my ($old, $new) = @{ $changes->{$self->NAME_FIELD} };
-        if ($self->field->type == FIELD_TYPE_MULTI_SELECT) {
+        if ($self->field->type == FIELD_TYPE_MULTI_SELECT)
+        {
             $dbh->do("UPDATE bug_$fname SET value = ? WHERE value = ?",
                      undef, $new, $old);
         }
-        else {
+        else
+        {
+            $self->field->{has_activity} = 1;
             $dbh->do(
                 "INSERT INTO bugs_activity (bug_id, who, bug_when, fieldid, added, removed)".
                 " SELECT bug_id, ?, NOW(), ?, ?, ? FROM bugs WHERE $fname = ?", undef,

@@ -98,51 +98,35 @@ sub COLUMN_ALIASES
     my $cache = Bugzilla->cache_fields;
     return $cache->{column_aliases} if $cache->{column_aliases};
     my $COLUMN_ALIASES = {
-        opendate    => 'creation_ts',
+        opendate => 'creation_ts',
         changeddate => 'delta_ts',
         actual_time => 'work_time',
+        '[Bug creation]' => 'creation_ts',
     };
     Bugzilla::Hook::process('search_column_aliases', { aliases => $COLUMN_ALIASES });
     return $cache->{column_aliases} = $COLUMN_ALIASES;
 }
 
-# This constant defines the columns that can be selected in a query
-# and/or displayed in a bug list.  Column records include the following
-# fields:
+# STATIC_COLUMNS and COLUMNS define the columns that can be selected in a query
+# and/or displayed in a bug list. These are hashes of hashes. The key is field
+# name, and the value is a hash with following data:
 #
-# 1. id: a unique identifier by which the column is referred in code;
-#
-# 2. name: The name of the column in the database (may also be an expression
-#          that returns the value of the column);
-#
+# 1. name: SQL code for field value.
+# 2. joins: arrayref of table join SQL code needed to use this value.
 # 3. title: The title of the column as displayed to users.
+# 4. nobuglist: 1 for fields that cannot be displayed in bug list.
+# 5. nocharts: 1 for fields that cannot be used in Boolean Charts.
 #
-# Note: There are a few hacks in the code that deviate from these definitions.
-#       In particular, when the list is sorted by the "votes" field the word
-#       "DESC" is added to the end of the field to sort in descending order,
-#       and the redundant short_desc column is removed when the client
-#       requests "all" columns.
-#
-# This is really a constant--that is, once it's been called once, the value
-# will always be the same unless somebody adds a new custom field. But
-# we have to do a lot of work inside the subroutine to get the data,
-# and we don't want it to happen at compile time, so we have it as a
-# subroutine.
-sub COLUMNS
+# STATIC_COLUMNS is a constant and is freely cached between requests.
+# COLUMNS is a subroutine that takes STATIC_COLUMNS, copies the hash,
+# modifies it for the needs of current request and caches once per request.
+# I.e. it removes time-tracking fields for non-timetrackers etc.
+
+sub STATIC_COLUMNS
 {
     my $dbh = Bugzilla->dbh;
     my $cache = Bugzilla->cache_fields;
     return $cache->{columns} if $cache->{columns};
-
-    # These are columns that don't exist in fielddefs, but are valid buglist
-    # columns. (Also see near the bottom of this function for the definition
-    # of short_short_desc.)
-    my %columns = (
-        relevance            => { title => 'Relevance'  },
-        assigned_to_realname => { title => 'Assignee'   },
-        reporter_realname    => { title => 'Reporter'   },
-        qa_contact_realname  => { title => 'QA Contact' },
-    );
 
     # ---- vfilippov@custis.ru 2010-02-02
     # The previous sql code:
@@ -150,37 +134,49 @@ sub COLUMNS
     # was probably written by Australopithecus.
     my $actual_time = '(SELECT SUM(ldtime.work_time) FROM longdescs ldtime WHERE ldtime.bug_id=bugs.bug_id)';
 
-    my %special_sql = (
-        deadline => $dbh->sql_date_format('bugs.deadline', '%Y-%m-%d'),
-        work_time => $actual_time,
-        percentage_complete =>
-            "(CASE WHEN $actual_time + bugs.remaining_time = 0.0 THEN 0.0" .
-            " ELSE 100 * ($actual_time / ($actual_time + bugs.remaining_time)) END)",
-        'flagtypes.name' => $dbh->sql_group_concat('DISTINCT ' . $dbh->sql_string_concat('flagtypes.name', 'flags.status'), "', '"),
+    my %columns = (
+        relevance            => { title => 'Relevance' },
+        assigned_to_realname => { title => 'Assignee', nocharts => 1 },
+        reporter_realname    => { title => 'Reporter', nocharts => 1 },
+        qa_contact_realname  => { title => 'QA Contact', nocharts => 1 },
+        deadline => { name => $dbh->sql_date_format('bugs.deadline', '%Y-%m-%d') },
+        work_time => { name => $actual_time },
+        percentage_complete => {
+            name => "(CASE WHEN $actual_time + bugs.remaining_time = 0.0 THEN 0.0" .
+                " ELSE 100 * ($actual_time / ($actual_time + bugs.remaining_time)) END)",
+        },
+        'flagtypes.name' => {
+            name => $dbh->sql_group_concat('DISTINCT ' . $dbh->sql_string_concat('flagtypes.name', 'flags.status'), "', '"),
+            joins => [
+                "LEFT JOIN flags ON flags.bug_id = bugs.bug_id AND attach_id IS NULL",
+                "LEFT JOIN flagtypes ON flagtypes.id = flags.type_id"
+            ],
+        },
     );
 
     # Fields that are email addresses
     my @email_fields = qw(assigned_to reporter qa_contact);
 
-    # Other fields that are stored in the bugs table as an id, but
-    # should be displayed using their name.
-    my @id_fields = qw(product component classification);
-
     foreach my $col (@email_fields)
     {
         my $sql = "map_${col}.login_name";
-        if (!Bugzilla->user->id) {
+        if (!Bugzilla->user->id)
+        {
             $sql = $dbh->sql_string_until($sql, $dbh->quote('@'));
         }
-        $special_sql{$col} = $sql;
-        $columns{"${col}_realname"}->{name} = "map_${col}.realname";
+        $columns{$col.'_realname'}{name} = "map_${col}.realname";
+        $columns{$col}{name} = $sql;
         $columns{$col}{joins} = $columns{"${col}_realname"}{joins} =
             [ "LEFT JOIN profiles AS map_$col ON bugs.$col = map_$col.userid" ];
     }
 
+    # Other fields that are stored in the bugs table as an id, but
+    # should be displayed using their name.
+    my @id_fields = qw(product component classification);
+
     foreach my $col (@id_fields)
     {
-        $special_sql{$col} = "map_${col}s.name";
+        $columns{$col}{name} = "map_${col}s.name";
         $columns{$col}{joins} = [
             "INNER JOIN ${col}s AS map_${col}s ON ".
             ($col eq 'classification' ? "map_products" : "bugs").
@@ -193,50 +189,82 @@ sub COLUMNS
     }
 
     # Do the actual column-getting from fielddefs, now.
-    foreach my $field (Bugzilla->get_fields({ buglist => 1 }))
+    my @bugsjoin;
+    foreach my $field (Bugzilla->get_fields)
     {
         my $id = $field->name;
-        my $sql = 'bugs.' . $field->name;
-        $sql = $special_sql{$id} if exists $special_sql{$id};
-        $columns{$id}{name} = $sql;
+        $columns{$id}{name} ||= 'bugs.' . $field->name;
         $columns{$id}{title} = $field->description;
-        # "Joins"
+        $columns{$id}{nobuglist} = !$field->buglist;
         if ($field->type == FIELD_TYPE_BUG_ID)
         {
-            my $join = [ "LEFT JOIN bugs bugs_$id ON bugs_$id.bug_id=bugs.$id" ];
-            foreach my $subfield (Bugzilla->get_fields({ obsolete => 0, buglist => 1 }))
+            push @bugsjoin, $field;
+        }
+    }
+
+    # Fields of bugs related to selected
+    foreach my $field (@bugsjoin)
+    {
+        my $id = $field->name;
+        my $join = [ "LEFT JOIN bugs bugs_$id ON bugs_$id.bug_id=bugs.$id" ];
+        foreach my $subfield (Bugzilla->get_fields({ obsolete => 0, buglist => 1 }))
+        {
+            my $subid = $subfield->name;
+            if ($columns{$subid}{name} ne "bugs.$subid")
             {
-                my $subid = $subfield->name;
-                if (!$special_sql{$subid})
-                {
-                    $columns{$id.'_'.$subid} = {
-                        name  => "bugs_$id.".$subfield->name,
-                        title => $field->description . ' ' . $subfield->description,
-                        joins => $join,
-                        subid => $subid,
-                    };
-                }
+                $columns{$id.'_'.$subid} = {
+                    name  => "bugs_$id.".$subfield->name,
+                    title => $field->description . ' ' . $subfield->description,
+                    joins => $join,
+                    subid => $subid,
+                };
             }
         }
     }
 
-    $columns{'flagtypes.name'}{joins} = [
-        "LEFT JOIN flags ON flags.bug_id = bugs.bug_id AND attach_id IS NULL",
-        "LEFT JOIN flagtypes ON flagtypes.id = flags.type_id"
-    ];
+    # short_short_desc is short_desc truncated to 60 characters
+    # see template list/table.html.tmpl
+    $columns{short_short_desc} = $columns{short_desc};
 
-    # The short_short_desc column is identical to short_desc
-    $columns{'short_short_desc'} = $columns{'short_desc'};
-
-    Bugzilla::Hook::process('buglist_columns', { columns => \%columns });
+    Bugzilla::Hook::process('buglist_static_columns', { columns => \%columns });
 
     $cache->{columns} = \%columns;
     return $cache->{columns};
 }
 
-# Create a new Search
+# Copy and modify STATIC_COLUMNS for current user / request
+sub COLUMNS
+{
+    my $cache = Bugzilla->rc_cache_fields;
+    return $cache->{columns} if $cache->{columns};
+    my %columns = %{ STATIC_COLUMNS() };
+    if (!Bugzilla->user->is_timetracker)
+    {
+        delete $columns{$_} for TIMETRACKING_FIELDS;
+    }
+    Bugzilla::Hook::process('buglist_columns', { columns => \%columns });
+    return $cache->{columns} = \%columns;
+}
+
+# This is now used only by query.cgi
+sub CHANGEDFROMTO_FIELDS
+{
+    # creation_ts, longdesc, longdescs.isprivate, commenter
+    # are treated specially and always have has_activity
+    # (see install_update_fielddefs CustIS hook)
+    my @fields = grep { $_->{name} } Bugzilla->get_fields({ has_activity => 1 });
+    if (!Bugzilla->user->is_timetracker)
+    {
+        my %tt_fields = map { $_ => 1 } TIMETRACKING_FIELDS;
+        @fields = grep { !$tt_fields{$_->name} } @fields;
+    }
+    return \@fields;
+}
+
+# Create a new Bugzilla::Search object
 # Note that the param argument may be modified by Bugzilla::Search
-sub new {
+sub new
+{
     my $invocant = shift;
     my $class = ref($invocant) || $invocant;
 
@@ -246,50 +274,6 @@ sub new {
     $self->init();
 
     return $self;
-}
-
-# Fields for Boolean Charts
-sub CHART_FIELDS
-{
-    my $cache = Bugzilla->cache_fields;
-    if (!$cache->{chart_fields})
-    {
-        my $hash = { map { $_->{name} => $_ } Bugzilla->get_fields };
-        my %cols = %{ COLUMNS() };
-        for (keys %cols)
-        {
-            if (!$hash->{$_} && (!/^(.*)_realname$/ || !$hash->{$1}) && $cols{$_}{name})
-            {
-                $hash->{$_} = {
-                    name => $_,
-                    description => $cols{$_}{title},
-                };
-            }
-        }
-        if (!Bugzilla->user->is_timetracker)
-        {
-            delete $hash->{$_} for TIMETRACKING_FIELDS;
-        }
-        $cache->{chart_fields} = $hash;
-    }
-    return $cache->{chart_fields};
-}
-
-sub CHANGEDFROMTO_FIELDS
-{
-    my $cache = Bugzilla->cache_fields;
-    if (!$cache->{changedfromto_fields})
-    {
-        my $ids = Bugzilla->dbh->selectcol_arrayref('SELECT DISTINCT fieldid FROM bugs_activity');
-        my $tt_fields = Bugzilla->user->is_timetracker ? {} : { map { $_ => 1 } TIMETRACKING_FIELDS };
-        my $fields = [
-            sort { $a->description cmp $b->description }
-            grep { !$tt_fields->{$_->name} }
-            map { Bugzilla->get_field($_) } @$ids
-        ];
-        $cache->{changedfromto_fields} = $fields;
-    }
-    return $cache->{changedfromto_fields};
 }
 
 sub init
@@ -365,7 +349,7 @@ sub init
         my @bug_statuses = $params->param('bug_status');
         # Also include inactive bug statuses, as you can query them.
         my @legal_statuses =
-          map {$_->name} @{Bugzilla->get_field('bug_status')->legal_values};
+            map {$_->name} @{Bugzilla->get_field('bug_status')->legal_values};
 
         # Filter out any statuses that have been removed completely that are still
         # being used by the client
@@ -490,6 +474,7 @@ sub init
     $chfieldfrom = '' if ($chfieldfrom eq 'now');
     $chfieldto = '' if ($chfieldto eq 'now');
     my @chfield = $params->param('chfield');
+    $_ = COLUMN_ALIASES->{$_} || $_ for @chfield;
     my $chvalue = trim($params->param('chfieldvalue')) || '';
 
     # 2003-05-20: The 'changedin' field is no longer in the UI, but we continue
@@ -504,7 +489,7 @@ sub init
         if (!$chfieldfrom
             && !$chfieldto
             && scalar(@chfield) == 1
-            && $chfield[0] eq "[Bug creation]")
+            && $chfield[0] eq 'creation_ts')
         {
             # Deal with the special case where the query is using changedin
             # to get bugs created in the last n days by converting the value
@@ -540,16 +525,13 @@ sub init
         # CustIS Bug 68921 - a dirty hack: "interval worktime" column
         $Bugzilla::Search::interval_from = SqlifyDate($chfieldfrom);
         $Bugzilla::Search::interval_to = SqlifyDate($chfieldto);
-        COLUMNS->{interval_time} = {
-            name  =>
-                "(SELECT IFNULL(SUM(ldtime.work_time),0) FROM longdescs ldtime".
-                " WHERE ldtime.bug_id=bugs.bug_id".
-                ($sql_chfrom?" AND ldtime.bug_when>=$sql_chfrom":"").
-                ($sql_chto  ?" AND ldtime.bug_when<=$sql_chto":"").
-                ($chfieldwho?" AND ldtime.who=$chfieldwho":"").
-                ")",
-            title => "Interval worktime",
-        };
+        COLUMNS->{interval_time}->{name} =
+            "(SELECT COALESCE(SUM(ldtime.work_time),0) FROM longdescs ldtime".
+            " WHERE ldtime.bug_id=bugs.bug_id".
+            ($sql_chfrom?" AND ldtime.bug_when>=$sql_chfrom":"").
+            ($sql_chto  ?" AND ldtime.bug_when<=$sql_chto":"").
+            ($chfieldwho?" AND ldtime.who=$chfieldwho":"").
+            ")";
 
         my $sql_chvalue = $chvalue ne '' ? $dbh->quote($chvalue) : '';
         trick_taint($sql_chvalue);
@@ -566,9 +548,10 @@ sub init
         foreach my $f (@chfield)
         {
             my $term;
-            if ($f eq "[Bug creation]")
+            if ($f eq 'creation_ts')
             {
-                # Treat [Bug creation] differently because we need to look
+                # Treat creation_ts (and [Bug creation] through aliases)
+                # differently because we need to look
                 # at bugs.creation_ts rather than the bugs_activity table.
                 my @l;
                 if ($sql_chfrom) {
@@ -1036,7 +1019,8 @@ sub init
                 $f = COLUMN_ALIASES->{$f} if COLUMN_ALIASES->{$f};
                 # chart -1 is generated by other code above, not from the user-
                 # submitted form, so we'll blindly accept any values in chart -1
-                if (!CHART_FIELDS->{$f} && $chart != -1) {
+                if (!COLUMNS->{$f} && $chart != -1)
+                {
                     ThrowCodeError("invalid_field_name", {field => $f});
                 }
                 if (COLUMNS->{$f})
@@ -2533,10 +2517,11 @@ sub _changedbefore_changedafter {
 
     my $operator = ($$t =~ /before/) ? '<' : '>';
     my $table = "act_$$chartid";
-    my $fieldid = CHART_FIELDS->{$$f}->{id};
+    my $fieldid = Bugzilla->get_field($$f);
     if (!$fieldid) {
         ThrowCodeError("invalid_field_name", {field => $$f});
     }
+    $fieldid = $fieldid->id;
     push(@$supptables, "LEFT JOIN bugs_activity AS $table " .
                       "ON $table.bug_id = bugs.bug_id " .
                       "AND $table.fieldid = $fieldid " .
@@ -2553,10 +2538,11 @@ sub _changedfrom_changedto {
 
     my $operator = ($$t =~ /from/) ? 'removed' : 'added';
     my $table = "act_$$chartid";
-    my $fieldid = CHART_FIELDS->{$$f}->{id};
+    my $fieldid = Bugzilla->get_field($$f);
     if (!$fieldid) {
         ThrowCodeError("invalid_field_name", {field => $$f});
     }
+    $fieldid = $fieldid->id;
     push(@$supptables, "LEFT JOIN bugs_activity AS $table " .
                       "ON $table.bug_id = bugs.bug_id " .
                       "AND $table.fieldid = $fieldid " .
@@ -2572,11 +2558,11 @@ sub _changedby
         @func_args{qw(chartid f v supptables term)};
 
     my $table = "act_$$chartid";
-    my $fieldid = CHART_FIELDS->{$$f}->{id};
-    if (!$fieldid)
-    {
+    my $fieldid = Bugzilla->get_field($$f);
+    if (!$fieldid) {
         ThrowCodeError("invalid_field_name", {field => $$f});
     }
+    $fieldid = $fieldid->id;
     my $id = login_to_id($$v, THROW_ERROR);
     push @$supptables, "LEFT JOIN bugs_activity AS $table " .
                       "ON $table.bug_id = bugs.bug_id " .

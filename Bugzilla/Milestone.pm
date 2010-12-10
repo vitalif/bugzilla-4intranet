@@ -133,6 +133,7 @@ sub update
     if (exists $changes->{value})
     {
         # Record activity
+        $self->field->{has_activity} = 1;
         $dbh->do(
             'INSERT INTO bugs_activity (bug_id, who, bug_when, fieldid, added, removed)'.
             ' SELECT bug_id, ?, NOW(), ?, ?, ? FROM bugs WHERE target_milestone = ? AND product_id = ?', undef,

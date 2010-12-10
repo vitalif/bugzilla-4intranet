@@ -678,10 +678,20 @@ sub cache_fields
     return $Bugzilla::CACHE_FIELDS;
 }
 
+sub COLUMNS { Bugzilla::Search->COLUMNS }
+sub COLUMN_ALIASES { Bugzilla::Search->COLUMN_ALIASES }
+
+sub rc_cache_fields
+{
+    my $class = shift;
+    return ($class->request_cache->{cache_fields} ||= {});
+}
+
 sub refresh_cache_fields
 {
     my $class = shift;
     delete $class->request_cache->{fields_delta_ts};
+    delete $class->request_cache->{cache_fields};
 }
 
 sub _fill_fields_cache
@@ -689,9 +699,7 @@ sub _fill_fields_cache
     my ($r) = @_;
     if (!$r->{id})
     {
-        my $f;
-        eval { $f = [ Bugzilla::Field->get_all ]; };
-        return undef if $@;
+        my $f = [ Bugzilla::Field->get_all ];
         for (@$f)
         {
             $r->{id}->{$_->id} = $_;

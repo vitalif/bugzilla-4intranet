@@ -3490,14 +3490,22 @@ sub SilentLog
 }
 
 # Update the bugs_activity table to reflect changes made in bugs.
-sub LogActivityEntry {
-    my ($i, $col, $removed, $added, $whoid, $timestamp) = @_;
+sub LogActivityEntry
+{
+    my ($bug_id, $col, $removed, $added, $whoid, $timestamp, $attach_id) = @_;
+    my $f = Bugzilla->get_field($col);
+    if (!$f->{has_activity})
+    {
+        $f->{has_activity} = 1;
+        $f->update;
+    }
     my $dbh = Bugzilla->dbh;
     # in the case of CCs, deps, and keywords, there's a possibility that someone
     # might try to add or remove a lot of them at once, which might take more
     # space than the activity table allows.  We'll solve this by splitting it
     # into multiple entries if it's too long.
-    while ($removed || $added) {
+    while ($removed || $added)
+    {
         my ($removestr, $addstr) = ($removed, $added);
         if (length($removestr) > MAX_LINE_LENGTH) {
             my $commaposition = find_wrap_point($removed, MAX_LINE_LENGTH);
@@ -3517,11 +3525,11 @@ sub LogActivityEntry {
         }
         trick_taint($addstr);
         trick_taint($removestr);
-        my $fieldid = get_field_id($col);
-        $dbh->do("INSERT INTO bugs_activity
-                  (bug_id, who, bug_when, fieldid, removed, added)
-                  VALUES (?, ?, ?, ?, ?, ?)",
-                  undef, ($i, $whoid, $timestamp, $fieldid, $removestr, $addstr));
+        $dbh->do(
+            "INSERT INTO bugs_activity (bug_id, who, bug_when, fieldid, removed, added, attach_id)".
+            " VALUES (?, ?, ".($timestamp ? "?" : "NOW()").", ?, ?, ?)", undef,
+            $bug_id, $whoid, ($timestamp ? ($timestamp) : ()), $f->id, $removestr, $addstr, $attach_id
+        );
     }
 }
 
