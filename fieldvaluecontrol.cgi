@@ -1,6 +1,5 @@
 #!/usr/bin/perl -wT
 # Bug 70605 - Client-side caching of field control data
-# TODO touch fields on every checksetup run
 
 use strict;
 use lib qw(. lib);
