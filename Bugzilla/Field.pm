@@ -821,6 +821,8 @@ sub remove_from_db {
 
     $self->set_visibility_values(undef);
 
+    # Update some other field (refresh the cache)
+    Bugzilla->get_field('delta_ts')->touch;
     Bugzilla->refresh_cache_fields;
 
     $dbh->bz_commit_transaction();
@@ -887,9 +889,9 @@ sub create {
     my ($params) = @_;
 
     # We must set up database schema BEFORE inserting a row into fielddefs!
+    $params->{delta_ts} = POSIX::strftime('%Y-%m-%d %H:%M:%S', localtime);
     $class->check_required_create_fields($params);
     my $field_values = $class->run_create_validators($params);
-    $field_values->{delta_ts} = POSIX::strftime('%Y-%m-%d %H:%M:%S', localtime);
     my $obj = bless $field_values, ref($class)||$class;
 
     my $dbh = Bugzilla->dbh;

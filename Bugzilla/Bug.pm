@@ -3527,7 +3527,7 @@ sub LogActivityEntry
         trick_taint($removestr);
         $dbh->do(
             "INSERT INTO bugs_activity (bug_id, who, bug_when, fieldid, removed, added, attach_id)".
-            " VALUES (?, ?, ".($timestamp ? "?" : "NOW()").", ?, ?, ?)", undef,
+            " VALUES (?, ?, ".($timestamp ? "?" : "NOW()").", ?, ?, ?, ?)", undef,
             $bug_id, $whoid, ($timestamp ? ($timestamp) : ()), $f->id, $removestr, $addstr, $attach_id
         );
     }

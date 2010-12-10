@@ -19,7 +19,7 @@
   #%]
 
 [% PROCESS "global/field-descs.none.tmpl" %]
-  
+
 [% types = [
   "noop",
   "equals",
@@ -80,8 +80,8 @@
       <td>
         <select name="[% "field${chartnum}-${rownum}-${colnum}" %]">
           [% FOREACH field = fields %]
-            <option value="[% field.name %]" [% "selected" IF field.name == col.field %]>
-              [% field_descs.${field.name} || field.description FILTER html %]
+            <option value="[% field.id %]" [% "selected" IF field.id == col.field %]>
+              [% field_descs.${field.id} || field.title FILTER html %]
             </option>
           [% END %]
         </select>
@@ -90,14 +90,14 @@
            name = "type${chartnum}-${rownum}-${colnum}",
            types = types, selected = col.type %]
 
-        <input name="[% "value${chartnum}-${rownum}-${colnum}" %]" 
-               value="[% col.value FILTER html %]"> 
+        <input name="[% "value${chartnum}-${rownum}-${colnum}" %]"
+               value="[% col.value FILTER html %]">
       </td>
-      
+
       [% UNLESS loop.last %]
-        <td align="center"> 
-          Or 
-        </td>    
+        <td align="center">
+          Or
+        </td>
       </tr>
       <tr>
       [% ELSE %]
@@ -108,14 +108,14 @@
                  id="cmd-add[% "${chartnum}-${rownum}-${newor}" %]">
         </td>
       [% END %]
-      
+
     [% END %]
     </tr>
-    
+
     [% UNLESS loop.last %]
     <tr>
       <td>And</td>
-    </tr>    
+    </tr>
     [% ELSE %]
     <tr>
       <td>
@@ -129,9 +129,9 @@
                id="cmd-add[% newchart %]-0-0">
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
       </td>
-    </tr>   
+    </tr>
     [% END %]
-    
+
   [% END %]
   </table>
   <hr>
