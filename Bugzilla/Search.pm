@@ -430,6 +430,11 @@ sub init
                 {
                     $type = 'matches';
                 }
+                elsif ($field eq 'bug_id')
+                {
+                    $type = 'anyexact';
+                    $values = [ map { /(\d+)/gso } $params->param($field) ];
+                }
                 else
                 {
                     $type = 'anyexact';
