@@ -105,6 +105,7 @@ use constant DB_COLUMNS => qw(
     visibility_field_id
     value_field_id
     delta_ts
+    has_activity
 );
 
 use constant REQUIRED_CREATE_FIELDS => qw(name description);
@@ -138,6 +139,7 @@ use constant UPDATE_COLUMNS => qw(
     value_field_id
     type
     delta_ts
+    has_activity
 );
 
 # How various field types translate into SQL data definitions.
@@ -485,6 +487,8 @@ sub is_select {
     return ($_[0]->type == FIELD_TYPE_SINGLE_SELECT
             || $_[0]->type == FIELD_TYPE_MULTI_SELECT) ? 1 : 0
 }
+
+sub has_activity { $_[0]->{has_activity} }
 
 sub legal_values
 {
@@ -837,10 +841,7 @@ sub touch
 {
     my $self = shift;
     $self->{delta_ts} = POSIX::strftime('%Y-%m-%d %H:%M:%S', localtime);
-    Bugzilla->dbh->do(
-        "UPDATE fielddefs SET delta_ts=? WHERE id=?",
-        undef, $self->{delta_ts}, $self->id
-    );
+    $self->update;
 }
 
 =pod

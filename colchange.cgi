@@ -42,52 +42,10 @@ my $cgi = Bugzilla->cgi;
 my $template = Bugzilla->template;
 my $vars = {};
 
-# The master list not only says what fields are possible, but what order
-# they get displayed in.
-my @masterlist = ("creation_ts", "delta_ts", "bug_severity", "priority");
-push @masterlist, "rep_platform" if Bugzilla->params->{useplatform};
-push @masterlist, "assigned_to", "assigned_to_realname",
-                  "reporter", "reporter_realname", "bug_status",
-                  "resolution";
-
-if (Bugzilla->params->{"useclassification"}) {
-    push(@masterlist, "classification");
-}
-
-push @masterlist, "product", "component", "version";
-push @masterlist, "op_sys" if Bugzilla->params->{useopsys};
-
-if (Bugzilla->params->{"usevotes"}) {
-    push (@masterlist, "votes");
-}
-if (Bugzilla->params->{"usebugaliases"}) {
-    unshift(@masterlist, "alias");
-}
-if (Bugzilla->params->{"usetargetmilestone"}) {
-    push(@masterlist, "target_milestone");
-}
-if (Bugzilla->params->{"useqacontact"}) {
-    push(@masterlist, "qa_contact");
-    push(@masterlist, "qa_contact_realname");
-}
-if (Bugzilla->params->{"usestatuswhiteboard"}) {
-    push(@masterlist, "status_whiteboard");
-}
-if (Bugzilla::Keyword->any_exist) {
-    push(@masterlist, "keywords");
-}
-if (Bugzilla->has_flags) {
-    push(@masterlist, "flagtypes.name");
-}
-if (Bugzilla->user->is_timetracker) {
-    push(@masterlist, "estimated_time", "remaining_time", "work_time", "percentage_complete", "deadline");
-}
-
-push(@masterlist, ("short_desc", "short_short_desc"));
-
-my @custom_fields = grep { $_->type != FIELD_TYPE_MULTI_SELECT }
-                         Bugzilla->active_custom_fields;
-push(@masterlist, map { $_->name } @custom_fields);
+my @masterlist =
+    sort map { $_->{title} }
+    grep { !$_->{nobuglist} }
+    values %{ Bugzilla::Search->COLUMNS };
 
 Bugzilla::Hook::process('colchange_columns', {'columns' => \@masterlist} );
 

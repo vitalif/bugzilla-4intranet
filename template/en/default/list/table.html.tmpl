@@ -191,7 +191,7 @@
 
     [% FOREACH column = displaycolumns %]
     <td class="bz_[% column FILTER css_class_quote %]_column
-        [%- IF Bugzilla.search_cache.columns.$column.subid %] bz_[% Bugzilla.cache_fields.columns.$column.subid | css_class_quote %]_column[% END %]">
+        [%- IF Bugzilla.COLUMNS.$column.subid %] bz_[% Bugzilla.COLUMNS.$column.subid | css_class_quote %]_column[% END %]">
       [% IF abbrev.$column.maxlength %]
         <span title="[%- display_value(column, bug.$column) FILTER html %]">
       [% END %]

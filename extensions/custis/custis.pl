@@ -34,8 +34,8 @@ set_hook('custis', 'install_update_db',             'CustisDBHooks::install_upda
 set_hook('custis', 'install_update_fielddefs',      'CustisDBHooks::install_update_fielddefs');
 
 # Хуки в показ списка багов
+set_hook('custis', 'buglist_static_columns',        'CustisBuglistHooks::buglist_static_columns');
 set_hook('custis', 'buglist_columns',               'CustisBuglistHooks::buglist_columns');
-set_hook('custis', 'colchange_columns',             'CustisBuglistHooks::colchange_columns');
 
 # Хуки в обработку почты
 set_hook('custis', 'bugmail_pre_template',          'CustisMailHooks::bugmail_pre_template');

@@ -199,12 +199,13 @@ if (!scalar(@{$default{'chfieldto'}}) || $default{'chfieldto'}->[0] eq "") {
 
 # Fields for boolean charts
 $vars->{fields} = [
-    sort { $a->{description} cmp $b->{description} }
-    values %{ Bugzilla::Search::CHART_FIELDS() }
+    sort { $a->{title} cmp $b->{title} }
+    grep { !$_->{nocharts} }
+    values %{ Bugzilla::Search->COLUMNS }
 ];
 
 # "where one or more of the following changed:"
-$vars->{chfield} = [ map { $_->name } @{ &Bugzilla::Search::CHANGEDFROMTO_FIELDS } ];
+$vars->{chfield} = [ map { $_->name } @{ Bugzilla::Search->CHANGEDFROMTO_FIELDS } ];
 
 # Another hack...
 unshift @{$vars->{fields}}, { name => "noop", description => "---" };

@@ -113,6 +113,7 @@ sub db_schema_abstract_schema
 
     # Bug 70605 - Кэширование зависимостей полей для поиска и формы бага на клиентской стороне
     push @{$schema->{fielddefs}->{FIELDS}}, delta_ts => {TYPE => 'DATETIME'};
+    push @{$schema->{fielddefs}->{FIELDS}}, has_activity => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0};
 
     # Bug 68921 - Предикаты корректности из запросов поиска
     $schema->{checkers} = {
@@ -358,6 +359,16 @@ sub install_update_fielddefs
     {
         $dbh->bz_add_column('fielddefs', delta_ts => {TYPE => 'DATETIME'});
         $dbh->do('UPDATE fielddefs SET delta_ts=NOW()');
+    }
+
+    if (!$dbh->bz_column_info('fielddefs', 'has_activity'))
+    {
+        $dbh->bz_add_column('fielddefs', has_activity => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0});
+        $dbh->do(
+            'UPDATE fielddefs SET has_activity=1'.
+            ' WHERE id IN (SELECT DISTINCT fieldid FROM bugs_activity)'.
+            ' OR name IN (\'longdesc\', \'longdescs.isprivate\', \'commenter\', \'creation_ts\')'
+        );
     }
 
     return 1;

@@ -7,7 +7,7 @@ use strict;
 use Bugzilla::Search;
 use Bugzilla::Util;
 
-sub buglist_columns
+sub buglist_static_columns
 {
     my ($args) = @_;
     my $columns = $args->{columns};
@@ -53,9 +53,6 @@ WHERE col_f.bug_id=bugs.bug_id AND col_ft.is_requesteeble=1 AND col_ft.is_reques
 
     # CustIS Bug 71955 - first comment to the bug
     $columns->{comment0} = {
-        name  =>
-            "(SELECT thetext FROM longdescs ldc0 WHERE ldc0.bug_id = bugs.bug_id ".
-            (Bugzilla->user->is_insider ? "" : "AND ldc0.isprivate=0 ")." ORDER BY ldc0.bug_when LIMIT 1)",
         title => "First Comment",
     };
 
@@ -71,17 +68,15 @@ WHERE col_f.bug_id=bugs.bug_id AND col_ft.is_requesteeble=1 AND col_ft.is_reques
     return 1;
 }
 
-sub colchange_columns
+sub buglist_columns
 {
     my ($args) = @_;
     my $columns = $args->{columns};
 
-    my $defs = Bugzilla::Search->COLUMNS;
-    for (sort keys %$defs)
-    {
-        push @$columns, $_ if lsearch($columns, $_) < 0 && $_ ne 'bug_id';
-    }
-    @$columns = sort { $defs->{$a}->{title} cmp $defs->{$b}->{title} } @$columns;
+    # CustIS Bug 71955 - first comment to the bug
+    $columns->{comment0}->{name} =
+        "(SELECT thetext FROM longdescs ldc0 WHERE ldc0.bug_id = bugs.bug_id ".
+        (Bugzilla->user->is_insider ? "" : "AND ldc0.isprivate=0 ")." ORDER BY ldc0.bug_when LIMIT 1)";
 
     return 1;
 }
