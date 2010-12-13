@@ -115,6 +115,9 @@ sub db_schema_abstract_schema
     push @{$schema->{fielddefs}->{FIELDS}}, delta_ts => {TYPE => 'DATETIME'};
     push @{$schema->{fielddefs}->{FIELDS}}, has_activity => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0};
 
+    # Bug 73054 - Возможность автоматического добавления значений полей типа Bug ID в зависимости бага
+    push @{$schema->{fielddefs}->{FIELDS}}, add_to_deps => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0};
+
     # Bug 68921 - Предикаты корректности из запросов поиска
     $schema->{checkers} = {
         FIELDS => [
@@ -370,6 +373,9 @@ sub install_update_fielddefs
             ' OR name IN (\'longdesc\', \'longdescs.isprivate\', \'commenter\', \'creation_ts\')'
         );
     }
+
+    # Bug 73054 - Возможность автоматического добавления значений полей типа Bug ID в зависимости бага
+    $dbh->bz_add_column('fielddefs', add_to_deps => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0});
 
     # Bug 70605 - Делаем вид, что изменили какое-то поле, чтобы при checksetup автоматически сбросился кэш
     $dbh->do('UPDATE fielddefs SET delta_ts=NOW() WHERE name=\'delta_ts\'');

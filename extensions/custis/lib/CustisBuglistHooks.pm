@@ -68,6 +68,8 @@ WHERE col_f.bug_id=bugs.bug_id AND col_ft.is_requesteeble=1 AND col_ft.is_reques
     $columns->{product_notimetracking} = {
         name => 'map_products.notimetracking',
         joins => $columns->{product}->{joins},
+        nobuglist => 1,
+        nocharts => 1,
     };
 
     $columns->{relevance}->{title} = 'Relevance';

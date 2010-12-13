@@ -123,38 +123,52 @@
       [% END %]
     </tr>
     [% IF field.is_select AND field.name != 'product' %]
-      <tr>
-        <th>&nbsp;</th>
-        <td>
-          <a href="editvalues.cgi?field=[% field.name FILTER url_quote %]">Edit
-            legal values for this field</a>.
-        </td>
+    <tr>
+      <th>&nbsp;</th>
+      <td>
+        <a href="editvalues.cgi?field=[% field.name FILTER url_quote %]">Edit
+          legal values for this field</a>.
+      </td>
 
-      [% IF field.custom %]
-        <th>
-          <label for="value_field_id">
-            Field that controls the values<br>
-            that appear in this field:
-          </label>
-        </th>
+    [% IF field.custom %]
+      <th>
+        <label for="value_field_id">
+          Field that controls the values<br>
+          that appear in this field:
+        </label>
+      </th>
 
-        <td>
-          <select name="value_field_id" id="value_field_id">
-            <option></option>
-            [% FOREACH sel_field = Bugzilla.get_fields({ is_select => 1 }) %]
-              [% NEXT IF sel_field.id == field.id %]
-              <option value="[% sel_field.id FILTER html %]"
-               [% ' selected="selected"' 
-                  IF sel_field.id == field.value_field.id %]>
-                [% sel_field.description FILTER html %]
-                ([% sel_field.name FILTER html %])
-              </option>
-            [% END %]
-          </select>
-        </td>
-      [% END %]
-      </tr>
+      <td>
+        <select name="value_field_id" id="value_field_id">
+          <option></option>
+          [% FOREACH sel_field = Bugzilla.get_fields({ is_select => 1 }) %]
+            [% NEXT IF sel_field.id == field.id %]
+            <option value="[% sel_field.id FILTER html %]"
+             [% ' selected="selected"' 
+                IF sel_field.id == field.value_field.id %]>
+              [% sel_field.description FILTER html %]
+              ([% sel_field.name FILTER html %])
+            </option>
+          [% END %]
+        </select>
+      </td>
     [% END %]
+    </tr>
+    [% END %]
+
+    [% IF field.type == constants.FIELD_TYPE_BUG_ID %]
+    <tr>
+      <th><label for="add_to_deps">Add to dependencies:</label></th>
+      <td valign="top">
+        <select name="add_to_deps" id="add_to_deps">
+          <option value="no" [% ' selected="selected"' IF !field.add_to_deps %]>Do not add</option>
+          <option value="blocked" [% ' selected="selected"' IF field.add_to_deps==1 %]>Add to blocked</option>
+          <option value="dependson" [% ' selected="selected"' IF field.add_to_deps==2 %]>Add to blockers</option>
+        </select>
+      </td>
+    </tr>
+    [% END %]
+
     <tr>
       <th>&nbsp;</th>
       <td>&nbsp;</td>

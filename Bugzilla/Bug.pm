@@ -698,6 +698,20 @@ sub check_dependent_fields
                 $params->{$field_name} = '';
             }
         }
+        # CustIS Bug 73054 (TODO move to hooks)
+        # Add field value to blocked / dependson for
+        # FIELD_TYPE_BUG_ID with add_to_deps={1,2}
+        if ($field->type == FIELD_TYPE_BUG_ID && $field->add_to_deps)
+        {
+            my $to = $field->add_to_deps == 1 ? 'blocked' : 'dependson';
+            my $new = $params->{$to};
+            $new = [ split /[\s,]+/, $new ] if !ref $new;
+            if (lsearch($new, $value) < 0)
+            {
+                push @$new, $value;
+                $params->{$to} = ref $params->{$to} ? $new : join ",", @$new;
+            }
+        }
         # Check field value visibility for select fields
         if (my $f = $field->value_field)
         {
@@ -2061,10 +2075,12 @@ sub _check_bugid_field
     my ($invocant, $value, $field) = @_;
     return undef if !$value;
     # Check if the field is not visible anymore
+    # + Optionally add to dependencies
     # FIXME probably move it somewhere
-    if (Bugzilla->get_field($field)->visibility_field_id)
+    if (Bugzilla->get_field($field)->visibility_field_id ||
+        Bugzilla->get_field($field)->add_to_deps)
     {
-        $invocant->dependent_validators->{$field} = undef;
+        $invocant->dependent_validators->{$field} = $value;
     }
     # If there is no change, do not check the bug id, as it may be invisible for current user
     return $invocant->{$field} if ref $invocant && $invocant->{$field} eq $value;
