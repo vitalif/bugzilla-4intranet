@@ -701,7 +701,8 @@ sub check_dependent_fields
         # CustIS Bug 73054 (TODO move to hooks)
         # Add field value to blocked / dependson for
         # FIELD_TYPE_BUG_ID with add_to_deps={1,2}
-        if ($field->type == FIELD_TYPE_BUG_ID && $field->add_to_deps)
+        if ($field->type == FIELD_TYPE_BUG_ID && $field->add_to_deps &&
+            $value != $params->{bug_id})
         {
             my $to = $field->add_to_deps == 1 ? 'blocked' : 'dependson';
             my $other = $params->{$field->add_to_deps == 1 ? 'dependson' : 'blocked'};
