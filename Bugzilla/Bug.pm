@@ -2524,7 +2524,9 @@ sub add_group {
     # Make sure that bugs in this product can actually be restricted
     # to this group.
     grep($group->id == $_->id, @{$self->product_obj->groups_valid})
-         || ThrowUserError('group_invalid_restriction',
+        # But during product change, verification happens anyway in update().
+        || $self->{_old_product_name}
+        || ThrowUserError('group_invalid_restriction',
                 { product => $self->product, group_id => $group->id });
 
     # OtherControl people can add groups only during a product change,
@@ -2560,7 +2562,9 @@ sub remove_group {
         my $controls = $self->product_obj->group_controls->{$group->id};
 
         # Nobody can ever remove a Mandatory group.
-        if ($controls->{membercontrol} == CONTROLMAPMANDATORY) {
+        # But during product change, verification happens anyway in update().
+        if (!$self->{_old_product_name} &&
+            $controls->{membercontrol} == CONTROLMAPMANDATORY) {
             ThrowUserError('group_invalid_removal',
                 { product => $self->product, group_id => $group->id,
                   bug => $self });
