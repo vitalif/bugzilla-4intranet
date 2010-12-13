@@ -43,7 +43,8 @@ my $template = Bugzilla->template;
 my $vars = {};
 
 my @masterlist =
-    sort map { $_->{title} }
+    map { $_->{id} }
+    sort { $a->{title} cmp $b->{title} }
     grep { !$_->{nobuglist} }
     values %{ Bugzilla::Search->COLUMNS };
 
