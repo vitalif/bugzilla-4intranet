@@ -2079,17 +2079,25 @@ sub _check_bugid_field
 {
     my ($invocant, $value, $field) = @_;
     return undef if !$value;
+    my $r;
+    if (ref $invocant && $invocant->{$field} eq $value)
+    {
+        # If there is no change, do not check the bug id, as it may be invisible for current user
+        $r = $invocant->{$field};
+    }
+    else
+    {
+        $r = $invocant->check($value, $field)->id;
+    }
     # Check if the field is not visible anymore
     # + Optionally add to dependencies
     # FIXME probably move it somewhere
     if (Bugzilla->get_field($field)->visibility_field_id ||
         Bugzilla->get_field($field)->add_to_deps)
     {
-        $invocant->dependent_validators->{$field} = $value;
+        $invocant->dependent_validators->{$field} = $r;
     }
-    # If there is no change, do not check the bug id, as it may be invisible for current user
-    return $invocant->{$field} if ref $invocant && $invocant->{$field} eq $value;
-    return $invocant->check($value, $field)->id;
+    return $r;
 }
 
 #####################################################################
