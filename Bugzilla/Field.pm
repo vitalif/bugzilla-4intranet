@@ -106,6 +106,7 @@ use constant DB_COLUMNS => qw(
     value_field_id
     delta_ts
     has_activity
+    add_to_deps
 );
 
 use constant REQUIRED_CREATE_FIELDS => qw(name description);
@@ -121,6 +122,7 @@ use constant VALIDATORS => {
     sortkey     => \&_check_sortkey,
     type        => \&_check_type,
     visibility_field_id => \&_check_visibility_field_id,
+    add_to_deps => \&_check_add_to_deps,
 };
 
 use constant UPDATE_VALIDATORS => {
@@ -140,6 +142,7 @@ use constant UPDATE_COLUMNS => qw(
     type
     delta_ts
     has_activity
+    add_to_deps
 );
 
 # How various field types translate into SQL data definitions.
@@ -341,6 +344,16 @@ sub _check_visibility_field_id {
     return $field->id;
 }
 
+# This has effect only for fields of FIELD_TYPE_BUG_ID type
+# When 1, add field value (bug id) to list of bugs blocked by current
+# When 2, add field value (bug id) to list of bugs depending on current
+sub _check_add_to_deps
+{
+    my ($invocant, $value) = @_;
+    my %addto = ('' => 0, 1 => 1, 2 => 2, no => 0, blocked => 1, dependson => 2);
+    return $addto{$value || ''};
+}
+
 =pod
 
 =head2 Instance Properties
@@ -489,6 +502,8 @@ sub is_select {
 }
 
 sub has_activity { $_[0]->{has_activity} }
+
+sub add_to_deps { $_[0]->{add_to_deps} }
 
 sub legal_values
 {
@@ -715,6 +730,7 @@ sub set_obsolete       { $_[0]->set('obsolete',    $_[1]); }
 sub set_sortkey        { $_[0]->set('sortkey',     $_[1]); }
 sub set_in_new_bugmail { $_[0]->set('mailhead',    $_[1]); }
 sub set_buglist        { $_[0]->set('buglist',     $_[1]); }
+sub set_add_to_deps    { $_[0]->set('add_to_deps', $_[1]); }
 
 sub set_visibility_field
 {

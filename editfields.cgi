@@ -69,6 +69,7 @@ elsif ($action eq 'new') {
         buglist     => (scalar $cgi->param('type') == FIELD_TYPE_MULTI_SELECT ? 0 : 1),
         visibility_field_id => scalar $cgi->param('visibility_field_id'),
         value_field_id => scalar $cgi->param('value_field_id'),
+        add_to_deps => scalar $cgi->param('add_to_deps'),
     });
     $field->set_visibility_values([ $cgi->param('visibility_value_id') ]);
 
@@ -112,6 +113,7 @@ elsif ($action eq 'update') {
         $field->set_visibility_field($cgi->param('visibility_field_id'));
         $field->set_visibility_values([ $cgi->param('visibility_value_id') ]);
         $field->set_value_field($cgi->param('value_field_id'));
+        $field->set_add_to_deps($cgi->param('add_to_deps'));
     }
     $field->update();
 
