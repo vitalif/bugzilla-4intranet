@@ -80,8 +80,11 @@ sub parse_mail {
     # Automatic responses SHOULD NOT be issued in response to any
     # message which contains an Auto-Submitted header field (see below),
     # where that field has any value other than "no".
+    # F*cking MS Exchange sometimes does not append Auto-Submitted header
+    # to delivery status reports, so also check content-type.
     my $autosubmitted;
-    if (($autosubmitted = $input_email->header('Auto-Submitted')) && lc($autosubmitted) ne 'no')
+    if (lc($input_email->header('Auto-Submitted') || '') ne 'no' ||
+        ($input_email->header('Content-Type') || '') =~ /delivery-status/iso)
     {
         debug_print("Rejecting email with Auto-Submitted = $autosubmitted");
         exit 0;
