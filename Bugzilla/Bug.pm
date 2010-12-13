@@ -704,9 +704,13 @@ sub check_dependent_fields
         if ($field->type == FIELD_TYPE_BUG_ID && $field->add_to_deps)
         {
             my $to = $field->add_to_deps == 1 ? 'blocked' : 'dependson';
+            my $other = $params->{$field->add_to_deps == 1 ? 'dependson' : 'blocked'};
             my $new = $params->{$to};
             $new = [ split /[\s,]+/, $new ] if !ref $new;
-            if (lsearch($new, $value) < 0)
+            $other = [ split /[\s,]+/, $other ] if !ref $other;
+            # We can't add a bug into both Blocked and Depends_on fields
+            if (lsearch($new, $value) < 0 &&
+                lsearch($other, $value) < 0)
             {
                 push @$new, $value;
                 $params->{$to} = ref $params->{$to} ? $new : join ",", @$new;
