@@ -7,7 +7,9 @@ use strict;
 use lib qw(. lib);
 
 use Bugzilla;
+use Bugzilla::Error;
 use Bugzilla::Bug;
+use Bugzilla::Product;
 use Bugzilla::Search;
 use Bugzilla::Search::Saved;
 use Bugzilla::Constants;
@@ -102,7 +104,7 @@ $sqlquery = " UNION ($sqlquery)" if $sqlquery;
 my $tm = "CURRENT_DATE - ".$dbh->sql_interval($lastdays-1, 'DAY');
 
 my $bugsquery = "
- SELECT b.bug_id, b.priority, b.short_desc, p.name product, c.name component,
+ SELECT b.*, p.name product, c.name component, p.notimetracking product_notimetracking,
   ROUND(b.remaining_time,1) remaining_time,
   ROUND(SUM(l.work_time),2) all_work_time,
   ROUND(SUM(

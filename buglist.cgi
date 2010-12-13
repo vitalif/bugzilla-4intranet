@@ -773,6 +773,10 @@ if ($format->{'extension'} eq 'atom') {
     }
 }
 
+if ($superworktime && !grep($_ eq 'product_notimetracking', @displaycolumns)) {
+    push @selectcolumns, 'product_notimetracking';
+}
+
 ################################################################################
 # Sort Order Determination
 ################################################################################
