@@ -63,6 +63,13 @@ WHERE col_f.bug_id=bugs.bug_id AND col_ft.is_requesteeble=1 AND col_ft.is_reques
     };
     ### end Testopia ###
 
+    # Нужно для SuperWorkTime, однако эта необходимость следует
+    # из неидеальности buglist.cgi - он не выводит баги объектами
+    $columns->{product_notimetracking} = {
+        name => 'map_products.notimetracking',
+        joins => $columns->{product}->{joins},
+    };
+
     $columns->{relevance}->{title} = 'Relevance';
 
     return 1;

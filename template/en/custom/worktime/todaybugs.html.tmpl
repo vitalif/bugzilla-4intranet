@@ -75,13 +75,13 @@
     <td>
       [% bug.short_desc FILTER html %]
     </td>
-    <td align="right">
+    <td align="right"[% IF bug.product_notimetracking %] style="background-color: #FFC0C0"[% END %]>
       [% bug.today_work_time %]
     </td>
-    <td>
+    <td[% IF bug.product_notimetracking %] style="background-color: #FFC0C0"[% END %]>
       +
     </td>
-    <td>
+    <td[% IF bug.product_notimetracking %] style="background-color: #FFC0C0"[% END %]>
       <input name="wtime_[% bug.bug_id %]" type="text" size="3" align="right" value="0"
              onchange="javascript: document.worktimeform.newrtime_[% bug.bug_id %].value=Math.round(Math.max(0,[% bug.remaining_time %] - bzParseTime(this.value))*100)/100;"
       >
