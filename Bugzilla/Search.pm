@@ -212,7 +212,7 @@ sub STATIC_COLUMNS
         foreach my $subfield (Bugzilla->get_fields({ obsolete => 0, buglist => 1 }))
         {
             my $subid = $subfield->name;
-            if ($columns{$subid}{name} ne "bugs.$subid")
+            if ($columns{$subid}{name} eq "bugs.$subid")
             {
                 $columns{$id.'_'.$subid} = {
                     name  => "bugs_$id.".$subfield->name,
