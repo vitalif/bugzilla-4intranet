@@ -135,7 +135,7 @@ x
 <tr>
  [% FOR bug = row.bugs %][% SET coli = loop.index %]
  <td class="cardtd" id="cardtd_[% pagei %]_[% rowi %]_[% coli %]">
-  <table id="card_[% pagei %]_[% rowi %]_[% coli %]" class="card" cellspacing="5">
+  <table class="card" cellspacing="5">
   [% IF NOT bug %]
    <tr><td>&nbsp;</td></tr>
   [% ELSIF bug.error %]
@@ -177,7 +177,7 @@ var highlitCard;
 var selectedcards = {};
 var cuttedcards = [];
 var cuttedids = [];
-var emptycell = "<tr><td>&nbsp;</td></tr>";
+var emptycell = "<table class='card' cellspacing='5'><tr><td>&nbsp;</td></tr></table>";
 var np = [% pages.size || "0" %];
 var nr = [% t.rows || "0" %];
 var nc = [% t.cols || "0" %];
@@ -317,7 +317,7 @@ function deleteSelectedCards(cut)
       for (var j = 0; j < nc; j++, coord++)
       {
         var s = selectedcards[k+'_'+i+'_'+j];
-        var e = document.getElementById('card_'+k+'_'+i+'_'+j);
+        var e = document.getElementById('cardtd_'+k+'_'+i+'_'+j);
         if (s)
         {
           if (cut)
@@ -330,7 +330,7 @@ function deleteSelectedCards(cut)
         else if (shift > 0)
         {
           var to = to_coord(coord-shift);
-          document.getElementById('card_'+to[0]+'_'+to[1]+'_'+to[2]).innerHTML = e.innerHTML;
+          document.getElementById('cardtd_'+to[0]+'_'+to[1]+'_'+to[2]).innerHTML = e.innerHTML;
           idlist[coord-shift] = idlist[coord];
         }
         else if (coord + shift < n)
@@ -382,14 +382,14 @@ function doPasteCards(coord)
   {
     from = to_coord(i);
     to = to_coord(i+nx);
-    document.getElementById('card_'+to[0]+'_'+to[1]+'_'+to[2]).innerHTML =
-      document.getElementById('card_'+from[0]+'_'+from[1]+'_'+from[2]).innerHTML;
+    document.getElementById('cardtd_'+to[0]+'_'+to[1]+'_'+to[2]).innerHTML =
+      document.getElementById('cardtd_'+from[0]+'_'+from[1]+'_'+from[2]).innerHTML;
     idlist[i+nx] = idlist[i];
   }
   for (var i = 0; i < nx; i++)
   {
     to = to_coord(i+coord);
-    document.getElementById('card_'+to[0]+'_'+to[1]+'_'+to[2]).innerHTML = cuttedcards[i];
+    document.getElementById('cardtd_'+to[0]+'_'+to[1]+'_'+to[2]).innerHTML = cuttedcards[i];
     document.getElementById('cardtd_'+to[0]+'_'+to[1]+'_'+to[2]).className = 'cardtd selected';
     idlist[i+coord] = cuttedids[i];
     selectedcards[to[0]+'_'+to[1]+'_'+to[2]] = true;
@@ -472,10 +472,10 @@ for (var k = 0; k < np; k++)
     }
   }
 }
-exAttach(document.body, "mouseup", resetAll);
-exAttach(document.body, "keydown", ctrlDown);
+exAttach(document, "mouseup", resetAll);
+exAttach(document, "keydown", ctrlDown);
 exAttach(document.getElementById('addbugs'), "keypress", addNewIfEnter);
-exAttach(document.body, "keyup", ctrlUp);
+exAttach(document, "keyup", ctrlUp);
 </script>
 
 </body>
