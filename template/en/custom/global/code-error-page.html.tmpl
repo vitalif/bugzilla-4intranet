@@ -9,6 +9,7 @@
   # rights and limitations under the License.
   #
   # CustIS "nice error" template.
+  # F*cking people. Kitten is killed.
   #
   # Contributor(s): Vitaliy Filippov <vitalif@mail.ru>
   #%]
@@ -39,39 +40,32 @@
 [% END %]
 
 <div style="margin: 20px; padding: 10px; font-size: 130%; float: left; font-family: sans-serif; border: 10px solid red; background-color: white">
-  <img src="images/kitten.png" style="float: left; margin-right: 10px" />
+  <img src="images/ascii_kitten.jpg" style="float: left; margin-right: 10px" />
   <p style="margin: 0">
-    Произошла внутренняя ошибка. Извините... Кто-то, похоже, погрыз провода.<br>
+    Произошла внутренняя ошибка Bugzilla.
   </p>
   <div style="font-size: 150%; background-color: #ffd0d0">
   <p style="margin: 0.5em 0 0 0" id="error_msg">[% error_message.replace("\n\n", "</p><p>") FILTER none %]</p>
   </div>
   <p style="margin-bottom: 0px">
   [% IF Param('report_code_errors_to_maintainer') %]
-    Ошибка автоматически отправлена <tt><a href="mailto:[% Param('maintainer') %]">[% Param('maintainer') %]</a></tt>.<br>
-    Так что он о ней, вероятно, знает, и скоро всё будет хорошо. А потом просто нажмите F5.<br>
-    Не пользуйтесь лифтами во время пожара!
+    Отчёт об ошибке автоматически отправлен <tt><a href="mailto:[% Param('maintainer') %]">[% Param('maintainer') %]</a></tt>.<br />
+    В ближайшее время она будет исправлена. Можете не закрывать вкладку и чуть позже нажать F5 (обновить страницу).<br />
   [% ELSE %]
     Пожалуйста, сохраните эту страницу и отправьте её по адресу <tt><a href="mailto:[% Param('maintainer') %]">[% Param('maintainer') %]</a></tt>
-    с информацией о том, какие Ваши действия привели к ошибке и некоторым количеством укора.
+    с информацией о том, какие Ваши действия привели к ошибке и пожеланиями об исправлении.
     <tt>
       <script type="text/javascript"> <!--
-        document.write("<p>URL: " +
-                        document.location.href.replace(/&/g,"&amp;")
-                                              .replace(/</g,"&lt;")
-                                              .replace(/>/g,"&gt;") + "</p>");
+        document.write("<p>URL: " + document.location.href
+          .replace(/&/g,"&amp;")
+          .replace(/</g,"&lt;")
+          .replace(/>/g,"&gt;") + "</p>");
       // -->
       </script>
     </tt>
   [% END %]
   </p>
-  <p style="margin-bottom: 0px">Ещё раз извините.</p>
-  [% IF Param('report_code_errors_to_maintainer') %]
-  <div style="float: right; margin-left: 10px; color: #404040; text-align: center; font-size: 90%">
-    <img src="images/pzil.jpg" alt="Администраторы уже выехали!" /><br>
-    Администраторы уже выехали!
-  </div>
-  [% END %]
+  <p style="margin-bottom: 0px">Извините нас.</p>
   [% IF variables %]
   <pre>
   Дополнительные данные:
