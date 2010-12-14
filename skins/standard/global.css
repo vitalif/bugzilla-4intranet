@@ -578,3 +578,5 @@ filter:mask();
 
 .user-error-div { margin: 20px; padding: 10px; font-size: 130%; font-family: sans-serif; border: 10px solid red; background: white; }
 .user-error-div-first { font-size: 150%; background-color: #ffd0d0; padding: 10px; }
+
+.quicksearch { width: 300px; }
