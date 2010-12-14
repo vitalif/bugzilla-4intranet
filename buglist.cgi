@@ -662,6 +662,8 @@ else {
     @displaycolumns = DEFAULT_COLUMN_LIST;
 }
 
+$_ = Bugzilla::Search->COLUMN_ALIASES->{$_} || $_ for @displaycolumns;
+
 # Weed out columns that don't actually exist to prevent the user
 # from hacking their column list cookie to grab data to which they
 # should not have access.  Detaint the data along the way.
