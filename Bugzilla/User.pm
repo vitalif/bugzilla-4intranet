@@ -829,11 +829,9 @@ sub can_enter_product {
         ThrowUserError('no_products');
     }
 
-    my $product = blessed($input) ? $input
-                                  : new Bugzilla::Product({ name => $input });
-    my $can_enter =
-      $product && grep($_->name eq $product->name,
-                       @{ $self->get_enterable_products });
+    my $name = blessed($input) ? $input->name : $input;
+
+    my $can_enter = grep($_->name eq $name, @{ $self->get_enterable_products });
 
     return 1 if $can_enter;
 
@@ -845,7 +843,7 @@ sub can_enter_product {
     # We don't just use $product->name for error messages, because if it
     # changes case from $input, then that's a clue that the product does
     # exist but is hidden.
-    my $name = blessed($input) ? $input->name : $input;
+    my $product = blessed($input) ? $input : new Bugzilla::Product({ name => $input });
 
     # The product could not exist or you could be denied...
     if (!$product || !$product->user_has_access($self)) {
@@ -876,7 +874,7 @@ sub get_enterable_products {
     }
 
      # All products which the user has "Entry" access to.
-     my @enterable_ids =@{$dbh->selectcol_arrayref(
+     my @enterable_ids = @{$dbh->selectcol_arrayref(
            'SELECT products.id FROM products
          LEFT JOIN group_control_map
                    ON group_control_map.product_id = products.id
@@ -926,7 +924,7 @@ sub check_can_admin_product {
 
     ($self->in_group('editcomponents', $product->id) && $self->can_see_product($product->name))
         || $self->in_group('editcomponents')
-         || ThrowUserError('product_admin_denied', {product => $product->name});
+        || ThrowUserError('product_admin_denied', {product => $product->name});
 
     # Return the validated product object.
     return $product;

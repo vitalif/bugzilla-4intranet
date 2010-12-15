@@ -71,6 +71,7 @@ set_hook('custis', 'flag_check_requestee_list',     'CustisMiscHooks::flag_check
 set_hook('custis', 'process_bug_after_move',        'CustisMiscHooks::process_bug_after_move');
 set_hook('custis', 'quote_urls_custom_proto',       'CustisMiscHooks::quote_urls_custom_proto');
 set_hook('custis', 'enter_bug_cloned_bug',          'CustisMiscHooks::enter_bug_cloned_bug');
+add_hook('custis', 'post_bug_post_create',          'CustisMiscHooks::post_bug_post_create');
 
 1;
 __END__

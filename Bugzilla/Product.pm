@@ -977,7 +977,7 @@ sub flag_types
 
 sub allows_unconfirmed { return $_[0]->{'allows_unconfirmed'}; }
 sub description       { return $_[0]->{'description'};       }
-sub is_active         { return $_[0]->{'isactive'};       }
+sub is_active         { return $_[0]->{'isactive'};          }
 sub votes_per_user    { return $_[0]->{'votesperuser'};      }
 sub max_votes_per_bug { return $_[0]->{'maxvotesperbug'};    }
 sub votes_to_confirm  { return $_[0]->{'votestoconfirm'};    }
@@ -990,6 +990,31 @@ sub extproduct        { return $_[0]->{'extproduct'};        }
 ###############################
 ####      Subroutines    ######
 ###############################
+
+sub enterable_extproduct_name
+{
+    my $self = shift;
+    if (!exists $self->{extproduct_name})
+    {
+        my $n = $self->{extproduct} ? $self->new($self->{extproduct})->name : '';
+        $n = '' if $n ne '' && !Bugzilla->user->can_enter_product($n);
+        $self->{extproduct_name} = $n;
+    }
+    return $self->{extproduct_name};
+}
+
+sub enterable_intproduct_name
+{
+    my $self = shift;
+    if (!exists $self->{intproduct_name})
+    {
+        my $n = $self->{extproduct} ? [] : $self->match({ extproduct => $self->id });
+        $n = @$n ? $n->[0]->name : '';
+        $n = '' if $n ne '' && !Bugzilla->user->can_enter_product($n);
+        $self->{intproduct_name} = $n;
+    }
+    return $self->{intproduct_name};
+}
 
 # CustIS Bug 38616 - CC list restriction
 sub cc_restrict_group
