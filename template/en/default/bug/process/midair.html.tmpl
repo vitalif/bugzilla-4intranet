@@ -23,11 +23,7 @@
   #   used by bug/activity/table.html.tmpl to display recent changes that will
   #   be overwritten if the user submits these changes.  See that template
   #   for further documentation.
-  # start_at: number; the comment at which show/comments.tmpl should begin
-  #   displaying comments, either the index of the last comment (if the user
-  #   entered a comment along with their change) or a number less than that
-  #   (if they didn't), in which case no comments are displayed.
-  # comments: array; all the comments on the bug.
+  # comments: array; the comments on the bug added after user has last viewed the page.
   # bug: Bugzilla::Bug; the bug being changed.
   #%]
 
@@ -54,7 +50,7 @@
   [% PROCESS "bug/activity/table.html.tmpl" incomplete_data=0 %]
 </p>
 
-[% IF comments.size > start_at %]
+[% IF comments.size %]
 <p>
   Added the comment(s):
   <blockquote>
@@ -85,7 +81,7 @@ You have the following choices:
           exclude="^Bugzilla_login|Bugzilla_password|delta_ts$" %]
       <input type="submit" id="process" value="Submit my changes anyway">
         This will cause conflicting changes to be overwritten with yours
-        [% ", except for the added comment(s)" IF comments.size > start_at %].
+        [% ", except for the added comment(s)" IF comments.size %].
     </form>
   </li>
   [% IF cgi.param("comment") %]

@@ -195,28 +195,6 @@ my $id = $bug->bug_id;
 my $timestamp = $dbh->selectrow_array(
     'SELECT creation_ts FROM bugs WHERE bug_id = ?', undef, $id);
 
-# CustIS Bug 53590 - add a comment to cloned bug
-my $cloned_bug_id = scalar $cgi->param('cloned_bug_id');
-my $cloned_comment = scalar $cgi->param('cloned_comment');
-if ($cloned_bug_id)
-{
-    my $cmt = "Bug $id was cloned from ";
-    if ($cloned_comment)
-    {
-        detaint_natural($cloned_comment);
-        $cmt .= 'comment ';
-        $cmt .= $cloned_comment;
-    }
-    else
-    {
-        $cmt .= 'this bug';
-    }
-    detaint_natural($cloned_bug_id);
-    my $cloned_bug = Bugzilla::Bug->check($cloned_bug_id);
-    $cloned_bug->add_comment($cmt);
-    $cloned_bug->update($timestamp);
-}
-
 # Set Version cookie, but only if the user actually selected
 # a version on the page.
 if (defined $cgi->param('version')) {

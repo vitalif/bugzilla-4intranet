@@ -155,14 +155,53 @@ sub quote_urls_custom_proto
     return 1;
 }
 
-# Bug 63249 - при клонировании бага в продукт, являющийся внешним для продукта
-# клонируемого бага автоматически проставлять поле cf_extbug
+# Bug 69514 - автоматическое проставление cf_extbug
+# при клонировании во внутренний/внешний продукт
 sub enter_bug_cloned_bug
 {
     my ($args) = @_;
     if (($args->{product}->extproduct || 0) == $args->{cloned_bug}->product_id)
     {
         $args->{vars}->{cf_extbug} = $args->{cloned_bug}->id;
+    }
+    elsif (($args->{cloned_bug}->product_obj->extproduct || 0) == $args->{product}->id)
+    {
+        $args->{vars}->{dependson} = $args->{cloned_bug}->id;
+        $args->{vars}->{blocked} = '';
+    }
+    return 1;
+}
+
+# Bug 53590 - add a comment to cloned bug
+# Bug 69514 - автоматическое проставление cf_extbug
+sub post_bug_post_create
+{
+    my ($args) = @_;
+    my $cloned_bug_id = scalar Bugzilla->cgi->param('cloned_bug_id');
+    my $cloned_comment = scalar Bugzilla->cgi->param('cloned_comment');
+    my $bug = $args->{bug};
+    if ($cloned_bug_id)
+    {
+        my $cmt = "Bug ".$bug->id." was cloned from ";
+        if ($cloned_comment)
+        {
+            detaint_natural($cloned_comment);
+            $cmt .= 'comment ';
+            $cmt .= $cloned_comment;
+        }
+        else
+        {
+            $cmt .= 'this bug';
+        }
+        detaint_natural($cloned_bug_id);
+        my $cloned_bug = Bugzilla::Bug->check($cloned_bug_id);
+        $cloned_bug->add_comment($cmt);
+        if (($cloned_bug->product_obj->extproduct || 0) == $bug->product_id &&
+            !$cloned_bug->{cf_extbug})
+        {
+            $cloned_bug->{cf_extbug} = $bug->id;
+        }
+        $cloned_bug->update($bug->creation_ts);
     }
     return 1;
 }

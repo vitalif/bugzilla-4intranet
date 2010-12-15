@@ -38,166 +38,25 @@
   [% select_fields.${field.name} = field %]
 [% END %]
 
-  <script type="text/javascript" src="fieldvaluecontrol.cgi?type=bug"></script>
+<script type="text/javascript" src="fieldvaluecontrol.cgi?type=bug"></script>
 
-  <script type="text/javascript">
-  <!--
+<script type="text/javascript">
+var user_settings = {
+  'is_insider' : [% user.is_insider ? 1 : 0 %],
+  'wants_worktime_reminder' : [% user.wants_worktime_reminder ? 1 : 0 %],
+  'quote_replies' : "[% user.settings.quote_replies.value | js %]"
+};
+var bug_info = {
+  'id' : [% bug.bug_id %],
+  'product' : "[% bug.product | js %]",
+  'extprod' : "[% bug.product_obj.enterable_extproduct_name | js %]",
+  'intprod' : "[% bug.product_obj.enterable_intproduct_name | js %]"
+};
+var fRemainingTime = [% bug.remaining_time %];
+var notimetracking = [% bug.product_obj.notimetracking ? 1 : 0 %];
+</script>
 
-  /* Outputs a link to call replyToComment(); used to reduce HTML output */
-  function addReplyLink(id, real_id) {
-      /* XXX this should really be updated to use the DOM Core's
-       * createElement, but finding a container isn't trivial.
-       */
-      var s = '[';
-      [% IF user.settings.quote_replies.value != 'off' %]
-        s += '<a href="#add_comment" onclick="replyToComment(' +
-             id + ',' + real_id + '); return false;">reply<' + '/a>';
-      [% END %]
-      s += ', clone to <a href="enter_bug.cgi?cloned_bug_id=[% bug.bug_id %]&amp;cloned_comment='+id+'">other</a>';
-      s += '/<a href="enter_bug.cgi?cloned_bug_id=[% bug.bug_id %]&amp;product=[% bug.product %]&amp;cloned_comment='+id+'">same</a> product';
-      s += ']';
-      document.write(s);
-  }
-
-  /* Adds the reply text to the `comment' textarea */
-  function replyToComment(id, real_id)
-  {
-      var prefix = "(In reply to comment #" + id + ")\n";
-      var replytext = "";
-      [% IF user.settings.quote_replies.value == 'quoted_reply' %]
-        /* pre id="comment_name_N" */
-        var text_elem = document.getElementById('comment_text_'+id);
-        var text = getText(text_elem);
-
-        /* make sure we split on all newlines -- IE or Moz use \r and \n
-         * respectively.
-         */
-        text = text.split(/\r|\n/);
-
-        var prev_ist = false, ist = false;
-        for (var i = 0; i < text.length; i++)
-        {
-            /* CustIS Bug 55876 - ASCII pseudographic tables */
-            ist = text[i].match('^(┌|│|└).*(┐|│|┘)$') ? true : false;
-            if (!ist)
-            {
-                replytext += "> ";
-                replytext += text[i];
-                replytext += "\n"; 
-            }
-            else if (!prev_ist)
-                replytext += "> (table cut off)\n";
-            prev_ist = ist;
-        }
-
-        replytext = prefix + replytext + "\n";
-      [% ELSIF user.settings.quote_replies.value == 'simple_reply' %]
-        replytext = prefix;
-      [% END %]
-
-    [% IF user.is_insider %]
-      if (document.getElementById('isprivate_' + real_id).checked) {
-          document.getElementById('newcommentprivacy').checked = 'checked';
-      }
-    [% END %]
-
-      /* <textarea id="comment"> */
-      var textarea = document.getElementById('comment_textarea');
-      //alert(textarea.value);
-      textarea.value += replytext;
-
-      textarea.focus();
-  }
-
-  if (typeof Node == 'undefined') {
-      /* MSIE doesn't define Node, so provide a compatibility object */
-      window.Node = {
-          TEXT_NODE: 3,
-          ENTITY_REFERENCE_NODE: 5
-      };
-  }
-
-  /* Concatenates all text from element's childNodes. This is used
-   * instead of innerHTML because we want the actual text (and
-   * innerText is non-standard).
-   */
-  function getText(element) {
-      var child, text = "";
-      for (var i=0; i < element.childNodes.length; i++) {
-          child = element.childNodes[i];
-          var type = child.nodeType;
-          if (type == Node.TEXT_NODE || type == Node.ENTITY_REFERENCE_NODE) {
-              text += child.nodeValue;
-          } else if (child.nodeName.toLowerCase() == 'br') {
-              text += "\n";
-          } else {
-              /* recurse into nodes of other types */
-              text += getText(child);
-          }
-      }
-      return text;
-  }
-
-[% IF user.is_timetracker %]
-  var fRemainingTime = [% bug.remaining_time %]; // holds the original value
-  function adjustRemainingTime() {
-      // subtracts time spent from remaining time
-      var new_time;
-      var wt = bzParseTime(document.changeform.work_time.value);
-      if (wt === null || wt === undefined || wt != wt)
-      {
-        document.changeform.work_time.style.backgroundColor = '#FFC0C0';
-        document.changeform.remaining_time.style.backgroundColor = '#FFC0C0';
-        wt = 0;
-      }
-      else
-      {
-        document.changeform.work_time.style.backgroundColor = null;
-        document.changeform.remaining_time.style.backgroundColor = null;
-      }
-      [% IF bug.product_obj.notimetracking %]
-      document.changeform.work_time.parentNode.style.backgroundColor = wt != 0 ? '#FFC0C0' : null;
-      [% END %]
-
-      // prevent negative values if work_time > fRemainingTime
-      new_time = Math.max(fRemainingTime - wt, 0.0);
-      // get upto 2 decimal places
-      document.changeform.remaining_time.value =
-          Math.round(new_time * 100)/100;
-  }
-
-  function updateRemainingTime() {
-      // if the remaining time is changed manually, update fRemainingTime
-      fRemainingTime = bzParseTime(document.changeform.remaining_time.value);
-  }
-
-[% END %]
-
-  function changeform_onsubmit()
-  {
-    var wt = bzParseTime(document.changeform.work_time.value);
-    var awt = wt;
-    if (wt != wt)
-      awt = 0;
-[%- # If product's notimetracking is TRUE, remind about positive worktime %]
-[% IF Bugzilla.user.wants_worktime_reminder %]
-    else if (wt === null || wt === undefined || wt != wt || [% bug.product_obj.notimetracking ? "wt != 0" : "wt == 0" %])
-    {
-      awt = prompt("Please, verify working time:", !wt || wt != wt ? "0" : wt);
-      if (awt === null || awt === undefined || (""+awt).length <= 0)
-      {
-        document.changeform.work_time.focus();
-        return false;
-      }
-    }
-[% END %]
-    document.changeform.work_time.value = awt;
-    adjustRemainingTime();
-    return true;
-  }
-
-  //-->
-  </script>
+<script type="text/javascript" src="js/bug.js"></script>
 
 [% PROCESS "bug/comment-preview-form.html.tmpl" %]
 
