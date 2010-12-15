@@ -155,10 +155,23 @@ sub quote_urls_custom_proto
     return 1;
 }
 
+# Bug 63249 - при клонировании бага в продукт, являющийся внешним для продукта
+# клонируемого бага автоматически проставлять поле cf_extbug
+sub enter_bug_cloned_bug
+{
+    my ($args) = @_;
+    if (($args->{product}->extproduct || 0) == $args->{cloned_bug}->product_id)
+    {
+        $args->{vars}->{cf_extbug} = $args->{cloned_bug}->id;
+    }
+    return 1;
+}
+
 ##
 ## НЕ-хуки:
 ##
 
+# url_quote, не экранирующий /
 sub url_quote_slash
 {
     my ($toencode) = (@_);
@@ -168,6 +181,7 @@ sub url_quote_slash
     return $toencode;
 }
 
+# кодирование anchor'а подзаголовка wiki-статьи
 sub processWikiAnchor
 {
     my ($anchor) = (@_);
@@ -178,6 +192,7 @@ sub processWikiAnchor
     return $anchor;
 }
 
+# преобразование названий вики-статей в URL
 sub processWikiUrl
 {
     my ($wiki, $url, $anchor) = @_;
