@@ -124,10 +124,6 @@ my $re_encoded_word = qr{
 my $re_especials = qr{$re_encoded_word}xo;
 # >>>
 
-undef &Encode::MIME::Header::encode;
-
-*Encode::MIME::Header::encode = *encode_mime_header;
-
 sub encode_mime_header($$;$) {
     my ( $obj, $str, $chk ) = @_;
     my @line = ();
@@ -161,6 +157,7 @@ sub encode_mime_header($$;$) {
     return join( "\n", @line );
 }
 
+*Encode::MIME::Header::encode = *Bugzilla::encode_mime_header;
 }
 
 #####################################################################

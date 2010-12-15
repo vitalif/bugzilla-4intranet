@@ -119,6 +119,16 @@ sub handler : method {
     return $class->SUPER::handler(@_);
 }
 
+sub error_check
+{
+    my $self = shift;
+    if ($@ && !(ref $@ eq 'APR::Error' && $@ == ModPerl::EXIT))
+    {
+        die $@;
+    }
+    return $self->SUPER::error_check(@_);
+}
+
 my $STATS;
 
 # To reload Perl modules on-the-fly (debug purposes),
