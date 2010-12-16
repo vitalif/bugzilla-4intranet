@@ -197,7 +197,8 @@ sub STATIC_COLUMNS
         my $id = $field->name;
         $columns{$id}{name} ||= 'bugs.' . $field->name;
         $columns{$id}{title} = $field->description;
-        $columns{$id}{nobuglist} = !$field->buglist;
+        $columns{$id}{nobuglist} = !$field->buglist || $field->obsolete;
+        $columns{$id}{nocharts} = $field->obsolete;
         if ($field->type == FIELD_TYPE_BUG_ID)
         {
             push @bugsjoin, $field;
