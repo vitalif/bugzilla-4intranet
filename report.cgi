@@ -275,8 +275,8 @@ if ($action eq "wrap") {
     # We need to keep track of the defined restrictions on each of the
     # axes, because buglistbase, below, throws them away. Without this, we
     # get buglistlinks wrong if there is a restriction on an axis field.
-    $vars->{'col_vals'} = join("&", $buffer =~ /[&?]($field->{y}=[^&]+)/g);
-    $vars->{'row_vals'} = join("&", $buffer =~ /[&?]($field->{x}=[^&]+)/g);
+    $vars->{'col_vals'} = join("&", $buffer =~ /[&?]($field->{x}=[^&]+)/g);
+    $vars->{'row_vals'} = join("&", $buffer =~ /[&?]($field->{y}=[^&]+)/g);
     $vars->{'tbl_vals'} = join("&", $buffer =~ /[&?]($field->{z}=[^&]+)/g);
 
     # We need a number of different variants of the base URL for different

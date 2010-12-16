@@ -70,7 +70,6 @@ END; %]
     </td>
     <td>
 
-
 [% classes = [ [ "t1", "t2" ] , [ "t3", "t4" ] ] %]
 [% col_idx = 0 %]
 [% row_idx = 0 %]
@@ -83,8 +82,6 @@ END; %]
       </td>
       [% FOREACH col = col_names %]
         [% col_totals.$col = 0 %]
-        [% NEXT IF col == "" %]
-
         [% col_idx = 1 - col_idx %]
         <td class="[% classes.$row_idx.$col_idx %]">
           [% PROCESS value_display value = col field = col_field %]
@@ -106,24 +103,23 @@ END; %]
       </td>
       [% FOREACH col = col_names %]
         [% row_total = row_total + data.$tbl.$col.$row %]
-        [% NEXT IF col == "" %]
         [% col_totals.$col = col_totals.$col + data.$tbl.$col.$row %]
 
         [% col_idx = 1 - col_idx %]
         <td class="[% classes.$row_idx.$col_idx %]" align="center">
           [% IF data.$tbl.$col.$row AND data.$tbl.$col.$row > 0 %]
             <a href="[% urlbase %]&amp;
-              [% PROCESS value_url value = row field = row_field %]&amp;
-              [% PROCESS value_url value = col field = col_field %]">
+              [% PROCESS value_url value=row field=row_field %]&amp;
+              [% PROCESS value_url value=col field=col_field %]">
               [% data.$tbl.$col.$row %]</a>
           [% ELSE %]
             .
           [% END %]
         </td>
-      [% END %] 
+      [% END %]
       <td class="ttotal" align="right">
         <a href="[% urlbase %]&amp;
-          [% PROCESS value_url value = row field = row_field %]
+          [% PROCESS value_url value=row field=row_field %]
           [% "&amp;$col_vals" IF col_vals %]">
         [% row_total %]</a>
         [% grand_total = grand_total + row_total %]
@@ -137,11 +133,9 @@ END; %]
       Total
     </td>
     [% FOREACH col = col_names %]
-      [% NEXT IF col == "" %]
-
       <td class="ttotal" align="center">
         <a href="[% urlbase %]&amp;
-          [% col_field FILTER url_quote %]=[% col FILTER url_quote %]
+          [% PROCESS value_url value=col field=col_field %]
           [% "&amp;$row_vals" IF row_vals %]">
         [% col_totals.$col %]</a>
       </td> 
@@ -162,13 +156,11 @@ END; %]
 
 [% BLOCK value_display %]
   [% SET disp_value = display_value(field, value) %]
-  [% IF field == 'assigned_to' OR field == 'reporter'
-           OR field == 'qa_contact'
-  %]
+  [% IF field == 'assigned_to' OR field == 'reporter' OR field == 'qa_contact' %]
     [% disp_value = value FILTER email %]
   [% END %]
-  [% disp_value FILTER html FILTER replace('^ $','&nbsp;') %]
-[% END %] 
+  [% disp_value FILTER html FILTER replace('^\s*$','&nbsp;') %]
+[% END %]
 
 [% BLOCK value_url %]
   [% IF NOT value %]
