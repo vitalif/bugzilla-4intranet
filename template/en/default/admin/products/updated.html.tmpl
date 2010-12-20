@@ -75,7 +75,7 @@
   '[% product.default_milestone FILTER html %]'.
   </p>
 [% END %]
-  
+
 [% IF changes.votesperuser.defined %]
   <p>
   Updated votes per user from
@@ -111,7 +111,7 @@
   [% ELSE %]
     The product no longer allows the 
     [%+ display_value('bug_status', 'UNCONFIRMED') FILTER html %] status.
-    Note that any 
+    Note that any
     <a href="buglist.cgi?product=
             [%- product.name FILTER url_quote %]&amp;bug_status=UNCONFIRMED"> 
     [%- terms.bugs %] that currently have the 
@@ -133,6 +133,10 @@
   <p>Product is now preferred to be [% product.notimetracking ? "not " : "" %] time-tracked.</p>
 [% END %]
 
+[% IF changes.extproduct.defined %]
+  <p>External product is [% IF changes.extproduct %]set to [% product.extproduct_obj.name | html %][% ELSE %]cleared[% END %].</p>
+[% END %]
+
 [% IF !changes.keys.size %]
   <p>Nothing changed for product '[% product.name FILTER html %]'.</p>
 [% END %]
@@ -140,7 +144,6 @@
 [%# Note that this display of changed votes and/or confirmed bugs is
     not very scalable. We could have a _lot_, and we just list them all.
     One day we should limit this perhaps, or have a more scalable display %]
-
 
 [% IF checkvotes %]
   <hr>

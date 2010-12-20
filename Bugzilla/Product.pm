@@ -991,12 +991,22 @@ sub extproduct        { return $_[0]->{'extproduct'};        }
 ####      Subroutines    ######
 ###############################
 
+sub extproduct_obj
+{
+    my $self = shift;
+    if (!exists $self->{extproduct_obj})
+    {
+        $self->{extproduct_obj} = $self->{extproduct} ? $self->new($self->{extproduct}) : undef;
+    }
+    return $self->{extproduct_obj};
+}
+
 sub enterable_extproduct_name
 {
     my $self = shift;
     if (!exists $self->{extproduct_name})
     {
-        my $n = $self->{extproduct} ? $self->new($self->{extproduct})->name : '';
+        my $n = $self->{extproduct} ? $self->extproduct_obj->name : '';
         $n = '' if $n ne '' && !Bugzilla->user->can_enter_product($n);
         $self->{extproduct_name} = $n;
     }

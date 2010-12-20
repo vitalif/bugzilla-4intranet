@@ -29,7 +29,7 @@
     <td><b>[% classification.name FILTER html %]</b></td>
   </tr>
 [% END %]
-    
+
 <tr>
   <th align="right">Product:</th>
   <td><input size="64" maxlength="64" name="product" 
@@ -96,7 +96,7 @@
   <td>
     <select name="extproduct">
       <option value="">---</option>
-    [% FOREACH prod = Bugzilla.user.get_enterable_products %]
+    [% FOREACH prod = Bugzilla.user.get_editable_products %]
       <option value="[% prod.id %]" [% ' selected="selected"' IF prod.id == product.extproduct %]>[% prod.name | html %]</option>
     [% END %]
     </select>
