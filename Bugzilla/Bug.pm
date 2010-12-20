@@ -3013,6 +3013,9 @@ sub comments {
         my $from = datetime_from($params->{after});
         @comments = grep { datetime_from($_->creation_ts) > $from } @comments;
     }
+    elsif ($params->{start_at}) {
+        splice(@comments, 0, $params->{start_at});
+    }
     if ($params->{to}) {
         my $to = datetime_from($params->{to});
         @comments = grep { datetime_from($_->creation_ts) <= $to } @comments;

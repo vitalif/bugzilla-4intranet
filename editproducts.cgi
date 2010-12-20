@@ -98,7 +98,6 @@ if (Bugzilla->params->{'useclassification'}
     exit;
 }
 
-
 #
 # action = '' -> Show a nice list of products, unless a product
 #                is already specified (then edit it)
@@ -123,9 +122,6 @@ if (!$action && !$product_name) {
       || ThrowTemplateError($template->error());
     exit;
 }
-
-
-
 
 #
 # action='add' -> present form for parameters for new product
@@ -152,7 +148,6 @@ if ($action eq 'add') {
 
     exit;
 }
-
 
 #
 # action='new' -> add product entered in the 'action=add' screen
