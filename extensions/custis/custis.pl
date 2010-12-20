@@ -23,6 +23,11 @@ my $OPTIONAL_MODULES =
         version => '0.1',
         feature => 'Import of OOXML Excel files (*.xlsx)',
     },
+    {
+        package => 'Net-IP-Match-XS',
+        module  => 'Net::IP::Match::XS',
+        feature => 'FOF-Sudo system-to-system authorization',
+    },
 ];
 
 required_modules('custis', $REQUIRED_MODULES);

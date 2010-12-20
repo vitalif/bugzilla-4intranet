@@ -1,0 +1,31 @@
+Add the following to beginning of checksetup.pl:
+
+BEGIN { $SIG{__DIE__} = sub {
+    my ($a) = @_;
+    if ($a =~ /Can\'t locate (\S*).pm in/)
+    {
+        my $i = 0;
+        my @c;
+        while (@c = caller($i++))
+        {
+            if ($c[3] =~ /\(eval\)/)
+            {
+                die @_;
+            }
+        }
+        my $fn = $1.'.pm';
+        my $m = $1;
+        $m =~ s/\//::/gso;
+        print "Perl module '$m' is needed to run Bugzilla. Install it from CPAN? (Y/n) ";
+        my $k = <STDIN>;
+        if ($k || $k =~ /y|^\s*$/iso)
+        {
+            system("cpan '$m'");
+            exec("perl '$0' '".join("','", @ARGV)."'");
+        }
+        else
+        {
+            die @_;
+        }
+    }
+}; }

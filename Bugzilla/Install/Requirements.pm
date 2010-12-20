@@ -496,6 +496,7 @@ sub print_module_instructions {
 
 sub _translate_feature {
     my $features = shift;
+    $features = [$features] if !ref $features;
     my @strings;
     foreach my $feature (@$features) {
         push(@strings, install_string("feature_$feature"));
