@@ -1002,7 +1002,7 @@ sub update
         my @values  = values %$comment;
         my $qmarks  = join(',', ('?') x @values);
         $dbh->do("INSERT INTO longdescs ($columns) VALUES ($qmarks)", undef, @values);
-        if ($comment->{work_time})
+        if ($comment->{work_time} > 0)
         {
             # log worktime
             $changes->{work_time} ||= [ '', 0 ];
