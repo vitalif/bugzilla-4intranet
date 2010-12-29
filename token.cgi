@@ -56,7 +56,7 @@ Bugzilla->login(LOGIN_OPTIONAL);
 
 # Throw an error if the form does not contain an "action" field specifying
 # what the user wants to do.
-$action || ThrowCodeError("unknown_action");
+$action || ThrowUserError("unknown_action");
 
 # If a token was submitted, make sure it is a valid token that exists in the
 # database and is the correct type for the action being taken.

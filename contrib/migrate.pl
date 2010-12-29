@@ -7,6 +7,9 @@
 
 use strict;
 
+my ($from, $from_user, $from_password);
+my @ignore_tables;
+
 # Runs before any 'uses'
 BEGIN {
 
@@ -29,9 +32,6 @@ Does the following:
 EOF
 
 # Parse command-line arguments
-my ($from, $from_user, $from_password);
-my @ignore_tables;
-
 while ($_ = shift @ARGV)
 {
     if ($_ eq '--from')
@@ -94,7 +94,7 @@ my %seen_tables = (
 );
 
 # Ignore more tables
-$seen_tables = 1 for @ignore_tables;
+$seen_tables{$_} = 1 for @ignore_tables;
 
 my %field_exclude = (
     'fieldvaluecontrol' => 'field_id',
@@ -151,14 +151,14 @@ for (values %$fielddefs)
     }
 }
 
+my (@skip_fields, $maxkey);
+
 print "Redefine existing fields\n";
 $to->do('DELETE FROM profiles_activity'); #!
 $to->do('DELETE FROM fielddefs WHERE name IN (\''.join('\',\'', keys %$fieldsnew).'\')'); #!
 insertall_hashref($to, 'fielddefs', [ map { $fielddefs->{$_} } keys %$fieldsnew ]); #!
 
 delete $fielddefs->{$_} for keys %$fieldsnew;
-
-my @skip_fields;
 
 for (keys %$fielddefs)
 {
@@ -183,9 +183,11 @@ for (keys %$fielddefs)
 }
 
 # Alter fielddefs autoincrement value manually
-my ($maxkey) = $to->selectrow_array('SELECT MAX(id) FROM fielddefs');
+($maxkey) = $to->selectrow_array('SELECT MAX(id) FROM fielddefs');
 alter_sequence($to, 'fielddefs', 'id', $maxkey);
 
+$to->{RaiseError} = 0;
+$to->{PrintError} = 1;
 for my $table (@copy_tables)
 {
     print "Selecting $table\n";
@@ -247,6 +249,11 @@ sub alter_sequence
     {
         $dbh->do("ALTER SEQUENCE ${table}_${field}_seq RESTART WITH $maxkey");
     }
+    elsif ($dbh->isa('Bugzilla::DB::Oracle'))
+    {
+        my @sql = $dbh->_bz_real_schema->_get_create_seq_ddl($table, $field, $maxkey);
+        $dbh->do($_) foreach @sql;
+    }
 }
 
 # Insert an array of hashes into a database table
@@ -256,12 +263,32 @@ sub insertall_hashref
     return 0 unless
         $dbh && $table &&
         $rows && ref($rows) eq 'ARRAY' && @$rows;
-    my $q = substr($dbh->quote_identifier('a'), 0, 1);
     my @f = keys %{$rows->[0]};
-    my $sql = "INSERT INTO $q$table$q ($q".join("$q,$q",@f)."$q) VALUES ".
-        join(',',('('.(join(',', ('?') x scalar(@f))).')') x scalar(@$rows));
-    my @bind = map { @$_{@f} } @$rows;
-    return $dbh->do($sql, undef, @bind);
+    my $k = join "|", $table, @f, scalar @$rows;
+    my $sth;
+    if (!($sth = $dbh->{__insertall_hashref_cache}->{$k}))
+    {
+        my $q = substr($dbh->quote_identifier('a'), 0, 1);
+        $sth = $dbh->prepare(
+            "INSERT INTO $q$table$q ($q".join("$q,$q", @f)."$q) VALUES ".
+            join(',', ('('.(join(',', ('?') x @f)).')') x scalar @$rows)
+        );
+        if ($dbh->isa('Bugzilla::DB::Pg') || $dbh->isa('Bugzilla::DB::Oracle'))
+        {
+            for my $i (0 .. $#f)
+            {
+                if ($dbh->bz_column_info($table, $f[$i])->{TYPE} eq 'LONGBLOB')
+                {
+                    for my $j (0 .. $#$rows)
+                    {
+                        $sth->bind_param(1 + $i + $j*@f, '', $dbh->BLOB_TYPE);
+                    }
+                }
+            }
+        }
+        $dbh->{__insertall_hashref_cache}->{$k} = $sth;
+    }
+    return $sth->execute(map { @$_{@f} } @$rows);
 }
 
 # Get node sequence from a dependency graph

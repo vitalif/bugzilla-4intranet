@@ -1707,6 +1707,13 @@
     [% title = "Illegal User ID" %]
     User ID '[% userid FILTER html %]' is not valid integer.
 
+  [% ELSIF error == "unknown_action" %]
+    [% IF action %]
+       Unknown action [% action FILTER html %]!
+    [% ELSE %]
+       I could not figure out what you wanted to do.
+    [% END %]
+
   [% ELSE %]
     [%# Try to find hooked error messages %]
     [% error_message = Hook.process("errors") %]
