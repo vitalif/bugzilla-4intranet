@@ -561,18 +561,27 @@ sub init
                 my @l;
                 if ($sql_chfrom) {
                     my $term = "bugs.creation_ts >= $sql_chfrom";
-                    push(@l, $term);
+                    push @l, $term;
                     $self->search_description({
-                        field => 'creation_ts', type => 'greaterthaneq',
+                        field => $f, type => 'greaterthaneq',
                         value => $chfieldfrom, term => $term,
                     });
                 }
                 if ($sql_chto) {
                     my $term = "bugs.creation_ts <= $sql_chto";
-                    push(@l, $term);
+                    push @l, $term;
                     $self->search_description({
-                        field => 'creation_ts', type => 'lessthaneq',
+                        field => $f, type => 'lessthaneq',
                         value => $chfieldto, term => $term,
+                    });
+                }
+                if ($chfieldwho)
+                {
+                    my $term = "bugs.reporter = $chfieldwho";
+                    push @l, $term;
+                    $self->search_description({
+                        field => $f, type => 'changedby',
+                        value => user_id_to_login($chfieldwho), term => $term,
                     });
                 }
                 $bug_creation_clause = "(" . join(' AND ', @l) . ")";
