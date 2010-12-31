@@ -37,7 +37,7 @@ use constant DB_TABLE => 'milestones';
 use constant FIELD_NAME => 'target_milestone';
 
 use constant NAME_FIELD => 'value';
-use constant LIST_ORDER => 'sortkey, value';
+use constant LIST_ORDER => 'product_id, sortkey, value';
 
 use constant DB_COLUMNS => qw(
     id
