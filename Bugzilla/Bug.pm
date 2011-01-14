@@ -799,6 +799,9 @@ sub check_dependent_fields
         });
     }
 
+    use Data::Dumper;
+    die Dumper $validators;
+
     if (Bugzilla->usage_mode == USAGE_MODE_BROWSER && (%$incorrect_fields || $verify_bug_groups))
     {
         Bugzilla->template->process('bug/process/verify-field-values.html.tmpl', {

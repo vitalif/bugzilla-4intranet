@@ -479,6 +479,7 @@ sub check_visibility
     my $vf = $self->field->value_field || return 1;
     my $m = $vf->name;
     $m = blessed $bug ? $bug->$m : $bug->{$m};
+    $m = ref $m ? $m->name : $m;
     my $value = Bugzilla::Field::Choice->type($vf)->new({ name => $m }) || return 1;
     return $self->has_visibility_value($value);
 }
