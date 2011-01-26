@@ -1457,7 +1457,8 @@ sub _check_comment_type {
     return $type;
 }
 
-sub _check_component {
+sub _check_component
+{
     my ($invocant, $name, $product) = @_;
     $name = trim($name);
     $name || ThrowUserError("require_component");
@@ -1966,7 +1967,7 @@ sub _check_version
     my ($invocant, $version, $product) = @_;
     $version = trim($version);
     ($product = $invocant->product_obj) if ref $invocant;
-    my $object = Bugzilla::Version->new({ product => $product, name => $version });
+    my $object = Bugzilla::Version->new({ product => $product, name => $version }) if length $version;
     if (!$object)
     {
         $invocant->dependent_validators->{version} = $version;
