@@ -651,14 +651,14 @@ sub run_create_validators
         $class->_check_dependencies($params->{dependson}, $params->{blocked},
                                     $product);
 
-    # Check dependent field values and die on errors
-    check_dependent_fields($dependent_validators, $params);
-
     # You can't set these fields on bug creation (or sometimes ever).
+    delete $params->{bug_id};
     delete $params->{votes};
     delete $params->{lastdiffed};
-    delete $params->{bug_id};
     delete $params->{resolution} if $params->{bug_status} ne 'RESOLVED';
+
+    # Check dependent field values and die on errors
+    check_dependent_fields($dependent_validators, $params);
 
     # These are converted into IDs
     delete $params->{product};
