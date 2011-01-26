@@ -598,12 +598,8 @@ sub run_create_validators
     my $class  = shift;
     my $params = $class->SUPER::run_create_validators(@_);
 
-    # Check dependent field values
-    check_dependent_fields($dependent_validators, $params);
-
     my $product = $params->{product};
     $params->{product_id} = $product->id;
-    delete $params->{product};
 
     ($params->{bug_status}, $params->{everconfirmed})
         = $class->_check_bug_status($params->{bug_status}, $product,
@@ -612,10 +608,6 @@ sub run_create_validators
     if ($params->{bug_status} eq 'RESOLVED')
     {
         check_field('resolution', trim($params->{resolution}));
-    }
-    else
-    {
-        delete $params->{resolution};
     }
 
     $params->{target_milestone} = $class->_check_target_milestone(
@@ -629,14 +621,16 @@ sub run_create_validators
         $params->{groups});
 
     my $component = $class->_check_component($params->{component}, $product);
-    $params->{component_id} = $component->id;
-    delete $params->{component};
 
-    $params->{assigned_to} =
-        $class->_check_assigned_to($params->{assigned_to}, $component);
-    $params->{qa_contact} =
-        $class->_check_qa_contact($params->{qa_contact}, $component);
-    $params->{cc} = $class->_check_cc($component, $params->{cc});
+    if ($component)
+    {
+        $params->{component_id} = $component->id;
+        $params->{assigned_to} =
+            $class->_check_assigned_to($params->{assigned_to}, $component);
+        $params->{qa_contact} =
+            $class->_check_qa_contact($params->{qa_contact}, $component);
+        $params->{cc} = $class->_check_cc($component, $params->{cc});
+    }
 
     # Callers cannot set reporter, creation_ts, or delta_ts.
     $params->{reporter} = $class->_check_reporter();
@@ -657,10 +651,18 @@ sub run_create_validators
         $class->_check_dependencies($params->{dependson}, $params->{blocked},
                                     $product);
 
+    # Check dependent field values and die on errors
+    check_dependent_fields($dependent_validators, $params);
+
     # You can't set these fields on bug creation (or sometimes ever).
     delete $params->{votes};
     delete $params->{lastdiffed};
     delete $params->{bug_id};
+    delete $params->{resolution} if $params->{bug_status} ne 'RESOLVED';
+
+    # These are converted into IDs
+    delete $params->{product};
+    delete $params->{component};
 
     Bugzilla::Hook::process('bug_end_of_create_validators',
                             { params => $params });
@@ -792,7 +794,7 @@ sub check_dependent_fields
     }
 
     # If we're not in browser, throw an error
-    if (Bugzilla->usage_mode != USAGE_MODE_BROWSER && %$incorrect_fields)
+    if ((Bugzilla->usage_mode != USAGE_MODE_BROWSER || !blessed $params) && %$incorrect_fields)
     {
         ThrowUserError('incorrect_field_values', {
             incorrect_fields => [ values %$incorrect_fields ],
