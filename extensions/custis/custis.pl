@@ -51,14 +51,17 @@ set_hook('custis', 'emailin_filter_body',           'CustisMailHooks::emailin_fi
 set_hook('custis', 'emailin_filter_html',           'CustisMailHooks::emailin_filter_html');
 
 # Хуки для предоставления View'шек в базе для доступа извне
-set_hook('custis', 'editgroups_post_create',        'FlushViews::refresh_views');
-set_hook('custis', 'editgroups_post_delete',        'FlushViews::refresh_views');
-set_hook('custis', 'editgroups_post_edit',          'FlushViews::refresh_views');
-set_hook('custis', 'editgroups_post_remove_regexp', 'FlushViews::refresh_views');
-set_hook('custis', 'editusersingroup_post_add',     'FlushViews::refresh_views');
-set_hook('custis', 'editusers_post_delete',         'FlushViews::refresh_views');
-set_hook('custis', 'editusers_post_update',         'FlushViews::refresh_views');
-set_hook('custis', 'savedsearch_post_update',       [ 'FlushViews::savedsearch_post_update' ]);
+if (!Bugzilla->params->{ext_disable_refresh_views})
+{
+    set_hook('custis', 'editgroups_post_create',        'FlushViews::refresh_views');
+    set_hook('custis', 'editgroups_post_delete',        'FlushViews::refresh_views');
+    set_hook('custis', 'editgroups_post_edit',          'FlushViews::refresh_views');
+    set_hook('custis', 'editgroups_post_remove_regexp', 'FlushViews::refresh_views');
+    set_hook('custis', 'editusersingroup_post_add',     'FlushViews::refresh_views');
+    set_hook('custis', 'editusers_post_delete',         'FlushViews::editusers_post_update_delete');
+    set_hook('custis', 'editusers_post_update',         'FlushViews::editusers_post_update_delete');
+    set_hook('custis', 'savedsearch_post_update',       [ 'FlushViews::savedsearch_post_update' ]);
+}
 
 # Хуки для синхронизации тест-плана Testopia с Wiki-категорией
 set_hook('custis', 'tr_show_plan_after_fetch',      'CustisTestPlanSync::tr_show_plan_after_fetch');

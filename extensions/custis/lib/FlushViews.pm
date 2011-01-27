@@ -62,5 +62,18 @@ sub savedsearch_post_update
     return 1;
 }
 
+sub editusers_post_update_delete
+{
+    my ($args) = @_;
+    my $name = $args->{userid};
+    if ($name)
+    {
+        $name = user_id_to_login($name);
+        $name =~ s/\@.*$//so;
+        refresh_some_views([ $name ]);
+    }
+    return 1;
+}
+
 1;
 __END__

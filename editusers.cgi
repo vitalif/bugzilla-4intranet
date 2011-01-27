@@ -344,7 +344,7 @@ if ($action eq 'search') {
     userDataToVars($otherUserID);
     delete_token($token);
 
-    Bugzilla::Hook::process('editusers-post_update', {});
+    Bugzilla::Hook::process('editusers-post_update', { userid => $otherUserID });
 
     $vars->{'message'} = 'account_updated';
     $vars->{'changed_fields'} = [keys %$changes];
@@ -645,7 +645,7 @@ if ($action eq 'search') {
     $dbh->bz_commit_transaction();
     delete_token($token);
 
-    Bugzilla::Hook::process('editusers-post_delete', {});
+    Bugzilla::Hook::process('editusers-post_delete', { userid => $otherUserID });
 
     $vars->{'message'} = 'account_deleted';
     $vars->{'otheruser'}{'login'} = $otherUser->login;
