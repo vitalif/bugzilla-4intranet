@@ -84,6 +84,12 @@ sub get_param_list
     },
 
     {
+        name => 'rawiki_url',
+        type => 't',
+        default => 'http://rawiki.office.custis.ru/rawiki/index.php/',
+    },
+
+    {
         name => 'user_mailto',
         type => 't',
         default => 'mailto:',
