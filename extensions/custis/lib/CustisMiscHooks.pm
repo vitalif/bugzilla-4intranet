@@ -148,7 +148,7 @@ sub process_bug_after_move
 sub quote_urls_custom_proto
 {
     my ($args) = @_;
-    for my $wiki (qw/wiki smwiki smboa sbwiki fawiki kswiki rdwiki gzwiki dpwiki hrwiki cbwiki gzstable orwiki/)
+    for my $wiki (qw/wiki smwiki smboa sbwiki fawiki kswiki rdwiki gzwiki dpwiki hrwiki cbwiki gzstable orwiki rawiki/)
     {
         $args->{custom_proto}->{$wiki} = sub { processWikiUrl($wiki, @_) }
     }
