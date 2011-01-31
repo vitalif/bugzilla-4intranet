@@ -485,8 +485,9 @@ sub process_bug
 
     my $bug = Bugzilla::Bug->check($bug_id);
 
-    $fields{product} ||= $bug->product;
-    $fields{component} ||= $bug->component;
+    # process_bug.cgi always "tries to set" these fields
+    $fields{$_} ||= $bug->$_ for qw(product component target_milestone version);
+
     if (exists $fields{blocked} || exists $fields{dependson})
     {
         $fields{blocked} ||= join ',', @{ $bug->blocked };

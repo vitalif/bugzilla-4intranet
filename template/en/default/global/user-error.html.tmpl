@@ -1715,6 +1715,9 @@
     [% END %]
 
   [% ELSIF error == "incorrect_field_values" %]
+    [% IF bug_id %]
+      [% terms.Bug %] [%+ bug_id %]:<br />
+    [% END %]
     [% FOR f = incorrect_fields %]
       [% "<br />" IF !loop.first %]
       The value(s) "[% f.value_names.join('", "') | html %]" of field "[% f.field.description | html %]"
