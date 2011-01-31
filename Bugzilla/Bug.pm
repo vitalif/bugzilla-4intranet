@@ -797,11 +797,13 @@ sub check_dependent_fields
     if ((Bugzilla->usage_mode != USAGE_MODE_BROWSER || !blessed $params) && %$incorrect_fields)
     {
         ThrowUserError('incorrect_field_values', {
+            bug_id           => blessed $params ? $params->bug_id : undef,
             incorrect_fields => [ values %$incorrect_fields ],
         });
     }
 
-    if (Bugzilla->usage_mode == USAGE_MODE_BROWSER && (%$incorrect_fields || $verify_bug_groups))
+    # Else display UI for value checking
+    if (Bugzilla->usage_mode == USAGE_MODE_BROWSER && (%$incorrect_fields || $verify_bug_groups) && blessed $params)
     {
         Bugzilla->template->process('bug/process/verify-field-values.html.tmpl', {
             product => $verify_bug_groups && $params->product_obj,
