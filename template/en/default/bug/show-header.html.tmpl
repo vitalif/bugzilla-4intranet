@@ -36,7 +36,7 @@
 [% title = "$terms.Bug $bug.bug_id &ndash; $filtered_desc &ndash; $filtered_prodcomp &ndash; $filtered_stat" %]
 [% header = "$terms.Bug&nbsp;$bug.bug_id" %]
 [% header_addl_info = "Last modified: $filtered_timestamp" %]
-[% javascript_urls = [ "js/util.js", "js/field.js", "js/yui/calendar.js" ] %]
+[% javascript_urls = [ "js/util.js", "js/field.js", "js/yui/calendar.js", "js/bug-visibility.js", "fieldvaluecontrol.cgi?type=bug" ] %]
 [% style_urls = [ "skins/standard/yui/calendar.css",
                   "skins/standard/show_bug.css" ] %]
 [% doc_section = "bug_page.html" %]

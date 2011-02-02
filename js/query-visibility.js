@@ -1,6 +1,5 @@
 /* JavaScript code to hide and show values of select fields on the query form */
 
-var qfVisibility = {};
 var qfHandling = {};
 YAHOO.util.Event.addListener(window, 'load', initQueryformFields);
 

@@ -47,7 +47,7 @@ Bugzilla->send_header(
 if ($args->{type} eq 'search')
 {
     my $json = bz_encode_json(Bugzilla->full_json_query_visibility);
-    print "qfVisibility = $json;";
+    print "var qfVisibility = $json;";
 }
 elsif ($args->{type} eq 'bug')
 {
