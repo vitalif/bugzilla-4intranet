@@ -3,28 +3,51 @@
 %]
 
 [% IF mode == "list" %]
+<style>
+.chkt { width: 70%; border-collapse: collapse; }
+.chkt td, .chkt th { padding: 4px; border: 1px solid gray; }
+</style>
  <h3>Редактирование предикатов корректности</h3>
+ <h4><a href="?mode=edit&create=1">Добавить новый предикат.</a></h4>
  [% IF checkers.size %]
-  <p>Список определённых предикатов корректности:</p>
-  <dl>
+  <h4>Список определённых предикатов корректности:</h4>
+  <table class="chkt">
+  <tr style="background-color: #ccc">
+   <th style="width: 10%">Название поиска</th>
+   <th>Запрет</th>
+   <th>Режим</th>
+   <th>Действия</th>
+   <th>Сообщение</th>
+  </tr>
   [% FOR c = checkers %]
-   <dt>
+  <tr>
+   <td><a href="?mode=edit&id=[% c.id %]">[% c.name | html %]</a></td>
+   <td style="background-color: [% c.is_fatal ? '#fdd' : '#ffd' %]; text-align: center" title="[% c.is_fatal
+       ? 'Жёсткий запрет: При нарушении правила изменения блокируются и выдаётся ошибка'
+       : 'Мягкий запрет: При нарушении правила выдаётся предупреждение, но изменение не блокируется' %]">
+     [% c.is_fatal ? "Жёсткий" : "Мягкий" %]
+   </td>
+   <td style="background-color: [% c.is_freeze ? '#ddf' : '#fdd' %]; text-align: center" title="[% c.is_freeze
+       ? 'Заморозка (защита от изменения)'
+       : 'Проверка корректности новых значений' %]">
+     [%+ IF c.is_freeze %]Заморозка[% ELSE %]Проверка[% END %]
+   </td>
+   <td style="text-align: center; white-space: nowrap">
+    <a href="?mode=edit&id=[% c.id %]" title="править"><img src="images/edit.png" width="22" height="22" /></a>
     <a href="buglist.cgi?cmdtype=dorem&amp;remaction=run&amp;namedcmd=[% c.query.name | url_quote %]
-     [% IF c.query.shared_with_group.id %]&amp;sharer_id=[% c.query.user.id %][% END %]">[% c.name | html %]</a>:
-    <a href="?mode=edit&id=[% c.id %]">править</a>,
-    <a href="javascript:void(0)" onclick="if(confirm('Действительно удалить эту проверку?')){window.location.href='?save=1&delete=1&id=[% c.id %]';}">удалить</a>
-   </dt>
-   <dd>
-    [% c.message | html %]
-    ([% c.is_fatal ? "обязательная" : "рекомендательная" %]
-    [%+ IF c.is_freeze %]защита от изменений[% ELSE %]проверка новых значений[% END %]).
-   </dd>
+     [% IF c.query.shared_with_group.id %]&amp;sharer_id=[% c.query.user.id %][% END %]" title="выполнить поиск">
+      <img src="images/search.png" width="22" height="22" />
+    </a>
+    <a href="query.cgi?[% c.query.query %]" title="править поиск"><img src="images/editsearch.png" width="22" height="22" /></a>
+    <a href="javascript:void(0)" title="удалить" onclick="if(confirm('Действительно удалить эту проверку?')){window.location.href='?save=1&delete=1&id=[% c.id %]';}"><img src="images/delete.png" width="22" height="22" /></a>
+   </td>
+   <td>[% c.message | html %]</td>
+  </tr>
   [% END %]
-  </dl>
+  </table>
  [% ELSE %]
   <p>Ещё не определено ни одного предиката корректности.</p>
  [% END %]
- <p><a href="?mode=edit&create=1">Добавить новый предикат.</a></p>
 [% ELSE %]
  [% IF create %]
   <h3>Добавление нового предиката</h3>
@@ -137,9 +160,8 @@ add_field();
 [% END %]
 
 [%# FIXME Тема: интеграция справки Bugzilla с Wiki %]
-<hr />
 
-<table style="border:5px solid #00A000;border-collapse:collapse"><tr>
+<table style="border:5px solid #00A000;border-collapse:collapse;margin-top:1em"><tr>
 <td style="border-right:5px solid #00A000;color:#00A000;background-color:white;padding:5px;font-size:200%">?</td>
 <td style="padding:5px"><a href="http://wiki.office.custis.ru/wiki/Bugzilla:_проверки_изменений_багов">wiki:[[Bugzilla: проверки изменений багов]]</a></td>
 </tr></table>
