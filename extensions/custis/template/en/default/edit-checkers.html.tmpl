@@ -84,11 +84,11 @@
     <input type="checkbox" name="on_create" id="on_create" [% " checked='checked'" IF checker.on_create %] onclick="this.blur()" onblur="showhide_allowdeny()" />
     <label for="on_create" id="label_for_on_create">Проверять создание новых багов (требуется «Запрещать изменения всех полей»)</label><br />
     <input type="checkbox" name="on_update" id="on_update" [% " checked='checked'" IF checker.on_update %] onclick="this.blur()" onblur="showhide_allowdeny()" />
-    <label for="on_update">Проверять обновления багов</label><br />
+    <label for="on_update">Проверять изменения багов</label><br />
     <input type="checkbox" name="is_freeze" id="is_freeze" [% " checked='checked'" IF checker.is_freeze %] />
-    <label for="is_freeze" id="label_for_is_freeze">Предварительная проверка (заморозка багов, только для режима обновления)</label><br />
+    <label for="is_freeze" id="label_for_is_freeze">Заморозка багов (защита от изменений, только для режима обновления)</label><br />
     <input type="checkbox" name="is_fatal" id="is_fatal" [% " checked='checked'" IF checker.is_fatal %] />
-    <label for="is_fatal">Запрещать изменения? (если нет, только даётся предупреждение)</label><br />
+    <label for="is_fatal">Жёсткий запрет (если нет, то изменения не блокируются, а только даётся предупреждение)</label><br />
    </td>
   </tr>
   <tr><th style="text-align: left" colspan="2">Запреты изменений отдельных полей, действуют только при обновлении багов:</th></tr>
