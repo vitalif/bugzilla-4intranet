@@ -125,7 +125,7 @@ sub db_schema_abstract_schema
             query_id       => {TYPE => 'INT3', NOTNULL => 1, REFERENCES => {TABLE => 'namedqueries', COLUMN => 'id'}},
             user_id        => {TYPE => 'INT3', REFERENCES => {TABLE => 'profiles', COLUMN => 'userid'}},
             flags          => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0},
-            message        => {TYPE => 'varchar(255)', NOTNULL => 1},
+            message        => {TYPE => 'LONGTEXT', NOTNULL => 1},
             sql_code       => {TYPE => 'LONGTEXT'},
             except_fields  => {TYPE => 'LONGBLOB'},
         ],
@@ -379,6 +379,12 @@ sub install_update_fielddefs
 
     # Bug 70605 - Делаем вид, что изменили какое-то поле, чтобы при checksetup автоматически сбросился кэш
     $dbh->do('UPDATE fielddefs SET delta_ts=NOW() WHERE name=\'delta_ts\'');
+
+    # Bug 69481 - Длина описания проверок
+    if ($dbh->bz_column_info('checkers', 'message')->{TYPE} ne 'LONGTEXT')
+    {
+        $dbh->bz_alter_column('checkers', message => {TYPE => 'LONGTEXT', NOTNULL => 1});
+    }
 
     return 1;
 }

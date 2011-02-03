@@ -94,6 +94,12 @@ sub get_param_list
         type => 't',
         default => 'mailto:',
     },
+
+    {
+        name => 'ext_disable_refresh_views',
+        type => 'b',
+        default => 0,
+    },
     );
 }
 

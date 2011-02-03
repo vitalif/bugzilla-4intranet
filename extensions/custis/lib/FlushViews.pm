@@ -17,23 +17,31 @@ sub refresh_views
     return 1;
 }
 
+# Refresh views, optionally only for $users = [ 'username@domain.org', ... ]
 sub refresh_some_views
 {
     my ($users) = @_;
     my %u = ( map { $_ => 1 } @{ $users || [] } );
     my $dbh = Bugzilla->dbh;
     my $r = $dbh->real_table_list('view$%$bugs', 'VIEW');
+    # Save current user
+    my $old_user = Bugzilla->user;
     for (@$r)
     {
+        # Determine user
         my (undef, $user, $query) = split /\$/, $_, -1;
         !%u || $u{$user} or next;
         my ($userid) = $dbh->selectrow_array('SELECT userid FROM profiles WHERE login_name LIKE ? ORDER BY userid LIMIT 1', undef, $user.'@%');
         $userid or next;
         my $userobj = Bugzilla::User->new($userid) or next;
+        # Modify current user (hack)
+        Bugzilla->request_cache->user = $userobj;
+        # Determine saved search
         my $q = $query;
         $q =~ tr/_/ /;
         my $storedquery = Bugzilla::Search::LookupNamedQuery($q, $userid, undef, 0) or next;
         my $cgi = new Bugzilla::CGI($storedquery);
+        # get SQL code
         my $search = new Bugzilla::Search(
             params => $cgi,
             fields => [ 'bug_id', grep { $_ ne 'bug_id' } split /[ ,]+/, $cgi->param('columnlist') ],
@@ -41,6 +49,7 @@ sub refresh_some_views
         ) or next;
         my $sqlquery = $search->getSQL();
         $sqlquery =~ s/ORDER\s+BY\s+bugs.bug_id//so;
+        # Recreate views
         $dbh->do('DROP VIEW IF EXISTS view$'.$user.'$'.$query.'$longdescs');
         $dbh->do('DROP VIEW IF EXISTS view$'.$user.'$'.$query.'$bugs_activity');
         $dbh->do('DROP VIEW IF EXISTS view$'.$user.'$'.$query.'$scrum_cards');
@@ -50,6 +59,8 @@ sub refresh_some_views
         $dbh->do('CREATE '.($dbh->isa('Bugzilla::DB::Mysql') ? 'SQL SECURITY DEFINER' : '').' VIEW view$'.$user.'$'.$query.'$bugs_activity AS SELECT a.bug_id, u.login_name, a.bug_when, f.name field_name, a.removed, a.added FROM bugs_activity a INNER JOIN view$'.$user.'$'.$query.'$bugs b ON b.bug_id=a.bug_id INNER JOIN profiles u ON u.userid=a.who INNER JOIN fielddefs f ON f.id=a.fieldid');
         $dbh->do('CREATE '.($dbh->isa('Bugzilla::DB::Mysql') ? 'SQL SECURITY DEFINER' : '').' VIEW view$'.$user.'$'.$query.'$scrum_cards AS SELECT s.* FROM scrum_cards s INNER JOIN view$'.$user.'$'.$query.'$bugs b ON b.bug_id=s.bug_id');
     }
+    # Restore current user
+    Bugzilla->request_cache->{user} = $old_user;
 }
 
 # hooks:
