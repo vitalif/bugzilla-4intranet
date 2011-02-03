@@ -35,7 +35,7 @@ sub refresh_some_views
         $userid or next;
         my $userobj = Bugzilla::User->new($userid) or next;
         # Modify current user (hack)
-        Bugzilla->request_cache->user = $userobj;
+        Bugzilla->request_cache->{user} = $userobj;
         # Determine saved search
         my $q = $query;
         $q =~ tr/_/ /;
