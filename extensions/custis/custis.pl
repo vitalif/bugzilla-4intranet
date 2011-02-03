@@ -5,6 +5,7 @@
 #  что было совместимо со стандартной системой хуков Bugzilla, которую убрали в 3.6.
 
 use strict;
+use Bugzilla;
 use Bugzilla::Hook;
 use Bugzilla::Extension;
 
