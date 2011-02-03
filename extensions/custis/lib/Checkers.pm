@@ -49,6 +49,7 @@ sub check
     $bug_id = int($bug_id) || return;
     my $all = all();
     my $sql = [];
+    my @bind;
     my ($s, $i);
     for (values %$all)
     {
@@ -56,14 +57,18 @@ sub check
         {
             $s = $_->sql_code;
             $i = $_->id;
-            $s =~ s/^(.*)(GROUP\s+BY)/SELECT $i id FROM $1 AND bugs.bug_id=$bug_id $2/iso;
+            $s =~ s/^(.*)(GROUP\s+BY)/SELECT $i id FROM $1 AND bugs.bug_id=? $2/iso;
             push @$sql, $s;
+            push @bind, $bug_id;
         }
     }
     @$sql || return [];
     $sql = "(" . join(") UNION ALL (", @$sql) . ")";
-    my $checked = Bugzilla->dbh->selectcol_arrayref($sql);
-    return [ map { $all->{$_} } @$checked ];
+    $sql = Bugzilla->dbh->prepare_cached($sql);
+    $sql->execute(@bind);
+    my $checked = [];
+    push @$checked, $all->{$i} while (($i) = $sql->fetchrow_array);
+    return $checked;
 }
 
 sub alert
