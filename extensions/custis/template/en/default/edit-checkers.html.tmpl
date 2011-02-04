@@ -16,6 +16,8 @@
    <th style="width: 10%">Название поиска</th>
    <th>Запрет</th>
    <th>Режим</th>
+   <th title="Проверяются ли новые баги?">C</th>
+   <th title="Проверяются ли обновления багов?">U</th>
    <th>Действия</th>
    <th>Сообщение</th>
   </tr>
@@ -32,6 +34,8 @@
        : 'Проверка корректности новых значений' %]">
      [%+ IF c.is_freeze %]Заморозка[% ELSE %]Проверка[% END %]
    </td>
+   <td style="background-color: [% c.on_create ? '#cfc" title="Проверяются новые баги"' : '#fdd" title="Новые баги не проверяются"' %]>[% c.on_create ? '+' : '&nbsp;' %]</td>
+   <td style="background-color: [% c.on_update ? '#cfc" title="Проверяются изменения багов"' : '#fdd" title="Изменения багов не проверяются"' %]>[% c.on_update ? '+' : '&nbsp;' %]</td>
    <td style="text-align: center; white-space: nowrap">
     <a href="?mode=edit&id=[% c.id %]" title="править"><img src="images/edit.png" width="22" height="22" /></a>
     <a href="buglist.cgi?cmdtype=dorem&amp;remaction=run&amp;namedcmd=[% c.query.name | url_quote %]
