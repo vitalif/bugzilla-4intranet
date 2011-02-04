@@ -35,6 +35,8 @@ Bugzilla::Hook</title>
     <li class='indexItem indexItem2'><a href='#colchange_columns'>colchange_columns</a>
     <li class='indexItem indexItem2'><a href='#config_add_panels'>config_add_panels</a>
     <li class='indexItem indexItem2'><a href='#config_modify_panels'>config_modify_panels</a>
+    <li class='indexItem indexItem2'><a href='#email_in_before_parse'>email_in_before_parse</a>
+    <li class='indexItem indexItem2'><a href='#email_in_after_parse'>email_in_after_parse</a>
     <li class='indexItem indexItem2'><a href='#enter_bug_entrydefaultvars'>enter_bug_entrydefaultvars</a>
     <li class='indexItem indexItem2'><a href='#flag_end_of_update'>flag_end_of_update</a>
     <li class='indexItem indexItem2'><a href='#group_before_delete'>group_before_delete</a>
@@ -469,6 +471,34 @@ name="config_modify_panels"
 <p>Adding new keys to <code  class="code">panels</code> will have no effect. You should use <a href="#config_add_panels" class="podlinkpod"
 >&#34;config_add_panels&#34;</a> if you want to add new panels.</p>
 </dd>
+</dl>
+
+<h2><a class='u' href='#___top' title='click to go to top of document'
+name="email_in_before_parse"
+>email_in_before_parse</a></h2>
+
+<p>This happens right after an inbound email is converted into an Email::MIME object, but before we start parsing the email to extract field data. This means the email has already been decoded for you. It gives you a chance to interact with the email itself before <a href="../email_in.html" class="podlinkpod"
+>email_in</a> starts parsing its content.</p>
+
+<dl>
+<dt><a name="mail_-_An_Email::MIME_object._The_decoded_incoming_email."
+><code  class="code">mail</code> - An Email::MIME object. The decoded incoming email.</a></dt>
+
+<dd>
+<dt><a name="fields_-_A_hashref._The_hash_which_will_contain_extracted_data."
+><code  class="code">fields</code> - A hashref. The hash which will contain extracted data.</a></dt>
+</dl>
+
+<h2><a class='u' href='#___top' title='click to go to top of document'
+name="email_in_after_parse"
+>email_in_after_parse</a></h2>
+
+<p>This happens after all the data has been extracted from the email, but before the reporter is validated, during <a href="../email_in.html" class="podlinkpod"
+>email_in</a>. This lets you do things after the normal parsing of the email, such as sanitizing field data, changing the user account being used to file a bug, etc.</p>
+
+<dl>
+<dt><a name="fields_-_A_hashref._The_hash_containing_the_extracted_field_data."
+><code  class="code">fields</code> - A hashref. The hash containing the extracted field data.</a></dt>
 </dl>
 
 <h2><a class='u' href='#___top' title='click to go to top of document'

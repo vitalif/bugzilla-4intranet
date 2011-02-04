@@ -55,6 +55,7 @@ use Bugzilla::Mailer;
 use Bugzilla::Token;
 use Bugzilla::User;
 use Bugzilla::Util;
+use Bugzilla::Hook;
 
 #############
 # Constants #
@@ -76,6 +77,9 @@ sub parse_mail {
     debug_print('Parsing Email');
     $input_email = Email::MIME->new($mail_text);
 
+    my %fields;
+    Bugzilla::Hook::process('email_in_before_parse', { mail => $input_email,
+                                                       fields => \%fields });
     # RFC 3834 - Recommendations for Automatic Responses to Electronic Mail
     # Automatic responses SHOULD NOT be issued in response to any
     # message which contains an Auto-Submitted header field (see below),
@@ -94,9 +98,9 @@ sub parse_mail {
 
     # Fetch field => value from emailin_fields table
     my ($toemail) = Email::Address->parse($input_email->header('To'));
-    my %fields = map { @$_ } @{ $dbh->selectall_arrayref(
+    %fields = (%fields, map { @$_ } @{ $dbh->selectall_arrayref(
         "SELECT `field`, `value` FROM `emailin_fields` WHERE `address`=?",
-        undef, $toemail) || [] };
+        undef, $toemail) || [] });
 
     my $summary = $input_email->header('Subject');
     if ($summary =~ /\[\s*Bug\s*(\d+)\s*\](.*)/i) {
@@ -491,6 +495,9 @@ if ($pipe && open PIPE, "| $pipe")
 }
 
 my $mail_fields = parse_mail($mail_text);
+
+Bugzilla::Hook::process('email_in_after_parse', { fields => $mail_fields });
+
 my $attachments = delete $mail_fields->{'attachments'};
 
 my $username = $mail_fields->{'reporter'};
