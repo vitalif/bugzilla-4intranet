@@ -31,7 +31,6 @@ use Bugzilla::Field;
 use Bugzilla::Util;
 
 use List::Util qw(min max);
-use List::MoreUtils qw(firstidx);
 
 use base qw(Exporter);
 @Bugzilla::Search::Quicksearch::EXPORT = qw(quicksearch);
@@ -282,6 +281,7 @@ sub _handle_alias {
         my $is_alias = Bugzilla->dbh->selectrow_array(
             q{SELECT 1 FROM bugs WHERE alias = ?}, undef, $alias);
         if ($is_alias) {
+            $alias = url_quote($alias);
             print Bugzilla->cgi->redirect(
                 -uri => correct_urlbase() . "show_bug.cgi?id=$alias");
             exit;
@@ -491,9 +491,9 @@ sub _special_field_syntax {
         my $legal_priorities = get_legal_field_values('priority');
 
         # If Pn exists explicitly, use it.
-        my $start = firstidx { $_ eq "P$p_start" } @$legal_priorities;
+        my $start = lsearch($legal_priorities, "P$p_start");
         my $end;
-        $end = firstidx { $_ eq "P$p_end" } @$legal_priorities if defined $p_end;
+        $end = lsearch($legal_priorities, "P$p_end") if defined $p_end;
 
         # If Pn doesn't exist explicitly, then we mean the nth priority.
         if ($start == -1) {

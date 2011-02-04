@@ -294,7 +294,7 @@ sub quoteUrls {
               ~<a href=\"mailto:$3\">$1$3</a>~igx;
 
     # attachment links
-    $text =~ s~\b(attachment\s*\#?\s*(\d+))
+    $text =~ s~\b(attachment\s*\#?\s*(\d+)(?:\s+\[details\])?)
               ~($things[$count++] = get_attachment_link($2, $1)) &&
                ("\0\0" . ($count-1) . "\0\0")
               ~egsxi;
@@ -839,6 +839,19 @@ sub create {
                 my $docs_urlbase = Bugzilla->params->{'docs_urlbase'};
                 $docs_urlbase =~ s/\%lang\%/$language/;
                 return $docs_urlbase;
+            },
+
+            # Check whether the URL is safe.
+            'is_safe_url' => sub {
+                my $url = shift;
+                return 0 unless $url;
+
+                my $safe_protocols = join('|', SAFE_PROTOCOLS);
+                return 1 if $url =~ /^($safe_protocols):[^\s<>\"]+[\w\/]$/i;
+                # Pointing to a local file with no colon in its name is fine.
+                return 1 if $url =~ /^[^\s<>\":]+[\w\/]$/i;
+                # If we come here, then we cannot guarantee it's safe.
+                return 0;
             },
 
             # Allow templates to generate a token themselves.

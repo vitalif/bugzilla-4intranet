@@ -74,8 +74,8 @@ if (!Bugzilla->feature('new_charts')) {
 # Go back to query.cgi if we are adding a boolean chart parameter.
 if (grep(/^cmd-/, $cgi->param())) {
     my $params = $cgi->canonicalise_query("format", "ctype", "action");
-    print "Location: query.cgi?format=" . $cgi->param('query_format') .
-                                          ($params ? "&$params" : "") . "\n\n";
+    print $cgi->redirect("query.cgi?format=" . $cgi->param('query_format') .
+                                               ($params ? "&$params" : ""));
     exit;
 }
 
@@ -98,7 +98,7 @@ $action ||= "assemble";
 # Go to buglist.cgi if we are doing a search.
 if ($action eq "search") {
     my $params = $cgi->canonicalise_query("format", "ctype", "action");
-    print "Location: buglist.cgi" . ($params ? "?$params" : "") . "\n\n";
+    print $cgi->redirect("buglist.cgi" . ($params ? "?$params" : ""));
     exit;
 }
 
@@ -146,6 +146,8 @@ elsif ($action eq "wrap") {
 }
 elsif ($action eq "create") {
     assertCanCreate($cgi);
+    my $token = $cgi->param('token');
+    check_hash_token($token, ['create-series']);
     
     my $series = new Bugzilla::Series($cgi);
 
@@ -164,9 +166,11 @@ elsif ($action eq "edit") {
     edit($series);
 }
 elsif ($action eq "alter") {
-    assertCanEdit($series_id);
+    my $series = assertCanEdit($series_id);
+    my $token = $cgi->param('token');
+    check_hash_token($token, [$series->id, $series->name]);
     # XXX - This should be replaced by $series->set_foo() methods.
-    my $series = new Bugzilla::Series($cgi);
+    $series = new Bugzilla::Series($cgi);
 
     # We need to check if there is _another_ series in the database with
     # our (potentially new) name. So we call existsInDatabase() to see if

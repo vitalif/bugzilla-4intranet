@@ -2,7 +2,7 @@
 <HTML
 ><HEAD
 ><TITLE
->The Bugzilla Guide - 3.6.3 
+>The Bugzilla Guide - 3.6.4 
     Release</TITLE
 ><META
 NAME="GENERATOR"
@@ -43,7 +43,7 @@ CLASS="TITLEPAGE"
 CLASS="title"
 ><A
 NAME="AEN2"
->The Bugzilla Guide - 3.6.3 
+>The Bugzilla Guide - 3.6.4 
     Release</A
 ></H1
 ><H3
@@ -51,7 +51,7 @@ CLASS="corpauthor"
 >The Bugzilla Team</H3
 ><P
 CLASS="pubdate"
->2010-11-02<BR></P
+>2011-11-24<BR></P
 ><DIV
 ><DIV
 CLASS="abstract"
@@ -614,7 +614,7 @@ NAME="copyright"
 >1.1. Copyright Information</A
 ></H2
 ><P
->This document is copyright (c) 2000-2010 by the various
+>This document is copyright (c) 2000-2011 by the various
     Bugzilla contributors who wrote it.</P
 ><A
 NAME="AEN26"
@@ -683,7 +683,7 @@ NAME="newversions"
 >1.3. New Versions</A
 ></H2
 ><P
->&#13;      This is the 3.6.3 version of The Bugzilla Guide. It is so named 
+>&#13;      This is the 3.6.4 version of The Bugzilla Guide. It is so named 
       to match the current version of Bugzilla. 
     </P
 ><P
@@ -1821,7 +1821,7 @@ CLASS="filename"
 TYPE="1"
 ><LI
 ><P
->&#13;            CGI (3.21)
+>&#13;            CGI (3.51)
           </P
 ></LI
 ><LI
@@ -2794,7 +2794,7 @@ CLASS="screen"
 > <SAMP
 CLASS="prompt"
 >bash$</SAMP
-> createuser -U postgres -dAP bugs</PRE
+> createuser -U postgres -dRSP bugs</PRE
 ></FONT
 ></TD
 ></TR
@@ -2810,15 +2810,41 @@ CLASS="replaceable"
 CLASS="filename"
 >localconfig</TT
 >.
-          The created user will have the ability to create databases and will not be
-          able to create new users.</P
+          The created user will not be a superuser (-S) and will not be able to create
+          new users (-R). He will only have the ability to create databases (-d).</P
+><DIV
+CLASS="note"
+><P
+></P
+><TABLE
+CLASS="note"
+WIDTH="100%"
+BORDER="0"
+><TR
+><TD
+WIDTH="25"
+ALIGN="CENTER"
+VALIGN="TOP"
+><IMG
+SRC="../images/note.gif"
+HSPACE="5"
+ALT="Note"></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>If your are running PostgreSQL 8.0, you must replace -dRSP by -dAP.</P
+></TD
+></TR
+></TABLE
+></DIV
 ></DIV
 ><DIV
 CLASS="section"
 ><HR><H5
 CLASS="section"
 ><A
-NAME="AEN501"
+NAME="AEN503"
 >2.2.2.3.2. Configure PostgreSQL</A
 ></H5
 ><P
@@ -2879,7 +2905,7 @@ CLASS="section"
 ><H5
 CLASS="section"
 ><A
-NAME="AEN517"
+NAME="AEN519"
 >2.2.2.4.1. Create a New Tablespace</A
 ></H5
 ><P
@@ -2931,7 +2957,7 @@ CLASS="section"
 ><HR><H5
 CLASS="section"
 ><A
-NAME="AEN525"
+NAME="AEN527"
 >2.2.2.4.2. Add a User to Oracle</A
 ></H5
 ><P
@@ -2987,7 +3013,7 @@ CLASS="section"
 ><HR><H5
 CLASS="section"
 ><A
-NAME="AEN533"
+NAME="AEN535"
 >2.2.2.4.3. Configure the Web Server</A
 ></H5
 ><P
@@ -3025,7 +3051,7 @@ CLASS="section"
 ><HR><H3
 CLASS="section"
 ><A
-NAME="AEN539"
+NAME="AEN541"
 >2.2.3. checksetup.pl</A
 ></H3
 ><P
@@ -3865,7 +3891,7 @@ CLASS="section"
 ><HR><H3
 CLASS="section"
 ><A
-NAME="AEN690"
+NAME="AEN692"
 >2.3.1. Bug Graphs</A
 ></H3
 ><P
@@ -4999,7 +5025,7 @@ CLASS="section"
 ><H3
 CLASS="section"
 ><A
-NAME="AEN855"
+NAME="AEN857"
 >2.6.1. Introduction</A
 ></H3
 ><P
@@ -5019,7 +5045,7 @@ CLASS="section"
 ><HR><H3
 CLASS="section"
 ><A
-NAME="AEN859"
+NAME="AEN861"
 >2.6.2. MySQL</A
 ></H3
 ><P
@@ -5075,7 +5101,7 @@ CLASS="section"
 ><HR><H4
 CLASS="section"
 ><A
-NAME="AEN867"
+NAME="AEN869"
 >2.6.2.1. Running MySQL as Non-Root</A
 ></H4
 ><DIV
@@ -5083,7 +5109,7 @@ CLASS="section"
 ><H5
 CLASS="section"
 ><A
-NAME="AEN869"
+NAME="AEN871"
 >2.6.2.1.1. The Custom Configuration Method</A
 ></H5
 ><P
@@ -5127,7 +5153,7 @@ CLASS="section"
 ><HR><H5
 CLASS="section"
 ><A
-NAME="AEN873"
+NAME="AEN875"
 >2.6.2.1.2. The Custom Built Method</A
 ></H5
 ><P
@@ -5150,7 +5176,7 @@ CLASS="section"
 ><HR><H5
 CLASS="section"
 ><A
-NAME="AEN878"
+NAME="AEN880"
 >2.6.2.1.3. Starting the Server</A
 ></H5
 ><P
@@ -5278,7 +5304,7 @@ CLASS="section"
 ><HR><H3
 CLASS="section"
 ><A
-NAME="AEN894"
+NAME="AEN896"
 >2.6.3. Perl</A
 ></H3
 ><P
@@ -5382,7 +5408,7 @@ CLASS="section"
 ><HR><H3
 CLASS="section"
 ><A
-NAME="AEN916"
+NAME="AEN918"
 >2.6.5. HTTP Server</A
 ></H3
 ><P
@@ -5396,7 +5422,7 @@ CLASS="section"
 ><HR><H4
 CLASS="section"
 ><A
-NAME="AEN919"
+NAME="AEN921"
 >2.6.5.1. Running Apache as Non-Root</A
 ></H4
 ><P
@@ -5478,7 +5504,7 @@ CLASS="section"
 ><HR><H3
 CLASS="section"
 ><A
-NAME="AEN928"
+NAME="AEN930"
 >2.6.6. Bugzilla</A
 ></H3
 ><P
@@ -10864,7 +10890,7 @@ CLASS="section"
 ><HR><H3
 CLASS="section"
 ><A
-NAME="AEN2118"
+NAME="AEN2120"
 >3.15.4. Assigning Group Controls to Products</A
 ></H3
 ><P
@@ -12202,7 +12228,7 @@ NAME="negation"
 >&#13;          At first glance, negation seems redundant. Rather than
           searching for
           <A
-NAME="AEN2446"
+NAME="AEN2448"
 ></A
 ><BLOCKQUOTE
 CLASS="BLOCKQUOTE"
@@ -12213,7 +12239,7 @@ CLASS="BLOCKQUOTE"
 >
           one could search for 
           <A
-NAME="AEN2448"
+NAME="AEN2450"
 ></A
 ><BLOCKQUOTE
 CLASS="BLOCKQUOTE"
@@ -12224,7 +12250,7 @@ CLASS="BLOCKQUOTE"
 >
           However, the search 
           <A
-NAME="AEN2450"
+NAME="AEN2452"
 ></A
 ><BLOCKQUOTE
 CLASS="BLOCKQUOTE"
@@ -12236,7 +12262,7 @@ CLASS="BLOCKQUOTE"
           would find every bug where anyone on the CC list did not contain 
           "@mozilla.org" while
           <A
-NAME="AEN2452"
+NAME="AEN2454"
 ></A
 ><BLOCKQUOTE
 CLASS="BLOCKQUOTE"
@@ -12250,7 +12276,7 @@ CLASS="BLOCKQUOTE"
           complex expressions to be built using terms OR'd together and then
           negated. Negation permits queries such as
           <A
-NAME="AEN2454"
+NAME="AEN2456"
 ></A
 ><BLOCKQUOTE
 CLASS="BLOCKQUOTE"
@@ -12263,7 +12289,7 @@ CLASS="BLOCKQUOTE"
           to find bugs that are neither 
           in the update product or in the documentation component or
           <A
-NAME="AEN2456"
+NAME="AEN2458"
 ></A
 ><BLOCKQUOTE
 CLASS="BLOCKQUOTE"
@@ -12291,7 +12317,7 @@ NAME="multiplecharts"
           a bug that has two different people cc'd on it, then you need 
           to use two boolean charts. A search for
           <A
-NAME="AEN2461"
+NAME="AEN2463"
 ></A
 ><BLOCKQUOTE
 CLASS="BLOCKQUOTE"
@@ -12306,7 +12332,7 @@ CLASS="BLOCKQUOTE"
           containing "foo@" and someone else containing "@mozilla.org",
           then you would need two boolean charts.
           <A
-NAME="AEN2463"
+NAME="AEN2465"
 ></A
 ><BLOCKQUOTE
 CLASS="BLOCKQUOTE"
@@ -13012,7 +13038,7 @@ CLASS="section"
 ><HR><H3
 CLASS="section"
 ><A
-NAME="AEN2599"
+NAME="AEN2601"
 >5.8.1. Autolinkification</A
 ></H3
 ><P
@@ -13887,7 +13913,7 @@ CLASS="section"
 ><HR><H4
 CLASS="section"
 ><A
-NAME="AEN2796"
+NAME="AEN2798"
 >5.11.2.1. Creating Charts</A
 ></H4
 ><P
@@ -14356,7 +14382,7 @@ CLASS="section"
 ><HR><H3
 CLASS="section"
 ><A
-NAME="AEN2856"
+NAME="AEN2858"
 >5.13.4. Saving Your Changes</A
 ></H3
 ><P
@@ -15855,7 +15881,7 @@ NAME="trbl-relogin-everyone-share"
 >Example A-1. Examples of urlbase/cookiepath pairs for sharing login cookies</B
 ></P
 ><A
-NAME="AEN3098"
+NAME="AEN3100"
 ></A
 ><BLOCKQUOTE
 CLASS="BLOCKQUOTE"
@@ -15896,7 +15922,7 @@ NAME="trbl-relogin-everyone-restrict"
 >Example A-2. Examples of urlbase/cookiepath pairs to restrict the login cookie</B
 ></P
 ><A
-NAME="AEN3105"
+NAME="AEN3107"
 ></A
 ><BLOCKQUOTE
 CLASS="BLOCKQUOTE"
@@ -16659,7 +16685,7 @@ NAME="gfdl"
 ><P
 >Version 1.1, March 2000</P
 ><A
-NAME="AEN3263"
+NAME="AEN3265"
 ></A
 ><BLOCKQUOTE
 CLASS="BLOCKQUOTE"
@@ -17122,7 +17148,7 @@ NAME="gfdl-howto"
     of the License in the document and put the following copyright and
     license notices just after the title page:</P
 ><A
-NAME="AEN3353"
+NAME="AEN3355"
 ></A
 ><BLOCKQUOTE
 CLASS="BLOCKQUOTE"
@@ -17159,7 +17185,7 @@ CLASS="glossdiv"
 ><H1
 CLASS="glossdiv"
 ><A
-NAME="AEN3358"
+NAME="AEN3360"
 >0-9, high ascii</A
 ></H1
 ><DL
@@ -18065,7 +18091,7 @@ NAME="gloss-zarro"
         Terry had the following to say:
         </P
 ><A
-NAME="AEN3602"
+NAME="AEN3604"
 ></A
 ><TABLE
 BORDER="0"

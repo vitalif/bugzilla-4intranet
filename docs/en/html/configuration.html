@@ -7,7 +7,7 @@
 NAME="GENERATOR"
 CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
 REL="HOME"
-TITLE="The Bugzilla Guide - 3.6.3 
+TITLE="The Bugzilla Guide - 3.6.4 
     Release"
 HREF="index.html"><LINK
 REL="UP"
@@ -38,7 +38,7 @@ CELLSPACING="0"
 ><TH
 COLSPAN="3"
 ALIGN="center"
->The Bugzilla Guide - 3.6.3 
+>The Bugzilla Guide - 3.6.4 
     Release</TH
 ></TR
 ><TR
@@ -720,7 +720,7 @@ CLASS="screen"
 > <SAMP
 CLASS="prompt"
 >bash$</SAMP
-> createuser -U postgres -dAP bugs</PRE
+> createuser -U postgres -dRSP bugs</PRE
 ></FONT
 ></TD
 ></TR
@@ -736,15 +736,41 @@ CLASS="replaceable"
 CLASS="filename"
 >localconfig</TT
 >.
-          The created user will have the ability to create databases and will not be
-          able to create new users.</P
+          The created user will not be a superuser (-S) and will not be able to create
+          new users (-R). He will only have the ability to create databases (-d).</P
+><DIV
+CLASS="note"
+><P
+></P
+><TABLE
+CLASS="note"
+WIDTH="100%"
+BORDER="0"
+><TR
+><TD
+WIDTH="25"
+ALIGN="CENTER"
+VALIGN="TOP"
+><IMG
+SRC="../images/note.gif"
+HSPACE="5"
+ALT="Note"></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>If your are running PostgreSQL 8.0, you must replace -dRSP by -dAP.</P
+></TD
+></TR
+></TABLE
+></DIV
 ></DIV
 ><DIV
 CLASS="section"
 ><H4
 CLASS="section"
 ><A
-NAME="AEN501"
+NAME="AEN503"
 >2.2.2.3.2. Configure PostgreSQL</A
 ></H4
 ><P
@@ -805,7 +831,7 @@ CLASS="section"
 ><H4
 CLASS="section"
 ><A
-NAME="AEN517"
+NAME="AEN519"
 >2.2.2.4.1. Create a New Tablespace</A
 ></H4
 ><P
@@ -857,7 +883,7 @@ CLASS="section"
 ><H4
 CLASS="section"
 ><A
-NAME="AEN525"
+NAME="AEN527"
 >2.2.2.4.2. Add a User to Oracle</A
 ></H4
 ><P
@@ -913,7 +939,7 @@ CLASS="section"
 ><H4
 CLASS="section"
 ><A
-NAME="AEN533"
+NAME="AEN535"
 >2.2.2.4.3. Configure the Web Server</A
 ></H4
 ><P
@@ -951,7 +977,7 @@ CLASS="section"
 ><H2
 CLASS="section"
 ><A
-NAME="AEN539"
+NAME="AEN541"
 >2.2.3. checksetup.pl</A
 ></H2
 ><P

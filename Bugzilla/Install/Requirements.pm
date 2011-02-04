@@ -66,12 +66,9 @@ sub REQUIRED_MODULES {
     {
         package => 'CGI.pm',
         module  => 'CGI',
-        # Perl 5.10 requires CGI 3.33 due to a taint issue when
-        # uploading attachments, see bug 416382.
-        # Require CGI 3.21 for -httponly support, see bug 368502.
-        version => (vers_cmp($perl_ver, '5.10') > -1) ? '3.33' : '3.21',
-        # CGI::Carp in 3.46 and 3.47 breaks Template Toolkit
-        blacklist => ['^3\.46$', '^3\.47$'],
+        # 3.51 fixes a security problem that affects Bugzilla.
+        # (bug 591165)
+        version => '3.51',
     },
     {
         package => 'Digest-SHA',
@@ -290,6 +287,12 @@ sub OPTIONAL_MODULES {
         module  => 'mod_perl2',
         version => '1.999022',
         feature => ['mod_perl'],
+    },
+    {
+        package => 'Math-Random-Secure',
+        module  => 'Math::Random::Secure',
+        version => '0.05',
+        feature => ['rand_security'],
     },
     );
 
