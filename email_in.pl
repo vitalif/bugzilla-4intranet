@@ -87,7 +87,7 @@ sub parse_mail {
     # F*cking MS Exchange sometimes does not append Auto-Submitted header
     # to delivery status reports, so also check content-type.
     my $autosubmitted;
-    if (lc($input_email->header('Auto-Submitted') || '') ne 'no' ||
+    if (lc($input_email->header('Auto-Submitted') || 'no') ne 'no' ||
         ($input_email->header('Content-Type') || '') =~ /delivery-status/iso)
     {
         debug_print("Rejecting email with Auto-Submitted = $autosubmitted");
