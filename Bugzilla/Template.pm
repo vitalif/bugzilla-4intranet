@@ -847,7 +847,7 @@ sub create {
                 return 0 unless $url;
 
                 my $safe_protocols = join('|', SAFE_PROTOCOLS);
-                return 1 if $url =~ /^($safe_protocols):[^\s<>\"]+[\w\/]$/i;
+                return 1 if $url =~ /^($safe_protocols):[^\s<>\"]+[\w\/\#]$/i;
                 # Pointing to a local file with no colon in its name is fine.
                 return 1 if $url =~ /^[^\s<>\":]+[\w\/]$/i;
                 # If we come here, then we cannot guarantee it's safe.
