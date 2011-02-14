@@ -38,7 +38,9 @@ sub refresh_some_views
         Bugzilla->request_cache->{user} = $userobj;
         # Determine saved search
         my $q = $query;
-        $q =~ tr/_/ /;
+        $q =~ tr/_/%/;
+        ($q) = $dbh->selectrow_array('SELECT name FROM namedqueries WHERE userid=? AND name LIKE ? LIMIT 1', undef, $userid, $q);
+        $q or next;
         my $storedquery = Bugzilla::Search::LookupNamedQuery($q, $userid, undef, 0) or next;
         my $cgi = new Bugzilla::CGI($storedquery);
         # get SQL code
