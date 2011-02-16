@@ -116,6 +116,7 @@ sub create
     {
         # Fill visibility values
         $self->set_visibility_values([ $self->product_id ]);
+        Bugzilla->get_field(FIELD_NAME)->touch;
     }
     return $self;
 }
@@ -153,6 +154,9 @@ sub update
 
     # Fill visibility values
     $self->set_visibility_values([ $self->product_id ]);
+
+    Bugzilla->get_field(FIELD_NAME)->touch;
+
     $dbh->bz_commit_transaction();
 
     return $changes;
@@ -195,6 +199,8 @@ sub remove_from_db {
     $self->set_visibility_values(undef);
 
     $dbh->do('DELETE FROM milestones WHERE id = ?', undef, $self->id);
+
+    Bugzilla->get_field(FIELD_NAME)->touch;
 }
 
 ################################

@@ -148,6 +148,8 @@ sub create
 
     Bugzilla::Hook::process('product_end_of_create', { product => $product });
 
+    Bugzilla->get_field(FIELD_NAME)->touch;
+
     $dbh->bz_commit_transaction();
     return $product;
 }
@@ -413,6 +415,8 @@ sub update {
         });
     }
 
+    Bugzilla->get_field(FIELD_NAME)->touch;
+
     return $changes;
 }
 
@@ -472,13 +476,14 @@ sub remove_from_db {
 
     $dbh->do("DELETE FROM products WHERE id = ?", undef, $self->id);
 
+    Bugzilla->get_field(FIELD_NAME)->touch;
+
     $dbh->bz_commit_transaction();
 
     # We have to delete these internal variables, else we get
     # the old lists of products and classifications again.
     delete $user->{selectable_products};
     delete $user->{selectable_classifications};
-
 }
 
 ###############################

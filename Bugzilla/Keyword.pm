@@ -28,12 +28,14 @@ use Bugzilla::Util;
 ###############################
 
 use constant DB_COLUMNS => qw(
-   keyworddefs.id
-   keyworddefs.name
-   keyworddefs.description
+    keyworddefs.id
+    keyworddefs.name
+    keyworddefs.description
 );
 
 use constant DB_TABLE => 'keyworddefs';
+
+use constant FIELD_NAME => 'keywords';
 
 use constant REQUIRED_CREATE_FIELDS => qw(name description);
 
@@ -90,7 +92,7 @@ sub get_all_with_bug_count {
     if (!$keywords) {
         return [];
     }
-    
+
     foreach my $keyword (@$keywords) {
         bless($keyword, $class);
     }

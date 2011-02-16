@@ -137,6 +137,7 @@ sub create
     {
         # Fill visibility values
         $self->set_visibility_values([ $self->product_id ]);
+        Bugzilla->get_field(FIELD_NAME)->touch;
     }
     return $self;
 }
@@ -169,6 +170,9 @@ sub update
 
     # Fill visibility values
     $self->set_visibility_values([ $self->product_id ]);
+
+    Bugzilla->get_field(FIELD_NAME)->touch;
+
     $dbh->bz_commit_transaction();
 
     return $changes;
