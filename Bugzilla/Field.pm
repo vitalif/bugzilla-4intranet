@@ -1257,7 +1257,7 @@ sub json_query_visibility
     my $self = shift;
     my $hash = Bugzilla->fieldvaluecontrol_hash->{$self->id}->{values};
     my $data = {
-        legal   => [ map { id => $_->id, name => $_->name } @{$self->legal_values} ],
+        legal   => [ map { { id => $_->id, name => $_->name } } @{$self->legal_values} ],
         values  => { map { Bugzilla->get_field($_)->name => $hash->{$_} } keys %$hash },
     };
     return $data;
