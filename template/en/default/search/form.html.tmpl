@@ -580,9 +580,9 @@ YAHOO.util.Event.addListener(window, 'load', function() {
     <select name="[% sel.name | html %]" id="[% sel.name | html %]"
             multiple="multiple" size="[% sel.size %]">
       [% FOREACH value = Bugzilla.get_field(sel.name).legal_value_names %]
-        <option value="[% value OR '---' FILTER html %]"
-          [% " selected" IF lsearch(default.${sel.name}, value) != -1 %]>
-          [% display_value(sel.name, value) FILTER html
+        <option value="[% value.name OR '---' FILTER html %]" id="qf_[% sel.name | html %]_[% value.ids.join('_') %]"
+          [% " selected" IF lsearch(default.${sel.name}, value.name) != -1 %]>
+          [% display_value(sel.name, value.name) FILTER html
         %]</option>
       [% END %]
     </select>

@@ -141,6 +141,8 @@ sub create {
     # Create series for the new component.
     $component->_create_series() if $create_series;
 
+    Bugzilla->get_field(FIELD_NAME)->touch;
+
     $dbh->bz_commit_transaction();
     return $component;
 }
@@ -173,6 +175,9 @@ sub update
         my $diff = $self->_update_cc_list($self->{cc_ids});
         $changes->{cc_list} = $diff if defined $diff;
     }
+
+    Bugzilla->get_field(FIELD_NAME)->touch;
+
     return $changes;
 }
 
@@ -206,6 +211,8 @@ sub remove_from_db {
 
     # Remove visibility values
     $self->set_visibility_values(undef);
+
+    Bugzilla->get_field(FIELD_NAME)->touch;
 
     $dbh->bz_commit_transaction();
 }

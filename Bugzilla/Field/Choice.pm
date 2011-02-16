@@ -296,21 +296,29 @@ sub get_all_names
     }
     $where = join ' AND ', @$where;
     $where and $where = " WHERE $where";
+    # Run the query
     my $order = $class->LIST_ORDER;
+    my $idf = $class->ID_FIELD;
+    my $namef = $class->NAME_FIELD;
     $order =~ s/(\s+(A|DE)SC)(?!\w)//giso;
-    my $col = Bugzilla->dbh->selectcol_arrayref(
-        'SELECT DISTINCT '.$class->NAME_FIELD.','.$class->LIST_ORDER.
-        ' FROM '.$class->DB_TABLE.$where.
-        ' ORDER BY '.$class->LIST_ORDER
+    my $rows = Bugzilla->dbh->selectall_arrayref(
+        "SELECT $idf, $namef, $order FROM ".$class->DB_TABLE.
+        $where.
+        " ORDER BY ".$class->LIST_ORDER,
+        {Slice=>{}}
     );
     my $dup = {};
     my $names = [];
-    for (@$col)
+    # Remember IDs of each name
+    for (@$rows)
     {
-        if (!$dup->{$_})
+        if (!$dup->{$_->{$namef}})
         {
-            push @$names, $_;
-            $dup->{$_} = 1;
+            push @$names, ($dup->{$_->{$namef}} = { name => $_->{$namef}, ids => [ $_->{$idf} ] });
+        }
+        else
+        {
+            push @{$dup->{$_->{$namef}}->{ids}}, $_->{$idf};
         }
     }
     return $names;
