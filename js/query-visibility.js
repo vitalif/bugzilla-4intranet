@@ -193,7 +193,7 @@ function handleQueryformField(event, controller)
         item.selected = true;
       }
     }
-    handleQueryformField(e, controlled);
+    handleQueryformField(event, controlled);
     item = document.getElementById(controlled_id+'_cont');
     if (item)
     {
