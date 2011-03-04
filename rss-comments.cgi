@@ -37,7 +37,7 @@ $FORMATS{$format} or $format = 'rss';
 
 # Determine activity limit (100 by default)
 $limit = int($cgi->param('limit')) if $format eq 'showteamwork';
-$limit = 100 if $limit < 1 || !$limit;
+$limit = 100 if !$limit || $limit < 1;
 
 my $title = $cgi->param('namedcmd');
 if ($title)
