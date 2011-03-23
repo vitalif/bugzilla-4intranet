@@ -197,7 +197,8 @@ my $timestamp = $dbh->selectrow_array(
 
 # Set Version cookie, but only if the user actually selected
 # a version on the page.
-if (defined $cgi->param('version')) {
+if (defined $cgi->param('version') && length $cgi->param('version'))
+{
     $cgi->send_cookie(-name => "VERSION-" . $bug->product,
                       -value => $bug->version,
                       -expires => "Fri, 01-Jan-2038 00:00:00 GMT");
