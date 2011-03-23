@@ -39,7 +39,6 @@
 [% delete_contentlink = BLOCK %]editvalues.cgi?action=del&amp;field=
   [%- field.name FILTER url_quote %]&amp;value=%%name%%[% END %]
 
-
 [% columns = [
      { 
        name => "name"
@@ -63,7 +62,6 @@
      } ]
 %]
 
-
 [% SET overrides.action = {} %]
 [% FOREACH check_value = values %]
   [% IF check_value.is_static %]
@@ -86,14 +84,17 @@
 
 [% END %]
 
-[% PROCESS admin/table.html.tmpl
-     columns = columns
-     data = values
-     overrides = overrides
-%]
-
-[% PROCESS admin/fieldvalues/footer.html.tmpl
-  no_edit_other_link = 1
- %]
+[% IF field.name == "component" || field.name == "version" || field.name == "target_milestone" || field.name == "product" %]
+<p>[% field.description %]s must be edited from a product page. <a href="editproducts.cgi">Select a product</a> first.</p>
+[% ELSE %]
+  [% PROCESS admin/table.html.tmpl
+       columns = columns
+       data = values
+       overrides = overrides
+  %]
+  [% PROCESS admin/fieldvalues/footer.html.tmpl
+    no_edit_other_link = 1
+  %]
+[% END %]
 
 [% PROCESS global/footer.html.tmpl %]
