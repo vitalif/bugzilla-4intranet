@@ -21,6 +21,17 @@
  *                 Marc Schumann <wurblzap@gmail.com>
  */
 
+function switch_aft(n)
+{
+    var f = document.getElementById('form_type_file'+n);
+    var u = document.getElementById('form_type_url'+n);
+    var t = document.getElementById('form_type_text'+n);
+    document.getElementById('tr_file'+n).style.display = f && f.checked ? '' : 'none';
+    document.getElementById('tr_text'+n).style.display = t && t.checked ? '' : 'none';
+    if (u)
+        document.getElementById('tr_url'+n).style.display = u.checked ? '' : 'none';
+}
+
 function validateAttachmentForm(theform) {
     var desc_value = YAHOO.lang.trim(theform.description.value);
     if (desc_value == '') {
@@ -37,19 +48,6 @@ function updateCommentPrivacy(checkbox) {
     } else {
         text_elem.className='';
     }
-}
-
-function setContentTypeDisabledState(form)
-{
-    var isdisabled = false;
-    if (form.ispatch.checked)
-        isdisabled = true;
-
-    for (var i=0 ; i<form.contenttypemethod.length ; i++)
-        form.contenttypemethod[i].disabled = isdisabled;
-
-    form.contenttypeselection.disabled = isdisabled;
-    form.contenttypeentry.disabled = isdisabled;
 }
 
 function URLFieldHandler() {
