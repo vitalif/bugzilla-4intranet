@@ -419,6 +419,10 @@ dl dl > dt {
     border: 1px solid #333333;
 }
 
+.attach_multi p {
+    margin: 8px 0 0 0;
+}
+
 .bz_attach_extra_info {
     font-size: smaller;
 }
