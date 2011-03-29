@@ -48,7 +48,7 @@ function toggle_display(link) {
 //-->
 </script>
 
-<br>
+<br />
 <table id="attachment_table" cellspacing="0" cellpadding="4">
   <tr>
     <th colspan="[% show_attachment_flags ? 3 : 2 %]" align="left">
@@ -144,8 +144,12 @@ function toggle_display(link) {
         </span>
       [% END %]
       <a href="attachment.cgi?bugid=[% bugid %]&amp;action=enter">Add an attachment</a>
+      <span id="att_multi_link">| <a href="javascript:void(0)" onclick="document.getElementById('att_multi_link').style.display='none';iframeajax('page.cgi?id=attach-multiple.html', {'bug_id' : [% bugid %]})">Add multiple</a></span>
       (proposed patch, testcase, etc.)
     </td>
   </tr>
 </table>
-<br>
+
+<div id="att_multiple" style="display: none"></div>
+
+<br />

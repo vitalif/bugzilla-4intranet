@@ -42,8 +42,8 @@ use Bugzilla;
 use Bugzilla::BugMail;
 use Bugzilla::Constants;
 use Bugzilla::Error;
-use Bugzilla::Flag; 
-use Bugzilla::FlagType; 
+use Bugzilla::Flag;
+use Bugzilla::FlagType;
 use Bugzilla::User;
 use Bugzilla::Util;
 use Bugzilla::Bug;
@@ -99,34 +99,34 @@ elsif ($action eq "diff")
 {
     diff();
 }
-elsif ($action eq "viewall") 
-{ 
-    viewall(); 
+elsif ($action eq "viewall")
+{
+    viewall();
 }
-elsif ($action eq "enter") 
-{ 
+elsif ($action eq "enter")
+{
     Bugzilla->login(LOGIN_REQUIRED);
-    enter(); 
+    enter();
 }
 elsif ($action eq "insert")
 {
     Bugzilla->login(LOGIN_REQUIRED);
     insert();
 }
-elsif ($action eq "edit") 
-{ 
-    edit(); 
+elsif ($action eq "edit")
+{
+    edit();
 }
-elsif ($action eq "update") 
-{ 
+elsif ($action eq "update")
+{
     Bugzilla->login(LOGIN_REQUIRED);
     update();
 }
 elsif ($action eq "delete") {
     delete_attachment();
 }
-else 
-{ 
+else
+{
   ThrowCodeError("unknown_action", { action => $action });
 }
 
@@ -160,7 +160,7 @@ sub validateID {
             ThrowTemplateError($template->error());
         exit;
     }
-    
+
     my $attach_id = $cgi->param($param);
 
     # Validate the specified attachment id. detaint kills $attach_id if
@@ -168,7 +168,7 @@ sub validateID {
     # message here.
     detaint_natural($attach_id)
      || ThrowUserError("invalid_attach_id", { attach_id => $cgi->param($param) });
-  
+
     # Make sure the attachment exists in the database.
     my $attachment = new Bugzilla::Attachment($attach_id)
       || ThrowUserError("invalid_attach_id", { attach_id => $attach_id });
@@ -183,8 +183,8 @@ sub check_can_access {
 
     # Make sure the user is authorized to access this attachment's bug.
     Bugzilla::Bug->check($attachment->bug_id);
-    if ($attachment->isprivate && $user->id != $attachment->attacher->id 
-        && !$user->is_insider) 
+    if ($attachment->isprivate && $user->id != $attachment->attacher->id
+        && !$user->is_insider)
     {
         ThrowUserError('auth_failure', {action => 'access',
                                         object => 'attachment'});
@@ -209,14 +209,13 @@ sub attachmentIsPublic {
 # in the list. Returns either the user selected or default format.
 sub validateFormat
 {
-  # receives a list of legal formats; first item is a default
-  my $format = $cgi->param('format') || $_[0];
-  if ( lsearch(\@_, $format) == -1)
-  {
-     ThrowUserError("invalid_format", { format  => $format, formats => \@_ });
-  }
-
-  return $format;
+    # receives a list of legal formats; first item is a default
+    my $format = $cgi->param('format') || $_[0];
+    if ( lsearch(\@_, $format) == -1)
+    {
+        ThrowUserError("invalid_format", { format  => $format, formats => \@_ });
+    }
+    return $format;
 }
 
 # Validates context of a diff/interdiff. Will throw an error if the context
@@ -282,7 +281,7 @@ sub view {
             # alternate host.
             Bugzilla->login();
             my $attachbase = Bugzilla->params->{'attachment_base'};
-            # Replace %bugid% by the ID of the bug the attachment 
+            # Replace %bugid% by the ID of the bug the attachment
             # belongs to, if present.
             $attachbase =~ s/\%bugid\%/$bug_id/;
             if (attachmentIsPublic($attachment)) {
@@ -411,40 +410,40 @@ sub viewall {
 
 # Display a form for entering a new attachment.
 sub enter {
-  # Retrieve and validate parameters
-  my $bug = Bugzilla::Bug->check(scalar $cgi->param('bugid'));
-  my $bugid = $bug->id;
-  Bugzilla::Attachment->_check_bug($bug);
-  my $dbh = Bugzilla->dbh;
-  my $user = Bugzilla->user;
+    # Retrieve and validate parameters
+    my $bug = Bugzilla::Bug->check(scalar $cgi->param('bugid'));
+    my $bugid = $bug->id;
+    Bugzilla::Attachment->_check_bug($bug);
+    my $dbh = Bugzilla->dbh;
+    my $user = Bugzilla->user;
 
-  # Retrieve the attachments the user can edit from the database and write
-  # them into an array of hashes where each hash represents one attachment.
-  my $canEdit = "";
-  if (!$user->in_group('editbugs', $bug->product_id)) {
-      $canEdit = "AND submitter_id = " . $user->id;
-  }
-  my $attach_ids = $dbh->selectcol_arrayref("SELECT attach_id FROM attachments
-                                             WHERE bug_id = ? AND isobsolete = 0 $canEdit
-                                             ORDER BY attach_id", undef, $bugid);
+    # Retrieve the attachments the user can edit from the database and write
+    # them into an array of hashes where each hash represents one attachment.
+    my $canEdit = "";
+    if (!$user->in_group('editbugs', $bug->product_id)) {
+        $canEdit = "AND submitter_id = " . $user->id;
+    }
+    my $attach_ids = $dbh->selectcol_arrayref("SELECT attach_id FROM attachments
+                                               WHERE bug_id = ? AND isobsolete = 0 $canEdit
+                                               ORDER BY attach_id", undef, $bugid);
 
-  # Define the variables and functions that will be passed to the UI template.
-  $vars->{'bug'} = $bug;
-  $vars->{'attachments'} = Bugzilla::Attachment->new_from_list($attach_ids);
+    # Define the variables and functions that will be passed to the UI template.
+    $vars->{'bug'} = $bug;
+    $vars->{'attachments'} = Bugzilla::Attachment->new_from_list($attach_ids);
 
-  my $flag_types = Bugzilla::FlagType::match({'target_type'  => 'attachment',
-                                              'product_id'   => $bug->product_id,
-                                              'component_id' => $bug->component_id});
-  $vars->{'flag_types'} = $flag_types;
-  $vars->{'any_flags_requesteeble'} =
-    grep { $_->is_requestable && $_->is_requesteeble } @$flag_types;
-  $vars->{'token'} = issue_session_token('create_attachment:');
+    my $flag_types = Bugzilla::FlagType::match({'target_type'  => 'attachment',
+                                                'product_id'   => $bug->product_id,
+                                                'component_id' => $bug->component_id});
+    $vars->{'flag_types'} = $flag_types;
+    $vars->{'any_flags_requesteeble'} =
+      grep { $_->is_requestable && $_->is_requesteeble } @$flag_types;
+    $vars->{'token'} = issue_session_token('create_attachment:');
 
-  $cgi->send_header();
+    $cgi->send_header();
 
-  # Generate and return the UI (HTML page) from the appropriate template.
-  $template->process("attachment/create.html.tmpl", $vars)
-    || ThrowTemplateError($template->error());
+    # Generate and return the UI (HTML page) from the appropriate template.
+    $template->process("attachment/create.html.tmpl", $vars)
+      || ThrowTemplateError($template->error());
 }
 
 # Insert a new attachment into the database.
@@ -463,16 +462,16 @@ sub insert {
     my $token = trim($cgi->param('token'));
     if ($token) {
         my ($creator_id, $date, $old_attach_id) = Bugzilla::Token::GetTokenData($token);
-        unless ($creator_id 
-            && ($creator_id == $user->id) 
-                && ($old_attach_id =~ "^create_attachment:")) 
+        unless ($creator_id
+            && ($creator_id == $user->id)
+                && ($old_attach_id =~ "^create_attachment:"))
         {
             # The token is invalid.
             ThrowUserError('token_does_not_exist');
         }
-    
+
         $old_attach_id =~ s/^create_attachment://;
-   
+
         if ($old_attach_id) {
             $vars->{'bugid'} = $bugid;
             $vars->{'attachid'} = $old_attach_id;
@@ -549,7 +548,7 @@ sub insert {
         ($bug_status) = grep {$_->name eq $bug_status} @{$bug->status->can_change_to};
 
         if ($bug_status && $bug_status->is_open
-            && ($bug_status->name ne 'UNCONFIRMED' 
+            && ($bug_status->name ne 'UNCONFIRMED'
                 || $bug->product_obj->allows_unconfirmed))
         {
             $bug->set_status($bug_status->name);
@@ -587,13 +586,13 @@ sub insert {
         title => "Attachment ".$attachment->id." added to ".template_var('terms')->{Bug}." ".$attachment->bug_id,
         sent => [$send_results],
         sent_attrs => {
-            contenttypemethod => $vars->{contenttypemethod},
-            added_attachment => {
+            added_attachments => [ {
                 id          => $attachment->id,
                 bug_id      => $attachment->bug_id,
                 description => $attachment->description,
                 contenttype => $attachment->contenttype,
-            },
+                ctype_auto  => $vars->{contenttypemethod} eq 'autodetect',
+            } ],
         },
     };
 

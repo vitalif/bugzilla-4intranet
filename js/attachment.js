@@ -23,111 +23,111 @@
 
 function switch_aft(n)
 {
-    var f = document.getElementById('form_type_file'+n);
-    var u = document.getElementById('form_type_url'+n);
-    var t = document.getElementById('form_type_text'+n);
-    document.getElementById('tr_file'+n).style.display = f && f.checked ? '' : 'none';
-    document.getElementById('tr_text'+n).style.display = t && t.checked ? '' : 'none';
-    if (u)
-        document.getElementById('tr_url'+n).style.display = u.checked ? '' : 'none';
+  var f = document.getElementById('form_type_file'+n);
+  var u = document.getElementById('form_type_url'+n);
+  var t = document.getElementById('form_type_text'+n);
+  document.getElementById('tr_file'+n).style.display = f && f.checked ? '' : 'none';
+  document.getElementById('tr_text'+n).style.display = t && t.checked ? '' : 'none';
+  if (u)
+    document.getElementById('tr_url'+n).style.display = u.checked ? '' : 'none';
 }
 
 function validateAttachmentForm(theform) {
-    var desc_value = YAHOO.lang.trim(theform.description.value);
-    if (desc_value == '') {
-        alert(BUGZILLA.string.attach_desc_required);
-        return false;
-    }
-    return true;
+  var desc_value = YAHOO.lang.trim(theform.description.value);
+  if (desc_value == '') {
+    alert(BUGZILLA.string.attach_desc_required);
+    return false;
+  }
+  return true;
 }
 
-function updateCommentPrivacy(checkbox) {
-    var text_elem = document.getElementById('comment');
-    if (checkbox.checked) {
-        text_elem.className='bz_private';
-    } else {
-        text_elem.className='';
-    }
+function updateCommentPrivacy(checkbox)
+{
+  var text_elem = document.getElementById('comment');
+  if (checkbox.checked) {
+    text_elem.className='bz_private';
+  } else {
+    text_elem.className='';
+  }
 }
 
-function URLFieldHandler() {
-    var field_attachurl = document.getElementById("attachurl");
-    var greyfields = new Array("data", "ispatch", "autodetect",
-                               "list", "manual", "bigfile",
-                               "contenttypeselection",
-                               "contenttypeentry");
-    var i, thisfield;
-    if (field_attachurl.value.match(/^\s*$/)) {
-        for (i = 0; i < greyfields.length; i++) {
-            thisfield = document.getElementById(greyfields[i]);
-            if (thisfield) {
-                thisfield.removeAttribute("disabled");
-            }
-        }
-    } else {
-        for (i = 0; i < greyfields.length; i++) {
-            thisfield = document.getElementById(greyfields[i]);
-            if (thisfield) {
-                thisfield.setAttribute("disabled", "disabled");
-            }
-        }
+function URLFieldHandler()
+{
+  var field_attachurl = document.getElementById("attachurl");
+  var greyfields = [
+    "data", "ispatch", "autodetect",
+    "list", "manual", "bigfile",
+    "contenttypeselection",
+    "contenttypeentry"
+  ];
+  var i, thisfield;
+  if (field_attachurl.value.match(/^\s*$/)) {
+    for (i = 0; i < greyfields.length; i++) {
+      thisfield = document.getElementById(greyfields[i]);
+      if (thisfield)
+        thisfield.removeAttribute("disabled");
     }
+  } else {
+    for (i = 0; i < greyfields.length; i++) {
+      thisfield = document.getElementById(greyfields[i]);
+      if (thisfield)
+        thisfield.setAttribute("disabled", "disabled");
+    }
+  }
 }
 
 function DataFieldHandler(AllowAttachUrl)
 {
-    var field_data = document.getElementById("data");
-    var fd_empty = field_data.value.match(/^\s*$/);
-    var field_description = document.getElementById("description");
-    if (!field_description._changed && !fd_empty)
-    {
-        l = field_data.value.lastIndexOf('/')+1;
-        lw = field_data.value.lastIndexOf('\\')+1;
-        if (lw > l)
-            l = lw;
-        field_description.value = field_data.value.substr(l);
+  var field_data = document.getElementById("data");
+  var fd_empty = field_data.value.match(/^\s*$/);
+  var field_description = document.getElementById("description");
+  if (!field_description._changed && !fd_empty)
+  {
+    l = field_data.value.lastIndexOf('/')+1;
+    lw = field_data.value.lastIndexOf('\\')+1;
+    if (lw > l)
+      l = lw;
+    field_description.value = field_data.value.substr(l);
+  }
+  if (!AllowAttachUrl)
+    return;
+  var greyfields = new Array("attachurl");
+  var i, thisfield;
+  if (fd_empty) {
+    for (i = 0; i < greyfields.length; i++) {
+      thisfield = document.getElementById(greyfields[i]);
+      if (thisfield)
+        thisfield.removeAttribute("disabled");
     }
-    if (!AllowAttachUrl)
-        return;
-    var greyfields = new Array("attachurl");
-    var i, thisfield;
-    if (fd_empty) {
-        for (i = 0; i < greyfields.length; i++) {
-            thisfield = document.getElementById(greyfields[i]);
-            if (thisfield) {
-                thisfield.removeAttribute("disabled");
-            }
-        }
-    } else {
-        for (i = 0; i < greyfields.length; i++) {
-            thisfield = document.getElementById(greyfields[i]);
-            if (thisfield) {
-                thisfield.setAttribute("disabled", "disabled");
-            }
-        }
+  } else {
+    for (i = 0; i < greyfields.length; i++) {
+      thisfield = document.getElementById(greyfields[i]);
+      if (thisfield)
+        thisfield.setAttribute("disabled", "disabled");
     }
+  }
 }
 
 function clearAttachmentFields() {
-    var element;
+  var element;
 
-    document.getElementById('data').value = '';
-    DataFieldHandler();
-    if ((element = document.getElementById('bigfile')))
-        element.checked = '';
-    if ((element = document.getElementById('attachurl'))) {
-        element.value = '';
-        URLFieldHandler();
-    }
-    document.getElementById('description').value = '';
-    /* Fire onchange so that the disabled state of the content-type
-     * radio buttons are also reset 
-     */
-    element = document.getElementById('ispatch');
+  document.getElementById('data').value = '';
+  DataFieldHandler();
+  if ((element = document.getElementById('bigfile')))
     element.checked = '';
-    bz_fireEvent(element, 'change');
-    if ((element = document.getElementById('isprivate')))
-        element.checked = '';
+  if ((element = document.getElementById('attachurl'))) {
+    element.value = '';
+    URLFieldHandler();
+  }
+  document.getElementById('description').value = '';
+  /* Fire onchange so that the disabled state of the content-type
+   * radio buttons are also reset 
+   */
+  element = document.getElementById('ispatch');
+  element.checked = '';
+  bz_fireEvent(element, 'change');
+  if ((element = document.getElementById('isprivate')))
+    element.checked = '';
 }
 
 /* Functions used when viewing patches in Diff mode. */
@@ -235,83 +235,83 @@ var has_edited = 0;
 var has_viewed_as_diff = 0;
 function editAsComment(patchviewerinstalled)
 {
-    switchToMode('edit', patchviewerinstalled);
-    has_edited = 1;
+  switchToMode('edit', patchviewerinstalled);
+  has_edited = 1;
 }
 function undoEditAsComment(patchviewerinstalled)
 {
-    switchToMode(prev_mode, patchviewerinstalled);
+  switchToMode(prev_mode, patchviewerinstalled);
 }
 function redoEditAsComment(patchviewerinstalled)
 {
-    switchToMode('edit', patchviewerinstalled);
+  switchToMode('edit', patchviewerinstalled);
 }
 
 function viewDiff(attachment_id, patchviewerinstalled)
 {
-    switchToMode('diff', patchviewerinstalled);
+  switchToMode('diff', patchviewerinstalled);
 
-    // If we have not viewed as diff before, set the view diff frame URL
-    if (!has_viewed_as_diff) {
-      var viewDiffFrame = document.getElementById('viewDiffFrame');
-      viewDiffFrame.src =
-          'attachment.cgi?id=' + attachment_id + '&action=diff&headers=0';
-      has_viewed_as_diff = 1;
-    }
+  // If we have not viewed as diff before, set the view diff frame URL
+  if (!has_viewed_as_diff) {
+    var viewDiffFrame = document.getElementById('viewDiffFrame');
+    viewDiffFrame.src =
+        'attachment.cgi?id=' + attachment_id + '&action=diff&headers=0';
+    has_viewed_as_diff = 1;
+  }
 }
 
 function viewRaw(patchviewerinstalled)
 {
-    switchToMode('raw', patchviewerinstalled);
+  switchToMode('raw', patchviewerinstalled);
 }
 
 function switchToMode(mode, patchviewerinstalled)
 {
-    if (mode == current_mode) {
-      alert('switched to same mode!  This should not happen.');
-      return;
-    }
+  if (mode == current_mode) {
+    alert('switched to same mode!  This should not happen.');
+    return;
+  }
 
-    // Switch out of current mode
-    if (current_mode == 'edit') {
-      hideElementById('editFrame');
-      hideElementById('undoEditButton');
-    } else if (current_mode == 'raw') {
-      hideElementById('viewFrame');
-      if (patchviewerinstalled)
-          hideElementById('viewDiffButton');
-      hideElementById(has_edited ? 'redoEditButton' : 'editButton');
-      hideElementById('smallCommentFrame');
-    } else if (current_mode == 'diff') {
-      if (patchviewerinstalled)
-          hideElementById('viewDiffFrame');
-      hideElementById('viewRawButton');
-      hideElementById(has_edited ? 'redoEditButton' : 'editButton');
-      hideElementById('smallCommentFrame');
-    }
+  // Switch out of current mode
+  if (current_mode == 'edit') {
+    hideElementById('editFrame');
+    hideElementById('undoEditButton');
+  } else if (current_mode == 'raw') {
+    hideElementById('viewFrame');
+    if (patchviewerinstalled)
+        hideElementById('viewDiffButton');
+    hideElementById(has_edited ? 'redoEditButton' : 'editButton');
+    hideElementById('smallCommentFrame');
+  } else if (current_mode == 'diff') {
+    if (patchviewerinstalled)
+        hideElementById('viewDiffFrame');
+    hideElementById('viewRawButton');
+    hideElementById(has_edited ? 'redoEditButton' : 'editButton');
+    hideElementById('smallCommentFrame');
+  }
 
-    // Switch into new mode
-    if (mode == 'edit') {
-      showElementById('editFrame');
-      showElementById('undoEditButton');
-    } else if (mode == 'raw') {
-      showElementById('viewFrame');
-      if (patchviewerinstalled) 
-          showElementById('viewDiffButton');
+  // Switch into new mode
+  if (mode == 'edit') {
+    showElementById('editFrame');
+    showElementById('undoEditButton');
+  } else if (mode == 'raw') {
+    showElementById('viewFrame');
+    if (patchviewerinstalled) 
+        showElementById('viewDiffButton');
 
-      showElementById(has_edited ? 'redoEditButton' : 'editButton');
-      showElementById('smallCommentFrame');
-    } else if (mode == 'diff') {
-      if (patchviewerinstalled) 
-        showElementById('viewDiffFrame');
+    showElementById(has_edited ? 'redoEditButton' : 'editButton');
+    showElementById('smallCommentFrame');
+  } else if (mode == 'diff') {
+    if (patchviewerinstalled) 
+      showElementById('viewDiffFrame');
 
-      showElementById('viewRawButton');
-      showElementById(has_edited ? 'redoEditButton' : 'editButton');
-      showElementById('smallCommentFrame');
-    }
+    showElementById('viewRawButton');
+    showElementById(has_edited ? 'redoEditButton' : 'editButton');
+    showElementById('smallCommentFrame');
+  }
 
-    prev_mode = current_mode;
-    current_mode = mode;
+  prev_mode = current_mode;
+  current_mode = mode;
 }
 
 function hideElementById(id)

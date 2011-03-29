@@ -86,7 +86,8 @@ sub DB_COLUMNS {
         mimetype
         modification_time
         submitter_id),
-        $dbh->sql_date_format('attachments.creation_ts', '%Y.%m.%d %H:%i') . ' AS creation_ts';
+        $dbh->sql_date_format('attachments.creation_ts', '%Y.%m.%d %H:%i') . ' AS creation_ts',
+        'creation_ts AS creation_ts_orig';
 }
 
 use constant REQUIRED_CREATE_FIELDS => qw(
@@ -524,7 +525,8 @@ sub _check_bug {
     return $bug;
 }
 
-sub _legal_content_type {
+sub _legal_content_type
+{
     my ($content_type) = @_;
     my $legal_types = join('|', LEGAL_CONTENT_TYPES);
     return $content_type =~ /^($legal_types)\/.+$/;
@@ -579,8 +581,9 @@ sub _check_data {
     $data || ThrowUserError('zero_length_file');
     # Make sure the attachment does not exceed the maximum permitted size.
     my $len = length($data);
-    my $max_size = $params->{store_in_file} ? Bugzilla->params->{'maxlocalattachment'} * 1048576
-                                            : Bugzilla->params->{'maxattachmentsize'} * 1024;
+    my $max_size = $params->{store_in_file} || Bugzilla->params->{force_attach_bigfile}
+        ? Bugzilla->params->{'maxlocalattachment'} * 1048576
+        : Bugzilla->params->{'maxattachmentsize'} * 1024;
     if ($len > $max_size) {
         my $vars = { filesize => sprintf("%.0f", $len/1024) };
         if ($params->{ispatch}) {
@@ -970,7 +973,8 @@ Returns:    nothing
 
 =cut
 
-sub remove_from_db {
+sub remove_from_db
+{
     my $self = shift;
     my $dbh = Bugzilla->dbh;
 
@@ -986,9 +990,27 @@ sub remove_from_db {
 ####       Helpers        #####
 ###############################
 
-# Extract the content type from the attachment form.
 my $lwp_read_mime_types;
-sub get_content_type {
+sub guess_content_type
+{
+    my ($filename) = @_;
+    if (Bugzilla->params->{mime_types_file})
+    {
+        if (!$lwp_read_mime_types)
+        {
+            LWP::MediaTypes::read_media_types(Bugzilla->params->{mime_types_file});
+            $lwp_read_mime_types = 1;
+        }
+        return LWP::MediaTypes::guess_media_type("$filename");
+    }
+    return '';
+}
+
+# Extract the content type from the attachment form.
+# FIXME this is not the logic of Attachment, this is the form logic,
+# so it must be inside form implementation, not Attachment implementation
+sub get_content_type
+{
     my $cgi = Bugzilla->cgi;
 
     return 'text/plain' if ($cgi->param('ispatch') ||
@@ -1005,15 +1027,9 @@ sub get_content_type {
         # specified in the HTTP request headers.
         $content_type =
             $cgi->uploadInfo($cgi->param('data'))->{'Content-Type'};
-        if (!_legal_content_type($content_type) && Bugzilla->params->{mime_types_file})
+        if (!_legal_content_type($content_type))
         {
-            if (!$lwp_read_mime_types)
-            {
-                LWP::MediaTypes::read_media_types(Bugzilla->params->{mime_types_file});
-                $lwp_read_mime_types = 1;
-            }
-            my $file = $cgi->param('data');
-            $content_type = LWP::MediaTypes::guess_media_type("$file");
+            $content_type = guess_content_type($cgi->param('data'));
         }
         if (!_legal_content_type($content_type))
         {
@@ -1048,6 +1064,127 @@ sub get_content_type {
                        { contenttypemethod => $cgi->param('contenttypemethod') });
     }
     return $content_type;
+}
+
+# CustIS Bug 68919 - Create multiple attachments to bug
+sub add_multiple
+{
+    my ($bug, $cgi, $send_attrs) = @_;
+    my $multiple = {};
+    my $params = $cgi->Vars;
+    my ($multi, $key);
+    for (keys %$params)
+    {
+        if (/^attachmulti_(.*)_([^_]*)$/so)
+        {
+            ($key, $multi) = ($1, $2);
+            if ($key eq 'data')
+            {
+                my $up = $cgi->upload($_);
+                if ($up)
+                {
+                    my $fn = $params->{$_};
+                    $fn = "$fn";
+                    if (Bugzilla->params->{utf8})
+                    {
+                        # CGI::upload() will probably return non-UTF8 string, so set UTF8 flag on
+                        # utf8::decode() and Encode::_utf8_on() do not work on tainted scalars...
+                        $fn = trick_taint_copy($fn);
+                        Encode::_utf8_on($fn);
+                    }
+                    $multiple->{$multi}->{$key} = {
+                        filename    => $fn,
+                        upload      => $up,
+                        uploadInfo  => $cgi->uploadInfo($params->{$_}),
+                    };
+                }
+            }
+            else
+            {
+                $multiple->{$multi}->{$key} = $params->{$_};
+            }
+        }
+    }
+    for (values %$multiple)
+    {
+        if ($_->{data})
+        {
+            add_attachment($bug, $_, $send_attrs);
+        }
+    }
+}
+
+# Insert a new attachment into the database.
+sub add_attachment
+{
+    my ($bug, $params, $send_attrs) = @_;
+
+    my $dbh = Bugzilla->dbh;
+    my $user = Bugzilla->user;
+
+    $dbh->bz_start_transaction;
+
+    my $content_type = $params->{ctype};
+    my $ctype_auto = 0;
+    if (!$content_type)
+    {
+        $ctype_auto = 1;
+        $content_type = $params->{data}->{uploadInfo}->{'Content-Type'};
+        if (!_legal_content_type($content_type))
+        {
+            $content_type = guess_content_type($params->{data}->{filename});
+        }
+        if (!_legal_content_type($content_type))
+        {
+            $content_type = 'application/octet-stream';
+        }
+        # Set the ispatch flag to 1 if the content type
+        # is text/x-diff or text/x-patch
+        if ($content_type =~ m{text/x-(?:diff|patch)})
+        {
+            $params->{ispatch} = 1;
+            $content_type = 'text/x-diff';
+        }
+        # Internet Explorer sends image/x-png for PNG images,
+        # so convert that to image/png to match other browsers.
+        if ($content_type eq 'image/x-png')
+        {
+            $content_type = 'image/png';
+        }
+    }
+
+    my $attachment = Bugzilla::Attachment->create({
+        bug           => $bug,
+        data          => $params->{data}->{upload},
+        description   => $params->{description},
+        filename      => $params->{data}->{filename},
+        ispatch       => $params->{ispatch},
+        isprivate     => $params->{isprivate},
+        isurl         => 0,
+        mimetype      => $content_type,
+    });
+
+    # Insert a comment about the new attachment into the database.
+    # TODO move comment adding into Bugzilla::Attachment
+    my $comment = defined $params->{comment} ? $params->{comment} : '';
+    $bug->add_comment($comment, {
+        isprivate => $attachment->isprivate,
+        type => CMT_ATTACHMENT_CREATED,
+        work_time => $params->{work_time},
+        extra_data => $attachment->id
+    });
+    $bug->update($attachment->{creation_ts_orig});
+
+    $dbh->bz_commit_transaction;
+
+    # Operation result to save into session (CustIS Bug 64562)
+    push @{$send_attrs->{added_attachments}}, {
+        id => $attachment->id,
+        bug_id => $attachment->bug_id,
+        description => $attachment->description,
+        contenttype => $attachment->contenttype,
+        ctype_auto => $ctype_auto,
+    };
 }
 
 1;

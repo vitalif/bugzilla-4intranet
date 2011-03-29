@@ -1,3 +1,6 @@
+[%# Author: Vitaliy Filippov <vitalif@mail.ru>
+  # License: MPL 1.1 %]
+
 [% USE Bugzilla %]
 [% cgi = Bugzilla.cgi %]
 <html id="cmthtm" style="overflow: hidden">
@@ -16,6 +19,8 @@
 </div>
 </body>
 <script type="text/javascript">
+function loaded() {
   parent.document.getElementById('commentpreviewhtml').innerHTML = document.body.innerHTML;
+}
 </script>
 </html>
