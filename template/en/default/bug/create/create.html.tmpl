@@ -270,10 +270,6 @@ TUI_hide_default('expert_fields');
   [% select_fields.${field.name} = field %]
 [% END %]
 
-<form name="commentpreviewform" style="display:none" target="commentpreview" method="POST" action="page.cgi?id=previewcomment.html">
-<input id="previewcommentvalue" type="hidden" name="comment" value="" />
-</form>
-
 <form name="Create" id="Create" method="post" action="post_bug.cgi"
       enctype="multipart/form-data" onkeypress="return ctrlEnter(event||window.event,this)">
 <input type="hidden" name="product" value="[% product.name FILTER html %]">
@@ -589,7 +585,7 @@ TUI_hide_default('expert_fields');
     <td colspan="3">
       <input name="short_desc" size="70" value="[% short_desc FILTER html %]"
              maxlength="255" spellcheck="true" aria-required="true"
-             class="required">
+             class="required" />
     </td>
   </tr>
 </tbody>
@@ -616,34 +612,8 @@ TUI_hide_default('expert_fields');
          cols           = constants.COMMENT_COLS
          defaultcontent = defaultcontent
        %]
-        <br>
-        <p style="text-align: left; margin-bottom: 0" id="showpreviewbtn"><a href="javascript:void showcommentpreview()">Preview</a></p>
-        <div id="wrapcommentpreview" style="display: none">
-        <iframe name="commentpreview" id="commentpreview" style="height: auto; border-width: 0; width: 100%; overflow: hidden">
-        </iframe>
-        <script>
-        /*<!--*/
-        function findPos(obj) { var curtop = 0; if (obj.offsetParent) { do { curtop += obj.offsetTop; } while (obj = obj.offsetParent); return [curtop]; } }
-        function scrollDocTo(obj) { window.scroll(0,findPos(obj)); }
-        function scrTo(id) { scrollDocTo(document.getElementById(id)); }
-        function showcommentpreview()
-        {
-            document.getElementById('wrapcommentpreview').style.width=(document.Create.comment.offsetWidth-10)+'px';
-            document.getElementById('wrapcommentpreview').style.display='inline-block';
-            document.commentpreviewform.comment.value = document.Create.comment.value;
-            document.commentpreviewform.submit();
-            scrTo('commentpreview');
-            document.getElementById('showpreviewbtn').style.display='none';
-        }
-        function hidepreview()
-        {
-            document.getElementById('wrapcommentpreview').style.display='none';
-            document.getElementById('showpreviewbtn').style.display='';
-        }
-        //-->
-        </script>
-        <p style="text-align: right; margin-bottom: 0"><a href="javascript:void showcommentpreview()">Update preview</a> &nbsp; <a href="javascript:void hidepreview()">Hide preview</a></p>
-        </div>
+      <br /><input type="button" value="Preview comment" onclick="document.getElementById('wrapcommentpreview').style.width = document.getElementById('comment').offsetWidth+'px'; showcommentpreview('comment');" />
+      [% PROCESS "bug/comment-preview-div.html.tmpl" %]
     </td>
   </tr>
 

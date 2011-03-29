@@ -1,0 +1,54 @@
+[%# Author: Vitaliy Filippov <vitalif@mail.ru>
+  # License: MPL 1.1 %]
+
+[% PROCESS "global/field-descs.none.tmpl" %]
+
+<html><body>
+
+[% USE Bugzilla %]
+
+[% fileX = BLOCK %]
+<td id="cont_XXX"><input type="file" id="data_XXX" name="attachmulti_data_XXX" onchange="att_file_onchange(this)" /></td>
+<td><input type="text" id="description_XXX" name="attachmulti_description_XXX" onchange="this._changed=true" /></td>
+<td>
+  <select name="attachmulti_ctype_XXX" id="contenttypeselection_XXX">
+    <option value="">Detect automatically</option>
+    <option value="text/x-diff">Patch</option>
+    [% PROCESS "attachment/content-types.html.tmpl" %]
+  </select>
+</td>
+<td style="width: 1px; display: none" id="del_XXX"><input class="button" type="button" onclick="att_file_clear('data_XXX')" value="clear" /></td>
+[% END %]
+
+<h3>Create Multiple Attachments to [% terms.Bug %] [%+ Bugzilla.cgi.param('bug_id') %]</h3>
+
+<p>Additional file selection boxes will appear as you select more files.
+Press <b>Save Changes</b> when you're finished.</p>
+
+<table class="attach_multi">
+  <thead>
+    <tr>
+      <th>File</th>
+      <th>Description</th>
+      <th>Content type</th>
+    </tr>
+    <tr id="fileX" style="display: none">
+      [% fileX %]
+    </tr>
+  </thead>
+  <tbody id="files">
+    <tr id="file0">[% fileX.replace('_XXX', '_0') %]</tr>
+  </tbody>
+</table>
+
+</body>
+
+<script type="text/javascript" language="JavaScript">
+function loaded() {
+  var e = parent.document.getElementById('att_multiple');
+  e.innerHTML = document.body.innerHTML;
+  e.style.display = '';
+}
+</script>
+
+</html>

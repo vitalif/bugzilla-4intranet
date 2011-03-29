@@ -450,7 +450,9 @@ foreach my $b (@bug_objects) {
     }
 }
 
+# TODO move saved state into a global object
 my $send_results = [];
+my $send_attrs = {};
 
 my $move_action = $cgi->param('action') || '';
 if ($move_action eq Bugzilla->params->{'move-button-text'}) {
@@ -674,6 +676,12 @@ foreach my $bug (@bug_objects) {
     }
 }
 
+# CustIS Bug 68919 - Create multiple attachments to bug
+if (@bug_objects == 1)
+{
+    Bugzilla::Attachment::add_multiple($first_bug, $cgi, $send_attrs);
+}
+
 $dbh->bz_commit_transaction();
 
 ###############
@@ -716,10 +724,11 @@ elsif (($action eq 'next_bug' or $action eq 'same_bug') && ($bug = $vars->{bug})
     {
         $title = template_var('terms')->{Bugs} . ' processed';
     }
+    $send_attrs->{nextbug} = $action eq 'next_bug' ? 1 : 0;
     my $ses = {
         sent => $send_results,
         title => $title,
-        sent_attrs => { nextbug => $action eq 'next_bug' ? 1 : 0 },
+        sent_attrs => $send_attrs,
         # CustIS Bug 68921 - Correctness checkers
         failed_checkers => Checkers::freeze_failed_checkers($failed_checkers),
     };

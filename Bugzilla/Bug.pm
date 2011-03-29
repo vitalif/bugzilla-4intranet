@@ -1105,6 +1105,7 @@ sub update
     # Remove obsolete internal variables.
     delete $self->{'_old_assigned_to'};
     delete $self->{'_old_qa_contact'};
+    delete $self->{added_comments};
 
     # Also flush the visible_bugs cache for this bug as the user's
     # relationship with this bug may have changed.

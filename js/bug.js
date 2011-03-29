@@ -196,3 +196,64 @@ function changeform_onsubmit()
   adjustRemainingTime();
   return true;
 }
+
+// This function clears a row from multi-attachment upload form
+function att_file_clear(e)
+{
+  e = document.getElementById(e);
+  var ci = e.id.substr(5);
+  e.parentNode.innerHTML = e.parentNode.innerHTML;
+  document.getElementById('del_'+ci).style.display = 'none';
+  document.getElementById('description_'+ci).value = '';
+  document.getElementById('contenttypeselection_'+ci).selectedIndex = 0;
+}
+
+// This function handles change events of upload inputs on multi-attachment upload form
+function att_file_onchange(e)
+{
+  var ci = e.id.substr(5);
+  document.getElementById('del_'+ci).style.display = e.value ? '' : 'none';
+  if (e.value)
+  {
+    // Fill description from file name if it wasn't changed by user
+    var e1 = document.getElementById('description_'+ci);
+    if (!e1._changed)
+    {
+      var p = e.value;
+      var slash = p.lastIndexOf('/');
+      var backslash = p.lastIndexOf('\\');
+      var fname;
+      if (slash == -1 && backslash == -1)
+        fname = p;
+      else if (slash > backslash)
+        fname = p.substr(slash+1);
+      else
+        fname = p.substr(backslash+1);
+      e1.value = fname;
+    }
+    // Add a new empty field if there are no empty fields
+    var i = 0;
+    var f;
+    while (f = document.getElementById('data_'+i))
+    {
+      if (!f.value)
+      {
+        i = -1;
+        break;
+      }
+      i++;
+    }
+    if (i > 0)
+    {
+      // Copy innerHTML of fileX
+      // IE does not like setting innerHTML of regular elements, so create
+      // a div with table and then copy its row
+      var tmp = document.createElement('div');
+      tmp.innerHTML =
+        '<table id="file'+i+'table"><tbody><tr id="file'+i+'">'+
+        document.getElementById('fileX').innerHTML.replace(/_XXX/g, '_'+i)+
+        '</tr></tbody></table>';
+      document.getElementById('files').appendChild(tmp.childNodes[0].childNodes[0]);
+    }
+  }
+}

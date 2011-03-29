@@ -345,3 +345,56 @@ function getText(element) {
   }
   return text;
 }
+
+/* Functions for comment preview */
+
+// pseudo-ajax through form submit to an invisible iframe
+// probably this could be replaced with conventional AJAX (jQuery...)
+// but this also works good
+window.iframeajax_call = 0;
+window.iframeajax = function(url, data)
+{
+  var f = document.createElement('form');
+  var i = document.createElement('iframe');
+  f.target = i.name = i.id = 'iframeajax_'+(window.iframeajax_call++);
+  f.method = 'POST';
+  f.action = url;
+  var d = document.createElement('div');
+  d.id = 'div_'+i.id;
+  data['iframeajaxid'] = i.id.substr(11);
+  for (var k in data)
+  {
+    var n = document.createElement('input');
+    n.type = 'hidden';
+    n.name = k;
+    n.value = data[k];
+    f.appendChild(n);
+  }
+  d.style.display = 'none';
+  d.appendChild(f);
+  d.appendChild(i);
+  document.body.appendChild(d);
+  window.frames[i.id].name = i.id;
+  pushEvent(i, 'load', function() {
+    i.contentWindow.loaded();
+    i.parentNode.removeChild(i);
+  });
+  f.submit();
+};
+window.pushEvent = function(obj, event, handler) {
+  if (obj.addEventListener)
+    obj.addEventListener(event, handler, false);
+  else if (obj.attachEvent)
+    obj.attachEvent('on'+event, handler);
+};
+window.findPos = function(obj) { var curtop = 0; if (obj.offsetParent) { do { curtop += obj.offsetTop; } while (obj = obj.offsetParent); return [curtop]; } }
+window.scrollDocTo = function(obj) { window.scroll(0,findPos(obj)); }
+window.scrTo = function(id) { scrollDocTo(document.getElementById(id)); }
+
+window.hidepreview = function() { document.getElementById('wrapcommentpreview').style.display='none'; }
+window.showcommentpreview = function(textarea_id)
+{
+  document.getElementById('wrapcommentpreview').style.display = '';
+  iframeajax('page.cgi?id=previewcomment.html', { 'comment': document.getElementById(textarea_id || 'comment_textarea').value });
+  scrTo('wrapcommentpreview');
+};
