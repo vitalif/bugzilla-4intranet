@@ -253,7 +253,8 @@ function att_file_onchange(e)
         '<table id="file'+i+'table"><tbody><tr id="file'+i+'">'+
         document.getElementById('fileX').innerHTML.replace(/_XXX/g, '_'+i)+
         '</tr></tbody></table>';
-      document.getElementById('files').appendChild(tmp.childNodes[0].childNodes[0]);
+      // div.table.tbody.tr
+      document.getElementById('files').appendChild(tmp.childNodes[0].childNodes[0].childNodes[0]);
     }
   }
 }
