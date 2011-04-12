@@ -191,6 +191,12 @@ sub get_param_list {
    type => 'b',
    default => 1,
   },
+
+  {
+   name => 'unauth_bug_details',
+   type => 'b',
+   default => 0,
+  },
   );
   return @param_list;
 }

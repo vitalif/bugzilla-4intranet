@@ -214,7 +214,8 @@
   [% ELSIF error == "bug_access_denied" %]
     [% title = "Access Denied" %]
     [% admindocslinks = {'groups.html' => 'Group Security'} %]
-    You are not authorized to access [% terms.bug %] #[% bug_id FILTER html %].
+    You are not authorized to access [% terms.bug %] #[% bug_id FILTER html %]
+    [%- IF product AND Param('unauth_bug_details') %] in the [% product %] product[% END %].
 
   [% ELSIF error == "bug_access_query" %]
     [% title = "Access Denied" %]

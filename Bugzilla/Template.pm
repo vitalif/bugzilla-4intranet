@@ -392,8 +392,12 @@ sub get_bug_link {
         $title .= ' ' . get_text('get_resolution',
                                  { resolution => $bug->resolution });
     }
-    if (Bugzilla->user->can_see_bug($bug)) {
-        $title .= ' - ' . $bug->product.'/'.$bug->component . ' - ' . $bug->short_desc;
+    my $cansee = Bugzilla->user->can_see_bug($bug);
+    if (Bugzilla->params->{unauth_bug_details} || $cansee) {
+        $title .= ' - ' . $bug->product;
+    }
+    if ($cansee) {
+        $title .= '/' . $bug->component . ' - ' . $bug->short_desc;
         if (Bugzilla->params->{usebugaliases} && $options->{use_alias} && $link_text =~ /^\d+$/ && $bug->alias) {
             $link_text = $bug->alias;
         }
@@ -405,7 +409,7 @@ sub get_bug_link {
     if (defined $options->{comment_num}) {
         $linkval .= "#c" . $options->{comment_num};
     }
-    # CustIS Bug 53691
+    # CustIS Bug 53691 - Styles for bug states
     return "<span class=\"bz_st_".$bug->bug_status."\"><a href=\"$linkval\" title=\"$title\">$link_text</a></span>";
 }
 
