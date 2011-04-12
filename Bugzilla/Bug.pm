@@ -349,10 +349,14 @@ sub check_is_visible {
     if (!$user->can_see_bug($self->id)) {
         # The error the user sees depends on whether or not they are
         # logged in (i.e. $user->id contains the user's positive integer ID).
+        my $err_args = { bug_id => $self->id };
         if ($user->id) {
-            ThrowUserError("bug_access_denied", { bug_id => $self->id });
+            if (Bugzilla->params->{unauth_bug_details}) {
+                $err_args->{product} = $self->product;
+            }
+            ThrowUserError("bug_access_denied", $err_args);
         } else {
-            ThrowUserError("bug_access_query", { bug_id => $self->id });
+            ThrowUserError("bug_access_query", $err_args);
         }
     }
 }

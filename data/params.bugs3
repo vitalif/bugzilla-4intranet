@@ -128,6 +128,7 @@
            'testopia-max-allowed-plan-testers' => '500',
            'testopia-show-setup-breakdown' => 0,
            'timetrackinggroup' => "\x{432}\x{435}\x{441}\x{44c} \x{417}\x{418}\x{421}",
+           'unauth_bug_details' => 1,
            'upgrade_notification' => 'latest_stable_release',
            'urlbase' => 'http://bugs.office.custis.ru/bugs/',
            'use_mailer_queue' => 0,
@@ -150,5 +151,5 @@
            'webdotbase' => '/usr/bin/dot',
            'webtwopibase' => '/usr/bin/twopi',
            'whinedays' => '30',
-           'wiki_url' => 'http://wiki.office.custis.ru/wiki/index.php/'
+           'wiki_url' => 'http://wiki.office.custis.ru/wiki/index.php/',
          );
