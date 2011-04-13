@@ -26,6 +26,7 @@ package Bugzilla;
 
 use utf8;
 use strict;
+use Encode;
 
 use Bugzilla::Config;
 use Bugzilla::Constants;
@@ -178,6 +179,28 @@ sub _tt_exc_as_string
 
 *Template::Exception::new = *Bugzilla::_tt_exc_new;
 *Template::Exception::as_string = *Bugzilla::_tt_exc_as_string;
+
+#####################################################################
+# Hack for Template Toolkit (or maybe Perl) bug 67431
+# https://rt.cpan.org/Public/Bug/Display.html?id=67431
+#####################################################################
+
+sub _tt_provider_load_compiled {
+    my ($self, $file) = @_;
+    my $compiled;
+
+    # load compiled template via require();  we zap any
+    # %INC entry to ensure it is reloaded (we don't
+    # want 1 returned by require() to say it's in memory)
+    Encode::_utf8_off($file);
+    delete $INC{ $file };
+    eval { $compiled = require $file; };
+    return $@
+        ? $self->error("compiled template $compiled: $@")
+        : $compiled;
+}
+
+*Template::Provider::_load_compiled = *Bugzilla::_tt_provider_load_compiled;
 
 #####################################################################
 # Global Code
