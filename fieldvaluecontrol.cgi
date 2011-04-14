@@ -1,5 +1,5 @@
 #!/usr/bin/perl -wT
-# Bug 70605 - Client-side caching of field control data
+# Bug 70605 - Client-side caching of field value visibility data
 
 use strict;
 use lib qw(. lib);
@@ -44,10 +44,11 @@ Bugzilla->send_header(
     -last_modified => time2str($touched),
 );
 
+$args->{type} ||= '';
 if ($args->{type} eq 'search')
 {
     my $json = bz_encode_json(Bugzilla->full_json_query_visibility);
-    print "var qfVisibility = $json;";
+    print "var qfVisCached = '$user_tag-".time."';\nvar qfVisibility = $json;";
 }
 elsif ($args->{type} eq 'bug')
 {
@@ -57,5 +58,5 @@ elsif ($args->{type} eq 'bug')
         $json->{$_->name} = $_->json_visibility;
     }
     $json = bz_encode_json($json);
-    print "show_fields = $json;";
+    print "var show_fields_cached = '$user_tag-".time."';\nshow_fields = $json;";
 }
