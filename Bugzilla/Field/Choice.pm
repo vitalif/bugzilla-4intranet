@@ -466,16 +466,17 @@ sub visibility_values
 sub has_visibility_value
 {
     my $self = shift;
-    return 1 if $self->name eq '---';
-    my ($value) = @_;
-    return 1 if !$self->field->value_field_id;
+    my ($value, $default) = @_;
+    $default = 1 if !defined $default;
+    return $default if $self->name eq '---' || !$self->field->value_field_id;
     $value = $value->id if ref $value;
     my $hash = Bugzilla->fieldvaluecontrol_hash
         ->{$self->field->value_field_id}
         ->{values}
         ->{$self->field->id}
         ->{$self->id};
-    return !$hash || !%$hash || $hash->{$value};
+    return $default if !$hash || !%$hash;
+    return $hash->{$value};
 }
 
 # Check visibility of field value for a bug
