@@ -12,8 +12,6 @@
   [% END %]
 [% ELSIF error == "import_fields_mandatory" %]
   The following missing fields: [% fields.join(", ") | html %] are required to enter new bugs.
-[% ELSIF error == "checkers_failed" %]
-  [% PROCESS "failed-checkers.html.tmpl" f = failed %]
 [% ELSIF error == "invalid_field_value" %]
   The value <b>"[% value_obj.name | html %]"</b> of field <b>[% value_obj.field.description | html %]</b>
   is unavailable for the selected value "<b>[% controller | html %]</b>" of

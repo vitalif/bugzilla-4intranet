@@ -74,9 +74,18 @@ sub check
 sub alert
 {
     my ($bug, $is_new) = @_;
-    if (my @fatals = grep { $_->is_fatal } @{$bug->{failed_checkers}})
+    my (@fatal, @warn);
+    map { $_->is_fatal ? push(@fatal, $_) : push(@warn, $_) } @{$bug->{failed_checkers}};
+    my $force = 1 && Bugzilla->cgi->param('force_checkers');
+    if (!@fatal && (!@warn || $force))
+    {
+        # фатальных нет, нефатальных либо тоже нет, либо пользователь сказал "DO WHAT I SAY"
+        $bug->{passed_checkers} = 1;
+    }
+    else
     {
         # откатываем изменения
+        $bug->{passed_checkers} = 0;
         # bugs_fulltext нужно откатывать отдельно...
         if ($is_new)
         {
@@ -90,7 +99,12 @@ sub alert
         Bugzilla->dbh->bz_rollback_to_savepoint;
         if ($THROW_ERROR)
         {
-            ThrowUserError('checkers_failed', { failed => [ $bug ] });
+            Bugzilla->template->process("verify-checkers.html.tmpl", {
+                failed => [ $bug ],
+                allow_commit => !@fatal,
+                exclude_params_re => '^force_checkers$',
+            }) || ThrowTemplateError(Bugzilla->template->error);
+            exit;
         }
     }
 }

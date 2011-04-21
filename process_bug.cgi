@@ -575,9 +575,10 @@ foreach my $bug (@bug_objects) {
     if ($bug->{failed_checkers} && @{$bug->{failed_checkers}})
     {
         push @$failed_checkers, $bug;
-        if (grep { $_->is_fatal } @{$bug->{failed_checkers}})
+        unless ($bug->{passed_checkers})
         {
-            # When we are here, rollback_to_savepoint is already done in Checkers.pm
+            # This means update is blocked
+            # and rollback_to_savepoint is already done in Checkers.pm
             next;
         }
     }
