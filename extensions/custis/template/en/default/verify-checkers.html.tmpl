@@ -1,0 +1,56 @@
+[% PROCESS "global/field-descs.none.tmpl" %]
+
+[% PROCESS global/header.html.tmpl
+   title = 'Изменения не удовлетворяют проверкам' %]
+
+<div class="user-error-div">
+
+[% PROCESS "failed-checkers.html.tmpl" f = failed %]
+
+[% IF allow_commit %]
+
+<form action="process_bug.cgi" method="post" style="margin-top: 1em">
+[% PROCESS "global/hidden-fields.html.tmpl" exclude = exclude_params_re %]
+<input type="hidden" name="force_checkers" value="1" />
+<input type="submit" value="Я знаю, что делаю! Внести изменения!" id="forcesubmit" style="color: gray" disabled="disabled" /> <span id="countdown_span"></span>
+</form>
+
+<p style="margin-bottom: 0">
+  Либо нажмите <b><a href="javascript:history.back()">Назад</a></b>
+  и внесите другие, корректные изменения.
+</p>
+
+<script type="text/javascript">
+var downcounter = 3;
+function countdown()
+{
+  var s = document.getElementById('forcesubmit');
+  var t = document.getElementById('countdown_span');
+  if (downcounter > 0)
+  {
+    t.innerHTML = downcounter + '...';
+    downcounter--;
+    setTimeout(countdown, 1000);
+  }
+  else
+  {
+    t.innerHTML = '';
+    s.style.color = '';
+    s.disabled = false;
+  }
+}
+countdown();
+</script>
+
+[% ELSE %]
+
+<p style="margin-bottom: 0">
+  Изменения блокированы. Нажмите <b><a href="javascript:history.back()">Назад</a></b>
+  и внесите корректные изменения.
+</p>
+
+[% END %]
+
+</div>
+
+[% PROCESS global/footer.html.tmpl %]
