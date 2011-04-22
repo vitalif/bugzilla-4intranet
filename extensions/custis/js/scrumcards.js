@@ -203,8 +203,8 @@ function deleteSelectedCards(cut)
         }
         else if (shift > 0)
         {
-          var to = to_coord(coord-shift);
-          document.getElementById('cardtd_'+to[0]+'_'+to[1]+'_'+to[2]).innerHTML = e.innerHTML;
+          var to = to_coord(coord-shift).join('_');
+          document.getElementById('cardtd_'+to).innerHTML = e.innerHTML;
           idlist[coord-shift] = idlist[coord];
         }
         else if (coord + shift < n)
@@ -249,19 +249,19 @@ function doPasteCards(coord)
   var from, to;
   for (var i = n-nx-1; i >= coord; i--)
   {
-    from = to_coord(i);
-    to = to_coord(i+nx);
-    document.getElementById('cardtd_'+to[0]+'_'+to[1]+'_'+to[2]).innerHTML =
-      document.getElementById('cardtd_'+from[0]+'_'+from[1]+'_'+from[2]).innerHTML;
+    from = to_coord(i).join('_');
+    to = to_coord(i+nx).join('_');
+    document.getElementById('cardtd_'+to).innerHTML =
+      document.getElementById('cardtd_'+from).innerHTML;
     idlist[i+nx] = idlist[i];
   }
   for (var i = 0; i < nx; i++)
   {
-    to = to_coord(i+coord);
-    document.getElementById('cardtd_'+to[0]+'_'+to[1]+'_'+to[2]).innerHTML = cuttedcards[i];
-    document.getElementById('cardtd_'+to[0]+'_'+to[1]+'_'+to[2]).className = 'cardtd selected';
+    to = to_coord(i+coord).join('_');
+    document.getElementById('cardtd_'+to).innerHTML = cuttedcards[i];
+    document.getElementById('cardtd_'+to).className = 'cardtd selected';
     idlist[i+coord] = cuttedids[i];
-    selectedcards[to[0]+'_'+to[1]+'_'+to[2]] = true;
+    selectedcards[to[0]] = true;
   }
   cuttedids = [];
   cuttedcards = [];
@@ -355,13 +355,16 @@ CardDragObject.prototype.onDragSuccess = function(target, pos) {
     deselectAll();
     selectedcards[this.element.id.substr(7)] = true;
   }
-  deleteSelectedCards(true);
-  var to = id_to_coord(target.element.id);
-  if (to < this.n)
-    to++;
+  var to = id_to_coord(target.element.id)+1;
   var w = target.element.scrollWidth;
-  if (pos.x < w/2 && to > 0)
+  if (pos.x < w/2)
     to--;
+  var decr = 0;
+  for (var i = 0; i < to; i++)
+    if (selectedcards[to_coord(i).join('_')])
+      decr++;
+  to -= decr;
+  deleteSelectedCards(true);
   doPasteCards(to);
 };
 CardDragObject.prototype.onDragFail = function() {
@@ -384,16 +387,11 @@ CardDropTarget.prototype.onLeave = function()
 CardDropTarget.prototype.onMove = function(pos)
 {
   var w = this.element.scrollWidth;
+  this.element.style.border = '';
   if (pos.x < w/2)
-  {
     this.element.style.borderLeft = '5px solid red';
-    this.element.style.borderRight = '';
-  }
   else
-  {
-    this.element.style.borderLeft = '';
     this.element.style.borderRight = '5px solid red';
-  }
 };
 // Универсальное добавление обработчика события
 var addListener = function() {
