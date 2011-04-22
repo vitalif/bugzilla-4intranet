@@ -387,12 +387,12 @@ var CardDropTarget = function(e)
 CardDropTarget.prototype = new DropTarget();
 CardDropTarget.prototype.onLeave = function()
 {
-  this.element.style.border = '';
+  this.element.style.border = '1px dashed black';
 };
 CardDropTarget.prototype.onMove = function(pos)
 {
   var w = this.element.scrollWidth;
-  this.element.style.border = '';
+  this.element.style.border = '1px dashed black';
   if (pos.x < w/2)
     this.element.style.borderLeft = '5px solid red';
   else
