@@ -165,8 +165,8 @@ for (@$bugs)
 # Вывод в шаблон
 $vars->{pages} = $pages;
 $vars->{t} = $l;
-$vars->{idlist} = join ',', map { $_ && $_->{bug}->id ? $_->{bug}->id : "" } @$bugs;
-$vars->{idlist_js} = join ',', map { $_ && $_->{bug}->id ? $_->{bug}->id : "''" } @$bugs;
+$vars->{idlist} = join ',', map { $_ && $_->{bug} && $_->{bug}->id ? $_->{bug}->id : "" } @$bugs;
+$vars->{idlist_js} = join ',', map { $_ && $_->{bug} && $_->{bug}->id ? $_->{bug}->id : "''" } @$bugs;
 $vars->{estimates} = $est;
 $vars->{cardtext} = $l->{cardtext};
 $vars->{settings_text} =
