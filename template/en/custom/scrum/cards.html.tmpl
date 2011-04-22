@@ -98,6 +98,13 @@ x
 (см.)
 </div>
 
+<div style="float: left; margin-left: 50px; text-align: center">
+<p>Текст настроек:</p>
+<textarea name="settings_text" cols="70" rows="5" onchange="document.getElementById('load_settings').checked = true">[% settings_text | html %]</textarea><br />
+<input type="checkbox" name="load_settings" id="load_settings" value="1" />
+<label for="load_settings">Загрузить настройки &uarr;</label>
+</div>
+
 <p style="clear: both"><input type="submit" value=" Показать " /> <input type="button" value=" Удалить все карточки " onclick="deleteAllCards()" /> </p>
 
 <p>
@@ -147,25 +154,7 @@ x
    <tr><td><span style="font-size: 200%">[% bug.bug_id %]</span><br />[% bug.error %]</td></tr>
   </table>
   [% ELSE %]
-  <table class="card" cellspacing="5">
-   <tr>
-    <td class="dot"><a href="show_bug.cgi?id=[% bug.bug_id %]">[% bug.bug_id | html %]</a></td>
-    <td class="sevpri">[% bug.bug_severity.substr(0, 3) | html %]&nbsp;[% bug.priority | html %]</td>
-    <td class="dot">[% bug.target_milestone.substr(0, 5) %]</td>
-   </tr>
-   <tr>
-    <td colspan="3" class="desc" style="font-size: 120%">[% bug.short_desc | html %]</td>
-   </tr>
-   <tr>
-    <td colspan="3" style="font-size: 130%">
-     [% IF ! ind.${bug.bug_id}; ind.${bug.bug_id} = 0; END %]
-     <input type="text" class="est"
-       name="e[% bug.bug_id %][% IF ind.${bug.bug_id} %]_[% ind.${bug.bug_id} %][% END %]"
-       value="[% estimates.${bug.bug_id}.${ind.${bug.bug_id}} || "" | html %]" />
-     [% ind.${bug.bug_id} = ind.${bug.bug_id}+1 %]
-    </td>
-   </tr>
-  </table>
+   [% bug.html %]
   [% END %]
  </td>
  [% END %]

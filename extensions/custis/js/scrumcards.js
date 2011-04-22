@@ -83,7 +83,7 @@ function deselectAll()
 // и вызвать на ней buttonHandler
 function guessButton(ev)
 {
-  exFixEvent(ev);
+  ev = DragMaster.fixEvent(ev);
   var t;
   if (t = searchButtonTarget(ev))
     return buttonHandler(ev, t);
@@ -115,6 +115,7 @@ function buttonHandler(ev, target)
   }
   return false;
 }
+// Обработчик клика-выделения по карточке
 function selectCard(ev, target)
 {
   var empty = isEmptyHash(selectedcards, target.id.substr(7));
@@ -123,10 +124,10 @@ function selectCard(ev, target)
     doPasteCards(id_to_coord(target.id)+1);
     return true;
   }
-  else if (ctrl || empty)
+  else if (ctrl || !selectedcards[target.id.substr(7)])
   {
-    if (empty == 1)
-      return true;
+    if (!ctrl)
+      deselectAll();
     var issel = target.className == 'cardtd selected';
     target.className = issel ? 'cardtd' : 'cardtd selected';
     if (issel)
@@ -137,25 +138,28 @@ function selectCard(ev, target)
   }
   return false;
 }
+// Подсветка карточки в режиме вставки
 function highlightCard(ev)
 {
   if (pasteMode)
   {
-    exFixEvent(ev);
+    ev = DragMaster.fixEvent(ev);
     var t = searchCardTarget(ev);
     t.className = 'cardtd highlight';
     highlitCard = t;
   }
 }
+// Снятие подсветки карточки в режиме вставки
 function unlightCard(ev)
 {
   if (pasteMode)
   {
-    exFixEvent(ev);
+    ev = DragMaster.fixEvent(ev);
     var t = searchCardTarget(ev);
     t.className = 'cardtd';
   }
 }
+// Преобразование номера в координаты [лист, строка, столбец]
 function to_coord(i)
 {
   var to_k = Math.floor(i / nr / nc);
@@ -163,6 +167,7 @@ function to_coord(i)
   var to_j = Math.floor(i % nc);
   return [to_k, to_i, to_j];
 }
+// Преобразование id элемента (.*лист_строка_столбец.*) в номер
 function id_to_coord(id)
 {
   var m = /(\d+)_(\d+)_(\d+)/.exec(id.substr(7));
@@ -301,26 +306,29 @@ function searchButtonTarget(e)
     nt = nt.parentNode;
   return nt;
 }
-// Попробовать найти по иерархии что-нибудь значащее (по сути поле ввода)
+// Попробовать найти по иерархии что-нибудь кроме карточек и кнопок,
+// по сути это только <input> и <textarea>, клик по чему не сбрасывает всё нахрен
 function searchNonResetTarget(e)
 {
   var nt = e._target, i;
-  while (nt && !(i = nt.nodeName.toLowerCase()) ||
-    !(nt.nodeName == 'input' || nt.nodeName == 'textarea'))
+  while (nt && (!(i = nt.nodeName.toLowerCase()) ||
+    !(i == 'input' || i == 'textarea')))
     nt = nt.parentNode;
   return nt;
 }
 // Глобальный обработчик события mouseup
 function mouseUpHandler(e)
 {
-  exFixEvent(e);
+  e = DragMaster.fixEvent(e);
   var t;
-  if (t = searchCardTarget(e))
+  if (searchNonResetTarget(e)) {}
+  else if (t = searchCardTarget(e))
     selectCard(e, t);
   else if (t = searchButtonTarget(e))
     buttonHandler(e, t);
-  else if (!searchNonResetTarget(e))
+  else
     resetAll();
+  return true;
 }
 // Класс "Перетаскиваемая карточка", унаследованный от "Перетаскиваемого объекта"
 // Логика - при начале перетаскивания удаляется из родительского элемента,
@@ -400,15 +408,6 @@ var addListener = function() {
     return function(el, type, fn) { element['on'+type] = fn; }
   }
 }();
-// Добавить к событию ev кроссбраузерный объект "цели" ev._target
-var exFixEvent = function(ev)
-{
-  if (!ev) var ev = window.event;
-  var t = ev.target;
-  if (!t) t = ev.srcElement;
-  if (t && t.nodeType == 3) t = t.parentNode; // Safari bug
-  ev._target = t;
-}
 // 2 если hash пуст
 // 1 если в нём один ключ key
 // 0 если в нём есть ключ, не равный key
