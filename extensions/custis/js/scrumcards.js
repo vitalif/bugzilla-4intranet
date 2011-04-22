@@ -1,3 +1,11 @@
+/**
+Печать SCRUM-карточек из Bugzilla
+(c) Виталий Филиппов 2010-2011
+
+Весь смысл сего скрипта - манипуляции с расположением и набором карточек.
+Даёт возможность удалять, добавлять, перемещать карточки.
+Перемещение - методами drag&drop'а и вырезания/вставки.
+**/
 var pressedButton;
 var pasteMode = false;
 var ctrl = false;
@@ -5,6 +13,7 @@ var highlitCard;
 var selectedcards = {};
 var cuttedcards = [];
 var cuttedids = [];
+// Добавить карточки для багов с ID'шниками из поля addbugs
 function addNewCards()
 {
   for (var i = idlist.length-1; i >= 0; i--)
@@ -22,6 +31,7 @@ function addNewCards()
   document.getElementById('idlist_value').value = idlist.join(',');
   document.getElementById('scrumform').submit();
 }
+// Добавить пустую страницу
 function addEmptyPage()
 {
   for (var i = 0; i < nr*nc; i++)
@@ -29,6 +39,7 @@ function addEmptyPage()
   document.getElementById('idlist_value').value = idlist.join(',');
   document.getElementById('scrumform').submit();
 }
+// Обработчик нажатия Enter на поле addbugs
 function addNewIfEnter(ev)
 {
   if (ev.keyCode == 10 || ev.keyCode == 13)
@@ -38,6 +49,15 @@ function addNewIfEnter(ev)
   }
   return false;
 }
+// Удалить все карточки
+function deleteAllCards()
+{
+  idlist = [];
+  document.getElementById('idlist_value').value = idlist.join(',');
+  document.getElementById('pages').innerHTML = '';
+  document.getElementById('scrumform').submit();
+}
+// Сбросить состояние кнопок, выделение карточек, режим вставки
 function resetAll()
 {
   if (pressedButton)
@@ -49,6 +69,7 @@ function resetAll()
   stopPaste();
   return true;
 }
+// Снять выделение
 function deselectAll()
 {
   for (var i in selectedcards)
@@ -58,6 +79,8 @@ function deselectAll()
   }
   selectedcards = {};
 }
+// Обработчик, пытающийся по иерархии найти кнопку (id=btn_*),
+// и вызвать на ней buttonHandler
 function guessButton(ev)
 {
   exFixEvent(ev);
@@ -66,6 +89,7 @@ function guessButton(ev)
     return buttonHandler(ev, t);
   return true;
 }
+// Обработчик mousedown и mouseup на кнопках (id=btn_*)
 function buttonHandler(ev, target)
 {
   if (!pressedButton)
@@ -90,24 +114,6 @@ function buttonHandler(ev, target)
     return true;
   }
   return false;
-}
-// Returns 2 when $hash in empty,
-// 1 when it has only one $key,
-// 0 when there is a key not equal to $key
-function isEmptyHash(hash, key)
-{
-  var empty = 2;
-  for (var i in hash)
-  {
-    if (key !== undefined && i == key)
-      empty = 1;
-    else
-    {
-      empty = 0;
-      break;
-    }
-  }
-  return empty;
 }
 function selectCard(ev, target)
 {
@@ -162,6 +168,7 @@ function id_to_coord(id)
   var m = /(\d+)_(\d+)_(\d+)/.exec(id.substr(7));
   return (parseInt(m[1])*nr+parseInt(m[2]))*nc+parseInt(m[3]);
 }
+// Удалить(cut=0)/вырезать(cut=1) выделенные карточки
 function deleteSelectedCards(cut)
 {
   var shift = 0;
@@ -210,13 +217,7 @@ function deleteSelectedCards(cut)
   deselectAll();
   document.getElementById('idlist_value').value = idlist.join(',');
 }
-function deleteAllCards()
-{
-  idlist = [];
-  document.getElementById('idlist_value').value = idlist.join(',');
-  document.getElementById('pages').innerHTML = '';
-  document.getElementById('scrumform').submit();
-}
+// Перейти в режим выбора места вставки вырезанных карточек
 function pasteCards()
 {
   if (!pasteMode)
@@ -232,6 +233,7 @@ function pasteCards()
     document.getElementById('btn_paste_beg').style.display = '';
   }
 }
+// Вставить вырезанные карточки в позицию coord
 function doPasteCards(coord)
 {
   stopPaste();
@@ -261,6 +263,7 @@ function doPasteCards(coord)
   document.getElementById('cut_status').innerHTML = '';
   document.getElementById('idlist_value').value = idlist.join(',');
 }
+// Выйти из режима вставки
 function stopPaste()
 {
   if (highlitCard)
@@ -268,24 +271,17 @@ function stopPaste()
   document.getElementById('btn_paste_beg').style.display = 'none';
   pasteMode = false;
 }
+// Обработчик keydown/keyup, записывает состояние ctrl
 function ctrlDown(ev)
 {
   if (ev.keyCode == 17)
   {
-    ctrl = true;
+    ctrl = ev.type == 'keydown';
     return true;
   }
   return false;
 }
-function ctrlUp(ev)
-{
-  if (ev.keyCode == 17)
-  {
-    ctrl = false;
-    return true;
-  }
-  return false;
-}
+// Попробовать найти по иерархии карточку (id=cardtd_*)
 function searchCardTarget(e)
 {
   var nt = e._target, i;
@@ -295,6 +291,7 @@ function searchCardTarget(e)
     nt = nt.parentNode;
   return nt;
 }
+// Попробовать найти по иерархии кнопку (id=btn_*)
 function searchButtonTarget(e)
 {
   var nt = e._target, i;
@@ -304,17 +301,32 @@ function searchButtonTarget(e)
     nt = nt.parentNode;
   return nt;
 }
+// Попробовать найти по иерархии что-нибудь значащее (по сути поле ввода)
+function searchNonResetTarget(e)
+{
+  var nt = e._target, i;
+  while (nt && !(i = nt.nodeName.toLowerCase()) ||
+    !(nt.nodeName == 'input' || nt.nodeName == 'textarea'))
+    nt = nt.parentNode;
+  return nt;
+}
+// Глобальный обработчик события mouseup
 function mouseUpHandler(e)
 {
   exFixEvent(e);
-  var card;
-  if (card = searchCardTarget(e))
-    selectCard(e, card);
-  else if (card = searchButtonTarget(e))
-    buttonHandler(e, card);
-  else
+  var t;
+  if (t = searchCardTarget(e))
+    selectCard(e, t);
+  else if (t = searchButtonTarget(e))
+    buttonHandler(e, t);
+  else if (!searchNonResetTarget(e))
     resetAll();
 }
+// Класс "Перетаскиваемая карточка", унаследованный от "Перетаскиваемого объекта"
+// Логика - при начале перетаскивания удаляется из родительского элемента,
+// который есть строка таблицы, и вместо себя вставляет пустую ячейку.
+// При окончании перетаскивания сначала возвращается на место, а потом дёргает
+// обработчики вырезания и вставки карточек.
 var CardDragObject = function(e)
 {
   DragObject.call(this, e);
@@ -348,6 +360,9 @@ CardDragObject.prototype.onDragFail = function() {
   this.tmp.parentNode.insertBefore(this.element, this.tmp);
   this.tmp.parentNode.removeChild(this.tmp);
 };
+// Каждая карточка также является целью перетаскивания
+// Тут вся логика - подсветить левый/правый край в зависимости
+// от положения мышки
 var CardDropTarget = function(e)
 {
   DropTarget.call(this, e);
@@ -372,6 +387,7 @@ CardDropTarget.prototype.onMove = function(pos)
     this.element.style.borderRight = '5px solid red';
   }
 };
+// Универсальное добавление обработчика события
 var addListener = function() {
   if (window.addEventListener) {
     return function(el, type, fn) { el.addEventListener(type, fn, false); };
@@ -384,6 +400,7 @@ var addListener = function() {
     return function(el, type, fn) { element['on'+type] = fn; }
   }
 }();
+// Добавить к событию ev кроссбраузерный объект "цели" ev._target
 var exFixEvent = function(ev)
 {
   if (!ev) var ev = window.event;
@@ -392,6 +409,25 @@ var exFixEvent = function(ev)
   if (t && t.nodeType == 3) t = t.parentNode; // Safari bug
   ev._target = t;
 }
+// 2 если hash пуст
+// 1 если в нём один ключ key
+// 0 если в нём есть ключ, не равный key
+function isEmptyHash(hash, key)
+{
+  var empty = 2;
+  for (var i in hash)
+  {
+    if (key !== undefined && i == key)
+      empty = 1;
+    else
+    {
+      empty = 0;
+      break;
+    }
+  }
+  return empty;
+}
+// Установка обработчиков событий:
 for (var k = 0; k < np; k++)
 {
   for (var i = 0; i < nr; i++)
@@ -410,4 +446,4 @@ addListener(document, "mousedown", guessButton);
 addListener(document, "mouseup", mouseUpHandler);
 addListener(document, "keydown", ctrlDown);
 addListener(document.getElementById('addbugs'), "keypress", addNewIfEnter);
-addListener(document, "keyup", ctrlUp);
+addListener(document, "keyup", ctrlDown);
