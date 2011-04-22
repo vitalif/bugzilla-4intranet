@@ -167,6 +167,11 @@ function to_coord(i)
   var to_j = Math.floor(i % nc);
   return [to_k, to_i, to_j];
 }
+// Преобразование номера в строку с координатами лист_строка_столбец
+function to_coord_id(i)
+{
+  return to_coord(i).join('_');
+}
 // Преобразование id элемента (.*лист_строка_столбец.*) в номер
 function id_to_coord(id)
 {
@@ -203,7 +208,7 @@ function deleteSelectedCards(cut)
         }
         else if (shift > 0)
         {
-          var to = to_coord(coord-shift).join('_');
+          var to = to_coord_id(coord-shift);
           document.getElementById('cardtd_'+to).innerHTML = e.innerHTML;
           idlist[coord-shift] = idlist[coord];
         }
@@ -249,19 +254,19 @@ function doPasteCards(coord)
   var from, to;
   for (var i = n-nx-1; i >= coord; i--)
   {
-    from = to_coord(i).join('_');
-    to = to_coord(i+nx).join('_');
+    from = to_coord_id(i);
+    to = to_coord_id(i+nx);
     document.getElementById('cardtd_'+to).innerHTML =
       document.getElementById('cardtd_'+from).innerHTML;
     idlist[i+nx] = idlist[i];
   }
   for (var i = 0; i < nx; i++)
   {
-    to = to_coord(i+coord).join('_');
+    to = to_coord_id(i+coord);
     document.getElementById('cardtd_'+to).innerHTML = cuttedcards[i];
     document.getElementById('cardtd_'+to).className = 'cardtd selected';
     idlist[i+coord] = cuttedids[i];
-    selectedcards[to[0]] = true;
+    selectedcards[to] = true;
   }
   cuttedids = [];
   cuttedcards = [];
@@ -361,7 +366,7 @@ CardDragObject.prototype.onDragSuccess = function(target, pos) {
     to--;
   var decr = 0;
   for (var i = 0; i < to; i++)
-    if (selectedcards[to_coord(i).join('_')])
+    if (selectedcards[to_coord_id(i)])
       decr++;
   to -= decr;
   deleteSelectedCards(true);
