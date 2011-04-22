@@ -267,7 +267,16 @@ sub expression
     }
     elsif ($e =~ s/^\s*([a-z_]+)//iso)
     {
-        $v = $bug->{$1};
+        my $n = $1;
+        $v = $bug->can($n) ? $bug->$n : $bug->{$n};
+        if (ref $v eq 'Bugzilla::User')
+        {
+            $v = $v->login;
+        }
+        elsif (ref $v eq 'ARRAY')
+        {
+            $v = join(",", @$v);
+        }
     }
     else
     {
