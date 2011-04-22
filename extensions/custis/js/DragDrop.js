@@ -1,13 +1,16 @@
 /*
 
-Простая JS-библиотека для организации Drag&Drop
+Простая JS-библиотека для организации Drag&Drop (не HTML5)
+http://yourcmc.ru/wiki/JSLib#Drag.26Drop
+(c) Виталий Филиппов, 2010-2011
+Основано на уроке Ильи Кантора http://javascript.ru/ui/draganddrop
 
 Использование:
   dragObject = new DragObject(element); // то, что тащим
   dropTarget = new DropTarget(element); // то, куда тащим
 
 Обработчики DropTarget:
-* dropTarget.canAccept(DragObject) -> boolean
+* boolean dropTarget.canAccept(DragObject)
   Вернуть true, если эта цель может принять этот DragObject
 * dropTarget.onAccept(DragObject, pos = { x: int, y: int })
   Объект перетаскивают на эту цель и отпускают
@@ -30,13 +33,26 @@
 * dragObject.onDragSuccess(DropTarget, pos = { x: int, y: int })
   Объект принят целью
   x, y - относительные цели координаты, в которых объект отпущен
-* dragObject.onDragFail
+* dragObject.onDragFail()
   Объект не принят ни одной целью
 
 Соответственно, все эти обработчики можно переопределять. Так и работаем.
 Можно даже унаследоваться от класса и написать обработчики прототипами:
+  function MyDropTarget(e) { DropTarget.call(this, e); }
   MyDropTarget.prototype = new DropTarget();
   MyDropTarget.prototype.onAccept = function(obj, pos) {...};
+
+Ещё можно использовать кое-что в DragMaster'е:
+* Event DragMaster.fixEvent(Event e)
+  Фиксит некоторые не-кроссбраузерности в событии:
+  * e       = e || window.event
+  * pX, pY  = правильным смещениям клика мышкой от начала документа
+  * which   = добавляется для IE
+  * _target = правильная кроссбраузерная цель события
+* DragMaster.noDragElements = { 'nodeName' => true|false }
+  Отключает перетаскивание при клике на элементе nodeName, даже
+  если он содержится внутри перетаскиваемого объекта.
+  По умолчанию это input, textarea, button.
 
 */
 
@@ -46,7 +62,11 @@ var DragMaster = (function()
     var mouseDownAt;
     var currentDropTarget;
 
-    var usePageX = (function()
+    var self = {};
+
+    self.noDragElements = { 'input': 1, 'textarea': 1, 'button': 1 };
+
+    self.usePageX = (function()
     {
         var m = navigator.userAgent.match(/Opera.([\d\.]+)/);
         var mv;
@@ -59,7 +79,7 @@ var DragMaster = (function()
         return false;
     })();
 
-    function fixEvent(e)
+    self.fixEvent = function(e)
     {
         // получить объект событие для IE
         e = e || window.event;
@@ -74,12 +94,12 @@ var DragMaster = (function()
         }
 
         // правильный pageX/pageY
-        if (usePageX)
+        if (self.usePageX && e.pageX != null)
         {
             e.pX = e.pageX;
             e.pY = e.pageY;
         }
-        else
+        else if (e.pageY != null)
         {
             e.pX = e.clientX;
             e.pY = e.clientY;
@@ -88,6 +108,14 @@ var DragMaster = (function()
         // добавить which для IE
         if (!e.which && e.button)
             e.which = e.button & 1 ? 1 : ( e.button & 2 ? 3 : ( e.button & 4 ? 2 : 0 ) );
+
+        // добавить кроссбраузерную цель события
+        var t = e.target;
+        if (!t)
+          t = e.srcElement;
+        if (t && t.nodeType == 3)
+          t = t.parentNode; // Safari bug
+        e._target = t;
 
         return e;
     };
@@ -131,9 +159,11 @@ var DragMaster = (function()
 
     function mouseDown(e)
     {
-        e = fixEvent(e);
+        e = self.fixEvent(e);
+        if (self.noDragElements[e._target.nodeName.toLowerCase()])
+            return true;
         if (e.which != 1)
-            return;
+            return false;
         mouseDownAt = { x: e.pageX, y: e.pageY, element: this };
         addDocumentEventHandlers();
         return false;
@@ -141,7 +171,7 @@ var DragMaster = (function()
 
     function mouseMove(e)
     {
-        e = fixEvent(e);
+        e = self.fixEvent(e);
 
         // (1)
         if (mouseDownAt)
@@ -186,7 +216,7 @@ var DragMaster = (function()
 
     function mouseUp(e)
     {
-        e = fixEvent(e);
+        e = self.fixEvent(e);
 
         if (!dragObject) // (1)
             mouseDownAt = null;
@@ -251,18 +281,18 @@ var DragMaster = (function()
         document.body.onselectstart = null;
     };
 
-    return {
-        'makeDraggable': function(element)
+    self.makeDraggable = function(element)
+    {
+        element.onmousedown = mouseDown;
+        element.onclick = function()
         {
-            element.onmousedown = mouseDown;
-            element.onclick = function()
-            {
-                var r = element._moved && true;
-                element._moved = false;
-                return !r;
-            };
-        }
-    };
+            var r = element._moved && true;
+            element._moved = false;
+            return !r;
+        };
+    }
+
+    return self;
 }());
 
 /* DragObject */
