@@ -313,7 +313,7 @@ DragObject.prototype.dragStart = function(offset)
         top: s.top,
         left: s.left,
         position: s.position,
-        opacity: s.opacity,
+        opacity: s.opacity
     };
     s.position = 'absolute';
     this.mouseOffset = offset;
