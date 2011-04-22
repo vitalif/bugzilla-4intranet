@@ -91,27 +91,35 @@ function buttonHandler(ev, target)
   }
   return false;
 }
-function selectCard(ev, target)
+// Returns 2 when $hash in empty,
+// 1 when it has only one $key,
+// 0 when there is a key not equal to $key
+function isEmptyHash(hash, key)
 {
-  var selectedcards_empty = 2;
-  for (var i in selectedcards)
+  var empty = 2;
+  for (var i in hash)
   {
-    if (i == target.id.substr(7))
-      selectedcards_empty = 1;
+    if (key !== undefined && i == key)
+      empty = 1;
     else
     {
-      selectedcards_empty = 0;
+      empty = 0;
       break;
     }
   }
+  return empty;
+}
+function selectCard(ev, target)
+{
+  var empty = isEmptyHash(selectedcards, target.id.substr(7));
   if (pasteMode)
   {
     doPasteCards(id_to_coord(target.id)+1);
     return true;
   }
-  else if (ctrl || selectedcards_empty)
+  else if (ctrl || empty)
   {
-    if (selectedcards_empty == 1)
+    if (empty == 1)
       return true;
     var issel = target.className == 'cardtd selected';
     target.className = issel ? 'cardtd' : 'cardtd selected';
@@ -322,14 +330,11 @@ CardDragObject.prototype.onDragStart = function() {
 CardDragObject.prototype.onDragSuccess = function(target, pos) {
   this.tmp.parentNode.insertBefore(this.element, this.tmp);
   this.tmp.parentNode.removeChild(this.tmp);
-  var n = true;
-  for (var i in selectedcards)
+  if (!selectedcards[this.element.id.substr(7)])
   {
-    n = false;
-    break;
-  }
-  if (n)
+    deselectAll();
     selectedcards[this.element.id.substr(7)] = true;
+  }
   deleteSelectedCards(true);
   var to = id_to_coord(target.element.id);
   if (to < this.n)
