@@ -307,7 +307,11 @@ function mouseUpHandler(e)
   else
     resetAll();
 }
-var CardDragObject = function(e) { DragObject.call(this, e); };
+var CardDragObject = function(e)
+{
+  DragObject.call(this, e);
+  this.n = id_to_coord(e.id);
+};
 CardDragObject.prototype = new DragObject();
 CardDragObject.prototype.onDragStart = function() {
   this.tmp = document.createElement('td');
@@ -328,11 +332,11 @@ CardDragObject.prototype.onDragSuccess = function(target, pos) {
     selectedcards[this.element.id.substr(7)] = true;
   deleteSelectedCards(true);
   var to = id_to_coord(target.element.id);
-  var w = target.element.scrollWidth;
-  if (pos.x < w/4 && to > 0)
-    to--;
-  else if (pos.x > w*3/4 && to+1 < np*nr*nc)
+  if (to < this.n)
     to++;
+  var w = target.element.scrollWidth;
+  if (pos.x < w/2 && to > 0)
+    to--;
   doPasteCards(to);
 };
 CardDragObject.prototype.onDragFail = function() {
@@ -348,25 +352,19 @@ CardDropTarget.prototype = new DropTarget();
 CardDropTarget.prototype.onLeave = function()
 {
   this.element.style.border = '';
-  this.element.className = 'cardtd';
 };
 CardDropTarget.prototype.onMove = function(pos)
 {
   var w = this.element.scrollWidth;
-  if (pos.x < w/4 && this.n > 0)
+  if (pos.x < w/2)
   {
     this.element.style.borderLeft = '5px solid red';
-    this.element.className = 'cardtd';
-  }
-  else if (pos.x > w*3/4 && this.n+1 < np*nr*nc)
-  {
-    this.element.style.borderRight = '5px solid red';
-    this.element.className = 'cardtd';
+    this.element.style.borderRight = '';
   }
   else
   {
-    this.element.style.border = '';
-    this.element.className = 'cardtd highlight';
+    this.element.style.borderLeft = '';
+    this.element.style.borderRight = '5px solid red';
   }
 };
 var addListener = function() {
@@ -388,7 +386,6 @@ var exFixEvent = function(ev)
   if (!t) t = ev.srcElement;
   if (t && t.nodeType == 3) t = t.parentNode; // Safari bug
   ev._target = t;
-  // FIXME можно сюда ещё добавить фиксы из DragDrop::fixEvent
 }
 for (var k = 0; k < np; k++)
 {
