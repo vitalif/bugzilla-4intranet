@@ -528,7 +528,8 @@ sub insert {
     }
 
     my ($flags, $new_flags) = Bugzilla::Flag->extract_flags_from_cgi(
-                                  $bug, $attachment, $vars, SKIP_REQUESTEE_ON_ERROR);
+        $bug, $attachment, $vars
+    );
     $attachment->set_flags($flags, $new_flags);
     $attachment->update($timestamp);
 

@@ -205,11 +205,11 @@ function menuforusers_tocombo(id, multi)
   {
     for (j = 0; j < sel.options.length; j++)
     {
-      if (sel.options[i].value.toLowerCase().indexOf(v[i].toLowerCase()) >= 0 ||
-          sel.options[i].text.toLowerCase().indexOf(v[i].toLowerCase()) >= 0)
+      if (sel.options[j].value.toLowerCase().indexOf(v[i].toLowerCase()) >= 0 ||
+          sel.options[j].text.toLowerCase().indexOf(v[i].toLowerCase()) >= 0)
       {
-        sel.options[i].selected = true;
-        nv.push(sel.options[i].value);
+        sel.options[j].selected = true;
+        nv.push(sel.options[j].value);
         break;
       }
     }

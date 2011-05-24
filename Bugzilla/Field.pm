@@ -618,8 +618,11 @@ sub check_visibility
     my $bug = shift || return 1;
     my $vf = $self->visibility_field || return 1;
     my $m = $vf->name;
-    $m = blessed $bug ? $bug->$m : $bug->{$m};
-    my $value = Bugzilla::Field::Choice->type($vf)->new({ name => $m }) || return 1;
+    my $value = blessed $bug ? $bug->$m : $bug->{$m};
+    if (!blessed $value)
+    {
+        $value = Bugzilla::Field::Choice->type($vf)->new({ name => $value }) || return 1;
+    }
     return $self->has_visibility_value($value);
 }
 

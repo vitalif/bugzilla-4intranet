@@ -808,7 +808,7 @@ sub extract_flags_from_cgi {
 
     my $match_status = Bugzilla::User::match_field({
         '^requestee(_type)?-(\d+)$' => { 'type' => 'multi' },
-    }, undef, $skip);
+    }, undef, $skip && MATCH_SKIP_CONFIRM);
 
     $vars->{'match_field'} = 'requestee';
     if ($match_status == USER_MATCH_FAILED) {
@@ -912,7 +912,12 @@ sub extract_flags_from_cgi {
 
         my @logins = $cgi->param("requestee_type-$type_id");
 
-        Bugzilla::Hook::process('flag_check_requestee_list', { flag_type => $flag_type, status => $status, requestees => \@logins, skip => $skip });
+        Bugzilla::Hook::process('flag_check_requestee_list', {
+            flag_type   => $flag_type,
+            status      => $status,
+            requestees  => \@logins,
+            skip        => $skip
+        });
 
         if ($status eq "?" && scalar(@logins)) {
             foreach my $login (@logins) {

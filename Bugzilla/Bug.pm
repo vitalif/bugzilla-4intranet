@@ -703,6 +703,7 @@ sub check_dependent_fields
             {
                 $params->{$field_name} = '';
             }
+            next;
         }
         # CustIS Bug 73054 (TODO move to hooks)
         # Add field value to blocked / dependson for
@@ -2066,11 +2067,11 @@ sub _check_select_field
 {
     my ($invocant, $value, $field) = @_;
     $field = Bugzilla->get_field($field);
-    # Check if there is such a value at all
-    my $object = Bugzilla::Field::Choice->type($field)->check($value);
     # Check dependent field values
     if ($field->visibility_field_id || $field->value_field_id)
     {
+        my $t = Bugzilla::Field::Choice->type($field);
+        my $object = $t->new({ name => $value }) || $value;
         my $tmp = $invocant->dependent_validators;
         # Remember the call and perform check later
         if ($field->type == FIELD_TYPE_MULTI_SELECT)
@@ -2081,7 +2082,9 @@ sub _check_select_field
         {
             $tmp->{$field->name} = $object;
         }
+        return $value;
     }
+    my $object = Bugzilla::Field::Choice->type($field)->check($value);
     return $object->name;
 }
 
