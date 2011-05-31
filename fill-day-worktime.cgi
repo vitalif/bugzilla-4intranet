@@ -63,6 +63,9 @@ if (@idlist || @lines)
     {
         foreach my $line (@lines)
         {
+            # Format is: dd.mm.yyyy hh:mm - hh:mm <word> - BUG nnn
+            # hh:mm - hh:mm is start time - end time,
+            # <word> is matched but ignored
             if ($line && $line =~ m/\s*(\d?\d.\d\d.[1-9]?\d?\d\d\s)?\s*((\d?\d):(\d\d)\s*-\s*(\d?\d):(\d\d)\s+)?([\w\/]+)\s*(-\s*(BUG|\()?\s*([1-9]\d*)(.*))/iso)
             {
                 my $wtime = (($5 * 60 + $6) - ($3 * 60 + $4)) / 60;
