@@ -49,9 +49,9 @@
   </tr>
 </table>
 
-<form name="worktimeform" action="fill-day-worktime.cgi" method="post" class="worktime">
+<form name="worktimeform" action="fill-day-worktime.cgi" method="post">
   <input name="lastdays" type="hidden" value=[% lastdays %]>
-  <table class="bz_buglist" cellspacing="2" cellpadding="3" border="1" style="border-style:groove" width="100%">
+  <table class="bz_buglist worktime" cellspacing="2" cellpadding="3" border="1" style="border-style:groove" width="100%">
     <tr bgcolor="lightgrey">
       <th width="30">Bug</th>
       <th>Prod/Comp</th>
@@ -101,11 +101,23 @@
   </tr>
 [% END %]
 </table>
-<table width="100%"><tr>
-  <td align="center">Почасовка в стандартной форме</td>
-  <td align="center">
-  <textarea rows="5" cols="80" wrap="virtual" name="worktime"></textarea>
-</td></tr></table>
+
+<table style="margin: 0 auto"><tr>
+  <td><textarea rows="8" cols="80" wrap="virtual" name="worktime"></textarea></td>
+  <td>
+    <p><b>&larr; Import worktime from text line-by-line.</b> Available formats:</p>
+    <ul>
+      <li style="margin-bottom: 8px">
+        <tt style="border: 1px solid gray; background: white; padding: 2px">BUGID TIME COMMENT</tt><br />
+        TIME is <tt>HH:MM</tt> or simply a floating point number. Time also may be negative.
+      </li>
+      <li>
+        <tt style="border: 1px solid gray; background: white; padding: 2px">DD.MM.YYYY HH:MM - HH:MM classification - Bug BUGID COMMENT</tt><br />
+        (start time - end time, "Bug" word is optional, this is old standard)
+      </li>
+    </ul>
+  </td>
+</tr></table>
 <table width="100%"><tr>
   <td align="center">
     [% PROCESS today_or_lastdays %]
