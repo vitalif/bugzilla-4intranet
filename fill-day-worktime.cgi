@@ -51,36 +51,50 @@ foreach my $id (@idlist)
 @idlist = keys %changedbugs;
 my @lines = split("\n", $cgi->param("worktime"));
 
+sub add_wt
+{
+    my ($wtime, $id, $t, $c) = @_;
+    push @{$wtime->{IDS}}, $id unless $wtime->{$id};
+    $wtime->{$id}->{time} += $t;
+    push @{$wtime->{$id}->{comments} ||= []}, $c if $c;
+}
+
 if (@idlist || @lines)
 {
+    my $wtime = { IDS => [] };
     foreach my $id (@idlist)
     {
-        $dbh->bz_start_transaction();
-        BugWorkTime::FixWorktime($id, scalar $cgi->param("wtime_$id"), scalar $cgi->param("comm_$id"));
-        $dbh->bz_commit_transaction();
+        add_wt($wtime, $id, scalar $cgi->param("wtime_$id"), scalar $cgi->param("comm_$id"));
     }
-    if (@lines)
+    foreach my $line (@lines)
     {
-        foreach my $line (@lines)
+        # TODO REMOVE IT NAHREN :)
+        # This is some VERY OLD format: dd.mm.yyyy hh:mm - hh:mm <word> - BUG nnn
+        # hh:mm - hh:mm is start time - end time, <word> is matched but ignored
+        if ($line =~ /\s*(\d?\d.\d\d.[1-9]?\d?\d\d\s)?\s*((\d?\d):(\d\d)\s*-\s*(\d?\d):(\d\d)\s+)?([\w\/]+)\s*(-\s*(BUG|\()?\s*([1-9]\d*)(.*))/iso)
         {
-            # Format is: dd.mm.yyyy hh:mm - hh:mm <word> - BUG nnn
-            # hh:mm - hh:mm is start time - end time,
-            # <word> is matched but ignored
-            if ($line && $line =~ m/\s*(\d?\d.\d\d.[1-9]?\d?\d\d\s)?\s*((\d?\d):(\d\d)\s*-\s*(\d?\d):(\d\d)\s+)?([\w\/]+)\s*(-\s*(BUG|\()?\s*([1-9]\d*)(.*))/iso)
+            my $time = (($5 * 60 + $6) - ($3 * 60 + $4)) / 60;
+            $time = 0 if $time < 0;
+            my $id = $10;
+            my $comment = $line;
+            if (!$id)
             {
-                my $wtime = (($5 * 60 + $6) - ($3 * 60 + $4)) / 60;
-                $wtime = 0 if $wtime < 0;
-                my $id      = $10;
-                my $comment = $line;
-                if (!$id)
-                {
-                    ThrowUserError('object_not_specified', { class => 'Bugzilla::Bug' });
-                }
-                $dbh->bz_start_transaction();
-                BugWorkTime::FixWorktime($id, $wtime, $comment);
-                $dbh->bz_commit_transaction();
+                ThrowUserError('object_not_specified', { class => 'Bugzilla::Bug' });
             }
+            add_wt($wtime, $id, $time, $comment);
         }
+        # New, intuitive format: BUG_ID <space> TIME <space> COMMENT
+        elsif ($line =~ /^\D*(\d+)\s*(?:(-?)([\d\.]+)|(\d+):(\d{2}))\s*(.*)/iso)
+        {
+            my ($id, $time, $comment) = ($1, ($2 ? -1 : 1) * ($4 ? int(100*($4+$5/60))/100 : $3), $6);
+            add_wt($wtime, $id, $time, $comment);
+        }
+    }
+    foreach my $id (@{$wtime->{IDS}})
+    {
+        $dbh->bz_start_transaction();
+        BugWorkTime::FixWorktime($id, $wtime->{$id}->{time}, join("\n", @{$wtime->{$id}->{comments}}));
+        $dbh->bz_commit_transaction();
     }
     print $cgi->redirect(-location => "fill-day-worktime.cgi?lastdays=" . $lastdays);
     exit;
