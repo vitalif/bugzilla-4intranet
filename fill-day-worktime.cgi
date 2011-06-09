@@ -86,7 +86,7 @@ if (@idlist || @lines)
         # New, intuitive format: BUG_ID <space> TIME <space> COMMENT
         elsif ($line =~ /^\D*(\d+)\s*(?:(-?)([\d\.]+)|(\d+):(\d{2}))\s*(.*)/iso)
         {
-            my ($id, $time, $comment) = ($1, ($2 ? -1 : 1) * ($4 ? int(100*($4+$5/60))/100 : $3), $6);
+            my ($id, $time, $comment) = ($1, ($2 ? -1 : 1) * int(100*($4 ? $4+$5/60 : $3))/100, $6);
             add_wt($wtime, $id, $time, $comment);
         }
     }
