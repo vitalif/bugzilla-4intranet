@@ -86,24 +86,18 @@
              onchange="javascript: document.worktimeform.newrtime_[% bug.bug_id %].value=Math.round(Math.max(0,[% bug.remaining_time %] - bzParseTime(this.value))*100)/100;"
       >
     </td>
-    <td>
-      <!-- input name="comm_[% bug.bug_id %]" type="text" size="50" maxlength="80" value=""--> 
-      <textarea name="comm_[% bug.bug_id %]" rows="1" cols="50"></textarea>
-    </td>
-    <td align="right">
-      [% bug.all_work_time %]
-    </td>
+    <td><textarea name="comm_[% bug.bug_id %]" rows="1" cols="50"></textarea></td>
+    <td align="right">[% bug.all_work_time %]</td>
     <td align="right">
       <input name="oldrtime_[% bug.bug_id %]" type="hidden" value="[% bug.remaining_time %]">
-      <input name="newrtime_[% bug.bug_id %]" readonly="true" style="background-color:rgb(210,230,230)"
-             type="text" size="3" align="right" value="[% bug.remaining_time %]">
+      <input name="newrtime_[% bug.bug_id %]" readonly="true" type="text" size="3" align="right" value="[% bug.remaining_time %]">
     </td>
   </tr>
 [% END %]
 </table>
 
 <table style="margin: 0 auto"><tr>
-  <td><textarea rows="8" cols="80" wrap="virtual" name="worktime"></textarea></td>
+  <td><textarea rows="8" cols="80" wrap="virtual" name="worktime" style="font-family: monospace"></textarea></td>
   <td>
     <p><b>&larr; Import worktime from text line-by-line.</b> Available formats:</p>
     <ul>
@@ -118,15 +112,16 @@
     </ul>
   </td>
 </tr></table>
+
 <table width="100%"><tr>
   <td align="center">
     [% PROCESS today_or_lastdays %]
     Hours Worked: <b><font size="+1"><tt>[% totaltime %]</tt></font></b>
   </td><td width="150px" align="right">
-      [% IF prevdate1 %]
+    [% IF prevdate1 %]
       Worked Hours for the
       <a href="summarize_time.cgi?start_date=[% prevdate1 %]&end_date=[% prevdate1 %]&my_activity=1&do_report=1">[% prevdate1 %]</a>
-      [% END %]
+    [% END %]
   </td></tr>
   <tr></td>
   <td align="center">
