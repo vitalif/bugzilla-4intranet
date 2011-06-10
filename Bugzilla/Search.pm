@@ -545,11 +545,8 @@ sub init
         my $value_term = " AND actcheck.added = $sql_chvalue";
         # ---- vfilippov@custis.ru 2010-02-01
         # Search using bugs.delta_ts is not correct. It's "LAST changed in", not "Changed in".
-        my $bug_creation_clause;
-        my @list;
-        my @actlist;
-        my $seen_longdesc;
-        my $need_commenter;
+        my (@list, @actlist, $bug_creation_clause);
+        my ($seen_longdesc, $need_commenter, $need_profiles);
         foreach my $f (@chfield)
         {
             my $term;
@@ -601,7 +598,6 @@ sub init
                     {
                         # User is searching for a comment with specific author
                         $need_commenter = $term = "actcheck_commenter.login_name = $sql_chvalue";
-                        $value_term = " AND actcheck.who = (SELECT actcheck_profiles.userid FROM profiles actcheck_profiles WHERE actcheck_profiles.login_name = $sql_chvalue)";
                         $seen_longdesc = [];
                     }
                     elsif (!$seen_longdesc)
@@ -815,8 +811,7 @@ sub init
         "^(?:assigned_to|reporter|qa_contact),(?:notequals|equals|anyexact),%group\\.([^%]+)%" => \&_contact_exact_group,
         "^(?:assigned_to|reporter|qa_contact),(?:equals|anyexact),(%\\w+%)" => \&_contact_exact,
         "^(?:assigned_to|reporter|qa_contact),(?:notequals),(%\\w+%)" => \&_contact_notequals,
-        "^(assigned_to|reporter),(?!changed)" => \&_assigned_to_reporter_nonchanged,
-        "^qa_contact,(?!changed)" => \&_qa_contact_nonchanged,
+        "^(assigned_to|reporter|qa_contact),(?!changed)" => \&_contact_nonchanged,
         "^(?:cc),(?:notequals|equals|anyexact),%group\\.([^%]+)%" => \&_cc_exact_group,
         "^cc,(?:equals|anyexact),(%\\w+%)" => \&_cc_exact,
         "^cc,(?:notequals),(%\\w+%)" => \&_cc_notequals,
@@ -1133,7 +1128,7 @@ sub init
     foreach my $str (@supptables) {
 
         if ($str =~ /^(LEFT|INNER|RIGHT)\s+JOIN/iso) {
-            $str =~ /^(.*?)\s+ON\s+(.*)$/iso;
+            $str =~ /^(.*)\s+ON\s+(.*)$/iso;
             my ($leftside, $rightside) = ($1, $2);
             if (defined $suppseen{$leftside}) {
                 $supplist[$suppseen{$leftside}] .= " AND ($rightside)";
@@ -1488,7 +1483,8 @@ sub _contact_exact_group {
       || ThrowUserError('invalid_group_name',{name => $group});
     my @childgroups = @{Bugzilla::Group->flatten_group_membership($groupid)};
     my $table = "user_group_map_$$chartid";
-    push (@$supptables, "LEFT JOIN user_group_map AS $table " .
+    push (@$supptables, ($$t =~ /^not/ ? "LEFT " : "") .
+                        "JOIN user_group_map AS $table " .
                         "ON $table.user_id = bugs.$$f " .
                         "AND $table.group_id IN(" .
                         join(',', @childgroups) . ") " .
@@ -1496,11 +1492,11 @@ sub _contact_exact_group {
                         "AND $table.grant_type IN(" .
                         GRANT_DIRECT . "," . GRANT_REGEXP . ")"
          );
-    if ($$t =~ /^not/) {
+    if ($$t =~ /^not/)
+    {
         $$term = "$table.group_id IS NULL";
-    } else {
-        $$term = "$table.group_id IS NOT NULL";
     }
+    # else all work is done by inner join
 }
 
 sub _contact_exact {
@@ -1526,26 +1522,31 @@ sub _contact_notequals {
 sub _assigned_to_reporter_nonchanged {
     my $self = shift;
     my %func_args = @_;
-    my ($f, $ff, $funcsbykey, $t, $term) =
-        @func_args{qw(f ff funcsbykey t term)};
+    my ($f, $ff, $funcsbykey, $t, $term, $supptables) =
+        @func_args{qw(f ff funcsbykey t term supptables)};
 
     my $real_f = $$f;
     $$f = "login_name";
     $$ff = "profiles.login_name";
     $$funcsbykey{",$$t"}($self, %func_args);
-    $$term = "bugs.$real_f IN (SELECT userid FROM profiles WHERE $$term)";
+    $$term =~ s/profiles\.login_name/map_$real_f.login_name/gso;
+    if (!grep { /map_$real_f/ } @$supptables)
+    {
+        push @$supptables, "LEFT JOIN profiles AS map_$real_f ON bugs.$real_f=map_$real_f.userid";
+    }
 }
 
-sub _qa_contact_nonchanged {
+# matches assigned_to, reporter, qa_contact
+sub _contact_nonchanged {
     my $self = shift;
     my %func_args = @_;
     my ($supptables, $f) =
         @func_args{qw(supptables f)};
 
-    if (!grep { /map_qa_contact/ } @$supptables)
+    if (!grep { /map_$$f/ } @$supptables)
     {
-        push(@$supptables, "LEFT JOIN profiles AS map_qa_contact " .
-                           "ON bugs.qa_contact = map_qa_contact.userid");
+        push @$supptables, "LEFT JOIN profiles AS map_$$f ".
+                           "ON bugs.$$f = map_$$f.userid";
     }
     $$f = "COALESCE(map_$$f.login_name,'')";
 }
@@ -1637,15 +1638,9 @@ sub _cc_nonchanged {
         $chartseq = "CC$$sequence";
         $$sequence++;
     }
-    $$f = "login_name";
-    $$ff = "profiles.login_name";
-    $$funcsbykey{",$$t"}($self, %func_args);
-    push(@$supptables, "LEFT JOIN cc AS cc_$chartseq " .
-                       "ON bugs.bug_id = cc_$chartseq.bug_id " .
-                       "AND cc_$chartseq.who IN" .
-                       "(SELECT userid FROM profiles WHERE $$term)"
-                       );
-    $$term = "cc_$chartseq.who IS NOT NULL";
+    push @$supptables, "INNER JOIN cc AS cc_$chartseq ON bugs.bug_id = cc_$chartseq.bug_id ";
+    push @$supptables, "INNER JOIN profiles map_cc_$chartseq ON cc_$chartseq.who=map_cc_$chartseq.userid";
+    $$f = "map_cc_$chartseq.login_name";
 }
 
 sub _long_desc_changedby {
@@ -1777,15 +1772,9 @@ sub _commenter {
     }
     my $table = "longdescs_$chartseq";
     my $extra = $self->{'user'}->is_insider ? "" : "AND $table.isprivate < 1";
-    $$f = "login_name";
-    $$ff = "profiles.login_name";
-    $$funcsbykey{",$$t"}($self, %func_args);
-    push(@$supptables, "LEFT JOIN longdescs AS $table " .
-                       "ON $table.bug_id = bugs.bug_id $extra " .
-                       "AND $table.who IN" .
-                       "(SELECT userid FROM profiles WHERE $$term)"
-                       );
-    $$term = "$table.who IS NOT NULL";
+    push @$supptables, "INNER JOIN longdescs AS $table ON $table.bug_id = bugs.bug_id $extra ";
+    push @$supptables, "INNER JOIN profiles AS commenter_map_$chartseq ON commenter_map_$chartseq.userid=$table.who";
+    $$f = "commenter_map_$chartseq.login_name";
 }
 
 sub _long_desc {
