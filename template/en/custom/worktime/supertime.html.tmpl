@@ -47,10 +47,10 @@
 [% hidden_inputs(HideIndex=2) %]
 
   Дата:
-  с <input type="text" name="chfieldfrom" value="[% query_params.chfieldfrom | html %]" />
-  по <input type="text" name="chfieldto" value="[% query_params.chfieldto | html %]" />
+  с <input type="text" name="chfieldfrom" id="chfieldfrom" value="[% query_params.chfieldfrom | html %]" onchange="check_who_enabled()" />
+  по <input type="text" name="chfieldto" id="chfieldto" value="[% query_params.chfieldto | html %]" onchange="check_who_enabled()" />
   <span style="color: #aaa">(YYYY-MM-DD HH:MM:SS)</span> &nbsp; &nbsp;
-  Пользователь: <input type="text" name="chfieldwho" value="[% query_params.chfieldwho | html %]" /> &nbsp;
+  Пользователь: <input type="text" name="chfieldwho" id="chfieldwho" value="[% query_params.chfieldwho | html %]" /> &nbsp;
   <input type="submit" value=" Показать трудозатраты " />
 </form>
 </fieldset>
@@ -190,7 +190,17 @@ function refresh_total_wt()
   }
   document.getElementById('wtime_total').innerHTML = sum;
 }
+function check_who_enabled()
+{
+  var f = document.getElementById('chfieldfrom');
+  var t = document.getElementById('chfieldto');
+  var w = document.getElementById('chfieldwho');
+  var enab = f.value != '' || t.value != '';
+  w.style.backgroundColor = enab ? '' : '#f0f0f0';
+  w.disabled = !enab;
+}
 forall_unfocus();
+check_who_enabled();
 </script>
 
 [% PROCESS global/footer.html.tmpl %]
