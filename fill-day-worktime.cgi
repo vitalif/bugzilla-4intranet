@@ -24,41 +24,34 @@ my $template = Bugzilla->template;
 my $dbh      = Bugzilla->dbh;
 my $vars     = {};
 
-# Read buglist from query params
-my @idlist;
-foreach my $i ($cgi->param())
-{
-    if ($i =~ /^wtime_([1-9][0-9]*)/)
-    {
-        push @idlist, $1;
-    }
-}
-
 my ($lastdays) = $cgi->param('lastdays') =~ /^(\d+)$/;
 $vars->{lastdays} = $lastdays ||= '1';
 
-my %changedbugs;
-foreach my $id (@idlist)
-{
-    if (scalar($cgi->param("wtime_$id")) != 0 || $cgi->param("comm_$id") ||
-        scalar($cgi->param("oldrtime_$id")) != scalar($cgi->param("newrtime_$id")))
-    {
-        Bugzilla::Bug->check($id);
-        $changedbugs{$id} = 1;
-    }
-}
-
-@idlist = keys %changedbugs;
-my @lines = split("\n", $cgi->param("worktime"));
-
 sub add_wt
 {
+    # Merge $t time and $c comment for bug $id into $wtime hashref
     my ($wtime, $id, $t, $c) = @_;
     push @{$wtime->{IDS}}, $id unless $wtime->{$id};
+    $t =~ tr/,/./;
+    $t = int(100*$t)/100;
     $wtime->{$id}->{time} += $t;
     push @{$wtime->{$id}->{comments} ||= []}, $c if $c;
 }
 
+# Read buglist from query params
+my @idlist;
+my $args = $cgi->Vars;
+foreach (keys %$args)
+{
+    if (/^wtime_(\d+)/)
+    {
+        my $id = $1;
+        push @idlist, $id if $args->{$_} || $args->{"comm_$id"} ||
+            $args->{"oldrtime_$id"} ne $args->{"newrtime_$id"};
+    }
+}
+
+my @lines = split("\n", $cgi->param("worktime"));
 if (@idlist || @lines)
 {
     my $wtime = { IDS => [] };
@@ -84,9 +77,9 @@ if (@idlist || @lines)
             add_wt($wtime, $id, $time, $comment);
         }
         # New, intuitive format: BUG_ID <space> TIME <space> COMMENT
-        elsif ($line =~ /^\D*(\d+)\s*(?:(-?)([\d\.]+)|(\d+):(\d{2}))\s*(.*)/iso)
+        elsif ($line =~ /^\D*(\d+)\s*(?:(-?[\d\.\,]+)|(\d+):(\d{2}))\s*(.*)/iso)
         {
-            my ($id, $time, $comment) = ($1, ($2 ? -1 : 1) * int(100*($4 ? $4+$5/60 : $3))/100, $6);
+            my ($id, $time, $comment) = ($1, $3 ? $3+$4/60 : $2, $5);
             add_wt($wtime, $id, $time, $comment);
         }
     }
