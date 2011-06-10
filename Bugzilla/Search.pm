@@ -1483,8 +1483,7 @@ sub _contact_exact_group {
       || ThrowUserError('invalid_group_name',{name => $group});
     my @childgroups = @{Bugzilla::Group->flatten_group_membership($groupid)};
     my $table = "user_group_map_$$chartid";
-    push (@$supptables, ($$t =~ /^not/ ? "LEFT " : "") .
-                        "JOIN user_group_map AS $table " .
+    push (@$supptables, "LEFT JOIN user_group_map AS $table " .
                         "ON $table.user_id = bugs.$$f " .
                         "AND $table.group_id IN(" .
                         join(',', @childgroups) . ") " .
@@ -1492,11 +1491,11 @@ sub _contact_exact_group {
                         "AND $table.grant_type IN(" .
                         GRANT_DIRECT . "," . GRANT_REGEXP . ")"
          );
-    if ($$t =~ /^not/)
-    {
+    if ($$t =~ /^not/) {
         $$term = "$table.group_id IS NULL";
+    } else {
+        $$term = "$table.group_id IS NOT NULL";
     }
-    # else all work is done by inner join
 }
 
 sub _contact_exact {
