@@ -1518,23 +1518,6 @@ sub _contact_notequals {
     $$term = "bugs.$$f <> " . pronoun($1, $user);
 }
 
-sub _assigned_to_reporter_nonchanged {
-    my $self = shift;
-    my %func_args = @_;
-    my ($f, $ff, $funcsbykey, $t, $term, $supptables) =
-        @func_args{qw(f ff funcsbykey t term supptables)};
-
-    my $real_f = $$f;
-    $$f = "login_name";
-    $$ff = "profiles.login_name";
-    $$funcsbykey{",$$t"}($self, %func_args);
-    $$term =~ s/profiles\.login_name/map_$real_f.login_name/gso;
-    if (!grep { /map_$real_f/ } @$supptables)
-    {
-        push @$supptables, "LEFT JOIN profiles AS map_$real_f ON bugs.$real_f=map_$real_f.userid";
-    }
-}
-
 # matches assigned_to, reporter, qa_contact
 sub _contact_nonchanged {
     my $self = shift;
@@ -1637,8 +1620,8 @@ sub _cc_nonchanged {
         $chartseq = "CC$$sequence";
         $$sequence++;
     }
-    push @$supptables, "INNER JOIN cc AS cc_$chartseq ON bugs.bug_id = cc_$chartseq.bug_id ";
-    push @$supptables, "INNER JOIN profiles map_cc_$chartseq ON cc_$chartseq.who=map_cc_$chartseq.userid";
+    push @$supptables, "LEFT JOIN cc AS cc_$chartseq ON bugs.bug_id = cc_$chartseq.bug_id ";
+    push @$supptables, "LEFT JOIN profiles map_cc_$chartseq ON cc_$chartseq.who=map_cc_$chartseq.userid";
     $$f = "map_cc_$chartseq.login_name";
 }
 
