@@ -130,7 +130,7 @@ function handleQueryformField(event, controller)
 {
   var controlled, controlled_selected;
   var vis, item, legal, name2id, name2id_order, valueVD;
-  qfHandling[controller.id] = true; // prevent infinite recursion
+  qfHandling[controller.id] = true; // prevent double-action during init
   var VD = qfVisibility[controller.id];
   var visibility_selected = getQueryformSelectedIds(controller);
   for (var controlled_id in VD.values)
