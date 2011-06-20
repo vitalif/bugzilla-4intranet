@@ -50,6 +50,7 @@ use Bugzilla::Field;
 use Bugzilla::Status;
 use Bugzilla::Token;
 
+use Time::HiRes qw(gettimeofday);
 use Date::Parse;
 use POSIX;
 
@@ -964,6 +965,9 @@ $dbh = Bugzilla->switch_to_shadow_db();
 $::SIG{TERM} = 'DEFAULT';
 $::SIG{PIPE} = 'DEFAULT';
 
+# Query start time
+my $query_sql_time = gettimeofday();
+
 # Execute the query.
 my $buglist_sth = $dbh->prepare($query);
 $buglist_sth->execute();
@@ -1042,6 +1046,9 @@ while (my @row = $buglist_sth->fetchrow_array()) {
     $time_info->{'work_time'}      += $bug->{'work_time'}      if $work_time;
     $time_info->{'interval_time'}  += $bug->{'interval_time'}  if $interval_time;
 }
+
+my $query_template_time = gettimeofday();
+$query_sql_time = $query_template_time-$query_sql_time;
 
 # Check for bug privacy and set $bug->{'secure_mode'} to 'implied' or 'manual'
 # based on whether the privacy is simply product implied (by mandatory groups)
@@ -1238,6 +1245,7 @@ if ($dotweak && scalar @bugs) {
 # If we're editing a stored query, use the existing query name as default for
 # the "Remember search as" field.
 $vars->{'defaultsavename'} = $cgi->param('query_based_on');
+$vars->{'query_sql_time'} = sprintf("%.2f", $query_sql_time);
 
 Bugzilla::Hook::process('after-buglist', { vars => $vars });
 
@@ -1250,7 +1258,7 @@ Bugzilla::Hook::process('after-buglist', { vars => $vars });
 my $contenttype;
 my $disposition = "inline";
 
-if ($format->{'extension'} eq "html" && !$agent) {
+if ($format->{extension} eq "html" && !$agent) {
     if ($order && !$cgi->param('sharer_id') && $query_format ne 'specific') {
         $cgi->send_cookie(-name => 'LASTORDER',
                           -value => $order,
@@ -1297,6 +1305,7 @@ my $output;
 $template->process($format->{'template'}, $vars, \$output)
   || ThrowTemplateError($template->error());
 
+$query_template_time = gettimeofday()-$query_template_time;
 # CustIS Bug 69766 - Default CSV charset for M1cr0$0ft Excel
 if ($cgi->param('ctype') eq 'csv' &&
     Bugzilla->user->settings->{csv_charset} &&
@@ -1314,6 +1323,10 @@ if ($cgi->param('ctype') eq 'csv' &&
     Encode::from_to($untaint, 'utf-8', Bugzilla->user->settings->{csv_charset}->{value});
     $output = $untaint;
     Encode::_utf8_on($output);
+}
+elsif ($format->{extension} eq 'html')
+{
+    $output =~ s/\$_query_template_time/sprintf("%.2f", $query_template_time)/e;
 }
 print $output;
 

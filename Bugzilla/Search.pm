@@ -1530,7 +1530,7 @@ sub _contact_nonchanged {
         push @$supptables, "LEFT JOIN profiles AS map_$$f ".
                            "ON bugs.$$f = map_$$f.userid";
     }
-    $$f = "COALESCE(map_$$f.login_name,'')";
+    $$f = "map_$$f.login_name";
 }
 
 sub _cc_exact_group {
@@ -2208,7 +2208,7 @@ sub _alias_nonchanged {
     my ($ff, $funcsbykey, $t, $term) =
         @func_args{qw(ff funcsbykey t term)};
 
-    $$ff = "COALESCE(bugs.alias, '')";
+    $$ff = "bugs.alias";
 
     $$funcsbykey{",$$t"}($self, %func_args);
 }
@@ -2332,7 +2332,7 @@ sub _equals
 
     if ($v eq '')
     {
-        $$term = "IFNULL($$ff,'') = $$q";
+        $$term = "COALESCE($$ff,'') = $$q";
     }
     else
     {
@@ -2348,7 +2348,7 @@ sub _notequals
 
     if ($v eq '')
     {
-        $$term = "IFNULL($$ff,'') != $$q";
+        $$term = "COALESCE($$ff,'') != $$q";
     }
     else
     {
