@@ -1247,24 +1247,5 @@ sub json_visibility
     return $data;
 }
 
-# Value visibility data for query form.
-# Difference is that in the query form, the values are identified
-#  by names instead of their IDs and that one name can be mapped to
-#  several different IDs. At the moment this is needed only for
-#  component, version and target milestone fields.
-# Another difference is that we don't hide any fields by visibility control,
-# so $data->{fields} is always empty.
-# See also js/query-visibility.js
-sub json_query_visibility
-{
-    my $self = shift;
-    my $hash = Bugzilla->fieldvaluecontrol_hash->{$self->id}->{values};
-    my $data = {
-        legal   => [ map { { id => $_->id, name => $_->name } } @{$self->legal_values} ],
-        values  => { map { Bugzilla->get_field($_)->name => $hash->{$_} } keys %$hash },
-    };
-    return $data;
-}
-
 1;
 __END__

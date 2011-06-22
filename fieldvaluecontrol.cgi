@@ -47,7 +47,7 @@ Bugzilla->send_header(
 $args->{type} ||= '';
 if ($args->{type} eq 'search')
 {
-    my $json = bz_encode_json(Bugzilla->full_json_query_visibility);
+    my $json = bz_encode_json(Bugzilla->full_json_visibility);
     print "var qfVisCached = '$user_tag-".time."';\nvar qfVisibility = $json;";
 }
 elsif ($args->{type} eq 'bug')

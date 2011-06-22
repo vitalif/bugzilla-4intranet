@@ -32,6 +32,8 @@ qfVisibility format: {
         legal   : [ { id : 0, name : "NAME" }, ... ],
         // visibility data for field values:
         values  : { controlled_field_name : { controlled_value_id : { visibility_value_id : 1, ... }, ... }, ... },
+        // visibility data for shown/hidden fields:
+        fields  : { controlled_field_name : { visibility_value_id : 1, ... }, ... },
     },
     ...
 };
@@ -103,7 +105,7 @@ function getQueryformSelectedIds(sel)
   {
     if (sel.options[i].selected || !has_selected)
     {
-      // IDs of options are qf_SELECTBOXID_1_2_3_...
+      // IDs of options are qf_<SELECTBOX_ID>_1_2_3_...
       // where 1_2_3 is the list of IDs mapped to this option name
       // which are currently visible.
       a = sel.options[i].id.substr(l2).split('_');
@@ -124,6 +126,31 @@ function getPlainSelectedIds(sel)
   return o;
 }
 
+// Check visibility of some field or value when it's visible only for ids
+// which are keys of $visible_for_ids, and if $selected_ids are selected by now.
+// Examples:
+// f({ 1: 1, 3: 1 }, { 1: 1, 2: 1 }) = true
+// f({},             { 1: 1, 2: 1 }) = true
+// f({ 2: 1 },       { 1: 1 })       = false
+function qfCheckVisibility(visible_for_ids, selected_ids)
+{
+  vis = true;
+  // Visible also if visible_for_ids is an empty hash
+  if (visible_for_ids)
+  {
+    for (var cid in visible_for_ids)
+    {
+      vis = false;
+      if (selected_ids[cid])
+      {
+        vis = true;
+        break;
+      }
+    }
+  }
+  return vis;
+}
+
 // Handle change of selection inside a selectbox 'controller'
 // Update all dependent fields
 function handleQueryformField(event, controller)
@@ -133,7 +160,12 @@ function handleQueryformField(event, controller)
   qfHandling[controller.id] = true; // prevent double-action during init
   var VD = qfVisibility[controller.id];
   var visibility_selected = getQueryformSelectedIds(controller);
-  for (var controlled_id in VD.values)
+  var ids = {};
+  for (var i in VD.fields)
+    ids[i] = true;
+  for (var i in VD.values)
+    ids[i] = true;
+  for (var controlled_id in ids)
   {
     controlled = document.getElementById(controlled_id);
     if (!controlled)
@@ -147,32 +179,22 @@ function handleQueryformField(event, controller)
     legal = qfVisibility[controlled_id]['legal'];
     name2id = {};
     name2id_order = [];
-    for (var i in legal)
+    if (qfCheckVisibility(VD.fields[controlled_id], visibility_selected))
     {
-      valueVD = VD.values[controlled_id][legal[i].id]
-      // Visible also if valueVD is an empty hash:
-      vis = true;
-      if (valueVD)
+      var vis_val = VD.values[controlled_id];
+      // Field is visible
+      for (var i in legal)
       {
-        for (var cid in valueVD)
+        if (!vis_val || qfCheckVisibility(vis_val[legal[i][0]], visibility_selected))
         {
-          vis = false;
-          if (visibility_selected[cid])
+          // Value is visible
+          if (!name2id[legal[i][1]])
           {
-            vis = true;
-            break;
+            name2id[legal[i][1]] = [];
+            name2id_order.push(legal[i][1]);
           }
+          name2id[legal[i][1]].push(legal[i][0]);
         }
-      }
-      if (vis)
-      {
-        // This value is now visible
-        if (!name2id[legal[i].name])
-        {
-          name2id[legal[i].name] = [];
-          name2id_order.push(legal[i].name);
-        }
-        name2id[legal[i].name].push(legal[i].id);
       }
     }
     // Create options

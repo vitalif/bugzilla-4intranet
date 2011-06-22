@@ -830,13 +830,13 @@ sub fieldvaluecontrol_hash
     return $cache->{fieldvaluecontrol_hash};
 }
 
-sub full_json_query_visibility
+sub full_json_visibility
 {
     my $class = shift;
     my $qv = {};
     for ($class->get_fields({ is_select => 1, obsolete => 0 }))
     {
-        $qv->{$_->name} = $_->json_query_visibility;
+        $qv->{$_->name} = $_->json_visibility;
     }
     return $qv;
 }
