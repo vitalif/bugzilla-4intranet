@@ -87,6 +87,14 @@ sub SPECIAL_ORDER
             fields => [ map { "$name.$_" } split /\s*,\s*/, $type->LIST_ORDER ],
             joins  => [ "LEFT JOIN $name ON $name.".$type->NAME_FIELD." = bugs.".$field->name ],
         };
+        # FIXME this is part of: merge standard and custom dependent fields mechanisms
+        # Problem: target_milestone is not uniquely identified by its name, so when many products have
+        # milestones with same name, this join can generate the insane row count and kill DB performance
+        # Solution: also join on product_id
+        if ($field->name eq 'target_milestone')
+        {
+            $special_order->{$field->name}->{joins}->[0] .= " AND $name.product_id=bugs.product_id";
+        }
     }
     Bugzilla::Hook::process('search_special_order', { columns => $special_order });
     return $cache->{special_order} = $special_order;
