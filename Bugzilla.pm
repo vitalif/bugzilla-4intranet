@@ -775,10 +775,15 @@ sub get_fields
     my $criteria = shift || {};
     my $cache = $class->cache_fields;
     my @fields = values %{$cache->{id}};
+    my $sort = delete $criteria->{sort};
     for my $k (keys %$criteria)
     {
         my %v = map { $_ => 1 } (ref $criteria->{$k} ? @{$criteria->{$k}} : $criteria->{$k});
         @fields = grep { $v{$_->$k} } @fields;
+    }
+    if ($sort)
+    {
+        @fields = sort { $a->{sortkey} <=> $b->{sortkey} } @fields;
     }
     return @fields;
 }
