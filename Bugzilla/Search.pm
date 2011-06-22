@@ -69,12 +69,7 @@ sub SPECIAL_ORDER
 {
     my $cache = Bugzilla->cache_fields;
     return $cache->{special_order} if $cache->{special_order};
-    my $special_order = {
-        'target_milestone' => {
-            fields => [ 'ms_order.sortkey', 'ms_order.value' ],
-            joins  => [ 'LEFT JOIN milestones AS ms_order ON ms_order.value = bugs.target_milestone AND ms_order.product_id = bugs.product_id' ],
-        },
-    };
+    my $special_order = {};
     my @select_fields = Bugzilla->get_fields({ type => FIELD_TYPE_SINGLE_SELECT });
     foreach my $field (@select_fields)
     {
@@ -91,7 +86,7 @@ sub SPECIAL_ORDER
         # Problem: target_milestone is not uniquely identified by its name, so when many products have
         # milestones with same name, this join can generate the insane row count and kill DB performance
         # Solution: also join on product_id
-        if ($field->name eq 'target_milestone')
+        if ($field->name eq 'target_milestone' || $field->name eq 'version')
         {
             $special_order->{$field->name}->{joins}->[0] .= " AND $name.product_id=bugs.product_id";
         }
