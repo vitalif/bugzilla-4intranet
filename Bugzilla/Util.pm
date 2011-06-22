@@ -362,8 +362,8 @@ sub diff_arrays {
 sub trim {
     my ($str) = @_;
     if ($str) {
-      $str =~ s/^\s+//g;
-      $str =~ s/\s+$//g;
+        $str =~ s/^\s+//g;
+        $str =~ s/\s+$//g;
     }
     return $str;
 }
