@@ -141,9 +141,9 @@ sub STATIC_COLUMNS
 
     my %columns = (
         relevance            => { title => 'Relevance' },
-        assigned_to_realname => { title => 'Assignee', nocharts => 1 },
-        reporter_realname    => { title => 'Reporter', nocharts => 1 },
-        qa_contact_realname  => { title => 'QA Contact', nocharts => 1 },
+        assigned_to_realname => { title => 'Assignee Name', nocharts => 1 },
+        reporter_realname    => { title => 'Reporter Name', nocharts => 1 },
+        qa_contact_realname  => { title => 'QA Contact Name', nocharts => 1 },
         deadline => { name => $dbh->sql_date_format('bugs.deadline', '%Y-%m-%d') },
         work_time => { name => $actual_time },
         percentage_complete => {
