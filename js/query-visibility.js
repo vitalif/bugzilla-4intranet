@@ -170,6 +170,18 @@ function handleQueryformField(event, controller)
     controlled = document.getElementById(controlled_id);
     if (!controlled)
       continue;
+    if (controlled.nodeName != 'SELECT')
+    {
+      // Just show/hide non-select fields
+      item = document.getElementById(controlled_id+'_cont');
+      if (item)
+      {
+        item.style.display = qfCheckVisibility(
+            VD.fields[controlled_id], visibility_selected
+        ) ? '' : 'none';
+      }
+      continue;
+    }
     // Save and clear old selection for dependent field:
     controlled_selected = getPlainSelectedIds(controlled);
     bz_clearOptions(controlled);

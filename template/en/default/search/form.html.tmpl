@@ -229,7 +229,7 @@ YAHOO.util.Event.addListener(window, 'load', function() {
   [% Hook.process('before_freetext_fields') %]
 
   [% FOREACH field = freetext_fields %]
-    <tr>
+    <tr id="[% field.name %]_cont">
       <th align="right">
         <label for="[% field.name %]"
                accesskey="[% tf_accesskey.${field.name} %]">[% tf_desc.${field.name} || field.description %]</label>:
