@@ -99,12 +99,13 @@
         interface more complex and harder to use. Be sure you have investigated other ways
         to satisfy your needs before doing this.</dd>
 
+        [% class = user.in_group('editvalues') ? "" : "forbidden" %]
         <dt id="field_values" class="[% class %]"><a href="editvalues.cgi">Field Values</a></dt>
         <dd class="[% class %]">Define legal values for fields whose values must belong
         to some given list. This is also the place where you define legal values for some
         types of custom fields.</dd>
 
-        <dt id="status_workflow" class="[% class %]"><a href="editworkflow.cgi">[%terms.Bug %] Status Workflow</a></dt>
+        <dt id="status_workflow" class="[% class %]"><a href="editworkflow.cgi">[% terms.Bug %] Status Workflow</a></dt>
         <dd class="[% class %]">Customize your workflow and choose initial [% terms.bug %]
         statuses available on [% terms.bug %] creation and allowed [% terms.bug %] status
         transitions when editing existing [% terms.bugs %].</dd>
