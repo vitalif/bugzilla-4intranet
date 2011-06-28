@@ -23,6 +23,7 @@
     'format'         => 3
     'comment'        => 2
     'divide_min_inc' => 2
+    'divide_other_bug_id' => 2
 } %]
 
 [% MACRO hidden_inputs BLOCK %]
@@ -101,6 +102,12 @@
 [% END %]
   <input value=" Списать время " type="submit" style="font-weight: bold" /> &nbsp;
   Добавить комментарий: <input type="text" name="comment" value="[% comment | html %]" />
+[% IF wt_admin %]
+  <br />
+  <span id="divide_other_bug_id_text">Распределить пропорционально участию в одном баге:</span>
+  <input type="text" name="divide_other_bug_id" id="divide_other_bug_id" size="6" value="" />
+  <span id="divide_other_bug_id_text_2">(пропорционально участию в каждом, если пусто)</span>
+[% END %]
 </fieldset>
 
 <fieldset id="divide_hours_cont">
@@ -173,6 +180,11 @@ function forall_unfocus()
 {
   var ed = document.getElementById('worktime_user');
   document.getElementById('wt_forall').style.display = ed.value ? 'none' : '';
+  document.getElementById('divide_other_bug_id_text').style.color = ed.value ? 'gray' : '';
+  document.getElementById('divide_other_bug_id_text_2').style.color = ed.value ? 'gray' : '';
+  document.getElementById('divide_other_bug_id').disabled = ed.value ? true : false;
+  if (!ed.value)
+    document.getElementById('divide_other_bug_id').value = '';
 }
 function forall_focus()
 {

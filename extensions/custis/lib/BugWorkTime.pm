@@ -35,15 +35,16 @@ sub FixWorktime
 }
 
 # пропорциональное или равномерное распределение времени по пользователям
+# с пропорцией, взятой из этого или из другого ($other_bug_id) бага
 sub DistributeWorktime
 {
-    my ($bug, $t, $comment, $timestamp, $from, $to, $min_inc) = @_;
+    my ($bug, $t, $comment, $timestamp, $from, $to, $min_inc, $other_bug_id) = @_;
     $comment ||= "Fix worktime";
 
     my $dbh = Bugzilla->dbh;
     my ($sql, @bind);
     $sql = 'SELECT who, SUM(work_time) wt FROM longdescs WHERE bug_id=?';
-    @bind = ($bug->id);
+    @bind = ($other_bug_id || $bug->id);
     if ($from)
     {
         $sql .= ' AND bug_when>=?';
@@ -66,7 +67,7 @@ sub DistributeWorktime
     {
         $nt = $sum ? $t*$propo->{$_}/$sum : $t/$n;
         $nt = int($nt*100)/100;
-        if (abs($nt) < $min_inc || ($nt < 0) xor ($sum > 0))
+        if (abs($nt) < $min_inc || ($nt < 0) == ($sum > 0))
         {
             # не размазываем время совсем уж мелкими суммами
             # и размазываем только суммами того же знака, что и вся сумма
@@ -108,12 +109,13 @@ sub HandleSuperWorktime
     my $cgi = Bugzilla->cgi;
     my $template = Bugzilla->template;
     $vars->{wt_admin} = Bugzilla->user->in_group('worktimeadmin');
+    my $args = $cgi->Vars;
     # обрабатываем списанное время и делаем редирект на себя же
-    if ($cgi->param('save_worktime'))
+    if ($args->{save_worktime})
     {
-        my $wt_user = $cgi->param('worktime_user') || undef;
-        my $wt_date = $cgi->param('worktime_date');
-        my $comment = $cgi->param('comment');
+        my $wt_user = $args->{worktime_user} || undef;
+        my $wt_date = $args->{worktime_date};
+        my $comment = $args->{comment};
         # Парсим дату
         $wt_date .= POSIX::strftime(' %H:%M:%S', localtime) if $wt_date !~ / /;
         eval
@@ -150,37 +152,46 @@ sub HandleSuperWorktime
         {
             $wt_user = undef;
         }
-        $cgi->delete('save_worktime');
         my ($bug, $t);
-        my ($tsfrom, $tsto) = (scalar($cgi->param('chfieldfrom')) || '', scalar($cgi->param('chfieldto')) || '');
+        my ($tsfrom, $tsto) = ($args->{chfieldfrom} || '', $args->{chfieldto} || '');
+        # $other_bug_id - это баг, из которого берётся пропорция для расписывания времени по юзерам
+        my $other_bug_id = $args->{divide_other_bug_id};
         trick_taint($tsfrom);
         trick_taint($tsto);
-        foreach ($cgi->param)
+        trick_taint($other_bug_id);
+        my @bugids = map { /^wtime_(\d+)$/ } keys %$args;
+        if ($other_bug_id && (my @bi = grep { $_ != $other_bug_id } @bugids) != @bugids)
         {
-            if (/^wtime_(\d+)$/)
-            {
-                $t = $cgi->param($_);
-                if ($t)
-                {
-                    Bugzilla->dbh->bz_start_transaction();
-                    if ($bug = Bugzilla::Bug->new({ id => $1, for_update => 1 }))
-                    {
-                        if ($wt_user)
-                        {
-                            # списываем время на одного юзера
-                            BugWorkTime::FixWorktime($bug, $t, $comment, $wt_date, $wt_user->id);
-                        }
-                        else
-                        {
-                            # распределяем время по участникам
-                            BugWorkTime::DistributeWorktime($bug, $t, $comment, $wt_date, $tsfrom, $tsto, scalar $cgi->param('divide_min_inc'));
-                        }
-                    }
-                    Bugzilla->dbh->bz_commit_transaction();
-                }
-                $cgi->delete($_);
-            }
+            # перемещаем $other_bug_id в конец, чтобы не сбить пропорцию в процессе списывания времени
+            @bugids = (@bi, $other_bug_id);
         }
+        foreach (@bugids)
+        {
+            $t = $args->{"wtime_$_"};
+            if ($t)
+            {
+                Bugzilla->dbh->bz_start_transaction();
+                if ($bug = Bugzilla::Bug->new({ id => $_, for_update => 1 }))
+                {
+                    if ($wt_user)
+                    {
+                        # списываем время на одного юзера
+                        BugWorkTime::FixWorktime($bug, $t, $comment, $wt_date, $wt_user->id);
+                    }
+                    else
+                    {
+                        # распределяем время по участникам
+                        BugWorkTime::DistributeWorktime(
+                            $bug, $t, $comment, $wt_date, $tsfrom, $tsto,
+                            $args->{divide_min_inc}, $other_bug_id
+                        );
+                    }
+                }
+                Bugzilla->dbh->bz_commit_transaction();
+            }
+            $cgi->delete("wtime_$_");
+        }
+        $cgi->delete('save_worktime');
         print $cgi->redirect(-location => $cgi->self_url);
         exit;
     }
