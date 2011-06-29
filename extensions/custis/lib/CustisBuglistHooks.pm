@@ -13,16 +13,6 @@ sub buglist_static_columns
     my $columns = $args->{columns};
     my $dbh = Bugzilla->dbh;
 
-    $columns->{dependson} = {
-        name  => "(SELECT ".$dbh->sql_group_concat('bugblockers.dependson', "','")." FROM dependencies bugblockers WHERE bugblockers.blocked=bugs.bug_id)",
-        title => "Bug dependencies",
-    };
-
-    $columns->{blocked} = {
-        name  => "(SELECT ".$dbh->sql_group_concat('bugblocked.blocked', "','")." FROM dependencies bugblocked WHERE bugblocked.dependson=bugs.bug_id)",
-        title => "Bugs blocked",
-    };
-
     $columns->{flags} = {
         name  =>
 "(SELECT ".$dbh->sql_group_concat($dbh->sql_string_concat('col_ft.name', 'col_f.status'), "', '")."
