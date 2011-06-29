@@ -67,7 +67,7 @@ sub DistributeWorktime
     {
         $nt = $sum ? $t*$propo->{$_}/$sum : $t/$n;
         $nt = int($nt*100)/100;
-        if (abs($nt) < $min_inc || ($nt < 0) == ($sum > 0))
+        if (abs($nt) < $min_inc || $t*$nt < 0)
         {
             # не размазываем время совсем уж мелкими суммами
             # и размазываем только суммами того же знака, что и вся сумма
