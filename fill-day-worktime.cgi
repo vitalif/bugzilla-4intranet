@@ -5,6 +5,7 @@
 
 use strict;
 use lib qw(. lib);
+use POSIX qw(floor);
 
 use Bugzilla;
 use Bugzilla::Error;
@@ -33,7 +34,7 @@ sub add_wt
     my ($wtime, $id, $t, $c) = @_;
     push @{$wtime->{IDS}}, $id unless $wtime->{$id};
     $t =~ tr/,/./;
-    $t = int(100*$t+0.5)/100;
+    $t = floor(100*$t+0.5)/100;
     $wtime->{$id}->{time} += $t;
     push @{$wtime->{$id}->{comments} ||= []}, $c if $c;
 }
@@ -61,10 +62,16 @@ if (@idlist || @lines)
     }
     foreach my $line (@lines)
     {
+        # New, intuitive format: BUG_ID <space> TIME <space> COMMENT
+        if ($line =~ /^\D*(\d+)\s*(?:(-?[\d\.\,]+)|(\d+):(\d{2}))\s*(.*)/iso)
+        {
+            my ($id, $time, $comment) = ($1, $3 ? $3+$4/60 : $2, $5);
+            add_wt($wtime, $id, $time, $comment);
+        }
         # TODO REMOVE IT NAHREN :)
         # This is some VERY OLD format: dd.mm.yyyy hh:mm - hh:mm <word> - BUG nnn
         # hh:mm - hh:mm is start time - end time, <word> is matched but ignored
-        if ($line =~ /\s*(\d?\d.\d\d.[1-9]?\d?\d\d\s)?\s*((\d?\d):(\d\d)\s*-\s*(\d?\d):(\d\d)\s+)?([\w\/]+)\s*(-\s*(BUG|\()?\s*([1-9]\d*)(.*))/iso)
+        elsif ($line =~ /\s*(\d?\d.\d\d.[1-9]?\d?\d\d\s)?\s*((\d?\d):(\d\d)\s*-\s*(\d?\d):(\d\d)\s+)?([\w\/]+)\s*(-\s*(BUG|\()?\s*([1-9]\d*)(.*))/iso)
         {
             my $time = (($5 * 60 + $6) - ($3 * 60 + $4)) / 60;
             $time = 0 if $time < 0;
@@ -74,12 +81,6 @@ if (@idlist || @lines)
             {
                 ThrowUserError('object_not_specified', { class => 'Bugzilla::Bug' });
             }
-            add_wt($wtime, $id, $time, $comment);
-        }
-        # New, intuitive format: BUG_ID <space> TIME <space> COMMENT
-        elsif ($line =~ /^\D*(\d+)\s*(?:(-?[\d\.\,]+)|(\d+):(\d{2}))\s*(.*)/iso)
-        {
-            my ($id, $time, $comment) = ($1, $3 ? $3+$4/60 : $2, $5);
             add_wt($wtime, $id, $time, $comment);
         }
     }
