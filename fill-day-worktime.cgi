@@ -33,7 +33,7 @@ sub add_wt
     my ($wtime, $id, $t, $c) = @_;
     push @{$wtime->{IDS}}, $id unless $wtime->{$id};
     $t =~ tr/,/./;
-    $t = int(100*$t)/100;
+    $t = int(100*$t+0.5)/100;
     $wtime->{$id}->{time} += $t;
     push @{$wtime->{$id}->{comments} ||= []}, $c if $c;
 }
