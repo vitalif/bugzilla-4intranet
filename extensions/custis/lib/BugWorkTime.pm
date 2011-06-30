@@ -66,7 +66,7 @@ sub DistributeWorktime
     for (keys %$propo)
     {
         $nt = $sum ? $t*$propo->{$_}/$sum : $t/$n;
-        $nt = int($nt*100)/100;
+        $nt = int($nt*100+0.5)/100;
         if (abs($nt) < $min_inc || $t*$nt < 0)
         {
             # не размазываем время совсем уж мелкими суммами
