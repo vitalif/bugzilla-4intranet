@@ -68,14 +68,16 @@ use JSON;
 
 use Lingua::Stem::RuUTF8;
 
-sub trick_taint {
-    die("Undef to trick_taint") unless defined $_[0];
+sub trick_taint
+{
+    return undef unless defined $_[0];
     my $match = $_[0] =~ /^(.*)$/s;
     $_[0] = $match ? $1 : undef;
     return (defined($_[0]));
 }
 
-sub trick_taint_copy {
+sub trick_taint_copy
+{
     $_[0] =~ /^(.*)$/s;
     return $1;
 }
