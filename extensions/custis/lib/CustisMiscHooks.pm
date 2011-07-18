@@ -227,7 +227,8 @@ sub processWikiAnchor
     return "" unless $anchor;
     $anchor =~ tr/ /_/;
     $anchor = url_quote($anchor);
-    $anchor =~ s/%/./gso;
+    $anchor =~ s/\%3A/:/giso;
+    $anchor =~ tr/%/./;
     return $anchor;
 }
 
@@ -236,7 +237,7 @@ sub processWikiUrl
 {
     my ($wiki, $url, $anchor) = @_;
     $url = trim($url);
-    $url =~ s/\s+/ /gso;
+    $url =~ s/\s+/_/gso;
     # обычный url_quote нам не подходит, т.к. / не нужно переделывать в %2F, ? в %3F, а = в %3D
     $url = url_quote_slash($url);
     return Bugzilla->params->{"${wiki}_url"} . $url . '#' . processWikiAnchor($anchor);
