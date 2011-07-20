@@ -23,8 +23,6 @@
   # default.$name.0: string. The default value for the block, if any.
   #%]
 
-[% PROCESS "global/field-descs.none.tmpl" %]
-
 [% BLOCK select %]
   [% rep_fields =   ["classification", "product", "component", "version"] %]
   [% rep_fields.push("rep_platform") IF Param('useplatform') %]

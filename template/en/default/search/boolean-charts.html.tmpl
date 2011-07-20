@@ -1,138 +1,98 @@
-[%# The contents of this file are subject to the Mozilla Public
-  # License Version 1.1 (the "License"); you may not use this file
-  # except in compliance with the License. You may obtain a copy of
-  # the License at http://www.mozilla.org/MPL/
+[%# The form looks like:
   #
-  # Software distributed under the License is distributed on an "AS
-  # IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-  # implied. See the License for the specific language governing
-  # rights and limitations under the License.
+  # -- OR [+] --------------------
+  # | -- AND [+] [NOT] --------- |
+  # | | -- OR [+] ------------ | |
+  # | | | field type value   | | |
+  # | | | field type value   | | |
+  # | | | ...                | | |
+  # | | ---------------------| | |
+  # | -------------------------- |
+  # ------------------------------
   #
-  # The Original Code is the Bugzilla Bug Tracking System.
+  # If there is single term inside some AND/OR, it is shown without fieldset.
+  # So, if the whole chart consists of a single term, the form would look like:
   #
-  # The Initial Developer of the Original Code is Netscape Communications
-  # Corporation. Portions created by Netscape are
-  # Copyright (C) 1998 Netscape Communications Corporation. All
-  # Rights Reserved.
+  # "field type value [OR] [AND] [NOT] [OR]"
   #
-  # Contributor(s): Gervase Markham <gerv@gerv.net>
-  #%]
+  # On [OR] [AND] etc clicks JavaScript turns the corresponding <div> into a <fieldset>.
+  # %]
 
-[% PROCESS "global/field-descs.none.tmpl" %]
+<p><strong><a name="chart">Advanced Searching Using Boolean Charts:</a></strong></p>
 
-[% types = [
-  "noop",
-  "equals",
-  "notequals",
-  "anyexact",
-  "substring",
-  "casesubstring",
-  "notsubstring",
-  "anywordssubstr",
-  "allwordssubstr",
-  "nowordssubstr",
-  "regexp",
-  "notregexp",
-  "lessthan",
-  "greaterthan",
-  "anywords",
-  "allwords",
-  "nowords",
-  "changedbefore",
-  "changedafter",
-  "changedfrom",
-  "changedto",
-  "changedby",
-  "matches",
-  "notmatches",
-  "insearch",
-  "notinsearch",
-] %]
+[% charts = default.charts %]
+<div class="chart">
 
-  <p>
-    <strong>
-      <a name="chart">Advanced Searching Using Boolean Charts</a>:
-    </strong>
-  </p>
+[% IF charts.size > 1 %]
+<fieldset class="chart _or">
+<legend class="_or">
+  OR
+  <input type="button" value="+" class="chart_add_button" id="chartR-btn" onclick="chart_add(this.id)" />
+</legend>
+[% ELSE %]
+<div class="chart" id="chartR">
+[% END %]
 
-[%# Whoever wrote the original version of boolean charts had a seriously twisted mind %]
+[% FOREACH chart = charts %]
+  [% C = loop.count - 1 %]
 
-[% jsmagic = "onclick=\"this.form.action='query.cgi#chart'; this.form.method='POST'; return 1;\"" %]
+  [% IF chart.rows.size > 1 %]
+  <fieldset class="chart _and" id="chart[% C %]">
+  <legend class="_and">AND
+    <input type="button" value="+" class="chart_add_button" id="chart[% C %]-btn" onclick="chart_add(this.id)" />
+    <input type="button" value="NOT" class="chart_not_[% chart.negate ? 'c' : 'u' %]" style="font-size: 85%" id="negate[% C %]-btn" onclick="chart_neg(this)" />
+  </legend>
+  [% ELSE %]
+  <div class="chart" id="chart[% C %]">
+  [% END %]
 
-[% FOREACH chart = default.charts %]
-  [% chartnum = loop.count - 1 %]
-  <table>
-    <tr>
-      <td>
-        <input type="checkbox" id="negate[% chartnum FILTER html %]"
-             name="negate[% chartnum FILTER html %]" value="1"
-            [%+ "checked" IF chart.negate %]>
-        <label for="negate[% chartnum FILTER html %]">
-          Not (negate this whole chart)
-        </label>
-      </td>
-    </tr>
   [% FOREACH row = chart.rows %]
-    [% rownum = loop.count - 1 %]
-    <tr>
-    [% FOREACH col = row %]
-      [% colnum = loop.count - 1 %]
-      <td>
-        <select name="[% "field${chartnum}-${rownum}-${colnum}" %]">
-          [% FOREACH field = fields %]
-            <option value="[% field.id %]" [% "selected" IF field.id == col.field %]>
-              [% field_descs.${field.id} || field.title FILTER html %]
-            </option>
-          [% END %]
-        </select>
+    [% I = loop.count - 1 %]
 
-        [% INCLUDE "search/type-select.html.tmpl"
-           name = "type${chartnum}-${rownum}-${colnum}",
-           types = types, selected = col.type %]
-
-        <input name="[% "value${chartnum}-${rownum}-${colnum}" %]"
-               value="[% col.value FILTER html %]">
-      </td>
-
-      [% UNLESS loop.last %]
-        <td align="center">
-          Or
-        </td>
-      </tr>
-      <tr>
-      [% ELSE %]
-        <td>
-          [% newor = colnum + 1 %]
-          <input type="submit" value="Or" [% jsmagic %]
-                 name="cmd-add[% "${chartnum}-${rownum}-${newor}" %]"
-                 id="cmd-add[% "${chartnum}-${rownum}-${newor}" %]">
-        </td>
-      [% END %]
-
-    [% END %]
-    </tr>
-
-    [% UNLESS loop.last %]
-    <tr>
-      <td>And</td>
-    </tr>
+    [% IF row.size > 1 %]
+    <fieldset class="chart _or" id="chart[% C %]-[% I %]">
+    <legend class="_or">OR <input type="button" value="+" class="chart_add_button" id="chart[% C %]-[% I %]-btn" onclick="chart_add(this.id)" /></legend>
     [% ELSE %]
-    <tr>
-      <td>
-        [% newand = rownum + 1; newchart = chartnum + 1 %]
-        <input type="submit" value="And" [% jsmagic %]
-               name="cmd-add[% "${chartnum}-${newand}-0" %]"
-               id="cmd-add[% "${chartnum}-${newand}-0" %]">
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        <input type="submit" value="Add another boolean chart" [% jsmagic %]
-               name="cmd-add[% newchart %]-0-0"
-               id="cmd-add[% newchart %]-0-0">
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-      </td>
-    </tr>
+    <div class="chart" id="chart[% C %]-[% I %]">
+    [% END %]
+
+    [% FOREACH col = row %]
+      [% J = loop.count - 1 %]
+      [% "<br />" IF J %]
+      [% html_select("field$C-$I-$J", '', chart_fields, col.field) %]
+      [%- html_select("type$C-$I-$J", chart_types, lc_messages.operator_descs, col.type)
+      %]<input id="[% "value$C-$I-$J" %]" name="[% "value$C-$I-$J" %]" value="[% col.value | html %]" size="40" />
+    [% END %]
+
+    [% IF row.size > 1 %]
+    </fieldset>
+    [% ELSE %]
+    <input type="button" value="OR" id="chart[% C %]-[% I %]-btn" onclick="chart_add_second(this)" />
+    </div>
     [% END %]
 
   [% END %]
-  </table>
-  <hr>
+
+  [% IF chart.rows.size > 1 %]
+  </fieldset>
+  [% ELSE %]
+  <input type="button" value="AND" id="chart[% C %]-btn" onclick="chart_add_second(this)"
+  /><input type="button" value="NOT" class="chart_not_[% chart.negate ? 'c' : 'u' %]"
+      id="negate[% C %]-btn" onclick="chart_neg(this)" />
+  </div>
+  [% END %]
+  <input type="hidden" value="[% chart.negate %]" id="negate[% C %]" name="negate[% C %]" />
+
 [% END %]
+
+[% IF charts.size > 1 %]
+</fieldset>
+[% ELSE %]
+<input type="button" value="OR" id="chartR-btn" onclick="chart_add_second(this)" />
+</div>
+[% END %]
+
+</div>
+<br style="clear: both" />
+
+<script language="JavaScript" type="text/javascript" src="js/charts.js"></script>

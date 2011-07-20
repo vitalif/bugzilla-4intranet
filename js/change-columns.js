@@ -1,28 +1,29 @@
-/*# The contents of this file are subject to the Mozilla Public
-  # License Version 1.1 (the "License"); you may not use this file
-  # except in compliance with the License. You may obtain a copy of
-  # the License at http://www.mozilla.org/MPL/
-  #
-  # Software distributed under the License is distributed on an "AS
-  # IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-  # implied. See the License for the specific language governing
-  # rights and limitations under the License.
-  #
-  # The Original Code is the Bugzilla Bug Tracking System.
-  #
-  # The Initial Developer of the Original Code is Pascal Held.
-  #
-  # Contributor(s): Pascal Held <paheld@gmail.com>
-  #
-*/
+/* The contents of this file are subject to the Mozilla Public
+ * License Version 1.1 (the "License"); you may not use this file
+ * except in compliance with the License. You may obtain a copy of
+ * the License at http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS
+ * IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
+ * implied. See the License for the specific language governing
+ * rights and limitations under the License.
+ *
+ * The Original Code is the Bugzilla Bug Tracking System.
+ *
+ * The Initial Developer of the Original Code is Pascal Held.
+ *
+ * Contributor(s): Pascal Held <paheld@gmail.com>
+ */
 
-function initChangeColumns() {
+function initChangeColumns()
+{
     window.onunload = unload;
     var av_select = document.getElementById("available_columns");
     var sel_select = document.getElementById("selected_columns");
-    YAHOO.util.Dom.removeClass(
-        ['avail_header', av_select, 'select_button',
-         'deselect_button', 'up_button', 'down_button'], 'bz_default_hidden');
+    var l = ['avail_header', av_select, 'select_button',
+         'deselect_button', 'up_button', 'down_button'];
+    for (var i = 0; i < l.length; i++)
+        removeClass(l[i], 'bz_default_hidden');
     switch_options(sel_select, av_select, false);
     sel_select.selectedIndex = -1;
     updateView();
@@ -51,14 +52,16 @@ function switch_options(from_box, to_box, selected)
         from_box.options[i].selected = sel[i];
 }
 
-function move_select() {
+function move_select()
+{
     var av_select = document.getElementById("available_columns");
     var sel_select = document.getElementById("selected_columns");
     switch_options(av_select, sel_select, true);
     updateView();
 }
 
-function move_deselect() {
+function move_deselect()
+{
     var av_select = document.getElementById("available_columns");
     var sel_select = document.getElementById("selected_columns");
     switch_options(sel_select, av_select, true);
@@ -117,7 +120,8 @@ function move_down()
     updateView();
 }
 
-function updateView() {
+function updateView()
+{
     var select_button = document.getElementById("select_button");
     var deselect_button = document.getElementById("deselect_button");
     var up_button = document.getElementById("up_button");
@@ -128,41 +132,44 @@ function updateView() {
     down_button.disabled = true;
     var av_select = document.getElementById("available_columns");
     var sel_select = document.getElementById("selected_columns");
-    for (var i = 0; i < av_select.options.length;  i++) {
-        if (av_select.options[i].selected) {
+    for (var i = 0; i < av_select.options.length; i++)
+    {
+        if (av_select.options[i].selected)
+        {
             select_button.disabled = false;
             break;
         }
     }
-    for (var i = 0; i < sel_select.options.length; i++) {
-        if (sel_select.options[i].selected) {
+    for (var i = 0; i < sel_select.options.length; i++)
+    {
+        if (sel_select.options[i].selected)
+        {
             deselect_button.disabled = false;
             up_button.disabled = false;
             down_button.disabled = false;
             break;
         }
     }
-    if (sel_select.options.length > 0) {
-        if (sel_select.options[0].selected) {
+    if (sel_select.options.length > 0)
+    {
+        if (sel_select.options[0].selected)
             up_button.disabled = true;
-        }
-        if (sel_select.options[sel_select.options.length - 1].selected) {
+        if (sel_select.options[sel_select.options.length - 1].selected)
             down_button.disabled = true;
-        }
     }
 }
 
-function change_submit() {
+function change_submit()
+{
     var sel_select = document.getElementById("selected_columns");
-    for (var i = 0; i < sel_select.options.length; i++) {
+    for (var i = 0; i < sel_select.options.length; i++)
         sel_select.options[i].selected = true;
-    }
     return false;
 }
 
-function unload() {
+function unload()
+{
     var sel_select = document.getElementById("selected_columns");
-    for (var i = 0; i < sel_select.options.length; i++) {
+    for (var i = 0; i < sel_select.options.length; i++)
         sel_select.options[i].selected = true;
-    }
 }

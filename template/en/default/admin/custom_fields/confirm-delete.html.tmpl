@@ -18,8 +18,6 @@
   # token: string; the delete_field token required to complete deletion.
   #%]
 
-[% PROCESS "global/field-descs.none.tmpl" %]
-
 [% title = BLOCK %]
   Delete the Custom Field '[% field.name FILTER html %]' ([% field.description FILTER html %])
 [% END %]

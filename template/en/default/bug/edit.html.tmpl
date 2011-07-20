@@ -24,10 +24,6 @@
   #                 Elliotte Martin <emartin@everythingsolved.com>
   #%]
 
-[% PROCESS global/variables.none.tmpl %]
-
-[% PROCESS "global/field-descs.none.tmpl" %]
-
 [% PROCESS bug/time.html.tmpl %]
 
 [% USE Bugzilla %]
@@ -315,9 +311,9 @@ document.changeform = document.[% cfname %];
     </td>
     <td id="bz_field_status">
       <span id="static_bug_status">
-        [% display_value("bug_status", bug.bug_status) FILTER html %]
+        [% bug.bug_status FILTER html %]
         [% IF bug.resolution %]
-          [%+ display_value("resolution", bug.resolution) FILTER html %]
+          [%+ bug.resolution FILTER html %]
           [% IF bug.dup_id %]
             of [% "${terms.bug} ${bug.dup_id}" FILTER bug_link(bug.dup_id) FILTER none %]
           [% END %]

@@ -18,7 +18,6 @@
   # Contributor(s): André Batosti <batosti@async.com.br>
   #%]
 
-[% PROCESS "global/variables.none.tmpl" %]
 From: [% Param('mailfrom') %]
 To: [% to_user.email %]
 Subject: [% (isnew ? '' : 'Re: ') _ '[' _ terms.Bug _ ' ' _ bugid _ '] ' _ (severity == 'blocker' ? '[BLOCKER] ' : '') _ (severity == 'critical' ? '[CRITICAL] ' : '') _ summary %]
@@ -48,7 +47,6 @@ X-Bugzilla-Added-Comments: [% new_comments.size %]
 [% SET boundary = "--" _ date.now %]
 Content-Type: multipart/alternative; boundary=[% boundary %]
 MIME-Version: 1.0
-
 --[% boundary %]
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: quoted-printable

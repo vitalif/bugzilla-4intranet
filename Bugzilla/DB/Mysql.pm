@@ -75,6 +75,7 @@ sub new {
     );
 
     my $self = $class->db_new($dsn, $user, $pass, \%attrs);
+    $self->{dbd} = 'mysql';
 
     # This makes sure that if the tables are encoded as UTF-8, we
     # return their data correctly.

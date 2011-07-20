@@ -526,7 +526,7 @@ sub _special_field_syntax {
         return 1;
     }
 
-    return 0;    
+    return 0;
 }
 
 sub _default_quicksearch_word {

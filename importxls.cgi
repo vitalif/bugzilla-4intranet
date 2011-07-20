@@ -88,10 +88,8 @@ for (keys %$args)
 $vars->{bug_tpl} = $bug_tpl;
 $vars->{name_tr} = $name_tr;
 
-# FIXME переделать на стандарт
-# нужно всосать из шаблонов field_descs...
-# и несколько поменять... ;-/ поганый хак, конечно, а чё делать-то.
-my $field_descs = { %{ template_var('field_descs') } };
+# FIXME переделать на стандартные описания полей, берущиеся из базы
+my $field_descs = { %{ Bugzilla->messages->{field_descs} } };
 $field_descs->{platform} = $field_descs->{rep_platform};
 $field_descs->{comment} = $field_descs->{longdesc};
 for ((grep { /\./ } keys %$field_descs),

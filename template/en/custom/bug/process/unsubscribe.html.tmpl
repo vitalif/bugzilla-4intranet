@@ -3,9 +3,7 @@
 [% USE Bugzilla %]
 [% cgi = Bugzilla.cgi %]
 
-[% PROCESS global/variables.none.tmpl %]
 [% PROCESS global/header.html.tmpl %]
-
 <h3>Removing you from CC list of bug #<a href="[% urlbase %]show_bug.cgi?id=[% bug.id %]">[% bug.id %]</a></h3>
 
 [% IF rm_cc_ok %]

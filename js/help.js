@@ -81,8 +81,9 @@ function showHelp() {
         return;
 
     // Get the position and size of the form element in the document
-    var elemY = bz_findPosY(this);
-    var elemX = bz_findPosX(this);
+    var elemPos = findPos(this);
+    var elemX = elemPos[0];
+    var elemY = elemPos[1];
     var elemH = this.offsetHeight;
 
     // Update help text displayed in the div

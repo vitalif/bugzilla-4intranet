@@ -54,7 +54,7 @@ package Testopia::Table;
 use strict;
 
 use Bugzilla;
-use Bugzilla::Util;
+use Bugzilla::Util qw(!list);
 use Bugzilla::Error;
 use Testopia::Util;
 use Testopia::TestCase;

@@ -21,8 +21,6 @@
   #                 André Batosti <batosti@async.com.br>
   #%]
 
-[% PROCESS 'global/field-descs.none.tmpl' %]
-
 [% filtered_desc = blocked_tree.$bugid.short_desc FILTER html %]
 [% PROCESS global/header.html.tmpl
    title           = "Dependency tree for $terms.Bug $bugid"
@@ -35,9 +33,9 @@
 %]
 
 [% PROCESS depthControlToolbar %]
-  
+
 [% INCLUDE tree_section ids=dependson_ids type=1 %]
- 
+
 [% INCLUDE tree_section ids=blocked_ids type=2 %] 
 
 [% PROCESS depthControlToolbar %]
@@ -148,7 +146,7 @@
 [% END %]
 
 [% BLOCK buginfo %]
-  [% display_value("bug_status", bug.bug_status) FILTER html -%] [%+ display_value("resolution", bug.resolution) FILTER html %];
+  [% bug.bug_status FILTER html -%] [%+ bug.resolution FILTER html %];
   [%-%] assigned to [% bug.assigned_to.login FILTER email FILTER html %]
   [%-%][% "; Target: " _ bug.target_milestone IF bug.target_milestone %]
 [% END %]

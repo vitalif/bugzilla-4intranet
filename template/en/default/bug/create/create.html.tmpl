@@ -24,21 +24,21 @@
   #                 Frédéric Buclin <LpSolit@gmail.com>
   #%]
 
-[% PROCESS "global/field-descs.none.tmpl" %]
-
 [% USE Bugzilla %]
 
 [% title = BLOCK %]Enter [% terms.Bug %]: [% product.name FILTER html %][% END %]
 
 [% PROCESS global/header.html.tmpl
   title = title
-  style_urls = [ 'skins/standard/create_attachment.css',
-                 'skins/standard/yui/calendar.css' ]
-  javascript_urls = [ "js/attachment.js", "js/util.js", "js/yui/calendar.js",
-                      "js/field.js", "js/TUI.js", "js/bug-visibility.js", "fieldvaluecontrol.cgi?type=bug" ]
+  style_urls = [ 'skins/standard/create_attachment.css', 'skins/standard/calendar.css' ]
+  javascript_urls = [
+    "js/util.js", "js/attachment.js", "js/field.js", "js/calendar.js",
+    "js/TUI.js", "js/bug-visibility.js", "fieldvaluecontrol.cgi?type=bug"
+  ]
   onload = 'set_assign_to();'
 %]
 
+[%# FIXME убрать большую часть JS отсюда %]
 <script type="text/javascript">
 <!--
 
@@ -157,11 +157,12 @@ function set_assign_to() {
         /* CustIS Bug 57457 & Bug 58657 */
         /** Infernal logic for High Usability
          * Remembers modifications entered by user (added and removed CC), and
-         * builds new CC list from [% cc %] (initial value) +
-         * initialccs[index] (initial CC for component), preserving entry order.
+         * builds new CC list from initial value plus initialccs[index]
+         * (initial CC for component), preserving entry order.
+         *
          ** Адская логика для Высокого Юзабилити
          * Запоминает изменения, внесённые пользователем в список CC и
-         * строит новый список CC как объединение [% cc %] (начального значения) и
+         * строит новый список CC как объединение начального значения и
          * initialccs[index] (CC по умолчанию для компонента), да ещё и сохраняет
          * порядок ввода.
          */
@@ -226,7 +227,8 @@ function set_assign_to() {
     }
 }
 
-function handleWantsAttachment(wants_attachment) {
+function handleWantsAttachment(wants_attachment)
+{
     var f = document.getElementById('attachment_false');
     var t = document.getElementById('attachment_true');
     f.style.display = wants_attachment ? 'none' : '';
@@ -236,9 +238,7 @@ function handleWantsAttachment(wants_attachment) {
 function show_resolution_field(showhide)
 {
     if (showhide)
-    {
         document.getElementById('resolution_container').style.display = '';
-    }
     else
     {
         document.getElementById('resolution_container').style.display = 'none';
@@ -293,8 +293,7 @@ TUI_hide_default('expert_fields');
 
 [%# Show the link if the browser supports JS %]
 <script type="text/javascript">
-    YAHOO.util.Dom.removeClass('expert_fields_controller', 
-                               'bz_default_hidden');
+    removeClass('expert_fields_controller', 'bz_default_hidden');
 </script>
 </p>
 
@@ -437,7 +436,7 @@ TUI_hide_default('expert_fields');
   <input type="hidden" name="bug_status" 
          value="[% default.bug_status FILTER html %]">
     <th>Initial State:</th>
-    <td>[% display_value("bug_status", default.bug_status) FILTER html %]</td>
+    <td>[% default.bug_status FILTER html %]</td>
 [% ELSE %]
     [% sel = {
         description => 'Initial State',
@@ -455,7 +454,7 @@ TUI_hide_default('expert_fields');
     <select name="resolution" id="resolution">
     [%- FOREACH x = resolution %]
       [% NEXT IF x == "MOVED" %]
-      <option value="[% x FILTER html %]">[% display_value('resolution', x) FILTER html %]</option>
+      <option value="[% x FILTER html %]">[% x FILTER html %]</option>
     [% END %]
     </select>
   </td>
@@ -570,8 +569,8 @@ TUI_hide_default('expert_fields');
     [% NEXT UNLESS field.enter_bug %]
     [% SET value = ${field.name}.defined ? ${field.name} : "" %]
     <tr>
-      [% INCLUDE bug/field.html.tmpl 
-        bug = default, field = field, value = value, editable = 1, 
+      [% INCLUDE bug/field.html.tmpl
+        bug = default, field = field, value = value, editable = 1,
         value_span = 3 %]
     </tr>
   [% END %]
@@ -777,7 +776,7 @@ TUI_hide_default('expert_fields');
     [%- FOREACH x = ${sel.name} %]
       <option value="[% x FILTER html %]"
         [% " selected=\"selected\"" IF x == default.${sel.name} %]>
-        [% display_value(sel.name, x) FILTER html %]
+        [% x FILTER html %]
       </option>
     [% END %]
     </select>

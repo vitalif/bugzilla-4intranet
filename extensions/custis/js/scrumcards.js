@@ -398,19 +398,6 @@ CardDropTarget.prototype.onMove = function(pos)
   else
     this.element.style.borderRight = '5px solid red';
 };
-// Универсальное добавление обработчика события
-var addListener = function() {
-  if (window.addEventListener) {
-    return function(el, type, fn) { el.addEventListener(type, fn, false); };
-  } else if (window.attachEvent) {
-    return function(el, type, fn) {
-      var f = function() { return fn.call(el, window.event); };
-      el.attachEvent('on'+type, f);
-    };
-  } else {
-    return function(el, type, fn) { element['on'+type] = fn; }
-  }
-}();
 // 2 если hash пуст
 // 1 если в нём один ключ key
 // 0 если в нём есть ключ, не равный key

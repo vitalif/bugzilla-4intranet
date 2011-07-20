@@ -801,70 +801,68 @@ if (!$order || $order =~ /^reuse/i) {
     }
 }
 
-if ($order) {
+# FIXME переместить в Bugzilla::Search
+my $old_orders = {
+    '' => 'bug_status,priority,assigned_to,bug_id', # Default
+    'bug number' => 'bug_id',
+    'importance' => 'priority,bug_severity,bug_id',
+    'assignee' => 'assigned_to,bug_status,priority,bug_id',
+    'last changed' => 'delta_ts,bug_status,priority,assigned_to,bug_id',
+};
+if ($order)
+{
     # Convert the value of the "order" form field into a list of columns
     # by which to sort the results.
-    ORDER: for ($order) {
-        /^Bug Number$/ && do {
-            $order = "bug_id";
-            last ORDER;
-        };
-        /^Importance$/ && do {
-            $order = "priority,bug_severity";
-            last ORDER;
-        };
-        /^Assignee$/ && do {
-            $order = "assigned_to,bug_status,priority,bug_id";
-            last ORDER;
-        };
-        /^Last Changed$/ && do {
-            $order = "delta_ts,bug_status,priority,assigned_to,bug_id";
-            last ORDER;
-        };
-        do {
-            my (@order, @invalid_fragments);
+    if ($old_orders->{lc $order})
+    {
+        $order = $old_orders->{lc $order};
+    }
+    else
+    {
+        my (@order, @invalid_fragments);
 
-            # A custom list of columns.  Make sure each column is valid.
-            foreach my $fragment (split(/,/, $order)) {
-                $fragment = trim($fragment);
-                next unless $fragment;
-                my ($column_name, $direction) = split_order_term($fragment);
-                $column_name = translate_old_column($column_name);
+        # A custom list of columns.  Make sure each column is valid.
+        foreach my $fragment (split(/,/, $order))
+        {
+            $fragment = trim($fragment);
+            next unless $fragment;
+            my ($column_name, $direction) = split_order_term($fragment);
+            $column_name = translate_old_column($column_name);
 
-                # Special handlings for certain columns
-                next if $column_name eq 'relevance' && !$fulltext;
+            # Special handlings for certain columns
+            next if $column_name eq 'relevance' && !$fulltext;
 
-                # If we are sorting by votes, sort in descending order if
-                # no explicit sort order was given.
-                if ($column_name eq 'votes' && !$direction) {
-                    $direction = "DESC";
-                }
-
-                if (exists $columns->{$column_name}) {
-                    $direction = " $direction" if $direction;
-                    push(@order, "$column_name$direction");
-                }
-                else {
-                    push(@invalid_fragments, $fragment);
-                }
-            }
-            if (scalar @invalid_fragments) {
-                $vars->{'message'} = 'invalid_column_name';
-                $vars->{'invalid_fragments'} = \@invalid_fragments;
+            # If we are sorting by votes, sort in descending order if
+            # no explicit sort order was given.
+            if ($column_name eq 'votes' && !$direction)
+            {
+                $direction = "DESC";
             }
 
-            $order = join(",", @order);
-            # Now that we have checked that all columns in the order are valid,
-            # detaint the order string.
-            trick_taint($order) if $order;
-        };
+            if (exists $columns->{$column_name})
+            {
+                $direction = " $direction" if $direction;
+                push @order, "$column_name$direction";
+            }
+            else
+            {
+                push @invalid_fragments, $fragment;
+            }
+        }
+        if (scalar @invalid_fragments)
+        {
+            $vars->{message} = 'invalid_column_name';
+            $vars->{invalid_fragments} = \@invalid_fragments;
+        }
+
+        $order = join(",", @order);
+        # Now that we have checked that all columns in the order are valid,
+        # detaint the order string.
+        trick_taint($order) if $order;
     }
 }
 
-if (!$order) {
-    # DEFAULT
-    $order = "bug_status,priority,assigned_to,bug_id";
-}
+$order = $old_orders->{''} if !$order;
 
 my @orderstrings = split(/,\s*/, $order);
 
@@ -882,7 +880,7 @@ my $search = new Bugzilla::Search('fields' => \@selectcolumns,
                                   'params' => $params,
                                   'order' => \@orderstrings);
 my $query = $search->getSQL();
-$vars->{'search_description'} = $search->search_description;
+$vars->{search_description} = $search->search_description_html;
 
 if (defined $cgi->param('limit')) {
     my $limit = $cgi->param('limit');
@@ -1131,7 +1129,7 @@ $vars->{'order_dir'} = [ map { s/ DESC$// ? 1 : 0 } @{$vars->{'order_columns'}} 
 $vars->{'caneditbugs'} = 1;
 $vars->{'time_info'} = $time_info;
 
-$vars->{query_params} = $params->Vars; # now used only in superworktime
+$vars->{query_params} = { %{ $params->Vars } }; # now used only in superworktime
 $vars->{query_params}->{chfieldfrom} = $Bugzilla::Search::interval_from;
 $vars->{query_params}->{chfieldto} = $Bugzilla::Search::interval_to;
 
@@ -1203,9 +1201,7 @@ if ($dotweak && scalar @bugs) {
 
     # Convert bug statuses to their ID.
     my @bug_statuses = map {$dbh->quote($_)} keys %$bugstatuses;
-    my $bug_status_ids =
-      $dbh->selectcol_arrayref('SELECT id FROM bug_status
-                               WHERE ' . $dbh->sql_in('value', \@bug_statuses));
+    my $bug_status_ids = $dbh->selectcol_arrayref('SELECT id FROM bug_status WHERE ' . $dbh->sql_in('value', \@bug_statuses));
 
     # This query collects new statuses which are common to all current bug statuses.
     # It also accepts transitions where the bug status doesn't change.
@@ -1244,10 +1240,28 @@ if ($dotweak && scalar @bugs) {
 
 # If we're editing a stored query, use the existing query name as default for
 # the "Remember search as" field.
-$vars->{'defaultsavename'} = $cgi->param('query_based_on');
-$vars->{'query_sql_time'} = sprintf("%.2f", $query_sql_time);
+$vars->{defaultsavename} = $cgi->param('query_based_on');
+$vars->{query_sql_time} = sprintf("%.2f", $query_sql_time);
 
 Bugzilla::Hook::process('after-buglist', { vars => $vars });
+
+$vars->{abbrev} = {
+    bug_severity         => { maxlength => 3, title => "Sev" },
+    priority             => { maxlength => 3, title => "Pri" },
+    rep_platform         => { maxlength => 3, title => "Plt" },
+    bug_status           => { maxlength => 4 },
+    assigned_to          => { maxlength => 30, ellipsis => "..." },
+    reporter             => { maxlength => 30, ellipsis => "..." },
+    qa_contact           => { maxlength => 30, ellipsis => "..." },
+    resolution           => { maxlength => 4 },
+    short_short_desc     => { maxlength => 60, ellipsis => "..." },
+    status_whiteboard    => { title => "Whiteboard" },
+    component            => { maxlength => 8, title => "Comp" },
+    product              => { maxlength => 8 },
+    op_sys               => { maxlength => 4 },
+    target_milestone     => { title => "Milestone" },
+    percentage_complete  => { format_value => "%d %%" },
+};
 
 ################################################################################
 # HTTP Header Generation

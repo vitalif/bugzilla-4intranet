@@ -18,7 +18,25 @@
   # Contributor(s): Jacob Steenhagen <jake@bugzilla.org>
   #%]
 
-[% PROCESS global/variables.none.tmpl %]
+[%# This is mini login form shown in header and/or footer.
+  # It consists of:
+  # 1) A simple link to separate login form if browser has JS disabled.
+  # 2) A link which shows a mini login form in-place when clicked otherwise.
+  # In browsers that do autocomplete without user interaction
+  # (Firefox, Safari), the mini login form is shown right after
+  # autocomplete.
+  # Initially, onDOMReady was used for it: """
+  #   However, autocomplete happens at all sorts of different times in
+  #   different browsers (before or after onDOMReady, before or after
+  #   window.onload, in almost all combinations you can imagine).
+  #   The only good solution I found is to time the event 200
+  #   milliseconds after window.onload for WebKit (doing it immediately
+  #   at onload works in Chrome but not in Safari, but I can't detect
+  #   them separately using YUI), and right after onDOMReady in Gecko.
+  # """
+  # But, browsers also fire 'keyup' event on autocompleted editboxes.
+  # So, now it's used to show the login form.
+%]
 
 [%# Use the current script name. If an empty name is returned,
   # then we are accessing the home page. %]
@@ -39,69 +57,38 @@
   [% script_name = login_target _ connector _ "GoAheadAndLogIn=1" %]
   <a id="login_link_[% qs_suffix %]" href="[% script_name FILTER html %]"
      onclick="return show_mini_login_form('_[% qs_suffix %]')">Log In</a>
-  <form action="[% login_target FILTER html %]" method="POST" 
+  <form action="[% login_target FILTER html %]" method="POST"
         class="mini_login bz_default_hidden"
         id="mini_login_[% qs_suffix %]"
-        onsubmit="return check_mini_login_fields( '_[% qs_suffix %]' );"
-  >
-    <input id="Bugzilla_login_[% qs_suffix %]" 
-           class="bz_login"
-           name="Bugzilla_login"
+        onsubmit="return check_mini_login_fields( '_[% qs_suffix %]' );">
+    <input id="Bugzilla_login_[% qs_suffix %]"
+           class="bz_login" name="Bugzilla_login"
            onfocus="mini_login_on_focus('_[% qs_suffix %]')"
-    >
-    <input class="bz_password" 
-           id="Bugzilla_password_[% qs_suffix %]" 
-           name="Bugzilla_password"
-           type="password"
-    >
-    <input class="bz_password bz_default_hidden bz_mini_login_help" type="text" 
+           onkeyup="if(!this.form._shown)show_mini_login_form('_[% qs_suffix %]')" />
+    <input id="Bugzilla_password_[% qs_suffix %]"
+           class="bz_password" name="Bugzilla_password"
+           type="password" />
+    <input class="bz_password bz_default_hidden bz_mini_login_help" type="text"
            id="Bugzilla_password_dummy_[% qs_suffix %]" value="password"
-           onfocus="mini_login_on_focus('_[% qs_suffix %]')"
-    >
+           onfocus="mini_login_on_focus('_[% qs_suffix %]')" />
     [% IF Param('rememberlogin') == 'defaulton' ||
-          Param('rememberlogin') == 'defaultoff' 
+          Param('rememberlogin') == 'defaultoff'
     %]
-      <input type="checkbox" id="Bugzilla_remember_[% qs_suffix %]" 
+      <input type="checkbox" id="Bugzilla_remember_[% qs_suffix %]"
              name="Bugzilla_remember" value="on" class="bz_remember"
                  [%+ "checked" IF Param('rememberlogin') == "defaulton" %]>
       <label for="Bugzilla_remember_[% qs_suffix %]">Remember</label>
     [% END %]
-    <input type="submit" name="GoAheadAndLogIn" value="Log in" 
-            id="log_in_[% qs_suffix %]">
+    <input type="submit" name="GoAheadAndLogIn" value="Log in"
+            id="log_in_[% qs_suffix %]" />
     <script type="text/javascript">
       mini_login_constants = {
-          "login" : "login",
-          "warning" : "You must set the login and password before logging in."
+        "login" : "login",
+        "warning" : "You must set the login and password before logging in."
       };
-      [%# We need this event to fire after autocomplete, because it does
-        # something different depending on whether or not there's already
-        # data in the login and password box.
-        # However, autocomplete happens at all sorts of different times in
-        # different browsers (before or after onDOMReady, before or after
-        # window.onload, in almost all combinations you can imagine).
-        # The only good solution I found is to time the event 200 
-        # milliseconds after window.onload for WebKit (doing it immediately 
-        # at onload works in Chrome but not in Safari, but I can't detect 
-        # them separately using YUI), and right after onDOMReady in Gecko. 
-        # The WebKit solution is also fairly guaranteed to work on any 
-        # browser (it's just strange, since the fields only populate 200 ms
-        # after the page loads), so it's the default. IE doesn't even
-        # recognize our forms as login forms, so I made it use the Gecko
-        # method also (since it's nicer visually). Opera never autocompletes
-        # forms without user interaction, so it also uses the Gecko method.
-        #%]
-      if (YAHOO.env.ua.gecko || YAHOO.env.ua.ie || YAHOO.env.ua.opera) {
-          YAHOO.util.Event.onDOMReady(function() {
-              init_mini_login_form('_[% qs_suffix %]');
-          });
-      }
-      else {
-          YAHOO.util.Event.on(window, 'load', function () {
-              window.setTimeout(function() {
-                  init_mini_login_form('_[% qs_suffix %]');
-              }, 200);
-          });
-    }
+      addListener(window, 'load', function() {
+        init_mini_login_form('_[% qs_suffix %]');
+      });
     </script>
     <a href="#" onclick="return hide_mini_login_form('_[% qs_suffix %]')">[x]</a>
   </form>
@@ -113,9 +100,9 @@
   <form action="token.cgi" method="post" id="forgot_form_[% qs_suffix %]"
         class="mini_forgot bz_default_hidden">
     <label>Login: <input type="text" name="loginname" size="20"></label>
-    <input id="forgot_button_[% qs_suffix %]" value="Reset Password" 
-           type="submit">
-    <input type="hidden" name="a" value="reqpw">
+    <input id="forgot_button_[% qs_suffix %]" value="Reset Password"
+           type="submit" />
+    <input type="hidden" name="a" value="reqpw" />
     <a href="#" onclick="return hide_forgot_form('_[% qs_suffix %]')">[x]</a>
   </form>
 </li>

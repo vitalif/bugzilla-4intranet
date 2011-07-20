@@ -76,7 +76,7 @@ if (@categoryActions = grep(/^categoryAction-.+/, $cgi->param())) {
     exit;
 }
 
-if    ($action eq 'list')           { list();           }
+if    ($action eq 'list')           { ft_list();        }
 elsif ($action eq 'enter')          { edit($action);    }
 elsif ($action eq 'copy')           { edit($action);    }
 elsif ($action eq 'edit')           { edit($action);    }
@@ -95,7 +95,7 @@ exit;
 # Functions
 ################################################################################
 
-sub list {
+sub ft_list {
     my $product = validateProduct(scalar $cgi->param('product'));
     my $component = validateComponent($product, scalar $cgi->param('component'));
     my $product_id = $product ? $product->id : 0;

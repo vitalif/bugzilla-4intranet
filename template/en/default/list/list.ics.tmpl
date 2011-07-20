@@ -17,7 +17,6 @@
   #
   # Contributor(s): William Jon McCann <mccann@jhu.edu>
   #%]
-[% PROCESS global/variables.none.tmpl %]
 BEGIN:VCALENDAR
 CALSCALE:GREGORIAN
 [%+ PROCESS ics_prodid +%]
@@ -52,7 +51,6 @@ BEGIN:VTODO
 END:VTODO
 [% END %]
 END:VCALENDAR
-
 [% BLOCK ics_prodid %]
   [% "-//Mozilla/Bugzilla $constants.BUGZILLA_VERSION//EN" FILTER ics('PRODID') %]
 [% END %]

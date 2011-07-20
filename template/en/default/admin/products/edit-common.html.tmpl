@@ -21,8 +21,6 @@
   # classification: Bugzilla::Classifiation object; classification product is in.
   #%]
 
-[% PROCESS "global/field-descs.none.tmpl" %]
-
 [% IF Param('useclassification') %]
   <tr>
     <th align="right"><b>Classification:</b></th>
@@ -52,14 +50,13 @@
 <tr>
   <th align="right">
     <label for="allows_unconfirmed">Enable the
-      [%+ display_value('bug_status', 'UNCONFIRMED') FILTER html %] status
+      UNCONFIRMED status
       in this product:</label>
   </th>
   <td><input type="checkbox" id="allows_unconfirmed" name="allows_unconfirmed"
              [% ' checked="checked"' IF product.allows_unconfirmed %]
              [% IF Param('usevotes') %]
-               onchange="bz_toggleClass('votes_to_confirm_container', 
-                                        'bz_default_hidden')"
+               onchange="toggleClass('votes_to_confirm_container', 'bz_default_hidden')"
              [% END %]>
     [% IF Param('usevotes') %]
       <span id="votes_to_confirm_container"

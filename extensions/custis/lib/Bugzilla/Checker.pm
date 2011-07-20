@@ -6,6 +6,7 @@ use strict;
 use base qw(Bugzilla::Object Exporter);
 
 use JSON;
+use Bugzilla::Search;
 use Bugzilla::Search::Saved;
 use Bugzilla::Error;
 
@@ -77,9 +78,12 @@ sub refresh_sql
         fields => [ 'bug_id' ],
         user   => Bugzilla::User->super_user,
     );
-    my $sql = $search->getSQL();
-    $sql =~ s/ORDER\s+BY.*?$//iso;
-    $sql =~ s/^\s*SELECT.*?FROM//iso;
+    my $terms = Bugzilla::Search::simplify_expression([
+        'AND_MANY', { term => 'bugs.bug_id=?' },
+        $search->{terms_without_security}
+    ]);
+    my $sql = $search->get_expression_sql($terms);
+    $sql =~ s/^\s*SELECT.*?FROM/SELECT $self->{id} FROM/;
     $self->set_sql_code($sql);
 }
 

@@ -21,8 +21,6 @@
 [%# INTERFACE:
   # See report-table.html.tmpl.
   #%]
-[% PROCESS global/variables.none.tmpl %]
-
 [% colsepchar = user.settings.csv_colsepchar.value %]
 [% num_bugs = BLOCK %]Number of [% terms.bugs %][% END %]
 [% tbl_field_disp = field_descs.$tbl_field || report.tbl_field %]

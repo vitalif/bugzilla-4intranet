@@ -35,8 +35,6 @@
 
 [% DEFAULT title = "Internal Error" %]
 
-[% PROCESS "global/variables.none.tmpl" %]
-
 [% error_message = BLOCK %]
   [% IF    error == "action_unrecognized" %]
     [% docslinks = {'query.html' => "Searching for $terms.bugs",
@@ -369,15 +367,13 @@
     A valid quipid is needed.
 
   [% ELSIF error == "no_manual_moved" %]
-    You cannot set the resolution of [% terms.abug %] to [% display_value("resolution", "MOVED") FILTER html %] without
+    You cannot set the resolution of [% terms.abug %] to MOVED without
     moving the [% terms.bug %].
 
   [% ELSIF error == "no_open_bug_status" %]
-    [% PROCESS "global/field-descs.none.tmpl" %]
     [% title = "$terms.Bug Cannot Be Confirmed" %]
     There is no valid transition from
-    [%+ display_value("bug_status", "UNCONFIRMED") FILTER html %] to an open state.
-
+    UNCONFIRMED to an open state.
   [% ELSIF error == "param_invalid" %]
     [% title = "Invalid Parameter" %]
     <code>[% param FILTER html %]</code> is not a valid parameter

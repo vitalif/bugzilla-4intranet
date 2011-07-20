@@ -18,135 +18,16 @@
  *                 Guy Pyrzak <guy.pyrzak@gmail.com>
  */
 
-/* This library assumes that the needed YUI libraries have been loaded
-   already. */
-
-function createCalendar(name) {
-    var cal = new YAHOO.widget.Calendar('calendar_' + name, 
-                                        'con_calendar_' + name);
-    YAHOO.bugzilla['calendar_' + name] = cal;
-    var field = document.getElementById(name);
-    cal.selectEvent.subscribe(setFieldFromCalendar, field, false);
-    updateCalendarFromField(field);
-    cal.render();
-}
-
-/* The onclick handlers for the button that shows the calendar. */
-function showCalendar(field_name) {
-    var calendar  = YAHOO.bugzilla["calendar_" + field_name];
-    var field     = document.getElementById(field_name);
-    var button    = document.getElementById('button_calendar_' + field_name);
-
-    bz_overlayBelow(calendar.oDomContainer, field);
-    calendar.show();
-    button.onclick = function() { hideCalendar(field_name); };
-
-    // Because of the way removeListener works, this has to be a function
-    // attached directly to this calendar.
-    calendar.bz_myBodyCloser = function(event) {
-        var container = this.oDomContainer;
-        var target    = YAHOO.util.Event.getTarget(event);
-        if (target != container && target != button
-            && !YAHOO.util.Dom.isAncestor(container, target))
-        {
-            hideCalendar(field_name);
-        }
-    };
-
-    // If somebody clicks outside the calendar, hide it.
-    YAHOO.util.Event.addListener(document.body, 'click', 
-                                 calendar.bz_myBodyCloser, calendar, true);
-
-    // Make Esc close the calendar.
-    calendar.bz_escCal = function (event) {
-        var key = YAHOO.util.Event.getCharCode(event);
-        if (key == 27) {
-            hideCalendar(field_name);
-        }
-    };
-    YAHOO.util.Event.addListener(document.body, 'keydown', calendar.bz_escCal);
-}
-
-function hideCalendar(field_name) {
-    var cal = YAHOO.bugzilla["calendar_" + field_name];
-    cal.hide();
-    var button = document.getElementById('button_calendar_' + field_name);
-    button.onclick = function() { showCalendar(field_name); };
-    YAHOO.util.Event.removeListener(document.body, 'click',
-                                    cal.bz_myBodyCloser);
-    YAHOO.util.Event.removeListener(document.body, 'keydown', cal.bz_escCal);
-}
-
-/* This is the selectEvent for our Calendar objects on our custom 
- * DateTime fields.
- */
-function setFieldFromCalendar(type, args, date_field) {
-    var dates = args[0];
-    var setDate = dates[0];
-
-    // We can't just write the date straight into the field, because there 
-    // might already be a time there.
-    var timeRe = /\b(\d{1,2}):(\d\d)(?::(\d\d))?/;
-    var currentTime = timeRe.exec(date_field.value);
-    var d = new Date(setDate[0], setDate[1] - 1, setDate[2]);
-    if (currentTime) {
-        d.setHours(currentTime[1], currentTime[2]);
-        if (currentTime[3]) {
-            d.setSeconds(currentTime[3]);
-        }
-    }
-
-    var year = d.getFullYear();
-    // JavaScript's "Date" represents January as 0 and December as 11.
-    var month = d.getMonth() + 1;
-    if (month < 10) month = '0' + String(month);
-    var day = d.getDate();
-    if (day < 10) day = '0' + String(day);
-    var dateStr = year + '-' + month  + '-' + day;
-
-    if (currentTime) {
-        var minutes = d.getMinutes();
-        if (minutes < 10) minutes = '0' + String(minutes);
-        var seconds = d.getSeconds();
-        if (seconds > 0 && seconds < 10) {
-            seconds = '0' + String(seconds);
-        }
-
-        dateStr = dateStr + ' ' + d.getHours() + ':' + minutes;
-        if (seconds) dateStr = dateStr + ':' + seconds;
-    }
-
-    date_field.value = dateStr;
-    hideCalendar(date_field.id);
-}
-
-/* Sets the calendar based on the current field value. 
- */ 
-function updateCalendarFromField(date_field) {
-    var dateRe = /(\d\d\d\d)-(\d\d?)-(\d\d?)/;
-    var pieces = dateRe.exec(date_field.value);
-    if (pieces) {
-        var cal = YAHOO.bugzilla["calendar_" + date_field.id];
-        cal.select(new Date(pieces[1], pieces[2] - 1, pieces[3]));
-        var selectedArray = cal.getSelectedDates();
-        var selected = selectedArray[0];
-        cal.cfg.setProperty("pagedate", (selected.getMonth() + 1) + '/' 
-                                        + selected.getFullYear());
-        cal.render();
-    }
-}
-
-
-/* Hide input fields and show the text with (edit) next to it */  
-function hideEditableField( container, input, action, field_id, original_value ) {
-    YAHOO.util.Dom.removeClass(container, 'bz_default_hidden');
-    YAHOO.util.Dom.addClass(input, 'bz_default_hidden');
-    YAHOO.util.Event.addListener(action, 'click', showEditableField,
-                                 new Array(container, input));
-    if(field_id != ""){
-        YAHOO.util.Event.addListener(window, 'load', checkForChangedFieldValues,
-                        new Array(container, input, field_id, original_value));
-    }
+/* Hide input fields and show the text with (edit) next to it */
+function hideEditableField( container, input, action, field_id, original_value )
+{
+    removeClass(container, 'bz_default_hidden');
+    addClass(input, 'bz_default_hidden');
+    addListener(action, 'click', function(ev) { return showEditableField(ev, [ container, input ]); });
+    if (field_id != "")
+        addListener(window, 'load', function(ev) {
+            return checkForChangedFieldValues(ev, [ container, input, field_id, original_value ])
+        });
 }
 
 /* showEditableField (e, ContainerInputArray)
@@ -158,28 +39,30 @@ function hideEditableField( container, input, action, field_id, original_value )
  * var ContainerInputArray[1]: the input area and label that will be displayed
  *
  */
-function showEditableField (e, ContainerInputArray) {
+function showEditableField(e, ContainerInputArray)
+{
     var inputs = new Array();
-    var inputArea = YAHOO.util.Dom.get(ContainerInputArray[1]);    
-    if ( ! inputArea ){
-        YAHOO.util.Event.preventDefault(e);
-        return;
+    var inputArea = ContainerInputArray[1];
+    if (!inputArea)
+    {
+        if (e.preventDefault) e.preventDefault();
+        return false;
     }
-    YAHOO.util.Dom.addClass(ContainerInputArray[0], 'bz_default_hidden');
-    YAHOO.util.Dom.removeClass(inputArea, 'bz_default_hidden');
-    if ( inputArea.tagName.toLowerCase() == "input" ) {
+    addClass(ContainerInputArray[0], 'bz_default_hidden');
+    removeClass(inputArea, 'bz_default_hidden');
+    if (inputArea.tagName.toLowerCase() == "input")
         inputs.push(inputArea);
-    } else {
+    else
         inputs = inputArea.getElementsByTagName('input');
-    }
-    if ( inputs.length > 0 ) {
+    if (inputs.length > 0)
+    {
         // focus on the first field, this makes it easier to edit
         inputs[0].focus();
         inputs[0].select();
     }
-    YAHOO.util.Event.preventDefault(e);
+    if (e.preventDefault) e.preventDefault();
+    return false;
 }
-
 
 /* checkForChangedFieldValues(e, array )
  * Function checks if after the autocomplete by the browser if the values match the originals.
@@ -189,10 +72,10 @@ function showEditableField (e, ContainerInputArray) {
  * var ContainerInputArray: An array containing the (edit) and text area and the input being displayed
  * var ContainerInputArray[0]: the conainer that will be hidden usually shows the (edit) text
  * var ContainerInputArray[1]: the input area and label that will be displayed
- * var ContainerInputArray[2]: the field that is on the page, might get changed by browser autocomplete 
+ * var ContainerInputArray[2]: the field that is on the page, might get changed by browser autocomplete
  * var ContainerInputArray[3]: the original value from the page loading.
  *
- */  
+ */
 function checkForChangedFieldValues(e, ContainerInputArray ) {
     var el = document.getElementById(ContainerInputArray[2]);
     var unhide = false;
@@ -207,174 +90,177 @@ function checkForChangedFieldValues(e, ContainerInputArray ) {
             if ( set_default ) {
                 if(set_default.checked){
                     unhide = true;
-                }              
+                }
             }
         }
     }
-    if(unhide){
-        YAHOO.util.Dom.addClass(ContainerInputArray[0], 'bz_default_hidden');
-        YAHOO.util.Dom.removeClass(ContainerInputArray[1], 'bz_default_hidden');
+    if(unhide)
+    {
+        addClass(ContainerInputArray[0], 'bz_default_hidden');
+        removeClass(ContainerInputArray[1], 'bz_default_hidden');
     }
-
 }
 
-function hideAliasAndSummary(short_desc_value, alias_value) {
+function hideAliasAndSummary(short_desc_value, alias_value)
+{
     // check the short desc field
-    hideEditableField( 'summary_alias_container','summary_alias_input',
-                       'editme_action','short_desc', short_desc_value);  
+    hideEditableField(
+        'summary_alias_container','summary_alias_input',
+        'editme_action','short_desc', short_desc_value
+    );
     // check that the alias hasn't changed
-    var bz_alias_check_array = new Array('summary_alias_container',
-                                     'summary_alias_input', 'alias', alias_value);
-    YAHOO.util.Event.addListener( window, 'load', checkForChangedFieldValues,
-                                 bz_alias_check_array);
+    var bz_alias_check_array = [
+        'summary_alias_container', 'summary_alias_input', 'alias', alias_value
+    ];
+    addListener(window, 'load',
+        function(ev) { return checkForChangedFieldValues(ev, bz_alias_check_array) }
+    );
 }
 
-function showPeopleOnChange( field_id_list ) {
-    for(var i = 0; i < field_id_list.length; i++) {
-        YAHOO.util.Event.addListener( field_id_list[i],'change', showEditableField,
-                                      new Array('bz_qa_contact_edit_container',
-                                                'bz_qa_contact_input'));
-        YAHOO.util.Event.addListener( field_id_list[i],'change',showEditableField,
-                                      new Array('bz_assignee_edit_container',
-                                                'bz_assignee_input'));
+function showPeopleOnChange(field_id_list)
+{
+    for (var i = 0; i < field_id_list.length; i++)
+    {
+        addListener(field_id_list[i], 'change',
+            function(ev) { return showEditableField(ev, [ 'bz_qa_contact_edit_container', 'bz_qa_contact_input' ]) });
+        addListener(field_id_list[i], 'change',
+            function(ev) { return showEditableField(ev, [ 'bz_assignee_edit_container', 'bz_assignee_input']) });
     }
 }
 
-function assignToDefaultOnChange(field_id_list) {
-    showPeopleOnChange( field_id_list );
-    for(var i = 0; i < field_id_list.length; i++) {
-        YAHOO.util.Event.addListener( field_id_list[i],'change', setDefaultCheckbox,
-                                      'set_default_assignee');
-        YAHOO.util.Event.addListener( field_id_list[i],'change',setDefaultCheckbox,
-                                      'set_default_qa_contact');    
+function assignToDefaultOnChange(field_id_list)
+{
+    showPeopleOnChange(field_id_list);
+    for (var i = 0; i < field_id_list.length; i++)
+    {
+        addListener(field_id_list[i], 'change',
+            function(ev) { return setDefaultCheckbox(ev, 'set_default_assignee') });
+        addListener(field_id_list[i], 'change',
+            function(ev) { return setDefaultCheckbox(ev, 'set_default_qa_contact') });
     }
 }
 
-function initDefaultCheckbox(field_id){
-    YAHOO.util.Event.addListener( 'set_default_' + field_id,'change', boldOnChange,
-                                  'set_default_' + field_id);
-    YAHOO.util.Event.addListener( window,'load', checkForChangedFieldValues,
-                                  new Array( 'bz_' + field_id + '_edit_container',
-                                             'bz_' + field_id + '_input',
-                                             'set_default_' + field_id ,'1'));
-    
-    YAHOO.util.Event.addListener( window, 'load', boldOnChange,
-                                 'set_default_' + field_id ); 
+function initDefaultCheckbox(field_id)
+{
+    addListener('set_default_'+field_id, 'change',
+        function(ev) { return boldOnChange(ev, 'set_default_'+field_id) });
+    addListener(window, 'load',
+        function(ev) { return checkForChangedFieldValues(ev, [
+            'bz_'+field_id+'_edit_container', 'bz_'+field_id+'_input',
+            'set_default_'+field_id, '1' ]) });
+    addListener(window, 'load',
+        function(ev) { return boldOnChange(ev, 'set_default_'+field_id) });
 }
 
-function showHideStatusItems(e, dupArrayInfo) {
+function showHideStatusItems(is_duplicate, initial_status)
+{
     var el = document.getElementById('bug_status');
-    // finish doing stuff based on the selection.
-    if ( el ) {
+    if (el)
+    {
         showDuplicateItem(el);
-
         // Make sure that fields whose visibility or values are controlled
         // by "resolution" behave properly when resolution is hidden.
         var resolution = document.getElementById('resolution');
-        if (resolution && resolution.options[0].value != '') {
+        if (resolution && resolution.options[0].value != '')
+        {
             resolution.bz_lastSelected = resolution.selectedIndex;
             var emptyOption = new Option('', '');
             resolution.insertBefore(emptyOption, resolution.options[0]);
             emptyOption.selected = true;
         }
-        YAHOO.util.Dom.addClass('resolution_settings', 'bz_default_hidden');
-        if (document.getElementById('resolution_settings_warning')) {
-            YAHOO.util.Dom.addClass('resolution_settings_warning',
-                                    'bz_default_hidden');
-        }
-        YAHOO.util.Dom.addClass('duplicate_display', 'bz_default_hidden');
-
-
-        if ( (el.value == dupArrayInfo[1] && dupArrayInfo[0] == "is_duplicate")
-             || bz_isValueInArray(close_status_array, el.value) ) 
+        addClass('resolution_settings', 'bz_default_hidden');
+        if (document.getElementById('resolution_settings_warning'))
+            addClass('resolution_settings_warning', 'bz_default_hidden');
+        addClass('duplicate_display', 'bz_default_hidden');
+        if (el.value == initial_status && is_duplicate == "is_duplicate" ||
+            bz_isValueInArray(close_status_array, el.value))
         {
-            YAHOO.util.Dom.removeClass('resolution_settings', 
-                                       'bz_default_hidden');
-            YAHOO.util.Dom.removeClass('resolution_settings_warning', 
-                                       'bz_default_hidden');
+            removeClass('resolution_settings', 'bz_default_hidden');
+            removeClass('resolution_settings_warning', 'bz_default_hidden');
 
             // Remove the blank option we inserted.
-            if (resolution && resolution.options[0].value == '') {
+            if (resolution && resolution.options[0].value == '')
+            {
                 resolution.removeChild(resolution.options[0]);
                 resolution.selectedIndex = resolution.bz_lastSelected;
             }
         }
-
-        if (resolution) {
+        if (resolution)
             bz_fireEvent(resolution, 'change');
-        }
     }
 }
 
-function showDuplicateItem(e) {
+function showDuplicateItem(e)
+{
     var resolution = document.getElementById('resolution');
     var bug_status = document.getElementById('bug_status');
     var dup_id = document.getElementById('dup_id');
-    if (resolution) {
-        if (resolution.value == 'DUPLICATE' && bz_isValueInArray( close_status_array, bug_status.value) ) {
+    if (resolution && dup_id)
+    {
+        if (resolution.value == 'DUPLICATE' && bz_isValueInArray(close_status_array, bug_status.value))
+        {
             // hide resolution show duplicate
-            YAHOO.util.Dom.removeClass('duplicate_settings', 
-                                       'bz_default_hidden');
-            YAHOO.util.Dom.addClass('dup_id_discoverable', 'bz_default_hidden');
+            removeClass('duplicate_settings', 'bz_default_hidden');
+            addClass('dup_id_discoverable', 'bz_default_hidden');
             // check to make sure the field is visible or IE throws errors
-            if( ! YAHOO.util.Dom.hasClass( dup_id, 'bz_default_hidden' ) ){
+            if (!hasClass(dup_id, 'bz_default_hidden'))
+            {
                 dup_id.focus();
                 dup_id.select();
             }
         }
-        else {
-            YAHOO.util.Dom.addClass('duplicate_settings', 'bz_default_hidden');
-            YAHOO.util.Dom.removeClass('dup_id_discoverable', 
-                                       'bz_default_hidden');
+        else
+        {
+            addClass('duplicate_settings', 'bz_default_hidden');
+            removeClass('dup_id_discoverable', 'bz_default_hidden');
             dup_id.blur();
         }
     }
-    YAHOO.util.Event.preventDefault(e); //prevents the hyperlink from going to the url in the href.
+    // Prevent the hyperlink from going to the url in the href:
+    if (e.preventDefault) e.preventDefault();
+    return false;
 }
 
-function setResolutionToDuplicate(e, duplicate_or_move_bug_status) {
+function setResolutionToDuplicate(duplicate_or_move_bug_status)
+{
     var status = document.getElementById('bug_status');
     var resolution = document.getElementById('resolution');
-    YAHOO.util.Dom.addClass('dup_id_discoverable', 'bz_default_hidden');
+    addClass('dup_id_discoverable', 'bz_default_hidden');
     status.value = duplicate_or_move_bug_status;
     bz_fireEvent(status, 'change');
     resolution.value = "DUPLICATE";
     bz_fireEvent(resolution, 'change');
-    YAHOO.util.Event.preventDefault(e);
+    if (e.preventDefault) e.preventDefault();
+    return false;
 }
 
-function setDefaultCheckbox(e, field_id ) { 
+function setDefaultCheckbox(e, field_id)
+{
     var el = document.getElementById(field_id);
     var elLabel = document.getElementById(field_id + "_label");
-    if( el && elLabel ) {
+    if (el && elLabel)
+    {
         el.checked = "true";
-        YAHOO.util.Dom.setStyle(elLabel, 'font-weight', 'bold');
+        elLabel.style.fontWeight = bold;
     }
 }
 
-function boldOnChange(e, field_id){
+function boldOnChange(e, field_id)
+{
     var el = document.getElementById(field_id);
     var elLabel = document.getElementById(field_id + "_label");
-    if( el && elLabel ) {
-        if( el.checked ){
-            YAHOO.util.Dom.setStyle(elLabel, 'font-weight', 'bold');
-        }
-        else{
-            YAHOO.util.Dom.setStyle(elLabel, 'font-weight', 'normal');
-        }
-    }
+    if (el && elLabel)
+        elLabel.style.fontWeight = el.checked ? 'bold' : 'normal';
 }
 
-function updateCommentTagControl(checkbox, form) {
-    if (checkbox.checked) {
-        form.comment.className='bz_private';
-    } else {
-        form.comment.className='';
-    }
+function updateCommentTagControl(checkbox, form)
+{
+    form.comment.className = checkbox.checked ? 'bz_private' : '';
 }
 
 // A convenience function to generate the "id" tag of an <option>
 // based on the numeric id that Bugzilla uses for that value.
-function _value_id(field_name, id) {
+function _value_id(field_name, id)
+{
     return 'v' + id + '_' + field_name;
 }

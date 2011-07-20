@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # CustIS Bug 68921 - "Предикаты проверки корректности"
 # - Задаётся сохранённый запрос поиска.
-# - Принимается что баги, соответствующие (или НЕ соответствующие) этому запросу
+# - Принимается, что баги, соответствующие (или НЕ соответствующие) этому запросу
 #   до (или после) любых изменений - некорректные, и надо выдать предупреждение или ошибку.
 # - Выставляется флажок, можно ли всё-таки оставлять комментарии без рабочего времени.
 
@@ -56,8 +56,6 @@ sub check
         if (($_->flags & $mask) == $flags)
         {
             $s = $_->sql_code;
-            $i = $_->id;
-            $s =~ s/^(.*)(GROUP\s+BY)/SELECT $i id FROM $1 AND bugs.bug_id=? $2/iso;
             push @$sql, $s;
             push @bind, $bug_id;
         }
@@ -256,7 +254,14 @@ sub savedsearch_post_update
 sub install_before_final_checks
 {
     Bugzilla->request_cache->{user} = Bugzilla::User->super_user;
-    eval { $_->update } for Bugzilla::Checker->get_all;
+    for (Bugzilla::Checker->get_all)
+    {
+        eval { $_->update };
+        if ($@)
+        {
+            warn $@;
+        }
+    }
     return 1;
 }
 

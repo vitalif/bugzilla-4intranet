@@ -249,7 +249,6 @@
 
   <bz:fields>
     <Seq>
-      [% PROCESS "global/field-descs.none.tmpl" %]
       [% FOREACH item = field %]
         <li>
           <bz:field rdf:about="[% escaped_urlbase %]field.cgi?name=[% item.name FILTER url_quote %]">
@@ -267,5 +266,4 @@
     </Seq>
   </bz:fields>
 </bz:installation>
-
 </RDF>

@@ -690,18 +690,34 @@ sub switch_to_shadow_db {
     return $class->dbh;
 }
 
-sub switch_to_main_db {
+sub switch_to_main_db
+{
     my $class = shift;
-
     $class->request_cache->{dbh} = $class->dbh_main;
     return $class->dbh_main;
+}
+
+sub messages
+{
+    my $class = shift;
+    my $lc = $class->cgi->cookie('LANG') || 'en';
+    $lc =~ s/\W+//so;
+    if (!$INC{'Bugzilla::Language::'.$lc})
+    {
+        eval { require 'Bugzilla/Language/'.$lc.'.pm' };
+        if ($@)
+        {
+            $lc = 'en';
+            require 'Bugzilla/Language/en.pm';
+        }
+    }
+    return $Bugzilla::messages->{$lc};
 }
 
 sub cache_fields
 {
     my $class = shift;
     my $rc = $class->request_cache;
-    #return _fill_fields_cache($rc->{fields} ||= {});
     if (!$rc->{fields_delta_ts})
     {
         ($rc->{fields_delta_ts}) = Bugzilla->dbh->selectrow_array(
@@ -783,7 +799,16 @@ sub get_fields
     }
     if ($sort)
     {
-        @fields = sort { $a->{sortkey} <=> $b->{sortkey} } @fields;
+        # Support sorting on different fields
+        if ($sort eq 'name' || $sort eq 'description')
+        {
+            @fields = sort { $a->{$sort} cmp $b->{$sort} } @fields;
+        }
+        else
+        {
+            $sort = 'sortkey' if $sort ne 'id';
+            @fields = sort { $a->{$sort} <=> $b->{$sort} } @fields;
+        }
     }
     return @fields;
 }

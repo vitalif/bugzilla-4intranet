@@ -18,20 +18,16 @@
   # Contributor(s): Gervase Markham <gerv@gerv.net>
   #%]
 
-[% PROCESS global/variables.none.tmpl %]
-
 [% y_label = "$terms.Bugs" %]
-
-[% PROCESS "global/field-descs.none.tmpl" %]
 
 [% col_field_disp = field_descs.$col_field || col_field %]
 
 [% FOR i IN [ 0 .. data.0.0.max ] %]
-  [% data.0.0.$i = display_value(col_field, data.0.0.$i) %]
+  [% data.0.0.$i = data.0.0.$i %]
 [% END %]
 
 [% FOR i IN [ 0 .. row_names.max ] %]
-  [% row_names.$i = display_value(row_field, row_names.$i) %]
+  [% row_names.$i = row_names.$i %]
 [% END %]
 
 [% IF cumulate %]

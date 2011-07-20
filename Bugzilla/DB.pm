@@ -331,13 +331,13 @@ sub sql_group_by {
 
     my $expression = "GROUP BY $needed_columns";
     $expression .= ", " . $optional_columns if $optional_columns;
-    
+
     return $expression;
 }
 
 sub sql_string_concat {
     my ($self, @params) = @_;
-    
+
     return '(' . join(' || ', @params) . ')';
 }
 
@@ -413,7 +413,9 @@ sub bz_last_key {
                                  $table, $column);
 }
 
-sub bz_check_regexp {
+# Check a regexp for validity
+sub bz_check_regexp
+{
     my ($self, $pattern) = @_;
 
     eval { $self->do("SELECT " . $self->sql_regexp($self->quote("a"), $pattern, 1)) };

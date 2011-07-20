@@ -20,8 +20,6 @@
 [%# INTERFACE:
   # See report-table.html.tmpl.
   #%]
-[% PROCESS global/variables.none.tmpl %]
-
 [% colsepchar = user.settings.csv_colsepchar.value %]
 
 [% num_bugs = BLOCK %]Number of [% terms.bugs %][% END %]
@@ -67,7 +65,7 @@
 [% END %]
 
 [% BLOCK value_display %]
-  [% SET disp_value = display_value(field, value) %]
+  [% SET disp_value = value %]
   [% IF field == 'assigned_to' OR field == 'reporter'
            OR field == 'qa_contact'
   %]

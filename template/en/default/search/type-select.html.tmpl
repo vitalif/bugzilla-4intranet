@@ -18,12 +18,8 @@
   #   Max Kanat-Alexander <mkanat@bugzilla.org>
   #%]
 
-[% PROCESS "global/field-descs.none.tmpl" %]
-
-<select name="[% name FILTER html %]">
-  [% FOREACH type = types %]
-    <option value="[% type FILTER html %]"
-            [%- ' selected="selected"' IF type == selected %]>
-        [%- search_descs.$type FILTER html %]</option>
-  [% END %]
+<select name="[% name | html %]">
+[% FOREACH type = types %]
+  <option value="[% type | html %]" [% ' selected="selected"' IF type == selected %]>[% search_descs.$type FILTER html %]</option>
+[% END %]
 </select>

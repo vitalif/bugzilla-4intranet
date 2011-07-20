@@ -1,20 +1,4 @@
-/* The contents of this file are subject to the Mozilla Public
- * License Version 1.1 (the "License"); you may not use this file
- * except in compliance with the License. You may obtain a copy of
- * the License at http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS
- * IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
- * implied. See the License for the specific language governing
- * rights and limitations under the License.
- *
- * The Original Code is the Bugzilla Bug Tracking System.
- *
- * The Initial Developer of the Original Code is Netscape Communications
- * Corporation. Portions created by Netscape are
- * Copyright (C) 1998 Netscape Communications Corporation. All
- * Rights Reserved.
- *
+/* License: Dual-license GPL 3.0+ or MPL 1.1+
  * Contributor(s): Vitaliy Filippov <vitalif@mail.ru>
  */
 
@@ -66,64 +50,65 @@ respecting this "list of active IDs".
 */
 
 var qfHandling = {};
-YAHOO.util.Event.addListener(window, 'load', initQueryformFields);
+addListener(window, 'load', initQueryformFields);
 
 function initQueryformFields()
 {
-  for (var i in qfVisibility)
-  {
-    if (!qfHandling[i])
-      handleQueryformField(null, document.getElementById(i));
-    initQueryformField(i);
-  }
+    for (var i in qfVisibility)
+    {
+        if (!qfHandling[i])
+            handleQueryformField(null, document.getElementById(i));
+        initQueryformField(i);
+    }
 }
 
 function initQueryformField(i)
 {
-  var f = document.getElementById(i);
-  YAHOO.util.Event.addListener(f, 'change', handleQueryformField, f);
+    var f = document.getElementById(i);
+    if (f)
+        addListener(f, 'change', handleQueryformField_this);
 }
 
 // Get selected IDs of names selected in selectbox sel
 function getQueryformSelectedIds(sel)
 {
-  var opt = {};
-  var a;
-  var has_selected;
-  var l2 = sel.id.length+4;
-  // No selection is equivalent to full selection
-  for (var i = 0; i < sel.options.length; i++)
-  {
-    if (sel.options[i].selected)
+    var opt = {};
+    var a;
+    var has_selected;
+    var l2 = sel.id.length+4;
+    // No selection is equivalent to full selection
+    for (var i = 0; i < sel.options.length; i++)
     {
-      has_selected = true;
-      break;
+        if (sel.options[i].selected)
+        {
+            has_selected = true;
+            break;
+        }
     }
-  }
-  // Iterate over all options
-  for (var i = 0; i < sel.options.length; i++)
-  {
-    if (sel.options[i].selected || !has_selected)
+    // Iterate over all options
+    for (var i = 0; i < sel.options.length; i++)
     {
-      // IDs of options are qf_<SELECTBOX_ID>_1_2_3_...
-      // where 1_2_3 is the list of IDs mapped to this option name
-      // which are currently visible.
-      a = sel.options[i].id.substr(l2).split('_');
-      for (var j in a)
-        opt[a[j]] = true;
+        if (sel.options[i].selected || !has_selected)
+        {
+            // IDs of options are qf_<SELECTBOX_ID>_1_2_3_...
+            // where 1_2_3 is the list of IDs mapped to this option name
+            // which are currently visible.
+            a = sel.options[i].id.substr(l2).split('_');
+            for (var j in a)
+                opt[a[j]] = true;
+        }
     }
-  }
-  return opt;
+    return opt;
 }
 
 // Get the array with values of options selected in sel selectbox
 function getPlainSelectedIds(sel)
 {
-  var o = {};
-  for (var i = 0; i < sel.options.length; i++)
-    if (sel.options[i].selected)
-      o[sel.options[i].value] = true;
-  return o;
+    var o = {};
+    for (var i = 0; i < sel.options.length; i++)
+        if (sel.options[i].selected)
+            o[sel.options[i].value] = true;
+    return o;
 }
 
 // Check visibility of some field or value when it's visible only for ids
@@ -134,105 +119,111 @@ function getPlainSelectedIds(sel)
 // f({ 2: 1 },       { 1: 1 })       = false
 function qfCheckVisibility(visible_for_ids, selected_ids)
 {
-  vis = true;
-  // Visible also if visible_for_ids is an empty hash
-  if (visible_for_ids)
-  {
-    for (var cid in visible_for_ids)
+    vis = true;
+    // Visible also if visible_for_ids is an empty hash
+    if (visible_for_ids)
     {
-      vis = false;
-      if (selected_ids[cid])
-      {
-        vis = true;
-        break;
-      }
+        for (var cid in visible_for_ids)
+        {
+            vis = false;
+            if (selected_ids[cid])
+            {
+                vis = true;
+                break;
+            }
+        }
     }
-  }
-  return vis;
+    return vis;
+}
+
+// handleQueryformField on 'this' change
+function handleQueryformField_this(event)
+{
+    return handleQueryformField(event, this);
 }
 
 // Handle change of selection inside a selectbox 'controller'
 // Update all dependent fields
 function handleQueryformField(event, controller)
 {
-  var controlled, controlled_selected;
-  var vis, item, legal, name2id, name2id_order, valueVD;
-  qfHandling[controller.id] = true; // prevent double-action during init
-  var VD = qfVisibility[controller.id];
-  var visibility_selected = getQueryformSelectedIds(controller);
-  var ids = {};
-  for (var i in VD.fields)
-    ids[i] = true;
-  for (var i in VD.values)
-    ids[i] = true;
-  for (var controlled_id in ids)
-  {
-    controlled = document.getElementById(controlled_id);
-    if (!controlled)
-      continue;
-    if (controlled.nodeName != 'SELECT')
+    var controlled, controlled_selected;
+    var vis, item, legal, name2id, name2id_order, valueVD;
+    qfHandling[controller.id] = true; // prevent double-action during init
+    var VD = qfVisibility[controller.id];
+    var visibility_selected = getQueryformSelectedIds(controller);
+    var ids = {};
+    for (var i in VD.fields)
+        ids[i] = true;
+    for (var i in VD.values)
+        ids[i] = true;
+    for (var controlled_id in ids)
     {
-      // Just show/hide non-select fields
-      item = document.getElementById(controlled_id+'_cont');
-      if (item)
-      {
-        item.style.display = qfCheckVisibility(
-            VD.fields[controlled_id], visibility_selected
-        ) ? '' : 'none';
-      }
-      continue;
-    }
-    // Save and clear old selection for dependent field:
-    controlled_selected = getPlainSelectedIds(controlled);
-    bz_clearOptions(controlled);
-    // Loop over all legal values and remember currently
-    // visible IDs inside name2id preserving their original
-    // order using name2id_order
-    legal = qfVisibility[controlled_id]['legal'];
-    name2id = {};
-    name2id_order = [];
-    if (qfCheckVisibility(VD.fields[controlled_id], visibility_selected))
-    {
-      var vis_val = VD.values[controlled_id];
-      // Field is visible
-      for (var i in legal)
-      {
-        if (!vis_val || qfCheckVisibility(vis_val[legal[i][0]], visibility_selected))
+        controlled = document.getElementById(controlled_id);
+        if (!controlled)
+            continue;
+        if (controlled.nodeName != 'SELECT')
         {
-          // Value is visible
-          if (!name2id[legal[i][1]])
-          {
-            name2id[legal[i][1]] = [];
-            name2id_order.push(legal[i][1]);
-          }
-          name2id[legal[i][1]].push(legal[i][0]);
+            // Just show/hide non-select fields
+            item = document.getElementById(controlled_id+'_cont');
+            if (item)
+            {
+                item.style.display = qfCheckVisibility(
+                        VD.fields[controlled_id], visibility_selected
+                ) ? '' : 'none';
+            }
+            continue;
         }
-      }
+        // Save and clear old selection for dependent field:
+        controlled_selected = getPlainSelectedIds(controlled);
+        bz_clearOptions(controlled);
+        // Loop over all legal values and remember currently
+        // visible IDs inside name2id preserving their original
+        // order using name2id_order
+        legal = qfVisibility[controlled_id]['legal'];
+        name2id = {};
+        name2id_order = [];
+        if (qfCheckVisibility(VD.fields[controlled_id], visibility_selected))
+        {
+            var vis_val = VD.values[controlled_id];
+            // Field is visible
+            for (var i in legal)
+            {
+                if (!vis_val || qfCheckVisibility(vis_val[legal[i][0]], visibility_selected))
+                {
+                    // Value is visible
+                    if (!name2id[legal[i][1]])
+                    {
+                        name2id[legal[i][1]] = [];
+                        name2id_order.push(legal[i][1]);
+                    }
+                    name2id[legal[i][1]].push(legal[i][0]);
+                }
+            }
+        }
+        // Create options
+        for (var i in name2id_order)
+        {
+            i = name2id_order[i];
+            item = bz_createOptionInSelect(controlled, i, i);
+            /* Save particular selected IDs for the same name
+               for cascade selection of such fields.
+               At the moment, only component, version and target_milestone fields
+               can have many values with the same name, and they do not affect the
+               case of cascade selection when there are no custom fields depending
+               on them. */
+            item.id = 'qf_'+controlled_id+'_'+name2id[i].join('_');
+            if (controlled_selected[i])
+            {
+                // Restore selection
+                item.selected = true;
+            }
+        }
+        handleQueryformField(event, controlled);
+        item = document.getElementById(controlled_id+'_cont');
+        if (item)
+        {
+            // Hide fields with no options
+            item.style.display = controlled.options.length ? '' : 'none';
+        }
     }
-    // Create options
-    for (var i in name2id_order)
-    {
-      i = name2id_order[i];
-      item = bz_createOptionInSelect(controlled, i, i);
-      /* Save particular selected IDs for the same name
-         for cascade selection of such fields.
-         At the moment, only component, version and target_milestone fields
-         can have many values with the same name, and they do not affect the
-         case of cascade selection when there are no custom fields depending
-         on them. */
-      item.id = 'qf_'+controlled_id+'_'+name2id[i].join('_');
-      if (controlled_selected[i])
-      {
-        // Restore selection
-        item.selected = true;
-      }
-    }
-    handleQueryformField(event, controlled);
-    item = document.getElementById(controlled_id+'_cont');
-    if (item)
-    {
-      // Hide fields with no options
-      item.style.display = controlled.options.length ? '' : 'none';
-    }
-  }
 }

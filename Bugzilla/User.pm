@@ -1534,6 +1534,7 @@ sub wants_bug_mail {
 
         # You role is new if the bug itself is.
         # Only makes sense for the assignee, QA contact and the CC list.
+        # FIXME Это неудобно, потому что неочевидно для пользователя!
         if ($relationship == REL_ASSIGNEE
             || $relationship == REL_QA
             || $relationship == REL_CC)

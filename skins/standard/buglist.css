@@ -1,49 +1,40 @@
 /* The contents of this file are subject to the Mozilla Public
-  * License Version 1.1 (the "License"); you may not use this file
-  * except in compliance with the License. You may obtain a copy of
-  * the License at http://www.mozilla.org/MPL/
-  *
-  * Software distributed under the License is distributed on an "AS
-  * IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-  * implied. See the License for the specific language governing
-  * rights and limitations under the License.
-  *
-  * The Original Code is the Bugzilla Bug Tracking System.
-  *
-  * The Initial Developer of the Original Code is Netscape Communications
-  * Corporation. Portions created by Netscape are
-  * Copyright (C) 1998 Netscape Communications Corporation. All
-  * Rights Reserved.
-  *
-  * Contributor(s): Myk Melez <myk@mozilla.org>
-  */
+ * License Version 1.1 (the "License"); you may not use this file
+ * except in compliance with the License. You may obtain a copy of
+ * the License at http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS
+ * IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
+ * implied. See the License for the specific language governing
+ * rights and limitations under the License.
+ *
+ * The Original Code is the Bugzilla Bug Tracking System.
+ *
+ * The Initial Developer of the Original Code is Netscape Communications
+ * Corporation. Portions created by Netscape are
+ * Copyright (C) 1998 Netscape Communications Corporation. All
+ * Rights Reserved.
+ *
+ * Contributor(s): Myk Melez <myk@mozilla.org>
+ */
 
-.search_description {
-  margin: .5em 0;
-  padding: 0;
-}
-.search_description li {
-  list-style-type: none;
-  display: inline;
-  margin-right: 2em;
-}
+.search_description { display: inline-block; margin: 2px; padding: 2px; border: 1px solid gray; }
+.search_description._and { background-color: #e0e0ff; }
+.search_description._or { background-color: #ffffe0; }
+.search_description li { list-style-type: none; margin: 0 0.5em; display: inline; }
+.search_description .search_field { font-weight: bold; }
+.search_description .search_value { font-size: 85%; }
 
-.zero_results, .zero_result_links {
-  font-size: 120%;
-  font-weight: bold;
-}
-
+.zero_results, .zero_result_links { font-size: 120%; font-weight: bold; }
 .zero_result_links { margin: 0; }
-
-.bz_buglist_header th {
-  text-align: left;
-}
+.bz_query_head { margin: 0 0 8px; }
+.bz_buglist_header th { text-align: left; }
 
 .bz_sort_order_primary,
 .bz_sort_order_secondary {
-    display: inline-block;
-    padding-left: .2em;
-    text-decoration: none;
+  display: inline-block;
+  padding-left: .2em;
+  text-decoration: none;
 }
 
 th.sorttable_sorted a:after { content: "▲"; color: gray; }
@@ -57,18 +48,8 @@ th.sorted_3 { background-color: #c4c4c4; }
 th.sorted_4 { background-color: #d0d0d0; }
 th.sorted_5 { background-color: #dcdcdc; }
 
-.search_description .search_field { font-weight: bold; }
-.search_description .search_value { font-size: 85%; }
-
-.bz_row_odd {
-    background-color: #F7F7F7;
-    color: #000000;
-}
-
-.bz_row_even {
-    background-color: #FFFFFF;
-    color: #000000;
-}
+.bz_row_odd { background-color: #F7F7F7; color: #000000; }
+.bz_row_even { background-color: #FFFFFF; color: #000000; }
 
 /* Style bug rows according to severity. */
 .bz_blocker { color: red; font-weight: bold; }
@@ -87,28 +68,18 @@ tr.bz_secure td.first-child {
   background-color: inherit;
 }
 
-th.first-child, td.first-child {
-  padding-left: 20px;
-}
-
-td.bz_total_label {
-    font-weight: bold;
-}
+th.first-child, td.first-child { padding-left: 20px; }
+td.bz_total_label { font-weight: bold; }
 
 td.bz_total {
-    border-top-style: solid;
-    border-top-color: #929bb1;
-    border-top-width: 3px;
-    text-align: right;
+  border-top-style: solid;
+  border-top-color: #929bb1;
+  border-top-width: 3px;
+  text-align: right;
 }
 
-#commit, #action {
-  margin-top: .25em;
-}
-
-.bz_query_explain {
-    text-align: left;
-}
+#commit, #action { margin-top: .25em; }
+.bz_query_explain { text-align: left; }
 
 /* Bug list column styles */
 .bz_buglist td { white-space: nowrap; }
@@ -117,9 +88,7 @@ td.bz_total {
 .bz_buglist .bz_estimated_time_column,
 .bz_buglist .bz_remaining_time_column,
 .bz_buglist .bz_work_time_column,
-.bz_buglist .bz_percentage_complete_column {
-    text-align: right;
-}
+.bz_buglist .bz_percentage_complete_column { text-align: right; }
 
 .bz_buglist .bz_short_desc_column,
 .bz_buglist .bz_short_short_desc_column,
@@ -131,7 +100,7 @@ td.bz_total {
 .bz_buglist .bz_blocked_column,
 .bz_buglist .bz_dependson_column { width: 8%; white-space: normal; }
 
-/* Bug states  */
+/* Bug states */
 .bz_st_UNCONFIRMED, .bz_UNCONFIRMED td.first-child a { font-style: italic; }
 .bz_st_RESOLVED, .bz_RESOLVED td.first-child a { text-decoration: line-through; }
 .bz_st_VERIFIED, .bz_VERIFIED td.first-child a { text-decoration: line-through; border: 1px dashed #2f6fab; color: black; background-color: #f9f9f9; line-height: 1.1em; }

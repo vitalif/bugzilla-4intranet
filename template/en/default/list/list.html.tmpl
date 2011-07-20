@@ -28,8 +28,6 @@
 [%# Template Initialization                                                  #%]
 [%############################################################################%]
 
-[% PROCESS "global/field-descs.none.tmpl" %]
-
 [% title = "$terms.Bug List" %]
 [% IF searchname || defaultsavename %]
   [% title = title _ ": " _ (searchname OR defaultsavename) FILTER html %]
@@ -45,8 +43,8 @@
   title = title
   style = style
   atomlink = "buglist.cgi?$urlquerypart&title=$title&ctype=atom"
-  javascript_urls = [ "js/util.js", "js/field.js", "js/yui/calendar.js", "js/sorttable.js" ]
-  style_urls = [ "skins/standard/buglist.css", "skins/standard/yui/calendar.css" ]
+  javascript_urls = [ "js/util.js", "js/field.js", "js/calendar.js", "js/sorttable.js" ]
+  style_urls = [ "skins/standard/buglist.css", "skins/standard/calendar.css" ]
   doc_section = "query.html#list"
 %]
 
@@ -68,19 +66,18 @@
       <a href="quips.cgi"><i>[% quip FILTER html %]</i></a>
     </span>
   [% END %]
-
 </div>
 
 [% IF toolong %]
-  <h2 class="bz_smallminded">
-    This list is too long for [% terms.Bugzilla %]'s little mind; the
-    Next/Prev/First/Last buttons won't appear on individual [% terms.bugs %].
-  </h2>
+<h2 class="bz_smallminded">
+  This list is too long for [% terms.Bugzilla %]'s little mind; the
+  Next/Prev/First/Last buttons won't appear on individual [% terms.bugs %].
+</h2>
 [% END %]
 
-[% PROCESS "list/description.html.tmpl" %]
+[% search_description %]
 
-<hr>
+<hr />
 
 [%############################################################################%]
 [%# Preceding Status Line                                                    #%]
@@ -91,6 +88,7 @@
     [% bugs.size %] [%+ terms.bugs %] found.
   </span>
 [% END %]
+
 <script language="JavaScript">
 function showbugcomma()
 {
@@ -98,12 +96,10 @@ function showbugcomma()
   document.getElementById('bugcomma').style.display = '';
 }
 </script>
-<div id="showbugcommacmd"><a href="javascript:void showbugcomma()">Display Bug ID list...</a></div>
-<div id="bugcomma" style="display: none">
-Bug ID list:
-[% FOREACH id = buglist %]
-  [%+ id | html %]
-[% END %]
+
+<div id="showbugcommacmd" style="margin: 0 0 8px 0"><a href="javascript:void showbugcomma()">Display Bug ID list...</a></div>
+<div id="bugcomma" style="display: none; margin: 0 0 8px 0">
+  Bug ID list: <input type="text" readonly="true" value="[% buglist.join(" ") %]" size="100" />
 </div>
 
 [%############################################################################%]

@@ -13,47 +13,12 @@ sub buglist_static_columns
     my $columns = $args->{columns};
     my $dbh = Bugzilla->dbh;
 
-    $columns->{dependson} = {
-        name  => "(SELECT ".$dbh->sql_group_concat('bugblockers.dependson', "','")." FROM dependencies bugblockers WHERE bugblockers.blocked=bugs.bug_id)",
-        title => "Bug dependencies",
-    };
-
-    $columns->{blocked} = {
-        name  => "(SELECT ".$dbh->sql_group_concat('bugblocked.blocked', "','")." FROM dependencies bugblocked WHERE bugblocked.dependson=bugs.bug_id)",
-        title => "Bugs blocked",
-    };
-
-    $columns->{flags} = {
-        name  =>
-"(SELECT ".$dbh->sql_group_concat($dbh->sql_string_concat('col_ft.name', 'col_f.status'), "', '")."
-FROM flags col_f JOIN flagtypes col_ft ON col_f.type_id=col_ft.id
-WHERE col_f.bug_id=bugs.bug_id AND (col_ft.is_requesteeble=0 OR col_ft.is_requestable=0))",
-        title => "Flags",
-    };
-
-    $columns->{requests} = {
-        name  =>
-"(SELECT ".
-    $dbh->sql_group_concat(
-        $dbh->sql_string_concat(
-            'col_ft.name', 'col_f.status',
-            'CASE WHEN col_p.login_name IS NULL THEN \'\' ELSE '.
-                $dbh->sql_string_concat("' '", 'col_p.login_name').' END'
-        ), "', '"
-    )."
-FROM flags col_f JOIN flagtypes col_ft ON col_f.type_id=col_ft.id
-LEFT JOIN profiles col_p ON col_f.requestee_id=col_p.userid
-WHERE col_f.bug_id=bugs.bug_id AND col_ft.is_requesteeble=1 AND col_ft.is_requestable=1)",
-        title => "Requests",
-    };
-
-    # CustIS Bug 68921 (see also Bugzilla::Search)
-    $columns->{interval_time} = { %{$columns->{work_time}} };
-    $columns->{interval_time}->{title} = 'Period worktime';
-
     # CustIS Bug 71955 - first comment to the bug
     $columns->{comment0} = {
         title => "First Comment",
+    };
+    $columns->{lastcommenter} = {
+        title => "Last Commenter",
     };
 
     ### Testopia ###
@@ -83,9 +48,28 @@ sub buglist_columns
     my $columns = $args->{columns};
 
     # CustIS Bug 71955 - first comment to the bug
+    # FIXME можно сделать JOIN'ом по bug_when=creation_ts
+    # но тогда дополнительно надо COALESCE на подзапрос с isprivate
+    # в случае isprivate.
+    my $hint = '';
+    my $dbh = Bugzilla->dbh;
+    if ($dbh->isa('Bugzilla::DB::Mysql'))
+    {
+        $hint = ' FORCE INDEX (longdescs_bug_id_idx)';
+    }
+    my $priv = (Bugzilla->user->is_insider ? "" : "AND ldc0.isprivate=0 ");
     $columns->{comment0}->{name} =
-        "(SELECT thetext FROM longdescs ldc0 WHERE ldc0.bug_id = bugs.bug_id ".
-        (Bugzilla->user->is_insider ? "" : "AND ldc0.isprivate=0 ")." ORDER BY ldc0.bug_when LIMIT 1)";
+        "(SELECT thetext FROM longdescs ldc0$hint WHERE ldc0.bug_id = bugs.bug_id $priv".
+        " ORDER BY ldc0.bug_when LIMIT 1)";
+    my $login = 'ldp0.login_name';
+    if (!Bugzilla->user->id)
+    {
+        $login = $dbh->sql_string_until($login, $dbh->quote('@'));
+    }
+    $columns->{lastcommenter}->{name} =
+        "(SELECT $login FROM longdescs ldc0$hint".
+        " INNER JOIN profiles ldp0 ON ldp0.userid=ldc0.who WHERE ldc0.bug_id = bugs.bug_id $priv".
+        " ORDER BY ldc0.bug_when DESC LIMIT 1)";
 
     return 1;
 }

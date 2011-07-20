@@ -23,9 +23,7 @@
   # attachment: object of the attachment we just attached.
   #%]
 
-[% PROCESS global/variables.none.tmpl %]
 [% bug = bugs.0 %]
-
 [% PROCESS "bug/show-header.html.tmpl" %]
 [% PROCESS global/header.html.tmpl
   title = "Changes Submitted to Attachment $attachment.id of $terms.Bug $attachment.bug_id"

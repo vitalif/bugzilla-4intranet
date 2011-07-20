@@ -26,23 +26,19 @@
   # release: a hash containing data about new releases, if any.
   #%]
 
-[% PROCESS global/variables.none.tmpl %]
-
-
 [% PROCESS global/header.html.tmpl
    title = "$terms.Bugzilla Main Page"
-   header = "Main Page" 
+   header = "Main Page"
    header_addl_info = "version $constants.BUGZILLA_VERSION"
    style_urls = [ 'skins/standard/index.css' ]
 %]
-
 
 <script type="text/javascript">
 <!--
 function onLoadActions() {
   quicksearchHelpText('quicksearch_main', 'show');
   if( window.external && window.external.AddSearchProvider ){
-    YAHOO.util.Dom.removeClass('quicksearch_plugin', 'bz_default_hidden');
+    removeClass('quicksearch_plugin', 'bz_default_hidden');
   }
   document.getElementById('quicksearch_top').focus();
 }
@@ -55,11 +51,11 @@ function addSidebar() {
 var quicksearch_message = "Enter [% terms.abug %] # or some search terms";
 
 function checkQuicksearch( form ) {
-  if (form.quicksearch.value == '' || form.quicksearch.value == quicksearch_message ) { 
+  if (form.quicksearch.value == '' || form.quicksearch.value == quicksearch_message ) {
     alert('Please enter one or more search terms first.');
-    return false; 
+    return false;
   }
-  return true;         
+  return true;
 }
 
 function quicksearchHelpText(el_id, action){
@@ -67,16 +63,16 @@ function quicksearchHelpText(el_id, action){
   if ( action == "show") {
     if( el.value == "" ) {
       el.value = quicksearch_message;
-      YAHOO.util.Dom.addClass(el, "quicksearch_help_text");
+      addClass(el, "quicksearch_help_text");
     }
   } else {
     if( el.value == quicksearch_message ) {
       el.value = "";
-      YAHOO.util.Dom.removeClass(el, "quicksearch_help_text");
+      removeClass(el, "quicksearch_help_text");
     }
   }
 }
-YAHOO.util.Event.onDOMReady(onLoadActions);
+addListener(window, 'load', onLoadActions);
 //-->
 </script>
 
@@ -127,15 +123,15 @@ YAHOO.util.Event.onDOMReady(onLoadActions);
         <div class="intro">[% Hook.process('intro') %]</div>
         <a tabindex=2 id="enter_bug" class="bz_common_actions"
            href="enter_bug.cgi"><span>File [% terms.aBug %]</span></a>
-      
+
         <a tabindex=2 id="query" class="bz_common_actions"
            href="query.cgi"><span>Search</span></a>
-      
+
         <a tabindex=2 id="account" class="bz_common_actions"
           [% IF user.id %]
             href="userprefs.cgi"><span>User Preferences</span></a>
           [% ELSIF Param('createemailregexp')
-                   && user.authorizer.user_can_create_account 
+                   && user.authorizer.user_can_create_account
           %]
             href="createaccount.cgi"><span>Open a New Account</span></a>
           [% ELSE %]

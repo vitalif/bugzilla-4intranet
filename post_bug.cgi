@@ -300,8 +300,8 @@ $vars->{sentmail} = \@all_mail_results;
 
 if (Bugzilla->usage_mode != USAGE_MODE_EMAIL)
 {
-    my $title = template_var('terms')->{Bug}.' '.$bug->id.' Submitted – '.$bug->short_desc;
-    my $header = template_var('terms')->{Bug}.' '.$bug->id.' Submitted';
+    my $title = Bugzilla->messages->{terms}->{Bug}.' '.$bug->id.' Submitted – '.$bug->short_desc;
+    my $header = Bugzilla->messages->{terms}->{Bug}.' '.$bug->id.' Submitted';
     my $ses = {
         sent => \@all_mail_results,
         title => $title,

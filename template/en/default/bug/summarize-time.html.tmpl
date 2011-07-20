@@ -14,8 +14,6 @@
   #                 Frédéric Buclin <LpSolit@gmail.com>
   #%]
 
-[% PROCESS "global/field-descs.none.tmpl" %]
-
 [% title = "Time Summary " %]
 [% IF do_depends %]
     [% title = title _ "for " %]
@@ -186,7 +184,7 @@
         <td width="80" valign="top">
           <b>[% "$terms.Bug $id" FILTER bug_link(id) FILTER none %]</b>
         </td>
-        <td width="100"><b>[% display_value("bug_status", bugs.$id.bug_status) FILTER html %]</b></td>
+        <td width="100"><b>[% bugs.$id.bug_status FILTER html %]</b></td>
         <td colspan="2">[% bugs.$id.short_desc FILTER html %]</td>
         [% IF extra %]
           <td align="right" valign="top">[% bugdata.total_time FILTER html %]</td>

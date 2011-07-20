@@ -30,8 +30,6 @@
   # tbl: Name of a hash in data which is the table to be plotted.
   #%]
 
-[% PROCESS "global/field-descs.none.tmpl" %]
-
 [% col_field_disp = field_descs.$col_field || col_field %]
 [% row_field_disp = field_descs.$row_field || row_field %]
 
@@ -155,7 +153,7 @@ END; %]
 </table>
 
 [% BLOCK value_display %]
-  [% SET disp_value = display_value(field, value) %]
+  [% SET disp_value = value %]
   [% IF field == 'assigned_to' OR field == 'reporter' OR field == 'qa_contact' %]
     [% disp_value = value FILTER email %]
   [% END %]

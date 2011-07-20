@@ -18,24 +18,24 @@
   # Contributor(s): Ed Fuentetaja <efuentetaja@acm.org>
   #%]
 [%
-  debug_ext = Param('testopia-debug') == 'ON' 
-      ? "extensions/testopia/extjs/ext-all-debug.js" 
+  debug_ext = Param('testopia-debug') == 'ON'
+      ? "extensions/testopia/extjs/ext-all-debug.js"
       : "extensions/testopia/extjs/ext-all.js"
-  
+
   debug_ext_base = Param('testopia-debug') == 'ON'
       ? "extensions/testopia/extjs/adapter/ext/ext-base-debug.js"
       : "extensions/testopia/extjs/adapter/ext/ext-base.js"
-  
-  debug_testopia = Param('testopia-debug') == 'ON' 
+
+  debug_testopia = Param('testopia-debug') == 'ON'
       ? "extensions/testopia/testopia.all.js" : "extensions/testopia/testopia.all.ycomp.js"
-  
+
   style_urls = ["extensions/testopia/extjs/resources/css/ext-all.css",
                 "extensions/testopia/extjs/examples/ux/css/xtheme-gray-extend.css",
                 "extensions/testopia/extjs/examples/grid/grid-examples.css"]
 %]
-[% IF Param('testopia-debug') == 'Developer' %]  
+[% IF Param('testopia-debug') == 'Developer' %]
     [%  javascript_urls = [
-    
+
                        "extensions/testopia/extjs/adapter/ext/ext-base-debug.js",
                        "extensions/testopia/extjs/ext-all-debug.js",
                        "extensions/testopia/extjs/examples/ux/RowEditor.js",
