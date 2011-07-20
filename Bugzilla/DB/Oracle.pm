@@ -71,7 +71,6 @@ sub new {
                                      || 1000 ) * 1024, 
                 };
     my $self = $class->db_new($dsn, $user, $pass, $attrs);
-    $self->{dbd} = 'oracle';
     # Needed by TheSchwartz
     $self->{private_bz_dsn} = $dsn;
 

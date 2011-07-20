@@ -276,56 +276,6 @@ window.eventTarget = function(ev)
     return t;
 };
 
-window.getElementsByClassName = function(c, nodeName, parent)
-{
-    if (typeof(parent) == 'string')
-        parent = document.getElementById(parent);
-    parent = parent||document;
-    if (nodeName)
-        nodeName = nodeName.toLowerCase();
-    if (parent.getElementsByClassName)
-    {
-        var l = parent.getElementsByClassName(c);
-        if (!nodeName)
-            return l;
-        else
-        {
-            var l1 = [];
-            for (var i = 0; i < l.length; i++)
-                if (l[i].nodeName.toLowerCase() == nodeName)
-                    l1.push(l[i]);
-            return l1;
-        }
-    }
-    var s = [ parent ];
-    var l = [];
-    if (nodeName)
-    {
-        while (s.length)
-        {
-            if (hasClass(s[0], c) && s[0].nodeName.toLowerCase() == nodeName)
-                l.push(s[0]);
-            else
-                for (var i = 0; i < s[0].children.length; i++)
-                    s.push(s[0].children[i]);
-            s.shift();
-        }
-    }
-    else
-    {
-        while (s.length)
-        {
-            if (hasClass(s[0], c))
-                l.push(s[0]);
-            else
-                for (var i = 0; i < s[0].children.length; i++)
-                    s.push(s[0].children[i]);
-            s.shift();
-        }
-    }
-    return l;
-};
-
 /**
  * addClass     : add CSS class to an element
  *                returns (void)

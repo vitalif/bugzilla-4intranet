@@ -26,10 +26,6 @@
   [% data.0.0.$i = data.0.0.$i %]
 [% END %]
 
-[% FOR i IN [ 0 .. row_names.max ] %]
-  [% row_names.$i = row_names.$i %]
-[% END %]
-
 [% IF cumulate %]
   [% USE graph = GD.Graph.area(width, height) %]
   [% graph.set(cumulate => "true") %]

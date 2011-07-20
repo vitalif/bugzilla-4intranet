@@ -115,17 +115,7 @@
           [% FOREACH item = param.choices %]
             <option value="[% item FILTER html %]"
                     [% " selected=\"selected\"" IF item == Param(param.name) %]>
-              [% IF param.name == "defaultseverity" %]
-                [% item FILTER html %]
-              [% ELSIF param.name == "defaultplatform" %]
-                [% item FILTER html %]
-              [% ELSIF param.name == "defaultopsys" %]
-                [% item FILTER html %]
-              [% ELSIF param.name == "duplicate_or_move_bug_status" %]
-                [% item FILTER html %]
-              [% ELSE %]
-                [% item FILTER html %]
-              [% END %]
+              [% item FILTER html %]
             </option>
           [% END %]
         </select>
@@ -133,7 +123,7 @@
         <font color="red">
           <blink>Unknown param type [% param.type FILTER html %]!!!</blink>
         </font>
-      [% END %]  
+      [% END %]
       </p>
       [% UNLESS param.no_reset %]
         <p>
