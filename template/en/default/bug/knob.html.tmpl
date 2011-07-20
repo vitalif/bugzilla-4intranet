@@ -21,7 +21,6 @@
   #                 Guy Pyrzak <guy.pyrzak@gmail.com>
   #%]
 
-[% PROCESS global/variables.none.tmpl %]
 <div id="status">
   [% PROCESS bug/field.html.tmpl
       no_tds = 1
@@ -71,42 +70,39 @@
 </div>
 
 <script type="text/javascript">
-  var close_status_array = [
-    [% FOREACH status = bug.choices.bug_status %]
-      [% NEXT IF status.is_open %]
-      '[% status.name FILTER js %]'[% ',' UNLESS loop.last %]
-    [% END %]
-  ];
-  YAHOO.util.Dom.removeClass('dup_id_discoverable', 'bz_default_hidden');
-  hideEditableField( "dup_id_container", "dup_id", 'dup_id_edit_action',
-                     'dup_id', '[% bug.dup_id FILTER js %]' )
-  showHideStatusItems( "",  ['[% "is_duplicate" IF bug.dup_id %]',
-                             '[% bug.bug_status FILTER js %]']);
-  YAHOO.util.Event.addListener( 'bug_status', "change", showHideStatusItems,
-                                ['[% "is_duplicate" IF bug.dup_id %]',
-                                 '[% bug.bug_status FILTER js %]']);
-  function onchange_bug_status()
+var close_status_array = [
+  [% FOREACH status = bug.choices.bug_status %]
+    [% NEXT IF status.is_open %]
+    '[% status.name FILTER js %]'[% ',' UNLESS loop.last %]
+  [% END %]
+];
+removeClass('dup_id_discoverable', 'bz_default_hidden');
+hideEditableField(
+  "dup_id_container", "dup_id", 'dup_id_edit_action',
+  'dup_id', '[% bug.dup_id | js %]'
+);
+showHideStatusItems('[% "is_duplicate" IF bug.dup_id %]', '[% bug.bug_status | js %]');
+function onchange_bug_status()
+{
+  showHideStatusItems('[% "is_duplicate" IF bug.dup_id %]', '[% bug.bug_status | js %]');
+  var s = document.getElementById('bug_status');
+  if (s.value == "ASSIGNED" && document.changeform.assigned_to.value != "[% user.login %]")
   {
-      var s = document.getElementById('bug_status');
-      if (s.value=="ASSIGNED" && document.changeform.assigned_to.value != "[% user.login %]")
-      {
-          document.changeform.assigned_to.value="[% user.login %]";
-          showEditableField("bz_assignee_edit_action", new Array("bz_assignee_edit_container", "bz_assignee_input"));
-      }
-      else if (s.value=="VERIFIED" && document.changeform.qa_contact.value != "[% user.login %]")
-      {
-          document.changeform.qa_contact.value="[% user.login %]";
-          showEditableField("bz_qa_contact_edit_action", new Array("bz_qa_contact_edit_container", "bz_qa_contact_input"));
-      }
+    document.changeform.assigned_to.value = "[% user.login %]";
+    showEditableField("bz_assignee_edit_action", [ 'bz_assignee_edit_container', 'bz_assignee_input' ]);
   }
-  YAHOO.util.Event.addListener( 'bug_status', "change", onchange_bug_status );
-  YAHOO.util.Event.addListener( 'resolution', "change", showDuplicateItem);
-  YAHOO.util.Event.addListener( 'dup_id_discoverable_action',
-                                'click',
-                                setResolutionToDuplicate,
-                                '[% Param('duplicate_or_move_bug_status')
-                                                                FILTER js %]');
-  YAHOO.util.Event.addListener( window, 'load',  showHideStatusItems,
-                              ['[% "is_duplicate" IF bug.dup_id %]',
-                               '[% bug.bug_status FILTER js %]'] );
+  else if (s.value == "VERIFIED" && document.changeform.qa_contact.value != "[% user.login %]")
+  {
+    document.changeform.qa_contact.value = "[% user.login %]";
+    showEditableField("bz_qa_contact_edit_action", [ 'bz_qa_contact_edit_container', 'bz_qa_contact_input' ]);
+  }
+}
+addListener('bug_status', 'change', onchange_bug_status);
+addListener('resolution', 'change', showDuplicateItem);
+addListener('dup_id_discoverable_action', 'click', function() {
+  setResolutionToDuplicate('[% Param('duplicate_or_move_bug_status') | js %]');
+});
+addListener(window, 'load', function() {
+  showHideStatusItems('[% "is_duplicate" IF bug.dup_id %]', '[% bug.bug_status | js %]');
+});
 </script>

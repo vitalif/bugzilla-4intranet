@@ -36,8 +36,6 @@
   # product: array of strings. Restrict to these products only.
   #%]
 
-[% PROCESS "global/field-descs.none.tmpl" %]
-
 [%# *** Column Headers *** %]
 
 [% SET columns = [
@@ -107,16 +105,15 @@
           <td class="delta">[% item.delta FILTER html %]</td>
           <td class="component">[% bug.component FILTER html %]</td>
           <td class="bug_severity">
-            [%- display_value('bug_severity', bug.bug_severity) FILTER html %]
+            [%- bug.bug_severity FILTER html %]
           </td>
           [% IF Param('useopsys') %]
           <td class="op_sys">
-            [%- display_value('op_sys', bug.op_sys) FILTER html %]
+            [%- bug.op_sys FILTER html %]
           </td>
           [% END %]
           <td class="target_milestone">
-            [% display_value('target_milestone', 
-                             bug.target_milestone) FILTER html %]
+            [% bug.target_milestone FILTER html %]
           </td>
           <td class="short_desc">[% bug.short_desc FILTER html %]</td>
         </tr>

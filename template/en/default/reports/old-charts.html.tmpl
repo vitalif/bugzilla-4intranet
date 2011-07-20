@@ -19,8 +19,6 @@
   # url_image: URL of the generated graph.
   #%]
 
-[% PROCESS "global/field-descs.none.tmpl" %]
-
 [% PROCESS global/header.html.tmpl
   title = "$terms.Bug Charts"
   h1 = "Welcome to the $terms.Bugzilla Charting Kitchen"
@@ -48,7 +46,7 @@
           <th>Chart datasets:</th>
           <td align="center">
             <select id="datasets" name="datasets" multiple="multiple" size="5">
-              [%# We cannot use translated statuses and resolutions from field-descs.none.html
+              [%# We cannot use translated statuses and resolutions
                 # because old charts do not distinguish statuses from resolutions. %]
               [% FOREACH dataset = datasets %]
                 <option value="[% dataset.value FILTER html %]"

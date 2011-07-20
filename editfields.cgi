@@ -41,22 +41,25 @@ my $token  = $cgi->param('token');
 
 $cgi->send_header();
 
+$vars->{field_types} = Bugzilla->messages->{field_types};
 # List all existing custom fields if no action is given.
-if (!$action) {
+if (!$action)
+{
     $template->process('admin/custom_fields/list.html.tmpl', $vars)
         || ThrowTemplateError($template->error());
 }
 # Interface to add a new custom field.
-elsif ($action eq 'add') {
-    $vars->{'token'} = issue_session_token('add_field');
-
+elsif ($action eq 'add')
+{
+    $vars->{token} = issue_session_token('add_field');
     $template->process('admin/custom_fields/create.html.tmpl', $vars)
         || ThrowTemplateError($template->error());
 }
-elsif ($action eq 'new') {
+elsif ($action eq 'new')
+{
     check_token_data($token, 'add_field');
 
-    my $field = $vars->{'field'} = Bugzilla::Field->create({
+    my $field = $vars->{field} = Bugzilla::Field->create({
         name        => scalar $cgi->param('name'),
         description => scalar $cgi->param('desc'),
         type        => scalar $cgi->param('type'),
@@ -80,7 +83,8 @@ elsif ($action eq 'new') {
     $template->process('admin/custom_fields/list.html.tmpl', $vars)
         || ThrowTemplateError($template->error());
 }
-elsif ($action eq 'edit') {
+elsif ($action eq 'edit')
+{
     my $name = $cgi->param('name') || ThrowUserError('field_missing_name');
     my $field = Bugzilla->get_field($name);
     $field || ThrowUserError('customfield_nonexistent', {'name' => $name});
@@ -91,7 +95,8 @@ elsif ($action eq 'edit') {
     $template->process('admin/custom_fields/edit.html.tmpl', $vars)
         || ThrowTemplateError($template->error());
 }
-elsif ($action eq 'update') {
+elsif ($action eq 'update')
+{
     check_token_data($token, 'edit_field');
     my $name = $cgi->param('name');
 
@@ -125,7 +130,8 @@ elsif ($action eq 'update') {
     $template->process('admin/custom_fields/list.html.tmpl', $vars)
         || ThrowTemplateError($template->error());
 }
-elsif ($action eq 'del') {
+elsif ($action eq 'del')
+{
     my $name = $cgi->param('name');
 
     # Validate field.
@@ -144,7 +150,8 @@ elsif ($action eq 'del') {
     $template->process('admin/custom_fields/confirm-delete.html.tmpl', $vars)
             || ThrowTemplateError($template->error());
 }
-elsif ($action eq 'delete') {
+elsif ($action eq 'delete')
+{
     check_token_data($token, 'delete_field');
     my $name = $cgi->param('name');
 
@@ -161,15 +168,16 @@ elsif ($action eq 'delete') {
     # Calling remove_from_db will check if field can be deleted.
     # If the field cannot be deleted, it will throw an error.
     $field->remove_from_db();
-    
+
     $vars->{'field'}   = $field;
     $vars->{'message'} = 'custom_field_deleted';
-    
+
     delete_token($token);
 
     $template->process('admin/custom_fields/list.html.tmpl', $vars)
         || ThrowTemplateError($template->error());
 }
-else {
+else
+{
     ThrowUserError('no_valid_action', {'field' => 'custom_field'});
 }

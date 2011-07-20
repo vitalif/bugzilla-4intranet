@@ -88,8 +88,8 @@ sub _init {
         $sql = "$id_field = ?";
         @values = ($id);
     } else {
-        unless (defined $param->{name} || (defined $param->{'condition'}
-                                           && defined $param->{'values'}))
+        unless (defined $param->{name} || (defined $param->{condition}
+                                           && defined $param->{values}))
         {
             ThrowCodeError('bad_arg', { argument => 'param',
                                         function => $class . '::new',
@@ -100,14 +100,14 @@ sub _init {
             $sql = $dbh->sql_istrcmp($name_field, '?');
             push(@values, $param->{name});
         }
-        elsif (defined $param->{'condition'} && defined $param->{'values'}) {
+        elsif (defined $param->{condition} && defined $param->{values}) {
             caller->isa('Bugzilla::Object')
                 || ThrowCodeError('protection_violation',
                        { caller    => caller,
                          function  => $class . '::new',
                          argument  => 'condition/values' });
-            $sql = $param->{'condition'};
-            push(@values, @{$param->{'values'}});
+            $sql = $param->{condition};
+            push(@values, @{$param->{values}});
         }
 
         map { trick_taint($_) } @values;

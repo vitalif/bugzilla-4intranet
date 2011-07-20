@@ -584,7 +584,7 @@ sub insert {
 
     # Operation result to save into session (CustIS Bug 64562)
     my $session_data = {
-        title => "Attachment ".$attachment->id." added to ".template_var('terms')->{Bug}." ".$attachment->bug_id,
+        title => "Attachment ".$attachment->id." added to ".Bugzilla->messages->{terms}->{Bug}." ".$attachment->bug_id,
         sent => [$send_results],
         sent_attrs => {
             added_attachments => [ {

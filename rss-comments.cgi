@@ -58,8 +58,7 @@ my $search = new Bugzilla::Search(
     user   => $user
 );
 
-my $sqlquery = $search->getSQL();
-$sqlquery =~ s/ORDER\s+BY\s+`?bugs`?.`?bug_id`?//so;
+my $sqlquery = $search->bugid_query;
 
 my $tz = POSIX::strftime('%z', localtime);
 

@@ -23,10 +23,6 @@
   # alphabetical order by message tag, and leave a blank line between messages.
   #%]
 
-[% PROCESS global/variables.none.tmpl %]
-
-[% PROCESS "global/field-descs.none.tmpl" %]
-
 [% BLOCK msg_account_created %]
   The user account [% otheruser.login | html %] has been created
   successfully.
@@ -394,11 +390,11 @@
 [% END %]
 
 [% BLOCK msg_get_resolution %]
-  [% display_value("resolution", resolution) | html %]
+  [% resolution | html %]
 [% END %]
 
 [% BLOCK msg_get_status %]
-  [% display_value("bug_status", status) | html %]
+  [% status | html %]
 [% END %]
 
 [% BLOCK msg_group_created %]

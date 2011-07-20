@@ -21,23 +21,18 @@
 
 <script type="text/javascript">
 <!--
-function toggle_display(link) {
+function toggle_display(link)
+{
     var table = document.getElementById("attachment_table");
     // Store current height for scrolling later
     var originalHeight = table.offsetHeight;
-    var rows = YAHOO.util.Dom.getElementsByClassName(
-        'bz_tr_obsolete', 'tr', table);
 
-    for (var i = 0; i < rows.length; i++) {
-        bz_toggleClass(rows[i], 'bz_default_hidden');
-    }
-
-    if (YAHOO.util.Dom.hasClass(rows[0], 'bz_default_hidden')) {
-        link.innerHTML = "Show Obsolete";
-    }
-    else {
-        link.innerHTML = "Hide Obsolete";
-    }
+    var r0;
+    var rs = table.tBodies[0].tRows;
+    for (var i = 0; i < rs.length; i++)
+        if (hasClass(rs[i], 'bz_tr_obsolete'))
+            r0 = toggleClass(rs[i], 'bz_default_hidden');
+    link.innerHTML = r0 ? 'Show Obsolete' : 'Hide Obsolete';
 
     var newHeight = table.offsetHeight;
     // This scrolling makes the window appear to not move at all.
@@ -70,8 +65,7 @@ function toggle_display(link) {
                  [% " bz_patch" IF attachment.ispatch %]
                  [% " bz_url" IF attachment.isurl %]
                  [% " bz_private" IF attachment.isprivate %]
-                 [% " bz_tr_obsolete bz_default_hidden" 
-                     IF attachment.isobsolete %]">
+                 [% " bz_tr_obsolete bz_default_hidden" IF attachment.isobsolete %]">
         <td valign="top">
           [% IF attachment.datasize %]
             <a name="a[% count %]" href="attachment.cgi?id=[% attachment.id %]"

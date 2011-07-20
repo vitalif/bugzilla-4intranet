@@ -53,16 +53,17 @@ use constant UPDATE_COLUMNS => qw(
 ####      Accessors      ######
 ###############################
 
-sub description       { return $_[0]->{'description'}; }
+sub description { $_[0]->{description} }
 
-sub bug_count {
+sub bug_count
+{
     my ($self) = @_;
-    return $self->{'bug_count'} if defined $self->{'bug_count'};
-    ($self->{'bug_count'}) =
-      Bugzilla->dbh->selectrow_array(
-          'SELECT COUNT(*) FROM keywords WHERE keywordid = ?', 
-          undef, $self->id);
-    return $self->{'bug_count'};
+    return $self->{bug_count} if defined $self->{bug_count};
+    ($self->{bug_count}) = Bugzilla->dbh->selectrow_array(
+        'SELECT COUNT(*) FROM keywords WHERE keywordid = ?', 
+        undef, $self->id
+    );
+    return $self->{bug_count};
 }
 
 ###############################
@@ -76,25 +77,20 @@ sub set_description { $_[0]->set('description', $_[1]); }
 ####      Subroutines    ######
 ###############################
 
-sub get_all_with_bug_count {
+sub get_all_with_bug_count
+{
     my $class = shift;
     my $dbh = Bugzilla->dbh;
-    my $keywords =
-      $dbh->selectall_arrayref('SELECT ' . join(', ', DB_COLUMNS) . ',
-                                       COUNT(keywords.bug_id) AS bug_count
-                                  FROM keyworddefs
-                             LEFT JOIN keywords
-                                    ON keyworddefs.id = keywords.keywordid ' .
-                                  $dbh->sql_group_by('keyworddefs.id',
-                                                     'keyworddefs.name,
-                                                      keyworddefs.description') . '
-                                 ORDER BY keyworddefs.name', {'Slice' => {}});
-    if (!$keywords) {
-        return [];
-    }
+    my $keywords = $dbh->selectall_arrayref(
+        'SELECT ' . join(', ', DB_COLUMNS) . ', COUNT(keywords.bug_id) AS bug_count' .
+        ' FROM keyworddefs LEFT JOIN keywords ON keyworddefs.id = keywords.keywordid ' .
+        $dbh->sql_group_by('keyworddefs.id', 'keyworddefs.name, keyworddefs.description') .
+        ' ORDER BY keyworddefs.name', {Slice => {}}
+    );
+    return [] unless $keywords;
 
     foreach my $keyword (@$keywords) {
-        bless($keyword, $class);
+        bless $keyword, $class;
     }
     return $keywords;
 }

@@ -20,8 +20,6 @@
   #                     Frédéric Buclin <LpSolit@gmail.com>
   #%]
 
-[% PROCESS global/variables.none.tmpl %]
-
 [% USE Bugzilla %]
 [% BLOCK userlink %]<a href="[% Param('user_mailto') %][% u.email | html %]">[% (u.name || u.login) | html %]</a>[% END %]
 

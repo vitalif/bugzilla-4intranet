@@ -8,7 +8,7 @@ use Bugzilla::Error;
 
 my $cgi = Bugzilla->cgi;
 my $user = Bugzilla->login;
-my $args = $cgi->Vars;
+my $args = { %{ $cgi->Vars } };
 my $vars = {};
 
 # Параметры по умолчанию:

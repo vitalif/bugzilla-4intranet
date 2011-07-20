@@ -1,4 +1,9 @@
-YAHOO.util.Event.addListener(window, 'load', initControlledFields);
+/* Functions used to show/hide dependent bug fields and change their select options
+ * License: Dual-license GPL 3.0+ or MPL 1.1+
+ * Contributor(s): Vitaliy Filippov <vitalif@mail.ru>
+ */
+
+addListener(window, 'load', initControlledFields);
 
 function initControlledFields()
 {
@@ -9,7 +14,8 @@ function initControlledFields()
 function initControlledField(i)
 {
     var f = document.getElementById(i);
-    YAHOO.util.Event.addListener(f, 'change', handleControllerField, f);
+    if (f)
+        addListener(f, 'change', handleControllerField_this);
 }
 
 function getSelectedIds(sel)
@@ -25,6 +31,11 @@ function getSelectedIds(sel)
         }
     }
     return opt;
+}
+
+function handleControllerField_this(e)
+{
+    return handleControllerField(e, this);
 }
 
 function handleControllerField(e, controller)
@@ -46,13 +57,13 @@ function handleControllerField(e, controller)
         field_container = document.getElementById('field_container_' + controlled_id);
         if (vis)
         {
-            YAHOO.util.Dom.removeClass(label_container, 'bz_hidden_field');
-            YAHOO.util.Dom.removeClass(field_container, 'bz_hidden_field');
+            removeClass(label_container, 'bz_hidden_field');
+            removeClass(field_container, 'bz_hidden_field');
         }
         else
         {
-            YAHOO.util.Dom.addClass(label_container, 'bz_hidden_field');
-            YAHOO.util.Dom.addClass(field_container, 'bz_hidden_field');
+            addClass(label_container, 'bz_hidden_field');
+            addClass(field_container, 'bz_hidden_field');
         }
     }
     var item, controlled, copt, controlled_value;
@@ -89,4 +100,3 @@ function handleControllerField(e, controller)
         }
     }
 }
-

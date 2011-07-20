@@ -17,8 +17,6 @@
   # field: Bugzila::Field; the current field being edited
   #%]
 
-[% PROCESS "global/field-descs.none.tmpl" %]
-
 [% title = BLOCK %]
   Edit the [% "Custom" IF field.custom %] field '[% field.name FILTER html %]' ([% field.description FILTER html %])
 [% END %]
@@ -115,7 +113,7 @@
           name="visibility_value_id" size="7" multiple="multiple">
           [% FOREACH value = field.visibility_field.legal_values %]
           <option value="[% value.id FILTER html %]"[% ' selected="selected"' IF field.has_visibility_value(value.id) %]>
-              [% display_value(field.visibility_field.name, value.name) FILTER html %]
+              [% value.name FILTER html %]
             </option>
           [% END %]
         </select>

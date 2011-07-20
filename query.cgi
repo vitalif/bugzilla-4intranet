@@ -42,10 +42,11 @@ use Bugzilla::Field;
 use Bugzilla::Install::Util qw(vers_cmp);
 
 my $cgi = Bugzilla->cgi;
+# Copy hash and throw away tied reference returned by Vars()
+my $params = { %{ $cgi->Vars } };
 my $dbh = Bugzilla->dbh;
 my $template = Bugzilla->template;
 my $vars = {};
-my $buffer = $cgi->query_string();
 
 my $user = Bugzilla->login();
 my $userid = $user->id;
@@ -53,21 +54,26 @@ my $userid = $user->id;
 # Backwards compatibility hack -- if there are any of the old QUERY_*
 # cookies around, and we are logged in, then move them into the database
 # and nuke the cookie. This is required for Bugzilla 2.8 and earlier.
-if ($userid) {
+if ($userid)
+{
     my @oldquerycookies;
     foreach my $i ($cgi->cookie()) {
         if ($i =~ /^QUERY_(.*)$/) {
-            push(@oldquerycookies, [$1, $i, $cgi->cookie($i)]);
+            push @oldquerycookies, [$1, $i, $cgi->cookie($i)];
         }
     }
-    if (defined $cgi->cookie('DEFAULTQUERY')) {
-        push(@oldquerycookies, [DEFAULT_QUERY_NAME, 'DEFAULTQUERY',
-                                $cgi->cookie('DEFAULTQUERY')]);
+    if (defined $cgi->cookie('DEFAULTQUERY'))
+    {
+        push @oldquerycookies, [DEFAULT_QUERY_NAME, 'DEFAULTQUERY',
+                                $cgi->cookie('DEFAULTQUERY')];
     }
-    if (@oldquerycookies) {
-        foreach my $ref (@oldquerycookies) {
+    if (@oldquerycookies)
+    {
+        foreach my $ref (@oldquerycookies)
+        {
             my ($name, $cookiename, $value) = (@$ref);
-            if ($value) {
+            if ($value)
+            {
                 # If the query name contains invalid characters, don't import.
                 $name =~ /[<>&]/ && next;
                 trick_taint($name);
@@ -75,11 +81,15 @@ if ($userid) {
                 my $query = $dbh->selectrow_array(
                     "SELECT query FROM namedqueries " .
                      "WHERE userid = ? AND name = ?",
-                     undef, ($userid, $name));
-                if (!$query) {
-                    $dbh->do("INSERT INTO namedqueries " .
-                            "(userid, name, query) VALUES " .
-                            "(?, ?, ?)", undef, ($userid, $name, $value));
+                     undef, $userid, $name
+                );
+                if (!$query)
+                {
+                    $dbh->do(
+                        "INSERT INTO namedqueries " .
+                        "(userid, name, query) VALUES (?, ?, ?)",
+                        undef, $userid, $name, $value
+                   );
                 }
                 $dbh->bz_commit_transaction();
             }
@@ -88,209 +98,168 @@ if ($userid) {
     }
 }
 
-if ($cgi->param('nukedefaultquery')) {
-    if ($userid) {
-        $dbh->do("DELETE FROM namedqueries" .
-                 " WHERE userid = ? AND name = ?", 
-                 undef, ($userid, DEFAULT_QUERY_NAME));
-    }
-    $buffer = "";
+if ($params->{nukedefaultquery} && $userid)
+{
+    $dbh->do(
+        "DELETE FROM namedqueries WHERE userid = ? AND name = ?", 
+        undef, $userid, DEFAULT_QUERY_NAME
+    );
 }
 
 # We are done with changes committed to the DB.
 $dbh = Bugzilla->switch_to_shadow_db;
 
 my $userdefaultquery;
-if ($userid) {
-    $userdefaultquery = $dbh->selectrow_array(
-        "SELECT query FROM namedqueries " .
-         "WHERE userid = ? AND name = ?", 
-         undef, ($userid, DEFAULT_QUERY_NAME));
+if ($userid)
+{
+    ($userdefaultquery) = $dbh->selectrow_array(
+        "SELECT query FROM namedqueries WHERE userid = ? AND name = ?",
+         undef, $userid, DEFAULT_QUERY_NAME
+    );
 }
 
-local our %default;
+my $default = {};
 
-# We pass the defaults as a hash of references to arrays. For those
-# Items which are single-valued, the template should only reference [0]
-# and ignore any multiple values.
-sub PrefillForm {
-    my ($buf) = (@_);
-    my $cgi = Bugzilla->cgi;
-    $buf = new Bugzilla::CGI($buf);
-    my $foundone = 0;
+# Nothing must be undef, otherwise the template complains.
+my @list = qw(
+    bug_status resolution assigned_to
+    rep_platform priority bug_severity
+    classification product reporter op_sys
+    component version chfield chfieldfrom
+    chfieldto chfieldvalue target_milestone
+    email emailtype emailreporter
+    emailassigned_to emailcc emailqa_contact
+    emaillongdesc content
+    changedin votes short_desc short_desc_type
+    longdesc longdesc_type bug_file_loc
+    bug_file_loc_type status_whiteboard
+    status_whiteboard_type bug_id
+    bug_id_type keywords keywords_type
+    deadlinefrom deadlineto
+    x_axis_field y_axis_field z_axis_field
+    chart_format cumulate x_labels_vertical
+    category subcategory name newcategory
+    newsubcategory public frequency
+);
 
-    # Nothing must be undef, otherwise the template complains.
-    my @list = ("bug_status", "resolution", "assigned_to",
-                      "rep_platform", "priority", "bug_severity",
-                      "classification", "product", "reporter", "op_sys",
-                      "component", "version", "chfield", "chfieldfrom",
-                      "chfieldto", "chfieldvalue", "target_milestone",
-                      "email", "emailtype", "emailreporter",
-                      "emailassigned_to", "emailcc", "emailqa_contact",
-                      "emaillongdesc", "content",
-                      "changedin", "votes", "short_desc", "short_desc_type",
-                      "longdesc", "longdesc_type", "bug_file_loc",
-                      "bug_file_loc_type", "status_whiteboard",
-                      "status_whiteboard_type", "bug_id",
-                      "bug_id_type", "keywords", "keywords_type",
-                      "deadlinefrom", "deadlineto",
-                      "x_axis_field", "y_axis_field", "z_axis_field",
-                      "chart_format", "cumulate", "x_labels_vertical",
-                      "category", "subcategory", "name", "newcategory",
-                      "newsubcategory", "public", "frequency");
-    # These fields can also have default values (when used in reports).
-    # CustIS Bug 58300 - Add custom field to search filters
-    for my $field (Bugzilla->active_custom_fields)
-    {
-        push @list, $field->name;
-        push @list, $field->name . '_type';
-    }
-
-    foreach my $name (@list) {
-        $default{$name} = [];
-    }
- 
-    # we won't prefill the boolean chart data from this query if
-    # there are any being submitted via params
-    my $prefillcharts = (grep(/^field-/, $cgi->param)) ? 0 : 1;
- 
-    # Iterate over the URL parameters
-    foreach my $name ($buf->param()) {
-        my @values = $buf->param($name);
-
-        # If the name begins with the string 'field', 'type', 'value', or
-        # 'negate', then it is part of the boolean charts. Because
-        # these are built different than the rest of the form, we need
-        # to store these as parameters. We also need to indicate that
-        # we found something so the default query isn't added in if
-        # all we have are boolean chart items.
-        if ($name =~ m/^(?:field|type|value|negate)/) {
-            $cgi->param(-name => $name, -value => $values[0]) if ($prefillcharts);
-            $foundone = 1;
-        }
-        # If the name ends in a number (which it does for the fields which
-        # are part of the email searching), we use the array
-        # positions to show the defaults for that number field.
-        elsif ($name =~ m/^(.+)(\d)$/ && defined($default{$1})) {
-            $foundone = 1;
-            $default{$1}->[$2] = $values[0];
-        }
-        elsif (exists $default{$name}) {
-            $foundone = 1;
-            push (@{$default{$name}}, @values);
-        }
-    }
-    return $foundone;
+# These fields can also have default values (when used in reports).
+# CustIS Bug 58300 - Add custom field to search filters
+for my $field (Bugzilla->active_custom_fields)
+{
+    push @list, $field->name;
+    push @list, $field->name . '_type';
 }
 
-if (!PrefillForm($buffer)) {
-    # Ah-hah, there was no form stuff specified.  Do it again with the
+foreach my $name (@list)
+{
+    $default->{$name} = [];
+}
+
+if ($params->{nukedefaultquery})
+{
+    # Don't prefill form
+}
+elsif (!PrefillForm($params, $default))
+{
+    # Ah-hah, there was no form stuff specified. Do it again with the
     # default query.
-    if ($userdefaultquery) {
-        PrefillForm($userdefaultquery);
-    } else {
-        PrefillForm(Bugzilla->params->{"defaultquery"});
-    }
+    my $buf = new Bugzilla::CGI($userdefaultquery || Bugzilla->params->{defaultquery});
+    PrefillForm({ %{ $buf->Vars } }, $default);
 }
 
-if (!scalar(@{$default{'chfieldto'}}) || $default{'chfieldto'}->[0] eq "") {
-    $default{'chfieldto'} = ["Now"];
+if (!@{$default->{chfieldto}} || $default->{chfieldto}->[0] eq '')
+{
+    $default->{chfieldto} = [ 'Now' ];
 }
+
+# "where one or more of the following changed:"
+$vars->{chfield} = [ map { $_->name } @{ Bugzilla::Search->CHANGEDFROMTO_FIELDS } ];
+
+# Boolean charts
+
+my $opdescs = Bugzilla->messages->{operator_descs};
+$vars->{chart_types} = Bugzilla::Search->CHART_OPERATORS_ORDER;
+$vars->{text_types} = Bugzilla::Search->TEXT_OPERATORS_ORDER;
 
 # Fields for boolean charts
-$vars->{fields} = [
+$vars->{chart_fields} = [
+    map { { name => $_->{id}, title => $_->{title} } }
     sort { $a->{title} cmp $b->{title} }
     grep { !$_->{nocharts} }
     values %{ Bugzilla::Search->COLUMNS }
 ];
 
-# "where one or more of the following changed:"
-$vars->{chfield} = [ map { $_->name } @{ Bugzilla::Search->CHANGEDFROMTO_FIELDS } ];
-
 # Another hack...
-unshift @{$vars->{fields}}, { name => "noop", description => "---" };
+unshift @{$vars->{chart_fields}}, { id => 'noop', name => '---' };
 
 # If we're not in the time-tracking group, exclude time-tracking fields.
 if (!Bugzilla->user->is_timetracker) {
     foreach my $tt_field (TIMETRACKING_FIELDS) {
-        @{$vars->{fields}} = grep($_->{name} ne $tt_field, @{$vars->{fields}});
+        @{$vars->{chart_fields}} = grep($_->{name} ne $tt_field, @{$vars->{chart_fields}});
     }
 }
 
-# Boolean charts
-
-# Creating new charts - if the cmd-add value is there, we define the field
-# value so the code sees it and creates the chart. It will attempt to select
-# "xyzzy" as the default, and fail. This is the correct behaviour.
-foreach my $cmd (grep(/^cmd-/, $cgi->param)) {
-    if ($cmd =~ /^cmd-add(\d+)-(\d+)-(\d+)$/) {
-        $cgi->param(-name => "field$1-$2-$3", -value => "xyzzy");
-    }
-}
-
-if (!$cgi->param('field0-0-0')) {
-    $cgi->param(-name => 'field0-0-0', -value => "xyzzy");
-}
-
-# Create data structure of boolean chart info. It's an array of arrays of
-# arrays - with the inner arrays having three members - field, type and
-# value.
+# Parse boolean charts from the form hash
 my @charts;
-for (my $chart = 0; $cgi->param("field$chart-0-0"); $chart++) {
-    my @rows;
-    for (my $row = 0; $cgi->param("field$chart-$row-0"); $row++) {
-        my @cols;
-        for (my $col = 0; $cgi->param("field$chart-$row-$col"); $col++) {
-            my $value = $cgi->param("value$chart-$row-$col");
-            if (!defined($value)) {
-                $value = '';
-            }
-            push(@cols, { field => $cgi->param("field$chart-$row-$col"),
-                          type => $cgi->param("type$chart-$row-$col") || 'noop',
-                          value => $value });
-        }
-        push(@rows, \@cols);
+for (keys %$params)
+{
+    if (/^(field|type|value)(\d+)-(\d+)-(\d+)$/so)
+    {
+        $charts[$2]{rows}[$3][$4]{$1} = $params->{$_};
     }
-    push(@charts, {'rows' => \@rows, 'negate' => scalar($cgi->param("negate$chart")) });
+    elsif (/^negate(\d+)$/so)
+    {
+        $charts[$2]{negate} = $params->{$_};
+    }
 }
 
-$default{'charts'} = \@charts;
+# Remove empty charts
+for (@charts)
+{
+    @$_ = grep { $_->{field} && $_->{field} ne 'noop' && $_->{field} ne '---' } @$_ for @{$_->{rows}};
+    @{$_->{rows}} = grep { @$_ } @{$_->{rows}};
+}
+@charts = grep { @{$_->{rows}} } @charts;
+
+# Add one chart, if we've removed all of them
+@charts = ( { rows => [ [ { field => 'noop' } ] ] } ) unless @charts;
+
+$default->{charts} = \@charts;
 
 # Named queries
-if ($userid) {
-     $vars->{'namedqueries'} = $dbh->selectcol_arrayref(
-           "SELECT name FROM namedqueries " .
-            "WHERE userid = ? AND name != ? " .
-         "ORDER BY name",
-         undef, ($userid, DEFAULT_QUERY_NAME));
+if ($userid)
+{
+    $vars->{namedqueries} = $dbh->selectcol_arrayref(
+        "SELECT name FROM namedqueries " .
+        "WHERE userid = ? AND name != ? " .
+        "ORDER BY name",
+        undef, $userid, DEFAULT_QUERY_NAME
+    );
 }
 
 # Sort order
 my $deforder;
 my @orders = ('Bug Number', 'Importance', 'Assignee', 'Last Changed', 'relevance');
 
-if ($cgi->cookie('LASTORDER')) {
+if ($cgi->cookie('LASTORDER'))
+{
     $deforder = "Reuse same sort as last time";
     unshift(@orders, $deforder);
 }
 
-if ($cgi->param('order'))
+if ($params->{order} && !grep { $_ eq $params->{order} } @orders)
 {
-    $deforder = $cgi->param('order');
-    if (lsearch(\@orders, $deforder) < 0)
-    {
-        unshift @orders, $deforder;
-    }
+    unshift @orders, $params->{order};
 }
 
-$vars->{'userdefaultquery'} = $userdefaultquery;
-$vars->{'orders'} = \@orders;
-$default{'order'} = [$deforder || 'Importance'];
+$vars->{userdefaultquery} = $userdefaultquery;
+$vars->{orders} = \@orders;
+$default->{order} = [$deforder || 'Importance'];
 
-if (($cgi->param('query_format') || $cgi->param('format') || "")
-    eq "create-series") {
+if (($params->{query_format} || $params->{format} || "") eq "create-series")
+{
     require Bugzilla::Chart;
-    $vars->{'category'} = Bugzilla::Chart::getVisibleSeries();
+    $vars->{category} = Bugzilla::Chart::getVisibleSeries();
 }
 
 # CustIS Bug 58300 - Add custom fields to search filters
@@ -306,47 +275,97 @@ if (Bugzilla->params->{usestatuswhiteboard})
 push @{$vars->{freetext_fields}},
     Bugzilla->active_custom_fields({ type => [ FIELD_TYPE_TEXTAREA, FIELD_TYPE_FREETEXT ] });
 
-if ($cgi->param('format') && $cgi->param('format') =~ /^report-(table|graph)$/) {
+if ($params->{format} && $params->{format} =~ /^report-(table|graph)$/)
+{
     # Get legal custom fields for tabular and graphical reports.
     my @custom_fields_for_reports = Bugzilla->active_custom_fields({ type => FIELD_TYPE_SINGLE_SELECT });
-    $vars->{'custom_fields'} = \@custom_fields_for_reports;
+    $vars->{custom_fields} = \@custom_fields_for_reports;
 }
 
-$vars->{'known_name'} = $cgi->param('known_name');
-$vars->{'columnlist'} = $cgi->param('columnlist');
+($vars->{known_name}) = list $params->{known_name};
+$vars->{columnlist} = $params->{columnlist};
 
 # Add in the defaults.
-$vars->{'default'} = \%default;
+$vars->{default} = $default;
 
-$vars->{'format'} = $cgi->param('format');
-$vars->{'query_format'} = $cgi->param('query_format');
+$vars->{format} = $params->{format};
+$vars->{query_format} = $params->{query_format};
 
-# Set default page to "specific" if none provided
-if (!($cgi->param('query_format') || $cgi->param('format'))) {
-    if (defined $cgi->cookie('DEFAULTFORMAT')) {
-        $vars->{'format'} = $cgi->cookie('DEFAULTFORMAT');
-    } else {
-        $vars->{'format'} = 'specific';
+# Set default page to "advanced" if none provided
+if (!$params->{query_format} && !$params->{format})
+{
+    if (defined $cgi->cookie('DEFAULTFORMAT'))
+    {
+        $params->{format} = $cgi->cookie('DEFAULTFORMAT');
+    }
+    else
+    {
+        $params->{format} = 'advanced';
     }
 }
 
 # Set cookie to current format as default, but only if the format
 # one that we should remember.
-if (defined($vars->{'format'}) && IsValidQueryType($vars->{'format'})) {
-    $cgi->send_cookie(-name => 'DEFAULTFORMAT',
-                      -value => $vars->{'format'},
-                      -expires => "Fri, 01-Jan-2038 00:00:00 GMT");
+if (defined $vars->{format} && IsValidQueryType($vars->{format}))
+{
+    $cgi->send_cookie(
+        -name => 'DEFAULTFORMAT',
+        -value => $vars->{format},
+        -expires => "Fri, 01-Jan-2038 00:00:00 GMT"
+    );
 }
 
 # Generate and return the UI (HTML page) from the appropriate template.
 # If we submit back to ourselves (for e.g. boolean charts), we need to
 # preserve format information; hence query_format taking priority over
 # format.
-my $format = $template->get_format("search/search", 
-                                   $vars->{'query_format'} || $vars->{'format'}, 
-                                   scalar $cgi->param('ctype'));
+my $format = $template->get_format(
+    "search/search",
+    $params->{query_format} || $params->{format},
+    $params->{ctype}
+);
 
-$cgi->send_header($format->{'ctype'});
+$cgi->send_header($format->{ctype});
+$template->process($format->{template}, $vars)
+    || ThrowTemplateError($template->error());
 
-$template->process($format->{'template'}, $vars)
-  || ThrowTemplateError($template->error());
+# We pass the defaults as a hash of references to arrays. For those
+# Items which are single-valued, the template should only reference [0]
+# and ignore any multiple values.
+# This is used only for prefilling full queries, not parts of them,
+# so we always prefill boolean charts.
+sub PrefillForm
+{
+    my ($params, $default) = @_;
+    my $foundone = 0;
+
+    # Iterate over the URL parameters
+    foreach (keys %$params)
+    {
+        # If the name begins with the string 'field', 'type', 'value', or
+        # 'negate', then it is part of the boolean charts. Because
+        # these are built different than the rest of the form, we need
+        # to store these as parameters. We also need to indicate that
+        # we found something so the default query isn't added in if
+        # all we have are boolean chart items.
+        if (m/^(?:field|type|value|negate)/)
+        {
+            $foundone = 1;
+        }
+        # If the name ends in a number (which it does for the fields which
+        # are part of the email searching), we use the array
+        # positions to show the defaults for that number field.
+        elsif (m/^(.+)(\d)$/ && defined $default->{$1})
+        {
+            $foundone = 1;
+            $default->{$1}->[$2] = [ list $params->{$_} ]->[0];
+        }
+        elsif (exists $default->{$_})
+        {
+            $foundone = 1;
+            push @{$default->{$_}}, list $params->{$_};
+        }
+    }
+
+    return $foundone;
+}

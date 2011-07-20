@@ -19,11 +19,9 @@
   #
   #%]
 
-[% PROCESS global/variables.none.tmpl %]
 [% title = BLOCK %]
   Confirm Group Control Change for product '[%- product.name FILTER html %]'
 [% END %]
-
 [% PROCESS global/header.html.tmpl title = title %]
 [% FOREACH group = mandatory_groups %]
 <P>

@@ -46,8 +46,6 @@
   [% report.row_field = "" %]
 [% END %]
 
-[% PROCESS "global/field-descs.none.tmpl" %]
-
 [% tbl_field_disp = field_descs.$report.tbl_field || report.tbl_field %]
 [% col_field_disp = field_descs.$report.col_field || report.col_field %]
 [% row_field_disp = field_descs.$report.row_field || report.row_field %]

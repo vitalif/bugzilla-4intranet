@@ -71,6 +71,7 @@ sub new {
     my $attrs = { pg_enable_utf8 => Bugzilla->params->{'utf8'} };
 
     my $self = $class->db_new($dsn, $user, $pass, $attrs);
+    $self->{dbd} = 'pg';
 
     # all class local variables stored in DBI derived class needs to have
     # a prefix 'private_'. See DBI documentation.

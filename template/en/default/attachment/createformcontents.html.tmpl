@@ -92,11 +92,11 @@ function switch_afot(fot)
     <em>If the attachment is a patch, check the box below.</em><br>
     <input type="checkbox" id="ispatch" name="ispatch" value="1"
            onchange="setContentTypeDisabledState(this.form);">
-    <label for="ispatch">patch</label><br><br>
+    <label for="ispatch">patch</label><br /><br />
     [%# Reset this whenever the page loads so that the JS state is up to date %]
     <script type="text/javascript">
-      YAHOO.util.Event.onDOMReady(function() {
-          bz_fireEvent(document.getElementById('ispatch'), 'change');
+      addListener(window, 'load', function() {
+        setContentTypeDisabledState(document.getElementById('ispatch').form);
       });
     </script>
 

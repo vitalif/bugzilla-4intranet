@@ -719,11 +719,11 @@ elsif (($action eq 'next_bug' or $action eq 'same_bug') && ($bug = $vars->{bug})
     my $title;
     if (scalar(@bug_objects) == 1)
     {
-        $title = template_var('terms')->{Bug} . ' ' . $bug_objects[0]->id . ' processed';
+        $title = Bugzilla->messages->{terms}->{Bug} . ' ' . $bug_objects[0]->id . ' processed';
     }
     else
     {
-        $title = template_var('terms')->{Bugs} . ' processed';
+        $title = Bugzilla->messages->{terms}->{Bugs} . ' processed';
     }
     $send_attrs->{nextbug} = $action eq 'next_bug' ? 1 : 0;
     my $ses = {

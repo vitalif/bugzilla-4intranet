@@ -16,7 +16,6 @@
   #                   be aware of the group being edited and its members.
   #%]
 
-[% PROCESS global/variables.none.tmpl %]
 [% PROCESS global/header.html.tmpl
   title = "Change Users in Group: $name"
   style = "
@@ -25,7 +24,6 @@
     .users th { background: #d8d8e6; border: 1px solid #747e93; }
   "
 %]
-
 <form method="post" action="editusersingroup.cgi">
   <input name="group" type="hidden" value=[% group_id %]>
   <table class="editgr_grinfo" cellpadding="4">

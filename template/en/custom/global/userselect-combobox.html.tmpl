@@ -75,6 +75,6 @@
 </span>
 [% END %]
 <script language="JavaScript">
-YAHOO.util.Event.addListener(window, "load", function() { menuforusers_initcombo("[% id | js %]", [% multiple ? 1 : 0 %]) }, null);
+addListener(window, "load", function() { menuforusers_initcombo("[% id | js %]", [% multiple ? 1 : 0 %]) }, null);
 </script>
 </div>

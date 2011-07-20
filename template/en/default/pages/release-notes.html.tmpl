@@ -17,12 +17,10 @@
   # Contributor(s): Max Kanat-Alexander <mkanat@bugzilla.org>
   #%]
 
-[% PROCESS global/variables.none.tmpl %]
 [% INCLUDE global/header.html.tmpl 
   title = "$terms.Bugzilla 3.6 Release Notes" 
   style_urls = ['skins/standard/page.css'] 
 %]
-
 <h2>Table of Contents</h2>
 
 <ul class="bz_toc">
@@ -590,14 +588,12 @@
     words instead of P1, P2, etc.</li>
   <li>There is now a system in place so that all field values can be
     localized. See the <kbd>value_descs</kbd> variable in
-    <kbd>template/en/default/global/field-descs.none.tmpl</kbd>.</li>
   <li><kbd>config.cgi</kbd> now returns an ETag header and understands
     the If-None-Match header in HTTP requests.</li>
   <li>The XML format of <kbd>show_bug.cgi</kbd> now returns more information:
     the numeric id of each comment, whether an attachment is a URL,
     the modification time of an attachment, the numeric id of a flag,
     and the numeric id of a flag's type.</li>
-  
   <li><b>Parameters:</b> Parameters that aren't actually required are no longer
     in the "Required" section of the Parameters page. Instead, some are in the
     new "General" section, and some are in the new "Advanced" section.</li>
@@ -737,12 +733,12 @@
   <li>All of the various template header information required to display
     the [% terms.bug %] form is now in one template,
     <kbd>template/en/default/bug/show-header.html.tmpl</kbd>.</li>
-  <li>You should now use <kbd>display_value</kbd> instead of
+  <li><s>You should now use <kbd>display_value</kbd> instead of
     <kbd>get_status</kbd> or <kbd>get_resolution</kbd> in templates.
     <kbd>display_value</kbd> should be used anywhere that a
-    &lt;select&gt;-type field has its values displayed.</li>
+    &lt;select&gt;-type field has its values displayed.</s>
+    Долбанутое решение убрано.</li>
 </ul>
-
 
 <h1 id="v36_previous">[% terms.Bugzilla %] 3.4 Release Notes</h1>
 

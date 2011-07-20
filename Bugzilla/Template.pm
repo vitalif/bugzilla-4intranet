@@ -306,7 +306,7 @@ sub quoteUrls {
     # we have to do this in one pattern, and so this is semi-messy.
     # Also, we can't use $bug_re?$comment_re? because that will match the
     # empty string
-    my $bug_word = template_var('terms')->{bug};
+    my $bug_word = Bugzilla->messages->{terms}->{bug};
     my $bug_re = qr/\Q$bug_word\E\s*\#?\s*(\d+)/i;
     my $comment_re = qr/comment\s*\#?\s*(\d+)/i;
     $text =~ s~\b($bug_re(?:\s*,?\s*$comment_re)?|$comment_re)
@@ -802,6 +802,35 @@ sub create {
 
         # Default variables for all templates
         VARIABLES => {
+            terms => Bugzilla->messages->{terms},
+            field_descs => Bugzilla->messages->{terms},
+            lc_messages => Bugzilla->messages,
+
+            # HTML <select>
+            html_select => sub
+            {
+                my ($name, $values, $valuenames, $selected, $args) = @_;
+                $name = html_quote($name);
+                my $html = '<select name="'.$name.'" id="'.$name.'">';
+                if (ref $valuenames eq 'ARRAY')
+                {
+                    $values = [ map { $_->{name} } @$valuenames ];
+                    $valuenames = { map { $_->{name} => $_->{title} } @$valuenames };
+                }
+                else
+                {
+                    $values ||= [ keys %$valuenames ];
+                }
+                for (@$values)
+                {
+                    $html .= '<option value="'.html_quote($_).'"';
+                    $html .= ' selected="selected"' if $selected eq $_;
+                    $html .= '>'.html_quote($valuenames->{$_}).'</option>';
+                }
+                $html .= '</select>';
+                return $html;
+            },
+
             # Function for retrieving global parameters.
             'Param' => sub { return Bugzilla->params->{$_[0]}; },
 
@@ -890,11 +919,6 @@ sub create {
             },
 
             'feature_enabled' => sub { return Bugzilla->feature(@_); },
-
-            # field_descs can be somewhat slow to generate, so we generate
-            # it only once per-language no matter how many times
-            # $template->process() is called.
-            'field_descs' => sub { return template_var('field_descs') },
 
             'install_string' => \&Bugzilla::Install::Util::install_string,
 

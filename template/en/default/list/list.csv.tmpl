@@ -19,8 +19,6 @@
   #                 Gervase Markham <gerv@gerv.net>
   #%]
 
-[% PROCESS "global/field-descs.none.tmpl" %]
-
 [% colsepchar = user.settings.csv_colsepchar.value %]
 
 bug_id
@@ -35,9 +33,9 @@ bug_id
       [% IF column == "creation_ts" OR column == "delta_ts" %]
         [% bug.$column = bug.$column FILTER time("%Y-%m-%d %H:%M:%S") %]
       [% ELSIF column == 'bug_status' %]
-        [% bug.$column = display_value("bug_status", bug.$column) %]
+        [% bug.$column = bug.$column %]
       [% ELSIF column == 'resolution' %]
-        [%- bug.$column = display_value("resolution", bug.$column) %]
+        [%- bug.$column = bug.$column %]
       [% END %]
       [% bug.$column FILTER csv %]
     [% END %]

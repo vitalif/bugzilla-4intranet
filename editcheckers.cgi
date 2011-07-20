@@ -16,7 +16,7 @@ use Bugzilla::Token;
 my $template = Bugzilla->template;
 my $user = Bugzilla->login(LOGIN_REQUIRED);
 my $cgi = Bugzilla->cgi;
-my $params = $cgi->Vars;
+my $params = { %{ $cgi->Vars } };
 my $vars = {};
 
 $user->in_group('bz_editcheckers')

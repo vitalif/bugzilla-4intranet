@@ -18,35 +18,33 @@
   # Contributor(s): Emmanuel Seyman <eseyman@linagora.com>
   #%]
 
-[% PROCESS "global/field-descs.none.tmpl" %]
 From: [% Param("mailfrom") %]
 To: [% email %][% Param("emailsuffix") %]
 Subject: Your [% terms.Bugzilla %] [%+ terms.bug %] list needs attention.
 X-Bugzilla-Type: whine
-
 [This e-mail has been automatically generated.]
 
 You have one or more [% terms.bugs %] assigned to you in the [% terms.Bugzilla %] 
 [% terms.bug %] tracking system ([% urlbase %]) that require
 attention.
 
-All of these [% terms.bugs %] are in the [% display_value("bug_status", "NEW") %] or
-[%= display_value("bug_status", "REOPENED") %] state, and have not been
+All of these [% terms.bugs %] are in the NEW or
+REOPENED state, and have not been
 touched in [% Param("whinedays") %] days or more.
 You need to take a look at them, and decide on an initial action.
 
 Generally, this means one of three things:
 
-(1) You decide this [% terms.bug %] is really quick to deal with (like, it's [% display_value("resolution", "INVALID") %]),
+(1) You decide this [% terms.bug %] is really quick to deal with (like, it's INVALID),
     and so you get rid of it immediately.
 (2) You decide the [% terms.bug %] doesn't belong to you, and you reassign it to
     someone else. (Hint: if you don't know who to reassign it to, make
     sure that the Component field seems reasonable, and then use the
     "Reset Assignee to default" option.)
 (3) You decide the [% terms.bug %] belongs to you, but you can't solve it this moment.
-    Accept the [% terms.bug %] by setting the status to [% display_value("bug_status", "ASSIGNED") %].
+    Accept the [% terms.bug %] by setting the status to ASSIGNED.
 
-To get a list of all [% display_value("bug_status", "NEW") %]/[% display_value("bug_status", "REOPENED") %] [%+ terms.bugs %], you can use this URL (bookmark
+To get a list of all NEW/REOPENED [%+ terms.bugs %], you can use this URL (bookmark
 it if you like!):
 
  [% urlbase %]buglist.cgi?bug_status=NEW&bug_status=REOPENED&assigned_to=[% email %]
@@ -54,7 +52,7 @@ it if you like!):
 Or, you can use the general query page, at 
 [%+ urlbase %]query.cgi
 
-Appended below are the individual URLs to get to all of your [% display_value("bug_status", "NEW") %] [%+ terms.bugs %]
+Appended below are the individual URLs to get to all of your NEW [%+ terms.bugs %]
 that haven't been touched for [% Param("whinedays") %] days or more.
 
 You will get this message once a day until you've dealt with these [% terms.bugs %]!

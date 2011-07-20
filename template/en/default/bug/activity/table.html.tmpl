@@ -34,8 +34,6 @@
   #                  it was affected by an old Bugzilla bug.)
   #%]
 
-[% PROCESS "global/field-descs.none.tmpl" %]
-
 [% PROCESS bug/time.html.tmpl %]
 
 [% IF incomplete_data %]
@@ -102,9 +100,9 @@
                change.fieldname == 'qa_contact' ||
                change.fieldname == 'cc' ||
                change.fieldname == 'flagtypes.name' %]
-        [% display_value(change.fieldname, change_type) FILTER email FILTER html %]
+        [% change_type FILTER email FILTER html %]
       [% ELSE %]
-        [% display_value(change.fieldname, change_type) FILTER html %]
+        [% change_type FILTER html %]
       [% END %]
     [% ELSE %]
       &nbsp;

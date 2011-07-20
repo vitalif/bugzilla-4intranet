@@ -32,24 +32,21 @@ use utf8;
 use strict;
 
 use base qw(Exporter);
-@Bugzilla::Util::EXPORT = qw(trick_taint detaint_natural
-                             trick_taint_copy
-                             detaint_signed
-                             html_quote url_quote xml_quote
-                             css_class_quote html_light_quote url_decode
-                             i_am_cgi correct_urlbase remote_ip
-                             lsearch do_ssl_redirect_if_required use_attachbase
-                             diff_arrays
-                             trim wrap_hard wrap_comment find_wrap_point
-                             format_time format_time_decimal validate_date
-                             validate_time datetime_from
-                             file_mod_time is_7bit_clean
-                             bz_crypt generate_random_password
-                             validate_email_syntax clean_text
-                             stem_text
-                             intersect
-                             get_text template_var disable_utf8 bz_encode_json
-                             xml_element xml_element_quote xml_dump_simple);
+@Bugzilla::Util::EXPORT = qw(
+    trick_taint detaint_natural trick_taint_copy detaint_signed
+    html_quote url_quote xml_quote css_class_quote html_light_quote url_decode
+    i_am_cgi correct_urlbase remote_ip lsearch
+    do_ssl_redirect_if_required use_attachbase
+    diff_arrays list
+    trim wrap_hard wrap_comment find_wrap_point
+    format_time format_time_decimal validate_date validate_time datetime_from
+    file_mod_time is_7bit_clean
+    bz_crypt generate_random_password
+    validate_email_syntax clean_text
+    stem_text intersect
+    get_text disable_utf8 bz_encode_json
+    xml_element xml_element_quote xml_dump_simple
+);
 
 use Bugzilla::Constants;
 
@@ -707,48 +704,27 @@ sub clean_text {
     return trim($dtext);
 }
 
-# Довольно некрасивый хак для бага см.ниже - на багах с длинным числом комментов
-# quoteUrls вызывает на каждый коммент get_text('term', { term => 'bug' }),
-# что приводит к ужасной производительности. например, на баге с 703
-# комментами в 10-15 раз ухудшение по сравнению с Bugzilla 2.x.
-# Избавляемся от этого.
-# CustIS Bug 40933 ФАКМОЙМОЗГ! ВРОТМНЕНОГИ! КТО ТАК ПИШЕТ?!!!!
-# ВОТ он, антипаттерн разработки на TT, ведущий к тормозам...
-# ALSO CustIS Bug 52322
-sub get_text {
+# FUCKMYBRAIN! CustIS Bugs 40933, 52322.
+# Here is the Template Toolkit development anti-pattern!
+# Originally, Bugzilla used to call get_text('term', { term => 'bug' })
+# from quoteUrls() for each comment. This leaded to TERRIBLE performance
+# on "long" bugs compared to Bugzilla 2.x!
+
+sub get_text
+{
     my ($name, $vars) = @_;
     my $template = Bugzilla->template_inner;
     $vars ||= {};
-    $vars->{'message'} = $name;
+    $vars->{message} = $name;
     my $message;
-    if (!$template->process('global/message.txt.tmpl', $vars, \$message)) {
+    if (!$template->process('global/message.txt.tmpl', $vars, \$message))
+    {
         require Bugzilla::Error;
         Bugzilla::Error::ThrowTemplateError($template->error());
     }
     # Remove the indenting that exists in messages.html.tmpl.
     $message =~ s/^    //gm;
     return $message;
-}
-
-sub template_var {
-    my $name = shift;
-    my $cache = Bugzilla->request_cache->{util_template_var} ||= {};
-    my $template = Bugzilla->template_inner;
-    my $lang = Bugzilla->request_cache->{language};
-    return $cache->{$lang}->{$name} if defined $cache->{$lang};
-    my %vars;
-    # Note: If we suddenly start needing a lot of template_var variables,
-    # they should move into their own template, not field-descs.
-    my $output;
-    my $result = $template->process('global/field-descs.none.tmpl', 
-                                    { vars => \%vars, in_template_var => 1 }, \$output);
-    # Bugzilla::Error can't be "use"d in Bugzilla::Util.
-    if (!$result) {
-        require Bugzilla::Error;
-        Bugzilla::Error::ThrowTemplateError($template->error);
-    }
-    $cache->{$lang} = \%vars;
-    return $vars{$name};
 }
 
 sub disable_utf8 {
@@ -872,8 +848,15 @@ sub bz_encode_json
     return $var;
 }
 
-1;
+sub list($)
+{
+    my ($array) = @_;
+    return () unless defined $array;
+    return ($array) if ref $array ne 'ARRAY';
+    return @$array;
+}
 
+1;
 __END__
 
 =head1 NAME
@@ -1146,14 +1129,6 @@ It uses the F<global/message.txt.tmpl> template to return a string.
 A string.
 
 =back
-
-
-=item C<template_var>
-
-This is a method of getting the value of a variable from a template in
-Perl code. The available variables are in the C<global/field-descs.none.tmpl>
-template. Just pass in the name of the variable that you want the value of.
-
 
 =back
 

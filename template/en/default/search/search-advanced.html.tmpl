@@ -24,11 +24,8 @@
   # search/boolean-charts.html.tmpl.
   #%]
 
-[% PROCESS global/variables.none.tmpl %]
-
 [% USE Bugzilla %]
 [% cgi = Bugzilla.cgi %]
-
 
 [% js_data = BLOCK %]
 var queryform = "queryform"
@@ -67,15 +64,13 @@ var queryform = "queryform"
 <form method="post" action="buglist.cgi" name="queryform">
 
 [% PROCESS search/form.html.tmpl %]
-
 [% PROCESS search/knob.html.tmpl %]
 
-<hr>
+<hr />
 
 [% PROCESS "search/boolean-charts.html.tmpl" %]
 
 </form>
-
 
 [% END %]
 

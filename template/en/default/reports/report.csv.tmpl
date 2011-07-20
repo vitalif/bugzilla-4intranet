@@ -17,9 +17,7 @@
   #
   # Contributor(s): Gervase Markham <gerv@gerv.net>
   #%]
-[% PROCESS "global/field-descs.none.tmpl" %]
 [% FOREACH tbl = tbl_names %]
   [% PROCESS "reports/report-table.csv.tmpl" %] 
-
 
 [% END %]  

@@ -41,7 +41,7 @@ sub add_wt
 
 # Read buglist from query params
 my @idlist;
-my $args = $cgi->Vars;
+my $args = { %{ $cgi->Vars } };
 foreach (keys %$args)
 {
     if (/^wtime_(\d+)/)

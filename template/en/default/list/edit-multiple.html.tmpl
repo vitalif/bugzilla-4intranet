@@ -21,29 +21,27 @@
   #                 Guy Pyrzak <guy.pyrzak@gmail.com>
   #%]
 
-[% PROCESS global/variables.none.tmpl %]
-
 [% dontchange = "--do_not_change--" %]
 <input type="hidden" name="dontchange" value="[% dontchange FILTER html %]">
 <input type="hidden" name="token" value="[% token FILTER html %]">
 
 <script type="text/javascript">
-  function SetCheckboxes(value) {
-      var elements = document.forms.changeform.getElementsByTagName('input'),
-          numelements = elements.length,
-          item, i;
-      for (i = 0; i < numelements; i++) {
-          item = elements[i];
-          if (item.type === 'checkbox' && item.name.match(/^id_/)) {
-            item.checked = value;
-          }
-      }
+function SetCheckboxes(value)
+{
+  var elements = document.forms.changeform.getElementsByTagName('input'),
+    numelements = elements.length, item, i;
+  for (i = 0; i < numelements; i++)
+  {
+    item = elements[i];
+    if (item.type === 'checkbox' && item.name.match(/^id_/))
+      item.checked = value;
   }
-  document.write(' <input type="button" name="uncheck_all" value="Uncheck All" onclick="SetCheckboxes(false);">');
-  document.write(' <input type="button" name="check_all" value="Check All" onclick="SetCheckboxes(true);">');
+}
+document.write(' <input type="button" name="uncheck_all" value="Uncheck All" onclick="SetCheckboxes(false);">');
+document.write(' <input type="button" name="check_all" value="Check All" onclick="SetCheckboxes(true);">');
 </script>
 
-<hr>
+<hr />
 
 <p style="font-size:smaller">
  To change multiple [% terms.bugs %]:</p>
@@ -139,7 +137,7 @@
       </td>
     [% END %]
   </tr>
-  
+
   [% IF user.is_timetracker %]
     <tr>
       <th><label for="estimated_time">Estimated Hours:</label></th>
@@ -215,7 +213,6 @@
 
   [% IF use_keywords %]
     <tr>
-
       <th>
         <label for="keywords">
           <a href="describekeywords.cgi">Keywords</a>:
@@ -250,9 +247,7 @@
 
   <tr>
     <th>
-      <label for="blocked">
-          Blocks:
-      </label>
+      <label for="blocked">Blocks:</label>
     </th>
     <td colspan="3">
       <input id="blocked" name="blocked" size="32">
@@ -269,7 +264,7 @@
         <b>Status Whiteboard:</b>
       </td>
       <td colspan="7">
-        <input name="status_whiteboard" 
+        <input name="status_whiteboard"
                value="[% dontchange FILTER html %]" size="60">
       </td>
     </tr>
@@ -357,7 +352,7 @@
 
 [% END %]
 
-<label for="bug_status"><b>Status:</b></label> 
+<label for="bug_status"><b>Status:</b></label>
 [% PROCESS status_section %]
 <input type="submit" id="commit" value="Commit">
 
@@ -376,7 +371,7 @@
     </option>
     [% FOREACH menuitem = menuitems %]
       [% IF property %][% menuitem = menuitem.$property %][% END %]
-      <option value="[% menuitem FILTER html %]">[% display_value(menuname, menuitem) FILTER html %]</option>
+      <option value="[% menuitem FILTER html %]">[% menuitem FILTER html %]</option>
     [% END %]
   </select>
 [% END %]
@@ -389,42 +384,42 @@
   [% all_open_bugs = !current_bug_statuses.containsany(closedstates) %]
   [% all_closed_bugs = !current_bug_statuses.containsany(openstates) %]
   [% closed_status_array = [] %]
-  
-  <select name="bug_status" id="bug_status"> 
+
+  <select name="bug_status" id="bug_status">
     <option value="[% dontchange FILTER html %]" selected="selected">[% dontchange FILTER html %]</option>
-  
+
     [% FOREACH bug_status = new_bug_statuses %]
       <option value="[% bug_status.name FILTER html %]">
-        [% display_value("bug_status", bug_status.name) FILTER html %]
+        [% bug_status.name FILTER html %]
       </option>
       [% IF !bug_status.is_open %]
         [% filtered_status =  bug_status.name FILTER js %]
         [% closed_status_array.push( filtered_status ) %]
       [% END %]
     [% END %]
-  
+
   [%# If all the bugs being changed are closed, allow the user to change their resolution. %]
   [% IF all_closed_bugs %]
     [% filtered_status = dontchange FILTER js %]
     [% closed_status_array.push( filtered_status ) %]
   [% END %]
   </select>
-  
+
   <span id="resolution_settings">
   <select id="resolution" name="resolution">
       <option value="[% dontchange FILTER html %]" selected >[% dontchange FILTER html %]</option>
     [% FOREACH r = resolutions %]
       [% NEXT IF !r %]
       [% NEXT IF r == "DUPLICATE" || r == "MOVED" %]
-      <option value="[% r FILTER html %]">[% display_value("resolution", r) FILTER html %]</option>
+      <option value="[% r FILTER html %]">[% r FILTER html %]</option>
     [% END %]
   </select>
   </span>
 
   <script type="text/javascript">
-  var close_status_array = new Array("[% closed_status_array.join('", "') FILTER none %]");
-    YAHOO.util.Event.addListener('bug_status', "change", showHideStatusItems, '[% "is_duplicate" IF bug.dup_id %]');
-    YAHOO.util.Event.onDOMReady( showHideStatusItems );
+    var close_status_array = new Array("[% closed_status_array.join('", "') FILTER none %]");
+    addListener('bug_status', "change", function() { showHideStatusItems('', '') });
+    addListener(window, 'load', function() { showHideStatusItems('', '') });
   </script>
 
 [% END %]
