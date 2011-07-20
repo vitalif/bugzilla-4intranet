@@ -28,7 +28,8 @@ function toggle_display(link)
     var originalHeight = table.offsetHeight;
 
     var r0;
-    var rs = table.tBodies[0].tRows;
+    var rs = table.tBodies[0];
+    rs = rs.rows || rs.tRows;
     for (var i = 0; i < rs.length; i++)
         if (hasClass(rs[i], 'bz_tr_obsolete'))
             r0 = toggleClass(rs[i], 'bz_default_hidden');

@@ -1,7 +1,7 @@
 [% title = "Массовый ввод трудозатрат" %]
 [% PROCESS global/header.html.tmpl
   title = title
-  style_urls = [ "skins/standard/buglist.css", "skins/standard/yui/calendar.css" ]
+  style_urls = [ "skins/standard/buglist.css" ]
 %]
 
 <p>
@@ -54,10 +54,14 @@
 </form>
 </fieldset>
 
-[% PROCESS list/description.html.tmpl %]
+[% search_description %]
+
+<hr />
 
 [% IF bugs.size > 9 %]
-[% bugs.size %] [%+ terms.bugs %] found.
+<p class="bz_result_count">
+  [% bugs.size %] [%+ terms.bugs %] found.
+</p>
 [% END %]
 
 <form action="?" method="POST">

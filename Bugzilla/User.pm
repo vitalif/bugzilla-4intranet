@@ -1534,7 +1534,9 @@ sub wants_bug_mail {
 
         # You role is new if the bug itself is.
         # Only makes sense for the assignee, QA contact and the CC list.
-        # FIXME Это неудобно, потому что неочевидно для пользователя!
+        # FIXME Remove this block. Its inconvenience is:
+        # FIXME you remove the "Bug Created" checkbox on the Email Preferences page,
+        # FIXME but emails are still sent. This is non-intuitive.
         if ($relationship == REL_ASSIGNEE
             || $relationship == REL_QA
             || $relationship == REL_CC)

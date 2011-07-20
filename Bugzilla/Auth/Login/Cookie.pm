@@ -34,7 +34,6 @@ sub get_login_info {
     my ($self) = @_;
     my $cgi = Bugzilla->cgi;
     my $dbh = Bugzilla->dbh;
-################    return { user_id => $cgi->param('user_id') }; # hack
 
     my $ip_addr = remote_ip();
     my $login_cookie = $cgi->cookie("Bugzilla_logincookie");
