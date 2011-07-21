@@ -319,7 +319,7 @@ sub SPECIAL_ORDER
     return $cache->{special_order} = $special_order;
 }
 
-# Backward-compatibility for old field names. Goes old_name => new_name.
+# Backwards-compatibility for old field names. Goes old_name => new_name.
 sub COLUMN_ALIASES
 {
     my $cache = Bugzilla->cache_fields;
@@ -460,7 +460,7 @@ sub STATIC_COLUMNS
     }
 
     # Do the actual column-getting from fielddefs, now.
-    my @bugsjoin;
+    my @bugid_fields;
     foreach my $field (Bugzilla->get_fields)
     {
         my $id = $field->name;
@@ -470,19 +470,19 @@ sub STATIC_COLUMNS
         $columns->{$id}->{nocharts} = $field->obsolete;
         if ($field->type == FIELD_TYPE_BUG_ID)
         {
-            push @bugsjoin, $field;
+            push @bugid_fields, $field;
         }
     }
 
     # Fields of bugs related to selected by some BUG_ID type field
-    foreach my $field (@bugsjoin)
+    foreach my $field (@bugid_fields)
     {
         my $id = $field->name;
         my $join = [ "LEFT JOIN bugs bugs_$id ON bugs_$id.bug_id=bugs.$id" ];
         foreach my $subfield (Bugzilla->get_fields({ obsolete => 0, buglist => 1 }))
         {
             my $subid = $subfield->name;
-            if ($columns->{$subid}->{name} eq "bugs.$subid")
+            if ($subid ne 'bug_id' && $columns->{$subid}->{name} eq "bugs.$subid")
             {
                 $columns->{$id.'_'.$subid} = {
                     name  => "bugs_$id.".$subfield->name,
