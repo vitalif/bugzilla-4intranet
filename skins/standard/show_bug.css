@@ -75,9 +75,7 @@ table#flags {
     margin-top: 0;
 }
 
-#bz_enable_role_visibility_help {
-    margin-top: 1em;
-}
+#bz_enable_role_visibility_help { margin-bottom: 0.5em; }
 
 .bz_time_tracking_table {
     border-collapse: collapse;

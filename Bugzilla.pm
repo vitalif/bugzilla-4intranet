@@ -754,6 +754,7 @@ sub _fill_fields_cache
     my ($r) = @_;
     if (!$r->{id})
     {
+        # FIXME take field names from Bugzilla->messages
         my $f = [ Bugzilla::Field->get_all ];
         for (@$f)
         {

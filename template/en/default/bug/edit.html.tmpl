@@ -604,16 +604,15 @@ document.changeform = document.[% cfname %];
       [% END %]
 
       [% IF group.ingroup %]
-        <input type="hidden" name="defined_bit-[% group.bit %]" value="1">
+        <input type="hidden" name="defined_bit-[% group.bit %]" value="1" />
       [% END %]
 
       <input type="checkbox" value="1" name="bit-[% group.bit %]"
              id="bit-[% group.bit %]"
              [% ' checked="checked"' IF group.ison %]
-             [% ' disabled="disabled"' IF NOT group.ingroup %]>
-      <label for="bit-[% group.bit %]">
-      [%- group.description FILTER html_light %]</label>
-      <br>
+             [% ' disabled="disabled"' IF NOT group.ingroup %] />
+      <label for="bit-[% group.bit %]">[%- group.description FILTER html_light %]</label>
+      <br />
     [% END %]
 
     [% IF emitted_description %]
@@ -624,9 +623,8 @@ document.changeform = document.[% cfname %];
     [% END %]
 
     [% IF inagroup %]
-      <div id="bz_enable_role_visibility_help">
-        <b>Users in the roles selected below can always view
-          this [% terms.bug %]:</b>
+      <div id="bz_enable_role_visibility_help" [% ' style="margin-top: 0.5em"' IF emitted_description %]>
+        <b>A[% 'lso a' IF emitted_description %]llow to view this [% terms.bug %]:</b>
       </div>
       <div id="bz_enable_role_visibility">
         <div>
@@ -634,13 +632,13 @@ document.changeform = document.[% cfname %];
             bug.check_can_change_field("reporter_accessible", 0, 1)
           %]
           [% IF user_can_edit_accessible %]
-            <input type="hidden" name="defined_reporter_accessible" value="1">
+            <input type="hidden" name="defined_reporter_accessible" value="1" />
           [% END %]
           <input type="checkbox" value="1"
                  name="reporter_accessible" id="reporter_accessible"
                  [% " checked" IF bug.reporter_accessible %]
-                 [% " disabled=\"disabled\"" UNLESS user_can_edit_accessible %]>
-          <label for="reporter_accessible">Reporter</label>
+                 [% " disabled=\"disabled\"" UNLESS user_can_edit_accessible %] />
+          <label for="reporter_accessible">Allow reporter to view this [% terms.bug %]</label>
         </div>
         <div>
           [% user_can_edit_accessible =
@@ -653,7 +651,7 @@ document.changeform = document.[% cfname %];
                  name="cclist_accessible" id="cclist_accessible"
                  [% " checked" IF bug.cclist_accessible %]
                  [% " disabled=\"disabled\"" UNLESS user_can_edit_accessible %]>
-          <label for="cclist_accessible">CC List</label>
+          <label for="cclist_accessible">Allow CC List users to view this [% terms.bug %]</label>
         </div>
         <p class="instructions">
           The assignee

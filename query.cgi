@@ -187,8 +187,8 @@ $vars->{text_types} = Bugzilla::Search->TEXT_OPERATORS_ORDER;
 
 # Fields for boolean charts
 $vars->{chart_fields} = [
-    map { { name => $_->{id}, title => $_->{title} } }
-    sort { $a->{title} cmp $b->{title} }
+    map { { id => $_->{id}, name => $_->{title} } }
+    sort { (($a->{sortkey}||0) <=> ($b->{sortkey}||0)) || ($a->{title} cmp $b->{title}) }
     grep { !$_->{nocharts} }
     values %{ Bugzilla::Search->COLUMNS }
 ];
@@ -204,6 +204,8 @@ if (!Bugzilla->user->is_timetracker) {
 }
 
 # Parse boolean charts from the form hash
+# FIXME add support for "Attachment 2 submitter", ..., i.e., selecting
+# the target of a search term that could be correlated
 my @charts;
 for (keys %$params)
 {

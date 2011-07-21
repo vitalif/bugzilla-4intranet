@@ -489,15 +489,22 @@ sub STATIC_COLUMNS
                     title => $field->description . ' ' . $subfield->description,
                     joins => $join,
                     subid => $subid,
+                    sortkey => 1,
                 };
             }
         }
     }
 
+    for (qw(longdesc commenter work_time), grep { /\./ } keys %$columns)
+    {
+        $columns->{$_}->{may_be_correlated} = $columns->{$_}->{sortkey} = 1;
+    }
+
     # short_short_desc is short_desc truncated to 60 characters
     # see template list/table.html.tmpl
     # FIXME move truncation away from templates
-    $columns->{short_short_desc} = $columns->{short_desc};
+    $columns->{short_short_desc} = { %{ $columns->{short_desc} } };
+    $columns->{short_short_desc}->{nocharts} = 1;
 
     Bugzilla::Hook::process('buglist_static_columns', { columns => $columns });
 
