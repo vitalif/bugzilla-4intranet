@@ -1,38 +1,27 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-#
-# The Initial Developer of the Original Code is Netscape Communications
-# Corporation. Portions created by Netscape are
-# Copyright (C) 1998 Netscape Communications Corporation. All
-# Rights Reserved.
-#
-# Contributor(s): Gervase Markham <gerv@gerv.net>
-#                 Terry Weissman <terry@mozilla.org>
-#                 Dan Mosedale <dmose@mozilla.org>
-#                 Stephan Niemz <st.n@gmx.net>
-#                 Andreas Franke <afranke@mathweb.org>
-#                 Myk Melez <myk@mozilla.org>
-#                 Michael Schindler <michael@compressconsult.com>
-#                 Max Kanat-Alexander <mkanat@bugzilla.org>
-#                 Joel Peshkin <bugreport@peshkin.net>
-#                 Lance Larsh <lance.larsh@oracle.com>
-#                 Jesse Clark <jjclark1982@gmail.com>
-#                 Rémi Zara <remi_zara@mac.com>
+# Totally Rewritten Bugzilla4Intranet search engine
+# License: Dual-license GPL 3.0+ or MPL 1.1+
+# Contributor(s): Vitaliy Filippov <vitalif@mail.ru>
 
-=pod
+=head1 NAME
 
-== BOOLEAN CHARTS ==
+This is totally rewritten Bugzilla4Intranet search engine.
+
+Original Bugzilla::Search was ugly and stupid. It contained
+a lot of legacy code and often generated queries very complex
+for the DBMS, which leads to awful performance on big databases.
+
+Yet in Bugzilla 4.0, although we could expect the authors to refactor
+it, they've just decomposed overlong subroutines into small ones.
+
+So in Bugzilla4Intranet, I (Vitaliy Filippov) have rewritten it totally.
+
+License is dual-license GPL 3.0+ or MPL 1.1+ ("+" means "or any later version"),
+to be compatible with both GPL and Bugzilla code.
+
+Most of the functionality remains unchanged, but the internals are totally
+different, as well as the query performance (tested on MySQL) :)
+
+=head1 BOOLEAN CHARTS
 
 A boolean chart is a way of representing the terms in a logical
 expression. Bugzilla builds SQL queries depending on how you enter
@@ -45,7 +34,8 @@ The expressions represented by columns are ORed together.
 The expressions represented by rows are ANDed together and can be negated.
 The expressions represented by each chart are ORed together.
 So, boolean charts specify a logical expression in the form of:
-  OR(AND(OR()), NOT(AND(OR())), ...)
+
+    OR(AND(OR()), NOT(AND(OR())), ...)
 
 Original boolean charts in Bugzilla 2.x really consisted of tables
 with rows and columns. Now, there is no tables, but three levels
@@ -64,51 +54,96 @@ bugs which have 'foo' as one CC AND 'bar' as another.
 Now, this magic is only enabled for bug comments, bug changes, flags
 and attachments. See "CORRELATED SEARCH TERMS" below.
 
-== QUERY OPTIMISATION ==
+FIXME: Add support for manual selection of match target for such terms.
+I.e. the user should be able to select "comment 1 author = ..." AND
+"comment 2 author = ..." search terms by hand, without thinking about
+any magic. Now, it's also the single piece of functionality which is lost
+compared to the old search engine.
+
+=head1 QUERY OPTIMISATION
 
 The two main problems of Bugzilla query complexity on big databases were:
-1) OR operators inside query which stop DBMS from using indexes for query speed-up.
-   I.e. for example "cc=X or commenter=X" was translated to 2 LEFT JOINs -
-   to cc and longdescs tables - and a term like "cc.who=X or longdescs.who=X".
-   DBMS can't do an index merge here, so this leads to a scan + two index checks.
-   SOLUTION:
-     Use UNIONs instead of ORs. I.e. this same query is now translated to
-     (SELECT bug_id FROM cc WHERE who=X) UNION (SELECT bug_id FROM longdescs WHERE who=X).
-   It's important to note that the UNION of "non-seeding" queries is worse than OR,
-   because UNION must be always executed fully and can't be just checked while
-   executing other part of query.
-   SOLUTION:
-     (Partially experimental by now, but works)
-     Expand brackets in expressions. I.e. transform AND(a,OR(b,c)) to
-     OR(AND(a,b),AND(a,c)). This also allows to handle OR query parts with
-     correlated search terms.
-2) Usage of multiple JOINS with many rows in one query, leading to insane
-   amounts of rows when multiplied.
-   SOLUTION:
-     Wrap them into (SELECT DISTINCT) subqueries if there is more than one such
-     term in the query. This removes duplicate rows from the result and makes
-     DBMS's life easier. To do so in Bugzilla, specify { many_rows => 1 } for such terms.
 
-== SEARCH FUNCTIONS ==
+B<OR operators inside query which stop DBMS from using indexes for query speed-up.>
+
+=over
+
+I.e. for example "cc=X or commenter=X" was translated to 2 LEFT JOINs -
+to cc and longdescs tables - and a term like "cc.who=X or longdescs.who=X".
+DBMS can't do an index merge here, so this leads to a scan + two index checks.
+
+B<SOLUTION:>
+
+Use UNIONs instead of ORs. I.e. this same query is now translated to
+(SELECT bug_id FROM cc WHERE who=X) UNION (SELECT bug_id FROM longdescs WHERE who=X).
+
+It's important to note that the UNION of "non-seeding" queries is worse than OR,
+because UNION must be always executed fully and can't be just checked while
+executing other part of query.
+
+B<SOLUTION:> (Partially experimental by now, but works)
+
+Expand brackets in expressions. I.e. transform AND(a,OR(b,c)) to
+OR(AND(a,b),AND(a,c)). This also allows to handle OR query parts with
+correlated search terms.
+
+=back
+
+B<Usage of multiple JOINS with many rows in one query, leading to insane
+amounts of rows when multiplied.>
+
+=over
+
+B<SOLUTION:>
+
+Wrap them into (SELECT DISTINCT) subqueries if there is more than one such
+term in the query. This removes duplicate rows from the result and makes
+DBMS's life easier. To do so in Bugzilla, specify { many_rows => 1 } for such terms.
+
+=back
+
+=head1 SEARCH FUNCTIONS
 
 Search functions get and return arguments through $self. Input arguments:
-$self->{sequence}   sequence number of current condition, starting with 0
-                    used mostly to prevent table name collisions
-$self->{field}      field name
-$self->{fieldsql}   field SQL representation
-$self->{type}       search operator type (equals, greaterthan, etc)
-$self->{negated}    most "negative" search operators (notequals, etc) are
-                    automatically generated from negated terms for corresponding
-                    "posivite" operators. So $self->{type} cannot be "negative",
-                    and $self->{negated} contains true if it's really negative.
-$self->{value}      search value
-$self->{quoted}     SQL representation of value. Search functions must set this field
-                    before calling default search operator implementation ($self->call_op)
-                    if they want to use different SQL code for the value.
 
-=== OUTPUT ARGUMENT ===
+=over
 
-$self->{term}
+=item $self->{sequence}
+
+Sequence number of current condition, starting with 0. Used mostly to prevent table name collisions.
+
+=item $self->{field}
+
+Field name.
+
+=item $self->{fieldsql}
+
+Field SQL representation.
+
+=item $self->{type}
+
+Search operator type (equals, greaterthan, etc)
+
+=item $self->{negated}
+
+Most "negative" search operators (notequals, etc) are
+automatically derived from negated terms for corresponding
+"posivite" operators. So $self->{type} cannot be "negative",
+and $self->{negated} contains true if it's really negative.
+
+=item $self->{value}
+
+Search value.
+
+=item $self->{quoted}
+
+SQL representation of value. Search functions must set this field
+before calling default search operator implementation ($self->call_op)
+if they want to use different SQL code for the value.
+
+=back
+
+=head2 OUTPUT ARGUMENT, $self->{term}
 
 Resulting SQL condition or an expression consisting of several conditions.
 
@@ -122,49 +157,86 @@ are specified as "List" conditions. A simple example is "CC" field:
 "NONE of CC is somebody".
 
 "Scalar" conditions can be returned either as a simple string with SQL condition,
-or as a hashref:
-{
-  supp => [ " LEFT JOIN t1 ...", ... ], # arrayref with table JOINs required to match
-  term => SQL condition string,
-  description => [ 'field', 'operator', 'value' ],
-    Search term description for the UI. It is not required for search functions to provide
-    this description unless they return an expression consisting of several terms.
-    The default 'field', 'operator' and 'value' are taken from the request.
-}
+or as a hashref with following keys:
+
+=over
+
+=over
+
+=item supp => [ " LEFT JOIN t1 ON ...", ... ]
+
+Arrayref with table JOINs (plaintext with ON) required to match.
+
+=item term => string
+
+SQL condition string.
+
+=item description => [ 'field', 'operator', 'value' ]
+
+Search term description for the UI. It is not required for search functions to provide
+this description unless they return an expression consisting of several terms.
+The default 'field', 'operator' and 'value' are taken from the request.
+
+=back
+
+=back
 
 "List" conditions must be always returned as a hashref with the following keys:
-{
-  table => string,
-    table specification with alias(es), just like <table> inside SQL query:
-    ... JOIN <table> ON <condition> ...
-    for example, it may itself contain JOINs inside brace expressions
-    ... JOIN (table1 JOIN table2 ON ...) ON <condition> ...
-    $self->{sequence} should be appended to alias(es) to easily combat
-    table name collisions.
-  where => string,
-    join <condition>. fields of 'bugs' table could be used for joining.
-  bugid_field => string,
-    when the <table> is joined to 'bugs' simply on 'bug_id',
-    and none of other 'bugs' fields are used, function should omit
-    "bugs.bug_id=table_alias.bug_id" from 'where', and specify
-    "tablealias.bug_id" as 'bugid_field'.
-  notnull_field => string,
-    when the <table> is joined to 'bugs' on some field other than 'bug_id',
-    'bugid_field' key MUST be omitted and any field of table that cannot
-    be NULL must be specified in 'notnull_field'. This is used in negative
-    lookups ("NONE of linked values match") for NULL checks.
-  neg => boolean value (1 or 0),
-    if a positive term corresponds to negative lookup, search function
-    can specify a true value for this key. Bugzilla search engine will then
-    negate the term itself.
-  many_rows => boolean value (1 or 0),
-    if many_rows is true, this term will be wrapped into a (SELECT DISTINCT bug_id ...)
-    subquery when INNER JOINed to different terms with many_rows. Use it when 'table'
-    could have relatively many rows for a single bug.
-  description => [ 'field', 'operator', 'value' ],
-}
 
-=== CORRELATED SEARCH TERMS ===
+=over
+
+=over
+
+=item table => string,
+
+Table specification with alias(es), just like <table> inside SQL query:
+
+ ... JOIN <table> ON <condition> ...
+
+For example, it may itself contain JOINs inside brace expressions:
+
+ ... JOIN (table1 JOIN table2 ON ...) ON <condition> ...
+
+$self->{sequence} should be appended to alias(es) to easily combat
+table name collisions.
+
+=item where => string,
+
+Join <condition>. fields of 'bugs' table could be used for joining.
+
+=item bugid_field => string,
+
+When the <table> is joined to 'bugs' simply on 'bug_id',
+and none of other 'bugs' fields are used, function should omit
+"bugs.bug_id=table_alias.bug_id" from 'where', and specify
+"tablealias.bug_id" as 'bugid_field'.
+
+=item notnull_field => string,
+
+When the <table> is joined to 'bugs' on some field other than 'bug_id',
+'bugid_field' key MUST be omitted and any field of table that cannot
+be NULL must be specified in 'notnull_field'. This is used in negative
+lookups ("NONE of linked values match") for NULL checks.
+
+=item neg => boolean value (1 or 0),
+
+If a positive term corresponds to negative lookup, search function
+can specify a true value for this key. Bugzilla search engine will then
+negate the term itself.
+
+=item many_rows => boolean value (1 or 0),
+
+If many_rows is true, this term will be wrapped into a (SELECT DISTINCT bug_id ...)
+subquery when INNER JOINed to different terms with many_rows. Use it when 'table'
+could have relatively many rows for a single bug.
+
+=item description => [ 'field', 'operator', 'value' ],
+
+=back
+
+=back
+
+=head2 CORRELATED SEARCH TERMS
 
 There is also a subclass of "list" conditions - conditions that can be
 correlated. I.e., conditions that can possibly match different fields of
@@ -173,28 +245,45 @@ If the user specifies "comment date is ..." AND "comment author is ...",
 then he probably means to find ONE comment with date and author matching
 these terms.
 
-To specify such conditions, search term must have different fields:
-{
-  base_table => string,
-    the name of base table in which the entities linked to a bug are stored
-    without any aliases, subqueries or JOINs.
-  base_joins => [ [ 'LEFT'|'INNER', <table name>, <alias>, <on> ], ... ],
-    the names of tables which must be additionally joined to base table
-    to run the term.
-    LEFT|INNER is join type. <alias> MUST be non-unique (MUST not contain
-    $self->{sequence}). When two such terms are united, base_joins duplicates
-    are filtered based on <alias>. Unique aliases are then generated
-    automatically by SQL core.
-  where => string or [ string1, string2, ... ],
-  bugid_field => string,
-  notnull_field => string,
-  neg => 1|0,
-  many_rows => 1|0,
-  description => [ 'field', 'operator', 'value' ],
-    These fields have meaning identical to them in simple "list" conditions.
-}
+To specify such conditions, search term must have different keys:
 
-==== EXPLANATION ====
+=over
+
+=over
+
+=item base_table => string,
+
+The name of base table in which the entities linked to a bug are stored
+without any aliases, subqueries or JOINs.
+
+=item base_joins => [ [ 'LEFT'|'INNER', <table name>, <alias>, <on> ], ... ],
+
+The names of tables which must be additionally joined to base table
+to run the term.
+LEFT|INNER is join type. <alias> MUST be non-unique (MUST not contain
+$self->{sequence}). When two such terms are united, base_joins duplicates
+are filtered based on <alias>. Unique aliases are then generated
+automatically by SQL core.
+
+=item where => string or [ string1, string2, ... ],
+
+=item bugid_field => string,
+
+=item notnull_field => string,
+
+=item neg => 1|0,
+
+=item many_rows => 1|0,
+
+=item description => [ 'field', 'operator', 'value' ],
+
+All these fields have meaning identical to their meaning in simple "list" conditions.
+
+=back
+
+=back
+
+=head3 EXPLANATION
 
 As it was mentioned above, original boolean charts in Bugzilla were
 "constraints on a single piece of data".
@@ -217,29 +306,36 @@ you'll get (e in (A union B)).
 
 In Bugzilla, this is possible for bug comments, bug changes, flags and attachments.
 I.e. if somebody writes:
-* commented after 2010-01-01
-* AND commented before 2010-02-01
-* AND commented by foo@bar.org
+
+   commented after 2010-01-01
+   AND commented before 2010-02-01
+   AND commented by foo@bar.org
+
 Then he probably means to search for bugs with a comment from foo@bar.org
 left between 2010-01-01 and 2010-02-01, not for bugs with 3 different comments
 corresponding to single terms.
 
-=== EXPRESSIONS ===
+=head2 EXPRESSIONS
 
 Although this should be needed very rarely, search functions can also
 return expressions consisting of several single conditions.
 
-ATTENTION! Functions that return expressions MUST specify $term->{description}
+B<ATTENTION!> Functions that return expressions MUST specify $term->{description}
 for each single term inside this expression to correctly generate search
 descriptions in the UI.
 
 An expression is an arrayref with the operation name as the first
 element and operation arguments as the following ones. Possible operation
-names are 'OR', 'AND', 'OR_MANY' and 'AND_MANY'. Each argument may either
-be an expression itself, or a search term in a format returned by
-search functions.
+names are 'OR', 'AND', 'OR_MANY', 'AND_MANY', 'OR_NE', 'AND_NE'.
+Each argument may either be an expression itself, or a search term in a
+format returned by search functions.
 
 OR is replaced with SQL UNION.
+
+There are (partially experimental) variations of OR:
+
+OR_NE is not expanded when its outer expression is expanded, i.e.
+AND(OR(a,b),OR_NE(c,d)) becomes OR(AND(a,OR_NE(c,d)),AND(b,OR_NE(c,d))).
 
 OR_MANY is attached as LEFT JOINs instead of an INNER JOIN to UNION,
 if there are any terms ANDed with it.
