@@ -10,7 +10,7 @@
   # | -------------------------- |
   # ------------------------------
   #
-  # If there is single term inside some AND/OR, it is shown without fieldset.
+  # If there is just a single term inside some AND/OR, it is shown without fieldset.
   # So, if the whole chart consists of a single term, the form would look like:
   #
   # "field type value [OR] [AND] [NOT] [OR]"
@@ -59,8 +59,8 @@
     [% FOREACH col = row %]
       [% J = loop.count - 1 %]
       [% "<br />" IF J %]
-      [% html_select("field$C-$I-$J", '', chart_fields, col.field) %]
-      [%- html_select("type$C-$I-$J", chart_types, lc_messages.operator_descs, col.type)
+      [% html_select("field$C-$I-$J", col.field, chart_fields) %]
+      [%- html_select("type$C-$I-$J", col.type, chart_types, lc_messages.operator_descs)
       %]<input id="[% "value$C-$I-$J" %]" name="[% "value$C-$I-$J" %]" value="[% col.value | html %]" size="40" />
     [% END %]
 

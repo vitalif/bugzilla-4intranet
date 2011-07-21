@@ -173,7 +173,11 @@ if (!@{$default->{chfieldto}} || $default->{chfieldto}->[0] eq '')
 }
 
 # "where one or more of the following changed:"
-$vars->{chfield} = [ map { $_->name } @{ Bugzilla::Search->CHANGEDFROMTO_FIELDS } ];
+$vars->{chfield} = [
+    sort { $a->{name} cmp $b->{name} }
+    map { { id => $_->{name}, name => $_->{description} } }
+    @{ Bugzilla::Search->CHANGEDFROMTO_FIELDS }
+];
 
 # Boolean charts
 

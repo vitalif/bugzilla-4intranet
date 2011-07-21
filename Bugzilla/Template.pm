@@ -807,25 +807,50 @@ sub create {
             lc_messages => Bugzilla->messages,
 
             # HTML <select>
+            # html_select(name, { <attr> => <value> }, <selected value>, (
+            #     [ { id => <option value>, name => <option text> }, ... ]
+            #     OR
+            #     { <option value> => <option text>, ... } # will be sorted on text
+            #     OR
+            #     [ <option value>, ... ], { <option value> => <option text>, ... }
+            # ))
             html_select => sub
             {
-                my ($name, $values, $valuenames, $selected, $args) = @_;
+                my ($name, $selected, $values, $valuenames, $attrs) = @_;
+                $selected = '' if !defined $selected;
+                $selected = { map { $_ => 1 } list $selected };
                 $name = html_quote($name);
-                my $html = '<select name="'.$name.'" id="'.$name.'">';
-                if (ref $valuenames eq 'ARRAY')
+                my $html = '<select name="'.$name.'" id="'.$name.'"';
+                if ($attrs)
                 {
-                    $values = [ map { $_->{name} } @$valuenames ];
-                    $valuenames = { map { $_->{name} => $_->{title} } @$valuenames };
+                    $html .= ' '.html_quote($_).'="'.html_quote($attrs->{$_}).'"' for keys %$attrs;
+                }
+                $html .= '>';
+                if (ref $values eq 'HASH')
+                {
+                    $valuenames = $values;
+                    $values = [ sort { $values->{$a} cmp $values->{$b} } keys %$values ];
+                }
+                if (!$values || !@$values)
+                {
+                }
+                elsif (!ref $values->[0])
+                {
+                    for (@$values)
+                    {
+                        $html .= '<option value="'.html_quote($_).'"';
+                        $html .= ' selected="selected"' if $selected->{$_};
+                        $html .= '>'.html_quote($valuenames->{$_}).'</option>';
+                    }
                 }
                 else
                 {
-                    $values ||= [ keys %$valuenames ];
-                }
-                for (@$values)
-                {
-                    $html .= '<option value="'.html_quote($_).'"';
-                    $html .= ' selected="selected"' if $selected eq $_;
-                    $html .= '>'.html_quote($valuenames->{$_}).'</option>';
+                    for (@$values)
+                    {
+                        $html .= '<option value="'.html_quote($_->{id}).'"';
+                        $html .= ' selected="selected"' if $selected->{$_->{id}};
+                        $html .= '>'.html_quote($_->{name}).'</option>';
+                    }
                 }
                 $html .= '</select>';
                 return $html;

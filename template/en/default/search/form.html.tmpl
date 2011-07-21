@@ -67,7 +67,7 @@ addListener(window, 'load', function() {
     <th align="right">
       <label for="short_desc" accesskey="s"><u>S</u>ummary</label>:
     </th>
-    <td>[% html_select('short_desc_type', text_types, lc_messages.operator_descs, default.short_desc_type.0) %]</td>
+    <td>[% html_select('short_desc_type', default.short_desc_type.0, text_types, lc_messages.operator_descs) %]</td>
     <td>
       <input name="short_desc" id="short_desc" size="40"
              value="[% default.short_desc.0 FILTER html %]">
@@ -219,7 +219,7 @@ addListener(window, 'load', function() {
       </th>
       <td>
         [% t = field.name _ '_type' %]
-        [% html_select(t, text_types, lc_messages.operator_descs, default.$t.0) %]
+        [% html_select(t, default.$t.0, text_types, lc_messages.operator_descs) %]
       </td>
       <td>
         <input name="[% field.name %]" id="[% field.name %]" size="40"
@@ -236,7 +236,7 @@ addListener(window, 'load', function() {
       </th>
       <td>
         [% keywords_types = ['allwords', 'anywords', 'nowords', 'regexp', 'notregexp'] %]
-        [% html_select('keywords_type', keywords_types, lc_messages.operator_descs, default.keywords_type.0) %]
+        [% html_select('keywords_type', default.keywords_type.0, keywords_types, lc_messages.operator_descs) %]
       </td>
       <td>
         <input name="keywords" id="keywords" size="40"
@@ -442,18 +442,13 @@ addListener(window, 'load', function() {
   </tr>
   <tr>
     <td>
-      <select name="emailtype[% n %]">
-      [% FOREACH qv = [
-        { name => "exact", description => "is" },
-        { name => "substring", description => "contains" },
-        { name => "notequals", description => "is not" },
-        { name => "regexp", description => "matches regexp" },
-        { name => "notregexp", description => "doesn't match regexp" } ] %]
-
-        <option value="[% qv.name %]"
-          [% " selected" IF default.emailtype.$n == qv.name %]>[% qv.description %]</option>
-      [% END %]
-      </select>
+      [% html_select('emailtype' _ n, default.emailtype.$n, [
+           { id => "exact",     name => "is" },
+           { id => "substring", name => "contains" },
+           { id => "notequals", name => "is not" },
+           { id => "regexp",    name => "matches regexp" },
+           { id => "notregexp", name => "doesn't match regexp" }
+         ]) %]
     </td>
   </tr>
   <tr>
@@ -492,8 +487,7 @@ addListener(window, 'load', function() {
         <label for="votes">Only [% terms.bugs %] with at least</label>:
       </td>
       <td>
-        <input name="votes" id="votes" size="3"
-               value="[% default.votes.0 FILTER html %]">
+        <input name="votes" id="votes" size="3" value="[% default.votes.0 FILTER html %]" />
         votes
       </td>
     </tr>
@@ -517,25 +511,12 @@ addListener(window, 'load', function() {
     <input name="chfieldfrom" id="chfieldfrom"
            size="10" value="[% default.chfieldfrom.0 FILTER html %]">
     and <input name="chfieldto" size="10" value="[% default.chfieldto.0 FILTER html %]">
-    <br>(YYYY-MM-DD or relative dates)
+    <br />(YYYY-MM-DD or relative dates)
   </dd>
   <dt><label for="chfieldwho">By user:</label></dt>
   <dd><input name="chfieldwho" id="chfieldwho" size="20" value="[% default.chfieldwho.0 | html %]" /> (user login)</dd>
   <dt><label for="chfield">where one or more of the following changed</label>:</dt>
-  <dd>
-    [% chfields = [] %]
-    [% FOREACH field = chfield %]
-      [% chfields.push({value => field, desc => (field_descs.$field || field) }) %]
-    [% END %]
-
-    <select name="chfield" id="chfield" multiple="multiple" size="4">
-    [% FOREACH field = chfields.sort('desc') %]
-      <option value="[% field.value FILTER html %]"
-        [% " selected" IF lsearch(default.chfield, field.value) != -1 %]>
-        [% field.desc FILTER html %]</option>
-    [% END %]
-    </select>
-  </dd>
+  <dd>[% html_select('chfield', default.chfield, chfield, '', { multiple => 'multiple' }) %]</dd>
   <dt>and <label for="chfieldvalue">the new value was</label>:</dt>
   <dd>
     <input name="chfieldvalue" id="chfieldvalue"
