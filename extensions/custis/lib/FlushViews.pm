@@ -49,8 +49,7 @@ sub refresh_some_views
             fields => [ 'bug_id', grep { $_ ne 'bug_id' } split /[ ,]+/, $cgi->param('columnlist') ],
             user   => $userobj,
         ) or next;
-        my $sqlquery = $search->getSQL();
-        $sqlquery =~ s/ORDER\s+BY\s+bugs.bug_id//so;
+        my $sqlquery = $search->bugid_query();
         # Recreate views
         $dbh->do('DROP VIEW IF EXISTS view$'.$user.'$'.$query.'$longdescs');
         $dbh->do('DROP VIEW IF EXISTS view$'.$user.'$'.$query.'$bugs_activity');
