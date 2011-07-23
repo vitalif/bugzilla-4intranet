@@ -81,15 +81,22 @@ if ($who)
 # first query gets new bugs' descriptions, and any comments added (not including duplicate information)
 # second query gets any changes to the fields of a bug (eg assignee, status etc)
 
-my ($join1, $join2) = ("($sqlquery)", "($sqlquery)");
+my ($join1, $join2) = (
+    "INNER JOIN ($sqlquery) i ON l.bug_id=i.bug_id",
+    "INNER JOIN ($sqlquery) i ON a.bug_id=i.bug_id"
+);
+my ($subq1, $subq2) = ("", "");
 if ($dbh->isa('Bugzilla::DB::Mysql'))
 {
-    # MySQL query optimizer is stupid and often fails
-    # to execute complex queries optimally, so help it with a temporary table
-    $join1 = '_rss_comments_1';
-    $join2 = '_rss_comments_2';
-    $dbh->do("CREATE TEMPORARY TABLE $join1 AS $sqlquery");
-    $dbh->do("CREATE TEMPORARY TABLE $join2 AS SELECT * FROM $join1");
+    # Help MySQL to select the optimal way of calculating (bug_id IN (...))
+    # From inside to outside or vice versa
+    my ($count) = $dbh->selectrow_array("SELECT COUNT(*) FROM ($sqlquery) i");
+    if ($count > 500)
+    {
+        $join1 = $join2 = "";
+        $subq1 = " AND l.bug_id IN ($sqlquery)";
+        $subq2 = " AND a.bug_id IN ($sqlquery)";
+    }
 }
 
 my $bugsquery = "
@@ -103,12 +110,12 @@ my $bugsquery = "
     NULL AS fieldname, NULL AS fielddesc, NULL AS attach_id, NULL AS old, NULL AS new,
     (b.creation_ts=l.bug_when) as is_new, l.who
  FROM longdescs l
- INNER JOIN $join1 bugids ON l.bug_id=bugids.bug_id
+ $join1
  LEFT JOIN bugs b ON b.bug_id=l.bug_id
  LEFT JOIN profiles p ON p.userid=l.who
  LEFT JOIN products pr ON pr.id=b.product_id
  LEFT JOIN components cm ON cm.id=b.component_id
- WHERE l.isprivate=0 ".($who ? " AND l.who=".$who->id : "")."
+ WHERE l.isprivate=0 ".($who ? " AND l.who=".$who->id : "")." $subq1
  ORDER BY l.bug_when DESC
  LIMIT $limit)
 
@@ -124,14 +131,14 @@ my $bugsquery = "
     f.name AS fieldname, f.description AS fielddesc, a.attach_id, a.removed AS old, a.added AS new,
     0=1 as is_new, a.who
  FROM bugs_activity a
- INNER JOIN $join2 bugids ON a.bug_id=bugids.bug_id
+ $join2
  LEFT JOIN bugs b ON b.bug_id=a.bug_id
  LEFT JOIN profiles p ON p.userid=a.who
  LEFT JOIN products pr ON pr.id=b.product_id
  LEFT JOIN components cm ON cm.id=b.component_id
  LEFT JOIN fielddefs f ON f.id=a.fieldid
  LEFT JOIN attachments at ON at.attach_id=a.attach_id
- WHERE (at.isprivate IS NULL OR at.isprivate=0) ".($who ? " AND a.who=".$who->id : "")."
+ WHERE at.isprivate=0 ".($who ? " AND a.who=".$who->id : "")." $subq2
  ORDER BY a.bug_when DESC, f.name ASC
  LIMIT $limit)
 
@@ -140,12 +147,6 @@ my $bugsquery = "
 ";
 
 my $events = $dbh->selectall_arrayref($bugsquery, {Slice => {}});
-
-if ($dbh->isa('Bugzilla::DB::Mysql'))
-{
-    $dbh->do("DROP TABLE $join1");
-    $dbh->do("DROP TABLE $join2");
-}
 
 my ($t, $o, $n, $k);
 my $gkeys = [];
