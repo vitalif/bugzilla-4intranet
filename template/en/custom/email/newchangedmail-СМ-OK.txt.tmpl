@@ -18,7 +18,6 @@
   # Contributor(s): André Batosti <batosti@async.com.br>
   #%]
 
-[% PROCESS "global/variables.none.tmpl" %]
 From: [% Param('mailfrom') %]
 To: [% to_user.email %]
 Subject: [% (isnew ? '' : 'Re: ') _ '['
