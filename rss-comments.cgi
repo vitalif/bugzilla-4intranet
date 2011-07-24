@@ -77,30 +77,32 @@ if ($who)
     }
 }
 
-# Monstrous query
-# first query gets new bugs' descriptions, and any comments added (not including duplicate information)
-# second query gets any changes to the fields of a bug (eg assignee, status etc)
-
-my ($join1, $join2) = (
-    "INNER JOIN ($sqlquery) i ON l.bug_id=i.bug_id",
-    "INNER JOIN ($sqlquery) i ON a.bug_id=i.bug_id"
-);
-my ($subq1, $subq2) = ("", "");
+my ($join, $subq) = ("($sqlquery)", "=i.bug_id");
 if ($dbh->isa('Bugzilla::DB::Mysql'))
 {
-    # Help MySQL to select the optimal way of calculating (bug_id IN (...))
-    # From inside to outside or vice versa
-    my ($count) = $dbh->selectrow_array("SELECT COUNT(*) FROM ($sqlquery) i");
+    # Help MySQL to select the optimal way of calculating (bug_id IN (...)):
+    # "From inside to outside" or vice versa
+    # Plus, wrap UNION into a temp table, as it's calculated nevertheless
+    if ($sqlquery =~ /\s+UNION\s+/)
+    {
+        $join = "_rssc1";
+        $dbh->do("CREATE TEMPORARY TABLE _rssc1 AS $sqlquery");
+        $dbh->do("CREATE INDEX _rssc1_bug_id ON _rssc1 (bug_id)");
+    }
+    my ($count) = $dbh->selectrow_array("SELECT COUNT(*) FROM $join i");
     if ($count > 500)
     {
-        $join1 = $join2 = "";
-        $subq1 = " AND l.bug_id IN ($sqlquery)";
-        $subq2 = " AND a.bug_id IN ($sqlquery)";
+        $subq = $join eq '_rssc1' ? " IN (SELECT * FROM $join)" : " IN $join";
+        $join = "";
     }
 }
 
-my $bugsquery = "
- (SELECT
+# Monstrous queries
+$join = "INNER JOIN ($join) i" if $join;
+
+# First query gets new bugs' descriptions, and any comments added (not including duplicate information)
+my $longdescs = $dbh->selectall_arrayref(
+"SELECT
     b.bug_id, b.short_desc, pr.name product, cm.name component, b.bug_severity, b.bug_status,
     l.work_time, l.thetext,
     ".$dbh->sql_date_format('l.bug_when', '%Y%m%d%H%i%s')." commentlink,
@@ -110,18 +112,18 @@ my $bugsquery = "
     NULL AS fieldname, NULL AS fielddesc, NULL AS attach_id, NULL AS old, NULL AS new,
     (b.creation_ts=l.bug_when) as is_new, l.who
  FROM longdescs l
- $join1
+ $join
  LEFT JOIN bugs b ON b.bug_id=l.bug_id
  LEFT JOIN profiles p ON p.userid=l.who
  LEFT JOIN products pr ON pr.id=b.product_id
  LEFT JOIN components cm ON cm.id=b.component_id
- WHERE l.isprivate=0 ".($who ? " AND l.who=".$who->id : "")." $subq1
+ WHERE l.isprivate=0 ".($who ? " AND l.who=".$who->id : "")." AND l.bug_id$subq
  ORDER BY l.bug_when DESC
- LIMIT $limit)
+ LIMIT $limit", {Slice=>{}});
 
- UNION ALL
-
- (SELECT
+# Second query gets any changes to the fields of a bug (eg assignee, status etc)
+my $activity = $dbh->selectall_arrayref(
+"SELECT
     b.bug_id, b.short_desc, pr.name product, cm.name component, b.bug_severity, b.bug_status,
     0 AS work_time, '' thetext,
     ".$dbh->sql_date_format('a.bug_when', '%Y%m%d%H%i%s')." commentlink,
@@ -131,22 +133,26 @@ my $bugsquery = "
     f.name AS fieldname, f.description AS fielddesc, a.attach_id, a.removed AS old, a.added AS new,
     0=1 as is_new, a.who
  FROM bugs_activity a
- $join2
+ $join
  LEFT JOIN bugs b ON b.bug_id=a.bug_id
  LEFT JOIN profiles p ON p.userid=a.who
  LEFT JOIN products pr ON pr.id=b.product_id
  LEFT JOIN components cm ON cm.id=b.component_id
  LEFT JOIN fielddefs f ON f.id=a.fieldid
  LEFT JOIN attachments at ON at.attach_id=a.attach_id
- WHERE at.isprivate=0 ".($who ? " AND a.who=".$who->id : "")." $subq2
+ WHERE at.isprivate=0 ".($who ? " AND a.who=".$who->id : "")." AND a.bug_id$subq
  ORDER BY a.bug_when DESC, f.name ASC
- LIMIT $limit)
+ LIMIT $limit", {Slice=>{}});
 
- ORDER BY bug_when DESC
- LIMIT $limit
-";
+my $events = [ sort {
+    ($b->{bug_when} cmp $a->{bug_when}) ||
+    ($a->{fieldname} cmp $b->{fieldname})
+} @$longdescs, @$activity ];
 
-my $events = $dbh->selectall_arrayref($bugsquery, {Slice => {}});
+if ($join eq '_rssc1')
+{
+    $dbh->do("DROP TABLE _rssc1");
+}
 
 my ($t, $o, $n, $k);
 my $gkeys = [];
