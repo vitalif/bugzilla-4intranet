@@ -2608,7 +2608,7 @@ sub _in_search_results
         fields => [ "bugs.bug_id" ],
         user   => Bugzilla->user,
     );
-    my $sqlquery = $search->getSQL();
+    my $sqlquery = $search->bugid_query;
     my $t = "ins_".$self->{sequence};
     $self->{term} = { table => "($sqlquery) $t" };
     if ($self->{field} eq 'bug_id')
