@@ -107,7 +107,7 @@ if ($query_id)
         fields => [ "bugs.bug_id" ],
         user   => $user,
     );
-    $sqlquery = $search->getSQL();
+    $sqlquery = $search->bugid_query;
 }
 
 $sqlquery = " UNION ($sqlquery)" if $sqlquery;
