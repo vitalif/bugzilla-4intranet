@@ -77,28 +77,29 @@ if ($who)
     }
 }
 
-my ($join, $subq) = ("($sqlquery)", "=i.bug_id");
+my ($join, $subq, $lhint) = ("($sqlquery)", "=i.bug_id", "");
 if ($dbh->isa('Bugzilla::DB::Mysql'))
 {
     # Help MySQL to select the optimal way of calculating (bug_id IN (...)):
     # "From inside to outside" or vice versa
-    # Plus, wrap UNION into a temp table, as it's calculated nevertheless
-    if ($sqlquery =~ /\s+UNION\s+/)
+    # Plus, wrap the inner query into a temp table, as it's calculated nevertheless
+    $join = "_rssc1";
+    $lhint = $who ? "USE INDEX (longdescs_who_bug_when_idx)" : "USE INDEX (longdescs_bug_when_idx)";
+    $dbh->do("CREATE TEMPORARY TABLE _rssc1 AS $sqlquery");
+    $dbh->do("CREATE INDEX _rssc1_bug_id ON _rssc1 (bug_id)");
+    if ($who)
     {
-        $join = "_rssc1";
-        $dbh->do("CREATE TEMPORARY TABLE _rssc1 AS $sqlquery");
-        $dbh->do("CREATE INDEX _rssc1_bug_id ON _rssc1 (bug_id)");
-    }
-    my ($count) = $dbh->selectrow_array("SELECT COUNT(*) FROM $join i");
-    if ($count > 500)
-    {
-        $subq = $join eq '_rssc1' ? " IN (SELECT * FROM $join)" : " IN $join";
-        $join = "";
+        my ($count) = $dbh->selectrow_array("SELECT COUNT(*) FROM $join i");
+        if ($count > 500)
+        {
+            $subq = $join eq '_rssc1' ? " IN (SELECT * FROM $join)" : " IN $join";
+            $join = "";
+        }
     }
 }
 
 # Monstrous queries
-$join = "INNER JOIN ($join) i" if $join;
+$join = "INNER JOIN $join i" if $join;
 
 # First query gets new bugs' descriptions, and any comments added (not including duplicate information)
 my $longdescs = $dbh->selectall_arrayref(
@@ -111,7 +112,7 @@ my $longdescs = $dbh->selectall_arrayref(
     p.login_name, p.realname,
     NULL AS fieldname, NULL AS fielddesc, NULL AS attach_id, NULL AS old, NULL AS new,
     (b.creation_ts=l.bug_when) as is_new, l.who
- FROM longdescs l
+ FROM longdescs l $lhint
  $join
  LEFT JOIN bugs b ON b.bug_id=l.bug_id
  LEFT JOIN profiles p ON p.userid=l.who
@@ -149,9 +150,9 @@ my $events = [ sort {
     ($a->{fieldname} cmp $b->{fieldname})
 } @$longdescs, @$activity ];
 
-if ($join eq '_rssc1')
+if ($dbh->isa('Bugzilla::DB::Mysql'))
 {
-    $dbh->do("DROP TABLE _rssc1");
+    $dbh->do("DROP TABLE IF EXISTS _rssc1");
 }
 
 my ($t, $o, $n, $k);
