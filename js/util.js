@@ -254,7 +254,11 @@ window.addListener = function(obj, event, handler)
     if (obj.addEventListener)
         obj.addEventListener(event, handler, false);
     else if (obj.attachEvent)
-        obj.attachEvent('on'+event, handler);
+    {
+        obj._attached = obj._attached || {};
+        obj._attached[handler] = function() { handler.call(obj, window.event) };
+        obj.attachEvent('on'+event, obj._attached[handler]);
+    }
 };
 window.removeListener = function(obj, event, handler)
 {
@@ -264,8 +268,11 @@ window.removeListener = function(obj, event, handler)
         return;
     if (obj.addEventListener)
         obj.removeEventListener(event, handler, false);
-    else if (obj.attachEvent)
-        obj.detachEvent('on'+event, handler);
+    else if (obj.attachEvent && obj._attached && obj._attached[handler])
+    {
+        obj.detachEvent('on'+event, obj._attached[handler]);
+        obj._attached[handler] = null;
+    }
 };
 window.eventTarget = function(ev)
 {
