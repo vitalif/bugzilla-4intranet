@@ -21,6 +21,8 @@ use Bugzilla::CGI;
 use Bugzilla::User;
 use Bugzilla::Search;
 
+*Bugzilla::Search::split_order_term = *split_order_term;
+
 my $SLOW_QUERY = 2;
 
 my $IN = 'queries.txt';
@@ -129,7 +131,7 @@ for my $q (@$queries)
         order  => make_order($params->param('order')),
     );
     my $sql = $search->getSQL();
-    $sql =~ s/^\s*SELECT/SELECT SQL_NO_CACHE/;
+    $sql =~ s/^\s*SELECT/SELECT SQL_NO_CACHE/ if Bugzilla->dbh->isa('Bugzilla::DB::Mysql');
     $q->{sql} = $sql;
     my $result;
     # Execute query
