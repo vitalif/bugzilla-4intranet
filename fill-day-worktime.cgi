@@ -84,12 +84,12 @@ if (@idlist || @lines)
             add_wt($wtime, $id, $time, $comment);
         }
     }
-    $dbh->bz_start_transaction();
     foreach my $id (@{$wtime->{IDS}})
     {
+        $dbh->bz_start_transaction();
         BugWorkTime::FixWorktime($id, $wtime->{$id}->{time}, join("\n", @{$wtime->{$id}->{comments} || []}));
+        $dbh->bz_commit_transaction();
     }
-    $dbh->bz_commit_transaction();
     print $cgi->redirect(-location => "fill-day-worktime.cgi?lastdays=" . $lastdays);
     exit;
 }
