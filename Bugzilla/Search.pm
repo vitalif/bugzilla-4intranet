@@ -1068,7 +1068,7 @@ sub init
         }
         elsif (/^negate(\d+)$/so)
         {
-            $charts[1+$2]{negate} = $H->{$_};
+            $charts[1+$1]{negate} = $H->{$_};
         }
     }
 
@@ -1641,8 +1641,11 @@ sub run_chart
     # already know about it), or it was in %chartfields, so it is
     # a valid field name, which means that it's ok.
     trick_taint($self->{field});
-    $self->{quoted} = Bugzilla->dbh->quote($self->{value});
-    trick_taint($self->{quoted});
+    if (!ref $self->{value})
+    {
+        $self->{quoted} = Bugzilla->dbh->quote($self->{value});
+        trick_taint($self->{quoted});
+    }
     if (COLUMNS->{$self->{field}}->{name})
     {
         $self->{fieldsql} = COLUMNS->{$self->{field}}->{name};
