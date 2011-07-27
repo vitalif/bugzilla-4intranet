@@ -386,6 +386,12 @@ sub install_update_fielddefs
         $dbh->bz_alter_column('checkers', message => {TYPE => 'LONGTEXT', NOTNULL => 1});
     }
 
+    # Устанавливаем значение buglist в правильное
+    my @yes = map { $_->{name} } grep { $_->{buglist} } Bugzilla::Field::DEFAULT_FIELDS;
+    my @no = map { $_->{name} } grep { !$_->{buglist} } Bugzilla::Field::DEFAULT_FIELDS;
+    $dbh->do('UPDATE fielddefs SET buglist=1 WHERE name IN (\''.join("','", @yes).'\')');
+    $dbh->do('UPDATE fielddefs SET buglist=0 WHERE name IN (\''.join("','", @no).'\')');
+
     return 1;
 }
 

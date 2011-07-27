@@ -20,11 +20,16 @@ sub buglist_static_columns
     $columns->{lastcommenter} = {
         title => "Last Commenter",
     };
+    $columns->{creation_ts_date} = {
+        nocharts => 1,
+        title => "Creation Date",
+        name => $dbh->sql_date_format('bugs.creation_ts', '%Y-%m-%d'),
+    };
 
     ### Testopia ###
     $columns->{test_cases} = {
         title => "Test cases",
-        name  => "(SELECT ".$dbh->sql_group_concat("case_id", "', '")." FROM (SELECT DISTINCT tcb.case_id FROM test_case_bugs tcb WHERE tcb.bug_id=bugs.bug_id) t)",
+        name  => "(SELECT ".$dbh->sql_group_concat("DISTINCT case_id", "', '")." FROM test_case_bugs tcb WHERE tcb.bug_id=bugs.bug_id)",
     };
     ### end Testopia ###
 
