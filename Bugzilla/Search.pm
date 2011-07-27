@@ -506,6 +506,12 @@ sub STATIC_COLUMNS
                 " WHERE col_f.bug_id=bugs.bug_id AND col_ft.is_requesteeble=1 AND col_ft.is_requestable=1)",
             title => "Requests",
         },
+        cc => {
+            name => "(SELECT ".$dbh->sql_group_concat((Bugzilla->user->id
+                ? 'profiles.login_name'
+                : $dbh->sql_string_until('profiles.login_name', $dbh->quote('@'))), "','").
+                " FROM cc, profiles WHERE cc.bug_id=bugs.bug_id AND cc.who=profiles.userid)",
+        },
         dependson => {
             name  => "(SELECT ".$dbh->sql_group_concat('bugblockers.dependson', "','")." FROM dependencies bugblockers WHERE bugblockers.blocked=bugs.bug_id)",
             title => "Bug dependencies",
@@ -514,13 +520,10 @@ sub STATIC_COLUMNS
             name  => "(SELECT ".$dbh->sql_group_concat('bugblocked.blocked', "','")." FROM dependencies bugblocked WHERE bugblocked.dependson=bugs.bug_id)",
             title => "Bugs blocked",
         },
+        deadline => {
+            name => $dbh->sql_date_format('bugs.deadline', '%Y-%m-%d'),
+        },
     };
-
-    # MySQL and PostgreSQL use YYYY-MM-DD format themselves
-    if ($dbh->isa('Bugzilla::DB::Oracle'))
-    {
-        $columns->{deadline}->{name} = $dbh->sql_date_format('bugs.deadline', '%Y-%m-%d');
-    }
 
     # Fields that are email addresses
     foreach my $col (qw(assigned_to reporter qa_contact))
@@ -2007,15 +2010,13 @@ sub _timestamp_compare
 {
     my $self = shift;
     my $dbh = Bugzilla->dbh;
+    $self->{fieldsql} = 'bugs.'.$self->{field};
     if ($self->{value} =~ /^[+-]?\d+:[dwmy]$/is)
     {
         $self->{value} = SqlifyDate($self->{value});
         $self->{quoted} = $dbh->quote($self->{value});
     }
-    else
-    {
-        $self->call_op;
-    }
+    $self->call_op;
 }
 
 sub _commenter
