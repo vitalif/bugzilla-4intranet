@@ -253,6 +253,7 @@ sub savedsearch_post_update
 # Конец checksetup'а - обновляем SQL-код проверок
 sub install_before_final_checks
 {
+    print "Refreshing Checkers SQL...\n";
     Bugzilla->request_cache->{user} = Bugzilla::User->super_user;
     for (Bugzilla::Checker->get_all)
     {

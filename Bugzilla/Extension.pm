@@ -24,6 +24,7 @@ use base 'Exporter';
 our @EXPORT = qw(
     set_hook
     add_hook
+    clear_hooks
     extension_info
     required_modules
     optional_modules
@@ -245,6 +246,7 @@ The file typically looks like:
     optional_modules('<extension name>', $OPTIONAL_MODULES);
     extension_version('<extension name>', '1.02');
 
+    clear_hooks('<extension name>');
     set_hook('<extension name>', '<hook name>', 'ExtensionPackage::sub_name');
     add_hook('<extension name>', '<hook name>', 'ExtensionPackage::other_sub_name');
     # other hooks...

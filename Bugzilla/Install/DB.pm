@@ -3289,7 +3289,10 @@ sub _populate_bugs_fulltext
             }
             if (!$dbh->isa('Bugzilla::DB::Pg'))
             {
-                $_ = stem_text($_) for @{$rows->{$_->[0]}};
+                for (keys %$rows)
+                {
+                    $_ = stem_text($_) for @{$rows->{$_}};
+                }
             }
             if ($sthn != @ids)
             {
