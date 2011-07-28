@@ -33,6 +33,7 @@ my $OPTIONAL_MODULES =
 
 required_modules('custis', $REQUIRED_MODULES);
 optional_modules('custis', $OPTIONAL_MODULES);
+clear_hooks('custis');
 
 # Изменения схемы БД
 set_hook('custis', 'db_schema_abstract_schema',     'CustisDBHooks::db_schema_abstract_schema');
@@ -62,6 +63,7 @@ if (!Bugzilla->params->{ext_disable_refresh_views})
     set_hook('custis', 'editusers_post_delete',         'FlushViews::editusers_post_update_delete');
     set_hook('custis', 'editusers_post_update',         'FlushViews::editusers_post_update_delete');
     set_hook('custis', 'savedsearch_post_update',       [ 'FlushViews::savedsearch_post_update' ]);
+    add_hook('custis', 'install_before_final_checks',   'FlushViews::install_before_final_checks');
 }
 
 # Хуки для синхронизации тест-плана Testopia с Wiki-категорией
@@ -72,7 +74,7 @@ set_hook('custis', 'bug_pre_update',                'Checkers::bug_pre_update');
 set_hook('custis', 'bug_end_of_update',             'Checkers::bug_end_of_update');
 set_hook('custis', 'post_bug_post_create',          'Checkers::post_bug_post_create');
 add_hook('custis', 'savedsearch_post_update',       'Checkers::savedsearch_post_update');
-set_hook('custis', 'install_before_final_checks',   'Checkers::install_before_final_checks');
+add_hook('custis', 'install_before_final_checks',   'Checkers::install_before_final_checks');
 
 # Прочие хуки
 set_hook('custis', 'auth_post_login',               'CustisMiscHooks::auth_post_login');

@@ -26,7 +26,7 @@ use strict;
 no strict 'refs';
 use Bugzilla::Util;
 use base 'Exporter';
-our @EXPORT = qw(set_hook add_hook run_hooks);
+our @EXPORT = qw(set_hook add_hook run_hooks clear_hooks);
 
 my %hooks;
 my @hook_stack;
@@ -44,6 +44,13 @@ sub set_hook
     die "set_hook($extension, $hook, undef) called" if !$callable;
     $hook =~ tr/-/_/;
     $hooks{$hook}{$extension} = $callable;
+}
+
+# Clear all extension's hooks
+sub clear_hooks
+{
+    my ($extension) = @_;
+    delete $_->{$extension} for values %hooks;
 }
 
 # Add extension hook or hooks
