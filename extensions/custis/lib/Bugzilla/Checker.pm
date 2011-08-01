@@ -82,7 +82,7 @@ sub refresh_sql
         'AND_MANY', { term => 'bugs.bug_id=?' },
         $search->{terms_without_security}
     ]);
-    my $sql = $search->get_expression_sql($terms);
+    my $sql = $search->get_expression_sql($terms, 'force joins');
     $sql =~ s/^\s*SELECT.*?FROM/SELECT $self->{id} FROM/;
     $self->set_sql_code($sql);
 }
