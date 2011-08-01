@@ -1138,56 +1138,30 @@ sub init
 
     if (!$user->is_super_user)
     {
-        if ($OUTER_AND)
-        {
-            # There are some terms in the search.
-            # Assume it's enough to select bugs, attach security terms
-            # without using UNION.
-            my $supp = "\nLEFT JOIN bug_group_map g ON g.bug_id=bugs.bug_id";
-            $supp .= ' AND g.group_id NOT IN ('.$user->groups_as_string.')' if @{$user->groups};
-            my $term = "g.bug_id IS NULL";
-            if ($user->id)
-            {
-                $supp .= "\nLEFT JOIN cc ON cc.bug_id=bugs.bug_id AND cc.who=".$user->id;
-                $term .= " OR (bugs.reporter_accessible = 1 AND bugs.reporter = ".$user->id.")" .
-                    " OR (bugs.cclist_accessible = 1 AND cc.who IS NOT NULL)" .
-                    " OR (bugs.assigned_to = ".$user->id.")";
-                if (Bugzilla->params->{useqacontact})
-                {
-                    $term .= " OR (bugs.qa_contact = ".$user->id.")";
-                }
-            }
-            $term = "bugs.creation_ts IS NOT NULL AND ($term)";
-            $OUTER_AND = [ 'AND', $OUTER_AND, {
-                term => $term,
-                supp => [ $supp ],
-            } ];
-        }
-        else
-        {
-            # Special case: the search does not contain any terms.
-            # I.e., it contains only the security restrictions.
-            # Attach them in an efficient way, using UNIONs.
-            $OUTER_AND = [ 'AND', $OUTER_AND,
-                { term => "bugs.creation_ts IS NOT NULL" },
-                [ 'OR', {
-                    table => 'bug_group_map g',
-                    where => @{$user->groups} ? 'g.group_id NOT IN ('.$user->groups_as_string.')' : undef,
-                    bugid_field => 'g.bug_id',
-                    neg => 1,
-                }, ($user->id ? ({
-                    table => 'cc',
-                    where => 'cc.who='.$user->id.' AND bugs.cclist_accessible=1 AND bugs.bug_id=cc.bug_id',
-                    notnull_field => 'cc.bug_id',
-                }, {
-                    # We don't need to use UNION for this - even MySQL successfully
-                    # does index merge on such conditions
-                    term => '(bugs.reporter_accessible = 1 AND bugs.reporter='.$user->id.
-                        ' OR bugs.assigned_to='.$user->id.
-                        (Bugzilla->params->{useqacontact} ? ' OR bugs.qa_contact='.$user->id : '').')'
-                }) : ()) ]
-            ];
-        }
+        # If there are some terms in the search, assume it's enough
+        # to select bugs and attach security terms without UNION (OR_MANY).
+        # Or in the special case, when the search does not contain any terms,
+        # i.e., when it contains only the security restrictions, attach them
+        # in normal efficient way, using UNIONs.
+        $OUTER_AND = [ 'AND', $OUTER_AND,
+            { term => "bugs.creation_ts IS NOT NULL" },
+            [ $OUTER_AND ? 'OR_MANY' : 'OR', {
+                table => 'bug_group_map g',
+                where => @{$user->groups} ? 'g.group_id NOT IN ('.$user->groups_as_string.')' : undef,
+                bugid_field => 'g.bug_id',
+                neg => 1,
+            }, ($user->id ? ({
+                table => 'cc',
+                where => 'cc.who='.$user->id.' AND bugs.cclist_accessible=1 AND bugs.bug_id=cc.bug_id',
+                notnull_field => 'cc.bug_id',
+            }, {
+                # We don't need to use UNION for this - even MySQL successfully
+                # does index merge on such conditions
+                term => '(bugs.reporter_accessible = 1 AND bugs.reporter='.$user->id.
+                    ' OR bugs.assigned_to='.$user->id.
+                    (Bugzilla->params->{useqacontact} ? ' OR bugs.qa_contact='.$user->id : '').')'
+            }) : ()) ]
+        ];
     }
 
     # Simplify and save expression
@@ -1269,11 +1243,18 @@ sub init
     $self->{sql} = $query;
 }
 
+# search value + quote
+sub sv_quote
+{
+    return '<span class="search_value">'.html_quote($_[0]).'</span>';
+}
+
 # HTML search description, moved here from templates
 sub search_description_html
 {
-    my ($exp, $debug) = @_;
+    my ($exp, $debug, $inner) = @_;
     my $opdescs = Bugzilla->messages->{operator_descs};
+    my $fdescs = Bugzilla->messages->{field_descs};
     $exp = $exp->{terms_without_security} if ref $exp eq 'Bugzilla::Search';
     my $html = '';
     if (ref $exp eq 'ARRAY')
@@ -1284,7 +1265,7 @@ sub search_description_html
         for my $i (1 .. $#$exp)
         {
             $html .= "<li>$op</li>" if $i > 1;
-            $html .= '<li>'.search_description_html($exp->[$i], $debug).'</li>';
+            $html .= '<li>'.search_description_html($exp->[$i], $debug, 1).'</li>';
         }
         $html .= '</ul>';
     }
@@ -1302,7 +1283,7 @@ sub search_description_html
         if ($d->[0])
         {
             my $a = COLUMN_ALIASES->{$d->[0]} || $d->[0];
-            $html .= '<span class="search_field">'.html_quote(COLUMNS->{$a}->{title} || $a).':</span>';
+            $html .= '<span class="search_field">'.html_quote(COLUMNS->{$a}->{title} || $fdescs->{$a} || $a).':</span>';
         }
         if ($neg)
         {
@@ -1312,9 +1293,41 @@ sub search_description_html
         {
             $html .= ' '.$opdescs->{$d->[1]};
         }
-        $html .= ' ' . join ', ',
-            map { '<span class="search_value">'.html_quote($_).'</span>' }
-            (ref $d->[2] eq 'ARRAY' ? @{$d->[2]} : $d->[2]);
+        if (!ref $d->[2] || ref $d->[2] eq 'ARRAY')
+        {
+            $html .= ' ' . join ', ', map { sv_quote($_) } list $d->[2];
+        }
+        else
+        {
+            my ($a, $b, $v, $f, $w) = @{$d->[2]}{qw(after before value fields who)};
+            my $s;
+            my @l;
+            push @l, html_quote($v) if defined $v && $v ne '';
+            if ($a || $b)
+            {
+                $s = $opdescs->{'desc_'.($a ? ($b ? 'between' : 'after') : 'before')};
+                $s =~ s/\$1/sv_quote($a)/es;
+                $s =~ s/\$2/sv_quote($b)/es;
+                push @l, $s;
+            }
+            if ($w)
+            {
+                $s = $opdescs->{desc_by};
+                $s =~ s/\$1/sv_quote($w)/es;
+                push @l, $s;
+            }
+            if ($f && @$f)
+            {
+                $s = $opdescs->{desc_fields};
+                $s =~ s/\$1/sv_quote(join(', ', map { COLUMNS->{$_}->{title} || $_ } @$f))/es;
+                push @l, $s;
+            }
+            $html .= join(', ', @l);
+        }
+        if (!$inner)
+        {
+            $html = "<div class='search_description _or'>$html</div>";
+        }
     }
     return $html;
 }
@@ -1742,6 +1755,8 @@ sub changed
         if ($who)
         {
             $Bugzilla::Search::interval_who = $who;
+            $v->{who} = $who->login;
+            $v->{who} =~ s/\@.*$//so if !Bugzilla->user->id;
             $who = $who->id;
         }
     }
@@ -1770,9 +1785,10 @@ sub changed
         table => "longdescs $ld",
         where => $c,
         bugid_field => "$ld.bug_id",
-        description => [ 'comment', 'changed', $v ],
+        description => [ 'comment', 'changed', { %$v } ],
         many_rows => 1,
     };
+    delete $ld_term->{description}->[2]->{fields};
     $c = $cond;
     $c =~ s/ \./$ba./gs;
     my $ba_term = {
@@ -1841,7 +1857,7 @@ sub changed
 
     # Don't care about undefs possibly returned in this term,
     # simplify_expression will take care of them.
-    $self->{term} = [ 'OR_MANY', $creation_term, $ld_term, $ba_term ];
+    $self->{term} = [ 'OR', $creation_term, $ld_term, $ba_term ];
 }
 
 sub _contact
@@ -2900,15 +2916,21 @@ sub merge_base_series
 sub get_expression_sql
 {
     my $self = shift;
-    my ($q) = @_;
+    my ($q, $force_joins) = @_;
     my $r;
-    if (ref $q ne 'ARRAY')
+    if (!$q)
+    {
+        return undef;
+    }
+    elsif (ref $q ne 'ARRAY')
     {
         $r = $self->expression_sql_and([ 'AND', $q ]);
     }
-    elsif ($q->[0] =~ /MANY$/)
+    elsif ($force_joins)
     {
-        # This means the whole query will get into OR_MANY/AND_MANY
+        # This means the whole query must be built in the "older way",
+        # without UNIONs, only with joins. (OR_MANY/AND_MANY).
+        # Really used only in Checkers.
         my $term = $self->expression_sql_many($q, $q->[0] =~ /^AND/ ? 1 : 0);
         $r = $self->expression_sql_and([ 'AND', $term ]);
     }
