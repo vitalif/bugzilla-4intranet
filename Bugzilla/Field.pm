@@ -163,7 +163,7 @@ use constant SQL_DEFINITIONS => {
 # These are used by populate_field_definitions to populate
 # the fielddefs table.
 use constant DEFAULT_FIELDS => (
-    {name => 'bug_id',       desc => 'Bug #',      buglist => 1, in_new_bugmail => 1},
+    {name => 'bug_id',       desc => 'Bug ID',      buglist => 1, in_new_bugmail => 1},
     {name => 'short_desc',   desc => 'Summary',    buglist => 1, in_new_bugmail => 1},
     {name => 'classification', desc => 'Classification', buglist => 1, in_new_bugmail => 1},
     {name => 'product',      desc => 'Product',    buglist => 1, in_new_bugmail => 1, type => FIELD_TYPE_SINGLE_SELECT},
