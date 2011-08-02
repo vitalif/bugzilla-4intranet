@@ -88,16 +88,16 @@ for (keys %$args)
 $vars->{bug_tpl} = $bug_tpl;
 $vars->{name_tr} = $name_tr;
 
-# FIXME переделать на стандартные описания полей, берущиеся из базы
-my $field_descs = { %{ Bugzilla->messages->{field_descs} } };
-$field_descs->{platform} = $field_descs->{rep_platform};
+my $field_descs = { map { $_->name => $_->description } Bugzilla->get_fields({ obsolete => 0 }) };
+$field_descs->{platform} = $field_descs->{rep_platform} if $field_descs->{rep_platform};
 $field_descs->{comment} = $field_descs->{longdesc};
-for ((grep { /\./ } keys %$field_descs),
-     (qw/rep_platform days_elapsed owner_idle_time changeddate opendate creation_ts delta_ts longdesc/, '[Bug creation]'))
+for ((grep { /\./ } keys %$field_descs), (qw/rep_platform longdesc bug_group changeddate commenter content opendate
+    creation_ts delta_ts days_elapsed everconfirmed percentage_complete owner_idle_time work_time/))
 {
     delete $field_descs->{$_};
 }
 $vars->{import_field_descs} = $field_descs;
+$vars->{import_fields} = [ sort { $field_descs->{$a} cmp $field_descs->{$b} } keys %$field_descs ];
 
 my $guess_field_descs = [
     map { $_ => $field_descs->{$_} }
