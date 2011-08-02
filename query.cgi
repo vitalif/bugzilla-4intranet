@@ -222,7 +222,7 @@ for (keys %$params)
 # Remove empty charts
 for (@charts)
 {
-    @$_ = grep { $_->{field} && $_->{field} ne 'noop' && $_->{field} ne '---' } @$_ for @{$_->{rows}};
+    @$_ = grep { $_ && $_->{field} && $_->{field} ne 'noop' && $_->{field} ne '---' } @$_ for @{$_->{rows}};
     @{$_->{rows}} = grep { @$_ } @{$_->{rows}};
 }
 @charts = grep { @{$_->{rows}} } @charts;
