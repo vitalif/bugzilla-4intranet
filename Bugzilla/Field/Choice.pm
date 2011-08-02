@@ -159,8 +159,9 @@ sub new {
 sub create
 {
     my $self = shift;
+    $self = $self->SUPER::create(@_);
     $self->field->touch;
-    $self->SUPER::create(@_);
+    return $self;
 }
 
 sub update {
