@@ -201,7 +201,7 @@ sub quote_urls_custom_proto
     my ($args) = @_;
     for (split /\n/, Bugzilla->params->{mediawiki_urls})
     {
-        my ($wiki, $url) = split /\s+/, $_, 2;
+        my ($wiki, $url) = split /\s+/, trim($_), 2;
         $args->{custom_proto}->{$wiki} = sub { process_wiki_url($url, @_) } if $wiki && $url;
     }
     return 1;
