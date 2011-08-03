@@ -765,7 +765,7 @@ sub FUNCTIONS
             '*' => \&_commenter,
         },
         'longdescs.isprivate' => { '*' => \&_longdescs_isprivate, },
-        'work_time' => {
+        'interval_time|work_time' => {
             'changedbefore|changedafter' => \&_work_time_changedbefore_after,
             # FIXME work_time changedfrom/changedto must match the sum,
             # but now changedfrom will only match empty strings,
@@ -1274,10 +1274,11 @@ sub search_description_html
         # FIXME maybe output SQL code snippets when debug=1 ?
         # but, this will require interaction with get_expression_sql.
         my $d = $exp->{description};
+        my $op = $d->[1];
         my $neg = $exp->{neg};
-        if ($neg && NEGATE_ALL_OPERATORS->{$d->[1]})
+        if ($neg && NEGATE_ALL_OPERATORS->{$op})
         {
-            $d->[1] = NEGATE_ALL_OPERATORS->{$d->[1]};
+            $op = NEGATE_ALL_OPERATORS->{$op};
             $neg = 0;
         }
         if ($d->[0])
@@ -1285,14 +1286,8 @@ sub search_description_html
             my $a = COLUMN_ALIASES->{$d->[0]} || $d->[0];
             $html .= '<span class="search_field">'.html_quote(COLUMNS->{$a}->{title} || $fdescs->{$a} || $a).':</span>';
         }
-        if ($neg)
-        {
-            $html .= ' '.$opdescs->{not};
-        }
-        if (!SEARCH_HIDDEN_OPERATORS->{$d->[1]})
-        {
-            $html .= ' '.$opdescs->{$d->[1]};
-        }
+        $html .= ' '.$opdescs->{not} if $neg;
+        $html .= ' '.$opdescs->{$op} if !SEARCH_HIDDEN_OPERATORS->{$op};
         if (!ref $d->[2] || ref $d->[2] eq 'ARRAY')
         {
             $html .= ' ' . join ', ', map { sv_quote($_) } list $d->[2];
@@ -1707,7 +1702,9 @@ sub run_chart
         }
         if (ref $self->{term} eq 'HASH')
         {
-            $self->{term}->{description} ||= [ $f, $self->{type}, $self->{value} ];
+            my $op = $self->{type};
+            $op = NEGATE_ALL_OPERATORS->{$op} || $op if $self->{negated};
+            $self->{term}->{description} ||= [ $f, $op, $self->{value} ];
         }
         negate_expression($self->{term}) if $self->{negated};
         return $self->{term};
@@ -2126,13 +2123,20 @@ sub _work_time_equals_0
 {
     my $self = shift;
     my $dbh = Bugzilla->dbh;
-    if ($self->{type} eq 'equals')
+    if ($self->{type} eq 'equals' && (0+$self->{value}) eq '0')
     {
         my $table = "longdescs_".$self->{sequence};
-        my $priv = $self->{user}->is_insider ? "" : " AND $table.isprivate=0";
+        my $w = "$table.work_time != 0";
+        if ($self->{field} eq 'interval_time')
+        {
+            $w .= " AND $table.bug_when >= ".$dbh->quote($Bugzilla::Search::interval_from) if $Bugzilla::Search::interval_from;
+            $w .= " AND $table.bug_when <= ".$dbh->quote($Bugzilla::Search::interval_to) if $Bugzilla::Search::interval_to;
+            $w .= " AND $table.who = ".$Bugzilla::Search::interval_who->id if $Bugzilla::Search::interval_who;
+        }
+        $w .= " AND $table.isprivate = 0" if $self->{user}->is_insider;
         $self->{term} = {
             table => "longdescs $table",
-            where => "$table.work_time != 0".$priv,
+            where => $w,
             neg => 1,
             bugid_field => "$table.bug_id",
             many_rows => 1,
