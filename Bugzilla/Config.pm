@@ -341,8 +341,14 @@ sub read_param_file {
     return \%params;
 }
 
-1;
+# Returns modification time of param file
+sub param_file_mtime
+{
+    my $datadir = bz_locations()->{datadir};
+    return [stat "$datadir/params"]->[9];
+}
 
+1;
 __END__
 
 =head1 NAME

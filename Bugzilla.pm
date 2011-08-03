@@ -435,6 +435,13 @@ sub params {
     return $class->request_cache->{params};
 }
 
+sub params_modified
+{
+    my $class = shift;
+    $class->request_cache->{params} ||= Bugzilla::Config::param_file_mtime();
+    return $class->request_cache->{params};
+}
+
 sub user {
     my $class = shift;
     $class->request_cache->{user} ||= new Bugzilla::User;
