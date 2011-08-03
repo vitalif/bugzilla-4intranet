@@ -62,8 +62,7 @@ use Scalar::Util qw(blessed);
 
 use base qw(Template);
 
-my $custom_proto_regex;
-my $custom_proto;
+my ($custom_proto, $custom_proto_regex, $custom_proto_cached);
 
 # Convert the constants in the Bugzilla::Constants module into a hash we can
 # pass to the template object for reflection into its "constants" namespace
@@ -237,9 +236,10 @@ sub quoteUrls {
                ("\0\0" . ($count-1) . "\0\0")
               ~gesox;
 
-    unless ($custom_proto)
+    if (!$custom_proto || $custom_proto_cached < Bugzilla->params_modified)
     {
         # initialize custom protocols
+        $custom_proto_cached = time;
         $custom_proto = {};
         Bugzilla::Hook::process('quote_urls-custom_proto', { custom_proto => $custom_proto });
         $custom_proto_regex = join '|', keys %$custom_proto;

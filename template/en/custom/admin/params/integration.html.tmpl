@@ -1,45 +1,22 @@
-[%# The contents of this file are subject to the Mozilla Public
-  # License Version 1.1 (the "License"); you may not use this file
-  # except in compliance with the License. You may obtain a copy of
-  # the License at http://www.mozilla.org/MPL/
-  #
-  # Software distributed under the License is distributed on an "AS
-  # IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-  # implied. See the License for the specific language governing
-  # rights and limitations under the License.
-  #
-  # The Original Code is the Bugzilla Bug Tracking System.
-  #
-  # The Initial Developer of the Original Code is Netscape Communications
-  # Corporation. Portions created by Netscape are
-  # Copyright (C) 1998 Netscape Communications Corporation. All
-  # Rights Reserved.
-  #
-  # Contributor(s): Dave Miller <justdave@bugzilla.org>
-  #                 Frédéric Buclin <LpSolit@gmail.com>
-  #%]
+[%# License: Dual-license GPL 3.0+ or MPL 1.1+
+  # Contributor(s): Vitaliy Filippov <vitalif@mail.ru> %]
+
 [%
-   title = "Wiki/ViewVC/etc integration"
-   desc = "Set up URLs for Wiki/ViewVC/etc integration"
+   title = "Integration config"
+   desc = "Configuration for integrating Bugzilla with external systems (MediaWiki, ViewVC, etc)."
 %]
 
 [% param_descs = {
-  viewvc_url  => "ViewVC query URL for browsing bug code",
-  wiki_url    => "Main CustIS Wiki main page URL",
-  smwiki_url  => "Sportmaster Wiki main page URL",
-  smboa_url   => "Sportmaster Boa Wiki main page URL",
-  sbwiki_url  => "SobinBank Wiki main page URL",
-  fawiki_url  => "ForumAvto Wiki main page URL",
-  kswiki_url  => "Krasnoyarsk Wiki main page URL",
-  rdwiki_url  => "Radey Wiki main page URL",
-  gzwiki_url  => "Gazprombank Wiki main page URL",
-  gzstable_url=> "Gazprombank release Wiki main page URL",
-  dpwiki_url  => "Dept-Edu Wiki main page URL",
-  hrwiki_url  => "HR dept Wiki main page URL",
-  cbwiki_url  => "CentroBank Wiki main page URL",
-  orwiki_url  => "Mason Lodge ЦОР Wiki main page URL",
-  rawiki_url  => "RosAtom project Wiki main page URL",
-  user_mailto => "Substitution for 'mailto:' (e.g. link to Plantime search)",
-  ext_disable_refresh_views => "Disable automatic external DB views refreshing",
+    viewvc_url => "ViewVC query URL for browsing bug code",
+    wiki_url => "Default MediaWiki URL for bug links",
+    mediawiki_urls =>
+      "<p style='margin: 0'>Known MediaWiki URLs to be quoted in bug comments, one per line. Example:</p>"
+      _ "<pre style='margin: 8px 0; padding: 4px; background: white; float: left;"
+      _ " border: 1px solid gray;'>wikipedia http://en.wikipedia.org/wiki/</pre>"
+      _ "<p style='margin: 0; clear: both'>Links like <b><tt>wikipedia:Article_name#Section</tt></b>"
+      _ " and <b><tt>wikipedia:[[Article name#Section]]</tt></b><br /> will be quoted"
+      _ " and lead to <b>Section</b> (optional) of <b>Article name</b> page in the Wikipedia.</p>",
+    user_mailto => "Substitution for 'mailto:' (e.g. link to Plantime search)",
+    ext_disable_refresh_views => "Disable automatic external DB views refreshing",
   }
 %]

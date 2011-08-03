@@ -144,17 +144,6 @@ sub process_bug_after_move
     return 1;
 }
 
-# Интеграция с локальными Wiki-системами для нашей Bugzilla
-sub quote_urls_custom_proto
-{
-    my ($args) = @_;
-    for my $wiki (qw/wiki smwiki smboa sbwiki fawiki kswiki rdwiki gzwiki dpwiki hrwiki cbwiki gzstable orwiki rawiki/)
-    {
-        $args->{custom_proto}->{$wiki} = sub { processWikiUrl($wiki, @_) }
-    }
-    return 1;
-}
-
 # Bug 69514 - автоматическое проставление cf_extbug
 # при клонировании во внутренний/внешний продукт
 sub enter_bug_cloned_bug
@@ -206,6 +195,18 @@ sub post_bug_post_create
     return 1;
 }
 
+# Интеграция с MediaWiki-системами
+sub quote_urls_custom_proto
+{
+    my ($args) = @_;
+    for (split /\n/, Bugzilla->params->{mediawiki_urls})
+    {
+        my ($wiki, $url) = split /\s+/, $_, 2;
+        $args->{custom_proto}->{$wiki} = sub { process_wiki_url($url, @_) } if $wiki && $url;
+    }
+    return 1;
+}
+
 ##
 ## НЕ-хуки:
 ##
@@ -220,8 +221,8 @@ sub url_quote_slash
     return $toencode;
 }
 
-# кодирование anchor'а подзаголовка wiki-статьи
-sub processWikiAnchor
+# Кодирование anchor'а подзаголовка wiki-статьи
+sub process_wiki_anchor
 {
     my ($anchor) = (@_);
     return "" unless $anchor;
@@ -232,15 +233,15 @@ sub processWikiAnchor
     return $anchor;
 }
 
-# преобразование названий вики-статей в URL
-sub processWikiUrl
+# Преобразование названий MediaWiki-статей в URL
+sub process_wiki_url
 {
-    my ($wiki, $url, $anchor) = @_;
+    my ($base, $url, $anchor) = @_;
     $url = trim($url);
     $url =~ s/\s+/_/gso;
     # обычный url_quote нам не подходит, т.к. / не нужно переделывать в %2F, ? в %3F, а = в %3D
     $url = url_quote_slash($url);
-    return Bugzilla->params->{"${wiki}_url"} . $url . '#' . processWikiAnchor($anchor);
+    return $base . $url . '#' . process_wiki_anchor($anchor);
 }
 
 1;
