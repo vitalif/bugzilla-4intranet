@@ -323,7 +323,8 @@ sub install_update_db
     # Специальные группы
     my $special_groups = [
         [ 'bz_editcheckers', 'Users who can edit Bugzilla Correctness Checkers',        [ 'admin' ] ],
-        [ 'editfields',      'Users who can edit Bugzilla fields and values',           [ 'admin' ] ],
+        [ 'editfields',      'Users who can edit Bugzilla field parameters',            [ 'admin' ] ],
+        [ 'editvalues',      'Users who can edit Bugzilla field values',                [ 'admin' ] ],
         [ 'importxls',       'Users who are allowed to use Excel Import feature',       [ 'editbugs' ] ],
         [ 'worktimeadmin',   'Users who are allowed to use extended Fix Worktime form', [ 'admin' ] ],
         [ 'admin_index',     'Users who can enter Administration area', [ qw(admin tweakparams
