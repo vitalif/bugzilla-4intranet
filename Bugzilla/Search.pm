@@ -3024,10 +3024,9 @@ sub expression_sql_and
         {
             $t->{$_} = replace_lit($t->{$_}, 'bugs.', "bugs$seq.") for qw(table where);
             if ($t->{bugid_field} && !$t->{neg} && $t->{many_rows} &&
-                ($many_rows++) > 0)
+                (++$many_rows) > 0)
             {
-                # Allow only one many_rows=1 term in a query,
-                # wrap following into a SELECT DISTINCT
+                # Allow no terms with many_rows=1 in a query, wrap them into a SELECT DISTINCT
                 my $gs = $self->{sequence}++;
                 $tables .= "\nINNER JOIN (SELECT DISTINCT $t->{bugid_field} FROM $t->{table}";
                 $tables .= " WHERE $t->{where}" if $t->{where};
