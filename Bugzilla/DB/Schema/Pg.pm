@@ -79,7 +79,7 @@ sub _get_create_index_ddl
     if ($index_type && $index_type eq 'FULLTEXT')
     {
         $index_fields = @$index_fields > 1 ? join(" || ' ' || ", @$index_fields) : $index_fields->[0];
-        my $language = Bugzilla->localconfig->{postgres_fulltext_language};
+        my $language = Bugzilla->localconfig->{postgres_fulltext_language} || 'english';
         return "CREATE INDEX $name ON $table USING gin(to_tsvector('$language', $index_fields))";
     }
     return $self->SUPER::_get_create_index_ddl(@_);

@@ -187,16 +187,16 @@ sub sql_fulltext_search
 {
     my $self = shift;
     my ($column, $text) = @_;
-    my $language = Bugzilla->localconfig->{postgres_fulltext_language};
+    my $language = Bugzilla->localconfig->{postgres_fulltext_language} || 'english';
     $language = $self->quote($language).',';
     $text = $self->quote($text);
     # Try to_tsquery, and use plainto_tsquery if the syntax is incorrect
     # FIXME reporting errors to user would be useful here
-    eval { $self->do("SELECT to_tsquery($text)") };
+    eval { $self->do("SELECT to_tsquery($language$text)") };
     my $op = $@ ? 'plainto_tsquery' : 'to_tsquery';
     return (
-        "(to_tsvector($language$column) \@\@ $op($text))",
-        "(ts_rank(to_tsvector($language$column), $op($text)))",
+        "(to_tsvector($language$column) \@\@ $op($language$text))",
+        "(ts_rank(to_tsvector($language$column), $op($language$text)))",
     );
 }
 
