@@ -27,7 +27,6 @@
            'bug-to-test-case-action' => 'Verify that bug %id% is fixed: %description%',
            'bug-to-test-case-results' => '',
            'bug-to-test-case-summary' => 'Test for bug %id% - %summary%',
-           'cbwiki_url' => 'http://cbr.office.custis.ru/cbwiki/index.php/',
            'chartgroup' => 'editbugs',
            'clear_requests_on_close' => '1',
            'commentonchange_resolution' => 0,
@@ -45,13 +44,13 @@
            'defaultquery' => 'bug_status=NEW&bug_status=ASSIGNED&bug_status=REOPENED&emailassigned_to1=1&emailassigned_to2=1&emailreporter2=1&emailcc2=1&emailqa_contact2=1&order=Importance&long_desc_type=substring',
            'defaultseverity' => 'normal',
            'docs_urlbase' => 'docs/%lang%/html/',
-           'dpwiki_url' => 'http://depobraz.office.custis.ru/dpwiki/index.php/',
            'duplicate_or_move_bug_status' => 'RESOLVED',
            'emailin_autoregister' => 1,
            'emailregexp' => '^[\\w\\.\\+\\-=]+@[\\w\\.\\-]+\\.[\\w\\-]+$',
            'emailregexpdesc' => 'A legal address must contain exactly one \'@\', and at least one \'.\' after the @.',
            'emailsuffix' => '',
            'error_log' => 'errorlog',
+           'ext_disable_refresh_views' => 0,
            'fof_sudo_mynetworks' => '127.0.0.1/32,172.29.0.6/32',
            'fof_sudo_server' => 'http://feeds.office.custis.ru/fof-sudo.php',
            'force_attach_bigfile' => 1,
@@ -59,9 +58,6 @@
            'graph_font' => '/usr/share/fonts/truetype/windows/seguibk.ttf',
            'graph_font_size' => '9',
            'graph_rankdir' => 'LR',
-           'gzstable_url' => 'http://gazprom.office.custis.ru/gzstable/index.php/',
-           'gzwiki_url' => 'http://gazprom.office.custis.ru/gzwiki/index.php/',
-           'hrwiki_url' => 'http://hrwiki.office.custis.ru/hrwiki/index.php/',
            'inbound_proxies' => '',
            'inline_attachment_mime' => '^text/|^image/',
            'insidergroup' => 'InsiderGroup',
@@ -80,6 +76,17 @@
            'maxattachmentsize' => '5000',
            'maxlocalattachment' => '1000',
            'maxusermatches' => '1000',
+           'mediawiki_urls' => 'wiki http://wiki.office.custis.ru/wiki/index.php/
+smwiki http://penguin.office.custis.ru/smwiki/index.php/
+sbwiki http://sobin.office.custis.ru/sbwiki/index.php/
+rdwiki http://radey.office.custis.ru/rdwiki/index.php/
+gzwiki http://gazprom.office.custis.ru/gzwiki/index.php/
+gzstable http://gazprom.office.custis.ru/gzstable/index.php/
+dpwiki http://depobraz.office.custis.ru/dpwiki/index.php/
+hrwiki http://hrwiki.office.custis.ru/hrwiki/index.php/
+cbwiki http://cbr.office.custis.ru/cbwiki/index.php/
+orwiki http://lodge.office.custis.ru/orwiki/index.php/
+rawiki http://rawiki.office.custis.ru/rawiki/index.php/',
            'mime_types_file' => '/etc/mime.types',
            'mostfreqthreshold' => '2',
            'move-button-text' => 'Move To Bugscape',
@@ -95,28 +102,23 @@
            'new-case-action-template' => '',
            'new-case-results-template' => '',
            'noresolveonopenblockers' => '0',
-           'orwiki_url' => 'http://lodge.office.custis.ru/orwiki/index.php/',
            'proxy_url' => 'http://proxy.custis.ru:3128/',
            'querysharegroup' => 'editbugs',
            'quip_list_entry_control' => 'open',
-           'rdwiki_url' => 'http://radey.office.custis.ru/rdwiki/index.php/',
            'rememberlogin' => 'on',
            'report_code_errors_to_maintainer' => '1',
            'report_user_errors_to_maintainer' => '0',
            'requirelogin' => '1',
-           'sbwiki_url' => 'http://sobin.office.custis.ru/sbwiki/index.php/',
            'sendmailnow' => 1,
            'shadowdb' => '',
            'shadowdbhost' => '',
            'shadowdbport' => '3306',
            'shadowdbsock' => '',
            'shutdownhtml' => '',
-           'smboa_url' => 'http://penguin.office.custis.ru/smboa/index.php/',
            'smtp_debug' => 0,
            'smtp_password' => '',
            'smtp_username' => '',
            'smtpserver' => 'localhost',
-           'smwiki_url' => 'http://penguin.office.custis.ru/smwiki/index.php/',
            'specific_search_allow_empty_words' => '1',
            'ssl_redirect' => 0,
            'sslbase' => '',
@@ -128,7 +130,7 @@
            'testopia-max-allowed-plan-testers' => '500',
            'testopia-show-setup-breakdown' => 0,
            'timetrackinggroup' => "\x{432}\x{435}\x{441}\x{44c} \x{417}\x{418}\x{421}",
-           'unauth_bug_details' => 1,
+           'unauth_bug_details' => '1',
            'upgrade_notification' => 'latest_stable_release',
            'urlbase' => 'http://bugs.office.custis.ru/bugs/',
            'use_mailer_queue' => 0,
@@ -151,5 +153,5 @@
            'webdotbase' => '/usr/bin/dot',
            'webtwopibase' => '/usr/bin/twopi',
            'whinedays' => '30',
-           'wiki_url' => 'http://wiki.office.custis.ru/wiki/index.php/',
+           'wiki_url' => 'http://wiki.office.custis.ru/wiki/index.php/'
          );
