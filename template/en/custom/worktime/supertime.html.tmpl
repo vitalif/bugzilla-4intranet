@@ -152,7 +152,7 @@ function divide_hours_click()
     else
       inc = sum*period_times[i]/period_sum;
     inc = Math.round(inc*100)/100;
-    if (inc < min_inc)
+    if (inc < min_inc && inc > -min_inc)
     {
       [%# не списываем время совсем уж мелкими суммами %]
       period_count--;
@@ -170,6 +170,7 @@ function divide_hours_click()
     cur = Math.round(cur*100)/100;
     ed.value = cur;
   }
+  refresh_total_wt();
 }
 function divide_hours_check()
 {
@@ -202,6 +203,7 @@ function refresh_total_wt()
     if (cur == cur && cur)
       sum += cur;
   }
+  sum = Math.round(sum*100)/100;
   document.getElementById('wtime_total').innerHTML = sum;
 }
 function check_who_enabled()
