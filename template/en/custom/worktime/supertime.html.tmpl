@@ -18,6 +18,7 @@
     'worktime_user'  => 3
     'worktime_date'  => 3
     'save_worktime'  => 3
+    'token'          => 3
     'format'         => 3
     'comment'        => 2
     'divide_min_inc' => 2
@@ -68,6 +69,7 @@
 
 <input type="hidden" name="format" value="superworktime" />
 <input type="hidden" name="save_worktime" value="1" />
+<input type="hidden" name="token" value="[% token | html %]" />
 [% hidden_inputs(HideIndex=1) %]
 
 [% BLOCK worktime_th %]

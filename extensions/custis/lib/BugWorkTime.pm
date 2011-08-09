@@ -8,6 +8,7 @@ use POSIX;
 use Bugzilla;
 use Bugzilla::Bug;
 use Bugzilla::Util;
+use Bugzilla::Token;
 
 # used by mass worktime editing forms
 sub FixWorktime
@@ -113,6 +114,7 @@ sub HandleSuperWorktime
     # обрабатываем списанное время и делаем редирект на себя же
     if ($args->{save_worktime})
     {
+        check_token_data($args->{token}, 'superworktime');
         my $wt_user = $args->{worktime_user} || undef;
         my $wt_date = $args->{worktime_date};
         my $comment = $args->{comment};
