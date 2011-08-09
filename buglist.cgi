@@ -913,6 +913,7 @@ if ($superworktime)
         $d = POSIX::strftime("%Y-%m-%d %H:%M:%S", localtime);
         $vars->{worktime_user} = Bugzilla->user->login;
     }
+    $vars->{token} = issue_session_token('superworktime');
     ($vars->{worktime_date}) = $cgi->param('worktime_date') || $d;
 }
 
