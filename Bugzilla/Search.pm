@@ -655,7 +655,7 @@ use constant OPERATORS => {
     lessthan        => \&_lessthan,
     lessthaneq      => \&_lessthaneq,
     anyexact        => \&_anyexact,
-    anywordssubstr  => \&_anywordsubstr,
+    anywordssubstr  => \&_anywordssubstr,
     allwordssubstr  => \&_allwordssubstr,
     anywords        => \&_anywords,
     allwords        => \&_allwords,
@@ -694,11 +694,11 @@ use constant SEARCH_HIDDEN_OPERATORS => {
     substring       => 1,
     substr          => 1,
     matches         => 1,
-    anywordssubstr  => \&_anywordsubstr,
-    allwordssubstr  => \&_allwordssubstr,
-    anywords        => \&_anywords,
-    allwords        => \&_allwords,
-    insearch        => \&_in_search_results,
+    anywordssubstr  => 1,
+    allwordssubstr  => 1,
+    anywords        => 1,
+    allwords        => 1,
+    insearch        => 1,
 };
 
 # Search operators that accept multiple values for search
@@ -1439,7 +1439,19 @@ sub GetByWordListSubstr
     my $dbh = Bugzilla->dbh;
     my $sql_word;
 
-    foreach my $word (map { split /[\s,]+/ } list $strs)
+    # Allow "exact phrases", not just single words
+    my @words = map { /
+        \"((?:[^\"\\]+|\\.)*)\" |
+        \'((?:[^\'\\]+|\\.)*)\' |
+        ([^\s,]+)
+    /xgiso } list $strs;
+    for (my $i = 0; $i < @words/3; $i++)
+    {
+        $words[$i] = $words[$i*3] || $words[$i*3+1] || $words[$i*3+2];
+    }
+    splice @words, @words/3, @words*2/3;
+
+    foreach my $word (@words)
     {
         if ($word ne "")
         {
@@ -2519,7 +2531,7 @@ sub _anyexact
     }
 }
 
-sub _anywordsubstr
+sub _anywordssubstr
 {
     my $self = shift;
     $self->{term} = '('.join(" OR ", @{GetByWordListSubstr($self->{fieldsql}, $self->{value})}).')';
