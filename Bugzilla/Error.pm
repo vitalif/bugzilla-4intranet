@@ -105,6 +105,24 @@ sub _frame_filter
     return 1;
 }
 
+# Object method: log the Bugzilla::Error object to [data/]errorlog if it is configured
+sub log
+{
+    my $self = shift;
+    # Report error into [$datadir/] params.error_log if requested
+    if (my $logfile = Bugzilla->params->{error_log})
+    {
+        $logfile = bz_locations()->{datadir} . '/' . $logfile if substr($logfile, 0, 1) ne '/';
+        my $fd;
+        # If we can write into error log, log error details there
+        if (open $fd, ">>", $logfile)
+        {
+            print $fd (("-" x 75) . "\n" . ($self->{message} ||= _error_message($self->{type}, $self->{error}, $self->{vars})) . "\n");
+            close $fd;
+        }
+    }
+}
+
 sub _throw_error
 {
     my ($type, $error, $vars) = @_;
