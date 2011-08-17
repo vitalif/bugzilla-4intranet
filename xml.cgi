@@ -1,26 +1,8 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-#
-# The Initial Developer of the Original Code is Netscape Communications
-# Corporation. Portions created by Netscape are
-# Copyright (C) 1998 Netscape Communications Corporation. All
-# Rights Reserved.
-#
-# Contributor(s): Dawn Endico    <endico@mozilla.org>
-#                 Terry Weissman <terry@mozilla.org>
-#                 Gervase Markham <gerv@gerv.net>
+# REST-XML RPC interface (input as query parameters, output as xml)
+# Catches all errors and reports them correctly in output!
+# License: Dual-license GPL 3.0+ or MPL 1.1+
+# Contributor(s): Vitaliy Filippov <vitalif@mail.ru>
 
 use strict;
 
@@ -40,6 +22,7 @@ sub addmsg
     my ($result, $message) = @_;
     if (ref $message && $message->isa('Bugzilla::Error'))
     {
+        $message->log;
         $result->{status} = $message->{error};
         $result->{error_data} = $message->{vars};
         delete $message->{vars}->{error};
