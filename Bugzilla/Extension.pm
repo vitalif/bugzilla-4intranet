@@ -77,6 +77,7 @@ sub extension_include
         trick_taint($_) for @$new;
     }
     my $old = setter('inc', $name, $new);
+    return $old if !$new;
     # update @INC
     my $oh = { map { $_ => 1 } @$old };
     for (my $i = $#INC; $i >= 0; $i--)
