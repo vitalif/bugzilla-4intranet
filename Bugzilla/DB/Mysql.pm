@@ -197,8 +197,7 @@ sub sql_fulltext_search
         # make search a boolean mode search
         for (@words)
         {
-            if (/^\d+$/) { $_ = "+$_"; }
-            elsif (/\w$/) { $_ = "+$_*"; }
+            $_ = "+$_";
         }
     }
     $text = join '', @words;
@@ -702,7 +701,7 @@ EOT
     my @non_utf8_tables = grep(defined($_->{Collation}) && $_->{Collation} !~ /^utf8/, @$utf_table_status);
     
     if (Bugzilla->params->{'utf8'} && scalar @non_utf8_tables) {
-        print <<EOT;
+        print <<EOF;
 
 WARNING: We are about to convert your table storage format to UTF8. This
          allows Bugzilla to correctly store and sort international characters.
@@ -718,16 +717,16 @@ WARNING: We are about to convert your table storage format to UTF8. This
          If you ever used a version of Bugzilla before 2.22, we STRONGLY
          recommend that you stop checksetup.pl NOW and run contrib/recode.pl.
 
-EOT
+EOF
 
         if (!Bugzilla->installation_answers->{NO_PAUSE}) {
             if (Bugzilla->installation_mode == 
                 INSTALLATION_MODE_NON_INTERACTIVE) 
             {
-                print <<EOT;
+                print <<EOF;
          Re-run checksetup.pl in interactive mode (without an 'answers' file)
          to continue.
-EOT
+EOF
                 exit;
             }
             else {
@@ -739,7 +738,7 @@ EOT
         print "Converting table storage format to UTF-8. This may take a",
               " while.\n";
         my @dropped_fks;
-        foreach my $table ($self->bz_table_list_real) {
+        foreach my $table (map { $_->{Name} } @non_utf8_tables) {
             my $info_sth = $self->prepare("SHOW FULL COLUMNS FROM $table");
             $info_sth->execute();
             my (@binary_sql, @utf8_sql);
