@@ -288,6 +288,8 @@ sub template_include_path
 # with perl by default.
 sub vers_cmp {
     my ($a, $b) = @_;
+    $a = '' if !defined $a;
+    $b = '' if !defined $b;
 
     # Remove leading zeroes - Bug 344661
     $a =~ s/^0*(\d.+)/$1/;

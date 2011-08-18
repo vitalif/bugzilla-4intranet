@@ -327,18 +327,18 @@ sub _get_extension_requirements
     if ($function eq 'REQUIRED_MODULES' || $function eq 'OPTIONAL_MODULES')
     {
         no strict 'refs';
-        $function = "Bugzilla::Extension::".lc($function);
+        $function = 'Bugzilla::Extension::'.lc($function);
         foreach (Bugzilla::Extension::loaded())
         {
             if (my $em = &$function($_))
             {
-                ref $_->{feature} or $_->{feature} = [ $_->{feature} ];
+                ref $_->{feature} or $_->{feature} = [ $_->{feature} ] for @$em;
                 push @$modules, @$em;
             }
         }
     }
     return $modules;
-};
+}
 
 sub check_requirements {
     my ($output) = @_;

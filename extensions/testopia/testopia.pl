@@ -44,11 +44,6 @@ my $OPTIONAL_MODULES = [
         feature => 'CSV Importing of test cases'
     },
     {
-        package => 'GD-Graph3d',
-        module  => 'GD::Graph3d',
-        version => '0.63'
-    },
-    {
         package => 'XML Schema Validator',
         module  => 'XML::Validator::Schema',
         version => '1.10',
