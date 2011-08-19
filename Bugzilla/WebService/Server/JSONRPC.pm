@@ -27,6 +27,13 @@ use base qw(JSON::RPC::Server::CGI Bugzilla::WebService::Server);
 use Bugzilla::Error;
 use Bugzilla::WebService::Constants;
 use Bugzilla::WebService::Util qw(taint_data);
+use Bugzilla::Util qw(correct_urlbase trim);
+
+use MIME::Base64 qw(decode_base64 encode_base64);
+
+#####################################
+# Public JSON::RPC Method Overrides #
+#####################################
 
 sub new {
     my $class = shift;
@@ -56,11 +63,19 @@ sub create_json_coder {
 # Override the JSON::RPC method to return our CGI object instead of theirs.
 sub cgi { return Bugzilla->cgi; }
 
-# Override the JSON::RPC method to use $cgi->header properly instead of
-# just printing text directly. This fixes various problems, including
-# sending Bugzilla's cookies properly.
 sub response {
     my ($self, $response) = @_;
+
+    # Implement JSONP.
+    if (my $callback = $self->_bz_callback) {
+        my $content = $response->content;
+        $response->content("$callback($content)");
+
+    }
+
+    # Use $cgi->header properly instead of just printing text directly.
+    # This fixes various problems, including sending Bugzilla's cookies
+    # properly.
     my $headers = $response->headers;
     my @header_args;
     foreach my $name ($headers->header_field_names) {
@@ -74,6 +89,85 @@ sub response {
     $cgi->send_header(-status => $response->code, @header_args);
     print $response->content;
 }
+
+# The JSON-RPC 1.1 GET specification is not so great--you can't specify
+# data structures as parameters. However, the JSON-RPC 2.0 "JSON-RPC over
+# HTTP" spec is excellent, so we are using that for GET requests, instead.
+# Spec: http://groups.google.com/group/json-rpc/web/json-rpc-over-http
+#
+# The one exception is that we don't require the "params" argument to be
+# Base64 encoded, because that is ridiculous and obnoxious for JavaScript
+# clients.
+sub retrieve_json_from_get {
+    my $self = shift;
+    my $cgi = $self->cgi;
+
+    my %input;
+
+    # Both version and id must be set before any errors are thrown.
+    if ($cgi->param('version')) {
+        $self->version(scalar $cgi->param('version'));
+        $input{version} = $cgi->param('version');
+    }
+    else {
+        $self->version('1.0');
+    }
+
+    # The JSON-RPC 2.0 spec says that any request that omits an id doesn't
+    # want a response. However, in an HTTP GET situation, it's stupid to
+    # expect all clients to specify some id parameter just to get a response,
+    # so we don't require it.
+    my $id;
+    if (defined $cgi->param('id')) {
+        $id = $cgi->param('id');
+    }
+    # However, JSON::RPC does require that an id exist in most cases, in
+    # order to throw proper errors. We use the installation's urlbase as
+    # the id, in this case.
+    else {
+        $id = correct_urlbase();
+    }
+    # Setting _bz_request_id here is required in case we throw errors early,
+    # before _handle.
+    $self->{_bz_request_id} = $input{id} = $id;
+
+    # _bz_callback can throw an error, so we have to set it here, after we're
+    # ready to throw errors.
+    $self->_bz_callback(scalar $cgi->param('callback'));
+
+    if (!$cgi->param('method')) {
+        ThrowUserError('json_rpc_get_method_required');
+    }
+    $input{method} = $cgi->param('method');
+
+    my $params;
+    if (defined $cgi->param('params')) {
+        local $@;
+        $params = eval { 
+            $self->json->decode(scalar $cgi->param('params')) 
+        };
+        if ($@) {
+            ThrowUserError('json_rpc_invalid_params',
+                           { params => scalar $cgi->param('params'),
+                             err_msg  => $@ });
+        }
+    }
+    elsif (!$self->version or $self->version ne '1.1') {
+        $params = [];
+    }
+    else {
+        $params = {};
+    }
+
+    $input{params} = $params;
+
+    my $json = $self->json->encode(\%input);
+    return $json;
+}
+
+#######################################
+# Bugzilla::WebService Implementation #
+#######################################
 
 sub type {
     my ($self, $type, $value) = @_;
@@ -101,7 +195,10 @@ sub type {
         # ISO-8601 "YYYYMMDDTHH:MM:SS" with a literal T
         $retval = $self->datetime_format_outbound($value);
     }
-    # XXX Will have to implement base64 if Bugzilla starts using it.
+    elsif ($type eq 'base64') {
+        utf8::encode($value) if utf8::is_utf8($value);
+        $retval = encode_base64($value, '');
+    }
 
     return $retval;
 }
@@ -112,6 +209,35 @@ sub datetime_format_outbound {
     return $self->SUPER::datetime_format_outbound(@_) . 'Z';
 }
 
+sub handle_login {
+    my $self = shift;
+
+    # If we're being called using GET, we don't allow cookie-based or Env
+    # login, because GET requests can be done cross-domain, and we don't
+    # want private data showing up on another site unless the user
+    # explicitly gives that site their username and password. (This is
+    # particularly important for JSONP, which would allow a remote site
+    # to use private data without the user's knowledge, unless we had this
+    # protection in place.)
+    if ($self->request->method ne 'POST') {
+        # XXX There's no particularly good way for us to get a parameter
+        # to Bugzilla->login at this point, so we pass this information
+        # around using request_cache, which is a bit of a hack. The
+        # implementation of it is in Bugzilla::Auth::Login::Stack.
+        Bugzilla->request_cache->{auth_no_automatic_login} = 1;
+    }
+
+    my $path = $self->path_info;
+    my $class = $self->{dispatch_path}->{$path};
+    my $full_method = $self->_bz_method_name;
+    $full_method =~ /^\S+\.(\S+)/;
+    my $method = $1;
+    $self->SUPER::handle_login($class, $method, $full_method);
+}
+
+######################################
+# Private JSON::RPC Method Overrides #
+######################################
 
 # Store the ID of the current call, because Bugzilla::Error will need it.
 sub _handle {
@@ -158,20 +284,10 @@ sub _error {
     return $json;
 }
 
-##################
-# Login Handling #
-##################
-
 # This handles dispatching our calls to the appropriate class based on
 # the name of the method.
 sub _find_procedure {
     my $self = shift;
-
-    # This is also a good place to deny GET requests, since we can
-    # safely call ThrowUserError at this point.
-    if ($self->request->method ne 'POST') {
-        ThrowUserError('json_rpc_post_only');
-    }
 
     my $method = shift;
     $self->{_bz_method_name} = $method;
@@ -218,8 +334,24 @@ sub _argument_type_check {
             }
         }
     }
+    my @base64_fields = @{ $pkg->BASE64_FIELDS->{$method} || [] };
+    foreach my $field (@base64_fields) {
+        if (defined $params->{$field}) {
+            $params->{$field} = decode_base64($params->{$field});
+        }
+    }
 
     Bugzilla->input_params($params);
+
+    if ($self->request->method ne 'POST') {
+        # When being called using GET, we don't allow calling
+        # methods that can change data. This protects us against cross-site
+        # request forgeries.
+        if (!grep($_ eq $method, $pkg->READ_ONLY)) {
+            ThrowUserError('json_rpc_post_only', 
+                           { method => $self->_bz_method_name });
+        }
+    }
 
     # This is the best time to do login checks.
     $self->handle_login();
@@ -239,20 +371,28 @@ sub _argument_type_check {
     return $params;
 }
 
-sub handle_login {
-    my $self = shift;
-
-    my $path = $self->path_info;
-    my $class = $self->{dispatch_path}->{$path};
-    my $full_method = $self->_bz_method_name;
-    $full_method =~ /^\S+\.(\S+)/;
-    my $method = $1;
-    $self->SUPER::handle_login($class, $method, $full_method);
-}
+##########################
+# Private Custom Methods #
+##########################
 
 # _bz_method_name is stored by _find_procedure for later use.
 sub _bz_method_name {
     return $_[0]->{_bz_method_name}; 
+}
+
+sub _bz_callback {
+    my ($self, $value) = @_;
+    if (defined $value) {
+        $value = trim($value);
+        # We don't use \w because we don't want to allow Unicode here.
+        if ($value !~ /^[A-Za-z0-1_\.\[\]]+$/) {
+            ThrowUserError('json_rpc_invalid_callback', { callback => $value });
+        }
+        $self->{_bz_callback} = $value;
+        # JSONP needs to be parsed by a JS parser, not by a JSON parser.
+        $self->content_type('text/javascript');
+    }
+    return $self->{_bz_callback};
 }
 
 1;
@@ -289,8 +429,70 @@ your Bugzilla installation. For example, if your Bugzilla is at
 C<bugzilla.yourdomain.com>, then your JSON-RPC client would access the
 API via: C<http://bugzilla.yourdomain.com/jsonrpc.cgi>
 
-Bugzilla only allows JSON-RPC requests over C<POST>. C<GET> requests
-(or any other type of request, such as C<HEAD>) will be denied.
+=head2 Connecting via GET
+
+The most powerful way to access the JSON-RPC interface is by HTTP POST.
+However, for convenience, you can also access certain methods by using GET
+(a normal webpage load). Methods that modify the database or cause some
+action to happen in Bugzilla cannot be called over GET. Only methods that
+simply return data can be used over GET.
+
+For security reasons, when you connect over GET, cookie authentication
+is not accepted. If you want to authenticate using GET, you have to
+use the C<Bugzilla_login> and C<Bugzilla_password> method described at
+L<Bugzilla::WebService/LOGGING IN>.
+
+To connect over GET, simply send the values that you'd normally send for
+each JSON-RPC argument as URL parameters, with the C<params> item being
+a JSON string. 
+
+The simplest example is a call to C<Bugzilla.time>:
+
+ jsonrpc.cgi?method=Bugzilla.time
+
+Here's a call to C<User.get>, with several parameters:
+
+ jsonrpc.cgi?method=User.get&params=[ { "ids": [1,2], "names": ["user@domain.com"] } ]
+
+Although in reality you would url-encode the C<params> argument, so it would
+look more like this:
+
+ jsonrpc.cgi?method=User.get&params=%5B+%7B+%22ids%22%3A+%5B1%2C2%5D%2C+%22names%22%3A+%5B%22user%40domain.com%22%5D+%7D+%5D
+
+You can also specify C<version> as a URL parameter, if you want to specify
+what version of the JSON-RPC protocol you're using, and C<id> as a URL
+parameter if you want there to be a specific C<id> value in the returned
+JSON-RPC response.
+
+=head2 JSONP
+
+When calling the JSON-RPC WebService over GET, you can use the "JSONP"
+method of doing cross-domain requests, if you want to access the WebService
+directly on a web page from another site. JSONP is described at
+L<http://bob.pythonmac.org/archives/2005/12/05/remote-json-jsonp/>.
+
+To use JSONP with Bugzilla's JSON-RPC WebService, simply specify a
+C<callback> parameter to jsonrpc.cgi when using it via GET as described above.
+For example, here's some HTML you could use to get the data from 
+C<Bugzilla.time> on a remote website, using JSONP:
+
+ <script type="text/javascript" 
+         src="http://bugzilla.example.com/jsonrpc.cgi?method=Bugzilla.time&amp;callback=foo">
+
+That would call the C<Bugzilla.time> method and pass its value to a function
+called C<foo> as the only argument. All the other URL parameters (such as
+C<params>, for passing in arguments to methods) that can be passed to
+C<jsonrpc.cgi> during GET requests are also available, of course. The above
+is just the simplest possible example.
+
+The values returned when using JSONP are identical to the values returned
+when not using JSONP, so you will also get error messages if there is an
+error.
+
+The C<callback> URL parameter may only contain letters, numbers, periods, and
+the underscore (C<_>) character. Including any other characters will cause
+Bugzilla to throw an error. (This error will be a normal JSON-RPC response,
+not JSONP.)
 
 =head1 PARAMETERS
 
@@ -314,6 +516,11 @@ of "Z" at the end. This behavior is expected to continue into the future, but
 to be fully safe for forward-compatibility with all future versions of
 Bugzilla, it is safest to pass in all times as UTC with the "Z" timezone
 specifier.)
+
+C<base64> fields are strings that have been base64 encoded. Note that
+although normal base64 encoding includes newlines to break up the data,
+newlines within a string are not valid JSON, so you should not insert
+newlines into your base64-encoded string.
 
 All other types are standard JSON types.
 

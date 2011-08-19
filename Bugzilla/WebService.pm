@@ -25,9 +25,15 @@ use XMLRPC::Lite;
 
 # Used by the JSON-RPC server to convert incoming date fields apprpriately.
 use constant DATE_FIELDS => {};
+# Used by the JSON-RPC server to convert incoming base64 fields appropriately.
+use constant BASE64_FIELDS => {};
 
 # For some methods, we shouldn't call Bugzilla->login before we call them
 use constant LOGIN_EXEMPT => { };
+
+# Used to allow methods to be called in the JSON-RPC WebService via GET.
+# Methods that can modify data MUST not be listed here.
+use constant READ_ONLY => ();
 
 sub login_exempt {
     my ($class, $method) = @_;
@@ -101,6 +107,11 @@ May be null.
 =item C<boolean>
 
 True or false.
+
+=item C<base64>
+
+A base64-encoded string. This is the only way to transfer
+binary data via the WebService.
 
 =item C<array>
 
@@ -258,11 +269,11 @@ the structs, to possibly improve performance or save some bandwidth.
 
 =over
 
-=item C<include_fields> (array)
+=item C<include_fields> 
 
-An array of strings, representing the (case-sensitive) names of fields.
-Only the fields specified in this hash will be returned, the rest will
-not be included.
+C<array> An array of strings, representing the (case-sensitive) names of
+fields in the return value. Only the fields specified in this hash will
+be returned, the rest will not be included.
 
 If you specify an empty array, then this function will return empty
 hashes.
@@ -277,10 +288,11 @@ would return something like:
 
   { users => [{ id => 1, name => 'user@domain.com' }] }
 
-=item C<exclude_fields> (array)
+=item C<exclude_fields>
 
-An array of strings, representing the (case-sensitive) names of fields.
-The fields specified will not be included in the returned hashes.
+C<array> An array of strings, representing the (case-sensitive) names of
+fields in the return value. The fields specified will not be included in
+the returned hashes.
 
 If you specify all the fields, then this function will return empty
 hashes.
