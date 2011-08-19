@@ -803,7 +803,7 @@ sub create {
         # Default variables for all templates
         VARIABLES => {
             terms => Bugzilla->messages->{terms},
-            field_descs => Bugzilla->messages->{terms},
+            field_descs => Bugzilla->messages->{field_descs},
             lc_messages => Bugzilla->messages,
 
             # HTML <select>
