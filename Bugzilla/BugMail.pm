@@ -208,10 +208,11 @@ sub Send {
     }
 
     # Convert to names, for later display
-    $values{'changer'} = $changer;
     # If no changer is specified, then it has no name.
     if ($changer) {
-        $values{'changername'} = Bugzilla::User->new({name => $changer})->name;
+        $changer = Bugzilla::User->new({name => $changer}) if !ref $changer;
+        $values{'changername'} = $changer->name if $changer;
+        $values{'changer'} = $changer;
     }
     $values{'assigned_to'} = user_id_to_login($values{'assigned_to'});
     $values{'reporter'} = user_id_to_login($values{'reporter'});
