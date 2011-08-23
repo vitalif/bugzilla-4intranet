@@ -785,6 +785,7 @@ sub _bug_to_hash {
     # All the basic bug attributes are here, in alphabetical order.
     # A bug attribute is "basic" if it doesn't require an additional
     # database call to get the info.
+    # FIXME remove hardcode, use global "fielddefs" metadata
     my %item = (
         alias            => $self->type('string', $bug->alias),
         classification   => $self->type('string', $bug->classification),
@@ -793,8 +794,6 @@ sub _bug_to_hash {
         id               => $self->type('int', $bug->bug_id),
         is_confirmed     => $self->type('boolean', $bug->everconfirmed),
         last_change_time => $self->type('dateTime', $bug->delta_ts),
-        op_sys           => $self->type('string', $bug->op_sys),
-        platform         => $self->type('string', $bug->rep_platform),
         priority         => $self->type('string', $bug->priority),
         product          => $self->type('string', $bug->product),
         resolution       => $self->type('string', $bug->resolution),
@@ -807,6 +806,17 @@ sub _bug_to_hash {
         whiteboard       => $self->type('string', $bug->status_whiteboard),
     );
 
+    # FIXME change toggle method to fielddefs.is_obsolete
+    if (Bugzilla->params->{useopsys} && filter_wants $params, 'op_sys')
+    {
+        $item{op_sys} = $self->type('string', $bug->op_sys);
+    }
+
+    # FIXME change toggle method to fielddefs.is_obsolete
+    if (Bugzilla->params->{useplatform} && filter_wants $params, 'platform')
+    {
+        $item{platform} = $self->type('string', $bug->rep_platform);
+    }
 
     # First we handle any fields that require extra SQL calls.
     # We don't do the SQL calls at all if the filter would just
@@ -845,7 +855,8 @@ sub _bug_to_hash {
                        @{ $bug->keyword_objects };
         $item{'keywords'} = \@keywords;
     }
-    if (filter_wants $params, 'qa_contact') {
+    if (Bugzilla->params->{useqacontact} &&
+        filter_wants $params, 'qa_contact') {
         my $qa_login = $bug->qa_contact ? $bug->qa_contact->login : '';
         $item{'qa_contact'} = $self->type('string', $qa_login);
     }
