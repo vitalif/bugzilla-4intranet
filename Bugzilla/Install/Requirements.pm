@@ -294,6 +294,14 @@ sub OPTIONAL_MODULES {
         version => '0.05',
         feature => ['rand_security'],
     },
+
+    # Snowball stemmers in full-text search
+    {
+        package => 'Lingua-Stem-Snowball',
+        module  => 'Lingua::Stem::Snowball',
+        version => 0,
+        feature => ['fulltext_stem'],
+    },
     );
 
     my $extra_modules = _get_extension_requirements('OPTIONAL_MODULES');

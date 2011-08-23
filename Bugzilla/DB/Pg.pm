@@ -44,6 +44,7 @@ package Bugzilla::DB::Pg;
 use strict;
 
 use Bugzilla::Error;
+use Bugzilla::Constants qw(LANG_ISO_FULL);
 use DBD::Pg;
 
 # This module extends the DB interface via inheritance
@@ -187,17 +188,24 @@ sub sql_fulltext_search
 {
     my $self = shift;
     my ($column, $text) = @_;
-    my $language = Bugzilla->localconfig->{postgres_fulltext_language} || 'english';
-    $language = $self->quote($language).',';
     $text = $self->quote($text);
     # Try to_tsquery, and use plainto_tsquery if the syntax is incorrect
-    # FIXME reporting errors to user would be useful here
+    # FIXME reporting query parse errors to user would be useful here
     eval { $self->do("SELECT to_tsquery($language$text)") };
     my $op = $@ ? 'plainto_tsquery' : 'to_tsquery';
     return (
-        "(to_tsvector($language$column) \@\@ $op($language$text))",
-        "(ts_rank(to_tsvector($language$column), $op($language$text)))",
+        "($column \@\@ $op($language$text))",
+        "(ts_rank($column, $op($language$text)))",
     );
+}
+
+# PostgreSQL has built-in stemmers
+sub quote_fulltext
+{
+    my $self = shift;
+    my ($a) = @_;
+    my $lang = LANG_ISO_FULL->{Bugzilla->params->{stem_language}} || 'english';
+    return "to_tsvector('$lang',".$self->quote($a).")";
 }
 
 sub real_table_list

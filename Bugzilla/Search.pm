@@ -2000,20 +2000,21 @@ sub _content_matches
     my $dbh = Bugzilla->dbh;
 
     my $table = "bugs_fulltext_".$self->{sequence};
-    my $comments_col = "comments";
-    $comments_col = "comments_noprivate" unless $self->{user}->is_insider;
 
     # Create search terms to add to the SELECT and WHERE clauses.
-    my $text = stem_text($self->{value});
-    my ($term1, $rterm1) = $dbh->sql_fulltext_search("bugs_fulltext.$comments_col", $text);
-    my ($term2, $rterm2) = $dbh->sql_fulltext_search("bugs_fulltext.short_desc", $text);
+    # These are (search term, rank term, search term, rank term, ...)
+    my $text = $self->{value};
+    my @terms = (
+        $dbh->sql_fulltext_search("bugs_fulltext.short_desc", $text),
+        $dbh->sql_fulltext_search("bugs_fulltext.comments", $text),
+    );
+    push @terms, $dbh->sql_fulltext_search("bugs_fulltext.comments_private", $text) if $self->{user}->is_insider;
 
     # Bug 46221 - Russian Stemming in Bugzilla fulltext search
     # MATCH(...) OR MATCH(...) is very slow in MySQL (and probably in other DBs):
     # -- it does no fulltext index merge optimization. So use JOIN to UNION.
     $self->{term} = {
-        table => "(SELECT bug_id FROM bugs_fulltext WHERE $term1 UNION ".
-            "SELECT bug_id FROM bugs_fulltext WHERE $term2) $table",
+        table => "(".join(" UNION ", map { "SELECT bug_id FROM bugs_fulltext WHERE $terms[$_]" } grep { !($_&1) } 0..$#terms).") $table",
         bugid_field => "$table.bug_id",
     };
 
@@ -2025,7 +2026,7 @@ sub _content_matches
     # this adds more terms to the relevance sql.
     if (!$self->{negated})
     {
-        push @{COLUMNS->{relevance}->{bits}}, $rterm1, $rterm2;
+        push @{COLUMNS->{relevance}->{bits}}, @terms[grep { $_&1 } 0..$#terms];
         COLUMNS->{relevance}->{name} = "(SELECT ".join("+", @{COLUMNS->{relevance}->{bits}}).
             " FROM bugs_fulltext WHERE bugs_fulltext.bug_id=bugs.bug_id)";
     }

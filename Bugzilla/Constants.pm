@@ -176,8 +176,11 @@ use Cwd qw(abs_path);
 
     PASSWORD_DIGEST_ALGORITHM
     PASSWORD_SALT_LENGTH
-    
+
     CGI_URI_LIMIT
+
+    LANG_ISO_FULL
+    LANG_FULL_ISO
 );
 
 @Bugzilla::Constants::EXPORT_OK = qw(contenttypes);
@@ -509,6 +512,29 @@ use constant PASSWORD_SALT_LENGTH => 8;
 # via POST such as buglist.cgi. This value determines whether the redirect
 # can be safely done or not based on the web server's URI length setting.
 use constant CGI_URI_LIMIT => 8000;
+
+# Full language names corresponding to 2-letter ISO codes
+# Used to select stemming language in fulltext search
+use constant LANG_ISO_FULL => {
+    da => 'danish',
+    nl => 'dutch',
+    en => 'english',
+    fi => 'finnish',
+    fr => 'french',
+    de => 'german',
+    hu => 'hungarian',
+    it => 'italian',
+    no => 'norwegian',
+    pt => 'portuguese',
+    ro => 'romanian',
+    ru => 'russian',
+    es => 'spanish',
+    sv => 'swedish',
+    tr => 'turkish',
+};
+
+# The reverse of LANG_ISO_FULL
+use constant LANG_FULL_ISO => { reverse %{LANG_ISO_FULL()} };
 
 sub bz_locations {
     # We know that Bugzilla/Constants.pm must be in %INC at this point.

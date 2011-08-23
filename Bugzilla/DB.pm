@@ -96,6 +96,20 @@ sub connect_main {
                     $lc->{db_sock}, $lc->{db_user}, $lc->{db_pass});
 }
 
+sub connect_sphinx
+{
+    return undef unless Bugzilla->params->{use_sphinx};
+    my $host = Bugzilla->params->{sphinxql_host};
+    my $port = Bugzilla->params->{sphinxql_port};
+    my $socket = Bugzilla->params->{sphinxql_socket};
+    $host = [ $host ? "host=$host" : () ];
+    push @$host, "port=$port" if $port;
+    push @$host, "mysql_socket=$socket" if $socket;
+    my $sphinx = DBI->connect("DBI:mysql:".join(';', @$host), undef, undef, { mysql_auto_reconnect => 1 });
+    die $DBI::errstr if !$sphinx;
+    return $sphinx;
+}
+
 sub _connect {
     my ($driver, $host, $dbname, $port, $sock, $user, $pass) = @_;
 
@@ -361,6 +375,10 @@ sub sql_fulltext_search
     # standard ANSI SQL, without real full text search support. DB specific
     # modules should override this, as this will be always much slower.
 
+    # stem text
+    my $lang = LANG_FULL_ISO->{lc(Bugzilla->params->{stem_language}||'')} || 'en';
+    $text = stem_text($text, $lang);
+
     # make the string lowercase to do case insensitive search
     my $lower_text = lc($text);
 
@@ -394,6 +412,16 @@ sub sql_fulltext_search
     my $term = "(CASE WHEN (" . join(" AND ", @words) . ") THEN 1 ELSE 0 END)";
 
     return ($term, $term);
+}
+
+# Prepare string for inserting into full-text table and return the SQL expression
+# Individual DB implementations should override this if they have built-in stemmer
+sub quote_fulltext
+{
+    my $self = shift;
+    my ($a) = @_;
+    my $lang = LANG_FULL_ISO->{lc(Bugzilla->params->{stem_language}||'')} || 'en';
+    return $self->quote(stem_text($a, $lang));
 }
 
 #####################################################################

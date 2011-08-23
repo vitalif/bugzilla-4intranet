@@ -320,7 +320,7 @@ sub install_update_db
         $dbh->do('INSERT INTO setting_value (name, value, sortindex) VALUES (\'silent_affects_flags\', \'send\', 10), (\'silent_affects_flags\', \'do_not_send\', 20)');
     }
 
-    # Специальные группы
+    # New system groups
     my $special_groups = [
         [ 'bz_editcheckers', 'Users who can edit Bugzilla Correctness Checkers',        [ 'admin' ] ],
         [ 'editfields',      'Users who can edit Bugzilla field parameters',            [ 'admin' ] ],
