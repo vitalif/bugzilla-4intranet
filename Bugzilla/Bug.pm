@@ -1141,42 +1141,38 @@ sub _extract_multi_selects {
 # Should be called any time you update short_desc or change a comment.
 sub _sync_fulltext
 {
+    use utf8;
     my ($self, $new_bug) = @_;
     my $dbh = Bugzilla->dbh;
     my ($short_desc) = $dbh->selectrow_array(
         "SELECT short_desc FROM bugs WHERE bug_id=?", undef, $self->id
     );
-    my @comments = @{ $dbh->selectall_arrayref(
+    my ($nopriv, $priv) = ([], []);
+    for (@{ $dbh->selectall_arrayref(
         "SELECT thetext, isprivate FROM longdescs WHERE bug_id=?",
         undef, $self->id
-    ) || [] };
-    my @no_private = grep { !$_->[1] } @comments;
-    my $all = join "\n", map { $_->[0] } @comments;
-    my $nopriv = join "\n", map { $_->[0] } @no_private;
-    # Bug 46221 - Russian Snowball Stemmer in Bugzilla fulltext search
-    # Not for PostgreSQL: it has built-in Snowball stemmer
-    if (!$dbh->isa('Bugzilla::DB::Pg'))
+    ) || [] })
     {
-        use utf8;
-        $short_desc = stem_text($short_desc);
-        $all = stem_text($all);
-        $nopriv = stem_text($nopriv);
+        $_->[1] ? push @$priv, $_->[0] : push @$nopriv, $_->[0];
     }
-    # O_o как оно может быть здесь tainted - непонятно, но иногда стреляет
-    trick_taint($short_desc);
-    trick_taint($all);
-    trick_taint($nopriv);
-    my @bind = ($short_desc, $all, $nopriv, $self->id);
+    $nopriv = join "\n", @$nopriv;
+    $priv = join "\n", @$priv;
+    my $row = [ $short_desc, $nopriv, $priv ];
+    $_ = $dbh->quote_fulltext($_) for @$row;
+    ## O_o Don't know how can it be tainted here, sometimes it was. Checking if it goes away.
+    #trick_taint($row);
     my $sql;
     if ($new_bug)
     {
-        $sql = "INSERT INTO bugs_fulltext (short_desc, comments, comments_noprivate, bug_id) VALUES (?, ?, ?, ?)";
+        $sql = "INSERT INTO bugs_fulltext (bug_id, short_desc, comments, comments_private)".
+            " VALUES (".join(',', $self->id, @$row).")";
     }
     else
     {
-        $sql = "UPDATE bugs_fulltext SET short_desc=?, comments=?, comments_noprivate=? WHERE bug_id=?";
+        $sql = "UPDATE bugs_fulltext SET short_desc=$row->[0],".
+            " comments=$row->[1], comments_private=$row->[2] WHERE bug_id=".$self->id;
     }
-    return $dbh->do($sql, undef, @bind);
+    return $dbh->do($sql);
 }
 
 # This is the correct way to delete bugs from the DB.

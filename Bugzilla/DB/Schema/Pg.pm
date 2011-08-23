@@ -72,15 +72,61 @@ sub _initialize {
 } #eosub--_initialize
 #--------------------------------------------------------------------
 
+sub _get_create_table_ddl
+{
+    my ($self, $table) = @_;
+
+    my $thash = $self->{schema}{$table};
+    die "Table $table does not exist in the database schema."
+        unless ref $thash;
+
+    # Find fulltext fields
+    my %is_ft;
+    for (my $i = 1; $i < @{$thash->{INDEXES}}; $i += 2)
+    {
+        if ($thash->{INDEXES}->[$i]->{TYPE} eq 'FULLTEXT')
+        {
+            $is_ft{$_} = 1 for @{$thash->{INDEXES}->[$i]->{FIELDS}};
+        }
+    }
+
+    my $create_table = "CREATE TABLE $table \(\n";
+
+    my @fields = @{ $thash->{FIELDS} };
+    while (@fields)
+    {
+        my $field = shift @fields;
+        my $finfo = shift @fields;
+        $create_table .= "\t$field\t";
+        if ($is_ft{$field})
+        {
+            # Don't store the contents of fulltext fields in PostgreSQL,
+            # just store the real tsvector's. This allows optimal performance
+            # while ranking results.
+            $create_table .= 'tsvector';
+        }
+        else
+        {
+            $create_table .= $self->get_type_ddl($finfo);
+        }
+        $create_table .= "," if @fields;
+        $create_table .= "\n";
+    }
+
+    $create_table .= "\)";
+
+    return $create_table;
+}
+
 sub _get_create_index_ddl
 {
     my $self = shift;
     my ($table, $name, $index_fields, $index_type) = @_;
     if ($index_type && $index_type eq 'FULLTEXT')
     {
-        $index_fields = @$index_fields > 1 ? join(" || ' ' || ", @$index_fields) : $index_fields->[0];
-        my $language = Bugzilla->localconfig->{postgres_fulltext_language} || 'english';
-        return "CREATE INDEX $name ON $table USING gin(to_tsvector('$language', $index_fields))";
+        # Override fulltext index creation clause
+        $index_fields = join(" || ", @$index_fields);
+        return "CREATE INDEX $name ON $table USING gin($index_fields)";
     }
     return $self->SUPER::_get_create_index_ddl(@_);
 }

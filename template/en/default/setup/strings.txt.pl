@@ -66,6 +66,7 @@ END
     feature_smtp_auth         => 'SMTP Authentication',
     feature_updates           => 'Automatic Update Notifications',
     feature_xmlrpc            => 'XML-RPC Interface',
+    feature_fulltext_stem     => 'Snowball stemmers in full-text search',
 
     header => "* This is Bugzilla ##bz_ver## on perl ##perl_ver##\n"
             . "* Running on ##os_name## ##os_ver##",

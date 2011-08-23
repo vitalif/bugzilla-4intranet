@@ -33,6 +33,7 @@ use Bugzilla::Series;
 use Date::Parse;
 use Date::Format;
 use IO::File;
+use Time::HiRes qw(time);
 
 # NOTE: This is NOT the function for general table updates. See
 # update_table_definitions for that. This is only for the fielddefs table.
@@ -444,7 +445,7 @@ sub update_table_definitions {
         {TYPE => 'varchar(16)', PRIMARYKEY => 1, NOTNULL => 1}); 
 
     _clean_control_characters_from_short_desc();
-    
+
     # 2005-12-07 altlst@sonic.net -- Bug 225221
     $dbh->bz_add_column('longdescs', 'comment_id',
         {TYPE => 'MEDIUMSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
@@ -532,7 +533,7 @@ sub update_table_definitions {
 
     # 2007-08-21 wurblzap@gmail.com - Bug 365378
     _make_lang_setting_dynamic();
-    
+
     # 2007-11-29 xiaoou.wu@oracle.com - Bug 153129
     _change_text_types();
 
@@ -544,6 +545,16 @@ sub update_table_definitions {
                           {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0});
 
     $dbh->bz_drop_index('longdescs', 'longdescs_thetext_idx');
+
+    # Change fulltext index type to new version (comments/comments_private)
+    # We'll have to reindex anyway, so recreate the table
+    if ($dbh->bz_column_info(bugs_fulltext => 'comments_noprivate'))
+    {
+        $dbh->bz_drop_table('bugs_fulltext');
+        $dbh->bz_add_table('bugs_fulltext');
+    }
+
+    # Populate fulltext index
     _populate_bugs_fulltext();
 
     # 2008-01-18 xiaoou.wu@oracle.com - Bug 414292
@@ -572,7 +583,7 @@ sub update_table_definitions {
     # 2009-01-16 oreomike@gmail.com - Bug 302420
     $dbh->bz_add_column('whine_events', 'mailifnobugs',
         { TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'});
-        
+
     _convert_disallownew_to_isactive();
 
     $dbh->bz_alter_column('bugs_activity', 'added', 
@@ -3236,7 +3247,7 @@ sub _add_foreign_keys_to_multiselects {
         $dbh->bz_add_fk("bug_$name", "bug_id", {TABLE  => 'bugs',
                                                 COLUMN => 'bug_id',
                                                 DELETE => 'CASCADE',});
-                                                
+
         $dbh->bz_add_fk("bug_$name", "value", {TABLE  => $name,
                                                COLUMN => 'value',
                                                DELETE => 'RESTRICT',});
@@ -3252,8 +3263,11 @@ sub _populate_bugs_fulltext
     my $bug_ids = shift;
     $bug_ids = undef if $bug_ids && !@$bug_ids;
     my $dbh = Bugzilla->dbh;
-    my $fulltext = $dbh->selectrow_array
-        ("SELECT 1 FROM bugs_fulltext ".$dbh->sql_limit(1));
+    my $sphinx;
+    my ($table, $limit1, $id) = ('bugs_fulltext', $dbh->sql_limit(1), 'bug_id');
+    my $fulltext = $dbh->selectrow_array("SELECT $id FROM $table $limit1");
+    my ($datasize, $time) = (0, time);
+    my ($lastdata, $lasttime) = ($datasize, $time);
     # We only populate the table if it's empty or if we've been given a
     # set of bug ids.
     if ($bug_ids || !$fulltext)
@@ -3262,13 +3276,10 @@ sub _populate_bugs_fulltext
         $bug_ids ||= $dbh->selectcol_arrayref("SELECT bug_id FROM bugs");
         return if !$bug_ids;
 
-        # Bug 46221 - Russian Stemming in Bugzilla fulltext search
-        # We can't use GROUP_CONCAT because we need to stem each word
-        # And there could be tons of bugs, so we'll use N-bug portions
-        print "Populating bugs_fulltext... (this can take a long time.)\n";
+        # There could be tons of bugs, so we'll use 256-bug portions
+        print "Populating full-text index... (this can take a long time.)\n";
         my ($portion, $done, $total) = (256, 0, scalar @$bug_ids);
         my ($short, $all, $nopriv, $wh, $rows);
-        my ($sth, $sth_del, $sthn) = (undef, undef, 0);
         while (my @ids = splice @$bug_ids, 0, $portion)
         {
             $rows = {};
@@ -3280,35 +3291,43 @@ sub _populate_bugs_fulltext
                 "SELECT bug_id, thetext, isprivate FROM longdescs WHERE $wh",
                 undef, @ids
             );
-            $rows->{$_->[0]} = [ $_->[1], '', '' ] for @$short;
-            for (@$all)
+            # Local block with 'use bytes' for counting data size in MB
             {
-                $rows->{$_->[0]}->[1] .= $_->[1] . "\n";
-                $rows->{$_->[0]}->[2] .= $_->[1] . "\n"
-                    unless $_->[2];
-            }
-            if (!$dbh->isa('Bugzilla::DB::Pg'))
-            {
-                for (keys %$rows)
+                use bytes;
+                for (@$short)
                 {
-                    $_ = stem_text($_) for @{$rows->{$_}};
+                    $rows->{$_->[0]} = [ $_->[1], '', '' ];
+                    $datasize += length $_->[1];
+                }
+                # Comments divide into non-private and private
+                for (@$all)
+                {
+                    $rows->{$_->[0]}->[$_->[2] ? 2 : 1] .= $_->[1] . "\n";
+                    $datasize += length($_->[1])+1;
                 }
             }
-            if ($sthn != @ids)
+            for (keys %$rows)
             {
-                # Optimization: cache prepared statements
-                $sthn = @ids;
-                $sth_del = $dbh->prepare("DELETE FROM bugs_fulltext WHERE bug_id IN (".join(",", ("?") x $sthn).")");
-                $sth = $dbh->prepare(
-                    "INSERT INTO bugs_fulltext (bug_id, short_desc, comments, comments_noprivate)" .
-                    " VALUES " . join(",", ("(?,?,?,?)") x $sthn)
-                );
+                Encode::_utf8_off($_) for @{$rows->{$_}};
             }
-            $sth_del->execute(@ids);
-            $sth->execute(map { ($_, @{$rows->{$_}}) } @ids);
+            for (keys %$rows)
+            {
+                # CustIS Bug 46221 - Snowball stemmers in Bugzilla fulltext search
+                $rows->{$_} = join ', ', map { $dbh->quote_fulltext($_) } @{$rows->{$_}};
+            }
+            $dbh->do("DELETE FROM $table WHERE $id IN (".join(',', @ids).')');
+            $dbh->do(
+                "INSERT INTO $table ($id, short_desc, comments, comments_private) VALUES ".
+                join(", ", map { "($_, $rows->{$_})" } @ids)
+            );
             $done += @ids;
-            print "\r$done / $total ...";
+            print "\r$done / $total, ".sprintf("%.2f MB, %d KB/s", $datasize/1048576, ($datasize-$lastdata)/1024/(time-$lasttime));
+            print " ...";
+            ($lastdata, $lasttime) = ($datasize, time);
         }
+        $time = time-$time;
+        print sprintf("\nTime: %02d min %02d sec, %d KB/s",
+            int($time/60), $time % 60, $datasize/1024/$time);
         print "\n";
     }
 }

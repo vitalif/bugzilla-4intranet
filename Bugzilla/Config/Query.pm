@@ -71,8 +71,13 @@ sub get_param_list {
    name => 'specific_search_allow_empty_words',
    type => 'b',
    default => 1
-  }
-  
+  },
+
+  {
+   name => 'stem_language',
+   type => 't',
+   default => 'en',
+  },
   );
   return @param_list;
 }

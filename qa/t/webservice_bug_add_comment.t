@@ -11,7 +11,7 @@ my ($xmlrpc, $jsonrpc, $config) = get_rpc_clients();
 
 use constant INVALID_BUG_ID => -1;
 use constant INVALID_BUG_ALIAS => 'aaaaaaa12345';
-use constant PRIVATE_BUG => 40933;
+use constant PRIVATE_BUG => 40934;
 use constant PUBLIC_BUG => 58878;
 
 use constant TEST_COMMENT => '--- Test Comment From QA Tests ---';

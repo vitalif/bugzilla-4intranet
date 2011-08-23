@@ -63,7 +63,7 @@ use Text::Wrap;
 use Text::TabularDisplay::Utf8;
 use JSON;
 
-use Lingua::Stem::RuUTF8;
+eval { require 'Lingua/Stem/Snowball.pm' };
 
 sub trick_taint
 {
@@ -733,30 +733,34 @@ sub disable_utf8 {
     }
 }
 
-# Bug 46221 - Russian Stemming in Bugzilla fulltext search
+# CustIS Bug 46221 - Snowball Stemmers in MySQL fulltext search
+my $snowballs = {};
 sub stem_text
 {
-    my ($text, $allow_verbatim) = @_;
+    my ($text, $lang, $allow_verbatim) = @_;
+    return '' if !defined $text || $text =~ /^\s*$/so;
+    return $text if !$INC{'Lingua/Stem/Snowball.pm'};
+    $lang ||= 'en';
     Encode::_utf8_on($text) if Bugzilla->params->{utf8};
-    $text = [ split /(?<=\w)(?=\W)|(?<=\W)(?=\w)/, $text ];
+    # CustIS Bug 66033 - _ is wanted to also be a delimiter
+    $text = [ split /(\PL+)/, $text ];
+    my $word = 1;
+    if ($text->[0] eq '')
+    {
+        $word = 0;
+        shift @$text;
+    }
     my $q = 0;
+    my $cache = (Bugzilla->request_cache->{stem_cache} ||= {});
+    %$cache = () if keys(%$cache) > 65536;
+    my $stem = ($snowballs->{$lang} ||= Lingua::Stem::Snowball->new(lang => $lang, encoding => 'UTF-8'));
+    my $r = '';
     for (@$text)
     {
-        unless (/\W/)
+        if ($word)
         {
-            # $q = 1 means verbatim
-            unless ($q)
-            {
-                if (/_/)
-                {
-                    # CustIS Bug 66033
-                    $_ = join ' ', map { Lingua::Stem::RuUTF8::stem_word($_) } ($_, split(/_/, $_));
-                }
-                else
-                {
-                    $_ = Lingua::Stem::RuUTF8::stem_word($_);
-                }
-            }
+            # $q = 1 means we're inside quotes
+            $r .= ($cache->{$_} ||= $stem->stem($_)) unless $q;
         }
         else
         {
@@ -765,13 +769,12 @@ sub stem_text
                 # If $allow_verbatim is TRUE then text in "double quotes" doesn't stem
                 $q = ($q + tr/\"/\"/) % 2;
             }
-            if (!/\s$/so)
-            {
-                $_ .= ' ';
-            }
+            $r .= $_;
+            $r .= ' ' if !/\s$/o;
         }
+        $word = !$word;
     }
-    return join '', @$text;
+    return $r;
 }
 
 sub intersect

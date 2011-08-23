@@ -216,14 +216,6 @@ EOT
 # very long.
 EOT
     },
-    {
-        name    => 'postgres_fulltext_language',
-        default => 'english',
-        desc    => <<EOT
-# Value of this variable is used as the language for full-text search
-# morphology, only for PostgreSQL database.
-EOT
-    },
 );
 
 sub read_localconfig {

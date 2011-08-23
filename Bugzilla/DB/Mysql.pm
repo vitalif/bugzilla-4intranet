@@ -178,6 +178,10 @@ sub sql_fulltext_search
 {
     my ($self, $column, $text) = @_;
 
+    # stem text
+    my $lang = LANG_FULL_ISO->{lc(Bugzilla->params->{stem_language}||'')} || 'en';
+    $text = stem_text($text, $lang);
+
     # quote un-quoted compound words
     my @words = quotewords('[\s()]+', 'delimiters', $text);
     if ($text =~ /(?:^|\W)[+\-<>~"()]/ || $text =~ /[()"*](?:$|\W)/)
