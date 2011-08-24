@@ -255,7 +255,7 @@ sub BEGIN {
         my $method = 'as_' . $type;
         *$method = sub {
             my ($self, $value) = @_;
-            if (!defined($value)) {
+            if (!defined($value) || $value eq '') {
                 return as_nil();
             }
             else {

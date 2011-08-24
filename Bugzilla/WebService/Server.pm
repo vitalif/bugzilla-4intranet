@@ -42,7 +42,7 @@ sub datetime_format_inbound {
 
 sub datetime_format_outbound {
     my ($self, $date) = @_;
-    return '1970-01-01T00:00:00' if !$date;
+    return '' if !$date;
 
     my $time = $date;
     if (blessed($date)) {
