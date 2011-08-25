@@ -2529,8 +2529,15 @@ this.cgrid = cgrid;
 this.store = cgrid.store;
 this.params = params;
 this.caserun = cr;
+filter.flex = 1;
+cgrid.flex = 1;
+cr.flex = 2;
 Testopia.TestCaseRun.Panel.superclass.constructor.call(this, {
-layout: 'border',
+layout: 'vbox',
+layoutConfig: {
+align : 'stretch',
+pack  : 'start',
+},
 title: 'Test Cases',
 id: 'caserun-panel',
 border: false,
