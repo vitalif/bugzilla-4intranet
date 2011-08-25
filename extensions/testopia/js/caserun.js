@@ -1537,8 +1537,11 @@ Testopia.TestCaseRun.Info = function(){
         Ext.getCmp('effect_editor').setValue(r[0].get('results'));
         if (!r[0].get('results').match(/^\s*(<[^>]*>\s*)*$/))
             Ext.getCmp('showhide_results_btn').handler();
-        Ext.getCmp('setup_editor').setValue(r[0].get('setup'));
-        Ext.getCmp('breakdown_editor').setValue(r[0].get('breakdown'));
+        if (Param_Show_Setup_Breakdown)
+        {
+            Ext.getCmp('setup_editor').setValue(r[0].get('setup'));
+            Ext.getCmp('breakdown_editor').setValue(r[0].get('breakdown'));
+        }
         Ext.getCmp('caserun_tb_summary').setText('Case ' + r[0].get('case_id') + ' - ' + r[0].get('summary'));
     });
     
@@ -1561,8 +1564,11 @@ Testopia.TestCaseRun.Info = function(){
     processText = function(){
         var testopia_form = new Ext.form.BasicForm('testopia_helper_frm', {});
         var params = {};
-        params.tcsetup = Ext.getCmp('setup_editor').getValue();
-        params.tcbreakdown = Ext.getCmp('breakdown_editor').getValue();
+        if (Param_Show_Setup_Breakdown)
+        {
+            params.tcsetup = Ext.getCmp('setup_editor').getValue();
+            params.tcbreakdown = Ext.getCmp('breakdown_editor').getValue();
+        }
         params.tcaction = Ext.getCmp('action_editor').getValue();
         params.tceffect = Ext.getCmp('effect_editor').getValue();
         params.case_id = Ext.getCmp('caserun_grid').getSelectionModel().getSelected().get('case_id');
