@@ -178,66 +178,69 @@ Ext.onReady(function(){
 [% END %]    
     );
     var runpanel = new Ext.Panel({
-        layout: 'border',
+        layout: 'vbox',
+        layoutConfig: {
+            align : 'stretch',
+            pack  : 'start',
+        },
         applyTo: 'run-body-div',
         monitorResize: true,
         id: 'runpanel',
         height: Ext.state.Manager.get('run_height', 1200),
         footer: true,
         items:[{
-            split: true,
-            region: 'north',
-            xtype: 'tabpanel',
-            activeTab: 0,
-            id: 'object_panel',
-            items: [new Testopia.TestCaseRun.Panel(Testopia.Util.urlQueryToJSON(window.location.search), run),
-            {
-                title: 'Notes',
-                layout: 'fit',
-                items: [{
-                    id: 'run_notes',
-                    xtype:'textarea',
-                    value: '[% run.notes FILTER js %]'
-                }],
-                buttons: [{
-                    text: 'Submit',
-                    disabled: run.canedit ? false : true,
-                    handler: function(){
-                        submitEdits('run_notes', Ext.getCmp('run_notes').getValue());
-                    }
-                }]
+            layout: 'hbox',
+            layoutConfig: {
+                align : 'stretch',
+                pack  : 'start',
             },
-            new Testopia.Util.HistoryList('run', [% run.id FILTER none %])
-            ]
-        },{
-            split: true,
-            id: 'run_overview_pane',
-            title: '[% title FILTER js %]',
-            headerAsText: true,
-            region: 'center',
-            collapsible: true,
-            contentEl: 'run_overview',
-            height: 'auto'
-        },{
-            collapsible: true,
-            title: ' ',
-            split: true,
-            region:'east',
-            layout: 'fit',
-            width: 200,
-            items: [{
+            flex: 3,
+            items:[{
+                xtype: 'tabpanel',
+                flex: 10,
+                activeTab: 0,
+                id: 'object_panel',
+                items: [
+                    new Testopia.TestCaseRun.Panel(Testopia.Util.urlQueryToJSON(window.location.search), run),
+                    {
+                        title: 'Notes',
+                        layout: 'fit',
+                        items: [{
+                            id: 'run_notes',
+                            xtype:'textarea',
+                            value: '[% run.notes FILTER js %]'
+                        }],
+                        buttons: [{
+                            text: 'Submit',
+                            disabled: run.canedit ? false : true,
+                            handler: function(){
+                                submitEdits('run_notes', Ext.getCmp('run_notes').getValue());
+                            }
+                        }]
+                    },
+                    new Testopia.Util.HistoryList('run', [% run.id FILTER none %])
+                ]
+            },{
+                split: true,
+                width: 200,
                 xtype: 'tabpanel',
                 activeTab: 0,
                 id: 'run_east_panel',
                 items:[
                     new Testopia.Tags.ObjectTags('run', [% run.id FILTER none %]),
-    //                {
-    //                    title: 'CC List'
-    //                },
+                    //{ title: 'CC List' },
                     new Testopia.TestRun.FiltersList(run)
-                    
                 ]
             }]
+        },{
+            split: true,
+            flex: 1,
+            id: 'run_overview_pane',
+            title: '[% title FILTER js %]',
+            headerAsText: true,
+            collapsible: true,
+            contentEl: 'run_overview',
+            height: 'auto'
         }]
     });
 [% IF run.canedit %]   
