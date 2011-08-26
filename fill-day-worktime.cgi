@@ -84,12 +84,33 @@ if (@idlist || @lines)
             add_wt($wtime, $id, $time, $comment);
         }
     }
+    Bugzilla->request_cache->{checkers_hide_error} = 1;
+    my $rollback = 0;
+    $dbh->bz_start_transaction();
     foreach my $id (@{$wtime->{IDS}})
     {
         $dbh->bz_start_transaction();
-        BugWorkTime::FixWorktime($id, $wtime->{$id}->{time}, join("\n", @{$wtime->{$id}->{comments} || []}));
-        $dbh->bz_commit_transaction();
+        if (!BugWorkTime::FixWorktime($id, $wtime->{$id}->{time}, join("\n", @{$wtime->{$id}->{comments} || []})))
+        {
+            $rollback = 1;
+        }
+        else
+        {
+            $dbh->bz_commit_transaction();
+        }
     }
+    if ($rollback)
+    {
+        # Rollback all changes if some are blocked by Checkers
+        # Note that there is no support for "non-fatal" checks,
+        # and the warning with "do what i say..." text is not shown
+        Bugzilla->dbh->bz_rollback_transaction();
+    }
+    else
+    {
+        Bugzilla->dbh->bz_commit_transaction();
+    }
+    Checkers::show_checker_errors();
     print $cgi->redirect(-location => "fill-day-worktime.cgi?lastdays=" . $lastdays);
     exit;
 }
@@ -105,7 +126,6 @@ if ($query_id)
     my $search      = new Bugzilla::Search(
         params => $queryparams,
         fields => [ "bugs.bug_id" ],
-        user   => $user,
     );
     $sqlquery = $search->bugid_query;
 }

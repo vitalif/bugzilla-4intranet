@@ -556,12 +556,10 @@ foreach my $b (@bug_objects) {
 
 Bugzilla::Hook::process('process_bug-pre_update', { bugs => \@bug_objects });
 
-my $failed_checkers = [];
-
 # @msgs will store emails which have to be sent to voters, if any.
 my @msgs;
 
-$Checkers::THROW_ERROR = @bug_objects == 1;
+Bugzilla->request_cache->{checkers_hide_error} = 1 if @bug_objects > 1;
 
 ##############################
 # Do Actual Database Updates #
@@ -572,15 +570,12 @@ foreach my $bug (@bug_objects) {
     my $timestamp = $dbh->selectrow_array(q{SELECT LOCALTIMESTAMP(0)});
     my $changes = $bug->update($timestamp);
 
-    if ($bug->{failed_checkers} && @{$bug->{failed_checkers}})
+    if ($bug->{failed_checkers} && @{$bug->{failed_checkers}} &&
+        !$bug->{passed_checkers})
     {
-        push @$failed_checkers, $bug;
-        unless ($bug->{passed_checkers})
-        {
-            # This means update is blocked
-            # and rollback_to_savepoint is already done in Checkers.pm
-            next;
-        }
+        # This means update is blocked
+        # and rollback_to_savepoint is already done in Checkers.pm
+        next;
     }
 
     my %notify_deps;
@@ -698,7 +693,7 @@ foreach my $msg (@msgs) {
 # Send bugmail
 send_results($_) for @$send_results;
 $vars->{sentmail} = $send_results;
-$vars->{failed_checkers} = $failed_checkers;
+$vars->{failed_checkers} = Bugzilla->request_cache->{failed_checkers};
 
 my $bug;
 if (Bugzilla->usage_mode == USAGE_MODE_EMAIL) {
@@ -731,7 +726,7 @@ elsif (($action eq 'next_bug' or $action eq 'same_bug') && ($bug = $vars->{bug})
         title => $title,
         sent_attrs => $send_attrs,
         # CustIS Bug 68921 - Correctness checkers
-        failed_checkers => Checkers::freeze_failed_checkers($failed_checkers),
+        failed_checkers => Checkers::freeze_failed_checkers(Bugzilla->request_cache->{failed_checkers}),
     };
     # CustIS Bug 38616 - CC list restriction
     if (scalar(@bug_objects) == 1 && $bug_objects[0]->{restricted_cc})

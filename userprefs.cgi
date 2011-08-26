@@ -212,7 +212,7 @@ sub DoEmail
         if ($_->[1] eq $userid)
         {
             push @{$vars->{watchedusers}}, Bugzilla::User->new($_->[0]);
-    }
+        }
         else
         {
             push @{$vars->{watchers}}, Bugzilla::User->new($_->[1]);
@@ -234,7 +234,7 @@ sub DoEmail
         $mail{$relationship}{$event} = 1;
     }
 
-    $vars->{'mail'} = \%mail;      
+    $vars->{'mail'} = \%mail;
 }
 
 sub SaveEmail {

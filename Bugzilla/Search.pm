@@ -8,10 +8,10 @@ This is totally rewritten Bugzilla4Intranet search engine.
 
 Original Bugzilla::Search was ugly and stupid. It contained
 a lot of legacy code and often generated queries very complex
-for the DBMS, which leads to awful performance on big databases.
+for the DBMS, and search performance was awful on big databases.
 
-Yet in Bugzilla 4.0, although we could expect the authors to refactor
-it, they've just decomposed overlong subroutines into small ones.
+Although we could expect the authors to refactor it in Bugzilla 4.0,
+they've just decomposed overlong subroutines into small ones.
 
 So in Bugzilla4Intranet, I (Vitaliy Filippov) have rewritten it totally.
 
@@ -19,7 +19,7 @@ License is dual-license GPL 3.0+ or MPL 1.1+ ("+" means "or any later version"),
 to be compatible with both GPL and Bugzilla code.
 
 Most of the functionality remains unchanged, but the internals are totally
-different, as well as the query performance (tested on MySQL) :)
+different, as well as query performance is (tested on MySQL) :)
 
 =head1 BOOLEAN CHARTS
 

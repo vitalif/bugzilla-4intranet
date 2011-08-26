@@ -177,8 +177,6 @@ foreach my $field (@multi_selects) {
     $bug_params{$field->name} = [$cgi->param($field->name)];
 }
 
-$Checkers::THROW_ERROR = 1;
-
 # CustIS Bug 63152 - Duplicated bugs on attachment create errors
 Bugzilla->dbh->bz_start_transaction;
 

@@ -29,6 +29,7 @@ use Bugzilla::Constants;
 use Bugzilla::Util;
 use Bugzilla::Error;
 use Bugzilla::Field;
+use Bugzilla::Search;
 
 my $cgi = Bugzilla->cgi;
 my $template = Bugzilla->template;
@@ -44,8 +45,6 @@ if (grep(/^cmd-/, $cgi->param())) {
     print $cgi->redirect($location);
     exit;
 }
-
-use Bugzilla::Search;
 
 Bugzilla->login();
 

@@ -15,8 +15,6 @@ use Bugzilla::Checker;
 use Bugzilla::Search::Saved;
 use Bugzilla::Error;
 
-our $THROW_ERROR = 1; # 0 во время массовых изменений
-
 sub refresh_checker
 {
     my ($query) = @_;
@@ -69,11 +67,14 @@ sub check
     return $checked;
 }
 
+# Откатывает изменения до последней SAVEPOINT, если проверки не прошли.
+# Ставит $bug->{passed_checkers} = прошли ли проверки (с учётом "do what i say"), и возвращает его же.
+# Если завалены только мягкие проверки и !Bugzilla->request_cache->{checkers_hide_error} - показывает предупреждение.
 sub alert
 {
     my ($bug, $is_new) = @_;
     my (@fatal, @warn);
-    map { $_->is_fatal ? push(@fatal, $_) : push(@warn, $_) } @{$bug->{failed_checkers}};
+    map { $_->is_fatal ? push(@fatal, $_) : push(@warn, $_) } @{$bug->{failed_checkers} || []};
     my $force = 1 && Bugzilla->cgi->param('force_checkers');
     if (!@fatal && (!@warn || $force))
     {
@@ -95,23 +96,34 @@ sub alert
         }
         # нужно откатить изменения ТОЛЬКО ОДНОГО бага (см. process_bug.cgi)
         Bugzilla->dbh->bz_rollback_to_savepoint;
-        if ($THROW_ERROR)
+        if (!Bugzilla->request_cache->{checkers_hide_error})
         {
-            Bugzilla->template->process("verify-checkers.html.tmpl", {
-                failed => [ $bug ],
-                allow_commit => !@fatal,
-                exclude_params_re => '^force_checkers$',
-            }) || ThrowTemplateError(Bugzilla->template->error);
-            exit;
+            show_checker_errors([ $bug ]);
         }
     }
+    return $bug->{passed_checkers};
+}
+
+# Показать сообщение об ошибке проверки/проверок
+sub show_checker_errors
+{
+    my ($bugs) = @_;
+    $bugs ||= Bugzilla->request_cache->{failed_checkers};
+    return if !$bugs || !grep { @{$_->{failed_checkers} || []} } @$bugs;
+    my $fatal = 1 && (grep { grep { $_->is_fatal } @{$_->{failed_checkers} || []} } @$bugs);
+    Bugzilla->template->process("verify-checkers.html.tmpl", {
+        failed => $bugs,
+        allow_commit => !$fatal,
+        exclude_params_re => '^force_checkers$',
+    }) || ThrowTemplateError(Bugzilla->template->error);
+    exit;
 }
 
 sub freeze_failed_checkers
 {
     my $failedbugs = shift;
     $failedbugs && @$failedbugs || return undef;
-    return [ map { [ $_->bug_id, [ map { $_->id } @{$_->{failed_checkers}} ] ] } @$failedbugs ];
+    return [ map { [ $_->bug_id, [ map { $_->id } @{$_->{failed_checkers}} ] ] } grep { $_->{failed_checkers} } @$failedbugs ];
 }
 
 sub unfreeze_failed_checkers
@@ -215,18 +227,24 @@ sub bug_end_of_update
     # запускаем проверки, работающие ПОСЛЕ внесения изменений
     push @{$bug->{failed_checkers}}, @{ check($bug->bug_id, CF_UPDATE, CF_FREEZE | CF_UPDATE) };
 
+    # фильтруем по изменениям
     if (@{$bug->{failed_checkers}})
     {
         filter_failed_checkers($bug->{failed_checkers}, $changes, $bug);
     }
 
-    # ругаемся/откатываем изменения, если что-то есть
+    # ругаемся и откатываем изменения, если есть заваленные проверки
     if (@{$bug->{failed_checkers}})
     {
-        alert($bug);
-        %{ $args->{changes} } = ();
-        $bug->{added_comments} = undef;
+        if (!alert($bug))
+        {
+            %{ $args->{changes} } = ();
+            $bug->{added_comments} = undef;
+        }
+        # запоминаем объект бага с зафейленными проверками в request_cache
+        push @{Bugzilla->request_cache->{failed_checkers} ||= []}, $bug;
     }
+
     return 1;
 }
 
