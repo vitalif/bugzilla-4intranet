@@ -3932,6 +3932,206 @@ this.store.load();
 }
 }
 });
+var processText;
+Testopia.TestCaseSetupBreakdownPanel = function(params)
+{
+params = params || {};
+return {
+layout: 'column',
+columnWidth: 1.0,
+title: 'Set Up / Break Down',
+items: [{
+columnWidth:0.5,
+layout:'fit',
+items:{
+title: 'Setup',
+height: Ext.state.Manager.get('bigtext_height', 500),
+bodyBorder: false,
+border: false,
+id: 'cr_setup_panel',
+autoScroll: true,
+layout: 'fit',
+items: Testopia.TestCaseTextEditor('setup', params)
+}
+},{
+columnWidth:0.5,
+layout:'fit',
+items:{
+title: 'Breakdown',
+height: Ext.state.Manager.get('bigtext_height', 500),
+bodyBorder: false,
+border: false,
+id: 'cr_breakdown_panel',
+autoScroll: true,
+layout: 'fit',
+items: Testopia.TestCaseTextEditor('breakdown', params)
+}
+}],
+buttons: [{
+text: 'Save',
+handler: processText
+}]
+};
+};
+Testopia.TestCaseTextEditor = function(id, data)
+{
+if (Param_Use_HTMLEditor)
+return [{
+id: id+'_editor',
+xtype: 'htmleditor',
+value: data[id]||''
+}];
+else
+return [{
+id: id+'_editor',
+html: data[id]||'',
+height: 'auto'
+},{
+id: id+'_textarea',
+xtype: 'textarea',
+style: 'font-family: monospace',
+width: '100%',
+height: '100%',
+hidden: true,
+value: data[id]||''
+}];
+};
+Testopia.TestCaseShowHTMLEditor = function()
+{
+var s, h;
+var editorids = { 'action': 1, 'effect': 1 };
+if (Param_Show_Setup_Breakdown)
+editorids['setup'] = editorids['breakdown'] = 1;
+var b = Ext.getCmp('edit_html_button');
+var b1 = Ext.getCmp('save_html_button');
+if (Ext.getCmp('action_editor').hidden)
+{
+b.setText('Edit HTML source');
+b1.hide();
+s = 'hide', h = 'show';
+for (var i in editorids)
+Ext.getCmp(i+'_editor').body.update(Ext.getCmp(i+'_textarea').getValue());
+}
+else
+{
+b1.show();
+b.setText('Close editor');
+s = 'show', h = 'hide';
+}
+for (var i in editorids)
+{
+Ext.getCmp(i+'_editor')[h]();
+Ext.getCmp(i+'_textarea')[s]();
+}
+};
+Testopia.TestCaseUpdateTextForId = function(id)
+{
+var testopia_form = new Ext.form.BasicForm('testopia_helper_frm', {});
+var params = {};
+var a = Param_Use_HTMLEditor ? '_editor' : '_textarea';
+var editorids = { 'action': 1, 'effect': 1 };
+if (Param_Show_Setup_Breakdown)
+editorids['setup'] = editorids['breakdown'] = 1;
+for (var i in editorids)
+params['tc'+i] = Ext.getCmp(i+a).getValue();
+params.case_id = id;
+params.action = 'update_doc';
+testopia_form.submit({
+url: 'tr_process_case.cgi',
+params: params,
+success: function(){
+Testopia.Util.notify.msg('Test case updated', 'Test Case {0} was updated successfully', 'Document');
+},
+failure: Testopia.Util.error
+});
+};
+Testopia.TestCaseShowEffectEditor = function()
+{
+var d = Ext.getCmp('effect_editor_col');
+if (!d.hidden)
+{
+Ext.getCmp('action_editor_col').columnWidth = 1.0;
+Ext.getCmp('showhide_results_btn').setText('Show Results');
+d.hide();
+}
+else
+{
+Ext.getCmp('action_editor_col').columnWidth = 0.5;
+Ext.getCmp('showhide_results_btn').setText('Hide Results');
+d.show();
+}
+Ext.getCmp('action_panel').doLayout();
+};
+Testopia.TestCaseActionPanel = function(data)
+{
+data = data || {};
+var actionResultsButtons = [{
+text: data.effect ? 'Hide Results' : 'Show Results',
+id: 'showhide_results_btn',
+handler: Testopia.TestCaseShowEffectEditor
+}];
+if (Param_Use_HTMLEditor)
+{
+actionResultsButtons.unshift({
+text: 'Update Action/Results',
+handler: Testopia.TestCaseUpdateText
+});
+}
+else
+{
+actionResultsButtons.unshift({
+text: 'Save',
+id: 'save_html_button',
+hidden: true,
+handler: Testopia.TestCaseUpdateText
+}, {
+text: 'Edit HTML source',
+id: 'edit_html_button',
+handler: Testopia.TestCaseShowHTMLEditor
+});
+}
+var h = Ext.state.Manager.get('bigtext_height', 500);
+if (!h || h != h)
+h = 500;
+return {
+layout: 'column',
+columnWidth: 1.0,
+title: 'Description',
+id: 'action_panel',
+items: [{
+columnWidth: data.effect ? 0.5 : 1.0,
+layout: 'fit',
+id: 'action_editor_col',
+items:[{
+title: 'Action',
+height: h,
+id: 'cr_action_panel',
+bodyBorder: false,
+border: false,
+layout: 'fit',
+autoScroll: true,
+items: Testopia.TestCaseTextEditor('action', data)
+}]
+}, {
+columnWidth: 0.5,
+id: 'effect_editor_col',
+layout: 'fit',
+forceLayout: true,
+hidden: !data.effect,
+items: {
+title: 'Expected Results',
+height: h,
+id: 'cr_results_panel',
+bodyBorder: false,
+border: false,
+layout: 'fit',
+autoScroll: true,
+items: Testopia.TestCaseTextEditor('effect', data)
+}
+}],
+buttons: actionResultsButtons
+};
+};
 Testopia.TestCaseRun.Info = function(){
 this.caserun_id;
 this.store = new Ext.data.Store({
@@ -3966,16 +4166,34 @@ mapping: 'notes'
 }])
 });
 var store = this.store;
-store.on('load', function(s, r){
+store.on('load', function(s, r)
+{
+if (Param_Use_HTMLEditor)
+{
 Ext.getCmp('action_editor').setValue(r[0].get('action'));
 Ext.getCmp('effect_editor').setValue(r[0].get('results'));
-if (!r[0].get('results').match(/^\s*(<[^>]*>\s*)*$/))
-Ext.getCmp('showhide_results_btn').handler();
 if (Param_Show_Setup_Breakdown)
 {
 Ext.getCmp('setup_editor').setValue(r[0].get('setup'));
 Ext.getCmp('breakdown_editor').setValue(r[0].get('breakdown'));
 }
+}
+else
+{
+Ext.getCmp('action_editor').body.update(r[0].get('action'));
+Ext.getCmp('action_textarea').setValue(r[0].get('action'));
+Ext.getCmp('effect_editor').body.update(r[0].get('results'));
+Ext.getCmp('effect_textarea').setValue(r[0].get('results'));
+if (Param_Show_Setup_Breakdown)
+{
+Ext.getCmp('setup_editor').body.update(r[0].get('setup'));
+Ext.getCmp('effect_textarea').setValue(r[0].get('setup'));
+Ext.getCmp('breakdown_editor').body.update(r[0].get('breakdown'));
+Ext.getCmp('breakdown_textarea').setValue(r[0].get('breakdown'));
+}
+}
+if (!r[0].get('results').match(/^\s*(<[^>]*>\s*)*$/))
+Ext.getCmp('showhide_results_btn').handler();
 Ext.getCmp('caserun_tb_summary').setText('Case ' + r[0].get('case_id') + ' - ' + r[0].get('summary'));
 });
 appendNote = function(){
@@ -3994,27 +4212,6 @@ store.reload();
 failure: Testopia.Util.error
 });
 };
-processText = function(){
-var testopia_form = new Ext.form.BasicForm('testopia_helper_frm', {});
-var params = {};
-if (Param_Show_Setup_Breakdown)
-{
-params.tcsetup = Ext.getCmp('setup_editor').getValue();
-params.tcbreakdown = Ext.getCmp('breakdown_editor').getValue();
-}
-params.tcaction = Ext.getCmp('action_editor').getValue();
-params.tceffect = Ext.getCmp('effect_editor').getValue();
-params.case_id = Ext.getCmp('caserun_grid').getSelectionModel().getSelected().get('case_id');
-params.action = 'update_doc';
-testopia_form.submit({
-url: 'tr_process_case.cgi',
-params: params,
-success: function(){
-Testopia.Util.notify.msg('Test case updated', 'Test Case {0} was updated successfully', 'Document');
-},
-failure: Testopia.Util.error
-});
-}
 var summary_tb = new Ext.Toolbar({
 id: 'summary_tb',
 disabled: true,
@@ -4122,6 +4319,9 @@ ids: Testopia.Util.getSelectedObjects(Ext.getCmp('caserun_grid'), 'caserun_id')
 }
 }), new Ext.Toolbar.TextItem({text:'', id:'caserun_tb_summary'})]
 });
+Testopia.TestCaseUpdateText = function() {
+Testopia.TestCaseUpdateTextForId(Ext.getCmp('caserun_grid').getSelectionModel().getSelected().get('case_id'));
+};
 Testopia.TestCaseRun.Info.superclass.constructor.call(this, {
 id: 'case_details_panel',
 layout: 'fit',
@@ -4139,73 +4339,9 @@ activeTab: 0,
 id: 'caserun_center_region',
 title: 'Details',
 tbar: summary_tb,
-items: [{
-layout: 'column',
-title: 'Description',
-id: 'action_panel',
-items: [{
-columnWidth:1.0,
-layout:'fit',
-id:'action_editor_col',
-items:[{
-title: 'Action',
-height: Ext.state.Manager.get('bigtext_height', 500),
-id: 'cr_action_panel',
-bodyBorder: false,
-border: false,
-layout: 'fit',
-autoScroll: true,
-items: [{
-id: 'action_editor',
-xtype: 'htmleditor'
-}]
-}]
-},{
-columnWidth:0.5,
-id:'effect_editor_col',
-layout:'fit',
-style:{
-display: 'none',
-},
-items:{
-title: 'Expected Results',
-height: Ext.state.Manager.get('bigtext_height', 500),
-id: 'cr_results_panel',
-bodyBorder: false,
-border: false,
-autoScroll: true,
-layout: 'fit',
-items: [{
-id: 'effect_editor',
-xtype: 'htmleditor'
-}]
-}
-}],
-buttons: [{
-text: 'Update Action/Results',
-handler: processText.createDelegate(this)
-},{
-text: 'Show Results Edit',
-id: 'showhide_results_btn',
-handler: function(){
-d = document.getElementById('effect_editor_col');
-if (d.style.display != 'none')
+items: [
+Testopia.TestCaseActionPanel(),
 {
-Ext.getCmp('action_editor_col').columnWidth=1.0;
-Ext.getCmp('action_panel').doLayout();
-Ext.getCmp('showhide_results_btn').setText('Show Results Edit');
-d.style.display = 'none';
-}
-else
-{
-Ext.getCmp('action_editor_col').columnWidth=0.5;
-Ext.getCmp('action_panel').doLayout();
-Ext.getCmp('showhide_results_btn').setText('Hide Results Edit');
-d.style.display = '';
-}
-}
-}]
-}, {
 title: 'Notes',
 id: 'caserun_notes_panel',
 border: false,
@@ -4232,55 +4368,17 @@ xtype: 'button',
 text: 'Append Note',
 handler: appendNote.createDelegate(this)
 }]
-}, new Testopia.TestCaseRun.History(), new Testopia.Attachment.Grid({
-id: 0,
-type: 'caserun'
-}), new Testopia.TestCase.Bugs.Grid(), new Testopia.TestCase.Components(), new Testopia.Tags.ObjectTags('case', 0)]
-}]
+},
+new Testopia.TestCaseRun.History(),
+new Testopia.Attachment.Grid({id: 0, type: 'caserun'}),
+new Testopia.TestCase.Bugs.Grid(),
+new Testopia.TestCase.Components(),
+new Testopia.Tags.ObjectTags('case', 0)
+]}]
 });
 if (Param_Show_Setup_Breakdown)
 {
-Ext.getCmp('caserun_center_region').add(new Ext.Panel({
-layout: 'column',
-title: 'Set Up / Break Down',
-items: [{
-columnWidth:0.5,
-layout:'fit',
-items:{
-title: 'Setup',
-height: Ext.state.Manager.get('bigtext_height', 500),
-id: 'cr_setup_panel',
-bodyBorder: false,
-autoScroll: true,
-border: false,
-layout: 'fit',
-items:[{
-id: 'setup_editor',
-xtype:'htmleditor'
-}]
-}
-},{
-columnWidth:0.5,
-layout:'fit',
-items:{
-title: 'Breakdown',
-height: Ext.state.Manager.get('bigtext_height', 500),
-id: 'cr_breakdown_panel',
-bodyBorder: false,
-autoScroll: true,
-border: false,
-layout: 'fit',
-items:[{
-id: 'breakdown_editor',
-xtype:'htmleditor'
-}]
-}
-}],
-buttons: [{ 
-text: 'Update Setup/Breakdown',
-handler: processText.createDelegate(this)
-}]
-}));
+Ext.getCmp('caserun_center_region').add(Testopia.TestCaseSetupBreakdownPanel());
 Ext.getCmp('caserun_center_region').doLayout();
 }
 };

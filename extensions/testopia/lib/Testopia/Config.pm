@@ -117,11 +117,17 @@ sub get_param_list {
   {
    name => 'test_case_wiki_action_iframe',
    type => 't',
-   default => '<iframe src="$URL?useskin=chick" width="100%" height="100%"></iframe>',
+   default => '<iframe src="$URL?useskin=ichick" width="100%" height="100%"></iframe>',
   },
 
   {
    name => 'testopia-show-setup-breakdown',
+   type => 'b',
+   default => 0,
+  },
+
+  {
+   name => 'testopia-hide-htmleditor',
    type => 'b',
    default => 0,
   },

@@ -19,11 +19,6 @@
   #                 Greg Hendricks <ghendricks@novell.com>
   #%]
 
-[%# INTERFACE:
-  # ...
-  #%]
-  
-
 [% PROCESS testopia/style.none.tmpl %]
 [% PROCESS testopia/blocks.html.tmpl %]
 
@@ -32,6 +27,7 @@
 
 <script type="text/javascript">
 var Param_Show_Setup_Breakdown = [% Param('testopia-show-setup-breakdown') ? 1 : 0 %];
+var Param_Use_HTMLEditor = [% Param('testopia-hide-htmleditor') ? 0 : 1 %];
 var tcase = [% case.TO_JSON FILTER html_light %];
 
 Ext.onReady(function(){
@@ -107,24 +103,7 @@ Ext.onReady(function(){
 
     }
 
-    function processText(){
-        var params = {};
-        params.tcsetup = Ext.getCmp('setup_editor').getValue();
-        params.tcbreakdown = Ext.getCmp('breakdown_editor').getValue();
-        params.tcaction = Ext.getCmp('action_editor').getValue();
-        params.tceffect = Ext.getCmp('effect_editor').getValue();
-        params.case_id = tcase.case_id;
-        params.action = 'update_doc';
-        testopia_form.submit({
-            url: 'tr_process_case.cgi',
-            method: 'POST',
-            params: params,
-            success: function(){
-                Testopia.Util.notify.msg('Test case updated', 'Test Case {0} was updated successfully', 'Document');
-            },
-            failure: Testopia.Util.error
-        });
-    }
+    Testopia.TestCaseUpdateText = function(){ Testopia.TestCaseUpdateTextForId(tcase.case_id); };
 
     var fileMenu = new Ext.menu.Menu({
         id: 'file-menu',
@@ -163,11 +142,15 @@ Ext.onReady(function(){
         }]
     });
 
-    var caseControls = new Ext.Toolbar();
-    
-    var cases = new Ext.grid.GridPanel({
-        
-    });
+    var casetext = {
+        action: '[% case.text.action|js %]',
+        effect: '[% case.text.effect|js %]',
+        setup: '[% case.text.setup|js %]',
+        breakdown: '[% case.text.breakdown|js %]'
+    };
+    var actionpanel = Testopia.TestCaseActionPanel(casetext);
+    actionpanel.tbar = new DocCompareToolbar('case', tcase.case_id);
+
     var casepanel = new Ext.Panel({
         layout: 'border',
         monitorResize: true,
@@ -176,29 +159,29 @@ Ext.onReady(function(){
         footer: true,
         title: '[% title FILTER js %]',
         tbar: [{
-        text: 'File',
-        menu: fileMenu
-    },
-    new Ext.Toolbar.Fill(),
-    {
-        xtype: 'button',
-        id: 'plan-copy-button',
-                icon: 'extensions/testopia/img/copy.png',
-        iconCls: 'img_button_16x',
-        tooltip: 'Clone this Test Case',
-        handler: function(){
-                    Testopia.TestCase.clonePopup(tcase.product_id, tcase.case_id);
+            text: 'File',
+            menu: fileMenu
+        },
+        new Ext.Toolbar.Fill(),
+        {
+            xtype: 'button',
+            id: 'plan-copy-button',
+            icon: 'extensions/testopia/img/copy.png',
+            iconCls: 'img_button_16x',
+            tooltip: 'Clone this Test Case',
+            handler: function(){
+                Testopia.TestCase.clonePopup(tcase.product_id, tcase.case_id);
+            }
         }
-    }
         [% IF case.candelete %]
-    ,{
-        xtype: 'button',
-        id: 'plan-delete-btn',
-                icon: 'extensions/testopia/img/delete.png',
-        iconCls: 'img_button_16x',
-        tooltip: 'Delete this Test Case',
-        handler: confirmDelete
-    }
+        ,{
+            xtype: 'button',
+            id: 'plan-delete-btn',
+            icon: 'extensions/testopia/img/delete.png',
+            iconCls: 'img_button_16x',
+            tooltip: 'Delete this Test Case',
+            handler: confirmDelete
+        }
         [% END %]
         ],
         items:[{
@@ -209,77 +192,7 @@ Ext.onReady(function(){
             region: 'center',
             activeTab: 0,
             items: [
-            {
-                layout: 'column',
-                columnWidth: 1.0,
-                title: 'Description',
-                tbar: new DocCompareToolbar('case',tcase.case_id),
-                id: 'action_panel',
-                [% SET case.text.effect = "" UNLESS case.text.effect.defined %]
-                [% SET showeffect = !case.text.effect.match('^\s*(<[^>]*>\s*)*$') %]
-                items: [{
-                    columnWidth: [% showeffect ? "0.5" : "1.0" %],
-                    layout:'fit',
-                    id: 'action_editor_col',
-                    items:[{
-                        title: 'Action',
-                        height: 420,
-                        bodyBorder: false,
-                        border: false,
-                        layout: 'fit',
-                        items:[{
-                            id: 'action_editor',
-                            xtype:'htmleditor',
-                            value: '[% case.text.action FILTER js %]'
-                        }]
-                    }]
-                },{
-                    columnWidth:0.5,
-                    id:'effect_editor_col',
-                    layout:'fit',
-                    [% UNLESS showeffect %]
-                    style:{
-                        display: 'none',
-                    },
-                    [% END %]
-                    items:{
-                        title: 'Expected Results',
-                        height: 420,
-                        bodyBorder: false,
-                        border: false,
-                        layout: 'fit',
-                        items:[{
-                            id: 'effect_editor',
-                            xtype:'htmleditor',
-                            value: '[% case.text.effect FILTER js %]'
-                        }]  
-                    }
-                }],
-                buttons: [{ 
-                    text: 'Update Action/Results',
-                    handler: processText
-                },{
-                    text: '[% showeffect ? "Hide Results Edit" : "Show Results Edit" %]',
-                    id: 'showhide_results_btn',
-                    handler: function(){
-                        d = document.getElementById('effect_editor_col');
-                        if (d.style.display != 'none')
-                        {
-                            Ext.getCmp('action_editor_col').columnWidth=1.0;
-                            Ext.getCmp('action_panel').doLayout();
-                            Ext.getCmp('showhide_results_btn').setText('Show Results Edit');
-                            d.style.display = 'none';
-                        }
-                        else
-                        {
-                            Ext.getCmp('action_editor_col').columnWidth=0.5;
-                            Ext.getCmp('action_panel').doLayout();
-                            Ext.getCmp('showhide_results_btn').setText('Hide Results Edit');
-                            d.style.display = '';
-                        }
-                    }
-                }]
-            },
+            actionpanel,
             new Testopia.Util.HistoryList('case', [% case.id FILTER none %]),
             new Testopia.TestCaseRun.List({case_id: tcase.case_id, viewall: 1 },{id: 'case_history_grid'}),
             new Testopia.Attachment.Grid(tcase),
@@ -342,7 +255,6 @@ Ext.onReady(function(){
                             border: false,
                             root: new Ext.tree.TreeNode({text: 'Test Case [% case.id FILTER none %]'})
                         }]
-                        
                     },{
                         columnWidth: 0.5,
                         layout: 'fit',
@@ -458,49 +370,11 @@ Ext.onReady(function(){
     });
     if (Param_Show_Setup_Breakdown)
     {
-        Ext.getCmp('object_panel').insert(0, new Ext.Panel({
-            layout: 'column',
-            title: 'Set Up / Break Down',
-            items: [{
-                columnWidth:0.5,
-                layout:'fit',
-                items:{
-                    title: 'Setup',
-                    height: 420,
-                    bodyBorder: false,
-                    border: false,
-                    layout: 'fit',
-                    items:[{
-                        id: 'setup_editor',
-                        xtype:'htmleditor',
-                        value: '[% case.text.setup FILTER js %]'
-                    }]
-                }
-            },{
-                columnWidth:0.5,
-                layout:'fit',
-                items:{
-                    title: 'Breakdown',
-                    height: 420,
-                    bodyBorder: false,
-                    border: false,
-                    layout: 'fit',
-                    items:[{
-                        id: 'breakdown_editor',
-                        xtype:'htmleditor',
-                        value: '[% case.text.breakdown FILTER js %]'
-                    }]
-                }
-            }],
-            buttons: [{
-                text: 'Update Setup/Breakdown',
-                handler: processText
-            }]
-        }));
+        Ext.getCmp('object_panel').insert(0, Testopia.TestCaseSetupBreakdownPanel(casetext));
         Ext.getCmp('object_panel').doLayout();
     }
 [% IF case.canedit %]
-// Summary Editing    
+// Summary Editing
     var summary_edit_btn = new Ext.Button({
         applyTo: 'case_summary_edit_btn_div',
         id:'case_summary_edit_btn',
