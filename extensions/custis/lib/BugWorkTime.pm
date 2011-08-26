@@ -10,12 +10,14 @@ use Bugzilla::Bug;
 use Bugzilla::Util;
 use Bugzilla::Token;
 
-# used by mass worktime editing forms
+# Used by mass worktime editing forms
+# Returns 0 if update is unsuccessful, 1 if OK
 sub FixWorktime
 {
     my ($bug, $wtime, $comment, $timestamp, $userid) = @_;
     $bug = Bugzilla::Bug->new({ id => $bug, for_update => 1 }) unless ref $bug;
-    return undef unless $bug && ($comment || $wtime);
+    return 0 unless $bug;
+    return 1 unless $comment || $wtime;
 
     my $remaining_time = $bug->remaining_time;
     my $newrtime = $remaining_time - $wtime;
@@ -29,8 +31,15 @@ sub FixWorktime
     $bug->remaining_time($newrtime) if $newrtime != $remaining_time;
     $bug->update();
 
-    # stop bugmail
-    Bugzilla->dbh->do('UPDATE bugs SET lastdiffed=NOW() WHERE bug_id=?', undef, $bug->id);
+    if (@{$bug->{failed_checkers} || []} && !$bug->{passed_checkers})
+    {
+        return 0;
+    }
+    else
+    {
+        # stop bugmail
+        Bugzilla->dbh->do('UPDATE bugs SET lastdiffed=NOW() WHERE bug_id=?', undef, $bug->id);
+    }
 
     return 1;
 }
@@ -95,8 +104,17 @@ sub DistributeWorktime
 
     $bug->update();
 
-    # stop bugmail
-    Bugzilla->dbh->do('UPDATE bugs SET lastdiffed=NOW() WHERE bug_id=?', undef, $bug->id);
+    if (@{$bug->{failed_checkers} || []} && !$bug->{passed_checkers})
+    {
+        return 0;
+    }
+    else
+    {
+        # stop bugmail
+        Bugzilla->dbh->do('UPDATE bugs SET lastdiffed=NOW() WHERE bug_id=?', undef, $bug->id);
+    }
+
+    return 1;
 }
 
 # CustIS Bug 68921 - "Супер-TodayWorktime", или массовая фиксация трудозатрат
@@ -167,6 +185,9 @@ sub HandleSuperWorktime
             # перемещаем $other_bug_id в конец, чтобы не сбить пропорцию в процессе списывания времени
             @bugids = (@bi, $other_bug_id);
         }
+        my ($ok, $rollback) = 0;
+        Bugzilla->request_cache->{checkers_hide_error} = 1;
+        Bugzilla->dbh->bz_start_transaction();
         foreach (@bugids)
         {
             $t = $args->{"wtime_$_"};
@@ -175,24 +196,43 @@ sub HandleSuperWorktime
                 Bugzilla->dbh->bz_start_transaction();
                 if ($bug = Bugzilla::Bug->new({ id => $_, for_update => 1 }))
                 {
+                    # Юзеры хотят цельный коммит и построчную диагностику...
+                    # Так что если хотя бы одно изменение не пройдёт, потом сделаем полный откат
                     if ($wt_user)
                     {
-                        # списываем время на одного юзера
-                        BugWorkTime::FixWorktime($bug, $t, $comment, $wt_date, $wt_user->id);
+                        # Списываем время на одного юзера
+                        $ok = BugWorkTime::FixWorktime($bug, $t, $comment, $wt_date, $wt_user->id);
                     }
                     else
                     {
-                        # распределяем время по участникам
-                        BugWorkTime::DistributeWorktime(
+                        # Распределяем время по участникам
+                        $ok = BugWorkTime::DistributeWorktime(
                             $bug, $t, $comment, $wt_date, $tsfrom, $tsto,
                             $args->{divide_min_inc}, $other_bug_id
                         );
                     }
                 }
-                Bugzilla->dbh->bz_commit_transaction();
+                if ($ok)
+                {
+                    Bugzilla->dbh->bz_commit_transaction();
+                }
+                else
+                {
+                    $rollback = 1;
+                }
             }
             $cgi->delete("wtime_$_");
         }
+        if ($rollback)
+        {
+            # Цельный откат, если хотя бы одно изменение блокируется
+            Bugzilla->dbh->bz_rollback_transaction();
+        }
+        else
+        {
+            Bugzilla->dbh->bz_commit_transaction();
+        }
+        Checkers::show_checker_errors();
         $cgi->delete('save_worktime');
         print $cgi->redirect(-location => $cgi->self_url);
         exit;

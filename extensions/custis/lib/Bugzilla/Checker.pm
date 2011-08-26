@@ -76,7 +76,7 @@ sub refresh_sql
     my $search = new Bugzilla::Search(
         params => $params,
         fields => [ 'bug_id' ],
-        user   => Bugzilla::User->super_user,
+        user   => $query->user,
     );
     my $terms = Bugzilla::Search::simplify_expression([
         'AND_MANY', { term => 'bugs.bug_id=?' },

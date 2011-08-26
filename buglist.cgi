@@ -897,24 +897,30 @@ elsif ($fulltext) {
 if ($superworktime)
 {
     # Must come after Bugzilla::Search::getSQL
-    my $d = $Bugzilla::Search::interval_to;
     if (Bugzilla->user->in_group('worktimeadmin'))
     {
-        # Use DateTime instead of SQL functions to be more DBMS-independent
-        $d =~ s/(\d)( .*)?$/$1 00:00:00/;
-        $d ||= POSIX::strftime("%Y-%m-%d 00:00:00", localtime);
-        $d = datetime_from($d);
-        $d->subtract(days => 1);
-        $d = $d->ymd;
+        my $d = $Bugzilla::Search::interval_to;
+        if ($d)
+        {
+            # Use DateTime instead of SQL functions to be more DBMS-independent
+            $d =~ s/(\d)( .*)?$/$1 00:00:00/;
+            $d = datetime_from($d);
+            $d->subtract(days => 1);
+            $d = $d->ymd;
+        }
+        else
+        {
+            $d = POSIX::strftime("%Y-%m-%d", localtime);
+        }
         $vars->{worktime_user} = $cgi->param('worktime_user') || ($Bugzilla::Search::interval_who ? $Bugzilla::Search::interval_who->login : undef);
+        $vars->{worktime_date} = $cgi->param('worktime_date') || $d;
     }
     else
     {
-        $d = POSIX::strftime("%Y-%m-%d %H:%M:%S", localtime);
+        $vars->{worktime_date} = POSIX::strftime("%Y-%m-%d", localtime);
         $vars->{worktime_user} = Bugzilla->user->login;
     }
     $vars->{token} = issue_session_token('superworktime');
-    ($vars->{worktime_date}) = $cgi->param('worktime_date') || $d;
 }
 
 ################################################################################

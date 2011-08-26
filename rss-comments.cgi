@@ -55,7 +55,6 @@ $vars->{urlquerypart} = $queryparams->canonicalise_query('order', 'cmdtype', 'qu
 my $search = new Bugzilla::Search(
     params => $queryparams,
     fields => [ "bug_id" ],
-    user   => $user
 );
 
 my $sqlquery = $search->bugid_query;
