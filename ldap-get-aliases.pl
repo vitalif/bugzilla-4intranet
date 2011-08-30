@@ -1,4 +1,6 @@
 #!/usr/bin/perl -w
+# FIXME very specific to CustIS usage. Must be moved away.
+
 # Email LDAP alias getter for email_in.pl mail handler
 # Config file /etc/ldap/bugzilla-getusers.conf must be in the form of:
 # {
@@ -60,12 +62,12 @@ my $sth = $dbh->prepare("INSERT INTO emailin_aliases SET address=?, userid=?, fr
 print "Clearing aliases having fromldap=1\n" if $verbose;
 $dbh->do("DELETE FROM emailin_aliases WHERE fromldap=1");
 my %a = ();
-my @bind = map { @$_ } @$users;
+my @bind = map { @{$_->{emails}} } @$users;
 my $sql = "SELECT login_name, userid FROM profiles WHERE disabledtext='' AND login_name IN (" . join(",", ("?") x scalar @bind) . ")";
 my %uids = map { @$_ } @{ $dbh->selectall_arrayref($sql, undef, @bind) };
-foreach (@$users)
+foreach my $user (@$users)
 {
-    my $uid = [ map { $uids{$_} } @$_ ];
+    my $uid = [ map { $uids{$_} } @{$user->{emails}} ];
     my ($realid, $reallogin);
     foreach my $i (0..$#$uid)
     {
@@ -73,14 +75,14 @@ foreach (@$users)
         if ($uid->[$i] && (!$realid || $realid > $uid->[$i]))
         {
             $realid = $uid->[$i];
-            $reallogin = $_->[$i];
+            $reallogin = $user->{emails}->[$i];
         }
     }
     if ($realid)
     {
         # found user
         my $i = 0;
-        for (@$_)
+        for (@{$user->{emails}})
         {
             print "Adding alias $_ for user $realid ($reallogin)\n" if $verbose;
             $sth->execute($_, $realid, !($i++)) unless $a{$_}++;
@@ -103,10 +105,11 @@ sub get_domain_users
     $mesg = $LDAPconn->search(
         base   => $config->{LDAPBaseDN},
         filter => '(&(&(proxyaddresses=*)(!(msExchHideFromAddressLists=TRUE))(objectclass=user)))',
-        attrs  => "*",
+        attrs  => '*',
     );
 
     my $user_entry;
+    my $name;
     my $mail;
     my @smtp;
     my $users = [];
@@ -115,8 +118,9 @@ sub get_domain_users
     for my $i (0..$entries-1)
     {
         $user_entry = $mesg->shift_entry;
-        $mail = $user_entry->get_value("mail");
-        @smtp = $user_entry->get_value("proxyAddresses");
+        $name = $user_entry->get_value('sAMAccountName');
+        $mail = $user_entry->get_value('mail');
+        @smtp = $user_entry->get_value('proxyAddresses');
         if ($mail)
         {
             my $aliases = { lc $mail => 1 };
@@ -128,8 +132,12 @@ sub get_domain_users
                     $aliases->{lc $y} = 1;
                 }
             }
+            $mail =~ s/^.*\@/$name@/so;
             delete $aliases->{lc $mail};
-            push @$users, [ lc $mail, keys %$aliases ];
+            push @$users, {
+                name => lc $name,
+                emails => [ lc $mail, keys %$aliases ],
+            };
         }
     }
 
