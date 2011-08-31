@@ -37,6 +37,7 @@
     pre, code, kbd {
         font-size: medium;
     }
+    select { background: #fff; }
 /* global (end) */
 
 /* header (begin) */
