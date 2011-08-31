@@ -73,7 +73,7 @@ Bugzilla->login();
 #   создание и выполнение запроса поиска, находится не в Bugzilla::Search, а именно здесь :-(
 #   кусочки логики находятся здесь по слову superworktime.
 my $superworktime;
-if ($cgi->param('format') eq 'superworktime')
+if (($cgi->param('format')||'') eq 'superworktime')
 {
     require BugWorkTime;
     $superworktime = 1;
@@ -1328,7 +1328,7 @@ $template->process($format->{'template'}, $vars, \$output)
 
 $query_template_time = gettimeofday()-$query_template_time;
 # CustIS Bug 69766 - Default CSV charset for M1cr0$0ft Excel
-if ($cgi->param('ctype') eq 'csv' &&
+if (($cgi->param('ctype')||'') eq 'csv' &&
     Bugzilla->user->settings->{csv_charset} &&
     Bugzilla->user->settings->{csv_charset}->{value} ne 'utf-8')
 {
