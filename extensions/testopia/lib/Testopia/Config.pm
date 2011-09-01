@@ -121,6 +121,18 @@ sub get_param_list {
   },
 
   {
+   name => 'testopia_sync_user',
+   type => 't',
+   default => '',
+  },
+
+  {
+   name => 'testopia_sync_password',
+   type => 't',
+   default => '',
+  },
+
+  {
    name => 'testopia-show-setup-breakdown',
    type => 'b',
    default => 0,
