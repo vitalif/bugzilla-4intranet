@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# Bug 53254 - Синхронизация тест-плана с категорией MediaWiki
+# Bug 53254 - Synchronizing test plan with MediaWiki
 
 package CustisTestPlanSync;
 
@@ -15,7 +15,8 @@ use URI::Escape;
 use XML::Parser;
 use HTML::Entities;
 use HTTP::Request::Common;
-use LWP::Simple qw($ua);
+use HTTP::Cookies;
+use LWP::UserAgent;
 
 # Hook
 sub tr_show_plan_after_fetch
@@ -25,7 +26,7 @@ sub tr_show_plan_after_fetch
     my $plan = $args->{plan};
     my $vars = $args->{vars};
 
-    # Синхронизация по /tr_show_plan.cgi?wikisync=1
+    # When URL is /tr_show_plan.cgi?wikisync=1, download test cases from Wiki
     if ($cgi->param('wikisync'))
     {
         my $wiki_url = $plan->product->wiki_url || Bugzilla->params->{wiki_url};
@@ -170,15 +171,27 @@ sub wiki_sync_case
 sub fetch_wiki_category_xml
 {
     my ($wiki_url, $category) = @_;
-    $wiki_url =~ s!(/*index\.php)?/*$!/index.php!so;
+    $wiki_url =~ s!(/*index\.php)?/*$!!so;
     $_[0] = $wiki_url;
-    my $uri = URI->new($wiki_url . '?title=Special:Export&action=submit')->canonical;
-    # Дёргаем Special:Export и вытаскиваем список страниц категории
+    my $ua = LWP::UserAgent->new({ cookie_jar => HTTP::Cookies->new });
+    if (my $tcuser = Bugzilla->params->{testopia_sync_user})
+    {
+        # Try to login into wiki containing test cases
+        # FIXME maybe we should respect user's rights, i.e. make redirect from his browser
+        # to wiki, create a file with unique name containing test case data, then redirect
+        # back passing its unique name back to Bugzilla, and download it from Bugzilla.
+        # But this would require creating a separate MediaWiki extension, and I don't think
+        # that somebody needs it at all (because Testopia is ugly).
+        $ua->get("$wiki_url/api.php?action=login&lgname=".url_quote($tcuser).
+            "&lgpassword=".url_quote(Bugzilla->params->{testopia_sync_password}));
+    }
+    my $uri = "$wiki_url/index.php?title=Special:Export&action=submit";
+    # Get category page list using Special:Export
     my $r = POST "$uri", Content => "addcat=Add&catname=".url_quote($category)."&closure=1";
     my $response = $ua->request($r);
     if (!$response->is_success)
     {
-        # TODO показать ошибку
+        # TODO show error to user
         die "Could not POST $uri addcat=Add&catname=$category: ".$response->status_line;
     }
     my $text = $response->content;
@@ -190,19 +203,19 @@ sub fetch_wiki_category_xml
         warn "No pages in category $category";
         return '';
     }
-    # Дёргаем Special:Export и вытаскиваем саму XML-ку с последними ревизиями
+    # Get export XML from Special:Export
     $r = POST $uri, Content => "wpDownload=1&curonly=1&pages=".url_quote($text);
     $response = $ua->request($r);
     if (!$response->is_success)
     {
-        # TODO показать ошибку
+        # TODO show error to user
         die "Could not retrieve export XML file: ".$response->status_line;
     }
     my $xml = $response->content;
     if ($xml !~ /<\?\s*xml/so)
     {
         my ($line) = $xml =~ /^\s*([^\n]*)/so;
-        # TODO показать ошибку
+        # TODO show error to user
         die "Could not retrieve export XML file, got $line instead";
     }
     return $xml;
