@@ -139,7 +139,10 @@ sub wiki_sync_case
         plans       => [ $plan ],
         summary     => $page->{title},
     };
-    my @fields = qw(tester alias estimated_time isautomated script arguments requirement dependson blocks tags bugs components status category priority);
+    my @fields = qw(
+        tester alias estimated_time isautomated script arguments requirement
+        dependson blocks tags bugs components status category priority
+    );
     my $fre = '^\s*;\s*('.join('|', @fields).')\s*:([^\n]*)';
     while ($page->{revision_text} =~ /$fre/giso)
     {
@@ -168,12 +171,24 @@ sub wiki_sync_case
     return $case = Testopia::TestCase->create($case);
 }
 
+sub check_r
+{
+    my ($response) = @_;
+    if (!$response->is_success && $response->code !~ /^3/)
+    {
+        # TODO show error to user more friendly
+        die 'Could not POST '.$response->request->uri.' '.$response->request->content.': '.$response->status_line;
+    }
+    return $response;
+}
+
 sub fetch_wiki_category_xml
 {
     my ($wiki_url, $category) = @_;
     $wiki_url =~ s!(/*index\.php)?/*$!!so;
     $_[0] = $wiki_url;
-    my $ua = LWP::UserAgent->new({ cookie_jar => HTTP::Cookies->new });
+    my $ua = LWP::UserAgent->new(cookie_jar => HTTP::Cookies->new);
+    my ($uri, $r, $response);
     if (my $tcuser = Bugzilla->params->{testopia_sync_user})
     {
         # Try to login into wiki containing test cases
@@ -182,35 +197,32 @@ sub fetch_wiki_category_xml
         # back passing its unique name back to Bugzilla, and download it from Bugzilla.
         # But this would require creating a separate MediaWiki extension, and I don't think
         # that somebody needs it at all (because Testopia is ugly).
-        $ua->get("$wiki_url/api.php?action=login&lgname=".url_quote($tcuser).
-            "&lgpassword=".url_quote(Bugzilla->params->{testopia_sync_password}));
+        $uri = "$wiki_url/index.php?title=Special:UserLogin";
+        $response = check_r($ua->get($uri));
+        my ($token) = $response->content =~ /<input[^<>]*name=["']?wpLoginToken[^<>]*value=[\"\']?([^\"\'\s]+)/iso;
+        $response = check_r($ua->request(POST "$uri&action=submitlogin&type=login", [
+            wpLoginToken => $token,
+            wpName       => $tcuser,
+            wpPassword   => Bugzilla->params->{testopia_sync_password},
+        ]));
     }
-    my $uri = "$wiki_url/index.php?title=Special:Export&action=submit";
+    $uri = "$wiki_url/index.php?title=Special:Export&action=submit";
     # Get category page list using Special:Export
-    my $r = POST "$uri", Content => "addcat=Add&catname=".url_quote($category)."&closure=1";
-    my $response = $ua->request($r);
-    if (!$response->is_success)
-    {
-        # TODO show error to user
-        die "Could not POST $uri addcat=Add&catname=$category: ".$response->status_line;
-    }
+    $r = POST "$uri", Content => "addcat=Add&catname=".url_quote($category)."&closure=1";
+    $response = check_r($ua->request($r));
     my $text = $response->content;
     ($text) = $text =~ m!<textarea[^<>]*>(.*?)</textarea>!iso;
     utf8::decode($text);
     decode_entities($text);
     if (!$text)
     {
+        # TODO show error to the user
         warn "No pages in category $category";
         return '';
     }
     # Get export XML from Special:Export
     $r = POST $uri, Content => "wpDownload=1&curonly=1&pages=".url_quote($text);
-    $response = $ua->request($r);
-    if (!$response->is_success)
-    {
-        # TODO show error to user
-        die "Could not retrieve export XML file: ".$response->status_line;
-    }
+    $response = check_r($ua->request($r));
     my $xml = $response->content;
     if ($xml !~ /<\?\s*xml/so)
     {
