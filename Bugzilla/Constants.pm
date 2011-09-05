@@ -181,6 +181,9 @@ use Cwd qw(abs_path);
 
     LANG_ISO_FULL
     LANG_FULL_ISO
+
+    BUG_ID_ADD_TO_BLOCKED
+    BUG_ID_ADD_TO_DEPENDSON
 );
 
 @Bugzilla::Constants::EXPORT_OK = qw(contenttypes);
@@ -378,6 +381,9 @@ use constant FIELD_TYPE_NUMERIC => 8;
 
 # Upper boundary for FIELD_TYPE_* values
 use constant FIELD_TYPE__BOUNDARY => 8;
+
+use constant BUG_ID_ADD_TO_BLOCKED => 1;
+use constant BUG_ID_ADD_TO_DEPENDSON => 2;
 
 # The fields from fielddefs that are blocked from non-timetracking users.
 # work_time is sometimes called actual_time.

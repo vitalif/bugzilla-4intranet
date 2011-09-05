@@ -155,12 +155,12 @@
 
     [% IF field.type == constants.FIELD_TYPE_BUG_ID %]
     <tr>
-      <th><label for="add_to_deps">Add to dependencies:</label></th>
+      <th><label for="add_to_deps">Add to dependency tree:</label></th>
       <td valign="top">
         <select name="add_to_deps" id="add_to_deps">
           <option value="no" [% ' selected="selected"' IF !field.add_to_deps %]>Do not add</option>
-          <option value="blocked" [% ' selected="selected"' IF field.add_to_deps==1 %]>Add to blocked</option>
-          <option value="dependson" [% ' selected="selected"' IF field.add_to_deps==2 %]>Add to blockers</option>
+          <option value="blocked" [% ' selected="selected"' IF field.add_to_deps == constants.BUG_ID_ADD_TO_BLOCKED %]>Add to blocked</option>
+          <option value="dependson" [% ' selected="selected"' IF field.add_to_deps == constants.BUG_ID_ADD_TO_DEPENDSON %]>Add to blockers</option>
         </select>
       </td>
     </tr>

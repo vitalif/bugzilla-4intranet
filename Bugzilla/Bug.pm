@@ -681,6 +681,7 @@ sub check_dependent_fields
     my $incorrect_fields = {};
     foreach my $field_name (keys %{$validators || {}})
     {
+        next if $field_name eq 'dependencies'; # this is not really a field, see add_to_deps
         my $value = $validators->{$field_name};
         my $field = Bugzilla->get_field($field_name);
         # Check field visibility
@@ -705,23 +706,34 @@ sub check_dependent_fields
             }
             next;
         }
-        # CustIS Bug 73054 (TODO move to hooks)
-        # Add field value to blocked / dependson for
-        # FIELD_TYPE_BUG_ID with add_to_deps={1,2}
+        # CustIS Bug 73054, Bug 75690 (TODO maybe move to hooks)
+        # Add field value to dependency tree when FIELD_TYPE_BUG_ID with add_to_deps
+        # "Add to dependency tree" means add, if current bug isn't depending on / blocked by
+        # added bug directly or through arbitrary number of other bugs.
+        # This allows to easily view BUG_ID custom fields as the part of dependency tree,
+        # without redundant dependencies.
         if ($field->type == FIELD_TYPE_BUG_ID && $field->add_to_deps &&
             $value != $params->{bug_id})
         {
-            my $to = $field->add_to_deps == 1 ? 'blocked' : 'dependson';
-            my $other = $params->{$field->add_to_deps == 1 ? 'dependson' : 'blocked'};
-            my $new = $params->{$to};
-            $new = [ split /[\s,]+/, $new ] if !ref $new;
-            $other = [ split /[\s,]+/, $other ] if !ref $other;
-            # We can't add a bug into both Blocked and Depends_on fields
-            if (lsearch($new, $value) < 0 &&
-                lsearch($other, $value) < 0)
+            if (!$validators->{dependencies})
             {
-                push @$new, $value;
-                $params->{$to} = ref $params->{$to} ? $new : join ",", @$new;
+                # Check if ValidateDependencies wasn't called yet
+                ValidateDependencies($params, $params->{dependson}, $params->{blocked});
+            }
+            my $blk = $field->add_to_deps == BUG_ID_ADD_TO_BLOCKED;
+            my $to = $blk ? 'blocked' : 'dependson';
+            # Add the bug if it isn't already in dependency tree
+            if (!$validators->{dependencies}->{blocked}->{$value} &&
+                !$validators->{dependencies}->{dependson}->{$value})
+            {
+                if (ref $params->{$to})
+                {
+                    push @{$params->{$to}}, $value;
+                }
+                else
+                {
+                    $params->{$to} .= " $value";
+                }
             }
         }
         # Check field value visibility for select fields
@@ -1551,10 +1563,9 @@ sub _check_dependencies {
     }
 
     # And finally, check for dependency loops.
-    my $bug_id = ref($invocant) ? $invocant->id : 0;
-    my %deps = ValidateDependencies($deps_in{dependson}, $deps_in{blocked}, $bug_id);
+    ValidateDependencies($invocant, $deps_in{dependson}, $deps_in{blocked});
 
-    return ($deps{'dependson'}, $deps{'blocked'});
+    return ($deps_in{dependson}, $deps_in{blocked});
 }
 
 sub _check_dup_id {
@@ -3914,75 +3925,76 @@ sub _changes_everconfirmed {
 # Field Validation
 #
 
-# Validate and return a hash of dependencies
-sub ValidateDependencies {
-    my $fields = {};
+# 1) Check bug dependencies for loops
+# 2) Save recursively loaded dependencies in $invocant->dependent_validators
+sub ValidateDependencies
+{
+    my ($invocant, $dependson, $blocked) = @_;
+    my $id = ref($invocant) ? $invocant->id : 0;
+    return unless defined $dependson || defined $blocked;
+
     # These can be arrayrefs or they can be strings.
-    $fields->{'dependson'} = shift;
-    $fields->{'blocked'} = shift;
-    my $id = shift || 0;
-
-    unless (defined($fields->{'dependson'})
-            || defined($fields->{'blocked'}))
+    my $fields = { dependson => $dependson, blocked => $blocked };
+    for (qw(blocked dependson))
     {
-        return;
+        $fields->{$_} = [split /[\s,]+/, $fields->{$_}] if !ref $fields->{$_};
     }
 
+    # Load dependencies from DB
     my $dbh = Bugzilla->dbh;
-    my %deps;
-    my %deptree;
-    foreach my $pair (["blocked", "dependson"], ["dependson", "blocked"]) {
-        my ($me, $target) = @{$pair};
-        $deptree{$target} = [];
-        $deps{$target} = [];
-        next unless $fields->{$target};
+    my $closure = {
+        blocked => { map { $_ => 1 } @{$fields->{blocked}} },
+        dependson => { map { $_ => 1 } @{$fields->{dependson}} },
+    };
 
-        my %seen;
-        my $target_array = ref($fields->{$target}) ? $fields->{$target}
-                           : [split(/[\s,]+/, $fields->{$target})];
-        foreach my $i (@$target_array) {
-            if ($id == $i) {
-                ThrowUserError("dependency_loop_single");
+    if ($closure->{blocked}->{$id} || $closure->{dependson}->{$id})
+    {
+        ThrowUserError('dependency_loop_single');
+    }
+
+    # We want to know on which bugs 'dependson' depends, so it's 'blocked' and vice versa
+    my $stack = {
+        blocked => { map { $_ => 1 } @{$fields->{dependson}} },
+        dependson => { map { $_ => 1 } @{$fields->{blocked}} },
+    };
+    my ($rows, $old);
+    while (%{$stack->{blocked}} || %{$stack->{dependson}})
+    {
+        # Ignore any current dependencies involving this bug,
+        # as they will be overwritten with data from the form
+        my $query = join(' OR ', map {
+            "$_ IN (".join(',', map { int($_) } keys %{$stack->{$_}}).")"
+        } grep { %{$stack->{$_}} } keys %$stack);
+        $rows = $dbh->selectall_arrayref(
+            "SELECT blocked, dependson FROM dependencies".
+            " WHERE blocked != $id AND dependson != $id AND ($query)"
+        );
+        $old = $stack;
+        $stack = { blocked => {}, dependson => {} };
+        for (@$rows)
+        {
+            if ($old->{blocked}->{$_->[0]} && !$closure->{dependson}->{$_->[1]})
+            {
+                $stack->{blocked}->{$_->[1]} = 1;
+                $closure->{dependson}->{$_->[1]} = 1;
             }
-            if (!exists $seen{$i}) {
-                push(@{$deptree{$target}}, $i);
-                $seen{$i} = 1;
-            }
-        }
-        # populate $deps{$target} as first-level deps only.
-        # and find remainder of dependency tree in $deptree{$target}
-        @{$deps{$target}} = @{$deptree{$target}};
-        my @stack = @{$deps{$target}};
-        while (@stack) {
-            my $i = shift @stack;
-            my $dep_list =
-                $dbh->selectcol_arrayref("SELECT $target
-                                          FROM dependencies
-                                          WHERE $me = ?", undef, $i);
-            foreach my $t (@$dep_list) {
-                # ignore any _current_ dependencies involving this bug,
-                # as they will be overwritten with data from the form.
-                if ($t != $id && !exists $seen{$t}) {
-                    push(@{$deptree{$target}}, $t);
-                    push @stack, $t;
-                    $seen{$t} = 1;
-                }
+            if ($old->{dependson}->{$_->[1]} && !$closure->{blocked}->{$_->[0]})
+            {
+                $stack->{dependson}->{$_->[0]} = 1;
+                $closure->{blocked}->{$_->[0]} = 1;
             }
         }
     }
 
-    my @deps   = @{$deptree{'dependson'}};
-    my @blocks = @{$deptree{'blocked'}};
-    my %union = ();
-    my %isect = ();
-    foreach my $b (@deps, @blocks) { $union{$b}++ && $isect{$b}++ }
-    my @isect = keys %isect;
-    if (scalar(@isect) > 0) {
-        ThrowUserError("dependency_loop_multi", {'deps' => \@isect});
+    my @intersect = grep { $closure->{blocked}->{$_} } keys %{$closure->{dependson}};
+    if (@intersect)
+    {
+        ThrowUserError("dependency_loop_multi", { deps => \@intersect });
     }
-    return %deps;
+
+    # Remember closure, will be used to check BUG_ID add_to_deps custom fields
+    $invocant->dependent_validators->{dependencies} = $closure;
 }
-
 
 #####################################################################
 # Autoloaded Accessors
