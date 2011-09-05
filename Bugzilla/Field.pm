@@ -1133,7 +1133,7 @@ sub check_field {
 
     if (!defined($value)
         || trim($value) eq ""
-        || lsearch($legalsRef, $value) < 0)
+        || !grep { $_ eq $value } @$legalsRef)
     {
         return 0 if $no_warn; # We don't want an error to be thrown; return.
         trick_taint($name);

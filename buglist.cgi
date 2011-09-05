@@ -716,7 +716,7 @@ my @selectcolumns = ("bug_id", "bug_severity", "priority", "bug_status",
                      "resolution", "product");
 
 # remaining and work_time are required for percentage_complete calculation:
-if (lsearch(\@displaycolumns, "percentage_complete") >= 0) {
+if (grep { $_ eq 'percentage_complete' } @displaycolumns) {
     push (@selectcolumns, "remaining_time");
     push (@selectcolumns, "work_time");
 }
@@ -986,14 +986,11 @@ $buglist_sth->execute();
 
 # TODO перенести на общий механизм и чтобы в него вкручивалось interval_time
 # If we're doing time tracking, then keep totals for all bugs.
-my $percentage_complete = lsearch(\@displaycolumns, 'percentage_complete') >= 0;
-my $estimated_time      = lsearch(\@displaycolumns, 'estimated_time') >= 0;
-my $remaining_time    = ((lsearch(\@displaycolumns, 'remaining_time') >= 0)
-                         || $percentage_complete);
-my $work_time         = ((lsearch(\@displaycolumns, 'work_time') >= 0)
-                         || $percentage_complete);
-my $interval_time     = ((lsearch(\@displaycolumns, 'interval_time') >= 0)
-                         || $percentage_complete);
+my $percentage_complete = 1 && grep { $_ eq 'percentage_complete' } @displaycolumns;
+my $estimated_time      = 1 && grep { $_ eq 'estimated_time' } @displaycolumns;
+my $remaining_time      = $percentage_complete || grep { $_ eq 'remaining_time' } @displaycolumns;
+my $work_time           = $percentage_complete || grep { $_ eq 'work_time' } @displaycolumns;
+my $interval_time       = $percentage_complete || grep { $_ eq 'interval_time' } @displaycolumns;
 
 my $time_info = { 'estimated_time' => 0,
                   'remaining_time' => 0,
