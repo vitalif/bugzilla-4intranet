@@ -235,12 +235,12 @@ sub processCategoryChange {
         push(@exclusions, $category) unless grep($_ eq $category, @exclusions);
     }
     elsif ($categoryAction eq 'removeInclusion') {
-        my @inclusion_to_remove = $cgi->param('inclusion_to_remove');
-        @inclusions = map {(lsearch(\@inclusion_to_remove, $_) < 0) ? $_ : ()} @inclusions;
+        my %rem = map { $_ => 1 } $cgi->param('inclusion_to_remove');
+        @inclusions = grep { !$rem{$_} } @inclusions;
     }
     elsif ($categoryAction eq 'removeExclusion') {
-        my @exclusion_to_remove = $cgi->param('exclusion_to_remove');
-        @exclusions = map {(lsearch(\@exclusion_to_remove, $_) < 0) ? $_ : ()} @exclusions;
+        my %rem = map { $_ => 1 } $cgi->param('exclusion_to_remove');
+        @exclusions = grep { !$rem{$_} } @exclusions;
     }
 
     # Convert the array @clusions('prod_ID:comp_ID') back to a hash of

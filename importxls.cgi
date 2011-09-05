@@ -435,7 +435,7 @@ sub post_bug
             my $vers = [ map ($_->name, @{$product->versions}) ];
             my $v;
             if (($v = $cgi->cookie("VERSION-" . $product->name)) &&
-                (lsearch($vers, $v) != -1))
+                !grep { $_ eq $v } @$vers)
             {
                 # возьмём из куки
                 $fields_in->{version} = $v;

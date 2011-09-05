@@ -577,7 +577,8 @@ sub get_products_by_permission {
 
     # We will restrict the list to products the user can see.
     my $selectable_products = $self->get_selectable_products;
-    my @products = grep {lsearch($product_ids, $_->id) > -1} @$selectable_products;
+    $product_ids = { map { $_ => 1 } @$product_ids };
+    my @products = grep { $product_ids->{$_->id} } @$selectable_products;
     return \@products;
 }
 
@@ -1625,15 +1626,15 @@ sub wants_mail {
     return defined($wants_mail) ? 1 : 0;
 }
 
-sub is_mover {
+sub is_mover
+{
     my $self = shift;
-
-    if (!defined $self->{'is_mover'}) {
-        my @movers = map { trim($_) } split(',', Bugzilla->params->{'movers'});
-        $self->{'is_mover'} = ($self->id
-                               && lsearch(\@movers, $self->login) != -1);
+    if (!defined $self->{is_mover})
+    {
+        my @movers = map { trim($_) } split(',', Bugzilla->params->{movers});
+        $self->{is_mover} = $self->id && grep { $_ eq $self->login } @movers;
     }
-    return $self->{'is_mover'};
+    return $self->{is_mover};
 }
 
 sub is_insider {

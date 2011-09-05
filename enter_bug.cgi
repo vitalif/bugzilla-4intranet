@@ -561,20 +561,26 @@ else {
 #
 # Eventually maybe each product should have a "current version"
 # parameter.
-$vars->{'version'} = [map($_->name, @{$product->versions})];
+$vars->{version} = [ map($_->name, @{$product->versions}) ];
 
-if ( ($cloned_bug_id) &&
-     ($product->name eq $cloned_bug->product ) ) {
+my $vercookie = $cgi->cookie("VERSION-" . $product->name);
+if ($cloned_bug_id && $product->name eq $cloned_bug->product)
+{
     $vars->{overridedefaultversion} = 1;
-    $default{'version'} = $cloned_bug->version;
-} elsif (formvalue('version')) {
+    $default{version} = $cloned_bug->version;
+}
+elsif (formvalue('version'))
+{
     $vars->{overridedefaultversion} = 1;
-    $default{'version'} = formvalue('version');
-} elsif (defined $cgi->cookie("VERSION-" . $product->name) &&
-    lsearch($vars->{'version'}, $cgi->cookie("VERSION-" . $product->name)) != -1) {
-    $default{'version'} = $cgi->cookie("VERSION-" . $product->name);
-} else {
-    $default{'version'} = $vars->{'version'}->[$#{$vars->{'version'}}];
+    $default{version} = formvalue('version');
+}
+elsif (defined $vercookie && grep { $_ eq $vercookie } @{$vars->{version}})
+{
+    $default{version} = $vercookie;
+}
+else
+{
+    $default{version} = $vars->{version}->[$#{$vars->{'version'}}];
 }
 
 # Get list of milestones.
@@ -607,17 +613,17 @@ unless ($has_editbugs || $has_canconfirm) {
     @status = ($bug_status);
 }
 
-$vars->{'bug_status'} = \@status;
+$vars->{bug_status} = \@status;
 $vars->{resolution} = [ grep ($_, @{get_legal_field_values('resolution')}) ];
 
 # Get the default from a template value if it is legitimate.
 # Otherwise, and only if the user has privs, set the default
 # to the first confirmed bug status on the list, if available.
 
-if (formvalue('bug_status') && (lsearch(\@status, formvalue('bug_status')) >= 0)) {
-    $default{'bug_status'} = formvalue('bug_status');
-} else {
-    $default{'bug_status'} = $status[0];
+$default{bug_status} = formvalue('bug_status');
+if (!grep { $_ eq $default{bug_status} } @status)
+{
+    $default{bug_status} = $status[0];
 }
 
 my $grouplist = $dbh->selectall_arrayref(

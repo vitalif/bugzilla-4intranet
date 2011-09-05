@@ -211,7 +211,7 @@ sub validateFormat
 {
     # receives a list of legal formats; first item is a default
     my $format = $cgi->param('format') || $_[0];
-    if ( lsearch(\@_, $format) == -1)
+    if (!grep { $_ eq $format } @_)
     {
         ThrowUserError("invalid_format", { format  => $format, formats => \@_ });
     }
