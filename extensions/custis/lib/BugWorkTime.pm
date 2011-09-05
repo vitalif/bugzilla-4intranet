@@ -6,6 +6,7 @@ use strict;
 use POSIX;
 
 use Bugzilla;
+use Bugzilla::Error;
 use Bugzilla::Bug;
 use Bugzilla::Util;
 use Bugzilla::Token;
@@ -134,19 +135,37 @@ sub HandleSuperWorktime
     {
         check_token_data($args->{token}, 'superworktime');
         my $wt_user = $args->{worktime_user} || undef;
-        my $wt_date = $args->{worktime_date};
+        my $wt_date;
         my $comment = $args->{comment};
-        # Парсим дату
-        $wt_date .= POSIX::strftime(' %H:%M:%S', localtime) if $wt_date !~ / /;
-        eval
+        # Парсим дату, только если можем списывать задним числом
+        if ($vars->{wt_admin})
         {
-            $wt_date = datetime_from($wt_date);
-            $wt_date = $wt_date->ymd . ' ' . $wt_date->hms;
-        };
-        # Если не распарсилось или мы не можем списывать задним числом - undef
-        if ($@ || !$vars->{wt_admin})
-        {
-            $wt_date = undef;
+            $wt_date = $args->{worktime_date};
+            # Списывать будем последней секундой дня, если дата в прошлом
+            $wt_date .= ' 23:59:59' if $wt_date !~ / /;
+            eval
+            {
+                $wt_date = datetime_from($wt_date);
+                if ($wt_date->epoch > time)
+                {
+                    # Если время было не указано, а дата текущая, получится
+                    # дата в будущем (23:59:59) - значит списываем текущим временем
+                    $wt_date = undef;
+                }
+                else
+                {
+                    $wt_date = $wt_date->ymd . ' ' . $wt_date->hms;
+                }
+            };
+            # Если не распарсилась - не будем втихаря списывать
+            # на текущее число, а сообщим об ошибке формата
+            if ($@)
+            {
+                ThrowUserError('illegal_date', {
+                    date => $args->{worktime_date},
+                    format => 'YYYY-MM-DD HH:MM:SS',
+                });
+            }
         }
         if (!$vars->{wt_admin})
         {
