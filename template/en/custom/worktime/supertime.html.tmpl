@@ -107,10 +107,19 @@
   <input value=" Списать время " type="submit" style="font-weight: bold" /> &nbsp;
   Добавить комментарий: <input type="text" name="comment" value="[% comment | html %]" />
 [% IF wt_admin %]
-  <br />
-  <span id="divide_other_bug_id_text">Распределить пропорционально участию в одном баге:</span>
-  <input type="text" name="divide_other_bug_id" id="divide_other_bug_id" size="6" value="" />
-  <span id="divide_other_bug_id_text_2">(пропорционально участию в каждом, если пусто)</span>
+  <p style="margin: 8px 0 0 0">
+    <span id="divide_other_bug_id_text">Распределить пропорционально участию в одном баге:</span>
+    <input type="text" name="divide_other_bug_id" id="divide_other_bug_id" size="6" value="" />
+    <span id="divide_other_bug_id_text_2">(пропорционально участию в каждом, если пусто)</span>
+  </p>
+  <p style="margin: 8px 0 0 0">
+    <input type="checkbox" name="move_time" id="move_time" value="1" onclick="check_move(this)" />
+    <label for="move_time">
+      Перенести время с указанного бага на баги в списке &ndash; на баги списка будет списано
+      в сумме ровно столько часов, сколько было затрачено за заданный период на баг, с которого переносится время,
+      пропорционально введённым значениям времени.
+    </label>
+  </p>
 [% END %]
 </fieldset>
 
@@ -216,6 +225,22 @@ function check_who_enabled()
   var enab = f.value != '' || t.value != '';
   w.style.backgroundColor = enab ? '' : '#f0f0f0';
   w.disabled = !enab;
+}
+function check_move(c)
+{
+  if (c.checked)
+  {
+    var e = true;
+    for (var i in period_times)
+      if (document.getElementById('wtime_'+i).value != '')
+      {
+        e = false;
+        break;
+      }
+    if (e)
+      for (var i in period_times)
+        document.getElementById('wtime_'+i).value = '1';
+  }
 }
 forall_unfocus();
 check_who_enabled();
