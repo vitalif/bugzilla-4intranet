@@ -1,4 +1,7 @@
 #!/usr/bin/perl
+# CustIS Bug 68921 - "Супер-TodayWorktime", или массовая фиксация трудозатрат
+# по нескольким багам, за нескольких сотрудников, за различные периоды.
+# Для фиксации времени задним числом / другим юзером требует группу worktimeadmin.
 
 package BugWorkTime;
 
@@ -11,51 +14,13 @@ use Bugzilla::Bug;
 use Bugzilla::Util;
 use Bugzilla::Token;
 
-# Used by mass worktime editing forms
-# Returns 0 if update is unsuccessful, 1 if OK
-sub FixWorktime
+# Загрузить из бага bug_id время за период $from..$to
+# в разрезе по пользователям, и вернуть в виде { user_id => work_time }
+sub LoadTimes
 {
-    my ($bug, $wtime, $comment, $timestamp, $userid) = @_;
-    $bug = Bugzilla::Bug->new({ id => $bug, for_update => 1 }) unless ref $bug;
-    return 0 unless $bug;
-    return 1 unless $comment || $wtime;
-
-    my $remaining_time = $bug->remaining_time;
-    my $newrtime = $remaining_time - $wtime;
-    $newrtime = 0 if $newrtime < 0;
-
-    $bug->add_comment($comment || "Fix worktime", {
-        work_time => $wtime,
-        bug_when  => $timestamp,
-        who       => $userid || Bugzilla->user->id,
-    });
-    $bug->remaining_time($newrtime) if $newrtime != $remaining_time;
-    $bug->update();
-
-    if (@{$bug->{failed_checkers} || []} && !$bug->{passed_checkers})
-    {
-        return 0;
-    }
-    else
-    {
-        # stop bugmail
-        Bugzilla->dbh->do('UPDATE bugs SET lastdiffed=NOW() WHERE bug_id=?', undef, $bug->id);
-    }
-
-    return 1;
-}
-
-# пропорциональное или равномерное распределение времени по пользователям
-# с пропорцией, взятой из этого или из другого ($other_bug_id) бага
-sub DistributeWorktime
-{
-    my ($bug, $t, $comment, $timestamp, $from, $to, $min_inc, $other_bug_id) = @_;
-    $comment ||= "Fix worktime";
-
-    my $dbh = Bugzilla->dbh;
-    my ($sql, @bind);
-    $sql = 'SELECT who, SUM(work_time) wt FROM longdescs WHERE bug_id=?';
-    @bind = ($other_bug_id || $bug->id);
+    my ($bug_id, $from, $to) = @_;
+    my $sql = 'SELECT who, SUM(work_time) wt FROM longdescs WHERE bug_id=?';
+    my @bind = ($bug_id);
     if ($from)
     {
         $sql .= ' AND bug_when>=?';
@@ -67,18 +32,26 @@ sub DistributeWorktime
         push @bind, $to;
     }
     $sql .= ' GROUP BY who';
-    my $propo = $dbh->selectall_hashref($sql, 'who', undef, @bind);
+    my $propo = Bugzilla->dbh->selectall_hashref($sql, 'who', undef, @bind);
     $propo = { map { $_ => $propo->{$_}->{wt} } keys %$propo };
-    my $sum = 0;
-    my $n = keys(%$propo) || return undef;
-    $sum += $propo->{$_} for keys %$propo;
+    return $propo;
+}
 
+# Отмасштабировать время $propo = { key => work_time } так, чтобы
+# сумма стала равна $newsum, а отдельные элементы не были меньше $min.
+sub Scale
+{
+    my ($propo, $newsum, $min) = @_;
+    my $sum = 0;
+    my $n = keys %$propo;
+    $sum += $propo->{$_} for keys %$propo;
+    my $new = {};
     my $nt;
     for (keys %$propo)
     {
-        $nt = $sum ? $t*$propo->{$_}/$sum : $t/$n;
+        $nt = $sum ? $propo->{$_}*$newsum/$sum : $newsum/$n;
         $nt = POSIX::floor($nt*100+0.5)/100;
-        if (abs($nt) < $min_inc || $t*$nt < 0)
+        if (abs($nt) < $min || $newsum*$nt < 0)
         {
             # не размазываем время совсем уж мелкими суммами
             # и размазываем только суммами того же знака, что и вся сумма
@@ -88,18 +61,37 @@ sub DistributeWorktime
         }
         # корректируем ошибки округления, чтобы сумма всё равно сходилась
         $sum -= $propo->{$_};
-        $t -= $nt;
+        $newsum -= $nt;
         $n--;
-        $propo->{$_} = $nt;
+        $new->{$_} = $nt;
+    }
+    return $new;
+}
+
+# Добавить к багу $bug (Bugzilla::Bug) на момент $timestamp,
+# с комментарием $comment или "Fix worktime" рабочее время
+# из $times = { user_id => work_time }.
+# Возвращает 1 если всё нормально, 0 если обновление блокировано проверками.
+sub AddWorktime
+{
+    my ($bug, $comment, $timestamp, $times) = @_;
+    $comment ||= "Fix worktime";
+
+    my $sum = 0;
+    for (keys %$times)
+    {
+        next unless $times->{$_};
+        $sum += $times->{$_};
         $bug->add_comment($comment, {
-            work_time => $nt,
+            work_time => $times->{$_},
             bug_when  => $timestamp,
             who       => $_,
         });
     }
+    return 1 unless $sum;
 
     my $remaining_time = $bug->remaining_time;
-    my $newrtime = $remaining_time - $t;
+    my $newrtime = $remaining_time - $sum;
     $newrtime = 0 if $newrtime < 0;
     $bug->remaining_time($newrtime) if $newrtime != $remaining_time;
 
@@ -118,21 +110,41 @@ sub DistributeWorktime
     return 1;
 }
 
-# CustIS Bug 68921 - "Супер-TodayWorktime", или массовая фиксация трудозатрат
-# по нескольким багам, за нескольких сотрудников, за различные периоды.
-# Для фиксации времени задним числом / другим юзером требует группу worktimeadmin.
+# Используется только fill-day-worktime.cgi (старый Today Worktime)
+sub FixWorktime
+{
+    my ($bug, $wtime, $comment, $timestamp, $userid) = @_;
+    return 1 unless $wtime;
+    $bug = Bugzilla::Bug->new({ id => $bug, for_update => 1 }) unless ref $bug;
+    return 0 unless $bug;
+    return AddWorktime($bug, $comment, $timestamp, { ($userid || Bugzilla->user->id) => $wtime });
+}
 
-# Обработать POST-запрос к SuperWorkTime
+# Пропорциональное или равномерное распределение времени по пользователям
+# с пропорцией, взятой из этого бага или подсунутой в $propo = { user_id => work_time }
+sub DistributeWorktime
+{
+    my ($bug, $t, $comment, $timestamp, $from, $to, $min_inc, $propo) = @_;
+    return 1 unless $t;
+
+    $propo ||= LoadTimes($bug->id, $from, $to);
+    return 1 unless %$propo;
+
+    my $times = Scale($propo, $t, $min_inc);
+    return AddWorktime($bug, $comment, $timestamp, $times);
+}
+
+# Обработать запрос к SuperWorkTime
 sub HandleSuperWorktime
 {
     my ($vars) = @_;
     my $cgi = Bugzilla->cgi;
     my $template = Bugzilla->template;
     $vars->{wt_admin} = Bugzilla->user->in_group('worktimeadmin');
-    my $args = $cgi->Vars;
     # обрабатываем списанное время и делаем редирект на себя же
-    if ($args->{save_worktime})
+    if ($cgi->param('save_worktime'))
     {
+        my $args = { %{ $cgi->Vars } };
         check_token_data($args->{token}, 'superworktime');
         my $wt_user = $args->{worktime_user} || undef;
         my $wt_date;
@@ -193,66 +205,94 @@ sub HandleSuperWorktime
         }
         my ($bug, $t);
         my ($tsfrom, $tsto) = ($args->{chfieldfrom} || '', $args->{chfieldto} || '');
+        my $min_inc = $args->{divide_min_inc};
         # $other_bug_id - это баг, из которого берётся пропорция для расписывания времени по юзерам
         my $other_bug_id = $args->{divide_other_bug_id};
-        trick_taint($tsfrom);
-        trick_taint($tsto);
-        trick_taint($other_bug_id);
-        my @bugids = map { /^wtime_(\d+)$/ } keys %$args;
-        if ($other_bug_id && (my @bi = grep { $_ != $other_bug_id } @bugids) != @bugids)
-        {
-            # перемещаем $other_bug_id в конец, чтобы не сбить пропорцию в процессе списывания времени
-            @bugids = (@bi, $other_bug_id);
-        }
-        my ($ok, $rollback) = 0;
-        Bugzilla->request_cache->{checkers_hide_error} = 1;
-        Bugzilla->dbh->bz_start_transaction();
-        foreach (@bugids)
+        # Если также отмечено move_time, то само введённое значение времени вообще игнорируется,
+        # берётся из $other_bug_id, и потом убирается из $other_bug_id (списывается с отрицательным знаком)
+        # Вещь довольно безумная - перемещение времени с бага на баги...
+        my $move_time = $args->{move_time};
+        trick_taint($_) for $tsfrom, $tsto, $other_bug_id;
+        my $times = {};
+        foreach (map { /^wtime_(\d+)$/ } keys %$args)
         {
             $t = $args->{"wtime_$_"};
             if ($t)
             {
-                Bugzilla->dbh->bz_start_transaction();
-                if ($bug = Bugzilla::Bug->new({ id => $_, for_update => 1 }))
-                {
-                    # Юзеры хотят цельный коммит и построчную диагностику...
-                    # Так что если хотя бы одно изменение не пройдёт, потом сделаем полный откат
-                    if ($wt_user)
-                    {
-                        # Списываем время на одного юзера
-                        $ok = BugWorkTime::FixWorktime($bug, $t, $comment, $wt_date, $wt_user->id);
-                    }
-                    else
-                    {
-                        # Распределяем время по участникам
-                        $ok = BugWorkTime::DistributeWorktime(
-                            $bug, $t, $comment, $wt_date, $tsfrom, $tsto,
-                            $args->{divide_min_inc}, $other_bug_id
-                        );
-                    }
-                }
-                if ($ok)
-                {
-                    Bugzilla->dbh->bz_commit_transaction();
-                }
-                else
-                {
-                    $rollback = 1;
-                }
+                $times->{$_} = $t;
             }
             $cgi->delete("wtime_$_");
         }
+        $cgi->delete('save_worktime');
+        Bugzilla->dbh->bz_start_transaction();
+        if ($move_time && $other_bug_id)
+        {
+            # Если хотим переместить время, загружаем сумму из $other_bug_id
+            $move_time = Bugzilla->dbh->selectrow_array(
+                'SELECT SUM(work_time) FROM longdescs WHERE bug_id=?'.
+                ($tsfrom ? ' AND bug_when>=?' : '').
+                ($tsto ? ' AND bug_when<?' : ''),
+                undef, int($other_bug_id), ($tsfrom ? $tsfrom : ()), ($tsto ? $tsto : ())
+            );
+            if (!$move_time)
+            {
+                # Если хотели что-то переместить, а там ничего нет - ругнёмся
+                ThrowUserError('move_worktime_empty', { bug_id => $other_bug_id, from => $tsfrom, to => $tsto });
+            }
+            delete $times->{$other_bug_id};
+            $times = Scale($times, $move_time, $min_inc);
+            $times->{$other_bug_id} = -$move_time;
+        }
+        Bugzilla->request_cache->{checkers_hide_error} = 1;
+        my $propo;
+        if ($other_bug_id)
+        {
+            # Загружаем пропорцию заранее - и оптимальнее, и по пути не собьётся
+            $propo = LoadTimes($other_bug_id, $tsfrom, $tsto);
+        }
+        my ($ok, $rollback) = 0;
+        for (keys %$times)
+        {
+            Bugzilla->dbh->bz_start_transaction();
+            if ($bug = Bugzilla::Bug->new({ id => $_, for_update => 1 }))
+            {
+                # Юзеры хотят цельный коммит и построчную диагностику...
+                # Так что если хотя бы одно изменение не пройдёт, потом сделаем полный откат
+                if ($wt_user)
+                {
+                    # Списываем время на одного юзера
+                    $ok = FixWorktime($bug, $times->{$_}, $comment, $wt_date, $wt_user->id);
+                }
+                else
+                {
+                    # Распределяем время по участникам
+                    $ok = DistributeWorktime(
+                        $bug, $times->{$_}, $comment, $wt_date, $tsfrom, $tsto, $min_inc, $propo
+                    );
+                }
+            }
+            if ($ok)
+            {
+                Bugzilla->dbh->bz_commit_transaction();
+            }
+            else
+            {
+                # А если не OK, значит нас уже обломали Checkers'ы,
+                # а они сами откатывают транзакцию до последнего Savepoint'а
+                $rollback = 1;
+            }
+        }
         if ($rollback)
         {
-            # Цельный откат, если хотя бы одно изменение блокируется
+            # Цельный откат, если хотя бы одно изменение заблокировано проверками
             Bugzilla->dbh->bz_rollback_transaction();
         }
         else
         {
             Bugzilla->dbh->bz_commit_transaction();
+            delete_token($args->{token});
         }
         Checkers::show_checker_errors();
-        $cgi->delete('save_worktime');
         print $cgi->redirect(-location => $cgi->self_url);
         exit;
     }
