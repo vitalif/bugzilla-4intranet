@@ -96,20 +96,6 @@ sub connect_main {
                     $lc->{db_sock}, $lc->{db_user}, $lc->{db_pass});
 }
 
-sub connect_sphinx
-{
-    return undef unless Bugzilla->params->{use_sphinx};
-    my $host = Bugzilla->params->{sphinxql_host};
-    my $port = Bugzilla->params->{sphinxql_port};
-    my $socket = Bugzilla->params->{sphinxql_socket};
-    $host = [ $host ? "host=$host" : () ];
-    push @$host, "port=$port" if $port;
-    push @$host, "mysql_socket=$socket" if $socket;
-    my $sphinx = DBI->connect("DBI:mysql:".join(';', @$host), undef, undef, { mysql_auto_reconnect => 1 });
-    die $DBI::errstr if !$sphinx;
-    return $sphinx;
-}
-
 sub _connect {
     my ($driver, $host, $dbname, $port, $sock, $user, $pass) = @_;
 
