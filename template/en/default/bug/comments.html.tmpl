@@ -126,7 +126,7 @@
   # generated HTML
   #%]
 <pre class="bz_comment_text" id="comment_text_[% comment.count %]">
-  [%- comment.body_full({ wrap => 1 }) FILTER quoteUrls(bug, comment) -%]
+  [%- comment.body_full({ wrap => 1 }) -%]
 </pre>
     </div>
 [% END %]

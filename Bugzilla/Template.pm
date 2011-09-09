@@ -300,7 +300,8 @@ sub quoteUrls {
               ~egsxi;
 
     # Current bug ID this comment belongs to
-    my $current_bugurl = $bug ? ("show_bug.cgi?id=" . $bug->id) : "";
+    $bug = $bug->id if ref $bug;
+    my $current_bugurl = $bug ? "show_bug.cgi?id=$bug" : "";
 
     # This handles bug a, comment b type stuff. Because we're using /g
     # we have to do this in one pattern, and so this is semi-messy.
