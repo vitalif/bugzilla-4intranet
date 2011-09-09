@@ -29,6 +29,7 @@ use Bugzilla::Constants;
 use Bugzilla::Error;
 use Bugzilla::User;
 use Bugzilla::Util;
+use Bugzilla::Template;
 
 ###############################
 ####    Initialization     ####
@@ -127,6 +128,9 @@ sub author {
     return $self->{'author'};
 }
 
+# %$params:
+# is_bugmail => format as plaintext (TODO rename to 'plaintext')
+# wrap => wrap or not
 sub body_full {
     my ($self, $params) = @_;
     $params ||= {};
@@ -143,6 +147,9 @@ sub body_full {
     }
     if ($params->{wrap} and !$self->already_wrapped) {
         $body = wrap_comment($body);
+    }
+    if (!$params->{is_bugmail}) {
+        $body = Bugzilla::Template::quoteUrls($body, $self->bug_id, $self);
     }
     return $body;
 }
