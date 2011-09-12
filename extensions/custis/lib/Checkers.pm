@@ -112,6 +112,7 @@ sub show_checker_errors
     return if !$bugs || !grep { @{$_->{failed_checkers} || []} } @$bugs;
     my $fatal = 1 && (grep { grep { $_->is_fatal } @{$_->{failed_checkers} || []} } @$bugs);
     Bugzilla->template->process("verify-checkers.html.tmpl", {
+        script_name => Bugzilla->cgi->script_name,
         failed => $bugs,
         allow_commit => !$fatal,
         exclude_params_re => '^force_checkers$',
