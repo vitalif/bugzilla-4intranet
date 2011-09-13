@@ -77,7 +77,11 @@ use constant NAME_FIELD => 'alias';
 use constant LIST_ORDER => ID_FIELD;
 
 # This is a sub because it needs to call other subroutines.
-sub DB_COLUMNS {
+sub DB_COLUMNS
+{
+    my $cache = Bugzilla->cache_fields;
+    return @{$cache->{bug_columns}} if defined $cache->{bug_columns};
+
     my $dbh = Bugzilla->dbh;
     my @custom = grep {$_->type != FIELD_TYPE_MULTI_SELECT}
                       Bugzilla->active_custom_fields;
@@ -95,12 +99,10 @@ sub DB_COLUMNS {
         delta_ts
         estimated_time
         everconfirmed
-        op_sys
         priority
         product_id
         qa_contact
         remaining_time
-        rep_platform
         reporter_accessible
         resolution
         short_desc
@@ -108,6 +110,9 @@ sub DB_COLUMNS {
         target_milestone
         version
     ),
+    # FIXME kill op_sys and rep_platform completely, make them custom fields
+    (Bugzilla->params->{useopsys} ? 'op_sys' : ()),
+    (Bugzilla->params->{useplatform} ? 'rep_platform' : ()),
     'reporter    AS reporter_id',
     $dbh->sql_date_format('creation_ts', '%Y.%m.%d %H:%i') . ' AS creation_ts',
     $dbh->sql_date_format('deadline', '%Y-%m-%d') . ' AS deadline',
@@ -115,6 +120,7 @@ sub DB_COLUMNS {
 
     Bugzilla::Hook::process("bug_columns", { columns => \@columns });
 
+    $cache->{bug_columns} = \@columns;
     return @columns;
 }
 
@@ -140,7 +146,7 @@ our $CUSTOM_FIELD_VALIDATORS = {
 # There are also other, more complex validators that are called
 # from run_create_validators.
 sub VALIDATORS {
-    my $cache = Bugzilla->request_cache;
+    my $cache = Bugzilla->cache_fields;
     return $cache->{bug_validators} if defined $cache->{bug_validators};
 
     my $validators = {
@@ -151,14 +157,15 @@ sub VALIDATORS {
         commentprivacy => \&_check_commentprivacy,
         deadline       => \&_check_deadline,
         estimated_time => \&_check_estimated_time,
-        op_sys         => \&_check_select_field,
         priority       => \&_check_priority,
         product        => \&_check_product,
         remaining_time => \&_check_remaining_time,
-        rep_platform   => \&_check_select_field,
         short_desc     => \&_check_short_desc,
         status_whiteboard => \&_check_status_whiteboard,
     };
+
+    $validators->{op_sys} = \&_check_select_field if Bugzilla->params->{useopsys};
+    $validators->{rep_platform} = \&_check_select_field if Bugzilla->params->{useplatform};
 
     # Set up validators for custom fields.
     foreach my $field (Bugzilla->active_custom_fields) {
@@ -198,12 +205,10 @@ sub UPDATE_COLUMNS {
         deadline
         estimated_time
         everconfirmed
-        op_sys
         priority
         product_id
         qa_contact
         remaining_time
-        rep_platform
         reporter_accessible
         resolution
         short_desc
@@ -211,7 +216,9 @@ sub UPDATE_COLUMNS {
         target_milestone
         version
     );
-    push(@columns, @custom_names);
+    push @columns, 'op_sys' if Bugzilla->params->{useopsys};
+    push @columns, 'rep_platform' if Bugzilla->params->{useplatform};
+    push @columns, @custom_names;
     return @columns;
 };
 
@@ -469,13 +476,13 @@ sub create {
 
     # These fields have default values which we can use if they are undefined.
     $params->{bug_severity} = Bugzilla->params->{defaultseverity}
-      unless defined $params->{bug_severity};
+        if !defined $params->{bug_severity};
     $params->{priority} = Bugzilla->params->{defaultpriority}
-      unless defined $params->{priority};
+        if !defined $params->{priority};
     $params->{op_sys} = Bugzilla->params->{defaultopsys}
-      unless defined $params->{op_sys};
+        if Bugzilla->params->{useopsys} && !defined $params->{op_sys};
     $params->{rep_platform} = Bugzilla->params->{defaultplatform}
-      unless defined $params->{rep_platform};
+        if Bugzilla->params->{useplatform} && !defined $params->{rep_platform};
     # Make sure a comment is always defined.
     $params->{comment} = '' unless defined $params->{comment};
 

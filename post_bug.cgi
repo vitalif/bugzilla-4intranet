@@ -143,9 +143,7 @@ push(@bug_fields, qw(
     dependson
     keywords
     short_desc
-    op_sys
     priority
-    rep_platform
     version
     target_milestone
     status_whiteboard
@@ -153,6 +151,9 @@ push(@bug_fields, qw(
     estimated_time
     deadline
 ));
+# FIXME kill op_sys and rep_platform completely, make them custom fields
+push @bug_fields, 'op_sys' if Bugzilla->params->{useopsys};
+push @bug_fields, 'rep_platform' if Bugzilla->params->{useplatform};
 my %bug_params;
 foreach my $field (@bug_fields) {
     $bug_params{$field} = $cgi->param($field);
