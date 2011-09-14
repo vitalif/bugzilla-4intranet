@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# Хуки во всевозможную обработку почты
+# Different email hooks
 
 package CustisMailHooks;
 
@@ -11,6 +11,7 @@ use Bugzilla::Util;
 use POSIX qw(strftime);
 
 # Hack into urlbase and set it to be correct for email recipient
+# Also log all messages with comment and diff count to data/maillog
 sub bugmail_pre_template
 {
     my ($args) = @_;
@@ -66,7 +67,7 @@ sub flag_notify_post_send
 }
 
 ##
-## Обработка исходящей почты:
+## Handling incoming email:
 ##
 
 sub emailin_filter_body
