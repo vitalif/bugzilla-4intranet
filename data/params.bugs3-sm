@@ -66,6 +66,8 @@
            'levenshteinusermatch' => '0.4',
            'localdottimeout' => 5,
            'login_lockout_interval' => '5',
+           'login_urlbase_redirects' => '[^\\@]+\\@custis\\.ru$ http://bugs.office.custis.ru/bugs/
+[^\\@]+\\@(sportmaster\\.ru|ilion\\.ru|sportmaster\\.com\\.ua|scn\\.ru|mbr\\.ru|ilion\\.ru|vek\\.ru|bis\\.overta\\.ru) http://penguin.office.custis.ru/bugzilla/',
            'lxr_root' => '',
            'lxr_url' => '',
            'mail_delivery_method' => 'Sendmail',
