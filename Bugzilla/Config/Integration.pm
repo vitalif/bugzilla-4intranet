@@ -40,6 +40,12 @@ sub get_param_list
         type => 'b',
         default => 0,
     },
+
+    {
+        name => 'login_urlbase_redirects',
+        type => 'l',
+        default => '',
+    },
     );
 }
 

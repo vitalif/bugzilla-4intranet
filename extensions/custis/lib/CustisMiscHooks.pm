@@ -1,5 +1,10 @@
 #!/usr/bin/perl
-# Прочие хуки
+# Misc hooks:
+# - Expand "group" users in flag requestee
+# - Remember about nonanswered flag requests
+# - Automatic settings of cf_extbug
+# - Add a comment to cloned bug
+# - Expand MediaWiki urls
 
 package CustisMiscHooks;
 
@@ -9,37 +14,6 @@ use Bugzilla::User;
 use Bugzilla::Util;
 use Bugzilla::Constants;
 use Bugzilla::Error;
-
-use CustisLocalBugzillas;
-
-# Перенаправление в "свою" багзиллу для внешних/внутренних сотрудников
-sub auth_post_login
-{
-    my ($args) = @_;
-    my $user = $args->{user};
-    if ($user->settings->{redirect_me_to_my_bugzilla} &&
-        lc($user->settings->{redirect_me_to_my_bugzilla}->{value}) eq "on")
-    {
-        my $loc = \%CustisLocalBugzillas::local_urlbase;
-        my $fullurl = Bugzilla->cgi->url();
-        foreach my $regemail (keys %$loc)
-        {
-            if ($user->login =~ /$regemail/s &&
-                $fullurl !~ /\Q$loc->{$regemail}->{urlbase}\E/s)
-            {
-                my $relativeurl = Bugzilla->cgi->url(
-                    -path_info => 1,
-                    -query     => 1,
-                    -relative  => 1
-                );
-                my $url = $loc->{$regemail}->{urlbase} . $relativeurl;
-                print Bugzilla->cgi->redirect(-location => $url);
-                exit;
-            }
-        }
-    }
-    return 1;
-}
 
 # Раскрытие групповых пользователей в запросе флага
 sub flag_check_requestee_list

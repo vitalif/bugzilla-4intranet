@@ -76,8 +76,10 @@ set_hook('custis', 'post_bug_post_create',          'Checkers::post_bug_post_cre
 add_hook('custis', 'savedsearch_post_update',       'Checkers::savedsearch_post_update');
 add_hook('custis', 'install_before_final_checks',   'Checkers::install_before_final_checks');
 
+# Redirect users to "their" bugzilla according to params.login_urlbase_redirects
+set_hook('custis', 'auth_post_login',               'CustisLocalBugzillas::auth_post_login');
+
 # Прочие хуки
-set_hook('custis', 'auth_post_login',               'CustisMiscHooks::auth_post_login');
 set_hook('custis', 'flag_check_requestee_list',     'CustisMiscHooks::flag_check_requestee_list');
 set_hook('custis', 'process_bug_after_move',        'CustisMiscHooks::process_bug_after_move');
 set_hook('custis', 'quote_urls_custom_proto',       'CustisMiscHooks::quote_urls_custom_proto');
