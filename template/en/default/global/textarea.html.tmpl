@@ -13,6 +13,8 @@
   # Contributor(s): Marc Schumann <wurblzap@gmail.com>
   #%]
 
+[%# FIXME remove this nahren, replace with function %]
+
 [%# INTERFACE:
   #
   # id:             (optional) The "id"-attribute of the textarea.
@@ -31,6 +33,7 @@
   #                 minrows will be used.
   # cols:           (required) Number of columns the textarea shall have.
   # defaultcontent: (optional) Default content for the textarea.
+  # tabindex:       (optional) HTML tabindex.
   #%]
 
 <textarea [% IF name %]name="[% name FILTER html %]"[% END %]
@@ -39,6 +42,7 @@
           [% IF style %] style="[% style FILTER html %]"[% END %]
           [% IF classes %] class="[% classes FILTER html %]"[% END %]
           [% IF wrap %] wrap="[% wrap FILTER html %]"[% END %]
+          [% IF tabindex %] tabindex="[% tabindex FILTER html %]"[% END %]
           [% IF defaultrows && user.settings.zoom_textareas.value == 'off' %]
             rows="[% defaultrows FILTER html %]"
           [% ELSE %]

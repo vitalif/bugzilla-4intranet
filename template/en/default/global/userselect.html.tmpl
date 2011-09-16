@@ -25,10 +25,12 @@
   # emptyok: optional, select only;  if true, prepend menu option to start of select
   # multiple: optional, do multiselect box, value is size (height) of box
   # custom_userlist: optional, specify a limited list of users to use
+  # tabindex: optional, HTML tabindex
   #%]
 
 [% IF !nomenuforusers.defined && (Param("usemenuforusers") || usemenuforusers.defined) %]
 <select name="[% name FILTER html %]"
+  [% IF tabindex %] tabindex="[% tabindex FILTER html %]" [% END %]
   [% IF id %] id="[% id FILTER html %]" [% END %]
   [% IF onchange %] onchange="[% onchange FILTER html %]" [% END %]
   [% IF disabled %] disabled="[% disabled FILTER html %]" [% END %]
@@ -65,6 +67,7 @@
 <input
   name="[% name FILTER html %]"
   value="[% value FILTER html %]"
+  [% IF tabindex %] tabindex="[% tabindex FILTER html %]" [% END %]
   [% IF onchange %] onchange="[% onchange FILTER html %]" [% END %]
   [% IF disabled %] disabled="[% disabled FILTER html %]" [% END %]
   [% IF accesskey %] accesskey="[% accesskey FILTER html %]" [% END %]
