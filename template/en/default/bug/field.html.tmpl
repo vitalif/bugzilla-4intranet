@@ -35,8 +35,9 @@
   #             fields.html. If you want it to link elsewhere, specify the
   #             relative URL you want to link to, here. Remember to call
   #             url_quote on any query string arguments.
-  #   bug (optional): The current Bugzilla::Bug being displayed, or a hash 
-  #                   with default field values being displayed on a page.
+  #   bug: (optional) The current Bugzilla::Bug being displayed, or a hash 
+  #        with default field values being displayed on a page.
+  #   tabindex: (optional) HTML tabindex.
   #%]
 
 [% SET hidden = !field.check_visibility(bug) %]
@@ -70,16 +71,19 @@
       <input id="[% field.name FILTER html %]" class="text_input"
              name="[% field.name FILTER html %]"
              value="[% value FILTER html %]" size="40"
+             [% IF tabindex %] tabindex="[% tabindex FILTER html %]"[% END %]
              maxlength="[% constants.MAX_FREETEXT_LENGTH FILTER none %]" />
     [% CASE constants.FIELD_TYPE_NUMERIC %]
       <input id="[% field.name | html %]" class="numeric_input"
              name="[% field.name | html %]"
              value="[% value | html %]" size="14"
+             [% IF tabindex %] tabindex="[% tabindex FILTER html %]"[% END %]
              maxlength="[% constants.MAX_NUMERIC_LENGTH | none %]"
              onchange="this.className = 'numeric_input' + (isNaN(this.value) ? ' numeric_invalid' : '');"
              onkeyup="this.className = 'numeric_input' + (isNaN(this.value) ? ' numeric_invalid' : '');" />
     [% CASE constants.FIELD_TYPE_DATETIME %]
       <input name="[% field.name FILTER html %]" size="20"
+             [% IF tabindex %] tabindex="[% tabindex FILTER html %]"[% END %]
              id="[% field.name FILTER html %]"
              value="[% value FILTER html %]" />
 
@@ -89,14 +93,15 @@
     [% CASE constants.FIELD_TYPE_BUG_ID %]
         <span id="[% field.name FILTER html %]_input_area">
           <input name="[% field.name FILTER html %]" id="[% field.name FILTER html %]"
+                 [% IF tabindex %] tabindex="[% tabindex FILTER html %]"[% END %]
                  value="[% value FILTER html %]" size="7" />
         </span>
 
-        [% IF bug.${field.name} %]  
+        [% IF bug.${field.name} %]
           [% bug.${field.name} FILTER bug_link(bug.${field.name}) FILTER none %]
         [% END %]
         <span id="[% field.name FILTER html %]_edit_container" class="edit_me bz_default_hidden">
-          (<a href="#" id="[% field.name FILTER html %]_edit_action">edit</a>)
+          (<a href="#" id="[% field.name FILTER html %]_edit_action" [% IF tabindex %] tabindex="[% tabindex FILTER html %]"[% END %]>edit</a>)
         </span>
         <script type="text/javascript">
         hideEditableField('[% field.name FILTER js %]_edit_container',
@@ -108,6 +113,7 @@
     [% CASE [ constants.FIELD_TYPE_SINGLE_SELECT 
               constants.FIELD_TYPE_MULTI_SELECT ] %]
         <select id="[% field.name FILTER html %]" 
+                [% IF tabindex %] tabindex="[% tabindex FILTER html %]"[% END %]
                 name="[% field.name FILTER html %]" 
                 [% IF field.type == constants.FIELD_TYPE_MULTI_SELECT %]
                     [% SET field_size = 5 %]
@@ -162,8 +168,13 @@
 
      [% CASE constants.FIELD_TYPE_TEXTAREA %]
        [% INCLUDE global/textarea.html.tmpl
-           id = field.name name = field.name minrows = 4 maxrows = 8
-           cols = 60 defaultcontent = value %]
+           id = field.name
+           name = field.name
+           minrows = 4
+           maxrows = 8
+           cols = 60
+           defaultcontent = value
+           tabindex = tabindex %]
      [% CASE constants.FIELD_TYPE_BUG_URLS %]
        [% '<ul class="bug_urls">' IF value.size %]
        [% FOREACH url = value %]
@@ -171,7 +182,8 @@
            <a href="[% url FILTER html %]">[% url FILTER html %]</a>
            [% IF editable %]
              <label><input type="checkbox" value="[% url FILTER html %]"
-                           name="remove_[% field.name FILTER html %]">
+                           [% IF tabindex %] tabindex="[% tabindex FILTER html %]"[% END %]
+                           name="remove_[% field.name FILTER html %]" />
                Remove</label>
            [% END %]
          </li>
@@ -183,7 +195,8 @@
            <strong>Add [% terms.Bug %] URLs:</strong>
          </label><br>
          <input type="text" id="[% field.name FILTER html %]" size="40"
-                class="text_input" name="[% field.name FILTER html %]">
+                [% IF tabindex %] tabindex="[% tabindex FILTER html %]"[% END %]
+                class="text_input" name="[% field.name FILTER html %]" />
        [% END %]
   [% END %]
 [% ELSIF field.type == constants.FIELD_TYPE_TEXTAREA %]
