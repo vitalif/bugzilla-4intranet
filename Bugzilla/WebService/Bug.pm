@@ -889,7 +889,9 @@ sub _bug_to_hash {
     if (Bugzilla->user->is_timetracker) {
         $item{'estimated_time'} = $self->type('double', $bug->estimated_time);
         $item{'remaining_time'} = $self->type('double', $bug->remaining_time);
-        $item{'deadline'}       = $self->type('dateTime', $bug->deadline);
+        # No need to format $bug->deadline specially, because Bugzilla::Bug
+        # already does it for us.
+        $item{'deadline'}       = $self->type('string', $bug->deadline);
     }
 
     if (Bugzilla->user->id) {
