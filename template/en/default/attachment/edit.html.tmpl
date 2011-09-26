@@ -43,7 +43,8 @@
 [% can_edit = attachment.validate_can_edit %]
 [% editable_or_hide = can_edit ? "" : " bz_hidden_option" %]
 
-<form method="post" action="attachment.cgi" onsubmit="normalizeComments();">
+<form method="post" action="attachment.cgi"
+  onsubmit="normalizeComments();" onkeypress="return ctrlEnter(event||window.event,this)">
   <input type="hidden" name="id" value="[% attachment.id %]">
   <input type="hidden" name="action" value="update">
   <input type="hidden" name="contenttypemethod" value="manual">
