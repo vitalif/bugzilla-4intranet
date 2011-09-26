@@ -997,6 +997,29 @@ sub init
         my $type = $H->{"emailtype$id"};
         $type = "anyexact" if $type eq "exact";
 
+        if ($type eq "anyexact")
+        {
+            my @guessed = split /,/, $email;
+            foreach my $name (@guessed)
+            {
+                $name = trim($name);
+                if ($name && lc $name ne '%user%' && !login_to_id($name))
+                {
+                    # Do a match on user login or name
+                    my $u = Bugzilla::User::match($name, 1)->[0];
+                    if ($u)
+                    {
+                        $name = $u->login;
+                    }
+                    else
+                    {
+                        ThrowUserError('invalid_username', { name => $name });
+                    }
+                }
+            }
+            $email = join ',', @guessed;
+        }
+
         my @clist;
         foreach my $field ("assigned_to", "reporter", "cc", "qa_contact")
         {
@@ -1014,15 +1037,6 @@ sub init
         {
             # No field is selected. Nothing to see here.
             next;
-        }
-
-        if ($type eq "anyexact")
-        {
-            foreach my $name (split /,/, $email)
-            {
-                $name = trim($name);
-                login_to_id($name, THROW_ERROR) if $name && lc $name ne '%user%';
-            }
         }
     }
 
