@@ -58,35 +58,11 @@ sub get_param_list {
   type => 'b',
   default => 0
   },
+
   {
   name => 'allow_attach_url',
   type => 'b',
   default => 0
-  },
-
-  {
-   name => 'maxattachmentsize',
-   type => 't',
-   default => '1000',
-   checker => \&check_maxattachmentsize
-  },
-
-  {
-      name    => 'inline_attachment_mime',
-      type    => 't',
-      default => '^text/|^image/',
-  },
-
-  {
-      name    => 'mime_types_file',
-      type    => 't',
-      default => '',
-  },
-
-  {
-      name    => 'force_attach_bigfile',
-      type    => 'b',
-      default => 0,
   },
 
   # The maximum size (in bytes) for patches and non-patch attachments.
@@ -96,13 +72,38 @@ sub get_param_list {
   # database) to provide breathing space for the data in other fields of
   # the attachment record as well as any mysql packet overhead (I don't
   # know of any, but I suspect there may be some.)
+  {
+   name => 'maxattachmentsize',
+   type => 't',
+   default => '1000',
+   checker => \&check_maxattachmentsize
+  },
 
   {
-   name => 'maxlocalattachment',
-   type => 't',
-   default => '0',
+   name    => 'force_attach_bigfile',
+   type    => 'b',
+   default => 1,
+  },
+
+  {
+   name    => 'maxlocalattachment',
+   type    => 't',
+   default => '5000',
    checker => \&check_numeric
-  } );
+  },
+
+  {
+   name    => 'inline_attachment_mime',
+   type    => 't',
+   default => '^text/|^image/',
+  },
+
+  {
+   name    => 'mime_types_file',
+   type    => 't',
+   default => '',
+  },
+  );
   return @param_list;
 }
 

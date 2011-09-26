@@ -57,28 +57,37 @@
     _ " (such as <tt>1234.your.domain.com</tt>) must point to this same"
     _ " $terms.Bugzilla instance.",
 
-  allow_attachment_deletion => "If this option is on, administrators will be able to delete " _
-                               "the content of attachments.",
+  allow_attachment_deletion =>
+    "If this option is on, administrators will be able to delete " _
+    "the content of attachments.",
 
-  allow_attach_url => "If this option is on, it will be possible to " _
-                      "specify a URL when creating an attachment and " _
-                      "treat the URL itself as if it were an attachment.",
+  allow_attach_url =>
+    "If this option is on, it will be possible to " _
+    "specify a URL when creating an attachment and " _
+    "treat the URL itself as if it were an attachment.",
 
-  maxattachmentsize => "The maximum size (in kilobytes) of attachments. " _
-                       "$terms.Bugzilla will not accept attachments greater than this number " _
-                       "of kilobytes in size. Setting this parameter to 0 will prevent " _
-                       "attaching files to ${terms.bugs}.",
+  maxattachmentsize =>
+    "The maximum size (in kilobytes) of attachments <b>stored in the database</b>. " _
+    "$terms.Bugzilla will not accept attachments greater than this number " _
+    "of kilobytes in size. Setting this parameter to 0 will prevent " _
+    "attaching files to ${terms.bugs}.",
 
-  maxlocalattachment => "The maximum size (in megabytes) of attachments identified by " _
-                        "the user as 'Big Files' to be stored locally on the webserver. " _
-                        "If set to zero, attachments will never be kept on the local " _
-                        "filesystem." }
+  force_attach_bigfile =>
+    "If this option is on, all attachments will be stored as local files, not inside the database.",
 
-  inline_attachment_mime => "Perl regular expression for detecting browser-viewable MIME content types.",
+  maxlocalattachment =>
+    "The maximum size (in megabytes) of attachments <b>stored on the server filesystem</b>. " _
+    "These are either the attachments marked as 'Big Files' by user, or all attachments, " _
+    "if force_attach_bigfile is turned ON. If set to zero, attachments will never be kept " _
+    "on the server filesystem.",
 
-  force_attach_bigfile => "If this option is on, all attachments (excluding copy-pasted text ones) " _
-                          "will be uploaded into local files instead of database.",
+  inline_attachment_mime =>
+    "Perl regular expression for detecting browser-viewable MIME content types." _
+    "<br />These probably are text and image files.",
 
-  mime_types_file => "Path to a file with MIME types to file extensions mapping for guessing.",
+  mime_types_file =>
+    "Path to a file with MIME types to file extensions mapping for guessing file types. " _
+    "Usually /etc/mime.types on Linux/UNIX systems, but you may specify the path to a " _
+    "customized version here.",
 
-%]
+} %]
