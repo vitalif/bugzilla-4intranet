@@ -185,6 +185,7 @@ use constant DEFAULT_FIELDS => (
     {name => 'cc',           desc => 'CC',         buglist => 1, in_new_bugmail => 1},
     {name => 'dependson',    desc => 'Depends on', buglist => 1, in_new_bugmail => 1},
     {name => 'blocked',      desc => 'Blocks',     buglist => 1, in_new_bugmail => 1},
+    {name => 'dup_id',       desc => 'Duplicate of', buglist => 1, in_new_bugmail => 1, type => FIELD_TYPE_BUG_ID},
 
     {name => 'attachments.description', desc => 'Attachment description'},
     {name => 'attachments.filename',    desc => 'Attachment filename'},
