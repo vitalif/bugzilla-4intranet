@@ -122,12 +122,13 @@ elsif ($action eq "update")
     Bugzilla->login(LOGIN_REQUIRED);
     update();
 }
-elsif ($action eq "delete") {
+elsif ($action eq "delete")
+{
     delete_attachment();
 }
 else
 {
-  ThrowCodeError("unknown_action", { action => $action });
+    ThrowCodeError("unknown_action", { action => $action });
 }
 
 exit;
