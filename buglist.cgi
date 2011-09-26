@@ -54,6 +54,9 @@ use Time::HiRes qw(gettimeofday);
 use Date::Parse;
 use POSIX;
 
+# FIXME TRASHCODE!!! MUST BE REFACTORED!!!
+# For example: buglist.cgi?dotweak=1&format=superworktime => $vars->{token} will be incorrect
+
 my $cgi = Bugzilla->cgi;
 my $dbh = Bugzilla->dbh;
 my $template = Bugzilla->template;

@@ -218,7 +218,7 @@ function showbugcomma()
     [% IF bugs.size > 1 && caneditbugs && !dotweak %]
       <a href="buglist.cgi?[% urlquerypart | html %][%- "&order=$qorder" | html IF order %]&amp;tweak=1">Change&nbsp;Several&nbsp;[% terms.Bugs %]&nbsp;at&nbsp;Once</a><br />
     [% END %]
-    <a href="buglist.cgi?[% urlquerypart.replace('[&\?]format=[^&]*', '') | html %][%- "&order=$qorder" | html IF order %]&amp;format=superworktime">Fix Worktime</a>
+    <a href="buglist.cgi?[% urlquerypart.replace('[&\?](format|dotweak)[^&]*', '') | html %][%- "&order=$qorder" | html IF order %]&amp;format=superworktime">Fix Worktime</a>
   </div>
   [% END %]
 
