@@ -847,6 +847,8 @@ sub init
     # Copy hash and throw away tied reference returned by CGI::Vars()
     my $H = { %{ $params->Vars } };
 
+    # $self->{user} = User under which the search will be ran
+    # Bugzilla->user = Just current user
     $self->{user} ||= Bugzilla->user;
     my $user = $self->{user};
     my $dbh = Bugzilla->dbh;
@@ -1778,16 +1780,27 @@ sub changed
 
     # CustIS Bug 68921 - "interval worktime" column depends
     # on the time interval and user specified in "changes" search area
-    $Bugzilla::Search::interval_from = SqlifyDate($v->{after});
-    $Bugzilla::Search::interval_to = SqlifyDate($v->{before});
-    my $c = $cond;
-    $c =~ s/ \./ldtime./gs;
-    COLUMNS->{interval_time}->{name} =
-        "(SELECT COALESCE(SUM(ldtime.work_time),0) FROM longdescs ldtime".
-        " WHERE ldtime.bug_id=bugs.bug_id AND $c)";
+    my $c;
+    my %f = map { $_ => 1 } @{$v->{fields}};
+    if ($self->{user}->is_timetracker)
+    {
+        $Bugzilla::Search::interval_from = SqlifyDate($v->{after});
+        $Bugzilla::Search::interval_to = SqlifyDate($v->{before});
+        $c = $cond;
+        $c =~ s/ \./ldtime./gs;
+        COLUMNS->{interval_time}->{name} =
+            "(SELECT COALESCE(SUM(ldtime.work_time),0) FROM longdescs ldtime".
+            " WHERE ldtime.bug_id=bugs.bug_id AND $c)";
+    }
+    else
+    {
+        # Non-timetrackers can't search on time tracking fields
+        delete $f{$_} for TIMETRACKING_FIELDS;
+    }
 
     my $ld = "ld$self->{sequence}";
     my $ba = "ba$self->{sequence}";
+
     $c = $cond;
     $c =~ s/ \./$ld./gs;
     my $ld_term = {
@@ -1798,6 +1811,7 @@ sub changed
         many_rows => 1,
     };
     delete $ld_term->{description}->[2]->{fields};
+
     $c = $cond;
     $c =~ s/ \./$ba./gs;
     my $ba_term = {
@@ -1807,8 +1821,8 @@ sub changed
         description => [ 'changes', 'changed', $v ],
         many_rows => 1,
     };
+
     my $creation_term = undef;
-    my %f = map { $_ => 1 } @{$v->{fields}};
     my $any_fields = %f ? 1 : 0;
     if ($f{creation_ts})
     {
