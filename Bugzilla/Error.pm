@@ -74,7 +74,14 @@ sub _error_message
     }
     $mesg .= "\n";
     $Data::Dumper::Indent = 1;
-    $mesg .= Data::Dumper->Dump([$vars, { Bugzilla->cgi->Vars }, { %ENV }], ['error_vars', 'cgi_params', 'env']);
+    # Don't try to dump upload data, dump upload info instead
+    my $cgi = Bugzilla->cgi;
+    my $cgivars = { $cgi->Vars };
+    for (keys %$cgivars)
+    {
+        $cgivars->{$_} = $cgi->uploadInfo($cgivars->{$_}) if $cgi->upload($_);
+    }
+    $mesg .= Data::Dumper->Dump([$vars, $cgivars, { %ENV }], ['error_vars', 'cgi_params', 'env']);
     # ugly workaround for Data::Dumper's \x{425} unicode characters
     $mesg =~ s/((?:\\x\{(?:[\dA-Z]+)\})+)/eval("\"$1\"")/egiso;
     return $mesg;
