@@ -1315,7 +1315,7 @@ sub search_description_html
             $html .= '<span class="search_field">'.html_quote(COLUMNS->{$a}->{title} || $fdescs->{$a} || $a).':</span>';
         }
         $html .= ' '.$opdescs->{not} if $neg;
-        $html .= ' '.$opdescs->{$op} if !SEARCH_HIDDEN_OPERATORS->{$d->[1]};
+        $html .= ' '.$opdescs->{$d->[1]} if !SEARCH_HIDDEN_OPERATORS->{$d->[1]};
         if (!ref $d->[2] || ref $d->[2] eq 'ARRAY')
         {
             $html .= ' ' . join ', ', map { sv_quote($_) } list $d->[2];
