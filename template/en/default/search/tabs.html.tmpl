@@ -24,11 +24,11 @@
   #%]
 
 [% WRAPPER global/tabs.html.tmpl
-     tabs = [ { name => 'specific', label => "Simple Search",
-                link => "query.cgi?format=specific" },
-              { name => 'advanced', label => "Advanced Search",
-                link => "query.cgi?format=advanced" } ]
-     current_tab_name = query_format || format || "advanced"
+    tabs = [ { name => 'specific', label => "Simple Search",
+               link => "query.cgi?format=specific" },
+             { name => 'advanced', label => "Advanced Search",
+               link => "query.cgi?format=advanced" } ]
+    current_tab_name = query_format || format || "advanced"
 %]
 
 [% content %]
