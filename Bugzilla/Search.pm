@@ -523,6 +523,11 @@ sub STATIC_COLUMNS
         deadline => {
             name => $dbh->sql_date_format('bugs.deadline', '%Y-%m-%d'),
         },
+        dup_id => {
+            name  => "duplicates.dupe_of",
+            title => "Duplicate of",
+            joins => [ "LEFT JOIN duplicates ON duplicates.dupe=bugs.bug_id" ],
+        },
     };
 
     # Fields that are email addresses
