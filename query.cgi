@@ -125,8 +125,8 @@ my @list = qw(
     bug_status resolution assigned_to
     rep_platform priority bug_severity
     classification product reporter op_sys
-    component version chfield chfieldfrom
-    chfieldto chfieldvalue target_milestone
+    component version target_milestone
+    chfield chfieldfrom chfieldto chfieldwho chfieldvalue
     email emailtype emailreporter
     emailassigned_to emailcc emailqa_contact
     emaillongdesc content
@@ -262,12 +262,6 @@ $vars->{userdefaultquery} = $userdefaultquery;
 $vars->{orders} = \@orders;
 $default->{order} = [$deforder || 'Importance'];
 
-if (($params->{query_format} || $params->{format} || "") eq "create-series")
-{
-    require Bugzilla::Chart;
-    $vars->{category} = Bugzilla::Chart::getVisibleSeries();
-}
-
 # CustIS Bug 58300 - Add custom fields to search filters
 # This logic is moved from search/form.html.tmpl
 $vars->{freetext_fields} = [
@@ -295,7 +289,6 @@ $vars->{columnlist} = $params->{columnlist};
 $vars->{default} = $default;
 
 $vars->{format} = $params->{format};
-$vars->{query_format} = $params->{query_format};
 
 # Set default page to "advanced" if none provided
 if (!$params->{query_format} && !$params->{format})
@@ -308,6 +301,13 @@ if (!$params->{query_format} && !$params->{format})
     {
         $params->{format} = 'advanced';
     }
+}
+
+$vars->{query_format} = $params->{query_format} || $params->{format};
+if ($vars->{query_format} eq "create-series")
+{
+    require Bugzilla::Chart;
+    $vars->{category} = Bugzilla::Chart::getVisibleSeries();
 }
 
 # Set cookie to current format as default, but only if the format
@@ -334,6 +334,7 @@ my $format = $template->get_format(
 $cgi->send_header($format->{ctype});
 $template->process($format->{template}, $vars)
     || ThrowTemplateError($template->error());
+exit;
 
 # We pass the defaults as a hash of references to arrays. For those
 # Items which are single-valued, the template should only reference [0]

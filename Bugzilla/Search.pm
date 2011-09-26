@@ -1152,6 +1152,13 @@ sub init
     $self->{terms_without_security} = $OUTER_AND;
     $OUTER_AND = expand_expression($OUTER_AND);
 
+    # Check if the query is empty
+    if (!$OUTER_AND)
+    {
+        Bugzilla->cgi->send_header(-refresh => '10; URL=query.cgi');
+        ThrowUserError("buglist_parameters_required");
+    }
+
     if (!$user->is_super_user)
     {
         # If there are some terms in the search, assume it's enough
@@ -2732,12 +2739,12 @@ sub simplify_expression
 {
     my ($q) = @_;
     return $q if ref $q ne 'ARRAY';
-    return undef if @$q == 1;
     for (my $i = $#$q; $i > 0; $i--)
     {
         $q->[$i] = simplify_expression($q->[$i]);
         splice @$q, $i, 1 if !$q->[$i];
     }
+    return undef if @$q == 1;
     # Check for single operand before checking op(op()),
     # as OR(OR_MANY()) must become OR_MANY, not OR.
     return $q->[1] if @$q == 2;

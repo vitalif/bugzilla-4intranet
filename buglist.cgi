@@ -61,7 +61,8 @@ my $cgi = Bugzilla->cgi;
 my $dbh = Bugzilla->dbh;
 my $template = Bugzilla->template;
 my $vars = {};
-my $buffer = $cgi->query_string();
+my $buffer = $cgi->query_string;
+my $query_format = $cgi->param('query_format') || 'advanced';
 
 # We have to check the login here to get the correct footer if an error is
 # thrown and to prevent a logged out user to use QuickSearch if 'requirelogin'
@@ -82,11 +83,6 @@ if (($cgi->param('format')||'') eq 'superworktime')
     $superworktime = 1;
     Bugzilla->login(LOGIN_REQUIRED);
     BugWorkTime::HandleSuperWorktime($vars);
-}
-
-if (length($buffer) == 0) {
-    $cgi->send_header(-refresh=> '10; URL=query.cgi');
-    ThrowUserError("buglist_parameters_required");
 }
 
 # If a parameter starts with cmd-, this means the And or Or button has been
@@ -132,8 +128,9 @@ if (defined($searchstring)) {
 # If configured to not allow empty words, reject empty searches from the
 # Find a Specific Bug search form, including words being a single or
 # several consecutive whitespaces only.
-if (!Bugzilla->params->{'specific_search_allow_empty_words'}
-    && defined($cgi->param('content')) && $cgi->param('content') =~ /^\s*$/)
+if (!Bugzilla->params->{specific_search_allow_empty_words}
+    && $query_format eq 'specific'
+    && ($cgi->param('content')||'') =~ /^\s*$/)
 {
     ThrowUserError("buglist_parameters_required");
 }
@@ -614,16 +611,6 @@ elsif (($cmdtype eq "doit") && defined $cgi->param('remtype')) {
     }
 }
 
-# backward compatibility hack: if the saved query doesn't say which
-# form was used to create it, assume it was on the advanced query
-# form - see bug 252295
-if (!$params->param('query_format')) {
-    $params->param('query_format', 'advanced');
-    $buffer = $params->query_string;
-}
-
-my $query_format = $params->param('query_format');
-
 ################################################################################
 # Column Definition
 ################################################################################
@@ -874,7 +861,7 @@ my @orderstrings = split(/,\s*/, $order);
 # be used when editing the specific search again. So we restore this
 # parameter manually.
 my $input_bug_status;
-if ($params->param('query_format') eq 'specific') {
+if ($query_format eq 'specific') {
     $input_bug_status = $params->param('bug_status');
 }
 
