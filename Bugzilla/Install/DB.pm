@@ -3263,7 +3263,7 @@ sub _populate_bugs_fulltext
     my $bug_ids = shift;
     $bug_ids = undef if $bug_ids && !@$bug_ids;
     my $dbh = Bugzilla->dbh;
-    my ($table, $limit1, $id) = ('bugs_fulltext', $dbh->sql_limit(1), 'bug_id');
+    my ($table, $limit1, $id) = ('bugs_fulltext1', $dbh->sql_limit(1), 'bug_id');
     my $fulltext = $dbh->selectrow_array("SELECT $id FROM $table $limit1");
     my ($datasize, $time) = (0, time);
     my ($lastdata, $lasttime) = ($datasize, $time);
