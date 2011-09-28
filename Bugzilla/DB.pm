@@ -406,8 +406,7 @@ sub quote_fulltext
 {
     my $self = shift;
     my ($a) = @_;
-    my $lang = LANG_FULL_ISO->{lc(Bugzilla->params->{stem_language}||'')} || 'en';
-    return $self->quote(stem_text($a, $lang));
+    return $self->quote(stem_text($a, lc(Bugzilla->params->{stem_language}||'')));
 }
 
 #####################################################################
