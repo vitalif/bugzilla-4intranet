@@ -28,6 +28,8 @@
   # be overridden by the calling templates.
   #%]
 
+[% USE Bugzilla %]
+
 [% filtered_desc = bug.short_desc FILTER html %]
 [% subheader = filtered_desc %]
 [% filtered_timestamp = bug.delta_ts FILTER time %]
@@ -36,7 +38,7 @@
 [% title = "$terms.Bug $bug.bug_id &ndash; $filtered_desc &ndash; $filtered_prodcomp &ndash; $filtered_stat" %]
 [% header = "$terms.Bug&nbsp;$bug.bug_id" %]
 [% header_addl_info = "Last modified: $filtered_timestamp" %]
-[% javascript_urls = [ "js/field.js", "js/calendar.js", "js/bug-visibility.js", "fieldvaluecontrol.cgi?type=bug" ] %]
+[% javascript_urls = [ "js/field.js", "js/calendar.js", "js/bug-visibility.js?rev=1397", "fieldvaluecontrol.cgi?type=bug&user=${Bugzilla.user.id}" ] %]
 [% style_urls = [ "skins/standard/calendar.css", "skins/standard/show_bug.css" ] %]
 [% doc_section = "bug_page.html" %]
 
