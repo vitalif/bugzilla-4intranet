@@ -3,8 +3,7 @@
  * Contributor(s): Vitaliy Filippov <vitalif@mail.ru>
  */
 
-addListener(window, 'load', initControlledFields);
-
+// This is set to onload event from fieldvaluecontrol.cgi
 function initControlledFields()
 {
     for (var i in show_fields)

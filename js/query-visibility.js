@@ -50,8 +50,8 @@ respecting this "list of active IDs".
 */
 
 var qfHandling = {};
-addListener(window, 'load', initQueryformFields);
 
+// This is set to onload event from fieldvaluecontrol.cgi
 function initQueryformFields()
 {
     for (var i in qfVisibility)

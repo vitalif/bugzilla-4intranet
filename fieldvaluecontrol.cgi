@@ -48,7 +48,10 @@ $args->{type} ||= '';
 if ($args->{type} eq 'search')
 {
     my $json = bz_encode_json(Bugzilla->full_json_visibility);
-    print "var qfVisCached = '$user_tag-".time."';\nvar qfVisibility = $json;";
+    print "var qfVisCached = '$user_tag-".time."';
+var qfVisibility = $json;
+addListener(window, 'load', initQueryformFields);
+";
 }
 elsif ($args->{type} eq 'bug')
 {
@@ -58,5 +61,10 @@ elsif ($args->{type} eq 'bug')
         $json->{$_->name} = $_->json_visibility;
     }
     $json = bz_encode_json($json);
-    print "var show_fields_cached = '$user_tag-".time."';\nshow_fields = $json;";
+    print "var show_fields_cached = '$user_tag-".time."';
+var show_fields = $json;
+addListener(window, 'load', initControlledFields);
+";
 }
+
+exit;
