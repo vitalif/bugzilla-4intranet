@@ -71,6 +71,12 @@
     "(Screenshot UPload Applet) will be enabled to allow uploading of images from the clipboard. " _
     "Note this requires <a href='http://www.java.com/'>Java</a> support in user's browser.",
 
+  supa_jar_url =>
+    "Sometimes you may want to specify different URL for Supa applet instead of default <tt>js/Supa.jar</tt>. " _
+    "An example of such situation is when your Bugzilla is protected by SSL <i>with client certificate verification</i> " _
+    "very non-trivial, but possible sometimes. Java plugin does applet download by itself and can't use " _
+    "certificate from the browser, so Supa must be available under different 'open' URL.",
+
   maxattachmentsize =>
     "The maximum size (in kilobytes) of attachments <b>stored in the database</b>. " _
     "$terms.Bugzilla will not accept attachments greater than this number " _
