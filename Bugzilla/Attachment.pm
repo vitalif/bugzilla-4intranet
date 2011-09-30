@@ -60,6 +60,7 @@ use Bugzilla::Field;
 use Bugzilla::Hook;
 
 use LWP::MediaTypes;
+use MIME::Base64;
 
 use base qw(Bugzilla::Object);
 
@@ -558,6 +559,9 @@ sub _check_data {
         $params->{ispatch} = 0;
         $params->{store_in_file} = 0;
     }
+    elsif ($params->{base64_content}) {
+        $data = decode_base64($params->{base64_content});
+    }
     else {
         if ($params->{store_in_file} || !ref $params->{data}) {
             # If it's a filehandle, just store it, not the content of the file
@@ -608,11 +612,15 @@ sub _check_description {
 }
 
 sub _check_filename {
-    my ($invocant, $filename, $is_url) = @_;
+    my ($invocant, $filename, $params) = @_;
 
-    $is_url = $invocant->isurl if ref $invocant;
     # No file is attached, so it has no name.
-    return '' if $is_url;
+    return '' if ref $invocant && $invocant->isurl || $params && $params->{isurl};
+
+    if ($params && $params->{base64_content})
+    {
+        $filename = $params->{description};
+    }
 
     $filename = trim($filename);
     $filename || ThrowUserError('file_not_specified');
@@ -914,11 +922,12 @@ sub run_create_validators {
     $params->{data} = $class->_check_data($params);
     $params = $class->SUPER::run_create_validators($params);
 
-    $params->{filename} = $class->_check_filename($params->{filename}, $params->{isurl});
+    $params->{filename} = $class->_check_filename($params->{filename}, $params);
     $params->{creation_ts} ||= Bugzilla->dbh->selectrow_array('SELECT LOCALTIMESTAMP(0)');
     $params->{modification_time} = $params->{creation_ts};
     $params->{submitter_id} = Bugzilla->user->id || ThrowCodeError('invalid_user');
 
+    delete $params->{base64_content};
     return $params;
 }
 

@@ -21,15 +21,103 @@
  *                 Marc Schumann <wurblzap@gmail.com>
  */
 
-function switch_aft(n)
+var SUPA_JAVA_DISABLED_ERROR = 'You cannot paste images from clipboard because Java support'+
+    ' is not enabled in your browser. Please download Java plugin'+
+    ' from http://java.com/';
+
+function htmlspecialchars_decode(str)
 {
-    var f = document.getElementById('form_type_file'+n);
-    var u = document.getElementById('form_type_url'+n);
-    var t = document.getElementById('form_type_text'+n);
-    document.getElementById('tr_file'+n).style.display = f && f.checked ? '' : 'none';
-    document.getElementById('tr_text'+n).style.display = t && t.checked ? '' : 'none';
-    if (u)
-        document.getElementById('tr_url'+n).style.display = u.checked ? '' : 'none';
+    str = str.replace(/&gt;/g, '>');
+    str = str.replace(/&lt;/g, '<');
+    str = str.replace(/&quot;/g, '"');
+    str = str.replace(/&apos;/g, '\'');
+    str = str.replace(/&amp;/g, '&');
+    return str;
+}
+
+function switchAttype(chk)
+{
+    var t = chk.value=='text';
+    var s = chk.value=='supa';
+    var u = chk.value=='url';
+    var ur = document.getElementById('attype_url_row');
+    var sr = document.getElementById('attype_supa_row');
+    u = u && ur;
+    s = s && sr;
+    document.getElementById('attype_text_row').style.display = t ? '' : 'none';
+    document.getElementById('attype_file_row').style.display = t || s || u ? 'none' : '';
+    if (ur) ur.style.display = u ? '' : 'none';
+    if (sr) sr.style.display = s ? '' : 'none';
+    document.getElementById('content_type_row').style.display = s ? 'none' : '';
+    var d = document.getElementById('description');
+    if (s)
+    {
+        if (d.value == '')
+            d.value = 'Screenshot.png';
+        document.getElementById('manual').checked = true;
+        document.getElementById('contenttypeentry').value = 'image/png';
+        document.getElementById('ispatch').checked = false;
+        setContentTypeDisabledState(chk.form);
+        var sc = document.getElementById('supa_container');
+        if (sc.innerHTML.toLowerCase().indexOf('<applet') < 0)
+            sc.innerHTML = htmlspecialchars_decode(sc.innerHTML);
+    }
+    else
+    {
+        if (d.value == 'Screenshot.png')
+            d.value = '';
+        document.getElementById('base64_content').value = '';
+    }
+}
+
+function supaPasteAgain()
+{
+    var s = document.getElementById('SupaApplet');
+    if (!s)
+        return false;
+    try
+    {
+        s.pasteFromClipboard();
+    }
+    catch(e)
+    {
+        alert(SUPA_JAVA_DISABLED_ERROR);
+        return false;
+    }
+    return true;
+}
+
+function setContentTypeDisabledState(form)
+{
+    var isdisabled = false;
+    if (form.ispatch.checked)
+        isdisabled = true;
+    for (var i = 0; i < form.contenttypemethod.length; i++)
+        form.contenttypemethod[i].disabled = isdisabled;
+    form.contenttypeselection.disabled = isdisabled;
+    form.contenttypeentry.disabled = isdisabled;
+}
+
+function encodeSupaContent()
+{
+    var s = document.getElementById('attype_supa');
+    if (s && s.checked)
+    {
+        try
+        {
+            s = document.getElementById('SupaApplet').getEncodedString();
+        }
+        catch(e)
+        {
+            alert(SUPA_JAVA_DISABLED_ERROR);
+            var c = document.getElementById('attype_file');
+            c.checked = true;
+            switchAttype(c);
+            return false;
+        }
+        document.getElementById('base64_content').value = s;
+    }
+    return true;
 }
 
 function validateAttachmentForm(theform)
@@ -40,6 +128,8 @@ function validateAttachmentForm(theform)
         alert(BUGZILLA.string.attach_desc_required);
         return false;
     }
+    if (!encodeSupaContent())
+        return false;
     return true;
 }
 

@@ -65,6 +65,12 @@ sub get_param_list {
   default => 0
   },
 
+  {
+  name => 'use_supa_applet',
+  type => 'b',
+  default => 0,
+  },
+
   # The maximum size (in bytes) for patches and non-patch attachments.
   # The default limit is 1000KB, which is 24KB less than mysql's default
   # maximum packet size (which determines how much data can be sent in a

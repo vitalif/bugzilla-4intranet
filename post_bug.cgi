@@ -209,7 +209,8 @@ if (defined $cgi->param('version') && length $cgi->param('version'))
 
 # Add an attachment if requested.
 if (defined($cgi->upload('data')) || $cgi->param('attachurl') ||
-    $cgi->param('text_attachment')) {
+    $cgi->param('text_attachment') || $cgi->param('base64_content'))
+{
     $cgi->param('isprivate', $cgi->param('commentprivacy'));
 
     # Must be called before create() as it may alter $cgi->param('ispatch').
@@ -240,6 +241,7 @@ if (defined($cgi->upload('data')) || $cgi->param('attachurl') ||
              isurl         => scalar $cgi->param('attachurl'),
              mimetype      => $content_type,
              store_in_file => scalar $cgi->param('bigfile'),
+             base64_content => scalar $cgi->param('base64_content'),
             });
     };
     Bugzilla->error_mode($error_mode_cache);
@@ -305,9 +307,10 @@ if (Bugzilla->usage_mode != USAGE_MODE_EMAIL)
         sent => \@all_mail_results,
         title => $title,
         header => $header,
+        message => $vars->{message},
     };
     # CustIS Bug 38616 - CC list restriction
-    if ($bug->{restricted_cc})
+    if (!$ses->{message} && $bug->{restricted_cc})
     {
         $ses->{message_vars} = {
             restricted_cc     => [ map { $_->login } @{ $bug->{restricted_cc} } ],
