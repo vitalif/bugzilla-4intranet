@@ -62,7 +62,7 @@
   </th>
   <td id="supa_container">
   [% FILTER html %]
-    <applet id="SupaApplet" archive="js/Supa.jar"
+    <applet id="SupaApplet" archive="[% Param('supa_jar_url') OR "js/Supa.jar" %]"
       code="de.christophlinder.supa.SupaApplet" width="400" height="300">
       <param name="trace" value="true" />
       <param name="pasteonload" value="true" />
