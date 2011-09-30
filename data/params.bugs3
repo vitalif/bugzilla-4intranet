@@ -88,7 +88,8 @@ dpwiki http://depobraz.office.custis.ru/dpwiki/index.php/
 hrwiki http://hrwiki.office.custis.ru/hrwiki/index.php/
 cbwiki http://cbr.office.custis.ru/cbwiki/index.php/
 orwiki http://lodge.office.custis.ru/orwiki/index.php/
-rawiki http://rawiki.office.custis.ru/rawiki/index.php/',
+rawiki http://rawiki.office.custis.ru/rawiki/index.php/
+crmwiki http://crm.office.custis.ru/',
            'mime_types_file' => '/etc/mime.types',
            'mostfreqthreshold' => '2',
            'move-button-text' => 'Move To Bugscape',
@@ -141,6 +142,7 @@ rawiki http://rawiki.office.custis.ru/rawiki/index.php/',
            'urlbase' => 'http://bugs.office.custis.ru/bugs/',
            'use_mailer_queue' => 0,
            'use_see_also' => 0,
+           'use_supa_applet' => '1',
            'usebugaliases' => 1,
            'useclassification' => 1,
            'usemenuforusers' => '0',
