@@ -43,7 +43,7 @@ use base qw(Exporter);
     file_mod_time is_7bit_clean
     bz_crypt generate_random_password
     validate_email_syntax clean_text
-    stem_text intersect
+    stem_text intersect union
     get_text disable_utf8 bz_encode_json
     xml_element xml_element_quote xml_dump_simple
 );
@@ -787,6 +787,24 @@ sub intersect
         @$values = grep { $chk{$_} } @$values;
     }
     return $values;
+}
+
+sub union
+{
+    my @values = @{shift()};
+    my %chk = map { $_ => 1 } @values;
+    while (my $next = shift)
+    {
+        for (@$next)
+        {
+            if (!$chk{$_})
+            {
+                push @values, $_;
+                $chk{$_} = 1;
+            }
+        }
+    }
+    return \@values;
 }
 
 sub xml_element_quote
