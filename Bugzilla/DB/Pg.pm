@@ -44,7 +44,7 @@ package Bugzilla::DB::Pg;
 use strict;
 
 use Bugzilla::Error;
-use Bugzilla::Constants qw(LANG_ISO_FULL);
+use Bugzilla::Constants qw(LANG_ISO_FULL LANG_FULL_ISO);
 use DBD::Pg;
 
 # This module extends the DB interface via inheritance
@@ -189,13 +189,15 @@ sub sql_fulltext_search
     my $self = shift;
     my ($column, $text) = @_;
     $text = $self->quote($text);
+    my $lang = lc(Bugzilla->params->{stem_language} || 'en');
+    $lang = LANG_ISO_FULL->{$lang} || 'english' if !LANG_FULL_ISO->{$lang};
     # Try to_tsquery, and use plainto_tsquery if the syntax is incorrect
     # FIXME reporting query parse errors to user would be useful here
-    eval { $self->do("SELECT to_tsquery($language$text)") };
+    eval { $self->do("SELECT to_tsquery('$lang',$text)") };
     my $op = $@ ? 'plainto_tsquery' : 'to_tsquery';
     return (
-        "($column \@\@ $op($language$text))",
-        "(ts_rank($column, $op($language$text)))",
+        "($column \@\@ $op('$lang',$text))",
+        "(ts_rank($column, $op('$lang',$text)))",
     );
 }
 
@@ -204,7 +206,8 @@ sub quote_fulltext
 {
     my $self = shift;
     my ($a) = @_;
-    my $lang = LANG_ISO_FULL->{Bugzilla->params->{stem_language}} || 'english';
+    my $lang = lc(Bugzilla->params->{stem_language}||'en');
+    $lang = LANG_ISO_FULL->{$lang} || 'english' if !LANG_FULL_ISO->{$lang};
     return "to_tsvector('$lang',".$self->quote($a).")";
 }
 
