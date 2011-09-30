@@ -740,6 +740,7 @@ sub stem_text
     my ($text, $lang, $allow_verbatim) = @_;
     return '' if !defined $text || $text =~ /^\s*$/so;
     return $text if !$INC{'Lingua/Stem/Snowball.pm'};
+    $lang = lc($lang || 'en');
     $lang = LANG_FULL_ISO->{$lang} || 'en' if !LANG_ISO_FULL->{$lang};
     Encode::_utf8_on($text) if Bugzilla->params->{utf8};
     # CustIS Bug 66033 - _ is wanted to also be a delimiter
