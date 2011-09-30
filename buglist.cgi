@@ -1197,6 +1197,9 @@ if ($dotweak && scalar @bugs) {
     my @bug_statuses = map {$dbh->quote($_)} keys %$bugstatuses;
     my $bug_status_ids = $dbh->selectcol_arrayref('SELECT id FROM bug_status WHERE ' . $dbh->sql_in('value', \@bug_statuses));
 
+    # The groups the user belongs to and which are editable for the given buglist.
+    $vars->{'groups'} = GetGroups(\@products);
+
     # This query collects new statuses which are common to all current bug statuses.
     # It also accepts transitions where the bug status doesn't change.
     $bug_status_ids =
@@ -1219,16 +1222,13 @@ if ($dotweak && scalar @bugs) {
     $vars->{'current_bug_statuses'} = [keys %$bugstatuses];
     $vars->{'new_bug_statuses'} = Bugzilla::Status->new_from_list($bug_status_ids);
 
-    # The groups the user belongs to and which are editable for the given buglist.
-    $vars->{'groups'} = GetGroups(\@products);
-
-    # Generate lists of components, versions and milestones common for all selected products.
+    # Generate UNION lists of components, versions and milestones common for all selected products.
     $_ = Bugzilla::Product->new({name => $_}) for @products;
-    $vars->{components} = intersect(map { [ map { $_->name } @{ $_->components } ] } @products);
-    $vars->{versions} = intersect(map { [ map { $_->name } @{ $_->versions } ] } @products);
+    $vars->{components} = union(map { [ map { $_->name } @{ $_->components } ] } @products);
+    $vars->{versions} = union(map { [ map { $_->name } @{ $_->versions } ] } @products);
     if (Bugzilla->params->{usetargetmilestone})
     {
-        $vars->{targetmilestones} = intersect(map { [ map { $_->name } @{ $_->milestones } ] } @products);
+        $vars->{targetmilestones} = union(map { [ map { $_->name } @{ $_->milestones } ] } @products);
     }
 }
 
