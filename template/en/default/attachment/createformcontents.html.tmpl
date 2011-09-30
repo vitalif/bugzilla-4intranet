@@ -21,46 +21,66 @@
   #                 Marc Schumann <wurblzap@gmail.com>
   #%]
 
-<script language="JavaScript">
-function switch_afot(fot)
-{
-    if (fot)
-    {
-        document.getElementById('afot_text_row').style.display='';
-        document.getElementById('afot_file_row').style.display='none';
-    }
-    else
-    {
-        document.getElementById('afot_text_row').style.display='none';
-        document.getElementById('afot_file_row').style.display='';
-    }
-}
-</script>
 <tr class="expert_fields">
-  <th style="visibility: hidden; white-space: nowrap">Attachment text:</th><td><input onclick="switch_afot(false)" type="radio" name="att_file_or_text" id="afot_file" value="0" checked /> <label for="afot_file">Attach file</label> or <input onclick="switch_afot(true)" type="radio" name="att_file_or_text" id="afot_text" value="1" /> <label for="afot_text">Enter text</label> </td>
-</tr>
-<tr id="afot_file_row">
-  <th><label for="data">File</label>:</th>
+  [%# Don't remove this hidden text, its purpose is to align columns correctly! %]
+  <th style="visibility: hidden; white-space: nowrap">Attachment text:</th>
   <td>
-    <em>Enter the path to the file on your computer.</em><br>
-    <input type="file" id="data" name="data" size="50"
-        onchange="DataFieldHandler([% Param("allow_attach_url") ? 1 : 0 %])"
-    >
+    <input onclick="switchAttype(this)" type="radio" name="attype" id="attype_file" value="file" checked="checked" />
+    <label for="attype_file">Attach file</label>
+  [% IF Param("allow_attach_url") %]
+    <input onclick="switchAttype(this)" type="radio" name="attype" id="attype_url" value="url" />
+    <label for="attype_url">Attach URL</label>
+  [% END %]
+    <input onclick="switchAttype(this)" type="radio" name="attype" id="attype_text" value="text" />
+    <label for="attype_text">Enter text</label>
+  [% IF Param("use_supa_applet") %]
+    <input onclick="switchAttype(this)" type="radio" name="attype" id="attype_supa" value="supa" />
+    <label for="attype_supa">Paste image from clipboard</label>
+  [% END %]
   </td>
 </tr>
-<tr class="expert_fields" id="afot_text_row" style="display: none">
+<tr id="attype_file_row">
+  <th><label for="data">File</label>:</th>
+  <td>
+    <em>Enter the path to the file on your computer.</em><br />
+    <input type="file" id="data" name="data" size="50"
+        onchange="DataFieldHandler([% Param("allow_attach_url") ? 1 : 0 %])" />
+  </td>
+</tr>
+<tr class="expert_fields" id="attype_text_row" style="display: none">
   <th><label for="text_attachment">Attachment text:</label></th>
   <td>
-    <em>Enter attachment text here instead of selecting file.</em><br>
+    <em>Enter or paste attachment text here:</em><br />
     <textarea wrap="soft" id="text_attachment" name="text_attachment" rows="4" cols="80"></textarea>
   </td>
 </tr>
+[% IF Param("use_supa_applet") %]
+<tr class="expert_fields" id="attype_supa_row" style="display: none">
+  <th>
+    <a href="javascript:void supaPasteAgain()">Paste again</a>
+    <input type="hidden" name="base64_content" id="base64_content" value="" />
+  </th>
+  <td id="supa_container">
+  [% FILTER html %]
+    <applet id="SupaApplet" archive="js/Supa.jar"
+      code="de.christophlinder.supa.SupaApplet" width="400" height="300">
+      <param name="trace" value="true" />
+      <param name="pasteonload" value="true" />
+      <param name="clickforpaste" value="true" />
+      <param name="imagecodec" value="png" />
+      <param name="encoding" value="base64" />
+      <param name="previewscaler" value="fit to canvas" />
+      Please enable <a href="http://www.java.com/">Java</a> Applet support in your browser.
+    </applet>
+  [% END %]
+  </td>
+</tr>
+[% END %]
 [% IF Param("maxlocalattachment") && !Param("force_attach_bigfile") %]
 <tr class="expert_fields">
   <th>BigFile:</th>
   <td>
-    <input type="checkbox" id="bigfile"
-           name="bigfile" value="bigfile">
+    <input type="checkbox" id="bigfile" name="bigfile" value="bigfile" />
     <label for="bigfile">
       Big File - Stored locally and may be purged
     </label>
@@ -68,10 +88,10 @@ function switch_afot(fot)
 </tr>
 [% END %]
 [% IF Param("allow_attach_url") %]
-<tr class="expert_fields">
+<tr class="expert_fields" id="attype_url_row" style="display: none">
   <th><label for="attachurl">AttachURL</label>:</th>
   <td>
-    <em>URL to be attached instead.</em><br>
+    <em>URL to be attached instead.</em><br />
     <input type="text" id="attachurl" name="attachurl" size="60" 
            maxlength="2000"
            onkeyup="URLFieldHandler()" onblur="URLFieldHandler()">
@@ -82,16 +102,16 @@ function switch_afot(fot)
 <tr>
   <th><label for="description">Description</label>:</th>
   <td>
-    <em>Describe the attachment briefly.</em><br>
+    <em>Describe the attachment briefly.</em><br />
     <input type="text" id="description" name="description" size="60" maxlength="200" onchange="this._changed=true">
   </td>
 </tr>
-<tr class="expert_fields">
+<tr class="expert_fields" id="content_type_row">
   <th>Content Type:</th>
   <td>
-    <em>If the attachment is a patch, check the box below.</em><br>
+    <em>If the attachment is a patch, check the box below.</em><br />
     <input type="checkbox" id="ispatch" name="ispatch" value="1"
-           onchange="setContentTypeDisabledState(this.form);">
+           onchange="setContentTypeDisabledState(this.form);" />
     <label for="ispatch">patch</label><br /><br />
     [%# Reset this whenever the page loads so that the JS state is up to date %]
     <script type="text/javascript">
@@ -100,17 +120,17 @@ function switch_afot(fot)
       });
     </script>
 
-    <em>Otherwise, choose a method for determining the content type.</em><br>
+    <em>Otherwise, choose a method for determining the content type.</em><br />
     <input type="radio" id="autodetect"
            name="contenttypemethod" value="autodetect" checked="checked">
-      <label for="autodetect">auto-detect</label><br>
+      <label for="autodetect">auto-detect</label><br />
     <input type="radio" id="list"
            name="contenttypemethod" value="list">
       <label for="list">select from list</label>:
       <select name="contenttypeselection" id="contenttypeselection"
               onchange="this.form.contenttypemethod[1].checked = true;">
         [% PROCESS "attachment/content-types.html.tmpl" %]
-      </select><br>
+      </select><br />
     <input type="radio" id="manual"
                  name="contenttypemethod" value="manual">
       <label for="manual">enter manually</label>:
@@ -123,7 +143,7 @@ function switch_afot(fot)
   <td> </td>
   <td>
     [% IF flag_types && flag_types.size > 0 %]
-      [% PROCESS "flag/list.html.tmpl" bug_id=bugid attach_id=attachid %]<br>
+      [% PROCESS "flag/list.html.tmpl" bug_id=bugid attach_id=attachid %]<br />
     [% END %]
   </td>
 </tr>

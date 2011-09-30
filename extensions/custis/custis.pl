@@ -29,6 +29,11 @@ my $OPTIONAL_MODULES =
         module  => 'Net::IP::Match::XS',
         feature => 'FOF-Sudo system-to-system authorization',
     },
+    {
+        package => 'LWP-MediaTypes',
+        module  => 'LWP::MediaTypes',
+        feature => 'Guessing attachment types',
+    },
 ];
 
 required_modules('custis', $REQUIRED_MODULES);

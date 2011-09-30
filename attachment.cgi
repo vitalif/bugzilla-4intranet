@@ -521,6 +521,7 @@ sub insert {
          isurl         => scalar $cgi->param('attachurl'),
          mimetype      => $content_type,
          store_in_file => scalar $cgi->param('bigfile'),
+         base64_content => scalar $cgi->param('base64_content'),
          });
 
     foreach my $obsolete_attachment (@obsolete_attachments) {

@@ -128,7 +128,7 @@ if (my @f = $cgi->param("includefield")) {
     %displayfields = map { $_ => 1 } grep { $displayfields{$_} } @f;
 }
 
-$vars->{'displayfields'} = \%displayfields;
+$vars->{displayfields} = \%displayfields;
 
 my $sd;
 if (Bugzilla->session && ($sd = Bugzilla->session_data) && $sd->{sent})
@@ -139,6 +139,8 @@ if (Bugzilla->session && ($sd = Bugzilla->session_data) && $sd->{sent})
         header => undef,
         sent_attrs => undef,
         failed_checkers => undef,
+        message => undef,
+        message_vars => undef,
     });
     $vars->{last_title} = $sd->{title};
     $vars->{last_header} = $sd->{header};
@@ -152,7 +154,8 @@ if (Bugzilla->session && ($sd = Bugzilla->session_data) && $sd->{sent})
     $vars->{$_} = $sd->{sent_attrs}->{$_} for keys %{$sd->{sent_attrs} || {}};
 }
 
-$cgi->send_header($format->{'ctype'});
+$cgi->send_header($format->{ctype});
 
-$template->process("$format->{'template'}", $vars)
-  || ThrowTemplateError($template->error());
+$template->process($format->{template}, $vars)
+    || ThrowTemplateError($template->error());
+exit;

@@ -393,7 +393,7 @@ document.write(' <input type="button" name="check_all" value="Check All" onclick
         [% bug_status.name FILTER html %]
       </option>
       [% IF !bug_status.is_open %]
-        [% filtered_status =  bug_status.name FILTER js %]
+        [% filtered_status = bug_status.name FILTER js %]
         [% closed_status_array.push( filtered_status ) %]
       [% END %]
     [% END %]
