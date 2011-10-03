@@ -612,7 +612,7 @@ sub _check_description {
 }
 
 sub _check_filename {
-    my ($invocant, $filename, $params) = @_;
+    my ($invocant, $filename, undef, $params) = @_;
 
     # No file is attached, so it has no name.
     return '' if ref $invocant && $invocant->isurl || $params && $params->{isurl};
@@ -922,7 +922,7 @@ sub run_create_validators {
     $params->{data} = $class->_check_data($params);
     $params = $class->SUPER::run_create_validators($params);
 
-    $params->{filename} = $class->_check_filename($params->{filename}, $params);
+    $params->{filename} = $class->_check_filename($params->{filename}, 'filename', $params);
     $params->{creation_ts} ||= Bugzilla->dbh->selectrow_array('SELECT LOCALTIMESTAMP(0)');
     $params->{modification_time} = $params->{creation_ts};
     $params->{submitter_id} = Bugzilla->user->id || ThrowCodeError('invalid_user');
