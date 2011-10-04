@@ -130,6 +130,8 @@ if (defined $cgi->param('dontchange')) {
         if ($cgi->param($name) eq $cgi->param('dontchange')) {
             $cgi->delete($name);
             $cgi->delete("defined_$name");
+            delete $ARGS->{$name};
+            delete $ARGS->{"defined_$name"};
         }
     }
 }
