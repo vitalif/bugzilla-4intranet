@@ -1020,7 +1020,7 @@ sub update
     {
         if (Bugzilla->cgi->param('commentsilent'))
         {
-            # log silent comments
+            # Log silent comments
             SilentLog($self->bug_id, $comment->{thetext});
         }
         $comment->{bug_id} = $self->bug_id;
@@ -1032,16 +1032,24 @@ sub update
         $dbh->do("INSERT INTO longdescs ($columns) VALUES ($qmarks)", undef, @values);
         if (0+$comment->{work_time} != 0)
         {
-            # log worktime
+            # Log worktime
             $changes->{work_time} ||= [ '', 0 ];
             $changes->{work_time}->[1] += $comment->{work_time};
         }
     }
 
-    foreach my $comment_id (keys %{$self->{comment_isprivate} || {}}) {
+    foreach my $comment_id (keys %{$self->{comment_isprivate} || {}})
+    {
         $dbh->do("UPDATE longdescs SET isprivate = ? WHERE comment_id = ?",
                  undef, $self->{comment_isprivate}->{$comment_id}, $comment_id);
-        # XXX It'd be nice to track this in the bug activity.
+        # FIXME It'd be nice to track this in the bug activity.
+    }
+
+    foreach my $comment_id (keys %{$self->{comment_type} || {}})
+    {
+        $dbh->do("UPDATE longdescs SET type = ? WHERE comment_id = ?",
+                 undef, $self->{comment_type}->{$comment_id}, $comment_id);
+        # FIXME It'd be nice to track this in the bug activity.
     }
 
     # Insert the values into the multiselect value tables
@@ -2198,7 +2206,6 @@ sub _set_global_validator {
     }
 }
 
-
 #################
 # "Set" Methods #
 #################
@@ -2228,6 +2235,21 @@ sub set_comment_is_private {
     if ($isprivate != $comment->is_private) {
         $self->{comment_isprivate} ||= {};
         $self->{comment_isprivate}->{$comment_id} = $isprivate;
+    }
+}
+sub set_comment_worktimeonly
+{
+    my ($self, $comment_id, $type) = @_;
+    my ($comment) = grep $comment_id == $_->id, @{ $self->comments };
+    if (!$comment || $comment->who != Bugzilla->user->id ||
+        $comment->type != CMT_NORMAL && $comment->type != CMT_WORKTIME)
+    {
+        ThrowUserError('comment_invalid_worktimeonly', { id => $comment_id })
+    }
+    $type = $type ? CMT_WORKTIME : CMT_NORMAL;
+    if ($type != $comment->type)
+    {
+        $self->{comment_type}->{$comment_id} = $type;
     }
 }
 sub set_component  {
@@ -3022,7 +3044,7 @@ sub comments {
         $self->{'comments'} = Bugzilla::Comment->match({ bug_id => $self->id });
         my $count = 0;
         foreach my $comment (@{ $self->{'comments'} }) {
-            $comment->{count} = $count++;
+            $comment->{count} = $count++ if $comment->type != CMT_WORKTIME;
             $comment->{bug} = $self;
         }
         Bugzilla::Comment->preload($self->{'comments'});

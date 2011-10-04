@@ -165,10 +165,8 @@
 
     [% FOREACH column = displaycolumns %]
     <td class="bz_[% column FILTER css_class_quote %]_column
-        [%- IF Bugzilla.COLUMNS.$column.subid %] bz_[% Bugzilla.COLUMNS.$column.subid | css_class_quote %]_column[% END %]">
-      [% IF abbrev.$column.maxlength %]
-        <span title="[%- bug.$column FILTER html %]">
-      [% END %]
+        [%- IF Bugzilla.COLUMNS.$column.subid %] bz_[% Bugzilla.COLUMNS.$column.subid | css_class_quote %]_column[% END %]"
+        [%- IF abbrev.$column.maxlength %] title="[%- bug.$column | html %]"[% END %]>
       [% IF abbrev.$column.format_value %]
         [%- bug.$column FILTER format(abbrev.$column.format_value) FILTER html -%]
       [% ELSIF Bugzilla.get_field(column).type == constants.FIELD_TYPE_BUG_ID %]
@@ -181,16 +179,18 @@
       [%# Display the login name of the user if their real name is empty. %]
       [% ELSIF column.match('_realname$') && bug.$column == '' %]
         [% SET login_column = column.remove('_realname$') %]
-        [% bug.${login_column}.truncate(abbrev.$column.maxlength,
-                                        abbrev.$column.ellipsis) FILTER html %]
-
+        [% bug.${login_column}.truncate(
+             abbrev.$column.maxlength,
+             abbrev.$column.ellipsis
+           ) FILTER html %]
       [% ELSIF column == 'blocked' OR column == 'dependson' %]
         [% bug.$column | bug_list_link %]
+      [% ELSIF column == 'short_desc' %]
+        <a href="show_bug.cgi?id=[% bug.bug_id %]">
+          [%- bug.$column.truncate(abbrev.$column.maxlength, abbrev.$column.ellipsis) FILTER html -%]
+        </a>
       [% ELSE %]
         [%- bug.$column.truncate(abbrev.$column.maxlength, abbrev.$column.ellipsis) FILTER html -%]
-      [% END %]
-      [% IF abbrev.$column.maxlength %]
-        </span>
       [% END %]
     </td>
     [% END %]

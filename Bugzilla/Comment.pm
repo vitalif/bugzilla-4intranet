@@ -18,10 +18,9 @@
 #
 # Contributor(s): James Robson <arbingersys@gmail.com> 
 
-use strict;
-
 package Bugzilla::Comment;
 
+use strict;
 use base qw(Bugzilla::Object);
 
 use Bugzilla::Attachment;
@@ -100,6 +99,7 @@ sub is_private  { return $_[0]->{'isprivate'}; }
 sub work_time   { return $_[0]->{'work_time'}; }
 sub type        { return $_[0]->{'type'};      }
 sub extra_data  { return $_[0]->{'extra_data'} }
+sub who         { return $_[0]->{'who'};       }
 
 sub bug {
     my $self = shift;
@@ -136,7 +136,7 @@ sub body_full {
     $params ||= {};
     my $template = Bugzilla->template_inner;
     my $body;
-    if ($self->type) {
+    if ($self->type && $self->type != CMT_WORKTIME) {
         $template->process("bug/format_comment.txt.tmpl", 
                            { comment => $self, %$params }, \$body)
             || ThrowTemplateError($template->error());

@@ -967,14 +967,14 @@ document.changeform = document.[% cfname %];
       [% IF user.is_insider %]
         <input type="checkbox" name="commentprivacy" value="1"
                id="newcommentprivacy"
-               onClick="updateCommentTagControl(this, form)">
-        <label for="newcommentprivacy">
-          Make comment private
-        </label>
+               onclick="updateCommentTagControl(this, form)" />
+        <label for="newcommentprivacy">Private</label>
       [% END %]
-        <input type="checkbox" name="commentsilent" value="1"
-               id="commentsilent">
+        <input type="checkbox" name="commentsilent" value="1" id="commentsilent" />
         <label for="commentsilent">Silent</label>
+        <input type="checkbox" name="cmt_worktime" value="1" id="cmt_worktime"
+            onclick="if(this.checked)document.getElementById('commentsilent').checked=true" />
+        <label for="cmt_worktime">Worktime only</label>
 
       <!-- This table keeps the submit button aligned with the box. -->
       <table><tr><td>

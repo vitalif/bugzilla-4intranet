@@ -71,6 +71,7 @@ my $cgi = Bugzilla->cgi;
 my $dbh = Bugzilla->dbh;
 my $template = Bugzilla->template;
 my $vars = {};
+my $ARGS = { %{ $cgi->Vars } };
 
 ######################################################################
 # Subroutines
@@ -335,22 +336,24 @@ my %methods = (
 
 foreach my $b (@bug_objects)
 {
-    if (should_set('comment') || $cgi->param('work_time'))
+    if ($ARGS->{comment} !~ /^\s*$/ || $ARGS->{work_time})
     {
         # Add a comment as needed to each bug. This is done early because
         # there are lots of things that want to check if we added a comment.
-        $b->add_comment(scalar($cgi->param('comment')),
-            { isprivate => scalar $cgi->param('commentprivacy'),
-              work_time => scalar $cgi->param('work_time') });
+        $b->add_comment($ARGS->{comment}, {
+            isprivate => $ARGS->{commentprivacy},
+            work_time => $ARGS->{work_time},
+            type      => $ARGS->{cmt_worktime} ? CMT_WORKTIME : CMT_NORMAL,
+        });
     }
     foreach my $field_name (@set_fields)
     {
-        if (should_set($field_name) || $field_name =~ /^(component|target_milestone|version)$/ &&
-            should_set('product'))
+        if (defined $ARGS->{$field_name} ||
+            defined $ARGS->{product} && $field_name =~ /^(component|target_milestone|version)$/)
         {
             my $method = $methods{$field_name};
             $method ||= "set_" . $field_name;
-            $b->$method($cgi->param($field_name) || '');
+            $b->$method($ARGS->{$field_name} || '');
         }
     }
     $b->reset_assigned_to if $cgi->param('set_default_assignee');
@@ -398,7 +401,16 @@ if (defined $cgi->param('id')) {
         $field =~ /(\d+)$/;
         my $comment_id = $1;
         $first_bug->set_comment_is_private($comment_id,
-                                           $cgi->param("isprivate_$comment_id"));
+            $cgi->param("isprivate_$comment_id"));
+    }
+
+    # Same with worktime-only
+    foreach (keys %$ARGS)
+    {
+        if (/^cmt_(normal|worktime)_(\d+)$/)
+        {
+            $first_bug->set_comment_worktimeonly($2, $1 eq 'worktime');
+        }
     }
 }
 
