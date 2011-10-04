@@ -1,6 +1,7 @@
 #!/usr/bin/perl -wT
-# Bug 42133
-# Интерфейс множественного импорта/обновления багов из Excel-файлов
+# Mass bug import/update from Excel/CSV files (4IntraNet Bug 42133)
+# License: Dual-license GPL 3.0+ or MPL 1.1+
+# Contributor(s): Vitaliy Filippov <vitalif@mail.ru>
 
 use utf8;
 use Encode;
@@ -18,14 +19,13 @@ use Bugzilla::Bug;
 use Bugzilla::BugMail;
 use Bugzilla::User;
 
-# Подгружаются по необходимости: Spreadsheet::ParseExcel, Spreadsheet::XSLX;
+# Also loaded on demand: Spreadsheet::ParseExcel, Spreadsheet::XSLX
 
-# константы
+# Constants
 use constant BUG_DAYS => 92;
 use constant XLS_LISTNAME => 'Bugz';
 use constant MANDATORY_FIELDS => qw(short_desc product component);
 
-# начинаем-с
 my $user = Bugzilla->login(LOGIN_REQUIRED);
 my $cgi = Bugzilla->cgi;
 my $dbh = Bugzilla->dbh;
@@ -75,12 +75,12 @@ for (keys %$args)
 {
     if (/^f_/so && $args->{$_})
     {
-        # шаблон для багов
+        # Default field values for bugs
         $bug_tpl->{$'} = $args->{$_};
     }
     elsif (/^t_/so && $args->{$_} ne $')
     {
-        # переименования полей таблицы
+        # Field mapping
         $name_tr->{$'} = $args->{$_};
     }
 }
@@ -124,12 +124,12 @@ unless ($args->{commit})
     {
         if (!defined $args->{result})
         {
-            # показываем формочку выбора файла и заливки
+            # Show file upload form
             $vars->{form} = 1;
         }
         else
         {
-            # показываем результат импорта
+            # Show import result
             $vars->{show_result} = 1;
             $vars->{result} = $args->{result};
             $vars->{bug_id} = $args->{bug_id};
@@ -144,7 +144,7 @@ unless ($args->{commit})
     }
     else
     {
-        # показываем интерфейс с распаршенной таблицей и галочками (или с обломом)
+        # Show parsed spreadsheet with checkboxes for selection
         my $table;
         if ($args->{xls} !~ /\.(xlsx?)$/iso)
         {
@@ -157,19 +157,17 @@ unless ($args->{commit})
         }
         if (!$table || $table->{error})
         {
-            # ошибка
+            # Parse error
             $vars->{show_error} = 1;
             $vars->{error} = $table->{error} if $table;
         }
         else
         {
-            # распарсилось
             my $i = 0;
             my $sth = $dbh->prepare("SELECT COUNT(*) FROM `bugs` WHERE `short_desc`=? AND `delta_ts`>=DATE_SUB(CURDATE(),INTERVAL ? DAY)");
-            # номера и проверка
             for my $bug (@{$table->{data}})
             {
-                # проверяем нет ли уже такого бага
+                # Check if this bug is already added
                 if ($bug->{short_desc})
                 {
                     trick_taint($bug->{short_desc});
@@ -179,7 +177,7 @@ unless ($args->{commit})
                 }
                 $bug->{num} = ++$i;
             }
-            # угадываем имена полей
+            # Guess fields based on their names
             my $g;
             for (@{$table->{fields}})
             {
@@ -188,23 +186,24 @@ unless ($args->{commit})
                     $name_tr->{$_} = $g;
                 }
             }
-            # показываем табличку с багами
+            # Show bug table
             $vars->{fields} = $table->{fields};
             $vars->{data} = $table->{data};
         }
     }
     $template->process("bug/import/importxls.html.tmpl", $vars)
         || ThrowTemplateError($template->error());
+    exit;
 }
 else
 {
-    # выполняем импорт и отдаём редирект на результаты
+    # Run import and redirect to result page
     my $bugs = {};
     for (keys %$args)
     {
         if (/^b_(.*?)_(\d+)$/so)
         {
-            # поля багов
+            # bug fields
             $bugs->{$2}->{(exists $name_tr->{$1} ? $name_tr->{$1} : $1)} = $args->{$_};
         }
     }
@@ -221,12 +220,12 @@ else
             my $id;
             if ($bug->{bug_id} && Bugzilla::Bug->new($bug->{bug_id}))
             {
-                # если уже есть баг с таким ID - обновляем
+                # If bug with this same ID exists - update it
                 $id = process_bug($bug, $bugmail, $vars);
             }
             else
             {
-                # если ещё нет - ставим новый
+                # Else post new bug
                 $id = post_bug($bug, $bugmail, $vars);
             }
             if ($id)
@@ -252,15 +251,16 @@ else
             (map { ("f_$_" => $bug_tpl->{$_}) } keys %$bug_tpl),
             (map { ("t_$_" => $name_tr->{$_}) } keys %$name_tr),
         });
-        # и только теперь (по успешному завершению) рассылаем почту
+        # Send bugmail only after successful completion
         Bugzilla->cgi->delete('dontsendbugmail');
         send_results($_) for @$bugmail;
         Bugzilla->dbh->bz_commit_transaction;
         print $cgi->redirect(-location => 'importxls.cgi?'.$newcgi->query_string);
     }
+    exit;
 }
 
-# функция чтения CSV-файлов
+# CSV file reader
 # Multiline CSV compatible!
 sub csv_read_record
 {
@@ -299,7 +299,7 @@ sub csv_read_record
     return @parts ? \@parts : undef;
 }
 
-# разобрать лист Excel или передать в parse_csv
+# Parse Excel file, or call parse_csv for CSV file
 sub parse_excel
 {
     my ($upload, $name, $only_list, $name_tr) = @_;
@@ -312,7 +312,7 @@ sub parse_excel
     }
     elsif ($name =~ /\.xls$/iso)
     {
-        # Обычный формат
+        # Excel binary
         require Spreadsheet::ParseExcel;
         $xls = Spreadsheet::ParseExcel->new->Parse($upload);
     }
@@ -320,13 +320,13 @@ sub parse_excel
     my $r = { data => [] };
     for my $page ($xls->worksheets())
     {
-        # выбираем для обработки только лист с заданным именем
+        # Just select one sheet?
         next if $only_list && $page->{Name} ne $only_list;
         my ($row_min, $row_max) = $page->row_range;
         my ($col_min, $col_max) = $page->col_range;
         my $head = get_row($page, $row_min, $col_min, $col_max);
         $r->{fields} ||= $head;
-        # обрабатываем саму таблицу
+        # Handle the table
         for my $row (($row_min+1) .. $row_max)
         {
             $row = get_row($page, $row, $col_min, $col_max) || next;
@@ -338,8 +338,7 @@ sub parse_excel
     return $r;
 }
 
-# Разобрать CSV-файл
-# FIXME многострочное CSV не поддерживается
+# Parse CSV file
 sub parse_csv
 {
     my ($upload, $name, $name_tr, $delimiter) = @_;
@@ -363,7 +362,7 @@ sub parse_csv
     return $r;
 }
 
-# вернуть строчку из экселя
+# Extract row from Excel
 sub get_row
 {
     my ($page, $row, $col_min, $col_max) = @_;
@@ -377,14 +376,15 @@ sub get_row
     } ($col_min .. $col_max) ];
 }
 
-# TODO объединить post_bug и process_bug с ими же из email_in.pl и importxml.pl и вынести куда-то
+# TODO remove duplicate post_bug and process_bug code from here,
+# their .cgi and email_in.pl/importxml.pl versions, and move to Bugzilla::Bug
 
-# добавить баг
+# Add a bug
 sub post_bug
 {
     my ($fields_in, $bugmail, $vars) = @_;
     my $cgi = Bugzilla->cgi;
-    # FIXME проверку обязательных полей можно куда-нибудь унести
+    # FIXME mandatory fields check should be moved somewhere
     my @unexist;
     for (MANDATORY_FIELDS)
     {
@@ -397,7 +397,7 @@ sub post_bug
     {
         ThrowUserError('import_fields_mandatory', { fields => \@unexist });
     }
-    # имитируем почтовое использование с показом ошибок в браузер
+    # Simulate email usage with browser error mode
     my $um = Bugzilla->usage_mode;
     Bugzilla->usage_mode(USAGE_MODE_EMAIL);
     Bugzilla->error_mode(ERROR_MODE_WEBPAGE);
@@ -407,7 +407,7 @@ sub post_bug
     {
         return undef;
     }
-    # добавляем дефолтные группы
+    # Add default product groups
     my @gids;
     my $controls = $product->group_controls;
     foreach my $gid (keys %$controls)
@@ -420,7 +420,7 @@ sub post_bug
     }
     unless ($fields_in->{version})
     {
-        # угадаем версию
+        # Guess version
         my $component;
         eval
         {
@@ -429,7 +429,7 @@ sub post_bug
                 name    => $fields_in->{component},
             });
         };
-        # если нет дефолтной версии в компоненте
+        # If there is no default version in the component:
         if (!$component || !($fields_in->{version} = $component->default_version))
         {
             my $vers = [ map ($_->name, @{$product->versions}) ];
@@ -437,23 +437,23 @@ sub post_bug
             if (($v = $cgi->cookie("VERSION-" . $product->name)) &&
                 !grep { $_ eq $v } @$vers)
             {
-                # возьмём из куки
+                # get from cookie
                 $fields_in->{version} = $v;
             }
             else
             {
-                # или просто последнюю, как и в enter_bug.cgi
+                # or just the last one, like in enter_bug.cgi
                 $fields_in->{version} = $vers->[$#$vers];
             }
         }
     }
-    # скармливаем параметры $cgi
+    # Push params to $cgi
     foreach my $field (keys %$fields_in)
     {
         $cgi->param(-name => $field, -value => $fields_in->{$field});
     }
     $cgi->param(-name => 'dontsendbugmail', -value => 1);
-    # и дёргаем post_bug.cgi
+    # Call post_bug.cgi
     my $vars_out = do 'post_bug.cgi';
     $Bugzilla::Error::IN_EVAL--;
     Bugzilla->usage_mode($um);
@@ -537,26 +537,3 @@ sub process_bug
 
 1;
 __END__
-
-The contents of this file are subject to the Mozilla Public
-License Version 1.1 (the "License"); you may not use this file
-except in compliance with the License. You may obtain a copy of
-the License at http://www.mozilla.org/MPL/
-
-Software distributed under the License is distributed on an "AS
-IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-implied. See the License for the specific language governing
-rights and limitations under the License.
-
-The Original Code is the Bugzilla Bug Tracking System.
-
-The Initial Developer of the Original Code is Netscape Communications
-Corporation. Portions created by Netscape are
-Copyright (C) 1998 Netscape Communications Corporation. All
-Rights Reserved.
-
-Contributor(s): Terry Weissman <terry@mozilla.org>
-                Dan Mosedale <dmose@mozilla.org>
-                Joe Robins <jmrobins@tgix.com>
-                Gervase Markham <gerv@gerv.net>
-                Marc Schumann <wurblzap@gmail.com>

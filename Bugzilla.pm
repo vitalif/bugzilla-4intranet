@@ -402,9 +402,8 @@ sub cgi {
 
 sub send_header {
     my $class = shift;
-    return undef if $class->usage_mode == USAGE_MODE_EMAIL;
-    my $cgi = $class->cgi;
-    $cgi->send_header(@_);
+    return undef if $class->usage_mode != USAGE_MODE_BROWSER;
+    $class->cgi->send_header(@_);
 }
 
 sub input_params {

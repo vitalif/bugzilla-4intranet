@@ -109,7 +109,7 @@ my $longdescs = $dbh->selectall_arrayref(
     ".$dbh->sql_date_format('l.bug_when', '%a, %d %b %Y %H:%i:%s '.$tz)." datetime_rfc822,
     l.bug_when,
     p.login_name, p.realname,
-    NULL AS fieldname, NULL AS fielddesc, NULL AS attach_id, NULL AS old, NULL AS new,
+    '' AS fieldname, '' AS fielddesc, '' AS attach_id, '' AS old, '' AS new,
     (b.creation_ts=l.bug_when) as is_new, l.who
  FROM longdescs l $lhint
  $join
