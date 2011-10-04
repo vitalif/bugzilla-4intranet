@@ -1160,7 +1160,8 @@ sub init
     # Check if the query is empty
     if (!$OUTER_AND)
     {
-        Bugzilla->cgi->send_header(-refresh => '10; URL=query.cgi');
+        # Not Bugzilla->cgi->send_header, because it respects e-mail/console usage
+        Bugzilla->send_header(-refresh => '10; URL=query.cgi');
         ThrowUserError("buglist_parameters_required");
     }
 

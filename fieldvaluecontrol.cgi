@@ -33,6 +33,7 @@ if ($ENV{HTTP_IF_MODIFIED_SINCE} && $user_tag eq $req_tag)
             -last_modified => time2str($touched),
             -status => '304 Not Modified',
             -type => $ctype,
+            -cache_control => 'must-revalidate',
         );
         exit;
     }
@@ -42,6 +43,7 @@ Bugzilla->send_header(
     -etag => $user_tag,
     -type => 'text/javascript'.(Bugzilla->params->{utf8} ? '; charset=utf-8' : ''),
     -last_modified => time2str($touched),
+    -cache_control => 'must-revalidate',
 );
 
 $args->{type} ||= '';

@@ -1090,14 +1090,16 @@ sub process
     my ($template, $vars, $output) = @_;
     if (!$output)
     {
-        # if outputting via print(), check for sent header
-        Bugzilla->send_header;
+        # If outputting via print(), send headers
+        # FIXME: now sends even if usage_mode is not USAGE_MODE_BROWSER
+        # This is needed for importxls.cgi and should be removed when
+        # process_bug()/post_bug() routines will be refactored to not call *.cgi
+        Bugzilla->cgi->send_header;
     }
     return $self->SUPER::process(@_);
 }
 
 1;
-
 __END__
 
 =head1 NAME
