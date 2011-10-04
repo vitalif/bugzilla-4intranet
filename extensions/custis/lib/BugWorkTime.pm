@@ -9,6 +9,7 @@ use strict;
 use POSIX;
 
 use Bugzilla;
+use Bugzilla::Constants;
 use Bugzilla::Error;
 use Bugzilla::Bug;
 use Bugzilla::Util;
@@ -90,6 +91,7 @@ sub AddWorktime
             work_time => $times->{$_},
             bug_when  => $timestamp,
             who       => $_,
+            type      => CMT_WORKTIME,
         });
     }
     return 1 unless $sum;

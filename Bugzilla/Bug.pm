@@ -2241,8 +2241,8 @@ sub set_comment_worktimeonly
 {
     my ($self, $comment_id, $type) = @_;
     my ($comment) = grep $comment_id == $_->id, @{ $self->comments };
-    if (!$comment || $comment->who != Bugzilla->user->id ||
-        $comment->type != CMT_NORMAL && $comment->type != CMT_WORKTIME)
+    if (!$comment || $comment->type != CMT_NORMAL && $comment->type != CMT_WORKTIME ||
+        $comment->who != Bugzilla->user->id && !Bugzilla->user->in_group('worktimeadmin'))
     {
         ThrowUserError('comment_invalid_worktimeonly', { id => $comment_id })
     }
