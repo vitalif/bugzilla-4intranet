@@ -124,7 +124,7 @@
           [% PROCESS formattimeunit time_unit=comment.work_time %]h
         </div>
 
-        [% IF comment.who == user.id %]
+        [% IF comment.who == user.id OR user.in_group('worktimeadmin') %]
         <div class="bz_comment_unmark_wtonly">
           <img src="images/clockx.gif" width="16" height="16"
             alt="Mark comment as worktime-only" title="Mark comment as normal"
@@ -148,7 +148,8 @@
         <br />
         Additional hours worked:
         [%+ PROCESS formattimeunit time_unit=comment.work_time %]
-        [% IF comment.who == user.id AND comment.type == constants.CMT_NORMAL %]
+        [% IF (comment.who == user.id OR user.in_group('worktimeadmin'))
+              AND comment.type == constants.CMT_NORMAL %]
           <img src="images/clock.gif" width="16" height="16"
             alt="Mark comment as worktime-only" title="Mark comment as worktime-only"
             style="cursor: pointer; vertical-align: middle"
