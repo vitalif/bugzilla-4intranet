@@ -35,7 +35,13 @@ use Checkers;
 
 my $cgi = Bugzilla->cgi;
 my $template = Bugzilla->template;
-my $vars = {};
+my $vars = {
+    # Used by bug/comments.html.tmpl
+    'comment_indexes' => sub {
+        my ($comments) = @_;
+        return [ map { [ $_->{count}, $_->{comment_id}, $_->{type} != CMT_WORKTIME ? 1 : 0 ] } @$comments ];
+    },
+};
 
 my $user = Bugzilla->login();
 

@@ -924,12 +924,6 @@ sub create {
                 return $cache->{template_bug_fields};
             },
 
-            # Used by bug/comments.html.tmpl
-            'comment_indexes' => sub {
-                my ($comments) = @_;
-                return [ map { [ $_->{count}, $_->{comment_id} ] } @$comments ];
-            },
-
             'json' => \&Bugzilla::Util::bz_encode_json,
 
             # Whether or not keywords are enabled, in this Bugzilla.

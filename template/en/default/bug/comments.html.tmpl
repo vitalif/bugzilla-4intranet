@@ -18,7 +18,10 @@
   # Contributor(s): Gervase Markham <gerv@gerv.net>
   #                 Max Kanat-Alexander <mkanat@bugzilla.org>
   #                 Shane H. W. Travis <travis@sedsystems.ca>
+  #                 Vitaliy Filippov <vitalif@mail.ru>
   #%]
+
+[%# FIXME check if all is working correctly without JavaScript! (definitely there are bugs) %]
 
 [% PROCESS bug/time.html.tmpl %]
 
@@ -46,10 +49,8 @@
       addActionLinks([% json(comment_indexes(comments)) %]);
     </script>
     <ul class="bz_collapse_expand_comments">
-      <li><a href="#" onclick="toggle_all_comments('collapse', [% comments.size %]);
-                               return false;">Collapse All Comments</a></li>
-      <li><a href="#" onclick="toggle_all_comments('expand', [% comments.size %]);
-                               return false;">Expand All Comments</a></li>
+      <li><a href="#" onclick="toggle_all_comments('collapse'); return false;">Collapse All Comments</a></li>
+      <li><a href="#" onclick="toggle_all_comments('expand'); return false;">Expand All Comments</a></li>
     </ul>
   [% END %]
 </td>
@@ -61,41 +62,44 @@
 
 [% BLOCK a_comment %]
   [% RETURN IF comment.is_private AND ! user.is_insider %]
-
-    <div class="bz_comment[% " bz_private" IF comment.is_private %]
-                [% " bz_comment_hilite" IF marks.$count %]
-                [% " bz_first_comment" IF comment.count == 0 %]">
-      [% IF !comment.count %]
+  [% wt_only = comment.type == constants.CMT_WORKTIME %]
+    <div class="bz_comment
+                [%- " bz_private" IF comment.is_private %]
+                [%- " bz_comment_hilite" IF marks.$count %]
+                [%- " bz_first_comment" IF comment.count == 0 %]">
+      [% IF comment.count == 0 %]
         [% class_name = "bz_first_comment_head" %]
         [% comment_label = "Description" %]
       [% ELSE %]
-        [% class_name = "bz_comment_head" %]
+        [% class_name = wt_only ? "bz_comment_wthead" : "bz_comment_head" %]
         [% comment_label = "Comment " _ comment.count %]
       [% END %]
 
-      <div class="[% class_name FILTER html %]">
+      <div class="[% class_name %]">
 
-        <span class="bz_comment_actions" id="comment_act_[% comment.count %]"></span>
+        <span class="bz_comment_actions" id="comment_act_[% comment.id %]"></span>
 
         [% IF mode == "edit" && user.is_insider %]
           <div class="bz_private_checkbox">
             <input type="hidden" value="1"
-                   name="defined_isprivate_[% comment.id %]">
+                   name="defined_isprivate_[% comment.id %]" />
             <input type="checkbox"
                    name="isprivate_[% comment.id %]" value="1"
                    id="isprivate_[% comment.id %]"
-                   onClick="updateCommentPrivacy(this, [% comment.count %])"
-                   [% " checked=\"checked\"" IF comment.is_private %]>
+                   onClick="updateCommentPrivacy(this, [% comment.id %])"
+                   [% " checked=\"checked\"" IF comment.is_private %] />
             <label for="isprivate_[% comment.id %]">Private</label>
           </div>
         [% END %]
 
+        <a name="[% comment.bug_when FILTER timestamp %]"></a>
+        [% IF NOT wt_only %]
         <span class="bz_comment_number">
-          <a name="[% comment.bug_when FILTER timestamp %]"></a>
           <a name="c[% comment.count %]"
              href="show_bug.cgi?id=[% bug.bug_id %]#c[% comment.count %]">
             [%- comment_label FILTER html %]</a>
         </span>
+        [% END %]
 
         <span class="bz_comment_user">
           [% INCLUDE global/user.html.tmpl who = comment.author %]
@@ -113,19 +117,54 @@
         <span class="bz_comment_time">
           [%+ comment.creation_ts FILTER time %]
         </span>
+
+        [% IF wt_only && user.is_timetracker &&
+            (comment.work_time > 0 || comment.work_time < 0) %]
+        <div class="bz_comment_worktime">
+          [% PROCESS formattimeunit time_unit=comment.work_time %]h
+        </div>
+
+        [% IF comment.who == user.id %]
+        <div class="bz_comment_unmark_wtonly">
+          <img src="images/clockx.gif" width="16" height="16"
+            alt="Mark comment as worktime-only" title="Mark comment as normal"
+            style="cursor: pointer; vertical-align: middle"
+            onclick="mark_wtonly([% comment.id %],1,this)" />
+          <span id="wtonly_cont_[% comment.id %]" style="display: none">
+            <input style="vertical-align: middle" type="checkbox"
+              name="cmt_normal_[% comment.id %]" id="cmt_normal_[% comment.id %]" value="1" />
+            <label style="vertical-align: middle" for="cmt_normal_[% comment.id %]">Mark comment as normal</label>
+          </span>
+        </div>
+        [% END %]
+
+        [% END %]
+
+        <div style="clear: both"></div>
       </div>
 
-      [% IF user.is_timetracker &&
+      [% IF NOT wt_only && user.is_timetracker &&
             (comment.work_time > 0 || comment.work_time < 0) %]
-         <br />
-         Additional hours worked:
-         [% PROCESS formattimeunit time_unit=comment.work_time %]
+        <br />
+        Additional hours worked:
+        [%+ PROCESS formattimeunit time_unit=comment.work_time %]
+        [% IF comment.who == user.id AND comment.type == constants.CMT_NORMAL %]
+          <img src="images/clock.gif" width="16" height="16"
+            alt="Mark comment as worktime-only" title="Mark comment as worktime-only"
+            style="cursor: pointer; vertical-align: middle"
+            onclick="mark_wtonly([% comment.id %],0,this)" />
+          <span id="wtonly_cont_[% comment.id %]" style="display: none">
+            <input style="vertical-align: middle" type="checkbox"
+              name="cmt_worktime_[% comment.id %]" id="cmt_worktime_[% comment.id %]" value="1" />
+            <label style="vertical-align: middle" for="cmt_worktime_[% comment.id %]">Mark comment as worktime only</label>
+          </span>
+        [% END %]
       [% END %]
 
 [%# Don't indent the <pre> block, since then the spaces are displayed in the
   # generated HTML
   #%]
-<pre class="bz_comment_text" id="comment_text_[% comment.count %]">
+<pre class="bz_comment_text [% " collapsed" IF wt_only %]" id="comment_text_[% comment.id %]">
   [%- comment.body_full({ wrap => 1 }) -%]
 </pre>
     </div>

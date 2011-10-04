@@ -265,6 +265,11 @@
     You tried to modify the privacy of comment id [% id FILTER html %],
     but that is not a valid comment on this [% terms.bug %].
 
+  [% ELSIF error == "comment_invalid_worktimeonly" %]
+    You tried to modify the type of comment id [% id FILTER html %],
+    but that is either not a valid comment on this [% terms.bug %],
+    or it's not yours, or it has special type.
+
   [% ELSIF error == "comment_is_private" %]
     Comment id [% id FILTER html %] is private.
 

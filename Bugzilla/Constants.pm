@@ -96,6 +96,7 @@ use Cwd qw(abs_path);
     CMT_MOVED_TO
     CMT_ATTACHMENT_CREATED
     CMT_ATTACHMENT_UPDATED
+    CMT_WORKTIME
 
     THROW_ERROR
     
@@ -299,6 +300,9 @@ use constant CMT_MOVED_TO => 4;
 use constant CMT_ATTACHMENT_CREATED => 5;
 use constant CMT_ATTACHMENT_UPDATED => 6;
 
+# 4Intranet one, means "the comment is just a worktime log entry, and is not important otherwise"
+use constant CMT_WORKTIME => 32;
+
 # Determine whether a validation routine should return 0 or throw
 # an error when the validation fails.
 use constant THROW_ERROR => 1;
@@ -312,7 +316,7 @@ use constant REL_GLOBAL_WATCHER     => 5;
 
 use constant RELATIONSHIPS => REL_ASSIGNEE, REL_QA, REL_REPORTER, REL_CC, 
                               REL_VOTER, REL_GLOBAL_WATCHER;
-                              
+
 # Used for global events like EVT_FLAG_REQUESTED
 use constant REL_ANY                => 100;
 

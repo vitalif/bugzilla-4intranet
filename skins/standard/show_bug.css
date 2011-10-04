@@ -1,21 +1,21 @@
 .bz_alias_short_desc_container {
-    margin: 8px 0; 
-    padding: 0.3em; 
-    background-color: rgb(208, 208, 208); 
-    -moz-border-radius: 0.5em; 
-    font-size: 125%; 
+    margin: 8px 0;
+    padding: 0.3em;
+    background-color: rgb(208, 208, 208);
+    -moz-border-radius: 0.5em;
+    font-size: 125%;
     font-weight: bold;
 }
 
 .bz_bug .edit_form {
-  width: 100%;
+    width: 100%;
 }
 .bz_bug .edit_form table {
-  width: 100%;
+    width: 100%;
 }
 .bz_bug .edit_form .text_input {
-  width: 100%;
-  min-width: 25em;
+    width: 100%;
+    min-width: 25em;
 }
 .bz_bug #alias {
     min-width: 0;
@@ -34,7 +34,7 @@ table#flags {
 }
 
 .related_actions {
-    font-size: 0.85em; 
+    font-size: 0.85em;
     float: right;
     list-style-type: none;
     white-space: nowrap;
@@ -47,7 +47,7 @@ table#flags {
 }
 
 .bz_show_bug_column {
-  vertical-align: top;
+    vertical-align: top;
 }
 
 .bz_section_spacer {
@@ -56,7 +56,6 @@ table#flags {
 
 #duplicate_settings, #votes_container {
     white-space: nowrap;
-    
 }
 
 #bz_big_form_parts td {
@@ -95,7 +94,7 @@ table#flags {
     vertical-align: middle;
 }
 
-.bz_time_tracking_table th, 
+.bz_time_tracking_table th,
 .bz_time_tracking_table td {
     padding: 4px;
 }
@@ -104,11 +103,11 @@ table#flags {
     text-align: right;
 }
 
-#summary tr td { 
+#summary tr td {
     vertical-align:top;
 }
 
-#status { 
+#status {
     margin-bottom: 3ex;
 }
 
@@ -143,3 +142,28 @@ table#flags {
 #comment_textarea { width: 50em; font-size: medium; font-family: monospace; }
 
 #cf_sprint { max-width: 25em; min-width: 0; }
+
+/* <Comments> */
+
+.bz_comment_table td { vertical-align: top; }
+
+.bz_comment_user, .bz_comment_time,
+.bz_comment_number, .bz_private_checkbox,
+.bz_comment_actions { margin: 0 .5em; white-space: nowrap; }
+
+.bz_comment_user, .bz_comment_time, .bz_comment_user_images,
+.bz_comment_worktime, .bz_comment_unmark_wtonly { float: left; }
+.bz_comment_actions, .bz_comment_number, .bz_private_checkbox { float: right; }
+
+.bz_comment_worktime { font-weight: bold; color: #008000; }
+.bz_comment_unmark_wtonly { margin-left: 1em; }
+.bz_private_checkbox input { margin: 0; vertical-align: middle; }
+.bz_comment_user_images img { vertical-align: bottom; }
+
+.bz_collapse_expand_comments { padding: 0; margin: 0 0 0 1em; list-style-type: none; }
+.bz_collapse_expand_comments li { margin-bottom: .5em; }
+.bz_collapse_comment { text-decoration: none; }
+
+.bz_comment_head, .bz_first_comment_head { padding: .1em 0 .1em .5em; background-color: #e0e0e0; }
+
+/* </Comments> */

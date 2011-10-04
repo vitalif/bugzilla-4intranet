@@ -209,7 +209,7 @@
         border-color: black;
         border-width: 0px 0px 2px 0px;
     }
-        
+
     .tabs td.selected {
         background: white;
         border-width: 2px 2px 0px 2px;
@@ -277,16 +277,17 @@ div#docslinks {
     color: #a0a0a0;
 }
 
-/************/
-/* Comments */
-/************/
+/****************/
+/* Comment text */
+/****************/
 
-.bz_comment_table td {
-    vertical-align: top;
-}
+.bz_comment { margin-bottom: 2em; }
+.bz_comment_text { width: 50em; }
 
-.bz_comment {
-    margin-bottom: 2em;
+.bz_comment_text span.quote {
+    color: #65379c;
+    /* Make quoted text not wrap. */
+    white-space: pre;
 }
 
 /* The rules for these classes make international text wrap correctly,
@@ -301,68 +302,19 @@ div#docslinks {
      white-space: -o-pre-wrap;   /* Opera 7 */
 }
 
-.bz_comment_text {
-     width: 50em;
-}
-
-.bz_comment_user, .bz_comment_time, .bz_comment_number, 
-.bz_private_checkbox, .bz_comment_actions
-{
-    margin: 0 .5em;
-    white-space: nowrap;
-}
-
-.bz_comment_actions, .bz_comment_number, .bz_private_checkbox {
-    float: right;
-}
-
-.bz_collapse_expand_comments {
-    padding: 0;
-    margin: 0 0 0 1em;
-    list-style-type: none;
-}
-.bz_collapse_expand_comments li {
-    margin-bottom: .5em;
-}
-.bz_collapse_comment {
-    text-decoration: none;
-}
-
-.bz_private_checkbox input { 
-    margin: 0;
-    vertical-align: middle;
-}
-
-.bz_comment_head, .bz_first_comment_head {
-    padding-top: .1em;
-    padding-bottom: .1em;
-    padding-left: .5em;
-    background-color: #e0e0e0;
-}
-
-.bz_comment_user_images img {
-    vertical-align: bottom;
-}
-
 .bz_comment_hilite pre {
     background-color: lightgreen;
     margin: 0;
     padding: 1em 0;
 }
 
-/** End Comments **/
+/** End Comment text **/
 
 .bz_default_hidden, .bz_tui_hidden, .bz_hidden_field, .bz_hidden_option {
     /* We have !important because we want elements with these classes to always
      * be hidden, even if there is some CSS that overrides it (we use these
      * classes inside JavaScript to hide things). */
     display: none !important;
-}
-
-.bz_comment_text span.quote {
-    color: #65379c;
-    /* Make quoted text not wrap. */
-    white-space: pre;
 }
 
 table#flags th,
@@ -500,13 +452,6 @@ input.required, select.required, span.required_explanation {
     vertical-align: middle;
 }
 .calendar_button span { display: none }
-/* These classes are set by YUI. */
-.yui-calcontainer {
-    display: none; 
-    background-color: white; 
-    padding: 10px;
-    border: 1px solid #404D6C;
-}
 
 .bug_urls {
     margin: 0 0 1em 0;
@@ -552,7 +497,7 @@ form#Create .comment {
     background-image: url(global/down.png);
 }
 
-/* Bug states  */
+/* Bug states */
 .bz_st_UNCONFIRMED, .bz_UNCONFIRMED td.first-child a { font-style: italic; }
 .bz_st_RESOLVED, .bz_RESOLVED td.first-child a { text-decoration: line-through; }
 .bz_st_VERIFIED, .bz_VERIFIED td.first-child a { text-decoration: line-through; border: 1px dashed #2f6fab; color: black; background-color: #f9f9f9; line-height: 1.1em; }
@@ -581,7 +526,6 @@ z-index:-1;
 filter:mask();
 }
 
-.yui-calcontainer { z-index: 50; }
 .numeric_invalid { background-color: #FFE0E0; }
 .buglist-navbar { float: left; margin: 4pt; font-size: 120%; padding: 2pt; }
 
