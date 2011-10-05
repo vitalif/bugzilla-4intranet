@@ -85,8 +85,10 @@ function move_up()
         else
             newopt.push(opt);
     }
-    for (var i in newopt)
-        sel_select.options[i] = newopt[i];
+    while (sel_select.childNodes.length)
+        sel_select.removeChild(sel_select.childNodes[0]);
+    for (var i = 0; i < newopt.length; i++)
+        sel_select.appendChild(newopt[i]);
     updateView();
 }
 
@@ -113,9 +115,11 @@ function move_down()
             sel.unshift(opt.selected);
         }
     }
-    for (var i in newopt)
-        sel_select.options[i] = newopt[i];
-    for (var i in sel)
+    while (sel_select.childNodes.length)
+        sel_select.removeChild(sel_select.childNodes[0]);
+    for (var i = 0; i < newopt.length; i++)
+        sel_select.appendChild(newopt[i]);
+    for (var i = 0; i < sel.length; i++)
         sel_select.options[i].selected = sel[i];
     updateView();
 }
