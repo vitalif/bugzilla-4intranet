@@ -62,7 +62,7 @@
 
 [% BLOCK a_comment %]
   [% RETURN IF comment.is_private AND ! user.is_insider %]
-  [% wt_only = comment.type == constants.CMT_WORKTIME %]
+  [% wt_only = comment.type == constants.CMT_WORKTIME || comment.type == constants.CMT_BACKDATED_WORKTIME %]
     <div class="bz_comment
                 [%- " bz_private" IF comment.is_private %]
                 [%- " bz_comment_hilite" IF marks.$count %]
@@ -124,7 +124,8 @@
           [% PROCESS formattimeunit time_unit=comment.work_time %]h
         </div>
 
-        [% IF comment.who == user.id OR user.in_group('worktimeadmin') %]
+        [% IF comment.type == constants.CMT_WORKTIME
+              && (comment.who == user.id || user.in_group('worktimeadmin')) %]
         <div class="bz_comment_unmark_wtonly" id="unmark_wtonly_[% comment.id %]" style="display: none">
           <img src="images/clockx.gif" width="16" height="16"
             alt="Mark comment as worktime-only" title="Mark comment as normal"
