@@ -74,21 +74,30 @@ function move_up()
     if (sel_select.options.length < 2)
         return;
     var newopt = [ sel_select.options[0] ];
+    var sel = [ sel_select.options[0].selected ];
     for (var i = 1; i < sel_select.options.length; i++)
     {
         var opt = sel_select.options[i];
         if (opt.selected)
         {
-            newopt.push(newopt[i-1]);
-            newopt[i-1] = opt;
+            var n = newopt.pop();
+            newopt.push(opt);
+            newopt.push(n);
+            sel.push(sel[i-1]);
+            sel[i-1] = true;
         }
         else
+        {
+            sel.push(false);
             newopt.push(opt);
+        }
     }
     while (sel_select.childNodes.length)
         sel_select.removeChild(sel_select.childNodes[0]);
     for (var i = 0; i < newopt.length; i++)
         sel_select.appendChild(newopt[i]);
+    for (var i = 0; i < sel.length; i++)
+        sel_select.options[i].selected = sel[i];
     updateView();
 }
 
