@@ -97,6 +97,7 @@ use Cwd qw(abs_path);
     CMT_ATTACHMENT_CREATED
     CMT_ATTACHMENT_UPDATED
     CMT_WORKTIME
+    CMT_BACKDATED_WORKTIME
 
     THROW_ERROR
     
@@ -302,6 +303,9 @@ use constant CMT_ATTACHMENT_UPDATED => 6;
 
 # 4Intranet one, means "the comment is just a worktime log entry, and is not important otherwise"
 use constant CMT_WORKTIME => 32;
+# Other one, introduced to not break comment numbering when adding backdated
+# worktime through the "super-worktime" form.
+use constant CMT_BACKDATED_WORKTIME => 33;
 
 # Determine whether a validation routine should return 0 or throw
 # an error when the validation fails.

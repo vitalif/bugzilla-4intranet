@@ -3044,7 +3044,7 @@ sub comments {
         $self->{'comments'} = Bugzilla::Comment->match({ bug_id => $self->id });
         my $count = 0;
         foreach my $comment (@{ $self->{'comments'} }) {
-            $comment->{count} = $count++ if $comment->type != CMT_WORKTIME;
+            $comment->{count} = $count++ if $comment->type != CMT_BACKDATED_WORKTIME;
             $comment->{bug} = $self;
         }
         Bugzilla::Comment->preload($self->{'comments'});

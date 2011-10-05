@@ -125,7 +125,7 @@
         </div>
 
         [% IF comment.who == user.id OR user.in_group('worktimeadmin') %]
-        <div class="bz_comment_unmark_wtonly">
+        <div class="bz_comment_unmark_wtonly" id="unmark_wtonly_[% comment.id %]" style="display: none">
           <img src="images/clockx.gif" width="16" height="16"
             alt="Mark comment as worktime-only" title="Mark comment as normal"
             style="cursor: pointer; vertical-align: middle"

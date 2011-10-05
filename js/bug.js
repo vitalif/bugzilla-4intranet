@@ -18,14 +18,11 @@ function updateCommentPrivacy(checkbox, id)
 
 /* The functions below expand and collapse comments  */
 
-function toggle_comment_display(link, comment_id)
+function toggle_comment_display(comment_id)
 {
     var comment = document.getElementById('comment_text_' + comment_id);
     var re = new RegExp(/\bcollapsed\b/);
-    if (comment.className.match(re))
-        expand_comment(link, comment);
-    else
-        collapse_comment(link, comment);
+    showhide_comment(comment_id, comment.className.match(re));
 }
 
 function toggle_all_comments(action, num_comments)
@@ -33,30 +30,23 @@ function toggle_all_comments(action, num_comments)
     var parent = document.getElementById('comments');
     var pre = parent.getElementsByTagName('pre');
     for (var i = 0; i < pre.length; i++)
-    {
         if (pre[i].id.substr(0, 13) == 'comment_text_')
-        {
-            var link = document.getElementById('comment_link_' + pre[i].id.substr(13));
-            if (action == 'collapse')
-                collapse_comment(link, pre[i]);
-            else
-                expand_comment(link, pre[i]);
-        }
-    }
+            showhide_comment(pre[i].id.substr(13), action != 'collapse');
 }
 
-function collapse_comment(link, comment)
+function showhide_comment(comment_id, show)
 {
-    link.innerHTML = "[+]";
-    link.title = "Expand the comment.";
-    addClass(comment, 'collapsed');
-}
-
-function expand_comment(link, comment)
-{
-    link.innerHTML = "[-]";
-    link.title = "Collapse the comment";
-    removeClass(comment, 'collapsed');
+    var link = document.getElementById('comment_link_' + comment_id);
+    var comment = document.getElementById('comment_text_' + comment_id);
+    var unmark = document.getElementById('unmark_wtonly_' + comment_id);
+    link.innerHTML = show ? "[-]" : "[+]";
+    link.title = (show ? "Collapse" : "Expand")+" the comment.";
+    if (unmark)
+        unmark.style.display = show ? '' : 'none';
+    if (show)
+        removeClass(comment, 'collapsed');
+    else
+        addClass(comment, 'collapsed');
 }
 
 // Mark comment as worktime-only (norm == false) or normal (norm == true)
@@ -66,10 +56,6 @@ function mark_wtonly(id, norm, img)
     document.getElementById((norm ? 'cmt_normal_' : 'cmt_worktime_')+id).checked = true;
     if (img)
         img.style.display = 'none';
-    expand_comment(
-        document.getElementById('comment_link_'+id),
-        document.getElementById('comment_text_'+id)
-    );
 }
 
 // This way, we are sure that browsers which do not support JS
@@ -84,7 +70,7 @@ function addCollapseLink(id)
     e.innerHTML +=
         ' <a href="#" class="bz_collapse_comment"'+
         ' id="comment_link_' + id +
-        '" onclick="toggle_comment_display(this, ' + id +
+        '" onclick="toggle_comment_display(' + id +
         '); return false;" title="'+(c ? 'Collapse' : 'Expand')+' the comment.">['+
         (c ? '-' : '+')+']<\/a> ';
 }

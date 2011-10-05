@@ -136,7 +136,10 @@ sub body_full {
     $params ||= {};
     my $template = Bugzilla->template_inner;
     my $body;
-    if ($self->type && $self->type != CMT_WORKTIME) {
+    my $t = $self->type;
+    if ($t && $t != CMT_BACKDATED_WORKTIME &&
+        $t != CMT_WORKTIME)
+    {
         $template->process("bug/format_comment.txt.tmpl", 
                            { comment => $self, %$params }, \$body)
             || ThrowTemplateError($template->error());
