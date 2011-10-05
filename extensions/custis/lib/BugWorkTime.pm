@@ -91,7 +91,7 @@ sub AddWorktime
             work_time => $times->{$_},
             bug_when  => $timestamp,
             who       => $_,
-            type      => CMT_WORKTIME,
+            type      => $timestamp lt $bug->delta_ts ? CMT_BACKDATED_WORKTIME : CMT_WORKTIME,
         });
     }
     return 1 unless $sum;
