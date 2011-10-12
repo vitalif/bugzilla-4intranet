@@ -38,19 +38,21 @@
 [%# use the global field descs %]
 [%# This lists fields which use the user auto-completion feature and which
   # are not listed in field_descs. %]
-[% field_labels = { # Used by editcomponents.cgi
-                    "initialcc"               => "Default CC List",
-                    "initialowner"            => "Default Assignee",
-                    "initialqacontact"        => "Default QA Contact",
-                    # Used by process_bug.cgi
-                    "masscc"                  => "CC List",
-                    # Used by request.cgi
-                    "requester"               => "Requester",
-                    "requestee"               => "Requestee",
-                    # Used by userprefs.cgi
-                    "new_watchedusers"        => "Watch List",
-                    # Used by superworktime
-                    "worktime_user"           => "Worktime user",
+[%# FIXME move away from here %]
+[% field_labels = {
+     # Used by editcomponents.cgi
+     "initialcc"               => "Default CC List",
+     "initialowner"            => "Default Assignee",
+     "initialqacontact"        => "Default QA Contact",
+     # Used by process_bug.cgi
+     "masscc"                  => "CC List",
+     # Used by request.cgi
+     "requester"               => "Requester",
+     "requestee"               => "Requestee",
+     # Used by userprefs.cgi
+     "new_watchedusers"        => "Watch List",
+     # Used by superworktime
+     "worktime_user"           => "Worktime user",
    }
 %]
 [% IF matchsuccess == 1 %]
@@ -103,7 +105,12 @@
 
   [%# this is messy to allow later expansion %]
 
+  [% exclude_hash = {
+    Bugzilla_login => 1
+    Bugzilla_password => 1
+  } %]
   [% FOREACH field = matches %]
+    [% exclude_hash.${field.key} = 1 %]
     <tr>
       <td align="left" valign="top">
         [% PROCESS field_names field_name=field.key %]:
@@ -174,7 +181,7 @@
 
 [% IF matchsuccess == 1 %]
 
-  [% PROCESS "global/hidden-fields.html.tmpl" exclude="^Bugzilla_(login|password)$" %]
+  [% PROCESS "global/hidden-fields.html.tmpl" exclude_hash = exclude_hash %]
 
   <p>
     <input type="submit" id="continue" value="Continue" />
@@ -190,9 +197,7 @@
 
 [% PROCESS global/footer.html.tmpl %]
 
-
 [% BLOCK field_names %]
-
   [% IF field_descs.$field_name %]
     [% field_descs.$field_name FILTER html %]
   [% ELSIF field_labels.$field_name %]
@@ -202,5 +207,4 @@
   [% ELSE %]
     [% field_name FILTER html %]
   [% END %]
-
 [% END %]
