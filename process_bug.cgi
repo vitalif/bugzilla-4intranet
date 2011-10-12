@@ -355,8 +355,6 @@ foreach my $b (@bug_objects)
         {
             my $method = $methods{$field_name};
             $method ||= "set_" . $field_name;
-            use Data::Dumper;
-            die Dumper $ARGS->{$field_name} if ref $ARGS->{$field_name} eq 'ARRAY';
             $b->$method($ARGS->{$field_name} || '');
         }
     }
