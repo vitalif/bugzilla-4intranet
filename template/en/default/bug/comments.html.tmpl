@@ -123,22 +123,21 @@
         <div class="bz_comment_worktime">
           [% PROCESS formattimeunit time_unit=comment.work_time %]h
         </div>
+        [% END %]
 
         [% IF comment.type == constants.CMT_WORKTIME
               && (comment.who == user.id || user.in_group('worktimeadmin')) %]
         <div class="bz_comment_unmark_wtonly" id="unmark_wtonly_[% comment.id %]" style="display: none">
-          <img src="images/clockx.gif" width="16" height="16"
-            alt="Mark comment as worktime-only" title="Mark comment as normal"
+          <img src="images/expand.gif" width="16" height="16"
+            alt="Mark comment as normal (expand by default)" title="Mark comment as normal (expand by default)"
             style="cursor: pointer; vertical-align: middle"
             onclick="mark_wtonly([% comment.id %],1,this)" />
           <span id="wtonly_cont_[% comment.id %]" style="display: none">
             <input style="vertical-align: middle" type="checkbox"
               name="cmt_normal_[% comment.id %]" id="cmt_normal_[% comment.id %]" value="1" />
-            <label style="vertical-align: middle" for="cmt_normal_[% comment.id %]">Mark comment as normal</label>
+            <label style="vertical-align: middle" for="cmt_normal_[% comment.id %]">Expand by default</label>
           </span>
         </div>
-        [% END %]
-
         [% END %]
 
         <div style="clear: both"></div>
@@ -151,14 +150,14 @@
         [%+ PROCESS formattimeunit time_unit=comment.work_time %]
         [% IF (comment.who == user.id OR user.in_group('worktimeadmin'))
               AND comment.type == constants.CMT_NORMAL %]
-          <img src="images/clock.gif" width="16" height="16"
-            alt="Mark comment as worktime-only" title="Mark comment as worktime-only"
+          <img src="images/collapse.gif" width="16" height="16"
+            alt="Collapse by default" title="Collapse by default"
             style="cursor: pointer; vertical-align: middle"
             onclick="mark_wtonly([% comment.id %],0,this)" />
           <span id="wtonly_cont_[% comment.id %]" style="display: none">
             <input style="vertical-align: middle" type="checkbox"
               name="cmt_worktime_[% comment.id %]" id="cmt_worktime_[% comment.id %]" value="1" />
-            <label style="vertical-align: middle" for="cmt_worktime_[% comment.id %]">Mark comment as worktime only</label>
+            <label style="vertical-align: middle" for="cmt_worktime_[% comment.id %]">Collapse by default</label>
           </span>
         [% END %]
       [% END %]

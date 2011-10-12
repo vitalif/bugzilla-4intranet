@@ -29,6 +29,7 @@
 
 [%# Generate hidden form fields for non-excluded fields. %]
 [% FOREACH field = cgi.param() %]
+  [% NEXT IF exclude_hash && exclude_hash.${field} %]
   [% NEXT IF exclude && field.search(exclude) %]
   [%# The '.slice(0)' bit is here to force the 'param(field)' to be evaluated
       in a list context, so we can avoid extra code checking for single valued or
