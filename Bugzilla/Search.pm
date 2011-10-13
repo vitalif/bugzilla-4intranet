@@ -582,7 +582,10 @@ sub STATIC_COLUMNS
     foreach my $field (@bugid_fields)
     {
         my $id = $field->name;
-        my $join = [ "LEFT JOIN bugs bugs_$id ON bugs_$id.bug_id=bugs.$id" ];
+        my $join = [
+            @{$columns->{$id}->{joins} || []},
+            "LEFT JOIN bugs bugs_$id ON bugs_$id.bug_id=$columns->{$id}->{name}"
+        ];
         foreach my $subfield (Bugzilla->get_fields({ obsolete => 0, buglist => 1 }))
         {
             my $subid = $subfield->name;
