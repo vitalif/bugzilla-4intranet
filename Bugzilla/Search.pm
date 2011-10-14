@@ -1953,11 +1953,22 @@ sub _blocked_dependson
     my $t = "dep_".$self->{sequence};
     my $other = ($self->{field} eq 'blocked' ? 'dependson' : 'blocked');
     $self->{fieldsql} = $self->{field} = $t.'.'.$self->{field};
-    $self->call_op;
+    my $neg = 0;
+    if ($self->{value} eq '' &&
+        ($self->{type} eq 'equals' || $self->{type} eq 'anyexact'))
+    {
+        $self->{term} = '1';
+        $neg = 1;
+    }
+    else
+    {
+        $self->call_op;
+    }
     $self->{term} = {
         table => "dependencies $t",
         where => $self->{term},
         bugid_field => $t.'.'.$other,
+        neg => $neg,
     };
 }
 
