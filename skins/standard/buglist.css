@@ -80,7 +80,10 @@ td.bz_total {
 .bz_buglist .bz_status_whiteboard_column,
 .bz_buglist .bz_keywords_column,
 .bz_buglist .bz_flagtypes_name_column,
-.bz_buglist .bz_comment0_column { white-space: normal; }
+.bz_buglist .bz_comment0_column,
+.bz_buglist .bz_f1,
+.bz_buglist .bz_f4,
+.bz_buglist .bz_f7 { white-space: normal; }
 
 .bz_buglist .bz_blocked_column,
 .bz_buglist .bz_dependson_column { width: 8%; white-space: normal; }

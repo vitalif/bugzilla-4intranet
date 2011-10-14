@@ -164,7 +164,7 @@
     </td>
 
     [% FOREACH column = displaycolumns %]
-    <td class="bz_[% column FILTER css_class_quote %]_column
+    <td class="bz_[% column FILTER css_class_quote %]_column bz_f[% Bugzilla.get_field(column).type %]
         [%- IF Bugzilla.COLUMNS.$column.subid %] bz_[% Bugzilla.COLUMNS.$column.subid | css_class_quote %]_column[% END %]"
         [%- IF abbrev.$column.maxlength %] title="[%- bug.$column | html %]"[% END %]>
       [% IF abbrev.$column.format_value %]
