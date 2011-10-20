@@ -1086,7 +1086,7 @@ document.changeform = document.[% cfname %];
       [% IF bug.user.canmove %]
         <input type="submit" name="action" id="action[% id FILTER css_class_quote %]" value="[% Param("move-button-text") %]">
       [% END %]
-      [% IF NOT nobr %]<br />[% w %][% END %]
+      [% IF NOT nobr %]<p style="margin: 0.5em 0">[% w %]</p>[% END %]
     </div>
   [% END %]
 [% END %]

@@ -96,7 +96,9 @@
                 onchange="onChangeVisibilityField()">
           <option></option>
           [% FOREACH sel_field = Bugzilla.get_fields({ is_select => 1 }) %]
-            [% NEXT IF sel_field.id == field.id %]
+            [%# FIXME now, fields with non-unique value name is not allowed %]
+            [% NEXT IF sel_field.id == field.id || sel_field.name == "component" ||
+                sel_field.name == "version" || sel_field.name == "target_milestone" %]
             <option value="[% sel_field.id FILTER html %]"
              [% ' selected="selected"' 
                 IF sel_field.id == field.visibility_field.id %]>
