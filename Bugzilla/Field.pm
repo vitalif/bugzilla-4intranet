@@ -598,6 +598,9 @@ sub check_visibility
     my $value = blessed $bug ? $bug->$m : $bug->{$m};
     if (!blessed $value)
     {
+        # FIXME: This does not allow selecting of fields
+        # non-uniquely identified by name, as a visibility
+        # controller field (for example, "component")
         $value = Bugzilla::Field::Choice->type($vf)->new({ name => $value }) || return 1;
     }
     return $self->has_visibility_value($value);
