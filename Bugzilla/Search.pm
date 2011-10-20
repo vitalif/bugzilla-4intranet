@@ -1134,6 +1134,7 @@ sub init
                     $chart != 0
                 );
                 push @$ROW_OR, $term if $term;
+                $self->{sequence}++;
             }
             push @$CHART_AND, $ROW_OR if @$ROW_OR > 1;
         }
