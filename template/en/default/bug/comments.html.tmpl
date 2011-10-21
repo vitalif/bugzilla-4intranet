@@ -61,9 +61,13 @@
 [%############################################################################%]
 
 [% BLOCK a_comment %]
-  [% RETURN IF comment.is_private AND ! user.is_insider %]
+  [% RETURN IF comment.is_private AND !user.is_insider %]
+  [% has_worktime = user.is_timetracker && (comment.work_time > 0 || comment.work_time < 0) %]
   [% wt_only = comment.type == constants.CMT_WORKTIME || comment.type == constants.CMT_BACKDATED_WORKTIME %]
-    <div class="bz_comment
+  [% wt_all = user.settings.showhide_comments.value == 'all' %]
+  [% wt_wt = user.settings.showhide_comments.value == 'worktime' %]
+  [% wt_btn = (wt_wt && has_worktime || wt_all) && (comment.who == user.id || user.in_group('worktime_admin')) %]
+  <div class="bz_comment
                 [%- " bz_private" IF comment.is_private %]
                 [%- " bz_comment_hilite" IF marks.$count %]
                 [%- " bz_first_comment" IF comment.count == 0 %]">
@@ -78,6 +82,26 @@
       <div class="[% class_name %]">
 
         <span class="bz_comment_actions" id="comment_act_[% comment.id %]"></span>
+
+        [% IF wt_btn %]
+        <span class="bz_comment_actions">
+          [% IF wt_only %]
+          <img src="images/clockx.gif" width="16" height="16"
+              alt="Comment is marked as worktime-only. Click to mark it as normal, then click Save Changes"
+            title="Comment is marked as worktime-only. Click to mark it as normal, then click Save Changes"
+            style="cursor: pointer; vertical-align: middle"
+            onclick="toggle_wtonly([% comment.id %],1,this)" />
+          <input type="hidden" id="cmt_normal_[% comment.id %]" name="cmt_normal_[% comment.id %]" value="" />
+          [% ELSIF comment.type == constants.CMT_NORMAL %]
+          <img src="images/clock.gif" width="16" height="16"
+              alt="Comment is marked as normal. Click to mark it as worktime-only, then click Save Changes"
+            title="Comment is marked as normal. Click to mark it as worktime-only, then click Save Changes"
+            style="cursor: pointer; vertical-align: middle"
+            onclick="toggle_wtonly([% comment.id %],0,this)" />
+          <input type="hidden" id="cmt_worktime_[% comment.id %]" name="cmt_worktime_[% comment.id %]" value="" />
+          [% END %]
+        </span>
+        [% END %]
 
         [% IF mode == "edit" && user.is_insider %]
           <div class="bz_private_checkbox">
@@ -118,49 +142,19 @@
           [%+ comment.creation_ts FILTER time %]
         </span>
 
-        [% IF wt_only && user.is_timetracker &&
-            (comment.work_time > 0 || comment.work_time < 0) %]
+        [% IF wt_only && has_worktime %]
         <div class="bz_comment_worktime">
           [% PROCESS formattimeunit time_unit=comment.work_time %]h
         </div>
-
-        [% IF comment.type == constants.CMT_WORKTIME
-              && (comment.who == user.id || user.in_group('worktimeadmin')) %]
-        <div class="bz_comment_unmark_wtonly" id="unmark_wtonly_[% comment.id %]" style="display: none">
-          <img src="images/clockx.gif" width="16" height="16"
-            alt="Mark comment as worktime-only" title="Mark comment as normal"
-            style="cursor: pointer; vertical-align: middle"
-            onclick="mark_wtonly([% comment.id %],1,this)" />
-          <span id="wtonly_cont_[% comment.id %]" style="display: none">
-            <input style="vertical-align: middle" type="checkbox"
-              name="cmt_normal_[% comment.id %]" id="cmt_normal_[% comment.id %]" value="1" />
-            <label style="vertical-align: middle" for="cmt_normal_[% comment.id %]">Mark comment as normal</label>
-          </span>
-        </div>
-        [% END %]
-
         [% END %]
 
         <div style="clear: both"></div>
       </div>
 
-      [% IF NOT wt_only && user.is_timetracker &&
-            (comment.work_time > 0 || comment.work_time < 0) %]
+      [% IF !wt_only && has_worktime %]
         <br />
         Additional hours worked:
         [%+ PROCESS formattimeunit time_unit=comment.work_time %]
-        [% IF (comment.who == user.id OR user.in_group('worktimeadmin'))
-              AND comment.type == constants.CMT_NORMAL %]
-          <img src="images/clock.gif" width="16" height="16"
-            alt="Mark comment as worktime-only" title="Mark comment as worktime-only"
-            style="cursor: pointer; vertical-align: middle"
-            onclick="mark_wtonly([% comment.id %],0,this)" />
-          <span id="wtonly_cont_[% comment.id %]" style="display: none">
-            <input style="vertical-align: middle" type="checkbox"
-              name="cmt_worktime_[% comment.id %]" id="cmt_worktime_[% comment.id %]" value="1" />
-            <label style="vertical-align: middle" for="cmt_worktime_[% comment.id %]">Mark comment as worktime only</label>
-          </span>
-        [% END %]
       [% END %]
 
 [%# Don't indent the <pre> block, since then the spaces are displayed in the

@@ -27,8 +27,6 @@
    title = "Default Preferences"
  %]
 
-[% PROCESS "global/setting-descs.none.tmpl" %]
-
 <p>
 This lets you edit the default preferences values.
 </p>
@@ -59,14 +57,14 @@ page, and the Default Value will automatically apply to everyone.
           [% checkbox_name = name _ '-enabled' %]
           <tr>
             <td align="right">
-              [% setting_descs.$name OR name FILTER html %]
+              [% lc_messages.setting_descs.$name OR name FILTER html %]
             </td>
             <td>
               <select name="[% name FILTER html %]" id="[% name FILTER html %]">
                 [% FOREACH x = settings.${name}.legal_values %]
                     <option value="[% x FILTER html %]"
                       [% " selected=\"selected\"" IF x == settings.${name}.default_value %]>
-                      [% setting_descs.${x} OR x FILTER html %]
+                      [% lc_messages.setting_descs.${x} OR x FILTER html %]
                     </option>
                 [% END %]
               </select>

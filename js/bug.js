@@ -49,13 +49,18 @@ function showhide_comment(comment_id, show)
         addClass(comment, 'collapsed');
 }
 
-// Mark comment as worktime-only (norm == false) or normal (norm == true)
-function mark_wtonly(id, norm, img)
+// Mark comment as worktime-only or normal
+function toggle_wtonly(id, initial_wtonly, img)
 {
-    document.getElementById('wtonly_cont_'+id).style.display = '';
-    document.getElementById((norm ? 'cmt_normal_' : 'cmt_worktime_')+id).checked = true;
-    if (img)
-        img.style.display = 'none';
+    var f = document.getElementById((initial_wtonly ? 'cmt_normal_' : 'cmt_worktime_') + id);
+    var mark = f.value == '1';
+    f.value = mark ? '' : '1';
+    mark = initial_wtonly ? mark : !mark;
+    img.src = 'images/clock' + (mark ? 'x' : '') + '.gif';
+    img.alt = mark ?
+        'Comment is marked worktime-only. Click to mark it as normal, then click Save Changes' :
+        'Comment is marked as normal. Click to mark it as worktime-only, then click Save Changes';
+    img.title = img.alt;
 }
 
 // This way, we are sure that browsers which do not support JS

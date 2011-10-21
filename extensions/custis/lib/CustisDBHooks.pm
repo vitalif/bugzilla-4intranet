@@ -320,6 +320,16 @@ sub install_update_db
         $dbh->do('INSERT INTO setting_value (name, value, sortindex) VALUES (\'silent_affects_flags\', \'send\', 10), (\'silent_affects_flags\', \'do_not_send\', 20)');
     }
 
+    # Bug 87696 - Setting to change comments which are allowed to be marked as collapsed by default ("worktime-only")
+    if (!$dbh->selectrow_array('SELECT name FROM setting WHERE name=\'showhide_comments\' LIMIT 1'))
+    {
+        $dbh->do('INSERT INTO setting (name, default_value, is_enabled) VALUES (\'showhide_comments\', \'worktime\', 1)');
+    }
+    if (!$dbh->selectrow_array('SELECT name FROM setting_value WHERE name=\'showhide_comments\' LIMIT 1'))
+    {
+        $dbh->do('INSERT INTO setting_value (name, value, sortindex) VALUES (\'showhide_comments\', \'none\', 10), (\'showhide_comments\', \'worktime\', 20), (\'showhide_comments\', \'all\', 30)');
+    }
+
     # New system groups
     my $special_groups = [
         [ 'bz_editcheckers', 'Users who can edit Bugzilla Correctness Checkers',        [ 'admin' ] ],

@@ -27,8 +27,6 @@
   #                        enabled by the maintainer.
   #%]
 
-[% PROCESS "global/setting-descs.none.tmpl" %]
-
 [% IF settings.size %]
   [% UNLESS has_settings_enabled %]
     <p class="criticalmessages">
@@ -38,34 +36,34 @@
     </p>
   [% END %]
 
-  <table border="0" cellpadding="8">
+  <table border="0" cellpadding="4">
     [% FOREACH name = setting_names %]
       [% default_name = name _ '-isdefault' %]
       [% default_val = settings.${name}.default_value %]
       <tr>
-        <td align="right">
-          [% setting_descs.$name OR name FILTER html %]
+        <td align="left">
+          [% lc_messages.setting_descs.$name OR name FILTER html %]
         </td>
         <td>
           [% IF settings.${name}.is_enabled %]
             <select name="[% name FILTER html %]" id="[% name FILTER html %]">
               <option value="[% default_name FILTER html %]"
                 [% ' selected="selected"' IF settings.${name}.is_default %]>
-                Site Default ([% setting_descs.${default_val} OR default_val FILTER html %])
+                Site Default ([% lc_messages.setting_descs.${default_val} OR default_val FILTER html %])
               </option>
               [% FOREACH x = settings.${name}.legal_values %]
                 <option value="[% x FILTER html %]"
                   [% ' selected="selected"' 
                     IF x == settings.${name}.value
                     AND NOT settings.${name}.is_default %]>
-                  [% setting_descs.${x} OR x FILTER html %]
+                  [% lc_messages.setting_descs.${x} OR x FILTER html %]
                 </option>
               [% END %]
             </select>
           [% ELSE %]
             <select name="[% name FILTER html %]" id="[% name FILTER html %]" disabled="disabled">
               <option value="[% default_name FILTER html %]">
-                Site Default ([% setting_descs.${default_val} OR default_val FILTER html %])
+                Site Default ([% lc_messages.setting_descs.${default_val} OR default_val FILTER html %])
               </option>
             </select>
           [% END %]
