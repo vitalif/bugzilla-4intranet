@@ -86,14 +86,14 @@
         [% IF wt_btn %]
         <span class="bz_comment_actions">
           [% IF wt_only %]
-          <img src="images/clockx.gif" width="16" height="16"
+          <img src="images/clock.gif" width="16" height="16"
               alt="Comment is marked as worktime-only. Click to mark it as normal, then click Save Changes"
             title="Comment is marked as worktime-only. Click to mark it as normal, then click Save Changes"
             style="cursor: pointer; vertical-align: middle"
             onclick="toggle_wtonly([% comment.id %],1,this)" />
           <input type="hidden" id="cmt_normal_[% comment.id %]" name="cmt_normal_[% comment.id %]" value="" />
           [% ELSIF comment.type == constants.CMT_NORMAL %]
-          <img src="images/clock.gif" width="16" height="16"
+          <img src="images/clockx.gif" width="16" height="16"
               alt="Comment is marked as normal. Click to mark it as worktime-only, then click Save Changes"
             title="Comment is marked as normal. Click to mark it as worktime-only, then click Save Changes"
             style="cursor: pointer; vertical-align: middle"
