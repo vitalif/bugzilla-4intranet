@@ -56,7 +56,7 @@ function toggle_wtonly(id, initial_wtonly, img)
     var mark = f.value == '1';
     f.value = mark ? '' : '1';
     mark = initial_wtonly ? mark : !mark;
-    img.src = 'images/clock' + (mark ? 'x' : '') + '.gif';
+    img.src = 'images/clock' + (mark ? '' : 'x') + '.gif';
     img.alt = mark ?
         'Comment is marked worktime-only. Click to mark it as normal, then click Save Changes' :
         'Comment is marked as normal. Click to mark it as worktime-only, then click Save Changes';
