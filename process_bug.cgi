@@ -409,7 +409,7 @@ if (defined $cgi->param('id')) {
     # Same with worktime-only
     foreach (keys %$ARGS)
     {
-        if (/^cmt_(normal|worktime)_(\d+)$/)
+        if (/^cmt_(normal|worktime)_(\d+)$/ && $ARGS->{$_})
         {
             $first_bug->set_comment_worktimeonly($2, $1 eq 'worktime');
         }

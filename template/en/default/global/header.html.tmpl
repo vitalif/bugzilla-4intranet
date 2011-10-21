@@ -71,8 +71,6 @@
 
     [% PROCESS "global/site-navigation.html.tmpl" %]
 
-    [% PROCESS 'global/setting-descs.none.tmpl' %]
-
     [%# Set up the skin CSS cascade:
       #  1. Standard Bugzilla stylesheet set (persistent)
       #  2. Standard Bugzilla stylesheet set (selectable)
@@ -109,12 +107,13 @@
       # Present if skin selection is enabled.
       #%]
     [%# Зачем стандартные стили упоминать дважды? То есть понятно, зачем -
-      # чтобы выбрать можно было. Но это не дело, оно ломает Opera 10.6. %]
+      # чтобы выбрать можно было. Но это не дело, оно ломает Opera 10.6.
+      # Причём в Bugzilla 4 их указывают в другом порядке, и получается нормально. O_o %]
     [% IF 0 # user.settings.skin.is_enabled %]
       [% FOREACH style_url = style_urls %]
         <link href="[% style_url FILTER html %]"
               rel="[% 'alternate ' IF user_skin %]stylesheet"
-              title="[% setting_descs.standard FILTER html %]"
+              title="[% lc_messages.setting_descs.standard FILTER html %]"
               type="text/css">
       [% END %]
       <!--[if lte IE 7]>
@@ -124,7 +123,7 @@
         #%]
         <link href="skins/standard/IE-fixes.css"
               rel="[% 'alternate ' IF user_skin %]stylesheet"
-              title="[% setting_descs.standard FILTER html %]"
+              title="[% lc_messages.setting_descs.standard FILTER html %]"
               type="text/css">
       <![endif]-->
     [% END %]
