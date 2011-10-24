@@ -56,7 +56,7 @@
         <td>[% IF value.is_open %]Open[% ELSE %]Closed[% END %]</td>
       </tr>
     [% END %]
-    [% IF field.value_field %]
+    [% IF field.value_field && !value.is_static %]
       <tr>
         <th align="right">
           Only appears when [%+ field.value_field.description FILTER html %] is set to:
@@ -68,7 +68,6 @@
       <tr>
         <td></td><td>
           <select name="visibility_value_id" id="visibility_value_id" multiple="multiple" size="15">
-            <option></option>
             [% FOREACH field_value = field.value_field.legal_values %]
               [% NEXT IF field_value.name == '' %]
               <option value="[% field_value.id FILTER none %]" [% ' selected="selected"' IF value.has_visibility_value(field_value.id, 0) %]>
