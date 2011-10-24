@@ -682,7 +682,7 @@ foreach my $row (@$grouplist) {
         'description' => $description 
     };
 
-    push @groups, $group;        
+    push @groups, $group;
 }
 
 $vars->{'group'} = \@groups;
@@ -697,5 +697,5 @@ my $format = $template->get_format("bug/create/create",
 
 $cgi->send_header($format->{'ctype'});
 $template->process($format->{'template'}, $vars)
-  || ThrowTemplateError($template->error());          
-
+  || ThrowTemplateError($template->error());
+exit;

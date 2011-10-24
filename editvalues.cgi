@@ -185,14 +185,16 @@ if ($action eq 'edit') {
 if ($action eq 'update') {
     check_token_data($token, 'edit_field_value');
     $vars->{'value_old'} = $value->name;
+    my $visibility_values;
     if (!($value->is_static || $value->is_default)) {
         $value->set_is_active($cgi->param('is_active'));
+        $value->set_name($cgi->param('value_new'));
+        $visibility_values = [ $cgi->param('visibility_value_id') ];
     }
-    $value->set_name($cgi->param('value_new'));
     $value->set_sortkey($cgi->param('sortkey'));
     $vars->{'changes'} = $value->update();
-    my $ch = $value->set_visibility_values([ $cgi->param('visibility_value_id') ]);
-    $vars->{'changes'}->{'visibility_values'} = $ch if defined $ch;
+    my $ch = $value->set_visibility_values($visibility_values);
+    $vars->{'changes'}->{'visibility_values'} = $ch if $visibility_values && $ch;
     delete_token($token);
     $vars->{'message'} = 'field_value_updated';
     display_field_values($vars);
