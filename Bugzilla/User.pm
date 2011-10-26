@@ -862,6 +862,10 @@ sub can_enter_product {
     elsif (!@{$product->versions}) {
         ThrowUserError ('missing_version', { product => $product });
     }
+    # It could have the name in a different case :)
+    elsif (!blessed($input) && $product->name ne $input) {
+        ThrowUserError ('product_invalid_case', { product => $input, suggested => $product->name });
+    }
 
     die "can_enter_product reached an unreachable location.";
 }
@@ -874,15 +878,15 @@ sub get_enterable_products {
         return $self->{enterable_products};
     }
 
-     # All products which the user has "Entry" access to.
-     my @enterable_ids = @{$dbh->selectcol_arrayref(
-           'SELECT products.id FROM products
-         LEFT JOIN group_control_map
-                   ON group_control_map.product_id = products.id
-                      AND group_control_map.entry != 0
-                      AND group_id NOT IN (' . $self->groups_as_string . ')
-            WHERE group_id IS NULL
-                  AND products.isactive = 1') || []};
+    # All products which the user has "Entry" access to.
+    my @enterable_ids = @{$dbh->selectcol_arrayref(
+          'SELECT products.id FROM products
+        LEFT JOIN group_control_map
+                  ON group_control_map.product_id = products.id
+                     AND group_control_map.entry != 0
+                     AND group_id NOT IN (' . $self->groups_as_string . ')
+           WHERE group_id IS NULL
+                 AND products.isactive = 1') || []};
 
     if (@enterable_ids) {
         # And all of these products must have at least one component
