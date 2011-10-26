@@ -1716,6 +1716,10 @@
        I could not figure out what you wanted to do.
     [% END %]
 
+  [% ELSIF error == "product_invalid_case" %]
+    You have requested the product name "[% product | html %]", did you mean
+    "[% suggested | html %]"?
+
   [% ELSIF error == "incorrect_field_values" %]
     [% IF bug_id %]
       [% terms.Bug %] [%+ bug_id %]:<br />
