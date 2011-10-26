@@ -807,6 +807,9 @@ sub create {
             field_descs => Bugzilla->messages->{field_descs},
             lc_messages => Bugzilla->messages,
 
+            # Check if a named block of the current template exists
+            block_exists => [ sub { my ($context) = @_; return sub { $context->{BLOCKS}->{$1} && 1 } }, 1 ],
+
             # HTML <select>
             # html_select(name, { <attr> => <value> }, <selected value>, (
             #     [ { id => <option value>, name => <option text> }, ... ]
