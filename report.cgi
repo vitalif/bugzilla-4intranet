@@ -54,7 +54,6 @@ my $action = $cgi->param('action') || 'menu';
 
 if ($action eq "menu") {
     # No need to do any searching in this case, so bail out early.
-    $cgi->send_header();
     $template->process("reports/menu.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
     exit;

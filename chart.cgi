@@ -190,8 +190,6 @@ elsif ($action eq "alter") {
 }
 elsif ($action eq "confirm-delete") {
     $vars->{'series'} = assertCanEdit($series_id);
-
-    $cgi->send_header();
     $template->process("reports/delete-series.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
 }
@@ -308,7 +306,6 @@ sub edit {
     $vars->{'category'} = Bugzilla::Chart::getVisibleSeries();
     $vars->{'default'} = $series;
 
-    $cgi->send_header();
     $template->process("reports/edit-series.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
 }
@@ -343,7 +340,6 @@ sub wrap {
     $vars->{'imagebase'} = $cgi->canonicalise_query(
                 "action", "action-wrap", "ctype", "format", "width", "height");
 
-    $cgi->send_header();
     $template->process("reports/chart.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
 }
@@ -359,8 +355,6 @@ sub view {
     # Pass the state object to the display UI.
     $vars->{'chart'} = $chart;
     $vars->{'category'} = Bugzilla::Chart::getVisibleSeries();
-
-    $cgi->send_header();
 
     # If we have having problems with bad data, we can set debug=1 to dump
     # the data structure.

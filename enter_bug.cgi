@@ -113,7 +113,6 @@ if ($product_name eq '') {
             $vars->{'cloned_bug_id'} = $cgi->param('cloned_bug_id');
             $vars->{'cloned_comment'} = $cgi->param('cloned_comment');
 
-            $cgi->send_header();
             $template->process("global/choose-classification.html.tmpl", $vars)
                || ThrowTemplateError($template->error());
             exit;
@@ -146,7 +145,6 @@ if ($product_name eq '') {
         $vars->{'cloned_bug_id'} = $cgi->param('cloned_bug_id');
         $vars->{'cloned_comment'} = $cgi->param('cloned_comment');
 
-        $cgi->send_header();
         $template->process("global/choose-product.html.tmpl", $vars)
           || ThrowTemplateError($template->error());
         exit;

@@ -327,9 +327,6 @@ if ($cgi->param('update')) {
 
 $vars->{'mail_others'} = $can_mail_others;
 
-# Return the appropriate HTTP response headers.
-$cgi->send_header();
-
 # Get events again, to cover any updates that were made
 $events = get_events($userid);
 

@@ -56,9 +56,6 @@ if ($cgi->param('logout')) {
 # Main Body Execution
 ###############################################################################
 
-# Return the appropriate HTTP response headers.
-$cgi->send_header();
-
 if ($user->in_group('admin')) {
     # If 'urlbase' is not set, display the Welcome page.
     unless (Bugzilla->params->{'urlbase'}) {

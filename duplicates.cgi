@@ -256,7 +256,6 @@ my %vars = (
 );
 
 my $format = $template->get_format("reports/duplicates", $vars{'format'});
-$cgi->send_header;
 
 # Generate and return the UI (HTML page) from the appropriate template.
 $template->process($format->{'template'}, \%vars)

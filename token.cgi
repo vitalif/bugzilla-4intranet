@@ -181,7 +181,6 @@ sub requestChangePassword {
 
     $vars->{'message'} = "password_change_request";
 
-    $cgi->send_header();
     $template->process("global/message.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
 }
@@ -190,7 +189,6 @@ sub confirmChangePassword {
     my $token = shift;
     $vars->{'token'} = $token;
 
-    $cgi->send_header();
     $template->process("account/password/set-forgotten-password.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
 }
@@ -200,7 +198,6 @@ sub cancelChangePassword {
     $vars->{'message'} = "password_change_canceled";
     Bugzilla::Token::Cancel($token, $vars->{'message'});
 
-    $cgi->send_header();
     $template->process("global/message.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
 }
@@ -230,7 +227,6 @@ sub changePassword {
 
     $vars->{'message'} = "password_changed";
 
-    $cgi->send_header();
     $template->process("global/message.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
 }
@@ -239,7 +235,6 @@ sub confirmChangeEmail {
     my $token = shift;
     $vars->{'token'} = $token;
 
-    $cgi->send_header();
     $template->process("account/email/confirm.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
 }
@@ -283,11 +278,7 @@ sub changeEmail {
 
     $dbh->bz_commit_transaction();
 
-    # Return HTTP response headers.
-    $cgi->send_header();
-
     # Let the user know their email address has been changed.
-
     $vars->{'message'} = "login_changed";
 
     $template->process("global/message.html.tmpl", $vars)
@@ -345,9 +336,6 @@ sub cancelChangeEmail {
 
     $dbh->bz_commit_transaction();
 
-    # Return HTTP response headers.
-    $cgi->send_header();
-
     $template->process("global/message.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
 }
@@ -360,7 +348,6 @@ sub request_create_account {
     $vars->{'email'} = $login_name . Bugzilla->params->{'emailsuffix'};
     $vars->{'expiration_ts'} = ctime(str2time($date) + MAX_TOKEN_AGE * 86400);
 
-    $cgi->send_header();
     $template->process('account/email/confirm-new.html.tmpl', $vars)
       || ThrowTemplateError($template->error());
 }
@@ -394,8 +381,6 @@ sub confirm_create_account {
     delete Bugzilla->request_cache->{sub_login_to_id}->{$otheruser->login};
     Bugzilla->login(LOGIN_OPTIONAL);
 
-    $cgi->send_header();
-
     $template->process('index.html.tmpl', $vars)
       || ThrowTemplateError($template->error());
 }
@@ -409,7 +394,6 @@ sub cancel_create_account {
     $vars->{'account'} = $login_name;
     Bugzilla::Token::Cancel($token, $vars->{'message'});
 
-    $cgi->send_header();
     $template->process('global/message.html.tmpl', $vars)
       || ThrowTemplateError($template->error());
 }

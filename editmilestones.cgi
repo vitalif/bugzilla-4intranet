@@ -43,8 +43,6 @@ $vars->{'doc_section'} = 'milestones.html';
 
 my $user = Bugzilla->login(LOGIN_REQUIRED);
 
-$cgi->send_header();
-
 $user->in_group('editcomponents')
   || scalar(@{$user->get_editable_products})
   || ThrowUserError("auth_failure", {group  => "editcomponents",

@@ -38,6 +38,6 @@ foreach my $user (@{$vars->{users}})
     $user->{list} = join ', ', @$users_in_group;
 }
 
-$cgi->send_header();
 $template->process('list-of-mail-groups.html.tmpl', $vars)
-  || ThrowTemplateError($template->error());
+    || ThrowTemplateError($template->error());
+exit;

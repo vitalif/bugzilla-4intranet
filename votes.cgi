@@ -45,7 +45,7 @@ local our $vars = {};
 # If the action is show_bug, you need a bug_id.
 # If the action is show_user, you can supply a userid to show the votes for
 # another user, otherwise you see your own.
-# If the action is vote, your votes are set to those encoded in the URL as 
+# If the action is vote, your votes are set to those encoded in the URL as
 # <bug_id>=<votes>.
 #
 # If no action is defined, we default to show_bug if a bug_id is given,
@@ -80,7 +80,7 @@ if (defined $bug_id) {
 
 if ($action eq "show_bug") {
     show_bug($bug_id);
-} 
+}
 elsif ($action eq "show_user") {
     show_user($bug_id);
 }
@@ -109,14 +109,13 @@ sub show_bug {
                                          profiles.userid AS id,
                                          votes.vote_count
                                     FROM votes
-                              INNER JOIN profiles 
+                              INNER JOIN profiles
                                       ON profiles.userid = votes.who
                                    WHERE votes.bug_id = ?',
                                   {'Slice' => {}}, $bug_id);
 
-    $cgi->send_header();
     $template->process("bug/votes/list-for-bug.html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
+        || ThrowTemplateError($template->error());
 }
 
 # Display all the votes for a particular user. If it's the user
@@ -134,7 +133,7 @@ sub show_user {
     my $who_id = $cgi->param('user_id') || $user->id;
     my $who = Bugzilla::User->check({ id => $who_id });
 
-    my $canedit = (Bugzilla->params->{'usevotes'} && $user->id == $who->id) 
+    my $canedit = (Bugzilla->params->{'usevotes'} && $user->id == $who->id)
                   ? 1 : 0;
 
     $dbh->bz_start_transaction();
@@ -142,11 +141,11 @@ sub show_user {
     if ($canedit && $bug_id) {
         # Make sure there is an entry for this bug
         # in the vote table, just so that things display right.
-        my $has_votes = $dbh->selectrow_array('SELECT vote_count FROM votes 
+        my $has_votes = $dbh->selectrow_array('SELECT vote_count FROM votes
                                                WHERE bug_id = ? AND who = ?',
                                                undef, ($bug_id, $who->id));
         if (!$has_votes) {
-            $dbh->do('INSERT INTO votes (who, bug_id, vote_count) 
+            $dbh->do('INSERT INTO votes (who, bug_id, vote_count)
                       VALUES (?, ?, 0)', undef, ($who->id, $bug_id));
         }
     }
@@ -184,7 +183,7 @@ sub show_user {
             # to lie in the totals.
             next if !$user->can_see_bug($id);
 
-            push (@bugs, { id => $id, 
+            push (@bugs, { id => $id,
                            summary => $summary,
                            count => $count });
             push (@bug_ids, $id);
@@ -215,9 +214,8 @@ sub show_user {
     $vars->{'bug_id'} = $bug_id;
     $vars->{'all_bug_ids'} = \@all_bug_ids;
 
-    $cgi->send_header();
     $template->process("bug/votes/list-for-user.html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
+        || ThrowTemplateError($template->error());
 }
 
 # Update the user's votes in the database.
@@ -231,7 +229,7 @@ sub record_votes {
     my $template = Bugzilla->template;
 
     # Build a list of bug IDs for which votes have been submitted.  Votes
-    # are submitted in form fields in which the field names are the bug 
+    # are submitted in form fields in which the field names are the bug
     # IDs and the field values are the number of votes.
 
     my @buglist = grep {/^[1-9][0-9]*$/} $cgi->param();
@@ -240,7 +238,6 @@ sub record_votes {
     # that their votes will get nuked if they continue.
     if (scalar(@buglist) == 0) {
         if (!defined $cgi->param('delete_all_votes')) {
-            $cgi->send_header();
             $template->process("bug/votes/delete-all.html.tmpl", $vars)
               || ThrowTemplateError($template->error());
             exit();
@@ -252,7 +249,7 @@ sub record_votes {
     }
 
     # Call check() on each bug ID to make sure it is a positive
-    # integer representing an existing bug that the user is authorized 
+    # integer representing an existing bug that the user is authorized
     # to access, and make sure the number of votes submitted is also
     # a non-negative integer (a series of digits not preceded by a
     # minus sign).
@@ -261,7 +258,7 @@ sub record_votes {
       my $bug = Bugzilla::Bug->check($id);
       $id = $bug->id;
       $votes{$id} = $cgi->param($id);
-      detaint_natural($votes{$id}) 
+      detaint_natural($votes{$id})
         || ThrowUserError("votes_must_be_nonnegative");
     }
 
@@ -304,7 +301,7 @@ sub record_votes {
         }
     }
 
-    # Update the user's votes in the database.  If the user did not submit 
+    # Update the user's votes in the database.  If the user did not submit
     # any votes, they may be using a form with checkboxes to remove all their
     # votes (checkboxes are not submitted along with other form data when
     # they are not checked, and Bugzilla uses them to represent single votes
@@ -312,7 +309,7 @@ sub record_votes {
     # need to clear the user's votes from the database.
     my %affected;
     $dbh->bz_start_transaction();
-    
+
     # Take note of, and delete the user's old votes from the database.
     my $bug_list = $dbh->selectcol_arrayref('SELECT bug_id FROM votes
                                              WHERE who = ?', undef, $who);
@@ -333,7 +330,6 @@ sub record_votes {
     }
 
     # Update the cached values in the bugs table
-    $cgi->send_header();
     my @updated_bugs = ();
 
     my $sth_getVotes = $dbh->prepare("SELECT SUM(vote_count) FROM votes
@@ -355,7 +351,8 @@ sub record_votes {
     $vars->{'type'} = "votes";
     $vars->{'title_tag'} = 'change_votes';
 
-    foreach my $bug_id (@updated_bugs) {
+    foreach my $bug_id (@updated_bugs)
+    {
         # TODO save this into session and redirect
         my $sent = send_results({
             bug_id => $bug_id,
@@ -365,7 +362,7 @@ sub record_votes {
         $vars->{$_} = $sent->{$_} for keys %$sent;
 
         $template->process("bug/process/results.html.tmpl", $vars)
-          || ThrowTemplateError($template->error());
+            || ThrowTemplateError($template->error());
         # Set header_done to 1 only after the first bug.
         $vars->{'header_done'} = 1;
     }

@@ -48,7 +48,6 @@ sub LoadTemplate {
 
     $action =~ /(\w+)/;
     $action = $1;
-    $cgi->send_header();
     $template->process("admin/classifications/$action.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
     exit;
@@ -59,8 +58,6 @@ sub LoadTemplate {
 #
 
 Bugzilla->login(LOGIN_REQUIRED);
-
-$cgi->send_header();
 
 Bugzilla->user->in_group('editclassifications')
   || ThrowUserError("auth_failure", {group  => "editclassifications",

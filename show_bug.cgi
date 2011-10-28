@@ -45,7 +45,6 @@ $vars->{multiple} = !$single;
 
 # If we don't have an ID, _AND_ we're only doing a single bug, then prompt
 if (!$cgi->param('id') && $single) {
-    Bugzilla->cgi->send_header();
     $template->process("bug/choose.html.tmpl", $vars) ||
       ThrowTemplateError($template->error());
     exit;

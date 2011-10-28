@@ -39,8 +39,6 @@ $user->in_group('editfields')
 my $action = trim($cgi->param('action') || '');
 my $token  = $cgi->param('token');
 
-$cgi->send_header();
-
 $vars->{field_types} = Bugzilla->messages->{field_types};
 # List all existing custom fields if no action is given.
 if (!$action)

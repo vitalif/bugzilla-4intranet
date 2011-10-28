@@ -86,9 +86,9 @@ $vars->{'bugid'}          = $id;
 $vars->{'maxdepth'}       = $maxdepth;
 $vars->{'hide_resolved'}  = $hide_resolved;
 
-$cgi->send_header();
 $template->process("bug/dependency-tree.html.tmpl", $vars)
-  || ThrowTemplateError($template->error());
+    || ThrowTemplateError($template->error());
+exit;
 
 ################################################################################
 # Recursive Tree Generation Function                                           #
