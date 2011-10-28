@@ -62,6 +62,16 @@
 [% END %]
 [% END %]
 
+[% IF changed_attachment %]
+[% SET title = "Changes Submitted to Attachment $changed_attachment.id of $terms.Bug $changed_attachment.bug_id" %]
+<dl>
+  <dt>Changes to
+    <a href="attachment.cgi?id=[% changed_attachment.id %]&amp;action=edit">attachment [% changed_attachment.id %]</a>
+    of [% "$terms.bug $changed_attachment.bug_id" FILTER bug_link(changed_attachment.bug_id) FILTER none %] submitted
+  </dt>
+</dl>
+[% END %]
+
 [% FOREACH item = sentmail %]
   [% FOR k = item.keys; $k = item.$k; END %]
   [% PROCESS bug/process/results.html.tmpl %]
