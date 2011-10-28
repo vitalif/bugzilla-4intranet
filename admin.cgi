@@ -31,8 +31,6 @@ my $cgi = Bugzilla->cgi;
 my $template = Bugzilla->template;
 my $user = Bugzilla->login(LOGIN_REQUIRED);
 
-$cgi->send_header();
-
 $user->administration_visible
   || ThrowUserError('auth_failure', {action => 'access', object => 'administrative_pages'});
 

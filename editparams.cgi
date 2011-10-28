@@ -42,8 +42,6 @@ my $cgi = Bugzilla->cgi;
 my $template = Bugzilla->template;
 my $vars = {};
 
-$cgi->send_header();
-
 $user->in_group('tweakparams')
   || ThrowUserError("auth_failure", {group  => "tweakparams",
                                      action => "access",

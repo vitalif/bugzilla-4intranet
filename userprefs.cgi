@@ -543,6 +543,6 @@ if ($current_tab_name ne 'permissions') {
 }
 
 # Generate and return the UI (HTML page) from the appropriate template.
-$cgi->send_header();
 $template->process("account/prefs/prefs.html.tmpl", $vars)
-  || ThrowTemplateError($template->error());
+    || ThrowTemplateError($template->error());
+exit;

@@ -73,9 +73,9 @@ $vars->{display} = $display;
 $vars->{graphs} = $graphs;
 
 # Generate and return the UI (HTML page) from the appropriate template.
-$cgi->send_header();
 $template->process("bug/dependency-graph.html.tmpl", $vars)
-  || ThrowTemplateError($template->error());
+    || ThrowTemplateError($template->error());
+exit;
 
 # Divide the overall graph into closed clusters
 sub GetClusters

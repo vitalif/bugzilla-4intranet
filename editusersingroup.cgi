@@ -112,7 +112,6 @@ $vars->{isbuggroup}  = $isbuggroup;
 $vars->{users}       = get_users_from_group($group_id);
 $vars->{user}        = $user;
 
-$cgi->send_header();
 $template->process("admin/groups/usersingroup.html.tmpl", $vars)
     || ThrowTemplateError($template->error());
 $template->process("global/footer.html.tmpl", $vars)

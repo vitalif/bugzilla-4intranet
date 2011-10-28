@@ -115,8 +115,6 @@ if (@idlist || @lines)
     exit;
 }
 
-$cgi->send_header();
-
 my ($query, $query_id) = Bugzilla::Search::LookupNamedQuery('MyWorktimeBugs', undef, undef, 0);
 
 my $sqlquery = "";

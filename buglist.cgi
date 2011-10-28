@@ -496,7 +496,6 @@ if ($cmdtype eq "dorem") {
         # Now reset the cached queries
         $user->flush_queries_cache();
 
-        $cgi->send_header();
         # Generate and return the UI (HTML page) from the appropriate template.
         $vars->{'message'} = "buglist_query_gone";
         $vars->{'namedcmd'} = $qname;
@@ -604,7 +603,6 @@ elsif (($cmdtype eq "doit") && defined $cgi->param('remtype')) {
 
         $vars->{'queryname'} = $query_name;
 
-        $cgi->send_header();
         $template->process("global/message.html.tmpl", $vars)
           || ThrowTemplateError($template->error());
         exit;

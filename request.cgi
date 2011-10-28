@@ -47,8 +47,6 @@ Bugzilla->switch_to_shadow_db;
 my $template = Bugzilla->template;
 my $action = $cgi->param('action') || '';
 
-$cgi->send_header();
-
 ################################################################################
 # Main Body Execution
 ################################################################################

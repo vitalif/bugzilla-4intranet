@@ -161,6 +161,5 @@ if (defined $cgi->param('query_based_on')) {
 }
 
 # Generate and return the UI (HTML page) from the appropriate template.
-$cgi->send_header();
 $template->process("list/change-columns.html.tmpl", $vars)
   || ThrowTemplateError($template->error());

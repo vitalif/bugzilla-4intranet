@@ -48,8 +48,6 @@ my $vars = {};
 
 my $user = Bugzilla->login(LOGIN_REQUIRED);
 
-$cgi->send_header();
-
 $user->in_group('creategroups')
   || ThrowUserError("auth_failure", {group  => "creategroups",
                                      action => "edit",
@@ -155,7 +153,6 @@ unless ($action) {
     my @groups = Bugzilla::Group->get_all;
     $vars->{'groups'} = \@groups;
     
-    $cgi->send_header();
     $template->process("admin/groups/list.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
     exit;
@@ -176,7 +173,6 @@ if ($action eq 'changeform') {
     $vars->{'group'} = $group;
     $vars->{'token'}       = issue_session_token('edit_group');
 
-    $cgi->send_header();
     $template->process("admin/groups/edit.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
 
@@ -191,7 +187,6 @@ if ($action eq 'changeform') {
 
 if ($action eq 'add') {
     $vars->{'token'} = issue_session_token('add_group');
-    $cgi->send_header();
     $template->process("admin/groups/create.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
     
@@ -232,7 +227,6 @@ if ($action eq 'new') {
     get_current_and_available($group, $vars);
     $vars->{'token'} = issue_session_token('edit_group');
 
-    $cgi->send_header();
     $template->process("admin/groups/edit.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
     exit;
@@ -256,7 +250,6 @@ if ($action eq 'del') {
     $vars->{'group'} = $group;
     $vars->{'token'} = issue_session_token('delete_group');
 
-    $cgi->send_header();
     $template->process("admin/groups/delete.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
     
@@ -285,7 +278,6 @@ if ($action eq 'delete') {
     $vars->{'message'} = 'group_deleted';
     $vars->{'groups'} = [Bugzilla::Group->get_all];
 
-    $cgi->send_header();
     $template->process("admin/groups/list.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
     exit;
@@ -310,7 +302,6 @@ if ($action eq 'postchanges') {
     $vars->{'changes'} = $changes;
     $vars->{'token'} = issue_session_token('edit_group');
 
-    $cgi->send_header();
     $template->process("admin/groups/edit.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
     exit;
@@ -362,10 +353,8 @@ if ($action eq 'remove_regexp') {
     $vars->{'group'} = $group->name;
     $vars->{'groups'} = [Bugzilla::Group->get_all];
 
-    $cgi->send_header();
     $template->process("admin/groups/list.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
-
     exit;
 }
 

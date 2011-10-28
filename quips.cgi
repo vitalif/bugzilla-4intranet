@@ -146,6 +146,6 @@ if ($action eq "delete") {
     $dbh->do("DELETE FROM quips WHERE quipid = ?", undef, $quipid);
 }
 
-$cgi->send_header();
 $template->process("list/quips.html.tmpl", $vars)
   || ThrowTemplateError($template->error());
+exit;
