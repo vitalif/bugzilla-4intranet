@@ -48,6 +48,7 @@ my $user = Bugzilla->login();
 # Editable, 'single' HTML bugs are treated slightly specially in a few places
 my $single = !$cgi->param('format')
   && (!$cgi->param('ctype') || $cgi->param('ctype') eq 'html');
+$vars->{multiple} = !$single;
 
 # If we don't have an ID, _AND_ we're only doing a single bug, then prompt
 if (!$cgi->param('id') && $single) {
