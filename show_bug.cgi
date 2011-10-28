@@ -35,14 +35,7 @@ use Checkers;
 
 my $cgi = Bugzilla->cgi;
 my $template = Bugzilla->template;
-my $vars = {
-    # Used by bug/comments.html.tmpl
-    'comment_indexes' => sub {
-        my ($comments) = @_;
-        return [ map { [ $_->{count}, $_->{comment_id}, $_->{type} != CMT_WORKTIME ? 1 : 0 ] } @$comments ];
-    },
-};
-
+my $vars = {};
 my $user = Bugzilla->login();
 
 # Editable, 'single' HTML bugs are treated slightly specially in a few places
