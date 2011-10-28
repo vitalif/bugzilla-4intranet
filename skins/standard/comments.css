@@ -1,0 +1,20 @@
+.bz_comment_table td { vertical-align: top; }
+
+.bz_comment_user, .bz_comment_time,
+.bz_comment_number, .bz_private_checkbox,
+.bz_comment_actions { margin: 0 .5em; white-space: nowrap; }
+
+.bz_comment_user, .bz_comment_time, .bz_comment_user_images,
+.bz_comment_worktime, .bz_comment_unmark_wtonly { float: left; }
+.bz_comment_actions, .bz_comment_number, .bz_private_checkbox { float: right; }
+
+.bz_comment_worktime { font-weight: bold; margin-left: 1em; }
+.bz_comment_unmark_wtonly { margin-left: 1em; }
+.bz_private_checkbox input { margin: 0; vertical-align: middle; }
+.bz_comment_user_images img { vertical-align: bottom; }
+
+.bz_collapse_expand_comments { padding: 0; margin: 0 0 0 1em; list-style-type: none; }
+.bz_collapse_expand_comments li { margin-bottom: .5em; }
+.bz_collapse_comment { text-decoration: none; }
+
+.bz_comment_head, .bz_first_comment_head { padding: .1em 0 .1em .5em; background-color: #e0e0e0; }

@@ -39,7 +39,7 @@
 [% header = "$terms.Bug&nbsp;$bug.bug_id" %]
 [% header_addl_info = "Last modified: $filtered_timestamp" %]
 [% javascript_urls = [ "js/field.js", "js/calendar.js", "js/bug-visibility.js?rev=1397", "fieldvaluecontrol.cgi?type=bug&user=${Bugzilla.user.id}" ] %]
-[% style_urls = [ "skins/standard/calendar.css", "skins/standard/show_bug.css" ] %]
+[% style_urls = [ "skins/standard/calendar.css", "skins/standard/show_bug.css", "skins/standard/comments.css" ] %]
 [% doc_section = "bug_page.html" %]
 
 [% bodyclasses = ['bz_bug',
