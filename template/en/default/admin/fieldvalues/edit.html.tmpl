@@ -36,19 +36,19 @@
       <td>
         [% IF value.is_static %]
           <input type="hidden" name="value_new" id="value_new"
-                 value="[% value.name FILTER html %]">
+                 value="[% value.name FILTER html %]" />
             [%- value.name FILTER html %]
         [% ELSE %]
-          <input id="value_new" name="value_new" size="20"
+          <input id="value_new" name="value_new" size="100"
                  maxlength="[% constants.MAX_FIELD_VALUE_SIZE FILTER none %]"
-                 value="[% value.name FILTER html %]">
+                 value="[% value.name FILTER html %]" />
         [% END %]
       </td>
     </tr>
     <tr>
       <th align="right"><label for="sortkey">Sortkey:</label></th>
       <td><input id="sortkey" size="6" maxlength="6" name="sortkey" 
-                 value="[%- value.sortkey FILTER html %]"></td>
+                 value="[%- value.sortkey FILTER html %]" /></td>
     </tr>
     [% IF field.name == "bug_status" %]
       <tr>
@@ -82,7 +82,7 @@
       <th align="right"><label for="is_active">Enabled for [% terms.bugs %]:</label></th>
       <td><input id="is_active" name="is_active" type="checkbox" value="1" 
            [%+ 'checked="checked"' IF value.is_active %]
-           [%+ 'disabled="disabled"' IF value.is_default OR value.is_static %]>
+           [%+ 'disabled="disabled"' IF value.is_default OR value.is_static %] />
            [% IF value.is_default %]
              This value is selected as default in the parameters for this field. It cannot be disabled.
            [% ELSIF value.is_static %]
@@ -91,11 +91,11 @@
            </td>
     </tr>
   </table>
-  <input type="hidden" name="value" value="[% value.name FILTER html %]">
-  <input type="hidden" name="action" value="update">
-  <input type="hidden" name="field" value="[% field.name FILTER html %]">
-  <input type="hidden" name="token" value="[% token FILTER html %]">
-  <input type="submit" id="update" value="Save Changes">
+  <input type="hidden" name="value" value="[% value.name FILTER html %]" />
+  <input type="hidden" name="action" value="update" />
+  <input type="hidden" name="field" value="[% field.name FILTER html %]" />
+  <input type="hidden" name="token" value="[% token FILTER html %]" />
+  <input type="submit" id="update" value="Save Changes" />
 </form>
 
 [% PROCESS admin/fieldvalues/footer.html.tmpl
