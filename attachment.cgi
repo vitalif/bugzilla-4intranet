@@ -156,7 +156,6 @@ sub validateID {
     # prompt them with a page that allows them to choose an attachment.
     # Happens when calling plain attachment.cgi from the urlbar directly
     if ($param eq 'id' && !$cgi->param('id')) {
-        $cgi->send_header();
         $template->process("attachment/choose.html.tmpl", $vars) ||
             ThrowTemplateError($template->error());
         exit;
@@ -402,8 +401,6 @@ sub viewall {
     $vars->{'bug'} = $bug;
     $vars->{'attachments'} = $attachments;
 
-    $cgi->send_header();
-
     # Generate and return the UI (HTML page) from the appropriate template.
     $template->process("attachment/show-multiple.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
@@ -440,8 +437,6 @@ sub enter {
       grep { $_->is_requestable && $_->is_requesteeble } @$flag_types;
     $vars->{'token'} = issue_session_token('create_attachment:');
 
-    $cgi->send_header();
-
     # Generate and return the UI (HTML page) from the appropriate template.
     $template->process("attachment/create.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
@@ -476,7 +471,6 @@ sub insert {
         if ($old_attach_id) {
             $vars->{'bugid'} = $bugid;
             $vars->{'attachid'} = $old_attach_id;
-            $cgi->send_header();
             $template->process("attachment/cancel-create-dupe.html.tmpl",  $vars)
                 || ThrowTemplateError($template->error());
             exit;
@@ -635,8 +629,6 @@ sub edit {
     $vars->{'attachment'} = $attachment;
     $vars->{'attachments'} = $bugattachments;
 
-    $cgi->send_header();
-
     # Generate and return the UI (HTML page) from the appropriate template.
     $template->process("attachment/edit.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
@@ -683,7 +675,6 @@ sub update {
                 $cgi->param('delta_ts', $attachment->modification_time);
                 $vars->{'attachment'} = $attachment;
 
-                $cgi->send_header();
                 # Warn the user about the mid-air collision and ask them what to do.
                 $template->process("attachment/midair.html.tmpl", $vars)
                   || ThrowTemplateError($template->error());
@@ -734,26 +725,41 @@ sub update {
     $vars->{'bugs'} = [$bug];
     $vars->{'header_done'} = 1;
 
-    # TODO save this into session and redirect
-    my $sent = send_results({
+    my $send_results = send_results({
         bug_id => $bug->id,
         mailrecipients => { 'changer' => $user->login },
     });
-    $vars->{$_} = $sent->{$_} for keys %$sent;
+    $vars->{$_} = $send_results->{$_} for keys %$send_results;
 
-    $cgi->send_header();
+    # Operation result to save into session (CustIS Bug 64562)
+    my $session_data = {
+        sent => [ $send_results ],
+        sent_attrs => {
+            changed_attachment => {
+                id          => $attachment->id,
+                bug_id      => $attachment->bug_id,
+                description => $attachment->description,
+            },
+        },
+    };
 
-    # Generate and return the UI (HTML page) from the appropriate template.
-    $template->process("attachment/updated.html.tmpl", $vars)
-        || ThrowTemplateError($template->error());
+    if (Bugzilla->usage_mode != USAGE_MODE_EMAIL)
+    {
+        if (Bugzilla->save_session_data($session_data))
+        {
+            print $cgi->redirect(-location => 'show_bug.cgi?id='.$attachment->bug_id);
+            exit;
+        }
+        # Generate and return the UI (HTML page) from the appropriate template.
+        $template->process("attachment/updated.html.tmpl", $vars)
+            || ThrowTemplateError($template->error());
+    }
 }
 
 # Only administrators can delete attachments.
 sub delete_attachment {
     my $user = Bugzilla->login(LOGIN_REQUIRED);
     my $dbh = Bugzilla->dbh;
-
-    $cgi->send_header();
 
     $user->in_group('admin')
       || ThrowUserError('auth_failure', {group  => 'admin',
