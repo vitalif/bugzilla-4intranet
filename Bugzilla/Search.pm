@@ -2350,10 +2350,11 @@ sub _keywords_exact
     my $table = "keywords_".$self->{sequence};
     my $names = [ grep { $_ } (ref $self->{value} ? @{$self->{value}} : split /[\s,]+/, $self->{value}) ];
     my $keywords = Bugzilla::Keyword->match({ name => $names });
-    if (!@$keywords)
+    if (@$keywords < @$names)
     {
-        $self->{term} = '';
-        return;
+        my $hash = { map { lc $_->name => 1 } @$keywords };
+        my ($first_unknown) = grep { !$hash->{lc $_} } @$names;
+        ThrowUserError('unknown_keyword', { keyword => $first_unknown });
     }
     my $ids = join ',', map { $_->{id} } @$keywords;
     $self->{type} =~ s/substr$//so;
