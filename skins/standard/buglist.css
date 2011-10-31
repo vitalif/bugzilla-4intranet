@@ -37,9 +37,10 @@ th.sorted_5 { background-color: #dcdcdc; }
 .bz_row_even { background-color: #FFFFFF; color: #000000; }
 
 /* Style bug rows according to severity. */
-.bz_blocker { color: red; font-weight: bold; }
-.bz_critical { color: red; }
-.bz_enhancement { color: #666; }
+.bz_buglist .bz_short_desc_column a { color: black; text-decoration: none; }
+.bz_blocker, .bz_blocker .bz_short_desc_column a { color: red; font-weight: bold; }
+.bz_critical, .bz_critical .bz_short_desc_column a { color: red; }
+.bz_enhancement, .bz_enhancement .bz_short_desc_column a { color: #666; }
 
 /* Align columns in the "change multiple bugs" form to the right. */
 table#form tr th { text-align: right; }
@@ -87,8 +88,6 @@ td.bz_total {
 
 .bz_buglist .bz_blocked_column,
 .bz_buglist .bz_dependson_column { width: 8%; white-space: normal; }
-
-.bz_buglist .bz_short_desc_column a { color: black; text-decoration: none; }
 
 /* Bug states - duplicated here for external stylesheet usage */
 .bz_st_UNCONFIRMED, .bz_UNCONFIRMED td.first-child a { font-style: italic; }
