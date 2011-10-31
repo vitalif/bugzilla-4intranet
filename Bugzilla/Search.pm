@@ -813,7 +813,7 @@ sub FUNCTIONS
         'requestees.login_name'     => { '*' => \&_requestees_login_name },
         'setters.login_name'        => { '*' => \&_setters_login_name },
         $multi_fields               => { '*' => \&_multiselect_nonchanged },
-        'keywords'                  => { 'anyexact|anyword|allwords' => \&_keywords_exact },
+        'keywords'                  => { 'anyexact|anywords|allwords' => \&_keywords_exact },
     };
     # Expand | or-lists in hash keys
     expand_hash($FUNCTIONS);
