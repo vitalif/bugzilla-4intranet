@@ -28,7 +28,9 @@
 
 [% DEFAULT title = "Internal Error" %]
 
-[% IF block_exists("error_" _ error) %]
+[% ex = ("error_" _ error) FILTER block_exists %]
+
+[% IF ex %]
   [% error_message = ("error_" _ error) FILTER process %]
 [% ELSE %]
   [%# Try to find hooked error messages %]
@@ -36,10 +38,10 @@
 
   [% IF NOT error_message %]
     [% title = "Internal error" %]
-    An internal error has occurred, but [% terms.Bugzilla %] doesn't know
-    what <b><tt>[% error FILTER html %]</tt></b> means.
-  [% ELSE %]
-    [% error_message FILTER none %]
+    [% error_message = BLOCK %]
+      An internal error has occurred, but [% terms.Bugzilla %] doesn't know
+      what <b><tt>[% error FILTER html %]</tt></b> means.
+    [% END %]
   [% END %]
 [% END %]
 
@@ -243,11 +245,6 @@
 [% BLOCK error_field_not_custom %]
   '[% field.description FILTER html %]' ([% field.name FILTER html %])
   is not a custom field.
-[% END %]
-
-[% BLOCK error_field_type_mismatch %]
-  Cannot seem to handle <code>[% field FILTER html %]</code>
-  and <code>[% type FILTER html %]</code> together.
 [% END %]
 
 [% BLOCK error_field_type_not_specified %]
