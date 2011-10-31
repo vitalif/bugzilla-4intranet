@@ -641,7 +641,19 @@ sub create {
                         ],
 
             # "Dynamic" [% PROCESS ... %]
+            # FYI "process" and "block_exists" are filters because only filters have access to context
             process => [ sub { my ($context) = @_; return sub { $context->process(@_) } }, 1 ],
+
+            # Check if a named block of the current template exists
+            block_exists => [ sub { my ($context) = @_; return sub {
+                my ($blk) = @_;
+                return 1 if $context->{BLOCKS}->{$blk};
+                for (@{$context->{BLKSTACK}})
+                {
+                    return 1 if $_->{$blk};
+                }
+                return 0;
+            } }, 1 ],
 
             bug_list_link => sub
             {
@@ -806,9 +818,6 @@ sub create {
             terms => Bugzilla->messages->{terms},
             field_descs => Bugzilla->messages->{field_descs},
             lc_messages => Bugzilla->messages,
-
-            # Check if a named block of the current template exists
-            block_exists => [ sub { my ($context) = @_; return sub { $context->{BLOCKS}->{$1} && 1 } }, 1 ],
 
             # HTML <select>
             # html_select(name, { <attr> => <value> }, <selected value>, (
