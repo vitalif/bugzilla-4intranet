@@ -937,10 +937,10 @@ sub create {
             },
 
             # Used by bug/comments.html.tmpl
-            # FIXME find a better place for such functions
+            # FIXME find a better place for this function
             'comment_indexes' => sub {
                 my ($comments) = @_;
-                return [ map { [ $_->{count}, $_->{comment_id}, $_->{type} != CMT_WORKTIME ? 1 : 0 ] } @$comments ];
+                return [ map { [ $_->{count}, $_->{comment_id}, $_->{type} != CMT_WORKTIME && $_->{type} != CMT_BACKDATED_WORKTIME ? 1 : 0 ] } @$comments ];
             },
 
             'json' => \&Bugzilla::Util::bz_encode_json,

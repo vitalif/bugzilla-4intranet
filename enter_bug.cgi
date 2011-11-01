@@ -495,7 +495,9 @@ if ($cloned_bug_id) {
 
     my $cloned_comment = formvalue('cloned_comment', 0);
     my $bug_desc = $cloned_bug->comments({ order => 'oldest_to_newest' });
-    my $isprivate = $bug_desc->[$cloned_comment]->is_private;
+    my ($comment_obj) = grep { $_->{count} == $cloned_comment } @$bug_desc;
+    $comment_obj ||= $bug_desc->[0];
+    my $isprivate = $comment_obj->is_private;
 
     $vars->{'comment'}        = "";
     $vars->{'commentprivacy'} = 0;
@@ -504,12 +506,12 @@ if ($cloned_bug_id) {
         # We use "body" to avoid any format_comment text, which would be
         # pointless to clone.
         $vars->{'cloned_comment'} = $cloned_comment;
-        $vars->{'comment'}        = $bug_desc->[$cloned_comment]->body;
+        $vars->{'comment'}        = $comment_obj->body;
         $vars->{'comment'}        =~ s!bug\s*#?\s*(\d+)\s*,?\s*comment\s*#?\s*(\d+)!Bug $cloned_bug_id, comment $2!gso;
         # CustIS Bug 66177: Attachment link in cloned comment
         if ($bug_desc->[$cloned_comment]->type == CMT_ATTACHMENT_CREATED)
         {
-            $vars->{comment} = "Created attachment ".$bug_desc->[$cloned_comment]->extra_data."\n$vars->{comment}";
+            $vars->{comment} = "Created attachment ".$comment_obj->extra_data."\n$vars->{comment}";
         }
         $vars->{'commentprivacy'} = $isprivate;
     }
