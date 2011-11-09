@@ -2308,7 +2308,7 @@ sub set_dup_id {
     # Now make sure that we add a duplicate comment on *this* bug.
     # (Change an existing comment into a dup comment, if there is one,
     # or add an empty dup comment.)
-    if ($self->{added_comments}) {
+    if ($self->{added_comments} && @{$self->{added_comments}}) {
         my @normal = grep { !defined $_->{type} || $_->{type} == CMT_NORMAL }
                           @{ $self->{added_comments} };
         # Turn the last one into a dup comment.
