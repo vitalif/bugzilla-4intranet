@@ -101,6 +101,7 @@ if ($dbh->isa('Bugzilla::DB::Mysql'))
 $join = "INNER JOIN $join i" if $join;
 
 # First query gets new bugs' descriptions, and any comments added (not including duplicate information)
+# Worktime-only comments are excluded
 my $longdescs = $dbh->selectall_arrayref(
 "SELECT
     b.bug_id, b.short_desc, pr.name product, cm.name component, b.bug_severity, b.bug_status,
@@ -117,7 +118,8 @@ my $longdescs = $dbh->selectall_arrayref(
  LEFT JOIN profiles p ON p.userid=l.who
  LEFT JOIN products pr ON pr.id=b.product_id
  LEFT JOIN components cm ON cm.id=b.component_id
- WHERE l.isprivate=0 ".($who ? " AND l.who=".$who->id : "")." AND l.bug_id$subq
+ WHERE l.isprivate=0 ".($who ? " AND l.who=".$who->id : "")."
+    AND l.bug_id$subq AND l.type!=".CMT_WORKTIME." AND l.type!=".CMT_BACKDATED_WORKTIME."
  ORDER BY l.bug_when DESC
  LIMIT $limit", {Slice=>{}});
 
