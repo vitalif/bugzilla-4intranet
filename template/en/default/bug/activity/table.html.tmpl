@@ -71,7 +71,7 @@
                 <a href="attachment.cgi?id=[% change.attachid %]">
                 Attachment #[% change.attachid %]</a>
               [% END %]
-              [%+ field_descs.${change.fieldname} FILTER html %]
+              [%+ field_descs.${change.fieldname} || Bugzilla.get_field(change.fieldname).description FILTER html %]
             </td>
             [% PROCESS change_column change_type = change.removed %]
             [% PROCESS change_column change_type = change.added %]
