@@ -760,7 +760,8 @@ sub _fill_fields_cache
     my ($r) = @_;
     if (!$r->{id})
     {
-        # FIXME take field names from Bugzilla->messages
+        # FIXME take field descriptions from Bugzilla->messages->{field_descs}
+        # FIXME and remove ugly hacks from templates (field_descs.${f.name} || f.description)
         my $f = [ Bugzilla::Field->get_all ];
         for (@$f)
         {
