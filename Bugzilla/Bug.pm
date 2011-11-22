@@ -2506,8 +2506,13 @@ sub add_comment {
     $params ||= {};
     if (exists $params->{work_time}) {
         $params->{work_time} = $self->_check_work_time($params->{work_time});
-        ThrowUserError('comment_required')
-            if $comment eq '' && $params->{work_time} != 0;
+        if ($comment eq '' && $params->{work_time} != 0 &&
+            (!exists $params->{type} ||
+            $params->{type} != CMT_WORKTIME &&
+            $params->{type} != CMT_BACKDATED_WORKTIME))
+        {
+            ThrowUserError('comment_required');
+        }
     }
     if (exists $params->{type}) {
         $params->{type} = $self->_check_comment_type($params->{type});
