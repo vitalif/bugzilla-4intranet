@@ -36,8 +36,10 @@ th.sorted_5 { background-color: #dcdcdc; }
 .bz_row_odd { background-color: #F7F7F7; color: #000000; }
 .bz_row_even { background-color: #FFFFFF; color: #000000; }
 
-/* Style bug rows according to severity. */
 .bz_buglist .bz_short_desc_column a { color: black; text-decoration: none; }
+.bz_buglist .bz_short_desc_column a:hover { text-decoration: underline; }
+
+/* Style bug rows according to severity. */
 .bz_blocker, .bz_blocker .bz_short_desc_column a { color: red; font-weight: bold; }
 .bz_critical, .bz_critical .bz_short_desc_column a { color: red; }
 .bz_enhancement, .bz_enhancement .bz_short_desc_column a { color: #666; }
