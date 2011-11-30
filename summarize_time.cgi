@@ -221,7 +221,7 @@ sub get_list {
                    ON bugs.bug_id = longdescs.bug_id
                 WHERE longdescs.bug_id IN ($buglist) $date_bits " .
             $dbh->sql_group_by('longdescs.bug_id, login_name', 'longdescs.bug_when') .
-             " HAVING SUM(work_time) > 0", {Slice => {}}, @$date_values);
+             " HAVING SUM(work_time) != 0", {Slice => {}}, @$date_values);
     # What this loop does is to push data having the same key in an array.
         push @{$list{ $_->{$keyname} }}, $_ foreach @$data;
     }
@@ -244,7 +244,7 @@ sub get_inactive_bugs {
                 SELECT 1
                   FROM longdescs
                  WHERE bugs.bug_id = longdescs.bug_id
-                   AND work_time > 0 $date_bits)",
+                   AND work_time != 0 $date_bits)",
          undef, @$date_values);
 
     return $bugs;
@@ -259,7 +259,7 @@ sub get_earliest_activity_date {
         'SELECT ' . $dbh->sql_date_format('MIN(bug_when)', '%Y-%m-01')
        . ' FROM longdescs
           WHERE ' . $dbh->sql_in('bug_id', $bugids)
-                  . ' AND work_time > 0');
+                  . ' AND work_time != 0');
 
     return $date;
 }
