@@ -636,6 +636,33 @@ sub COLUMNS
     return $cache->{columns} = \%columns;
 }
 
+## FIXME Should REPORT_COLUMNS() be here? In Bugzilla 4.0 trunk it is.
+#sub REPORT_COLUMNS {
+#    my $columns = dclone(COLUMNS);
+#    # There's no reason to support reporting on unique fields.
+#    # Also, some other fields don't make very good reporting axises,
+#    # or simply don't work with the current reporting system.
+#    my @no_report_columns = 
+#        qw(bug_id alias short_short_desc opendate changeddate
+#           flagtypes.name keywords relevance);
+#
+#    # Multi-select fields are not currently supported.
+#    my @multi_selects = Bugzilla->get_fields(
+#        { obsolete => 0, type => FIELD_TYPE_MULTI_SELECT });
+#    push(@no_report_columns, map { $_->name } @multi_selects);
+#
+#    # If you're not a time-tracker, you can't use time-tracking
+#    # columns.
+#    if (!Bugzilla->user->is_timetracker) {
+#        push(@no_report_columns, TIMETRACKING_FIELDS);
+#    }
+#
+#    foreach my $name (@no_report_columns) {
+#        delete $columns->{$name};
+#    }
+#    return $columns;
+#}
+
 # Fields that can be searched on for changes
 # This is now used only by query.cgi
 sub CHANGEDFROMTO_FIELDS
@@ -1497,6 +1524,7 @@ sub GetByWordListSubstr
     return \@list;
 }
 
+# FIXME: In Bugzilla 4 trunk, pronoun() and relative timestamp support is replaced by SPECIAL_PARSING
 sub pronoun
 {
     my $self = shift;
@@ -1637,6 +1665,7 @@ sub translate_old_column
 }
 
 # Calls search operator specified by $self->{type}
+# Similar to do_operator_function() in Bugzilla 4 trunk
 sub call_op
 {
     my $self = shift;
@@ -1662,6 +1691,8 @@ sub is_noop
         $v eq "" && $t ne "equals" && $t ne "notequals" && $t ne "exact";
 }
 
+# 
+# Similar to do_search_function() in Bugzilla 4.0 trunk
 sub run_chart
 {
     my $self = shift;
@@ -1689,6 +1720,7 @@ sub run_chart
         ThrowUserError("invalid_field_name", { field => $self->{field} });
     }
     # CustIS Bug 53836
+    # FIXME this is replaced by SPECIAL_PARSING() in Bugzilla 4.0 trunk
     if ($self->{type} eq "equals" || $self->{type} eq "exact" || $self->{type} eq "anyexact")
     {
         s/\%user\%/$self->{user}->login/isge for ref $self->{value} ? @{$self->{value}} : $self->{value};
@@ -2293,6 +2325,7 @@ sub _flagtypes_name_nonchanged
     };
 }
 
+# FIXME: filter flags on private attachments
 sub _requestees_login_name
 {
     my $self = shift;
@@ -2308,6 +2341,7 @@ sub _requestees_login_name
     };
 }
 
+# FIXME: filter flags on private attachments
 sub _setters_login_name
 {
     my $self = shift;
@@ -2343,6 +2377,7 @@ sub _days_elapsed
     }
 }
 
+# Handles keywords/anywords == keywords/anyexact, keywords/allwords
 sub _keywords_exact
 {
     my $self = shift;
@@ -3099,7 +3134,7 @@ sub expression_sql_and
                 # Allow only one many_rows=1 term in a query,
                 # wrap following into a SELECT DISTINCT
                 my $gs = $self->{sequence}++;
-                $tables .= "\nINNER JOIN (SELECT DISTINCT $t->{bugid_field} FROM $t->{table}";
+                $tables .= "\nINNER JOIN (SELECT DISTINCT $t->{bugid_field} bug_id FROM $t->{table}";
                 $tables .= " WHERE $t->{where}" if $t->{where};
                 $tables .= ") grp$gs ON $first_bugid_field=grp$gs.bug_id";
             }
@@ -3122,7 +3157,7 @@ sub expression_sql_and
             }
         }
     }
-    $tables = "SELECT DISTINCT $first_bugid_field FROM\n$tables";
+    $tables = "SELECT DISTINCT $first_bugid_field bug_id FROM\n$tables";
     if (@$where)
     {
         $tables .= "\nWHERE ".join(" AND ", @$where);
