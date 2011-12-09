@@ -83,7 +83,7 @@ sub refresh_sql
         $search->{terms_without_security}
     ]);
     my $sql = $search->get_expression_sql($terms, 'force joins');
-    $sql =~ s/^\s*SELECT.*?FROM/SELECT $self->{id} FROM/;
+    $sql =~ s/^\s*SELECT.*?FROM/SELECT DISTINCT $self->{id} FROM/;
     $self->set_sql_code($sql);
 }
 
