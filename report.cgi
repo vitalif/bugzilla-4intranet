@@ -105,21 +105,21 @@ my $width = $cgi->param('width');
 my $height = $cgi->param('height');
 
 if (defined($width)) {
-   (detaint_natural($width) && $width > 0)
-     || ThrowCodeError("invalid_dimensions");
-   $width <= 2000 || ThrowUserError("chart_too_large");
+    (detaint_natural($width) && $width > 0)
+      || ThrowCodeError("invalid_dimensions");
+    $width <= 2000 || ThrowUserError("chart_too_large");
 }
 
 if (defined($height)) {
-   (detaint_natural($height) && $height > 0)
-     || ThrowCodeError("invalid_dimensions");
-   $height <= 2000 || ThrowUserError("chart_too_large");
+    (detaint_natural($height) && $height > 0)
+      || ThrowCodeError("invalid_dimensions");
+    $height <= 2000 || ThrowUserError("chart_too_large");
 }
 
 # These shenanigans are necessary to make sure that both vertical and
 # horizontal 1D tables convert to the correct dimension when you ask to
 # display them as some sort of chart.
-if (defined $cgi->param('format') && $cgi->param('format') eq "table") {
+if (defined $cgi->param('format') && $cgi->param('format') =~ /^(table|simple)$/) {
     if ($field->{x} && !$field->{y}) {
         # 1D *tables* should be displayed vertically (with a row_field only)
         $field->{y} = $field->{x};
@@ -268,7 +268,7 @@ if ($action eq "wrap") {
     $formatparam =~ s/[^a-zA-Z\-]//g;
     trick_taint($formatparam);
     $vars->{'format'} = $formatparam;
-    $formatparam = '';
+    $formatparam = '' if $formatparam ne 'simple';
 
     # We need to keep track of the defined restrictions on each of the
     # axes, because buglistbase, below, throws them away. Without this, we
@@ -314,7 +314,7 @@ my @time = localtime(time());
 my $date = sprintf "%04d-%02d-%02d", 1900+$time[5],$time[4]+1,$time[3];
 my $filename = "report-$date.$format->{extension}";
 $cgi->send_header(-type => $format->{'ctype'},
-                   -content_disposition => "inline; filename=$filename");
+                  -content_disposition => "inline; filename=$filename");
 
 # Problems with this CGI are often due to malformed data. Setting debug=1
 # prints out both data structures.
