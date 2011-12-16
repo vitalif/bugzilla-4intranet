@@ -65,6 +65,7 @@ if ($args->{load_settings})
     {
         $l->{$_} = $ls->{$_} if $ls->{$_} ne '';
     }
+    $vars->{load_settings} = 1;
 }
 
 # Вычисление размера карточек по количеству, либо количества по размерам
@@ -259,7 +260,7 @@ sub expression
     elsif ($e =~ s/^\s*("([^\"\\]+|\\\\|\\\")*"|'([^\'\\]+|\\\\|\\\')*'|-?[\d\.]+)//iso)
     {
         my $x = $1;
-        if ($x =~ s/^[\"\']|[\"\']$//so)
+        if ($x =~ s/^[\"\'](.*)[\"\']$/$1/so)
         {
             $x =~ s/\\//gso;
         }
@@ -268,10 +269,11 @@ sub expression
     elsif ($e =~ s/^\s*([a-z_]+)//iso)
     {
         my $n = $1;
+        my ($realname) = $n =~ s/_realname//so;
         $v = $bug->can($n) ? $bug->$n : $bug->{$n};
         if (ref $v eq 'Bugzilla::User')
         {
-            $v = $v->login;
+            $v = $realname ? $v->name : $v->login;
         }
         elsif (ref $v eq 'ARRAY')
         {
