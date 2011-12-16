@@ -104,7 +104,7 @@ x
 <div style="float: left; margin-left: 50px; text-align: center">
 <p>Текст настроек:</p>
 <textarea name="settings_text" cols="70" rows="5" onchange="document.getElementById('load_settings').checked = true">[% settings_text | html %]</textarea><br />
-<input type="checkbox" name="load_settings" id="load_settings" value="1" />
+<input type="checkbox" name="load_settings" id="load_settings" value="1" [% " checked" IF load_settings %] />
 <label for="load_settings">Загрузить настройки &uarr;</label>
 </div>
 
