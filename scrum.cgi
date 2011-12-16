@@ -254,6 +254,7 @@ sub expression
             push @a, $a;
             $e =~ s/^[,\s]*//so;
         }
+        $e =~ s/^\s*\)//so;
         no strict 'refs';
         $v = &$f(@a);
     }
