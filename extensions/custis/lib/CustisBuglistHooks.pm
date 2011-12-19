@@ -20,6 +20,9 @@ sub buglist_static_columns
     $columns->{lastcommenter} = {
         title => "Last Commenter",
     };
+    $columns->{last_comment_time} = {
+        title => "Last Comment Time",
+    };
     $columns->{creation_ts_date} = {
         nocharts => 1,
         title => "Creation Date",
@@ -75,6 +78,9 @@ sub buglist_columns
         "(SELECT $login FROM longdescs ldc0$hint".
         " INNER JOIN profiles ldp0 ON ldp0.userid=ldc0.who WHERE ldc0.bug_id = bugs.bug_id $priv".
         " ORDER BY ldc0.bug_when DESC LIMIT 1)";
+    $priv = (Bugzilla->user->is_insider ? "" : "AND lct.isprivate=0 ");
+    $columns->{last_comment_time}->{name} =
+        "(SELECT MAX(lct.bug_when) FROM longdescs lct$hint WHERE lct.bug_id = bugs.bug_id $priv)";
 
     return 1;
 }
