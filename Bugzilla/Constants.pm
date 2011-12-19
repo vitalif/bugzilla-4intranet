@@ -130,6 +130,7 @@ use Cwd qw(abs_path);
     FIELD_TYPE_DATETIME
     FIELD_TYPE_BUG_ID
     FIELD_TYPE_BUG_URLS
+    FIELD_TYPE_EXTURL
     FIELD_TYPE_NUMERIC
 
     FIELD_TYPE__BOUNDARY
@@ -377,18 +378,19 @@ use constant SENDMAIL_PATH => '/usr/lib:/usr/sbin:/usr/ucblib';
 # we do more than we would do for a standard integer type (f.e. we might
 # display a user picker).
 
-use constant FIELD_TYPE_UNKNOWN   => 0;
-use constant FIELD_TYPE_FREETEXT  => 1;
+use constant FIELD_TYPE_UNKNOWN => 0;
+use constant FIELD_TYPE_FREETEXT => 1;
 use constant FIELD_TYPE_SINGLE_SELECT => 2;
 use constant FIELD_TYPE_MULTI_SELECT => 3;
-use constant FIELD_TYPE_TEXTAREA  => 4;
-use constant FIELD_TYPE_DATETIME  => 5;
-use constant FIELD_TYPE_BUG_ID  => 6;
+use constant FIELD_TYPE_TEXTAREA => 4;
+use constant FIELD_TYPE_DATETIME => 5;
+use constant FIELD_TYPE_BUG_ID => 6;
 use constant FIELD_TYPE_BUG_URLS => 7;
 use constant FIELD_TYPE_NUMERIC => 8;
+use constant FIELD_TYPE_EXTURL => 9;
 
 # Upper boundary for FIELD_TYPE_* values
-use constant FIELD_TYPE__BOUNDARY => 8;
+use constant FIELD_TYPE__BOUNDARY => 9;
 
 use constant BUG_ID_ADD_TO_BLOCKED => 1;
 use constant BUG_ID_ADD_TO_DEPENDSON => 2;

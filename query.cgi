@@ -273,7 +273,7 @@ if (Bugzilla->params->{usestatuswhiteboard})
     push @{$vars->{freetext_fields}}, Bugzilla->get_field('status_whiteboard');
 }
 push @{$vars->{freetext_fields}},
-    Bugzilla->active_custom_fields({ type => [ FIELD_TYPE_TEXTAREA, FIELD_TYPE_FREETEXT ] });
+    Bugzilla->active_custom_fields({ type => [ FIELD_TYPE_TEXTAREA, FIELD_TYPE_FREETEXT, FIELD_TYPE_EXTURL ] });
 
 if ($params->{format} && $params->{format} =~ /^report-(table|graph)$/)
 {

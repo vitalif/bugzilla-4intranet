@@ -80,7 +80,7 @@
       <td><input type="checkbox" id="obsolete" name="obsolete" value="1"
                  [%- " checked" IF field.obsolete %]></td>
     </tr>
-    <tr>
+    <tr valign="top">
       <th align="right"><label for="sortkey">Sortkey:</label></th>
       <td>
         <input type="text" id="sortkey" name="sortkey" size="6" maxlength="6"
@@ -91,7 +91,7 @@
       <th align="right">
         <label for="visibility_field_id">Field only appears when:</label>
       </th>
-      <td>
+      <td valign="top">
         <select name="visibility_field_id" id="visibility_field_id"
                 onchange="onChangeVisibilityField()">
           <option></option>
@@ -168,10 +168,18 @@
     </tr>
     [% END %]
 
-    <tr>
-      <th>&nbsp;</th>
-      <td>&nbsp;</td>
+    [% IF field.type == constants.FIELD_TYPE_EXTURL %]
+    <tr valign="top">
+      <th>
+        <label for="url" id="url_title">
+          URL template:<br />($1 = target ID)
+        </label>
+      </th>
+      <td>
+        <input id="url_field" name="url" type="text" size="40" value="[% field.url | html %]" />
+      </td>
     </tr>
+    [% END %]
   </table>
   <input type="hidden" name="action" value="update">
   <input type="hidden" name="name" value="[% field.name FILTER html %]">

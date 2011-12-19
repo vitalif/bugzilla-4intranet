@@ -40,6 +40,9 @@ function onChangeType(type_field) {
     value_field.disabled = false;
   else
     value_field.disabled = true;
+  var u = type_field.value == [% constants.FIELD_TYPE_EXTURL %];
+  document.getElementById('url_title').style.display = u ? '' : 'none';
+  document.getElementById('url_field').style.display = u ? '' : 'none';
 }
 
 function onChangeVisibilityField() {

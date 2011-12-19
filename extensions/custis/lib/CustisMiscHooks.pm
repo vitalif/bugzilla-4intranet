@@ -185,16 +185,6 @@ sub quote_urls_custom_proto
 ## НЕ-хуки:
 ##
 
-# url_quote, не экранирующий /
-sub url_quote_slash
-{
-    my ($toencode) = (@_);
-    utf8::encode($toencode) # The below regex works only on bytes
-        if Bugzilla->params->{utf8} && utf8::is_utf8($toencode);
-    $toencode =~ s!([^a-zA-Z0-9_\-\./])!uc sprintf("%%%02x",ord($1))!ego;
-    return $toencode;
-}
-
 # Кодирование anchor'а подзаголовка wiki-статьи
 sub process_wiki_anchor
 {
@@ -214,7 +204,7 @@ sub process_wiki_url
     $url = trim($url);
     $url =~ s/\s+/_/gso;
     # обычный url_quote нам не подходит, т.к. / не нужно переделывать в %2F
-    $url = url_quote_slash($url);
+    $url = url_quote_noslash($url);
     return $base . $url . '#' . process_wiki_anchor($anchor);
 }
 

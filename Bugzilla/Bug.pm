@@ -134,6 +134,7 @@ use constant REQUIRED_CREATE_FIELDS => qw(
 our $CUSTOM_FIELD_VALIDATORS = {
     FIELD_TYPE_UNKNOWN()        => \&_check_default_field,
     FIELD_TYPE_FREETEXT()       => \&_check_freetext_field,
+    FIELD_TYPE_EXTURL()         => \&_check_freetext_field,
     FIELD_TYPE_SINGLE_SELECT()  => \&_check_select_field,
     FIELD_TYPE_MULTI_SELECT()   => \&_check_multi_select_field,
     FIELD_TYPE_TEXTAREA()       => \&_check_default_field,

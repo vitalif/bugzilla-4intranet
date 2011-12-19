@@ -59,6 +59,7 @@ elsif ($action eq 'new')
 
     my $field = $vars->{field} = Bugzilla::Field->create({
         name        => scalar $cgi->param('name'),
+        url         => scalar $cgi->param('url'),
         description => scalar $cgi->param('desc'),
         type        => scalar $cgi->param('type'),
         sortkey     => scalar $cgi->param('sortkey'),
@@ -107,6 +108,7 @@ elsif ($action eq 'update')
     $field->set_sortkey($cgi->param('sortkey'));
     $field->set_in_new_bugmail($cgi->param('new_bugmail'));
     $field->set_obsolete($cgi->param('obsolete'));
+    $field->set_url($cgi->param('url'));
     if ($field->custom)
     {
         # TODO enter_bug could be edited for non-custom fields, too.
