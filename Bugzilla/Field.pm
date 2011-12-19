@@ -107,6 +107,7 @@ use constant DB_COLUMNS => qw(
     delta_ts
     has_activity
     add_to_deps
+    url
 );
 
 use constant REQUIRED_CREATE_FIELDS => qw(name description);
@@ -143,6 +144,7 @@ use constant UPDATE_COLUMNS => qw(
     delta_ts
     has_activity
     add_to_deps
+    url
 );
 
 # How various field types translate into SQL data definitions.
@@ -150,6 +152,7 @@ use constant SQL_DEFINITIONS => {
     # Using commas because these are constants and they shouldn't
     # be auto-quoted by the "=>" operator.
     FIELD_TYPE_FREETEXT,      { TYPE => 'varchar(255)' },
+    FIELD_TYPE_EXTURL,        { TYPE => 'varchar(255)' },
     FIELD_TYPE_SINGLE_SELECT, { TYPE => 'varchar(255)', NOTNULL => 1,
                                 DEFAULT => "'---'" },
     FIELD_TYPE_TEXTAREA,      { TYPE => 'MEDIUMTEXT' },
@@ -482,6 +485,8 @@ sub has_activity { $_[0]->{has_activity} }
 
 sub add_to_deps { $_[0]->{add_to_deps} }
 
+sub url { $_[0]->{url} }
+
 sub legal_values
 {
     my $self = shift;
@@ -716,6 +721,7 @@ sub set_sortkey        { $_[0]->set('sortkey',     $_[1]); }
 sub set_in_new_bugmail { $_[0]->set('mailhead',    $_[1]); }
 sub set_buglist        { $_[0]->set('buglist',     $_[1]); }
 sub set_add_to_deps    { $_[0]->set('add_to_deps', $_[1]); }
+sub set_url            { $_[0]->set('url',         $_[1]); }
 
 sub set_visibility_field
 {

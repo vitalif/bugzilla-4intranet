@@ -225,6 +225,16 @@ sub url_quote {
     return $toencode;
 }
 
+# Same, but doesn't quote the forward slash "/"
+sub url_quote_noslash
+{
+    my ($toencode) = (@_);
+    utf8::encode($toencode) # The below regex works only on bytes
+        if Bugzilla->params->{utf8} && utf8::is_utf8($toencode);
+    $toencode =~ s!([^a-zA-Z0-9_\-\./])!uc sprintf("%%%02x",ord($1))!ego;
+    return $toencode;
+}
+
 sub css_class_quote {
     my ($toencode) = (@_);
     $toencode =~ s#[ /]#_#g;

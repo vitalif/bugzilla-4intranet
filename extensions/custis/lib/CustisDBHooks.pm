@@ -111,6 +111,9 @@ sub db_schema_abstract_schema
     # Bug 69325 - Настройка копирования / не копирования значения поля при клонировании бага
     push @{$schema->{fielddefs}->{FIELDS}}, clone_bug => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 1};
 
+    # Bug 90854 - Тип поля "ссылка во внешнюю систему по ID"
+    push @{$schema->{fielddefs}->{FIELDS}}, url => {TYPE => 'VARCHAR(255)'};
+
     # Bug 70605 - Кэширование зависимостей полей для поиска и формы бага на клиентской стороне
     push @{$schema->{fielddefs}->{FIELDS}}, delta_ts => {TYPE => 'DATETIME'};
     push @{$schema->{fielddefs}->{FIELDS}}, has_activity => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0};
@@ -367,6 +370,9 @@ sub install_update_fielddefs
 
     # Bug 69325 - Настройка копирования / не копирования значения поля при клонировании бага
     $dbh->bz_add_column('fielddefs', clone_bug => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 1});
+
+    # Bug 90854 - Тип поля "ссылка во внешнюю систему по ID"
+    $dbh->bz_add_column('fielddefs', url => {TYPE => 'VARCHAR(255)'});
 
     # Bug 70605 - Кэширование зависимостей полей для поиска и формы бага на клиентской стороне
     if (!$dbh->bz_column_info('fielddefs', 'delta_ts'))
