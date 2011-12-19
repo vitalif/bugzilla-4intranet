@@ -34,7 +34,7 @@ use strict;
 use base qw(Exporter);
 @Bugzilla::Util::EXPORT = qw(
     trick_taint detaint_natural trick_taint_copy detaint_signed
-    html_quote url_quote xml_quote css_class_quote html_light_quote url_decode
+    html_quote url_quote url_quote_noslash xml_quote css_class_quote html_light_quote url_decode
     i_am_cgi correct_urlbase remote_ip lsearch
     do_ssl_redirect_if_required use_attachbase
     diff_arrays list
