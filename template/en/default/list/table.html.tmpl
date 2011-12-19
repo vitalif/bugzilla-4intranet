@@ -171,6 +171,11 @@
         [%- bug.$column FILTER format(abbrev.$column.format_value) FILTER html -%]
       [% ELSIF Bugzilla.get_field(column).type == constants.FIELD_TYPE_BUG_ID %]
         [% bug.$column FILTER bug_link(bug.$column) IF bug.$column %]
+      [% ELSIF Bugzilla.get_field(column).type == constants.FIELD_TYPE_EXTURL %]
+        [% IF bug.$column %]
+          [% SET url_quoted = bug.$column | url_quote_ns %]
+          <a href="[% Bugzilla.get_field(column).url.replace('\$1', url_quoted) %]">[% bug.$column | html %]</a>
+        [% END %]
       [% ELSIF column == 'work_time' ||
                column == 'remaining_time' ||
                column == 'estimated_time' ||
