@@ -37,8 +37,9 @@
 
   <head>
     <title>[% title FILTER html %]</title>
-    <base href="[% urlbase FILTER html %]" [% IF Bugzilla.cgi.param('target') == '_blank' %] target="_blank"[% END %]>
-    <link href="skins/standard/buglist.css" rel="stylesheet" type="text/css">
+    <base href="[% urlbase FILTER html %]" [% IF Bugzilla.cgi.param('target') == '_blank' %] target="_blank"[% END %] />
+    <link href="skins/standard/buglist.css" rel="stylesheet" type="text/css" />
+    <script type="text/javascript" language="JavaScript" src="js/resize-iframe.js"></script>
   </head>
 
   <body>
