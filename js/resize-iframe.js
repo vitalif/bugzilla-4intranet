@@ -5,13 +5,14 @@
 
 /* Allows to resize parent iframe to ease embedding Bugzilla pages
  * onto pages from other domains. Sends HTML5 postMessage with text
- * "resize(w=WIDTH;h=HEIGHT)" to parent window if loaded with location
- * hash #resize. Works in IE8+, FF 3+, Opera 9.5+, and Chrome.
+ * "resize(w=WIDTH;h=HEIGHT)" to parent window if loaded with ?_resize=1.
+ * Works in IE8+, FF 3+, Opera 9.5+, and Chrome.
  */
 
 resizeParentIframe = function()
 {
-  if (/resize/.exec(window.location.hash) && 'postMessage' in parent)
+  if ((/resize/.exec(window.location.hash) ||
+    /[&\?]_resize=1/.exec(window.location.href)) && 'postMessage' in parent)
   {
     var w = document.body.scrollWidth;
     var h = document.body.scrollHeight;
