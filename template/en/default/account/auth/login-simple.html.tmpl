@@ -1,0 +1,50 @@
+[%# Simple format of the login form.
+  # License: Dual-license GPL 3.0+ or MPL 1.1+.
+  # Contributor(s): Vitaliy Filippov <vitalif@mail.ru>
+  #%]
+
+[%# INTERFACE:
+  # target: string. URL to go to after login.
+  #%]
+
+[% IF !target %]
+  [% target = "index.cgi" %]
+[% END %]
+
+[% USE Bugzilla %]
+
+<html>
+<head>
+  <title>Log in to [% terms.Bugzilla %]</title>
+  <script type="text/javascript" language="JavaScript" src="js/resize-iframe.js"></script>
+</head>
+<body onload="document.forms['login'].Bugzilla_login.focus()">
+
+<form name="login" action="[% target FILTER html %]" method="POST"
+[%- IF Bugzilla.cgi.param("data") %] enctype="multipart/form-data"[% END %]>
+
+  <label for="Bugzilla_login">Login:</label>
+  <input size="15" id="Bugzilla_login" name="Bugzilla_login" /> [% Param('emailsuffix') FILTER html %]
+
+  <label for="Bugzilla_password">Password:</label>
+  <input type="password" size="15" id="Bugzilla_password" name="Bugzilla_password" />
+
+  [% IF Param('rememberlogin') == 'defaulton' ||
+        Param('rememberlogin') == 'defaultoff' %]
+    <input type="checkbox" id="Bugzilla_remember" name="Bugzilla_remember" value="on"
+      [%+ "checked" IF Param('rememberlogin') == "defaulton" %] />
+    <label for="Bugzilla_remember">Remember my Login</label>
+  [% END %]
+
+  <input type="checkbox" id="Bugzilla_restrictlogin" name="Bugzilla_restrictlogin"
+    checked="checked" />
+  <label for="Bugzilla_restrictlogin" title="Restrict this session to this IP address (using this option improves security)">Restrict to IP</label>
+
+  [% PROCESS "global/hidden-fields.html.tmpl"
+     exclude="^Bugzilla_(login|password|restrictlogin)$" %]
+
+  <input type="submit" name="GoAheadAndLogIn" value="Log in to [% terms.Bugzilla %]" id="log_in" />
+
+</form>
+
+</html>
