@@ -16,6 +16,7 @@
   # Rights Reserved.
   #
   # Contributor(s): Gervase Markham <gerv@gerv.net>
+  #                 Vitaliy Filippov <vitalif@mail.ru>
   #%]
 
 [%# INTERFACE:
@@ -24,31 +25,13 @@
   #%]
 
 [% BLOCK select %]
-  [% rep_fields =   ["classification", "product", "component", "version"] %]
-  [% rep_fields.push("rep_platform") IF Param('useplatform') %]
-  [% rep_fields.push("op_sys") IF Param('useopsys') %]
-  [% rep_fields.push("bug_status", "resolution", "bug_severity",
-                     "priority", "target_milestone", "assigned_to",
-                     "reporter", "qa_contact", "votes", "status_whiteboard") %]
-
   <select name="[% name FILTER html %]">
     <option value="">&lt;none&gt;</option>
-    
-    [% FOREACH field = rep_fields %]
-      [% NEXT IF field == "classification" AND !Param('useclassification') %]
-      [% NEXT IF field == "target_milestone" AND !Param('usetargetmilestone') %]
-      [% NEXT IF field == "qa_contact" AND !Param('useqacontact') %]
-      [% NEXT IF field == "votes" AND !Param('usevotes') %]      
-      <option value="[% field FILTER html %]" 
-        [% " selected" IF default.$name.0 == field %]>
-        [% field_descs.$field || field FILTER html %]</option>
-    [% END %]
-
-    [%# Single-select fields are also valid column names. %]
-    [% FOREACH field = custom_fields %]
-      <option value="[% field.name FILTER html %]"
-        [% " selected" IF default.$name.0 == field.name %]>
-        [% field.description FILTER html %]</option>
+    [% FOREACH field = report_columns %]
+      <option value="[% field.id FILTER html %]" 
+        [% " selected" IF default.$name.0 == field.id %]>
+        [%# FIXME Take field descriptions from Bugzilla->messages->field_descs to field.description %]
+        [% field_descs.$field || field.title || field.id FILTER html %]</option>
     [% END %]
   </select>
 [% END %]

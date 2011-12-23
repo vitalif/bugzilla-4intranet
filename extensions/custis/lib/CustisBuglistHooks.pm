@@ -16,6 +16,7 @@ sub buglist_static_columns
     # CustIS Bug 71955 - first comment to the bug
     $columns->{comment0} = {
         title => "First Comment",
+        noreports => 1,
     };
     $columns->{lastcommenter} = {
         title => "Last Commenter",
