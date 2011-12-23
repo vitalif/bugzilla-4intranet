@@ -651,7 +651,10 @@ sub REPORT_COLUMNS
     # Do not report on obsolete columns.
     push @no_report_columns, map { $_->name } Bugzilla->get_fields({ obsolete => 1 });
     # Subselect fields are also not supported.
-    push @no_report_columns, grep { /\./ || $columns->{$_}->{nobuglist} || $columns->{$_}->{subid} } keys %$columns;
+    push @no_report_columns, grep {
+        /\./ || $columns->{$_}->{noreports} ||
+        $columns->{$_}->{nobuglist} || $columns->{$_}->{subid}
+    } keys %$columns;
     # FIXME Multi-select fields are now incorrectly supported in reports.
     # They report like: "a,b: 80 bugs; a: 20 bugs; b: 10 bugs". I.e. the grouping
     # is by value sets, not by individual values.
