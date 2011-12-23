@@ -20,7 +20,7 @@
 
 [% y_label = "$terms.Bugs" %]
 
-[% col_field_disp = field_descs.$col_field || col_field %]
+[% col_field_disp = field_descs.$col_field || Bugzilla.get_field(col_field).description || col_field %]
 
 [% FOR i IN [ 0 .. data.0.0.max ] %]
   [% data.0.0.$i = data.0.0.$i %]
