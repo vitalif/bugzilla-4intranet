@@ -179,8 +179,13 @@ $vars->{chfield} = [
     @{ Bugzilla::Search->CHANGEDFROMTO_FIELDS }
 ];
 
-# Boolean charts
+# Fields for reports
+$vars->{report_columns} = [
+    sort { $a->{title} cmp $b->{title} }
+    values %{Bugzilla::Search::REPORT_COLUMNS()}
+];
 
+# Boolean charts
 my $opdescs = Bugzilla->messages->{operator_descs};
 $vars->{chart_types} = Bugzilla::Search->CHART_OPERATORS_ORDER;
 $vars->{text_types} = Bugzilla::Search->TEXT_OPERATORS_ORDER;
@@ -274,13 +279,6 @@ if (Bugzilla->params->{usestatuswhiteboard})
 }
 push @{$vars->{freetext_fields}},
     Bugzilla->active_custom_fields({ type => [ FIELD_TYPE_TEXTAREA, FIELD_TYPE_FREETEXT, FIELD_TYPE_EXTURL ] });
-
-if ($params->{format} && $params->{format} =~ /^report-(table|graph)$/)
-{
-    # Get legal custom fields for tabular and graphical reports.
-    my @custom_fields_for_reports = Bugzilla->active_custom_fields({ type => FIELD_TYPE_SINGLE_SELECT });
-    $vars->{custom_fields} = \@custom_fields_for_reports;
-}
 
 ($vars->{known_name}) = list $params->{known_name};
 $vars->{columnlist} = $params->{columnlist};

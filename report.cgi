@@ -40,7 +40,7 @@ my $buffer = $cgi->query_string();
 if (grep(/^cmd-/, $cgi->param())) {
     my $params = $cgi->canonicalise_query("format", "ctype");
     my $location = "query.cgi?format=" . $cgi->param('query_format') .
-      ($params ? "&$params" : "");
+        ($params ? "&$params" : "");
 
     print $cgi->redirect($location);
     exit;
@@ -59,25 +59,7 @@ if ($action eq "menu") {
     exit;
 }
 
-# FIXME Список полей должен быть в одном месте (а он сейчас ещё в search/search-report-select)
-# Valid bug fields that can be reported on.
-my @columns = qw(
-    assigned_to
-    reporter
-    qa_contact
-    component
-    classification
-    version
-    votes
-    keywords
-    target_milestone
-    status_whiteboard
-);
-# Single-select fields (custom or not) are also accepted as valid.
-my @single_selects = Bugzilla->get_fields({ type => FIELD_TYPE_SINGLE_SELECT,
-                                            obsolete => 0 });
-push(@columns, map { $_->name } @single_selects);
-my %valid_columns = map { $_ => 1 } @columns;
+my $valid_columns = Bugzilla::Search::REPORT_COLUMNS();
 
 my $field = {};
 for (qw(x y z))
@@ -86,7 +68,7 @@ for (qw(x y z))
     trick_taint($f);
     if ($f)
     {
-        if ($valid_columns{$f})
+        if ($valid_columns->{$f})
         {
             $field->{$_} = $f;
         }

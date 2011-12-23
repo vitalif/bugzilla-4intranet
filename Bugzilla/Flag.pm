@@ -951,6 +951,7 @@ or deleted.
 
 =cut
 
+# FIXME move this notification out of here!
 sub notify {
     my ($class, $flag, $old_flag, $obj) = @_;
 
@@ -996,6 +997,7 @@ sub notify {
     # Is there someone to notify?
     return unless ($addressee || $cc_list);
 
+# УБРАТЬ
     # If the target bug is restricted to one or more groups, then we need
     # to make sure we don't send email about it to unauthorized users
     # on the request type's CC: list, so we have to trawl the list for users
@@ -1017,6 +1019,8 @@ sub notify {
     if ($addressee && $addressee->email_enabled) {
         $recipients{$addressee->email} = $addressee;
     }
+# /УБРАТЬ
+
     # Process and send notification for each recipient.
     # If there are users in the CC list who don't have an account,
     # use the default language for email notifications.

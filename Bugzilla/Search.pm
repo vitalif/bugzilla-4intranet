@@ -612,6 +612,7 @@ sub STATIC_COLUMNS
     # FIXME move truncation away from templates
     $columns->{short_short_desc} = { %{ $columns->{short_desc} } };
     $columns->{short_short_desc}->{nocharts} = 1;
+    $columns->{short_short_desc}->{noreports} = 1;
 
     Bugzilla::Hook::process('buglist_static_columns', { columns => $columns });
 
@@ -636,32 +637,32 @@ sub COLUMNS
     return $cache->{columns} = \%columns;
 }
 
-## FIXME Should REPORT_COLUMNS() be here? In Bugzilla 4.0 trunk it is.
-#sub REPORT_COLUMNS {
-#    my $columns = dclone(COLUMNS);
-#    # There's no reason to support reporting on unique fields.
-#    # Also, some other fields don't make very good reporting axises,
-#    # or simply don't work with the current reporting system.
-#    my @no_report_columns = 
-#        qw(bug_id alias short_short_desc opendate changeddate
-#           flagtypes.name keywords relevance);
-#
-#    # Multi-select fields are not currently supported.
-#    my @multi_selects = Bugzilla->get_fields(
-#        { obsolete => 0, type => FIELD_TYPE_MULTI_SELECT });
-#    push(@no_report_columns, map { $_->name } @multi_selects);
-#
-#    # If you're not a time-tracker, you can't use time-tracking
-#    # columns.
-#    if (!Bugzilla->user->is_timetracker) {
-#        push(@no_report_columns, TIMETRACKING_FIELDS);
-#    }
-#
-#    foreach my $name (@no_report_columns) {
-#        delete $columns->{$name};
-#    }
-#    return $columns;
-#}
+sub REPORT_COLUMNS
+{
+    my $cache = Bugzilla->request_cache;
+    return $cache->{report_columns} if defined $cache->{report_columns};
+
+    my $columns = COLUMNS();
+
+    # There's no reason to support reporting on unique fields.
+    my @no_report_columns = qw(
+        bug_id alias short_short_desc opendate changeddate delta_ts relevance
+    );
+    # Do not report on obsolete columns.
+    push @no_report_columns, map { $_->name } Bugzilla->get_fields({ obsolete => 1 });
+    # Subselect fields are also not supported.
+    push @no_report_columns, grep { /\./ || $columns->{$_}->{nobuglist} || $columns->{$_}->{subid} } keys %$columns;
+    # FIXME Multi-select fields are now incorrectly supported in reports.
+    # They report like: "a,b: 80 bugs; a: 20 bugs; b: 10 bugs". I.e. the grouping
+    # is by value sets, not by individual values.
+
+    # Unset non-reportable columns
+    foreach my $name (@no_report_columns)
+    {
+        delete $columns->{$name};
+    }
+    return $cache->{report_columns} = $columns;
+}
 
 # Fields that can be searched on for changes
 # This is now used only by query.cgi
