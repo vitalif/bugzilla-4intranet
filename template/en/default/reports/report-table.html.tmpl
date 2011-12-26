@@ -96,7 +96,7 @@ END; %]
 
     [% row_idx = 1 - row_idx %]
     <tr>
-      <td class="[% classes.$row_idx.$col_idx %]" align="right">
+      <td class="[% classes.$row_idx.$col_idx %]">
         [% PROCESS value_display value = row field = row_field %]
       </td>
       [% FOREACH col = col_names %]
