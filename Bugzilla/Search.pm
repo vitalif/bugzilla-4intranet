@@ -475,7 +475,7 @@ sub STATIC_COLUMNS
         qa_contact_realname  => { title => 'QA Contact Name', nocharts => 1 },
         # FIXME save aggregated work_time in bugs table and search on it
         work_time            => { name => $actual_time },
-        interval_time        => { name => $actual_time, title => 'Period Worktime' },
+        interval_time        => { name => $actual_time, title => 'Period Worktime', noreports => 1 },
         percentage_complete  => {
             name => "(CASE WHEN $actual_time + bugs.remaining_time = 0.0 THEN 0.0" .
                 " ELSE 100 * ($actual_time / ($actual_time + bugs.remaining_time)) END)",
