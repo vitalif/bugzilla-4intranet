@@ -66,33 +66,38 @@
       </td>
     </tr>
 
-    [% IF (user.id != bug.assigned_to.id) AND user.in_group("editbugs", bug.product_id) %]
-      <tr>
-        <th>Reassignment:</th>
-        <td>
-          <em>If you want to assign this [% terms.bug %] to yourself,
-              check the box below.</em><br>
-          <input type="checkbox" id="takebug" name="takebug" value="1">
-          <label for="takebug">take [% terms.bug %]</label>
-          [% bug_statuses = [] %]
-          [% FOREACH bug_status = bug.status.can_change_to %]
-            [% NEXT IF bug_status.name == "UNCONFIRMED" 
-                       && !bug.product_obj.allows_unconfirmed %]
-            [% bug_statuses.push(bug_status) IF bug_status.is_open %]
-          [% END %]
-          [% IF bug_statuses.size %]
-            <label for="takebug">and set the [% terms.bug %] status to</label>
-            <select id="bug_status" name="bug_status">
-              <option value="[% bug.status.name FILTER html %]">[% bug.status.name FILTER html %] (current)</option>
-              [% FOREACH bug_status = bug_statuses %]
-                [% NEXT IF bug_status.id == bug.status.id %]
-                <option value="[% bug_status.name FILTER html %]">[% bug_status.name FILTER html %]</option>
-              [% END %]
-            </select>
-          [% END %]
-        </td>
-      </tr>
+    [% IF user.id != bug.assigned_to.id %]
+    <tr>
+      <th>Reassignment:</th>
+      <td>
+        <em>If you want to assign this [% terms.bug %] to yourself,
+            check the box below.</em><br />
+        <input type="checkbox" id="takebug" name="takebug" value="1">
+        <label for="takebug">take [% terms.bug %]</label>
+      </td>
+    </tr>
     [% END %]
+
+    [% bug_statuses = [] %]
+    [% FOREACH bug_status = bug.status.can_change_to %]
+      [% NEXT IF bug_status.name == "UNCONFIRMED" && !bug.product_obj.allows_unconfirmed %]
+      [% bug_statuses.push(bug_status) IF bug_status.is_open %]
+    [% END %]
+    [% IF bug_statuses.size %]
+    <tr>
+      <th><label for="bug_status">Change bug status to:</label></th>
+      <td>
+        <select id="bug_status" name="bug_status">
+          <option value="[% bug.status.name FILTER html %]">[% bug.status.name FILTER html %] (current)</option>
+          [% FOREACH bug_status = bug_statuses %]
+            [% NEXT IF bug_status.id == bug.status.id %]
+            <option value="[% bug_status.name FILTER html %]">[% bug_status.name FILTER html %]</option>
+          [% END %]
+        </select>
+      </td>
+    </tr>
+    [% END %]
+
     <tr>
       <th><label for="work_time">Hours Worked:</label></th>
       <td><input type="text" size="10" value="0.0" name="work_time" id="work_time" /></td>
@@ -120,7 +125,7 @@
         <th>Privacy:</th>
         <td>
           <input type="checkbox" name="isprivate" id="isprivate"
-          value="1" onClick="updateCommentPrivacy(this)">
+            value="1" onClick="updateCommentPrivacy(this)" />
           <label for="isprivate">
             Make attachment and comment private (visible only to members of
             the <strong>[% Param('insidergroup') FILTER html %]</strong>
@@ -131,7 +136,10 @@
     [% END %]
     <tr>
       <th>&nbsp;</th>
-      <td><input type="submit" id="create" value="Submit"> <input type="button" value="Preview comment" onclick="showcommentpreview()" tabindex="-1" /></td>
+      <td>
+        <input type="submit" id="commit" value="Submit" />
+        <input type="button" value="Preview comment" onclick="showcommentpreview()" tabindex="-1" />
+      </td>
     </tr>
   </table>
 

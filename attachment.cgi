@@ -443,7 +443,8 @@ sub enter {
 }
 
 # Insert a new attachment into the database.
-sub insert {
+sub insert
+{
     my $dbh = Bugzilla->dbh;
     my $user = Bugzilla->user;
 
@@ -471,7 +472,7 @@ sub insert {
         if ($old_attach_id) {
             $vars->{'bugid'} = $bugid;
             $vars->{'attachid'} = $old_attach_id;
-            $template->process("attachment/cancel-create-dupe.html.tmpl",  $vars)
+            $template->process("attachment/cancel-create-dupe.html.tmpl", $vars)
                 || ThrowTemplateError($template->error());
             exit;
         }
@@ -498,8 +499,9 @@ sub insert {
 
     if (Bugzilla->params->{utf8})
     {
-        # CGI::upload() will probably return non-UTF8 string, so set UTF8 flag on
-        # utf8::decode() and Encode::_utf8_on() do not work on tainted scalars...
+        # CGI::upload() will probably return non-UTF8 string, so set UTF8 flag on it.
+        # Trick taint as utf8::decode() and Encode::_utf8_on() don't work on scalars
+        # which were once tainted...
         $filename = trick_taint_copy($filename);
         Encode::_utf8_on($filename);
     }
@@ -537,20 +539,20 @@ sub insert {
                                   work_time => scalar $cgi->param('work_time'),
                                   extra_data => $attachment->id });
 
-    # Assign the bug to the user, if they are allowed to take it
-    my $owner = "";
-    if ($cgi->param('takebug') && $user->in_group('editbugs', $bug->product_id)) {
-        # When taking a bug, we have to follow the workflow.
-        my $bug_status = $cgi->param('bug_status') || '';
-        ($bug_status) = grep {$_->name eq $bug_status} @{$bug->status->can_change_to};
+    # When changing the bug status, we have to follow the workflow.
+    my $bug_status = $cgi->param('bug_status');
+    ($bug_status) = grep { $_->name eq $bug_status } @{$bug->status->can_change_to};
+    if ($bug_status && $bug_status->is_open
+        && ($bug_status->name ne 'UNCONFIRMED' || $bug->product_obj->allows_unconfirmed))
+    {
+        $bug->set_status($bug_status->name);
+        $bug->clear_resolution();
+    }
 
-        if ($bug_status && $bug_status->is_open
-            && ($bug_status->name ne 'UNCONFIRMED'
-                || $bug->product_obj->allows_unconfirmed))
-        {
-            $bug->set_status($bug_status->name);
-            $bug->clear_resolution();
-        }
+    # Assign the bug to the user, if they are allowed to take it
+    my $owner = '';
+    if ($cgi->param('takebug'))
+    {
         # Make sure the person we are taking the bug from gets mail.
         $owner = $bug->assigned_to->login;
         $bug->set_assigned_to($user);
