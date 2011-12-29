@@ -78,7 +78,7 @@ sub _die_error
         $msg =~ s/\s*$//so;
         # We are not interested in getting "Software caused connection abort" errors
         # on each "Stop" click in the browser.
-        if ($msg !~ /^(Программа вызвала сброс соединения|Software caused connection abort) at /iso)
+        if ($msg !~ /(^|Apache2::RequestIO::print: \(103\) )(Программа вызвала сброс соединения|Software caused connection abort) at /iso)
         {
             $msg = { eval_error => $msg };
             Bugzilla::Error::ThrowCodeError('eval_error', $msg);
