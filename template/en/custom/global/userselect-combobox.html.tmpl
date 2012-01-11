@@ -32,14 +32,14 @@
 <input
   name="[% name | html %]"
   value="[% value | html %]"
+  size="40"
   autocomplete="off"
   [% IF disabled %] disabled="[% disabled | html %]" [% END %]
   [% IF accesskey %] accesskey="[% accesskey | html %]" [% END %]
   id="[% id | html %]" />
 <script language="JavaScript">
 addListener(window, 'load', function() {
-    [% cl = []; FOREACH tmpuser = custom_userlist; cl.push([ tmpuser.real_name, tmpuser.email ]); END %]
-    var emptyOptions = [% json(cl) %];
+    var emptyOptions = [% json(custom_userlist) %];
     new SimpleAutocomplete("[% id | js %]",
         function(h) { userAutocomplete(h, emptyOptions); },
         [% multiple ? '","' : 'null' %], null, null, null, true);

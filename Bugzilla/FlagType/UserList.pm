@@ -76,7 +76,6 @@ sub ready_list
         map { {
             email => $_->[0]->login,
             real_name => $_->[1] . ': ' . $_->[0]->name,
-            visible => 1,
         } }
         sort { ($roleindex{$b->[1]} <=> $roleindex{$a->[1]})
             || ($a->[0]->login cmp $b->[0]->login) }
