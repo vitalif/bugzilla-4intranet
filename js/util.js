@@ -23,6 +23,16 @@ function findPos(obj)
         return [ obj.x, obj.y ];
 }
 
+// Escape special HTML/XML characters
+function htmlspecialchars(s)
+{
+    s = s.replace(/&/g, '&amp;'); //&
+    s = s.replace(/</g, '&lt;'); //<
+    s = s.replace(/>/g, '&gt;'); //>
+    s = s.replace(/"/g, '&quot;'); //"
+    return s;
+}
+
 // Checks if a specified value 'val' is in the specified array 'arr'
 function bz_isValueInArray(arr, val)
 {

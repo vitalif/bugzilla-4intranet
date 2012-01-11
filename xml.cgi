@@ -1,8 +1,11 @@
 #!/usr/bin/perl -wT
-# REST-XML RPC interface (input as query parameters, output as xml)
+# REST-(XML/JSON) RPC interface (input as query parameters, output as xml or json)
 # Catches all errors and reports them correctly in output!
 # License: Dual-license GPL 3.0+ or MPL 1.1+
 # Contributor(s): Vitaliy Filippov <vitalif@mail.ru>
+
+# USAGE: xml.cgi?method={{method}}&output=(xml|json)&...
+# FIXME: rename to rest.cgi
 
 use strict;
 
@@ -14,7 +17,7 @@ use Bugzilla::WebService::Server::XMLSimple;
 
 my $cgi = Bugzilla->cgi;
 
-my $args = $cgi->Vars;
+my $args = { %{ $cgi->Vars } }; # throw away the tied hash
 my $method = $args->{method};
 
 sub addmsg
@@ -115,9 +118,19 @@ else
         }
     }
     # Send response
-    Bugzilla->send_header(-type => 'text/xml'.(Bugzilla->params->{utf8} ? '; charset=utf-8' : ''));
-    print '<?xml version="1.0"'.(Bugzilla->params->{utf8} ? ' encoding="UTF-8"' : '').' ?>';
-    print '<response>';
-    print xml_dump_simple($result);
-    print '</response>';
+    if (!$args->{output} || lc $args->{output} ne 'json')
+    {
+        # XML output format
+        Bugzilla->send_header(-type => 'text/xml'.(Bugzilla->params->{utf8} ? '; charset=utf-8' : ''));
+        print '<?xml version="1.0"'.(Bugzilla->params->{utf8} ? ' encoding="UTF-8"' : '').' ?>';
+        print '<response>';
+        print xml_dump_simple($result);
+        print '</response>';
+    }
+    else
+    {
+        # JSON output format
+        Bugzilla->send_header(-type => 'application/json'.(Bugzilla->params->{utf8} ? '; charset=utf-8' : ''));
+        print bz_encode_json($result);
+    }
 }

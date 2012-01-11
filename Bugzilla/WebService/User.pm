@@ -130,13 +130,23 @@ sub create {
     return { id => $self->type('int', $user->id) };
 }
 
-
 # function to return user information by passing either user ids or 
 # login names or both together:
 # $call = $rpc->call( 'User.get', { ids => [1,2,3], 
 #         names => ['testusera@redhat.com', 'testuserb@redhat.com'] });
 sub get {
     my ($self, $params) = validate(@_, 'names', 'ids');
+
+    # Make them arrays if they aren't
+    if ($params->{names} && !ref $params->{names}) {
+        $params->{names} = [ $params->{names} ];
+    }
+    if ($params->{ids} && !ref $params->{ids}) {
+        $params->{ids} = [ $params->{ids} ];
+    }
+    if ($params->{match} && !ref $params->{match}) {
+        $params->{match} = [ $params->{match} ];
+    }
 
     my @user_objects;
     @user_objects = map { Bugzilla::User->check($_) } @{ $params->{names} }
@@ -145,7 +155,7 @@ sub get {
     # start filtering to remove duplicate user ids
     my %unique_users = map { $_->id => $_ } @user_objects;
     @user_objects = values %unique_users;
-      
+
     my @users;
 
     # If the user is not logged in: Return an error if they passed any user ids.
@@ -187,7 +197,7 @@ sub get {
                                             userid => $obj->id});
         }
     }
-    
+
     # User Matching
     my $limit;
     if ($params->{'maxusermatches'}) {
@@ -202,9 +212,9 @@ sub get {
             }
         }
     }
-   
+
     my $in_group = $self->_filter_users_by_group(
-        \@user_objects, $params); 
+        \@user_objects, $params);
     if (Bugzilla->user->in_group('editusers')) {
         @users =
             map {filter $params, {
@@ -216,8 +226,7 @@ sub get {
                 email_enabled     => $self->type('boolean', $_->email_enabled),
                 login_denied_text => $self->type('string', $_->disabledtext),
             }} @$in_group;
-
-    }    
+    }
     else {
         @users =
             map {filter $params, {
