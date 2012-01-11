@@ -266,13 +266,26 @@ function _value_id(field_name, id)
     return 'v' + id + '_' + field_name;
 }
 
+// Convert user list from API format for SimpleAutocomplete
+function convertUserList(u)
+{
+    var data = [];
+    for (var i = 0; i < u.length; i++)
+        data.push([
+            '<span class="hintRealname">' + htmlspecialchars(u[i].real_name) +
+            '</span><br /><span class="hintEmail">' + htmlspecialchars(u[i].email) + '</span>',
+            u[i].email
+        ]);
+    return data;
+}
+
 // Data loader for user autocomplete
 function userAutocomplete(hint, emptyOptions)
 {
     if (!hint.input.value)
     {
         if (emptyOptions)
-            hint.replaceItems(emptyOptions);
+            hint.replaceItems(convertUserList(emptyOptions));
         else
             hint.replaceItems(null);
         return;
@@ -293,13 +306,7 @@ function userAutocomplete(hint, emptyOptions)
             try { eval('r = '+x.responseText+';'); } catch (e) { return; }
             if (r.status == 'ok')
             {
-                var data = [];
-                for (var i = 0; i < r.users.length; i++)
-                    data.push([
-                        '<span class="hintRealname">' + htmlspecialchars(r.users[i].real_name) +
-                        '</span><br /><span class="hintEmail">' + htmlspecialchars(r.users[i].email) + '</span>',
-                        r.users[i].email
-                    ]);
+                var data = convertUserList(r.users);
                 // FIXME 3 letters: remove hardcode, also in Bugzilla::User::match()
                 if (data.length == 0 && hint.input.value.length < 3)
                     hint.emptyText = 'Type at least 3 letters';
