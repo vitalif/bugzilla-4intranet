@@ -50,7 +50,7 @@ function showEditableField(e, ContainerInputArray)
     }
     addClass(ContainerInputArray[0], 'bz_default_hidden');
     removeClass(inputArea, 'bz_default_hidden');
-    if (inputArea.tagName.toLowerCase() == "input")
+    if (inputArea.nodeName.toLowerCase() == "input")
         inputs.push(inputArea);
     else
         inputs = inputArea.getElementsByTagName('input');
@@ -264,4 +264,56 @@ function updateCommentTagControl(checkbox, form)
 function _value_id(field_name, id)
 {
     return 'v' + id + '_' + field_name;
+}
+
+// Data loader for user autocomplete
+function userAutocomplete(hint, emptyOptions)
+{
+    if (!hint.input.value)
+    {
+        if (emptyOptions)
+            hint.replaceItems(emptyOptions);
+        else
+            hint.replaceItems(null);
+        return;
+    }
+    var x;
+    if (window.XMLHttpRequest)
+        x = new XMLHttpRequest();
+    else
+    {
+        try { return new ActiveXObject("Msxml2.XMLHTTP"); }
+        catch (e) { return new ActiveXObject("Microsoft.XMLHTTP"); }
+    }
+    x.onreadystatechange = function()
+    {
+        if (x.readyState == 4)
+        {
+            var r = {};
+            try { eval('r = '+x.responseText+';'); } catch (e) { return; }
+            if (r.status == 'ok')
+            {
+                var data = [];
+                for (var i = 0; i < r.users.length; i++)
+                    data.push([
+                        '<span class="hintRealname">' + htmlspecialchars(r.users[i].real_name) +
+                        '</span><br /><span class="hintEmail">' + htmlspecialchars(r.users[i].email) + '</span>',
+                        r.users[i].email
+                    ]);
+                // FIXME 3 letters: remove hardcode, also in Bugzilla::User::match()
+                if (data.length == 0 && hint.input.value.length < 3)
+                    hint.emptyText = 'Type at least 3 letters';
+                else
+                    hint.emptyText = 'No users found';
+                hint.replaceItems(data);
+            }
+        }
+    };
+    var u = window.location.href.replace(/[^\/]+$/, '');
+    u += 'xml.cgi?method=User.get&output=json&maxusermatches=20';
+    var l = hint.input.value.split(/[\s,]*,[\s,]*/);
+    for (var i = 0; i < l.length; i++)
+        u += '&match='+encodeURI(l[i]);
+    x.open('GET', u);
+    x.send(null);
 }

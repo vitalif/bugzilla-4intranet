@@ -26,55 +26,22 @@
   # custom_userlist: optional, specify a limited list of users to use
   #%]
 
-<div style="position: relative">
 [% SET id="userselect_" _ name IF !id %]
 [% SET emptyok=emptyok ? 1 : 0 %]
 [% SET custom_userlist=user.get_userlist UNLESS custom_userlist %]
-[% UNLESS multiple %]
-<div class="selectfree_ie" style="position:absolute;top:1px;left:1px;z-index:20;overflow:hidden">
 <input
   name="[% name | html %]"
   value="[% value | html %]"
+  autocomplete="off"
   [% IF disabled %] disabled="[% disabled | html %]" [% END %]
   [% IF accesskey %] accesskey="[% accesskey | html %]" [% END %]
-  id="[% id | html %]"
-  onchange="menuforusers_tocombo('[% id | js %]', 0); [% onchange | html %]" />[% IF multiple %]<img style="margin-bottom:-4px" src="images/dn.gif" alt="dropdown list" title="dropdown list" onclick="menuforusers_showmulti('[% id | js %]')" />[% END %]
-[%# http://anton-egorov.blogspot.com/2007/11/ie-select-z-index.html %]
-<!--[if lte IE 6.5]><iframe style="width: 800px; height: 200px;"></iframe><![endif]-->
-</div>
-<select style="top: 0; left: 0; position: relative; z-index: 10"
-  id="[% id | html %]_s"
-  [% IF disabled %] disabled="[% disabled | html %]" [% END %]
-  onchange="menuforusers_fromcombo('[% id | js %]', 0)"
->
-  [% IF emptyok %]<option value=""></option>[% END %]
-  [% FOREACH tmpuser = custom_userlist %]
-    <option value="[% tmpuser.login | html %]">[% tmpuser.identity | html %]</option>
-  [% END %]
-</select>
-[% ELSE %]
-<span style="border: 1px solid gray; display: inline-block">
-<input
-  name="[% name | html %]"
-  value="[% value | html %]"
-  [% IF disabled %] disabled="[% disabled | html %]" [% END %]
-  [% IF accesskey %] accesskey="[% accesskey | html %]" [% END %]
-  id="[% id | html %]" style="height: 19px; padding: 0; margin: 0"
-  onchange="menuforusers_tocombo('[% id | js %]', 1); [% onchange | html %]" /><img id="[% id | html %]_b" style="margin-bottom:-4px" src="images/dn.gif" alt="dropdown list" title="dropdown list" />
-<div class="selectfree_ie" style="position:relative:z-index:30;overflow:hidden">
-<select id="[% id | html %]_s"
-    [% IF disabled %] disabled="[% disabled | html %]" [% END %]
-    onchange="menuforusers_fromcombo('[% id | js %]', 1)" multiple="multiple" size="[% custom_userlist.size+emptyok < 4 ? custom_userlist.size+emptyok : 4 %]"
-    style="position:absolute;visibility:hidden;z-index:30">
-  [% IF emptyok %]<option value=""></option>[% END %]
-  [% FOREACH tmpuser = custom_userlist %]
-    <option value="[% tmpuser.login | html %]">[% tmpuser.identity | html %]</option>
-  [% END %]
-</select>
-</div>
-</span>
-[% END %]
+  id="[% id | html %]" />
 <script language="JavaScript">
-addListener(window, "load", function() { menuforusers_initcombo("[% id | js %]", [% multiple ? 1 : 0 %]) }, null);
+addListener(window, 'load', function() {
+    [% cl = []; FOREACH tmpuser = custom_userlist; cl.push([ tmpuser.real_name, tmpuser.email ]); END %]
+    var emptyOptions = [% json(cl) %];
+    new SimpleAutocomplete("[% id | js %]",
+        function(h) { userAutocomplete(h, emptyOptions); },
+        [% multiple ? '","' : 'null' %], null, null, null, true);
+});
 </script>
-</div>

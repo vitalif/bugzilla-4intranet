@@ -67,13 +67,18 @@
 <input
   name="[% name FILTER html %]"
   value="[% value FILTER html %]"
+  autocomplete="off"
   [% IF tabindex %] tabindex="[% tabindex FILTER html %]" [% END %]
   [% IF onchange %] onchange="[% onchange FILTER html %]" [% END %]
   [% IF disabled %] disabled="[% disabled FILTER html %]" [% END %]
   [% IF accesskey %] accesskey="[% accesskey FILTER html %]" [% END %]
   [% IF size %] size="[% size FILTER html %]" [% END %]
-  [% IF id %] id="[% id FILTER html %]" [% END %]
->
+  [% IF id %] id="[% id FILTER html %]" [% ELSE %] id="[% name | html %]"[% END %]
+/>
+<script language="JavaScript">
+addListener(window, 'load', function() {
+    [%# FIXME: remove hardcoded i18n message, also from js/field.js::userAutocomplete() %]
+    new SimpleAutocomplete("[% (id || name) | js %]", userAutocomplete, null, null, null, 'No users found', true);
+});
+</script>
 [% END %]
-
-

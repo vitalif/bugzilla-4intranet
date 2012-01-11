@@ -37,9 +37,6 @@
   # atomlink: Atom link URL, May contain HTML
   #%]
 
-[% SET svn_rev = "$Revision$" %]
-[% SET svn_rev = svn_rev.split(' ').1 %]
-
 [% IF message %]
   [% PROCESS global/messages.html.tmpl %]
 [% END %]
@@ -83,7 +80,7 @@
     [% IF user.settings.skin.value != 'standard' %]
       [% user_skin = user.settings.skin.value %]
     [% END %]
-    [% style_urls.unshift('skins/standard/global.css?rev=' _ svn_rev) %]
+    [% style_urls.unshift('skins/standard/global.css') %]
 
     [%# CSS cascade, part 1: Standard Bugzilla stylesheet set (persistent).
       # Always present.
@@ -195,8 +192,9 @@
             type="text/css" />
     <![endif]-->
 
-    <script src="js/util.js?rev=[% svn_rev %]" type="text/javascript"></script>
-    <script src="js/global.js?rev=[% svn_rev %]" type="text/javascript"></script>
+    <script src="js/util.js" type="text/javascript"></script>
+    <script src="js/global.js" type="text/javascript"></script>
+    <script src="js/hinter.js" type="text/javascript"></script>
     <script type="text/javascript">
     <!--
         [%# The language selector needs javascript to set its cookie,
