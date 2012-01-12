@@ -48,9 +48,11 @@ function showEditableField(e, ContainerInputArray)
         if (e.preventDefault) e.preventDefault();
         return false;
     }
+    if (typeof(inputArea) == 'string')
+        inputArea = document.getElementById(inputArea);
     addClass(ContainerInputArray[0], 'bz_default_hidden');
     removeClass(inputArea, 'bz_default_hidden');
-    if (inputArea.nodeName.toLowerCase() == "input")
+    if (inputArea.nodeName.toLowerCase() == 'input')
         inputs.push(inputArea);
     else
         inputs = inputArea.getElementsByTagName('input');
@@ -295,8 +297,8 @@ function userAutocomplete(hint, emptyOptions)
         x = new XMLHttpRequest();
     else
     {
-        try { return new ActiveXObject("Msxml2.XMLHTTP"); }
-        catch (e) { return new ActiveXObject("Microsoft.XMLHTTP"); }
+        try { x = new ActiveXObject("Msxml2.XMLHTTP"); }
+        catch (e) { x = new ActiveXObject("Microsoft.XMLHTTP"); }
     }
     x.onreadystatechange = function()
     {

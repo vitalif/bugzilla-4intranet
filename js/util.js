@@ -445,3 +445,12 @@ window.deleteCookie = function(name)
 {
     setCookie(name, null, { expires: -1 });
 };
+
+/* Removes leading and trailing whitespace */
+if (!String.prototype.trim)
+{
+    String.prototype.trim = function()
+    {
+        return this.replace(/^\s\s*/, '').replace(/\s\s*$/, '');
+    };
+}
