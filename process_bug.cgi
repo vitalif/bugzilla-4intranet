@@ -156,7 +156,8 @@ if (defined $cgi->param('delta_ts'))
             Bugzilla::Bug::GetBugActivity($first_bug->id, undef,
                                           scalar $cgi->param('delta_ts'));
 
-        # CustIS Bug 56327 - Change only fields the user wanted to changed
+        # CustIS Bug 56327 - Change only fields the user wanted to change
+        # FIXME this detection doesn't work for multiselect fields
         for my $op (@{$vars->{operations}})
         {
             for (@{$op->{changes}})
@@ -283,7 +284,7 @@ if ($cgi->param('id')) {
 }
 
 if ($cgi->param('id') && (defined $cgi->param('dependson')
-                          || defined $cgi->param('blocked')) )
+                          || defined $cgi->param('blocked')))
 {
     $first_bug->set_dependencies(scalar $cgi->param('dependson'),
                                  scalar $cgi->param('blocked'));

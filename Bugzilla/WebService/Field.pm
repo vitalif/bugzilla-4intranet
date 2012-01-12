@@ -1,5 +1,7 @@
 #!/usr/bin/perl
 # Bugzilla::WebService::Field - API for managing custom fields and values
+# License: Dual-license GPL 3.0+ or MPL 1.1+
+# Contributor(s): Vitaliy Filippov <vitalif@mail.ru>
 
 package Bugzilla::WebService::Field;
 
@@ -9,7 +11,7 @@ use Bugzilla::Field::Choice;
 use Bugzilla::User;
 use Bugzilla::WebService::Util qw(validate);
 
-# { field => 'имя_поля' }
+# { field => 'field_name' }
 sub get_values
 {
     my ($self, $params) = @_;
@@ -41,9 +43,9 @@ sub get_values
     };
 }
 
-# { field => 'имя_поля', value => 'имя_значения',
-#   sortkey => число_для_сортировки,
-#   другие колонки из $type->DB_COLUMNS }
+# { field => 'field_name', value => 'value_name',
+#   sortkey => number_for_sorting,
+#   other columns from $type->DB_COLUMNS }
 sub add_value
 {
     my ($self, $params) = @_;
@@ -74,10 +76,10 @@ sub add_value
     return {status => 'ok', id => $value->id};
 }
 
-# { field => 'имя_поля', old_value => 'имя_значения',
-#   value => 'новое_имя_значения', sortkey => новый_sortkey,
-#   isactive => новый_isactive,
-#   любые другие колонки из $type->DB_COLUMNS }
+# { field => 'field_name', old_value => 'old_value',
+#   value => 'new_value', sortkey => new_sortkey,
+#   isactive => new_isactive,
+#   other columns from $type->DB_COLUMNS }
 sub update_value
 {
     my ($self, $params) = @_;
@@ -116,7 +118,7 @@ sub update_value
     return {status => 'ok', id => $value->id};
 }
 
-# { field => 'имя_поля', value => 'имя_значения' }
+# { field => 'field_name', value => 'value_name' }
 sub delete_value
 {
     my ($self, $params) = @_;
@@ -135,7 +137,7 @@ sub delete_value
     return {status => 'ok'};
 }
 
-# { field => 'имя_поля', value => 'имя_значения', ids => [ ID продукта, ID продукта, ... ] }
+# { field => 'field_name', value => 'value_name', ids => [ visibility_ID, visibility_ID, ... ] }
 sub set_visibility_values
 {
     my ($self, $params) = @_;
@@ -163,17 +165,3 @@ sub set_visibility_values
 
 1;
 __END__
-
-The contents of this file are subject to the Mozilla Public
-License Version 1.1 (the "License"); you may not use this file
-except in compliance with the License. You may obtain a copy of
-the License at http://www.mozilla.org/MPL/
-
-Software distributed under the License is distributed on an "AS
-IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-implied. See the License for the specific language governing
-rights and limitations under the License.
-
-The Original Code is the Bugzilla Bug Tracking System.
-
-Contributor(s): Vitaliy Filippov <vitalif@mail.ru>
