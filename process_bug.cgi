@@ -157,12 +157,35 @@ if (defined $cgi->param('delta_ts'))
                                           scalar $cgi->param('delta_ts'));
 
         # CustIS Bug 56327 - Change only fields the user wanted to change
-        # FIXME this detection doesn't work for multiselect fields
         for my $op (@{$vars->{operations}})
         {
             for (@{$op->{changes}})
             {
-                if ($cgi->param($_->{fieldname}) eq $_->{removed})
+                # FIXME similar detection is needed for other multi-selects
+                if ($_->{fieldname} eq 'dependson' || $_->{fieldname} eq 'blocked')
+                {
+                    # Calculate old value from current value and activity log
+                    my $cur = $_->{fieldname};
+                    $cur = { map { $_ => 1 } @{ $first_bug->$cur() } };
+                    my $new = join ', ', keys %$cur;
+                    delete $cur->{$_} for split /[\s,]*,[\s,]*/, $_->{added};
+                    $cur->{$_} = 1 for split /[\s,]*,[\s,]*/, $_->{removed};
+                    # Compare the old value with submitted one
+                    my $equal = 1;
+                    for (split /[\s,]*,[\s,]*/, $cgi->param($_->{fieldname}))
+                    {
+                        if (!$cur->{$_})
+                        {
+                            $equal = 0;
+                            last;
+                        }
+                        delete $cur->{$_};
+                    }
+                    $equal = 0 if %$cur;
+                    # If equal to old value -> change to the new value
+                    $cgi->param($_->{fieldname}, $new) if $equal;
+                }
+                elsif ($cgi->param($_->{fieldname}) eq $_->{removed})
                 {
                     # If equal to old value -> change to the new value
                     $cgi->param($_->{fieldname}, $_->{added});
