@@ -286,6 +286,7 @@ function userAutocomplete(hint, emptyOptions)
 {
     if (!hint.input.value)
     {
+        hint.emptyText = 'Type at least 3 letters';
         if (emptyOptions)
             hint.replaceItems(convertUserList(emptyOptions));
         else
@@ -309,7 +310,7 @@ function userAutocomplete(hint, emptyOptions)
             if (r.status == 'ok')
             {
                 var data = convertUserList(r.users);
-                // FIXME 3 letters: remove hardcode, also in Bugzilla::User::match()
+                // FIXME "3" constant, messages: remove hardcode, also in Bugzilla::User::match()
                 if (data.length == 0 && hint.input.value.length < 3)
                     hint.emptyText = 'Type at least 3 letters';
                 else
