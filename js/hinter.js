@@ -267,6 +267,7 @@ var SimpleAutocomplete = function(input, dataLoader, multipleDelimiter, onChange
                 self.input.value = nl.join(self.multipleDelimiter+' ');
             }
         }
+        self.curValue = self.input.value;
         if (self.onChangeListener)
             self.onChangeListener(self, index);
     };
