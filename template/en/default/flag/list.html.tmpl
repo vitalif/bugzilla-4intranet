@@ -48,7 +48,7 @@
 
   [%# Step 1: Display every flag type (except inactive types with no flags). %]
   [% FOREACH type = flag_types %]
-    
+
     [%# Step 1: Display existing flag(s). %]
     [% FOREACH flag = type.flags %]
       <tr>
@@ -70,14 +70,13 @@
           <td>
             [% IF (type.is_active && type.is_requestable && type.is_requesteeble) || flag.requestee %]
               <span style="white-space: nowrap;">
-                [% INCLUDE "global/userselect-combobox.html.tmpl"
-                           name     => "requestee-$flag.id"
-                           id       => "requestee-$flag.id"
-                           value    => flag.requestee.login
-                           emptyok  => 1
-                           usemenuforusers  => flag.custom_list
-                           custom_userlist  => flag.custom_list && flag.custom_list.ready_list
-                           allow_other_user => flag.allow_other
+                [% INCLUDE "global/userselect.html.tmpl"
+                    name     => "requestee-$flag.id"
+                    size     => 40
+                    id       => "requestee-$flag.id"
+                    value    => flag.requestee.login
+                    emptyok  => 1
+                    custom_userlist  => flag.custom_list && flag.custom_list.ready_list
                 %]
               </span>
             [% END %]
@@ -139,15 +138,14 @@
       <td>
         [% IF type.is_requestable && type.is_requesteeble %]
           <span style="white-space: nowrap;">
-            [% INCLUDE "global/userselect-combobox.html.tmpl"
-                       name     => "requestee_type-$type.id"
-                       id       => "requestee_type-$type.id"
-                       value    => type.default_requestee
-                       multiple         => type.is_multiplicable
-                       emptyok          => !type.is_multiplicable
-                       usemenuforusers  => type.custom_list
-                       custom_userlist  => type.custom_list && type.custom_list.ready_list
-                       allow_other_user => type.allow_other
+            [% INCLUDE "global/userselect.html.tmpl"
+                name => "requestee_type-$type.id"
+                id => "requestee_type-$type.id"
+                size => 40
+                value => type.default_requestee
+                multiple => type.is_multiplicable
+                emptyok => !type.is_multiplicable
+                custom_userlist => type.custom_list && type.custom_list.ready_list
             %]
           </span>
         [% END %]
