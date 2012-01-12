@@ -38,14 +38,13 @@
   [% IF multiple %] multiple="multiple" size="[% multiple FILTER html %]" [% END %]
 >
   [% IF emptyok %]<option value=""></option>[% END %]
-  [% SET custom_userlist = user.get_userlist UNLESS custom_userlist %]
 
   [% SET selected = {} %]
   [% IF value.defined %]
   [% SET selected.$selected_value = 1 FOREACH selected_value IN value.split(', ') %]
   [% END %]
 
-  [% FOREACH tmpuser = custom_userlist %]
+  [% FOREACH tmpuser = user.get_userlist %]
     [% IF tmpuser.visible OR selected.${tmpuser.login} == 1 %]
       <option value="[% tmpuser.login FILTER html %]"
         [% IF selected.${tmpuser.login} == 1 %]
@@ -64,8 +63,10 @@
   [% END %]
 </select>
 [% ELSE %]
+[% id = id || name %]
 <input
   name="[% name FILTER html %]"
+  id="[% id FILTER html %]"
   value="[% value FILTER html %]"
   autocomplete="off"
   [% IF tabindex %] tabindex="[% tabindex FILTER html %]" [% END %]
@@ -73,12 +74,14 @@
   [% IF disabled %] disabled="[% disabled FILTER html %]" [% END %]
   [% IF accesskey %] accesskey="[% accesskey FILTER html %]" [% END %]
   [% IF size %] size="[% size FILTER html %]" [% END %]
-  [% IF id %] id="[% id FILTER html %]" [% ELSE %] id="[% name | html %]"[% END %]
 />
 <script language="JavaScript">
 addListener(window, 'load', function() {
-    [%# FIXME: remove hardcoded i18n message, also from js/field.js::userAutocomplete() %]
-    new SimpleAutocomplete("[% (id || name) | js %]", userAutocomplete, null, null, null, 'No users found', true);
+    [%-# FIXME: remove hardcoded i18n message, also from js/field.js::userAutocomplete() %]
+    var emptyOptions = [% custom_userlist ? json(custom_userlist) : "null" %];
+    new SimpleAutocomplete("[% id | js %]",
+        function(h) { userAutocomplete(h, emptyOptions); },
+        [% multiple ? '","' : 'null' %], null, null, 'No users found', true);
 });
 </script>
 [% END %]
