@@ -291,7 +291,12 @@ var SimpleAutocomplete = function(input, dataLoader, multipleDelimiter, onChange
         if (ev.keyCode != 10 && ev.keyCode != 13)
             self.show();
         if (ev.keyCode == 38 || ev.keyCode == 40 || ev.keyCode == 10 || ev.keyCode == 13)
-            return stopEvent(ev, true, true);
+        {
+            if (self.hintLayer.style.display == '')
+                return stopEvent(ev, true, true);
+            else
+                return true;
+        }
         self.onChange();
         return true;
     };
@@ -301,13 +306,20 @@ var SimpleAutocomplete = function(input, dataLoader, multipleDelimiter, onChange
     {
         ev = ev||window.event;
         if (ev.keyCode == 10 || ev.keyCode == 13)
-            return stopEvent(ev, true, true);
+        {
+            if (self.hintLayer.style.display == '')
+                return stopEvent(ev, true, true);
+            else
+                return true;
+        }
         return true;
     };
 
     // Handle arrow keys and Enter
     self.onKeyPress = function(ev)
     {
+        if (self.hintLayer.style.display == 'none')
+            return true;
         ev = ev||window.event;
         if (ev.keyCode == 38) // up
             self.moveHighlight(-1);
@@ -364,11 +376,13 @@ var SimpleAutocomplete = function(input, dataLoader, multipleDelimiter, onChange
     // Show hinter
     self.show = function()
     {
-        var p = getOffset(self.input);
-        self.hintLayer.style.top = (p.top+self.input.offsetHeight) + 'px';
-        self.hintLayer.style.left = p.left + 'px';
         if (!self.disabled)
+        {
+            var p = getOffset(self.input);
+            self.hintLayer.style.top = (p.top+self.input.offsetHeight) + 'px';
+            self.hintLayer.style.left = p.left + 'px';
             self.hintLayer.style.display = '';
+        }
     };
 
     // Disable hinter, for the case when there is no items and no empty text
