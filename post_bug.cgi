@@ -75,8 +75,9 @@ if ($token) {
     if ($old_bug_id && (!$cgi->param('ignore_token')
                         || ($cgi->param('ignore_token') != $old_bug_id)))
     {
-        $vars->{'bugid'} = $old_bug_id;
-        $vars->{'allow_override'} = defined $cgi->param('ignore_token') ? 0 : 1;
+        $vars->{bugid} = $old_bug_id;
+        $vars->{allow_override} = defined $cgi->param('ignore_token') ? 0 : 1;
+        $vars->{new_token} = issue_session_token('createbug:');
 
         $template->process("bug/create/confirm-create-dupe.html.tmpl", $vars)
            || ThrowTemplateError($template->error());
