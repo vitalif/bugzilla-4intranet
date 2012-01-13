@@ -60,29 +60,19 @@ print $cgi->redirect(correct_urlbase() . 'enter_bug.cgi') unless $cgi->param();
 
 # Detect if the user already used the same form to submit a bug
 my $token = trim($cgi->param('token'));
-if ($token) {
-    my ($creator_id, $date, $old_bug_id) = Bugzilla::Token::GetTokenData($token);
-    unless ($creator_id
-              && ($creator_id == $user->id)
-              && ($old_bug_id =~ "^createbug:"))
-    {
-        # The token is invalid.
-        ThrowUserError('token_does_not_exist');
-    }
+check_token_data($token, qr/^createbug:/s, 'enter_bug.cgi');
 
-    $old_bug_id =~ s/^createbug://;
+my (undef, undef, $old_bug_id) = Bugzilla::Token::GetTokenData($token);
+$old_bug_id =~ s/^createbug://;
+if ($old_bug_id)
+{
+    $vars->{bugid} = $old_bug_id;
+    $vars->{allow_override} = defined $cgi->param('ignore_token') ? 0 : 1;
+    $vars->{new_token} = issue_session_token('createbug:');
 
-    if ($old_bug_id && (!$cgi->param('ignore_token')
-                        || ($cgi->param('ignore_token') != $old_bug_id)))
-    {
-        $vars->{bugid} = $old_bug_id;
-        $vars->{allow_override} = defined $cgi->param('ignore_token') ? 0 : 1;
-        $vars->{new_token} = issue_session_token('createbug:');
-
-        $template->process("bug/create/confirm-create-dupe.html.tmpl", $vars)
-           || ThrowTemplateError($template->error());
-        exit;
-    }
+    $template->process("bug/create/confirm-create-dupe.html.tmpl", $vars)
+       || ThrowTemplateError($template->error());
+    exit;
 }
 
 # do a match on the fields if applicable
