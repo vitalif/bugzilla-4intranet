@@ -31,44 +31,21 @@ use lib qw(. lib);
 use Bugzilla;
 use Bugzilla::Constants;
 use Bugzilla::Error;
-use Bugzilla::User;
-use Bugzilla::BugMail;
-use Bugzilla::Util;
 
 # Just in case someone already has an account, let them get the correct footer
 # on an error message. The user is logged out just after the account is
 # actually created.
-Bugzilla->login(LOGIN_OPTIONAL);
-
-my $dbh = Bugzilla->dbh;
+my $user = Bugzilla->login(LOGIN_OPTIONAL);
 my $cgi = Bugzilla->cgi;
 my $template = Bugzilla->template;
-my $vars = {};
+my $vars = { doc_section => 'myaccount.html' };
 
-$vars->{'doc_section'} = 'myaccount.html';
-
-# If we're using LDAP for login, then we can't create a new account here.
-unless (Bugzilla->user->authorizer->user_can_create_account) {
-    ThrowUserError("auth_cant_create_account");
-}
-
-my $createexp = Bugzilla->params->{'createemailregexp'};
-unless ($createexp) {
-    ThrowUserError("account_creation_disabled");
-}
-
+$user->check_account_creation_enabled;
 my $login = $cgi->param('login');
 
 if (defined($login)) {
-    $login = Bugzilla::User->check_login_name_for_creation($login);
+    $user->check_and_send_account_creation_confirmation($login);
     $vars->{'login'} = $login;
-
-    if ($login !~ /$createexp/) {
-        ThrowUserError("account_creation_restricted");
-    }
-
-    # Create and send a token for this new account.
-    Bugzilla::Token::issue_new_user_account_token($login);
 
     $template->process("account/created.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
