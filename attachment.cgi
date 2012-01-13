@@ -457,7 +457,7 @@ sub insert
 
     # Detect if the user already used the same form to submit an attachment
     my $token = trim($cgi->param('token'));
-    check_token_data($token, qr/^create_attachment:/s, 'index.cgi');
+    check_token_data($token, qr/^create_attachment:/s, "show_bug.cgi?id=$bugid");
 
     my (undef, undef, $old_attach_id) = Bugzilla::Token::GetTokenData($token);
     $old_attach_id =~ s/^create_attachment://;
