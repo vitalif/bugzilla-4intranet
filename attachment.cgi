@@ -457,25 +457,16 @@ sub insert
 
     # Detect if the user already used the same form to submit an attachment
     my $token = trim($cgi->param('token'));
-    if ($token) {
-        my ($creator_id, $date, $old_attach_id) = Bugzilla::Token::GetTokenData($token);
-        unless ($creator_id
-            && ($creator_id == $user->id)
-                && ($old_attach_id =~ "^create_attachment:"))
-        {
-            # The token is invalid.
-            ThrowUserError('token_does_not_exist');
-        }
+    check_token_data($token, qr/^create_attachment:/s, 'index.cgi');
 
-        $old_attach_id =~ s/^create_attachment://;
-
-        if ($old_attach_id) {
-            $vars->{'bugid'} = $bugid;
-            $vars->{'attachid'} = $old_attach_id;
-            $template->process("attachment/cancel-create-dupe.html.tmpl", $vars)
-                || ThrowTemplateError($template->error());
-            exit;
-        }
+    my (undef, undef, $old_attach_id) = Bugzilla::Token::GetTokenData($token);
+    $old_attach_id =~ s/^create_attachment://;
+    if ($old_attach_id) {
+        $vars->{'bugid'} = $bugid;
+        $vars->{'attachid'} = $old_attach_id;
+        $template->process("attachment/cancel-create-dupe.html.tmpl", $vars)
+            || ThrowTemplateError($template->error());
+        exit;
     }
 
     # Check attachments the user tries to mark as obsolete.

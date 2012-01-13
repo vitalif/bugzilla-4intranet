@@ -371,9 +371,10 @@ sub check_token_data {
     my $cgi = Bugzilla->cgi;
 
     my ($creator_id, $date, $token_action) = GetTokenData($token);
-    unless ($creator_id
-            && $creator_id == $user->id
-            && $token_action eq $expected_action)
+    my $valid_action = ref $expected_action eq 'Regexp'
+        ? $token_action =~ $expected_action
+        : $token_action eq $expected_action;
+    unless ($creator_id && $creator_id == $user->id && $valid_action)
     {
         # Something is going wrong. Ask confirmation before processing.
         # It is possible that someone tried to trick an administrator.
