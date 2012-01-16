@@ -733,8 +733,8 @@ sub bz_add_field_tables {
         $self->bz_add_fk($ms_table, 'bug_id', {TABLE => 'bugs',
                                                COLUMN => 'bug_id',
                                                DELETE => 'CASCADE'});
-        $self->bz_add_fk($ms_table, 'value',  {TABLE  => $field->name,
-                                               COLUMN => 'value'});
+        $self->bz_add_fk($ms_table, 'value_id', {TABLE  => $field->name,
+                                                 COLUMN => 'id'});
     }
 }
 

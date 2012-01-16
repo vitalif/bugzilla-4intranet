@@ -576,6 +576,11 @@ sub STATIC_COLUMNS
         {
             push @bugid_fields, $field;
         }
+        elsif ($field->type == FIELD_TYPE_MULTI_SELECT)
+        {
+            $columns->{$id}->{name} = "$id.value";
+            $columns->{$id}->{joins} = [ "LEFT JOIN (bug_$id INNER JOIN $id ON $id.id=bug_$id.value_id) ON bug_$id.bug_id=bugs.bug_id" ];
+        }
     }
 
     # Fields of bugs related to selected by some BUG_ID type field
@@ -2489,7 +2494,9 @@ sub _multiselect_nonchanged
 
     my @terms;
     my $t = "bug_$self->{field}";
+    my $ft = $self->{field};
     my $ta = $t.'_'.$self->{sequence};
+    my $fta = $ft.'_'.$self->{sequence};
 
     my @v = ref $self->{value} ? @{$self->{value}} : $self->{value};
     $self->{quoted} = join ', ', map { $dbh->quote($_) } @v;
@@ -2498,26 +2505,26 @@ sub _multiselect_nonchanged
     if ($self->{type} eq 'anywords' || $self->{type} eq 'anyexact')
     {
         $self->{term} = {
-            table => "$t $ta",
-            where => "$ta.value IN ($self->{quoted})",
+            table => "($t $ta INNER JOIN $ft $fta WHERE $fta.id=$t.value_id)",
+            where => "$fta.value IN ($self->{quoted})",
             bugid_field => "$ta.bug_id",
         };
     }
     elsif ($self->{type} eq 'allwords')
     {
         $self->{term} = {
-            table => "(SELECT bug_id FROM $t WHERE value IN ($self->{quoted})".
+            table => "(SELECT bug_id FROM $t, $ft WHERE id=value_id AND value IN ($self->{quoted})".
                 " GROUP BY bug_id HAVING COUNT(bug_id) = ".@v.") $ta",
             bugid_field => "$ta.bug_id",
         };
     }
     else
     {
-        $self->{fieldsql} = $self->{field} = "$ta.value";
+        $self->{fieldsql} = $self->{field} = "$fta.value";
         $self->{value} = $v[0];
         $self->call_op;
         $self->{term} = {
-            table => "$t $ta",
+            table => "($t $ta INNER JOIN $ft $fta WHERE $fta.id=$t.value_id)",
             where => $self->{term},
             bugid_field => "$ta.bug_id",
         };

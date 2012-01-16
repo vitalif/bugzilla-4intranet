@@ -569,10 +569,11 @@ sub create {
     foreach my $field (keys %$ms_values) {
         $dbh->do("DELETE FROM bug_$field where bug_id = ?",
                 undef, $bug->bug_id);
-        foreach my $value ( @{$ms_values->{$field}} ) {
-            $dbh->do("INSERT INTO bug_$field (bug_id, value) VALUES (?,?)",
-                    undef, $bug->bug_id, $value);
-        }
+        $dbh->do(
+            "INSERT INTO bug_$field (bug_id, value_id) SELECT ?, id FROM $field".
+            " WHERE value IN (".join(',', ('?') x @{$ms_values->{$field}}).")",
+            undef, $bug->bug_id, @{$ms_values->{$field}}
+        );
     }
 
     # And insert the comment. We always insert a comment on bug creation,
@@ -1064,10 +1065,11 @@ sub update
 
             $dbh->do("DELETE FROM bug_$name where bug_id = ?",
                      undef, $self->id);
-            foreach my $value (@{$self->$name}) {
-                $dbh->do("INSERT INTO bug_$name (bug_id, value) VALUES (?,?)",
-                         undef, $self->id, $value);
-            }
+            $dbh->do(
+                "INSERT INTO bug_$name (bug_id, value_id) SELECT ?, id FROM $name".
+                " WHERE value IN (".join(',', ('?') x @{$self->$name}).")",
+                undef, $self->bug_id, @{$self->$name}
+            );
         }
     }
 
@@ -4088,7 +4090,7 @@ sub AUTOLOAD {
             trick_taint($attr);
 
             $self->{$attr} ||= Bugzilla->dbh->selectcol_arrayref(
-                "SELECT value FROM bug_$attr WHERE bug_id = ? ORDER BY value",
+                "SELECT value FROM bug_$attr, $attr WHERE value_id=id AND bug_id=? ORDER BY value",
                 undef, $self->id);
             return $self->{$attr};
         }

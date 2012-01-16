@@ -57,7 +57,13 @@ function initQueryformFields()
     for (var i in qfVisibility)
     {
         if (!qfHandling[i])
-            handleQueryformField(null, document.getElementById(i));
+        {
+            var e = document.getElementById(i);
+            if (e)
+                handleQueryformField(null, e);
+            else
+                qfHandling[i] = true;
+        }
         initQueryformField(i);
     }
 }
