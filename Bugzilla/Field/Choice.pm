@@ -174,12 +174,7 @@ sub update {
     my ($changes, $old_self) = $self->SUPER::update(@_);
     if (exists $changes->{$self->NAME_FIELD}) {
         my ($old, $new) = @{ $changes->{$self->NAME_FIELD} };
-        if ($self->field->type == FIELD_TYPE_MULTI_SELECT)
-        {
-            $dbh->do("UPDATE bug_$fname SET value = ? WHERE value = ?",
-                     undef, $new, $old);
-        }
-        else
+        if ($self->field->type != FIELD_TYPE_MULTI_SELECT)
         {
             $self->field->{has_activity} = 1;
             $dbh->do(
@@ -362,7 +357,7 @@ sub bug_count {
     my $count;
     if ($self->field->type == FIELD_TYPE_MULTI_SELECT) {
         $count = $dbh->selectrow_array("SELECT COUNT(*) FROM bug_$fname
-                                         WHERE value = ?", undef, $self->name);
+                                         WHERE value_id = ?", undef, $self->id);
     }
     else {
         $count = $dbh->selectrow_array("SELECT COUNT(*) FROM bugs 

@@ -561,6 +561,9 @@ sub update_table_definitions {
     $dbh->bz_alter_column('series', 'query',
         { TYPE => 'MEDIUMTEXT', NOTNULL => 1 });
 
+    # Make multi select tables to store IDs, not values
+    _convert_multiselects();
+
     # Add FK to multi select field tables
     _add_foreign_keys_to_multiselects();
 
@@ -3235,6 +3238,26 @@ sub _check_content_length {
     }
 }
 
+sub _convert_multiselects
+{
+    my $dbh = Bugzilla->dbh;
+
+    my $fields = $dbh->selectcol_arrayref(
+        'SELECT name FROM fielddefs WHERE type=' . FIELD_TYPE_MULTI_SELECT
+    );
+
+    foreach my $field (@$fields)
+    {
+        if (!$dbh->bz_column_info("bug_$field", 'value_id'))
+        {
+            $dbh->bz_add_column("bug_$field", value_id => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0});
+            $dbh->do("UPDATE bug_$field bf, $field f SET bf.value_id=f.id WHERE bf.value=f.value");
+            $dbh->bz_drop_fk("bug_$field", 'value');
+            $dbh->bz_drop_column("bug_$field", 'value');
+        }
+    }
+}
+
 sub _add_foreign_keys_to_multiselects {
     my $dbh = Bugzilla->dbh;
 
@@ -3248,9 +3271,9 @@ sub _add_foreign_keys_to_multiselects {
                                                 COLUMN => 'bug_id',
                                                 DELETE => 'CASCADE',});
 
-        $dbh->bz_add_fk("bug_$name", "value", {TABLE  => $name,
-                                               COLUMN => 'value',
-                                               DELETE => 'RESTRICT',});
+        $dbh->bz_add_fk("bug_$name", "value_id", {TABLE  => $name,
+                                                  COLUMN => 'id',
+                                                  DELETE => 'RESTRICT',});
     }
 }
 

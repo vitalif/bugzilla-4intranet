@@ -1560,10 +1560,10 @@ use constant ABSTRACT_SCHEMA => {
 use constant MULTI_SELECT_VALUE_TABLE => {
     FIELDS => [
         bug_id => {TYPE => 'INT3', NOTNULL => 1},
-        value  => {TYPE => 'varchar(255)', NOTNULL => 1},
+        value_id => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0},
     ],
     INDEXES => [
-        bug_id_idx => {FIELDS => [qw( bug_id value)], TYPE => 'UNIQUE'},
+        bug_id_idx => {FIELDS => [qw(bug_id value_id)], TYPE => 'UNIQUE'},
     ],
 };
 
