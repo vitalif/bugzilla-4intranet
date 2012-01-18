@@ -83,7 +83,7 @@ Bugzilla::User::match_field ({
 });
 
 if (defined $cgi->param('maketemplate')) {
-    $vars->{'url'} = $cgi->canonicalise_query('token');
+    $vars->{'url'} = $cgi->canonicalise_query('token', 'cloned_bug_id', 'cloned_comment');
     $vars->{'short_desc'} = $cgi->param('short_desc');
 
     $template->process("bug/create/make-template.html.tmpl", $vars)

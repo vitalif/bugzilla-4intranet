@@ -749,11 +749,11 @@ TUI_hide_default('expert_fields');
       <input tabindex="10" type="submit" id="commit" value="Submit [% terms.Bug %]"
              onclick="if (this.form.short_desc.value == '')
              { alert('Please enter a summary sentence for this [% terms.bug %].');
-               return false; } return Create_onsubmit();">
+               return false; } return Create_onsubmit();" />
       &nbsp;&nbsp;&nbsp;&nbsp;
       <input tabindex="10" type="submit" name="maketemplate" id="maketemplate"
              value="Remember values as bookmarkable template"
-             class="expert_fields">
+             class="expert_fields" />
     </td>
   </tr>
 </tbody>
