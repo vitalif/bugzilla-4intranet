@@ -22,7 +22,8 @@
 
 [% USE Bugzilla %]
 
-<script type="text/javascript" src="js/query-visibility.js?r=1397"></script>
+<script type="text/javascript" src="js/query-visibility.js"></script>
+<script type="text/javascript" src="js/field.js"></script>
 <script type="text/javascript" src="fieldvaluecontrol.cgi?type=search&user=[% Bugzilla.user.id %]"></script>
 
 <script type="text/javascript">
@@ -455,13 +456,20 @@ addListener(window, 'load', function() {
   </tr>
   <tr>
     <td>
-      <input name="email[% n %]" size="25" value="[% default.email.$n FILTER html %]" />
+      <input id="email[% n %]" name="email[% n %]"
+        size="25" value="[% default.email.$n FILTER html %]"
+        autocomplete="off" />
     </td>
   </tr>
 </table>
 
     </td>
-    [% END %]
+    <script language="JavaScript">
+    addListener(window, 'load', function() {
+      new SimpleAutocomplete("email[% n %]", userAutocomplete, null, null, null, 'No users found', true);
+    });
+    </script>
+  [% END %]
   </tr>
 </table>
 <hr />
@@ -511,8 +519,8 @@ addListener(window, 'load', function() {
   </dt>
   <dd>
     <input name="chfieldfrom" id="chfieldfrom"
-           size="10" value="[% default.chfieldfrom.0 FILTER html %]">
-    and <input name="chfieldto" size="10" value="[% default.chfieldto.0 FILTER html %]">
+           size="10" value="[% default.chfieldfrom.0 FILTER html %]" />
+    and <input name="chfieldto" size="10" value="[% default.chfieldto.0 FILTER html %]" />
     <br />(YYYY-MM-DD or relative dates)
   </dd>
   <dt><label for="chfieldwho">By user:</label></dt>
@@ -525,6 +533,11 @@ addListener(window, 'load', function() {
            size="20" value="[% default.chfieldvalue.0 FILTER html %]">
   </dd>
 </dl>
+<script language="JavaScript">
+addListener(window, 'load', function() {
+  new SimpleAutocomplete("chfieldwho", userAutocomplete, null, null, null, 'No users found', true);
+});
+</script>
 
        </fieldset>
      </td>

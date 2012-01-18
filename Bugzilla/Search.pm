@@ -647,7 +647,7 @@ sub REPORT_COLUMNS
     my $cache = Bugzilla->request_cache;
     return $cache->{report_columns} if defined $cache->{report_columns};
 
-    my $columns = COLUMNS();
+    my $columns = { %{ COLUMNS() } };
 
     # There's no reason to support reporting on unique fields.
     my @no_report_columns = qw(
