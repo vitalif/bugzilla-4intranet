@@ -310,6 +310,8 @@
 </div> [%# header %]
 
 <div id="bugzilla-body">
+[%# Used to workaround table sizing inside div, see also skins/contrib/Dusk/global.css#bugzilla-body %]
+<div id="bugzilla-padding">
 
 [% IF Param('announcehtml') %]
 [% Param('announcehtml') FILTER none %]

@@ -20,8 +20,8 @@
 /* This CSS is used by various informational pages in the
    template/en/default/pages/ directory. */
 
-#bugzilla-body {
-    padding: 0 1em;
+#bugzilla-padding {
+    margin: 0 1em;
 }
 
 #bugzilla-body > * {

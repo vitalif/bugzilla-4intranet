@@ -569,11 +569,14 @@ sub create {
     foreach my $field (keys %$ms_values) {
         $dbh->do("DELETE FROM bug_$field where bug_id = ?",
                 undef, $bug->bug_id);
-        $dbh->do(
-            "INSERT INTO bug_$field (bug_id, value_id) SELECT ?, id FROM $field".
-            " WHERE value IN (".join(',', ('?') x @{$ms_values->{$field}}).")",
-            undef, $bug->bug_id, @{$ms_values->{$field}}
-        );
+        if (@{$ms_values->{$field}})
+        {
+            $dbh->do(
+                "INSERT INTO bug_$field (bug_id, value_id) SELECT ?, id FROM $field".
+                " WHERE value IN (".join(',', ('?') x @{$ms_values->{$field}}).")",
+                undef, $bug->bug_id, @{$ms_values->{$field}}
+            );
+        }
     }
 
     # And insert the comment. We always insert a comment on bug creation,
@@ -1065,11 +1068,14 @@ sub update
 
             $dbh->do("DELETE FROM bug_$name where bug_id = ?",
                      undef, $self->id);
-            $dbh->do(
-                "INSERT INTO bug_$name (bug_id, value_id) SELECT ?, id FROM $name".
-                " WHERE value IN (".join(',', ('?') x @{$self->$name}).")",
-                undef, $self->bug_id, @{$self->$name}
-            );
+            if (@{$self->$name})
+            {
+                $dbh->do(
+                    "INSERT INTO bug_$name (bug_id, value_id) SELECT ?, id FROM $name".
+                    " WHERE value IN (".join(',', ('?') x @{$self->$name}).")",
+                    undef, $self->bug_id, @{$self->$name}
+                );
+            }
         }
     }
 

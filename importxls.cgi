@@ -189,6 +189,7 @@ unless ($args->{commit})
             # Show bug table
             $vars->{fields} = $table->{fields};
             $vars->{data} = $table->{data};
+            $vars->{token} = issue_session_token('importxls');
         }
     }
     $template->process("bug/import/importxls.html.tmpl", $vars)
@@ -197,6 +198,7 @@ unless ($args->{commit})
 }
 else
 {
+    check_token_data($args->{token}, 'importxls', 'importxls.cgi');
     # Run import and redirect to result page
     my $bugs = {};
     for (keys %$args)
@@ -452,7 +454,8 @@ sub post_bug
     {
         $cgi->param(-name => $field, -value => $fields_in->{$field});
     }
-    $cgi->param(-name => 'dontsendbugmail', -value => 1);
+    $cgi->param(dontsendbugmail => 1);
+    $cgi->param(token => issue_session_token('createbug:'));
     # Call post_bug.cgi
     my $vars_out = do 'post_bug.cgi';
     $Bugzilla::Error::IN_EVAL--;
@@ -477,9 +480,8 @@ sub process_bug
 
     my %fields = %$fields_in;
 
-    my $bug_id = $fields{'bug_id'};
+    my $bug_id = delete $fields{'bug_id'};
     $fields{'id'} = $bug_id;
-    delete $fields{'bug_id'};
 
     my $bug = Bugzilla::Bug->check($bug_id);
 
