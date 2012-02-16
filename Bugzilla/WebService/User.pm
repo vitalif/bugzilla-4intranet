@@ -119,10 +119,14 @@ sub create {
     return { id => $self->type('int', $user->id) };
 }
 
-# function to return user information by passing either user ids or 
+# Function to return user information by passing either user ids or
 # login names or both together:
-# $call = $rpc->call( 'User.get', { ids => [1,2,3], 
+# $call = $rpc->call( 'User.get', { ids => [1,2,3],
 #         names => ['testusera@redhat.com', 'testuserb@redhat.com'] });
+#
+# Can be also used to match users based on their login name:
+# $call = $rpc->call( 'User.get', { match => [ 'testusera', 'testuserb' ],
+#         maxusermatches => 20, excludedisabled => 1 });
 sub get {
     my ($self, $params) = validate(@_, 'names', 'ids');
 
@@ -193,7 +197,7 @@ sub get {
         $limit = $params->{'maxusermatches'} + 1;
     }
     foreach my $match_string (@{ $params->{'match'} || [] }) {
-        my $matched = Bugzilla::User::match($match_string, $limit);
+        my $matched = Bugzilla::User::match($match_string, $limit, $params->{excludedisabled} && 1);
         foreach my $user (@$matched) {
             if (!$unique_users{$user->id}) {
                 push(@user_objects, $user);
