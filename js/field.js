@@ -320,7 +320,7 @@ function userAutocomplete(hint, emptyOptions)
         }
     };
     var u = window.location.href.replace(/[^\/]+$/, '');
-    u += 'xml.cgi?method=User.get&output=json&maxusermatches=20';
+    u += 'xml.cgi?method=User.get&output=json&maxusermatches=20&excludedisabled=1';
     var l = hint.input.value.split(/[\s,]*,[\s,]*/);
     for (var i = 0; i < l.length; i++)
         u += '&match='+encodeURI(l[i]);
