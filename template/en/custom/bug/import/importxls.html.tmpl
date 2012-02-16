@@ -70,9 +70,9 @@ function addfield()
 <p><b>Successfully imported [% result | html %] bugs[% IF result > 0 %]:
 [% i = 0 %]
 [% FOR b = bug_id %]
-  [% ", " IF i %]
-  <a href="show_bug.cgi?id=[% b | html %]">[% b | html %]</a>
-  [% i = i+1 %]
+    [% ", " IF i %]
+    <a href="show_bug.cgi?id=[% b | html %]">[% b | html %]</a>
+    [% i = i+1 %]
 [% END %]
 [% END %].</b></p>
 [% ELSE %]
@@ -128,14 +128,15 @@ function checkColumns()
     [% END %]
 [% END %]
 
-<form action="importxls.cgi" method="post" onsubmit="return checkColumns()">
+<form action="importxls.cgi" method="post" onsubmit="return checkColumns()" id="gridform">
+<input type="hidden" name="token" value="[% token | html %]" />
 <input type="hidden" name="commit" value="1" />
 <input type="hidden" name="bugdays" value="[% bugdays | html %]" />
 <input type="hidden" name="listname" value="[% listname | html %]" />
 [% FOR key = bug_tpl.keys %]
 <input type="hidden" name="f_[% key | html %]" value="[% bug_tpl.${key} | html %]" />
 [% END %]
-<table>
+<table id="gridtable">
 <tr>
     <td><input type="checkbox" onclick="toggleallbugz(this.checked)" /></td>
 [% FOR field = fields %]
@@ -167,9 +168,9 @@ function checkColumns()
     [% FOR field = fields %]
     [% SET v = bug.${field} | html %]
     [% IF v.match("\n") %]
-    <td><textarea style="font-family: monospace; font-size: 13px" rows="2" cols="40" name="b_[% field | html %]_[% bug.num | html %]">[% v | html %]</textarea></td>
+    <td><textarea style="font-family: monospace; font-size: 13px" rows="2" cols="[% lens.$field | html %]" name="b_[% field | html %]_[% bug.num | html %]">[% v | html %]</textarea></td>
     [% ELSE %]
-    <td><input type="text" size="[% lens.${field} | html %]" name="b_[% field | html %]_[% bug.num | html %]" value="[% v | html %]" /></td>
+    <td><input type="text" size="[% lens.$field | html %]" name="b_[% field | html %]_[% bug.num | html %]" value="[% v | html %]" /></td>
     [% END %]
     [% END %]
 </tr>
@@ -183,4 +184,3 @@ function checkColumns()
 [% END %]
 
 [% PROCESS global/footer.html.tmpl %]
-
