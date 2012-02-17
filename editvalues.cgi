@@ -36,7 +36,7 @@ use Bugzilla::Field::Choice;
 sub display_field_values {
     my $vars = shift;
     my $template = Bugzilla->template;
-    $vars->{'values'} = $vars->{'field'}->legal_values;
+    $vars->{'values'} = $vars->{'field'}->legal_values('include_disabled');
     $template->process("admin/fieldvalues/list.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
     exit;

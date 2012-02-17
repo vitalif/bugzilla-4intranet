@@ -220,18 +220,28 @@ sub remove_from_db {
     $self->SUPER::remove_from_db();
 }
 
-# Product field is a special case: it has access controls applied.
-# So if our values are controlled by product field value,
-# return only ones visible inside products visible to current user.
+# Returns all values (active+inactive), enabled for products that current user can see
 sub get_all
 {
     my $class = shift;
-    my @all = $class->SUPER::get_all();
+    my ($include_disabled) = @_;
+    my @all;
+    if (!$include_disabled && grep { $_ eq 'isactive' } $class->DB_COLUMNS)
+    {
+        @all = @{ $class->match({ isactive => 1 }) };
+    }
+    else
+    {
+        @all = $class->SUPER::get_all();
+    }
     my $f = $class->field;
     if (!$f->value_field_id || $f->value_field->name ne 'product')
     {
         return @all;
     }
+    # Product field is a special case: it has access controls applied.
+    # So if our values are controlled by product field value,
+    # return only ones visible inside products visible to current user.
     my $h = Bugzilla->fieldvaluecontrol_hash
         ->{Bugzilla->get_field('product')->id}
         ->{values}
@@ -255,12 +265,13 @@ sub get_all
     return @filtered;
 }
 
+# Returns names of all _active_ values, enabled for products that current user can see
 sub get_all_names
 {
     my $class = shift;
     my $f = $class->field;
-    my $where = grep { $_ eq 'isactive' } $class->DB_COLUMNS;
-    $where = $where ? [ "$where>0" ] : [];
+    my ($where) = grep { $_ eq 'isactive' } $class->DB_COLUMNS;
+    $where = $where ? [ "$where=1" ] : [];
     # Apply product access controls
     if ($f->value_field_id && $f->value_field->name eq 'product')
     {

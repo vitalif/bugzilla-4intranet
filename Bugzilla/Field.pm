@@ -487,10 +487,14 @@ sub add_to_deps { $_[0]->{add_to_deps} }
 
 sub url { $_[0]->{url} }
 
+# Includes disabled values is $include_disabled = true
+# The full list with disabled values is not cached, as only used in administration
 sub legal_values
 {
     my $self = shift;
+    my ($include_disabled) = @_;
     return [] unless $self->is_select;
+    return [ Bugzilla::Field::Choice->type($self)->get_all('include_disabled') ] if $include_disabled;
     if (!defined $self->{legal_values})
     {
         require Bugzilla::Field::Choice;
@@ -499,6 +503,7 @@ sub legal_values
     return $self->{legal_values};
 }
 
+# Always excludes disabled values
 sub legal_value_names
 {
     my $self = shift;
@@ -512,6 +517,7 @@ sub legal_value_names
     return $self->{legal_value_names};
 }
 
+# Always excludes disabled values
 sub restricted_legal_values
 {
     my $self = shift;
