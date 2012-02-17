@@ -85,11 +85,12 @@ use constant UPDATE_COLUMNS => qw(
     maxvotesperbug
     votestoconfirm
     allows_unconfirmed
+    classification_id
 );
 
 use constant VALIDATORS => {
     allows_unconfirmed => \&Bugzilla::Object::check_boolean,
-    classification   => \&_check_classification,
+    classification_id  => \&_check_classification_id,
     name             => \&_check_name,
     description      => \&_check_description,
     version          => \&_check_version,
@@ -497,12 +498,13 @@ sub _check_extproduct
     return $product ? $product->id : undef;
 }
 
-sub _check_classification {
+sub _check_classification_id {
     my ($invocant, $classification_name) = @_;
 
     my $classification_id = 1;
     if (Bugzilla->params->{'useclassification'}) {
-        my $classification = Bugzilla::Classification->check($classification_name);
+        my $classification = ref $classification_name ? $classification_name
+            : Bugzilla::Classification->check($classification_name);
         $classification_id = $classification->id;
     }
     return $classification_id;
@@ -686,6 +688,7 @@ sub set_votes_per_user { $_[0]->set('votesperuser', $_[1]); }
 sub set_votes_per_bug { $_[0]->set('maxvotesperbug', $_[1]); }
 sub set_votes_to_confirm { $_[0]->set('votestoconfirm', $_[1]); }
 sub set_allows_unconfirmed { $_[0]->set('allows_unconfirmed', $_[1]); }
+sub set_classification { $_[0]->set('classification_id', $_[1]); }
 
 sub set_extproduct
 {
