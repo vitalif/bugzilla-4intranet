@@ -195,16 +195,14 @@ if ($action eq 'update') {
 
 if ($action eq 'reclassify') {
     my $classification = Bugzilla::Classification->check($class_name);
-   
-    my $sth = $dbh->prepare("UPDATE products SET classification_id = ?
-                             WHERE name = ?");
 
     if (defined $cgi->param('add_products')) {
         check_token_data($token, 'reclassify_classifications');
         if (defined $cgi->param('prodlist')) {
             foreach my $prod ($cgi->param("prodlist")) {
-                trick_taint($prod);
-                $sth->execute($classification->id, $prod);
+                my $obj = Bugzilla::Product->check($prod);
+                $obj->set_classification($classification);
+                $obj->update;
             }
         }
         delete_token($token);
@@ -213,7 +211,9 @@ if ($action eq 'reclassify') {
         if (defined $cgi->param('myprodlist')) {
             foreach my $prod ($cgi->param("myprodlist")) {
                 trick_taint($prod);
-                $sth->execute(1,$prod);
+                my $obj = Bugzilla::Product->check($prod);
+                $obj->set_classification('Unclassified');
+                $obj->update;
             }
         }
         delete_token($token);
