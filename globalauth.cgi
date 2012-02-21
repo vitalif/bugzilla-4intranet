@@ -10,6 +10,7 @@ use Bugzilla::User;
 use Bugzilla::Util;
 use Bugzilla::Constants;
 
+use Encode;
 use HTTP::Request::Common;
 use LWP::Simple qw($ua);
 use URI;
@@ -116,8 +117,12 @@ if (($id = $args->{ga_id}) && !$args->{ga_client})
             # отправляем запрос серверу клиента
             my $res = $ua->request(POST "$url", Content => $authdata);
             # и делаем перенаправление в браузере
-            $url->query_param(ga_id => $id);
-            $url->query_param(ga_res => $res->code);
+            {
+                no utf8;
+                # URI::QueryParam имеет проблемы с утф'ом...
+                $url->query_param(ga_id => $id);
+                $url->query_param(ga_res => $res->code);
+            }
             $dbh->do("DELETE FROM globalauth WHERE id=?", undef, $id);
             print $cgi->redirect(-location => "$url");
             exit;
