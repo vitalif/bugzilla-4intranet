@@ -63,7 +63,7 @@ if (@idlist || @lines)
     foreach my $line (@lines)
     {
         # New, intuitive format: BUG_ID <space> TIME <space> COMMENT
-        if ($line =~ /^\D*(\d+)\s*(?:(-?[\d\.\,]+)|(\d+):(\d{2}))\s*(.*)/iso)
+        if ($line =~ /^\D*(\d+)\s*(?:(-?\d[\d\.\,]*)|(\d+):(\d{2}))\s*(.*)/iso)
         {
             my ($id, $time, $comment) = ($1, $3 ? $3+$4/60 : $2, $5);
             add_wt($wtime, $id, $time, $comment);

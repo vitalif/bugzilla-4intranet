@@ -121,7 +121,7 @@ sub FixWorktime
 {
     my ($bug, $wtime, $comment, $timestamp, $userid) = @_;
     return 1 unless $wtime;
-    $bug = Bugzilla::Bug->new({ id => $bug, for_update => 1 }) unless ref $bug;
+    $bug = Bugzilla::Bug->check({ id => $bug, for_update => 1 }) unless ref $bug;
     return 0 unless $bug;
     return AddWorktime($bug, $comment, $timestamp, { ($userid || Bugzilla->user->id) => $wtime });
 }
