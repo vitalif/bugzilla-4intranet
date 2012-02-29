@@ -22,7 +22,7 @@
 package Bugzilla::WebService::Server::JSONRPC;
 
 use strict;
-use base qw(JSON::RPC::Server::CGI Bugzilla::WebService::Server);
+use base qw(JSON::RPC::Legacy::Server::CGI Bugzilla::WebService::Server);
 
 use Bugzilla::Error;
 use Bugzilla::WebService::Constants;
