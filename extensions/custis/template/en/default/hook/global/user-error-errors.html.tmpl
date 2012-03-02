@@ -16,4 +16,11 @@
   The value <b>"[% value_obj.name | html %]"</b> of field <b>[% value_obj.field.description | html %]</b>
   is unavailable for the selected value "<b>[% controller | html %]</b>" of
   the controlling field <b>[% value_obj.field.value_field.description | html %]</b>.
+[% ELSIF error == "move_worktime_empty" %]
+  Вы пытаетесь перенести время или распределить его в пропорции, взятой из
+  <a href="show_bug.cgi?id=[% bug_id | html %]">[% terms.Bug %] [% bug_id | html %]</a>,
+  но в нём нет списанного
+  [% IF who %]пользователем [% who.identity | html %][% END %]
+  [% IF from || to %]за период [% IF from %]с [% from | html%][% IF to %] по [% END %][% END %][% to | html %][% END %]
+  времени.
 [% END %]
