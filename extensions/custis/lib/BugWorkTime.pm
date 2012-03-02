@@ -140,6 +140,153 @@ sub DistributeWorktime
     return AddWorktime($bug, $comment, $timestamp, $times);
 }
 
+# Разбираем дату
+sub ParseWtDate
+{
+    my ($wt_date) = @_;
+    # Списывать будем последней секундой дня, если дата в прошлом
+    $wt_date .= ' 23:59:59' if $wt_date !~ / /;
+    eval
+    {
+        $wt_date = datetime_from($wt_date);
+        if ($wt_date->epoch > time)
+        {
+            # Если время было не указано, а дата текущая, получится
+            # дата в будущем (23:59:59) - значит списываем текущим временем
+            $wt_date = undef;
+        }
+        else
+        {
+            $wt_date = $wt_date->ymd . ' ' . $wt_date->hms;
+        }
+    };
+    # Если не распарсилась - не будем втихаря списывать
+    # на текущее число, а сообщим об ошибке формата
+    if ($@)
+    {
+        ThrowUserError('illegal_date', {
+            date => $_[0],
+            format => 'YYYY-MM-DD HH:MM:SS',
+        });
+    }
+    return $wt_date;
+}
+
+# Ищем юзера, если больше одного - предлагаем выбор
+sub MatchWtUser
+{
+    my ($wt_user) = @_;
+    my $matches = Bugzilla::User::match($wt_user);
+    if (scalar(@$matches) != 1)
+    {
+        Bugzilla->cgi->delete('worktime_user');
+        my $vars = {};
+        $vars->{matches} = { 'worktime_user' => { $wt_user => { users => $matches } } };
+        $vars->{matchsuccess} = @$matches ? 1 : 0;
+        Bugzilla->template->process("global/confirm-user-match.html.tmpl", $vars)
+            || ThrowTemplateError(Bugzilla->template->error());
+        exit;
+    }
+    return $matches->[0];
+}
+
+# Списать время из $times на набор багов с комментарием $comment на время $timestamp
+# $times формата { bug_id => { user_id => work_time, ... }, ... }
+sub MassAddWorktime
+{
+    my ($times, $comment, $timestamp) = @_;
+    Bugzilla->request_cache->{checkers_hide_error} = 1;
+    my ($ok, $rollback) = 0;
+    my $bug;
+    for (keys %$times)
+    {
+        Bugzilla->dbh->bz_start_transaction();
+        $ok = 1;
+        if ($bug = Bugzilla::Bug->new({ id => $_, for_update => 1 }))
+        {
+            $ok = AddWorktime($bug, $comment, $timestamp, $times->{$_});
+        }
+        if ($ok)
+        {
+            # Юзеры хотят цельный коммит и построчную диагностику...
+            # Так что коммитим в SAVEPOINT, а потом, если хотя бы одно изменение
+            # не пройдёт, сделаем полный откат
+            Bugzilla->dbh->bz_commit_transaction();
+        }
+        else
+        {
+            # А если не OK, значит нас уже обломали Checkers'ы,
+            # а они сами откатывают транзакцию до последнего Savepoint'а
+            $rollback = 1;
+        }
+    }
+    return !$rollback;
+}
+
+# Подготовить время для списания:
+# $times         - введённые часы или пропорция по багам
+# $tsfrom, $tsto - выбранный период времени
+# $wt_user       - выбранный пользователь
+# $other_bug_id  - откуда взять пропорцию участия пользователей
+# $move_time     - флаг "перенести время с other_bug_id"
+sub PrepareWorktime
+{
+    my ($times, $wt_user, $tsfrom, $tsto, $other_bug_id, $move_time, $min_inc) = @_;
+    my $user_times;
+    my $r = {};
+    if ($other_bug_id)
+    {
+        $user_times = LoadTimes($other_bug_id, $tsfrom, $tsto);
+        $user_times = { $wt_user->id => $user_times->{$wt_user->id} || 0 } if $wt_user;
+        my $sum = 0;
+        $sum += $_ for values %$user_times;
+        if (!$sum)
+        {
+            # Если хотели взять пропорцию из бага, а в него не списано время - ругнёмся
+            ThrowUserError('move_worktime_empty', {
+                bug_id => $other_bug_id,
+                from   => $tsfrom,
+                to     => $tsto,
+                who    => $wt_user,
+            });
+        }
+    }
+    if ($wt_user)
+    {
+        # Списываем заданное время на одного участника
+        $r->{$_} = { $wt_user->id => $times->{$_} } for keys %$times;
+    }
+    elsif ($move_time && $other_bug_id)
+    {
+        # Если также отмечено move_time, то введённое значение времени игнорируется,
+        # берётся из $other_bug_id для каждого его участника за заданный период,
+        # распределяется по багам в соответствии с пропорцией $times, и потом
+        # и потом списывается с отрицательным знаком в $other_bug_id.
+        # Получается перенос времени пользователей с одного бага на множество других...
+        delete $times->{$other_bug_id};
+        my $proportion = $times;
+        $r = {};
+        for my $uid (keys %$user_times)
+        {
+            my $scaled = Scale($proportion, $user_times->{$uid}, $min_inc);
+            for (keys %$scaled)
+            {
+                $r->{$_}->{$uid} = $scaled->{$_};
+            }
+            $r->{$other_bug_id}->{$uid} = -$user_times->{$uid};
+        }
+    }
+    else
+    {
+        # Распределяем время по нескольким участникам
+        for (keys %$times)
+        {
+            $r->{$_} = Scale($user_times || LoadTimes($_, $tsfrom, $tsto), $times->{$_}, $min_inc);
+        }
+    }
+    return $r;
+}
+
 # Обработать запрос к SuperWorkTime
 sub HandleSuperWorktime
 {
@@ -147,158 +294,55 @@ sub HandleSuperWorktime
     my $cgi = Bugzilla->cgi;
     my $template = Bugzilla->template;
     $vars->{wt_admin} = Bugzilla->user->in_group('worktimeadmin');
-    # обрабатываем списанное время и делаем редирект на себя же
+    # Обрабатываем списанное время, а потом делаем редирект на себя же
     if ($cgi->param('save_worktime'))
     {
         my $args = { %{ $cgi->Vars } };
+        # Проверяем токен
         check_token_data($args->{token}, 'superworktime');
-        my $wt_user = $args->{worktime_user} || undef;
-        my $wt_date;
+        my ($wt_user, $wt_date);
         my $comment = $args->{comment};
-        # Парсим дату, только если можем списывать задним числом
         if ($vars->{wt_admin})
         {
-            $wt_date = $args->{worktime_date};
-            # Списывать будем последней секундой дня, если дата в прошлом
-            $wt_date .= ' 23:59:59' if $wt_date !~ / /;
-            eval
-            {
-                $wt_date = datetime_from($wt_date);
-                if ($wt_date->epoch > time)
-                {
-                    # Если время было не указано, а дата текущая, получится
-                    # дата в будущем (23:59:59) - значит списываем текущим временем
-                    $wt_date = undef;
-                }
-                else
-                {
-                    $wt_date = $wt_date->ymd . ' ' . $wt_date->hms;
-                }
-            };
-            # Если не распарсилась - не будем втихаря списывать
-            # на текущее число, а сообщим об ошибке формата
-            if ($@)
-            {
-                ThrowUserError('illegal_date', {
-                    date => $args->{worktime_date},
-                    format => 'YYYY-MM-DD HH:MM:SS',
-                });
-            }
-        }
-        if (!$vars->{wt_admin})
-        {
-            # Если мы не можем списывать задним юзером - текущий юзер
-            $wt_user = Bugzilla->user;
-        }
-        elsif ($wt_user)
-        {
-            # Ищем юзера, если больше одного - предлагаем выбор
-            my $matches = Bugzilla::User::match($wt_user);
-            if (scalar(@$matches) != 1)
-            {
-                $cgi->delete('worktime_user');
-                $vars->{matches} = { 'worktime_user' => { $wt_user => { users => $matches } } };
-                $vars->{matchsuccess} = @$matches ? 1 : 0;
-                $template->process("global/confirm-user-match.html.tmpl", $vars)
-                    || ThrowTemplateError($template->error());
-                exit;
-            }
-            $wt_user = $matches->[0];
+            # Парсим дату, только если можем списывать задним числом
+            $wt_date = ParseWtDate($args->{worktime_date});
+            $wt_user = MatchWtUser($args->{worktime_user}) if $args->{worktime_user};
         }
         else
         {
-            $wt_user = undef;
+            # Если мы не можем списывать задним юзером - форсим текущего юзера
+            $wt_user = Bugzilla->user;
         }
-        my ($bug, $t);
+        # Заданный в поиске период времени
         my ($tsfrom, $tsto) = ($args->{chfieldfrom} || '', $args->{chfieldto} || '');
+        # Точность распределения времени - время распределяется на части, не большие, чем $min_inc
         my $min_inc = $args->{divide_min_inc};
         # $other_bug_id - это баг, из которого берётся пропорция для расписывания времени по юзерам
         my $other_bug_id = $args->{divide_other_bug_id};
-        # Если также отмечено move_time, то само введённое значение времени вообще игнорируется,
-        # берётся из $other_bug_id, и потом убирается из $other_bug_id (списывается с отрицательным знаком)
-        # Вещь довольно безумная - перемещение времени с бага на баги...
-        my $move_time = $args->{move_time};
         trick_taint($_) for $tsfrom, $tsto, $other_bug_id;
         my $times = {};
+        my $t;
         foreach (map { /^wtime_(\d+)$/ } keys %$args)
         {
             $t = $args->{"wtime_$_"};
-            if ($t)
-            {
-                $times->{$_} = $t;
-            }
+            $times->{$_} = $t if $t;
             $cgi->delete("wtime_$_");
         }
         $cgi->delete('save_worktime');
+        # В транзакции сначала готовим, потом коммитим
         Bugzilla->dbh->bz_start_transaction();
-        if ($move_time && $other_bug_id)
-        {
-            # Если хотим переместить время, загружаем сумму из $other_bug_id
-            $move_time = Bugzilla->dbh->selectrow_array(
-                'SELECT SUM(work_time) FROM longdescs WHERE bug_id=?'.
-                ($tsfrom ? ' AND bug_when>=?' : '').
-                ($tsto ? ' AND bug_when<?' : ''),
-                undef, int($other_bug_id), ($tsfrom ? $tsfrom : ()), ($tsto ? $tsto : ())
-            );
-            if (!$move_time)
-            {
-                # Если хотели что-то переместить, а там ничего нет - ругнёмся
-                ThrowUserError('move_worktime_empty', { bug_id => $other_bug_id, from => $tsfrom, to => $tsto });
-            }
-            delete $times->{$other_bug_id};
-            $times = Scale($times, $move_time, $min_inc);
-            $times->{$other_bug_id} = -$move_time;
-        }
-        Bugzilla->request_cache->{checkers_hide_error} = 1;
-        my $propo;
-        if ($other_bug_id)
-        {
-            # Загружаем пропорцию заранее - и оптимальнее, и по пути не собьётся
-            $propo = LoadTimes($other_bug_id, $tsfrom, $tsto);
-        }
-        my ($ok, $rollback) = 0;
-        for (keys %$times)
-        {
-            Bugzilla->dbh->bz_start_transaction();
-            if ($bug = Bugzilla::Bug->new({ id => $_, for_update => 1 }))
-            {
-                # Юзеры хотят цельный коммит и построчную диагностику...
-                # Так что если хотя бы одно изменение не пройдёт, потом сделаем полный откат
-                if ($wt_user)
-                {
-                    # Списываем время на одного юзера
-                    $ok = FixWorktime($bug, $times->{$_}, $comment, $wt_date, $wt_user->id);
-                }
-                else
-                {
-                    # Распределяем время по участникам
-                    $ok = DistributeWorktime(
-                        $bug, $times->{$_}, $comment, $wt_date, $tsfrom, $tsto, $min_inc, $propo
-                    );
-                }
-            }
-            if ($ok)
-            {
-                Bugzilla->dbh->bz_commit_transaction();
-            }
-            else
-            {
-                # А если не OK, значит нас уже обломали Checkers'ы,
-                # а они сами откатывают транзакцию до последнего Savepoint'а
-                $rollback = 1;
-            }
-        }
-        if ($rollback)
-        {
-            # Цельный откат, если хотя бы одно изменение заблокировано проверками
-            Bugzilla->dbh->bz_rollback_transaction();
-        }
-        else
+        $times = PrepareWorktime($times, $wt_user, $tsfrom, $tsto, $other_bug_id, $args->{move_time}, $min_inc);
+        if (MassAddWorktime($times, $comment, $wt_date))
         {
             Bugzilla->dbh->bz_commit_transaction();
             delete_token($args->{token});
         }
-        Checkers::show_checker_errors();
+        else
+        {
+            # Цельный откат, если хотя бы одно изменение заблокировано проверками
+            Bugzilla->dbh->bz_rollback_transaction();
+            Checkers::show_checker_errors();
+        }
         print $cgi->redirect(-location => $cgi->self_url);
         exit;
     }
