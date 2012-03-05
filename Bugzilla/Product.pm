@@ -127,7 +127,8 @@ sub create
     my $version = delete $params->{version};
     my $create_series = delete $params->{create_series};
 
-    my $product = $class->insert_create_data($params);
+    my $field_values = $class->run_create_validators($params);
+    my $product = $class->insert_create_data($field_values);
     Bugzilla->user->clear_product_cache();
 
     # Add the new version and milestone into the DB as valid values.
