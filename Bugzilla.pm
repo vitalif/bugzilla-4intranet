@@ -753,6 +753,7 @@ sub refresh_cache_fields
     my $class = shift;
     delete $class->request_cache->{fields_delta_ts};
     delete $class->request_cache->{cache_fields};
+    $Bugzilla::CACHE_FIELDS = {};
 }
 
 sub _fill_fields_cache
