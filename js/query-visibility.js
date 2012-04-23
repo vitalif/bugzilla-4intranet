@@ -174,7 +174,7 @@ function handleQueryformField(event, controller)
             if (item)
             {
                 item.style.display = qfCheckVisibility(
-                        VD.fields[controlled_id], visibility_selected
+                    VD.fields[controlled_id], visibility_selected
                 ) ? '' : 'none';
             }
             continue;
