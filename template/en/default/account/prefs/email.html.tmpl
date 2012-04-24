@@ -290,11 +290,11 @@ You are currently not watching any users.
 [% END %]
 </p>
 
-<p><a name="new_watched_by_you" id="new_watched_by_you">Add users to my watch list (comma separated list)</a>:
-  <input size="60" name="new_watchedusers" value="">
-</p>            
+<p><a name="new_watched_by_you">Add users to my watch list (comma separated list)</a>:
+  <input size="60" name="new_watchedusers" id="new_watchedusers" value="" />
+</p>
 
-<hr>
+<hr />
 
 <p><a name="watching_you" id="watching_you">Users watching you</a>:<br>
 [% IF watchers.size %]
@@ -312,10 +312,22 @@ You are currently not watching any users.
 [% END %]
 </p>
 
-<p><a name="new_watchers" id="new_watchers">Add users to watch me (comma separated list)</a>:
-  <input size="60" name="new_watchers" value="">
+<p><a name="new_watchers">Add users to watch me (comma separated list)</a>:
+  <input size="60" name="new_watchers" id="new_watchers" value="" />
 </p>
 
-<hr>
+<script type="text/javascript" language="JavaScript">
+addListener(window, 'load', function() {
+  [%-# FIXME: remove hardcoded i18n message, also from js/field.js::userAutocomplete() %]
+  new SimpleAutocomplete("new_watchedusers",
+    function(h) { userAutocomplete(h, null); },
+    ",", null, null, 'No users found', true);
+  new SimpleAutocomplete("new_watchers",
+    function(h) { userAutocomplete(h, null); },
+    ",", null, null, 'No users found', true);
+});
+</script>
 
-<br>
+<hr />
+
+<br />
