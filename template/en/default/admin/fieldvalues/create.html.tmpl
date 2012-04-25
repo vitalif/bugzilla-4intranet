@@ -41,7 +41,10 @@
     </tr>
     <tr>
       <th align="right"><label for="sortkey">Sortkey:</label></th>
-      <td><input id="sortkey" name="sortkey" size="6" maxlength="6"></td>
+      <td>
+        <input id="sortkey" name="sortkey" size="6" maxlength="6" />
+        <input type="hidden" name="isactive" value="1" />
+      </td>
     </tr>
     [% IF field.name == "bug_status" %]
       <tr>
