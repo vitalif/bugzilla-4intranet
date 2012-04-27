@@ -2856,7 +2856,7 @@ sub negate_expression
 # boolean charts are expanded (i.e. @specialchart is not expanded).
 # This allows to handle OR'ed parts of correlated search terms, for example
 # "attachment submitter = ... AND (attachment type = ... OR attachment is patch = ...)".
-# This also adds some optimisation for the case when there is "non-seeding" ORed parts.
+# This also adds some optimisation for the case when there are "non-seeding" ORed parts.
 sub expand_expression
 {
     my ($q) = @_;
@@ -3138,26 +3138,30 @@ sub expression_sql_and
         }
         else
         {
-            $t->{$_} = replace_lit($t->{$_}, 'bugs.', "bugs$seq.") for qw(table where);
+            # Do not change values in-place in $t!
+            # Hash $t is linked to can also be linked to from other expressions!
+            # (the reference can be copied by expand_expression())
+            my $t_table = replace_lit($t->{table}, 'bugs.', "bugs$seq.");
+            my $t_where = replace_lit($t->{where}, 'bugs.', "bugs$seq.");
             if ($t->{bugid_field} && !$t->{neg} && $t->{many_rows} &&
                 ($many_rows++) > 0)
             {
                 # Allow only one many_rows=1 term in a query,
                 # wrap following into a SELECT DISTINCT
                 my $gs = $self->{sequence}++;
-                $tables .= "\nINNER JOIN (SELECT DISTINCT $t->{bugid_field} bug_id FROM $t->{table}";
-                $tables .= " WHERE $t->{where}" if $t->{where};
+                $tables .= "\nINNER JOIN (SELECT DISTINCT $t->{bugid_field} bug_id FROM $t_table";
+                $tables .= " WHERE $t_where" if $t_where;
                 $tables .= ") grp$gs ON $first_bugid_field=grp$gs.bug_id";
             }
             else
             {
-                $tables .= ($t->{neg} ? "\nLEFT JOIN " : "\nINNER JOIN ") . $t->{table};
-                if ($t->{where} || $t->{bugid_field})
+                $tables .= ($t->{neg} ? "\nLEFT JOIN " : "\nINNER JOIN ") . $t_table;
+                if ($t_where || $t->{bugid_field})
                 {
-                    $tables .= ' ON ' . ($t->{where}||'');
+                    $tables .= ' ON ' . ($t_where||'');
                     if ($t->{bugid_field})
                     {
-                        $tables .= ' AND ' if $t->{where};
+                        $tables .= ' AND ' if $t_where;
                         $tables .= " $first_bugid_field=".$t->{bugid_field};
                     }
                 }
