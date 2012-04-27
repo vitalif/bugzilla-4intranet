@@ -195,7 +195,10 @@ function updateRemainingTime()
 
 function changeform_onsubmit()
 {
-    var wt = bzParseTime(document.changeform.work_time.value);
+    var wtInput = document.changeform.work_time;
+    if (!wtInput)
+        return true;
+    var wt = bzParseTime(wtInput.value);
     var awt = wt;
     if (wt != wt)
         awt = 0;
@@ -206,11 +209,11 @@ function changeform_onsubmit()
         awt = prompt("Please, verify working time:", !wt || wt != wt ? "0" : wt);
         if (awt === null || awt === undefined || (""+awt).length <= 0)
         {
-            document.changeform.work_time.focus();
+            wtInput.focus();
             return false;
         }
     }
-    document.changeform.work_time.value = awt;
+    wtInput.value = awt;
     adjustRemainingTime();
     return true;
 }
