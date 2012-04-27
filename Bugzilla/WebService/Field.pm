@@ -9,6 +9,7 @@ use strict;
 use base qw(Bugzilla::WebService);
 use Bugzilla::Field::Choice;
 use Bugzilla::User;
+use Bugzilla::Hook;
 use Bugzilla::WebService::Util qw(validate);
 
 # { field => 'field_name' }
@@ -45,6 +46,7 @@ sub get_values
 
 # { field => 'field_name', value => 'value_name',
 #   sortkey => number_for_sorting,
+#   [optional] id => id,
 #   other columns from $type->DB_COLUMNS }
 sub add_value
 {
@@ -55,8 +57,8 @@ sub add_value
         return {status => 'field_not_found'};
     }
     my $type = Bugzilla::Field::Choice->type($field);
-    my $value = $type->new({ name => $params->{value} });
-    if ($value)
+    if ($type->new({ name => $params->{value} }) ||
+        $params->{id} && $type->new({ id => $params->{id} }))
     {
         return {status => 'value_already_exists'};
     }
@@ -72,13 +74,31 @@ sub add_value
             $row->{$_} = $params->{$_};
         }
     }
-    $value = $type->create($row);
+    my $value = $type->create($row);
     return {status => 'ok', id => $value->id};
 }
 
-# { field => 'field_name', old_value => 'old_value',
-#   value => 'new_value', sortkey => new_sortkey,
-#   isactive => new_isactive,
+# Get value by id=$params->{id} or name=$params->{value}
+sub _get_value
+{
+    my ($type, $params) = @_;
+    my $value;
+    if ($params->{id})
+    {
+        $value = $type->new({ id => $params->{id} });
+    }
+    elsif ($params->{value})
+    {
+        $value = $type->new({ name => $params->{value} });
+    }
+    return $value;
+}
+
+# { field => 'field_name'
+#   ( id => 'old_id' | value => 'old_value' )
+#   ( new_value => 'new_value' )?
+#   sortkey => new_sortkey
+#   isactive => new_isactive
 #   other columns from $type->DB_COLUMNS }
 sub update_value
 {
@@ -89,25 +109,22 @@ sub update_value
         return {status => 'field_not_found'};
     }
     my $type = Bugzilla::Field::Choice->type($field);
-    my $value = $type->new({ name => $params->{old_value} });
-    if (!$value)
+    my $value = _get_value($type, $params) || return {status => 'value_not_found'};
+    # Name
+    if (defined $params->{new_value} && $params->{new_value} ne $value->name)
     {
-        return {status => 'value_not_found'};
-    }
-    $params->{value} = $params->{old_value} unless defined $params->{value};
-    if ($params->{value} ne $params->{old_value})
-    {
-        my $newvalue = $type->new({ name => $params->{value} });
+        my $newvalue = $type->new({ name => $params->{new_value} });
         if ($newvalue)
         {
             return {status => 'value_already_exists'};
         }
-        $value->set_name($params->{value});
+        $value->set_name($params->{new_value});
     }
-    # Остальные колонки
+    # Other fields
     for ($type->DB_COLUMNS)
     {
         if ($_ ne $type->NAME_FIELD &&
+            $_ ne $type->ID_FIELD &&
             exists $params->{$_})
         {
             my $m = "set_$_";
@@ -118,7 +135,7 @@ sub update_value
     return {status => 'ok', id => $value->id};
 }
 
-# { field => 'field_name', value => 'value_name' }
+# { field => 'field_name', ( id => value_id | value => 'value_name' ) }
 sub delete_value
 {
     my ($self, $params) = @_;
@@ -128,16 +145,13 @@ sub delete_value
         return {status => 'field_not_found'};
     }
     my $type = Bugzilla::Field::Choice->type($field);
-    my $value = $type->new({ name => $params->{value} });
-    if (!$value)
-    {
-        return {status => 'value_not_found'};
-    }
+    my $value = _get_value($type, $params) || return {status => 'value_not_found'};
     $value->remove_from_db;
     return {status => 'ok'};
 }
 
-# { field => 'field_name', value => 'value_name', ids => [ visibility_ID, visibility_ID, ... ] }
+# { field => 'field_name', ( id => value_id | value => 'value_name' ),
+#   ids => [ visibility_ID, visibility_ID, ... ] }
 sub set_visibility_values
 {
     my ($self, $params) = @_;
@@ -151,11 +165,7 @@ sub set_visibility_values
         return {status => 'fieldvalues_not_controlled'};
     }
     my $type = Bugzilla::Field::Choice->type($field);
-    my $value = $type->new({ name => $params->{value} });
-    if (!$value)
-    {
-        return {status => 'value_not_found'};
-    }
+    my $value = _get_value($type, $params) || return {status => 'value_not_found'};
     my $ids = $params->{ids} || [];
     $ids = [ $ids ] unless ref $ids;
     $ids = [ map { $_->id } @{ Bugzilla::Field::Choice->type($field->value_field)->new_from_list($ids) } ];
