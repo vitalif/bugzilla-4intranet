@@ -752,7 +752,10 @@ elsif (($action eq 'next_bug' or $action eq 'same_bug') && ($bug = $vars->{bug})
     my $title;
     if (scalar(@bug_objects) == 1)
     {
-        $title = Bugzilla->messages->{terms}->{Bug} . ' ' . $bug_objects[0]->id . ' processed';
+        # FIXME hard-coded template title, also in bug/show-header.html.tmpl
+        $title = Bugzilla->messages->{terms}->{Bug} . ' ' . $bug_objects[0]->id . ' processed &ndash; ' .
+            $bug->short_desc . ' &ndash; ' . $bug->product . '/' . $bug->component . ' &ndash; ' .
+            $bug->bug_status . ' ' . $bug->resolution;
     }
     else
     {
