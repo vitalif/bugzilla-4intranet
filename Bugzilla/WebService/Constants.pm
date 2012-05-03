@@ -145,6 +145,7 @@ sub WS_DISPATCH {
         'Bug'      => 'Bugzilla::WebService::Bug',
         'User'     => 'Bugzilla::WebService::User',
         'Product'  => 'Bugzilla::WebService::Product',
+        'Field'    => 'Bugzilla::WebService::Field',
         %hook_dispatch
     };
     return $dispatch;

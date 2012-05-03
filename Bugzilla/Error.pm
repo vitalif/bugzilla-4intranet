@@ -220,6 +220,10 @@ sub _throw_error
     }
     elsif ($mode == ERROR_MODE_DIE_SOAP_FAULT || $mode == ERROR_MODE_JSON_RPC)
     {
+        # FIXME FIXME FIXME: Numeric error codes are UGLY!!!
+        # But we can't change them without breaking the compatibility...
+        # So we'll just use REST-XML for our APIs and screw SOAP and JSON-RPC.
+
         # Clone the hash so we aren't modifying the constant.
         my %error_map = %{ WS_ERROR_CODE() };
         eval
