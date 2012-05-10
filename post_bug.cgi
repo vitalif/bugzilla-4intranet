@@ -174,9 +174,6 @@ Bugzilla->dbh->bz_start_transaction;
 
 my $bug = Bugzilla::Bug->create(\%bug_params);
 
-# Run hooks
-Bugzilla::Hook::process('post_bug-post_create', { bug => $bug });
-
 # Get the bug ID back.
 my $id = $bug->bug_id;
 

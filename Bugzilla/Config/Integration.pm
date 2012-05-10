@@ -41,9 +41,28 @@ sub get_param_list
         default => 0,
     },
 
+    # FIXME move following to custishacks...
     {
         name => 'login_urlbase_redirects',
         type => 'l',
+        default => '',
+    },
+
+    {
+        name => 'sm_dotproject_wsdl_url',
+        type => 't',
+        default => '',
+    },
+
+    {
+        name => 'sm_dotproject_login',
+        type => 't',
+        default => '',
+    },
+
+    {
+        name => 'sm_dotproject_password',
+        type => 't',
         default => '',
     },
     );

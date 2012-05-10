@@ -137,7 +137,7 @@ sub enter_bug_cloned_bug
 
 # Bug 53590 - add a comment to cloned bug
 # Bug 69514 - автоматическое проставление cf_extbug
-sub post_bug_post_create
+sub bug_end_of_create
 {
     my ($args) = @_;
     my $cloned_bug_id = scalar Bugzilla->cgi->param('cloned_bug_id');

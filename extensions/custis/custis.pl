@@ -77,19 +77,16 @@ set_hook('custis', 'tr_show_plan_after_fetch',      'CustisTestPlanSync::tr_show
 # Хуки для системы проверки корректности изменений багов
 set_hook('custis', 'bug_pre_update',                'Checkers::bug_pre_update');
 set_hook('custis', 'bug_end_of_update',             'Checkers::bug_end_of_update');
-set_hook('custis', 'post_bug_post_create',          'Checkers::post_bug_post_create');
+set_hook('custis', 'bug_end_of_create',             'Checkers::bug_end_of_create');
 add_hook('custis', 'savedsearch_post_update',       'Checkers::savedsearch_post_update');
 add_hook('custis', 'install_before_final_checks',   'Checkers::install_before_final_checks');
-
-# Redirect users to "their" bugzilla according to params.login_urlbase_redirects
-set_hook('custis', 'auth_post_login',               'CustisLocalBugzillas::auth_post_login');
 
 # Прочие хуки
 set_hook('custis', 'flag_check_requestee_list',     'CustisMiscHooks::flag_check_requestee_list');
 set_hook('custis', 'process_bug_after_move',        'CustisMiscHooks::process_bug_after_move');
 set_hook('custis', 'quote_urls_custom_proto',       'CustisMiscHooks::quote_urls_custom_proto');
 set_hook('custis', 'enter_bug_cloned_bug',          'CustisMiscHooks::enter_bug_cloned_bug');
-add_hook('custis', 'post_bug_post_create',          'CustisMiscHooks::post_bug_post_create');
+add_hook('custis', 'bug_end_of_create',             'CustisMiscHooks::bug_end_of_create');
 
 1;
 __END__

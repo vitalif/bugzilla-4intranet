@@ -11,6 +11,7 @@ use strict;
 use POSIX qw(strftime);
 
 use Bugzilla;
+use Bugzilla::Constants;
 use Bugzilla::Checker;
 use Bugzilla::Search::Saved;
 use Bugzilla::Error;
@@ -110,6 +111,17 @@ sub show_checker_errors
     my ($bugs) = @_;
     $bugs ||= Bugzilla->request_cache->{failed_checkers};
     return if !$bugs || !grep { @{$_->{failed_checkers} || []} } @$bugs;
+    if (Bugzilla->error_mode != ERROR_MODE_WEBPAGE)
+    {
+        my $info = [
+            map { {
+                bug_id => $_->bug_id,
+                errors => [ map { $_->message } @{$_->{failed_checkers}} ]
+            } }
+            grep { $_->{failed_checkers} } @$bugs
+        ];
+        ThrowUserError('checks_failed', { bugs => $info });
+    }
     my $fatal = 1 && (grep { grep { $_->is_fatal } @{$_->{failed_checkers} || []} } @$bugs);
     Bugzilla->template->process("verify-checkers.html.tmpl", {
         script_name => Bugzilla->cgi->script_name,
@@ -124,7 +136,10 @@ sub freeze_failed_checkers
 {
     my $failedbugs = shift;
     $failedbugs && @$failedbugs || return undef;
-    return [ map { [ $_->bug_id, [ map { $_->id } @{$_->{failed_checkers}} ] ] } grep { $_->{failed_checkers} } @$failedbugs ];
+    return [
+        map { [ $_->bug_id, [ map { $_->id } @{$_->{failed_checkers}} ] ] }
+        grep { $_->{failed_checkers} } @$failedbugs
+    ];
 }
 
 sub unfreeze_failed_checkers
@@ -249,7 +264,7 @@ sub bug_end_of_update
     return 1;
 }
 
-sub post_bug_post_create
+sub bug_end_of_create
 {
     my ($args) = @_;
     my $bug = $args->{bug};

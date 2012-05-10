@@ -31,8 +31,10 @@ use base qw(TheSchwartz);
 
 # This maps job names for Bugzilla::JobQueue to the appropriate modules.
 # If you add new types of jobs, you should add a mapping here.
+# FIXME A map again... Bugzilla such Bugzilla... So non-extensible...
 use constant JOB_MAP => {
     send_mail => 'Bugzilla::Job::Mailer',
+    sm_sync   => 'Bugzilla::Job::SM',
 };
 
 sub new {
