@@ -4,7 +4,7 @@
 # License: Dual-license GPL 3.0+ or MPL 1.1+
 # Contributor(s): Vitaliy Filippov <vitalif@mail.ru>
 
-# USAGE: xml.cgi?method={{method}}&output=(xml|json)&...
+# USAGE: xml.cgi?method={{method}}&output=(xml|json)&<param>=<value>&...
 # FIXME: rename to rest.cgi
 
 use strict;
@@ -101,6 +101,7 @@ else
         delete $func_args->{method};
         my $pkg = 'Bugzilla::WebService::'.$service.'::XMLSimple';
         $Bugzilla::Error::IN_EVAL++;
+        # FIXME exported methods need prefix or other protection type!
         eval { $result = $pkg->$method($func_args) };
         $Bugzilla::Error::IN_EVAL--;
         if ($@)

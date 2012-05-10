@@ -45,7 +45,7 @@ use base qw(Exporter);
     validate_email_syntax clean_text
     stem_text intersect union
     get_text disable_utf8 bz_encode_json
-    xml_element xml_element_quote xml_dump_simple
+    xml_element xml_element_quote xml_dump_simple xml_simple
 );
 
 use Bugzilla::Constants;
@@ -840,10 +840,27 @@ sub xml_element
     return $args.'>'.$content.'</'.$name.'>';
 }
 
+sub xml_dump_type
+{
+    if (ref $_[0])
+    {
+        ref $_[0] =~ /^(?:([^=]*)=)?([^=\(]*)\(/;
+        my $r = { type => $2 };
+        $r->{class} = $1 if $1;
+        return $r;
+    }
+    return '';
+}
+
 sub xml_dump_simple
 {
     my ($data) = @_;
-    if (ref $data)
+    if (blessed $data)
+    {
+        return $data->name if $data->can('name');
+        return "$data";
+    }
+    elsif (ref $data)
     {
         my $r;
         if ($data =~ 'ARRAY')
@@ -857,15 +874,11 @@ sub xml_dump_simple
         elsif ($data =~ 'SCALAR')
         {
             # TODO потенциально можно сохранять ссылки
-            $r = xml_element('ref', '', xml_dump_simple($$data));
+            $r = xml_dump_simple($$data);
         }
         else
         {
             $r = xml_quote("$data");
-        }
-        if (my $p = blessed($data))
-        {
-            $r = xml_element('object', {class => $p}, $r);
         }
         return $r;
     }
@@ -886,6 +899,45 @@ sub list($)
     return () unless defined $array;
     return ($array) if ref $array ne 'ARRAY';
     return @$array;
+}
+
+sub xml_simple
+{
+    my ($text) = @_;
+    require XML::Parser;
+    my $parser = XML::Parser->new(Handlers => {
+        Start => \&xml_simple_start,
+        End   => \&xml_simple_end,
+        Char  => \&xml_simple_char,
+    });
+    $parser->{_simple_data} = {};
+    $parser->{_simple_stack} = [ $parser->{_simple_data} ];
+    $parser->parse($text);
+    return $parser->{_simple_data};
+}
+
+sub xml_simple_start
+{
+    my ($parser, $tag, %attr) = @_;
+    my $stack = $parser->{_simple_stack};
+    my $frame = $stack->[$#$stack];
+    my $e = { char => '', map { ( "a$_" => $attr{$_} ) } keys %attr };
+    push @$stack, $e;
+    push @{$frame->{"e$tag"}}, $e;
+}
+
+sub xml_simple_end
+{
+    my ($parser, $tag) = @_;
+    pop @{$parser->{_simple_stack}};
+}
+
+sub xml_simple_char
+{
+    my ($parser, $text) = @_;
+    my $stack = $parser->{_simple_stack};
+    my $frame = $stack->[$#$stack];
+    $frame->{char} .= $text;
 }
 
 1;

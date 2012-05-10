@@ -68,11 +68,11 @@ use constant READ_ONLY => qw(
 # Add aliases here for old method name compatibility #
 ######################################################
 
-BEGIN { 
-  # In 3.0, get was called get_bugs
-  *get_bugs = \&get;
-  # Before 3.4rc1, "history" was get_history.
-  *get_history = \&history;
+BEGIN {
+    # In 3.0, get was called get_bugs
+    *get_bugs = \&get;
+    # Before 3.4rc1, "history" was get_history.
+    *get_history = \&history;
 }
 
 ###########

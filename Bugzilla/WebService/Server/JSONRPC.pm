@@ -347,6 +347,7 @@ sub _argument_type_check {
         # When being called using GET, we don't allow calling
         # methods that can change data. This protects us against cross-site
         # request forgeries.
+        # FIXME: POST is not needed and does not protect against CSRF. We need tokens for this.
         if (!grep($_ eq $method, $pkg->READ_ONLY)) {
             ThrowUserError('json_rpc_post_only', 
                            { method => $self->_bz_method_name });
