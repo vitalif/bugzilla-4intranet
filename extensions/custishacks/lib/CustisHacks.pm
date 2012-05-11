@@ -46,7 +46,12 @@ sub sync_bug
     if (Bugzilla->params->{sm_dotproject_wsdl_url} &&
         $args->{bug}->product =~ /^СМ-/so)
     {
-        Bugzilla->job_queue->insert('sm_sync', { bug_id => $args->{bug}->id });
+        my $tnerp_id = get_wbs_mapping(undef, get_wbs(undef, $args->{bug}->cf_wbs)->id);
+        if ($tnerp_id)
+        {
+            # Only sync bugs which have WBS known to TN-ERP
+            Bugzilla->job_queue->insert('sm_sync', { bug_id => $args->{bug}->id });
+        }
     }
     return 1;
 }
