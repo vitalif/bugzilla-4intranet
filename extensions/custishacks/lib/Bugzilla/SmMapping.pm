@@ -77,35 +77,27 @@ sub delete_wbs_mapping
     Bugzilla->dbh->do("DELETE FROM tnerp_wbs_mapping WHERE tnerp_id=?", undef, $tnerp_id);
 }
 
-# Map SM (status, isclosed) to Bugzilla (status, resolution)
+# Map SM status to Bugzilla (status, resolution)
 sub map_status_to_bz
 {
     my ($params, $create) = @_;
     my $st = $params->{Status};
     if ($st eq 'In progress')
     {
-        return ('ASSIGNED', '');
-    }
-    elsif ($st eq 'Draft')
-    {
         return ($create ? 'NEW' : 'REOPENED', '');
     }
-    return ($params->{Closed} ? 'CLOSED' : 'RESOLVED', $resolution{$st});
+    return ('CLOSED', $resolution{$st});
 }
 
-# Map Bugzilla (status, resolution) to SM (status, isclosed)
+# Map Bugzilla (status, resolution) to SM status
 sub map_bz_to_status
 {
     my ($status, $resolution) = @_;
-    if ($status eq 'NEW' || $status eq 'REOPENED')
+    if (!$resolution)
     {
-        return ('Draft', 0);
+        return 'In progress';
     }
-    elsif ($status eq 'ASSIGNED')
-    {
-        return ('In progress', 0);
-    }
-    return ($smstatus{$resolution}, $status eq 'CLOSED');
+    return $smstatus{$resolution};
 }
 
 # Get WBS object by TN-ERP ID or by name
@@ -147,7 +139,7 @@ sub get_formatted_bugs
     {
         $wbs_id_cache->{$bug->{cf_wbs}} ||=
             get_wbs_mapping(undef, get_wbs(undef, $bug->{cf_wbs})->id);
-        my ($status, $closed) = map_bz_to_status($bug->{bug_status}, $bug->{resolution});
+        my $status = map_bz_to_status($bug->{bug_status}, $bug->{resolution});
         push @$r, {
             TaskCUID     => $bug->{bug_id}, # FIXME append prefix to ID
             TaskBUID     => $wbs_id_cache->{$bug->{cf_wbs}},
@@ -156,7 +148,6 @@ sub get_formatted_bugs
             Description  => $bug->{comment0},
             Owner        => $bug->{assigned_to},
             Status       => $status,
-            Closed       => $closed,
             Release      => $bug->{target_milestone},
         };
     }

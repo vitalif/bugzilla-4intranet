@@ -11,6 +11,15 @@ use base qw(Bugzilla::WebService);
 
 use Bugzilla::SmMapping;
 
+# DIRTY hack for disabling bug status validation... :-X
+sub _hack_bug_status
+{
+    my ($invocant, $new_status) = @_;
+    my $new_status = Bugzilla::Status->check($new_status) unless ref $new_status;
+    return $new_status->name if ref $invocant;
+    return ($new_status->name, $new_status->name eq 'UNCONFIRMED' ? 0 : 1);
+}
+
 # Create bug as a "Task C" (SM terms). Arguments:
 #  TaskBUID: TN-ERP's ID of bug WBS.
 #  ComponentUID: Bug component ID.
@@ -23,6 +32,7 @@ use Bugzilla::SmMapping;
 sub CreateTaskC
 {
     my ($self, $params) = @_;
+    local *Bugzilla::Bug::_check_bug_status = *_hack_bug_status;
     my $component = Bugzilla::Component->match({ id => $params->{ComponentUID} });
     $component = $component->[0] || ThrowUserError('unknown_component');
     my $wbs = get_wbs($params->{TaskBUID});
@@ -53,8 +63,10 @@ sub CreateTaskC
 sub UpdateTaskC
 {
     my ($self, $params) = @_;
+    local *Bugzilla::Bug::_check_bug_status = *_hack_bug_status;
     my $bug = Bugzilla::Bug->new({ id => $params->{TaskCUID}, for_update => 1 });
     $bug || return { status => 'task_c_not_found' };
+    Bugzilla->user->can_edit_bug($bug, THROW_ERROR);
     my $component = Bugzilla::Component->match({ id => $params->{ComponentUID} });
     $component = $component->[0] || ThrowUserError('unknown_component');
     my $wbs = get_wbs($params->{TaskBUID});
