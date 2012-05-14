@@ -58,7 +58,7 @@ sub CreateTaskC
 #  TaskBUID: TN-ERP's ID of bug WBS.
 #  ComponentUID: Bug component ID.
 #  Name: Bug title.
-#  Description: New comment.
+#  Status: dotProject's status.
 # Returns nothing.
 sub UpdateTaskC
 {
@@ -72,15 +72,16 @@ sub UpdateTaskC
     my $wbs = get_wbs($params->{TaskBUID});
     $bug->set_summary($params->{Name});
     $bug->comments;
-    if ($params->{Description} && $params->{Description} ne $bug->{comments}->[0])
-    {
-        $bug->add_comment($params->{Description});
-    }
     $bug->set_custom_field(Bugzilla->get_field(CF_WBS), $wbs->name);
     if ($component->id ne $bug->component_id)
     {
         $bug->set_product($component->product->name);
         $bug->set_component($component->name);
+    }
+    my ($st, $res) = map_status_to_bz($params, 1);
+    if ($st ne $bug->bug_status || $res ne $bug->resolution)
+    {
+        $bug->set_status($st, { resolution => $res });
     }
     $bug->update;
     return { status => 'ok' };
