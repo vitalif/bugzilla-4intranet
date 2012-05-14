@@ -33,6 +33,7 @@ sub CreateTaskC
 {
     my ($self, $params) = @_;
     local *Bugzilla::Bug::_check_bug_status = *_hack_bug_status;
+    local $Bugzilla::SmMapping::InWS = 1;
     my $component = Bugzilla::Component->match({ id => $params->{ComponentUID} });
     $component = $component->[0] || ThrowUserError('unknown_component');
     my $wbs = get_wbs($params->{TaskBUID});
@@ -64,6 +65,7 @@ sub UpdateTaskC
 {
     my ($self, $params) = @_;
     local *Bugzilla::Bug::_check_bug_status = *_hack_bug_status;
+    local $Bugzilla::SmMapping::InWS = 1;
     my $bug = Bugzilla::Bug->new({ id => $params->{TaskCUID}, for_update => 1 });
     $bug || return { status => 'task_c_not_found' };
     Bugzilla->user->can_edit_bug($bug, THROW_ERROR);

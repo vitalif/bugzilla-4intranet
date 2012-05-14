@@ -6,6 +6,8 @@ package CustisHacks;
 use strict;
 use utf8;
 
+use Bugzilla::SmMapping;
+
 # New tables
 sub db_schema_abstract_schema
 {
@@ -43,8 +45,9 @@ sub install_update_db
 sub sync_bug
 {
     my ($args) = @_; # { bug => $bug, timestamp => $timestamp }
-    if (Bugzilla->params->{sm_dotproject_wsdl_url} &&
-        $args->{bug}->product =~ /^СМ-/so)
+    if (Bugzilla->params->{sm_dotproject_wsdl_url} && # only if enabled
+        !$Bugzilla::SmMapping::InWS && # prevent syncing changes which come from dotProject
+        $args->{bug}->product =~ /^СМ-/so) # only for external bugs
     {
         my $tnerp_id = get_wbs_mapping(undef, get_wbs(undef, $args->{bug}->cf_wbs)->id);
         if ($tnerp_id)

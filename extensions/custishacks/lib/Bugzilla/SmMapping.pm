@@ -13,6 +13,9 @@ use Bugzilla::Search;
 
 use constant CF_WBS => 'cf_wbs';
 
+# 1 when we are inside SM webservice
+our $InWS = 0;
+
 our @EXPORT = qw(
     CF_WBS
     get_wbs_mapping

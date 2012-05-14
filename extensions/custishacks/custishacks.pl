@@ -25,8 +25,8 @@ set_hook('custishacks', 'db_schema_abstract_schema', 'CustisHacks::db_schema_abs
 set_hook('custishacks', 'install_update_db', 'CustisHacks::install_update_db');
 
 # Sending bugs to SM/dotProject
-set_hook('custishacks', 'bug_end_of_create', 'CustisHacks::bug_end_of_create');
-set_hook('custishacks', 'bug_end_of_update', 'CustisHacks::bug_end_of_update');
+set_hook('custishacks', 'bug_end_of_create', 'CustisHacks::sync_bug');
+set_hook('custishacks', 'bug_end_of_update', 'CustisHacks::sync_bug');
 
 # Redirect users to "their" bugzilla according to params.login_urlbase_redirects
 set_hook('custishacks', 'auth_post_login', 'CustisLocalBugzillas::auth_post_login');
