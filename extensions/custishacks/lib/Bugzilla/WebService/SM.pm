@@ -69,21 +69,32 @@ sub UpdateTaskC
     my $bug = Bugzilla::Bug->new({ id => $params->{TaskCUID}, for_update => 1 });
     $bug || return { status => 'task_c_not_found' };
     Bugzilla->user->can_edit_bug($bug, THROW_ERROR);
-    my $component = Bugzilla::Component->match({ id => $params->{ComponentUID} });
-    $component = $component->[0] || ThrowUserError('unknown_component');
-    my $wbs = get_wbs($params->{TaskBUID});
-    $bug->set_summary($params->{Name});
-    $bug->comments;
-    $bug->set_custom_field(Bugzilla->get_field(CF_WBS), $wbs->name);
-    if ($component->id ne $bug->component_id)
+    if (defined $params->{ComponentUID})
     {
-        $bug->set_product($component->product->name);
-        $bug->set_component($component->name);
+        my $component = Bugzilla::Component->match({ id => $params->{ComponentUID} });
+        $component = $component->[0] || ThrowUserError('unknown_component');
+        if ($component->id ne $bug->component_id)
+        {
+            $bug->set_product($component->product->name);
+            $bug->set_component($component->name);
+        }
     }
-    my ($st, $res) = map_status_to_bz($params, 1);
-    if ($st ne $bug->bug_status || $res ne $bug->resolution)
+    if (defined $params->{TaskBUID})
     {
-        $bug->set_status($st, { resolution => $res });
+        my $wbs = get_wbs($params->{TaskBUID});
+        $bug->set_custom_field(Bugzilla->get_field(CF_WBS), $wbs->name);
+    }
+    if (defined $params->{Name})
+    {
+        $bug->set_summary($params->{Name});
+    }
+    if (defined $params->{Status})
+    {
+        my ($st, $res) = map_status_to_bz($params, 1);
+        if ($st ne $bug->bug_status || $res ne $bug->resolution)
+        {
+            $bug->set_status($st, { resolution => $res });
+        }
     }
     $bug->update;
     return { status => 'ok' };
