@@ -7,6 +7,7 @@ package Bugzilla::Job::SM;
 
 use strict;
 use base qw(TheSchwartz::Worker);
+use Bugzilla::User;
 use Bugzilla::SmClient;
 use Bugzilla::SmMapping;
 
@@ -15,7 +16,7 @@ use constant grab_for => 30;
 # Retry for 30 days.
 use constant max_retries => 725;
 
-my $SmClient;
+my ($SmClient, $SuperUser);
 
 sub retry_delay
 {
@@ -35,8 +36,11 @@ sub work
     my $bug_id = $job->arg->{bug_id};
     eval
     {
-        my $bug = get_formatted_bugs({ bug_id => $bug_id })->[0];
         $SmClient ||= Bugzilla::SmClient->new;
+        $SuperUser ||= Bugzilla::User->super_user;
+        local Bugzilla->request_cache->{user} = $SuperUser;
+        my $bug = get_formatted_bugs({ bug_id => $bug_id })->[0];
+        $bug || die "Bug $bug_id not found :-(";
         $SmClient->create_or_update($bug);
     };
     if ($@)

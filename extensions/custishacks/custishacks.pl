@@ -6,14 +6,7 @@ use Bugzilla;
 use Bugzilla::Hook;
 use Bugzilla::Extension;
 
-my $REQUIRED_MODULES = [
-    {
-        package => 'SOAP-WSDL',
-        module  => 'SOAP::WSDL',
-        version => '2.00.10',
-        feature => 'Synchronisation with SM/dotProject',
-    },
-];
+my $REQUIRED_MODULES = [];
 my $OPTIONAL_MODULES = [];
 
 required_modules('custishacks', $REQUIRED_MODULES);
