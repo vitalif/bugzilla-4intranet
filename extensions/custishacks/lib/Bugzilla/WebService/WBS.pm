@@ -6,6 +6,7 @@
 package Bugzilla::WebService::WBS;
 
 use strict;
+use Bugzilla::Error;
 use Bugzilla::Field::Choice;
 use Bugzilla::User;
 use Bugzilla::WebService::Util qw(validate);
@@ -31,6 +32,10 @@ sub add_value
     my ($self, $params) = @_;
     $params->{field} = CF_WBS;
     my $tnerp_id = delete $params->{tnerp_id};
+    if (get_wbs_mapping($tnerp_id))
+    {
+        ThrowUserError('value_already_exists');
+    }
     my $r = $self->SUPER::add_value($params);
     set_wbs_mapping($r->{id}, $tnerp_id) if $r->{id};
     return $r;
