@@ -2006,12 +2006,29 @@ sub _blocked_dependson
     {
         $self->call_op;
     }
-    $self->{term} = {
-        table => "dependencies $t",
-        where => $self->{term},
-        bugid_field => $t.'.'.$other,
-        neg => $neg,
-    };
+    if (ref $self->{term})
+    {
+        # TODO move it to some function like combine_terms or so
+        $self->{term}->{table} = "(".$self->{term}->{table}.
+            ($self->{term}->{neg} ? " LEFT" : " INNER").
+            " JOIN dependencies $t ON $self->{term}->{where})";
+        delete $self->{term}->{where};
+        if ($self->{term}->{neg})
+        {
+            $self->{term}->{where} = $self->{term}->{notnull_field}." IS NULL";
+        }
+        $self->{term}->{bugid_field} = "$t.$other";
+        $self->{term}->{neg} = $neg;
+    }
+    else
+    {
+        $self->{term} = {
+            table => "dependencies $t",
+            where => $self->{term},
+            bugid_field => $t.'.'.$other,
+            neg => $neg,
+        };
+    }
 }
 
 sub _cc_nonchanged

@@ -20,12 +20,19 @@ sub _hack_bug_status
     return ($new_status->name, $new_status->name eq 'UNCONFIRMED' ? 0 : 1);
 }
 
+# Another dirty hack allowing to set any reporter
+sub _hack_reporter
+{
+    my ($invocant, $reporter) = @_;
+    return $reporter;
+}
+
 # Create bug as a "Task C" (SM terms). Arguments:
 #  TaskBUID: TN-ERP's ID of bug WBS.
 #  ComponentUID: Bug component ID.
 #  Name: Bug title.
 #  Description: Bug description.
-#  Owner: Assignee email.
+#  Owner: Reporter email.
 #  Status: One of 'In progress', 'Draft', 'Postponed', 'Cancelled', 'Complete'. Maps to bug status+resolution.
 # Returns:
 #  TaskСUID = Bug ID
@@ -33,6 +40,7 @@ sub CreateTaskC
 {
     my ($self, $params) = @_;
     local *Bugzilla::Bug::_check_bug_status = *_hack_bug_status;
+    local *Bugzilla::Bug::_check_reporter = *_hack_reporter;
     local $Bugzilla::SmMapping::InWS = 1;
     my $component = Bugzilla::Component->match({ id => $params->{ComponentUID} });
     $component = $component->[0] || ThrowUserError('unknown_component');
@@ -40,9 +48,11 @@ sub CreateTaskC
     my $version = $component->default_version;
     $version ||= $component->product->versions->[0];
     my ($st, $res) = map_status_to_bz($params, 1);
+    my $rep = Bugzilla::User->new($params->{Owner});
     my $bug = Bugzilla::Bug->create({
         product     => $component->product->name,
         component   => $component->name,
+        reporter    => $rep,
         short_desc  => $params->{Name},
         comment     => $params->{Description},
         CF_WBS()    => $wbs->name,
