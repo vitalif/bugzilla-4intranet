@@ -257,7 +257,7 @@ sub install_update_db
     # Testopia:
     if ($dbh->bz_table_info('test_fielddefs'))
     {
-        # Bug 53254 - Интеграция плана с MediaWiki
+        # Bug 53254 - Test plan integration with MediaWiki
         unless ($dbh->bz_column_info('test_plans', 'wiki'))
         {
             $dbh->bz_add_column('test_plans', wiki => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"});
@@ -268,8 +268,11 @@ sub install_update_db
         }
     }
 
-    # Bug 64562 - надо идти на дом. страницу бага после постановки, а не на post_bug.cgi
+    # Bug 64562 - Redirect to bug page after processing bug
     $dbh->bz_add_column('logincookies', session_data => {TYPE => 'LONGBLOB'});
+
+    # Bug 95168 - Support longer TheSchwartz error messages
+    $dbh->bz_alter_column('ts_error', message => {TYPE => 'MEDIUMTEXT', NOTNULL => 1}, '');
 
     # Bug 69766 - Default CSV charset for M1cr0$0ft Excel
     if (!$dbh->selectrow_array('SELECT name FROM setting WHERE name=\'csv_charset\' LIMIT 1'))
