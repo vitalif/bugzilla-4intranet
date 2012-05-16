@@ -129,7 +129,7 @@ sub get_formatted_bugs
     };
     # Search for bugs
     my $search = Bugzilla::Search->new(
-        'fields' => [ qw(bug_id cf_wbs component_id short_desc comment0 assigned_to bug_status resolution target_milestone) ],
+        'fields' => [ qw(bug_id cf_wbs component_id short_desc comment0 reporter bug_status resolution target_milestone) ],
         'params' => Bugzilla::CGI->new($params),
         'order' => [ 'bug_id' ],
     );
@@ -149,7 +149,7 @@ sub get_formatted_bugs
             ComponentUID => $bug->{component_id},
             Name         => $bug->{short_desc},
             Description  => $bug->{comment0},
-            Owner        => $bug->{assigned_to},
+            Owner        => $bug->{reporter},
             Status       => $status,
             Release      => $bug->{target_milestone},
         };
