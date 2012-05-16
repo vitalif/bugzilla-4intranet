@@ -34,7 +34,7 @@ sub new
     my $data = xml_simple($r->{Data});
     if (!$data->{eSessionID})
     {
-        ThrowUserError('sm_ws_invalid_data', { data => $r->{Data} });
+        die "No <SessionID> in SM WS answer data: $r->{Data}";
     }
     return bless {
         sid => $data->{eSessionID}->[0]->{char},
@@ -55,10 +55,7 @@ sub check_ws_error
     my ($r) = @_;
     if ($r->{Status}->{ErrorCode})
     {
-        ThrowUserError('sm_ws_error', {
-            code => $r->{Status}->{ErrorCode},
-            message => $r->{Status}->{Message},
-        });
+        die "SM WS returned error #$r->{Status}->{ErrorCode}: $r->{Status}->{Message}";
     }
 }
 
@@ -117,7 +114,7 @@ sub create_or_update
         }
         if (!defined $project)
         {
-            ThrowUserError('sm_ws_invalid_data', { data => $r->{Data} });
+            die "No <ProjectUID> field in SM WS ReadTask() answer data: $r->{Data}";
         }
         $req->{ProjectUID} = $project;
         # Create task

@@ -1519,7 +1519,7 @@ use constant ABSTRACT_SCHEMA => {
         FIELDS => [
             error_time => {TYPE => 'INT4', NOTNULL => 1},
             jobid      => {TYPE => 'INT4', NOTNULL => 1},
-            message    => {TYPE => 'varchar(255)', NOTNULL => 1},
+            message    => {TYPE => 'MEDIUMTEXT', NOTNULL => 1},
             funcid     => {TYPE => 'INT4', NOTNULL => 1, DEFAULT => 0},
         ],
         INDEXES => [
