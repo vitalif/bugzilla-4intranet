@@ -9,6 +9,7 @@ use utf8;
 use strict;
 use base qw(Bugzilla::WebService);
 
+use Bugzilla::Constants;
 use Bugzilla::SmMapping;
 
 # DIRTY hack for disabling bug status validation... :-X

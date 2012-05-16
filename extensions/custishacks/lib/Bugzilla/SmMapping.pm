@@ -110,7 +110,8 @@ sub get_wbs
     my $field = Bugzilla->get_field(CF_WBS);
     my $class = Bugzilla::Field::Choice->type($field);
     my $wbs_id = $tnerp_id && get_wbs_mapping($tnerp_id);
-    my $wbs = $wbs_id ? $class->new({ id => $wbs_id }) : $class->new({ name => $value });
+    my $wbs = $wbs_id ? $class->new({ id => $wbs_id }) :
+        ($value ? $class->new({ name => $value }) : undef);
     if (!$wbs)
     {
         ThrowUserError('task_b_not_found');
