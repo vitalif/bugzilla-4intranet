@@ -89,23 +89,24 @@ sub create_or_update
             )
         ),
     };
+    # ParentUID is removed... There will be a separate method for changing it... :-(
     my $r = $self->{client}->call('UpdateTask',
-        @$req{qw(SessionID TaskUID ParentUID ComponentUID FieldList)}
+        @$req{qw(SessionID TaskUID ComponentUID FieldList)}
     )->result;
     # If the task does not exist, create it
     if ($r->{Status}->{ErrorCode} &&
         $r->{Status}->{Message} =~ /Неверный идентификатор задачи/s)
     {
         # Fetch ProjectUID from the parent task
-        $r = $self->{client}->ReadTask(
+        $r = $self->{client}->call('ReadTask',
             $self->{sid},
             $params->{TaskBUID},
             [],
-        );
+        )->result;
         check_ws_error($r);
         my $data = xml_simple($r->{Data});
         my $project;
-        foreach (@{$data->{eRecord}->[0]->{eField}})
+        foreach (@{$data->{eFieldList}->[0]->{eField}})
         {
             if ($_->{eName}->[0]->{char} eq 'ProjectUID')
             {
@@ -118,7 +119,7 @@ sub create_or_update
         }
         $req->{ProjectUID} = $project;
         # Create task
-        $r = $self->{client}->CreateTask(
+        $r = $self->{client}->call('CreateTask',
             @$req{qw(SessionID ProjectUID TaskUID ParentUID ComponentUID FieldList)}
         )->result;
     }

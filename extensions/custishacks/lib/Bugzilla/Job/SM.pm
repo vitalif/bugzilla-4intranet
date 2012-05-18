@@ -16,7 +16,7 @@ use constant grab_for => 30;
 # Retry for 30 days.
 use constant max_retries => 725;
 
-my ($SmClient, $SuperUser);
+my ($SmClient, $SmUser);
 
 sub retry_delay
 {
@@ -37,10 +37,19 @@ sub work
     eval
     {
         $SmClient ||= Bugzilla::SmClient->new;
-        $SuperUser ||= Bugzilla::User->super_user;
-        local Bugzilla->request_cache->{user} = $SuperUser;
+        if (!$SmUser)
+        {
+            $SmUser = Bugzilla::User->check({
+                name => Bugzilla->params->{sm_dotproject_ws_user}
+            });
+        }
+        local Bugzilla->request_cache->{user} = $SmUser;
         my $bug = get_formatted_bugs({ bug_id => $bug_id })->[0];
-        $bug || die "Bug $bug_id not found :-(";
+        if (!$bug)
+        {
+            die "Bug $bug_id not found or user ".$SmUser->login.
+                " is not granted access to it :-(";
+        }
         $SmClient->create_or_update($bug);
     };
     if ($@)

@@ -65,6 +65,12 @@ sub get_param_list
         type => 't',
         default => '',
     },
+
+    {
+        name => 'sm_dotproject_ws_user',
+        type => 't',
+        default => '',
+    },
     );
 }
 
