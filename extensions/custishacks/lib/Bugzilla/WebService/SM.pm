@@ -50,7 +50,7 @@ sub CreateTaskC
     $version ||= $component->product->versions->[0];
     my ($st, $res) = map_status_to_bz($params, 1);
     my $rep = Bugzilla::User->new({ name => lc $params->{Owner} });
-    return { status => 'owner_not_found' } unless $rep;
+    return { status => 'unknown_owner' } unless $rep;
     my $bug = Bugzilla::Bug->create({
         product     => $component->product->name,
         component   => $component->name,
