@@ -649,7 +649,7 @@ sub run_create_validators
     }
 
     # Callers cannot set reporter, creation_ts, or delta_ts.
-    $params->{reporter} = $class->_check_reporter();
+    $params->{reporter} = $class->_check_reporter($params->{reporter});
     $params->{creation_ts} =
         Bugzilla->dbh->selectrow_array('SELECT LOCALTIMESTAMP(0)');
     $params->{delta_ts} = $params->{creation_ts};
