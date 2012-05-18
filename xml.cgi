@@ -99,7 +99,6 @@ else
     {
         my $func_args = { %$args };
         delete $func_args->{method};
-        trick_taint($func_args->{$_}) for keys %$func_args;
         my $pkg = 'Bugzilla::WebService::'.$service.'::XMLSimple';
         $Bugzilla::Error::IN_EVAL++;
         # FIXME exported methods need prefix or other protection type!

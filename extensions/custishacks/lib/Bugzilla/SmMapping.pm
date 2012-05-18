@@ -8,6 +8,7 @@ package Bugzilla::SmMapping;
 use utf8;
 use strict;
 use base qw(Exporter);
+use Bugzilla::Util;
 use Bugzilla::Error;
 use Bugzilla::Search;
 
@@ -51,6 +52,7 @@ sub get_wbs_mapping
     {
         ThrowUserError('tnerp_mapping_id_invalid');
     }
+    $tnerp_id ? trick_taint($tnerp_id) : trick_taint($our_id);
     my ($set, $other) = $tnerp_id ? ('tnerp_id', 'our_id') : ('our_id', 'tnerp_id');
     my ($r) = Bugzilla->dbh->selectrow_array(
         "SELECT $other FROM tnerp_wbs_mapping WHERE $set=?",
@@ -67,6 +69,7 @@ sub set_wbs_mapping
     {
         ThrowUserError('tnerp_mapping_id_invalid');
     }
+    trick_taint($_) for $our_id, $tnerp_id;
     Bugzilla->dbh->do(
         "INSERT INTO tnerp_wbs_mapping (our_id, tnerp_id) VALUES (?, ?)",
         undef, $our_id, $tnerp_id
@@ -77,6 +80,7 @@ sub set_wbs_mapping
 sub delete_wbs_mapping
 {
     my ($tnerp_id) = @_;
+    trick_taint($tnerp_id);
     Bugzilla->dbh->do("DELETE FROM tnerp_wbs_mapping WHERE tnerp_id=?", undef, $tnerp_id);
 }
 
