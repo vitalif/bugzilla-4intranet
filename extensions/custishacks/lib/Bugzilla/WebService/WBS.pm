@@ -51,7 +51,11 @@ sub update_value
 {
     my ($self, $params) = @_;
     $params->{field} = CF_WBS;
-    $params->{id} = get_wbs_mapping($params->{tnerp_id}) if $params->{tnerp_id};
+    if ($params->{tnerp_id})
+    {
+        $params->{id} = get_wbs_mapping($params->{tnerp_id});
+        $params->{id} || return { status => 'value_not_found' };
+    }
     return $self->SUPER::update_value($params);
 }
 
