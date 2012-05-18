@@ -54,7 +54,7 @@ sub CreateTaskC
     my $bug = Bugzilla::Bug->create({
         product     => $component->product->name,
         component   => $component->name,
-        reporter    => $rep,
+        reporter    => $rep->id,
         short_desc  => $params->{Name},
         comment     => $params->{Description},
         CF_WBS()    => $wbs->name,
