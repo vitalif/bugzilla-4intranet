@@ -79,14 +79,10 @@ sub create_or_update
         ParentUID    => $params->{TaskBUID},
         ComponentUID => $params->{ComponentUID},
         FieldList    => SOAP::Data->name('FieldList' =>
-            \SOAP::Data->value(
-                SOAP::Data->name('Field' =>
-                    map { \SOAP::Data->value(
-                        SOAP::Data->name(Name => $_),
-                        SOAP::Data->name(Value => $params->{$_})
-                    ) } qw(Name Description Owner Status Release)
-                )
-            )
+            map { \SOAP::Data->value(
+                SOAP::Data->name(Name => $_),
+                SOAP::Data->name(Value => $params->{$_})
+            ) } qw(Name Description Owner Status Release)
         ),
     };
     # ParentUID is removed... There will be a separate method for changing it... :-(
