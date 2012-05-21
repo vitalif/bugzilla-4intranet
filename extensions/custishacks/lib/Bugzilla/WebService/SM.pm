@@ -48,7 +48,7 @@ sub CreateTaskC
     my $wbs = get_wbs($params->{TaskBUID});
     my $version = $component->default_version;
     $version ||= $component->product->versions->[0];
-    my ($st, $res) = map_status_to_bz($params, 1);
+    my ($st, $res) = map_status_to_bz($params->{Status}, 1);
     my $rep = Bugzilla::User->new({ name => lc $params->{Owner} });
     return { status => 'unknown_owner' } unless $rep;
     my $bug = Bugzilla::Bug->create({
@@ -101,7 +101,7 @@ sub UpdateTaskC
     }
     if (defined $params->{Status})
     {
-        my ($st, $res) = map_status_to_bz($params, 1);
+        my ($st, $res) = map_status_to_bz($params->{Status}, 1);
         if ($st ne $bug->bug_status || $res ne $bug->resolution)
         {
             $bug->set_status($st, { resolution => $res });

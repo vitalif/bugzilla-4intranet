@@ -87,8 +87,7 @@ sub delete_wbs_mapping
 # Map SM status to Bugzilla (status, resolution)
 sub map_status_to_bz
 {
-    my ($params, $create) = @_;
-    my $st = $params->{Status};
+    my ($st, $create) = @_;
     if ($st eq 'In progress')
     {
         return ($create ? 'NEW' : 'REOPENED', '');

@@ -66,7 +66,7 @@ sub check_ws_error
 #  Name: bug title
 #  Description: bug description
 #  Owner: bug assignee
-#  Status: translated bug status+resolution
+#  State: translated bug status+resolution
 #  Release: bug target milestone
 # ProjectUID will be fetched from parent task's ProjectUID.
 sub create_or_update
@@ -82,7 +82,7 @@ sub create_or_update
             map { \SOAP::Data->value(
                 SOAP::Data->name(Name => $_),
                 SOAP::Data->name(Value => $params->{$_})
-            ) } qw(Name Description Owner Status Release)
+            ) } qw(Name Description State Release)
         ),
     };
     # ParentUID is removed... There will be a separate method for changing it... :-(
@@ -101,18 +101,26 @@ sub create_or_update
         )->result;
         check_ws_error($r);
         my $data = xml_simple($r->{Data});
-        my $project;
+        my ($project, $b_owner);
         foreach (@{$data->{eFieldList}->[0]->{eField}})
         {
             if ($_->{eName}->[0]->{char} eq 'ProjectUID')
             {
                 $project = $_->{eValue}->[0]->{char};
             }
+            elsif ($_->{eName}->[0]->{char} eq 'Owner')
+            {
+                $b_owner = $_->{eValue}->[0]->{char};
+            }
         }
         if (!defined $project)
         {
             die "No <ProjectUID> field in SM WS ReadTask() answer data: $r->{Data}";
         }
+        $req->{FieldList}->value($req->{FieldList}->value, \SOAP::Data->value(
+            SOAP::Data->name(Name => 'Owner'),
+            SOAP::Data->name(Value => $b_owner)
+        ));
         $req->{ProjectUID} = $project;
         # Create task
         $r = $self->{client}->call('CreateTask',
