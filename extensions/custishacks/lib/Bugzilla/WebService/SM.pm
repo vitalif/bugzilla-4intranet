@@ -34,7 +34,7 @@ sub _hack_reporter
 #  Name: Bug title.
 #  Description: Bug description.
 #  Owner: Reporter email.
-#  Status: One of 'In progress', 'Draft', 'Postponed', 'Cancelled', 'Complete'. Maps to bug status+resolution.
+#  State: One of 'In progress', 'Draft', 'Postponed', 'Cancelled', 'Complete'. Maps to bug status+resolution.
 # Returns:
 #  TaskСUID = Bug ID
 sub CreateTaskC
@@ -48,7 +48,7 @@ sub CreateTaskC
     my $wbs = get_wbs($params->{TaskBUID});
     my $version = $component->default_version;
     $version ||= $component->product->versions->[0];
-    my ($st, $res) = map_status_to_bz($params->{Status}, 1);
+    my ($st, $res) = map_state_to_bz($params->{State}, 1);
     my $rep = Bugzilla::User->new({ name => lc $params->{Owner} });
     return { status => 'unknown_owner' } unless $rep;
     my $bug = Bugzilla::Bug->create({
@@ -70,7 +70,7 @@ sub CreateTaskC
 #  TaskBUID: TN-ERP's ID of bug WBS.
 #  ComponentUID: Bug component ID.
 #  Name: Bug title.
-#  Status: dotProject's status.
+#  State: dotProject's status.
 # Returns nothing.
 sub UpdateTaskC
 {
@@ -99,9 +99,9 @@ sub UpdateTaskC
     {
         $bug->set_summary($params->{Name});
     }
-    if (defined $params->{Status})
+    if (defined $params->{State})
     {
-        my ($st, $res) = map_status_to_bz($params->{Status}, 1);
+        my ($st, $res) = map_state_to_bz($params->{State}, 1);
         if ($st ne $bug->bug_status || $res ne $bug->resolution)
         {
             $bug->set_status($st, { resolution => $res });

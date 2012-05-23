@@ -23,8 +23,8 @@ our @EXPORT = qw(
     set_wbs_mapping
     delete_wbs_mapping
     get_wbs
-    map_status_to_bz
-    map_bz_to_status
+    map_state_to_bz
+    map_bz_to_state
     get_formatted_bugs
 );
 
@@ -84,8 +84,8 @@ sub delete_wbs_mapping
     Bugzilla->dbh->do("DELETE FROM tnerp_wbs_mapping WHERE tnerp_id=?", undef, $tnerp_id);
 }
 
-# Map SM status to Bugzilla (status, resolution)
-sub map_status_to_bz
+# Map SM state to Bugzilla (status, resolution)
+sub map_state_to_bz
 {
     my ($st, $create) = @_;
     if ($st eq 'In progress')
@@ -95,8 +95,8 @@ sub map_status_to_bz
     return ('CLOSED', $resolution{$st});
 }
 
-# Map Bugzilla (status, resolution) to SM status
-sub map_bz_to_status
+# Map Bugzilla (status, resolution) to SM state
+sub map_bz_to_state
 {
     my ($status, $resolution) = @_;
     if (!$resolution)
@@ -146,7 +146,7 @@ sub get_formatted_bugs
     {
         $wbs_id_cache->{$bug->{cf_wbs}} ||=
             get_wbs_mapping(undef, get_wbs(undef, $bug->{cf_wbs})->id);
-        my $status = map_bz_to_status($bug->{bug_status}, $bug->{resolution});
+        my $state = map_bz_to_state($bug->{bug_status}, $bug->{resolution});
         push @$r, {
             TaskCUID     => $bug->{bug_id}, # FIXME append prefix to ID
             TaskBUID     => $wbs_id_cache->{$bug->{cf_wbs}},
@@ -154,7 +154,7 @@ sub get_formatted_bugs
             Name         => $bug->{short_desc},
             Description  => $bug->{comment0},
             Owner        => $bug->{reporter},
-            Status       => $status,
+            State        => $state,
             Release      => $bug->{target_milestone},
         };
     }

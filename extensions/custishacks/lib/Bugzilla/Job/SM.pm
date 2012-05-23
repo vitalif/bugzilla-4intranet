@@ -50,7 +50,6 @@ sub work
             die "Bug $bug_id not found or user ".$SmUser->login.
                 " is not granted access to it :-(";
         }
-        $bug->{State} = delete $bug->{Status};
         $SmClient->create_or_update($bug);
     };
     if ($@)
