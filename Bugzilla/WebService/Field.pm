@@ -122,7 +122,7 @@ sub update_value
         my $newvalue = $type->new({ name => $params->{value} });
         if ($newvalue)
         {
-            return {status => 'value_already_exists'};
+            return {status => 'value_already_exists', other_id => $newvalue->id, my_id => $value->id};
         }
         $value->set_name($params->{value});
     }
