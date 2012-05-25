@@ -9,7 +9,13 @@ use Bugzilla;
 use Bugzilla::Hook;
 use Bugzilla::Extension;
 
-my $REQUIRED_MODULES = [];
+my $REQUIRED_MODULES = [
+    {
+        package => 'Text-TabularDisplay',
+        module  => 'Text::TabularDisplay',
+        feature => 'Table formatting inside bug comments',
+    },
+];
 my $OPTIONAL_MODULES =
 [
     {
