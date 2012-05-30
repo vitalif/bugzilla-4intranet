@@ -73,6 +73,7 @@ sub create_or_update
 {
     my ($self, $params) = @_;
     # First try to update task
+    $params->{ZISTaskClass} = 'class_3';
     my $req = {
         SessionID    => $self->{sid},
         TaskUID      => $params->{TaskCUID},
@@ -82,7 +83,7 @@ sub create_or_update
             map { \SOAP::Data->value(
                 SOAP::Data->name(Name => $_),
                 SOAP::Data->name(Value => $params->{$_})
-            ) } qw(Name Description State Release)
+            ) } qw(Name Description State Release ZISTaskClass)
         ),
     };
     # ParentUID is removed... There will be a separate method for changing it... :-(

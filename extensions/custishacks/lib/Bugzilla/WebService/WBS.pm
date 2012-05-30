@@ -82,5 +82,12 @@ sub set_visibility_values
     return $self->SUPER::set_visibility_values($params);
 }
 
+# Update sortkeys massively
+sub update_sort
+{
+    my ($self, $params) = @_;
+    
+}
+
 1;
 __END__
