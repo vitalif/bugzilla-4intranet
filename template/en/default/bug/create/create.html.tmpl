@@ -87,28 +87,44 @@ var flags = new Array([% product.active_components.size %]);
     [% count = count + 1 %]
 [%- END %]
 
-function Create_onsubmit()
+var wantsReminder = [% Bugzilla.user.wants_worktime_reminder('new bug') ? 'true' : 'false' %];
+var noTimeTracking = [% product.notimetracking ? 'true' : 'false' %];
+
+function validateEntryForm(theform)
 {
-  var wt = bzParseTime(document.Create.work_time.value);
-  if (wt !== null && (wt === undefined || wt != wt))
-    wt = null;
-  else if (wt < 0)
-    wt = 0;
-[% IF Bugzilla.user.wants_worktime_reminder('new bug') %]
-  if (wt === null || [% product.notimetracking ? "wt != 0" : "wt == 0" %])
-  {
-    wt = prompt("Please, verify working time:", "0");
-    if (wt == null || wt == undefined || (""+wt).length <= 0)
+    if (theform.short_desc.value == '')
     {
-      document.Create.work_time.focus();
-      return false;
+        alert('Please enter a summary sentence for this [% terms.bug %].');
+        return false;
     }
-  }
-[% END %]
-  if (wt === null)
-    wt = 0;
-  document.Create.work_time.value = wt;
-  return true;
+    // Validate attachment
+    var t = document.getElementById('attachment_true');
+    if (t.style.display != 'none' && !validateAttachmentForm(theform))
+        return false;
+    else if (t.style.display == 'none')
+    {
+        // Clear attachment description so it won't be created
+        theform.description.value = '';
+    }
+    // Validate worktime
+    var wt = bzParseTime(theform.work_time.value);
+    if (wt !== null && (wt === undefined || wt != wt))
+        wt = null;
+    else if (wt < 0)
+        wt = 0;
+    if (wantsReminder && (wt === null || noTimeTracking == (wt != 0)))
+    {
+        wt = prompt("Please, verify working time:", "0");
+        if (wt == null || wt == undefined || (""+wt).length <= 0)
+        {
+            theform.work_time.focus();
+            return false;
+        }
+    }
+    if (wt === null)
+        wt = 0;
+    theform.work_time.value = wt;
+    return true;
 }
 
 function set_assign_to() {
@@ -247,12 +263,13 @@ function show_resolution_field(showhide)
     }
 }
 
-function checkWorktime()
+function checkWorktime(inp)
 {
-    [% IF product.notimetracking %]
-    wt = bzParseTime(document.Create.work_time.value);
-    document.Create.work_time.parentNode.style.backgroundColor = wt != 0 ? '#FFC0C0' : null;
-    [% END %]
+    if (noTimeTracking)
+    {
+        wt = bzParseTime(inp.value);
+        inp.parentNode.style.backgroundColor = (wt != 0 ? '#FFC0C0' : null);
+    }
 }
 
 TUI_alternates['expert_fields'] = 'Show Advanced Fields';
@@ -273,7 +290,7 @@ TUI_hide_default('expert_fields');
 
 <form name="Create" id="Create" method="post" action="post_bug.cgi"
       enctype="multipart/form-data" onkeypress="return ctrlEnter(event||window.event,this)"
-      onsubmit="return encodeSupaContent()">
+      onsubmit="return validateEntryForm(this)">
 <input type="hidden" name="product" value="[% product.name FILTER html %]">
 <input type="hidden" name="token" value="[% token FILTER html %]">
 <input type="hidden" name="cloned_bug_id" value="[% cloned_bug_id FILTER html %]">
@@ -543,7 +560,7 @@ TUI_hide_default('expert_fields');
     <td>
       <input tabindex="10" name="estimated_time" size="6" maxlength="6" value="[% estimated_time | html %]">&nbsp;
       <b>Hours Worked:</b>
-      <input tabindex="10" name="work_time" id="work_time" value="[% work_time | html %]" size="6" maxlength="6" onchange="checkWorktime()" onkeyup="checkWorktime()"" />
+      <input tabindex="10" name="work_time" id="work_time" value="[% work_time | html %]" size="6" maxlength="6" onchange="checkWorktime(this)" onkeyup="checkWorktime(this)"" />
     </td>
 [% END %]
     <th>Depends on:</th>
@@ -746,10 +763,7 @@ TUI_hide_default('expert_fields');
   <tr>
     <th>&nbsp;</th>
     <td colspan="3">
-      <input tabindex="10" type="submit" id="commit" value="Submit [% terms.Bug %]"
-             onclick="if (this.form.short_desc.value == '')
-             { alert('Please enter a summary sentence for this [% terms.bug %].');
-               return false; } return Create_onsubmit();" />
+      <input tabindex="10" type="submit" id="commit" value="Submit [% terms.Bug %]" />
       &nbsp;&nbsp;&nbsp;&nbsp;
       <input tabindex="10" type="submit" name="maketemplate" id="maketemplate"
              value="Remember values as bookmarkable template"
