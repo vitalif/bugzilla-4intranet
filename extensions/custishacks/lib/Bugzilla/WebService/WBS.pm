@@ -9,6 +9,7 @@ use strict;
 use Bugzilla::Error;
 use Bugzilla::Field::Choice;
 use Bugzilla::User;
+use Bugzilla::Util;
 use Bugzilla::WebService::Util qw(validate);
 use base qw(Bugzilla::WebService::Field Exporter);
 
@@ -82,11 +83,25 @@ sub set_visibility_values
     return $self->SUPER::set_visibility_values($params);
 }
 
-# Update sortkeys massively
-sub update_sort
+# Update values massively (only sortkeys by now)
+sub update_sortkeys
 {
     my ($self, $params) = @_;
-    
+    my $updated = 0;
+    for (keys %$params)
+    {
+        if (/^sortkey(\d+)$/so)
+        {
+            my $tnerp_id = $1;
+            trick_taint($params->{$_});
+            $updated += Bugzilla->dbh->do(
+                "UPDATE cf_wbs w, tnerp_wbs_mapping m SET w.sortkey=?".
+                " WHERE m.tnerp_id=? AND m.our_id=w.id", undef,
+                $params->{$_}, $tnerp_id
+            );
+        }
+    }
+    return { status => 'ok', updated_rows => $updated };
 }
 
 1;
