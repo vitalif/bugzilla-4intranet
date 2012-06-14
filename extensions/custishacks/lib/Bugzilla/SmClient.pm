@@ -59,6 +59,43 @@ sub check_ws_error
     }
 }
 
+# Read task with all attributes
+sub read_task
+{
+    my ($self, $taskUID) = @_;
+    my $r = $self->{client}->call('ReadTask', $self->{sid}, $taskUID, [])->result;
+    if ($r->{Status}->{ErrorCode} &&
+        $r->{Status}->{Message} =~ /Неверный идентификатор задачи/s)
+    {
+        # The task does not exist
+        return undef;
+    }
+    check_ws_error($r);
+    my $data = xml_simple($r->{Data});
+    my $task = {};
+    foreach (@{$data->{eFieldList}->[0]->{eField}})
+    {
+        $task->{$_->{eName}->[0]->{char}} = $_->{eValue}->[0]->{char};
+    }
+    return $task;
+}
+
+# Convert hash to SOAP::Data with associative array named $soapname
+# If $keys is an arrayref, select only that keys from the hash
+# Default $soapname is FieldList
+sub hash_to_soapdata
+{
+    my ($hash, $keys, $soapname) = @_;
+    $soapname ||= 'FieldList';
+    $keys ||= [ sort keys %$hash ];
+    return SOAP::Data->name($soapname =>
+        map { \SOAP::Data->value(
+            SOAP::Data->name(Name => $_),
+            SOAP::Data->name(Value => $hash->{$_})
+        ) } @$keys
+    );
+}
+
 # Create a task (if it doesn't exist) or update it (if it already exists). Arguments:
 #  TaskCUID: task id (prefix + bug id)
 #  TaskBUID: TN-ERP's WBS id
@@ -72,63 +109,62 @@ sub check_ws_error
 sub create_or_update
 {
     my ($self, $params) = @_;
-    # First try to update task
     $params->{ZISTaskClass} = 'class_3';
+    my $fieldNames = qw(Name Description State Release ZISTaskClass);
     my $req = {
         SessionID    => $self->{sid},
         TaskUID      => $params->{TaskCUID},
         ParentUID    => $params->{TaskBUID},
         ComponentUID => $params->{ComponentUID},
-        FieldList    => SOAP::Data->name('FieldList' =>
-            map { \SOAP::Data->value(
-                SOAP::Data->name(Name => $_),
-                SOAP::Data->name(Value => $params->{$_})
-            ) } qw(Name Description State Release ZISTaskClass)
-        ),
+        FieldList    => hash_to_soapdata($params, $fieldNames),
     };
-    # ParentUID is removed... There will be a separate method for changing it... :-(
-    my $r = $self->{client}->call('UpdateTask',
-        @$req{qw(SessionID TaskUID ComponentUID FieldList)}
-    )->result;
-    # If the task does not exist, create it
-    if ($r->{Status}->{ErrorCode} &&
-        $r->{Status}->{Message} =~ /Неверный идентификатор задачи/s)
+    # First check if the task does exist
+    my $taskC = $self->read_task($req->{TaskUID});
+    my $r;
+    if (!$taskC)
     {
-        # Fetch ProjectUID from the parent task
-        $r = $self->{client}->call('ReadTask',
-            $self->{sid},
-            $params->{TaskBUID},
-            [],
-        )->result;
-        check_ws_error($r);
-        my $data = xml_simple($r->{Data});
-        my ($project, $b_owner);
-        foreach (@{$data->{eFieldList}->[0]->{eField}})
+        # The task does not exist, create it
+        my $taskB = $self->read_task($params->{TaskBUID});
+        if (!defined $taskB)
         {
-            if ($_->{eName}->[0]->{char} eq 'ProjectUID')
-            {
-                $project = $_->{eValue}->[0]->{char};
-            }
-            elsif ($_->{eName}->[0]->{char} eq 'Owner')
-            {
-                $b_owner = $_->{eValue}->[0]->{char};
-            }
+            die("Task B with UID=$params->{TaskBUID} does not exist");
         }
-        if (!defined $project)
+        if (!defined $taskB->{ProjectUID})
         {
-            die "No <ProjectUID> field in SM WS ReadTask() answer data: $r->{Data}";
+            die("No <ProjectUID> field in SM WS ReadTask() answer data:\n" .
+                join "\n", map { "$_ => $taskB->{$_}" } keys %$taskB);
         }
+        # Add Owner field from the parent task
         $req->{FieldList}->value($req->{FieldList}->value, \SOAP::Data->value(
             SOAP::Data->name(Name => 'Owner'),
-            SOAP::Data->name(Value => $b_owner)
+            SOAP::Data->name(Value => $taskB->{Owner})
         ));
-        $req->{ProjectUID} = $project;
+        $req->{ProjectUID} = $taskB->{ProjectUID};
         # Create task
         $r = $self->{client}->call('CreateTask',
             @$req{qw(SessionID ProjectUID TaskUID ParentUID ComponentUID FieldList)}
         )->result;
+        check_ws_error($r);
     }
-    check_ws_error($r);
+    else
+    {
+        # Check if we need to change any updatable fields
+        if (grep { $params->{$_} ne $taskC->{$_} } @$fieldNames)
+        {
+            $r = $self->{client}->call('UpdateTask',
+                @$req{qw(SessionID TaskUID ComponentUID FieldList)}
+            )->result;
+            check_ws_error($r);
+        }
+        # Check if we need to change ParentUID via a separate call to ChangeTaskB
+        if ($params->{TaskBUID} ne $taskC->{ParentUID})
+        {
+            $r = $self->{client}->call('ChangeTaskB',
+                @$req{qw(SessionID TaskUID ParentUID)}
+            )->result;
+            check_ws_error($r);
+        }
+    }
 }
 
 1;
