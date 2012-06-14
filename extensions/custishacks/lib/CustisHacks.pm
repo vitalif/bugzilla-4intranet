@@ -18,7 +18,12 @@ sub db_schema_abstract_schema
     # Requires cf_wbs custom field
     $schema->{tnerp_wbs_mapping} = {
         FIELDS => [
-            our_id => {TYPE => 'INT2', NOTNULL => 1, PRIMARYKEY => 1},
+            our_id => {
+                TYPE => 'INT2',
+                NOTNULL => 1,
+                PRIMARYKEY => 1,
+                REFERENCES => {TABLE => 'cf_wbs', COLUMN => 'id'}
+            },
             tnerp_id => {TYPE => 'INT4', NOTNULL => 1},
         ],
         INDEXES => [
