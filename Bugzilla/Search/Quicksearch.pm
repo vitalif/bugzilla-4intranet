@@ -108,21 +108,18 @@ sub FIELD_MAP {
 # Certain fields, when specified like "field:value" get an operator other
 # than "substring"
 use constant FIELD_OPERATOR => {
-    content         => 'matches',
-    owner_idle_time => 'greaterthan',
-};
-
-use constant EQ_FIELDS => {
-    classification   => 1,
-    product          => 1,
-    component        => 1,
-    version          => 1,
-    target_milestone => 1,
-    resolution       => 1,
-    severity         => 1,
-    priority         => 1,
-    op_sys           => 1,
-    rep_platform     => 1,
+    content          => 'matches',
+    owner_idle_time  => 'greaterthan',
+    classification   => 'equals',
+    product          => 'equals',
+    component        => 'equals',
+    version          => 'equals',
+    target_milestone => 'equals',
+    resolution       => 'equals',
+    severity         => 'equals',
+    priority         => 'equals',
+    op_sys           => 'equals',
+    rep_platform     => 'equals',
 };
 
 # We might want to put this into localconfig or somewhere
@@ -295,38 +292,14 @@ sub _handle_status_and_resolution
     $self->{legal_statuses} = get_legal_field_values('bug_status');
     $self->{legal_resolutions} = get_legal_field_values('resolution');
 
-    my @openStates = BUG_STATE_OPEN;
-    my @closedStates;
-    my (%states, %resolutions);
-
-    foreach (get_legal_field_values('bug_status')) {
-        push(@closedStates, $_) unless is_open_state($_);
-    }
-
-    if ($self->{words}->[0] eq 'OPEN')
+    my (%st, %res);
+    if ($self->{words}->[0] eq 'OPEN' ||
+        $self->{words}->[0] =~ /^[A-Z]+(,[A-Z]+)*$/ &&
+        matchPrefixes(\%st, \%res, [split(/,/, $self->{words}->[0])],
+            $self->{legal_statuses}, $self->{legal_resolutions}))
     {
-        shift @{$self->{words}};
-        %states = map { $_ => 1 } @openStates;
+        $self->{words}->[0] = 'status:'.$self->{words}->[0];
     }
-    elsif ($self->{words}->[0] =~ /^[A-Z]+(,[A-Z]+)*$/)
-    {
-        my (%st, %res);
-        if (matchPrefixes(\%st, \%res, [split(/,/, $self->{words}->[0])],
-                $self->{legal_statuses}, $self->{legal_resolutions}))
-        {
-            shift @{$self->{words}};
-            %states = %st;
-            %resolutions = %res;
-        }
-    }
-    else
-    {
-        # Default: search for ALL BUGS! (Vitaliy Filippov <vfilippov@custis.ru> 2009-01-30)
-        %states = map { $_ => 1 } @{$self->{legal_statuses}};
-    }
-
-    $self->{states} = \%states;
-    $self->{resolutions} = \%resolutions;
 }
 
 sub _handle_special_first_chars {
@@ -364,18 +337,21 @@ sub _handle_special_first_chars {
     return 0;
 }
 
-sub _handle_field_names {
+sub _handle_field_names
+{
     my $self = shift;
     my ($or_operand, $negate) = @_;
-    
+
     # votes:xx ("at least xx votes")
-    if ($or_operand =~ /^votes:([0-9]+)$/) {
+    if ($or_operand =~ /^votes:([0-9]+)$/)
+    {
         $self->addChart('votes', 'greaterthan', $1 - 1, $negate);
         return 1;
     }
-    
+
     # Flag and requestee shortcut
-    if ($or_operand =~ /^(?:flag:)?([^\?]+\?)([^\?]*)$/) {
+    if ($or_operand =~ /^(?:flag:)?([^\?]+\?)([^\?]*)$/)
+    {
         $self->addChart('flagtypes.name', 'substring', $1, $negate);
         $self->{and}++; $self->{or} = 0; # Next boolean AND
         $self->addChart('requestees.login_name', 'substring', $2, $negate);
@@ -383,48 +359,86 @@ sub _handle_field_names {
     }
 
     # generic field1,field2,field3:value1,value2 notation
-    if ($or_operand =~ /^([^:]+):([^:]+)$/) {
+    if ($or_operand =~ /^([^:]+):([^:]+)$/)
+    {
         my @fields = split(/,/, $1);
         my @values = split(/,/, $2);
-        foreach my $field (@fields) {
-            if ($field eq 'status')
-            {
-                my (%st, %res);
-                if (matchPrefixes(\%st, \%res, \@values, $self->{legal_statuses}, $self->{legal_resolutions}))
-                {
-                    $self->{states} = \%st;
-                    $self->{resolutions} = \%res;
-                }
-                last;
-            }
+        foreach my $field (@fields)
+        {
             my $translated = _translate_field_name($field);
             # Skip and record any unknown fields
-            if (!defined $translated) {
+            if (!defined $translated)
+            {
                 push @{$self->{unknown_fields}}, $field;
                 next;
             }
             # If we got back an array, that means the substring is
             # ambiguous and could match more than field name
-            elsif (ref $translated) {
+            elsif (ref $translated)
+            {
                 $self->{ambiguous_fields}->{$field} = $translated;
                 next;
             }
-            my $operator = FIELD_OPERATOR->{$translated};
-            if (!$operator && EQ_FIELDS->{$translated})
+            # Special handling status:ST,RES as (ST & RES)
+            if ($field eq 'status')
             {
-                Bugzilla->cgi->param($translated, @values);
-            }
-            else
-            {
-                $operator ||= 'substring';
-                foreach my $value (@values) {
-                    $self->addChart($translated, $operator, $value, $negate);
+                my (%st, %res);
+                if (matchPrefixes(\%st, \%res, \@values, $self->{legal_statuses}, $self->{legal_resolutions}))
+                {
+                    for (keys %st)
+                    {
+                        if (lc $_ eq 'open')
+                        {
+                            delete $st{$_};
+                            $st{$_} = 1 for BUG_STATE_OPEN;
+                        }
+                    }
+                    if (%st && %res && $negate)
+                    {
+                        # Expand !((st1 | st2) & (res1 | res2))
+                        # to (!st1 | !res1) & ... & (!st2 | !res2)
+                        for my $status (keys %st)
+                        {
+                            for my $resol (keys %res)
+                            {
+                                $self->addChart('bug_status', 'notequals', $status);
+                                $self->addChart('resolution', 'notequals', $resol);
+                                $self->{and}++;
+                                $self->{or} = 0;
+                            }
+                        }
+                        last;
+                    }
+                    elsif (%st)
+                    {
+                        if (%res)
+                        {
+                            # Add another OR sequence for resolutions
+                            $self->addChart('resolution', 'equals', $_) for keys %res;
+                            $self->{and}++;
+                            $self->{or} = 0;
+                        }
+                        # Pass with status
+                        @values = keys %st;
+                    }
+                    else
+                    {
+                        # Pass with resolution
+                        $translated = 'resolution';
+                        @values = keys %res;
+                    }
                 }
+            }
+            # Add an operator
+            my $operator = FIELD_OPERATOR->{$translated} || 'substring';
+            foreach my $value (@values)
+            {
+                $self->addChart($translated, $operator, $value, $negate);
             }
         }
         return 1;
     }
-    
+
     return 0;
 }
 
