@@ -142,8 +142,14 @@ sub get {
     }
 
     my @user_objects;
-    @user_objects = map { Bugzilla::User->check($_) } @{ $params->{names} }
-                    if $params->{names};
+    if ($params->{names})
+    {
+        for (@{$params->{names}})
+        {
+            my $user = Bugzilla::User->new({ name => $_ });
+            push @user_objects, $user if $user;
+        }
+    }
 
     # start filtering to remove duplicate user ids
     my %unique_users = map { $_->id => $_ } @user_objects;
