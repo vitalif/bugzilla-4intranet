@@ -1253,6 +1253,8 @@ $vars->{abbrev} = {
     op_sys               => { maxlength => 4 },
     target_milestone     => { title => "Milestone" },
     percentage_complete  => { format_value => "%d %%" },
+    comment0             => { maxlength => 40, ellipsis => "..." },
+    lastcomment          => { maxlength => 40, ellipsis => "..." },
 };
 
 ################################################################################
