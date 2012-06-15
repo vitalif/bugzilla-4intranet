@@ -33,13 +33,14 @@ sub _get_value
 {
     my ($type, $params, $value_param) = @_;
     my $value;
+    $value_param ||= 'value';
     if ($params->{id})
     {
         $value = $type->new({ id => $params->{id} });
     }
-    elsif ($params->{value})
+    elsif ($params->{$value_param})
     {
-        $value = $type->new({ name => $params->{$value_param || 'value'} });
+        $value = $type->new({ name => $params->{$value_param} });
     }
     ThrowUserError('value_not_found') if !$value;
     return $value;
@@ -115,6 +116,9 @@ sub add_value
 sub update_value
 {
     my ($self, $params) = @_;
+    # Backwards compatibility (old version had value/new_value instead of old_value/value)
+    $params->{old_value} ||= $params->{value};
+    $params->{value} = delete $params->{new_value} if defined $params->{new_value};
     my ($field, $type) = _get_field($params);
     my $value = _get_value($type, $params, 'old_value') || return {status => 'value_not_found'};
     if (defined $params->{value} && $params->{value} ne $value->name)
