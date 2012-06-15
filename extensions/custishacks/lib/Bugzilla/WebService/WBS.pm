@@ -67,8 +67,8 @@ sub delete_value
     my ($self, $params) = @_;
     $params->{field} = CF_WBS;
     $params->{id} = get_wbs_mapping($params->{tnerp_id});
+    delete_wbs_mapping($params->{tnerp_id});
     my $r = $self->SUPER::delete_value($params);
-    delete_wbs_mapping($params->{tnerp_id}) if $r->{status} eq 'ok';
     return $r;
 }
 
