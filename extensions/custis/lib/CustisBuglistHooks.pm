@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# Хуки в список багов
+# Custom buglist columns
 
 package CustisBuglistHooks;
 
@@ -7,6 +7,7 @@ use strict;
 use Bugzilla::Search;
 use Bugzilla::Util;
 
+# "Static" column definitions - freely cached by Bugzilla forever
 sub buglist_static_columns
 {
     my ($args) = @_;
@@ -18,12 +19,20 @@ sub buglist_static_columns
         title => "First Comment",
         noreports => 1,
     };
+    # CustIS Bug 98364 - last comment to the bug
+    $columns->{lastcomment} = {
+        title => "Last Comment",
+        noreports => 1,
+    };
+
+    # Last commenter and last comment time
     $columns->{lastcommenter} = {
         title => "Last Commenter",
     };
     $columns->{last_comment_time} = {
         title => "Last Comment Time",
     };
+
     $columns->{creation_ts_date} = {
         nocharts => 1,
         title => "Creation Date",
@@ -37,8 +46,7 @@ sub buglist_static_columns
     };
     ### end Testopia ###
 
-    # Нужно для SuperWorkTime, однако эта необходимость следует
-    # из неидеальности buglist.cgi - он не выводит баги объектами
+    # Needed for SuperWorkTime, would not be needed if buglist.cgi loaded bugs as objects
     $columns->{product_notimetracking} = {
         name => 'map_products.notimetracking',
         joins => $columns->{product}->{joins},
@@ -51,15 +59,13 @@ sub buglist_static_columns
     return 1;
 }
 
+# "Dynamic" column definitions - rebuilt over static during each request
 sub buglist_columns
 {
     my ($args) = @_;
     my $columns = $args->{columns};
 
     # CustIS Bug 71955 - first comment to the bug
-    # FIXME можно сделать JOIN'ом по bug_when=creation_ts
-    # но тогда дополнительно надо COALESCE на подзапрос с isprivate
-    # в случае isprivate.
     my $hint = '';
     my $dbh = Bugzilla->dbh;
     if ($dbh->isa('Bugzilla::DB::Mysql'))
@@ -67,9 +73,18 @@ sub buglist_columns
         $hint = ' FORCE INDEX (longdescs_bug_id_idx)';
     }
     my $priv = (Bugzilla->user->is_insider ? "" : "AND ldc0.isprivate=0 ");
+    # Not using JOIN (it could be joined on bug_when=creation_ts),
+    # because it would require COALESCE to an 'isprivate' subquery
+    # for private comments.
     $columns->{comment0}->{name} =
         "(SELECT thetext FROM longdescs ldc0$hint WHERE ldc0.bug_id = bugs.bug_id $priv".
         " ORDER BY ldc0.bug_when LIMIT 1)";
+    # CustIS Bug 98364 - last comment to the bug
+    $columns->{lastcomment}->{name} =
+        "(SELECT thetext FROM longdescs ldc0$hint WHERE ldc0.bug_id = bugs.bug_id $priv".
+        " ORDER BY ldc0.bug_when DESC LIMIT 1)";
+
+    # Last commenter and last comment time
     my $login = 'ldp0.login_name';
     if (!Bugzilla->user->id)
     {

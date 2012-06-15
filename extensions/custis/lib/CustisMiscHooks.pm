@@ -15,7 +15,7 @@ use Bugzilla::Util;
 use Bugzilla::Constants;
 use Bugzilla::Error;
 
-# Раскрытие групповых пользователей в запросе флага
+# Expand "group" users in flag requestee
 sub flag_check_requestee_list
 {
     my ($args) = @_;
@@ -32,7 +32,7 @@ sub flag_check_requestee_list
     return 1;
 }
 
-# Напоминания о несброшенных запросах флагов
+# Remind about flag requests during bug changes
 sub process_bug_after_move
 {
     my ($args) = @_;
@@ -118,8 +118,7 @@ sub process_bug_after_move
     return 1;
 }
 
-# Bug 69514 - автоматическое проставление cf_extbug
-# при клонировании во внутренний/внешний продукт
+# Bug 69514 - Automatic setting of cf_extbug during clone to internal/external product
 sub enter_bug_cloned_bug
 {
     my ($args) = @_;
@@ -136,7 +135,7 @@ sub enter_bug_cloned_bug
 }
 
 # Bug 53590 - add a comment to cloned bug
-# Bug 69514 - автоматическое проставление cf_extbug
+# Bug 69514 - automatic setting of cf_extbug during clone to external product
 sub bug_end_of_create
 {
     my ($args) = @_;
@@ -169,7 +168,7 @@ sub bug_end_of_create
     return 1;
 }
 
-# Интеграция с MediaWiki-системами
+# MediaWiki link integration
 sub quote_urls_custom_proto
 {
     my ($args) = @_;
@@ -182,10 +181,10 @@ sub quote_urls_custom_proto
 }
 
 ##
-## НЕ-хуки:
+## NON-HOOK FUNCTIONS
 ##
 
-# Кодирование anchor'а подзаголовка wiki-статьи
+# MediaWiki page anchor encoding
 sub process_wiki_anchor
 {
     my ($anchor) = (@_);
@@ -197,13 +196,13 @@ sub process_wiki_anchor
     return $anchor;
 }
 
-# Преобразование названий MediaWiki-статей в URL
+# Convert MediaWiki page titles to URLs
 sub process_wiki_url
 {
     my ($base, $url, $anchor) = @_;
     $url = trim($url);
     $url =~ s/\s+/_/gso;
-    # обычный url_quote нам не подходит, т.к. / не нужно переделывать в %2F
+    # Use url_quote without converting / to %2F
     $url = url_quote_noslash($url);
     return $base . $url . '#' . process_wiki_anchor($anchor);
 }
