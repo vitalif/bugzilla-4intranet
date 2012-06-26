@@ -45,6 +45,8 @@ use Bugzilla::User;
 use Bugzilla::Product;
 use Bugzilla::Field;
 
+Bugzilla->request_cache->{user} = Bugzilla::User->super_user();
+
 # Turn off output buffering (probably needed when displaying output feedback
 # in the regenerate mode).
 $| = 1;
@@ -62,7 +64,6 @@ if (chdir($graphsdir)) {
 }
 
 my $dbh = Bugzilla->switch_to_shadow_db();
-
 
 # To recreate the daily statistics,  run "collectstats.pl --regenerate" .
 my $regenerate = 0;
@@ -474,16 +475,16 @@ sub CollectSeriesData {
     # <frequency> days, but the start date depends on the series_id.
     my $days_since_epoch = int(time() / (60 * 60 * 24));
     my $today = $ARGV[0];
-    if ($today !~ /^\d{4,}-\d{2}-\d{2}$/so)
+    if (!$today || $today !~ /^\d{4,}-\d{2}-\d{2}$/so)
     {
-        $today = today_dash($today =~ /^(-?\d+)$/ ? $1 : 0);
+        $today = today_dash($today && $today =~ /^(-?\d+)$/ ? $1 : 0);
     }
 
     # We save a copy of the main $dbh and then switch to the shadow and get
     # that one too. Remember, these may be the same.
     my $dbh = Bugzilla->switch_to_main_db();
     my $shadow_dbh = Bugzilla->switch_to_shadow_db();
-    
+
     my $serieses = $dbh->selectall_hashref("SELECT series_id, query, creator " .
                       "FROM series " .
                       "WHERE frequency != 0 AND " . 
@@ -497,10 +498,10 @@ sub CollectSeriesData {
 
     # We delete from the table beforehand, to avoid SQL errors if people run
     # collectstats.pl twice on the same day.
-    my $deletesth = $dbh->prepare("DELETE FROM series_data 
+    my $deletesth = $dbh->prepare("DELETE FROM series_data
                                    WHERE series_id = ? AND series_date = " .
                                    $dbh->quote($today));
-                                     
+
     foreach my $series_id (keys %$serieses) {
         # We set up the user for Search.pm's permission checking - each series
         # runs with the permissions of its creator.
