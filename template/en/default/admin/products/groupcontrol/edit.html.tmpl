@@ -227,7 +227,7 @@ function addListGroup(list_name)
       [% group.name | html %]:
       [%+ PROCESS control_select id='membercontrol_' _ group.id, control=group.membercontrol %] /
       [%+ PROCESS control_select id='othercontrol_' _ group.id, control=group.othercontrol %]
-      (used in [% group.bug_count %] bugs)
+      (used in [% group.bug_count || 0 %] bugs)
     </li>
     [% END %]
     [% END %]
