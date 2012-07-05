@@ -787,6 +787,10 @@ sub components {
     return $self->{components};
 }
 
+sub group_controls_full_data {
+    return $_[0]->group_controls(1);
+}
+
 sub group_controls {
     my ($self, $full_data) = @_;
     my $dbh = Bugzilla->dbh;

@@ -22,168 +22,315 @@
     Edit Group Controls for [% product.name FILTER html %]
 [% END %]
 [% PROCESS global/header.html.tmpl 
-   title = title 
+   title = title
 %]
+
+[% control_options = [
+  constants.CONTROLMAPNA,
+  constants.CONTROLMAPSHOWN,
+  constants.CONTROLMAPDEFAULT,
+  constants.CONTROLMAPMANDATORY,
+] %]
+
+[% all_groups = product.group_controls_full_data.values.sort("name") %]
+[% groups = product.group_controls.values.sort("name") %]
+
+[% BLOCK control_select %]
+  <select name="[% id %]" id="[% id %]">
+    [% FOR i = control_options %]
+    <option value="[% i %]" [% " selected=\"selected\"" IF control == i %]>[% lc_messages.control_options.$i %]</option>
+    [% END %]
+  </select>
+[% END %]
+
+[% BLOCK group_list %]
+<ul id="[% name %]_list" class="group_list">
+  [% foundone = 0 %]
+  [% FOR group = groups %]
+  [% IF group.$name %]
+  [% foundone = 1 %]
+  <li id="li_[% name %]_[% group.id %]">
+    <input type="checkbox" name="[% name %]_[% group.id %]" id="[% name %]_[% group.id %]" value="1" checked="checked" />
+    <label for="[% name %]_[% group.id %]">[% group.name | html %]</label>
+  </li>
+  [% END %]
+  [% END %]
+  [% IF NOT foundone %]
+  <li id="li_[% name %]_empty" class="group_empty">
+    &lt;no groups&gt;
+  </li>
+  [% END %]
+</ul>
+<p style="clear: both">
+  Add a group:
+  <select id="add_[% name %]">
+  [% FOR g = all_groups %]
+    <option value="[% g.id %]">[% g.name | html %]</option>
+  [% END %]
+  </select>
+  <input type="button" value="Add &rarr;" onclick="addListGroup('[% name %]')" />
+</p>
+[% END %]
+
+<script language="JavaScript">
+function helpToggle(btn_id, div_id)
+{
+  var b = document.getElementById(btn_id);
+  var d = document.getElementById(div_id);
+  if (d.style.display == 'none')
+  {
+    b.value = 'Hide \u25B4';
+    d.style.display = '';
+  }
+  else
+  {
+    b.value = 'Show \u25BE';
+    d.style.display = 'none';
+  }
+}
+
+function copySelect(prefix, suffix)
+{
+  var o = document.getElementById(prefix+'new');
+  var e = document.createElement('select');
+  e.id = e.name = prefix+suffix;
+  e.innerHTML = o.innerHTML;
+  e.selectedIndex = o.selectedIndex;
+  return e;
+}
+
+function flashItem(e)
+{
+  var i = 0;
+  clearTimeout(e.flashIntervalId);
+  e.style.background = 'red';
+  e.flashIntervalId = setInterval(function() {
+    if (++i < 6)
+      e.style.background = e.style.backgroundColor == 'red' ? '' : 'red';
+    else
+      clearTimeout(e.flashIntervalId);
+  }, 100);
+}
+
+function addControlGroup()
+{
+  var group_select = document.getElementById('add_control');
+  var group_id = group_select.value;
+  var group_name = group_select.options[group_select.selectedIndex].text;
+  var added_li = document.getElementById('li_control_'+group_id);
+  if (added_li)
+  {
+    // Flash the already added group entry
+    document.getElementById('membercontrol_'+group_id).focus();
+    flashItem(added_li);
+    return;
+  }
+  added_li = document.getElementById('li_control_empty');
+  if (added_li)
+    added_li.parentNode.removeChild(added_li);
+  added_li = document.createElement('li');
+  added_li.id = 'li_control_'+group_id;
+  added_li.appendChild(document.createTextNode(group_name + ': '));
+  added_li.appendChild(copySelect('membercontrol_', group_id));
+  added_li.appendChild(document.createTextNode(' / '));
+  added_li.appendChild(copySelect('othercontrol_', group_id));
+  var list = document.getElementById('control_list');
+  list.appendChild(added_li);
+}
+
+function addListGroup(list_name)
+{
+  var group_select = document.getElementById('add_'+list_name);
+  var group_id = group_select.value;
+  var group_name = group_select.options[group_select.selectedIndex].text;
+  var added_li = document.getElementById('li_'+list_name+'_'+group_id);
+  if (added_li)
+  {
+    // Flash the already added group entry
+    document.getElementById(list_name+'_'+group_id).focus();
+    flashItem(added_li);
+    return;
+  }
+  added_li = document.getElementById('li_'+list_name+'_empty');
+  if (added_li)
+    added_li.parentNode.removeChild(added_li);
+  added_li = document.createElement('li');
+  added_li.id = 'li_'+list_name+'_'+group_id;
+  var e = document.createElement('input');
+  e.type = 'checkbox';
+  e.value = '1';
+  e.checked = true;
+  e.name = e.id = list_name+'_'+group_id;
+  added_li.appendChild(e);
+  e = document.createElement('label');
+  e.htmlFor = list_name+'_'+group_id;
+  e.appendChild(document.createTextNode(' ' + group_name));
+  added_li.appendChild(e);
+  var list = document.getElementById(list_name+'_list');
+  list.appendChild(added_li);
+}
+</script>
+
+<style>
+.group_list
+{
+    list-style-type: none;
+    padding: 0;
+    margin: 0 0 1em 1em;
+    float: left;
+    border: 1px solid gray;
+    border-radius: 5px;
+    background: white;
+    box-shadow: 0 5px 5px gray;
+}
+.group_list input, .group_list select { vertical-align: middle; }
+.group_list li { padding: 0.25em 0.5em; }
+.group_empty { color: gray; }
+.help_popup
+{
+    border: 1px solid gray;
+    border-radius: 5px;
+    margin: 0 0 1em 0;
+    padding: 0 1em;
+    background: white;
+    box-shadow: 0 5px 5px gray;
+}
+.help_table { border-collapse: collapse; }
+.help_table td, .help_table th { border: 1px solid gray; font-size: 10pt; padding: 2px; }
+.help_table tr td:nth-child(1) { text-align: center; }
+.help_table tr td:nth-child(2) { text-align: center; }
+</style>
 
 <form method="post" action="editproducts.cgi">
   <input type="hidden" name="action" value="updategroupcontrols">
-  <input type="hidden" name="product" value="[% product.name FILTER html %]">
-  <input type="hidden" name="token" value="[% token FILTER html %]">
+  <input type="hidden" name="product" value="[% product.name | html %]">
+  <input type="hidden" name="token" value="[% token | html %]">
 
-  <table id="form" cellspacing="0" cellpadding="4" border="1">
-    <tr bgcolor="#6666ff">
-      <th>Group</th>
-      <th>Entry</th>
-      <th>MemberControl</th>
-      <th>OtherControl</th>
-      <th>Canedit</th>
-      <th>editcomponents</th>
-      <th>canconfirm</th>
-      <th>editbugs</th>
-      <th>[% terms.Bugs %]</th>
-    </tr>
-    [% FOREACH group = product.group_controls(1).values.sort("name") %]
-      [% IF !group.group.isactive AND group.bug_count %]
-        <tr bgcolor="#bbbbbb">
-          <td>
-            [% group.group.name FILTER html %]
-          </td>
-          <td align="center" colspan=7>
-            Disabled
-          </td>
-          <td>
-            [% group.bug_count FILTER html %]
-          </td>
-        <tr>
-      [% ELSIF group.group.is_active %]
-        <tr>
-          <td>
-            [% group.group.name FILTER html %]
-          </td>
-          <td>
-            <input type=checkbox value=1 name=entry_[% group.id %]
-            [% " checked=\"checked\"" IF group.entry %]>
-          </td>
-          <td>
-            <select name="membercontrol_[% group.id %]">
-              <option value=[% constants.CONTROLMAPNA %]
-                [% " selected=\"selected\""
-                  IF group.membercontrol == constants.CONTROLMAPNA %]
-                >NA
-              </option>
-              <option value=[% constants.CONTROLMAPSHOWN %]
-                [% " selected=\"selected\""
-                  IF group.membercontrol == constants.CONTROLMAPSHOWN %]
-                >Shown
-              </option>
-              <option value=[% constants.CONTROLMAPDEFAULT %]
-                [% " selected=\"selected\""
-                  IF group.membercontrol == constants.CONTROLMAPDEFAULT %]
-                >Default
-              </option>
-              <option value=[% constants.CONTROLMAPMANDATORY %]
-                [% " selected=\"selected\""
-                  IF group.membercontrol == constants.CONTROLMAPMANDATORY %]
-                >Mandatory
-              </option>
-            </select>
-          </td>
-          <td>
-            <select name="othercontrol_[% group.id %]">
-              <option value=[% constants.CONTROLMAPNA %]
-                [% " selected=\"selected\""
-                  IF group.othercontrol == constants.CONTROLMAPNA %]
-                >NA
-              </option>
-              <option value=[% constants.CONTROLMAPSHOWN %]
-                [% " selected=\"selected\""
-                  IF group.othercontrol == constants.CONTROLMAPSHOWN %]
-                >Shown
-              </option>
-              <option value=[% constants.CONTROLMAPDEFAULT %]
-                [% " selected=\"selected\""
-                  IF group.othercontrol == constants.CONTROLMAPDEFAULT %]
-                >Default
-              </option>
-              <option value=[% constants.CONTROLMAPMANDATORY %]
-                [% " selected=\"selected\""
-                  IF group.othercontrol == constants.CONTROLMAPMANDATORY %]
-                >Mandatory
-              </option>
-            </select>
-          </td>
-          <td>
-            <input type=checkbox value=1 name=canedit_[% group.id %]
-            [% " checked=\"checked\"" IF group.canedit %]>
-          </td>
-          <td>
-            <input type=checkbox value=1 name=editcomponents_[% group.id %]
-            [% " checked=\"checked\"" IF group.editcomponents %]>
-          </td>
-          <td>
-            <input type=checkbox value=1 name=canconfirm_[% group.id %]
-            [% " checked=\"checked\"" IF group.canconfirm %]>
-          </td>
-          <td>
-            <input type=checkbox value=1 name=editbugs_[% group.id %]
-            [% " checked=\"checked\"" IF group.editbugs %]>
-          </td>
-          <td>
-            [% group.bug_count || 0 FILTER html %]
-          </td>
-        </tr>
-      [% END %]
+  <h2>Group controls for product [% product.name | html %]</h2>
+
+  <h3>Access control (Member/Other):</h4>
+
+  <p>
+    Help on Member/Other group control combinations:
+    <input type="button" id="control_help_btn" value="Show &#x25BE;" onclick="helpToggle(this.id, 'control_help')" />
+  </p>
+  <div id="control_help" class="help_popup" style="display: none">
+    [% PROCESS help_control %]
+  </div>
+
+  <ul id="control_list" class="group_list">
+    [% foundone = 0 %]
+    [% FOR group = groups %]
+    [% IF group.membercontrol OR group.othercontrol %]
+    [% foundone = 1 %]
+    <li id="li_control_[% group.id %]">
+      [% group.name | html %]:
+      [%+ PROCESS control_select id='membercontrol_' _ group.id, control=group.membercontrol %] /
+      [%+ PROCESS control_select id='othercontrol_' _ group.id, control=group.othercontrol %]
+      (used in [% group.bug_count %] bugs)
+    </li>
     [% END %]
+    [% END %]
+    [% IF NOT foundone %]
+    <li id="li_control_empty" class="group_empty">
+      &lt;no control groups&gt;
+    </li>
+    [% END %]
+  </ul>
+  <p style="clear: both">
+    Add another group:
+    <select id="add_control">
+    [% FOR g = all_groups %]
+      <option value="[% g.id %]">[% g.name | html %]</option>
+    [% END %]
+    </select>
+    with
+    [%+ PROCESS control_select id='membercontrol_new' control=0 %] /
+    [%+ PROCESS control_select id='othercontrol_new' control=0 %]
+    <input type="button" value="Add &rarr;" onclick="addControlGroup()" />
+  </p>
 
-  </table>
-  <br>
-  <input type=submit name="submit" value="submit">
-  <br>
+  <h3>Restrict bug entry to intersection of following groups:</h4>
+  [% PROCESS help_entry %]
+  [% PROCESS group_list name='entry' %]
+
+  <h3>Restrict editing and commenting bugs to:</h4>
+  [% PROCESS help_canedit %]
+  [% PROCESS group_list name='canedit' %]
+
+  <h3>Allow product and component administration for members of any of the following groups:</h4>
+  [% PROCESS help_editcomponents %]
+  [% PROCESS group_list name='editcomponents' %]
+
+  <h3>Allow to confirm bugs for:</h4>
+  [% PROCESS help_canconfirm %]
+  [% PROCESS group_list name='canconfirm' %]
+
+  <h3>Allow to change any field of this product bugs for:</h4>
+  [% PROCESS help_editbugs %]
+  [% PROCESS group_list name='editbugs' %]
+
+  <input type="submit" value="Save changes" />
+
 </form>
 
-
-<p>
-These settings control the relationship of the groups to this
-product.
-</p>
+[% BLOCK help_entry %]
 <p>
 If any group has <b>Entry</b> selected, then this product will
 restrict [% terms.bug %] entry to only those users who are members of all the
 groups with entry selected.
 </p>
-<p>
+[% END %]
+
+[% BLOCK help_canedit %]
 If any group has <b>Canedit</b> selected, then this product
 will be read-only for any users who are not members of all of
 the groups with Canedit selected. ONLY users who are members of
 all the canedit groups will be able to edit. This is an additional
 restriction that further restricts what can be edited by a user.
 </p>
-<p>
-The following settings control let you choose privileges on a <b>per-product basis</b>.
-This is a convenient way to give privileges to some users for some products
-only, without having to give them global privileges which would affect all
-products:
-</p>
+[% END %]
+
+[% BLOCK help_editcomponents %]
 <p>
 Any group having <b>editcomponents</b> selected allows users who are
 in this group to edit all aspects of this product, including components,
 milestones and versions.
 </p>
+[% END %]
+
+[% BLOCK help_canconfirm %]
 <p>
 Any group having <b>canconfirm</b> selected allows users who are
 in this group to confirm [% terms.bugs %] in this product.
 </p>
+[% END %]
+
+[% BLOCK help_editbugs %]
 <p>
 Any group having <b>editbugs</b> selected allows users who are
 in this group to edit all fields of [% terms.bugs %] in this product.
 </p>
+[% END %]
+
+[% BLOCK help_control %]
+<p>
+Every bug can be 'placed' into number of groups. The more groups bug is placed in,
+the more secret it is.
+</p>
+
+<p>Some of these groups can be optional &mdash; in this case
+some people will be able to decide about making the bug more or less secret.
+"Some people" means "members of the group" for MemberControl and
+"non-members of the group" for OtherControl.</p>
+
 <p>
 The <b>MemberControl</b> and <b>OtherControl</b> fields
 indicate which [% terms.bugs %] will be placed in
 this group according to the following definitions.
 </p>
 
-<table border=1>
+<table class="help_table">
   <tr>
     <th>
       MemberControl
@@ -191,7 +338,7 @@ this group according to the following definitions.
     <th>
       OtherControl
     </th>
-    <th>
+    <th style="text-align: left">
       Interpretation
     </th>
   </tr>
@@ -319,5 +466,6 @@ for the <b>MemberControl</b> and <b>OtherControl</b> field settings.
 Attempting to submit a combination not listed there (e.g. Mandatory/NA,
 Default/Shown, etc.) will produce an error message.
 </p>
-[% PROCESS global/footer.html.tmpl %]
+[% END %]
 
+[% PROCESS global/footer.html.tmpl %]
