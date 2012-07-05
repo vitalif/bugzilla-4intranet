@@ -1,21 +1,7 @@
-[%# The contents of this file are subject to the Mozilla Public
-  # License Version 1.1 (the "License"); you may not use this file
-  # except in compliance with the License. You may obtain a copy of
-  # the License at http://www.mozilla.org/MPL/
-  #
-  # Software distributed under the License is distributed on an "AS
-  # IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-  # implied. See the License for the specific language governing
-  # rights and limitations under the License.
-  #
-  # The Original Code is the Bugzilla Bug Tracking System.
-  #
-  # The Initial Developer of the Original Code is Netscape Communications
-  # Corporation. Portions created by Netscape are
-  # Copyright (C) 1998 Netscape Communications Corporation. All
-  # Rights Reserved.
-  #
-  # Contributor(s): Joel Peshkin <bugreport@peshkin.net>
+[%# Totally redesigned Edit Group Controls for product page
+  # License: Dual-license GPL 3.0+ or MPL 1.1+
+  # Contributor(s): Vitaliy Filippov <vitalif@mail.ru>
+  #                 Joel Peshkin <bugreport@peshkin.net>
   #%]
 
 [% title = BLOCK %]
@@ -174,26 +160,26 @@ function addListGroup(list_name)
 <style>
 .group_list
 {
-    list-style-type: none;
-    padding: 0.3em;
-    margin: 0 0 1em 1em;
-    float: left;
-    border: 1px solid gray;
-    border-radius: 5px;
-    background: white;
-    box-shadow: 0 5px 5px gray;
+  list-style-type: none;
+  padding: 0.3em;
+  margin: 0 0 1em 1em;
+  float: left;
+  border: 1px solid gray;
+  border-radius: 5px;
+  background: white;
+  box-shadow: 0 5px 5px gray;
 }
 .group_list input, .group_list select { vertical-align: middle; }
 .group_list li { padding: 0.25em 0.5em; }
 .group_empty { color: gray; }
 .help_popup
 {
-    border: 1px solid gray;
-    border-radius: 5px;
-    margin: 0 0 1em 0;
-    padding: 0 1em;
-    background: white;
-    box-shadow: 0 5px 5px gray;
+  border: 1px solid gray;
+  border-radius: 5px;
+  margin: 0 0 1em 0;
+  padding: 0 1em;
+  background: white;
+  box-shadow: 0 5px 5px gray;
 }
 .help_table { border-collapse: collapse; }
 .help_table td, .help_table th { border: 1px solid gray; font-size: 10pt; padding: 2px; }
