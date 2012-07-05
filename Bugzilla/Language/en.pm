@@ -74,6 +74,12 @@ $Bugzilla::messages->{en} = {
         FIELD_TYPE_BUG_ID()        => $terms->{Bug}.' ID',
         FIELD_TYPE_NUMERIC()       => 'Numeric',
     },
+    control_options => {
+        CONTROLMAPNA() => 'NA',
+        CONTROLMAPSHOWN() => 'Shown',
+        CONTROLMAPDEFAULT() => 'Default',
+        CONTROLMAPMANDATORY() => 'Mandatory',
+    },
     field_descs => {
         alias                     => 'Alias',
         assigned_to               => 'Assignee',
