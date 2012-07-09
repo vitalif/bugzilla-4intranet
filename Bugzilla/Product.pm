@@ -312,29 +312,31 @@ sub update {
                 detaint_natural($new_value);
                 push(@values, $new_value);
             }
-            # Is there anything to update?
-            next unless scalar @fields;
 
-            if ($all_zero) {
-                $dbh->do('DELETE FROM group_control_map
-                          WHERE product_id = ? AND group_id = ?',
-                          undef, $self->id, $gid);
-            }
-            else {
-                if (exists $old_setting->{group}) {
-                    # There is already an entry in the DB.
-                    my $set_fields = join(', ', map {"$_ = ?"} @fields);
-                    $dbh->do("UPDATE group_control_map SET $set_fields
-                              WHERE product_id = ? AND group_id = ?",
-                              undef, (@values, $self->id, $gid));
+            # Is there anything to update?
+            if (@fields)
+            {
+                if ($all_zero) {
+                    $dbh->do('DELETE FROM group_control_map
+                              WHERE product_id = ? AND group_id = ?',
+                              undef, $self->id, $gid);
                 }
                 else {
-                    # No entry yet.
-                    my $fields = join(', ', @fields);
-                    # +2 because of the product and group IDs.
-                    my $qmarks = join(',', ('?') x (scalar @fields + 2));
-                    $dbh->do("INSERT INTO group_control_map (product_id, group_id, $fields)
-                              VALUES ($qmarks)", undef, ($self->id, $gid, @values));
+                    if (exists $old_setting->{group}) {
+                        # There is already an entry in the DB.
+                        my $set_fields = join(', ', map {"$_ = ?"} @fields);
+                        $dbh->do("UPDATE group_control_map SET $set_fields
+                                  WHERE product_id = ? AND group_id = ?",
+                                  undef, (@values, $self->id, $gid));
+                    }
+                    else {
+                        # No entry yet.
+                        my $fields = join(', ', @fields);
+                        # +2 because of the product and group IDs.
+                        my $qmarks = join(',', ('?') x (scalar @fields + 2));
+                        $dbh->do("INSERT INTO group_control_map (product_id, group_id, $fields)
+                                  VALUES ($qmarks)", undef, ($self->id, $gid, @values));
+                    }
                 }
             }
 
