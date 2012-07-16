@@ -431,7 +431,6 @@ GROUP BY t1.bug_id", {Slice=>{}}, keys %$seen) || {};
 
         if ($row->{short_desc})
         {
-            $row->{short_desc} =~ s/([\\\"])/\\$1/g;
             push @params, <<"EOF";
 label=<
 <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
