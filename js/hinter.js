@@ -87,8 +87,8 @@ var SimpleAutocomplete = function(input, dataLoader, multipleDelimiter, onChange
         SimpleAutocomplete.SimpleAutocompletes.push(self);
 
         // Set event listeners
-        var msie = navigator.userAgent.match('MSIE') && !navigator.userAgent.match('Opera');
-        if (msie)
+        var ie_opera = navigator.userAgent.match('MSIE') || navigator.userAgent.match('Opera');
+        if (ie_opera)
             addListener(e, 'keydown', self.onKeyPress);
         else
         {
