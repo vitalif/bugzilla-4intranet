@@ -30,9 +30,9 @@
   </li>
 
   [%# Saved searches %]
-    
-  [% IF user.showmybugslink OR user.queries.size 
-        OR user.queries_subscribed.size 
+
+  [% IF user.showmybugslink OR user.queries.size
+        OR user.queries_subscribed.size
   %]
     [% print_pipe = 0 %]
     <li id="links-saved">
@@ -70,6 +70,20 @@
                class="shared"
                title="Shared by [% q.user.identity FILTER html %]"
                >[% q.name FILTER html FILTER no_break %]</a></li>
+          [% print_pipe = 1 %]
+        [% END %]
+      </ul>
+    </li>
+  [% END %]
+
+  [% IF user.reports.size %]
+    <li id="reports-saved">
+      <ul class="links">
+        <li class="label">Saved Reports:</li>
+        [% FOREACH r = user.reports %]
+          <li>[% '<span class="separator">| </span>' IF print_pipe %]
+          <a href="report.cgi?[% r.query FILTER html %]&amp;saved_report_id=
+                  [%~ r.id FILTER uri %]">[% r.name FILTER html %]</a></li>
           [% print_pipe = 1 %]
         [% END %]
       </ul>

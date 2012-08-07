@@ -834,6 +834,18 @@ use constant ABSTRACT_SCHEMA => {
         ],
     },
 
+    reports => {
+        FIELDS => [
+            id      => {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
+            user_id => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE  => 'profiles', COLUMN => 'userid', DELETE => 'CASCADE'}},
+            name    => {TYPE => 'varchar(255)', NOTNULL => 1},
+            query   => {TYPE => 'LONGTEXT', NOTNULL => 1},
+        ],
+        INDEXES => [
+            reports_user_id_idx => {FIELDS => [qw(user_id name)], TYPE => 'UNIQUE'},
+        ],
+    },
+
     component_cc => {
         FIELDS => [
             user_id      => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'profiles', COLUMN => 'userid', DELETE => 'CASCADE'}},

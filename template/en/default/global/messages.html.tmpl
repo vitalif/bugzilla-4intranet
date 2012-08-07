@@ -867,6 +867,18 @@
   or moving it from one closed state to another.
 [% END %]
 
+[% BLOCK msg_report_created %]
+  OK, you have a new saved report named <em>[% reportname FILTER html %]</em>.
+[% END %]
+
+[% BLOCK msg_report_deleted %]
+  OK, the <em>[% reportname FILTER html %]</em> report is gone.
+[% END %]
+
+[% BLOCK msg_report_updated %]
+  The saved report <em>[% reportname FILTER html %]</em> has been updated.
+[% END %]
+
 [% BLOCK msg_sanitycheck %]
   [%# We use this way to call sanitycheck-specific messages so that
     # we can still use get_text(). %]

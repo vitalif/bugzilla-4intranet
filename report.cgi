@@ -30,6 +30,8 @@ use Bugzilla::Util;
 use Bugzilla::Error;
 use Bugzilla::Field;
 use Bugzilla::Search;
+use Bugzilla::Report;
+use Bugzilla::Token;
 
 my $cgi = Bugzilla->cgi;
 my $template = Bugzilla->template;
@@ -51,10 +53,53 @@ Bugzilla->login();
 my $dbh = Bugzilla->switch_to_shadow_db();
 
 my $action = $cgi->param('action') || 'menu';
+my $token  = $cgi->param('token');
 
 if ($action eq "menu") {
     # No need to do any searching in this case, so bail out early.
     $template->process("reports/menu.html.tmpl", $vars)
+      || ThrowTemplateError($template->error());
+    exit;
+
+}
+elsif ($action eq 'add') {
+    my $user = Bugzilla->login(LOGIN_REQUIRED);
+    check_hash_token($token, ['save_report']);
+
+    my $name = clean_text($cgi->param('name'));
+    my $query = $cgi->param('query');
+
+    if (my ($report) = grep{ lc($_->name) eq lc($name) } @{$user->reports}) {
+        $report->set_query($query);
+        $report->update;
+        $vars->{'message'} = "report_updated";
+    } else {
+        my $report = Bugzilla::Report->create({name => $name, query => $query});
+        $vars->{'message'} = "report_created";
+    }
+
+    $user->flush_reports_cache;
+
+    $vars->{'reportname'} = $name;
+
+    $template->process("global/message.html.tmpl", $vars)
+      || ThrowTemplateError($template->error());
+    exit;
+}
+elsif ($action eq 'del') {
+    my $user = Bugzilla->login(LOGIN_REQUIRED);
+    my $report_id = $cgi->param('saved_report_id');
+    check_hash_token($token, ['delete_report', $report_id]);
+
+    my $report = Bugzilla::Report->check({id => $report_id});
+    $report->remove_from_db();
+
+    $user->flush_reports_cache;
+
+    $vars->{'message'} = 'report_deleted';
+    $vars->{'reportname'} = $report->name;
+
+    $template->process("global/message.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
     exit;
 }
@@ -237,6 +282,7 @@ $vars->{'width'} = $width if $width;
 $vars->{'height'} = $height if $height;
 
 $vars->{'query'} = $query;
+$vars->{'saved_report_id'} = $cgi->param('saved_report_id');
 $vars->{'debug'} = $cgi->param('debug');
 
 my $formatparam = $cgi->param('format');

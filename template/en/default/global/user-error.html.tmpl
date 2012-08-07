@@ -1753,6 +1753,16 @@
   the new assignee.
 [% END %]
 
+[% BLOCK error_report_name_missing %]
+  [% title = "No Report Name Specified" %]
+  You must enter a name for your report.
+[% END %]
+
+[% ELSIF error_report_access_denied %]
+  [% title = "Report Access Denied" %]
+  You cannot access this report.
+[% END %]
+
 [% BLOCK error_require_component %]
   [% title = "Component Needed" %]
   To file this [% terms.bug %], you must first choose a component.
