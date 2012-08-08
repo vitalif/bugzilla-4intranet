@@ -738,7 +738,7 @@ sub check_dependent_fields
             if (!$validators->{dependencies}->{blocked}->{$value} &&
                 !$validators->{dependencies}->{dependson}->{$value})
             {
-                if (ref $params->{$to})
+                if (blessed $params)
                 {
                     push @{$params->{$to}}, $value;
                 }
