@@ -149,7 +149,7 @@ sub GetDotUrls
     {
         # First, generate the svg image file from the .dot source
         my ($svgfh, $svgfilename) = DotTemp('.svg');
-        DotInto($svgfh, [ $base, '-Tsvg', $inout->{filename} ], sub { s/xlink:title=/xlink:show="new" xlink:title=/; $_; }) or ($inout->{timeout} = 1);
+        DotInto($svgfh, [ $base, '-Tsvg', $inout->{filename} ], sub { s/xlink:title=/xlink:show="new" xlink:title=/g; $_; }) or ($inout->{timeout} = 1);
         $inout->{image_svg_url} = DotRel($svgfilename);
 
         # Next, generate the png image file for those who don't support SVG
