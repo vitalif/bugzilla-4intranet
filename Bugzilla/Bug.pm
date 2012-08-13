@@ -738,14 +738,7 @@ sub check_dependent_fields
             if (!$validators->{dependencies}->{blocked}->{$value} &&
                 !$validators->{dependencies}->{dependson}->{$value})
             {
-                if (blessed $params)
-                {
-                    push @{$params->{$to}}, $value;
-                }
-                else
-                {
-                    $params->{$to} .= " $value";
-                }
+                push @{$params->{$to}}, $value;
             }
         }
         # Check field value visibility for select fields
