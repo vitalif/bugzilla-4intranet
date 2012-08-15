@@ -70,7 +70,7 @@ sub call
     my ($self, $check_err, $fn, @params) = @_;
     $self->{lastFn} = $fn;
     $self->{lastParams} = \@params;
-    my $r = $self->{client}->call($fn, @params);
+    my $r = $self->{client}->_call($fn, @params);
     if ($check_err)
     {
         $self->check_ws_error($r, 2);
@@ -82,7 +82,7 @@ sub call
 sub read_task
 {
     my ($self, $taskUID) = @_;
-    my $r = $self->call(0, 'ReadTask', $self->{sid}, $taskUID, [])->result;
+    my $r = $self->call(0, 'ReadTask', $self->{sid}, $taskUID, []);
     if ($r->{Status}->{ErrorCode} &&
         $r->{Status}->{Message} =~ /Неверный идентификатор задачи/s)
     {
@@ -133,7 +133,7 @@ sub create_or_update
     my $req = {
         SessionID    => $self->{sid},
         TaskUID      => $params->{TaskCUID},
-        ParentUID    => $params->{TaskBUID},
+        ParentUID    => 'B'.$params->{TaskBUID},
         ComponentUID => $params->{ComponentUID},
         FieldList    => hash_to_soapdata($params, $fieldNames),
     };
@@ -162,7 +162,7 @@ sub create_or_update
         # Create task
         $r = $self->call(1, 'CreateTask',
             @$req{qw(SessionID ProjectUID TaskUID ParentUID ComponentUID FieldList)}
-        )->result;
+        );
     }
     else
     {
@@ -171,14 +171,14 @@ sub create_or_update
         {
             $r = $self->call(1, 'UpdateTask',
                 @$req{qw(SessionID TaskUID ComponentUID FieldList)}
-            )->result;
+            );
         }
         # Check if we need to change ParentUID via a separate call to ChangeTaskB
         if ($params->{TaskBUID} ne $taskC->{ParentUID})
         {
             $r = $self->call(1, 'ChangeTaskB',
                 @$req{qw(SessionID TaskUID ParentUID)}
-            )->result;
+            );
         }
     }
 }
