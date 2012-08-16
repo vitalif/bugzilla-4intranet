@@ -3,12 +3,11 @@
 # License: Dual-license GPL 3.0+ or MPL 1.1+
 # Author: Vitaliy Filippov <vitalif@mail.ru>
 
-# FIXME :-X there is no usable WSDL client in perl for RPC
-# encoded WS which takes named parameters... O_o
-# SOAP::Lite only takes positional parameters
-# SOAP::WSDL doesn't work with WSDL definitions like attributeGroup
-# XML::Compile::SOAP 2.26 doesn't work with rpc/encoded
-# XML::Compile::SOAP 0.78 wants rpcin/rpcout and requires older XML::Compile
+# FIXME :-X there is no usable WSDL client in perl for RPC/encoded WS which takes named parameters... O_o
+# - SOAP::Lite (the best) only takes positional parameters and requires ugly hack for complex type serialization.
+# - SOAP::WSDL doesn't work with WSDL definitions like attributeGroup.
+# - XML::Compile::SOAP 2.26 doesn't work with RPC/encoded.
+# - XML::Compile::SOAP 0.78 wants rpcin/rpcout and requires older XML::Compile.
 
 # Soooooo... We use positional parameters...
 
@@ -21,6 +20,9 @@ use Bugzilla::Error;
 use SOAP::Lite;
 use Carp;
 use Data::Dumper;
+
+# O_o Ugly hack needed to serialize tns:FieldList
+push @SOAP::Serializer::EXPORT, 'FieldList';
 
 # Construct an SM/dotProject WS client
 sub new
