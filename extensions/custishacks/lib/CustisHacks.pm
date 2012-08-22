@@ -45,20 +45,20 @@ sub install_update_db
     return 1;
 }
 
-# Bug synchornisation hook (doesn't matter create or update)
+# Bug synchronisation hook (doesn't matter create or update)
 # Uses arguments: { bug => $bug }
 sub sync_bug
 {
     my ($args) = @_; # { bug => $bug, timestamp => $timestamp }
     if (Bugzilla->params->{sm_dotproject_wsdl_url} && # only if enabled
-        !$Bugzilla::SmMapping::InWS && # prevent syncing changes which come from dotProject
+        !$Bugzilla::SmMapping::InWS && # prevent syncing changes coming from dotProject
         $args->{bug}->product =~ /^СМ-/so) # only for external bugs
     {
         my $tnerp_id = get_wbs_mapping(undef, get_wbs(undef, $args->{bug}->cf_wbs)->id);
         if ($tnerp_id)
         {
             # Only sync bugs which have WBS known to TN-ERP
-            Bugzilla->job_queue->insert('sm_sync', { bug_id => $args->{bug}->id });
+            Bugzilla->job_queue->insert('sm_sync', { bug_id => $args->{bug}->id, delta_ts => $args->{timestamp} });
         }
     }
     return 1;

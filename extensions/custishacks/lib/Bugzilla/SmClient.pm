@@ -31,6 +31,21 @@ sub new
     $class = ref($class) || $class;
     my $cli = SOAP::Lite->service(Bugzilla->params->{sm_dotproject_wsdl_url});
     my $self = bless { client => $cli }, $class;
+    $self->auth;
+    return $self;
+}
+
+# Destructor, closes the session
+sub DESTROY
+{
+    my $self = shift;
+    $self->{client}->CloseSession($self->{sid});
+}
+
+# Open auth session
+sub auth
+{
+    my $self = shift;
     my $r = $self->call(1, 'OpenSession',
         Bugzilla->params->{sm_dotproject_login},
         Bugzilla->params->{sm_dotproject_password},
@@ -41,14 +56,6 @@ sub new
         die "No <SessionID> in SM WS answer data: $r->{Data}";
     }
     $self->{sid} = $data->{eSessionID}->[0]->{char};
-    return $self;
-}
-
-# Destructor, closes the session
-sub DESTROY
-{
-    my $self = shift;
-    $self->{client}->CloseSession($self->{sid});
 }
 
 # Check for SM WS error and throw 'sm_ws_error' if there is one
@@ -73,6 +80,11 @@ sub call
     $self->{lastFn} = $fn;
     $self->{lastParams} = \@params;
     my $r = $self->{client}->_call($fn, @params);
+    if ($r->{Status}->{ErrorCode} &&
+        $r->{Status}->{Message} =~ /Неверный идентификатор сессии/)
+    {
+        $self->auth;
+    }
     if ($check_err)
     {
         $self->check_ws_error($r, 2);
@@ -139,10 +151,13 @@ sub create_or_update
         ComponentUID => $params->{ComponentUID},
         FieldList    => hash_to_soapdata($params, $fieldNames),
     };
-    # First check if the task does exist
-    my $taskC = $self->read_task($req->{TaskUID});
     my $r;
-    if (!$taskC)
+    # First try to update the task
+    $r = $self->call(0, 'UpdateTask',
+        @$req{qw(SessionID TaskUID ComponentUID FieldList)}
+    );
+    if ($r->{Status}->{ErrorCode} &&
+        $r->{Status}->{Message} =~ /Неверный идентификатор задачи/s)
     {
         # The task does not exist, create it
         my $taskB = $self->read_task($params->{TaskBUID});
@@ -168,15 +183,9 @@ sub create_or_update
     }
     else
     {
-        # Check if we need to change any updatable fields
-        if (grep { $params->{$_} ne $taskC->{$_} } @$fieldNames)
-        {
-            $r = $self->call(1, 'UpdateTask',
-                @$req{qw(SessionID TaskUID ComponentUID FieldList)}
-            );
-        }
-        # Check if we need to change ParentUID via a separate call to ChangeTaskB
-        if ($params->{TaskBUID} ne $taskC->{ParentUID})
+        check_ws_error($r);
+        # FIXME Do not always call ChangeTaskB
+        if (1)
         {
             $r = $self->call(1, 'ChangeTaskB',
                 @$req{qw(SessionID TaskUID ParentUID)}
