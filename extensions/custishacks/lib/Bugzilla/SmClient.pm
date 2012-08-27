@@ -160,10 +160,10 @@ sub create_or_update
         $r->{Status}->{Message} =~ /Неверный идентификатор задачи/s)
     {
         # The task does not exist, create it
-        my $taskB = $self->read_task($params->{TaskBUID});
+        my $taskB = $self->read_task($req->{ParentUID});
         if (!defined $taskB)
         {
-            die("Task B with UID=$params->{TaskBUID} does not exist");
+            die("Task B with UID=$req->{ParentUID} does not exist");
         }
         if (!defined $taskB->{ProjectUID})
         {
