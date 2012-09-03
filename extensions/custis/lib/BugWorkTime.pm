@@ -229,6 +229,7 @@ sub MassAddWorktime
 # $wt_user       - выбранный пользователь
 # $other_bug_id  - откуда взять пропорцию участия пользователей
 # $move_time     - флаг "перенести время с other_bug_id"
+# Возвращает хешреф в формате { bug_id => { user_id => время } }
 sub PrepareWorktime
 {
     my ($times, $wt_user, $tsfrom, $tsto, $other_bug_id, $move_time, $min_inc) = @_;
@@ -326,25 +327,53 @@ sub HandleSuperWorktime
         {
             $t = $args->{"wtime_$_"};
             $times->{$_} = $t if $t;
-            $cgi->delete("wtime_$_");
         }
-        $cgi->delete('save_worktime');
         # В транзакции сначала готовим, потом коммитим
         Bugzilla->dbh->bz_start_transaction();
         $times = PrepareWorktime($times, $wt_user, $tsfrom, $tsto, $other_bug_id, $args->{move_time}, $min_inc);
-        if (MassAddWorktime($times, $comment, $wt_date))
+        if ($args->{dry_run})
         {
+            # Тестовый проход - не списываем, а только показываем результат
+            # Просто форму показать нельзя, т.к. может быть списание за нескольких участников,
+            # а на форме его отразить негде :(
             Bugzilla->dbh->bz_commit_transaction();
-            delete_token($args->{token});
+            my $user_times = {};
+            foreach my $bug_id (keys %$times)
+            {
+                foreach my $user_id (keys %{$times->{$bug_id}})
+                {
+                    $user_times->{$user_id}->{$bug_id} = $times->{$bug_id}->{$user_id};
+                }
+            }
+            my $users = {};
+            foreach my $user (@{ Bugzilla::User->new_from_list([ keys %$user_times ]) })
+            {
+                $users->{$user->id} = $user;
+            }
+            $vars->{test_times_by_bug} = $times;
+            $vars->{test_times_by_user} = $user_times;
+            $vars->{users} = $users;
+            $template->process('worktime/dry-run.html.tmpl', $vars);
+            exit;
         }
         else
         {
-            # Цельный откат, если хотя бы одно изменение заблокировано проверками
-            Bugzilla->dbh->bz_rollback_transaction();
-            Checkers::show_checker_errors();
+            # Удаляем параметры
+            $cgi->delete($_) for 'save_worktime', grep { /^wtime_(\d+)$/ } keys %$args;
+            if (MassAddWorktime($times, $comment, $wt_date))
+            {
+                Bugzilla->dbh->bz_commit_transaction();
+                delete_token($args->{token});
+            }
+            else
+            {
+                # Цельный откат, если хотя бы одно изменение заблокировано проверками
+                Bugzilla->dbh->bz_rollback_transaction();
+                Checkers::show_checker_errors();
+            }
+            print $cgi->redirect(-location => $cgi->self_url);
+            exit;
         }
-        print $cgi->redirect(-location => $cgi->self_url);
-        exit;
     }
 }
 
