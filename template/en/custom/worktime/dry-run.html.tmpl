@@ -1,0 +1,75 @@
+<html>
+<head>
+<title>Тестовый прогон списания времени</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<style type="text/css">
+table table { border-collapse: collapse; }
+td, th { padding: 4px; border: 1px solid black; vertical-align: top; text-align: left; }
+</style>
+</head>
+<body>
+
+<a href="javascript:close()">Закрыть окно</a>
+
+<table>
+<tr><td style="border-width: 0">
+
+<h4>По багам:</h4>
+<table>
+[% FOR bug_id = test_times_by_bug.keys %]
+  [% first=1 %]
+  [% bug_sum=0 %]
+  [% n=test_times_by_bug.$bug_id.size %]
+  [% FOR user_id = test_times_by_bug.$bug_id.keys %]
+  <tr>
+    [% IF first %]
+      <th rowspan="[% n>1 ? n+1 : n %]"><a href="show_bug.cgi?bug_id=[% bug_id %]">[% terms.Bug %] [%+ bug_id %]</a></th>
+      [% first=0 %]
+    [% END %]
+    <td>[% users.$user_id.login_name | html %]</td>
+    <td>[% test_times_by_bug.$bug_id.$user_id %]</td>
+    [% bug_sum = bug_sum + test_times_by_bug.$bug_id.$user_id %]
+  </tr>
+  [% END %]
+  [% IF n > 1 %]
+  <tr>
+    <td style="text-align: right">∑</td>
+    <td>[% bug_sum %]</td>
+  </tr>
+  [% END %]
+[% END %]
+</table>
+
+</td><td style="border-width: 0">
+
+<h4>По пользователям:</h4>
+<table>
+[% FOR user_id = test_times_by_user.keys %]
+  [% first=1 %]
+  [% user_sum=0 %]
+  [% n=test_times_by_user.$user_id.size %]
+  [% FOR bug_id = test_times_by_user.$user_id.keys %]
+  <tr>
+    [% IF first %]
+      <th rowspan="[% n>1 ? n+1 : n %]">[% users.$user_id.login_name | html %]</th>
+      [% first=0 %]
+    [% END %]
+    <td><a href="show_bug.cgi?bug_id=[% bug_id %]">[% terms.Bug %] [%+ bug_id %]</a></td>
+    <td>[% test_times_by_user.$user_id.$bug_id %]</td>
+    [% user_sum = user_sum + test_times_by_user.$user_id.$bug_id %]
+  </tr>
+  [% END %]
+  [% IF n > 1 %]
+  <tr>
+    <td style="text-align: right">∑</td>
+    <td>[% user_sum %]</td>
+  </tr>
+  [% END %]
+[% END %]
+</table>
+
+</td></tr>
+</table>
+
+</body>
+</html>

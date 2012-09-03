@@ -12,31 +12,31 @@
 </p>
 
 [% hidden_fields = {
-    'chfieldfrom'    => 1
-    'chfieldto'      => 1
-    'chfieldwho'     => 1
-    'worktime_user'  => 3
-    'worktime_date'  => 3
-    'save_worktime'  => 3
-    'token'          => 3
-    'format'         => 3
-    'comment'        => 2
-    'divide_min_inc' => 2
-    'divide_other_bug_id' => 2
+  'chfieldfrom'    => 1
+  'chfieldto'      => 1
+  'chfieldwho'     => 1
+  'worktime_user'  => 3
+  'worktime_date'  => 3
+  'save_worktime'  => 3
+  'token'          => 3
+  'format'         => 3
+  'comment'        => 2
+  'divide_min_inc' => 2
+  'divide_other_bug_id' => 2
 } %]
 
 [% MACRO hidden_inputs BLOCK %]
- [% FOR k = query_params.keys %]
-  [% IF !hidden_fields.$k || hidden_fields.$k == HideIndex %]
-   [% IF query_params.$k.size %]
-    [% FOR vk = query_params.${k} %]
-     <input type="hidden" name="[% k | html %]" value="[% vk | html %]" />
+  [% FOR k = query_params.keys %]
+    [% IF !hidden_fields.$k || hidden_fields.$k == HideIndex %]
+      [% IF query_params.$k.size %]
+        [% FOR vk = query_params.${k} %]
+          <input type="hidden" name="[% k | html %]" value="[% vk | html %]" />
+        [% END %]
+      [% ELSE %]
+        <input type="hidden" name="[% k | html %]" value="[% query_params.${k} | html %]" />
+      [% END %]
     [% END %]
-   [% ELSE %]
-    <input type="hidden" name="[% k | html %]" value="[% query_params.${k} | html %]" />
-   [% END %]
   [% END %]
- [% END %]
 [% END %]
 
 <fieldset>
@@ -78,7 +78,9 @@
 
 [% BLOCK worktime_td %]
 <td[% IF bug.product_notimetracking %] style="background-color: #FFC0C0"[% END %]>
-  <input type="text" style="text-align: right" name="wtime_[% bug.bug_id %]" id="wtime_[% bug.bug_id %]" value="" onkeypress="refresh_total_wt()" onchange="refresh_total_wt()" />
+  <input type="text" style="text-align: right" name="wtime_[% bug.bug_id %]"
+    id="wtime_[% bug.bug_id %]" value="[% worktimes.${bug.bug_id} || '' %]"
+    onkeypress="refresh_total_wt()" onchange="refresh_total_wt()" />
 </td>
 [% END %]
 
@@ -104,8 +106,11 @@
   На дату: <b>[% worktime_date | html %]</b> &nbsp;
   За пользователя: <b>[%+ Bugzilla.user.login | html %]</b> &nbsp;
 [% END %]
-  <input value=" Списать время " type="submit" style="font-weight: bold" /> &nbsp;
-  Добавить комментарий: <input type="text" name="comment" value="[% comment | html %]" />
+  <input value=" Списать время " type="submit" style="font-weight: bold" />
+  <input type="hidden" name="dry_run" id="dry_run" value="" />
+  <input value=" Предпросмотр " type="button" onclick="do_dry_run(this.form)" />
+  <br />
+  Добавить комментарий: <input type="text" name="comment" value="[% comment | html %]" size="50" />
 [% IF wt_admin %]
   <p style="margin: 8px 0 0 0">
     <span id="divide_other_bug_id_text">Распределить пропорционально участию в одном баге:</span>
@@ -241,6 +246,13 @@ function check_move(c)
       for (var i in period_times)
         document.getElementById('wtime_'+i).value = '1';
   }
+}
+function do_dry_run(frm)
+{
+  frm.dry_run.value = '1';
+  frm.target = '_blank';
+  frm.submit();
+  frm.dry_run.value = '';
 }
 forall_unfocus();
 check_who_enabled();
