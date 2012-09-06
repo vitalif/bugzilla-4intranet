@@ -352,6 +352,7 @@ var SimpleAutocomplete = function(input, dataLoader, multipleDelimiter, onChange
     self.onInputFocus = function()
     {
         self.show();
+        self.input.autocomplete = 'off';
         self.hasFocus = true;
         return true;
     };
@@ -360,6 +361,7 @@ var SimpleAutocomplete = function(input, dataLoader, multipleDelimiter, onChange
     self.onInputBlur = function()
     {
         self.hide();
+        self.input.autocomplete = 'on';
         self.hasFocus = false;
         return true;
     };
