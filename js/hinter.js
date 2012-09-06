@@ -352,7 +352,6 @@ var SimpleAutocomplete = function(input, dataLoader, multipleDelimiter, onChange
     self.onInputFocus = function()
     {
         self.show();
-        self.input.autocomplete = 'off';
         self.hasFocus = true;
         return true;
     };
@@ -361,7 +360,6 @@ var SimpleAutocomplete = function(input, dataLoader, multipleDelimiter, onChange
     self.onInputBlur = function()
     {
         self.hide();
-        self.input.autocomplete = 'on';
         self.hasFocus = false;
         return true;
     };
@@ -370,7 +368,10 @@ var SimpleAutocomplete = function(input, dataLoader, multipleDelimiter, onChange
     self.hide = function()
     {
         if (!self.skipHideCounter)
+        {
             self.hintLayer.style.display = 'none';
+            self.input.autocomplete = 'on';
+        }
         else
             self.skipHideCounter = 0;
     };
@@ -384,6 +385,7 @@ var SimpleAutocomplete = function(input, dataLoader, multipleDelimiter, onChange
             self.hintLayer.style.top = (p.top+self.input.offsetHeight) + 'px';
             self.hintLayer.style.left = p.left + 'px';
             self.hintLayer.style.display = '';
+            self.input.autocomplete = 'off';
         }
     };
 
