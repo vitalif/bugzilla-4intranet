@@ -33,9 +33,26 @@ sub add_value
     my ($self, $params) = @_;
     $params->{field} = CF_WBS;
     my $tnerp_id = delete $params->{tnerp_id};
-    if (get_wbs_mapping($tnerp_id))
+    if (my $other_id = get_wbs_mapping($tnerp_id))
     {
-        ThrowUserError('value_already_exists');
+        my $field = Bugzilla->get_field(CF_WBS);
+        my $class = Bugzilla::Field::Choice->type($field);
+        my $wbs = $class->new({ id => $other_id });
+        if ($params->{value} ne $wbs->value ||
+            $params->{sortkey} != $wbs->sortkey ||
+            $params->{isactive} != $wbs->isactive)
+        {
+            ThrowUserError('value_mapping_already_exists', {
+                value => $wbs->value,
+                sortkey => $wbs->sortkey,
+                isactive => $wbs->isactive,
+                tnerp_id => $tnerp_id,
+            });
+        }
+        else
+        {
+            ThrowUserError('value_already_exists');
+        }
     }
     my $r = $self->SUPER::add_value($params);
     set_wbs_mapping($r->{id}, $tnerp_id) if $r->{id};
