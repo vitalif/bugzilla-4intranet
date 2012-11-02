@@ -604,6 +604,22 @@ sub STATIC_COLUMNS
                     sortkey => 1,
                 };
             }
+            elsif ($subid eq 'product' || $subid eq 'component' || $subid eq 'classification')
+            {
+                $columns->{$id.'_'.$subid} = {
+                    name => "map_${id}_${subid}s.name",
+                    title => $field->description . ' ' . $subfield->description,
+                    subid => $subid,
+                    sortkey => 1,
+                    joins => [
+                        @$join,
+                        ($subid eq 'classification' ? @{$columns->{$id.'_product'}->{joins}} : ()),
+                        "LEFT JOIN ${subid}s AS map_${id}_${subid}s ON ".
+                        ($subid eq 'classification' ? "map_${id}_products" : "bugs_${id}").
+                        ".${subid}_id = map_${id}_${subid}s.id"
+                    ],
+                };
+            }
         }
     }
 
