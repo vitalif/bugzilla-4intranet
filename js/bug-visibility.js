@@ -74,14 +74,13 @@ function handleControllerField(e, controller)
         for (var i in show_fields[controlled.id]['legal'])
         {
             controlled_value = show_fields[controlled.id]['legal'][i];
-            vis = false;
+            vis = true;
             item = show_fields[controller.id]['values'][controlled_id][controlled_value[0]];
-            if (!item)
-                vis = true;
-            else
+            if (item)
             {
                 for (var value in item)
                 {
+                    vis = false;
                     if (opt[value])
                     {
                         vis = true;
