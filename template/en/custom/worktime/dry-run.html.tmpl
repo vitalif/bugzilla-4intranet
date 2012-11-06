@@ -34,7 +34,7 @@ td, th { padding: 4px; border: 1px solid black; vertical-align: top; text-align:
   [% IF n > 1 %]
   <tr>
     <td style="text-align: right">∑</td>
-    <td>[% bug_sum %]</td>
+    <td>[% round(bug_sum) %]</td>
   </tr>
   [% END %]
 [% END %]
@@ -62,7 +62,7 @@ td, th { padding: 4px; border: 1px solid black; vertical-align: top; text-align:
   [% IF n > 1 %]
   <tr>
     <td style="text-align: right">∑</td>
-    <td>[% user_sum %]</td>
+    <td>[% round(user_sum) %]</td>
   </tr>
   [% END %]
 [% END %]
