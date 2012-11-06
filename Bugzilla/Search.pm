@@ -612,8 +612,7 @@ sub STATIC_COLUMNS
                     subid => $subid,
                     sortkey => 1,
                     joins => [
-                        @$join,
-                        ($subid eq 'classification' ? @{$columns->{$id.'_product'}->{joins}} : ()),
+                        ($subid eq 'classification' ? @{$columns->{$id.'_product'}->{joins}} : @$join),
                         "LEFT JOIN ${subid}s AS map_${id}_${subid}s ON ".
                         ($subid eq 'classification' ? "map_${id}_products" : "bugs_${id}").
                         ".${subid}_id = map_${id}_${subid}s.id"
@@ -1723,7 +1722,8 @@ sub run_chart
     my $self = shift;
     my ($f, $t, $v, $check_field_name) = @_;
     return undef if is_noop($f, $t, $v);
-    local $self->{supptables} = {};
+    local $self->{supptables} = [];
+    local $self->{suppseen} = {};
     local $self->{field} = $f || "noop";
     local $self->{type} = $t || "noop";
     local $self->{value} = ref $v ? $v : trim(defined $v ? $v : "");
@@ -1765,7 +1765,7 @@ sub run_chart
         if (my $j = COLUMNS->{$self->{field}}->{joins})
         {
             # Automatically adds table joins when converted to string
-            $self->{fieldsql} = bless [ $self->{fieldsql}, $j, $self->{supptables} ], 'Bugzilla::Search::Code';
+            $self->{fieldsql} = bless [ $self->{fieldsql}, $j, $self->{supptables}, $self->{suppseen} ], 'Bugzilla::Search::Code';
         }
     }
     elsif ($self->{field} !~ /\./)
@@ -1799,7 +1799,7 @@ sub run_chart
         {
             $self->{term} = {
                 term => $self->{term},
-                supp => [ keys %{$self->{supptables}} ],
+                supp => [ @{$self->{supptables}} ],
             };
         }
         if (ref $self->{term} eq 'HASH')
@@ -3340,7 +3340,11 @@ use overload '""' => sub
     my $self = shift;
     for my $t (@{$self->[1]})
     {
-        $self->[2]->{$t} = 1;
+        if (!$self->[3]->{$t})
+        {
+            $self->[3]->{$t} = 1;
+            push @{$self->[2]}, $t;
+        }
     }
     return $self->[0];
 };
