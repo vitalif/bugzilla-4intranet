@@ -188,6 +188,10 @@
              abbrev.$column.maxlength,
              abbrev.$column.ellipsis
            ) FILTER html %]
+      [% ELSIF column == 'product' %]
+        <a href="buglist.cgi?quicksearch=[% "OPEN product:" _ bug.$column | url_quote %]">
+          [%- bug.$column.truncate(abbrev.$column.maxlength, abbrev.$column.ellipsis) FILTER html -%]
+        </a>
       [% ELSIF column == 'blocked' OR column == 'dependson' %]
         [% bug.$column | bug_list_link %]
       [% ELSIF column == 'short_desc' %]
