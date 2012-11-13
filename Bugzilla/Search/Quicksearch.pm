@@ -290,11 +290,11 @@ sub _handle_status_and_resolution
 {
     my $self = shift;
     $self->{legal_statuses} = get_legal_field_values('bug_status');
+    push @{$self->{legal_statuses}}, 'OPEN';
     $self->{legal_resolutions} = get_legal_field_values('resolution');
 
     my (%st, %res);
-    if ($self->{words}->[0] eq 'OPEN' ||
-        $self->{words}->[0] =~ /^[A-Z]+(,[A-Z]+)*$/ &&
+    if ($self->{words}->[0] =~ /^[A-Z]+(,[A-Z]+)*$/ &&
         matchPrefixes(\%st, \%res, [split(/,/, $self->{words}->[0])],
             $self->{legal_statuses}, $self->{legal_resolutions}))
     {
