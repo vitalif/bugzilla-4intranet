@@ -182,14 +182,24 @@
                column == 'interval_time' %]
         [% PROCESS formattimeunit time_unit=bug.$column %]
       [%# Display the login name of the user if their real name is empty. %]
-      [% ELSIF column.match('_realname$') && bug.$column == '' %]
+      [% ELSIF column.match('_realname$') %]
         [% SET login_column = column.remove('_realname$') %]
-        [% bug.${login_column}.truncate(
-             abbrev.$column.maxlength,
-             abbrev.$column.ellipsis
-           ) FILTER html %]
+        [% IF bug.$column == '' %]
+          [% bug.${login_column}.truncate(
+               abbrev.$column.maxlength,
+               abbrev.$column.ellipsis
+             ) FILTER html %]
+        [% ELSE %]
+          <a href="buglist.cgi?quicksearch=[% 'OPEN ' _ login_column _ ':' _ bug.$login_column | url_quote %]">
+            [%- bug.$column.truncate(abbrev.$column.maxlength, abbrev.$column.ellipsis) FILTER html -%]
+          </a>
+        [% END %]
       [% ELSIF column == 'product' %]
         <a href="buglist.cgi?quicksearch=[% "OPEN product:" _ bug.$column | url_quote %]">
+          [%- bug.$column.truncate(abbrev.$column.maxlength, abbrev.$column.ellipsis) FILTER html -%]
+        </a>
+      [% ELSIF column == 'assigned_to' || column == 'qa_contact' || column == 'reporter' %]
+        <a href="buglist.cgi?quicksearch=[% 'OPEN ' _ column _ ':' _ bug.$column | url_quote %]">
           [%- bug.$column.truncate(abbrev.$column.maxlength, abbrev.$column.ellipsis) FILTER html -%]
         </a>
       [% ELSIF column == 'blocked' OR column == 'dependson' %]
