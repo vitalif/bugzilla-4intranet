@@ -353,6 +353,7 @@ sub HandleSuperWorktime
             $vars->{test_times_by_bug} = $times;
             $vars->{test_times_by_user} = $user_times;
             $vars->{users} = $users;
+            $vars->{round} = sub { int($_[0]*100)/100 };
             $template->process('worktime/dry-run.html.tmpl', $vars);
             exit;
         }
