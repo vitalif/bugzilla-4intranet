@@ -75,7 +75,21 @@ sub alert
 {
     my ($bug, $is_new) = @_;
     my (@fatal, @warn);
-    map { $_->is_fatal ? push(@fatal, $_) : push(@warn, $_) } @{$bug->{failed_checkers} || []};
+    for (@{$bug->{failed_checkers} || []})
+    {
+        if ($_->triggers)
+        {
+            # Триггеры нас вообще не расстраивают
+        }
+        elsif ($_->is_fatal)
+        {
+            push(@fatal, $_);
+        }
+        else
+        {
+            push(@warn, $_);
+        }
+    }
     my $force = 1 && Bugzilla->cgi->param('force_checkers');
     if (!@fatal && (!@warn || $force))
     {
@@ -110,15 +124,15 @@ sub show_checker_errors
 {
     my ($bugs) = @_;
     $bugs ||= Bugzilla->request_cache->{failed_checkers};
-    return if !$bugs || !grep { @{$_->{failed_checkers} || []} } @$bugs;
+    return if !$bugs || !grep { grep { !$_->triggers } @{$_->{failed_checkers} || []} } @$bugs;
     if (Bugzilla->error_mode != ERROR_MODE_WEBPAGE)
     {
         my $info = [
             map { {
                 bug_id => $_->bug_id,
-                errors => [ map { $_->message } @{$_->{failed_checkers}} ]
+                errors => [ map { $_->message } grep { !$_->triggers } @{$_->{failed_checkers}} ]
             } }
-            grep { $_->{failed_checkers} } @$bugs
+            grep { @{$_->{failed_checkers} || []} } @$bugs
         ];
         ThrowUserError('checks_failed', { bugs => $info });
     }
@@ -138,7 +152,7 @@ sub freeze_failed_checkers
     $failedbugs && @$failedbugs || return undef;
     return [
         map { [ $_->bug_id, [ map { $_->id } @{$_->{failed_checkers}} ] ] }
-        grep { $_->{failed_checkers} } @$failedbugs
+        grep { @{$_->{failed_checkers} || []} } @$failedbugs
     ];
 }
 
@@ -160,10 +174,16 @@ sub unfreeze_failed_checkers
 sub filter_failed_checkers
 {
     my ($checkers, $changes, $bug) = @_;
-    # фильтруем подошедшие проверки по изменённым полям
+    # Фильтруем подошедшие проверки по изменённым полям
     my @rc;
     for (@$checkers)
     {
+        if ($_->triggers)
+        {
+            # Не трогаем триггеры
+            push @rc, $_;
+            next;
+        }
         my $e = $_->except_fields;
         my $ok = 1;
         if ($_->deny_all)
@@ -220,14 +240,41 @@ sub filter_failed_checkers
     @$checkers = @rc;
 }
 
+# Запустить триггеры для бага $bug из $bug->{failed_checkers}
+sub run_triggers
+{
+    my ($bug) = @_;
+    my $modified = 0;
+    for (my $i = $#{$bug->{failed_checkers}}; $i >= 0; $i--)
+    {
+        my $checker = $bug->{failed_checkers}->[$i];
+        if ($checker->triggers)
+        {
+            if ($checker->triggers->{add_cc})
+            {
+                # FIXME Пока поддерживается только добавление CC, но несложно докрутить произвольные изменения
+                for (split /[\s,]+/, $checker->triggers->{add_cc})
+                {
+                    $bug->add_cc($_);
+                    $modified = 1;
+                }
+            }
+        }
+        # FIXME Нужно показывать информацию о применённом триггере (сейчас оно работает втихаря)
+        splice @{$bug->{failed_checkers}}, $i, 1;
+    }
+    return $modified;
+}
+
 # hooks:
 
 sub bug_pre_update
 {
     my ($args) = @_;
     my $bug = $args->{bug};
-    # запускаем проверки, работающие ДО внесения изменений (заморозка багов)
+    # запускаем проверки, работающие ДО внесения изменений - заморозку багов и триггеры
     $bug->{failed_checkers} = check($bug->bug_id, CF_FREEZE | CF_UPDATE, CF_FREEZE | CF_UPDATE);
+    run_triggers($bug);
     return 1;
 }
 
@@ -273,6 +320,11 @@ sub bug_end_of_create
     if (@{$bug->{failed_checkers}})
     {
         alert($bug, 1);
+    }
+    # А ещё при создании бага триггеры срабатывают отдельным запросом
+    if (run_triggers($bug))
+    {
+        $bug->update;
     }
     return 1;
 }

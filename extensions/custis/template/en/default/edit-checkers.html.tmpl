@@ -24,11 +24,22 @@
   [% FOR c = checkers %]
   <tr>
    <td><a href="?mode=edit&id=[% c.id %]">[% c.name | html %]</a></td>
-   <td style="background-color: [% c.is_fatal ? '#fdd' : '#ffd' %]; text-align: center" title="[% c.is_fatal
-       ? 'Жёсткий запрет: При нарушении правила изменения блокируются и выдаётся ошибка'
-       : 'Мягкий запрет: При нарушении правила выдаётся предупреждение, но изменение не блокируется' %]">
-     [% c.is_fatal ? "Жёсткий" : "Мягкий" %]
+   [% IF c.triggers %]
+   <td style="background-color: #ddf; text-align: center"
+       title="Вообще не запрет, а триггер: при попадании под условия запроса в баг вносятся изменения" />
+     Триггер
    </td>
+   [% ELSIF c.is_fatal %]
+   <td style="background-color: #fdd; text-align: center"
+       title="Жёсткий запрет: При нарушении правила изменения блокируются и выдаётся ошибка" />
+     Жёсткий
+   </td>
+   [% ELSE %]
+   <td style="background-color: #ffd; text-align: center"
+       title="Мягкий запрет: При нарушении правила выдаётся предупреждение, но изменение не блокируется">
+     Мягкий
+   </td>
+   [% END %]
    <td style="background-color: [% c.is_freeze ? '#ddf' : '#fdd' %]; text-align: center" title="[% c.is_freeze
        ? 'Заморозка (защита от изменения)'
        : 'Проверка корректности новых значений' %]">
@@ -56,14 +67,15 @@
  [% ELSE %]
   <h3>Редактирование предиката [% checker.name | html %]</h3>
  [% END %]
- <form action="?save=1&edit=1" method="POST">
+ <form action="?save=1&edit=1" method="POST" onsubmit="return check_trigger()">
  <input type="hidden" name="token" value="[% token | html %]" />
+ [% IF create %]
+  <input type="hidden" name="create" value="1" />
+ [% ELSE %]
+  <input type="hidden" name="id" value="[% checker.id %]" />
+ [% END %]
  <table>
-  [% IF create %]
-   <input type="hidden" name="create" value="1" />
-  [% ELSE %]
-   <input type="hidden" name="id" value="[% checker.id %]" />
-  [% END %]
+  <tbody>
   <tr>
    <th>Сохранённый запрос:</th>
    <td><select name="query_id">
@@ -77,16 +89,31 @@
    </select></td>
   </tr>
   <tr>
-   <th>Сообщение об ошибке:</th>
+   <td colspan="2" style="padding-left: 100px">
+    <input type="radio" id="is_checker" name="is_trigger" value="0" onchange="switch_trigger()" [% " checked='checked'" IF !checker.triggers %] />
+    <label for="is_checker">Проверка</label>
+    <input type="radio" id="is_trigger" name="is_trigger" value="1" onchange="switch_trigger()" [% " checked='checked'" IF checker.triggers %] />
+    <label for="is_trigger">Триггер</label>
+   </td>
+  </tr>
+  <tr>
+   <th>Описание проверки:</th>
    <td><textarea name="message" rows="8" cols="80">[% checker.message | html %]</textarea></td>
   </tr>
   <tr>
-   <th>Параметры:</th>
+   <th>Момент проверки:</th>
    <td>
     <input type="checkbox" name="on_create" id="on_create" [% " checked='checked'" IF checker.on_create %] onclick="this.blur()" onblur="showhide_allowdeny()" />
     <label for="on_create" id="label_for_on_create">Проверять создание новых багов (требуется «Запрещать изменения всех полей»)</label><br />
     <input type="checkbox" name="on_update" id="on_update" [% " checked='checked'" IF checker.on_update %] onclick="this.blur()" onblur="showhide_allowdeny()" />
-    <label for="on_update">Проверять изменения багов</label><br />
+    <label for="on_update">Проверять изменения багов</label>
+   </td>
+  </tr>
+  </tbody>
+  <tbody id="tbody_checker" [% " style='display: none'" IF checker.triggers %]>
+  <tr>
+   <th>Параметры:</th>
+   <td>
     <input type="checkbox" name="is_freeze" id="is_freeze" [% " checked='checked'" IF checker.is_freeze %] />
     <label for="is_freeze" id="label_for_is_freeze">Заморозка багов (защита от изменений, только для режима обновления)</label><br />
     <input type="checkbox" name="is_fatal" id="is_fatal" [% " checked='checked'" IF checker.is_fatal %] />
@@ -115,7 +142,16 @@
    запрет ввода трудозатрат задним числом. Флажок "Запрещать изменения всех полей"
    должен быть <b>сброшен</b>.
   </td></tr>
+ </tbody>
+ <tbody id="tbody_trigger" [% " style='display: none'" IF !checker.triggers %]>
+  <tr>
+   <th>Добавить CC:</th>
+   <td><input type="text" id="triggers_add_cc" name="triggers_add_cc" value="[% checker.triggers.add_cc | html %]" /></td>
+  </tr>
+ </tbody>
+ <tbody>
   <tr><td></td><td><input type="submit" value=" Сохранить " /></td></tr>
+ </tbody>
  </table>
  </form>
  <div id="one_field_copy" style="display:none">
@@ -148,6 +184,25 @@ function add_field(fld, val)
       document.getElementById('except_field_'+except_field_index+'_value').value = val;
   }
   except_field_index++;
+}
+function switch_trigger()
+{
+  var f = document.getElementById('is_trigger').checked;
+  document.getElementById('tbody_checker').style.display = f ? 'none' : '';
+  document.getElementById('tbody_trigger').style.display = f ? '' : 'none';
+}
+function check_trigger()
+{
+  var f = document.getElementById('is_trigger').checked;
+  var cc = document.getElementById('triggers_add_cc');
+  if (!f)
+    cc.value = '';
+  else if (!cc.value)
+  {
+    alert('Задайте действие триггера!');
+    return false;
+  }
+  return true;
 }
 [%# Загружаем текущее состояние дел %]
 showhide_allowdeny();

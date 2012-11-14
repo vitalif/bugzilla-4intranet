@@ -122,6 +122,7 @@ sub db_schema_abstract_schema
     push @{$schema->{fielddefs}->{FIELDS}}, add_to_deps => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0};
 
     # Bug 68921 - Предикаты корректности из запросов поиска
+    # Bug 108088 - Триггеры (пока поддерживается только 1 триггер: добавление CC)
     $schema->{checkers} = {
         FIELDS => [
             id             => {TYPE => 'MEDIUMSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
@@ -131,6 +132,7 @@ sub db_schema_abstract_schema
             message        => {TYPE => 'LONGTEXT', NOTNULL => 1},
             sql_code       => {TYPE => 'LONGTEXT'},
             except_fields  => {TYPE => 'LONGBLOB'},
+            triggers       => {TYPE => 'LONGBLOB'},
         ],
         INDEXES => [
             checkers_query_id_idx => { FIELDS => ['query_id'] },
@@ -405,6 +407,9 @@ sub install_update_fielddefs
     {
         $dbh->bz_alter_column('checkers', message => {TYPE => 'LONGTEXT', NOTNULL => 1});
     }
+
+    # Bug 108088 - Триггеры (пока поддерживается только 1 триггер: добавление CC)
+    $dbh->bz_add_column('checkers', triggers => {TYPE => 'LONGBLOB'});
 
     # Устанавливаем значение buglist в правильное
     my @yes = map { $_->{name} } grep { $_->{buglist} } Bugzilla::Field::DEFAULT_FIELDS;

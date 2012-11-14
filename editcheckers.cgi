@@ -52,6 +52,15 @@ if ($params->{save})
             ($params->{on_update} ? 1 : 0) * CF_UPDATE |
             ($params->{on_create} ? 1 : 0) * CF_CREATE |
             ($params->{deny_all} ? 1 : 0)  * CF_DENY;
+        # Триггеры
+        my $triggers;
+        for (keys %$params)
+        {
+            if ($params->{$_} !~ /^\s*$/so && /^triggers_(.*)$/so)
+            {
+                $triggers->{$1} = $params->{$_};
+            }
+        }
         # Создаём/обновляем
         my $ch;
         if ($params->{create})
@@ -62,6 +71,7 @@ if ($params->{save})
                 message  => $params->{message},
                 flags    => $flags,
                 except_fields => $except,
+                triggers => $triggers,
             });
         }
         else
@@ -71,6 +81,7 @@ if ($params->{save})
             $ch->set_message($params->{message});
             $ch->set_flags($flags);
             $ch->set_except_fields($except);
+            $ch->set_triggers($triggers);
             $ch->update;
         }
         delete_token($params->{token});
