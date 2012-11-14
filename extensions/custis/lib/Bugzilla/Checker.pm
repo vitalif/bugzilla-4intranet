@@ -13,11 +13,18 @@ use Bugzilla::Error;
 use constant DB_TABLE => 'checkers';
 
 use constant {
-    CF_FREEZE => 0x01, # да => заморозка, нет => проверка значений
-    CF_FATAL  => 0x02, # да => ошибка, нет => предупреждение
-    CF_CREATE => 0x04, # да => проверять при создании бага, нет => не проверять
-    CF_UPDATE => 0x08, # да => проверять при обновлении бага, нет => не проверять
-    CF_DENY   => 0x10, # да => запрещать изменения всех полей, кроме..., нет => разрешать изменения всех полей, кроме...
+    # Да => проверка старого состояния бага ("заморозка")
+    # Нет => проверка нового состояния бага ("проверка новых значений")
+    CF_FREEZE => 0x01,
+    # Да => ошибка, нет => предупреждение
+    CF_FATAL  => 0x02,
+    # Да => проверять при создании бага, нет => не проверять
+    CF_CREATE => 0x04,
+    # Да => проверять при обновлении бага, нет => не проверять
+    CF_UPDATE => 0x08,
+    # Да => запрещать изменения всех полей, кроме except_fields
+    # Нет => разрешать изменения всех полей, кроме except_fields
+    CF_DENY   => 0x10,
 };
 
 our @EXPORT = qw(CF_FREEZE CF_FATAL CF_CREATE CF_UPDATE CF_DENY);
@@ -38,6 +45,8 @@ use constant DB_COLUMNS => (
     # если !(flags & CF_DENY), то запретить только их,
     # если !(flags & CF_DENY) и их нет, то flags |= CF_DENY
     'except_fields',
+    # Триггеры - действия над полями багов (требует CF_FREEZE и !CF_FATAL)
+    'triggers',
 );
 use constant NAME_FIELD => 'message';
 use constant ID_FIELD   => 'id';
@@ -56,6 +65,7 @@ use constant UPDATE_COLUMNS => (
     'message',
     'sql_code',
     'except_fields',
+    'triggers',
 );
 
 # Перепостроение и перекэширование SQL-запроса в базу
@@ -95,6 +105,10 @@ sub create
     {
         $params->{except_fields} = encode_json($params->{except_fields});
     }
+    if ($params->{triggers})
+    {
+        $params->{triggers} = encode_json($params->{triggers});
+    }
     my $self = Bugzilla::Object::create($class, $params);
     $self->update;
     $self->query->set_shared_with_group(Bugzilla::Group->check({ name => 'bz_editcheckers' }));
@@ -107,6 +121,10 @@ sub update
     my $self = shift;
     $self->refresh_sql;
     $self->query->set_shared_with_group(Bugzilla::Group->check({ name => 'bz_editcheckers' }));
+    if ($self->triggers)
+    {
+        $self->{flags} |= CF_FREEZE;
+    }
     $self->SUPER::update(@_);
 }
 
@@ -147,14 +165,14 @@ sub flags           { $_[0]->{flags} }
 
 # Отдельные флаги
 sub is_freeze       { $_[0]->{flags} & CF_FREEZE }
-sub is_fatal        { $_[0]->{flags} & CF_FATAL }
+sub is_fatal        { ($_[0]->{flags} & CF_FATAL) && !$_[0]->triggers }
 sub on_create       { $_[0]->{flags} & CF_CREATE }
 sub on_update       { $_[0]->{flags} & CF_UPDATE }
 sub deny_all        { $_[0]->{flags} & CF_DENY }
 
 # { field_name => value }
-# when value is undef, then the change of field with name=field_name to any value is an exception
-# when value is not undef, then only the change to value=value is an exception
+# Исключать изменения поля field_name на значение value,
+# либо на любое значение, если value = undef
 sub except_fields
 {
     my $self = shift;
@@ -163,6 +181,21 @@ sub except_fields
         $self->{except_fields_obj} = $self->{except_fields} ? decode_json($self->{except_fields}) : undef;
     }
     return $self->{except_fields_obj};
+}
+
+# { field_name => value }
+# Изменить значение поля field_name на value. Для полей с множествами значений
+# field_name также может быть add_<field_name> или remove_<field_name>, что означает
+# добавить значение или удалить значение соответственно.
+# FIXME Пока поддерживается только add_cc.
+sub triggers
+{
+    my $self = shift;
+    if (!exists $self->{triggers_obj})
+    {
+        $self->{triggers_obj} = $self->{triggers} ? decode_json($self->{triggers}) : undef;
+    }
+    return $self->{triggers_obj};
 }
 
 sub name
@@ -202,6 +235,13 @@ sub set_except_fields
     my ($self, $value) = @_;
     $self->set('except_fields', $value ? encode_json($value) : undef);
     delete $self->{except_fields_obj};
+}
+
+sub set_triggers
+{
+    my ($self, $value) = @_;
+    $self->set('triggers', $value ? encode_json($value) : undef);
+    delete $self->{triggers_obj};
 }
 
 1;
