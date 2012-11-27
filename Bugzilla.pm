@@ -886,6 +886,7 @@ sub active_custom_fields
     my $criteria = shift || {};
     $criteria->{custom} = 1;
     $criteria->{obsolete} = 0;
+    $criteria->{sort} ||= 'sortkey';
     return $class->get_fields($criteria);
 }
 
