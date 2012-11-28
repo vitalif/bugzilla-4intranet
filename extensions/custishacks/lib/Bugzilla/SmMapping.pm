@@ -20,6 +20,7 @@ our $InWS = 0;
 our @EXPORT = qw(
     CF_WBS
     get_wbs_mapping
+    get_wbs_mappings
     set_wbs_mapping
     delete_wbs_mapping
     get_wbs
@@ -59,6 +60,14 @@ sub get_wbs_mapping
         undef, $tnerp_id||$our_id
     );
     return $r;
+}
+
+# Get all WBS mappings
+sub get_wbs_mappings
+{
+    return Bugzilla->dbh->selectall_arrayref(
+        "SELECT tnerp_id, our_id FROM tnerp_wbs_mapping", {Slice=>{}}
+    ) || [];
 }
 
 # Set mapping tnerp_id -> our_id

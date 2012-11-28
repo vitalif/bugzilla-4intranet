@@ -15,12 +15,18 @@ use base qw(Bugzilla::WebService::Field Exporter);
 
 use Bugzilla::SmMapping;
 
-# No arguments. Returns all WBS, but without their TNERP_IDs.
+# No arguments. Returns all WBS along with their TNERP_IDs.
 sub get_values
 {
     my ($self, $params) = @_;
     $params->{field} = CF_WBS;
-    return $self->SUPER::get_values($params);
+    my $r = $self->SUPER::get_values($params);
+    my $mappings = { map { ($_->{our_id} => $_->{tnerp_id}) } @{ get_wbs_mappings() } };
+    for (@{$r->{values}})
+    {
+        $_->{tnerp_id} = $mappings->{$_->{id}};
+    }
+    return $r;
 }
 
 # Add a WBS and a mapping TNERP_ID => OUR_ID. Arguments:
