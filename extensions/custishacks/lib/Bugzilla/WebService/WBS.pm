@@ -44,14 +44,14 @@ sub add_value
         my $field = Bugzilla->get_field(CF_WBS);
         my $class = Bugzilla::Field::Choice->type($field);
         my $wbs = $class->new({ id => $other_id });
-        if ($params->{value} ne $wbs->value ||
+        if ($params->{value} ne $wbs->name ||
             $params->{sortkey} != $wbs->sortkey ||
-            $params->{isactive} != $wbs->isactive)
+            $params->{isactive} != $wbs->is_active)
         {
             ThrowUserError('value_mapping_already_exists', {
-                value => $wbs->value,
+                value => $wbs->name,
                 sortkey => $wbs->sortkey,
-                isactive => $wbs->isactive,
+                isactive => $wbs->is_active,
                 tnerp_id => $tnerp_id,
             });
         }
