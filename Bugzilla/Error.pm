@@ -145,10 +145,26 @@ sub _throw_error
     }
     my $mode = Bugzilla->error_mode;
 
+    my $do_die = $mode == ERROR_MODE_DIE ||
+        $mode != ERROR_MODE_DIE_SOAP_FAULT && $mode != ERROR_MODE_JSON_RPC && _in_eval();
+
+    # Report error into [$datadir/] params.error_log if requested
+    if (($mode == ERROR_MODE_DIE || !$do_die) &&
+        (my $logfile = Bugzilla->params->{error_log}))
+    {
+        $logfile = bz_locations()->{datadir} . '/' . $logfile if substr($logfile, 0, 1) ne '/';
+        my $fd;
+        # If we can write into error log, log error details there
+        if (open $fd, ">>", $logfile)
+        {
+            print $fd (("-" x 75) . "\n" . ($msg ||= _error_message($type, $error, $vars)) . "\n");
+            close $fd;
+        }
+    }
+
     # If we are within an eval(), do not do anything more
     # as we are eval'uating some test on purpose.
-    if ($mode == ERROR_MODE_DIE ||
-        $mode != ERROR_MODE_DIE_SOAP_FAULT && $mode != ERROR_MODE_JSON_RPC && _in_eval())
+    if ($do_die)
     {
         die bless { message => ($msg ||= _error_message($type, $error, $vars)), type => $type, error => $error, vars => $vars };
     }
@@ -173,19 +189,6 @@ sub _throw_error
         }
         # If we failed processing template error, just die
         die bless { message => ($msg ||= _error_message($type, $error, $vars)), type => $type, error => $error, vars => $vars };
-    }
-
-    # Report error into [$datadir/] params.error_log if requested
-    if (my $logfile = Bugzilla->params->{error_log})
-    {
-        $logfile = bz_locations()->{datadir} . '/' . $logfile if substr($logfile, 0, 1) ne '/';
-        my $fd;
-        # If we can write into error log, log error details there
-        if (open $fd, ">>", $logfile)
-        {
-            print $fd (("-" x 75) . "\n" . ($msg ||= _error_message($type, $error, $vars)) . "\n");
-            close $fd;
-        }
     }
 
     # Report error to maintainer email if requested
