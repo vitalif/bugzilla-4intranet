@@ -29,40 +29,87 @@ sub get_values
     return $r;
 }
 
-# Add a WBS and a mapping TNERP_ID => OUR_ID. Arguments:
-# tnerp_id  => <TN-ERP's ID for this WBS>
-# value     => <WBS name>
-# sortkey   => <number for sorting>
-# isactive  => <is active? 1|0>
+# Add a WBS with mapping TNERP_ID => OUR_ID.
+#
+# Arguments:
+#   tnerp_id  => <TN-ERP's ID for this WBS>
+#   value     => <WBS name>
+#   sortkey   => <number for sorting>
+#   isactive  => <is active? 1|0>
+#   syncing   => <should be synced with dotProject? 1|0>
+# Errors:
+#   different_value_has_this_id
+#     WE'VE LOST SYNC, there is a different value with this ID
+#   value_already_exists
+#     SYNC IS OK, same id has same value, but different parameters, please update_value
 sub add_value
 {
     my ($self, $params) = @_;
     $params->{field} = CF_WBS;
     my $tnerp_id = delete $params->{tnerp_id};
-    if (my $other_id = get_wbs_mapping($tnerp_id))
+    if (my $map = get_wbs_mapping($tnerp_id))
     {
         my $field = Bugzilla->get_field(CF_WBS);
         my $class = Bugzilla::Field::Choice->type($field);
-        my $wbs = $class->new({ id => $other_id });
-        if ($params->{value} ne $wbs->name ||
-            $params->{sortkey} != $wbs->sortkey ||
-            $params->{isactive} != $wbs->is_active)
+        my $wbs = $class->new({ id => $map->{our_id} });
+        if ($params->{value} ne $wbs->name)
         {
-            ThrowUserError('value_mapping_already_exists', {
+            ThrowUserError('different_value_has_this_id', {
                 value => $wbs->name,
                 sortkey => $wbs->sortkey,
                 isactive => $wbs->is_active,
                 tnerp_id => $tnerp_id,
+                syncing => $map->{syncing},
             });
         }
-        else
+        elsif ($params->{sortkey} != $wbs->sortkey ||
+            $params->{isactive} != $wbs->is_active ||
+            $params->{syncing} != $map->{syncing})
         {
             ThrowUserError('value_already_exists');
         }
+        else
+        {
+            return {
+                status => 'ok',
+                id => $wbs->id,
+            };
+        }
     }
     my $r = $self->SUPER::add_value($params);
-    set_wbs_mapping($r->{id}, $tnerp_id) if $r->{id};
+    if ($r->{id})
+    {
+        add_wbs_mapping({
+            tnerp_id => $tnerp_id,
+            our_id   => $r->{id},
+            syncing  => $params->{syncing} ? 1 : 0,
+        });
+    }
     return $r;
+}
+
+# Decorate parameters for adding/updating/deleting WBS
+sub _tnerp_id_param
+{
+    my ($params) = @_;
+    $params->{field} = CF_WBS;
+    if ($params->{tnerp_id})
+    {
+        $params->{id} = get_wbs_mapping($params->{tnerp_id});
+        if ($params->{id})
+        {
+            if ($params->{syncing} eq $params->{id}->{syncing})
+            {
+                $params->{syncing} = undef;
+            }
+            $params->{id} = $params->{id}->{our_id};
+        }
+        else
+        {
+            return 0;
+        }
+    }
+    return 1;
 }
 
 # Update a WBS identified by its TNERP_ID. Arguments:
@@ -71,16 +118,17 @@ sub add_value
 # value     => <new value>
 # sortkey   => <new sortkey>
 # isactive  => <new isactive>
+# syncing   => <new syncing flag>
 sub update_value
 {
     my ($self, $params) = @_;
-    $params->{field} = CF_WBS;
-    if ($params->{tnerp_id})
+    _tnerp_id_param($params) || return { status => 'value_not_found' };
+    my $r = $self->SUPER::update_value($params);
+    if ($r->{id} && defined $params->{syncing})
     {
-        $params->{id} = get_wbs_mapping($params->{tnerp_id});
-        $params->{id} || return { status => 'value_not_found' };
+        set_wbs_syncing($r->{id}, $params->{syncing});
     }
-    return $self->SUPER::update_value($params);
+    return $r;
 }
 
 # Delete a WBS identified by its TNERP_ID. Arguments:
@@ -88,8 +136,7 @@ sub update_value
 sub delete_value
 {
     my ($self, $params) = @_;
-    $params->{field} = CF_WBS;
-    $params->{id} = get_wbs_mapping($params->{tnerp_id});
+    _tnerp_id_param($params) || return { status => 'value_not_found' };
     my $r = $self->SUPER::delete_value($params);
     delete_wbs_mapping($params->{tnerp_id});
     return $r;
@@ -101,8 +148,7 @@ sub delete_value
 sub set_visibility_values
 {
     my ($self, $params) = @_;
-    $params->{field} = CF_WBS;
-    $params->{id} = get_wbs_mapping($params->{tnerp_id});
+    _tnerp_id_param($params) || return { status => 'value_not_found' };
     return $self->SUPER::set_visibility_values($params);
 }
 
@@ -111,20 +157,27 @@ sub update_sortkeys
 {
     my ($self, $params) = @_;
     my $updated = 0;
+    my $ok = 0;
+    my $failed = [];
     for (keys %$params)
     {
         if (/^sortkey(\d+)$/so)
         {
             my $tnerp_id = $1;
             trick_taint($params->{$_});
-            $updated += Bugzilla->dbh->do(
+            $ok = Bugzilla->dbh->do(
                 "UPDATE cf_wbs w, tnerp_wbs_mapping m SET w.sortkey=?".
                 " WHERE m.tnerp_id=? AND m.our_id=w.id", undef,
                 $params->{$_}, $tnerp_id
             );
+            $updated += $ok;
+            if (!$ok)
+            {
+                push @$failed, $tnerp_id;
+            }
         }
     }
-    return { status => 'ok', updated_rows => $updated };
+    return { status => 'ok', updated_rows => $updated, failed_ids => $failed };
 }
 
 1;

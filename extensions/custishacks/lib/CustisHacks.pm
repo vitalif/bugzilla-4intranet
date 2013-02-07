@@ -25,6 +25,7 @@ sub db_schema_abstract_schema
                 REFERENCES => {TABLE => 'cf_wbs', COLUMN => 'id'}
             },
             tnerp_id => {TYPE => 'INT4', NOTNULL => 1},
+            syncing => {TYPE => 'BOOLEAN', NOTNULL => 1},
         ],
         INDEXES => [
             tnerp_wbs_mapping_tnerp_id => { FIELDS => ['tnerp_id'], TYPE => 'UNIQUE' },
@@ -41,6 +42,7 @@ sub install_update_db
     my $dbh = Bugzilla->dbh;
 
     $dbh->bz_alter_column('tnerp_wbs_mapping', tnerp_id => {TYPE => 'INT4', NOTNULL => 1}, 0);
+    $dbh->bz_add_column('tnerp_wbs_mapping', syncing => {TYPE => 'BOOLEAN', NOTNULL => 1}, 0);
 
     return 1;
 }
@@ -55,9 +57,9 @@ sub sync_bug
         $args->{bug}->product =~ /^СМ-/so) # only for external bugs
     {
         my $tnerp_id = get_wbs_mapping(undef, get_wbs(undef, $args->{bug}->cf_wbs)->id);
-        if ($tnerp_id)
+        if ($tnerp_id && $tnerp_id->{syncing})
         {
-            # Only sync bugs which have WBS known to TN-ERP
+            # Only sync bugs with WBS known to TN-ERP and syncing flag = 1
             Bugzilla->job_queue->insert('sm_sync', { bug_id => $args->{bug}->id, delta_ts => $args->{timestamp} });
         }
     }

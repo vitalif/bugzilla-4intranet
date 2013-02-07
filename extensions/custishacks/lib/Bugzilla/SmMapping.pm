@@ -21,7 +21,8 @@ our @EXPORT = qw(
     CF_WBS
     get_wbs_mapping
     get_wbs_mappings
-    set_wbs_mapping
+    add_wbs_mapping
+    set_wbs_syncing
     delete_wbs_mapping
     get_wbs
     map_state_to_bz
@@ -45,7 +46,8 @@ my %smstatus = (
     FIXED       => 'Complete',
 );
 
-# Get mapping tnerp_id -> ? or our_id => ?
+# Get mapping by tnerp_id or by our_id
+# returns { tnerp_id => ?, our_id => ?, syncing => ? }
 sub get_wbs_mapping
 {
     my ($tnerp_id, $our_id) = @_;
@@ -55,11 +57,11 @@ sub get_wbs_mapping
     }
     $tnerp_id ? trick_taint($tnerp_id) : trick_taint($our_id);
     my ($set, $other) = $tnerp_id ? ('tnerp_id', 'our_id') : ('our_id', 'tnerp_id');
-    my ($r) = Bugzilla->dbh->selectrow_array(
-        "SELECT $other FROM tnerp_wbs_mapping WHERE $set=?",
-        undef, $tnerp_id||$our_id
+    my $r = Bugzilla->dbh->selectall_arrayref(
+        "SELECT * FROM tnerp_wbs_mapping WHERE $set=?",
+        {Slice=>{}}, $tnerp_id||$our_id
     );
-    return $r;
+    return $r && $r->[0];
 }
 
 # Get all WBS mappings
@@ -70,22 +72,34 @@ sub get_wbs_mappings
     ) || [];
 }
 
-# Set mapping tnerp_id -> our_id
-sub set_wbs_mapping
+# Add new WBS mapping
+sub add_wbs_mapping
 {
-    my ($our_id, $tnerp_id) = @_;
-    if ($tnerp_id > 0x7fffffff || $tnerp_id !~ /^\d+$/s)
+    my ($row) = @_;
+    if ($row->{tnerp_id} > 0x7fffffff ||
+        $row->{tnerp_id} < 1 ||
+        $row->{tnerp_id} !~ /^\d+$/s)
     {
         ThrowUserError('tnerp_mapping_id_invalid');
     }
-    trick_taint($_) for $our_id, $tnerp_id;
+    trick_taint($row->{$_}) for keys %$row;
     Bugzilla->dbh->do(
-        "INSERT INTO tnerp_wbs_mapping (our_id, tnerp_id) VALUES (?, ?)",
-        undef, $our_id, $tnerp_id
+        "INSERT INTO tnerp_wbs_mapping (our_id, tnerp_id, syncing) VALUES (?, ?, ?)",
+        undef, @$row{qw(our_id tnerp_id syncing)}
     );
 }
 
-# Remove mapping tnerp_id -> ?
+# Set syncing flag on a WBS by our_id
+sub set_wbs_syncing
+{
+    my ($our_id, $syncing) = @_;
+    Bugzilla->dbh->do(
+        "UPDATE tnerp_wbs_mapping SET syncing=? WHERE our_id=?",
+        undef, $syncing, $our_id
+    );
+}
+
+# Remove mapping by tnerp_id
 sub delete_wbs_mapping
 {
     my ($tnerp_id) = @_;
@@ -121,8 +135,8 @@ sub get_wbs
     my ($tnerp_id, $value) = @_;
     my $field = Bugzilla->get_field(CF_WBS);
     my $class = Bugzilla::Field::Choice->type($field);
-    my $wbs_id = $tnerp_id && get_wbs_mapping($tnerp_id);
-    my $wbs = $wbs_id ? $class->new({ id => $wbs_id }) :
+    my $map = $tnerp_id && get_wbs_mapping($tnerp_id);
+    my $wbs = $map ? $class->new({ id => $map->{our_id} }) :
         ($value ? $class->new({ name => $value }) : undef);
     if (!$wbs)
     {
@@ -151,14 +165,23 @@ sub get_formatted_bugs
     # Format bugs
     my $wbs_id_cache = {};
     my $r = [];
+    my $tnerp_id;
     foreach my $bug (@$bugs)
     {
-        $wbs_id_cache->{$bug->{cf_wbs}} ||=
-            get_wbs_mapping(undef, get_wbs(undef, $bug->{cf_wbs})->id);
+        $tnerp_id = $wbs_id_cache->{$bug->{cf_wbs}};
+        if (!$tnerp_id)
+        {
+            $tnerp_id = get_wbs_mapping(undef, get_wbs(undef, $bug->{cf_wbs})->id);
+            if ($tnerp_id)
+            {
+                $tnerp_id = $tnerp_id->{tnerp_id};
+                $wbs_id_cache->{$bug->{cf_wbs}} = $tnerp_id;
+            }
+        }
         my $state = map_bz_to_state($bug->{bug_status}, $bug->{resolution});
         push @$r, {
             TaskCUID     => $bug->{bug_id}, # FIXME append prefix to ID
-            TaskBUID     => $wbs_id_cache->{$bug->{cf_wbs}},
+            TaskBUID     => $tnerp_id, # FIXME will be undef when wbs is not found
             ComponentUID => $bug->{component_id},
             Name         => $bug->{short_desc},
             Description  => $bug->{comment0},
