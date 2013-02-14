@@ -93,6 +93,7 @@ sub add_wbs_mapping
 sub set_wbs_syncing
 {
     my ($our_id, $syncing) = @_;
+    $syncing = $syncing ? 1 : 0;
     Bugzilla->dbh->do(
         "UPDATE tnerp_wbs_mapping SET syncing=? WHERE our_id=?",
         undef, $syncing, $our_id
