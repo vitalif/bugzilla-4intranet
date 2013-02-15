@@ -258,7 +258,7 @@ sub quoteUrls {
                 if ($verb_url = trim($verb_url))
                 {
                     # remove line feeds and reply markers as the comment is already wrapped
-                    s/\n(>\s*)*//gso for $verb_url, $verb_anchor;
+                    s/\n(>\s*)*/ /gso for $verb_url, $verb_anchor;
                     $verb_anchor = trim($verb_anchor);
                     $link = &$sub($verb_url, $verb_anchor);
                 }
