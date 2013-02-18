@@ -89,7 +89,8 @@ hrwiki http://hrwiki.office.custis.ru/hrwiki/index.php/
 cbwiki http://cbr.office.custis.ru/cbwiki/index.php/
 orwiki http://lodge.office.custis.ru/orwiki/index.php/
 rawiki http://rawiki.office.custis.ru/rawiki/index.php/
-crmwiki http://crm.office.custis.ru/',
+crmwiki http://crm.office.custis.ru/
+itwiki http://itwiki.office.custis.ru/itwiki/index.php/',
            'mime_types_file' => '/etc/mime.types',
            'mostfreqthreshold' => '2',
            'move-button-text' => 'Move To Bugscape',
@@ -118,6 +119,10 @@ crmwiki http://crm.office.custis.ru/',
            'shadowdbport' => '3306',
            'shadowdbsock' => '',
            'shutdownhtml' => '',
+           'sm_dotproject_login' => 'ws-zis',
+           'sm_dotproject_password' => '',
+           'sm_dotproject_ws_user' => 'ws-sur@sportmaster.ru',
+           'sm_dotproject_wsdl_url' => 'http://sur.moscow.sportmaster.ru/dotproject/services/index.php?wsdl',
            'smtp_debug' => 0,
            'smtp_password' => '',
            'smtp_username' => '',
@@ -127,6 +132,7 @@ crmwiki http://crm.office.custis.ru/',
            'sslbase' => '',
            'stem_language' => 'ru',
            'strict_isolation' => 0,
+           'supa_jar_url' => '',
            'test_case_wiki_action_iframe' => '<iframe src="$URL?useskin=ichick" width="100%" height="100%"></iframe>',
            'testopia-allow-group-member-deletes' => 0,
            'testopia-debug' => 'OFF',
