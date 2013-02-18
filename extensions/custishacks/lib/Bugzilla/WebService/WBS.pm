@@ -138,7 +138,6 @@ sub delete_value
     my ($self, $params) = @_;
     _tnerp_id_param($params) || return { status => 'value_not_found' };
     my $r = $self->SUPER::delete_value($params);
-    delete_wbs_mapping($params->{tnerp_id});
     return $r;
 }
 

@@ -22,7 +22,7 @@ sub db_schema_abstract_schema
                 TYPE => 'INT2',
                 NOTNULL => 1,
                 PRIMARYKEY => 1,
-                REFERENCES => {TABLE => 'cf_wbs', COLUMN => 'id'}
+                REFERENCES => {TABLE => 'cf_wbs', COLUMN => 'id', DELETE => 'CASCADE'}
             },
             tnerp_id => {TYPE => 'INT4', NOTNULL => 1},
             syncing => {TYPE => 'BOOLEAN', NOTNULL => 1},
@@ -43,6 +43,12 @@ sub install_update_db
 
     $dbh->bz_alter_column('tnerp_wbs_mapping', tnerp_id => {TYPE => 'INT4', NOTNULL => 1}, 0);
     $dbh->bz_add_column('tnerp_wbs_mapping', syncing => {TYPE => 'BOOLEAN', NOTNULL => 1}, 0);
+    my $f = { @{ $dbh->bz_table_info('tnerp_wbs_mapping')->{FIELDS} } };
+    if ($f->{our_id}->{REFERENCES}->{DELETE} ne 'CASCADE')
+    {
+        $dbh->bz_drop_fk('tnerp_wbs_mapping', 'our_id');
+        # Bugzilla will recreate it by itself
+    }
 
     return 1;
 }
