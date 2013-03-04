@@ -43,12 +43,21 @@ sub LoadTimes
 sub Scale
 {
     my ($propo, $newsum, $min) = @_;
+    if (scalar(keys %$propo) == 1)
+    {
+        # Если элемент один, размазывать там нечего
+        return { keys %$propo => $newsum };
+    }
     my $sum = 0;
     my $n = keys %$propo;
     $sum += $propo->{$_} for keys %$propo;
     my $new = {};
     my $nt;
-    for (keys %$propo)
+    # Сортировка сама по себе не так важна, важно вначале
+    # обрабатывать меньшие значения, чтобы большие размазались корректно
+    # Граничный ошибочный случай - 1 баг с большим значением в начале
+    # и много мелких в конце - в этом случае сумма не сойдётся.
+    for (sort { $propo->{$a} <=> $propo->{$b} } keys %$propo)
     {
         $nt = $sum ? $propo->{$_}*$newsum/$sum : $newsum/$n;
         $nt = POSIX::floor($nt*100+0.5)/100;
