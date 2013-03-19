@@ -66,11 +66,7 @@ sub sync_bug
         if ($tnerp_id && $tnerp_id->{syncing})
         {
             # Only sync bugs with WBS known to TN-ERP and syncing flag = 1
-            Bugzilla->job_queue->insert(TheSchwartz::Job->new(
-                funcname => 'Bugzilla::Job::SM',
-                uniqkey => 'sync='.$args->{bug}->id,
-                arg => { bug_id => $args->{bug}->id, delta_ts => $args->{timestamp} }
-            ));
+            Bugzilla->job_queue->insert('sm_sync', { bug_id => $args->{bug}->id, delta_ts => $args->{timestamp} });
         }
     }
     return 1;

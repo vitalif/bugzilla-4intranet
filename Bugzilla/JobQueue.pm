@@ -27,7 +27,6 @@ use strict;
 use Bugzilla::Constants;
 use Bugzilla::Error;
 use Bugzilla::Install::Util qw(install_string);
-use Scalar::Util qw(blessed);
 use base qw(TheSchwartz);
 
 # This maps job names for Bugzilla::JobQueue to the appropriate modules.
@@ -72,7 +71,7 @@ sub insert {
     my $self = shift;
     my $job = shift;
 
-    my $mapped_job = blessed $job ? $job : JOB_MAP->{$job};
+    my $mapped_job = JOB_MAP->{$job};
     ThrowCodeError('jobqueue_no_job_mapping', { job => $job })
         if !$mapped_job;
     unshift(@_, $mapped_job);

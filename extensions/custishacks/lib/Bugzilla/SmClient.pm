@@ -13,9 +13,8 @@
 
 package Bugzilla::SmClient;
 
-use strict;
 use utf8;
-use Encode;
+use strict;
 use Bugzilla::Util;
 use Bugzilla::Error;
 use SOAP::Lite;
@@ -67,7 +66,6 @@ sub check_ws_error
     {
         local $Carp::CarpLevel = $skipFrames || 1;
         local $Data::Dumper::Indent = 0;
-        Encode::_utf8_on($r->{Status}->{Message});
         Carp::confess(
             "SM WS returned error #$r->{Status}->{ErrorCode}: $r->{Status}->{Message}\n".
             "(in response to $self->{lastFn}(".substr(Dumper($self->{lastParams}), 8, -1)."))\n"
