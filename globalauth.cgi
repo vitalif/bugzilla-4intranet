@@ -130,9 +130,7 @@ if (($id = $args->{ga_id}) && !$args->{ga_client})
     }
 }
 
-$cgi->send_header;
-print "Unknown action passed to Global Auth";
-exit;
+die("Unknown action passed to Global Auth");
 
 1;
 __END__
