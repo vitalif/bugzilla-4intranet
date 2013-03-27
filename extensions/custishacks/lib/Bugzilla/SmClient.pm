@@ -80,6 +80,10 @@ sub call
     $self->{lastFn} = $fn;
     $self->{lastParams} = \@params;
     my $r = $self->{client}->_call($fn, @params);
+    if ($r->{Status}->{Message})
+    {
+        Encode::_utf8_on($r->{Status}->{Message});
+    }
     if ($r->{Status}->{ErrorCode} &&
         $r->{Status}->{Message} =~ /Неверный идентификатор сессии/)
     {
