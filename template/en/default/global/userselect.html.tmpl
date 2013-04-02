@@ -80,7 +80,7 @@ addListener(window, 'load', function() {
     var emptyOptions = [% custom_userlist ? json(custom_userlist) : "null" %];
     new SimpleAutocomplete("[% id | js %]",
         function(h) { userAutocomplete(h, emptyOptions); },
-        [% multiple ? '","' : 'null' %], null, null, 'No users found', true);
+        { emptyText: 'No users found'[% ', multipleDelimiter: ","' IF multiple %] });
 });
 </script>
 [% END %]
