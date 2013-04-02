@@ -466,7 +466,7 @@ addListener(window, 'load', function() {
     </td>
     <script language="JavaScript">
     addListener(window, 'load', function() {
-      new SimpleAutocomplete("email[% n %]", userAutocomplete, null, null, null, 'No users found', true);
+      new SimpleAutocomplete("email[% n %]", userAutocomplete, { emptyText: 'No users found' });
     });
     </script>
   [% END %]
@@ -535,7 +535,7 @@ addListener(window, 'load', function() {
 </dl>
 <script language="JavaScript">
 addListener(window, 'load', function() {
-  new SimpleAutocomplete("chfieldwho", userAutocomplete, null, null, null, 'No users found', true);
+  new SimpleAutocomplete("chfieldwho", userAutocomplete, { emptyText: 'No users found' });
 });
 </script>
 

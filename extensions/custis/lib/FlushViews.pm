@@ -19,7 +19,7 @@ sub refresh_views
 
 # MySQL has a limitation on views! :-(
 # Views in MySQL cannot include a subquery in the FROM clause.
-# We bypass it creating a view for every such subquery.
+# We bypass it by creating a view for every such subquery.
 sub recurse_create_view
 {
     my ($dbh, $name, $sql, $index) = @_;

@@ -1,18 +1,35 @@
 /* Simple autocomplete for text inputs, with the support for multiple selection.
+
    Homepage: http://yourcmc.ru/wiki/SimpleAutocomplete
-   (c) Vitaliy Filippov 2011
+   License: MPL 2.0+ (http://www.mozilla.org/MPL/2.0/)
+   (c) Vitaliy Filippov 2011-2013
+
    Usage:
      Include hinter.css, hinter.js on your page. Then write:
-     var hint = new SimpleAutocomplete(input, dataLoader, multipleDelimiter, onChangeListener, maxHeight, emptyText, allowHTML);
+     var hint = new SimpleAutocomplete(input, dataLoader, params);
+
    Parameters:
      input
        The input, either id or DOM element reference (the input must have an id anyway).
-     dataLoader(hint, value)
-       Callback which should load autocomplete options and then call
-       hint.replaceItems([ [ name, value ], [ name, value ], ... ])
-       'hint' parameter will be this autocompleter object, and the guess
-       should be done based on 'value' parameter (string).
-   Optional parameters:
+     dataLoader(hint, value[, more])
+       Callback which should load autocomplete options and then call:
+       hint.replaceItems(newOptions, append)
+         newOptions = [ [ name, value, disabled, checked ] ], [ name, value ], ... ]
+           name = HTML option name
+           value = plaintext option value
+           disabled = only meaningful when multipleListener is set
+           checked = only meaningful when multipleListener is set
+         append = 'more' parameter should be passed here
+       Callback parameters:
+         hint
+           This SimpleAutocomplete object
+         value
+           The string guess should be done based on
+         more
+           The 'page' of autocomplete options to load, 0 = first page.
+           See also moreMarker option below.
+
+   params attribute is an object with optional parameters:
      multipleDelimiter
        Pass a delimiter string (for example ',' or ';') to enable multiple selection.
        Item values cannot have leading or trailing whitespace. Input value will consist
@@ -20,396 +37,482 @@
        dataLoader should handle it's 'value' parameter accordingly in this case,
        because it will be just the raw value of the input, probably with incomplete
        item or items, typed by the user.
+     multipleListener(hint, index, item)
+       If you don't want to touch the input value, but want to use multi-select for
+       your own purposes, specify a callback that will handle item clicks here.
+       Also you can disable and check/uncheck items during loading in this mode.
      onChangeListener(hint, index)
        Callback which is called when input value is changed using this dropdown.
        index is the number of element which selection is changed, starting with 0.
        It must be used instead of normal 'onchange' event.
-     maxHeight
-       Maximum hint dropdown height in pixels
      emptyText
-       Text to show when dataLoader returns no options.
-       If emptyText === false, the hint will be hidden instead of showing text.
-     allowHTML
-       If true, HTML code will be allowed in option names.
+       Text to show when dataLoader returns no options. Empty (default) means 'hide hint'.
+     prompt
+       HTML text to be displayed before a non-empty option list. Empty by default.
+     delay
+       If this is set to a non-zero value, the autocompleter does no more than
+       1 request in each delay milliseconds.
+     moreMarker
+       The server supplying hint options usually limits their count.
+       But it's not always convenient having to type additional characters to
+       narrow down the selection. Optionally you can supply additional item
+       with special value equal to moreMarker value or '#MORE' at the end
+       of the list, and SimpleAutocomplete will issue another request to
+       dataLoader with incremented 'more' parameter when it will be clicked.
+       You can also set moreMarker to false to disable this feature.
+
+   Destroy instance:
+     hint.remove(); hint = null;
 */
 
-var SimpleAutocomplete = function(input, dataLoader, multipleDelimiter, onChangeListener, maxHeight, emptyText, allowHTML)
+// *** Constructor ***
+
+var SimpleAutocomplete = function(input, dataLoader, params)
 {
     if (typeof(input) == 'string')
         input = document.getElementById(input);
-    if (emptyText === undefined)
-        emptyText = 'No items found';
+    if (!params)
+        params = {};
 
     // Parameters
-    var self = this;
-    self.input = input;
-    self.multipleDelimiter = multipleDelimiter;
-    self.dataLoader = dataLoader;
-    self.onChangeListener = onChangeListener;
-    self.maxHeight = maxHeight;
-    self.emptyText = emptyText;
-    self.allowHTML = allowHTML;
+    this.input = input;
+    this.dataLoader = dataLoader;
+    this.multipleDelimiter = params.multipleDelimiter || params.multipleListener;
+    this.multipleListener = params.multipleListener;
+    this.onChangeListener = params.onChangeListener;
+    this.emptyText = params.emptyText;
+    this.prompt = params.prompt;
+    this.delay = params.delay;
+    this.moreMarker = params.moreMarker;
+
+    // Default values
+    if (this.moreMarker === undefined)
+        this.moreMarker = '#MORE';
+    if (this.delay === undefined)
+        this.delay = 300;
 
     // Variables
-    self.items = [];
-    self.skipHideCounter = 0;
-    self.selectedIndex = -1;
-    self.id = input.id;
-    self.disabled = false;
-
-    // Initialiser
-    var init = function()
-    {
-        var e = self.input;
-        var p = getOffset(e);
-
-        // Create hint layer
-        var t = self.hintLayer = document.createElement('div');
-        t.className = 'hintLayer';
-        t.style.display = 'none';
-        t.style.position = 'absolute';
-        t.style.top = (p.top+e.offsetHeight) + 'px';
-        t.style.zIndex = 1000;
-        t.style.left = p.left + 'px';
-        if (self.maxHeight)
-        {
-            t.style.overflowY = 'scroll';
-            try { t.style.overflow = '-moz-scrollbars-vertical'; } catch(exc) {}
-            t.style.maxHeight = self.maxHeight+'px';
-            if (!t.style.maxHeight)
-                self.scriptMaxHeight = true;
-        }
-        document.body.appendChild(t);
-
-        // Remember instance
-        e.SimpleAutocomplete_input = self;
-        t.SimpleAutocomplete_layer = self;
-        SimpleAutocomplete.SimpleAutocompletes.push(self);
-
-        // Set event listeners
-        var ie_opera = navigator.userAgent.match('MSIE') || navigator.userAgent.match('Opera');
-        if (ie_opera)
-            addListener(e, 'keydown', self.onKeyPress);
-        else
-        {
-            addListener(e, 'keydown', self.onKeyDown);
-            addListener(e, 'keypress', self.onKeyPress);
-        }
-        addListener(e, 'keyup', self.onKeyUp);
-        addListener(e, 'change', self.onChange);
-        addListener(e, 'focus', self.onInputFocus);
-        addListener(e, 'blur', self.onInputBlur);
-        self.onChange();
-    };
-
-    // obj = [ [ name, value, disabled ], [ name, value ], ... ]
-    self.replaceItems = function(items)
-    {
-        self.hintLayer.innerHTML = '';
-        self.hintLayer.scrollTop = 0;
-        self.items = [];
-        if (!items || items.length == 0)
-        {
-            if (self.emptyText)
-            {
-                var d = document.createElement('div');
-                d.className = 'hintEmptyText';
-                d.innerHTML = self.emptyText;
-                self.hintLayer.appendChild(d);
-            }
-            else
-                self.disable();
-            return;
-        }
-        self.enable();
-        var h = {};
-        if (self.multipleDelimiter)
-        {
-            var old = self.input.value.split(self.multipleDelimiter);
-            for (var i = 0; i < old.length; i++)
-                h[old[i].trim()] = true;
-        }
-        for (var i in items)
-            self.hintLayer.appendChild(self.makeItem(items[i][0], items[i][1], h[items[i][1]]));
-        if (self.maxHeight)
-        {
-            self.hintLayer.style.height =
-                (self.hintLayer.scrollHeight > self.maxHeight
-                ? self.maxHeight : self.hintLayer.scrollHeight) + 'px';
-        }
-    };
-
-    // Create a drop-down list item, include checkbox if self.multipleDelimiter is true
-    self.makeItem = function(name, value, checked)
-    {
-        var d = document.createElement('div');
-        d.id = self.id+'_item_'+self.items.length;
-        d.className = 'hintItem';
-        d.title = value;
-        if (self.allowHTML)
-            d.innerHTML = name;
-        if (self.multipleDelimiter)
-        {
-            var c = document.createElement('input');
-            c.type = 'checkbox';
-            c.id = self.id+'_check_'+self.items.length;
-            c.checked = checked && true;
-            c.value = value;
-            if (d.childNodes.length)
-                d.insertBefore(c, d.firstChild);
-            else
-                d.appendChild(c);
-            addListener(c, 'click', self.preventCheck);
-        }
-        if (!self.allowHTML)
-            d.appendChild(document.createTextNode(name));
-        addListener(d, 'mouseover', self.onItemMouseOver);
-        addListener(d, 'mousedown', self.onItemClick);
-        self.items.push([name, value, checked]);
-        return d;
-    };
-
-    // Prevent default action on checkbox
-    self.preventCheck = function(ev)
-    {
-        ev = ev||window.event;
-        return stopEvent(ev, false, true);
-    };
-
-    // Handle item mouse over
-    self.onItemMouseOver = function()
-    {
-        return self.highlightItem(this);
-    };
-
-    // Handle item clicks
-    self.onItemClick = function(ev)
-    {
-        self.selectItem(parseInt(this.id.substr(self.id.length+6)));
-        return true;
-    };
-
-    // Move highlight forward or back by 'by' items (integer)
-    self.moveHighlight = function(by)
-    {
-        var n = self.selectedIndex+by;
-        if (n < 0)
-            n = 0;
-        var elem = document.getElementById(self.id+'_item_'+n);
-        if (!elem)
-            return true;
-        return self.highlightItem(elem);
-    };
-
-    // Make item 'elem' active (highlighted)
-    self.highlightItem = function(elem)
-    {
-        if (self.selectedIndex >= 0)
-        {
-            var c = self.getItem();
-            if (c)
-                c.className = 'hintItem';
-        }
-        self.selectedIndex = parseInt(elem.id.substr(self.id.length+6));
-        elem.className = 'hintActiveItem';
-        return false;
-    };
-
-    // Get index'th item, or current when index is null
-    self.getItem = function(index)
-    {
-        if (index == null)
-            index = self.selectedIndex;
-        if (index < 0)
-            return null;
-        return document.getElementById(self.id+'_item_'+self.selectedIndex);
-    };
-
-    // Select index'th item - change the input value and hide the hint if not a multi-select
-    self.selectItem = function(index)
-    {
-        if (!self.multipleDelimiter)
-        {
-            self.input.value = self.items[index][1];
-            self.hide();
-        }
-        else
-        {
-            document.getElementById(self.id+'_check_'+index).checked = self.items[index][2] = !self.items[index][2];
-            var old = self.input.value.split(self.multipleDelimiter);
-            for (var i = 0; i < old.length; i++)
-                old[i] = old[i].trim();
-            if (!self.items[index][2])
-            {
-                for (var i = old.length-1; i >= 0; i--)
-                    if (old[i] == self.items[index][1])
-                        old.splice(i, 1);
-                self.input.value = old.join(self.multipleDelimiter+' ');
-            }
-            else
-            {
-                var h = {};
-                for (var i = 0; i < self.items.length; i++)
-                    if (self.items[i][2])
-                        h[self.items[i][1]] = true;
-                var nl = [];
-                for (var i = 0; i < old.length; i++)
-                {
-                    if (h[old[i]])
-                    {
-                        delete h[old[i]];
-                        nl.push(old[i]);
-                    }
-                }
-                for (var i = 0; i < self.items.length; i++)
-                    if (self.items[i][2] && h[self.items[i][1]])
-                        nl.push(self.items[i][1]);
-                self.input.value = nl.join(self.multipleDelimiter+' ');
-            }
-        }
-        self.curValue = self.input.value;
-        if (self.onChangeListener)
-            self.onChangeListener(self, index);
-    };
-
-    // Handle user input, load new items
-    self.onChange = function()
-    {
-        var v = self.input.value.trim();
-        if (v != self.curValue)
-        {
-            self.curValue = v;
-            self.dataLoader(self, v);
-        }
-        return true;
-    };
-
-    // Handle Enter key presses, cancel handling of arrow keys
-    self.onKeyUp = function(ev)
-    {
-        ev = ev||window.event;
-        if (ev.keyCode != 10 && ev.keyCode != 13)
-            self.show();
-        if (ev.keyCode == 38 || ev.keyCode == 40 || ev.keyCode == 10 || ev.keyCode == 13)
-        {
-            if (self.hintLayer.style.display == '')
-                return stopEvent(ev, true, true);
-            else
-                return true;
-        }
-        self.onChange();
-        return true;
-    };
-
-    // Cancel handling of Enter key
-    self.onKeyDown = function(ev)
-    {
-        ev = ev||window.event;
-        if (ev.keyCode == 10 || ev.keyCode == 13)
-        {
-            if (self.hintLayer.style.display == '')
-                return stopEvent(ev, true, true);
-            else
-                return true;
-        }
-        return true;
-    };
-
-    // Handle arrow keys and Enter
-    self.onKeyPress = function(ev)
-    {
-        if (self.hintLayer.style.display == 'none')
-            return true;
-        ev = ev||window.event;
-        if (ev.keyCode == 38) // up
-            self.moveHighlight(-1);
-        else if (ev.keyCode == 40) // down
-            self.moveHighlight(1);
-        else if (ev.keyCode == 10 || ev.keyCode == 13) // enter
-        {
-            if (self.selectedIndex >= 0)
-                self.selectItem(self.selectedIndex);
-            return stopEvent(ev, true, true);
-        }
-        else
-            return true;
-        // scrolling
-        if (self.selectedIndex >= 0)
-        {
-            var c = self.getItem();
-            var t = self.hintLayer;
-            var ct = getOffset(c).top + t.scrollTop - t.style.top.substr(0, t.style.top.length-2);
-            var ch = c.scrollHeight;
-            if (ct+ch-t.offsetHeight > t.scrollTop)
-                t.scrollTop = ct+ch-t.offsetHeight;
-            else if (ct < t.scrollTop)
-                t.scrollTop = ct;
-        }
-        return stopEvent(ev, true, true);
-    };
-
-    // Called when input receives focus
-    self.onInputFocus = function()
-    {
-        self.show();
-        self.hasFocus = true;
-        return true;
-    };
-
-    // Called when input loses focus
-    self.onInputBlur = function()
-    {
-        self.hide();
-        self.hasFocus = false;
-        return true;
-    };
-
-    // Hide hinter
-    self.hide = function()
-    {
-        if (!self.skipHideCounter)
-        {
-            self.hintLayer.style.display = 'none';
-            self.input.autocomplete = 'on';
-        }
-        else
-            self.skipHideCounter = 0;
-    };
-
-    // Show hinter
-    self.show = function()
-    {
-        if (!self.disabled)
-        {
-            var p = getOffset(self.input);
-            self.hintLayer.style.top = (p.top+self.input.offsetHeight) + 'px';
-            self.hintLayer.style.left = p.left + 'px';
-            self.hintLayer.style.display = '';
-            self.input.autocomplete = 'off';
-        }
-    };
-
-    // Disable hinter, for the case when there is no items and no empty text
-    self.disable = function()
-    {
-        self.disabled = true;
-        self.hide();
-    };
-
-    // Enable hinter
-    self.enable = function()
-    {
-        var show = self.disabled;
-        self.disabled = false;
-        if (show)
-            self.show();
-    }
+    this.more = 0;
+    this.timer = null;
+    this.closure = [];
+    this.items = [];
+    this.skipHideCounter = 0;
+    this.selectedIndex = -1;
+    this.disabled = false;
 
     // *** Call initialise ***
-    init();
+    this.init();
 };
 
-// Global variable
+// *** Instance methods ***
+
+// Initialiser
+SimpleAutocomplete.prototype.init = function()
+{
+    var e = this.input;
+    e.autocomplete = 'off';
+    var l = SimpleAutocomplete.SimpleAutocompletes;
+    this.id = this.input.id + l.length;
+    l.push(this);
+
+    var p = getOffset(e);
+
+    // Create hint layer
+    var t = this.hintLayer = document.createElement('div');
+    t.className = 'hintLayer';
+    t.style.display = 'none';
+    t.style.position = 'absolute';
+    t.style.top = (p.top+e.offsetHeight) + 'px';
+    t.style.zIndex = 1000;
+    t.style.left = p.left + 'px';
+    document.body.appendChild(t);
+
+    // Remember instance
+    e.SimpleAutocomplete_input = this;
+    t.SimpleAutocomplete_layer = this;
+
+    // Set event listeners
+    var self = this;
+    this.addRmListener('keydown', function(ev) { return self.onKeyDown(ev); });
+    this.addRmListener('keyup', function(ev) { return self.onKeyUp(ev); });
+    this.addRmListener('change', function() { return self.onChange(); });
+    this.addRmListener('focus', function() { return self.onInputFocus(); });
+    this.addRmListener('blur', function() { return self.onInputBlur(); });
+    addListener(t, 'mousedown', function(ev) { return self.cancelBubbleOnHint(ev); });
+    this.onChange();
+};
+
+// items = [ [ name, value ], [ name, value ], ... ]
+SimpleAutocomplete.prototype.replaceItems = function(items, append)
+{
+    if (!append)
+    {
+        this.hintLayer.scrollTop = 0;
+        this.selectedIndex = 0;
+        this.items = [];
+        if (!items || items.length == 0)
+        {
+            if (this.emptyText)
+                this.hintLayer.innerHTML = '<div class="hintEmptyText">'+this.emptyText+'</div>';
+            else
+                this.disable();
+            return;
+        }
+        this.hintLayer.innerHTML = this.prompt ? '<div class="hintPrompt">'+this.prompt+'</div>' : '';
+        this.enable();
+    }
+    if (!this.multipleListener)
+        for (var i in items)
+            items[i][2] = 0;
+    if (this.multipleDelimiter && !this.multipleListener)
+    {
+        var h = {};
+        var old = this.input.value.split(this.multipleDelimiter);
+        for (var i = 0; i < old.length; i++)
+            h[old[i].trim()] = true;
+        for (var i in items)
+            items[i][3] = h[items[i][1]];
+    }
+    for (var i in items)
+    {
+        this.hintLayer.appendChild(this.makeItem(this.items.length, items[i]));
+        this.items.push(items[i]);
+    }
+};
+
+// Add removable listener (remember the function)
+SimpleAutocomplete.prototype.addRmListener = function(n, f)
+{
+    this.closure[n] = f;
+    addListener(this.input, n, f);
+};
+
+// Remove instance ("destructor")
+SimpleAutocomplete.prototype.remove = function()
+{
+    if (!this.hintLayer)
+        return;
+    this.hintLayer.parentNode.removeChild(this.hintLayer);
+    for (var i in this.closure)
+    {
+        removeListener(this.input, i, this.closure[i]);
+    }
+    for (var i = 0; i < SimpleAutocomplete.SimpleAutocompletes.length; i++)
+    {
+        if (SimpleAutocomplete.SimpleAutocompletes[i] == this)
+        {
+            SimpleAutocomplete.SimpleAutocompletes.splice(i, 1);
+            break;
+        }
+    }
+    this.closure = {};
+    this.input = null;
+    this.hintLayer = null;
+    this.items = null;
+};
+
+// Create a drop-down list item, include checkbox if this.multipleDelimiter is true
+SimpleAutocomplete.prototype.makeItem = function(index, item)
+{
+    var d = document.createElement('div');
+    d.id = this.id+'_item_'+index;
+    d.className = item[2] ? 'hintDisabledItem' : (this.selectedIndex == index ? 'hintActiveItem' : 'hintItem');
+    d.title = item[1];
+    d.innerHTML = item[0];
+    if (this.multipleDelimiter)
+    {
+        var c = document.createElement('input');
+        c.type = 'checkbox';
+        c.id = this.id+'_check_'+index;
+        c.checked = item[3] && true;
+        c.disabled = item[2] && true;
+        c.value = item[1];
+        if (d.childNodes.length)
+            d.insertBefore(c, d.firstChild);
+        else
+            d.appendChild(c);
+        addListener(c, 'click', this.preventCheck);
+    }
+    var self = this;
+    addListener(d, 'mouseover', function() { return self.onItemMouseOver(this); });
+    addListener(d, 'mousedown', function(ev) { return self.onItemClick(ev, this); });
+    return d;
+};
+
+// Move highlight forward or back by 'by' items (integer)
+SimpleAutocomplete.prototype.moveHighlight = function(by)
+{
+    var n = this.selectedIndex+by;
+    if (n < 0)
+        n = 0;
+    var elem = document.getElementById(this.id+'_item_'+n);
+    if (!elem)
+        return true;
+    return this.highlightItem(elem);
+};
+
+// Make item 'elem' active (highlighted)
+SimpleAutocomplete.prototype.highlightItem = function(elem)
+{
+    var ni = parseInt(elem.id.substr(this.id.length+6));
+    if (this.items[ni][2])
+        return false;
+    if (this.selectedIndex >= 0)
+    {
+        var c = this.getItem();
+        if (c)
+            c.className = 'hintItem';
+    }
+    this.selectedIndex = ni;
+    elem.className = 'hintActiveItem';
+    return false;
+};
+
+// Get index'th item, or current when index is null
+SimpleAutocomplete.prototype.getItem = function(index)
+{
+    if (index == null)
+        index = this.selectedIndex;
+    if (index < 0)
+        return null;
+    return document.getElementById(this.id+'_item_'+this.selectedIndex);
+};
+
+// Select index'th item - change the input value and hide the hint if not a multi-select
+SimpleAutocomplete.prototype.selectItem = function(index)
+{
+    if (!this.multipleDelimiter)
+    {
+        this.input.value = this.items[index][1];
+        this.hide();
+    }
+    else
+    {
+        document.getElementById(this.id+'_check_'+index).checked = this.items[index][3] = !this.items[index][3];
+        if (this.multipleListener)
+        {
+            this.multipleListener(this, index, this.items[index]);
+            return;
+        }
+        this.toggleValue(index);
+    }
+    this.curValue = this.input.value;
+    if (this.onChangeListener)
+        this.onChangeListener(this, index);
+};
+
+// Change input value so it will respect index'th item state in a multi-select
+SimpleAutocomplete.prototype.toggleValue = function(index)
+{
+    var old = this.input.value.split(this.multipleDelimiter);
+    for (var i = 0; i < old.length; i++)
+        old[i] = old[i].trim();
+    // Turn the clicked item on or off, preserving order
+    if (!this.items[index][3])
+    {
+        for (var i = old.length-1; i >= 0; i--)
+            if (old[i] == this.items[index][1])
+                old.splice(i, 1);
+        this.input.value = old.join(this.multipleDelimiter+' ');
+    }
+    else
+    {
+        var h = {};
+        for (var i = 0; i < this.items.length; i++)
+            if (this.items[i][3])
+                h[this.items[i][1]] = true;
+        var nl = [];
+        for (var i = 0; i < old.length; i++)
+        {
+            if (h[old[i]])
+            {
+                delete h[old[i]];
+                nl.push(old[i]);
+            }
+        }
+        for (var i = 0; i < this.items.length; i++)
+            if (this.items[i][3] && h[this.items[i][1]])
+                nl.push(this.items[i][1]);
+        this.input.value = nl.join(this.multipleDelimiter+' ');
+    }
+}
+
+// Hide hinter
+SimpleAutocomplete.prototype.hide = function()
+{
+    if (!this.skipHideCounter)
+        this.hintLayer.style.display = 'none';
+    else
+        this.skipHideCounter = 0;
+};
+
+// Show hinter
+SimpleAutocomplete.prototype.show = function()
+{
+    if (!this.disabled)
+    {
+        var p = getOffset(this.input);
+        this.hintLayer.style.top = (p.top+this.input.offsetHeight) + 'px';
+        this.hintLayer.style.left = p.left + 'px';
+        this.hintLayer.style.display = '';
+    }
+};
+
+// Disable hinter, for the case when there is no items and no empty text
+SimpleAutocomplete.prototype.disable = function()
+{
+    this.disabled = true;
+    this.hide();
+};
+
+// Enable hinter
+SimpleAutocomplete.prototype.enable = function()
+{
+    this.disabled = false;
+    if (this.hasFocus)
+        this.show();
+}
+
+// *** Event handlers ***
+
+// Prevent default action on checkbox
+SimpleAutocomplete.prototype.preventCheck = function(ev)
+{
+    ev = ev||window.event;
+    return stopEvent(ev, false, true);
+};
+
+// Cancel event propagation
+SimpleAutocomplete.prototype.cancelBubbleOnHint = function(ev)
+{
+    ev = ev||window.event;
+    if (this.hasFocus)
+        this.skipHideCounter++;
+    return stopEvent(ev, true, false);
+};
+
+// Handle item mouse over
+SimpleAutocomplete.prototype.onItemMouseOver = function(elm)
+{
+    return this.highlightItem(elm);
+};
+
+// Handle item clicks
+SimpleAutocomplete.prototype.onItemClick = function(ev, elm)
+{
+    var index = parseInt(elm.id.substr(this.id.length+6));
+    if (this.items[index][2])
+        return false;
+    if (this.moreMarker && this.items[index][1] == this.moreMarker)
+    {
+        // User clicked 'more'. Load more items without delay.
+        this.items.splice(index, 1);
+        elm.parentNode.removeChild(elm);
+        this.more++;
+        this.onChange(true);
+        return true;
+    }
+    this.selectItem(index);
+    return true;
+};
+
+// Handle user input, load new items
+SimpleAutocomplete.prototype.onChange = function(force)
+{
+    var v = this.input.value.trim();
+    if (!force)
+        this.more = 0;
+    if (v != this.curValue || force)
+    {
+        this.curValue = v;
+        if (!this.delay || force)
+            this.dataLoader(this, v, this.more);
+        else if (!this.timer)
+        {
+            var self = this;
+            this.timer = setTimeout(function() {
+                self.dataLoader(self, self.curValue, self.more);
+                self.timer = null;
+            }, this.delay);
+        }
+    }
+    return true;
+};
+
+// Handle Enter key presses, cancel handling of arrow keys
+SimpleAutocomplete.prototype.onKeyUp = function(ev)
+{
+    ev = ev||window.event;
+    if (ev.keyCode == 38 || ev.keyCode == 40)
+        this.show();
+    if (ev.keyCode == 38 || ev.keyCode == 40 || ev.keyCode == 10 || ev.keyCode == 13)
+    {
+        if (this.hintLayer.style.display == '')
+            return stopEvent(ev, true, true);
+        else
+            return true;
+    }
+    this.onChange();
+    return true;
+};
+
+// Handle arrow keys and Enter
+SimpleAutocomplete.prototype.onKeyDown = function(ev)
+{
+    if (this.hintLayer.style.display == 'none')
+        return true;
+    ev = ev||window.event;
+    if (ev.keyCode == 38) // up
+        this.moveHighlight(-1);
+    else if (ev.keyCode == 40) // down
+        this.moveHighlight(1);
+    else if (ev.keyCode == 10 || ev.keyCode == 13) // enter
+    {
+        if (this.selectedIndex >= 0)
+            this.selectItem(this.selectedIndex);
+        return stopEvent(ev, true, true);
+    }
+    else if (ev.keyCode == 27) // escape
+    {
+        this.hide();
+        return stopEvent(ev, true, true);
+    }
+    else
+        return true;
+    // scrolling
+    if (this.selectedIndex >= 0)
+    {
+        var c = this.getItem();
+        var t = this.hintLayer;
+        var ct = getOffset(c).top + t.scrollTop - t.style.top.substr(0, t.style.top.length-2);
+        var ch = c.scrollHeight;
+        if (ct+ch-t.offsetHeight > t.scrollTop)
+            t.scrollTop = ct+ch-t.offsetHeight;
+        else if (ct < t.scrollTop)
+            t.scrollTop = ct;
+    }
+    return stopEvent(ev, true, true);
+};
+
+// Called when input receives focus
+SimpleAutocomplete.prototype.onInputFocus = function()
+{
+    this.show();
+    this.hasFocus = true;
+    return true;
+};
+
+// Called when input loses focus
+SimpleAutocomplete.prototype.onInputBlur = function()
+{
+    this.hide();
+    this.hasFocus = false;
+    return true;
+};
+
+// *** Global variables ***
+
+// List of all instances
 SimpleAutocomplete.SimpleAutocompletes = [];
 
 // Global mousedown handler, hides dropdowns when clicked outside
@@ -423,11 +526,7 @@ SimpleAutocomplete.GlobalMouseDown = function(ev)
         if (esh)
             break;
         else if (target.SimpleAutocomplete_layer)
-        {
-            if (target.SimpleAutocomplete_layer.hasFocus)
-                target.SimpleAutocomplete_layer.skipHideCounter++;
             return true;
-        }
         target = target.parentNode;
     }
     for (var i in SimpleAutocomplete.SimpleAutocompletes)
@@ -436,8 +535,8 @@ SimpleAutocomplete.GlobalMouseDown = function(ev)
     return true;
 };
 
-//// UTILITY FUNCTIONS ////
-// You can delete this section if you already have them somewhere in your scripts //
+// *** UTILITY FUNCTIONS ***
+// Remove this section if you already have these functions defined somewhere else
 
 // Cancel event bubbling and/or default action
 var stopEvent = function(ev, cancelBubble, preventDefault)
@@ -495,7 +594,7 @@ var getOffsetSum = function(elem)
     return { top: top, left: left };
 };
 
-//// END UTILITY FUNCTIONS ////
+// *** END UTILITY FUNCTIONS ***
 
 // Set global mousedown listener
 addListener(window, 'load', function() { addListener(document, 'mousedown', SimpleAutocomplete.GlobalMouseDown) });
