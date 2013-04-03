@@ -6,6 +6,7 @@ package CustisBuglistHooks;
 use strict;
 use Bugzilla::Search;
 use Bugzilla::Util;
+use Bugzilla::Constants;
 
 # "Static" column definitions - freely cached by Bugzilla forever
 sub buglist_static_columns
@@ -55,6 +56,18 @@ sub buglist_static_columns
     };
 
     $columns->{relevance}->{title} = 'Relevance';
+
+    # CustIS Bug 121622 - "WBS enabled" column
+    my $cf = Bugzilla->get_field('cf_wbs');
+    if ($cf && $cf->type == FIELD_TYPE_SINGLE_SELECT)
+    {
+        my $t = $cf->name;
+        $columns->{$t.'_enabled'} = {
+            title => $cf->description.' is enabled',
+            name => "$t.isactive",
+            joins => [ "LEFT JOIN $t ON $t.value=bugs.$t" ],
+        };
+    }
 
     return 1;
 }
