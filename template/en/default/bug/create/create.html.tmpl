@@ -338,7 +338,7 @@ TUI_hide_default('expert_fields');
     </th>
     <td>
       <select name="component" onchange="set_assign_to();" size="7"
-              aria-required="true" class="required" tabindex="3">
+              aria-required="true" class="required">
         [%# Build the lists of assignees and QA contacts if "usemenuforusers" is enabled. %]
         [% IF Param("usemenuforusers") %]
           [% assignees_list = user.get_userlist.clone %]
@@ -379,7 +379,7 @@ TUI_hide_default('expert_fields');
   <tr>
     <th>Version:</th>
     <td>
-      <select name="version" tabindex="10">
+      <select name="version">
         [%- FOREACH v = version %]
           <option value="[% v FILTER html %]"
             [% ' selected="selected"' IF v == default.version %]>[% v FILTER html -%]
@@ -470,7 +470,7 @@ TUI_hide_default('expert_fields');
   <tr id="resolution_container" style="display:none">
   <th><a href="page.cgi?id=fields.html#resolution">Resolution</a>:</th>
   <td>
-    <select name="resolution" id="resolution" tabindex="10">
+    <select name="resolution" id="resolution">
     [%- FOREACH x = resolution %]
       [% NEXT IF x == "MOVED" %]
       <option value="[% x FILTER html %]">[% x FILTER html %]</option>
@@ -491,7 +491,6 @@ TUI_hide_default('expert_fields');
          size => 30
          emptyok => 1
          custom_userlist => assignees_list
-         tabindex => 10
        %]
       <noscript>(Leave blank to assign to component's default assignee)</noscript>
     </td>
@@ -531,7 +530,6 @@ TUI_hide_default('expert_fields');
          size => 30
          emptyok => 1
          custom_userlist => qa_contacts_list
-         tabindex => 10
        %]
         <noscript>(Leave blank to assign to default qa contact)</noscript>
       </td>
@@ -547,7 +545,6 @@ TUI_hide_default('expert_fields');
          disabled => cc_disabled
          size => 30
          multiple => 5
-         tabindex => 10
        %]
     </td>
   </tr>
@@ -558,29 +555,29 @@ TUI_hide_default('expert_fields');
 [% IF user.is_timetracker %]
     <th>Estimated Hours:</th>
     <td>
-      <input tabindex="10" name="estimated_time" size="6" maxlength="6" value="[% estimated_time | html %]">&nbsp;
+      <input name="estimated_time" size="6" maxlength="6" value="[% estimated_time | html %]">&nbsp;
       <b>Hours Worked:</b>
-      <input tabindex="10" name="work_time" id="work_time" value="[% work_time | html %]" size="6" maxlength="6" onchange="checkWorktime(this)" onkeyup="checkWorktime(this)"" />
+      <input name="work_time" id="work_time" value="[% work_time | html %]" size="6" maxlength="6" onchange="checkWorktime(this)" onkeyup="checkWorktime(this)"" />
     </td>
 [% END %]
     <th>Depends on:</th>
-    <td><input tabindex="10" name="dependson" accesskey="d" value="[% dependson FILTER html %]"></td>
+    <td><input name="dependson" accesskey="d" value="[% dependson FILTER html %]"></td>
   </tr>
   <tr>
 [% IF user.in_group(Param('timetrackinggroup')) %]
     <th>Deadline:</th>
     <td>
-      <input tabindex="10" name="deadline" size="10" maxlength="10" value="[% deadline FILTER html %]">
+      <input name="deadline" size="10" maxlength="10" value="[% deadline FILTER html %]">
       <small>(YYYY-MM-DD)</small>
     </td>
 [% END %]
     <th>Blocks:</th>
-    <td><input tabindex="10" name="blocked" accesskey="b" value="[% blocked FILTER html %]"></td>
+    <td><input name="blocked" accesskey="b" value="[% blocked FILTER html %]"></td>
   </tr>
 
   <tr>
     <th>URL:</th>
-    <td colspan="2"><input tabindex="10" name="bug_file_loc" size="40" value="[% bug_file_loc FILTER html %]"></td>
+    <td colspan="2"><input name="bug_file_loc" size="40" value="[% bug_file_loc FILTER html %]"></td>
   </tr>
 </tbody>
 
@@ -593,7 +590,7 @@ TUI_hide_default('expert_fields');
     <tr>
       [% INCLUDE bug/field.html.tmpl
         bug = default, field = field, value = value, editable = 1,
-        value_span = 3, tabindex = 10 %]
+        value_span = 3 %]
     </tr>
   [% END %]
 </tbody>
@@ -606,7 +603,7 @@ TUI_hide_default('expert_fields');
     <td colspan="3">
       <input name="short_desc" id="short_desc" size="70" value="[% short_desc FILTER html %]"
              maxlength="255" spellcheck="true" aria-required="true"
-             class="required" tabindex="1" />
+             class="required" />
     </td>
   </tr>
 </tbody>
@@ -632,7 +629,6 @@ TUI_hide_default('expert_fields');
          maxrows        = 25
          cols           = constants.COMMENT_COLS
          defaultcontent = defaultcontent
-         tabindex       = 2
        %]
       <br /><input type="button" value="Preview comment" onclick="document.getElementById('wrapcommentpreview').style.width = document.getElementById('comment').offsetWidth+'px'; showcommentpreview('comment');" />
       [% PROCESS "bug/comment-preview-div.html.tmpl" %]
@@ -644,7 +640,7 @@ TUI_hide_default('expert_fields');
       <th>&nbsp;</th>
       <td colspan="3">
         &nbsp;&nbsp;
-        <input tabindex="10" type="checkbox" id="commentprivacy" name="commentprivacy"
+        <input type="checkbox" id="commentprivacy" name="commentprivacy"
           [% " checked=\"checked\"" IF commentprivacy %]>
         <label for="commentprivacy">
           Make description private (visible only to members of the 
@@ -662,14 +658,14 @@ TUI_hide_default('expert_fields');
       <script type="text/javascript">
         <!--
         document.write( '<div id="attachment_false">'
-                      +   '<input tabindex="10" type="button" value="Add an attachment" '
+                      +   '<input type="button" value="Add an attachment" '
                       +          'onClick="handleWantsAttachment(true)"> '
                       +   '<em style="display: none">This button has no '
                       +   'functionality for you because your browser does '
                       +   'not support CSS or does not use it.<\/em>'
                       + '<\/div>'
                       + '<div id="attachment_true" style="display: none">'
-                      +   '<input tabindex="10" type="button" '
+                      +   '<input type="button" '
                       +          'value="Don\'t add an attachment " '
                       +          'onClick="handleWantsAttachment(false)">');
         //-->
@@ -702,17 +698,17 @@ TUI_hide_default('expert_fields');
         [% ELSE %]
         <td>
         [% END %]
-          <input tabindex="10" id="keywords" name="keywords" size="40" value="[% keywords FILTER html %]">
+          <input id="keywords" name="keywords" size="40" value="[% keywords FILTER html %]">
         </td>
       [% IF Param("usebugaliases") %]
         <th>Alias:</th>
-        <td><input tabindex="10" name="alias" size="20"></td>
+        <td><input name="alias" size="20"></td>
       [% END %]
       </tr>
     [% ELSIF Param("usebugaliases") %]
       <tr>
         <th>Alias:</th>
-        <td colspan="3"><input tabindex="10" name="alias" size="20"></td>
+        <td colspan="3"><input name="alias" size="20"></td>
       </tr>
     [% END %]
   [% END %]
@@ -720,7 +716,7 @@ TUI_hide_default('expert_fields');
     <tr>
       <th>Whiteboard:</th>
       <td colspan="3">
-        <input tabindex="10" id="status_whiteboard" name="status_whiteboard" size="40" value="[% status_whiteboard FILTER html %]">
+        <input id="status_whiteboard" name="status_whiteboard" size="40" value="[% status_whiteboard FILTER html %]">
       </td>
     </tr>
   [% END %]
@@ -746,7 +742,7 @@ TUI_hide_default('expert_fields');
       <!-- Checkboxes -->
       [% FOREACH g = group %]
         &nbsp;&nbsp;&nbsp;&nbsp;
-        <input tabindex="10" type="checkbox" id="bit-[% g.bit %]"
+        <input type="checkbox" id="bit-[% g.bit %]"
           name="bit-[% g.bit %]" value="1"
           [% " checked=\"checked\"" IF g.checked %]>
           <label for="bit-[% g.bit %]">[% g.description FILTER html_light %]</label><br>
@@ -763,9 +759,9 @@ TUI_hide_default('expert_fields');
   <tr>
     <th>&nbsp;</th>
     <td colspan="3">
-      <input tabindex="10" type="submit" id="commit" value="Submit [% terms.Bug %]" />
+      <input type="submit" id="commit" value="Submit [% terms.Bug %]" />
       &nbsp;&nbsp;&nbsp;&nbsp;
-      <input tabindex="10" type="submit" name="maketemplate" id="maketemplate"
+      <input type="submit" name="maketemplate" id="maketemplate"
              value="Remember values as bookmarkable template"
              class="expert_fields" />
     </td>
@@ -792,7 +788,7 @@ TUI_hide_default('expert_fields');
   [% END %]
 
   <td>
-    <select name="[% sel.name %]" id="[% sel.name %]"[% IF sel.onchange %] onchange='[% sel.onchange %]'[% END %] tabindex="10">
+    <select name="[% sel.name %]" id="[% sel.name %]"[% IF sel.onchange %] onchange='[% sel.onchange %]'[% END %]>
     [%- FOREACH x = ${sel.name} %]
       <option value="[% x FILTER html %]"
         [% " selected=\"selected\"" IF x == default.${sel.name} %]>
