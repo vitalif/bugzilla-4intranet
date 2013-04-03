@@ -272,11 +272,6 @@ function checkWorktime(inp)
     }
 }
 
-TUI_alternates['expert_fields'] = 'Show Advanced Fields';
-// Hide the Advanced Fields by default, unless the user has a cookie
-// that specifies otherwise.
-TUI_hide_default('expert_fields');
-
 -->
 </script>
 
@@ -301,19 +296,6 @@ TUI_hide_default('expert_fields');
   # 'entryheaderhtml'
   #%]
 [% INCLUDE 'bug/create/user-message.html.tmpl' %]
-</p>
-
-<p>
-<a id="expert_fields_controller"
-   class="controller bz_default_hidden"
-   href="javascript:TUI_toggle_class('expert_fields')">
-  Hide Advanced Fields
-</a>
-
-[%# Show the link if the browser supports JS %]
-<script type="text/javascript">
-    removeClass('expert_fields_controller', 'bz_default_hidden');
-</script>
 </p>
 
 <p>(<span class="required_star">*</span> = <span class="required_explanation">Required Field</span>)</p>
