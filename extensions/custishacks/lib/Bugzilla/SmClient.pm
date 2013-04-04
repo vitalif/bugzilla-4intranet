@@ -187,7 +187,7 @@ sub create_or_update
     }
     else
     {
-        check_ws_error($r);
+        $self->check_ws_error($r);
         # ChangeTaskB is always called after updating task, because there is no way
         # to retrieve "Task B" attribute of task C from dotProject. So we can't check
         # if we need to call ChangeTaskB. An option was to track changes in Bugzilla,
