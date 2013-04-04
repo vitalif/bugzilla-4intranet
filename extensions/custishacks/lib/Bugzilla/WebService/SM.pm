@@ -63,6 +63,7 @@ sub CreateTaskC
         bug_status  => $st,
         resolution  => $res,
     });
+    Bugzilla::BugMail::Send($bug->id, {});
     return { status => 'ok', TaskCUID => $bug->id };
 }
 
@@ -109,6 +110,7 @@ sub UpdateTaskC
         }
     }
     $bug->update;
+    Bugzilla::BugMail::Send($bug->id, {});
     return { status => 'ok' };
 }
 
