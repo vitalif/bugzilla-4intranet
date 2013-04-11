@@ -131,7 +131,7 @@ if ($query_id)
 $sqlquery = " UNION ($sqlquery)" if $sqlquery;
 
 my $tm = "CURRENT_DATE - ".$dbh->sql_interval($lastdays-1, 'DAY');
-
+my $join = $dbh->isa('Bugzilla::DB::Mysql') ? 'STRAIGHT_JOIN' : 'JOIN';
 my $bugsquery = "
  SELECT b.*, p.name product, c.name component, p.notimetracking product_notimetracking,
   ROUND(b.remaining_time,1) remaining_time,
@@ -141,18 +141,17 @@ my $bugsquery = "
    THEN l.work_time
    ELSE 0 END
   ),2) today_work_time
- FROM bugs b
- LEFT JOIN longdescs l ON l.bug_id=b.bug_id
- INNER JOIN products p ON p.id=b.product_id
- INNER JOIN components c ON c.id=b.component_id
- INNER JOIN (
+ FROM (
   SELECT bugs.bug_id FROM longdescs ll, bugs
   WHERE ll.bug_when >= $tm AND ll.who=? AND ll.bug_id=bugs.bug_id
   UNION
   SELECT bugs.bug_id FROM bugs_activity aa, bugs
   WHERE aa.bug_when >= $tm AND aa.who=? AND aa.bug_id=bugs.bug_id
   $sqlquery
- ) t ON t.bug_id=b.bug_id
+ ) t $join bugs b ON t.bug_id=b.bug_id
+ LEFT JOIN longdescs l ON l.bug_id=b.bug_id
+ INNER JOIN products p ON p.id=b.product_id
+ INNER JOIN components c ON c.id=b.component_id
  GROUP BY b.bug_id, b.priority, b.short_desc, p.name, c.name, b.remaining_time
  ORDER BY today_work_time DESC, priority ASC
  ";
