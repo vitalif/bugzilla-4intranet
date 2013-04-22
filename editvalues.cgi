@@ -118,7 +118,7 @@ if ($action eq 'new') {
     my $type = Bugzilla::Field::Choice->type($field);
     # Some types have additional parameters inside REQUIRED_CREATE_FIELDS
     my $created_value = $type->create({
-        map { $_ => scalar $cgi->param($_) } ($type->DB_COLUMNS, $type->REQUIRED_CREATE_FIELDS)
+        map { $_ => scalar $cgi->param($_) } grep { defined $cgi->param($_) } ($type->DB_COLUMNS, $type->REQUIRED_CREATE_FIELDS)
     });
     $created_value->set_visibility_values([ $cgi->param('visibility_value_id') ]);
 
@@ -190,7 +190,7 @@ if ($action eq 'update') {
         $visibility_values = [ $cgi->param('visibility_value_id') ];
     }
     if ($value->can('set_timetracking')) {
-        $value->set_timetracking($cgi->param('timetracking'));
+        $value->set_timetracking($cgi->param('timetracking') ? 1 : 0);
     }
     $value->set_sortkey($cgi->param('sortkey'));
     $vars->{'changes'} = $value->update();
