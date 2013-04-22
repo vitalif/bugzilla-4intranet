@@ -189,6 +189,9 @@ if ($action eq 'update') {
         $value->set_name($cgi->param('value_new'));
         $visibility_values = [ $cgi->param('visibility_value_id') ];
     }
+    if ($value->can('set_timetracking')) {
+        $value->set_timetracking($cgi->param('timetracking'));
+    }
     $value->set_sortkey($cgi->param('sortkey'));
     $vars->{'changes'} = $value->update();
     my $ch = $value->set_visibility_values($visibility_values);
