@@ -90,6 +90,7 @@
            [% END %]
            </td>
     </tr>
+    [% Hook.process('fields') %]
   </table>
   <input type="hidden" name="value" value="[% value.name FILTER html %]" />
   <input type="hidden" name="action" value="update" />

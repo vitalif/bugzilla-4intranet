@@ -1,0 +1,9 @@
+[% IF field.name == 'cf_wbs' %]
+<tr>
+  <th align="right"><label for="timetracking">Time tracking enabled:</label></th>
+  <td><input id="timetracking" name="timetracking" type="checkbox" value="1"
+       [%+ 'checked="checked"' IF value.timetracking %]
+       [%+ 'disabled="disabled"' IF value.is_default OR value.is_static %] />
+       </td>
+</tr>
+[% END %]

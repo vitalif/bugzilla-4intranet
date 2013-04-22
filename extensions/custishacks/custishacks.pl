@@ -17,6 +17,9 @@ clear_hooks('custishacks');
 set_hook('custishacks', 'db_schema_abstract_schema', 'CustisHacks::db_schema_abstract_schema');
 set_hook('custishacks', 'install_update_db', 'CustisHacks::install_update_db');
 
+# Search column
+set_hook('custishacks', 'buglist_static_columns', 'CustisHacks::buglist_static_columns');
+
 # Sending bugs to SM/dotProject
 set_hook('custishacks', 'bug_end_of_create', 'CustisHacks::sync_bug');
 set_hook('custishacks', 'bug_end_of_update', 'CustisHacks::sync_bug');
