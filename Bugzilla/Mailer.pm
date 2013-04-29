@@ -50,7 +50,7 @@ use Email::Address;
 use Email::MIME;
 # Loading this gives us encoding_set.
 use Email::MIME::Modifier;
-use Email::Send;
+use Email::Sender::Simple;
 
 sub MessageToMTA {
     my ($msg, $send_now) = (@_);
@@ -132,19 +132,8 @@ sub MessageToMTA {
     my ($hostname, @args);
     if ($method eq "Sendmail") {
         if (ON_WINDOWS) {
-            $Email::Send::Sendmail::SENDMAIL = SENDMAIL_EXE;
+            push @args, sendmail => SENDMAIL_EXE;
         }
-        push @args, "-i";
-        # We want to make sure that we pass *only* an email address.
-        if ($from) {
-            my ($email_obj) = Email::Address->parse($from);
-            if ($email_obj) {
-                my $from_email = $email_obj->address;
-                push(@args, "-f$from_email") if $from_email;
-            }
-        }
-        push(@args, "-ODeliveryMode=deferred")
-            if !Bugzilla->params->{"sendmailnow"};
     }
     else {
         # Sendmail will automatically append our hostname to the From
@@ -154,7 +143,7 @@ sub MessageToMTA {
         $hostname = $1;
         $from .= "\@$hostname" if $from !~ /@/;
         $email->header_set('From', $from);
-        
+
         # Sendmail adds a Date: header also, but others may not.
         if (!defined $email->header('Date')) {
             $email->header_set('Date', time2str("%a, %e %b %Y %T %z", time()));
@@ -162,14 +151,13 @@ sub MessageToMTA {
     }
 
     if ($method eq "SMTP") {
-        push @args, Host  => Bugzilla->params->{"smtpserver"},
+        push @args, host  => Bugzilla->params->{"smtpserver"},
                     username => Bugzilla->params->{"smtp_username"},
                     password => Bugzilla->params->{"smtp_password"},
-                    Hello => $hostname, 
-                    Debug => Bugzilla->params->{'smtp_debug'};
+                    helo  => $hostname;
     }
 
-    Bugzilla::Hook::process('mailer_before_send', 
+    Bugzilla::Hook::process('mailer_before_send',
                             { email => $email, mailer_args => \@args });
 
     if ($method eq "Test") {
@@ -179,14 +167,16 @@ sub MessageToMTA {
         print TESTFILE "\n\nFrom - " . $email->header('Date') . "\n" . $email->as_string;
         close TESTFILE;
     }
-    else {
+    else
+    {
         # This is useful for both Sendmail and Qmail, so we put it out here.
         local $ENV{PATH} = SENDMAIL_PATH.($ENV{PATH} ? ':'.$ENV{PATH} : '');
-        my $mailer = Email::Send->new({ mailer => $method, 
-                                        mailer_args => \@args });
-        my $retval = $mailer->send($email);
-        ThrowCodeError('mail_send_error', { msg => $retval, mail => $email })
-            if !$retval;
+        my $p = 'Email::Sender::Transport::'.$method;
+        my $pk = $p.'.pm';
+        $pk =~ s!::!/!g;
+        require $pk;
+        my $transport = $p->new({ @args });
+        Email::Sender::Simple->send($email, { transport => $transport });
     }
 }
 

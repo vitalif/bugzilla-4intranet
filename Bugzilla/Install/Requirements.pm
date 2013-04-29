@@ -108,10 +108,9 @@ sub REQUIRED_MODULES {
         version => '2.22'
     },
     {
-        package => 'Email-Send',
-        module  => 'Email::Send',
-        version => ON_WINDOWS ? '2.16' : '2.00',
-        blacklist => ['^2\.196$']
+        package => 'Email-Sender',
+        module  => 'Email::Sender',
+        version => '1.3'
     },
     {
         package => 'Email-MIME',
