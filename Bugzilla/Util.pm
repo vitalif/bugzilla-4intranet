@@ -488,7 +488,8 @@ sub makeParagraphs
             $p = 1;
         }
         # But preserve single line breaks!
-        $m[0] =~ s/\n/<br\/>/giso;
+        $m[0] =~ s/\s+$//so;
+        $m[0] =~ s/\n/<br>/giso;
         $text .= $m[0];
         if ($p)
         {
