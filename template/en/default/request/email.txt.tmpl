@@ -123,7 +123,8 @@ body { font-family: Segoe UI, sans-serif; }
 .bz_st_RESOLVED { text-decoration: line-through; }
 .bz_st_VERIFIED { text-decoration: line-through; border: 1px dashed #2f6fab; background-color: #f9f9f9; line-height: 1.1em; }
 .bz_st_CLOSED { text-decoration: line-through; border: 1px solid #2f6fab; background-color: #f9f9f9; line-height: 1.1em; }
-pre { font-family: Consolas, monospace; font-size: 100%; }
+.bz_comment_text { font-size: 100%; white-space: normal; font-family: monospace; }
+.bz_comment_text .quote { color: #65379c; border-left: solid 3px #65379c; padding-left: .5em; margin-left: .5em; }
 /*-->*/
 </style>
 <body>
@@ -151,9 +152,9 @@ pre { font-family: Consolas, monospace; font-size: 100%; }
 <hr color="#A0A0A0" size="1" />
 <p>
 Additional Comments from [% PROCESS userlink u=user %]:
-<pre style="white-space: pre-wrap; word-wrap: break-word; _white-space: pre;">
+<div class="bz_comment_text">
 [%# TODO comment objects %][%- Bugzilla.cgi.param("comment") | quoteUrls(bug) | wrap_comment | absolute_uris -%]
-</pre>
+</div>
 </p>
 [% END %]
 </body>
