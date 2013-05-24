@@ -115,6 +115,35 @@ function addActionLinks(indexes)
     }
 }
 
+/**
+ * Concatenates all text from element's childNodes, honoring citations.
+ * This is used instead of innerHTML because we want the actual text (and
+ * innerText is non-standard).
+ */
+function getText(element) {
+    var child, text = "", prev;
+    for (var i = 0; i < element.childNodes.length; i++) {
+        child = element.childNodes[i];
+        var type = child.nodeType;
+        if (type == Node.TEXT_NODE || type == Node.ENTITY_REFERENCE_NODE) {
+            text += child.nodeValue;
+        } else if (child.nodeName == 'BR') {
+            text += "\n";
+        } else {
+            /* recurse into nodes of other types */
+            if (child.nodeName == 'P' && prev && prev.nodeName == 'P') {
+                text += "\n\n";
+            }
+            text += getText(child);
+        }
+        prev = child;
+    }
+    if (element.className == 'quote') {
+        text = text.replace(/^\s*(\S)/mg, '> $1');
+    }
+    return text;
+}
+
 /* Adds the reply text to the `comment' textarea */
 function replyToComment(num, id)
 {
@@ -129,7 +158,7 @@ function replyToComment(num, id)
         /* make sure we split on all newlines -- IE or Moz use \r and \n
          * respectively.
          */
-        text = text.split(/\r|\n/);
+        text = text.replace(/\s*$/, '').split(/\r|\n/);
 
         var prev_ist = false, ist = false;
         for (var i = 0; i < text.length; i++)
@@ -140,10 +169,10 @@ function replyToComment(num, id)
             {
                 replytext += "> ";
                 replytext += text[i];
-                replytext += "\n"; 
+                replytext += "\n";
             }
             else if (!prev_ist)
-                replytext += "> (table cut off)\n";
+                replytext += "> (table removed)\n";
             prev_ist = ist;
         }
 

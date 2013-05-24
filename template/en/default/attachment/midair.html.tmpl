@@ -48,9 +48,9 @@
 [% IF cgi.param("comment") %]
 <p>
   Your comment was:<br>
-  <blockquote><pre class="bz_comment_text">
-    [% cgi.param("comment") FILTER wrap_comment FILTER html %]
-  </pre></blockquote>
+  <blockquote><div class="bz_comment_text">
+    [% cgi.param("comment") FILTER quoteUrls FILTER wrap_comment %]
+  </div></blockquote>
 </p>
 [% END %]
 

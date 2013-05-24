@@ -198,27 +198,6 @@ if (typeof Node == 'undefined') {
     };
 }
 
-/* Concatenates all text from element's childNodes. This is used
- * instead of innerHTML because we want the actual text (and
- * innerText is non-standard).
- */
-function getText(element) {
-    var child, text = "";
-    for (var i=0; i < element.childNodes.length; i++) {
-        child = element.childNodes[i];
-        var type = child.nodeType;
-        if (type == Node.TEXT_NODE || type == Node.ENTITY_REFERENCE_NODE) {
-            text += child.nodeValue;
-        } else if (child.nodeName.toLowerCase() == 'br') {
-            text += "\n";
-        } else {
-            /* recurse into nodes of other types */
-            text += getText(child);
-        }
-    }
-    return text;
-}
-
 /* Functions for comment preview */
 
 // pseudo-ajax through form submit to an invisible iframe

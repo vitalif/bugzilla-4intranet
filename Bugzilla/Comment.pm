@@ -148,11 +148,11 @@ sub body_full {
     else {
         $body = $self->body;
     }
-    if ($params->{wrap} and !$self->already_wrapped) {
-        $body = wrap_comment($body);
-    }
     if (!$params->{is_bugmail}) {
         $body = Bugzilla::Template::quoteUrls($body, $self->bug_id, $self);
+    }
+    if ($params->{wrap}) {
+        $body = wrap_comment($body);
     }
     return $body;
 }

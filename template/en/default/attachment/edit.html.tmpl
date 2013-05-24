@@ -69,7 +69,9 @@
             defaultcontent = attachment.description
           %]
           [% IF !can_edit %]
-            [%+ attachment.description FILTER wrap_comment(25) FILTER html %]
+            <div class="bz_comment_text">
+            [%+ attachment.description FILTER wrap_comment FILTER html %]
+            </div>
           [% END %]
         </div>
 

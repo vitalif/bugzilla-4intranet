@@ -152,7 +152,7 @@ pre { font-family: Consolas, monospace; font-size: 100%; }
 <p>
 Additional Comments from [% PROCESS userlink u=user %]:
 <pre style="white-space: pre-wrap; word-wrap: break-word; _white-space: pre;">
-[%# TODO comment objects %][%- Bugzilla.cgi.param("comment") | wrap_comment | quoteUrls(bug) | absolute_uris -%]
+[%# TODO comment objects %][%- Bugzilla.cgi.param("comment") | quoteUrls(bug) | wrap_comment | absolute_uris -%]
 </pre>
 </p>
 [% END %]

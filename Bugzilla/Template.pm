@@ -152,14 +152,6 @@ sub template_exists
     return undef;
 }
 
-sub nl2br
-{
-    my $a = shift;
-    $a =~ s/ /&nbsp;/giso;
-    $a =~ s/\n/<br\/>/giso;
-    return $a;
-}
-
 # This routine quoteUrls contains inspirations from the HTML::FromText CPAN
 # module by Gareth Rees <garethr@cre.canon.co.uk>.  It has been heavily hacked,
 # all that is really recognizable from the original is bits of the regular
@@ -283,11 +275,9 @@ sub quoteUrls {
     # THIS MEANS THAT A LITERAL ", <, >, ' MUST BE ESCAPED FOR A MATCH
 
     $text = html_quote($text);
-    $text =~ s!((?:[│─┌┐└┘├┴┬┤┼][^\n]*[│─┌┐└┘├┴┬┤┼][ \t]*(?:\n|$))+)!'<div style="white-space: nowrap; word-wrap: normal">'.nl2br($1).'</div>'!geso;
 
     # Color quoted text
-    $text =~ s~^(&gt;.+)$~<span class="quote">$1</span >~mg;
-    $text =~ s~</span >\n<span class="quote">~\n~g;
+    $text = makeCitations($text);
 
     # mailto:
     $text =~ s~\b((mailto:)?)([\w\.\-\+\=]+\@[\w\-]+(?:\.[\w\-]+)+)\b

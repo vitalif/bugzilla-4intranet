@@ -160,8 +160,8 @@
 [%# Don't indent the <pre> block, since then the spaces are displayed in the
   # generated HTML
   #%]
-<pre class="bz_comment_text [% " collapsed" IF wt_only %]" id="comment_text_[% comment.id %]">
+<div class="bz_comment_text [% " collapsed" IF wt_only %]" id="comment_text_[% comment.id %]">
   [%- comment.body_full({ wrap => 1 }) -%]
-</pre>
+</div>
     </div>
 [% END %]
