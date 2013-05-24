@@ -282,24 +282,24 @@ div#docslinks {
 /****************/
 
 .bz_comment { margin-bottom: 2em; }
-.bz_comment_text { width: 50em; }
 
-.bz_comment_text span.quote {
+.bz_comment_text {
+    width: 50em;
+    font-size: medium;
+    white-space: normal;
+}
+
+.bz_comment_text .quote {
     color: #65379c;
-    /* Make quoted text not wrap. */
-    white-space: pre;
+    border-left: solid 3px #65379c;
+    padding-left: .5em;
+    margin-left: .5em;
 }
 
 /* The rules for these classes make international text wrap correctly,
    even for languages like Japanese that have no spaces. */
 .bz_comment_text, .uneditable_textarea {
-     font-family: monospace;
-    /* Note that these must all be on separate lines or they stop
-       working in Konqueror. */
-     white-space: pre-wrap;      /* CSS 3 & 2.1 */
-     white-space: -moz-pre-wrap; /* Gecko */
-     white-space: -pre-wrap;     /* Opera 4-6 */
-     white-space: -o-pre-wrap;   /* Opera 7 */
+    font-family: monospace;
 }
 
 .bz_comment_hilite pre {

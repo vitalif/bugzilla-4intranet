@@ -221,8 +221,7 @@
        [% END %]
   [% END %]
 [% ELSIF field.type == constants.FIELD_TYPE_TEXTAREA %]
-  <div class="uneditable_textarea">[% value FILTER wrap_comment(60)
-                                            FILTER html %]</div>
+  <div class="uneditable_textarea">[% value FILTER html FILTER wrap_comment %]</div>
 [% ELSIF field.type == constants.FIELD_TYPE_BUG_ID %]
     [% IF bug.${field.name} %]  
         [% bug.${field.name} FILTER bug_link(bug.${field.name}) FILTER none %]

@@ -25,7 +25,7 @@
             <div class="item-signature"><a href="[% Param("user_mailto") %][% evt.login_name %]">[% evt.realname FILTER html %]</a></div>
             [% IF evt.thetext %]
             <pre>
-                [% evt.thetext FILTER wrap_comment FILTER quoteUrls FILTER absolute_uris %]
+                [% evt.thetext FILTER quoteUrls FILTER wrap_comment FILTER absolute_uris %]
             </pre>
             [% END %]
             [% IF evt.changes %]

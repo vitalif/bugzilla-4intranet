@@ -38,7 +38,7 @@ use base qw(Exporter);
     i_am_cgi correct_urlbase remote_ip lsearch
     do_ssl_redirect_if_required use_attachbase
     diff_arrays list
-    trim wrap_hard wrap_comment find_wrap_point
+    trim wrap_hard wrap_comment find_wrap_point makeCitations
     format_time format_time_decimal validate_date validate_time datetime_from
     file_mod_time is_7bit_clean
     bz_crypt generate_random_password
@@ -379,63 +379,125 @@ sub trim {
 
 sub wrap_comment
 {
-    my ($comment, $cols) = @_;
+    my ($comment) = @_;
     my $wrappedcomment = "";
 
-    $cols ||= COMMENT_COLS;
-    $cols-=2;
-    my $re = qr/^(.{0,$cols}(\s(?=\S)|\S(?=\s)))\s*/s;
-    $cols+=2;
-
     my $table;
-
     foreach my $line (split /\r\n?|\n/, $comment)
     {
         if ($table)
         {
-            if (scalar($line =~ s/(\t+)/$1/gso) > 0)
+            if (scalar($line =~ s/(\t+|│+)/$1/gso) > 0)
             {
-                $table->add(split /\t+/, $line);
+                $line =~ s/^\s*│\s*//;
+                $table->add(split /\t+|\s*│+\s*/, $line);
                 next;
             }
             else
             {
-                $wrappedcomment .= $table->render . "\n";
+                $wrappedcomment .= '<div style="white-space: nowrap; word-wrap: normal">' . "\n" .
+                    verbatimLines($table->render) . "\n</div>";
                 $table = undef;
             }
         }
-        if (length $line)
+        my $n = scalar($line =~ s/(\t+|│+)/$1/gso);
+        if ($n > 1 && length($line) < MAX_TABLE_COLS)
         {
-            # If the line starts with ">", don't wrap it. Otherwise, wrap.
-            if ($line !~ /^>/so)
-            {
-                my $n = scalar($line =~ s/(\t+)/$1/gso);
-                if ($n > 1 && length($line) < MAX_TABLE_COLS)
-                {
-                    # Table
-                    $table = Text::TabularDisplay::Utf8->new;
-                    $table->add(split /\t+/, $line);
-                    next;
-                }
-                unless ($line =~ /^[│─┌┐└┘├┴┬┤┼].*[│─┌┐└┘├┴┬┤┼]$/iso)
-                {
-                    $line =~ s/\t/    /gso;
-                    while (length($line) > $cols && $line =~ s/$re//)
-                    {
-                        $wrappedcomment .= $1 . "\n";
-                    }
-                }
-            }
-            $wrappedcomment .= $line . "\n" if length $line;
+            # Table
+            $line =~ s/^\s*│\s*//;
+            $table = Text::TabularDisplay::Utf8->new;
+            $table->add(split /\t+|\s*│+\s*/, $line);
+            next;
+        }
+        if ($line =~ /^\s*[│─┌┐└┘├┴┬┤┼]+\s*$/so)
+        {
+            next;
+        }
+        unless ($line =~ /^[│─┌┐└┘├┴┬┤┼].*[│─┌┐└┘├┴┬┤┼]$/iso)
+        {
+            $line =~ s/\t/    /gso;
+        }
+        $wrappedcomment .= $line . "\n";
+    }
+    if ($table)
+    {
+        $wrappedcomment .=
+            '<div style="white-space: nowrap; word-wrap: normal">' . "\n" .
+            verbatimLines($table->render) . "\n</div>";
+    }
+    return makeParagraphs($wrappedcomment);
+}
+
+sub verbatimLines
+{
+    my $a = shift;
+    $a =~ s/ /&nbsp;/giso;
+    $a =~ s/\n/<br\/>/giso;
+    return $a;
+}
+
+sub makeCitations
+{
+    my ($input) = @_;
+    my $last = 0;
+    my $text = '';
+    my ($re, $pre);
+    for (split /\n/, $input)
+    {
+        $pre = '';
+        s/^\s*((?:&gt;\s*)*)//s;
+        $re = ($1 =~ tr/&/&/);
+        if ($_)
+        {
+            $text .= ("<div class=\"quote\">\n" x ($re-$last)) .
+                ("</div>\n" x ($last-$re)) . $_ . "\n";
+            $last = $re;
         }
         else
         {
-            $wrappedcomment .= "\n";
+            $text .= "\n";
         }
     }
-    $wrappedcomment .= $table->render if $table;
-    chomp $wrappedcomment;
-    return $wrappedcomment;
+    $text .= ("</div>\n" x $last);
+    return $text;
+}
+
+sub makeParagraphs
+{
+    my ($input) = @_;
+    my @m;
+    my $p;
+    my $text = '';
+    while ($input ne '')
+    {
+        # Convert double line breaks to new paragraphs
+        if ($input =~ m!(\n\s*\n|</?div[^<>]*>)!so)
+        {
+            @m = (substr($input, 0, $-[0]), $1);
+            $input = substr($input, $+[0]);
+        }
+        else
+        {
+            @m = ($input, '');
+            $input = '';
+        }
+        $m[0] =~ s/^\s*//so;
+        if ($m[0] && !$p)
+        {
+            $text .= '<p>';
+            $p = 1;
+        }
+        # But preserve single line breaks!
+        $m[0] =~ s/\n/<br\/>/giso;
+        $text .= $m[0];
+        if ($p)
+        {
+            $text .= '</p>';
+            $p = 0;
+        }
+        $text .= $m[1];
+    }
+    return $text;
 }
 
 sub find_wrap_point {

@@ -31,7 +31,7 @@ X-Bugzilla-Type: admin
 [% IF reason %]
     [%+ sudoer.identity %] provided the following reason for doing this:
 
-[% reason FILTER wrap_comment %]
+[% reason %]
 [% ELSE %]
     [%+ sudoer.identity %] did not provide a reason for doing this.
 [% END %]
