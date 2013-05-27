@@ -470,7 +470,7 @@ sub makeParagraphs
     while ($input ne '')
     {
         # Convert double line breaks to new paragraphs
-        if ($input =~ m!(\n\s*\n|</?div[^<>]*>)!so)
+        if ($input =~ m!\n\s*\n|(</?div[^<>]*>)!so)
         {
             @m = (substr($input, 0, $-[0]), $1);
             $input = substr($input, $+[0]);
