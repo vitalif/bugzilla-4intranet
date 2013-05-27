@@ -139,7 +139,7 @@ function getText(element) {
         prev = child;
     }
     if (element.className == 'quote') {
-        text = text.replace(/^\s*(\S)/mg, '> $1');
+        text = text.replace(/^/mg, '> ');
     }
     return text;
 }
