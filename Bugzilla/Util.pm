@@ -445,7 +445,7 @@ sub makeCitations
     for (split /\n/, $input)
     {
         $pre = '';
-        s/^\s*((?:&gt;\s*)*)//s;
+        s/^((?:\s*&gt;)+)//s;
         $re = ($1 =~ tr/&/&/);
         if ($_)
         {
@@ -481,7 +481,7 @@ sub makeParagraphs
             @m = ($input, '');
             $input = '';
         }
-        $m[0] =~ s/^\s*//so;
+        $m[0] =~ s/^([ \t]+)/$_ = $1; s!\t!    !g; s! !&nbsp;!g; $_/emog;
         if ($m[0] && !$p)
         {
             $text .= '<p>';
