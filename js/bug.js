@@ -121,7 +121,7 @@ function addActionLinks(indexes)
  * innerText is non-standard).
  */
 function getText(element) {
-    var child, text = "", prev;
+    var child, text = "", prev, ct;
     for (var i = 0; i < element.childNodes.length; i++) {
         child = element.childNodes[i];
         var type = child.nodeType;
@@ -131,16 +131,21 @@ function getText(element) {
             text += "\n";
         } else {
             /* recurse into nodes of other types */
-            if (child.nodeName == 'P' && prev && prev.nodeName == 'P') {
-                text += "\n\n";
+            if (child.nodeName == 'P') {
+                text += "\n";
             }
-            text += getText(child);
+            ct = getText(child);
+            if (child.className == 'quote') {
+                ct = ct.replace(/^/mg, '> ');
+            }
+            text += ct;
+            if (child.nodeName == 'P') {
+                text += "\n";
+            }
         }
         prev = child;
     }
-    if (element.className == 'quote') {
-        text = text.replace(/^/mg, '> ');
-    }
+    text = text.replace(/^\n+|\n+$/g, '');
     return text;
 }
 
