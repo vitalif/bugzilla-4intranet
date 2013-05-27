@@ -7,7 +7,7 @@
 [% PROCESS global/header.html.tmpl %]
 <h3>Please, verify flags:</h3>
 
-<form action="process_bug.cgi" method="post">
+<form action="process_bug.cgi" method="post" enctype="multipart/form-data">
 
 <input type="hidden" name="force_flags" value="1" />
 [% PROCESS "global/hidden-fields.html.tmpl" exclude=field_filter %]
