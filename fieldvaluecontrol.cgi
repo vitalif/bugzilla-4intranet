@@ -30,10 +30,11 @@ if ($ENV{HTTP_IF_MODIFIED_SINCE} && $user_tag eq $req_tag)
     {
         Bugzilla->send_header(
             -etag => $user_tag,
+            -date => time2str($touched),
             -last_modified => time2str($touched),
             -status => '304 Not Modified',
             -type => $ctype,
-            -cache_control => 'must-revalidate',
+            -cache_control => 'private, no-cache, must-revalidate',
         );
         exit;
     }
@@ -41,9 +42,9 @@ if ($ENV{HTTP_IF_MODIFIED_SINCE} && $user_tag eq $req_tag)
 
 Bugzilla->send_header(
     -etag => $user_tag,
-    -type => 'text/javascript'.(Bugzilla->params->{utf8} ? '; charset=utf-8' : ''),
+    -type => $ctype,
     -last_modified => time2str($touched),
-    -cache_control => 'must-revalidate',
+    -cache_control => 'private, no-cache, must-revalidate',
 );
 
 $args->{type} ||= '';
