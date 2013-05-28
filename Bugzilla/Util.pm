@@ -865,6 +865,7 @@ sub intersect
 
 sub union
 {
+    return [] if !@_;
     my @values = @{shift()};
     my %chk = map { $_ => 1 } @values;
     while (my $next = shift)

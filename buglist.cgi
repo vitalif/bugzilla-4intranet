@@ -1198,36 +1198,72 @@ if ($dotweak && scalar @bugs) {
     # The groups the user belongs to and which are editable for the given buglist.
     $vars->{'groups'} = GetGroups(\@products);
 
-    # This query collects new statuses which are common to all current bug statuses.
-    # It also accepts transitions where the bug status doesn't change.
-    $bug_status_ids =
-      $dbh->selectcol_arrayref(
-            'SELECT DISTINCT sw1.new_status
-               FROM status_workflow sw1
-         INNER JOIN bug_status
-                 ON bug_status.id = sw1.new_status
-              WHERE bug_status.isactive = 1
-                AND NOT EXISTS
-                   (SELECT * FROM status_workflow sw2
-                     WHERE sw2.old_status != sw1.new_status
-                           AND '
-                         . $dbh->sql_in('sw2.old_status', $bug_status_ids)
-                         . ' AND NOT EXISTS
-                           (SELECT * FROM status_workflow sw3
-                             WHERE sw3.new_status = sw1.new_status
-                                   AND sw3.old_status = sw2.old_status))');
+    # Select new statuses which are settable for ANY of current bug statuses,
+    # plus transitions where the bug status doesn't change.
+    $bug_status_ids = [ keys %{ { map { $_ => 1 } (@$bug_status_ids, @{ $dbh->selectcol_arrayref(
+        'SELECT DISTINCT new_status FROM status_workflow'.
+        ' INNER JOIN bug_status ON bug_status.id = new_status'.
+        ' WHERE bug_status.isactive = 1 AND '.$dbh->sql_in('old_status', $bug_status_ids)
+    ) }) } } ];
 
     $vars->{'current_bug_statuses'} = [keys %$bugstatuses];
     $vars->{'new_bug_statuses'} = Bugzilla::Status->new_from_list($bug_status_ids);
 
-    # Generate UNION lists of components, versions and milestones common for all selected products.
-    $_ = Bugzilla::Product->new({name => $_}) for @products;
+    # Generate unions of possible components, versions and milestones for all selected products
+    @products = @{ Bugzilla::Product->match({ name => \@products }) };
     $vars->{components} = union(map { [ map { $_->name } @{ $_->components } ] } @products);
     $vars->{versions} = union(map { [ map { $_->name } @{ $_->versions } ] } @products);
     if (Bugzilla->params->{usetargetmilestone})
     {
         $vars->{targetmilestones} = union(map { [ map { $_->name } @{ $_->milestones } ] } @products);
     }
+
+    # Generate unions of possible custom field values for all current controller values
+    # This requires bug objects, at last!
+    my $custom = [];
+    my $bug_objects = Bugzilla::Bug->new_from_list(\@bugidlist);
+    for my $field (Bugzilla->active_custom_fields)
+    {
+        my $vis_field = $field->visibility_field;
+        if ($vis_field)
+        {
+            my $vis_field_name = $vis_field->name;
+            my $visible = 0;
+            for my $bug (@$bug_objects)
+            {
+                if ($field->has_visibility_value($bug->$vis_field_name))
+                {
+                    $visible = 1;
+                    last;
+                }
+            }
+            next if !$visible;
+        }
+        my $value_field = $field->value_field;
+        if (!$value_field || $field->type != FIELD_TYPE_MULTI_SELECT && $field->type != FIELD_TYPE_SINGLE_SELECT)
+        {
+            push @$custom, { field => $field, values => $field->legal_value_names };
+            next;
+        }
+        my $vals = {};
+        my $value_field_name = $value_field->name;
+        my $value_name_field = $value_field->NAME_FIELD;
+        my $v;
+        for my $bug (@$bug_objects)
+        {
+            $v = $bug->$value_field_name;
+            $vals->{ref($v) ? $v->$value_name_field : $v} = 1;
+        }
+        my $class = Bugzilla::Field::Choice->type($value_field);
+        $vals = $class->match({ $value_name_field => [ keys %$vals ] });
+        my $union = [];
+        for my $cv (@$vals)
+        {
+            push @$union, $field->restricted_legal_values($cv);
+        }
+        push @$custom, { field => $field, values => union(@$union) };
+    }
+    $vars->{tweak_custom_fields} = $custom;
 }
 
 # If we're editing a stored query, use the existing query name as default for

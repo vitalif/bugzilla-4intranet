@@ -159,7 +159,7 @@
             [% SET control_field = "component_obj" IF control_field == "component" %]
             [% legal_values = field.restricted_legal_values(bug.$control_field) %]
           [% END %]
-          [% value_found = 0 %]
+          [% value_found = allow_dont_change AND value == dontchange %]
           [% FOREACH legal_value = legal_values %]
             <option value="[% legal_value.name FILTER html %]"
                     id="v[% legal_value.id FILTER html %]_[% field.name FILTER html %]"
