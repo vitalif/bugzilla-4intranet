@@ -271,11 +271,15 @@ document.write(' <input type="button" name="check_all" value="Check All" onclick
   [% END %]
 
   [% USE Bugzilla %]
-  [% FOREACH field = Bugzilla.active_custom_fields %]
+  [% FOREACH f = tweak_custom_fields %]
     <tr>
-      [% PROCESS bug/field.html.tmpl value = dontchange
-                                     editable = 1
-                                     allow_dont_change = 1 %]
+      [% PROCESS bug/field.html.tmpl
+          field = f.field
+          value = dontchange
+          editable = 1
+          allow_dont_change = 1
+          override_legal_values = f.values
+      %]
     </tr>
   [% END %]
 
