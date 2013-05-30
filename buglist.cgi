@@ -1222,16 +1222,16 @@ if ($dotweak && scalar @bugs) {
     # This requires bug objects, at last!
     my $custom = [];
     my $bug_objects = Bugzilla::Bug->new_from_list(\@bugidlist);
+    my $bug_vals = {};
     for my $field (Bugzilla->active_custom_fields)
     {
         my $vis_field = $field->visibility_field;
         if ($vis_field)
         {
-            my $vis_field_name = $vis_field->name;
-            my $visible = 0;
-            for my $bug (@$bug_objects)
+            my $visible;
+            for my $cv (@{ get_bug_vals($vis_field, $bug_objects, $bug_vals) })
             {
-                if ($field->has_visibility_value($bug->$vis_field_name))
+                if ($field->has_visibility_value($cv))
                 {
                     $visible = 1;
                     last;
@@ -1245,25 +1245,31 @@ if ($dotweak && scalar @bugs) {
             push @$custom, { field => $field, values => $field->legal_value_names };
             next;
         }
-        my $vals = {};
-        my $value_field_name = $value_field->name;
-        my $value_name_field = $value_field->NAME_FIELD;
-        my $v;
-        for my $bug (@$bug_objects)
-        {
-            $v = $bug->$value_field_name;
-            $vals->{ref($v) ? $v->$value_name_field : $v} = 1;
-        }
-        my $class = Bugzilla::Field::Choice->type($value_field);
-        $vals = $class->match({ $value_name_field => [ keys %$vals ] });
         my $union = [];
-        for my $cv (@$vals)
+        for my $cv (@{ get_bug_vals($value_field, $bug_objects, $bug_vals) })
         {
             push @$union, $field->restricted_legal_values($cv);
         }
         push @$custom, { field => $field, values => union(@$union) };
     }
     $vars->{tweak_custom_fields} = $custom;
+}
+
+sub get_bug_vals
+{
+    my ($field, $bugs, $bug_vals) = @_;
+    return $bug_vals->{$field} if $bug_vals->{$field};
+    my $field_name = $field->name;
+    my $name_field = $field->NAME_FIELD;
+    my $vals = {};
+    my $v;
+    for my $bug (@$bugs)
+    {
+        $v = $bug->$field_name;
+        $vals->{ref($v) ? $v->$name_field : $v} = 1;
+    }
+    my $class = Bugzilla::Field::Choice->type($field);
+    return $bug_vals->{$field} = $class->match({ $name_field => [ keys %$vals ] });
 }
 
 # If we're editing a stored query, use the existing query name as default for
