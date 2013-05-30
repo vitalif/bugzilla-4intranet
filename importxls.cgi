@@ -23,7 +23,7 @@ use Bugzilla::User;
 
 # Constants
 use constant BUG_DAYS => 92;
-use constant XLS_LISTNAME => 'Bugz';
+use constant XLS_LISTNAME => '';
 use constant MANDATORY_FIELDS => qw(short_desc product component);
 
 my $user = Bugzilla->login(LOGIN_REQUIRED);
@@ -120,7 +120,7 @@ sub guess_field_name
 
 unless ($args->{commit})
 {
-    unless ($upload = $cgi->upload('xls'))
+    unless (my $filename = $cgi->param('xls'))
     {
         if (!defined $args->{result})
         {
@@ -145,15 +145,16 @@ unless ($args->{commit})
     else
     {
         # Show parsed spreadsheet with checkboxes for selection
+        my $fn = $cgi->tmpFileName($filename);
         my $table;
         if ($args->{xls} !~ /\.(xlsx?)$/iso)
         {
             # CSV
-            $table = parse_csv($upload, $args->{xls}, $name_tr, $args->{csv_delimiter});
+            $table = parse_csv($fn, $args->{xls}, $name_tr, $args->{csv_delimiter});
         }
         else
         {
-            $table = parse_excel($upload, $args->{xls}, $listname, $name_tr);
+            $table = parse_excel($fn, $args->{xls}, $listname, $name_tr);
         }
         if (!$table || $table->{error})
         {
@@ -304,19 +305,20 @@ sub csv_read_record
 # Parse Excel file, or call parse_csv for CSV file
 sub parse_excel
 {
-    my ($upload, $name, $only_list, $name_tr) = @_;
+    my ($filename, $name, $only_list, $name_tr) = @_;
     my $xls;
     if ($name =~ /\.xlsx$/iso)
     {
         # OOXML
         require Spreadsheet::XLSX;
-        $xls = Spreadsheet::XLSX->new($upload->handle);
+        $xls = Spreadsheet::XLSX->new($filename);
     }
     elsif ($name =~ /\.xls$/iso)
     {
         # Excel binary
         require Spreadsheet::ParseExcel;
-        $xls = Spreadsheet::ParseExcel->new->Parse($upload);
+        $xls = Spreadsheet::ParseExcel->new;
+        $xls = ($xls->parse($filename) or return { error => $xls->error });
     }
     return { error => 'parse_error' } unless $xls;
     my $r = { data => [] };
@@ -343,11 +345,13 @@ sub parse_excel
 # Parse CSV file
 sub parse_csv
 {
-    my ($upload, $name, $name_tr, $delimiter) = @_;
+    my ($filename, $name, $name_tr, $delimiter) = @_;
     my $s = Bugzilla->user->settings->{csv_charset};
     my $r = { data => [] };
     my $row;
-    while ($row = csv_read_record($upload, $s && $s->{value}, $delimiter))
+    my $fd;
+    open $fd, $filename or return { error => $! };
+    while ($row = csv_read_record($fd, $s && $s->{value}, $delimiter))
     {
         if (!$r->{fields})
         {
@@ -360,6 +364,7 @@ sub parse_csv
             push @{$r->{data}}, $row;
         }
     }
+    close $fd;
     return { error => 'parse_error' } if !$r->{fields} || !@{$r->{fields}};
     return $r;
 }
