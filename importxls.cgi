@@ -312,9 +312,7 @@ sub parse_excel
     {
         # OOXML
         require Spreadsheet::XLSX;
-        my $io = IO::File->new;
-        $io->fdopen(fileno $fd, 'r');
-        $xls = Spreadsheet::XLSX->new($io);
+        $xls = Spreadsheet::XLSX->new(IO::File->new_from_fd(fileno $fd, 'r'));
     }
     elsif ($name =~ /\.xls$/iso)
     {
