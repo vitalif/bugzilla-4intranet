@@ -95,6 +95,23 @@ sub get_all_with_bug_count
     return $keywords;
 }
 
+sub get_by_match
+{
+    my $self = shift;
+    my ($keywords, @match_items);
+    foreach (@_)
+    {
+        push @match_items, " name like '".$_."%' ";
+    }
+    if (@match_items)
+    {
+        my $dbh = Bugzilla->dbh;
+        my $joined = join(' OR ', @match_items);
+        $keywords = $dbh->selectall_arrayref("SELECT * FROM keyworddefs WHERE ".$joined, {Slice => {}});
+        return [] unless $keywords;
+    }
+}
+
 ###############################
 ###       Validators        ###
 ###############################

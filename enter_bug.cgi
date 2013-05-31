@@ -687,6 +687,12 @@ foreach my $row (@$grouplist) {
 
 $vars->{'group'} = \@groups;
 
+# Custis Bug 66910
+my @keyword_list = Bugzilla::Keyword->get_all();
+my @keyword_list_out = map { { name => $_->{name} } } @keyword_list;
+$vars->{keyword_list} = \@keyword_list_out;
+# END Custis Bug 66910
+
 Bugzilla::Hook::process('enter_bug_entrydefaultvars', { vars => $vars });
 
 $vars->{'default'} = \%default;

@@ -681,6 +681,15 @@ function checkWorktime(inp)
         <td>
         [% END %]
           <input id="keywords" name="keywords" size="40" value="[% keywords FILTER html %]">
+          <script type="text/javascript">
+            addListener(window, 'load', function() {
+                var emptyOptions = [% keyword_list ? json(keyword_list) : "null" %];
+                new SimpleAutocomplete("keywords",
+                    function(h) { keywordAutocomplete(h, emptyOptions); },
+                    { emptyText: 'No keywords found', multipleDelimiter: "," }
+                );
+            }); 
+          </script>
         </td>
       [% IF Param("usebugaliases") %]
         <th>Alias:</th>

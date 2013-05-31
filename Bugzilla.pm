@@ -1,4 +1,4 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
+ # -*- Mode: perl; indent-tabs-mode: nil -*-
 #
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
@@ -45,6 +45,7 @@ use Bugzilla::Util;
 use Bugzilla::Field;
 use Bugzilla::Flag;
 use Bugzilla::Token;
+use Bugzilla::Keyword;
 
 use File::Basename;
 use File::Spec::Functions;

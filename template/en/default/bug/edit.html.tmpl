@@ -532,6 +532,15 @@ document.changeform = document.[% cfname %];
   [% IF use_keywords %]
     <tr>
       <td class="field_label">
+        <script type="text/javascript">
+        addListener(window, 'load', function() {
+            var emptyOptions = [% keyword_list ? json(keyword_list) : "null" %];
+            new SimpleAutocomplete("keywords",
+                function(h) { keywordAutocomplete(h, emptyOptions); },
+                { emptyText: 'No keywords found', multipleDelimiter: "," }
+            );
+        }); 
+        </script>
         <label for="keywords" accesskey="k">
           <b><a href="describekeywords.cgi"><u>K</u>eywords</a></b></label>:
       </td>
