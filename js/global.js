@@ -176,3 +176,66 @@ function userAutocomplete(hint, emptyOptions)
     x.open('GET', u);
     x.send(null);
 }
+
+
+// Convert keyword list from API format for SimpleAutocomplete
+function convertKeywordList(k)
+{
+    var data = [];
+    for (var i = 0; i < k.length; i++)
+        data.push([
+        '<span class="hintRealname">' + k[i].name +
+        '</span>',
+        k[i].name
+        ]);
+    return data;
+} 
+
+// Data loader for keyword autocomplete
+function keywordAutocomplete(hint, emptyOptions)
+{
+    if (!hint.input.value)
+    {
+        hint.emptyText = 'Type at least 3 letters';
+        if (emptyOptions)
+            hint.replaceItems(convertKeywordList(emptyOptions));
+        else
+            hint.replaceItems(null);
+        return;
+    }
+    
+    var x;
+    if (window.XMLHttpRequest)
+        x = new XMLHttpRequest();
+    else
+    {
+        try { x = new ActiveXObject("Msxml2.XMLHTTP"); }
+        catch (e) { x = new ActiveXObject("Microsoft.XMLHTTP"); }
+    }
+    x.onreadystatechange = function()
+    {
+        if (x.readyState == 4)
+        {
+            var r = {};
+            try { eval('r = '+x.responseText+';'); } catch (e) { return; }
+            if (r.status == 'ok')
+            {
+                var data = convertKeywordList(r.keywords);
+                // FIXME "3" constant, messages: remove hardcode, also in Bugzilla::User::match()
+                if (data.length == 0 && hint.input.value.length < 3)
+                    hint.emptyText = 'Type at least 3 letters';
+                else
+                    hint.emptyText = 'No keywords found';
+                hint.replaceItems(data);
+            }
+        }
+    };
+    
+    var u = window.location.href.replace(/[^\/]+$/, '');
+    u += 'xml.cgi?method=Keyword.get&output=json&maxkeywordmatches=20';
+    var l = hint.input.value.split(/[\s,]*,[\s,]*/);
+    for (var i = 0; i < l.length; i++)
+        u += '&match='+encodeURI(l[i]);
+    x.open('GET', u);
+    x.send(null);
+} 

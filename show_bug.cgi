@@ -127,6 +127,13 @@ if (my @f = $cgi->param("includefield")) {
     %displayfields = map { $_ => 1 } grep { $displayfields{$_} } @f;
 }
 
+# Custis Bug 66910
+my @keyword_list = Bugzilla::Keyword->get_all();
+my @keyword_list_out = map { { name => $_->{name} } } @keyword_list;
+$vars->{keyword_list} = \@keyword_list_out;
+# END Custis Bug 66910
+
+
 $vars->{displayfields} = \%displayfields;
 
 my $sd;
