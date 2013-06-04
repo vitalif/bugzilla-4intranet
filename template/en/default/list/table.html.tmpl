@@ -57,7 +57,8 @@
       <th>&nbsp;</th>
       [% END %]
       [% i = lsearch(order_columns, 'bug_id') %]
-      <th colspan="[% splitheader ? 2 : 1 %]" class="first-child0 [% "sortable_column_0" %][% IF i>=0 %] sorted_[% i %] sorttable_sorted[% "_reverse" IF order_dir.$i %][% END %]">
+      <th colspan="[% splitheader ? 2 : 1 %]" class="first-child0 sortable_column_0 sorttable_numeric
+        [%- IF i>=0 %] sorted_[% i %] sorttable_sorted[% "_reverse" IF order_dir.$i %][% END %]">
         <a href="buglist.cgi?
                   [% urlquerypart FILTER html %]&amp;order=
                   [% PROCESS new_order id='bug_id' %]
@@ -110,7 +111,10 @@
 
 [% BLOCK columnheader %]
   [% i = lsearch(order_columns, id) %]
-  <th colspan="[% splitheader ? 2 : 1 %]" class="[% "sortable_column_$key" %][% IF i>=0 %] sorted_[% i %] sorttable_sorted[% "_reverse" IF order_dir.$i %][% END %]">
+  [% type = Bugzilla.get_field(id).type %]
+  <th colspan="[% splitheader ? 2 : 1 %]" class="sortable_column_[% key %]
+    [%- IF i>=0 || type == constants.FIELD_TYPE_NUMERIC || type == constants.FIELD_TYPE_BUG_ID %] sorttable_numeric[% END %]
+    [%- IF i>=0 %] sorted_[% i %] sorttable_sorted[% "_reverse" IF order_dir.$i %][% END %]">
     <a href="buglist.cgi?[% urlquerypart FILTER html %]&amp;order=
       [% PROCESS new_order %]
       [%-#%]&amp;query_based_on=
