@@ -77,7 +77,7 @@ var SimpleAutocomplete = function(input, dataLoader, params)
     // Parameters
     this.input = input;
     this.dataLoader = dataLoader;
-    this.multipleDelimiter = params.multipleDelimiter || params.multipleListener;
+    this.multipleDelimiter = params.multipleDelimiter;
     this.multipleListener = params.multipleListener;
     this.onChangeListener = params.onChangeListener;
     this.emptyText = params.emptyText;
@@ -138,6 +138,7 @@ SimpleAutocomplete.prototype.init = function()
     this.addRmListener('change', function() { return self.onChange(); });
     this.addRmListener('focus', function() { return self.onInputFocus(); });
     this.addRmListener('blur', function() { return self.onInputBlur(); });
+    addListener(window, 'beforeunload', function() { e.autocomplete = 'on'; });
     addListener(t, 'mousedown', function(ev) { return self.cancelBubbleOnHint(ev); });
     this.onChange();
 };
@@ -164,7 +165,7 @@ SimpleAutocomplete.prototype.replaceItems = function(items, append)
     if (!this.multipleListener)
         for (var i in items)
             items[i][2] = 0;
-    if (this.multipleDelimiter && !this.multipleListener)
+    if (this.multipleDelimiter)
     {
         var h = {};
         var old = this.input.value.split(this.multipleDelimiter);
@@ -218,8 +219,7 @@ SimpleAutocomplete.prototype.makeItem = function(index, item)
     d.id = this.id+'_item_'+index;
     d.className = item[2] ? 'hintDisabledItem' : (this.selectedIndex == index ? 'hintActiveItem' : 'hintItem');
     d.title = item[1];
-    d.innerHTML = item[0];
-    if (this.multipleDelimiter)
+    if (this.multipleDelimiter || this.multipleListener)
     {
         var c = document.createElement('input');
         c.type = 'checkbox';
@@ -227,12 +227,15 @@ SimpleAutocomplete.prototype.makeItem = function(index, item)
         c.checked = item[3] && true;
         c.disabled = item[2] && true;
         c.value = item[1];
-        if (d.childNodes.length)
-            d.insertBefore(c, d.firstChild);
-        else
-            d.appendChild(c);
+        d.appendChild(c);
+        var l = document.createElement('label');
+        l.htmlFor = c.id;
+        l.innerHTML = item[0];
+        d.appendChild(l);
         addListener(c, 'click', this.preventCheck);
     }
+    else
+        d.innerHTML = item[0];
     var self = this;
     addListener(d, 'mouseover', function() { return self.onItemMouseOver(this); });
     addListener(d, 'mousedown', function(ev) { return self.onItemClick(ev, this); });
@@ -281,7 +284,7 @@ SimpleAutocomplete.prototype.getItem = function(index)
 // Select index'th item - change the input value and hide the hint if not a multi-select
 SimpleAutocomplete.prototype.selectItem = function(index)
 {
-    if (!this.multipleDelimiter)
+    if (!this.multipleDelimiter && !this.multipleListener)
     {
         this.input.value = this.items[index][1];
         this.hide();
@@ -289,11 +292,8 @@ SimpleAutocomplete.prototype.selectItem = function(index)
     else
     {
         document.getElementById(this.id+'_check_'+index).checked = this.items[index][3] = !this.items[index][3];
-        if (this.multipleListener)
-        {
-            this.multipleListener(this, index, this.items[index]);
+        if (this.multipleListener && !this.multipleListener(this, index, this.items[index]))
             return;
-        }
         this.toggleValue(index);
     }
     this.curValue = this.input.value;
