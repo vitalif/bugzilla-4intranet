@@ -229,7 +229,7 @@ function updateRemainingTime()
 
 function changeform_onsubmit()
 {
-    if (check_new_keywords() == false) return false;
+    if (check_new_keywords(document.changeform) == false) return false;
 
     var wtInput = document.changeform.work_time;
     if (!wtInput)
@@ -315,66 +315,5 @@ function att_file_onchange(e)
             // div.table.tbody.tr
             document.getElementById('files').appendChild(tmp.childNodes[0].childNodes[0].childNodes[0]);
         }
-    }
-}
-
-// CustIS bug 66910 - check new keywords and requery description for its
-function check_new_keywords()
-{
-    var non_exist_keywords = [];
-    var cnt_exist_keywords = 0;
-    var input_keywords = document.changeform.keywords.value.split(",");
-    var exist_keywords = [];
-    for(var i = 0; i < emptyKeywordsOptions.length; i++)
-    {
-	exist_keywords[i] = emptyKeywordsOptions[i].name.trim();
-    }
-
-    for(var i = 0; i < input_keywords.length; i++)
-    {
-	if (input_keywords[i].trim() != "" && exist_keywords.indexOf(input_keywords[i].trim()) == -1)
-	{
-	    non_exist_keywords[cnt_exist_keywords] = input_keywords[i].trim();
-	    cnt_exist_keywords++;
-	}
-    }
-
-    if (non_exist_keywords.length > 0) 
-    {
-	var keywords_submit = true;
-	var kd_container = document.getElementById("keywords_description_container");
-
-	if (kd_container.children[0] == undefined)
-	{
-	    var desc_html = "";
-            for(var i = 0; i < non_exist_keywords.length; i++)
-	    {
-		desc_html += "<br /><label>Description for new item of keywords - <b>" + non_exist_keywords[i].trim() + "</b></label><br /><input type=\"text\" value=\"\" class=\"text_input\" name=\"kd\" id=\"keyword_description_" + i + "\" style=\"border: solid 1px red;\" /> <br/>";
-    	    }
-	    kd_container.innerHTML = desc_html;
-	    keywords_submit = false;
-	}
-	else
-	{
-	    var kd_descriptions_val = "";
-	    var kd_descriptions = kd_container.getElementsByTagName("INPUT");
-	    for (var i = 0; i < kd_descriptions.length; i++)
-	    {
-		if (kd_descriptions[i].value == "")
-		{
-		    keywords_submit = false;
-		}
-
-		if (kd_descriptions_val != "")
-		{
-		    kd_descriptions_val += "@";
-		}
-		var this_id = kd_descriptions[i].getAttribute('id').replace("keyword_description_", "");
-		kd_descriptions_val += non_exist_keywords[this_id].trim() + "=" + kd_descriptions[i].value;
-	    }
-	    kd_container.innerHTML = kd_container.innerHTML + "<input type=\"hidden\" value=\"" + kd_descriptions_val + "\" name=\"keywords_description\" />"
-	}
-
-	return keywords_submit;
     }
 }

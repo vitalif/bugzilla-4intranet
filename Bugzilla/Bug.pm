@@ -679,7 +679,7 @@ sub run_create_validators
     # These are converted into IDs
     delete $params->{product};
     delete $params->{component};
-    
+
     # used for keywords only
     delete $params->{keywords_description};
 
@@ -1733,43 +1733,44 @@ sub _check_keywords {
     if (!ref $invocant) {
         return [] if !Bugzilla->user->in_group('editbugs', $product->id);
     }
-    
+
     # CustIS Bug 66910 - Adding new keyword to DB
     my @keyword_descriptions;
     foreach my $kd (split(/[@]+/, trim($keyword_description_string))) {
-	my @this_kd = split(/[=]+/, $kd);
-	push @keyword_descriptions, { $this_kd[0] => $this_kd[1]};
+        my @this_kd = split(/[=]+/, $kd);
+        push @keyword_descriptions, { $this_kd[0] => $this_kd[1]};
     }
 
     my %keywords;
     foreach my $keyword (split(/[\s,]+/, $keyword_string)) {
         next unless $keyword;
         my $obj = new Bugzilla::Keyword({ name => $keyword });
-	# CustIS Bug 66910 - Adding new keyword to DB
-	if (!$obj)
-	{
-	    my $this_kd = "";
-	    foreach (@keyword_descriptions)
-	    {
-		if (exists($_->{$keyword}))
-		{
-		    $this_kd = $_->{$keyword};
-	    	}
-	    }
+        # CustIS Bug 66910 - Adding new keyword to DB
 
-	    my $obj = Bugzilla::Keyword->create({
-		name => $keyword,
-		description => $this_kd
-	    });
+        if (!$obj)
+        {
+            my $this_kd = "";
+            foreach (@keyword_descriptions)
+            {
+                if (exists($_->{$keyword}))
+                {
+                    $this_kd = $_->{$keyword};
+                }
+            }
+
+            my $obj = Bugzilla::Keyword->create({
+                name => $keyword,
+                description => $this_kd
+            });
+               $keywords{$obj->id} = $obj;
+        }
+        else
+        {
             $keywords{$obj->id} = $obj;
-	}
-	else
-	{
-	    $keywords{$obj->id} = $obj;
-	}
+        }
 
-	#ThrowUserError("unknown_keyword", { keyword => $keyword }) if !$obj;
-	#$keywords{$obj->id} = $obj;
+        #ThrowUserError("unknown_keyword", { keyword => $keyword }) if !$obj;
+        #$keywords{$obj->id} = $obj;
     }
     return [values %keywords];
 }

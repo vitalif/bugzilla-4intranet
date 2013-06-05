@@ -267,3 +267,72 @@ function _value_id(field_name, id)
 {
     return 'v' + id + '_' + field_name;
 }
+
+// CustIS bug 66910 - check new keywords and requery description for its
+function check_new_keywords(form)
+{
+    var non_exist_keywords = [];
+    var cnt_exist_keywords = 0;
+    var input_keywords = form.keywords.value.split(",");
+    var exist_keywords = [];
+    for(var i = 0; i < emptyKeywordsOptions.length; i++)
+    {
+        exist_keywords[i] = emptyKeywordsOptions[i].name.trim();
+    }
+
+    for(var i = 0; i < input_keywords.length; i++)
+    {
+        if (input_keywords[i].trim() != "" && exist_keywords.indexOf(input_keywords[i].trim()) == -1)
+        {
+            non_exist_keywords[cnt_exist_keywords] = input_keywords[i].trim();
+            cnt_exist_keywords++;
+        }
+    }
+
+    if (non_exist_keywords.length > 0) 
+    {
+        var keywords_submit = true;
+        var kd_container = document.getElementById("keywords_description_container");
+
+        var desc_html = "";
+        for(var i = 0; i < non_exist_keywords.length; i++)
+        {
+            var this_value = "";
+            if (document.getElementById('kd_' + i) != undefined && document.getElementById('kd_' + i).value != "" && document.getElementById('kd_' + i).getAttribute('data-key') == non_exist_keywords[i].trim())
+            {
+                this_value = document.getElementById('kd_' + i).value;
+            }
+            desc_html += "<br /><label>Description for new item of keywords - <b>" + non_exist_keywords[i].trim() + "</b></label><br /><input type=\"text\" value=\"" + this_value + "\" class=\"text_input\" name=\"kd\" id=\"kd_" + i + "\" data-key=\"" + non_exist_keywords[i].trim() + "\" style=\"border: solid 1px red;\" /> <br/>";
+        }
+        kd_container.innerHTML = desc_html;
+
+        var kd_descriptions_val = "";
+        var kd_descriptions = kd_container.getElementsByTagName("INPUT");
+        for (var i = 0; i < kd_descriptions.length; i++)
+        {
+            if (kd_descriptions[i].value != "")
+            {
+                if (kd_descriptions_val != "")
+                {
+                    kd_descriptions_val += "@";
+                }
+                var this_key = kd_descriptions[i].getAttribute('data-key');
+                kd_descriptions_val += this_key + "=" + kd_descriptions[i].value;
+            }
+            else
+            {
+                keywords_submit = false;
+            }
+        }
+        if (kd_descriptions_val != "")
+        {
+            kd_container.innerHTML = kd_container.innerHTML + "<input type=\"hidden\" value=\"" + kd_descriptions_val + "\" name=\"keywords_description\" />"
+        }
+        else
+        {
+            keywords_submit = false;
+        }
+        return keywords_submit;
+    }
+    return true;
+}

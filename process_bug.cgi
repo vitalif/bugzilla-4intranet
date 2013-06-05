@@ -338,7 +338,7 @@ if (defined $cgi->param('keywords')) {
     foreach my $b (@bug_objects) {
         my $return =
             $b->modify_keywords(scalar $cgi->param('keywords'),
-				scalar $cgi->param('keywords_description'),
+                                scalar $cgi->param('keywords_description'),
                                 scalar $cgi->param('keywordaction'));
         $any_keyword_changes ||= $return;
     }
