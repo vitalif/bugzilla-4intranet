@@ -631,7 +631,7 @@ sub run_create_validators
 
     $params->{version} = $class->_check_version($params->{version}, $product);
 
-    $params->{keywords} = $class->_check_keywords($params->{keywords}, $product);
+    $params->{keywords} = $class->_check_keywords($params->{keywords}, $params->{keywords_description}, $product);
 
     $params->{groups} = $class->_check_groups($product,
         $params->{groups});
@@ -679,6 +679,9 @@ sub run_create_validators
     # These are converted into IDs
     delete $params->{product};
     delete $params->{component};
+    
+    # used for keywords only
+    delete $params->{keywords_description};
 
     Bugzilla::Hook::process('bug_end_of_create_validators',
                             { params => $params });
@@ -1722,7 +1725,7 @@ sub _check_groups {
 }
 
 sub _check_keywords {
-    my ($invocant, $keyword_string, $product) = @_;
+    my ($invocant, $keyword_string, $keyword_description_string, $product) = @_;
     $keyword_string = trim($keyword_string);
     return [] if !$keyword_string;
 
@@ -1730,13 +1733,43 @@ sub _check_keywords {
     if (!ref $invocant) {
         return [] if !Bugzilla->user->in_group('editbugs', $product->id);
     }
+    
+    # CustIS Bug 66910 - Adding new keyword to DB
+    my @keyword_descriptions;
+    foreach my $kd (split(/[@]+/, trim($keyword_description_string))) {
+	my @this_kd = split(/[=]+/, $kd);
+	push @keyword_descriptions, { $this_kd[0] => $this_kd[1]};
+    }
 
     my %keywords;
     foreach my $keyword (split(/[\s,]+/, $keyword_string)) {
         next unless $keyword;
         my $obj = new Bugzilla::Keyword({ name => $keyword });
-        ThrowUserError("unknown_keyword", { keyword => $keyword }) if !$obj;
-        $keywords{$obj->id} = $obj;
+	# CustIS Bug 66910 - Adding new keyword to DB
+	if (!$obj)
+	{
+	    my $this_kd = "";
+	    foreach (@keyword_descriptions)
+	    {
+		if (exists($_->{$keyword}))
+		{
+		    $this_kd = $_->{$keyword};
+	    	}
+	    }
+
+	    my $obj = Bugzilla::Keyword->create({
+		name => $keyword,
+		description => $this_kd
+	    });
+            $keywords{$obj->id} = $obj;
+	}
+	else
+	{
+	    $keywords{$obj->id} = $obj;
+	}
+
+	#ThrowUserError("unknown_keyword", { keyword => $keyword }) if !$obj;
+	#$keywords{$obj->id} = $obj;
     }
     return [values %keywords];
 }
@@ -2552,14 +2585,14 @@ sub add_comment {
 # functions, so I just combined them all into one. This is also easier for
 # process_bug to use.
 sub modify_keywords {
-    my ($self, $keywords, $action) = @_;
+    my ($self, $keywords, $keywords_description, $action) = @_;
 
     $action ||= "makeexact";
     if (!grep($action eq $_, qw(add delete makeexact))) {
         $action = "makeexact";
     }
 
-    $keywords = $self->_check_keywords($keywords);
+    $keywords = $self->_check_keywords($keywords, $keywords_description);
 
     my (@result, $any_changes);
     if ($action eq 'makeexact') {
