@@ -284,7 +284,7 @@ function check_new_keywords(form)
     {
         if (input_keywords[i].trim() != "" && exist_keywords.indexOf(input_keywords[i].trim()) == -1)
         {
-            non_exist_keywords[cnt_exist_keywords] = input_keywords[i].trim();
+            non_exist_keywords[cnt_exist_keywords] = htmlspecialchars(input_keywords[i].trim());
             cnt_exist_keywords++;
         }
     }
@@ -302,7 +302,7 @@ function check_new_keywords(form)
             {
                 this_value = document.getElementById('kd_' + i).value;
             }
-            desc_html += "<br /><label>Description for new item of keywords - <b>" + non_exist_keywords[i].trim() + "</b></label><br /><input type=\"text\" value=\"" + this_value + "\" class=\"text_input\" name=\"kd\" id=\"kd_" + i + "\" data-key=\"" + non_exist_keywords[i].trim() + "\" style=\"border: solid 1px red;\" /> <br/>";
+            desc_html += "<br /><label>Description for new item of keywords - <b>" + non_exist_keywords[i].trim() + "</b></label><br /><input type=\"text\" value=\"" + htmlspecialchars(this_value) + "\" class=\"text_input\" name=\"kd\" id=\"kd_" + i + "\" data-key=\"" + htmlspecialchars(non_exist_keywords[i].trim()) + "\" style=\"border: solid 1px red;\" /> <br/>";
         }
         kd_container.innerHTML = desc_html;
 
@@ -317,7 +317,7 @@ function check_new_keywords(form)
                     kd_descriptions_val += "@";
                 }
                 var this_key = kd_descriptions[i].getAttribute('data-key');
-                kd_descriptions_val += this_key + "=" + kd_descriptions[i].value;
+                kd_descriptions_val += this_key + "=" + htmlspecialchars(kd_descriptions[i].value);
             }
             else
             {
