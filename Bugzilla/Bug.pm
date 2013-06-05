@@ -76,6 +76,8 @@ use constant ID_FIELD   => 'bug_id';
 use constant NAME_FIELD => 'alias';
 use constant LIST_ORDER => ID_FIELD;
 
+use Data::Dumper;
+
 # This is a sub because it needs to call other subroutines.
 sub DB_COLUMNS
 {
@@ -1735,42 +1737,35 @@ sub _check_keywords {
     }
 
     # CustIS Bug 66910 - Adding new keyword to DB
-    my @keyword_descriptions;
+    my %keyword_descriptions;
     foreach my $kd (split(/[@]+/, trim($keyword_description_string))) {
         my @this_kd = split(/[=]+/, $kd);
-        push @keyword_descriptions, { $this_kd[0] => $this_kd[1]};
+        $keyword_descriptions{$this_kd[0]} = $this_kd[1];
     }
 
     my %keywords;
     foreach my $keyword (split(/[\s,]+/, $keyword_string)) {
         next unless $keyword;
         my $obj = new Bugzilla::Keyword({ name => $keyword });
-        # CustIS Bug 66910 - Adding new keyword to DB
 
         if (!$obj)
         {
             my $this_kd = "";
-            foreach (@keyword_descriptions)
+            if (exists(%keyword_descriptions->{$keyword}))
             {
-                if (exists($_->{$keyword}))
-                {
-                    $this_kd = $_->{$keyword};
-                }
+                $this_kd = %keyword_descriptions->{$keyword};
             }
 
             my $obj = Bugzilla::Keyword->create({
                 name => $keyword,
                 description => $this_kd
             });
-               $keywords{$obj->id} = $obj;
+            $keywords{$obj->id} = $obj;
         }
         else
         {
             $keywords{$obj->id} = $obj;
         }
-
-        #ThrowUserError("unknown_keyword", { keyword => $keyword }) if !$obj;
-        #$keywords{$obj->id} = $obj;
     }
     return [values %keywords];
 }
