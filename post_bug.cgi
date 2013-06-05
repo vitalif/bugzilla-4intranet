@@ -133,6 +133,7 @@ push(@bug_fields, qw(
     resolution
     dependson
     keywords
+    keywords_description
     short_desc
     priority
     version

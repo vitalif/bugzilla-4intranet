@@ -533,10 +533,10 @@ document.changeform = document.[% cfname %];
     <tr>
       <td class="field_label">
         <script type="text/javascript">
+        var emptyKeywordsOptions = [% keyword_list ? json(keyword_list) : "null" %];
         addListener(window, 'load', function() {
-            var emptyOptions = [% keyword_list ? json(keyword_list) : "null" %];
             new SimpleAutocomplete("keywords",
-                function(h) { keywordAutocomplete(h, emptyOptions); },
+                function(h) { keywordAutocomplete(h, emptyKeywordsOptions); },
                 { emptyText: 'No keywords found', multipleDelimiter: "," }
             );
         }); 
@@ -1061,6 +1061,9 @@ document.changeform = document.[% cfname %];
               value="[% val FILTER html %]"[% " size=\"$size\"" IF size %]
               [% " maxlength=\"$maxlength\"" IF maxlength %]
               [% " spellcheck=\"$spellcheck\"" IF spellcheck %]>
+	[% IF inputname == "keywords" %]
+	    <div id="keywords_description_container"></div>
+	[% END %]
     [% ELSE %]
       [% IF size && val.length > size %]
         <span title="[% val FILTER html %]">
