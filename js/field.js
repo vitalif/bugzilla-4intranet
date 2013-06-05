@@ -284,12 +284,12 @@ function check_new_keywords(form)
     {
         if (input_keywords[i].trim() != "" && exist_keywords.indexOf(input_keywords[i].trim()) == -1)
         {
-            non_exist_keywords[cnt_exist_keywords] = htmlspecialchars(input_keywords[i].trim());
+            non_exist_keywords[cnt_exist_keywords] = input_keywords[i].trim();
             cnt_exist_keywords++;
         }
     }
 
-    if (non_exist_keywords.length > 0) 
+    if (non_exist_keywords.length > 0)
     {
         var keywords_submit = true;
         var kd_container = document.getElementById("keywords_description_container");
@@ -298,11 +298,14 @@ function check_new_keywords(form)
         for(var i = 0; i < non_exist_keywords.length; i++)
         {
             var this_value = "";
-            if (document.getElementById('kd_' + i) != undefined && document.getElementById('kd_' + i).value != "" && document.getElementById('kd_' + i).getAttribute('data-key') == non_exist_keywords[i].trim())
+            if (document.getElementById('kd_' + i) && document.getElementById('kd_' + i).value != "" &&
+                document.getElementById('kd_' + i).getAttribute('data-key') == non_exist_keywords[i])
             {
                 this_value = document.getElementById('kd_' + i).value;
             }
-            desc_html += "<br /><label>Description for new item of keywords - <b>" + non_exist_keywords[i].trim() + "</b></label><br /><input type=\"text\" value=\"" + htmlspecialchars(this_value) + "\" class=\"text_input\" name=\"kd\" id=\"kd_" + i + "\" data-key=\"" + htmlspecialchars(non_exist_keywords[i].trim()) + "\" style=\"border: solid 1px red;\" /> <br/>";
+            desc_html += "<br /><label>Description for new item of keywords - <b>" + htmlspecialchars(non_exist_keywords[i]) +
+                "</b></label><br /><input type=\"text\" value=\"" + htmlspecialchars(this_value) + "\" class=\"text_input\" name=\"kd\" id=\"kd_" +
+                i + "\" data-key=\"" + htmlspecialchars(non_exist_keywords[i]) + "\" style=\"border: solid 1px red;\" /> <br/>";
         }
         kd_container.innerHTML = desc_html;
 
@@ -317,7 +320,7 @@ function check_new_keywords(form)
                     kd_descriptions_val += "@";
                 }
                 var this_key = kd_descriptions[i].getAttribute('data-key');
-                kd_descriptions_val += this_key + "=" + htmlspecialchars(kd_descriptions[i].value);
+                kd_descriptions_val += encodeURIComponent(this_key) + "=" + encodeURIComponent(kd_descriptions[i].value);
             }
             else
             {

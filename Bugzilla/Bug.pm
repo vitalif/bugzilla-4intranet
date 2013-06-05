@@ -76,8 +76,6 @@ use constant ID_FIELD   => 'bug_id';
 use constant NAME_FIELD => 'alias';
 use constant LIST_ORDER => ID_FIELD;
 
-use Data::Dumper;
-
 # This is a sub because it needs to call other subroutines.
 sub DB_COLUMNS
 {
@@ -1738,8 +1736,8 @@ sub _check_keywords {
 
     # CustIS Bug 66910 - Adding new keyword to DB
     my %keyword_descriptions;
-    foreach my $kd (split(/[@]+/, trim($keyword_description_string))) {
-        my @this_kd = split(/[=]+/, $kd);
+    foreach my $kd (split(/\@+/, trim($keyword_description_string))) {
+        my @this_kd = map { url_decode($_) } split /=+/, $kd;
         $keyword_descriptions{$this_kd[0]} = $this_kd[1];
     }
 
