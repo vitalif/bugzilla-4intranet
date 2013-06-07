@@ -19,7 +19,7 @@ var Calendar = {
     today : new Date(),
     opt : {},
     data: [],
-    addedListner : false,
+    addedListener : false,
 
 
     //Functions
@@ -182,7 +182,7 @@ var Calendar = {
         document.getElementById(this.opt['calendar']).style.display = "block";
         _calendar_active_instance = this;
 
-        if (!Calendar.addedListner)
+        if (!Calendar.addedListener)
         {
             addListener(div, "mousedown", function(ev) {
                 ev = ev || window.event;
@@ -193,7 +193,7 @@ var Calendar = {
                 return true;
             });
             addListener(document, "mousedown", function() { Calendar.hideCalendar(); });
-            Calendar.addedListner = true;
+            Calendar.addedListener = true;
         }
     },
 
