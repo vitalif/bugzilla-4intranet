@@ -19,6 +19,8 @@ var Calendar = {
     today : new Date(),
     opt : {},
     data: [],
+    addedListner : false,
+
 
     //Functions
     /// Used to create HTML in a optimized way.
@@ -179,16 +181,31 @@ var Calendar = {
         this.makeCalendar(the_year, existing_date.getMonth(), existing_date.getDate());
         document.getElementById(this.opt['calendar']).style.display = "block";
         _calendar_active_instance = this;
+
+        if (!Calendar.addedListner)
+        {
+            addListener(div, "mousedown", function(ev) {
+                ev = ev || window.event;
+                if (ev.stopPropagation)
+                    ev.stopPropagation();
+                else
+                    ev.cancelBubble = true;
+                return true;
+            });
+            addListener(document, "mousedown", function() { Calendar.hideCalendar(); });
+            Calendar.addedListner = true;
+        }
     },
 
     /// Hides the currently show calendar.
     hideCalendar: function(instance) {
         var active_calendar_id = "";
         if(instance) active_calendar_id = instance.opt['calendar'];
+        else if(!_calendar_active_instance) return;
         else active_calendar_id = _calendar_active_instance.opt['calendar'];
 
         if(active_calendar_id) document.getElementById(active_calendar_id).style.display = "none";
-        _calendar_active_instance = {};
+        _calendar_active_instance = null;
     },
 
     /// Setup a text input box to be a calendar box.
@@ -199,10 +216,10 @@ var Calendar = {
         if(!this.opt['calendar']) this.init();
 
         var ths = this;
-        input.onclick=function(){
+        addListener(input, 'click', function(ev) {
             ths.opt['input'] = this.id;
             ths.showCalendar();
-        };
+        });
     },
 
     /// Will be called once when the first input is set.
