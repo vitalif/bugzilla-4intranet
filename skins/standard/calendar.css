@@ -9,7 +9,7 @@
 .calendar-box select.calendar-year { width:70px; }
 .calendar-box .calendar-cancel { width:100%; }
 .calendar-box table td { width:14%; text-align: center; }
-.calendar-box .calendar-title { text-align:center; }
+.calendar-box .calendar-title { text-align:center; white-space: nowrap; }
 .calendar-box a { text-decoration:none; }
 .calendar-box .today a { padding:0 5px; background-color:#ffe9c6; }
 .calendar-box .selected a { padding:0 5px; background-color:#c9ff8b; }
