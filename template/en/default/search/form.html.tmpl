@@ -267,8 +267,12 @@ addListener(window, 'load', function() {
       <td>
         from <input name="deadlinefrom" id="deadlinefrom" size="10" maxlength="10"
                     value="[% default.deadlinefrom.0 FILTER html %]">
-        to <input name="deadlineto" size="10" maxlength="10"
+        to <input name="deadlineto" id="deadlineto" size="10" maxlength="10"
                   value="[% default.deadlineto.0 FILTER html %]">
+        <script type="text/javascript">
+           Calendar.set('deadlinefrom');
+           Calendar.set('deadlineto');
+        </script>
       </td>
       <td>
         <small>(YYYY-MM-DD or relative dates)</small>
@@ -530,8 +534,12 @@ addListener(window, 'load', function() {
   <dd>
     <input name="chfieldfrom" id="chfieldfrom"
            size="10" value="[% default.chfieldfrom.0 FILTER html %]" />
-    and <input name="chfieldto" size="10" value="[% default.chfieldto.0 FILTER html %]" />
+    and <input name="chfieldto" id="chfieldto" size="10" value="[% default.chfieldto.0 FILTER html %]" />
     <br />(YYYY-MM-DD or relative dates)
+        <script type="text/javascript">
+           Calendar.set('chfieldfrom');
+           Calendar.set('chfieldto');
+        </script>
   </dd>
   <dt><label for="chfieldwho">By user:</label></dt>
   <dd><input name="chfieldwho" id="chfieldwho" size="20" value="[% default.chfieldwho.0 | html %]" /> (user login)</dd>

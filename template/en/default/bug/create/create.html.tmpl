@@ -551,8 +551,11 @@ function checkWorktime(inp)
 [% IF user.in_group(Param('timetrackinggroup')) %]
     <th>Deadline:</th>
     <td>
-      <input name="deadline" size="10" maxlength="10" value="[% deadline FILTER html %]">
+      <input name="deadline" id="deadline" size="10" maxlength="10" value="[% deadline FILTER html %]">
       <small>(YYYY-MM-DD)</small>
+      <script type="text/javascript">
+         Calendar.set('deadline');
+      </script>
     </td>
 [% END %]
     <th>Blocks:</th>

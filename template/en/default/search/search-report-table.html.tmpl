@@ -30,7 +30,8 @@ var queryform = "reportform"
 [% PROCESS global/header.html.tmpl
   title = "Generate Tabular Report"
   javascript = js_data
-  javascript_urls = [ "js/productform.js" "js/util.js" ]
+  javascript_urls = [ "js/productform.js" "js/util.js", "js/help.js", "js/calendar.js" ]
+  style_urls = [ "skins/standard/help.css", "skins/standard/calendar.css" ]
   doc_section = "reporting.html#reports"
 %]
 

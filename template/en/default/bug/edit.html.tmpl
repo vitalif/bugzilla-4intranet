@@ -949,6 +949,9 @@ document.changeform = document.[% cfname %];
        <td>
          <input name="deadline" id="deadline" value="[% bug.deadline %]"
                 size="10" maxlength="10"><br />
+         <script type="text/javascript">
+            Calendar.set('deadline');
+         </script>
          <small>(YYYY-MM-DD)</small>
       </td>
     </tr>
