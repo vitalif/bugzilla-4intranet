@@ -543,12 +543,6 @@ document.changeform = document.[% cfname %];
         </script>
         <label for="keywords" accesskey="k">
           <b><a href="describekeywords.cgi"><u>K</u>eywords</a></b></label>:
-          <br />
-          <p style="font-size: 11px; font-weight: normal; margin: 0px; padding: 0px;">Search by: <br />
-          [% FOREACH keyword = bug.keywords.split(', ') %]
-               <a href="/buglist.cgi?keywords=[% keyword %]&keywords_type=allwords&query_format=advanced" style="font-size: 11px; font-weight: normal;" target="_blank">[% keyword %]</a> 
-          [% END %]
-          </p>
       </td>
       [% PROCESS input inputname => "keywords" size => 40 colspan => 2
                        value => bug.keywords.join(', ') %]
@@ -1066,13 +1060,32 @@ document.changeform = document.[% cfname %];
   [% END %]
     [% val = value ? value : bug.$inputname %]
     [% IF bug.check_can_change_field(inputname, 0, 1) %]
+    [% IF inputname == "keywords" %]
+       [% FOREACH keyword = val.split(', ') %]
+               <a href="/buglist.cgi?keywords=[% keyword %]&keywords_type=allwords&query_format=advanced" target="_blank">[% keyword %]</a> 
+       [% END %]
+       (<a href="#" onclick="return toggle_keywords_field()">Edit</a>)
+        <script type="text/javascript">
+            function toggle_keywords_field()
+            {
+                var el = document.getElementById('keywords_field');
+                if (el.style.display == 'block')
+                    el.style.display = 'none';
+                else
+                    el.style.display = 'block';
+                return false;
+            }
+        </script>
+    <div id="keywords_field" style="display: none;">
+    [% END %]
        <input id="[% inputname %]" name="[% inputname %]" class="text_input"
               value="[% val FILTER html %]"[% " size=\"$size\"" IF size %]
               [% " maxlength=\"$maxlength\"" IF maxlength %]
               [% " spellcheck=\"$spellcheck\"" IF spellcheck %]>
-	[% IF inputname == "keywords" %]
-	    <div id="keywords_description_container"></div>
-	[% END %]
+    [% IF inputname == "keywords" %]
+    </div>
+    <div id="keywords_description_container"></div>
+    [% END %]
     [% ELSE %]
       [% IF size && val.length > size %]
         <span title="[% val FILTER html %]">
