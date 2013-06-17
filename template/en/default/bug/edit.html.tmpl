@@ -1062,7 +1062,7 @@ document.changeform = document.[% cfname %];
     [% IF bug.check_can_change_field(inputname, 0, 1) %]
     [% IF inputname == "keywords" && val != "" %]
        [% FOREACH keyword = val.split(', ') %]
-               <a href="/buglist.cgi?keywords=[% keyword %]&keywords_type=allwords&query_format=advanced" target="_blank">[% keyword %]</a> 
+               <a href="/buglist.cgi?keywords=[% keyword FILTER uri %]&keywords_type=allwords&query_format=advanced" target="_blank">[% keyword FILTER html %]</a> 
        [% END %]
        (<a href="#" onclick="return toggle_keywords_field()">Edit</a>)
         <script type="text/javascript">
