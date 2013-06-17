@@ -86,6 +86,7 @@ for (keys %$args)
         $name_tr->{$'} = $args->{$_};
     }
 }
+$name_tr->{'Internal Bug'} = "internal_bug";
 
 $vars->{bug_tpl} = $bug_tpl;
 $vars->{name_tr} = $name_tr;
@@ -98,6 +99,8 @@ for ((grep { /\./ } keys %$field_descs), (qw/rep_platform longdesc bug_group cha
 {
     delete $field_descs->{$_};
 }
+$field_descs->{internal_bug} = 'Internal Bug';
+
 $vars->{import_field_descs} = $field_descs;
 $vars->{import_fields} = [ sort { $field_descs->{$a} cmp $field_descs->{$b} } keys %$field_descs ];
 
@@ -402,6 +405,11 @@ sub post_bug
     {
         ThrowUserError('import_fields_mandatory', { fields => \@unexist });
     }
+
+    # Simulate internal bug
+    my @internal_bug_ids = get_internal_bug_ids($fields_in);
+    delete $fields_in->{internal_bug} if $fields_in->{internal_bug};
+
     # Simulate email usage with browser error mode
     my $um = Bugzilla->usage_mode;
     Bugzilla->usage_mode(USAGE_MODE_EMAIL);
@@ -467,6 +475,7 @@ sub post_bug
     {
         my $bug_id = $vars_out->{bug}->id;
         push @$bugmail, @{$vars_out->{sentmail}};
+        process_internal_bugs($bug_id, @internal_bug_ids);
         return $bug_id;
     }
     return undef;
@@ -480,6 +489,10 @@ sub process_bug
     Bugzilla->usage_mode(USAGE_MODE_EMAIL);
     Bugzilla->error_mode(ERROR_MODE_WEBPAGE);
     Bugzilla->cgi->param(-name => 'dontsendbugmail', -value => 1);
+
+    # Simulate internal bug
+    my @internal_bug_ids = get_internal_bug_ids($fields_in);
+    delete $fields_in->{internal_bug} if $fields_in->{internal_bug};
 
     my %fields = %$fields_in;
 
@@ -535,9 +548,38 @@ sub process_bug
     if ($vars_out)
     {
         push @$bugmail, @{$vars_out->{sentmail}};
+        process_internal_bugs($bug_id, @internal_bug_ids);
         return $bug_id;
     }
     return undef;
+}
+
+sub get_internal_bug_ids
+{
+    my ($fields) = @_;
+
+    my @result = ();
+    @result = $fields->{internal_bug} =~ /(\d+)/g if ($fields->{internal_bug});
+    return @result;
+}
+
+sub process_internal_bugs
+{
+    my ($id, @internal_bug_ids) = @_;
+    if ($id)
+    {
+        my $cf_extbug_field = Bugzilla->get_field('cf_extbug');
+        my $bug = Bugzilla::Bug->check({id => $id});
+        for my $internal_bug_id (@internal_bug_ids)
+        {
+            # get internal bug if it exists
+            my $internal_bug = Bugzilla::Bug->new($internal_bug_id);
+            ThrowUserError('import_intbug_does_not_exist', {bug_id => $internal_bug->{bug_id}}) if $internal_bug->{error};
+            # update internal bug
+            $internal_bug->set_custom_field($cf_extbug_field, [$id]);
+            $internal_bug->update() if $internal_bug->product_obj->{extproduct} == $bug->{product_id};
+        }
+    }
 }
 
 1;
