@@ -1040,6 +1040,14 @@
   [% terms.Bug %] #[% bug_id FILTER html %] does not exist.
 [% END %]
 
+[% BLOCK error_import_intbug_does_not_exist %]
+  [% title = "Invalid internal bug ID" %]
+  [% IF bug_id %]
+    '[% bug_id FILTER html %]' is not a valid internal [% terms.bug %] number.
+    You must enter a valid [% terms.bug %] number!
+  [% END %]
+[% END %]
+
 [% BLOCK error_improper_bug_id_field_value %]
   [% title = BLOCK %]
     [% IF bug_id %]Invalid [% ELSE %]Missing [% END %] [% terms.Bug %] ID
