@@ -1060,7 +1060,7 @@ document.changeform = document.[% cfname %];
   [% END %]
     [% val = value ? value : bug.$inputname %]
     [% IF bug.check_can_change_field(inputname, 0, 1) %]
-    [% IF inputname == "keywords" %]
+    [% IF inputname == "keywords" && val != "" %]
        [% FOREACH keyword = val.split(', ') %]
                <a href="/buglist.cgi?keywords=[% keyword %]&keywords_type=allwords&query_format=advanced" target="_blank">[% keyword %]</a> 
        [% END %]
@@ -1076,14 +1076,16 @@ document.changeform = document.[% cfname %];
                 return false;
             }
         </script>
-    <div id="keywords_field" style="display: none;">
+    <div id="keywords_field" style="display: none; margin-top: 3px;">
     [% END %]
        <input id="[% inputname %]" name="[% inputname %]" class="text_input"
               value="[% val FILTER html %]"[% " size=\"$size\"" IF size %]
               [% " maxlength=\"$maxlength\"" IF maxlength %]
               [% " spellcheck=\"$spellcheck\"" IF spellcheck %]>
     [% IF inputname == "keywords" %]
+    [% IF val != "" %]
     </div>
+    [% END %]
     <div id="keywords_description_container"></div>
     [% END %]
     [% ELSE %]
