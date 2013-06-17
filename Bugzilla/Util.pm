@@ -444,7 +444,7 @@ sub makeCitations
     my ($re, $pre);
     for (split /\n/, $input)
     {
-        s/^((?:\s*&gt;)*) ?//s;
+        s/^((?:\s*&gt;)+ ?)?//s;
         $re = ($1 =~ tr/&/&/);
         if ($_)
         {
