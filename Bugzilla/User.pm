@@ -49,6 +49,7 @@ use Bugzilla::Product;
 use Bugzilla::Classification;
 use Bugzilla::Field;
 use Bugzilla::Group;
+use Bugzilla::Status;
 
 use DateTime::TimeZone;
 use Scalar::Util qw(blessed);
@@ -1505,6 +1506,12 @@ sub wants_bug_mail {
     # from the point of view of this user.
     my %events;
     foreach my $diff (@$fieldDiffs) {
+        # Custis Bug 100052
+        if ($diff->{dep}) {
+            $events{+EVT_DEPEND_REOPEN} = 1;
+            next;
+        }
+
         # A change to any of the above fields sets the corresponding event
         if (defined($names_to_events{$diff->{fielddesc}})) {
             $events{$names_to_events{$diff->{fielddesc}}} = 1;
