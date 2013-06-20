@@ -349,10 +349,17 @@ sub get_attachment_link {
             $patchlink = '&amp;action=diff';
         }
 
+        # Custis Bug 126991
+        my $attachment_view = "";
+        if ($attachment->contenttype =~ /^(image)\//) {
+            $attachment_view = '<img src="'.${linkval}.${patchlink}.'" alt="'.$title.'" title="'.$title.'" class="attachment_image" />';
+        }
+        
         # Whitespace matters here because these links are in <pre> tags.
         return qq|<span class="$className">|
-               . qq|<a href="${linkval}${patchlink}" name="attach_${attachid}" title="$title">$link_text</a>|
-               . qq| <a href="${linkval}&amp;action=edit" title="$title">[details]</a>|
+               . qq|<a href="${linkval}${patchlink}" name="attach_${attachid}" title="$title" target="_blank">$link_text</a>|
+               . qq| <a href="${linkval}&amp;action=edit" title="$title" target="_blank">[details]</a>|
+               . qq| <a href="${linkval}${patchlink}" name="attach_${attachid}" title="$title" target="_blank">${attachment_view}</a>|
                . qq|</span>|;
     }
     else {
