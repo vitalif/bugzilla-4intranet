@@ -136,6 +136,8 @@ document.write('<input type="button" value="Disable All Mail" onclick="SetCheckb
       description = "The dependency tree changes" },
     { id = constants.EVT_OTHER,
       description = "Any field not mentioned above changes" },
+    { id = constants.EVT_DEPEND_REOPEN,
+      description = "A blocking bug is reopened or closed" },
 ] %]
 
 [% neg_events = [
