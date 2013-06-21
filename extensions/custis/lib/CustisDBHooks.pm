@@ -366,6 +366,17 @@ sub install_update_db
         }
     }
 
+    # Bug 100052 - Сообщения от зависимых багов
+    if (!$dbh->selectrow_array('SELECT * FROM email_setting WHERE event=\''.EVT_DEPEND_REOPEN.'\' LIMIT 1'))
+    {
+        foreach my $rel (RELATIONSHIPS) {
+            $dbh->do(
+                'INSERT INTO email_setting (user_id, relationship, event)'.
+                ' SELECT p.userid, ?, ? FROM profiles p WHERE p.disable_mail=0', undef, $rel, EVT_DEPEND_REOPEN
+            );
+        }
+    }
+
     return 1;
 }
 
