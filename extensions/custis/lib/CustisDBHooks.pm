@@ -370,6 +370,7 @@ sub install_update_db
     # Bug 100052 - Сообщения от зависимых багов
     if (!$dbh->selectrow_array('SELECT * FROM email_setting WHERE event=\''.EVT_DEPEND_REOPEN.'\' LIMIT 1'))
     {
+        print "Adding 'A blocking bug is reopened or closed' mail event, On by default for all users\n";
         foreach my $rel (grep { $_ != REL_GLOBAL_WATCHER } RELATIONSHIPS)
         {
             $dbh->do(
