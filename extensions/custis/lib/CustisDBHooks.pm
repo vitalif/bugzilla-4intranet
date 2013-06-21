@@ -8,6 +8,7 @@ use utf8;
 use Encode;
 use URI::Escape;
 use Bugzilla::Constants;
+use Bugzilla::Field;
 
 # Модификации схемы БД
 sub db_schema_abstract_schema
@@ -369,7 +370,8 @@ sub install_update_db
     # Bug 100052 - Сообщения от зависимых багов
     if (!$dbh->selectrow_array('SELECT * FROM email_setting WHERE event=\''.EVT_DEPEND_REOPEN.'\' LIMIT 1'))
     {
-        foreach my $rel (RELATIONSHIPS) {
+        foreach my $rel (grep { $_ != REL_GLOBAL_WATCHER } RELATIONSHIPS)
+        {
             $dbh->do(
                 'INSERT INTO email_setting (user_id, relationship, event)'.
                 ' SELECT p.userid, ?, ? FROM profiles p WHERE p.disable_mail=0', undef, $rel, EVT_DEPEND_REOPEN

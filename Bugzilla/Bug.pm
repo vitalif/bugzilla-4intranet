@@ -1749,14 +1749,14 @@ sub _check_keywords {
         if (!$obj)
         {
             my $this_kd = "";
-            if (exists(%keyword_descriptions->{$keyword}))
+            if (exists(%keyword_descriptions{$keyword}))
             {
-                $this_kd = %keyword_descriptions->{$keyword};
+                $this_kd = %keyword_descriptions{$keyword};
             }
 
             my $obj = Bugzilla::Keyword->create({
                 name => $keyword,
-                description => $this_kd
+                description => $this_kd,
             });
             $keywords{$obj->id} = $obj;
         }
