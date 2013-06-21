@@ -95,8 +95,6 @@ use constant WS_ERROR_CODE => {
     # Note: 114 is above in the Comment-related section.
     # Bug update errors
     illegal_change => 115,
-    # Import internal bug
-    import_intbug_does_not_exist => 116,
 
     # Authentication errors are usually 300-400.
     invalid_username_or_password => 300,

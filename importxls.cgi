@@ -406,10 +406,6 @@ sub post_bug
         ThrowUserError('import_fields_mandatory', { fields => \@unexist });
     }
 
-    # Simulate internal bug
-    my @internal_bug_ids = get_internal_bug_ids($fields_in);
-    delete $fields_in->{internal_bug} if $fields_in->{internal_bug};
-
     # Simulate email usage with browser error mode
     my $um = Bugzilla->usage_mode;
     Bugzilla->usage_mode(USAGE_MODE_EMAIL);
@@ -475,7 +471,7 @@ sub post_bug
     {
         my $bug_id = $vars_out->{bug}->id;
         push @$bugmail, @{$vars_out->{sentmail}};
-        process_internal_bugs($bug_id, @internal_bug_ids);
+        process_internal_bugs($bug_id, $fields_in->{internal_bug});
         return $bug_id;
     }
     return undef;
@@ -489,10 +485,6 @@ sub process_bug
     Bugzilla->usage_mode(USAGE_MODE_EMAIL);
     Bugzilla->error_mode(ERROR_MODE_WEBPAGE);
     Bugzilla->cgi->param(-name => 'dontsendbugmail', -value => 1);
-
-    # Simulate internal bug
-    my @internal_bug_ids = get_internal_bug_ids($fields_in);
-    delete $fields_in->{internal_bug} if $fields_in->{internal_bug};
 
     my %fields = %$fields_in;
 
@@ -548,29 +540,20 @@ sub process_bug
     if ($vars_out)
     {
         push @$bugmail, @{$vars_out->{sentmail}};
-        process_internal_bugs($bug_id, @internal_bug_ids);
+        process_internal_bugs($bug_id, $fields_in->{internal_bug});
         return $bug_id;
     }
     return undef;
 }
 
-sub get_internal_bug_ids
-{
-    my ($fields) = @_;
-
-    my @result = ();
-    @result = $fields->{internal_bug} =~ /(\d+)/g if ($fields->{internal_bug});
-    return @result;
-}
-
 sub process_internal_bugs
 {
-    my ($id, @internal_bug_ids) = @_;
+    my ($id, $internal_bug_ids) = @_;
     if ($id)
     {
         my $cf_extbug_field = Bugzilla->get_field('cf_extbug');
         my $bug = Bugzilla::Bug->check({id => $id});
-        for my $internal_bug_id (@internal_bug_ids)
+        for my $internal_bug_id ($internal_bug_ids =~ /\d+/g)
         {
             # get internal bug if it exists
             my $internal_bug = Bugzilla::Bug->new($internal_bug_id);
