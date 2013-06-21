@@ -423,7 +423,7 @@ sub wrap_comment # makeParagraphs
         }
         $m[0] =~ s/^\s*\n//s;
         $m[0] =~ s/^([ \t]+)/$_ = $1; s!\t!    !g; $_/emog;
-        $m[0] =~ s/(<[^<>]*>)|( +)/$1 || ('&nbsp;' x length $2)/ge;
+        $m[0] =~ s/(<[^<>]*>)|(  +)/$1 || ' '.('&nbsp;' x (length($2)-1))/ge;
         if ($m[0] && !$p)
         {
             $text .= '<p>';
