@@ -560,7 +560,7 @@ sub process_internal_bugs
             ThrowUserError('import_intbug_does_not_exist', {bug_id => $internal_bug->{bug_id}}) if $internal_bug->{error};
             # update internal bug
             $internal_bug->set_custom_field($cf_extbug_field, [$id]);
-            $internal_bug->update() if $internal_bug->product_obj->{extproduct} == $bug->{product_id};
+            $internal_bug->update();
         }
     }
 }
