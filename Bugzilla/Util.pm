@@ -377,65 +377,6 @@ sub trim {
     return $str;
 }
 
-sub wrap_comment
-{
-    my ($comment) = @_;
-    my $wrappedcomment = "";
-
-    my $table;
-    foreach my $line (split /\r\n?|\n/, $comment)
-    {
-        if ($table)
-        {
-            if (scalar($line =~ s/(\t+|│+)/$1/gso) > 0)
-            {
-                $line =~ s/^\s*│\s*//;
-                $table->add(split /\t+|\s*│+\s*/, $line);
-                next;
-            }
-            else
-            {
-                $wrappedcomment .= '<div style="white-space: nowrap; word-wrap: normal">' . "\n" .
-                    verbatimLines($table->render) . "\n</div>";
-                $table = undef;
-            }
-        }
-        my $n = scalar($line =~ s/(\t+|│+)/$1/gso);
-        if ($n > 1 && length($line) < MAX_TABLE_COLS)
-        {
-            # Table
-            $line =~ s/^\s*│\s*//;
-            $table = Text::TabularDisplay::Utf8->new;
-            $table->add(split /\t+|\s*│+\s*/, $line);
-            next;
-        }
-        if ($line =~ /^\s*[│─┌┐└┘├┴┬┤┼]+\s*$/so)
-        {
-            next;
-        }
-        unless ($line =~ /^[│─┌┐└┘├┴┬┤┼].*[│─┌┐└┘├┴┬┤┼]$/iso)
-        {
-            $line =~ s/\t/    /gso;
-        }
-        $wrappedcomment .= $line . "\n";
-    }
-    if ($table)
-    {
-        $wrappedcomment .=
-            '<div style="white-space: nowrap; word-wrap: normal">' . "\n" .
-            verbatimLines($table->render) . "\n</div>";
-    }
-    return makeParagraphs($wrappedcomment);
-}
-
-sub verbatimLines
-{
-    my $a = shift;
-    $a =~ s/ /&nbsp;/giso;
-    $a =~ s/\n/<br\/>/giso;
-    return $a;
-}
-
 sub makeCitations
 {
     my ($input) = @_;
@@ -461,7 +402,7 @@ sub makeCitations
     return $text;
 }
 
-sub makeParagraphs
+sub wrap_comment # makeParagraphs
 {
     my ($input) = @_;
     my @m;
@@ -481,7 +422,8 @@ sub makeParagraphs
             $input = '';
         }
         $m[0] =~ s/^\s*\n//s;
-        $m[0] =~ s/^([ \t]+)/$_ = $1; s!\t!    !g; s! !&nbsp;!g; $_/emog;
+        $m[0] =~ s/^([ \t]+)/$_ = $1; s!\t!    !g; $_/emog;
+        $m[0] =~ s/(<[^<>]*>)|( +)/$1 || ('&nbsp;' x length $2)/ge;
         if ($m[0] && !$p)
         {
             $text .= '<p>';

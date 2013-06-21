@@ -152,6 +152,53 @@ sub template_exists
     return undef;
 }
 
+sub makeTables
+{
+    my ($comment) = @_;
+    my $wrappedcomment = "";
+    my $table;
+    foreach my $line (split /\r\n?|\n/, $comment)
+    {
+        if ($table)
+        {
+            if (scalar($line =~ s/(\t+|│+)/$1/gso) > 0)
+            {
+                $line =~ s/^\s*│\s*//;
+                $table->add(split /\t+|\s*│+\s*/, $line);
+                next;
+            }
+            else
+            {
+                $wrappedcomment .= $table->render;
+                $table = undef;
+            }
+        }
+        my $n = scalar($line =~ s/(\t+|│+)/$1/gso);
+        if ($n > 1 && length($line) < MAX_TABLE_COLS)
+        {
+            # Table
+            $line =~ s/^\s*│\s*//;
+            $table = Text::TabularDisplay::Utf8->new;
+            $table->add(split /\t+|\s*│+\s*/, $line);
+            next;
+        }
+        if ($line =~ /^\s*[│─┌┐└┘├┴┬┤┼]+\s*$/so)
+        {
+            next;
+        }
+        unless ($line =~ /^[│─┌┐└┘├┴┬┤┼].*[│─┌┐└┘├┴┬┤┼]$/iso)
+        {
+            $line =~ s/\t/    /gso;
+        }
+        $wrappedcomment .= $line . "\n";
+    }
+    if ($table)
+    {
+        $wrappedcomment .= $table->render;
+    }
+    return $wrappedcomment;
+}
+
 # This routine quoteUrls contains inspirations from the HTML::FromText CPAN
 # module by Gareth Rees <garethr@cre.canon.co.uk>.  It has been heavily hacked,
 # all that is really recognizable from the original is bits of the regular
@@ -162,6 +209,8 @@ sub template_exists
 sub quoteUrls {
     my ($text, $bug, $comment) = (@_);
     return $text unless $text;
+
+    $text = makeTables($text);
 
     # We use /g for speed, but uris can have other things inside them
     # (http://foo/bug#3 for example). Filtering that out filters valid
