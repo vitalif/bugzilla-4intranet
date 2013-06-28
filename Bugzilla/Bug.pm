@@ -1736,8 +1736,9 @@ sub _check_keywords {
 
     # CustIS Bug 66910 - Adding new keyword to DB
     my %keyword_descriptions;
+    trick_taint($keyword_description_string);
     foreach my $kd (split(/\@+/, trim($keyword_description_string))) {
-        my @this_kd = map { url_decode($_) } split /=+/, $kd;
+        my @this_kd = map { $_ = url_decode($_); Encode::_utf8_on($_); $_ } split /=+/, $kd;
         $keyword_descriptions{$this_kd[0]} = $this_kd[1];
     }
 
