@@ -1,0 +1,56 @@
+[% USE Bugzilla %]
+[% cgi = Bugzilla.cgi %]
+
+[% PROCESS global/header.html.tmpl
+  title = "Установка " _ field.description _ " для различных значений " _ field.value_field.description
+%]
+
+<h3>Установка <i>[% field.description FILTER html %]</i> для различных значений <i>[% field.value_field.description FILTER html %]</i></h3>
+<form action="editvalues.cgi?action=control_list&field=[% field.name FILTER html %][% '&visibility_value_id=' _ visibility_value_id IF visibility_value_id %]"
+      method="[% IF step > 0 %]POST[% ELSE %]GET[% END %]">
+  [% IF token %]<input type="hidden" name="token" value="[% token %]"/>[% END %]
+  [% IF step == 0 %]
+    <input type="hidden" name="action" value="control_list"/>
+    <input type="hidden" name="field" value="[% field.name FILTER html %]"/>
+    <strong>Выберите [% field.value_field.description FILTER html %]</strong>
+    <select name="visibility_value_id" id="visibility_value_id">
+      [% FOREACH field_value = field.value_field.legal_values %]
+        [% NEXT IF field_value.name == '' %]
+          <option value="[% field_value.id FILTER none %]"[% ' selected="selected"' IF field_value.id == visibility_value_id %]>
+            [%- field_value.name FILTER html -%]
+          </option>
+      [% END %]
+    </select>
+    <br/>
+    <br/>
+    <input type="submit" id="update" value="Далее"/>
+  [% ELSIF step == 1 %]
+    <input type="hidden" name="step" value="[% step FILTER html %]"/>
+    <input type="hidden" name="visibility_value_id" value="[% visibility_value_id FILTER html %]"/>
+    <p>Значения <strong>[% field.description FILTER html %]</strong> для <strong>[% field_value.name FILTER html %]</strong>:</p>
+    [% FOREACH value = field.legal_values %]
+      [% NEXT IF value.is_static %]
+      <div id="values_[% value.id %]">
+        <input type="checkbox" value="[% value.id %]" name="values"[% ' checked="checked"' IF value.has_visibility_value(field_value.id, 0) %]/>
+        [% value.name FILTER html %]
+      </div>
+    [% END %]
+    <br/>
+    <br/>
+    <input type="submit" id="update" name="update" value="Сохранить"/>
+    <a href="editvalues.cgi?action=control_list&field=[% field.name FILTER html %]">К выбору <strong>[% field.value_field.description FILTER html %]</strong></a>
+    |
+  [% ELSIF step == 2 %]
+    <p>Значения <strong>[% field.description FILTER html %]</strong> для <strong>[% field_value.name FILTER html %]</strong> сохранены.</p>
+    <a href="editvalues.cgi?action=control_list&field=
+            [%- field.name FILTER url_quote %]&visibility_value_id=[% visibility_value_id %]">К выбору значений <strong>[% field.description FILTER html %]</strong> для <strong>[% field_value.name FILTER html %]</strong></a>
+    |
+    <a href="editvalues.cgi?action=control_list&field=
+            [%- field.name FILTER url_quote %]">К выбору <strong>[% field.value_field.description FILTER html %]</strong></a>
+    |
+  [% END; %]
+  <a href="editvalues.cgi?field=
+            [%- field.name FILTER url_quote %]">К списку значений <strong>[% field.description FILTER html %]</strong></a>
+</form>
+
+[% PROCESS global/footer.html.tmpl %]

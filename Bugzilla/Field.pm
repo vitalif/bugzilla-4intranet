@@ -1225,6 +1225,43 @@ sub update_visibility_values
     return 1;
 }
 
+# Shared between Bugzilla::Field and Bugzilla::Field::Choice
+
+sub update_visibility_value
+{
+    my ($controlled_field, $controlled_value_ids, $visibility_value_id) = @_;
+    $controlled_value_ids ||= [];
+    my $vis_field = $controlled_value_ids
+        ? $controlled_field->value_field
+        : $controlled_field->visibility_field;
+    if (!$vis_field)
+    {
+        return undef;
+    }
+    $controlled_field = Bugzilla->get_field($controlled_field) if !ref $controlled_field;
+    $visibility_value_id = int($visibility_value_id);
+    if ($visibility_value_id)
+    {
+        my $type = Bugzilla::Field::Choice->type($vis_field);
+        $visibility_value_id = $type->new($visibility_value_id)->{'id'};
+    }
+    Bugzilla->dbh->do(
+        "DELETE FROM fieldvaluecontrol WHERE field_id=? AND visibility_value_id=?",
+        undef, $controlled_field->id, $visibility_value_id);
+    if (@$controlled_value_ids)
+    {
+        my $type = Bugzilla::Field::Choice->type($controlled_field);
+        $controlled_value_ids = [ map { $_->id } @{ $type->new_from_list($controlled_value_ids) } ];
+        my $f = $controlled_field->id;
+        my $sql = "INSERT INTO fieldvaluecontrol (field_id, visibility_value_id, value_id) VALUES ".
+            join(",", map { "($f, $visibility_value_id, $_)" } @$controlled_value_ids);
+        Bugzilla->dbh->do($sql);
+    }
+    # Touch the field
+    $controlled_field->touch;
+    return 1;
+}
+
 # Moved from bug/field-events.js.tmpl
 # Now uses one pass over cached fieldvaluecontrol table
 sub json_visibility
