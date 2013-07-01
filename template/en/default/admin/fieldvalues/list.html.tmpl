@@ -37,6 +37,13 @@
 [% delete_contentlink = BLOCK %]editvalues.cgi?action=del&amp;field=
   [%- field.name FILTER url_quote %]&amp;value=%%name%%[% END %]
 
+[% IF field.custom && field.value_field %]
+  <h4>
+    <a href="editvalues.cgi?action=control_list&amp;field=
+              [%- field.name FILTER url_quote %]">Enable/disable <i>[% field.description FILTER html %]</i> options for different values of <i>[% field.value_field.description FILTER html %]</i></a>
+  </h4>
+[% END %]
+
 [% columns = [
      { 
        name => "name"

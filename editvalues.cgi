@@ -129,6 +129,40 @@ if ($action eq 'new') {
     display_field_values($vars);
 }
 
+if ($action eq 'control_list') {
+    die('This field has not controled field') unless $field->custom && $field->value_field;
+
+    my $step = $cgi->param('step') || 0;
+    my $visibility_value_id = $cgi->param('visibility_value_id');
+    my $values = [ $cgi->param('values') ];
+    my $need_token = 0;
+
+    $vars->{'visibility_value_id'} = -1;
+    if ($visibility_value_id) {
+        $vars->{'visibility_value_id'} = $visibility_value_id;
+        my %values = map { $_->{'id'} => $_ } @{$field->{'value_field'}->legal_values()};
+        $vars->{'field_value'} = $values{$visibility_value_id};
+        $step++ unless $token;
+        $need_token = 1;
+    }
+
+    if ($token)
+    {
+        check_token_data($token, "edit_control_list");
+        $field->update_visibility_value($values, $visibility_value_id);
+        $step++;
+        delete_token($token);
+    }
+
+    $vars->{'step'} = $step;
+    $vars->{'token'} = issue_session_token("edit_control_list") if $need_token;
+
+    $template->process("admin/fieldvalues/control-list.html.tmpl",
+        $vars) || ThrowTemplateError($template->error());
+
+    exit;
+}
+
 # After this, we always have a value
 my $value = Bugzilla::Field::Choice->type($field)->check($cgi->param('value'));
 $vars->{'value'} = $value;
