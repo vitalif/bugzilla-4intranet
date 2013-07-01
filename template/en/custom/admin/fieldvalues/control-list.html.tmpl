@@ -1,41 +1,50 @@
 [% USE Bugzilla %]
 [% cgi = Bugzilla.cgi %]
 
-[% PROCESS global/header.html.tmpl
-  title = "Установка " _ field.description _ " для различных значений " _ field.value_field.description
+[% IF step == 0;
+     SET title = "Выбор активных " _ field.description _ " для различных значений " _ field.value_field.description;
+   ELSIF step == 1;
+     SET title = "Значения " _ field.description _ " для " _ field_value.name;
+   ELSIF step == 2;
+     SET title = "Значения " _ field.description _ " для " _ field_value.name _ " сохранены.";
+   END;
 %]
 
-<h3>Установка <i>[% field.description FILTER html %]</i> для различных значений <i>[% field.value_field.description FILTER html %]</i></h3>
+[% PROCESS global/header.html.tmpl %]
+
+<h3>Выбор активных [% field.description FILTER html %] для различных значений поля [% field.value_field.description FILTER html %]</h3>
+
 <form action="editvalues.cgi?action=control_list&field=[% field.name FILTER html %][% '&visibility_value_id=' _ visibility_value_id IF visibility_value_id %]"
       method="[% IF step > 0 %]POST[% ELSE %]GET[% END %]">
   [% IF token %]<input type="hidden" name="token" value="[% token %]"/>[% END %]
   [% IF step == 0 %]
     <input type="hidden" name="action" value="control_list"/>
     <input type="hidden" name="field" value="[% field.name FILTER html %]"/>
-    <strong>Выберите [% field.value_field.description FILTER html %]</strong>
-    <select name="visibility_value_id" id="visibility_value_id">
-      [% FOREACH field_value = field.value_field.legal_values %]
-        [% NEXT IF field_value.name == '' %]
-          <option value="[% field_value.id FILTER none %]"[% ' selected="selected"' IF field_value.id == visibility_value_id %]>
-            [%- field_value.name FILTER html -%]
-          </option>
-      [% END %]
-    </select>
-    <br/>
-    <br/>
-    <input type="submit" id="update" value="Далее"/>
+    <p>
+      <strong>Выберите [% field.value_field.description FILTER html %]:&nbsp;</strong>
+      <select name="visibility_value_id" id="visibility_value_id">
+        [% FOREACH field_value = field.value_field.legal_values %]
+          [% NEXT IF field_value.name == '' %]
+            <option value="[% field_value.id FILTER none %]"[% ' selected="selected"' IF field_value.id == visibility_value_id %]>
+              [%- field_value.name FILTER html -%]
+            </option>
+        [% END %]
+      </select>
+      <input type="submit" id="update" value="Далее"/>
+    </p>
   [% ELSIF step == 1 %]
     <input type="hidden" name="step" value="[% step FILTER html %]"/>
     <input type="hidden" name="visibility_value_id" value="[% visibility_value_id FILTER html %]"/>
     <p>Значения <strong>[% field.description FILTER html %]</strong> для <strong>[% field_value.name FILTER html %]</strong>:</p>
+    <div style="margin-left: 1em">
     [% FOREACH value = field.legal_values %]
       [% NEXT IF value.is_static %]
-      <div id="values_[% value.id %]">
-        <input type="checkbox" value="[% value.id %]" name="values"[% ' checked="checked"' IF value.has_visibility_value(field_value.id, 0) %]/>
-        [% value.name FILTER html %]
-      </div>
+      <input type="checkbox" id="val_[% value.id %]" value="[% value.id %]" name="values"[% ' checked="checked"' IF value.has_visibility_value(field_value.id, 0) %]/>
+      <label for="val_[% value.id %]">[% value.name FILTER html %]</label>
+      <a title="Править значение..." href="editvalues.cgi?action=edit&field=[% field.name %]&value=[% value.name | uri %]">&rarr;</a>
+      <br />
     [% END %]
-    <br/>
+    </div>
     <br/>
     <input type="submit" id="update" name="update" value="Сохранить"/>
     <a href="editvalues.cgi?action=control_list&field=[% field.name FILTER html %]">К выбору <strong>[% field.value_field.description FILTER html %]</strong></a>

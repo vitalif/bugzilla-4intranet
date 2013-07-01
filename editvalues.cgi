@@ -130,7 +130,7 @@ if ($action eq 'new') {
 }
 
 if ($action eq 'control_list') {
-    die('This field has not controled field') unless $field->custom && $field->value_field;
+    die('This field has no value field') unless $field->custom && $field->value_field;
 
     my $step = $cgi->param('step') || 0;
     my $visibility_value_id = $cgi->param('visibility_value_id');
@@ -144,14 +144,12 @@ if ($action eq 'control_list') {
         $vars->{'field_value'} = $values{$visibility_value_id};
         $step++ unless $token;
         $need_token = 1;
-    }
-
-    if ($token)
-    {
-        check_token_data($token, "edit_control_list");
-        $field->update_visibility_value($values, $visibility_value_id);
-        $step++;
-        delete_token($token);
+        if ($token) {
+            check_token_data($token, "edit_control_list");
+            $field->update_controlled_values($values, $visibility_value_id);
+            $step++;
+            delete_token($token);
+        }
     }
 
     $vars->{'step'} = $step;

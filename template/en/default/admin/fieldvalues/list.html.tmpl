@@ -39,8 +39,9 @@
 
 [% IF field.custom && field.value_field %]
   <h4>
-    <a href="editvalues.cgi?action=control_list&amp;field=
-              [%- field.name FILTER url_quote %]">Enable/disable <i>[% field.description FILTER html %]</i> options for different values of <i>[% field.value_field.description FILTER html %]</i></a>
+    Чтобы отредактировать наборы активных [% field.description FILTER html %]
+    для разных значений поля [% field.value_field.description FILTER html %],
+    <a href="editvalues.cgi?action=control_list&amp;field=[%- field.name FILTER url_quote %]">нажмите сюда</a>.
   </h4>
 [% END %]
 
