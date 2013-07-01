@@ -1225,9 +1225,7 @@ sub update_visibility_values
     return 1;
 }
 
-# Shared between Bugzilla::Field and Bugzilla::Field::Choice
-
-sub update_visibility_value
+sub update_controlled_values
 {
     my ($controlled_field, $controlled_value_ids, $visibility_value_id) = @_;
     $controlled_value_ids ||= [];
