@@ -44,18 +44,21 @@ addListener(window, 'load', function()
       s.style.width = lim+'px';
       addListener(s, 'mouseover', function()
       {
-        var c = s;
-        while (c && c.nodeName != 'TABLE')
-          c = c.parentNode;
-        [%# FIXME: Удалить вторую таблицу внутри каждой ячейки! Она там нах* не нужна! %]
-        c = c.parentNode;
-        while (c && c.nodeName != 'TABLE')
-          c = c.parentNode;
-        var w = (lim+c.parentNode.offsetWidth-c.offsetWidth);
-        if (w > lim+10)
+        if (s.style.width != '')
         {
-          s.style.width = '';
-          s.style.maxWidth = w + 'px';
+          var c = s;
+          while (c && c.nodeName != 'TABLE')
+            c = c.parentNode;
+          [%# FIXME: Удалить вторую таблицу внутри каждой ячейки! Она там нах* не нужна! %]
+          c = c.parentNode;
+          while (c && c.nodeName != 'TABLE')
+            c = c.parentNode;
+          var w = (lim+c.parentNode.offsetWidth-c.offsetWidth);
+          if (w > lim+10)
+          {
+            s.style.width = '';
+            s.style.maxWidth = w + 'px';
+          }
         }
       });
       addListener(s, 'mouseout', function() {
