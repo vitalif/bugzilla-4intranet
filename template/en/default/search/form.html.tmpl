@@ -42,26 +42,31 @@ addListener(window, 'load', function()
     if (s && s.offsetWidth > lim)
     {
       s.style.width = lim+'px';
-      addListener(s, 'mouseover', function()
+      addListener(s, 'mouseover', function(e)
       {
-        if (s.style.width != '')
-        {
-          var c = s;
-          while (c && c.nodeName != 'TABLE')
-            c = c.parentNode;
-          [%# FIXME: Удалить вторую таблицу внутри каждой ячейки! Она там нах* не нужна! %]
+        e = e || window.event;
+        var from = e.relatedTarget || e.fromElement;
+        if (from == s || from.parentNode == s)
+          return;
+        var c = s;
+        while (c && c.nodeName != 'TABLE')
           c = c.parentNode;
-          while (c && c.nodeName != 'TABLE')
-            c = c.parentNode;
-          var w = (lim+c.parentNode.offsetWidth-c.offsetWidth);
-          if (w > lim+10)
-          {
-            s.style.width = '';
-            s.style.maxWidth = w + 'px';
-          }
+        [%# FIXME: Удалить вторую таблицу внутри каждой ячейки! Она там нах* не нужна! %]
+        c = c.parentNode;
+        while (c && c.nodeName != 'TABLE')
+          c = c.parentNode;
+        var w = (lim+c.parentNode.offsetWidth-c.offsetWidth);
+        if (w > lim+10)
+        {
+          s.style.width = '';
+          s.style.maxWidth = w + 'px';
         }
       });
-      addListener(s, 'mouseout', function() {
+      addListener(s, 'mouseout', function(e) {
+        e = e || window.event;
+        var to = e.relatedTarget || e.toElement;
+        if (to == s || to.parentNode == s)
+          return;
         s.style.width = lim+'px';
         s.style.maxWidth = '';
       });
