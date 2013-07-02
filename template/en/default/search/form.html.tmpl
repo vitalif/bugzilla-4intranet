@@ -198,8 +198,10 @@ addListener(window, 'load', function()
   [% FOR f = Bugzilla.get_fields({ is_select => 1, obsolete => 0, custom => 1, sort => 1 }) %]
     [% IF f.legal_value_names.size %]
       [% IF i AND !(i % 4) %]
-      </tr>
-      <tr>
+  </tr>
+</table>
+<table>
+  <tr>
       [% END %]
       <td valign="top" id="[% f.name | html %]_cont">
         <table>
