@@ -30,20 +30,48 @@
 
 var first_load = true;         [%# is this the first time we load the page? %]
 var last_sel = new Array();    [%# caches last selection %]
-
 var useclassification = [% Param('useclassification') ? 'true' : 'false' %];
-var checkwidths = [];
 
-addListener(window, 'load', function() {
-  for (var i in checkwidths)
+addListener(window, 'load', function()
+{
+  var lim = 250;
+  function checkw(e)
   {
-    var s = document.getElementById(checkwidths[i]);
-    if (s && s.offsetWidth > 250)
-      s.style.width = '250px';
+    var s = document.getElementById(e);
+    s.style.minWidth = '100%';
+    if (s && s.offsetWidth > lim)
+    {
+      s.style.width = lim+'px';
+      addListener(s, 'mouseover', function()
+      {
+        var c = s;
+        while (c && c.nodeName != 'TABLE')
+          c = c.parentNode;
+        [%# FIXME: Удалить вторую таблицу внутри каждой ячейки! Она там нах* не нужна! %]
+        c = c.parentNode;
+        while (c && c.nodeName != 'TABLE')
+          c = c.parentNode;
+        var w = (lim+c.parentNode.offsetWidth-c.offsetWidth);
+        console.log(w-lim);
+        if (w > lim+10)
+        {
+          s.style.width = '';
+          s.style.maxWidth = w + 'px';
+        }
+      });
+      addListener(s, 'mouseout', function() {
+        s.style.width = lim+'px';
+        s.style.maxWidth = '';
+      });
+    }
   }
+  for (var i in checkwidths)
+    checkw(checkwidths[i]);
 });
 
 </script>
+
+[% SET checkwidths = [] %]
 
 [%# If we resubmit to ourselves, we need to know if we are using a format. %]
 [% thisformat = query_format != '' ? query_format : format %]
@@ -86,121 +114,114 @@ addListener(window, 'load', function() {
       [% END %]
     </td>
   </tr>
+</table>
 
 [%# *** Classification Product Component Version Target *** %]
+<table>
   <tr>
-    <td colspan="4">
+  [% Hook.process('before_selects_top') %]
+  [% IF Param('useclassification') %]
+    <td valign="top" id="classification_cont">
       <table>
-        <tr>
-        [% Hook.process('before_selects_top') %]
-        [% IF Param('useclassification') %]
-          <td valign="top" id="classification_cont">
-            <table>
-              <tr valign="bottom">
-                <th align="left">
-                  <label for="classification">Classification</label>:
-                </th>
-              </tr>
-              <tr valign="top">
-                [% PROCESS select sel = { name => 'classification', size => 5 } %]
-              </tr>
-            </table>
-          </td>
-        [% END %]
-          <td valign="top" id="product_cont">
-            <table>
-              <tr valign="bottom">
-                <th align="left">
-                  <label for="product" accesskey="p"><u>P</u>roduct</label>:
-                </th>
-              </tr>
-              <tr valign="top">
-                [% PROCESS select sel = { name => 'product', size => 5 } %]
-              </tr>
-            </table>
-          </td>
-          <td valign="top" id="component_cont">
-            <table>
-              <tr valign="bottom">
-                <th align="left">
-                  <label for="component" accesskey="m"><a href="describecomponents.cgi">Co<u>m</u>ponent</a></label>:
-                </th>
-              </tr>
-              <tr valign="top">
-                [% PROCESS select sel = { name => 'component', size => 5 } %]
-              </tr>
-            </table>
-          </td>
-          <td valign="top" id="version_cont">
-            <table>
-              <tr valign="bottom">
-                <th align="left">
-                  <label for="version">Version</label>:
-                </th>
-              </tr>
-              <tr valign="top">
-                [% PROCESS select sel = { name => 'version',
-                                          size => 5 } %]
-              </tr>
-            </table>
-          </td>
-        [% IF Param('usetargetmilestone') %]
-          <td valign="top" id="target_milestone_cont">
-            <table>
-              <tr valign="bottom">
-                <th align="left">
-                  <label for="target_milestone">Target</label>:
-                </th>
-              </tr>
-              <tr valign="top">
-                [% PROCESS select sel = { name => 'target_milestone',
-                                          size => 5 } %]
-              </tr>
-            </table>
-          </td>
-        [% END %]
-        [% Hook.process('after_selects_top') %]
+        <tr valign="bottom">
+          <th align="left">
+            <label for="classification">Classification</label>:
+          </th>
+        </tr>
+        <tr valign="top">
+          [% PROCESS select sel = { name => 'classification', size => 5 } %]
         </tr>
       </table>
     </td>
+  [% END %]
+    <td valign="top" id="product_cont">
+      <table>
+        <tr valign="bottom">
+          <th align="left">
+            <label for="product" accesskey="p"><u>P</u>roduct</label>:
+          </th>
+        </tr>
+        <tr valign="top">
+          [% PROCESS select sel = { name => 'product', size => 5 } %]
+        </tr>
+      </table>
+    </td>
+    <td valign="top" id="component_cont">
+      <table>
+        <tr valign="bottom">
+          <th align="left">
+            <label for="component" accesskey="m"><a href="describecomponents.cgi">Co<u>m</u>ponent</a></label>:
+          </th>
+        </tr>
+        <tr valign="top">
+          [% PROCESS select sel = { name => 'component', size => 5 } %]
+        </tr>
+      </table>
+    </td>
+    <td valign="top" id="version_cont">
+      <table>
+        <tr valign="bottom">
+          <th align="left">
+            <label for="version">Version</label>:
+          </th>
+        </tr>
+        <tr valign="top">
+          [% PROCESS select sel = { name => 'version',
+                                    size => 5 } %]
+        </tr>
+      </table>
+    </td>
+  [% IF Param('usetargetmilestone') %]
+    <td valign="top" id="target_milestone_cont">
+      <table>
+        <tr valign="bottom">
+          <th align="left">
+            <label for="target_milestone">Target</label>:
+          </th>
+        </tr>
+        <tr valign="top">
+          [% PROCESS select sel = { name => 'target_milestone',
+                                    size => 5 } %]
+        </tr>
+      </table>
+    </td>
+  [% END %]
+  [% Hook.process('after_selects_top') %]
   </tr>
+</table>
 
 [%# *** Custom select fields *** %]
 [% IF Bugzilla.get_fields({ is_select => 1, obsolete => 0, custom => 1 }).size %]
+<table>
   <tr>
-    <td colspan="4">
-      <table>
-      <tr>
-      [% i = 0 %]
-      [% FOR f = Bugzilla.get_fields({ is_select => 1, obsolete => 0, custom => 1, sort => 1 }) %]
-        [% IF f.legal_value_names.size %]
-          [% IF i AND !(i % 4) %]
-          </tr>
-          <tr>
-          [% END %]
-          <td valign="top" id="[% f.name | html %]_cont">
-            <table>
-              <tr valign="bottom">
-                <th align="left">
-                  <label for="[% f.name | html %]">[% f.description | html %]</label>:
-                </th>
-              </tr>
-              <tr valign="top">
-                [% PROCESS select sel = { name => f.name, size => 5 } %]
-              </tr>
-            </table>
-          </td>
-          [% i = i+1 %]
-        [% END %]
-      [% END %]
+  [% i = 0 %]
+  [% FOR f = Bugzilla.get_fields({ is_select => 1, obsolete => 0, custom => 1, sort => 1 }) %]
+    [% IF f.legal_value_names.size %]
+      [% IF i AND !(i % 4) %]
       </tr>
-      </table>
-    </td>
+      <tr>
+      [% END %]
+      <td valign="top" id="[% f.name | html %]_cont">
+        <table>
+          <tr valign="bottom">
+            <th align="left">
+              <label for="[% f.name | html %]">[% f.description | html %]</label>:
+            </th>
+          </tr>
+          <tr valign="top">
+            [% PROCESS select sel = { name => f.name, size => 5 } %]
+          </tr>
+        </table>
+      </td>
+      [% i = i+1 %]
+    [% END %]
+  [% END %]
   </tr>
+</table>
 [% END %]
 
 [%# *** Comment URL Whiteboard Keywords *** %]
-
+<table>
   [% tf_desc = {
        longdesc          => "A&nbsp;<u>C</u>omment",
        bug_file_loc      => "The&nbsp;<u>U</u>RL",
@@ -577,8 +598,10 @@ addListener(window, 'load', function() {
         %]</option>
       [% END %]
     </select>
-    <script>
-      checkwidths.push('[% sel.name | js %]');
-    </script>
+    [% checkwidths.push(sel.name) %]
   </td>
 [% END %]
+
+<script type="text/javascript">
+var checkwidths = [% json(checkwidths) %];
+</script>
