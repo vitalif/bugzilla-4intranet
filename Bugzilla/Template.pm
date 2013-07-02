@@ -159,6 +159,10 @@ sub makeTables
     my $table;
     foreach my $line (split /\r\n?|\n/, $comment)
     {
+        if ($line =~ /^\s*[│─┌┐└┘├┴┬┤┼]+\s*$/so)
+        {
+            next;
+        }
         if ($table)
         {
             if (scalar($line =~ s/(\t+|│+)/$1/gso) > 0)
@@ -169,7 +173,7 @@ sub makeTables
             }
             else
             {
-                $wrappedcomment .= $table->render;
+                $wrappedcomment .= "\0\1".$table->render."\0\1";
                 $table = undef;
             }
         }
@@ -178,12 +182,9 @@ sub makeTables
         {
             # Table
             $line =~ s/^\s*│\s*//;
+            $line =~ s/\s*│\s*$//;
             $table = Text::TabularDisplay::Utf8->new;
             $table->add(split /\t+|\s*│+\s*/, $line);
-            next;
-        }
-        if ($line =~ /^\s*[│─┌┐└┘├┴┬┤┼]+\s*$/so)
-        {
             next;
         }
         unless ($line =~ /^[│─┌┐└┘├┴┬┤┼].*[│─┌┐└┘├┴┬┤┼]$/iso)
@@ -194,7 +195,7 @@ sub makeTables
     }
     if ($table)
     {
-        $wrappedcomment .= $table->render;
+        $wrappedcomment .= "\0\1".$table->render."\0\1";
     }
     return $wrappedcomment;
 }
@@ -324,6 +325,9 @@ sub quoteUrls {
     # THIS MEANS THAT A LITERAL ", <, >, ' MUST BE ESCAPED FOR A MATCH
 
     $text = html_quote($text);
+
+    # Replace nowrap markers (\1\0\1)
+    $text =~ s/\x1\x0\x1(.*?)\x1\x0\x1/<div style="white-space: nowrap">\1<\/div>/gso;
 
     # Color quoted text
     $text = makeCitations($text);
