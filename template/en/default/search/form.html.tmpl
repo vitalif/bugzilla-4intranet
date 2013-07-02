@@ -52,7 +52,6 @@ addListener(window, 'load', function()
         while (c && c.nodeName != 'TABLE')
           c = c.parentNode;
         var w = (lim+c.parentNode.offsetWidth-c.offsetWidth);
-        console.log(w-lim);
         if (w > lim+10)
         {
           s.style.width = '';
