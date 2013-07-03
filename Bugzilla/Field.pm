@@ -1227,7 +1227,7 @@ sub update_visibility_values
 
 sub update_controlled_values
 {
-    my ($controlled_field, $controlled_value_ids, $visibility_value_id) = @_;
+    my ($controlled_field, $controlled_value_ids, $visibility_value_id, $default_value_ids) = @_;
     $controlled_value_ids ||= [];
     my $vis_field = $controlled_value_ids
         ? $controlled_field->value_field
@@ -1250,9 +1250,14 @@ sub update_controlled_values
     {
         my $type = Bugzilla::Field::Choice->type($controlled_field);
         $controlled_value_ids = [ map { $_->id } @{ $type->new_from_list($controlled_value_ids) } ];
+        if ($default_value_ids)
+        {
+            my $type = Bugzilla::Field::Choice->type($controlled_field);
+            $default_value_ids = { map { $_->id => 1 } @{ $type->new_from_list($default_value_ids) } };
+        }
         my $f = $controlled_field->id;
-        my $sql = "INSERT INTO fieldvaluecontrol (field_id, visibility_value_id, value_id) VALUES ".
-            join(",", map { "($f, $visibility_value_id, $_)" } @$controlled_value_ids);
+        my $sql = "INSERT INTO fieldvaluecontrol (field_id, visibility_value_id, value_id, is_default) VALUES ".
+            join(",", map { "($f, $visibility_value_id, $_, " . ($default_value_ids->{$_} ? '1' : '0') . ')' } @$controlled_value_ids);
         Bugzilla->dbh->do($sql);
     }
     # Touch the field

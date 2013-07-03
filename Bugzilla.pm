@@ -844,7 +844,8 @@ sub fieldvaluecontrol
                     ->{values}
                     ->{$_->{field_id}}
                     ->{$_->{value_id}}
-                    ->{$_->{visibility_value_id}} = 1;
+                    ->{$_->{visibility_value_id}}
+                    ->{is_default} = $_->{is_default};
             }
             else
             {

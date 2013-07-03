@@ -14,7 +14,49 @@ function initControlledField(i)
 {
     var f = document.getElementById(i);
     if (f)
+    {
+        if (document.forms['Create'])
+        {
+            var control_id = null;
+            var controlled,copt;
+
+            for (var controlled_id in show_fields[f.id]['values'])
+            {
+                controlled = document.getElementById(controlled_id);
+                if (!controlled)
+                {
+                    continue;
+                }
+                if (!control_id)
+                {
+                    for (var i in show_fields[f.id]['legal'])
+                    {
+                        if (f.value == show_fields[f.id]['legal'][i][1])
+                        {
+                            control_id = show_fields[f.id]['legal'][i][0];
+                            break;
+                        }
+                    }
+                }
+
+                var vals = show_fields[f.id]['values'][controlled_id];
+                for (var value_id in vals)
+                {
+                    if (!vals[value_id][control_id])
+                    {
+                                continue;
+                    }
+                    if (vals[value_id][control_id].is_default == 1)
+                    {
+                        document.getElementById('v' + value_id + '_' + controlled_id).selected = true;
+                    }
+                }
+            }
+
+        }
+
         addListener(f, 'change', handleControllerField_this);
+    }
 }
 
 function getSelectedIds(sel)

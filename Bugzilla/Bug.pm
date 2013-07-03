@@ -2134,7 +2134,7 @@ sub _check_select_field
         {
             $tmp->{$field->name} = $object;
         }
-        return $value;
+        return $object->name;
     }
     my $object = Bugzilla::Field::Choice->type($field)->check($value);
     return $object->name;

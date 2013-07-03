@@ -486,6 +486,14 @@ sub has_visibility_value
     return $hash->{$value};
 }
 
+sub is_default_controlled_value
+{
+    my $self = shift;
+    my $result = $self->has_visibility_value(@_);
+    return $result unless ref $result;
+    return $result->{is_default};
+}
+
 # Check visibility of field value for a bug
 sub check_visibility
 {

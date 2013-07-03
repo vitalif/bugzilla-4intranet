@@ -135,6 +135,7 @@ if ($action eq 'control_list') {
     my $step = $cgi->param('step') || 0;
     my $visibility_value_id = $cgi->param('visibility_value_id');
     my $values = [ $cgi->param('values') ];
+    my $default_value_ids = [ $cgi->param('default_value_ids') ];
     my $need_token = 0;
 
     $vars->{'visibility_value_id'} = -1;
@@ -146,8 +147,9 @@ if ($action eq 'control_list') {
         $need_token = 1;
         if ($token) {
             check_token_data($token, "edit_control_list");
-            $field->update_controlled_values($values, $visibility_value_id);
+            $field->update_controlled_values($values, $visibility_value_id, $default_value_ids);
             $step++;
+            $need_token = 0;
             delete_token($token);
         }
     }
