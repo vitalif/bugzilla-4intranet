@@ -76,6 +76,8 @@ sub db_schema_abstract_schema
             field_id => {TYPE => 'INT3', NOTNULL => 1},
             value_id => {TYPE => 'INT2', NOTNULL => 1},
             visibility_value_id => {TYPE => 'INT2', NOTNULL => 1},
+            # Bug 91153 - Default'ные значения Custom полей
+            is_default => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0},
         ],
         INDEXES => [
             fieldvaluecontrol_primary_idx =>
@@ -379,6 +381,9 @@ sub install_update_db
             );
         }
     }
+
+    # Bug 91153 - Default'ные значения Custom полей
+    $dbh->bz_add_column('fieldvaluecontrol', is_default => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0});
 
     return 1;
 }

@@ -39,7 +39,7 @@
 
 [% IF field.custom && field.value_field %]
   <h4>
-    Чтобы отредактировать наборы активных [% field.description FILTER html %]
+    Чтобы отредактировать наборы активных [% field.description FILTER html %] и значения по умолчанию
     для разных значений поля [% field.value_field.description FILTER html %],
     <a href="editvalues.cgi?action=control_list&amp;field=[%- field.name FILTER url_quote %]">нажмите сюда</a>.
   </h4>

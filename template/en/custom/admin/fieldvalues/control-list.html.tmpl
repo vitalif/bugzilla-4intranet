@@ -15,7 +15,8 @@
 <h3>Выбор активных [% field.description FILTER html %] для различных значений поля [% field.value_field.description FILTER html %]</h3>
 
 <form action="editvalues.cgi?action=control_list&field=[% field.name FILTER html %][% '&visibility_value_id=' _ visibility_value_id IF visibility_value_id %]"
-      method="[% IF step > 0 %]POST[% ELSE %]GET[% END %]">
+      method="[% IF step > 0 %]POST[% ELSE %]GET[% END %]"
+      name="setValuesForm">
   [% IF token %]<input type="hidden" name="token" value="[% token %]"/>[% END %]
   [% IF step == 0 %]
     <input type="hidden" name="action" value="control_list"/>
@@ -36,15 +37,32 @@
     <input type="hidden" name="step" value="[% step FILTER html %]"/>
     <input type="hidden" name="visibility_value_id" value="[% visibility_value_id FILTER html %]"/>
     <p>Значения <strong>[% field.description FILTER html %]</strong> для <strong>[% field_value.name FILTER html %]</strong>:</p>
-    <div style="margin-left: 1em">
-    [% FOREACH value = field.legal_values %]
-      [% NEXT IF value.is_static %]
-      <input type="checkbox" id="val_[% value.id %]" value="[% value.id %]" name="values"[% ' checked="checked"' IF value.has_visibility_value(field_value.id, 0) %]/>
-      <label for="val_[% value.id %]">[% value.name FILTER html %]</label>
-      <a title="Править значение..." href="editvalues.cgi?action=edit&field=[% field.name %]&value=[% value.name | uri %]">&rarr;</a>
-      <br />
-    [% END %]
-    </div>
+    <table id="admin_table" cellpadding="4">
+      <tbody>
+        <tr>
+          <th align="left">Значение</th>
+          <th align="left">Активно</th>
+          <th align="left">По умолчанию</th>
+        </tr>
+        [% count = 0 %]
+        [% FOREACH value = field.legal_values %]
+          [% NEXT IF value.is_static %]
+          <tr class="[%+ count % 2 == 1 ? 'odd' : 'even' +%]_row">
+            <td>
+              <label for="val_[% value.id %]">[% value.name FILTER html %]</label>
+              <a title="Править значение..." href="editvalues.cgi?action=edit&field=[% field.name %]&value=[% value.name | uri %]">&rarr;</a>
+            </td>
+            <td align="center">
+              <input type="checkbox" id="val_[% value.id %]" value="[% value.id %]" name="values" onchange="changeDefaultEnabling(this);"[% ' checked="checked"' IF value.has_visibility_value(field_value.id, 0) %]/>
+            </td>
+            <td align="center">
+              <input type="[% (field.type == constants.FIELD_TYPE_MULTI_SELECT ? 'checkbox' : 'radio') %]" id="def_val_[% value.id %]" value="[% value.id %]" name="default_value_ids"[% ' checked="checked"' IF value.is_default_controlled_value(field_value.id, 0) %]/>
+            </td>
+          </tr>
+          [% count = count + 1 %]
+        [% END %]
+      </tbody>
+    </table>
     <br/>
     <input type="submit" id="update" name="update" value="Сохранить"/>
     <a href="editvalues.cgi?action=control_list&field=[% field.name FILTER html %]">К выбору <strong>[% field.value_field.description FILTER html %]</strong></a>
@@ -61,5 +79,37 @@
   <a href="editvalues.cgi?field=
             [%- field.name FILTER url_quote %]">К списку значений <strong>[% field.description FILTER html %]</strong></a>
 </form>
+<script type="text/javascript">
+function clearDefault()
+{
+    var elems = document.forms['setValuesForm'].elements['default_value_id'];
+    for (var i in elems)
+    {
+        elems[i].checked = false;
+    }
+}
+function changeDefaultEnabling(self)
+{
+    var id = self.id.substr('val_'.length);
+    var elem = document.getElementById('def_val_' + id);
+    if (elem)
+    {
+        if ((elem.disabled = !self.checked) && elem.checked)
+        {
+            elem.checked = false;
+        }
+    }
+}
+
+var checkboxes = document.forms['setValuesForm'].elements['values'];
+for (var i in checkboxes)
+{
+    if (!checkboxes[i].tagName) continue;
+    if (checkboxes[i].tagName.toLowerCase() != 'input') continue;
+    changeDefaultEnabling(checkboxes[i]);
+}
+
+</script>
+
 
 [% PROCESS global/footer.html.tmpl %]

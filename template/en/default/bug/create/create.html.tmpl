@@ -288,7 +288,7 @@ function checkWorktime(inp)
 <form name="Create" id="Create" method="post" action="post_bug.cgi"
       enctype="multipart/form-data" onkeypress="return ctrlEnter(event||window.event,this)"
       onsubmit="return validateEntryForm(this)">
-<input type="hidden" name="product" value="[% product.name FILTER html %]">
+<input type="hidden" name="product" value="[% product.name FILTER html %]" id="product">
 <input type="hidden" name="token" value="[% token FILTER html %]">
 <input type="hidden" name="cloned_bug_id" value="[% cloned_bug_id FILTER html %]">
 <input type="hidden" name="cloned_comment" value="[% cloned_comment FILTER html %]">
