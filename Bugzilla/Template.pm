@@ -327,7 +327,7 @@ sub quoteUrls {
     $text = html_quote($text);
 
     # Replace nowrap markers (\1\0\1)
-    $text =~ s/\x1\x0\x1(.*?)\x1\x0\x1/<div style="white-space: nowrap">\1<\/div>/gso;
+    $text =~ s/\x01\x00\x01(.*?)\x01\x00\x01/<div style="white-space: nowrap">$1<\/div>/gso;
 
     # Color quoted text
     $text = makeCitations($text);
