@@ -46,7 +46,7 @@ addListener(window, 'load', function()
       {
         e = e || window.event;
         var from = e.relatedTarget || e.fromElement;
-        if (from == s || from.parentNode == s)
+        if (from == s || from.parentNode == s || s.offsetWidth <= lim)
           return;
         var c = s;
         while (c && c.nodeName != 'TABLE')
