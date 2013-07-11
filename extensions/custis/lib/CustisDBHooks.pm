@@ -351,6 +351,8 @@ sub install_update_db
         [ 'admin_index',     'Users who can enter Administration area', [ qw(admin tweakparams
             editusers editclassifications editcomponents creategroups editfields editkeywords
             bz_canusewhines bz_editcheckers) ] ],
+        # Bug 129216 - Группа доступа к редактированию флагов
+        [ 'editflagtypes',   'Users who can edit flag types',                           [ 'admin' ] ], 
     ];
     foreach my $group (@$special_groups)
     {

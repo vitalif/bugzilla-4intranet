@@ -49,8 +49,8 @@ local our $vars = {};
 
 # Make sure the user is logged in and is an administrator.
 my $user = Bugzilla->login(LOGIN_REQUIRED);
-$user->in_group('editcomponents')
-  || ThrowUserError("auth_failure", {group  => "editcomponents",
+$user->in_group('editflagtypes')
+  || ThrowUserError("auth_failure", {group  => "editflagtypes",
                                      action => "edit",
                                      object => "flagtypes"});
 
