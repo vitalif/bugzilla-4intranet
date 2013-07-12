@@ -732,7 +732,7 @@ foreach my $msg (@msgs) {
 
 # Send bugmail
 
-#Add flag notify to send_result
+# Add flag notify to send_result
 my $notify = Bugzilla->get_mail_result();
 push @$send_results, @$notify;
 

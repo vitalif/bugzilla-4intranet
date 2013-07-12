@@ -36,6 +36,12 @@
 [% link = BLOCK %][% "$terms.bug $bug_id" FILTER bug_link(bug_id) %][% END %]
 
 [%
+  statuses = {
+    '+' => "granted"
+    '-' => "denied"
+    'X' => "canceled"
+    '?' => "requested"
+  };
   title = {
     'bug'     => "Changes submitted for $link" ,
     'dupe'    => "Duplicate notation added to $link" ,
@@ -43,6 +49,7 @@
     'votes'   => "$Link confirmed by number of votes" ,
     'created' => "$Link has been added to the database" ,
     'move'    => "$Link has been moved to another database" ,
+    'flag'    => "Flag $new_flag.name " _ statuses.${new_flag.status} ,
   }
 %]
 
