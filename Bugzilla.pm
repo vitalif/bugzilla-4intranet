@@ -304,9 +304,9 @@ sub init_page {
 #####################################################################
 
 sub add_mail_result {
-    my ($class, $type, $lang, $params) = @_;
+    my ($class, $send_result_item) = @_;
     my $cache = $class->request_cache;
-    push(@{$cache->{send_mail_result}}, { 'type' => $type, 'lang' => $lang, 'params' => $params });
+    push(@{$cache->{send_mail_result}}, $send_result_item);
 } 
 
 sub get_mail_result {
