@@ -608,7 +608,6 @@ foreach my $bug (@bug_objects) {
     $dbh->bz_start_transaction();
 
     my $timestamp = $dbh->selectrow_array(q{SELECT LOCALTIMESTAMP(0)});
-    my $changes = $bug->update($timestamp);
 
     if ($bug->{failed_checkers} && @{$bug->{failed_checkers}} &&
         !$bug->{passed_checkers})
@@ -617,6 +616,8 @@ foreach my $bug (@bug_objects) {
         # and rollback_to_savepoint is already done in Checkers.pm
         next;
     }
+
+    my $changes = $bug->update($timestamp);
 
     my %notify_deps;
     if ($changes->{'bug_status'}) {
@@ -731,6 +732,16 @@ foreach my $msg (@msgs) {
 }
 
 # Send bugmail
+
+#Add flag notify to send_result
+my @notify = Bugzilla->get_mail_result();
+foreach my $notify_item (@notify) {
+    push @$send_results, {
+        type => $notify_item->{type},
+        notify_data => $notify_item
+    };
+}
+
 send_results($_) for @$send_results;
 $vars->{sentmail} = $send_results;
 $vars->{failed_checkers} = Bugzilla->request_cache->{failed_checkers};

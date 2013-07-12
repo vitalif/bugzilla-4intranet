@@ -79,7 +79,15 @@ sub send_results
     {
         return $vars;
     }
-    $vars->{sent_bugmail} = Send($vars->{bug_id}, $vars->{mailrecipients}, $vars->{commentsilent});
+    if ($vars->{type} eq 'flag') 
+    {
+        $vars->{sent_bugmail} = SendFlag($vars->{notify_data});
+        $vars->{notify_data} = ''; # erase data, without - JSON encode error
+    }
+    else
+    {
+        $vars->{sent_bugmail} = Send($vars->{bug_id}, $vars->{mailrecipients}, $vars->{commentsilent});
+    }
     return $vars;
 }
 
@@ -115,6 +123,39 @@ sub multiline_sprintf {
 
 sub three_columns {
     return multiline_sprintf(FORMAT_TRIPLE, \@_, FORMAT_3_SIZE);
+}
+
+sub SendFlag {
+    my ($flag_data) = (@_);
+
+    Bugzilla::Hook::process('flag-notify-pre-template', { vars => $flag_data->{params} });
+
+    my $template = Bugzilla->template_inner($flag_data->{lang});
+    my $message;
+    $template->process("request/email.txt.tmpl", $flag_data->{params}, \$message)
+       || ThrowTemplateError($template->error());
+
+    Bugzilla->template_inner("");
+    MessageToMTA($message);
+
+    Bugzilla::Hook::process('flag-notify-post-send', { vars => $flag_data->{params} });
+
+    my @sent;
+    my @excluded;
+
+    my $recepient = "";
+    if ($flag_data->{params}->{old_flag} != undef)
+    {
+        $recepient = $flag_data->{params}->{old_flag}->{requestee}->{login_name};
+    }
+    else
+    {
+        $recepient = $flag_data->{params}->{to};
+    }
+
+    push (@sent,$recepient);
+
+    return {'sent' => \@sent, 'excluded' => \@excluded};
 }
 
 # This is a bit of a hack, basically keeping the old system()

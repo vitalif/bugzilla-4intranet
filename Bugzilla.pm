@@ -303,6 +303,17 @@ sub init_page {
 # Subroutines and Methods
 #####################################################################
 
+our @send_mail_result;
+
+sub add_mail_result {
+    my ($class, $type, $lang, $params) = @_;
+    push(@send_mail_result, { 'type' => $type, 'lang' => $lang, 'params' => $params });
+} 
+
+sub get_mail_result {
+    return @send_mail_result;
+}
+
 sub template {
     my $class = shift;
     $class->request_cache->{language} = "";
