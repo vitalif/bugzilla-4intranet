@@ -55,7 +55,6 @@ sub new {
     return $object;
 }
 
-
 # Note: Because this uses sql_istrcmp, if you make a new object use
 # Bugzilla::Object, make sure that you modify bz_setup_database
 # in Bugzilla::DB::Pg appropriately, to add the right LOWER
