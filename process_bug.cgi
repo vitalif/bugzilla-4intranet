@@ -607,6 +607,7 @@ Bugzilla->request_cache->{checkers_hide_error} = 1 if @bug_objects > 1;
 foreach my $bug (@bug_objects) {
     $dbh->bz_start_transaction();
 
+    my $mail_count = @{Bugzilla->get_mail_result()};
     my $timestamp = $dbh->selectrow_array(q{SELECT LOCALTIMESTAMP(0)});
     my $changes = $bug->update($timestamp);
 
@@ -615,6 +616,8 @@ foreach my $bug (@bug_objects) {
     {
         # This means update is blocked
         # and rollback_to_savepoint is already done in Checkers.pm
+        # Roll back flag mail
+        splice @{Bugzilla->get_mail_result()}, $mail_count;
         next;
     }
 
