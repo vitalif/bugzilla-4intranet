@@ -79,10 +79,14 @@ sub send_results
     {
         return $vars;
     }
-    if ($vars->{type} eq 'flag') 
+    if ($vars->{type} eq 'flag')
     {
         $vars->{sent_bugmail} = SendFlag($vars->{notify_data});
-        $vars->{notify_data} = ''; # erase data, without - JSON encode error
+        $vars->{new_flag} = {
+            name => $vars->{notify_data}->{flag} ? $vars->{notify_data}->{flag}->name : $vars->{notify_data}->{old_flag}->name,
+            status => $vars->{notify_data}->{flag} ? $vars->{notify_data}->{flag}->status : 'X',
+        };
+        delete $vars->{notify_data}; # erase data, without - JSON encode error
     }
     else
     {
@@ -125,37 +129,32 @@ sub three_columns {
     return multiline_sprintf(FORMAT_TRIPLE, \@_, FORMAT_3_SIZE);
 }
 
-sub SendFlag {
+sub SendFlag
+{
     my ($flag_data) = (@_);
-
-    Bugzilla::Hook::process('flag-notify-pre-template', { vars => $flag_data->{params} });
-
-    my $template = Bugzilla->template_inner($flag_data->{lang});
-    my $message;
-    $template->process("request/email.txt.tmpl", $flag_data->{params}, \$message)
-       || ThrowTemplateError($template->error());
-
-    Bugzilla->template_inner("");
-    MessageToMTA($message);
-
-    Bugzilla::Hook::process('flag-notify-post-send', { vars => $flag_data->{params} });
 
     my @sent;
     my @excluded;
 
-    my $recipient = "";
-    if ($flag_data->{params}->{old_flag} != undef)
+    foreach my $email (@{$flag_data->{mail}})
     {
-        $recipient = $flag_data->{params}->{old_flag}->{requestee}->{login_name};
-    }
-    else
-    {
-        $recipient = $flag_data->{params}->{to};
+        $email = { %$email, %$flag_data };
+        Bugzilla::Hook::process('flag-notify-pre-template', { vars => $email });
+
+        my $template = Bugzilla->template_inner($email->{lang});
+        my $message;
+        $template->process("request/email.txt.tmpl", $email, \$message)
+           || ThrowTemplateError($template->error());
+
+        Bugzilla->template_inner("");
+        MessageToMTA($message);
+
+        Bugzilla::Hook::process('flag-notify-post-send', { vars => $email });
+
+        push @sent, $email->{to};
     }
 
-    push (@sent, $recipient);
-
-    return {'sent' => \@sent, 'excluded' => \@excluded};
+    return { sent => \@sent, excluded => \@excluded };
 }
 
 # This is a bit of a hack, basically keeping the old system()

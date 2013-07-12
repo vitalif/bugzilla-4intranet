@@ -307,13 +307,12 @@ sub add_mail_result {
     my ($class, $send_result_item) = @_;
     my $cache = $class->request_cache;
     push(@{$cache->{send_mail_result}}, $send_result_item);
-} 
+}
 
 sub get_mail_result {
     my $class = shift;
     my $cache = $class->request_cache;
-    return $cache->{send_mail_result}
-        if exists $cache->{send_mail_result};
+    return $cache->{send_mail_result} || [];
 }
 
 sub template {

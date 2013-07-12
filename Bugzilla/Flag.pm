@@ -1029,23 +1029,26 @@ sub notify {
         $default_lang = Bugzilla::User->new()->settings->{'lang'}->{'value'};
     }
 
+    my $flagmail = {
+        flag       => $flag,
+        old_flag   => $old_flag,
+        bug        => $bug,
+        attachment => $attachment,
+        mail       => [],
+    };
     foreach my $to (keys %recipients) {
         # Add threadingmarker to allow flag notification emails to be the
         # threaded similar to normal bug change emails.
         my $thread_user_id = $recipients{$to} ? $recipients{$to}->id : 0;
-    
-        my $vars = { 'flag'            => $flag,
-                     'old_flag'        => $old_flag,
-                     'to'              => $to,
-                     'bug'             => $bug,
-                     'attachment'      => $attachment,
-                     'threadingmarker' => build_thread_marker($bug->id, $thread_user_id) };
 
-        my $lang = $recipients{$to} ?
-          $recipients{$to}->settings->{'lang'}->{'value'} : $default_lang;
-
-        Bugzilla->add_mail_result({type => 'flag', notify_data => {lang => $lang, params => $vars}});
+        push @{$flagmail->{mail}}, {
+            'to'              => $to,
+            'threadingmarker' => build_thread_marker($bug->id, $thread_user_id),
+            'lang'            => $recipients{$to} ?
+                $recipients{$to}->settings->{'lang'}->{'value'} : $default_lang,
+        };
     }
+    Bugzilla->add_mail_result({ type => 'flag', notify_data => $flagmail });
 }
 
 # This is an internal function used by $bug->flag_types
