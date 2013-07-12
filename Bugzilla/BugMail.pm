@@ -143,17 +143,17 @@ sub SendFlag {
     my @sent;
     my @excluded;
 
-    my $recepient = "";
+    my $recipient = "";
     if ($flag_data->{params}->{old_flag} != undef)
     {
-        $recepient = $flag_data->{params}->{old_flag}->{requestee}->{login_name};
+        $recipient = $flag_data->{params}->{old_flag}->{requestee}->{login_name};
     }
     else
     {
-        $recepient = $flag_data->{params}->{to};
+        $recipient = $flag_data->{params}->{to};
     }
 
-    push (@sent,$recepient);
+    push (@sent,$recipient);
 
     return {'sent' => \@sent, 'excluded' => \@excluded};
 }
