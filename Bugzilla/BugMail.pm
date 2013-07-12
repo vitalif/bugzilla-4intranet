@@ -153,7 +153,7 @@ sub SendFlag {
         $recipient = $flag_data->{params}->{to};
     }
 
-    push (@sent,$recipient);
+    push (@sent, $recipient);
 
     return {'sent' => \@sent, 'excluded' => \@excluded};
 }

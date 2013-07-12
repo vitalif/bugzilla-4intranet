@@ -1044,7 +1044,7 @@ sub notify {
         my $lang = $recipients{$to} ?
           $recipients{$to}->settings->{'lang'}->{'value'} : $default_lang;
 
-        Bugzilla->add_mail_result({type => 'flag', notify_data => $vars);
+        Bugzilla->add_mail_result({type => 'flag', notify_data => {lang => $lang, params => $vars}});
     }
 }
 
