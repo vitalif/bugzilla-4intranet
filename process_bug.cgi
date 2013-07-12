@@ -734,10 +734,6 @@ foreach my $msg (@msgs) {
 
 #Add flag notify to send_result
 my $notify = Bugzilla->get_mail_result();
-
-use Data::Dumper;
-die(Dumper($notify));
-
 push @$send_results, @$notify;
 
 send_results($_) for @$send_results;
