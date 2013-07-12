@@ -608,6 +608,7 @@ foreach my $bug (@bug_objects) {
     $dbh->bz_start_transaction();
 
     my $timestamp = $dbh->selectrow_array(q{SELECT LOCALTIMESTAMP(0)});
+    my $changes = $bug->update($timestamp);
 
     if ($bug->{failed_checkers} && @{$bug->{failed_checkers}} &&
         !$bug->{passed_checkers})
@@ -616,8 +617,6 @@ foreach my $bug (@bug_objects) {
         # and rollback_to_savepoint is already done in Checkers.pm
         next;
     }
-
-    my $changes = $bug->update($timestamp);
 
     my %notify_deps;
     if ($changes->{'bug_status'}) {
