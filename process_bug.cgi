@@ -733,8 +733,8 @@ foreach my $msg (@msgs) {
 # Send bugmail
 
 #Add flag notify to send_result
-my @notify = Bugzilla->get_mail_result();
-foreach my $notify_item (@notify) {
+my $notify = Bugzilla->get_mail_result();
+foreach my $notify_item (@$notify) {
     push @$send_results, {
         type => $notify_item->{type},
         notify_data => $notify_item
