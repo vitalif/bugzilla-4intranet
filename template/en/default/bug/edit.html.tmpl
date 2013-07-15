@@ -1046,7 +1046,7 @@ document.changeform = document.[% cfname %];
       [%#
         # Custis Bug 129375 - Add search link for some custom fields
         #%]
-      [% IF (selname == "target_milestone" OR selname == "component") AND bug.${selname} %]
+      [% IF bug.${selname} %]
         &nbsp;(<a href="/buglist.cgi?query_format=advanced&product=[% bug.product FILTER uri %]&[% selname %]=[% bug.${selname} FILTER uri %]" target="_blank">search</a>)
       [% END %]
     [% ELSE %]
