@@ -223,7 +223,7 @@
   [%#
     # Custis Bug 129375 - Add search link for some custom fields
     #%]
-  [% IF (field.name == "cf_agreement" OR field.name == "cf_wbs" OR field.name == "cf_sprint") AND bug.${field.name} %]
+  [% IF field.name != "priority" AND bug.${field.name} %]
   &nbsp;(<a href="/buglist.cgi?query_format=advanced&product=[% bug.product FILTER uri %]&[% field.name %]=[% bug.${field.name} FILTER uri %]" target="_blank">search</a>)
   [% END %]
 [% ELSIF field.type == constants.FIELD_TYPE_TEXTAREA %]
