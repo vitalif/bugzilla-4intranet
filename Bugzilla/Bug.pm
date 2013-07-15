@@ -2123,7 +2123,17 @@ sub _check_select_field
     if ($field->visibility_field_id || $field->value_field_id)
     {
         my $t = Bugzilla::Field::Choice->type($field);
-        my $object = $t->new({ name => $value }) || $value;
+        my $object = $t->new({ name => $value });
+        if (!$object)
+        {
+            # Save the raw value if it's invalid
+            $object = $value;
+            trick_taint($value);
+        }
+        else
+        {
+            $value = $object->name;
+        }
         my $tmp = $invocant->dependent_validators;
         # Remember the call and perform check later
         if ($field->type == FIELD_TYPE_MULTI_SELECT)
@@ -2134,7 +2144,7 @@ sub _check_select_field
         {
             $tmp->{$field->name} = $object;
         }
-        return $object->name;
+        return $value;
     }
     my $object = Bugzilla::Field::Choice->type($field)->check($value);
     return $object->name;
