@@ -779,6 +779,7 @@ use constant CHART_OPERATORS_ORDER => [qw(
     anywordssubstr allwordssubstr nowordssubstr
     regexp notregexp
     lessthan greaterthan
+    lessthaneq greaterthaneq
     anywords allwords nowords
     changedbefore changedafter changedfrom changedto changedby
     matches notmatches
