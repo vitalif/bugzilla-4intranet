@@ -53,6 +53,8 @@ use Bugzilla::Attachment::PatchReader;
 use Bugzilla::Token;
 use Bugzilla::Keyword;
 
+use Lingua::Translit;
+use Archive::Zip qw ( :ERROR_CODES :CONSTANTS );
 use Encode;
 
 # For most scripts we don't make $cgi and $template global variables. But
@@ -125,6 +127,11 @@ elsif ($action eq "update")
 elsif ($action eq "delete")
 {
     delete_attachment();
+}
+# Bug 129399
+elsif ($action eq "download")
+{
+    download_attachment();
 }
 else
 {
@@ -830,4 +837,36 @@ sub delete_attachment {
         $template->process("attachment/confirm-delete.html.tmpl", $vars)
           || ThrowTemplateError($template->error());
     }
+}
+
+# Bug 129399
+sub download_attachment {
+    my $user = Bugzilla->login(LOGIN_REQUIRED);
+
+    # Retrieve and validate parameters
+    my $bug = Bugzilla::Bug->check(scalar $cgi->param('bugid'));
+    my $bugid = $bug->id;
+
+    my $attachments = Bugzilla::Attachment->get_attachments_by_bug($bugid);
+    # Ignore deleted attachments.
+    @$attachments = grep { $_->datasize } @$attachments;
+
+    # Create ZIP file
+    my $transliter = Lingua::Translit->new('GOST 7.79 RUS');
+    my $archive = Archive::Zip->new();
+    my $filename = "attachments_for_bug_$bugid.zip";
+    my $size = 0;
+    foreach my $file (@$attachments) {
+        my $fn = $file->{filename};
+        Encode::_utf8_off($fn);
+        $fn = $transliter->translit($fn);
+        my $path = $file->_get_local_filename;
+        my $member = $archive->addFile($path, $fn);
+        $member->desiredCompressionMethod( COMPRESSION_DEFLATED );
+        $size += $member->compressedSize();
+    }
+    $cgi->send_header(-type=>"application/zip; name=\"$filename\"",
+                       -content_disposition=> "attachement; filename=\"$filename\"",
+                       -content_length => $size);
+    $archive->writeToFileHandle(*STDOUT);
 }
