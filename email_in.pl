@@ -199,6 +199,7 @@ sub post_bug
     foreach my $field (Bugzilla::Bug::REQUIRED_CREATE_FIELDS) {
         $fields->{$field} = undef if !exists $fields->{$field};
     }
+    $fields->{cc} = delete $fields->{newcc} if $fields->{newcc};
 
     # Restrict the bug to groups marked as Default.
     # We let Bug->create throw an error if the product is
@@ -231,11 +232,18 @@ sub post_bug
         ThrowUserError('user_match_too_many', {fields => $non_conclusive_fields});
     }
 
+    my $cgi = Bugzilla->cgi;
+    foreach my $field (keys %$fields) {
+        $cgi->param(-name => $field, -value => $fields->{$field});
+    }
+    $cgi->param('token', issue_session_token('createbug:'));
+
     my $bug;
     $Bugzilla::Error::IN_EVAL++;
-    eval { $bug = Bugzilla::Bug->create($fields) };
+    my $vars = do 'post_bug.cgi';
     $Bugzilla::Error::IN_EVAL--;
     die $@ . "\n\nIncoming mail format for entering bugs:\n\@field = value\n\@field = value\n...\n\nBug text\n" if $@;
+    $bug = $vars->{bug};
     if ($bug)
     {
         debug_print("Created bug " . $bug->id);
