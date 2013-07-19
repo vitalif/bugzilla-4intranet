@@ -205,7 +205,7 @@ __END__
 Sample bugzilla.conf:
 
 class               Net::Server::PreFork
-port                localhost:8157
+port                0.0.0.0:8157
 min_servers         4
 max_servers         20
 min_spare_servers   4
@@ -213,7 +213,7 @@ max_spare_servers   8
 max_requests        1000
 user                www-data
 group               www-data
-log_file            /home/www/logs/bugzilla.log
-log_level           3
+log_file            /var/log/bugzilla.log
+log_level           2
 pid_file            /var/run/bugzilla.pid
 background          1
