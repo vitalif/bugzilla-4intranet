@@ -8,7 +8,9 @@ use strict;
 BEGIN
 {
     require File::Basename;
-    chdir(File::Basename::dirname($0));
+    my $dir = File::Basename::dirname($0);
+    ($dir) = $dir =~ /^.*$/s;
+    chdir($dir);
 }
 
 use lib qw(.);
@@ -134,6 +136,8 @@ sub handle_request
             local $/ = undef;
             $content = <$fd>;
             close $fd;
+            # untaint
+            ($content) = $content =~ /^(.*)$/s;
         }
         if ($content)
         {
