@@ -9,7 +9,7 @@ BEGIN
 {
     require File::Basename;
     my $dir = File::Basename::dirname($0);
-    ($dir) = $dir =~ /^.*$/s;
+    ($dir) = $dir =~ /^(.*)$/s;
     chdir($dir);
 }
 
@@ -115,6 +115,14 @@ sub handle_request
         print STDERR strftime("[%Y-%m-%d %H:%M:%S]", localtime)." Served $script via sendfile()\n";
         return 200;
     }
+    if ($self->{_config_hash}->{http_env})
+    {
+        # Allow to set environment variables from additional HTTP headers
+        foreach (split /[\s,]*,[\s,]*/, $self->{_config_hash}->{http_env})
+        {
+            $ENV{$_} = $ENV{'HTTP_X_'.uc $_};
+        }
+    }
     binmode STDOUT, ':utf8';
     $Bugzilla::_request_cache = {};
     # Use require() instead of sub caching under NYTProf profiler for more correct reports
@@ -202,7 +210,7 @@ package Bugzilla::HTTPServerSimple::FakeExit;
 1;
 __END__
 
-Sample bugzilla.conf:
+Sample bugzilla.conf (it's like Net::Server config):
 
 class               Net::Server::PreFork
 port                0.0.0.0:8157
@@ -217,3 +225,13 @@ log_file            /var/log/bugzilla.log
 log_level           2
 pid_file            /var/run/bugzilla.pid
 background          1
+
+'http_env' specifies which environment variables to set from
+a corresponding 'X-<name>' HTTP header (value is comma-separated).
+For example to support multiple Bugzilla 'projects' specify
+
+http_env            PROJECT
+
+And specify an appropriate project in 'X-Project' header on your frontend:
+
+proxy_set_header X-Project 'project';
