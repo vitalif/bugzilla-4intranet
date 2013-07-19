@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # Standalone HTTP server for running Bugzilla based on HTTP::Server::Simple and Net::Server
-# USAGE: perl HTTPServerSimple.pl --conf_file bugzilla.conf
+# USAGE: perl HTTPServerSimple.pl bugzilla.conf
 # See bugzilla.conf sample in the end of this file
 
 use strict;
@@ -201,3 +201,19 @@ package Bugzilla::HTTPServerSimple::FakeExit;
 
 1;
 __END__
+
+Sample bugzilla.conf:
+
+class               Net::Server::PreFork
+port                localhost:8157
+min_servers         4
+max_servers         20
+min_spare_servers   4
+max_spare_servers   8
+max_requests        1000
+user                www-data
+group               www-data
+log_file            /home/www/logs/bugzilla.log
+log_level           3
+pid_file            /var/run/bugzilla.pid
+background          1
