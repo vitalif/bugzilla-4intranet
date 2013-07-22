@@ -276,6 +276,12 @@ if ($token)
 my $bug_sent = { bug_id => $id, type => 'created', mailrecipients => { changer => $user->login } };
 send_results($bug_sent);
 my @all_mail_results = ($bug_sent);
+
+# Add flag notify to send_result
+my $notify = Bugzilla->get_mail_result();
+send_results($_) for @$notify;
+push @all_mail_results, @$notify;
+
 foreach my $dep (@{$bug->dependson || []}, @{$bug->blocked || []})
 {
     my $dep_sent = {
