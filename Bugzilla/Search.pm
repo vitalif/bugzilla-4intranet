@@ -470,9 +470,9 @@ sub STATIC_COLUMNS
 
     my $columns = {
         relevance            => { title => 'Relevance' },
-        assigned_to_realname => { title => 'Assignee Name', nocharts => 1 },
-        reporter_realname    => { title => 'Reporter Name', nocharts => 1 },
-        qa_contact_realname  => { title => 'QA Contact Name', nocharts => 1 },
+        assigned_to_realname => { title => 'Assignee Name' },
+        reporter_realname    => { title => 'Reporter Name' },
+        qa_contact_realname  => { title => 'QA Contact Name' },
         # FIXME save aggregated work_time in bugs table and search on it
         work_time            => { name => $actual_time },
         interval_time        => { name => $actual_time, title => 'Period Worktime', noreports => 1 },
@@ -1007,9 +1007,9 @@ sub init
         $field = COLUMN_ALIASES->{$field} || $field;
         # "votes" got special treatment, above.
         next if $field eq 'votes';
-        if ($legal_fields->{$field} || FUNCTIONS->{$field})
+        my $type = $H->{$_.'_type'};
+        if ($legal_fields->{$field} || FUNCTIONS->{$field} || $type)
         {
-            my $type = $H->{$_.'_type'};
             my $values = [ list $H->{$_} ];
             next if !length join '', @$values;
             if ($field eq 'content')
