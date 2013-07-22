@@ -219,9 +219,34 @@ else
     my $f = 0;
     my $bugmail = [];
     Bugzilla->dbh->bz_start_transaction;
+    my $custom_fields = {};
+    foreach my $field (Bugzilla->get_fields({custom => 1}))
+    {
+        $custom_fields->{ $field->{name} } = $field;
+    }
     for my $bug (@$bugs{sort {$a <=> $b} keys %$bugs})
     {
         $bug->{$_} ||= $bug_tpl->{$_} for keys %$bug_tpl;
+        foreach my $field (keys $custom_fields)
+        {
+            next if !$field || $bug->{$field};
+            my @values;
+            my $control_field = $custom_fields->{$field}->value_field;
+            my $bug_field_value = $bug->{ $control_field->{name} };
+            next unless $bug_field_value;
+            my $field_values = $control_field->legal_values;
+            foreach my $field_value (@$field_values)
+            {
+                next unless $field_value->{name} == $bug_field_value;
+                my $cvalues = $custom_fields->{$field}->legal_values;
+                foreach my $value (@$cvalues)
+                {
+                    push @values, $value->{value} if $value->is_default_controlled_value($field_value->{id}) && !$value->is_static
+                }
+                last;
+            }
+            $bug->{$field} = \@values;
+        }
         if ($bug->{enabled})
         {
             my $id;
