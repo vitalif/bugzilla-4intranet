@@ -211,6 +211,7 @@ $Bugzilla::messages->{en} = {
         'none'                              => 'None',
         'worktime'                          => 'With worktime only',
         'all',                              => 'All',
+        'comment_width',                    => 'Show comments with full screen width',
     },
 };
 

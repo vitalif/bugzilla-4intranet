@@ -387,6 +387,14 @@ sub install_update_db
     # Bug 91153 - Default'ные значения Custom полей
     $dbh->bz_add_column('fieldvaluecontrol', is_default => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0});
 
+    # Bug 125374 - Настройки пользователя для управления шириной комментариев
+    if (!$dbh->selectrow_array('SELECT * FROM setting WHERE name=\'comment_width\' LIMIT 1'))
+    {
+        print "Adding 'Show comment with full screen width' user general setting, On by default for all users\n";
+        $dbh->do('INSERT INTO setting (name, default_value, is_enabled) VALUES (\'comment_width\', \'off\', 1)');
+        $dbh->do('INSERT INTO setting_value (name, value, sortindex) VALUES (\'comment_width\', \'off\', \'10\'), (\'comment_width\', \'on\', \'20\')');
+    }
+
     return 1;
 }
 
