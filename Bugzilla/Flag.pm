@@ -1048,7 +1048,7 @@ sub notify {
                 $recipients{$to}->settings->{'lang'}->{'value'} : $default_lang,
         };
     }
-    Bugzilla->add_mail_result({ type => 'flag', notify_data => $flagmail });
+    Bugzilla->add_mail_result({ type => 'flag', bug_id => $bug->bug_id, notify_data => $flagmail });
 }
 
 # This is an internal function used by $bug->flag_types
