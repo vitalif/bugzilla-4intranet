@@ -13,10 +13,12 @@
 .bz_private_checkbox input { margin: 0; vertical-align: middle; }
 .bz_comment_user_images img { vertical-align: bottom; }
 
-.bz_collapse_expand_comments { padding: 0; margin: 0 0 0 1em; list-style-type: none; }
+.bz_collapse_expand_comments { padding: 0; margin: 0 0 0 1em; list-style-type: none; min-width: 15em; }
 .bz_collapse_expand_comments li { margin-bottom: .5em; }
 .bz_collapse_comment { text-decoration: none; }
 
 .bz_comment_head, .bz_first_comment_head { padding: .1em 0 .1em .5em; background-color: #e0e0e0; }
 
 .bz_comment .attachment_image { max-width: 50em; margin: 10px 0px 0px 0px; display: block; }
+
+.bz_comment_text.full_screen_comment { min-width: 50em; width: 100%; }
