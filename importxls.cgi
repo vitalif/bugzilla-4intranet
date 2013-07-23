@@ -227,26 +227,16 @@ else
     for my $bug (@$bugs{sort {$a <=> $b} keys %$bugs})
     {
         $bug->{$_} ||= $bug_tpl->{$_} for keys %$bug_tpl;
+
+        # Set default value if value is not set
         foreach my $field (keys $custom_fields)
         {
             next if !$field || $bug->{$field};
-            my @values;
             my $control_field = $custom_fields->{$field}->value_field;
-            my $bug_field_value = $bug->{ $control_field->{name} };
-            next unless $bug_field_value;
-            my $field_values = $control_field->legal_values;
-            foreach my $field_value (@$field_values)
-            {
-                next unless $field_value->{name} == $bug_field_value;
-                my $cvalues = $custom_fields->{$field}->legal_values;
-                foreach my $value (@$cvalues)
-                {
-                    push @values, $value->{value} if $value->is_default_controlled_value($field_value->{id}) && !$value->is_static
-                }
-                last;
-            }
-            $bug->{$field} = \@values;
+            next unless $bug->{ $control_field->{name} };
+            $bug->{$field} = $custom_fields->{$field}->get_default_values( $bug->{ $control_field->{name} } );
         }
+
         if ($bug->{enabled})
         {
             my $id;
