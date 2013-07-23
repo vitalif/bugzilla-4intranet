@@ -129,9 +129,9 @@ elsif ($action eq "delete")
     delete_attachment();
 }
 # Bug 129399
-elsif ($action eq "download")
+elsif ($action eq "zip")
 {
-    download_attachment();
+    all_attachments_in_zip();
 }
 else
 {
@@ -840,7 +840,8 @@ sub delete_attachment {
 }
 
 # Bug 129399
-sub download_attachment {
+# Action скачивания всех прикреплённых файлов к багу в одном zip-архиве
+sub all_attachments_in_zip {
     my $user = Bugzilla->login(LOGIN_REQUIRED);
 
     # Retrieve and validate parameters
@@ -866,7 +867,7 @@ sub download_attachment {
         $size += $member->compressedSize();
     }
     $cgi->send_header(-type=>"application/zip; name=\"$filename\"",
-                       -content_disposition=> "attachement; filename=\"$filename\"",
+                       -content_disposition=> "attachment; filename=\"$filename\"",
                        -content_length => $size);
     $archive->writeToFileHandle(*STDOUT);
 }

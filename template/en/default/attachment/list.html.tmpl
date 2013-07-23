@@ -51,7 +51,7 @@ function toggle_display(link)
       [% count = 0 %]
       [% FOREACH attachment = attachments %][% count = count + 1 %][% END %]
       <a name="a0" id="a0" href="#a0">Attachments</a>
-      [% IF count > 0 %] (<a href="attachment.cgi?bugid=[% bugid %]&amp;action=download" target="_blank">Download all in ZIP</a>)[% END %]
+      [% IF count > 0 %] (<a href="attachment.cgi?bugid=[% bugid %]&amp;action=zip" target="_blank">Download all in ZIP</a>)[% END %]
     </th>
   </tr>
 
