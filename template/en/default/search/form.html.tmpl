@@ -45,8 +45,8 @@ addListener(window, 'load', function()
       addListener(s, 'mouseover', function(e)
       {
         e = e || window.event;
-        var from = e.relatedTarget || e.fromElement;
-        if (from == s || from.parentNode == s || s.offsetWidth <= lim)
+        var f = e.relatedTarget || e.fromElement;
+        if (f == s || f.parentNode == s || !s.style.width && s.offsetWidth <= lim)
           return;
         var c = s;
         while (c && c.nodeName != 'TABLE')
@@ -64,8 +64,8 @@ addListener(window, 'load', function()
       });
       addListener(s, 'mouseout', function(e) {
         e = e || window.event;
-        var to = e.relatedTarget || e.toElement;
-        if (to == s || to.parentNode == s)
+        var t = e.relatedTarget || e.toElement;
+        if (t == s || t.parentNode == s)
           return;
         s.style.width = lim+'px';
         s.style.maxWidth = '';
