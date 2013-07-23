@@ -133,6 +133,16 @@ sub REQUIRED_MODULES {
         module  => 'URI',
         version => 0
     },
+    {
+        package => 'Lingua-Translit',
+        module  => 'Lingua::Translit',
+        version => '0.18'
+    },
+    {
+        package => 'Archive-Zip',
+        module  => 'Archive::Zip',
+        version => '1.30'
+    },
     );
 
     my $extra_modules = _get_extension_requirements('REQUIRED_MODULES');
