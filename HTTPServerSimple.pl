@@ -123,38 +123,38 @@ sub handle_request
             $ENV{$_} = $ENV{'HTTP_X_'.uc $_};
         }
     }
-    binmode STDOUT, ':utf8';
+    # Bugzilla-specific tweaks
+    binmode STDOUT, ':utf8' if Bugzilla->can('params') && Bugzilla->params->{utf8};
+    # Clear request cache for new versions
     $Bugzilla::_request_cache = {};
+    # Reload Bugzilla.pm for old versions on each request
+    my $preload = Bugzilla->can('request_cache') ? '' : "delete \$INC{'Bugzilla.pm'}; require 'Bugzilla.pm';";
     # Use require() instead of sub caching under NYTProf profiler for more correct reports
+    my $content;
+    if ((!$subs{$script} || $ENV{NYTPROF} && $INC{'Devel/NYTProf.pm'}) && open $fd, "<$script")
+    {
+        local $/ = undef;
+        $content = <$fd>;
+        close $fd;
+        # untaint
+        ($content) = $content =~ /^(.*)$/s;
+    }
     if ($ENV{NYTPROF} && $INC{'Devel/NYTProf.pm'})
     {
         my $start = [gettimeofday];
-        delete $INC{$script};
-        require $script;
+        eval "$preload package main; $content";
         my $elapsed = tv_interval($start) * 1000;
         print STDERR strftime("[%Y-%m-%d %H:%M:%S]", localtime)." Served $script via require() in $elapsed ms\n";
         return 200;
     }
     # Simple "FastCGI" implementation - cache *.cgi in subs
-    if (!$subs{$script})
+    if (!$subs{$script} && $content)
     {
-        my $content;
-        if (open $fd, "<$script")
+        $subs{$script} = eval "package main; sub { $preload$content }";
+        if ($@)
         {
-            local $/ = undef;
-            $content = <$fd>;
-            close $fd;
-            # untaint
-            ($content) = $content =~ /^(.*)$/s;
-        }
-        if ($content)
-        {
-            $subs{$script} = eval "sub { $content }";
-            if ($@)
-            {
-                warn "Error while loading $script:\n$@";
-                return 500;
-            }
+            warn "Error while loading $script:\n$@";
+            return 500;
         }
     }
     # Run cached sub
