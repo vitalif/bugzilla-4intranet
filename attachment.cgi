@@ -856,18 +856,17 @@ sub all_attachments_in_zip {
     my $transliter = Lingua::Translit->new('GOST 7.79 RUS');
     my $archive = Archive::Zip->new();
     my $filename = "attachments_for_bug_$bugid.zip";
-    my $size = 0;
     foreach my $file (@$attachments) {
         my $fn = $file->{filename};
         Encode::_utf8_off($fn);
         $fn = $transliter->translit($fn);
         my $path = $file->_get_local_filename;
         my $member = $archive->addFile($path, $fn);
-        $member->desiredCompressionMethod( COMPRESSION_DEFLATED );
-        $size += $member->compressedSize();
+        $member->desiredCompressionMethod(COMPRESSION_DEFLATED);
     }
-    $cgi->send_header(-type=>"application/zip; name=\"$filename\"",
-                       -content_disposition=> "attachment; filename=\"$filename\"",
-                       -content_length => $size);
+    # FIXME We don't send Content-Length - is it always OK?
+    # We could use IO::Scalar for it.
+    $cgi->send_header(-type => "application/zip; name=\"$filename\"",
+                      -content_disposition => "attachment; filename=\"$filename\"");
     $archive->writeToFileHandle(*STDOUT);
 }
