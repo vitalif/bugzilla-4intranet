@@ -210,8 +210,8 @@ $Bugzilla::messages->{en} = {
         'showhide_comments'                 => 'Which comments can be marked as collapsed',
         'none'                              => 'None',
         'worktime'                          => 'With worktime only',
-        'all',                              => 'All',
-        'comment_width',                    => 'Show comments with full screen width',
+        'all'                               => 'All',
+        'comment_width'                     => 'Show comments in the full screen width',
     },
 };
 
