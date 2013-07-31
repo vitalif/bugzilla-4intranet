@@ -223,7 +223,7 @@
   [%#
     # Custis Bug 129375 - Add search link for some custom fields
     #%]
-  [% IF field.name != "priority" AND bug.${field.name} %]
+  [% IF field.name != 'priority' AND field.name != 'bug_status' AND bug.${field.name} %]
   &nbsp;(<a href="/buglist.cgi?query_format=advanced&product=[% bug.product FILTER uri %]&[%
     IF field.type == constants.FIELD_TYPE_DATETIME 
         %]type0-1-0=greaterthaneq&field0-1-0=[% field.name %]&field0-0-0=[% field.name %]&value0-1-0=[% bug.${field.name}.substr(0,10) FILTER uri 
