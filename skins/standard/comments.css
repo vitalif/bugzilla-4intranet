@@ -19,6 +19,6 @@
 
 .bz_comment_head, .bz_first_comment_head { padding: .1em 0 .1em .5em; background-color: #e0e0e0; }
 
-.bz_comment .attachment_image { max-width: 50em; margin: 10px 0px 0px 0px; display: block; }
+.bz_comment .attachment_image { max-width: 50em; margin: 10px 0px 0px 0px; }
 
 .bz_comment_text.bz_fullscreen_comment { min-width: 50em; width: 100%; }
