@@ -405,7 +405,7 @@ sub get_attachment_link {
         # Custis Bug 126991
         my $attachment_view = "";
         if ($attachment->contenttype =~ /^(image)\//) {
-            $attachment_view = '<br /><a href="'.$linkval.$patchlink.'" name="attach_'.$attachid.'" title="'.$title.'" target="_blank"><img src="'.$linkval.$patchlink.'" alt="'.$title.'" title="'.$title.'" class="attachment_image" /></a>';
+            $attachment_view = '<br /><a href="'.$linkval.$patchlink.'" name="attach_'.$attachid.'" title="'.$title.'" target="_blank"><img src="'.$linkval.$patchlink.'" alt="'.$title.'" title="'.$title.'" class="attachment_image" /></a><br />';
         }
 
         # Whitespace matters here because these links are in <pre> tags.
