@@ -387,6 +387,80 @@ sub data {
 
 =over
 
+
+=item C<isOfficeDocument>
+
+check by content type for office document
+
+=back
+
+=cut
+
+sub isOfficeDocument {
+    my $self = shift;
+
+    if ($self->{mimetype} =~ m/(officedocument|msword|excel|html|plain)/) {
+        return 1;
+    }
+    return undef;
+}
+
+=item C<_get_converted_html>
+
+return converted html from the content of the attachment
+
+=back
+
+=cut
+
+sub _get_converted_html {
+    my $self = shift;
+    my $file_path = $self->_get_local_filename();
+    my $file_cache_path = $self->_get_local_cache_filename();
+    my $dir_cache_path = $self->_get_local_cache_dir();
+    my $converted_html;
+
+    # Read cached converted file
+    if (-e $file_cache_path)
+    {
+       if (open(AH, '<:encoding(UTF-8)', $file_cache_path)) {
+           local $/;
+           $converted_html = <AH>;
+           close(AH);
+       }
+    }
+    else
+    {
+        # Working with exsisting files
+        if (-e $file_path) 
+        {
+            $ENV{'HOME'} = '/var/www/'; # For Libreoffice config file 
+            system("/usr/bin/libreoffice --invisible --convert-to html --outdir ".$dir_cache_path." ".$file_path." >> /tmp/x 2>&1");
+            if (-e $dir_cache_path."/attachment.html")
+            {
+                rename $dir_cache_path."/attachment.html",$file_cache_path;
+            }
+
+            if (-e $file_cache_path)
+            {
+               if (open(AH, '<:encoding(UTF-8)', $file_cache_path)) {
+                   local $/;
+                   $converted_html = <AH>;
+                   close(AH);
+               }
+            }
+        } 
+        else 
+        { # Working with data 
+            #TODO - save data from DB to file and convert it to HTML. Although this feature is unused.
+        }
+    }
+
+    return $converted_html;
+}
+
+=over
+
 =item C<datasize>
 
 the length (in characters) of the attachment content
@@ -435,6 +509,20 @@ sub _get_local_filename {
     my $hash = ($self->id % 100) + 100;
     $hash =~ s/.*(\d\d)$/group.$1/;
     return bz_locations()->{'attachdir'} . "/$hash/attachment." . $self->id;
+}
+
+sub _get_local_cache_filename {
+    my $self = shift;
+    my $hash = ($self->id % 100) + 100;
+    $hash =~ s/.*(\d\d)$/group.$1/;
+    return bz_locations()->{'attachdir'} . "_cache/$hash/attachment." . $self->id;
+}
+
+sub _get_local_cache_dir {
+    my $self = shift;
+    my $hash = ($self->id % 100) + 100;
+    $hash =~ s/.*(\d\d)$/group.$1/;
+    return bz_locations()->{'attachdir'} . "_cache/$hash";
 }
 
 =over
