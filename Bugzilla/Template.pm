@@ -407,11 +407,16 @@ sub get_attachment_link {
         if ($attachment->contenttype =~ /^(image)\//) {
             $attachment_view = '<br /><a href="'.$linkval.$patchlink.'" name="attach_'.$attachid.'" title="'.$title.'" target="_blank"><img src="'.$linkval.$patchlink.'" alt="'.$title.'" title="'.$title.'" class="attachment_image" /></a><br />';
         }
-
+        # Custis Bug 129398
+        my $attachment_online_view = "";
+        if ($attachment->isOfficeDocument()) {
+            $attachment_online_view = '<a href="'.$linkval.'&amp;action=online_view" title="$title" target="_blank">[Online-view]</a>';
+        }
         # Whitespace matters here because these links are in <pre> tags.
         return qq|<span class="$className">|
                . qq|<a href="${linkval}${patchlink}" name="attach_${attachid}" title="$title" target="_blank">$link_text</a>|
                . qq| <a href="${linkval}&amp;action=edit" title="$title" target="_blank">[details]</a>|
+               . qq| ${attachment_online_view} |
                . qq| ${attachment_view}|
                . qq|</span>|;
     }
