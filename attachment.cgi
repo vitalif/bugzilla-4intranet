@@ -133,6 +133,11 @@ elsif ($action eq "zip")
 {
     all_attachments_in_zip();
 }
+# Bug 129398
+elsif ($action eq "online_view")
+{
+    view($action);
+}
 else
 {
     ThrowCodeError("unknown_action", { action => $action });
@@ -244,6 +249,7 @@ sub validateContext
 
 # Display an attachment.
 sub view {
+    my $action = shift;
     my $attachment;
 
     if (use_attachbase()) {
@@ -329,42 +335,48 @@ sub view {
     $filename =~ s/\\/\\\\/g; # escape backslashes
     $filename =~ s/"/\\"/g; # escape quotes
 
-    my $disposition = Bugzilla->params->{inline_attachment_mime};
-    $disposition = $disposition
-        && Bugzilla->params->{allow_attachment_display}
-        && $contenttype =~ /$disposition/is
-        ? "inline" : "attachment";
+    # Bug 129398 - View online office documents
+    if (defined $action && $attachment->isOfficeDocument() eq 1) {
+        Bugzilla->send_header();
+        print $attachment->_get_converted_html();
+    } else { 
+        my $disposition = Bugzilla->params->{inline_attachment_mime};
+        $disposition = $disposition
+            && Bugzilla->params->{allow_attachment_display}
+            && $contenttype =~ /$disposition/is
+            ? "inline" : "attachment";
 
-    if ($cgi->user_agent() =~ /MSIE/ && $cgi->user_agent() !~ /Opera/)
-    {
-        # Bug 57108 - russian filenames for MSIE
-        Encode::_utf8_off($filename);
-        Encode::from_to($filename, 'utf-8', 'cp1251');
-    }
-
-    # Don't send a charset header with attachments--they might not be UTF-8.
-    # However, we do allow people to explicitly specify a charset if they
-    # want.
-    my $data = $attachment->data;
-    if ($contenttype !~ /\bcharset=/i)
-    {
-        # Detect UTF-8 encoding
-        my $is_utf8 = 0;
-        if ($contenttype =~ m!^text/!iso)
+        if ($cgi->user_agent() =~ /MSIE/ && $cgi->user_agent() !~ /Opera/)
         {
-            Encode::_utf8_on($data);
-            $is_utf8 = utf8::valid($data);
-            Encode::_utf8_off($data);
+            # Bug 57108 - russian filenames for MSIE
+            Encode::_utf8_off($filename);
+            Encode::from_to($filename, 'utf-8', 'cp1251');
         }
-        # In order to prevent Apache from adding a charset, we have to send a
-        # charset that's a single space.
-        $cgi->charset($is_utf8 ? 'utf-8' : ' ');
+
+        # Don't send a charset header with attachments--they might not be UTF-8.
+        # However, we do allow people to explicitly specify a charset if they
+        # want.
+        my $data = $attachment->data;
+        if ($contenttype !~ /\bcharset=/i)
+        {
+            # Detect UTF-8 encoding
+            my $is_utf8 = 0;
+            if ($contenttype =~ m!^text/!iso)
+            {
+                Encode::_utf8_on($data);
+                $is_utf8 = utf8::valid($data);
+                Encode::_utf8_off($data);
+            }
+            # In order to prevent Apache from adding a charset, we have to send a
+            # charset that's a single space.
+            $cgi->charset($is_utf8 ? 'utf-8' : ' ');
+        }
+        $cgi->send_header(-type=>"$contenttype; name=\"$filename\"",
+                           -content_disposition=> "$disposition; filename=\"$filename\"",
+                           -content_length => $attachment->datasize);
+        disable_utf8();
+        print $data;
     }
-    $cgi->send_header(-type=>"$contenttype; name=\"$filename\"",
-                       -content_disposition=> "$disposition; filename=\"$filename\"",
-                       -content_length => $attachment->datasize);
-    disable_utf8();
-    print $data;
 }
 
 sub interdiff {
