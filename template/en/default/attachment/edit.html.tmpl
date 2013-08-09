@@ -258,6 +258,9 @@
           </b></p>
           <p><b>
             <a href="attachment.cgi?id=[% attachment.id %]">Download the attachment</a>.
+            [% IF attachment.isOfficeDocument() == 1 %]
+                <br /><a href="attachment.cgi?id=[% attachment.id %]&amp;action=online_view" target="_blank">Online-view</a>
+            [% END %]
           </b></p>
         </td>
       [% END %]
