@@ -31,6 +31,7 @@ use Bugzilla;
 use Bugzilla::Constants;
 use Bugzilla::Util;
 use Bugzilla::CGI;
+use Bugzilla::Search;
 use Bugzilla::Search::Saved;
 use Bugzilla::Error;
 use Bugzilla::User;
