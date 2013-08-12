@@ -150,6 +150,7 @@ sub handle_request
         close $fd;
         # untaint
         ($content) = $content =~ /^(.*)$/s;
+        $content =~ s/\n__END__.*/\n/s;
     }
     if ($ENV{NYTPROF} && $INC{'Devel/NYTProf.pm'})
     {
