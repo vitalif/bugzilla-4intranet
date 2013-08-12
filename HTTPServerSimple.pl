@@ -222,9 +222,13 @@ package Bugzilla::HTTPServerSimple::FakeExit;
 1;
 __END__
 
-Sample bugzilla.conf (it's like Net::Server config):
+Sample bugzilla.conf (all parameters can be specified on
+commandline using --option=value or here in config):
 
+# Net::Server subclass to use for serving
 class               Net::Server::PreFork
+
+# That subclass's parameters
 port                0.0.0.0:8157
 min_servers         4
 max_servers         20
