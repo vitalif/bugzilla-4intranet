@@ -67,9 +67,10 @@ sub _die_error
     {
         die @_;
     }
-    if (ref $_[0] eq 'Bugzilla::Error')
+    if (ref $_[0] eq 'Bugzilla::Error' || ref $_[0] eq 'Bugzilla::HTTPServerSimple::FakeExit')
     {
         # Bugzilla::Error has overloaded conversion to string
+        # Bugzilla::HTTPServerSimple::FakeExit should only terminate the request
         die @_;
     }
     else
