@@ -54,10 +54,11 @@ if (($id = $args->{ga_id}) && !$args->{ga_client})
     {
         my $tm;
         ($key, $tm) = $dbh->selectrow_array("SELECT secret, expire FROM globalauth WHERE id=?", undef, $id);
-        if (time > $tm)
+        if ($key && time > $tm)
         {
             $key = undef;
             $dbh->do("DELETE FROM globalauth WHERE id=?", undef, $id);
+            die "GlobalAuth key expired";
         }
         if ($key)
         {
@@ -127,10 +128,16 @@ if (($id = $args->{ga_id}) && !$args->{ga_client})
             print $cgi->redirect(-location => "$url");
             exit;
         }
+        else
+        {
+            die "Global Auth key not found";
+        }
     }
 }
-
-die("Unknown action passed to Global Auth");
+else
+{
+    die("Global Auth client mode disabled in Bugzilla");
+}
 
 1;
 __END__
