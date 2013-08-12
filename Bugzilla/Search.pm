@@ -1648,7 +1648,7 @@ sub split_order_term
     my $fragment = shift;
     my ($col, $dir) = split /\s+/, $fragment, 2;
     $col = lc $col;
-    $dir = uc $dir;
+    $dir = uc $dir if $dir;
     $dir = '' if $dir ne 'DESC' && $dir ne 'ASC';
     return wantarray ? ($col, $dir) : $col;
 }

@@ -97,7 +97,7 @@ sub handle_request
     $CGI::USE_PARAM_SEMICOLONS = 0;
     # Determine SCRIPT_FILENAME
     my $script = $ENV{SCRIPT_FILENAME};
-    $ENV{REQUEST_URI} =~ s!^/*bugs\d*/*!/!iso;
+    $ENV{REQUEST_URI} =~ s!^/*!/!iso;
     unless ($script)
     {
         ($script) = $ENV{REQUEST_URI} =~ m!/+([^\?\#]*)!so;
@@ -232,6 +232,11 @@ For example to support multiple Bugzilla 'projects' specify
 
 http_env            PROJECT
 
-And specify an appropriate project in 'X-Project' header on your frontend:
+And specify an appropriate project in 'X-Project' header on your frontend.
+For example, for nginx:
 
 proxy_set_header X-Project 'project';
+
+Or for Apache:
+
+RequestHeader set X-Project project
