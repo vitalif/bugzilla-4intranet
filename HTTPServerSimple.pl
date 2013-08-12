@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # Standalone HTTP server for running Bugzilla based on HTTP::Server::Simple and Net::Server
-# USAGE: perl HTTPServerSimple.pl bugzilla.conf
+# USAGE: perl HTTPServerSimple.pl [--option=value] [bugzilla.conf]
 # See bugzilla.conf sample in the end of this file
 
 use strict;
@@ -34,7 +34,7 @@ my $in_eval = 0;
 $SIG{INT} = sub { warn "Terminating"; CORE::exit(); };
 
 # Create and run
-my $server = Bugzilla::HTTPServerSimple->new($ARGV[0]);
+my $server = Bugzilla::HTTPServerSimple->new(@ARGV);
 $server->run();
 
 # HTTP::Server::Simple subclass (the real server)
@@ -53,9 +53,21 @@ my %subs = ();
 
 sub new
 {
-    my ($class, $conf) = @_;
+    my ($class, @args) = @_;
     my $self = HTTP::Server::Simple::new($class);
-    $self->{_config} = Bugzilla::NetServerConfigParser->_read_conf($conf);
+    my @cfg;
+    for (@args)
+    {
+        if (/^--([^=]+)(?:=(.*))?/s)
+        {
+            push @cfg, $1, $2||1;
+        }
+        elsif (!$self->{_config})
+        {
+            $self->{_config} = Bugzilla::NetServerConfigParser->_read_conf($_);
+        }
+    }
+    push @{$self->{_config} ||= []}, @cfg;
     $self->{_config_hash} = {};
     for (my $i = 0; $i < @{$self->{_config}}; $i += 2)
     {
