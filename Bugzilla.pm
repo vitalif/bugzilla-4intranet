@@ -216,10 +216,9 @@ sub init_page {
 
     if (${^TAINT}) {
         # Some environment variables are not taint safe
-        delete @::ENV{'PATH', 'IFS', 'CDPATH', 'ENV', 'BASH_ENV'};
-        # Some modules throw undefined errors (notably File::Spec::Win32) if
-        # PATH is undefined.
-        $ENV{'PATH'} = '';
+        delete @::ENV{'IFS', 'CDPATH', 'ENV', 'BASH_ENV'};
+        # It's a very stupid idea to remove ENV{PATH}.
+        trick_taint($ENV{PATH});
     }
 
     # Because this function is run live from perl "use" commands of
