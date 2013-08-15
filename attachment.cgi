@@ -336,7 +336,7 @@ sub view {
     $filename =~ s/"/\\"/g; # escape quotes
 
     # Bug 129398 - View online office documents
-    if (defined $action && $attachment->isOfficeDocument() eq 1) {
+    if (defined $action && $action eq 'online_view' && $attachment->isOfficeDocument()) {
         Bugzilla->send_header();
         print $attachment->_get_converted_html();
     } else { 
