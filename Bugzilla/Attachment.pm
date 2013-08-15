@@ -399,7 +399,7 @@ check by content type for office document
 sub isOfficeDocument {
     my $self = shift;
 
-    if ($self->{mimetype} =~ m/(officedocument|msword|excel|html|plain)/) {
+    if ($self->{mimetype} =~ m/(officedocument|msword|excel|html|opendocument)/) {
         return 1;
     }
     return undef;
@@ -421,41 +421,31 @@ sub _get_converted_html {
     my $converted_html;
 
     # Read cached converted file
-    if (-e $file_cache_path)
-    {
-       if (open(AH, '<:encoding(UTF-8)', $file_cache_path)) {
-           local $/;
-           $converted_html = <AH>;
-           close(AH);
-       }
-    }
-    else
-    {
+    if (-e $file_cache_path) {
+        if (open(AH, '<:encoding(UTF-8)', $file_cache_path)) {
+            local $/;
+            $converted_html = <AH>;
+            close(AH);
+        }
+    } else {
         # Working with exsisting files
-        if (-e $file_path) 
-        {
-            $ENV{'HOME'} = '/var/www/'; # For Libreoffice config file 
-            system("/usr/bin/libreoffice --invisible --convert-to html --outdir ".$dir_cache_path." ".$file_path." >> /tmp/x 2>&1");
-            if (-e $dir_cache_path."/attachment.html")
-            {
+        if (-e $file_path) {
+            system("/usr/bin/libreoffice --invisible --convert-to html --outdir ".$dir_cache_path." ".$file_path." 1>&2");
+            if (-e $dir_cache_path."/attachment.html") {
                 rename $dir_cache_path."/attachment.html",$file_cache_path;
             }
 
-            if (-e $file_cache_path)
-            {
-               if (open(AH, '<:encoding(UTF-8)', $file_cache_path)) {
-                   local $/;
-                   $converted_html = <AH>;
-                   close(AH);
-               }
+            if (-e $file_cache_path) {
+                if (open(AH, '<:encoding(UTF-8)', $file_cache_path)) {
+                    local $/;
+                    $converted_html = <AH>;
+                    close(AH);
+                }
             }
-        } 
-        else 
-        { # Working with data 
+        } else { # Working with data 
             #TODO - save data from DB to file and convert it to HTML. Although this feature is unused.
         }
     }
-
     return $converted_html;
 }
 
