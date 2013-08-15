@@ -432,7 +432,9 @@ div.user_match {
     vertical-align: top;
     font-weight: bold;
 }
-.field_value, form#Create th, form#Create td {
+
+/*.field_value, */
+form#Create th, form#Create td {
     vertical-align: top;
 }
 th.required:before {
