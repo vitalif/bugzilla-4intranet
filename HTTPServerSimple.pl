@@ -41,6 +41,7 @@ $server->run();
 package Bugzilla::HTTPServerSimple;
 
 use Bugzilla;
+use Bugzilla::Util qw(html_quote);
 use Time::HiRes qw(gettimeofday tv_interval);
 use IO::SendFile qw(sendfile);
 use POSIX qw(strftime);
@@ -100,12 +101,25 @@ sub net_server
     return $self->{_config_hash}->{class};
 }
 
+sub print_error
+{
+    my $self = shift;
+    my ($status_code, $status_line, $error_text) = @_;
+    warn $error_text;
+    print $self->{_cgi}->header(-status => $status_code).
+        "<html><head><title>$status_line</title></head>".
+        "<body><h1>$status_line</h1><p>".html_quote($error_text).
+        "</p><hr /><p>".$ENV{SERVER_SOFTWARE}."</p></body></html>";
+    return $status_code;
+}
+
 sub handle_request
 {
     my $self = shift;
     my ($cgi) = @_;
     # Set non-parsed-headers CGI mode
     $cgi->nph(1);
+    $self->{_cgi} = $cgi;
     $CGI::USE_PARAM_SEMICOLONS = 0;
     # Determine SCRIPT_FILENAME
     my $script = $ENV{SCRIPT_FILENAME};
@@ -115,12 +129,17 @@ sub handle_request
         ($script) = $ENV{REQUEST_URI} =~ m!/+([^\?\#]*)!so;
     }
     $script ||= 'index.cgi';
+    # Check access
+    if ($self->{_config_hash}->{deny_regexp} &&
+        $script =~ /$self->{_config_hash}->{deny_regexp}/s)
+    {
+        return $self->print_error('403', 'Access Denied', "You are not allowed to access URL $script on this server.");
+    }
     # Serve static files (should be done by nginx, but we support it for completeness)
     my $fd;
     $script =~ s!^/*!!so;
     if (($script !~ /\.cgi$/iso || $script =~ /\//so) && open $fd, '<', $script)
     {
-        print "HTTP/1.0 200 OK\r\n";
         print $cgi->header(-type => guess_media_type($script), -Content_length => -s $script);
         sendfile(fileno(STDOUT), fileno($fd), 0, -s $script);
         close $fd;
@@ -156,6 +175,10 @@ sub handle_request
     {
         my $start = [gettimeofday];
         eval "$preload package main; $content";
+        if ($@)
+        {
+            return $self->print_error(500, 'Internal Server Error', "Error while running $script:\n$@");
+        }
         my $elapsed = tv_interval($start) * 1000;
         print STDERR strftime("[%Y-%m-%d %H:%M:%S]", localtime)." Served $script via require() in $elapsed ms\n";
         return 200;
@@ -166,8 +189,7 @@ sub handle_request
         $subs{$script} = eval "package main; sub { $preload$content }";
         if ($@)
         {
-            warn "Error while loading $script:\n$@";
-            return 500;
+            return $self->print_error(500, 'Internal Server Error', "Error while loading $script:\n$@");
         }
     }
     # Run cached sub
@@ -178,7 +200,7 @@ sub handle_request
         eval { &{$subs{$script}}(); };
         if ($@ && (!ref($@) || ref($@) ne 'Bugzilla::HTTPServerSimple::FakeExit'))
         {
-            warn "Error while running $script:\n$@";
+            return $self->print_error(500, 'Internal Server Error', "Error while running $script:\n$@");
         }
         eval { Bugzilla::_cleanup(); };
         if ($@ && (!ref($@) || ref($@) ne 'Bugzilla::HTTPServerSimple::FakeExit'))
@@ -188,8 +210,9 @@ sub handle_request
         $in_eval = 0;
         my $elapsed = tv_interval($start) * 1000;
         print STDERR strftime("[%Y-%m-%d %H:%M:%S]", localtime)." Served $script in $elapsed ms\n";
+        return 200;
     }
-    return 404;
+    return $self->print_error(404, 'Not Found', "The requested URL $script was not found on this server.")
 }
 
 # Override bad HTTP::Server::Simple::parse_headers implementation with a good one
@@ -248,17 +271,17 @@ log_level           2
 pid_file            /var/run/bugzilla.pid
 background          1
 
-'http_env' specifies which environment variables to set from
-a corresponding 'X-<name>' HTTP header (value is comma-separated).
-For example to support multiple Bugzilla 'projects' specify
+# HTTP 403 Access Denied will be shown for URLs matching deny_regexp:
+# You are URGED also to disable these URLs on your frontend.
+deny_regexp         ^(localconfig|data/|.*\.(pm|pl|sh)($|\?)|.*\.(ht|svn|hg|bzr|git).*)
 
+# 'http_env' specifies which environment variables to set from
+# a corresponding 'X-<name>' HTTP header (value is comma-separated).
+# For example to support multiple Bugzilla 'projects' specify:
 http_env            PROJECT
 
-And specify an appropriate project in 'X-Project' header on your frontend.
-For example, for nginx:
-
-proxy_set_header X-Project 'project';
-
-Or for Apache:
-
-RequestHeader set X-Project project
+# For http_env to work you need to push an appropriate header from your
+# frontend. For example, for nginx:
+#   proxy_set_header X-Project 'project';
+# Or for Apache:
+#   RequestHeader set X-Project project
