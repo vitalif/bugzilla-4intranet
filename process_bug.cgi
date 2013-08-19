@@ -804,6 +804,10 @@ unless (Bugzilla->usage_mode == USAGE_MODE_EMAIL)
 {
     foreach (@$send_results)
     {
+        if ($_ eq " ")
+        {
+            ThrowCodeError('Bug 131859', {'send_results' => $send_results});
+        }
         $template->process("bug/process/results.html.tmpl", { %$vars, %$_ })
             || ThrowTemplateError($template->error());
         $vars->{header_done} = 1;
