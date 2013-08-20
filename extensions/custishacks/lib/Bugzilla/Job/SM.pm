@@ -13,8 +13,8 @@ use Bugzilla::SmMapping;
 
 # The longest we expect a job to possibly take, in seconds.
 use constant grab_for => 30;
-# Retry for ONE day.
-use constant max_retries => 28;
+# Retry for ~ three days.
+use constant max_retries => 80;
 
 my ($SmClient, $SmUser);
 
