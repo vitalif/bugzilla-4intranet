@@ -804,7 +804,7 @@ unless (Bugzilla->usage_mode == USAGE_MODE_EMAIL)
 {
     foreach (@$send_results)
     {
-        if ($_ eq " ")
+        if (!ref $_)
         {
             ThrowCodeError('Bug 131859', {'send_results' => $send_results});
         }
