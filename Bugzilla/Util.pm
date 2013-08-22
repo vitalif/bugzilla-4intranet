@@ -407,6 +407,7 @@ sub wrap_comment # makeParagraphs
     my ($input) = @_;
     my @m;
     my $p;
+    my $tmp;
     my $text = '';
     while ($input ne '')
     {
@@ -422,7 +423,7 @@ sub wrap_comment # makeParagraphs
             $input = '';
         }
         $m[0] =~ s/^\s*\n//s;
-        $m[0] =~ s/^([ \t]+)/$_ = $1; s!\t!    !g; $_/emog;
+        $m[0] =~ s/^([ \t]+)/$tmp = $1; s!\t!    !g; $tmp/emog;
         $m[0] =~ s/(<[^<>]*>)|(  +)/$1 || ' '.('&nbsp;' x (length($2)-1))/ge;
         if ($m[0] && !$p)
         {

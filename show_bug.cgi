@@ -133,7 +133,6 @@ my @keyword_list_out = map { { name => $_->{name} } } @keyword_list;
 $vars->{keyword_list} = \@keyword_list_out;
 # END Custis Bug 66910
 
-
 $vars->{displayfields} = \%displayfields;
 
 my $sd;
@@ -151,37 +150,6 @@ if (Bugzilla->session && ($sd = Bugzilla->session_data) && $sd->{sent})
     $vars->{last_title} = $sd->{title};
     $vars->{last_header} = $sd->{header};
     $vars->{sentmail} = $sd->{sent};
-
-    # TODO - Remove it after catch bug
-    # Bug 129677 - trying to catch the bug
-    if ($sd->{sent})
-    {
-        foreach (@{$sd->{sent}})
-        {
-            if (!$user->can_see_bug($_->{bug_id}))
-            {
-                my $datadir = bz_locations()->{'datadir'};
-                if (-w "$datadir/errorlog")
-                {
-                    use Data::Dumper;
-                    my $warning_log = new IO::File(">>$datadir/errorlog");
-                    print $warning_log "Bug 129677 : dump sent session - ".Dumper($sd->{sent});
-                    $warning_log->close();
-                }
-                my $msg = "Bug 129677 : dump sent session - ".Dumper($sd->{sent});
-                my $t =
-                    "From: ".Bugzilla->params->{mailfrom}."\n".
-                    "To: ".Bugzilla->params->{maintainer}."\n".
-                    "Subject: Bug 129677 - error\n".
-                    "X-Bugzilla-Type: codeerror\n\n".
-                    $msg;
-                MessageToMTA($t, 1);
-            }
-        }
-    }
-    # Bug 129677 - End part
-    # TODO - Remove it after catch bug END
-
     $vars->{failed_checkers} = Checkers::unfreeze_failed_checkers($sd->{failed_checkers});
     if ($sd->{message})
     {

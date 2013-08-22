@@ -306,9 +306,6 @@ sub init_page {
 sub add_mail_result {
     my ($class, $send_result_item) = @_;
     my $cache = $class->request_cache;
-    if (!ref $send_result_item) {
-        die({ send_result_item => $send_result_item });
-    }
     push(@{$cache->{send_mail_result}}, $send_result_item);
 }
 
