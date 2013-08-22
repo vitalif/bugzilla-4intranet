@@ -735,7 +735,7 @@ foreach my $msg (@msgs) {
 
 # Send bugmail
 
-# Add flag notify to send_result
+# Add flag notifications to send_results
 my $notify = Bugzilla->get_mail_result();
 push @$send_results, @$notify;
 
@@ -804,10 +804,6 @@ unless (Bugzilla->usage_mode == USAGE_MODE_EMAIL)
 {
     foreach (@$send_results)
     {
-        if (!ref $_)
-        {
-            ThrowCodeError('Bug 131859', {'send_results' => $send_results});
-        }
         $template->process("bug/process/results.html.tmpl", { %$vars, %$_ })
             || ThrowTemplateError($template->error());
         $vars->{header_done} = 1;
