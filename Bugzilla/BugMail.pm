@@ -87,6 +87,7 @@ sub send_results
             status => $vars->{notify_data}->{flag} ? $vars->{notify_data}->{flag}->status : 'X',
         };
         delete $vars->{notify_data}; # erase data, without - JSON encode error
+        $vars->{commentsilent} = 0; # Custis Bug 132647
     }
     else
     {
