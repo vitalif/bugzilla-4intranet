@@ -11,7 +11,7 @@
  * </script>
  */
 var Calendar = {
-    month_names: ["January","February","March","April","May","June","July","Augest","September","October","November","December"],
+    month_names: ["January","February","March","April","May","June","July","August","September","October","November","December"],
     weekdays: ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],
     sunday: 0,
     month_days: [31,28,31,30,31,30,31,31,30,31,30,31],
