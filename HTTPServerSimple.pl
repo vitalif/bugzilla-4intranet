@@ -128,6 +128,10 @@ sub handle_request
     {
         ($script) = $ENV{REQUEST_URI} =~ m!/+([^\?\#]*)!so;
     }
+    if ($self->{_config_hash}->{path_parent_regexp})
+    {
+        $script =~ s!^($self->{_config_hash}->{path_parent_regexp})($|/+)!!s;
+    }
     $script ||= 'index.cgi';
     # Check access
     if ($self->{_config_hash}->{deny_regexp} &&
@@ -270,6 +274,9 @@ log_file            /var/log/bugzilla.log
 log_level           2
 pid_file            /var/run/bugzilla.pid
 background          1
+
+# This regexp (optional) will be stripped from the URI beginning
+path_parent_regexp  bugs|bugzilla
 
 # HTTP 403 Access Denied will be shown for URLs matching deny_regexp:
 # You are URGED also to disable these URLs on your frontend.
