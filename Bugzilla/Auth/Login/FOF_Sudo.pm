@@ -55,9 +55,9 @@ sub get_login_info {
     {
         trick_taint($authdata);
         eval { $authdata = decode_json($authdata); };
-        if ($@ && $@ =~ /malformed/)
+        if ($@)
         {
-            die "Error $@ in: $authdata";
+            die "Error decoding JSON: $@\nJSON:\n$authdata";
         }
     }
     return { failure => AUTH_NODATA } unless $authdata && $authdata->{user_name};
