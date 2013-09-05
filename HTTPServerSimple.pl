@@ -205,14 +205,19 @@ sub handle_request
         my $start = [gettimeofday];
         $in_eval = 1;
         eval { &{$subs{$script}}(); };
+        my $err;
         if ($@ && (!ref($@) || ref($@) ne 'Bugzilla::HTTPServerSimple::FakeExit'))
         {
-            return $self->print_error(500, 'Internal Server Error', "Error while running $script:\n$@");
+            $err = "Error while running $script:\n$@";
         }
         eval { Bugzilla::_cleanup(); };
         if ($@ && (!ref($@) || ref($@) ne 'Bugzilla::HTTPServerSimple::FakeExit'))
         {
             warn "Error in _cleanup():\n$@";
+        }
+        if ($err)
+        {
+            return $self->print_error(500, 'Internal Server Error', $err);
         }
         $in_eval = 0;
         my $elapsed = tv_interval($start) * 1000;
