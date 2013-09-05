@@ -84,13 +84,16 @@ sub _die_error
         {
             if ($msg =~ /lock wait|deadlock found/i)
             {
+                use Data::Dumper;
                 # Log active InnoDB locks
                 my $locks = Bugzilla->dbh->selectall_arrayref('SELECT * FROM information_schema.innodb_locks', {Slice=>{}});
-                use Data::Dumper;
                 $msg = "InnoDB locks:\n".Dumper($locks)."\n".$msg;
                 # Also log full InnoDB Status
                 ($locks) = Bugzilla->dbh->selectrow_array('SHOW ENGINE INNODB STATUS');
                 $msg = "InnoDB status:\n$locks\n$msg";
+                # Also log full processlist
+                $locks = Bugzilla->dbh->selectall_arrayref('SHOW FULL PROCESSLIST', {Slice=>{}});
+                $msg = "All processes:\n".Dumper($locks)."\n".$msg;
             }
             $msg = { eval_error => $msg };
             Bugzilla::Error::ThrowCodeError('eval_error', $msg);
