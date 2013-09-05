@@ -319,8 +319,8 @@ sub correct_urlbase {
 
 sub remote_ip {
     my $ip = $ENV{'REMOTE_ADDR'} || '127.0.0.1';
-    my @proxies = split(/[\s,]+/, Bugzilla->params->{'inbound_proxies'});
-    if (first { $_ eq $ip } @proxies) {
+    my @proxies = '127.0.0.1', split(/[\s,]+/, Bugzilla->params->{'inbound_proxies'});
+    if (grep { $_ eq $ip } @proxies) {
         $ip = $ENV{'HTTP_X_FORWARDED_FOR'} if $ENV{'HTTP_X_FORWARDED_FOR'};
     }
     return $ip;
