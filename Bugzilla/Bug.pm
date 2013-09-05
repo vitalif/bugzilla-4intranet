@@ -3611,7 +3611,7 @@ sub SilentLog
         $comment =~ s/\r*\n+/|/gso;
         $mesg .= "Silent comment> " . time2str("%D %H:%M:%S ", time());
         $mesg .= " Bug $bugid User: " . Bugzilla->user->login;
-        $mesg .= " ($ENV{REMOTE_ADDR}) " if $ENV{REMOTE_ADDR};
+        $mesg .= " (".remote_ip().") ";
         $mesg .= " // $comment ";
         if (open $fd, ">>$datadir/silentlog")
         {

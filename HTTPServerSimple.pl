@@ -176,6 +176,7 @@ sub handle_request
         # untaint
         ($content) = $content =~ /^(.*)$/s;
         $content =~ s/\n__END__.*/\n/s;
+        $content = "\n#line 1 \"$script\"\n$content";
     }
     if ($ENV{NYTPROF} && $INC{'Devel/NYTProf.pm'})
     {
@@ -219,6 +220,21 @@ sub handle_request
         return 200;
     }
     return $self->print_error(404, 'Not Found', "The requested URL $script was not found on this server.")
+}
+
+# This implementation is nearly the same as the original, but also uses buffered input
+sub parse_request
+{
+    my $self = shift;
+    my $chunk = <STDIN>;
+    defined($chunk) or return undef;
+
+    $chunk =~ m/^(\w+)\s+(\S+)(?:\s+(\S+))?\r?$/;
+    my $method   = $1 || '';
+    my $uri      = $2 || '';
+    my $protocol = $3 || '';
+
+    return ($method, $uri, $protocol);
 }
 
 # Override bad HTTP::Server::Simple::parse_headers implementation with a good one

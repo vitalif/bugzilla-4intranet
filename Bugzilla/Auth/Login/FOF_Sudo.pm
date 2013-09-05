@@ -45,7 +45,7 @@ sub get_login_info {
     return { failure => AUTH_NODATA } unless $cookie && $server;
 
     my @mynetworks = map { trim($_) } split /,+/, Bugzilla->params->{fof_sudo_mynetworks};
-    return { failure => AUTH_NODATA } if @mynetworks && !match_ip(Bugzilla->cgi->remote_addr, @mynetworks);
+    return { failure => AUTH_NODATA } if @mynetworks && !match_ip(remote_ip(), @mynetworks);
 
     my $url = $server;
     $url .= ($url =~ tr/?/?/ ? '&' : '?');
