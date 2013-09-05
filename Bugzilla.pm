@@ -82,6 +82,16 @@ sub _die_error
         # on each "Stop" click in the browser.
         if ($msg !~ /^(Apache2::RequestIO::print|:Apache2 IO write): \(103\)|^[^\n]*(Программа вызвала сброс соединения|Software caused connection abort) at /iso)
         {
+            if ($msg =~ /lock wait|deadlock found/i)
+            {
+                # Log active InnoDB locks
+                my $locks = Bugzilla->dbh->selectall_arrayref('SELECT * FROM information_schema.innodb_locks', {Slice=>{}});
+                use Data::Dumper;
+                $msg = "InnoDB locks:\n".Dumper($locks)."\n".$msg;
+                # Also log full InnoDB Status
+                ($locks) = Bugzilla->dbh->selectrow_array('SHOW ENGINE INNODB STATUS');
+                $msg = "InnoDB status:\n$locks\n$msg";
+            }
             $msg = { eval_error => $msg };
             Bugzilla::Error::ThrowCodeError('eval_error', $msg);
         }
