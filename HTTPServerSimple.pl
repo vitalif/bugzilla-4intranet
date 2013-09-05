@@ -11,6 +11,7 @@ BEGIN
     my $dir = File::Basename::dirname($0);
     ($dir) = $dir =~ /^(.*)$/s;
     chdir($dir);
+    $Bugzilla::HTTPServerSimple::DOCROOT = $dir;
 }
 
 use lib qw(.);
@@ -133,6 +134,7 @@ sub handle_request
         $script =~ s!^($self->{_config_hash}->{path_parent_regexp})($|/+)!!s;
     }
     $script ||= 'index.cgi';
+    $ENV{SCRIPT_FILENAME} = $Bugzilla::HTTPServerSimple::DOCROOT.'/'.$script;
     # Check access
     if ($self->{_config_hash}->{deny_regexp} &&
         $script =~ /$self->{_config_hash}->{deny_regexp}/s)

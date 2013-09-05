@@ -210,7 +210,7 @@ sub check_hash_token {
     {
         my $template = Bugzilla->template;
         my $vars = {};
-        $vars->{'script_name'} = basename($0);
+        $vars->{'script_name'} = basename($ENV{SCRIPT_FILENAME});
         $vars->{'token'} = issue_hash_token($data);
         $vars->{'reason'} = (!$token) ?                   'missing_token' :
                             ($expected_token ne $token) ? 'invalid_token' :
@@ -385,8 +385,8 @@ sub check_token_data {
         $vars->{'abuser'} = Bugzilla::User->new($creator_id)->identity;
         $vars->{'token_action'} = $token_action;
         $vars->{'expected_action'} = $expected_action;
-        $vars->{'script_name'} = basename($0);
-        $vars->{'alternate_script'} = $alternate_script || basename($0);
+        $vars->{'script_name'} = basename($ENV{SCRIPT_FILENAME});
+        $vars->{'alternate_script'} = $alternate_script || basename($ENV{SCRIPT_FILENAME});
 
         # Now is a good time to remove old tokens from the DB.
         CleanTokenTable();
