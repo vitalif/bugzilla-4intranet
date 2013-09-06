@@ -12,11 +12,13 @@ BEGIN
     ($dir) = $dir =~ /^(.*)$/s;
     chdir($dir);
     $Bugzilla::HTTPServerSimple::DOCROOT = $dir;
+    # Force everyone to use buffered input!
+    *CORE::GLOBAL::sysread = sub(*$$;$) { read $_[0], $_[1], $_[2], $_[3]; };
 }
 
 use lib qw(.);
 use CGI ();
-CGI->compile(qw(:cgi -no_xhtml -oldstyle_urls :private_tempfiles :unique_headers SERVER_PUSH :push));
+CGI->compile(qw(:cgi -no_xhtml -nph -oldstyle_urls :private_tempfiles :unique_headers SERVER_PUSH :push));
 $CGI::USE_PARAM_SEMICOLONS = 0;
 
 # Fake exit() function to only terminate current request
@@ -125,7 +127,7 @@ sub print_error
     my $self = shift;
     my ($status_code, $status_line, $error_text) = @_;
     print STDERR strftime("[%Y-%m-%d %H:%M:%S] ", localtime) . $error_text . "\n";
-    print $self->{_cgi}->header(-status => $status_code).
+    print $ENV{SERVER_PROTOCOL}." $status_code $status_line\r\nContent-Type: text/html\r\n\r\n".
         "<html><head><title>$status_line</title></head>".
         "<body><h1>$status_line</h1><p>".html_quote($error_text).
         "</p><hr /><p>".$ENV{SERVER_SOFTWARE}."</p></body></html>";
@@ -245,17 +247,20 @@ sub check_errors
     }
 }
 
+sub handler
+{
+    my $self = shift;
+    $self->handle_request;
+}
+
 sub handle_request
 {
     my $self = shift;
-    my ($cgi) = @_;
     # Set SCRIPT_NAME to REQUEST_URI and clear PATH_INFO
     $ENV{SCRIPT_NAME} = $ENV{REQUEST_URI};
     $ENV{PATH_INFO} = '';
     # Set non-parsed-headers CGI mode
-    $cgi->nph(1);
-    $self->{_cgi} = $cgi;
-    $CGI::USE_PARAM_SEMICOLONS = 0;
+    CGI::nph(1);
     # Determine SCRIPT_FILENAME
     my $script = $ENV{SCRIPT_FILENAME};
     $ENV{REQUEST_URI} =~ s!^/*!/!iso;
@@ -280,7 +285,9 @@ sub handle_request
     $script =~ s!^/*!!so;
     if (($script !~ /\.cgi$/iso || $script =~ /\//so) && open $fd, '<', $script)
     {
-        print $cgi->header(-type => guess_media_type($script), -Content_length => -s $script);
+        print $ENV{SERVER_PROTOCOL}." 200 OK\r\n".
+            "Content-Type: ".guess_media_type($script)."\r\n".
+            "Content-Length: ".(-s $script)."\r\n\r\n";
         sendfile(fileno(STDOUT), fileno($fd), 0, -s $script);
         close $fd;
         print STDERR strftime("[%Y-%m-%d %H:%M:%S]", localtime)." Served $script via sendfile()\n";
