@@ -118,6 +118,9 @@ sub handle_request
 {
     my $self = shift;
     my ($cgi) = @_;
+    # Set SCRIPT_NAME to REQUEST_URI and clear PATH_INFO
+    $ENV{SCRIPT_NAME} = $ENV{REQUEST_URI};
+    $ENV{PATH_INFO} = '';
     # Set non-parsed-headers CGI mode
     $cgi->nph(1);
     $self->{_cgi} = $cgi;
