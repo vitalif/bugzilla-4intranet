@@ -80,6 +80,22 @@ sub new
             splice @{$self->{_config}}, $i, 2;
             $i -= 2;
         }
+        elsif ($self->{_config}->[$i] eq 'preload')
+        {
+            # Preload a script
+            my $script = $self->{_config}->[$i+1];
+            for (glob $script)
+            {
+                eval
+                {
+                    $self->load_script($_);
+                };
+                if ($@ && ref $@ eq 'Bugzilla::HTTPServerSimple::FakeExit')
+                {
+                    print STDERR "Preloading $_ failed: $@->{error}->[2]\n";
+                }
+            }
+        }
     }
     return $self;
 }
@@ -96,22 +112,137 @@ sub port
     return $self->{_config_hash}->{port};
 }
 
+# Returns Net::Server subclass to run under
 sub net_server
 {
     my $self = shift;
     return $self->{_config_hash}->{class};
 }
 
+# Format an error in HTML
 sub print_error
 {
     my $self = shift;
     my ($status_code, $status_line, $error_text) = @_;
-    warn $error_text;
+    print STDERR strftime("[%Y-%m-%d %H:%M:%S] ", localtime) . $error_text . "\n";
     print $self->{_cgi}->header(-status => $status_code).
         "<html><head><title>$status_line</title></head>".
         "<body><h1>$status_line</h1><p>".html_quote($error_text).
         "</p><hr /><p>".$ENV{SERVER_SOFTWARE}."</p></body></html>";
     return $status_code;
+}
+
+# Abort request with error
+sub throw
+{
+    my $self = shift;
+    die bless { error => [ @_ ] }, 'Bugzilla::HTTPServerSimple::FakeExit';
+}
+
+# Print a "Not found" error
+sub not_found
+{
+    my $self = shift;
+    my ($script) = @_;
+    $self->throw(404, 'Not Found', "The requested URL $script was not found on this server.");
+}
+
+# Print an "Internal Server Error"
+sub internal_error
+{
+    my $self = shift;
+    my ($text) = @_;
+    $self->throw(500, 'Internal Server Error', $text);
+}
+
+# Load CGI script from file
+sub get_script
+{
+    my $self = shift;
+    my ($script, $for_require) = @_;
+    my $fd;
+    if (!open $fd, "<$script")
+    {
+        $self->not_found($script);
+    }
+    # Reload Bugzilla.pm for old versions on each request
+    my $preload = Bugzilla->can('request_cache') ? '' : "delete \$INC{'Bugzilla.pm'}; require 'Bugzilla.pm';";
+    my $content;
+    local $/ = undef;
+    $content = <$fd>;
+    close $fd;
+    # untaint
+    ($content) = $content =~ /^(.*)$/s;
+    $content =~ s/\n__END__.*/\n/s;
+    $content = "\n#line 1 \"$script\"\n$content";
+    $content = $for_require ? "$preload package main; $content" : "package main; sub { $preload$content }";
+    return $content;
+}
+
+# Load script
+sub load_script
+{
+    my $self = shift;
+    my ($script) = @_;
+    if (!$subs{$script})
+    {
+        my $content = $self->get_script($script);
+        $subs{$script} = eval $content;
+        if ($@)
+        {
+            $self->internal_error("Error while loading $script:\n$@");
+        }
+    }
+}
+
+# Simple "FastCGI" implementation - cache *.cgi in subs
+sub run_script
+{
+    my $self = shift;
+    my ($script) = @_;
+    $self->load_script($script);
+    my $start = [gettimeofday];
+    $in_eval = 1;
+    eval { &{$subs{$script}}(); };
+    $self->check_errors($script);
+    my $elapsed = tv_interval($start) * 1000;
+    print STDERR strftime("[%Y-%m-%d %H:%M:%S]", localtime)." Served $script in $elapsed ms\n";
+}
+
+# Use require() instead of sub caching under NYTProf profiler for more correct reports
+sub run_script_require
+{
+    my $self = shift;
+    my ($script) = @_;
+    my $content = $self->get_script($script, 1);
+    my $start = [gettimeofday];
+    $in_eval = 1;
+    eval $content;
+    $self->check_errors($script);
+    my $elapsed = tv_interval($start) * 1000;
+    print STDERR strftime("[%Y-%m-%d %H:%M:%S]", localtime)." Served $script via require() in $elapsed ms\n";
+}
+
+# Finish script run and check for errors
+sub check_errors
+{
+    my $self = shift;
+    my ($script) = @_;
+    my $err;
+    if ($@ && (!ref($@) || ref($@) ne 'Bugzilla::HTTPServerSimple::FakeExit'))
+    {
+        $err = "Error while running $script:\n$@";
+    }
+    eval { Bugzilla::_cleanup(); };
+    if ($@ && (!ref($@) || ref($@) ne 'Bugzilla::HTTPServerSimple::FakeExit'))
+    {
+        print STDERR "Error in _cleanup():\n$@";
+    }
+    $in_eval = 0;
+    if ($err)
+    {
+        $self->internal_error($err);
+    }
 }
 
 sub handle_request
@@ -167,67 +298,22 @@ sub handle_request
     binmode STDOUT, ':utf8' if Bugzilla->can('params') && Bugzilla->params->{utf8};
     # Clear request cache for new versions
     $Bugzilla::_request_cache = {};
-    # Reload Bugzilla.pm for old versions on each request
-    my $preload = Bugzilla->can('request_cache') ? '' : "delete \$INC{'Bugzilla.pm'}; require 'Bugzilla.pm';";
-    # Use require() instead of sub caching under NYTProf profiler for more correct reports
-    my $content;
-    if ((!$subs{$script} || $ENV{NYTPROF} && $INC{'Devel/NYTProf.pm'}) && open $fd, "<$script")
+    eval
     {
-        local $/ = undef;
-        $content = <$fd>;
-        close $fd;
-        # untaint
-        ($content) = $content =~ /^(.*)$/s;
-        $content =~ s/\n__END__.*/\n/s;
-        $content = "\n#line 1 \"$script\"\n$content";
-    }
-    if ($ENV{NYTPROF} && $INC{'Devel/NYTProf.pm'})
+        if ($ENV{NYTPROF} && $INC{'Devel/NYTProf.pm'})
+        {
+            $self->run_script_require($script);
+        }
+        else
+        {
+            $self->run_script($script);
+        }
+    };
+    if ($@ && ref($@) eq 'Bugzilla::HTTPServerSimple::FakeExit')
     {
-        my $start = [gettimeofday];
-        eval "$preload package main; $content";
-        if ($@)
-        {
-            return $self->print_error(500, 'Internal Server Error', "Error while running $script:\n$@");
-        }
-        my $elapsed = tv_interval($start) * 1000;
-        print STDERR strftime("[%Y-%m-%d %H:%M:%S]", localtime)." Served $script via require() in $elapsed ms\n";
-        return 200;
+        return $self->print_error(@{$@->{error}});
     }
-    # Simple "FastCGI" implementation - cache *.cgi in subs
-    if (!$subs{$script} && $content)
-    {
-        $subs{$script} = eval "package main; sub { $preload$content }";
-        if ($@)
-        {
-            return $self->print_error(500, 'Internal Server Error', "Error while loading $script:\n$@");
-        }
-    }
-    # Run cached sub
-    if ($subs{$script})
-    {
-        my $start = [gettimeofday];
-        $in_eval = 1;
-        eval { &{$subs{$script}}(); };
-        my $err;
-        if ($@ && (!ref($@) || ref($@) ne 'Bugzilla::HTTPServerSimple::FakeExit'))
-        {
-            $err = "Error while running $script:\n$@";
-        }
-        eval { Bugzilla::_cleanup(); };
-        if ($@ && (!ref($@) || ref($@) ne 'Bugzilla::HTTPServerSimple::FakeExit'))
-        {
-            warn "Error in _cleanup():\n$@";
-        }
-        if ($err)
-        {
-            return $self->print_error(500, 'Internal Server Error', $err);
-        }
-        $in_eval = 0;
-        my $elapsed = tv_interval($start) * 1000;
-        print STDERR strftime("[%Y-%m-%d %H:%M:%S]", localtime)." Served $script in $elapsed ms\n";
-        return 200;
-    }
-    return $self->print_error(404, 'Not Found', "The requested URL $script was not found on this server.")
+    return 200;
 }
 
 # This implementation is nearly the same as the original, but also uses buffered input
@@ -318,3 +404,7 @@ http_env            PROJECT
 #   proxy_set_header X-Project 'project';
 # Or for Apache:
 #   RequestHeader set X-Project project
+
+# You can preload all scripts during startup so the maximum amount
+# of memory will be shared between workers
+preload             *.cgi
