@@ -2678,7 +2678,11 @@ sub _anywordssubstr
 sub _allwordssubstr
 {
     my $self = shift;
-    $self->{term} = join(" AND ", @{GetByWordListSubstr($self->{fieldsql}, $self->{value})});
+    my @list = @{GetByWordListSubstr($self->{fieldsql}, $self->{value})};
+    if (@list)
+    {
+        $self->{term} = join(" AND ", @list);
+    }
 }
 
 sub _nowordssubstr
@@ -2694,13 +2698,21 @@ sub _nowordssubstr
 sub _anywords
 {
     my $self = shift;
-    $self->{term} = '('.join(" OR ", @{GetByWordList($self->{fieldsql}, $self->{value})}).')';
+    my @list = @{GetByWordList($self->{fieldsql}, $self->{value})};
+    if (@list)
+    {
+        $self->{term} = "(" . join(" OR ", @list) . ")";
+    }
 }
 
 sub _allwords
 {
     my $self = shift;
-    $self->{term} = join(" AND ", @{GetByWordList($self->{fieldsql}, $self->{value})});
+    my @list = @{GetByWordList($self->{fieldsql}, $self->{value})};
+    if (@list)
+    {
+        $self->{term} = join(" AND ", @list);
+    }
 }
 
 sub _nowords
