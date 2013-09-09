@@ -59,6 +59,94 @@ sub handle_login {
     return;
 }
 
+# Patch SOAP::Transport::HTTP::CGI so it works under CGI like HTTP::Server::Simple
+*SOAP::Transport::HTTP::CGI::handle = sub {
+    my $self = shift->new;
+
+    my $length = $ENV{'CONTENT_LENGTH'} || 0;
+
+    # if the HTTP_TRANSFER_ENCODING env is defined, set $chunked if it's chunked*
+    # else to false
+    my $chunked = (defined $ENV{'HTTP_TRANSFER_ENCODING'}
+        && $ENV{'HTTP_TRANSFER_ENCODING'} =~ /^chunked.*$/) || 0;
+
+    my $content = q{};
+
+    if ($chunked) {
+        my $buffer;
+        binmode(STDIN);
+        while ( read( STDIN, my $buffer, 1024 ) ) {
+            $content .= $buffer;
+        }
+        $length = length($content);
+    }
+
+    if ( !$length ) {
+        $self->response( HTTP::Response->new(411) )    # LENGTH REQUIRED
+    }
+    elsif ( defined $SOAP::Constants::MAX_CONTENT_SIZE
+        && $length > $SOAP::Constants::MAX_CONTENT_SIZE ) {
+        $self->response( HTTP::Response->new(413) ) # REQUEST ENTITY TOO LARGE
+    }
+    else {
+        if ( exists $ENV{EXPECT} && $ENV{EXPECT} =~ /\b100-Continue\b/i ) {
+            print "HTTP/1.1 100 Continue\r\n\r\n";
+        }
+
+        #my $content = q{};
+        if ( !$chunked ) {
+            my $buffer;
+            binmode(STDIN);
+            if ( defined $ENV{'MOD_PERL'} ) {
+                while ( read( STDIN, $buffer, $length ) ) {
+                    $content .= $buffer;
+                    last if ( length($content) >= $length );
+                }
+            } else {
+                while ( sysread( STDIN, $buffer, $length ) ) {
+                    $content .= $buffer;
+                    last if ( length($content) >= $length );
+                }
+            }
+            ## Line added so CGI doesn't try to slurp in the POST content after XMLRPC
+            undef $ENV{CONTENT_LENGTH};
+        }
+
+        $self->request(
+            HTTP::Request->new(
+                $ENV{'REQUEST_METHOD'} || '' => $ENV{'SCRIPT_NAME'},
+                HTTP::Headers->new(
+                    map { (
+                              /^HTTP_(.+)/i
+                            ? ( $1 =~ m/SOAPACTION/ )
+                                  ? ('SOAPAction')
+                                  : ($1)
+                            : $_
+                          ) => $ENV{$_}
+                      } keys %ENV
+                ),
+                $content,
+            ) );
+        SOAP::Transport::HTTP::Server::handle($self);
+    }
+
+    # imitate nph- cgi for IIS (pointed by Murray Nesbitt)
+    my $status =
+      ## Line added so we output HTTP header under CGI nph mode
+      CGI::nph() ||
+      defined( $ENV{'SERVER_SOFTWARE'} )
+      && $ENV{'SERVER_SOFTWARE'} =~ /IIS/
+      ? $ENV{SERVER_PROTOCOL} || 'HTTP/1.0'
+      : 'Status:';
+    my $code = $self->response->code;
+
+    binmode(STDOUT);
+
+    print STDOUT "$status $code ", HTTP::Status::status_message($code),
+      "\015\012", $self->response->headers_as_string("\015\012"), "\015\012",
+      $self->response->content;
+};
+
 1;
 
 # This exists to validate input parameters (which XMLRPC::Lite doesn't do)
