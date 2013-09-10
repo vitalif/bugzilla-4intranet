@@ -21,4 +21,6 @@
 
 .bz_comment .attachment_image { max-width: 50em; margin: 10px 0px 0px 0px; }
 
-.bz_comment_text.bz_fullscreen_comment { min-width: 50em; width: 100%; word-break: break-all; }
+.bz_comment_text.bz_fullscreen_comment { min-width: 50em; width: 100%; word-wrap: break-word; }
+
+#comments > table, .bz_section_additional_comments > table { table-layout: fixed; }
