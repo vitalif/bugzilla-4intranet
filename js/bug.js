@@ -28,7 +28,7 @@ function toggle_comment_display(comment_id)
 function toggle_all_comments(action, num_comments)
 {
     var parent = document.getElementById('comments');
-    var pre = parent.getElementsByTagName('pre');
+    var pre = parent.getElementsByTagName('div');
     for (var i = 0; i < pre.length; i++)
         if (pre[i].id.substr(0, 13) == 'comment_text_')
             showhide_comment(pre[i].id.substr(13), action != 'collapse');

@@ -989,13 +989,14 @@ document.changeform = document.[% cfname %];
         <label for="cmt_worktime">Worktime only</label>
 
       <!-- This table keeps the submit button aligned with the box. -->
-      <table><tr><td>
+      <table[% ' width="100%"' IF user.settings.comment_width.value == 'on' %]><tr><td>
         [% INCLUDE global/textarea.html.tmpl
                    name      = 'comment'
                    id        = 'comment_textarea'
                    minrows   = 10
                    maxrows   = 25
                    cols      = constants.COMMENT_COLS
+                   style     = (user.settings.comment_width.value == 'on' ? 'width: 100%' : '')
         %]
         [% Hook.process("after_comment_textarea", 'bug/edit.html.tmpl') %]
         <br />
@@ -1012,7 +1013,7 @@ document.changeform = document.[% cfname %];
             </td>
           </tr>
         </table>
-      </td></tr></table>
+      </td>[% '<td width="200"></td>' IF user.settings.comment_width.value == 'on' %]</tr></table>
 
     [%# For logged-out users %]
     [% ELSE %]
