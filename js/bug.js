@@ -317,3 +317,33 @@ function att_file_onchange(e)
         }
     }
 }
+
+// Bug 129375 - Use search filter for all values in fields
+function search_filter_click(e, el)
+{
+    var attr = el.attributes;
+    var href = attr.href.nodeValue;
+    var field_id = attr.id.nodeValue;
+    var field_name = field_id.substr(12);
+    var field_current_value = document.getElementById(field_name).value;
+    var href_parts = href.split('&' + field_name + '=');
+    var new_href = href_parts[0] + '&' + field_name + '=' + field_current_value;
+    el.href = new_href;
+}
+
+window.onload = function() {
+    if (document.getElementById('form_bug_edit'))
+    {
+        var testCl = new RegExp("\\bsearch-link\\b");
+        var form = document.getElementById('form_bug_edit');
+        var all = form.all || form.getElementsByTagName('a');
+        var length = all.length;
+        for (var i = 0; i < length; i++) {
+            if (testCl.test(all[i].className)) {
+                (function(i) { addListener(all[i], 'click', function (e) { return search_filter_click(e, all[i]); }); })(i);
+            }
+        }
+    }
+};
+
+
