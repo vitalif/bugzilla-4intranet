@@ -326,6 +326,11 @@ function search_filter_click(e, el)
     var field_id = attr.id.nodeValue;
     var field_name = field_id.substr(12);
     var field_current_value = document.getElementById(field_name).value;
+    if (field_current_value == '')
+    {
+        e.preventDefault();
+        alert('Field must be filled!');
+    }
     var href_parts = href.split('&' + field_name + '=');
     var new_href = href_parts[0] + '&' + field_name + '=' + field_current_value;
     el.href = new_href;
