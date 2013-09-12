@@ -55,7 +55,7 @@ var notimetracking = [% bug.product_obj.notimetracking ? 1 : 0 %];
 [%# CustIS Bug 57315 - Force Fucking Firefox to reset form on Reload %]
 [% USE date %]
 [% SET cfname = 'changeform_' _ date.format(date.now, '%s') %]
-<form name="[% cfname %]" method="post" action="process_bug.cgi" enctype="multipart/form-data"
+<form id="form_bug_edit" name="[% cfname %]" method="post" action="process_bug.cgi" enctype="multipart/form-data"
     onsubmit="return changeform_onsubmit()" onkeypress="return ctrlEnter(event||window.event,this)">
 <script language="JavaScript">
 document.forms.changeform = document.forms.[% cfname %];
@@ -1045,11 +1045,9 @@ document.changeform = document.[% cfname %];
         [% END %]
       </select>
       [%#
-        # Custis Bug 129375 - Add search link for some custom fields
+        # Custis Bug 129375 - Add search link for some custom fields 
         #%]
-      [% IF bug.${selname} %]
-        &nbsp;(<a href="buglist.cgi?query_format=advanced&product=[% bug.product FILTER uri %]&[% selname %]=[% bug.${selname} FILTER uri %]" target="_blank">search</a>)
-      [% END %]
+        &nbsp;(<a href="buglist.cgi?query_format=advanced&product=[% bug.product FILTER uri %]&[% selname %]=[% bug.${selname} FILTER uri %]" target="_blank" id="search_link_[% selname %]" class="search-link">search</a>)
     [% ELSE %]
       [% bug.${selname} FILTER html %]
       <input type="hidden" name="[% selname | html %]" value="[% bug.$selname | html %]" />

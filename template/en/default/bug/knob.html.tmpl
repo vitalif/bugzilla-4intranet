@@ -47,7 +47,7 @@
   </span>
 
   [%# CustIS Bug 129375 - status filter link after resolution field %]
-  &nbsp;(<a href="/buglist.cgi?query_format=advanced&product=[% bug.product FILTER uri %]&bug_status=[% bug.bug_status FILTER uri %]" target="_blank">search</a>)
+  &nbsp;(<a href="/buglist.cgi?query_format=advanced&product=[% bug.product FILTER uri %]&bug_status=[% bug.bug_status FILTER uri %]" target="_blank" id="search_link_bug_status" class="search-link">search</a>)
 
   [% IF bug.check_can_change_field('dup_id', 0, 1) %]
     <noscript><br> duplicate</noscript>
