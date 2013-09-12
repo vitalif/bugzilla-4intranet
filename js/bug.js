@@ -348,7 +348,7 @@ addListener(window, 'load', function() {
     {
         var testCl = new RegExp("\\bsearch-link\\b");
         var form = document.getElementById('form_bug_edit');
-        var all = form.all || form.getElementsByTagName('a');
+        var all = form.getElementsByTagName ? form.getElementsByTagName('a') : form.all;
         var length = all.length;
         for (var i = 0; i < length; i++) {
             if (testCl.test(all[i].className)) {
