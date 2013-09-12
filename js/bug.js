@@ -328,6 +328,7 @@ function search_filter_click(e, el)
     var field_current_value = document.getElementById(field_name).value;
     if (field_current_value == '')
     {
+        alert('Field must be filled!');
         if (preventDefault && e.preventDefault)
         {
             e.preventDefault();
@@ -336,7 +337,6 @@ function search_filter_click(e, el)
         {
             return false;
         }
-        alert('Field must be filled!');
     }
     var href_parts = href.split('&' + field_name + '=');
     var new_href = href_parts[0] + '&' + field_name + '=' + field_current_value;
@@ -361,5 +361,3 @@ addListener(window, 'load', function() {
         }
     }
 });
-
-
