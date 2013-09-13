@@ -537,22 +537,25 @@ sub restricted_legal_values
     return $self->{restricted_legal_values}->{$controller_value};
 }
 
-# Выборка значений по умолчанию по значению контролирующего поля
+# Select default values for a named value of controlling field
 sub get_default_values
 {
     my $self = shift;
     my ($controller_value) = @_;
+    return [] unless $self->value_field;
     my @values;
     my $field_values = $self->value_field->legal_values;
     foreach my $field_value (@$field_values)
     {
-        next unless $field_value->{name} eq $controller_value;
-        my $cvalues = $self->legal_values;
-        foreach my $value (@$cvalues)
+        if ($field_value->{name} eq $controller_value)
         {
-            push @values, $value->{value} if $value->is_default_controlled_value($field_value->{id}) && !$value->is_static;
+            my $cvalues = $self->legal_values;
+            foreach my $value (@$cvalues)
+            {
+                push @values, $value->{value} if $value->is_default_controlled_value($field_value->{id}) && !$value->is_static;
+            }
+            last;
         }
-        last;
     }
     return \@values;
 }
