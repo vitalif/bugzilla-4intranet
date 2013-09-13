@@ -869,6 +869,8 @@ my $search = new Bugzilla::Search('fields' => \@selectcolumns,
                                   'order' => \@orderstrings);
 my $query = $search->getSQL();
 $vars->{search_description} = $search->search_description_html;
+my $H = { %{ $params->Vars } };
+$vars->{list_params} = $H;
 
 if (defined $cgi->param('limit')) {
     my $limit = $cgi->param('limit');

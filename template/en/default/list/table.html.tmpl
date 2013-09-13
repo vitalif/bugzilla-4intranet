@@ -50,7 +50,16 @@
 [%############################################################################%]
 
 [% tableheader = BLOCK %]
+<form id="filter_form">
 <table class="bz_buglist sortable" cellspacing="0" cellpadding="4" width="100%">
+   <tr>
+      [% i = lsearch(order_columns, 'bug_id') %]
+      <td><input type="button" value="Apply" id="usr_filter_submit" /></td>
+      [% FOREACH id = displaycolumns %]
+        [% column = columns.$id %]
+        [% PROCESS columnheaderfilter key=loop.count() %]
+      [% END %]
+  </tr>
   <thead>
     <tr class="bz_buglist_header bz_first_buglist_header">
       [% IF dotweak %]
@@ -123,6 +132,34 @@
     </a>
   </th>
 [% END %]
+
+
+[% BLOCK columnheaderfilter %]
+  [% i = lsearch(order_columns, id) %]
+  [% idd = id %]
+  [% type = Bugzilla.get_field(id).type %]
+  [% IF id == "bug_severity" || id == "priority" || id == "bug_status" || id == "resolution" %]
+  <td>
+    <input type="text" value="[% list_params.$id.join(",") %]" name="[% id %]" id="usr_filter_[% id %]" 
+        style="width: 1px; height: 1px; border: 0px; margin-top: -5px; display: block;" />
+
+        <script type="text/javascript">
+        var emptyOptions[% id %] = [];
+        var filter_[% id %] = null;
+        addListener(window, 'load', function() {
+            filter_[% id %] = new SimpleAutocomplete("usr_filter_[% id %]",
+                function(h) { fieldBuglistAutocomplete(h, "[% id %]", emptyOptions[% id %]); },
+                { emptyText: 'No keywords found', multipleDelimiter: "," }
+            );
+        }); 
+        </script>
+    <a href="#" onclick="filter_[% id %].show(); return false;">Filter</a>
+  </td>
+  [% ELSE %]
+  <td>&nbsp;</td>
+  [% END %]
+[% END %]
+
 
 [% BLOCK new_order %]
   [% desc = '' %]
@@ -230,6 +267,31 @@
 [% END %]
 </tbody>
 </table>
+</form>
+
+<script type="text/javascript">
+    addListener('usr_filter_submit', 'click', function (e) {
+        var filter_form = document.getElementById('filter_form');
+        var inputs = filter_form.getElementsByTagName('input');
+        var length = inputs.length;
+        [% editqueryname = searchname OR defaultsavename OR '' %]
+        var href = "buglist.cgi?[% urlquerypart %][% IF editqueryname != '' %]&known_name=[% editqueryname | url_quote %][% END %]&order=[% order %]";
+        for (var i = 0; i < length; i++)
+        {
+            if (this.id != inputs[i].id) 
+            {
+                var removeOldParams = new RegExp("(^|/?|&)" + inputs[i].name + "=[^&]*", 'ig');
+                href = href.replace(removeOldParams, "");
+                var new_values = inputs[i].value.split(",");
+                for(var j = 0; j < new_values.length; j++)
+                {
+                    href += "&" + inputs[i].name.trim() + "=" + new_values[j].trim();
+                }
+            }
+        }
+        window.location.href = href;
+    });
+</script>
 
 [% BLOCK time_summary_line %]
   <tr class="bz_time_summary_line">
