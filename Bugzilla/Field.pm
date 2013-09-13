@@ -77,6 +77,7 @@ use base qw(Exporter Bugzilla::Object);
 use Bugzilla::Constants;
 use Bugzilla::Error;
 use Bugzilla::Util;
+require 'Bugzilla/Field/Choice.pm';
 
 use Scalar::Util qw(blessed);
 use Encode;
@@ -488,19 +489,12 @@ sub add_to_deps { $_[0]->{add_to_deps} }
 sub url { $_[0]->{url} }
 
 # Includes disabled values is $include_disabled = true
-# The full list with disabled values is not cached, as only used in administration
 sub legal_values
 {
     my $self = shift;
     my ($include_disabled) = @_;
     return [] unless $self->is_select;
-    return [ Bugzilla::Field::Choice->type($self)->get_all('include_disabled') ] if $include_disabled;
-    if (!defined $self->{legal_values})
-    {
-        require Bugzilla::Field::Choice;
-        $self->{legal_values} = [ Bugzilla::Field::Choice->type($self)->get_all() ];
-    }
-    return $self->{legal_values};
+    return [ Bugzilla::Field::Choice->type($self)->get_all($include_disabled) ];
 }
 
 # Always excludes disabled values
@@ -508,13 +502,7 @@ sub legal_value_names
 {
     my $self = shift;
     return [] unless $self->is_select;
-    if (!$self->{legal_value_names})
-    {
-        require Bugzilla::Field::Choice;
-        my $type = Bugzilla::Field::Choice->type($self);
-        $self->{legal_value_names} = $type->get_all_names();
-    }
-    return $self->{legal_value_names};
+    return Bugzilla::Field::Choice->type($self)->get_all_names();
 }
 
 # Always excludes disabled values
@@ -524,17 +512,18 @@ sub restricted_legal_values
     my ($controller_value) = @_;
     $controller_value = $controller_value->id if ref $controller_value;
     return $self->legal_values unless $controller_value && $self->value_field_id;
-    if (!$self->{restricted_legal_values}->{$controller_value})
+    my $rc_cache = Bugzilla->rc_cache_fields;
+    if (!$rc_cache->{$self}->{restricted_legal_values}->{$controller_value})
     {
         my $hash = Bugzilla->fieldvaluecontrol_hash->{$self->value_field_id}->{values}->{$self->id};
-        $self->{restricted_legal_values}->{$controller_value} = [
+        $rc_cache->{$self}->{restricted_legal_values}->{$controller_value} = [
             grep {
                 $_->is_static || !exists $hash->{$_->id} ||
                 !%{$hash->{$_->id}} || $hash->{$_->id}->{$controller_value}
             } @{$self->legal_values}
         ];
     }
-    return $self->{restricted_legal_values}->{$controller_value};
+    return $rc_cache->{$self}->{restricted_legal_values}->{$controller_value};
 }
 
 # Select default values for a named value of controlling field
