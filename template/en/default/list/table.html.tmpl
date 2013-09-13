@@ -50,7 +50,6 @@
 [%############################################################################%]
 
 [% tableheader = BLOCK %]
-<form id="filter_form">
 <table class="bz_buglist sortable" cellspacing="0" cellpadding="4" width="100%">
    <tr>
       [% i = lsearch(order_columns, 'bug_id') %]
@@ -267,26 +266,22 @@
 [% END %]
 </tbody>
 </table>
-</form>
 
 <script type="text/javascript">
     addListener('usr_filter_submit', 'click', function (e) {
-        var filter_form = document.getElementById('filter_form');
-        var inputs = filter_form.getElementsByTagName('input');
+        var inputs = new Array("bug_severity", "priority", "bug_status", "resolution");
         var length = inputs.length;
         [% editqueryname = searchname OR defaultsavename OR '' %]
         var href = "buglist.cgi?[% urlquerypart %][% IF editqueryname != '' %]&known_name=[% editqueryname | url_quote %][% END %]&order=[% order %]";
         for (var i = 0; i < length; i++)
         {
-            if (this.id != inputs[i].id) 
+            var field_el = document.getElementById("usr_filter_" + inputs[i]);
+            var removeOldParams = new RegExp("(^|/?|&)" + inputs[i] + "=[^&]*", 'ig');
+            href = href.replace(removeOldParams, "");
+            var new_values = field_el.value.split(",");
+            for(var j = 0; j < new_values.length; j++)
             {
-                var removeOldParams = new RegExp("(^|/?|&)" + inputs[i].name + "=[^&]*", 'ig');
-                href = href.replace(removeOldParams, "");
-                var new_values = inputs[i].value.split(",");
-                for(var j = 0; j < new_values.length; j++)
-                {
-                    href += "&" + inputs[i].name.trim() + "=" + new_values[j].trim();
-                }
+                href += "&" + encodeURIComponent(inputs[i].trim()) + "=" + encodeURIComponent(new_values[j].trim());
             }
         }
         window.location.href = href;
