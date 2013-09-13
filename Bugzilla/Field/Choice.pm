@@ -220,24 +220,39 @@ sub remove_from_db {
     $self->SUPER::remove_from_db();
 }
 
+# Default implementation of get_all for choice fields
 # Returns all values (active+inactive), enabled for products that current user can see
 sub get_all
 {
     my $class = shift;
     my ($include_disabled) = @_;
-    my @all;
+    my $rc_cache = Bugzilla->rc_cache_fields;
+    if ($rc_cache->{get_all}->{$class}->{$include_disabled ? 1 : 0})
+    {
+        # Filtered lists are cached for a single request
+        return @{$rc_cache->{get_all}->{$class}->{$include_disabled ? 1 : 0}};
+    }
+    my $f = $class->field;
+    my $all;
+    my $cache = Bugzilla->cache_fields;
     if (!$include_disabled && grep { $_ eq 'isactive' } $class->DB_COLUMNS)
     {
-        @all = @{ $class->match({ isactive => 1 }) };
+        $all = $class->match({ isactive => 1 });
+    }
+    elsif (!defined $f->{legal_values})
+    {
+        # Only full unfiltered list of active values is cached between requests
+        $all = [ $class->SUPER::get_all() ];
+        $f->{legal_values} = $all;
     }
     else
     {
-        @all = $class->SUPER::get_all();
+        $all = $f->{legal_values};
     }
-    my $f = $class->field;
     if (!$f->value_field_id || $f->value_field->name ne 'product')
     {
-        return @all;
+        # Just return unfiltered list
+        return @$all;
     }
     # Product field is a special case: it has access controls applied.
     # So if our values are controlled by product field value,
@@ -248,8 +263,8 @@ sub get_all
         ->{$f->id};
     my $visible_ids = { map { $_->id => 1 } Bugzilla::Product->get_all };
     my $vis;
-    my @filtered;
-    for my $value (@all)
+    my $filtered;
+    for my $value (@$all)
     {
         $vis = !$h->{$value->id} || !%{$h->{$value->id}} ? 1 : 0;
         for (keys %{$h->{$value->id}})
@@ -260,64 +275,42 @@ sub get_all
                 last;
             }
         }
-        push @filtered, $value if $vis;
+        push @$filtered, $value if $vis;
     }
-    return @filtered;
+    my $order = $class->LIST_ORDER;
+    $order =~ s/(\s+(A|DE)SC)(?!\w)//giso;
+    $order = [ split /[\s,]*,[\s,]*/, $order ];
+    $filtered = [ sort
+    {
+        my $t;
+        for (@$order)
+        {
+            if ($a->{$_} =~ /^[\d\.]+$/s && $b->{$_} =~ /^[\d\.]+$/s)
+            {
+                $t = $a->{$_} <=> $b->{$_};
+            }
+            else
+            {
+                $t = $a->{$_} cmp $b->{$_};
+            }
+            return $t if $t;
+        }
+        return 0;
+    } @$filtered ];
+    $rc_cache->{get_all}->{$class}->{$include_disabled ? 1 : 0} = $filtered;
+    return @$filtered;
 }
 
 # Returns names of all _active_ values, enabled for products that current user can see
 sub get_all_names
 {
     my $class = shift;
-    my $f = $class->field;
-    my ($where) = grep { $_ eq 'isactive' } $class->DB_COLUMNS;
-    $where = $where ? [ "$where=1" ] : [];
-    # Apply product access controls
-    if ($f->value_field_id && $f->value_field->name eq 'product')
-    {
-        my $h = Bugzilla->fieldvaluecontrol_hash
-            ->{Bugzilla->get_field('product')->id}
-            ->{values}
-            ->{$f->id};
-        # Products visible to current user
-        my $visible_prods = { map { $_->id => 1 } Bugzilla::Product->get_all };
-        # IDs of invisible values
-        my $invisible_ids = [];
-        for my $id (keys %$h)
-        {
-            if ($h->{$id} && %{$h->{$id}})
-            {
-                VISIBLE: {
-                    for (keys %{$h->{$id}})
-                    {
-                        last VISIBLE if $visible_prods->{$_};
-                    }
-                    push @$invisible_ids, $id;
-                }
-            }
-        }
-        if (@$invisible_ids)
-        {
-            push @$where, 'id NOT IN ('.join(',', @$invisible_ids).')';
-        }
-    }
-    $where = join ' AND ', @$where;
-    $where and $where = " WHERE $where";
-    # Run the query
-    my $order = $class->LIST_ORDER;
-    my $idf = $class->ID_FIELD;
-    my $namef = $class->NAME_FIELD;
-    $order =~ s/(\s+(A|DE)SC)(?!\w)//giso;
-    my $rows = Bugzilla->dbh->selectall_arrayref(
-        "SELECT $idf, $namef, $order FROM ".$class->DB_TABLE.
-        $where.
-        " ORDER BY ".$class->LIST_ORDER,
-        {Slice=>{}}
-    );
     my $dup = {};
     my $names = [];
+    my $idf = $class->ID_FIELD;
+    my $namef = $class->NAME_FIELD;
     # Remember IDs of each name
-    for (@$rows)
+    for ($class->get_all())
     {
         if (!$dup->{$_->{$namef}})
         {

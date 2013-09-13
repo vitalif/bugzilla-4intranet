@@ -109,7 +109,7 @@ to join them later using a single known separator.
 =cut
 
 use constant DB_TABLE => 'flagtypes';
-use constant LIST_ORDER => 'flagtypes.sortkey, flagtypes.name';
+use constant LIST_ORDER => 'sortkey, name';
 
 ###############################
 ####      Accessors      ######
