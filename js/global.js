@@ -179,7 +179,7 @@ function userAutocomplete(hint, emptyOptions)
 
 
 // Convert keyword list from API format for SimpleAutocomplete
-function convertKeywordList(k)
+function convertSimpleList(k)
 {
     var data = [];
     for (var i = 0; i < k.length; i++)
@@ -198,7 +198,7 @@ function keywordAutocomplete(hint, emptyOptions)
     {
         hint.emptyText = 'Type at least 3 letters';
         if (emptyOptions)
-            hint.replaceItems(convertKeywordList(emptyOptions));
+            hint.replaceItems(convertSimpleList(emptyOptions));
         else
             hint.replaceItems(null);
         return;
@@ -220,7 +220,7 @@ function keywordAutocomplete(hint, emptyOptions)
             try { eval('r = '+x.responseText+';'); } catch (e) { return; }
             if (r.status == 'ok')
             {
-                var data = convertKeywordList(r.keywords);
+                var data = convertSimpleList(r.keywords);
                 // FIXME "3" constant, messages: remove hardcode, also in Bugzilla::User::match()
                 if (data.length == 0 && hint.input.value.length < 3)
                     hint.emptyText = 'Type at least 3 letters';
@@ -239,3 +239,36 @@ function keywordAutocomplete(hint, emptyOptions)
     x.open('GET', u);
     x.send(null);
 } 
+
+// Data loader for field in buglist autocomplete
+function fieldBuglistAutocomplete(hint, field, emptyOptions)
+{
+    var x;
+    if (window.XMLHttpRequest)
+        x = new XMLHttpRequest();
+    else
+    {
+        try { x = new ActiveXObject("Msxml2.XMLHTTP"); }
+        catch (e) { x = new ActiveXObject("Microsoft.XMLHTTP"); }
+    }
+    x.onreadystatechange = function()
+    {
+        if (x.readyState == 4)
+        {
+            var r = {};
+            try { eval('r = '+x.responseText+';'); } catch (e) { return; }
+            if (r.status == 'ok')
+            {
+                var data = convertSimpleList(r.values);
+                hint.replaceItems(data);
+            }
+        }
+    };
+    var u = window.location.href.replace(/[^\/]+$/, '');
+    u += 'xml.cgi?method=Field.get_values&output=json&field=' + field;
+    x.open('GET', u);
+    x.send(null);
+} 
+
+
+
