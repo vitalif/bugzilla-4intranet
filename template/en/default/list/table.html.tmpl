@@ -139,7 +139,7 @@
   [% type = Bugzilla.get_field(id).type %]
   [% IF id == "bug_severity" || id == "priority" || id == "bug_status" || id == "resolution" %]
   <td>
-    <input type="text" value="[% list_params.$id.join(",") %]" name="[% id %]" id="usr_filter_[% id %]" 
+    <input type="text" value="[% list_params.$id.join(",") %]" id="usr_filter_[% id %]"
         style="width: 1px; height: 1px; border: 0px; margin-top: -5px; display: block;" />
 
         <script type="text/javascript">
@@ -150,9 +150,9 @@
                 function(h) { fieldBuglistAutocomplete(h, "[% id %]", emptyOptions[% id %]); },
                 { emptyText: 'No keywords found', multipleDelimiter: "," }
             );
-        }); 
+        });
         </script>
-    <a href="#" onclick="filter_[% id %].show(); return false;">Filter</a>
+    <a href="javascript:void(0)" onclick="filter_[% id %].show(); return false;">Filter</a>
   </td>
   [% ELSE %]
   <td>&nbsp;</td>
@@ -269,19 +269,21 @@
 
 <script type="text/javascript">
     addListener('usr_filter_submit', 'click', function (e) {
-        var inputs = new Array("bug_severity", "priority", "bug_status", "resolution");
-        var length = inputs.length;
+        var inputs = [ "bug_severity", "priority", "bug_status", "resolution" ];
         [% editqueryname = searchname OR defaultsavename OR '' %]
         var href = "buglist.cgi?[% urlquerypart %][% IF editqueryname != '' %]&known_name=[% editqueryname | url_quote %][% END %]&order=[% order %]";
-        for (var i = 0; i < length; i++)
+        for (var i = 0; i < inputs.length; i++)
         {
             var field_el = document.getElementById("usr_filter_" + inputs[i]);
-            var removeOldParams = new RegExp("(^|/?|&)" + inputs[i] + "=[^&]*", 'ig');
-            href = href.replace(removeOldParams, "");
-            var new_values = field_el.value.split(",");
-            for(var j = 0; j < new_values.length; j++)
+            if (field_el)
             {
-                href += "&" + encodeURIComponent(inputs[i].trim()) + "=" + encodeURIComponent(new_values[j].trim());
+                var removeOldParams = new RegExp("(^|/?|&)" + inputs[i] + "=[^&]*", 'ig');
+                href = href.replace(removeOldParams, "");
+                var new_values = field_el.value.split(",");
+                for(var j = 0; j < new_values.length; j++)
+                {
+                    href += "&" + encodeURIComponent(inputs[i].trim()) + "=" + encodeURIComponent(new_values[j].trim());
+                }
             }
         }
         window.location.href = href;
