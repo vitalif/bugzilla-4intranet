@@ -2729,12 +2729,12 @@ sub _changedbefore_changedafter
 {
     my $self = shift;
     my $dbh = Bugzilla->dbh;
-
     my $operator = ($self->{type} =~ /before/) ? '<' : '>';
+    $self->{field} = 'flagtypes.name' if $self->{field} eq 'flags';
     my $fieldid = Bugzilla->get_field($self->{field});
     if (!$fieldid)
     {
-        ThrowCodeError("invalid_field_name", { field => $self->{field} });
+        ThrowUserError("invalid_activity_field", { field => $self->{field} });
     }
     $fieldid = $fieldid->id;
     $self->{term} = {
@@ -2750,10 +2750,11 @@ sub _changedfrom_changedto
 {
     my $self = shift;
     my $operator = ($self->{type} =~ /from/) ? 'removed' : 'added';
+    $self->{field} = 'flagtypes.name' if $self->{field} eq 'flags';
     my $fieldid = Bugzilla->get_field($self->{field});
     if (!$fieldid)
     {
-        ThrowCodeError("invalid_field_name", { field => $self->{field} });
+        ThrowUserError("invalid_activity_field", { field => $self->{field} });
     }
     $fieldid = $fieldid->id;
     $self->{term} = {
@@ -2768,10 +2769,11 @@ sub _changedfrom_changedto
 sub _changedby
 {
     my $self = shift;
+    $self->{field} = 'flagtypes.name' if $self->{field} eq 'flags';
     my $fieldid = Bugzilla->get_field($self->{field});
     if (!$fieldid)
     {
-        ThrowCodeError("invalid_field_name", { field => $self->{field} });
+        ThrowUserError("invalid_activity_field", { field => $self->{field} });
     }
     $fieldid = $fieldid->id;
     my $id = login_to_id($self->{value}, THROW_ERROR);

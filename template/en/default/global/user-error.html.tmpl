@@ -551,6 +551,10 @@
   [% END %]
 [% END %]
 
+[% BLOCK error_illegal_activity_field %]
+  [% field | html %] can not be searched for changes.
+[% END %]
+
 [% BLOCK error_field_invalid_name %]
   [% title = "Invalid Field Name" %]
   '[% name FILTER html %]' is not a valid name for a field.
