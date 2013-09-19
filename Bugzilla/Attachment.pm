@@ -428,8 +428,9 @@ sub _get_converted_html {
             close(AH);
         }
     } else {
-        # Working with exsisting files
+        # Work with existing files
         if (-e $file_path) {
+            $ENV{HOME} = '/tmp/';
             system("/usr/bin/libreoffice --invisible --convert-to html --outdir ".$dir_cache_path." ".$file_path." 1>&2");
             if (-e $dir_cache_path."/attachment.html") {
                 rename $dir_cache_path."/attachment.html",$file_cache_path;
@@ -442,8 +443,9 @@ sub _get_converted_html {
                     close(AH);
                 }
             }
-        } else { # Working with data 
-            #TODO - save data from DB to file and convert it to HTML. Although this feature is unused.
+        } else {
+            # Work with blob from the DB. Unused and unimplemented by now.
+            # TODO - save data from DB to file and convert it to HTML.
         }
     }
     return $converted_html;
