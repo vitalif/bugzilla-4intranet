@@ -3416,6 +3416,49 @@ sub get_test_case_count {
         undef, $self->bug_id);
     return scalar @$row_count;
 }
+
+sub getAccessUserList {
+    my $self = shift;
+    my $dbh = Bugzilla->dbh;
+
+    my @user_ids;
+    push (@user_ids, $self->assigned_to->id);
+    push (@user_ids, $self->qa_contact->id);
+    if ($self->reporter_accessible) {
+        push (@user_ids, $self->reporter->id);
+    }
+    if ($self->cclist_accessible) {
+        my $cc_list = $dbh->selectall_arrayref("SELECT cc.who FROM cc cc WHERE cc.bug_id = ?", undef, $self->bug_id);
+        foreach my $cc_item (@$cc_list) {
+            push (@user_ids, $cc_item->[0]);
+        }
+    }
+
+    my $user_ids_group = {};
+    foreach my $group (@{$self->groups}) {
+        my @childgroups = @{Bugzilla::Group->flatten_group_membership($group->{'bit'})};
+        my $group_users = $dbh->selectall_arrayref("SELECT distinct(user_id) FROM user_group_map WHERE isbless = 0 AND group_id IN(".join(",", @childgroups).")");
+        my @this_users;
+        foreach my $users (@$group_users) {
+            $user_ids_group->{$users->[0]}++;
+        }
+    }
+
+    my $count_groups = scalar @{$self->groups};
+    push (@user_ids, grep { $user_ids_group->{$_} == $count_groups } keys %$user_ids_group);
+
+    return $dbh->selectall_arrayref("
+        SELECT 
+            p.userid, p.login_name, p.realname 
+        FROM 
+            profiles p 
+        WHERE 
+            p.disabledtext = '' AND p.disable_mail = 0 AND p.userid in (".join(",", @user_ids).")
+        ORDER BY p.realname
+        ", undef);
+}
+
+
 #####################################################################
 # Subroutines
 #####################################################################
