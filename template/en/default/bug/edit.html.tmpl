@@ -150,6 +150,10 @@ document.changeform = document.[% cfname %];
   </td>
   <td>
     [% PROCESS section_restrict_visibility %]
+    [%# *** Check access to bug *** %]
+    <div class="bz_group_visibility_section">
+        <a href="check_access.cgi?id=[% bug.bug_id %]" target="_blank">Check Access</a>
+    </div>
   </td>
   </tr></table>
     [% PROCESS comment_box %]
