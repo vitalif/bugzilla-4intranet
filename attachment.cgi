@@ -335,11 +335,14 @@ sub view {
     $filename =~ s/\\/\\\\/g; # escape backslashes
     $filename =~ s/"/\\"/g; # escape quotes
 
-    # Bug 129398 - View online office documents
-    if (defined $action && $action eq 'online_view' && $attachment->isOfficeDocument()) {
+    # Bug 129398 - View office documents online
+    if (defined $action && $action eq 'online_view' && $attachment->isOfficeDocument())
+    {
         Bugzilla->send_header();
         print $attachment->_get_converted_html();
-    } else { 
+    }
+    else
+    {
         my $disposition = Bugzilla->params->{inline_attachment_mime};
         $disposition = $disposition
             && Bugzilla->params->{allow_attachment_display}
