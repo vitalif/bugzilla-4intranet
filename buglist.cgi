@@ -1352,7 +1352,7 @@ _close_standby_message($contenttype, $disposition, $serverpush);
 # Content Generation
 ################################################################################
 
-$vars->{'template_format'} = $format->{'template'};
+$vars->{'template_format'} = $cgi->param('format');
 
 # Generate and return the UI (HTML page) from the appropriate template.
 my $output;
