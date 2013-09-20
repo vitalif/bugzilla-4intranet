@@ -1352,6 +1352,8 @@ _close_standby_message($contenttype, $disposition, $serverpush);
 # Content Generation
 ################################################################################
 
+$vars->{'template_format'} = $format->{'template'};
+
 # Generate and return the UI (HTML page) from the appropriate template.
 my $output;
 $template->process($format->{'template'}, $vars, \$output)
