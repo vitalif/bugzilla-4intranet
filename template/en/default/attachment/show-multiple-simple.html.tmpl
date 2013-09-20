@@ -39,17 +39,21 @@
 
   <table class="attachment_info" cellspacing="0" cellpadding="4" border="1">
     [% FOREACH a = attachments %]
+    [% IF (show_obsolete && a.isobsolete) || !a.isobsolete %]
     <tr>
       <td valign="top">
         <b>Attachment #[% a.id %]</b>
       </td>
       <td valign="top" >
-        [% a.description FILTER html FILTER obsolete(a.isobsolete) %]
+        [% IF a.isobsolete %]<strike>[% END %]
+        [% a.description FILTER html %]
+        [% IF a.isobsolete %]</strike>[% END %]
       </td>      
       <td valign="top">
         <a href="attachment.cgi?id=[% a.id %]&amp;action=edit">Details</a>
       </td>
     </tr>
+    [% END %]
     [% END %]
   </table>
 
