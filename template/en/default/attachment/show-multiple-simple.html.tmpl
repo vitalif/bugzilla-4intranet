@@ -8,7 +8,6 @@
 
   <body>
 
-  <div>
   [% IF attachments.size == 0 %]
 
   <h3>No attachments</h3>
@@ -17,20 +16,19 @@
 
   <ul>
     [% FOREACH a = attachments %]
-    <li>
     [% IF (show_obsolete && a.isobsolete) || !a.isobsolete %]
+    <li>
       [% IF a.isobsolete %]<strike>[% END %]
       <a href="attachment.cgi?id=[% a.id %]&amp;action=edit">
         [% a.description FILTER html %]
       </a>
       [% IF a.isobsolete %]</strike>[% END %]
-    [% END %]
     </li>
+    [% END %]
     [% END %]
   </ul>
 
   [% END %]
-  </div>
 
   </body>
 
