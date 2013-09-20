@@ -427,6 +427,7 @@ sub viewall {
     if ($cgi->param('format')) {
         $format = "-".$cgi->param('format');
     }
+    $vars->{'show_obsolete'} = $cgi->param('show_obsolete');
 
     # Generate and return the UI (HTML page) from the appropriate template.
     $template->process("attachment/show-multiple".$format.".html.tmpl", $vars)
