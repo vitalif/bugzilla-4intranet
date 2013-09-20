@@ -423,8 +423,13 @@ sub viewall {
     $vars->{'bug'} = $bug;
     $vars->{'attachments'} = $attachments;
 
+    my $format = "";
+    if ($cgi->param('format')) {
+        $format = "-".$cgi->param('format');
+    }
+
     # Generate and return the UI (HTML page) from the appropriate template.
-    $template->process("attachment/show-multiple.html.tmpl", $vars)
+    $template->process("attachment/show-multiple".$format.".html.tmpl", $vars)
       || ThrowTemplateError($template->error());
 }
 

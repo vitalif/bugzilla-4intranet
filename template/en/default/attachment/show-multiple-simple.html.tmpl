@@ -1,0 +1,53 @@
+[%# The contents of this file are subject to the Mozilla Public
+  # License Version 1.1 (the "License"); you may not use this file
+  # except in compliance with the License. You may obtain a copy of
+  # the License at http://www.mozilla.org/MPL/
+  #
+  # Software distributed under the License is distributed on an "AS
+  # IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
+  # implied. See the License for the specific language governing
+  # rights and limitations under the License.
+  #
+  # The Original Code is the Bugzilla Bug Tracking System.
+  #
+  # The Initial Developer of the Original Code is Netscape Communications
+  # Corporation. Portions created by Netscape are
+  # Copyright (C) 1998 Netscape Communications Corporation. All
+  # Rights Reserved.
+  #
+  # Contributor(s): Myk Melez <myk@mozilla.org>
+  #%]
+
+
+<html>
+
+  <head>
+    <title>[% title FILTER html %]</title>
+    <base href="[% urlbase FILTER html %]" [% IF Bugzilla.cgi.param('target') == '_blank' %] target="_blank"[% END %] />
+    <link href="skins/standard/buglist.css" rel="stylesheet" type="text/css" />
+    <script type="text/javascript" language="JavaScript" src="js/resize-iframe.js"></script>
+  </head>
+
+  <body>
+
+  <div>
+  <table class="attachment_info" cellspacing="0" cellpadding="4" border="1">
+    [% FOREACH a = attachments %]
+    <tr>
+      <td valign="top">
+        <b>Attachment #[% a.id %]</b>
+      </td>
+      <td valign="top" >
+        [% a.description FILTER html FILTER obsolete(a.isobsolete) %]
+      </td>      
+      <td valign="top">
+        <a href="attachment.cgi?id=[% a.id %]&amp;action=edit">Details</a>
+      </td>
+    </tr>
+    [% END %]
+  </table>
+  </div>
+
+  </body>
+
+</html>
