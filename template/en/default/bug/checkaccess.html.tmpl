@@ -1,0 +1,27 @@
+[% INCLUDE global/header.html.tmpl title = "$terms.Bug $bug.id - Check access" %]
+
+<h2>[% count_user_list %] Users can see <a href="show_bug.cgi?id=[% bug.id %]">[% terms.Bug _ " " _ bug.id %]</a></h2>
+
+<hr/>
+
+<table>
+    <thead>
+        <tr>
+            <th align="left">User login (email)</th>
+            <th align="left">User name</th>
+        </tr>
+    </thead>
+    <tbody>
+        [% FOREACH user = user_list %]
+        <tr>
+            <td>[% user.1 %]</td><td>[% user.2 %]</td>
+        </tr>
+        [% END %]
+    </tbody>
+</table>
+
+<hr/>
+
+<p><a href="show_bug.cgi?id=[% bug.id %]">Back to [% terms.bug %] form</a></p>
+
+[% INCLUDE global/footer.html.tmpl %]
