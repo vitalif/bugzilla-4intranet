@@ -31,6 +31,12 @@
   <body>
 
   <div>
+  [% IF attachments.size == 0 %]
+
+  <h3>No attachments</h3>
+
+  [% ELSE %]
+
   <table class="attachment_info" cellspacing="0" cellpadding="4" border="1">
     [% FOREACH a = attachments %]
     <tr>
@@ -46,6 +52,8 @@
     </tr>
     [% END %]
   </table>
+
+  [% END %]
   </div>
 
   </body>
