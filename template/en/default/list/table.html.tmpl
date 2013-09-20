@@ -51,6 +51,7 @@
 
 [% tableheader = BLOCK %]
 <table class="bz_buglist sortable" cellspacing="0" cellpadding="4" width="100%">
+   [% IF template_format != "list/list-simple.html.tmpl" %]
    <tr>
       [% i = lsearch(order_columns, 'bug_id') %]
       <td><input type="button" value="Apply" id="usr_filter_submit" /></td>
@@ -59,6 +60,7 @@
         [% PROCESS columnheaderfilter key=loop.count() %]
       [% END %]
   </tr>
+  [% END %]
   <thead>
     <tr class="bz_buglist_header bz_first_buglist_header">
       [% IF dotweak %]
@@ -267,6 +269,7 @@
 </tbody>
 </table>
 
+[% IF template_format != "list/list-simple.html.tmpl" %]
 <script type="text/javascript">
     addListener('usr_filter_submit', 'click', function (e) {
         var inputs = [ "bug_severity", "priority", "bug_status", "resolution" ];
@@ -289,6 +292,7 @@
         window.location.href = href;
     });
 </script>
+[% END %]
 
 [% BLOCK time_summary_line %]
   <tr class="bz_time_summary_line">
