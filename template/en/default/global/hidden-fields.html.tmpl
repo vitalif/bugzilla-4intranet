@@ -34,7 +34,7 @@
   [%# The '.slice(0)' bit is here to force the 'param(field)' to be evaluated
       in a list context, so we can avoid extra code checking for single valued or
       empty fields %]
-  [% IF cgi.upload(field) %]
+  [% IF blessed(cgi.param(field)) %]
     <div class="box">
       <p>
         We were unable to store the file you uploaded because of incomplete information

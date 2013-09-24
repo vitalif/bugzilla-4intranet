@@ -678,7 +678,9 @@ sub create {
             css_class_quote => \&Bugzilla::Util::css_class_quote,
 
             # Removes control characters and trims extra whitespace.
-            clean_text => \&Bugzilla::Util::clean_text ,
+            clean_text => \&Bugzilla::Util::clean_text,
+
+            blessed => \&Scalar::Util::blessed,
 
             quoteUrls => [ sub {
                                my ($context, $bug, $comment) = @_;
