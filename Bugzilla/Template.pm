@@ -680,8 +680,6 @@ sub create {
             # Removes control characters and trims extra whitespace.
             clean_text => \&Bugzilla::Util::clean_text,
 
-            blessed => \&Scalar::Util::blessed,
-
             quoteUrls => [ sub {
                                my ($context, $bug, $comment) = @_;
                                return sub {
@@ -921,6 +919,8 @@ sub create {
                 $html .= '</select>';
                 return $html;
             },
+
+            blessed => \&Scalar::Util::blessed,
 
             # Function for retrieving global parameters.
             'Param' => sub { return Bugzilla->params->{$_[0]}; },
