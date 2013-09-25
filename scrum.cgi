@@ -97,7 +97,7 @@ my $est = {};
 
 if ($args->{id})
 {
-    push @$bugs, split /,/, $args->{id}, -1;
+    push @$bugs, ($args->{id} =~ /(\d+)/gs);
     my $bug_objects = { map { $_->bug_id => $_ } @{ Bugzilla::Bug->new_from_list([ grep { $_ } @$bugs ]) } };
     for (@$bugs)
     {
