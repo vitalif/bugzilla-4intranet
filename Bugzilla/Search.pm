@@ -2672,7 +2672,11 @@ sub _anyexact
 sub _anywordssubstr
 {
     my $self = shift;
-    $self->{term} = '('.join(" OR ", @{GetByWordListSubstr($self->{fieldsql}, $self->{value})}).')';
+    my @list = @{GetByWordListSubstr($self->{fieldsql}, $self->{value})};
+    if (@list)
+    {
+        $self->{term} = "(".join(" OR ", @list).")";
+    }
 }
 
 sub _allwordssubstr
