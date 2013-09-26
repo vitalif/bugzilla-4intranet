@@ -213,6 +213,17 @@ if (defined $cgi->param('delta_ts'))
     }
 }
 
+
+my %edit_comment;
+foreach my $arg_key (keys $ARGS) {
+    if ($arg_key =~ /edit_comment/){
+        my $comment_id = $arg_key;
+        $comment_id =~ s/^edit_comment\[(.*)\]$/$1/;
+        trick_taint($ARGS->{$arg_key});
+        %edit_comment->{$comment_id} = $ARGS->{$arg_key};
+    }
+}
+
 # We couldn't do this check earlier as we first had to validate bug IDs
 # and display the mid-air collision page if delta_ts changed.
 # If we do a mass-change, we use session tokens.
@@ -402,6 +413,14 @@ foreach my $b (@bug_objects)
         if (should_set($fname, 1))
         {
             $b->set_custom_field($field, [$cgi->param($fname)]);
+        }
+    }
+    
+    # Custis Bug 134368 - Edit comment
+    if (%edit_comment)
+    {
+        foreach my $comment_id (keys %edit_comment) {
+            $b->edit_comment($comment_id, %edit_comment->{$comment_id});
         }
     }
 }

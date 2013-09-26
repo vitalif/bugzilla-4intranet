@@ -291,14 +291,16 @@ sub Send {
     $values{'bug_group'} = join(', ', @$grouplist);
 
     my @args = ($id);
-
+    my @dep_args = ($id);
     # If lastdiffed is NULL, then we don't limit the search on time.
     my $when_restriction = '';
     if ($start) {
         $when_restriction = ' AND bug_when > ? AND bug_when <= ?';
         push @args, ($start, $end);
+        push @dep_args, ($start, $end);
     }
-
+    # For UNION longdescs_history
+    push @args, $id;
     my $diffs = $dbh->selectall_arrayref(
            "SELECT profiles.login_name, profiles.realname, fielddefs.description fielddesc,
                    bugs_activity.bug_when, bugs_activity.removed,
@@ -310,7 +312,15 @@ sub Send {
                 ON profiles.userid = bugs_activity.who
              WHERE bugs_activity.bug_id = ?
                    $when_restriction
-          ORDER BY bugs_activity.bug_when", {Slice=>{}}, @args);
+      UNION SELECT profile1.login_name, profile1.realname, fielddefs1.description fielddesc,
+                   lh.bug_when, lh.oldthetext removed, lh.thetext added, null, fielddefs1.name fieldname
+              FROM longdescs_history lh
+        INNER JOIN profiles profile1
+                ON profile1.userid = lh.who
+        INNER JOIN fielddefs fielddefs1
+                ON fielddefs1.name = 'longdesc' 
+             WHERE lh.bug_id = ?
+          ORDER BY bug_when", {Slice=>{}}, @args);
 
     my @new_depbugs;
     foreach my $diff (@$diffs) {
@@ -360,7 +370,7 @@ sub Send {
                     OR fielddefs.name = 'resolution')
                    $when_restriction
                    $dep_restriction
-          ORDER BY bugs_activity.bug_when, bugs.bug_id", {Slice=>{}}, @args);
+          ORDER BY bugs_activity.bug_when, bugs.bug_id", {Slice=>{}}, @dep_args);
 
         my $thisdiff = "";
         my $lastbug = "";

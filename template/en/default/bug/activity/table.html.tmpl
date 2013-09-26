@@ -45,6 +45,13 @@
     script could not reliably determine are prefixed by '?'.
   </p>
 [% END %]
+<style>
+    .op_short_comment {
+        display: block;
+        height: 20px;
+        overflow: hidden;
+    }
+</style>
 
 [% IF operations.size > 0 %]
   <table border cellpadding="4" class=bz_emailprefs>
@@ -57,6 +64,7 @@
     </tr>
 
     [% FOREACH operation = operations %]
+      [% op_loop = loop.count %]
       <tr>
         <td rowspan="[% operation.changes.size %]" valign="top">
           [% operation.who FILTER email FILTER html %]
@@ -72,9 +80,12 @@
                 Attachment #[% change.attachid %]</a>
               [% END %]
               [%+ field_descs.${change.fieldname} || Bugzilla.get_field(change.fieldname).description FILTER html %]
+              [% IF change.removed.length > 250 || change.added.length > 250 %]
+              <a href="#" onclick="showFullComment(this, '[% op_loop %]_[% loop.count %]'); return false;">Show full comment</a>
+              [% END %]
             </td>
-            [% PROCESS change_column change_type = change.removed %]
-            [% PROCESS change_column change_type = change.added %]
+            [% PROCESS change_column change_type = change.removed op_type = "removed" op_count = loop.count op_loop = op_loop %]
+            [% PROCESS change_column change_type = change.added op_type = "added" op_count = loop.count op_short_comment %]
         [% END %]
       </tr>
     [% END %]
@@ -102,7 +113,13 @@
                change.fieldname == 'flagtypes.name' %]
         [% change_type FILTER email FILTER html %]
       [% ELSE %]
-        [% change_type FILTER html %]
+        [% IF change_type.length > 250 %]
+            <div id="[% op_type %]_[% op_loop %]_[% op_count %]" class="op_short_comment">
+            [% change_type FILTER html %]
+            </div>
+        [% ELSE %]
+            [% change_type FILTER html %]
+        [% END %]
       [% END %]
     [% ELSE %]
       &nbsp;
