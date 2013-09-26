@@ -361,3 +361,13 @@ addListener(window, 'load', function() {
         }
     }
 });
+
+function showEditComment(comment_id) {
+    var el = document.getElementById("edit_comment_" + comment_id);
+    if (el.style.display == 'block') {
+        el.style.display = 'none';
+    } else {
+        el.style.display = 'block';
+    }
+}
+

@@ -142,6 +142,28 @@ sub db_schema_abstract_schema
         ],
     };
 
+    # Bug 134368 - Edit comments
+    $schema->{longdescs_history} = {
+        FIELDS => [
+            bug_id     => { TYPE => 'MEDIUMINT9', NOTNULL => 1,
+                          REFERENCES => { TABLE => 'bugs',
+                                         COLUMN => 'bug_id' } },
+            who        => { TYPE => 'MEDIUMINT9', NOTNULL => 1,
+                          REFERENCES => { TABLE => 'profiles',
+                                         COLUMN => 'userid' } },
+            bug_when   => { TYPE => 'DATETIME', NOTNULL => 1 },
+            oldthetext => { TYPE => 'MEDIUMTEXT', NOTNULL => 1 },
+            thetext    => { TYPE => 'MEDIUMTEXT', NOTNULL => 1 },
+            comment_id => { TYPE => 'MEDIUMINT9', NOTNULL => 1 },
+        ],
+        INDEXES => [
+            longdescs_history_bug_when_idx      => { FIELDS => [ 'bug_when' ] },
+            longdescs_history_who_idx           => { FIELDS => [ 'who', 'bug_id' ] },
+            longdescs_history_who_bug_when_idx  => { FIELDS => [ 'who', 'bug_when' ] },
+            longdescs_history_bug_id_idx        => { FIELDS => [ 'bug_id', 'bug_when' ] },
+        ],
+    };
+
     return 1;
 }
 
@@ -394,6 +416,24 @@ sub install_update_db
         $dbh->do('INSERT INTO setting (name, default_value, is_enabled) VALUES (\'comment_width\', \'off\', 1)');
         $dbh->do('INSERT INTO setting_value (name, value, sortindex) VALUES (\'comment_width\', \'off\', \'10\'), (\'comment_width\', \'on\', \'20\')');
     }
+
+    # Bug 134368 - Edit comments
+    $dbh->do("
+        CREATE TABLE IF NOT EXISTS longdescs_history (
+            bug_id MEDIUMINT(9) NOT NULL,
+            who MEDIUMINT(9) NOT NULL,
+            bug_when DATETIME NOT NULL,
+            oldthetext MEDIUMTEXT NOT NULL,
+            thetext MEDIUMTEXT NOT NULL,
+            comment_id MEDIUMINT(9) NOT NULL,
+            PRIMARY KEY (comment_id),
+            INDEX longdescs_history_bug_when_idx (bug_when),
+            INDEX longdescs_history_who_idx (who, bug_id),
+            INDEX longdescs_history_who_bug_when_idx (who, bug_when),
+            INDEX longdescs_history_bug_id_idx (bug_id, bug_when),
+            CONSTRAINT fk_longdescs_history_bug_id_bugs_bug_id FOREIGN KEY (bug_id) REFERENCES bugs (bug_id) ON UPDATE CASCADE ON DELETE CASCADE,
+            CONSTRAINT fk_longdescs_history_who_profiles_userid FOREIGN KEY (who) REFERENCES profiles (userid) ON UPDATE CASCADE
+        )");
 
     return 1;
 }

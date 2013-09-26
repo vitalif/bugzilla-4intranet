@@ -1053,6 +1053,20 @@ sub update
         # FIXME It'd be nice to track this in the bug activity.
     }
 
+    # Save edited comment
+    foreach my $edited_comment (@{$self->{edited_comments} || []})
+    {
+        $dbh->do("UPDATE longdescs SET thetext = ? WHERE comment_id = ?",
+                 undef, $edited_comment->{thetext}, $edited_comment->{comment_id});
+        $edited_comment->{bug_id} = $self->bug_id;
+        $edited_comment->{who} ||= $user->id;
+        $edited_comment->{bug_when} = $delta_ts if !$edited_comment->{bug_when} || $edited_comment->{bug_when} gt $delta_ts;
+        my $columns = join(',', keys %$edited_comment);
+        my @values  = values %$edited_comment;
+        my $qmarks  = join(',', ('?') x @values);
+        $dbh->do("INSERT INTO longdescs_history ($columns) VALUES ($qmarks)", undef, @values);
+    }
+
     # Insert the values into the multiselect value tables
     my @multi_selects = grep {$_->type == FIELD_TYPE_MULTI_SELECT}
                              Bugzilla->active_custom_fields;
@@ -1137,12 +1151,13 @@ sub update
     # to be extremely rare, that is OK for us.
     $self->_sync_fulltext()
         if $self->{added_comments} || $changes->{short_desc}
-           || $self->{comment_isprivate};
+           || $self->{comment_isprivate} || $self->{edited_comments};
 
     # Remove obsolete internal variables.
     delete $self->{'_old_assigned_to'};
     delete $self->{'_old_qa_contact'};
     delete $self->{added_comments};
+    delete $self->{edited_comments};
 
     # Also flush the visible_bugs cache for this bug as the user's
     # relationship with this bug may have changed.
@@ -1472,6 +1487,8 @@ sub _check_comment {
 
     # Remove any trailing whitespace. Leading whitespace could be
     # a valid part of the comment.
+    $comment =~ s/^\s+//;
+    $comment =~ s/\s+$//;
     $comment =~ s/\s*$//s;
     $comment =~ s/\r\n?/\n/g; # Get rid of \r.
 
@@ -2586,6 +2603,24 @@ sub add_comment {
     push(@{$self->{added_comments}}, $add_comment);
 }
 
+# Edit comment checker
+sub edit_comment {
+    my ($self, $comment_id, $comment) = @_;
+
+    my $db_comment = Bugzilla::Comment->new($comment_id);
+    my $old_comment = $self->_check_comment($db_comment->body);
+    $comment = $self->_check_comment($comment);
+    $self->{edited_comments} ||= [];
+
+    if ($old_comment ne $comment) {
+        push(@{$self->{edited_comments}}, {
+            comment_id => $comment_id,
+            oldthetext => $old_comment,
+            thetext => $comment 
+        });
+    }
+}
+
 # There was a lot of duplicate code when I wrote this as three separate
 # functions, so I just combined them all into one. This is also easier for
 # process_bug to use.
@@ -3555,21 +3590,30 @@ sub GetBugActivity {
                    ON attachments.attach_id = bugs_activity.attach_id";
         $suppwhere = "AND COALESCE(attachments.isprivate, 0) = 0";
     }
+    # For UNION longdescs_history
+    push (@args, $bug_id);
 
     my $query = "SELECT fielddefs.name, bugs_activity.attach_id, " .
         $dbh->sql_date_format('bugs_activity.bug_when', '%Y.%m.%d %H:%i:%s') .
-            ", bugs_activity.removed, bugs_activity.added, profiles.login_name
-          FROM bugs_activity
-               $suppjoins
-     LEFT JOIN fielddefs
+            " bug_when, bugs_activity.removed, bugs_activity.added, profiles.login_name
+        FROM bugs_activity
+            $suppjoins
+        LEFT JOIN fielddefs
             ON bugs_activity.fieldid = fielddefs.id
-    INNER JOIN profiles
+        INNER JOIN profiles
             ON profiles.userid = bugs_activity.who
-         WHERE bugs_activity.bug_id = ?
-               $datepart
-               $attachpart
-               $suppwhere
-      ORDER BY bugs_activity.bug_when";
+        WHERE bugs_activity.bug_id = ?
+            $datepart
+            $attachpart
+            $suppwhere
+        UNION SELECT
+            'longdesc', null, DATE_FORMAT(lh.bug_when, '%Y.%m.%d %H:%i:%s') bug_when, lh.oldthetext removed, lh.thetext added, profile1.login_name 
+        FROM longdescs_history lh
+        INNER JOIN profiles profile1
+            ON profile1.userid = lh.who
+        WHERE lh.bug_id = ?
+        ORDER BY bug_when
+      ";
 
     my $list = $dbh->selectall_arrayref($query, undef, @args);
 

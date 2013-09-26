@@ -270,5 +270,22 @@ function fieldBuglistAutocomplete(hint, field, emptyOptions)
     x.send(null);
 } 
 
+function showFullComment(el_link, oper_id)
+{
+    var el_rem = document.getElementById("removed_" + oper_id);
+    var el_add = document.getElementById("added_" + oper_id);
 
-
+    if (el_rem.getAttribute('class') == "op_short_comment" || el_add.getAttribute('class') == "op_short_comment")
+    { 
+        el_rem.className = '';
+        el_add.className = '';
+        res = 'Hide';
+    }
+    else
+    {
+        el_rem.className = 'op_short_comment';
+        el_add.className = 'op_short_comment';
+        res = 'Show';
+    }
+    op_short_comment.innerHTML = res + " full comment";
+}
