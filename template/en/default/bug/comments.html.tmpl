@@ -173,7 +173,9 @@
         width: 100%; height: 150px; display: none;
     }
     </style>
-    <textarea id="edit_comment_[% comment.id FILTER html %]" class="bz_textarea" name="edit_comment[[% comment.id FILTER html %]]">[%- comment.body_full() -%]</textarea>
+<textarea id="edit_comment_[% comment.id FILTER html %]" class="bz_textarea" name="edit_comment[[% comment.id FILTER html %]]">
+[%+ comment.body -%]
+</textarea>
     [% END %]
     </div>
 [% END %]
