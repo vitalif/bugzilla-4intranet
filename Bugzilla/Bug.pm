@@ -1487,8 +1487,6 @@ sub _check_comment {
 
     # Remove any trailing whitespace. Leading whitespace could be
     # a valid part of the comment.
-    $comment =~ s/^\s+//;
-    $comment =~ s/\s+$//;
     $comment =~ s/\s*$//s;
     $comment =~ s/\r\n?/\n/g; # Get rid of \r.
 
