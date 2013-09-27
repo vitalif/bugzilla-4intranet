@@ -1056,15 +1056,19 @@ sub update
     # Save edited comment
     foreach my $edited_comment (@{$self->{edited_comments} || []})
     {
-        $dbh->do("UPDATE longdescs SET thetext = ? WHERE comment_id = ?",
-                 undef, $edited_comment->{thetext}, $edited_comment->{comment_id});
-        $edited_comment->{bug_id} = $self->bug_id;
-        $edited_comment->{who} ||= $user->id;
-        $edited_comment->{bug_when} = $delta_ts if !$edited_comment->{bug_when} || $edited_comment->{bug_when} gt $delta_ts;
-        my $columns = join(',', keys %$edited_comment);
-        my @values  = values %$edited_comment;
-        my $qmarks  = join(',', ('?') x @values);
-        $dbh->do("INSERT INTO longdescs_history ($columns) VALUES ($qmarks)", undef, @values);
+        my $c_comment = Bugzilla::Comment->new($edited_comment->{comment_id});
+        if (!$c_comment->is_private || ($c_comment->is_private && $user->is_insider))
+        {
+            $dbh->do("UPDATE longdescs SET thetext = ? WHERE comment_id = ?",
+                     undef, $edited_comment->{thetext}, $edited_comment->{comment_id});
+            $edited_comment->{bug_id} = $self->bug_id;
+            $edited_comment->{who} ||= $user->id;
+            $edited_comment->{bug_when} = $delta_ts if !$edited_comment->{bug_when} || $edited_comment->{bug_when} gt $delta_ts;
+            my $columns = join(',', keys %$edited_comment);
+            my @values  = values %$edited_comment;
+            my $qmarks  = join(',', ('?') x @values);
+            $dbh->do("INSERT INTO longdescs_history ($columns) VALUES ($qmarks)", undef, @values);
+        }
     }
 
     # Insert the values into the multiselect value tables
