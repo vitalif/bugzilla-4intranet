@@ -582,6 +582,8 @@ document.changeform = document.[% cfname %];
       [% IF Param('webdotbase') %]
         /&nbsp;<a href="showdependencygraph.cgi?id=[% bug.bug_id %]">graph</a>
       [% END %]
+      
+      [% PROCESS scrum_cards %]
     </td>
   </tr>
 [% END %]
@@ -1134,4 +1136,12 @@ document.changeform = document.[% cfname %];
       [% IF NOT nobr %]<p style="margin: 0.5em 0">[% w %]</p>[% END %]
     </div>
   [% END %]
+[% END %]
+
+[%############################################################################%]
+[%# Block for SCRUM CARDS                                                    #%]
+[%############################################################################%]
+
+[% BLOCK scrum_cards %]
+ | <a href="scrum.cgi?id=[% bug.bug_id %]" class="search-link" target="_blank">Scrum card</a>
 [% END %]

@@ -131,9 +131,12 @@ for my $id (keys %$est)
 }
 
 # Дополнение таблицы пустыми ячейками
-if (@$bugs % ($l->{cols} * $l->{rows}))
+if (scalar @$bugs > 1)
 {
-    push @$bugs, (undef) x ($l->{cols}*$l->{rows} - (@$bugs % ($l->{cols} * $l->{rows})));
+    if (@$bugs % ($l->{cols} * $l->{rows}))
+    {
+        push @$bugs, (undef) x ($l->{cols}*$l->{rows} - (@$bugs % ($l->{cols} * $l->{rows})));
+    }
 }
 
 # Разбиение на таблицы и строки
