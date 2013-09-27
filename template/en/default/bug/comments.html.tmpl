@@ -120,7 +120,7 @@
         [% IF NOT wt_only %]
         <span class="bz_comment_number">
           [% IF comment.author.id == user.id %]
-          [<a href="#" onclick="showEditComment([% comment.id FILTER html %]); return false;">Edit Comment</a>]
+          [<a href="#" onclick="showEditComment([% comment.id %]); return false;">Edit Comment</a>]
           [% END %]
           <a name="c[% comment.count %]"
              href="show_bug.cgi?id=[% bug.bug_id %]#c[% comment.count %]">
@@ -168,14 +168,7 @@
 </div>
 
     [% IF comment.author.id == user.id && !wt_only %]
-    <style>
-    .bz_textarea {
-        width: 100%; height: 150px; display: none;
-    }
-    </style>
-<textarea id="edit_comment_[% comment.id FILTER html %]" class="bz_textarea" name="edit_comment[[% comment.id FILTER html %]]">
-[%+ comment.body -%]
-</textarea>
+    <div id="bz_textarea_[% comment.id %]"></div>
     [% END %]
     </div>
 [% END %]

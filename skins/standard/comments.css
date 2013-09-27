@@ -24,3 +24,5 @@
 .bz_comment_text.bz_fullscreen_comment { min-width: 50em; width: 100%; word-wrap: break-word; }
 
 #comments > table, .bz_section_additional_comments > table { table-layout: fixed; }
+
+.bz_textarea { width: 100%; height: 150px; }
