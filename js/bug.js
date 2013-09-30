@@ -365,36 +365,22 @@ addListener(window, 'load', function() {
 function showEditComment(comment_id) {
     var el_container = document.getElementById("bz_textarea_"+comment_id);
 
-    var x;
-    if (window.XMLHttpRequest)
-        x = new XMLHttpRequest();
-    else
-    {
-        try { x = new ActiveXObject("Msxml2.XMLHTTP"); }
-        catch (e) { x = new ActiveXObject("Microsoft.XMLHTTP"); }
-    }
-    x.onreadystatechange = function()
-    {
-        if (x.readyState == 4)
+    var u = window.location.href.replace(/[^\/]+$/, '');
+    u += 'xml.cgi?method=Bug.comments&output=json&comment_ids=' + comment_id;
+    AjaxLoader(u, function(x) {
+        var r = {};
+        try { eval('r = '+x.responseText+';'); } catch (e) { return; }
+        if (r.status == 'ok')
         {
-            var r = {};
-            try { eval('r = '+x.responseText+';'); } catch (e) { return; }
-            if (r.status == 'ok')
+            if (r.comments)
             {
-                if (r.comments)
+                for(var key in r.comments)
                 {
-                    for(var key in r.comments)
-                    {
-                        var comment = r.comments[key];
-                        el_container.innerHTML = '<textarea class="bz_textarea" name="edit_comment[' + comment_id + ']"> ' + comment.text + '</textarea>';
-                    }
+                    var comment = r.comments[key];
+                    el_container.innerHTML = '<textarea class="bz_textarea" name="edit_comment[' + comment_id + ']"> ' + comment.text + '</textarea>';
                 }
             }
         }
-    };
-    var u = window.location.href.replace(/[^\/]+$/, '');
-    u += 'xml.cgi?method=Bug.comments&output=json&comment_ids=' + comment_id;
-    x.open('GET', u);
-    x.send(null);
+    });
 }
 

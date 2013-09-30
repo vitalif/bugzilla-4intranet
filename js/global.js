@@ -142,39 +142,27 @@ function userAutocomplete(hint, emptyOptions)
             hint.replaceItems(null);
         return;
     }
-    var x;
-    if (window.XMLHttpRequest)
-        x = new XMLHttpRequest();
-    else
-    {
-        try { x = new ActiveXObject("Msxml2.XMLHTTP"); }
-        catch (e) { x = new ActiveXObject("Microsoft.XMLHTTP"); }
-    }
-    x.onreadystatechange = function()
-    {
-        if (x.readyState == 4)
-        {
-            var r = {};
-            try { eval('r = '+x.responseText+';'); } catch (e) { return; }
-            if (r.status == 'ok')
-            {
-                var data = convertUserList(r.users);
-                // FIXME "3" constant, messages: remove hardcode, also in Bugzilla::User::match()
-                if (data.length == 0 && hint.input.value.length < 3)
-                    hint.emptyText = 'Type at least 3 letters';
-                else
-                    hint.emptyText = 'No users found';
-                hint.replaceItems(data);
-            }
-        }
-    };
+
     var u = window.location.href.replace(/[^\/]+$/, '');
     u += 'xml.cgi?method=User.get&output=json&maxusermatches=20&excludedisabled=1';
     var l = hint.input.value.split(/[\s,]*,[\s,]*/);
     for (var i = 0; i < l.length; i++)
         u += '&match='+encodeURI(l[i]);
-    x.open('GET', u);
-    x.send(null);
+
+    AjaxLoader(u, function(x) {
+        var r = {};
+        try { eval('r = '+x.responseText+';'); } catch (e) { return; }
+        if (r.status == 'ok')
+        {
+            var data = convertUserList(r.users);
+            // FIXME "3" constant, messages: remove hardcode, also in Bugzilla::User::match()
+            if (data.length == 0 && hint.input.value.length < 3)
+                hint.emptyText = 'Type at least 3 letters';
+            else
+                hint.emptyText = 'No users found';
+            hint.replaceItems(data);
+        }
+    });
 }
 
 
@@ -203,71 +191,43 @@ function keywordAutocomplete(hint, emptyOptions)
             hint.replaceItems(null);
         return;
     }
-    
-    var x;
-    if (window.XMLHttpRequest)
-        x = new XMLHttpRequest();
-    else
-    {
-        try { x = new ActiveXObject("Msxml2.XMLHTTP"); }
-        catch (e) { x = new ActiveXObject("Microsoft.XMLHTTP"); }
-    }
-    x.onreadystatechange = function()
-    {
-        if (x.readyState == 4)
-        {
-            var r = {};
-            try { eval('r = '+x.responseText+';'); } catch (e) { return; }
-            if (r.status == 'ok')
-            {
-                var data = convertSimpleList(r.keywords);
-                // FIXME "3" constant, messages: remove hardcode, also in Bugzilla::User::match()
-                if (data.length == 0 && hint.input.value.length < 3)
-                    hint.emptyText = 'Type at least 3 letters';
-                else
-                    hint.emptyText = 'No keywords found';
-                hint.replaceItems(data);
-            }
-        }
-    };
-    
+
     var u = window.location.href.replace(/[^\/]+$/, '');
     u += 'xml.cgi?method=Keyword.get&output=json&maxkeywordmatches=20';
     var l = hint.input.value.split(/[\s,]*,[\s,]*/);
     for (var i = 0; i < l.length; i++)
         u += '&match='+encodeURI(l[i]);
-    x.open('GET', u);
-    x.send(null);
+
+    AjaxLoader(u, function(x) {
+        var r = {};
+        try { eval('r = '+x.responseText+';'); } catch (e) { return; }
+        if (r.status == 'ok')
+        {
+            var data = convertSimpleList(r.keywords);
+            // FIXME "3" constant, messages: remove hardcode, also in Bugzilla::User::match()
+            if (data.length == 0 && hint.input.value.length < 3)
+                hint.emptyText = 'Type at least 3 letters';
+            else
+                hint.emptyText = 'No keywords found';
+            hint.replaceItems(data);
+        }
+    });
 } 
 
 // Data loader for field in buglist autocomplete
 function fieldBuglistAutocomplete(hint, field, emptyOptions)
 {
-    var x;
-    if (window.XMLHttpRequest)
-        x = new XMLHttpRequest();
-    else
-    {
-        try { x = new ActiveXObject("Msxml2.XMLHTTP"); }
-        catch (e) { x = new ActiveXObject("Microsoft.XMLHTTP"); }
-    }
-    x.onreadystatechange = function()
-    {
-        if (x.readyState == 4)
-        {
-            var r = {};
-            try { eval('r = '+x.responseText+';'); } catch (e) { return; }
-            if (r.status == 'ok')
-            {
-                var data = convertSimpleList(r.values);
-                hint.replaceItems(data);
-            }
-        }
-    };
     var u = window.location.href.replace(/[^\/]+$/, '');
     u += 'xml.cgi?method=Field.get_values&output=json&field=' + field;
-    x.open('GET', u);
-    x.send(null);
+    AjaxLoader(u, function(x) {
+        var r = {};
+        try { eval('r = '+x.responseText+';'); } catch (e) { return; }
+        if (r.status == 'ok')
+        {
+            var data = convertSimpleList(r.values);
+            hint.replaceItems(data);
+        }
+    });
 } 
 
 function showFullComment(el_link, oper_id)
