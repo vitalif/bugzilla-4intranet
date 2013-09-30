@@ -145,16 +145,16 @@ sub db_schema_abstract_schema
     # Bug 134368 - Edit comments
     $schema->{longdescs_history} = {
         FIELDS => [
-            bug_id     => { TYPE => 'MEDIUMINT9', NOTNULL => 1,
+            bug_id     => { TYPE => 'INT3', NOTNULL => 1,
                           REFERENCES => { TABLE => 'bugs',
                                          COLUMN => 'bug_id' } },
-            who        => { TYPE => 'MEDIUMINT9', NOTNULL => 1,
+            who        => { TYPE => 'INT3', NOTNULL => 1,
                           REFERENCES => { TABLE => 'profiles',
                                          COLUMN => 'userid' } },
             bug_when   => { TYPE => 'DATETIME', NOTNULL => 1 },
-            oldthetext => { TYPE => 'MEDIUMTEXT', NOTNULL => 1 },
-            thetext    => { TYPE => 'MEDIUMTEXT', NOTNULL => 1 },
-            comment_id => { TYPE => 'MEDIUMINT9', NOTNULL => 1 },
+            oldthetext => { TYPE => 'LONGTEXT', NOTNULL => 1 },
+            thetext    => { TYPE => 'LONGTEXT', NOTNULL => 1 },
+            comment_id => { TYPE => 'INT3', NOTNULL => 1 },
         ],
         INDEXES => [
             longdescs_history_bug_when_idx      => { FIELDS => [ 'bug_when' ] },
