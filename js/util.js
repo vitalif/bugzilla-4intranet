@@ -433,3 +433,24 @@ if (!String.prototype.trim)
         return this.replace(/^\s\s*/, '').replace(/\s\s*$/, '');
     };
 }
+
+function AjaxLoader(url, callback)
+{
+    var x;
+    if (window.XMLHttpRequest)
+        x = new XMLHttpRequest();
+    else
+    {
+        try { x = new ActiveXObject("Msxml2.XMLHTTP"); }
+        catch (e) { x = new ActiveXObject("Microsoft.XMLHTTP"); }
+    }
+    x.onreadystatechange = function()
+    {
+        if (x.readyState == 4)
+        {
+            callback(x);
+        }
+    };
+    x.open('GET', url, true);
+    x.send(null);
+}
