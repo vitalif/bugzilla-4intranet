@@ -3195,8 +3195,9 @@ sub expression_sql_and
             # (the reference can be copied by expand_expression())
             my $t_table = replace_lit($t->{table}, 'bugs.', "bugs$seq.");
             my $t_where = replace_lit($t->{where}, 'bugs.', "bugs$seq.");
-            # Disabled - it seems newer MySQL/MariaDB does not need this optimisation
-            if (0 && $t->{bugid_field} && !$t->{neg} && $t->{many_rows} &&
+            # The good way would be to select between these execution methods
+            # on the fly, but it would require simulating DB query optimizer :(
+            if ($t->{bugid_field} && !$t->{neg} && $t->{many_rows} &&
                 ($many_rows++) > 0)
             {
                 # Allow only one many_rows=1 term in a query,
