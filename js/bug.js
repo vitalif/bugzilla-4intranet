@@ -363,7 +363,8 @@ addListener(window, 'load', function() {
 });
 
 function showEditComment(comment_id) {
-    var el_container = document.getElementById("bz_textarea_"+comment_id);
+    var el = document.getElementById("comment_text_"+comment_id);
+    var parent = el.parentNode;
 
     var u = window.location.href.replace(/[^\/]+$/, '');
     u += 'xml.cgi?method=Bug.comments&output=json&comment_ids=' + comment_id;
@@ -377,7 +378,11 @@ function showEditComment(comment_id) {
                 for(var key in r.comments)
                 {
                     var comment = r.comments[key];
-                    el_container.innerHTML = '<textarea class="bz_textarea" name="edit_comment[' + comment_id + ']"> ' + comment.text + '</textarea>';
+                    var textarea = document.createElement('textarea');
+                    textarea.className = 'bz_textarea';
+                    textarea.name = 'edit_comment[' + comment_id + ']';
+                    textarea.innerHTML = comment.text;
+                    parent.appendChild(textarea);
                 }
             }
         }

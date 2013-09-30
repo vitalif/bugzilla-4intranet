@@ -166,9 +166,5 @@
 <div class="bz_comment_text[% " collapsed" IF wt_only %][% " bz_fullscreen_comment" IF user.settings.comment_width.value == 'on' %]" id="comment_text_[% comment.id %]">
   [%- comment.body_full({ wrap => 1 }) -%]
 </div>
-
-    [% IF comment.author.id == user.id && !wt_only %]
-    <div id="bz_textarea_[% comment.id %]"></div>
-    [% END %]
     </div>
 [% END %]
