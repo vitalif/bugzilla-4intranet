@@ -559,13 +559,24 @@ sub insert
                                   extra_data => $attachment->id });
 
     # When changing the bug status, we have to follow the workflow.
-    my $bug_status = $cgi->param('bug_status');
-    ($bug_status) = grep { $_->name eq $bug_status } @{$bug->status->can_change_to};
-    if ($bug_status && $bug_status->is_open
-        && ($bug_status->name ne 'UNCONFIRMED' || $bug->product_obj->allows_unconfirmed))
-    {
-        $bug->set_status($bug_status->name);
-        $bug->clear_resolution();
+    # Custis Bug 131574 - Update bug status, bug resolution, bug duplicate
+    if (defined $cgi->param('bug_status')) {
+        my $bug_status = $cgi->param('bug_status');
+        ($bug_status) = grep { $_->name eq $bug_status } @{$bug->status->can_change_to};
+
+        if ($bug_status->comment_required_on_change_from($bug->status) && !$comment)
+        {
+            ThrowUserError('comment_required', { old => $bug->status,
+                                             new => $bug_status });
+        }
+
+        $bug->set_status(
+            scalar $cgi->param('bug_status'),
+            {
+                resolution =>  scalar $cgi->param('resolution'),
+                dupe_of => scalar $cgi->param('dup_id')
+            }
+        );
     }
 
     # Assign the bug to the user, if they are allowed to take it
