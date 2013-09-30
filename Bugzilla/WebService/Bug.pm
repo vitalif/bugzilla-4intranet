@@ -295,7 +295,8 @@ sub _translate_comment {
         author     => $self->type('string', $comment->author->login),
         time       => $self->type('dateTime', $comment->creation_ts),
         is_private => $self->type('boolean', $comment->is_private),
-        text       => $self->type('string', $comment->body),
+        text       => $self->type('string', $comment->body_full),
+        rawtext    => $self->type('string', $comment->body),
         attachment_id => $self->type('int', $attach_id),
     };
 }

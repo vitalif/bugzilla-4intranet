@@ -366,6 +366,12 @@ function showEditComment(comment_id) {
     var el = document.getElementById("comment_text_"+comment_id);
     var parent = el.parentNode;
 
+    var textarea = document.getElementById('edit_comment_' + comment_id);
+    if (textarea !== null)
+    {
+        return false;
+    }
+
     var u = window.location.href.replace(/[^\/]+$/, '');
     u += 'xml.cgi?method=Bug.comments&output=json&comment_ids=' + comment_id;
     AjaxLoader(u, function(x) {
@@ -380,8 +386,9 @@ function showEditComment(comment_id) {
                     var comment = r.comments[key];
                     var textarea = document.createElement('textarea');
                     textarea.className = 'bz_textarea';
+                    textarea.id = 'edit_comment_' + comment_id;
                     textarea.name = 'edit_comment[' + comment_id + ']';
-                    textarea.innerHTML = comment.text;
+                    textarea.innerHTML = comment.rawtext;
                     parent.appendChild(textarea);
                 }
             }
