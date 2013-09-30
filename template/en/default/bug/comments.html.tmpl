@@ -120,6 +120,7 @@
         [% IF NOT wt_only %]
         <span class="bz_comment_number">
           [% IF comment.author.id == user.id %]
+          <a name="[% comment.comment_id FILTER html %]"></a>
           [<a href="#" onclick="showEditComment([% comment.id %]); return false;">Edit Comment</a>]
           [% END %]
           <a name="c[% comment.count %]"

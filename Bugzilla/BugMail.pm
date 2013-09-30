@@ -304,7 +304,7 @@ sub Send {
     my $diffs = $dbh->selectall_arrayref(
            "SELECT profiles.login_name, profiles.realname, fielddefs.description fielddesc,
                    bugs_activity.bug_when, bugs_activity.removed,
-                   bugs_activity.added, bugs_activity.attach_id, fielddefs.name fieldname
+                   bugs_activity.added, bugs_activity.attach_id, fielddefs.name fieldname, null as comment_id
               FROM bugs_activity
         INNER JOIN fielddefs
                 ON fielddefs.id = bugs_activity.fieldid
@@ -313,7 +313,7 @@ sub Send {
              WHERE bugs_activity.bug_id = ?
                    $when_restriction
       UNION SELECT profile1.login_name, profile1.realname, fielddefs1.description fielddesc,
-                   lh.bug_when, lh.oldthetext removed, lh.thetext added, null, fielddefs1.name fieldname
+                   lh.bug_when, lh.oldthetext removed, lh.thetext added, null, fielddefs1.name fieldname, lh.comment_id
               FROM longdescs_history lh
         INNER JOIN profiles profile1
                 ON profile1.userid = lh.who
