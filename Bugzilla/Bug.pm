@@ -3597,7 +3597,7 @@ sub GetBugActivity {
 
     my $query = "SELECT fielddefs.name, bugs_activity.attach_id, " .
         $dbh->sql_date_format('bugs_activity.bug_when', '%Y.%m.%d %H:%i:%s') .
-            " bug_when, bugs_activity.removed, bugs_activity.added, profiles.login_name
+            " bug_when, bugs_activity.removed, bugs_activity.added, profiles.login_name, null as comment_id
         FROM bugs_activity
             $suppjoins
         LEFT JOIN fielddefs
@@ -3609,7 +3609,7 @@ sub GetBugActivity {
             $attachpart
             $suppwhere
         UNION SELECT
-            'longdesc', null, DATE_FORMAT(lh.bug_when, '%Y.%m.%d %H:%i:%s') bug_when, lh.oldthetext removed, lh.thetext added, profile1.login_name 
+            'longdesc', null, DATE_FORMAT(lh.bug_when, '%Y.%m.%d %H:%i:%s') bug_when, lh.oldthetext removed, lh.thetext added, profile1.login_name, lh.comment_id
         FROM longdescs_history lh
         INNER JOIN profiles profile1
             ON profile1.userid = lh.who
@@ -3625,7 +3625,7 @@ sub GetBugActivity {
     my $incomplete_data = 0;
 
     foreach my $entry (@$list) {
-        my ($fieldname, $attachid, $when, $removed, $added, $who) = @$entry;
+        my ($fieldname, $attachid, $when, $removed, $added, $who, $comment_id) = @$entry;
         my %change;
         my $activity_visible = 1;
 
@@ -3670,6 +3670,7 @@ sub GetBugActivity {
             $change{'attachid'} = $attachid;
             $change{'removed'} = $removed;
             $change{'added'} = $added;
+            $change{'comment_id'} = $comment_id;
             push (@$changes, \%change);
         }
     }

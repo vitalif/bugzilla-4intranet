@@ -216,7 +216,15 @@ body { font-family: Segoe UI, sans-serif; }
   [% END %]
 
   [%# ------ What Removed Added ------ %]
-  <tr class="n"><td>[% d.fielddesc %]</td><td>[% d.removed %]</td><td>[% d.added %]</td></tr>
+  <tr class="n"><td>
+  [% IF d.fieldname == 'longdesc' %]
+  <a href="[% urlbase %]show_bug.cgi?id=[% d.bug_id %]#[% d.comment_id %]">
+  [% END %]
+  [% d.fielddesc %]
+  [% IF d.fieldname == 'longdesc' %]
+  </a>
+  [% END %]
+  </td><td>[% d.removed %]</td><td>[% d.added %]</td></tr>
 
 [% END %]
 </table>

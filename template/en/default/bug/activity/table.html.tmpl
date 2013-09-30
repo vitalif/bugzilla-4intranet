@@ -79,7 +79,13 @@
                 <a href="attachment.cgi?id=[% change.attachid %]">
                 Attachment #[% change.attachid %]</a>
               [% END %]
+              [% IF change.fieldname == 'longdesc' %]
+              <a href="show_bug.cgi?id=[% bug.bug_id%]#[% change.comment_id FILTER html %]">
+              [% END%]
               [%+ field_descs.${change.fieldname} || Bugzilla.get_field(change.fieldname).description FILTER html %]
+              [% IF ${change.fieldname} == 'longdesc' %]
+              </a>
+              [% END%]
               [% IF change.removed.length > 250 || change.added.length > 250 %]
               <a href="#" onclick="showFullComment(this, '[% op_loop %]_[% loop.count %]'); return false;">Show full comment</a>
               [% END %]
