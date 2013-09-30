@@ -218,7 +218,7 @@ body { font-family: Segoe UI, sans-serif; }
   [%# ------ What Removed Added ------ %]
   <tr class="n"><td>
   [% IF d.fieldname == 'longdesc' %]
-  <a href="[% urlbase %]show_bug.cgi?id=[% d.bug_id %]#[% d.comment_id %]">
+  <a href="[% urlbase %]show_bug.cgi?id=[% d.bug_id %]#ci[% d.comment_id %]">
   [% END %]
   [% d.fielddesc %]
   [% IF d.fieldname == 'longdesc' %]

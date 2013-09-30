@@ -80,7 +80,7 @@
                 Attachment #[% change.attachid %]</a>
               [% END %]
               [% IF change.fieldname == 'longdesc' %]
-              <a href="show_bug.cgi?id=[% bug.bug_id%]#[% change.comment_id FILTER html %]">
+              <a href="show_bug.cgi?id=[% bug.bug_id%]#ci[% change.comment_id FILTER html %]">
               [% END%]
               [%+ field_descs.${change.fieldname} || Bugzilla.get_field(change.fieldname).description FILTER html %]
               [% IF ${change.fieldname} == 'longdesc' %]
