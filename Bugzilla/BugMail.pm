@@ -299,8 +299,6 @@ sub Send {
         push @args, ($start, $end);
         push @dep_args, ($start, $end);
     }
-    # For UNION longdescs_history
-    push @args, $id;
     my $diffs = $dbh->selectall_arrayref(
            "SELECT profiles.login_name, profiles.realname, fielddefs.description fielddesc,
                    bugs_activity.bug_when, bugs_activity.removed,
@@ -320,7 +318,8 @@ sub Send {
         INNER JOIN fielddefs fielddefs1
                 ON fielddefs1.name = 'longdesc' 
              WHERE lh.bug_id = ?
-          ORDER BY bug_when", {Slice=>{}}, @args);
+                   $when_restriction
+          ORDER BY bug_when", {Slice=>{}}, @args, @args);
 
     my @new_depbugs;
     foreach my $diff (@$diffs) {
