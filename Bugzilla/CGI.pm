@@ -73,7 +73,7 @@ sub new {
     $self->charset(Bugzilla->params->{'utf8'} ? 'UTF-8' : '');
 
     # Redirect to urlbase/sslbase if we are not viewing an attachment.
-    my $script = basename($ENV{SCRIPT_FILENAME});
+    my $script = basename($ENV{SCRIPT_FILENAME} ||= $0);
     if ($self->url_is_attachment_base and $script ne 'attachment.cgi') {
         $self->redirect_to_urlbase();
     }
