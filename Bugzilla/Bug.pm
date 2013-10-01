@@ -1062,7 +1062,13 @@ sub update
             $dbh->do("UPDATE longdescs SET thetext = ? WHERE comment_id = ?",
                      undef, $edited_comment->{thetext}, $edited_comment->{comment_id});
             $edited_comment->{bug_id} = $self->bug_id;
-            $edited_comment->{who} ||= $user->id;
+            $edited_comment->{who} = $user->id;
+            $edited_comment->{bug_when} = $delta_ts;
+            # number count of the comment
+            my $comment_count = scalar Bugzilla->dbh->selectrow_array(
+                'SELECT count(*) FROM longdescs WHERE bug_id = ? AND comment_id <= ? ORDER BY bug_when ASC',
+                undef, $self->id, $edited_comment->{comment_id});
+            $edited_comment->{comment_count} = ($comment_count-1);
             my $columns = join(',', keys %$edited_comment);
             my @values  = values %$edited_comment;
             my $qmarks  = join(',', ('?') x @values);
@@ -3596,7 +3602,7 @@ sub GetBugActivity {
 
     my $query = "SELECT fielddefs.name, bugs_activity.attach_id, " .
         $dbh->sql_date_format('bugs_activity.bug_when', '%Y.%m.%d %H:%i:%s') .
-            " bug_when, bugs_activity.removed, bugs_activity.added, profiles.login_name, null as comment_id
+            " bug_when, bugs_activity.removed, bugs_activity.added, profiles.login_name, null as comment_id, null as comment_count
         FROM bugs_activity
             $suppjoins
         LEFT JOIN fielddefs
@@ -3608,7 +3614,7 @@ sub GetBugActivity {
             $attachpart
             $suppwhere
         UNION SELECT
-            'longdesc', null, DATE_FORMAT(lh.bug_when, '%Y.%m.%d %H:%i:%s') bug_when, lh.oldthetext removed, lh.thetext added, profile1.login_name, lh.comment_id
+            'longdesc', null, DATE_FORMAT(lh.bug_when, '%Y.%m.%d %H:%i:%s') bug_when, lh.oldthetext removed, lh.thetext added, profile1.login_name, lh.comment_id, lh.comment_count
         FROM longdescs_history lh
         INNER JOIN profiles profile1
             ON profile1.userid = lh.who
@@ -3624,7 +3630,7 @@ sub GetBugActivity {
     my $incomplete_data = 0;
 
     foreach my $entry (@$list) {
-        my ($fieldname, $attachid, $when, $removed, $added, $who, $comment_id) = @$entry;
+        my ($fieldname, $attachid, $when, $removed, $added, $who, $comment_id, $comment_count) = @$entry;
         my %change;
         my $activity_visible = 1;
 
@@ -3670,6 +3676,7 @@ sub GetBugActivity {
             $change{'removed'} = $removed;
             $change{'added'} = $added;
             $change{'comment_id'} = $comment_id;
+            $change{'comment_count'} = $comment_count;
             push (@$changes, \%change);
         }
     }

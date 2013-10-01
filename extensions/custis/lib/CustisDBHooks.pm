@@ -155,6 +155,7 @@ sub db_schema_abstract_schema
             oldthetext => { TYPE => 'LONGTEXT', NOTNULL => 1 },
             thetext    => { TYPE => 'LONGTEXT', NOTNULL => 1 },
             comment_id => { TYPE => 'INT3', NOTNULL => 1 },
+            comment_count => { TYPE => 'INT3', NOTNULL => 1 },
         ],
         INDEXES => [
             longdescs_history_bug_when_idx      => { FIELDS => [ 'bug_when' ] },
