@@ -220,7 +220,7 @@ foreach my $arg_key (keys $ARGS) {
         my $comment_id = $arg_key;
         $comment_id =~ s/^edit_comment\[(.*)\]$/$1/;
         trick_taint($ARGS->{$arg_key});
-        %edit_comment->{$comment_id} = $ARGS->{$arg_key};
+        $edit_comment{$comment_id} = $ARGS->{$arg_key};
     }
 }
 
@@ -415,12 +415,13 @@ foreach my $b (@bug_objects)
             $b->set_custom_field($field, [$cgi->param($fname)]);
         }
     }
-    
-    # Custis Bug 134368 - Edit comment
+
+    # CustIS Bug 134368 - Edit comment
     if (%edit_comment)
     {
-        foreach my $comment_id (keys %edit_comment) {
-            $b->edit_comment($comment_id, %edit_comment->{$comment_id});
+        foreach my $comment_id (keys %edit_comment)
+        {
+            $b->edit_comment($comment_id, $edit_comment{$comment_id});
         }
     }
 }
