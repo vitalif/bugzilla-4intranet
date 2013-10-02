@@ -584,6 +584,8 @@ sub STATIC_COLUMNS
     }
 
     # Fields of bugs related to selected by some BUG_ID type field
+    @bugid_fields = (grep { $_ eq 'product' } @bugid_fields),
+        (grep { $_ ne 'product' } @bugid_fields);
     foreach my $field (@bugid_fields)
     {
         my $id = $field->name;
