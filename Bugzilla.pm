@@ -75,8 +75,8 @@ sub _die_error
     }
     else
     {
-        utf8::decode($_[0]);
         my $msg = $_[0];
+        utf8::decode($msg);
         $msg =~ s/\s*$//so;
         # We are not interested in getting "Software caused connection abort" errors
         # on each "Stop" click in the browser.
