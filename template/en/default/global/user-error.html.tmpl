@@ -516,6 +516,10 @@
   (You specified '[% name FILTER html %]'.)
 [% END %]
 
+[% BLOCK error_invalid_field_name %]
+  Can't use [% field FILTER html %] as a field name.
+[% END %]
+
 [% BLOCK error_field_already_exists %]
   [% title = "Field Already Exists" %]
   The field '[% field.name FILTER html %]'

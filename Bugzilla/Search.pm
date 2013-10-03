@@ -584,8 +584,6 @@ sub STATIC_COLUMNS
     }
 
     # Fields of bugs related to selected by some BUG_ID type field
-    @bugid_fields = (grep { $_ eq 'product' } @bugid_fields),
-        (grep { $_ ne 'product' } @bugid_fields);
     foreach my $field (@bugid_fields)
     {
         my $id = $field->name;
@@ -593,7 +591,12 @@ sub STATIC_COLUMNS
             @{$columns->{$id}->{joins} || []},
             "LEFT JOIN bugs bugs_$id ON bugs_$id.bug_id=$columns->{$id}->{name}"
         ];
-        foreach my $subfield (Bugzilla->get_fields({ obsolete => 0, buglist => 1 }))
+        my @subfields = Bugzilla->get_fields({ obsolete => 0, buglist => 1 });
+        @subfields = (
+            (grep { $_->name eq 'product' } @subfields),
+            (grep { $_->name ne 'product' } @subfields)
+        );
+        foreach my $subfield (@subfields)
         {
             my $subid = $subfield->name;
             if ($subid ne 'bug_id' && $columns->{$subid}->{name} eq "bugs.$subid")
