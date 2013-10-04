@@ -1,0 +1,78 @@
+.group_list
+{
+  list-style-type: none;
+  padding: 0.3em;
+  margin: 0 0 1em 1em;
+  float: left;
+  border: 1px solid gray;
+  border-radius: 5px;
+  background: white;
+  box-shadow: 0 5px 5px gray;
+}
+.group_list input, .group_list select { vertical-align: middle; }
+.group_list li { padding: 0.25em 0.5em; float: left;  }
+.group_empty { color: gray; }
+.help_popup
+{
+  border: 1px solid gray;
+  border-radius: 5px;
+  margin: 0 0 1em 0;
+  padding: 0 1em;
+  background: white;
+  box-shadow: 0 5px 5px gray;
+}
+.help_table { border-collapse: collapse; }
+.help_table td, .help_table th { border: 1px solid gray; font-size: 10pt; padding: 2px; }
+.help_table tr td:nth-child(1) { text-align: center; }
+.help_table tr td:nth-child(2) { text-align: center; }
+
+.table_group_list {
+    border-collapse: collapse;
+    margin: 10px 0px;
+}
+
+.table_group_list td {
+    padding: 0.5em 1em;
+    border: solid 1px #222;
+    vertical-align: middle;
+}
+
+a.icon-delete {
+    background: url('global/delete-icon.png') no-repeat center left;
+    padding-left: 1.5em;
+    width: 80px;
+    display: inline-block;
+}
+
+a.icon-add {
+    background: url('global/add-icon.png') no-repeat center left;
+    padding-left: 1.5em;
+}
+
+#control_add {
+    padding-left: 0.5em;
+    border-bottom: 1px dotted #000000;
+    padding-bottom: 0.5em;
+
+}
+
+#control_add select {
+    display: none;
+}
+
+.control_column_left {
+    width: 48%;
+    float: left;
+}
+
+.control_column_right {
+    width: 49%;
+    float: right;
+}
+
+.control_save {
+    border-top: 1px dotted #000000;
+    padding-top: 0.5em;
+    clear: both;
+    
+}

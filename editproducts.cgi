@@ -331,16 +331,23 @@ if ($action eq 'updategroupcontrols') {
 
     my @now_na = ();
     my @now_mandatory = ();
+    my %membercontrol_g;
+    my %othercontrol_g;
     foreach my $f ($cgi->param()) {
-        if ($f =~ /^membercontrol_(\d+)$/) {
-            my $id = $1;
-            if ($cgi->param($f) == CONTROLMAPNA) {
-                push @now_na,$id;
-            } elsif ($cgi->param($f) == CONTROLMAPMANDATORY) {
-                push @now_mandatory,$id;
+        if ($f =~ /^group_(\d+)$/) {
+            my $count_id = $1;
+            my $id = $cgi->param($f);
+            trick_taint($id);
+            if ($cgi->param("membercontrol_" . $count_id) == CONTROLMAPNA) {
+                push @now_na, $id;
+            } elsif ($cgi->param("membercontrol_" . $count_id) == CONTROLMAPMANDATORY) {
+                push @now_mandatory, $id;
             }
+            $membercontrol_g{$id} = $cgi->param("membercontrol_" . $count_id);
+            $othercontrol_g{$id} = $cgi->param("othercontrol_" . $count_id);
         }
     }
+
     if (!defined $cgi->param('confirmed')) {
         my $na_groups;
         if (@now_na) {
@@ -396,8 +403,8 @@ if ($action eq 'updategroupcontrols') {
         my $group_id = $group->id;
         $product->set_group_controls($group,
                                      {entry          => scalar $cgi->param("entry_$group_id") || 0,
-                                      membercontrol  => scalar $cgi->param("membercontrol_$group_id") || CONTROLMAPNA,
-                                      othercontrol   => scalar $cgi->param("othercontrol_$group_id") || CONTROLMAPNA,
+                                      membercontrol  => scalar %membercontrol_g->{$group_id} || CONTROLMAPNA,
+                                      othercontrol   => scalar %othercontrol_g->{$group_id} || CONTROLMAPNA,
                                       canedit        => scalar $cgi->param("canedit_$group_id") || 0,
                                       editcomponents => scalar $cgi->param("editcomponents_$group_id") || 0,
                                       editbugs       => scalar $cgi->param("editbugs_$group_id") || 0,
