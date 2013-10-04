@@ -7,8 +7,12 @@
 [% title = BLOCK %]
     Edit Group Controls for [% product.name FILTER html %]
 [% END %]
-[% PROCESS global/header.html.tmpl 
-   title = title
+
+[% PROCESS global/header.html.tmpl
+  title = title
+  style_urls = ['skins/standard/admin_groupcontrol.css']
+  javascript_urls = ["js/admin_groupcontrol.js"]
+
 %]
 
 [% control_options = [
@@ -21,8 +25,16 @@
 [% all_groups = product.group_controls_full_data.values.sort("name") %]
 [% groups = product.group_controls.values.sort("name") %]
 
-[% BLOCK control_select %]
+[% BLOCK group_select %]
   <select name="[% id %]" id="[% id %]">
+    [% FOR g = all_groups %]
+    <option value="[% g.id %]" [% " selected=\"selected\"" IF group_id == g.id %]>[% g.name | html %]</option>
+    [% END %]
+  </select>
+[% END %]
+
+[% BLOCK control_select %]
+  <select name="[% id %]" id="[% id %]" data-lastvalue="0">
     [% FOR i = control_options %]
     <option value="[% i %]" [% " selected=\"selected\"" IF control == i %]>[% lc_messages.control_options.$i %]</option>
     [% END %]
@@ -54,138 +66,10 @@
     <option value="[% g.id %]">[% g.name | html %]</option>
   [% END %]
   </select>
-  <input type="button" value="Add &rarr;" onclick="addListGroup('[% name %]')" />
+  <a href="#" class="icon-add" onclick="addListGroup('[% name %]'); return false;">Add new group</a>
 </p>
 [% END %]
 
-<script language="JavaScript">
-function helpToggle(btn_id, div_id)
-{
-  var b = document.getElementById(btn_id);
-  var d = document.getElementById(div_id);
-  if (d.style.display == 'none')
-  {
-    b.value = 'Hide \u25B4';
-    d.style.display = '';
-  }
-  else
-  {
-    b.value = 'Show \u25BE';
-    d.style.display = 'none';
-  }
-}
-
-function copySelect(prefix, suffix)
-{
-  var o = document.getElementById(prefix+'new');
-  var e = document.createElement('select');
-  e.id = e.name = prefix+suffix;
-  e.innerHTML = o.innerHTML;
-  e.selectedIndex = o.selectedIndex;
-  return e;
-}
-
-function flashItem(e)
-{
-  var i = 0;
-  clearTimeout(e.flashIntervalId);
-  e.style.background = 'red';
-  e.flashIntervalId = setInterval(function() {
-    if (++i < 6)
-      e.style.background = e.style.backgroundColor == 'red' ? '' : 'red';
-    else
-      clearTimeout(e.flashIntervalId);
-  }, 100);
-}
-
-function addControlGroup()
-{
-  var group_select = document.getElementById('add_control');
-  var group_id = group_select.value;
-  var group_name = group_select.options[group_select.selectedIndex].text;
-  var added_li = document.getElementById('li_control_'+group_id);
-  if (added_li)
-  {
-    // Flash the already added group entry
-    document.getElementById('membercontrol_'+group_id).focus();
-    flashItem(added_li);
-    return;
-  }
-  added_li = document.getElementById('li_control_empty');
-  if (added_li)
-    added_li.parentNode.removeChild(added_li);
-  added_li = document.createElement('li');
-  added_li.id = 'li_control_'+group_id;
-  added_li.appendChild(document.createTextNode(group_name + ': '));
-  added_li.appendChild(copySelect('membercontrol_', group_id));
-  added_li.appendChild(document.createTextNode(' / '));
-  added_li.appendChild(copySelect('othercontrol_', group_id));
-  var list = document.getElementById('control_list');
-  list.appendChild(added_li);
-}
-
-function addListGroup(list_name)
-{
-  var group_select = document.getElementById('add_'+list_name);
-  var group_id = group_select.value;
-  var group_name = group_select.options[group_select.selectedIndex].text;
-  var added_li = document.getElementById('li_'+list_name+'_'+group_id);
-  if (added_li)
-  {
-    // Flash the already added group entry
-    document.getElementById(list_name+'_'+group_id).focus();
-    flashItem(added_li);
-    return;
-  }
-  added_li = document.getElementById('li_'+list_name+'_empty');
-  if (added_li)
-    added_li.parentNode.removeChild(added_li);
-  added_li = document.createElement('li');
-  added_li.id = 'li_'+list_name+'_'+group_id;
-  var e = document.createElement('input');
-  e.type = 'checkbox';
-  e.value = '1';
-  e.checked = true;
-  e.name = e.id = list_name+'_'+group_id;
-  added_li.appendChild(e);
-  e = document.createElement('label');
-  e.htmlFor = list_name+'_'+group_id;
-  e.appendChild(document.createTextNode(' ' + group_name));
-  added_li.appendChild(e);
-  var list = document.getElementById(list_name+'_list');
-  list.appendChild(added_li);
-}
-</script>
-
-<style>
-.group_list
-{
-  list-style-type: none;
-  padding: 0.3em;
-  margin: 0 0 1em 1em;
-  float: left;
-  border: 1px solid gray;
-  border-radius: 5px;
-  background: white;
-  box-shadow: 0 5px 5px gray;
-}
-.group_list input, .group_list select { vertical-align: middle; }
-.group_list li { padding: 0.25em 0.5em; }
-.group_empty { color: gray; }
-.help_popup
-{
-  border: 1px solid gray;
-  border-radius: 5px;
-  margin: 0 0 1em 0;
-  padding: 0 1em;
-  background: white;
-  box-shadow: 0 5px 5px gray;
-}
-.help_table { border-collapse: collapse; }
-.help_table td, .help_table th { border: 1px solid gray; font-size: 10pt; padding: 2px; }
-.help_table tr td:nth-child(1) { text-align: center; }
-.help_table tr td:nth-child(2) { text-align: center; }
-</style>
 
 <form method="post" action="editproducts.cgi">
   <input type="hidden" name="action" value="updategroupcontrols">
@@ -194,70 +78,78 @@ function addListGroup(list_name)
 
   <h2>Group controls for product [% product.name | html %]</h2>
 
-  <h3>Access control (Member/Other):</h4>
+  <h3>Access control (Member/Other):</h3>
 
-  <p>
-    Help on Member/Other group control combinations:
-    <input type="button" id="control_help_btn" value="Show &#x25BE;" onclick="helpToggle(this.id, 'control_help')" />
-  </p>
-  <div id="control_help" class="help_popup" style="display: none">
     [% PROCESS help_control %]
-  </div>
 
-  <ul id="control_list" class="group_list">
     [% foundone = 0 %]
+    [% cnt_row = 1 %]
+    <table id="control_list" class="table_group_list">
     [% FOR group = groups %]
     [% IF group.membercontrol OR group.othercontrol %]
     [% foundone = 1 %]
-    <li id="li_control_[% group.id %]">
-      [% group.name | html %]:
-      [%+ PROCESS control_select id='membercontrol_' _ group.id, control=group.membercontrol %] /
-      [%+ PROCESS control_select id='othercontrol_' _ group.id, control=group.othercontrol %]
-      (used in [% group.bug_count || 0 %] bugs)
-    </li>
+    <tr id="control_[% cnt_row %]">
+        <td>[%+ PROCESS group_select id='group_' _ cnt_row, group_id=group.id  %]</td>
+        <td>[%+ PROCESS control_select id='membercontrol_' _ cnt_row, control=group.membercontrol %]</td>
+        <td>[%+ PROCESS control_select id='othercontrol_' _ cnt_row, control=group.othercontrol %]</td>
+        <td>used in [% group.bug_count || 0 %] bugs</td>
+        <td><a href="#" class="icon-delete" onclick="deleteGroup(this, [% cnt_row %]); return false;">Delete</a></td>
+    </tr>
+    [% cnt_row = cnt_row + 1 %]
     [% END %]
     [% END %]
+    
     [% IF NOT foundone %]
-    <li id="li_control_empty" class="group_empty">
-      &lt;no control groups&gt;
-    </li>
+    <tr id="control_empty" class="group_empty">
+    <td colspan="5">
+          &lt;no control groups&gt;
+    </td>
+    </tr>
     [% END %]
-  </ul>
-  <p style="clear: both">
-    Add another group:
-    <select id="add_control">
-    [% FOR g = all_groups %]
-      <option value="[% g.id %]">[% g.name | html %]</option>
-    [% END %]
-    </select>
-    with
-    [%+ PROCESS control_select id='membercontrol_new' control=0 %] /
-    [%+ PROCESS control_select id='othercontrol_new' control=0 %]
-    <input type="button" value="Add &rarr;" onclick="addControlGroup()" />
-  </p>
+    </table>
 
-  <h3>Restrict bug entry to intersection of following groups:</h4>
-  [% PROCESS help_entry %]
-  [% PROCESS group_list name='entry' %]
+    <div id="control_add">
+        <a href="#" class="icon-add" onclick="addNewGroup(); return false;">Add new group</a>
 
-  <h3>Restrict editing and commenting bugs to:</h4>
-  [% PROCESS help_canedit %]
-  [% PROCESS group_list name='canedit' %]
+        <select id="etalon_groups">
+          [% FOR g = all_groups %]
+          <option value="[% g.id %]">[% g.name | html %]</option>
+          [% END %]
+        </select>
 
-  <h3>Allow product and component administration for members of any of the following groups:</h4>
-  [% PROCESS help_editcomponents %]
-  [% PROCESS group_list name='editcomponents' %]
+        [%+ PROCESS control_select id='etalon_control', control=0 %]
+    </div>
 
-  <h3>Allow to confirm bugs for:</h4>
-  [% PROCESS help_canconfirm %]
-  [% PROCESS group_list name='canconfirm' %]
+    <script language="JavaScript">
+        var count_rows = [% cnt_row %];
+    </script>
 
-  <h3>Allow to change any field of this product bugs for:</h4>
-  [% PROCESS help_editbugs %]
-  [% PROCESS group_list name='editbugs' %]
+    <div class="control_column_left">
+        <h3>Restrict bug entry to intersection of following groups:</h3>
+        [% PROCESS help_entry %]
+        [% PROCESS group_list name='entry' %]
 
-  <input type="submit" value="Save changes" />
+        <h3>Restrict editing and commenting bugs to:</h3>
+        [% PROCESS help_canedit %]
+        [% PROCESS group_list name='canedit' %]
+    </div>
+    <div class="control_column_right">
+        <h3>Allow product and component administration for members of any of the following groups:</h3>
+        [% PROCESS help_editcomponents %]
+        [% PROCESS group_list name='editcomponents' %]
 
+        <h3>Allow to confirm bugs for:</h3>
+        [% PROCESS help_canconfirm %]
+        [% PROCESS group_list name='canconfirm' %]
+
+        <h3>Allow to change any field of this product bugs for:</h3>
+        [% PROCESS help_editbugs %]
+        [% PROCESS group_list name='editbugs' %]
+    </div>
+
+    <div class="control_save">
+        <input type="submit" value="Save changes" />
+    </div>
 </form>
 
 [% BLOCK help_entry %]
@@ -300,6 +192,13 @@ in this group to edit all fields of [% terms.bugs %] in this product.
 [% END %]
 
 [% BLOCK help_control %]
+
+<p>
+  Help on Member/Other group control combinations:
+  <input type="button" id="control_help_btn" value="Show &#x25BE;" onclick="helpToggle(this.id, 'control_help')" />
+</p>
+
+<div id="control_help" class="help_popup" style="display: none">
 <p>
 Every bug can be 'placed' into number of groups. The more groups bug is placed in,
 the more secret it is.
@@ -452,6 +351,7 @@ for the <b>MemberControl</b> and <b>OtherControl</b> field settings.
 Attempting to submit a combination not listed there (e.g. Mandatory/NA,
 Default/Shown, etc.) will produce an error message.
 </p>
+</div>
 [% END %]
 
 [% PROCESS global/footer.html.tmpl %]
