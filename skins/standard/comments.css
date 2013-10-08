@@ -26,3 +26,5 @@
 #comments > table, .bz_section_additional_comments > table { table-layout: fixed; }
 
 .bz_textarea { width: 100%; height: 150px; }
+
+.edit_comment_submit { width: 100%; text-align: right; }

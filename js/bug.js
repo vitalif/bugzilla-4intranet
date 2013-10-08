@@ -390,6 +390,13 @@ function showEditComment(comment_id) {
                     textarea.name = 'edit_comment[' + comment_id + ']';
                     textarea.innerHTML = comment.rawtext;
                     parent.appendChild(textarea);
+                    var but_wrapper = document.createElement('div');
+                    but_wrapper.className = 'edit_comment_submit';
+                    var submit_but = document.createElement('input');
+                    submit_but.type = 'submit';
+                    submit_but.value = 'Save All Changes';
+                    but_wrapper.appendChild(submit_but);
+                    parent.appendChild(but_wrapper);
                 }
             }
         }
