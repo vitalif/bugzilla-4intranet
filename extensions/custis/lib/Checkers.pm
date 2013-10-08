@@ -124,8 +124,7 @@ sub show_checker_errors
 {
     my ($bugs) = @_;
     $bugs ||= Bugzilla->request_cache->{failed_checkers};
-    my $pass_chk = grep { $_->{passed_checkers} } @$bugs;
-    return if $pass_chk || !$bugs || !grep { grep { !$_->triggers } @{$_->{failed_checkers} || []} } @$bugs;
+    return if !grep { !$_->{passed_checkers} } @$bugs;
     if (Bugzilla->error_mode != ERROR_MODE_WEBPAGE) 
     {
         my $info = [
