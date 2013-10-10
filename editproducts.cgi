@@ -403,8 +403,8 @@ if ($action eq 'updategroupcontrols') {
         my $group_id = $group->id;
         $product->set_group_controls($group,
                                      {entry          => scalar $cgi->param("entry_$group_id") || 0,
-                                      membercontrol  => scalar %membercontrol_g->{$group_id} || CONTROLMAPNA,
-                                      othercontrol   => scalar %othercontrol_g->{$group_id} || CONTROLMAPNA,
+                                      membercontrol  => scalar $membercontrol_g{$group_id} || CONTROLMAPNA,
+                                      othercontrol   => scalar $othercontrol_g{$group_id} || CONTROLMAPNA,
                                       canedit        => scalar $cgi->param("canedit_$group_id") || 0,
                                       editcomponents => scalar $cgi->param("editcomponents_$group_id") || 0,
                                       editbugs       => scalar $cgi->param("editbugs_$group_id") || 0,
