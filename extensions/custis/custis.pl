@@ -40,6 +40,11 @@ my $OPTIONAL_MODULES =
         module  => 'LWP::MediaTypes',
         feature => 'Guessing attachment types',
     },
+    {
+        package => 'HTML-Strip',
+        module  => 'HTML::Strip',
+        feature => 'Handling inbound HTML email',
+    },
 ];
 
 required_modules('custis', $REQUIRED_MODULES);

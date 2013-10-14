@@ -39,6 +39,7 @@ use Email::Address;
 use Email::Reply qw(reply);
 use Email::MIME;
 use Email::MIME::Attachment::Stripper;
+use HTML::Strip;
 use Getopt::Long qw(:config bundling);
 use Pod::Usage;
 use Encode;
