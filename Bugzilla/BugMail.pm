@@ -633,6 +633,8 @@ sub sendMail
     push @watchingrel, 'None' unless @watchingrel;
     push @watchingrel, map { user_id_to_login($_) } @$watchingRef;
 
+    my @keywords_array = split(", ", $values{'keywords'});
+
     my $vars = {
         isnew              => $isnew,
         showfieldvalues    => \@showfieldvalues,
@@ -645,6 +647,7 @@ sub sendMail
         product            => $values{'product'},
         comp               => $values{'component'},
         keywords           => $values{'keywords'},
+        keywords_array     => \@keywords_array,
         severity           => $values{'bug_severity'},
         status             => $values{'bug_status'},
         priority           => $values{'priority'},
