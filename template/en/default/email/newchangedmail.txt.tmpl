@@ -153,7 +153,7 @@ body { font-family: Segoe UI, sans-serif; }
 [% ELSE %]
 <a style="font-size: 120%;" href="[%+ urlbase %]show_bug.cgi?id=[% bugid %][% IF new_comments AND new_comments.size > 0 %]#c[% new_comments.0.count %][% END %]">Bug [% bugid %] - [% summary | html %]</a>
 [% END %]
-<br><span style="font-size: 90%">(prod:[% product %].[% comp %], pri:[% priority %], sev:[% severity %], miles:[% targetmilestone %], keywords: [% keywords %])</span>
+<br><span style="font-size: 90%">(prod:[% product %].[% comp %], pri:[% priority %], sev:[% severity %], miles:[% targetmilestone %])</span>
 </p>
 
 <hr color="#A0A0A0" size="1" />
