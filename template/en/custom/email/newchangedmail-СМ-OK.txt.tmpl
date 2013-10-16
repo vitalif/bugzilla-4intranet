@@ -37,7 +37,7 @@ X-Priority: 1
 [% END %]
 X-Bugzilla-Product: [% product %]
 X-Bugzilla-Component: [% comp %]
-[% FOREACH keyword_item IN keywords.split(", ") %]
+[% FOREACH keyword_item = keywords.split(", ") %]
 X-Bugzilla-Keywords: [% keyword_item %]
 [% END%]
 X-Bugzilla-Severity: [% severity %]

@@ -115,16 +115,14 @@ sub MessageToMTA {
     # Encode the headers correctly in quoted-printable
     foreach my $header ($email->header_names) {
         my @values = $email->header($header);
-        # We don't recode headers that happen multiple times.
-        next if scalar(@values) > 1;
-        if (my $value = $values[0]) {
+        my @encoded_values;
+        foreach my $value (@values) {
             if (Bugzilla->params->{'utf8'} && !utf8::is_utf8($value)) {
                 utf8::decode($value);
             }
-
-            my $encoded = encode('MIME-B', $value);
-            $email->header_set($header, $encoded);
+            push @encoded_values, encode('MIME-B', $value);
         }
+        $email->header_set($header, @encoded_values);
     }
 
     my $from = $email->header('From');
