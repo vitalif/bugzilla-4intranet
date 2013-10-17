@@ -111,15 +111,6 @@ function deleteGroup(el_link, grp_id) {
     }
 }
 
-function existElement(el_id) {
-    var el = document.getElementById(el_id);
-    if (typeof (el) != undefined && typeof (el) != null && typeof (el) != 'undefined' && el !== null) {
-        return true;
-    } else {
-        return false;
-    }
-}
-
 function addNewGroup() {
     if (existElement("control_empty")) {
         var empty_el = document.getElementById('control_empty');

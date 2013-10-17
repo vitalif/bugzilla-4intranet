@@ -454,3 +454,12 @@ function AjaxLoader(url, callback)
     x.open('GET', url, true);
     x.send(null);
 }
+
+function existElement(el_id) {
+    var el = document.getElementById(el_id);
+    if (typeof (el) != undefined && typeof (el) != null && typeof (el) != 'undefined' && el !== null) {
+        return true;
+    } else {
+        return false;
+    }
+}
