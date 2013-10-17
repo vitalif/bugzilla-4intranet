@@ -230,22 +230,17 @@ function fieldBuglistAutocomplete(hint, field, emptyOptions)
     });
 } 
 
-function showFullComment(el_link, oper_id)
+function showFullComment(oper_id)
 {
-    var el_rem = document.getElementById("removed_" + oper_id);
-    var el_add = document.getElementById("added_" + oper_id);
-
-    if (el_rem.getAttribute('class') == "op_short_comment" || el_add.getAttribute('class') == "op_short_comment")
-    { 
-        el_rem.className = '';
-        el_add.className = '';
-        res = 'Hide';
-    }
-    else
+    if (existElement("removed_" + oper_id))
     {
-        el_rem.className = 'op_short_comment';
-        el_add.className = 'op_short_comment';
-        res = 'Show';
+        document.getElementById("removed_" + oper_id).style.display = 'none';
+        document.getElementById("text_removed_" + oper_id).style.display = '';
     }
-    op_short_comment.innerHTML = res + " full comment";
+    if (existElement("added_" + oper_id))
+    {
+        document.getElementById("added_" + oper_id).style.display = 'none';
+        document.getElementById("text_added_" + oper_id).style.display = '';
+    }
+    document.getElementById("link_" + oper_id).style.display = 'none';
 }

@@ -45,14 +45,6 @@
     script could not reliably determine are prefixed by '?'.
   </p>
 [% END %]
-<style>
-    .op_short_comment {
-        display: block;
-        height: 20px;
-        overflow: hidden;
-    }
-</style>
-
 [% IF operations.size > 0 %]
   <table border cellpadding="4" class=bz_emailprefs>
     <tr>
@@ -86,8 +78,8 @@
                 [% ELSE %]
                   Description
                 [% END %]
-                [% IF change.removed.length > 250 || change.added.length > 250 %]
-                <a href="#" onclick="showFullComment(this, '[% op_loop %]_[% loop.count %]'); return false;">Show full text</a>
+                [% IF change.removed.length > 85 || change.added.length > 85 %]
+                  <br/><a href="#" id="link_[% op_loop %]_[% loop.count %]" onclick="showFullComment('[% op_loop %]_[% loop.count %]'); return false;">Show full text</a>
                 [% END %]
               [% ELSE %]
                 [%+ field_descs.${change.fieldname} || Bugzilla.get_field(change.fieldname).description FILTER html %]
@@ -122,9 +114,12 @@
                change.fieldname == 'flagtypes.name' %]
         [% change_type FILTER email FILTER html %]
       [% ELSE %]
-        [% IF change_type.length > 250 %]
-            <div id="[% op_type %]_[% op_loop %]_[% op_count %]" class="op_short_comment">
-            [% change_type FILTER html %]
+        [% IF change_type.length > 85 %]
+            <div id="[% op_type %]_[% op_loop %]_[% op_count %]">
+            [% change_type.substr(0, 85) FILTER html %] <a href="#" onclick="showFullComment('[% op_loop %]_[% loop.count %]'); return false;">[...]</a></span>
+            </div>
+            <div id="text_[% op_type %]_[% op_loop %]_[% op_count %]" style="display: none;">
+                [% change_type FILTER html %]
             </div>
         [% ELSE %]
             [% change_type FILTER html %]
