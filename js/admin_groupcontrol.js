@@ -1,3 +1,5 @@
+var exist_changes = false;
+
 function helpToggle(btn_id, div_id)
 {
     var b = document.getElementById(btn_id);
@@ -55,10 +57,16 @@ function addListGroup(list_name)
         added_li.parentNode.removeChild(added_li);
     added_li = document.createElement('li');
     added_li.id = 'li_'+list_name+'_'+group_id;
+    var l = document.createElement('a');
+    l.className = 'icon-delete';
+    l.href = '#';
+    l.setAttribute('onclick', 'deleteGroupCheckbox(\'' + list_name + '_' + group_id + '\'); return false;');
+    added_li.appendChild(l);
     var e = document.createElement('input');
     e.type = 'checkbox';
     e.value = '1';
     e.checked = true;
+    e.style.display = 'none';
     e.name = e.id = list_name+'_'+group_id;
     added_li.appendChild(e);
     e = document.createElement('label');
@@ -67,6 +75,7 @@ function addListGroup(list_name)
     added_li.appendChild(e);
     var list = document.getElementById(list_name+'_list');
     list.appendChild(added_li);
+    highlightButton();
 }
 
 function clearSelectedOption(el) {
@@ -109,6 +118,7 @@ function deleteGroup(el_link, grp_id) {
         clearSelectedOption(el_othercontrol);
         el_link.innerHTML = 'Delete';
     }
+    highlightButton();
 }
 
 function addNewGroup() {
@@ -147,4 +157,29 @@ function addNewGroup() {
     new_control_2.innerHTML = etalon_control.innerHTML;
     cell_control_2.appendChild(new_control_2);
     count_rows++;
+    highlightButton();
+}
+
+function deleteGroupCheckbox(el_id) {
+    if (existElement("li_" + el_id)) {
+        var empty_el = document.getElementById("li_" + el_id);
+        empty_el.parentNode.removeChild(empty_el);
+    }
+    var params_arr = el_id.split('_');
+    var exsist_list = document.getElementById(params_arr[0] + '_list');
+    if (exsist_list.getElementsByTagName('li').length == 0) {
+        added_li = document.createElement('li');
+        added_li.id = 'li_' + params_arr[0] + '_empty';
+        added_li.className = 'group_empty';
+        added_li.innerHTML = '&lt;no groups&gt;';
+        exsist_list.appendChild(added_li);
+    }
+    highlightButton();
+}
+
+function highlightButton() {
+    if (!exist_changes) {
+        document.getElementById('submit_group_control').className = 'submit_highlight';
+        exist_changes = true;
+    }
 }

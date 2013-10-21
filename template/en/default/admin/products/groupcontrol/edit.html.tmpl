@@ -48,7 +48,8 @@
   [% IF group.$name %]
   [% foundone = 1 %]
   <li id="li_[% name %]_[% group.id %]">
-    <input type="checkbox" name="[% name %]_[% group.id %]" id="[% name %]_[% group.id %]" value="1" checked="checked" />
+    <a href="#" class="icon-delete" onclick="deleteGroupCheckbox('[% name %]_[% group.id %]'); return false;"></a>
+    <input type="checkbox" name="[% name %]_[% group.id %]" id="[% name %]_[% group.id %]" value="1" checked="checked" style="display: none;" />
     <label for="[% name %]_[% group.id %]">[% group.name | html %]</label>
   </li>
   [% END %]
@@ -148,7 +149,9 @@
     </div>
 
     <div class="control_save">
-        <input type="submit" value="Save changes" />
+        <span id="submit_group_control">
+            <input type="submit" value="Save changes" />
+        </span>
     </div>
 </form>
 
