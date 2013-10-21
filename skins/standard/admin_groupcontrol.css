@@ -10,7 +10,7 @@
   box-shadow: 0 5px 5px gray;
 }
 .group_list input, .group_list select { vertical-align: middle; }
-.group_list li { padding: 0.25em 0.5em; float: left;  }
+.group_list li { padding: 0.25em 0.5em; float: left; margin-right: 1em; }
 .group_empty { color: gray; }
 .help_popup
 {
@@ -40,8 +40,6 @@
 a.icon-delete {
     background: url('global/delete-icon.png') no-repeat center left;
     padding-left: 1.5em;
-    width: 80px;
-    display: inline-block;
 }
 
 a.icon-add {
@@ -74,5 +72,13 @@ a.icon-add {
     border-top: 1px dotted #000000;
     padding-top: 0.5em;
     clear: both;
-    
+}
+
+.submit_highlight {
+    border: solid 4px #ff0000;
+    padding: 3px;
+    border-radius: 4px;
+    width: auto;
+    margin: 5px 0px;
+    display: inline-block;
 }
