@@ -621,6 +621,7 @@ sub check_visibility
     my $vf = $self->visibility_field || return 1;
     my $m = $vf->name;
     my $value = blessed $bug ? $bug->$m : $bug->{$m};
+    return 1 unless $value;
     if (!blessed $value)
     {
         # FIXME: This does not allow selecting of fields
