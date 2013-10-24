@@ -77,6 +77,10 @@
 
 [% search_description %]
 
+[% IF bugs.size > 0 %]
+<br /><a href="enter_bug.cgi?[% urlquerypart | html %]">Create new [% terms.bug %] with the same fields</a>
+[% END %]
+
 <hr />
 
 [%############################################################################%]
@@ -133,6 +137,7 @@ function showbugcomma()
 
 [% IF bugs.size == 0 %]
   <ul class="zero_result_links">
+    <li><a href="enter_bug.cgi?[% urlquerypart | html %]">Create new [% terms.bug %] with the same fields</a></li>
     <li>[% PROCESS enter_bug_link %]</li>
     [% IF one_product.defined %]
       <li><a href="enter_bug.cgi">File a new [% terms.bug %] in a
