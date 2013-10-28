@@ -214,6 +214,15 @@ document.write(' <input type="button" name="check_all" value="Check All" onclick
   [% IF use_keywords %]
     <tr>
       <th>
+        <script type="text/javascript">
+        var emptyKeywordsOptions = "null";
+        addListener(window, 'load', function() {
+            new SimpleAutocomplete("keywords",
+                function(h) { keywordAutocomplete(h, emptyKeywordsOptions); },
+                { emptyText: 'No keywords found', multipleDelimiter: "," }
+            );
+        }); 
+        </script>
         <label for="keywords">
           <a href="describekeywords.cgi">Keywords</a>:
         </label>
