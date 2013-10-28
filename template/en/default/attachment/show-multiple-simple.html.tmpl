@@ -21,7 +21,7 @@
     [% IF (show_obsolete && a.isobsolete) || !a.isobsolete %]
     <li>
       [% IF a.isobsolete %]<strike>[% END %]
-      <a href="attachment.cgi?id=[% a.id %]&amp;action=edit">
+      <a href="attachment.cgi?id=[% a.id %]">
         [% a.description FILTER html %]
       </a>
       [% IF a.isobsolete %]</strike>[% END %]
