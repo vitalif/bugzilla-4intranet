@@ -124,9 +124,6 @@ sub db_schema_abstract_schema
     # Bug 73054 - Возможность автоматического добавления значений полей типа Bug ID в зависимости бага
     push @{$schema->{fielddefs}->{FIELDS}}, add_to_deps => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0};
 
-    # Merge with bugzilla 4 - add column reverse_desc
-    push @{$schema->{fielddefs}->{FIELDS}}, reverse_desc => {TYPE => 'LONGTEXT'};
-
     # Bug 68921 - Предикаты корректности из запросов поиска
     # Bug 108088 - Триггеры (пока поддерживается только 1 триггер: добавление CC)
     $schema->{checkers} = {
@@ -177,7 +174,7 @@ sub install_update_db
     my ($args) = @_;
 
     my $dbh = Bugzilla->dbh;
-
+  
     # Перенос CC по умолчанию из нашей доработки initialcclist в нормальный механизм component_cc
     my $ccour = $dbh->bz_column_info('components', 'initialcclist');
 
@@ -453,9 +450,6 @@ sub install_update_fielddefs
 
     # Bug 73054 - Возможность автоматического добавления значений полей типа Bug ID в зависимости бага
     $dbh->bz_add_column('fielddefs', add_to_deps => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0});
-
-    # Merge with bugzilla 4 - add column reverse_desc
-    $dbh->bz_add_column('fielddefs', reverse_desc => {TYPE => 'LONGTEXT'});
 
     # Bug 70605 - Делаем вид, что изменили какое-то поле, чтобы при checksetup автоматически сбросился кэш
     $dbh->do('UPDATE fielddefs SET delta_ts=NOW() WHERE name=\'delta_ts\'');
