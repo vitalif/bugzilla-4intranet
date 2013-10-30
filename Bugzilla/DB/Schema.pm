@@ -361,6 +361,10 @@ use constant ABSTRACT_SCHEMA => {
                                              COLUMN =>  'id'}},
             added     => {TYPE => 'varchar(255)'},
             removed   => {TYPE => 'TINYTEXT'},
+            comment_id => {TYPE => 'INT3', 
+                           REFERENCES => { TABLE  => 'longdescs',
+                                           COLUMN => 'comment_id',
+                                           DELETE => 'CASCADE'}},
         ],
         INDEXES => [
             bugs_activity_bug_id_idx  => ['bug_id'],
@@ -700,6 +704,7 @@ use constant ABSTRACT_SCHEMA => {
             value_field_id => {TYPE => 'INT3',
                                REFERENCES => {TABLE  => 'fielddefs',
                                               COLUMN => 'id'}},
+            reverse_desc => {TYPE => 'TINYTEXT'},
         ],
         INDEXES => [
             fielddefs_name_idx    => {FIELDS => ['name'],

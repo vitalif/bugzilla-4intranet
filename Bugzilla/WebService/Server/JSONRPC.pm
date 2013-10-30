@@ -27,13 +27,8 @@ use base qw(JSON::RPC::Legacy::Server::CGI Bugzilla::WebService::Server);
 use Bugzilla::Error;
 use Bugzilla::WebService::Constants;
 use Bugzilla::WebService::Util qw(taint_data);
-use Bugzilla::Util qw(correct_urlbase trim);
-
+use Bugzilla::Util qw(datetime_from correct_urlbase trim);
 use MIME::Base64 qw(decode_base64 encode_base64);
-
-#####################################
-# Public JSON::RPC Method Overrides #
-#####################################
 
 sub new {
     my $class = shift;
@@ -193,7 +188,7 @@ sub type {
     }
     elsif ($type eq 'dateTime') {
         # ISO-8601 "YYYYMMDDTHH:MM:SS" with a literal T
-        $retval = $self->datetime_format_outbound($value);
+        $retval = $self->datetime_format($value);
     }
     elsif ($type eq 'base64') {
         utf8::encode($value) if utf8::is_utf8($value);
@@ -203,11 +198,18 @@ sub type {
     return $retval;
 }
 
-sub datetime_format_outbound {
-    my $self = shift;
-    # YUI expects ISO8601 in UTC time; including TZ specifier
-    return $self->SUPER::datetime_format_outbound(@_) . 'Z';
+sub datetime_format {
+    my ($self, $date_string) = @_;
+
+    # YUI expects ISO8601 in UTC time; uncluding TZ specifier
+    my $time = datetime_from($date_string, 'UTC');
+    my $iso_datetime = $time->iso8601() . 'Z';
+    return $iso_datetime;
 }
+
+##################
+# Login Handling #
+##################
 
 sub handle_login {
     my $self = shift;
@@ -372,9 +374,24 @@ sub _argument_type_check {
     return $params;
 }
 
-##########################
-# Private Custom Methods #
-##########################
+sub _bz_convert_datetime {
+    my ($self, $time) = @_;
+    
+    my $converted = datetime_from($time, Bugzilla->local_timezone);
+    $time = $converted->ymd() . ' ' . $converted->hms();
+    return $time
+}
+
+sub handle_login {
+    my $self = shift;
+
+    my $path = $self->path_info;
+    my $class = $self->{dispatch_path}->{$path};
+    my $full_method = $self->_bz_method_name;
+    $full_method =~ /^\S+\.(\S+)/;
+    my $method = $1;
+    $self->SUPER::handle_login($class, $method, $full_method);
+}
 
 # _bz_method_name is stored by _find_procedure for later use.
 sub _bz_method_name {

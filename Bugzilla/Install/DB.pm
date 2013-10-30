@@ -104,6 +104,10 @@ sub update_fielddefs_definition {
         $dbh->do('UPDATE fielddefs SET buglist = 1 WHERE custom = 1 AND type != ' . FIELD_TYPE_MULTI_SELECT);
     }
 
+    #2008-08-26 elliotte_martin@yahoo.com - Bug 251556
+    $dbh->bz_add_column('fielddefs', 'reverse_desc', {TYPE => 'TINYTEXT'});
+
+
     # Remember, this is not the function for adding general table changes.
     # That is below. Add new changes to the fielddefs table above this
     # comment.
@@ -610,6 +614,9 @@ sub update_table_definitions {
     _convert_flagtypes_fks_to_set_null();
     _fix_decimal_types();
     _fix_series_creator_fk();
+
+    # 2009-11-14 dkl@redhat.com - Bug 310450
+    $dbh->bz_add_column('bugs_activity', 'comment_id', {TYPE => 'INT3'});
 
     ################################################################
     # New --TABLE-- changes should go *** A B O V E *** this point #

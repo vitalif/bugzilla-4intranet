@@ -164,8 +164,7 @@ function showHideStatusItems(is_duplicate, initial_status)
         // by "resolution" behave properly when resolution is hidden.
         var resolution = document.getElementById('resolution');
         if (resolution && resolution.options[0].value != '' &&
-            resolution.options[0].value != '--do_not_change--')
-        {
+            resolution.options[0].value != '--do_not_change--') {
             resolution.bz_lastSelected = resolution.selectedIndex;
             var emptyOption = new Option('', '');
             resolution.insertBefore(emptyOption, resolution.options[0]);

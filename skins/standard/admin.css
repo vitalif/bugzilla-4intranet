@@ -117,3 +117,15 @@ th.title {
 blockquote table {
     border-collapse: collapse;
 }
+
+#edit_custom_field tr {
+    vertical-align: top;
+}
+
+#edit_custom_field th {
+    text-align: right;
+}
+
+#edit_custom_field th.narrow_label {
+    white-space: normal;
+}

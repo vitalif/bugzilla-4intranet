@@ -25,6 +25,7 @@
 #                 Max Kanat-Alexander <mkanat@bugzilla.org>
 #                 Frédéric Buclin <LpSolit@gmail.com>
 #                 Lance Larsh <lance.larsh@oracle.com>
+#                 Elliotte Martin <elliotte_martin@yahoo.com>
 
 package Bugzilla::Bug;
 
@@ -1039,6 +1040,7 @@ sub update
         }
     }
 
+    # Comment Privacy
     foreach my $comment_id (keys %{$self->{comment_isprivate} || {}})
     {
         $dbh->do("UPDATE longdescs SET isprivate = ? WHERE comment_id = ?",
@@ -2178,25 +2180,42 @@ sub _check_bugid_field
 {
     my ($invocant, $value, $field) = @_;
     return undef if !$value;
-    my $r;
-    if (ref $invocant && $invocant->{$field} eq $value)
-    {
-        # If there is no change, do not check the bug id, as it may be invisible for current user
-        $r = $invocant->{$field};
+    
+    # check that the value is a valid, visible bug id
+    my $checked_id = $invocant->check($value, $field)->id;
+    
+    # check for loop (can't have a loop if this is a new bug)
+    if (ref $invocant) {
+        _check_relationship_loop($field, $invocant->bug_id, $checked_id);
     }
-    else
-    {
-        $r = $invocant->check($value, $field)->id;
+
+    return $checked_id;
+}
+
+sub _check_relationship_loop {
+    # Generates a dependency tree for a given bug.  Calls itself recursively
+    # to generate sub-trees for the bug's dependencies.
+    my ($field, $bug_id, $dep_id, $ids) = @_;
+
+    # Don't do anything if this bug doesn't have any dependencies.
+    return unless defined($dep_id);
+
+    # Check whether we have seen this bug yet
+    $ids = {} unless defined $ids;
+    $ids->{$bug_id} = 1;
+    if ($ids->{$dep_id}) {
+        ThrowUserError("relationship_loop_single", {
+            'bug_id' => $bug_id,
+            'dep_id' => $dep_id,
+            'field_name' => $field});
     }
-    # Check if the field is not visible anymore
-    # + Optionally add to dependencies
-    # FIXME probably move it somewhere
-    if (Bugzilla->get_field($field)->visibility_field_id ||
-        Bugzilla->get_field($field)->add_to_deps)
-    {
-        $invocant->dependent_validators->{$field} = $r;
-    }
-    return $r;
+    
+    # Get this dependency's record from the database
+    my $dbh = Bugzilla->dbh;
+    my $next_dep_id = $dbh->selectrow_array(
+        "SELECT $field FROM bugs WHERE bug_id = ?", undef, $dep_id);
+
+    _check_relationship_loop($field, $dep_id, $next_dep_id, $ids);
 }
 
 #####################################################################
@@ -2995,6 +3014,15 @@ sub bug_id { $_[0]->{'bug_id'}; }
 
 sub failed_checkers { $_[0]->{failed_checkers} }
 
+sub related_bugs {
+    my ($self, $relationship) = @_;
+    return [] if $self->{'error'};
+
+    my $field_name = $relationship->name;
+    $self->{'related_bugs'}->{$field_name} ||= $self->match({$field_name => $self->id});
+    return $self->{'related_bugs'}->{$field_name}; 
+}
+
 sub cc {
     my ($self) = @_;
     return $self->{'cc'} if exists $self->{'cc'};
@@ -3641,7 +3669,14 @@ sub GetBugActivity {
             || $fieldname eq 'deadline')
         {
             $activity_visible = Bugzilla->user->is_timetracker;
-        } else {
+        }
+        elsif ($fieldname eq 'longdescs.isprivate'
+                && !Bugzilla->user->is_insider 
+                && $added) 
+        { 
+            $activity_visible = 0;
+        } 
+        else {
             $activity_visible = 1;
         }
 
@@ -3712,8 +3747,7 @@ sub SilentLog
 }
 
 # Update the bugs_activity table to reflect changes made in bugs.
-sub LogActivityEntry
-{
+sub LogActivityEntry {
     my ($bug_id, $col, $removed, $added, $whoid, $timestamp, $attach_id) = @_;
     my $f = Bugzilla->get_field($col);
     if (!$f->{has_activity})
@@ -3747,11 +3781,12 @@ sub LogActivityEntry
         }
         trick_taint($addstr);
         trick_taint($removestr);
-        $dbh->do(
-            "INSERT INTO bugs_activity (bug_id, who, bug_when, fieldid, removed, added, attach_id)".
-            " VALUES (?, ?, ".($timestamp ? "?" : "NOW()").", ?, ?, ?, ?)", undef,
-            $bug_id, $whoid, ($timestamp ? ($timestamp) : ()), $f->id, $removestr, $addstr, $attach_id
-        );
+        $dbh->do("INSERT INTO bugs_activity
+                   (bug_id, who, bug_when, fieldid, removed, added, attach_id)".
+                    " VALUES (?, ?, ".($timestamp ? "?" : "NOW()").", ?, ?, ?, ?)", 
+                    undef, $bug_id, $whoid, ($timestamp ? ($timestamp) : ()), 
+                    $f->id, $removestr, $addstr, $attach_id
+                );
     }
 }
 
