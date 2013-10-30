@@ -17,6 +17,12 @@ clear_hooks('custishacks');
 set_hook('custishacks', 'db_schema_abstract_schema', 'CustisHacks::db_schema_abstract_schema');
 set_hook('custishacks', 'install_update_db', 'CustisHacks::install_update_db');
 
+if (Bugzilla->installation_mode) {
+    set_hook('custishacks', 'install_update_db', 'CustisHacks::update_cf_wbs');
+} else {
+    CustisHacks::update_cf_wbs();
+}
+
 # Search column
 set_hook('custishacks', 'buglist_static_columns', 'CustisHacks::buglist_static_columns');
 
