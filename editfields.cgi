@@ -121,7 +121,7 @@ elsif ($action eq 'update')
         $field->set_value_field($cgi->param('value_field_id'));
         $field->set_add_to_deps($cgi->param('add_to_deps'));
     }
-    $field->set_reverse_desc($cgi->param('reverse_desc'))
+    $field->set_reverse_desc($cgi->param('reverse_desc'));
     $field->update();
 
     delete_token($token);
