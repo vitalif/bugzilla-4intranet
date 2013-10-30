@@ -5,6 +5,7 @@ use strict;
 use Bugzilla;
 use Bugzilla::Hook;
 use Bugzilla::Extension;
+use CustisHacks;
 
 my $REQUIRED_MODULES = [];
 my $OPTIONAL_MODULES = [];
@@ -20,7 +21,7 @@ set_hook('custishacks', 'install_update_db', 'CustisHacks::install_update_db');
 if (Bugzilla->installation_mode) {
     set_hook('custishacks', 'install_update_db', 'CustisHacks::update_cf_wbs');
 } else {
-    CustisHacks::update_cf_wbs();
+    CustisHacks->update_cf_wbs();
 }
 
 # Search column
