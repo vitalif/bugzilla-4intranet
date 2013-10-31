@@ -118,76 +118,36 @@ if ($userid)
     );
 }
 
-local our %default;
+my $default = {};
 
-# We pass the defaults as a hash of references to arrays. For those
-# Items which are single-valued, the template should only reference [0]
-# and ignore any multiple values.
-sub PrefillForm {
-    my ($buf) = (@_);
-    my $cgi = Bugzilla->cgi;
-    $buf = new Bugzilla::CGI($buf);
-    my $foundone = 0;
+# Nothing must be undef, otherwise the template complains.
+my @list = qw(
+    bug_status resolution assigned_to
+    rep_platform priority bug_severity
+    classification product reporter op_sys
+    component version target_milestone
+    chfield chfieldfrom chfieldto chfieldwho chfieldvalue
+    email emailtype emailreporter
+    emailassigned_to emailcc emailqa_contact
+    emaillongdesc content
+    changedin votes short_desc short_desc_type
+    longdesc longdesc_type bug_file_loc
+    bug_file_loc_type status_whiteboard
+    status_whiteboard_type bug_id
+    bug_id_type keywords keywords_type
+    deadlinefrom deadlineto
+    x_axis_field y_axis_field z_axis_field
+    chart_format cumulate x_labels_vertical
+    category subcategory name newcategory
+    newsubcategory public frequency
+);
 
-    # Nothing must be undef, otherwise the template complains.
-    my @list = ("bug_status", "resolution", "assigned_to",
-                      "rep_platform", "priority", "bug_severity",
-                      "classification", "product", "reporter", "op_sys",
-                      "component", "version", "chfield", "chfieldfrom",
-                      "chfieldto", "chfieldvalue", "target_milestone",
-                      "email", "emailtype", "emailreporter",
-                      "emailassigned_to", "emailcc", "emailqa_contact",
-                      "emaillongdesc", "content",
-                      "changedin", "short_desc", "short_desc_type",
-                      "longdesc", "longdesc_type", "bug_file_loc",
-                      "bug_file_loc_type", "status_whiteboard",
-                      "status_whiteboard_type", "bug_id",
-                      "bug_id_type", "keywords", "keywords_type",
-                      "deadlinefrom", "deadlineto",
-                      "x_axis_field", "y_axis_field", "z_axis_field",
-                      "chart_format", "cumulate", "x_labels_vertical",
-                      "category", "subcategory", "name", "newcategory",
-                      "newsubcategory", "public", "frequency");
-    # These fields can also have default values (when used in reports).
-    my @custom_select_fields =
-      grep { $_->type == FIELD_TYPE_SINGLE_SELECT } Bugzilla->active_custom_fields;
-    push(@list, map { $_->name } @custom_select_fields);
-
-    foreach my $name (@list) {
-        $default{$name} = [];
-    }
- 
-    # we won't prefill the boolean chart data from this query if
-    # there are any being submitted via params
-    my $prefillcharts = (grep(/^field-/, $cgi->param)) ? 0 : 1;
- 
-    # Iterate over the URL parameters
-    foreach my $name ($buf->param()) {
-        my @values = $buf->param($name);
-
-        # If the name begins with the string 'field', 'type', 'value', or
-        # 'negate', then it is part of the boolean charts. Because
-        # these are built different than the rest of the form, we need
-        # to store these as parameters. We also need to indicate that
-        # we found something so the default query isn't added in if
-        # all we have are boolean chart items.
-        if ($name =~ m/^(?:field|type|value|negate)/) {
-            $cgi->param(-name => $name, -value => $values[0]) if ($prefillcharts);
-            $foundone = 1;
-        }
-        # If the name ends in a number (which it does for the fields which
-        # are part of the email searching), we use the array
-        # positions to show the defaults for that number field.
-        elsif ($name =~ m/^(.+)(\d)$/ && defined($default{$1})) {
-            $foundone = 1;
-            $default{$1}->[$2] = $values[0];
-        }
-        elsif (exists $default{$name}) {
-            $foundone = 1;
-            push (@{$default{$name}}, @values);
-        }
-    }
-    return $foundone;
+# These fields can also have default values (when used in reports).
+# CustIS Bug 58300 - Add custom field to search filters
+for my $field (Bugzilla->active_custom_fields)
+{
+    push @list, $field->name;
+    push @list, $field->name . '_type';
 }
 
 foreach my $name (@list)
