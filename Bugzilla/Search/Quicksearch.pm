@@ -338,6 +338,7 @@ sub _handle_special_first_chars {
 }
 
 sub _handle_field_names {
+    my $self = shift;
     my ($or_operand, $negate, $unknownFields, $ambiguous_fields) = @_;
     
     # Flag and requestee shortcut

@@ -236,8 +236,8 @@ sub _throw_error
                                     { error_map => \%error_map });
             my $code = $error_map{$error};
             if (!$code) {
-                $code = ERROR_UNKNOWN_FATAL if $name =~ /code/i;
-                $code = ERROR_UNKNOWN_TRANSIENT if $name =~ /user/i;
+                $code = ERROR_UNKNOWN_FATAL if $type =~ /code/i;
+                $code = ERROR_UNKNOWN_TRANSIENT if $type =~ /user/i;
             }
 
             if (Bugzilla->error_mode == ERROR_MODE_DIE_SOAP_FAULT) {
@@ -254,22 +254,6 @@ sub _throw_error
                 # it checks $@, so it returns the proper error.
                 die;
             }
-        }
-        else {
-            my $server = Bugzilla->_json_server;
-            # Technically JSON-RPC isn't allowed to have error numbers
-            # higher than 999, but we do this to avoid conflicts with
-            # the internal JSON::RPC error codes.
-            $server->raise_error(code    => 100000 + $code,
-                                 message => $message,
-                                 id      => $server->{_bz_request_id},
-                                 version => $server->version);
-            # Most JSON-RPC Throw*Error calls happen within an eval inside
-            # of JSON::RPC. So, in that circumstance, instead of exiting,
-            # we die with no message. JSON::RPC checks raise_error before
-            # it checks $@, so it returns the proper error.
-            die if _in_eval();
-            $server->response($server->error_response_header);
         }
     }
     elsif ($mode == ERROR_MODE_AJAX)
@@ -291,20 +275,17 @@ sub _throw_error
     exit;
 }
 
-sub ThrowUserError
-{
-    _throw_error('user', @_);
-}
-
-sub ThrowCodeError
-{
+sub ThrowCodeError {
     _throw_error('code', @_);
 }
 
-sub ThrowTemplateError
-{
+sub ThrowTemplateError {
     my ($template_err) = @_;
     _throw_error('code', 'template_error', { template_error_msg => "$template_err" });
+}
+
+sub ThrowUserError {
+    _throw_error('user', @_);
 }
 
 1;

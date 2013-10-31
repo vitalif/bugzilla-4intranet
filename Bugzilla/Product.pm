@@ -17,7 +17,6 @@
 
 package Bugzilla::Product;
 use strict;
-use base qw(Bugzilla::Field::ChoiceInterface Bugzilla::Object);
 
 use Bugzilla::Constants;
 use Bugzilla::Util;
@@ -34,6 +33,7 @@ use Bugzilla::Series;
 use Bugzilla::FlagType::UserList;
 use Bugzilla::Hook;
 
+use base qw(Bugzilla::Field::ChoiceInterface Bugzilla::Object);
 use Scalar::Util qw(blessed);
 
 use constant DEFAULT_CLASSIFICATION_ID => 1;
