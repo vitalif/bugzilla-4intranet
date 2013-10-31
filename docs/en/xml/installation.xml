@@ -367,7 +367,8 @@
 
         <listitem>
           <para>
-            Template (&min-template-ver;)
+            <link linkend="install-modules-template">Template</link>
+            (&min-template-ver;)
           </para>
         </listitem>
 
@@ -460,6 +461,20 @@
         <listitem>
           <para>
             SOAP::Lite (&min-soap-lite-ver;) for the web service interface
+          </para>
+        </listitem>
+
+        <listitem>
+          <para>
+            JSON::RPC
+            (&min-json-rpc-ver;) for the JSON-RPC interface
+          </para>
+        </listitem>
+
+        <listitem>
+          <para>
+            Test::Taint
+            (&min-test-taint-ver;) for the web service interface
           </para>
         </listitem>
 

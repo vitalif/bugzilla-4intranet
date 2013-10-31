@@ -659,12 +659,10 @@ sub sendMail
     };
 
     my $msg;
-    my $tmpl = '';
-
     my $template = Bugzilla->template_inner($user->settings->{lang}->{value});
     Bugzilla::Hook::process('bugmail-pre_template', { tmpl => \$tmpl, vars => $vars });
-    $tmpl = "email/newchangedmail.txt.tmpl" unless $template->template_exists($tmpl);
-    $template->process($tmpl, $vars, \$msg) || ThrowTemplateError($template->error());
+    $template->process("email/newchangedmail.txt.tmpl", $vars, \$msg)
+      || ThrowTemplateError($template->error());
     Bugzilla->template_inner("");
 
     MessageToMTA($msg);

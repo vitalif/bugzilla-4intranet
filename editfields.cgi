@@ -68,7 +68,7 @@ elsif ($action eq 'new')
         clone_bug   => scalar $cgi->param('clone_bug'),
         obsolete    => scalar $cgi->param('obsolete'),
         custom      => 1,
-        buglist     => 1, # FIXME remove non-editable 'buglist' field spec
+        buglist     => 1,
         visibility_field_id => scalar $cgi->param('visibility_field_id'),
         value_field_id => scalar $cgi->param('value_field_id'),
         add_to_deps => scalar $cgi->param('add_to_deps'),

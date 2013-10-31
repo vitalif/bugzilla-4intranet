@@ -220,8 +220,7 @@ sub DotInto
 # The dot mapdata lines have the following format (\nsummary is optional):
 # rectangle (LEFTX,TOPY) (RIGHTX,BOTTOMY) URLBASE/show_bug.cgi?id=BUGNUM BUGNUM[\nSUMMARY]
 
-sub CreateImagemap
-{
+sub CreateImagemap {
     my ($mapfilename, $mapid, $bugtitles) = @_;
     $mapid ||= 'imagemap';
     my $map = "<map name=\"$mapid\">\n";

@@ -41,6 +41,35 @@
 [% field_descs.assigned_to_realname = field_descs.assigned_to %]
 [% field_descs.reporter_realname    = field_descs.reporter    %]
 [% field_descs.qa_contact_realname  = field_descs.qa_contact  %]
+
+[% abbrev = 
+  {
+    "bug_severity"         => { maxlength => 3 , title => "Sev" } , 
+    "priority"             => { maxlength => 3 , title => "Pri" } , 
+    "rep_platform"         => { maxlength => 3 , title => "Plt" } , 
+    "bug_status"           => { maxlength => 4 } , 
+    "assigned_to"          => { maxlength => 30 , ellipsis => "..." } , 
+    "assigned_to_realname" => { maxlength => 20 , ellipsis => "..." } , 
+    "reporter"             => { maxlength => 30 , ellipsis => "..." } , 
+    "reporter_realname"    => { maxlength => 20 , ellipsis => "..." } , 
+    "qa_contact"           => { maxlength => 30 , ellipsis => "..." , title => "QAContact" } , 
+    "qa_contact_realname"  => { maxlength => 20 , ellipsis => "..." , title => "QAContact" } , 
+    "resolution"        => { maxlength => 4 } , 
+    "short_desc"        => { wrap => 1 } ,
+    "short_short_desc"  => { maxlength => 60 , ellipsis => "..." , wrap => 1 } ,
+    "status_whiteboard" => { title => "Whiteboard" , wrap => 1 } , 
+    "keywords"          => { wrap => 1 } ,
+    "flagtypes.name"    => { wrap => 1 } ,
+    "component"         => { maxlength => 8 , title => "Comp" } , 
+    "product"           => { maxlength => 8 } , 
+    "version"           => { maxlength => 5 , title => "Vers" } , 
+    "op_sys"            => { maxlength => 4 } , 
+    "bug_file_loc"      => { maxlength => 30 } , 
+    "target_milestone"  => { title => "TargetM" } , 
+    "percentage_complete" => { format_value => "%d %%" } , 
+  }
+%]
+
 [% PROCESS bug/time.html.tmpl %]
 
 [% Hook.process("before_table") %]

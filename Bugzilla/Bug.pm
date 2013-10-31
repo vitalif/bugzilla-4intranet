@@ -51,7 +51,7 @@ use Bugzilla::Group;
 use Bugzilla::Status;
 use Bugzilla::Comment;
 
-use List::Util qw(min);
+use List::Util qw(min first);
 use Storable qw(dclone);
 use URI;
 use URI::QueryParam;
@@ -2703,11 +2703,9 @@ sub add_group {
     return if !$group->is_active or !$group->is_bug_group;
 
     # Make sure that bugs in this product can actually be restricted
-    # to this group.
-    grep($group->id == $_->id, @{$self->product_obj->groups_valid})
-        # But during product change, verification happens anyway in update().
-        || $self->{_old_product_name}
-        || ThrowUserError('group_invalid_restriction',
+    # to this group by the current user.
+    $self->product_obj->group_is_settable($group)
+         || ThrowUserError('group_invalid_restriction',
                 { product => $self->product, group_id => $group->id });
 
     # OtherControl people can add groups only during a product change,
@@ -2734,12 +2732,14 @@ sub remove_group {
     return unless $group;
 
     # First, check if this is a valid group for this product.
-    # You can *always* remove a group that is not valid for this product, so
-    # we don't do any other checks if that's the case. (set_product does this.)
+    # You can *always* remove a group that is not valid for this product
+    # or that is not active, so we don't do any other checks if either of
+    # those are the case. (Users might remove inactive groups, and set_product
+    # removes groups that aren't valid for this product.)
     #
     # This particularly happens when isbuggroup is no longer 1, and we're
     # moving a bug to a new product.
-    if (grep($_->id == $group->id, @{$self->product_obj->groups_valid})) {
+    if ($group->is_active and $self->product_obj->group_is_valid($group)) {
         my $controls = $self->product_obj->group_controls->{$group->id};
 
         # Nobody can ever remove a Mandatory group.
@@ -2819,40 +2819,17 @@ sub add_see_also {
         if ($uri->path =~ m|^/p/([^/]+)/issues/detail$|) {
             $project_name = $1;
         } else {
-            ThrowUserError('bug_url_invalid',
-                           { url => $input });
+            ThrowUserError('bug_url_invalid', { url => $input });
         }
         my $bug_id = $uri->query_param('id');
         detaint_natural($bug_id);
         if (!$bug_id) {
-            ThrowUserError('bug_url_invalid',
-                           { url => $input, reason => 'id' });
+            ThrowUserError('bug_url_invalid', { url => $input, reason => 'id' });
         }
         # While Google Code URLs can be either HTTP or HTTPS,
         # always go with the HTTP scheme, as that's the default.
         $result = "http://code.google.com/p/" . $project_name .
                   "/issues/detail?id=" . $bug_id;
-    }
-    # Debian BTS URLs
-    elsif ($uri->authority =~ /^bugs.debian.org$/i) {
-        # Debian BTS URLs can look like various things:
-        #   http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1234
-        #   http://bugs.debian.org/1234
-        my $bug_id;
-        if ($uri->path =~ m|^/(\d+)$|) {
-            $bug_id = $1;
-        }
-        elsif ($uri->path =~ /bugreport\.cgi$/) {
-            $bug_id = $uri->query_param('bug');
-            detaint_natural($bug_id);
-        }
-        if (!$bug_id) {
-            ThrowUserError('bug_url_invalid',
-                           { url => $input, reason => 'id' });
-        }
-        # This is the shortest standard URL form for Debian BTS URLs,
-        # and so we reduce all URLs to this.
-        $result = "http://bugs.debian.org/" . $bug_id;
     }
     # Bugzilla URLs
     else {
@@ -3841,6 +3818,20 @@ sub check_can_change_field {
         return 1;
     }
 
+    my @priv_results;
+    Bugzilla::Hook::process('bug_check_can_change_field',
+        { bug => $self, field => $field, 
+          new_value => $newvalue, old_value => $oldvalue, 
+          priv_results => \@priv_results });
+    if (my $priv_required = first { $_ > 0 } @priv_results) {
+        $$PrivilegesRequired = $priv_required;
+        return 0;
+    }
+    my $allow_found = first { $_ == 0 } @priv_results;
+    if (defined $allow_found) {
+        return 1;
+    }
+
     # Allow anyone to change comments.
     if ($field =~ /^longdesc/) {
         return 1;
@@ -3850,15 +3841,15 @@ sub check_can_change_field {
     # We store the required permission set into the $PrivilegesRequired
     # variable which gets passed to the error template.
     #
-    # $PrivilegesRequired = 0 : no privileges required;
-    # $PrivilegesRequired = 1 : the reporter, assignee or an empowered user;
-    # $PrivilegesRequired = 2 : the assignee or an empowered user;
-    # $PrivilegesRequired = 3 : an empowered user.
-
+    # $PrivilegesRequired = PRIVILEGES_REQUIRED_NONE : no privileges required;
+    # $PrivilegesRequired = PRIVILEGES_REQUIRED_REPORTER : the reporter, assignee or an empowered user;
+    # $PrivilegesRequired = PRIVILEGES_REQUIRED_ASSIGNEE : the assignee or an empowered user;
+    # $PrivilegesRequired = PRIVILEGES_REQUIRED_EMPOWERED : an empowered user.
+    
     # Only users in the time-tracking group can change time-tracking fields.
     if ( grep($_ eq $field, qw(deadline estimated_time remaining_time)) ) {
         if (!$user->is_timetracker) {
-            $$PrivilegesRequired = 3;
+            $$PrivilegesRequired = PRIVILEGES_REQUIRED_EMPOWERED;
             return 0;
         }
     }
@@ -3870,7 +3861,7 @@ sub check_can_change_field {
 
     # *Only* users with (product-specific) "canconfirm" privs can confirm bugs.
     if ($self->_changes_everconfirmed($field, $oldvalue, $newvalue)) {
-        $$PrivilegesRequired = 3;
+        $$PrivilegesRequired = PRIVILEGES_REQUIRED_EMPOWERED;
         return $user->in_group('canconfirm', $self->{'product_id'});
     }
 
@@ -3901,36 +3892,36 @@ sub check_can_change_field {
     #   in that case we will have already returned 1 above
     #   when checking for the assignee of the bug.
     if ($field eq 'assigned_to') {
-        $$PrivilegesRequired = 2;
+        $$PrivilegesRequired = PRIVILEGES_REQUIRED_ASSIGNEE;
         return 0;
     }
     # - change the QA contact
     if ($field eq 'qa_contact') {
-        $$PrivilegesRequired = 2;
+        $$PrivilegesRequired = PRIVILEGES_REQUIRED_ASSIGNEE;
         return 0;
     }
     # - change the target milestone
     if ($field eq 'target_milestone') {
-        $$PrivilegesRequired = 2;
+        $$PrivilegesRequired = PRIVILEGES_REQUIRED_ASSIGNEE;
         return 0;
     }
     # - change the priority (unless he could have set it originally)
     if ($field eq 'priority'
         && !Bugzilla->params->{'letsubmitterchoosepriority'})
     {
-        $$PrivilegesRequired = 2;
+        $$PrivilegesRequired = PRIVILEGES_REQUIRED_ASSIGNEE;
         return 0;
     }
     # - unconfirm bugs (confirming them is handled above)
     if ($field eq 'everconfirmed') {
-        $$PrivilegesRequired = 2;
+        $$PrivilegesRequired = PRIVILEGES_REQUIRED_ASSIGNEE;
         return 0;
     }
     # - change the status from one open state to another
     if ($field eq 'bug_status'
         && is_open_state($oldvalue) && is_open_state($newvalue))
     {
-       $$PrivilegesRequired = 2;
+       $$PrivilegesRequired = PRIVILEGES_REQUIRED_ASSIGNEE;
        return 0;
     }
 
@@ -3941,7 +3932,7 @@ sub check_can_change_field {
 
     # If we haven't returned by this point, then the user doesn't
     # have the necessary permissions to change this field.
-    $$PrivilegesRequired = 1;
+    $$PrivilegesRequired = PRIVILEGES_REQUIRED_REPORTER;
     return 0;
 }
 

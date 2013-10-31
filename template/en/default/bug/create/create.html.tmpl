@@ -302,16 +302,17 @@ function checkWorktime(inp)
 
 <p>(<span class="required_star">*</span> = <span class="required_explanation">Required Field</span>)</p>
 
-<table cellspacing="4" cellpadding="2" border="0">
+<table>
 <tbody>
   <tr><td colspan="4"><hr /></td></tr>
 
   <tr>
-    <th>Product:</th>
-    <td width="10%">[% product.name FILTER html %]</td>
-
-    <th>Reporter:</th>
-    <td width="100%">[% user.login FILTER html %]</td>
+    [% INCLUDE bug/field.html.tmpl
+      bug = default, field = bug_fields.product, editable = 0,
+      value = product.name %]
+    [% INCLUDE bug/field.html.tmpl
+      bug = default, field = bug_fields.reporter, editable = 0,
+      value = user.login %]
   </tr>
 
   [%# We can't use the select block in these two cases for various reasons. %]
@@ -320,9 +321,9 @@ function checkWorktime(inp)
       <a href="describecomponents.cgi?product=[% product.name FILTER url_quote %]">
       Component</a>:
     </th>
-    <td>
-      <select name="component" onchange="set_assign_to();" size="7"
-              aria-required="true" class="required">
+    <td id="field_container_component">
+      <select name="component" id="component" onchange="set_assign_to();"
+              size="7" aria-required="true" class="required">
         [%# Build the lists of assignees and QA contacts if "usemenuforusers" is enabled. %]
         [% IF Param("usemenuforusers") %]
           [% assignees_list = user.get_userlist.clone %]
@@ -344,7 +345,7 @@ function checkWorktime(inp)
       </select>
     </td>
 
-    <td colspan="2">
+    <td colspan="2" id="comp_desc_container">
       [%# Enclose the fieldset in a nested table so that its width changes based
         # on the length on the component description. %]
       <table>
@@ -361,9 +362,10 @@ function checkWorktime(inp)
   </tr>
 
   <tr>
-    <th>Version:</th>
-    <td>
-      <select name="version">
+    <th rowspan="3"><a href="page.cgi?id=fields.html#version">
+      [%- field_descs.version FILTER html %]:</a></th>
+    <td rowspan="3">
+      <select name="version" size="5">
         [%- FOREACH v = version %]
           <option value="[% v FILTER html %]"
             [% ' selected="selected"' IF v == default.version %]>[% v FILTER html -%]
@@ -392,6 +394,22 @@ function checkWorktime(inp)
        value = default.op_sys %]
   </tr>
 [% END %]
+[% IF !Param('defaultplatform') || !Param('defaultopsys') %]
+    <tr>
+      <td colspan="3">&nbsp;</th>
+      <td id="os_guess_note" class="comment">
+        <div>We've made a guess at your
+        [% IF Param('defaultplatform') %]
+          operating system. Please check it
+        [% ELSIF Param('defaultopsys') %]
+          platform. Please check it
+        [% ELSE %]
+          operating system and platform. Please check them
+        [% END %]
+        and make any corrections if necessary.</div>
+      </td>
+    </tr>
+[% END %]
 </tbody>
 
 <tbody class="expert_fields">
@@ -412,25 +430,6 @@ function checkWorktime(inp)
     [% END %]
   </tr>
 </tbody>
-
-[% IF !Param('defaultplatform') || !Param('defaultopsys') %]
-  <tbody>
-    <tr>
-      <th>&nbsp;</th>
-      <td colspan="3" class="comment">
-        We've made a guess at your
-        [% IF Param('defaultplatform') %]
-          operating system. Please check it
-        [% ELSIF Param('defaultopsys') %]
-          platform. Please check it
-        [% ELSE %]
-          operating system and platform. Please check them
-        [% END %]
-        and make any corrections if necessary.
-      </td>
-    </tr>
-  </tbody>
-[% END %]
 
 <tbody class="expert_fields">
 
@@ -521,8 +520,9 @@ function checkWorktime(inp)
   
 [% IF Param("useqacontact") %]
     <tr>
-      <th>QA Contact:</th>
-      <td>
+      <th><a href="page.cgi?id=fields.html#qa_contact">
+        [%- field_descs.qa_contact FILTER html %]:</a></th>
+      <td colspan="2">
       [% INCLUDE global/userselect.html.tmpl
          id => "qa_contact"
          name => "qa_contact"
@@ -538,8 +538,9 @@ function checkWorktime(inp)
 [% END %]
 
   <tr>
-    <th>CC:</th>
-    <td>
+    <th><a href="page.cgi?id=fields.html#cc">
+      [%- field_descs.cc FILTER html %]:</a></th>
+    <td colspan="2">
       [% INCLUDE global/userselect.html.tmpl
          id => "cc"
          name => "cc"
@@ -551,7 +552,17 @@ function checkWorktime(inp)
     </td>
   </tr>
 
-  <tr><td colspan="4"><hr /></td></tr>
+  <tr>
+    <th>Default [% field_descs.cc FILTER html %]:</th>
+    <td colspan="2">
+      <div id="initial_cc">
+      </div>
+   </td>
+  </tr>
+  
+  <tr>
+    <td colspan="3">&nbsp;</td>
+  </tr>
 
   <tr>
 [% IF user.is_timetracker %]
@@ -581,8 +592,12 @@ function checkWorktime(inp)
   </tr>
 
   <tr>
-    <th>URL:</th>
-    <td colspan="2"><input name="bug_file_loc" size="40" value="[% bug_file_loc FILTER html %]"></td>
+    <th><a href="page.cgi?id=fields.html#bug_file_loc">
+      [%- field_descs.bug_file_loc FILTER html %]:</a></th>
+    <td colspan="2">
+      <input name="bug_file_loc" size="40"
+             value="[% bug_file_loc FILTER html %]">
+    </td>
   </tr>
 </tbody>
 
@@ -604,7 +619,8 @@ function checkWorktime(inp)
   <tr><td colspan="4"><hr /></td></tr>
 
   <tr>
-    <th class="required">Summary:</th>
+    <th class="required"><a href="page.cgi?id=fields.html#short_desc">
+      [%- field_descs.short_desc FILTER html %]:</a></th>
     <td colspan="3">
       <input name="short_desc" id="short_desc" size="70" value="[% short_desc FILTER html %]"
              maxlength="255" spellcheck="true" aria-required="true"

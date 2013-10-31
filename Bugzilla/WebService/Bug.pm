@@ -94,7 +94,7 @@ sub fields {
     if (defined $params->{names}) {
         my $names = $params->{names};
         foreach my $field_name (@$names) {
-            my $loop_field = Bugzilla->get_field($field_name, THROW_ERROR);
+            my $loop_field = Bugzilla::Field->check($field_name);
             # Don't push in duplicate fields if we also asked for this field
             # in "ids".
             if (!grep($_->id == $loop_field->id, @fields)) {
@@ -111,7 +111,7 @@ sub fields {
     foreach my $field (@fields) {
         my $visibility_field = $field->visibility_field 
                                ? $field->visibility_field->name : undef;
-        my $vis_values = $field->visibility_values;
+        my $vis_value = $field->visibility_value; 
         my $value_field = $field->value_field
                           ? $field->value_field->name : undef;
 
@@ -137,7 +137,9 @@ sub fields {
 #           is_mandatory      => $self->type('boolean', $field->is_mandatory),
            is_on_bug_entry   => $self->type('boolean', $field->enter_bug),
            visibility_field  => $self->type('string', $visibility_field),
-           visibility_values => [ map { $self->type('string', $_->name) } @{ $vis_values || [] } ],
+           visibility_values => [
+               defined $vis_value ? $self->type('string', $vis_value->name) : ()
+           ],
         );
         if ($has_values) {
            $field_data{value_field} = $self->type('string', $value_field);
@@ -212,11 +214,14 @@ sub _legal_field_values {
     else {
         my @values = Bugzilla::Field::Choice->type($field)->get_all();
         foreach my $value (@values) {
-            my $vis_values = $value->visibility_values;
+            my $vis_val = $value->visibility_value;
             push(@result, {
                 name              => $self->type('string', $value->name),
                 sortkey           => $self->type('int'   , $value->sortkey),
-                visibility_values => [ map { $self->type('string', $_->name) } @{ $vis_values || [] } ],
+                visibility_values => [
+                    defined $vis_val ? $self->type('string', $vis_val->name) 
+                                     : ()
+                ],
             });
         }
     }
@@ -1653,26 +1658,13 @@ take.
 If you are not in the time-tracking group, this field will not be included
 in the return value.
 
-=item C<groups>
+=item internals B<DEPRECATED>
 
 C<array> of C<string>s. The names of all the groups that this bug is in.
 
-=item C<id>
+This will be disappearing in a future version of Bugzilla.
 
-C<int> The unique numeric id of this bug.
-
-=item C<is_cc_accessible>
-
-C<boolean> If true, this bug can be accessed by members of the CC list,
-even if they are not in the groups the bug is restricted to.
-
-=item C<is_confirmed>
-
-C<boolean> True if the bug has been confirmed. Usually this means that
-the bug has at some point been moved out of the C<UNCONFIRMED> status
-and into another open status.
-
-=item C<is_open>
+=item is_open 
 
 C<boolean> True if this bug is open, false if it is closed.
 
@@ -2552,7 +2544,7 @@ code of 32000.
 
 =item C<update>
 
-B<UNSTABLE>
+B<EXPERIMENTAL>
 
 =over
 

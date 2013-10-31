@@ -53,14 +53,18 @@
     [% FOREACH flag = type.flags %]
       <tr>
         <td>
-          <a href="#[% flag.creation_date | timestamp %]">[% flag.setter.nick | html %]</a>:
-          <label title="[% type.description | html %]" for="flag-[% flag.id %]" style="white-space: nowrap">[%- type.name | html -%]</label>
+          <span title="[% flag.setter.identity FILTER html %]">[% flag.setter.nick FILTER html %]</span>:
+        </td>
+        <td>
+          <label title="[% type.description FILTER html %]"
+                 for="flag-[% flag.id %]">
+            [%- type.name FILTER html FILTER no_break -%]</label>
         </td>
         <td>
           <select id="flag-[% flag.id %]" name="flag-[% flag.id %]" 
                   title="[% type.description | html %]"
                   onchange="toggleRequesteeField(this);"
-                  class="flag_select">
+                  class="flag_select flag_type-[% type.id %]">
             [%# Only display statuses the user is allowed to set. %]
             [% IF user.can_request_flag(type) || flag.setter_id == user.id %]
               <option value="X"></option>
@@ -115,10 +119,18 @@
         <p><b>Flags:</b></p>
         [% header_displayed = 1 %]
       [% END %]
-      [% flag.setter.nick FILTER html %]:
+      [% IF flag.setter.name %]
+        <span title="[% flag.setter.name FILTER html %]">[% flag.setter.nick FILTER html %]</span>:
+      [% ELSE %]
+        [% flag.setter.nick FILTER html %]:
+      [% END %]
       [%+ type.name FILTER html FILTER no_break %][% flag.status %]
       [% IF flag.requestee %]
-        ([% flag.requestee.nick FILTER html %])
+        [% IF flag.requestee.name %]
+          (<span title="[% flag.requestee.name FILTER html %]">[% flag.requestee.nick FILTER html %]</span>)
+        [% ELSE %]
+          ([% flag.requestee.nick FILTER html %])
+        [% END %]
       [% END %]<br>
     [% END %]
   [% END %]

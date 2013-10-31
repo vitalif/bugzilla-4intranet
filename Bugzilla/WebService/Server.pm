@@ -42,7 +42,6 @@ sub datetime_format_inbound {
 
 sub datetime_format_outbound {
     my ($self, $date) = @_;
-    return '' if !$date;
 
     my $time = $date;
     if (blessed($date)) {

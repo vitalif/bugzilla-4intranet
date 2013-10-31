@@ -89,12 +89,11 @@ sub _load_constants {
 # settings of the user and of the available languages
 # If no Accept-Language is present it uses the defined default
 # Templates may also be found in the extensions/ tree
-sub getTemplateIncludePath {
+sub _include_path {
+    my $lang = shift || '';
     my $cache = Bugzilla->request_cache;
-    my $lang  = $cache->{'language'} || '';
-    $cache->{"template_include_path_$lang"} ||= template_include_path({
-        use_languages => Bugzilla->languages,
-        only_language => $lang });
+    $cache->{"template_include_path_$lang"} ||= 
+        template_include_path({ language => $lang });
     return $cache->{"template_include_path_$lang"};
 }
 
@@ -350,7 +349,7 @@ sub quoteUrls {
     # we have to do this in one pattern, and so this is semi-messy.
     # Also, we can't use $bug_re?$comment_re? because that will match the
     # empty string
-    my $bug_word = Bugzilla->messages->{terms}->{bug};
+    my $bug_word = template_var('terms')->{bug};
     my $bug_re = qr/\Q$bug_word\E\s*\#?\s*(\d+)/i;
     my $comment_re = qr/comment\s*\#?\s*(\d+)/i;
     $text =~ s~\b($bug_re(?:\s*,?\s*$comment_re)?|$comment_re)
@@ -546,6 +545,17 @@ $Template::Stash::SCALAR_OPS->{ truncate } =
 
 ###############################################################################
 
+sub process {
+    my $self = shift;
+    # All of this current_langs stuff allows template_inner to correctly
+    # determine what-language Template object it should instantiate.
+    my $current_langs = Bugzilla->request_cache->{template_current_lang} ||= [];
+    unshift(@$current_langs, $self->context->{bz_language});
+    my $retval = $self->SUPER::process(@_);
+    shift @$current_langs;
+    return $retval;
+}
+
 # Construct the Template object
 
 # Note that all of the failure cases here can't use templateable errors,
@@ -560,7 +570,8 @@ sub create {
 
     my $config = {
         # Colon-separated list of directories containing templates.
-        INCLUDE_PATH => $opts{'include_path'} || getTemplateIncludePath(),
+        INCLUDE_PATH => $opts{'include_path'} 
+                        || _include_path($opts{'language'}),
 
         # Remove white-space before template directives (PRE_CHOMP) and at the
         # beginning and end of templates and template blocks (TRIM) for better
@@ -830,6 +841,15 @@ sub create {
                 # Now remove extra whitespace...
                 my $collapse_filter = $Template::Filters::FILTERS->{collapse};
                 $var = $collapse_filter->($var);
+                # And if we're not in the WebService, wrap the message.
+                # (Wrapping the message in the WebService is unnecessary
+                # and causes awkward things like \n's appearing in error
+                # messages in JSON-RPC.)
+                unless (Bugzilla->usage_mode == USAGE_MODE_JSON
+                        or Bugzilla->usage_mode == USAGE_MODE_XMLRPC)
+                {
+                    $var = wrap_comment($var, 72);
+                }
                 return $var;
             },
 
@@ -1012,6 +1032,11 @@ sub create {
 
             'feature_enabled' => sub { return Bugzilla->feature(@_); },
 
+            # field_descs can be somewhat slow to generate, so we generate
+            # it only once per-language no matter how many times
+            # $template->process() is called.
+            'field_descs' => sub { return template_var('field_descs') },
+
             'install_string' => \&Bugzilla::Install::Util::install_string,
 
             # These don't work as normal constants.
@@ -1022,9 +1047,7 @@ sub create {
                 my @optional = @{OPTIONAL_MODULES()};
                 foreach my $item (@optional) {
                     my @features;
-                    my $feat = $item->{feature};
-                    ref $feat or $feat = [ $feat ];
-                    foreach my $feat_id (@$feat) {
+                    foreach my $feat_id (@{ $item->{feature} }) {
                         push(@features, install_string("feature_$feat_id"));
                     }
                     $item->{feature} = \@features;
@@ -1039,6 +1062,11 @@ sub create {
     Bugzilla::Hook::process('template_before_create', { config => $config });
     my $template = $class->new($config)
         || die("Template creation failed: " . $class->error());
+
+    # Pass on our current language to any template hooks or inner templates
+    # called by this Template object.
+    $template->context->{bz_language} = $opts{language} || '';
+
     return $template;
 }
 
@@ -1071,8 +1099,7 @@ sub precompile_templates {
 
     print install_string('template_precompile') if $output;
 
-    my $paths = template_include_path({ use_languages => Bugzilla->languages,
-                                        only_language => Bugzilla->languages });
+    my $paths = template_include_path();
 
     foreach my $dir (@$paths) {
         my $template = Bugzilla::Template->create(include_path => [$dir]);

@@ -1,3 +1,4 @@
+
 # Totally Rewritten Bugzilla4Intranet search engine
 # License: Dual-license GPL 3.0+ or MPL 1.1+
 # Contributor(s): Vitaliy Filippov <vitalif@mail.ru>
@@ -2095,6 +2096,9 @@ sub _long_desc_changedby
 sub _long_desc_changedbefore_after
 {
     my $self = shift;
+    my %func_args = @_;
+    my ($chartid, $supptables, $term, $groupby, $fields, $t, $v) =
+        @func_args{qw(chartid supptables term groupby fields t v)};
     my $dbh = Bugzilla->dbh;
     my $operator = ($self->{type} =~ /before/) ? '<' : '>';
     my $table = "longdescs_".$self->{sequence};

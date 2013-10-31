@@ -32,21 +32,21 @@ use utf8;
 use strict;
 
 use base qw(Exporter);
-@Bugzilla::Util::EXPORT = qw(
-    trick_taint detaint_natural trick_taint_copy detaint_signed
-    html_quote url_quote url_quote_noslash xml_quote css_class_quote html_light_quote url_decode
-    i_am_cgi correct_urlbase remote_ip lsearch
-    do_ssl_redirect_if_required use_attachbase
-    diff_arrays list
-    trim wrap_hard wrap_comment find_wrap_point makeCitations
-    format_time format_time_decimal validate_date validate_time datetime_from
-    file_mod_time is_7bit_clean
-    bz_crypt generate_random_password
-    validate_email_syntax clean_text
-    stem_text intersect union
-    get_text disable_utf8 bz_encode_json
-    xml_element xml_element_quote xml_dump_simple xml_simple
-);
+@Bugzilla::Util::EXPORT = qw(trick_taint detaint_natural trick_taint_copy 
+                             detaint_signed
+                             html_quote url_quote url_quote_noslash xml_quote
+                             css_class_quote html_light_quote url_decode
+                             i_am_cgi correct_urlbase remote_ip 
+                             lsearch do_ssl_redirect_if_required use_attachbase
+                             diff_arrays list
+                             trim wrap_hard wrap_comment find_wrap_point makeCitations
+                             format_time format_time_decimal validate_date
+                             validate_time datetime_from
+                             file_mod_time is_7bit_clean
+                             bz_crypt generate_random_password
+                             validate_email_syntax clean_text stem_text bz_encode_json
+                             xml_element xml_element_quote xml_dump_simple xml_simple
+                             get_text template_var disable_utf8);
 
 use Bugzilla::Constants;
 
@@ -743,6 +743,26 @@ sub get_text
     return $message;
 }
 
+sub template_var {
+    my $name = shift;
+    my $cache = Bugzilla->request_cache->{util_template_var} ||= {};
+    my $template = Bugzilla->template_inner;
+    my $lang = $template->context->{bz_language};
+    return $cache->{$lang}->{$name} if defined $cache->{$lang};
+    my %vars;
+    # Note: If we suddenly start needing a lot of template_var variables,
+    # they should move into their own template, not field-descs.
+    my $result = $template->process('global/field-descs.none.tmpl', 
+                                    { vars => \%vars, in_template_var => 1 });
+    # Bugzilla::Error can't be "use"d in Bugzilla::Util.
+    if (!$result) {
+        require Bugzilla::Error;
+        Bugzilla::Error::ThrowTemplateError($template->error);
+    }
+    $cache->{$lang} = \%vars;
+    return $vars{$name};
+}
+
 sub disable_utf8 {
     if (Bugzilla->params->{'utf8'}) {
         binmode STDOUT, ':bytes'; # Turn off UTF8 encoding.
@@ -1220,6 +1240,14 @@ It uses the F<global/message.txt.tmpl> template to return a string.
 A string.
 
 =back
+
+
+=item C<template_var>
+
+This is a method of getting the value of a variable from a template in
+Perl code. The available variables are in the C<global/field-descs.none.tmpl>
+template. Just pass in the name of the variable that you want the value of.
+
 
 =back
 

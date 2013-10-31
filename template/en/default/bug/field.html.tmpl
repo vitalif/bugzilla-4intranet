@@ -50,7 +50,7 @@
     [% END %]
       [% IF desc_url %]
         <a href="[% desc_url FILTER html %]">
-      [% ELSIF !field.custom %]
+      [% ELSE %]
         <a href="page.cgi?id=fields.html#[% field.name FILTER url_quote %]">
       [% END -%]
         [% field_descs.${field.name} || field.description FILTER html %]:

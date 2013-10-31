@@ -31,6 +31,7 @@ use Bugzilla::Field;
 use Bugzilla::Util;
 
 use List::Util qw(min max);
+use Text::ParseWords qw(quotewords);
 
 use base qw(Exporter);
 @Bugzilla::Search::Quicksearch::EXPORT = qw(quicksearch);
@@ -164,6 +165,8 @@ sub quicksearch {
         $self->{content} = '';
         $self->{unknown_fields} = [];
         $self->{ambiguous_fields} = {};
+        my @words = quotewords('\s+', 0, $searchstring);
+        _handle_status_and_resolution(\@words);
 
         $self->_handle_status_and_resolution;
 
@@ -655,7 +658,7 @@ sub makeChart {
     my $cgi = Bugzilla->cgi;
     $cgi->param("field$expr", $field);
     $cgi->param("type$expr",  $type);
-    $cgi->param("value$expr", url_decode($value));
+    $cgi->param("value$expr", $value);
 }
 
 1;

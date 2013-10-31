@@ -24,7 +24,6 @@
 #                 Pascal Held <paheld@gmail.com>
 
 use strict;
-
 use lib qw(. lib);
 
 use Bugzilla;
@@ -35,7 +34,24 @@ use Bugzilla::Search;
 use Bugzilla::Search::Saved;
 use Bugzilla::Error;
 use Bugzilla::User;
-use Bugzilla::Keyword;
+
+use Storable qw(dclone);
+
+# Maps parameters that control columns to the names of columns.
+use constant COLUMN_PARAMS => {
+    'useclassification'   => ['classification'],
+    'usebugaliases'       => ['alias'],
+    'usetargetmilestone'  => ['target_milestone'],
+    'useqacontact'        => ['qa_contact', 'qa_contact_realname'],
+    'usestatuswhiteboard' => ['status_whiteboard'],
+};
+
+# We only show these columns if an object of this type exists in the
+# database.
+use constant COLUMN_CLASSES => {
+    'Bugzilla::Flag'    => 'flagtypes.name',
+    'Bugzilla::Keyword' => 'keywords',
+};
 
 Bugzilla->login();
 
@@ -43,15 +59,31 @@ my $cgi = Bugzilla->cgi;
 my $template = Bugzilla->template;
 my $vars = {};
 
-my @masterlist =
-    map { $_->{id} }
-    sort { $a->{title} cmp $b->{title} }
-    grep { !$_->{nobuglist} }
-    values %{ Bugzilla::Search->COLUMNS };
+my $columns = dclone(Bugzilla::Search::COLUMNS);
 
-Bugzilla::Hook::process('colchange_columns', {'columns' => \@masterlist} );
+# You can't manually select "relevance" as a column you want to see.
+delete $columns->{'relevance'};
 
-$vars->{'masterlist'} = \@masterlist;
+foreach my $param (keys %{ COLUMN_PARAMS() }) {
+    next if Bugzilla->params->{$param};
+    foreach my $column (@{ COLUMN_PARAMS->{$param} }) {
+        delete $columns->{$column};
+    }
+}
+
+foreach my $class (keys %{ COLUMN_CLASSES() }) {
+    eval("use $class; 1;") || die $@;
+    my $column = COLUMN_CLASSES->{$class};
+    delete $columns->{$column} if !$class->any_exist;
+}
+
+if (!Bugzilla->user->is_timetracker) {
+    foreach my $column (TIMETRACKING_FIELDS) {
+        delete $columns->{$column};
+    }
+}
+
+$vars->{'columns'} = $columns;
 
 my @collist;
 if (defined $cgi->param('rememberedquery')) {
@@ -60,8 +92,8 @@ if (defined $cgi->param('rememberedquery')) {
         @collist = DEFAULT_COLUMN_LIST;
     } else {
         if (defined $cgi->param("selected_columns")) {
-            my %legal_list = map { $_ => 1 } @masterlist;
-            @collist = grep { exists $legal_list{$_} } $cgi->param("selected_columns");
+            @collist = grep { exists $columns->{$_} } 
+                            $cgi->param("selected_columns");
         }
         if (defined $cgi->param('splitheader')) {
             $splitheader = $cgi->param('splitheader')? 1: 0;

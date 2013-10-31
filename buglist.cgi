@@ -470,10 +470,9 @@ if ($cmdtype eq "dorem") {
         }
 
         # If we are here, then we can safely remove the saved search
-        my ($query_id) = $dbh->selectrow_array('SELECT id FROM namedqueries
-                                                    WHERE userid = ?
-                                                      AND name   = ?',
-                                                  undef, ($user->id, $qname));
+        my $query_id;
+        ($buffer, $query_id) = LookupNamedQuery(scalar $cgi->param("namedcmd"),
+                                                $user->id);
         if (!$query_id) {
             # The user has no query of this name. Play along.
         }
@@ -499,7 +498,7 @@ if ($cmdtype eq "dorem") {
         # Generate and return the UI (HTML page) from the appropriate template.
         $vars->{'message'} = "buglist_query_gone";
         $vars->{'namedcmd'} = $qname;
-        $vars->{'url'} = "query.cgi";
+        $vars->{'url'} = "buglist.cgi?newquery=" . url_quote($buffer) . "&cmdtype=doit&remtype=asnamed&newqueryname=" . url_quote($qname);
         $template->process("global/message.html.tmpl", $vars)
           || ThrowTemplateError($template->error());
         exit;
@@ -727,19 +726,19 @@ if ($format->{'extension'} eq 'atom') {
 
     # This is the list of fields that are needed by the Atom filter.
     my @required_atom_columns = (
-        'short_desc',
-        'creation_ts',
-        'delta_ts',
-        'reporter',
-        'reporter_realname',
-        'priority',
-        'bug_severity',
-        'assigned_to',
-        'assigned_to_realname',
-        'bug_status',
-        'product',
-        'component',
-        'resolution'
+      'short_desc',
+      'creation_ts',
+      'delta_ts',
+      'reporter',
+      'reporter_realname',
+      'priority',
+      'bug_severity',
+      'assigned_to',
+      'assigned_to_realname',
+      'bug_status',
+      'product',
+      'component',
+      'resolution'
     );
     push(@required_atom_columns, 'target_milestone') if Bugzilla->params->{'usetargetmilestone'};
 

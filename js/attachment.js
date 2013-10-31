@@ -19,6 +19,7 @@
  *                 Joel Peshkin <bugreport@peshkin.net>
  *                 Erik Stambaugh <erik@dasbistro.com>
  *                 Marc Schumann <wurblzap@gmail.com>
+ *                 Guy Pyrzak <guy.pyrzak@gmail.com>
  */
 
 var SUPA_JAVA_DISABLED_ERROR = 'You cannot paste images from clipboard because Java support'+
@@ -439,3 +440,15 @@ function normalizeComments()
         big.parentNode.removeChild(big);
     }
 }
+
+function toggle_attachment_details_visibility ( ) 
+{
+    // show hide classes
+    var container = document.getElementById('attachment_info');
+    if( YAHOO.util.Dom.hasClass(container, 'read') ){
+        YAHOO.util.Dom.replaceClass(container, 'read', 'edit');
+    }else{
+        YAHOO.util.Dom.replaceClass(container, 'edit', 'read');
+    }
+}
+

@@ -330,17 +330,17 @@ sub get_mail_result {
 
 sub template {
     my $class = shift;
-    $class->request_cache->{language} = "";
     $class->request_cache->{template} ||= Bugzilla::Template->create();
     return $class->request_cache->{template};
 }
 
 sub template_inner {
     my ($class, $lang) = @_;
-    $lang = defined($lang) ? $lang : ($class->request_cache->{language} || "");
-    $class->request_cache->{language} = $lang;
+    my $cache = $class->request_cache;
+    my $current_lang = $cache->{template_current_lang}->[0];
+    $lang ||= $current_lang || '';
     $class->request_cache->{"template_inner_$lang"}
-        ||= Bugzilla::Template->create();
+        ||= Bugzilla::Template->create(language => $lang);
     return $class->request_cache->{"template_inner_$lang"};
 }
 
@@ -618,22 +618,7 @@ sub dbh_main {
 
 sub languages {
     my $class = shift;
-    return $class->request_cache->{languages}
-        if $class->request_cache->{languages};
-
-    my @files = glob(catdir(bz_locations->{'templatedir'}, '*'));
-    my @languages;
-    foreach my $dir_entry (@files) {
-        # It's a language directory only if it contains "default" or
-        # "custom". This auto-excludes CVS directories as well.
-        next unless (-d catdir($dir_entry, 'default')
-                  || -d catdir($dir_entry, 'custom'));
-        $dir_entry = basename($dir_entry);
-        # Check for language tag format conforming to RFC 1766.
-        next unless $dir_entry =~ /^[a-zA-Z]{1,8}(-[a-zA-Z]{1,8})?$/;
-        push(@languages, $dir_entry);
-    }
-    return $class->request_cache->{languages} = \@languages;
+    return Bugzilla::Install::Util::supported_languages();
 }
 
 sub error_mode {
@@ -921,7 +906,7 @@ sub has_flags {
     my $class = shift;
 
     if (!defined $class->request_cache->{has_flags}) {
-        $class->request_cache->{has_flags} = Bugzilla::Flag::has_flags();
+        $class->request_cache->{has_flags} = Bugzilla::Flag->any_exist;
     }
     return $class->request_cache->{has_flags};
 }

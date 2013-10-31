@@ -25,7 +25,6 @@
 
 <ul class="bz_toc">
   <li><a href="#v36_introduction">Introduction</a></li>
-  <li><a href="#v36_point">Updates in this 3.6.x Release</a></li>
   <li><a href="#v36_req">Minimum Requirements</a></li>
   <li><a href="#v36_feat">New Features and Improvements</a></li>
   <li><a href="#v36_issues">Outstanding Issues</a></li>
@@ -57,187 +56,6 @@
   of various features and improvements in this release of
   [%+ terms.Bugzilla %].</p>
 
-<h2 id="v36_point">Updates in this 3.6.x Release</h2>
-
-<h3>3.6.4</h3>
-
-<p>This release fixes several security issues, some of which are
-  <strong>highly critical</strong>. See the
-  <a href="http://www.bugzilla.org/security/3.2.9/">Security Advisory</a>
-  for details.</p>
-
-<p>In addition, the following important fixes/changes have been made in
-  this release:</p>
-
-<ul>
-  <li>Due to one of the security fixes, [% terms.Bugzilla %] 3.6.4 now
-    requires a newer version of the CGI.pm Perl module than previous
-    releases of [% terms.Bugzilla %] did. When you run 
-    <kbd>checksetup.pl</kbd>, it will inform you how to upgrade your CGI.pm
-    module.
-  </li>
-  <li>When replying to a comment with a link like "attachment 1234 [details]",
-    the "[details]" link will no longer be duplicated in your reply.
-    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=474766">[% terms.Bug %] 474766</a>)
-  </li>
-  <li>Using Quicksearch no longer requires that the <kbd>List::MoreUtils</kbd>
-    module be installed.
-    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=611129">[% terms.Bug %] 611129</a>)
-  </li>
-  <li>When using <a href="config.cgi?ctype=rdf">config.cgi?ctype=rdf</a>,
-    information about products now includes <kbd>allows_unconfirmed</kbd>.
-    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=610217">[% terms.Bug %] 610217</a>)
-  </li>
-  <li>When using tabular reports, any value whose name started with a period
-    or an underscore wasn't being displayed.
-    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=617684">[% terms.Bug %] 617684</a>)
-  </li>
-</ul>
-
-<h3>3.6.3</h3>
-
-<p>This release fixes various important security issues. See the
-  <a href="http://www.bugzilla.org/security/3.2.8/">Security Advisory</a>
-  for details.</p>
-
-<p>In addition, the following important fixes/changes have been made in
-  this release:</p>
-
-<ul>
-  <li>Clicking the "Submit only my new comment" button on the mid-air
-    collision page will no longer result in a "Form field longdesclength
-    was not defined" error.
-    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=591218">[% terms.Bug %] 591218</a>)
-  </li>
-  <li>Saving a search with either of the deadline fields set to "Now" would
-    cause that deadline field to be removed from the saved search.
-    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=590144">[% terms.Bug %] 590144</a>)
-  </li>
-  <li>Searching for [% terms.bugs %] "with at least X votes" was instead
-    returning [% terms.bugs %] with <em>exactly</em> that many votes.
-    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=584414">[% terms.Bug %] 584414</a>)
-  </li>
-  <li>Typing something like "P1-5" in the quicksearch box should have
-    been searching the [% field_descs.priority FILTER html %] field,
-    but it was not.
-    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=585028">[% terms.Bug %] 585028</a>)
-  </li>
-  <li>Users who had passwords less than 6 characters long couldn't log in.
-    Such users could only exist before 3.6, so it looked like after upgrading
-    to 3.6, certain users couldn't log in.
-    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=575947">[% terms.Bug %] 575947</a>)
-  </li>
-  <li>Loading <a href="config.cgi?ctype=rdf">config.cgi?ctype=rdf</a> should
-    now be faster, particularly on installations that have many flags.
-    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=553266">[% terms.Bug %] 553266</a>
-    and <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=605693">[% terms.Bug %] 605693</a>)
-  </li>
-  <li>Non-english templates were not being precompiled by checksetup.pl,
-    leading to reduced performance for localized [% terms.Bugzilla %]
-    installations.
-    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=605425">[% terms.Bug %] 605425</a>)
-  </li>
-</ul>
-
-<h3>3.6.2</h3>
-
-<p>This release fixes various security issues. See the
-  <a href="http://www.bugzilla.org/security/3.2.7/">Security Advisory</a>
-  for details.</p>
-
-<p>In addition, the following important fixes/changes have been made in
-  this release:</p>
-
-<ul>
-  <li>[% terms.Bugzilla %] installations running on older versions of IIS
-    will no longer experience the "Undef to trick_taint" errors that would
-    sometimes occur.
-    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=521416">[% terms.Bug %] 521416</a>)
-  </li>
-  <li>Email notifications were missing the dates that comments were made.
-    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=578003">[% terms.Bug %] 578003</a>)
-  </li>
-  <li>Putting a phrase in quotes in the Quicksearch box now works properly,
-    again.
-    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=578494">[% terms.Bug %] 578494</a>
-    and <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=553884">[% terms.Bug %] 553884</a>)
-  </li>
-  <li>Quicksearch was usually (incorrectly) being limited to 200 results.
-    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=581622">[% terms.Bug %] 581622</a>)
-  </li>
-  <li>On Windows, <kbd>install-module.pl</kbd> can now properly install
-    DateTime and certain other Perl modules that didn't install properly
-    before.
-    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=576105">[% terms.Bug %] 576105</a>)
-  </li>
-  <li>Searching "keywords" for "contains none of the words" or "does not
-    match regular expression" now works properly.
-    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=562014">[% terms.Bug %] 562014</a>)
-  </li>
-  <li>Doing <kbd>collectstats.pl --regenerate</kbd> now works on installations
-    using PostgreSQL.
-    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=577058">[% terms.Bug %] 577058</a>)
-  </li>
-  <li>The "Field Values" administrative control panel was sometimes denying
-    admins the ability to delete field values when there was no reason
-    to deny the deletion.
-    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=577054">[% terms.Bug %] 577054</a>)
-  </li>
-  <li>Eliminate the "uninitialized value" warnings that would happen when
-    editing a product's components.
-    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=576911">[% terms.Bug %] 576911</a>)
-  </li>
-  <li>The updating of bugs_fulltext that happens during 
-    <kbd>checksetup.pl</kbd> for upgrades to 3.6 should now be MUCH faster.
-    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=577754">[% terms.Bug %] 577754</a>)
-  </li>
-  <li><kbd>email_in.pl</kbd> was not allowing the setting of time-tracking
-    fields via inbound emails.
-    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=583622">[% terms.Bug %] 583622</a>)
-  </li>
-</ul>
-
-<h3>3.6.1</h3>
-
-<p>This release fixes two security issues. See the
-  <a href="http://www.bugzilla.org/security/3.2.6/">Security Advisory</a>
-  for details.</p>
-
-<p>In addition, the following important fixes/changes have been made in
-  this release:</p>
-
-<ul>
-  <li>Using the "Change Columns" page would sometimes result in a
-    plain-text page instead of HTML.
-    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=376044">[% terms.Bug %] 376044</a>)
-  </li>
-  <li>Extensions that have only templates and no code are now working.
-    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=562551">[% terms.Bug %] 562551</a>)
-  </li>
-  <li><kbd>install-module.pl</kbd> has been fixed so that it installs
-    modules properly on both new and old versions of Perl.
-     (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=560318">[% terms.Bug %] 560318</a>
-     and <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=560330">[% terms.Bug %] 560330</a>)
-  </li>
-  <li>It is now possible to upgrade from 3.4 to 3.6 when using Oracle.
-    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=561379">[% terms.Bug %] 561379</a>)
-  </li>
-  <li>Editing a field value's name (using the Field Values admin control
-    panel) wasn't working if the value was set as the default for that
-    field.
-    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=561296">[% terms.Bug %] 561296</a>)
-  </li>
-  <li>If you had the <kbd>noresolveonopenblockers</kbd> parameter set,
-    [%+ terms.bugs %] couldn't be edited at all if they were marked FIXED
-    and had any open blockers. (The parameter is only supposed to prevent
-    <em>changing</em> [% terms.bugs %] to FIXED, not modifying already-FIXED
-    [%+ terms.bugs %].)
-    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=565314">[% terms.Bug %] 565314</a>)
-  </li>
-  <li>Some minor issues with Perl 5.12 were fixed (mostly warnings that Perl
-    5.12 was throwing). [% terms.Bugzilla %] now supports Perl 5.12.</li>
-</ul>
-
 <h2 id="v36_req">Minimum Requirements</h2>
 
 <p>Any requirements that are new since 3.4.5 will look like
@@ -266,7 +84,7 @@
 <h3 id="v36_req_modules">Required Perl Modules</h3>
 
 [% INCLUDE req_table reqs = REQUIRED_MODULES
-                     new = [] updated = ['CGI.pm'] %]
+                     new = [] updated = [] %]
 
 <h3 id="v36_req_optional_mod">Optional Perl Modules</h3>
 
@@ -274,7 +92,7 @@
   features of [% terms.Bugzilla %]:</p>
 
 [% INCLUDE req_table reqs = OPTIONAL_MODULES
-                     new  = ['JSON-RPC', 'Test-Taint', 'Math-Random-Secure']
+                     new  = ['JSON-RPC', 'Test-Taint']
                      updated = ['Chart']
                      include_feature = 1 %]
 
@@ -298,7 +116,7 @@
 <p>A <a href="https://wiki.mozilla.org/Bugzilla:CMU_HCI_Research_2008">scientific
   usability study</a> was done on [% terms.Bugzilla %] by researchers
   from Carnegie-Mellon University. As a result of this study,
-  <a href="https://bugzilla.mozilla.org/showdependencytree.cgi?id=490786&amp;hide_resolved=0">several
+  <a href="https://bugzilla.mozilla.org/showdependencytree.cgi?id=490786&hide_resolved=0">several
   usability issues</a> were prioritized to be fixed, based on specific data
   from the study.</p>
 
@@ -379,7 +197,7 @@
   on shared hosting). SUExec support shows up as an option
   in the <kbd>localconfig</kbd> file during installation.</p>
 
-<h3 id="v36_feat_mpwindows">Experimental mod_perl Support on Windows</h3>
+<h3 id="36_feat_mpwindows">Experimental mod_perl Support on Windows</h3>
 
 <p>There is now experimental support for running [% terms.Bugzilla %]
   under mod_perl on Windows, for a significant performance enhancement
@@ -456,12 +274,6 @@
   <li><b>[% terms.Bug %] Editing:</b> The "Collapse All Comments"
     and "Expand All Comments" links now appear to the right of the
     comment list instead of above it.</li>
-  <li><b>[% terms.Bug %] Editing:</b> The See Also field now supports
-    URLs for Google Code Issues and the Debian B[% %]ug-Tracking System.</li>
-  <li><b>[% terms.Bug %] Editing:</b> There have been significant performance
-    improvements in <kbd>show_bug.cgi</kbd> (the script that displays the
-    [% terms.bug %]-editing form), particularly for [% terms.bugs %] that
-    have lots of comments or attachments.</li>
 
   <li><b>Attachments:</b> The "Details" page of an attachment
     now displays itself as uneditable if you can't edit the fields
@@ -474,9 +286,6 @@
   <li><b>Attachments:</b> When you click on an "attachment 12345" link
     in a comment, if the attachment is a patch, you will now see the
     formatted "Diff" view instead of the raw patch.</li>
-  <li><b>Attachments</b>: For text attachments, we now let the browser 
-    auto-detect the character encoding, instead of forcing the browser to
-    always assume the attachment is in UTF-8.</li>
   
   <li><b>Search:</b> You can now display [% terms.bug %] flags as a column
     in search results.</li>
@@ -573,11 +382,6 @@
     faster at upgrading installations, particularly older installations.
     Also, it's been made faster to run for the case where it's not
     doing an upgrade.</li>
-  <li><b>Installation:</b> If you install [% terms.Bugzilla %] using the
-    tarball, the <kbd>CGI.pm</kbd> module from CPAN is now included in
-    the <kbd>lib/</kbd> dir. If you would rather use the CGI.pm from your
-    global Perl installation, you can delete <kbd>CGI.pm</kbd> and the
-    <kbd>CGI</kbd> directory from the <kbd>lib/</kbd> directory.</li>
   
   <li>When editing a group, you can now specify that members of a group
     are allowed to grant others membership in that group itself.</li>
@@ -588,12 +392,14 @@
     words instead of P1, P2, etc.</li>
   <li>There is now a system in place so that all field values can be
     localized. See the <kbd>value_descs</kbd> variable in
+    <kbd>template/en/default/global/field-descs.none.tmpl</kbd>.</li>
   <li><kbd>config.cgi</kbd> now returns an ETag header and understands
     the If-None-Match header in HTTP requests.</li>
   <li>The XML format of <kbd>show_bug.cgi</kbd> now returns more information:
     the numeric id of each comment, whether an attachment is a URL,
     the modification time of an attachment, the numeric id of a flag,
     and the numeric id of a flag's type.</li>
+  
   <li><b>Parameters:</b> Parameters that aren't actually required are no longer
     in the "Required" section of the Parameters page. Instead, some are in the
     new "General" section, and some are in the new "Advanced" section.</li>
@@ -664,9 +470,6 @@
     that parameter will be ignored. Mostly this just affects
     customizers--[% terms.Bugzilla %]'s WebService is not functionally
     affected by these changes.</li>
-  <li>In previous versions of [% terms.Bugzilla %], error messages were
-    sent word-wrapped to the client, from the WebService. Error messages
-    are now sent as one unbroken line.</li>
 </ul>
 
 <h2 id="v36_issues">Outstanding Issues</h2>
@@ -718,9 +521,6 @@
 <h2 id="v36_code_changes">Code Changes Which May Affect Customizations</h2>
 
 <ul>
-  <li>There is no longer a SendBugMail method in the templates, and bugmail
-    is no longer sent by processing a template. Instead, it is sent
-    by using <kbd>Bugzilla::BugMail::Send</kbd>.</li>
   <li>Comments are now represented as a
     <a href="[% docs_urlbase FILTER html %]api/Bugzilla/Comment.html">Bugzilla::Comment</a>
     object instead of just being hashes.</li>
@@ -733,12 +533,12 @@
   <li>All of the various template header information required to display
     the [% terms.bug %] form is now in one template,
     <kbd>template/en/default/bug/show-header.html.tmpl</kbd>.</li>
-  <li><s>You should now use <kbd>display_value</kbd> instead of
+  <li>You should now use <kbd>display_value</kbd> instead of
     <kbd>get_status</kbd> or <kbd>get_resolution</kbd> in templates.
     <kbd>display_value</kbd> should be used anywhere that a
-    &lt;select&gt;-type field has its values displayed.</s>
-    Долбанутое решение убрано.</li>
+    &lt;select&gt;-type field has its values displayed.</li>
 </ul>
+
 
 <h1 id="v36_previous">[% terms.Bugzilla %] 3.4 Release Notes</h1>
 
@@ -775,6 +575,52 @@
   Foundation</a>.</p>
 
 <h2 id="v34_point">Updates In This 3.4.x Release</h2>
+
+<h3>3.4.6</h3>
+
+<ul>
+  <li>When doing a search that involves "not equals" or "does not contain the
+    string" or similar "negative" search types, the search description that
+    appears at the top of the resulting [% terms.bug %] list will indicate
+    that the search was of that type.
+    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=474738">[% terms.Bug %] 474738</a>)
+  </li>
+  <li>In Internet Explorer, users couldn't easily mark a RESOLVED DUPLICATE
+    [%+ terms.bug %] as REOPENED, due to a JavaScript error.
+    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=546719">[% terms.Bug %] 546719</a>)
+  </li>
+  <li>If you use a "bookmarkable template" to pre-fill forms on
+    the [% terms.bug %]-filing page, and you have custom fields
+    that are only supposed to appear (or only supposed to have certain
+    values) based on the values of other fields, those custom fields will
+    now work properly.
+    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=538211">[% terms.Bug %] 538211</a>)
+  </li>
+  <li>If you have a custom field that's only supposed to appear when
+    a [% terms.bug %]'s resolution is FIXED, it will now behave properly
+    on the [% terms.bug %]-editing form when a user sets the [% terms.bug %]'s
+    status to RESOLVED.
+    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=520993">[% terms.Bug %] 520993</a>)
+  </li>
+  <li>If you are logged-out and using <kbd>request.cgi</kbd>, the Requester
+    and Requestee fields no longer respect the <kbd>usermatching</kbd>
+    parameter--they always require full usernames.
+    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=533018">[% terms.Bug %] 533018</a>)
+  </li>
+  <li>If you tried to do a search with too many terms (resulting in a URL
+    that was longer than about 7000 characters), Apache would return a 
+    500 error instead of your search results.
+    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=513989">[% terms.Bug %] 513989</a>)
+  </li>
+  <li>[% terms.Bugzilla %] would sometimes lose fields from your sort order
+    when you added new fields to your sort order.
+    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=470214">[% terms.Bug %] 470214</a>)
+  </li>
+  <li>The Atom format of search results would sometimes be missing the
+    Reporter or Assignee field for some [% terms.bugs %].
+    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=537834">[% terms.Bug %] 537834</a>)
+  </li>
+</ul>
 
 <h3>3.4.5</h3>
 
@@ -929,20 +775,19 @@
 
 <p>Perl v5.8.1</p>
 
-[% INCLUDE db_req db='mysql' %]
+<h3 id="v34_req_mysql">For MySQL Users</h3> 
+ 
+<ul> 
+  <li>MySQL v4.1.2</li> 
+  <li><strong>perl module:</strong> DBD::mysql v4.00</li> 
+</ul>
 
-[% INCLUDE db_req db='pg' %]
-
-[% INCLUDE db_req db='oracle' %]
-
-<h3 id="v34_req_modules">Required Perl Modules</h3>
-
-[% INCLUDE req_table reqs = REQUIRED_MODULES
-                     new = ['URI', 'DateTime', 'DateTime-TimeZone', 
-                            'Digest-SHA']
-                     updated = ['Template-Toolkit'] %]
-
-<h3 id="v34_req_optional_mod">Optional Perl Modules</h3>
+<h3 id="v34_req_pg">For PostgreSQL Users</h3> 
+ 
+<ul> 
+  <li>PostgreSQL v8.00.0000</li>
+  <li><strong>perl module:</strong> DBD::Pg v1.45</li>
+</ul>
 
 <h3 id="v34_req_oracle">For Oracle Users</h3>
  
@@ -1012,10 +857,118 @@
 <p>The following perl modules, if installed, enable various
   features of [% terms.Bugzilla %]:</p>
 
-[% INCLUDE req_table reqs = OPTIONAL_MODULES
-                     new  = ['TheSchwartz', 'Daemon-Generic']
-                     updated = []
-                     include_feature = 1 %]
+<table class="req_table" border="0" cellspacing="0" cellpadding="0"> 
+  <tr> 
+    <th>Module</th>
+    <th>Version</th> 
+    <th>Enables Feature</th> 
+  </tr> 
+  <tr> 
+    <td>LWP::UserAgent</td> 
+    <td>(Any)</td> 
+    <td>Automatic Update Notifications</td> 
+  </tr> 
+  <tr> 
+    <td>Template::Plugin::GD::Image</td> 
+    <td>(Any)</td> 
+    <td>Graphical Reports</td> 
+  </tr> 
+  <tr> 
+    <td>GD::Text</td> 
+    <td>(Any)</td> 
+    <td>Graphical Reports</td> 
+  </tr> 
+  <tr> 
+    <td>GD::Graph</td> 
+    <td>(Any)</td> 
+    <td>Graphical Reports</td> 
+  </tr> 
+  <tr> 
+    <td>GD</td> 
+    <td>1.20</td> 
+    <td>Graphical Reports, New Charts, Old Charts</td> 
+  </tr> 
+  <tr> 
+    <td>Email::MIME::Attachment::Stripper</td> 
+    <td>(Any)</td> 
+    <td>Inbound Email</td> 
+  </tr> 
+  <tr> 
+    <td>Email::Reply</td> 
+    <td>(Any)</td> 
+    <td>Inbound Email</td> 
+  </tr> 
+  <tr> 
+    <td>Net::LDAP</td> 
+    <td>(Any)</td> 
+    <td>LDAP Authentication</td> 
+  </tr> 
+  <tr> 
+    <td class="req_new">TheSchwartz</td> 
+    <td class="req_new">(Any)</td> 
+    <td>Mail Queueing</td> 
+  </tr> 
+  <tr> 
+    <td class="req_new">Daemon::Generic</td> 
+    <td class="req_new">(Any)</td> 
+    <td>Mail Queueing</td> 
+  </tr> 
+  <tr> 
+    <td>HTML::Parser</td> 
+    <td>3.40</td> 
+    <td>More HTML in Product/Group Descriptions</td> 
+  </tr> 
+  <tr> 
+    <td>HTML::Scrubber</td> 
+    <td>(Any)</td> 
+    <td>More HTML in Product/Group Descriptions</td> 
+  </tr> 
+  <tr> 
+    <td>XML::Twig</td> 
+    <td>(Any)</td> 
+    <td>Move [% terms.Bugs %] Between Installations</td> 
+  </tr> 
+  <tr> 
+    <td>MIME::Parser</td> 
+    <td>5.406</td> 
+    <td>Move [% terms.Bugs %] Between Installations</td> 
+  </tr> 
+  <tr> 
+    <td>Chart::Base</td> 
+    <td>1.0</td> 
+    <td>New Charts, Old Charts</td> 
+  </tr> 
+  <tr> 
+    <td>Image::Magick</td> 
+    <td>(Any)</td> 
+    <td>Optionally Convert BMP Attachments to PNGs</td> 
+  </tr> 
+  <tr> 
+    <td>PatchReader</td> 
+    <td>0.9.4</td> 
+    <td>Patch Viewer</td> 
+  </tr> 
+  <tr> 
+    <td>Authen::Radius</td> 
+    <td>(Any)</td> 
+    <td>RADIUS Authentication</td> 
+  </tr> 
+  <tr> 
+    <td>Authen::SASL</td> 
+    <td>(Any)</td> 
+    <td>SMTP Authentication</td> 
+  </tr> 
+  <tr> 
+    <td>SOAP::Lite</td> 
+    <td>0.710.06</td> 
+    <td>XML-RPC Interface</td> 
+  </tr> 
+  <tr> 
+    <td>mod_perl2</td> 
+    <td>1.999022</td> 
+    <td>mod_perl</td> 
+  </tr> 
+</table> 
 
 <h2 id="v34_feat">New Features and Improvements</h2>
 
@@ -3119,7 +3072,7 @@ sub y { $var++ }</pre>
 
 [% BLOCK db_req %]
   [% SET m = DB_MODULE.$db %]
-  <h3 id="v34_req_[% db FILTER html %]">For [% m.name FILTER html %] Users</h3>
+  <h3 id="v36_req_[% db FILTER html %]">For [% m.name FILTER html %] Users</h3>
 
   <ul>
     <li>[% m.name FILTER html %]

@@ -149,9 +149,8 @@ Bugzilla::User::match_field({
 if (defined $cgi->param('delta_ts'))
 {
     my $delta_ts_z = datetime_from($cgi->param('delta_ts'));
-    my $first_delta_tz_z = datetime_from($first_bug->delta_ts);
-    if ($first_delta_tz_z ne $delta_ts_z)
-    {
+    my $first_delta_tz_z =  datetime_from($first_bug->delta_ts);
+    if ($first_delta_tz_z ne $delta_ts_z) {
         ($vars->{'operations'}) =
             Bugzilla::Bug::GetBugActivity($first_bug->id, undef,
                                           scalar $cgi->param('delta_ts'));
@@ -201,7 +200,7 @@ if (defined $cgi->param('delta_ts'))
         $vars->{'start_at'} = $cgi->param('longdesclength');
         # Always sort midair collision comments oldest to newest,
         # regardless of the user's personal preference.
-        $vars->{'comments'} = $first_bug->comments({ order => "oldest_to_newest", start_at => $vars->{start_at} });
+        $vars->{'comments'} = $first_bug->comments({ order => "oldest_to_newest" });
         $vars->{'bug'} = $first_bug;
 
         # The token contains the old delta_ts. We need a new one.
