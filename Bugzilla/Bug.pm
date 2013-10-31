@@ -1698,7 +1698,7 @@ sub _check_estimated_time {
 }
 
 sub _check_groups {
-    my ($invocant, $group_names, $product) = @_;
+    my ($invocant, $product, $group_ids) = @_;
 
     my %add_groups;
     my $controls = $product->group_controls;
@@ -1719,18 +1719,8 @@ sub _check_groups {
         my $permit = ($membercontrol && $user->in_group($group->name))
                      || $othercontrol;
 
-    # In email or WebServices, when the "groups" item actually 
-    # isn't specified, then just add the default groups.
-    if (!defined $group_names) {
-        my $available = $product->groups_available;
-        foreach my $group (@$available) {
-            $add_groups{$group->id} = $group if $group->{is_default};
-        }
+        $add_groups{$id} = 1 if $permit;
     }
-    else {
-        # Allow a comma-separated list, for email_in.pl.
-        $group_names = [map { trim($_) } split(',', $group_names)]
-            if !ref $group_names;
 
     foreach my $id (keys %$controls) {
         next unless $controls->{$id}->{'group'}->is_active;
