@@ -84,7 +84,7 @@
               <option value="[% column FILTER html %]">
                 [%# Don't display the lower-cased column description,
                   # display the correct-case one. %]
-                [% (field_descs.$column || column) FILTER html %]
+                [% (field_descs.$column || Bugzilla.COLUMNS.${column}.title || column) FILTER html %]
               </option>
             [% END %]
           </select>
