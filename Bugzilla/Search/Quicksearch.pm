@@ -337,18 +337,9 @@ sub _handle_special_first_chars {
     return 0;
 }
 
-sub _handle_field_names
-{
-    my $self = shift;
-    my ($or_operand, $negate) = @_;
-
-    # votes:xx ("at least xx votes")
-    if ($or_operand =~ /^votes:([0-9]+)$/)
-    {
-        $self->addChart('votes', 'greaterthan', $1 - 1, $negate);
-        return 1;
-    }
-
+sub _handle_field_names {
+    my ($or_operand, $negate, $unknownFields, $ambiguous_fields) = @_;
+    
     # Flag and requestee shortcut
     if ($or_operand =~ /^(?:flag:)?([^\?]+\?)([^\?]*)$/)
     {
@@ -528,19 +519,7 @@ sub _special_field_syntax {
         return 1;
     }
 
-    # Votes (votes>xx)
-    if ($word =~ m/^votes>([0-9]+)$/) {
-        $self->addChart('votes', 'greaterthan', $1, $negate);
-        return 1;
-    }
-
-    # Votes (votes>=xx, votes=>xx)
-    if ($word =~ m/^votes(>=|=>)([0-9]+)$/) {
-        $self->addChart('votes', 'greaterthan', $2-1, $negate);
-        return 1;
-    }
-
-    return 0;
+    return 0;    
 }
 
 sub _default_quicksearch_word {

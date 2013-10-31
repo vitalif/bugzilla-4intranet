@@ -172,28 +172,44 @@ use constant SQL_DEFINITIONS => {
 # These are used by populate_field_definitions to populate
 # the fielddefs table.
 use constant DEFAULT_FIELDS => (
-    {name => 'bug_id',       desc => 'Bug ID',      buglist => 1, in_new_bugmail => 1},
-    {name => 'short_desc',   desc => 'Summary',    buglist => 1, in_new_bugmail => 1},
-    {name => 'classification', desc => 'Classification', buglist => 1, in_new_bugmail => 1},
-    {name => 'product',      desc => 'Product',    buglist => 1, in_new_bugmail => 1, type => FIELD_TYPE_SINGLE_SELECT},
-    {name => 'version',      desc => 'Version',    buglist => 1, in_new_bugmail => 1},
-    {name => 'rep_platform', desc => 'Platform',   buglist => 1, in_new_bugmail => 1, type => FIELD_TYPE_SINGLE_SELECT},
-    {name => 'bug_file_loc', desc => 'URL',        buglist => 1, in_new_bugmail => 1},
-    {name => 'op_sys',       desc => 'OS/Version', buglist => 1, in_new_bugmail => 1, type => FIELD_TYPE_SINGLE_SELECT},
-    {name => 'bug_status',   desc => 'Status',     buglist => 1, in_new_bugmail => 1, type => FIELD_TYPE_SINGLE_SELECT},
-    {name => 'status_whiteboard', desc => 'Status Whiteboard', buglist => 1, in_new_bugmail => 1},
-    {name => 'keywords',     desc => 'Keywords',   buglist => 1, in_new_bugmail => 1},
-    {name => 'resolution',   desc => 'Resolution', buglist => 1,                      type => FIELD_TYPE_SINGLE_SELECT},
-    {name => 'bug_severity', desc => 'Severity',   buglist => 1, in_new_bugmail => 1, type => FIELD_TYPE_SINGLE_SELECT},
-    {name => 'priority',     desc => 'Priority',   buglist => 1, in_new_bugmail => 1, type => FIELD_TYPE_SINGLE_SELECT},
-    {name => 'component',    desc => 'Component',  buglist => 1, in_new_bugmail => 1},
-    {name => 'assigned_to',  desc => 'Assignee',   buglist => 1, in_new_bugmail => 1},
-    {name => 'reporter',     desc => 'Reporter',   buglist => 1, in_new_bugmail => 1},
-    {name => 'votes',        desc => 'Votes',      buglist => 1},
-    {name => 'qa_contact',   desc => 'QA Contact', buglist => 1, in_new_bugmail => 1},
-    {name => 'cc',           desc => 'CC',         buglist => 1, in_new_bugmail => 1},
-    {name => 'dependson',    desc => 'Depends on', buglist => 1, in_new_bugmail => 1},
-    {name => 'blocked',      desc => 'Blocks',     buglist => 1, in_new_bugmail => 1},
+    {name => 'bug_id',       desc => 'Bug #',      in_new_bugmail => 1, 
+     buglist => 1},
+    {name => 'short_desc',   desc => 'Summary',    in_new_bugmail => 1,
+     buglist => 1},
+    {name => 'classification', desc => 'Classification', in_new_bugmail => 1,
+     buglist => 1},
+    {name => 'product',      desc => 'Product',    in_new_bugmail => 1,
+     type => FIELD_TYPE_SINGLE_SELECT, buglist => 1},
+    {name => 'version',      desc => 'Version',    in_new_bugmail => 1,
+     buglist => 1},
+    {name => 'rep_platform', desc => 'Platform',   in_new_bugmail => 1,
+     type => FIELD_TYPE_SINGLE_SELECT, buglist => 1},
+    {name => 'bug_file_loc', desc => 'URL',        in_new_bugmail => 1},
+    {name => 'op_sys',       desc => 'OS/Version', in_new_bugmail => 1,
+     type => FIELD_TYPE_SINGLE_SELECT, buglist => 1},
+    {name => 'bug_status',   desc => 'Status',     in_new_bugmail => 1,
+     type => FIELD_TYPE_SINGLE_SELECT, buglist => 1},
+    {name => 'status_whiteboard', desc => 'Status Whiteboard',
+     in_new_bugmail => 1, buglist => 1},
+    {name => 'keywords',     desc => 'Keywords',   in_new_bugmail => 1,
+     buglist => 1},
+    {name => 'resolution',   desc => 'Resolution',
+     type => FIELD_TYPE_SINGLE_SELECT, buglist => 1},
+    {name => 'bug_severity', desc => 'Severity',   in_new_bugmail => 1,
+     type => FIELD_TYPE_SINGLE_SELECT, buglist => 1},
+    {name => 'priority',     desc => 'Priority',   in_new_bugmail => 1,
+     type => FIELD_TYPE_SINGLE_SELECT, buglist => 1},
+    {name => 'component',    desc => 'Component',  in_new_bugmail => 1,
+     type => FIELD_TYPE_SINGLE_SELECT, buglist => 1},
+    {name => 'assigned_to',  desc => 'AssignedTo', in_new_bugmail => 1,
+     buglist => 1},
+    {name => 'reporter',     desc => 'ReportedBy', in_new_bugmail => 1,
+     buglist => 1},
+    {name => 'qa_contact',   desc => 'QAContact',  in_new_bugmail => 1,
+     buglist => 1},
+    {name => 'cc',           desc => 'CC',         in_new_bugmail => 1},
+    {name => 'dependson',    desc => 'Depends on', in_new_bugmail => 1},
+    {name => 'blocked',      desc => 'Blocks',     in_new_bugmail => 1},
     {name => 'dup_id',       desc => 'Duplicate of', buglist => 1, in_new_bugmail => 1, type => FIELD_TYPE_BUG_ID},
 
     {name => 'attachments.description', desc => 'Attachment description'},
@@ -213,10 +229,12 @@ use constant DEFAULT_FIELDS => (
     {name => 'everconfirmed',         desc => 'Ever Confirmed'},
     {name => 'reporter_accessible',   desc => 'Reporter Accessible'},
     {name => 'cclist_accessible',     desc => 'CC Accessible'},
-    {name => 'bug_group',             desc => 'Group',                             in_new_bugmail => 1},
-    {name => 'estimated_time',        desc => 'Estimated Hours',     buglist => 1, in_new_bugmail => 1},
-    {name => 'remaining_time',        desc => 'Remaining Hours',     buglist => 1},
-    {name => 'deadline',              desc => 'Deadline',            buglist => 1, in_new_bugmail => 1},
+    {name => 'bug_group',             desc => 'Group', in_new_bugmail => 1},
+    {name => 'estimated_time',        desc => 'Estimated Hours',
+     in_new_bugmail => 1, buglist => 1},
+    {name => 'remaining_time',        desc => 'Remaining Hours', buglist => 1},
+    {name => 'deadline',              desc => 'Deadline',
+     type => FIELD_TYPE_DATETIME, in_new_bugmail => 1, buglist => 1},
     {name => 'commenter',             desc => 'Commenter'},
     {name => 'flagtypes.name',        desc => 'Flag Types',          buglist => 1},
     {name => 'requestees.login_name', desc => 'Flag Requestee'},
@@ -568,6 +586,24 @@ sub get_default_values
         }
     }
     return \@values;
+}
+
+=pod
+
+=over
+
+=item C<is_timetracking>
+
+True if this is a time-tracking field that should only be shown to users
+in the C<timetrackinggroup>.
+
+=back
+
+=cut
+
+sub is_timetracking {
+    my ($self) = @_;
+    return grep($_ eq $self->name, TIMETRACKING_FIELDS) ? 1 : 0;
 }
 
 =pod

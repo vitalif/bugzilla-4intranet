@@ -125,6 +125,22 @@ sub loaded
     return grep { $extensions->{$_}->{loaded} } keys %$extensions;
 }
 
+# Modifies @INC so that extensions can use modules like
+# "use Bugzilla::Extension::Foo::Bar", when Bar.pm is in the lib/
+# directory of the extension.
+sub modify_inc {
+    my ($class, $file) = @_;
+
+    # Note that this package_dir call is necessary to set things up
+    # for my_inc, even if we didn't take its return value.
+    my $package_dir = __do_call($class, 'package_dir', $file);
+    # Don't modify @INC for extensions that are just files in the extensions/
+    # directory. We don't want Bugzilla's base lib/CGI.pm being loaded as 
+    # Bugzilla::Extension::Foo::CGI or any other confusing thing like that.
+    return if $package_dir eq bz_locations->{'extensionsdir'};
+    unshift(@INC, sub { __do_call($class, 'my_inc', @_) });
+}
+
 sub extension_info
 {
     shift if $_[0] eq __PACKAGE__ || ref $_[0];
@@ -139,6 +155,27 @@ sub load_all
     {
         load($_);
     }
+}
+
+####################
+# Instance Methods #
+####################
+
+use constant enabled => 1;
+
+sub lib_dir {
+    my $invocant = shift;
+    my $package_dir = __do_call($invocant, 'package_dir');
+    # For extensions that are just files in the extensions/ directory,
+    # use the base lib/ dir as our "lib_dir". Note that Bugzilla never
+    # uses lib_dir in this case, though, because modify_inc is prevented
+    # from modifying @INC when we're just a file in the extensions/ directory.
+    # So this particular code block exists just to make lib_dir return
+    # something right in case an extension needs it for some odd reason.
+    if ($package_dir eq bz_locations()->{'extensionsdir'}) {
+        return bz_locations->{'ext_libpath'};
+    }
+    return File::Spec->catdir($package_dir, 'lib');
 }
 
 sub load

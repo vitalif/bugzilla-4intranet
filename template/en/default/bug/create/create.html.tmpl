@@ -502,12 +502,29 @@ function checkWorktime(inp)
       [% END %]
     </td>
   </tr>
+
+  <tr>
+    <th><a href="page.cgi?id=fields.html#assigned_to">Assign To</a>:</th>
+    <td colspan="2">
+      [% INCLUDE global/userselect.html.tmpl
+         id => "assigned_to"
+         name => "assigned_to"
+         value => assigned_to
+         disabled => assigned_to_disabled
+         size => 30
+         emptyok => 1
+         custom_userlist => assignees_list
+       %]
+      <noscript>(Leave blank to assign to component's default assignee)</noscript>
+    </td>
+  </tr>
   
 [% IF Param("useqacontact") %]
     <tr>
       <th>QA Contact:</th>
       <td>
       [% INCLUDE global/userselect.html.tmpl
+         id => "qa_contact"
          name => "qa_contact"
          value => qa_contact
          disabled => qa_contact_disabled
@@ -524,6 +541,7 @@ function checkWorktime(inp)
     <th>CC:</th>
     <td>
       [% INCLUDE global/userselect.html.tmpl
+         id => "cc"
          name => "cc"
          value => cc
          disabled => cc_disabled
@@ -721,13 +739,14 @@ function checkWorktime(inp)
 </tbody>
 
 <tbody class="expert_fields">
-  [% IF group.size %]
+  [% IF product.groups_available.size %]
   <tr>
     <th>&nbsp;</th>
     <td colspan="3">
       <br>
         <strong>
-          Only users in all of the selected groups can view this [% terms.bug %]:
+          Only users in all of the selected groups can view this 
+          [%+ terms.bug %]:
         </strong>
       <br>
       <font size="-1">
@@ -737,12 +756,13 @@ function checkWorktime(inp)
       <br>
 
       <!-- Checkboxes -->
-      [% FOREACH g = group %]
-        &nbsp;&nbsp;&nbsp;&nbsp;
-        <input type="checkbox" id="bit-[% g.bit %]"
-          name="bit-[% g.bit %]" value="1"
-          [% " checked=\"checked\"" IF g.checked %]>
-          <label for="bit-[% g.bit %]">[% g.description FILTER html_light %]</label><br>
+      [% FOREACH group = product.groups_available %]
+        <input type="checkbox" id="groups_[% group.id FILTER html %]"
+               name="groups" value="[% group.name FILTER html %]"
+               [% ' checked="checked"' IF default.groups.contains(group.name)
+                                          OR group.is_default %]>
+        <label for="groups_[% group.id FILTER html %]">
+          [%- group.description FILTER html_light %]</label><br>
       [% END %]
     </td>
   </tr>

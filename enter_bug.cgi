@@ -684,8 +684,7 @@ foreach my $row (@$grouplist) {
 
     push @groups, $group;
 }
-
-$vars->{'group'} = \@groups;
+$default{'groups'} = \@groups;
 
 # Custis Bug 66910
 my @keyword_list = Bugzilla::Keyword->get_all();

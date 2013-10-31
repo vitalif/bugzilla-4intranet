@@ -323,18 +323,28 @@ sub get_names
     my ($names, $isnumeric, $field) = @_;
 
     # These are all the fields we want to preserve the order of in reports.
-    my $f = Bugzilla->get_field($field);
-    if ($f && $f->is_select)
-    {
-        my $values = [ map { $_->name } @{ $f->legal_values } ];
-        unshift @$values, ' ' if $field eq 'resolution';
-        my %dup;
-        @$values = grep { exists($names->{$_}) && !($dup{$_}++) } @$values;
-        return $values;
-    }
-    elsif ($isnumeric)
-    {
-        # It's not a field we are preserving the order of, so sort it
+    my %fields;
+    my @select_fields = Bugzilla->get_fields({ is_select => 1 });
+    foreach my $field (@select_fields) {
+        my @names =  map($_->name, @{$field->legal_values});
+        unshift @names, ' ' if $field->name eq 'resolution'; 
+        $fields{$field->name} = \@names;
+    } 
+    my $field_list = $fields{$field};
+    my @sorted;
+    
+    if ($field_list) {
+        my @unsorted = keys %{$names};
+        
+        # Extract the used fields from the field_list, in the order they 
+        # appear in the field_list. This lets us keep e.g. severities in
+        # the normal order.
+        #
+        # This is O(n^2) but it shouldn't matter for short lists.
+        @sorted = map {lsearch(\@unsorted, $_) == -1 ? () : $_} @{$field_list};
+    }  
+    elsif ($isnumeric) {
+        # It's not a field we are preserving the order of, so sort it 
         # numerically...
         sub numerically { $a <=> $b }
         return [ sort numerically keys %$names ];

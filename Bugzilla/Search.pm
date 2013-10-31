@@ -436,13 +436,11 @@ sub COLUMN_ALIASES
 # and/or displayed in a bug list. These are hashes of hashes. The key is field
 # name, and the value is a hash with following data:
 #
-# FIXME change hash key names (id -> name, name -> sql, subid -> subname)
-# 1. id: equals to the key of the outer hash (field name).
-# 2. name: SQL code for field value.
-# 3. joins: arrayref of table join SQL code needed to use this value.
-# 4. title: The title of the column as displayed to users.
-# 5. nobuglist: 1 for fields that cannot be displayed in bug list.
-# 6. nocharts: 1 for fields that cannot be used in Boolean Charts.
+# 3. title: The title of the column as displayed to users.
+# 
+# Note: There are a few hacks in the code that deviate from these definitions.
+#       In particular, the redundant short_desc column is removed when the
+#       client requests "all" columns.
 #
 # STATIC_COLUMNS is a constant and is freely cached between requests.
 # COLUMNS is a subroutine that takes STATIC_COLUMNS, copies the hash,
@@ -923,21 +921,6 @@ sub init
     ###################
     ## Bug selection ##
     ###################
-
-    # First, deal with all the old hard-coded non-chart-based poop.
-    my $minvotes;
-    if ($H->{votes})
-    {
-        my $c = trim($H->{votes});
-        if ($c ne "")
-        {
-            if ($c !~ /^\d+$/)
-            {
-                ThrowUserError("illegal_at_least_x_votes", { value => $c });
-            }
-            push @specialchart, ["votes", "greaterthan", $c - 1];
-        }
-    }
 
     # If the user has selected all of either status or resolution, change to
     # selecting none. This is functionally equivalent, but quite a lot faster.

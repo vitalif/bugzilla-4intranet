@@ -43,6 +43,7 @@ use Bugzilla::Product;
 use Bugzilla::Component;
 use Bugzilla::Status;
 use Bugzilla::Mailer;
+use Bugzilla::Hook;
 
 use Date::Parse;
 use Date::Format;
@@ -54,17 +55,6 @@ use constant FORMAT_2_SIZE => [19,55];
 
 use constant BIT_DIRECT    => 1;
 use constant BIT_WATCHING  => 2;
-
-# We need these strings for the X-Bugzilla-Reasons header
-# Note: this hash uses "," rather than "=>" to avoid auto-quoting of the LHS.
-use constant REL_NAMES => {
-    REL_ASSIGNEE      , "AssignedTo",
-    REL_REPORTER      , "Reporter",
-    REL_QA            , "QAcontact",
-    REL_CC            , "CC",
-    REL_VOTER         , "Voter",
-    REL_GLOBAL_WATCHER, "GlobalWatcher"
-};
 
 use base qw(Exporter);
 our @EXPORT = qw(send_results);
@@ -156,6 +146,15 @@ sub SendFlag
     }
 
     return { sent => \@sent, excluded => \@excluded };
+}
+
+sub relationships {
+    my $ref = RELATIONSHIPS;
+    # Clone it so that we don't modify the constant;
+    my %relationships = %$ref;
+    Bugzilla::Hook::process('bugmail_relationships', 
+                            { relationships => \%relationships });
+    return %relationships;
 }
 
 # This is a bit of a hack, basically keeping the old system()
@@ -413,13 +412,6 @@ sub Send {
     # Now we work out all the people involved with this bug, and note all of
     # the relationships in a hash. The keys are userids, the values are an
     # array of role constants.
-
-    # Voters
-    my $voters = $dbh->selectcol_arrayref(
-        "SELECT who FROM votes WHERE bug_id = ?", undef, ($id));
-
-    $recipients{$_}->{+REL_VOTER} = BIT_DIRECT foreach (@$voters);
-
     # CCs
     $recipients{$_}->{+REL_CC} = BIT_DIRECT foreach (@ccs);
 
@@ -463,7 +455,7 @@ sub Send {
 
     Bugzilla::Hook::process('bugmail_recipients',
                             { bug => $bug, recipients => \%recipients });
-
+    
     # Find all those user-watching anyone on the current list, who is not
     # on it already themselves.
     my $involved = join(",", keys %recipients);
@@ -498,7 +490,6 @@ sub Send {
     foreach my $user_id (keys %recipients) {
         my %rels_which_want;
         my $sent_mail = 0;
-
         my $user = new Bugzilla::User($user_id);
         # Deleted users must be excluded.
         next unless $user;
@@ -627,10 +618,11 @@ sub sendMail
         push(@reasons_watch, $relationship) if ($bits & BIT_WATCHING);
     }
 
-    my @headerrel   = map { REL_NAMES->{$_} } @reasons;
-    my @watchingrel = map { REL_NAMES->{$_} } @reasons_watch;
-    push @headerrel,   'None' unless @headerrel;
-    push @watchingrel, 'None' unless @watchingrel;
+    my %relationships = relationships();
+    my @headerrel   = map { $relationships{$_} } @reasons;
+    my @watchingrel = map { $relationships{$_} } @reasons_watch;
+    push(@headerrel,   'None') unless @headerrel;
+    push(@watchingrel, 'None') unless @watchingrel;
     push @watchingrel, map { user_id_to_login($_) } @$watchingRef;
 
     my $vars = {

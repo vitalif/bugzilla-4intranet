@@ -60,9 +60,23 @@
           <select id="flag-[% flag.id %]" name="flag-[% flag.id %]" 
                   title="[% type.description | html %]"
                   onchange="toggleRequesteeField(this);"
-                  class="flag_select flag_type-[% type.id %]">
-            [% FOR st = flag.statuses %]
-              <option value="[% st | html %]" [% "selected" IF flag.status == st %]>[% st | html %]</option>
+                  class="flag_select">
+            [%# Only display statuses the user is allowed to set. %]
+            [% IF user.can_request_flag(type) || flag.setter_id == user.id %]
+              <option value="X"></option>
+            [% END %]
+            [% IF type.is_active %]
+              [% IF (type.is_requestable && user.can_request_flag(type)) || flag.status == "?" %]
+                <option value="?" [% "selected" IF flag.status == "?" %]>?</option>
+              [% END %]
+              [% IF user.can_set_flag(type) || flag.status == "+" %]
+                <option value="+" [% "selected" IF flag.status == "+" %]>+</option>
+              [% END %]
+              [% IF user.can_set_flag(type) || flag.status == "-" %]
+                <option value="-" [% "selected" IF flag.status == "-" %]>-</option>
+              [% END %]
+            [% ELSE %]
+              <option value="[% flag.status %]" selected="selected">[% flag.status %]</option>
             [% END %]
           </select>
         </td>

@@ -78,6 +78,155 @@ sub get_version_and_os {
              os_ver   => $os_details[3] };
 }
 
+sub _extension_paths {
+    my $dir = bz_locations()->{'extensionsdir'};
+    my @extension_items = glob("$dir/*");
+    my @paths;
+    foreach my $item (@extension_items) {
+        my $basename = basename($item);
+        # Skip CVS directories and any hidden files/dirs.
+        next if ($basename eq 'CVS' or $basename =~ /^\./);
+        if (-d $item) {
+            if (!-e "$item/disabled") {
+                push(@paths, $item);
+            }
+        }
+        elsif ($item =~ /\.pm$/i) {
+            push(@paths, $item);
+        }
+    }
+    return @paths;
+}
+
+sub extension_code_files {
+    my ($requirements_only) = @_;
+    my @files;
+    foreach my $path (_extension_paths()) {
+        my @load_files;
+        if (-d $path) {
+            my $extension_file = "$path/Extension.pm";
+            my $config_file    = "$path/Config.pm";
+            if (-e $extension_file) {
+                push(@load_files, $extension_file);
+            }
+            if (-e $config_file) {
+                push(@load_files, $config_file);
+            }
+
+            # Don't load Extension.pm if we just want Config.pm and
+            # we found both.
+            if ($requirements_only and scalar(@load_files) == 2) {
+                shift(@load_files);
+            }
+        }
+        else {
+            push(@load_files, $path);
+        }
+        next if !scalar(@load_files);
+        # We know that these paths are safe, because they came from
+        # extensionsdir and we checked them specifically for their format.
+        # Also, the only thing we ever do with them is pass them to "require".
+        trick_taint($_) foreach @load_files;
+        push(@files, \@load_files);
+    }
+
+    my @additional;
+    my $datadir = bz_locations()->{'datadir'};
+    my $addl_file = "$datadir/extensions/additional";
+    if (-e $addl_file) {
+        open(my $fh, '<', $addl_file) || die "$addl_file: $!";
+        @additional = map { trim($_) } <$fh>;
+        close($fh);
+    }
+    return (\@files, \@additional);
+}
+
+# Used by _get_extension_requirements in Bugzilla::Install::Requirements.
+sub extension_requirement_packages {
+    # If we're in a .cgi script or some time that's not the requirements phase,
+    # just use Bugzilla->extensions. This avoids running the below code during
+    # a normal Bugzilla page, which is important because the below code
+    # doesn't actually function right if it runs after 
+    # Bugzilla::Extension->load_all (because stuff has already been loaded).
+    # (This matters because almost every page calls Bugzilla->feature, which
+    # calls OPTIONAL_MODULES, which calls this method.)
+    if (eval { Bugzilla->extensions }) {
+        return Bugzilla->extensions;
+    }
+    my $packages = _cache()->{extension_requirement_packages};
+    return $packages if $packages;
+    $packages = [];
+    my %package_map;
+    
+    my ($file_sets, $extra_packages) = extension_code_files('requirements only');
+    foreach my $file_set (@$file_sets) {
+        my $file = shift @$file_set;
+        my $name = require $file;
+        if ($name =~ /^\d+$/) {
+            die install_string('extension_must_return_name',
+                               { file => $file, returned => $name });
+        }
+        my $package = "Bugzilla::Extension::$name";
+        if ($package->can('package_dir')) {
+            $package->package_dir($file);
+        }
+        else {
+            extension_package_directory($package, $file);
+        }
+        $package_map{$file} = $package;
+        push(@$packages, $package);
+    }
+    foreach my $package (@$extra_packages) {
+        eval("require $package") || die $@;
+        push(@$packages, $package);
+    }
+
+    _cache()->{extension_requirement_packages} = $packages;
+    # Used by Bugzilla::Extension->load if it's called after this method
+    # (which only happens during checksetup.pl, currently).
+    _cache()->{extension_requirement_package_map} = \%package_map;
+    return $packages;
+}
+
+# Used in this file and in Bugzilla::Extension.
+sub extension_template_directory {
+    my $extension = shift;
+    my $class = ref($extension) || $extension;
+    my $base_dir = extension_package_directory($class);
+    if ($base_dir eq bz_locations->{'extensionsdir'}) {
+        return bz_locations->{'templatedir'};
+    }
+    return "$base_dir/template";
+}
+
+# For extensions that are in the extensions/ dir, this both sets and fetches
+# the name of the directory that stores an extension's "stuff". We need this
+# when determining the template directory for extensions (or other things
+# that are relative to the extension's base directory).
+sub extension_package_directory {
+    my ($invocant, $file) = @_;
+    my $class = ref($invocant) || $invocant;
+
+    my $var;
+    { no strict 'refs'; $var = \${"${class}::EXTENSION_PACKAGE_DIR"}; }
+    if ($file) {
+        $$var = dirname($file);
+    }
+    my $value = $$var;
+
+    # This is for extensions loaded from data/extensions/additional.
+    if (!$value) {
+        my $short_path = $class;
+        $short_path =~ s/::/\//g;
+        $short_path .= ".pm";
+        my $long_path = $INC{$short_path};
+        die "$short_path is not in \%INC" if !$long_path;
+        $value = $long_path;
+        $value =~ s/\.pm//;
+    }
+    return $value;
+}
+
 sub indicate_progress {
     my ($params) = @_;
     my $current = $params->{current};

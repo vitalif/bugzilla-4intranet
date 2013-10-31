@@ -2175,10 +2175,7 @@ for that value.
 
 =item Added in Bugzilla B<3.4>.
 
-=item Searching by C<votes> was removed in Bugzilla B<4.0>.
-
-=item The C<reporter> input parameter was renamed to C<creator>
-in Bugzilla B<4.0>.
+=item Searching by C<votes> was removed in Bugzilla B<3.8>.
 
 =back
 
@@ -2266,9 +2263,6 @@ don't want it to be assigned to the component owner.
 
 =item C<cc> (array) - An array of usernames to CC on this bug.
 
-=item C<comment_is_private> (boolean) - If set to true, the description
-is private, otherwise it is assumed to be public.
-
 =item C<groups> (array) - An array of group names to put this
 bug into. You can see valid group names on the Permissions
 tab of the Preferences screen, or, if you are an administrator,
@@ -2343,13 +2337,9 @@ in them. The error message will have more details.
 =item Before B<3.0.4>, parameters marked as B<Defaulted> were actually
 B<Required>, due to a bug in Bugzilla.
 
-=item The C<groups> argument was added in Bugzilla B<4.0>. Before
-Bugzilla 4.0, bugs were only added into Mandatory groups by this
+=item The C<groups> argument was added in Bugzilla B<3.8>. Before
+Bugzilla 3.8, bugs were only added into Mandatory groups by this
 method.
-
-=item The C<comment_is_private> argument was added in Bugzilla B<4.0>.
-Before Bugzilla 4.0, you had to use the undocumented C<commentprivacy>
-argument.
 
 =back
 

@@ -151,17 +151,19 @@ sub new {
 # Database Manipulation #
 #########################
 
-# vitalif@mail.ru 2010-11-11 //
-# This is incorrect in create() to remove arguments that are not valid DB columns
-# BEFORE calling run_create_validators etc, as these methods can change
-# params hash (for example turn Bugzilla::Product to product_id field)
-
-sub create
-{
-    my $self = shift;
-    $self = $self->SUPER::create(@_);
-    $self->field->touch;
-    return $self;
+# Our subclasses can take more arguments than we normally accept.
+# So, we override create() to remove arguments that aren't valid
+# columns. (Normally Bugzilla::Object dies if you pass arguments
+# that aren't valid columns.)
+sub create {
+    my $class = shift;
+    my ($params) = @_;
+    foreach my $key (keys %$params) {
+        if (!grep {$_ eq $key} $class->_get_db_columns) {
+            delete $params->{$key};
+        }
+    }
+    return $class->SUPER::create(@_);
 }
 
 sub update {

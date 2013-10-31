@@ -81,14 +81,21 @@ sub get_all_with_bug_count
 {
     my $class = shift;
     my $dbh = Bugzilla->dbh;
-    my $keywords = $dbh->selectall_arrayref(
-        'SELECT ' . join(', ', DB_COLUMNS) . ', COUNT(keywords.bug_id) AS bug_count' .
-        ' FROM keyworddefs LEFT JOIN keywords ON keyworddefs.id = keywords.keywordid ' .
-        $dbh->sql_group_by('keyworddefs.id', 'keyworddefs.name, keyworddefs.description') .
-        ' ORDER BY keyworddefs.name', {Slice => {}}
-    );
-    return [] unless $keywords;
-
+    my $keywords =
+      $dbh->selectall_arrayref('SELECT ' 
+                                      . join(', ', $class->_get_db_columns) . ',
+                                       COUNT(keywords.bug_id) AS bug_count
+                                  FROM keyworddefs
+                             LEFT JOIN keywords
+                                    ON keyworddefs.id = keywords.keywordid ' .
+                                  $dbh->sql_group_by('keyworddefs.id',
+                                                     'keyworddefs.name,
+                                                      keyworddefs.description') . '
+                                 ORDER BY keyworddefs.name', {'Slice' => {}});
+    if (!$keywords) {
+        return [];
+    }
+    
     foreach my $keyword (@$keywords) {
         bless $keyword, $class;
     }

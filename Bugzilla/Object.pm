@@ -63,7 +63,7 @@ sub _init {
     my $class = shift;
     my ($param) = @_;
     my $dbh = Bugzilla->dbh;
-    my $columns = join(',', $class->DB_COLUMNS);
+    my $columns = join(',', $class->_get_db_columns);
     my $table   = $class->DB_TABLE;
     my $name_field = $class->NAME_FIELD;
     my $id_field   = $class->ID_FIELD;
@@ -255,7 +255,7 @@ sub match {
 sub _do_list_select {
     my ($class, $where, $values, $postamble) = @_;
     my $table = $class->DB_TABLE;
-    my $cols  = join(',', $class->DB_COLUMNS);
+    my $cols  = join(',', $class->_get_db_columns);
     my $order = $class->LIST_ORDER;
 
     my $sql = "SELECT $cols FROM $table";
@@ -292,8 +292,9 @@ sub set {
     my ($self, $field, $value) = @_;
 
     # This method is protected. It's used to help implement set_ functions.
-    caller->isa('Bugzilla::Object')
-        || ThrowCodeError('protection_violation',
+    my $caller = caller;
+    $caller->isa('Bugzilla::Object') || $caller->isa('Bugzilla::Extension')
+        || ThrowCodeError('protection_violation', 
                           { caller     => caller,
                             superclass => __PACKAGE__,
                             function   => 'Bugzilla::Object->set' });
@@ -302,7 +303,7 @@ sub set {
                             { object => $self, field => $field,
                               value => $value });
 
-    my %validators = (%{$self->VALIDATORS}, %{$self->UPDATE_VALIDATORS});
+    my %validators = (%{$self->_get_validators}, %{$self->UPDATE_VALIDATORS});
     if (exists $validators{$field}) {
         my $validator = $validators{$field};
         $value = $self->$validator($value, $field);
@@ -339,11 +340,17 @@ sub update {
     $dbh->bz_start_transaction();
 
     my $old_self = $self->new($self->id);
+   
+    my @all_columns = $self->UPDATE_COLUMNS;
+    my @hook_columns;
+    Bugzilla::Hook::process('object_update_columns',
+                            { object => $self, columns => \@hook_columns });
+    push(@all_columns, @hook_columns);
 
     my %numeric = map { $_ => 1 } $self->NUMERIC_COLUMNS;
     my %date    = map { $_ => 1 } $self->DATE_COLUMNS;
     my (@update_columns, @values, %changes);
-    foreach my $column ($self->UPDATE_COLUMNS) {
+    foreach my $column (@all_columns) {
         my ($old, $new) = ($old_self->{$column}, $self->{$column});
         # This has to be written this way in order to allow us to set a field
         # from undef or to undef, and avoid warnings about comparing an undef
@@ -449,7 +456,7 @@ sub run_create_validators
 {
     my ($class, $params) = @_;
 
-    my $validators = $class->VALIDATORS;
+    my $validators = $class->_get_validators;
     my %field_values = %$params;
 
     local $Bugzilla::Object::CREATE_PARAMS = \%field_values;
@@ -516,6 +523,48 @@ sub get_all {
 
 sub check_boolean { return $_[1] ? 1 : 0 }
 
+####################
+# Constant Helpers #
+####################
+
+# For some classes, some constants take time to generate, so we cache them
+# and only access them through the below methods. This also allows certain
+# hooks to only run once per request instead of multiple times on each
+# page.
+
+sub _get_db_columns {
+    my $invocant = shift;
+    my $class = ref($invocant) || $invocant;
+    my $cache = Bugzilla->request_cache;
+    my $cache_key = "object_${class}_db_columns";
+    return @{ $cache->{$cache_key} } if $cache->{$cache_key};
+    # Currently you can only add new columns using object_columns, not
+    # remove or modify existing columns, because removing columns would
+    # almost certainly cause Bugzilla to function improperly.
+    my @add_columns;
+    Bugzilla::Hook::process('object_columns',
+                            { class => $class, columns => \@add_columns });
+    my @columns = ($invocant->DB_COLUMNS, @add_columns);
+    $cache->{$cache_key} = \@columns;
+    return @{ $cache->{$cache_key} };
+}
+
+# This method is private and should only be called by Bugzilla::Object.
+sub _get_validators {
+    my $invocant = shift;
+    my $class = ref($invocant) || $invocant;
+    my $cache = Bugzilla->request_cache;
+    my $cache_key = "object_${class}_validators";
+    return $cache->{$cache_key} if $cache->{$cache_key};
+    # We copy this into a hash so that the hook doesn't modify the constant.
+    # (That could be bad in mod_perl.)
+    my %validators = %{ $invocant->VALIDATORS };
+    Bugzilla::Hook::process('object_validators', 
+                            { class => $class, validators => \%validators });
+    $cache->{$cache_key} = \%validators;
+    return $cache->{$cache_key};
+}
+
 1;
 
 __END__
@@ -561,6 +610,12 @@ for C<Bugzilla::Keyword> this would be C<keyworddefs>.
 
 The names of the columns that you want to read out of the database
 and into this object. This should be an array.
+
+I<Note>: Though normally you will never need to access this constant's data 
+directly in your subclass, if you do, you should access it by calling the
+C<_get_db_columns> method instead of accessing the constant directly. (The
+only exception to this rule is calling C<SUPER::DB_COLUMNS> from within
+your own C<DB_COLUMNS> subroutine in a subclass.)
 
 =item C<NAME_FIELD>
 

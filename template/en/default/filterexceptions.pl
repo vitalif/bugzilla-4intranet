@@ -232,8 +232,7 @@
 ],
 
 'global/site-navigation.html.tmpl' => [
-  'bug.bug_id',
-  'bug.votes',
+  'bug.bug_id', 
 ],
 
 'bug/comments.html.tmpl' => [
@@ -264,7 +263,6 @@
   'bug.remaining_time',
   'bug.delta_ts',
   'bug.bug_id',
-  'bug.votes',
   'group.bit',
   'dep.title',
   'dep.fieldname',
@@ -312,19 +310,6 @@
        FILTER format("%d")',
 ],
 
-'bug/votes/list-for-bug.html.tmpl' => [
-  'voter.vote_count',
-  'total',
-],
-
-'bug/votes/list-for-user.html.tmpl' => [
-  'product.maxperbug',
-  'bug.id',
-  'bug.count',
-  'product.total',
-  'product.maxvotes',
-],
-
 'bug/process/results.html.tmpl' => [
   'title.$type',
   '"$terms.Bug $id" FILTER bug_link(id)',
@@ -332,7 +317,6 @@
 ],
 
 'bug/create/create.html.tmpl' => [
-  'g.bit',
   'sel.name',
   'sel.description',
   'cloned_bug_id',
@@ -481,7 +465,6 @@
   'flags.setter',
   'longdescs',
   'quips',
-  'votes',
   'series',
   'watch.watched',
   'watch.watcher',

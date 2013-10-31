@@ -776,52 +776,6 @@
 
 <h2 id="v34_point">Updates In This 3.4.x Release</h2>
 
-<h3>3.4.6</h3>
-
-<ul>
-  <li>When doing a search that involves "not equals" or "does not contain the
-    string" or similar "negative" search types, the search description that
-    appears at the top of the resulting [% terms.bug %] list will indicate
-    that the search was of that type.
-    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=474738">[% terms.Bug %] 474738</a>)
-  </li>
-  <li>In Internet Explorer, users couldn't easily mark a RESOLVED DUPLICATE
-    [%+ terms.bug %] as REOPENED, due to a JavaScript error.
-    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=546719">[% terms.Bug %] 546719</a>)
-  </li>
-  <li>If you use a "bookmarkable template" to pre-fill forms on
-    the [% terms.bug %]-filing page, and you have custom fields
-    that are only supposed to appear (or only supposed to have certain
-    values) based on the values of other fields, those custom fields will
-    now work properly.
-    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=538211">[% terms.Bug %] 538211</a>)
-  </li>
-  <li>If you have a custom field that's only supposed to appear when
-    a [% terms.bug %]'s resolution is FIXED, it will now behave properly
-    on the [% terms.bug %]-editing form when a user sets the [% terms.bug %]'s
-    status to RESOLVED.
-    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=520993">[% terms.Bug %] 520993</a>)
-  </li>
-  <li>If you are logged-out and using <kbd>request.cgi</kbd>, the Requester
-    and Requestee fields no longer respect the <kbd>usermatching</kbd>
-    parameter--they always require full usernames.
-    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=533018">[% terms.Bug %] 533018</a>)
-  </li>
-  <li>If you tried to do a search with too many terms (resulting in a URL
-    that was longer than about 7000 characters), Apache would return a 
-    500 error instead of your search results.
-    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=513989">[% terms.Bug %] 513989</a>)
-  </li>
-  <li>[% terms.Bugzilla %] would sometimes lose fields from your sort order
-    when you added new fields to your sort order.
-    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=470214">[% terms.Bug %] 470214</a>)
-  </li>
-  <li>The Atom format of search results would sometimes be missing the
-    Reporter or Assignee field for some [% terms.bugs %].
-    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=537834">[% terms.Bug %] 537834</a>)
-  </li>
-</ul>
-
 <h3>3.4.5</h3>
 
 <p>This release contains fixes for multiple security issues. See the
@@ -975,19 +929,20 @@
 
 <p>Perl v5.8.1</p>
 
-<h3 id="v34_req_mysql">For MySQL Users</h3> 
- 
-<ul> 
-  <li>MySQL v4.1.2</li> 
-  <li><strong>perl module:</strong> DBD::mysql v4.00</li> 
-</ul>
+[% INCLUDE db_req db='mysql' %]
 
-<h3 id="v34_req_pg">For PostgreSQL Users</h3> 
- 
-<ul> 
-  <li>PostgreSQL v8.00.0000</li>
-  <li><strong>perl module:</strong> DBD::Pg v1.45</li>
-</ul>
+[% INCLUDE db_req db='pg' %]
+
+[% INCLUDE db_req db='oracle' %]
+
+<h3 id="v34_req_modules">Required Perl Modules</h3>
+
+[% INCLUDE req_table reqs = REQUIRED_MODULES
+                     new = ['URI', 'DateTime', 'DateTime-TimeZone', 
+                            'Digest-SHA']
+                     updated = ['Template-Toolkit'] %]
+
+<h3 id="v34_req_optional_mod">Optional Perl Modules</h3>
 
 <h3 id="v34_req_oracle">For Oracle Users</h3>
  
@@ -1057,118 +1012,10 @@
 <p>The following perl modules, if installed, enable various
   features of [% terms.Bugzilla %]:</p>
 
-<table class="req_table" border="0" cellspacing="0" cellpadding="0"> 
-  <tr> 
-    <th>Module</th>
-    <th>Version</th> 
-    <th>Enables Feature</th> 
-  </tr> 
-  <tr> 
-    <td>LWP::UserAgent</td> 
-    <td>(Any)</td> 
-    <td>Automatic Update Notifications</td> 
-  </tr> 
-  <tr> 
-    <td>Template::Plugin::GD::Image</td> 
-    <td>(Any)</td> 
-    <td>Graphical Reports</td> 
-  </tr> 
-  <tr> 
-    <td>GD::Text</td> 
-    <td>(Any)</td> 
-    <td>Graphical Reports</td> 
-  </tr> 
-  <tr> 
-    <td>GD::Graph</td> 
-    <td>(Any)</td> 
-    <td>Graphical Reports</td> 
-  </tr> 
-  <tr> 
-    <td>GD</td> 
-    <td>1.20</td> 
-    <td>Graphical Reports, New Charts, Old Charts</td> 
-  </tr> 
-  <tr> 
-    <td>Email::MIME::Attachment::Stripper</td> 
-    <td>(Any)</td> 
-    <td>Inbound Email</td> 
-  </tr> 
-  <tr> 
-    <td>Email::Reply</td> 
-    <td>(Any)</td> 
-    <td>Inbound Email</td> 
-  </tr> 
-  <tr> 
-    <td>Net::LDAP</td> 
-    <td>(Any)</td> 
-    <td>LDAP Authentication</td> 
-  </tr> 
-  <tr> 
-    <td class="req_new">TheSchwartz</td> 
-    <td class="req_new">(Any)</td> 
-    <td>Mail Queueing</td> 
-  </tr> 
-  <tr> 
-    <td class="req_new">Daemon::Generic</td> 
-    <td class="req_new">(Any)</td> 
-    <td>Mail Queueing</td> 
-  </tr> 
-  <tr> 
-    <td>HTML::Parser</td> 
-    <td>3.40</td> 
-    <td>More HTML in Product/Group Descriptions</td> 
-  </tr> 
-  <tr> 
-    <td>HTML::Scrubber</td> 
-    <td>(Any)</td> 
-    <td>More HTML in Product/Group Descriptions</td> 
-  </tr> 
-  <tr> 
-    <td>XML::Twig</td> 
-    <td>(Any)</td> 
-    <td>Move [% terms.Bugs %] Between Installations</td> 
-  </tr> 
-  <tr> 
-    <td>MIME::Parser</td> 
-    <td>5.406</td> 
-    <td>Move [% terms.Bugs %] Between Installations</td> 
-  </tr> 
-  <tr> 
-    <td>Chart::Base</td> 
-    <td>1.0</td> 
-    <td>New Charts, Old Charts</td> 
-  </tr> 
-  <tr> 
-    <td>Image::Magick</td> 
-    <td>(Any)</td> 
-    <td>Optionally Convert BMP Attachments to PNGs</td> 
-  </tr> 
-  <tr> 
-    <td>PatchReader</td> 
-    <td>0.9.4</td> 
-    <td>Patch Viewer</td> 
-  </tr> 
-  <tr> 
-    <td>Authen::Radius</td> 
-    <td>(Any)</td> 
-    <td>RADIUS Authentication</td> 
-  </tr> 
-  <tr> 
-    <td>Authen::SASL</td> 
-    <td>(Any)</td> 
-    <td>SMTP Authentication</td> 
-  </tr> 
-  <tr> 
-    <td>SOAP::Lite</td> 
-    <td>0.710.06</td> 
-    <td>XML-RPC Interface</td> 
-  </tr> 
-  <tr> 
-    <td>mod_perl2</td> 
-    <td>1.999022</td> 
-    <td>mod_perl</td> 
-  </tr> 
-</table> 
+[% INCLUDE req_table reqs = OPTIONAL_MODULES
+                     new  = ['TheSchwartz', 'Daemon-Generic']
+                     updated = []
+                     include_feature = 1 %]
 
 <h2 id="v34_feat">New Features and Improvements</h2>
 
@@ -3272,7 +3119,7 @@ sub y { $var++ }</pre>
 
 [% BLOCK db_req %]
   [% SET m = DB_MODULE.$db %]
-  <h3 id="v36_req_[% db FILTER html %]">For [% m.name FILTER html %] Users</h3>
+  <h3 id="v34_req_[% db FILTER html %]">For [% m.name FILTER html %] Users</h3>
 
   <ul>
     <li>[% m.name FILTER html %]

@@ -973,7 +973,6 @@ sub process_bug {
                     if($status eq "UNCONFIRMED"){
                         $err .= "Bug Status was UNCONFIRMED but everconfirmed was true\n";
                         $err .= "   Setting status to $initial_status\n";
-                        $err .= "Resetting votes to 0\n" if ( $bug_fields{'votes'} );
                         $status = $initial_status;
                     }
                 }

@@ -47,7 +47,7 @@
         which will be used by default for all users. Users will be able to edit their
         own preferences from the <a href="userprefs.cgi?tab=settings">Preferences</a>.</dd>
 
-        [% class = (user.in_group('editcomponents') || user.get_editable_products.size) ? "" : "forbidden" %]
+        [% class = user.in_group('editcomponents') ? "" : "forbidden" %]
         <dt id="sanitycheck" class="[% class %]"><a href="sanitycheck.cgi">Sanity Check</a></dt>
         <dd class="[% class %]">Run sanity checks to locate problems in your database.
         This may take several tens of minutes depending on the size of your installation.

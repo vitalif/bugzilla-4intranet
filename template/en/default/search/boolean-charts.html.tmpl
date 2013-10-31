@@ -18,10 +18,39 @@
   # On [OR] [AND] etc clicks JavaScript turns the corresponding <div> into a <fieldset>.
   # %]
 
-<p><strong><a name="chart">Advanced Searching Using Boolean Charts:</a></strong></p>
+[% PROCESS "global/field-descs.none.tmpl" %]
+  
+[% types = [
+  "noop",
+  "equals",
+  "notequals",
+  "anyexact",
+  "substring",
+  "casesubstring",
+  "notsubstring",
+  "anywordssubstr",
+  "allwordssubstr",
+  "nowordssubstr",
+  "regexp",
+  "notregexp",
+  "lessthan",
+  "lessthaneq",
+  "greaterthan",
+  "greaterthaneq",
+  "anywords",
+  "allwords",
+  "nowords",
+  "changedbefore",
+  "changedafter",
+  "changedfrom",
+  "changedto",
+  "changedby",
+  "matches",
+] %]
 
-[% charts = default.charts %]
-<div class="chart">
+  <h3 id="chart">
+    Advanced Searching Using Boolean Charts
+  </h3>
 
 [% IF charts.size > 1 %]
 <fieldset class="chart _or">

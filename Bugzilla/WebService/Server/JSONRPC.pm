@@ -207,6 +207,43 @@ sub datetime_format {
     return $iso_datetime;
 }
 
+# Make all error messages returned by JSON::RPC go into the 100000
+# range, and bring down all our errors into the normal range.
+sub _error {
+    my ($self, $id, $code) = (shift, shift, shift);
+    # All JSON::RPC errors are less than 1000.
+    if ($code < 1000) {
+        $code += 100000;
+    }
+    # Bugzilla::Error adds 100,000 to all *our* errors, so
+    # we know they came from us.
+    elsif ($code > 100000) {
+        $code -= 100000;
+    }
+
+    # We can't just set $_[1] because it's not always settable,
+    # in JSON::RPC::Server.
+    unshift(@_, $id, $code);
+    my $json = $self->SUPER::_error(@_);
+
+    # We want to always send the JSON-RPC 1.1 error format, although
+    # If we're not in JSON-RPC 1.1, we don't need the silly "name" parameter.
+    if (!$self->version) {
+        my $object = $self->json->decode($json);
+        my $message = $object->{error};
+        # Just assure that future versions of JSON::RPC don't change the
+        # JSON-RPC 1.0 error format.
+        if (!ref $message) {
+            $object->{error} = {
+                code    => $code,
+                message => $message,
+            };
+            $json = $self->json->encode($object);
+        }
+    }
+    return $json;
+}
+
 ##################
 # Login Handling #
 ##################

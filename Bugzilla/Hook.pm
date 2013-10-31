@@ -294,6 +294,8 @@ takes a C<modules> parameter, just like L</auth_login_methods>.
 
 =head2 bug_columns
 
+B<DEPRECATED> Use L</object_columns> instead.
+
 This allows you to add new fields that will show up in every L<Bugzilla::Bug>
 object. Note that you will also need to use the L</bug_fields> hook in
 conjunction with this hook to make this work.
@@ -513,6 +515,33 @@ as though he were on the CC list:
 
 (We use C<+> in front of C<REL_CC> so that Perl interprets it as a constant
 instead of as a string.)
+
+=back
+
+
+=head2 bugmail_relationships
+
+There are various sorts of "relationships" that a user can have to a bug,
+such as Assignee, CC, etc. If you want to add a new type of relationship,
+you should use this hook.
+
+Params:
+
+=over
+
+=item C<relationships>
+
+A hashref, where the keys are numbers and the values are strings.
+
+The keys represent a numeric identifier for the relationship. The
+numeric identifier should be a negative number between -1 and -127.
+The number must be unique across all extensions. (Negative numbers
+are used so as not to conflict with relationship identifiers in Bugzilla
+itself.)
+
+The value is the "name" of this relationship that will show up in email
+headers in bugmails. The "name" should be short and should contain no
+spaces.
 
 =back
 
@@ -818,10 +847,17 @@ The value being set on the object.
 
 =back
 
-=head2 object_end_of_create
+=head2 object_columns
 
-Called at the end of L<Bugzilla::Object/create>, after all other changes are
-made to the database. This occurs inside a database transaction.
+This hook allows you to add new "fields" to existing Bugzilla objects,
+that correspond to columns in their tables.
+
+For example, if you added an C<example> column to the "bugs" table, you
+would have to also add an C<example> field to the C<Bugzilla::Bug> object
+in order to access that data via Bug objects.
+
+Don't do anything slow inside this hook--it's called several times on
+every page of Bugzilla.
 
 Params:
 
@@ -829,13 +865,23 @@ Params:
 
 =item C<class>
 
-The name of the class that C<create> was called on. You can check this 
-like C<< if ($class->isa('Some::Class')) >> in your code, to perform specific
-tasks for only certain classes.
+The name of the class that this hook is being called on. You can check this 
+like C<< if ($class->isa('Some::Class')) >> in your code, to add new
+fields only for certain classes.
 
-=item C<object>
+=item C<columns>
 
-The created object.
+An arrayref. Add the string names of columns to this array to add new
+values to objects. 
+
+For example, if you add an C<example> column to a particular table
+(using L</install_update_db>), and then push the string C<example> into 
+this array for the object that uses that table, then you can access the
+information in that column via C<< $object->{example} >> on all objects
+of that type.
+
+This arrayref does not contain the standard column names--you cannot modify
+or remove standard object columns using this hook.
 
 =back
 
@@ -940,6 +986,61 @@ L<Bugzilla::Object/update> returns.
 
 =back
 
+=head2 object_update_columns
+
+If you've added fields to bugs via L</object_columns>, then this
+hook allows you to say which of those columns should be updated in the
+database when L<Bugzilla::Object/update> is called on the object.
+
+If you don't use this hook, then your custom columns won't be modified in
+the database by Bugzilla.
+
+Params:
+
+=over
+
+=item C<object>
+
+The object that is about to be updated. You should check this
+like C<< if ($object->isa('Some::Class')) >> in your code, to modify
+the "update columns" only for certain classes.
+
+=item C<columns>
+
+An arrayref. Add the string names of columns to this array to allow
+that column to be updated when C<update()> is called on the object.
+
+This arrayref does not contain the standard column names--you cannot stop
+standard columns from being updated by using this hook.
+
+=back
+
+=head2 object_validators
+
+Allows you to add new items to L<Bugzilla::Object/VALIDATORS> for
+particular classes.
+
+Params:
+
+=over
+
+=item C<class>
+
+The name of the class that C<VALIDATORS> was called on. You can check this 
+like C<< if ($class->isa('Some::Class')) >> in your code, to add
+validators only for certain classes.
+
+=item C<validators>
+
+A hashref, where the keys are database columns and the values are subroutine
+references. You can add new validators or modify existing ones. If you modify
+an existing one, you should remember to call the original validator
+inside of your modified validator. (This way, several extensions can all
+modify the same validator.)
+
+=back
+
+
 =head2 page_before_template
 
 This is a simple way to add your own pages to Bugzilla. This hooks C<page.cgi>,
@@ -988,6 +1089,21 @@ Params:
 
 =back
 
+=head2 product_end_of_create
+
+Called right after a new product has been created, allowing additional
+changes to be made to the new product's attributes. This occurs inside of
+a database transaction, so if the hook throws an error all previous
+changes will be rolled back including the creation of the new product.
+
+Params:
+
+=over
+
+=item C<product> - The new L<Bugzilla::Product> object that was just created.
+
+=back
+
 =head2 sanitycheck_check
 
 This hook allows for extra sanity checks to be added, for use by
@@ -999,25 +1115,6 @@ Params:
 
 =item C<status> - a CODEREF that allows status messages to be displayed
 to the user. (F<sanitycheck.cgi>'s C<Status>)
-
-=back
-
-=head2 product_end_of_create
-
-Called right after a new product has been created, allowing additional
-changes to be made to the new product's attributes. This occurs inside of
-a database transaction, so if the hook throws an error, all previous
-changes will be rolled back, including the creation of the new product.
-(However, note that such rollbacks should not normally be used, as
-some databases that Bugzilla supports have very bad rollback performance.
-If you want to validate input and throw errors before the Product is created,
-use L</object_end_of_create_validators> instead.)
-
-Params:
-
-=over
-
-=item C<product> - The new L<Bugzilla::Product> object that was just created.
 
 =back
 
