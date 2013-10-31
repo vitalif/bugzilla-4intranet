@@ -33,7 +33,7 @@ use Bugzilla::Series;
 use Bugzilla::FlagType::UserList;
 use Bugzilla::Hook;
 
-use base qw(Bugzilla::Field::ChoiceInterface Bugzilla::Object);
+use base qw(Bugzilla::Field::Choice Bugzilla::Object);
 use Scalar::Util qw(blessed);
 
 use constant DEFAULT_CLASSIFICATION_ID => 1;
@@ -302,21 +302,6 @@ sub update {
     # Changes have been committed.
     delete $self->{check_group_controls};
     Bugzilla->user->clear_product_cache();
-
-    # Now that changes have been committed, we can send emails to voters.
-    foreach my $msg (@msgs) {
-        MessageToMTA($msg);
-    }
-
-    # And send out emails about changed bugs
-    require Bugzilla::BugMail;
-    foreach my $bug_id (@{ $changes->{'confirmed_bugs'} || [] }) {
-        $changes->{'confirmed_bugs_sent_bugmail'}->{$bug_id} = Bugzilla::BugMail::send_results({
-            mailrecipients => { changer => Bugzilla->user->login },
-            bug_id => $bug_id,
-            type => "votes",
-        });
-    }
 
     Bugzilla->get_field(FIELD_NAME)->touch;
 
