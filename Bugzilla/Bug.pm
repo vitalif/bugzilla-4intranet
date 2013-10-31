@@ -1700,6 +1700,7 @@ sub _check_estimated_time {
 sub _check_groups {
     my ($invocant, $product, $group_ids) = @_;
 
+    my $user = Bugzilla->user;
     my %add_groups;
     my $controls = $product->group_controls;
 
@@ -2426,112 +2427,7 @@ sub set_product
         $self->{product_changed} = 1;
     }
 
-    if ($product_changed && Bugzilla->usage_mode == USAGE_MODE_BROWSER) {
-        # Try to set each value with the new product.
-        # Have to set error_mode because Throw*Error calls exit() otherwise.
-        my $old_error_mode = Bugzilla->error_mode;
-        Bugzilla->error_mode(ERROR_MODE_DIE);
-        my $component_ok = eval { $self->set_component($comp_name);      1; };
-        my $version_ok   = eval { $self->set_version($vers_name);        1; };
-        my $milestone_ok = 1;
-        # Reporters can move bugs between products but not set the TM.
-        if ($self->check_can_change_field('target_milestone', 0, 1)) {
-            $milestone_ok = eval { $self->set_target_milestone($tm_name); 1; };
-        }
-        else {
-            # Have to set this directly to bypass the validators.
-            $self->{target_milestone} = $product->default_milestone;
-        }
-        # If there were any errors thrown, make sure we don't mess up any
-        # other part of Bugzilla that checks $@.
-        undef $@;
-        Bugzilla->error_mode($old_error_mode);
-        
-        my $verified = $params->{change_confirmed};
-        my %vars;
-        if (!$verified || !$component_ok || !$version_ok || !$milestone_ok) {
-            $vars{defaults} = {
-                # Note that because of the eval { set } above, these are
-                # already set correctly if they're valid, otherwise they're
-                # set to some invalid value which the template will ignore.
-                component => $self->component,
-                version   => $self->version,
-                milestone => $milestone_ok ? $self->target_milestone
-                                           : $product->default_milestone
-            };
-            $vars{components} = [map { $_->name } @{$product->components}];
-            $vars{milestones} = [map { $_->name } @{$product->milestones}];
-            $vars{versions}   = [map { $_->name } @{$product->versions}];
-        }
-
-        if (!$verified) {
-            $vars{verify_bug_groups} = 1;
-            my $dbh = Bugzilla->dbh;
-            my @idlist = ($self->id);
-            push(@idlist, map {$_->id} @{ $params->{other_bugs} })
-                if $params->{other_bugs};
-            # Get the ID of groups which are no longer valid in the new product.
-            my $gids = $dbh->selectcol_arrayref(
-                'SELECT bgm.group_id
-                   FROM bug_group_map AS bgm
-                  WHERE bgm.bug_id IN (' . join(',', ('?') x @idlist) . ')
-                    AND bgm.group_id NOT IN
-                        (SELECT gcm.group_id
-                           FROM group_control_map AS gcm
-                           WHERE gcm.product_id = ?
-                                 AND ( (gcm.membercontrol != ?
-                                        AND gcm.group_id IN ('
-                                        . Bugzilla->user->groups_as_string . '))
-                                       OR gcm.othercontrol != ?) )',
-                undef, (@idlist, $product->id, CONTROLMAPNA, CONTROLMAPNA));
-            $vars{'old_groups'} = Bugzilla::Group->new_from_list($gids);            
-        }
-        
-        if (%vars) {
-            $vars{product} = $product;
-            $vars{bug} = $self;
-            my $template = Bugzilla->template;
-            $template->process("bug/process/verify-new-product.html.tmpl",
-                \%vars) || ThrowTemplateError($template->error());
-            exit;
-        }
-    }
-    else {
-        # When we're not in the browser (or we didn't change the product), we
-        # just die if any of these are invalid.
-        $self->set_component($comp_name);
-        $self->set_version($vers_name);
-        if ($product_changed && !$self->check_can_change_field('target_milestone', 0, 1)) {
-            # Have to set this directly to bypass the validators.
-            $self->{target_milestone} = $product->default_milestone;
-        }
-        else {
-            $self->set_target_milestone($tm_name);
-        }
-    }
-    
-    if ($product_changed) {
-        # Remove groups that aren't valid in the new product. This will also
-        # have the side effect of removing the bug from groups that aren't
-        # active anymore.
-        #
-        # We copy this array because the original array is modified while we're
-        # working, and that confuses "foreach".
-        my @current_groups = @{$self->groups_in};
-        foreach my $group (@current_groups) {
-            if (!grep($group->id == $_->id, @{$product->groups_valid})) {
-                $self->remove_group($group);
-            }
-        }
-    
-        # Make sure the bug is in all the mandatory groups for the new product.
-        foreach my $group (@{$product->groups_mandatory}) {
-            $self->add_group($group);
-        }
-    }
-    
-    # XXX This is temporary until all of process_bug uses update();
-    return $product_changed;
+    return $self->{product_changed};
 }
 
 sub set_qa_contact {
