@@ -754,11 +754,6 @@ sub template_var {
     # they should move into their own template, not field-descs.
     my $result = $template->process('global/field-descs.none.tmpl', 
                                     { vars => \%vars, in_template_var => 1 });
-    # Bugzilla::Error can't be "use"d in Bugzilla::Util.
-    if (!$result) {
-        require Bugzilla::Error;
-        Bugzilla::Error::ThrowTemplateError($template->error);
-    }
     $cache->{$lang} = \%vars;
     return $vars{$name};
 }
