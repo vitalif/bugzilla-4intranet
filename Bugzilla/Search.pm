@@ -1701,7 +1701,7 @@ sub is_noop
     return
         ($f || 'noop') eq 'noop' ||
         ($t || 'noop') eq 'noop' ||
-        $v eq "" && $t ne "equals" && $t ne "notequals" && $t ne "exact";
+        ($v && $v eq "") && $t ne "equals" && $t ne "notequals" && $t ne "exact";
 }
 
 # 
