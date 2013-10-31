@@ -356,19 +356,20 @@ sub view {
             Encode::from_to($filename, 'utf-8', 'cp1251');
         }
 
-    # Don't send a charset header with attachments--they might not be UTF-8.
-    # However, we do allow people to explicitly specify a charset if they
-    # want.
-    if ($contenttype !~ /\bcharset=/i) {
-        # In order to prevent Apache from adding a charset, we have to send a
-        # charset that's a single space.
-        $cgi->charset(' ');
+        # Don't send a charset header with attachments--they might not be UTF-8.
+        # However, we do allow people to explicitly specify a charset if they
+        # want.
+        if ($contenttype !~ /\bcharset=/i) {
+            # In order to prevent Apache from adding a charset, we have to send a
+            # charset that's a single space.
+            $cgi->charset(' ');
+        }
+        print $cgi->header(-type=>"$contenttype; name=\"$filename\"",
+                           -content_disposition=> "$disposition; filename=\"$filename\"",
+                           -content_length => $attachment->datasize);
+        disable_utf8();
+        print $attachment->data;
     }
-    print $cgi->header(-type=>"$contenttype; name=\"$filename\"",
-                       -content_disposition=> "$disposition; filename=\"$filename\"",
-                       -content_length => $attachment->datasize);
-    disable_utf8();
-    print $attachment->data;
 }
 
 sub interdiff {

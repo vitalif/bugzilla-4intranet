@@ -299,7 +299,7 @@ sub _wanted_languages {
         $requested = $cgi->http('Accept-Language') || '';
         my $lang = $cgi->cookie('LANG');
         push(@wanted, $lang) if $lang;
--    }
+    }
     else {
         $requested = get_console_locale();
     }
