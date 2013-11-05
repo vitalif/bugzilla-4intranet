@@ -922,12 +922,6 @@ sub init
     ###################
     ## Bug selection ##
     ###################
-
-    if (grep($_ eq 'keywords', @fields)) {
-        push(@supptables, "LEFT JOIN keywords ON keywords.bug_id = bugs.bug_id");
-        push(@supptables, "LEFT JOIN keyworddefs ON keyworddefs.id = keywords.keywordid");
-    }
-
     # If the user has selected all of either status or resolution, change to
     # selecting none. This is functionally equivalent, but quite a lot faster.
     # Also, if the status is __open__ or __closed__, translate those
@@ -1256,6 +1250,11 @@ sub init
 
     my @supptables = " INNER JOIN ($self->{bugid_query}) bugids ON bugids.bug_id=bugs.bug_id";
 
+    if (grep($_ eq 'keywords', @fields)) {
+        push(@supptables, "LEFT JOIN keywords ON keywords.bug_id = bugs.bug_id");
+        push(@supptables, "LEFT JOIN keyworddefs ON keyworddefs.id = keywords.keywordid");
+    }
+    
     ###############################
     ## Bug fields and sort order ##
     ###############################
