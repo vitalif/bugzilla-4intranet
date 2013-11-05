@@ -369,7 +369,7 @@ function checkWorktime(inp)
       field = bug_fields.version editable = 1 rowspan = 3 
     %]
     <td rowspan="3">
-      <select name="version" size="5">
+      <select name="version">
         [%- FOREACH v = version %]
           <option value="[% v FILTER html %]"
             [% ' selected="selected"' IF v == default.version %]>[% v FILTER html -%]
@@ -832,7 +832,7 @@ function checkWorktime(inp)
     [%- FOREACH x = ${field.name} %]
       <option value="[% x FILTER html %]"
         [% " selected=\"selected\"" IF x == default.${field.name} %]>
-        [% display_value(field.name, x) FILTER html %]
+        [% x FILTER html %]
       </option>
     [% END %]
     </select>
