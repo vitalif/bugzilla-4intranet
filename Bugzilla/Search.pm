@@ -966,9 +966,6 @@ sub init
         {
             $H->{bug_status} = [ keys %statuses ];
         }
-        else {
-            $params->param('bug_status', @valid_statuses);
-        }
     }
 
     if ($H->{resolution})
