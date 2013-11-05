@@ -510,13 +510,13 @@ sub Send {
                     fields   => \@fields,
                     bug     => $bug,
                     user    => $user,
-                    rels    => \%rels_which_want,
+                    rels_which_want    => \%rels_which_want,
                     values  => \%values,
-                    diffs   => $diffs,
-                    newcomm => $comments,
+                    diff_parts   => $diffs,
+                    comments => $comments,
                     isnew   => !$start,
                     id      => $id,
-                    watch   => exists $watching{$user_id} ? $watching{$user_id} : undef,
+                    watchers   => exists $watching{$user_id} ? $watching{$user_id} : undef,
                 );
             }
         }
@@ -538,21 +538,17 @@ sub Send {
 
 sub sendMail
 {
-    my %arguments = @_;
-    my ($user, $hlRef, $relRef, $valueRef, $dmhRef, $fdRef,
-        $diffs, $comments_in, $isnew,
-        $id, $watchingRef, $bug
-    ) = @arguments{qw(
-        user headers rels values defhead fields
-        diffs newcomm isnew
-        id watch bug
-    )};
-
-    my @send_comments = @$comments_in;
-    my %values = %$valueRef;
-    my @headerlist = @$hlRef;
-    my %mailhead = %$dmhRef;
-    my %fielddescription = %$fdRef;
+    my $params = shift;
+    
+    my $user   = $params->{user};
+    my @fields = @{ $params->{fields} };
+    my $bug    = $params->{bug};
+    my @send_comments = @{ $params->{comments} };
+    my $isnew   = $params->{is_new};
+    my $changer = $params->{changer};
+    my $watchingRef = $params->{watchers};
+    my @diffparts   = @{ $params->{diff_parts} };
+    my $relRef      = $params->{rels_which_want};
 
     # Filter changes by verifying the user should see them
     my $new_diffs = [];
