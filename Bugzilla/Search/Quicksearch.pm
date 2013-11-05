@@ -289,20 +289,53 @@ sub _handle_alias {
     }
 }
 
-sub _handle_status_and_resolution
-{
-    my $self = shift;
-    $self->{legal_statuses} = get_legal_field_values('bug_status');
-    push @{$self->{legal_statuses}}, 'OPEN';
-    $self->{legal_resolutions} = get_legal_field_values('resolution');
+sub _handle_status_and_resolution {
+    my ($words) = @_;
+    my $legal_statuses = get_legal_field_values('bug_status');
+    my $legal_resolutions = get_legal_field_values('resolution');
 
-    my (%st, %res);
-    if ($self->{words}->[0] =~ /^[A-Z]+(,[A-Z]+)*$/ &&
-        matchPrefixes(\%st, \%res, [split(/,/, $self->{words}->[0])],
-            $self->{legal_statuses}, $self->{legal_resolutions}))
-    {
-        $self->{words}->[0] = 'status:'.$self->{words}->[0];
+    my @openStates = BUG_STATE_OPEN;
+    my @closedStates;
+    my (%states, %resolutions);
+
+    foreach (@$legal_statuses) {
+        push(@closedStates, $_) unless is_open_state($_);
     }
+    foreach (@openStates) { $states{$_} = 1 }
+    if ($words->[0] eq 'ALL') {
+        foreach (@$legal_statuses) { $states{$_} = 1 }
+        shift @$words;
+    }
+    elsif ($words->[0] eq 'OPEN') {
+        shift @$words;
+    }
+    elsif ($words->[0] =~ /^[A-Z]+(,[A-Z]+)*$/) {
+        # e.g. NEW,ASSI,REOP,FIX
+        undef %states;
+        if (matchPrefixes(\%states,
+                          \%resolutions,
+                          [split(/,/, $words->[0])],
+                          $legal_statuses,
+                          $legal_resolutions)) {
+            shift @$words;
+        }
+        else {
+            # Carry on if no match found
+            foreach (@openStates) { $states{$_} = 1 }
+        }
+    }
+    else {
+        # Default: search for unresolved bugs only.
+        # Put custom code here if you would like to change this behaviour.
+    }
+
+    # If we have wanted resolutions, allow closed states
+    if (keys(%resolutions)) {
+        foreach (@closedStates) { $states{$_} = 1 }
+    }
+
+    Bugzilla->cgi->param('bug_status', keys(%states));
+    Bugzilla->cgi->param('resolution', keys(%resolutions));
 }
 
 sub _handle_special_first_chars {
