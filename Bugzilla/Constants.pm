@@ -148,6 +148,8 @@ use Cwd qw(abs_path);
     ERROR_MODE_JSON_RPC
     ERROR_MODE_AJAX
 
+    COLOR_ERROR
+
     INSTALLATION_MODE_INTERACTIVE
     INSTALLATION_MODE_NON_INTERACTIVE
 
@@ -460,6 +462,9 @@ use constant ERROR_MODE_DIE            => 1;
 use constant ERROR_MODE_DIE_SOAP_FAULT => 2;
 use constant ERROR_MODE_JSON_RPC       => 3;
 use constant ERROR_MODE_AJAX           => 4;
+
+# The ANSI colors of messages that command-line scripts use
+use constant COLOR_ERROR => 'red';
 
 # The various modes that checksetup.pl can run in.
 use constant INSTALLATION_MODE_INTERACTIVE => 0;

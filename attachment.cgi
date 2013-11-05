@@ -219,15 +219,14 @@ sub attachmentIsPublic {
 # Validates format of a diff/interdiff. Takes a list as an parameter, which
 # defines the valid format values. Will throw an error if the format is not
 # in the list. Returns either the user selected or default format.
-sub validateFormat
-{
-    # receives a list of legal formats; first item is a default
-    my $format = $cgi->param('format') || $_[0];
-    if (!grep { $_ eq $format } @_)
-    {
-        ThrowUserError("invalid_format", { format  => $format, formats => \@_ });
-    }
-    return $format;
+sub validateFormat {
+  # receives a list of legal formats; first item is a default
+  my $format = $cgi->param('format') || $_[0];
+  if (not grep($_ eq $format, @_)) {
+     ThrowUserError("invalid_format", { format  => $format, formats => \@_ });
+  }
+
+  return $format;
 }
 
 # Validates context of a diff/interdiff. Will throw an error if the context
@@ -746,6 +745,8 @@ sub update {
     $vars->{'attachment'} = $attachment;
     $vars->{'bugs'} = [$bug];
     $vars->{'header_done'} = 1;
+    $vars->{'sent_bugmail'} = 
+        Bugzilla::BugMail::Send($bug->id, { 'changer' => $user });
 
     my $send_results = send_results({
         bug_id => $bug->id,

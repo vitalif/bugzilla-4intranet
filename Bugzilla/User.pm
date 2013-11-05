@@ -583,11 +583,11 @@ sub get_products_by_permission {
 
     # No need to go further if the user has no "special" privs.
     return [] unless scalar(@$product_ids);
+    my %product_map = map { $_ => 1 } @$product_ids;
 
     # We will restrict the list to products the user can see.
     my $selectable_products = $self->get_selectable_products;
-    $product_ids = { map { $_ => 1 } @$product_ids };
-    my @products = grep { $product_ids->{$_->id} } @$selectable_products;
+    my @products = grep { $product_map{$_->id} } @$selectable_products;
     return \@products;
 }
 
@@ -1585,7 +1585,7 @@ sub wants_bug_mail {
     #
     # We do them separately because if _any_ of them are set, we don't want
     # the mail.
-    if ($wants_mail && $changer && $self->id eq $changer->id) {
+    if ($wants_mail && $changer && ($self->id == $changer->id)) {
         $wants_mail &= $self->wants_mail([EVT_CHANGED_BY_ME], $relationship);
     }
 
@@ -1629,27 +1629,35 @@ sub wants_mail {
     # Skip DB query if relationship is explicit
     return 1 if $relationship == REL_GLOBAL_WATCHER;
 
+    my $wants_mail = grep { $self->mail_settings->{$relationship}{$_} } @$events;
+    return $wants_mail ? 1 : 0;
+}
+
+sub mail_settings {
+    my $self = shift;
     my $dbh = Bugzilla->dbh;
 
-    my $wants_mail =
-        $dbh->selectrow_array('SELECT 1
-                                 FROM email_setting
-                                WHERE user_id = ?
-                                  AND relationship = ?
-                                  AND event IN (' . join(',', @$events) . ') ' .
-                                      $dbh->sql_limit(1),
-                              undef, ($self->id, $relationship));
+    if (!defined $self->{'mail_settings'}) {
+        my $data =
+          $dbh->selectall_arrayref('SELECT relationship, event FROM email_setting
+                                    WHERE user_id = ?', undef, $self->id);
+        my %mail;
+        # The hash is of the form $mail{$relationship}{$event} = 1.
+        $mail{$_->[0]}{$_->[1]} = 1 foreach @$data;
 
-    return defined($wants_mail) ? 1 : 0;
+        $self->{'mail_settings'} = \%mail;
+    }
+    return $self->{'mail_settings'};
 }
 
 sub is_mover
 {
     my $self = shift;
-    if (!defined $self->{is_mover})
-    {
-        my @movers = map { trim($_) } split(',', Bugzilla->params->{movers});
-        $self->{is_mover} = $self->id && grep { $_ eq $self->login } @movers;
+
+    if (!defined $self->{'is_mover'}) {
+        my @movers = map { trim($_) } split(',', Bugzilla->params->{'movers'});
+        $self->{'is_mover'} = ($self->id
+                               && grep { $_ eq $self->login } @movers);
     }
     return $self->{is_mover};
 }

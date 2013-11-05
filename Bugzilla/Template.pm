@@ -58,6 +58,7 @@ use File::Find;
 use File::Path qw(rmtree mkpath);
 use File::Spec;
 use IO::Dir;
+use List::MoreUtils qw(firstidx);
 use Scalar::Util qw(blessed);
 
 use base qw(Template);
@@ -486,8 +487,8 @@ $Template::Config::STASH = 'Template::Stash::XS';
 # Allow keys to start with an underscore or a dot.
 $Template::Stash::PRIVATE = undef;
 
-# Add "contains***" methods to list variables that search for one or more
-# items in a list and return boolean values representing whether or not
+# Add "contains***" methods to list variables that search for one or more 
+# items in a list and return boolean values representing whether or not 
 # one/all/any item(s) were found.
 $Template::Stash::LIST_OPS->{ contains } =
   sub {
@@ -949,7 +950,10 @@ sub create {
             'time2str' => \&Date::Format::time2str,
 
             # Generic linear search function
-            'lsearch' => \&Bugzilla::Util::lsearch,
+            'lsearch' => sub {
+                my ($array, $item) = @_;
+                return firstidx { $_ eq $item } @$array;
+            },
 
             # Currently logged in user, if any
             # If an sudo session is in progress, this is the user we're faking
@@ -966,13 +970,6 @@ sub create {
             # If an sudo session is in progress, this is the user who
             # started the session.
             'sudoer' => sub { return Bugzilla->sudoer; },
-
-            # StopBugMail - stops mail about a bug, modifying `lastdiffed`
-            'StopBugMail' => sub {
-                my ($id) = @_;
-                Bugzilla->dbh->do('UPDATE bugs SET lastdiffed=NOW() WHERE bug_id=?', undef, $id);
-                return '';
-            },
 
             # Allow templates to access the "corect" URLBase value
             'urlbase' => sub { return Bugzilla::Util::correct_urlbase(); },

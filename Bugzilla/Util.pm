@@ -333,18 +333,6 @@ sub use_attachbase {
             && $attachbase ne Bugzilla->params->{'sslbase'}) ? 1 : 0;
 }
 
-sub lsearch {
-    my ($list,$item) = (@_);
-    my $count = 0;
-    foreach my $i (@$list) {
-        if ($i eq $item) {
-            return $count;
-        }
-        $count++;
-    }
-    return -1;
-}
-
 sub diff_arrays {
     my ($old_ref, $new_ref) = @_;
 
@@ -991,9 +979,6 @@ Bugzilla::Util - Generic utility functions for bugzilla
   my $is_cgi   = i_am_cgi();
   my $urlbase  = correct_urlbase();
 
-  # Functions for searching
-  $loc = lsearch(\@arr, $val);
-
   # Data manipulation
   ($removed, $added) = diff_arrays(\@old, \@new);
 
@@ -1129,21 +1114,6 @@ current setting for the C<ssl_redirect> parameter.
 
 Returns true if an alternate host is used to display attachments; false
 otherwise.
-
-=back
-
-=head2 Searching
-
-Functions for searching within a set of values.
-
-=over 4
-
-=item C<lsearch($list, $item)>
-
-Returns the position of C<$item> in C<$list>. C<$list> must be a list
-reference.
-
-If the item is not in the list, returns -1.
 
 =back
 

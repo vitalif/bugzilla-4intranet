@@ -236,7 +236,8 @@ if (defined($cgi->upload('data')) || $cgi->param('attachurl') ||
         $attachment->set_flags($flags, $new_flags);
         $attachment->update($timestamp);
         my $comment = $bug->comments->[0];
-        $comment->set_type(CMT_ATTACHMENT_CREATED, $attachment->id);
+        $comment->set_all({ type => CMT_ATTACHMENT_CREATED, 
+                            extra_data => $attachment->id });
         $comment->update();
     }
     else {
@@ -259,8 +260,7 @@ Bugzilla::Hook::process('post_bug_after_creation', { vars => $vars });
 
 ThrowCodeError("bug_error", { bug => $bug }) if $bug->error;
 
-if ($token)
-{
+if ($token) {
     trick_taint($token);
     $dbh->do('UPDATE tokens SET eventdata = ? WHERE token = ?', undef, 
              ("createbug:$id", $token));

@@ -144,8 +144,7 @@ sub check_utf8 {
 sub check_priority {
     my ($value) = (@_);
     my $legal_priorities = get_legal_field_values('priority');
-    if (!grep { $_ eq $value } @$legal_priorities)
-    {
+    if (!grep($_ eq $value, @$legal_priorities)) {
         return "Must be a legal priority value: one of " .
             join(", ", @$legal_priorities);
     }
@@ -155,8 +154,7 @@ sub check_priority {
 sub check_severity {
     my ($value) = (@_);
     my $legal_severities = get_legal_field_values('bug_severity');
-    if (!grep { $_ eq $value } @$legal_severities)
-    {
+    if (!grep($_ eq $value, @$legal_severities)) {
         return "Must be a legal severity value: one of " .
             join(", ", @$legal_severities);
     }
@@ -166,8 +164,7 @@ sub check_severity {
 sub check_platform {
     my ($value) = (@_);
     my $legal_platforms = get_legal_field_values('rep_platform');
-    if (!grep { $_ eq $value } '', @$legal_platforms)
-    {
+    if (!grep($_ eq $value, '', @$legal_platforms)) {
         return "Must be empty or a legal platform value: one of " .
             join(", ", @$legal_platforms);
     }
@@ -177,8 +174,7 @@ sub check_platform {
 sub check_opsys {
     my ($value) = (@_);
     my $legal_OS = get_legal_field_values('op_sys');
-    if (!grep { $_ eq $value } '', @$legal_OS)
-    {
+    if (!grep($_ eq $value, '', @$legal_OS)) {
         return "Must be empty or a legal operating system value: one of " .
             join(", ", @$legal_OS);
     }
@@ -188,8 +184,7 @@ sub check_opsys {
 sub check_bug_status {
     my $bug_status = shift;
     my @closed_bug_statuses = map {$_->name} closed_bug_statuses();
-    if (!grep { $_ eq $bug_status } @closed_bug_statuses)
-    {
+    if (!grep($_ eq $bug_status, @closed_bug_statuses)) {
         return "Must be a valid closed status: one of " . join(', ', @closed_bug_statuses);
     }
     return "";

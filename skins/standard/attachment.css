@@ -182,9 +182,8 @@ table.attachment_info td {
     width: 20%;
 }
 
-<<<<<<< HEAD:skins/standard/create_attachment.css
 #comment_textarea { width: 50em; font-size: medium; font-family: monospace; }
-=======
+
 #attachment_info.edit #attachment_information_edit input.text,
 #attachment_info.edit #attachment_information_edit textarea {
     width: 90%; 
@@ -242,4 +241,3 @@ div#update_container {
 .no_javascript .bz_hide, .no_javascript .bz_edit {
     display: none;
 }
->>>>>>> d5cc8b05e7f234c7cc6fe3428ad9e5928236de9a:skins/standard/attachment.css

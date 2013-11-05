@@ -19,6 +19,8 @@
   #                 Frédéric Buclin <LpSolit@gmail.com>
   #%]
 
+[% RETURN UNLESS attachments.size || Param("maxattachmentsize") %]
+
 <script type="text/javascript">
 <!--
 function toggle_display(link)

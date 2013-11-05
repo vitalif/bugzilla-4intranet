@@ -85,10 +85,7 @@ sub remove_from_db
         );
     }
 
-    # Touch the field
-    Bugzilla->get_field('classification')->touch;
-
-    Bugzilla::Object::remove_from_db($self);
+    $self->SUPER::remove_from_db();
 
     $dbh->bz_commit_transaction();
 }

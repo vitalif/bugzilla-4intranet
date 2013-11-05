@@ -1267,8 +1267,8 @@ sub check_field {
     }
 
     if (!defined($value)
-        || trim($value) eq ""
-        || !grep { $_ eq $value } @$legalsRef)
+        or trim($value) eq ""
+        or !grep { $_ eq $value } @$legalsRef)
     {
         return 0 if $no_warn; # We don't want an error to be thrown; return.
         trick_taint($name);

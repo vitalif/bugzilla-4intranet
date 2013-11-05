@@ -66,10 +66,10 @@
     "specify a URL when creating an attachment and " _
     "treat the URL itself as if it were an attachment.",
 
-  use_supa_applet =>
-    "If this option is on, the <a href='http://supa.sourceforge.net/'>SUPA</a> java applet " _
-    "(Screenshot UPload Applet) will be enabled to allow uploading of images from the clipboard. " _
-    "Note this requires <a href='http://www.java.com/'>Java</a> support in user's browser.",
+  maxattachmentsize => "The maximum size (in kilobytes) of attachments. " _
+                       "$terms.Bugzilla will not accept attachments greater than this number " _
+                       "of kilobytes in size. Setting this parameter to 0 will prevent " _
+                       "attaching files to ${terms.bugs}.",
 
   supa_jar_url =>
     "Sometimes you may want to specify different URL for Supa applet instead of default <tt>js/Supa.jar</tt>. " _

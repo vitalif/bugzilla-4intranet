@@ -31,6 +31,8 @@ use Bugzilla::FlagType;
 use Bugzilla::FlagType::UserList;
 use Bugzilla::Series;
 
+use Scalar::Util qw(blessed);
+
 ###############################
 ####    Initialization     ####
 ###############################
@@ -77,12 +79,11 @@ use constant VALIDATORS => {
     initialqacontact => \&_check_initialqacontact,
     description      => \&_check_description,
     initial_cc       => \&_check_cc_list,
-    is_active         => \&Bugzilla::Object::check_boolean,
+    name             => \&_check_name,
 };
 
-use constant UPDATE_VALIDATORS => {
-    name => \&_check_name,
-    default_version => \&_check_default_version,
+use constant VALIDATOR_DEPENDENCIES => {
+    name => ['product'],
 };
 
 ###############################
@@ -129,8 +130,11 @@ sub create {
     my $params = $class->run_create_validators(@_);
     my $cc_list = delete $params->{initial_cc};
     my $create_series = delete $params->{create_series};
+    my $product = delete $params->{product};
+    $params->{product_id} = $product->id;
 
     my $component = $class->insert_create_data($params);
+    $component->{product} = $product;
 
     # Fill visibility values
     $component->set_visibility_values([ $component->product_id ]);
@@ -160,8 +164,7 @@ sub run_create_validators
     return $params;
 }
 
-sub update
-{
+sub update {
     my $self = shift;
     # Bugzilla::Field::Choice is not a threat as we don't have 'value' field
     # Yet do not call its update() for the future
@@ -222,7 +225,8 @@ sub remove_from_db {
 ################################
 
 sub _check_name {
-    my ($invocant, $name, $product) = @_;
+    my ($invocant, $name, undef, $params) = @_;
+    my $product = blessed($invocant) ? $invocant->product : $params->{product};
 
     $name = trim($name);
     $name || ThrowUserError('component_blank_name');
@@ -231,7 +235,6 @@ sub _check_name {
         ThrowUserError('component_name_too_long', {'name' => $name});
     }
 
-    $product = $invocant->product if (ref $invocant);
     my $component = new Bugzilla::Component({product => $product, name => $name});
     if ($component && (!ref $invocant || $component->id != $invocant->id)) {
         ThrowUserError('component_already_exists', { name    => $component->name,

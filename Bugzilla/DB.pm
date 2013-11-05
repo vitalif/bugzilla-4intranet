@@ -83,22 +83,27 @@ sub connect_shadow {
     die "Tried to connect to non-existent shadowdb" 
         unless $params->{'shadowdb'};
 
-    my $lc = Bugzilla->localconfig;
+    # Instead of just passing in a new hashref, we locally modify the
+    # values of "localconfig", because some drivers access it while
+    # connecting.
+    my %connect_params = %{ Bugzilla->localconfig };
+    $connect_params{db_host} = $params->{'shadowdbhost'};
+    $connect_params{db_name} = $params->{'shadowdb'};
+    $connect_params{db_port} = $params->{'shadowdbport'};
+    $connect_params{db_sock} = $params->{'shadowdbsock'};
 
-    return _connect($lc->{db_driver}, $params->{"shadowdbhost"},
-                    $params->{'shadowdb'}, $params->{"shadowdbport"},
-                    $params->{"shadowdbsock"}, $lc->{db_user}, $lc->{db_pass});
+    return _connect(\%connect_params);
 }
 
 sub connect_main {
     my $lc = Bugzilla->localconfig;
-    return _connect($lc->{db_driver}, $lc->{db_host}, $lc->{db_name}, $lc->{db_port},
-                    $lc->{db_sock}, $lc->{db_user}, $lc->{db_pass});
+    return _connect(Bugzilla->localconfig); 
 }
 
 sub _connect {
-    my ($driver, $host, $dbname, $port, $sock, $user, $pass) = @_;
+    my ($params) = @_;
 
+    my $driver = $params->{db_driver};
     my $pkg_module = DB_MODULE->{lc($driver)}->{db};
 
     # do the actual import
@@ -107,7 +112,7 @@ sub _connect {
                 . " localconfig: " . $@);
 
     # instantiate the correct DB specific module
-    my $dbh = $pkg_module->new($user, $pass, $host, $dbname, $port, $sock);
+    my $dbh = $pkg_module->new($params);
 
     return $dbh;
 }
@@ -147,7 +152,7 @@ sub bz_check_requirements {
         my $dbd_mod = $dbd->{module};
         my $dbd_ver = $dbd->{version};
         my $version = $dbd_ver ? " $dbd_ver or higher" : '';
-        print <<EOT;
+        die <<EOT;
 
 For $sql_server, Bugzilla requires that perl's $dbd_mod $dbd_ver or later be
 installed. To install this module, run the following command (as $root):
@@ -155,7 +160,6 @@ installed. To install this module, run the following command (as $root):
     $command
 
 EOT
-        exit;
     }
 
     # We don't try to connect to the actual database if $db_check is
@@ -178,14 +182,13 @@ EOT
     if ( vers_cmp($sql_vers,$sql_want) > -1 ) {
         print "ok: found v$sql_vers\n" if $output;
     } else {
-        print <<EOT;
+        die <<EOT;
 
 Your $sql_server v$sql_vers is too old. Bugzilla requires version
 $sql_want or later of $sql_server. Please download and install a
 newer version.
 
 EOT
-        exit;
     }
 
     print "\n" if $output;
@@ -213,10 +216,9 @@ sub bz_create_database {
         if (!$success) {
             my $error = $dbh->errstr || $@;
             chomp($error);
-            print STDERR  "The '$db_name' database could not be created.",
-                          " The error returned was:\n\n    $error\n\n",
-                          _bz_connect_error_reasons();
-            exit;
+            die "The '$db_name' database could not be created.",
+                " The error returned was:\n\n    $error\n\n",
+                _bz_connect_error_reasons();
         }
     }
 
@@ -227,19 +229,19 @@ sub bz_create_database {
 sub _get_no_db_connection {
     my ($sql_server) = @_;
     my $dbh;
-    my $lc = Bugzilla->localconfig;
+    my %connect_params = %{ Bugzilla->localconfig };
+    $connect_params{db_name} = '';
     my $conn_success = eval {
-        $dbh = _connect($lc->{db_driver}, $lc->{db_host}, '', $lc->{db_port},
-                        $lc->{db_sock}, $lc->{db_user}, $lc->{db_pass});
+        $dbh = _connect(\%connect_params);
     };
     if (!$conn_success) {
-        my $sql_server = DB_MODULE->{lc($lc->{db_driver})}->{name};
+        my $driver = $connect_params{db_driver};
+        my $sql_server = DB_MODULE->{lc($driver)}->{name};
         # Can't use $dbh->errstr because $dbh is undef.
         my $error = $DBI::errstr || $@;
         chomp($error);
-        print STDERR "There was an error connecting to $sql_server:\n\n",
-                     "    $error\n\n", _bz_connect_error_reasons();
-        exit;
+        die "There was an error connecting to $sql_server:\n\n",
+            "    $error\n\n", _bz_connect_error_reasons(), "\n";
     }
     return $dbh;    
 }
@@ -1141,7 +1143,9 @@ sub release_savepoint
 #####################################################################
 
 sub db_new {
-    my ($class, $dsn, $user, $pass, $override_attrs) = @_;
+    my ($class, $params) = @_;
+    my ($dsn, $user, $pass, $override_attrs) = 
+        @$params{qw(dsn user pass attrs)};
 
     # set up default attributes used to connect to the database
     # (may be overridden by DB driver implementations)
@@ -1386,13 +1390,11 @@ sub _check_references {
             }
         }
         else {
-            print "\n", get_text('install_fk_invalid',
+            die "\n", get_text('install_fk_invalid',
                 { table => $table, column => $column,
                   foreign_table => $foreign_table,
                   foreign_column => $foreign_column,
                  'values' => $bad_values }), "\n";
-            # I just picked a number above 2, to be considered "abnormal exit"
-            exit 3
         }
     }
 }

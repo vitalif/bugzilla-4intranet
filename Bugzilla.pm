@@ -106,17 +106,17 @@ sub _die_error
 #####################################################################
 
 # Scripts that are not stopped by shutdownhtml being in effect.
-use constant SHUTDOWNHTML_EXEMPT => [
-    'editparams.cgi',
-    'checksetup.pl',
-    'migrate.pl',
-    'recode.pl',
-];
+use constant SHUTDOWNHTML_EXEMPT => qw(
+    editparams.cgi
+    checksetup.pl
+    migrate.pl
+    recode.pl
+);
 
 # Non-cgi scripts that should silently exit.
-use constant SHUTDOWNHTML_EXIT_SILENTLY => [
-    'whine.pl'
-];
+use constant SHUTDOWNHTML_EXIT_SILENTLY => qw(
+    whine.pl
+);
 
 #####################################################################
 # Hack into buggy Encode::MIME::Header
@@ -254,8 +254,10 @@ sub init_page {
         };
     }
 
+    my $script = basename($0);
+
     # Because of attachment_base, attachment.cgi handles this itself.
-    if (basename($0) ne 'attachment.cgi') {
+    if ($script ne 'attachment.cgi') {
         do_ssl_redirect_if_required();
     }
 
@@ -265,14 +267,14 @@ sub init_page {
     #
     # This code must go here. It cannot go anywhere in Bugzilla::CGI, because
     # it uses Template, and that causes various dependency loops.
-    if (Bugzilla->params->{"shutdownhtml"} 
-        && lsearch(SHUTDOWNHTML_EXEMPT, basename($0)) == -1)
+    if (Bugzilla->params->{"shutdownhtml"}
+        && !grep { $_ eq $script } SHUTDOWNHTML_EXEMPT)
     {
         # Allow non-cgi scripts to exit silently (without displaying any
         # message), if desired. At this point, no DBI call has been made
         # yet, and no error will be returned if the DB is inaccessible.
-        if (lsearch(SHUTDOWNHTML_EXIT_SILENTLY, basename($0)) > -1
-            && !i_am_cgi())
+        if (!i_am_cgi()
+            && grep { $_ eq $script } SHUTDOWNHTML_EXIT_SILENTLY)
         {
             exit;
         }

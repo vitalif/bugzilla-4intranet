@@ -360,8 +360,7 @@ their updated values (so it has the old values available for each field).
 
 =item C<timestamp> 
 
-The timestamp used for all updates in this transaction, as a SQL date
-string.
+The timestamp used for all updates in this transaction.
 
 =item C<changes> 
 

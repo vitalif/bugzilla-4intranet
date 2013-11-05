@@ -317,10 +317,13 @@ function checkWorktime(inp)
 
   [%# We can't use the select block in these two cases for various reasons. %]
   <tr>
-    <th class="required">
-      <a href="describecomponents.cgi?product=[% product.name FILTER url_quote %]">
-      Component</a>:
-    </th>
+    [% component_desc_url = BLOCK -%]
+      describecomponents.cgi?product=[% product.name FILTER url_quote %]
+    [% END %]
+    [% INCLUDE "bug/field-label.html.tmpl"
+      field = bug_fields.component editable = 1 required = 1
+      desc_url = component_desc_url
+    %]      
     <td id="field_container_component">
       <select name="component" id="component" onchange="set_assign_to();"
               size="7" aria-required="true" class="required">
@@ -362,8 +365,9 @@ function checkWorktime(inp)
   </tr>
 
   <tr>
-    <th rowspan="3"><a href="page.cgi?id=fields.html#version">
-      [%- field_descs.version FILTER html %]:</a></th>
+    [% INCLUDE "bug/field-label.html.tmpl"
+      field = bug_fields.version editable = 1 rowspan = 3 
+    %]
     <td rowspan="3">
       <select name="version" size="5">
         [%- FOREACH v = version %]
@@ -415,8 +419,7 @@ function checkWorktime(inp)
 <tbody class="expert_fields">
   <tr>
     [% IF Param('usetargetmilestone') && Param('letsubmitterchoosemilestone') %]
-      [% sel = { description => 'Target Milestone', name => 'target_milestone' } %]
-      [% INCLUDE select %]
+      [% INCLUDE select field = bug_fields.target_milestone %]
     [% ELSE %]
       <td colspan="2">&nbsp;</td>
     [% END %]
@@ -503,7 +506,9 @@ function checkWorktime(inp)
   </tr>
 
   <tr>
-    <th><a href="page.cgi?id=fields.html#assigned_to">Assign To</a>:</th>
+    [% INCLUDE "bug/field-label.html.tmpl"
+      field = bug_fields.assigned_to editable = 1
+    %]
     <td colspan="2">
       [% INCLUDE global/userselect.html.tmpl
          id => "assigned_to"
@@ -520,8 +525,9 @@ function checkWorktime(inp)
   
 [% IF Param("useqacontact") %]
     <tr>
-      <th><a href="page.cgi?id=fields.html#qa_contact">
-        [%- field_descs.qa_contact FILTER html %]:</a></th>
+      [% INCLUDE "bug/field-label.html.tmpl"
+        field = bug_fields.qa_contact editable = 1
+      %]
       <td colspan="2">
       [% INCLUDE global/userselect.html.tmpl
          id => "qa_contact"
@@ -538,8 +544,9 @@ function checkWorktime(inp)
 [% END %]
 
   <tr>
-    <th><a href="page.cgi?id=fields.html#cc">
-      [%- field_descs.cc FILTER html %]:</a></th>
+    [% INCLUDE "bug/field-label.html.tmpl"
+      field = bug_fields.cc editable = 1 
+    %]
     <td colspan="2">
       [% INCLUDE global/userselect.html.tmpl
          id => "cc"
@@ -592,8 +599,9 @@ function checkWorktime(inp)
   </tr>
 
   <tr>
-    <th><a href="page.cgi?id=fields.html#bug_file_loc">
-      [%- field_descs.bug_file_loc FILTER html %]:</a></th>
+    [% INCLUDE "bug/field-label.html.tmpl"
+      field = bug_fields.bug_file_loc editable = 1
+    %]
     <td colspan="2">
       <input name="bug_file_loc" size="40"
              value="[% bug_file_loc FILTER html %]">
@@ -619,8 +627,9 @@ function checkWorktime(inp)
   <tr><td colspan="4"><hr /></td></tr>
 
   <tr>
-    <th class="required"><a href="page.cgi?id=fields.html#short_desc">
-      [%- field_descs.short_desc FILTER html %]:</a></th>
+    [% INCLUDE "bug/field-label.html.tmpl"
+      field = bug_fields.short_desc editable = 1 required = 1
+    %]
     <td colspan="3">
       <input name="short_desc" id="short_desc" size="70" value="[% short_desc FILTER html %]"
              maxlength="255" spellcheck="true" aria-required="true"
@@ -707,14 +716,17 @@ function checkWorktime(inp)
       </script>
     </td>
   </tr>
+  [% END %]
 </tbody>
 
 <tbody class="expert_fields">
   [% IF user.in_group('editbugs', product.id) %]
     [% IF use_keywords %]
       <tr>
-        <th><a href="describekeywords.cgi">Keywords</a>:</th>
-        [% UNLESS Param("usebugaliases") %]
+        [% INCLUDE "bug/field-label.html.tmpl"
+          field = bug_fields.keywords editable = 1 
+          desc_url = "describekeywords.cgi"
+        %]
         <td colspan="3">
         [% ELSE %]
         <td>
@@ -814,18 +826,17 @@ function checkWorktime(inp)
 [%############################################################################%]
 
 [% BLOCK select %]
-  [% IF sel.description %]
-    <th>
-      <a href="page.cgi?id=fields.html#[% sel.name %]">[% sel.description %]</a>:
-    </th>
-  [% END %]
 
+  [% INCLUDE "bug/field-label.html.tmpl"
+    field = field editable = 1
+  %]
   <td>
-    <select name="[% sel.name %]" id="[% sel.name %]"[% IF sel.onchange %] onchange='[% sel.onchange %]'[% END %]>
-    [%- FOREACH x = ${sel.name} %]
+    <select name="[% field.name FILTER html %]" 
+            id="[% field.name FILTER html %]">
+    [%- FOREACH x = ${field.name} %]
       <option value="[% x FILTER html %]"
-        [% " selected=\"selected\"" IF x == default.${sel.name} %]>
-        [% x FILTER html %]
+        [% " selected=\"selected\"" IF x == default.${field.name} %]>
+        [% display_value(field.name, x) FILTER html %]
       </option>
     [% END %]
     </select>

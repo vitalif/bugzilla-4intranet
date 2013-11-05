@@ -51,6 +51,7 @@ use Bugzilla::Group;
 use Bugzilla::Status;
 use Bugzilla::Comment;
 
+use List::MoreUtils qw(firstidx);
 use List::Util qw(min first);
 use Storable qw(dclone);
 use URI;
@@ -99,6 +100,8 @@ sub DB_COLUMNS
         delta_ts
         estimated_time
         everconfirmed
+        lastdiffed
+        op_sys
         priority
         product_id
         qa_contact
@@ -937,8 +940,6 @@ sub update
         $dbh->do('INSERT INTO keywords (bug_id, keywordid) VALUES (?,?)',
                  undef, $self->id, $keyword_id);
     }
-    $dbh->do('UPDATE bugs SET keywords = ? WHERE bug_id = ?', undef,
-             $self->keywords, $self->id);
     # If any changes were found, record it in the activity log
     if (scalar @$removed_kw || scalar @$added_kw) {
         my $removed_keywords = Bugzilla::Keyword->new_from_list($removed_kw);
@@ -1139,6 +1140,10 @@ sub update
 
         $changes->{'dup_id'} = [$old_dup || undef, $cur_dup || undef];
     }
+
+    Bugzilla::Hook::process('bug_end_of_update', 
+        { bug => $self, timestamp => $delta_ts, changes => $changes,
+          old_bug => $old_bug });
 
     # If any change occurred, refresh the timestamp of the bug.
     if (scalar(keys %$changes) || $self->{added_comments}) {
@@ -2288,6 +2293,27 @@ sub _set_global_validator {
 # "Set" Methods #
 #################
 
+sub set_all {
+    my $self = shift;
+    my ($params) = @_;
+
+    if (exists $params->{'comment'} or exists $params->{'work_time'}) {
+        # Add a comment as needed to each bug. This is done early because
+        # there are lots of things that want to check if we added a comment.
+        $self->add_comment($params->{'comment'}->{'body'},
+            { isprivate => $params->{'comment'}->{'is_private'},
+              work_time => $params->{'work_time'} });
+    }
+
+    my %normal_set_all;
+    foreach my $name (keys %$params) {
+        if ($self->can("set_$name")) {
+            $normal_set_all{$name} = $params->{$name};
+        }
+    }
+    $self->SUPER::set_all(\%normal_set_all);
+}
+
 sub set_alias { $_[0]->set('alias', $_[1]); }
 sub set_assigned_to {
     my ($self, $value) = @_;
@@ -2831,6 +2857,27 @@ sub add_see_also {
         $result = "http://code.google.com/p/" . $project_name .
                   "/issues/detail?id=" . $bug_id;
     }
+    # Debian BTS URLs
+    elsif ($uri->authority =~ /^bugs.debian.org$/i) {
+        # Debian BTS URLs can look like various things:
+        #   http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1234
+        #   http://bugs.debian.org/1234
+        my $bug_id;
+        if ($uri->path =~ m|^/(\d+)$|) {
+            $bug_id = $1;
+        }
+        elsif ($uri->path =~ /bugreport\.cgi$/) {
+            $bug_id = $uri->query_param('bug');
+            detaint_natural($bug_id);
+        }
+        if (!$bug_id) {
+            ThrowUserError('bug_url_invalid',
+                           { url => $input, reason => 'id' });
+        }
+        # This is the shortest standard URL form for Debian BTS URLs,
+        # and so we reduce all URLs to this.
+        $result = "http://bugs.debian.org/" . $bug_id;
+    }
     # Bugzilla URLs
     else {
         if ($uri->path !~ /show_bug\.cgi$/) {
@@ -2985,6 +3032,11 @@ sub blocked {
 sub bug_id { $_[0]->{'bug_id'}; }
 
 sub failed_checkers { $_[0]->{failed_checkers} }
+
+sub bug_group {
+    my ($self) = @_;
+    return join(', ', (map { $_->name } @{$self->groups_in}));
+}
 
 sub related_bugs {
     my ($self, $relationship) = @_;
@@ -4051,7 +4103,8 @@ sub _validate_attribute {
         qw(error groups product_id component_id
            comments milestoneurl attachments isopened
            flag_types num_attachment_flag_types
-           show_attachment_flags any_flags_requesteeble),
+           show_attachment_flags any_flags_requesteeble
+           lastdiffed),
 
         # Bug fields.
         Bugzilla::Bug->fields

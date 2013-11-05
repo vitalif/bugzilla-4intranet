@@ -73,6 +73,8 @@ use constant CPAN_DEFAULTS => {
     build_cache => 0,
     build_requires_install_policy => 'yes',
     cache_metadata => 1,
+    colorize_output => 1,
+    colorize_print => 'bold',
     index_expire => 1,
     scan_cache => 'atstart',
 

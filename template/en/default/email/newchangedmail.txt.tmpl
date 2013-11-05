@@ -28,7 +28,7 @@ X-Bugzilla-Reason: [% reasonsheader %]
 X-Bugzilla-Type: [% isnew ? 'new' : 'changed' %]
 X-Bugzilla-Watch-Reason: [% reasonswatchheader %]
 [% IF Param('useclassification') %]
-X-Bugzilla-Classification: [% classification %]
+X-Bugzilla-Classification: [% bug.classification %]
 [% END %]
 [% IF severity == 'blocker' OR severity == 'critical' %]
 Importance: high

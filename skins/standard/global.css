@@ -421,6 +421,10 @@ div.user_match {
         display: none;
     }
 
+    div.bz_query_buttons {
+        display: none;
+    }
+
     body {
         background-image: none;
         background-color: #fff;
@@ -433,8 +437,10 @@ div.user_match {
     font-weight: bold;
 }
 
-/*.field_value, */
-form#Create th, form#Create td {
+.field_help_link {
+    cursor: help;
+}
+.field_value, form#Create th, form#Create td {
     vertical-align: top;
 }
 th.required:before {

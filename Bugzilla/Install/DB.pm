@@ -151,7 +151,6 @@ sub update_table_definitions {
 
     _add_bug_vote_cache();
     _update_product_name_definition();
-    _add_bug_keyword_cache();
 
     $dbh->bz_add_column('profiles', 'disabledtext',
                         {TYPE => 'MEDIUMTEXT', NOTNULL => 1}, '');
@@ -361,8 +360,6 @@ sub update_table_definitions {
 
     # Add defaults for some fields that should have them but didn't.
     $dbh->bz_alter_column('bugs', 'status_whiteboard',
-        {TYPE => 'MEDIUMTEXT', NOTNULL => 1, DEFAULT => "''"});
-    $dbh->bz_alter_column('bugs', 'keywords',
         {TYPE => 'MEDIUMTEXT', NOTNULL => 1, DEFAULT => "''"});
     if ($dbh->bz_column_info('bugs', 'votes')) {
         $dbh->bz_alter_column('bugs', 'votes',
@@ -620,6 +617,15 @@ sub update_table_definitions {
     # 2009-11-14 dkl@redhat.com - Bug 310450
     $dbh->bz_add_column('bugs_activity', 'comment_id', {TYPE => 'INT3'});
 
+    # 2010-04-07 LpSolit@gmail.com - Bug 69621
+    $dbh->bz_drop_column('bugs', 'keywords');
+    
+    # 2010-05-07 ewong@pw-wspx.org - Bug 463945
+    $dbh->bz_alter_column('group_control_map', 'membercontrol',
+                          {TYPE => 'INT1', NOTNULL => 1, DEFAULT => CONTROLMAPNA});
+    $dbh->bz_alter_column('group_control_map', 'othercontrol',
+                          {TYPE => 'INT1', NOTNULL => 1, DEFAULT => CONTROLMAPNA});
+
     ################################################################
     # New --TABLE-- changes should go *** A B O V E *** this point #
     ################################################################
@@ -703,46 +709,6 @@ sub _update_product_name_definition {
         $dbh->bz_alter_column('products',   'product', {TYPE => 'varchar(64)'});
         $dbh->bz_alter_column('versions',   'program',
                               {TYPE => 'varchar(64)', NOTNULL => 1});
-    }
-}
-
-sub _add_bug_keyword_cache {
-    my $dbh = Bugzilla->dbh;
-    # 2000-01-16 Added a "keywords" field to the bugs table, which
-    # contains a string copy of the entries of the keywords table for this
-    # bug.  This is so that I can easily sort and display a keywords
-    # column in bug lists.
-
-    if (!$dbh->bz_column_info('bugs', 'keywords')) {
-        $dbh->bz_add_column('bugs', 'keywords',
-            {TYPE => 'MEDIUMTEXT', NOTNULL => 1, DEFAULT => "''"});
-
-        my @kwords;
-        print "Making sure 'keywords' field of table 'bugs' is empty...\n";
-        $dbh->do("UPDATE bugs SET keywords = '' WHERE keywords != ''");
-        print "Repopulating 'keywords' field of table 'bugs'...\n";
-        my $sth = $dbh->prepare("SELECT keywords.bug_id, keyworddefs.name " .
-                                  "FROM keywords, keyworddefs " .
-                                 "WHERE keyworddefs.id = keywords.keywordid " .
-                              "ORDER BY keywords.bug_id, keyworddefs.name");
-        $sth->execute;
-        my @list;
-        my $bugid = 0;
-        my @row;
-        while (1) {
-            my ($b, $k) = ($sth->fetchrow_array());
-            if (!defined $b || $b ne $bugid) {
-                if (@list) {
-                    $dbh->do("UPDATE bugs SET keywords = " .
-                             $dbh->quote(join(', ', @list)) .
-                             " WHERE bug_id = $bugid");
-                }
-                last if !$b;
-                $bugid = $b;
-                @list = ();
-            }
-            push(@list, $k);
-        }
     }
 }
 
@@ -3233,11 +3199,11 @@ sub _check_content_length {
           WHERE CHAR_LENGTH($field_name) > ?", {Columns=>[1,2]}, $max_length) };
 
     if (scalar keys %contents) {
-        print install_string('install_data_too_long',
-                             { column     => $field_name,
-                               id_column  => $id_field,
-                               table      => $table_name,
-                               max_length => $max_length });
+        my $error = install_string('install_data_too_long',
+                                   { column     => $field_name,
+                                     id_column  => $id_field,
+                                     table      => $table_name,
+                                     max_length => $max_length });
         foreach my $id (keys %contents) {
             my $string = $contents{$id};
             # Don't dump the whole string--it could be 16MB.
@@ -3245,9 +3211,9 @@ sub _check_content_length {
                 $string = substr($string, 0, 30) . "..." 
                          . substr($string, -30) . "\n";
             }
-            print "$id: $string\n";
+            $error .= "$id: $string\n";
         }
-        exit 3;
+        die $error;
     }
 }
 

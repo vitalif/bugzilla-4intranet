@@ -63,6 +63,7 @@ use Bugzilla::Token;
 
 use Checkers;
 
+use List::MoreUtils qw(firstidx);
 use Storable qw(dclone);
 
 my $user = Bugzilla->login(LOGIN_REQUIRED);
@@ -251,7 +252,7 @@ if (defined $cgi->param('id')) {
         if ($cgi->cookie("BUGLIST")) {
             @bug_list = split(/:/, $cgi->cookie("BUGLIST"));
         }
-        my $cur = lsearch(\@bug_list, $cgi->param('id'));
+        my $cur = firstidx { $_ eq $cgi->param('id') } @bug_list;
         if ($cur >= 0 && $cur < $#bug_list) {
             my $next_bug_id = $bug_list[$cur + 1];
             detaint_natural($next_bug_id);
@@ -360,9 +361,32 @@ if (defined $cgi->param('keywords')) {
 my @set_fields = qw(op_sys rep_platform priority bug_severity
                     component target_milestone version
                     bug_file_loc status_whiteboard short_desc
-                    deadline remaining_time estimated_time);
+                    deadline remaining_time estimated_time
+                    work_time);
 push(@set_fields, 'assigned_to') if !$cgi->param('set_default_assignee');
 push(@set_fields, 'qa_contact')  if !$cgi->param('set_default_qa_contact');
+my %field_translation = (
+    bug_severity => 'severity',
+    rep_platform => 'platform',
+    short_desc   => 'summary',
+    bug_file_loc => 'url',
+);
+
+my %set_all_fields;
+foreach my $field_name (@set_fields) {
+    if (should_set($field_name)) {
+        my $param_name = $field_translation{$field_name} || $field_name;
+        $set_all_fields{$param_name} = $cgi->param($field_name);
+    }
+}
+
+if (should_set('comment')) {
+    $set_all_fields{comment} = {
+        body       => scalar $cgi->param('comment'),
+        is_private => scalar $cgi->param('commentprivacy'),
+    };
+}
+
 my @custom_fields = Bugzilla->active_custom_fields;
 
 my %methods = (
@@ -689,7 +713,6 @@ foreach my $bug (@bug_objects) {
     my $old_qa  = $changes->{'qa_contact'}  ? $changes->{'qa_contact'}->[0] : '';
     my $old_own = $changes->{'assigned_to'} ? $changes->{'assigned_to'}->[0] : '';
     my $old_cc  = $changes->{cc}            ? $changes->{cc}->[0] : '';
-
     # Let the user know the bug was changed and who did and didn't
     # receive email about the change.
     push @$send_results, {

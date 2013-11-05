@@ -25,6 +25,8 @@
   #%]
 
 [% IF NOT commentsilent %]
+[% PROCESS global/variables.none.tmpl %]
+
 <dl>
 [% PROCESS emails
    description = "Email sent to"

@@ -329,7 +329,8 @@ sub handle_attachments {
         # and this is our first attachment, then we make the comment an 
         # "attachment created" comment.
         if ($comment and !$comment->type and !$update_comment) {
-            $comment->set_type(CMT_ATTACHMENT_CREATED, $obj->id);
+            $comment->set_all({ type       => CMT_ATTACHMENT_CREATED, 
+                                extra_data => $obj->id });
             $update_comment = 1;
         }
         else {
@@ -575,7 +576,7 @@ handle_attachments($bug, $attachments, $comment);
 # to wait for $bug->update() to be fully used in email_in.pl first. So
 # currently, process_bug.cgi does the mail sending for bugs, and this does
 # any mail sending for attachments after the first one.
-Bugzilla::BugMail::Send($bug->id, { changer => Bugzilla->user->login });
+Bugzilla::BugMail::Send($bug->id, { changer => Bugzilla->user });
 debug_print("Sent bugmail");
 
 

@@ -686,8 +686,8 @@ if (grep('relevance', @displaycolumns) && !$fulltext) {
 my @selectcolumns = ("bug_id", "bug_severity", "priority", "bug_status",
                      "resolution", "product");
 
-# remaining and work_time are required for percentage_complete calculation:
-if (grep { $_ eq 'percentage_complete' } @displaycolumns) {
+# remaining and actual_time are required for percentage_complete calculation:
+if (grep { $_ eq "percentage_complete" } @displaycolumns) {
     push (@selectcolumns, "remaining_time");
     push (@selectcolumns, "work_time");
 }
