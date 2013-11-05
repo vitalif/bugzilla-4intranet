@@ -507,13 +507,11 @@ sub Send {
             if ($user->email_enabled) {
                 # OK, OK, if we must. Email the user.
                 $sent_mail = sendMail(
+                    fields   => \@fields,
                     bug     => $bug,
                     user    => $user,
-                    headers => \@headerlist,
                     rels    => \%rels_which_want,
                     values  => \%values,
-                    defhead => \%defmailhead,
-                    fields  => \%fielddescription,
                     diffs   => $diffs,
                     newcomm => $comments,
                     isnew   => !$start,
