@@ -830,7 +830,7 @@ function checkWorktime(inp)
     [%- FOREACH x = ${field.name} %]
       <option value="[% x FILTER html %]"
         [% " selected=\"selected\"" IF x == default.${field.name} %]>
-        [% x FILTER html %]
+        [% IF x.name %][% x.name FILTER html %][% ELSE %][% x FILTER html %][% END%]
       </option>
     [% END %]
     </select>
