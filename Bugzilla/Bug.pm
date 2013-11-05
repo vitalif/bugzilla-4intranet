@@ -504,9 +504,8 @@ sub create {
 
     # Set up the keyword cache for bug creation.
     my $keywords = $params->{keywords};
-    $params->{keywords} = join(', ', sort {lc($a) cmp lc($b)}
-                                          map($_->name, @$keywords));
-
+    delete $params->{keywords};
+    
     # We don't want the bug to appear in the system until it's correctly
     # protected by groups.
     my $timestamp = delete $params->{creation_ts};
@@ -1703,7 +1702,7 @@ sub _check_estimated_time {
 }
 
 sub _check_groups {
-    my ($invocant, $product, $group_ids) = @_;
+    my ($invocant, $group_ids, $product) = @_;
 
     my $user = Bugzilla->user;
     my %add_groups;
