@@ -165,9 +165,6 @@ sub quicksearch {
         $self->{content} = '';
         $self->{unknown_fields} = [];
         $self->{ambiguous_fields} = {};
-        my @words = quotewords('\s+', 0, $searchstring);
-        _handle_status_and_resolution(\@words);
-
         $self->_handle_status_and_resolution;
 
         # Loop over all main-level QuickSearch words.
