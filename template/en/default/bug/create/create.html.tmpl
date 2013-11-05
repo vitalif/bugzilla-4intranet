@@ -727,10 +727,7 @@ function checkWorktime(inp)
           field = bug_fields.keywords editable = 1 
           desc_url = "describekeywords.cgi"
         %]
-        <td colspan="3">
-        [% ELSE %]
         <td>
-        [% END %]
           <input id="keywords" name="keywords" size="40" value="[% keywords FILTER html %]">
           <script type="text/javascript">
 	    var emptyKeywordsOptions = [% keyword_list ? json(keyword_list) : "null" %];
