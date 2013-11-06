@@ -370,11 +370,16 @@ my %field_translation = (
     rep_platform => 'platform',
     short_desc   => 'summary',
     bug_file_loc => 'url',
+    set_default_assignee   => 'reset_assigned_to',
+    set_default_qa_contact => 'reset_qa_contact',
+    keywordaction => 'keywords_action',
+    confirm_product_change => 'product_change_confirmed',
+    bug_status => 'status',
 );
 
-my %set_all_fields;
+my %set_all_fields = ( other_bugs => \@bug_objects );
 foreach my $field_name (@set_fields) {
-    if (should_set($field_name)) {
+    if (should_set($field_name, 1)) {
         my $param_name = $field_translation{$field_name} || $field_name;
         $set_all_fields{$param_name} = $cgi->param($field_name);
     }
@@ -437,6 +442,9 @@ foreach my $b (@bug_objects)
         {
             $b->set_custom_field($field, [$cgi->param($fname)]);
         }
+        else {
+            $set_all_fields{$dep_field}->{set} = $cgi->param($dep_field);
+        }
     }
 
     # CustIS Bug 134368 - Edit comment
@@ -496,20 +504,20 @@ if (defined $cgi->param('newcc')
     || defined $cgi->param('masscc')) {
 
     # If masscc is defined, then we came from buglist and need to either add or
-    # remove cc's... otherwise, we came from bugform and may need to do both.
+    # remove cc's... otherwise, we came from show_bug and may need to do both.
     my ($cc_add, $cc_remove) = "";
     if (defined $cgi->param('masscc')) {
         if ($cgi->param('ccaction') eq 'add') {
-            $cc_add = join(' ',$cgi->param('masscc'));
+            $cc_add = $cgi->param('masscc');
         } elsif ($cgi->param('ccaction') eq 'remove') {
-            $cc_remove = join(' ',$cgi->param('masscc'));
+            $cc_remove = $cgi->param('masscc');
         }
     } else {
-        $cc_add = join(' ',$cgi->param('newcc'));
+        $cc_add = $cgi->param('newcc');
         # We came from bug_form which uses a select box to determine what cc's
         # need to be removed...
-        if (defined $cgi->param('removecc') && $cgi->param('cc')) {
-            $cc_remove = join (",", $cgi->param('cc'));
+        if ($cgi->param('removecc') && $cgi->param('cc')) {
+            $cc_remove = join(",", $cgi->param('cc'));
         }
     }
 
@@ -518,18 +526,14 @@ if (defined $cgi->param('newcc')
 
     push(@cc_remove, split(/[\s,]+/, $cc_remove)) if $cc_remove;
 }
+$set_all_fields{cc} = { add => \@cc_add, remove => \@cc_remove };
 
-foreach my $b (@bug_objects) {
-    $b->remove_cc($_) foreach @cc_remove;
-    $b->add_cc($_) foreach @cc_add;
-    # Theoretically you could move a product without ever specifying
-    # a new assignee or qa_contact, or adding/removing any CCs. So,
-    # we have to check that the current assignee, qa, and CCs are still
-    # valid if we've switched products, under strict_isolation. We can only
-    # do that here. There ought to be some better way to do this,
-    # architecturally, but I haven't come up with it.
-    if ($product_change) {
-        $b->_check_strict_isolation();
+# Fields that can only be set on one bug at a time.
+if (defined $cgi->param('id')) {
+    # Since aliases are unique (like bug numbers), they can only be changed
+    # for one bug at a time.
+    if (Bugzilla->params->{"usebugaliases"} && defined $cgi->param('alias')) {
+        $set_all_fields{alias} = $cgi->param('alias');
     }
 }
 
@@ -607,34 +611,6 @@ if ($move_action eq Bugzilla->params->{'move-button-text'}) {
             || ThrowTemplateError($template->error());
     }
     exit;
-}
-
-
-# You cannot mark bugs as duplicates when changing several bugs at once
-# (because currently there is no way to check for duplicate loops in that
-# situation).
-if (!$cgi->param('id') && $cgi->param('dup_id')) {
-    ThrowUserError('dupe_not_allowed');
-}
-
-# Set the status, resolution, and dupe_of (if needed). This has to be done
-# down here, because the validity of status changes depends on other fields,
-# such as Target Milestone.
-foreach my $b (@bug_objects) {
-    if (should_set('bug_status')) {
-        $b->set_status(
-            scalar $cgi->param('bug_status'),
-            {resolution =>  scalar $cgi->param('resolution'),
-                dupe_of => scalar $cgi->param('dup_id')}
-            );
-    }
-    elsif (should_set('resolution')) {
-       $b->set_resolution(scalar $cgi->param('resolution'), 
-                          {dupe_of => scalar $cgi->param('dup_id')});
-    }
-    elsif (should_set('dup_id')) {
-        $b->set_dup_id(scalar $cgi->param('dup_id'));
-    }
 }
 
 Bugzilla::Hook::process('process_bug-pre_update', { bugs => \@bug_objects });

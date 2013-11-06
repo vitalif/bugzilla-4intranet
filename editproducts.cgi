@@ -414,8 +414,5 @@ if ($action eq 'updategroupcontrols') {
     exit;
 }
 
-#
 # No valid action found
-#
-
-ThrowUserError('no_valid_action', {field => "product"});
+ThrowUserError('unknown_action', {action => $action});

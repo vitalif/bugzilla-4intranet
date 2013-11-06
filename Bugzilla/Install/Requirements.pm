@@ -143,6 +143,11 @@ sub REQUIRED_MODULES {
         module  => 'Archive::Zip',
         version => '1.30'
     },
+    {
+        package => 'List-MoreUtils',
+        module  => 'List::MoreUtils',
+        version => 0.22,
+    },
     );
 
     my $extra_modules = _get_extension_requirements('REQUIRED_MODULES');

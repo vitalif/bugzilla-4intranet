@@ -29,6 +29,7 @@ use Bugzilla::Util;
 use Bugzilla::Error;
 
 use Date::Parse;
+use List::MoreUtils qw(part);
 
 use constant NAME_FIELD => 'name';
 use constant ID_FIELD   => 'id';
@@ -522,6 +523,65 @@ sub get_all {
 ###############################
 
 sub check_boolean { return $_[1] ? 1 : 0 }
+
+###################
+# General Helpers #
+###################
+
+# Sorts fields according to VALIDATOR_DEPENDENCIES. This is not a
+# traditional topological sort, because a "dependency" does not
+# *have* to be in the list--it just has to be earlier than its dependent
+# if it *is* in the list.
+sub _sort_by_dep {
+    my ($invocant, @fields) = @_;
+
+    my $dependencies = $invocant->VALIDATOR_DEPENDENCIES;
+    my ($has_deps, $no_deps) = part { $dependencies->{$_} ? 0 : 1 } @fields;
+
+    # For fields with no dependencies, we sort them alphabetically,
+    # so that validation always happens in a consistent order.
+    # Fields with no dependencies come at the start of the list.
+    my @result = sort @{ $no_deps || [] };
+
+    # Fields with dependencies all go at the end of the list, and if
+    # they have dependencies on *each other*, then they have to be
+    # sorted properly. We go through $has_deps in sorted order to be
+    # sure that fields always validate in a consistent order.
+    foreach my $field (sort @{ $has_deps || [] }) {
+        if (!grep { $_ eq $field } @result) {
+            _insert_dep_field($field, $has_deps, $dependencies, \@result);
+        }
+    }
+    return @result;
+}
+
+sub _insert_dep_field {
+    my ($field, $insert_me, $dependencies, $result, $loop_tracking) = @_;
+
+    if ($loop_tracking->{$field}) {
+        ThrowCodeError('object_dep_sort_loop', 
+                       { field => $field, 
+                         considered => [keys %$loop_tracking] });
+    }
+    $loop_tracking->{$field} = 1;
+
+    my $required_fields = $dependencies->{$field};
+    # Imagine Field A requires field B...
+    foreach my $required_field (@$required_fields) {
+        # If our dependency is already satisfied, we're good.
+        next if grep { $_ eq $required_field } @$result;
+
+        # If our dependency is not in the remaining fields to insert,
+        # then we're also OK.
+        next if !grep { $_ eq $required_field } @$insert_me;
+
+        # So, at this point, we know that Field B is in $insert_me.
+        # So let's put the required field into the result.
+        _insert_dep_field($required_field, $insert_me, $dependencies,
+                          $result, $loop_tracking);
+    }
+    push(@$result, $field);
+}
 
 ####################
 # Constant Helpers #

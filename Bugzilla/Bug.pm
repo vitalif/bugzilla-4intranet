@@ -684,6 +684,14 @@ sub run_create_validators
     Bugzilla::Hook::process('bug_end_of_create_validators',
                             { params => $params });
 
+    my @mandatory_fields = Bugzilla->get_fields({ is_mandatory => 1,
+                                                  enter_bug    => 1,
+                                                  obsolete     => 0 });
+    foreach my $field (@mandatory_fields) {
+        $class->_check_field_is_mandatory($params->{$field->name}, $field,
+                                          $params);
+    }
+
     return $params;
 }
 
@@ -2069,6 +2077,33 @@ sub _check_work_time {
 
 # Custom Field Validators
 
+sub _check_field_is_mandatory {
+    my ($invocant, $value, $field, $params) = @_;
+
+    if (!blessed($field)) {
+        $field = Bugzilla::Field->new({ name => $field });
+        return if !$field;
+    }
+
+    return if !$field->is_mandatory;
+
+    return if !$field->is_visible_on_bug($params || $invocant);
+
+    if (ref($value) eq 'ARRAY') {
+        $value = join('', @$value);
+    }
+
+    $value = trim($value);
+    if (!defined($value)
+        or $value eq ""
+        or ($value eq '---' and $field->type == FIELD_TYPE_SINGLE_SELECT)
+        or ($value =~ EMPTY_DATETIME_REGEX
+            and $field->type == FIELD_TYPE_DATETIME))
+    {
+        ThrowUserError('required_field', { field => $field });
+    }
+}
+
 sub _check_datetime_field {
     my ($invocant, $date_time) = @_;
 
@@ -2286,15 +2321,64 @@ sub _set_global_validator {
                                            newvalue => $value,
                                            privs    => $privs });
     }
+    $self->_check_field_is_mandatory($value, $field);
 }
 
 #################
 # "Set" Methods #
 #################
 
+# Note that if you are changing multiple bugs at once, you must pass
+# other_bugs to set_all in order for it to behave properly.
 sub set_all {
     my $self = shift;
     my ($params) = @_;
+
+    # For security purposes, and because lots of other checks depend on it,
+    # we set the product first before anything else.
+    my $product_changed; # Used only for strict_isolation checks.
+    if (exists $params->{'product'}) {
+        $product_changed = $self->_set_product($params->{'product'}, $params);
+    }
+
+    # strict_isolation checks mean that we should set the groups
+    # immediately after changing the product.
+    $self->_add_remove($params, 'groups');
+
+    if (exists $params->{'dependson'} or exists $params->{'blocked'}) {
+        my %set_deps;
+        foreach my $name (qw(dependson blocked)) {
+            my @dep_ids = @{ $self->$name };
+            # If only one of the two fields was passed in, then we need to
+            # retain the current value for the other one.
+            if (!exists $params->{$name}) {
+                $set_deps{$name} = \@dep_ids;
+                next;
+            }
+
+            # Explicitly setting them to a particular value overrides
+            # add/remove.
+            if (exists $params->{$name}->{set}) {
+                $set_deps{$name} = $params->{$name}->{set};
+                next;
+            }
+
+            foreach my $add (@{ $params->{$name}->{add} || [] }) {
+                push(@dep_ids, $add) if !grep($_ == $add, @dep_ids);
+            }
+            foreach my $remove (@{ $params->{$name}->{remove} || [] }) {
+                @dep_ids = grep($_ != $remove, @dep_ids);
+            }
+            $set_deps{$name} = \@dep_ids;
+        }
+
+        $self->set_dependencies($set_deps{'dependson'}, $set_deps{'blocked'});
+    }
+
+    if (exists $params->{'keywords'}) {
+        $self->modify_keywords($params->{'keywords'},
+                               $params->{'keywords_action'});
+    }
 
     if (exists $params->{'comment'} or exists $params->{'work_time'}) {
         # Add a comment as needed to each bug. This is done early because
@@ -2306,11 +2390,75 @@ sub set_all {
 
     my %normal_set_all;
     foreach my $name (keys %$params) {
+        # These are handled separately below.
+        next if grep($_ eq $name, qw(status resolution dup_id));
         if ($self->can("set_$name")) {
             $normal_set_all{$name} = $params->{$name};
         }
     }
     $self->SUPER::set_all(\%normal_set_all);
+
+    $self->reset_assigned_to if $params->{'reset_assigned_to'};
+    $self->reset_qa_contact  if $params->{'reset_qa_contact'};
+
+    $self->_add_remove($params, 'see_also');
+
+    # And set custom fields.
+    my @custom_fields = Bugzilla->active_custom_fields;
+    foreach my $field (@custom_fields) {
+        my $fname = $field->name;
+        if (exists $params->{$fname}) {
+            $self->set_custom_field($field, $params->{$fname});
+        }
+    }
+
+    $self->_add_remove($params, 'cc');
+
+    # Theoretically you could move a product without ever specifying
+    # a new assignee or qa_contact, or adding/removing any CCs. So,
+    # we have to check that the current assignee, qa, and CCs are still
+    # valid if we've switched products, under strict_isolation. We can only
+    # do that here, because if they *did* change the assignee, qa, or CC,
+    # then we don't want to check the original ones, only the new ones. 
+    $self->_check_strict_isolation() if $product_changed;
+
+    # You cannot mark bugs as duplicates when changing several bugs at once
+    # (because currently there is no way to check for duplicate loops in that
+    # situation).
+    if (exists $params->{'dup_id'} and $params->{other_bugs} 
+        and scalar @{ $params->{other_bugs} } > 1) 
+    {
+        ThrowUserError('dupe_not_allowed');
+    }
+
+    # Seting the status, resolution, and dupe_of has to be done
+    # down here, because the validity of status changes depends on
+    # other fields, such as Target Milestone.
+    if (exists $params->{'status'}) {
+        $self->set_status($params->{'status'},
+            { resolution => $params->{'resolution'},
+              dupe_of    => $params->{'dup_id'} });
+    }
+    elsif (exists $params->{'resolution'}) {
+       $self->set_resolution($params->{'resolution'},
+           { dupe_of => $params->{'dup_id'} });
+    }
+    elsif (exists $params->{'dup_id'}) {
+        $self->set_dup_id($params->{'dup_id'});
+    }
+}
+
+# Helper for set_all that helps with fields that have an "add/remove"
+# pattern instead of a "set_" pattern.
+sub _add_remove {
+    my ($self, $params, $name) = @_;
+    my @add    = @{ $params->{$name}->{add}    || [] };
+    my @remove = @{ $params->{$name}->{remove} || [] };
+    $name =~ s/s$//;
+    my $add_method = "add_$name";
+    my $remove_method = "remove_$name";
+    $self->$add_method($_) foreach @add;
+    $self->$remove_method($_) foreach @remove;
 }
 
 sub set_alias { $_[0]->set('alias', $_[1]); }
@@ -2330,6 +2478,15 @@ sub set_cclist_accessible { $_[0]->set('cclist_accessible', $_[1]); }
 sub set_comment_is_private {
     my ($self, $comment_id, $isprivate) = @_;
     return unless Bugzilla->user->is_insider;
+
+    # We also allow people to pass in a hash of comment ids to update.
+    if (ref $comment_id) {
+        while (my ($id, $is) = each %$comment_id) {
+            $self->set_comment_is_private($id, $is);
+        }
+        return;
+    }
+
     my ($comment) = grep($comment_id == $_->id, @{ $self->comments });
     ThrowUserError('comment_invalid_isprivate', { id => $comment_id })
         if !$comment;
@@ -2433,9 +2590,9 @@ sub set_flags {
 sub set_op_sys         { $_[0]->set('op_sys',        $_[1]); }
 sub set_platform       { $_[0]->set('rep_platform',  $_[1]); }
 sub set_priority       { $_[0]->set('priority',      $_[1]); }
-
-sub set_product
-{
+# For security reasons, you have to use set_all to change the product.
+# See the strict_isolation check in set_all for an explanation.
+sub _set_product {
     my ($self, $name, $params) = @_;
     my $old_product = $self->product_obj;
     my $product = $self->_check_product($name);
@@ -2626,7 +2783,7 @@ sub add_comment {
     }
     # XXX We really should check extra_data, too.
 
-    if ($comment eq '' && !($params->{type} || $params->{work_time})) {
+    if ($comment eq '' && !($params->{type} || abs($params->{work_time}))) {
         return;
     }
 
@@ -2715,7 +2872,6 @@ sub modify_keywords {
     }
 
     $self->{'keyword_objects'} = \@result;
-    return $any_changes;
 }
 
 sub add_group {
@@ -2731,7 +2887,8 @@ sub add_group {
     # to this group by the current user.
     $self->product_obj->group_is_settable($group)
          || ThrowUserError('group_invalid_restriction',
-                { product => $self->product, group_id => $group->id });
+                { product => $self->product, group_id => $group->id,
+                  bug => $self });
 
     # OtherControl people can add groups only during a product change,
     # and only when the group is not NA for them.

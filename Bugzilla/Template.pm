@@ -461,7 +461,7 @@ sub get_bug_link {
     # Prevent code injection in the title.
     $title = html_quote(clean_text($title));
 
-    my $linkval = correct_urlbase()."show_bug.cgi?id=".$bug->id;
+    my $linkval = "show_bug.cgi?id=" . $bug->id;
     if (defined $options->{comment_num}) {
         $linkval .= "#c" . $options->{comment_num};
     }
@@ -660,6 +660,7 @@ sub create {
             # See bugs 4928, 22983 and 32000 for more details
             html_linebreak => sub {
                 my ($var) = @_;
+                $var = html_quote($var);
                 $var =~ s/\r\n/\&#013;/g;
                 $var =~ s/\n\r/\&#013;/g;
                 $var =~ s/\r/\&#013;/g;

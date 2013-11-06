@@ -73,6 +73,7 @@ elsif ($action eq 'new')
         value_field_id => scalar $cgi->param('value_field_id'),
         add_to_deps => scalar $cgi->param('add_to_deps'),
         reverse_desc => scalar $cgi->param('reverse_desc'),
+        is_mandatory => scalar $cgi->param('is_mandatory'),
     });
     $field->set_visibility_values([ $cgi->param('visibility_value_id') ]);
 
@@ -121,6 +122,7 @@ elsif ($action eq 'update')
         $field->set_value_field($cgi->param('value_field_id'));
         $field->set_add_to_deps($cgi->param('add_to_deps'));
     }
+    $field->set_is_mandatory($cgi->param('is_mandatory'));
     $field->set_reverse_desc($cgi->param('reverse_desc'));
     $field->update();
 
@@ -181,5 +183,5 @@ elsif ($action eq 'delete')
 }
 else
 {
-    ThrowUserError('no_valid_action', {'field' => 'custom_field'});
+    ThrowUserError('unknown_action', {action => $action});
 }

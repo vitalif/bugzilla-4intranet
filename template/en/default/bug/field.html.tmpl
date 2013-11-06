@@ -57,12 +57,9 @@
       [%- '</a>' IF (!field.custom || desc_url) %]
     [% '</label>' IF editable %]
   </th>
-[% END %]
-
-[% IF NOT no_tds %]
-<td class="field_value [% ' bz_hidden_field' IF hidden %]"
-    id="field_container_[% field.name FILTER html %]" 
-    [% " colspan=\"$value_span\"" FILTER none IF value_span %]>
+  <td class="field_value [% ' bz_hidden_field' IF hidden %]"
+      id="field_container_[% field.name FILTER html %]" 
+      [% " colspan=\"$value_span\"" FILTER none IF value_span %]>
 [% END %]
 [% Hook.process('start_field_column') %]
 [% IF editable %]
@@ -72,7 +69,8 @@
              name="[% field.name FILTER html %]"
              value="[% value FILTER html %]" size="40"
              [% IF tabindex %] tabindex="[% tabindex FILTER html %]"[% END %]
-             maxlength="[% constants.MAX_FREETEXT_LENGTH FILTER none %]" />
+             maxlength="[% constants.MAX_FREETEXT_LENGTH FILTER none %]" 
+             [% ' aria-required="true"' IF field.is_mandatory %]/>
     [% CASE constants.FIELD_TYPE_NUMERIC %]
       <input id="[% field.name | html %]" class="numeric_input"
              name="[% field.name | html %]"
@@ -85,7 +83,8 @@
       <input name="[% field.name FILTER html %]" size="20"
              [% IF tabindex %] tabindex="[% tabindex FILTER html %]"[% END %]
              id="[% field.name FILTER html %]"
-             value="[% value FILTER html %]" />
+             value="[% value FILTER html %]" 
+             [% ' aria-required="true"' IF field.is_mandatory %]/>
 
       <script type="text/javascript">
         Calendar.set('[% field.name FILTER js %]')
@@ -94,7 +93,8 @@
         <span id="[% field.name FILTER html %]_input_area">
           <input name="[% field.name FILTER html %]" id="[% field.name FILTER html %]"
                  [% IF tabindex %] tabindex="[% tabindex FILTER html %]"[% END %]
-                 value="[% value FILTER html %]" size="7" />
+                 value="[% value FILTER html %]" size="7" 
+                 [% ' aria-required="true"' IF field.is_mandatory %]/>
         </span>
 
         [% IF value %]  
@@ -142,6 +142,7 @@
                         [% SET field_size = field.legal_values.size %]
                     [% END %]
                     size="[% field_size FILTER html %]" multiple="multiple"
+                    [% ' aria-required="true"' IF field.is_mandatory %]
                 [% END %]
                 >
           [% IF allow_dont_change %]
@@ -189,13 +190,8 @@
 
      [% CASE constants.FIELD_TYPE_TEXTAREA %]
        [% INCLUDE global/textarea.html.tmpl
-           id = field.name
-           name = field.name
-           minrows = 4
-           maxrows = 8
-           cols = 60
-           defaultcontent = value
-           tabindex = tabindex %]
+           id = field.name name = field.name minrows = 4 maxrows = 8
+           cols = 60 defaultcontent = value mandatory = field.is_mandatory tabindex = tabindex%]
      [% CASE constants.FIELD_TYPE_BUG_URLS %]
        [% '<ul class="bug_urls">' IF value.size %]
        [% FOREACH url = value %]

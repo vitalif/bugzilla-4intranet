@@ -195,7 +195,7 @@ elsif ($action eq 'end-sudo') {
 # No valid action found
 else {
     Bugzilla->login(LOGIN_OPTIONAL);
-    ThrowCodeError('unknown_action', {action => $action});
+    ThrowUserError('unknown_action', {action => $action});
 }
 
 # Display the template

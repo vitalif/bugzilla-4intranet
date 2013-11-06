@@ -211,7 +211,5 @@ if ($action eq 'update') {
     exit;
 }
 
-#
 # No valid action found
-#
-ThrowUserError('no_valid_action', {'field' => "version"});
+ThrowUserError('unknown_action', {action => $action});

@@ -133,6 +133,9 @@ use Cwd qw(abs_path);
     FIELD_TYPE_NUMERIC
 
     FIELD_TYPE__BOUNDARY
+    EMPTY_DATETIME_REGEX
+
+    ABNORMAL_SELECTS
 
     TIMETRACKING_FIELDS
 
@@ -201,7 +204,7 @@ use Cwd qw(abs_path);
 # CONSTANTS
 #
 # Bugzilla version
-use constant BUGZILLA_VERSION => "3.6.4";
+use constant BUGZILLA_VERSION => "3.7";
 
 # These are unique values that are unlikely to match a string or a number,
 # to be used in criteria for match() functions and other things. They start
@@ -409,6 +412,14 @@ use constant FIELD_TYPE_EXTURL => 9;
 
 # Upper boundary for FIELD_TYPE_* values
 use constant FIELD_TYPE__BOUNDARY => 9;
+use constant EMPTY_DATETIME_REGEX => qr/^[0\-:\sA-Za-z]+$/; 
+
+# See the POD for Bugzilla::Field/is_abnormal to see why these are listed
+# here.
+use constant ABNORMAL_SELECTS => qw(
+    product
+    component
+);
 
 use constant BUG_ID_ADD_TO_BLOCKED => 1;
 use constant BUG_ID_ADD_TO_DEPENDSON => 2;

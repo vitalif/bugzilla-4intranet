@@ -142,6 +142,7 @@ if (defined $cgi->param('rememberedquery')) {
     $params->param('columnlist', join(",", @collist));
     $vars->{'redirect_url'} = "buglist.cgi?".$params->query_string();
 
+
     # If we're running on Microsoft IIS, $cgi->redirect discards
     # the Set-Cookie lines. In mod_perl, $cgi->redirect with cookies
     # causes the page to be rendered as text/plain.

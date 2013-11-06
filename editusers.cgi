@@ -682,8 +682,7 @@ if ($action eq 'search') {
 
 ###########################################################################
 } else {
-    $vars->{'action'} = $action;
-    ThrowCodeError('action_unrecognized', $vars);
+    ThrowUserError('unknown_action', {action => $action});
 }
 
 exit;
