@@ -442,9 +442,6 @@ foreach my $b (@bug_objects)
         {
             $b->set_custom_field($field, [$cgi->param($fname)]);
         }
-        else {
-            $set_all_fields{$dep_field}->{set} = $cgi->param($dep_field);
-        }
     }
 
     # CustIS Bug 134368 - Edit comment
