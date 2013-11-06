@@ -88,7 +88,7 @@ sub UpdateTaskC
         $component = $component->[0] || ThrowUserError('unknown_component');
         if ($component->id ne $bug->component_id)
         {
-            $bug->set_product($component->product->name);
+            $bug->_set_product($component->product->name);
             $bug->set_component($component->name);
         }
     }

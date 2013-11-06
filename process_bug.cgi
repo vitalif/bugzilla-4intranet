@@ -285,7 +285,7 @@ my $product_change; # Used only for strict_isolation checks, right now.
 if (should_set('product')) {
     foreach my $b (@bug_objects) {
         $b->{_other_bugs} = \@bug_objects;
-        my $changed = $b->set_product(scalar $cgi->param('product'));
+        my $changed = $b->_set_product(scalar $cgi->param('product'));
         $product_change ||= $changed;
     }
 }

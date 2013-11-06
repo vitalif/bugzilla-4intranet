@@ -694,6 +694,27 @@ sub check_visibility
     return $self->has_visibility_value($value);
 }
 
+=item C<visibility_value>
+
+If we have a L</visibility_field>, then what value does that field have to
+be set to in order to show this field? Returns a L<Bugzilla::Field::Choice>
+or undef if there is no C<visibility_field> set.
+
+=back
+
+=cut
+
+sub visibility_value {
+    my $self = shift;
+    if ($self->{visibility_field_id}) {
+        require Bugzilla::Field::Choice;
+        $self->{visibility_value} ||=
+            Bugzilla::Field::Choice->type($self->visibility_field)->new(
+                $self->{visibility_value_id});
+    }
+    return $self->{visibility_value};
+}
+
 =pod
 
 =over
