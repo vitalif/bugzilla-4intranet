@@ -6,6 +6,7 @@ use Bugzilla;
 use Bugzilla::Hook;
 use Bugzilla::Extension;
 use CustisHacks;
+use Bugzilla::Constants;
 
 my $REQUIRED_MODULES = [];
 my $OPTIONAL_MODULES = [];
@@ -18,7 +19,7 @@ clear_hooks('custishacks');
 set_hook('custishacks', 'db_schema_abstract_schema', 'CustisHacks::db_schema_abstract_schema');
 set_hook('custishacks', 'install_update_db', 'CustisHacks::install_update_db');
 
-if (Bugzilla->installation_mode == INSTALLATION_MODE_NON_INTERACTIVE) {
+if (Bugzilla->usage_mode == USAGE_MODE_CMDLINE) {
     set_hook('custishacks', 'install_update_db', 'CustisHacks::update_cf_wbs');
 } else {
     CustisHacks->update_cf_wbs();
