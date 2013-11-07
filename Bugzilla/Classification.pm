@@ -43,10 +43,6 @@ use constant DB_COLUMNS => qw(
     sortkey
 );
 
-use constant REQUIRED_CREATE_FIELDS => qw(
-    name
-);
-
 use constant UPDATE_COLUMNS => qw(
     name
     description

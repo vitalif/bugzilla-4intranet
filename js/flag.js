@@ -24,7 +24,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-// Enables or disables a requestee field depending on whether or not
+// Shows or hides a requestee field depending on whether or not
 // the user is requesting the corresponding flag.
 function toggleRequesteeField(flagField, no_focus)
 {
@@ -50,9 +50,9 @@ function toggleRequesteeField(flagField, no_focus)
         menuforusers_showmulti(id);
 }
 
-// Disables requestee fields when the window is loaded since they shouldn't
+// Hides requestee fields when the window is loaded since they shouldn't
 // be enabled until the user requests that flag type.
-function disableRequesteeFields()
+function hideRequesteeFields()
 {
     var inputElements = document.getElementsByTagName("input");
     var selectElements = document.getElementsByTagName("select");

@@ -147,6 +147,10 @@ document.changeform = document.[% cfname %];
                num_attachment_flag_types = bug.num_attachment_flag_types
                show_attachment_flags = bug.show_attachment_flags
     %]
+
+    [% IF user.settings.comment_box_position.value == 'before_comments' %]
+      [% PROCESS comment_box %]
+    [% END %]
   </td>
   <td>
     [% PROCESS section_restrict_visibility %]
@@ -165,6 +169,11 @@ document.changeform = document.[% cfname %];
       mode = user.id ? "edit" : "show"
     %]
   </div>
+
+  [% IF user.settings.comment_box_position.value == 'after_comments' %]
+    <hr>
+    [% PROCESS comment_box %]
+  [% END %]        
 
 </form>
 
@@ -1121,9 +1130,6 @@ document.changeform = document.[% cfname %];
       [% IF nobr %][% w %][% ELSE %]<input type="button" value="Preview" onclick="showcommentpreview()" tabindex="-1" />[% END %]
       <input type="submit" value="Save Changes"
              id="commit[% id FILTER css_class_quote %]">
-      [% IF bug.user.canmove %]
-        <input type="submit" name="action" id="action[% id FILTER css_class_quote %]" value="[% Param("move-button-text") %]">
-      [% END %]
       [% IF NOT nobr %]<p style="margin: 0.5em 0">[% w %]</p>[% END %]
     </div>
   [% END %]

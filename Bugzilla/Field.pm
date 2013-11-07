@@ -113,27 +113,29 @@ use constant DB_COLUMNS => qw(
     is_mandatory
 );
 
-use constant REQUIRED_CREATE_FIELDS => qw(name description);
-
 use constant VALIDATORS => {
-    custom      => \&Bugzilla::Object::check_boolean,
-    description => \&_check_description,
-    enter_bug   => \&Bugzilla::Object::check_boolean,
-    clone_bug   => \&Bugzilla::Object::check_boolean,
-    buglist     => \&Bugzilla::Object::check_boolean,
-    mailhead    => \&Bugzilla::Object::check_boolean,
-    obsolete    => \&Bugzilla::Object::check_boolean,
-    sortkey     => \&_check_sortkey,
-    type        => \&_check_type,
+    custom       => \&_check_custom,
+    description  => \&_check_description,
+    enter_bug    => \&_check_enter_bug,
+    buglist      => \&Bugzilla::Object::check_boolean,
+    mailhead     => \&_check_mailhead,
+    name         => \&_check_name,
+    obsolete     => \&_check_obsolete,
+    reverse_desc => \&_check_reverse_desc,
+    sortkey      => \&_check_sortkey,
+    type         => \&_check_type,
+    value_field_id      => \&_check_value_field_id,
     visibility_field_id => \&_check_visibility_field_id,
     add_to_deps => \&_check_add_to_deps,
     is_mandatory => \&Bugzilla::Object::check_boolean,
 };
 
-use constant UPDATE_VALIDATORS => {
-    value_field_id      => \&_check_value_field_id,
-    visibility_value_id => \&_check_control_value,
-    reverse_desc        => \&_check_reverse_desc,
+use constant VALIDATOR_DEPENDENCIES => {
+    name => ['custom'],
+    type => ['custom'],
+    reverse_desc => ['type'],
+    value_field_id => ['type'],
+    visibility_value_id => ['visibility_field_id'],
 };
 
 use constant UPDATE_COLUMNS => qw(
@@ -278,7 +280,7 @@ sub _check_description {
 }
 
 sub _check_name {
-    my ($invocant, $name, $is_custom) = @_;
+    my ($class, $name, undef, $params) = @_;
     $name = lc(clean_text($name));
     $name || ThrowUserError('field_missing_name');
 
@@ -286,7 +288,7 @@ sub _check_name {
     my $name_regex = qr/^[\w\.]+$/;
     # Custom fields have more restrictive name requirements than
     # standard fields.
-    $name_regex = qr/^[a-zA-Z0-9_]+$/ if $is_custom;
+    $name_regex = qr/^[a-zA-Z0-9_]+$/ if $params->{custom};
     # Custom fields can't be named just "cf_", and there is no normal
     # field named just "cf_".
     ($name =~ $name_regex && $name ne "cf_")
@@ -294,7 +296,7 @@ sub _check_name {
 
     # If it's custom, prepend cf_ to the custom field name to distinguish
     # it from standard fields.
-    if ($name !~ /^cf_/ && $is_custom) {
+    if ($name !~ /^cf_/ && $params->{custom}) {
         $name = 'cf_' . $name;
     }
 
@@ -319,18 +321,24 @@ sub _check_sortkey {
 }
 
 sub _check_type {
-    my ($invocant, $type) = @_;
+    my ($invocant, $type, undef, $params) = @_;
     my $saved_type = $type;
     # The constant here should be updated every time a new,
     # higher field type is added.
     (detaint_natural($type) && $type <= FIELD_TYPE__BOUNDARY)
       || ThrowCodeError('invalid_customfield_type', { type => $saved_type });
+
+    my $custom = blessed($invocant) ? $invocant->custom : $params->{custom};
+    if ($custom && !$type) {
+        ThrowCodeError('field_type_not_specified');
+    }
+
     return $type;
 }
 
 sub _check_value_field_id {
-    my ($invocant, $field_id, $is_select) = @_;
-    $is_select = $invocant->is_select if !defined $is_select;
+    my ($invocant, $field_id, undef, $params) = @_;
+    my $is_select = $invocant->is_select($params);
     if ($field_id && !$is_select) {
         ThrowUserError('field_value_control_select_only');
     }
@@ -352,6 +360,21 @@ sub _check_visibility_field_id {
     return $field->id;
 }
 
+sub _check_control_value {
+    my ($invocant, $value_id, undef, $params) = @_;
+    my $field;
+    if (blessed $invocant) {
+        $field = $invocant->visibility_field;
+    }
+    elsif ($params->{visibility_field_id}) {
+        $field = $invocant->new($params->{visibility_field_id});
+    }
+    # When no field is set, no value is set.
+    return undef if !$field;
+    my $value_obj = Bugzilla::Field::Choice->type($field)
+                    ->check({ id => $value_id });
+    return $value_obj->id;
+}
 # This has effect only for fields of FIELD_TYPE_BUG_ID type
 # When 1, add field value (bug id) to list of bugs blocked by current
 # When 2, add field value (bug id) to list of bugs depending on current
@@ -363,12 +386,8 @@ sub _check_add_to_deps
 }
 
 sub _check_reverse_desc {
-    my ($invocant, $reverse_desc, $type) = @_;
-    
-    if (blessed $invocant) {
-        $type = $invocant->type;
-    }
-    
+    my ($invocant, $reverse_desc, undef, $params) = @_;
+    my $type = blessed($invocant) ? $invocant->type : $params->{type};
     if ($type != FIELD_TYPE_BUG_ID) {
         return undef; # store NULL for non-reversible field types
     }
@@ -522,8 +541,11 @@ objects.
 =cut
 
 sub is_select {
-    return ($_[0]->type == FIELD_TYPE_SINGLE_SELECT
-            || $_[0]->type == FIELD_TYPE_MULTI_SELECT) ? 1 : 0
+    my ($invocant, $params) = @_;
+    # This allows this method to be called by create() validators.
+    my $type = blessed($invocant) ? $invocant->type : $params->{type}; 
+    return ($type == FIELD_TYPE_SINGLE_SELECT 
+            || $type == FIELD_TYPE_MULTI_SELECT) ? 1 : 0 
 }
 
 sub has_activity { $_[0]->{has_activity} }

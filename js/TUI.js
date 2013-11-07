@@ -48,6 +48,7 @@ function TUI_hide_default(className)
 function TUI_toggle_control_link(className)
 {
     var link = document.getElementById(className + "_controller");
+    if (!link) return;
     var original_text = link.innerHTML;
     link.innerHTML = TUI_alternates[className];
     TUI_alternates[className] = original_text;

@@ -66,9 +66,9 @@ sub REQUIRED_MODULES {
     {
         package => 'CGI.pm',
         module  => 'CGI',
-        # 3.51 fixes a security problem that affects Bugzilla.
-        # (bug 591165)
-        version => '3.51',
+        # 3.49 fixes a problem with operating Bugzilla behind a proxy.
+        # (bug 509303)
+        version => '3.49',
     },
     {
         package => 'Digest-SHA',
@@ -246,6 +246,13 @@ sub OPTIONAL_MODULES {
         module  => 'JSON::RPC',
         version => 0,
         feature => ['jsonrpc'],
+    },
+    {
+        package => 'JSON-XS',
+        module  => 'JSON::XS',
+        # 2.0 is the first version that will work with JSON::RPC.
+        version => '2.0',
+        feature => ['jsonrpc_faster'],
     },
     {
         package => 'Test-Taint',

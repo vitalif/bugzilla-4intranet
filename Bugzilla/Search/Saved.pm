@@ -50,8 +50,6 @@ use constant DB_COLUMNS => qw(
     query_type
 );
 
-use constant REQUIRED_CREATE_FIELDS => qw(name query);
-
 use constant VALIDATORS => {
     name       => \&_check_name,
     query      => \&_check_query,

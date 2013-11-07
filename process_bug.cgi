@@ -257,7 +257,7 @@ if (defined $cgi->param('id')) {
             my $next_bug_id = $bug_list[$cur + 1];
             detaint_natural($next_bug_id);
             if ($next_bug_id and $user->can_see_bug($next_bug_id)) {
-                # We create an object here so that send_results can use it
+                # We create an object here so that $bug->send_changes can use it
                 # when displaying the header.
                 $vars->{'bug'} = new Bugzilla::Bug($next_bug_id);
             }
@@ -372,9 +372,7 @@ my %field_translation = (
     bug_file_loc => 'url',
     set_default_assignee   => 'reset_assigned_to',
     set_default_qa_contact => 'reset_qa_contact',
-    keywordaction => 'keywords_action',
     confirm_product_change => 'product_change_confirmed',
-    bug_status => 'status',
 );
 
 my %set_all_fields = ( other_bugs => \@bug_objects );
@@ -385,6 +383,12 @@ foreach my $field_name (@set_fields) {
     }
 }
 
+if (should_set('keywords')) {
+    my $action = $cgi->param('keywordaction');
+    $action = 'remove' if $action eq 'delete';
+    $action = 'set'    if $action eq 'makeexact';
+    $set_all_fields{keywords}->{$action} = $cgi->param('keywords');
+}
 if (should_set('comment')) {
     $set_all_fields{comment} = {
         body       => scalar $cgi->param('comment'),
@@ -621,7 +625,7 @@ Bugzilla->request_cache->{checkers_hide_error} = 1 if @bug_objects > 1;
 # Do Actual Database Updates #
 ##############################
 foreach my $bug (@bug_objects) {
-    $dbh->bz_start_transaction();
+    my $changes = $bug->update();
 
     my $mail_count = @{Bugzilla->get_mail_result()};
     my $timestamp = $dbh->selectrow_array(q{SELECT LOCALTIMESTAMP(0)});

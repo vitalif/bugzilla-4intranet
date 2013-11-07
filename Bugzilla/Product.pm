@@ -62,12 +62,6 @@ use constant DB_COLUMNS => qw(
     allows_unconfirmed
 );
 
-use constant REQUIRED_CREATE_FIELDS => qw(
-    name
-    description
-    version
-);
-
 use constant UPDATE_COLUMNS => qw(
     name
     wiki_url

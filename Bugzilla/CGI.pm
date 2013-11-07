@@ -175,7 +175,7 @@ sub clean_search_url {
     # Delete leftovers from the login form
     $self->delete('Bugzilla_remember', 'GoAheadAndLogIn');
 
-    foreach my $num (1,2) {
+    foreach my $num (1,2,3) {
         # If there's no value in the email field, delete the related fields.
         if (!$self->param("email$num")) {
             foreach my $field (qw(type assigned_to reporter qa_contact cc longdesc)) {
@@ -205,6 +205,10 @@ sub clean_search_url {
     {
         $self->delete('order');
     }
+
+    # list_id is added in buglist.cgi after calling clean_search_url,
+    # and doesn't need to be saved in saved searches.
+    $self->delete('list_id'); 
 
     # And now finally, if query_format is our only parameter, that
     # really means we have no parameters, so we should delete query_format.
@@ -275,14 +279,21 @@ sub multipart_start {
 sub header {
     my $self = shift;
 
+    # If there's only one parameter, then it's a Content-Type.
+    if (scalar(@_) == 1) {
+        # Since we're adding parameters below, we have to name it.
+        unshift(@_, '-type' => shift(@_));
+    }
+
     # Add the cookies in if we have any
     if (scalar(@{$self->{Bugzilla_cookie_list}})) {
-        if (scalar(@_) == 1) {
-            # if there's only one parameter, then it's a Content-Type.
-            # Since we're adding parameters we have to name it.
-            unshift(@_, '-type' => shift(@_));
-        }
         unshift(@_, '-cookie' => $self->{Bugzilla_cookie_list});
+    }
+
+    # Add Strict-Transport-Security (STS) header if this response
+    # is over SSL and ssl_redirect is enabled.
+    if ($self->https && Bugzilla->params->{'ssl_redirect'}) {
+        unshift(@_, '-strict-transport-security' => 'max-age=' . MAX_STS_AGE);
     }
 
     return $self->SUPER::header(@_) || "";

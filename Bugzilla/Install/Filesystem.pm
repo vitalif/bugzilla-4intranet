@@ -54,6 +54,53 @@ use constant HT_DEFAULT_DENY => <<EOT;
 deny from all
 EOT
 
+###############
+# Permissions #
+###############
+
+# Used by the permissions "constants" below.
+sub _suexec { Bugzilla->localconfig->{'use_suexec'}     };
+sub _group  { Bugzilla->localconfig->{'webservergroup'} };
+
+# Writeable by the owner only.
+use constant OWNER_WRITE => 0600;
+# Executable by the owner only.
+use constant OWNER_EXECUTE => 0700;
+# A directory which is only writeable by the owner.
+use constant DIR_OWNER_WRITE => 0700;
+
+# A cgi script that the webserver can execute.
+sub WS_EXECUTE { _group() ? 0750 : 0755 };
+# A file that is read by cgi scripts, but is not ever read
+# directly by the webserver.
+sub CGI_READ { _group() ? 0640 : 0644 };
+# A file that is written to by cgi scripts, but is not ever
+# read or written directly by the webserver.
+sub CGI_WRITE { _group() ? 0660 : 0666 };
+# A file that is served directly by the web server.
+sub WS_SERVE { (_group() and !_suexec()) ? 0640 : 0644 };
+
+# A directory whose contents can be read or served by the
+# webserver (so even directories containing cgi scripts
+# would have this permission).
+sub DIR_WS_SERVE { (_group() and !_suexec()) ? 0750 : 0755 };
+# A directory that is read by cgi scripts, but is never accessed
+# directly by the webserver
+sub DIR_CGI_READ { _group() ? 0750 : 0755 };
+# A directory that is written to by cgi scripts, but where the
+# scripts never needs to overwrite files created by other
+# users.
+sub DIR_CGI_WRITE { _group() ? 0770 : 01777 };
+# A directory that is written to by cgi scripts, where the
+# scripts need to overwrite files created by other users.
+sub DIR_CGI_OVERWRITE { _group() ? 0770 : 0777 };
+
+# This can be combined (using "|") with other permissions for 
+# directories that, in addition to their normal permissions (such
+# as DIR_CGI_WRITE) also have content served directly from them
+# (or their subdirectories) to the user, via the webserver.
+sub DIR_ALSO_WS_SERVE { _suexec() ? 0001 : 0 };
+
 # This looks like a constant because it effectively is, but
 # it has to call other subroutines and read the current filesystem,
 # so it's defined as a sub. This is not exported, so it doesn't have
@@ -147,23 +194,24 @@ sub FILESYSTEM {
         "$localconfig.*"   => { perms => $script_readable },
         "$localconfig.old" => { perms => $owner_readable },
 
-        'contrib/README'       => { perms => $owner_readable },
-        'contrib/*/README'     => { perms => $owner_readable },
-        'docs/makedocs.pl'     => { perms => $owner_executable },
-        'docs/style.css'       => { perms => $ws_readable },
-        'docs/*/rel_notes.txt' => { perms => $ws_readable },
-        'docs/*/README.docs'   => { perms => $owner_readable },
-        "$datadir/params" => { perms => $ws_writeable },
-        "$datadir/old-params.txt" => { perms => $owner_readable },
-        "$extensionsdir/create.pl" => { perms => $owner_executable },
+        'contrib/README'       => { perms => OWNER_WRITE },
+        'contrib/*/README'     => { perms => OWNER_WRITE },
+        'docs/bugzilla.ent'    => { perms => OWNER_WRITE },
+        'docs/makedocs.pl'     => { perms => OWNER_EXECUTE },
+        'docs/style.css'       => { perms => WS_SERVE },
+        'docs/*/rel_notes.txt' => { perms => WS_SERVE },
+        'docs/*/README.docs'   => { perms => OWNER_WRITE },
+        "$datadir/params"      => { perms => CGI_WRITE },
+        "$datadir/old-params.txt"  => { perms => OWNER_WRITE },
+        "$extensionsdir/create.pl" => { perms => OWNER_EXECUTE },
     );
 
     # Directories that we want to set the perms on, but not
     # recurse through. These are directories we didn't create
     # in checkesetup.pl.
     my %non_recurse_dirs = (
-        '.'  => $ws_dir_readable,
-        docs => $ws_dir_readable,
+        '.'  => DIR_WS_SERVE,
+        docs => DIR_WS_SERVE,
     );
 
     # This sets the permissions for each item inside each of these 
@@ -243,13 +291,13 @@ sub FILESYSTEM {
     # The name of each file, pointing at its default permissions and
     # default contents.
     my %create_files = (
-        "$datadir/extensions/additional" => { perms    => $ws_readable, 
+        "$datadir/extensions/additional" => { perms    => CGI_READ, 
                                               contents => '' },
         # We create this file so that it always has the right owner
         # and permissions. Otherwise, the webserver creates it as
         # owned by itself, which can cause problems if jobqueue.pl
         # or something else is not running as the webserver or root.
-        "$datadir/mailer.testfile" => { perms    => $ws_writeable,
+        "$datadir/mailer.testfile" => { perms    => CGI_WRITE,
                                         contents => '' },
     );
 
@@ -259,18 +307,18 @@ sub FILESYSTEM {
     foreach my $skin_dir ("$skinsdir/custom", <$skinsdir/contrib/*>) {
         next if basename($skin_dir) =~ /^cvs$/i;
         foreach my $base_css (<$skinsdir/standard/*.css>) {
-            _add_custom_css($skin_dir, basename($base_css), \%create_files, $ws_readable);
+            _add_custom_css($skin_dir, basename($base_css), \%create_files);
         }
         foreach my $dir_css (<$skinsdir/standard/*/*.css>) {
             $dir_css =~ s{.+?([^/]+/[^/]+)$}{$1};
-            _add_custom_css($skin_dir, $dir_css, \%create_files, $ws_readable);
+            _add_custom_css($skin_dir, $dir_css, \%create_files);
         }
     }
 
     # Because checksetup controls the creation of index.html separately
     # from all other files, it gets its very own hash.
     my %index_html = (
-        'index.html' => { perms => $ws_readable, contents => <<EOT
+        'index.html' => { perms => WS_SERVE, contents => <<EOT
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 <head>
@@ -287,23 +335,27 @@ EOT
     # Because checksetup controls the .htaccess creation separately
     # by a localconfig variable, these go in a separate variable from
     # %create_files.
+    #
+    # Note that these get WS_SERVE as their permission
+    # because they're *read* by the webserver, even though they're not
+    # actually, themselves, served.
     my %htaccess = (
-        "$attachdir/.htaccess"       => { perms    => $ws_readable,
+        "$attachdir/.htaccess"       => { perms    => WS_SERVE,
                                           contents => HT_DEFAULT_DENY },
-        "$libdir/Bugzilla/.htaccess" => { perms    => $ws_readable,
+        "$libdir/Bugzilla/.htaccess" => { perms    => WS_SERVE,
                                           contents => HT_DEFAULT_DENY },
-        "$extlib/.htaccess"          => { perms    => $ws_readable,
+        "$extlib/.htaccess"          => { perms    => WS_SERVE,
                                           contents => HT_DEFAULT_DENY },
-        "$templatedir/.htaccess"     => { perms    => $ws_readable,
+        "$templatedir/.htaccess"     => { perms    => WS_SERVE,
                                           contents => HT_DEFAULT_DENY },
-        'contrib/.htaccess'          => { perms    => $ws_readable,
+        'contrib/.htaccess'          => { perms    => WS_SERVE,
                                           contents => HT_DEFAULT_DENY },
-        't/.htaccess'                => { perms    => $ws_readable,
+        't/.htaccess'                => { perms    => WS_SERVE,
                                           contents => HT_DEFAULT_DENY },
-        "$datadir/.htaccess"         => { perms    => $ws_readable,
+        "$datadir/.htaccess"         => { perms    => WS_SERVE,
                                           contents => HT_DEFAULT_DENY },
 
-        "$webdotdir/.htaccess" => { perms => $ws_readable, contents => <<EOT
+        "$webdotdir/.htaccess" => { perms => WS_SERVE, contents => <<EOT
 # Restrict access to .dot files to the public webdot server at research.att.com
 # if research.att.com ever changes their IP, or if you use a different
 # webdot server, you'll need to edit this
@@ -423,8 +475,8 @@ EOT
 
 # A simple helper for creating "empty" CSS files.
 sub _add_custom_css {
-    my ($skin_dir, $path, $create_files, $perms) = @_;
-    $create_files->{"$skin_dir/$path"} = { perms => $perms, contents => <<EOT
+    my ($skin_dir, $path, $create_files) = @_;
+    $create_files->{"$skin_dir/$path"} = { perms => WS_SERVE, contents => <<EOT
 /*
  * Custom rules for $path.
  * The rules you put here override rules in that stylesheet.

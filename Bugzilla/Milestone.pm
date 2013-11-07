@@ -48,10 +48,9 @@ use constant DB_COLUMNS => qw(
     sortkey
 );
 
-use constant REQUIRED_CREATE_FIELDS => qw(
-    value
-    product
-);
+use constant REQUIRED_FIELD_MAP => {
+    product_id => 'product',
+};
 
 use constant UPDATE_COLUMNS => qw(
     value
@@ -238,6 +237,8 @@ sub _check_sortkey {
 
 sub _check_product {
     my ($invocant, $product) = @_;
+    $product || ThrowCodeError('param_required',
+                    { function => "$invocant->create", param => "product" });
     return Bugzilla->user->check_can_admin_product($product->name);
 }
 

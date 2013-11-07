@@ -55,13 +55,6 @@ use constant DB_COLUMNS => qw(
     is_active
 );
 
-use constant REQUIRED_CREATE_FIELDS => qw(
-    name
-    product
-    initialowner
-    description
-);
-
 use constant UPDATE_COLUMNS => qw(
     name
     initialowner
@@ -71,6 +64,10 @@ use constant UPDATE_COLUMNS => qw(
     default_version
     is_active
 );
+
+use constant REQUIRED_FIELD_MAP => {
+    product_id => 'product',
+};
 
 use constant VALIDATORS => {
     create_series    => \&Bugzilla::Object::check_boolean,
@@ -274,6 +271,8 @@ sub _check_initialqacontact {
 
 sub _check_product {
     my ($invocant, $product) = @_;
+    $product || ThrowCodeError('param_required', 
+                    { function => "$invocant->create", param => 'product' });
     return Bugzilla->user->check_can_admin_product($product->name);
 }
 

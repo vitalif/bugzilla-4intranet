@@ -85,6 +85,8 @@ use Cwd qw(abs_path);
     QUERY_LIST
     LIST_OF_BUGS
 
+    SAVE_NUM_SEARCHES
+
     COMMENT_COLS
     MAX_TABLE_COLS
     MAX_COMMENT_LENGTH
@@ -92,7 +94,6 @@ use Cwd qw(abs_path);
     CMT_NORMAL
     CMT_DUPE_OF
     CMT_HAS_DUPE
-    CMT_MOVED_TO
     CMT_ATTACHMENT_CREATED
     CMT_ATTACHMENT_UPDATED
     CMT_WORKTIME
@@ -164,6 +165,7 @@ use Cwd qw(abs_path);
     MAX_TOKEN_AGE
     MAX_LOGINCOOKIE_AGE
     MAX_SUDO_TOKEN_AGE
+    MAX_STS_AGE
 
     SAFE_PROTOCOLS
     LEGAL_CONTENT_TYPES
@@ -181,6 +183,7 @@ use Cwd qw(abs_path);
     MAX_FREETEXT_LENGTH
     MAX_NUMERIC_LENGTH
     MAX_BUG_URL_LENGTH
+    MAX_POSSIBLE_DUPLICATES
 
     PASSWORD_DIGEST_ALGORITHM
     PASSWORD_SALT_LENGTH
@@ -204,7 +207,7 @@ use Cwd qw(abs_path);
 # CONSTANTS
 #
 # Bugzilla version
-use constant BUGZILLA_VERSION => "3.7";
+use constant BUGZILLA_VERSION => "3.7.1+";
 
 # These are unique values that are unlikely to match a string or a number,
 # to be used in criteria for match() functions and other things. They start
@@ -297,6 +300,9 @@ use constant DEFAULT_MILESTONE => '---';
 use constant QUERY_LIST => 0;
 use constant LIST_OF_BUGS => 1;
 
+# How many of the user's most recent searches to save.
+use constant SAVE_NUM_SEARCHES => 10;
+
 # The column length for displayed (and wrapped) bug comments.
 use constant COMMENT_COLS => 80;
 use constant MAX_TABLE_COLS => 200;
@@ -308,7 +314,7 @@ use constant CMT_NORMAL => 0;
 use constant CMT_DUPE_OF => 1;
 use constant CMT_HAS_DUPE => 2;
 # Type 3 was CMT_POPULAR_VOTES, which moved to the Voting extension.
-use constant CMT_MOVED_TO => 4;
+# Type 4 was CMT_MOVED_TO, which moved to the OldBugMove extension.
 use constant CMT_ATTACHMENT_CREATED => 5;
 use constant CMT_ATTACHMENT_UPDATED => 6;
 
@@ -437,6 +443,10 @@ use constant MAX_LOGINCOOKIE_AGE => 30;
 # How many seconds (default is 6 hours) a sudo cookie remains valid.
 use constant MAX_SUDO_TOKEN_AGE => 21600;
 
+# The maximum number of seconds the Strict-Transport-Security header
+# will remain valid. Default is one week.
+use constant MAX_STS_AGE => 604800;
+
 # Protocols which are considered as safe.
 use constant SAFE_PROTOCOLS => ('afs', 'cid', 'ftp', 'gopher', 'http', 'https',
                                 'irc', 'mid', 'news', 'nntp', 'prospero', 'telnet',
@@ -548,6 +558,10 @@ use constant MAX_NUMERIC_LENGTH => 64;
 
 # The longest a bug URL in a BUG_URLS field can be.
 use constant MAX_BUG_URL_LENGTH => 255;
+
+# The largest number of possible duplicates that Bug::possible_duplicates
+# will return.
+use constant MAX_POSSIBLE_DUPLICATES => 25;
 
 # This is the name of the algorithm used to hash passwords before storing
 # them in the database. This can be any string that is valid to pass to

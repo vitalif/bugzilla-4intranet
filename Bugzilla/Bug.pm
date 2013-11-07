@@ -37,7 +37,6 @@ use Bugzilla::Constants;
 use Bugzilla::Field;
 use Bugzilla::Flag;
 use Bugzilla::FlagType;
-use Bugzilla::FlagType::UserList;
 use Bugzilla::Hook;
 use Bugzilla::Keyword;
 use Bugzilla::Milestone;
@@ -51,7 +50,7 @@ use Bugzilla::Group;
 use Bugzilla::Status;
 use Bugzilla::Comment;
 
-use List::MoreUtils qw(firstidx);
+use List::MoreUtils qw(firstidx uniq);
 use List::Util qw(min first);
 use Storable qw(dclone);
 use URI;
@@ -155,17 +154,33 @@ sub VALIDATORS {
 
     my $validators = {
         alias          => \&_check_alias,
+        assigned_to    => \&_check_assigned_to,
         bug_file_loc   => \&_check_bug_file_loc,
         bug_severity   => \&_check_select_field,
+        bug_status     => \&_check_bug_status,
+        cc             => \&_check_cc,
         comment        => \&_check_comment,
         commentprivacy => \&_check_commentprivacy,
+        component      => \&_check_component,
         deadline       => \&_check_deadline,
+        dup_id         => \&_check_dup_id,
         estimated_time => \&_check_estimated_time,
+        everconfirmed  => \&Bugzilla::Object::check_boolean,
+        groups         => \&_check_groups,
+        keywords       => \&_check_keywords,
+        op_sys         => \&_check_select_field,
         priority       => \&_check_priority,
         product        => \&_check_product,
+        qa_contact     => \&_check_qa_contact,
         remaining_time => \&_check_remaining_time,
+        resolution     => \&_check_resolution,
         short_desc     => \&_check_short_desc,
         status_whiteboard => \&_check_status_whiteboard,
+        target_milestone  => \&_check_target_milestone,
+        version           => \&_check_version,
+
+        cclist_accessible   => \&Bugzilla::Object::check_boolean,
+        reporter_accessible => \&Bugzilla::Object::check_boolean,
     };
 
     $validators->{op_sys} = \&_check_select_field if Bugzilla->params->{useopsys};
@@ -268,6 +283,11 @@ use constant FIELD_MAP => {
     # These are special values for the WebService Bug.search method.
     limit            => 'LIMIT',
     offset           => 'OFFSET',
+};
+
+use constant REQUIRED_FIELD_MAP => {
+    product_id   => 'product',
+    component_id => 'component',
 };
 
 #####################################################################
@@ -428,6 +448,87 @@ sub match {
     }
 
     return $class->SUPER::match(@_);
+}
+
+sub possible_duplicates {
+    my ($class, $params) = @_;
+    my $short_desc = $params->{summary};
+    my $products = $params->{products} || [];
+    my $limit = $params->{limit} || MAX_POSSIBLE_DUPLICATES;
+    $limit = MAX_POSSIBLE_DUPLICATES if $limit > MAX_POSSIBLE_DUPLICATES;
+    $products = [$products] if !ref($products) eq 'ARRAY';
+
+    my $orig_limit = $limit;
+    detaint_natural($limit) 
+        || ThrowCodeError('param_must_be_numeric', 
+                          { function => 'possible_duplicates',
+                            param    => $orig_limit });
+
+    my $dbh = Bugzilla->dbh;
+    my $user = Bugzilla->user;
+    my @words = split(/[\b\s]+/, $short_desc || '');
+    # Exclude punctuation from the array.
+    @words = map { /(\w+)/; $1 } @words;
+    # And make sure that each word is longer than 2 characters.
+    @words = grep { defined $_ and length($_) > 2 } @words;
+
+    return [] if !@words;
+
+    my ($where_sql, $relevance_sql);
+    if ($dbh->FULLTEXT_OR) {
+        my $joined_terms = join($dbh->FULLTEXT_OR, @words);
+        ($where_sql, $relevance_sql) = 
+            $dbh->sql_fulltext_search('bugs_fulltext.short_desc', 
+                                      $joined_terms, 1);
+        $relevance_sql ||= $where_sql;
+    }
+    else {
+        my (@where, @relevance);
+        my $count = 0;
+        foreach my $word (@words) {
+            $count++;
+            my ($term, $rel_term) = $dbh->sql_fulltext_search(
+                'bugs_fulltext.short_desc', $word, $count);
+            push(@where, $term);
+            push(@relevance, $rel_term || $term);
+        }
+
+        $where_sql = join(' OR ', @where);
+        $relevance_sql = join(' + ', @relevance);
+    }
+
+    my $product_ids = join(',', map { $_->id } @$products);
+    my $product_sql = $product_ids ? "AND product_id IN ($product_ids)" : "";
+
+    # Because we collapse duplicates, we want to get slightly more bugs
+    # than were actually asked for.
+    my $sql_limit = $limit + 5;
+
+    my $possible_dupes = $dbh->selectall_arrayref(
+        "SELECT bugs.bug_id AS bug_id, bugs.resolution AS resolution,
+                ($relevance_sql) AS relevance
+           FROM bugs
+                INNER JOIN bugs_fulltext ON bugs.bug_id = bugs_fulltext.bug_id
+          WHERE ($where_sql) $product_sql
+       ORDER BY relevance DESC, bug_id DESC
+          LIMIT $sql_limit", {Slice=>{}});
+
+    my @actual_dupe_ids;
+    # Resolve duplicates into their ultimate target duplicates.
+    foreach my $bug (@$possible_dupes) {
+        my $push_id = $bug->{bug_id};
+        if ($bug->{resolution} && $bug->{resolution} eq 'DUPLICATE') {
+            $push_id = _resolve_ultimate_dup_id($bug->{bug_id});
+        }
+        push(@actual_dupe_ids, $push_id);
+    }
+    @actual_dupe_ids = uniq @actual_dupe_ids;
+    if (scalar @actual_dupe_ids > $limit) {
+        @actual_dupe_ids = @actual_dupe_ids[0..($limit-1)];
+    }
+
+    my $visible = $user->visible_bugs(\@actual_dupe_ids);
+    return $class->new_from_list($visible);
 }
 
 # Docs for create() (there's no POD in this file yet, but we very
@@ -614,7 +715,7 @@ sub run_create_validators
     my $class  = shift;
     my $params = $class->SUPER::run_create_validators(@_);
 
-    my $product = $params->{product};
+    my $product = delete $params->{product};
     $params->{product_id} = $product->id;
 
     ($params->{bug_status}, $params->{everconfirmed})
@@ -1340,8 +1441,10 @@ sub _check_alias {
 }
 
 sub _check_assigned_to {
-    my ($invocant, $assignee, $component) = @_;
+    my ($invocant, $assignee, undef, $params) = @_;
     my $user = Bugzilla->user;
+    my $component = blessed($invocant) ? $invocant->component_obj
+                                       : $params->{component};
 
     # Default assignee is the component owner.
     my $id;
@@ -1390,6 +1493,7 @@ sub _check_bug_status {
     my @valid_statuses;
     my $old_status; # Note that this is undef for new bugs.
 
+    my ($product, $comment);
     if (ref $invocant) {
         @valid_statuses = @{$invocant->statuses_available};
         $product = $invocant->product_obj;
@@ -1398,6 +1502,8 @@ sub _check_bug_status {
         $comment = $comments->[-1];
     }
     else {
+        $product = $params->{product};
+        $comment = $params->{comment};
         @valid_statuses = @{Bugzilla::Status->can_change_to()};
         if (!$product->allows_unconfirmed) {
             @valid_statuses = grep {$_->name ne 'UNCONFIRMED'} @valid_statuses;
@@ -1468,12 +1574,17 @@ sub _check_bug_status {
         ThrowUserError("milestone_required", { bug => $invocant });
     }
 
-    return $new_status->name if ref $invocant;
-    return ($new_status->name, $new_status->name eq 'UNCONFIRMED' ? 0 : 1);
+    if (!blessed $invocant) {
+        $params->{everconfirmed} = $new_status->name eq 'UNCONFIRMED' ? 0 : 1;
+    }
+
+    return $new_status->name;
 }
 
 sub _check_cc {
-    my ($invocant, $component, $ccs) = @_;
+    my ($invocant, $ccs, undef, $params) = @_;
+    my $component = blessed($invocant) ? $invocant->component_obj
+                                       : $params->{component};
     return [map {$_->id} @{$component->initial_cc}] unless $ccs;
 
     # Allow comma-separated input as well as arrayrefs.
@@ -1528,10 +1639,11 @@ sub _check_comment_type {
 
 sub _check_component
 {
-    my ($invocant, $name, $product) = @_;
+    my ($invocant, $name, undef, $params) = @_;
     $name = trim($name);
     $name || ThrowUserError("require_component");
-    ($product = $invocant->product_obj) if ref $invocant;
+    my $product = blessed($invocant) ? $invocant->product_obj 
+                                     : $params->{product};
     my $obj = Bugzilla::Component->new({ product => $product, name => $name });
     if (!$obj)
     {
@@ -1640,23 +1752,7 @@ sub _check_dup_id {
 
     # Make sure a loop isn't created when marking this bug
     # as duplicate.
-    my %dupes;
-    my $this_dup = $dupe_of;
-    my $sth = $dbh->prepare('SELECT dupe_of FROM duplicates WHERE dupe = ?');
-
-    while ($this_dup) {
-        if ($this_dup == $self->id) {
-            ThrowUserError('dupe_loop_detected', { bug_id  => $self->id,
-                                                   dupe_of => $dupe_of });
-        }
-        # If $dupes{$this_dup} is already set to 1, then a loop
-        # already exists which does not involve this bug.
-        # As the user is not responsible for this loop, do not
-        # prevent him from marking this bug as a duplicate.
-        last if exists $dupes{$this_dup};
-        $dupes{$this_dup} = 1;
-        $this_dup = $dbh->selectrow_array($sth, undef, $this_dup);
-    }
+   _resolve_ultimate_dup_id($self->id, $dupe_of, 1);
 
     my $cur_dup = $self->dup_id || 0;
     if ($cur_dup != $dupe_of && Bugzilla->params->{'commentonduplicate'}
@@ -1764,6 +1860,7 @@ sub _check_keywords {
 
     # On creation, only editbugs users can set keywords.
     if (!ref $invocant) {
+        my $product = $params->{product};
         return [] if !Bugzilla->user->in_group('editbugs', $product->id);
     }
 
@@ -1827,7 +1924,7 @@ sub _check_priority {
 }
 
 sub _check_qa_contact {
-    my ($invocant, $qa_contact, $component) = @_;
+    my ($invocant, $qa_contact, undef, $params) = @_;
     $qa_contact = trim($qa_contact) if !ref $qa_contact;
 
     my $id;
@@ -1879,8 +1976,8 @@ sub _check_reporter {
     else {
         # On bug creation, the reporter is the logged in user
         # (meaning that he must be logged in first!).
+        Bugzilla->login(LOGIN_REQUIRED);
         $reporter = Bugzilla->user->id;
-        $reporter || ThrowCodeError('invalid_user');
     }
     if ($reporter && ref $invocant)
     {
@@ -2059,9 +2156,10 @@ sub _check_time {
 
 sub _check_version
 {
-    my ($invocant, $version, $product) = @_;
+    my ($invocant, $version, undef, $params) = @_;
     $version = trim($version);
-    ($product = $invocant->product_obj) if ref $invocant;
+    my $product = blessed($invocant) ? $invocant->product_obj 
+                                     : $params->{product};
     my $object = Bugzilla::Version->new({ product => $product, name => $version }) if length $version;
     if (!$object)
     {
@@ -2334,6 +2432,15 @@ sub set_all {
     my $self = shift;
     my ($params) = @_;
 
+    # You cannot mark bugs as duplicate when changing several bugs at once
+    # (because currently there is no way to check for duplicate loops in that
+    # situation). You also cannot set the alias of several bugs at once.
+    if ($params->{other_bugs} and scalar @{ $params->{other_bugs} } > 1) {
+        ThrowUserError('dupe_not_allowed') if exists $params->{dup_id};
+        ThrowUserError('multiple_alias_not_allowed') 
+            if defined $params->{alias};
+    }
+
     # For security purposes, and because lots of other checks depend on it,
     # we set the product first before anything else.
     my $product_changed; # Used only for strict_isolation checks.
@@ -2376,8 +2483,11 @@ sub set_all {
     }
 
     if (exists $params->{'keywords'}) {
-        $self->modify_keywords($params->{'keywords'},
-                               $params->{'keywords_action'});
+        # Sorting makes the order "add, remove, set", just like for other
+        # fields.
+        foreach my $action (sort keys %{ $params->{'keywords'} }) {
+            $self->modify_keywords($params->{'keywords'}->{$action}, $action);
+        }
     }
 
     if (exists $params->{'comment'} or exists $params->{'work_time'}) {
@@ -2391,7 +2501,6 @@ sub set_all {
     my %normal_set_all;
     foreach my $name (keys %$params) {
         # These are handled separately below.
-        next if grep($_ eq $name, qw(status resolution dup_id));
         if ($self->can("set_$name")) {
             $normal_set_all{$name} = $params->{$name};
         }
@@ -2421,31 +2530,6 @@ sub set_all {
     # do that here, because if they *did* change the assignee, qa, or CC,
     # then we don't want to check the original ones, only the new ones. 
     $self->_check_strict_isolation() if $product_changed;
-
-    # You cannot mark bugs as duplicates when changing several bugs at once
-    # (because currently there is no way to check for duplicate loops in that
-    # situation).
-    if (exists $params->{'dup_id'} and $params->{other_bugs} 
-        and scalar @{ $params->{other_bugs} } > 1) 
-    {
-        ThrowUserError('dupe_not_allowed');
-    }
-
-    # Seting the status, resolution, and dupe_of has to be done
-    # down here, because the validity of status changes depends on
-    # other fields, such as Target Milestone.
-    if (exists $params->{'status'}) {
-        $self->set_status($params->{'status'},
-            { resolution => $params->{'resolution'},
-              dupe_of    => $params->{'dup_id'} });
-    }
-    elsif (exists $params->{'resolution'}) {
-       $self->set_resolution($params->{'resolution'},
-           { dupe_of => $params->{'dup_id'} });
-    }
-    elsif (exists $params->{'dup_id'}) {
-        $self->set_dup_id($params->{'dup_id'});
-    }
 }
 
 # Helper for set_all that helps with fields that have an "add/remove"
@@ -2556,6 +2640,21 @@ sub set_dup_id {
     my $new = $self->dup_id;
     return if $old == $new;
 
+    # Make sure that we have the DUPLICATE resolution. This is needed
+    # if somebody calls set_dup_id without calling set_bug_status or
+    # set_resolution.
+    if ($self->resolution ne 'DUPLICATE') {
+        # Even if the current status is VERIFIED, we change it back to
+        # RESOLVED (or whatever the duplicate_or_move_bug_status is) here,
+        # because that's the same thing the UI does when you click on the
+        # "Mark as Duplicate" link. If people really want to retain their
+        # current status, they can use set_bug_status and set the DUPLICATE
+        # resolution before getting here.
+        $self->set_bug_status(
+            Bugzilla->params->{'duplicate_or_move_bug_status'},
+            { resolution => 'DUPLICATE' });
+    }
+    
     # Update the other bug.
     my $dupe_of = new Bugzilla::Bug($self->dup_id);
     if (delete $self->{_add_dup_cc}) {
@@ -2640,10 +2739,6 @@ sub set_resolution {
     my $new_res = $self->resolution;
 
     if ($new_res ne $old_res) {
-        # MOVED has a special meaning and can only be used when
-        # really moving bugs to another installation.
-        ThrowCodeError('no_manual_moved') if ($new_res eq 'MOVED' && !$params->{moving});
-
         # Clear the dup_id if we're leaving the dup resolution.
         if ($old_res eq 'DUPLICATE') {
             $self->_clear_dup_id();
@@ -2659,13 +2754,17 @@ sub set_resolution {
     # of another, theoretically. Note that this code block will also run
     # when going between different closed states.
     if ($self->resolution eq 'DUPLICATE') {
-        if ($params->{dupe_of}) {
-            $self->set_dup_id($params->{dupe_of});
+        if (my $dup_id = $params->{dup_id}) {
+            $self->set_dup_id($dup_id);
         }
         elsif (!$self->dup_id) {
             ThrowUserError('dupe_id_required');
         }
     }
+
+    # This method has handled dup_id, so set_all doesn't have to worry
+    # about it now.
+    delete $params->{dup_id};
 }
 sub clear_resolution {
     my $self = shift;
@@ -2676,7 +2775,7 @@ sub clear_resolution {
     $self->_clear_dup_id;
 }
 sub set_severity       { $_[0]->set('bug_severity',  $_[1]); }
-sub set_status {
+sub set_bug_status {
     my ($self, $status, $params) = @_;
     my $old_status = $self->status;
     $self->set('bug_status', $status);
@@ -2689,6 +2788,10 @@ sub set_status {
         # Check for the everconfirmed transition
         $self->_set_everconfirmed($new_status->name eq 'UNCONFIRMED' ? 0 : 1);
         $self->clear_resolution();
+        # Calling clear_resolution handled the "resolution" and "dup_id"
+        # setting, so set_all doesn't have to worry about them.
+        delete $params->{resolution};
+        delete $params->{dup_id};
     }
     else {
         # We do this here so that we can make sure closed statuses have
@@ -2787,6 +2890,13 @@ sub add_comment {
         return;
     }
 
+    # If the user has explicitly set remaining_time, this will be overridden
+    # later in set_all. But if they haven't, this keeps remaining_time
+    # up-to-date.
+    if ($params->{work_time}) {
+        $self->set_remaining_time($self->remaining_time - $params->{work_time});
+    }
+
     # So we really want to comment. Make sure we are allowed to do so.
     my $privs;
     $self->check_can_change_field('longdesc', 0, 1, \$privs)
@@ -2830,15 +2940,15 @@ sub edit_comment {
 sub modify_keywords {
     my ($self, $keywords, $keywords_description, $action) = @_;
 
-    $action ||= "makeexact";
-    if (!grep($action eq $_, qw(add delete makeexact))) {
-        $action = "makeexact";
+    $action ||= 'set';
+    if (!grep($action eq $_, qw(add remove set))) {
+        $action = 'set';
     }
 
     $keywords = $self->_check_keywords($keywords, $keywords_description);
 
     my (@result, $any_changes);
-    if ($action eq 'makeexact') {
+    if ($action eq 'set') {
         @result = @$keywords;
         # Check if anything was added or removed.
         my @old_ids = map { $_->id } @{$self->keyword_objects};
@@ -2878,8 +2988,7 @@ sub add_group {
     my ($self, $group) = @_;
     # Invalid ids are silently ignored. (We can't tell people whether
     # or not a group exists.)
-    $group = new Bugzilla::Group($group) unless ref $group;
-    return unless $group;
+    $group = Bugzilla::Group->check($group) if !blessed $group;
 
     return if !$group->is_active or !$group->is_bug_group;
 
@@ -2887,7 +2996,7 @@ sub add_group {
     # to this group by the current user.
     $self->product_obj->group_is_settable($group)
          || ThrowUserError('group_invalid_restriction',
-                { product => $self->product, group_id => $group->id,
+                { product => $self->product, group => $group,
                   bug => $self });
 
     # OtherControl people can add groups only during a product change,
@@ -2898,7 +3007,7 @@ sub add_group {
             || $controls->{othercontrol} == CONTROLMAPNA)
         {
             ThrowUserError('group_change_denied',
-                           { bug => $self, group_id => $group->id });
+                           { bug => $self, group => $group });
         }
     }
 
@@ -2910,8 +3019,7 @@ sub add_group {
 
 sub remove_group {
     my ($self, $group) = @_;
-    $group = new Bugzilla::Group($group) unless ref $group;
-    return unless $group;
+    $group = Bugzilla::Group->check($group) if !blessed $group;
 
     # First, check if this is a valid group for this product.
     # You can *always* remove a group that is not valid for this product
@@ -2929,7 +3037,7 @@ sub remove_group {
         if (!$self->{_old_product_name} &&
             $controls->{membercontrol} == CONTROLMAPMANDATORY) {
             ThrowUserError('group_invalid_removal',
-                { product => $self->product, group_id => $group->id,
+                { product => $self->product, group => $group,
                   bug => $self });
         }
 
@@ -2941,7 +3049,7 @@ sub remove_group {
                 || $controls->{othercontrol} == CONTROLMAPNA)
             {
                 ThrowUserError('group_change_denied',
-                               { bug => $self, group_id => $group->id });
+                               { bug => $self, group => $group });
             }
         }
     }
@@ -3123,6 +3231,38 @@ sub dup_id {
                                 $self->{'bug_id'});
     }
     return $self->{'dup_id'};
+}
+
+sub _resolve_ultimate_dup_id {
+    my ($bug_id, $dupe_of, $loops_are_an_error) = @_;
+    my $dbh = Bugzilla->dbh;
+    my $sth = $dbh->prepare('SELECT dupe_of FROM duplicates WHERE dupe = ?');
+
+    my $this_dup = $dupe_of || $dbh->selectrow_array($sth, undef, $bug_id);
+    my $last_dup = $bug_id;
+
+    my %dupes;
+    while ($this_dup) {
+        if ($this_dup == $bug_id) {
+            if ($loops_are_an_error) {
+                ThrowUserError('dupe_loop_detected', { bug_id  => $bug_id,
+                                                       dupe_of => $dupe_of });
+            }
+            else {
+                return $last_dup;
+            }
+        }
+        # If $dupes{$this_dup} is already set to 1, then a loop
+        # already exists which does not involve this bug.
+        # As the user is not responsible for this loop, do not
+        # prevent him from marking this bug as a duplicate.
+        return $last_dup if exists $dupes{$this_dup};
+        $dupes{$this_dup} = 1;
+        $last_dup = $this_dup;
+        $this_dup = $dbh->selectrow_array($sth, undef, $this_dup);
+    }
+
+    return $last_dup;
 }
 
 sub actual_time {
@@ -3564,7 +3704,6 @@ sub user {
     return {} if $self->{'error'};
 
     my $user = Bugzilla->user;
-    my $canmove = Bugzilla->params->{'move-enabled'} && $user->is_mover;
 
     my $prod_id = $self->{'product_id'};
 
@@ -3579,8 +3718,7 @@ sub user {
     my $isreporter = $user->id
                      && $user->id == $self->{reporter_id};
 
-    $self->{'user'} = {canmove    => $canmove,
-                       canconfirm => $canconfirm,
+    $self->{'user'} = {canconfirm => $canconfirm,
                        canedit    => $canedit,
                        isreporter => $isreporter};
     return $self->{'user'};
@@ -3612,10 +3750,6 @@ sub choices {
     my $resolution_field = Bugzilla->get_field('resolution');
     # Don't include the empty resolution in drop-downs.
     my @resolutions = grep($_->name, @{ $resolution_field->legal_values });
-    # And don't include MOVED in the list unless the bug is already MOVED.
-    if ($self->resolution ne 'MOVED') {
-        @resolutions= grep { $_->name ne 'MOVED' } @resolutions;
-    }
     $choices{'resolution'} = \@resolutions;
 
     $self->{'choices'} = \%choices;
@@ -3906,13 +4040,7 @@ sub SilentLog
 
 # Update the bugs_activity table to reflect changes made in bugs.
 sub LogActivityEntry {
-    my ($bug_id, $col, $removed, $added, $whoid, $timestamp, $attach_id) = @_;
-    my $f = Bugzilla->get_field($col);
-    if (!$f->{has_activity})
-    {
-        $f->{has_activity} = 1;
-        $f->update;
-    }
+    my ($i, $col, $removed, $added, $whoid, $timestamp, $comment_id) = @_;
     my $dbh = Bugzilla->dbh;
     # in the case of CCs, deps, and keywords, there's a possibility that someone
     # might try to add or remove a lot of them at once, which might take more
@@ -3940,11 +4068,9 @@ sub LogActivityEntry {
         trick_taint($addstr);
         trick_taint($removestr);
         $dbh->do("INSERT INTO bugs_activity
-                   (bug_id, who, bug_when, fieldid, removed, added, attach_id)".
-                    " VALUES (?, ?, ".($timestamp ? "?" : "NOW()").", ?, ?, ?, ?)", 
-                    undef, $bug_id, $whoid, ($timestamp ? ($timestamp) : ()), 
-                    $f->id, $removestr, $addstr, $attach_id
-                );
+                  (bug_id, who, bug_when, fieldid, removed, added, comment_id)
+                  VALUES (?, ?, ?, ?, ?, ?, ?)",
+                  undef, ($i, $whoid, $timestamp, $fieldid, $removestr, $addstr, $comment_id));
     }
 }
 

@@ -210,6 +210,9 @@ update this column in this table."
 
 use constant SCHEMA_VERSION  => '2.00';
 use constant ADD_COLUMN      => 'ADD COLUMN';
+# Multiple FKs can be added using ALTER TABLE ADD CONSTRAINT in one
+# SQL statement. This isn't true for all databases.
+use constant MULTIPLE_FKS_IN_ALTER => 1;
 # This is a reasonable default that's true for both PostgreSQL and MySQL.
 use constant MAX_IDENTIFIER_LEN => 63;
 
@@ -446,7 +449,8 @@ use constant ABSTRACT_SCHEMA => {
             modification_time => {TYPE => 'DATETIME', NOTNULL => 1},
             description  => {TYPE => 'TINYTEXT', NOTNULL => 1},
             mimetype     => {TYPE => 'TINYTEXT', NOTNULL => 1},
-            ispatch      => {TYPE => 'BOOLEAN'},
+            ispatch      => {TYPE => 'BOOLEAN', NOTNULL => 1,
+                             DEFAULT => 'FALSE'},
             filename     => {TYPE => 'varchar(100)', NOTNULL => 1},
             submitter_id => {TYPE => 'INT3', NOTNULL => 1,
                              REFERENCES => {TABLE => 'profiles',
@@ -509,7 +513,7 @@ use constant ABSTRACT_SCHEMA => {
             id          => {TYPE => 'SMALLSERIAL', NOTNULL => 1,
                             PRIMARYKEY => 1},
             name        => {TYPE => 'varchar(64)', NOTNULL => 1},
-            description => {TYPE => 'MEDIUMTEXT'},
+            description => {TYPE => 'MEDIUMTEXT', NOTNULL => 1},
         ],
         INDEXES => [
             keyworddefs_name_idx   => {FIELDS => ['name'],
@@ -837,6 +841,18 @@ use constant ABSTRACT_SCHEMA => {
                                         TYPE => 'UNIQUE'},
             profiles_extern_id_idx => {FIELDS => ['extern_id'],
                                        TYPE   => 'UNIQUE'}
+        ],
+    },
+
+    profile_search => {
+        FIELDS => [
+            id         => {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
+            user_id    => {TYPE => 'INT3', NOTNULL => 1},
+            bug_list   => {TYPE => 'MEDIUMTEXT', NOTNULL => 1},
+            list_order => {TYPE => 'MEDIUMTEXT'},
+        ],
+        INDEXES => [
+            profile_search_user_id => [qw(user_id)],
         ],
     },
 
@@ -1202,7 +1218,7 @@ use constant ABSTRACT_SCHEMA => {
                                   REFERENCES => {TABLE  => 'classifications',
                                                  COLUMN => 'id',
                                                  DELETE => 'CASCADE'}},
-            description       => {TYPE => 'MEDIUMTEXT'},
+            description       => {TYPE => 'MEDIUMTEXT', NOTNULL => 1},
             isactive          => {TYPE => 'BOOLEAN', NOTNULL => 1,
                                   DEFAULT => 1},
             defaultmilestone  => {TYPE => 'varchar(20)',
@@ -1818,11 +1834,26 @@ sub _hash_identifier {
 }
 
 
-sub get_add_fk_sql {
-    my ($self, $table, $column, $def) = @_;
+sub get_add_fks_sql {
+    my ($self, $table, $column_fks) = @_;
 
-    my $fk_string = $self->get_fk_ddl($table, $column, $def);
-    return ("ALTER TABLE $table ADD $fk_string");
+    my @add;
+    foreach my $column (keys %$column_fks) {
+        my $def = $column_fks->{$column};
+        my $fk_string = $self->get_fk_ddl($table, $column, $def);
+        push(@add, $fk_string);
+    }
+    my @sql;
+    if ($self->MULTIPLE_FKS_IN_ALTER) {
+        my $alter = "ALTER TABLE $table ADD " . join(', ADD ', @add);
+        push(@sql, $alter);
+    }
+    else {
+        foreach my $fk_string (@add) {
+            push(@sql, "ALTER TABLE $table ADD $fk_string");
+        }
+    }
+    return @sql;
 }
 
 sub get_drop_fk_sql { 
@@ -2127,6 +2158,10 @@ sub get_alter_column_ddl {
 
     my $default = $new_def->{DEFAULT};
     my $default_old = $old_def->{DEFAULT};
+
+    if (defined $default) {
+        $default = $specific->{$default} if exists $specific->{$default};
+    }
     # This first condition prevents "uninitialized value" errors.
     if (!defined $default && !defined $default_old) {
         # Do Nothing
@@ -2140,7 +2175,6 @@ sub get_alter_column_ddl {
     elsif ( (defined $default && !defined $default_old) || 
             ($default ne $default_old) ) 
     {
-        $default = $specific->{$default} if exists $specific->{$default};
         push(@statements, "ALTER TABLE $table ALTER COLUMN $column "
                          . " SET DEFAULT $default");
     }
@@ -2149,7 +2183,7 @@ sub get_alter_column_ddl {
     if (!$old_def->{NOTNULL} && $new_def->{NOTNULL}) {
         my $setdefault;
         # Handle any fields that were NULL before, if we have a default,
-        $setdefault = $new_def->{DEFAULT} if exists $new_def->{DEFAULT};
+        $setdefault = $default if defined $default;
         # But if we have a set_nulls_to, that overrides the DEFAULT 
         # (although nobody would usually specify both a default and 
         # a set_nulls_to.)

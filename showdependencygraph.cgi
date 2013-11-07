@@ -31,6 +31,7 @@ use File::Temp;
 
 use Bugzilla;
 use Bugzilla::Constants;
+use Bugzilla::Install::Filesystem;
 use Bugzilla::Util;
 use Bugzilla::Error;
 use Bugzilla::Bug;
@@ -114,7 +115,7 @@ sub GetClusters
                 }
             }
         }
-        # РєР»Р°СЃС‚РµСЂ Р·Р°РјРєРЅСѓС‚
+        # кластер замкнут
         if (!$added || !%$seen)
         {
             if (scalar(keys %$cluster) == 1)

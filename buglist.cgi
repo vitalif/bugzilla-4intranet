@@ -41,6 +41,7 @@ use Bugzilla::Util;
 use Bugzilla::Hook;
 use Bugzilla::Search;
 use Bugzilla::Search::Quicksearch;
+use Bugzilla::Search::Recent;
 use Bugzilla::Search::Saved;
 use Bugzilla::User;
 use Bugzilla::Bug;
@@ -67,15 +68,15 @@ my $query_format = $cgi->param('query_format') || 'advanced';
 # We have to check the login here to get the correct footer if an error is
 # thrown and to prevent a logged out user to use QuickSearch if 'requirelogin'
 # is turned 'on'.
-Bugzilla->login();
+my $user = Bugzilla->login();
 
-# CustIS Bug 68921 - "РЎСѓРїРµСЂ-TodayWorktime", РёР»Рё РјР°СЃСЃРѕРІР°СЏ С„РёРєСЃР°С†РёСЏ С‚СЂСѓРґРѕР·Р°С‚СЂР°С‚
-# РїРѕ РЅРµСЃРєРѕР»СЊРєРёРј Р±Р°РіР°Рј, Р·Р° РЅРµСЃРєРѕР»СЊРєРёС… СЃРѕС‚СЂСѓРґРЅРёРєРѕРІ, Р·Р° СЂР°Р·Р»РёС‡РЅС‹Рµ РїРµСЂРёРѕРґС‹.
-# Р”Р»СЏ С„РёРєСЃР°С†РёРё РІСЂРµРјРµРЅРё Р·Р°РґРЅРёРј С‡РёСЃР»РѕРј / РґСЂСѓРіРёРј СЋР·РµСЂРѕРј С‚СЂРµР±СѓРµС‚ РіСЂСѓРїРїСѓ worktimeadmin.
+# CustIS Bug 68921 - "Супер-TodayWorktime", или массовая фиксация трудозатрат
+# по нескольким багам, за нескольких сотрудников, за различные периоды.
+# Для фиксации времени задним числом / другим юзером требует группу worktimeadmin.
 
-# FIXME СЃРµР№С‡Р°СЃ РѕРЅРѕ РІСЃС‚СЂРѕРµРЅРѕ СЃСЋРґР°, РёР±Рѕ Р±РѕР»СЊС€РђСЏ С‡Р°СЃС‚СЊ Р»РѕРіРёРєРё, РѕС‚РІРµС‡Р°СЋС‰РµР№ Р·Р°
-#   СЃРѕР·РґР°РЅРёРµ Рё РІС‹РїРѕР»РЅРµРЅРёРµ Р·Р°РїСЂРѕСЃР° РїРѕРёСЃРєР°, РЅР°С…РѕРґРёС‚СЃСЏ РЅРµ РІ Bugzilla::Search, Р° РёРјРµРЅРЅРѕ Р·РґРµСЃСЊ :-(
-#   РєСѓСЃРѕС‡РєРё Р»РѕРіРёРєРё РЅР°С…РѕРґСЏС‚СЃСЏ Р·РґРµСЃСЊ РїРѕ СЃР»РѕРІСѓ superworktime.
+# FIXME сейчас оно встроено сюда, ибо большАя часть логики, отвечающей за
+#   создание и выполнение запроса поиска, находится не в Bugzilla::Search, а именно здесь :-(
+#   кусочки логики находятся здесь по слову superworktime.
 my $superworktime;
 if (($cgi->param('format')||'') eq 'superworktime')
 {
@@ -104,6 +105,18 @@ if (grep { $_ =~ /^cmd\-/ } $cgi->param()) {
 if ($cgi->request_method() eq 'POST') {
     $cgi->clean_search_url();
     my $uri_length = length($cgi->self_url());
+
+    if (!$cgi->param('regetlastlist') and !$cgi->param('list_id')
+        and $user->id) 
+    {
+        # Insert a placeholder Bugzilla::Search::Recent, so that we know what
+        # the id of the resulting search will be. This is then pulled out
+        # of the Referer header when viewing show_bug.cgi to know what
+        # bug list we came from.
+        my $recent_search = Bugzilla::Search::Recent->create_placeholder;
+        $cgi->param('list_id', $recent_search->id);
+    }
+
     if ($uri_length < CGI_URI_LIMIT) {
         print $cgi->redirect(-url => $cgi->self_url());
         exit;
@@ -211,12 +224,24 @@ my $params;
 
 # If the user is retrieving the last bug list they looked at, hack the buffer
 # storing the query string so that it looks like a query retrieving those bugs.
-if (defined $cgi->param('regetlastlist')) {
-    $cgi->cookie('BUGLIST') || ThrowUserError("missing_cookie");
+if (my $last_list = $cgi->param('regetlastlist')) {
+    my ($bug_ids, $order);
 
-    $order = "reuse last sort" unless $order;
-    my $bug_id = $cgi->cookie('BUGLIST');
-    $bug_id =~ s/:/,/g;
+    # Logged-out users use the old cookie method for storing the last search.
+    if (!$user->id or $last_list eq 'cookie') {
+        $cgi->cookie('BUGLIST') || ThrowUserError("missing_cookie");
+        $order = "reuse last sort" unless $order;
+        $bug_ids = $cgi->cookie('BUGLIST');
+        $bug_ids =~ s/:/,/g;
+    }
+    # But logged in users store the last X searches in the DB so they can
+    # have multiple bug lists available.
+    else {
+        my $last_search = Bugzilla::Search::Recent->check(
+            { id => $last_list });
+        $bug_ids = join(',', @{ $last_search->bug_list });
+        $order   = $last_search->list_order if !$order;
+    }
     # set up the params for this new query
     $params = new Bugzilla::CGI({
                                  bug_id => $bug_id,
@@ -443,7 +468,7 @@ if ($cmdtype eq "dorem") {
         $order = $params->param('order') || $order;
     }
     elsif ($remaction eq "forget") {
-        my $user = Bugzilla->login(LOGIN_REQUIRED);
+        $user = Bugzilla->login(LOGIN_REQUIRED);
         # Copy the name into a variable, so that we can trick_taint it for
         # the DB. We know it's safe, because we're using placeholders in
         # the SQL, and the SQL is only a DELETE.
@@ -506,12 +531,12 @@ if ($cmdtype eq "dorem") {
 }
 elsif (($cmdtype eq "doit") && defined $cgi->param('remtype')) {
     if ($cgi->param('remtype') eq "asdefault") {
-        my $user = Bugzilla->login(LOGIN_REQUIRED);
+        $user = Bugzilla->login(LOGIN_REQUIRED);
         InsertNamedQuery(DEFAULT_QUERY_NAME, $buffer);
         $vars->{'message'} = "buglist_new_default_query";
     }
     elsif ($cgi->param('remtype') eq "asnamed") {
-        my $user = Bugzilla->login(LOGIN_REQUIRED);
+        $user = Bugzilla->login(LOGIN_REQUIRED);
         my $query_name = $cgi->param('newqueryname');
         my $new_query = $cgi->param('newquery');
         my $query_type = QUERY_LIST;
@@ -772,7 +797,7 @@ if (!$order || $order =~ /^reuse/i) {
     }
 }
 
-# FIXME РїРµСЂРµРјРµСЃС‚РёС‚СЊ РІ Bugzilla::Search
+# FIXME переместить в Bugzilla::Search
 my $old_orders = {
     '' => 'bug_status,priority,assigned_to,bug_id', # Default
     'bug number' => 'bug_id',
@@ -957,7 +982,7 @@ $buglist_sth->execute();
 # Retrieve the query results one row at a time and write the data into a list
 # of Perl records.
 
-# TODO РїРµСЂРµРЅРµСЃС‚Рё РЅР° РѕР±С‰РёР№ РјРµС…Р°РЅРёР·Рј Рё С‡С‚РѕР±С‹ РІ РЅРµРіРѕ РІРєСЂСѓС‡РёРІР°Р»РѕСЃСЊ interval_time
+# TODO перенести на общий механизм и чтобы в него вкручивалось interval_time
 # If we're doing time tracking, then keep totals for all bugs.
 my $percentage_complete = 1 && grep { $_ eq 'percentage_complete' } @displaycolumns;
 my $estimated_time      = 1 && grep { $_ eq 'estimated_time' } @displaycolumns;
@@ -1299,21 +1324,6 @@ if ($format->{extension} eq "html" && !$agent) {
                           -value => $order,
                           -expires => 'Fri, 01-Jan-2038 00:00:00 GMT');
     }
-    my $bugids = join(":", @bugidlist);
-    # See also Bug 111999
-    if (length($bugids) == 0) {
-        $cgi->remove_cookie('BUGLIST');
-    }
-    elsif (length($bugids) < 4000) {
-        $cgi->send_cookie(-name => 'BUGLIST',
-                          -value => $bugids,
-                          -expires => 'Fri, 01-Jan-2038 00:00:00 GMT');
-    }
-    else {
-        $cgi->remove_cookie('BUGLIST');
-        $vars->{'toolong'} = 1;
-    }
-
     $contenttype = "text/html";
 }
 else {
@@ -1348,12 +1358,12 @@ if (($cgi->param('ctype')||'') eq 'csv' &&
     Bugzilla->user->settings->{csv_charset} &&
     Bugzilla->user->settings->{csv_charset}->{value} ne 'utf-8')
 {
-    # РџР°СЂР° С…Р°РєРѕРІ:
-    # РІРѕ-РїРµСЂРІС‹С…, _utf8_off РЅРµ СЂР°Р±РѕС‚Р°РµС‚ РЅР° Р±С‹РІС€РµРј РєРѕРіРґР°-С‚Рѕ tainted СЃРєР°Р»СЏСЂРµ,
-    #   Р° from_to РЅРµ СЂР°Р±РѕС‚Р°РµС‚ РЅР° СЃРєР°Р»СЏСЂРµ СЃ РІРєР»СЋС‡С‘РЅРЅС‹Рј utf8 С„Р»Р°РіРѕРј, РїРѕСЌС‚РѕРјСѓ РјС‹
-    #   РµРіРѕ РєРѕРїРёСЂСѓРµРј Рё СЂР°Р±РѕС‚Р°РµРј СЃ РєРѕРїРёРµР№.
-    # РІРѕ-РІС‚РѕСЂС‹С…, Р·Р°РіРѕР»РѕРІРєРё РІС‹РІРѕРґСЏС‚СЃСЏ СЃ РІРєР»СЋС‡С‘РЅРЅС‹Рј utf8 С„Р»Р°РіРѕРј, Р° РјС‹ РЅРµ С…РѕС‚РёРј,
-    #   С‡С‚РѕР±С‹ perl СЃР°Рј С‡С‚Рѕ-С‚Рѕ РїРµСЂРµРєРѕРґРёСЂРѕРІР°Р» - РїРѕСЌС‚РѕРјСѓ РІ РєРѕРЅС†Рµ РёРґС‘С‚ _utf8_on.
+    # Пара хаков:
+    # во-первых, _utf8_off не работает на бывшем когда-то tainted скаляре,
+    #   а from_to не работает на скаляре с включённым utf8 флагом, поэтому мы
+    #   его копируем и работаем с копией.
+    # во-вторых, заголовки выводятся с включённым utf8 флагом, а мы не хотим,
+    #   чтобы perl сам что-то перекодировал - поэтому в конце идёт _utf8_on.
     trick_taint($output);
     my $untaint = $output;
     Encode::_utf8_off($untaint);

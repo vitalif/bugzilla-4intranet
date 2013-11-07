@@ -169,7 +169,7 @@ function replyToComment(num, id)
         for (var i = 0; i < text.length; i++)
         {
             // 4Intranet Bug 55876 - ASCII pseudographic tables
-            ist = text[i].match('^(┌|│|└).*(┐|│|┘)$') ? true : false;
+            ist = text[i].match('^(-|�|L).*(�|�|-)$') ? true : false;
             if (!ist)
             {
                 replytext += "> ";

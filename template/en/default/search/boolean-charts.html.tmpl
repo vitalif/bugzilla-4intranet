@@ -50,7 +50,9 @@
 ] %]
 
   <h3 id="chart">
-    Advanced Searching Using Boolean Charts
+    Custom Search <span class="section_help">Didn't find what 
+      you're looking for above? This area allows for ANDs, ORs 
+      and other more complex searches.</span>
   </h3>
 
 [% IF charts.size > 1 %]
@@ -85,7 +87,6 @@
     [% ELSE %]
     <div class="chart" id="chart[% C %]-[% I %]">
     [% END %]
-
     [% FOREACH col = row %]
       [% J = loop.count - 1 %]
       [% "<br />" IF J %]

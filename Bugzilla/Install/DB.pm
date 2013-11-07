@@ -631,6 +631,15 @@ sub update_table_definitions {
     $dbh->bz_alter_column('group_control_map', 'othercontrol',
                           {TYPE => 'INT1', NOTNULL => 1, DEFAULT => CONTROLMAPNA});
 
+    # Add NOT NULL to some columns that need it, and DEFAULT to
+    # attachments.ispatch.
+    $dbh->bz_alter_column('attachments', 'ispatch', 
+        { TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'});
+    $dbh->bz_alter_column('keyworddefs', 'description',
+                          { TYPE => 'MEDIUMTEXT', NOTNULL => 1 }, '');
+    $dbh->bz_alter_column('products', 'description',
+                          { TYPE => 'MEDIUMTEXT', NOTNULL => 1 }, '');
+
     ################################################################
     # New --TABLE-- changes should go *** A B O V E *** this point #
     ################################################################
@@ -1047,6 +1056,7 @@ sub _copy_from_comments_to_longdescs {
     # 2000-11-27 For Bugzilla 2.5 and later. Copy data from 'comments' to
     # 'longdescs' - the new name of the comments table.
     if ($dbh->bz_table_info('comments')) {
+        print "Copying data from 'comments' to 'longdescs'...\n";
         my $quoted_when = $dbh->quote_identifier('when');
         $dbh->do("INSERT INTO longdescs (bug_when, bug_id, who, thetext)
                   SELECT $quoted_when, bug_id, who, comment
@@ -1254,6 +1264,7 @@ sub _use_ip_instead_of_hostname_in_logincookies {
     #
     # Use the ip, not the hostname, in the logincookies table
     if ($dbh->bz_column_info("logincookies", "hostname")) {
+        print "Clearing the logincookies table...\n";
         # We've changed what we match against, so all entries are now invalid
         $dbh->do("DELETE FROM logincookies");
 
@@ -1993,9 +2004,11 @@ sub _copy_old_charts_into_database {
         my $all_name = "-All-";
         my $open_name = "All Open";
 
+        $dbh->bz_start_transaction();
         my $products = $dbh->selectall_arrayref("SELECT name FROM products");
 
         foreach my $product ((map { $_->[0] } @$products), "-All-") {
+            print "$product:\n";
             # First, create the series
             my %queries;
             my %seriesids;
@@ -2044,8 +2057,9 @@ sub _copy_old_charts_into_database {
             my %data;
             my $last_date = "";
 
-            while (<$in>) {
-                if (/^(\d+\|.*)/) {
+            my @lines = <$in>;
+            while (my $line = shift @lines) {
+                if ($line =~ /^(\d+\|.*)/) {
                     my @numbers = split(/\||\r/, $1);
 
                     # Only take the first line for each date; it was possible to
@@ -2068,6 +2082,9 @@ sub _copy_old_charts_into_database {
 
             $in->close;
 
+            my $total_items = (scalar(@fields) + 1) 
+                              * scalar(keys %{ $data{'NEW'} });
+            my $count = 0;
             foreach my $field (@fields, $open_name) {
                 # Insert values into series_data: series_id, date, value
                 my %fielddata = %{$data{$field}};
@@ -2079,6 +2096,8 @@ sub _copy_old_charts_into_database {
                     # We prepared this above
                     $seriesdatasth->execute($seriesids{$field},
                                             $date, $fielddata{$date} || 0);
+                    indicate_progress({ total => $total_items, 
+                                        current => ++$count, every => 100 });
                 }
             }
 
@@ -2105,6 +2124,8 @@ sub _copy_old_charts_into_database {
                 }
             }
         }
+
+        $dbh->bz_commit_transaction();
     }
 }
 
@@ -2173,7 +2194,7 @@ sub _convert_attachments_filename_from_mediumtext {
     # and attachment.cgi now takes them out, but old ones need converting.
     my $ref = $dbh->bz_column_info("attachments", "filename");
     if ($ref->{TYPE} ne 'varchar(100)') {
-        print "Removing paths from filenames in attachments table...\n";
+        print "Removing paths from filenames in attachments table...";
 
         my $sth = $dbh->prepare("SELECT attach_id, filename FROM attachments " .
             "WHERE " . $dbh->sql_position(q{'/'}, 'filename') . " > 0 OR " .
@@ -2189,8 +2210,6 @@ sub _convert_attachments_filename_from_mediumtext {
 
         print "Done.\n";
 
-        print "Resizing attachments.filename from mediumtext to",
-              " varchar(100).\n";
         $dbh->bz_alter_column("attachments", "filename",
                               {TYPE => 'varchar(100)', NOTNULL => 1});
     }
@@ -3281,6 +3300,7 @@ sub _populate_bugs_fulltext
         # ... and if there are bugs in the bugs table.
         $bug_ids ||= $dbh->selectcol_arrayref("SELECT bug_id FROM bugs");
         return if !$bug_ids;
+        my $num_bugs = scalar @$bug_ids;
 
         # There could be tons of bugs, so we'll use 256-bug portions
         print "Populating full-text index... (this can take a long time.)\n";
@@ -3388,9 +3408,9 @@ sub _fix_invalid_custom_field_names {
         next if $field->name =~ /^[a-zA-Z0-9_]+$/;
         # The field name is illegal and can break the DB. Kill the field!
         $field->set_obsolete(1);
-        eval { $field->remove_from_db(); };
         print "Removing custom field '" . $field->name . "' (illegal name)... ";
-        print $@ ? "failed\n$@\n" : "succeeded\n";
+        eval { $field->remove_from_db(); };
+        print $@ ? "failed:\n$@\n" : "succeeded\n";
     }
 }
 

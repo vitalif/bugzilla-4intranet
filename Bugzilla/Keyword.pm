@@ -127,7 +127,9 @@ sub _check_name {
     my ($self, $name) = @_;
 
     $name = trim($name);
-    $name eq "" && ThrowUserError("keyword_blank_name");
+    if (!defined $name or $name eq "") {
+        ThrowUserError("keyword_blank_name");
+    }
     if ($name =~ /[\s,]/) {
         ThrowUserError("keyword_invalid_name");
     }
@@ -145,7 +147,9 @@ sub _check_name {
 sub _check_description {
     my ($self, $desc) = @_;
     $desc = trim($desc);
-    $desc eq '' && ThrowUserError("keyword_blank_description");
+    if (!defined $desc or $desc eq '') {
+        ThrowUserError("keyword_blank_description");
+    }
     return $desc;
 }
 

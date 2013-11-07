@@ -91,13 +91,9 @@ sub DB_COLUMNS {
         'creation_ts AS creation_ts_orig';
 }
 
-use constant REQUIRED_CREATE_FIELDS => qw(
-    bug
-    data
-    description
-    filename
-    mimetype
-);
+use constant REQUIRED_FIELD_MAP => {
+    bug_id => 'bug',
+};
 
 use constant UPDATE_COLUMNS => qw(
     description

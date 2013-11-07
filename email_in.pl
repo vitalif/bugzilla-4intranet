@@ -78,7 +78,7 @@ sub parse_mail {
     debug_print('Parsing Email');
     $input_email = Email::MIME->new($mail_text);
 
-    my %fields;
+    my %fields = %{ $switch{'default'} || {} };
     Bugzilla::Hook::process('email_in_before_parse', { mail => $input_email,
                                                        fields => \%fields });
     # RFC 3834 - Recommendations for Automatic Responses to Electronic Mail
@@ -181,6 +181,11 @@ sub parse_mail {
         $comment .= "$line\n";
     }
     $fields{'comment'} = $comment;
+
+    my %override = %{ $switch{'override'} || {} };
+    foreach my $key (keys %override) {
+        $fields{$key} = $override{$key};
+    }
 
     debug_print("Parsed Fields:\n" . Dumper(\%fields), 2);
 
@@ -481,7 +486,7 @@ sub die_handler {
 
 $SIG{__DIE__} = \&die_handler;
 
-GetOptions(\%switch, 'help|h', 'verbose|v+');
+GetOptions(\%switch, 'help|h', 'verbose|v+', 'default=s%', 'override=s%');
 $switch{'verbose'} ||= 0;
 
 # Print the help message if that switch was selected.
@@ -588,21 +593,22 @@ email_in.pl - The Bugzilla Inbound Email Interface
 
 =head1 SYNOPSIS
 
- ./email_in.pl [-vvv] [--] [pipe_to_command] < email.txt
+./email_in.pl [-vvv] [--default name=value] [--override name=value] < email.txt
 
- Reads an email on STDIN (the standard input)
+Reads an email on STDIN (the standard input).
 
-  Options:
-    --verbose (-v) - Make the script print more to STDERR.
-                     Specify multiple times to print even more.
+Options:
 
- If <pipe_to_command> is specified, then email is piped to that program
- after reading and I<before> any processing. For example, you can use the
- following syntax:
+   --verbose (-v)        - Make the script print more to STDERR.
+                           Specify multiple times to print even more.
 
- ./email_in.pl -- maildrop -d bugzilla@domain.com
+   --default name=value  - Specify defaults for field values, like
+                           product=TestProduct. Can be specified multiple
+                           times to specify defaults for multiple fields.
 
- to both save emails in some maildir/mailbox and process it via Bugzilla.
+   --override name=value - Override field values specified in the email,
+                           like product=TestProduct. Can be specified
+                           multiple times to override multiple fields.
 
 =head1 DESCRIPTION
 

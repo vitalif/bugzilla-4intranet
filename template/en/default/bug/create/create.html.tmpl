@@ -639,6 +639,7 @@ function checkWorktime(inp)
   <tr>
     <th>Description:</th>
     <td colspan="3" style="padding-bottom: 0">
+
       [% defaultcontent = BLOCK %]
         [% IF cloned_bug_id %]
 +++ This [% terms.bug %] was initially created as a clone of [% terms.Bug %] #[% cloned_bug_id %][% IF cloned_comment %] comment [% cloned_comment %][% END %] +++
