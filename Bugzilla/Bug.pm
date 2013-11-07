@@ -154,33 +154,17 @@ sub VALIDATORS {
 
     my $validators = {
         alias          => \&_check_alias,
-        assigned_to    => \&_check_assigned_to,
         bug_file_loc   => \&_check_bug_file_loc,
         bug_severity   => \&_check_select_field,
-        bug_status     => \&_check_bug_status,
-        cc             => \&_check_cc,
         comment        => \&_check_comment,
         commentprivacy => \&_check_commentprivacy,
-        component      => \&_check_component,
         deadline       => \&_check_deadline,
-        dup_id         => \&_check_dup_id,
         estimated_time => \&_check_estimated_time,
-        everconfirmed  => \&Bugzilla::Object::check_boolean,
-        groups         => \&_check_groups,
-        keywords       => \&_check_keywords,
-        op_sys         => \&_check_select_field,
         priority       => \&_check_priority,
         product        => \&_check_product,
-        qa_contact     => \&_check_qa_contact,
         remaining_time => \&_check_remaining_time,
-        resolution     => \&_check_resolution,
         short_desc     => \&_check_short_desc,
         status_whiteboard => \&_check_status_whiteboard,
-        target_milestone  => \&_check_target_milestone,
-        version           => \&_check_version,
-
-        cclist_accessible   => \&Bugzilla::Object::check_boolean,
-        reporter_accessible => \&Bugzilla::Object::check_boolean,
     };
 
     $validators->{op_sys} = \&_check_select_field if Bugzilla->params->{useopsys};
@@ -285,10 +269,7 @@ use constant FIELD_MAP => {
     offset           => 'OFFSET',
 };
 
-use constant REQUIRED_FIELD_MAP => {
-    product_id   => 'product',
-    component_id => 'component',
-};
+use constant REQUIRED_FIELD_MAP => {};
 
 #####################################################################
 
@@ -715,7 +696,7 @@ sub run_create_validators
     my $class  = shift;
     my $params = $class->SUPER::run_create_validators(@_);
 
-    my $product = delete $params->{product};
+    my $product = $params->{product};
     $params->{product_id} = $product->id;
 
     ($params->{bug_status}, $params->{everconfirmed})
@@ -1441,11 +1422,9 @@ sub _check_alias {
 }
 
 sub _check_assigned_to {
-    my ($invocant, $assignee, undef, $params) = @_;
+    my ($invocant, $assignee, $component) = @_;
     my $user = Bugzilla->user;
-    my $component = blessed($invocant) ? $invocant->component_obj
-                                       : $params->{component};
-
+   
     # Default assignee is the component owner.
     my $id;
     # If this is a new bug, you can only set the assignee if you have editbugs.
@@ -1575,9 +1554,7 @@ sub _check_bug_status {
 }
 
 sub _check_cc {
-    my ($invocant, $ccs, undef, $params) = @_;
-    my $component = blessed($invocant) ? $invocant->component_obj
-                                       : $params->{component};
+    my ($invocant, $component, $ccs) = @_;
     return [map {$_->id} @{$component->initial_cc}] unless $ccs;
 
     # Allow comma-separated input as well as arrayrefs.
@@ -1632,11 +1609,10 @@ sub _check_comment_type {
 
 sub _check_component
 {
-    my ($invocant, $name, undef, $params) = @_;
+    my ($invocant, $name, $product) = @_;
     $name = trim($name);
     $name || ThrowUserError("require_component");
-    my $product = blessed($invocant) ? $invocant->product_obj 
-                                     : $params->{product};
+    ($product = $invocant->product_obj) if ref $invocant;
     my $obj = Bugzilla::Component->new({ product => $product, name => $name });
     if (!$obj)
     {
@@ -1968,7 +1944,6 @@ sub _check_reporter {
     else {
         # On bug creation, the reporter is the logged in user
         # (meaning that he must be logged in first!).
-        Bugzilla->login(LOGIN_REQUIRED);
         $reporter = Bugzilla->user->id;
     }
     if ($reporter && ref $invocant)
@@ -2148,10 +2123,9 @@ sub _check_time {
 
 sub _check_version
 {
-    my ($invocant, $version, undef, $params) = @_;
+    my ($invocant, $version, $product) = @_;
     $version = trim($version);
-    my $product = blessed($invocant) ? $invocant->product_obj 
-                                     : $params->{product};
+    ($product = $invocant->product_obj) if ref $invocant;
     my $object = Bugzilla::Version->new({ product => $product, name => $version }) if length $version;
     if (!$object)
     {
