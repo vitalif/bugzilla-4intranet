@@ -100,7 +100,6 @@ sub DB_COLUMNS
         estimated_time
         everconfirmed
         lastdiffed
-        op_sys
         priority
         product_id
         qa_contact

@@ -327,9 +327,9 @@ sub update_table_definitions {
     $dbh->bz_alter_column('bugs', 'bug_severity',
                           {TYPE => 'varchar(64)', NOTNULL => 1});
     $dbh->bz_alter_column('bugs', 'rep_platform',
-                          {TYPE => 'varchar(64)', NOTNULL => 1}, '');
+                          {TYPE => 'varchar(64)', NOTNULL => 1, DEFAULT => "''"});
     $dbh->bz_alter_column('bugs', 'op_sys',
-                          {TYPE => 'varchar(64)', NOTNULL => 1});
+                          {TYPE => 'varchar(64)', NOTNULL => 1, DEFAULT => "''"});
 
     # When migrating quips from the '$datadir/comments' file to the DB,
     # the user ID should be NULL instead of 0 (which is an invalid user ID).
