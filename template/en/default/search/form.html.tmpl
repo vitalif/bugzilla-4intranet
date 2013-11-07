@@ -319,24 +319,16 @@ TUI_hide_default('information_query');
     </tr>
   [% END %]
 
-  <div class="search_field_row">
-    <label for="bug_id">[% terms.Bugs %] numbered</label>
-    <div id="bug_id_container" >
-      <input type="text" name="bug_id" id="bug_id"
-           value="[% default.bug_id.0 FILTER html %]" size="20">
-           <div class="field_help">(comma-separated list)</div>
-    </div>
-    should be 
-    <select name="bug_id_type">
-      <option value="anyexact"[% " selected" IF default.bug_id_type.0 == "anyexact" %]>only included in</option>
-      <option value="nowords"[% " selected" IF default.bug_id_type.0 == "nowords" %]>excluded from</option>
-    </select> the results
-  </div>
-
   [% Hook.process('after_freetext_fields') %]
 
-  [%# *** Status Resolution Severity Priority Hardware OS *** %]
-  <div>
+</table>
+
+<hr>
+
+[%# *** Status Resolution Severity Priority Hardware OS *** %]
+
+<table>
+  <tr>
     [% Hook.process('before_selects_bottom') %]
     <td>
       <table>
@@ -421,8 +413,9 @@ TUI_hide_default('information_query');
     </td>
     [% END %]
     [% Hook.process('after_selects_bottom') %]
-  </div>
-</div>
+  </tr>
+</table>
+
 [%# *** Email Numbering *** %]
 
 <table>
@@ -579,37 +572,21 @@ TUI_hide_default('information_query');
   <dd>
     <input name="chfieldvalue" id="chfieldvalue"
            size="20" value="[% default.chfieldvalue.0 FILTER html %]">
-  </li>
-  <li>
-    <label for="chfieldfrom">Between:</label>
-    <input name="chfieldfrom" id="chfieldfrom" size="10" 
-           value="[% default.chfieldfrom.0 FILTER html %]" onchange="updateCalendarFromField(this)"> 
-           <button type="button" class="calendar_button"
-                          id="button_calendar_chfieldfrom"
-                          onclick="showCalendar('chfieldfrom')"><span>Calendar</span></button>
-           and 
-           <div id="con_calendar_chfieldfrom"></div>
-          <input name="chfieldto" size="10" id="chfieldto" 
-          value="[% default.chfieldto.0 FILTER html %]" onchange="updateCalendarFromField(this)">
-          <button type="button" class="calendar_button"
-                         id="button_calendar_chfieldto"
-                         onclick="showCalendar('chfieldto')"><span>Calendar</span></button>
-          <div id="con_calendar_chfieldto"></div>
-    (YYYY-MM-DD or relative dates)
-    <script type="text/javascript">
-      createCalendar('chfieldfrom');
-      createCalendar('chfieldto');
-    </script>
-  </li>    
-</ul>
+  </dd>
+</dl>
 <script language="JavaScript">
 addListener(window, 'load', function() {
   new SimpleAutocomplete("chfieldwho", userAutocomplete, { emptyText: 'No users found' });
 });
 </script>
 
+       </fieldset>
+     </td>
+  </tr>
+</table>
+
 [%############################################################################%]
-[%# Block for email role type use to select which email to search through    #%]
+[%# Block for SELECT fields                                                  #%]
 [%############################################################################%]
 
 [% BLOCK select %]
