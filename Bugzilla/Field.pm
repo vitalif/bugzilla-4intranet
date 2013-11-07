@@ -118,7 +118,6 @@ use constant VALIDATORS => {
     description  => \&_check_description,
     enter_bug    => \&_check_enter_bug,
     buglist      => \&Bugzilla::Object::check_boolean,
-    mailhead     => \&_check_mailhead,
     name         => \&_check_name,
     obsolete     => \&_check_obsolete,
     reverse_desc => \&_check_reverse_desc,
