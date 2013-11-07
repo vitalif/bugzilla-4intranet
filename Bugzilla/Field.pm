@@ -1257,7 +1257,7 @@ sub update_controlled_values
         $visibility_value_id = $type->new($visibility_value_id)->{'id'};
     }
     Bugzilla->dbh->do(
-        "DELETE FROM fieldvaluecontrol WHERE field_id=? AND visibility_value_id=?",
+        "DELETE FROM fieldvaluecontrol WHERE field_id=? AND visibility_value_id=? AND value_id!=0",
         undef, $controlled_field->id, $visibility_value_id);
     if (@$controlled_value_ids)
     {
