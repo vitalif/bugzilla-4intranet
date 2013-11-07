@@ -148,9 +148,6 @@ document.changeform = document.[% cfname %];
                show_attachment_flags = bug.show_attachment_flags
     %]
 
-    [% IF user.settings.comment_box_position.value == 'before_comments' %]
-      [% PROCESS comment_box %]
-    [% END %]
   </td>
   <td>
     [% PROCESS section_restrict_visibility %]
@@ -160,7 +157,6 @@ document.changeform = document.[% cfname %];
     </div>
   </td>
   </tr></table>
-    [% PROCESS comment_box %]
 
   [%# *** Additional Comments *** %]
   <div id="comments">
@@ -169,12 +165,6 @@ document.changeform = document.[% cfname %];
       mode = user.id ? "edit" : "show"
     %]
   </div>
-
-  [% IF user.settings.comment_box_position.value == 'after_comments' %]
-    <hr>
-    [% PROCESS comment_box %]
-  [% END %]        
-
 </form>
 
 [%############################################################################%]
