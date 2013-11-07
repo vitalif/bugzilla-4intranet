@@ -98,7 +98,8 @@ use Cwd qw(abs_path);
     CMT_ATTACHMENT_UPDATED
     CMT_WORKTIME
     CMT_BACKDATED_WORKTIME
-
+	CMT_MOVED_TO
+	
     THROW_ERROR
     
     RELATIONSHIPS
@@ -315,6 +316,7 @@ use constant CMT_DUPE_OF => 1;
 use constant CMT_HAS_DUPE => 2;
 # Type 3 was CMT_POPULAR_VOTES, which moved to the Voting extension.
 # Type 4 was CMT_MOVED_TO, which moved to the OldBugMove extension.
+use constant CMT_MOVED_TO => 4;
 use constant CMT_ATTACHMENT_CREATED => 5;
 use constant CMT_ATTACHMENT_UPDATED => 6;
 

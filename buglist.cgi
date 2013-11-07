@@ -244,7 +244,7 @@ if (my $last_list = $cgi->param('regetlastlist')) {
     }
     # set up the params for this new query
     $params = new Bugzilla::CGI({
-                                 bug_id => $bug_id,
+                                 bug_id => $bug_ids,
                                  bug_id_type => 'anyexact',
                                  order => $order,
                                  columnlist => scalar($cgi->param('columnlist')),

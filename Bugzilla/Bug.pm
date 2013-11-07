@@ -1493,7 +1493,6 @@ sub _check_bug_status {
     my @valid_statuses;
     my $old_status; # Note that this is undef for new bugs.
 
-    my ($product, $comment);
     if (ref $invocant) {
         @valid_statuses = @{$invocant->statuses_available};
         $product = $invocant->product_obj;
@@ -1502,8 +1501,6 @@ sub _check_bug_status {
         $comment = $comments->[-1];
     }
     else {
-        $product = $params->{product};
-        $comment = $params->{comment};
         @valid_statuses = @{Bugzilla::Status->can_change_to()};
         if (!$product->allows_unconfirmed) {
             @valid_statuses = grep {$_->name ne 'UNCONFIRMED'} @valid_statuses;
@@ -1574,11 +1571,7 @@ sub _check_bug_status {
         ThrowUserError("milestone_required", { bug => $invocant });
     }
 
-    if (!blessed $invocant) {
-        $params->{everconfirmed} = $new_status->name eq 'UNCONFIRMED' ? 0 : 1;
-    }
-
-    return $new_status->name;
+    return ($new_status->name, $new_status->name eq 'UNCONFIRMED' ? 0 : 1);
 }
 
 sub _check_cc {
@@ -1860,7 +1853,6 @@ sub _check_keywords {
 
     # On creation, only editbugs users can set keywords.
     if (!ref $invocant) {
-        my $product = $params->{product};
         return [] if !Bugzilla->user->in_group('editbugs', $product->id);
     }
 
@@ -1924,7 +1916,7 @@ sub _check_priority {
 }
 
 sub _check_qa_contact {
-    my ($invocant, $qa_contact, undef, $params) = @_;
+    my ($invocant, $qa_contact, $component) = @_;
     $qa_contact = trim($qa_contact) if !ref $qa_contact;
 
     my $id;
@@ -4041,6 +4033,7 @@ sub SilentLog
 # Update the bugs_activity table to reflect changes made in bugs.
 sub LogActivityEntry {
     my ($i, $col, $removed, $added, $whoid, $timestamp, $comment_id) = @_;
+	my $fieldid = Bugzilla->get_field($col);
     my $dbh = Bugzilla->dbh;
     # in the case of CCs, deps, and keywords, there's a possibility that someone
     # might try to add or remove a lot of them at once, which might take more
