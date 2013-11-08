@@ -25,7 +25,7 @@ use Bugzilla::Util;
 use Bugzilla::Error;
 use Bugzilla::Product;
 
-use base qw(Bugzilla::Field::ChoiceInterface Bugzilla::Object);
+use base qw(Bugzilla::Field::Choice Bugzilla::Object);
 
 ###############################
 ####    Initialization     ####
