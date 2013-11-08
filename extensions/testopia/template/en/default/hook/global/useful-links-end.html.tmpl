@@ -17,9 +17,9 @@
   #
   # Contributor(s): Greg Hendricks <ghendricks@novell.com>
   #%]
-[% IF user.login AND user.settings.view_testopia.value == 'on' AND user.in_group('Testers') %]
 
 <li id="links-testopia">
+[% IF user.login AND user.settings.view_testopia.value == 'on' AND user.in_group('Testers') %]
 <ul class="links">
   <li>Testopia:</li>
   <li><a href="tr_show_product.cgi">Product Dashboard</a></li>
