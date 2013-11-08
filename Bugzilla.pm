@@ -80,7 +80,7 @@ sub _die_error
         $msg =~ s/\s*$//so;
         # We are not interested in getting "Software caused connection abort" errors
         # on each "Stop" click in the browser.
-        if ($msg !~ /^(Apache2::RequestIO::print|:Apache2 IO write): \(103\)|^[^\n]*(Ïðîãðàììà âûçâàëà ñáðîñ ñîåäèíåíèÿ|Software caused connection abort) at /iso)
+        if ($msg !~ /^(Apache2::RequestIO::print|:Apache2 IO write): \(103\)|^[^\n]*(ÐŸÑ€Ð¾Ð³Ñ€Ð°Ð¼Ð¼Ð° Ð²Ñ‹Ð·Ð²Ð°Ð»Ð° ÑÐ±Ñ€Ð¾Ñ ÑÐ¾ÐµÐ´Ð¸Ð½ÐµÐ½Ð¸Ñ|Software caused connection abort) at /iso)
         {
             if ($msg =~ /lock wait|deadlock found/i)
             {
@@ -663,9 +663,6 @@ sub usage_mode {
         }
         elsif ($newval == USAGE_MODE_EMAIL) {
             $class->error_mode(ERROR_MODE_DIE);
-        }
-        elsif ($newval == USAGE_MODE_TEST) {
-            $class->error_mode(ERROR_MODE_TEST);
         }
         else {
             ThrowCodeError('usage_mode_invalid',

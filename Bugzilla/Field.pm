@@ -197,7 +197,7 @@ use constant DEFAULT_FIELDS => (
     {name => 'status_whiteboard', desc => 'Status Whiteboard',
      in_new_bugmail => 1, buglist => 1},
     {name => 'keywords',     desc => 'Keywords',   in_new_bugmail => 1,
-     type => FIELD_TYPE_KEYWORDS, buglist => 1},
+     buglist => 1},
     {name => 'resolution',   desc => 'Resolution',
      type => FIELD_TYPE_SINGLE_SELECT, buglist => 1},
     {name => 'bug_severity', desc => 'Severity',   in_new_bugmail => 1,

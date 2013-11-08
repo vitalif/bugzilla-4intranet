@@ -977,7 +977,7 @@ sub create {
         else {
             print AH $fh;
         }
-        $data = ''; # Will be stored in the DB.
+        close AH;
     }
     else
     {
