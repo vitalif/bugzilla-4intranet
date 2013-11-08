@@ -130,7 +130,7 @@ for my $q (@$queries)
         user   => $user,
         order  => make_order($params->param('order')),
     );
-    my $sql = $search->getSQL();
+    my $sql = $search->sql();
     $sql =~ s/^\s*SELECT/SELECT SQL_NO_CACHE/ if Bugzilla->dbh->isa('Bugzilla::DB::Mysql');
     $q->{sql} = $sql;
     my $result;

@@ -161,7 +161,7 @@ sub get_formatted_bugs
         'params' => Bugzilla::CGI->new($params),
         'order' => [ 'bug_id' ],
     );
-    my $sql = $search->getSQL();
+    my $sql = $search->sql();
     my $bugs = Bugzilla->dbh->selectall_arrayref($sql, {Slice=>{}});
     # Format bugs
     my $wbs_id_cache = {};

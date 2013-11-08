@@ -94,7 +94,7 @@ sub refresh_some_views
             $dbh->do($drop.'bugids');
             $dbh->do("CREATE VIEW $bugids AS $bugid_query");
         }
-        my $sql = $search->getSQL;
+        my $sql = $search->sql;
         $sql =~ s/\(\s*\Q$bugid_query\E\s*\)/$bugids/s;
         $dbh->do($drop.'bugs');
         $dbh->do($drop.'longdescs');
