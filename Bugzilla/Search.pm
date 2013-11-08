@@ -1406,7 +1406,7 @@ sub search_description_html
 }
 
 # Get full SQL query
-sub getSQL
+sub sql
 {
     my $self = shift;
     return $self->{sql};
