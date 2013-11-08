@@ -645,6 +645,13 @@ sub update_table_definitions {
     $dbh->bz_alter_column('products', 'allows_unconfirmed',
         { TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE' });
 
+	# Add new column to versions.
+	$dbh->bz_add_column('versions', 'sortkey', 
+		{ TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0});
+	$dbh->bz_add_column('versions', 'isactive', 
+		{ TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'});
+
+		
     ################################################################
     # New --TABLE-- changes should go *** A B O V E *** this point #
     ################################################################

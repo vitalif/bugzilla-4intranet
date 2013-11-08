@@ -709,6 +709,10 @@ use constant ABSTRACT_SCHEMA => {
                             REFERENCES => {TABLE  => 'products',
                                            COLUMN => 'id',
                                            DELETE => 'CASCADE'}},
+			sortkey    =>  {TYPE => 'INT2', NOTNULL => 1, 
+											DEFAULT => 0},
+			isactive   => {TYPE => 'BOOLEAN', NOTNULL => 1,
+                             DEFAULT => 'TRUE'},
         ],
         INDEXES => [
             versions_product_id_idx => {FIELDS => [qw(product_id value)],
