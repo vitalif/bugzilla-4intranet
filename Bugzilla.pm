@@ -225,10 +225,7 @@ sub _tt_provider_load_compiled {
 
 # Note that this is a raw subroutine, not a method, so $class isn't available.
 sub init_page {
-    if (Bugzilla->usage_mode == USAGE_MODE_CMDLINE) {
-        init_console();
-    }
-    elsif (Bugzilla->params->{'utf8'}) {
+    if (Bugzilla->params->{'utf8'}) {
         binmode STDOUT, ':utf8';
     }
 
