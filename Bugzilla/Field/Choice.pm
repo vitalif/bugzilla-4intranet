@@ -66,12 +66,10 @@ use constant VALIDATORS => {
 };
 
 use constant CLASS_MAP => {
-    bug_status       => 'Bugzilla::Status',
-    product          => 'Bugzilla::Product',
-    component        => 'Bugzilla::Component',
-    version          => 'Bugzilla::Version',
-    target_milestone => 'Bugzilla::Milestone',
-    classification   => 'Bugzilla::Classification',
+    bug_status => 'Bugzilla::Status',
+    classification => 'Bugzilla::Classification',
+    component  => 'Bugzilla::Component',
+    product    => 'Bugzilla::Product',
 };
 
 use constant DEFAULT_MAP => {

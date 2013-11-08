@@ -534,7 +534,7 @@ sub update_table_definitions {
     _fix_uppercase_index_names();
 
     # 2007-05-17 LpSolit@gmail.com - Bug 344965
-    _initialize_workflow($old_params);
+    _initialize_workflow_for_upgrade($old_params);
 
     # 2007-08-08 LpSolit@gmail.com - Bug 332149
     $dbh->bz_add_column('groups', 'icon_url', {TYPE => 'TINYTEXT'});
@@ -639,6 +639,11 @@ sub update_table_definitions {
                           { TYPE => 'MEDIUMTEXT', NOTNULL => 1 }, '');
     $dbh->bz_alter_column('products', 'description',
                           { TYPE => 'MEDIUMTEXT', NOTNULL => 1 }, '');
+
+    # Change the default of allows_unconfirmed to TRUE as part
+    # of the new workflow.
+    $dbh->bz_alter_column('products', 'allows_unconfirmed',
+        { TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE' });
 
     ################################################################
     # New --TABLE-- changes should go *** A B O V E *** this point #
@@ -3025,7 +3030,7 @@ sub _fix_uppercase_index_names {
     }
 }
 
-sub _initialize_workflow {
+sub _initialize_workflow_for_upgrade {
     my $old_params = shift;
     my $dbh = Bugzilla->dbh;
 
@@ -3061,6 +3066,12 @@ sub _initialize_workflow {
                   join(', ', @closed_statuses) . ')');
     }
 
+    # We only populate the workflow here if we're upgrading from a version
+    # before 4.0 (which is where init_workflow was added).
+    my $new_exists = $dbh->selectrow_array(
+         'SELECT 1 FROM bug_status WHERE value = ?', undef, 'NEW');
+    return if !$new_exists;
+
     # Populate the status_workflow table. We do nothing if the table already
     # has entries. If all bug status transitions have been deleted, the
     # workflow will be restored to its default schema.
@@ -3080,7 +3091,7 @@ sub _initialize_workflow {
         # confirmed bugs, so we use this parameter here.
         my $reassign = $old_params->{'commentonreassign'} || 0;
 
-        # This is the default workflow.
+        # This is the default workflow for upgrading installations.
         my @workflow = ([undef, 'UNCONFIRMED', $create],
                         [undef, 'NEW', $create],
                         [undef, 'ASSIGNED', $create],
@@ -3270,13 +3281,11 @@ sub _add_foreign_keys_to_multiselects {
           WHERE type = ' . FIELD_TYPE_MULTI_SELECT);
 
     foreach my $name (@$names) {
-        $dbh->bz_add_fk("bug_$name", "bug_id", {TABLE  => 'bugs',
-                                                COLUMN => 'bug_id',
-                                                DELETE => 'CASCADE',});
-
-        $dbh->bz_add_fk("bug_$name", "value_id", {TABLE  => $name,
-                                                  COLUMN => 'id',
-                                                  DELETE => 'RESTRICT',});
+        $dbh->bz_add_fk("bug_$name", "bug_id", 
+            {TABLE => 'bugs', COLUMN => 'bug_id', DELETE => 'CASCADE'});
+                                                
+        $dbh->bz_add_fk("bug_$name", "value",
+            {TABLE  => $name, COLUMN => 'value', DELETE => 'RESTRICT'});
     }
 }
 
@@ -3504,9 +3513,8 @@ sub _convert_flagtypes_fks_to_set_null {
     foreach my $column (qw(request_group_id grant_group_id)) {
         my $fk = $dbh->bz_fk_info('flagtypes', $column);
         if ($fk and !defined $fk->{DELETE}) {
-            # checksetup will re-create the FK with the appropriate definition
-            # at the end of its table upgrades, so we just drop it here.
-            $dbh->bz_drop_fk('flagtypes', $column);
+            $fk->{DELETE} = 'SET NULL';
+            $dbh->bz_alter_fk('flagtypes', $column, $fk);
         }
     }
 }
@@ -3522,10 +3530,9 @@ sub _fix_decimal_types {
 sub _fix_series_creator_fk {
     my $dbh = Bugzilla->dbh;
     my $fk = $dbh->bz_fk_info('series', 'creator');
-    # Change the FK from SET NULL to CASCADE. (It will be re-created
-    # automatically at the end of all DB changes.)
     if ($fk and $fk->{DELETE} eq 'SET NULL') {
-        $dbh->bz_drop_fk('series', 'creator');
+        $fk->{DELETE} = 'CASCADE';
+        $dbh->bz_alter_fk('series', 'creator', $fk);
     }
 }
 

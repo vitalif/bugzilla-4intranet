@@ -133,12 +133,15 @@ sub bz_last_key {
 }
 
 sub sql_group_concat {
-    my ($self, $column, $separator) = @_;
-    my $sep_sql;
-    if ($separator) {
-        $sep_sql = " SEPARATOR $separator";
+    my ($self, $column, $separator, $sort) = @_;
+    $separator = $self->quote(', ') if !defined $separator;
+    $sort = 1 if !defined $sort;
+    if ($sort) {
+        my $sort_order = $column;
+        $sort_order =~ s/^DISTINCT\s+//i;
+        $column = "$column ORDER BY $sort_order";
     }
-    return "GROUP_CONCAT($column$sep_sql)";
+    return "GROUP_CONCAT($column SEPARATOR $separator)";
 }
 
 sub sql_regexp {
@@ -741,7 +744,6 @@ EOF
 
         print "Converting table storage format to UTF-8. This may take a",
               " while.\n";
-        my @dropped_fks;
         foreach my $table (map { $_->{Name} } @non_utf8_tables) {
             my $info_sth = $self->prepare("SHOW FULL COLUMNS FROM $table");
             $info_sth->execute();
@@ -760,8 +762,9 @@ EOF
 
                     print "$table.$name needs to be converted to UTF-8...\n";
 
-                    my $dropped = $self->bz_drop_related_fks($table, $name);
-                    push(@dropped_fks, @$dropped);
+                    # These will be automatically re-created at the end
+                    # of checksetup.
+                    $self->bz_drop_related_fks($table, $name);
 
                     my $col_info =
                         $self->bz_column_info_real($table, $name);
@@ -815,10 +818,6 @@ EOF
             }
 
         } # foreach my $table (@tables)
-
-        foreach my $fk_args (@dropped_fks) {
-            $self->bz_add_fk(@$fk_args);
-        }
     }
 
     # Sometimes you can have a situation where all the tables are utf8,
@@ -1088,11 +1087,12 @@ this code does.
 sub _bz_build_schema_from_disk {
     my ($self) = @_;
 
-    print "Building Schema object from database...\n";
-
     my $schema = $self->_bz_schema->get_empty_schema();
 
     my @tables = $self->bz_table_list_real();
+    if (@tables) {
+        print "Building Schema object from database...\n"; 
+    }
     foreach my $table (@tables) {
         $schema->add_table($table);
         my @columns = $self->bz_table_columns_real($table);

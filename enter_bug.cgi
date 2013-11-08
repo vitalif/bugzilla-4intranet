@@ -153,15 +153,10 @@ if ($product_name eq '') {
         $product = $enterable_products[0];
     }
 }
-else {
-    # Do not use Bugzilla::Product::check_product() here, else the user
-    # could know whether the product doesn't exist or is not accessible.
-    $product = new Bugzilla::Product({'name' => $product_name});
-}
 
 # We need to check and make sure that the user has permission
 # to enter a bug against this product.
-$user->can_enter_product($product ? $product->name : $product_name, THROW_ERROR);
+$product = $user->can_enter_product($product || $product_name, THROW_ERROR);
 
 ##############################################################################
 # Useful Subroutines
@@ -427,7 +422,8 @@ foreach my $field (@enter_bug_fields) {
 }
 
 # This allows the Field visibility and value controls to work with the
-# Product field as a parent.
+# Classification and Product fields as a parent.
+$default{'classification'} = $product->classification->name;
 $default{'product'} = $product->name;
 $default{'product_obj'} = $product;
 

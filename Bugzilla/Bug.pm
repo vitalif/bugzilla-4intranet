@@ -51,7 +51,7 @@ use Bugzilla::Status;
 use Bugzilla::Comment;
 
 use List::MoreUtils qw(firstidx uniq);
-use List::Util qw(min first);
+use List::Util qw(min max first);
 use Storable qw(dclone);
 use URI;
 use URI::QueryParam;
@@ -252,8 +252,14 @@ use constant MAX_LINE_LENGTH => 254;
 # of Bugzilla. (These are the field names that the WebService and email_in.pl
 # use.)
 use constant FIELD_MAP => {
+    blocks           => 'blocked',
+    is_confirmed     => 'everconfirmed',
+    cc_accessible    => 'cclist_accessible',
     creation_time    => 'creation_ts',
+    creator          => 'reporter',
     description      => 'comment',
+    depends_on       => 'dependson',
+    dupe_of          => 'dup_id',
     id               => 'bug_id',
     last_change_time => 'delta_ts',
     platform         => 'rep_platform',
@@ -269,6 +275,21 @@ use constant FIELD_MAP => {
 };
 
 use constant REQUIRED_FIELD_MAP => {};
+
+# Target Milestone is here because it has a default that the validator
+# creates (product.defaultmilestone) that is different from the database
+# default.
+#
+# CC is here because it is a separate table, and has a validator-created
+# default of the component initialcc.
+#
+# QA Contact is allowed to be NULL in the database, so it wouldn't normally
+# be caught by _required_create_fields. However, it always has to be validated,
+# because it has a default of the component.defaultqacontact.
+#
+# Groups are in a separate table, but must always be validated so that
+# mandatory groups get set on bugs.
+use constant EXTRA_REQUIRED_FIELDS => qw(target_milestone cc qa_contact groups);
 
 #####################################################################
 
@@ -1538,7 +1559,10 @@ sub _check_bug_status {
 
     }
 
-    if (ref $invocant && $new_status->name eq 'ASSIGNED'
+    if (ref $invocant 
+        && ($new_status->name eq 'IN_PROGRESS'
+            # Backwards-compat for the old default workflow.
+            or $new_status->name eq 'ASSIGNED')
         && Bugzilla->params->{"usetargetmilestone"}
         && Bugzilla->params->{"musthavemilestoneonaccept"}
         # musthavemilestoneonaccept applies only if at least two
@@ -1876,10 +1900,8 @@ sub _check_product {
     }
     # Check that the product exists and that the user
     # is allowed to enter bugs into this product.
-    Bugzilla->user->can_enter_product($name, THROW_ERROR);
-    # can_enter_product already does everything that check_product
-    # would do for us, so we don't need to use it.
-    return new Bugzilla::Product({ name => $name });
+    my $product = Bugzilla->user->can_enter_product($name, THROW_ERROR);
+    return $product;
 }
 
 sub _check_priority {
@@ -2859,7 +2881,7 @@ sub add_comment {
     # later in set_all. But if they haven't, this keeps remaining_time
     # up-to-date.
     if ($params->{work_time}) {
-        $self->set_remaining_time($self->remaining_time - $params->{work_time});
+        $self->set_remaining_time(max($self->remaining_time - $params->{work_time}, 0));
     }
 
     # So we really want to comment. Make sure we are allowed to do so.
@@ -3474,6 +3496,17 @@ sub comments {
     return \@comments;
 }
 
+# This is needed by xt/search.t.
+sub percentage_complete {
+    my $self = shift;
+    return undef if $self->{'error'} || !Bugzilla->user->is_timetracker;
+    my $remaining = $self->remaining_time;
+    my $actual    = $self->actual_time;
+    my $total = $remaining + $actual;
+    return undef if $total == 0;
+    return 100 * ($actual / $total);
+}
+
 sub product {
     my ($self) = @_;
     return $self->{product} if exists $self->{product};
@@ -3703,9 +3736,13 @@ sub choices {
     if (!grep($_->name eq $self->product_obj->name, @products)) {
         unshift(@products, $self->product_obj);
     }
+    my %class_ids = map { $_->classification_id => 1 } @products;
+    my $classifications = 
+        Bugzilla::Classification->new_from_list([keys %class_ids]);
 
     my %choices = (
         bug_status => $self->statuses_available,
+        classification => $classifications,
         product    => \@products,
         component  => $self->product_obj->active_components,
         version    => $self->product_obj->versions,
@@ -4043,11 +4080,17 @@ sub LogActivityEntry {
 # Convert WebService API and email_in.pl field names to internal DB field
 # names.
 sub map_fields {
-    my ($params) = @_;
+    my ($params, $except) = @_; 
 
     my %field_values;
     foreach my $field (keys %$params) {
-        my $field_name = FIELD_MAP->{$field} || $field;
+        my $field_name;
+        if ($except->{$field}) {
+           $field_name = $field;
+        }
+        else {
+            $field_name = FIELD_MAP->{$field} || $field;
+        }
         $field_values{$field_name} = $params->{$field};
     }
     return \%field_values;

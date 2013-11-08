@@ -17,6 +17,8 @@
   #
   # Contributor(s): Gervase Markham <gerv@gerv.net>
   #                 <rdean@cambianetworks.com>
+  #                 Frédéric Buclin <LpSolit@gmail.com>
+  #                 Guy Pyrzak <guy.parzak@gmail.com>
   #%]
 
 [%# INTERFACE:
@@ -75,20 +77,22 @@ END; %]
 
 <table border="1" style="border-collapse: collapse">
   [% IF col_field %]
+    <thead>
     <tr>
-      <td class="[% classes.$row_idx.$col_idx %]">
-      </td>
+      <th class="[% classes.$row_idx.$col_idx %]">
+      </th>
       [% FOREACH col = col_names %]
         [% col_totals.$col = 0 %]
         [% col_idx = 1 - col_idx %]
-        <td class="[% classes.$row_idx.$col_idx %]">
+        <th class="[% classes.$row_idx.$col_idx %]">
           [% PROCESS value_display value = col field = col_field %]
-        </td>
+        </th>
       [% END %]
-      <td class="ttotal">
+      <th class="ttotal">
         Total
-      </td>
+      </th>
     </tr>
+    </thead>
   [% END %]
 
   [% FOREACH row = row_names %]

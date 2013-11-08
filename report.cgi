@@ -144,7 +144,7 @@ my $search = new Bugzilla::Search(
     'fields' => \@axis_fields,
     'params' => $params,
 );
-my $query = $search->getSQL();
+my $query = $search->sql;
 $query =
     "SELECT ".
     ($field->{x} || "''")." x, ".

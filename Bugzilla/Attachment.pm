@@ -62,6 +62,9 @@ use Bugzilla::Hook;
 use LWP::MediaTypes;
 use MIME::Base64;
 
+use File::Copy;
+use List::Util qw(max);
+
 use base qw(Bugzilla::Object);
 
 ###############################
@@ -94,6 +97,7 @@ sub DB_COLUMNS {
 use constant REQUIRED_FIELD_MAP => {
     bug_id => 'bug',
 };
+use constant EXTRA_REQUIRED_FIELDS => qw(data);
 
 use constant UPDATE_COLUMNS => qw(
     description
@@ -625,9 +629,8 @@ sub _check_content_type {
 sub _check_data {
     my ($invocant, $params) = @_;
 
-    my $data;
+    my $data = $params->{data};
     if ($params->{isurl}) {
-        $data = $params->{data};
         ($data && $data =~ m#^(http|https|ftp)://\S+#)
           || ThrowUserError('attachment_illegal_url', { url => $data });
 
@@ -652,12 +655,15 @@ sub _check_data {
             $data = <$fh>;
             close $fh;
         }
+        $params->{filesize} = ref $data ? -s $data : length($data);
     }
     Bugzilla::Hook::process('attachment_process_data', { data       => \$data,
                                                          attributes => $params });
 
-    # Do not validate the size if we have a filehandle. It will be checked later.
-    return $data if ref $data;
+    $params->{filesize} || ThrowUserError('zero_length_file');
+    # Make sure the attachment does not exceed the maximum permitted size.
+    my $max_size = max(Bugzilla->params->{'maxlocalattachment'} * 1048576,
+                       Bugzilla->params->{'maxattachmentsize'} * 1024);
 
     $data || ThrowUserError('zero_length_file');
     # Make sure the attachment does not exceed the maximum permitted size.
@@ -971,7 +977,7 @@ sub create {
         else {
             print AH $fh;
         }
-        close AH;
+        $data = ''; # Will be stored in the DB.
     }
     else
     {

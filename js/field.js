@@ -16,6 +16,7 @@
  *
  * Contributor(s): Max Kanat-Alexander <mkanat@bugzilla.org>
  *                 Guy Pyrzak <guy.pyrzak@gmail.com>
+ *                 Reed Loden <reed@reedloden.com>
  */
 
 /* Hide input fields and show the text with (edit) next to it */

@@ -624,18 +624,28 @@ sub groups {
     return $self->{groups};
 }
 
+# It turns out that calling ->id on objects a few hundred thousand
+# times is pretty slow. (It showed up as a significant time contributor
+# when profiling xt/search.t.) So we cache the group ids separately from
+# groups for functions that need the group ids.
+sub _group_ids {
+    my ($self) = @_;
+    $self->{group_ids} ||= [map { $_->id } @{ $self->groups }];
+    return $self->{group_ids};
+}
+
 sub groups_as_string {
     my $self = shift;
-    my @ids = map { $_->id } @{ $self->groups };
-    return scalar(@ids) ? join(',', @ids) : '-1';
+    my $ids = $self->_group_ids;
+    return scalar(@$ids) ? join(',', @$ids) : '-1';
 }
 
 sub groups_in_sql {
     my ($self, $field) = @_;
     $field ||= 'group_id';
-    my @ids = map { $_->id } @{ $self->groups };
-    @ids = (-1) if !scalar @ids;
-    return Bugzilla->dbh->sql_in($field, \@ids);
+    my $ids = $self->_group_ids;
+    $ids = [-1] if !scalar @$ids;
+    return Bugzilla->dbh->sql_in($field, $ids);
 }
 
 sub bless_groups {
@@ -1079,7 +1089,7 @@ sub check_can_admin_product {
     my ($self, $product_name) = @_;
 
     # First make sure the product name is valid.
-    my $product = Bugzilla::Product::check_product($product_name);
+    my $product = Bugzilla::Product->check($product_name);
 
     ($self->in_group('editcomponents', $product->id) && $self->can_see_product($product->name))
         || $self->in_group('editcomponents')
@@ -1190,7 +1200,7 @@ sub queryshare_groups {
             }
         }
         else {
-            @queryshare_groups = map { $_->id } @{ $self->groups };
+            @queryshare_groups = @{ $self->_group_ids };
         }
     }
 
@@ -1273,11 +1283,14 @@ sub product_responsibilities {
     return $self->{'product_resp'} if defined $self->{'product_resp'};
     return [] unless $self->id;
 
-    my $list = $dbh->selectall_arrayref('SELECT product_id, id
+    my $list = $dbh->selectall_arrayref('SELECT components.product_id, components.id
                                            FROM components
-                                          WHERE initialowner = ?
-                                             OR initialqacontact = ?',
-                                  {Slice => {}}, ($self->id, $self->id));
+                                           LEFT JOIN component_cc
+                                           ON components.id = component_cc.component_id
+                                          WHERE components.initialowner = ?
+                                             OR components.initialqacontact = ?
+                                             OR component_cc.user_id = ?',
+                                  {Slice => {}}, ($self->id, $self->id, $self->id));
 
     unless ($list) {
         $self->{'product_resp'} = [];

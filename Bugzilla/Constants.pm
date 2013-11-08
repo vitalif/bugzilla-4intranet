@@ -36,6 +36,7 @@ use base qw(Exporter);
 # For bz_locations
 use File::Basename;
 use Cwd qw(abs_path);
+use Memoize;
 
 @Bugzilla::Constants::EXPORT = qw(
     BUGZILLA_VERSION
@@ -146,6 +147,7 @@ use Cwd qw(abs_path);
     USAGE_MODE_XMLRPC
     USAGE_MODE_EMAIL
     USAGE_MODE_JSON
+    USAGE_MODE_TEST
 
     ERROR_MODE_WEBPAGE
     ERROR_MODE_DIE
@@ -208,7 +210,7 @@ use Cwd qw(abs_path);
 # CONSTANTS
 #
 # Bugzilla version
-use constant BUGZILLA_VERSION => "3.7.1+";
+use constant BUGZILLA_VERSION => "4.1";
 
 # These are unique values that are unlikely to match a string or a number,
 # to be used in criteria for match() functions and other things. They start
@@ -424,10 +426,11 @@ use constant EMPTY_DATETIME_REGEX => qr/^[0\-:\sA-Za-z]+$/;
 
 # See the POD for Bugzilla::Field/is_abnormal to see why these are listed
 # here.
-use constant ABNORMAL_SELECTS => qw(
-    product
-    component
-);
+use constant ABNORMAL_SELECTS => {
+    classification => 1,
+    component      => 1,
+    product        => 1,
+};
 
 use constant BUG_ID_ADD_TO_BLOCKED => 1;
 use constant BUG_ID_ADD_TO_DEPENDSON => 2;
@@ -477,6 +480,7 @@ use constant USAGE_MODE_CMDLINE    => 1;
 use constant USAGE_MODE_XMLRPC     => 2;
 use constant USAGE_MODE_EMAIL      => 3;
 use constant USAGE_MODE_JSON       => 4;
+use constant USAGE_MODE_TEST       => 5;
 
 # Error modes. Default set by Bugzilla->usage_mode (so ERROR_MODE_WEBPAGE
 # usually). Use with Bugzilla->error_mode.
@@ -505,7 +509,7 @@ use constant DB_MODULE => {
                     version => '4.00',
                 },
                 name => 'MySQL'},
-    'pg'    => {db => 'Bugzilla::DB::Pg', db_version => '8.00.0000',
+    'pg'    => {db => 'Bugzilla::DB::Pg', db_version => '8.03.0000',
                 dbd => {
                     package => 'DBD-Pg',
                     module  => 'DBD::Pg',
@@ -664,5 +668,9 @@ sub bz_locations {
         'extensionsdir' => "$libpath/extensions",
     };
 }
+
+# This makes us not re-compute all the bz_locations data every time it's
+# called.
+BEGIN { memoize('bz_locations') };
 
 1;

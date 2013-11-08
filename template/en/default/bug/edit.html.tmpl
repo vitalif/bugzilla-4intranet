@@ -252,7 +252,20 @@ document.changeform = document.[% cfname %];
             desc_url = 'describecomponents.cgi', value = bug.product
             editable = bug.check_can_change_field('product', 0, 1) %]
     </tr>
-    [%###############%]
+
+    [%# Classification is here so that it can be used in value controllers
+      # and visibility controllers. It comes after product because
+      # it uses some javascript that depends on the existence of the
+      # product field.
+      #%]
+    <tr class="bz_default_hidden">
+       [% INCLUDE bug/field.html.tmpl
+            bug = bug field = bug_fields.classification
+            override_legal_values = bug.choices.classification
+            value = bug.classification
+            editable = bug.check_can_change_field('product', 0, 1) %]
+    </tr>
+    [%###############%]    
     [%#  Component  #%]
     [%###############%]
     <tr>

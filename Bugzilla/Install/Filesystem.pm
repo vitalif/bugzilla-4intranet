@@ -352,6 +352,8 @@ EOT
                                           contents => HT_DEFAULT_DENY },
         't/.htaccess'                => { perms    => WS_SERVE,
                                           contents => HT_DEFAULT_DENY },
+        'xt/.htaccess'               => { perms    => WS_SERVE,
+                                          contents => HT_DEFAULT_DENY },
         "$datadir/.htaccess"         => { perms    => WS_SERVE,
                                           contents => HT_DEFAULT_DENY },
 

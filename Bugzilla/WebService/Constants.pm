@@ -66,6 +66,7 @@ use constant WS_ERROR_CODE => {
     alias_in_use             => 103,
     alias_is_numeric         => 103,
     alias_has_comma_or_space => 103,
+    multiple_alias_not_allowed => 103,
     # Misc. bug field errors
     illegal_field => 104,
     freetext_too_long => 104,
@@ -124,6 +125,14 @@ use constant WS_ERROR_CODE => {
     invalid_user_group    => 504,
     user_access_by_id_denied    => 505,
     user_access_by_match_denied => 505,
+
+    # Attachment errors are 600-700.
+    file_too_large         => 600,
+    invalid_content_type   => 601,
+    attachment_illegal_url => 602,
+    file_not_specified     => 603,
+    missing_attachment_description => 604,
+    attachment_url_disabled => 605,
 
     # Errors thrown by the WebService itself. The ones that are negative 
     # conform to http://xmlrpc-epi.sourceforge.net/specs/rfc.fault_codes.php

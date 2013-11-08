@@ -19,6 +19,7 @@
   #                 Max Kanat-Alexander <mkanat@bugzilla.org>
   #                 Frédéric Buclin <LpSolit@gmail.com>
   #                 Guy Pyrzak <guy.pyrzak@gmail.com>
+  #                 Reed Loden <reed@reedloden.com>
   #%]
 
 [% dontchange = "--do_not_change--" %]
@@ -171,7 +172,7 @@ document.write(' <input type="button" name="check_all" value="Check All" onclick
            id => "assigned_to"
            name => "assigned_to"
            value => dontchange
-           size => 32
+           size => 40
       %]
       <input type="checkbox" id="set_default_assignee" name="set_default_assignee" value="1">
       <label for="set_default_assignee">Reset Assignee to default</label>
@@ -186,7 +187,7 @@ document.write(' <input type="button" name="check_all" value="Check All" onclick
              id => "qa_contact"
              name => "qa_contact"
              value => dontchange
-             size => 32
+             size => 40
         %]
         <input type="checkbox" id="set_default_qa_contact" name="set_default_qa_contact" value="1">
         <label for="set_default_qa_contact">Reset QA Contact to default</label>
@@ -198,7 +199,13 @@ document.write(' <input type="button" name="check_all" value="Check All" onclick
 
     <th><label for="masscc">CC List:</label></th>
     <td colspan="3">
-      <input id="masscc" name="masscc" size="32">
+      [% INCLUDE global/userselect.html.tmpl
+           id => "masscc"
+           name => "masscc"
+           value => ""
+           size => 40
+           multiple => 5
+      %]
       <select name="ccaction">
         <option value="add">Add these to the CC List</option>
         <option value="remove">Remove these from the CC List</option>
@@ -224,11 +231,14 @@ document.write(' <input type="button" name="check_all" value="Check All" onclick
         </label>
       </th>
       <td colspan="3">
-        <input id="keywords" name="keywords" size="32">
+        [% INCLUDE bug/field.html.tmpl
+           field = bug_fields.keywords, editable = 1, value = keywords
+           no_tds = 1
+        %]
         <select name="keywordaction">
           <option value="add">Add these keywords</option>
-          <option value="delete">Delete these keywords</option>
-          <option value="makeexact">Make the keywords be exactly this list</option>
+          <option value="remove">Delete these keywords</option>
+          <option value="set">Make the keywords be exactly this list</option>
         </select>
       </td>
 
@@ -242,7 +252,7 @@ document.write(' <input type="button" name="check_all" value="Check All" onclick
       </label>
     </th>
     <td colspan="3">
-      <input id="dependson" name="dependson" size="32">
+      <input id="dependson" name="dependson" size="40">
       <select name="dependson_action">
           <option value="add">Add these IDs</option>
           <option value="remove">Delete these IDs</option>
@@ -255,7 +265,7 @@ document.write(' <input type="button" name="check_all" value="Check All" onclick
       <label for="blocked">Blocks:</label>
     </th>
     <td colspan="3">
-      <input id="blocked" name="blocked" size="32">
+      <input id="blocked" name="blocked" size="40">
       <select name="blocked_action">
           <option value="add">Add these IDs</option>
           <option value="remove">Delete these IDs</option>

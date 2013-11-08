@@ -37,6 +37,24 @@ use Bugzilla::User::Setting;
 use Bugzilla::Util qw(get_text);
 use Bugzilla::Version;
 
+use constant STATUS_WORKFLOW => (
+    [undef, 'UNCONFIRMED'],
+    [undef, 'CONFIRMED'],
+    [undef, 'IN_PROGRESS'],
+    ['UNCONFIRMED', 'CONFIRMED'],
+    ['UNCONFIRMED', 'IN_PROGRESS'],
+    ['UNCONFIRMED', 'RESOLVED'],
+    ['CONFIRMED',   'IN_PROGRESS'],
+    ['CONFIRMED',   'RESOLVED'],
+    ['IN_PROGRESS', 'CONFIRMED'],
+    ['IN_PROGRESS', 'RESOLVED'],
+    ['RESOLVED',    'CONFIRMED'],
+    ['RESOLVED',    'VERIFIED'],
+    ['VERIFIED',    'CONFIRMED'],
+    # The RESOLVED/VERIFIED to UNCONFIRMED transition is enabled specially
+    # in the code for bugs that haven't been confirmed.
+);
+
 sub SETTINGS {
     return {
     # 2005-03-03 travis@sedsystems.ca -- Bug 41972
@@ -164,12 +182,21 @@ use constant DEFAULT_COMPONENT => {
 };
 
 sub update_settings {
+    my $dbh = Bugzilla->dbh;
+    # If we're setting up settings for the first time, we want to be quieter.
+    my $any_settings = $dbh->selectrow_array(
+        'SELECT 1 FROM setting ' . $dbh->sql_limit(1));
+    if (!$any_settings) {
+        print get_text('install_setting_setup'), "\n";
+    }
+
     my %settings = %{SETTINGS()};
     foreach my $setting (keys %settings) {
         add_setting($setting,
                     $settings{$setting}->{options}, 
                     $settings{$setting}->{default},
-                    $settings{$setting}->{subclass});
+                    $settings{$setting}->{subclass}, undef,
+                    !$any_settings);
     }
 }
 
@@ -178,11 +205,19 @@ sub update_system_groups {
 
     $dbh->bz_start_transaction();
 
+    # If there is no editbugs group, this is the first time we're
+    # adding groups.
+    my $editbugs_exists = new Bugzilla::Group({ name => 'editbugs' });
+    if (!$editbugs_exists) {
+        print get_text('install_groups_setup'), "\n";
+    }
+
     # Create most of the system groups
     foreach my $definition (SYSTEM_GROUPS) {
         my $exists = new Bugzilla::Group({ name => $definition->{name} });
         if (!$exists) {
             $definition->{isbuggroup} = 0;
+            $definition->{silently} = !$editbugs_exists;
             my $inherited_by = delete $definition->{inherited_by};
             my $created = Bugzilla::Group->create($definition);
             # Each group in inherited_by is automatically a member of this
@@ -238,6 +273,24 @@ sub create_default_product {
             initialowner => $admin->login });
     }
 
+}
+
+sub init_workflow {
+    my $dbh = Bugzilla->dbh;
+    my $has_workflow = $dbh->selectrow_array('SELECT 1 FROM status_workflow');
+    return if $has_workflow;
+
+    print get_text('install_workflow_init'), "\n";
+
+    my %status_ids = @{ $dbh->selectcol_arrayref(
+        'SELECT value, id FROM bug_status', {Columns=>[1,2]}) };
+
+    foreach my $pair (STATUS_WORKFLOW) {
+        my $old_id = $pair->[0] ? $status_ids{$pair->[0]} : undef;
+        my $new_id = $status_ids{$pair->[1]};
+        $dbh->do('INSERT INTO status_workflow (old_status, new_status)
+                       VALUES (?,?)', undef, $old_id, $new_id);
+    }
 }
 
 sub create_admin {
@@ -330,7 +383,9 @@ sub make_admin {
         write_params();
     }
 
-    print "\n", get_text('install_admin_created', { user => $user }), "\n";
+    if (Bugzilla->usage_mode == USAGE_MODE_CMDLINE) {
+        print "\n", get_text('install_admin_created', { user => $user }), "\n";
+    }
 }
 
 sub _prompt_for_password {

@@ -934,6 +934,8 @@ sub _attachment_to_hash {
         is_obsolete      => $self->type('int', $attach->isobsolete),
         is_url           => $self->type('int', $attach->isurl),
         is_patch         => $self->type('int', $attach->ispatch),
+        creator          => $self->type('string', $attach->attacher->login),
+        attacher         => $self->type('string', $attach->attacher->login),
     };
 
     # creator/attacher require an extra lookup, so we only send them if
@@ -1392,8 +1394,6 @@ C<creator>.
 
 =item In Bugzilla B<4.0>, the C<description> return value was renamed to
 C<summary>.
-
-=item The C<data> return value was added in Bugzilla B<4.0>.
 
 =back
 
@@ -2167,7 +2167,10 @@ for that value.
 
 =item Added in Bugzilla B<3.4>.
 
-=item Searching by C<votes> was removed in Bugzilla B<3.8>.
+=item Searching by C<votes> was removed in Bugzilla B<4.0>.
+
+=item The C<reporter> input parameter was renamed to C<creator>
+in Bugzilla B<4.0>.
 
 =back
 
@@ -2329,8 +2332,8 @@ in them. The error message will have more details.
 =item Before B<3.0.4>, parameters marked as B<Defaulted> were actually
 B<Required>, due to a bug in Bugzilla.
 
-=item The C<groups> argument was added in Bugzilla B<3.8>. Before
-Bugzilla 3.8, bugs were only added into Mandatory groups by this
+=item The C<groups> argument was added in Bugzilla B<4.0>. Before
+Bugzilla 4.0, bugs were only added into Mandatory groups by this
 method.
 
 =back
@@ -2544,7 +2547,7 @@ code of 32000.
 
 =item C<update>
 
-B<EXPERIMENTAL>
+B<UNSTABLE>
 
 =over
 
@@ -2617,7 +2620,7 @@ pass in an invalid user name.
 
 =back
 
-=item C<is_cc_accessible>
+=item C<cc_accessible>
 
 C<boolean> Whether or not users in the CC list are allowed to access
 the bug, even if they aren't in a group that can normally access the bug.
@@ -2747,7 +2750,7 @@ normally have permission to file new bugs in that product.
 
 C<string> The full login name of the bug's QA Contact.
 
-=item C<is_creator_accessible>
+=item C<reporter_accessible>
 
 C<boolean> Whether or not the bug's reporter is allowed to access
 the bug, even if he or she isn't in a group that can normally access

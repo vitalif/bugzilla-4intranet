@@ -72,9 +72,6 @@ if ($#ARGV >= 0 && $ARGV[0] eq "--regenerate") {
     $regenerate = 1;
 }
 
-my @myproducts = map {$_->name} Bugzilla::Product->get_all;
-unshift(@myproducts, "-All-");
-
 # As we can now customize statuses and resolutions, looking at the current list
 # of legal values only is not enough as some now removed statuses and resolutions
 # may have existed in the past, or have been renamed. We want them all.
@@ -144,6 +141,10 @@ if ($regenerate) {
 }
 
 my $tstart = time;
+
+my @myproducts = Bugzilla::Product->get_all;
+unshift(@myproducts, "-All-");
+
 foreach (@myproducts) {
     my $dir = "$datadir/mining";
 
@@ -175,11 +176,11 @@ sub collect_stats {
     my $product = shift;
     my $when = localtime (time);
     my $dbh = Bugzilla->dbh;
-
     my $product_id;
-    if ($product ne '-All-') {
-        my $prod = Bugzilla::Product::check_product($product);
-        $product_id = $prod->id;
+
+    if (ref $product) {
+        $product_id = $product->id;
+        $product = $product->name;
     }
 
     # NB: Need to mangle the product for the filename, but use the real
@@ -314,6 +315,9 @@ sub regenerate_stats {
 
     # NB: Need to mangle the product for the filename, but use the real
     # product name in the query
+    if (ref $product) {
+        $product = $product->name;
+    }
     my $file_product = $product;
     $file_product =~ s/\//-/gs;
     my $file = join '/', $dir, $file_product;
@@ -515,7 +519,7 @@ sub CollectSeriesData {
             my $search = new Bugzilla::Search('params' => $cgi,
                                               'fields' => ["bug_id"],
                                               'user'   => $user);
-            my $sql = $search->getSQL();
+            my $sql = $search->sql;
             $data = $shadow_dbh->selectall_arrayref($sql);
         };
 

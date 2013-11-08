@@ -37,7 +37,7 @@ use Bugzilla::Extension;
 use Bugzilla::DB;
 use Bugzilla::Install::Localconfig qw(read_localconfig);
 use Bugzilla::Install::Requirements qw(OPTIONAL_MODULES);
-use Bugzilla::Install::Util;
+use Bugzilla::Install::Util qw(init_console);
 use Bugzilla::Template;
 use Bugzilla::User;
 use Bugzilla::Error;
@@ -80,7 +80,7 @@ sub _die_error
         $msg =~ s/\s*$//so;
         # We are not interested in getting "Software caused connection abort" errors
         # on each "Stop" click in the browser.
-        if ($msg !~ /^(Apache2::RequestIO::print|:Apache2 IO write): \(103\)|^[^\n]*(ÐŸÑ€Ð¾Ð³Ñ€Ð°Ð¼Ð¼Ð° Ð²Ñ‹Ð·Ð²Ð°Ð»Ð° ÑÐ±Ñ€Ð¾Ñ ÑÐ¾ÐµÐ´Ð¸Ð½ÐµÐ½Ð¸Ñ|Software caused connection abort) at /iso)
+        if ($msg !~ /^(Apache2::RequestIO::print|:Apache2 IO write): \(103\)|^[^\n]*(Ïðîãðàììà âûçâàëà ñáðîñ ñîåäèíåíèÿ|Software caused connection abort) at /iso)
         {
             if ($msg =~ /lock wait|deadlock found/i)
             {
@@ -225,7 +225,12 @@ sub _tt_provider_load_compiled {
 
 # Note that this is a raw subroutine, not a method, so $class isn't available.
 sub init_page {
-    (binmode STDOUT, ':utf8') if Bugzilla->params->{'utf8'};
+    if (Bugzilla->usage_mode == USAGE_MODE_CMDLINE) {
+        init_console();
+    }
+    elsif (Bugzilla->params->{'utf8'}) {
+        binmode STDOUT, ':utf8';
+    }
 
     if (${^TAINT}) {
         # Some environment variables are not taint safe
@@ -658,6 +663,9 @@ sub usage_mode {
         }
         elsif ($newval == USAGE_MODE_EMAIL) {
             $class->error_mode(ERROR_MODE_DIE);
+        }
+        elsif ($newval == USAGE_MODE_TEST) {
+            $class->error_mode(ERROR_MODE_TEST);
         }
         else {
             ThrowCodeError('usage_mode_invalid',
@@ -1130,6 +1138,30 @@ Bugzilla::User instance.
 Essentially, causes calls to C<Bugzilla-E<gt>user> to return C<undef>. This has the
 effect of logging out a user for the current request only; cookies and
 database sessions are left intact.
+
+=item C<fields>
+
+This is the standard way to get arrays or hashes of L<Bugzilla::Field>
+objects when you need them. It takes the following named arguments
+in a hashref:
+
+=over
+
+=item C<by_name>
+
+If false (or not specified), this method will return an arrayref of
+the requested fields. The order of the returned fields is random.
+
+If true, this method will return a hashref of fields, where the keys
+are field names and the valules are L<Bugzilla::Field> objects.
+
+=item C<type>
+
+Either a single C<FIELD_TYPE_*> constant or an arrayref of them. If specified,
+the returned fields will be limited to the types in the list. If you don't
+specify this argument, all fields will be returned.
+
+=back
 
 =item C<error_mode>
 

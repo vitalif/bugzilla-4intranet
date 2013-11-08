@@ -129,7 +129,7 @@ sub bz_explain {
 
 sub sql_group_concat {
     my ($self, $text, $separator) = @_;
-    $separator ||= "','";
+    $separator = $self->quote(', ') if !defined $separator;
     return "group_concat(T_CLOB_DELIM($text, $separator))";
 }
 
@@ -257,7 +257,7 @@ sub bz_drop_table {
 # Dropping all FKs for a specified table. 
 sub _bz_drop_fks {
     my ($self, $table) = @_;
-    my @columns = $self->_bz_real_schema->get_table_columns($table);
+    my @columns = $self->bz_table_columns($table);
     foreach my $column (@columns) {
         $self->bz_drop_fk($table, $column);
     }

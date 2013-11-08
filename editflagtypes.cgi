@@ -569,7 +569,8 @@ sub validateProduct {
     my $product_name = shift;
     return unless $product_name;
 
-    my $product = Bugzilla::Product::check_product($product_name);
+    my $product = Bugzilla::Product->check({ name => $product_name,
+                                             allow_inaccessible => 1 });
     return $product;
 }
 

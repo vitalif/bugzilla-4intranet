@@ -32,6 +32,8 @@ use MIME::Base64 qw(decode_base64 encode_base64);
 
 use Bugzilla::Util qw(correct_urlbase trim);
 
+use MIME::Base64 qw(decode_base64);
+
 #####################################
 # Public JSON::RPC Method Overrides #
 #####################################

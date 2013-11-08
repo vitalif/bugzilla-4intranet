@@ -896,7 +896,6 @@
   The only legal values for the <em>Attachment is patch</em> field are
   0 and 1.
 [% END %]
-
 [% BLOCK error_illegal_bug_status_transition %]
   [% title = "Illegal $terms.Bug Status Change" %]
   [% IF old.defined %]
@@ -2050,6 +2049,8 @@
     field
   [% ELSIF class == "Bugzilla::Group" %]
     group
+  [% ELSIF class == "Bugzilla::Keyword" %]
+    keyword
   [% ELSIF class == "Bugzilla::Product" %]
     product
   [% ELSIF class == "Bugzilla::Classification" %]

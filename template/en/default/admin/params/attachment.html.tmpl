@@ -45,7 +45,7 @@
     _ " That is, a different domain name that resolves to this exact"
     _ " same $terms.Bugzilla installation.</p>"
     _ "<p>Note that if you have set the"
-    _ " <a href=\"editparams.cgi?section=advanced#cookiedomain\"><tt>cookiedomain</tt>"
+    _ " <a href=\"editparams.cgi?section=advanced#cookiedomain_desc\"><tt>cookiedomain</tt>"
     _" parameter</a>, you should set <tt>attachment_base</tt> to use a"
     _ " domain that would <em>not</em> be matched by"
     _ " <tt>cookiedomain</tt>.</p>"
@@ -66,39 +66,16 @@
     "specify a URL when creating an attachment and " _
     "treat the URL itself as if it were an attachment.",
 
-  maxattachmentsize => "The maximum size (in kilobytes) of attachments. " _
-                       "$terms.Bugzilla will not accept attachments greater than this number " _
-                       "of kilobytes in size. Setting this parameter to 0 will prevent " _
-                       "attaching files to ${terms.bugs}.",
+  maxattachmentsize => "The maximum size (in kilobytes) of attachments to be stored " _
+                       "in the database. If a file larger than this size is attached " _
+                       "to ${terms.abug}, $terms.Bugzilla will look at the " _
+                       "<a href='#maxlocalattachment'><tt>maxlocalattachment</tt> parameter</a> " _
+                       "to determine if the file can be stored locally on the web server. " _
+                       "If the file size exceeds both limits, then the attachment is rejected. " _
+                       "Settings both parameters to 0 will prevent attaching files to ${terms.bugs}.",
 
-  supa_jar_url =>
-    "Sometimes you may want to specify different URL for Supa applet instead of default <tt>js/Supa.jar</tt>. " _
-    "An example of such situation is when your Bugzilla is protected by SSL <i>with client certificate verification</i> " _
-    "very non-trivial, but possible sometimes. Java plugin does applet download by itself and can't use " _
-    "certificate from the browser, so Supa must be available under different 'open' URL.",
-
-  maxattachmentsize =>
-    "The maximum size (in kilobytes) of attachments <b>stored in the database</b>. " _
-    "$terms.Bugzilla will not accept attachments greater than this number " _
-    "of kilobytes in size. Setting this parameter to 0 will prevent " _
-    "attaching files to ${terms.bugs}.",
-
-  force_attach_bigfile =>
-    "If this option is on, all attachments will be stored as local files, not inside the database.",
-
-  maxlocalattachment =>
-    "The maximum size (in megabytes) of attachments <b>stored on the server filesystem</b>. " _
-    "These are either the attachments marked as 'Big Files' by user, or all attachments, " _
-    "if force_attach_bigfile is turned ON. If set to zero, attachments will never be kept " _
-    "on the server filesystem.",
-
-  inline_attachment_mime =>
-    "Perl regular expression for detecting browser-viewable MIME content types." _
-    "<br />These probably are text and image files.",
-
-  mime_types_file =>
-    "Path to a file with MIME types to file extensions mapping for guessing file types. " _
-    "Usually /etc/mime.types on Linux/UNIX systems, but you may specify the path to a " _
-    "customized version here.",
-
-} %]
+  maxlocalattachment => "The maximum size (in megabytes) of attachments to be stored " _
+                        "locally on the web server. If set to a value lower than the " _
+                        "<a href='#maxattachmentsize'><tt>maxattachmentsize</tt> parameter</a>, " _
+                        "attachments will never be kept on the local filesystem." }
+%]

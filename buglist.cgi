@@ -875,7 +875,7 @@ if ($query_format eq 'specific') {
 my $search = new Bugzilla::Search('fields' => \@selectcolumns,
                                   'params' => $params,
                                   'order' => \@orderstrings);
-my $query = $search->getSQL();
+my $query = $search->sql;
 $vars->{search_description} = $search->search_description_html;
 my $H = { %{ $params->Vars } };
 $vars->{list_params} = $H;

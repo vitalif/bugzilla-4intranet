@@ -998,8 +998,10 @@ sub notify {
     # If there are users in the CC list who don't have an account,
     # use the default language for email notifications.
     my $default_lang;
+    my $default_timezone;
     if (grep { !$_ } values %recipients) {
         $default_lang = Bugzilla::User->new()->settings->{'lang'}->{'value'};
+        $default_timezone = Bugzilla::User->new()->settings->{'timezone'}->{'value'};
     }
 
     my $flagmail = {

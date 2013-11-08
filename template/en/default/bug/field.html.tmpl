@@ -18,6 +18,8 @@
   # Contributor(s): Myk Melez <myk@mozilla.org>
   #                 Max Kanat-Alexander <mkanat@bugzilla.org>
   #                 Elliotte Martin <elliotte_martin@yahoo.com>
+  #                 Guy Pyrzak <guy.pyrzak@gmail.com>
+  #                 Reed Loden <reed@reedloden.com>
   #%]
 
 [%# INTERFACE:
@@ -207,7 +209,7 @@
        [% END %]
        [% '</ul>' IF value.size %]
 
-       [% IF editable && Param('use_see_also') %]
+       [% IF Param('use_see_also') %]
          <label for="[% field.name FILTER html %]">
            <strong>Add [% terms.Bug %] URLs:</strong>
          </label><br>

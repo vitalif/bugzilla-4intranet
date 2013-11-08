@@ -886,6 +886,13 @@ sub flag_types
     return $self->{'flag_types'};
 }
 
+sub classification {
+    my $self = shift;
+    $self->{'classification'} ||= 
+        new Bugzilla::Classification($self->classification_id);
+    return $self->{'classification'};
+}
+
 ###############################
 ####      Accessors      ######
 ###############################
@@ -999,9 +1006,14 @@ sub check_product {
 sub check {
     my ($class, $params) = @_;
     $params = { name => $params } if !ref $params;
-    $params->{_error} = 'product_access_denied';
+    if (!$params->{allow_inaccessible}) {
+        $params->{_error} = 'product_access_denied';
+    }
     my $product = $class->SUPER::check($params);
-    if (!Bugzilla->user->can_see_product($product)) {
+
+    if (!$params->{allow_inaccessible}
+        && !Bugzilla->user->can_access_product($product))
+    {
         ThrowUserError('product_access_denied', $params);
     }
     return $product;
@@ -1035,6 +1047,7 @@ Bugzilla::Product - Bugzilla product class.
     my $bug_ids         = $product->bug_ids();
     my $has_access      = $product->user_has_access($user);
     my $flag_types      = $product->flag_types();
+    my $classification  = $product->classification();
 
     my $id               = $product->id;
     my $name             = $product->name;
@@ -1205,6 +1218,14 @@ a group is valid in a particular product.)
 
  Returns:     Two references to an array of flagtype objects.
 
+=item C<classification()>
+
+ Description: Returns the classification the product belongs to.
+
+ Params:      none.
+
+ Returns:     A Bugzilla::Classification object.
+
 =back
 
 =head1 SUBROUTINES
@@ -1219,15 +1240,6 @@ than calling those accessors on every item in the array individually.
 
 This function is not exported, so must be called like 
 C<Bugzilla::Product::preload($products)>.
-
-=item C<check_product($product_name)>
-
- Description: Checks if the product name was passed in and if is a valid
-              product.
-
- Params:      $product_name - String with a product name.
-
- Returns:     Bugzilla::Product object.
 
 =back
 
