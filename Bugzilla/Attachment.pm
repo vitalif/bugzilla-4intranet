@@ -661,10 +661,6 @@ sub _check_data {
                                                          attributes => $params });
 
     $params->{filesize} || ThrowUserError('zero_length_file');
-    # Make sure the attachment does not exceed the maximum permitted size.
-    my $max_size = max(Bugzilla->params->{'maxlocalattachment'} * 1048576,
-                       Bugzilla->params->{'maxattachmentsize'} * 1024);
-
     $data || ThrowUserError('zero_length_file');
     # Make sure the attachment does not exceed the maximum permitted size.
     my $len = length($data);

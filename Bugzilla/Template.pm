@@ -557,6 +557,15 @@ $Template::Stash::SCALAR_OPS->{ truncate } =
 
 sub process {
     my $self = shift;
+	my ($template, $vars, $output) = @_;
+    if (!$output)
+    {
+        # If outputting via print(), send headers
+        # FIXME: now sends even if usage_mode is not USAGE_MODE_BROWSER
+        # This is needed for importxls.cgi and should be removed when
+        # process_bug()/post_bug() routines will be refactored to not call *.cgi
+        Bugzilla->cgi->send_header;
+    }
     # All of this current_langs stuff allows template_inner to correctly
     # determine what-language Template object it should instantiate.
     my $current_langs = Bugzilla->request_cache->{template_current_lang} ||= [];
@@ -1176,23 +1185,6 @@ sub _do_template_symlink {
         symlink($relative_target, $link_name)
           or warn "Could not make $link_name a symlink to $relative_target: $!";
     }
-}
-
-# Helper for $template->process()
-# Automatically sends CGI header
-sub process
-{
-    my $self = shift;
-    my ($template, $vars, $output) = @_;
-    if (!$output)
-    {
-        # If outputting via print(), send headers
-        # FIXME: now sends even if usage_mode is not USAGE_MODE_BROWSER
-        # This is needed for importxls.cgi and should be removed when
-        # process_bug()/post_bug() routines will be refactored to not call *.cgi
-        Bugzilla->cgi->send_header;
-    }
-    return $self->SUPER::process(@_);
 }
 
 1;
