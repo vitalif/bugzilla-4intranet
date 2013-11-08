@@ -1021,7 +1021,7 @@ sub create {
             'bug_fields' => sub {
                 my $cache = Bugzilla->request_cache;
                 $cache->{template_bug_fields} ||=
-                    Bugzilla->fields({ by_name => 1 });
+                    { map { $_->name => $_ } Bugzilla->get_fields() };
                 return $cache->{template_bug_fields};
             },
 

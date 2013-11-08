@@ -1900,8 +1900,10 @@ sub _check_product {
     }
     # Check that the product exists and that the user
     # is allowed to enter bugs into this product.
-    my $product = Bugzilla->user->can_enter_product($name, THROW_ERROR);
-    return $product;
+    Bugzilla->user->can_enter_product($name, THROW_ERROR);
+    # can_enter_product already does everything that check_product
+    # would do for us, so we don't need to use it.
+    return new Bugzilla::Product({ name => $name });
 }
 
 sub _check_priority {
