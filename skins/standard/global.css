@@ -27,7 +27,6 @@
     body {
         font-family: sans-serif;
         color: #000;
-        background: #fff url("global/body-back.gif") repeat-x;
     }
     body, td, th, input {
         font-family: Verdana, sans-serif;
@@ -162,7 +161,6 @@
         clear: both;
         margin-top: 5px;
         width: 100%;
-        background: #edf2f2;
         border-top: 1px solid #ddd;
         border-bottom: 1px solid #ddd;
     }
@@ -216,7 +214,6 @@
     }
 
     .tabs td.spacer {
-        background: white;
     }
 /* tabs (end) */
 

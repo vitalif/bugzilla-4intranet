@@ -174,8 +174,7 @@
       #%]
     [% FOREACH style_url = style_urls %]
       [% IF style_url.match('^skins/standard/') %]
-        <link href="[% style_url.replace('^skins/standard/', "skins/custom/")
-                       FILTER html %]" rel="stylesheet" type="text/css" />
+        <link href="[% style_url FILTER html %]" rel="stylesheet" type="text/css" />
       [% END %]
     [% END %]
     <!--[if lte IE 7]>
