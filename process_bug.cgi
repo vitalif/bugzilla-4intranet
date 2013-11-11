@@ -554,7 +554,8 @@ Bugzilla->request_cache->{checkers_hide_error} = 1 if @bug_objects > 1;
 # Do Actual Database Updates #
 ##############################
 foreach my $bug (@bug_objects) {
-	Bugzilla->dbh->bz_start_transaction;
+    Bugzilla->dbh->bz_start_transaction;
+
     my $mail_count = @{Bugzilla->get_mail_result()};
     my $timestamp = $dbh->selectrow_array(q{SELECT LOCALTIMESTAMP(0)});
     my $changes = $bug->update($timestamp);
