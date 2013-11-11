@@ -505,7 +505,7 @@ sub Send {
                                           $relationship,
                                           $diffs,
                                           $comments,
-                                          $params->{dep_only},
+                                          $deptext,
                                           $changer,
                                           !$start))
                 {
