@@ -360,7 +360,8 @@ their updated values (so it has the old values available for each field).
 
 =item C<timestamp> 
 
-The timestamp used for all updates in this transaction.
+The timestamp used for all updates in this transaction, as a SQL date
+string.
 
 =item C<changes> 
 
@@ -370,11 +371,14 @@ The hash of changed fields. C<< $changes->{field} = [old, new] >>
 
 =head2 bug_check_can_change_field
 
-This hook controls what fields users are allowed to change. You can add code here for 
-site-specific policy changes and other customizations. This hook is only
-executed if the field's new and old values differ. Any denies take priority over any allows. 
-So, if another extension denies a change but yours allows the change, the other extension's 
-deny will override your extension's allow.
+This hook controls what fields users are allowed to change. You can add code
+here for site-specific policy changes and other customizations. 
+
+This hook is only executed if the field's new and old values differ. 
+
+Any denies take priority over any allows. So, if another extension denies
+a change but yours allows the change, the other extension's deny will
+override your extension's allow.
 
 Params:
 
@@ -1137,8 +1141,13 @@ Params:
 
 Called right after a new product has been created, allowing additional
 changes to be made to the new product's attributes. This occurs inside of
-a database transaction, so if the hook throws an error all previous
-changes will be rolled back including the creation of the new product.
+a database transaction, so if the hook throws an error, all previous
+changes will be rolled back, including the creation of the new product.
+(However, note that such rollbacks should not normally be used, as
+some databases that Bugzilla supports have very bad rollback performance.
+If you want to validate input and throw errors before the Product is created,
+use L</object_end_of_create_validators> instead, or add a validator 
+using L</object_validators>.)
 
 Params:
 

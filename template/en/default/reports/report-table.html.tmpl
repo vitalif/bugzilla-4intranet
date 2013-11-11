@@ -47,8 +47,8 @@ END; %]
   [% urlbase = BLOCK %]buglist.cgi?[% urlbase | html %]
   [% "&amp;$tbl_vals" IF tbl_vals %][% END %]
 [% ELSE %]
-  [% urlbase = BLOCK %]buglist.cgi?[% urlbase | html %]&amp;
-  [% tbl_field | url_quote %]=[% tbl | url_quote %][% END %]
+  [% urlbase = BLOCK %]buglist.cgi?[% buglistbase FILTER html %]&amp;
+  [% tbl_field FILTER uri %]=[% tbl FILTER uri %][% END %]
 [% END %]
 
 [% IF tbl_field %]
@@ -111,8 +111,8 @@ END; %]
         <td class="[% classes.$row_idx.$col_idx %]" align="center">
           [% IF data.$tbl.$col.$row AND data.$tbl.$col.$row > 0 %]
             <a href="[% urlbase %]&amp;
-              [% PROCESS value_url value=row field=row_field %]&amp;
-              [% PROCESS value_url value=col field=col_field %]">
+              [% row_field FILTER uri %]=[% row FILTER uri %]&amp;
+              [% col_field FILTER uri %]=[% col FILTER uri %]">
               [% data.$tbl.$col.$row %]</a>
           [% ELSE %]
             .
@@ -121,35 +121,37 @@ END; %]
       [% END %]
       <td class="ttotal" align="right">
         <a href="[% urlbase %]&amp;
-          [% PROCESS value_url value=row field=row_field %]
+          [% row_field FILTER uri %]=[% row FILTER uri %]
           [% "&amp;$col_vals" IF col_vals %]">
         [% row_total %]</a>
         [% grand_total = grand_total + row_total %]
       </td>
     </tr>
   [% END %]
-
-  <tr>
-    [% row_idx = 1 - row_idx %]
-    <td class="ttotal">
-      Total
-    </td>
-    [% FOREACH col = col_names %]
-      <td class="ttotal" align="center">
-        <a href="[% urlbase %]&amp;
-          [% PROCESS value_url value=col field=col_field %]
-          [% "&amp;$row_vals" IF row_vals %]">
-        [% col_totals.$col %]</a>
-      </td> 
-    [% END %]
-    <td class="ttotal" align="right">
-      <strong>
-        <a href="[% urlbase %]
-          [% "&amp;$row_vals" IF row_vals %]
-          [% "&amp;$col_vals" IF col_vals %]">[% grand_total %]</a>
-      </strong>
-    </td>
-  </tr>
+    <tr>
+      [% row_idx = 1 - row_idx %]
+      <td class="ttotal">
+        Total
+      </td>
+      [% FOREACH col = col_names %]
+        [% NEXT IF col == "" %]
+      
+        <td class="ttotal" align="center">
+          <a href="[% urlbase %]&amp;
+            [% col_field FILTER uri %]=[% col FILTER uri %]
+            [% "&amp;$row_vals" IF row_vals %]">
+          [% col_totals.$col %]</a>
+        </td>
+      [% END %]
+      <td class="ttotal" align="right">
+        <strong>
+          <a href="[% urlbase %]
+            [% "&amp;$row_vals" IF row_vals %]
+            [% "&amp;$col_vals" IF col_vals %]">[% grand_total %]</a>
+        </strong>
+      </td>
+    </tr>
+  </tbody>
 </table>
 
     </td>

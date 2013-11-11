@@ -33,7 +33,7 @@
   [% title = title _ ": " _ (searchname OR defaultsavename) FILTER html %]
 [% END %]
 
-[% qorder = order FILTER url_quote IF order %]
+[% qorder = order FILTER uri IF order %]
 
 [%############################################################################%]
 [%# Page Header                                                              #%]
@@ -280,13 +280,16 @@ function showbugcomma()
 
 [% BLOCK edit_search_url %]
   [% editqueryname = searchname OR defaultsavename OR '' %]
-  query.cgi?[% urlquerypart | html %][% IF editqueryname != '' %]&amp;known_name=[% editqueryname | url_quote %][% END %]&amp;order=[% order | html %]
+  query.cgi?[% urlquerypart FILTER html %]
+    [%- IF editqueryname != '' %]&amp;known_name=
+      [%- editqueryname FILTER uri %]
+    [% END %]
 [% END %]
 
 [% BLOCK enter_bug_link %]
   <a href="enter_bug.cgi
            [%- IF one_product.defined %]?product=
-             [%- one_product.name FILTER url_quote %][% END %]">File
+             [%- one_product.name FILTER uri %][% END %]">File
     a new [% terms.bug %]
    [% IF one_product.defined %]
      in the "[% one_product.name FILTER html %]" product

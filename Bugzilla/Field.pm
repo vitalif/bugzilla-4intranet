@@ -249,9 +249,9 @@ use constant DEFAULT_FIELDS => (
     {name => 'percentage_complete',   desc => 'Percentage Complete', buglist => 1},
     {name => 'content',               desc => 'Content'},
     {name => 'attach_data.thedata',   desc => 'Attachment data'},
-    {name => 'attachments.isurl',     desc => 'Attachment is a URL'},
-    {name => 'owner_idle_time',       desc => 'Time Since Assignee Touched'},
-    {name => 'see_also',              desc => 'See Also',            buglist => 1, type => FIELD_TYPE_BUG_URLS},
+    {name => "owner_idle_time",       desc => "Time Since Assignee Touched"},
+    {name => 'see_also',              desc => "See Also",
+     type => FIELD_TYPE_BUG_URLS},
 );
 
 ################

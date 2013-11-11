@@ -544,7 +544,7 @@ sub _default_quicksearch_word {
     addChart('alias', 'substring', $word, $negate);
     addChart('short_desc', 'substring', $word, $negate);
     addChart('status_whiteboard', 'substring', $word, $negate);
-    addChart('content', 'matches', $word, $negate);
+    addChart('content', 'matches', _matches_phrase($word), $negate);
 }
 
 sub _handle_urls {
@@ -655,7 +655,7 @@ sub makeChart {
     my $cgi = Bugzilla->cgi;
     $cgi->param("field$expr", $field);
     $cgi->param("type$expr",  $type);
-    $cgi->param("value$expr", $value);
+    $cgi->param("value$expr", url_decode($value));
 }
 
 1;

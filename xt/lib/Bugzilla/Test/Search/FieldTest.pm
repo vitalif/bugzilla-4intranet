@@ -26,7 +26,6 @@ package Bugzilla::Test::Search::FieldTest;
 
 use strict;
 use warnings;
-use Bugzilla::Test::Search::FakeCGI;
 use Bugzilla::Search;
 use Bugzilla::Test::Search::Constants;
 
@@ -179,25 +178,29 @@ sub bug_is_contained {
 
 # The tests we know are broken for this operator/field combination.
 sub _known_broken {
-    my $self = shift;
+    my ($self, $constant, $skip_pg_check) = @_;
+    $constant ||= KNOWN_BROKEN;
     my $field = $self->field;
     my $type = $self->field_object->type;
     my $operator = $self->operator;
     my $value = $self->main_value;
     my $value_name = "$operator-$value";
+    if (my $extra_name = $self->test->{extra_name}) {
+        $value_name .= "-$extra_name";
+    }    
     
-    if (Bugzilla->dbh->isa('Bugzilla::DB::Pg')) {
+    if (!$skip_pg_check and Bugzilla->dbh->isa('Bugzilla::DB::Pg')) {
         my $field_broken = PG_BROKEN->{$field}->{$operator};
         return $field_broken if $field_broken;
         my $pg_value_broken = PG_BROKEN->{$field}->{$value_name};
         return $pg_value_broken if $pg_value_broken;
     }
     
-    my $value_broken = KNOWN_BROKEN->{$value_name}->{$field};
-    $value_broken ||= KNOWN_BROKEN->{$value_name}->{$type};
+    my $value_broken = $constant->{$value_name}->{$field};
+    $value_broken ||= $constant->{$value_name}->{$type};
     return $value_broken if $value_broken;
-    my $operator_broken = KNOWN_BROKEN->{$operator}->{$field};
-    $operator_broken ||= KNOWN_BROKEN->{$operator}->{$type};
+    my $operator_broken = $constant->{$operator}->{$field};
+    $operator_broken ||= $constant->{$operator}->{$type};
     return $operator_broken if $operator_broken;
     return {};
 }
@@ -278,19 +281,16 @@ sub join_broken {
 
 # The CGI object that will get passed to Bugzilla::Search as its arguments.
 sub search_params {
-    my $self = shift;
+    my ($self) = @_;
     return $self->{search_params} if $self->{search_params};
 
-    my $field = $self->field;
-    my $operator = $self->operator;
-    my $value = $self->translated_value;
+    my %params = (
+        "field0-0-0" => $self->field,
+        "type0-0-0"  => $self->operator,
+        "value0-0-0"  => $self->translated_value,
+    );
     
-    my $cgi = new Bugzilla::Test::Search::FakeCGI;
-    $cgi->param("field0-0-0", $field);
-    $cgi->param('type0-0-0', $operator);
-    $cgi->param('value0-0-0', $value);
-    
-    $self->{search_params} = $cgi;
+    $self->{search_params} = \%params;
     return $self->{search_params};
 }
 
@@ -461,13 +461,27 @@ sub _translate_value_for_bug {
 sub _substr_value {
     my ($self, $value) = @_;
     my $field = $self->field;
+    my $type  = $self->field_object->type;
     my $substr_size = SUBSTR_SIZE;
     if (exists FIELD_SUBSTR_SIZE->{$field}) {
         $substr_size = FIELD_SUBSTR_SIZE->{$field};
     }
-
+    elsif (exists FIELD_SUBSTR_SIZE->{$type}) {
+        $substr_size = FIELD_SUBSTR_SIZE->{$type};
+    }
     if ($substr_size > 0) {
-        return substr($value, 0, $substr_size);
+        # The field name is included in every field value, and if it's
+        # long, it might take up the whole substring, and we don't want that.
+        if (!grep { $_ eq $field or $_ eq $type } SUBSTR_NO_FIELD_ADD) {
+            $substr_size += length($field);
+        }
+        my $string = substr($value, 0, $substr_size);
+        # Make percentage_complete substrings strings match integers uniquely,
+        # by searching for the full decimal number.
+        if ($field eq 'percentage_complete' and length($string) < $substr_size) {
+            $string .= ".000";
+        }
+        return $string;
     }
     return substr($value, $substr_size);
 }

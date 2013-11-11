@@ -87,18 +87,6 @@
   </td>
 </tr>
 [% END %]
-[% IF Param("allow_attach_url") %]
-<tr class="expert_fields" id="attype_url_row" style="display: none">
-  <th><label for="attachurl">AttachURL</label>:</th>
-  <td>
-    <em>URL to be attached instead.</em><br />
-    <input type="text" id="attachurl" name="attachurl" size="60" 
-           maxlength="2000"
-           onkeyup="URLFieldHandler()" onblur="URLFieldHandler()">
-  </td>
-</tr>
-</tbody>
-[% END %]
 <tr>
   <th><label for="description">Description</label>:</th>
   <td>

@@ -85,23 +85,19 @@
     [%# CSS cascade, part 1: Standard Bugzilla stylesheet set (persistent).
       # Always present.
       #%]
-    [% FOREACH style_url = style_urls %]
-      <link href="[% style_url FILTER html %]"
-            rel="stylesheet"
-            type="text/css">
+    [%# This allows people to switch back to the "Classic" skin if they
+      # are in another skin. 
+      #%]
+    <link href="[% 'skins/standard/global.css' FILTER mtime_url FILTER html %]"
+          rel="alternate stylesheet" 
+          title="[% setting_descs.standard FILTER html %]">
+    [% FOREACH style_url = css_sets.standard %]
+      [% PROCESS format_css_link css_set_name = 'standard' %]
     [% END %]
-    <!--[if lte IE 7]>
-      [%# Internet Explorer treats [if IE] HTML comments as uncommented.
-        # Use it to import CSS fixes so that Bugzilla looks decent on IE 7
-        # and below.
-        #%]
-      <link href="skins/standard/IE-fixes.css"
-            rel="stylesheet"
-            type="text/css">
-    <![endif]-->
 
-    [%# CSS cascade, part 2: Standard Bugzilla stylesheet set (selectable)
-      # Present if skin selection is enabled.
+    [%# CSS cascade, part 2 & 3: Third-party stylesheet set (selected and
+      # selectable). All third-party skins are present as alternate
+      # stylesheets, even if they are not currently in use.
       #%]
     [%# «ачем стандартные стили упоминать дважды? “о есть пон€тно, зачем -
       # чтобы выбрать можно было. Ќо это не дело, оно ломает Opera 10.6.
@@ -236,10 +232,8 @@
     // -->
     </script>
 
-    [% IF javascript_urls %]
-      [% FOREACH javascript_url = javascript_urls %]
-        <script src="[% javascript_url FILTER html %]" type="text/javascript"></script>
-      [% END %]
+    [% FOREACH javascript_url = javascript_urls %]
+      [% PROCESS format_js_link %]
     [% END %]
 
     [%# this puts the live bookmark up on firefox for the Atom feed %]

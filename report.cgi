@@ -140,10 +140,8 @@ Bugzilla::Search->COLUMNS->{measure}->{name} = $measures->{$measure};
 
 # Clone the params, so that Bugzilla::Search can modify them
 my $params = new Bugzilla::CGI($cgi);
-my $search = new Bugzilla::Search(
-    'fields' => \@axis_fields,
-    'params' => $params,
-);
+my $search = new Bugzilla::Search('fields' => \@axis_fields, 
+                                  'params' => scalar $params->Vars);
 my $query = $search->sql;
 $query =
     "SELECT ".

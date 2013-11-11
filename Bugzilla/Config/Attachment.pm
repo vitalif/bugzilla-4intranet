@@ -60,12 +60,6 @@ sub get_param_list {
   },
 
   {
-  name => 'allow_attach_url',
-  type => 'b',
-  default => 0
-  },
-
-  {
   name => 'use_supa_applet',
   type => 'b',
   default => 0,

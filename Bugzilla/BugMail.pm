@@ -487,6 +487,9 @@ sub Send {
     my @sent;
     my @excluded;
 
+    # Only used for headers in bugmail for new bugs
+    my @fields = $start ? () : Bugzilla->get_fields({obsolete => 0, mailhead => 1});
+
     foreach my $user_id (keys %recipients) {
         my %rels_which_want;
         my $sent_mail = 0;
@@ -502,7 +505,7 @@ sub Send {
                                           $relationship,
                                           $diffs,
                                           $comments,
-                                          $deptext,
+                                          $params->{dep_only},
                                           $changer,
                                           !$start))
                 {
@@ -672,6 +675,76 @@ sub sendMail
     Bugzilla::Hook::process('bugmail-post_send', { tmpl => \$tmpl, vars => $vars });
 
     return 1;
+}
+
+sub _get_diffs {
+    my ($bug, $end) = @_;
+    my $dbh = Bugzilla->dbh;
+
+    my @args = ($bug->id);
+    # If lastdiffed is NULL, then we don't limit the search on time.
+    my $when_restriction = '';
+    if ($bug->lastdiffed) {
+        $when_restriction = ' AND bug_when > ? AND bug_when <= ?';
+        push @args, ($bug->lastdiffed, $end);
+    }
+
+    my $diffs = $dbh->selectall_arrayref(
+           "SELECT profiles.login_name, profiles.realname, fielddefs.description,
+                   bugs_activity.bug_when, bugs_activity.removed,
+                   bugs_activity.added, bugs_activity.attach_id, fielddefs.name,
+                   bugs_activity.comment_id
+              FROM bugs_activity
+        INNER JOIN fielddefs
+                ON fielddefs.id = bugs_activity.fieldid
+        INNER JOIN profiles
+                ON profiles.userid = bugs_activity.who
+             WHERE bugs_activity.bug_id = ?
+                   $when_restriction
+          ORDER BY bugs_activity.bug_when", undef, @args);
+
+    my $difftext = "";
+    my $diffheader = "";
+    my @diffparts;
+    my $lastwho = "";
+    my $fullwho;
+    my @changedfields;
+    foreach my $ref (@$diffs) {
+        my ($who, $whoname, $what, $when, $old, $new, $attachid, $fieldname, $comment_id) = @$ref;
+        my $diffpart = {};
+        if ($who ne $lastwho) {
+            $lastwho = $who;
+            $fullwho = $whoname ? "$whoname <$who>" : $who;
+            $diffheader = "\n$fullwho changed:\n\n";
+            $diffheader .= three_columns("What    ", "Removed", "Added");
+            $diffheader .= ('-' x 76) . "\n";
+        }
+        $what =~ s/^(Attachment )?/Attachment #$attachid / if $attachid;
+        if( $fieldname eq 'estimated_time' ||
+            $fieldname eq 'remaining_time' ) {
+            $old = format_time_decimal($old);
+            $new = format_time_decimal($new);
+        }
+        if ($attachid) {
+            ($diffpart->{'isprivate'}) = $dbh->selectrow_array(
+                'SELECT isprivate FROM attachments WHERE attach_id = ?',
+                undef, ($attachid));
+        }
+        if ($fieldname eq 'longdescs.isprivate') {
+            my $comment = Bugzilla::Comment->new($comment_id);
+            my $comment_num = $comment->count;
+            $what =~ s/^(Comment )?/Comment #$comment_num /;
+            $diffpart->{'isprivate'} = $new;
+        }
+        $difftext = three_columns($what, $old, $new);
+        $diffpart->{'header'} = $diffheader;
+        $diffpart->{'fieldname'} = $fieldname;
+        $diffpart->{'text'} = $difftext;
+        push(@diffparts, $diffpart);
+        push(@changedfields, $what);
+    }
+
+    return (\@diffparts, \@changedfields, $diffs);
 }
 
 1;

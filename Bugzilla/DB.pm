@@ -45,6 +45,7 @@ use Bugzilla::DB::Schema;
 
 use List::Util qw(max);
 use Storable qw(dclone);
+use Text::ParseWords qw(shellwords);
 
 #####################################################################
 # Constants
@@ -77,6 +78,21 @@ use constant ENUM_DEFAULTS => {
 # the database doesn't support OR searches in fulltext searches.
 # Used by Bugzilla::Bug::possible_duplicates.
 use constant FULLTEXT_OR => '';
+
+# These are used in regular expressions to mean "the start or end of a word".
+#
+# We don't use [[:<:]] and [[:>:]], even though they mean
+# "start and end of a word" and are supported by both MySQL and PostgreSQL,
+# because they don't work if your search starts or ends with a non-alphanumeric
+# character, and there's a fair chance somebody will want to use the "word"
+# search to search flags for something like "review+".
+#
+# We do use [:almum:] because it is supported by at least MySQL and
+# PostgreSQL, and hopefully will get us as much Unicode support as possible,
+# depending on how well the regexp engines of the various databases support
+# Unicode.
+use constant WORD_START => '(^|[^[:alnum:]])';
+use constant WORD_END   => '($|[^[:alnum:]])';
 
 #####################################################################
 # Connection Methods
@@ -374,21 +390,9 @@ sub sql_fulltext_search
     # make the string lowercase to do case insensitive search
     my $lower_text = lc($text);
 
-    # split the text we're searching for into separate words. As a hack
-    # to allow quicksearch to work, if the field starts and ends with
-    # a double-quote, then we don't split it into words. We can't use
-    # Text::ParseWords here because it gets very confused by unbalanced
-    # quotes, which breaks searches like "don't try this" (because of the
-    # unbalanced single-quote in "don't").
-    my @words;
-    if ($lower_text =~ /^"/ and $lower_text =~ /"$/) {
-        $lower_text =~ s/^"//;
-        $lower_text =~ s/"$//;
-        @words = ($lower_text);
-    }
-    else {
-        @words = split(/\s+/, $lower_text);
-    }
+    # split the text we're searching for into separate words, understanding
+    # quotes.
+    my @words = shellwords($lower_text);
 
     # surround the words with wildcards and SQL quotes so we can use them
     # in LIKE search clauses

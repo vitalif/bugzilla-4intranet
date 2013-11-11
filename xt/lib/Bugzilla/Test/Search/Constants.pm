@@ -31,6 +31,7 @@ use Bugzilla::Constants;
 
 our @EXPORT = qw(
     ATTACHMENT_FIELDS
+    BROKEN_NOT
     COLUMN_TRANSLATION
     COMMENT_FIELDS
     CUSTOM_FIELDS
@@ -47,6 +48,7 @@ our @EXPORT = qw(
     OR_SKIP
     PG_BROKEN
     SKIP_FIELDS
+    SUBSTR_NO_FIELD_ADD
     SUBSTR_SIZE
     TESTS
     TESTS_PER_RUN
@@ -126,13 +128,8 @@ use constant FLAG_FIELDS => {
 # These are fields that we don't test. Test::More will mark these
 # "TODO & SKIP", and not run tests for them at all.
 #
-# attachments.isurl can't easily be supported by us, but it's basically
-# identical to isprivate and isobsolete for searching, so that's not a big
-# loss.
-#
 # We don't support days_elapsed or owner_idle_time yet.
 use constant SKIP_FIELDS => qw(
-    attachments.isurl
     owner_idle_time
     days_elapsed
 );
@@ -157,21 +154,34 @@ use constant USER_FIELDS => qw(
 );
 
 # For the "substr"-type searches, how short of a substring should
-# we use?
+# we use? The goal is to be shorter than the full string, but
+# long enough to still be globally unique.
 use constant SUBSTR_SIZE => 20;
 # However, for some fields, we use a different size.
 use constant FIELD_SUBSTR_SIZE => {
-    alias => 12,
-    bug_file_loc => 30,
+    alias => 11,
     # Just the month and day.
     deadline => -5,
     creation_ts => -8,
     delta_ts => -8,
+    percentage_complete => 7,
     work_time => 3,
     remaining_time => 3,
-    see_also => 30,
-    target_milestone => 12,
+    target_milestone => 15,
+    longdesc => 25,
+    # Just the hour and minute.
+    FIELD_TYPE_DATETIME, -5,
 };
+
+# For most fields, we add the length of the name of the field plus
+# the SUBSTR_SIZE specified above to determine how large of a substring
+# we're going to use. However, for some fields, it doesn't make sense to
+# add in their field name this way.
+use constant SUBSTR_NO_FIELD_ADD => FIELD_TYPE_DATETIME, qw(
+    target_milestone remaining_time percentage_complete work_time
+    attachments.mimetype attachments.submitter attachments.filename
+    attachments.description flagtypes.name
+);
 
 ################
 # Known Broken #
@@ -215,17 +225,13 @@ use constant NEGATIVE_BROKEN => (
     'attachments.description' => { contains => [5] },
     'attachments.filename'    => { contains => [5] },
     'attachments.mimetype'    => { contains => [5] },
-    'attachments.submitter'   => { contains => [5] },
     blocked      => { contains => [3,4,5] },
     bug_file_loc => { contains => [5] },
     bug_group    => { contains => [1,5] },
-    cc           => { contains => [1,5] },
     deadline     => { contains => [5] },
     dependson    => { contains => [2,4,5] },
     longdesc     => { contains => [1] },
     'longdescs.isprivate'   => { contains => [1] },
-    'requestees.login_name' => { contains => [3,4,5] },
-    'setters.login_name'    => { contains => [5] },
     work_time               => { contains => [1] },
     # Custom fields are busted because they can be NULL.
     FIELD_TYPE_FREETEXT, { contains => [5] },
@@ -268,7 +274,7 @@ use constant ALLWORDS_BROKEN => (
 # nowords and nowordssubstr have these broken tests in common.
 #
 # flagtypes.name doesn't match bugs without flags.
-# cc, longdescs.isprivate, and bug_group actually work properly in
+# longdescs.isprivate, and bug_group actually work properly in
 # terms of excluding bug 1 (since we exclude all values in the search,
 # on our test), but still fail at including bug 5.
 # The longdesc* and work_time fields, coincidentally, work completely
@@ -277,7 +283,6 @@ use constant NOWORDS_BROKEN => (
     NEGATIVE_BROKEN,
     'flagtypes.name' => { contains => [5] },
     bug_group        => { contains => [5] },
-    cc               => { contains => [5] },
     longdesc         => {},
     work_time        => {},
     'longdescs.isprivate' => {},
@@ -363,9 +368,6 @@ use constant KNOWN_BROKEN => {
     anyexact => {
         percentage_complete => { contains => [2] },
     },
-    anywordssubstr => {
-        percentage_complete => { contains => [2] },
-    },
 
     'allwordssubstr-<1>' => { ALLWORDS_BROKEN },
     # flagtypes.name does not work here, probably because they all try to
@@ -373,7 +375,6 @@ use constant KNOWN_BROKEN => {
     # Same for attach_data.thedata.
     'allwords-<1>' => {
         ALLWORDS_BROKEN,
-        'attach_data.thedata' => { contains => [1] },
         'flagtypes.name' => { contains => [1] },
     },
 
@@ -383,19 +384,16 @@ use constant KNOWN_BROKEN => {
     # attachments.
     nowords => {
         NOWORDS_BROKEN,
-        'attach_data.thedata' => { contains => [1,5] },
     },
 
     # anywords searches don't work on decimal values.
     # attach_data doesn't work (perhaps because it's the entire
     # data, or some problem with the regex?).
     anywords => {
-        'attach_data.thedata' => { contains => [1] },
         work_time => { contains => [1] },
     },
     'anywords-<1> <2>' => {
         percentage_complete => { contains => [2] },
-        'attach_data.thedata' => { contains => [1,2] },
         work_time => { contains => [1,2] },
     },
 
@@ -476,11 +474,8 @@ use constant KNOWN_BROKEN => {
 # where MySQL isn't, but the result is still a bit surprising to the user.
 use constant PG_BROKEN => {
     'attach_data.thedata' => {
-        allwords       => { },
-        allwordssubstr => { },
-        anywords       => { },
-        notregexp      => { contains => [5] },
-        nowords        => { contains => [5] },
+        notregexp => { contains => [5] },
+        nowords   => { contains => [5] },
     },
     percentage_complete => {
         'allwordssubstr-<1>' => { contains => [3] },
@@ -491,6 +486,261 @@ use constant PG_BROKEN => {
         nowordssubstr   => { contains => [3] },
         'regexp-<1>'    => { contains => [3] },
         substring       => { contains => [3] },
+    },
+};
+
+###################
+# Broken NotTests #
+###################
+
+# These are fields that are broken in the same way for pretty much every
+# NOT test that is broken.
+use constant COMMON_BROKEN_NOT => (
+    "attach_data.thedata"     => { contains => [5] },
+    "attachments.description" => { contains => [5] },
+    "attachments.filename"    => { contains => [5] },
+    "attachments.isobsolete"  => { contains => [5] },
+    "attachments.ispatch"     => { contains => [5] },
+    "attachments.isprivate"   => { contains => [5] },
+    "attachments.mimetype"    => { contains => [5] },
+    "bug_file_loc"            => { contains => [5] },
+    "deadline"                => { contains => [5] },
+    "flagtypes.name"          => { contains => [5] },
+    "keywords"                => { contains => [5] },
+    "longdescs.isprivate"     => { contains => [1] },
+    "percentage_complete"     => { contains => [1 .. 5] },
+    "see_also"                => { contains => [5] },
+    FIELD_TYPE_BUG_ID,           { contains => [5] },
+    FIELD_TYPE_DATETIME,         { contains => [5] },
+    FIELD_TYPE_FREETEXT,         { contains => [5] },
+    FIELD_TYPE_MULTI_SELECT,     { contains => [1, 5] },
+    FIELD_TYPE_TEXTAREA,         { contains => [5] },
+);
+
+# Common BROKEN_NOT values for the changed* fields.
+use constant CHANGED_BROKEN_NOT => (
+    "attach_data.thedata"   => { contains => [1] },
+    "classification"        => { contains => [1] },
+    "commenter"             => { contains => [1] },
+    "delta_ts"              => { contains => [1] },
+    "percentage_complete"   => { contains => [1] },
+    "requestees.login_name" => { contains => [1] },
+    "setters.login_name"    => { contains => [1] },
+    "work_time"             => { contains => [1] },    
+);
+
+# For changedfrom and changedto.
+use constant CHANGED_FROM_TO_BROKEN_NOT => (
+    "bug_group" => { contains => [1] },
+    "cc" => { contains => [1] },
+    "cf_multi_select" => { contains => [1] },
+    "estimated_time" => { contains => [1] },
+    "flagtypes.name" => { contains => [1] },
+    "keywords" => { contains => [1] },    
+);
+
+# Common broken tests for the "not" or "no" operators.
+use constant NEGATIVE_BROKEN_NOT => (
+    "blocked"             => { contains => [3, 4, 5] },
+    "bug_group"           => { contains => [5] },
+    "dependson"           => { contains => [2, 4, 5] },
+    "flagtypes.name"      => { contains => [1 .. 5] },
+    "percentage_complete" => { contains => [1 .. 5] },    
+);
+
+# These are field/operator combinations that are broken when run under NOT().
+use constant BROKEN_NOT => {
+    allwords       => {
+        COMMON_BROKEN_NOT,
+        cc => { contains => [1] },
+        bug_group => { contains => [1] },
+        "flagtypes.name"      => { contains => [1,5] },
+        keywords => { contains => [1,5] },
+        longdesc => { contains => [1] },
+        'see_also' => { },
+        work_time => { contains => [1] },
+        FIELD_TYPE_MULTI_SELECT, { },
+    },
+    'allwords-<1> <2>' => {
+        'attach_data.thedata' => { contains => [5] },
+        bug_group => { },
+        cc => { },
+        'flagtypes.name'      => { contains => [5] },
+        'keywords'            => { contains => [5] },
+        'longdesc' => { },
+        'longdescs.isprivate' => { },
+        work_time => { },
+    },
+    allwordssubstr => {
+        COMMON_BROKEN_NOT,
+        bug_group => { contains => [1] },
+        cc => { contains => [1] },
+        keywords => { contains => [1,5] },
+        longdesc => { contains => [1] },
+        see_also => { },
+        work_time => { contains => [1] },
+        FIELD_TYPE_MULTI_SELECT, { },
+    },
+    'allwordssubstr-<1>,<2>' => {
+        bug_group => { },
+        cc => { },
+        FIELD_TYPE_MULTI_SELECT, { },
+        keywords => { contains => [5] },
+        "longdesc" => { },
+        "longdescs.isprivate" => { },
+        "see_also" => { },
+        "work_time" => { },
+    },
+    anyexact => {
+        COMMON_BROKEN_NOT,
+        "flagtypes.name" => { contains => [1, 2, 5] },
+        "longdesc"       => { contains => [1, 2] },
+        "work_time"      => { contains => [1, 2] }
+    },
+    'anyexact-<1>, <2>' => {
+        bug_group => { contains => [1] },
+        percentage_complete => { contains => [1,3,4,5] },
+        keywords => { contains => [1,5] },
+        see_also => { },
+        FIELD_TYPE_MULTI_SELECT, { },
+    },
+    anywords => {
+        COMMON_BROKEN_NOT,
+        "work_time"           => { contains => [1, 2] },
+        "work_time"           => { contains => [1] },
+        FIELD_TYPE_MULTI_SELECT, { contains => [5] },
+    },
+    'anywords-<1> <2>' => {
+        'attach_data.thedata' => { contains => [5] },
+        "percentage_complete" => { contains => [1,3,4,5] },
+        work_time => { contains => [1,2] },
+    },
+    anywordssubstr => {
+        COMMON_BROKEN_NOT,
+        "work_time" => { contains => [1, 2] },
+    },
+    'anywordssubstr-<1> <2>' => {
+        percentage_complete => { contains => [1,2,3,4,5] },
+        FIELD_TYPE_MULTI_SELECT, { contains => [5] },
+    },
+    casesubstring => {
+        COMMON_BROKEN_NOT,
+        bug_group => { contains => [1] },
+        keywords  => { contains => [1,5] },
+        longdesc  => { contains => [1] },
+        work_time => { contains => [1] }   ,
+        FIELD_TYPE_MULTI_SELECT, { contains => [1,5] },
+    },
+    'casesubstring-<1>-lc' => {
+        bug_group => { },
+        keywords => { contains => [5] },
+        longdesc => { },
+        FIELD_TYPE_MULTI_SELECT, { contains => [5] },
+    },
+    changedafter => {
+        "attach_data.thedata"   => { contains => [2, 3, 4] },
+        "classification"        => { contains => [2, 3, 4] },
+        "commenter"             => { contains => [2, 3, 4] },
+        "creation_ts"           => { contains => [2, 3, 4] },
+        "delta_ts"              => { contains => [2, 3, 4] },
+        "percentage_complete"   => { contains => [2, 3, 4] },
+        "requestees.login_name" => { contains => [2, 3, 4] },
+        "setters.login_name"    => { contains => [2, 3, 4] },
+    },
+    changedbefore=> {
+        CHANGED_BROKEN_NOT,
+        creation_ts => { contains => [1, 2, 5] },
+        work_time   => { }
+    },
+    changedby => {
+        CHANGED_BROKEN_NOT,
+        creation_ts => { contains => [1] },
+    },
+    changedfrom => {
+        CHANGED_BROKEN_NOT,
+        CHANGED_FROM_TO_BROKEN_NOT,
+        'attach_data.thedata' => { },
+        blocked         => { contains => [1, 2] },
+        dependson       => { contains => [1, 3] },
+        longdesc        => { },
+        FIELD_TYPE_BUG_ID, { contains => [1 .. 4] },
+        
+    },
+    changedto => {
+        CHANGED_BROKEN_NOT,
+        CHANGED_FROM_TO_BROKEN_NOT,
+        longdesc => { contains => [1] },
+        "remaining_time" => { contains => [1] },
+    },
+    equals => {
+        COMMON_BROKEN_NOT,
+        bug_group => { contains => [1] },
+        "flagtypes.name" => { contains => [1, 5] },
+        keywords  => { contains => [1,5] },
+        longdesc  => { contains => [1] },
+        work_time => { contains => [1] }
+    },
+    greaterthan => {
+        COMMON_BROKEN_NOT,
+        cc        => { contains => [1] },
+        work_time => { contains => [2, 3, 4] },
+        FIELD_TYPE_MULTI_SELECT, { contains => [5] },
+    },
+    greaterthaneq => {
+        COMMON_BROKEN_NOT,
+        cc               => { contains => [1] },
+        "flagtypes.name" => { contains => [2, 5] },
+        "work_time"      => { contains => [2, 3, 4] },
+        percentage_complete => { contains => [1,3,4,5] },,
+        FIELD_TYPE_MULTI_SELECT, { contains => [5] },
+    },
+    lessthan => {
+        COMMON_BROKEN_NOT,
+        longdesc => { contains => [1] },
+        'longdescs.isprivate' => { },
+    },
+    'lessthan-2' => {
+        bug_group => { contains => [1] },
+        keywords  => { contains => [1,5] },
+    },
+    lessthaneq => {
+        COMMON_BROKEN_NOT,
+        bug_group => { contains => [1] },
+        keywords  => { contains => [1,5] },
+        longdesc  => { contains => [1] },
+        'longdescs.isprivate' => { },
+    },
+    notequals      => { NEGATIVE_BROKEN_NOT },
+    notregexp      => { NEGATIVE_BROKEN_NOT },
+    notsubstring   => { NEGATIVE_BROKEN_NOT },
+    nowords        => {
+        NEGATIVE_BROKEN_NOT,
+        "work_time"           => { contains => [2, 3, 4] },
+        "flagtypes.name" => { },
+    },
+    nowordssubstr  => {
+        NEGATIVE_BROKEN_NOT,
+        "attach_data.thedata" => { },
+        "flagtypes.name" => { },
+        "work_time"           => { contains => [2, 3, 4] },
+    },
+    regexp         => {
+        COMMON_BROKEN_NOT,
+        bug_group => { contains => [1] },
+        "flagtypes.name" => { contains => [1,5] },
+        keywords  => { contains => [1,5] },
+        longdesc  => { contains => [1] },
+        work_time => { contains => [1] },
+    },
+    'regexp-^1-' => {
+        "flagtypes.name" => { contains => [5] },
+    },
+    substring      => {
+        COMMON_BROKEN_NOT,
+        bug_group => { contains => [1] },
+        keywords  => { contains => [1,5] },
+        longdesc  => { contains => [1] },
+        work_time => { contains => [1] },
     },
 };
 
@@ -917,7 +1167,6 @@ use constant INJECTION_BROKEN_FIELD => {
     'attachments.isobsolete' => { db_skip => ['Pg'] },
     'attachments.ispatch'    => { db_skip => ['Pg'] },
     'attachments.isprivate'  => { db_skip => ['Pg'] },
-    'attachments.isurl'      => { db_skip => ['Pg'] },
     blocked                  => { db_skip => ['Pg'] },
     bug_id                   => { db_skip => ['Pg'] },
     cclist_accessible        => { db_skip => ['Pg'] },

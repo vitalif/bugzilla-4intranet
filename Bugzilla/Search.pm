@@ -3366,5 +3366,52 @@ use overload '""' => sub
     return $self->[0];
 };
 
+######################
+# Public Subroutines #
+######################
+
+# Validate that the query type is one we can deal with
+sub IsValidQueryType
+{
+    my ($queryType) = @_;
+    if (grep { $_ eq $queryType } qw(specific advanced)) {
+        return 1;
+    }
+    return 0;
+}
+
+# Splits out "asc|desc" from a sort order item.
+sub split_order_term {
+    my $fragment = shift;
+    $fragment =~ /^(.+?)(?:\s+(ASC|DESC))?$/i;
+    my ($column_name, $direction) = (lc($1), uc($2 || ''));
+    return wantarray ? ($column_name, $direction) : $column_name;
+}
+
+# Used to translate old SQL fragments from buglist.cgi's "order" argument
+# into our modern field IDs.
+sub translate_old_column {
+    my ($column) = @_;
+    # All old SQL fragments have a period in them somewhere.
+    return $column if $column !~ /\./;
+
+    if ($column =~ /\bAS\s+(\w+)$/i) {
+        return $1;
+    }
+    # product, component, classification, assigned_to, qa_contact, reporter
+    elsif ($column =~ /map_(\w+?)s?\.(login_)?name/i) {
+        return $1;
+    }
+    
+    # If it doesn't match the regexps above, check to see if the old 
+    # SQL fragment matches the SQL of an existing column
+    foreach my $key (%{ COLUMNS() }) {
+        next unless exists COLUMNS->{$key}->{name};
+        return $key if COLUMNS->{$key}->{name} eq $column;
+    }
+
+    return $column;
+}
+
 1;
 __END__

@@ -153,7 +153,7 @@ function URLFieldHandler()
         "contenttypeentry"
     ];
     var i, thisfield;
-    if (field_attachurl.value.match(/^\s*$/)) {
+    if (field_text.value.match(/^\s*$/)) {
         for (i = 0; i < greyfields.length; i++) {
             thisfield = document.getElementById(greyfields[i]);
             if (thisfield)
@@ -183,7 +183,7 @@ function DataFieldHandler(AllowAttachUrl)
     }
     if (!AllowAttachUrl)
         return;
-    var greyfields = new Array("attachurl");
+    var greyfields = new Array("attach_text");
     var i, thisfield;
     if (fd_empty) {
         for (i = 0; i < greyfields.length; i++) {
@@ -205,9 +205,9 @@ function clearAttachmentFields() {
 
     document.getElementById('data').value = '';
     DataFieldHandler();
-    if ((element = document.getElementById('attachurl'))) {
+    if ((element = document.getElementById('attach_text'))) {
         element.value = '';
-        URLFieldHandler();
+        TextFieldHandler();
     }
     document.getElementById('description').value = '';
     /* Fire onchange so that the disabled state of the content-type

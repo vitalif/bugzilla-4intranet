@@ -102,7 +102,8 @@
                   [% urlquerypart FILTER html %]&amp;order=
                   [% PROCESS new_order id='bug_id' %]
                   [%-#%]&amp;query_based_on=
-                  [% defaultsavename OR searchname FILTER url_quote %]">ID
+                  [% defaultsavename OR searchname FILTER uri %]">ID
+          [% PROCESS order_arrow id='bug_id' ~%]
         </a>
       </th>
 
@@ -157,7 +158,7 @@
     <a href="buglist.cgi?[% urlquerypart FILTER html %]&amp;order=
       [% PROCESS new_order %]
       [%-#%]&amp;query_based_on=
-      [% defaultsavename OR searchname FILTER url_quote %]">
+      [% defaultsavename OR searchname FILTER uri %]">
         [%- abbrev.$id.title || field_descs.$id || column.title -%]
     </a>
   </th>
@@ -196,9 +197,9 @@
   [% IF (om = order.match("\\b$id( DESC)?")) %]
     [% desc = ' DESC' IF NOT om.0 %]
   [% END %]
-  [% id _ desc FILTER url_quote %]
+  [% id _ desc FILTER uri %]
   [% IF id != 'bug_id' AND order %]
-    [% ',' _ order.remove("\\b$id( DESC)?(,\\s*|\$)") FILTER url_quote %]
+    [% ',' _ order.remove("\\b$id( DESC)?(,\\s*|\$)") FILTER uri %]
   [% END %]
 [% END %]
 

@@ -24,7 +24,7 @@
 
 [% IF classification %]
   [% classification_url_part = BLOCK %]&amp;classification=
-    [%- classification.name FILTER url_quote %]
+    [%- classification.name FILTER uri %]
   [%- END %]
   [% classification_title = BLOCK %] 
     in classification '[% classification.name FILTER html %]'
@@ -35,22 +35,11 @@
   title = "Select product $classification_title"
 %]
 
-[% edit_contentlink = BLOCK %]
-  editproducts.cgi?action=edit&amp;product=%%name%%
-[% END %]
-[% delete_contentlink = BLOCK %]
-  editproducts.cgi?action=del&amp;product=%%name%%
-[% END %]
-[% bug_count_contentlink = BLOCK %]
-  buglist.cgi?product=%%name%%
-[% END %]
-
-
 [% columns = [
      { 
        name => "name"
        heading => "Edit product..."
-       contentlink => edit_contentlink
+       contentlink => 'editproducts.cgi?action=edit&amp;product=%%name%%'
      },
      { 
        name => "description"
@@ -70,7 +59,7 @@
        name => "bug_count"
        heading => "$terms.Bug Count"
        align => 'right'
-       contentlink => bug_count_contentlink
+       contentlink => 'buglist.cgi?product=%%name%%'
      })
   %]
 
@@ -79,7 +68,7 @@
 [% columns.push({
        heading => "Action"
        content => "Delete"
-       contentlink => delete_contentlink
+       contentlink => 'editproducts.cgi?action=del&amp;product=%%name%%'
      })
 %]
 
