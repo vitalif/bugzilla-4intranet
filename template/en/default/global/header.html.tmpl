@@ -326,3 +326,7 @@
 [% END %]
 
 [% Hook.process('aftermessage') %]
+
+[% BLOCK format_js_link %]
+    <script src="[% javascript_url FILTER html %]" type="text/javascript"></script>
+[% END %]
