@@ -50,10 +50,9 @@
     }
     
     .bz_common_actions {
-        display: block;
+        display: inline-block;
         height: 170px;
         width: 145px;
-        float: left;
         margin: 0 2ex 2em 0;
         text-align: center;
     }
@@ -96,6 +95,10 @@
     #page-index table{
         border-collapse: collapse;
         margin: auto;
+    }
+    
+    #page-index table td {
+        text-align: center;
     }
     
     #welcome
