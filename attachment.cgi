@@ -523,7 +523,6 @@ sub insert
          ispatch       => scalar $cgi->param('ispatch'),
          isprivate     => scalar $cgi->param('isprivate'),
          mimetype      => $content_type,
-         store_in_file => scalar $cgi->param('bigfile'),
          base64_content => scalar $cgi->param('base64_content'),
          });
 
@@ -558,7 +557,7 @@ sub insert
                                              new => $bug_status });
         }
 
-        $bug->set_status(
+        $bug->set_bug_status(
             scalar $cgi->param('bug_status'),
             {
                 resolution =>  scalar $cgi->param('resolution'),

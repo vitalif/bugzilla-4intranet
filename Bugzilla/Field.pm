@@ -462,6 +462,8 @@ for newly-created bugs;
 
 sub in_new_bugmail { return $_[0]->{mailhead} }
 
+sub mailhead { return $_[0]->{mailhead} }
+
 =over
 
 =item C<sortkey>
@@ -917,6 +919,7 @@ sub set_clone_bug      { $_[0]->set('clone_bug',   $_[1]); }
 sub set_obsolete       { $_[0]->set('obsolete',    $_[1]); }
 sub set_sortkey        { $_[0]->set('sortkey',     $_[1]); }
 sub set_in_new_bugmail { $_[0]->set('mailhead',    $_[1]); }
+sub set_mailhead       { $_[0]->set('mailhead',    $_[1]); }
 sub set_buglist        { $_[0]->set('buglist',     $_[1]); }
 sub set_add_to_deps    { $_[0]->set('add_to_deps', $_[1]); }
 sub set_url            { $_[0]->set('url',         $_[1]); }

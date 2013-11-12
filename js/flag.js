@@ -85,4 +85,4 @@ function hideRequesteeFields()
     }
 }
 
-addListener(window, "load", disableRequesteeFields);
+addListener(window, "load", hideRequesteeFields);

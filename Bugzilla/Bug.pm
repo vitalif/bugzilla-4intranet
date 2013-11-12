@@ -2767,7 +2767,7 @@ sub set_severity       { $_[0]->set('bug_severity',  $_[1]); }
 sub set_bug_status {
     my ($self, $status, $params) = @_;
     my $old_status = $self->status;
-    $self->set('bug_status', $status);
+    $self->{'bug_status'} = $status;
     delete $self->{'status'};
     delete $self->{'statuses_available'};
     delete $self->{'choices'};

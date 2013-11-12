@@ -219,7 +219,6 @@ if (defined($cgi->upload('data')) || $cgi->param('attach_text')) {
              ispatch       => scalar $cgi->param('ispatch'),
              isprivate     => scalar $cgi->param('isprivate'),
              mimetype      => $content_type,
-             store_in_file => scalar $cgi->param('bigfile'),
              base64_content => scalar $cgi->param('base64_content'),
             });
     };

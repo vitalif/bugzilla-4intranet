@@ -360,6 +360,7 @@ my @set_fields = qw(op_sys rep_platform priority bug_severity
                     component target_milestone version
                     bug_file_loc status_whiteboard short_desc
                     deadline remaining_time estimated_time
+                    bug_status
                     );
 push(@set_fields, 'assigned_to') if !$cgi->param('set_default_assignee');
 push(@set_fields, 'qa_contact')  if !$cgi->param('set_default_qa_contact');
@@ -423,7 +424,7 @@ foreach my $b (@bug_objects)
         {
             my $method = $methods{$field_name};
             $method ||= "set_" . $field_name;
-            $b->$method($ARGS->{$field_name} || '');
+            $b->$method($ARGS->{$field_name} || '', $ARGS);
         }
     }
     $b->reset_assigned_to if $cgi->param('set_default_assignee');
@@ -535,6 +536,10 @@ if (defined $cgi->param('id')) {
     if (Bugzilla->params->{"usebugaliases"} && defined $cgi->param('alias')) {
         $set_all_fields{alias} = $cgi->param('alias');
     }
+}
+
+foreach my $b (@bug_objects) {
+    $b->set_all(\%set_all_fields);
 }
 
 # TODO move saved state into a global object

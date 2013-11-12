@@ -114,7 +114,6 @@ use constant VALIDATORS => {
     ispatch       => \&Bugzilla::Object::check_boolean,
     isprivate     => \&_check_is_private,
     mimetype      => \&_check_content_type,
-    store_in_file => \&_check_store_in_file,
 };
 
 use constant UPDATE_VALIDATORS => {
@@ -622,16 +621,13 @@ sub _check_data {
     $data || ThrowUserError('zero_length_file');
     # Make sure the attachment does not exceed the maximum permitted size.
     my $len = length($data);
-    my $max_size = $params->{store_in_file} || Bugzilla->params->{force_attach_bigfile}
+    my $max_size =Bugzilla->params->{force_attach_bigfile}
         ? Bugzilla->params->{'maxlocalattachment'} * 1048576
         : Bugzilla->params->{'maxattachmentsize'} * 1024;
     if ($len > $max_size) {
         my $vars = { filesize => sprintf("%.0f", $len/1024) };
         if ($params->{ispatch}) {
             ThrowUserError('patch_too_large', $vars);
-        }
-        elsif ($params->{store_in_file}) {
-            ThrowUserError('local_file_too_large');
         }
         else {
             ThrowUserError('file_too_large', $vars);
@@ -858,59 +854,45 @@ sub create {
     # Extract everything which is not a valid column name.
     my $bug = delete $params->{bug};
     $params->{bug_id} = $bug->id;
-    my $fh = delete $params->{data};
-    my $store_in_file = delete $params->{store_in_file};
-
-    if (Bugzilla->params->{force_attach_bigfile})
-    {
-        # Force uploading into files instead of DB when force_attach_bigfile = On
-        $store_in_file = 1;
-    }
+    my $data = delete $params->{data};
+    my $size = delete $params->{filesize};
 
     my $attachment = $class->insert_create_data($params);
     my $attachid = $attachment->id;
 
-    # If the file is to be stored locally, stream the file from the web server
-    # to the local file without reading it into a local variable.
-    if ($store_in_file) {
+    # The file is too large to be stored in the DB, so we store it locally.
+    if ($size > Bugzilla->params->{'maxattachmentsize'} * 1024) {
         my $attachdir = bz_locations()->{'attachdir'};
         my $hash = ($attachid % 100) + 100;
         $hash =~ s/.*(\d\d)$/group.$1/;
         mkdir "$attachdir/$hash", 0770;
         chmod 0770, "$attachdir/$hash";
-        open(AH, '>', "$attachdir/$hash/attachment.$attachid") or die "Could not write into $attachdir/$hash/attachment.$attachid: $!";
-        binmode AH;
-        if (ref $fh) {
-            my $limit = Bugzilla->params->{"maxlocalattachment"} * 1048576;
-            my $sizecount = 0;
-            while (<$fh>) {
-                print AH $_;
-                $sizecount += length($_);
-                if ($sizecount > $limit) {
-                    close AH;
-                    close $fh;
-                    unlink "$attachdir/$hash/attachment.$attachid";
-                    ThrowUserError("local_file_too_large");
-                }
-            }
-            close $fh;
+        if (ref $data) {
+            copy($data, "$attachdir/$hash/attachment.$attachid");
+            close $data;
         }
         else {
-            print AH $fh;
+            open(AH, '>', "$attachdir/$hash/attachment.$attachid");
+            binmode AH;
+            print AH $data;
+            close AH;
         }
-        close AH;
+        $data = ''; # Will be stored in the DB.
     }
-    else
-    {
-        # We only use $fh here in this INSERT with a placeholder,
-        # so it's safe.
-        my $sth = $dbh->prepare("INSERT INTO attach_data
-                                 (id, thedata) VALUES ($attachid, ?)");
+    # If we have a filehandle, we need its content to store it in the DB.
+    elsif (ref $data) {
+        local $/;
+        $data = <$data>;
+    }
 
-        trick_taint($fh);
-        $sth->bind_param(1, $fh, $dbh->BLOB_TYPE);
-        $sth->execute();
-    }
+    my $sth = $dbh->prepare("INSERT INTO attach_data
+                             (id, thedata) VALUES ($attachid, ?)");
+
+    trick_taint($data);
+    $sth->bind_param(1, $data, $dbh->BLOB_TYPE);
+    $sth->execute();
+
+    $attachment->{bug} = $bug;
 
     Bugzilla::Hook::process('attachment_post_create', { attachment => $attachment });
 
@@ -1170,7 +1152,6 @@ sub add_attachment
         filename      => $params->{data}->{filename},
         ispatch       => $params->{ispatch},
         isprivate     => $params->{isprivate},
-        isurl         => 0,
         mimetype      => $content_type,
     });
 
