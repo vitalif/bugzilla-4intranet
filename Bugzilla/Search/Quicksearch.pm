@@ -32,6 +32,7 @@ use Bugzilla::Util;
 
 use List::Util qw(min max);
 use Text::ParseWords qw(quotewords);
+use List::MoreUtils qw(firstidx);
 
 use base qw(Exporter);
 @Bugzilla::Search::Quicksearch::EXPORT = qw(quicksearch);
@@ -83,7 +84,7 @@ sub FIELD_MAP {
     # Get all the fields whose names don't contain periods. (Fields that
     # contain periods are always handled in MAPPINGS.) 
     my @db_fields = grep { $_->name !~ /\./ } 
-                         Bugzilla->get_fields({ obsolete => 0 });
+                         @{ Bugzilla->fields({ obsolete => 0 }) };
     my %full_map = (%{ MAPPINGS() }, map { $_->name => $_->name } @db_fields);
 
     # Eliminate the fields that start with bug_ or rep_, because those are
@@ -497,9 +498,9 @@ sub _special_field_syntax {
         my $legal_priorities = get_legal_field_values('priority');
 
         # If Pn exists explicitly, use it.
-        my $start = lsearch($legal_priorities, "P$p_start");
+        my $start = firstidx { $_ eq "P$p_start" } @$legal_priorities;
         my $end;
-        $end = lsearch($legal_priorities, "P$p_end") if defined $p_end;
+        $end = firstidx { $_ eq "P$p_end" } @$legal_priorities if defined $p_end;
 
         # If Pn doesn't exist explicitly, then we mean the nth priority.
         if ($start == -1) {
@@ -516,10 +517,10 @@ sub _special_field_syntax {
             ($start, $end) = ($end, $start) if $end < $start;
             $prios = join(',', @$legal_priorities[$start..$end])
         }
-        $self->addChart('priority', 'anyexact', $prios, $negate);
+
+        addChart('priority', 'anyexact', $prios, $negate);
         return 1;
     }
-
     return 0;    
 }
 
@@ -573,24 +574,30 @@ sub splitString
     my @quoteparts;
     my @parts;
 
-    my @quoteparts = split /\"/, $string, -1;
-    my @parts;
-    for my $i (0 .. $#quoteparts)
-    {
-        if ($i % 2)
-        {
-            @parts or push @parts, '';
-            $parts[$#parts] .= '"'.$quoteparts[$i].'"';
+    # Now split on quote sign; be tolerant about unclosed quotes
+    @quoteparts = split(/"/, $string);
+    foreach my $part (@quoteparts) {
+        # After every odd quote, quote special chars
+        if ($i++ %2) {
+            $part = url_quote($part);
+            # Protect the minus sign from being considered
+            # as negation, in quotes.
+            $part =~ s/(?<=^)\-/%2D/;
         }
-        else
-        {
-            my @p = split /\s+/, $quoteparts[$i], -1;
-            my $c = 0;
-            $p[0] or $c = 1, shift @p;
-            @parts && $parts[$#parts] or $c = 1, pop @parts;
-            $c or $parts[$#parts] .= shift @p;
-            push @parts, @p;
-        }
+    }
+    # Join again
+    $string = join('"', @quoteparts);
+
+    # Now split on unescaped whitespace
+    @parts = split(/\s+/, $string);
+    foreach (@parts) {
+        # Protect plus signs from becoming a blank.
+        # If "+" appears as the first character, leave it alone
+        # as it has a special meaning. Strings which start with
+        # "+" must be quoted.
+        s/(?<!^)\+/%2B/g;
+        # Remove quotes
+        s/"//g;
     }
 
     return @parts;

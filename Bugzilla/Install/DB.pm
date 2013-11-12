@@ -90,7 +90,6 @@ sub update_fielddefs_definition {
     }
 
     $dbh->bz_add_column('fielddefs', 'visibility_field_id', {TYPE => 'INT3'});
-    # visibility_value_id is not added anymore during update - it's now in fieldvaluecontrol
     $dbh->bz_add_column('fielddefs', 'value_field_id', {TYPE => 'INT3'});
     $dbh->bz_add_index('fielddefs', 'fielddefs_value_field_id_idx',
                        ['value_field_id']);
@@ -114,6 +113,9 @@ sub update_fielddefs_definition {
         {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'});
     $dbh->bz_add_index('fielddefs', 'fielddefs_is_mandatory_idx',
                        ['is_mandatory']);
+
+    # 2010-04-05 dkl@redhat.com - Bug 479400
+    _migrate_field_visibility_value();
 
     # Remember, this is not the function for adding general table changes.
     # That is below. Add new changes to the fielddefs table above this
@@ -649,6 +651,9 @@ sub update_table_definitions {
 
     # 2010-07-18 LpSolit@gmail.com - Bug 119703
     _remove_attachment_isurl();
+
+    # 2009-05-07 ghendricks@novell.com - Bug 77193
+    _add_isactive_to_product_fields();
 
     ################################################################
     # New --TABLE-- changes should go *** A B O V E *** this point #
@@ -1300,15 +1305,7 @@ sub _move_quips_into_db {
             $dbh->do("INSERT INTO quips (quip) VALUES (?)", undef, $_);
         }
 
-        print <<EOT;
-
-Quips are now stored in the database, rather than in an external file.
-The quips previously stored in $datadir/comments have been copied into
-the database, and that file has been renamed to $datadir/comments.bak
-You may delete the renamed file once you have confirmed that all your
-quips were moved successfully.
-
-EOT
+        print "\n", install_string('update_quips', { data => $datadir }), "\n";
         $comments->close;
         rename("$datadir/comments", "$datadir/comments.bak")
             || warn "Failed to rename: $!";
@@ -1882,9 +1879,9 @@ sub _remove_spaces_and_commas_from_flagtypes {
                 if (length($tryflagname) > 50) {
                     my $lastchanceflagname = (substr $tryflagname, 0, 47) . '...';
                     if (defined($flagtypes{$lastchanceflagname})) {
-                        print "  ... last attempt as \"$lastchanceflagname\" still failed.'\n",
-                              "Rename the flag by hand and run checksetup.pl again.\n";
-                        die("Bad flag type name $flagname");
+                        print "  ... last attempt as \"$lastchanceflagname\" still failed.'\n";
+                        die install_string('update_flags_bad_name',
+                                           { flag => $flagname }), "\n";
                     }
                     $tryflagname = $lastchanceflagname;
                 }
@@ -2855,12 +2852,7 @@ sub _change_short_desc_from_mediumtext_to_varchar {
                FROM bugs WHERE CHAR_LENGTH(short_desc) > 255');
 
         if (@$long_summary_bugs) {
-            print <<EOT;
-
-WARNING: Some of your bugs had summaries longer than 255 characters.
-They have had their original summary copied into a comment, and then
-the summary was truncated to 255 characters. The affected bug numbers were:
-EOT
+            print "\n", install_string('update_summary_truncated');
             my $comment_sth = $dbh->prepare(
                 'INSERT INTO longdescs (bug_id, who, thetext, bug_when)
                       VALUES (?, ?, ?, NOW())');
@@ -2869,10 +2861,9 @@ EOT
             my @affected_bugs;
             foreach my $bug (@$long_summary_bugs) {
                 my ($bug_id, $summary, $reporter_id) = @$bug;
-                my $summary_comment = "The original summary for this bug"
-                   . " was longer than 255 characters, and so it was truncated"
-                   . " when Bugzilla was upgraded. The original summary was:"
-                   . "\n\n$summary";
+                my $summary_comment =
+                    install_string('update_summary_truncate_comment',
+                                   { summary => $summary });
                 $comment_sth->execute($bug_id, $reporter_id, $summary_comment);
                 my $short_summary = substr($summary, 0, 252) . "...";
                 $desc_sth->execute($short_summary, $bug_id);
@@ -2957,12 +2948,8 @@ sub _move_data_nomail_into_db {
         # If there are any nomail entries remaining, move them to nomail.bad
         # and say something to the user.
         if (scalar(keys %nomail)) {
-            print <<EOT;
-
-WARNING: The following users were listed in data/nomail, but do not
-have an account here. The unmatched entries have been moved
-to $datadir/nomail.bad:
-EOT
+            print "\n", install_string('update_nomail_bad',
+                                       { data => $datadir }), "\n";
             my $nomail_bad = new IO::File("$datadir/nomail.bad", '>>');
             foreach my $unknown_user (keys %nomail) {
                 print "\t$unknown_user\n";
@@ -3381,6 +3368,20 @@ sub _fix_illegal_flag_modification_dates {
     print "$rows flags had an illegal modification date. Fixed!\n" if ($rows =~ /^\d+$/);
 }
 
+sub _add_visiblity_value_to_value_tables {
+    my $dbh = Bugzilla->dbh;
+    my @standard_fields = 
+        qw(bug_status resolution priority bug_severity op_sys rep_platform);
+    my $custom_fields = $dbh->selectcol_arrayref(
+        'SELECT name FROM fielddefs WHERE custom = 1 AND type IN(?,?)',
+        undef, FIELD_TYPE_SINGLE_SELECT, FIELD_TYPE_MULTI_SELECT);
+    foreach my $field (@standard_fields, @$custom_fields) {
+        $dbh->bz_add_column($field, 'visibility_value_id', {TYPE => 'INT2'});
+        $dbh->bz_add_index($field, "${field}_visibility_value_id_idx",
+                           ['visibility_value_id']);
+    }
+}
+
 sub _add_extern_id_index {
     my $dbh = Bugzilla->dbh;
     if (!$dbh->bz_index_info('profiles', 'profiles_extern_id_idx')) {
@@ -3416,15 +3417,16 @@ sub _fix_logincookies_ipaddr {
 }
 
 sub _fix_invalid_custom_field_names {
-    my @fields = Bugzilla->get_fields({ custom => 1 });
+    my $fields = Bugzilla->fields({ custom => 1 });
 
-    foreach my $field (@fields) {
+    foreach my $field (@$fields) {
         next if $field->name =~ /^[a-zA-Z0-9_]+$/;
         # The field name is illegal and can break the DB. Kill the field!
         $field->set_obsolete(1);
-        print "Removing custom field '" . $field->name . "' (illegal name)... ";
+        print install_string('update_cf_invalid_name',
+                             { field => $field->name }), "\n";
         eval { $field->remove_from_db(); };
-        print $@ ? "failed:\n$@\n" : "succeeded\n";
+        warn $@ if $@;
     }
 }
 
@@ -3550,6 +3552,53 @@ sub _remove_attachment_isurl {
                  undef, 'url.txt');
         $dbh->bz_drop_column('attachments', 'isurl');
         $dbh->do("DELETE FROM fielddefs WHERE name='attachments.isurl'");
+    }
+}
+
+sub _add_isactive_to_product_fields {
+    my $dbh = Bugzilla->dbh;
+
+    # If we add the isactive column all values should start off as active
+    if (!$dbh->bz_column_info('components', 'isactive')) {
+        $dbh->bz_add_column('components', 'isactive', 
+            {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'});
+    }
+    
+    if (!$dbh->bz_column_info('versions', 'isactive')) {
+        $dbh->bz_add_column('versions', 'isactive', 
+            {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'});
+    }
+
+    if (!$dbh->bz_column_info('milestones', 'isactive')) {
+        $dbh->bz_add_column('milestones', 'isactive', 
+            {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'});
+    }
+}
+
+sub _migrate_field_visibility_value {
+    my $dbh = Bugzilla->dbh;
+
+    if ($dbh->bz_column_info('fielddefs', 'visibility_value_id')) {
+        print "Populating new field_visibility table...\n";
+
+        $dbh->bz_start_transaction();
+
+        my %results =
+            @{ $dbh->selectcol_arrayref(
+                "SELECT id, visibility_value_id FROM fielddefs
+                 WHERE visibility_value_id IS NOT NULL",
+               { Columns => [1,2] }) };
+
+        my $insert_sth =
+            $dbh->prepare("INSERT INTO field_visibility (field_id, value_id)
+                           VALUES (?, ?)");
+
+        foreach my $id (keys %results) {
+            $insert_sth->execute($id, $results{$id});
+        }
+
+        $dbh->bz_commit_transaction();
+        $dbh->bz_drop_column('fielddefs', 'visibility_value_id');
     }
 }
 

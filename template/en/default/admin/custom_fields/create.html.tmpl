@@ -124,18 +124,19 @@
         <select name="visibility_field_id" id="visibility_field_id"
                 onchange="onChangeVisibilityField()">
           <option></option>
-          [% FOREACH sel_field = Bugzilla.get_fields({ is_select => 1, obsolete => 0 }) %]
+          [% FOREACH sel_field = Bugzilla.fields({ is_select => 1 }) %]
             <option value="[% sel_field.id FILTER html %]">
               [% sel_field.description FILTER html %]
               ([% sel_field.name FILTER html %])
             </option>
           [% END %]
         </select>
-        <label style="display:none" for="visibility_value_id" id="visibility_value_id_label"><strong>&nbsp;is set to one of:</strong></label>
-      </td>
-      <td rowspan="2">
-        <select style="display:none; min-width: 100px" id="visibility_value_id"
-            name="visibility_value_id" size="7" multiple="multiple">
+        <label for="visibility_values">
+          <strong>is set to any of:</strong>
+        </label>
+        <select multiple="multiple" size="5" name="visibility_values"
+                id="visibility_values" class="field_value">
+          <option value=""></option>
         </select>
       </td>
     </tr>
@@ -153,7 +154,7 @@
       <td>
         <select disabled="disabled" name="value_field_id" id="value_field_id">
           <option></option>
-          [% FOREACH sel_field = Bugzilla.get_fields({ is_select => 1, obsolete => 0 }) %]
+          [% FOREACH sel_field = Bugzilla.fields({ is_select => 1 }) %]
             <option value="[% sel_field.id FILTER html %]">
               [% sel_field.description FILTER html %]
               ([% sel_field.name FILTER html %])

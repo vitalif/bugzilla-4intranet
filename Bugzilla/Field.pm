@@ -28,7 +28,7 @@ Bugzilla::Field - a particular piece of information about bugs
   use Data::Dumper;
 
   # Display information about all fields.
-  print Dumper(Bugzilla->get_fields());
+  print Dumper(Bugzilla->fields());
 
   # Display information about non-obsolete custom fields.
   print Dumper(Bugzilla->active_custom_fields);
@@ -36,9 +36,9 @@ Bugzilla::Field - a particular piece of information about bugs
   use Bugzilla::Field;
 
   # Display information about non-obsolete custom fields.
-  # Bugzilla->get_fields() is a wrapper around Bugzilla::Field->match(),
-  # so both methods take the same arguments.
-  print Dumper(Bugzilla::Field->match({ obsolete => 0, custom => 1 }));
+  # Bugzilla->fields() is a wrapper around Bugzilla::Field->get_all(),
+  # with arguments which filter the fields before returning them.
+  print Dumper(Bugzilla->fields({ obsolete => 0, custom => 1 }));
 
   # Create or update a custom field or field definition.
   my $field = Bugzilla::Field->create(
@@ -77,7 +77,7 @@ use base qw(Exporter Bugzilla::Object);
 use Bugzilla::Constants;
 use Bugzilla::Error;
 use Bugzilla::Util;
-require 'Bugzilla/Field/Choice.pm';
+use List::MoreUtils qw(any);
 
 use Scalar::Util qw(blessed);
 use Encode;
@@ -125,7 +125,7 @@ use constant VALIDATORS => {
     type         => \&_check_type,
     value_field_id      => \&_check_value_field_id,
     visibility_field_id => \&_check_visibility_field_id,
-    add_to_deps => \&_check_add_to_deps,
+    visibility_values => \&_check_visibility_values,
     is_mandatory => \&Bugzilla::Object::check_boolean,
 };
 
@@ -134,7 +134,7 @@ use constant VALIDATOR_DEPENDENCIES => {
     type => ['custom'],
     reverse_desc => ['type'],
     value_field_id => ['type'],
-    visibility_value_id => ['visibility_field_id'],
+    visibility_values => ['visibility_field_id'],
 };
 
 use constant UPDATE_COLUMNS => qw(
@@ -226,9 +226,12 @@ use constant DEFAULT_FIELDS => (
     {name => 'attachments.isprivate',   desc => 'Attachment is private'},
     {name => 'attachments.submitter',   desc => 'Attachment creator'},
 
-    {name => 'target_milestone',      desc => 'Target Milestone',    buglist => 1},
-    {name => 'creation_ts',           desc => 'Creation time',       buglist => 1, in_new_bugmail => 1},
-    {name => 'delta_ts',              desc => 'Last changed time',   buglist => 1, in_new_bugmail => 1},
+    {name => 'target_milestone',      desc => 'Target Milestone',
+     buglist => 1},
+    {name => 'creation_ts',           desc => 'Creation date',
+     buglist => 1},
+    {name => 'delta_ts',              desc => 'Last changed date',
+     buglist => 1},
     {name => 'longdesc',              desc => 'Comment'},
     {name => 'longdescs.isprivate',   desc => 'Comment is private'},
     {name => 'alias',                 desc => 'Alias',               buglist => 1},
@@ -360,8 +363,8 @@ sub _check_visibility_field_id {
     return $field->id;
 }
 
-sub _check_control_value {
-    my ($invocant, $value_id, undef, $params) = @_;
+sub _check_visibility_values {
+    my ($invocant, $values, undef, $params) = @_;
     my $field;
     if (blessed $invocant) {
         $field = $invocant->visibility_field;
@@ -369,11 +372,24 @@ sub _check_control_value {
     elsif ($params->{visibility_field_id}) {
         $field = $invocant->new($params->{visibility_field_id});
     }
-    # When no field is set, no value is set.
-    return undef if !$field;
-    my $value_obj = Bugzilla::Field::Choice->type($field)
-                    ->check({ id => $value_id });
-    return $value_obj->id;
+    # When no field is set, no values are set.
+    return [] if !$field;
+
+    if (!scalar @$values) {
+        ThrowUserError('field_visibility_values_must_be_selected',
+                       { field => $field });
+    }
+
+    my @visibility_values;
+    my $choice = Bugzilla::Field::Choice->type($field);
+    foreach my $value (@$values) {
+        if (!blessed $value) {
+            $value = $choice->check({ id => $value });
+        }
+        push(@visibility_values, $value);
+    }
+
+    return \@visibility_values;
 }
 # This has effect only for fields of FIELD_TYPE_BUG_ID type
 # When 1, add field value (bug id) to list of bugs blocked by current
@@ -718,9 +734,9 @@ sub check_visibility
     return $self->has_visibility_value($value);
 }
 
-=item C<visibility_value>
+=item C<visibility_values>
 
-If we have a L</visibility_field>, then what value does that field have to
+If we have a L</visibility_field>, then what values does that field have to
 be set to in order to show this field? Returns a L<Bugzilla::Field::Choice>
 or undef if there is no C<visibility_field> set.
 
@@ -728,15 +744,23 @@ or undef if there is no C<visibility_field> set.
 
 =cut
 
-sub visibility_value {
+sub visibility_values {
     my $self = shift;
-    if ($self->{visibility_field_id}) {
-        require Bugzilla::Field::Choice;
-        $self->{visibility_value} ||=
-            Bugzilla::Field::Choice->type($self->visibility_field)->new(
-                $self->{visibility_value_id});
+    my $dbh = Bugzilla->dbh;
+    
+    return [] if !$self->{visibility_field_id};
+
+    if (!defined $self->{visibility_values}) {
+        my $visibility_value_ids =
+            $dbh->selectcol_arrayref("SELECT value_id FROM field_visibility
+                                      WHERE field_id = ?", undef, $self->id);
+
+        $self->{visibility_values} =
+            Bugzilla::Field::Choice->type($self->visibility_field)
+            ->new_from_list($visibility_value_ids);
     }
-    return $self->{visibility_value};
+
+    return $self->{visibility_values};
 }
 
 =pod
@@ -818,10 +842,13 @@ See L<Bugzilla::Field::ChoiceInterface>.
 sub is_visible_on_bug {
     my ($self, $bug) = @_;
 
-    my $visibility_value = $self->visibility_value;
-    return 1 if !$visibility_value;
+    # Always return visible, if this field is not
+    # visibility controlled.
+    return 1 if !$self->{visibility_field_id};
 
-    return $visibility_value->is_set_on_bug($bug);
+    my $visibility_values = $self->visibility_values;
+
+    return (any { $_->is_set_on_bug($bug) } @$visibility_values) ? 1 : 0;
 }
 
 =over
@@ -904,6 +931,8 @@ They will throw an error if you try to set the values to something invalid.
 
 =item C<set_visibility_field>
 
+=item C<set_visibility_values>
+
 =item C<set_value_field>
 
 =item C<set_is_mandatory>
@@ -931,14 +960,9 @@ sub set_visibility_field {
     delete $self->{visibility_field};
     delete $self->{visibility_values};
 }
-
-sub set_visibility_values
-{
-    my $self = shift;
-    my ($value_ids) = @_;
-    update_visibility_values($self, 0, $value_ids);
-    delete $self->{visibility_values};
-    return $value_ids && @$value_ids;
+sub set_visibility_values {
+    my ($self, $value_ids) = @_;
+    $self->set('visibility_values', $value_ids);
 }
 
 sub set_value_field
@@ -1098,17 +1122,27 @@ C<is_mandatory> - boolean - Whether this field is mandatory. Defaults to 0.
 sub create {
     my $class = shift;
     my ($params) = @_;
-
-    # We must set up database schema BEFORE inserting a row into fielddefs!
-    $params->{delta_ts} = POSIX::strftime('%Y-%m-%d %H:%M:%S', localtime);
-    $class->check_required_create_fields($params);
-    my $field_values = $class->run_create_validators($params);
-    my $obj = bless $field_values, ref($class)||$class;
-
     my $dbh = Bugzilla->dbh;
-    if ($obj->custom) {
-        my $name = $obj->name;
-        my $type = $obj->type;
+
+    # This makes sure the "sortkey" validator runs, even if
+    # the parameter isn't sent to create().
+    $params->{sortkey} = undef if !exists $params->{sortkey};
+    $params->{type} ||= 0;
+    
+    $dbh->bz_start_transaction();
+    $class->check_required_create_fields(@_);
+    my $field_values      = $class->run_create_validators($params);
+    my $visibility_values = delete $field_values->{visibility_values};
+    my $field             = $class->insert_create_data($field_values);
+    
+    $field->set_visibility_values($visibility_values);
+    $field->_update_visibility_values();
+
+    $dbh->bz_commit_transaction();
+
+    if ($field->custom) {
+        my $name = $field->name;
+        my $type = $field->type;
         if (SQL_DEFINITIONS->{$type}) {
             # Create the database column that stores the data for this field.
             $dbh->bz_add_column('bugs', $name, SQL_DEFINITIONS->{$type});

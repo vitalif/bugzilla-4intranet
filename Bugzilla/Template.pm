@@ -65,6 +65,10 @@ use Scalar::Util qw(blessed);
 use base qw(Template);
 
 my ($custom_proto, $custom_proto_regex, $custom_proto_cached);
+use constant FORMAT_TRIPLE => '%19s|%-28s|%-28s';
+use constant FORMAT_3_SIZE => [19,28,28];
+use constant FORMAT_DOUBLE => '%19s %-55s';
+use constant FORMAT_2_SIZE => [19,55];
 
 # Convert the constants in the Bugzilla::Constants module into a hash we can
 # pass to the template object for reflection into its "constants" namespace
@@ -443,9 +447,18 @@ sub get_bug_link {
 
     $bug = blessed($bug) ? $bug : new Bugzilla::Bug($bug);
     return $link_text if $bug->{error};
+    
+    # Initialize these variables to be "" so that we don't get warnings
+    # if we don't change them below (which is highly likely).
+    my ($pre, $title, $post) = ("", "", "");
+    my @css_classes = ("bz_bug_link");
 
-    my $title = get_text('get_status', { status => $bug->bug_status });
+    $title = get_text('get_status', { status => $bug->bug_status });
+
+    push @css_classes, "bz_status_" . css_class_quote($bug->bug_status);
+
     if ($bug->resolution) {
+        push @css_classes, "bz_closed";
         $title .= ' ' . get_text('get_resolution',
                                  { resolution => $bug->resolution });
     }
@@ -466,8 +479,41 @@ sub get_bug_link {
     if (defined $options->{comment_num}) {
         $linkval .= "#c" . $options->{comment_num};
     }
-    # CustIS Bug 53691 - Styles for bug states
-    return "<span class=\"bz_st_".$bug->bug_status."\"><a href=\"$linkval\" title=\"$title\">$link_text</a></span>";
+
+    $pre  = '<span class="' . join(" ", @css_classes) . '">';
+    $post = '</span>';
+
+    return qq{$pre<a href="$linkval" title="$title">$link_text</a>$post};
+}
+
+# We use this instead of format because format doesn't deal well with
+# multi-byte languages.
+sub multiline_sprintf {
+    my ($format, $args, $sizes) = @_;
+    my @parts;
+    my @my_sizes = @$sizes; # Copy this so we don't modify the input array.
+    foreach my $string (@$args) {
+        my $size = shift @my_sizes;
+        my @pieces = split("\n", wrap_hard($string, $size));
+        push(@parts, \@pieces);
+    }
+
+    my $formatted;
+    while (1) {
+        # Get the first item of each part.
+        my @line = map { shift @$_ } @parts;
+        # If they're all undef, we're done.
+        last if !grep { defined $_ } @line;
+        # Make any single undef item into ''
+        @line = map { defined $_ ? $_ : '' } @line;
+        # And append a formatted line
+        $formatted .= sprintf($format, @line);
+        # Remove trailing spaces, or they become lots of =20's in
+        # quoted-printable emails.
+        $formatted =~ s/\s+$//;
+        $formatted .= "\n";
+    }
+    return $formatted;
 }
 
 #####################
@@ -479,10 +525,17 @@ sub get_bug_link {
 sub _mtime { return (stat($_[0]))[9] }
 
 sub mtime_filter {
-    my ($file_url) = @_;
-    my $cgi_path = bz_locations()->{'cgi_path'};
-    my $file_path = "$cgi_path/$file_url";
-    return "$file_url?" . _mtime($file_path);
+    my ($file_url, $mtime) = @_;
+    # This environment var is set in the .htaccess if we have mod_headers
+    # and mod_expires installed, to make sure that JS and CSS with "?"
+    # after them will still be cached by clients.
+    return $file_url if !$ENV{BZ_CACHE_CONTROL};
+    if (!$mtime) {
+        my $cgi_path = bz_locations()->{'cgi_path'};
+        my $file_path = "$cgi_path/$file_url";
+        $mtime = _mtime($file_path);
+    }
+    return "$file_url?$mtime";
 }
 
 # Set up the skin CSS cascade:
@@ -533,8 +586,7 @@ sub css_files {
 sub _css_link_set {
     my ($file_name) = @_;
 
-    my $standard_mtime = _mtime($file_name);
-    my %set = (standard => $file_name . "?$standard_mtime");
+    my %set = (standard => mtime_filter($file_name));
     
     # We use (^|/) to allow Extensions to use the skins system if they
     # want.
@@ -551,7 +603,7 @@ sub _css_link_set {
         my $skin_file_name = $file_name;
         $skin_file_name =~ s{(^|/)skins/standard/}{skins/contrib/$option/};
         if (my $mtime = _mtime("$cgi_path/$skin_file_name")) {
-            $skin_urls{$option} = $skin_file_name . "?$mtime";
+            $skin_urls{$option} = mtime_filter($skin_file_name, $mtime);
         }
     }
     $set{alternate} = \%skin_urls;
@@ -564,7 +616,7 @@ sub _css_link_set {
     my $custom_file_name = $file_name;
     $custom_file_name =~ s{(^|/)skins/standard/}{skins/custom/};
     if (my $custom_mtime = _mtime("$cgi_path/$custom_file_name")) {
-        $set{custom} = $custom_file_name . "?$custom_mtime";
+        $set{custom} = mtime_filter($custom_file_name, $custom_mtime);
     }
     
     return \%set;
@@ -935,7 +987,7 @@ sub create {
 
             email => \&Bugzilla::Util::email_filter,
             
-            mtime_url => \&mtime_filter,
+            mtime => \&mtime_filter,
 
             # iCalendar contentline filter
             ics => [ sub {
@@ -987,6 +1039,8 @@ sub create {
                 {
                     $var = wrap_comment($var, 72);
                 }
+                $var =~ s/\&nbsp;/ /g;
+
                 return $var;
             },
 
@@ -1084,6 +1138,14 @@ sub create {
 
             # Function to create date strings
             'time2str' => \&Date::Format::time2str,
+
+            # Fixed size column formatting for bugmail.
+            'format_columns' => sub {
+                my $cols = shift;
+                my $format = ($cols == 3) ? FORMAT_TRIPLE : FORMAT_DOUBLE;
+                my $col_size = ($cols == 3) ? FORMAT_3_SIZE : FORMAT_2_SIZE;
+                return multiline_sprintf($format, \@_, $col_size);
+            },
 
             # Generic linear search function
             'lsearch' => sub {

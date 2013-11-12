@@ -104,7 +104,7 @@ sub fields {
     }
 
     if (!defined $params->{ids} and !defined $params->{names}) {
-        @fields = Bugzilla->get_fields({ obsolete => 0 });
+        @fields = @{ Bugzilla->fields({ obsolete => 0 }) };
     }
 
     my @fields_out;
@@ -560,8 +560,8 @@ sub legal_values {
     my $field = Bugzilla::Bug::FIELD_MAP->{$params->{field}} 
                 || $params->{field};
 
-    my @global_selects = grep { !$_->is_abnormal }
-                         Bugzilla->get_fields({ is_select => 1 });
+    my @global_selects =
+        @{ Bugzilla->fields({ is_select => 1, is_abnormal => 0 }) };
 
     my $values;
     if (grep($_->name eq $field, @global_selects)) {
@@ -790,7 +790,6 @@ sub _bug_to_hash {
     # All the basic bug attributes are here, in alphabetical order.
     # A bug attribute is "basic" if it doesn't require an additional
     # database call to get the info.
-    # FIXME remove hardcode, use global "fielddefs" metadata
     my %item = (
         alias            => $self->type('string', $bug->alias),
         classification   => $self->type('string', $bug->classification),
@@ -799,6 +798,8 @@ sub _bug_to_hash {
         id               => $self->type('int', $bug->bug_id),
         is_confirmed     => $self->type('boolean', $bug->everconfirmed),
         last_change_time => $self->type('dateTime', $bug->delta_ts),
+        op_sys           => $self->type('string', $bug->op_sys),
+        platform         => $self->type('string', $bug->rep_platform),
         priority         => $self->type('string', $bug->priority),
         product          => $self->type('string', $bug->product),
         resolution       => $self->type('string', $bug->resolution),
@@ -811,17 +812,6 @@ sub _bug_to_hash {
         whiteboard       => $self->type('string', $bug->status_whiteboard),
     );
 
-    # FIXME change toggle method to fielddefs.is_obsolete
-    if (Bugzilla->params->{useopsys} && filter_wants $params, 'op_sys')
-    {
-        $item{op_sys} = $self->type('string', $bug->op_sys);
-    }
-
-    # FIXME change toggle method to fielddefs.is_obsolete
-    if (Bugzilla->params->{useplatform} && filter_wants $params, 'platform')
-    {
-        $item{platform} = $self->type('string', $bug->rep_platform);
-    }
 
     # First we handle any fields that require extra SQL calls.
     # We don't do the SQL calls at all if the filter would just
@@ -860,8 +850,7 @@ sub _bug_to_hash {
                        @{ $bug->keyword_objects };
         $item{'keywords'} = \@keywords;
     }
-    if (Bugzilla->params->{useqacontact} &&
-        filter_wants $params, 'qa_contact') {
+    if (filter_wants $params, 'qa_contact') {
         my $qa_login = $bug->qa_contact ? $bug->qa_contact->login : '';
         $item{'qa_contact'} = $self->type('string', $qa_login);
     }
@@ -894,9 +883,7 @@ sub _bug_to_hash {
     if (Bugzilla->user->is_timetracker) {
         $item{'estimated_time'} = $self->type('double', $bug->estimated_time);
         $item{'remaining_time'} = $self->type('double', $bug->remaining_time);
-        # No need to format $bug->deadline specially, because Bugzilla::Bug
-        # already does it for us.
-        $item{'deadline'}       = $self->type('string', $bug->deadline);
+        $item{'deadline'}       = $self->type('dateTime', $bug->deadline);
     }
 
     if (Bugzilla->user->id) {
@@ -1652,13 +1639,26 @@ take.
 If you are not in the time-tracking group, this field will not be included
 in the return value.
 
-=item internals B<DEPRECATED>
+=item C<groups>
 
 C<array> of C<string>s. The names of all the groups that this bug is in.
 
-This will be disappearing in a future version of Bugzilla.
+=item C<id>
 
-=item is_open 
+C<int> The unique numeric id of this bug.
+
+=item C<is_cc_accessible>
+
+C<boolean> If true, this bug can be accessed by members of the CC list,
+even if they are not in the groups the bug is restricted to.
+
+=item C<is_confirmed>
+
+C<boolean> True if the bug has been confirmed. Usually this means that
+the bug has at some point been moved out of the C<UNCONFIRMED> status
+and into another open status.
+
+=item C<is_open>
 
 C<boolean> True if this bug is open, false if it is closed.
 

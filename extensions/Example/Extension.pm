@@ -196,6 +196,27 @@ sub buglist_columns {
     $columns->{'example'} = { 'name' => 'bugs.delta_ts' , 'title' => 'Example' };
 }
 
+sub search_operator_field_override {
+    my ($self, $args) = @_;
+    
+    my $operators = $args->{'operators'};
+
+    my $original = $operators->{component}->{_non_changed};
+    $operators->{component} = {
+        _non_changed => sub { _component_nonchanged($original, @_) }
+    };
+}
+
+sub _component_nonchanged {
+    my $original = shift;
+    my ($invocant, $args) = @_;
+
+    $invocant->$original($args);
+    # Actually, it does not change anything in the result,
+    # just an example.
+    $args->{term} = $args->{term} . " OR 1=2";
+}
+
 sub bugmail_recipients {
     my ($self, $args) = @_;
     my $recipients = $args->{recipients};
@@ -427,6 +448,15 @@ sub object_columns {
     if ($class->isa('Bugzilla::ExampleObject')) {
         push(@$columns, 'example');
     }
+}
+
+sub object_end_of_create {
+    my ($self, $args) = @_;
+    
+    my $class  = $args->{'class'};
+    my $object = $args->{'object'};
+
+    warn "Created a new $class object!";
 }
 
 sub object_end_of_create_validators {

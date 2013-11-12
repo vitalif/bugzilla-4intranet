@@ -61,6 +61,7 @@ my $version_name = trim($cgi->param('version') || '');
 my $action       = trim($cgi->param('action')  || '');
 my $showbugcounts = (defined $cgi->param('showbugcounts'));
 my $token        = $cgi->param('token');
+my $isactive     = $cgi->param('isactive');
 
 #
 # product = '' -> Show nice list of products
@@ -196,6 +197,7 @@ if ($action eq 'update') {
     $dbh->bz_start_transaction();
 
     $version->set_name($version_name);
+    $version->set_is_active($isactive);
     my $changes = $version->update();
 
     $dbh->bz_commit_transaction();

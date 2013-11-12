@@ -30,7 +30,9 @@ use Bugzilla::Constants;
 use Bugzilla::Extension;
 
 use Encode;
+use ExtUtils::MM ();
 use File::Basename;
+use File::Spec;
 use POSIX qw(setlocale LC_CTYPE);
 use Safe;
 use Scalar::Util qw(tainted);
@@ -44,24 +46,26 @@ our @EXPORT_OK = qw(
     indicate_progress
     install_string
     include_languages
+    success
     template_include_path
     vers_cmp
     init_console
 );
 
 sub bin_loc {
-    my ($bin) = @_;
-    return '' if ON_WINDOWS;
-    # Don't print any errors from "which"
-    open(my $saveerr, ">&STDERR");
-    open(STDERR, '>/dev/null');
-    my $loc = `which $bin`;
-    close(STDERR);
-    open(STDERR, ">&", $saveerr);
-    my $exit_code = $? >> 8; # See the perlvar manpage.
-    return '' if $exit_code > 0;
-    chomp($loc);
-    return $loc;
+    my ($bin, $path) = @_;
+    my @path = $path ? @$path : File::Spec->path;
+    
+    foreach my $dir (@path) {
+        next if !-d $dir;
+        my $full_path = File::Spec->catfile($dir, $bin);
+        # MM is an alias for ExtUtils::MM. maybe_command is nice
+        # because it checks .com, .bat, .exe (etc.) on Windows.
+        my $command = MM->maybe_command($full_path);
+        return $command if $command;
+    }
+
+    return '';
 }
 
 sub get_version_and_os {
@@ -619,6 +623,11 @@ sub _console_die {
     # We put quotes around the message to stringify any object exceptions,
     # like Template::Exception.
     die colored("$message", COLOR_ERROR) . "\n";
+}
+
+sub success {
+    my ($message) = @_;
+    print colored($message, COLOR_SUCCESS), "\n";
 }
 
 sub prevent_windows_dialog_boxes {

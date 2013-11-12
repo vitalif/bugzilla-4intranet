@@ -21,7 +21,20 @@
   #                 Vitaliy Filippov <vitalif@mail.ru>
   #%]
 
-[%# FIXME check if all is working correctly without JavaScript! (definitely there are bugs) %]
+[% PROCESS bug/time.html.tmpl %]
+
+<script src="[% 'js/comments.js' FILTER mtime %]" type="text/javascript">
+</script>
+
+[% DEFAULT start_at = 0 mode = "show" %]
+[% sort_order = user.settings.comment_sort_order.value %]
+
+[%# NOTE: (start_at > 0) means we came here from a midair collision,
+  #       in which case we don't care what the user's preference is.
+ %]
+[% IF (start_at > 0) %]
+    [% sort_order = "oldest_to_newest" %]
+[% END %]
 
 [% PROCESS bug/time.html.tmpl %]
 
@@ -37,6 +50,14 @@
   [% PROCESS a_comment %]
 [% END %]
 
+[% IF user.settings.comment_box_position.value == "before_comments" && user.id %]
+  <div class="bz_add_comment">
+    <a href="#" 
+       onclick="return goto_add_comments();">
+       Add Comment</a>
+  </div>
+[% END %]
+
 [%# Note: this template is used in multiple places; if you use this hook,
   # make sure you are aware of this fact.
   #%]
@@ -49,8 +70,15 @@
       addActionLinks([% json(comment_indexes(comments)) %]);
     </script>
     <ul class="bz_collapse_expand_comments">
-      <li><a href="#" onclick="toggle_all_comments('collapse'); return false;">Collapse All Comments</a></li>
-      <li><a href="#" onclick="toggle_all_comments('expand'); return false;">Expand All Comments</a></li>
+      <li><a href="#" onclick="toggle_all_comments('collapse', [% comments.size %]); 
+                               return false;">Collapse All Comments</a></li>
+      <li><a href="#" onclick="toggle_all_comments('expand', [% comments.size %]);
+                               return false;">Expand All Comments</a></li>
+      [% IF user.settings.comment_box_position.value == "after_comments" && user.id %]
+        <li class="bz_add_comment"><a href="#" 
+            onclick="return goto_add_comments('bug_status_bottom');">
+            Add Comment</a></li>
+      [% END %]                               
     </ul>
   [% END %]
 </td>
@@ -166,5 +194,12 @@
 <div class="bz_comment_text[% " collapsed" IF wt_only %][% " bz_fullscreen_comment" IF user.settings.comment_width.value == 'on' %]" id="comment_text_[% comment.id %]">
   [%- comment.body_full({ wrap => 1 }) -%]
 </div>
+
+<div>!!!!!!!!CONFLICT!!!!!!!!!!!!!!!</div>
+
+<pre class="bz_comment_text" 
+     [% ' id="comment_text_' _ count _ '"' IF mode == "edit" %]>
+  [%- comment_text FILTER quoteUrls(bug, comment) -%]
+</pre>
     </div>
 [% END %]

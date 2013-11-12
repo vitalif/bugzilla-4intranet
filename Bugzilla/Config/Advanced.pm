@@ -52,6 +52,14 @@ use constant get_param_list => (
    type => 't',
    default => ''
   },
+
+  {
+   name => 'strict_transport_security',
+   type => 's',
+   choices => ['off', 'this_domain_only', 'include_subdomains'],
+   default => 'off',
+   checker => \&check_multi
+  },
 );
 
 1;

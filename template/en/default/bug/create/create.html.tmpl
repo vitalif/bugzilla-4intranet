@@ -225,9 +225,10 @@ function set_assign_to() {
             if (inputElement.name.search(/^flag_type-(\d+)$/) != -1) {
                 var id = inputElement.name.replace(/^flag_type-(\d+)$/, "$1");
                 inputElement.disabled = true;
-                // Also disable the requestee field, if it exists.
+                // Also hide the requestee field, if it exists.
                 inputElement = document.getElementById("requestee_type-" + id);
-                if (inputElement) inputElement.disabled = true;
+                if (inputElement)
+                  YAHOO.util.Dom.addClass(inputElement.parentNode, 'bz_default_hidden');
             }
         }
         // Now enable flags available for the selected component.
@@ -333,7 +334,8 @@ function checkWorktime(inp)
           [% qa_contacts_list = user.get_userlist.clone %]
         [% END %]
 
-        [%- FOREACH c = product.active_components %]
+        [%- FOREACH c = product.components %]
+          [% NEXT IF NOT c.is_active %]
           <option value="[% c.name FILTER html %]"
             [% " selected=\"selected\"" IF c.name == default.component_ %]>
             [% c.name FILTER html -%]
@@ -371,8 +373,9 @@ function checkWorktime(inp)
     <td rowspan="3">
       <select name="version">
         [%- FOREACH v = version %]
-          <option value="[% v FILTER html %]"
-            [% ' selected="selected"' IF v == default.version %]>[% v FILTER html -%]
+          [% NEXT IF NOT v.is_active %]
+          <option value="[% v.name FILTER html %]"
+            [% ' selected="selected"' IF v.name == default.version %]>[% v.name FILTER html -%]
           </option>
         [%- END %]
       </select>
@@ -829,6 +832,7 @@ function checkWorktime(inp)
             id="[% field.name FILTER html %]" 
             [% IF onchange %] onchange='[% onchange %]'[% END %]>
     [%- FOREACH x = ${field.name} %]
+        [% NEXT IF NOT x.is_active %]
       <option value="[% IF x.name %][% x.name FILTER html %][% ELSE %][% x FILTER html %][% END%]"
         [% " selected=\"selected\"" IF x == default.${field.name} %]>
         [% IF x.name %][% x.name FILTER html %][% ELSE %][% x FILTER html %][% END%]

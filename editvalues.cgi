@@ -77,8 +77,8 @@ my %block_list = map { $_ => 1 } @non_editable_fields;
 # field = '' -> Show nice list of fields
 #
 if (!$cgi->param('field')) {
-    my @field_list = grep { !$block_list{$_->name} }
-                       Bugzilla->get_fields({ is_select => 1 });
+    my @field_list =
+        @{ Bugzilla->fields({ is_select => 1, is_abnormal => 0 }) };
 
     $vars->{'fields'} = \@field_list;
     $template->process("admin/fieldvalues/select-field.html.tmpl", $vars)

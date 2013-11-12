@@ -27,6 +27,8 @@
 #                 J. Paul Reed <preed@sigkill.com>
 #                 Gervase Markham <gerv@gerv.net>
 #                 Byron Jones <bugzilla@glob.com.au>
+#                 Reed Loden <reed@reedloden.com>
+#                 Frédéric Buclin <LpSolit@gmail.com>
 
 use strict;
 
@@ -38,20 +40,14 @@ use Bugzilla::Constants;
 use Bugzilla::Util;
 use Bugzilla::Hook;
 use Bugzilla::Bug;
-use Bugzilla::Classification;
-use Bugzilla::Product;
-use Bugzilla::Component;
-use Bugzilla::Status;
+use Bugzilla::Comment;
 use Bugzilla::Mailer;
 use Bugzilla::Hook;
 
 use Date::Parse;
 use Date::Format;
-
-use constant FORMAT_TRIPLE => "%19s|%-28s|%-28s";
-use constant FORMAT_3_SIZE => [19,28,28];
-use constant FORMAT_DOUBLE => "%19s %-55s";
-use constant FORMAT_2_SIZE => [19,55];
+use Scalar::Util qw(blessed);
+use List::MoreUtils qw(uniq);
 
 use constant BIT_DIRECT    => 1;
 use constant BIT_WATCHING  => 2;
@@ -400,6 +396,8 @@ sub Send {
     }
 
     my $comments = $bug->comments({ after => $start, to => $end });
+    # Skip empty comments.
+    @$comments = grep { $_->type || $_->body =~ /\S/ } @$comments;
 
     ###########################################################################
     # Start of email filtering code
@@ -455,7 +453,7 @@ sub Send {
 
     Bugzilla::Hook::process('bugmail_recipients',
                             { bug => $bug, recipients => \%recipients });
-    
+
     # Find all those user-watching anyone on the current list, who is not
     # on it already themselves.
     my $involved = join(",", keys %recipients);
@@ -486,9 +484,6 @@ sub Send {
     # all - there are preferences, permissions checks and all sorts to do yet.
     my @sent;
     my @excluded;
-
-    # Only used for headers in bugmail for new bugs
-    my @fields = $start ? () : Bugzilla->get_fields({obsolete => 0, mailhead => 1});
 
     foreach my $user_id (keys %recipients) {
         my %rels_which_want;
@@ -586,6 +581,7 @@ sub sendMail
         {
             push @$new_diffs, $diff;
         }
+        push(@display_diffs, $diff) if $add_diff;
     }
 
     $diffs = $new_diffs;
@@ -690,9 +686,9 @@ sub _get_diffs {
     }
 
     my $diffs = $dbh->selectall_arrayref(
-           "SELECT profiles.login_name, profiles.realname, fielddefs.description,
-                   bugs_activity.bug_when, bugs_activity.removed,
-                   bugs_activity.added, bugs_activity.attach_id, fielddefs.name,
+           "SELECT profiles.login_name, profiles.realname, fielddefs.name AS field_name,
+                   bugs_activity.bug_when, bugs_activity.removed AS old,
+                   bugs_activity.added AS new, bugs_activity.attach_id,
                    bugs_activity.comment_id
               FROM bugs_activity
         INNER JOIN fielddefs
@@ -701,50 +697,58 @@ sub _get_diffs {
                 ON profiles.userid = bugs_activity.who
              WHERE bugs_activity.bug_id = ?
                    $when_restriction
-          ORDER BY bugs_activity.bug_when", undef, @args);
+          ORDER BY bugs_activity.bug_when", {Slice=>{}}, @args);
 
-    my $difftext = "";
-    my $diffheader = "";
-    my @diffparts;
-    my $lastwho = "";
-    my $fullwho;
-    my @changedfields;
-    foreach my $ref (@$diffs) {
-        my ($who, $whoname, $what, $when, $old, $new, $attachid, $fieldname, $comment_id) = @$ref;
-        my $diffpart = {};
-        if ($who ne $lastwho) {
-            $lastwho = $who;
-            $fullwho = $whoname ? "$whoname <$who>" : $who;
-            $diffheader = "\n$fullwho changed:\n\n";
-            $diffheader .= three_columns("What    ", "Removed", "Added");
-            $diffheader .= ('-' x 76) . "\n";
-        }
-        $what =~ s/^(Attachment )?/Attachment #$attachid / if $attachid;
-        if( $fieldname eq 'estimated_time' ||
-            $fieldname eq 'remaining_time' ) {
-            $old = format_time_decimal($old);
-            $new = format_time_decimal($new);
-        }
-        if ($attachid) {
-            ($diffpart->{'isprivate'}) = $dbh->selectrow_array(
+    foreach my $diff (@$diffs) {
+        if ($diff->{attach_id}) {
+            $diff->{isprivate} = $dbh->selectrow_array(
                 'SELECT isprivate FROM attachments WHERE attach_id = ?',
-                undef, ($attachid));
-        }
-        if ($fieldname eq 'longdescs.isprivate') {
-            my $comment = Bugzilla::Comment->new($comment_id);
-            my $comment_num = $comment->count;
-            $what =~ s/^(Comment )?/Comment #$comment_num /;
-            $diffpart->{'isprivate'} = $new;
-        }
-        $difftext = three_columns($what, $old, $new);
-        $diffpart->{'header'} = $diffheader;
-        $diffpart->{'fieldname'} = $fieldname;
-        $diffpart->{'text'} = $difftext;
-        push(@diffparts, $diffpart);
-        push(@changedfields, $what);
+                undef, $diff->{attach_id});
+         }
+         if ($diff->{field_name} eq 'longdescs.isprivate') {
+             my $comment = Bugzilla::Comment->new($diff->{comment_id});
+             $diff->{num} = $comment->count;
+             $diff->{isprivate} = $diff->{new};
+         }
     }
 
-    return (\@diffparts, \@changedfields, $diffs);
+    return @$diffs;
+}
+
+sub _get_new_bugmail_fields {
+    my $bug = shift;
+    my @fields = @{ Bugzilla->fields({obsolete => 0, in_new_bugmail => 1}) };
+    my @diffs;
+
+    foreach my $field (@fields) {
+        my $name = $field->name;
+        my $value = $bug->$name;
+
+        if (ref $value eq 'ARRAY') {
+            $value = join(', ', @$value);
+        }
+        elsif (blessed($value) && $value->isa('Bugzilla::User')) {
+            $value = $value->login;
+        }
+        elsif (blessed($value) && $value->isa('Bugzilla::Object')) {
+            $value = $value->name;
+        }
+        elsif ($name eq 'estimated_time') {
+            # "0.00" (which is what we get from the DB) is true,
+            # so we explicitly do a numerical comparison with 0.
+            $value = 0 if $value == 0;
+        }
+        elsif ($name eq 'deadline') {
+            $value = time2str("%Y-%m-%d", str2time($value)) if $value;
+        }
+
+        # If there isn't anything to show, don't include this header.
+        next unless $value;
+
+        push(@diffs, {field_name => $name, new => $value});
+    }
+
+    return @diffs;
 }
 
 1;

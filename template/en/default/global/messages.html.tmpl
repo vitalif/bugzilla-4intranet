@@ -245,6 +245,13 @@
       [% ELSE %]
         <li>Default CC list deleted</li>
       [% END %]
+      [% IF changes.isactive.defined %]
+        <li>[% comp.is_active ? "Enabled" : "Disabled" %] for [% terms.bugs %]</li>
+      [% END %]
+      [% Hook.process('component_updated_fields') %]
+      </ul>
+    [% ELSE %]
+      No changes made to <em>[% comp.name FILTER html %]</em>.
     [% END %]
     [% IF changes.default_version.defined %]
       <li>Default version updated to '[% comp.default_version | html %]'</li>

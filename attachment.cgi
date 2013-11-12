@@ -365,7 +365,9 @@ sub view {
         }
         print $cgi->header(-type=>"$contenttype; name=\"$filename\"",
                            -content_disposition=> "$disposition; filename=\"$filename\"",
-                           -content_length => $attachment->datasize);
+                           -content_length => $attachment->datasize,
+                           -x_content_type_options => "nosniff");
+
         disable_utf8();
         print $attachment->data;
     }
@@ -519,7 +521,7 @@ sub insert
          creation_ts   => $timestamp,
          data          => scalar $cgi->param('attach_text') || $cgi->upload('data'),
          description   => scalar $cgi->param('description'),
-         filename      => $cgi->param('attach_text') ? 'attachment.txt' : scalar $cgi->upload('data'),
+         filename      => $cgi->param('attach_text') ? "file_$bugid.txt" : scalar $cgi->upload('data'),
          ispatch       => scalar $cgi->param('ispatch'),
          isprivate     => scalar $cgi->param('isprivate'),
          mimetype      => $content_type,

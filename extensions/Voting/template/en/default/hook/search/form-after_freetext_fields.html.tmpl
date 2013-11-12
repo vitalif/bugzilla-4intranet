@@ -14,14 +14,15 @@
   # Portions created by the Initial Developer are Copyright (C) 2010
   # the Initial Developer. All Rights Reserved.
   #
-  # Contributor(s):
+  # Contributor(s): 
   #   Max Kanat-Alexander <mkanat@bugzilla.org>
   #%]
 
-[% IF oldbugmove_user_is_mover(user) AND bug.resolution != 'MOVED' %]
-  <p>
-    <input type="submit" id="oldbugmove" name="oldbugmove"
-           value="Move [% terms.Bug FILTER html %] to 
-                  [%= Param('move-to-url') FILTER html %]">
-  </p>
-[% END %]
+<div class="search_field_row">
+  <span class="field_label ">
+    <label for="votes">Only [% terms.bugs %] with at least</label>:
+  </span>
+  <input name="votes" id="votes" size="3"
+         value="[% default.votes.0 FILTER html %]"> votes
+  <input type="hidden" name="votes_type" value="greaterthaneq">
+</div>

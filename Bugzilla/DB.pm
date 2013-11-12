@@ -45,7 +45,6 @@ use Bugzilla::DB::Schema;
 
 use List::Util qw(max);
 use Storable qw(dclone);
-use Text::ParseWords qw(shellwords);
 
 #####################################################################
 # Constants
@@ -93,6 +92,17 @@ use constant FULLTEXT_OR => '';
 # Unicode.
 use constant WORD_START => '(^|[^[:alnum:]])';
 use constant WORD_END   => '($|[^[:alnum:]])';
+
+#####################################################################
+# Overridden Superclass Methods 
+#####################################################################
+
+sub quote {
+    my $self = shift;
+    my $retval = $self->SUPER::quote(@_);
+    trick_taint($retval) if defined $retval;
+    return $retval;
+}
 
 #####################################################################
 # Connection Methods
@@ -192,16 +202,19 @@ EOT
     # And now check the version of the database server itself.
     my $dbh = _get_no_db_connection();
 
-    printf("Checking for %15s %-9s ", $sql_server, "(v$sql_want)")
-        if $output;
     my $sql_vers = $dbh->bz_server_version;
     $dbh->disconnect;
 
+    my $version_ok = vers_cmp($sql_vers, $sql_want) > -1 ? 1 : 0;
+    if ($output) {
+        Bugzilla::Install::Requirements::_checking_for({
+            package => $sql_server, wanted => $sql_want,
+            found   => $sql_vers, ok => $version_ok });
+    }
+
     # Check what version of the database server is installed and let
     # the user know if the version is too old to be used with Bugzilla.
-    if ( vers_cmp($sql_vers,$sql_want) > -1 ) {
-        print "ok: found v$sql_vers\n" if $output;
-    } else {
+    if (!$version_ok) {
         die <<EOT;
 
 Your $sql_server v$sql_vers is too old. Bugzilla requires version
@@ -390,9 +403,21 @@ sub sql_fulltext_search
     # make the string lowercase to do case insensitive search
     my $lower_text = lc($text);
 
-    # split the text we're searching for into separate words, understanding
-    # quotes.
-    my @words = shellwords($lower_text);
+    # split the text we're searching for into separate words. As a hack
+    # to allow quicksearch to work, if the field starts and ends with
+    # a double-quote, then we don't split it into words. We can't use
+    # Text::ParseWords here because it gets very confused by unbalanced
+    # quotes, which breaks searches like "don't try this" (because of the
+    # unbalanced single-quote in "don't").
+    my @words;
+    if ($lower_text =~ /^"/ and $lower_text =~ /"$/) {
+        $lower_text =~ s/^"//;
+        $lower_text =~ s/"$//;
+        @words = ($lower_text);
+    }
+    else {
+        @words = split(/\s+/, $lower_text);
+    }
 
     # surround the words with wildcards and SQL quotes so we can use them
     # in LIKE search clauses

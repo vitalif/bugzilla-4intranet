@@ -14,18 +14,15 @@
   # Portions created by the Initial Developer are Copyright (C) 2010
   # the Initial Developer. All Rights Reserved.
   #
-  # Contributor(s): 
+  # Contributor(s):
   #   Max Kanat-Alexander <mkanat@bugzilla.org>
+  #   Frédéric Buclin <LpSolit@gmail.com>
   #%]
 
-<tr>
-  <td align="right">
-    <label for="votes">Only [% terms.bugs %] with at least</label>:
-  </td>
-  <td>
-    <input name="votes" id="votes" size="3"
-           value="[% default.votes.0 FILTER html %]"> votes
-    <input type="hidden" name="votes_type" value="greaterthaneq">
-  </td>
-</tr>
-
+[% IF oldbugmove_user_is_mover(user) %]
+  <p>
+    <input type="submit" id="oldbugmove" name="oldbugmove"
+           value="Move [% terms.Bugs FILTER html %] to 
+                  [%= Param('move-to-url') FILTER html %]">
+  </p>
+[% END %]

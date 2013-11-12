@@ -16,10 +16,13 @@
   # Rights Reserved.
   #
   # Contributor(s): André Batosti <batosti@async.com.br>
+  #                 Frédéric Buclin <LpSolit@gmail.com>
   #%]
 
-[% PROCESS "global/variables.none.tmpl" %]
+[% PROCESS "global/field-descs.none.tmpl" %]
 [% PROCESS "global/reason-descs.none.tmpl" %]
+
+[% isnew = bug.lastdiffed ? 0 : 1 %]
 
 From: [% Param('mailfrom') %]
 To: [% to_user.email %]

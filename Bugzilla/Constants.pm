@@ -156,6 +156,7 @@ use Memoize;
     ERROR_MODE_AJAX
 
     COLOR_ERROR
+    COLOR_SUCCESS
 
     INSTALLATION_MODE_INTERACTIVE
     INSTALLATION_MODE_NON_INTERACTIVE
@@ -168,6 +169,8 @@ use Memoize;
     MAX_TOKEN_AGE
     MAX_LOGINCOOKIE_AGE
     MAX_SUDO_TOKEN_AGE
+    MAX_LOGIN_ATTEMPTS
+    LOGIN_LOCKOUT_INTERVAL
     MAX_STS_AGE
 
     SAFE_PROTOCOLS
@@ -448,6 +451,12 @@ use constant MAX_LOGINCOOKIE_AGE => 30;
 # How many seconds (default is 6 hours) a sudo cookie remains valid.
 use constant MAX_SUDO_TOKEN_AGE => 21600;
 
+# Maximum failed logins to lock account for this IP
+use constant MAX_LOGIN_ATTEMPTS => 5;
+# If the maximum login attempts occur during this many minutes, the
+# account is locked.
+use constant LOGIN_LOCKOUT_INTERVAL => 30;
+
 # The maximum number of seconds the Strict-Transport-Security header
 # will remain valid. Default is one week.
 use constant MAX_STS_AGE => 604800;
@@ -492,6 +501,7 @@ use constant ERROR_MODE_AJAX           => 4;
 
 # The ANSI colors of messages that command-line scripts use
 use constant COLOR_ERROR => 'red';
+use constant COLOR_SUCCESS => 'green';
 
 # The various modes that checksetup.pl can run in.
 use constant INSTALLATION_MODE_INTERACTIVE => 0;

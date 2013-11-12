@@ -41,23 +41,9 @@
     [% PROCESS "admin/components/edit-common.html.tmpl" %]
 
     <tr>
-      <td valign="top">
-        <label for="default_version">Default version:</label>
-      </td>
-      <td>
-        <select id="default_version" name="default_version">
-          <option value="">---</option>
-        [% FOREACH x = product.versions %]
-          <option value="[% x.name FILTER html %]" [% "selected" IF x.name == comp.default_version %] >[% x.name FILTER html %]</option>
-        [% END %]
-        </select>
-      </td>
-    </tr>
-    <tr>
-      <td valign="top">Open for [% terms.bug %] entry:</td>
-      <td><input type="checkbox" name="is_active" value="1"
-           [% ' checked="checked"' IF comp.is_active %]>
-      </td>
+      <td><label for="isactive">Enabled For [% terms.Bugs %]:</label></td>
+      <td><input id="isactive" name="isactive" type="checkbox" value="1" 
+                 [% 'checked="checked"' IF comp.isactive %]></td>
     </tr>
     <tr>
       <td valign="top">

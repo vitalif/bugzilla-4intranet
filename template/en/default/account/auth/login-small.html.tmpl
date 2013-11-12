@@ -55,9 +55,9 @@
     [% connector = "&" %]
   [% END %]
   [% script_name = login_target _ connector _ "GoAheadAndLogIn=1" %]
-  <a id="login_link_[% qs_suffix %]" href="[% script_name FILTER html %]"
-     onclick="return show_mini_login_form('_[% qs_suffix %]')">Log In</a>
-  <form action="[% login_target FILTER html %]" method="POST"
+  <a id="login_link[% qs_suffix %]" href="[% script_name FILTER html %]"
+     onclick="return show_mini_login_form('[% qs_suffix %]')">Log In</a>
+  <form action="[% login_target FILTER html %]" method="POST" 
         class="mini_login bz_default_hidden"
         id="mini_login_[% qs_suffix %]"
         onsubmit="return check_mini_login_fields( '_[% qs_suffix %]' );">
@@ -95,9 +95,9 @@
 </li>
 <li id="forgot_container_[% qs_suffix %]">
   <span class="separator">| </span>
-  <a id="forgot_link_[% qs_suffix %]" href="[% script_name FILTER html %]#forgot"
-     onclick="return show_forgot_form('_[% qs_suffix %]')">Forgot Password</a>
-  <form action="token.cgi" method="post" id="forgot_form_[% qs_suffix %]"
+  <a id="forgot_link[% qs_suffix %]" href="[% script_name FILTER html %]#forgot"
+     onclick="return show_forgot_form('[% qs_suffix %]')">Forgot Password</a>
+  <form action="token.cgi" method="post" id="forgot_form[% qs_suffix %]"
         class="mini_forgot bz_default_hidden">
     <label>Login: <input type="text" name="loginname" size="20"></label>
     <input id="forgot_button_[% qs_suffix %]" value="Reset Password"

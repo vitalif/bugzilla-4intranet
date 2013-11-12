@@ -20,6 +20,7 @@
   # name: mandatory; field name
   # id: optional; field id
   # value: optional; default field value/selection
+  # classes: optional; an array of classes to be added
   # onchange: optional; onchange attribute value
   # disabled: optional; if true, the field is disabled
   # accesskey: optional, input only; accesskey attribute value
@@ -35,6 +36,7 @@
 <select name="[% name FILTER html %]"
   [% IF tabindex %] tabindex="[% tabindex FILTER html %]" [% END %]
   [% IF id %] id="[% id FILTER html %]" [% END %]
+  [% IF classes %] class="[% classes.join(' ') FILTER html %]" [% END %]
   [% IF onchange %] onchange="[% onchange FILTER html %]" [% END %]
   [% IF disabled %] disabled="[% disabled FILTER html %]" [% END %]
   [% IF accesskey %] accesskey="[% accesskey FILTER html %]" [% END %]
@@ -89,5 +91,4 @@ addListener(window, 'load', function() {
         function(h) { userAutocomplete(h, emptyOptions); },
         { emptyText: 'No users found'[% ', multipleDelimiter: ","' IF multiple %] });
 });
-</script>
 [% END %]

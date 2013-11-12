@@ -177,18 +177,32 @@ sub VALIDATORS {
     return $validators;
 };
 
-use constant UPDATE_VALIDATORS => {
-    reporter            => \&_check_reporter,
-    assigned_to         => \&_check_assigned_to,
-    bug_status          => \&_check_bug_status,
-    cclist_accessible   => \&Bugzilla::Object::check_boolean,
-    dup_id              => \&_check_dup_id,
-    everconfirmed       => \&Bugzilla::Object::check_boolean,
-    qa_contact          => \&_check_qa_contact,
-    reporter_accessible => \&Bugzilla::Object::check_boolean,
-    resolution          => \&_check_resolution,
-    target_milestone    => \&_check_target_milestone,
-    version             => \&_check_version,
+sub VALIDATOR_DEPENDENCIES {
+    my $cache = Bugzilla->request_cache;
+    return $cache->{bug_validator_dependencies} 
+        if $cache->{bug_validator_dependencies};
+
+    my %deps = (
+        assigned_to      => ['component'],
+        bug_status       => ['product', 'comment', 'target_milestone'],
+        cc               => ['component'],
+        component        => ['product'],
+        dup_id           => ['bug_status', 'resolution'],
+        groups           => ['product'],
+        keywords         => ['product'],
+        resolution       => ['bug_status'],
+        qa_contact       => ['component'],
+        target_milestone => ['product'],
+        version          => ['product'],
+    );
+
+    foreach my $field (@{ Bugzilla->fields }) {
+        $deps{$field->name} = [ $field->visibility_field->name ]
+            if $field->{visibility_field_id};
+    }
+
+    $cache->{bug_validator_dependencies} = \%deps;
+    return \%deps;
 };
 
 sub UPDATE_COLUMNS {
@@ -229,7 +243,7 @@ use constant NUMERIC_COLUMNS => qw(
 );
 
 sub DATE_COLUMNS {
-    my @fields = Bugzilla->get_fields({ type => FIELD_TYPE_DATETIME });
+    my @fields = @{ Bugzilla->fields({ type => FIELD_TYPE_DATETIME }) };
     return map { $_->name } @fields;
 }
 
@@ -786,9 +800,9 @@ sub run_create_validators
     Bugzilla::Hook::process('bug_end_of_create_validators',
                             { params => $params });
 
-    my @mandatory_fields = Bugzilla->get_fields({ is_mandatory => 1,
-                                                  enter_bug    => 1,
-                                                  obsolete     => 0 });
+    my @mandatory_fields = @{ Bugzilla->fields({ is_mandatory => 1,
+                                                 enter_bug    => 1,
+                                                 obsolete     => 0 }) };
     foreach my $field (@mandatory_fields) {
         $class->_check_field_is_mandatory($params->{$field->name}, $field,
                                           $params);
@@ -1224,6 +1238,9 @@ sub update
                                 join(', ', @$added_see)];
     }
 
+    # Call update for the referenced bugs.
+    $_->update() foreach @{ $self->{see_also_update} || [] };
+
     # Log bugs_activity items
     # XXX Eventually, when bugs_activity is able to track the dupe_id,
     # this code should go below the duplicates-table-updating code below.
@@ -1255,7 +1272,9 @@ sub update
           old_bug => $old_bug });
 
     # If any change occurred, refresh the timestamp of the bug.
-    if (scalar(keys %$changes) || $self->{added_comments}) {
+    if (scalar(keys %$changes) || $self->{added_comments}
+        || $self->{comment_isprivate})
+    {
         $dbh->do('UPDATE bugs SET delta_ts = ? WHERE bug_id = ?',
                  undef, ($delta_ts, $self->id));
         $self->{delta_ts} = $delta_ts;
@@ -2003,13 +2022,14 @@ sub _check_resolution {
     # Check noresolveonopenblockers.
     if (Bugzilla->params->{"noresolveonopenblockers"}
         && $resolution eq 'FIXED'
-        && (!$self->resolution || $resolution ne $self->resolution))
+        && (!$self->resolution || $resolution ne $self->resolution)
+        && scalar @{$self->dependson})
     {
-        my @dependencies = CountOpenDependencies($self->id);
-        if (@dependencies) {
+        my $dep_bugs = Bugzilla::Bug->new_from_list($self->dependson);
+        my $count_open = grep { $_->isopened } @$dep_bugs;
+        if ($count_open) {
             ThrowUserError("still_unresolved_bugs",
-                           { dependencies     => \@dependencies,
-                             dependency_count => scalar @dependencies });
+                           { bug_id => $self->id, dep_count => $count_open });
         }
     }
 
@@ -3048,10 +3068,22 @@ sub remove_group {
 }
 
 sub add_see_also {
-    my ($self, $input) = @_;
+    my ($self, $input, $skip_recursion) = @_;
     $input = trim($input);
 
-    # We assume that the URL is an HTTP URL if there is no (something)://
+    if (!$input) {
+        ThrowCodeError('param_required', 
+                       { function => 'add_see_also', param => '$input' });
+    }
+
+    # If a bug id/alias has been taken, then treat it
+    # as a link to the local Bugzilla.
+    my $local_bug_uri = correct_urlbase() . "show_bug.cgi?id=";
+    if ($input =~ m/^\w+$/) {
+        $input = $local_bug_uri . $input;
+    }
+
+    # We assume that the URL is an HTTP URL if there is no (something):// 
     # in front.
     my $uri = new URI($input);
     if (!$uri->scheme) {
@@ -3153,7 +3185,35 @@ sub add_see_also {
         $uri->query("id=$bug_id");
         # And remove any # part if there is one.
         $uri->fragment(undef);
-        $result = $uri->canonical->as_string;
+        my $uri_canonical = $uri->canonical;
+        $result = $uri_canonical->as_string;
+
+        # If this is a link to a local bug (treating the domain
+        # case-insensitively and ignoring http(s)://), then also update
+        # the other bug to point at this one.
+        my $canonical_local = URI->new($local_bug_uri)->canonical;
+        if (!$skip_recursion 
+            and $canonical_local->authority eq $uri_canonical->authority
+            and $canonical_local->path eq $uri_canonical->path) 
+        {
+            my $ref_bug = Bugzilla::Bug->check($bug_id);
+            if ($ref_bug->id == $self->id) {
+                ThrowUserError('see_also_self_reference');
+            }
+        
+            my $product = $ref_bug->product_obj;
+            if (!Bugzilla->user->can_edit_product($product->id)) {
+                ThrowUserError("product_edit_denied",
+                               { product => $product->name });
+            }
+
+            my $ref_input = $local_bug_uri . $self->id;
+            if (!grep($ref_input, @{ $ref_bug->see_also })) {
+                $ref_bug->add_see_also($ref_input, 'skip recursion');
+                push @{ $self->{see_also_update} }, $ref_bug;
+            }
+        }
+
     }
 
     if (length($result) > MAX_BUG_URL_LENGTH) {
@@ -4098,32 +4158,6 @@ sub map_fields {
     return \%field_values;
 }
 
-# CountOpenDependencies counts the number of open dependent bugs for a
-# list of bugs and returns a list of bug_id's and their dependency count
-# It takes one parameter:
-#  - A list of bug numbers whose dependencies are to be checked
-sub CountOpenDependencies {
-    my (@bug_list) = @_;
-    my @dependencies;
-    my $dbh = Bugzilla->dbh;
-
-    my $sth = $dbh->prepare(
-          "SELECT blocked, COUNT(bug_status) " .
-            "FROM bugs, dependencies " .
-           "WHERE " . $dbh->sql_in('blocked', \@bug_list) .
-             "AND bug_id = dependson " .
-             "AND bug_status IN (" . join(', ', map {$dbh->quote($_)} BUG_STATE_OPEN)  . ") " .
-          $dbh->sql_group_by('blocked'));
-    $sth->execute();
-
-    while (my ($bug_id, $dependencies) = $sth->fetchrow_array()) {
-        push(@dependencies, { bug_id       => $bug_id,
-                              dependencies => $dependencies });
-    }
-
-    return @dependencies;
-}
-
 ################################################################################
 # check_can_change_field() defines what users are allowed to change. You
 # can add code here for site-specific policy changes, according to the
@@ -4407,40 +4441,41 @@ sub _validate_attribute {
 }
 
 sub AUTOLOAD {
-    use vars qw($AUTOLOAD);
-    my $attr = $AUTOLOAD;
+  use vars qw($AUTOLOAD);
+  my $attr = $AUTOLOAD;
 
-    $attr =~ s/.*:://;
-    return unless $attr=~ /[^A-Z]/;
-    if (!_validate_attribute($attr)) {
-        require Carp;
-        Carp::confess("invalid bug attribute $attr");
-    }
+  $attr =~ s/.*:://;
+  return unless $attr=~ /[^A-Z]/;
+  if (!_validate_attribute($attr)) {
+      require Carp;
+      Carp::confess("invalid bug attribute $attr");
+  }
 
-    no strict 'refs';
-    *$AUTOLOAD = sub {
-        my $self = shift;
+  no strict 'refs';
+  *$AUTOLOAD = sub {
+      my $self = shift;
 
-        return $self->{$attr} if defined $self->{$attr};
+      return $self->{$attr} if defined $self->{$attr};
 
-        $self->{_multi_selects} ||= [Bugzilla->get_fields(
-            {custom => 1, type => FIELD_TYPE_MULTI_SELECT })];
-        if ( grep($_->name eq $attr, @{$self->{_multi_selects}}) ) {
-            # There is a bug in Perl 5.10.0, which is fixed in 5.10.1,
-            # which taints $attr at this point. trick_taint() can go
-            # away once we require 5.10.1 or newer.
-            trick_taint($attr);
+      $self->{_multi_selects} ||= Bugzilla->fields(
+          { custom => 1, type => FIELD_TYPE_MULTI_SELECT });
 
-            $self->{$attr} ||= Bugzilla->dbh->selectcol_arrayref(
-                "SELECT value FROM bug_$attr, $attr WHERE value_id=id AND bug_id=? ORDER BY value",
-                undef, $self->id);
-            return $self->{$attr};
-        }
+      if ( grep($_->name eq $attr, @{$self->{_multi_selects}}) ) {
+          # There is a bug in Perl 5.10.0, which is fixed in 5.10.1,
+          # which taints $attr at this point. trick_taint() can go
+          # away once we require 5.10.1 or newer.
+          trick_taint($attr);
 
-        return '';
-    };
+          $self->{$attr} ||= Bugzilla->dbh->selectcol_arrayref(
+              "SELECT value FROM bug_$attr WHERE bug_id = ? ORDER BY value",
+              undef, $self->id);
+          return $self->{$attr};
+      }
 
-    goto &$AUTOLOAD;
+      return '';
+  };
+
+  goto &$AUTOLOAD;
 }
 
 1;

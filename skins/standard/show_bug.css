@@ -145,3 +145,7 @@ table#flags {
 #comment_textarea { width: 50em; font-size: medium; font-family: monospace; }
 
 #cf_sprint { max-width: 25em; min-width: 0; }
+
+.text_input, .bz_userfield, #keyword_container {
+    width: 100%;
+}

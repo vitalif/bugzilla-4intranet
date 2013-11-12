@@ -340,6 +340,10 @@ sub GetEdges
                     $deps->{$dependson}++;
                 }
             }
+            if ($dependson != $id && !exists $seen{$dependson}) {
+                push @stack, $dependson;
+            }
+            AddLink($blocked, $dependson, $fh);
         }
         # Only bugs with direct dependencies to selected
         else

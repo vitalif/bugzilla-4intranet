@@ -52,7 +52,7 @@ use constant DB_COLUMNS => qw(
     description
     wiki_url
     default_version
-    is_active
+    isactive
 );
 
 use constant UPDATE_COLUMNS => qw(
@@ -62,7 +62,7 @@ use constant UPDATE_COLUMNS => qw(
     description
     wiki_url
     default_version
-    is_active
+    isactive
 );
 
 use constant REQUIRED_FIELD_MAP => {
@@ -77,6 +77,7 @@ use constant VALIDATORS => {
     description      => \&_check_description,
     initial_cc       => \&_check_cc_list,
     name             => \&_check_name,
+    isactive         => \&Bugzilla::Object::check_boolean,
 };
 
 use constant VALIDATOR_DEPENDENCIES => {
@@ -355,6 +356,7 @@ sub set_default_version { $_[0]->set('default_version', $_[1]); }
 sub set_wiki_url { $_[0]->set('wiki_url', $_[1]); }
 sub set_name { $_[0]->set('name', $_[1]); }
 sub set_description { $_[0]->set('description', $_[1]); }
+sub set_is_active { $_[0]->set('isactive', $_[1]); }
 sub set_default_assignee {
     my ($self, $owner) = @_;
 
@@ -481,13 +483,26 @@ sub product {
 ####      Accessors        ####
 ###############################
 
-sub id          { return $_[0]->{id};          }
-sub name        { return $_[0]->{name};        }
-sub description { return $_[0]->{description}; }
 sub wiki_url    { return $_[0]->{wiki_url};    }
-sub product_id  { return $_[0]->{product_id};  }
 sub default_version { return $_[0]->{default_version}; }
-sub is_active   { return $_[0]->{is_active};    }
+sub description { return $_[0]->{'description'}; }
+sub product_id  { return $_[0]->{'product_id'};  }
+sub is_active   { return $_[0]->{'isactive'};    }
+
+##############################################
+# Implement Bugzilla::Field::ChoiceInterface #
+##############################################
+
+use constant FIELD_NAME => 'component';
+use constant is_default => 0;
+
+sub is_set_on_bug {
+    my ($self, $bug) = @_;
+    # We treat it like a hash always, so that we don't have to check if it's
+    # a hash or an object.
+    return 0 if !defined $bug->{component_id};
+    $bug->{component_id} == $self->id ? 1 : 0;
+}
 
 ###############################
 ####      Subroutines      ####

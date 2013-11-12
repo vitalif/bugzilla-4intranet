@@ -673,8 +673,6 @@ use constant ABSTRACT_SCHEMA => {
             visibility_field_id => {TYPE => 'INT3', 
                                     REFERENCES => {TABLE  => 'fielddefs',
                                                    COLUMN => 'id'}},
-            # CustIS Bug 53617 - visibility_value_id is removed from here
-            # (migrated to fieldvaluecontrol table)
             value_field_id => {TYPE => 'INT3',
                                REFERENCES => {TABLE  => 'fielddefs',
                                               COLUMN => 'id'}},
@@ -691,6 +689,25 @@ use constant ABSTRACT_SCHEMA => {
         ],
     },
 
+    # Field Visibility Information
+    # -------------------------
+
+    field_visibility => {
+        FIELDS => [
+            field_id => {TYPE => 'INT3', 
+                         REFERENCES => {TABLE  => 'fielddefs',
+                                        COLUMN => 'id',
+                                        DELETE => 'CASCADE'}},
+            value_id => {TYPE => 'INT2', NOTNULL => 1}
+        ],
+        INDEXES => [
+            field_visibility_field_id_idx => {
+                FIELDS => [qw(field_id value_id)],
+                TYPE   => 'UNIQUE'
+            },
+        ],
+    },
+
     # Per-product Field Values
     # ------------------------
 
@@ -703,10 +720,10 @@ use constant ABSTRACT_SCHEMA => {
                             REFERENCES => {TABLE  => 'products',
                                            COLUMN => 'id',
                                            DELETE => 'CASCADE'}},
-			sortkey    =>  {TYPE => 'INT2', NOTNULL => 1, 
-											DEFAULT => 0},
-			isactive   => {TYPE => 'BOOLEAN', NOTNULL => 1,
-                             DEFAULT => 'TRUE'},
+            sortkey    =>  {TYPE => 'INT2', NOTNULL => 1, 
+                                            DEFAULT => 0},
+            isactive   =>  {TYPE => 'BOOLEAN', NOTNULL => 1, 
+                            DEFAULT => 'TRUE'},
         ],
         INDEXES => [
             versions_product_id_idx => {FIELDS => [qw(product_id value)],
@@ -725,6 +742,8 @@ use constant ABSTRACT_SCHEMA => {
             value      => {TYPE => 'varchar(20)', NOTNULL => 1},
             sortkey    => {TYPE => 'INT2', NOTNULL => 1,
                            DEFAULT => 0},
+            isactive   => {TYPE => 'BOOLEAN', NOTNULL => 1, 
+                           DEFAULT => 'TRUE'},
         ],
         INDEXES => [
             milestones_product_id_idx => {FIELDS => [qw(product_id value)],
@@ -1247,6 +1266,8 @@ use constant ABSTRACT_SCHEMA => {
                                                 COLUMN => 'userid',
                                                 DELETE => 'SET NULL'}},
             description      => {TYPE => 'MEDIUMTEXT', NOTNULL => 1},
+            isactive         => {TYPE => 'BOOLEAN', NOTNULL => 1, 
+                                 DEFAULT => 'TRUE'},
         ],
         INDEXES => [
             components_product_id_idx => {FIELDS => [qw(product_id name)],

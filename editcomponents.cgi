@@ -122,6 +122,7 @@ if ($action eq 'new') {
     my $wiki_url           = trim($cgi->param('wiki_url')         || '');
     my $default_version    = trim($cgi->param('default_version')  || '');
     my @initial_cc         = $cgi->param('initialcc');
+    my $isactive           = $cgi->param('isactive');
 
     my $component = Bugzilla::Component->create({
         name             => $comp_name,
@@ -229,7 +230,8 @@ if ($action eq 'update') {
     my $wiki_url              = trim($cgi->param('wiki_url')         || '');
     my $default_version       = trim($cgi->param('default_version')  || '');
     my @initial_cc            = $cgi->param('initialcc');
-
+    my $isactive              = $cgi->param('isactive');
+  
     my $component =
         Bugzilla::Component->check({ product => $product, name => $comp_old_name });
 
@@ -240,7 +242,7 @@ if ($action eq 'update') {
     $component->set_default_version($default_version);
     $component->set_wiki_url($wiki_url);
     $component->set_cc_list(\@initial_cc);
-    $component->set_is_active(scalar $cgi->param('is_active'));
+    $component->set_is_active($isactive);
     my $changes = $component->update();
 
     $vars->{'message'} = 'component_updated';

@@ -384,6 +384,9 @@ document.write(' <input type="button" name="check_all" value="Check All" onclick
 
 <label for="bug_status"><b>Status:</b></label>
 [% PROCESS status_section %]
+
+[%+ Hook.process('after_groups') %]
+
 <input type="submit" id="commit" value="Commit">
 
 [%############################################################################%]

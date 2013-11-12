@@ -408,6 +408,7 @@ document.changeform = document.[% cfname %];
                  id => "assigned_to"
                  name => "assigned_to"
                  value => bug.assigned_to.login
+                 classes => ["bz_userfield"]
                  size => 30
             %]
             <br>
@@ -450,6 +451,7 @@ document.changeform = document.[% cfname %];
                 name => "qa_contact"
                 value => bug.qa_contact.login
                 size => 30
+                classes => ["bz_userfield"]
                 emptyok => 1
             %]
             <br>
@@ -751,6 +753,7 @@ document.changeform = document.[% cfname %];
                   name => "newcc"
                   value => ""
                   size => 30
+                  classes => ["bz_userfield"]
                   multiple => 5
                 %]
             </div>
@@ -1049,6 +1052,7 @@ document.changeform = document.[% cfname %];
           AND bug.choices.${selname}.size > 1 %]
       <select id="[% selname %]" name="[% selname %]">
         [% FOREACH x = bug.choices.${selname} %]
+          [% NEXT IF NOT x.is_active AND x.name != bug.${selname} %]
           <option value="[% x.name FILTER html %]"
             [% " selected" IF x.name == bug.${selname} %]>
             [%- x.name FILTER html %]

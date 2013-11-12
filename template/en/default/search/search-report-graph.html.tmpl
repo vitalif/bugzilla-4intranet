@@ -62,7 +62,7 @@ var queryform = "reportform"
 
 [% button_name = "Generate Report" %]
 
-<form method="get" action="report.cgi" name="reportform">
+<form method="get" action="report.cgi" name="reportform" id="reportform">
 
 <table align="center">
   <tr>
@@ -127,14 +127,13 @@ var queryform = "reportform"
 
 [% PROCESS search/form.html.tmpl %]
 
-<br>
-<input type="submit" id="[% button_name FILTER css_class_quote %]"
-       value="[% button_name FILTER html %]">
-<input type="hidden" name="action" value="wrap">
-<hr>
-
 [% PROCESS "search/boolean-charts.html.tmpl" %]
 
+  <div id="knob">
+    <input type="submit" id="[% button_name FILTER css_class_quote %]"
+           value="[% button_name FILTER html %]">
+    <input type="hidden" name="action" value="wrap">
+  </div>
 </form>
 
 [% PROCESS global/footer.html.tmpl %]

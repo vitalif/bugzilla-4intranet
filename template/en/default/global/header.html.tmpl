@@ -88,7 +88,7 @@
     [%# This allows people to switch back to the "Classic" skin if they
       # are in another skin. 
       #%]
-    <link href="[% 'skins/standard/global.css' FILTER mtime_url FILTER html %]"
+    <link href="[% 'skins/standard/global.css' FILTER mtime FILTER html %]"
           rel="alternate stylesheet" 
           title="[% setting_descs.standard FILTER html %]">
     [% FOREACH style_url = css_sets.standard %]
@@ -208,7 +208,8 @@
           #%]
         var BUGZILLA = {
             param: {
-                cookiepath: '[% Param('cookiepath') FILTER js %]'
+                cookiepath: '[% Param('cookiepath') FILTER js %]',
+                maxusermatches: [% Param('maxusermatches') FILTER js %]
             },
             string: {
                 [%# Please keep these in alphabetical order. %]
@@ -222,7 +223,7 @@
                 short_desc_required:
                     'You must enter a Summary for this [% terms.bug %].',
                 version_required:
-                    'You must select a Version for this [% terms.bug %].',
+                    'You must select a Version for this [% terms.bug %].'
             }
         };
         [% IF javascript %]
@@ -328,5 +329,5 @@
 [% Hook.process('aftermessage') %]
 
 [% BLOCK format_js_link %]
-    <script src="[% javascript_url FILTER html %]" type="text/javascript"></script>
+  <script type="text/javascript" src="[% javascript_url FILTER mtime FILTER html %]"></script>
 [% END %]

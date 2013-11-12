@@ -53,6 +53,15 @@
         display: inline;
     }
 
+    #header .links {
+        border-left: 1px solid #747E93;
+        border-right: 1px solid #747E93;
+        border-bottom: 1px solid #747E93;
+        -moz-border-radius-bottomleft: 5px;
+        -moz-border-radius-bottomright: 5px;
+        padding: 0.5em;
+    }
+
     #lang_links_container {
         float: right;
     }
@@ -257,6 +266,18 @@ div#docslinks {
     margin: 0;
 }
 
+/**************************/
+/* Bug links and statuses */
+/**************************/
+
+.bz_bug_link {
+    /* Catch-all if you want common styles for all bug links */
+}
+
+.bz_bug_link .bz_status_UNCONFIRMED {
+    font-style: italic;
+}
+
 .bz_obsolete {
     text-decoration: line-through;
 }
@@ -312,6 +333,12 @@ div#docslinks {
      * be hidden, even if there is some CSS that overrides it (we use these
      * classes inside JavaScript to hide things). */
     display: none !important;
+}
+
+.bz_comment_text span.quote {
+    color: #65379c;
+    /* Make quoted text not wrap. */
+    white-space: pre;
 }
 
 table#flags th,
@@ -477,10 +504,8 @@ input.required, select.required, span.required_explanation {
     padding-top: .2em;
 }
 
+
 #keyword_container .yui-ac-content {
-    max-height: 19em;
-    overflow: auto;
-    overflow-x: hidden;
     margin-left: -1px;
 }
 

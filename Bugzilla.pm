@@ -45,7 +45,6 @@ use Bugzilla::Util;
 use Bugzilla::Field;
 use Bugzilla::Flag;
 use Bugzilla::Token;
-use Bugzilla::Keyword;
 
 use File::Basename;
 use File::Spec::Functions;

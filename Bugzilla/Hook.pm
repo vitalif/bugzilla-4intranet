@@ -540,6 +540,29 @@ The definition is structured as:
 
 =back
 
+=head2 search_operator_field_override
+
+This allows you to modify L<Bugzilla::Search/OPERATOR_FIELD_OVERRIDE>,
+which determines the search functions for fields. It allows you to specify
+custom search functionality for certain fields. 
+
+See L<Bugzilla::Search/OPERATOR_FIELD_OVERRIDE> for reference and see
+the code in the example extension.
+
+Note that the interface to this hook is B<UNSTABLE> and it may change in the
+future.
+
+Params:
+
+=over
+
+=item C<operators> - See L<Bugzilla::Search/OPERATOR_FIELD_OVERRIDE> to get
+an idea of the structure.
+
+=item C<search> - The L<Bugzilla::Search> object.
+
+=back
+
 =head2 bugmail_recipients
 
 This allows you to modify the list of users who are going to be receiving
@@ -930,6 +953,27 @@ of that type.
 
 This arrayref does not contain the standard column names--you cannot modify
 or remove standard object columns using this hook.
+
+=back
+
+=head2 object_end_of_create
+
+Called at the end of L<Bugzilla::Object/create>, after all other changes are
+made to the database. This occurs inside a database transaction.
+
+Params:
+
+=over
+
+=item C<class>
+
+The name of the class that C<create> was called on. You can check this 
+like C<< if ($class->isa('Some::Class')) >> in your code, to perform specific
+tasks for only certain classes.
+
+=item C<object>
+
+The created object.
 
 =back
 

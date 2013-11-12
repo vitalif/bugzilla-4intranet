@@ -42,7 +42,10 @@
   #   tabindex: (optional) HTML tabindex.
   #%]
 
-[% SET hidden = !field.check_visibility(bug) %]
+[% SET hidden = 0 %]
+[% IF bug AND !field.is_visible_on_bug(bug) %]
+  [% SET hidden = 1 %]
+[% END %]
 
 [% IF NOT no_tds %]
   <th class="field_label [% ' bz_hidden_field' IF hidden %]"
@@ -164,6 +167,7 @@
           [% END %]
           [% value_found = allow_dont_change AND value == dontchange %]
           [% FOREACH legal_value = legal_values %]
+            [% NEXT IF NOT legal_value.is_active AND NOT value.contains(legal_value.name).size %]
             <option value="[% legal_value.name FILTER html %]"
                     id="v[% legal_value.id FILTER html %]_[% field.name FILTER html %]"
               [% IF value.contains(legal_value.name).size %]
