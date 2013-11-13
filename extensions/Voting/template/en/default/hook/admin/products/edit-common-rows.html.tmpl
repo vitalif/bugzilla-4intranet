@@ -50,11 +50,6 @@
            value="[% product.votestoconfirm FILTER html %]">
     <br>(Setting this to 0 disables auto-confirming [% terms.bugs %]
     by vote.)
-    <script type="text/javascript">
-        YAHOO.util.Event.addListener('allows_unconfirmed', 'change',
-            function() { bz_toggleClass('votes_to_confirm_container',
-                                        'bz_default_hidden'); });
-    </script>
   </td>
 </tr>
 

@@ -572,21 +572,15 @@ sub add_to_deps { $_[0]->{add_to_deps} }
 
 sub url { $_[0]->{url} }
 
-# Includes disabled values is $include_disabled = true
-sub legal_values
-{
+sub legal_values {
     my $self = shift;
-    my ($include_disabled) = @_;
-    return [] unless $self->is_select;
-    return [ Bugzilla::Field::Choice->type($self)->get_all($include_disabled) ];
-}
 
-# Always excludes disabled values
-sub legal_value_names
-{
-    my $self = shift;
-    return [] unless $self->is_select;
-    return Bugzilla::Field::Choice->type($self)->get_all_names();
+    if (!defined $self->{'legal_values'}) {
+        require Bugzilla::Field::Choice;
+        my @values = Bugzilla::Field::Choice->type($self)->get_all();
+        $self->{'legal_values'} = \@values;
+    }
+    return $self->{'legal_values'};
 }
 
 # Always excludes disabled values
@@ -679,27 +673,6 @@ sub visibility_field_id
 {
     my $self = shift;
     return $self->{visibility_field_id};
-}
-
-sub visibility_values
-{
-    my $self = shift;
-    return undef if !$self->visibility_field_id;
-    my $f;
-    if ($self->visibility_field && !($f = $self->{visibility_values}))
-    {
-        $f = [ keys %{Bugzilla->fieldvaluecontrol_hash
-            ->{$self->visibility_field_id}
-            ->{fields}
-            ->{$self->id} || {} } ];
-        if (@$f)
-        {
-            my $type = Bugzilla::Field::Choice->type($self->visibility_field);
-            $f = $type->match({ id => $f });
-        }
-        $self->{visibility_values} = $f;
-    }
-    return $f;
 }
 
 sub has_visibility_value
@@ -1148,9 +1121,9 @@ sub create {
             $dbh->bz_add_column('bugs', $name, SQL_DEFINITIONS->{$type});
         }
 
-        if ($obj->is_select) {
+        if ($field->is_select) {
             # Create the table that holds the legal values for this field.
-            $dbh->bz_add_field_tables($obj);
+            $dbh->bz_add_field_tables($field);
         }
 
         if ($type == FIELD_TYPE_SINGLE_SELECT) {

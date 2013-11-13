@@ -303,14 +303,6 @@
     [% " |" UNLESS loop.last() %]
   [% END %]
 </div>
-[% IF can_edit %]
-  <script type="text/javascript">
-    <!--
-      YAHOO.util.Dom.removeClass( document.body, "no_javascript" );
-      toggle_attachment_details_visibility( );
-    -->
-  </script>
-[% END %]
 [% Hook.process('end') %]
 
 [% PROCESS global/footer.html.tmpl %]

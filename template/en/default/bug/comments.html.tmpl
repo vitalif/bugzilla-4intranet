@@ -194,12 +194,5 @@
 <div class="bz_comment_text[% " collapsed" IF wt_only %][% " bz_fullscreen_comment" IF user.settings.comment_width.value == 'on' %]" id="comment_text_[% comment.id %]">
   [%- comment.body_full({ wrap => 1 }) -%]
 </div>
-
-<div>!!!!!!!!CONFLICT!!!!!!!!!!!!!!!</div>
-
-<pre class="bz_comment_text" 
-     [% ' id="comment_text_' _ count _ '"' IF mode == "edit" %]>
-  [%- comment_text FILTER quoteUrls(bug, comment) -%]
-</pre>
     </div>
 [% END %]

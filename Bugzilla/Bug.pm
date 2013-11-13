@@ -63,7 +63,6 @@ use base qw(Bugzilla::Object Exporter);
 @Bugzilla::Bug::EXPORT = qw(
     bug_alias_to_id
     LogActivityEntry
-    editable_bug_fields
 );
 @Bugzilla::Bug::EXPORT_OK = @Bugzilla::Bug::EXPORT;
 
@@ -177,32 +176,18 @@ sub VALIDATORS {
     return $validators;
 };
 
-sub VALIDATOR_DEPENDENCIES {
-    my $cache = Bugzilla->request_cache;
-    return $cache->{bug_validator_dependencies} 
-        if $cache->{bug_validator_dependencies};
-
-    my %deps = (
-        assigned_to      => ['component'],
-        bug_status       => ['product', 'comment', 'target_milestone'],
-        cc               => ['component'],
-        component        => ['product'],
-        dup_id           => ['bug_status', 'resolution'],
-        groups           => ['product'],
-        keywords         => ['product'],
-        resolution       => ['bug_status'],
-        qa_contact       => ['component'],
-        target_milestone => ['product'],
-        version          => ['product'],
-    );
-
-    foreach my $field (@{ Bugzilla->fields }) {
-        $deps{$field->name} = [ $field->visibility_field->name ]
-            if $field->{visibility_field_id};
-    }
-
-    $cache->{bug_validator_dependencies} = \%deps;
-    return \%deps;
+use constant UPDATE_VALIDATORS => {
+    reporter            => \&_check_reporter,
+    assigned_to         => \&_check_assigned_to,
+    bug_status          => \&_check_bug_status,
+    cclist_accessible   => \&Bugzilla::Object::check_boolean,
+    dup_id              => \&_check_dup_id,
+    everconfirmed       => \&Bugzilla::Object::check_boolean,
+    qa_contact          => \&_check_qa_contact,
+    reporter_accessible => \&Bugzilla::Object::check_boolean,
+    resolution          => \&_check_resolution,
+    target_milestone    => \&_check_target_milestone,
+    version             => \&_check_version,
 };
 
 sub UPDATE_COLUMNS {
@@ -2559,7 +2544,7 @@ sub set_assigned_to {
     my ($self, $value) = @_;
     $self->set('assigned_to', $value);
     # Store the old assignee. check_can_change_field() needs it.
-    $self->{'_old_assigned_to'} = $self->{'assigned_to_obj'}->id;
+    $self->{'assigned_to'} = $self->{'assigned_to_obj'}->id;
     delete $self->{'assigned_to_obj'};
 }
 sub reset_assigned_to {

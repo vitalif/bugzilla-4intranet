@@ -26,8 +26,7 @@ package Bugzilla::Install::Requirements;
 use strict;
 
 use Bugzilla::Constants;
-use Bugzilla::Install::Util qw(vers_cmp install_string bin_loc 
-                               extension_requirement_packages);
+use Bugzilla::Install::Util qw(vers_cmp install_string bin_loc);
 use List::Util qw(max);
 use Safe;
 use Term::ANSIColor;

@@ -200,27 +200,6 @@ $vars->{chart_fields} = [
 
 # Another hack...
 unshift @{$vars->{chart_fields}}, { id => 'noop', name => '---' };
-# This is what happens when you have variables whose definition depends
-# on the DB schema, and then the underlying schema changes...
-foreach my $val (editable_bug_fields()) {
-    if ($val eq 'classification_id') {
-        $val = 'classification';
-    } elsif ($val eq 'product_id') {
-        $val = 'product';
-    } elsif ($val eq 'component_id') {
-        $val = 'component';
-    }
-    push @chfields, $val;
-}
-
-if (Bugzilla->user->is_timetracker) {
-    push @chfields, "work_time";
-} else {
-    @chfields = grep($_ ne "estimated_time", @chfields);
-    @chfields = grep($_ ne "remaining_time", @chfields);
-}
-@chfields = (sort(@chfields));
-$vars->{'chfield'} = \@chfields;
 $vars->{'bug_status'} = Bugzilla::Field->new({name => 'bug_status'})->legal_values;
 $vars->{'rep_platform'} = Bugzilla::Field->new({name => 'rep_platform'})->legal_values;
 $vars->{'op_sys'} = Bugzilla::Field->new({name => 'op_sys'})->legal_values;

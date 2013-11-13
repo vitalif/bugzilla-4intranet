@@ -65,6 +65,7 @@ function toggle_wtonly(id, initial_wtonly, img)
 
 // This way, we are sure that browsers which do not support JS
 // won't display this link
+
 function addCollapseLink(id)
 {
     var e = document.getElementById('comment_act_'+id);

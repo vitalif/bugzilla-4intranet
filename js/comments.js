@@ -33,59 +33,6 @@ function updateCommentPrivacy(checkbox, id) {
     }
 }
 
-/* The functions below expand and collapse comments  */
-
-function toggle_comment_display(link, comment_id) {
-    var comment = document.getElementById('comment_text_' + comment_id);
-    var re = new RegExp(/\bcollapsed\b/);
-    if (comment.className.match(re))
-        expand_comment(link, comment);
-    else
-        collapse_comment(link, comment);
-}
-
-function toggle_all_comments(action, comments_size) {
-    var num_comments = comments_size;
-
-    // If for some given ID the comment doesn't exist, this doesn't mean
-    // there are no more comments, but that the comment is private and
-    // the user is not allowed to view it.
-
-    for (var id = 0; id < num_comments; id++) {
-        var comment = document.getElementById('comment_text_' + id);
-        if (!comment)
-            continue;
-
-        var link = document.getElementById('comment_link_' + id);
-        if (action == 'collapse')
-            collapse_comment(link, comment);
-        else
-            expand_comment(link, comment);
-    }
-}
-
-function collapse_comment(link, comment) {
-    link.innerHTML = "[+]";
-    link.title = "Expand the comment.";
-    YAHOO.util.Dom.addClass(comment, 'collapsed');
-}
-
-function expand_comment(link, comment) {
-    link.innerHTML = "[-]";
-    link.title = "Collapse the comment";
-    YAHOO.util.Dom.removeClass(comment, 'collapsed');
-}
-
-/* This way, we are sure that browsers which do not support JS
-   * won't display this link  */
-
-function addCollapseLink(count) {
-    document.write(' <a href="#" class="bz_collapse_comment"' +
-                   ' id="comment_link_' + count +
-                   '" onclick="toggle_comment_display(this, ' +  count +
-                   '); return false;" title="Collapse the comment.">[-]<\/a> ');
-}
-
 function goto_add_comments( anchor ){
     anchor =  (anchor || "add_comment");
     // we need this line to expand the comment box

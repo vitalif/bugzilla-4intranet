@@ -972,6 +972,10 @@
   <em>[% restricted_cc.join(', ') | html %]</em> removed.
 [% END %]
 
+[% BLOCK msg_install_success %]
+    checksetup.pl complete.
+[% END %]
+
 [% IF message %]
 [% message_tag = 'msg_' _ message %]
 [% message = BLOCK %]

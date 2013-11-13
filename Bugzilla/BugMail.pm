@@ -52,6 +52,11 @@ use List::MoreUtils qw(uniq);
 use constant BIT_DIRECT    => 1;
 use constant BIT_WATCHING  => 2;
 
+use constant FORMAT_TRIPLE => "%19s|%-28s|%-28s";
+use constant FORMAT_3_SIZE => [19,28,28];
+use constant FORMAT_DOUBLE => "%19s %-55s";
+use constant FORMAT_2_SIZE => [19,55];
+
 use base qw(Exporter);
 our @EXPORT = qw(send_results);
 
@@ -496,7 +501,7 @@ sub Send {
             # Go through each role the user has and see if they want mail in
             # that role.
             foreach my $relationship (keys %{$recipients{$user_id}}) {
-                if ($user->wants_bug_mail($id,
+                if ($user->wants_bug_mail($bug,
                                           $relationship,
                                           $diffs,
                                           $comments,
@@ -581,7 +586,6 @@ sub sendMail
         {
             push @$new_diffs, $diff;
         }
-        push(@display_diffs, $diff) if $add_diff;
     }
 
     $diffs = $new_diffs;

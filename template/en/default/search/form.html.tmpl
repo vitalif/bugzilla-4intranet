@@ -213,7 +213,7 @@ TUI_hide_default('information_query');
   <tr>
   [% i = 0 %]
   [% FOR f = Bugzilla.get_fields({ is_select => 1, obsolete => 0, custom => 1, sort => 1 }) %]
-    [% IF f.legal_value_names.size %]
+    [% IF f.legal_values %]
       [% IF i AND !(i % 4) %]
   </tr>
 </table>
@@ -607,7 +607,7 @@ addListener(window, 'load', function() {
   <td align="left">
     <select name="[% sel.name | html %]" id="[% sel.name | html %]"
             multiple="multiple" size="[% sel.size %]">
-      [% FOREACH value = Bugzilla.get_field(sel.name).legal_value_names %]
+      [% FOREACH value = Bugzilla.get_field(sel.name).legal_values %]
         <option value="[% value.name OR '---' FILTER html %]" id="qf_[% sel.name | html %]_[% value.ids.join('_') %]"
           [% " selected" IF lsearch(default.${sel.name}, value.name) != -1 %]>
           [% value.name FILTER html

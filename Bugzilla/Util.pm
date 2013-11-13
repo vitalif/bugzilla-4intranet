@@ -487,6 +487,19 @@ sub format_time {
     return trim($date);
 }
 
+sub format_time_decimal {
+    my ($time) = (@_);
+
+    my $newtime = sprintf("%.2f", $time);
+
+    if ($newtime =~ /0\Z/) {
+        $newtime = sprintf("%.1f", $time);
+    }
+
+    return $newtime;
+}
+
+
 sub datetime_from {
     my ($date, $timezone) = @_;
 

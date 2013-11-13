@@ -227,8 +227,6 @@ function set_assign_to() {
                 inputElement.disabled = true;
                 // Also hide the requestee field, if it exists.
                 inputElement = document.getElementById("requestee_type-" + id);
-                if (inputElement)
-                  YAHOO.util.Dom.addClass(inputElement.parentNode, 'bz_default_hidden');
             }
         }
         // Now enable flags available for the selected component.
@@ -478,7 +476,6 @@ function checkWorktime(inp)
          emptyok => 1
          custom_userlist => assignees_list
        %]
-      <noscript>(Leave blank to assign to component's default assignee)</noscript>
     </td>
 
     [%# Calculate the number of rows we can use for flags %]

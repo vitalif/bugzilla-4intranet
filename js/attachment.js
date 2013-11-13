@@ -439,14 +439,3 @@ function normalizeComments()
     }
 }
 
-function toggle_attachment_details_visibility ( ) 
-{
-    // show hide classes
-    var container = document.getElementById('attachment_info');
-    if( YAHOO.util.Dom.hasClass(container, 'read') ){
-        YAHOO.util.Dom.replaceClass(container, 'read', 'edit');
-    }else{
-        YAHOO.util.Dom.replaceClass(container, 'edit', 'read');
-    }
-}
-

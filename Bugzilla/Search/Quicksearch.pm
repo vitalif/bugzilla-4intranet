@@ -573,6 +573,8 @@ sub splitString
     my $string = shift;
     my @quoteparts;
     my @parts;
+    my $i = 0;
+
 
     # Now split on quote sign; be tolerant about unclosed quotes
     @quoteparts = split(/"/, $string);

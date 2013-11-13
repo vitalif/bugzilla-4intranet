@@ -351,7 +351,6 @@ sub _create_series {
     }
 }
 
-sub set_is_active { $_[0]->set('is_active', $_[1]); }
 sub set_default_version { $_[0]->set('default_version', $_[1]); }
 sub set_wiki_url { $_[0]->set('wiki_url', $_[1]); }
 sub set_name { $_[0]->set('name', $_[1]); }
