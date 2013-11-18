@@ -1,0 +1,186 @@
+#!/usr/bin/perl -wT
+# -*- Mode: perl; indent-tabs-mode: nil -*-
+#
+# The contents of this file are subject to the Mozilla Public
+# License Version 1.1 (the "License"); you may not use this file
+# except in compliance with the License. You may obtain a copy of
+# the License at http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS
+# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
+# implied. See the License for the specific language governing
+# rights and limitations under the License.
+#
+# The Original Code is mozilla.org code.
+#
+# The Initial Developer of the Original Code is Holger
+# Schurig. Portions created by Holger Schurig are
+# Copyright (C) 1999 Holger Schurig. All
+# Rights Reserved.
+#
+# Contributor(s): Holger Schurig <holgerschurig@nikocity.de>
+#                 Terry Weissman <terry@mozilla.org>
+#                 Frédéric Buclin <LpSolit@gmail.com>
+#                 Akamai Technologies <bugzilla-dev@akamai.com>
+
+use strict;
+use lib qw(. lib);
+
+use Bugzilla;
+use Bugzilla::Constants;
+use Bugzilla::Util;
+use Bugzilla::Error;
+use Bugzilla::User;
+use Bugzilla::Field;
+use Bugzilla::Field::Choice;
+use Bugzilla::Token;
+use Data::Dumper;
+
+my $cgi = Bugzilla->cgi;
+my $template = Bugzilla->template;
+my $vars = {};
+# There is only one section about components in the documentation,
+# so all actions point to the same page.
+$vars->{'doc_section'} = 'visibility-list.html';
+
+#
+# Preliminary checks:
+#
+
+my $user = Bugzilla->login(LOGIN_REQUIRED);
+
+$user->in_group('editvisibility')
+  || scalar(@{$user->get_editable_products})
+  || ThrowUserError("auth_failure", {group  => "editvisibility",
+                                     action => "edit",
+                                     object => "components"});
+
+#
+# often used variables
+#
+my $field_name    = trim($cgi->param('field')   || '');
+my $value_name    = trim($cgi->param('value')   || '');
+my $action        = trim($cgi->param('action')  || '');
+my $token         = $cgi->param('token');
+
+unless ($field_name) {
+    ThrowUserError('no_valid_field', {'field' => "field"});
+}
+
+my $field = Bugzilla->get_field($field_name);
+ThrowUserError('no_valid_field', {'field' => "field"}) unless $field;
+
+my $value = Bugzilla::Field::Choice->type($field)->check($value_name);
+ThrowUserError('no_valid_value', {'field' => "value"}) unless $value;
+
+#
+# action='' -> Show nice list of components
+#
+
+unless ($action) {
+    $vars->{'field'}  = $field;
+    $vars->{'value'}  = $value;
+    my $controlled_fields = { map { $_->id => $_ } values $field->controls_visibility_of() };
+    my @fields = Bugzilla->get_fields({custom => 1, sort => 1});
+    my $except_fields = { map { $_->id => { map { $_->id => 1 } values $_->controls_visibility_of } } @fields };
+#    die(Dumper $except_fields);
+    $vars->{'fields'} = [
+        map {
+            {
+                id => $_->id,
+                name => $_->name,
+                description => $_->description,
+                visible => $controlled_fields->{$_->id} ? $controlled_fields->{$_->id}->has_visibility_value($value) : 0
+            }
+        }
+        grep { $_->id ne $field->id && !($except_fields->{$_->id}->{$field->id}) } @fields
+    ];
+    $vars->{'token'} = issue_session_token('change_visibility');
+    $template->process("admin/fieldvalues/visibility-list.html.tmpl", $vars)
+        || ThrowTemplateError($template->error());
+    exit;
+}
+
+if ($action eq 'update') {
+#    check_token_data($token, 'change_visibility');
+#    delete_token($token);
+
+    my @fields = $cgi->param('fields[]');
+    my $controlled_fields = { map { $_->id => $_ } values $field->controls_visibility_of() };
+    my $length = @fields;
+    my %to_update;
+    if ($length) {
+        for my $field_id (@fields) {
+            my $cfield = Bugzilla->get_field($field_id);
+            my $changed = 0;
+            if ($cfield->value_field_id ne $field->id) {
+                $cfield->set_visibility_field($field->id);
+                $changed = 1;
+            }
+            if ($cfield->value_field_id ne $field->id) {
+                $cfield->set_value_field($field->id);
+                $changed = 1;
+            }
+            my $visibility_values = {map { $_->id=>1 } values ($cfield->visibility_values || [])};
+            if (!$visibility_values->{$value->id}) {
+                $visibility_values->{$value->id} = 1;
+                $cfield->set_visibility_values([keys $visibility_values]);
+                $changed = 1;
+            }
+            if ($changed) {
+                if (!%to_update->{$cfield->id}) {
+                    %to_update->{$cfield->id} = {field => $cfield, actions => {updated => 1}};
+                }
+            }
+            if ($controlled_fields->{$cfield->id}) {
+                delete $controlled_fields->{$cfield->id};
+            }
+        }
+    }
+    for my $cfield (values $controlled_fields) {
+        my $visibility_values = { map { $_->id => 1 } values $cfield->visibility_values};
+        if ($visibility_values->{$value->id}) {
+            delete $visibility_values->{$value->id};
+            $cfield->set_visibility_values([keys $visibility_values]);
+            if (!%to_update->{$cfield->id}) {
+                 %to_update->{$cfield->id} = {field => $cfield, actions => {}};
+            }
+            %to_update->{$cfield->id}->{actions}->{cleared} = 1;
+        }
+        if (!%$visibility_values) {
+            $cfield->set_visibility_field(undef);
+            $cfield->set_value_field(undef);
+            if (!%to_update->{$cfield->id}) {
+                 %to_update->{$cfield->id} = {field => $cfield, actions => {}};
+            }
+            %to_update->{$cfield->id}->{actions}->{cleared} = 1;
+        }
+    }
+    my @updated;
+    my @cleared;
+    for my $cfield (values %to_update) {
+        $cfield->{field}->update();
+        if ($cfield->{actions}->{cleared}) {
+            push @cleared, $cfield->{field}->description;
+        }
+        if ($cfield->{actions}->{updated}) {
+            push @updated, $cfield->{field}->description;
+        }
+    }
+
+    $vars->{'field'} = $field;
+    $vars->{'value'} = $value;
+    $vars->{'update'} = 1;
+    $vars->{'updated'} = join(', ', @updated);
+    $vars->{'cleared'} = join(', ', @cleared);
+    $template->process("admin/fieldvalues/visibility-list.html.tmpl", $vars)
+        || ThrowTemplateError($template->error());
+    exit;
+}
+
+#
+# No valid action found
+#
+ThrowUserError('no_valid_action', {'field' => "action"});
+
+__END__

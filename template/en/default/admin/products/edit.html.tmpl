@@ -132,6 +132,14 @@ versions:</a>
       <td><a href="buglist.cgi?product=[% product.name FILTER url_quote %]">
             [% product.bug_count FILTER html %]</a></td>
     </tr>
+    <tr>
+      <th align="right">
+        <a href="editvisibility.cgi?field=product&value=[% product.name FILTER url_quote %]">
+        Edit controlled fields visibility:
+        </a>
+      </th>
+      <td>[% controlled_field_names %]</td>
+    </tr>
   </table>
   
   <input type="hidden" name="product_old_name" 

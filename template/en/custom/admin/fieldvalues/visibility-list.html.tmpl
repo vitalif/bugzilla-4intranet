@@ -1,0 +1,48 @@
+[% USE Bugzilla %]
+[% cgi = Bugzilla.cgi %]
+
+[% PROCESS global/header.html.tmpl
+        title = "Упраление видимостью полей при установке значение поля $field.description в $value.name"
+        doc_section = "visibility-list.html"
+%]
+[% IF update %]
+    [% IF updated %]
+    <p>Следующие поля будут показаны, когда у поля [% field.description %] будет установлено значение [% value.name %]: <strong>[% updated %]</strong></p>
+    [% END %]
+    [% IF cleared %]
+    <p>Следующие поля не зависят от значения [% value.name %] поля [% field.description %]: <strong>[% cleared %]</strong></p>
+    [% END %]
+    [% IF !cleared && !updated %]
+    <p>Ничего не изменено</p>
+    [% END %]
+    <p>
+        <a href="editvisibility.cgi?field=[% field.name %]&value=[% value.name %]">К списку контролируемых полей</a>
+    </p>
+[% ELSE %]
+<h3>Выберите поля, которые будут отображаться, когда значение поля [% field.description %] установлено в [% value.name %]</h3>
+
+<form action="editvisibility.cgi?field=[% field.name %]&value=[% value.name %]&action=update" method="POST">
+    <input type="hidden" name="token" value="[% token %]"/>
+    <table id="admin_table" cellspacing="0" cellpadding="4">
+        <tr>
+            <th align="left">Custom field</th>
+            <th align="left">Visible</td>
+        </tr>
+        [% i = 0 %]
+        [% FOREACH cfield = fields %]
+        <tr class="[% IF i mod 2 == 0 %]odd[% ELSE %]even[% END %]_row">
+            <td>[% cfield.description FILTER html %]</td>
+            <td><input type="checkbox" name="fields[]" value="[% cfield.id %]" [% "checked=\"checked\"" IF cfield.visible %]/></td>
+        </tr>
+        [% i = i + 1 %]
+        [% END %]
+    </table>
+    <p><input type="submit" name="save" value="Save changes"/></p>
+</form>
+<p>
+    <a href="[% IF field.name == "product" %]editproducts.cgi[% ELSE %]editvalues.cgi?field=[% field.name %][% END %]">К списку значений поля [% field.description %]</a>
+</p>
+[% END %]
+
+[% PROCESS global/footer.html.tmpl %]
+

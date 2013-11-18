@@ -36,6 +36,7 @@
   [%- field.name FILTER url_quote %]&amp;value=%%name%%[% END %]
 [% delete_contentlink = BLOCK %]editvalues.cgi?action=del&amp;field=
   [%- field.name FILTER url_quote %]&amp;value=%%name%%[% END %]
+[% select_contentlink = BLOCK %]editvisibility.cgi?field=[%- field.name FILTER url_quote %]&amp;value=%%name%%[% END %]
 
 [% IF field.custom && field.value_field %]
   <h4>
@@ -65,6 +66,12 @@
        heading => "Action"
        content => "Delete"
        contentlink => delete_contentlink
+     },
+     {
+        name => "controlledfield"
+        heading => "Select fields controlled by this"
+        content => "To select page"
+        contentlink => select_contentlink
      } ]
 %]
 
@@ -74,6 +81,13 @@
     [% overrides.action.name.${check_value.name} = {
          override_content => 1
          content => "(Non-deletable value)"
+         override_contentlink => 1
+         contentlink => undef
+       }
+    %]
+    [% overrides.controlledfield.name.${check_value.name} = {
+         override_content => 1
+         content => "(Non-controllable value)"
          override_contentlink => 1
          contentlink => undef
        }
