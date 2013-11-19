@@ -83,7 +83,6 @@ unless ($action) {
     my $controlled_fields = { map { $_->id => $_ } values $field->controls_visibility_of() };
     my @fields = Bugzilla->get_fields({custom => 1, sort => 1});
     my $except_fields = { map { $_->id => { map { $_->id => 1 } values $_->controls_visibility_of } } @fields };
-#    die(Dumper $except_fields);
     $vars->{'fields'} = [
         map {
             {
@@ -101,9 +100,8 @@ unless ($action) {
     exit;
 }
 
-if ($action eq 'update') {
-#    check_token_data($token, 'change_visibility');
-#    delete_token($token);
+if ($action eq 'update' && $token) {
+    check_token_data($token, 'change_visibility');
 
     my @fields = $cgi->param('fields[]');
     my $controlled_fields = { map { $_->id => $_ } values $field->controls_visibility_of() };
@@ -167,6 +165,7 @@ if ($action eq 'update') {
             push @updated, $cfield->{field}->description;
         }
     }
+    delete_token($token);
 
     $vars->{'field'} = $field;
     $vars->{'value'} = $value;

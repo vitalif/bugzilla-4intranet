@@ -479,6 +479,20 @@ sub has_visibility_value
     return $hash->{$value};
 }
 
+sub visible_for_all
+{
+    my $self = shift;
+    my ($default) = @_;
+    $default = 0 if !defined $default;
+    return $default if $self->name eq '---' || !$self->field->value_field_id;
+    my $hash = Bugzilla->fieldvaluecontrol_hash
+        ->{$self->field->value_field_id}
+        ->{values}
+        ->{$self->field->id}
+        ->{$self->id};
+    return !%$hash;
+}
+
 sub is_default_controlled_value
 {
     my $self = shift;
