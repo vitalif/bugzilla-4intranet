@@ -26,6 +26,7 @@
 #                 Frédéric Buclin <LpSolit@gmail.com>
 #                 Lance Larsh <lance.larsh@oracle.com>
 #                 Elliotte Martin <elliotte_martin@yahoo.com>
+#                 Christian Legnitto <clegnitto@mozilla.com>
 
 package Bugzilla::Bug;
 
@@ -155,12 +156,21 @@ sub VALIDATORS {
         bug_file_loc   => \&_check_bug_file_loc,
         bug_severity   => \&_check_select_field,
         comment        => \&_check_comment,
-        commentprivacy => \&_check_commentprivacy,
+        component      => \&_check_component,
+        creation_ts    => \&_check_creation_ts,
         deadline       => \&_check_deadline,
-        estimated_time => \&_check_estimated_time,
+        dup_id         => \&_check_dup_id,
+        estimated_time => \&Bugzilla::Object::check_time,
+        everconfirmed  => \&Bugzilla::Object::check_boolean,
+        groups         => \&_check_groups,
+        keywords       => \&_check_keywords,
+        op_sys         => \&_check_select_field,
         priority       => \&_check_priority,
         product        => \&_check_product,
-        remaining_time => \&_check_remaining_time,
+        qa_contact     => \&_check_qa_contact,
+        remaining_time => \&Bugzilla::Object::check_time,
+        rep_platform   => \&_check_select_field,
+        resolution     => \&_check_resolution,
         short_desc     => \&_check_short_desc,
         status_whiteboard => \&_check_status_whiteboard,
     };
@@ -232,16 +242,6 @@ sub DATE_COLUMNS {
     return map { $_->name } @fields;
 }
 
-# This is used by add_comment to know what we validate before putting in
-# the DB.
-use constant UPDATE_COMMENT_COLUMNS => qw(
-    thetext
-    work_time
-    type
-    extra_data
-    isprivate
-);
-
 # Used in LogActivityEntry(). Gives the max length of lines in the
 # activity table.
 use constant MAX_LINE_LENGTH => 254;
@@ -252,14 +252,17 @@ use constant MAX_LINE_LENGTH => 254;
 # use.)
 use constant FIELD_MAP => {
     blocks           => 'blocked',
-    is_confirmed     => 'everconfirmed',
     cc_accessible    => 'cclist_accessible',
+    commentprivacy   => 'comment_is_private',
     creation_time    => 'creation_ts',
     creator          => 'reporter',
     description      => 'comment',
     depends_on       => 'dependson',
     dupe_of          => 'dup_id',
     id               => 'bug_id',
+    is_confirmed     => 'everconfirmed',
+    is_cc_accessible => 'cclist_accessible',
+    is_creator_accessible => 'reporter_accessible',
     last_change_time => 'delta_ts',
     platform         => 'rep_platform',
     severity         => 'bug_severity',
@@ -275,6 +278,9 @@ use constant FIELD_MAP => {
 
 use constant REQUIRED_FIELD_MAP => {};
 
+# Creation timestamp is here because it needs to be validated
+# but it can be NULL in the database (see comments in create above)
+#
 # Target Milestone is here because it has a default that the validator
 # creates (product.defaultmilestone) that is different from the database
 # default.
@@ -288,14 +294,24 @@ use constant REQUIRED_FIELD_MAP => {};
 #
 # Groups are in a separate table, but must always be validated so that
 # mandatory groups get set on bugs.
-use constant EXTRA_REQUIRED_FIELDS => qw(target_milestone cc qa_contact groups);
+use constant EXTRA_REQUIRED_FIELDS => qw(creation_ts target_milestone cc qa_contact groups);
 
 #####################################################################
+
+# This and "new" catch every single way of creating a bug, so that we
+# can call _create_cf_accessors.
+sub _do_list_select {
+    my $invocant = shift;
+    $invocant->_create_cf_accessors();
+    return $invocant->SUPER::_do_list_select(@_);
+}
 
 sub new {
     my $invocant = shift;
     my $class = ref($invocant) || $invocant;
     my $param = shift;
+
+    $class->_create_cf_accessors();
 
     # Remove leading "#" mark if we've just been passed an id.
     if (!ref $param && $param =~ /^#(\d+)$/) {
@@ -594,10 +610,12 @@ sub create {
 
     # These are not a fields in the bugs table, so we don't pass them to
     # insert_create_data.
-    my $cc_ids     = delete $params->{cc};
-    my $groups     = delete $params->{groups};
-    my $depends_on = delete $params->{dependson};
-    my $blocked    = delete $params->{blocked};
+    my $cc_ids           = delete $params->{cc};
+    my $groups           = delete $params->{groups};
+    my $depends_on       = delete $params->{dependson};
+    my $blocked          = delete $params->{blocked};
+    my $keywords         = delete $params->{keywords};
+    my $creation_comment = delete $params->{comment};
     my ($work_time, $comment, $privacy) = ($params->{work_time}, $params->{comment}, $params->{commentprivacy});
     delete $params->{work_time};
     delete $params->{comment};
@@ -680,20 +698,14 @@ sub create {
         }
     }
 
-    # And insert the comment. We always insert a comment on bug creation,
+    # Comment #0 handling...
+
+    # We now have a bug id so we can fill this out
+    $creation_comment->{'bug_id'} = $bug->id;
+
+    # Insert the comment. We always insert a comment on bug creation,
     # but sometimes it's blank.
-    my @columns = qw(bug_id who bug_when thetext work_time);
-    my @values = ($bug->bug_id, $bug->{reporter_id}, $timestamp, $comment, $work_time);
-    # We don't include the "isprivate" column unless it was specified.
-    # This allows it to fall back to its database default.
-    if (defined $privacy) {
-        push(@columns, 'isprivate');
-        push(@values, $privacy);
-    }
-    my $qmarks = "?," x @columns;
-    chop($qmarks);
-    $dbh->do('INSERT INTO longdescs (' . join(',', @columns)  . ")
-                   VALUES ($qmarks)", undef, @values);
+    Bugzilla::Comment->insert_create_data($creation_comment);
 
     Bugzilla::Hook::process('bug_end_of_create', { bug => $bug,
                                                    timestamp => $timestamp,
@@ -749,9 +761,7 @@ sub run_create_validators
     }
 
     # Callers cannot set reporter, creation_ts, or delta_ts.
-    $params->{reporter} = $class->_check_reporter($params->{reporter});
-    $params->{creation_ts} =
-        Bugzilla->dbh->selectrow_array('SELECT LOCALTIMESTAMP(0)');
+    $params->{reporter} = $class->_check_reporter();
     $params->{delta_ts} = $params->{creation_ts};
 
     if ($params->{estimated_time}) {
@@ -1585,11 +1595,12 @@ sub _check_cc {
     return [map {$_->id} @{$component->initial_cc}] unless $ccs;
 
     # Allow comma-separated input as well as arrayrefs.
-    $ccs = [split(/[\s,]+/, $ccs)] if !ref $ccs;
+    $ccs = [split(/[,;]+/, $ccs)] if !ref $ccs;
 
     my %cc_ids;
     my ($ccg) = $component->product->description =~ /\[[CС]{2}:\s*([^\]]+)\s*\]/iso;
     foreach my $person (@$ccs) {
+        $person = trim($person);
         next unless $person;
         my $id = login_to_id($person, THROW_ERROR);
         my $user = Bugzilla::User->new($id);
@@ -1605,25 +1616,28 @@ sub _check_cc {
 }
 
 sub _check_comment {
-    my ($invocant, $comment) = @_;
+    my ($invocant, $comment_txt, undef, $params) = @_;
 
-    $comment = '' unless defined $comment;
-
-    # Remove any trailing whitespace. Leading whitespace could be
-    # a valid part of the comment.
-    $comment =~ s/\s*$//s;
-    $comment =~ s/\r\n?/\n/g; # Get rid of \r.
-
-    ThrowUserError('comment_too_long') if length($comment) > MAX_COMMENT_LENGTH;
-    return $comment;
-}
-
-sub _check_commentprivacy {
-    my ($invocant, $comment_privacy) = @_;
-    if ($comment_privacy && !Bugzilla->user->is_insider) {
-        ThrowUserError('user_not_insider');
+    # Comment can be empty. We should force it to be empty if the text is undef
+    if (!defined $comment_txt) {
+        $comment_txt = '';
     }
-    return $comment_privacy ? 1 : 0;
+
+    # Load up some data
+    my $isprivate = delete $params->{comment_is_private};
+    my $timestamp = $params->{creation_ts};
+
+    # Create the new comment so we can check it
+    my $comment = {
+        thetext  => $comment_txt,
+        bug_when => $timestamp,
+    };
+
+    # We don't include the "isprivate" column unless it was specified. 
+    # This allows it to fall back to its database default.
+    if (defined $isprivate) {
+        $comment->{isprivate} = $isprivate;
+    }
 }
 
 sub _check_comment_type {
@@ -1647,6 +1661,10 @@ sub _check_component
         return '';
     }
     return $obj;
+}
+
+sub _check_creation_ts {
+    return Bugzilla->dbh->selectrow_array('SELECT LOCALTIMESTAMP(0)');
 }
 
 sub _check_deadline {
@@ -1680,8 +1698,8 @@ sub _check_dependencies {
     my %deps_in = (dependson => $depends_on || '', blocked => $blocks || '');
 
     foreach my $type (qw(dependson blocked)) {
-        my @bug_ids = ref($deps_in{$type})
-            ? @{$deps_in{$type}}
+        my @bug_ids = ref($deps_in{$type}) 
+            ? @{$deps_in{$type}} 
             : split(/[\s,]+/, $deps_in{$type});
         # Eliminate nulls.
         @bug_ids = grep {$_} @bug_ids;
@@ -1795,10 +1813,6 @@ sub _check_dup_id {
     }
 
     return $dupe_of;
-}
-
-sub _check_estimated_time {
-    return $_[0]->_check_time($_[1], 'estimated_time');
 }
 
 sub _check_groups {
@@ -1955,10 +1969,6 @@ sub _check_qa_contact {
 
     # "0" always means "undef", for QA Contact.
     return $id || undef;
-}
-
-sub _check_remaining_time {
-    return $_[0]->_check_time($_[1], 'remaining_time');
 }
 
 sub _check_reporter {
@@ -2161,10 +2171,6 @@ sub _check_version
         return '';
     }
     return $object->name;
-}
-
-sub _check_work_time {
-    return $_[0]->_check_time($_[1], 'work_time');
 }
 
 # Custom Field Validators
@@ -2571,8 +2577,9 @@ sub set_comment_is_private {
 
     $isprivate = $isprivate ? 1 : 0;
     if ($isprivate != $comment->is_private) {
-        $self->{comment_isprivate} ||= {};
-        $self->{comment_isprivate}->{$comment_id} = $isprivate;
+        $self->{comment_isprivate} ||= [];
+        $comment->set_is_private($isprivate);
+        push @{$self->{comment_isprivate}}, $comment;
     }
 }
 sub set_comment_worktimeonly
@@ -2858,8 +2865,6 @@ sub remove_cc {
 sub add_comment {
     my ($self, $comment, $params) = @_;
 
-    $comment = $self->_check_comment($comment);
-
     $params ||= {};
     if (exists $params->{work_time}) {
         $params->{work_time} = $self->_check_work_time($params->{work_time});
@@ -2880,9 +2885,19 @@ sub add_comment {
     }
     # XXX We really should check extra_data, too.
 
+    # This makes it so we won't create new comments when there is nothing
+    # to add 
     if ($comment eq '' && !($params->{type} || abs($params->{work_time}))) {
         return;
     }
+
+    # Fill out info that doesn't change and callers may not pass in
+    $params->{'bug_id'}  = $self;
+    $params->{'thetext'} = $comment;
+
+    # Validate all the entered data
+    Bugzilla::Comment->check_required_create_fields($params);
+    $params = Bugzilla::Comment->run_create_validators($params);
 
     # If the user has explicitly set remaining_time, this will be overridden
     # later in set_all. But if they haven't, this keeps remaining_time
@@ -2891,23 +2906,9 @@ sub add_comment {
         $self->set_remaining_time(max($self->remaining_time - $params->{work_time}, 0));
     }
 
-    # So we really want to comment. Make sure we are allowed to do so.
-    my $privs;
-    $self->check_can_change_field('longdesc', 0, 1, \$privs)
-        || ThrowUserError('illegal_change', { field => 'longdesc', privs => $privs });
-
     $self->{added_comments} ||= [];
-    my $add_comment = dclone($params);
-    $add_comment->{thetext} = $comment;
 
-    # We only want to trick_taint fields that we know about--we don't
-    # want to accidentally let somebody set some field that's not OK
-    # to set!
-    foreach my $field (UPDATE_COMMENT_COLUMNS) {
-        trick_taint($add_comment->{$field}) if defined $add_comment->{$field};
-    }
-
-    push(@{$self->{added_comments}}, $add_comment);
+    push(@{$self->{added_comments}}, $params);
 }
 
 # Edit comment checker
@@ -3236,8 +3237,44 @@ sub remove_see_also {
 }
 
 #####################################################################
-# Instance Accessors
+# Simple Accessors
 #####################################################################
+
+# These are accessors that don't need to access the database.
+# Keep them in alphabetical order.
+
+sub alias               { return $_[0]->{alias}               }
+sub bug_file_loc        { return $_[0]->{bug_file_loc}        }
+sub bug_id              { return $_[0]->{bug_id}              }
+sub bug_severity        { return $_[0]->{bug_severity}        }
+sub bug_status          { return $_[0]->{bug_status}          }
+sub cclist_accessible   { return $_[0]->{cclist_accessible}   }
+sub component_id        { return $_[0]->{component_id}        }
+sub creation_ts         { return $_[0]->{creation_ts}         }
+sub estimated_time      { return $_[0]->{estimated_time}      }
+sub deadline            { return $_[0]->{deadline}            }
+sub delta_ts            { return $_[0]->{delta_ts}            }
+sub error               { return $_[0]->{error}               }
+sub everconfirmed       { return $_[0]->{everconfirmed}       }
+sub lastdiffed          { return $_[0]->{lastdiffed}          }
+sub op_sys              { return $_[0]->{op_sys}              }
+sub priority            { return $_[0]->{priority}            }
+sub product_id          { return $_[0]->{product_id}          }
+sub remaining_time      { return $_[0]->{remaining_time}      }
+sub reporter_accessible { return $_[0]->{reporter_accessible} }
+sub rep_platform        { return $_[0]->{rep_platform}        }
+sub resolution          { return $_[0]->{resolution}          }
+sub short_desc          { return $_[0]->{short_desc}          }
+sub status_whiteboard   { return $_[0]->{status_whiteboard}   }
+sub target_milestone    { return $_[0]->{target_milestone}    }
+sub version             { return $_[0]->{version}             }
+
+#####################################################################
+# Complex Accessors
+#####################################################################
+
+# These are accessors that have to access the database for additional
+# information about a bug.
 
 # These subs are in alphabetical order, as much as possible.
 # If you add a new sub, please try to keep it in alphabetical order
@@ -3357,11 +3394,6 @@ sub blocked {
     $self->{'blocked'} = EmitDependList("dependson", "blocked", $self->bug_id);
     return $self->{'blocked'};
 }
-
-# Even bugs in an error state always have a bug_id.
-sub bug_id { $_[0]->{'bug_id'}; }
-
-sub failed_checkers { $_[0]->{failed_checkers} }
 
 sub bug_group {
     my ($self) = @_;
@@ -3551,7 +3583,10 @@ sub percentage_complete {
     my $actual    = $self->actual_time;
     my $total = $remaining + $actual;
     return undef if $total == 0;
-    return 100 * ($actual / $total);
+    # Search.pm truncates this value to an integer, so we want to as well,
+    # since this is mostly used in a test where its value needs to be
+    # identical to what the database will return.
+    return int(100 * ($actual / $total));
 }
 
 sub product {
@@ -4394,73 +4429,55 @@ sub ValidateDependencies
 }
 
 #####################################################################
-# Autoloaded Accessors
+# Custom Field Accessors
 #####################################################################
 
-# Determines whether an attribute access trapped by the AUTOLOAD function
-# is for a valid bug attribute.  Bug attributes are properties and methods
-# predefined by this module as well as bug fields for which an accessor
-# can be defined by AUTOLOAD at runtime when the accessor is first accessed.
-#
-# XXX Strangely, some predefined attributes are on the list, but others aren't,
-# and the original code didn't specify why that is.  Presumably the only
-# attributes that need to be on this list are those that aren't predefined;
-# we should verify that and update the list accordingly.
-#
-sub _validate_attribute {
-    my ($attribute) = @_;
+sub _create_cf_accessors {
+    my ($invocant) = @_;
+    my $class = ref($invocant) || $invocant;
+    return if Bugzilla->request_cache->{"${class}_cf_accessors_created"};
 
-    my @valid_attributes = (
-        # Miscellaneous properties and methods.
-        qw(error groups product_id component_id
-           comments milestoneurl attachments isopened
-           flag_types num_attachment_flag_types
-           show_attachment_flags any_flags_requesteeble
-           lastdiffed),
+    my $fields = Bugzilla->fields({ custom => 1 });
+    foreach my $field (@$fields) {
+        my $accessor = $class->_accessor_for($field);
+        my $name = "${class}::" . $field->name;
+        {
+            no strict 'refs';
+            next if defined *{$name};
+            *{$name} = $accessor;
+        }
+    }
 
-        # Bug fields.
-        Bugzilla::Bug->fields
-    );
-
-    return grep($attribute eq $_, @valid_attributes) ? 1 : 0;
+    Bugzilla->request_cache->{"${class}_cf_accessors_created"} = 1;
 }
 
-sub AUTOLOAD {
-  use vars qw($AUTOLOAD);
-  my $attr = $AUTOLOAD;
+sub _accessor_for {
+    my ($class, $field) = @_;
+    if ($field->type == FIELD_TYPE_MULTI_SELECT) {
+        return $class->_multi_select_accessor($field->name);
+    }
+    return $class->_cf_accessor($field->name);
+}
 
-  $attr =~ s/.*:://;
-  return unless $attr=~ /[^A-Z]/;
-  if (!_validate_attribute($attr)) {
-      require Carp;
-      Carp::confess("invalid bug attribute $attr");
-  }
+sub _cf_accessor {
+    my ($class, $field) = @_;
+    my $accessor = sub {
+        my ($self) = @_;
+        return $self->{$field};
+    };
+    return $accessor;
+}
 
-  no strict 'refs';
-  *$AUTOLOAD = sub {
-      my $self = shift;
-
-      return $self->{$attr} if defined $self->{$attr};
-
-      $self->{_multi_selects} ||= Bugzilla->fields(
-          { custom => 1, type => FIELD_TYPE_MULTI_SELECT });
-
-      if ( grep($_->name eq $attr, @{$self->{_multi_selects}}) ) {
-          # There is a bug in Perl 5.10.0, which is fixed in 5.10.1,
-          # which taints $attr at this point. trick_taint() can go
-          # away once we require 5.10.1 or newer.
-          trick_taint($attr);
-
-          $self->{$attr} ||= Bugzilla->dbh->selectcol_arrayref(
-              "SELECT value FROM bug_$attr WHERE bug_id = ? ORDER BY value",
-              undef, $self->id);
-          return $self->{$attr};
-      }
-
-      return '';
-  };
-
-  goto &$AUTOLOAD;
+sub _multi_select_accessor {
+    my ($class, $field) = @_;
+    my $accessor = sub {
+        my ($self) = @_;
+        $self->{$field} ||= Bugzilla->dbh->selectcol_arrayref(
+            "SELECT value FROM bug_$field WHERE bug_id = ? ORDER BY value",
+            undef, $self->id);
+        return $self->{$field};
+    };
+    return $accessor;
 }
 
 1;

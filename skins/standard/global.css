@@ -299,7 +299,24 @@ div#docslinks {
 /* Comment text */
 /****************/
 
-.bz_comment { margin-bottom: 2em; }
+.bz_comment_table td {
+    vertical-align: top;
+}
+
+.bz_comment {
+    margin-bottom: 2em;
+}
+
+/* tbody.file pre is for the Diff view of attachments. */
+.bz_comment_text, .uneditable_textarea, tbody.file pre {
+     font-family: monospace;
+    /* Note that these must all be on separate lines or they stop
+       working in Konqueror. */
+     white-space: pre-wrap;      /* CSS 3 & 2.1 */
+     white-space: -moz-pre-wrap; /* Gecko */
+     white-space: -pre-wrap;     /* Opera 4-6 */
+     white-space: -o-pre-wrap;   /* Opera 7 */
+}
 
 .bz_comment_text {
     width: 50em;
@@ -500,7 +517,6 @@ input.required, select.required, span.required_explanation {
 }
 
 #keyword_container {
-    padding-bottom: 2em;
     padding-top: .2em;
 }
 
@@ -515,12 +531,13 @@ input.required, select.required, span.required_explanation {
 
 .validation_error_text {
     font-size: 120%;
-    color: #152446;
+    color: #B70000;
     font-weight: bold;
 }
 
-.validation_error_field {
-    border: 2px solid #152446;
+.validation_error_field, input.validation_error_field {
+    border: 2px solid #B70000;
+    background-color: #FFEBEB;
 }
 
 /*****************/

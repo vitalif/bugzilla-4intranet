@@ -29,6 +29,7 @@
 #                 Byron Jones <bugzilla@glob.com.au>
 #                 Reed Loden <reed@reedloden.com>
 #                 Frédéric Buclin <LpSolit@gmail.com>
+#                 Guy Pyrzak <guy.pyrzak@gmail.com>
 
 use strict;
 
@@ -247,6 +248,7 @@ sub Send {
             push(@ccs, login_to_id($cc, THROW_ERROR));
         }
     }
+    my %user_cache = map { $_->id => $_ } (@assignees, @qa_contacts, @ccs);
 
     # Convert to names, for later display
     # If no changer is specified, then it has no name.
@@ -493,7 +495,8 @@ sub Send {
     foreach my $user_id (keys %recipients) {
         my %rels_which_want;
         my $sent_mail = 0;
-        my $user = new Bugzilla::User($user_id);
+        $user_cache{$user_id} ||= new Bugzilla::User($user_id);
+        my $user = $user_cache{$user_id};
         # Deleted users must be excluded.
         next unless $user;
 
@@ -677,8 +680,41 @@ sub sendMail
     return 1;
 }
 
+sub _generate_bugmail {
+    my ($user, $vars) = @_;
+    my $template = Bugzilla->template_inner($user->settings->{'lang'}->{'value'});
+    my ($msg_text, $msg_html, $msg_header);
+  
+    $template->process("email/bugmail-header.txt.tmpl", $vars, \$msg_header)
+        || ThrowTemplateError($template->error());
+    $template->process("email/bugmail.txt.tmpl", $vars, \$msg_text)
+        || ThrowTemplateError($template->error());
+    $template->process("email/bugmail.html.tmpl", $vars, \$msg_html)
+        || ThrowTemplateError($template->error());
+    
+    my @parts = (
+        Email::MIME->create(
+            attributes => {
+                content_type => "text/plain",
+            },
+            body => $msg_text,
+        ),
+        Email::MIME->create(
+            attributes => {
+                content_type => "text/html",         
+            },
+            body => $msg_html,
+        ),
+    );
+  
+    my $email = new Email::MIME($msg_header);
+    $email->parts_set(\@parts);
+    $email->content_type_set('multipart/alternative');
+    return $email;
+}
+
 sub _get_diffs {
-    my ($bug, $end) = @_;
+    my ($bug, $end, $user_cache) = @_;
     my $dbh = Bugzilla->dbh;
 
     my @args = ($bug->id);
@@ -690,20 +726,20 @@ sub _get_diffs {
     }
 
     my $diffs = $dbh->selectall_arrayref(
-           "SELECT profiles.login_name, profiles.realname, fielddefs.name AS field_name,
+           "SELECT fielddefs.name AS field_name,
                    bugs_activity.bug_when, bugs_activity.removed AS old,
                    bugs_activity.added AS new, bugs_activity.attach_id,
-                   bugs_activity.comment_id
+                   bugs_activity.comment_id, bugs_activity.who
               FROM bugs_activity
         INNER JOIN fielddefs
                 ON fielddefs.id = bugs_activity.fieldid
-        INNER JOIN profiles
-                ON profiles.userid = bugs_activity.who
              WHERE bugs_activity.bug_id = ?
                    $when_restriction
           ORDER BY bugs_activity.bug_when", {Slice=>{}}, @args);
 
     foreach my $diff (@$diffs) {
+        $user_cache->{$diff->{who}} ||= new Bugzilla::User($diff->{who}); 
+        $diff->{who} =  $user_cache->{$diff->{who}};
         if ($diff->{attach_id}) {
             $diff->{isprivate} = $dbh->selectrow_array(
                 'SELECT isprivate FROM attachments WHERE attach_id = ?',

@@ -58,6 +58,7 @@ use Bugzilla::FlagType;
 use Bugzilla::Group;
 use Bugzilla::Install ();
 use Bugzilla::Test::Search::Constants;
+use Bugzilla::Test::Search::FieldTestNormal;
 use Bugzilla::Test::Search::OperatorTest;
 use Bugzilla::User ();
 use Bugzilla::Util qw(generate_random_password);
@@ -99,8 +100,8 @@ sub num_tests {
                      ? ($top_combinations * $all_combinations) : 0;
     # And AND tests, which means we run 2x $join_tests;
     $join_tests = $join_tests * 2;
-    # Also, because of NOT tests, we run 2x $top_combinations.
-    my $basic_tests = $top_combinations * 2;
+    # Also, because of NOT tests and Normal tests, we run 3x $top_combinations.
+    my $basic_tests = $top_combinations * 3;
     my $operator_field_tests = ($basic_tests + $join_tests) * TESTS_PER_RUN;
 
     # Then we test each field/operator combination for SQL injection.
@@ -108,7 +109,11 @@ sub num_tests {
     my $sql_injection_tests = scalar(@fields) * scalar(@top_operators)
                               * scalar(@injection_values) * NUM_SEARCH_TESTS;
 
-    return $operator_field_tests + $sql_injection_tests;
+    # This @{ [] } thing is the only reasonable way to get a count out of a
+    # constant array.
+    my $special_tests = scalar(@{ [SPECIAL_PARAM_TESTS] }) * TESTS_PER_RUN;
+    
+    return $operator_field_tests + $sql_injection_tests + $special_tests;
 }
 
 sub _total_operator_tests {
@@ -375,7 +380,7 @@ sub _create_field_values {
 
     $values{'keywords'} = create_keyword($number)->name;
 
-    foreach my $field qw(assigned_to qa_contact reporter cc) {
+    foreach my $field (qw(assigned_to qa_contact reporter cc)) {
         $values{$field} = create_user("$number-$field")->login;
     }
 
@@ -499,7 +504,7 @@ sub _create_flags {
     my $flagtypes = _create_flagtypes($number);
 
     my %flags;
-    foreach my $type qw(a b) {
+    foreach my $type (qw(a b)) {
         $flags{$type} = _get_flag_values(@_, $flagtypes->{$type});
     }
     return \%flags;
@@ -587,6 +592,7 @@ sub _create_one_bug {
     my $update_alias = $self->bug_update_value($number, 'alias');
     
     # Otherwise, make bug 6 a clone of bug 1.
+    my $real_number = $number;
     $number = 1 if $number == 6;
     
     my $reporter = $self->bug_create_value($number, 'reporter');
@@ -609,9 +615,9 @@ sub _create_one_bug {
     
     # These are necessary for the changedfrom tests.
     my $extra_values = $self->_extra_bug_create_values->{$number};
-    foreach my $field qw(comments remaining_time percentage_complete
+    foreach my $field (qw(comments remaining_time percentage_complete
                          keyword_objects everconfirmed dependson blocked
-                         groups_in classification)
+                         groups_in classification))
     {
         $extra_values->{$field} = $bug->$field;
     }
@@ -661,6 +667,13 @@ sub _create_one_bug {
                       undef, $bug->id);
         }
         
+        # Bug 1 gets three comments, so that longdescs.count matches it
+        # uniquely. The third comment is added in the middle, so that the
+        # last comment contains all of the important data, like work_time.
+        if ($number == 1) {
+            $bug->add_comment("1-comment-" . random(100));
+        }
+        
         my %update_params = %{ $self->_bug_update_values->{$number} };
         my %reverse_map = reverse %{ Bugzilla::Bug->FIELD_MAP };
         foreach my $db_name (keys %reverse_map) {
@@ -684,9 +697,14 @@ sub _create_one_bug {
         $update_params{groups} = { add => $update_params{groups},
                                    remove => $bug->groups_in };
         my @cc_remove = map { $_->login } @{ $bug->cc_users };
-        my $cc_add = $update_params{cc};
-        $cc_add = [$cc_add] if !ref $cc_add;
-        $update_params{cc} = { add => $cc_add, remove => \@cc_remove };
+        my $cc_new = $update_params{cc};
+        my @cc_add = ref($cc_new) ? @$cc_new : ($cc_new);
+        # We make the admin an explicit CC on bug 1 (but not on bug 6), so
+        # that we can test the %user% pronoun properly.
+        if ($real_number == 1) {
+            push(@cc_add, $self->admin->login);
+        }
+        $update_params{cc} = { add => \@cc_add, remove => \@cc_remove };
         my $see_also_remove = $bug->see_also;
         my $see_also_add = [$update_params{see_also}];
         $update_params{see_also} = { add => $see_also_add, 
@@ -701,7 +719,7 @@ sub _create_one_bug {
         $update_params{reporter_accessible} = $number == 1 ? 1 : 0;
         $update_params{cclist_accessible} = $number == 1 ? 1 : 0;
         $update_params{alias} = $update_alias;
-        
+
         $bug->set_all(\%update_params);
         my $flags = $self->bug_create_value($number, 'set_flags')->{b};
         $bug->set_flags([], $flags);
@@ -852,6 +870,14 @@ sub run {
     # Even though _setup_bugs set us as an admin, we want to be sure at
     # this point that we have an admin with refreshed group memberships.
     Bugzilla->set_user($self->admin);
+    foreach my $test (SPECIAL_PARAM_TESTS) {
+        my $operator_test =
+            new Bugzilla::Test::Search::OperatorTest($test->{operator}, $self);
+        my $field = Bugzilla::Field->check($test->{field});
+        my $special_test = new Bugzilla::Test::Search::FieldTestNormal(
+            $operator_test, $field, $test);
+        $special_test->run();
+    }
     foreach my $operator ($self->top_level_operators) {
         my $operator_test =
             new Bugzilla::Test::Search::OperatorTest($operator, $self);

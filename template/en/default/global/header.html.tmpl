@@ -211,6 +211,9 @@
                 cookiepath: '[% Param('cookiepath') FILTER js %]',
                 maxusermatches: [% Param('maxusermatches') FILTER js %]
             },
+            constant: {
+                COMMENT_COLS: [% constants.COMMENT_COLS FILTER js %]
+            },
             string: {
                 [%# Please keep these in alphabetical order. %]
 
@@ -226,6 +229,12 @@
                     'You must select a Version for this [% terms.bug %].'
             }
         };
+
+        [% FOREACH yui_name = yui %]
+          [% FOREACH yui_template = yui_templates.$yui_name %]
+            [% PROCESS $yui_template %]
+          [% END %]
+        [% END %]
         [% IF javascript %]
           [% javascript %]
         [% END %]

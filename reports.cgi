@@ -18,22 +18,15 @@
 # Copyright (C) 1998 Netscape Communications Corporation. All
 # Rights Reserved.
 #
-# Contributor(s): Harrison Page <harrison@netscape.com>,
-# Terry Weissman <terry@mozilla.org>,
-# Dawn Endico <endico@mozilla.org>
-# Bryce Nesbitt <bryce@nextbus.COM>,
-# Joe Robins <jmrobins@tgix.com>,
-# Gervase Markham <gerv@gerv.net> and Adam Spiers <adam@spiers.net>
-#    Added ability to chart any combination of resolutions/statuses.
-#    Derive the choice of resolutions/statuses from the -All- data file
-#    Removed hardcoded order of resolutions/statuses when reading from
-#    daily stats file, so now works independently of collectstats.pl
-#    version
-#    Added image caching by date and datasets
-# Myk Melez <myk@mozilla.org>:
-#    Implemented form field validation and reorganized code.
-# Frédéric Buclin <LpSolit@gmail.com>:
-#    Templatization.
+# Contributor(s): Harrison Page <harrison@netscape.com>
+#                 Terry Weissman <terry@mozilla.org>
+#                 Dawn Endico <endico@mozilla.org>
+#                 Bryce Nesbitt <bryce@nextbus.com>
+#                 Joe Robins <jmrobins@tgix.com>
+#                 Gervase Markham <gerv@gerv.net>
+#                 Adam Spiers <adam@spiers.net>
+#                 Myk Melez <myk@mozilla.org>
+#                 Frédéric Buclin <LpSolit@gmail.com>
 
 use strict;
 
@@ -112,22 +105,12 @@ else {
         ThrowUserError('invalid_datasets', {'datasets' => \@datasets});
     }
 
-    # Filenames must not be guessable as they can point to products
-    # you are not allowed to see. Also, different projects can have
-    # the same product names.
-    my $key = Bugzilla->localconfig->{'site_wide_secret'};
-    my $project = bz_locations()->{'project'} || '';
-    my $image_file =  join(':', ($key, $project, $prod_id, @datasets));
-    # Wide characters cause md5_hex() to die.
-    if (Bugzilla->params->{'utf8'}) {
-        utf8::encode($image_file) if utf8::is_utf8($image_file);
-    }
-    my $type = chart_image_type();
-    $image_file = md5_hex($image_file) . ".$type";
-    trick_taint($image_file);
+    my $data_file = daily_stats_filename($product);
+    my $image_file = chart_image_name($data_file, $datasets);
+    my $url_image = correct_urlbase() . "$graph_url/$image_file";
 
     if (! -e "$graph_dir/$image_file") {
-        generate_chart($dir, "$graph_dir/$image_file", $type, $product, \@datasets);
+        generate_chart("$dir/$data_file", "$graph_dir/$image_file", $product, $datasets);
     }
 
     $vars->{'url_image'} = "$graph_url/$image_file";
@@ -159,21 +142,38 @@ sub get_data {
     return @datasets;
 }
 
-sub chart_image_type {
-    # what chart type should we be generating?
-    my $testimg = Chart::Lines->new(2,2);
-    my $type = $testimg->can('gif') ? "gif" : "png";
+sub daily_stats_filename {
+    my ($prodname) = @_;
+    $prodname =~ s/\//-/gs;
+    return $prodname;
+}
 
-    undef $testimg;
-    return $type;
+sub chart_image_name {
+    my ($data_file, $datasets) = @_;
+
+    # This routine generates a filename from the requested fields. The problem
+    # is that we have to check the safety of doing this. We can't just require
+    # that the fields exist, because what stats were collected could change
+    # over time (eg by changing the resolutions available)
+    # Instead, just require that each field name consists only of letters,
+    # numbers, underscores and hyphens.
+
+    if ($datasets !~ m/^[A-Za-z0-9:_-]+$/) {
+        ThrowUserError('invalid_datasets', {'datasets' => $datasets});
+    }
+
+    # Since we pass the tests, consider it OK
+    trick_taint($datasets);
+
+    # Cache charts by generating a unique filename based on what they
+    # show. Charts should be deleted by collectstats.pl nightly.
+    my $id = join ("_", split (":", $datasets));
+
+    return "${data_file}_${id}.png";
 }
 
 sub generate_chart {
-    my ($dir, $image_file, $type, $product, $datasets) = @_;
-    $product = $product ? $product->name : '-All-';
-    my $data_file = $product;
-    $data_file =~ s/\//-/gs;
-    $data_file = $dir . '/' . $data_file;
+    my ($data_file, $image_file, $product, $datasets) = @_;
 
     if (! open FILE, $data_file) {
         if ($product eq '-All-') {
@@ -258,5 +258,5 @@ sub generate_chart {
         );
 
     $img->set (%settings);
-    $img->$type($image_file, [ @data{('DATE', @labels)} ]);
+    $img->png($image_file, [ @data{('DATE', @labels)} ]);
 }

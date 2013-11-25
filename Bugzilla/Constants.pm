@@ -309,7 +309,7 @@ use constant LIST_OF_BUGS => 1;
 # How many of the user's most recent searches to save.
 use constant SAVE_NUM_SEARCHES => 10;
 
-# The column length for displayed (and wrapped) bug comments.
+# The column width for comment textareas and comments in bugmails.
 use constant COMMENT_COLS => 80;
 use constant MAX_TABLE_COLS => 200;
 # Used in _check_comment(). Gives the max length allowed for a comment.
@@ -509,14 +509,16 @@ use constant INSTALLATION_MODE_NON_INTERACTIVE => 1;
 
 # Data about what we require for different databases.
 use constant DB_MODULE => {
-    'mysql' => {db => 'Bugzilla::DB::Mysql', db_version => '4.1.2',
+    # MySQL 5.0.15 was the first production 5.0.x release.
+    'mysql' => {db => 'Bugzilla::DB::Mysql', db_version => '5.0.15',
                 dbd => { 
                     package => 'DBD-mysql',
                     module  => 'DBD::mysql',
                     # Disallow development versions
                     blacklist => ['_'],
-                    # For UTF-8 support
-                    version => '4.00',
+                    # For UTF-8 support. 4.001 makes sure that blobs aren't
+                    # marked as UTF-8.
+                    version => '4.001',
                 },
                 name => 'MySQL'},
     'pg'    => {db => 'Bugzilla::DB::Pg', db_version => '8.03.0000',
@@ -533,6 +535,15 @@ use constant DB_MODULE => {
                      version => '1.19',
                 },
                 name => 'Oracle'},
+     # SQLite 3.6.22 fixes a WHERE clause problem that may affect us.
+    sqlite => {db => 'Bugzilla::DB::Sqlite', db_version => '3.6.22',
+               dbd => {
+                   package => 'DBD-SQLite',
+                   module  => 'DBD::SQLite',
+                   # 1.29 is the version that contains 3.6.22.
+                   version => '1.29',
+               },
+               name => 'SQLite'},
 };
 
 # True if we're on Win32.
@@ -653,6 +664,7 @@ sub bz_locations {
         $datadir = "data";
     }
 
+    $datadir = "$libpath/$datadir";
     # We have to return absolute paths for mod_perl. 
     # That means that if you modify these paths, they must be absolute paths.
     return {
@@ -662,10 +674,11 @@ sub bz_locations {
         # make sure this still points to the CGIs.
         'cgi_path'    => $libpath,
         'templatedir' => "$libpath/template",
+        'template_cache' => "$datadir/template",
         'project'     => $project,
         'localconfig' => "$libpath/$localconfig",
-        'datadir'     => "$libpath/$datadir",
-        'attachdir'   => "$libpath/$datadir/attachments",
+        'datadir'     => $datadir,
+        'attachdir'   => "$datadir/attachments",
         'skinsdir'    => "$libpath/skins",
         'graphsdir'   => "$libpath/graphs",
         # $webdotdir must be in the web server's tree somewhere. Even if you use a 
@@ -674,7 +687,7 @@ sub bz_locations {
         # change showdependencygraph.cgi to set image_url to the correct 
         # location.
         # The script should really generate these graphs directly...
-        'webdotdir'   => "$libpath/$datadir/webdot",
+        'webdotdir'   => "$datadir/webdot",
         'extensionsdir' => "$libpath/extensions",
     };
 }

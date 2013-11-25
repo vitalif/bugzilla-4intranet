@@ -744,6 +744,11 @@ document.changeform = document.[% cfname %];
           </ul>
         [% END %]
         </div>
+        [% IF user.id || bug.cc.size %]
+          <span id="cc_edit_area_showhide_container" class="bz_default_hidden">
+            (<a href="#" id="cc_edit_area_showhide">[% IF user.id %]edit[% ELSE %]show[% END %]</a>)
+          </span>
+        [% END %]
         <div id="cc_edit_area">
           [% IF user.id %]
             <div>
@@ -775,13 +780,15 @@ document.changeform = document.[% cfname %];
             [% END %]
           [% END %]
         </div>
-        <script type="text/javascript">
-          hideEditableField( 'cc_edit_area_showhide_container',
-                             'cc_edit_area',
-                             'cc_edit_area_showhide',
-                             '',
-                             '');
-        </script>
+        [% IF user.id || bug.cc.size %]
+          <script type="text/javascript">
+            hideEditableField( 'cc_edit_area_showhide_container', 
+                               'cc_edit_area', 
+                               'cc_edit_area_showhide', 
+                               '', 
+                               '');  
+          </script>
+        [% END %]
       </td>
     </tr>
 [% END %]
@@ -990,7 +997,7 @@ document.changeform = document.[% cfname %];
         <u>C</u>omments</b></label>:
 
       [% IF user.is_insider %]
-        <input type="checkbox" name="commentprivacy" value="1"
+        <input type="checkbox" name="comment_is_private" value="1"
                id="newcommentprivacy"
                onclick="updateCommentTagControl(this, form)" />
         <label for="newcommentprivacy">Private</label>

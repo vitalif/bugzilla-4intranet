@@ -496,8 +496,8 @@ if ($cloned_bug_id) {
     $comment_obj ||= $bug_desc->[0];
     my $isprivate = $comment_obj->is_private;
 
-    $vars->{'comment'}        = "";
-    $vars->{'commentprivacy'} = 0;
+    $vars->{'comment'} = "";
+    $vars->{'comment_is_private'} = 0;
 
     if (!$isprivate || Bugzilla->user->is_insider) {
         # We use "body" to avoid any format_comment text, which would be
@@ -510,7 +510,7 @@ if ($cloned_bug_id) {
         {
             $vars->{comment} = "Created attachment ".$comment_obj->extra_data."\n$vars->{comment}";
         }
-        $vars->{'commentprivacy'} = $isprivate;
+        $vars->{'comment_is_private'} = $isprivate;
     }
 
     Bugzilla::Hook::process('enter_bug_cloned_bug', { vars => $vars, product => $product, cloned_bug => $cloned_bug });
@@ -538,7 +538,7 @@ else {
     $vars->{'cc'}             = join(', ', $cgi->param('cc'));
 
     $vars->{'comment'}        = formvalue('comment');
-    $vars->{'commentprivacy'} = formvalue('commentprivacy');
+    $vars->{'comment_is_private'} = formvalue('comment_is_private');
 
 } # end of normal/bookmarked entry form
 
@@ -601,7 +601,10 @@ scalar(@statuses) || ThrowUserError('no_initial_bug_status');
 unless ($has_editbugs || $has_canconfirm) {
     # ... use UNCONFIRMED if available, else use the first status of the list.
     my ($unconfirmed) = grep { $_->name eq 'UNCONFIRMED' } @statuses;
-    @statuses = ($unconfirmed || $statuses[0]);
+
+    # Because of an apparent Perl bug, "$unconfirmed || $statuses[0]" doesn't
+    # work, so we're using an "?:" operator. See bug 603314 for details.
+    @statuses = ($unconfirmed ? $unconfirmed : $statuses[0]);
 }
 
 $vars->{'bug_status'} = \@statuses;

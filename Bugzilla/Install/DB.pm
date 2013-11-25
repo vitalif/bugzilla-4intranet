@@ -117,6 +117,11 @@ sub update_fielddefs_definition {
     # 2010-04-05 dkl@redhat.com - Bug 479400
     _migrate_field_visibility_value();
 
+    $dbh->bz_add_column('fielddefs', 'is_numeric',
+        {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'});
+    $dbh->do('UPDATE fielddefs SET is_numeric = 1 WHERE type = '
+             . FIELD_TYPE_BUG_ID);
+
     # Remember, this is not the function for adding general table changes.
     # That is below. Add new changes to the fielddefs table above this
     # comment.
@@ -654,6 +659,12 @@ sub update_table_definitions {
 
     # 2009-05-07 ghendricks@novell.com - Bug 77193
     _add_isactive_to_product_fields();
+
+    # 2010-10-09 LpSolit@gmail.com - Bug 505165
+    $dbh->bz_alter_column('flags', 'setter_id', {TYPE => 'INT3', NOTNULL => 1});
+
+    # 2010-10-09 LpSolit@gmail.com - Bug 451735
+    _fix_series_indexes();
 
     ################################################################
     # New --TABLE-- changes should go *** A B O V E *** this point #
@@ -3059,10 +3070,9 @@ sub _initialize_workflow_for_upgrade {
     }
 
     # We only populate the workflow here if we're upgrading from a version
-    # before 4.0 (which is where init_workflow was added).
-    my $new_exists = $dbh->selectrow_array(
-         'SELECT 1 FROM bug_status WHERE value = ?', undef, 'NEW');
-    return if !$new_exists;
+    # before 4.0 (which is where init_workflow was added). This was the
+    # first schema change done for 4.0, so we check this.
+    return if $dbh->bz_column_info('bugs_activity', 'comment_id');
 
     # Populate the status_workflow table. We do nothing if the table already
     # has entries. If all bug status transitions have been deleted, the
@@ -3600,6 +3610,16 @@ sub _migrate_field_visibility_value {
         $dbh->bz_commit_transaction();
         $dbh->bz_drop_column('fielddefs', 'visibility_value_id');
     }
+}
+
+sub _fix_series_indexes {
+    my $dbh = Bugzilla->dbh;
+    return if $dbh->bz_index_info('series', 'series_category_idx');
+
+    $dbh->bz_drop_index('series', 'series_creator_idx');
+    $dbh->bz_add_index('series', 'series_creator_idx', ['creator']);
+    $dbh->bz_add_index('series', 'series_category_idx',
+        {FIELDS => [qw(category subcategory name)], TYPE => 'UNIQUE'});
 }
 
 1;

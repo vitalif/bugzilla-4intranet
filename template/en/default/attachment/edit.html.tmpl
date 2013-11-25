@@ -184,6 +184,7 @@
               minrows = 10
               cols    = 80
               wrap    = 'soft'
+              disabled = 'disabled'
               defaultcontent = (attachment.contenttype.match('^text\/')) ?
                                  attachment.data.replace('(.*\n|.+)', '>$1') : undef
             %]
@@ -221,6 +222,10 @@
                   document.write('<button type="button" id="editButton" onclick="editAsComment(patchviewerinstalled);">Edit Attachment As Comment<\/button>');
                   document.write('<button type="button" id="undoEditButton" onclick="undoEditAsComment(patchviewerinstalled);" class="bz_default_hidden">Undo Edit As Comment<\/button>');
                   document.write('<button type="button" id="redoEditButton" onclick="redoEditAsComment(patchviewerinstalled);" class="bz_default_hidden">Redo Edit As Comment<\/button>');
+                  var editFrame = document.getElementById('editFrame');
+                  if (editFrame) {
+                    editFrame.disabled = false;
+                  }
                 [% END %]
                 [% IF use_patchviewer %]
                   document.write('<button type="button" id="viewDiffButton" onclick="viewDiff(attachment_id, patchviewerinstalled);">View Attachment As Diff<\/button>');
@@ -260,10 +265,7 @@
         [% END %]             
         <div id="attachment_flags">
           [% IF attachment.flag_types.size > 0 %]
-     
-              [% PROCESS "flag/list.html.tmpl" bug_id = attachment.bug_id
-                                               attach_id = attachment.id
-                                               flag_types = attachment.flag_types
+              [% PROCESS "flag/list.html.tmpl" flag_types = attachment.flag_types
                                                read_only_flags = !can_edit
               %]
      

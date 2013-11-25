@@ -70,6 +70,7 @@ use lib qw(. lib);
 
 
 use Bugzilla;
+use Bugzilla::Object;
 use Bugzilla::Bug;
 use Bugzilla::Product;
 use Bugzilla::Version;
@@ -499,18 +500,17 @@ sub process_bug {
         }
     }
 
-    my @long_descs;
-    my $private = 0;
-
     # Parse long descriptions
+    my @long_descs;
     foreach my $comment ( $bug->children('long_desc') ) {
         Debug( "Parsing Long Description", DEBUG_LEVEL );
-        my %long_desc;
-        $long_desc{'who'}       = $comment->field('who');
-        $long_desc{'bug_when'}  = $comment->field('bug_when');
-        $long_desc{'isprivate'} = $comment->{'att'}->{'isprivate'} || 0;
-        # TODO validate work_time
-        $long_desc{'work_time'} = $comment->field('work_time') || 0;
+        my %long_desc = ( who       => $comment->field('who'),
+                          bug_when  => $comment->field('bug_when'),
+                          isprivate => $comment->{'att'}->{'isprivate'} || 0,
+                          work_time => $comment->field('work_time') || 0 );
+
+        # If the exporter is not in the insidergroup, keep the comment public.
+        $long_desc{isprivate} = 0 unless $exporter->is_insider;
 
         my $data = $comment->field('thetext');
         if ( defined $comment->first_child('thetext')->{'att'}->{'encoding'}
@@ -534,17 +534,21 @@ sub process_bug {
         my $url = $urlbase . "show_bug.cgi?id=";
         $data =~ s/([Bb]ugs?\s*\#?\s*(\d+))/$url$2/g;
 
+        # Keep the original commenter if possible, else we will fall back
+        # to the exporter account.
+        $long_desc{whoid} = login_to_id($long_desc{who});
+
+        if (!$long_desc{whoid}) {
+            $data = "The original author of this comment is $long_desc{who}.\n\n" . $data;
+        }
+
         $long_desc{'thetext'} = $data;
-        unless ($long_desc{whoid} = login_to_id($long_desc{who}))
-        {
-            $long_desc{thetext} = "(by $long_desc{who})\n$long_desc{thetext}";
-            $long_desc{whoid} = $exporterid;
-    }
         push @long_descs, \%long_desc;
     }
 
-    my $comments;
-    $comments .= "--- Bug imported by $exporter_login ";
+    my @sorted_descs = sort { $a->{'bug_when'} cmp $b->{'bug_when'} } @long_descs;
+
+    my $comments = "\n\n--- Bug imported by $exporter_login ";
     $comments .= format_time(scalar localtime(time()), '%Y-%m-%d %R %Z') . " ";
     $comments .= " ---\n\n";
     $comments .= "This bug was previously known as _bug_ $bug_fields{'bug_id'} at ";
@@ -605,12 +609,12 @@ sub process_bug {
     # Timestamps
     push( @query, "creation_ts" );
     push( @values,
-        format_time( $bug_fields{'creation_ts'}, "%Y-%m-%d %X" )
+        format_time( $bug_fields{'creation_ts'}, "%Y-%m-%d %T" )
           || $timestamp );
 
     push( @query, "delta_ts" );
     push( @values,
-        format_time( $bug_fields{'delta_ts'}, "%Y-%m-%d %X" )
+        format_time( $bug_fields{'delta_ts'}, "%Y-%m-%d %T" )
           || $timestamp );
 
     # Bug Access
@@ -780,7 +784,7 @@ sub process_bug {
         push( @query,  "deadline" );
         if ( defined $bug_fields{'estimated_time'} ) {
             eval {
-                Bugzilla::Bug::ValidateTime($bug_fields{'estimated_time'}, "e");
+                Bugzilla::Object::_validate_time($bug_fields{'estimated_time'}, "e");
             };
             if (!$@){
                 push( @values, $bug_fields{'estimated_time'} );
@@ -789,7 +793,7 @@ sub process_bug {
         }
         if ( defined $bug_fields{'remaining_time'} ) {
             eval {
-                Bugzilla::Bug::ValidateTime($bug_fields{'remaining_time'}, "r");
+                Bugzilla::Object::_validate_time($bug_fields{'remaining_time'}, "r");
             };
             if (!$@){
                 push( @values, $bug_fields{'remaining_time'} );
@@ -798,7 +802,7 @@ sub process_bug {
         }
         if ( defined $bug_fields{'actual_time'} ) {
             eval {
-                Bugzilla::Bug::ValidateTime($bug_fields{'actual_time'}, "a");
+                Bugzilla::Object::_validate_time($bug_fields{'actual_time'}, "a");
             };
             if ($@){
                 $bug_fields{'actual_time'} = 0.0;
@@ -1228,25 +1232,21 @@ sub process_bug {
     # Clear the attachments array for the next bug
     @attachments = ();
 
-    # Insert longdesc and append any errors
+    # Insert comments and append any errors
     my $worktime = $bug_fields{'actual_time'} || 0.0;
     $worktime = 0.0 if (!$exporter->is_timetracker);
-    if ($err) {
-        $comments .= "\n$err";
+    $comments .= "\n$err\n" if $err;
+
+    my $sth_comment =
+      $dbh->prepare('INSERT INTO longdescs (bug_id, who, bug_when, isprivate,
+                                            thetext, work_time)
+                     VALUES (?, ?, ?, ?, ?, ?)');
+
+    foreach my $c (@sorted_descs) {
+        $sth_comment->execute($id, $c->{whoid} || $exporterid, $c->{bug_when},
+                              $c->{isprivate}, $c->{thetext}, 0);
     }
-    trick_taint($comments);
-    push @long_descs, {
-        whoid     => $exporterid,
-        bug_when  => $timestamp,
-        work_time => 0,
-        isprivate => 0,
-        thetext   => $comments,
-    };
-    $dbh->do(
-        "INSERT INTO longdescs (bug_id, who, bug_when, work_time, isprivate, thetext)".
-        " VALUES ".join(",", ("(?,?,?,?,?,?)") x @long_descs), undef,
-        map { $id, @$_{qw(whoid bug_when work_time isprivate thetext)} } @long_descs
-    );
+    $sth_comment->execute($id, $exporterid, $timestamp, 0, $comments, $worktime);
     Bugzilla::Bug->new($id)->_sync_fulltext('new_bug');
 
     # Add this bug to each group of which its product is a member.

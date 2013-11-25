@@ -18,6 +18,7 @@
  * Contributor(s): Frédéric Buclin <LpSolit@gmail.com>
  *                 Max Kanat-Alexander <mkanat@bugzilla.org>
  *                 Edmund Wong <ewong@pw-wspx.org>
+ *                 Anthony Pipkin <a.pipkin@yahoo.com>
  */
 
 function updateCommentPrivacy(checkbox, id) {

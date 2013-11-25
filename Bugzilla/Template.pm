@@ -474,8 +474,12 @@ sub get_bug_link {
     }
     # Prevent code injection in the title.
     $title = html_quote(clean_text($title));
-
     my $linkval = "show_bug.cgi?id=" . $bug->id;
+    
+    if ($options->{full_url}) {
+        $linkval = correct_urlbase() . $linkval;
+    }
+    
     if (defined $options->{comment_num}) {
         $linkval .= "#c" . $options->{comment_num};
     }
@@ -774,7 +778,7 @@ sub create {
         ABSOLUTE => 1,
         RELATIVE => $ENV{MOD_PERL} ? 0 : 1,
 
-        COMPILE_DIR => bz_locations()->{'datadir'} . "/template",
+        COMPILE_DIR => bz_locations()->{'template_cache'},
 
         # Initialize templates (f.e. by loading plugins like Hook).
         PRE_PROCESS => ["global/initialize.none.tmpl"],
@@ -1270,30 +1274,35 @@ sub precompile_templates {
     my ($output) = @_;
 
     # Remove the compiled templates.
+    my $cache_dir = bz_locations()->{'template_cache'};
     my $datadir = bz_locations()->{'datadir'};
-    if (-e "$datadir/template") {
+    if (-e $cache_dir) {
         print install_string('template_removing_dir') . "\n" if $output;
 
         # This frequently fails if the webserver made the files, because
         # then the webserver owns the directories.
-        rmtree("$datadir/template");
+        rmtree($cache_dir);
 
         # Check that the directory was really removed, and if not, move it
         # into data/deleteme/.
-        if (-e "$datadir/template") {
+        if (-e $cache_dir) {
+            my $deleteme = "$datadir/deleteme";
+            
             print STDERR "\n\n",
-                install_string('template_removal_failed',
-                               { datadir => $datadir }), "\n\n";
-            mkpath("$datadir/deleteme");
+                install_string('template_removal_failed', 
+                               { deleteme => $deleteme, 
+                                 template_cache => $cache_dir }), "\n\n";
+            mkpath($deleteme);
             my $random = generate_random_password();
-            rename("$datadir/template", "$datadir/deleteme/$random")
+            rename($cache_dir, "$deleteme/$random")
               or die "move failed: $!";
         }
     }
 
     print install_string('template_precompile') if $output;
 
-    my $paths = template_include_path();
+    # Pre-compile all available languages.
+    my $paths = template_include_path({ language => Bugzilla->languages });
 
     foreach my $dir (@$paths) {
         my $template = Bugzilla::Template->create(include_path => [$dir]);
@@ -1351,10 +1360,10 @@ sub _do_template_symlink {
 
     my $abs_root  = dirname($abs_path);
     my $dir_name  = basename($abs_path);
-    my $datadir   = bz_locations()->{'datadir'};
-    my $container = "$datadir/template$abs_root";
+    my $cache_dir   = bz_locations()->{'template_cache'};
+    my $container = "$cache_dir$abs_root";
     mkpath($container);
-    my $target = "$datadir/template/$dir_name";
+    my $target = "$cache_dir/$dir_name";
     # Check if the directory exists, because if there are no extensions,
     # there won't be an "data/template/extensions" directory to link to.
     if (-d $target) {

@@ -72,7 +72,6 @@ B<OR operators inside query which stop DBMS from using indexes for query speed-u
 I.e. for example "cc=X or commenter=X" was translated to 2 LEFT JOINs -
 to cc and longdescs tables - and a term like "cc.who=X or longdescs.who=X".
 DBMS can't do an index merge here, so this leads to a scan + two index checks.
-
 B<SOLUTION:>
 
 Use UNIONs instead of ORs. I.e. this same query is now translated to
@@ -234,7 +233,6 @@ could have relatively many rows for a single bug.
 =item description => [ 'field', 'operator', 'value' ],
 
 =back
-
 =back
 
 =head2 CORRELATED SEARCH TERMS

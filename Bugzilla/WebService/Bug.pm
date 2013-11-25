@@ -18,6 +18,7 @@
 #                 Tsahi Asher <tsahi_75@yahoo.com>
 #                 Noura Elhawary <nelhawar@redhat.com>
 #                 Frank Becker <Frank@Frank-Becker.de>
+#                 Dave Lawrence <dkl@redhat.com>
 
 package Bugzilla::WebService::Bug;
 
@@ -109,9 +110,9 @@ sub fields {
 
     my @fields_out;
     foreach my $field (@fields) {
-        my $visibility_field = $field->visibility_field 
+        my $visibility_field = $field->visibility_field
                                ? $field->visibility_field->name : undef;
-        my $vis_value = $field->visibility_value; 
+        my $vis_values = $field->visibility_values;
         my $value_field = $field->value_field
                           ? $field->value_field->name : undef;
 
@@ -133,13 +134,11 @@ sub fields {
            is_custom         => $self->type('boolean', $field->custom),
            name              => $self->type('string', $field->name),
            display_name      => $self->type('string', $field->description),
-# PENDING MERGE WITH 4.0
-#           is_mandatory      => $self->type('boolean', $field->is_mandatory),
+           is_mandatory      => $self->type('boolean', $field->is_mandatory),
            is_on_bug_entry   => $self->type('boolean', $field->enter_bug),
            visibility_field  => $self->type('string', $visibility_field),
-           visibility_values => [
-               defined $vis_value ? $self->type('string', $vis_value->name) : ()
-           ],
+           visibility_values =>
+              [ map { $self->type('string', $_->name) } @$vis_values ],
         );
         if ($has_values) {
            $field_data{value_field} = $self->type('string', $value_field);
@@ -431,8 +430,15 @@ sub search {
         my $clause = join(' OR ', @likes);
         $params->{WHERE}->{"($clause)"} = [map { "\%$_\%" } @strings];
     }
-    
-    my $bugs = Bugzilla::Bug->match($params);
+   
+    # We want include_fields and exclude_fields to be passed to
+    # _bug_to_hash but not to Bugzilla::Bug->match so we copy the 
+    # params and delete those before passing to Bugzilla::Bug->match.
+    my %match_params = %{ $params };
+    delete $match_params{'include_fields'};
+    delete $match_params{'exclude_fields'};
+
+    my $bugs = Bugzilla::Bug->match(\%match_params);
     my $visible = Bugzilla->user->visible_bugs($bugs);
     my @hashes = map { $self->_bug_to_hash($_, $params) } @$visible;
     return { bugs => \@hashes };
@@ -923,7 +929,7 @@ sub _attachment_to_hash {
 
     # creator/attacher require an extra lookup, so we only send them if
     # the filter wants them.
-    foreach my $field qw(creator attacher) {
+    foreach my $field (qw(creator attacher)) {
         if (filter_wants $filters, $field) {
             $item->{$field} = $self->type('string', $attach->attacher->login);
         }
@@ -1149,8 +1155,7 @@ You specified an invalid field name or id.
 
 =item Added in Bugzilla B<3.6>.
 
-=item There is no C<is_mandatory> return value yet in Bugzilla4Intranet.
-The C<is_mandatory> return value was added in Bugzilla B<4.0>.
+=item The C<is_mandatory> return value was added in Bugzilla B<4.0>.
 
 =back
 
@@ -2252,6 +2257,9 @@ don't want it to be assigned to the component owner.
 
 =item C<cc> (array) - An array of usernames to CC on this bug.
 
+=item C<comment_is_private> (boolean) - If set to true, the description
+is private, otherwise it is assumed to be public.
+
 =item C<groups> (array) - An array of group names to put this
 bug into. You can see valid group names on the Permissions
 tab of the Preferences screen, or, if you are an administrator,
@@ -2329,6 +2337,10 @@ B<Required>, due to a bug in Bugzilla.
 =item The C<groups> argument was added in Bugzilla B<4.0>. Before
 Bugzilla 4.0, bugs were only added into Mandatory groups by this
 method.
+
+=item The C<comment_is_private> argument was added in Bugzilla B<4.0>.
+Before Bugzilla 4.0, you had to use the undocumented C<commentprivacy>
+argument.
 
 =back
 
@@ -2607,7 +2619,7 @@ pass in an invalid user name.
 
 =back
 
-=item C<cc_accessible>
+=item C<is_cc_accessible>
 
 C<boolean> Whether or not users in the CC list are allowed to access
 the bug, even if they aren't in a group that can normally access the bug.
@@ -2737,7 +2749,7 @@ normally have permission to file new bugs in that product.
 
 C<string> The full login name of the bug's QA Contact.
 
-=item C<reporter_accessible>
+=item C<is_creator_accessible>
 
 C<boolean> Whether or not the bug's reporter is allowed to access
 the bug, even if he or she isn't in a group that can normally access

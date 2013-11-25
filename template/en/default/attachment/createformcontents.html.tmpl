@@ -94,7 +94,7 @@
     <input type="text" id="description" name="description" size="60" maxlength="200" onchange="this._changed=true">
   </td>
 </tr>
-<tr class="expert_fields" id="content_type_row">
+<tr[% ' class="expert_fields"' UNLESS bug.id %]>
   <th>Content Type:</th>
   <td>
     <em>If the attachment is a patch, check the box below.</em><br />
@@ -117,8 +117,8 @@
       <label for="list">select from list</label>:
       <select name="contenttypeselection" id="contenttypeselection"
               onchange="this.form.contenttypemethod[1].checked = true;">
-        [% PROCESS "attachment/content-types.html.tmpl" %]
-      </select><br />
+        [% PROCESS content_types %]
+      </select><br>
     <input type="radio" id="manual"
                  name="contenttypemethod" value="manual">
       <label for="manual">enter manually</label>:
@@ -127,11 +127,27 @@
              onchange="if (this.value) this.form.contenttypemethod[2].checked = true;">
   </td>
 </tr>
-<tr class="expert_fields">
+<tr[% ' class="expert_fields"' UNLESS bug.id %]>
   <td> </td>
   <td>
     [% IF flag_types && flag_types.size > 0 %]
-      [% PROCESS "flag/list.html.tmpl" bug_id=bugid attach_id=attachid %]<br />
+      [% PROCESS "flag/list.html.tmpl" %]<br>
     [% END %]
   </td>
 </tr>
+
+[% BLOCK content_types %]
+  [% mimetypes = [{type => "text/plain", desc => "plain text"},
+                  {type => "text/html",  desc => "HTML source"},
+                  {type => "application/xml", desc => "XML source"},
+                  {type => "image/gif",  desc => "GIF image"},
+                  {type => "image/jpeg", desc => "JPEG image"},
+                  {type => "image/png",  desc => "PNG image"},
+                  {type => "application/octet-stream", desc => "binary file"}]
+  %]
+  [% Hook.process("mimetypes", "attachment/createformcontents.html.tmpl") %]
+
+  [% FOREACH m = mimetypes %]
+    <option value="[% m.type FILTER html %]">[% m.desc FILTER html %] ([% m.type FILTER html %])</option>
+  [% END %]
+[% END %]

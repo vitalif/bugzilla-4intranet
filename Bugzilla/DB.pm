@@ -232,7 +232,7 @@ EOT
 sub bz_create_database {
     my $dbh;
     # See if we can connect to the actual Bugzilla database.
-    my $conn_success = eval { $dbh = connect_main(); };
+    my $conn_success = $dbh = connect_main();
     my $db_name = Bugzilla->localconfig->{db_name};
 
     if (!$conn_success) {
@@ -307,7 +307,7 @@ EOT
 
 # List of abstract methods we are checking the derived class implements
 our @_abstract_methods = qw(new sql_regexp sql_not_regexp sql_limit sql_to_days
-                            sql_date_format sql_interval bz_explain
+                            sql_date_format sql_date_math bz_explain
                             sql_group_concat);
 
 # This overridden import method will check implementation of inherited classes
@@ -786,10 +786,11 @@ sub bz_add_table {
             # initial table creation, because column names have changed
             # over history and it's impossible to keep track of that info
             # in ABSTRACT_SCHEMA.
-            if (exists $fields{$col}->{REFERENCES}) {
-                $fields{$col}->{REFERENCES}->{created} = 0;
-            }
+            next unless exists $fields{$col}->{REFERENCES};
+            $fields{$col}->{REFERENCES}->{created} =
+                $self->_bz_real_schema->FK_ON_CREATE;
         }
+        
         $self->_bz_real_schema->add_table($name, $table_def);
         $self->_bz_store_real_schema;
     }
@@ -948,6 +949,10 @@ sub bz_drop_index {
     my $index_exists = $self->bz_index_info($table, $name);
 
     if ($index_exists) {
+        # We cannot delete an index used by a FK.
+        foreach my $column (@{$index_exists->{FIELDS}}) {
+            $self->bz_drop_related_fks($table, $column);
+        }
         $self->bz_drop_index_raw($table, $name);
         $self->_bz_real_schema->delete_index($table, $name);
         $self->_bz_store_real_schema;        
@@ -1191,7 +1196,10 @@ sub bz_start_transaction {
         # what we need in Bugzilla to be safe, for what we do.
         # Different DBs have different defaults for their isolation
         # level, so we just set it here manually.
-        $self->do('SET TRANSACTION ISOLATION LEVEL ' . $self->ISOLATION_LEVEL);
+        if ($self->ISOLATION_LEVEL) {
+            $self->do('SET TRANSACTION ISOLATION LEVEL ' 
+                      . $self->ISOLATION_LEVEL);
+        }
         $self->{private_bz_transaction_count} = 1;
     }
 }
@@ -1958,13 +1966,13 @@ Formatted SQL for date formatting (scalar)
 
 =back
 
-=item C<sql_interval>
+=item C<sql_date_math>
 
 =over
 
 =item B<Description>
 
-Outputs proper SQL syntax for a time interval function.
+Outputs proper SQL syntax for adding some amount of time to a date.
 
 Abstract method, should be overridden by database specific code.
 
@@ -1972,15 +1980,28 @@ Abstract method, should be overridden by database specific code.
 
 =over
 
-=item C<$interval> - the time interval requested (e.g. '30') (integer)
+=item C<$date>
 
-=item C<$units> - the units the interval is in (e.g. 'MINUTE') (string)
+C<string> The date being added to or subtracted from.
+
+=item C<$operator>
+
+C<string> Either C<-> or C<+>, depending on whether you're subtracting
+or adding.
+
+=item C<$interval>
+
+C<integer> The time interval you're adding or subtracting (e.g. C<30>)
+
+=item C<$units> 
+
+C<string> the units the interval is in (e.g. 'MINUTE')
 
 =back
 
 =item B<Returns>
 
-Formatted SQL for interval function (scalar)
+Formatted SQL for adding or subtracting a date and some amount of time (scalar)
 
 =back
 

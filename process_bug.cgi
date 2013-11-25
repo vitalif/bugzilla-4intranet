@@ -392,7 +392,7 @@ if (should_set('keywords')) {
 if (should_set('comment')) {
     $set_all_fields{comment} = {
         body       => scalar $cgi->param('comment'),
-        is_private => scalar $cgi->param('commentprivacy'),
+        is_private => scalar $cgi->param('comment_is_private'),
     };
 }
 

@@ -28,6 +28,7 @@
 package Bugzilla::Test::Search::Constants;
 use base qw(Exporter);
 use Bugzilla::Constants;
+use Bugzilla::Util qw(generate_random_password);
 
 our @EXPORT = qw(
     ATTACHMENT_FIELDS
@@ -48,6 +49,7 @@ our @EXPORT = qw(
     OR_SKIP
     PG_BROKEN
     SKIP_FIELDS
+    SPECIAL_PARAM_TESTS
     SUBSTR_NO_FIELD_ADD
     SUBSTR_SIZE
     TESTS
@@ -138,19 +140,19 @@ use constant SKIP_FIELDS => qw(
 # right in OR tests, and it's too much work to document the exact tests
 # that they cause to fail.
 use constant OR_SKIP => qw(
-    percentage_complete
     flagtypes.name
 );
 
 # All the fields that represent users.
 use constant USER_FIELDS => qw(
     assigned_to
+    cc
     reporter
     qa_contact
     commenter
     attachments.submitter
     setters.login_name
-    requestees.login_name cc
+    requestees.login_name
 );
 
 # For the "substr"-type searches, how short of a substring should
@@ -164,7 +166,7 @@ use constant FIELD_SUBSTR_SIZE => {
     deadline => -5,
     creation_ts => -8,
     delta_ts => -8,
-    percentage_complete => 7,
+    percentage_complete => 1,
     work_time => 3,
     remaining_time => 3,
     target_milestone => 15,
@@ -307,6 +309,7 @@ use constant CHANGED_VALUE_BROKEN => (
     estimated_time   => { contains => [1] },
     'flagtypes.name' => { contains => [1] },
     keywords  => { contains => [1] },
+    'longdescs.count' => { search => 1 },
     work_time => { contains => [1] },
     FIELD_TYPE_MULTI_SELECT, { contains => [1] },
 );
@@ -333,6 +336,9 @@ use constant CHANGED_VALUE_BROKEN => (
 # while the other fails. In this case, we have a special override for
 # "operator-value", which uniquely identifies tests.
 use constant KNOWN_BROKEN => {
+    "equals-%group.<1-bug_group>%" => {
+        commenter => { contains => [1,2,3,4,5] },
+    },
     notequals    => { NEGATIVE_BROKEN },
     notsubstring => { NEGATIVE_BROKEN },
     notregexp    => { NEGATIVE_BROKEN },
@@ -355,19 +361,8 @@ use constant KNOWN_BROKEN => {
         work_time => { contains => [2,3,4] },
     },
 
-    greaterthan => { GREATERTHAN_BROKEN },
-
-    # percentage_complete is broken -- it won't match equal values.
-    greaterthaneq => {
-        GREATERTHAN_BROKEN,
-        percentage_complete => { contains => [2] },
-    },
-
-    # percentage_complete doesn't do a numeric comparison, so
-    # it doesn't find decimal values.
-    anyexact => {
-        percentage_complete => { contains => [2] },
-    },
+    greaterthan   => { GREATERTHAN_BROKEN },
+    greaterthaneq => { GREATERTHAN_BROKEN },
 
     'allwordssubstr-<1>' => { ALLWORDS_BROKEN },
     # flagtypes.name does not work here, probably because they all try to
@@ -393,7 +388,6 @@ use constant KNOWN_BROKEN => {
         work_time => { contains => [1] },
     },
     'anywords-<1> <2>' => {
-        percentage_complete => { contains => [2] },
         work_time => { contains => [1,2] },
     },
 
@@ -419,13 +413,11 @@ use constant KNOWN_BROKEN => {
     'changedbefore' => {
         CHANGED_BROKEN,
         'attach_data.thedata' => { contains => [1] },
-        creation_ts => { contains => [1,2,5] },
     },
     'changedafter' => {
         'attach_data.thedata' => { contains => [2,3,4] },
         classification => { contains => [2,3,4] },
         commenter   => { contains => [2,3,4] },
-        creation_ts => { contains => [2,3,4] },
         delta_ts    => { contains => [2,3,4] },
         percentage_complete => { contains => [2,3,4] },
         'requestees.login_name' => { contains => [2,3,4] },
@@ -477,16 +469,6 @@ use constant PG_BROKEN => {
         notregexp => { contains => [5] },
         nowords   => { contains => [5] },
     },
-    percentage_complete => {
-        'allwordssubstr-<1>' => { contains => [3] },
-        anywordssubstr  => { contains => [2,3] },
-        casesubstring   => { contains => [3] },
-        'notregexp-<1>' => { contains => [3] },
-        notsubstring    => { contains => [3] },
-        nowordssubstr   => { contains => [3] },
-        'regexp-<1>'    => { contains => [3] },
-        substring       => { contains => [3] },
-    },
 };
 
 ###################
@@ -508,7 +490,6 @@ use constant COMMON_BROKEN_NOT => (
     "flagtypes.name"          => { contains => [5] },
     "keywords"                => { contains => [5] },
     "longdescs.isprivate"     => { contains => [1] },
-    "percentage_complete"     => { contains => [1 .. 5] },
     "see_also"                => { contains => [5] },
     FIELD_TYPE_BUG_ID,           { contains => [5] },
     FIELD_TYPE_DATETIME,         { contains => [5] },
@@ -523,7 +504,7 @@ use constant CHANGED_BROKEN_NOT => (
     "classification"        => { contains => [1] },
     "commenter"             => { contains => [1] },
     "delta_ts"              => { contains => [1] },
-    "percentage_complete"   => { contains => [1] },
+    percentage_complete     => { contains => [1] },
     "requestees.login_name" => { contains => [1] },
     "setters.login_name"    => { contains => [1] },
     "work_time"             => { contains => [1] },    
@@ -531,6 +512,7 @@ use constant CHANGED_BROKEN_NOT => (
 
 # For changedfrom and changedto.
 use constant CHANGED_FROM_TO_BROKEN_NOT => (
+    'longdescs.count' => { search => 1 },
     "bug_group" => { contains => [1] },
     "cc" => { contains => [1] },
     "cf_multi_select" => { contains => [1] },
@@ -545,7 +527,6 @@ use constant NEGATIVE_BROKEN_NOT => (
     "bug_group"           => { contains => [5] },
     "dependson"           => { contains => [2, 4, 5] },
     "flagtypes.name"      => { contains => [1 .. 5] },
-    "percentage_complete" => { contains => [1 .. 5] },    
 );
 
 # These are field/operator combinations that are broken when run under NOT().
@@ -599,7 +580,6 @@ use constant BROKEN_NOT => {
     },
     'anyexact-<1>, <2>' => {
         bug_group => { contains => [1] },
-        percentage_complete => { contains => [1,3,4,5] },
         keywords => { contains => [1,5] },
         see_also => { },
         FIELD_TYPE_MULTI_SELECT, { },
@@ -612,7 +592,6 @@ use constant BROKEN_NOT => {
     },
     'anywords-<1> <2>' => {
         'attach_data.thedata' => { contains => [5] },
-        "percentage_complete" => { contains => [1,3,4,5] },
         work_time => { contains => [1,2] },
     },
     anywordssubstr => {
@@ -620,7 +599,6 @@ use constant BROKEN_NOT => {
         "work_time" => { contains => [1, 2] },
     },
     'anywordssubstr-<1> <2>' => {
-        percentage_complete => { contains => [1,2,3,4,5] },
         FIELD_TYPE_MULTI_SELECT, { contains => [5] },
     },
     casesubstring => {
@@ -641,15 +619,13 @@ use constant BROKEN_NOT => {
         "attach_data.thedata"   => { contains => [2, 3, 4] },
         "classification"        => { contains => [2, 3, 4] },
         "commenter"             => { contains => [2, 3, 4] },
-        "creation_ts"           => { contains => [2, 3, 4] },
+        percentage_complete     => { contains => [2, 3, 4] },
         "delta_ts"              => { contains => [2, 3, 4] },
-        "percentage_complete"   => { contains => [2, 3, 4] },
         "requestees.login_name" => { contains => [2, 3, 4] },
         "setters.login_name"    => { contains => [2, 3, 4] },
     },
     changedbefore=> {
         CHANGED_BROKEN_NOT,
-        creation_ts => { contains => [1, 2, 5] },
         work_time   => { }
     },
     changedby => {
@@ -691,7 +667,6 @@ use constant BROKEN_NOT => {
         cc               => { contains => [1] },
         "flagtypes.name" => { contains => [2, 5] },
         "work_time"      => { contains => [2, 3, 4] },
-        percentage_complete => { contains => [1,3,4,5] },,
         FIELD_TYPE_MULTI_SELECT, { contains => [5] },
     },
     lessthan => {
@@ -715,14 +690,14 @@ use constant BROKEN_NOT => {
     notsubstring   => { NEGATIVE_BROKEN_NOT },
     nowords        => {
         NEGATIVE_BROKEN_NOT,
-        "work_time"           => { contains => [2, 3, 4] },
+        "work_time" => { contains => [2, 3, 4] },
         "flagtypes.name" => { },
     },
     nowordssubstr  => {
         NEGATIVE_BROKEN_NOT,
         "attach_data.thedata" => { },
         "flagtypes.name" => { },
-        "work_time"           => { contains => [2, 3, 4] },
+        "work_time" => { contains => [2, 3, 4] },
     },
     regexp         => {
         COMMON_BROKEN_NOT,
@@ -764,6 +739,7 @@ use constant REGEX_OVERRIDE => {
     cclist_accessible        => { value => '^1' },
     reporter_accessible      => { value => '^1' },
     everconfirmed            => { value => '^1' },
+    'longdescs.count'        => { value => '^3' },
     'longdescs.isprivate'    => { value => '^1' },
     creation_ts => { value => '^2037-01-01' },
     delta_ts    => { value => '^2037-01-01' },
@@ -772,7 +748,7 @@ use constant REGEX_OVERRIDE => {
     remaining_time => { value => '^9.0' },
     work_time      => { value => '^1.0' },
     longdesc       => { value => '^1-' },
-    percentage_complete => { value => '^10.0' },
+    percentage_complete => { value => '^10' },
     FIELD_TYPE_BUG_ID, { value => '^<1>$' },
     FIELD_TYPE_DATETIME, { value => '^2037-03-01' }
 };
@@ -835,6 +811,7 @@ use constant NEGATIVE_MULTI_BOOLEAN_OVERRIDE => (
 
 # For anyexact and anywordssubstr
 use constant ANY_OVERRIDE => (
+    'longdescs.count' => { contains => [1,2,3,4] },
     'work_time' => { value => '1.0,2.0' },
     dependson => { value => '<1>,<3>', contains => [1,3] },
     MULTI_BOOLEAN_OVERRIDE,
@@ -913,22 +890,46 @@ use constant TESTS => {
         { contains => [2,3,4,5], value => '<1>' },
     ],
     substring => [
-        { contains => [1], value => '<1>' },
+        { contains => [1], value => '<1>',
+          override => {
+              percentage_complete => { contains => [1,2,3] },
+          }
+        },
     ],
     casesubstring => [
-        { contains => [1], value => '<1>' },
+        { contains => [1], value => '<1>',
+          override => {
+              percentage_complete => { contains => [1,2,3] },
+          }
+        },
         { contains => [], value => '<1>', transform => sub { lc($_[0]) },
-          extra_name => 'lc', if_equal => { contains => [1] } },
+          extra_name => 'lc', if_equal => { contains => [1] },
+          override => {
+              percentage_complete => { contains => [1,2,3] },
+          }
+        },
     ],
     notsubstring => [
-        { contains => [2,3,4,5], value => '<1>' },
+        { contains => [2,3,4,5], value => '<1>',
+          override => {
+              percentage_complete => { contains => [4,5] },
+          },
+        }
     ],
     regexp => [
-        { contains => [1], value => '<1>', escape => 1 },
+        { contains => [1], value => '<1>', escape => 1,
+          override => {
+              percentage_complete => { value => '^10' },
+          }
+        },
         { contains => [1], value => '^1-', override => REGEX_OVERRIDE },
     ],
     notregexp => [
-        { contains => [2,3,4,5], value => '<1>', escape => 1 },
+        { contains => [2,3,4,5], value => '<1>', escape => 1,
+          override => {
+              percentage_complete => { value => '^10' },
+          }
+        },
         { contains => [2,3,4,5], value => '^1-', override => REGEX_OVERRIDE },
     ],
     lessthan => [
@@ -947,6 +948,7 @@ use constant TESTS => {
               'attachments.ispatch'    => { value => 1, contains => [2,3,4] },
               cclist_accessible        => { value => 1, contains => [2,3,4,5] },
               reporter_accessible      => { value => 1, contains => [2,3,4,5] },
+              'longdescs.count'        => { value => 3, contains => [2,3,4,5] },
               'longdescs.isprivate'    => { value => 1, contains => [2,3,4,5] },
               everconfirmed            => { value => 1, contains => [2,3,4,5] },
               creation_ts => { value => '2037-01-02', contains => [1,5] },
@@ -970,6 +972,7 @@ use constant TESTS => {
               'attachments.isprivate'  => { value => 0, contains => [2,3,4] },
               cclist_accessible        => { value => 0, contains => [2,3,4,5] },
               reporter_accessible      => { value => 0, contains => [2,3,4,5] },
+              'longdescs.count'        => { value => 2, contains => [2,3,4,5] },
               'longdescs.isprivate'    => { value => 0, contains => [2,3,4,5] },
               everconfirmed            => { value => 0, contains => [2,3,4,5] },
               blocked   => { contains => [1,2] },
@@ -994,6 +997,7 @@ use constant TESTS => {
               'attachments.isprivate'  => { value => 0, contains => [1] },
               cclist_accessible        => { value => 0, contains => [1] },
               reporter_accessible      => { value => 0, contains => [1] },
+              'longdescs.count'        => { value => 2, contains => [1] },
               'longdescs.isprivate'    => { value => 0, contains => [1] },
               everconfirmed            => { value => 0, contains => [1] },
               'flagtypes.name'         => { value => 2, contains => [2,3,4] },
@@ -1009,6 +1013,7 @@ use constant TESTS => {
               'attachments.isprivate'  => { value => 1, contains => [1] },
               cclist_accessible        => { value => 1, contains => [1] },
               reporter_accessible      => { value => 1, contains => [1] },
+              'longdescs.count'        => { value => 3, contains => [1] },
               'longdescs.isprivate'    => { value => 1, contains => [1] },
               everconfirmed            => { value => 1, contains => [1] },
               dependson => { value => '<3>', contains => [1,3] },
@@ -1029,14 +1034,26 @@ use constant TESTS => {
     ],
     anywordssubstr => [
         { contains => [1,2], value => '<1> <2>', 
-          override => { ANY_OVERRIDE } },
+          override => {
+              ANY_OVERRIDE,
+              percentage_complete => { contains => [1,2,3] },
+          }
+        },
     ],
     allwordssubstr => [
         { contains => [1], value => '<1>',
-          override => { MULTI_BOOLEAN_OVERRIDE } },
+          override => {
+              MULTI_BOOLEAN_OVERRIDE,
+              # We search just the number "1" for percentage_complete,
+              # which matches a lot of bugs.
+              percentage_complete => { contains => [1,2,3] },
+          },
+        },
         { contains => [], value => '<1>,<2>',
           override => {
               dependson => { value => '<1-id> <3-id>', contains => [] },
+              # bug 3 has the value "21" here, so matches "2,1"
+              percentage_complete => { value => '<2>,<3>', contains => [3] }
           }
         },
     ],
@@ -1046,6 +1063,7 @@ use constant TESTS => {
               # longdescs.isprivate translates to "1 0", so no bugs should
               # show up.
               'longdescs.isprivate' => { contains => [] },
+              percentage_complete => { contains => [4,5] },
               # 1.0 0.0 exludes bug 5.
               # XXX However, it also shouldn't match 2, 3, or 4, because
               # they contain at least one comment with 0.0 work_time.
@@ -1064,6 +1082,7 @@ use constant TESTS => {
           override => {
               MULTI_BOOLEAN_OVERRIDE,
               dependson => { value => '<1> <3>', contains => [1,3] },
+              'longdescs.count' => { contains => [1,2,3,4] },              
               work_time => { value => '1.0 2.0' },
           },
         },
@@ -1095,10 +1114,11 @@ use constant TESTS => {
         { contains => [1], value => '<1-delta>',
           override => {
               CHANGED_OVERRIDE,
-              creation_ts => { contains => [1,2,5] },
+              creation_ts => { contains => [1,5] },
               blocked   => { contains => [1,2] },
               dependson => { contains => [1,3] },
               longdesc => { contains => [1,5] },
+              'longdescs.count' => { contains => [1,5] },
           }
         },
     ],
@@ -1106,7 +1126,7 @@ use constant TESTS => {
         { contains => [2,3,4], value => '<2-delta>',
           override => { 
               CHANGED_OVERRIDE,
-              creation_ts => { contains => [2,3,4] },
+              creation_ts => { contains => [3,4] },
               # We only change this for one bug, and it doesn't match.
               'longdescs.isprivate' => { contains => [] },
               # Same for everconfirmed.
@@ -1185,6 +1205,15 @@ use constant INJECTION_BROKEN_FIELD => {
     FIELD_TYPE_BUG_ID,          { db_skip => ['Pg'] },
     FIELD_TYPE_DATETIME,        { db_skip => ['Pg'] },
     owner_idle_time => { search => 1 },
+    'longdescs.count' => {
+        search => 1,
+        db_skip => ['Pg'],
+        operator_ok => [qw(allwords allwordssubstr anywordssubstr casesubstring
+                           changedbefore changedafter greaterthan greaterthaneq
+                           lessthan lessthaneq notregexp notsubstring
+                           nowordssubstr regexp substring anywords
+                           notequals nowords equals anyexact)],
+    },
     keywords => {
         search => 1,
         operator_ok => [qw(allwordssubstr anywordssubstr casesubstring
@@ -1199,8 +1228,8 @@ use constant INJECTION_BROKEN_FIELD => {
 # search => 1 means the Bugzilla::Search creation fails, but
 # field_ok contains fields that it does actually succeed for.
 use constant INJECTION_BROKEN_OPERATOR => {
-    changedafter  => { search => 1 },
-    changedbefore => { search => 1 },
+    changedafter  => { search => 1, field_ok => ['creation_ts'] },
+    changedbefore => { search => 1, field_ok => ['creation_ts'] },
     changedby     => { search => 1 },
 };
 
@@ -1247,5 +1276,53 @@ use constant OR_BROKEN => {
         'work_time-equals' => { contains => [1] },
     },
 };
+
+#################
+# Special Tests #
+#################
+
+use constant SPECIAL_PARAM_TESTS => (
+    { field => 'bug_status', operator => 'anyexact', value => '__open__',
+      contains => [5] },
+    { field => 'bug_status', operator => 'anyexact', value => '__closed__',
+      contains => [1,2,3,4] },
+    { field => 'bug_status', operator => 'anyexact', value => '__all__',
+      contains => [1,2,3,4,5] },
+    
+    { field => 'resolution', operator => 'anyexact', value => '---',
+      contains => [5] },
+    
+    # email* query parameters.
+    { field => 'assigned_to', operator => 'anyexact',
+      value => '<1>, <2-reporter>', contains => [1,2],
+      extra_params => { emailreporter1 => 1 } },
+    { field => 'assigned_to', operator => 'equals',
+      value => '<1>', extra_name => 'email2', contains => [],
+      extra_params => {
+          email2 => generate_random_password(100), emaillongdesc2 => 1,
+      },
+    },
+    
+    # standard pronouns
+    { field => 'assigned_to', operator => 'equals', value => '%assignee%',
+      contains => [1,2,3,4,5] },
+    { field => 'reporter', operator => 'equals', value => '%reporter%',
+      contains => [1,2,3,4,5] },
+    { field => 'qa_contact', operator => 'equals', value => '%qacontact%',
+      contains => [1,2,3,4,5] },
+    { field => 'cc', operator => 'equals', value => '%user%',
+      contains => [1] },
+    # group pronouns
+    { field => 'reporter', operator => 'equals',
+      value => '%group.<1-bug_group>%', contains => [1,2,3,4,5] },
+    { field => 'assigned_to', operator => 'equals',
+      value => '%group.<1-bug_group>%', contains => [1,2,3,4,5] },
+    { field => 'qa_contact', operator => 'equals',
+      value => '%group.<1-bug_group>%', contains => [1,2,3,4] },
+    { field => 'cc', operator => 'equals',
+      value => '%group.<1-bug_group>%', contains => [1,2,3,4] },
+    { field => 'commenter', operator => 'equals',
+      value => '%group.<1-bug_group>%', contains => [1,2,3,4,5] },
+);
 
 1;

@@ -173,8 +173,10 @@ END
     localconfig_db_host => <<'END',
 The DNS name or IP address of the host that the database server runs on.
 END
-    localconfig_db_name => 
-"The name of the database. For Oracle, this is the database's SID.",
+    localconfig_db_name => <<'END',
+The name of the database. For Oracle, this is the database's SID. For
+SQLite, this is a name (or path) for the DB file.
+END
     localconfig_db_pass => <<'END',
 Enter your database password here. It's normally advisable to specify
 a password for your bugzilla database user.
@@ -313,6 +315,7 @@ EOT
     module_not_found => "not found",
     module_ok => 'ok',
     module_unknown_version => "found unknown version",
+    no_such_module => "There is no Perl module on CPAN named ##module##.",
     mysql_innodb_disabled => <<'END',
 InnoDB is disabled in your MySQL installation.
 Bugzilla requires InnoDB to be enabled.
@@ -338,6 +341,31 @@ WARNING: We are about to convert your table storage format to UTF-8. This
 
          If you ever used a version of Bugzilla before 2.22, we STRONGLY
          recommend that you stop checksetup.pl NOW and run contrib/recode.pl.
+END
+    no_checksetup_from_cgi => <<END,
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+          "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+  <head>
+    <title>checksetup.pl cannot run from a web browser</title>
+  </head>
+
+  <body>
+    <h1>checksetup.pl cannot run from a web browser</h1>
+    <p>
+      You <b>must not</b> execute this script from your web browser.
+      To install or upgrade Bugzilla, run this script from
+      the command-line (e.g. <tt>bash</tt> or <tt>ssh</tt> on Linux
+      or <tt>cmd.exe</tt> on Windows), and follow instructions given there.
+    </p>
+
+    <p>
+      For more information on how to install Bugzilla, please
+      <a href="http://www.bugzilla.org/docs/">read the documentation</a>
+      available on the official Bugzilla website.
+    </p>
+  </body>
+</html>
 END
     patchutils_missing => <<'END',
 OPTIONAL NOTE: If you want to be able to use the 'difference between two
@@ -366,8 +394,8 @@ EOT
 EOT
     template_precompile   => "Precompiling templates...",
     template_removal_failed => <<END,
-WARNING: The directory '##datadir##/template' could not be removed.
-         It has been moved into '##datadir##/deleteme', which should be
+WARNING: The directory '##template_cache##' could not be removed.
+         It has been moved into '##deleteme##', which should be
          deleted manually to conserve disk space.
 END
     template_removing_dir => "Removing existing compiled templates...",

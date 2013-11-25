@@ -122,6 +122,7 @@ sub FILESYSTEM {
     my $skinsdir      = bz_locations()->{'skinsdir'};
     my $localconfig   = bz_locations()->{'localconfig'};
     my $graphsdir     = bz_locations()->{'graphsdir'};
+    my $template_cache = bz_locations()->{'template_cache'};
 
     # We want to set the permissions the same for all localconfig files
     # across all PROJECTs, so we do something special with $localconfig,
@@ -204,6 +205,7 @@ sub FILESYSTEM {
         "$datadir/params"      => { perms => CGI_WRITE },
         "$datadir/old-params.txt"  => { perms => OWNER_WRITE },
         "$extensionsdir/create.pl" => { perms => OWNER_EXECUTE },
+        "$extensionsdir/*/*.pl"    => { perms => WS_EXECUTE },
     );
 
     # Directories that we want to set the perms on, but not

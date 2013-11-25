@@ -416,7 +416,7 @@ sub recent_search_for {
             }
         }
 
-        if ($list_id) {
+        if ($list_id && $list_id ne 'cookie') {
             # If we got a bad list_id (either some other user's or an expired
             # one) don't crash, just don't return that list.
             my $search = 
@@ -436,7 +436,8 @@ sub recent_search_for {
     if (my $list = $cgi->cookie('BUGLIST')) {
         my @bug_ids = split(':', $list);
         if (grep { $_ == $bug->id } @bug_ids) {
-            return { id => 'cookie', bug_list => \@bug_ids };
+            my $search = Bugzilla::Search::Recent->new_from_cookie(\@bug_ids);
+            return $search;
         }
     }
 
@@ -1342,6 +1343,8 @@ sub match {
     my $user = Bugzilla->user;
     my $dbh = Bugzilla->dbh;
 
+    $str = trim($str);
+
     my @users = ();
     return \@users if $str =~ /^\s*$/;
 
@@ -1490,7 +1493,7 @@ sub match_field {
         #Concatenate login names, so that we have a common way to handle them.
         my $raw_field;
         if (ref $data->{$field}) {
-            $raw_field = join(" ", @{$data->{$field}});
+            $raw_field = join(",", @{$data->{$field}});
         }
         else {
             $raw_field = $data->{$field};
@@ -1508,7 +1511,7 @@ sub match_field {
             $data->{$field} = '';
         }
         elsif ($fields->{$field}->{'type'} eq 'multi') {
-            @queries =  split(/[\s,;]+/, $raw_field);
+            @queries =  split(/[,;]+/, $raw_field);
             # We will repopulate it later if a match is found, else it must
             # be undefined.
             delete $data->{$field};
@@ -1532,6 +1535,7 @@ sub match_field {
 
         my @logins;
         for my $query (@queries) {
+            $query = trim($query);
             my $users = match(
                 $query,   # match string
                 $limit,   # match limit
@@ -1822,7 +1826,7 @@ sub is_global_watcher {
     my $self = shift;
 
     if (!defined $self->{'is_global_watcher'}) {
-        my @watchers = split(/[,\s]+/, Bugzilla->params->{'globalwatchers'});
+        my @watchers = split(/[,;]+/, Bugzilla->params->{'globalwatchers'});
         $self->{'is_global_watcher'} = scalar(grep { $_ eq $self->login } @watchers) ? 1 : 0;
     }
     return  $self->{'is_global_watcher'};
@@ -1983,12 +1987,13 @@ sub clear_login_failures {
 sub account_ip_login_failures {
     my $self = shift;
     my $dbh = Bugzilla->dbh;
-    my $time = $dbh->sql_interval(Bugzilla->params->{login_lockout_interval}, 'MINUTE');
+    my $time = $dbh->sql_date_math('LOCALTIMESTAMP(0)', '-', 
+                                   LOGIN_LOCKOUT_INTERVAL, 'MINUTE');
     my $ip_addr = remote_ip();
     trick_taint($ip_addr);
     $self->{account_ip_login_failures} ||= Bugzilla->dbh->selectall_arrayref(
         "SELECT login_time, ip_addr, user_id FROM login_failure
-          WHERE user_id = ? AND login_time > LOCALTIMESTAMP(0) - $time
+          WHERE user_id = ? AND login_time > $time
                 AND ip_addr = ?
        ORDER BY login_time", {Slice => {}}, $self->id, $ip_addr);
     return $self->{account_ip_login_failures};

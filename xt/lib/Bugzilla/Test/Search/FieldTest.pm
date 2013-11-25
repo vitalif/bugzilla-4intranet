@@ -59,7 +59,7 @@ sub field_object { return $_[0]->{field_object} }
 # than we need the object.
 sub field {
     my ($self) = @_;
-    return $self->{field_name} ||= $self->field_object->name;
+    $self->{field_name} ||= $self->field_object->name;
     return $self->{field_name};
 }
 # The Bugzilla::Test::Search object that this is a child of.
@@ -166,7 +166,9 @@ sub transformed_value_was_equal {
 sub bug_is_contained {
     my ($self, $number) = @_;
     my $contains = $self->test->{contains};
-    if ($self->transformed_value_was_equal($number)) {
+    if ($self->transformed_value_was_equal($number)
+        and !$self->test->{override}->{$self->field}->{contains})
+    {
         $contains = $self->test->{if_equal}->{contains};
     }
     return grep($_ == $number, @$contains) ? 1 : 0;
@@ -279,7 +281,7 @@ sub join_broken {
 # Accessors: Bugzilla::Search Arguments #
 #########################################
 
-# The CGI object that will get passed to Bugzilla::Search as its arguments.
+# The data that will get passed to Bugzilla::Search as its arguments.
 sub search_params {
     my ($self) = @_;
     return $self->{search_params} if $self->{search_params};
@@ -329,6 +331,9 @@ sub _field_values_for_bug {
         # We want the last value to come first, so that single-value
         # searches use the last comment.
         @values = reverse @values;
+    }
+    elsif ($field eq 'longdescs.count') {
+        @values = scalar(@{ $self->bug($number)->comments });
     }
     elsif ($field eq 'bug_group') {
         @values = $self->_values_for($number, 'groups_in', 'name');
@@ -431,7 +436,13 @@ sub _translate_value_for_bug {
     $value =~ s/<$number-delta>/$bug_delta/g;
     my $reporter = $bug->reporter->login;
     $value =~ s/<$number-reporter>/$reporter/g;
-
+    if ($value =~ /<$number-bug_group>/) {
+        my @bug_groups = map { $_->name } @{ $bug->groups_in };
+        @bug_groups = grep { $_ =~ /^\d+-group-/ } @bug_groups;
+        my $group = $bug_groups[0];
+        $value =~ s/<$number-bug_group>/$group/g;
+    }
+    
     my @bug_values = $self->bug_values($number);    
     return $value if !@bug_values;
     
@@ -476,11 +487,6 @@ sub _substr_value {
             $substr_size += length($field);
         }
         my $string = substr($value, 0, $substr_size);
-        # Make percentage_complete substrings strings match integers uniquely,
-        # by searching for the full decimal number.
-        if ($field eq 'percentage_complete' and length($string) < $substr_size) {
-            $string .= ".000";
-        }
         return $string;
     }
     return substr($value, $substr_size);
@@ -512,7 +518,7 @@ sub do_tests {
     my $search_broken = $self->search_known_broken;
     
     my $search = $self->_test_search_object_creation();
-    
+
     my $sql;
     TODO: {
         local $TODO = $search_broken if $search_broken;

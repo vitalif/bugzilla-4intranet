@@ -108,9 +108,6 @@ use constant WS_ERROR_CODE => {
     # Except, historically, AUTH_NODATA, which is 410.
     login_required               => 410,
 
-    # Except, historically, AUTH_NODATA, which is 410.
-    login_required               => 410,
-
     # User errors are 500-600.
     account_exists        => 500,
     illegal_email_address => 501,
