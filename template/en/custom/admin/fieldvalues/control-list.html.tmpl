@@ -43,6 +43,7 @@
           <th align="left">Значение</th>
           <th align="left">Активно</th>
           <th align="left">По умолчанию</th>
+          <th></th>
         </tr>
         [% count = 0 %]
         [% FOREACH value = field.legal_values %]
@@ -55,16 +56,18 @@
             <td align="center">
               [% IF value.visible_for_all() %]
               <input type="checkbox" id="val_[% value.id %]" value="[% value.id %]" name="values" onchange="changeDefaultEnabling(this);" checked="checked" disabled="disabled"/>
-              <p>
-                Значение видимо для всех значений поля <strong>[% field.value_field.description FILTER html %]</strong><br/>
-                <a href="editvalues.cgi?action=edit&field=[% field.name %]&value=[% value.name | uri %]">Редактировать</a>
-              </p>
               [% ELSE %]
               <input type="checkbox" id="val_[% value.id %]" value="[% value.id %]" name="values" onchange="changeDefaultEnabling(this);"[% ' checked="checked"' IF value.has_visibility_value(field_value.id, 0) %]/>
               [% END %]
             </td>
             <td align="center">
               <input type="[% (field.type == constants.FIELD_TYPE_MULTI_SELECT ? 'checkbox' : 'radio') %]" id="def_val_[% value.id %]" value="[% value.id %]" name="default_value_ids"[% ' checked="checked"' IF value.is_default_controlled_value(field_value.id, 0) %]/>
+            </td>
+            <td>
+              [% IF value.visible_for_all() %]
+                Значение видимо для всех значений поля <strong>[% field.value_field.description FILTER html %]</strong><br/>
+                <a href="editvalues.cgi?action=edit&field=[% field.name %]&value=[% value.name | uri %]">Редактировать</a>
+              [% END %]
             </td>
           </tr>
           [% count = count + 1 %]
