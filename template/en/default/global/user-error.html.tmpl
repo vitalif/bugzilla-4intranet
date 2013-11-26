@@ -1776,6 +1776,12 @@
   field.
 [% END %]
 
+[% BLOCK error_search_owner_non_less %]
+  [% title = "Illegal Search" %]
+  The "Time Since Assignee Touched" field can only be compared
+  to numbers with "<", "<=", ">" or ">=" operators.
+[% END %]
+
 [% BLOCK error_series_already_exists %]
   [% title = "Series Already Exists" %]
   [% docslinks = {'reporting.html' => 'Reporting'} %]

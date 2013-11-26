@@ -860,6 +860,7 @@ sub FUNCTIONS
         'owner_idle_time' => {
             'lessthan' => \&_owner_idle_time_less,
             'lessthaneq' => \&_owner_idle_time_less,
+            '*' => sub { ThrowUserError('search_owner_non_less') },
         },
         'bug_group'                 => { '*' => \&_bug_group_nonchanged },
         'attachments.submitter'     => { '*' => \&_attachments_submitter },
