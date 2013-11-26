@@ -234,6 +234,7 @@ sub get_inactive_bugs {
     my $dbh = Bugzilla->dbh;
     my ($date_bits, $date_values) = sqlize_dates($start_date, $end_date);
     restrict_my_activity($date_bits, $date_values) if $my_activity;
+    return [] unless @$bugids;
     my $buglist = join(", ", @$bugids);
 
     my $bugs = $dbh->selectcol_arrayref(
