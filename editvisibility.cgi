@@ -106,7 +106,7 @@ if ($action eq 'update' && $token) {
     my @fields = $cgi->param('fields[]');
     my $controlled_fields = { map { $_->id => $_ } values $field->controls_visibility_of() };
     my $length = @fields;
-    my %to_update;
+    my $to_update;
     if ($length) {
         for my $field_id (@fields) {
             my $cfield = Bugzilla->get_field($field_id);
@@ -126,8 +126,8 @@ if ($action eq 'update' && $token) {
                 $changed = 1;
             }
             if ($changed) {
-                if (!%to_update->{$cfield->id}) {
-                    %to_update->{$cfield->id} = {field => $cfield, actions => {updated => 1}};
+                if (!$to_update->{$cfield->id}) {
+                    $to_update->{$cfield->id} = {field => $cfield, actions => {updated => 1}};
                 }
             }
             if ($controlled_fields->{$cfield->id}) {
@@ -140,23 +140,23 @@ if ($action eq 'update' && $token) {
         if ($visibility_values->{$value->id}) {
             delete $visibility_values->{$value->id};
             $cfield->set_visibility_values([keys $visibility_values]);
-            if (!%to_update->{$cfield->id}) {
-                 %to_update->{$cfield->id} = {field => $cfield, actions => {}};
+            if (!$to_update->{$cfield->id}) {
+                 $to_update->{$cfield->id} = {field => $cfield, actions => {}};
             }
-            %to_update->{$cfield->id}->{actions}->{cleared} = 1;
+            $to_update->{$cfield->id}->{actions}->{cleared} = 1;
         }
         if (!%$visibility_values) {
             $cfield->set_visibility_field(undef);
             $cfield->set_value_field(undef);
-            if (!%to_update->{$cfield->id}) {
-                 %to_update->{$cfield->id} = {field => $cfield, actions => {}};
+            if (!$to_update->{$cfield->id}) {
+                 $to_update->{$cfield->id} = {field => $cfield, actions => {}};
             }
-            %to_update->{$cfield->id}->{actions}->{cleared} = 1;
+            $to_update->{$cfield->id}->{actions}->{cleared} = 1;
         }
     }
     my @updated;
     my @cleared;
-    for my $cfield (values %to_update) {
+    for my $cfield (values $to_update) {
         $cfield->{field}->update();
         if ($cfield->{actions}->{cleared}) {
             push @cleared, $cfield->{field}->description;

@@ -85,8 +85,12 @@
                 [%+ field_descs.${change.fieldname} || Bugzilla.get_field(change.fieldname).description FILTER html %]
               [% END %]
             </td>
+            [% IF change.both %]
+            <td colspan="2">[% change.both %]</td>
+            [% ELSE %]
             [% PROCESS change_column change_type = change.removed op_type = "removed" op_count = loop.count op_loop = op_loop %]
             [% PROCESS change_column change_type = change.added op_type = "added" op_count = loop.count op_short_comment %]
+            [% END %]
         [% END %]
       </tr>
     [% END %]

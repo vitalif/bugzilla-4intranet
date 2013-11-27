@@ -226,7 +226,9 @@ body { font-family: Segoe UI, sans-serif; }
   [% ELSE %]
     [% d.fielddesc %]
   [% END %]
-  </td><td>[% d.removed %]</td><td>[% d.added %]</td></tr>
+  </td>
+  [% IF d.both %]<td colspan="2">[% d.both %]</td>[% else %]<td>[% d.removed %]</td><td>[% d.added %]</td>[% END %]
+  </tr>
 
 [% END %]
 </table>

@@ -29,6 +29,7 @@ use lib qw(. lib);
 use Bugzilla;
 use Bugzilla::Error;
 use Bugzilla::Bug;
+use Bugzilla::Diff;
 
 my $cgi = Bugzilla->cgi;
 my $template = Bugzilla->template;
@@ -54,9 +55,26 @@ my $bug = Bugzilla::Bug->check($id);
 # visible immediately due to replication lag.
 Bugzilla->switch_to_shadow_db;
 
-($vars->{'operations'}, $vars->{'incomplete_data'}) = 
+my $operations;
+($operations, $vars->{'incomplete_data'}) =
     Bugzilla::Bug::GetBugActivity($bug->id);
 
+for (my $i = 0; $i < (scalar @$operations); $i++)
+{
+    for (my $j = 0; $j < (scalar @{$operations->[$i]->{'changes'}}); $j++)
+    {
+        my $change = $operations->[$i]->{'changes'}->[$j];
+        if ($change->{'fieldname'} eq 'longdesc')
+        {
+            my $diff = new Bugzilla::Diff($change->{'removed'}, $change->{'added'});
+            $operations->[$i]->{'changes'}->[$j]->{'both'} = $diff->get_table;
+            $operations->[$i]->{'changes'}->[$j]->{'removed'} = '';
+            $operations->[$i]->{'changes'}->[$j]->{'added'} = '';
+        }
+    }
+}
+
+$vars->{'operations'} = $operations;
 $vars->{'bug'} = $bug;
 
 $template->process("bug/activity/show.html.tmpl", $vars)

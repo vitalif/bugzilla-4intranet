@@ -633,6 +633,17 @@ sub sendMail
     push @watchingrel, 'None' unless @watchingrel;
     push @watchingrel, map { user_id_to_login($_) } @$watchingRef;
 
+    for my $change (@$diffs)
+    {
+        if ($change->{'fieldname'} eq 'longdesc')
+        {
+            my $diff = new Bugzilla::Diff($change->{'removed'}, $change->{'added'});
+            $change->{'both'} = $diff->get_table;
+            $change->{'removed'} = '';
+            $change->{'added'} = '';
+        }
+    }
+
     my $vars = {
         isnew              => $isnew,
         showfieldvalues    => \@showfieldvalues,
