@@ -3618,8 +3618,10 @@ sub _fix_series_indexes {
 
     $dbh->bz_drop_index('series', 'series_creator_idx');
     $dbh->bz_add_index('series', 'series_creator_idx', ['creator']);
+    $dbh->bz_drop_index('series', 'series_category_idx');
     $dbh->bz_add_index('series', 'series_category_idx',
-        {FIELDS => [qw(category subcategory name)], TYPE => 'UNIQUE'});
+        {FIELDS => [qw(category subcategory name)], TYPE => 'KEY'});
+
 }
 
 1;

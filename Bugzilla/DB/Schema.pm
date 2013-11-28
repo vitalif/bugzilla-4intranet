@@ -1312,7 +1312,7 @@ use constant ABSTRACT_SCHEMA => {
         INDEXES => [
             series_creator_idx  => ['creator'],
             series_category_idx => {FIELDS => [qw(category subcategory name)],
-                                    TYPE => 'UNIQUE'},
+                                    TYPE => 'KEY'},
         ],
     },
 
@@ -1722,7 +1722,7 @@ sub _adjust_schema {
             # If the field type is an abstract data type defined in the
             # $db_specific hash, replace it with the DBMS-specific data type
             # that implements it.
-            if (exists($db_specific->{$field_def->{TYPE}})) {
+            if (exists($field_def->{TYPE}) && exists($db_specific->{$field_def->{TYPE}})) {
                 $field_def->{TYPE} = $db_specific->{$field_def->{TYPE}};
             }
             # Replace abstract default values (such as 'TRUE' and 'FALSE')

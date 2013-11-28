@@ -64,7 +64,7 @@ use constant ID_FIELD => 'comment_id';
 use constant LIST_ORDER => 'bug_when, comment_id';
 
 use constant VALIDATORS => {
-    bug_id      => \&_check_bug_id,
+#    bug_id      => \&_check_bug_id,
     who         => \&_check_who,
     bug_when    => \&_check_bug_when,
     work_time   => \&_check_work_time,

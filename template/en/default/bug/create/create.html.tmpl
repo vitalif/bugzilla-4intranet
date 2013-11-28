@@ -502,24 +502,6 @@ function checkWorktime(inp)
     </td>
   </tr>
 
-  <tr>
-    [% INCLUDE "bug/field-label.html.tmpl"
-      field = bug_fields.assigned_to editable = 1
-    %]
-    <td colspan="2">
-      [% INCLUDE global/userselect.html.tmpl
-         id => "assigned_to"
-         name => "assigned_to"
-         value => assigned_to
-         disabled => assigned_to_disabled
-         size => 30
-         emptyok => 1
-         custom_userlist => assignees_list
-       %]
-      <noscript>(Leave blank to assign to component's default assignee)</noscript>
-    </td>
-  </tr>
-  
 [% IF Param("useqacontact") %]
     <tr>
       [% INCLUDE "bug/field-label.html.tmpl"

@@ -248,7 +248,6 @@ sub Send {
             push(@ccs, login_to_id($cc, THROW_ERROR));
         }
     }
-    my %user_cache = map { $_->id => $_ } (@assignees, @qa_contacts, @ccs);
 
     # Convert to names, for later display
     # If no changer is specified, then it has no name.
@@ -495,8 +494,7 @@ sub Send {
     foreach my $user_id (keys %recipients) {
         my %rels_which_want;
         my $sent_mail = 0;
-        $user_cache{$user_id} ||= new Bugzilla::User($user_id);
-        my $user = $user_cache{$user_id};
+        my $user = new Bugzilla::User($user_id);
         # Deleted users must be excluded.
         next unless $user;
 

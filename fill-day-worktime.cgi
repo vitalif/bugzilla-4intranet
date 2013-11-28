@@ -130,7 +130,7 @@ if ($query_id)
 
 $sqlquery = " UNION ($sqlquery)" if $sqlquery;
 
-my $tm = "CURRENT_DATE - ".$dbh->sql_interval($lastdays-1, 'DAY');
+my $tm = $dbh->sql_date_math('CURRENT_DATE', '-', $lastdays-1, 'DAY');
 my $join = $dbh->isa('Bugzilla::DB::Mysql') ? 'STRAIGHT_JOIN' : 'JOIN';
 my $bugsquery = "
  SELECT b.*, p.name product, c.name component, p.notimetracking product_notimetracking,
@@ -159,7 +159,7 @@ my $bugsquery = "
 $vars->{bugs} = $dbh->selectall_arrayref($bugsquery, {Slice=>{}}, $userid, $userid) || [];
 
 ($vars->{timestamp}) = $dbh->selectrow_array("SELECT NOW()");
-($vars->{totaltime}) = $dbh->selectrow_array("SELECT ROUND(SUM(work_time),2) FROM longdescs WHERE bug_when >= CURRENT_DATE - ".$dbh->sql_interval('?', 'DAY')." AND who=?", undef, $lastdays-1, $userid);
+($vars->{totaltime}) = $dbh->selectrow_array("SELECT ROUND(SUM(work_time),2) FROM longdescs WHERE bug_when >= ".$dbh->sql_date_math('CURRENT_DATE', '-', '?', 'DAY')." AND who=?", undef, $lastdays-1, $userid);
 ($vars->{prevdate1}) = $dbh->selectrow_array("SELECT DATE(MAX(bug_when)) FROM longdescs WHERE bug_when < CURRENT_DATE AND who=?", undef, $userid);
 
 $vars->{totaltime} ||= 0;

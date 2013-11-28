@@ -155,22 +155,17 @@ sub VALIDATORS {
         alias          => \&_check_alias,
         bug_file_loc   => \&_check_bug_file_loc,
         bug_severity   => \&_check_select_field,
-        comment        => \&_check_comment,
-        component      => \&_check_component,
         creation_ts    => \&_check_creation_ts,
+        comment        => \&_check_comment,
         deadline       => \&_check_deadline,
         dup_id         => \&_check_dup_id,
         estimated_time => \&Bugzilla::Object::check_time,
         everconfirmed  => \&Bugzilla::Object::check_boolean,
-        groups         => \&_check_groups,
-        keywords       => \&_check_keywords,
         op_sys         => \&_check_select_field,
         priority       => \&_check_priority,
         product        => \&_check_product,
-        qa_contact     => \&_check_qa_contact,
         remaining_time => \&Bugzilla::Object::check_time,
         rep_platform   => \&_check_select_field,
-        resolution     => \&_check_resolution,
         short_desc     => \&_check_short_desc,
         status_whiteboard => \&_check_status_whiteboard,
     };
@@ -615,19 +610,14 @@ sub create {
     my $depends_on       = delete $params->{dependson};
     my $blocked          = delete $params->{blocked};
     my $keywords         = delete $params->{keywords};
-    my $creation_comment = delete $params->{comment};
-    my ($work_time, $comment, $privacy) = ($params->{work_time}, $params->{comment}, $params->{commentprivacy});
+    my ($work_time, $comment, $privacy) = ($params->{work_time}, $params->{comment}, $params->{comment_is_private});
     delete $params->{work_time};
     delete $params->{comment};
-    delete $params->{commentprivacy};
+    delete $params->{comment_is_private};
 
-    # Set up the keyword cache for bug creation.
-    my $keywords = $params->{keywords};
-    delete $params->{keywords};
-    
     # We don't want the bug to appear in the system until it's correctly
     # protected by groups.
-    my $timestamp = delete $params->{creation_ts};
+    my $timestamp = delete $params->{creation_ts}; 
 
     my $ms_values = $class->_extract_multi_selects($params);
     my $bug = $class->insert_create_data($params);
@@ -701,11 +691,11 @@ sub create {
     # Comment #0 handling...
 
     # We now have a bug id so we can fill this out
-    $creation_comment->{'bug_id'} = $bug->id;
+    $comment->{'bug_id'} = $bug->id;
 
     # Insert the comment. We always insert a comment on bug creation,
     # but sometimes it's blank.
-    Bugzilla::Comment->insert_create_data($creation_comment);
+    Bugzilla::Comment->insert_create_data($comment);
 
     Bugzilla::Hook::process('bug_end_of_create', { bug => $bug,
                                                    timestamp => $timestamp,
@@ -1168,6 +1158,7 @@ sub update
                  undef, $self->{comment_type}->{$comment_id}, $comment_id);
         # FIXME It'd be nice to track this in the bug activity.
     }
+
 
     # Save changed comments
     foreach my $edited_comment (@{$self->{edited_comments} || []})
@@ -1638,6 +1629,18 @@ sub _check_comment {
     if (defined $isprivate) {
         $comment->{isprivate} = $isprivate;
     }
+
+    # Validate comment. We have to do this special as a comment normally
+    # requires a bug to be already created. For a new bug, the first comment
+    # obviously can't get the bug if the bug is created after this
+    # (see bug 590334)
+    Bugzilla::Comment->check_required_create_fields($comment);
+    $comment = Bugzilla::Comment->run_create_validators($comment,
+                                                        { skip => ['bug_id'] }
+    );
+
+    return $comment; 
+
 }
 
 sub _check_comment_type {
@@ -2159,6 +2162,10 @@ sub _check_time {
     return $time;
 }
 
+sub _check_work_time {
+    return $_[0]->_check_time($_[1], 'work_time');
+}
+
 sub _check_version
 {
     my ($invocant, $version, $product) = @_;
@@ -2579,7 +2586,7 @@ sub set_comment_is_private {
     if ($isprivate != $comment->is_private) {
         $self->{comment_isprivate} ||= [];
         $comment->set_is_private($isprivate);
-        push @{$self->{comment_isprivate}}, $comment;
+        push @{$self->{comment_is_private}}, $comment;
     }
 }
 sub set_comment_worktimeonly
@@ -2879,10 +2886,6 @@ sub add_comment {
     if (exists $params->{type}) {
         $params->{type} = $self->_check_comment_type($params->{type});
     }
-    if (exists $params->{isprivate}) {
-        $params->{isprivate} =
-            $self->_check_commentprivacy($params->{isprivate});
-    }
     # XXX We really should check extra_data, too.
 
     # This makes it so we won't create new comments when there is nothing
@@ -2923,8 +2926,8 @@ sub edit_comment {
     if ($old_comment ne $comment) {
         push(@{$self->{edited_comments}}, {
             comment_id => $comment_id,
-            oldthetext => $old_comment,
-            thetext => $comment 
+            oldthetext => $old_comment->{thetext},
+            thetext => $comment->{thetext}
         });
     }
 }

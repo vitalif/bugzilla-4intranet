@@ -244,8 +244,6 @@ use constant DEFAULT_FIELDS => (
     {name => 'longdesc',              desc => 'Comment'},
     {name => 'longdescs.isprivate',   desc => 'Comment is private',
      is_numeric => 1},
-    {name => 'longdescs.count',       desc => 'Number of Comments',
-     buglist => 1, is_numeric => 1},
     {name => 'alias',                 desc => 'Alias', buglist => 1},
     {name => 'everconfirmed',         desc => 'Ever Confirmed',
      is_numeric => 1},
@@ -303,8 +301,8 @@ sub _check_description {
 sub _check_enter_bug { return $_[1] ? 1 : 0; }
 
 sub _check_is_numeric {
-    my ($invocant, $value, undef, $params) = @_;
-    my $type = blessed($invocant) ? $invocant->type : $params->{type};
+    my ($invocant, $value, $params) = @_;
+    my $type = blessed($invocant) ? $invocant->type : $value;
     return 1 if $type == FIELD_TYPE_BUG_ID;
     return $value ? 1 : 0;
 }
@@ -312,7 +310,7 @@ sub _check_is_numeric {
 sub _check_mailhead { return $_[1] ? 1 : 0; }
 
 sub _check_name {
-    my ($class, $name, undef, $params) = @_;
+    my ($class, $name, $params) = @_;
     $name = lc(clean_text($name));
     $name || ThrowUserError('field_missing_name');
 

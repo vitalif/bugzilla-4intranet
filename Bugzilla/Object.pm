@@ -472,7 +472,7 @@ sub run_create_validators
         if (exists $validators->{$field})
         {
             my $validator = $validators->{$field};
-            $field_values{$field} = $class->$validator($field_values{$field}, $field);
+            $field_values{$field} = $class->$validator($field_values{$field}, $field, \%field_values);
         }
         # We want people to be able to explicitly set fields to NULL,
         # and that means they can be set to undef.

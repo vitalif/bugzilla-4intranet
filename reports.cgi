@@ -106,11 +106,11 @@ else {
     }
 
     my $data_file = daily_stats_filename($product);
-    my $image_file = chart_image_name($data_file, $datasets);
+    my $image_file = chart_image_name($data_file, @datasets);
     my $url_image = correct_urlbase() . "$graph_url/$image_file";
 
     if (! -e "$graph_dir/$image_file") {
-        generate_chart("$dir/$data_file", "$graph_dir/$image_file", $product, $datasets);
+        generate_chart("$dir/$data_file", "$graph_dir/$image_file", $product, @datasets);
     }
 
     $vars->{'url_image'} = "$graph_url/$image_file";

@@ -947,7 +947,6 @@ sub bz_drop_index {
     my ($self, $table, $name) = @_;
 
     my $index_exists = $self->bz_index_info($table, $name);
-
     if ($index_exists) {
         # We cannot delete an index used by a FK.
         foreach my $column (@{$index_exists->{FIELDS}}) {

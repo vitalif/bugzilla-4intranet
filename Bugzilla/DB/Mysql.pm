@@ -688,7 +688,7 @@ sub bz_setup_database {
 
         print "Converting table storage format to UTF-8. This may take a",
               " while.\n";
-        foreach my $table (map { $_->{Name} } @non_utf8_tables) {
+        foreach my $table (map { $_->{Name} } @$non_utf8_tables) {
             my $info_sth = $self->prepare("SHOW FULL COLUMNS FROM $table");
             $info_sth->execute();
             my (@binary_sql, @utf8_sql);
