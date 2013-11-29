@@ -49,6 +49,28 @@ function showhide_comment(comment_id, show)
         addClass(comment, 'collapsed');
 }
 
+function showhide_comment_preview(comment_id)
+{
+    var link = document.getElementById('comment-preview-link-' + comment_id);
+    var preview = document.getElementById('comment-preview-' + comment_id);
+    var body = document.getElementById('comment-body-' + comment_id);
+    var show = link.className.match(new RegExp(/\bshown\b/))
+    if (show)
+    {
+        preview.style.display = 'block';
+        body.style.display = 'none';
+        removeClass(link, "shown");
+    }
+    else
+    {
+        preview.style.display = 'none';
+        body.style.display = 'block';
+        addClass(link, "shown");
+    }
+    link.innerHTML = (!show ? "Hide" : "Show") + " full text";
+    return false;
+}
+
 // Mark comment as worktime-only or normal
 function toggle_wtonly(id, initial_wtonly, img)
 {

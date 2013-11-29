@@ -30,6 +30,8 @@ use Bugzilla::User;
 use Bugzilla::Util;
 use Bugzilla::Template;
 
+use Data::Dumper;
+
 ###############################
 ####    Initialization     ####
 ###############################
@@ -92,7 +94,6 @@ sub preload {
 ###############################
 
 sub already_wrapped { return $_[0]->{'already_wrapped'}; }
-sub body        { return $_[0]->{'thetext'};   }
 sub bug_id      { return $_[0]->{'bug_id'};    }
 sub creation_ts { return $_[0]->{'bug_when'};  }
 sub is_private  { return $_[0]->{'isprivate'}; }
@@ -100,6 +101,21 @@ sub work_time   { return $_[0]->{'work_time'}; }
 sub type        { return $_[0]->{'type'};      }
 sub extra_data  { return $_[0]->{'extra_data'} }
 sub who         { return $_[0]->{'who'};       }
+
+sub body
+{
+    my ($self, $preview) = @_;
+    $preview = 0 if !$preview;
+    if ($preview && !$self->check_length)
+    {
+        my $max_lines = Bugzilla->params->{preview_comment_lines} - 1;
+        my $line_length = Bugzilla->params->{comment_line_length} - 1;
+        my $result = $self->{'thetext'};
+        $result =~ s/^((?>[^\n]{0,$line_length}.){0,$max_lines}(?>[^\n]{0,$line_length}\s)).*$/\1.../s;
+        return $result;
+    }
+    return $_[0]->{'thetext'};
+}
 
 sub bug {
     my $self = shift;
@@ -134,6 +150,7 @@ sub author {
 sub body_full {
     my ($self, $params) = @_;
     $params ||= {};
+    my $preview = $params->{preview} ? $params->{preview} : 0;
     my $template = Bugzilla->template_inner;
     my $body;
     my $t = $self->type;
@@ -146,15 +163,34 @@ sub body_full {
         $body =~ s/^X//;
     }
     else {
-        $body = $self->body;
+        $body = $self->body($preview);
     }
     if (!$params->{is_bugmail}) {
         $body = Bugzilla::Template::quoteUrls($body, $self->bug_id, $self);
     }
     if ($params->{wrap}) {
         $body = wrap_comment($body);
+        if (!$preview && !($self->check_length))
+        {
+            $params->{preview} = 1;
+            my $new_body;
+            $template->process("bug/comment-preview-text.html.tmpl",
+                               { preview => $self->body_full($params), body => $body, id => $self->id }, \$new_body)
+                || ThrowTemplateError($template->error());
+            $body = $new_body;
+        }
     }
     return $body;
+}
+
+sub check_length
+{
+    my $self = shift;
+    my $test = $self->{'thetext'};
+    my $line_length = Bugzilla->params->{comment_line_length};
+    my $length = $test =~ s/([^\n]{$line_length}|\n)/$1/g;
+    $length = 0 if !$length;
+    return $length <= Bugzilla->params->{preview_comment_lines};
 }
 
 ############

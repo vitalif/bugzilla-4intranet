@@ -197,6 +197,20 @@ sub get_param_list {
    type => 'b',
    default => 0,
   },
+
+  {
+   name => 'comment_line_length',
+   type => 't',
+   default => '80',
+   checker => \&check_numeric
+  },
+
+  {
+   name => 'preview_comment_lines',
+   type => 't',
+   default => '30',
+   checker => \&check_numeric
+  },
   );
   return @param_list;
 }
