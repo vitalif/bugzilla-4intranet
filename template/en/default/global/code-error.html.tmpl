@@ -420,6 +420,185 @@
   The LDAP server for authentication has not been defined.
 [% END %]
 
+[% BLOCK error_ldap_cannot_retreive_attr %]
+  The specified LDAP attribute [% attr FILTER html %] was not found.
+[% END %]
+
+[% BLOCK error_ldap_connect_failed %]
+  Could not connect to the LDAP server(s) <code>[% server FILTER html %]</code>.
+[% END %]
+
+[% BLOCK error_ldap_start_tls_failed %]
+  Could not start TLS with LDAP server: <code>[% error FILTER html %]</code>.
+[% END %]
+
+[% BLOCK error_ldap_search_error %]
+  An error occurred while trying to search LDAP for 
+  &quot;[% username FILTER html %]&quot;: 
+  [% IF errstr %]
+    <code>[% errstr FILTER html %]</code>
+  [% ELSE %]
+    Unable to find user in LDAP
+  [% END %]
+[% END %]
+
+[% BLOCK error_mail_send_error %]
+  There was an error sending mail from '[% mail.header('From') FILTER html %]'
+  to '[% mail.header('To') FILTER html %]':
+  [% msg FILTER html %]
+[% END %]
+
+[% BLOCK error_missing_bug_id %]
+  No [% terms.bug %] ID was given.
+[% END %]
+
+[% BLOCK error_missing_series_id %]
+  Having inserted a series into the database, no series_id was returned for
+  it. Series: [% series.category FILTER html %] / 
+  [%+ series.subcategory FILTER html %] / 
+  [%+ series.name FILTER html %].
+[% END %]
+
+[% BLOCK error_need_quipid %]
+  A valid quipid is needed.
+[% END %]
+
+[% BLOCK error_object_dep_sort_loop %]
+  There is a loop in VALIDATOR_DEPENDENCIES involving
+  '[%+ field FILTER html %]'. Here are the fields we considered:
+  [%+ considered.join(', ') FILTER html %].
+[% END %]
+
+[% BLOCK error_param_invalid %]
+  [% title = "Invalid Parameter" %]
+  <code>[% param FILTER html %]</code> is not a valid parameter
+  for the [% function FILTER html %] function.
+[% END %]
+
+[% BLOCK error_param_must_be_numeric %]
+  [% title = "Invalid Parameter" %]
+  Invalid parameter <code>[% param FILTER html %]</code> passed to 
+  <code>[% function FILTER html %]</code>: It must be numeric.
+[% END %]
+
+[% BLOCK error_param_required %]
+  [% title = "Missing Parameter" %]
+  The function <code>[% function FILTER html %]</code> requires
+  a <code>[% param FILTER html %]</code> argument, and that
+  argument was not set.
+[% END %]
+
+[% BLOCK error_params_required %]
+  [% title = "Missing Parameter" %]
+  The function <code>[% function FILTER html %]</code> requires
+  that you set one of the following parameters:
+  <code>[% params.join(', ') FILTER html %]</code>
+[% END %]
+
+[% BLOCK error_product_empty_group_controls %]
+  [% title = "Missing Group Controls" %]
+  New settings must be defined to edit group controls for
+  the [% group.name FILTER html %] group.
+[% END %]
+
+[% BLOCK error_product_illegal_group_control %]
+  [% title = "Illegal Group Control" %]
+  '[% value FILTER html %]' is not a legal value for
+  the '[% field FILTER html %]' field.
+[% END %]
+
+[% BLOCK error_protection_violation %]
+  The function <code>[% function FILTER html %]</code> was called
+
+  [% IF argument %]
+      with the argument <code>[% argument FILTER html %]</code>
+  [% END %]
+
+  from
+
+  [% IF caller %]
+      <code>[%+ caller FILTER html %]</code>, which is
+  [% END %]
+
+  outside the package. This function may only be called from
+  a subclass of <code>[% superclass FILTER html %]</code>.
+[% END %]
+
+[% BLOCK error_radius_preparation_error %]
+  An error occurred while preparing for a RADIUS authentication request:
+  <code>[% errstr FILTER html %]</code>.
+[% END %]
+
+[% BLOCK error_report_axis_invalid %]
+  <em>[% val FILTER html %]</em> is not a valid value for 
+  [%+ IF    fld == "x" %]the horizontal axis
+  [%+ ELSIF fld == "y" %]the vertical axis
+  [%+ ELSIF fld == "z" %]the multiple tables/images
+  [%+ ELSE %]a report axis[% END %] field.
+[% END %]
+
+[% BLOCK error_setting_info_invalid %]
+  To create a new setting, you must supply a setting name, a list of 
+  value/sortindex pairs, and the default value.
+[% END %]
+
+[% BLOCK error_setting_name_invalid %]
+  The setting name <em>[% name FILTER html %]</em> is not a valid
+  option. Setting names must begin with a letter, and contain only
+  letters, digits, or the symbols '_', '-', '.', or ':'.
+[% END %]
+
+[% BLOCK error_setting_subclass_invalid %]
+  There is no such Setting subclass as
+  <code>[% subclass FILTER html %]</code>.
+[% END %]
+
+[% BLOCK error_setting_value_invalid %]
+  The value "<code>[% value FILTER html %]</code>" is not in the list of
+  legal values for the <em>[% name FILTER html %]</em> setting.
+[% END %]
+
+[% BLOCK error_token_generation_error %]
+  Something is seriously wrong with the token generation system.
+[% END %]
+
+[% BLOCK error_template_error %]
+  [% template_error_msg FILTER html %]
+[% END %]
+
+[% BLOCK error_template_invalid %]
+  Template with invalid file name found in hook call: [% name FILTER html %].
+[% END %]
+
+[% BLOCK error_unable_to_retrieve_password %]
+  I was unable to retrieve your old password from the database.
+[% END %]
+
+[% BLOCK error_undefined_field %]
+  Form field [% field FILTER html %] was not defined.
+[% END %]
+
+[% BLOCK error_unknown_method %]
+  The requested method '[% method FILTER html %]' was not found.
+[% END %]
+
+[% BLOCK error_usage_mode_invalid %]
+  '[% invalid_usage_mode FILTER html %]' is not a valid usage mode.
+[% END %]
+
+[% BLOCK error_must_be_patch %]
+  [% title = "Attachment Must Be Patch" %]
+  Attachment #[% attach_id FILTER html %] must be a patch.
+[% END %]
+
+[% BLOCK error_not_in_transaction %]
+  Attempted to end transaction without starting one first.
+[% END %]
+
+[% BLOCK error_invalid_post_bug_submit_action %]
+  Invalid setting for post_bug_submit_action
+[% END %]
+
 [% BLOCK error_mail_send_error %]
   There was an error sending mail from '[% mail.header('From') FILTER html %]'
   to '[% mail.header('To') FILTER html %]':

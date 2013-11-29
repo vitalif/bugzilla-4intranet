@@ -45,6 +45,9 @@
         padding: 0;
         font-size: 100%;
     }
+    #header {
+        margin-bottom: 1em;
+    }
 
     #header form, #header form input,
     #footer form, #footer form input
@@ -168,7 +171,7 @@
  */
     #header, #footer {
         clear: both;
-        margin-top: 5px;
+        margin-top: 1em;
         width: 100%;
         border-top: 1px solid #ddd;
         border-bottom: 1px solid #ddd;
@@ -374,6 +377,10 @@ input.requestee {
 
 #error_msg {
     font-size: x-large;
+}
+
+.warning {
+  color: red;
 }
 
 .throw_error {

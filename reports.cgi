@@ -142,38 +142,12 @@ sub get_data {
     return @datasets;
 }
 
-sub daily_stats_filename {
-    my ($prodname) = @_;
-    $prodname =~ s/\//-/gs;
-    return $prodname;
-}
-
-sub chart_image_name {
-    my ($data_file, $datasets) = @_;
-
-    # This routine generates a filename from the requested fields. The problem
-    # is that we have to check the safety of doing this. We can't just require
-    # that the fields exist, because what stats were collected could change
-    # over time (eg by changing the resolutions available)
-    # Instead, just require that each field name consists only of letters,
-    # numbers, underscores and hyphens.
-
-    if ($datasets !~ m/^[A-Za-z0-9:_-]+$/) {
-        ThrowUserError('invalid_datasets', {'datasets' => $datasets});
-    }
-
-    # Since we pass the tests, consider it OK
-    trick_taint($datasets);
-
-    # Cache charts by generating a unique filename based on what they
-    # show. Charts should be deleted by collectstats.pl nightly.
-    my $id = join ("_", split (":", $datasets));
-
-    return "${data_file}_${id}.png";
-}
-
 sub generate_chart {
-    my ($data_file, $image_file, $product, $datasets) = @_;
+    my ($dir, $image_file, $product, $datasets) = @_;
+    $product = $product ? $product->name : '-All-';
+    my $data_file = $product;
+    $data_file =~ s/\//-/gs;
+    $data_file = $dir . '/' . $data_file;
 
     if (! open FILE, $data_file) {
         if ($product eq '-All-') {

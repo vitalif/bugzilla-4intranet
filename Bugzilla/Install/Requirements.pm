@@ -93,9 +93,9 @@ sub REQUIRED_MODULES {
     {
         package => 'CGI.pm',
         module  => 'CGI',
-        # 3.49 fixes a problem with operating Bugzilla behind a proxy.
-        # (bug 509303)
-        version => '3.49',
+        # 3.50 fixes a security problem that affects Bugzilla.
+        # (bug 591165)
+        version => '3.50',
     },
     {
         package => 'Digest-SHA',
@@ -254,9 +254,9 @@ sub OPTIONAL_MODULES {
     {
         package => 'SOAP-Lite',
         module  => 'SOAP::Lite',
-        # 0.710.04 is required for correct UTF-8 handling, but .04 and .05 are
-        # affected by bug 468009.
-        version => '0.710.06',
+        # Fixes various bugs, including 542931 and 552353 + stops
+        # throwing warnings with Perl 5.12.
+        version => '0.712',
         feature => ['xmlrpc'],
     },
     {
@@ -341,7 +341,26 @@ sub OPTIONAL_MODULES {
         version => 0,
         feature => ['fulltext_stem'],
     },
+
+    {
+        package => 'Apache-SizeLimit',
+        module  => 'Apache2::SizeLimit',
+        # 0.93 fixes problems on Linux and Windows, and changes the
+        # syntax used by SizeLimit.
+        version => '0.93',
+        feature => ['mod_perl'],
+    },
     );
+
+    if (ON_WINDOWS) {
+        # SizeLimit needs Win32::API to work on Windows.
+        push(@modules, {
+            package => 'Win32-API',
+            module  => 'Win32::API',
+            version => 0,
+            feature => ['mod_perl'],
+        });
+    }
 
     my $extra_modules = _get_extension_requirements('OPTIONAL_MODULES');
     push(@modules, @$extra_modules);

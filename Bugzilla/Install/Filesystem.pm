@@ -123,6 +123,7 @@ sub FILESYSTEM {
     my $localconfig   = bz_locations()->{'localconfig'};
     my $graphsdir     = bz_locations()->{'graphsdir'};
     my $template_cache = bz_locations()->{'template_cache'};
+    my $graphsdir     = bz_locations()->{'graphsdir'};
 
     # We want to set the permissions the same for all localconfig files
     # across all PROJECTs, so we do something special with $localconfig,
@@ -344,6 +345,17 @@ EOT
                                           contents => HT_DEFAULT_DENY },
         "$datadir/.htaccess"         => { perms    => WS_SERVE,
                                           contents => HT_DEFAULT_DENY },
+
+        "$graphsdir/.htaccess" => { perms => WS_SERVE, contents => <<EOT
+# Allow access to .png and .gif files.
+<FilesMatch (\\.gif|\\.png)\$>
+  Allow from all
+</FilesMatch>
+
+# And no directory listings, either.
+Deny from all
+EOT
+        },
 
         "$webdotdir/.htaccess" => { perms => WS_SERVE, contents => <<EOT
 # Restrict access to .dot files to the public webdot server at research.att.com

@@ -27,6 +27,7 @@ use strict;
 use Bugzilla::Constants;
 use Bugzilla::Error;
 use Bugzilla::Util;
+use Bugzilla::Search::Recent;
 
 use File::Basename;
 
@@ -280,12 +281,22 @@ sub header {
 
     # Add Strict-Transport-Security (STS) header if this response
     # is over SSL and the strict_transport_security param is turned on.
-    if ($self->https && Bugzilla->params->{'strict_transport_security'} ne 'off') {
+    if ($self->https && !$self->url_is_attachment_base
+        && Bugzilla->params->{'strict_transport_security'} ne 'off') 
+    {
         my $sts_opts = 'max-age=' . MAX_STS_AGE;
-        if (Bugzilla->params->{'strict_transport_security'} eq 'include_subdomains') {
+        if (Bugzilla->params->{'strict_transport_security'} 
+            eq 'include_subdomains')
+        {
             $sts_opts .= '; includeSubDomains';
         }
         unshift(@_, '-strict_transport_security' => $sts_opts);
+    }
+
+    # Add X-Frame-Options header to prevent framing and subsequent
+    # possible clickjacking problems.
+    unless ($self->url_is_attachment_base) {
+        unshift(@_, '-x_frame_options' => 'SAMEORIGIN');
     }
 
     return $self->SUPER::header(@_) || "";
@@ -433,6 +444,53 @@ sub remove_cookie {
     $self->send_cookie('-name'    => $cookiename,
                        '-expires' => 'Tue, 15-Sep-1998 21:49:00 GMT',
                        '-value'   => 'X');
+}
+
+# This helps implement Bugzilla::Search::Recent, and also shortens search
+# URLs that get POSTed to buglist.cgi.
+sub redirect_search_url {
+    my $self = shift;
+    # If we're retreiving an old list, we never need to redirect or
+    # do anything related to Bugzilla::Search::Recent.
+    return if $self->param('regetlastlist');
+
+    my $user = Bugzilla->user;
+
+    if ($user->id) {
+        # There are two conditions that could happen here--we could get a URL
+        # with no list id, and we could get a URL with a list_id that isn't
+        # ours.
+        my $list_id = $self->param('list_id');
+        if ($list_id) {
+            # If we have a valid list_id, no need to redirect or clean.
+            return if Bugzilla::Search::Recent->check_quietly(
+                { id => $list_id });
+        }
+    }
+    elsif ($self->request_method ne 'POST') {
+        # Logged-out users who do a GET don't get a list_id, don't get
+        # their URLs cleaned, and don't get redirected.
+        return;
+    }
+
+    $self->clean_search_url();
+
+    if ($user->id) {
+        # Insert a placeholder Bugzilla::Search::Recent, so that we know what
+        # the id of the resulting search will be. This is then pulled out
+        # of the Referer header when viewing show_bug.cgi to know what
+        # bug list we came from.
+        my $recent_search = Bugzilla::Search::Recent->create_placeholder;
+        $self->param('list_id', $recent_search->id);
+    }
+
+    # GET requests that lacked a list_id are always redirected. POST requests
+    # are only redirected if they're under the CGI_URI_LIMIT though.
+    my $uri_length = length($self->self_url());
+    if ($self->request_method() ne 'POST' or $uri_length < CGI_URI_LIMIT) {
+        print $self->redirect(-url => $self->self_url());
+        exit;
+    }
 }
 
 sub redirect_to_https {

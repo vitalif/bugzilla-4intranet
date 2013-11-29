@@ -50,6 +50,7 @@ use Bugzilla::Component;
 use Bugzilla::Group;
 use Bugzilla::Status;
 use Bugzilla::Comment;
+use Bugzilla::BugUrl;
 
 use List::MoreUtils qw(firstidx uniq);
 use List::Util qw(min max first);
@@ -159,12 +160,13 @@ sub VALIDATORS {
         comment        => \&_check_comment,
         deadline       => \&_check_deadline,
         dup_id         => \&_check_dup_id,
-        estimated_time => \&Bugzilla::Object::check_time,
+        estimated_time => \&_check_time_field,
         everconfirmed  => \&Bugzilla::Object::check_boolean,
         op_sys         => \&_check_select_field,
         priority       => \&_check_priority,
         product        => \&_check_product,
-        remaining_time => \&Bugzilla::Object::check_time,
+        qa_contact     => \&_check_qa_contact,
+        remaining_time => \&_check_time_field,
         rep_platform   => \&_check_select_field,
         short_desc     => \&_check_short_desc,
         status_whiteboard => \&_check_status_whiteboard,
@@ -1206,26 +1208,29 @@ sub update
     }
 
     # See Also
-    my ($removed_see, $added_see) =
-        diff_arrays($old_bug->see_also, $self->see_also);
+    my @old_see_also = @{ $old_bug->see_also };
+    foreach my $field_values (@{ $self->{added_see_also} || [] }) {
+        my $class = delete $field_values->{class};
+        $class->insert_create_data($field_values);
+        push @{ $self->see_also }, $field_values->{value};
+    }
+
+    delete $self->{added_see_also};
+
+    my ($removed_see, $added_see) = 
+        diff_arrays(\@old_see_also, $self->see_also);
 
     if (scalar @$removed_see) {
         $dbh->do('DELETE FROM bug_see_also WHERE bug_id = ? AND '
                  . $dbh->sql_in('value', [('?') x @$removed_see]),
                   undef, $self->id, @$removed_see);
     }
-    foreach my $url (@$added_see) {
-        $dbh->do('INSERT INTO bug_see_also (bug_id, value) VALUES (?,?)',
-                 undef, $self->id, $url);
-    }
+
     # If any changes were found, record it in the activity log
     if (scalar @$removed_see || scalar @$added_see) {
         $changes->{see_also} = [join(', ', @$removed_see),
                                 join(', ', @$added_see)];
     }
-
-    # Call update for the referenced bugs.
-    $_->update() foreach @{ $self->{see_also_update} || [] };
 
     # Log bugs_activity items
     # XXX Eventually, when bugs_activity is able to track the dupe_id,
@@ -1673,10 +1678,12 @@ sub _check_creation_ts {
 sub _check_deadline {
     my ($invocant, $date) = @_;
 
-    # Check time-tracking permissions.
-    # deadline() returns '' instead of undef if no deadline is set.
-    my $current = ref $invocant ? ($invocant->deadline || undef) : undef;
-    return $current unless Bugzilla->user->is_timetracker;
+    # When filing bugs, we're forgiving and just return undef if
+    # the user isn't a timetracker. When updating bugs, check_can_change_field
+    # controls permissions, so we don't want to check them here.
+    if (!ref $invocant and !Bugzilla->user->is_timetracker) {
+        return undef;
+    }
 
     # Validate entered deadline
     $date = trim($date);
@@ -2050,6 +2057,10 @@ sub _check_short_desc {
     if (!defined $short_desc || $short_desc eq '') {
         ThrowUserError("require_summary");
     }
+    if (length($short_desc) > MAX_FREETEXT_LENGTH) {
+        ThrowUserError('freetext_too_long', 
+                       { field => 'short_desc', text => $short_desc });
+    }
     return $short_desc;
 }
 
@@ -2166,9 +2177,22 @@ sub _check_work_time {
     return $_[0]->_check_time($_[1], 'work_time');
 }
 
-sub _check_version
-{
-    my ($invocant, $version, $product) = @_;
+sub _check_time_field {
+    my ($invocant, $value, $field, $params) = @_;
+
+    # When filing bugs, we're forgiving and just return 0 if
+    # the user isn't a timetracker. When updating bugs, check_can_change_field
+    # controls permissions, so we don't want to check them here.
+    if (!ref $invocant and !Bugzilla->user->is_timetracker) {
+        return 0;
+    }
+
+    # check_time is in Bugzilla::Object.
+    return $invocant->check_time($value, $field, $params);
+}
+
+sub _check_version {
+    my ($invocant, $version, undef, $params) = @_;
     $version = trim($version);
     ($product = $invocant->product_obj) if ref $invocant;
     my $object = Bugzilla::Version->new({ product => $product, name => $version }) if length $version;
@@ -2241,11 +2265,12 @@ sub _check_numeric_field
 }
 
 sub _check_freetext_field {
-    my ($invocant, $text) = @_;
+    my ($invocant, $text, $field) = @_;
 
     $text = (defined $text) ? trim($text) : '';
     if (length($text) > MAX_FREETEXT_LENGTH) {
-        ThrowUserError('freetext_too_long', { text => $text });
+        ThrowUserError('freetext_too_long', 
+                       { field => $field, text => $text });
     }
     return $text;
 }
@@ -2568,7 +2593,6 @@ sub reset_assigned_to {
 sub set_cclist_accessible { $_[0]->set('cclist_accessible', $_[1]); }
 sub set_comment_is_private {
     my ($self, $comment_id, $isprivate) = @_;
-    return unless Bugzilla->user->is_insider;
 
     # We also allow people to pass in a hash of comment ids to update.
     if (ref $comment_id) {
@@ -2584,6 +2608,7 @@ sub set_comment_is_private {
 
     $isprivate = $isprivate ? 1 : 0;
     if ($isprivate != $comment->is_private) {
+        ThrowUserError('user_not_insider') if !Bugzilla->user->is_insider;
         $self->{comment_isprivate} ||= [];
         $comment->set_is_private($isprivate);
         push @{$self->{comment_is_private}}, $comment;
@@ -2804,7 +2829,13 @@ sub set_bug_status {
     else {
         # We do this here so that we can make sure closed statuses have
         # resolutions.
-        my $resolution = delete $params->{resolution} || $self->resolution;
+        my $resolution = $self->resolution;
+        # We need to check "defined" to prevent people from passing
+        # a blank resolution in the WebService, which would otherwise fail
+        # silently.
+        if (defined $params->{resolution}) {
+            $resolution = delete $params->{resolution};
+        }
         $self->set_resolution($resolution, $params);
 
         # Changing between closed statuses zeros the remaining time.
@@ -3057,171 +3088,42 @@ sub remove_group {
 }
 
 sub add_see_also {
-    my ($self, $input, $skip_recursion) = @_;
+    my ($self, $input) = @_;
     $input = trim($input);
 
-    if (!$input) {
-        ThrowCodeError('param_required', 
-                       { function => 'add_see_also', param => '$input' });
-    }
+    my ($class, $uri) = Bugzilla::BugUrl->class_for($input);
 
-    # If a bug id/alias has been taken, then treat it
-    # as a link to the local Bugzilla.
-    my $local_bug_uri = correct_urlbase() . "show_bug.cgi?id=";
-    if ($input =~ m/^\w+$/) {
-        $input = $local_bug_uri . $input;
-    }
+    my $params = { value => $uri, bug_id => $self };
+    $class->check_required_create_fields($params);
 
-    # We assume that the URL is an HTTP URL if there is no (something):// 
-    # in front.
-    my $uri = new URI($input);
-    if (!$uri->scheme) {
-        # This works better than setting $uri->scheme('http'), because
-        # that creates URLs like "http:domain.com" and doesn't properly
-        # differentiate the path from the domain.
-        $uri = new URI("http://$input");
-    }
-    elsif ($uri->scheme ne 'http' && $uri->scheme ne 'https') {
-        ThrowUserError('bug_url_invalid', { url => $input, reason => 'http' });
-    }
+    my $field_values = $class->run_create_validators($params);
+    $uri = $field_values->{value};
+    $field_values->{value} = $uri->as_string;
+    $field_values->{class} = $class;
 
-    # This stops the following edge cases from being accepted:
-    # * show_bug.cgi?id=1
-    # * /show_bug.cgi?id=1
-    # * http:///show_bug.cgi?id=1
-    if (!$uri->authority or $uri->path !~ m{/}) {
-        ThrowUserError('bug_url_invalid',
-                       { url => $input, reason => 'path_only' });
-    }
-
-    my $result;
-    # Launchpad URLs
-    if ($uri->authority =~ /launchpad.net$/) {
-        # Launchpad bug URLs can look like various things:
-        #   https://bugs.launchpad.net/ubuntu/+bug/1234
-        #   https://launchpad.net/bugs/1234
-        # All variations end with either "/bugs/1234" or "/+bug/1234"
-        if ($uri->path =~ m|bugs?/(\d+)$|) {
-            # This is the shortest standard URL form for Launchpad bugs,
-            # and so we reduce all URLs to this.
-            $result = "https://launchpad.net/bugs/$1";
-        }
-        else {
-            ThrowUserError('bug_url_invalid',
-                           { url => $input, reason => 'id' });
-        }
-    }
-    # Google Code URLs
-    elsif ($uri->authority =~ /^code.google.com$/i) {
-        # Google Code URLs only have one form:
-        #   http(s)://code.google.com/p/PROJECT_NAME/issues/detail?id=1234
-        my $project_name;
-        if ($uri->path =~ m|^/p/([^/]+)/issues/detail$|) {
-            $project_name = $1;
-        } else {
-            ThrowUserError('bug_url_invalid', { url => $input });
-        }
-        my $bug_id = $uri->query_param('id');
-        detaint_natural($bug_id);
-        if (!$bug_id) {
-            ThrowUserError('bug_url_invalid', { url => $input, reason => 'id' });
-        }
-        # While Google Code URLs can be either HTTP or HTTPS,
-        # always go with the HTTP scheme, as that's the default.
-        $result = "http://code.google.com/p/" . $project_name .
-                  "/issues/detail?id=" . $bug_id;
-    }
-    # Debian BTS URLs
-    elsif ($uri->authority =~ /^bugs.debian.org$/i) {
-        # Debian BTS URLs can look like various things:
-        #   http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1234
-        #   http://bugs.debian.org/1234
-        my $bug_id;
-        if ($uri->path =~ m|^/(\d+)$|) {
-            $bug_id = $1;
-        }
-        elsif ($uri->path =~ /bugreport\.cgi$/) {
-            $bug_id = $uri->query_param('bug');
-            detaint_natural($bug_id);
-        }
-        if (!$bug_id) {
-            ThrowUserError('bug_url_invalid',
-                           { url => $input, reason => 'id' });
-        }
-        # This is the shortest standard URL form for Debian BTS URLs,
-        # and so we reduce all URLs to this.
-        $result = "http://bugs.debian.org/" . $bug_id;
-    }
-    # Bugzilla URLs
-    else {
-        if ($uri->path !~ /show_bug\.cgi$/) {
-            ThrowUserError('bug_url_invalid',
-                           { url => $input, reason => 'show_bug' });
-        }
-
-        my $bug_id = $uri->query_param('id');
-        # We don't currently allow aliases, because we can't check to see
-        # if somebody's putting both an alias link and a numeric ID link.
-        # When we start validating the URL by accessing the other Bugzilla,
-        # we can allow aliases.
-        detaint_natural($bug_id);
-        if (!$bug_id) {
-            ThrowUserError('bug_url_invalid',
-                           { url => $input, reason => 'id' });
-        }
-
-        # Make sure that "id" is the only query parameter.
-        $uri->query("id=$bug_id");
-        # And remove any # part if there is one.
-        $uri->fragment(undef);
-        my $uri_canonical = $uri->canonical;
-        $result = $uri_canonical->as_string;
-
-        # If this is a link to a local bug (treating the domain
-        # case-insensitively and ignoring http(s)://), then also update
-        # the other bug to point at this one.
-        my $canonical_local = URI->new($local_bug_uri)->canonical;
-        if (!$skip_recursion 
-            and $canonical_local->authority eq $uri_canonical->authority
-            and $canonical_local->path eq $uri_canonical->path) 
-        {
-            my $ref_bug = Bugzilla::Bug->check($bug_id);
-            if ($ref_bug->id == $self->id) {
-                ThrowUserError('see_also_self_reference');
-            }
-        
-            my $product = $ref_bug->product_obj;
-            if (!Bugzilla->user->can_edit_product($product->id)) {
-                ThrowUserError("product_edit_denied",
-                               { product => $product->name });
-            }
-
-            my $ref_input = $local_bug_uri . $self->id;
-            if (!grep($ref_input, @{ $ref_bug->see_also })) {
-                $ref_bug->add_see_also($ref_input, 'skip recursion');
-                push @{ $self->{see_also_update} }, $ref_bug;
-            }
-        }
-
-    }
-
-    if (length($result) > MAX_BUG_URL_LENGTH) {
-        ThrowUserError('bug_url_too_long', { url => $result });
+    # If this is a link to a local bug then save the
+    # ref bug id for sending changes email.
+    if ($class->isa('Bugzilla::BugUrl::Bugzilla::Local')) {
+        my $ref_bug = $field_values->{ref_bug};
+        my $self_url = $class->local_uri . $self->id;
+        push @{ $self->{see_also_changes} }, $ref_bug->id
+            if !grep { $_ eq $self_url } @{ $ref_bug->see_also };
     }
 
     # We only add the new URI if it hasn't been added yet. URIs are
     # case-sensitive, but most of our DBs are case-insensitive, so we do
     # this check case-insensitively.
-    if (!grep { lc($_) eq lc($result) } @{ $self->see_also }) {
+    my $value = $uri->as_string;
+    if (!grep { lc($_) eq lc($value) } @{ $self->see_also }) {
         my $privs;
-        my $can = $self->check_can_change_field('see_also', '', $result, \$privs);
+        my $can = $self->check_can_change_field('see_also', '', $value, \$privs);
         if (!$can) {
             ThrowUserError('illegal_change', { field    => 'see_also',
-                                               newvalue => $result,
+                                               newvalue => $value,
                                                privs    => $privs });
         }
 
-        push(@{ $self->see_also }, $result);
+        push @{ $self->{added_see_also} }, $field_values;
     }
 }
 
@@ -4214,7 +4116,8 @@ sub check_can_change_field {
     } elsif (trim($oldvalue) eq trim($newvalue)) {
         return 1;
     # numeric fields need to be compared using ==
-    } elsif (($field eq 'estimated_time' || $field eq 'remaining_time')
+    } elsif (($field eq 'estimated_time' || $field eq 'remaining_time' 
+              || $field eq 'work_time')
              && $oldvalue == $newvalue)
     {
         return 1;
@@ -4249,7 +4152,7 @@ sub check_can_change_field {
     # $PrivilegesRequired = PRIVILEGES_REQUIRED_EMPOWERED : an empowered user.
     
     # Only users in the time-tracking group can change time-tracking fields.
-    if ( grep($_ eq $field, qw(deadline estimated_time remaining_time)) ) {
+    if ( grep($_ eq $field, TIMETRACKING_FIELDS) ) {
         if (!$user->is_timetracker) {
             $$PrivilegesRequired = PRIVILEGES_REQUIRED_EMPOWERED;
             return 0;

@@ -88,13 +88,24 @@
           <td>
             [% IF (type.is_active && type.is_requestable && type.is_requesteeble) || flag.requestee %]
               <span style="white-space: nowrap;">
-                [% INCLUDE "global/userselect.html.tmpl"
-                    name     => "requestee-$flag.id"
-                    size     => 40
-                    id       => "requestee-$flag.id"
-                    value    => flag.requestee.login
-                    emptyok  => 1
-                    custom_userlist  => flag.custom_list && flag.custom_list.ready_list
+                [% SET flag_custom_list = [] %]
+                [% IF Param('usemenuforusers') %]
+                  [% flag_custom_list = flag.type.grant_list %]
+                  [% IF !(type.is_active && type.is_requestable && type.is_requesteeble) %]
+                    [%# We are here only because there was already a requestee. In this case,
+                        the only valid action is to remove the requestee or leave it alone;
+                        nothing else. %]
+                    [% flag_custom_list = [flag.requestee] %]
+                  [% END %]
+                [% END %]
+                [% INCLUDE global/userselect.html.tmpl
+                           name     => "requestee-$flag.id"
+                           id       => "requestee-$flag.id"
+                           value    => flag.requestee.login
+                           multiple => 0
+                           emptyok  => 1
+                           classes => ["requestee"]
+                           custom_userlist => flag_custom_list
                 %]
               </span>
             [% END %]
@@ -164,15 +175,20 @@
       <td>
         [% IF type.is_requestable && type.is_requesteeble %]
           <span style="white-space: nowrap;">
-            [% INCLUDE "global/userselect.html.tmpl"
-                name => "requestee_type-$type.id"
-                id => "requestee_type-$type.id"
-                size => 40
-                value => type.default_requestee
-                multiple => type.is_multiplicable
-                emptyok => !type.is_multiplicable
-                custom_userlist => type.custom_list && type.custom_list.ready_list
-            %]
+            [% SET grant_list = [] %]
+            [% IF Param('usemenuforusers') %]
+              [% grant_list = type.grant_list %]
+            [% END %]
+            [% INCLUDE  global/userselect.html.tmpl
+                        name     => "requestee_type-$type.id"
+                        id       => "requestee_type-$type.id"
+                        multiple => type.is_multiplicable * 3
+                        emptyok  => !type.is_multiplicable
+                        value    => ""
+                        custom_userlist => grant_list
+                        classes => ["requestee"]
+            %]            
+            
           </span>
         [% END %]
       </td>

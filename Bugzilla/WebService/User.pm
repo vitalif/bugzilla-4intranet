@@ -285,11 +285,9 @@ log in/out using an existing account.
 See L<Bugzilla::WebService> for a description of how parameters are passed,
 and what B<STABLE>, B<UNSTABLE>, and B<EXPERIMENTAL> mean.
 
-=head2 Logging In and Out
+=head1 Logging In and Out
 
-=over
-
-=item C<login> 
+=head2 login
 
 B<STABLE>
 
@@ -352,7 +350,7 @@ A login or password parameter was not provided.
 
 =back
 
-=item C<logout> 
+=head2 logout
 
 B<STABLE>
 
@@ -370,13 +368,9 @@ Log out the user. Does nothing if there is no user logged in.
 
 =back
 
-=back
+=head1 Account Creation
 
-=head2 Account Creation
-
-=over
-
-=item C<offer_account_by_email> 
+=head2 offer_account_by_email
 
 B<STABLE>
 
@@ -417,7 +411,7 @@ email address you specified. Account creation may be entirely disabled.
 
 =back
 
-=item C<create> 
+=head2 create
 
 B<STABLE>
 
@@ -480,13 +474,9 @@ password is under three characters.)
 
 =back
 
-=back
+=head1 User Info
 
-=head2 User Info
-
-=over
-
-=item C<get> 
+=head2 get
 
 B<STABLE>
 
@@ -626,8 +616,6 @@ function.
 =item Added in Bugzilla B<3.4>.
 
 =item C<group_ids> and C<groups> were added in Bugzilla B<4.0>.
-
-=back
 
 =back
 

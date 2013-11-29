@@ -81,28 +81,6 @@ sub parse_mail {
     my %fields = %{ $switch{'default'} || {} };
     Bugzilla::Hook::process('email_in_before_parse', { mail => $input_email,
                                                        fields => \%fields });
-    # RFC 3834 - Recommendations for Automatic Responses to Electronic Mail
-    # Automatic responses SHOULD NOT be issued in response to any
-    # message which contains an Auto-Submitted header field (see below),
-    # where that field has any value other than "no".
-    # F*cking MS Exchange sometimes does not append Auto-Submitted header
-    # to delivery status reports, so also check content-type.
-    my $autosubmitted;
-    if (lc($input_email->header('Auto-Submitted') || 'no') ne 'no' ||
-        ($input_email->header('Content-Type') || '') =~ /delivery-status/iso)
-    {
-        debug_print("Rejecting email with Auto-Submitted = $autosubmitted");
-        exit 0;
-    }
-
-    my $dbh = Bugzilla->dbh;
-
-    # Fetch field => value from emailin_fields table
-    my ($toemail) = Email::Address->parse($input_email->header('To'));
-    %fields = (%fields, map { @$_ } @{ $dbh->selectall_arrayref(
-        "SELECT `field`, `value` FROM `emailin_fields` WHERE `address`=?",
-        undef, $toemail) || [] });
-
     my $summary = $input_email->header('Subject');
     if ($summary =~ /\[\s*Bug\s*(\d+)\s*\](.*)/i) {
         $fields{'bug_id'} = $1;

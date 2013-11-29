@@ -644,6 +644,158 @@
         <strong>You must now re-run checksetup.pl.</strong><br>
       [% END %]
     [% END %]
+  [% END %]
+[% END %]
+
+[% BLOCK msg_invalid_column_name %]
+  The custom sort order specified contains one or more invalid
+  column names: <em>[% invalid_fragments.join(', ') FILTER html %]</em>.
+  They have been removed from the sort list.
+[% END %]
+
+[% BLOCK msg_job_queue_depth %]
+  [% count FILTER html %] jobs in the queue.
+[% END %]
+
+[% BLOCK msg_keyword_created %]
+  [% title = "New Keyword Created" %]
+  The keyword <em>[% name FILTER html %]</em> has been created.
+[% END %]
+
+[% BLOCK msg_keyword_deleted %]
+  [% title = "Keyword Deleted" %]
+  The <em>[% keyword.name FILTER html %]</em> keyword has been deleted.
+[% END %]
+
+[% BLOCK msg_keyword_updated %]
+  [% title = "Keyword Updated" %]
+  [% IF changes.keys.size %]
+    Changes to the <em>[% keyword.name FILTER html %]</em> keyword have
+    been saved:
+    <ul>
+      [% IF changes.name.defined %]
+        <li>Keyword renamed to <em>[% keyword.name FILTER html %]</em>.</li>
+      [% END %]
+      [% IF changes.description.defined %]
+        <li>Description updated to <em>[% keyword.description FILTER html %]</em></li>
+      [% END %]
+    </ul>
+  [% ELSE %]
+    No changes made.
+  [% END %]
+[% END %]
+
+[% BLOCK msg_logged_out %]
+  [% title = "Logged Out" %]
+  [% url = "index.cgi?GoAheadAndLogIn=1" %]
+  [% link = "Log in again." %]
+  <b>Your login has been forgotten</b>.
+  The cookie that was remembering your login is now gone. You will be
+  prompted for a login the next time it is required.
+[% END %]
+
+[% BLOCK msg_login_changed %]
+  [% title = "$terms.Bugzilla Login Changed" %]
+  Your [% terms.Bugzilla %] login has been changed.
+[% END %]
+
+[% BLOCK msg_migrate_component_created %]
+  Component created: [% comp.name FILTER html %]
+  (in [% product.name FILTER html %])
+[% END %]
+
+[% BLOCK msg_migrate_component_created %]
+  Component created: [% comp.name FILTER html %]
+  (in [% product.name FILTER html %])
+[% END %]
+
+[% BLOCK msg_migrate_creating_bugs %]
+  Creating [% terms.bugs %]...
+[% END %]
+
+[% BLOCK msg_migrate_field_created %]
+  New custom field: [% field.description FILTER html %]
+  ([% field.name FILTER html %])
+[% END %]
+
+[% BLOCK msg_migrate_product_created %]
+  Product created: [% created.name FILTER html %]
+[% END %]
+
+[% BLOCK msg_migrate_reading_bugs %]
+  Reading [% terms.bugs %]...
+[% END %]
+
+[% BLOCK msg_migrate_reading_products %]
+  Reading products...
+[% END %]
+
+[% BLOCK msg_migrate_reading_users %]
+  Reading users...
+[% END %]
+
+[% BLOCK msg_migrate_translating_bugs %]
+  Converting [% terms.bug %] values to be appropriate for 
+  [%+ terms.Bugzilla %]...
+[% END %]
+
+[% BLOCK msg_migrate_user_created %]
+  User created: [% created.email FILTER html %]
+  [% IF password %] Password: [% password FILTER html %][% END %]
+[% END %]
+
+[% BLOCK msg_migrate_value_created %]
+  [% IF product.defined %]
+    [% product.name FILTER html %]
+  [% END %]
+  [%+ field_descs.${field.name} FILTER html %] value
+  created: [% value FILTER html %]
+[% END %]
+
+[% BLOCK msg_milestone_created %]
+  [% title = "Milestone Created" %]
+  The milestone <em>[% milestone.name FILTER html %]</em> has been created.
+[% END %]
+
+[% BLOCK msg_milestone_deleted %]
+  [% title = "Milestone Deleted" %]
+  The milestone <em>[% milestone.name FILTER html %]</em> has been deleted.
+  [% IF milestone.bug_count %]
+    [%+ terms.Bugs %] targetted to this milestone have been retargetted to
+    the default milestone <em>[% product.default_milestone FILTER html %]</em>.
+  [% END %]
+[% END %]
+
+[% BLOCK msg_milestone_updated %]
+  [% title = "Milestone Updated" %]
+  [% IF changes.size %]
+    Changes to the milestone <em>[% milestone.name FILTER html %]</em>
+    have been saved:
+    <ul>
+      [% IF changes.value.defined %]
+        <li>Milestone name updated to <em>[% milestone.name FILTER html %]</em></li>
+      [% END %]
+      [% IF changes.sortkey.defined %]
+        <li>Sortkey updated to <em>[% milestone.sortkey FILTER html %]</em>
+      [% END %]
+      [% IF changes.isactive.defined %]
+        <li>[% milestone.is_active ? "Enabled" : "Disabled" %] for [% terms.bugs %]</li>
+      [% END %]
+    </ul>
+  [% ELSE %]
+    No changes made to milestone <em>[% milestone.name FILTER html %]</em>.
+  [% END %]
+[% END %]
+
+[% BLOCK msg_parameters_updated %]
+  [% title = "Parameters Updated" %]
+  [% IF param_changed.size > 0 %]
+    [% FOREACH param = param_changed %]
+      Changed <em>[% param FILTER html %]</em><br>
+      [% IF param == 'utf8' && Param('utf8') %]
+        <strong>You must now re-run <kbd>checksetup.pl</kbd>.</strong><br>
+      [% END %]
+    [% END %]
   [% ELSE %]
     No changes made.
   [% END %]
@@ -960,6 +1112,87 @@
     [% END %]
   [% ELSE %]
     No changes made to version <em>[% version.name FILTER html %]</em>.
+  [% END %]
+[% END %]
+
+[% BLOCK msg_password_change_canceled %]
+  [% title = "Cancel Request to Change Password" %]
+  Your request has been canceled.
+[% END %]
+
+[% BLOCK msg_password_change_request %]
+  [% title = "Request to Change Password" %]
+  A token for changing your password has been emailed to you.
+  Follow the instructions in that email to change your password.
+[% END %]
+
+[% BLOCK msg_password_changed %]
+  [% title = "Password Changed" %]
+  Your password has been changed.
+[% END %]
+
+[% BLOCK msg_flag_type_created %]
+  [% title = BLOCK %]Flag Type '[% name FILTER html %]' Created[% END %]
+  The flag type <em>[% name FILTER html %]</em> has been created.
+[% END %]
+
+[% BLOCK msg_flag_type_updated %]
+  [% title = BLOCK %]Flag Type '[% flagtype.name FILTER html %]' Updated[% END %]
+  [% IF changes.size %]
+    Changes to the flag type <em>[% flagtype.name FILTER html %]</em>
+    have been saved:
+    <ul>
+      [% IF changes.is_active.defined %]
+        <li>Flag type is now [% flagtype.is_active ? "active" : "inactive" %]</li>
+      [% END %]
+      [% IF changes.name.defined %]
+        <li>Flag type renamed to <em>[% flagtype.name FILTER html %]</em></li>
+      [% END %]
+      [% IF changes.description.defined %]
+        <li>Description updated to <em>[% flagtype.description FILTER html %]</em></li>
+      [% END %]
+      [% IF changes.cc_list.defined %]
+        [% IF flagtype.cc_list %]
+          <li>CC list updated to <em>[% flagtype.cc_list FILTER html %]</em></li>
+        [% ELSE %]
+          <li>CC list is now empty</li>
+        [% END %]
+      [% END %]
+      [% IF changes.sortkey.defined %]
+        <li>Sortkey updated to <em>[% flagtype.sortkey FILTER html %]</em></li>
+      [% END %]
+      [% IF changes.is_requestable.defined %]
+        <li>Flag type is [% "no longer" UNLESS flagtype.is_requestable %] requestable</li>
+      [% END %]
+      [% IF changes.is_requesteeble.defined AND flagtype.is_requestable %]
+        <li>
+          Flag type is [% "no longer" UNLESS flagtype.is_requesteeble %]
+          specifically requestable
+        </li>
+      [% END %]
+      [% IF changes.is_multiplicable.defined %]
+        <li>Flag type is [% "no longer" UNLESS flagtype.is_multiplicable %] multiplicable</li>
+      [% END %]
+      [% IF changes.grant_group_id.defined %]
+        [% IF flagtype.grant_group_id %]
+          <li>Grant group updated to <em>[% flagtype.grant_group.name FILTER html %]</em></li>
+        [% ELSE %]
+          <li>Grant group deleted</li>
+        [% END %]
+      [% END %]
+      [% IF changes.request_group_id.defined %]
+        [% IF flagtype.request_group_id %]
+          <li>Request group updated to <em>[% flagtype.request_group.name FILTER html %]</em></li>
+        [% ELSE %]
+          <li>Request group deleted</li>
+        [% END %]
+      [% END %]
+      [% IF changes.inclusions.defined || changes.exclusions.defined %]
+        <li>The inclusions and exclusions lists have been updated</li>
+      [% END %]
+   </ul>
+  [% ELSE %]
+    No changes made to flag type <em>[% flagtype.name FILTER html %]</em>.
   [% END %]
 [% END %]
 

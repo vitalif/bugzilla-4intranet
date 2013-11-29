@@ -91,9 +91,7 @@ This provides functions that tell you about Bugzilla in general.
 See L<Bugzilla::WebService> for a description of how parameters are passed,
 and what B<STABLE>, B<UNSTABLE>, and B<EXPERIMENTAL> mean.
 
-=over
-
-=item C<version>
+=head2 version
 
 B<STABLE>
 
@@ -114,7 +112,7 @@ string.
 
 =back
 
-=item C<extensions>
+=head2 extensions
 
 B<EXPERIMENTAL>
 
@@ -159,7 +157,7 @@ extensions depended on the directory they were in on the Bugzilla server.
 
 =back
 
-=item C<timezone>
+=head2 timezone
 
 B<DEPRECATED> This method may be removed in a future version of Bugzilla.
 Use L</time> instead.
@@ -189,7 +187,7 @@ string in (+/-)XXXX (RFC 2822) format.
 =back
 
 
-=item C<time>
+=head2 time
 
 B<STABLE>
 
@@ -261,8 +259,5 @@ were in the UTC timezone, instead of returning information in the server's
 local timezone.
 
 =back
-
-=back
-
 
 =back

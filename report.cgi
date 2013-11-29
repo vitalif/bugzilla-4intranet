@@ -31,6 +31,8 @@ use Bugzilla::Error;
 use Bugzilla::Field;
 use Bugzilla::Search;
 
+use List::MoreUtils qw(uniq);
+
 my $cgi = Bugzilla->cgi;
 my $template = Bugzilla->template;
 my $vars = {};
@@ -331,17 +333,12 @@ sub get_names
     my $field_list = $fields{$field};
     my @sorted;
     
-    if ($field_list) {
-        my @unsorted = keys %{$names};
-        
-        # Extract the used fields from the field_list, in the order they 
-        # appear in the field_list. This lets us keep e.g. severities in
-        # the normal order.
-        #
-        # This is O(n^2) but it shouldn't matter for short lists.
-        foreach my $item (@$field_list) {
-            push(@sorted, $item) if grep { $_ eq $item } @unsorted;
+    if ($field && $field->is_select) {
+        foreach my $value (@{$field->legal_values}) {
+            push(@sorted, $value->name) if $names->{$value->name};
         }
+        unshift(@sorted, ' ') if $field_name eq 'resolution';
+        @sorted = uniq @sorted;
     }  
     elsif ($isnumeric) {
         # It's not a field we are preserving the order of, so sort it 
