@@ -69,14 +69,14 @@
           [% END %]
         </div>
         <div class="details">
-          [% attachment.filename FILTER html %] ([% attachment.contenttype FILTER html %])
+          [% attachment.filename FILTER html %] ([% attachment.contenttype FILTER html %]),
           [% IF attachment.datasize %]
             [%+ attachment.datasize FILTER unitconvert %]
           [% ELSE %]
             <em>deleted</em>
           [% END %], created by [%+ INCLUDE global/user.html.tmpl who = attachment.attacher %]
-          [% IF attachment.isprivate %]
-            <span class="bz_private">Only visible to <strong>[% Param('insidergroup') FILTER html %]</strong></span>
+          [% IF attachment.isprivate %];
+            <span class="bz_private">only visible to <strong>[% Param('insidergroup') FILTER html %]</strong> members</span>
           [% END %]
         </div>
       </div>
@@ -166,7 +166,7 @@
         [% IF !attachment.datasize %]
           <div><b>The content of this attachment has been deleted.</b></div>
         [% ELSIF !Param("allow_attachment_display") %]
-          <div id="view_disabled" >
+          <div id="view_disabled">
             <p><b>
               The attachment is not viewable in your browser due to security
               restrictions enabled by your [% terms.Bugzilla %] administrator.
@@ -189,10 +189,7 @@
               defaultcontent = (attachment.contenttype.match('^text\/')) ?
                                  attachment.data.replace('(.*\n|.+)', '>$1') : undef
             %]
-            [%# The regexp is stolen from quoteUrls(), see Template.pm %]
-            [% safe_protocols = constants.SAFE_PROTOCOLS.join('|') %]
-            [% IF attachment.contenttype == 'text/plain'
-                  && attachment.data.match("^($safe_protocols):" _ '[^\s<>\"]+[\w\/]$') %]
+            [% IF attachment.contenttype == 'text/plain' AND is_safe_url(attachment.data) %]
               <p>
                 <a href="[% attachment.data FILTER html %]">
                   [% IF attachment.datasize < 120 %]
@@ -272,6 +269,9 @@
      
           [% END %]
         </div>
+
+        [% Hook.process('form_before_submit') %]
+
         [% IF user.id %]       
           <div id="update_container">
             <input type="submit" value="Submit" id="update">
@@ -293,6 +293,7 @@
         && attachment.datasize > 0 %]
     | <a href="attachment.cgi?id=[% attachment.id %]&amp;action=delete">Delete</a>
   [% END %]
+  [% Hook.process('action') %]
 </div>
 
 <div id="attachment_list">

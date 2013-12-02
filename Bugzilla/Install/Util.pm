@@ -43,6 +43,11 @@ use base qw(Exporter);
 our @EXPORT_OK = qw(
     bin_loc
     get_version_and_os
+    extension_code_files
+    extension_package_directory
+    extension_requirement_packages
+    extension_template_directory
+    extension_web_directory
     indicate_progress
     install_string
     include_languages
@@ -54,8 +59,14 @@ our @EXPORT_OK = qw(
 
 sub bin_loc {
     my ($bin, $path) = @_;
+
+    # If the binary is a full path...
+    if ($bin =~ m{[/\\]}) {
+        return MM->maybe_command($bin) || '';
+    }
+
+    # Otherwise we look for it in the path in a cross-platform way.
     my @path = $path ? @$path : File::Spec->path;
-    
     foreach my $dir (@path) {
         next if !-d $dir;
         my $full_path = File::Spec->catfile($dir, $bin);
@@ -211,6 +222,14 @@ sub extension_template_directory {
     return "$base_dir/template";
 }
 
+# Used in this file and in Bugzilla::Extension.
+sub extension_web_directory {
+    my $extension = shift;
+    my $class = ref($extension) || $extension;
+    my $base_dir = extension_package_directory($class);
+    return "$base_dir/web";
+}
+
 # For extensions that are in the extensions/ dir, this both sets and fetches
 # the name of the directory that stores an extension's "stuff". We need this
 # when determining the template directory for extensions (or other things
@@ -219,8 +238,14 @@ sub extension_package_directory {
     my ($invocant, $file) = @_;
     my $class = ref($invocant) || $invocant;
 
+    # $file is set on the first invocation, store the value in the extension's
+    # package for retrieval on subsequent calls
     my $var;
-    { no strict 'refs'; $var = \${"${class}::EXTENSION_PACKAGE_DIR"}; }
+    {
+        no warnings 'once';
+        no strict 'refs';
+        $var = \${"${class}::EXTENSION_PACKAGE_DIR"};
+    }
     if ($file) {
         $$var = dirname($file);
     }

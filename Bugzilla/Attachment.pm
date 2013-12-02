@@ -74,6 +74,8 @@ use base qw(Bugzilla::Object);
 use constant DB_TABLE   => 'attachments';
 use constant ID_FIELD   => 'attach_id';
 use constant LIST_ORDER => ID_FIELD;
+# Attachments are tracked in bugs_activity.
+use constant AUDIT_UPDATES => 0;
 
 sub DB_COLUMNS {
     my $dbh = Bugzilla->dbh;
@@ -114,6 +116,10 @@ use constant VALIDATORS => {
     ispatch       => \&Bugzilla::Object::check_boolean,
     isprivate     => \&_check_is_private,
     mimetype      => \&_check_content_type,
+};
+
+use constant VALIDATOR_DEPENDENCIES => {
+    mimetype => ['ispatch'],
 };
 
 use constant UPDATE_VALIDATORS => {
@@ -596,9 +602,10 @@ sub _legal_content_type
 }
 
 sub _check_content_type {
-    my ($invocant, $content_type) = @_;
-
-    $content_type = 'text/plain' if (ref $invocant && $invocant->ispatch);
+    my ($invocant, $content_type, undef, $params) = @_;
+ 
+    my $is_patch = ref($invocant) ? $invocant->ispatch : $params->{ispatch};
+    $content_type = 'text/plain' if $is_patch;
     $content_type = trim($content_type);
     my $legal_types = join('|', LEGAL_CONTENT_TYPES);
     if (!$content_type or $content_type !~ /^($legal_types)\/.+$/) {

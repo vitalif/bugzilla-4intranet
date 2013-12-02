@@ -29,11 +29,14 @@ use Bugzilla::Install ();
 use Bugzilla::Install::Util qw(indicate_progress install_string);
 use Bugzilla::Util;
 use Bugzilla::Series;
+use Bugzilla::BugUrl;
 
 use Date::Parse;
 use Date::Format;
 use IO::File;
-use Time::HiRes qw(time);
+use List::MoreUtils qw(uniq);
+use URI;
+use URI::QueryParam;
 
 # NOTE: This is NOT the function for general table updates. See
 # update_table_definitions for that. This is only for the fielddefs table.
@@ -121,6 +124,8 @@ sub update_fielddefs_definition {
         {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'});
     $dbh->do('UPDATE fielddefs SET is_numeric = 1 WHERE type = '
              . FIELD_TYPE_BUG_ID);
+             
+    Bugzilla::Hook::process('install_update_db_fielddefs');
 
     # Remember, this is not the function for adding general table changes.
     # That is below. Add new changes to the fielddefs table above this
@@ -440,10 +445,6 @@ sub update_table_definitions {
     # PUBLIC is a reserved word in Oracle.
     $dbh->bz_rename_column('series', 'public', 'is_public');
 
-    # 2005-10-21 LpSolit@gmail.com - Bug 313020
-    $dbh->bz_add_column('namedqueries', 'query_type',
-                        {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0});
-
     # 2005-11-04 LpSolit@gmail.com - Bug 305927
     $dbh->bz_alter_column('groups', 'userregexp',
                           {TYPE => 'TINYTEXT', NOTNULL => 1, DEFAULT => "''"});
@@ -550,10 +551,6 @@ sub update_table_definitions {
 
     # 2007-09-09 LpSolit@gmail.com - Bug 99215
     _fix_attachment_modification_date();
-
-    # This had the wrong definition in DB::Schema.
-    $dbh->bz_alter_column('namedqueries', 'query_type',
-                          {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0});
 
     $dbh->bz_drop_index('longdescs', 'longdescs_thetext_idx');
 
@@ -668,6 +665,14 @@ sub update_table_definitions {
 
     $dbh->bz_add_column('bug_see_also', 'id',
         {TYPE => 'MEDIUMSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
+
+    # 2011-01-29 LpSolit@gmail.com - Bug 616185
+    _migrate_user_tags();
+
+    _populate_bug_see_also_class();
+
+    # 2011-06-15 dkl@mozilla.com - Bug 658929
+    _migrate_disabledtext_boolean();
 
     ################################################################
     # New --TABLE-- changes should go *** A B O V E *** this point #
@@ -3625,6 +3630,116 @@ sub _fix_series_indexes {
     $dbh->bz_add_index('series', 'series_category_idx',
         {FIELDS => [qw(category subcategory name)], TYPE => 'KEY'});
 
+}
+
+sub _migrate_user_tags {
+    my $dbh = Bugzilla->dbh;
+    return unless $dbh->bz_column_info('namedqueries', 'query_type');
+
+    my $tags = $dbh->selectall_arrayref('SELECT id, userid, name, query
+                                           FROM namedqueries
+                                          WHERE query_type != 0');
+
+    my $sth_tags = $dbh->prepare(
+        'INSERT INTO tags (user_id, name) VALUES (?, ?)');
+    my $sth_tag_id = $dbh->prepare(
+        'SELECT id FROM tags WHERE user_id = ? AND name = ?');
+    my $sth_bug_tag = $dbh->prepare('INSERT INTO bug_tag (bug_id, tag_id)
+                                     VALUES (?, ?)');
+    my $sth_nq = $dbh->prepare('UPDATE namedqueries SET query = ?
+                                WHERE id = ?');
+    my $sth_nq_footer = $dbh->prepare(
+        'DELETE FROM namedqueries_link_in_footer 
+               WHERE user_id = ? AND namedquery_id = ?');
+
+    if (scalar @$tags) {
+        print install_string('update_queries_to_tags'), "\n";
+    }
+
+    my $total = scalar(@$tags);
+    my $current = 0;
+
+    $dbh->bz_start_transaction();
+    foreach my $tag (@$tags) {
+        my ($query_id, $user_id, $name, $query) = @$tag;
+        # Tags are all lowercase.
+        my $tag_name = lc($name);
+
+        $sth_tags->execute($user_id, $tag_name);
+
+        my $tag_id = $dbh->selectrow_array($sth_tag_id,
+            undef, $user_id, $tag_name);
+
+        indicate_progress({ current => ++$current, total => $total,
+                            every => 25 });
+
+        my $uri = URI->new("buglist.cgi?$query", 'http');
+        my $bug_id_list = $uri->query_param_delete('bug_id');
+        if (!$bug_id_list) {
+            warn "No bug_id param for tag $name from user $user_id: $query";
+            next;
+        }
+        my @bug_ids = split(/[\s,]+/, $bug_id_list);
+        # Make sure that things like "001" get converted to "1"
+        @bug_ids = map { int($_) } @bug_ids;
+        # And remove duplicates
+        @bug_ids = uniq @bug_ids;
+        foreach my $bug_id (@bug_ids) {
+            # If "int" above failed this might be undef. We also
+            # don't want to accept bug 0.
+            next if !$bug_id;
+            $sth_bug_tag->execute($bug_id, $tag_id);
+        }
+        
+        # Existing tags may be used in whines, or shared with
+        # other users. So we convert them rather than delete them.
+        $uri->query_param('tag', $tag_name);
+        $sth_nq->execute($uri->query, $query_id);
+        # But we don't keep showing them in the footer.
+        $sth_nq_footer->execute($user_id, $query_id);
+    }
+
+    $dbh->bz_commit_transaction();
+
+    $dbh->bz_drop_column('namedqueries', 'query_type');
+}
+
+sub _populate_bug_see_also_class {
+    my $dbh = Bugzilla->dbh;
+
+    if ($dbh->bz_column_info('bug_see_also', 'class')) {
+        # The length was incorrectly set to 64 instead of 255.
+        $dbh->bz_alter_column('bug_see_also', 'class',
+                              {TYPE => 'varchar(255)', NOTNULL => 1});
+        return;
+    }
+
+    $dbh->bz_add_column('bug_see_also', 'class',
+        {TYPE => 'varchar(255)', NOTNULL => 1}, '');
+
+    my $result = $dbh->selectall_arrayref(
+        "SELECT id, value FROM bug_see_also");
+
+    my $update_sth =
+        $dbh->prepare("UPDATE bug_see_also SET class = ? WHERE id = ?");
+    
+    $dbh->bz_start_transaction();
+    foreach my $see_also (@$result) {
+        my ($id, $value) = @$see_also;
+        my $class = Bugzilla::BugUrl->class_for($value);
+        $update_sth->execute($class, $id);
+    }
+    $dbh->bz_commit_transaction();
+}
+
+sub _migrate_disabledtext_boolean {
+    my $dbh = Bugzilla->dbh;
+    if (!$dbh->bz_column_info('profiles', 'is_enabled')) {
+        $dbh->bz_add_column("profiles", 'is_enabled',
+                            {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'});
+        $dbh->do("UPDATE profiles SET is_enabled = 0 
+                  WHERE disabledtext != ''");
+    }
 }
 
 1;

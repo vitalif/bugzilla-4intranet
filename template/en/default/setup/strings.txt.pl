@@ -110,6 +110,7 @@ END
     feature_updates           => 'Automatic Update Notifications',
     feature_xmlrpc            => 'XML-RPC Interface',
     feature_fulltext_stem     => 'Snowball stemmers in full-text search',
+    feature_detect_charset    => 'Automatic charset detection for text attachments',
 
     file_remove => 'Removing ##name##...',
     file_rename => 'Renaming ##from## to ##to##...',
@@ -132,6 +133,13 @@ then the value of the ##column## column that needs to be fixed:
 EOT
     install_module => 'Installing ##module## version ##version##...',
     installation_failed => '*** Installation aborted. Read the messages above. ***',
+    install_no_compiler => <<END,
+ERROR: Using install-module.pl requires that you install a compiler, such as
+gcc.
+END
+    install_no_make => <<END,
+ERROR: Using install-module.pl requires that you install "make".
+END
     lc_new_vars => <<'END',
 This version of Bugzilla contains some variables that you may want to 
 change and adapt to your local settings. Please edit the file 
@@ -426,6 +434,7 @@ the database, and that file has been renamed to ##data##/comments.bak
 You may delete the renamed file once you have confirmed that all your
 quips were moved successfully.
 END
+    update_queries_to_tags => "Populating the new tags table:",
     webdot_bad_htaccess => <<END,
 WARNING: Dependency graph images are not accessible.
 Delete ##dir##/.htaccess and re-run checksetup.pl.

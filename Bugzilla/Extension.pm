@@ -13,8 +13,10 @@ use strict;
 # (i.e. in checksetup.pl)
 
 use Bugzilla::Constants;
-use Bugzilla::Util;
-use Bugzilla::Hook;
+use Bugzilla::Error;
+use Bugzilla::Install::Util qw(
+    extension_code_files extension_template_directory 
+    extension_package_directory extension_web_directory);
 
 use Cwd qw(abs_path);
 use File::Basename;
@@ -178,6 +180,10 @@ sub lib_dir {
     return File::Spec->catdir($package_dir, 'lib');
 }
 
+sub template_dir { return extension_template_directory(@_); }
+sub package_dir  { return extension_package_directory(@_);  }
+sub web_dir      { return extension_web_directory(@_);      }
+
 sub load
 {
     my ($name) = @_;
@@ -227,74 +233,117 @@ __END__
 
 =head1 NAME
 
-Bugzilla::Extension - core of Bugzilla4Intranet Extension engine,
-backwards-compatible with old pre-3.6 Bugzilla extension engine.
+Bugzilla::Extension - Base class for Bugzilla Extensions.
 
-=head1 USAGE
+=head1 SYNOPSIS
 
-Extension engine was refactored by Bugzilla authors in 3.6.
-Their new version was incompatible with old extensions, had some
-restrictions and was just VERY inconvenient to use.
-So, in Bugzilla4Intranet 3.6, I've created my own extension engine.
+The following would be in F<extensions/Foo/Extension.pm> or 
+F<extensions/Foo.pm>:
 
-=head2 Directory layout
+ package Bugzilla::Extension::Foo
+ use strict;
+ use base qw(Bugzilla::Extension);
 
-All Bugzilla extensions must go into 'extensions' subdirectory.
-The basic directory layout for an extension is as follows:
+ our $VERSION = '0.02';
+ use constant NAME => 'Foo';
 
- extensions/
-   <name>/
-     <name>.pl   ---   Main extension file
-     disabled    ---   Extension disabled if this file is present
-     code/       ---   Directory with old-style (pre-3.6) hooks
-       <hook_name>.pl
-     lib/        ---   Extension library directory (with *.pm modules)
-     template/   ---   Directory with extension templates and template hooks
-       en/
-         default/
-           <template_path>/
-             <template_filename>.tmpl
-           hook/
-             <template_path>/
-               <template_filename>-<hook_name>.tmpl
+ sub some_hook_name { ... }
 
-=head2 Extension main
+ __PACKAGE__->NAME;
 
-Main extension file sets extension version, required and optional Perl modules,
-and can also set code hooks. It can be omitted if hooks are set using files
-(see below), and there is no need for required_modules and optional_modules.
+Custom templates would go into F<extensions/Foo/template/en/default/>.
+L<Template hooks|/Template Hooks> would go into 
+F<extensions/Foo/template/en/default/hook/>.
 
-The file typically looks like:
+=head1 DESCRIPTION
 
-    use strict;
-    use Bugzilla;
-    use Bugzilla::Extension;
+This is the base class for all Bugzilla extensions.
 
-    my $REQUIRED_MODULES = [];
-    my $OPTIONAL_MODULES = [
-        {
-            package => 'Spreadsheet-ParseExcel',
-            module  => 'Spreadsheet::ParseExcel',
-            version => '0.54',
-            feature => 'Import of binary Excel files (*.xls)',
-        },
-    ];
+=head1 WRITING EXTENSIONS
 
-    required_modules('<extension name>', $REQUIRED_MODULES);
-    optional_modules('<extension name>', $OPTIONAL_MODULES);
-    extension_version('<extension name>', '1.02');
+The L</SYNOPSIS> above gives a pretty good overview of what's basically
+required to write an extension. This section gives more information
+on exactly how extensions work and how you write them. There is also a 
+L<wiki page|https://wiki.mozilla.org/Bugzilla:Extension_Notes> with additional HOWTOs, tips and tricks.
 
-    clear_hooks('<extension name>');
-    set_hook('<extension name>', '<hook name>', 'ExtensionPackage::sub_name');
-    add_hook('<extension name>', '<hook name>', 'ExtensionPackage::other_sub_name');
-    # other hooks...
+=head2 Using F<extensions/create.pl>
 
-    1;
-    __END__
+There is a script, L<extensions::create>, that will set up the framework
+of a new extension for you. To use it, pick a name for your extension
+and, in the base bugzilla directory, do:
 
-Note that main file must not 'use ExtensionPackage', just because the
-extension library directory can be unknown at this point. Specify the
-package name in a string, and it will be loaded automatically.
+C<extensions/create.pl NAME>
+
+But replace C<NAME> with the name you picked for your extension. That
+will create a new directory in the F<extensions/> directory with the name
+of your extension. The directory will contain a full framework for
+a new extension, with helpful comments in each file describing things
+about them.
+
+=head2 Example Extension
+
+There is a sample extension in F<extensions/Example/> that demonstrates
+most of the things described in this document, so if you find the
+documentation confusing, try just reading the code instead.
+
+=head2 Where Extension Code Goes
+
+Extension code lives under the F<extensions/> directory in Bugzilla.
+
+There are two ways to write extensions:
+
+=over
+
+=item 1
+
+If your extension will have only code and no templates or other files,
+you can create a simple C<.pm> file in the F<extensions/> directory. 
+
+For example, if you wanted to create an extension called "Foo" using this
+method, you would put your code into a file called F<extensions/Foo.pm>.
+
+=item 2
+
+If you plan for your extension to have templates and other files, you
+can create a whole directory for your extension, and the main extension
+code would go into a file called F<Extension.pm> in that directory.
+
+For example, if you wanted to create an extension called "Foo" using this
+method, you would put your code into a file called
+F<extensions/Foo/Extension.pm>.
+
+=back
+
+=head2 The Extension C<NAME>.
+
+The "name" of an extension shows up in several places:
+
+=over
+
+=item 1
+
+The name of the package:
+
+C<package Bugzilla::Extension::Foo;>
+
+=item 2
+
+In a C<NAME> constant that B<must> be defined for every extension:
+
+C<< use constant NAME => 'Foo'; >>
+
+=item 3
+
+At the very end of the file:
+
+C<< __PACKAGE__->NAME; >>
+
+You'll notice that though most Perl packages end with C<1;>, Bugzilla
+Extensions must B<always> end with C<< __PACKAGE__->NAME; >>.
+
+=back
+
+The name must be identical in all of those locations.
 
 =head2 Hooks
 
@@ -725,7 +774,16 @@ Default value for template directory is "extensions/<name>/template/".
 
 List all available extension names
 
-=head2 @list = Bugzilla::Extension::loaded()
+=head3 C<web_dir>
+
+The directory that your package's web related files are in, such as css and javascript.
+
+This defaults to the C<web> subdirectory of the L</package_dir>.
+
+If you want to override this method, and you have a F<Config.pm>, you must
+override this method in F<Config.pm>.
+
+=head3 C<lib_dir>
 
 List all loaded extensions
 

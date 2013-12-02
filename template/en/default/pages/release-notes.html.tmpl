@@ -28,6 +28,7 @@
 
 <ul class="bz_toc">
   <li><a href="#v40_introduction">Introduction</a></li>
+  <li><a href="#v40_point">Updates in this 4.0.x Release</a></li>
   <li><a href="#v40_req">Minimum Requirements</a></li>
   <li><a href="#v40_feat">New Features and Improvements</a></li>
   <li><a href="#v40_issues">Outstanding Issues</a></li>
@@ -69,6 +70,44 @@
   of certain features and improvements in this release of
   [%+ terms.Bugzilla %].</p>
 
+<h2 id="v40_point">Updates in this 4.0.x Release</h2>
+
+<h3>4.0.1</h3>
+
+<ul>
+  <li>During installation, the CPAN module Math::Random::Secure would
+    sometimes fail to install properly and give an error about
+    <kbd>Math::Random::Secure::irand</kbd>. Now, when using
+    <kbd>install-module.pl</kbd> to install Math::Random::Secure, this
+    will no longer happen. If you are currently experiencing this b[% %]ug
+    and it prevented you from installing 4.0, remove Math::Random::Secure
+    from your <kbd>lib/</kbd> directory, like:
+    <p><kbd>rm -rf lib/Math/Random/Secure*</kbd></p>
+    <p>(<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=646578">[% terms.Bug %] 646578</a>)</p></li>
+  <li>The "Remember values as bookmarkable template" button on the
+    [%+ terms.bug %] entry page will now work even when some required fields
+    are empty. 
+    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=640719">[% terms.Bug %] 640719</a>)</li>
+  <li>Email notifications about dependencies and flags had the wrong
+    timestamp.
+    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=643910">[% terms.Bug %] 643910</a>
+    and  (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=652165">[% terms.Bug %] 652165</a>)</li>
+  <li>You can now select "UTC" as a valid timezone in General Preferences.
+    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=646209">[% terms.Bug %] 646209</a>)</li>
+  <li>Automatic duplicate detection now works on PostgreSQL (although
+    it is not as high-quality as on other DB platforms). 
+    (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=634144">[% terms.Bug %] 634144</a>)</li>
+   <li>Autcomplete for users now works even if you are using the
+     "emailsuffix" option.
+     (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=641519">[% terms.Bug %] 641519</a>)</li>
+   <li>Javascript errors during series creation in New Charts have been
+     fixed.
+     (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=644285">[% terms.Bug %] 644285</a>)</li>
+    <li>The "Show Votes" page now works, for installations using the Voting
+      extension.
+      (<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=652381">[% terms.Bug %] 652381</a>)</li> 
+</ul>
+
 <h2 id="v40_req">Minimum Requirements</h2>
 
 <p>Any requirements that are new since 3.6.3 will look like
@@ -98,7 +137,7 @@
 <h3 id="v40_req_modules">Required Perl Modules</h3>
 
 [% INCLUDE req_table reqs = REQUIRED_MODULES
-                     new = ['List-MoreUtils', 'Win32-API']
+                     new = ['List-MoreUtils']
                      updated = ['Email-MIME', 'CGI.pm', 'Apache-SizeLimit'] %]
 
 <h3 id="v40_req_optional_mod">Optional Perl Modules</h3>
@@ -107,8 +146,8 @@
   features of [% terms.Bugzilla %]:</p>
 
 [% INCLUDE req_table reqs = OPTIONAL_MODULES
-                     new  = ['JSON-XS']
-                     updated = []
+                     new  = ['JSON-XS', 'Win32-API', 'Math-Random-Secure']
+                     updated = ['Apache-SizeLimit', 'SOAP-Lite']
                      include_feature = 1 %]
 
 <h3 id="v40_req_apache">Optional Apache Modules</h3>
@@ -165,9 +204,6 @@
   support must be installed on your [% terms.Bugzilla %]. It will be
   much faster on installations that run under mod_perl than it will
   be on other installations.</p>
-
-<p>This automatic duplicate detection does not currently work for installations
-  running on PostgreSQL.</p>
 
 <h3 id="v40_feat_search_ui">New Advanced Search UI</h3>
 
@@ -251,8 +287,8 @@
   if you did two separate searches in separate windows, these links would
   only work for the <em>last</em> search you did. Now, [% terms.Bugzilla %]
   will "remember" which search result you came from and give you the right
-  "last search results" or "next bug" from <em>that</em> list, instead of
-  always using your most recent search.</p>
+  "last search results" or "next [% terms.bug %]" from <em>that</em> list,
+  instead of always using your most recent search.</p>
 
 <p>There are still some situations where [% terms.Bugzilla %] will have to
   "guess" which search you are trying to navigate through, but it does its
@@ -487,7 +523,7 @@
     bugmail_relationships, object_columns, object_update_columns,
     and object_validators. The colchange_columns hook has been removed,
     as it is no longer necessary (buglist_columns will be used for data
-    about which columns can be on the buglist).</li>
+    about which columns can be on the [% terms.bug %] list).</li>
   <li>When [% terms.Bugzilla %] throws certain types of errors, it will
     now include a "traceback" of where exactly the error occurred in the
     code, to help administrators and developers debug problems.</li>
@@ -497,6 +533,11 @@
     you may wish to run this test to assure that your changes are correct.
     You can see more information about running this test by doing
     <kbd>perldoc xt/search.t</kbd> at the command line.</li>
+  <li>[% terms.Bugzilla %] now sends the
+    <a href="https://developer.mozilla.org/en/the_x-frame-options_response_header"><code>X-Frame-Options: SAMEORIGIN</code></a> header
+    with every page request in order to prevent "clickjacking" attacks. Note
+    that this prevents other domains from displaying [% terms.Bugzilla %]
+    in an HTML frame.</li> 
 </ul>
 
 <h4 id="v40_feat_ws_changes">WebService Changes</h4>
@@ -576,10 +617,11 @@
 
 <h3>IMPORTANT: Apache Configuration Change</h3>
 
-<p>(Note: If your [% terms.Bugzilla %] runs under mod_perl or runs on some
-  other webserver than Apache, this section does not apply to you.)</p>
+<h4>mod_cgi</h4>
 
-<p>You will need to update the configuration of Apache for 
+<p>If you run [% terms.Bugzilla %] under mod_cgi (this is the most common
+  configuration, involving a &lt;Directory&gt; block in your Apache config
+  file), you will need to update the configuration of Apache for 
   [%+ terms.Bugzilla %]. In particular, this line in the [% terms.Bugzilla %]
   <kbd>&lt;Directory&gt;</kbd> block:</p>
 
@@ -593,6 +635,20 @@
   see the
   <a href="[% docs_urlbase FILTER html %]configuration.html#http-apache">Configuration</a>
   section of the [% terms.Bugzilla %] Guide.</p>
+
+<h4>mod_perl</h4>
+
+<p>If your [% terms.Bugzilla %] runs under mod_perl, the required Apache
+  configuration is now simpler. The line that used to look like:</p>
+
+<blockquote><code>PerlSwitches -w -T -I/var/www/html/bugzilla 
+    -I/var/www/html/bugzilla/lib</code></blockquote>
+
+<p>Now should be only:</p>
+
+<blockquote><code>PerlSwitches -w -T</code></blockquote>
+
+<p>The <code>PerlConfigRequire</code> line should stay the same, however.</p>
 
 <h3>New .htaccess file</h3>
 

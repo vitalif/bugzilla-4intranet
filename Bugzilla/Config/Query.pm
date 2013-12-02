@@ -78,6 +78,20 @@ sub get_param_list {
    type => 't',
    default => 'en',
   },
+
+  {
+   name => 'default_search_limit',
+   type => 't',
+   default => '500',
+   checker => \&check_numeric
+  },
+
+  {
+    name => 'max_search_results',
+    type => 't',
+    default => '10000',
+    checker => \&check_numeric
+  },
   );
   return @param_list;
 }

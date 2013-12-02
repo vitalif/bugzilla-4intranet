@@ -413,7 +413,7 @@ function hideElementById(id)
     }
 }
 
-function showElementById(id, val)
+function showElementById(id)
 {
     var elm = document.getElementById(id);
     if (elm) {
@@ -439,3 +439,16 @@ function normalizeComments()
     }
 }
 
+/* Used in bug/create.html.tmpl to show/hide the attachment field. */
+
+function handleWantsAttachment(wants_attachment) {
+    if (wants_attachment) {
+        hideElementById('attachment_false');
+        showElementById('attachment_true');
+    }
+    else {
+        showElementById('attachment_false');
+        hideElementById('attachment_true');
+        clearAttachmentFields();
+    }
+}

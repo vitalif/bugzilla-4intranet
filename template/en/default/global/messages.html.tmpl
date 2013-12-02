@@ -100,6 +100,55 @@
   [% END %]
 [% END %]
 
+[% BLOCK msg_account_created %]
+  The user account [% otheruser.login FILTER html %] has been created
+  successfully.
+  [% IF groups.size %]
+    You may want to edit the group settings now, using the form below.
+  [% END %]
+[% END %]
+
+[% BLOCK msg_account_creation_canceled %]
+  [% title = "User Account Creation Canceled" %]
+  The creation of the user account [% account FILTER html %] has been
+  canceled.
+[% END %]
+
+[% BLOCK msg_account_updated %]
+  [% IF changed_fields.size
+        + groups_added_to.size + groups_removed_from.size
+        + groups_granted_rights_to_bless.size + groups_denied_rights_to_bless.size %]
+    [% title = "User $loginold updated" %]
+    The following changes have been made to the user account
+    [%+ loginold FILTER html %]:
+    <ul>
+      [% FOREACH field = changed_fields %]
+        <li>
+          [% IF    field == 'login_name' %]
+            The login is now [% otheruser.login FILTER html %].
+          [% ELSIF field == 'realname' %]
+            The real name has been updated.
+          [% ELSIF field == 'cryptpassword' %]
+            A new password has been set.
+          [% ELSIF field == 'disabledtext' %]
+            The disable text has been modified.
+          [% ELSIF field == 'is_enabled' %]
+            The user has been [% otheruser.is_enabled ? 'enabled' : 'disabled' %].
+          [% ELSIF field == 'extern_id' %]
+            The user's External Login ID has been modified.
+          [% ELSIF field == 'disable_mail' %]
+            [% IF otheruser.email_disabled %]
+              [% terms.Bug %]mail has been disabled.
+            [% ELSE %]
+              [% terms.Bug %]mail has been enabled.
+            [% END %]
+          [% END %]
+        </li>
+      [% END %]
+    </ul>
+  [% END %]
+[% END %]
+
 [% BLOCK msg_account_deleted %]
   [% title = "User $otheruser.login deleted" %]
   The user account [% otheruser.login | html %] has been deleted
@@ -1223,6 +1272,220 @@
   <br>
   If you are a [% terms.Bugzilla %] end-user seeing this message, please
   save this page and send it to [% Param('maintainer') %].
+[% END %]
+
+[% BLOCK msg_install_table_drop %]
+  Dropping the '[% name FILTER html %]' table...
+[% END %]
+
+[% BLOCK msg_install_table_rename %]
+  Renaming the '[% old FILTER html %]' table to '[% new FILTER html %]'...
+[% END %]
+
+[% BLOCK msg_install_urlbase_default %]
+  Now that you have installed [% terms.Bugzilla %], you should visit the
+  'Parameters' page (linked in the footer of the Administrator
+  account) to ensure it is set up as you wish - this includes
+  setting the 'urlbase' option to the correct URL.
+[% END %]
+
+[% BLOCK msg_install_reset_password %]
+  Enter a new password for [% user.login FILTER html %]:
+[% END %]
+
+[% BLOCK msg_install_reset_password_done %]
+  New password set.
+[% END %]
+
+[% BLOCK msg_install_webservergroup_empty %]
+  ****************************************************************************
+  WARNING! You have not entered a value for the "webservergroup" parameter
+  in localconfig. This means that certain files and directories which need
+  to be editable by both you and the web server must be world writable, and
+  other files (including the localconfig file which stores your database
+  password) must be world readable. This means that _anyone_ who can obtain
+  local access to this machine can do whatever they want to your 
+  [%+ terms.Bugzilla %] installation, and is probably also able to run 
+  arbitrary Perl code as the user that the web server runs as.
+
+  You really, really, really need to change this setting.
+  ****************************************************************************
+[% END %]
+
+[% BLOCK msg_install_webservergroup_not_in %]
+  Warning: you have entered a value for the "webservergroup" parameter in
+  localconfig, but you are not either a) running this script as [% constants.ROOT_USER FILTER html %]; 
+  or b) a member of this group. This can cause permissions problems and 
+  decreased security.  If you experience problems running [% terms.Bugzilla %]
+  scripts, log in as [% constants.ROOT_USER FILTER html %] and re-run this script, become a 
+  member of the group, or remove the value of the "webservergroup" parameter.
+[% END %]
+
+[% BLOCK msg_install_webservergroup_windows %]
+  Warning: You have set webservergroup in [% constants.bz_locations.localconfig FILTER html %]
+  Please understand that this does not bring you any security when
+  running under Windows.
+  Verify that the file permissions in your [% terms.Bugzilla %] directory are
+  suitable for your system. Avoid unnecessary write access.
+[% END %]
+
+[% BLOCK msg_install_workflow_init %]
+  Setting up the default status workflow...
+[% END %]
+
+[% BLOCK msg_product_created %]
+  [% title = "Product Created" %]
+  The product <em>[% product.name FILTER html %]</em> has been created. You will need to
+  <a href="editcomponents.cgi?action=add&product=[% product.name FILTER uri %]">
+  add at least one component</a> before anyone can enter [% terms.bugs %] against this product.
+[% END %]
+
+[% BLOCK msg_product_deleted %]
+  [% title = "Product Deleted" %]
+  The product <em>[% product.name FILTER html %]</em> and all its versions,
+  components, milestones and group controls have been deleted.
+  [% IF product.bug_count %]
+    All [% terms.bugs %] being in this product and all references
+    to them have also been deleted.
+  [% END %]
+[% END %]
+
+[% BLOCK msg_product_invalid %]
+  [% title = "$terms.Bugzilla Component Descriptions" %]
+  The product <em>[% product FILTER html %]</em> does not exist
+  or you don't have access to it. The following is a list of the
+  products you can choose from.
+[% END %]
+
+[% BLOCK msg_remaining_time_zeroed %]
+  The [% field_descs.remaining_time FILTER html %] field has been 
+  set to zero automatically as part of closing this [% terms.bug %]
+  or moving it from one closed state to another.
+[% END %]
+
+[% BLOCK msg_sanitycheck %]
+  [%# We use this way to call sanitycheck-specific messages so that
+    # we can still use get_text(). %]
+  [% PROCESS "admin/sanitycheck/messages.html.tmpl" %]
+[% END %]
+
+[% BLOCK msg_series_all_open %]
+  All Open
+[% END %]
+
+[% BLOCK msg_series_all_closed %]
+  All Closed
+[% END %]
+
+[% BLOCK msg_series_subcategory %]
+  -All-
+[% END %]
+
+[% BLOCK msg_sudo_started %]
+  [% title = "Sudo session started" %]
+    The sudo session has been started.  For the next 6 hours, or until you 
+    end the session, everything you do you do as the user you are 
+    impersonating ([% target FILTER html %]).
+[% END %]
+
+[% BLOCK msg_sudo_ended %]
+  [% title = "Sudo session complete" %]
+    The sudo session has been ended.  From this point forward, everything you 
+    do you do as yourself.
+[% END %]
+
+[% BLOCK msg_series_created %]
+  [% title = "Series Created" %]
+    The series <em>[% series.category FILTER html %] /
+    [%+ series.subcategory FILTER html %] / 
+    [%+ series.name FILTER html %]</em>
+    has been created. Note that you may need to wait up to 
+    [%+ series.frequency * 2 %] days before there will be enough data for a
+    chart of this series to be produced.
+[% END %]
+
+[% BLOCK msg_series_deleted %]
+  [% title = "Series Deleted" %]
+  The series <em>[% series.category FILTER html %] /
+    [%+ series.subcategory FILTER html %] /
+    [%+ series.name FILTER html %]</em>
+    has been deleted.
+[% END %]
+
+[% BLOCK msg_shutdown %]
+  [% title = "$terms.Bugzilla is Down" %]
+  [% Param("shutdownhtml") %]
+  [% IF userid %]
+    <p>For security reasons, you have been logged out automatically.
+    The cookie that was remembering your login is now gone.
+  [% END %]
+[% END %]
+
+[% BLOCK msg_tag_updated %]
+  [% title = "Tag Updated" %]
+  The '<a href="buglist.cgi?tag=[% tag FILTER uri %]">[% tag FILTER html %]</a>'
+  tag has been
+  [% IF action == "add" %]
+    added to
+  [% ELSE %]
+    removed from
+  [% END %]
+  [%+ buglist.size > 1 ? terms.bugs : terms.bug %]
+  [%+ buglist.join(", ") FILTER html %].
+[% END %]
+
+[% BLOCK msg_term %]
+  [% terms.$term FILTER html %]
+[% END %]
+
+[% BLOCK msg_unexpected_flag_types %]
+  Some flags could not be set. Please check your changes.
+[% END %]
+
+[% BLOCK msg_user_match_failed %]
+  You entered a username that did not match any known 
+  [% terms.Bugzilla %] users, so we have instead left
+  the [% match_field FILTER html %] field blank.
+[% END %]
+
+[% BLOCK msg_user_match_multiple %]
+  You entered a username that matched more than one
+  user, so we have instead left the [% match_field FILTER html %]
+  field blank.
+[% END %]
+
+[% BLOCK msg_version_created %]
+  [% title = "Version Created" %]
+  The version <em>[% version.name FILTER html %]</em> of product
+  <em>[% product.name FILTER html %]</em> has been created.
+[% END %]
+
+[% BLOCK msg_version_deleted %]
+  [% title = "Version Deleted" %]
+  The version <em>[% version.name FILTER html %]</em> of product
+  <em>[% product.name FILTER html %]</em> has been deleted.
+[% END %]
+
+[% BLOCK msg_version_updated %]
+  [% title = "Version Updated" %]
+  [% IF changes.size %]
+    Changes to the version <em>[% version.name FILTER html %]</em>
+    have been saved:
+    <ul>
+      [% IF changes.value.defined %]
+        <li>Version renamed to <em>[% version.name FILTER html %]</em></li>
+      [% END %]
+      [% IF changes.isactive.defined %]
+        <li>[% version.is_active ? "Enabled" : "Disabled" %] for [% terms.bugs %]</li>
+      [% END %]
+    </ul>
+  [% ELSE %]
+    No changes made to version <em>[% version.name FILTER html %]</em>.
+  [% END %]
+[% END %]
+
+[% BLOCK msg_workflow_updated %]
+  The workflow has been updated.
 [% END %]
 
 [% IF !message %]

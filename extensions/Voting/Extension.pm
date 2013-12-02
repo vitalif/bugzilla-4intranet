@@ -36,6 +36,7 @@ use Bugzilla::Field;
 use Bugzilla::Mailer;
 use Bugzilla::User;
 use Bugzilla::Util qw(detaint_natural);
+use Bugzilla::Token;
 
 use List::Util qw(min);
 
@@ -529,6 +530,9 @@ sub _update_votes {
         || ThrowUserError("voting_must_be_nonnegative");
     }
 
+    my $token = $cgi->param('token');
+    check_hash_token($token, ['vote']);
+
     ############################################################################
     # End Data/Security Validation
     ############################################################################
@@ -802,7 +806,7 @@ sub _remove_votes {
             };
 
             my $voter = new Bugzilla::User($userid);
-            my $template = Bugzilla->template_inner($voter->settings->{'lang'}->{'value'});
+            my $template = Bugzilla->template_inner($voter->setting('lang'));
 
             my $msg;
             $template->process("voting/votes-removed.txt.tmpl", $vars, \$msg);

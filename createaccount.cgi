@@ -47,6 +47,13 @@ if (defined($login)) {
     $user->check_and_send_account_creation_confirmation($login);
     $vars->{'login'} = $login;
 
+    if ($login !~ /$createexp/i) {
+        ThrowUserError("account_creation_restricted");
+    }
+
+    # Create and send a token for this new account.
+    Bugzilla::Token::issue_new_user_account_token($login);
+
     $template->process("account/created.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
     exit;

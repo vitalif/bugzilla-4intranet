@@ -83,9 +83,6 @@ use Memoize;
     DEFAULT_QUERY_NAME
     DEFAULT_MILESTONE
 
-    QUERY_LIST
-    LIST_OF_BUGS
-
     SAVE_NUM_SEARCHES
 
     COMMENT_COLS
@@ -206,6 +203,9 @@ use Memoize;
 
     BUG_ID_ADD_TO_BLOCKED
     BUG_ID_ADD_TO_DEPENDSON
+
+    AUDIT_CREATE
+    AUDIT_REMOVE
 );
 
 @Bugzilla::Constants::EXPORT_OK = qw(contenttypes);
@@ -213,7 +213,7 @@ use Memoize;
 # CONSTANTS
 #
 # Bugzilla version
-use constant BUGZILLA_VERSION => "4.1";
+use constant BUGZILLA_VERSION => "4.1.2+";
 
 # These are unique values that are unlikely to match a string or a number,
 # to be used in criteria for match() functions and other things. They start
@@ -291,8 +291,8 @@ use constant MAILTO_GROUP => 1;
 
 # The default list of columns for buglist.cgi
 use constant DEFAULT_COLUMN_LIST => (
-    "bug_severity", "priority", "assigned_to",
-    "bug_status", "resolution", "short_desc"
+    "product", "component", "assigned_to",
+    "bug_status", "resolution", "short_desc", "changeddate"
 );
 
 # Used by query.cgi and buglist.cgi as the named-query name
@@ -301,10 +301,6 @@ use constant DEFAULT_QUERY_NAME => '(Default query)';
 
 # The default "defaultmilestone" created for products.
 use constant DEFAULT_MILESTONE => '---';
-
-# The possible types for saved searches.
-use constant QUERY_LIST => 0;
-use constant LIST_OF_BUGS => 1;
 
 # How many of the user's most recent searches to save.
 use constant SAVE_NUM_SEARCHES => 10;
@@ -463,8 +459,8 @@ use constant MAX_STS_AGE => 604800;
 
 # Protocols which are considered as safe.
 use constant SAFE_PROTOCOLS => ('afs', 'cid', 'ftp', 'gopher', 'http', 'https',
-                                'irc', 'mid', 'news', 'nntp', 'prospero', 'telnet',
-                                'view-source', 'wais');
+                                'irc', 'ircs', 'mid', 'news', 'nntp', 'prospero',
+                                'telnet', 'view-source', 'wais');
 
 # Valid MIME types for attachments.
 use constant LEGAL_CONTENT_TYPES => ('application', 'audio', 'image', 'message',
@@ -521,6 +517,8 @@ use constant DB_MODULE => {
                     version => '4.001',
                 },
                 name => 'MySQL'},
+    # Also see Bugzilla::DB::Pg::bz_check_server_version, which has special
+    # code to require DBD::Pg 2.17.2 for PostgreSQL 9 and above.
     'pg'    => {db => 'Bugzilla::DB::Pg', db_version => '8.03.0000',
                 dbd => {
                     package => 'DBD-Pg',
@@ -635,6 +633,11 @@ use constant PRIVILEGES_REQUIRED_NONE      => 0;
 use constant PRIVILEGES_REQUIRED_REPORTER  => 1;
 use constant PRIVILEGES_REQUIRED_ASSIGNEE  => 2;
 use constant PRIVILEGES_REQUIRED_EMPOWERED => 3;
+
+# Special field values used in the audit_log table to mean either
+# "we just created this object" or "we just deleted this object".
+use constant AUDIT_CREATE => '__create__';
+use constant AUDIT_REMOVE => '__remove__';
 
 sub bz_locations {
     # We know that Bugzilla/Constants.pm must be in %INC at this point.

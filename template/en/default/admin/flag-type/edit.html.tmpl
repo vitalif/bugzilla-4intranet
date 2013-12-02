@@ -118,18 +118,22 @@
                   <option value="[% comp FILTER html %]">[% comp FILTER html %]</option>
                 [% END %]
               </select><br>
-              <input type="submit" name="categoryAction-include" value="Include">
-              <input type="submit" name="categoryAction-exclude" value="Exclude">
+              <input type="submit" id="categoryAction-include" 
+                                   name="categoryAction-include" value="Include">
+              <input type="submit" id="categoryAction-exclude"
+                                   name="categoryAction-exclude" value="Exclude">
             </td>
             <td style="vertical-align: top;">
               <b>Inclusions:</b><br>
               [% PROCESS category_select name="inclusion_to_remove" categories = inclusions %]<br>
-              <input type="submit" name="categoryAction-removeInclusion" value="Remove Inclusion">
+              <input type="submit" id="categoryAction-removeInclusion" 
+                     name="categoryAction-removeInclusion" value="Remove Inclusion">
             </td>
             <td style="vertical-align: top;">
               <b>Exclusions:</b><br>
               [% PROCESS category_select name="exclusion_to_remove" categories = exclusions %]<br>
-              <input type="submit" name="categoryAction-removeExclusion" value="Remove Exclusion">
+              <input type="submit" id="categoryAction-removeExclusion" 
+                     name="categoryAction-removeExclusion" value="Remove Exclusion">
             </td>
           </tr>
         </table>
@@ -246,10 +250,19 @@
 [% BLOCK group_select %]
   <select name="[% selname %]" id="[% selname %]" [%- ' disabled="disabled"' UNLESS can_fully_edit %]>
     <option value="">(no group)</option>
+    [% group_found = 0 %]
     [% FOREACH group = groups %]
       <option value="[% group.name FILTER html %]"
-        [% " selected" IF (type.${selname} && type.${selname}.name == group.name) %]>
-      [%- group.name FILTER html %]
+        [% IF type.${selname} && type.${selname}.name == group.name %]
+          [% ' selected="selected"' %]
+          [% group_found = 1 %]
+        [% END %]>
+        [%- group.name FILTER html ~%]
+      </option>
+    [% END %]
+    [% IF !group_found && type.${selname} %]
+      <option value="[% type.${selname}.name FILTER html %]" selected="selected">
+        [%- type.${selname}.name FILTER html ~%]
       </option>
     [% END %]
   </select>

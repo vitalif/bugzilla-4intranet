@@ -58,12 +58,7 @@
 ],
 
 'search/boolean-charts.html.tmpl' => [
-  '"field${chartnum}-${rownum}-${colnum}"', 
-  'field.name', 
-  '"${chartnum}-${rownum}-${newor}"', 
-  '"${chartnum}-${newand}-0"', 
-  'newchart',
-  'jsmagic',
+  '"id=\"$id\"" IF id'
 ],
 
 'search/form.html.tmpl' => [
@@ -254,16 +249,11 @@
 ],
 
 'bug/edit.html.tmpl' => [
-  'bug.deadline',
-  'bug.remaining_time',
-  'bug.delta_ts',
-  'bug.bug_id',
-  'group.bit',
-  'dep.title',
-  'dep.fieldname',
-  'bug.${dep.fieldname}.join(\', \')',
+  'bug.remaining_time', 
+  'bug.delta_ts', 
+  'bug.bug_id', 
+  'group.bit', 
   'selname',
-  '" accesskey=\"$accesskey\"" IF accesskey',
   'inputname',
   '" colspan=\"$colspan\"" IF colspan',
   '" size=\"$size\"" IF size',

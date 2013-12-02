@@ -83,6 +83,7 @@ use constant DEFAULT_USER => {
     'showmybugslink' => 0,
     'disabledtext'   => '',
     'disable_mail'   => 0,
+    'is_enabled'     => 1, 
 };
 
 my $SUPERUSER = {};
@@ -100,6 +101,8 @@ use constant DB_COLUMNS => (
     'profiles.mybugslink AS showmybugslink',
     'profiles.disabledtext',
     'profiles.disable_mail',
+    'profiles.extern_id',
+    'profiles.is_enabled', 
 );
 use constant NAME_FIELD => 'login_name';
 use constant ID_FIELD   => 'userid';
@@ -111,6 +114,8 @@ use constant VALIDATORS => {
     disabledtext  => \&_check_disabledtext,
     login_name    => \&check_login_name_for_creation,
     realname      => \&_check_realname,
+    extern_id     => \&_check_extern_id,
+    is_enabled    => \&_check_is_enabled, 
 };
 
 sub UPDATE_COLUMNS {
@@ -120,10 +125,18 @@ sub UPDATE_COLUMNS {
         disabledtext
         login_name
         realname
+        extern_id
+        is_enabled
     );
     push(@cols, 'cryptpassword') if exists $self->{cryptpassword};
     return @cols;
 };
+
+use constant VALIDATOR_DEPENDENCIES => {
+    is_enabled => ['disabledtext'], 
+};
+
+use constant EXTRA_REQUIRED_FIELDS => qw(is_enabled);
 
 ################################################################################
 # Functions
@@ -138,6 +151,12 @@ sub new {
     bless ($user, $class);
     return $user unless $param;
 
+    if (ref($param) eq 'HASH') {
+        if (defined $param->{extern_id}) {
+            $param = { condition => 'extern_id = ?' , values => [$param->{extern_id}] };
+            $_[0] = $param;
+        }
+    }
     return $class->SUPER::new(@_);
 }
 
@@ -180,7 +199,7 @@ sub update {
 
     # XXX Can update profiles_activity here as soon as it understands
     #     field names like login_name.
-
+    
     return $changes;
 }
 
@@ -190,6 +209,22 @@ sub update {
 
 sub _check_disable_mail { return $_[1] ? 1 : 0; }
 sub _check_disabledtext { return trim($_[1]) || ''; }
+
+# Check whether the extern_id is unique.
+sub _check_extern_id {
+    my ($invocant, $extern_id) = @_;
+    $extern_id = trim($extern_id);
+    return undef unless defined($extern_id) && $extern_id ne "";
+    if (!ref($invocant) || $invocant->extern_id ne $extern_id) {
+        my $existing_login = $invocant->new({ extern_id => $extern_id });
+        if ($existing_login) {
+            ThrowUserError( 'extern_id_exists',
+                            { extern_id => $extern_id,
+                              existing_login_name => $existing_login->login });
+        }
+    }
+    return $extern_id;
+}
 
 # This is public since createaccount.cgi needs to use it before issuing
 # a token for account creation.
@@ -224,12 +259,22 @@ sub _check_password {
 
 sub _check_realname { return trim($_[1]) || ''; }
 
+sub _check_is_enabled {
+    my ($invocant, $is_enabled, undef, $params) = @_;
+    # is_enabled is set automatically on creation depending on whether 
+    # disabledtext is empty (enabled) or not empty (disabled).
+    # When updating the user, is_enabled is set by calling set_disabledtext().
+    # Any value passed into this validator is ignored.
+    my $disabledtext = ref($invocant) ? $invocant->disabledtext : $params->{disabledtext};
+    return $disabledtext ? 0 : 1;
+}
+
 ################################################################################
 # Mutators
 ################################################################################
 
-sub set_disabledtext { $_[0]->set('disabledtext', $_[1]); }
 sub set_disable_mail { $_[0]->set('disable_mail', $_[1]); }
+sub set_extern_id    { $_[0]->set('extern_id', $_[1]); }
 
 sub set_login {
     my ($self, $login) = @_;
@@ -246,6 +291,10 @@ sub set_name {
 
 sub set_password { $_[0]->set('cryptpassword', $_[1]); }
 
+sub set_disabledtext {
+    $_[0]->set('disabledtext', $_[1]);
+    $_[0]->set('is_enabled', $_[1] ? 0 : 1);
+}
 
 ################################################################################
 # Methods
@@ -254,9 +303,10 @@ sub set_password { $_[0]->set('cryptpassword', $_[1]); }
 # Accessors for user attributes
 sub name  { $_[0]->{realname};   }
 sub login { $_[0]->{login_name}; }
+sub extern_id { $_[0]->{extern_id}; }
 sub email { $_[0]->login . Bugzilla->params->{'emailsuffix'}; }
 sub disabledtext { $_[0]->{'disabledtext'}; }
-sub is_disabled { $_[0]->disabledtext ? 1 : 0; }
+sub is_enabled { $_[0]->{'is_enabled'} ? 1 : 0; }
 sub showmybugslink { $_[0]->{showmybugslink}; }
 sub email_disabled { $_[0]->{disable_mail}; }
 sub email_enabled { !($_[0]->{disable_mail}); }
@@ -374,6 +424,24 @@ sub queries_available {
     return $self->{queries_available};
 }
 
+sub tags {
+    my $self = shift;
+    my $dbh = Bugzilla->dbh;
+
+    if (!defined $self->{tags}) {
+        # We must use LEFT JOIN instead of INNER JOIN as we may be
+        # in the process of inserting a new tag to some bugs,
+        # in which case there are no bugs with this tag yet.
+        $self->{tags} = $dbh->selectall_hashref(
+            'SELECT name, id, COUNT(bug_id) AS bug_count
+               FROM tags
+          LEFT JOIN bug_tag ON bug_tag.tag_id = tags.id
+              WHERE user_id = ? ' . $dbh->sql_group_by('id', 'name'),
+            'name', undef, $self->id);
+    }
+    return $self->{tags};
+}
+
 ##########################
 # Saved Recent Bug Lists #
 ##########################
@@ -434,7 +502,8 @@ sub recent_search_for {
     # and the selected bug is in the list, then return the cookie as a fake
     # Search::Recent object.
     if (my $list = $cgi->cookie('BUGLIST')) {
-        my @bug_ids = split(':', $list);
+        # Also split on colons, which was used as a separator in old cookies.
+        my @bug_ids = split(/[:-]/, $list);
         if (grep { $_ == $bug->id } @bug_ids) {
             my $search = Bugzilla::Search::Recent->new_from_cookie(\@bug_ids);
             return $search;
@@ -505,7 +574,7 @@ sub save_last_search {
     # they may still want to navigate through the search they made while
     # logged out.
     else {
-        my $bug_list = join(":", @$bug_ids);
+        my $bug_list = join('-', @$bug_ids);
         if (length($bug_list) < 4000) {
             $cgi->send_cookie(-name => 'BUGLIST',
                               -value => $bug_list,
@@ -545,11 +614,16 @@ sub settings {
     return $self->{'settings'};
 }
 
+sub setting {
+    my ($self, $name) = @_;
+    return $self->settings->{$name}->{'value'};
+}
+
 sub timezone {
     my $self = shift;
 
     if (!defined $self->{timezone}) {
-        my $tz = $self->settings->{timezone}->{value};
+        my $tz = $self->setting('timezone');
         if ($tz eq 'local') {
             # The user wants the local timezone of the server.
             $self->{timezone} = Bugzilla->local_timezone;
@@ -1416,7 +1490,7 @@ sub match {
                       "AND group_id IN(" .
                       join(', ', (-1, @{$user->visible_groups_inherited})) . ") ";
         }
-        $query    .= " AND disabledtext = '' " if $exclude_disabled;
+        $query    .= " AND is_enabled = 1 " if $exclude_disabled;
         $query    .= $dbh->sql_limit($limit) if $limit;
 
         # Execute the query, retrieve the results, and make them into
@@ -1460,9 +1534,9 @@ sub match {
         if (Bugzilla->params->{'usevisibilitygroups'}) {
             $query .= " AND isbless = 0 AND group_id IN(" . join(', ', (-1, @{$user->visible_groups_inherited})) . ") ";
         }
-        $query .= " AND disabledtext = '' " if $exclude_disabled;
-        $query .= $dbh->sql_limit($limit) if $limit;
-        my $user_ids = $dbh->selectcol_arrayref($query, undef, @bind);
+        $query     .= " AND is_enabled = 1 " if $exclude_disabled;
+        $query     .= $dbh->sql_limit($limit) if $limit;
+        my $user_ids = $dbh->selectcol_arrayref($query, undef, ($str, $str));
         @users = @{Bugzilla::User->new_from_list($user_ids)};
     }
 
@@ -1927,7 +2001,7 @@ sub get_userlist {
                   "AND group_id IN(" .
                   join(', ', (-1, @{$self->visible_groups_inherited})) . ")";
     }
-    $query    .= " WHERE disabledtext = '' ";
+    $query    .= " WHERE is_enabled = 1 ";
     $query    .= $dbh->sql_group_by('userid', 'login_name, realname');
 
     my $sth = $dbh->prepare($query);
@@ -2159,6 +2233,19 @@ sub validate_password {
     } elsif ((defined $matchpassword) && ($password ne $matchpassword)) {
         ThrowUserError('passwords_dont_match');
     }
+    
+    my $complexity_level = Bugzilla->params->{password_complexity};
+    if ($complexity_level eq 'letters_numbers_specialchars') {
+        ThrowUserError('password_not_complex')
+          if ($password !~ /\w/ || $password !~ /\d/ || $password !~ /[[:punct:]]/);
+    } elsif ($complexity_level eq 'letters_numbers') {
+        ThrowUserError('password_not_complex')
+          if ($password !~ /[[:lower:]]/ || $password !~ /[[:upper:]]/ || $password !~ /\d/);
+    } elsif ($complexity_level eq 'mixed_letters') {
+        ThrowUserError('password_not_complex')
+          if ($password !~ /[[:lower:]]/ || $password !~ /[[:upper:]]/);
+    }
+
     # Having done these checks makes us consider the password untainted.
     trick_taint($_[0]);
     return 1;
@@ -2274,6 +2361,11 @@ internally, such code must call this method to flush the cached result.
 An arrayref of group ids. The user can share their own queries with these
 groups.
 
+=item C<tags>
+
+Returns a hashref with tag IDs as key, and a hashref with tag 'id',
+'name' and 'bug_count' as value.
+
 =back
 
 =head2 Account Lockout
@@ -2366,6 +2458,10 @@ value          - the value of this setting for this user. Will be the same
                  is_default is true.
 is_default     - a boolean to indicate whether the user has chosen to make
                  a preference for themself or use the site default.
+
+=item C<setting(name)>
+
+Returns the value for the specified setting.
 
 =item C<timezone>
 

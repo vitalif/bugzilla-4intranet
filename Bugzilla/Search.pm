@@ -365,6 +365,8 @@ use Bugzilla::Constants;
 use Bugzilla::Group;
 use Bugzilla::User;
 use Bugzilla::Field;
+use Bugzilla::Search::Clause;
+use Bugzilla::Search::Condition qw(condition);
 use Bugzilla::Status;
 use Bugzilla::Keyword;
 use Bugzilla::Search::Saved;
@@ -1481,7 +1483,7 @@ sub SqlifyDate
     {
         ThrowUserError("illegal_date", { date => $str });
     }
-    return time2str("%Y-%m-%d %H:%M:%S", $date);
+    return time2str($fmt, $date);
 }
 
 # Support for word search comparisons

@@ -70,6 +70,12 @@ use constant FORMAT_3_SIZE => [19,28,28];
 use constant FORMAT_DOUBLE => '%19s %-55s';
 use constant FORMAT_2_SIZE => [19,55];
 
+# Pseudo-constant.
+sub SAFE_URL_REGEXP {
+    my $safe_protocols = join('|', SAFE_PROTOCOLS);
+    return qr/($safe_protocols):[^\s<>\"]+[\w\/]/i;
+}
+
 # Convert the constants in the Bugzilla::Constants module into a hash we can
 # pass to the template object for reflection into its "constants" namespace
 # (which is like its "variables" namespace, but for constants).  To do so, we
@@ -273,11 +279,8 @@ sub quoteUrls {
               ~egox;
 
     # non-mailto protocols
-    my $safe_protocols = join('|', SAFE_PROTOCOLS);
-
-    $text =~ s~\b((?:$safe_protocols): # The protocol:
-                  [^\s<>\"]+       # Any non-whitespace
-                  [\w\/])          # so that we end in \w or /
+    my $safe_protocols = SAFE_URL_REGEXP();
+    $text =~ s~\b($safe_protocols)
               ~($tmp = html_quote($1)) &&
                ($things[$count++] = "<a href=\"$tmp\">$tmp</a>") &&
                ("\0\0" . ($count-1) . "\0\0")
@@ -338,8 +341,10 @@ sub quoteUrls {
     $text = makeCitations($text);
 
     # mailto:
-    $text =~ s~\b((mailto:)?)([\w\.\-\+\=]+\@[\w\-]+(?:\.[\w\-]+)+)\b
-              ~<a href=\"mailto:$3\">$1$3</a>~igx;
+    # Use |<nothing> so that $1 is defined regardless
+    # &#64; is the encoded '@' character.
+    $text =~ s~\b(mailto:|)?([\w\.\-\+\=]+&\#64;[\w\-]+(?:\.[\w\-]+)+)\b
+              ~<a href=\"mailto:$2\">$1$2</a>~igx;
 
     # attachment links
     $text =~ s~\b(attachment\s*\#?\s*(\d+)(?:\s+\[details\])?)
@@ -371,8 +376,10 @@ sub quoteUrls {
               ~$1.get_bug_link($2, $2).$3
               ~egmx;
 
-    # Now remove the encoding hacks
-    $text =~ s/\0\0(\d+)\0\0/$things[$1]/eg;
+    # Now remove the encoding hacks in reverse order
+    for (my $i = $#things; $i >= 0; $i--) {
+        $text =~ s/\0\0($i)\0\0/$things[$i]/eg;
+    }
     $text =~ s/$chr1\0/\0/g;
 
     return $text;
@@ -439,55 +446,19 @@ sub get_attachment_link {
 
 sub get_bug_link {
     my ($bug, $link_text, $options) = @_;
+    $options ||= {};
     my $dbh = Bugzilla->dbh;
 
-    if (!$bug) {
-        return html_quote('<missing bug number>');
+    if (defined $bug) {
+        $bug = blessed($bug) ? $bug : new Bugzilla::Bug($bug);
+        return $link_text if $bug->{error};
     }
 
-    $bug = blessed($bug) ? $bug : new Bugzilla::Bug($bug);
-    return $link_text if $bug->{error};
-    
-    # Initialize these variables to be "" so that we don't get warnings
-    # if we don't change them below (which is highly likely).
-    my ($pre, $title, $post) = ("", "", "");
-    my @css_classes = ("bz_bug_link");
-
-    $title = get_text('get_status', { status => $bug->bug_status });
-
-    push @css_classes, "bz_status_" . css_class_quote($bug->bug_status);
-
-    if ($bug->resolution) {
-        push @css_classes, "bz_closed";
-        $title .= ' ' . get_text('get_resolution',
-                                 { resolution => $bug->resolution });
-    }
-    my $cansee = Bugzilla->user->can_see_bug($bug);
-    if (Bugzilla->params->{unauth_bug_details} || $cansee) {
-        $title .= ' - ' . $bug->product;
-    }
-    if ($cansee) {
-        $title .= '/' . $bug->component . ' - ' . $bug->short_desc;
-        if (Bugzilla->params->{usebugaliases} && $options->{use_alias} && $link_text =~ /^\d+$/ && $bug->alias) {
-            $link_text = $bug->alias;
-        }
-    }
-    # Prevent code injection in the title.
-    $title = html_quote(clean_text($title));
-    my $linkval = "show_bug.cgi?id=" . $bug->id;
-    
-    if ($options->{full_url}) {
-        $linkval = correct_urlbase() . $linkval;
-    }
-    
-    if (defined $options->{comment_num}) {
-        $linkval .= "#c" . $options->{comment_num};
-    }
-
-    $pre  = '<span class="' . join(" ", @css_classes) . '">';
-    $post = '</span>';
-
-    return qq{$pre<a href="$linkval" title="$title">$link_text</a>$post};
+    my $template = Bugzilla->template_inner;
+    my $linkified;
+    $template->process('bug/link.html.tmpl', 
+        { bug => $bug, link_text => $link_text, %$options }, \$linkified);
+    return $linkified;
 }
 
 # We use this instead of format because format doesn't deal well with
@@ -598,9 +569,10 @@ sub _css_link_set {
         return \%set;
     }
     
-    my $user = Bugzilla->user;
+    my $skin_user_prefs = Bugzilla->user->settings->{skin};
     my $cgi_path = bz_locations()->{'cgi_path'};
-    my $all_skins = $user->settings->{'skin'}->legal_values;    
+    # If the DB is not accessible, user settings are not available.
+    my $all_skins = $skin_user_prefs ? $skin_user_prefs->legal_values : [];
     my %skin_urls;
     foreach my $option (@$all_skins) {
         next if $option eq 'standard';
@@ -612,7 +584,7 @@ sub _css_link_set {
     }
     $set{alternate} = \%skin_urls;
     
-    my $skin = $user->settings->{'skin'}->{'value'};
+    my $skin = $skin_user_prefs->{'value'};
     if ($skin ne 'standard' and defined $set{alternate}->{$skin}) {
         $set{skin} = delete $set{alternate}->{$skin};
     }
@@ -828,6 +800,7 @@ sub create {
                 $var =~ s/\r/\\r/g;
                 $var =~ s/\@/\\x40/g; # anti-spam for email addresses
                 $var =~ s/</\\x3c/g;
+                $var =~ s/>/\\x3e/g;
                 return $var;
             },
 
@@ -1189,8 +1162,8 @@ sub create {
                 my $url = shift;
                 return 0 unless $url;
 
-                my $safe_protocols = join('|', SAFE_PROTOCOLS);
-                return 1 if $url =~ /^($safe_protocols):[^\s<>\"]+$/i;
+                my $safe_url_regexp = SAFE_URL_REGEXP();
+                return 1 if $url =~ /^$safe_url_regexp$/;
                 # Pointing to a local file with no colon in its name is fine.
                 return 1 if $url =~ /^[^\s<>\":]+[\w\/]$/i;
                 # If we come here, then we cannot guarantee it's safe.
@@ -1232,6 +1205,9 @@ sub create {
             # it only once per-language no matter how many times
             # $template->process() is called.
             'field_descs' => sub { return template_var('field_descs') },
+            # This way we don't have to load field-descs.none.tmpl in
+            # many templates.
+            'display_value' => \&Bugzilla::Util::display_value,
 
             'install_string' => \&Bugzilla::Install::Util::install_string,
 
@@ -1252,6 +1228,7 @@ sub create {
                 }
                 return \@optional;
             },
+            'default_authorizer' => new Bugzilla::Auth(),
         },
     };
 

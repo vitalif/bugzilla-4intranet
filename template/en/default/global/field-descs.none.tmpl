@@ -61,36 +61,10 @@
                    ${constants.FIELD_TYPE_BUG_ID}        => "$terms.Bug ID",
                 } %]
 
-[%# You can use this hash to localize (translate) the values displayed
-  # for drop-down and multiple-select fields. Lines starting with "#"
-  # are comments.
-  #%]
-[% value_descs = {
-  "bug_status" => {
-    # "UNCONFIRMED" => "UNCO",
-    # "CONFIRMED"   => "ITSABUG",
-  },
-
-  "resolution" => {
-    ""        => "---",
-    # "FIXED"      => "NO LONGER AN ISSUE",
-    # "WORKSFORME" => "NOTMYPROBLEM!",
-  },
-} %]
-
-[%# We use "FILTER none" here because only the caller can know how to
-  # filter the result appropriately. 
-  #%]
-[% MACRO display_value(field_name, value_name) BLOCK %][% FILTER trim %]
-  [% IF value_descs.${field_name}.${value_name}.defined %]
-    [% value_descs.${field_name}.${value_name} FILTER none %]
-  [% ELSE %]
-    [% value_name FILTER none %]
-  [% END %]
-[% END %][% END %]
-
 [% IF in_template_var %]
-  [% vars.terms = terms %]
+  [% PROCESS "global/value-descs.none.tmpl" %]
+  [% SET vars.value_descs = value_descs %]
+  [% SET vars.terms = terms %]
 
   [%# field_descs is loaded as a global template variable and cached
     # across all templates--see VARIABLES in Bugzilla/Template.pm.
@@ -124,6 +98,7 @@
      "component"               => "Component",
      "content"                 => "Content",
      "creation_ts"             => "Creation date",
+     "days_elapsed"            => "Days since bug changed",
      "deadline"                => "Deadline",
      "delta_ts"                => "Changed",
      "dependson"               => "Depends on",
@@ -158,6 +133,7 @@
      "settings"                => "Settings",
      "short_desc"              => "Summary",
      "status_whiteboard"       => "Whiteboard",
+     "tags.name"               => "Tags",
      "target_milestone"        => "Target Milestone",
      "version"                 => "Version",
      "work_time"               => "Hours Worked",

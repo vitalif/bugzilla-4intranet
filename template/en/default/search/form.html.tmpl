@@ -227,6 +227,49 @@ addListener(window, 'load', function()
 </table>
 [% END %]
 
+<<<<<<< HEAD
+=======
+[% INCLUDE "search/field.html.tmpl" 
+      field => bug_fields.product
+      accesskey => "p"
+      onchange => "doOnSelectProduct(2);" 
+      value => default.product
+%]
+[% INCLUDE "search/field.html.tmpl" 
+      field => bug_fields.component
+      accesskey => "m"
+      value => default.component
+%]
+[% INCLUDE "search/field.html.tmpl" 
+      field => bug_fields.bug_status
+      accesskey => "a"
+      value => default.bug_status
+%]
+[% INCLUDE "search/field.html.tmpl" 
+      field => bug_fields.resolution
+      accesskey => "r" 
+      value => default.resolution
+%]
+
+[% Hook.process('after_selects_top') %]
+
+<div id="detailed_information" class="bz_section_title">
+  <div id="information_query_controller" class="arrow">&#9660;</div>
+  <a href="javascript:TUI_toggle_class('information_query')">
+    Detailed [% terms.Bug %] Information
+  </a>
+  <span class="section_help">Narrow results by the following fields: 
+    [%+ field_descs.longdesc FILTER html %]s, [%+ field_descs.bug_file_loc FILTER html %], 
+    [% IF Param('usestatuswhiteboard') %] [%+ field_descs.status_whiteboard FILTER html %], [%+ END %]
+    [% IF use_keywords %] [%+ field_descs.keywords FILTER html %], [%+ END %]
+    [% IF user.is_timetracker %] [%+ field_descs.deadline FILTER html %], [%+ END %]
+    [% terms.Bug %] Numbers, [%+ field_descs.version FILTER html %], 
+    [% IF Param('usetargetmilestone') %] [%+ field_descs.target_milestone FILTER html %], [%+ END %]
+    [% field_descs.bug_severity FILTER html %], [%+ field_descs.priority FILTER html %], [%+ field_descs.rep_platform FILTER html %], 
+    [%+ field_descs.op_sys FILTER html %]
+  </span>
+</div>
+>>>>>>> 48c748e11eea7fdf2d1ba6bdb66927df2f08e4dd
 [%# *** Comment URL Whiteboard Keywords *** %]
 <table>
   [% tf_desc = {
@@ -574,6 +617,7 @@ addListener(window, 'load', function()
   <dd>
     <input name="chfieldvalue" id="chfieldvalue"
            size="20" value="[% default.chfieldvalue.0 FILTER html %]">
+<<<<<<< HEAD
   </dd>
 </dl>
 <script language="JavaScript">
@@ -586,6 +630,32 @@ addListener(window, 'load', function() {
      </td>
   </tr>
 </table>
+=======
+  </li>
+  <li>
+    <label for="chfieldfrom">between:</label>
+    <input name="chfieldfrom" id="chfieldfrom" size="10" 
+           value="[% default.chfieldfrom.0 FILTER html %]" onchange="updateCalendarFromField(this)"> 
+           <button type="button" class="calendar_button"
+                          id="button_calendar_chfieldfrom"
+                          onclick="showCalendar('chfieldfrom')"><span>Calendar</span></button>
+           and 
+           <div id="con_calendar_chfieldfrom"></div>
+          <input name="chfieldto" size="10" id="chfieldto" 
+                 value="[% default.chfieldto.0 || "Now" FILTER html %]" 
+                 onchange="updateCalendarFromField(this)">
+          <button type="button" class="calendar_button"
+                         id="button_calendar_chfieldto"
+                         onclick="showCalendar('chfieldto')"><span>Calendar</span></button>
+          <div id="con_calendar_chfieldto"></div>
+    (YYYY-MM-DD or relative dates)
+    <script type="text/javascript">
+      createCalendar('chfieldfrom');
+      createCalendar('chfieldto');
+    </script>
+  </li>    
+</ul>
+>>>>>>> 48c748e11eea7fdf2d1ba6bdb66927df2f08e4dd
 
 [%############################################################################%]
 [%# Block for SELECT fields                                                  #%]

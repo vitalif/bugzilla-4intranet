@@ -142,8 +142,11 @@ Bugzilla::Search->COLUMNS->{measure}->{name} = $measures->{$measure};
 
 # Clone the params, so that Bugzilla::Search can modify them
 my $params = new Bugzilla::CGI($cgi);
-my $search = new Bugzilla::Search('fields' => \@axis_fields, 
-                                  'params' => scalar $params->Vars);
+my $search = new Bugzilla::Search(
+    fields => \@axis_fields, 
+    params => scalar $params->Vars,
+    allow_unlimited => 1,
+);
 my $query = $search->sql;
 $query =
     "SELECT ".
@@ -351,4 +354,21 @@ sub get_names
         # ...or alphabetically, as appropriate.
         return [ sort keys %$names ];
     }
+}
+
+sub check_value {
+    my ($field, $result) = @_;
+
+    my $value;
+    if (!defined $field) {
+        $value = '';
+    }
+    elsif ($field eq '') {
+        $value = ' ';
+    }
+    else {
+        $value = shift @$result;
+        $value = ' ' if (!defined $value || $value eq '');
+    }
+    return $value;
 }

@@ -24,21 +24,20 @@
 %]
 
 [% param_descs = {
-  quip_list_entry_control =>
-    "Controls how easily users can add entries to the quip list.
-    <ul>
-      <li>
-        open - Users may freely add to the quip list, and
-        their entries will immediately be available for viewing.
-      </li>
-      <li>
-        moderated - quips can be entered, but need to be approved
-        by an admin before they will be shown.
-      </li>
-      <li>
-        closed - no new additions to the quips list are allowed.
-      </li>
-    </ul>",
+  quip_list_entry_control => "Controls how easily users can add entries to the quip list.
+                              <ul>
+                                <li>
+                                  open - Users may freely add to the quip list, and
+                                  their entries will immediately be available for viewing.
+                                </li>
+                                <li>
+                                  moderated - quips can be entered, but need to be approved
+                                  by a moderator before they will be shown.
+                                </li>
+                                <li>
+                                  closed - no new additions to the quips list are allowed.
+                                </li>
+                              </ul>",
 
   mostfreqthreshold =>
     "The minimum number of duplicates $terms.abug needs to show up on the " _
@@ -61,5 +60,19 @@
 
   stem_language => "Language for stemming words in full-text search, 2-letter code" _
     " (one of: da, de, en, es, fi, fr, hu, it, nl, no, pt, ro, ru, sv, tr)",
+
+  default_search_limit =>
+    "By default, $terms.Bugzilla limits searches done in the web"
+    _ " interface to returning only this many results, for performance"
+    _ " reasons. (This only affects the HTML format of search results--CSV,"
+    _ " XML, and other formats are exempted.) Users can click a link on the"
+    _ " search result page to see all the results."
+    _ "<p>Usually you should not have to change this--the default value"
+    _ " should be acceptable for almost most installations.</p>",
+
+  max_search_results =>
+    "The maximum number of $terms.bugs that a search can"
+    _ " <strong>ever</strong> return. Tabular and graphical reports"
+    _ " are exempted from this limit, however.",
 
 } %]

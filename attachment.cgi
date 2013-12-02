@@ -55,7 +55,7 @@ use Bugzilla::Keyword;
 
 use Lingua::Translit;
 use Archive::Zip qw ( :ERROR_CODES :CONSTANTS );
-use Encode;
+use Encode qw(encode find_encoding);
 
 # For most scripts we don't make $cgi and $template global variables. But
 # when preparing Bugzilla for mod_perl, this script used these
@@ -368,8 +368,19 @@ sub view {
                            -content_length => $attachment->datasize,
                            -x_content_type_options => "nosniff");
 
-        disable_utf8();
-        print $attachment->data;
+    # Don't send a charset header with attachments--they might not be UTF-8.
+    # However, we do allow people to explicitly specify a charset if they
+    # want.
+    if ($contenttype !~ /\bcharset=/i) {
+        # In order to prevent Apache from adding a charset, we have to send a
+        # charset that's a single space.
+        $cgi->charset(' ');
+        if (Bugzilla->feature('detect_charset') && $contenttype =~ /^text\//) {
+            my $encoding = detect_encoding($attachment->data);
+            if ($encoding) {
+                $cgi->charset(find_encoding($encoding)->mime_name);
+            }
+        }
     }
 }
 
@@ -503,28 +514,13 @@ sub insert
     # Must be called before create() as it may alter $cgi->param('ispatch').
     my $content_type = Bugzilla::Attachment::get_content_type();
 
-    my $data = scalar $cgi->param('attachurl') || $cgi->upload('data');
-    my $filename = '';
-    $filename = scalar $cgi->upload('data') || $cgi->param('filename') unless $cgi->param('attachurl');
-    if (scalar $cgi->param('text_attachment') !~ /^\s*$/so)
-    {
-        $data = $cgi->param('text_attachment');
-        $filename = $cgi->param('description');
-    }
-
-    if (Bugzilla->params->{utf8})
-    {
-        # CGI::upload() will probably return non-UTF8 string, so set UTF8 flag on it.
-        # Trick taint as utf8::decode() and Encode::_utf8_on() don't work on scalars
-        # which were once tainted...
-        $filename = trick_taint_copy($filename);
-        Encode::_utf8_on($filename);
-    }
+    # Get the filehandle of the attachment.
+    my $data_fh = $cgi->upload('data');
 
     my $attachment = Bugzilla::Attachment->create(
         {bug           => $bug,
          creation_ts   => $timestamp,
-         data          => scalar $cgi->param('attach_text') || $cgi->upload('data'),
+         data          => scalar $cgi->param('attach_text') || $data_fh,
          description   => scalar $cgi->param('description'),
          filename      => $cgi->param('attach_text') ? "file_$bugid.txt" : scalar $cgi->upload('data'),
          ispatch       => scalar $cgi->param('ispatch'),

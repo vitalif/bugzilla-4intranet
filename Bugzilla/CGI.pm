@@ -23,6 +23,7 @@
 
 package Bugzilla::CGI;
 use strict;
+use base qw(CGI);
 
 use Bugzilla::Constants;
 use Bugzilla::Error;
@@ -37,33 +38,35 @@ BEGIN {
         # isn't Windows friendly (Bug 248988)
         $ENV{'TMPDIR'} = $ENV{'TEMP'} || $ENV{'TMP'} || "$ENV{'WINDIR'}\\TEMP";
     }
+    *AUTOLOAD = \&CGI::AUTOLOAD;
 }
 
-use CGI qw(-no_xhtml -oldstyle_urls :private_tempfiles
-           :unique_headers SERVER_PUSH);
-use base qw(CGI);
+sub _init_bz_cgi_globals {
+    my $invocant = shift;
+    # We need to disable output buffering - see bug 179174
+    $| = 1;
 
-# We need to disable output buffering - see bug 179174
-$| = 1;
+    # Ignore SIGTERM and SIGPIPE - this prevents DB corruption. If the user closes
+    # their browser window while a script is running, the web server sends these
+    # signals, and we don't want to die half way through a write.
+    $SIG{TERM} = 'IGNORE';
+    $SIG{PIPE} = 'IGNORE';
 
-# Ignore SIGTERM and SIGPIPE - this prevents DB corruption. If the user closes
-# their browser window while a script is running, the web server sends these
-# signals, and we don't want to die half way through a write.
-$::SIG{TERM} = 'IGNORE';
-$::SIG{PIPE} = 'IGNORE';
+    # We don't precompile any functions here, that's done specially in
+    # mod_perl code.
+    $invocant->_setup_symbols(qw(:no_xhtml :oldstyle_urls :private_tempfiles
+                                 :unique_headers));
+}
 
-# CGI.pm uses AUTOLOAD, but explicitly defines a DESTROY sub.
-# We need to do so, too, otherwise perl dies when the object is destroyed
-# and we don't have a DESTROY method (because CGI.pm's AUTOLOAD will |die|
-# on getting an unknown sub to try to call)
-sub DESTROY {
-    my $self = shift;
-    $self->SUPER::DESTROY(@_);
-};
+BEGIN { __PACKAGE__->_init_bz_cgi_globals() if i_am_cgi(); }
 
 sub new {
     my ($invocant, @args) = @_;
     my $class = ref($invocant) || $invocant;
+
+    # Under mod_perl, CGI's global variables get reset on each request,
+    # so we need to set them up again every time.
+    $class->_init_bz_cgi_globals() if $ENV{MOD_PERL};
 
     my $self = $class->SUPER::new(@args);
 
@@ -153,9 +156,18 @@ sub clean_search_url {
             $self->delete("${param}_type");
         }
 
-        # Boolean Chart stuff is empty if it's "noop"
-        if ($param =~ /\d-\d-\d/ && defined $self->param($param)
-            && $self->param($param) eq 'noop')
+        # Custom Search stuff is empty if it's "noop". We also keep around
+        # the old Boolean Chart syntax for backwards-compatibility.
+        if (($param =~ /\d-\d-\d/ || $param =~ /^[[:alpha:]]\d+$/)
+            && defined $self->param($param) && $self->param($param) eq 'noop')
+        {
+            $self->delete($param);
+        }
+        
+        # Any "join" for custom search that's an AND can be removed, because
+        # that's the default.
+        if (($param =~ /^j\d+$/ || $param eq 'j_top')
+            && $self->param($param) eq 'AND')
         {
             $self->delete($param);
         }
@@ -475,7 +487,9 @@ sub redirect_search_url {
 
     $self->clean_search_url();
 
-    if ($user->id) {
+    # Make sure we still have params still after cleaning otherwise we 
+    # do not want to store a list_id for an empty search.
+    if ($user->id && $self->param) {
         # Insert a placeholder Bugzilla::Search::Recent, so that we know what
         # the id of the resulting search will be. This is then pulled out
         # of the Referer header when viewing show_bug.cgi to know what

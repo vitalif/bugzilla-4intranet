@@ -155,7 +155,7 @@ table.attachment_info td {
 }
 
 #attachment_information_read_only .details {
-    font-family: monospace;
+    font-size: 90%;
 }
 
 #attachment_info.read #attachment_information_edit {
@@ -241,4 +241,8 @@ div#update_container {
    width: 75%; 
    margin: 0  auto; 
    font-weight: bold
+}
+
+#description {
+    resize: vertical;
 }

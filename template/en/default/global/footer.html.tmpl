@@ -33,6 +33,8 @@
 </div>
 </div>
 <div id="footer">
+  <div class="intro">[% Hook.process('intro') %]</div>
+
 [%# Migration note: the old param 'blurbhtml' goes here %]
 
 [%# Migration note: useful-links.html.tmpl corresponds to %commandmenu% %]
@@ -42,6 +44,8 @@
 [% ELSE %]
 [% PROCESS "global/useful-links.html.tmpl" qs_suffix = "bottom" %]
 [% END %]
+
+  <div class="outro">[% Hook.process('outro') %]</div>
 </div>
 
 [% Hook.process("end") %]

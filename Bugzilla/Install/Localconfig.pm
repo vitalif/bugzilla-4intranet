@@ -109,7 +109,9 @@ use constant LOCALCONFIG_VARS => (
     },
     {
         name    => 'site_wide_secret',
-        default => sub { generate_random_password(256) },
+        # 64 characters is roughly the equivalent of a 384-bit key, which
+        # is larger than anybody would ever be able to brute-force.
+        default => sub { generate_random_password(64) },
     },
 );
 

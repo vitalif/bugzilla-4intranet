@@ -457,8 +457,14 @@ sub Send {
         }
     }
 
+    # Make sure %user_cache has every user in it so far referenced
+    foreach my $user_id (keys %recipients) {
+        $user_cache{$user_id} ||= new Bugzilla::User($user_id);
+    }
+    
     Bugzilla::Hook::process('bugmail_recipients',
-                            { bug => $bug, recipients => \%recipients });
+                            { bug => $bug, recipients => \%recipients,
+                              users => \%user_cache, diffs => \@diffs });
 
     # Find all those user-watching anyone on the current list, who is not
     # on it already themselves.
@@ -490,6 +496,11 @@ sub Send {
     # all - there are preferences, permissions checks and all sorts to do yet.
     my @sent;
     my @excluded;
+
+    # The email client will display the Date: header in the desired timezone,
+    # so we can always use UTC here.
+    my $date = $params->{dep_only} ? $end : $bug->delta_ts;
+    $date = format_time($date, '%a, %d %b %Y %T %z', 'UTC');
 
     foreach my $user_id (keys %recipients) {
         my %rels_which_want;
@@ -680,34 +691,41 @@ sub sendMail
 
 sub _generate_bugmail {
     my ($user, $vars) = @_;
-    my $template = Bugzilla->template_inner($user->settings->{'lang'}->{'value'});
+    my $template = Bugzilla->template_inner($user->setting('lang'));
     my ($msg_text, $msg_html, $msg_header);
   
     $template->process("email/bugmail-header.txt.tmpl", $vars, \$msg_header)
         || ThrowTemplateError($template->error());
     $template->process("email/bugmail.txt.tmpl", $vars, \$msg_text)
         || ThrowTemplateError($template->error());
-    $template->process("email/bugmail.html.tmpl", $vars, \$msg_html)
-        || ThrowTemplateError($template->error());
-    
+
     my @parts = (
         Email::MIME->create(
             attributes => {
                 content_type => "text/plain",
             },
             body => $msg_text,
-        ),
-        Email::MIME->create(
+        )
+    );
+    if ($user->setting('email_format') eq 'html') {
+        $template->process("email/bugmail.html.tmpl", $vars, \$msg_html)
+            || ThrowTemplateError($template->error());
+        push @parts, Email::MIME->create(
             attributes => {
                 content_type => "text/html",         
             },
             body => $msg_html,
-        ),
-    );
-  
-    my $email = new Email::MIME($msg_header);
+        );
+    }
+
+    # TT trims the trailing newline, and threadingmarker may be ignored.
+    my $email = new Email::MIME("$msg_header\n");
+    if (scalar(@parts) == 1) {
+        $email->content_type_set($parts[0]->content_type);
+    } else {
+        $email->content_type_set('multipart/alternative');
+    }
     $email->parts_set(\@parts);
-    $email->content_type_set('multipart/alternative');
     return $email;
 }
 

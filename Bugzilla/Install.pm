@@ -96,6 +96,11 @@ sub SETTINGS {
     saved_searches_position  => { options => ['footer', 'header', 'both'], default => 'footer' },
     # 2010-01-11 vfilippov@custis.ru -- Custis Bug 58771
     email_weekly_worktime    => { options => ['on', 'off'], default => 'on' },
+    # 2011-02-07 dkl@mozilla.com -- Bug 580490
+    quicksearch_fulltext => { options => ['on', 'off'], default => 'on' },
+    # 2011-06-21 glob@mozilla.com -- Bug 589128
+    email_format       => { options => ['html', 'text_only'],
+                            default => 'html' },
     }
 };
 
@@ -156,6 +161,10 @@ use constant SYSTEM_GROUPS => (
         name         => 'bz_sudo_protect',
         description  => 'Can not be impersonated by other users',
         inherited_by => ['bz_sudoers'],
+    },
+    {
+        name         => 'bz_quip_moderators',
+        description  => 'Can moderate quips',
     },
 );
 

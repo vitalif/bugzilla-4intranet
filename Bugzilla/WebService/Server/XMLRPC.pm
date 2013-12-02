@@ -24,9 +24,11 @@ use strict;
 use SOAP::Transport::HTTP;
 use XMLRPC::Transport::HTTP;
 use Bugzilla::WebService::Server;
-
-our @ISA = qw(Bugzilla::WebService::Server);
-push @ISA, 'XMLRPC::Transport::HTTP::' . ($ENV{MOD_PERL} ? 'Apache' : 'CGI');
+if ($ENV{MOD_PERL}) {
+    our @ISA = qw(XMLRPC::Transport::HTTP::Apache Bugzilla::WebService::Server);
+} else {
+    our @ISA = qw(XMLRPC::Transport::HTTP::CGI Bugzilla::WebService::Server);
+}
 
 use Bugzilla::WebService::Constants;
 

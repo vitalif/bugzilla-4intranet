@@ -65,6 +65,7 @@ foreach my $panel (keys %$param_panels) {
                  param_list => \@module_param_list,
                  sortkey => eval "\$${module}::sortkey;"
                };
+    defined($item->{'sortkey'}) || ($item->{'sortkey'} = 100000);
     push(@panels, $item);
     $current_module = $panel if ($current_panel eq lc($panel));
 }

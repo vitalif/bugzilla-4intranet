@@ -282,7 +282,7 @@ $user->is_timetracker
                                        action => "access",
                                        object => "timetracking_summaries"});
 
-my @ids = split(",", $cgi->param('id'));
+my @ids = split(",", $cgi->param('id') || '');
 @ids = map { Bugzilla::Bug->check($_)->id } @ids;
 
 my $group_by = $cgi->param('group_by') || "number";
@@ -305,6 +305,11 @@ if ($do_report)
     $start_date = trim $cgi->param('start_date');
     $end_date = trim $cgi->param('end_date');
 
+    foreach my $date ($start_date, $end_date) {
+        next unless $date;
+        validate_date($date)
+          || ThrowUserError('illegal_date', {date => $date, format => 'YYYY-MM-DD'});
+    }
     # Swap dates in case the user put an end_date before the start_date
     if ($start_date && $end_date && 
         str2time($start_date) > str2time($end_date))

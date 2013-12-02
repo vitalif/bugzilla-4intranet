@@ -35,9 +35,9 @@ function hideEditableField( container, input, action, field_id, original_value )
  *
  * var e: the event
  * var ContainerInputArray: An array containing the (edit) and text area and the input being displayed
- * var ContainerInputArray[0]: the conainer that will be hidden usually shows the (edit) text
+ * var ContainerInputArray[0]: the container that will be hidden usually shows the (edit) or (take) text
  * var ContainerInputArray[1]: the input area and label that will be displayed
- *
+ * var ContainerInputArray[2]: the new value to set the input field to when (take) is clicked
  */
 function showEditableField(e, ContainerInputArray)
 {

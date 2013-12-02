@@ -93,9 +93,9 @@ sub REQUIRED_MODULES {
     {
         package => 'CGI.pm',
         module  => 'CGI',
-        # 3.50 fixes a security problem that affects Bugzilla.
+        # 3.51 fixes a security problem that affects Bugzilla.
         # (bug 591165)
-        version => '3.50',
+        version => '3.51',
     },
     {
         package => 'Digest-SHA',
@@ -148,7 +148,9 @@ sub REQUIRED_MODULES {
     {
         package => 'URI',
         module  => 'URI',
-        version => 0
+        # This version properly handles a semicolon as the delimiter
+        # in a URL query string.
+        version => '1.37',
     },
     {
         package => 'Lingua-Translit',
@@ -164,6 +166,12 @@ sub REQUIRED_MODULES {
         package => 'List-MoreUtils',
         module  => 'List::MoreUtils',
         version => 0.22,
+    },
+    {
+        package => 'Math-Random-Secure',
+        module  => 'Math::Random::Secure',
+        # This is the first version that installs properly on Windows.
+        version => '0.05',
     },
     );
 
@@ -230,7 +238,8 @@ sub OPTIONAL_MODULES {
     {
         package => 'PatchReader',
         module  => 'PatchReader',
-        version => '0.9.4',
+        # 0.9.6 fixes two notable bugs and significantly improves the UX.
+        version => '0.9.6',
         feature => ['patch_viewer'],
     },
     {
@@ -290,6 +299,19 @@ sub OPTIONAL_MODULES {
         module  => 'HTML::Scrubber',
         version => 0,
         feature => ['html_desc'],
+    },
+    {
+        # we need version 2.21 of Encode for mime_name
+        package => 'Encode',
+        module  => 'Encode',
+        version => 2.21,
+        feature => ['detect_charset'],
+    },
+    {
+        package => 'Encode-Detect',
+        module  => 'Encode::Detect',
+        version => 0,
+        feature => ['detect_charset'],
     },
 
     # Inbound Email
@@ -553,9 +575,8 @@ sub print_module_instructions {
           or ($output and $check_results->{any_missing}) ) ? 1 : 0;
 
     # We only print the PPM repository note if we have to.
-    if ($need_module_instructions and ON_ACTIVESTATE) {
-        my $perl_ver = sprintf('%vd', $^V);
-            
+    my $perl_ver = sprintf('%vd', $^V);
+    if ($need_module_instructions && ON_ACTIVESTATE && vers_cmp($perl_ver, '5.12') < 0) {
         # URL when running Perl 5.8.x.
         my $url_to_theory58S = 'http://theoryx5.uwinnipeg.ca/ppms';
         # Packages for Perl 5.10 are not compatible with Perl 5.8.

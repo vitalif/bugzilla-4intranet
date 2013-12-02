@@ -602,8 +602,25 @@ as though he were on the CC list:
 (We use C<+> in front of C<REL_CC> so that Perl interprets it as a constant
 instead of as a string.)
 
-=back
+=item C<users>
 
+This is a hash of L<Bugzilla::User> objects, keyed by id. This is so you can
+find out more information about any of the user ids in the C<recipients> hash.
+Every id in the incoming C<recipients> hash will have an object in here. 
+(But if you add additional recipients to the C<recipients> hash, you are 
+B<not> required to add them to this hash.)
+
+=item C<diffs>
+
+This is a list of hashes, each hash representing a change to the bug. Each 
+hash has the following members: C<field_name>, C<bug_when>, C<old>, C<new> 
+and C<who> (a L<Bugzilla::User>). If appropriate, there will also be 
+C<attach_id> or C<comment_id>; if either is present, there will be 
+C<isprivate>. See C<_get_diffs> in F<Bugzilla/BugMail.pm> to see exactly how 
+it is populated. Warning: the format and existence of the "diffs" parameter 
+is subject to change in future releases of Bugzilla.
+
+=back
 
 =head2 bugmail_relationships
 
@@ -811,12 +828,112 @@ time should be printed.
 
 =back
 
+=head2 install_filesystem
+
+Allows for additional files and directories to be added to the
+list of files and directories already managed by checksetup.pl.
+You will be able to also set permissions for the files and
+directories using this hook. You can also use this hook to create 
+appropriate .htaccess files for any directory to secure its contents.
+For examples see  L<FILESYSTEM> in L<Bugzilla::Install::Filesystem>.
+
+Params:
+
+=over
+
+=item C<files>
+
+Hash reference of files that are already present when your extension was
+installed but need to have specific permissions set. Each file key
+points to another hash reference containing the following settings.
+
+Params:
+
+=over
+
+=item C<perms> - Permissions to be set on the file.
+
+=back
+
+=item C<create_dirs>
+
+Hash reference containing the name of each directory that will be created,
+pointing at its default permissions.
+
+=item C<non_recurse_dirs>
+
+Hash reference containing directories that we want to set the perms on, but not
+recurse through. These are directories not created in checksetup.pl. Each directory
+key's value is the permissions to be set on the directory.
+
+=item C<recurse_dirs>
+
+Hash reference of directories that will have permissions set for each item inside 
+each of the directories, including the directory itself. Each directory key
+points to another hash reference containing the following settings.
+
+Params:
+
+=over
+
+=item C<files> - Permissions to be set on any files beneath the directory.
+
+=item C<dirs> - Permissions to be set on the directory itself and any directories
+beneath it.
+
+=back
+
+=item C<create_files>
+
+Hash reference of additional files to be created. Each file key points to another
+hash reference containing the following settings.
+
+Params:
+
+=over
+
+=item C<perms> - The permissions to be set on the file itself.
+
+=item C<contents> - The contents to be added to the file or leave blank for an
+empty file.
+
+=back
+
+=item C<htaccess>
+
+Hash reference containing htaccess files to be created. You can set the permissions
+for the htaccess as well as the contents of the file. Each file key points to another 
+hash reference containing the following settings.
+
+Params:
+
+=over
+
+=item C<perms> - Permissions to be set on the htaccess file.
+
+=item C<contents> - Contents of the htaccess file. It can be set manually or
+use L<HT_DEFAULT_DENY> defined in L<Bugzilla::Install::Filesystem> to deny all
+by default.
+
+=back
+
+=back
+
 =head2 install_update_db
 
 This happens at the very end of all the tables being updated
 during an installation or upgrade. If you need to modify your custom
 schema or add new columns to existing tables, do it here. No params are
 passed.
+
+=head2 install_update_db_fielddefs
+
+This is used to update the schema of the fielddefs table before
+any other schema changes take place. No params are passed.
+
+This hook should only be used for updating the schema of the C<fielddefs>
+table. Do not modify any other table in this hook. To modify other tables, use
+the L</install_update_db> hook.
 
 =head2 db_schema_abstract_schema
 
@@ -835,6 +952,23 @@ Params:
 L<Bugzilla::DB::Schema/ABSTRACT_SCHEMA>. Add new hash keys to make new table
 definitions. F<checksetup.pl> will automatically add these tables to the
 database when run.
+
+=back
+
+=head2 job_map
+
+Bugzilla has a system - L<Bugzilla::JobQueue> - for running jobs 
+asynchronously, if the administrator has set it up. This hook allows the 
+addition of mappings from job names to handler classes, so an extension can 
+fire off jobs.
+
+Params:
+
+=over
+
+=item C<job_map> - The job map hash. Key: the name of the job, as should be 
+passed to Bugzilla->job_queue->insert(). Value: the name of the Perl module 
+which implements the task (an instance of L<TheSchwartz::Worker>). 
 
 =back
 
@@ -1167,6 +1301,24 @@ your template.
 
 =back
 
+
+=head2 post_bug_after_creation
+
+B<DEPRECATED> (Use L</bug_end_of_create> instead.)
+
+This happens after a bug is created and before bug mail is sent
+during C<post_bug.cgi>. Note that this only happens during C<post_bug.cgi>,
+it doesn't happen during any of the other methods of creating a bug.
+
+Params:
+
+=over
+
+=item C<vars> - The template vars hashref.
+
+=back
+
+
 =head2 product_confirm_delete
 
 B<DEPRECATED> - Use L</template_before_process> instead.
@@ -1198,6 +1350,21 @@ Params:
 =over
 
 =item C<product> - The new L<Bugzilla::Product> object that was just created.
+
+=back
+
+=head2 quicksearch_map
+
+This hook allows you to alter the Quicksearch syntax to include e.g. special 
+searches for custom fields you have.
+
+Params:
+
+=over
+
+=item C<map> - a hash where the key is the name you want to use in 
+Quicksearch, and the value is the name from the C<fielddefs> table that you 
+want it to map to. You can modify existing mappings or add new ones.
 
 =back
 

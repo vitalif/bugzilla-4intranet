@@ -36,6 +36,7 @@ our @EXPORT = qw(
     COLUMN_TRANSLATION
     COMMENT_FIELDS
     CUSTOM_FIELDS
+    CUSTOM_SEARCH_TESTS
     FIELD_SIZE
     FIELD_SUBSTR_SIZE
     FLAG_FIELDS
@@ -45,9 +46,6 @@ our @EXPORT = qw(
     KNOWN_BROKEN
     NUM_BUGS
     NUM_SEARCH_TESTS
-    OR_BROKEN
-    OR_SKIP
-    PG_BROKEN
     SKIP_FIELDS
     SPECIAL_PARAM_TESTS
     SUBSTR_NO_FIELD_ADD
@@ -135,13 +133,6 @@ use constant SKIP_FIELDS => qw(
     days_elapsed
 );
 
-# During OR tests, we skip these fields. They basically just don't work
-# right in OR tests, and it's too much work to document the exact tests
-# that they cause to fail.
-use constant OR_SKIP => qw(
-    flagtypes.name
-);
-
 # All the fields that represent users.
 use constant USER_FIELDS => qw(
     assigned_to
@@ -191,99 +182,26 @@ use constant SUBSTR_NO_FIELD_ADD => FIELD_TYPE_DATETIME, qw(
 # See the KNOWN_BROKEN constant for a general description of these
 # "_BROKEN" constants.
 
-# Certain fields fail all the "negative" search tests:
-#
-# Blocked and Dependson "notequals" only finds bugs that have
-# values for the field, but where the dependency list doesn't contain
-# the bug you listed. It doesn't find bugs that fully lack values for
-# the fields, as it should.
-#
-# cc "not" matches if any CC'ed user matches, and it fails to match
-# if there are no CCs on the bug.
-#
-# bug_group notequals doesn't find bugs that fully lack groups,
-# and matches if there is one group that isn't equal.
-#
-# bug_file_loc can be NULL, so it gets missed by the normal
-# notequals search.
-#
-# longdescs "notequals" matches if *any* of the values
-# are not equal to the string provided.
-#
-# attachments.* notequals doesn't find bugs that lack attachments.
-#
-# deadline notequals does not find bugs that lack deadlines
-#
-# setters notequal doesn't find bugs that fully lack flags.
-# (maybe this is OK?)
-#
-# requestees.login_name doesn't find bugs that fully lack requestees.
-use constant NEGATIVE_BROKEN => (
-    'attachments.isobsolete'  => { contains => [5] },
-    'attachments.ispatch'     => { contains => [5] },
-    'attachments.isprivate'   => { contains => [5] },
-    'attach_data.thedata'     => { contains => [5] },
-    'attachments.description' => { contains => [5] },
-    'attachments.filename'    => { contains => [5] },
-    'attachments.mimetype'    => { contains => [5] },
-    blocked      => { contains => [3,4,5] },
-    bug_file_loc => { contains => [5] },
-    bug_group    => { contains => [1,5] },
-    deadline     => { contains => [5] },
-    dependson    => { contains => [2,4,5] },
-    longdesc     => { contains => [1] },
-    'longdescs.isprivate'   => { contains => [1] },
-    # Custom fields are busted because they can be NULL.
-    FIELD_TYPE_FREETEXT, { contains => [5] },
-    FIELD_TYPE_BUG_ID,   { contains => [5] },
-    FIELD_TYPE_DATETIME, { contains => [5] },
-    FIELD_TYPE_TEXTAREA, { contains => [5] },
-);
-
 # Shared between greaterthan and greaterthaneq.
 #
 # As with other fields, longdescs greaterthan matches if any comment
 # matches (which might be OK).
 #
-# Same for keywords, bug_group, and cc. Logically, all of these might
+# Same for keywords, and cc. Logically, all of these might
 # be OK, but it makes the operation not the logical reverse of
 # lessthaneq. What we're really saying here by marking these broken
 # is that there ought to be some way of searching "all ccs" vs "any cc"
 # (and same for the other fields).
 use constant GREATERTHAN_BROKEN => (
-    bug_group => { contains => [1] },
     cc        => { contains => [1] },
-    keywords  => { contains => [1] },
-    longdesc  => { contains => [1] },
-    FIELD_TYPE_MULTI_SELECT, { contains => [1] },
 );
 
 # allwords and allwordssubstr have these broken tests in common.
 #
-# allwordssubstr on longdescs fields matches against a single comment,
-# instead of matching against all comments on a bug. Same is true
-# for cc, keywords, and bug_group.
+# allwordssubstr on cc fields matches against a single cc,
+# instead of matching against all ccs on a bug.
 use constant ALLWORDS_BROKEN => (
-    bug_group => { contains => [1] },
     cc        => { contains => [1] },
-    keywords  => { contains => [1] },
-    longdesc  => { contains => [1] },
-);
-
-# nowords and nowordssubstr have these broken tests in common.
-#
-# flagtypes.name doesn't match bugs without flags.
-# longdescs.isprivate, and bug_group actually work properly in
-# terms of excluding bug 1 (since we exclude all values in the search,
-# on our test), but still fail at including bug 5.
-# The longdesc* fields, coincidentally, work completely
-# correctly, possibly because there's only one comment on bug 5.
-use constant NOWORDS_BROKEN => (
-    NEGATIVE_BROKEN,
-    'flagtypes.name' => { contains => [5] },
-    bug_group        => { contains => [5] },
-    longdesc         => {},
-    'longdescs.isprivate' => {},
 );
 
 # Fields that don't generally work at all with changed* searches, but
@@ -334,40 +252,13 @@ use constant KNOWN_BROKEN => {
     "equals-%group.<1-bug_group>%" => {
         commenter => { contains => [1,2,3,4,5] },
     },
-    notequals    => { NEGATIVE_BROKEN },
-    notsubstring => { NEGATIVE_BROKEN },
-    notregexp    => { NEGATIVE_BROKEN },
-
-    # longdescs.isprivate matches if any comment matches, instead of if all
-    # comments match. (Commenter is probably
-    # also broken in this way, but all our comments come from the same user.) 
-    lessthan   => {
-        'longdescs.isprivate'   => { contains => [1] },
-    },
-    # The lessthaneq tests are broken for the same reasons, but they work
-    # slightly differently so they have a different set of broken tests.
-    lessthaneq => {
-        'longdescs.isprivate' => { contains => [1] },
-    },
 
     greaterthan   => { GREATERTHAN_BROKEN },
     greaterthaneq => { GREATERTHAN_BROKEN },
 
     'allwordssubstr-<1>' => { ALLWORDS_BROKEN },
-    # flagtypes.name does not work here, probably because they all try to
-    # match against a single flag.
-    # Same for attach_data.thedata.
     'allwords-<1>' => {
         ALLWORDS_BROKEN,
-        'flagtypes.name' => { contains => [1] },
-    },
-
-    nowordssubstr => { NOWORDS_BROKEN },
-    # attach_data.thedata doesn't match properly with any of the plain
-    # "words" searches. Also, bug 5 doesn't match because it lacks
-    # attachments.
-    nowords => {
-        NOWORDS_BROKEN,
     },
 
     # setters.login_name and requestees.login name aren't tracked individually
@@ -407,10 +298,10 @@ use constant KNOWN_BROKEN => {
         CHANGED_VALUE_BROKEN,
         # All fields should have a way to search for "changing
         # from a blank value" probably.
-        blocked   => { contains => [3,4,5] },
-        dependson => { contains => [2,4,5] },
+        blocked   => { contains => [3,4,5], no_criteria => 1 },
+        dependson => { contains => [2,4,5], no_criteria => 1 },
         work_time => { contains => [1] },
-        FIELD_TYPE_BUG_ID, { contains => [5] },
+        FIELD_TYPE_BUG_ID, { contains => [5], no_criteria => 1 },
     },
     # changeto doesn't find remaining_time changes (possibly due to us not
     # tracking that data properly).
@@ -441,42 +332,9 @@ use constant KNOWN_BROKEN => {
     },
 };
 
-# This tracks things that are broken in different ways on Pg compared to
-# MySQL. Actually, in some of these cases, Pg is behaving correctly
-# where MySQL isn't, but the result is still a bit surprising to the user.
-use constant PG_BROKEN => {
-    'attach_data.thedata' => {
-        notregexp => { contains => [5] },
-        nowords   => { contains => [5] },
-    },
-};
-
 ###################
 # Broken NotTests #
 ###################
-
-# These are fields that are broken in the same way for pretty much every
-# NOT test that is broken.
-use constant COMMON_BROKEN_NOT => (
-    "attach_data.thedata"     => { contains => [5] },
-    "attachments.description" => { contains => [5] },
-    "attachments.filename"    => { contains => [5] },
-    "attachments.isobsolete"  => { contains => [5] },
-    "attachments.ispatch"     => { contains => [5] },
-    "attachments.isprivate"   => { contains => [5] },
-    "attachments.mimetype"    => { contains => [5] },
-    "bug_file_loc"            => { contains => [5] },
-    "deadline"                => { contains => [5] },
-    "flagtypes.name"          => { contains => [5] },
-    "keywords"                => { contains => [5] },
-    "longdescs.isprivate"     => { contains => [1] },
-    "see_also"                => { contains => [5] },
-    FIELD_TYPE_BUG_ID,           { contains => [5] },
-    FIELD_TYPE_DATETIME,         { contains => [5] },
-    FIELD_TYPE_FREETEXT,         { contains => [5] },
-    FIELD_TYPE_MULTI_SELECT,     { contains => [1, 5] },
-    FIELD_TYPE_TEXTAREA,         { contains => [5] },
-);
 
 # Common BROKEN_NOT values for the changed* fields.
 use constant CHANGED_BROKEN_NOT => (
@@ -494,95 +352,25 @@ use constant CHANGED_FROM_TO_BROKEN_NOT => (
     'longdescs.count' => { search => 1 },
     "bug_group" => { contains => [1] },
     "cc" => { contains => [1] },
-    "cf_multi_select" => { contains => [1] },
     "estimated_time" => { contains => [1] },
     "flagtypes.name" => { contains => [1] },
     "keywords" => { contains => [1] },    
-);
-
-# Common broken tests for the "not" or "no" operators.
-use constant NEGATIVE_BROKEN_NOT => (
-    "blocked"             => { contains => [3, 4, 5] },
-    "bug_group"           => { contains => [5] },
-    "dependson"           => { contains => [2, 4, 5] },
-    "flagtypes.name"      => { contains => [1 .. 5] },
+    FIELD_TYPE_MULTI_SELECT, { contains => [1] },
 );
 
 # These are field/operator combinations that are broken when run under NOT().
 use constant BROKEN_NOT => {
     allwords       => {
-        COMMON_BROKEN_NOT,
         cc => { contains => [1] },
-        bug_group => { contains => [1] },
-        "flagtypes.name"      => { contains => [1,5] },
-        keywords => { contains => [1,5] },
-        longdesc => { contains => [1] },
-        'see_also' => { },
-        FIELD_TYPE_MULTI_SELECT, { },
     },
     'allwords-<1> <2>' => {
-        'attach_data.thedata' => { contains => [5] },
-        bug_group => { },
         cc => { },
-        'flagtypes.name'      => { contains => [5] },
-        'keywords'            => { contains => [5] },
-        'longdesc' => { },
-        'longdescs.isprivate' => { },
     },
     allwordssubstr => {
-        COMMON_BROKEN_NOT,
-        bug_group => { contains => [1] },
         cc => { contains => [1] },
-        keywords => { contains => [1,5] },
-        longdesc => { contains => [1] },
-        see_also => { },
-        FIELD_TYPE_MULTI_SELECT, { },
     },
     'allwordssubstr-<1>,<2>' => {
-        bug_group => { },
         cc => { },
-        FIELD_TYPE_MULTI_SELECT, { },
-        keywords => { contains => [5] },
-        "longdesc" => { },
-        "longdescs.isprivate" => { },
-        "see_also" => { },
-    },
-    anyexact => {
-        COMMON_BROKEN_NOT,
-        "flagtypes.name" => { contains => [1, 2, 5] },
-        "longdesc"       => { contains => [1, 2] },
-    },
-    'anyexact-<1>, <2>' => {
-        bug_group => { contains => [1] },
-        keywords => { contains => [1,5] },
-        see_also => { },
-        FIELD_TYPE_MULTI_SELECT, { },
-    },
-    anywords => {
-        COMMON_BROKEN_NOT,
-        FIELD_TYPE_MULTI_SELECT, { contains => [5] },
-    },
-    'anywords-<1> <2>' => {
-        'attach_data.thedata' => { contains => [5] },
-    },
-    anywordssubstr => {
-        COMMON_BROKEN_NOT,
-    },
-    'anywordssubstr-<1> <2>' => {
-        FIELD_TYPE_MULTI_SELECT, { contains => [5] },
-    },
-    casesubstring => {
-        COMMON_BROKEN_NOT,
-        bug_group => { contains => [1] },
-        keywords  => { contains => [1,5] },
-        longdesc  => { contains => [1] },
-        FIELD_TYPE_MULTI_SELECT, { contains => [1,5] },
-    },
-    'casesubstring-<1>-lc' => {
-        bug_group => { },
-        keywords => { contains => [5] },
-        longdesc => { },
-        FIELD_TYPE_MULTI_SELECT, { contains => [5] },
     },
     changedafter => {
         "attach_data.thedata"   => { contains => [2, 3, 4] },
@@ -593,7 +381,7 @@ use constant BROKEN_NOT => {
         "requestees.login_name" => { contains => [2, 3, 4] },
         "setters.login_name"    => { contains => [2, 3, 4] },
     },
-    changedbefore=> {
+    changedbefore => {
         CHANGED_BROKEN_NOT,
     },
     changedby => {
@@ -607,7 +395,6 @@ use constant BROKEN_NOT => {
         'attach_data.thedata' => { },
         blocked         => { contains => [1, 2] },
         dependson       => { contains => [1, 3] },
-        longdesc        => { },
         work_time       => { contains => [1] },
         FIELD_TYPE_BUG_ID, { contains => [1 .. 4] },
         
@@ -618,67 +405,11 @@ use constant BROKEN_NOT => {
         longdesc => { contains => [1] },
         "remaining_time" => { contains => [1] },
     },
-    equals => {
-        COMMON_BROKEN_NOT,
-        bug_group => { contains => [1] },
-        "flagtypes.name" => { contains => [1, 5] },
-        keywords  => { contains => [1,5] },
-        longdesc  => { contains => [1] },
-    },
     greaterthan => {
-        COMMON_BROKEN_NOT,
         cc        => { contains => [1] },
-        FIELD_TYPE_MULTI_SELECT, { contains => [5] },
     },
     greaterthaneq => {
-        COMMON_BROKEN_NOT,
         cc               => { contains => [1] },
-        "flagtypes.name" => { contains => [2, 5] },
-        FIELD_TYPE_MULTI_SELECT, { contains => [5] },
-    },
-    lessthan => {
-        COMMON_BROKEN_NOT,
-        longdesc => { contains => [1] },
-        'longdescs.isprivate' => { },
-    },
-    'lessthan-2' => {
-        bug_group => { contains => [1] },
-        keywords  => { contains => [1,5] },
-    },
-    lessthaneq => {
-        COMMON_BROKEN_NOT,
-        bug_group => { contains => [1] },
-        keywords  => { contains => [1,5] },
-        longdesc  => { contains => [1] },
-        'longdescs.isprivate' => { },
-    },
-    notequals      => { NEGATIVE_BROKEN_NOT },
-    notregexp      => { NEGATIVE_BROKEN_NOT },
-    notsubstring   => { NEGATIVE_BROKEN_NOT },
-    nowords        => {
-        NEGATIVE_BROKEN_NOT,
-        "flagtypes.name" => { },
-    },
-    nowordssubstr  => {
-        NEGATIVE_BROKEN_NOT,
-        "attach_data.thedata" => { },
-        "flagtypes.name" => { },
-    },
-    regexp         => {
-        COMMON_BROKEN_NOT,
-        bug_group => { contains => [1] },
-        "flagtypes.name" => { contains => [1,5] },
-        keywords  => { contains => [1,5] },
-        longdesc  => { contains => [1] },
-    },
-    'regexp-^1-' => {
-        "flagtypes.name" => { contains => [5] },
-    },
-    substring      => {
-        COMMON_BROKEN_NOT,
-        bug_group => { contains => [1] },
-        keywords  => { contains => [1,5] },
-        longdesc  => { contains => [1] },
     },
 };
 
@@ -723,6 +454,8 @@ use constant LESSTHAN_OVERRIDE => (
     qa_contact        => { contains => [1,5] },
     resolution        => { contains => [1,5] },
     status_whiteboard => { contains => [1,5] },
+    FIELD_TYPE_TEXTAREA, { contains => [1,5] },
+    FIELD_TYPE_FREETEXT, { contains => [1,5] },
 );
 
 # The mandatorily-set fields have values higher than <1>,
@@ -731,10 +464,14 @@ use constant GREATERTHAN_OVERRIDE => (
     classification => { contains => [2,3,4,5] },
     assigned_to  => { contains => [2,3,4,5] },
     bug_id       => { contains => [2,3,4,5] },
+    bug_group    => { contains => [1,2,3,4] },
     bug_severity => { contains => [2,3,4,5] },
     bug_status   => { contains => [2,3,4,5] },
     component    => { contains => [2,3,4,5] },
     commenter    => { contains => [2,3,4,5] },
+    # keywords matches if *any* keyword matches
+    keywords     => { contains => [1,2,3,4] },
+    longdesc     => { contains => [1,2,3,4] },
     op_sys       => { contains => [2,3,4,5] },
     priority     => { contains => [2,3,4,5] },
     product      => { contains => [2,3,4,5] },
@@ -742,12 +479,15 @@ use constant GREATERTHAN_OVERRIDE => (
     rep_platform => { contains => [2,3,4,5] },
     short_desc   => { contains => [2,3,4,5] },
     version      => { contains => [2,3,4,5] },
+    tag          => { contains => [1,2,3,4] },
     target_milestone => { contains => [2,3,4,5] },
     # Bug 2 is the only bug besides 1 that has a Requestee set.
     'requestees.login_name'  => { contains => [2] },
     FIELD_TYPE_SINGLE_SELECT, { contains => [2,3,4,5] },
     # Override SINGLE_SELECT for resolution.
     resolution => { contains => [2,3,4] },
+    # MULTI_SELECTs match if *any* value matches
+    FIELD_TYPE_MULTI_SELECT, { contains => [1,2,3,4] },
 );
 
 # For all positive multi-value types.
@@ -787,6 +527,7 @@ use constant CHANGED_OVERRIDE => (
     'attachments.submitter' => { contains => [] },
     bug_id    => { contains => [] },
     reporter  => { contains => [] },
+    tag       => { contains => [] },
 );
 
 #########
@@ -900,7 +641,7 @@ use constant TESTS => {
           override => {
               # A lot of these contain bug 5 because an empty value is validly
               # less than the specified value.
-              bug_file_loc => { value => 'http://2-' },
+              bug_file_loc => { value => 'http://2-', contains => [1,5] },
               see_also     => { value => 'http://2-' },
               'attachments.mimetype' => { value => 'text/x-2-' },
               blocked   => { value => '<4-id>', contains => [1,2] },
@@ -912,17 +653,17 @@ use constant TESTS => {
               cclist_accessible        => { value => 1, contains => [2,3,4,5] },
               reporter_accessible      => { value => 1, contains => [2,3,4,5] },
               'longdescs.count'        => { value => 3, contains => [2,3,4,5] },
-              'longdescs.isprivate'    => { value => 1, contains => [2,3,4,5] },
+              'longdescs.isprivate'    => { value => 1, contains => [1,2,3,4,5] },
               everconfirmed            => { value => 1, contains => [2,3,4,5] },
               creation_ts => { value => '2037-01-02', contains => [1,5] },
               delta_ts    => { value => '2037-01-02', contains => [1,5] },
-              deadline    => { value => '2037-02-02' },
+              deadline    => { value => '2037-02-02', contains => [1,5] },
               remaining_time => { value => 10, contains => [1,5] },
               percentage_complete => { value => 11, contains => [1,5] },
               longdesc => { value => '2-', contains => [1,5] },
               work_time => { value => 1, contains => [5] },
-              FIELD_TYPE_BUG_ID, { value => '<2>' },
-              FIELD_TYPE_DATETIME, { value => '2037-03-02' },
+              FIELD_TYPE_BUG_ID, { value => '<2>', contains => [1,5] },
+              FIELD_TYPE_DATETIME, { value => '2037-03-02', contains => [1,5] },
               LESSTHAN_OVERRIDE,
           }
         },
@@ -936,16 +677,20 @@ use constant TESTS => {
               cclist_accessible        => { value => 0, contains => [2,3,4,5] },
               reporter_accessible      => { value => 0, contains => [2,3,4,5] },
               'longdescs.count'        => { value => 2, contains => [2,3,4,5] },
-              'longdescs.isprivate'    => { value => 0, contains => [2,3,4,5] },
+              'longdescs.isprivate'    => { value => -1, contains => [] },
               everconfirmed            => { value => 0, contains => [2,3,4,5] },
-              blocked   => { contains => [1,2] },
-              dependson => { contains => [1,3] },
+              bug_file_loc   => { contains => [1,5] },
+              blocked        => { contains => [1,2] },
+              deadline       => { contains => [1,5] },
+              dependson      => { contains => [1,3] },
               creation_ts    => { contains => [1,5] },
               delta_ts       => { contains => [1,5] },
               remaining_time => { contains => [1,5] },
               longdesc       => { contains => [1,5] },
               percentage_complete => { contains => [1,5] },
               work_time => { value => 1, contains => [1,5] },
+              FIELD_TYPE_BUG_ID, { contains => [1,5] },
+              FIELD_TYPE_DATETIME, { contains => [1,5] },
               LESSTHAN_OVERRIDE,
           },
         },
@@ -1016,7 +761,9 @@ use constant TESTS => {
           override => {
               dependson => { value => '<1-id> <3-id>', contains => [] },
               # bug 3 has the value "21" here, so matches "2,1"
-              percentage_complete => { value => '<2>,<3>', contains => [3] }
+              percentage_complete => { value => '<2>,<3>', contains => [3] },
+              # 1 0 matches bug 1, which has both public and private comments.
+             'longdescs.isprivate' => { contains => [1] },              
           }
         },
     ],
@@ -1050,7 +797,9 @@ use constant TESTS => {
           override => { MULTI_BOOLEAN_OVERRIDE } },
         { contains => [], value => '<1> <2>',
           override => {
-            dependson => { contains => [], value => '<2-id> <3-id>' }
+            dependson => { contains => [], value => '<2-id> <3-id>' },
+            # 1 0 matches bug 1, which has both public and private comments.
+            'longdescs.isprivate' => { contains => [1] },
           }
         },
     ],
@@ -1169,14 +918,6 @@ use constant INJECTION_BROKEN_FIELD => {
                            nowordssubstr regexp substring anywords
                            notequals nowords equals anyexact)],
     },
-    keywords => {
-        search => 1,
-        operator_ok => [qw(allwordssubstr anywordssubstr casesubstring
-                           changedfrom changedto greaterthan greaterthaneq
-                           lessthan lessthaneq notregexp notsubstring
-                           nowordssubstr regexp substring anywords
-                           notequals nowords)]
-    },
 };
 
 # Operators that do not behave as we expect, for InjectionTest.
@@ -1198,39 +939,6 @@ use constant INJECTION_TESTS => (
     { value => "';QUOTE_SEMICOLON_TEST" },
     { value => '/*STAR_COMMENT_TEST' }
 );
-
-# This overrides KNOWN_BROKEN for OR configurations.
-# It indicates that these combinations are broken in some way that they
-# aren't broken when alone, because they don't return what they logically
-# should when put into an OR.
-use constant OR_BROKEN => {
-    # Multi-value fields search on individual values, so "equals" OR "notequals"
-    # returns nothing, when it should instead logically return everything.
-    'blocked-equals' => {
-        'blocked-notequals' => { contains => [1,2,3,4,5] },
-    },
-    'dependson-equals' => {
-        'dependson-notequals' => { contains => [1,2,3,4,5] },
-    },
-    'bug_group-equals' => {
-        'bug_group-notequals' => { contains => [1,2,3,4,5] },
-    },
-    'cc-equals' => {
-        'cc-notequals' => { contains => [1,2,3,4,5] },
-    },
-    'commenter-equals' => {
-        'commenter-notequals' => { contains => [1,2,3,4,5] },
-        'longdesc-notequals'  => { contains => [2,3,4,5] },
-        'longdescs.isprivate-notequals' => { contains => [2,3,4,5] },
-        'work_time-notequals' => { contains => [2,3,4,5] },
-    },
-    'commenter-notequals' => {
-        'commenter-equals' => { contains => [1,2,3,4,5] },
-        'longdesc-equals'  => { contains => [1] },
-        'longdescs.isprivate-equals' => { contains => [1] },
-        'work_time-equals' => { contains => [1] },
-    },
-};
 
 #################
 # Special Tests #
@@ -1278,6 +986,145 @@ use constant SPECIAL_PARAM_TESTS => (
       value => '%group.<1-bug_group>%', contains => [1,2,3,4] },
     { field => 'commenter', operator => 'equals',
       value => '%group.<1-bug_group>%', contains => [1,2,3,4,5] },
+);
+
+use constant CUSTOM_SEARCH_TESTS => (
+    { name => 'OP without CP', contains => [1],
+      params => [
+          { f => 'OP' },
+          { f => 'bug_id', o => 'equals', v => '<1>' },
+      ]
+    },
+
+    { name => 'Empty OP/CP pair before criteria', contains => [1],
+      params => [
+          { f => 'OP' }, { f => 'CP' },
+          { f => 'bug_id', o => 'equals', v => '<1>' },
+      ]
+    },
+
+    { name => 'Empty OP/CP pair after criteria', contains => [1],
+      params => [
+          { f => 'bug_id', o => 'equals', v => '<1>' },
+          { f => 'OP' }, { f => 'CP' },
+      ]
+    },
+
+    { name  => 'empty OP/CP mid criteria', contains => [1],
+      columns => ['assigned_to'],
+      params => [
+          { f => 'bug_id', o => 'equals', v => '<1>' },
+          { f => 'OP' }, { f => 'CP' },
+          { f => 'assigned_to', o => 'substr', v => '@' },
+      ]
+    },
+
+    { name  => 'bug_id = 1 AND assigned_to contains @', contains => [1],
+      columns => ['assigned_to'],
+      params => [
+          { f => 'bug_id',      o => 'equals', v => '<1>' },
+          { f => 'assigned_to', o => 'substr', v => '@' },
+      ]
+    },
+
+    { name  => 'NOT(bug_id = 1) AND NOT(assigned_to = 2)',
+      contains => [3,4,5],
+      columns => ['assigned_to'],
+      params => [
+          { n => 1, f => 'bug_id',      o => 'equals', v => '<1>' },
+          { n => 1, f => 'assigned_to', o => 'equals', v => '<2>' },
+      ]
+    },
+
+    { name  => 'bug_id = 1 OR assigned_to = 2', contains => [1,2],
+      columns => ['assigned_to'], top_params => { j_top => 'OR' },
+      params => [
+          { f => 'bug_id',      o => 'equals', v => '<1>' },
+          { f => 'assigned_to', o => 'equals', v => '<2>' },
+      ]
+    },
+
+    { name => 'NOT(bug_id = 1 AND assigned_to = 1)', contains => [2,3,4,5],
+      columns => ['assigned_to'],
+      params => [
+          { f => 'OP', n => 1 },
+            { f => 'bug_id',      o => 'equals', v => '<1>' },
+            { f => 'assigned_to', o => 'equals', v => '<1>' },
+          { f => 'CP' },
+      ]
+    },
+
+
+    { name  => '(bug_id = 1 AND assigned_to contains @) '
+               . ' OR (bug_id = 2 AND assigned_to contains @)',
+      contains => [1,2], columns => ['assigned_to'],
+      top_params => { j_top => 'OR' },
+      params => [
+          { f => 'OP' },
+            { f => 'bug_id',      o => 'equals', v => '<1>' },
+            { f => 'assigned_to', o => 'substr', v => '@' },
+          { f => 'CP' },
+          { f => 'OP' },
+            { f => 'bug_id',      o => 'equals', v => '<2>' },
+            { f => 'assigned_to', o => 'substr', v => '@' },
+          { f => 'CP' },
+      ]
+    },
+
+    { name  => '(bug_id = 1 OR assigned_to = 2) '
+               . ' AND (bug_id = 2 OR assigned_to = 1)',
+      contains => [1,2], columns => ['assigned_to'],
+      params => [
+          { f => 'OP', j => 'OR' },
+            { f => 'bug_id',      o => 'equals', v => '<1>' },
+            { f => 'assigned_to', o => 'equals', v => '<2>' },
+          { f => 'CP' },
+          { f => 'OP', j => 'OR' },
+            { f => 'bug_id',      o => 'equals', v => '<2>' },
+            { f => 'assigned_to', o => 'equals', v => '<1>' },
+          { f => 'CP' },
+      ]
+    },
+
+    { name  => 'bug_id = 3 OR ( (bug_id = 1 OR assigned_to = 2) '
+               . ' AND (bug_id = 2 OR assigned_to = 1) )',
+      contains => [1,2,3], columns => ['assigned_to'],
+      top_params => { j_top => 'OR' },
+      params => [
+          { f => 'bug_id', o => 'equals', v => '<3>' },
+          { f => 'OP' },
+            { f => 'OP', j => 'OR' },
+              { f => 'bug_id',      o => 'equals', v => '<1>' },
+              { f => 'assigned_to', o => 'equals', v => '<2>' },
+            { f => 'CP' },
+            { f => 'OP', j => 'OR' },
+              { f => 'bug_id',      o => 'equals', v => '<2>' },
+              { f => 'assigned_to', o => 'equals', v => '<1>' },
+            { f => 'CP' },
+          { f => 'CP' },
+      ]
+    },
+
+    { name  => 'bug_id = 3 OR ( (bug_id = 1 OR assigned_to = 2) '
+               . ' AND (bug_id = 2 OR assigned_to = 1) ) OR bug_id = 4',
+      contains => [1,2,3,4], columns => ['assigned_to'],
+      top_params => { j_top => 'OR' },
+      params => [
+          { f => 'bug_id', o => 'equals', v => '<3>' },
+          { f => 'OP' },
+            { f => 'OP', j => 'OR' },
+              { f => 'bug_id',      o => 'equals', v => '<1>' },
+              { f => 'assigned_to', o => 'equals', v => '<2>' },
+            { f => 'CP' },
+            { f => 'OP', j => 'OR' },
+              { f => 'bug_id',      o => 'equals', v => '<2>' },
+              { f => 'assigned_to', o => 'equals', v => '<1>' },
+            { f => 'CP' },
+          { f => 'CP' },
+          { f => 'bug_id', o => 'equals', v => '<4>' },
+      ]
+    },
+
 );
 
 1;

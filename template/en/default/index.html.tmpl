@@ -135,7 +135,8 @@ addListener(window, 'load', onLoadActions);
         <form id="quicksearchForm" name="quicksearchForm" action="buglist.cgi"
               onsubmit="return checkQuicksearch(this);">
           <div>
-            <input tabindex=2 id="quicksearch_main" type="text" name="quicksearch" class="quicksearch_help_text"
+            <input id="quicksearch_main" type="text" name="quicksearch"
+              title="Quick Search" 
               onfocus="quicksearchHelpText(this.id, 'hide');"
               onblur="quicksearchHelpText(this.id, 'show');"
             >

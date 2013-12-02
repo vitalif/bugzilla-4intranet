@@ -58,7 +58,8 @@ var flags = new Array([% product.active_components.size %]);
     var last_initialqacontact;
 [% END %]
 [% count = 0 %]
-[%- FOREACH c = product.active_components %]
+[%- FOREACH c = product.components %]
+    [% NEXT IF NOT c.is_active %]
     components[[% count %]] = "[% c.name FILTER js %]";
     componentdefaultversions[[% count %]] = "[% c.default_version FILTER js %]";
     comp_desc[[% count %]] = "[% c.description FILTER html_light FILTER js %]";
@@ -651,10 +652,11 @@ function checkWorktime(inp)
       <td colspan="3">
         &nbsp;&nbsp;
         <input type="checkbox" id="comment_is_private" name="comment_is_private"
-          [% ' checked="checked"' IF comment_is_private %]>
+          [% ' checked="checked"' IF comment_is_private %]
+               onClick="updateCommentTagControl(this, 'comment')">
         <label for="comment_is_private">
-          Make description private (visible only to members of the 
-          <strong>[% Param('insidergroup') FILTER html %]</strong> group)
+          Make description and any new attachment private (visible only to members 
+          of the <strong>[% Param('insidergroup') FILTER html %]</strong> group)
         </label>
       </td>
     </tr>
@@ -665,21 +667,13 @@ function checkWorktime(inp)
   <tr>
     <th>Attachment:</th>
     <td colspan="3">
-      <script type="text/javascript">
-        <!--
-        document.write( '<div id="attachment_false">'
-                      +   '<input type="button" value="Add an attachment" '
-                      +          'onClick="handleWantsAttachment(true)"> '
-                      +   '<em style="display: none">This button has no '
-                      +   'functionality for you because your browser does '
-                      +   'not support CSS or does not use it.<\/em>'
-                      + '<\/div>'
-                      + '<div id="attachment_true" style="display: none">'
-                      +   '<input type="button" '
-                      +          'value="Don\'t add an attachment " '
-                      +          'onClick="handleWantsAttachment(false)">');
-        //-->
-      </script>
+      <div id="attachment_false" class="bz_default_hidden">
+        <input type="button" value="Add an attachment" onClick="handleWantsAttachment(true)">
+      </div>
+
+      <div id="attachment_true">
+        <input type="button" id="btn_no_attachment" value="Don't add an attachment"
+               class="bz_default_hidden"  onClick="handleWantsAttachment(false)">
         <fieldset>
           <legend>Add an attachment</legend>
           <table class="attachment_entry">
@@ -689,11 +683,7 @@ function checkWorktime(inp)
                        flag_table_id ="attachment_flags" %]
           </table>
         </fieldset>
-      <script type="text/javascript">
-        <!--
-        document.write('<\/div>');
-        //-->
-      </script>
+      </div>
     </td>
   </tr>
 </tbody>

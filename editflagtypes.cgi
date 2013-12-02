@@ -120,7 +120,7 @@ if (my ($category_action) = grep { $_ =~ /^categoryAction-(?:\w+)$/ } $cgi->para
         }
     }
 
-    $vars->{'groups'} = [Bugzilla::Group->get_all];
+    $vars->{'groups'} = get_settable_groups();
     $vars->{'action'} = $action;
 
     my $type = {};
@@ -224,7 +224,7 @@ if ($action eq 'enter') {
       if $user->in_group('editcomponents');
     $vars->{'can_fully_edit'} = 1;
     # Get a list of groups available to restrict this flag type against.
-    $vars->{'groups'} = [Bugzilla::Group->get_all];
+    $vars->{'groups'} = get_settable_groups();
 
     $template->process("admin/flag-type/edit.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
@@ -256,7 +256,7 @@ if ($action eq 'edit' || $action eq 'copy') {
     }
 
     # Get a list of groups available to restrict this flag type against.
-    $vars->{'groups'} = [Bugzilla::Group->get_all];
+    $vars->{'groups'} = get_settable_groups();
 
     $template->process("admin/flag-type/edit.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
@@ -486,6 +486,12 @@ sub get_editable_flagtypes {
     # Filter flag types if a group ID is given.
     $flagtypes = filter_group($flagtypes, $group_id);
     return $flagtypes;
+}
+
+sub get_settable_groups {
+    my $user = Bugzilla->user;
+    my $groups = $user->in_group('editcomponents') ? [Bugzilla::Group->get_all] : $user->groups;
+    return $groups;
 }
 
 sub filter_group {

@@ -230,6 +230,18 @@ sub real_table_list
     );
 }
 
+sub sql_string_until {
+    my ($self, $string, $substring) = @_;
+
+    # PostgreSQL does not permit a negative substring length; therefore we
+    # use CASE to only perform the SUBSTRING operation when $substring can
+    # be found withing $string.
+    my $position = $self->sql_position($substring, $string);
+    return "CASE WHEN $position != 0"
+             . " THEN SUBSTRING($string FROM 1 FOR $position - 1)"
+             . " ELSE $string END";
+}
+
 # Tell us whether or not a particular sequence exists in the DB.
 sub bz_sequence_exists {
     my ($self, $seq_name) = @_;
@@ -248,6 +260,19 @@ sub bz_explain {
 #####################################################################
 # Custom Database Setup
 #####################################################################
+
+sub bz_check_server_version {
+    my $self = shift;
+    my ($db) = @_;
+    my $server_version = $self->SUPER::bz_check_server_version(@_);
+    my ($major_version) = $server_version =~ /^(\d+)/;
+    # Pg 9 requires DBD::Pg 2.17.2 in order to properly read bytea values.
+    if ($major_version >= 9) {
+        local $db->{dbd}->{version} = '2.17.2';
+        local $db->{name} = $db->{name} . ' 9+';
+        Bugzilla::DB::_bz_check_dbd(@_);
+    }
+}
 
 sub bz_setup_database {
     my $self = shift;

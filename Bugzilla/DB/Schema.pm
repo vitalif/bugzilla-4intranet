@@ -279,8 +279,8 @@ use constant ABSTRACT_SCHEMA => {
             target_milestone    => {TYPE => 'varchar(20)',
                                     NOTNULL => 1, DEFAULT => "'---'"},
             qa_contact          => {TYPE => 'INT3',
-                                    REERENCES => {TABLE  => 'profiles',
-                                                  COLUMN => 'userid'}},
+                                    REFERENCES => {TABLE  => 'profiles',
+                                                   COLUMN => 'userid'}},
             status_whiteboard   => {TYPE => 'MEDIUMTEXT', NOTNULL => 1,
                                     DEFAULT => "''"},
             lastdiffed          => {TYPE => 'DATETIME'},
@@ -496,12 +496,35 @@ use constant ABSTRACT_SCHEMA => {
 
     bug_see_also => {
         FIELDS => [
-            bug_id => {TYPE => 'INT3', NOTNULL => 1},
+            id     => {TYPE => 'MEDIUMSERIAL', NOTNULL => 1,
+                       PRIMARYKEY => 1},
+            bug_id => {TYPE => 'INT3', NOTNULL => 1,
+                       REFERENCES => {TABLE  => 'bugs',
+                                      COLUMN => 'bug_id',
+                                      DELETE => 'CASCADE'}},
             value  => {TYPE => 'varchar(255)', NOTNULL => 1},
+            class  => {TYPE => 'varchar(255)', NOTNULL => 1},
         ],
         INDEXES => [
             bug_see_also_bug_id_idx => {FIELDS => [qw(bug_id value)], 
                                         TYPE   => 'UNIQUE'},
+        ],
+    },
+
+    # Auditing
+    # --------
+
+    audit_log => {
+        FIELDS => [
+            user_id   => {TYPE => 'INT3',
+                          REFERENCES => {TABLE  => 'profiles',
+                                         COLUMN => 'userid'}},
+            class     => {TYPE => 'varchar(255)', NOTNULL => 1},
+            object_id => {TYPE => 'INT4', NOTNULL => 1},
+            field     => {TYPE => 'varchar(64)', NOTNULL => 1},
+            removed   => {TYPE => 'MEDIUMTEXT'},
+            added     => {TYPE => 'MEDIUMTEXT'},
+            at_time   => {TYPE => 'DATETIME', NOTNULL => 1},
         ],
     },
 
@@ -860,6 +883,8 @@ use constant ABSTRACT_SCHEMA => {
             mybugslink     => {TYPE => 'BOOLEAN', NOTNULL => 1,
                                DEFAULT => 'TRUE'},
             extern_id      => {TYPE => 'varchar(64)'},
+            is_enabled     => {TYPE => 'BOOLEAN', NOTNULL => 1, 
+                               DEFAULT => 'TRUE'}, 
         ],
         INDEXES => [
             profiles_login_name_idx => {FIELDS => ['login_name'],
@@ -948,7 +973,6 @@ use constant ABSTRACT_SCHEMA => {
                                             DELETE => 'CASCADE'}},
             name         => {TYPE => 'varchar(64)', NOTNULL => 1},
             query        => {TYPE => 'LONGTEXT', NOTNULL => 1},
-            query_type   => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0},
         ],
         INDEXES => [
             namedqueries_userid_idx => {FIELDS => [qw(userid name)],
@@ -971,6 +995,36 @@ use constant ABSTRACT_SCHEMA => {
             namedqueries_link_in_footer_id_idx => {FIELDS => [qw(namedquery_id user_id)],
                                                    TYPE => 'UNIQUE'},
             namedqueries_link_in_footer_userid_idx => ['user_id'],
+        ],
+    },
+
+    tags => {
+        FIELDS => [
+            id   => {TYPE => 'MEDIUMSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
+            name => {TYPE => 'varchar(64)', NOTNULL => 1},
+            user_id  => {TYPE => 'INT3', NOTNULL => 1,
+                         REFERENCES => {TABLE  => 'profiles',
+                                        COLUMN => 'userid',
+                                        DELETE => 'CASCADE'}},
+        ],
+        INDEXES => [
+            tags_user_id_idx => {FIELDS => [qw(user_id name)], TYPE => 'UNIQUE'},
+        ],
+    },
+
+    bug_tag => {
+        FIELDS => [
+            bug_id => {TYPE => 'INT3', NOTNULL => 1,
+                       REFERENCES => {TABLE  => 'bugs',
+                                      COLUMN => 'bug_id',
+                                      DELETE => 'CASCADE'}},
+            tag_id => {TYPE => 'INT3', NOTNULL => 1,
+                       REFERENCES => {TABLE  => 'tags',
+                                      COLUMN => 'id',
+                                      DELETE => 'CASCADE'}},
+        ],
+        INDEXES => [
+            bug_tag_bug_id_idx => {FIELDS => [qw(bug_id tag_id)], TYPE => 'UNIQUE'},
         ],
     },
 
@@ -2120,8 +2174,8 @@ sub get_add_column_ddl {
         if defined $init_value;
 
     if (defined $definition->{REFERENCES}) {
-        push(@statements, $self->get_add_fk_sql($table, $column,
-                                                $definition->{REFERENCES}));
+        push(@statements, $self->get_add_fks_sql($table, { $column =>
+                                                           $definition->{REFERENCES} }));
     }
 
     return (@statements);

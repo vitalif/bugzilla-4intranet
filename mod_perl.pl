@@ -17,6 +17,7 @@
 
 package Bugzilla::ModPerl;
 use strict;
+use warnings;
 
 # This sets up our libpath without having to specify it in the mod_perl
 # configuration.
@@ -34,9 +35,11 @@ use lib Bugzilla::Constants::bz_locations()->{'ext_libpath'};
 # startup, so we always specify () after using any module in this
 # file.
 
+use Apache2::Log ();
 use Apache2::ServerUtil;
 use ModPerl::RegistryLoader ();
 use File::Basename ();
+use Math::Random::Secure;
 
 # This loads most of our modules.
 use Bugzilla ();
@@ -46,6 +49,10 @@ use Bugzilla::CGI ();
 use Bugzilla::Extension ();
 use Bugzilla::Install::Requirements ();
 use Bugzilla::Util ();
+
+# Make warnings go to the virtual host's log and not the main
+# server log.
+BEGIN { *CORE::GLOBAL::warn = \&Apache2::ServerRec::warn; }
 
 # Pre-compile the CGI.pm methods that we're going to use.
 Bugzilla::CGI->compile(qw(:cgi :push));
@@ -60,8 +67,12 @@ my $cgi_path = Bugzilla::Constants::bz_locations()->{'cgi_path'};
 # Set up the configuration for the web server
 my $server = Apache2::ServerUtil->server;
 my $conf = <<EOT;
-# Make sure each httpd child receives a different random seed (bug 476622)
-PerlChildInitHandler "sub { srand(); }"
+# Make sure each httpd child receives a different random seed (bug 476622).
+# Math::Random::Secure has one srand that needs to be called for
+# every process, and Perl has another. (Various Perl modules still use
+# the built-in rand(), even though we only use Math::Random::Secure in
+# Bugzilla itself, so we need to srand() both of them.)
+PerlChildInitHandler "sub { Math::Random::Secure::srand(); srand(); }"
 <Directory "$cgi_path">
     AddHandler perl-script .cgi
     # No need to PerlModule these because they're already defined in mod_perl.pl
@@ -85,6 +96,14 @@ my $rl = new ModPerl::RegistryLoader();
 # Bugzilla/ModPerl/ResponseHandler.pm
 $rl->{package} = 'Bugzilla::ModPerl::ResponseHandler';
 my $feature_files = Bugzilla::Install::Requirements::map_files_to_features();
+
+# Prevent "use lib" from doing anything when the .cgi files are compiled.
+# This is important to prevent the current directory from getting into
+# @INC and messing things up. (See bug 630750.)
+no warnings 'redefine';
+local *lib::import = sub {};
+use warnings;
+
 foreach my $file (glob "$cgi_path/*.cgi") {
     my $base_filename = File::Basename::basename($file);
     if (my $feature = $feature_files->{$base_filename}) {
@@ -106,10 +125,14 @@ sub handler : method {
     # here explicitly or init_page's shutdownhtml code won't work right.
     $0 = $ENV{'SCRIPT_FILENAME'};
 
-    if ($Bugzilla::RELOAD_MODULES)
-    {
-        reload();
-    }
+    # Prevent "use lib" from modifying @INC in the case where a .cgi file
+    # is being automatically recompiled by mod_perl when Apache is
+    # running. (This happens if a file changes while Apache is already
+    # running.)
+    no warnings 'redefine';
+    local *lib::import = sub {};
+    use warnings;
+
     Bugzilla::init_page();
     return $class->SUPER::handler(@_);
 }

@@ -149,6 +149,14 @@ sub get_param_list {
    checker => sub { $_[0] =~ /^[1-9]\d*$/so ? "" : "must be a positive integer value" },
   },
 
+  {
+   name => 'password_complexity',
+   type => 's',
+   choices => [ 'no_constraints', 'mixed_letters', 'letters_numbers',
+                'letters_numbers_specialchars' ],
+   default => 'no_constraints',
+   checker => \&check_multi
+  }
   );
   return @param_list;
 }

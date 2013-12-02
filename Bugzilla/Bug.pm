@@ -52,7 +52,7 @@ use Bugzilla::Status;
 use Bugzilla::Comment;
 use Bugzilla::BugUrl;
 
-use List::MoreUtils qw(firstidx uniq);
+use List::MoreUtils qw(firstidx uniq part);
 use List::Util qw(min max first);
 use Storable qw(dclone);
 use URI;
@@ -76,6 +76,8 @@ use constant DB_TABLE   => 'bugs';
 use constant ID_FIELD   => 'bug_id';
 use constant NAME_FIELD => 'alias';
 use constant LIST_ORDER => ID_FIELD;
+# Bugs have their own auditing table, bugs_activity.
+use constant AUDIT_UPDATES => 0;
 
 # This is a sub because it needs to call other subroutines.
 sub DB_COLUMNS
@@ -460,6 +462,26 @@ sub match {
     }
 
     return $class->SUPER::match(@_);
+}
+
+# Helps load up information for bugs for show_bug.cgi and other situations
+# that will need to access info on lots of bugs.
+sub preload {
+    my ($class, $bugs) = @_;
+    my $user = Bugzilla->user;
+
+    # It would be faster but MUCH more complicated to select all the
+    # deps for the entire list in one SQL statement. If we ever have
+    # a profile that proves that that's necessary, we can switch over
+    # to the more complex method.
+    my @all_dep_ids;
+    foreach my $bug (@$bugs) {
+        push(@all_dep_ids, @{ $bug->blocked }, @{ $bug->dependson });
+    }
+    @all_dep_ids = uniq @all_dep_ids;
+    # If we don't do this, can_see_bug will do one call per bug in
+    # the dependency lists, during get_bug_link in Bugzilla::Template.
+    $user->visible_bugs(\@all_dep_ids);
 }
 
 sub possible_duplicates {
@@ -1207,28 +1229,17 @@ sub update
     }
 
     # See Also
-    my @old_see_also = @{ $old_bug->see_also };
-    foreach my $field_values (@{ $self->{added_see_also} || [] }) {
-        my $class = delete $field_values->{class};
-        $class->insert_create_data($field_values);
-        push @{ $self->see_also }, $field_values->{value};
-    }
 
-    delete $self->{added_see_also};
+    my ($removed_see, $added_see) =
+        diff_arrays($old_bug->see_also, $self->see_also, 'name');
 
-    my ($removed_see, $added_see) = 
-        diff_arrays(\@old_see_also, $self->see_also);
-
-    if (scalar @$removed_see) {
-        $dbh->do('DELETE FROM bug_see_also WHERE bug_id = ? AND '
-                 . $dbh->sql_in('value', [('?') x @$removed_see]),
-                  undef, $self->id, @$removed_see);
-    }
+    $_->remove_from_db foreach @$removed_see;
+    $_->insert_create_data($_) foreach @$added_see;
 
     # If any changes were found, record it in the activity log
     if (scalar @$removed_see || scalar @$added_see) {
-        $changes->{see_also} = [join(', ', @$removed_see),
-                                join(', ', @$added_see)];
+        $changes->{see_also} = [join(', ', map { $_->name } @$removed_see),
+                                join(', ', map { $_->name } @$added_see)];
     }
 
     # Log bugs_activity items
@@ -1850,18 +1861,17 @@ sub _check_groups {
         $add_groups{$id} = 1 if $permit;
     }
 
-    foreach my $id (keys %$controls) {
-        next unless $controls->{$id}->{'group'}->is_active;
-        my $membercontrol = $controls->{$id}->{membercontrol} || 0;
-        my $othercontrol  = $controls->{$id}->{othercontrol}  || 0;
+        # First check all the groups they chose to set.
+        foreach my $name (@$group_names) {
+            my $group = Bugzilla::Group->check(
+                { name => $name, product => $product,
+                  _error => 'group_restriction_not_allowed' });
 
-        # Add groups required
-        if ($membercontrol == CONTROLMAPMANDATORY
-            || ($othercontrol == CONTROLMAPMANDATORY
-                && !$user->in_group_id($id)))
-        {
-            # User had no option, bug needs to be in this group.
-            $add_groups{$id} = 1;
+            if (!$product->group_is_settable($group)) {
+                ThrowUserError('group_restriction_not_allowed',
+                               { name => $name, product => $product });
+            }
+            $add_groups{$group->id} = $group;
         }
     }
 
@@ -2130,6 +2140,17 @@ sub _check_strict_isolation_for_user {
                          product => $self->product,
                          bug_id  => $self->id });
     }
+}
+
+sub _check_tag_name {
+    my ($invocant, $tag) = @_;
+
+    $tag = clean_text($tag);
+    $tag || ThrowUserError('no_tag_to_edit');
+    ThrowUserError('tag_name_too_long') if length($tag) > MAX_LEN_QUERY_NAME;
+    trick_taint($tag);
+    # Tags are all lowercase.
+    return lc($tag);
 }
 
 sub _check_target_milestone
@@ -2455,7 +2476,13 @@ sub _set_global_validator {
 # other_bugs to set_all in order for it to behave properly.
 sub set_all {
     my $self = shift;
-    my ($params) = @_;
+    my ($input_params) = @_;
+    
+    # Clone the data as we are going to alter it, and this would affect
+    # subsequent bugs when calling set_all() again, as some fields would
+    # be modified or no longer defined.
+    my $params = {};
+    %$params = %$input_params;
 
     # You cannot mark bugs as duplicate when changing several bugs at once
     # (because currently there is no way to check for duplicate loops in that
@@ -2657,6 +2684,8 @@ sub set_dependencies {
     detaint_natural($_) foreach (@$dependson, @$blocked);
     $self->{'dependson'} = $dependson;
     $self->{'blocked'}   = $blocked;
+    delete $self->{depends_on_obj};
+    delete $self->{blocks_obj};
 }
 sub _clear_dup_id { $_[0]->{dup_id} = undef; }
 sub set_dup_id {
@@ -2887,6 +2916,10 @@ sub remove_cc {
     my ($self, $user_or_name) = @_;
     my $user = ref $user_or_name ? $user_or_name
                                  : Bugzilla::User->check($user_or_name);
+    my $currentUser = Bugzilla->user;
+    if (!$self->user->{'canedit'} && $user->id != $currentUser->id) {
+        ThrowUserError('cc_remove_denied');
+    }
     my $cc_users = $self->cc_users;
     @$cc_users = grep { $_->id != $user->id } @$cc_users;
 }
@@ -3082,32 +3115,36 @@ sub remove_group {
 
 sub add_see_also {
     my ($self, $input) = @_;
+
+    # This is needed by xt/search.t.
+    $input = $input->name if blessed($input);
+
     $input = trim($input);
 
     my ($class, $uri) = Bugzilla::BugUrl->class_for($input);
 
-    my $params = { value => $uri, bug_id => $self };
+    my $params = { value => $uri, bug_id => $self, class => $class };
     $class->check_required_create_fields($params);
 
     my $field_values = $class->run_create_validators($params);
     $uri = $field_values->{value};
     $field_values->{value} = $uri->as_string;
-    $field_values->{class} = $class;
 
     # If this is a link to a local bug then save the
     # ref bug id for sending changes email.
     if ($class->isa('Bugzilla::BugUrl::Bugzilla::Local')) {
         my $ref_bug = $field_values->{ref_bug};
-        my $self_url = $class->local_uri . $self->id;
+        my $self_url = $class->local_uri($self->id);
         push @{ $self->{see_also_changes} }, $ref_bug->id
-            if !grep { $_ eq $self_url } @{ $ref_bug->see_also };
+            if !grep { $_->name eq $self_url } @{ $ref_bug->see_also };
     }
 
     # We only add the new URI if it hasn't been added yet. URIs are
     # case-sensitive, but most of our DBs are case-insensitive, so we do
     # this check case-insensitively.
     my $value = $uri->as_string;
-    if (!grep { lc($_) eq lc($value) } @{ $self->see_also }) {
+
+    if (!grep { lc($_->name) eq lc($value) } @{ $self->see_also }) {
         my $privs;
         my $can = $self->check_can_change_field('see_also', '', $value, \$privs);
         if (!$can) {
@@ -3116,22 +3153,111 @@ sub add_see_also {
                                                privs    => $privs });
         }
 
-        push @{ $self->{added_see_also} }, $field_values;
+        push @{ $self->{see_also} }, bless ($field_values, $class);
     }
 }
 
 sub remove_see_also {
     my ($self, $url) = @_;
     my $see_also = $self->see_also;
-    my @new_see_also = grep { lc($_) ne lc($url) } @$see_also;
+
+    # This is needed by xt/search.t.
+    $url = $url->name if blessed($url);
+
+    my ($removed_bug_url, $new_see_also) =
+        part { lc($_->name) ne lc($url) } @$see_also;
+ 
+    # Since we remove also the url from the referenced bug,
+    # we need to notify changes for that bug too.
+    $removed_bug_url = $removed_bug_url->[0];
+    if ($removed_bug_url->isa('Bugzilla::BugUrl::Bugzilla::Local')
+        and defined $removed_bug_url->ref_bug_url)
+    {
+        push @{ $self->{see_also_changes} },
+             $removed_bug_url->ref_bug_url->bug_id;
+    }
+
     my $privs;
-    my $can = $self->check_can_change_field('see_also', $see_also, \@new_see_also, \$privs);
+    my $can = $self->check_can_change_field('see_also', $see_also, $new_see_also, \$privs);
     if (!$can) {
         ThrowUserError('illegal_change', { field    => 'see_also',
                                            oldvalue => $url,
                                            privs    => $privs });
-        }
-    $self->{see_also} = \@new_see_also;
+    }
+
+    $self->{see_also} = $new_see_also || [];
+}
+
+sub add_tag {
+    my ($self, $tag) = @_;
+    my $dbh = Bugzilla->dbh;
+    my $user = Bugzilla->user;
+    $tag = $self->_check_tag_name($tag);
+
+    my $tag_id = $user->tags->{$tag}->{id};
+    # If this tag doesn't exist for this user yet, create it.
+    if (!$tag_id) {
+        $dbh->do('INSERT INTO tags (user_id, name) VALUES (?, ?)',
+                  undef, ($user->id, $tag));
+
+        $tag_id = $dbh->selectrow_array('SELECT id FROM tags
+                                         WHERE name = ? AND user_id = ?',
+                                         undef, ($tag, $user->id));
+        # The list has changed.
+        delete $user->{tags};
+    }
+    # Do nothing if this tag is already set for this bug.
+    return if grep { $_ eq $tag } @{$self->tags};
+
+    # Increment the counter. Do it before the SQL call below,
+    # to not count the tag twice.
+    $user->tags->{$tag}->{bug_count}++;
+
+    $dbh->do('INSERT INTO bug_tag (bug_id, tag_id) VALUES (?, ?)',
+              undef, ($self->id, $tag_id));
+
+    push(@{$self->{tags}}, $tag);
+}
+
+sub remove_tag {
+    my ($self, $tag) = @_;
+    my $dbh = Bugzilla->dbh;
+    my $user = Bugzilla->user;
+    $tag = $self->_check_tag_name($tag);
+
+    my $tag_id = exists $user->tags->{$tag} ? $user->tags->{$tag}->{id} : undef;
+    # Do nothing if the user doesn't use this tag, or didn't set it for this bug.
+    return unless ($tag_id && grep { $_ eq $tag } @{$self->tags});
+
+    $dbh->do('DELETE FROM bug_tag WHERE bug_id = ? AND tag_id = ?',
+              undef, ($self->id, $tag_id));
+
+    $self->{tags} = [grep { $_ ne $tag } @{$self->tags}];
+
+    # Decrement the counter, and delete the tag if no bugs are using it anymore.
+    if (!--$user->tags->{$tag}->{bug_count}) {
+        $dbh->do('DELETE FROM tags WHERE name = ? AND user_id = ?',
+                  undef, ($tag, $user->id));
+
+        # The list has changed.
+        delete $user->{tags};
+    }
+}
+
+sub tags {
+    my $self = shift;
+    my $dbh = Bugzilla->dbh;
+    my $user = Bugzilla->user;
+
+    # This method doesn't support several users using the same bug object.
+    if (!exists $self->{tags}) {
+        $self->{tags} = $dbh->selectcol_arrayref(
+            'SELECT name FROM bug_tag
+             INNER JOIN tags ON tags.id = bug_tag.tag_id
+             WHERE bug_id = ? AND user_id = ?',
+             undef, ($self->id, $user->id));
+    }
+    return $self->{tags};
 }
 
 #####################################################################
@@ -3293,6 +3419,12 @@ sub blocked {
     return $self->{'blocked'};
 }
 
+sub blocks_obj {
+    my ($self) = @_;
+    $self->{blocks_obj} ||= $self->_bugs_in_order($self->blocked);
+    return $self->{blocks_obj};
+}
+
 sub bug_group {
     my ($self) = @_;
     return join(', ', (map { $_->name } @{$self->groups_in}));
@@ -3386,6 +3518,12 @@ sub dependson {
     return $self->{'dependson'};
 }
 
+sub depends_on_obj {
+    my ($self) = @_;
+    $self->{depends_on_obj} ||= $self->_bugs_in_order($self->dependson);
+    return $self->{depends_on_obj};
+}
+
 sub flag_types {
     my ($self) = @_;
     return $self->{'flag_types'} if exists $self->{'flag_types'};
@@ -3450,8 +3588,8 @@ sub comments {
     }
     my @comments = @{ $self->{'comments'} };
 
-    my $order = $params->{order}
-        || Bugzilla->user->settings->{'comment_sort_order'}->{'value'};
+    my $order = $params->{order} 
+        || Bugzilla->user->setting('comment_sort_order');
     if ($order ne 'oldest_to_newest') {
         @comments = reverse @comments;
         if ($order eq 'newest_to_oldest_desc_first') {
@@ -3532,9 +3670,16 @@ sub reporter {
 sub see_also {
     my ($self) = @_;
     return [] if $self->{'error'};
-    $self->{'see_also'} ||= Bugzilla->dbh->selectcol_arrayref(
-        'SELECT value FROM bug_see_also WHERE bug_id = ?', undef, $self->id);
-    return $self->{'see_also'};
+    if (!defined $self->{see_also}) {
+        my $ids = Bugzilla->dbh->selectcol_arrayref(
+            'SELECT id FROM bug_see_also WHERE bug_id = ?',
+            undef, $self->id);
+
+        my $bug_urls = Bugzilla::BugUrl->new_from_list($ids);
+
+        $self->{see_also} = $bug_urls;
+    }
+    return $self->{see_also};
 }
 
 sub status {
@@ -3865,6 +4010,15 @@ sub ValidateTime
     }
 
     return $time;
+}
+
+# Creates a lot of bug objects in the same order as the input array.
+sub _bugs_in_order {
+    my ($self, $bug_ids) = @_;
+    my $bugs = $self->new_from_list($bug_ids);
+    my %bug_map = map { $_->id => $_ } @$bugs;
+    my @result = map { $bug_map{$_} } @$bug_ids;
+    return \@result;
 }
 
 # Get the activity of a bug, starting from $starttime (if given).

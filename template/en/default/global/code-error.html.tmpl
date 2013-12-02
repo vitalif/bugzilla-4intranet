@@ -116,6 +116,521 @@
   the error [% bug.error FILTER html %].
 [% END %]
 
+[% BLOCK error_auth_invalid_email %]
+  [% title = "Invalid Email Address" %]
+  We received an email address (<b>[% addr FILTER html %]</b>)
+  that didn't pass our syntax checking for a legal email address,
+  when trying to create or update your account.
+  [% IF default %]
+    A legal address must contain exactly one '@',
+    and at least one '.' after the @.
+  [% ELSE %]
+    [%+ Param('emailregexpdesc') %]
+  [% END %]
+  It must also not contain any of these special characters:
+  <tt>\ ( ) &amp; &lt; &gt; , ; : &quot; [ ]</tt>, or any whitespace.
+[% END %]
+
+[% BLOCK error_authres_unhandled %]
+  The result value of [% value FILTER html %] was not handled by
+  the login code.
+[% END %]
+
+[% BLOCK error_bad_page_cgi_id %]
+  [% title = "Invalid Page ID" %]
+  The ID <code>[% page_id FILTER html %]</code> is not a
+  valid page identifier.
+[% END %]
+
+[% BLOCK error_bad_arg %]
+  Bad argument <code>[% argument FILTER html %]</code> sent to
+  <code>[% function FILTER html %]</code> function.
+[% END %]
+
+[% BLOCK error_bug_error %]
+  Trying to retrieve [% terms.bug %] [%+ bug.bug_id FILTER html %] returned 
+  the error [% bug.error FILTER html %].
+[% END %]
+
+[% BLOCK error_chart_data_not_generated %]
+  [% admindocslinks = {'extraconfig.html' => 'Setting up Charting'} %]
+  [% IF product %]
+    Charts for the <em>[% product FILTER html %]</em> product are not
+    available yet because no charting data has been collected for it since it
+    was created.
+  [% ELSE %]
+    No charting data has been collected yet.
+  [% END %]
+  Please wait a day and try again.
+  If you're seeing this message after a day, then you should contact
+  <a href="mailto:[% Param('maintainer') %]">[% Param('maintainer') %]</a>
+  and reference this error.
+[% END %]
+
+[% BLOCK error_bug_error %]
+  The chart data file [% file FILTER html %] is corrupt.
+[% END %]
+
+[% BLOCK error_chart_dir_nonexistent %]
+  One of the directories <tt>[% dir FILTER html %]</tt> and 
+  <tt>[% graph_dir FILTER html %]</tt> does not exist.
+[% END %]
+
+[% BLOCK error_chart_file_open_fail %]
+  Unable to open the chart datafile <tt>[% filename FILTER html %]</tt>.
+[% END %]
+
+[% BLOCK error_column_alter_nonexistent_fk %]
+  You attempted to modify the foreign key for 
+  [%+ table FILTER html %].[% column FILTER html %], but there is
+  no foreign key on that column.
+[% END %]
+
+[% BLOCK error_column_not_null_without_default %]
+  Failed adding the column [% name FILTER html %]:
+  You cannot add a NOT NULL column with no default to an existing table
+  unless you specify something for the <code>$init_value</code> argument.
+[% END %]
+
+[% BLOCK error_column_not_null_without_default %]
+  You cannot alter the [% name FILTER html %] column to be NOT NULL 
+  without specifying a default or something for $set_nulls_to, because
+  there are NULL values currently in it.
+[% END %]
+
+[% BLOCK error_comment_extra_data_not_allowed %]
+  You tried to set the <code>extra_data</code> field to 
+  '[% extra_data FILTER html %]' but comments of type [% type FILTER html %]
+  do not accept an <code>extra_data</code> argument.
+[% END %]
+
+[% BLOCK error_comment_extra_data_required %]
+  Comments of type [% type FILTER html %] require an <code>extra_data</code>
+  argument to be set.
+[% END %]
+
+[% BLOCK error_comment_extra_data_not_numeric %]
+  You tried to set the <code>extra_data</code> field to
+  '[% extra_data FILTER html %]' but comments of type [% type FILTER html %]
+  require a numeric <code>extra_data</code> argument.
+[% END %]
+
+[% BLOCK error_comment_type_invalid %]
+  '[% type FILTER html %]' is not a valid comment type.
+[% END %]
+
+[% BLOCK error_db_rename_conflict %]
+  Name conflict: Cannot rename [% old FILTER html %] to
+  [% new FILTER html %] because [% new FILTER html %] already exists.
+[% END %]
+
+[% BLOCK error_cookies_need_value %]
+  Every cookie must have a value.
+[% END %]
+
+[% BLOCK error_env_no_email %]
+  [% terms.Bugzilla %] did not receive an email address from the 
+  environment.
+  [% IF Param("auth_env_email") %]
+    This means that the '[% Param("auth_env_email") FILTER html %]'
+    environment variable was empty or did not exist.
+  [% ELSE %]
+    You need to set the "auth_env_email" parameter to the name of
+    the environment variable that will contain the user's email
+    address.
+  [% END %]
+[% END %]
+
+[% BLOCK error_extension_disabled %]
+  [% title = "Extension Disabled" %]
+  You cannot access this page because the extension '[% name FILTER html %]'
+  is disabled.
+[% END %]
+
+[% BLOCK error_extension_must_be_subclass %]
+  <code>[% package FILTER html %]</code> from 
+  <code>[% filename FILTER html %]</code> is not a subclass of
+  <code>[% class FILTER html %]</code>.
+[% END %]
+
+[% BLOCK error_extension_must_return_name %]
+  <code>[% extension FILTER html %]</code> returned
+  <code>[% returned FILTER html %]</code>, which is not a valid name
+  for an extension. Extensions must return their name, not <code>1</code>
+  or a number. See the documentation of
+  <a href="[% docs_urlbase FILTER html %]api/Bugzilla/Extension.html">Bugzilla::Extension</a>
+  for details.
+[% END %]
+
+[% BLOCK error_extension_no_name %]
+  We did not find a <code>NAME</code> method in 
+  <code>[% package FILTER html %]</code> (loaded from
+  <code>[% filename FILTER html %]</code>). This means that
+  the extension has one or more of the following problems:
+
+  <ul>
+    <li><code>[% filename FILTER html %]</code> did not define a
+      <code>[% package FILTER html %]</code> package.</li>
+    <li><code>[% package FILTER html %]</code> did not define a
+      <code>NAME</code> method (or the <code>NAME</code> method
+      returned an empty string).</li>
+  </ul>
+[% END %]
+
+[% BLOCK error_extern_id_conflict %]
+  The external ID '[% extern_id FILTER html %]' already exists
+  in the database for '[% username FILTER html %]', but your
+  account source says that '[% extern_user FILTER html %]' has that ID.
+[% END %]
+
+[% BLOCK error_field_choice_must_use_type %]
+  When you call a class method on <code>Bugzilla::Field::Choice</code>,
+  you must call <code>Bugzilla::Field::Choice-&gt;type('some_field')</code>
+  to generate the right class (you can't call class methods directly
+  on Bugzilla::Field::Choice).
+[% END %]
+
+[% BLOCK error_field_not_custom %]
+  '[% field.description FILTER html %]' ([% field.name FILTER html %])
+  is not a custom field.
+[% END %]
+
+[% BLOCK error_field_type_not_specified %]
+  [% title = "Field Type Not Specified" %]
+  You must specify a type when creating a custom field.
+[% END %]
+
+[% BLOCK error_illegal_content_type_method %]
+  Your form submission got corrupted somehow.  The <em>content
+  method</em> field, which specifies how the content type gets determined,
+  should have been either <em>autodetect</em>, <em>list</em>,
+  or <em>manual</em>, but was instead
+  <em>[% contenttypemethod FILTER html %]</em>.
+[% END %]
+
+[% BLOCK error_illegal_field %]
+  A legal [% field FILTER html %] was not set.
+[% END %]
+
+[% BLOCK error_invalid_attach_id_to_obsolete %]
+   The attachment number of one of the attachments you wanted to obsolete,
+   [% attach_id FILTER html %], is invalid.
+[% END %]
+
+[% BLOCK error_invalid_customfield_type %]
+  [% title = "Invalid Field Type" %]
+  The type <em>[% type FILTER html %]</em> is not a valid field type.
+[% END %]
+
+[% BLOCK error_invalid_dimensions %]
+  [% title = "Invalid Dimensions" %]
+  The width or height specified is not a positive integer.
+[% END %]
+
+[% BLOCK error_invalid_feature %]
+  [% title = "Invalid Feature Name" %]
+  [% feature FILTER html %] is not a valid feature name. See
+  <code>OPTIONAL_MODULES</code> in 
+  <code>Bugzilla::Install::Requirements</code> for valid names.
+[% END %]
+
+[% BLOCK error_invalid_flag_association %]
+  [% title = "Invalid Flag Association" %]
+  Some flags do not belong to
+  [% IF attach_id %]
+    attachment [% attach_id FILTER html %].
+  [% ELSE %]
+    [%+ terms.bug %] [%+ bug_id FILTER html %].
+  [% END %]
+[% END %]
+
+[% BLOCK error_invalid_series_id %]
+  [% title = "Invalid Series" %]
+  The series_id [% series_id FILTER html %] is not valid. It may be that
+  this series has been deleted.
+[% END %]
+
+[% BLOCK error_invalid_timestamp %]
+  The entered timestamp <code>[% timestamp FILTER html %]</code> could not
+  be parsed into a valid date and time.
+[% END %]
+
+[% BLOCK error_invalid_webservergroup %]
+  There is no such group: [% group FILTER html %]. Check your $webservergroup
+  setting in [% constants.bz_locations.localconfig FILTER html %].
+[% END %]
+
+[% BLOCK error_mismatched_bug_ids_on_obsolete %]
+  Attachment [% attach_id FILTER html %] ([% description FILTER html %]) 
+  is attached to [% terms.bug %] [%+ attach_bug_id FILTER html %], 
+  but you tried to flag it as obsolete while creating a new attachment to 
+  [% terms.bug %] [%+ my_bug_id FILTER html %].
+[% END %]
+
+[% BLOCK error_feature_disabled %]
+  The [% install_string("feature_$feature") FILTER html %] feature is not
+  available in this [% terms.Bugzilla %]. 
+  [% IF user.in_group('admin') %]
+    If you would like to enable this feature, please run 
+    <kbd>checksetup.pl</kbd> to see how to install the necessary
+    requirements for this feature.
+  [% END %]
+[% END %]
+
+[% BLOCK error_flag_unexpected_object %]
+  [% title = "Object Not Recognized" %]
+  Flags cannot be set for objects of type [% caller FILTER html %].
+  They can only be set for [% terms.bugs %] and attachments.
+[% END %]
+
+[% BLOCK error_flag_requestee_disabled %]
+  [% title = "Flag not Requestable from Specific Person" %]
+  You can't ask a specific person for
+  <em>[% type.name FILTER html %]</em>.
+[% END %]
+
+[% BLOCK error_flag_type_inactive %]
+  [% title = "Inactive Flag Type" %]
+  The flag type [% type FILTER html %] is inactive and cannot be used
+  to create new flags.
+[% END %]
+
+[% BLOCK error_flag_type_target_type_invalid %]
+  The target type was neither <em>[% terms.bug %]</em> nor <em>attachment</em>
+  but rather <em>[% target_type FILTER html %]</em>.
+[% END %]
+
+[% BLOCK error_invalid_field_name %]
+  Can't use [% field FILTER html %] as a field name.
+[% END %]
+
+[% BLOCK error_invalid_keyword_id %]
+  The keyword ID <em>[% id FILTER html %]</em> couldn't be
+  found.
+[% END %]
+
+[% BLOCK error_invalid_user %]
+  [% title = "Invalid User" %]
+  There is no user account
+  [% IF user_id %]
+    with ID <em>[% user_id FILTER html %]</em>.
+  [% ELSIF user_login %]
+    with login name <em>[% user_login FILTER html %]</em>.
+  [% ELSE %]
+    given.
+  [% END %]
+[% END %]
+
+[% BLOCK error_jobqueue_insert_failed %]
+  [% title = "Job Queue Failure" %]
+  Inserting a <code>[% job FILTER html %]</code> job into the Job 
+  Queue failed with the following error: [% errmsg FILTER html %]
+[% END %]
+
+[% BLOCK error_jobqueue_no_job_mapping %]
+  <code>Bugzilla::JobQueue</code> has not been configured to handle
+  the job "[% job FILTER html %]".  You need to add this job type
+  to the <code>JOB_MAP</code> constant in <code>Bugzilla::JobQueue</code>,
+  perhaps by using the 'job_map' hook.
+[% END %]
+
+[% BLOCK error_ldap_bind_failed %]
+  Failed to bind to the LDAP server. The error message was: 
+  <code>[% errstr FILTER html %]</code>
+[% END %]
+
+[% BLOCK error_ldap_cannot_retreive_attr %]
+  The specified LDAP attribute [% attr FILTER html %] was not found.
+[% END %]
+
+[% BLOCK error_ldap_connect_failed %]
+  Could not connect to the LDAP server(s) <code>[% server FILTER html %]</code>.
+[% END %]
+
+[% BLOCK error_ldap_start_tls_failed %]
+  Could not start TLS with LDAP server: <code>[% error FILTER html %]</code>.
+[% END %]
+
+[% BLOCK error_ldap_search_error %]
+  An error occurred while trying to search LDAP for 
+  &quot;[% username FILTER html %]&quot;: 
+  [% IF errstr %]
+    <code>[% errstr FILTER html %]</code>
+  [% ELSE %]
+    Unable to find user in LDAP
+  [% END %]
+[% END %]
+
+[% BLOCK error_ldap_server_not_defined %]
+  The LDAP server for authentication has not been defined.
+[% END %]
+
+[% BLOCK error_mail_send_error %]
+  There was an error sending mail from '[% mail.header('From') FILTER html %]'
+  to '[% mail.header('To') FILTER html %]':
+  [% msg FILTER html %]
+[% END %]
+
+[% BLOCK error_missing_bug_id %]
+  No [% terms.bug %] ID was given.
+[% END %]
+
+[% BLOCK error_missing_series_id %]
+  Having inserted a series into the database, no series_id was returned for
+  it. Series: [% series.category FILTER html %] / 
+  [%+ series.subcategory FILTER html %] / 
+  [%+ series.name FILTER html %].
+[% END %]
+
+[% BLOCK error_need_quipid %]
+  A valid quipid is needed.
+[% END %]
+
+[% BLOCK error_object_dep_sort_loop %]
+  There is a loop in VALIDATOR_DEPENDENCIES involving
+  '[%+ field FILTER html %]'. Here are the fields we considered:
+  [%+ considered.join(', ') FILTER html %].
+[% END %]
+
+[% BLOCK error_param_invalid %]
+  [% title = "Invalid Parameter" %]
+  <code>[% param FILTER html %]</code> is not a valid parameter
+  for the [% function FILTER html %] function.
+[% END %]
+
+[% BLOCK error_param_must_be_numeric %]
+  [% title = "Invalid Parameter" %]
+  Invalid parameter <code>[% param FILTER html %]</code> passed to 
+  <code>[% function FILTER html %]</code>: It must be numeric.
+[% END %]
+
+[% BLOCK error_param_required %]
+  [% title = "Missing Parameter" %]
+  The function <code>[% function FILTER html %]</code> requires
+  a <code>[% param FILTER html %]</code> argument, and that
+  argument was not set.
+[% END %]
+
+[% BLOCK error_params_required %]
+  [% title = "Missing Parameter" %]
+  The function <code>[% function FILTER html %]</code> requires
+  that you set one of the following parameters:
+  <code>[% params.join(', ') FILTER html %]</code>
+[% END %]
+
+[% BLOCK error_product_empty_group_controls %]
+  [% title = "Missing Group Controls" %]
+  New settings must be defined to edit group controls for
+  the [% group.name FILTER html %] group.
+[% END %]
+
+[% BLOCK error_product_illegal_group_control %]
+  [% title = "Illegal Group Control" %]
+  '[% value FILTER html %]' is not a legal value for
+  the '[% field FILTER html %]' field.
+[% END %]
+
+[% BLOCK error_protection_violation %]
+  The function <code>[% function FILTER html %]</code> was called
+
+  [% IF argument %]
+      with the argument <code>[% argument FILTER html %]</code>
+  [% END %]
+
+  from
+
+  [% IF caller %]
+      <code>[%+ caller FILTER html %]</code>, which is
+  [% END %]
+
+  outside the package. This function may only be called from
+  a subclass of <code>[% superclass FILTER html %]</code>.
+[% END %]
+
+[% BLOCK error_radius_preparation_error %]
+  An error occurred while preparing for a RADIUS authentication request:
+  <code>[% errstr FILTER html %]</code>.
+[% END %]
+
+[% BLOCK error_report_axis_invalid %]
+  <em>[% val FILTER html %]</em> is not a valid value for 
+  [%+ IF    fld == "x" %]the horizontal axis
+  [%+ ELSIF fld == "y" %]the vertical axis
+  [%+ ELSIF fld == "z" %]the multiple tables/images
+  [%+ ELSE %]a report axis[% END %] field.
+[% END %]
+
+[% BLOCK error_search_cp_without_op %]
+  Search argument f[% id FILTER html %] is "CP" but there is no
+  matching "OP" before it.
+[% END %]
+
+[% BLOCK error_search_invalid_joiner %]
+  '[% joiner FILTER html %]' is not a valid joiner for a search.
+[% END %]
+
+[% BLOCK error_setting_info_invalid %]
+  To create a new setting, you must supply a setting name, a list of 
+  value/sortindex pairs, and the default value.
+[% END %]
+
+[% BLOCK error_setting_name_invalid %]
+  The setting name <em>[% name FILTER html %]</em> is not a valid
+  option. Setting names must begin with a letter, and contain only
+  letters, digits, or the symbols '_', '-', '.', or ':'.
+[% END %]
+
+[% BLOCK error_setting_subclass_invalid %]
+  There is no such Setting subclass as
+  <code>[% subclass FILTER html %]</code>.
+[% END %]
+
+[% BLOCK error_setting_value_invalid %]
+  The value "<code>[% value FILTER html %]</code>" is not in the list of
+  legal values for the <em>[% name FILTER html %]</em> setting.
+[% END %]
+
+[% BLOCK error_token_generation_error %]
+  Something is seriously wrong with the token generation system.
+[% END %]
+
+[% BLOCK error_template_error %]
+  [% template_error_msg FILTER html %]
+[% END %]
+
+[% BLOCK error_template_invalid %]
+  Template with invalid file name found in hook call: [% name FILTER html %].
+[% END %]
+
+[% BLOCK error_unable_to_retrieve_password %]
+  I was unable to retrieve your old password from the database.
+[% END %]
+
+[% BLOCK error_undefined_field %]
+  Form field [% field FILTER html %] was not defined.
+[% END %]
+
+[% BLOCK error_unknown_method %]
+  The requested method '[% method FILTER html %]' was not found.
+[% END %]
+
+[% BLOCK error_usage_mode_invalid %]
+  '[% invalid_usage_mode FILTER html %]' is not a valid usage mode.
+[% END %]
+
+[% BLOCK error_must_be_patch %]
+  [% title = "Attachment Must Be Patch" %]
+  Attachment #[% attach_id FILTER html %] must be a patch.
+[% END %]
+
+[% BLOCK error_not_in_transaction %]
+  Attempted to end transaction without starting one first.
+[% END %]
+
+[% BLOCK error_invalid_post_bug_submit_action %]
+  Invalid setting for post_bug_submit_action
+[% END %]
+
 [% BLOCK error_chart_data_not_generated %]
   [% admindocslinks = {'extraconfig.html' => 'Setting up Charting'} %]
   [% IF product %]

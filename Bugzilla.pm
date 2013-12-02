@@ -117,6 +117,10 @@ use constant SHUTDOWNHTML_EXIT_SILENTLY => qw(
     whine.pl
 );
 
+# shutdownhtml pages are sent as an HTTP 503. After how many seconds
+# should search engines attempt to index the page again?
+use constant SHUTDOWNHTML_RETRY_AFTER => 3600;
+
 #####################################################################
 # Hack into buggy Encode::MIME::Header
 #####################################################################
@@ -306,7 +310,12 @@ sub init_page {
         else {
             $extension = 'txt';
         }
-        print Bugzilla->cgi->header() if i_am_cgi();
+        if (i_am_cgi()) {
+            # Set the HTTP status to 503 when Bugzilla is down to avoid pages
+            # being indexed by search engines.
+            print Bugzilla->cgi->header(-status => 503, 
+                -retry_after => SHUTDOWNHTML_RETRY_AFTER);
+        }
         my $t_output;
         $template->process("global/message.$extension.tmpl", $vars, \$t_output)
             || ThrowTemplateError($template->error);
@@ -1003,6 +1012,12 @@ sub _cleanup {
         $dbh->disconnect;
     }
     undef $_request_cache;
+
+    # These are both set by CGI.pm but need to be undone so that
+    # Apache can actually shut down its children if it needs to.
+    foreach my $signal (qw(TERM PIPE)) {
+        $SIG{$signal} = 'DEFAULT' if $SIG{$signal} && $SIG{$signal} eq 'IGNORE';
+    }
 }
 
 sub END {

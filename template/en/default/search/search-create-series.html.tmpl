@@ -31,7 +31,7 @@
 [% PROCESS global/header.html.tmpl 
   title = "Create New Data Set"
   javascript = js_data 
-  javascript_urls = [ "js/productform.js", "js/TUI.js", "js/field.js" ]
+  javascript_urls = [ "js/util.js", "js/productform.js", "js/TUI.js", "js/field.js" ]
   style_urls = [ "skins/standard/search_form.css" ]
   doc_section = "reporting.html#charts-new-series"
 %]
@@ -41,7 +41,7 @@
 [% PROCESS search/form.html.tmpl %]
 
 <p>
-  <input type="submit" name="action-search" value="Run Search">
+  <input type="submit" id="action-search" name="action-search" value="Run Search">
   to see which [% terms.bugs %] would be included in this data set.
 </p>
     

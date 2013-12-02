@@ -108,9 +108,10 @@ use constant WS_ERROR_CODE => {
     # Dup errors
     dupe_loop_detected => 118,
     dupe_id_required => 119,
-    # Group errors
+    # Bug-related group errors
     group_change_denied => 120,
     group_invalid_restriction => 120,
+    group_restriction_not_allowed => 120,
     # Status/Resolution errors
     missing_resolution => 121,
     resolution_not_allowed => 122,
@@ -149,6 +150,22 @@ use constant WS_ERROR_CODE => {
     file_not_specified     => 603,
     missing_attachment_description => 604,
     # Error 605 attachment_url_disabled no longer exists.
+    zero_length_file       => 606,
+
+    # Product erros are 700-800
+    product_blank_name => 700,
+    product_name_too_long => 701,
+    product_name_already_in_use => 702,
+    product_name_diff_in_case => 702,
+    product_must_have_description => 703,
+    product_must_have_version => 704,
+    product_must_define_defaultmilestone => 705,
+
+    # Group errors are 800-900
+    empty_group_name => 800,
+    group_exists => 801,
+    empty_group_description => 802,
+    invalid_regexp => 803,
 
     # Errors thrown by the WebService itself. The ones that are negative 
     # conform to http://xmlrpc-epi.sourceforge.net/specs/rfc.fault_codes.php
@@ -175,7 +192,7 @@ sub WS_DISPATCH {
         'Bug'      => 'Bugzilla::WebService::Bug',
         'User'     => 'Bugzilla::WebService::User',
         'Product'  => 'Bugzilla::WebService::Product',
-        'Field'    => 'Bugzilla::WebService::Field',
+        'Group'    => 'Bugzilla::WebService::Group',
         %hook_dispatch
     };
     return $dispatch;

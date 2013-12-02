@@ -2,6 +2,13 @@
  * License: Dual-license GPL 3.0+ or MPL 1.1+
  * Contributor(s): Vitaliy Filippov <vitalif@mail.ru>
  */
+.bz_query_head {
+  text-align: center;
+}
+
+.bz_query_timestamp {
+  font-weight: bold;
+}
 
 .search_description { display: inline-block; margin: 2px; padding: 2px; border: 1px solid gray; }
 .search_description._and { background-color: #e0e0ff; }
@@ -133,3 +140,11 @@ td.bz_total {
 .bz_st_RESOLVED, .bz_RESOLVED td.first-child a { text-decoration: line-through; }
 .bz_st_VERIFIED, .bz_VERIFIED td.first-child a { text-decoration: line-through; border: 1px dashed #2f6fab; margin: 0 -1px; color: black; background-color: #f9f9f9; line-height: 1.1em; }
 .bz_st_CLOSED, .bz_CLOSED td.first-child a { text-decoration: line-through; border: 1px solid #2f6fab; margin: 0 -1px; background-color: #f9f9f9; line-height: 1.1em; }
+.bz_query_explain {
+    text-align: left;
+}
+
+.bz_short_desc_column a, .bz_short_short_desc_column a {
+    color: inherit;
+}
+

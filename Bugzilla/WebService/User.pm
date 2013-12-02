@@ -90,8 +90,18 @@ sub offer_account_by_email {
     my $email = trim($params->{email})
         || ThrowCodeError('param_required', { param => 'email' });
 
-    Bugzilla->user->check_account_creation_enabled;
-    Bugzilla->user->check_and_send_account_creation_confirmation($email);
+    my $createexp = Bugzilla->params->{'createemailregexp'};
+    if (!$createexp) {
+        ThrowUserError("account_creation_disabled");
+    }
+    elsif ($email !~ /$createexp/i) {
+        ThrowUserError("account_creation_restricted");
+    }
+
+    $email = Bugzilla::User->check_login_name_for_creation($email);
+
+    # Create and send a token for this new account.
+    Bugzilla::Token::issue_new_user_account_token($email);
 
     return undef;
 }
@@ -130,16 +140,10 @@ sub create {
 sub get {
     my ($self, $params) = validate(@_, 'names', 'ids');
 
-    # Make them arrays if they aren't
-    if ($params->{names} && !ref $params->{names}) {
-        $params->{names} = [ $params->{names} ];
-    }
-    if ($params->{ids} && !ref $params->{ids}) {
-        $params->{ids} = [ $params->{ids} ];
-    }
-    if ($params->{match} && !ref $params->{match}) {
-        $params->{match} = [ $params->{match} ];
-    }
+    defined($params->{names}) || defined($params->{ids})
+        || defined($params->{match})
+        || ThrowCodeError('params_required', 
+               { function => 'User.get', params => ['ids', 'names', 'match'] });
 
     my @user_objects;
     if ($params->{names})
@@ -202,8 +206,9 @@ sub get {
     if ($params->{'maxusermatches'}) {
         $limit = $params->{'maxusermatches'} + 1;
     }
+    my $exclude_disabled = $params->{'include_disabled'} ? 0 : 1;
     foreach my $match_string (@{ $params->{'match'} || [] }) {
-        my $matched = Bugzilla::User::match($match_string, $limit, $params->{excludedisabled} && 1);
+        my $matched = Bugzilla::User::match($match_string, $limit, $exclude_disabled);
         foreach my $user (@$matched) {
             if (!$unique_users{$user->id}) {
                 push(@user_objects, $user);
@@ -221,7 +226,7 @@ sub get {
                 real_name => $self->type('string', $_->name),
                 name      => $self->type('string', $_->login),
                 email     => $self->type('string', $_->email),
-                can_login => $self->type('boolean', $_->is_disabled ? 0 : 1),
+                can_login => $self->type('boolean', $_->is_enabled ? 1 : 0),
                 email_enabled     => $self->type('boolean', $_->email_enabled),
                 login_denied_text => $self->type('string', $_->disabledtext),
             }} @$in_group;
@@ -233,7 +238,7 @@ sub get {
                 real_name => $self->type('string', $_->name),
                 name      => $self->type('string', $_->login),
                 email     => $self->type('string', $_->email),
-                can_login => $self->type('boolean', $_->is_disabled ? 0 : 1),
+                can_login => $self->type('boolean', $_->is_enabled ? 1 : 0),
             }} @$in_group;
     }
 
@@ -539,6 +544,14 @@ C<groups> is an array of names of groups that a user can be in.
 If these are specified, they limit the return value to users who are
 in I<any> of the groups specified.
 
+=item C<include_disabled> (boolean)
+
+By default, when using the C<match> parameter, disabled users are excluded
+from the returned results unless their full username is identical to the
+match string. Setting C<include_disabled> to C<true> will include disabled
+users in the returned results even if their username doesn't fully match
+the input string.
+
 =back
 
 =item B<Returns> 
@@ -616,6 +629,9 @@ function.
 =item Added in Bugzilla B<3.4>.
 
 =item C<group_ids> and C<groups> were added in Bugzilla B<4.0>.
+
+=item C<include_disabled> added in Bugzilla B<4.0>. Default behavior 
+for C<match> has changed to only returning enabled accounts.
 
 =back
 

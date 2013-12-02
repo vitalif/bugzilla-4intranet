@@ -118,8 +118,8 @@
           </note> 
            
           <para>If you install from something other than a packaging/installation
-          system, such as .rpm (Redhat Package), .deb (Debian Package), .exe
-          (Windows Executable), or .msi (Microsoft Installer), make sure the MySQL
+          system, such as .rpm (RPM Package Manager), .deb (Debian Package), .exe
+          (Windows Executable), or .msi (Windows Installer), make sure the MySQL
           server is started when the machine boots.
           </para>
       </section>
@@ -135,8 +135,8 @@
           </para>
            
           <para>If you install from something other than a packaging/installation
-          system, such as .rpm (Redhat Package), .deb (Debian Package), .exe
-          (Windows Executable), or .msi (Microsoft Installer), make sure the
+          system, such as .rpm (RPM Package Manager), .deb (Debian Package), .exe
+          (Windows Executable), or .msi (Windows Installer), make sure the
           PostgreSQL server is started when the machine boots.
           </para>
       </section>
@@ -156,8 +156,8 @@
 
         <para>
           If you install from something other than a packaging/installation
-          system, such as .rpm (Redhat Package), .deb (Debian Package), .exe
-          (Windows Executable), or .msi (Microsoft Installer), make sure the
+          system, such as .rpm (RPM Package Manager), .deb (Debian Package), .exe
+          (Windows Executable), or .msi (Windows Installer), make sure the
           Oracle server is started when the machine boots.
         </para>
       </section>
@@ -1690,12 +1690,12 @@ C:\perl&gt; <command>ppm install &lt;module name&gt;</command>
         <para>Apple does not include the GD library with Mac OS X. Bugzilla
         needs this for bug graphs.</para>
 
-        <para>You can use DarwinPorts (<ulink url="http://darwinports.com/"/>)
+        <para>You can use MacPorts (<ulink url="http://www.macports.org/"/>)
         or Fink (<ulink url="http://sourceforge.net/projects/fink/"/>), both
         of which are similar in nature to the CPAN installer, but install
         common unix programs.</para>
 
-        <para>Follow the instructions for setting up DarwinPorts or Fink.
+        <para>Follow the instructions for setting up MacPorts or Fink.
         Once you have one installed, you'll want to use it to install the
         <filename>gd2</filename> package.
         </para>
@@ -1721,7 +1721,7 @@ C:\perl&gt; <command>ppm install &lt;module name&gt;</command>
           </para>
         </note>
 
-        <para>Also available via DarwinPorts and Fink is
+        <para>Also available via MacPorts and Fink is
         <filename>expat</filename>. After installing the expat package, you
         will be able to install XML::Parser using CPAN. If you use fink, there
         is one caveat. Unlike recent versions of
