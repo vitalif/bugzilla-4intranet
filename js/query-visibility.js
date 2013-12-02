@@ -157,6 +157,10 @@ function handleQueryformField(event, controller)
     qfHandling[controller.id] = true; // prevent double-action during init
     var VD = qfVisibility[controller.id];
     var visibility_selected = getQueryformSelectedIds(controller);
+    
+    console.log(controller);
+    console.log(visibility_selected);
+    
     var ids = {};
     for (var i in VD.fields)
         ids[i] = true;

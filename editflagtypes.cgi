@@ -45,9 +45,6 @@ my $user = Bugzilla->login(LOGIN_REQUIRED);
 my $cgi = Bugzilla->cgi;
 my $template = Bugzilla->template;
 
-# We need this everywhere.
-my $vars = get_products_and_components();
-
 $user->in_group('editcomponents')
   || scalar(@{$user->get_products_by_permission('editcomponents')})
   || ThrowUserError("auth_failure", {group  => "editcomponents",

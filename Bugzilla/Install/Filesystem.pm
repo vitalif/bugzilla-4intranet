@@ -123,7 +123,6 @@ sub FILESYSTEM {
     my $localconfig   = bz_locations()->{'localconfig'};
     my $graphsdir     = bz_locations()->{'graphsdir'};
     my $template_cache = bz_locations()->{'template_cache'};
-    my $graphsdir     = bz_locations()->{'graphsdir'};
 
     # We want to set the permissions the same for all localconfig files
     # across all PROJECTs, so we do something special with $localconfig,

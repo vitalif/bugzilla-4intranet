@@ -76,18 +76,6 @@ addListener(window, 'load', function()
   for (var i in checkwidths)
     checkw(checkwidths[i]);
 });
-
-// Hide the Advanced Fields by default, unless the user has a cookie
-// that specifies otherwise.
-// &#9656; and &#9662; are both utf8 escaped characters for right 
-//    and down facing arrows respectivly.
-TUI_alternates['history_query'] = '&#9658;';
-TUI_alternates['people_query'] = '&#9658;';
-TUI_alternates['information_query'] = '&#9658;';
-
-TUI_hide_default('history_query');
-TUI_hide_default('people_query');
-TUI_hide_default('information_query');
 </script>
 
 [% SET checkwidths = [] %]
@@ -608,10 +596,10 @@ addListener(window, 'load', function() {
     <select name="[% sel.name | html %]" id="[% sel.name | html %]"
             multiple="multiple" size="[% sel.size %]">
       [% FOREACH value = Bugzilla.get_field(sel.name).legal_values %]
-        <option value="[% value.name OR '---' FILTER html %]" id="qf_[% sel.name | html %]_[% value.ids.join('_') %]"
+        <option value="[% value.name OR '---' FILTER html %]" id="qf_[% sel.name | html %]_[% value.id.join('_') %]"
           [% " selected" IF lsearch(default.${sel.name}, value.name) != -1 %]>
-          [% value.name FILTER html
-        %]</option>
+          [% value.name FILTER html %]
+          </option>
       [% END %]
     </select>
     [% checkwidths.push(sel.name) %]

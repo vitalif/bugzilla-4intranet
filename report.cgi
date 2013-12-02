@@ -337,7 +337,7 @@ sub get_names
         foreach my $value (@{$field->legal_values}) {
             push(@sorted, $value->name) if $names->{$value->name};
         }
-        unshift(@sorted, ' ') if $field_name eq 'resolution';
+        unshift(@sorted, ' ') if $field eq 'resolution';
         @sorted = uniq @sorted;
     }  
     elsif ($isnumeric) {

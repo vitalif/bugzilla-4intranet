@@ -165,7 +165,6 @@ sub VALIDATORS {
         op_sys         => \&_check_select_field,
         priority       => \&_check_priority,
         product        => \&_check_product,
-        qa_contact     => \&_check_qa_contact,
         remaining_time => \&_check_time_field,
         rep_platform   => \&_check_select_field,
         short_desc     => \&_check_short_desc,
@@ -1958,7 +1957,7 @@ sub _check_qa_contact {
             $id = $component->default_qa_contact->id;
         }
     }
-
+    
     # If a QA Contact was specified or if we're updating, check
     # the QA Contact for validity.
     if (!defined $id && $qa_contact) {
@@ -1969,12 +1968,6 @@ sub _check_qa_contact {
         # If there is no QA contact, this check is not required.
         $invocant->_check_strict_isolation_for_user($qa_contact)
             if (ref $invocant && $id);
-        my $prod = ref $invocant ? $invocant->product_obj : $component->product;
-        my ($ccg) = $prod->description =~ /\[[CС]{2}:\s*([^\]]+)\s*\]/iso;
-        if ($ccg && !$qa_contact->in_group($ccg))
-        {
-            ThrowUserError("cc_group_restriction", { user => $qa_contact->login });
-        }
     }
 
     # "0" always means "undef", for QA Contact.
@@ -2192,7 +2185,7 @@ sub _check_time_field {
 }
 
 sub _check_version {
-    my ($invocant, $version, undef, $params) = @_;
+    my ($invocant, $version, $product) = @_;
     $version = trim($version);
     ($product = $invocant->product_obj) if ref $invocant;
     my $object = Bugzilla::Version->new({ product => $product, name => $version }) if length $version;

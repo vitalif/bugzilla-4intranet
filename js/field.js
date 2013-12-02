@@ -16,7 +16,6 @@
  *
  * Contributor(s): Max Kanat-Alexander <mkanat@bugzilla.org>
  *                 Guy Pyrzak <guy.pyrzak@gmail.com>
- *                 Reed Loden <reed@reedloden.com>
  */
 
 /* Hide input fields and show the text with (edit) next to it */
@@ -165,7 +164,8 @@ function showHideStatusItems(is_duplicate, initial_status)
         // by "resolution" behave properly when resolution is hidden.
         var resolution = document.getElementById('resolution');
         if (resolution && resolution.options[0].value != '' &&
-            resolution.options[0].value != '--do_not_change--') {
+            resolution.options[0].value != '--do_not_change--')
+        {
             resolution.bz_lastSelected = resolution.selectedIndex;
             var emptyOption = new Option('', '');
             resolution.insertBefore(emptyOption, resolution.options[0]);
