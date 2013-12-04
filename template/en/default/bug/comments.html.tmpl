@@ -66,7 +66,13 @@
   [% wt_only = comment.type == constants.CMT_WORKTIME || comment.type == constants.CMT_BACKDATED_WORKTIME %]
   [% wt_all = user.settings.showhide_comments.value == 'all' %]
   [% wt_wt = user.settings.showhide_comments.value == 'worktime' %]
-  [% wt_btn = !multiple && (wt_wt && has_worktime || wt_all) && (comment.who == user.id || user.in_group('worktimeadmin')) %]
+  [%# CMT_BACKDATED_WORKTIME comments will break numbering if transformed back to normal %]
+  [%
+     wt_btn = !multiple
+       && comment.type != constants.CMT_BACKDATED_WORKTIME
+       && (wt_wt && (has_worktime || wt_only) || wt_all)
+       && (comment.who == user.id || user.in_group('worktimeadmin'))
+  %]
   <div class="bz_comment
                 [%- " bz_private" IF comment.is_private %]
                 [%- " bz_comment_hilite" IF marks.$count %]
