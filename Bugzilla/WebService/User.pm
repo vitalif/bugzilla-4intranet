@@ -207,7 +207,7 @@ sub get {
         $limit = $params->{'maxusermatches'} + 1;
     }
     my $exclude_disabled = $params->{'include_disabled'} ? 0 : 1;
-    foreach my $match_string (@{ $params->{'match'} || [] }) {
+    foreach my $match_string (@$params{'match'} || [] ) {
         my $matched = Bugzilla::User::match($match_string, $limit, $exclude_disabled);
         foreach my $user (@$matched) {
             if (!$unique_users{$user->id}) {

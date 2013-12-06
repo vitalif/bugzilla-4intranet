@@ -160,7 +160,7 @@ sub _throw_error
         # If we can write into error log, log error details there
         if (open $fd, ">>", $logfile)
         {
-            print $fd (("-" x 75) . "\n" . ($msg ||= _error_message($type, $error, $vars)) . "\n");
+            print $fd (("-" x 20) . "\n" . ($msg ||= _error_message($type, $error, $vars)) . "\n");
             close $fd;
         }
     }

@@ -17,7 +17,7 @@
   # Contributor(s): Guy Pyrzak <guy.pyrzak@gmail.com>
   #%]
   
-[% PROCESS "global/field-descs.none.tmpl" %]
+[%# PROCESS "global/field-descs.none.tmpl" %]
 
 [% field_label = field_descs.${change.field_name} %]
 [% old_value = display_value(change.field_name, change.old) %]

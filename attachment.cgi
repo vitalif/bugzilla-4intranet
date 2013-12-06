@@ -368,19 +368,22 @@ sub view {
                            -content_length => $attachment->datasize,
                            -x_content_type_options => "nosniff");
 
-    # Don't send a charset header with attachments--they might not be UTF-8.
-    # However, we do allow people to explicitly specify a charset if they
-    # want.
-    if ($contenttype !~ /\bcharset=/i) {
-        # In order to prevent Apache from adding a charset, we have to send a
-        # charset that's a single space.
-        $cgi->charset(' ');
-        if (Bugzilla->feature('detect_charset') && $contenttype =~ /^text\//) {
-            my $encoding = detect_encoding($attachment->data);
-            if ($encoding) {
-                $cgi->charset(find_encoding($encoding)->mime_name);
+        # Don't send a charset header with attachments--they might not be UTF-8.
+        # However, we do allow people to explicitly specify a charset if they
+        # want.
+        if ($contenttype !~ /\bcharset=/i) {
+            # In order to prevent Apache from adding a charset, we have to send a
+            # charset that's a single space.
+            $cgi->charset(' ');
+            if (Bugzilla->feature('detect_charset') && $contenttype =~ /^text\//) {
+                my $encoding = detect_encoding($attachment->data);
+                if ($encoding) {
+                    $cgi->charset(find_encoding($encoding)->mime_name);
+                }
             }
         }
+        disable_utf8();
+        print $attachment->data;
     }
 }
 

@@ -56,11 +56,17 @@ BEGIN { *CORE::GLOBAL::warn = \&Apache2::ServerRec::warn; }
 
 # Pre-compile the CGI.pm methods that we're going to use.
 Bugzilla::CGI->compile(qw(:cgi :push));
-if (0) {
+
+my ($sizelimit, $maxrequests) = ('', '');
+if (Bugzilla::Constants::ON_WINDOWS) {
+    $maxrequests = "MaxRequestsPerChild 25";
+}
+elsif (0) {
     require Apache2::SizeLimit;
     # This means that every httpd child will die after processing
     # a CGI if it is taking up more than 70MB of RAM all by itself.
-    Apache2::SizeLimit->set_max_unshared_size(70_000);
+    $Apache2::SizeLimit::MAX_UNSHARED_SIZE = 70000;
+    $sizelimit = "PerlCleanupHandler Apache2::SizeLimit";
 }
 my $cgi_path = Bugzilla::Constants::bz_locations()->{'cgi_path'};
 
@@ -77,7 +83,8 @@ PerlChildInitHandler "sub { Math::Random::Secure::srand(); srand(); }"
     AddHandler perl-script .cgi
     # No need to PerlModule these because they're already defined in mod_perl.pl
     PerlResponseHandler Bugzilla::ModPerl::ResponseHandler
-    PerlCleanupHandler  Apache2::SizeLimit Bugzilla::ModPerl::CleanupHandler
+    PerlCleanupHandler  Bugzilla::ModPerl::CleanupHandler
+    $sizelimit
     PerlOptions +ParseHeaders
     Options +ExecCGI
     AllowOverride Limit FileInfo Indexes
@@ -133,6 +140,10 @@ sub handler : method {
     local *lib::import = sub {};
     use warnings;
 
+    if ($Bugzilla::RELOAD_MODULES)
+    {
+        reload();
+    }
     Bugzilla::init_page();
     return $class->SUPER::handler(@_);
 }

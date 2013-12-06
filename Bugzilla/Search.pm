@@ -1483,7 +1483,7 @@ sub SqlifyDate
     {
         ThrowUserError("illegal_date", { date => $str });
     }
-    return time2str($fmt, $date);
+    return time2str("%Y-%m-%d %H:%M:%S", $date);
 }
 
 # Support for word search comparisons

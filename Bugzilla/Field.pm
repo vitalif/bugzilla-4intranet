@@ -312,7 +312,7 @@ sub _check_is_numeric {
 sub _check_mailhead { return $_[1] ? 1 : 0; }
 
 sub _check_name {
-    my ($class, $name, $params) = @_;
+    my ($class, $name, undef, $params) = @_;
     $name = lc(clean_text($name));
     $name || ThrowUserError('field_missing_name');
 
@@ -1079,16 +1079,6 @@ sub remove_from_db {
     $dbh->bz_commit_transaction();
 }
 
-# Overridden update() method - flushes field cache
-sub update
-{
-    my $self = shift;
-    $self->{delta_ts} = POSIX::strftime('%Y-%m-%d %H:%M:%S', localtime);
-    my ($changes, $old_self) = $self->SUPER::update(@_);
-    Bugzilla->refresh_cache_fields;
-    return wantarray ? ($changes, $old_self) : $changes;
-}
-
 # Update field change timestamp (needed for cache flushing)
 sub touch
 {
@@ -1186,36 +1176,38 @@ sub create {
     return $self;
 }
 
-sub run_create_validators
-{
-    my $class = shift;
+sub update {
+    my $self = shift;
+    my $changes = $self->SUPER::update(@_);
     my $dbh = Bugzilla->dbh;
-    my $params = $class->SUPER::run_create_validators(@_);
-
-    $params->{name} = $class->_check_name($params->{name}, $params->{custom});
-    if (!exists $params->{sortkey}) {
-        $params->{sortkey} = $dbh->selectrow_array(
-            "SELECT MAX(sortkey) + 100 FROM fielddefs") || 100;
+    if ($changes->{value_field_id} && $self->is_select) {
+        $dbh->do("UPDATE " . $self->name . " SET visibility_value_id = NULL");
     }
-
-    my $type = $params->{type} || 0;
-
-    if ($params->{custom} && !$type) {
-        ThrowCodeError('field_type_not_specified');
-    }
-
-    $params->{value_field_id} =
-        $class->_check_value_field_id($params->{value_field_id},
-            ($type == FIELD_TYPE_SINGLE_SELECT
-             || $type == FIELD_TYPE_MULTI_SELECT) ? 1 : 0);
-
-    $params->{reverse_desc} = $class->_check_reverse_desc(
-        $params->{reverse_desc}, $type);
-
-
-
-    return $params;
+    $self->_update_visibility_values();
+    return $changes;
 }
+
+sub _update_visibility_values {
+    my $self = shift;
+    my $dbh = Bugzilla->dbh;
+
+    my @visibility_value_ids = map($_->id, @{$self->visibility_values});
+    $self->_delete_visibility_values();
+    for my $value_id (@visibility_value_ids) {
+        $dbh->do("INSERT INTO field_visibility (field_id, value_id)
+                  VALUES (?, ?)", undef, $self->id, $value_id);
+    }
+}
+
+sub _delete_visibility_values {
+    my ($self) = @_;
+    my $dbh = Bugzilla->dbh;
+    $dbh->do("DELETE FROM field_visibility WHERE field_id = ?",
+        undef, $self->id);
+    delete $self->{visibility_values};
+}
+
+
 
 =pod
 

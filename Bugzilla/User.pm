@@ -1536,7 +1536,7 @@ sub match {
         }
         $query     .= " AND is_enabled = 1 " if $exclude_disabled;
         $query     .= $dbh->sql_limit($limit) if $limit;
-        my $user_ids = $dbh->selectcol_arrayref($query, undef, ($str, $str));
+        my $user_ids = $dbh->selectcol_arrayref($query, undef, @bind);
         @users = @{Bugzilla::User->new_from_list($user_ids)};
     }
 

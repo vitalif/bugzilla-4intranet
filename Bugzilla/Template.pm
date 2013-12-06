@@ -701,6 +701,7 @@ $Template::Stash::SCALAR_OPS->{ truncate } =
 sub process {
     my $self = shift;
 	my ($template, $vars, $output) = @_;
+
     if (!$output)
     {
         # If outputting via print(), send headers
@@ -709,7 +710,7 @@ sub process {
         # process_bug()/post_bug() routines will be refactored to not call *.cgi
         Bugzilla->cgi->send_header;
     }
-    # All of this current_langs stuff allows template_inner to correctly
+    # All of this current_langs stuff allows t  emplate_inner to correctly
     # determine what-language Template object it should instantiate.
     my $current_langs = Bugzilla->request_cache->{template_current_lang} ||= [];
     unshift(@$current_langs, $self->context->{bz_language});

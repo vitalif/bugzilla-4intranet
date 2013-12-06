@@ -457,14 +457,8 @@ sub Send {
         }
     }
 
-    # Make sure %user_cache has every user in it so far referenced
-    foreach my $user_id (keys %recipients) {
-        $user_cache{$user_id} ||= new Bugzilla::User($user_id);
-    }
-    
     Bugzilla::Hook::process('bugmail_recipients',
-                            { bug => $bug, recipients => \%recipients,
-                              users => \%user_cache, diffs => \@diffs });
+                            { bug => $bug, recipients => \%recipients });
 
     # Find all those user-watching anyone on the current list, who is not
     # on it already themselves.
@@ -496,12 +490,6 @@ sub Send {
     # all - there are preferences, permissions checks and all sorts to do yet.
     my @sent;
     my @excluded;
-
-    # The email client will display the Date: header in the desired timezone,
-    # so we can always use UTC here.
-    my $date = $params->{dep_only} ? $end : $bug->delta_ts;
-    $date = format_time($date, '%a, %d %b %Y %T %z', 'UTC');
-
     foreach my $user_id (keys %recipients) {
         my %rels_which_want;
         my $sent_mail = 0;

@@ -43,6 +43,11 @@ my $vars = { doc_section => 'myaccount.html' };
 $user->check_account_creation_enabled;
 my $login = $cgi->param('login');
 
+my $createexp = Bugzilla->params->{'createemailregexp'};
+unless ($createexp) {
+    ThrowUserError("account_creation_disabled");
+}
+
 if (defined($login)) {
     $user->check_and_send_account_creation_confirmation($login);
     $vars->{'login'} = $login;

@@ -1861,20 +1861,6 @@ sub _check_groups {
         $add_groups{$id} = 1 if $permit;
     }
 
-        # First check all the groups they chose to set.
-        foreach my $name (@$group_names) {
-            my $group = Bugzilla::Group->check(
-                { name => $name, product => $product,
-                  _error => 'group_restriction_not_allowed' });
-
-            if (!$product->group_is_settable($group)) {
-                ThrowUserError('group_restriction_not_allowed',
-                               { name => $name, product => $product });
-            }
-            $add_groups{$group->id} = $group;
-        }
-    }
-
     # Now enforce mandatory groups.
     $add_groups{$_->id} = $_ foreach @{ $product->groups_mandatory };
 
@@ -2602,7 +2588,7 @@ sub set_assigned_to {
     my ($self, $value) = @_;
     $self->set('assigned_to', $value);
     # Store the old assignee. check_can_change_field() needs it.
-    $self->{'assigned_to'} = $self->{'assigned_to_obj'}->id;
+    $self->{'_old_assigned_to'} = $self->{'assigned_to_obj'}->id;
     delete $self->{'assigned_to_obj'};
 }
 sub reset_assigned_to {

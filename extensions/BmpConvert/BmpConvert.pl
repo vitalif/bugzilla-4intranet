@@ -23,6 +23,7 @@
 
 use strict;
 use Bugzilla::Extension;
+use Bugzilla::Hook;
 
 my $VERSION = '1.0';
 my $REQUIRED_MODULES = [

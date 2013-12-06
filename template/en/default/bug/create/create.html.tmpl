@@ -102,9 +102,9 @@ function validateEntryForm(theform)
     }
     // Validate attachment
     var t = document.getElementById('attachment_true');
-    if (t.style.display != 'none' && !validateAttachmentForm(theform))
+    if (hasClass(t, 'bz_default_hidden') == false && !validateAttachmentForm(theform))
         return false;
-    else if (t.style.display == 'none')
+    else if (hasClass(t, 'bz_default_hidden'))
     {
         // Clear attachment description so it won't be created
         theform.description.value = '';
@@ -244,14 +244,6 @@ function set_assign_to() {
 
         last_component = index;
     }
-}
-
-function handleWantsAttachment(wants_attachment)
-{
-    var f = document.getElementById('attachment_false');
-    var t = document.getElementById('attachment_true');
-    f.style.display = wants_attachment ? 'none' : '';
-    t.style.display = wants_attachment ? '' : 'none';
 }
 
 function show_resolution_field(showhide)
@@ -664,6 +656,7 @@ function checkWorktime(inp)
 
   <tr><td colspan="4"><hr /></td></tr>
 
+  [% IF Param("maxattachmentsize") %]
   <tr>
     <th>Attachment:</th>
     <td colspan="3">
@@ -673,7 +666,7 @@ function checkWorktime(inp)
 
       <div id="attachment_true">
         <input type="button" id="btn_no_attachment" value="Don't add an attachment"
-               class="bz_default_hidden"  onClick="handleWantsAttachment(false)">
+                onClick="handleWantsAttachment(false)">
         <fieldset>
           <legend>Add an attachment</legend>
           <table class="attachment_entry">
@@ -686,6 +679,7 @@ function checkWorktime(inp)
       </div>
     </td>
   </tr>
+  [% END %]
 </tbody>
 
 <tbody class="expert_fields">

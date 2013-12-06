@@ -409,7 +409,7 @@ function hideElementById(id)
 {
     var elm = document.getElementById(id);
     if (elm) {
-        elm.style.display = 'none';
+        addClass(elm, 'bz_default_hidden')
     }
 }
 
@@ -417,8 +417,7 @@ function showElementById(id)
 {
     var elm = document.getElementById(id);
     if (elm) {
-        if (!val) val = 'inline';
-        elm.style.display = val;
+        removeClass(elm, 'bz_default_hidden')
     }
 }
 

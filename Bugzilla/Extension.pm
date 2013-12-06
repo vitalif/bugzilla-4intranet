@@ -21,6 +21,7 @@ use Bugzilla::Install::Util qw(
 use Cwd qw(abs_path);
 use File::Basename;
 use File::Spec::Functions;
+use Bugzilla::Util;
 
 use base 'Exporter';
 our @EXPORT = qw(

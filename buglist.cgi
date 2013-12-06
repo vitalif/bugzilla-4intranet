@@ -512,6 +512,7 @@ elsif (($cmdtype eq "doit") && defined $cgi->param('remtype')) {
         my $query_name = $cgi->param('newqueryname');
         my $new_query = $cgi->param('newquery');
         my $token = $cgi->param('token');
+        my $query_type;
         check_hash_token($token, ['savedsearch']);
         # If list_of_bugs is true, we are adding/removing tags to/from
         # individual bugs.
@@ -559,7 +560,9 @@ elsif (($cmdtype eq "doit") && defined $cgi->param('remtype')) {
 
             my $keep_bug = ($action eq 'add') ? 1 : 0;
             my $changes = 0;
-            foreach my $bug_id (split(/[\s,]+/, $cgi->param('bug_ids'))) {
+            my @bug_ids = split(/[\s,]+/, $cgi->param('bug_ids'));
+            my @buglist;
+            foreach my $bug_id (@bug_ids) {
                 next unless $bug_id;
                 push(@buglist, Bugzilla::Bug->check($bug_id));
             }

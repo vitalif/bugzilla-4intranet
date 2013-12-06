@@ -153,8 +153,6 @@ sub quicksearch {
     $searchstring =~ s/(^[\s,]+|[\s,]+$)//g;
     ThrowUserError('buglist_parameters_required') unless ($searchstring);
 
-    $fulltext = Bugzilla->user->setting('quicksearch_fulltext') eq 'on' ? 1 : 0;
-
     if ($searchstring =~ m/^[0-9,\s]*$/) {
         _bug_numbers_only($searchstring);
     }
@@ -549,7 +547,6 @@ sub _default_quicksearch_word {
     addChart('alias', 'substring', $word, $negate);
     addChart('short_desc', 'substring', $word, $negate);
     addChart('status_whiteboard', 'substring', $word, $negate);
-    addChart('content', 'matches', _matches_phrase($word), $negate) if $fulltext;
 }
 
 sub _handle_urls {
