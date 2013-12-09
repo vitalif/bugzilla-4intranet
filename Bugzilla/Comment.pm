@@ -30,8 +30,6 @@ use Bugzilla::User;
 use Bugzilla::Util;
 use Bugzilla::Template;
 
-use Data::Dumper;
-
 ###############################
 ####    Initialization     ####
 ###############################
@@ -151,6 +149,8 @@ sub body_full {
     my ($self, $params) = @_;
     $params ||= {};
     my $preview = $params->{preview} ? $params->{preview} : 0;
+    my $wo_preview = $params->{wo_preview} ? $params->{wo_preview} : 0;
+    $preview = 0 if $wo_preview;
     my $template = Bugzilla->template_inner;
     my $body;
     my $t = $self->type;
@@ -170,7 +170,7 @@ sub body_full {
     }
     if ($params->{wrap}) {
         $body = wrap_comment($body);
-        if (!$preview && !($self->check_length))
+        if (!$preview && !($self->check_length) && !$wo_preview)
         {
             $params->{preview} = 1;
             my $new_body;
