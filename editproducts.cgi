@@ -263,7 +263,7 @@ if ($action eq 'edit' || (!$action && $product_name)) {
     }
     $vars->{'product'} = $product;
     $vars->{'token'} = issue_session_token('edit_product');
-    my $controlled_fields = map { $_->id => ($_->has_visibility_value($product) ? $_->description : undef) } values $product->field->controls_visibility_of();
+    my $controlled_fields = {map { $_->id => ($_->has_visibility_value($product) ? $_->description : undef) } values $product->field->controls_visibility_of()};
     for my $i (keys $controlled_fields) {
         if (!defined($controlled_fields->{$i})) {
             delete $controlled_fields->{$i};

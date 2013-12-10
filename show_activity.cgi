@@ -30,6 +30,7 @@ use Bugzilla;
 use Bugzilla::Error;
 use Bugzilla::Bug;
 use Bugzilla::Diff;
+use Bugzilla::Constants;
 
 my $cgi = Bugzilla->cgi;
 my $template = Bugzilla->template;
@@ -64,7 +65,8 @@ for (my $i = 0; $i < (scalar @$operations); $i++)
     for (my $j = 0; $j < (scalar @{$operations->[$i]->{'changes'}}); $j++)
     {
         my $change = $operations->[$i]->{'changes'}->[$j];
-        if ($change->{'fieldname'} eq 'longdesc')
+        my $field = Bugzilla->get_field($change->{'fieldname'});
+        if (($change->{'fieldname'} eq 'longdesc') || ($field->{'type'} eq FIELD_TYPE_TEXTAREA))
         {
             my $diff = new Bugzilla::Diff($change->{'removed'}, $change->{'added'});
             $operations->[$i]->{'changes'}->[$j]->{'both'} = $diff->get_table;

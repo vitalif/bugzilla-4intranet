@@ -427,27 +427,30 @@ sub glue_context_i
         {
             $array->[$i]->{'value'} = TAGS->{$act}->[0] . $array->[$i]->{'value'} . TAGS->{$act}->[1] . $array->[$i+1]->{'value'};
             $array->[$i]->{'type'} = TYPE_UNI . $act;
+            my $result = $self->glue_context_i($i, 'added') if ($what eq 'removed');
             splice $array, $i+1, 1;
-            return $self->glue_context_i($i, 'added') if ($what eq 'removed');
+            return $result if ($what eq 'removed');
             return -1;
         }
         elsif (substr($array->[$i]->{'type'}, 0, 1) eq TYPE_UNI && $array->[$i+1]->{'type'} eq $act)
         {
             $array->[$i]->{'value'} = $array->[$i]->{'value'} . TAGS->{$act}->[0] . $array->[$i+1]->{'value'} . TAGS->{$act}->[1];
             $array->[$i]->{'type'} = TYPE_UNI . $act;
+            my $result = $self->glue_context_i($i, 'added') if ($what eq 'removed');
             splice $array, $i+1, 1;
-            return $self->glue_context_i($i, 'added') if ($what eq 'removed');
+            return $result if ($what eq 'removed');
             return -1;
         }
         elsif (($array->[$i]->{'type'} ne TYPE_SKP) && ($array->[$i+1]->{'type'} ne TYPE_SKP) && ($rarray->[$i]->{'type'} ne $ract) && ($rarray->[$i+1]->{'type'} ne $ract))
         {
             $array->[$i]->{'value'} = $array->[$i]->{'value'} . $array->[$i+1]->{'value'};
             $array->[$i]->{'type'} = (
-                $array->[$i]->{'type'} ne TYPE_UNI ? $array->[$i]->{'type'} :
-                ($array->[$i+1]->{'type'} ne TYPE_UNI ? $array->[$i+1]->{'type'} : TYPE_UNI)
+                $array->[$i]->{'type'} ne TYPE_UNI && $array->[$i]->{'type'} ne TYPE_EMP  ? $array->[$i]->{'type'} :
+                ($array->[$i+1]->{'type'} ne TYPE_UNI && $array->[$i+1]->{'type'} ne TYPE_EMP ? $array->[$i+1]->{'type'} : TYPE_UNI)
             );
+            my $result = $self->glue_context_i($i, 'added') if ($what eq 'removed');
             splice $array, $i+1, 1;
-            return $self->glue_context_i($i, 'added') if ($what eq 'removed');
+            return $result if ($what eq 'removed');
             return -1;
         }
     }
