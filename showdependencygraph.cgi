@@ -37,7 +37,7 @@ use Bugzilla::Error;
 use Bugzilla::Bug;
 use Bugzilla::Status;
 
-Bugzilla->login();
+my $user = Bugzilla->login();
 
 my $cgi = Bugzilla->cgi;
 my $template = Bugzilla->template;

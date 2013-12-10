@@ -48,8 +48,6 @@ use lib qw(. lib);
 use Bugzilla;
 use Bugzilla::Constants;
 use Bugzilla::Bug;
-use Bugzilla::BugMail;
-use Bugzilla::Mailer;
 use Bugzilla::User;
 use Bugzilla::Util;
 use Bugzilla::Error;
@@ -105,14 +103,14 @@ $dbh->bz_start_transaction();
 # <vitalif@mail.ru> Use SELECT ... FOR UPDATE to lock these bugs
 my @bug_objects;
 if (defined $cgi->param('id')) {
-    my $bug = Bugzilla::Bug->check({ id => scalar $cgi->param('id'), for_update => 1 });
-    $cgi->param('id', $bug->id);
-    push(@bug_objects, $bug);
+  my $bug = Bugzilla::Bug->check_for_edit(scalar $cgi->param('id'));
+  $cgi->param('id', $bug->id);
+  push(@bug_objects, $bug);
 } else {
     foreach my $i ($cgi->param()) {
         if ($i =~ /^id_([1-9][0-9]*)/) {
             my $id = $1;
-            push(@bug_objects, Bugzilla::Bug->check({ id => $id, for_update => 1 }));
+            push(@bug_objects, Bugzilla::Bug->check_for_edit($id));
         }
     }
 }
@@ -152,9 +150,7 @@ if (defined $cgi->param('delta_ts'))
     my $delta_ts_z = datetime_from($cgi->param('delta_ts'));
     my $first_delta_tz_z =  datetime_from($first_bug->delta_ts);
     if ($first_delta_tz_z ne $delta_ts_z) {
-        ($vars->{'operations'}) =
-            Bugzilla::Bug::GetBugActivity($first_bug->id, undef,
-                                          scalar $cgi->param('delta_ts'));
+        ($vars->{'operations'}) = $first_bug->get_activity(undef, $cgi->param('delta_ts'));
 
         # CustIS Bug 56327 - Change only fields the user wanted to change
         for my $op (@{$vars->{operations}})
@@ -510,7 +506,7 @@ if (defined $cgi->param('newcc')
         }
     } else {
         @cc_add = $cgi->param('newcc');
-        push(@cc_add, Bugzilla->user) if $cgi->param('addselfcc');
+        push(@cc_add, $user) if $cgi->param('addselfcc');
 
         # We came from show_bug which uses a select box to determine what cc's
         # need to be removed...
@@ -526,12 +522,43 @@ if (defined $cgi->param('newcc')
 if (defined $cgi->param('id')) {
     # Since aliases are unique (like bug numbers), they can only be changed
     # for one bug at a time.
-    if (Bugzilla->params->{"usebugaliases"} && defined $cgi->param('alias')) {
+    if (defined $cgi->param('alias')) {
         $set_all_fields{alias} = $cgi->param('alias');
     }
 }
 
+my %is_private;
+foreach my $field (grep(/^defined_isprivate/, $cgi->param())) {
+    $field =~ /(\d+)$/;
+    my $comment_id = $1;
+    $is_private{$comment_id} = $cgi->param("isprivate_$comment_id");
+}
+$set_all_fields{comment_is_private} = \%is_private;
+
+my @check_groups = $cgi->param('defined_groups');
+my @set_groups = $cgi->param('groups');
+my ($removed_groups) = diff_arrays(\@check_groups, \@set_groups);
+$set_all_fields{groups} = { add => \@set_groups, remove => $removed_groups };
+
+my @custom_fields = Bugzilla->active_custom_fields;
+foreach my $field (@custom_fields) {
+    my $fname = $field->name;
+    if (should_set($fname, 1)) {
+        $set_all_fields{$fname} = [$cgi->param($fname)];
+    }
+}
+
+# We are going to alter the list of removed groups, so we keep a copy here.
+my @unchecked_groups = @$removed_groups;
 foreach my $b (@bug_objects) {
+    # Don't blindly ask to remove unchecked groups available in the UI.
+    # A group can be already unchecked, and the user didn't try to remove it.
+    # In this case, we don't want remove_group() to complain.
+    my @remove_groups;
+    foreach my $g (@{$b->groups_in}) {
+        push(@remove_groups, $g->name) if grep { $_ eq $g->name } @unchecked_groups;
+    }
+    local $set_all_fields{groups}->{remove} = \@remove_groups;
     $b->set_all(\%set_all_fields);
 }
 
@@ -578,11 +605,9 @@ foreach my $bug (@bug_objects) {
 
         # We may have zeroed the remaining time, if we moved into a closed
         # status, so we should inform the user about that.
-        if (!is_open_state($new_status) && $changes->{remaining_time} &&
-            !$changes->{remaining_time}->[1] &&
-            Bugzilla->user->in_group(Bugzilla->params->{timetrackinggroup}))
-        {
-            $vars->{message} = "remaining_time_zeroed";
+        if (!is_open_state($new_status) && $changes->{'remaining_time'}) {
+            $vars->{'message'} = "remaining_time_zeroed"
+              if $user->is_timetracker;
         }
     }
 

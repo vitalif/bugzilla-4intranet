@@ -47,7 +47,7 @@ sub display_field_values {
 ######################################################################
 
 # require the user to have logged in
-Bugzilla->login(LOGIN_REQUIRED);
+my $user = Bugzilla->login(LOGIN_REQUIRED);
 
 my $dbh      = Bugzilla->dbh;
 my $cgi      = Bugzilla->cgi;
@@ -58,10 +58,10 @@ my $vars = {};
 # the documentation about legal values becomes bigger.
 $vars->{'doc_section'} = 'edit-values.html';
 
-Bugzilla->user->in_group('editvalues') ||
-    ThrowUserError('auth_failure', {group  => "admin",
-                                    action => "edit",
-                                    object => "field_values"});
+$user->in_group('admin')
+  || ThrowUserError('auth_failure', {group  => "admin",
+                                     action => "edit",
+                                     object => "field_values"});
 
 #
 # often-used variables
@@ -217,16 +217,15 @@ if ($action eq 'edit') {
 if ($action eq 'update') {
     check_token_data($token, 'edit_field_value');
     $vars->{'value_old'} = $value->name;
-    my $visibility_values;
-    if (!($value->is_static || $value->is_default)) {
-        $value->set_is_active($cgi->param('is_active'));
-        $value->set_name($cgi->param('value_new'));
-        $visibility_values = [ $cgi->param('visibility_value_id') ];
+    my %params = (
+        name    => scalar $cgi->param('value_new'),
+        sortkey => scalar $cgi->param('sortkey'),
+        visibility_value => scalar $cgi->param('visibility_value_id'),
+    );
+    if ($cgi->should_set('is_active')) {
+        $params{is_active} = $cgi->param('is_active');
     }
-    if ($value->can('set_timetracking')) {
-        $value->set_timetracking($cgi->param('timetracking') ? 1 : 0);
-    }
-    $value->set_sortkey($cgi->param('sortkey'));
+    $value->set_all(\%params);
     $vars->{'changes'} = $value->update();
     my $ch = $value->set_visibility_values($visibility_values);
     $vars->{'changes'}->{'visibility_values'} = $ch if $visibility_values && $ch;

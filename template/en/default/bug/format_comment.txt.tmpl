@@ -30,6 +30,10 @@
   #               bugmail.
   #%]
 
+[%# Please don't use field-descs here. It can slow down Bugzilla. %]
+
+[% SET comment_body = comment.body %]
+
 [% IF comment.type == constants.CMT_DUPE_OF %]
 X[% comment.body %]
 

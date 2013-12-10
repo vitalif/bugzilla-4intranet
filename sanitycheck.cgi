@@ -60,7 +60,7 @@ sub Status {
     }
     else {
         my $start_tag = $alert ? '<p class="alert">' : '<p>';
-        print $start_tag . get_string($san_tag, $vars) . "</p>\n";
+        say $start_tag . get_string($san_tag, $vars) . "</p>";
     }
 }
 
@@ -258,7 +258,7 @@ if ($cgi->param('rescanallBugMail')) {
     # and so choosing this user as being the last one having done a change
     # for the bug may be problematic. So the best we can do at this point
     # is to choose the currently logged in user for email notification.
-    $vars->{'changer'} = Bugzilla->user;
+    $vars->{'changer'} = $user;
 
     foreach my $bugid (@$list) {
         Bugzilla::BugMail::Send($bugid, $vars);
@@ -745,6 +745,26 @@ if (scalar(@invalid_flags)) {
         }
         Status('flag_fix');
     }
+}
+
+###########################################################################
+# Check for products with no component
+###########################################################################
+
+Status('product_check_start');
+
+my $products_missing_data = $dbh->selectcol_arrayref(
+      'SELECT DISTINCT products.name
+         FROM products
+    LEFT JOIN components
+           ON components.product_id = products.id
+    LEFT JOIN versions
+           ON versions.product_id = products.id
+        WHERE components.id IS NULL
+           OR versions.id IS NULL');
+
+if (scalar(@$products_missing_data)) {
+    Status('product_alert', { name => $_ }, 'alert') foreach @$products_missing_data;
 }
 
 ###########################################################################

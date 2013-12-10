@@ -26,6 +26,37 @@
 <script src="[% 'js/comments.js' FILTER mtime %]" type="text/javascript">
 </script>
 
+<script type="text/javascript">
+<!--
+  /* Adds the reply text to the `comment' textarea */
+  function replyToComment(id, real_id, name) {
+      var prefix = "(In reply to " + name + " from comment #" + id + ")\n";
+      var replytext = "";
+      [% IF user.settings.quote_replies.value == 'quoted_reply' %]
+        /* pre id="comment_name_N" */
+        var text_elem = document.getElementById('comment_text_'+id);
+        var text = getText(text_elem);
+        replytext = prefix + wrapReplyText(text);
+      [% ELSIF user.settings.quote_replies.value == 'simple_reply' %]
+        replytext = prefix;
+      [% END %]
+
+      [% IF user.is_insider %]
+        if (document.getElementById('isprivate_' + real_id).checked) {
+            document.getElementById('newcommentprivacy').checked = 'checked';
+            updateCommentTagControl(document.getElementById('newcommentprivacy'), 'comment'); 
+        }
+      [% END %]
+
+      /* <textarea id="comment"> */
+      var textarea = document.getElementById('comment');
+      textarea.value += replytext;
+
+      textarea.focus();
+  } 
+//-->
+</script>
+
 [% DEFAULT start_at = 0 mode = "show" %]
 [% sort_order = user.settings.comment_sort_order.value %]
 
@@ -89,7 +120,7 @@
 [%############################################################################%]
 
 [% BLOCK a_comment %]
-  [% RETURN IF comment.is_private AND !user.is_insider %]
+  [% RETURN IF comment.is_private AND NOT (user.is_insider || user.id == comment.author.id) %]
   [% has_worktime = user.is_timetracker && (comment.work_time > 0 || comment.work_time < 0) %]
   [% wt_only = comment.type == constants.CMT_WORKTIME || comment.type == constants.CMT_BACKDATED_WORKTIME %]
   [% wt_all = user.settings.showhide_comments.value == 'all' %]
@@ -161,7 +192,7 @@
         </span>
 
         <span class="bz_comment_user_images">
-          [% FOREACH group = comment.author.direct_group_membership %]
+          [% FOREACH group = comment.author.groups %]
             [% NEXT UNLESS group.icon_url %]
             <img src="[% group.icon_url FILTER html %]"
                  alt="[% group.name FILTER html %]"

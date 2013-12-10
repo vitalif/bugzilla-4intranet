@@ -30,6 +30,7 @@ use Bugzilla::Install::Util qw(indicate_progress install_string);
 use Bugzilla::Util;
 use Bugzilla::Series;
 use Bugzilla::BugUrl;
+use Bugzilla::Field;
 
 use Date::Parse;
 use Date::Format;
@@ -666,6 +667,8 @@ sub update_table_definitions {
     $dbh->bz_add_column('bug_see_also', 'id',
         {TYPE => 'MEDIUMSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
 
+    _rename_tags_to_tag();
+
     # 2011-01-29 LpSolit@gmail.com - Bug 616185
     _migrate_user_tags();
 
@@ -673,6 +676,16 @@ sub update_table_definitions {
 
     # 2011-06-15 dkl@mozilla.com - Bug 658929
     _migrate_disabledtext_boolean();
+
+    # 2011-10-11 miketosh - Bug 690173
+    _on_delete_set_null_for_audit_log_userid();
+    
+    # 2011-11-23 gerv@gerv.net - Bug 705058 - make filenames longer
+    $dbh->bz_alter_column('attachments', 'filename', 
+                                    { TYPE => 'varchar(255)', NOTNULL => 1 });
+
+    # 2011-11-28 dkl@mozilla.com - Bug 685611
+    _fix_notnull_defaults();
 
     ################################################################
     # New --TABLE-- changes should go *** A B O V E *** this point #
@@ -2219,7 +2232,7 @@ sub _convert_attachments_filename_from_mediumtext {
     # shouldn't be there for security.  Buggy browsers include them,
     # and attachment.cgi now takes them out, but old ones need converting.
     my $ref = $dbh->bz_column_info("attachments", "filename");
-    if ($ref->{TYPE} ne 'varchar(100)') {
+    if ($ref->{TYPE} ne 'varchar(100)' && $ref->{TYPE} ne 'varchar(255)') {
         print "Removing paths from filenames in attachments table...";
 
         my $sth = $dbh->prepare("SELECT attach_id, filename FROM attachments " .
@@ -3641,9 +3654,9 @@ sub _migrate_user_tags {
                                           WHERE query_type != 0');
 
     my $sth_tags = $dbh->prepare(
-        'INSERT INTO tags (user_id, name) VALUES (?, ?)');
+        'INSERT INTO tag (user_id, name) VALUES (?, ?)');
     my $sth_tag_id = $dbh->prepare(
-        'SELECT id FROM tags WHERE user_id = ? AND name = ?');
+        'SELECT id FROM tag WHERE user_id = ? AND name = ?');
     my $sth_bug_tag = $dbh->prepare('INSERT INTO bug_tag (bug_id, tag_id)
                                      VALUES (?, ?)');
     my $sth_nq = $dbh->prepare('UPDATE namedqueries SET query = ?
@@ -3715,7 +3728,7 @@ sub _populate_bug_see_also_class {
     }
 
     $dbh->bz_add_column('bug_see_also', 'class',
-        {TYPE => 'varchar(255)', NOTNULL => 1}, '');
+        {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"}, '');
 
     my $result = $dbh->selectall_arrayref(
         "SELECT id, value FROM bug_see_also");
@@ -3739,6 +3752,61 @@ sub _migrate_disabledtext_boolean {
                             {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'});
         $dbh->do("UPDATE profiles SET is_enabled = 0 
                   WHERE disabledtext != ''");
+    }
+}
+
+sub _rename_tags_to_tag {
+    my $dbh = Bugzilla->dbh;
+    if ($dbh->bz_table_info('tags')) {
+        # If we get here, it's because the schema created "tag" as an empty
+        # table while "tags" still exists. We get rid of the empty
+        # tag table so we can do the rename over the top of it.
+        $dbh->bz_drop_table('tag');
+        $dbh->bz_drop_index('tags', 'tags_user_id_idx');
+        $dbh->bz_rename_table('tags','tag');
+        $dbh->bz_add_index('tag', 'tag_user_id_idx',
+                           {FIELDS => [qw(user_id name)], TYPE => 'UNIQUE'});
+    }
+    if (my $bug_tag_fk = $dbh->bz_fk_info('bug_tag', 'tag_id')) {
+        # bz_rename_table() didn't handle FKs correctly.
+        if ($bug_tag_fk->{TABLE} eq 'tags') {
+            $bug_tag_fk->{TABLE} = 'tag';
+            $dbh->bz_alter_fk('bug_tag', 'tag_id', $bug_tag_fk);
+        }
+    }
+}
+
+sub _on_delete_set_null_for_audit_log_userid {
+    my $dbh = Bugzilla->dbh;
+    my $fk = $dbh->bz_fk_info('audit_log', 'user_id');
+    if ($fk and !defined $fk->{DELETE}) {
+        $fk->{DELETE} = 'SET NULL';
+        $dbh->bz_alter_fk('audit_log', 'user_id', $fk);
+    }
+}
+
+sub _fix_notnull_defaults {
+    my $dbh = Bugzilla->dbh;
+
+    $dbh->bz_alter_column('bugs', 'bug_file_loc', 
+                          {TYPE => 'MEDIUMTEXT', NOTNULL => 1,  
+                           DEFAULT => "''"}, '');
+
+    my $custom_fields = Bugzilla::Field->match({ 
+        custom => 1, type => [ FIELD_TYPE_FREETEXT, FIELD_TYPE_TEXTAREA ] 
+    });
+
+    foreach my $field (@$custom_fields) {
+        if ($field->type == FIELD_TYPE_FREETEXT) {
+            $dbh->bz_alter_column('bugs', $field->name,
+                                  {TYPE => 'varchar(255)', NOTNULL => 1,
+                                   DEFAULT => "''"}, '');
+        }
+        if ($field->type == FIELD_TYPE_TEXTAREA) {
+            $dbh->bz_alter_column('bugs', $field->name,
+                                  {TYPE => 'MEDIUMTEXT', NOTNULL => 1,
+                                   DEFAULT => "''"}, '');
+        }
     }
 }
 

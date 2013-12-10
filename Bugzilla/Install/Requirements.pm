@@ -168,12 +168,26 @@ sub REQUIRED_MODULES {
         version => 0.22,
     },
     {
-        package => 'Math-Random-Secure',
-        module  => 'Math::Random::Secure',
-        # This is the first version that installs properly on Windows.
-        version => '0.05',
+        package => 'Math-Random-ISAAC',
+        module  => 'Math::Random::ISAAC',
+        version => '1.0.1',
     },
     );
+
+    if (ON_WINDOWS) {
+        push(@modules, {
+            package => 'Win32',
+            module  => 'Win32',
+            # 0.35 fixes a memory leak in GetOSVersion, which we use.
+            version => 0.35,
+        }, 
+        {
+            package => 'Win32-API',
+            module  => 'Win32::API',
+            # 0.55 fixes a bug with char* that might affect Bugzilla::RNG.
+            version => '0.55',
+        });
+    }
 
     my $extra_modules = _get_extension_requirements('REQUIRED_MODULES');
     push(@modules, @$extra_modules);
@@ -217,12 +231,6 @@ sub OPTIONAL_MODULES {
         feature => ['graphical_reports'],
     },
     {
-        package => 'XML-Twig',
-        module  => 'XML::Twig',
-        version => 0,
-        feature => ['moving', 'updates'],
-    },
-    {
         package => 'MIME-tools',
         # MIME::Parser is packaged as MIME::Tools on ActiveState Perl
         module  => ON_WINDOWS ? 'MIME::Tools' : 'MIME::Parser',
@@ -234,6 +242,12 @@ sub OPTIONAL_MODULES {
         module  => 'LWP::UserAgent',
         version => 0,
         feature => ['updates'],
+    },
+    {
+        package => 'XML-Twig',
+        module  => 'XML::Twig',
+        version => 0,
+        feature => ['moving', 'updates'],
     },
     {
         package => 'PatchReader',
@@ -253,6 +267,12 @@ sub OPTIONAL_MODULES {
         module  => 'Authen::SASL',
         version => 0,
         feature => ['smtp_auth'],
+    },
+    {
+        package => 'Net-SMTP-SSL',
+        module  => 'Net::SMTP::SSL',
+        version => 1.01,
+        feature => ['smtp_ssl'],
     },
     {
         package => 'RadiusPerl',
@@ -316,15 +336,16 @@ sub OPTIONAL_MODULES {
 
     # Inbound Email
     {
-        package => 'Email-MIME-Attachment-Stripper',
-        module  => 'Email::MIME::Attachment::Stripper',
+        package => 'Email-Reply',
+        module  => 'Email::Reply',
         version => 0,
         feature => ['inbound_email'],
     },
     {
-        package => 'Email-Reply',
-        module  => 'Email::Reply',
-        version => 0,
+        package => 'HTML-FormatText-WithLinks',
+        module  => 'HTML::FormatText::WithLinks',
+        # We need 0.13 to set the "bold" marker to "*".
+        version => '0.13',
         feature => ['inbound_email'],
     },
 
@@ -373,16 +394,6 @@ sub OPTIONAL_MODULES {
         feature => ['mod_perl'],
     },
     );
-
-    if (ON_WINDOWS) {
-        # SizeLimit needs Win32::API to work on Windows.
-        push(@modules, {
-            package => 'Win32-API',
-            module  => 'Win32::API',
-            version => 0,
-            feature => ['mod_perl'],
-        });
-    }
 
     my $extra_modules = _get_extension_requirements('OPTIONAL_MODULES');
     push(@modules, @$extra_modules);
@@ -744,8 +755,9 @@ sub _checking_for {
     # show "ok" or "not found".
     if (exists $params->{found}) {
         my $found_string;
-        # We do a string compare in case it's non-numeric.
-        if ($found and $found eq "-1") {
+        # We do a string compare in case it's non-numeric. We make sure
+        # it's not a version object as negative versions are forbidden.
+        if ($found && !ref($found) && $found eq '-1') {
             $found_string = install_string('module_not_found');
         }
         elsif ($found) {

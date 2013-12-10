@@ -754,7 +754,7 @@ sub create {
         COMPILE_DIR => bz_locations()->{'template_cache'},
 
         # Initialize templates (f.e. by loading plugins like Hook).
-        PRE_PROCESS => ["global/initialize.none.tmpl"],
+        PRE_PROCESS => ["global/variables.none.tmpl"],
 
         ENCODING => Bugzilla->params->{'utf8'} ? 'UTF-8' : undef,
 
@@ -855,6 +855,9 @@ sub create {
 
             # Removes control characters and trims extra whitespace.
             clean_text => \&Bugzilla::Util::clean_text,
+
+            # Removes control characters and trims extra whitespace.
+            clean_text => \&Bugzilla::Util::clean_text ,
 
             quoteUrls => [ sub {
                                my ($context, $bug, $comment) = @_;
@@ -1206,6 +1209,11 @@ sub create {
             # it only once per-language no matter how many times
             # $template->process() is called.
             'field_descs' => sub { return template_var('field_descs') },
+
+            # Calling bug/field-help.none.tmpl once per label is very
+            # expensive, so we generate it once per-language.
+            'help_html' => sub { return template_var('help_html') },
+
             # This way we don't have to load field-descs.none.tmpl in
             # many templates.
             'display_value' => \&Bugzilla::Util::display_value,

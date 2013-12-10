@@ -96,7 +96,8 @@ document.write(' <input type="button" name="check_all" value="Check All" onclick
     [% IF Param('useplatform') %]
     <th>
       <label for="rep_platform">
-        <a href="page.cgi?id=fields.html#rep_platform">Platform</a>:
+        <a href="page.cgi?id=fields.html#rep_platform">
+          [% field_descs.rep_platform FILTER html %]</a>:
       </label>
     </th>
     <td>
@@ -107,7 +108,8 @@ document.write(' <input type="button" name="check_all" value="Check All" onclick
 
     <th>
       <label for="bug_severity">
-        <a href="page.cgi?id=fields.html#bug_severity">Severity</a>:
+        <a href="page.cgi?id=fields.html#bug_severity">
+          [% field_descs.bug_severity FILTER html %]</a>:
       </label>
     </th>
     <td>

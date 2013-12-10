@@ -249,7 +249,7 @@ sub update {
                                          $new_setting->{group}->name,
                                          Bugzilla->user->id, $timestamp);
                     }
-                    push(@{$changes->{'group_controls'}->{'now_mandatory'}},
+                    push(@{$changes->{'_group_controls'}->{'now_mandatory'}},
                          {name      => $new_setting->{group}->name,
                           bug_count => scalar @$bug_ids});
                 }
@@ -274,7 +274,7 @@ sub update {
                                          $old_setting->{group}->name, '',
                                          Bugzilla->user->id, $timestamp);
                     }
-                    push(@{$changes->{'group_controls'}->{'now_na'}},
+                    push(@{$changes->{'_group_controls'}->{'now_na'}},
                          {name => $old_setting->{group}->name,
                           bug_count => scalar @$bug_ids});
                 }
@@ -349,10 +349,7 @@ sub remove_from_db {
         }
     }
 
-    # Remove visibility values
-    $self->set_visibility_values(undef);
-
-    $dbh->do("DELETE FROM products WHERE id = ?", undef, $self->id);
+    $self->SUPER::remove_from_db();
 
     Bugzilla->get_field(FIELD_NAME)->touch;
 
@@ -755,10 +752,12 @@ sub groups_mandatory {
 # if this group can be validly set by the currently-logged-in user.
 sub group_is_settable {
     my ($self, $group) = @_;
-    my $group_id = blessed($group) ? $group->id : $group;
-    my $is_mandatory = grep { $group_id == $_->id } 
+
+    return 0 unless ($group->is_active && $group->is_bug_group);
+
+    my $is_mandatory = grep { $group->id == $_->id }
                             @{ $self->groups_mandatory };
-    my $is_available = grep { $group_id == $_->id }
+    my $is_available = grep { $group->id == $_->id }
                             @{ $self->groups_available };
     return ($is_mandatory or $is_available) ? 1 : 0;
 }
@@ -1128,7 +1127,7 @@ a bug. (In fact, the user I<must> set the Mandatory group on the bug.)
 
 =over
 
-=item C<$group> - Either a numeric group id or a L<Bugzilla::Group> object.
+=item C<$group> - A L<Bugzilla::Group> object.
 
 =back
 

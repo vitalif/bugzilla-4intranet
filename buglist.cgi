@@ -106,9 +106,8 @@ if (defined($searchstring)) {
 # If configured to not allow empty words, reject empty searches from the
 # Find a Specific Bug search form, including words being a single or
 # several consecutive whitespaces only.
-if (!Bugzilla->params->{specific_search_allow_empty_words}
-    && $query_format eq 'specific'
-    && ($cgi->param('content')||'') =~ /^\s*$/)
+if (!Bugzilla->params->{'search_allow_no_criteria'}
+    && defined($cgi->param('content')) && $cgi->param('content') =~ /^\s*$/)
 {
     ThrowUserError("buglist_parameters_required");
 }
@@ -190,14 +189,13 @@ my $params;
 # If the user is retrieving the last bug list they looked at, hack the buffer
 # storing the query string so that it looks like a query retrieving those bugs.
 if (my $last_list = $cgi->param('regetlastlist')) {
-    my ($bug_ids, $order);
+    my $bug_ids;
 
     # Logged-out users use the old cookie method for storing the last search.
     if (!$user->id or $last_list eq 'cookie') {
-        $cgi->cookie('BUGLIST') || ThrowUserError("missing_cookie");
-        $order = "reuse last sort" unless $order;
-        $bug_ids = $cgi->cookie('BUGLIST');
+        $bug_ids = $cgi->cookie('BUGLIST') or ThrowUserError("missing_cookie");
         $bug_ids =~ s/[:-]/,/g;
+        $order ||= "reuse last sort";
     }
     # But logged in users store the last X searches in the DB so they can
     # have multiple bug lists available.
@@ -205,15 +203,11 @@ if (my $last_list = $cgi->param('regetlastlist')) {
         my $last_search = Bugzilla::Search::Recent->check(
             { id => $last_list });
         $bug_ids = join(',', @{ $last_search->bug_list });
-        $order   = $last_search->list_order if !$order;
+        $order ||= $last_search->list_order;
     }
     # set up the params for this new query
-    $params = new Bugzilla::CGI({
-                                 bug_id => $bug_ids,
-                                 bug_id_type => 'anyexact',
-                                 order => $order,
-                                 columnlist => scalar($cgi->param('columnlist')),
-                                });
+    $params = new Bugzilla::CGI({ bug_id => $bug_ids, order => $order });
+    $params->param('list_id', $last_list);
 }
 
 # Figure out whether or not the user is doing a fulltext search.  If not,
@@ -421,7 +415,7 @@ if ($cmdtype eq "dorem") {
         # so that it can be modified easily.
         $vars->{'searchname'} = $cgi->param('namedcmd');
         if (!$cgi->param('sharer_id') ||
-            $cgi->param('sharer_id') == Bugzilla->user->id) {
+            $cgi->param('sharer_id') == $user->id) {
             $vars->{'searchtype'} = "saved";
             $vars->{'search_id'} = $query_id;
         }
@@ -662,10 +656,12 @@ $_ = Bugzilla::Search->COLUMN_ALIASES->{$_} || $_ for @displaycolumns;
 
 # Remove the timetracking columns if they are not a part of the group
 # (happens if a user had access to time tracking and it was revoked/disabled)
-if (!Bugzilla->user->is_timetracker)
-{
-    my %tt_fields = map { $_ => 1 } TIMETRACKING_FIELDS;
-    @displaycolumns = grep { !$tt_fields{$_} } @displaycolumns;
+if (!$user->is_timetracker) {
+   @displaycolumns = grep($_ ne 'estimated_time', @displaycolumns);
+   @displaycolumns = grep($_ ne 'remaining_time', @displaycolumns);
+   @displaycolumns = grep($_ ne 'actual_time', @displaycolumns);
+   @displaycolumns = grep($_ ne 'percentage_complete', @displaycolumns);
+   @displaycolumns = grep($_ ne 'deadline', @displaycolumns);
 }
 
 # Remove the relevance column if the user is not doing a fulltext search.
@@ -906,7 +902,7 @@ if ($cgi->param('debug')) {
     # out how many hidden bugs are in a particular product (by doing
     # searches and looking at the number of rows the explain says it's
     # examining).
-    if (Bugzilla->user->in_group('admin')) {
+    if ($user->in_group('admin')) {
         $vars->{'query_explain'} = $dbh->bz_explain($query);
     }
 }
@@ -1089,15 +1085,6 @@ if ($format->{'extension'} eq 'ics') {
     }
 }
 
-# Restore the bug status used by the specific search.
-$params->param('bug_status', $input_bug_status) if $input_bug_status;
-
-# The list of query fields in URL query string format, used when creating
-# URLs to the same query results page with different parameters (such as
-# a different sort order or when taking some action on the set of query
-# results).  To get this string, we call the Bugzilla::CGI::canoncalise_query
-# function with a list of elements to be removed from the URL.
-$vars->{'urlquerypart'} = $params->canonicalise_query('order', 'cmdtype', 'query_based_on');
 $vars->{'order'} = $order;
 $vars->{'order_columns'} = [ @orderstrings ];
 $vars->{'order_dir'} = [ map { s/ DESC$// ? 1 : 0 } @{$vars->{'order_columns'}} ];
@@ -1105,14 +1092,10 @@ $vars->{'order_dir'} = [ map { s/ DESC$// ? 1 : 0 } @{$vars->{'order_columns'}} 
 $vars->{'caneditbugs'} = 1;
 $vars->{'time_info'} = $time_info;
 
-$vars->{query_params} = { %{ $params->Vars } }; # now used only in superworktime
-$vars->{query_params}->{chfieldfrom} = $Bugzilla::Search::interval_from;
-$vars->{query_params}->{chfieldto} = $Bugzilla::Search::interval_to;
-
-if (!Bugzilla->user->in_group('editbugs')) {
+if (!$user->in_group('editbugs')) {
     foreach my $product (keys %$bugproducts) {
         my $prod = new Bugzilla::Product({name => $product});
-        if (!Bugzilla->user->in_group('editbugs', $prod->id)) {
+        if (!$user->in_group('editbugs', $prod->id)) {
             $vars->{'caneditbugs'} = 0;
             last;
         }
@@ -1120,7 +1103,7 @@ if (!Bugzilla->user->in_group('editbugs')) {
 }
 
 my @bugowners = keys %$bugowners;
-if (scalar(@bugowners) > 1 && Bugzilla->user->in_group('editbugs')) {
+if (scalar(@bugowners) > 1 && $user->in_group('editbugs')) {
     my $suffix = Bugzilla->params->{'emailsuffix'};
     map(s/$/$suffix/, @bugowners) if $suffix;
     my $bugowners = join(",", @bugowners);
@@ -1149,7 +1132,7 @@ elsif (my @product_input = $cgi->param('product')) {
 }
 # We only want the template to use it if the user can actually
 # enter bugs against it.
-if ($one_product && Bugzilla->user->can_enter_product($one_product)) {
+if ($one_product && $user->can_enter_product($one_product)) {
     $vars->{'one_product'} = $one_product;
 }
 
@@ -1168,9 +1151,9 @@ if ($dotweak && scalar @bugs) {
     $vars->{'token'} = issue_session_token('buglist_mass_change');
     Bugzilla->switch_to_shadow_db();
 
-    $vars->{'products'} = Bugzilla->user->get_enterable_products;
-    $vars->{'platforms'} = get_legal_field_values('rep_platform') if Bugzilla->params->{useplatform};
-    $vars->{'op_sys'} = get_legal_field_values('op_sys') if Bugzilla->params->{useopsys};
+    $vars->{'products'} = $user->get_enterable_products;
+    $vars->{'platforms'} = get_legal_field_values('rep_platform');
+    $vars->{'op_sys'} = get_legal_field_values('op_sys');
     $vars->{'priorities'} = get_legal_field_values('priority');
     $vars->{'severities'} = get_legal_field_values('bug_severity');
     $vars->{'resolutions'} = get_legal_field_values('resolution');
@@ -1292,17 +1275,20 @@ $vars->{abbrev} = {
 my $contenttype;
 my $disposition = "inline";
 
-if ($format->{extension} eq "html" && !$agent) {
-    if ($order && !$cgi->param('sharer_id') && $query_format ne 'specific') {
-        $cgi->send_cookie(-name => 'LASTORDER',
-                          -value => $order,
-                          -expires => 'Fri, 01-Jan-2038 00:00:00 GMT');
-    }
+if ($format->{'extension'} eq "html" && !$agent) {
+    my $list_id = $cgi->param('list_id') || $cgi->param('regetlastlist');
+    my $search = $user->save_last_search(
+        { bugs => \@bugidlist, order => $order, vars => $vars, list_id => $list_id });
+    $cgi->param('list_id', $search->id) if $search;
     $contenttype = "text/html";
 }
 else {
     $contenttype = $format->{'ctype'};
 }
+
+# Set 'urlquerypart' once the buglist ID is known.
+$vars->{'urlquerypart'} = $params->canonicalise_query('order', 'cmdtype',
+                                                      'query_based_on');
 
 if ($format->{'extension'} eq "csv") {
     # We set CSV files to be downloaded, as they are designed for importing

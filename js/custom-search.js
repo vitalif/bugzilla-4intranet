@@ -19,6 +19,22 @@
  */
 
 var PAREN_INDENT_EM = 2;
+var ANY_ALL_SELECT_CLASS = 'any_all_select';
+
+// When somebody chooses to "Hide Advanced Features" for Custom Search,
+// we don't want to hide "Not" checkboxes if they've been checked. We
+// accomplish this by removing the custom_search_advanced class from Not
+// checkboxes when they are checked.
+//
+// We never add the custom_search_advanced class back. If we did, TUI
+// would get confused in this case: Check Not, Hide Advanced Features,
+// Uncheck Not, Show Advanced Features. (It hides "Not" when it shouldn't.)
+function custom_search_not_changed(id) {
+    var container = document.getElementById('custom_search_not_container_' + id);
+    YAHOO.util.Dom.removeClass(container, 'custom_search_advanced');
+
+    fix_query_string(container);
+}
 
 function custom_search_new_row() {
     var row = document.getElementById('custom_search_last_row');
@@ -39,6 +55,7 @@ function custom_search_new_row() {
     // Always make sure there's only one row with this id.
     row.id = null;
     row.parentNode.appendChild(clone);
+    fix_query_string(row);
     return clone;
 }
 
@@ -47,11 +64,11 @@ function custom_search_open_paren() {
 
     // If there's an "Any/All" select in this row, it needs to stay as
     // part of the parent paren set.
-    var any_all = _remove_any_all(row);
-    if (any_all) {
+    var old_any_all = _remove_any_all(row);
+    if (old_any_all) {
         var any_all_row = row.cloneNode(false);
         any_all_row.id = null;
-        any_all_row.appendChild(any_all);
+        any_all_row.appendChild(old_any_all);
         row.parentNode.insertBefore(any_all_row, row);
     }
 
@@ -72,12 +89,13 @@ function custom_search_open_paren() {
     row.parentNode.insertBefore(paren_row, row);
     
     // New paren set needs a new "Any/All" select.
+    var any_all_container = document.createElement('div');
+    YAHOO.util.Dom.addClass(any_all_container, ANY_ALL_SELECT_CLASS);
     var j_top = document.getElementById('j_top');
-    var any_all_container = j_top.parentNode.cloneNode(true);
-    var any_all = YAHOO.util.Dom.getElementsBy(function() { return true },
-                                               'select', any_all_container);
-    any_all[0].name = 'j' + prev_id;
-    any_all[0].id = any_all[0].name;
+    var any_all = j_top.cloneNode(true);
+    any_all.name = 'j' + prev_id;
+    any_all.id = any_all.name;
+    any_all_container.appendChild(any_all);
     row.insertBefore(any_all_container, row.firstChild);
 
     var margin = YAHOO.util.Dom.getStyle(row, 'margin-left');
@@ -85,6 +103,8 @@ function custom_search_open_paren() {
     var new_margin = parseInt(int_match[0]) + PAREN_INDENT_EM;
     YAHOO.util.Dom.setStyle(row, 'margin-left', new_margin + 'em');
     YAHOO.util.Dom.removeClass('cp_container', 'bz_default_hidden');
+
+    fix_query_string(any_all_container);
 }
 
 function custom_search_close_paren() {
@@ -109,8 +129,40 @@ function custom_search_close_paren() {
     if (new_margin == 0) {
         YAHOO.util.Dom.addClass('cp_container', 'bz_default_hidden');
     }
+
+    fix_query_string(new_row);
 }
 
+// When a user goes Back in their browser after searching, some browsers
+// (Chrome, as of September 2011) do not remember the DOM that was created
+// by the Custom Search JS. (In other words, their whole entered Custom
+// Search disappears.) The solution is to update the History object,
+// using the query string, which query.cgi can read to re-create the page
+// exactly as the user had it before.
+function fix_query_string(form_member) {
+    // window.History comes from history.js.
+    // It falls back to the normal window.history object for HTML5 browsers.
+    if (!(window.History && window.History.replaceState))
+        return;
+
+    var form = YAHOO.util.Dom.getAncestorByTagName(form_member, 'form');
+    var query = YAHOO.util.Connect.setForm(form);
+    window.History.replaceState(null, document.title, '?' + query);
+}
+
+// Browsers that do not support HTML5's history.replaceState gain an emulated
+// version via history.js, with the full query_string in the location's hash.
+// We rewrite the URL to include the hash and redirect to the new location,
+// which causes custom search fields to work.
+function redirect_html4_browsers() {
+    var hash = document.location.hash;
+    if (hash == '') return;
+    hash = hash.substring(1);
+    if (hash.substring(0, 10) != 'query.cgi?') return;
+    var url = document.location + "";
+    url = url.substring(0, url.indexOf('query.cgi#')) + hash;
+    document.location = url;
+}
 
 function _cs_fix_ids(parent, preserve_values) {
     // Update the label of the checkbox.
@@ -146,8 +198,8 @@ function _cs_fix_ids(parent, preserve_values) {
 }
 
 function _remove_any_all(parent) {
-    var any_all = YAHOO.util.Dom.getElementsByClassName('any_all_select', null,
-                                                        parent);
+    var any_all = YAHOO.util.Dom.getElementsByClassName(
+        ANY_ALL_SELECT_CLASS, null, parent);
     if (any_all[0]) {
         parent.removeChild(any_all[0]);
         return any_all[0];

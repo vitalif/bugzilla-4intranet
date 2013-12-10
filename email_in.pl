@@ -38,9 +38,8 @@ use Data::Dumper;
 use Email::Address;
 use Email::Reply qw(reply);
 use Email::MIME;
-use Email::MIME::Attachment::Stripper;
-use HTML::Strip;
 use Getopt::Long qw(:config bundling);
+use HTML::FormatText::WithLinks;
 use Pod::Usage;
 use Encode;
 use Scalar::Util qw(blessed);
@@ -65,6 +64,15 @@ use Bugzilla::Hook;
 # This is the USENET standard line for beginning a signature block
 # in a message. RFC-compliant mailers use this.
 use constant SIGNATURE_DELIMITER => '-- ';
+
+# These MIME types represent a "body" of an email if they have an
+# "inline" Content-Disposition (or no content disposition).
+use constant BODY_TYPES => qw(
+    text/plain
+    text/html
+    application/xhtml+xml
+    multipart/alternative
+);
 
 # $input_email is a global so that it can be used in die_handler.
 our ($input_email, %switch);
@@ -101,9 +109,6 @@ sub parse_mail {
     }
 
     my ($body, $attachments) = get_body_and_attachments($input_email);
-    if (@$attachments) {
-        $fields{'attachments'} = $attachments;
-    }
 
     debug_print("Body:\n" . $body, 3);
 
@@ -175,15 +180,16 @@ sub parse_mail {
 
     debug_print("Parsed Fields:\n" . Dumper(\%fields), 2);
 
+    debug_print("Attachments:\n" . Dumper($attachments), 3);
+    if (@$attachments) {
+        $fields{'attachments'} = $attachments;
+    }
+
     return \%fields;
 }
 
-sub post_bug
-{
+sub check_email_fields {
     my ($fields) = @_;
-    debug_print('Posting a new bug...');
-
-    my $user = Bugzilla->user;
 
     # Bugzilla::Bug->create throws a confusing CodeError if
     # the REQUIRED_CREATE_FIELDS are missing, but much more
@@ -214,15 +220,25 @@ sub post_bug
     }
 
     my ($retval, $non_conclusive_fields) =
-        Bugzilla::User::match_field({
-            assigned_to => { 'type' => 'single' },
-            qa_contact  => { 'type' => 'single' },
-            cc          => { 'type' => 'multi'  }
-        }, $fields, MATCH_SKIP_CONFIRM);
+      Bugzilla::User::match_field({
+        'assigned_to'   => { 'type' => 'single' },
+        'qa_contact'    => { 'type' => 'single' },
+        'cc'            => { 'type' => 'multi'  },
+        'newcc'         => { 'type' => 'multi'  }
+      }, $fields, MATCH_SKIP_CONFIRM);
 
     if ($retval != USER_MATCH_SUCCESS) {
         ThrowUserError('user_match_too_many', {fields => $non_conclusive_fields});
     }
+}
+
+sub post_bug {
+    my ($fields) = @_;
+    debug_print('Posting a new bug...');
+
+    my $user = Bugzilla->user;
+
+    check_email_fields($fields);
 
     my $cgi = Bugzilla->cgi;
     foreach my $field (keys %$fields) {
@@ -278,6 +294,8 @@ sub process_bug {
         $fields{'removecc'} = 1;
     }
 
+    check_email_fields(\%fields);
+
     my $cgi = Bugzilla->cgi;
     foreach my $field (keys %fields) {
         $cgi->param(-name => $field, -value => $fields{$field});
@@ -306,15 +324,17 @@ sub handle_attachments {
     $dbh->bz_start_transaction();
     my ($update_comment, $update_bug);
     foreach my $attachment (@$attachments) {
-        my $data = delete $attachment->{payload};
-        debug_print("Inserting Attachment: " . Dumper($attachment), 2);
-        $attachment->{content_type} ||= 'application/octet-stream';
+        debug_print("Inserting Attachment: " . Dumper($attachment), 3);
+        my $type = $attachment->content_type || 'application/octet-stream';
+        # MUAs add stuff like "name=" to content-type that we really don't
+        # want.
+        $type =~ s/;.*//;
         my $obj = Bugzilla::Attachment->create({
             bug         => $bug,
-            description => $attachment->{filename},
-            filename    => $attachment->{filename},
-            mimetype    => $attachment->{content_type},
-            data        => $data,
+            description => $attachment->filename(1),
+            filename    => $attachment->filename(1),
+            mimetype    => $type,
+            data        => $attachment->body,
         });
         # If we added a comment, and our comment does not already have a type,
         # and this is our first attachment, then we make the comment an 
@@ -352,21 +372,36 @@ sub get_body_and_attachments {
     my ($email) = @_;
 
     my $ct = $email->content_type || 'text/plain';
-    debug_print("Splitting Body and Attachments [Type: $ct]...");
+    debug_print("Splitting Body and Attachments [Type: $ct]...", 2);
 
+    my ($bodies, $attachments) = split_body_and_attachments($email);
+    debug_print(scalar(@$bodies) . " body part(s) and " . scalar(@$attachments)
+                . " attachment part(s).");
+    debug_print('Bodies: ' . Dumper($bodies), 3);
+
+    # Get the first part of the email that contains a text body,
+    # and make all the other pieces into attachments. (This handles
+    # people or MUAs who accidentally attach text files as an "inline"
+    # attachment.)
     my $body;
-    my $attachments = [];
-    if ($ct =~ /^multipart\/(alternative|signed)/i) {
-        $body = get_text_alternative($email);
-    }
-    else {
-        my $stripper = new Email::MIME::Attachment::Stripper(
-            $email, force_filename => 1);
-        my $message = $stripper->message;
-        $body = get_text_alternative($message);
-        $attachments = [$stripper->attachments];
+    while (@$bodies) {
+        my $possible = shift @$bodies;
+        $body = get_text_alternative($possible);
+        if (defined $body) {
+            unshift(@$attachments, @$bodies);
+            last;
+        }
     }
 
+    if (!defined $body) {
+        # Note that this only happens if the email does not contain any
+        # text/plain parts. If the email has an empty text/plain part,
+        # you're fine, and this message does NOT get thrown.
+        ThrowUserError('email_no_body');
+    }
+
+    debug_print("Picked Body:\n$body", 2);
+    
     return ($body, $attachments);
 }
 
@@ -382,32 +417,42 @@ sub get_text_alternative {
         if ($ct =~ /charset="?([^;"]+)/) {
             $charset= $1;
         }
-        debug_print("Part Content-Type: $ct", 2);
-        debug_print("Part Character Encoding: $charset", 2);
-        if (!$ct || $ct =~ /^text\/plain/i) {
-            $body = $part->body;
+        debug_print("Alternative Part Content-Type: $ct", 2);
+        debug_print("Alternative Part Character Encoding: $charset", 2);
+        # If we find a text/plain body here, return it immediately.
+        if (!$ct || $ct =~ m{^text/plain}i) {
+            return _decode_body($charset, $part->body);
         }
-        elsif ($ct =~ /^text\/html/i) {
-            $body = $part->body;
-            Bugzilla::Hook::process("emailin-filter_html", { body => \$body });
-            $body = HTML::Strip->new->parse($body);
-        }
-        if (defined $body)
-        {
-            if (Bugzilla->params->{'utf8'} && !utf8::is_utf8($body)) {
-                $body = Encode::decode($charset, $body);
-            }
-            last;
+        # If we find a text/html body, decode it, but don't return
+        # it immediately, because there might be a text/plain alternative
+        # later. This could be any HTML type.
+        if ($ct =~ m{^application/xhtml\+xml}i or $ct =~ m{text/html}i) {
+            my $parser = HTML::FormatText::WithLinks->new(
+                # Put footnnote indicators after the text, not before it.
+                before_link => '',
+                after_link  => '[%n]',
+                # Convert bold and italics, use "*" for bold instead of "_".
+                with_emphasis => 1,
+                bold_marker => '*',
+                # If the same link appears multiple times, only create
+                # one footnote.
+                unique_links => 1,
+                # If the link text is the URL, don't create a footnote.
+                skip_linked_urls => 1,
+            );
+            $body = _decode_body($charset, $part->body);
+            $body = $parser->parse($body);
         }
     }
 
-    if (!defined $body) {
-        # Note that this only happens if the email does not contain any
-        # text/plain parts. If the email has an empty text/plain part,
-        # you're fine, and this message does NOT get thrown.
-        ThrowUserError('email_no_text_plain');
-    }
+    return $body;
+}
 
+sub _decode_body {
+    my ($charset, $body) = @_;
+    if (Bugzilla->params->{'utf8'} && !utf8::is_utf8($body)) {
+        return Encode::decode($charset, $body);
+    }
     return $body;
 }
 
@@ -430,6 +475,38 @@ sub html_strip {
     # Also remove undesired newlines and consecutive spaces.
     $var =~ s/[\n\s]+/ /gms;
     return $var;
+}
+
+sub split_body_and_attachments {
+    my ($email) = @_;
+
+    my (@body, @attachments);
+    foreach my $part ($email->parts) {
+        my $ct = lc($part->content_type || 'text/plain');
+        my $disposition = lc($part->header('Content-Disposition') || 'inline');
+        # Remove the charset, etc. from the content-type, we don't care here.
+        $ct =~ s/;.*//;
+        debug_print("Part Content-Type: [$ct]", 2);
+        debug_print("Part Disposition: [$disposition]", 2);
+
+        if ($disposition eq 'inline' and grep($_ eq $ct, BODY_TYPES)) {
+            push(@body, $part);
+            next;
+        }
+        
+        if (scalar($part->parts) == 1) {
+            push(@attachments, $part);
+            next;
+        }
+
+        # If this part has sub-parts, analyze them similarly to how we
+        # did above and return the relevant pieces.
+        my ($add_body, $add_attachments) = split_body_and_attachments($part);
+        push(@body, @$add_body);
+        push(@attachments, @$add_attachments);
+    }
+
+    return (\@body, \@attachments);
 }
 
 
@@ -709,10 +786,5 @@ and only allow access to the inbound email system from people you trust.
 The email interface only accepts emails that are correctly formatted
 per RFC2822. If you send it an incorrectly formatted message, it
 may behave in an unpredictable fashion.
-
-You cannot send an HTML mail along with attachments. If you do, Bugzilla
-will reject your email, saying that it doesn't contain any text. This
-is a bug in L<Email::MIME::Attachment::Stripper> that we can't work
-around.
 
 You cannot modify Flags through the email interface.

@@ -183,6 +183,13 @@ sub remove_from_db {
     my $self = shift;
     my $dbh = Bugzilla->dbh;
 
+    $dbh->bz_start_transaction();
+
+    # Products must have at least one version.
+    if (scalar(@{$self->product->versions}) == 1) {
+        ThrowUserError('version_is_last', { version => $self });
+    }
+
     # The version cannot be removed if there are bugs
     # associated with it.
     if ($self->bug_count) {
@@ -191,6 +198,8 @@ sub remove_from_db {
     # Remove visibility values
     $self->set_visibility_values(undef);
     $self->SUPER::remove_from_db();
+
+    $dbh->bz_commit_transaction();
 }
 
 ###############################

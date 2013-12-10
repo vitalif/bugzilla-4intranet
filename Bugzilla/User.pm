@@ -434,8 +434,8 @@ sub tags {
         # in which case there are no bugs with this tag yet.
         $self->{tags} = $dbh->selectall_hashref(
             'SELECT name, id, COUNT(bug_id) AS bug_count
-               FROM tags
-          LEFT JOIN bug_tag ON bug_tag.tag_id = tags.id
+               FROM tag
+          LEFT JOIN bug_tag ON bug_tag.tag_id = tag.id
               WHERE user_id = ? ' . $dbh->sql_group_by('id', 'name'),
             'name', undef, $self->id);
     }
@@ -527,26 +527,21 @@ sub save_last_search {
 
     return if !@$bug_ids;
 
+    my $search;
     if ($self->id) {
         on_main_db {
-            my $search;
             if ($list_id) {
-                # Use eval so that people can still use old search links or
-                # links that don't belong to them.
-                $search = eval { Bugzilla::Search::Recent->check(
-                                    { id => $list_id }) };
+                $search = Bugzilla::Search::Recent->check_quietly({ id => $list_id });
             }
 
             if ($search) {
-                # We only update placeholders. (Placeholders are
-                # Saved::Search::Recent objects with empty bug lists.)
-                # Otherwise, we could just keep creating new searches
-                # for the same refreshed list over and over.
-                if (!@{ $search->bug_list }) {
-                    $search->set_list_order($order);
+                if (join(',', @{$search->bug_list}) ne join(',', @$bug_ids)) {
                     $search->set_bug_list($bug_ids);
-                    $search->update();
                 }
+                if (!$search->list_order || $order ne $search->list_order) {
+                    $search->set_list_order($order);
+                }
+                $search->update();
             }
             else {
                 # If we already have an existing search with a totally
@@ -559,10 +554,13 @@ sub save_last_search {
                     user_id => $self->id, bug_list => $list_string });
            
                 if (!scalar(@$existing_search)) {
-                    Bugzilla::Search::Recent->create({
+                    $search = Bugzilla::Search::Recent->create({
                         user_id    => $self->id,
                         bug_list   => $bug_ids,
                         list_order => $order });
+                }
+                else {
+                    $search = $existing_search->[0];
                 }
             }
         };
@@ -585,6 +583,7 @@ sub save_last_search {
             $vars->{'toolong'} = 1;
         }
     }
+    return $search;
 }
 
 sub testopia_queries {
@@ -1093,12 +1092,16 @@ sub can_enter_product {
     elsif (!$product->is_active) {
         ThrowUserError('product_disabled', { product => $product });
     }
-    # It could have no active components...
-    elsif (!@{$product->active_components}) {
+    # It could have no components...
+    elsif (!@{$product->components}
+           || !grep { $_->is_active } @{$product->components})
+    {
         ThrowUserError('missing_component', { product => $product });
     }
     # It could have no versions...
-    elsif (!@{$product->versions}) {
+    elsif (!@{$product->versions}
+           || !grep { $_->is_active } @{$product->versions})
+    {
         ThrowUserError ('missing_version', { product => $product });
     }
     # It could have the name in a different case :)
@@ -1117,29 +1120,30 @@ sub get_enterable_products {
         return $self->{enterable_products};
     }
 
-    # All products which the user has "Entry" access to.
-    my @enterable_ids = @{$dbh->selectcol_arrayref(
-          'SELECT products.id FROM products
-        LEFT JOIN group_control_map
-                  ON group_control_map.product_id = products.id
-                     AND group_control_map.entry != 0
-                     AND group_id NOT IN (' . $self->groups_as_string . ')
-           WHERE group_id IS NULL
-                 AND products.isactive = 1') || []};
+     # All products which the user has "Entry" access to.
+     my $enterable_ids = $dbh->selectcol_arrayref(
+           'SELECT products.id FROM products
+         LEFT JOIN group_control_map
+                   ON group_control_map.product_id = products.id
+                      AND group_control_map.entry != 0
+                      AND group_id NOT IN (' . $self->groups_as_string . ')
+            WHERE group_id IS NULL
+                  AND products.isactive = 1');
 
-    if (@enterable_ids) {
+    if (scalar @$enterable_ids) {
         # And all of these products must have at least one component
         # and one version.
-        @enterable_ids = @{$dbh->selectcol_arrayref(
+        $enterable_ids = $dbh->selectcol_arrayref(
                'SELECT DISTINCT products.id FROM products
             INNER JOIN components ON components.product_id = products.id
             INNER JOIN versions ON versions.product_id = products.id
-                 WHERE products.id IN (' . (join(',', @enterable_ids)) .
-            ')') || []};
+                 WHERE products.id IN (' . join(',', @$enterable_ids) . ')
+                   AND components.isactive = 1
+                   AND versions.isactive = 1');
     }
 
     $self->{enterable_products} =
-         Bugzilla::Product->new_from_list(\@enterable_ids);
+         Bugzilla::Product->new_from_list($enterable_ids);
     return $self->{enterable_products};
 }
 
@@ -1231,24 +1235,6 @@ sub can_set_flag {
     return (!$flag_type->grant_group_id
             || $self->in_group_id($flag_type->grant_group_id)) ? 1 : 0;
 }
-
-sub direct_group_membership {
-    my $self = shift;
-    my $dbh = Bugzilla->dbh;
-
-    if (!$self->{'direct_group_membership'}) {
-        my $gid = $dbh->selectcol_arrayref('SELECT id
-                                              FROM groups
-                                        INNER JOIN user_group_map
-                                                ON groups.id = user_group_map.group_id
-                                             WHERE user_id = ?
-                                               AND isbless = 0',
-                                             undef, $self->id);
-        $self->{'direct_group_membership'} = Bugzilla::Group->new_from_list($gid);
-    }
-    return $self->{'direct_group_membership'};
-}
-
 
 # visible_groups_inherited returns a reference to a list of all the groups
 # whose members are visible to this user.
@@ -1916,16 +1902,16 @@ sub mail_settings {
     return $self->{'mail_settings'};
 }
 
-sub is_mover
-{
+sub has_audit_entries {
     my $self = shift;
+    my $dbh = Bugzilla->dbh;
 
-    if (!defined $self->{'is_mover'}) {
-        my @movers = map { trim($_) } split(',', Bugzilla->params->{'movers'});
-        $self->{'is_mover'} = ($self->id
-                               && grep { $_ eq $self->login } @movers);
+    if (!exists $self->{'has_audit_entries'}) {
+        $self->{'has_audit_entries'} =
+            $dbh->selectrow_array('SELECT 1 FROM audit_log WHERE user_id = ? ' .
+                                   $dbh->sql_limit(1), undef, $self->id);
     }
-    return $self->{is_mover};
+    return $self->{'has_audit_entries'};
 }
 
 sub is_insider {
@@ -2185,8 +2171,9 @@ sub check_and_send_account_creation_confirmation {
     Bugzilla::Token::issue_new_user_account_token($login);
 }
 
-sub login_to_id
-{
+# This is used in a few performance-critical areas where we don't want to
+# do check() and pull all the user data from the database.
+sub login_to_id {
     my ($login, $throw_error) = @_;
     my $cache = (Bugzilla->request_cache->{sub_login_to_id} ||= {});
     my $user_id;
@@ -2652,11 +2639,6 @@ Returns a reference to an array of users.  The array is populated with hashrefs
 containing the login, identity and visibility.  Users that are not visible to this
 user will have 'visible' set to zero.
 
-=item C<direct_group_membership>
-
-Returns a reference to an array of group objects. Groups the user belong to
-by group inheritance are excluded from the list.
-
 =item C<visible_groups_inherited>
 
 Returns a list of all groups whose members should be visible to this user.
@@ -2695,12 +2677,6 @@ Returns true if the user wants mail for a given bug change.
 Returns true if the user wants mail for a given set of events. This method is
 more general than C<wants_bug_mail>, allowing you to check e.g. permissions
 for flag mail.
-
-=item C<is_mover>
-
-Returns true if the user is in the list of users allowed to move bugs
-to another database. Note that this method doesn't check whether bug
-moving is enabled.
 
 =item C<is_insider>
 

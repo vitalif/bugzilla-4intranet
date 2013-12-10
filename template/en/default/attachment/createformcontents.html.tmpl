@@ -88,10 +88,11 @@
 </tr>
 [% END %]
 <tr>
-  <th><label for="description">Description</label>:</th>
+  <th class="required"><label for="description">Description</label>:</th>
   <td>
-    <em>Describe the attachment briefly.</em><br />
-    <input type="text" id="description" name="description" size="60" maxlength="200" onchange="this._changed=true">
+    <em>Describe the attachment briefly.</em><br>
+    <input type="text" id="description" name="description" class="required"
+           size="60" maxlength="200">
   </td>
 </tr>
 <tr[% ' class="expert_fields"' UNLESS bug.id %]>

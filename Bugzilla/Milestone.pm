@@ -196,12 +196,7 @@ sub remove_from_db {
         }
     }
 
-    # Remove visibility values
-    $self->set_visibility_values(undef);
-
-    $dbh->do('DELETE FROM milestones WHERE id = ?', undef, $self->id);
-
-    Bugzilla->get_field(FIELD_NAME)->touch;
+    $self->SUPER::remove_from_db();
 }
 
 ################################

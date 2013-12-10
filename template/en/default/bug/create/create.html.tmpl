@@ -472,7 +472,9 @@ function checkWorktime(inp)
     </td>
 
     [%# Calculate the number of rows we can use for flags %]
-    [% num_rows = 2 + (Param("useqacontact") ? 1 : 0) %]
+    [% num_rows = 7 + (Param("useqacontact") ? 1 : 0) +
+                      (user.is_timetracker ? 3 : 0)
+    %]
 
     <td colspan="2" rowspan="[% num_rows FILTER html %]">
       [% IF product.flag_types.bug.size > 0 %]
@@ -552,9 +554,7 @@ function checkWorktime(inp)
       <input name="work_time" id="work_time" value="[% work_time | html %]" size="6" maxlength="6" onchange="checkWorktime(this)" onkeyup="checkWorktime(this)"" />
     </td>
 [% END %]
-    <th>Depends on:</th>
-    <td><input name="dependson" accesskey="d" value="[% dependson FILTER html %]"></td>
-  </tr>
+
   <tr>
 [% IF user.in_group(Param('timetrackinggroup')) %]
     <th>Deadline:</th>
@@ -565,9 +565,6 @@ function checkWorktime(inp)
          Calendar.set('deadline');
       </script>
     </td>
-[% END %]
-    <th>Blocks:</th>
-    <td><input name="blocked" accesskey="b" value="[% blocked FILTER html %]"></td>
   </tr>
 
   <tr>
@@ -744,6 +741,7 @@ function checkWorktime(inp)
       <br>
 
       <!-- Checkboxes -->
+      <input type="hidden" name="defined_groups" value="1">
       [% FOREACH group = product.groups_available %]
         <input type="checkbox" id="group_[% group.id FILTER html %]"
                name="groups" value="[% group.name FILTER html %]"

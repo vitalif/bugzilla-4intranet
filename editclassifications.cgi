@@ -57,9 +57,9 @@ sub LoadTemplate {
 # Preliminary checks:
 #
 
-Bugzilla->login(LOGIN_REQUIRED);
+my $user = Bugzilla->login(LOGIN_REQUIRED);
 
-Bugzilla->user->in_group('editclassifications')
+$user->in_group('editclassifications')
   || ThrowUserError("auth_failure", {group  => "editclassifications",
                                      action => "edit",
                                      object => "classifications"});

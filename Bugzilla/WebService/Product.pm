@@ -25,7 +25,7 @@ use Bugzilla::User;
 use Bugzilla::Error;
 use Bugzilla::Constants;
 use Bugzilla::WebService::Constants;
-use Bugzilla::WebService::Util qw(validate filter filter_wants);
+use Bugzilla::WebService::Util qw(validate filter filter_wants translate params_to_objects);
 
 use constant READ_ONLY => qw(
     get
@@ -33,6 +33,17 @@ use constant READ_ONLY => qw(
     get_enterable_products
     get_selectable_products
 );
+
+use constant MAPPED_FIELDS => {
+    has_unconfirmed => 'allows_unconfirmed',
+    is_open => 'is_active',
+};
+
+use constant MAPPED_RETURNS => {
+    allows_unconfirmed => 'has_unconfirmed',
+    defaultmilestone => 'default_milestone',
+    isactive => 'is_open',
+};
 
 ##################################################
 # Add aliases here for method name compatibility #
@@ -118,15 +129,73 @@ sub create {
     return { id => $self->type('int', $product->id) };
 }
 
+sub update {
+    my ($self, $params) = @_;
+
+    my $dbh = Bugzilla->dbh;
+
+    Bugzilla->login(LOGIN_REQUIRED);
+    Bugzilla->user->in_group('editcomponents')
+        || ThrowUserError("auth_failure", { group  => "editcomponents",
+                                            action => "edit",
+                                            object => "products" });
+
+    defined($params->{names}) || defined($params->{ids})
+        || ThrowCodeError('params_required', 
+               { function => 'Product.update', params => ['ids', 'names'] });
+
+    my $product_objects = params_to_objects($params, 'Bugzilla::Product');
+
+    my $values = translate($params, MAPPED_FIELDS);
+
+    # We delete names and ids to keep only new values to set.
+    delete $values->{names};
+    delete $values->{ids};
+
+    $dbh->bz_start_transaction();
+    foreach my $product (@$product_objects) {
+        $product->set_all($values);
+    }
+
+    my %changes;
+    foreach my $product (@$product_objects) {
+        my $returned_changes = $product->update();
+        $changes{$product->id} = translate($returned_changes, MAPPED_RETURNS);    
+    }
+    $dbh->bz_commit_transaction();
+            
+    my @result;
+    foreach my $product (@$product_objects) {
+        my %hash = (
+            id      => $product->id,
+            changes => {},
+        );
+
+        foreach my $field (keys %{ $changes{$product->id} }) {
+            my $change = $changes{$product->id}->{$field};
+            $hash{changes}{$field} = {
+                removed => $self->type('string', $change->[0]),
+                added   => $self->type('string', $change->[1]) 
+            };
+        }
+
+        push(@result, \%hash);
+    }
+
+    return { products => \@result };
+}
+
 sub _product_to_hash {
     my ($self, $params, $product) = @_;
 
     my $field_data = {
-        internals   => $product,
         id          => $self->type('int', $product->id),
         name        => $self->type('string', $product->name),
         description => $self->type('string', $product->description),
         is_active   => $self->type('boolean', $product->is_active),
+        default_milestone => $self->type('string', $product->default_milestone),
+        has_unconfirmed   => $self->type('boolean', $product->allows_unconfirmed),
+        classification => $self->type('string', $product->classification->name),
     };
     if (filter_wants($params, 'components')) {
         $field_data->{components} = [map {
@@ -318,7 +387,7 @@ hashes. Each hash describes a product, and has the following items:
 
 =item C<id>
 
-C<int> An integer id uniquely idenfifying the product in this installation only.
+C<int> An integer id uniquely identifying the product in this installation only.
 
 =item C<name>
 
@@ -333,6 +402,19 @@ C<string> A description of the product, which may contain HTML.
 
 C<boolean> A boolean indicating if the product is active.
 
+=item C<default_milestone>
+
+C<string> The name of the default milestone for the product.
+
+=item C<has_unconfirmed>
+
+C<boolean> Indicates whether the UNCONFIRMED bug status is available
+for this product.
+
+=item C<classification>
+
+C<string> The classification name for the product.
+
 =item C<components>
 
 C<array> An array of hashes, where each hash describes a component, and has the
@@ -342,7 +424,7 @@ following items:
 
 =item C<id>
 
-C<int> An integer id uniquely idenfifying the component in this installation
+C<int> An integer id uniquely identifying the component in this installation
 only.
 
 =item C<name>
@@ -386,12 +468,6 @@ following items: C<name>, C<sort_key> and C<is_active>.
 C<array> An array of hashes, where each hash describes a milestone, and has the
 following items: C<name>, C<sort_key> and C<is_active>.
 
-=item C<internals>
-
-B<UNSTABLE>
-
-An internal representation of the product.
-
 =back
 
 Note, that if the user tries to access a product that is not in the
@@ -407,14 +483,16 @@ is returned.
 
 =item In Bugzilla B<4.2>, C<names> was added as an input parameter.
 
-=item In Bugzilla B<4.2> C<components>, C<versions>, and C<milestones>
-were added to the fields returned by C<get>.
+=item In Bugzilla B<4.2>, C<classification>, C<components>, C<versions>,
+C<milestones>, C<default_milestone> and C<has_unconfirmed> were added to
+the fields returned by C<get> as a replacement for C<internals>, which has
+been removed.
 
 =back
 
 =back
 
-=head1 Product Creation
+=head1 Product Creation and Modification
 
 =head2 create
 
@@ -503,6 +581,130 @@ You must specify a version for this product.
 =item 705 (Product must define a defaut milestone)
 
 You must define a default milestone.
+
+=back
+
+=back
+
+=head2 update
+
+B<EXPERIMENTAL>
+
+=over
+
+=item B<Description>
+
+This allows you to update a product in Bugzilla.
+
+=item B<Params>
+
+B<Note:> The following parameters specify which products you are updating.
+You must set one or both of these parameters.
+
+=over
+
+=item C<ids>
+
+C<array> of C<int>s. Numeric ids of the products that you wish to update.
+
+=item C<names>
+
+C<array> or C<string>s. Names of the products that you wish to update.
+
+=back
+
+B<Note:> The following parameters specify the new values you want to set for
+the products you are updating.
+
+=over
+
+=item C<name>
+
+C<string> A new name for this product. If you try to set this while updating more
+than one product, an error will occur, as product names must be unique.
+
+=item C<default_milestone>
+
+C<string> When a new bug is filed, what milestone does it get by default if the
+user does not choose one? Must represent a milestone that is valid for this product.
+
+=item C<description>
+
+C<string> Update the long description for these products to this value.
+
+=item C<has_unconfirmed>
+
+C<boolean> Allow the UNCONFIRMED status to be set on bugs in products.
+
+=item C<is_open>
+
+C<boolean> True if the product is currently allowing bugs to be entered
+into it, False otherwise.
+
+=back
+
+=item B<Returns>
+
+A C<hash> with a single field "products". This points to an array of hashes
+with the following fields:
+
+=over
+
+=item C<id>
+
+C<int> The id of the product that was updated.
+
+=item C<changes>
+
+C<hash> The changes that were actually done on this product. The keys are
+the names of the fields that were changed, and the values are a hash
+with two keys:
+
+=over
+
+=item C<added>
+
+C<string> The value that this field was changed to.
+
+=item C<removed>
+
+C<string> The value that was previously set in this field.
+
+=back
+
+Note that booleans will be represented with the strings '1' and '0'.
+
+Here's an example of what a return value might look like:
+
+ { 
+   products => [
+     {
+       id => 123,
+       changes => {
+         name => {
+           removed => 'FooName',
+           added   => 'BarName'
+         },
+         has_unconfirmed => {
+           removed => '1',
+           added   => '0',
+         }
+       }
+     }
+   ]
+ }
+
+=item B<Errors>
+
+The same as L</create>.
+
+=back
+
+=item B<History>
+
+=over
+
+=item Added in Bugzilla B<5.0>.
 
 =back
 

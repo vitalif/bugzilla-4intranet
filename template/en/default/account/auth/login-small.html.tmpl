@@ -18,26 +18,6 @@
   # Contributor(s): Jacob Steenhagen <jake@bugzilla.org>
   #%]
 
-[%# This is mini login form shown in header and/or footer.
-  # It consists of:
-  # 1) A simple link to separate login form if browser has JS disabled.
-  # 2) A link which shows a mini login form in-place when clicked otherwise.
-  # In browsers that do autocomplete without user interaction
-  # (Firefox, Safari), the mini login form is shown right after
-  # autocomplete.
-  # Initially, onDOMReady was used for it: """
-  #   However, autocomplete happens at all sorts of different times in
-  #   different browsers (before or after onDOMReady, before or after
-  #   window.onload, in almost all combinations you can imagine).
-  #   The only good solution I found is to time the event 200
-  #   milliseconds after window.onload for WebKit (doing it immediately
-  #   at onload works in Chrome but not in Safari, but I can't detect
-  #   them separately using YUI), and right after onDOMReady in Gecko.
-  # """
-  # But, browsers also fire 'keyup' event on autocompleted editboxes.
-  # So, now it's used to show the login form.
-%]
-
 [%# Use the current script name. If an empty name is returned,
   # then we are accessing the home page. %]
 

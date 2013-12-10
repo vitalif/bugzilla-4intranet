@@ -32,6 +32,7 @@ use Bugzilla::Constants;
 use Bugzilla::WebService::Constants;
 use Bugzilla::Util;
 use Bugzilla::Mailer;
+use Bugzilla::Hook;
 
 use Carp;
 use Data::Dumper;

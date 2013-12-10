@@ -52,8 +52,9 @@ sub DoAccount {
     ($vars->{'realname'}) = $dbh->selectrow_array(
         "SELECT realname FROM profiles WHERE userid = ?", undef, $user->id);
 
-    if(Bugzilla->params->{'allowemailchange'} 
-       && Bugzilla->user->authorizer->can_change_email) {
+    if (Bugzilla->params->{'allowemailchange'}
+        && $user->authorizer->can_change_email)
+    {
        # First delete old tokens.
        Bugzilla::Token::CleanTokenTable();
 
@@ -85,8 +86,6 @@ sub SaveAccount {
     my $oldpassword = $cgi->param('old_password');
     my $pwd1 = $cgi->param('new_password1');
     my $pwd2 = $cgi->param('new_password2');
-
-    my $old_login_name = $cgi->param('old_login');
     my $new_login_name = trim($cgi->param('new_login_name'));
 
     if ($user->authorizer->can_change_password
@@ -120,7 +119,7 @@ sub SaveAccount {
         && Bugzilla->params->{"allowemailchange"}
         && $new_login_name)
     {
-        if ($old_login_name ne $new_login_name) {
+        if ($user->login ne $new_login_name) {
             $oldpassword || ThrowUserError("old_password_required");
 
             # Block multiple email changes for the same user.
@@ -134,8 +133,7 @@ sub SaveAccount {
             is_available_username($new_login_name)
               || ThrowUserError("account_exists", {email => $new_login_name});
 
-            Bugzilla::Token::IssueEmailChangeToken($user, $old_login_name,
-                                                   $new_login_name);
+            Bugzilla::Token::IssueEmailChangeToken($user, $new_login_name);
 
             $vars->{'email_changes_saved'} = 1;
         }
@@ -499,9 +497,9 @@ $cgi->delete('Bugzilla_login', 'Bugzilla_password') if ($cgi->cookie('sudo'));
 $cgi->delete('GoAheadAndLogIn');
 
 # First try to get credentials from cookies.
-Bugzilla->login(LOGIN_OPTIONAL);
+my $user = Bugzilla->login(LOGIN_OPTIONAL);
 
-if (!Bugzilla->user->id) {
+if (!$user->id) {
     # Use credentials given in the form if login cookies are not available.
     $cgi->param('Bugzilla_login', $cgi->param('old_login'));
     $cgi->param('Bugzilla_password', $cgi->param('old_password'));

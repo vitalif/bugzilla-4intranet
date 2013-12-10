@@ -37,6 +37,11 @@ use constant JOB_MAP => {
     sm_sync   => 'Bugzilla::Job::SM',
 };
 
+# Without a driver cache TheSchwartz opens a new database connection
+# for each email it sends.  This cached connection doesn't persist
+# across requests.
+use constant DRIVER_CACHE_TIME => 300; # 5 minutes
+
 sub job_map {
     if (!defined(Bugzilla->request_cache->{job_map})) {
         my $job_map = JOB_MAP;
@@ -64,6 +69,7 @@ sub new {
             pass   => $lc->{db_pass},
             prefix => 'ts_',
         }],
+        driver_cache_expiration => DRIVER_CACHE_TIME,
     );
 
     return $self;

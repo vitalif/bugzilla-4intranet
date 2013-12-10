@@ -443,7 +443,7 @@ sub _get_converted_html {
 
 =item C<datasize>
 
-the length (in characters) of the attachment content
+the length (in bytes) of the attachment content
 
 =back
 
@@ -606,9 +606,13 @@ sub _check_content_type {
  
     my $is_patch = ref($invocant) ? $invocant->ispatch : $params->{ispatch};
     $content_type = 'text/plain' if $is_patch;
-    $content_type = trim($content_type);
+    $content_type = clean_text($content_type);
+    # The subsets below cover all existing MIME types and charsets registered by IANA.
+    # (MIME type: RFC 2045 section 5.1; charset: RFC 2278 section 3.3)
     my $legal_types = join('|', LEGAL_CONTENT_TYPES);
-    if (!$content_type or $content_type !~ /^($legal_types)\/.+$/) {
+    if (!$content_type
+        || $content_type !~ /^($legal_types)\/[a-z0-9_\-\+\.]+(;\s*charset=[a-z0-9_\-\+]+)?$/i)
+    {
         ThrowUserError("invalid_content_type", { contenttype => $content_type });
     }
     trick_taint($content_type);
@@ -655,8 +659,15 @@ sub _check_description {
 sub _check_filename {
     my ($invocant, $filename) = @_;
 
-    $filename = trim($filename);
-    $filename || ThrowUserError('file_not_specified');
+    $filename = clean_text($filename);
+    if (!$filename) {
+        if (ref $invocant) {
+            ThrowUserError('filename_not_specified');
+        }
+        else {
+            ThrowUserError('file_not_specified');
+        }
+    }
 
     # Remove path info (if any) from the file name.  The browser should do this
     # for us, but some are buggy.  This may not work on Mac file names and could
@@ -665,9 +676,11 @@ sub _check_filename {
     # a big deal if it munges incorrectly occasionally.
     $filename =~ s/^.*[\/\\]//;
 
-    # Truncate the filename to 100 characters, counting from the end of the
-    # string to make sure we keep the filename extension.
-    $filename = substr($filename, -100, 100);
+    # Truncate the filename to MAX_ATTACH_FILENAME_LENGTH characters, counting 
+    # from the end of the string to make sure we keep the filename extension.
+    $filename = substr($filename, 
+                       -&MAX_ATTACH_FILENAME_LENGTH, 
+                       MAX_ATTACH_FILENAME_LENGTH);
     trick_taint($filename);
 
     return $filename;
@@ -890,7 +903,10 @@ sub create {
     # If we have a filehandle, we need its content to store it in the DB.
     elsif (ref $data) {
         local $/;
-        $data = <$data>;
+        # Store the content in a temp variable while we close the FH.
+        my $tmp = <$data>;
+        close $data;
+        $data = $tmp;
     }
 
     my $sth = $dbh->prepare("INSERT INTO attach_data
@@ -986,6 +1002,11 @@ sub remove_from_db
     $dbh->do('UPDATE attachments SET mimetype = ?, ispatch = ?, isobsolete = ?
               WHERE attach_id = ?', undef, ('text/plain', 0, 1, $self->id));
     $dbh->bz_commit_transaction();
+
+    my $filename = $self->_get_local_filename;
+    if (-e $filename) {
+        unlink $filename or warn "Couldn't unlink $filename: $!";
+    }
 }
 
 ###############################

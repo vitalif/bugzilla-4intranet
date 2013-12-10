@@ -204,7 +204,7 @@ sub _legal_field_values {
                name     => $self->type('string', $status->name),
                is_open  => $self->type('boolean', $status->is_open),
                sort_key => $self->type('int', $status->sortkey),
-               sortkey  => $self->type('int', $status->sortkey), # depricated
+               sortkey  => $self->type('int', $status->sortkey), # deprecated
                can_change_to => \@can_change_to,
                visibility_values => [],
             });
@@ -218,7 +218,7 @@ sub _legal_field_values {
             push(@result, {
                 name     => $self->type('string', $value->name),
                 sort_key => $self->type('int'   , $value->sortkey),
-                sortkey  => $self->type('int'   , $value->sortkey), # depricated
+                sortkey  => $self->type('int'   , $value->sortkey), # deprecated
                 visibility_values => [
                     defined $vis_val ? $self->type('string', $vis_val->name) 
                                      : ()
@@ -304,6 +304,7 @@ sub _translate_comment {
         text       => $self->type('string', $comment->body_full),
         rawtext    => $self->type('string', $comment->body),
         attachment_id => $self->type('int', $attach_id),
+        count      => $self->type('int', $comment->count),
     };
 }
 
@@ -355,7 +356,7 @@ sub history {
         $bug_id = $bug->id;
         $item{id} = $self->type('int', $bug_id);
 
-        my ($activity) = Bugzilla::Bug::GetBugActivity($bug_id);
+        my ($activity) = $bug->get_activity;
 
         my @history;
         foreach my $changeset (@$activity) {
@@ -383,14 +384,7 @@ sub history {
         # alias is returned in case users passes a mixture of ids and aliases
         # then they get to know which bug activity relates to which value  
         # they passed
-        if (Bugzilla->params->{'usebugaliases'}) {
-            $item{alias} = $self->type('string', $bug->alias);
-        }
-        else {
-            # For API reasons, we always want the value to appear, we just
-            # don't want it to have a value if aliases are turned off.
-            $item{alias} = undef;
-        }
+        $item{alias} = $self->type('string', $bug->alias);
 
         push(@return, \%item);
     }
@@ -481,7 +475,7 @@ sub update {
     my $ids = delete $params->{ids};
     defined $ids || ThrowCodeError('param_required', { param => 'ids' });
 
-    my @bugs = map { Bugzilla::Bug->check($_) } @$ids;
+    my @bugs = map { Bugzilla::Bug->check_for_edit($_) } @$ids;
 
     my %values = %$params;
     $values{other_bugs} = \@bugs;
@@ -497,11 +491,6 @@ sub update {
     delete $values{flags};
 
     foreach my $bug (@bugs) {
-        if (!$user->can_edit_product($bug->product_obj->id) ) {
-            ThrowUserError("product_edit_denied",
-                          { product => $bug->product });
-        }
-
         $bug->set_all(\%values);
     }
 
@@ -532,14 +521,7 @@ sub update {
         # alias is returned in case users pass a mixture of ids and aliases,
         # so that they can know which set of changes relates to which value
         # they passed.
-        if (Bugzilla->params->{'usebugaliases'}) {
-            $hash{alias} = $self->type('string', $bug->alias);
-        }
-        else {
-            # For API reasons, we always want the alias field to appear, we
-            # just don't want it to have a value if aliases are turned off.
-            $hash{alias} = $self->type('string', '');
-        }
+        $hash{alias} = $self->type('string', $bug->alias);
 
         my %changes = %{ $all_changes{$bug->id} };
         foreach my $field (keys %changes) {
@@ -632,17 +614,16 @@ sub add_attachment {
     defined $params->{data}
         || ThrowCodeError('param_required', { param => 'data' });
 
-    my @bugs = map { Bugzilla::Bug->check($_) } @{ $params->{ids} };
-    foreach my $bug (@bugs) {
-        Bugzilla->user->can_edit_product($bug->product_id)
-          || ThrowUserError("product_edit_denied", {product => $bug->product});
-    }
+    my @bugs = map { Bugzilla::Bug->check_for_edit($_) } @{ $params->{ids} };
 
     my @created;
     $dbh->bz_start_transaction();
+    my $timestamp = $dbh->selectrow_array('SELECT LOCALTIMESTAMP(0)');
+
     foreach my $bug (@bugs) {
         my $attachment = Bugzilla::Attachment->create({
             bug         => $bug,
+            creation_ts => $timestamp,
             data        => $params->{data},
             description => $params->{summary},
             filename    => $params->{file_name},
@@ -657,7 +638,7 @@ sub add_attachment {
               extra_data => $attachment->id });
         push(@created, $attachment);
     }
-    $_->bug->update($_->attached) foreach @created;
+    $_->bug->update($timestamp) foreach @created;
     $dbh->bz_commit_transaction();
 
     $_->send_changes() foreach @bugs;
@@ -670,10 +651,10 @@ sub add_attachment {
 
 sub add_comment {
     my ($self, $params) = @_;
-    
-    #The user must login in order add a comment
-    Bugzilla->login(LOGIN_REQUIRED);
-    
+
+    # The user must login in order add a comment
+    my $user = Bugzilla->login(LOGIN_REQUIRED);
+
     # Check parameters
     defined $params->{id} 
         || ThrowCodeError('param_required', { param => 'id' }); 
@@ -681,10 +662,8 @@ sub add_comment {
     (defined $comment && trim($comment) ne '')
         || ThrowCodeError('param_required', { param => 'comment' });
     
-    my $bug = Bugzilla::Bug->check($params->{id});
+    my $bug = Bugzilla::Bug->check_for_edit($params->{id});
 
-    Bugzilla->user->can_edit_bug($bug, THROW_ERROR);
-    
     # Backwards-compatibility for versions before 3.6    
     if (defined $params->{private}) {
         $params->{is_private} = delete $params->{private};
@@ -706,8 +685,8 @@ sub add_comment {
     $dbh->bz_commit_transaction();
     
     # Send mail.
-    Bugzilla::BugMail::Send($bug->bug_id, { changer => Bugzilla->user });
-    
+    Bugzilla::BugMail::Send($bug->bug_id, { changer => $user });
+
     return { id => $self->type('int', $new_comment_id) };
 }
 
@@ -725,8 +704,7 @@ sub update_see_also {
 
     my @bugs;
     foreach my $id (@{ $params->{ids} }) {
-        my $bug = Bugzilla::Bug->check($id);
-        $user->can_edit_bug($bug, THROW_ERROR);
+        my $bug = Bugzilla::Bug->check_for_edit($id);
         push(@bugs, $bug);
         if ($remove) {
             $bug->remove_see_also($_) foreach @$remove;
@@ -956,6 +934,10 @@ sub _attachment_to_hash {
         $item->{'data'} = $self->type('base64', $attach->data);
     }
 
+    if (filter_wants $filters, 'size') {
+        $item->{'size'} = $self->type('int', $attach->datasize);
+    }
+
     return $item;
 }
 
@@ -1019,7 +1001,7 @@ containing the following keys:
 
 =item C<id>
 
-C<int> An integer id uniquely idenfifying this field in this installation only.
+C<int> An integer id uniquely identifying this field in this installation only.
 
 =item C<type>
 
@@ -1309,6 +1291,10 @@ diagram above) are:
 
 C<base64> The raw data of the attachment, encoded as Base64.
 
+=item C<size>
+
+C<int> The length (in bytes) of the attachment.
+
 =item C<creation_time>
 
 C<dateTime> The time the attachment was created.
@@ -1395,6 +1381,8 @@ C<summary>.
 
 =item In Bugzilla B<4.2>, the C<is_url> return value was removed
 (this attribute no longer exists for attachments).
+
+=item The C<size> return value was added in Bugzilla B<5.0>.
 
 =back
 
@@ -1486,6 +1474,11 @@ C<int> The ID of the bug that this comment is on.
 C<int> If the comment was made on an attachment, this will be the
 ID of that attachment. Otherwise it will be null.
 
+=item count
+
+C<int> The number of the comment local to the bug. The Description is 0,
+comments start with 1.
+
 =item text
 
 C<string> The actual text of the comment.
@@ -1541,6 +1534,8 @@ that id.
 =item In Bugzilla B<4.0>, the C<author> return value was renamed to
 C<creator>.
 
+=item C<count> was added to the return value in Bugzilla B<5.0>.
+
 =back
 
 =back
@@ -1574,10 +1569,6 @@ If an element in the array is entirely numeric, it represents a bug_id
 from the Bugzilla database to fetch. If it contains any non-numeric 
 characters, it is considered to be a bug alias instead, and the bug with 
 that alias will be loaded. 
-
-Note that it's possible for aliases to be disabled in Bugzilla, in which
-case you will be told that you have specified an invalid bug_id if you
-try to specify an alias. (It will be error 100.)
 
 =item C<permissive> B<EXPERIMENTAL>
 
@@ -1827,8 +1818,7 @@ invalid bug error.
 
 =item 100 (Invalid Bug Alias)
 
-If you specified an alias and either: (a) the Bugzilla you're querying
-doesn't support aliases or (b) there is no bug with that alias.
+If you specified an alias and there is no bug with that alias.
 
 =item 101 (Invalid Bug ID)
 
@@ -1915,10 +1905,6 @@ from the Bugzilla database to fetch. If it contains any non-numeric
 characters, it is considered to be a bug alias instead, and the data bug 
 with that alias will be loaded. 
 
-Note that it's possible for aliases to be disabled in Bugzilla, in which
-case you will be told that you have specified an invalid bug_id if you
-try to specify an alias. (It will be error 100.)
-
 =back
 
 =item B<Returns>
@@ -1934,8 +1920,7 @@ C<int> The numeric id of the bug.
 
 =item alias
 
-C<string> The alias of this bug. If there is no alias or aliases are 
-disabled in this Bugzilla, this will be undef.
+C<string> The alias of this bug. If there is no alias, this will be undef.
 
 =item history
 
@@ -2037,9 +2022,7 @@ most-common database to use with Bugzilla, and MySQL is not case sensitive).
 
 =item C<alias>
 
-C<string> The unique alias for this bug. Note that you can search
-by alias even if the alias field is disabled in this Bugzilla, but
-it's likely that there won't be any aliases set on bugs, in that case.
+C<string> The unique alias for this bug.
 
 =item C<assigned_to>
 
@@ -2286,6 +2269,11 @@ the component's default QA Contact.
 =item C<status> (string) - The status that this bug should start out as.
 Note that only certain statuses can be set on bug creation.
 
+=item C<resolution> (string) - If you are filing a closed bug, then
+you will have to specify a resolution. You cannot currently specify
+a resolution of C<DUPLICATE> for new bugs, though. That must be done
+with L</update>.
+
 =item C<target_milestone> (string) - A valid target milestone for this
 product.
 
@@ -2367,6 +2355,9 @@ argument.
 
 =item Error 116 was added in Bugzilla B<4.0>. Before that, dependency
 loop errors had a generic code of C<32000>.
+
+=item The ability to file new bugs with a C<resolution> was added in
+Bugzilla B<5.0>.
 
 =back
 
@@ -2496,7 +2487,7 @@ This allows you to add a comment to a bug in Bugzilla.
 
 =over
 
-=item C<id> (int) B<Required> - The id or alias of the bug to append a 
+=item C<id> (int or string) B<Required> - The id or alias of the bug to append a 
 comment to.
 
 =item C<comment> (string) B<Required> - The comment to append to the bug.
@@ -2528,8 +2519,7 @@ C<99999.99>.
 
 =item 100 (Invalid Bug Alias) 
 
-If you specified an alias and either: (a) the Bugzilla you're querying
-doesn't support aliases or (b) there is no bug with that alias.
+If you specified an alias and there is no bug with that alias.
 
 =item 101 (Invalid Bug ID)
 
@@ -2886,8 +2876,7 @@ C<int> The id of the bug that was updated.
 
 =item C<alias>
 
-C<string> The alias of the bug that was updated, if aliases are enabled and
-this bug has an alias.
+C<string> The alias of the bug that was updated, if this bug has an alias.
 
 =item C<last_change_time>
 

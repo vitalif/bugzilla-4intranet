@@ -255,7 +255,8 @@ use constant ABSTRACT_SCHEMA => {
             assigned_to         => {TYPE => 'INT3', NOTNULL => 1,
                                     REFERENCES => {TABLE  => 'profiles',
                                                    COLUMN => 'userid'}},
-            bug_file_loc        => {TYPE => 'MEDIUMTEXT'},
+            bug_file_loc        => {TYPE => 'MEDIUMTEXT', 
+                                    NOTNULL => 1, DEFAULT => "''"},
             bug_severity        => {TYPE => 'varchar(64)', NOTNULL => 1},
             bug_status          => {TYPE => 'varchar(64)', NOTNULL => 1},
             creation_ts         => {TYPE => 'DATETIME'},
@@ -453,7 +454,7 @@ use constant ABSTRACT_SCHEMA => {
             mimetype     => {TYPE => 'TINYTEXT', NOTNULL => 1},
             ispatch      => {TYPE => 'BOOLEAN', NOTNULL => 1,
                              DEFAULT => 'FALSE'},
-            filename     => {TYPE => 'varchar(100)', NOTNULL => 1},
+            filename     => {TYPE => 'varchar(255)', NOTNULL => 1},
             submitter_id => {TYPE => 'INT3', NOTNULL => 1,
                              REFERENCES => {TABLE => 'profiles',
                                             COLUMN => 'userid'}},
@@ -503,7 +504,7 @@ use constant ABSTRACT_SCHEMA => {
                                       COLUMN => 'bug_id',
                                       DELETE => 'CASCADE'}},
             value  => {TYPE => 'varchar(255)', NOTNULL => 1},
-            class  => {TYPE => 'varchar(255)', NOTNULL => 1},
+            class  => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"},
         ],
         INDEXES => [
             bug_see_also_bug_id_idx => {FIELDS => [qw(bug_id value)], 
@@ -518,7 +519,8 @@ use constant ABSTRACT_SCHEMA => {
         FIELDS => [
             user_id   => {TYPE => 'INT3',
                           REFERENCES => {TABLE  => 'profiles',
-                                         COLUMN => 'userid'}},
+                                         COLUMN => 'userid',
+                                         DELETE => 'SET NULL'}},
             class     => {TYPE => 'varchar(255)', NOTNULL => 1},
             object_id => {TYPE => 'INT4', NOTNULL => 1},
             field     => {TYPE => 'varchar(64)', NOTNULL => 1},
@@ -998,7 +1000,7 @@ use constant ABSTRACT_SCHEMA => {
         ],
     },
 
-    tags => {
+    tag => {
         FIELDS => [
             id   => {TYPE => 'MEDIUMSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
             name => {TYPE => 'varchar(64)', NOTNULL => 1},
@@ -1008,7 +1010,7 @@ use constant ABSTRACT_SCHEMA => {
                                         DELETE => 'CASCADE'}},
         ],
         INDEXES => [
-            tags_user_id_idx => {FIELDS => [qw(user_id name)], TYPE => 'UNIQUE'},
+            tag_user_id_idx => {FIELDS => [qw(user_id name)], TYPE => 'UNIQUE'},
         ],
     },
 
@@ -1019,7 +1021,7 @@ use constant ABSTRACT_SCHEMA => {
                                       COLUMN => 'bug_id',
                                       DELETE => 'CASCADE'}},
             tag_id => {TYPE => 'INT3', NOTNULL => 1,
-                       REFERENCES => {TABLE  => 'tags',
+                       REFERENCES => {TABLE  => 'tag',
                                       COLUMN => 'id',
                                       DELETE => 'CASCADE'}},
         ],

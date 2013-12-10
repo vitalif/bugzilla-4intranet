@@ -40,6 +40,8 @@ use base qw(Bugzilla::DB);
 
 use DBD::Oracle;
 use DBD::Oracle qw(:ora_types);
+use List::Util qw(max);
+
 use Bugzilla::Constants;
 use Bugzilla::Error;
 use Bugzilla::Util;
@@ -50,6 +52,8 @@ use Bugzilla::Util;
 use constant EMPTY_STRING  => '__BZ_EMPTY_STR__';
 use constant ISOLATION_LEVEL => 'READ COMMITTED';
 use constant BLOB_TYPE => { ora_type => ORA_BLOB };
+# The max size allowed for LOB fields, in kilobytes.
+use constant MIN_LONG_READ_LEN => 32 * 1024;
 use constant FULLTEXT_OR => ' OR ';
 
 sub new {
@@ -68,8 +72,8 @@ sub new {
     my $dsn = "dbi:Oracle:host=$host;sid=$dbname";
     $dsn .= ";port=$port" if $port;
     my $attrs = { FetchHashKeyName => 'NAME_lc',  
-                  LongReadLen => ( Bugzilla->params->{'maxattachmentsize'}
-                                     || 1000 ) * 1024, 
+                  LongReadLen => max(Bugzilla->params->{'maxattachmentsize'},
+                                     MIN_LONG_READ_LEN) * 1024,
                 };
     my $self = $class->db_new({ dsn => $dsn, user => $user, 
                                 pass => $pass, attrs => $attrs });
@@ -166,13 +170,6 @@ sub sql_string_concat {
     return 'CONCAT(' . join(', ', @params) . ')';
 }
 
-sub sql_string_until {
-    my ($self, $string, $substring) = @_;
-    return "SUBSTR($string, 1, " 
-           . $self->sql_position($substring, $string)
-           . " - 1)";
-}
-
 sub sql_to_days {
     my ($self, $date) = @_;
 
@@ -187,7 +184,7 @@ sub sql_fulltext_search {
     my ($self, $column, $text, $label) = @_;
     $text = $self->quote($text);
     trick_taint($text);
-    return "CONTAINS($column,$text,$label)", "SCORE($label)";
+    return "CONTAINS($column,$text,$label) > 0", "SCORE($label)";
 }
 
 sub sql_date_format {
@@ -322,9 +319,6 @@ sub adjust_statement {
     my $is_select = ($part =~ m/^\s*SELECT\b/io);
     my $has_from =  ($part =~ m/\bFROM\b/io) if $is_select;
 
-    # Oracle recognizes CURRENT_DATE, but not CURRENT_DATE()
-    $part =~ s/\bCURRENT_DATE\b\(\)/CURRENT_DATE/io;
-    
     # Oracle use SUBSTR instead of SUBSTRING
     $part =~ s/\bSUBSTRING\b/SUBSTR/io;
    
@@ -353,18 +347,11 @@ sub adjust_statement {
         $has_from = ($nonstring =~ m/\bFROM\b/io) 
                     if ($is_select and !$has_from);
 
-        # Oracle recognizes CURRENT_DATE, but not CURRENT_DATE()
-        $nonstring =~ s/\bCURRENT_DATE\b\(\)/CURRENT_DATE/io;
-
         # Oracle use SUBSTR instead of SUBSTRING
         $nonstring =~ s/\bSUBSTRING\b/SUBSTR/io;
-        
+
         # Oracle need no 'AS'
         $nonstring =~ s/\bAS\b//ig;
-        
-        # Take the first 4000 chars for comparison  
-        $nonstring =~ s/\(\s*(longdescs_\d+\.thetext|attachdata_\d+\.thedata)/
-                      \(DBMS_LOB.SUBSTR\($1, 4000, 1\)/ig;
 
         # Look for a LIMIT clause
         ($limit) = ($nonstring =~ m(/\* LIMIT (\d*) \*/)o);
@@ -389,20 +376,17 @@ sub adjust_statement {
         if ($new_sql !~ /\bWHERE\b/) {
             $new_sql = $new_sql." WHERE 1=1";
         }
-         my ($before_where, $after_where) = split /\bWHERE\b/i,$new_sql;
-         if (defined($offset)) {
-             if ($new_sql =~ /(.*\s+)FROM(\s+.*)/i) { 
-                 my ($before_from,$after_from) = ($1,$2);
-                 $before_where = "$before_from FROM ($before_from,"
-                             . " ROW_NUMBER() OVER (ORDER BY 1) R "
-                             . " FROM $after_from ) "; 
-                 $after_where = " R BETWEEN $offset+1 AND $limit+$offset";
-             }
-         } else {
-                 $after_where = " rownum <=$limit AND ".$after_where;
-         }
-
-         $new_sql = $before_where." WHERE ".$after_where;
+        my ($before_where, $after_where) = split(/\bWHERE\b/i, $new_sql, 2);
+        if (defined($offset)) {
+            my ($before_from, $after_from) = split(/\bFROM\b/i, $new_sql, 2);
+            $before_where = "$before_from FROM ($before_from,"
+                          . " ROW_NUMBER() OVER (ORDER BY 1) R "
+                          . " FROM $after_from ) "; 
+            $after_where = " R BETWEEN $offset+1 AND $limit+$offset";
+        } else {
+            $after_where = " rownum <=$limit AND ".$after_where;
+        }
+        $new_sql = $before_where." WHERE ".$after_where;
     }
     return $new_sql;
 }
@@ -664,6 +648,10 @@ sub bz_setup_database {
                 my $fk_name = $self->_bz_schema->_get_fk_name($table,
                                                               $column,
                                                               $references);
+                # bz_rename_table didn't rename the trigger correctly.
+                if ($table eq 'bug_tag' && $to_table eq 'tags') {
+                    $to_table = 'tag';
+                }
                 if ( $update =~ /CASCADE/i ){
                      my $trigger_name = uc($fk_name . "_UC");
                      my $exist_trigger = $self->selectcol_arrayref(

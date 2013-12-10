@@ -21,8 +21,6 @@
 
 [%# Remember to PROCESS rather than INCLUDE this template. %]
 
-[% PROCESS global/variables.none.tmpl %]
-
 [% SET search_descs = {
   "noop"           => "---",
   "equals"         => "is equal to",
@@ -98,7 +96,7 @@
      "component"               => "Component",
      "content"                 => "Content",
      "creation_ts"             => "Creation date",
-     "days_elapsed"            => "Days since bug changed",
+     "days_elapsed"            => "Days since $terms.bug changed",
      "deadline"                => "Deadline",
      "delta_ts"                => "Changed",
      "dependson"               => "Depends on",
@@ -133,7 +131,7 @@
      "settings"                => "Settings",
      "short_desc"              => "Summary",
      "status_whiteboard"       => "Whiteboard",
-     "tags.name"               => "Tags",
+     "tag.name"                => "Tags",
      "target_milestone"        => "Target Milestone",
      "version"                 => "Version",
      "work_time"               => "Hours Worked",
@@ -149,6 +147,8 @@
          IF !vars.field_descs.${bz_field.name}.defined %]
     [% END %]
   [% END %]
+
+  [% PROCESS "bug/field-help.none.tmpl" %]
 [% END %]
 
 [% Hook.process("end") %]

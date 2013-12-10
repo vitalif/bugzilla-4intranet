@@ -188,6 +188,11 @@ sub remove_from_db {
 
     $dbh->bz_start_transaction();
 
+    # Products must have at least one component.
+    if (scalar(@{$self->product->components}) == 1) {
+        ThrowUserError('component_is_last', { comp => $self });
+    }
+
     if ($self->bug_count) {
         if (Bugzilla->params->{'allowbugdeletion'}) {
             require Bugzilla::Bug;
@@ -201,14 +206,7 @@ sub remove_from_db {
             ThrowUserError('component_has_bugs', {nb => $self->bug_count});
         }
     }
-
-    $dbh->do('DELETE FROM flaginclusions WHERE component_id = ?',
-             undef, $self->id);
-    $dbh->do('DELETE FROM flagexclusions WHERE component_id = ?',
-             undef, $self->id);
-    $dbh->do('DELETE FROM component_cc WHERE component_id = ?',
-             undef, $self->id);
-    $dbh->do('DELETE FROM components WHERE id = ?', undef, $self->id);
+    $self->SUPER::remove_from_db();
 
     # Remove visibility values
     $self->set_visibility_values(undef);

@@ -146,9 +146,11 @@ my %bug_params;
 foreach my $field (@bug_fields) {
     $bug_params{$field} = $cgi->param($field);
 }
-$bug_params{'cc'}          = [$cgi->param('cc')];
-$bug_params{'groups'}      = [$cgi->param('groups')];
-$bug_params{'comment'}     = $comment;
+foreach my $field (qw(cc groups)) {
+    next if !$cgi->should_set($field);
+    $bug_params{$field} = [$cgi->param($field)];
+}
+$bug_params{'comment'} = $comment;
 
 if ($user->is_timetracker)
 {
@@ -163,6 +165,7 @@ my @multi_selects = grep {$_->type == FIELD_TYPE_MULTI_SELECT && $_->enter_bug}
                          Bugzilla->active_custom_fields;
 
 foreach my $field (@multi_selects) {
+    next if !$cgi->should_set($field->name);
     $bug_params{$field->name} = [$cgi->param($field->name)];
 }
 
@@ -171,8 +174,9 @@ Bugzilla->dbh->bz_start_transaction;
 
 my $bug = Bugzilla::Bug->create(\%bug_params);
 
-# Get the bug ID back.
+# Get the bug ID back and delete the token used to create this bug.
 my $id = $bug->bug_id;
+delete_token($token);
 
 # We do this directly from the DB because $bug->creation_ts has the seconds
 # formatted out of it (which should be fixed some day).

@@ -93,6 +93,12 @@ use constant FULLTEXT_OR => '';
 use constant WORD_START => '(^|[^[:alnum:]])';
 use constant WORD_END   => '($|[^[:alnum:]])';
 
+# On most databases, in order to drop an index, you have to first drop
+# the foreign keys that use that index. However, on some databases,
+# dropping the FK immediately before dropping the index causes problems
+# and doesn't need to be done anyway, so those DBs set this to 0.
+use constant INDEX_DROPS_REQUIRE_FK_DROPS => 1;
+
 #####################################################################
 # Overridden Superclass Methods 
 #####################################################################
@@ -250,7 +256,7 @@ sub bz_create_database {
 
     if (!$conn_success) {
         $dbh = _get_no_db_connection();
-        print "Creating database $db_name...\n";
+        say "Creating database $db_name...";
 
         # Try to create the DB, and if we fail print a friendly error.
         my $success  = eval {
@@ -391,8 +397,11 @@ sub sql_string_concat {
 
 sub sql_string_until {
     my ($self, $string, $substring) = @_;
-    return "SUBSTRING($string FROM 1 FOR " .
-                      $self->sql_position($substring, $string) . " - 1)";
+
+    my $position = $self->sql_position($substring, $string);
+    return "CASE WHEN $position != 0"
+             . " THEN SUBSTR($string, 1, $position - 1)"
+             . " ELSE $string END";
 }
 
 sub sql_in {
@@ -502,7 +511,7 @@ sub bz_setup_database {
     my @desired_tables = $self->_bz_schema->get_table_list();
     my $bugs_exists = $self->bz_table_info('bugs');
     if (!$bugs_exists) {
-        print install_string('db_table_setup'), "\n";
+        say install_string('db_table_setup');
     }
 
     foreach my $table_name (@desired_tables) {
@@ -539,7 +548,7 @@ sub bz_setup_foreign_keys {
     my $activity_fk = $self->bz_fk_info('profiles_activity', 'userid');
     my $any_fks = $activity_fk && $activity_fk->{created};
     if (!$any_fks) {
-        print get_text('install_fk_setup'), "\n";
+        say get_text('install_fk_setup');
     }
 
     my @tables = $self->bz_table_list();
@@ -558,7 +567,7 @@ sub bz_setup_foreign_keys {
             # prior to 4.2, and also to handle problems caused
             # by enabling an extension pre-4.2, disabling it for
             # the 4.2 upgrade, and then re-enabling it later.
-            if (!$fk) {
+            unless ($fk && $fk->{created}) {
                 my $standard_def = 
                     $self->_bz_schema->get_column_abstract($table, $column);
                 if (exists $standard_def->{REFERENCES}) {
@@ -730,12 +739,12 @@ sub bz_alter_column_raw {
         $table, $name, $new_def,
         defined $set_nulls_to ? $self->quote($set_nulls_to) : undef);
     my $new_ddl = $self->_bz_schema->get_type_ddl($new_def);
-    print "Updating column $name in table $table ...\n";
+    say "Updating column $name in table $table ...";
     if (defined $current_def) {
         my $old_ddl = $self->_bz_schema->get_type_ddl($current_def);
-        print "Old: $old_ddl\n";
+        say "Old: $old_ddl";
     }
-    print "New: $new_ddl\n";
+    say "New: $new_ddl";
     $self->do($_) foreach (@statements);
 }
 
@@ -829,7 +838,7 @@ sub _bz_add_table_raw {
     if (Bugzilla->usage_mode == USAGE_MODE_CMDLINE
         and !$options->{silently})
     {
-        print install_string('db_table_new', { table => $name }), "\n";
+        say install_string('db_table_new', { table => $name });
     }
     $self->do($_) foreach (@statements);
 }
@@ -961,9 +970,11 @@ sub bz_drop_index {
 
     my $index_exists = $self->bz_index_info($table, $name);
     if ($index_exists) {
-        # We cannot delete an index used by a FK.
-        foreach my $column (@{$index_exists->{FIELDS}}) {
-            $self->bz_drop_related_fks($table, $column);
+        if ($self->INDEX_DROPS_REQUIRE_FK_DROPS) {
+            # We cannot delete an index used by a FK.
+            foreach my $column (@{$index_exists->{FIELDS}}) {
+                $self->bz_drop_related_fks($table, $column);
+            }
         }
         $self->bz_drop_index_raw($table, $name);
         $self->_bz_real_schema->delete_index($table, $name);
@@ -1061,6 +1072,18 @@ sub bz_rename_table {
     my $new = $self->bz_table_info($new_name);
     ThrowCodeError('db_rename_conflict', { old => $old_name,
                                            new => $new_name }) if $new;
+
+    # FKs will all have the wrong names unless we drop and then let them
+    # be re-created later. Under normal circumstances, checksetup.pl will
+    # automatically re-create these dropped FKs at the end of its DB upgrade
+    # run, so we don't need to re-create them in this method.
+    my @columns = $self->bz_table_columns($old_name);
+    foreach my $column (@columns) {
+        # these just return silently if there's no FK to drop
+        $self->bz_drop_fk($old_name, $column);
+        $self->bz_drop_related_fks($old_name, $column);
+    }
+
     my @sql = $self->_bz_real_schema->get_rename_table_sql($old_name, $new_name);
     print get_text('install_table_rename', 
                    { old => $old_name, new => $new_name }) . "\n"
@@ -1370,7 +1393,7 @@ sub _bz_init_schema_storage {
             $self->_bz_add_table_raw('bz_schema');
         }
 
-        print install_string('db_schema_init'), "\n";
+        say install_string('db_schema_init');
         my $sth = $self->prepare("INSERT INTO bz_schema "
                                  ." (schema_data, version) VALUES (?,?)");
         $sth->bind_param(1, $store_me, $self->BLOB_TYPE);

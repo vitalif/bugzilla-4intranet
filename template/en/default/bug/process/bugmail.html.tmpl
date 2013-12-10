@@ -24,9 +24,6 @@
   # sent_bugmail: The results of Bugzilla::BugMail::Send().
   #%]
 
-[% IF NOT commentsilent %]
-[% PROCESS global/variables.none.tmpl %]
-
 <dl>
 [% PROCESS emails
    description = "Email sent to"

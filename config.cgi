@@ -44,14 +44,15 @@ use Digest::MD5 qw(md5_base64);
 my $user = Bugzilla->login(LOGIN_OPTIONAL);
 my $cgi  = Bugzilla->cgi;
 
+# Get data from the shadow DB as they don't change very often.
+Bugzilla->switch_to_shadow_db;
+
 # If the 'requirelogin' parameter is on and the user is not
 # authenticated, return empty fields.
 if (Bugzilla->params->{'requirelogin'} && !$user->id) {
     display_data();
+    exit;
 }
-
-# Get data from the shadow DB as they don't change very often.
-Bugzilla->switch_to_shadow_db;
 
 # Pass a bunch of Bugzilla configuration to the templates.
 my $vars = {};
@@ -107,7 +108,7 @@ $vars->{'closed_status'} = \@closed_status;
 # Generate a list of fields that can be queried.
 my @fields = Bugzilla->get_fields({obsolete => 0});
 # Exclude fields the user cannot query.
-if (!Bugzilla->user->is_timetracker) {
+if (!$user->is_timetracker) {
     @fields = grep { $_->name !~ /^(estimated_time|remaining_time|work_time|percentage_complete|deadline)$/ } @fields;
 }
 $vars->{'field'} = \@fields;
@@ -136,31 +137,9 @@ sub display_data {
     utf8::encode($digest_data) if utf8::is_utf8($digest_data);
     my $digest = md5_base64($digest_data);
 
-    # ETag support.
-    my $if_none_match = $cgi->http('If-None-Match') || "";
-    my $found304;
-    my @if_none = split(/[\s,]+/, $if_none_match);
-    foreach my $if_none (@if_none) {
-        # remove quotes from begin and end of the string
-        $if_none =~ s/^\"//g;
-        $if_none =~ s/\"$//g;
-        if ($if_none eq $digest or $if_none eq '*') {
-            # leave the loop after the first match
-            $found304 = $if_none;
-            last;
-        }
-    }
- 
-   if ($found304) {
-        $cgi->send_header(-type => 'text/html',
-                           -ETag => $found304,
-                           -status => '304 Not Modified');
-    }
-    else {
-        # Return HTTP headers.
-        $cgi->send_header (-ETag => $digest,
-                            -type => $format->{'ctype'});
-        print $output;
-    }
-    exit;
+    $cgi->check_etag($digest);
+
+    print $cgi->header (-ETag => $digest,
+                        -type => $format->{'ctype'});
+    print $output;
 }

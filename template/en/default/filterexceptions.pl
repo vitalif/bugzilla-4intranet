@@ -52,13 +52,8 @@
 ],
 
 'flag/list.html.tmpl' => [
-  'flag.id',
-  'flag.status',
-  'type.id',
-],
-
-'search/boolean-charts.html.tmpl' => [
-  '"id=\"$id\"" IF id'
+  'flag.status', 
+  'type.id', 
 ],
 
 'search/form.html.tmpl' => [

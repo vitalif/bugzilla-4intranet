@@ -41,6 +41,46 @@ use Bugzilla::Keyword;
 use Bugzilla::Field;
 use Bugzilla::Install::Util qw(vers_cmp);
 
+###############
+# Subroutines #
+###############
+
+sub get_product_values {
+    my ($products, $field, $vars) = @_;
+    my @all_values = map { @{ $_->$field } } @$products;
+
+    my (@unique, %duplicates, %duplicate_count, %seen);
+    foreach my $value (@all_values) {
+        my $lc_name = lc($value->name);
+        if ($seen{$lc_name}) {
+            $duplicate_count{$seen{$lc_name}->id}++;
+            $duplicates{$value->id} = $seen{$lc_name};
+            next;
+        }
+        push(@unique, $value);
+        $seen{$lc_name} = $value;
+    }
+
+    $field =~ s/s$//;
+    if ($field eq 'version') {
+        @unique = sort { vers_cmp(lc($a->name), lc($b->name)) } @unique;
+    }
+    else {
+        @unique = sort { lc($a->name) cmp lc($b->name) } @unique;
+    }
+
+    $field = 'target_milestone' if $field eq 'milestone';
+    $vars->{duplicates}->{$field} = \%duplicates;
+    $vars->{duplicate_count}->{$field} = \%duplicate_count;
+    # "component" is a reserved word in Template Toolkit.
+    $field = 'component_' if $field eq 'component';
+    $vars->{$field} = \@unique;
+}
+
+###############
+# Main Script #
+###############
+
 my $cgi = Bugzilla->cgi;
 # Copy hash and throw away tied reference returned by Vars()
 my $params = { %{ $cgi->Vars } };
@@ -211,7 +251,7 @@ $vars->{'resolution'} = Bugzilla::Field->new({name => 'resolution'})->legal_valu
 my @fields = @{ Bugzilla->fields({ obsolete => 0 }) };
 
 # If we're not in the time-tracking group, exclude time-tracking fields.
-if (!Bugzilla->user->is_timetracker) {
+if (!$user->is_timetracker) {
     foreach my $tt_field (TIMETRACKING_FIELDS) {
         @{$vars->{chart_fields}} = grep($_->{name} ne $tt_field, @{$vars->{chart_fields}});
     }

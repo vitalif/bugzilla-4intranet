@@ -356,7 +356,6 @@ use base qw(Exporter);
     EMPTY_COLUMN
 
     split_order_term
-    translate_old_column
 );
 
 use Bugzilla::Error;

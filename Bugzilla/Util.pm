@@ -50,15 +50,14 @@ use base qw(Exporter);
                              detect_encoding);
 
 use Bugzilla::Constants;
+use Bugzilla::RNG qw(irand);
+use Bugzilla::Error;
 
 use Date::Parse;
 use Date::Format;
-use DateTime;
-use DateTime::TimeZone;
 use Digest;
 use Email::Address;
 use List::Util qw(first);
-use Math::Random::Secure qw(irand);
 use Scalar::Util qw(tainted blessed);
 use Template::Filters;
 use Text::Wrap;
@@ -336,37 +335,47 @@ sub use_attachbase {
 
 sub diff_arrays {
     my ($old_ref, $new_ref, $attrib) = @_;
-
-    my @old = @$old_ref;
-    my @new = @$new_ref;
     $attrib ||= 'name';
 
-    # For each pair of (old, new) entries:
-    # If object arrays were passed then an attribute should be defined;
-    # If they're equal, set them to empty. When done, @old contains entries
-    # that were removed; @new contains ones that got added.
-    foreach my $oldv (@old) {
-        foreach my $newv (@new) {
-            next if ($newv eq '' or $oldv eq '');
-            if (blessed($oldv) and blessed($newv)) {
-                if ($oldv->$attrib eq $newv->$attrib) {
-                    $newv = $oldv = '';
-                }
-            }
-            else {
-                if ($oldv eq $newv) {
-                    $newv = $oldv = ''
-                }
-            }
+    my (%counts, %pos);
+    # We are going to alter the old array.
+    my @old = @$old_ref;
+    my $i = 0;
+
+    # $counts{foo}-- means old, $counts{foo}++ means new.
+    # If $counts{foo} becomes positive, then we are adding new items,
+    # else we simply cancel one old existing item. Remaining items
+    # in the old list have been removed.
+    foreach (@old) {
+        next unless defined $_;
+        my $value = blessed($_) ? $_->$attrib : $_;
+        $counts{$value}--;
+        push @{$pos{$value}}, $i++;
+    }
+    my @added;
+    foreach (@$new_ref) {
+        next unless defined $_;
+        my $value = blessed($_) ? $_->$attrib : $_;
+        if (++$counts{$value} > 0) {
+            # Ignore empty strings, but objects having an empty string
+            # as attribute are fine.
+            push(@added, $_) unless ($value eq '' && !blessed($_));
+        }
+        else {
+            my $old_pos = shift @{$pos{$value}};
+            $old[$old_pos] = undef;
         }
     }
-
-    my @removed;
-    my @added;
-    @removed = grep { $_ ne '' } @old;
-    @added   = grep { $_ ne '' } @new;
-
+    # Ignore canceled items as well as empty strings.
+    my @removed = grep { defined $_ && $_ ne '' } @old;
     return (\@removed, \@added);
+}
+
+# XXX - This is a temporary subroutine till we require Perl 5.10.1.
+# This will happen before Bugzilla 5.0rc1.
+sub say (@) {
+    print @_;
+    print "\n";
 }
 
 sub trim {
@@ -557,6 +566,9 @@ sub datetime_from {
         delete $args{$arg} if !defined $args{$arg};
     }
 
+    # This module takes time to load and is only used here, so we
+    # |require| it here rather than |use| it.
+    require DateTime;
     my $dt = new DateTime(\%args);
 
     # Now display the date using the given timezone,
@@ -707,11 +719,9 @@ sub get_text {
     $vars ||= {};
     $vars->{message} = $name;
     my $message;
-    if (!$template->process('global/message.txt.tmpl', $vars, \$message))
-    {
-        require Bugzilla::Error;
-        Bugzilla::Error::ThrowTemplateError($template->error());
-    }
+    $template->process('global/message.txt.tmpl', $vars, \$message)
+      || ThrowTemplateError($template->error());
+
     # Remove the indenting that exists in messages.html.tmpl.
     $message =~ s/^    //gm;
     return $message;
@@ -951,11 +961,8 @@ use constant UTF8_ACCIDENTAL => qw(shiftjis big5-eten euc-kr euc-jp);
 sub detect_encoding {
     my $data = shift;
 
-    if (!Bugzilla->feature('detect_charset')) {
-        require Bugzilla::Error;
-        Bugzilla::Error::ThrowCodeError('feature_disabled',
-            { feature => 'detect_charset' });
-    }
+    Bugzilla->feature('detect_charset')
+      || ThrowCodeError('feature_disabled', { feature => 'detect_charset' });
 
     require Encode::Detect::Detector;
     import Encode::Detect::Detector 'detect';
