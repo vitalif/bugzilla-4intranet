@@ -34,7 +34,6 @@ use Bugzilla::User;
 use Bugzilla::Field;
 use Bugzilla::Field::Choice;
 use Bugzilla::Token;
-use Data::Dumper;
 
 my $cgi = Bugzilla->cgi;
 my $template = Bugzilla->template;
@@ -83,9 +82,9 @@ unless ($action) {
     my $controlled_fields = { map { $_->id => $_ } values $field->controls_visibility_of() };
     my @fields = Bugzilla->get_fields({custom => 1, sort => 1});
     my $except_fields = { map { $_->id => { map { $_->id => 1 } values $_->controls_visibility_of } } @fields };
-    $vars->{'fields'} = [
+    my $fields_visibility = {
         map {
-            {
+            $_->id => {
                 id => $_->id,
                 name => $_->name,
                 description => $_->description,
@@ -93,7 +92,41 @@ unless ($action) {
             }
         }
         grep { $_->id ne $field->id && !($except_fields->{$_->id}->{$field->id}) } @fields
-    ];
+    };
+    for my $cfield (@fields)
+    {
+        my $visible_for_all = $cfield->id ne $field->id && !($except_fields->{$field->id}->{$cfield->id});
+        if ($visible_for_all)
+        {
+            for my $cvalue (@{$cfield->legal_values})
+            {
+                next if $cvalue->is_static;
+                if (!$cvalue->visible_for_all(1))
+                {
+                    $visible_for_all = 0;
+                    last;
+                }
+            }
+        }
+        if ($visible_for_all)
+        {
+            if ($fields_visibility->{$cfield->id})
+            {
+                $fields_visibility->{$cfield->id}->{visible_for_all} = 1;
+                $fields_visibility->{$cfield->id}->{visible} = 1;
+            }
+            else
+            {
+                push $vars->{'fields'}, {
+                    id => $cfield->id,
+                    name => $cfield->name,
+                    description => $cfield->description,
+                    visible_for_all => 1
+                };
+            }
+        }
+    }
+    $vars->{'fields'} = [values $fields_visibility];
     $vars->{'token'} = issue_session_token('change_visibility');
     $template->process("admin/fieldvalues/visibility-list.html.tmpl", $vars)
         || ThrowTemplateError($template->error());
@@ -111,10 +144,12 @@ if ($action eq 'update' && $token) {
         for my $field_id (@fields) {
             my $cfield = Bugzilla->get_field($field_id);
             my $changed = 0;
-            if ($cfield->value_field_id ne $field->id) {
+            # set VISIBILITY field
+            if ($cfield->visibility_field_id ne $field->id) {
                 $cfield->set_visibility_field($field->id);
                 $changed = 1;
             }
+            # set VALUE field
             if ($cfield->value_field_id ne $field->id) {
                 $cfield->set_value_field($field->id);
                 $changed = 1;
@@ -137,6 +172,11 @@ if ($action eq 'update' && $token) {
     }
     for my $cfield (values $controlled_fields) {
         my $visibility_values = { map { $_->id => 1 } values $cfield->visibility_values};
+        if (!%$visibility_values) {
+            # cfield is visible for all values
+            # get them all!!!
+            $visibility_values = { map { $_->id => 1 } values $cfield->visibility_field->legal_values};
+        }
         if ($visibility_values->{$value->id}) {
             delete $visibility_values->{$value->id};
             $cfield->set_visibility_values([keys $visibility_values]);

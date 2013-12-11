@@ -26,13 +26,20 @@
     <table id="admin_table" cellspacing="0" cellpadding="4">
         <tr>
             <th align="left">Custom field</th>
-            <th align="left">Visible</td>
+            <th align="left">Visible</th>
+            <th align="left"></th>
         </tr>
         [% i = 0 %]
         [% FOREACH cfield = fields %]
         <tr class="[% IF i mod 2 == 0 %]odd[% ELSE %]even[% END %]_row">
             <td>[% cfield.description FILTER html %]</td>
-            <td><input type="checkbox" name="fields[]" value="[% cfield.id %]" [% "checked=\"checked\"" IF cfield.visible %]/></td>
+            <td><input type="checkbox" name="fields[]" value="[% cfield.id %]"[% "checked=\"checked\"" IF cfield.visible %][% "disabled=\"disabled\"" IF cfield.visible_for_all %]/></td>
+            <td>
+            [% IF cfield.visible_for_all %]
+                Поле видимо для всех значений поля <strong>[% field.description FILTER html %]</strong><br/>
+                <a href="editfields.cgi?action=edit&name=[% cfield.name %]">Редактировать</a>
+            [% END %]
+            </td>
         </tr>
         [% i = i + 1 %]
         [% END %]
