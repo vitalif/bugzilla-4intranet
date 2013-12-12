@@ -664,7 +664,7 @@ foreach my $bug (@bug_objects) {
     # CustIS Bug 38616 - CC list restriction
     if ($bug->{restricted_cc})
     {
-        $vars->{restricted_cc} = $bug->{restricted_cc};
+        $vars->{restricted_cc} = [map { $_->login } @{$bug->{restricted_cc}}];
         $vars->{cc_restrict_group} = $bug->product_obj->cc_restrict_group;
         $vars->{message} = 'cc_list_restricted';
     }

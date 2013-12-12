@@ -65,6 +65,7 @@ use constant DB_COLUMNS => qw(
     votestoconfirm
     defaultmilestone
     allows_unconfirmed
+    cc_group
 );
 
 use constant REQUIRED_CREATE_FIELDS => qw(
@@ -86,6 +87,7 @@ use constant UPDATE_COLUMNS => qw(
     votestoconfirm
     allows_unconfirmed
     classification_id
+    cc_group
 );
 
 use constant VALIDATORS => {
@@ -102,6 +104,7 @@ use constant VALIDATORS => {
     create_series    => \&Bugzilla::Object::check_boolean,
     notimetracking   => \&Bugzilla::Object::check_boolean,
     extproduct       => \&_check_extproduct,
+    cc_group         => \&_check_cc_group,
 };
 
 use constant EXCLUDE_CONTROLLED_FIELDS => ('component', 'target_milestone', 'version');
@@ -501,6 +504,15 @@ sub _check_extproduct
     return $product ? $product->id : undef;
 }
 
+sub _check_cc_group
+{
+    my ($invocant, $cc_group) = @_;
+
+    $cc_group  = trim($cc_group);
+#    $cc_group = Bugzilla::User->
+    return $cc_group ? $cc_group : undef;
+}
+
 sub _check_classification_id {
     my ($invocant, $classification_name) = @_;
 
@@ -692,6 +704,7 @@ sub set_votes_per_bug { $_[0]->set('maxvotesperbug', $_[1]); }
 sub set_votes_to_confirm { $_[0]->set('votestoconfirm', $_[1]); }
 sub set_allows_unconfirmed { $_[0]->set('allows_unconfirmed', $_[1]); }
 sub set_classification { $_[0]->set('classification_id', $_[1]); }
+sub set_cc_group { $_[0]->set('cc_group', $_[1]); }
 
 sub set_extproduct
 {
@@ -1001,6 +1014,7 @@ sub classification_id { return $_[0]->{'classification_id'}; }
 sub wiki_url          { return $_[0]->{'wiki_url'};          }
 sub notimetracking    { return $_[0]->{'notimetracking'};    }
 sub extproduct        { return $_[0]->{'extproduct'};        }
+sub cc_group          { return $_[0]->{'cc_group'};          }
 
 ###############################
 ####      Subroutines    ######
@@ -1045,8 +1059,7 @@ sub enterable_intproduct_name
 sub cc_restrict_group
 {
     my $self = shift;
-    my ($ccg) = $self->description =~ /\[[CС]{2}:\s*([^\]]+)\s*\]/iso;
-    return $ccg;
+    return $self->cc_group;
 }
 
 sub restrict_cc

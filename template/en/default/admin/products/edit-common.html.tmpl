@@ -100,6 +100,13 @@
   </td>
 </tr>
 
+<tr>
+  <th align="right">CC user group restriction for this:</th>
+  <td>
+    <input size="64" maxlength="64" name="cc_group" value="[% product.cc_group FILTER html %]" />
+  </td>
+</tr>
+
 [% IF Param('usevotes') %]
   <tr>
     <th align="right">Maximum votes per person:</th>

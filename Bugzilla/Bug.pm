@@ -1473,7 +1473,7 @@ sub _check_cc {
     $ccs = [split(/[\s,]+/, $ccs)] if !ref $ccs;
 
     my %cc_ids;
-    my ($ccg) = $component->product->description =~ /\[[CС]{2}:\s*([^\]]+)\s*\]/iso;
+    my $ccg = $component->product->cc_group;
     foreach my $person (@$ccs) {
         next unless $person;
         my $id = login_to_id($person, THROW_ERROR);
