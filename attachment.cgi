@@ -339,7 +339,9 @@ sub view {
     if (defined $action && $action eq 'online_view' && $attachment->isOfficeDocument())
     {
         Bugzilla->send_header();
-        print $attachment->_get_converted_html();
+        my $html = $attachment->_get_converted_html();
+        $html =~ s/\n([^\n]*List_20_Paragraph.*?\{.*?)margin:100%;(.*?\}[^\n]*?)\n/\n$1$2\n/;
+        print $html;
     }
     else
     {
