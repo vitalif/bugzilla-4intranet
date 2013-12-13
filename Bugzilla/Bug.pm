@@ -50,6 +50,8 @@ use Bugzilla::Group;
 use Bugzilla::Status;
 use Bugzilla::Comment;
 
+use Data::Dumper;
+
 use List::Util qw(min);
 use Storable qw(dclone);
 use URI;
@@ -3463,9 +3465,15 @@ sub getAccessUserList {
     my $self = shift;
     my $dbh = Bugzilla->dbh;
 
+    my $count_groups = scalar @{$self->groups};
+    if (!$count_groups)
+    {
+        return [];
+    }
     my @user_ids;
-    push (@user_ids, $self->assigned_to->id);
-    push (@user_ids, $self->qa_contact->id);
+
+    push (@user_ids, $self->assigned_to->id) if $self->assigned_to;
+    push (@user_ids, $self->qa_contact->id) if $self->qa_contact;
     if ($self->reporter_accessible) {
         push (@user_ids, $self->reporter->id);
     }
@@ -3485,7 +3493,6 @@ sub getAccessUserList {
         }
     }
 
-    my $count_groups = scalar @{$self->groups};
     push (@user_ids, grep { $user_ids_group->{$_} == $count_groups } keys %$user_ids_group);
 
     return $dbh->selectall_arrayref("
