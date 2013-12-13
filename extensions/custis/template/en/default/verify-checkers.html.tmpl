@@ -7,7 +7,7 @@
 
 [% IF allow_commit %]
 
-<form action="[% script_name %]" method="post" style="margin-top: 1em">
+<form action="[% script_name %]" method="post" style="margin-top: 1em" enctype="multipart/form-data">
 [% PROCESS "global/hidden-fields.html.tmpl" exclude = exclude_params_re %]
 <input type="hidden" name="force_checkers" value="1" />
 <input type="submit" value="Я знаю, что делаю! Внести изменения!" id="forcesubmit" style="color: gray" disabled="disabled" /> <span id="countdown_span"></span>
