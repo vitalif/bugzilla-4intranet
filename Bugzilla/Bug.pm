@@ -50,8 +50,6 @@ use Bugzilla::Group;
 use Bugzilla::Status;
 use Bugzilla::Comment;
 
-use Data::Dumper;
-
 use List::Util qw(min);
 use Storable qw(dclone);
 use URI;
