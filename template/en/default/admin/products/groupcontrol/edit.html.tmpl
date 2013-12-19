@@ -48,7 +48,7 @@
   [% IF group.$name %]
   [% foundone = 1 %]
   <li id="li_[% name %]_[% group.id %]">
-    <a href="#" class="icon-delete" onclick="deleteGroupCheckbox('[% name %]_[% group.id %]'); return false;"></a>
+    <a href="#" class="icon-delete" title="Delete this group" onclick="deleteGroupCheckbox('[% name %]_[% group.id %]'); return false;"></a>
     <input type="checkbox" name="[% name %]_[% group.id %]" id="[% name %]_[% group.id %]" value="1" checked="checked" style="display: none;" />
     <label for="[% name %]_[% group.id %]">[% group.name | html %]</label>
   </li>
@@ -62,7 +62,7 @@
 </ul>
 <p style="clear: both">
   Add a group:
-  <select id="add_[% name %]">
+  <select id="add_[% name %]" onkeydown="if (event.keyCode == 10 || event.keyCode == 13) { addListGroup('[% name %]'); }">
   [% FOR g = all_groups %]
     <option value="[% g.id %]">[% g.name | html %]</option>
   [% END %]
