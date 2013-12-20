@@ -1,27 +1,9 @@
 #!/usr/bin/perl -wT
 # -*- Mode: perl; indent-tabs-mode: nil -*-
 #
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is mozilla.org code.
-#
-# The Initial Developer of the Original Code is Holger
-# Schurig. Portions created by Holger Schurig are
-# Copyright (C) 1999 Holger Schurig. All
-# Rights Reserved.
-#
-# Contributor(s): Holger Schurig <holgerschurig@nikocity.de>
-#                 Terry Weissman <terry@mozilla.org>
-#                 Frédéric Buclin <LpSolit@gmail.com>
-#                 Akamai Technologies <bugzilla-dev@akamai.com>
+# Page of editinig visibility of custom fields.
+# License: Dual-license GPL 3.0+ or MPL 1.1+
+# Contributor(s): Vladimir Koptev <vladimir.koptev@gmail.com>
 
 use strict;
 use lib qw(. lib);
@@ -45,14 +27,12 @@ $vars->{'doc_section'} = 'visibility-list.html';
 #
 # Preliminary checks:
 #
-
 my $user = Bugzilla->login(LOGIN_REQUIRED);
-
-$user->in_group('editvisibility')
+$user->in_group('editfields')
   || scalar(@{$user->get_editable_products})
-  || ThrowUserError("auth_failure", {group  => "editvisibility",
+  || ThrowUserError("auth_failure", {group  => "admin",
                                      action => "edit",
-                                     object => "components"});
+                                     object => "custom_fields"});
 
 #
 # often used variables
@@ -73,15 +53,18 @@ my $value = Bugzilla::Field::Choice->type($field)->check($value_name);
 ThrowUserError('no_valid_value', {'field' => "value"}) unless $value;
 
 #
-# action='' -> Show nice list of components
+# action='' -> Show list of custom fields
 #
-
 unless ($action) {
     $vars->{'field'}  = $field;
     $vars->{'value'}  = $value;
+    # controlled fields
     my $controlled_fields = { map { $_->id => $_ } values $field->controls_visibility_of() };
+    # all custom fields
     my @fields = Bugzilla->get_fields({custom => 1, sort => 1});
+    # except fields that controls this
     my $except_fields = { map { $_->id => { map { $_->id => 1 } values $_->controls_visibility_of } } @fields };
+    # fields list
     my $fields_visibility = {
         map {
             $_->id => {
@@ -93,11 +76,14 @@ unless ($action) {
         }
         grep { $_->id ne $field->id && !($except_fields->{$_->id}->{$field->id}) } @fields
     };
+    #check visible for all fields
     for my $cfield (@fields)
     {
+        # first check is not current field and not controlled
         my $visible_for_all = $cfield->id ne $field->id && !($except_fields->{$field->id}->{$cfield->id});
         if ($visible_for_all)
         {
+            # check visible for all values
             for my $cvalue (@{$cfield->legal_values})
             {
                 next if $cvalue->is_static;
@@ -110,6 +96,8 @@ unless ($action) {
         }
         if ($visible_for_all)
         {
+            # realy visible for all
+            # if exists set visibility else push
             if ($fields_visibility->{$cfield->id})
             {
                 $fields_visibility->{$cfield->id}->{visible_for_all} = 1;
@@ -133,6 +121,7 @@ unless ($action) {
     exit;
 }
 
+# update result page
 if ($action eq 'update' && $token) {
     check_token_data($token, 'change_visibility');
 
@@ -140,7 +129,9 @@ if ($action eq 'update' && $token) {
     my $controlled_fields = { map { $_->id => $_ } values $field->controls_visibility_of() };
     my $length = @fields;
     my $to_update;
+    # if somthing checked
     if ($length) {
+        # for each checked
         for my $field_id (@fields) {
             my $cfield = Bugzilla->get_field($field_id);
             my $changed = 0;
@@ -154,22 +145,27 @@ if ($action eq 'update' && $token) {
                 $cfield->set_value_field($field->id);
                 $changed = 1;
             }
+            # set visibility values
             my $visibility_values = {map { $_->id=>1 } values ($cfield->visibility_values || [])};
             if (!$visibility_values->{$value->id}) {
                 $visibility_values->{$value->id} = 1;
                 $cfield->set_visibility_values([keys $visibility_values]);
                 $changed = 1;
             }
+            # update if something was changed
             if ($changed) {
                 if (!$to_update->{$cfield->id}) {
                     $to_update->{$cfield->id} = {field => $cfield, actions => {updated => 1}};
                 }
             }
+            # delete from controlled fields for next checking "visible for all"
             if ($controlled_fields->{$cfield->id}) {
                 delete $controlled_fields->{$cfield->id};
             }
         }
     }
+
+    # make visible for all if it needs
     for my $cfield (values $controlled_fields) {
         my $visibility_values = { map { $_->id => 1 } values $cfield->visibility_values};
         if (!%$visibility_values) {
@@ -194,6 +190,8 @@ if ($action eq 'update' && $token) {
             $to_update->{$cfield->id}->{actions}->{cleared} = 1;
         }
     }
+
+    # make lists of updated and cleared fields for view
     my @updated;
     my @cleared;
     for my $cfield (values $to_update) {
