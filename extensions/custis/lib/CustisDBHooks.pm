@@ -424,6 +424,28 @@ sub install_update_db
         $dbh->do('INSERT INTO setting_value (name, value, sortindex) VALUES (\'comment_width\', \'off\', \'10\'), (\'comment_width\', \'on\', \'20\')');
     }
 
+    # Bug 139829 - Ограничение CC продукта: перенос из description в cc_group
+    if ($dbh->selectrow_array('SELECT id FROM products WHERE description LIKE \'%[CC:%\' LIMIT 1'))
+    {
+        $dbh->do('
+UPDATE products
+SET
+    cc_group = trim(
+        substr(
+            description,
+            locate(\'[CC:\', description)+4,
+            locate(\']\', description, locate(\'[CC:\', description)+4) - locate(\'[CC:\', description)-4
+        )
+    ),
+    description = trim(
+        concat(
+            substr(description, 1, locate(\'[CC:\', description)-1),
+            substr(description, 1 + locate(\']\', description, locate(\'[CC:\', description)+4))
+        )
+    )
+WHERE description LIKE\'%[CC:%\'');
+    }
+
     return 1;
 }
 
