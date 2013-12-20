@@ -490,7 +490,7 @@ sub visible_for_all
         ->{values}
         ->{$self->field->id}
         ->{$self->id};
-    return !%$hash;
+    return !$hash || !%$hash;
 }
 
 sub is_default_controlled_value
