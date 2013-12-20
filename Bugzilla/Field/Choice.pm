@@ -263,7 +263,7 @@ sub get_all
         ->{$f->id};
     my $visible_ids = { map { $_->id => 1 } Bugzilla::Product->get_all };
     my $vis;
-    my $filtered;
+    my $filtered = [];
     for my $value (@$all)
     {
         $vis = !$h->{$value->id} || !%{$h->{$value->id}} ? 1 : 0;

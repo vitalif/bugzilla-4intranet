@@ -805,6 +805,10 @@ sub get_selectable_classifications
         # Return classifications with at least one visible product
         # + all empty classifications
         my $products = $self->get_selectable_products;
+        if (!@$products)
+        {
+            return [];
+        }
         my $class_ids = Bugzilla->dbh->selectcol_arrayref(
             "SELECT DISTINCT c.id FROM classifications c".
             " LEFT JOIN products p ON p.classification_id=c.id".
