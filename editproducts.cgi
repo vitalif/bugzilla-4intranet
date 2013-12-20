@@ -273,6 +273,8 @@ if ($action eq 'edit' || (!$action && $product_name)) {
     my $length = values $controlled_fields;
     $vars->{'controlled_field_names'} = $length > 0 ? join(', ',  values $controlled_fields) : "No fields";
 
+    $vars->{'groups'} = [map {$_->name} Bugzilla::Group->get_all];
+
     $template->process("admin/products/edit.html.tmpl", $vars)
         || ThrowTemplateError($template->error());
     exit;

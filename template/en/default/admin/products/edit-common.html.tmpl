@@ -103,7 +103,12 @@
 <tr>
   <th align="right">Restrict CC in this product bugs to group:</th>
   <td>
-    <input size="64" maxlength="64" name="cc_group" value="[% product.cc_group FILTER html %]" />
+    <select name="cc_group">
+    <option value="">---</option>
+    [% FOR group = groups %]
+    <option value="[% group FILTER html %]"[% ' selected="selected"' IF group==product.cc_group %]>[% group FILTER html %]</option>
+    [% END %]
+    </select>
   </td>
 </tr>
 
