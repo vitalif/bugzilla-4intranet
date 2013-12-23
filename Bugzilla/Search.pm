@@ -2141,7 +2141,7 @@ sub _content_matches
     {
         # Using Sphinx
         my $sph = Bugzilla->dbh_sphinx;
-        my $query = 'SELECT `id`, WEIGHT() `weight` FROM '.$index.
+        my $query = 'SELECT id, WEIGHT() `weight` FROM '.$index.
             ' WHERE MATCH(?) LIMIT 1000 OPTION field_weights=(short_desc=5, comments=1, comments_private=1)';
         # Escape search query
         my $pattern_part = '\[\]:\(\)!@~&\/^$';
@@ -2162,7 +2162,7 @@ sub _content_matches
         {
             # Pass relevance (weight) values as is...
             push @{COLUMNS->{relevance}->{bits}}, '(case'.join('', map { ' when bugs.bug_id='.$_->[0].' then '.$_->[1] } @$ids).' end)';
-            COLUMNS->{relevance}->{name} = "(SELECT ".join("+", @{COLUMNS->{relevance}->{bits}}).")";
+            COLUMNS->{relevance}->{name} = '('.join("+", @{COLUMNS->{relevance}->{bits}}).')';
         }
         return;
     }
