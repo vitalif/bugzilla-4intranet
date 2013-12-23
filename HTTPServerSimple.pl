@@ -99,6 +99,11 @@ sub new
             }
         }
     }
+    if ($self->{_config_hash}->{reload})
+    {
+        # Enable reload support
+        $^P |= 0x10;
+    }
     return $self;
 }
 
@@ -301,6 +306,10 @@ sub handle_request
             $ENV{$_} = $ENV{'HTTP_X_'.uc $_};
         }
     }
+    if ($self->{_config_hash}->{reload})
+    {
+        reload();
+    }
     # Bugzilla-specific tweaks
     binmode STDOUT, ':utf8' if Bugzilla->can('params') && Bugzilla->params->{utf8};
     # Clear request cache for new versions
@@ -321,6 +330,55 @@ sub handle_request
         return $self->print_error(@{$@->{error}});
     }
     return 200;
+}
+
+my $STATS;
+
+# Used to reload Perl modules on-the-fly (debug purposes)
+sub reload
+{
+    my ($file, $mtime);
+    for my $key (keys %INC)
+    {
+        $file = $INC{$key} or next;
+        $file =~ /\.p[ml]$/i or next; # do not reload *.cgi
+
+        $mtime = (stat $file)[9];
+        # Startup time as default
+        $STATS->{$file} = $^T unless defined $STATS->{$file};
+
+        # Modified
+        if ($mtime > $STATS->{$file})
+        {
+            print STDERR __PACKAGE__ . ": $key -> $file modified, reloading\n";
+            unload($key) or next;
+            eval { require $key };
+            if ($@)
+            {
+                warn $@;
+            }
+            $STATS->{$file} = $mtime;
+        }
+    }
+}
+
+sub unload
+{
+    my ($key) = @_;
+    my $file = $INC{$key} or return;
+    my @subs = grep { index($DB::sub{$_}, "$file:") == 0 } keys %DB::sub;
+    for my $sub (@subs)
+    {
+        eval { undef &$sub };
+        if ($@)
+        {
+            warn "Can't unload sub '$sub' in '$file': $@";
+            return undef;
+        }
+        delete $DB::sub{$sub};
+    }
+    delete $INC{$key};
+    return 1;
 }
 
 # This implementation is nearly the same as the original, but also uses buffered input
@@ -415,3 +473,6 @@ http_env            PROJECT
 # You can preload all scripts during startup so the maximum amount
 # of memory will be shared between workers
 preload             *.cgi
+
+# Specify reload=1 to reload all modules (*.pm) on every request
+reload              1
