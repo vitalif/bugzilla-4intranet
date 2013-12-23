@@ -151,14 +151,18 @@ EOT
 EOT
     },
     {
+        name    => 'sphinx_index',
+        default => '',
+        desc    => <<EOT
+# The name of Sphinx Search index to use for fulltext search
+# '' means don't use Sphinx, but use MySQL fulltext search instead
+# Sphinx is MUCH MUCH faster, but requires separate configuration (see data/sphinx.conf)
+EOT
+    },
+    {
         name    => 'sphinx_host',
         default => 'localhost',
         desc    => "# The DNS name of the host that the Sphinx server runs on.\n"
-    },
-    {
-        name    => 'sphinx_index',
-        default => '',
-        desc    => "# The name of Sphinx Search index to use for fulltext search ('' to disable Sphinx support)\n"
     },
     {
         name    => 'sphinx_port',
