@@ -71,7 +71,8 @@ unless ($action) {
                 id => $_->id,
                 name => $_->name,
                 description => $_->description,
-                visible => $controlled_fields->{$_->id} ? $controlled_fields->{$_->id}->has_visibility_value($value) : 0
+                visible => $controlled_fields->{$_->id} ? $controlled_fields->{$_->id}->has_visibility_value($value) : 1,
+                visible_for_all => $controlled_fields->{$_->id} ? 0 : 1
             }
         }
         grep { $_->id ne $field->id && !($except_fields->{$_->id}->{$field->id}) } @fields
