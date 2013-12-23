@@ -1197,7 +1197,6 @@ sub _extract_multi_selects {
 # Should be called any time you update short_desc or change a comment.
 sub _sync_fulltext
 {
-    use utf8;
     my ($self, $new_bug) = @_;
     my $dbh = Bugzilla->dbh;
     my ($short_desc) = $dbh->selectrow_array(
@@ -1214,21 +1213,34 @@ sub _sync_fulltext
     $nopriv = join "\n", @$nopriv;
     $priv = join "\n", @$priv;
     my $row = [ $short_desc, $nopriv, $priv ];
-    $_ = $dbh->quote_fulltext($_) for @$row;
-    ## O_o Don't know how can it be tainted here, sometimes it was. Checking if it goes away.
-    #trick_taint($row);
+    # Determine if we are using Sphinx or MySQL fulltext search
+    my ($sph, $id_field);
+    my $index = Bugzilla->localconfig->{sphinx_index};
+    if ($index)
+    {
+        $sph = Bugzilla->dbh_sphinx;
+        $id_field = 'id';
+        $_ = $sph->quote($_) for @$row;
+    }
+    else
+    {
+        $index = 'bugs_fulltext';
+        $sph = $dbh;
+        $id_field = 'bug_id';
+        $_ = $dbh->quote_fulltext($_) for @$row;
+    }
     my $sql;
     if ($new_bug)
     {
-        $sql = "INSERT INTO bugs_fulltext (bug_id, short_desc, comments, comments_private)".
+        $sql = "INSERT INTO $index ($id_field, short_desc, comments, comments_private)".
             " VALUES (".join(',', $self->id, @$row).")";
     }
     else
     {
-        $sql = "UPDATE bugs_fulltext SET short_desc=$row->[0],".
-            " comments=$row->[1], comments_private=$row->[2] WHERE bug_id=".$self->id;
+        $sql = "UPDATE $index SET short_desc=$row->[0],".
+            " comments=$row->[1], comments_private=$row->[2] WHERE $id_field=".$self->id;
     }
-    return $dbh->do($sql);
+    return $sph->do($sql);
 }
 
 # This is the correct way to delete bugs from the DB.

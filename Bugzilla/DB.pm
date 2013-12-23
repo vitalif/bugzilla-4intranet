@@ -96,6 +96,33 @@ sub connect_main {
                     $lc->{db_sock}, $lc->{db_user}, $lc->{db_pass});
 }
 
+sub connect_sphinx
+{
+    my $lc = Bugzilla->localconfig;
+    if (!$lc->{sphinx_index})
+    {
+        return undef;
+    }
+
+    my $host = $lc->{sphinx_host};
+    my $port = $lc->{sphinx_port};
+    my $sock = $lc->{sphinx_sock};
+
+    my $dsn = "dbi:mysql:host=$host;database=none";
+    $dsn .= ";port=$port" if $port;
+    $dsn .= ";mysql_socket=$sock" if $sock;
+
+    my $sphinx = DBI->connect($dsn, 'nobody', 'nobody', {
+        mysql_enable_utf8 => 1,
+        # Needs to be explicitly specified for command-line processes.
+        mysql_auto_reconnect => 1,
+    });
+
+    $sphinx->do("SET NAMES utf8");
+
+    return $sphinx;
+}
+
 sub _connect {
     my ($driver, $host, $dbname, $port, $sock, $user, $pass) = @_;
 

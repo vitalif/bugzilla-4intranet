@@ -610,6 +610,16 @@ sub dbh {
     return $class->request_cache->{dbh};
 }
 
+sub dbh_sphinx
+{
+    my $class = shift;
+    if (!exists $class->request_cache->{dbh_sphinx})
+    {
+        $class->request_cache->{dbh_sphinx} = Bugzilla::DB::connect_sphinx();
+    }
+    return $class->request_cache->{dbh_sphinx};
+}
+
 sub dbh_main {
     my $class = shift;
     $class->request_cache->{dbh_main} ||= Bugzilla::DB::connect_main();

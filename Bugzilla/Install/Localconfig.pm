@@ -151,6 +151,26 @@ EOT
 EOT
     },
     {
+        name    => 'sphinx_host',
+        default => 'localhost',
+        desc    => "# The DNS name of the host that the Sphinx server runs on.\n"
+    },
+    {
+        name    => 'sphinx_index',
+        default => '',
+        desc    => "# The name of Sphinx Search index to use for fulltext search ('' to disable Sphinx support)\n"
+    },
+    {
+        name    => 'sphinx_port',
+        default => 0,
+        desc    => "# Sphinx port (listening MySQL protocol)\n",
+    },
+    {
+        name    => 'sphinx_sock',
+        default => '',
+        desc    => "# Sphinx UNIX socket (listening MySQL protocol)\n",
+    },
+    {
         name    => 'db_check',
         default => 1,
         desc    => <<EOT

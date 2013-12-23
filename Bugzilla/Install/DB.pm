@@ -3286,8 +3286,17 @@ sub _populate_bugs_fulltext
     my $bug_ids = shift;
     $bug_ids = undef if $bug_ids && !@$bug_ids;
     my $dbh = Bugzilla->dbh;
-    my ($table, $limit1, $id) = ('bugs_fulltext', $dbh->sql_limit(1), 'bug_id');
-    my $fulltext = $dbh->selectrow_array("SELECT $id FROM $table $limit1");
+    # These vary between different fulltext search engines (MySQL, Sphinx)
+    my ($table, $limit1, $id_field, $quote, $sph) = ('bugs_fulltext', $dbh->sql_limit(1), 'bug_id', 'quote_fulltext', $dbh);
+    if (Bugzilla->localconfig->{sphinx_index})
+    {
+        $sph = Bugzilla->dbh_sphinx;
+        $limit1 = 'LIMIT 1';
+        $table = Bugzilla->localconfig->{sphinx_index};
+        $id_field = 'id';
+        $quote = 'quote';
+    }
+    my $fulltext = $sph->selectrow_array("SELECT $id_field FROM $table $limit1");
     my ($datasize, $time) = (0, time);
     my ($lastdata, $lasttime) = ($datasize, $time);
     # We only populate the table if it's empty or if we've been given a
@@ -3298,52 +3307,66 @@ sub _populate_bugs_fulltext
         $bug_ids ||= $dbh->selectcol_arrayref("SELECT bug_id FROM bugs");
         return if !$bug_ids;
 
-        # There could be tons of bugs, so we'll use 256-bug portions
+        # There could be tons of bugs, so we use 256-bug portions,
+        # and limit single query to 4MB
         print "Populating full-text index... (this can take a long time.)\n";
-        my ($portion, $done, $total) = (256, 0, scalar @$bug_ids);
-        my ($short, $all, $nopriv, $wh, $rows);
-        while (my @ids = splice @$bug_ids, 0, $portion)
+        my ($portion, $done, $max_packet, $total) = (256, 0, 4*1024*1024, scalar @$bug_ids);
+        my ($short, $all, $nopriv, $wh);
+
+        # Count lengths in bytes
+        use bytes;
+        my $rows = {};
+        while (@$bug_ids || %$rows)
         {
-            $rows = {};
-            $wh = "bug_id IN (" . join(",", ("?") x @ids) . ")";
-            ($short) = $dbh->selectall_arrayref(
-                "SELECT bug_id, short_desc FROM bugs WHERE $wh", undef, @ids
-            );
-            $all = $dbh->selectall_arrayref(
-                "SELECT bug_id, thetext, isprivate FROM longdescs WHERE $wh",
-                undef, @ids
-            );
-            # Local block with 'use bytes' for counting data size in MB
+            if (scalar keys %$rows < $portion)
             {
-                use bytes;
+                # Read more data
+                my @ids = splice @$bug_ids, 0, $portion;
+                $wh = "bug_id IN (" . join(",", ("?") x @ids) . ")";
+                # Get bug titles
+                ($short) = $dbh->selectall_arrayref(
+                    "SELECT bug_id, short_desc FROM bugs WHERE $wh", undef, @ids
+                );
                 for (@$short)
                 {
                     $rows->{$_->[0]} = [ $_->[1], '', '' ];
-                    $datasize += length $_->[1];
                 }
-                # Comments divide into non-private and private
+                # Get comments; they can be private and non-private
+                $all = $dbh->selectall_arrayref(
+                    "SELECT bug_id, thetext, isprivate FROM longdescs WHERE $wh",
+                    undef, @ids
+                );
                 for (@$all)
                 {
                     $rows->{$_->[0]}->[$_->[2] ? 2 : 1] .= $_->[1] . "\n";
-                    $datasize += length($_->[1])+1;
                 }
             }
+            my $query = "INSERT INTO $table ($id_field, short_desc, comments, comments_private) VALUES ";
+            my $len = 0;
+            my @ids;
             for (keys %$rows)
             {
-                Encode::_utf8_off($_) for @{$rows->{$_}};
+                for (@{$rows->{$_}})
+                {
+                    Encode::_utf8_off($_);
+                    $datasize += length $_;
+                }
+                my $s = "($_, ".join(', ', map { $sph->$quote($_) } @{$rows->{$_}})."), ";
+                if ($len + length $s >= $max_packet)
+                {
+                    last;
+                }
+                delete $rows->{$_};
+                push @ids, $_;
+                $query .= $s;
+                $len += length $s;
             }
-            for (keys %$rows)
-            {
-                # CustIS Bug 46221 - Snowball stemmers in Bugzilla fulltext search
-                $rows->{$_} = join ', ', map { $dbh->quote_fulltext($_) } @{$rows->{$_}};
-            }
-            $dbh->do("DELETE FROM $table WHERE $id IN (".join(',', @ids).')');
-            $dbh->do(
-                "INSERT INTO $table ($id, short_desc, comments, comments_private) VALUES ".
-                join(", ", map { "($_, $rows->{$_})" } @ids)
-            );
+            substr $query, -2, 2, '';
+            $sph->do("DELETE FROM $table WHERE $id_field IN (".join(',', @ids).')');
+            $sph->do($query);
             $done += @ids;
-            print "\r$done / $total, ".sprintf("%.2f MB, %d KB/s", $datasize/1048576, ($datasize-$lastdata)/1024/(time-$lasttime));
+            print "\r$done / $total, ";
+            printf("%.2f MB, %d KB/s", $datasize/1048576, ($datasize-$lastdata)/1024/(time-$lasttime));
             print " ...";
             ($lastdata, $lasttime) = ($datasize, time);
         }
