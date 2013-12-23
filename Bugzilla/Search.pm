@@ -1722,7 +1722,7 @@ sub is_noop
         $v eq "" && $t ne "equals" && $t ne "notequals" && $t ne "exact";
 }
 
-# 
+# Construct a single search term from boolean charts
 # Similar to do_search_function() in Bugzilla 4.0 trunk
 sub run_chart
 {
@@ -2134,13 +2134,33 @@ sub _long_desc_changedbefore_after
 sub _content_matches
 {
     my $self = shift;
-    my $dbh = Bugzilla->dbh;
 
+    my $text = $self->{value};
+
+    if (my $index = Bugzilla->localconfig->{sphinx_index})
+    {
+        # Using Sphinx
+        my $sph = Bugzilla->dbh_sphinx;
+        my $query = 'SELECT `id`, WEIGHT() `weight` FROM '.$index.
+            ' WHERE MATCH(?) LIMIT 1000 OPTION field_weights=(short_desc=5, comments=1, comments_private=1)';
+        my $ids = $sph->selectall_arrayref($query, undef, $text);
+        $self->{term} = {
+            term => @$ids ? 'bugs.bug_id IN ('.join(', ', map { $_->[0] } @$ids).')' : '1=0',
+        };
+        if (@$ids && !$self->{negated})
+        {
+            # Pass relevance (weight) values as is...
+            push @{COLUMNS->{relevance}->{bits}}, '(case'.join('', map { ' when bugs.bug_id='.$_->[0].' then '.$_->[1] } @$ids).' end)';
+            COLUMNS->{relevance}->{name} = "(SELECT ".join("+", @{COLUMNS->{relevance}->{bits}}).")";
+        }
+        return;
+    }
+
+    my $dbh = Bugzilla->dbh;
     my $table = "bugs_fulltext_".$self->{sequence};
 
     # Create search terms to add to the SELECT and WHERE clauses.
     # These are (search term, rank term, search term, rank term, ...)
-    my $text = $self->{value};
     my @terms = (
         $dbh->sql_fulltext_search("bugs_fulltext.short_desc", $text),
         $dbh->sql_fulltext_search("bugs_fulltext.comments", $text),
