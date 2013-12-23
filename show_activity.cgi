@@ -66,7 +66,7 @@ for (my $i = 0; $i < (scalar @$operations); $i++)
     {
         my $change = $operations->[$i]->{'changes'}->[$j];
         my $field = Bugzilla->get_field($change->{'fieldname'});
-        if (($change->{'fieldname'} eq 'longdesc') || ($field->{'type'} eq FIELD_TYPE_TEXTAREA))
+        if (0 && ($change->{'fieldname'} eq 'longdesc' || $field->{'type'} eq FIELD_TYPE_TEXTAREA))
         {
             my $diff = new Bugzilla::Diff($change->{'removed'}, $change->{'added'});
             $operations->[$i]->{'changes'}->[$j]->{'both'} = $diff->get_table;
