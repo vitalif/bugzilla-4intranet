@@ -1141,7 +1141,7 @@ sub init
 
     # Reset relevance column
     COLUMNS->{relevance}->{bits} = [];
-    delete COLUMNS->{relevance}->{name};
+    COLUMNS->{relevance}->{name} = '(0)';
 
     # Read charts from form hash
     my @charts;
@@ -2143,7 +2143,18 @@ sub _content_matches
         my $sph = Bugzilla->dbh_sphinx;
         my $query = 'SELECT `id`, WEIGHT() `weight` FROM '.$index.
             ' WHERE MATCH(?) LIMIT 1000 OPTION field_weights=(short_desc=5, comments=1, comments_private=1)';
-        my $ids = $sph->selectall_arrayref($query, undef, $text);
+        # Escape search query
+        my $pattern_part = '\[\]:\(\)!@~&\/^$';
+        $text = trim($text);
+        $text =~ s/^[|\-=$pattern_part]+|[|\-=$pattern_part]+$//gs; # erase special chars in the beginning and at the end of query
+        if (($text =~ tr/"/"/) % 2)
+        {
+            # Close unclosed double quote
+            $pattern_part .= '"';
+        }
+        $text =~ s/((?:^|[^\\])(?:\\\\)*)([$pattern_part])/$1\\$2/gs;
+        $text = ($self->{user}->is_insider ? '@(short_desc,comments,comments_private) ' : '@(short_desc,comments) ') . $text;
+        my $ids = $sph->selectall_arrayref($query, undef, $text) || [];
         $self->{term} = {
             term => @$ids ? 'bugs.bug_id IN ('.join(', ', map { $_->[0] } @$ids).')' : '1=0',
         };
