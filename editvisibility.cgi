@@ -81,6 +81,10 @@ unless ($action) {
     {
         # first check is not current field and not controlled
         my $visible_for_all = $cfield->id ne $field->id && !($except_fields->{$field->id}->{$cfield->id});
+        if ($visible_for_all && $controlled_fields->{$cfield->id})
+        {
+            $visible_for_all &&= !$controlled_fields->{$cfield->id}->visibility_values;
+        }
         if ($visible_for_all)
         {
             # check visible for all values
@@ -114,7 +118,7 @@ unless ($action) {
             }
         }
     }
-    $vars->{'fields'} = [values $fields_visibility];
+    $vars->{'fields'} = [sort {$a->{description} cmp $b->{description}} values $fields_visibility];
     $vars->{'token'} = issue_session_token('change_visibility');
     $template->process("admin/fieldvalues/visibility-list.html.tmpl", $vars)
         || ThrowTemplateError($template->error());
