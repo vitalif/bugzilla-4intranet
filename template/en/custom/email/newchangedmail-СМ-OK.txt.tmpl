@@ -41,7 +41,7 @@ X-Bugzilla-Component: [% comp %]
 X-Bugzilla-Keywords: [% keyword_item %]
 [% END%]
 X-Bugzilla-Severity: [% severity %]
-X-Bugzilla-Who: [% changer %]
+X-Bugzilla-Who: [% changer.login %]
 X-Bugzilla-Status: [% status %]
 X-Bugzilla-Priority: [% priority %]
 X-Bugzilla-Assigned-To: [% assignedto %]
@@ -95,7 +95,7 @@ Bug [% d.dep %] summary: [% d.short_desc %]
 [%- IF comment.count %]
 --- Comment #[% comment.count %] from [% comment.author.identity %] [%+ comment.bug_when FILTER time(undef, to_user.timezone) %] ---
 [% END %]
-[%+ comment.body_full({ is_bugmail => 1 }) %]
+[%+ comment.body_full({ is_bugmail => 1, wo_preview => 1 }) %]
 [% END %]
 
 -- [%# Protect the trailing space of the signature marker %]
@@ -173,7 +173,7 @@ body { font-family: Segoe UI, sans-serif; }
       </span>
   [% comment.bug_when FILTER time(undef, to_user.timezone) %]</p>
   <div class="bz_comment_text">
-[%- comment.body_full({ wrap => 1 }) FILTER absolute_uris -%]
+[%- comment.body_full({ wrap => 1, wo_preview => 1 }) FILTER absolute_uris -%]
   </div>
 <hr color="#A0A0A0" size="1" />
   [% END %]
@@ -230,7 +230,9 @@ body { font-family: Segoe UI, sans-serif; }
   [% ELSE %]
     [% d.fielddesc %]
   [% END %]
-  </td><td>[% d.removed %]</td><td>[% d.added %]</td></tr>
+  </td>
+  [% IF d.both %]<td colspan="2">[% d.both %]</td>[% ELSE %]<td>[% d.removed %]</td><td>[% d.added %]</td>[% END %]
+  </tr>
 
 [% END %]
 </table>
