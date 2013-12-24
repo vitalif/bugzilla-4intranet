@@ -256,7 +256,7 @@ sub bz_create_database {
 
     if (!$conn_success) {
         $dbh = _get_no_db_connection();
-        say "Creating database $db_name...";
+        print "Creating database $db_name...\n";
 
         # Try to create the DB, and if we fail print a friendly error.
         my $success  = eval {
@@ -511,7 +511,7 @@ sub bz_setup_database {
     my @desired_tables = $self->_bz_schema->get_table_list();
     my $bugs_exists = $self->bz_table_info('bugs');
     if (!$bugs_exists) {
-        say install_string('db_table_setup');
+        print install_string('db_table_setup')."\n";
     }
 
     foreach my $table_name (@desired_tables) {
@@ -548,7 +548,7 @@ sub bz_setup_foreign_keys {
     my $activity_fk = $self->bz_fk_info('profiles_activity', 'userid');
     my $any_fks = $activity_fk && $activity_fk->{created};
     if (!$any_fks) {
-        say get_text('install_fk_setup');
+        print get_text('install_fk_setup')."\n";
     }
 
     my @tables = $self->bz_table_list();
@@ -739,12 +739,12 @@ sub bz_alter_column_raw {
         $table, $name, $new_def,
         defined $set_nulls_to ? $self->quote($set_nulls_to) : undef);
     my $new_ddl = $self->_bz_schema->get_type_ddl($new_def);
-    say "Updating column $name in table $table ...";
+    print "Updating column $name in table $table ...\n";
     if (defined $current_def) {
         my $old_ddl = $self->_bz_schema->get_type_ddl($current_def);
-        say "Old: $old_ddl";
+        print "Old: $old_ddl\n";
     }
-    say "New: $new_ddl";
+    print "New: $new_ddl\n";
     $self->do($_) foreach (@statements);
 }
 
@@ -838,7 +838,7 @@ sub _bz_add_table_raw {
     if (Bugzilla->usage_mode == USAGE_MODE_CMDLINE
         and !$options->{silently})
     {
-        say install_string('db_table_new', { table => $name });
+        print install_string('db_table_new', { table => $name })."\n";
     }
     $self->do($_) foreach (@statements);
 }
@@ -1393,7 +1393,7 @@ sub _bz_init_schema_storage {
             $self->_bz_add_table_raw('bz_schema');
         }
 
-        say install_string('db_schema_init');
+        print install_string('db_schema_init')."\n";
         my $sth = $self->prepare("INSERT INTO bz_schema "
                                  ." (schema_data, version) VALUES (?,?)");
         $sth->bind_param(1, $store_me, $self->BLOB_TYPE);

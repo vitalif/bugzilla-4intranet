@@ -70,7 +70,7 @@ sub _error_message
     my $mesg = '';
     $mesg .= "[$$] " . time2str("%D %H:%M:%S ", time());
     $mesg .= uc($type)." $error ";
-    $mesg .= remote_ip();
+    $mesg .= Bugzilla::Util::remote_ip();
     if (Bugzilla->user)
     {
         $mesg .= ' ' . Bugzilla->user->login;

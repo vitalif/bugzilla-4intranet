@@ -63,20 +63,7 @@ unless ($cgi->param()) {
 
 # Detect if the user already used the same form to submit a bug
 my $token = trim($cgi->param('token'));
-check_token_data($token, qr/^createbug:/s, 'enter_bug.cgi');
-
-my (undef, undef, $old_bug_id) = Bugzilla::Token::GetTokenData($token);
-$old_bug_id =~ s/^createbug://;
-if ($old_bug_id)
-{
-    $vars->{bugid} = $old_bug_id;
-    $vars->{allow_override} = defined $cgi->param('ignore_token') ? 0 : 1;
-    $vars->{new_token} = issue_session_token('createbug:');
-
-    $template->process("bug/create/confirm-create-dupe.html.tmpl", $vars)
-       || ThrowTemplateError($template->error());
-    exit;
-}
+check_token_data($token, 'create_bug', 'index.cgi');
 
 # do a match on the fields if applicable
 Bugzilla::User::match_field ({
@@ -146,6 +133,7 @@ my %bug_params;
 foreach my $field (@bug_fields) {
     $bug_params{$field} = $cgi->param($field);
 }
+
 foreach my $field (qw(cc groups)) {
     next if !$cgi->should_set($field);
     $bug_params{$field} = [$cgi->param($field)];

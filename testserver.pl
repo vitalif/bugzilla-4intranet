@@ -34,8 +34,8 @@ my $lwp = $@ ? 0 : 1;
 
 if ((@ARGV != 1) || ($ARGV[0] !~ /^https?:/))
 {
-    say "Usage: $0 <URL to this Bugzilla installation>";
-    say "e.g.:  $0 http://www.mycompany.com/bugzilla";
+    print "Usage: $0 <URL to this Bugzilla installation>\n";
+    print "e.g.:  $0 http://www.mycompany.com/bugzilla\n";
     exit(1);
 }
 

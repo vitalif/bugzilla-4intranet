@@ -20,6 +20,9 @@
   #                     Frédéric Buclin <LpSolit@gmail.com>
   #%]
 
+[% USE Bugzilla %]
+[% BLOCK userlink %]<a href="[% Param('user_mailto') %][% u.email | html %]">[% (u.name || u.login) | html %]</a>[% END %]
+
 [% bugidsummary = bug.bug_id _ ': ' _ bug.short_desc %]
 [% attidsummary = attachment.id _ ': ' _ attachment.description %]
 [% flagtype_name = flag ? flag.type.name : old_flag.type.name %]

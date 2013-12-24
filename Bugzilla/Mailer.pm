@@ -48,14 +48,11 @@ use Encode qw(encode);
 use Encode::MIME::Header;
 use Email::Address;
 use Email::MIME;
-# Loading this gives us encoding_set.
-use Email::MIME::Modifier;
-use Email::Sender::Simple;
+use Email::Send;
 
 sub MessageToMTA {
     my ($msg, $send_now) = (@_);
     my $method = Bugzilla->params->{'mail_delivery_method'};
-    $method = 'Test' if Bugzilla->cgi->param('MailDeliveryTest');
     return if $method eq 'None';
 
     if (Bugzilla->params->{'use_mailer_queue'} and !$send_now) {
@@ -96,14 +93,19 @@ sub MessageToMTA {
     # Encode the headers correctly in quoted-printable
     foreach my $header ($email->header_names) {
         my @values = $email->header($header);
-        my @encoded_values;
-        foreach my $value (@values) {
+        # We don't recode headers that happen multiple times.
+        next if scalar(@values) > 1;
+        if (my $value = $values[0]) {
             if (Bugzilla->params->{'utf8'} && !utf8::is_utf8($value)) {
                 utf8::decode($value);
             }
-            push @encoded_values, encode('MIME-B', $value);
+
+            # avoid excessive line wrapping done by Encode.
+            local $Encode::Encoding{'MIME-Q'}->{'bpl'} = 998;
+
+            my $encoded = encode('MIME-Q', $value);
+            $email->header_set($header, $encoded);
         }
-        $email->header_set($header, @encoded_values);
     }
 
     my $from = $email->header('From');
@@ -111,7 +113,16 @@ sub MessageToMTA {
     my ($hostname, @args);
     if ($method eq "Sendmail") {
         if (ON_WINDOWS) {
-            push @args, sendmail => SENDMAIL_EXE;
+            $Email::Send::Sendmail::SENDMAIL = SENDMAIL_EXE;
+        }
+        push @args, "-i";
+        # We want to make sure that we pass *only* an email address.
+        if ($from) {
+            my ($email_obj) = Email::Address->parse($from);
+            if ($email_obj) {
+                my $from_email = $email_obj->address;
+                push(@args, "-f$from_email") if $from_email;
+            }
         }
     }
     else {
@@ -122,7 +133,7 @@ sub MessageToMTA {
         $hostname = $1;
         $from .= "\@$hostname" if $from !~ /@/;
         $email->header_set('From', $from);
-
+        
         # Sendmail adds a Date: header also, but others may not.
         if (!defined $email->header('Date')) {
             $email->header_set('Date', time2str("%a, %d %b %Y %T %z", time()));
@@ -130,7 +141,7 @@ sub MessageToMTA {
     }
 
     if ($method eq "SMTP") {
-        push @args, host  => Bugzilla->params->{"smtpserver"},
+        push @args, Host  => Bugzilla->params->{"smtpserver"},
                     username => Bugzilla->params->{"smtp_username"},
                     password => Bugzilla->params->{"smtp_password"},
                     Hello => $hostname, 
@@ -138,7 +149,7 @@ sub MessageToMTA {
                     Debug => Bugzilla->params->{'smtp_debug'};
     }
 
-    Bugzilla::Hook::process('mailer_before_send',
+    Bugzilla::Hook::process('mailer_before_send', 
                             { email => $email, mailer_args => \@args });
 
     $email->walk_parts(sub {
@@ -156,6 +167,9 @@ sub MessageToMTA {
                     $part->body_set($raw);
                 }
             }
+            
+            die(Data::Dumper::Dumper($body));
+            
             $part->encoding_set('quoted-printable') if !is_7bit_clean($body);
         }
     });
@@ -167,16 +181,14 @@ sub MessageToMTA {
         print TESTFILE "\n\nFrom - " . $email->header('Date') . "\n" . $email->as_string;
         close TESTFILE;
     }
-    else
-    {
+    else {
         # This is useful for both Sendmail and Qmail, so we put it out here.
-        local $ENV{PATH} = SENDMAIL_PATH.($ENV{PATH} ? ':'.$ENV{PATH} : '');
-        my $p = 'Email::Sender::Transport::'.$method;
-        my $pk = $p.'.pm';
-        $pk =~ s!::!/!g;
-        require $pk;
-        my $transport = $p->new({ @args });
-        Email::Sender::Simple->send($email, { transport => $transport });
+        local $ENV{PATH} = SENDMAIL_PATH;
+        my $mailer = Email::Send->new({ mailer => $method, 
+                                        mailer_args => \@args });
+        my $retval = $mailer->send($email);
+        ThrowCodeError('mail_send_error', { msg => $retval, mail => $email })
+            if !$retval;
     }
 }
 
@@ -200,7 +212,7 @@ sub build_thread_marker {
         $threadingmarker = "Message-ID: <bug-$bug_id-$user_id$sitespec>";
     }
     else {
-        my $rand_bits = generate_random_password(10);
+        my $rand_bits = Bugzilla::Util::generate_random_password(10);
         $threadingmarker = "Message-ID: <bug-$bug_id-$user_id-$rand_bits$sitespec>" .
                            "\nIn-Reply-To: <bug-$bug_id-$user_id$sitespec>" .
                            "\nReferences: <bug-$bug_id-$user_id$sitespec>";

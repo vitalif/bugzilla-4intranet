@@ -39,6 +39,7 @@ use constant LIST_ORDER => NAME_FIELD;
 use constant UPDATE_VALIDATORS => {};
 use constant NUMERIC_COLUMNS   => ();
 use constant DATE_COLUMNS      => ();
+use constant VALIDATOR_DEPENDENCIES => {};
 # XXX At some point, this will be joined with FIELD_MAP.
 use constant REQUIRED_FIELD_MAP  => {};
 use constant EXTRA_REQUIRED_FIELDS => ();
@@ -493,27 +494,36 @@ sub check_required_create_fields {
     }
 }
 
-sub run_create_validators
-{
-    my ($class, $params) = @_;
+sub run_create_validators {
+    my ($class, $params, $options) = @_;
 
     my $validators = $class->_get_validators;
     my %field_values = %$params;
 
-    local $Bugzilla::Object::CREATE_PARAMS = \%field_values;
+    # Make a hash skiplist for easier searching later
+    my %skip_list = map { $_ => 1 } @{ $options->{skip} || [] };
 
-    # We do the sort just to make sure that validation always
-    # happens in a consistent order.
-    foreach my $field (sort keys %field_values)
-    {
-        if (exists $validators->{$field})
-        {
+    # Get the sorted field names
+    my @sorted_names = $class->_sort_by_dep(keys %field_values);
+
+    # Remove the skipped names
+    my @unskipped = grep { !$skip_list{$_} } @sorted_names;
+
+    foreach my $field (@unskipped) {
+        my $value;
+        if (exists $validators->{$field}) {
             my $validator = $validators->{$field};
-            $field_values{$field} = $class->$validator($field_values{$field}, $field, \%field_values);
+            $value = $class->$validator($field_values{$field}, $field,
+                                        \%field_values);
         }
+        else {
+            $value = $field_values{$field};
+        }
+
         # We want people to be able to explicitly set fields to NULL,
         # and that means they can be set to undef.
-        trick_taint($field_values{$field}) if defined $field_values{$field} && !ref $field_values{$field};
+        trick_taint($value) if defined $value && !ref($value);
+        $field_values{$field} = $value;
     }
 
     Bugzilla::Hook::process('object_end_of_create_validators',

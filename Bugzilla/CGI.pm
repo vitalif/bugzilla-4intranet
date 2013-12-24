@@ -482,6 +482,7 @@ sub remove_cookie {
                        '-value'   => 'X');
 }
 
+
 # This helps implement Bugzilla::Search::Recent, and also shortens search
 # URLs that get POSTed to buglist.cgi.
 sub redirect_search_url {

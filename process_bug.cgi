@@ -48,6 +48,7 @@ use lib qw(. lib);
 use Bugzilla;
 use Bugzilla::Constants;
 use Bugzilla::Bug;
+use Bugzilla::BugMail;
 use Bugzilla::User;
 use Bugzilla::Util;
 use Bugzilla::Error;
@@ -392,8 +393,6 @@ if (should_set('comment')) {
     };
 }
 
-my @custom_fields = Bugzilla->active_custom_fields;
-
 my %methods = (
     bug_severity => 'set_severity',
     rep_platform => 'set_platform',
@@ -432,16 +431,6 @@ foreach my $b (@bug_objects)
     }
     if (should_set('remove_see_also')) {
         $b->remove_see_also($_) foreach $cgi->param('remove_see_also')
-    }
-
-    # And set custom fields.
-    foreach my $field (@custom_fields)
-    {
-        my $fname = $field->name;
-        if (should_set($fname, 1))
-        {
-            $b->set_custom_field($field, [$cgi->param($fname)]);
-        }
     }
 
     # CustIS Bug 134368 - Edit comment

@@ -404,7 +404,7 @@ my @statuses = @{ Bugzilla::Bug->new_bug_statuses($product) };
 # The back-end code will still accept them, though.
 # XXX We should remove this when the UI accepts closed statuses and update
 # Bugzilla::Bug->default_bug_status.
-@statuses = grep { $_->is_open } @statuses;
+@statuses = grep { $_->name eq 'RESOLVED' || $_->is_open } @statuses;
 
 scalar(@statuses) || ThrowUserError('no_initial_bug_status');
 

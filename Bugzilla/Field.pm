@@ -1304,8 +1304,8 @@ sub populate_field_definitions {
                               undef, $field_description);
 
     if ($old_field_id && ($old_field_name ne $new_field_name)) {
-        say "SQL fragment found in the 'fielddefs' table...";
-        say "Old field name: $old_field_name";
+        print "SQL fragment found in the 'fielddefs' table...\n";
+        print "Old field name: $old_field_name\n";
         # We have to fix saved searches first. Queries have been escaped
         # before being saved. We have to do the same here to find them.
         $old_field_name = url_quote($old_field_name);
@@ -1342,8 +1342,8 @@ sub populate_field_definitions {
             $sth_UpdateSeries->execute($query, $series_id);
         }
         # Now that saved searches have been fixed, we can fix the field name.
-        say "Fixing the 'fielddefs' table...";
-        say "New field name: $new_field_name";
+        print "Fixing the 'fielddefs' table...\n";
+        print "New field name: $new_field_name\n";
         $dbh->do('UPDATE fielddefs SET name = ? WHERE id = ?',
                   undef, ($new_field_name, $old_field_id));
     }

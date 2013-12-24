@@ -60,7 +60,7 @@ sub Status {
     }
     else {
         my $start_tag = $alert ? '<p class="alert">' : '<p>';
-        say $start_tag . get_string($san_tag, $vars) . "</p>";
+        print $start_tag . get_string($san_tag, $vars) . "</p>";
     }
 }
 

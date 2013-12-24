@@ -94,5 +94,5 @@ foreach my $email (sort (keys %bugs)) {
 
     MessageToMTA($msg);
 
-    say "$email      " . join(" ", @{$bugs{$email}});
+    print "$email      " . join(" ", @{$bugs{$email}})."\n";
 }

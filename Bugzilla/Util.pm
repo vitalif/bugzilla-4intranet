@@ -713,15 +713,24 @@ sub on_main_db (&) {
     Bugzilla->request_cache->{dbh} = $original_dbh;
 }
 
-sub get_text {
+# FUCKMYBRAIN! CustIS Bugs 40933, 52322.
+# Here is the Template Toolkit development anti-pattern!
+# Originally, Bugzilla used to call get_text('term', { term => 'bug' })
+# from quoteUrls() for each comment. This leaded to TERRIBLE performance
+# on "long" bugs compared to Bugzilla 2.x!
+
+sub get_text
+{
     my ($name, $vars) = @_;
     my $template = Bugzilla->template_inner;
     $vars ||= {};
     $vars->{message} = $name;
     my $message;
-    $template->process('global/message.txt.tmpl', $vars, \$message)
-      || ThrowTemplateError($template->error());
-
+    if (!$template->process('global/message.txt.tmpl', $vars, \$message))
+    {
+        require Bugzilla::Error;
+        Bugzilla::Error::ThrowTemplateError($template->error());
+    }
     # Remove the indenting that exists in messages.html.tmpl.
     $message =~ s/^    //gm;
     return $message;

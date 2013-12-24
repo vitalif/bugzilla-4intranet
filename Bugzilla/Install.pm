@@ -34,7 +34,7 @@ use Bugzilla::Group;
 use Bugzilla::Product;
 use Bugzilla::User;
 use Bugzilla::User::Setting;
-use Bugzilla::Util qw(get_text say);
+use Bugzilla::Util qw(get_text);
 use Bugzilla::Version;
 
 use constant STATUS_WORKFLOW => (
@@ -198,7 +198,7 @@ sub update_settings {
     my $any_settings = $dbh->selectrow_array(
         'SELECT 1 FROM setting ' . $dbh->sql_limit(1));
     if (!$any_settings) {
-        say get_text('install_setting_setup');
+        print get_text('install_setting_setup')."\n";
     }
 
     my %settings = %{SETTINGS()};
@@ -220,7 +220,7 @@ sub update_system_groups {
     # adding groups.
     my $editbugs_exists = new Bugzilla::Group({ name => 'editbugs' });
     if (!$editbugs_exists) {
-        say get_text('install_groups_setup');
+        print get_text('install_groups_setup')."\n";
     }
 
     # Create most of the system groups
@@ -291,7 +291,7 @@ sub init_workflow {
     my $has_workflow = $dbh->selectrow_array('SELECT 1 FROM status_workflow');
     return if $has_workflow;
 
-    say get_text('install_workflow_init');
+    print get_text('install_workflow_init')."\n";
 
     my %status_ids = @{ $dbh->selectcol_arrayref(
         'SELECT value, id FROM bug_status', {Columns=>[1,2]}) };
@@ -326,7 +326,7 @@ sub create_admin {
     my $full_name = $answer{'ADMIN_REALNAME'};
 
     if (!$login || !$password || !$full_name) {
-        say "\n" . get_text('install_admin_setup') . "\n";
+        print "\n" . get_text('install_admin_setup') . "\n";
     }
 
     while (!$login) {
@@ -335,7 +335,7 @@ sub create_admin {
         chomp $login;
         eval { Bugzilla::User->check_login_name_for_creation($login); };
         if ($@) {
-            say $@;
+            print $@."\n";
             undef $login;
         }
     }
@@ -393,7 +393,7 @@ sub make_admin {
     }
 
     if (Bugzilla->usage_mode == USAGE_MODE_CMDLINE) {
-        say "\n", get_text('install_admin_created', { user => $user });
+        print "\n", get_text('install_admin_created', { user => $user })."\n";
     }
 }
 
@@ -418,7 +418,7 @@ sub _prompt_for_password {
         chomp $pass2;
         eval { validate_password($password, $pass2); };
         if ($@) {
-            say "\n$@";
+            print "\n$@"."\n";
             undef $password;
         }
         system("stty","echo") unless ON_WINDOWS;
@@ -440,7 +440,7 @@ sub reset_password {
     my $password = _prompt_for_password($prompt);
     $user->set_password($password);
     $user->update();
-    say "\n", get_text('install_reset_password_done');
+    print "\n", get_text('install_reset_password_done')."\n";
 }
 
 1;

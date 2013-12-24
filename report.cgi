@@ -305,10 +305,10 @@ $cgi->send_header(-type => $format->{'ctype'},
 # prints out both data structures.
 if ($cgi->param('debug')) {
     require Data::Dumper;
-    say "<pre>data hash:";
-    say html_quote(Data::Dumper::Dumper(%data));
-    say "\ndata array:";
-    say html_quote(Data::Dumper::Dumper(@image_data)) . "\n\n</pre>";
+    print "<pre>data hash:";
+    print html_quote(Data::Dumper::Dumper(%data));
+    print "\ndata array:";
+    print html_quote(Data::Dumper::Dumper(@image_data)) . "\n\n</pre>";
 }
 
 # All formats point to the same section of the documentation.

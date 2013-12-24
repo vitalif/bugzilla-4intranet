@@ -136,7 +136,7 @@ sub SendFlag
 
         my $template = Bugzilla->template_inner($email->{lang});
         my $message;
-        $template->process("request/email.txt.tmpl", $email, \$message)
+        $template->process("email/flagmail.txt.tmpl", $email, \$message)
            || ThrowTemplateError($template->error());
 
         Bugzilla->template_inner("");

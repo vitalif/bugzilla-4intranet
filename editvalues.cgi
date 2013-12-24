@@ -227,12 +227,9 @@ if ($action eq 'update') {
     }
     $value->set_all(\%params);
     $vars->{'changes'} = $value->update();
-    my $ch = $value->set_visibility_values($visibility_values);
-    $vars->{'changes'}->{'visibility_values'} = $ch if $visibility_values && $ch;
     delete_token($token);
     $vars->{'message'} = 'field_value_updated';
     display_field_values($vars);
 }
-
 # No valid action found
 ThrowUserError('unknown_action', {action => $action});
