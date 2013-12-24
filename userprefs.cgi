@@ -151,7 +151,8 @@ sub DoSettings {
     my $settings = $user->settings;
     $vars->{'settings'} = $settings;
 
-    my @setting_list = sort keys %$settings;
+    my $descs = Bugzilla->messages->{setting_descs};
+    my @setting_list = sort { lc $descs->{$a} cmp lc $descs->{$b} } keys %$settings;
     $vars->{'setting_names'} = \@setting_list;
 
     $vars->{'has_settings_enabled'} = 0;
