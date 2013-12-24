@@ -2135,14 +2135,12 @@ sub _content_matches
 {
     my $self = shift;
 
+    my $dbh = Bugzilla->dbh;
+    my $table = "bugs_fulltext_".$self->{sequence};
     my $text = $self->{value};
 
     if (my $index = Bugzilla->localconfig->{sphinx_index})
     {
-        # Using Sphinx
-        my $sph = Bugzilla->dbh_sphinx;
-        my $query = 'SELECT id, WEIGHT() `weight` FROM '.$index.
-            ' WHERE MATCH(?) LIMIT 1000 OPTION field_weights=(short_desc=5, comments=1, comments_private=1)';
         # Escape search query
         my $pattern_part = '\[\]:\(\)!@~&\/^$';
         $text = trim($text);
@@ -2154,6 +2152,21 @@ sub _content_matches
         }
         $text =~ s/((?:^|[^\\])(?:\\\\)*)([$pattern_part])/$1\\$2/gs;
         $text = ($self->{user}->is_insider ? '@(short_desc,comments,comments_private) ' : '@(short_desc,comments) ') . $text;
+        if (Bugzilla->localconfig->{sphinxse_port})
+        {
+            # Using SphinxSE
+            $text =~ s/;/\\\\;/gso;
+            $self->{term} = {
+                table => "bugs_fulltext_sphinx $table",
+                where => "$table.query=".$dbh->quote("$text;mode=extended;limit=1000;fieldweights=short_desc,5,comments,1,comments_private,1"),
+                bugid_field => "$table.id",
+            };
+            return;
+        }
+        # Using SphinxQL
+        my $sph = Bugzilla->dbh_sphinx;
+        my $query = 'SELECT `id`, WEIGHT() `weight` FROM '.$index.
+            ' WHERE MATCH(?) LIMIT 1000 OPTION field_weights=(short_desc=5, comments=1, comments_private=1)';
         my $ids = $sph->selectall_arrayref($query, undef, $text) || [];
         $self->{term} = {
             term => @$ids ? 'bugs.bug_id IN ('.join(', ', map { $_->[0] } @$ids).')' : '1=0',
@@ -2166,9 +2179,6 @@ sub _content_matches
         }
         return;
     }
-
-    my $dbh = Bugzilla->dbh;
-    my $table = "bugs_fulltext_".$self->{sequence};
 
     # Create search terms to add to the SELECT and WHERE clauses.
     # These are (search term, rank term, search term, rank term, ...)

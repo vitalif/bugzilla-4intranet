@@ -107,6 +107,7 @@ sub connect_sphinx
     my $host = $lc->{sphinx_host};
     my $port = $lc->{sphinx_port};
     my $sock = $lc->{sphinx_sock};
+    $host = '' if $sock;
 
     my $dsn = "dbi:mysql:host=$host;database=none";
     $dsn .= ";port=$port" if $port;
@@ -116,6 +117,7 @@ sub connect_sphinx
         mysql_enable_utf8 => 1,
         # Needs to be explicitly specified for command-line processes.
         mysql_auto_reconnect => 1,
+        raise_error => 0,
     });
 
     $sphinx->do("SET NAMES utf8");

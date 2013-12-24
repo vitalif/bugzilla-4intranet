@@ -3287,21 +3287,40 @@ sub _populate_bugs_fulltext
     $bug_ids = undef if $bug_ids && !@$bug_ids;
     my $dbh = Bugzilla->dbh;
     # These vary between different fulltext search engines (MySQL, Sphinx)
-    my ($table, $limit1, $id_field, $quote, $sph) = ('bugs_fulltext', $dbh->sql_limit(1), 'bug_id', 'quote_fulltext', $dbh);
+    my ($table, $id_field, $quote, $sph) = ('bugs_fulltext', 'bug_id', 'quote_fulltext', $dbh);
+    my $nonempty;
     if (Bugzilla->localconfig->{sphinx_index})
     {
         $sph = Bugzilla->dbh_sphinx;
-        $limit1 = 'LIMIT 1';
         $table = Bugzilla->localconfig->{sphinx_index};
         $id_field = 'id';
         $quote = 'quote';
+        # Sphinx can't do fullscan for index without attributes,
+        # so we check if the index is empty by trying to insert a MAX_INT id
+        $sph->{PrintError} = 0;
+        $nonempty = !$sph->do("INSERT INTO $table (id) VALUES (-1)");
+        $sph->{PrintError} = 1;
+        if (my $conn = Bugzilla->localconfig->{sphinxse_port})
+        {
+            $conn = "sphinx://".Bugzilla->localconfig->{sphinx_host}.':'.Bugzilla->localconfig->{sphinxse_port}.'/'.$table;
+            $dbh->do("DROP TABLE IF EXISTS bugs_fulltext_sphinx");
+            $dbh->do("CREATE TABLE bugs_fulltext_sphinx (".
+                "id BIGINT NOT NULL, ".
+                "`weight` INT NOT NULL, ".
+                "`query` VARCHAR(3072) NOT NULL, ".
+                "INDEX(`query`)".
+            ") ENGINE=SPHINX CONNECTION='$conn'");
+        }
     }
-    my $fulltext = $sph->selectrow_array("SELECT $id_field FROM $table $limit1");
+    else
+    {
+        $nonempty = $sph->selectrow_array("SELECT $id_field FROM $table ".$dbh->sql_limit(1));
+    }
     my ($datasize, $time) = (0, time);
     my ($lastdata, $lasttime) = ($datasize, $time);
     # We only populate the table if it's empty or if we've been given a
     # set of bug ids.
-    if ($bug_ids || !$fulltext)
+    if ($bug_ids || !$nonempty)
     {
         # ... and if there are bugs in the bugs table.
         $bug_ids ||= $dbh->selectcol_arrayref("SELECT bug_id FROM bugs");

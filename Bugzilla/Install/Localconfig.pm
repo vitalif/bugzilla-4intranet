@@ -175,6 +175,14 @@ EOT
         desc    => "# Sphinx UNIX socket (listening MySQL protocol)\n",
     },
     {
+        name    => 'sphinxse_port',
+        default => 0,
+        desc    => <<EOT
+# To use MySQL Sphinx Storage Engine (bundled with MariaDB), specify
+# a non-zero port on which Sphinx is listening for non-SphinxQL requests
+EOT
+    },
+    {
         name    => 'db_check',
         default => 1,
         desc    => <<EOT
