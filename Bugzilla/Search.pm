@@ -2164,8 +2164,8 @@ sub _content_matches
             };
             if (!$self->{negated})
             {
-                push @{COLUMNS->{relevance}->{joins}}, "LEFT JOIN bugs_fulltext_sphinx $table ON $table.id=bugs.bug_id AND $table.query=".$dbh->quote($text);
-                push @{COLUMNS->{relevance}->{bits}}, "$table.weight";
+                push @{COLUMNS->{relevance}->{joins}}, "LEFT JOIN bugs_fulltext_sphinx r$table ON r$table.id=bugs.bug_id AND r$table.query=".$dbh->quote($text);
+                push @{COLUMNS->{relevance}->{bits}}, "r$table.weight";
                 COLUMNS->{relevance}->{name} = '('.join("+", @{COLUMNS->{relevance}->{bits}}).')';
             }
         }
