@@ -2156,26 +2156,35 @@ sub _content_matches
         {
             # Using SphinxSE
             $text =~ s/;/\\\\;/gso;
+            $text = "$text;mode=extended;limit=1000;fieldweights=short_desc,5,comments,1,comments_private,1";
             $self->{term} = {
                 table => "bugs_fulltext_sphinx $table",
-                where => "$table.query=".$dbh->quote("$text;mode=extended;limit=1000;fieldweights=short_desc,5,comments,1,comments_private,1"),
+                where => "$table.query=".$dbh->quote($text),
                 bugid_field => "$table.id",
             };
-            return;
+            if (!$self->{negated})
+            {
+                push @{COLUMNS->{relevance}->{joins}}, "LEFT JOIN bugs_fulltext_sphinx $table ON $table.id=bugs.bug_id AND $table.query=".$dbh->quote($text);
+                push @{COLUMNS->{relevance}->{bits}}, "$table.weight";
+                COLUMNS->{relevance}->{name} = '('.join("+", @{COLUMNS->{relevance}->{bits}}).')';
+            }
         }
-        # Using SphinxQL
-        my $sph = Bugzilla->dbh_sphinx;
-        my $query = 'SELECT `id`, WEIGHT() `weight` FROM '.$index.
-            ' WHERE MATCH(?) LIMIT 1000 OPTION field_weights=(short_desc=5, comments=1, comments_private=1)';
-        my $ids = $sph->selectall_arrayref($query, undef, $text) || [];
-        $self->{term} = {
-            term => @$ids ? 'bugs.bug_id IN ('.join(', ', map { $_->[0] } @$ids).')' : '1=0',
-        };
-        if (@$ids && !$self->{negated})
+        else
         {
-            # Pass relevance (weight) values as is...
-            push @{COLUMNS->{relevance}->{bits}}, '(case'.join('', map { ' when bugs.bug_id='.$_->[0].' then '.$_->[1] } @$ids).' end)';
-            COLUMNS->{relevance}->{name} = '('.join("+", @{COLUMNS->{relevance}->{bits}}).')';
+            # Using separate query to SphinxQL
+            my $sph = Bugzilla->dbh_sphinx;
+            my $query = 'SELECT `id`, WEIGHT() `weight` FROM '.$index.
+                ' WHERE MATCH(?) LIMIT 1000 OPTION field_weights=(short_desc=5, comments=1, comments_private=1)';
+            my $ids = $sph->selectall_arrayref($query, undef, $text) || [];
+            $self->{term} = {
+                term => @$ids ? 'bugs.bug_id IN ('.join(', ', map { $_->[0] } @$ids).')' : '1=0',
+            };
+            if (@$ids && !$self->{negated})
+            {
+                # Pass relevance (weight) values via an overlong (CASE ... END)
+                push @{COLUMNS->{relevance}->{bits}}, '(case'.join('', map { ' when bugs.bug_id='.$_->[0].' then '.$_->[1] } @$ids).' end)';
+                COLUMNS->{relevance}->{name} = '('.join("+", @{COLUMNS->{relevance}->{bits}}).')';
+            }
         }
         return;
     }
