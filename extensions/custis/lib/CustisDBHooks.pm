@@ -446,6 +446,14 @@ SET
 WHERE description LIKE\'%[CC:%\'');
     }
 
+    # Bug 138596 - Настройки пользователя для управления длинными комментариями
+    if (!$dbh->selectrow_array('SELECT * FROM setting WHERE name=\'preview_long_comments\' LIMIT 1'))
+    {
+        print "Adding 'Preview long comment' user general setting, Off by default for all users\n";
+        $dbh->do('INSERT INTO setting (name, default_value, is_enabled) VALUES (\'preview_long_comments\', \'off\', 1)');
+        $dbh->do('INSERT INTO setting_value (name, value, sortindex) VALUES (\'preview_long_comments\', \'off\', \'10\'), (\'preview_long_comments\', \'on\', \'20\')');
+    }
+
     return 1;
 }
 

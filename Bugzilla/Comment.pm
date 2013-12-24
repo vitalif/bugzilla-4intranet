@@ -109,7 +109,8 @@ sub body
         my $max_lines = Bugzilla->params->{preview_comment_lines} - 1;
         my $line_length = Bugzilla->params->{comment_line_length} - 1;
         my $result = $self->{'thetext'};
-        $result =~ s/^((?>[^\n]{0,$line_length}.){0,$max_lines}(?>[^\n]{0,$line_length}\s)).*$/\1.../s;
+        $result =~ s/(>[^\n]*?\n)+/>...\n/g;
+        $result =~ s/^((?>[^\n]{0,$line_length}.){0,$max_lines}(?>[^\n]{0,$line_length}\s)).*$/\1.../s if !$self->check_length($result);
         return $result;
     }
     return $_[0]->{'thetext'};
@@ -185,8 +186,8 @@ sub body_full {
 
 sub check_length
 {
-    my $self = shift;
-    my $test = $self->{'thetext'};
+    my ($self, $test) = @_;
+    $test ||= $self->{'thetext'};
     my $line_length = Bugzilla->params->{comment_line_length};
     my $length = $test =~ s/([^\n]{$line_length}|\n)/$1/g;
     $length = 0 if !$length;

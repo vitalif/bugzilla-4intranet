@@ -170,7 +170,7 @@
   # generated HTML
   #%]
 <div class="bz_comment_text[% " collapsed" IF wt_only %][% " bz_fullscreen_comment" IF user.settings.comment_width.value == 'on' %]" id="comment_text_[% comment.id %]">
-  [%- comment.body_full({ wrap => 1 }) -%]
+  [%- comment.body_full({ wrap => 1, wo_preview => (user.settings.preview_long_comments.value == 'off') }) -%]
 </div>
     </div>
 [% END %]

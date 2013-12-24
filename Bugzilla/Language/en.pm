@@ -212,6 +212,7 @@ $Bugzilla::messages->{en} = {
         'worktime'                          => 'With worktime only',
         'all'                               => 'All',
         'comment_width'                     => 'Show comments in the full screen width',
+        'preview_long_comments'             => 'Preview long comment'
     },
 };
 
