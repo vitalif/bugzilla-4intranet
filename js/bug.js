@@ -179,7 +179,11 @@ function replyToComment(num, id)
     if (user_settings.quote_replies == 'quoted_reply')
     {
         /* pre id="comment_name_N" */
-        var text_elem = document.getElementById('comment_text_'+id);
+        var text_elem = document.getElementById('comment-body-'+id);
+        if (!text_elem)
+        {
+            text_elem = document.getElementById('comment_text_'+id);
+        }
         var text = getText(text_elem);
 
         /* make sure we split on all newlines -- IE or Moz use \r and \n
