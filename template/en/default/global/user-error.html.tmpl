@@ -1,23 +1,9 @@
-[%# The contents of this file are subject to the Mozilla Public
-  # License Version 1.1 (the "License"); you may not use this file
-  # except in compliance with the License. You may obtain a copy of
-  # the License at http://www.mozilla.org/MPL/
+[%# This Source Code Form is subject to the terms of the Mozilla Public
+  # License, v. 2.0. If a copy of the MPL was not distributed with this
+  # file, You can obtain one at http://mozilla.org/MPL/2.0/.
   #
-  # Software distributed under the License is distributed on an "AS
-  # IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-  # implied. See the License for the specific language governing
-  # rights and limitations under the License.
-  #
-  # The Original Code is the Bugzilla Bug Tracking System.
-  #
-  # The Initial Developer of the Original Code is Netscape Communications
-  # Corporation. Portions created by Netscape are
-  # Copyright (C) 1998 Netscape Communications Corporation. All
-  # Rights Reserved.
-  #
-  # Contributor(s): Gervase Markham <gerv@gerv.net>
-  #                 Frédéric Buclin <LpSolit@gmail.com>
-  #                 Max Kanat-Alexander <mkanat@bugzilla.org>
+  # This Source Code Form is "Incompatible With Secondary Licenses", as
+  # defined by the Mozilla Public License, v. 2.0.
   #%]
 
 [%# INTERFACE:
@@ -256,7 +242,14 @@
   [% ELSE %]
     [%+ Hook.process('auth_failure_object') %]
   [% END %].
-  [% Hook.process("auth_failure") %]
+
+  [% Hook.process("auth_failure") %]	  
+[% END %]
+
+[% BLOCK error_field_long_desc_too_long %]
+    [% title = "Long Description for Field too long" %]
+    The long description you have provided for this field is longer than 
+    [% constants.MAX_FIELD_LONG_DESC_LENGTH FILTER html %] characters.
 [% END %]
 
 [% BLOCK error_attachment_deletion_disabled %]
@@ -272,243 +265,252 @@
 [% BLOCK error_bug_access_denied %]
   [% title = "Access Denied" %]
   [% admindocslinks = {'groups.html' => 'Group Security'} %]
-  You are not authorized to access [% terms.bug %] #[% bug_id FILTER html %]
-  [%- IF product AND Param('unauth_bug_details') %] in the [% product %] product[% END %].
+  You are not authorized to access [% terms.bug %] #[% bug_id FILTER html %].
 [% END %]
 
 [% BLOCK error_bug_access_query %]
-  [% title = "Access Denied" %]
-  [% docslinks = {'myaccount.html' => 'Creating an account'} %]
-  You are not authorized to access [% terms.bug %] #[% bug_id FILTER html %].
-  To see this [% terms.bug %], you must
-  first <a href="show_bug.cgi?id=
-                 [% bug_id FILTER url_quote %]&amp;GoAheadAndLogIn=1">log
-  in to an account</a> with the appropriate permissions.
+    [% title = "Access Denied" %]
+    [% docslinks = {'myaccount.html' => 'Creating an account'} %]
+    You are not authorized to access [% terms.bug %] #[% bug_id FILTER html %].
+    To see this [% terms.bug %], you must
+    first <a href="show_bug.cgi?id=
+                   [% bug_id FILTER uri %]&amp;GoAheadAndLogIn=1">log
+    in to an account</a> with the appropriate permissions.
 [% END %]
 
 [% BLOCK error_bug_url_invalid %]
-  [% title = "Invalid $terms.Bug URL" %]
-  <code>[% url FILTER html %]</code> is not a valid URL to [% terms.abug %].
-  [% IF reason == 'http' %]
-    URLs must start with "http" or "https".
-  [% ELSIF reason == 'path_only' %]
-    You must specify a full URL.
-  [% ELSIF reason == 'show_bug' %]
-    [%+ field_descs.see_also FILTER html %] URLs should point to one of:
-    <ul>
-      <li><code>show_bug.cgi</code> in a [% terms.Bugzilla %]
-        installation.</li>
-      <li>A b[% %]ug on launchpad.net</li>
-      <li>An issue on code.google.com.</li>
-      <li>A b[% %]ug on b[% %]ugs.debian.org.</li>
-    </ul>
-  [% ELSIF reason == 'id' %]
-    There is no valid [% terms.bug %] id in that URL.
-  [% END %]
+    [% title = "Invalid $terms.Bug URL" %]
+    <code>[% url FILTER html %]</code> is not a valid URL to [% terms.abug %].
+    [% IF reason == 'http' %]
+      URLs must start with "http" or "https".
+    [% ELSIF reason == 'path_only' %]
+      You must specify a full URL.
+    [% ELSIF reason == 'id' %]
+      There is no valid [% terms.bug %] id in that URL.
+    [% ELSE %]
+      [%+ field_descs.see_also FILTER html %] URLs should point to one of:
+      <ul>
+        <li><code>show_bug.cgi</code> in a [% terms.Bugzilla %]
+          installation.</li>
+        <li>A b[% %]ug on launchpad.net</li>
+        <li>An issue on code.google.com.</li>
+        <li>A b[% %]ug on b[% %]ugs.debian.org.</li>
+        <li>An issue in a JIRA installation.</li>
+        <li>A ticket in a Trac installation.</li>
+        <li>A b[% %]ug in a MantisBT installation.</li>
+        <li>A b[% %]ug on sourceforge.net.</li>
+        <li>An issue on github.com.</li>
+        [% Hook.process('bug_url_invalid_tracker') %]
+      </ul>
+    [% END %]
 [% END %]
 
 [% BLOCK error_bug_url_too_long %]
-  [% title = "Invalid $terms.Bug URL" %]
-  [% terms.Bug %] URLs can not be longer than
-  [%+ constants.MAX_BUG_URL_LENGTH FILTER none %] characters long.
-  <code>[% url FILTER html %]</code> is too long.
+    [% title = "Invalid $terms.Bug URL" %]
+    [% terms.Bug %] URLs can not be longer than 
+    [%+ constants.MAX_BUG_URL_LENGTH FILTER none %] characters long.
+    <code>[% url FILTER html %]</code> is too long.
 [% END %]
 
 [% BLOCK error_buglist_parameters_required %]
-  [% title = "Parameters Required" %]
-  [% docslinks = {'query.html' => "Searching for $terms.bugs",
-                  'query.html#list' => "$terms.Bug lists"} %]
-  You may not search, or create saved searches, without any search terms.
+    [% title = "Parameters Required" %]
+    [% docslinks = {'query.html' => "Searching for $terms.bugs",
+                    'query.html#list' => "$terms.Bug lists"} %]
+    You may not search, or create saved searches, without any search terms.
 [% END %]
 
 [% BLOCK error_cc_remove_denied %]
-  [% title = "Change Denied" %]
-  You do not have permission to remove other people from the CC list.
+    [% title = "Change Denied" %]
+    You do not have permission to remove other people from the CC list.
 [% END %]
 
 [% BLOCK error_chart_too_large %]
-  [% title = "Chart Too Large" %]
-  Sorry, but 2000 x 2000 is the maximum size for a chart.
+    [% title = "Chart Too Large" %]
+    Sorry, but 2000 x 2000 is the maximum size for a chart.
 [% END %]
 
 [% BLOCK error_comment_id_invalid %]
-  [% id FILTER html %] is not a valid comment id.
+    [% id FILTER html %] is not a valid comment id.
 [% END %]
 
 [% BLOCK error_comment_invalid_isprivate %]
-  You tried to modify the privacy of comment id [% id FILTER html %],
-  but that is not a valid comment on this [% terms.bug %].
+    You tried to modify the privacy of comment id [% id FILTER html %],
+    but that is not a valid comment on this [% terms.bug %].
 [% END %]
 
 [% BLOCK error_comment_is_private %]
-  Comment id [% id FILTER html %] is private.
+    Comment id [% id FILTER html %] is private.
 [% END %]
 
 [% BLOCK error_comment_required %]
-  [% title = "Comment Required" %]
-  You have to specify a
-  [% IF old && new %]
-    <b>comment</b> when changing the status of [% terms.abug %] from
-    [%+ old.name FILTER html %] to [% new.name FILTER html %].
-  [% ELSIF new %]
-    description for this [% terms.bug %].
-  [% ELSE %]
-    <b>comment</b> on this change.
-  [% END %]
+    [% title = "Comment Required" %]
+    You have to specify a
+    [% IF old.defined && new.defined %]
+      <b>comment</b> when changing the [% field_descs.$field FILTER html %]
+      of [% terms.abug %] from [% (old || "(empty)") FILTER html %]
+      to [% (new || "(empty)") FILTER html %].
+    [% ELSIF new %]
+      description for this [% terms.bug %].
+    [% ELSE %]
+      <b>comment</b> on this change.
+    [% END %]
 [% END %]
 
 [% BLOCK error_comment_too_long %]
-  [% title = "Comment Too Long" %]
-  Comments cannot be longer than 
-  [%+ constants.MAX_COMMENT_LENGTH FILTER html %] characters.
+    [% title = "Comment Too Long" %]
+    Comments cannot be longer than 
+    [%+ constants.MAX_COMMENT_LENGTH FILTER html %] characters.
 [% END %]
 
 [% BLOCK error_auth_classification_not_enabled %]
-  [% title = "Classification Not Enabled" %]
-  Sorry, classification is not enabled.
+    [% title = "Classification Not Enabled" %]
+    Sorry, classification is not enabled.
 [% END %]
 
 [% BLOCK error_classification_name_too_long %]
-  [% title = "Classification Name Too Long" %]
-  The name of a classification is limited to [% constants.MAX_CLASSIFICATION_SIZE FILTER html %]
-  characters. '[% name FILTER html %]' is too long ([% name.length %] characters).
+    [% title = "Classification Name Too Long" %]
+    The name of a classification is limited to [% constants.MAX_CLASSIFICATION_SIZE FILTER html %]
+    characters. '[% name FILTER html %]' is too long ([% name.length %] characters).
 [% END %]
 
 [% BLOCK error_classification_not_specified %]
-  [% title = "You Must Supply A Classification Name" %]
-  You must enter a classification name.
+    [% title = "You Must Supply A Classification Name" %]
+    You must enter a classification name.
 [% END %]
 
 [% BLOCK error_classification_already_exists %]
-  [% title = "Classification Already Exists" %]
-  A classification with the name '[% name FILTER html %]' already exists.
+    [% title = "Classification Already Exists" %]
+    A classification with the name '[% name FILTER html %]' already exists.
 [% END %]
 
 [% BLOCK error_classification_invalid_sortkey %]
-  [% title = "Invalid Sortkey for Classification" %]
-  The sortkey '[% sortkey FILTER html %]' is invalid. It must be an
-  integer between 0 and [% constants.MAX_SMALLINT FILTER html %].
+    [% title = "Invalid Sortkey for Classification" %]
+    The sortkey '[% sortkey FILTER html %]' is invalid. It must be an
+    integer between 0 and [% constants.MAX_SMALLINT FILTER html %].
 [% END %]
 
 [% BLOCK error_classification_not_deletable %]
-  [% title = "Default Classification Can Not Be Deleted" %]
-  You can not delete the default classification
+    [% title = "Default Classification Can Not Be Deleted" %]
+    You can not delete the default classification
 [% END %]
 
 [% BLOCK error_classification_has_products %]
-   Sorry, there are products for this classification. You
-   must reassign those products to another classification before you
-   can delete this one.
+     Sorry, there are products for this classification. You
+     must reassign those products to another classification before you
+     can delete this one.
 [% END %]
 
 [% BLOCK error_component_already_exists %]
-  [% title = "Component Already Exists" %]
-  The <em>[% product.name FILTER html %]</em> product already has
-  a component named <em>[% name FILTER html %]</em>.
+    [% title = "Component Already Exists" %]
+    The <em>[% product.name FILTER html %]</em> product already has
+    a component named <em>[% name FILTER html %]</em>.
 [% END %]
 
 [% BLOCK error_component_blank_description %]
-  [% title = "Blank Component Description Not Allowed" %]
-  You must enter a non-blank description for this component.
+    [% title = "Blank Component Description Not Allowed" %]
+    You must enter a non-blank description for this component.
 [% END %]
 
 [% BLOCK error_component_blank_name %]
-  [% title = "Blank Component Name Not Allowed" %]
-  You must enter a name for this new component.
+    [% title = "Blank Component Name Not Allowed" %]
+    You must enter a name for this new component.
 [% END %]
 
 [% BLOCK error_component_has_bugs %]
-  [% title = BLOCK %]Component has [% terms.Bugs %][% END %]
-  There are [% nb FILTER html %] [%+ terms.bugs %] entered for this component!
-  You must reassign those [% terms.bugs %] to another component before you
-  can delete this one.
+    [% title = BLOCK %]Component has [% terms.Bugs %][% END %]
+    There are [% nb FILTER html %] [%+ terms.bugs %] entered for this component!
+    You must reassign those [% terms.bugs %] to another component before you
+    can delete this one.
 [% END %]
 
 [% BLOCK error_component_name_too_long %]
-  [% title = "Component Name Is Too Long" %]
-  The name of a component is limited to [% constants.MAX_COMPONENT_SIZE FILTER html %]
-  characters. '[% name FILTER html %]' is too long ([% name.length %] characters).
+    [% title = "Component Name Is Too Long" %]
+    The name of a component is limited to [% constants.MAX_COMPONENT_SIZE FILTER html %]
+    characters. '[% name FILTER html %]' is too long ([% name.length %] characters).
 [% END %]
 
 [% BLOCK error_component_need_initialowner %]
-  [% title = "Component Requires Default Assignee" %]
-  A default assignee is required for this component.
+    [% title = "Component Requires Default Assignee" %]
+    A default assignee is required for this component.
 [% END %]
 
 [% BLOCK error_customfield_nonexistent %]
-  [% title = "Unknown Custom Field" %]
-  There is no custom field with the name '[% name FILTER html %]'.
+    [% title = "Unknown Custom Field" %]
+    There is no custom field with the name '[% name FILTER html %]'.
 [% END %]
 
 [% BLOCK error_customfield_not_obsolete %]
-  [% title = "Custom Field Not Obsolete" %]
-  The custom field '[% name FILTER html %]' is not obsolete.
-  Please obsolete a custom field before attempting to delete it.
+    [% title = "Custom Field Not Obsolete" %]
+    The custom field '[% name FILTER html %]' is not obsolete.
+    Please obsolete a custom field before attempting to delete it.
 [% END %]
 
 [% BLOCK error_customfield_has_activity %]
-  [% title = "Custom Field Has Activity" %]
-  The custom field '[% name FILTER html %]' cannot be deleted because
-  it has recorded activity.
+    [% title = "Custom Field Has Activity" %]
+    The custom field '[% name FILTER html %]' cannot be deleted because
+    it has recorded activity.
 [% END %]
 
 [% BLOCK error_customfield_has_contents %]
-  [% title = "Custom Field Has Contents" %]
-  The custom field '[% name FILTER html %]' cannot be deleted because
-  at least one [% terms.bug %] has a non empty value for this field.
+    [% title = "Custom Field Has Contents" %]
+    The custom field '[% name FILTER html %]' cannot be deleted because
+    at least one [% terms.bug %] has a non empty value for this field.
 [% END %]
 
 [% BLOCK error_dependency_loop_multi %]
-  [% title = "Dependency Loop Detected" %]
-  The following [% terms.bug %](s) would appear on both the "depends on"
-  and "blocks" parts of the dependency tree if these changes
-  are committed:
-  [% FOREACH dep = deps %]
-    [%+ dep FILTER bug_link(dep) FILTER none %]
-  [% END %].
-  This would create a circular dependency, which is not allowed.
+    [% title = "Dependency Loop Detected" %]
+    The following [% terms.bug %](s) would appear on both the "depends on"
+    and "blocks" parts of the dependency tree if these changes
+    are committed:
+    [% FOREACH dep = deps %]
+      [%+ dep FILTER bug_link(dep) FILTER none %]
+    [% END %].
+    This would create a circular dependency, which is not allowed.
 [% END %]
 
 [% BLOCK error_dependency_loop_single %]
-  [% title = "Dependency Loop Detected" %]
-  You can't make [% terms.abug %] block itself or depend on itself.
+    [% title = "Dependency Loop Detected" %]
+    You can't make [% terms.abug %] block itself or depend on itself.
 [% END %]
 
 [% BLOCK error_dupe_id_required %]
-  [% title = "Duplicate $terms.Bug Id Required" %]
-  You must specify [% terms.abug %] id to mark this [% terms.bug %]
-  as a duplicate of.
+    [% title = "Duplicate $terms.Bug Id Required" %]
+    You must specify [% terms.abug %] id to mark this [% terms.bug %]
+    as a duplicate of.
 [% END %]
 
 [% BLOCK error_dupe_not_allowed %]
-  [% title = "Cannot mark $terms.bugs as duplicates" %]
-  You cannot mark [% terms.bugs %] as duplicates when
-  changing several [% terms.bugs %] at once.
+    [% title = "Cannot mark $terms.bugs as duplicates" %]
+    You cannot mark [% terms.bugs %] as duplicates when
+    changing several [% terms.bugs %] at once.
 [% END %]
 
 [% BLOCK error_dupe_loop_detected %]
-  [% title = "Loop detected among duplicates" %]
-  You cannot mark [% terms.bug %] [%+ bug_id FILTER html %] as
-  a duplicate of
-  [% IF dupe_of == bug_id %]
-    itself
-  [% END %]
+    [% title = "Loop detected among duplicates" %]
+    You cannot mark [% terms.bug %] [%+ bug_id FILTER html %] as
+    a duplicate of
+    [% IF dupe_of == bug_id %]
+      itself
+    [% ELSE %]
+      [%+ terms.bug %] [%+ dupe_of FILTER html %], because it
+      would create a duplicate loop
+    [% END %].
 [% END %]
 
 [% BLOCK error_component_is_last %]
-  [% title = BLOCK %]Last Component in this Product[% END %]
-  '[% comp.name FILTER html %]' is the last component of the
-  '[% comp.product.name FILTER html %]' product. You cannot delete it.
+    [% title = BLOCK %]Last Component in this Product[% END %]
+    '[% comp.name FILTER html %]' is the last component of the
+    '[% comp.product.name FILTER html %]' product. You cannot delete it.
 [% END %]
 
 [% BLOCK error_email_no_body %]
-  Your message did not contain any text, as far as we could tell.
+    Your message did not contain any text, as far as we could tell.
 [% END %]
 
 [% BLOCK error_field_visibility_values_must_be_selected %]
-  [% title = "Missing visibility field values" %]
-  At least one value must be selected for the visibility field
-  '[% field.name FILTER html %]'.
+    [% title = "Missing visibility field values" %]
+    At least one value must be selected for the visibility field
+    '[% field.name FILTER html %]'.
 [% END %]
 
 [% BLOCK error_attachment_illegal_url %]
@@ -524,8 +526,8 @@
 [% END %]
 
 [% BLOCK error_email_change_in_progress %]
-  [% title = "Email Change Already In Progress" %]
-  Email change already in progress; please check your email.
+    [% title = "Email Change Already In Progress" %]
+    Email change already in progress; please check your email.
 [% END %]
 
 [% BLOCK error_email_confirmation_failed %]
@@ -539,30 +541,30 @@
 [% END %]
 
 [% BLOCK error_empty_group_description %]
-  [% title = "The group description can not be empty" %]
-  You must enter a description for the group.
+    [% title = "The group description can not be empty" %]
+    You must enter a description for the group.
 [% END %]
 
 [% BLOCK error_empty_group_name %]
-  [% title = "The group name can not be empty" %]
-  You must enter a name for the group.
+    [% title = "The group name can not be empty" %]
+    You must enter a name for the group.
 [% END %]
 
 [% BLOCK error_entry_access_denied %]
-  [% title = "Permission Denied" %]
-  [% admindocslinks = {'groups.html' => 'Group Security'} %]
-  Sorry, either the product <em>[% product FILTER html %]</em>
-  does not exist or you aren't authorized to
-  enter [% terms.abug %] into it.
+    [% title = "Permission Denied" %]
+    [% admindocslinks = {'groups.html' => 'Group Security'} %]
+    Sorry, either the product <em>[% product FILTER html %]</em>
+    does not exist or you aren't authorized to
+    enter [% terms.abug %] into it.
 [% END %]
 
 [% BLOCK error_extension_create_no_name %]
-  You must specify a name for your extension, as an argument to this script.
+    You must specify a name for your extension, as an argument to this script.
 [% END %]
 
 [% BLOCK error_extension_first_letter_caps %]
-  The first letter of your extension's name must be a capital letter.
-  (You specified '[% name FILTER html %]'.)
+    The first letter of your extension's name must be a capital letter.
+    (You specified '[% name FILTER html %]'.)
 [% END %]
 
 [% BLOCK error_invalid_field_name %]
@@ -570,23 +572,23 @@
 [% END %]
 
 [% BLOCK error_field_already_exists %]
-  [% title = "Field Already Exists" %]
-  The field '[% field.name FILTER html %]'
-  ([% field.description FILTER html %]) already exists. Please
-  choose another name.
+    [% title = "Field Already Exists" %]
+    The field '[% field.name FILTER html %]'     
+    ([% field.description FILTER html %]) already exists. Please
+    choose another name.
 [% END %]
 
 [% BLOCK error_field_cant_control_self %]
-  [% title = "Field Can't Control Itself" %]
-  The [% field.description FILTER html %] field can't be set to control
-  itself.
+    [% title = "Field Can't Control Itself" %]
+    The [% field.description FILTER html %] field can't be set to control 
+    itself.
 [% END %]
 
 [% BLOCK error_field_control_must_be_select %]
-  [% title = "Invalid Field Type Selected" %]
-  Only drop-down and multi-select fields can be used to control
-  the visibility/values of other fields. [% field.description FILTER html %]
-  is not the right type of field.
+    [% title = "Invalid Field Type Selected" %]
+    Only drop-down and multi-select fields can be used to control
+    the visibility/values of other fields. [% field.description FILTER html %]
+    is not the right type of field.
 [% END %]
 
 [% BLOCK error_field_type_mismatch %]
@@ -609,65 +611,65 @@
 [% END %]
 
 [% BLOCK error_field_invalid_name %]
-  [% title = "Invalid Field Name" %]
-  '[% name FILTER html %]' is not a valid name for a field.
-  A name may contain only letters, numbers, and the underscore character.
+    [% title = "Invalid Field Name" %]
+    '[% name FILTER html %]' is not a valid name for a field.
+    A name may contain only letters, numbers, and the underscore character.
 [% END %]
 
 [% BLOCK error_field_invalid_sortkey %]
-  [% title = "Invalid Sortkey for Field" %]
-  The sortkey [% sortkey FILTER html %] that you have provided for
-  this field is not a valid positive integer.
+    [% title = "Invalid Sortkey for Field" %]
+    The sortkey [% sortkey FILTER html %] that you have provided for
+    this field is not a valid positive integer.
 [% END %]
 
 [% BLOCK error_field_missing_description %]
-  [% title = "Missing Description for Field" %]
-  You must enter a description for this field.
+    [% title = "Missing Description for Field" %]
+    You must enter a description for this field.
 [% END %]
 
 [% BLOCK error_field_missing_name %]
-  [% title = "Missing Name for Field" %]
-  You must enter a name for this field.
+    [% title = "Missing Name for Field" %]
+    You must enter a name for this field.
 [% END %]
 
 [% BLOCK error_field_value_control_select_only %]
-  [% title = "Invalid Value Control Field" %]
-  Only Drop-Down or Multi-Select fields can have a field that
-  controls their values.
+    [% title = "Invalid Value Control Field" %]
+    Only Drop-Down or Multi-Select fields can have a field that
+    controls their values.
 [% END %]
 
 [% BLOCK error_fieldname_invalid %]
-  [% title = "Specified Field Does Not Exist" %]
-  The field '[% field.name FILTER html %]' does not exist or
-  cannot be edited with this interface.
+    [% title = "Specified Field Does Not Exist" %]
+    The field '[% field.name FILTER html %]' does not exist or 
+    cannot be edited with this interface.
 [% END %]
 
 [% BLOCK error_fieldvalue_already_exists %]
-  [% title = "Field Value Already Exists" %]
-  The value '[% value.name FILTER html %]' already exists for the
-  [%+ field.description FILTER html %] field.
+    [% title = "Field Value Already Exists" %]
+    The value '[% value.name FILTER html %]' already exists for the
+    [%+ field.description FILTER html %] field.
 [% END %]
 
 [% BLOCK error_fieldvalue_is_controller %]
-  [% title = "Value Controls Other Fields" %]
-  You cannot delete the [% value.field.description FILTER html %]
-  '[% value.name FILTER html %]' because
-  [% IF fields.size %]
-    it controls the visibility of the following fields:
-    [%+ fields.join(', ') FILTER html %].
-  [% END %]
-  [% ' and ' IF fields.size AND vals.size %]
-  [% IF vals.size %]
-    it controls the visibility of the following field values:
-    <ul>
-      [% FOREACH field_name = vals.keys %]
-        [% FOREACH val = vals.${field_name} %]
-          <li>[% val.field.name FILTER html %]:
-            '[% val.name FILTER html %]'</li>
+    [% title = "Value Controls Other Fields" %]
+    You cannot delete the [% value.field.description FILTER html %]
+    '[% value.name FILTER html %]' because
+    [% IF fields.size %]
+      it controls the visibility of the following fields:
+      [%+ fields.join(', ') FILTER html %].
+    [% END %]
+    [% ' and ' IF fields.size AND vals.size %]
+    [% IF vals.size %]
+      it controls the visibility of the following field values:
+      <ul>
+        [% FOREACH field_name = vals.keys %]
+          [% FOREACH val = vals.${field_name} %]
+            <li>[% val.field.name FILTER html %]:
+              '[% val.name FILTER html %]'</li>
+          [% END %]
         [% END %]
-      [% END %]
-    </ul>
-  [% END %]
+      </ul>
+    [% END %]
 [% END %]
 
 [% BLOCK error_fieldvalue_is_default %]
@@ -721,6 +723,12 @@
   You cannot delete the value '[% value.name FILTER html %]' from the 
   [% field.description FILTER html %] field, because there are still
   [%+ value.bug_count FILTER html %] [%+ terms.bugs %] using it.
+[% END %]
+
+[% BLOCK error_json_rpc_illegal_content_type %]
+    When using JSON-RPC over POST, you cannot send data as
+    [%+ content_type FILTER html %]. Only application/json and
+    application/json-rpc are allowed.
 [% END %]
 
 [% BLOCK error_fieldvalue_undefined %]
@@ -788,6 +796,29 @@
   is restricted to users in the [% Param("insidergroup") FILTER html %] group,
   and the user you asked isn't in that group.  Please choose someone else
   to ask, or ask an administrator to add the user to the group.
+[% END %]
+
+[% BLOCK error_quicksearch_invalid_query %]
+    [% title = "Invalid Query" %]
+    Your query is invalid.
+    [% IF operators %]
+      The [% operators.shift FILTER html %] operator cannot be followed by
+      [%+ operators.shift FILTER html %].
+    [% ELSE %]
+      A query cannot start with AND or OR, nor can it end with AND, OR or NOT.
+      They are reserved operators and must be quoted if you want to look for
+      these strings.
+    [% END %]
+[% END %]
+
+[% BLOCK error_quicksearch_unbalanced_quotes %]
+    [% title = "Badly Formatted Query" %]
+    [% terms.Bugzilla %] is unable to parse your query correctly:
+    <em>[% string FILTER html %]</em>.<br>
+    If you use quotes to enclose strings, make sure both quotes are present.
+    If you really want to look for a quote in a string, type \" instead of ".
+    For instance, <em>"I'm so \"special\", really"</em> (with quotes) will be
+    interpreted as <em>I'm so "special", really</em>.
 [% END %]
 
 [% BLOCK error_flag_type_cc_list_invalid %]
@@ -960,30 +991,30 @@
 [% END %]
 
 [% BLOCK error_illegal_change %]
-  [% title = "Not allowed" %]
-  You tried to change the
-  <strong>[% field_descs.$field FILTER html %]</strong> field 
-  [% IF oldvalue.defined %]
-    from <em>[% oldvalue.join(', ') FILTER html %]</em>
-  [% END %]
-  [% IF newvalue.defined %]
-    to <em>[% newvalue.join(', ') FILTER html %]</em>
-  [% END %]
-  , but only
-  [% IF privs < constants.PRIVILEGES_REQUIRED_EMPOWERED %]
-    the assignee
-    [% IF privs < constants.PRIVILEGES_REQUIRED_ASSIGNEE %] or reporter [% END %]
-    of the [% terms.bug %], or
-  [% END %]
-  a user with the required permissions may change that field.
+    [% title = "Not allowed" %]
+    You tried to change the
+    <strong>[% field_descs.$field FILTER html %]</strong> field 
+    [% IF oldvalue.defined %]
+      from <em>[% oldvalue.join(', ') FILTER html %]</em>
+    [% END %]
+    [% IF newvalue.defined %]
+      to <em>[% newvalue.join(', ') FILTER html %]</em>
+    [% END %]
+    , but only
+    [% IF privs < constants.PRIVILEGES_REQUIRED_EMPOWERED %]
+      the assignee
+      [% IF privs < constants.PRIVILEGES_REQUIRED_ASSIGNEE %] or reporter [% END %]
+      of the [% terms.bug %], or
+    [% END %]
+    a user with the required permissions may change that field.
 [% END %]
 
 [% BLOCK error_illegal_change_deps %]
-  [% title = "Not allowed" %]
-  You tried to change the 
-  <strong>[% field_descs.$field FILTER html %]</strong> field 
-  but only a user allowed to edit 
-  both related [% terms.bugs %] may change that field.
+    [% title = "Not allowed" %]
+    You tried to change the 
+    <strong>[% field_descs.$field FILTER html %]</strong> field 
+    but only a user allowed to edit 
+    both related [% terms.bugs %] may change that field.
 [% END %]
 
 [% BLOCK error_illegal_changed_in_last_x_days %]
@@ -993,38 +1024,37 @@
 [% END %]
 
 [% BLOCK error_illegal_date %]
-  [% title = "Illegal Date" %]
-  '<tt>[% date FILTER html %]</tt>' is not a legal date.
-  [% IF format %]
-    Please use the format '<tt>[% format FILTER html %]</tt>'.
-  [% END %]
+    [% title = "Illegal Date" %]
+    '<tt>[% date FILTER html %]</tt>' is not a legal date.
+    [% IF format %]
+      Please use the format '<tt>[% format FILTER html %]</tt>'.
+    [% END %]
 [% END %]
 
 [% BLOCK error_illegal_email_address %]
-  [% title = "Invalid Email Address" %]
-  The e-mail address you entered (<b>[% addr FILTER html %]</b>) 
-  didn't pass our syntax checking for a legal email address.
-  [% IF default %]
-    A legal address must contain exactly one '@',
-    and at least one '.' after the @.
-  [% ELSE %]
-    [%+ Param('emailregexpdesc') %]
-  [% END %]
-  It must also not contain any of these special characters:
-  <tt>\ ( ) &amp; &lt; &gt; , ; : &quot; [ ]</tt>, or any whitespace.
+    [% title = "Invalid Email Address" %]
+    The e-mail address you entered (<b>[% addr FILTER html %]</b>) 
+    didn't pass our syntax checking for a legal email address.
+    [% IF default %]
+      A legal address must contain exactly one '@',
+      and at least one '.' after the @.
+    [% ELSE %]
+      [%+ Param('emailregexpdesc') FILTER html_light %]
+    [% END %]
+    It also must not contain any illegal characters.
 [% END %]
 
 [% BLOCK error_illegal_frequency %]
-  [% title = "Too Frequent" %]
-  Unless you are an administrator, you may not create series which are 
-  run more often than once every [% minimum FILTER html %] days.
+    [% title = "Too Frequent" %]
+    Unless you are an administrator, you may not create series which are 
+    run more often than once every [% minimum FILTER html %] days.
 [% END %]
 
 [% BLOCK error_illegal_group_control_combination %]
-  [% title = "Your Group Control Combination Is Illegal" %]
-  [% admindocslinks = {'groups.html' => 'Assigning Group Controls to Products'} %]
-  Your group control combination for group &quot;
-  [% groupname FILTER html %]&quot; is illegal.
+    [% title = "Your Group Control Combination Is Illegal" %]
+    [% admindocslinks = {'groups.html' => 'Assigning Group Controls to Products'} %]
+    Your group control combination for group &quot;
+    [% groupname FILTER html %]&quot; is illegal.
 [% END %]
 
 [% BLOCK error_illegal_is_obsolete %]
@@ -1034,30 +1064,30 @@
 [% END %]
 
 [% BLOCK error_illegal_query_name %]
-  [% title = "Illegal Search Name" %]
-  The name of your search cannot contain any of the following characters: 
-  &lt;, &gt;, &amp;.
+    [% title = "Illegal Search Name" %]
+    The name of your search cannot contain any of the following characters: 
+    &lt;, &gt;, &amp;.
 [% END %]
 
 [% BLOCK error_illegal_series_creation %]
-  [% admindocslinks = {'groups.html' => 'Group security'} %]
-  [% docslinks = {'reporting.html' => 'Reporting'} %]
-  You are not authorized to create series.
+    [% admindocslinks = {'groups.html' => 'Group security'} %]
+    [% docslinks = {'reporting.html' => 'Reporting'} %]
+    You are not authorized to create series.
 [% END %]
 
 [% BLOCK error_illegal_series_edit %]
-  [% admindocslinks = {'groups.html' => 'Group security'} %]
-  [% docslinks = {'reporting.html' => 'Reporting'} %]
-  You are not authorized to edit this series. To do this, you must either
-  be its creator, or an administrator.
+    [% admindocslinks = {'groups.html' => 'Group security'} %]
+    [% docslinks = {'reporting.html' => 'Reporting'} %]
+    You are not authorized to edit this series. To do this, you must either
+    be its creator, or an administrator.
 [% END %]
 
 [% BLOCK error_illegal_time %]
-  [% title = "Illegal Time" %]
-  '<tt>[% time FILTER html %]</tt>' is not a legal time.
-  [% IF format %]
-    Please use the format '<tt>[% format FILTER html %]</tt>'.
-  [% END %]
+    [% title = "Illegal Time" %]
+    '<tt>[% time FILTER html %]</tt>' is not a legal time.
+    [% IF format %]
+      Please use the format '<tt>[% format FILTER html %]</tt>'.
+    [% END %]
 [% END %]
 
 [% BLOCK error_illegal_regexp %]
@@ -1067,8 +1097,8 @@
 [% END %]
 
 [% BLOCK error_illegal_user_id %]
-  [% title = "Illegal User ID" %]
-  User ID '[% userid FILTER html %]' is not valid integer.
+    [% title = "Illegal User ID" %]
+    User ID '[% userid FILTER html %]' is not valid integer.
 [% END %]
 
 [% BLOCK error_incorrect_field_values %]
@@ -1203,6 +1233,12 @@
   ).
 [% END %]
 
+[% BLOCK error_xmlrpc_illegal_content_type %]
+    When using XML-RPC, you cannot send data as
+    [%+ content_type FILTER html %]. Allowed content types 
+    are [% constants.XMLRPC_CONTENT_TYPE_WHITELIST.join(', ') FILTER html %].
+[% END %]
+
 [% BLOCK error_invalid_group_ID %]
   [% title = "Invalid group ID" %]
   The group you specified doesn't exist.
@@ -1275,148 +1311,148 @@
 [% END %]
 
 [% BLOCK error_json_rpc_get_method_required %]
-  When using JSON-RPC over GET, you must specify a 'method'
-  parameter. See the documentation at
-  [%+ docs_urlbase FILTER html %]api/Bugzilla/WebService/Server/JSONRPC.html
+    When using JSON-RPC over GET, you must specify a 'method'
+    parameter. See the documentation at
+    [%+ docs_urlbase FILTER html %]api/Bugzilla/WebService/Server/JSONRPC.html
 [% END %]
 
 [% BLOCK error_json_rpc_invalid_params %]
-  Could not parse the 'params' argument as valid JSON.
-  Error: [% err_msg FILTER html %]
-  Value: [% params FILTER html %]
+    Could not parse the 'params' argument as valid JSON.
+    Error: [% err_msg FILTER html %]
+    Value: [% params FILTER html %]
 [% END %]
 
 [% BLOCK error_json_rpc_invalid_callback %]
-  You cannot use '[% callback FILTER html %]' as your 'callback' parameter.
-  For security reasons, only letters, numbers, and the following
-  characters are allowed in the 'callback' parameter: <code>[]._</code>
+    You cannot use '[% callback FILTER html %]' as your 'callback' parameter.
+    For security reasons, only letters, numbers, and the following
+    characters are allowed in the 'callback' parameter: <code>[]._</code>
 [% END %]
 
 [% BLOCK error_json_rpc_post_only %]
-  For security reasons, you may only use JSON-RPC with the POST
-  HTTP method.
+    For security reasons, you must use HTTP POST to call the
+    '[% method FILTER html %]' method.
 [% END %]
 
 [% BLOCK error_keyword_already_exists %]
-  [% title = "Keyword Already Exists" %]
-  A keyword with the name [% name FILTER html %] already exists.
+    [% title = "Keyword Already Exists" %]
+    A keyword with the name [% name FILTER html %] already exists.
 [% END %]
 
 [% BLOCK error_keyword_blank_description %]
-  [% title = "Blank Keyword Description Not Allowed" %]
-  You must enter a non-blank description for the keyword.
+    [% title = "Blank Keyword Description Not Allowed" %]
+    You must enter a non-blank description for the keyword.
 [% END %]
 
 [% BLOCK error_keyword_blank_name %]
-  [% title = "Blank Keyword Name Not Allowed" %]
-  You must enter a non-blank name for the keyword.
+    [% title = "Blank Keyword Name Not Allowed" %]
+    You must enter a non-blank name for the keyword.
 [% END %]
 
 [% BLOCK error_keyword_invalid_name %]
-  [% title = "Invalid Keyword Name" %]
-  You may not use commas or whitespace in a keyword name.
+    [% title = "Invalid Keyword Name" %]
+    You may not use commas or whitespace in a keyword name.
 [% END %]
 
 [% BLOCK error_login_needed_for_password_change %]
-  [% title = "Login Name Required" %]
-  You must enter a login name when requesting to change your password.
+    [% title = "Login Name Required" %]
+    You must enter a login name when requesting to change your password.
 [% END %]
 
 [% BLOCK error_login_required_for_pronoun %]
-  [% title = "Login Name Required" %]
-  You can't use %user% without being logged in, because %user% refers
-  to your login name, which we don't know.
+    [% title = "Login Name Required" %]
+    You can't use %user% without being logged in, because %user% refers
+    to your login name, which we don't know.
 [% END %]
 
 [% BLOCK error_login_required %]
-  [%# Used for non-web-based LOGIN_REQUIRED situations. %]
-  You must log in before using this part of [% terms.Bugzilla %].
+    [%# Used for non-web-based LOGIN_REQUIRED situations. %]
+    You must log in before using this part of [% terms.Bugzilla %].
 [% END %]
 
 [% BLOCK error_migrate_config_created %]
-  The file <kbd>[% file FILTER html %]</kbd> contains configuration
-  variables that must be set before continuing with the migration.
+    The file <kbd>[% file FILTER html %]</kbd> contains configuration
+    variables that must be set before continuing with the migration.
 [% END %]
 
 [% BLOCK error_migrate_from_invalid %]
-  '[% from FILTER html %]' is not a valid type of [% terms.bug %]-tracker
-  to migrate from. See the contents of the <kbd>B[% %]ugzilla/Migrate/</kbd>
-  directory for a list of valid [% terms.bug %]-trackers.
+    '[% from FILTER html %]' is not a valid type of [% terms.bug %]-tracker
+    to migrate from. See the contents of the <kbd>B[% %]ugzilla/Migrate/</kbd>
+    directory for a list of valid [% terms.bug %]-trackers.
 [% END %]
 
 [% BLOCK error_milestone_already_exists %]
-  [% title = "Milestone Already Exists" %]
-  [% admindocslinks = {'products.html' => 'Administering products',
-                       'milestones.html' => 'About Milestones'} %]
-  The milestone '[% name FILTER html %]' already exists for product '
-  [%- product FILTER html %]'.
+    [% title = "Milestone Already Exists" %]
+    [% admindocslinks = {'products.html' => 'Administering products',
+                         'milestones.html' => 'About Milestones'} %]
+    The milestone '[% name FILTER html %]' already exists for product '
+    [%- product FILTER html %]'.
 [% END %]
 
 [% BLOCK error_milestone_blank_name %]
-  [% title = "Blank Milestone Name Not Allowed" %]
-  You must enter a name for this milestone.
+    [% title = "Blank Milestone Name Not Allowed" %]
+    You must enter a name for this milestone.
 [% END %]
 
 [% BLOCK error_milestone_is_default %]
-  [% title = "Default milestone not deletable" %]
-  [% admindocslinks = {'products.html' => 'Administering products',
-                       'milestones.html' => 'About Milestones'} %]
-  Sorry, but [% milestone.name FILTER html %] is the default milestone
-  for the '[% milestone.product.name FILTER html %]' product, and so
-  it cannot be deleted.
+    [% title = "Default milestone not deletable" %]
+    [% admindocslinks = {'products.html' => 'Administering products',
+                         'milestones.html' => 'About Milestones'} %]
+    Sorry, but [% milestone.name FILTER html %] is the default milestone
+    for the '[% milestone.product.name FILTER html %]' product, and so
+    it cannot be deleted.
 [% END %]
 
 [% BLOCK error_milestone_name_too_long %]
-  [% title = "Milestone Name Is Too Long" %]
-  The name of a milestone is limited to [% constants.MAX_MILESTONE_SIZE FILTER html %]
-  characters. '[% name FILTER html %]' is too long ([% name.length %] characters).
+    [% title = "Milestone Name Is Too Long" %]
+    The name of a milestone is limited to [% constants.MAX_MILESTONE_SIZE FILTER html %]
+    characters. '[% name FILTER html %]' is too long ([% name.length %] characters).
 [% END %]
 
 [% BLOCK error_milestone_required %]
-  [% title = "Milestone Required" %]
-  You must select a target milestone for [% terms.bug %]
-  [%+ bug.id FILTER html %]
-  if you are going to accept it.  Part of accepting
-  [%+ terms.abug %] is giving an estimate of when it will be fixed.
+    [% title = "Milestone Required" %]
+    You must select a target milestone for [% terms.bug %]
+    [%+ bug.id FILTER html %]
+    if you are going to accept it.  Part of accepting 
+    [%+ terms.abug %] is giving an estimate of when it will be fixed.
 [% END %]
 
 [% BLOCK error_milestone_sortkey_invalid %]
-  [% title = "Invalid Milestone Sortkey" %]
-  The sortkey '[% sortkey FILTER html %]' is not in the range
-  [%+ constants.MIN_SMALLINT FILTER html %] &le; sortkey &le;
-  [%+ constants.MAX_SMALLINT FILTER html %].
+    [% title = "Invalid Milestone Sortkey" %]
+    The sortkey '[% sortkey FILTER html %]' is not in the range
+    [%+ constants.MIN_SMALLINT FILTER html %] &le; sortkey &le;
+    [%+ constants.MAX_SMALLINT FILTER html %].
 [% END %]
 
 [% BLOCK error_misarranged_dates %]
-  [% title = "Misarranged Dates" %]
-  Your start date ([% datefrom FILTER html %]) is after
-  your end date ([% dateto FILTER html %]).
+    [% title = "Misarranged Dates" %]
+    Your start date ([% datefrom FILTER html %]) is after 
+    your end date ([% dateto FILTER html %]).
 [% END %]
 
 [% BLOCK error_missing_attachment_description %]
-  [% title = "Missing Attachment Description" %]
-  You must enter a description for the attachment.
+    [% title = "Missing Attachment Description" %]
+    You must enter a description for the attachment.
 [% END %]
 
 [% BLOCK error_missing_category %]
-  [% title = "Missing Category" %]
-  You did not specify a category for this series.
+    [% title = "Missing Category" %]
+    You did not specify a category for this series.
 [% END %]
 
 [% BLOCK error_missing_component %]
-  [% title = "Missing Component" %]
-  [% admindocslinks = {'products.html'   => 'Administering products',
-                       'components.html' => 'Creating a component'} %]
-  Sorry, the product <em>[% product.name FILTER html %]</em>
-  has to have at least one component in order for you to
-  enter [% terms.abug %] into it.<br>
-  [% IF user.in_group("editcomponents", product.id) %]
-    <a href="editcomponents.cgi?action=add&amp;product=[% product.name FILTER url_quote %]">Create
-    a new component</a>.
-  [% ELSE %]
-    Please contact [% Param("maintainer") %] and ask them
-    to add a component to this product.
-  [% END %]
+    [% title = "Missing Component" %]
+    [% admindocslinks = {'products.html'   => 'Administering products',
+                         'components.html' => 'Creating a component'} %]
+    Sorry, the product <em>[% product.name FILTER html %]</em>
+    has to have at least one active component in order for you to
+    enter [% terms.abug %] into it.<br>
+    [% IF user.in_group("editcomponents", product.id) %]
+      <a href="editcomponents.cgi?action=add&amp;product=[% product.name FILTER uri %]">Create
+      a new component</a>.
+    [% ELSE %]
+      Please contact [% Param("maintainer") %] and ask them
+      to add a component to this product.
+    [% END %]
 [% END %]
 
 [% BLOCK error_missing_content_type %]
@@ -1606,187 +1642,187 @@
 [% END %]
 
 [% BLOCK error_old_password_incorrect %]
-  [% title = "Incorrect Old Password" %]
-  You did not enter your old password correctly.
+    [% title = "Incorrect Password" %]
+    You did not enter your current password correctly.
 [% END %]
 
 [% BLOCK error_old_password_required %]
-  [% title = "Old Password Required" %]
-  You must enter your old password to change your email address.
+    [% title = "Old Password Required" %]
+    You must enter your old password to change your email address.
 [% END %]
 
 [% BLOCK error_password_change_requests_not_allowed %]
-  [% title = "Password Change Requests Not Allowed" %]
-  The system is not configured to allow password change requests.
+    [% title = "Password Change Requests Not Allowed" %]
+    The system is not configured to allow password change requests.
 [% END %]
 
 [% BLOCK error_passwords_dont_match %]
-  [% title = "Passwords Don't Match" %]
-  The two passwords you entered did not match.
+    [% title = "Passwords Don't Match" %]
+    The two passwords you entered did not match.
 [% END %]
 
 [% BLOCK error_password_current_too_short %]
-  [% title = "New Password Required" %]
-  Your password is currently less than
-  [%+ constants.USER_PASSWORD_MIN_LENGTH FILTER html %] characters long,
-  which is the new minimum length required for passwords.
-  You must <a href="token.cgi?a=reqpw&loginname=[% locked_user.email FILTER html %]">
-  request a new password</a> in order to log in again.
+    [% title = "New Password Required" %]
+    Your password is currently less than
+    [%+ constants.USER_PASSWORD_MIN_LENGTH FILTER html %] characters long,
+    which is the new minimum length required for passwords.
+    You must <a href="token.cgi?a=reqpw&amp;loginname=[% locked_user.email FILTER uri %]">
+    request a new password</a> in order to log in again.
 [% END %]
 
 [% BLOCK error_password_too_short %]
-  [% title = "Password Too Short" %]
-  The password must be at least
-  [%+ constants.USER_PASSWORD_MIN_LENGTH FILTER html %] characters long.
+    [% title = "Password Too Short" %]
+    The password must be at least
+    [%+ constants.USER_PASSWORD_MIN_LENGTH FILTER html %] characters long.
 [% END %]
 
 [% BLOCK error_password_not_complex %]
-   [% title = "Password Fails Requirements" %]
-   [% passregex = Param('password_complexity') %]
-   The password must contain at least one:
-   <ul>
-     [% IF passregex.search('letters') %]
-       <li>UPPERCASE letter</li>
-       <li>lowercase letter</li>
-     [% END %]
-     [% IF passregex.search('numbers') %]
-       <li>digit</li>
-     [% END %]
-     [% IF passregex.search('specialchars') %]
-       <li>special character</li>
-     [% END %]
-   </ul>
+     [% title = "Password Fails Requirements" %]
+     [% passregex = Param('password_complexity') %]
+     The password must contain at least one:
+     <ul>
+       [% IF passregex.search('letters') %]
+         <li>UPPERCASE letter</li>
+         <li>lowercase letter</li>
+       [% END %]
+       [% IF passregex.search('numbers') %]
+         <li>digit</li>
+       [% END %]
+       [% IF passregex.search('specialchars') %]
+         <li>special character</li>
+       [% END %]
+     </ul>
 [% END %]
 
 [% BLOCK error_product_access_denied %]
-  [% title = "Product Access Denied" %]
-  Either the product 
-  [%+ IF id.defined %]
-    with the id [% id FILTER html %]
-  [% ELSE %]
-    '[% name FILTER html %]'
-  [% END %]
-  does not exist or you don't have access to it.
+    [% title = "Product Access Denied" %]
+    Either the product 
+    [%+ IF id.defined %]
+      with the id [% id FILTER html %]
+    [% ELSE %]
+      '[% name FILTER html %]'
+    [% END %]
+    does not exist or you don't have access to it.
 [% END %]
 
 [% BLOCK error_product_illegal_group %]
-  [% title = "Illegal Group" %]
-  [% group.name FILTER html %] is not an active [% terms.bug %] group
-  and so you cannot edit group controls for it.
+    [% title = "Illegal Group" %]
+    [% group.name FILTER html %] is not an active [% terms.bug %] group
+    and so you cannot edit group controls for it.
 [% END %]
 
 [% BLOCK error_product_name_already_in_use %]
-  [% title = "Product name already exists" %]
-  [% admindocslinks = {'products.html' => 'Administering products'} %]
-  The product name '[% product FILTER html %]' already exists.
+    [% title = "Product name already exists" %]
+    [% admindocslinks = {'products.html' => 'Administering products'} %]
+    The product name '[% product FILTER html %]' already exists.
 [% END %]
 
 [% BLOCK error_product_name_diff_in_case %]
-  [% title = "Product name differs only in case" %]
-  [% admindocslinks = {'products.html' => 'Administering products'} %]
-  The product name '[% product FILTER html %]' differs from existing 
-  product '[% existing_product FILTER html %]' only in case.
+    [% title = "Product name differs only in case" %]
+    [% admindocslinks = {'products.html' => 'Administering products'} %]
+    The product name '[% product FILTER html %]' differs from existing 
+    product '[% existing_product FILTER html %]' only in case.
 [% END %]
 
 [% BLOCK error_product_name_too_long %]
-  [% title = "Product name too long" %]
-  The name of a product is limited to [% constants.MAX_PRODUCT_SIZE FILTER html %]
-  characters. '[% name FILTER html %]' is too long ([% name.length %] characters).
+    [% title = "Product name too long" %]
+    The name of a product is limited to [% constants.MAX_PRODUCT_SIZE FILTER html %]
+    characters. '[% name FILTER html %]' is too long ([% name.length %] characters).
 [% END %]
 
 [% BLOCK error_product_must_define_defaultmilestone %]
-  [% title = "Must define new default milestone" %]
-  [% admindocslinks = {'products.html' => 'Administering products',
-                       'milestones.html' => 'About Milestones'} %]
-  You must <a href="editmilestones.cgi?action=add&amp;product=[% product FILTER uri %]">
-  create the milestone '[% milestone FILTER html %]'</a> before
-  it can be made the default milestone for product '[% product FILTER html %]'.
+    [% title = "Must define new default milestone" %]
+    [% admindocslinks = {'products.html' => 'Administering products',
+                         'milestones.html' => 'About Milestones'} %]
+    You must <a href="editmilestones.cgi?action=add&amp;product=[% product FILTER uri %]">
+    create the milestone '[% milestone FILTER html %]'</a> before
+    it can be made the default milestone for product '[% product FILTER html %]'.
 [% END %]
 
 [% BLOCK error_product_admin_denied %]
-  [% title = "Product Access Denied" %]
-  You are not allowed to edit properties of product '[% product FILTER html %]'.
+    [% title = "Product Access Denied" %]
+    You are not allowed to edit properties of product '[% product FILTER html %]'.
 [% END %]
 
 [% BLOCK error_product_blank_name %]
-  [% title = "Blank Product Name Not Allowed" %]
-  [% admindocslinks = {'products.html' => 'Administering products'} %]
-  You must enter a name for the product.
+    [% title = "Blank Product Name Not Allowed" %]
+    [% admindocslinks = {'products.html' => 'Administering products'} %]
+    You must enter a name for the product.
 [% END %]
 
 [% BLOCK error_product_disabled %]
-  [% title = BLOCK %]Product closed for [% terms.Bug %] Entry[% END %]
-  [% admindocslinks = {'products.html' => 'Administering products'} %]
-  Sorry, entering [% terms.abug %] into the
-  product <em>[% product.name FILTER html %]</em> has been disabled.
+    [% title = BLOCK %]Product closed for [% terms.Bug %] Entry[% END %]
+    [% admindocslinks = {'products.html' => 'Administering products'} %]
+    Sorry, entering [% terms.abug %] into the
+    product <em>[% product.name FILTER html %]</em> has been disabled.
 [% END %]
 
 [% BLOCK error_product_edit_denied %]
-  [% title = "Product Edit Access Denied" %]
-  [% admindocslinks = {'products.html' => 'Administering products',
-                       'groups.html'   => 'Group security'} %]
-  You are not permitted to edit [% terms.bugs %] in product 
-  [%+ product FILTER html %].
+    [% title = "Product Edit Access Denied" %]
+    [% admindocslinks = {'products.html' => 'Administering products',
+                         'groups.html'   => 'Group security'} %]
+    You are not permitted to edit [% terms.bugs %] in product 
+    [%+ product FILTER html %].
 [% END %]
 
 [% BLOCK error_product_has_bugs %]
-  [% title = BLOCK %]Product has [% terms.Bugs %][% END %]
-  [% admindocslinks = {'products.html' => 'Administering products'} %]
-  There are [% nb FILTER html %] [%+ terms.bugs %] entered for this product!
-  You must move those [% terms.bugs %] to another product before you
-  can delete this one.
+    [% title = BLOCK %]Product has [% terms.Bugs %][% END %]
+    [% admindocslinks = {'products.html' => 'Administering products'} %]
+    There are [% nb FILTER html %] [%+ terms.bugs %] entered for this product!
+    You must move those [% terms.bugs %] to another product before you
+    can delete this one.
 [% END %]
 
 [% BLOCK error_product_must_have_description %]
-  [% title = "Product needs Description" %]
-  [% admindocslinks = {'products.html' => 'Administering products'} %]
-  You must enter a description for this product.
+    [% title = "Product needs Description" %]
+    [% admindocslinks = {'products.html' => 'Administering products'} %]
+    You must enter a description for this product.
 [% END %]
 
 [% BLOCK error_product_must_have_version %]
-  [% title = "Product needs Version" %]
-  [% admindocslinks = {'products.html' => 'Administering products',
-                       'versions.html' => 'Administering versions'} %]
-  You must enter a valid version to create a new product.
+    [% title = "Product needs Version" %]
+    [% admindocslinks = {'products.html' => 'Administering products',
+                         'versions.html' => 'Administering versions'} %]
+    You must enter a valid version to create a new product.
 [% END %]
 
 [% BLOCK error_product_unknown_component %]
-  [% title = "Unknown Component" %]
-  Product '[% product FILTER html %]' has no component
-  [% IF comp_id %]
-    with ID [% comp_id FILTER html %].
-  [% ELSE %]
-    named '[% comp FILTER html %]'.
-  [% END %]
+    [% title = "Unknown Component" %]
+    Product '[% product FILTER html %]' has no component
+    [% IF comp_id %]
+      with ID [% comp_id FILTER html %].
+    [% ELSE %]
+      named '[% comp FILTER html %]'.
+    [% END %]
 [% END %]
 
 [% BLOCK error_query_name_missing %]
-  [% title = "No Search Name Specified" %]
-  [% docslinks = {'query.html#list' => "$terms.Bug lists"} %]
-  You must enter a name for your search.
+    [% title = "No Search Name Specified" %]
+    [% docslinks = {'query.html#list' => "$terms.Bug lists"} %]
+    You must enter a name for your search.
 [% END %]
 
 [% BLOCK error_query_name_too_long %]
-  [% title = "Query Name Too Long" %]
-  The name of the query must be less than [% constants.MAX_LEN_QUERY_NAME FILTER html %]
-  characters long.
+    [% title = "Query Name Too Long" %]
+    The name of the query must be less than [% constants.MAX_LEN_QUERY_NAME FILTER html %]
+    characters long.
 [% END %]
 
 [% BLOCK error_quicksearch_unknown_field %]
-  [% title = "QuickSearch Error" %]
-  There is a problem with your search:
-  [% FOREACH field = unknown %]
-    <p><code>[% field FILTER html %]</code> is not a valid field name.</p>
-  [% END %]
-  [% FOREACH field = ambiguous.keys %]
-    <p><code>[% field FILTER html %]</code> matches more than one field:
-      [%+ ambiguous.${field}.join(', ') FILTER html %]</p>
-  [% END %]
+    [% title = "QuickSearch Error" %]
+    There is a problem with your search:
+    [% FOREACH field = unknown %]
+      <p><code>[% field FILTER html %]</code> is not a valid field name.</p>
+    [% END %]
+    [% FOREACH field = ambiguous.keys %]
+      <p><code>[% field FILTER html %]</code> matches more than one field:
+        [%+ ambiguous.${field}.join(', ') FILTER html %]</p>
+    [% END %]  
 
-  [% IF unknown.size %]
-    <p>The legal field names are 
-      <a href="page.cgi?id=quicksearch.html#fields">listed here</a>.</p>
-  [% END %]
+    [% IF unknown.size %]
+      <p>The legal field names are 
+        <a href="page.cgi?id=quicksearch.html#fields">listed here</a>.</p>
+    [% END %]
 [% END %]
 
 [% BLOCK error_no_bug_ids %]
@@ -1949,9 +1985,9 @@
 [% END %]
 
 [% BLOCK error_version_is_last %]
-  [% title = BLOCK %]Last Version in this Product[% END %]
-  '[% version.name FILTER html %]' is the last version of the
-  '[% version.product.name FILTER html %]' product. You cannot delete it.
+    [% title = BLOCK %]Last Version in this Product[% END %]
+    '[% version.name FILTER html %]' is the last version of the
+    '[% version.product.name FILTER html %]' product. You cannot delete it.
 [% END %]
 
 [% BLOCK error_sudo_invalid_cookie %]
@@ -1973,53 +2009,55 @@
 [% END %]
 
 [% BLOCK error_sudo_in_progress %]
-  [% title = "Session In Progress" %]
-  A sudo session (impersonating [% target FILTER html %]) is in progress.
-  End that session (using the link in the footer) before starting a new one.
+    [% title = "Session In Progress" %]
+    A sudo session (impersonating [% target FILTER html %]) is in progress.  
+    End that session (using the link in the footer) before starting a new one.
 [% END %]
 
 [% BLOCK error_sudo_password_required %]
-  [% title = "Password Required" %]
-  Your [% terms.Bugzilla %] password is required to begin a sudo
-  session. Please <a href="relogin.cgi?action=prepare-sudo&target_login=
-  [%- target_login FILTER html %]&reason=
-  [%- reason FILTER html %]">go back</a> and enter your password.
+    [% title = "Password Required" %]
+    Your [% terms.Bugzilla %] password is required to begin a sudo 
+    session. Please <a href="relogin.cgi?action=prepare-sudo&amp;target_login=
+    [%- target_login FILTER uri %]&amp;reason=
+    [%- reason FILTER uri %]">go back</a> and enter your password.
 [% END %]
 
 [% BLOCK error_sudo_preparation_required %]
-  [% title = "Preparation Required" %]
-  You may not start a sudo session directly.  Please
-  <a href="relogin.cgi?action=prepare-sudo&target_login=
-  [%- target_login FILTER html %]&reason=
-  [%- reason FILTER html %]">start your session normally</a>.
+    [% title = "Preparation Required" %]
+    You may not start a sudo session directly.  Please
+    <a href="relogin.cgi?action=prepare-sudo&amp;target_login=
+    [%- target_login FILTER uri %]&amp;reason=
+    [%- reason FILTER uri %]">start your session normally</a>.
 [% END %]
 
 [% BLOCK error_sudo_protected %]
-  [% title = "User Protected" %]
-  The user [% login FILTER html %] may not be impersonated by sudoers.
+    [% title = "User Protected" %]
+    The user [% login FILTER html %] may not be impersonated by sudoers.
 [% END %]
 
 [% BLOCK error_tag_name_too_long %]
-  [% title = "Tag Name Too Long" %]
-  The tag name must be less than [% constants.MAX_LEN_QUERY_NAME FILTER html %]
-  characters long.
+    [% title = "Tag Name Too Long" %]
+    The tag name must be less than [% constants.MAX_LEN_QUERY_NAME FILTER html %]
+    characters long.
 [% END %]
 
 [% BLOCK error_token_does_not_exist %]
-  [% title = "Token Does Not Exist" %]
-  The token you submitted does not exist, has expired, or has
-  been canceled.
+    [% title = "Token Does Not Exist" %]
+    The token you submitted does not exist, has expired, or has
+    been canceled.
 [% END %]
 
 [% BLOCK error_too_soon_for_new_token %]
-  [% title = "Too Soon For New Token" %]
-  You have requested
-  [% IF type == "password" %]
-    a password
-  [% ELSIF type == "account" %]
-    an account
-  [% END %]
-  token too recently to request another. Please wait a while and try again.
+    [% title = "Too Soon For New Token" %]
+    You have requested
+    [% IF type == "password" %]
+      a password
+    [% ELSIF type == "account" %]
+      an account
+    [% END %]
+    token too recently to request another. 
+    Please wait [% constants.ACCOUNT_CHANGE_INTERVAL FILTER html %] minutes
+    then try again.
 [% END %]
 
 [% BLOCK error_unknown_action %]
@@ -2031,123 +2069,123 @@
 [% END %]
 
 [% BLOCK error_unknown_tab %]
-  [% title = "Unknown Tab" %]
-  <code>[% current_tab_name FILTER html %]</code> is not a legal tab name.
+    [% title = "Unknown Tab" %]
+    <code>[% current_tab_name FILTER html %]</code> is not a legal tab name.
 [% END %]
 
 [% BLOCK error_version_already_exists %]
-  [% title = "Version Already Exists" %]
-  [% admindocslinks = {'versions.html' => 'Administering versions'} %]
-  The version '[% name FILTER html %]' already exists for product '
-  [%- product FILTER html %]'.
+    [% title = "Version Already Exists" %]
+    [% admindocslinks = {'versions.html' => 'Administering versions'} %]
+    The version '[% name FILTER html %]' already exists for product '
+    [%- product FILTER html %]'.
 [% END %]
 
 [% BLOCK error_version_blank_name %]
-  [% title = "Blank Version Name Not Allowed" %]
-  You must enter a name for this version.
+    [% title = "Blank Version Name Not Allowed" %]
+    You must enter a name for this version.
 [% END %]
 
 [% BLOCK error_version_has_bugs %]
-  [% title = BLOCK %]Version has [% terms.Bugs %][% END %]
-  There are [% nb FILTER html %] [%+ terms.bugs %] associated with this
-  version! You must reassign those [% terms.bugs %] to another version
-  before you can delete this one.
+    [% title = BLOCK %]Version has [% terms.Bugs %][% END %]
+    There are [% nb FILTER html %] [%+ terms.bugs %] associated with this
+    version! You must reassign those [% terms.bugs %] to another version
+    before you can delete this one.
 [% END %]
 
 [% BLOCK error_users_deletion_disabled %]
-  [% title = "Deletion not activated" %]
-  [% admindocslinks = {'useradmin.html' => 'User administration'} %]
-  Sorry, the deletion of user accounts is not allowed.
+    [% title = "Deletion not activated" %]
+    [% admindocslinks = {'useradmin.html' => 'User administration'} %]
+    Sorry, the deletion of user accounts is not allowed.
 [% END %]
 
 [% BLOCK error_user_has_responsibility %]
-  [% title = "Can't Delete User Account" %]
-  [% admindocslinks = {'useradmin.html' => 'User administration'} %]
-  The user you want to delete is set up as the default [% terms.bug %]
-  assignee
-  [% IF Param('useqacontact') %]
-    or QA contact
-  [% END %]
-  for at least one component.
-  For this reason, you cannot delete the account at this time.
+    [% title = "Can't Delete User Account" %]
+    [% admindocslinks = {'useradmin.html' => 'User administration'} %]
+    The user you want to delete is set up as the default [% terms.bug %]
+    assignee
+    [% IF Param('useqacontact') %]
+      or QA contact
+    [% END %]
+    for at least one component.
+    For this reason, you cannot delete the account at this time.
 [% END %]
 
 [% BLOCK error_user_access_by_id_denied %]
-  [% title = "User Access By Id Denied" %]
-  Logged-out users cannot use the "ids" argument to this function
-  to access any user information.
+    [% title = "User Access By Id Denied" %]
+    Logged-out users cannot use the "ids" argument to this function
+    to access any user information.
 [% END %]
 
 [% BLOCK error_user_access_by_match_denied %]
-  [% title = "User-Matching Denied" %]
-  Logged-out users cannot use the "match" argument to this function
-  to access any user information.
+    [% title = "User-Matching Denied" %]
+    Logged-out users cannot use the "match" argument to this function
+    to access any user information.
 [% END %]
 
 [% BLOCK error_user_login_required %]
-  [% title = "Login Name Required" %]
-  [% admindocslinks = {'useradmin.html' => 'User administration'} %]
-  You must enter a login name for the new user.
+    [% title = "Login Name Required" %]
+    [% admindocslinks = {'useradmin.html' => 'User administration'} %]
+    You must enter a login name for the new user.
 [% END %]
 
 [% BLOCK error_user_match_failed %]
-  [% title = "Match Failed" %]
-  <tt>[% name FILTER html %]</tt> does not exist or you are not allowed
-  to see that user.
+    [% title = "Match Failed" %]
+    <tt>[% name FILTER html %]</tt> does not exist or you are not allowed 
+    to see that user.
 [% END %]
 
 [% BLOCK error_user_match_too_many %]
-  [% title = "No Conclusive Match" %]
-  [% terms.Bugzilla %] cannot make a conclusive match for one or more
-  of the names and/or email addresses you entered for
-  the [% fields.join(', ') FILTER html %] field(s).
+    [% title = "No Conclusive Match" %]
+    [% terms.Bugzilla %] cannot make a conclusive match for one or more
+    of the names and/or email addresses you entered for
+    the [% fields.join(', ') FILTER html %] field(s).
 [% END %]
 
 [% BLOCK error_user_not_insider %]
-  [% title = "User Not In Insidergroup" %]
-  Sorry, but you are not allowed to (un)mark comments or attachments
-  as private.
+    [% title = "User Not In Insidergroup" %]
+    Sorry, but you are not allowed to (un)mark comments or attachments
+    as private.
 [% END %]
 
 [% BLOCK error_wrong_token_for_cancelling_email_change %]
-  [% title = "Wrong Token" %]
-  That token cannot be used to cancel an email address change.
+    [% title = "Wrong Token" %]
+    That token cannot be used to cancel an email address change.
 [% END %]
 
 [% BLOCK error_wrong_token_for_changing_passwd %]
-  [% title = "Wrong Token" %]
-  That token cannot be used to change your password.
+    [% title = "Wrong Token" %]
+    That token cannot be used to change your password.
 [% END %]
 
 [% BLOCK error_wrong_token_for_confirming_email_change %]
-  [% title = "Wrong Token" %]
-  That token cannot be used to change your email address.
+    [% title = "Wrong Token" %]
+    That token cannot be used to change your email address.
 [% END %]
 
 [% BLOCK error_wrong_token_for_creating_account %]
-  [% title = "Wrong Token" %]
-  That token cannot be used to create a user account.
+    [% title = "Wrong Token" %]
+    That token cannot be used to create a user account.
 [% END %]
 
 [% BLOCK error_xmlrpc_invalid_value %]
-  "[% value FILTER html %]" is not a valid value for a
-  &lt;[% type FILTER html %]&gt; field. (See the XML-RPC specification
-  for details.)
+    "[% value FILTER html %]" is not a valid value for a
+    &lt;[% type FILTER html %]&gt; field. (See the XML-RPC specification
+    for details.)
 [% END %]
 
 [% BLOCK error_zero_length_file %]
-  [% title = "File Is Empty" %]
-  The file you are trying to attach is empty, does not exist, or you don't
-  have permission to read it.
+    [% title = "File Is Empty" %]
+    The file you are trying to attach is empty, does not exist, or you don't
+    have permission to read it.
 [% END %]
 
 [% BLOCK error_extern_id_exists %]
-  [% title = "Account Already Exists" %]
-  There is already an account
-  [% IF existing_login_name %]
-    ([% existing_login_name FILTER html %])
-  [% END %]
-  with the External Login ID "[% extern_id FILTER html %]".
+    [% title = "Account Already Exists" %]
+    There is already an account
+    [% IF existing_login_name %]
+      ([% existing_login_name FILTER html %])
+    [% END %]
+    with the External Login ID "[% extern_id FILTER html %]".
 [% END %]
 
 [% BLOCK error_relationship_loop_single %]

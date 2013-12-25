@@ -1,24 +1,9 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-#
-# Contributor(s): Marc Schumann <wurblzap@gmail.com>
-#                 Max Kanat-Alexander <mkanat@bugzilla.org>
-#                 Mads Bondo Dydensborg <mbd@dbc.dk>
-#                 Tsahi Asher <tsahi_75@yahoo.com>
-#                 Noura Elhawary <nelhawar@redhat.com>
-#                 Frank Becker <Frank@Frank-Becker.de>
-#                 Dave Lawrence <dkl@redhat.com>
+# This Source Code Form is "Incompatible With Secondary Licenses", as
+# defined by the Mozilla Public License, v. 2.0.
 
 package Bugzilla::WebService::Bug;
 
@@ -33,7 +18,7 @@ use Bugzilla::WebService::Constants;
 use Bugzilla::WebService::Util qw(filter filter_wants validate);
 use Bugzilla::Bug;
 use Bugzilla::BugMail;
-use Bugzilla::Util qw(trick_taint trim);
+use Bugzilla::Util qw(trick_taint trim diff_arrays);
 use Bugzilla::Version;
 use Bugzilla::Milestone;
 use Bugzilla::Status;
@@ -82,6 +67,8 @@ BEGIN {
 sub fields {
     my ($self, $params) = validate(@_, 'ids', 'names');
 
+    Bugzilla->switch_to_shadow_db();
+
     my @fields;
     if (defined $params->{ids}) {
         my $ids = $params->{ids};
@@ -117,11 +104,12 @@ sub fields {
 
         my (@values, $has_values);
         if ( ($field->is_select and $field->name ne 'product')
-             or grep($_ eq $field->name, PRODUCT_SPECIFIC_FIELDS))
+             or grep($_ eq $field->name, PRODUCT_SPECIFIC_FIELDS)
+             or $field->name eq 'keywords')
         {
              $has_values = 1;
              @values = @{ $self->_legal_field_values({ field => $field }) };
-        }
+        } 
 
         if (grep($_ eq $field->name, PRODUCT_SPECIFIC_FIELDS)) {
              $value_field = 'product';
@@ -211,6 +199,15 @@ sub _legal_field_values {
         }
     }
 
+    elsif ($field_name eq 'keywords') {
+        my @legal_keywords = Bugzilla::Keyword->get_all;
+        foreach my $value (@legal_keywords) {
+            push (@result, {
+               name     => $self->type('string', $value->name),
+               description => $self->type('string', $value->description),
+            });
+        }
+    }
     else {
         my @values = Bugzilla::Field::Choice->type($field)->get_all();
         foreach my $value (@values) {
@@ -242,7 +239,7 @@ sub comments {
     my $bug_ids = $params->{ids} || [];
     my $comment_ids = $params->{comment_ids} || [];
 
-    my $dbh  = Bugzilla->dbh;
+    my $dbh  = Bugzilla->switch_to_shadow_db();
     my $user = Bugzilla->user;
 
     my %bugs;
@@ -300,6 +297,7 @@ sub _translate_comment {
         creator    => $self->type('string', $comment->author->login),
         author     => $self->type('string', $comment->author->login),
         time       => $self->type('dateTime', $comment->creation_ts),
+        creation_time => $self->type('dateTime', $comment->creation_ts),
         is_private => $self->type('boolean', $comment->is_private),
         text       => $self->type('string', $comment->body_full),
         rawtext    => $self->type('string', $comment->body),
@@ -310,6 +308,8 @@ sub _translate_comment {
 
 sub get {
     my ($self, $params) = validate(@_, 'ids');
+
+    Bugzilla->switch_to_shadow_db();
 
     my $ids = $params->{ids};
     defined $ids || ThrowCodeError('param_required', { param => 'ids' });
@@ -345,11 +345,15 @@ sub get {
 sub history {
     my ($self, $params) = validate(@_, 'ids');
 
+    Bugzilla->switch_to_shadow_db();
+
     my $ids = $params->{ids};
     defined $ids || ThrowCodeError('param_required', { param => 'ids' });
 
-    my @return;
+    my %api_name = reverse %{ Bugzilla::Bug::FIELD_MAP() };
+    $api_name{'bug_group'} = 'groups';
 
+    my @return;
     foreach my $bug_id (@$ids) {
         my %item;
         my $bug = Bugzilla::Bug->check($bug_id);
@@ -365,14 +369,15 @@ sub history {
             $bug_history{who}  = $self->type('string', $changeset->{who});
             $bug_history{changes} = [];
             foreach my $change (@{ $changeset->{changes} }) {
+                my $api_field = $api_name{$change->{fieldname}} || $change->{fieldname};
                 my $attach_id = delete $change->{attachid};
                 if ($attach_id) {
                     $change->{attachment_id} = $self->type('int', $attach_id);
                 }
                 $change->{removed} = $self->type('string', $change->{removed});
                 $change->{added}   = $self->type('string', $change->{added});
-                $change->{field_name} = $self->type('string',
-                    delete $change->{fieldname});
+                $change->{field_name} = $self->type('string', $api_field);
+                delete $change->{fieldname};
                 push (@{$bug_history{changes}}, $change);
             }
             
@@ -394,7 +399,9 @@ sub history {
 
 sub search {
     my ($self, $params) = @_;
-    
+   
+    Bugzilla->switch_to_shadow_db();
+
     if ( defined($params->{offset}) and !defined($params->{limit}) ) {
         ThrowCodeError('param_required', 
                        { param => 'limit', function => 'Bug.search()' });
@@ -443,6 +450,8 @@ sub search {
 sub possible_duplicates {
     my ($self, $params) = validate(@_, 'product');
     my $user = Bugzilla->user;
+
+    Bugzilla->switch_to_shadow_db();
 
     # Undo the array-ification that validate() does, for "summary".
     $params->{summary} || ThrowCodeError('param_required',
@@ -555,6 +564,8 @@ sub create {
 
 sub legal_values {
     my ($self, $params) = @_;
+
+    Bugzilla->switch_to_shadow_db();
 
     defined $params->{field} 
         or ThrowCodeError('param_required', { param => 'field' });
@@ -737,6 +748,8 @@ sub update_see_also {
 sub attachments {
     my ($self, $params) = validate(@_, 'ids', 'attachment_ids');
 
+    Bugzilla->switch_to_shadow_db();
+
     if (!(defined $params->{ids}
           or defined $params->{attachment_ids}))
     {
@@ -771,6 +784,44 @@ sub attachments {
     }
 
     return { bugs => \%bugs, attachments => \%attachments };
+}
+
+sub update_tags {
+    my ($self, $params) = @_;
+
+    Bugzilla->login(LOGIN_REQUIRED);
+
+    my $ids  = $params->{ids};
+    my $tags = $params->{tags};
+
+    ThrowCodeError('param_required',
+                   { function => 'Bug.update_tags', 
+                     param    => 'ids' }) if !defined $ids;
+
+    ThrowCodeError('param_required',
+                   { function => 'Bug.update_tags', 
+                     param    => 'tags' }) if !defined $tags;
+
+    my %changes;
+    foreach my $bug_id (@$ids) {
+        my $bug = Bugzilla::Bug->check($bug_id);
+        my @old_tags = @{ $bug->tags };
+
+        $bug->remove_tag($_) foreach @{ $tags->{remove} || [] };
+        $bug->add_tag($_) foreach @{ $tags->{add} || [] };
+
+        my ($removed, $added) = diff_arrays(\@old_tags, $bug->tags);
+
+        my @removed = map { $self->type('string', $_) } @$removed;
+        my @added   = map { $self->type('string', $_) } @$added;
+
+        $changes{$bug->id}->{tags} = {
+            removed => \@removed,
+            added   => \@added
+        };
+    }
+
+    return { changes => \%changes };
 }
 
 ##############################
@@ -857,6 +908,9 @@ sub _bug_to_hash {
                        @{ $bug->see_also };
         $item{'see_also'} = \@see_also;
     }
+    if (filter_wants $params, 'flags') {
+        $item{'flags'} = [ map { $self->_flag_to_hash($_) } @{$bug->flags} ];
+    }
 
     # And now custom fields
     my @custom_fields = Bugzilla->active_custom_fields;
@@ -885,6 +939,7 @@ sub _bug_to_hash {
         # No need to format $bug->deadline specially, because Bugzilla::Bug
         # already does it for us.
         $item{'deadline'} = $self->type('string', $bug->deadline);
+        $item{'actual_time'} = $self->type('double', $bug->actual_time);
     }
 
     if (Bugzilla->user->id) {
@@ -904,9 +959,6 @@ sub _bug_to_hash {
 
 sub _attachment_to_hash {
     my ($self, $attach, $filters) = @_;
-
-    # Skipping attachment flags for now.
-    delete $attach->{flags};
 
     my $item = filter $filters, {
         creation_time    => $self->type('dateTime', $attach->attached),
@@ -936,6 +988,31 @@ sub _attachment_to_hash {
 
     if (filter_wants $filters, 'size') {
         $item->{'size'} = $self->type('int', $attach->datasize);
+    }
+
+    if (filter_wants $filters, 'flags') {
+        $item->{'flags'} = [ map { $self->_flag_to_hash($_) } @{$attach->flags} ];
+    }
+
+    return $item;
+}
+
+sub _flag_to_hash {
+    my ($self, $flag) = @_;
+
+    my $item = {
+        id                => $self->type('int', $flag->id),
+        name              => $self->type('string', $flag->name),
+        type_id           => $self->type('int', $flag->type_id),
+        creation_date     => $self->type('dateTime', $flag->creation_date), 
+        modification_date => $self->type('dateTime', $flag->modification_date), 
+        status            => $self->type('string', $flag->status)
+    };
+
+    foreach my $field (qw(setter requestee)) {
+        my $field_id = $field . "_id";
+        $item->{$field} = $self->type('string', $flag->$field->login)
+            if $flag->$field_id;
     }
 
     return $item;
@@ -1076,7 +1153,7 @@ values of the field are shown in the user interface. Can be null.
 
 This is an array of hashes, representing the legal values for
 select-type (drop-down and multiple-selection) fields. This is also
-populated for the C<component>, C<version>, and C<target_milestone>
+populated for the C<component>, C<version>, C<target_milestone>, and C<keywords>
 fields, but not for the C<product> field (you must use
 L<Product.get_accessible_products|Bugzilla::WebService::Product/get_accessible_products>
 for that.
@@ -1108,6 +1185,11 @@ If C<value_field> is defined for this field, then this value is only shown
 if the C<value_field> is set to one of the values listed in this array.
 Note that for per-product fields, C<value_field> is set to C<'product'>
 and C<visibility_values> will reflect which product(s) this value appears in.
+
+=item C<description>
+
+C<string> The description of the value. This item is only included for the
+C<keywords> field.
 
 =item C<is_open>
 
@@ -1251,19 +1333,14 @@ value looks like this:
 
  {
      bugs => {
-         1345 => {
-             attachments => [
-                 { (attachment) },
-                 { (attachment) }
-             ]
-         },
-         9874 => {
-             attachments => [
-                 { (attachment) },
-                 { (attachment) }
-             ]
-
-         },
+         1345 => [
+             { (attachment) },
+             { (attachment) }
+         ],
+         9874 => [
+             { (attachment) },
+             { (attachment) }
+         ],
      },
 
      attachments => {
@@ -1274,9 +1351,8 @@ value looks like this:
 
 The attachments of any bugs that you specified in the C<ids> argument in
 input are returned in C<bugs> on output. C<bugs> is a hash that has integer
-bug IDs for keys and contains a single key, C<attachments>. That key points
-to an arrayref that contains attachments as a hash. (Fields for attachments
-are described below.)
+bug IDs for keys and the values are arrayrefs that contain hashes as attachments.
+(Fields for attachments are described below.)
 
 For any attachments that you specified directly in C<attachment_ids>, they
 are returned in C<attachments> on output. This is a hash where the attachment
@@ -1348,6 +1424,48 @@ Also returned as C<attacher>, for backwards-compatibility with older
 Bugzillas. (However, this backwards-compatibility will go away in Bugzilla
 5.0.)
 
+=item C<flags>
+
+An array of hashes containing the information about flags currently set
+for each attachment. Each flag hash contains the following items:
+
+=over
+
+=item C<id> 
+
+C<int> The id of the flag.
+
+=item C<name>
+
+C<string> The name of the flag.
+
+=item C<type_id>
+
+C<int> The type id of the flag.
+
+=item C<creation_date>
+
+C<dateTime> The timestamp when this flag was originally created.
+
+=item C<modification_date>
+
+C<dateTime> The timestamp when the flag was last modified.
+
+=item C<status>
+
+C<string> The current status of the flag.
+
+=item C<setter>
+
+C<string> The login name of the user who created or last modified the flag.
+
+=item C<requestee>
+
+C<string> The login name of the user this flag has been requested to be granted or denied.
+Note, this field is only returned if a requestee is set.
+
+=back
+
 =back
 
 =item B<Errors>
@@ -1382,7 +1500,9 @@ C<summary>.
 =item In Bugzilla B<4.2>, the C<is_url> return value was removed
 (this attribute no longer exists for attachments).
 
-=item The C<size> return value was added in Bugzilla B<5.0>.
+=item The C<size> return value was added in Bugzilla B<4.4>.
+
+=item The C<flags> array was added in Bugzilla B<4.4>.
 
 =back
 
@@ -1495,6 +1615,13 @@ Bugzillas. (However, this backwards-compatibility will go away in Bugzilla
 
 C<dateTime> The time (in Bugzilla's timezone) that the comment was added.
 
+=item creation_time
+
+C<dateTime> This is exactly same as the C<time> key. Use this field instead of
+C<time> for consistency with other methods including L</get> and L</attachments>.
+For compatibility, C<time> is still usable. However, please note that C<time>
+may be deprecated and removed in a future release.
+
 =item is_private
 
 C<boolean> True if this comment is private (only visible to a certain
@@ -1534,7 +1661,9 @@ that id.
 =item In Bugzilla B<4.0>, the C<author> return value was renamed to
 C<creator>.
 
-=item C<count> was added to the return value in Bugzilla B<5.0>.
+=item C<count> was added to the return value in Bugzilla B<4.4>.
+
+=item C<creation_time> was added in Bugzilla B<4.4>.
 
 =back
 
@@ -1593,6 +1722,13 @@ the valid ids. Each hash contains the following items:
 
 =over
 
+=item C<actual_time>
+
+C<double> The total number of hours that this bug has taken (so far).
+
+If you are not in the time-tracking group, this field will not be included
+in the return value.
+
 =item C<alias>
 
 C<string> The unique alias of this bug.
@@ -1650,6 +1786,48 @@ take.
 
 If you are not in the time-tracking group, this field will not be included
 in the return value.
+
+=item C<flags>
+
+An array of hashes containing the information about flags currently set
+for the bug. Each flag hash contains the following items:
+
+=over
+
+=item C<id> 
+
+C<int> The id of the flag.
+
+=item C<name>
+
+C<string> The name of the flag.
+
+=item C<type_id>
+
+C<int> The type id of the flag.
+
+=item C<creation_date>
+
+C<dateTime> The timestamp when this flag was originally created.
+
+=item C<modification_date>
+
+C<dateTime> The timestamp when the flag was last modified.
+
+=item C<status>
+
+C<string> The current status of the flag.
+
+=item C<setter>
+
+C<string> The login name of the user who created or last modified the flag.
+
+=item C<requestee>
+
+C<string> The login name of the user this flag has been requested to be granted or denied.
+Note, this field is only returned if a requestee is set.
+
+=back
 
 =item C<groups>
 
@@ -1798,13 +1976,13 @@ C<int> The numeric bug_id of this bug.
 
 =item faultString 
 
-c<string> This will only be returned for invalid bugs if the C<permissive>
+C<string> This will only be returned for invalid bugs if the C<permissive>
 argument was set when calling Bug.get, and it is an error indicating that 
 the bug id was invalid.
 
 =item faultCode
 
-c<int> This will only be returned for invalid bugs if the C<permissive>
+C<int> This will only be returned for invalid bugs if the C<permissive>
 argument was set when calling Bug.get, and it is the error code for the 
 invalid bug error.
 
@@ -1877,8 +2055,12 @@ C<op_sys>, C<platform>, C<qa_contact>, C<remaining_time>, C<see_also>,
 C<target_milestone>, C<update_token>, C<url>, C<version>, C<whiteboard>,
 and all custom fields.
 
-=back
+=item The C<flags> array was added in Bugzilla B<4.4>.
 
+=item The C<actual_time> item was added to the C<bugs> return value
+in Bugzilla B<4.4>.
+
+=back
 
 =back
 
@@ -1979,6 +2161,10 @@ The same as L</get>.
 
 =item Added in Bugzilla B<3.4>.
 
+=item Field names changed to be more consistent with other methods in Bugzilla B<4.4>.
+
+=item As of Bugzilla B<4.4>, field names now match names used by L<Bug.update|/"update"> for consistency.
+
 =back
 
 =back
@@ -2044,6 +2230,9 @@ May not be an array.
 
 C<string> The login name of the user who created the bug.
 
+You can also pass this argument with the name C<reporter>, for
+backwards compatibility with older Bugzillas.
+
 =item C<id>
 
 C<int> The numeric id of the bug.
@@ -2079,13 +2268,6 @@ C<string> The Priority field on a bug.
 =item C<product>
 
 C<string> The name of the Product that the bug is in.
-
-=item C<creator>
-
-C<string> The login name of the user who reported the bug.
-
-You can also pass this argument with the name C<reporter>, for
-backwards compatibility with older Bugzillas.
 
 =item C<resolution>
 
@@ -2357,7 +2539,7 @@ argument.
 loop errors had a generic code of C<32000>.
 
 =item The ability to file new bugs with a C<resolution> was added in
-Bugzilla B<5.0>.
+Bugzilla B<4.4>.
 
 =back
 
@@ -3130,6 +3312,70 @@ this bug.
 =item Added in Bugzilla B<3.4>.
 
 =item Before Bugzilla B<3.6>, error 115 had a generic error code of 32000.
+
+=back
+
+=back
+
+
+=head2 update_tags
+
+B<UNSTABLE>
+
+=over
+
+=item B<Description>
+
+Adds or removes tags on bugs.
+
+=item B<Params>
+
+=over
+
+=item C<ids>
+
+B<Required> C<array> An array of ints and/or strings--the ids
+or aliases of bugs that you want to add or remove tags to. All the tags
+will be added or removed to all these bugs.
+
+=item C<tags>
+
+B<Required> C<hash> A hash representing tags to be added and/or removed.
+The hash has the following fields:
+
+=over
+
+=item C<add> An array of C<string>s representing tag names
+to be added to the bugs.
+
+It is safe to specify tags that are already associated with the 
+bugs--they will just be silently ignored.
+
+=item C<remove> An array of C<string>s representing tag names
+to be removed from the bugs.
+
+It is safe to specify tags that are not associated with any
+bugs--they will just be silently ignored.
+
+=back
+
+=back
+
+=item B<Returns>
+
+C<changes>, a hash containing bug IDs as keys and one single value
+name "tags" which is also a hash, with C<added> and C<removed> as keys.
+See L</update_see_also> for an example of how it looks like.
+
+=item B<Errors>
+
+This method can throw the same errors as L</get>.
+
+=item B<History>
+
+=over
+
+=item Added in Bugzilla B<4.4>.
 
 =back
 

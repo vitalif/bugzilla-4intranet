@@ -1,26 +1,10 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-#
-# The Initial Developer of the Original Code is Netscape Communications
-# Corporation. Portions created by Netscape are
-# Copyright (C) 1998 Netscape Communications Corporation. All
-# Rights Reserved.
-#
-# Contributor(s): Terry Weissman <terry@mozilla.org>
-#                 Myk Melez <myk@mozilla.org>
-#                 Frank Becker <Frank@Frank-Becker.de>
+# This Source Code Form is "Incompatible With Secondary Licenses", as
+# defined by the Mozilla Public License, v. 2.0.
 
 ################################################################################
 # Script Initialization
@@ -58,9 +42,9 @@ if (Bugzilla->params->{'requirelogin'} && !$user->id) {
 my $vars = {};
 $vars->{'priority'}  = get_legal_field_values('priority');
 $vars->{'severity'}  = get_legal_field_values('bug_severity');
-$vars->{'platform'}  = get_legal_field_values('rep_platform') if Bugzilla->params->{useplatform};
-$vars->{'op_sys'}    = get_legal_field_values('op_sys') if Bugzilla->params->{useopsys};
-$vars->{'keyword'}    = [map($_->name, Bugzilla::Keyword->get_all)];
+$vars->{'platform'}  = get_legal_field_values('rep_platform');
+$vars->{'op_sys'}    = get_legal_field_values('op_sys');
+$vars->{'keywords'}  = [Bugzilla::Keyword->get_all];
 $vars->{'resolution'} = get_legal_field_values('resolution');
 $vars->{'status'}    = get_legal_field_values('bug_status');
 $vars->{'custom_fields'} =
@@ -84,6 +68,18 @@ if ($cgi->param('product')) {
 
 # We set the 2nd argument to 1 to also preload flag types.
 Bugzilla::Product::preload($vars->{'products'}, 1);
+
+if (Bugzilla->params->{'useclassification'}) {
+    my $class = {};
+    # Get all classifications with at least one selectable product.
+    foreach my $product (@{$vars->{'products'}}) {
+        $class->{$product->classification_id} ||= $product->classification;
+    }
+    my @classifications = sort {$a->sortkey <=> $b->sortkey
+        || lc($a->name) cmp lc($b->name)} (values %$class);
+    $vars->{'class_names'} = $class;
+    $vars->{'classifications'} = \@classifications;
+}
 
 # Allow consumers to specify whether or not they want flag data.
 if (defined $cgi->param('flags')) {

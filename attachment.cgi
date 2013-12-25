@@ -1,33 +1,10 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-#
-# The Initial Developer of the Original Code is Netscape Communications
-# Corporation. Portions created by Netscape are
-# Copyright (C) 1998 Netscape Communications Corporation. All
-# Rights Reserved.
-#
-# Contributor(s): Terry Weissman <terry@mozilla.org>
-#                 Myk Melez <myk@mozilla.org>
-#                 Daniel Raichle <draichle@gmx.net>
-#                 Dave Miller <justdave@syndicomm.com>
-#                 Alexander J. Vincent <ajvincent@juno.com>
-#                 Max Kanat-Alexander <mkanat@bugzilla.org>
-#                 Greg Hendricks <ghendricks@novell.com>
-#                 Frédéric Buclin <LpSolit@gmail.com>
-#                 Marc Schumann <wurblzap@gmail.com>
-#                 Byron Jones <bugzilla@glob.com.au>
+# This Source Code Form is "Incompatible With Secondary Licenses", as
+# defined by the Mozilla Public License, v. 2.0.
 
 ################################################################################
 # Script Initialization
@@ -486,9 +463,8 @@ sub diff {
 sub viewall {
     # Retrieve and validate parameters
     my $bug = Bugzilla::Bug->check(scalar $cgi->param('bugid'));
-    my $bugid = $bug->id;
 
-    my $attachments = Bugzilla::Attachment->get_attachments_by_bug($bugid);
+    my $attachments = Bugzilla::Attachment->get_attachments_by_bug($bug);
     # Ignore deleted attachments.
     @$attachments = grep { $_->datasize } @$attachments;
 
@@ -641,6 +617,8 @@ sub insert
       $owner = $bug->assigned_to->login;
       $bug->set_assigned_to($user);
   }
+
+  $bug->add_cc($user) if $cgi->param('addselfcc');
   $bug->update($timestamp);
 
   $dbh->bz_commit_transaction;
@@ -695,10 +673,8 @@ sub insert
 sub edit {
     my $attachment = validateID();
 
-    my $bugattachments =
-        Bugzilla::Attachment->get_attachments_by_bug($attachment->bug_id);
-    # We only want attachment IDs.
-    @$bugattachments = map { $_->id } @$bugattachments;
+  my $bugattachments =
+      Bugzilla::Attachment->get_attachments_by_bug($attachment->bug);
 
     my $any_flags_requesteeble =
         grep { $_->is_requestable && $_->is_requesteeble } @{$attachment->flag_types};
@@ -776,6 +752,8 @@ sub update {
                                       work_time => scalar $cgi->param('work_time'),
                                       extra_data => $attachment->id });
     }
+
+    $bug->add_cc($user) if $cgi->param('addselfcc');
 
     if ($can_edit) {
         my ($flags, $new_flags) =

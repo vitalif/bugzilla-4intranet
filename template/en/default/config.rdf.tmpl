@@ -1,22 +1,9 @@
-[%# The contents of this file are subject to the Mozilla Public
-  # License Version 1.1 (the "License"); you may not use this file
-  # except in compliance with the License. You may obtain a copy of
-  # the License at http://www.mozilla.org/MPL/
+[%# This Source Code Form is subject to the terms of the Mozilla Public
+  # License, v. 2.0. If a copy of the MPL was not distributed with this
+  # file, You can obtain one at http://mozilla.org/MPL/2.0/.
   #
-  # Software distributed under the License is distributed on an "AS
-  # IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-  # implied. See the License for the specific language governing
-  # rights and limitations under the License.
-  #
-  # The Original Code is the Bugzilla Bug Tracking System.
-  #
-  # The Initial Developer of the Original Code is Netscape Communications
-  # Corporation. Portions created by Netscape are
-  # Copyright (C) 1998 Netscape Communications Corporation. All
-  # Rights Reserved.
-  #
-  # Contributor(s): Myk Melez <myk@mozilla.org>
-  #                 Frédéric Buclin <LpSolit@gmail.com>
+  # This Source Code Form is "Incompatible With Secondary Licenses", as
+  # defined by the Mozilla Public License, v. 2.0.
   #%]
 
 [%# The url to the installation is going to be displayed many times.
@@ -67,13 +54,18 @@
     </Seq>
   </bz:resolution>
 
-  <bz:keyword>
+  <bz:keywords>
     <Seq>
-      [% FOREACH item = keyword %]
-        <li>[% item FILTER html %]</li>
+      [% FOREACH keyword = keywords %]
+        <li>
+          <bz:keyword rdf:about="[% escaped_urlbase %]keyword.cgi?name=[% keyword.name FILTER uri %]">
+            <bz:name>[% keyword.name FILTER html %]</bz:name>
+            <bz:description>[% keyword.description FILTER html %]</bz:description>
+          </bz:keyword>
+        </li>
       [% END %]
     </Seq>
-  </bz:keyword>
+  </bz:keywords>
 
   [% IF Param('useplatform') %]
   <bz:platform>
@@ -122,6 +114,23 @@
 
 [% END %]
 
+[% IF Param('useclassification') %]
+  <bz:classifications>
+    <Seq>
+      [% FOREACH classification = classifications %]
+      <li>
+        <bz:classification rdf:about="[% escaped_urlbase %]classification.cgi?name=
+          [% classification.name FILTER uri %]">
+          <bz:name>[% classification.name FILTER html %]</bz:name>
+          <bz:description>[% classification.description FILTER html %]</bz:description>
+          <bz:sortkey>[% classification.sortkey FILTER html %]</bz:sortkey>
+        </bz:classification>
+      </li>
+      [% END %]
+    </Seq>
+  </bz:classifications>
+[% END %]
+
   <bz:products>
     <Seq>
       [% FOREACH product = products %]
@@ -129,7 +138,9 @@
           <bz:product rdf:about="[% escaped_urlbase %]product.cgi?name=[% product.name FILTER uri %]">
             <bz:name>[% product.name FILTER html %]</bz:name>
             <bz:allows_unconfirmed>[% product.allows_unconfirmed FILTER html %]</bz:allows_unconfirmed>
-
+            [% IF Param('useclassification') %]
+              <bz:classification>[% class_names.${product.classification_id}.name FILTER html %]</bz:classification>
+            [% END %]
             <bz:components>
               <Seq>
                 [% FOREACH component = product.components %]

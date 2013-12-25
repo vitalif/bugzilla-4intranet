@@ -1,30 +1,9 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-#
-# The Initial Developer of the Original Code is Netscape Communications
-# Corporation. Portions created by Netscape are
-# Copyright (C) 1998 Netscape Communications Corporation. All
-# Rights Reserved.
-#
-# Contributor(s): Terry Weissman <terry@mozilla.org>
-#                 Dan Mosedale <dmose@mozilla.org>
-#                 Jacob Steenhagen <jake@bugzilla.org>
-#                 Bradley Baetz <bbaetz@student.usyd.edu.au>
-#                 Christopher Aillon <christopher@aillon.com>
-#                 Max Kanat-Alexander <mkanat@bugzilla.org>
-#                 Frédéric Buclin <LpSolit@gmail.com>
-#                 Marc Schumann <wurblzap@gmail.com>
+# This Source Code Form is "Incompatible With Secondary Licenses", as
+# defined by the Mozilla Public License, v. 2.0.
 
 package Bugzilla::Util;
 
@@ -36,14 +15,14 @@ use base qw(Exporter);
                              detaint_signed
                              html_quote url_quote url_quote_noslash xml_quote
                              css_class_quote html_light_quote url_decode
-                             i_am_cgi correct_urlbase remote_ip 
+                             i_am_cgi correct_urlbase remote_ip validate_ip
                              lsearch do_ssl_redirect_if_required use_attachbase
-                             diff_arrays list on_main_db
+                             diff_arrays list on_main_db say
                              trim wrap_hard wrap_comment find_wrap_point makeCitations
                              format_time format_time_decimal validate_date
                              validate_time datetime_from
                              file_mod_time is_7bit_clean
-                             bz_crypt generate_random_password
+                             bz_crypt generate_random_password check_email_syntax 
                              validate_email_syntax clean_text stem_text bz_encode_json
                              xml_element xml_element_quote xml_dump_simple xml_simple
                              get_text template_var disable_utf8
@@ -172,12 +151,13 @@ sub html_light_quote {
         # Specific rules for allowed elements. If no specific rule is set
         # for a given element, then the default is used.
         my @rules = (a => {
-                           href  => $protocol_regexp,
-                           title => 1,
-                           id    => 1,
-                           name  => 1,
-                           class => 1,
-                           '*'   => 0, # Reject all other attributes.
+                           href   => $protocol_regexp,
+                           target => qr{^(?:_blank|_parent|_self|_top)$}i,
+                           title  => 1,
+                           id     => 1,
+                           name   => 1,
+                           class  => 1,
+                           '*'    => 0, # Reject all other attributes.
                           },
                      blockquote => {
                                     cite => $protocol_regexp,
@@ -265,14 +245,6 @@ sub xml_quote {
     return $var;
 }
 
-sub url_decode {
-    my ($todecode) = (@_);
-    $todecode =~ tr/+/ /;       # pluses become spaces
-    $todecode =~ s/%([0-9a-fA-F]{2})/pack("c",hex($1))/ge;
-    utf8::decode($todecode) if Bugzilla->params->{'utf8'};
-    return $todecode;
-}
-
 sub i_am_cgi {
     # I use SERVER_SOFTWARE because it's required to be
     # defined for all requests in the CGI spec.
@@ -319,11 +291,102 @@ sub correct_urlbase {
 
 sub remote_ip {
     my $ip = $ENV{'REMOTE_ADDR'} || '127.0.0.1';
-    my @proxies = ('127.0.0.1', split(/[\s,]+/, Bugzilla->params->{'inbound_proxies'}));
-    if (grep { $_ eq $ip } @proxies) {
-        $ip = $ENV{'HTTP_X_FORWARDED_FOR'} if $ENV{'HTTP_X_FORWARDED_FOR'};
+    my @proxies = split(/[\s,]+/, Bugzilla->params->{'inbound_proxies'});
+
+    # If the IP address is one of our trusted proxies, then we look at
+    # the X-Forwarded-For header to determine the real remote IP address.
+    if ($ENV{'HTTP_X_FORWARDED_FOR'} && first { $_ eq $ip } @proxies) {
+        my @ips = split(/[\s,]+/, $ENV{'HTTP_X_FORWARDED_FOR'});
+        # This header can contain several IP addresses. We want the
+        # IP address of the machine which connected to our proxies as
+        # all other IP addresses may be fake or internal ones.
+        # Note that this may block a whole external proxy, but we have
+        # no way to determine if this proxy is malicious or trustable.
+        foreach my $remote_ip (reverse @ips) {
+            if (!first { $_ eq $remote_ip } @proxies) {
+                # Keep the original IP address if the remote IP is invalid.
+                $ip = validate_ip($remote_ip) || $ip;
+                last;
+            }
+        }
     }
     return $ip;
+}
+
+sub validate_ip {
+    my $ip = shift;
+    return is_ipv4($ip) || is_ipv6($ip);
+}
+
+# Copied from Data::Validate::IP::is_ipv4().
+sub is_ipv4 {
+    my $ip = shift;
+    return unless defined $ip;
+
+    my @octets = $ip =~ /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+    return unless scalar(@octets) == 4;
+
+    foreach my $octet (@octets) {
+        return unless ($octet >= 0 && $octet <= 255 && $octet !~ /^0\d{1,2}$/);
+    }
+
+    # The IP address is valid and can now be detainted.
+    return join('.', @octets);
+}
+
+# Copied from Data::Validate::IP::is_ipv6().
+sub is_ipv6 {
+    my $ip = shift;
+    return unless defined $ip;
+
+    # If there is a :: then there must be only one :: and the length
+    # can be variable. Without it, the length must be 8 groups.
+    my @chunks = split(':', $ip);
+
+    # Need to check if the last chunk is an IPv4 address, if it is we
+    # pop it off and exempt it from the normal IPv6 checking and stick
+    # it back on at the end. If there is only one chunk and it's an IPv4
+    # address, then it isn't an IPv6 address.
+    my $ipv4;
+    my $expected_chunks = 8;
+    if (@chunks > 1 && is_ipv4($chunks[$#chunks])) {
+        $ipv4 = pop(@chunks);
+        $expected_chunks--;
+    }
+
+    my $empty = 0;
+    # Workaround to handle trailing :: being valid.
+    if ($ip =~ /[0-9a-f]{1,4}::$/) {
+        $empty++;
+    # Single trailing ':' is invalid.
+    } elsif ($ip =~ /:$/) {
+        return;
+    }
+
+    foreach my $chunk (@chunks) {
+        return unless $chunk =~ /^[0-9a-f]{0,4}$/i;
+        $empty++ if $chunk eq '';
+    }
+    # More than one :: block is bad, but if it starts with :: it will
+    # look like two, so we need an exception.
+    if ($empty == 2 && $ip =~ /^::/) {
+        # This is ok
+    } elsif ($empty > 1) {
+        return;
+    }
+
+    push(@chunks, $ipv4) if $ipv4;
+    # Need 8 chunks, or we need an empty section that could be filled
+    # to represent the missing '0' sections.
+    return unless (@chunks == $expected_chunks || @chunks < $expected_chunks && $empty);
+
+    my $ipv6 = join(':', @chunks);
+    # The IP address is valid and can now be detainted.
+    trick_taint($ipv6);
+
+    # Need to handle the exception of trailing :: being valid.
+    return "${ipv6}::" if $ip =~ /::$/;
+    return $ipv6;
 }
 
 sub use_attachbase {
@@ -577,14 +640,6 @@ sub datetime_from {
     return $dt;
 }
 
-sub file_mod_time {
-    my ($filename) = (@_);
-    my ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,
-        $atime,$mtime,$ctime,$blksize,$blocks)
-        = stat($filename);
-    return $mtime;
-}
-
 sub bz_crypt {
     my ($password, $salt) = @_;
 
@@ -652,12 +707,27 @@ sub generate_random_password {
 sub validate_email_syntax {
     my ($addr) = @_;
     my $match = Bugzilla->params->{'emailregexp'};
-    my $ret = ($addr =~ /$match/ && $addr !~ /[\\\(\)<>&,;:\"\[\] \t\r\n]/);
+    my $email = $addr . Bugzilla->params->{'emailsuffix'};
+    # This regexp follows RFC 2822 section 3.4.1.
+    my $addr_spec = $Email::Address::addr_spec;
+    # RFC 2822 section 2.1 specifies that email addresses must
+    # be made of US-ASCII characters only.
+    # Email::Address::addr_spec doesn't enforce this.
+    my $ret = ($addr =~ /$match/ && $email !~ /\P{ASCII}/ && $email =~ /^$addr_spec$/);
     if ($ret) {
         # We assume these checks to suffice to consider the address untainted.
         trick_taint($_[0]);
     }
     return $ret ? 1 : 0;
+}
+
+sub check_email_syntax {
+    my ($addr) = @_;
+
+    unless (validate_email_syntax(@_)) {
+        my $email = $addr . Bugzilla->params->{'emailsuffix'};
+        ThrowUserError('illegal_email_address', { addr => $email });
+    }
 }
 
 sub validate_date {
@@ -1041,9 +1111,6 @@ Bugzilla::Util - Generic utility functions for bugzilla
   xml_quote($var);
   email_filter($var);
 
-  # Functions for decoding
-  $rv = url_decode($var);
-
   # Functions that tell you about your environment
   my $is_cgi   = i_am_cgi();
   my $urlbase  = correct_urlbase();
@@ -1059,15 +1126,13 @@ Bugzilla::Util - Generic utility functions for bugzilla
   format_time($time);
   datetime_from($time, $timezone);
 
-  # Functions for dealing with files
-  $time = file_mod_time($filename);
-
   # Cryptographic Functions
   $crypted_password = bz_crypt($password);
   $new_password = generate_random_password($password_length);
 
   # Validation Functions
   validate_email_syntax($email);
+  check_email_syntax($email);
   validate_date($date);
 
   # DB-related functions
@@ -1155,10 +1220,6 @@ This is similar to C<html_quote>, except that ' is escaped to &apos;. This
 is kept separate from html_quote partly for compatibility with previous code
 (for &apos;) and partly for future handling of non-ASCII characters.
 
-=item C<url_decode($val)>
-
-Converts the %xx encoding from the given URL back to its original form.
-
 =item C<email_filter>
 
 Removes the hostname from email addresses in the string, if the user
@@ -1183,6 +1244,17 @@ in a command-line script.
 
 Returns either the C<sslbase> or C<urlbase> parameter, depending on the
 current setting for the C<ssl_redirect> parameter.
+
+=item C<remote_ip()>
+
+Returns the IP address of the remote client. If Bugzilla is behind
+a trusted proxy, it will get the remote IP address by looking at the
+X-Forwarded-For header.
+
+=item C<validate_ip($ip)>
+
+Returns the sanitized IP address if it is a valid IPv4 or IPv6 address,
+else returns undef.
 
 =item C<use_attachbase()>
 
@@ -1321,18 +1393,6 @@ the Bugzilla server's local timezone if there isn't a logged-in user.
 
 =back
 
-
-=head2 Files
-
-=over 4
-
-=item C<file_mod_time($filename)>
-
-Takes a filename and returns the modification time. It returns it in the format
-of the "mtime" parameter of the perl "stat" function.
-
-=back
-
 =head2 Cryptography
 
 =over 4
@@ -1372,6 +1432,12 @@ and tokens.
 
 Do a syntax checking for a legal email address and returns 1 if
 the check is successful, else returns 0.
+Untaints C<$email> if successful.
+
+=item C<check_email_syntax($email)>
+
+Do a syntax checking for a legal email address and throws an error
+if the check fails.
 Untaints C<$email> if successful.
 
 =item C<validate_date($date)>

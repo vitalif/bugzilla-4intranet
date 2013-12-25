@@ -1,21 +1,9 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-#
-# Contributor(s): Marc Schumann <wurblzap@gmail.com>
-#                 Max Kanat-Alexander <mkanat@bugzilla.org>
-#                 Mads Bondo Dydensborg <mbd@dbc.dk>
-#                 Noura Elhawary <nelhawar@redhat.com>
+# This Source Code Form is "Incompatible With Secondary Licenses", as
+# defined by the Mozilla Public License, v. 2.0.
 
 package Bugzilla::WebService::User;
 
@@ -28,7 +16,7 @@ use Bugzilla::Error;
 use Bugzilla::Group;
 use Bugzilla::User;
 use Bugzilla::Util qw(trim);
-use Bugzilla::WebService::Util qw(filter validate);
+use Bugzilla::WebService::Util qw(filter validate translate params_to_objects);
 
 # Don't need auth to login
 use constant LOGIN_EXEMPT => {
@@ -39,6 +27,20 @@ use constant LOGIN_EXEMPT => {
 use constant READ_ONLY => qw(
     get
 );
+
+use constant MAPPED_FIELDS => {
+    email => 'login',
+    full_name => 'name',
+    login_denied_text => 'disabledtext',
+    email_enabled => 'disable_mail'
+};
+
+use constant MAPPED_RETURNS => {
+    login_name => 'email',
+    realname => 'full_name',
+    disabledtext => 'login_denied_text',
+    disable_mail => 'email_enabled'
+};
 
 ##############
 # User Login #
@@ -129,6 +131,8 @@ sub create {
 sub get {
     my ($self, $params) = validate(@_, 'names', 'ids');
 
+    Bugzilla->switch_to_shadow_db();
+
     defined($params->{names}) || defined($params->{ids})
         || defined($params->{match})
         || ThrowCodeError('params_required', 
@@ -209,15 +213,17 @@ sub get {
     my $in_group = $self->_filter_users_by_group(
         \@user_objects, $params);
     if (Bugzilla->user->in_group('editusers')) {
-        @users =
+        @users = 
             map {filter $params, {
                 id        => $self->type('int', $_->id),
                 real_name => $self->type('string', $_->name),
                 name      => $self->type('string', $_->login),
                 email     => $self->type('string', $_->email),
                 can_login => $self->type('boolean', $_->is_enabled ? 1 : 0),
+                groups    => $self->_filter_bless_groups($_->groups), 
                 email_enabled     => $self->type('boolean', $_->email_enabled),
                 login_denied_text => $self->type('string', $_->disabledtext),
+                saved_searches    => [map { $self->_query_to_hash($_) } @{ $_->queries }],
             }} @$in_group;
     }
     else {
@@ -228,10 +234,78 @@ sub get {
                 name      => $self->type('string', $_->login),
                 email     => $self->type('string', $_->email),
                 can_login => $self->type('boolean', $_->is_enabled ? 1 : 0),
+                groups    => $self->_filter_bless_groups($_->groups),
+                saved_searches => [map { $self->_query_to_hash($_) } @{ $_->queries }],
             }} @$in_group;
     }
 
     return { users => \@users };
+}
+
+###############
+# User Update #
+###############
+
+sub update {
+    my ($self, $params) = @_;
+
+    my $dbh = Bugzilla->dbh;
+
+    my $user = Bugzilla->login(LOGIN_REQUIRED);
+
+    # Reject access if there is no sense in continuing.
+    $user->in_group('editusers')
+        || ThrowUserError("auth_failure", {group  => "editusers",
+                                           action => "edit",
+                                           object => "users"});
+
+    defined($params->{names}) || defined($params->{ids})
+        || ThrowCodeError('params_required', 
+               { function => 'User.update', params => ['ids', 'names'] });
+
+    my $user_objects = params_to_objects($params, 'Bugzilla::User');
+
+    my $values = translate($params, MAPPED_FIELDS);
+
+    # We delete names and ids to keep only new values to set.
+    delete $values->{names};
+    delete $values->{ids};
+
+    $dbh->bz_start_transaction();
+    foreach my $user (@$user_objects){
+        $user->set_all($values);
+    }
+
+    my %changes;
+    foreach my $user (@$user_objects){
+        my $returned_changes = $user->update();
+        $changes{$user->id} = translate($returned_changes, MAPPED_RETURNS);    
+    }
+    $dbh->bz_commit_transaction();
+
+    my @result;
+    foreach my $user (@$user_objects) {
+        my %hash = (
+            id      => $user->id,
+            changes => {},
+        );
+
+        foreach my $field (keys %{ $changes{$user->id} }) {
+            my $change = $changes{$user->id}->{$field};
+            # We normalize undef to an empty string, so that the API
+            # stays consistent for things that can become empty.
+            $change->[0] = '' if !defined $change->[0];
+            $change->[1] = '' if !defined $change->[1];
+            $hash{changes}{$field} = {
+                removed => $self->type('string', $change->[0]),
+                added   => $self->type('string', $change->[1]) 
+            };
+        }
+
+        push(@result, \%hash);
+    }
+
+    return { users => \@result };
 }
 
 sub _filter_users_by_group {
@@ -259,6 +333,40 @@ sub _user_in_any_group {
         return 1 if $user->in_group($group);
     }
     return 0;
+}
+
+sub _filter_bless_groups {
+    my ($self, $groups) = @_;
+    my $user = Bugzilla->user;
+
+    my @filtered_groups;
+    foreach my $group (@$groups) {
+        next unless ($user->in_group('editusers') || $user->can_bless($group->id));
+        push(@filtered_groups, $self->_group_to_hash($group));
+    }
+
+    return \@filtered_groups;
+}
+
+sub _group_to_hash {
+    my ($self, $group) = @_;
+    my $item = {
+        id          => $self->type('int', $group->id), 
+        name        => $self->type('string', $group->name), 
+        description => $self->type('string', $group->description), 
+    };
+    return $item;
+}
+
+sub _query_to_hash {
+    my ($self, $query) = @_;
+    my $item = {
+        id   => $self->type('int', $query->id),
+        name => $self->type('string', $query->name),
+        url  => $self->type('string', $query->url),
+    };
+
+    return $item;
 }
 
 1;
@@ -326,10 +434,10 @@ to the webservice, for the duration of the session.
 
 The username does not exist, or the password is wrong.
 
-=item 301 (Account Disabled)
+=item 301 (Login Disabled)
 
-The account has been disabled.  A reason may be specified with the
-error.
+The ability to login with this account has been disabled.  A reason may be
+specified with the error.
 
 =item 305 (New Password Required)
 
@@ -362,7 +470,7 @@ Log out the user. Does nothing if there is no user logged in.
 
 =back
 
-=head1 Account Creation
+=head1 Account Creation and Modification
 
 =head2 offer_account_by_email
 
@@ -463,6 +571,104 @@ password is under three characters.)
 =over
 
 =item Error 503 (Password Too Long) removed in Bugzilla B<3.6>.
+
+=back
+
+=back
+
+=head2 update 
+
+B<EXPERIMENTAL>
+
+=over
+
+=item B<Description>
+
+Updates user accounts in Bugzilla.
+
+=item B<Params>
+
+=over
+
+=item C<ids>
+
+C<array> Contains ids of user to update.
+
+=item C<names>
+
+C<array> Contains email/login of user to update.
+
+=item C<full_name>
+
+C<string> The new name of the user.
+
+=item C<email>
+
+C<string> The email of the user. Note that email used to login to bugzilla.
+Also note that you can only update one user at a time when changing the 
+login name / email. (An error will be thrown if you try to update this field 
+for multiple users at once.)
+
+=item C<password>
+
+C<string> The password of the user.
+
+=item C<email_enabled>
+
+C<boolean> A boolean value to enable/disable sending bug-related mail to the user.
+
+=item C<login_denied_text>
+
+C<string> A text field that holds the reason for disabling a user from logging
+into bugzilla, if empty then the user account is enabled otherwise it is
+disabled/closed.
+
+=back
+
+=item B<Returns>
+
+A C<hash> with a single field "users". This points to an array of hashes
+with the following fields:
+
+=over
+
+=item C<id>
+
+C<int> The id of the user that was updated.
+
+=item C<changes>
+
+C<hash> The changes that were actually done on this user. The keys are
+the names of the fields that were changed, and the values are a hash
+with two keys:
+
+=over
+
+=item C<added>
+
+C<string> The values that were added to this field,
+possibly a comma-and-space-separated list if multiple values were added.
+
+=item C<removed>
+
+C<string> The values that were removed from this field, possibly a 
+comma-and-space-separated list if multiple values were removed.
+
+=back
+
+=back
+
+=item B<Errors>
+
+=over
+
+=item 51 (Bad Login Name)
+
+You passed an invalid login name in the "names" array.
+
+=item 304 (Authorization Required)
+
+Logged-in users are not authorized to edit other users.
 
 =back
 
@@ -583,10 +789,60 @@ C<string> A text field that holds the reason for disabling a user from logging
 into bugzilla, if empty then the user account is enabled. Otherwise it is 
 disabled/closed.
 
+=item groups
+
+C<array> An array of group hashes the user is a member of. Each hash describes
+the group and contains the following items:
+
+=over
+
+=item id
+
+C<int> The group id
+
+=item name
+
+C<string> The name of the group
+
+=item description
+
+C<string> The description for the group
+
+=back
+
+=over
+
+=item saved_searches
+
+C<array> An array of hashes, each of which represents a user's saved search and has
+the following keys:
+
+=over
+
+=item id
+
+C<int> An integer id uniquely identifying the saved search.
+
+=item name
+
+C<string> The name of the saved search.
+
+=item url
+
+C<string> The CGI parameters for the saved search.
+
+=back
+
+B<Note>: The elements of the returned array (i.e. hashes) are ordered by the 
+name of each saved search.
+
+=back
+
 B<Note>: If you are not logged in to Bugzilla when you call this function, you
 will only be returned the C<id>, C<name>, and C<real_name> items. If you are
 logged in and not in editusers group, you will only be returned the C<id>, C<name>, 
-C<real_name>, C<email>, and C<can_login> items.
+C<real_name>, C<email>, and C<can_login> items. The groups returned are filtered
+based on your permission to bless each group.
 
 =back
 
@@ -621,6 +877,10 @@ function.
 
 =item C<include_disabled> added in Bugzilla B<4.0>. Default behavior 
 for C<match> has changed to only returning enabled accounts.
+
+=item C<groups> Added in Bugzilla B<4.4>.
+
+=item C<saved_searches> Added in Bugzilla B<4.4>.
 
 =back
 

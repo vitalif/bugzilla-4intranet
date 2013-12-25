@@ -1,20 +1,10 @@
 #!/usr/bin/perl -w
-# -*- Mode: perl; indent-tabs-mode: nil -*-
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the “License”); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an “AS
-# IS” basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-#
-# Contributor(s): Marc Schumann <wurblzap@gmail.com>
-#                 Mads Bondo Dydensborg <mbd@dbc.dk>
+# This Source Code Form is "Incompatible With Secondary Licenses", as
+# defined by the Mozilla Public License, v. 2.0.
 
 =head1 NAME
 
@@ -55,6 +45,7 @@ my $add_comment;
 my $private;
 my $work_time;
 my $fetch_extension_info = 0;
+my $debug;
 
 GetOptions('help|h|?'       => \$help,
            'uri=s'          => \$Bugzilla_uri,
@@ -68,7 +59,8 @@ GetOptions('help|h|?'       => \$help,
            'comment:s'      => \$add_comment,
            'private:i'      => \$private,
            'worktime:f'     => \$work_time,
-           'extension_info'    => \$fetch_extension_info
+           'extension_info' => \$fetch_extension_info,
+           'debug'          => \$debug
           ) or pod2usage({'-verbose' => 0, '-exitval' => 1});
 
 =head1 OPTIONS
@@ -140,6 +132,10 @@ An optional double precision number specifying the work time for B<--comment>.
 If specified on the command line, the script returns the information about the
 extensions that are installed.
 
+=item --debug
+
+Enable tracing at the debug level of XMLRPC requests and responses.
+
 =back
 
 =head1 DESCRIPTION
@@ -176,6 +172,16 @@ of C<http://your.bugzilla.installation/path/to/bugzilla/xmlrpc.cgi>.
 
 my $proxy = XMLRPC::Lite->proxy($Bugzilla_uri,
                                 'cookie_jar' => $cookie_jar);
+
+=head2 Debugging
+
+Enable tracing at the debug level of XMLRPC requests and responses if requested.
+
+=cut
+
+if ($debug) {
+   $proxy->import(+trace => 'debug');
+}
 
 =head2 Checking Bugzilla's version
 

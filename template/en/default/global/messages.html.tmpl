@@ -1,22 +1,9 @@
-[%# The contents of this file are subject to the Mozilla Public
-  # License Version 1.1 (the "License"); you may not use this file
-  # except in compliance with the License. You may obtain a copy of
-  # the License at http://www.mozilla.org/MPL/
+[%# This Source Code Form is subject to the terms of the Mozilla Public
+  # License, v. 2.0. If a copy of the MPL was not distributed with this
+  # file, You can obtain one at http://mozilla.org/MPL/2.0/.
   #
-  # Software distributed under the License is distributed on an "AS
-  # IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-  # implied. See the License for the specific language governing
-  # rights and limitations under the License.
-  #
-  # The Original Code is the Bugzilla Bug Tracking System.
-  #
-  # The Initial Developer of the Original Code is Netscape Communications
-  # Corporation. Portions created by Netscape are
-  # Copyright (C) 1998 Netscape Communications Corporation. All
-  # Rights Reserved.
-  #
-  # Contributor(s): Gervase Markham <gerv@gerv.net>
-  #                 Max Kanat-Alexander <mkanat@bugzilla.org>
+  # This Source Code Form is "Incompatible With Secondary Licenses", as
+  # defined by the Mozilla Public License, v. 2.0.
   #%]
 
 [%# This is a list of all the possible messages. Please keep them in
@@ -54,9 +41,9 @@
           [% ELSIF field == 'cryptpassword' %]
             A new password has been set.
           [% ELSIF field == 'disabledtext' %]
-            The disable text has been modified.
+            The "login disabled" text has been modified.
           [% ELSIF field == 'is_enabled' %]
-            The user has been [% otheruser.is_enabled ? 'enabled' : 'disabled' %].
+            Logging in with this user account has been [% otheruser.is_enabled ? 'enabled' : 'disabled' %].
           [% ELSIF field == 'extern_id' %]
             The user's External Login ID has been modified.
           [% ELSIF field == 'disable_mail' %]
@@ -79,8 +66,8 @@
 [% END %]
 
 [% BLOCK msg_account_disabled %]
-  The user account [% account | html %] is disabled, so you
-  cannot change its password.
+  Logging in with this user account [% account FILTER html %] is disabled, so
+  you cannot change its password.
 [% END %]
 
 [% BLOCK msg_attachment_creation_failed %]
@@ -228,6 +215,7 @@
     [% IF changes.default_version.defined %]
       <li>Default version updated to '[% comp.default_version | html %]'</li>
     [% END %]
+
     [% IF changes.wiki_url.defined %]
       <li>Wiki URL updated to '[% comp.wiki_url | html %]'</li>
     [% END %]
@@ -270,37 +258,36 @@
 [% BLOCK msg_emailold_change_canceled %]
   [% title = "Cancel Request to Change Email Address" %]
   The request to change the email address for your account to
-  [%+ new_email | html %] has been canceled.
+  [%+ new_email FILTER html %] has been canceled.
 [% END %]
 
 [% BLOCK msg_email_change_canceled %]
   [% title = "Cancel Request to Change Email Address" %]
   The request to change the email address for the
-  account [%+ old_email | html %] to
-  [%+ new_email | html %] has been canceled.
+  account [%+ old_email FILTER html %] to
+  [%+ new_email FILTER html %] has been canceled.
 [% END %]
 
 [% BLOCK msg_email_change_canceled_reinstated %]
   [% title = "Cancel Request to Change Email Address" %]
   The request to change the email address for the
-  account [%+ old_email | html %] to
-  [%+ new_email | html %] has been canceled.
- Your old account settings have been reinstated.
+  account [%+ old_email FILTER html %] to 
+  [%+ new_email FILTER html %] has been canceled.
+  Your old account settings have been reinstated.
 [% END %]
 
 [% BLOCK msg_extension_created %]
-  An extension named [% name | html %] has been created
-  in [% path | html %]. Make sure you change "YOUR NAME" and 
-  "YOUR EMAIL ADDRESS" in the code to your name and your email address.
+  An extension named [% name FILTER html %] has been created
+  in [% path FILTER html %].
 [% END %]
 
 [% BLOCK msg_field_value_created %]
   [% title = "New Field Value Created" %]
-  The value <em>[% value.name | html %]</em> has been added as a
-  valid choice for the <em>[% field.description | html %]</em>
-  (<em>[% field.name | html %]</em>) field.
+  The value <em>[% value.name FILTER html %]</em> has been added as a 
+  valid choice for the <em>[% field.description FILTER html %]</em>
+  (<em>[% field.name FILTER html %]</em>) field.
   [% IF field.name == "bug_status" %]
-    You should now visit the <a href="editworkflow.cgi">status workflow
+    You should now visit the <a href="editworkflow.cgi">status workflow 
     page</a> to include your new [% terms.bug %] status.
   [% END %]
 [% END %]
@@ -607,7 +594,7 @@
       Changed <em>[% param FILTER html %]</em><br>
       [% IF param == 'utf8' && Param('utf8') %]
         <strong>You must now re-run <kbd>checksetup.pl</kbd>.</strong><br>
-      [% END %]
+	  [% END %]
     [% END %]
   [% ELSE %]
     No changes made.

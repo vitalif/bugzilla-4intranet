@@ -1,28 +1,10 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-# 
-# The Initial Developer of the Original Code is Netscape Communications
-# Corporation. Portions created by Netscape are Copyright (C) 1998
-# Netscape Communications Corporation. All Rights Reserved.
-# 
-# Contributor(s): Terry Weissman <terry@mozilla.org>
-#                 Dave Miller <justdave@syndicomm.com>
-#                 Joe Robins <jmrobins@tgix.com>
-#                 Gervase Markham <gerv@gerv.net>
-#                 Shane H. W. Travis <travis@sedsystems.ca>
-#                 Nitish Bezzala <nbezzala@yahoo.com>
+# This Source Code Form is "Incompatible With Secondary Licenses", as
+# defined by the Mozilla Public License, v. 2.0.
 
 ##############################################################################
 #
@@ -52,6 +34,8 @@ use Bugzilla::Token;
 use Bugzilla::Field;
 use Bugzilla::Status;
 use Bugzilla::UserAgent;
+
+use List::MoreUtils qw(none);
 
 my $user = Bugzilla->login(LOGIN_REQUIRED);
 
@@ -267,9 +251,10 @@ if ($cloned_bug_id) {
     } elsif (defined $cloned_bug->cc) {
         @cc = @{$cloned_bug->cc};
     }
-
-    if ($cloned_bug->reporter->id != $user->id) {
-        push @cc, $cloned_bug->reporter->login;
+    
+    if ($cloned_bug->reporter->id != $user->id
+        && none { $_ eq $cloned_bug->reporter->login } @{$cloned_bug->cc}) {
+        $vars->{'cc'} = join (", ", $cloned_bug->reporter->login, $vars->{'cc'}); 
     }
 
     # CustIS Bug 38616 - CC list restriction
@@ -498,5 +483,4 @@ my $format = $template->get_format("bug/create/create",
 
 $cgi->send_header($format->{'ctype'});
 $template->process($format->{'template'}, $vars)
-  || ThrowTemplateError($template->error());
-exit;
+  || ThrowTemplateError($template->error());          

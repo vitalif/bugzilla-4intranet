@@ -1,23 +1,9 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-#
-# The Initial Developer of the Original Code is Everything Solved, Inc.
-# Portions created by the Initial Developer are Copyright (C) 2008
-# the Initial Developer. All Rights Reserved.
-#
-# Contributor(s): 
-#   Max Kanat-Alexander <mkanat@bugzilla.org>
+# This Source Code Form is "Incompatible With Secondary Licenses", as
+# defined by the Mozilla Public License, v. 2.0.
 
 package Bugzilla::WebService::Util;
 use strict;
@@ -36,21 +22,23 @@ our @EXPORT_OK = qw(
     params_to_objects
 );
 
-sub filter ($$) {
-    my ($params, $hash) = @_;
+sub filter ($$;$) {
+    my ($params, $hash, $prefix) = @_;
     my %newhash = %$hash;
 
     foreach my $key (keys %$hash) {
-        delete $newhash{$key} if !filter_wants($params, $key);
+        delete $newhash{$key} if !filter_wants($params, $key, $prefix);
     }
 
     return \%newhash;
 }
 
-sub filter_wants ($$) {
-    my ($params, $field) = @_;
+sub filter_wants ($$;$) {
+    my ($params, $field, $prefix) = @_;
     my %include = map { $_ => 1 } @{ $params->{'include_fields'} || [] };
     my %exclude = map { $_ => 1 } @{ $params->{'exclude_fields'} || [] };
+
+    $field = "${prefix}.${field}" if $prefix;
 
     if (defined $params->{include_fields}) {
         return 0 if !$include{$field};
@@ -122,11 +110,12 @@ sub translate {
 
 sub params_to_objects {
     my ($params, $class) = @_;
+    my (@objects, @objects_by_ids);
 
-    my @objects = map { $class->check($_) } 
+    @objects = map { $class->check($_) } 
         @{ $params->{names} } if $params->{names};
 
-    my @objects_by_ids = map { $class->check({ id => $_ }) } 
+    @objects_by_ids = map { $class->check({ id => $_ }) } 
         @{ $params->{ids} } if $params->{ids};
 
     push(@objects, @objects_by_ids);
@@ -162,6 +151,13 @@ This helps implement the C<include_fields> and C<exclude_fields> arguments
 of WebService methods. Given a hash (the second argument to this subroutine),
 this will remove any keys that are I<not> in C<include_fields> and then remove
 any keys that I<are> in C<exclude_fields>.
+
+An optional third option can be passed that prefixes the field name to allow
+filtering of data two or more levels deep.
+
+For example, if you want to filter out the C<id> key/value in components returned
+by Product.get, you would use the value C<component.id> in your C<exclude_fields>
+list.
 
 =head2 filter_wants
 

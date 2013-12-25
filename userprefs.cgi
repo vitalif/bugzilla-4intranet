@@ -1,26 +1,10 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-#
-# Contributor(s): Terry Weissman <terry@mozilla.org>
-#                 Dan Mosedale <dmose@mozilla.org>
-#                 Alan Raetz <al_raetz@yahoo.com>
-#                 David Miller <justdave@syndicomm.com>
-#                 Christopher Aillon <christopher@aillon.com>
-#                 Gervase Markham <gerv@gerv.net>
-#                 Vlad Dascalu <jocuri@softhome.net>
-#                 Shane H. W. Travis <travis@sedsystems.ca>
+# This Source Code Form is "Incompatible With Secondary Licenses", as
+# defined by the Mozilla Public License, v. 2.0.
 
 use strict;
 
@@ -49,8 +33,7 @@ sub DoAccount {
     my $dbh = Bugzilla->dbh;
     my $user = Bugzilla->user;
 
-    ($vars->{'realname'}) = $dbh->selectrow_array(
-        "SELECT realname FROM profiles WHERE userid = ?", undef, $user->id);
+    $vars->{'realname'} = $user->name;
 
     if (Bugzilla->params->{'allowemailchange'}
         && $user->authorizer->can_change_email)
@@ -81,6 +64,9 @@ sub DoAccount {
 sub SaveAccount {
     my $cgi = Bugzilla->cgi;
     my $dbh = Bugzilla->dbh;
+    
+    $dbh->bz_start_transaction;
+
     my $user = Bugzilla->user;
 
     my $oldpassword = $cgi->param('old_password');
@@ -103,12 +89,7 @@ sub SaveAccount {
             validate_password($pwd1, $pwd2);
 
             if ($oldpassword ne $pwd1) {
-                my $cryptedpassword = bz_crypt($pwd1);
-                $dbh->do(q{UPDATE profiles
-                              SET cryptpassword = ?
-                            WHERE userid = ?},
-                         undef, ($cryptedpassword, $user->id));
-
+                $user->set_password($pwd1);
                 # Invalidate all logins except for the current one
                 Bugzilla->logout(LOGOUT_KEEP_CURRENT);
             }
@@ -128,8 +109,7 @@ sub SaveAccount {
             }
 
             # Before changing an email address, confirm one does not exist.
-            validate_email_syntax($new_login_name)
-              || ThrowUserError('illegal_email_address', {addr => $new_login_name});
+            check_email_syntax($new_login_name);
             is_available_username($new_login_name)
               || ThrowUserError("account_exists", {email => $new_login_name});
 
@@ -139,10 +119,9 @@ sub SaveAccount {
         }
     }
 
-    my $realname = trim($cgi->param('realname'));
-    trick_taint($realname); # Only used in a placeholder
-    $dbh->do("UPDATE profiles SET realname = ? WHERE userid = ?",
-             undef, ($realname, $user->id));
+    $user->set_name($cgi->param('realname'));
+    $user->update({ keep_session => 1, keep_tokens => 1 });
+    $dbh->bz_commit_transaction;
 }
 
 sub DoSettings {
@@ -521,6 +500,16 @@ check_token_data($token, 'edit_user_prefs') if $save_changes;
 
 # Do any saving, and then display the current tab.
 SWITCH: for ($current_tab_name) {
+
+    # Extensions must set it to 1 to confirm the tab is valid.
+    my $handled = 0;
+    Bugzilla::Hook::process('user_preferences',
+                            { 'vars'       => $vars,
+                              save_changes => $save_changes,
+                              current_tab  => $current_tab_name,
+                              handled      => \$handled });
+    last SWITCH if $handled;
+
     /^account$/ && do {
         SaveAccount() if $save_changes;
         DoAccount();
@@ -545,14 +534,6 @@ SWITCH: for ($current_tab_name) {
         DoSavedSearches();
         last SWITCH;
     };
-    # Extensions must set it to 1 to confirm the tab is valid.
-    my $handled = 0;
-    Bugzilla::Hook::process('user_preferences',
-                            { 'vars'       => $vars,
-                              save_changes => $save_changes,
-                              current_tab  => $current_tab_name,
-                              handled      => \$handled });
-    last SWITCH if $handled;
 
     ThrowUserError("unknown_tab",
                    { current_tab_name => $current_tab_name });

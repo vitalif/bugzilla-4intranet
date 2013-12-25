@@ -1,25 +1,9 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-#
-# The Initial Developer of the Original Code is Netscape Communications
-# Corporation. Portions created by Netscape are
-# Copyright (C) 1998 Netscape Communications Corporation. All
-# Rights Reserved.
-#
-# Contributor(s): Bradley Baetz <bbaetz@student.usyd.edu.au>
-#                 Byron Jones <bugzilla@glob.com.au>
-#                 Marc Schumann <wurblzap@gmail.com>
+# This Source Code Form is "Incompatible With Secondary Licenses", as
+# defined by the Mozilla Public License, v. 2.0.
 
 package Bugzilla::CGI;
 use strict;
@@ -72,6 +56,11 @@ sub new {
 
     # Make sure our outgoing cookie list is empty on each invocation
     $self->{Bugzilla_cookie_list} = [];
+
+    # Path-Info is of no use for Bugzilla and interacts badly with IIS.
+    # Moreover, it causes unexpected behaviors, such as totally breaking
+    # the rendering of pages. Skip it!
+    print $self->redirect($self->url(-path => 0, -query => 1)) if $self->path_info;
 
     # Send appropriate charset
     $self->charset(Bugzilla->params->{'utf8'} ? 'UTF-8' : '');
@@ -209,7 +198,10 @@ sub clean_search_url {
 
     # list_id is added in buglist.cgi after calling clean_search_url,
     # and doesn't need to be saved in saved searches.
-    $self->delete('list_id'); 
+    $self->delete('list_id');
+
+    # no_redirect is used internally by redirect_search_url().
+    $self->delete('no_redirect');
 
     # And now finally, if query_format is our only parameter, that
     # really means we have no parameters, so we should delete query_format.
@@ -236,35 +228,6 @@ sub check_etag {
             exit;
         }
     }
-}
-
-# Overwrite to ensure nph doesn't get set, and unset HEADERS_ONCE
-sub multipart_init {
-    my $self = shift;
-
-    # Keys are case-insensitive, map to lowercase
-    my %args = @_;
-    my %param;
-    foreach my $key (keys %args) {
-        $param{lc $key} = $args{$key};
-    }
-
-    # Set the MIME boundary and content-type
-    my $boundary = $param{'-boundary'}
-        || '------- =_' . generate_random_password(16);
-    delete $param{'-boundary'};
-    $self->{'separator'} = "\r\n--$boundary\r\n";
-    $self->{'final_separator'} = "\r\n--$boundary--\r\n";
-    $param{'-type'} = SERVER_PUSH($boundary);
-
-    # Note: CGI.pm::multipart_init up to v3.04 explicitly set nph to 0
-    # CGI.pm::multipart_init v3.05 explicitly sets nph to 1
-    # CGI.pm's header() sets nph according to a param or $CGI::NPH, which
-    # is the desired behaviour.
-
-    return $self->header(
-        %param,
-    ) . "WARNING: YOUR BROWSER DOESN'T SUPPORT THIS SERVER-PUSH TECHNOLOGY." . $self->multipart_end;
 }
 
 # Have to add the cookies in.
@@ -334,6 +297,10 @@ sub header {
     # Add X-XSS-Protection header to prevent simple XSS attacks
     # and enforce the blocking (rather than the rewriting) mode.
     unshift(@_, '-x_xss_protection' => '1; mode=block');
+
+    # Add X-Content-Type-Options header to prevent browsers sniffing
+    # the MIME type away from the declared Content-Type.
+    unshift(@_, '-x_content_type_options' => 'nosniff');
 
     return $self->SUPER::header(@_) || "";
 }
@@ -487,6 +454,10 @@ sub remove_cookie {
 # URLs that get POSTed to buglist.cgi.
 sub redirect_search_url {
     my $self = shift;
+
+    # If there is no parameter, there is nothing to do.
+    return unless $self->param;
+
     # If we're retreiving an old list, we never need to redirect or
     # do anything related to Bugzilla::Search::Recent.
     return if $self->param('regetlastlist');
@@ -510,6 +481,7 @@ sub redirect_search_url {
         return;
     }
 
+    my $no_redirect = $self->param('no_redirect');
     $self->clean_search_url();
 
     # Make sure we still have params still after cleaning otherwise we 
@@ -522,6 +494,10 @@ sub redirect_search_url {
         my $recent_search = Bugzilla::Search::Recent->create_placeholder;
         $self->param('list_id', $recent_search->id);
     }
+
+    # Browsers which support history.replaceState do not need to be
+    # redirected. We can fix the URL on the fly.
+    return if $no_redirect;
 
     # GET requests that lacked a list_id are always redirected. POST requests
     # are only redirected if they're under the CGI_URI_LIMIT though.

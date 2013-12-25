@@ -1,29 +1,10 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-#
-# The Initial Developer of the Original Code is Netscape Communications
-# Corporation. Portions created by Netscape are
-# Copyright (C) 1998 Netscape Communications Corporation. All
-# Rights Reserved.
-#
-# Contributor(s): Dawn Endico <endico@mozilla.org>
-#                 Gregary Hendricks <ghendricks@novell.com>
-#                 Vance Baarda <vrb@novell.com>
-#                 Guzman Braso <gbn@hqso.net>
-#                 Erik Purins <epurins@day1studios.com>
-#                 Frédéric Buclin <LpSolit@gmail.com>
+# This Source Code Form is "Incompatible With Secondary Licenses", as
+# defined by the Mozilla Public License, v. 2.0.
 
 # This script reads in xml bug data from standard input and inserts
 # a new bug into bugzilla. Everything before the beginning <?xml line
@@ -96,13 +77,16 @@ my $debug = 0;
 my $mail  = '';
 my $attach_path = '';
 my $help  = 0;
-my ($default_product_name, $default_component_name);
+my $bug_page = 'show_bug.cgi?id=';
+my $default_product_name = '';
+my $default_component_name = '';
 
 my $result = GetOptions(
     "verbose|debug+" => \$debug,
     "mail|sendmail!" => \$mail,
     "attach_path=s"  => \$attach_path,
     "help|?"         => \$help,
+    "bug_page=s"     => \$bug_page,
     "product=s"      => \$default_product_name,
     "component=s"    => \$default_component_name,
 );
@@ -120,9 +104,6 @@ my $xml;
 my $dbh = Bugzilla->dbh;
 my $params = Bugzilla->params;
 my ($timestamp) = $dbh->selectrow_array("SELECT NOW()");
-
-$default_product_name = '' if !defined $default_product_name;
-$default_component_name = '' if !defined $default_component_name;
 
 ###############################################################################
 # Helper sub routines                                                         #
@@ -430,6 +411,8 @@ sub process_bug {
     my $exporter         = new Bugzilla::User({ name => $exporter_login });
     my $exporterid       = $exporter->id;
     my $urlbase          = $root->{'att'}->{'urlbase'};
+    my $url              = $urlbase . $bug_page;
+    trick_taint($url);
 
     # We will store output information in this variable.
     my $log = "";
@@ -531,7 +514,6 @@ sub process_bug {
         # Same goes for bug #'s Since we don't know if the referenced bug
         # is also being moved, lets make sure they know it means a different
         # bugzilla.
-        my $url = $urlbase . "show_bug.cgi?id=";
         $data =~ s/([Bb]ugs?\s*\#?\s*(\d+))/$url$2/g;
 
         # Keep the original commenter if possible, else we will fall back
@@ -552,16 +534,10 @@ sub process_bug {
     $comments .= format_time(scalar localtime(time()), '%Y-%m-%d %R %Z') . " ";
     $comments .= " ---\n\n";
     $comments .= "This bug was previously known as _bug_ $bug_fields{'bug_id'} at ";
-    $comments .= $urlbase . "show_bug.cgi?id=" . $bug_fields{'bug_id'} . "\n";
-    if (defined $bug_fields{dependson})
-    {
-        my @dependson = _to_array($bug_fields{dependson});
-        $comments .= "This bug depended on bug(s) " . join(' ', @dependson) . ".\n";
-        if ($bug_fields{bug_id})
-        {
-            # remember dependencies to add them later
-            $depends_to_import{$bug_fields{bug_id}}{$_} = 1 for @dependson;
-        }
+    $comments .= $url . $bug_fields{'bug_id'} . "\n";
+    if ( defined $bug_fields{'dependson'} ) {
+        $comments .= "This bug depended on bug(s) " .
+                     join(' ', _to_array($bug_fields{'dependson'})) . ".\n";
     }
     if (defined $bug_fields{blocked})
     {
@@ -879,7 +855,6 @@ sub process_bug {
     my $valid_status = check_field('bug_status',  
                                   scalar $bug_fields{'bug_status'}, 
                                   undef, ERR_LEVEL );
-    my $is_open = is_open_state($bug_fields{'bug_status'}); 
     my $status = $bug_fields{'bug_status'} || undef;
     my $resolution = $bug_fields{'resolution'} || undef;
     
@@ -929,7 +904,7 @@ sub process_bug {
 
     if ($status) {
         if($valid_status){
-            if($is_open){
+            if (is_open_state($status)) {
                 if ($resolution) {
                     $err .= "Resolution set on an open status.\n";
                     $err .= "   Dropping resolution $resolution\n";
@@ -963,7 +938,7 @@ sub process_bug {
                     }
                 }
             }
-            else{ # $is_open is false
+            else {
                if (!$resolution) {
                    $err .= "Missing Resolution. Setting status to ";
                    if($everconfirmed){
@@ -1248,10 +1223,7 @@ sub process_bug {
         }
     }
 
-    # Remember ID to new ID transition
-    $was_known_as_id{$bug_fields{bug_id}} = $id if $bug_fields{bug_id};
-
-    $log .= "Bug ${urlbase}show_bug.cgi?id=$bug_fields{'bug_id'} ";
+    $log .= "Bug ${url}$bug_fields{'bug_id'} ";
     $log .= "imported as bug $id.\n";
     $log .= $params->{"urlbase"} . "show_bug.cgi?id=$id\n\n";
     if ($err) {
@@ -1376,6 +1348,13 @@ Send mail to exporter with a log of bugs imported and any errors.
 The path to the attachment files. (Required if encoding="filename"
 is used for attachments.)
 
+=item B<--bug_page>
+
+The page that links to the bug on top of urlbase. Its default value
+is "show_bug.cgi?id=", which is what Bugzilla installations use.
+You only need to pass this argument if you are importing bugs from
+another bug tracking system.
+
 =item B<--product=name>
 
 The product to put the bug in if the product specified in the
@@ -1410,4 +1389,3 @@ XML doesn't exist.
      importxml.pl [options] bugsfile.xml
 
 =cut
-

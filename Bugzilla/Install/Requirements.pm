@@ -1,19 +1,9 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-#
-# Contributor(s): Max Kanat-Alexander <mkanat@bugzilla.org>
-#                 Marc Schumann <wurblzap@gmail.com>
+# This Source Code Form is "Incompatible With Secondary Licenses", as
+# defined by the Mozilla Public License, v. 2.0.
 
 package Bugzilla::Install::Requirements;
 
@@ -102,10 +92,11 @@ sub REQUIRED_MODULES {
         module  => 'Digest::SHA',
         version => 0
     },
+    # 0.23 fixes incorrect handling of 1/2 & 3/4 timezones.
     {
         package => 'TimeDate',
         module  => 'Date::Format',
-        version => '2.21'
+        version => '2.23'
     },
     # 0.28 fixed some important bugs in DateTime.
     {
@@ -388,10 +379,23 @@ sub OPTIONAL_MODULES {
     {
         package => 'Apache-SizeLimit',
         module  => 'Apache2::SizeLimit',
-        # 0.93 fixes problems on Linux and Windows, and changes the
-        # syntax used by SizeLimit.
-        version => '0.93',
+        # 0.96 properly determines process size on Linux.
+        version => '0.96',
         feature => ['mod_perl'],
+    },
+
+    # typesniffer
+    {
+        package => 'File-MimeInfo',
+        module  => 'File::MimeInfo::Magic',
+        version => '0',
+        feature => ['typesniffer'],
+    },
+    {
+        package => 'IO-stringy',
+        module  => 'IO::Scalar',
+        version => '0',
+        feature => ['typesniffer'],
     },
     );
 

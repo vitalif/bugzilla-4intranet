@@ -1,25 +1,9 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-#
-# The Initial Developer of the Original Code is Netscape Communications
-# Corporation. Portions created by Netscape are
-# Copyright (C) 1998 Netscape Communications Corporation. All
-# Rights Reserved.
-#
-# Contributor(s): Myk Melez <myk@mozilla.org>
-#                 Jouni Heikniemi <jouni@heikniemi.net>
-#                 Frédéric Buclin <LpSolit@gmail.com>
+# This Source Code Form is "Incompatible With Secondary Licenses", as
+# defined by the Mozilla Public License, v. 2.0.
 
 use strict;
 
@@ -75,20 +59,27 @@ use base qw(Bugzilla::Object Exporter);
 use constant DB_TABLE => 'flags';
 use constant LIST_ORDER => 'id';
 # Flags are tracked in bugs_activity.
+use constant AUDIT_CREATES => 0;
 use constant AUDIT_UPDATES => 0;
+use constant AUDIT_REMOVES => 0;
 
 use constant SKIP_REQUESTEE_ON_ERROR => 1;
 
-use constant DB_COLUMNS => qw(
-    id
-    type_id
-    bug_id
-    attach_id
-    requestee_id
-    setter_id
-    status
-    creation_date
-);
+sub DB_COLUMNS {
+    my $dbh = Bugzilla->dbh;
+    return qw(
+        id
+        type_id
+        bug_id
+        attach_id
+        requestee_id
+        setter_id
+        status), 
+        $dbh->sql_date_format('creation_date', '%Y.%m.%d %H:%i:%s') .
+                              ' AS creation_date', 
+        $dbh->sql_date_format('modification_date', '%Y.%m.%d %H:%i:%s') .
+                              ' AS modification_date';
+}
 
 use constant UPDATE_COLUMNS => qw(
     requestee_id
@@ -133,6 +124,14 @@ Returns the ID of the attachment this flag belongs to, if any.
 
 Returns the status '+', '-', '?' of the flag.
 
+=item C<creation_date>
+
+Returns the timestamp when the flag was created.
+
+=item C<modification_date>
+
+Returns the timestamp when the flag was last modified.
+
 =back
 
 =cut
@@ -145,6 +144,8 @@ sub attach_id    { return $_[0]->{'attach_id'};    }
 sub status       { return $_[0]->{'status'};       }
 sub setter_id    { return $_[0]->{'setter_id'};    }
 sub requestee_id { return $_[0]->{'requestee_id'}; }
+sub creation_date     { return $_[0]->{'creation_date'};     }
+sub modification_date { return $_[0]->{'modification_date'}; }
 
 ###############################
 ####       Methods         ####
@@ -430,10 +431,14 @@ Creates a flag record in the database.
 
 sub create {
     my ($class, $flag, $timestamp) = @_;
-    $timestamp ||= Bugzilla->dbh->selectrow_array('SELECT NOW()');
+    $timestamp ||= Bugzilla->dbh->selectrow_array('SELECT LOCALTIMESTAMP(0)');
 
     my $params = {};
     my @columns = grep { $_ ne 'id' } $class->_get_db_columns;
+
+    # Some columns use date formatting so use alias instead
+    @columns = map { /\s+AS\s+(.*)$/ ? $1 : $_ } @columns;
+
     $params->{$_} = $flag->{$_} foreach @columns;
 
     $params->{creation_date} = $params->{modification_date} = $timestamp;
@@ -452,6 +457,7 @@ sub update {
     if (scalar(keys %$changes)) {
         $dbh->do('UPDATE flags SET modification_date = ? WHERE id = ?',
                  undef, ($timestamp, $self->id));
+        $self->{'modification_date'} = format_time($timestamp, '%Y.%m.%d %T');
     }
     return $changes;
 }

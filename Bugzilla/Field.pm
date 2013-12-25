@@ -1,21 +1,9 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-#
-# Contributor(s): Dan Mosedale <dmose@mozilla.org>
-#                 Frédéric Buclin <LpSolit@gmail.com>
-#                 Myk Melez <myk@mozilla.org>
-#                 Greg Hendricks <ghendricks@novell.com>
+# This Source Code Form is "Incompatible With Secondary Licenses", as
+# defined by the Mozilla Public License, v. 2.0.
 
 =head1 NAME
 
@@ -95,6 +83,7 @@ use constant DB_COLUMNS => qw(
     id
     name
     description
+    long_desc
     type
     custom
     mailhead
@@ -117,6 +106,7 @@ use constant DB_COLUMNS => qw(
 use constant VALIDATORS => {
     custom       => \&_check_custom,
     description  => \&_check_description,
+    long_desc    => \&_check_long_desc,
     enter_bug    => \&_check_enter_bug,
     buglist      => \&Bugzilla::Object::check_boolean,
     name         => \&_check_name,
@@ -142,6 +132,7 @@ use constant VALIDATOR_DEPENDENCIES => {
 
 use constant UPDATE_COLUMNS => qw(
     description
+    long_desc
     mailhead
     sortkey
     obsolete
@@ -273,7 +264,8 @@ use constant DEFAULT_FIELDS => (
     {name => "owner_idle_time",       desc => "Time Since Assignee Touched"},
     {name => 'see_also',              desc => "See Also",
      type => FIELD_TYPE_BUG_URLS},
-    {name => 'tag',                   desc => 'Tags'},
+    {name => 'tag',                   desc => 'Tags', buglist => 1,
+     type => FIELD_TYPE_KEYWORDS},
 );
 
 ################
@@ -299,6 +291,15 @@ sub _check_description {
     $desc = clean_text($desc);
     $desc || ThrowUserError('field_missing_description');
     return $desc;
+}
+
+sub _check_long_desc {
+    my ($invocant, $long_desc) = @_;
+    $long_desc = clean_text($long_desc || '');
+    if (length($long_desc) > MAX_FIELD_LONG_DESC_LENGTH) {
+        ThrowUserError('field_long_desc_too_long');
+    }
+    return $long_desc;
 }
 
 sub _check_enter_bug { return $_[1] ? 1 : 0; }
@@ -467,6 +468,18 @@ on the "show bug" page;
 =cut
 
 sub description { return $_[0]->{description} }
+
+=over
+
+=item C<long_desc>
+
+A string providing detailed info about the field;
+
+=back
+
+=cut
+
+sub long_desc { return $_[0]->{long_desc} }
 
 =over
 
@@ -933,6 +946,8 @@ They will throw an error if you try to set the values to something invalid.
 
 =item C<set_description>
 
+=item C<set_long_desc>
+
 =item C<set_enter_bug>
 
 =item C<set_clone_bug>
@@ -961,6 +976,7 @@ They will throw an error if you try to set the values to something invalid.
 =cut
 
 sub set_description    { $_[0]->set('description', $_[1]); }
+sub set_long_desc      { $_[0]->set('long_desc',   $_[1]); }
 sub set_enter_bug      { $_[0]->set('enter_bug',   $_[1]); }
 sub set_clone_bug      { $_[0]->set('clone_bug',   $_[1]); }
 sub set_is_numeric     { $_[0]->set('is_numeric',  $_[1]); }
@@ -1103,6 +1119,8 @@ Just like L<Bugzilla::Object/create>. Takes the following parameters:
 =item C<name> B<Required> - The name of the field.
 
 =item C<description> B<Required> - The field label to display in the UI.
+
+=item C<long_desc> - A longer description of the field.
 
 =item C<mailhead> - boolean - Whether this field appears at the
 top of the bugmail for a newly-filed bug. Defaults to 0.

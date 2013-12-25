@@ -1,25 +1,10 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-#
-# The Initial Developer of the Original Code is Netscape Communications
-# Corporation. Portions created by Netscape are
-# Copyright (C) 1998 Netscape Communications Corporation. All
-# Rights Reserved.
-#
-# Contributor(s): Myk Melez <myk@mozilla.org>
-#                 Frédéric Buclin <LpSolit@gmail.com>
+# This Source Code Form is "Incompatible With Secondary Licenses", as
+# defined by the Mozilla Public License, v. 2.0.
 
 use strict;
 use lib qw(. lib);
@@ -132,9 +117,7 @@ sub requestChangePassword {
     my $login_name = $cgi->param('loginname')
       or ThrowUserError("login_needed_for_password_change");
 
-    validate_email_syntax($login_name)
-      || ThrowUserError('illegal_email_address', {addr => $login_name});
-
+    check_email_syntax($login_name);
     my $user = Bugzilla::User->check($login_name);
 
     # Make sure the user account is active.
@@ -205,13 +188,20 @@ sub confirmChangeEmail {
 sub changeEmail {
     my ($userid, $eventdata, $token) = @_;
     my $dbh = Bugzilla->dbh;
-
     my ($old_email, $new_email) = split(/:/,$eventdata);
 
-    # Check the user entered the correct old email address
-    if (lc($cgi->param('email')) ne lc($old_email)) {
-        ThrowUserError("email_confirmation_failed");
+    $dbh->bz_start_transaction();
+    
+    my $user = Bugzilla::User->check({ id => $userid });
+    my $realpassword = $user->cryptpassword;
+    my $cgipassword  = $cgi->param('password');
+
+    # Make sure the user who wants to change the email address
+    # is the real account owner.
+    if (bz_crypt($cgipassword, $realpassword) ne $realpassword) {
+        ThrowUserError("old_password_incorrect");
     }
+
     # The new email address should be available as this was 
     # confirmed initially so cancel token if it is not still available
     if (! is_available_username($new_email,$old_email)) {
@@ -220,20 +210,12 @@ sub changeEmail {
         ThrowUserError("account_exists", { email => $new_email } );
     } 
 
-    # Update the user's login name in the profiles table and delete the token
-    # from the tokens table.
-    $dbh->bz_start_transaction();
-    $dbh->do(q{UPDATE   profiles
-               SET      login_name = ?
-               WHERE    userid = ?},
-             undef, ($new_email, $userid));
+    # Update the user's login name in the profiles table.
+    $user->set_login($new_email);
+    $user->update({ keep_session => 1, keep_tokens => 1 });
     delete_token($token);
     $dbh->do(q{DELETE FROM tokens WHERE userid = ?
                AND tokentype = 'emailnew'}, undef, $userid);
-
-    # The email address has been changed, so we need to rederive the groups
-    my $user = new Bugzilla::User($userid);
-    $user->derive_regexp_groups;
 
     $dbh->bz_commit_transaction();
 
@@ -259,9 +241,7 @@ sub cancelChangeEmail {
         # check to see if it has been altered
         if ($user->login ne $old_email) {
             $user->set_login($old_email);
-            $user->update();
-            # email has changed, so rederive groups
-            $user->derive_regexp_groups;
+            $user->update({ keep_session => 1 });
 
             $vars->{'message'} = "email_change_canceled_reinstated";
         } 

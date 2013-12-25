@@ -1,35 +1,9 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-#
-# The Initial Developer of the Original Code is Netscape Communications
-# Corporation. Portions created by Netscape are
-# Copyright (C) 1998 Netscape Communications Corporation. All
-# Rights Reserved.
-#
-# Contributor(s): Myk Melez <myk@mozilla.org>
-#                 Erik Stambaugh <erik@dasbistro.com>
-#                 Bradley Baetz <bbaetz@acm.org>
-#                 Joel Peshkin <bugreport@peshkin.net>
-#                 Byron Jones <bugzilla@glob.com.au>
-#                 Shane H. W. Travis <travis@sedsystems.ca>
-#                 Max Kanat-Alexander <mkanat@bugzilla.org>
-#                 Gervase Markham <gerv@gerv.net>
-#                 Lance Larsh <lance.larsh@oracle.com>
-#                 Justin C. De Vries <judevries@novell.com>
-#                 Dennis Melentyev <dennis.melentyev@infopulse.com.ua>
-#                 Frédéric Buclin <LpSolit@gmail.com>
-#                 Mads Bondo Dydensborg <mbd@dbc.dk>
+# This Source Code Form is "Incompatible With Secondary Licenses", as
+# defined by the Mozilla Public License, v. 2.0.
 
 ################################################################################
 # Module Initialization
@@ -94,16 +68,21 @@ use constant DB_TABLE => 'profiles';
 # that you passed in for "name" to new(). That's because historically
 # Bugzilla::User used "name" for the realname field. This should be
 # fixed one day.
-use constant DB_COLUMNS => (
-    'profiles.userid',
-    'profiles.login_name',
-    'profiles.realname',
-    'profiles.mybugslink AS showmybugslink',
-    'profiles.disabledtext',
-    'profiles.disable_mail',
-    'profiles.extern_id',
-    'profiles.is_enabled', 
-);
+sub DB_COLUMNS {
+    my $dbh = Bugzilla->dbh;
+    return (
+        'profiles.userid',
+        'profiles.login_name',
+        'profiles.realname',
+        'profiles.mybugslink AS showmybugslink',
+        'profiles.disabledtext',
+        'profiles.disable_mail',
+        'profiles.extern_id',
+        'profiles.is_enabled',
+        $dbh->sql_date_format('last_seen_date', '%Y-%m-%d') . ' AS last_seen_date',
+    ),
+}
+
 use constant NAME_FIELD => 'login_name';
 use constant ID_FIELD   => 'userid';
 use constant LIST_ORDER => NAME_FIELD;
@@ -112,7 +91,7 @@ use constant VALIDATORS => {
     cryptpassword => \&_check_password,
     disable_mail  => \&_check_disable_mail,
     disabledtext  => \&_check_disabledtext,
-    login_name    => \&check_login_name_for_creation,
+    login_name    => \&check_login_name,
     realname      => \&_check_realname,
     extern_id     => \&_check_extern_id,
     is_enabled    => \&_check_is_enabled, 
@@ -182,20 +161,25 @@ sub is_super_user
 
 sub update {
     my $self = shift;
+    my $options = shift;
+    
     my $changes = $self->SUPER::update(@_);
     my $dbh = Bugzilla->dbh;
 
     if (exists $changes->{login_name}) {
-        # If we changed the login, silently delete any tokens.
-        $dbh->do('DELETE FROM tokens WHERE userid = ?', undef, $self->id);
+        # Delete all the tokens related to the userid
+        $dbh->do('DELETE FROM tokens WHERE userid = ?', undef, $self->id)
+          unless $options->{keep_tokens};
         # And rederive regex groups
         $self->derive_regexp_groups();
     }
 
     # Logout the user if necessary.
-    Bugzilla->logout_user($self)
-        if (exists $changes->{login_name} || exists $changes->{disabledtext}
-            || exists $changes->{cryptpassword});
+    Bugzilla->logout_user($self) 
+        if (!$options->{keep_session}
+            && (exists $changes->{login_name}
+                || exists $changes->{disabledtext}
+                || exists $changes->{cryptpassword}));
 
     # XXX Can update profiles_activity here as soon as it understands
     #     field names like login_name.
@@ -228,16 +212,17 @@ sub _check_extern_id {
 
 # This is public since createaccount.cgi needs to use it before issuing
 # a token for account creation.
-sub check_login_name_for_creation {
+sub check_login_name {
     my ($invocant, $name) = @_;
     $name = trim($name);
     $name || ThrowUserError('user_login_required');
-    validate_email_syntax($name)
-        || ThrowUserError('illegal_email_address', { addr => $name });
+    check_email_syntax($name);
 
     # Check the name if it's a new user, or if we're changing the name.
     if (!ref($invocant) || $invocant->login ne $name) {
-        is_available_username($name)
+        my @params = ($name);
+        push(@params, $invocant->login) if ref($invocant);
+        is_available_username(@params)
             || ThrowUserError('account_exists', { email => $name });
     }
 
@@ -296,6 +281,23 @@ sub set_disabledtext {
     $_[0]->set('is_enabled', $_[1] ? 0 : 1);
 }
 
+sub update_last_seen_date {
+    my $self = shift;
+    return unless $self->id;
+    my $dbh = Bugzilla->dbh;
+    my $date = $dbh->selectrow_array(
+        'SELECT ' . $dbh->sql_date_format('NOW()', '%Y-%m-%d'));
+
+    if (!$self->last_seen_date or $date ne $self->last_seen_date) {
+        $self->{last_seen_date} = $date;
+        # We don't use the normal update() routine here as we only
+        # want to update the last_seen_date column, not any other
+        # pending changes
+        $dbh->do("UPDATE profiles SET last_seen_date = ? WHERE userid = ?",
+                 undef, $date, $self->id);
+    }
+}
+
 ################################################################################
 # Methods
 ################################################################################
@@ -310,6 +312,7 @@ sub is_enabled { $_[0]->{'is_enabled'} ? 1 : 0; }
 sub showmybugslink { $_[0]->{showmybugslink}; }
 sub email_disabled { $_[0]->{disable_mail}; }
 sub email_enabled { !($_[0]->{disable_mail}); }
+sub last_seen_date { $_[0]->{last_seen_date}; }
 sub cryptpassword {
     my $self = shift;
     # We don't store it because we never want it in the object (we
@@ -799,6 +802,15 @@ sub in_group_id {
     return grep($_->id == $id, @{ $self->groups }) ? 1 : 0;
 }
 
+# This is a helper to get all groups which have an icon to be displayed
+# besides the name of the commenter.
+sub groups_with_icon {
+    my $self = shift;
+
+    my @groups = grep { $_->icon_url } @{ $self->groups };
+    return \@groups;
+}
+
 sub get_products_by_permission {
     my ($self, $group) = @_;
     # Make sure $group exists on a per-product basis.
@@ -1134,12 +1146,14 @@ sub get_enterable_products {
         # And all of these products must have at least one component
         # and one version.
         $enterable_ids = $dbh->selectcol_arrayref(
-               'SELECT DISTINCT products.id FROM products
-            INNER JOIN components ON components.product_id = products.id
-            INNER JOIN versions ON versions.product_id = products.id
-                 WHERE products.id IN (' . join(',', @$enterable_ids) . ')
-                   AND components.isactive = 1
-                   AND versions.isactive = 1');
+            'SELECT DISTINCT products.id FROM products
+              WHERE ' . $dbh->sql_in('products.id', $enterable_ids) .
+              ' AND products.id IN (SELECT DISTINCT components.product_id
+                                      FROM components
+                                     WHERE components.isactive = 1)
+                AND products.id IN (SELECT DISTINCT versions.product_id
+                                      FROM versions
+                                     WHERE versions.isactive = 1)');
     }
 
     $self->{enterable_products} =
@@ -1160,8 +1174,8 @@ sub get_accessible_products {
     my %products = map { $_->id => $_ }
                        @{$self->get_selectable_products},
                        @{$self->get_enterable_products};
-
-    return [ values %products ];
+    
+    return [ sort { $a->name cmp $b->name } values %products ];
 }
 
 sub check_can_admin_product {
@@ -1763,7 +1777,9 @@ our %names_to_events = (
     'attachments.mimetype'    => EVT_ATTACHMENT_DATA,
     'attachments.ispatch'     => EVT_ATTACHMENT_DATA,
     'dependson'               => EVT_DEPEND_BLOCK,
-    'blocked'                 => EVT_DEPEND_BLOCK);
+    'blocked'                 => EVT_DEPEND_BLOCK,
+    'product'                 => EVT_COMPONENT,
+    'component'               => EVT_COMPONENT);
 
 # Returns true if the user wants mail for a given bug change.
 # Note: the "+" signs before the constants suppress bareword quoting.
@@ -2123,8 +2139,8 @@ sub is_available_username {
     # was unsafe and required weird escaping; using substring to pull out
     # the new/old email addresses and sql_position() to find the delimiter (':')
     # is cleaner/safer
-    my $eventdata = $dbh->selectrow_array(
-        "SELECT eventdata
+    my ($tokentype, $eventdata) = $dbh->selectrow_array(
+        "SELECT tokentype, eventdata
            FROM tokens
           WHERE (tokentype = 'emailold'
                 AND SUBSTRING(eventdata, 1, (" .
@@ -2136,7 +2152,10 @@ sub is_available_username {
 
     if ($eventdata) {
         # Allow thru owner of token
-        if($old_username && ($eventdata eq "$old_username:$username")) {
+        if ($old_username
+            && (($tokentype eq 'emailnew' && $eventdata eq "$old_username:$username")
+                || ($tokentype eq 'emailold' && $eventdata eq "$username:$old_username")))
+        {
             return 1;
         }
         return 0;
@@ -2159,7 +2178,7 @@ sub check_account_creation_enabled {
 sub check_and_send_account_creation_confirmation {
     my ($self, $login) = @_;
 
-    $login = $self->check_login_name_for_creation($login);
+    $login = $self->check_login_name($login);
     my $creation_regexp = Bugzilla->params->{'createemailregexp'};
 
     if ($login !~ /$creation_regexp/i) {

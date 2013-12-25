@@ -1,19 +1,9 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-#
-# Contributor(s): Max Kanat-Alexander <mkanat@bugzilla.org>
-#                 Noel Cragg <noel@red-bean.com>
+# This Source Code Form is "Incompatible With Secondary Licenses", as
+# defined by the Mozilla Public License, v. 2.0.
 
 package Bugzilla::Install::DB;
 
@@ -125,7 +115,11 @@ sub update_fielddefs_definition {
         {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'});
     $dbh->do('UPDATE fielddefs SET is_numeric = 1 WHERE type = '
              . FIELD_TYPE_BUG_ID);
-             
+
+    # 2012-04-12 aliustek@gmail.com - Bug 728138
+    $dbh->bz_add_column('fielddefs', 'long_desc',
+                        {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"}, '');
+
     Bugzilla::Hook::process('install_update_db_fielddefs');
 
     # Remember, this is not the function for adding general table changes.
@@ -192,15 +186,6 @@ sub update_table_definitions {
                         {TYPE => 'BOOLEAN', NOTNULL => 1}, 1);
 
     _populate_milestones_table();
-
-    # 2000-03-22 Changed the default value for target_milestone to be "---"
-    # (which is still not quite correct, but much better than what it was
-    # doing), and made the size of the value field in the milestones table match
-    # the size of the target_milestone field in the bugs table.
-    $dbh->bz_alter_column('bugs', 'target_milestone',
-        {TYPE => 'varchar(20)', NOTNULL => 1, DEFAULT => "'---'"});
-    $dbh->bz_alter_column('milestones', 'value',
-                          {TYPE => 'varchar(20)', NOTNULL => 1});
 
     _add_products_defaultmilestone();
 
@@ -401,7 +386,7 @@ sub update_table_definitions {
               "WHERE initialqacontact = 0");
 
     _migrate_email_prefs_to_new_table();
-    _initialize_dependency_tree_changes_email_pref();
+    _initialize_new_email_prefs();
     _change_all_mysql_booleans_to_tinyint();
 
     # make classification_id field type be consistent with DB:Schema
@@ -458,7 +443,7 @@ sub update_table_definitions {
 
     # 2005-12-07 altlst@sonic.net -- Bug 225221
     $dbh->bz_add_column('longdescs', 'comment_id',
-        {TYPE => 'MEDIUMSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
+        {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
 
     _stop_storing_inactive_flags();
     _change_short_desc_from_mediumtext_to_varchar();
@@ -621,7 +606,7 @@ sub update_table_definitions {
     _fix_series_creator_fk();
 
     # 2009-11-14 dkl@redhat.com - Bug 310450
-    $dbh->bz_add_column('bugs_activity', 'comment_id', {TYPE => 'INT3'});
+    $dbh->bz_add_column('bugs_activity', 'comment_id', {TYPE => 'INT4'});
 
     # 2010-04-07 LpSolit@gmail.com - Bug 69621
     $dbh->bz_drop_column('bugs', 'keywords');
@@ -677,6 +662,9 @@ sub update_table_definitions {
     # 2011-06-15 dkl@mozilla.com - Bug 658929
     _migrate_disabledtext_boolean();
 
+    # 2011-11-01 glob@mozilla.com - Bug 240437
+    $dbh->bz_add_column('profiles', 'last_seen_date', {TYPE => 'DATETIME'});
+
     # 2011-10-11 miketosh - Bug 690173
     _on_delete_set_null_for_audit_log_userid();
     
@@ -686,6 +674,45 @@ sub update_table_definitions {
 
     # 2011-11-28 dkl@mozilla.com - Bug 685611
     _fix_notnull_defaults();
+
+    # 2012-02-15 LpSolit@gmail.com - Bug 722113
+    if ($dbh->bz_index_info('profile_search', 'profile_search_user_id')) {
+        $dbh->bz_drop_index('profile_search', 'profile_search_user_id');
+        $dbh->bz_add_index('profile_search', 'profile_search_user_id_idx', [qw(user_id)]);
+    }
+
+    # 2012-03-23 LpSolit@gmail.com - Bug 448551
+    $dbh->bz_alter_column('bugs', 'target_milestone',
+                          {TYPE => 'varchar(64)', NOTNULL => 1, DEFAULT => "'---'"});
+
+    $dbh->bz_alter_column('milestones', 'value', {TYPE => 'varchar(64)', NOTNULL => 1});
+
+    $dbh->bz_alter_column('products', 'defaultmilestone',
+                          {TYPE => 'varchar(64)', NOTNULL => 1, DEFAULT => "'---'"});
+
+    # 2012-04-15 Frank@Frank-Becker.de - Bug 740536
+    $dbh->bz_add_index('audit_log', 'audit_log_class_idx', ['class', 'at_time']);
+
+    # 2012-06-06 dkl@mozilla.com - Bug 762288
+    $dbh->bz_alter_column('bugs_activity', 'removed', 
+                          { TYPE => 'varchar(255)' });
+    $dbh->bz_add_index('bugs_activity', 'bugs_activity_removed_idx', ['removed']);
+
+    # 2012-06-13 dkl@mozilla.com - Bug 764457
+    $dbh->bz_add_column('bugs_activity', 'id', 
+                        {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
+
+    # 2012-06-13 dkl@mozilla.com - Bug 764466
+    $dbh->bz_add_column('profiles_activity', 'id', 
+                        {TYPE => 'MEDIUMSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
+
+    # 2012-07-24 dkl@mozilla.com - Bug 776972
+    $dbh->bz_alter_column('bugs_activity', 'id', 
+                          {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
+
+
+    # 2012-07-24 dkl@mozilla.com - Bug 776982
+    _fix_longdescs_primary_key();
 
     ################################################################
     # New --TABLE-- changes should go *** A B O V E *** this point #
@@ -2414,13 +2441,16 @@ sub _migrate_email_prefs_to_new_table {
     }
 }
 
-sub _initialize_dependency_tree_changes_email_pref {
+sub _initialize_new_email_prefs {
     my $dbh = Bugzilla->dbh;
     # Check for any "new" email settings that wouldn't have been ported over
     # during the block above.  Since these settings would have otherwise
     # fallen under EVT_OTHER, we'll just clone those settings.  That way if
     # folks have already disabled all of that mail, there won't be any change.
-    my %events = ("Dependency Tree Changes" => EVT_DEPEND_BLOCK);
+    my %events = (
+        "Dependency Tree Changes" => EVT_DEPEND_BLOCK,
+        "Product/Component Changes" => EVT_COMPONENT,
+    );
 
     foreach my $desc (keys %events) {
         my $event = $events{$desc};
@@ -3638,6 +3668,37 @@ sub _fix_series_indexes {
     return if $dbh->bz_index_info('series', 'series_category_idx');
 
     $dbh->bz_drop_index('series', 'series_creator_idx');
+
+    # Fix duplicated names under the same category/subcategory before
+    # adding the more restrictive index.
+    my $duplicated_series = $dbh->selectall_arrayref(
+         'SELECT s1.series_id, s1.category, s1.subcategory, s1.name
+            FROM series AS s1
+      INNER JOIN series AS s2
+              ON s1.category = s2.category
+             AND s1.subcategory = s2.subcategory
+             AND s1.name = s2.name
+           WHERE s1.series_id != s2.series_id');
+    my $sth_series_update = $dbh->prepare('UPDATE series SET name = ? WHERE series_id = ?');
+    my $sth_series_query = $dbh->prepare('SELECT 1 FROM series WHERE name = ?
+                                          AND category = ? AND subcategory = ?');
+
+    my %renamed_series;
+    foreach my $series (@$duplicated_series) {
+        my ($series_id, $category, $subcategory, $name) = @$series;
+        # Leave the first series alone, then rename duplicated ones.
+        if ($renamed_series{"${category}_${subcategory}_${name}"}++) {
+            print "Renaming series ${category}/${subcategory}/${name}...\n";
+            my $c = 0;
+            my $exists = 1;
+            while ($exists) {
+                $sth_series_query->execute($name . ++$c, $category, $subcategory);
+                $exists = $sth_series_query->fetchrow_array;
+            }
+            $sth_series_update->execute($name . $c, $series_id);
+        }
+    }
+
     $dbh->bz_add_index('series', 'series_creator_idx', ['creator']);
     $dbh->bz_drop_index('series', 'series_category_idx');
     $dbh->bz_add_index('series', 'series_category_idx',
@@ -3723,7 +3784,7 @@ sub _populate_bug_see_also_class {
     if ($dbh->bz_column_info('bug_see_also', 'class')) {
         # The length was incorrectly set to 64 instead of 255.
         $dbh->bz_alter_column('bug_see_also', 'class',
-                              {TYPE => 'varchar(255)', NOTNULL => 1});
+                {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"});
         return;
     }
 
@@ -3807,6 +3868,16 @@ sub _fix_notnull_defaults {
                                   {TYPE => 'MEDIUMTEXT', NOTNULL => 1,
                                    DEFAULT => "''"}, '');
         }
+    }
+}
+
+sub _fix_longdescs_primary_key {
+    my $dbh = Bugzilla->dbh;
+    if ($dbh->bz_column_info('longdescs', 'comment_id')->{TYPE} ne 'INTSERIAL') {
+        $dbh->bz_drop_related_fks('longdescs', 'comment_id');
+        $dbh->bz_alter_column('bugs_activity', 'comment_id', {TYPE => 'INT4'});
+        $dbh->bz_alter_column('longdescs', 'comment_id',
+                              {TYPE => 'INTSERIAL',  NOTNULL => 1,  PRIMARYKEY => 1});
     }
 }
 

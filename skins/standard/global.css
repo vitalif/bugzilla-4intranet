@@ -1,27 +1,10 @@
- /*
-  * License Version 1.1 (the "License"); you may not use this file
-  * except in compliance with the License. You may obtain a copy of
-  * the License at http://www.mozilla.org/MPL/
-  *
-  * Software distributed under the License is distributed on an "AS
-  * IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-  * implied. See the License for the specific language governing
-  * rights and limitations under the License.
-  *
-  * The Original Code is the Bugzilla Bug Tracking System.
-  *
-  * The Initial Developer of the Original Code is Netscape Communications
-  * Corporation. Portions created by Netscape are
-  * Copyright (C) 1998 Netscape Communications Corporation. All
-  * Rights Reserved.
-  *
-  * Contributor(s): Byron Jones <bugzilla@glob.com.au>
-  *                 Christian Reis <kiko@async.com.br>
-  *                 Vitaly Harisov <vitaly@rathedg.com>
-  *                 Svetlana Harisova <light@rathedg.com>
-  *                 Marc Schumann <wurblzap@gmail.com>
-  *                 Pascal Held <paheld@gmail.com>
-  */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as
+ * defined by the Mozilla Public License, v. 2.0.
+ */
 
 /* global (begin) */
     body {
@@ -404,6 +387,12 @@ dl dl > dt {
     white-space: normal !important;
 }
 
+/* Arrow buttons are buttons with only &uarr;, &darr;, &larr; or &rarr; on
+ * them. We want these to look a little less spidery. */
+.arrow_button {
+    font-size: 150%;
+}
+
 /* Style of the attachment table and time tracking table */
 #attachment_table {
     border-collapse: collapse;
@@ -506,6 +495,7 @@ th.required:before, span.required_star {
 }
 input.required, select.required, span.required_explanation {
     background-color: #fff7cd;
+    color: #000;
 }
 
 .calendar_button {
@@ -527,7 +517,7 @@ input.required, select.required, span.required_explanation {
 }
 
 
-#keyword_container .yui-ac-content {
+#keywords_container .yui-ac-content {
     margin-left: -1px;
 }
 

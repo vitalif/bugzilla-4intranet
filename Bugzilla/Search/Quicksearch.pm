@@ -1,22 +1,9 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-#
-# Contributor(s): C. Begle
-#                 Jesse Ruderman
-#                 Andreas Franke <afranke@mathweb.org>
-#                 Stephen Lee <slee@uk.bnsmc.com>
-#                 Marc Schumann <wurblzap@gmail.com>
+# This Source Code Form is "Incompatible With Secondary Licenses", as
+# defined by the Mozilla Public License, v. 2.0.
 
 package Bugzilla::Search::Quicksearch;
 
@@ -33,6 +20,7 @@ use Bugzilla::Util;
 use List::Util qw(min max);
 use Text::ParseWords qw(quotewords);
 use List::MoreUtils qw(firstidx);
+use Text::ParseWords qw(parse_line);
 
 use base qw(Exporter);
 @Bugzilla::Search::Quicksearch::EXPORT = qw(quicksearch);
@@ -159,10 +147,13 @@ sub quicksearch {
     else {
         _handle_alias($searchstring);
 
-        # Globally translate " AND ", " OR ", " NOT " to space, pipe, dash.
-        $searchstring =~ s/\s+AND\s+/ /g;
-        $searchstring =~ s/\s+OR\s+/|/g;
-        $searchstring =~ s/\s+NOT\s+/ -/g;
+        # Retain backslashes and quotes, to know which strings are quoted,
+        # and which ones are not.
+        my @words = parse_line('\s+', 1, $searchstring);
+        # If parse_line() returns no data, this means strings are badly quoted.
+        # Rather than trying to guess what the user wanted to do, we throw an error.
+        scalar(@words)
+          || ThrowUserError('quicksearch_unbalanced_quotes', {string => $searchstring});
 
         $self->{words} = [ splitString($searchstring) ];
         $self->{content} = '';
@@ -191,6 +182,7 @@ sub quicksearch {
                             }
                         }
                     }
+                    _handle_urls($word, $negate);
                 }
             }
             $self->{and}++;
@@ -311,7 +303,7 @@ sub _handle_special_first_chars {
 
     my $firstChar = substr($qsword, 0, 1);
     my $baseWord = substr($qsword, 1);
-    my @subWords = split(/[\|,]/, $baseWord);
+    my @subWords = split(/,/, $baseWord);
 
     if ($firstChar eq '+' || $firstChar eq '#') {
         $self->{content} .= ' +' . join ' +', @subWords if @subWords;
@@ -343,7 +335,7 @@ sub _handle_special_first_chars {
 sub _handle_field_names {
     my $self = shift;
     my ($or_operand, $negate, $unknownFields, $ambiguous_fields) = @_;
-    
+
     # Flag and requestee shortcut
     if ($or_operand =~ /^(?:flag:)?([^\?]+\?)([^\?]*)$/)
     {
@@ -433,7 +425,6 @@ sub _handle_field_names {
         }
         return 1;
     }
-
     return 0;
 }
 
@@ -608,14 +599,14 @@ sub splitString
 
 # Expand found prefixes to states or resolutions
 sub matchPrefixes {
-    my $hr_states = shift;
-    my $hr_resolutions = shift;
-    my $ar_prefixes = shift;
-    my $ar_check_states = shift;
-    my $ar_check_resolutions = shift;
+    my ($hr_states, $hr_resolutions, $word, $ar_check_states) = @_;
+    return unless $word =~ /^[A-Z_]+(,[A-Z_]+)*$/;
+
+    my @ar_prefixes = split(/,/, $word);
+    my $ar_check_resolutions = get_legal_field_values('resolution');
     my $foundMatch = 0;
 
-    foreach my $prefix (@$ar_prefixes) {
+    foreach my $prefix (@ar_prefixes) {
         foreach (@$ar_check_states) {
             if (/^$prefix/) {
                 $$hr_states{$_} = 1;
@@ -665,7 +656,7 @@ sub makeChart {
     my $cgi = Bugzilla->cgi;
     $cgi->param("field$expr", $field);
     $cgi->param("type$expr",  $type);
-    $cgi->param("value$expr", url_decode($value));
+    $cgi->param("value$expr", $value);
 }
 
 1;

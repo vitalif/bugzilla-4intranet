@@ -1,25 +1,10 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-#
-# The Initial Developer of the Original Code is Netscape Communications
-# Corporation. Portions created by Netscape are
-# Copyright (C) 1998 Netscape Communications Corporation. All
-# Rights Reserved.
-#
-# Contributor(s): Gervase Markham <gerv@gerv.net>
-#                 <rdean@cambianetworks.com>
+# This Source Code Form is "Incompatible With Secondary Licenses", as
+# defined by the Mozilla Public License, v. 2.0.
 
 use strict;
 use lib qw(. lib);
@@ -36,7 +21,6 @@ use List::MoreUtils qw(uniq);
 my $cgi = Bugzilla->cgi;
 my $template = Bugzilla->template;
 my $vars = {};
-my $buffer = $cgi->query_string();
 
 # Go straight back to query.cgi if we are adding a boolean chart.
 if (grep(/^cmd-/, $cgi->param())) {
@@ -49,9 +33,6 @@ if (grep(/^cmd-/, $cgi->param())) {
 }
 
 Bugzilla->login();
-
-my $dbh = Bugzilla->switch_to_shadow_db();
-
 my $action = $cgi->param('action') || 'menu';
 
 if ($action eq "menu") {
@@ -371,4 +352,11 @@ sub check_value {
         $value = ' ' if (!defined $value || $value eq '');
     }
     return $value;
+}
+
+sub get_field_restrictions {
+    my $field = shift;
+    my $cgi = Bugzilla->cgi;
+
+    return join('&', map {"$field=$_"} $cgi->param($field));
 }

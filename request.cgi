@@ -1,25 +1,10 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-#
-# The Initial Developer of the Original Code is Netscape Communications
-# Corporation. Portions created by Netscape are
-# Copyright (C) 1998 Netscape Communications Corporation. All
-# Rights Reserved.
-#
-# Contributor(s): Myk Melez <myk@mozilla.org>
-#                 Frédéric Buclin <LpSolit@gmail.com>
+# This Source Code Form is "Incompatible With Secondary Licenses", as
+# defined by the Mozilla Public License, v. 2.0.
 
 ################################################################################
 # Script Initialization
@@ -173,16 +158,18 @@ sub queue {
     # column will always be the same.
     my @excluded_columns = ();
     
+    my $do_union = $cgi->param('do_union');
+
     # Filter requests by status: "pending", "granted", "denied", "all" 
     # (which means any), or "fulfilled" (which means "granted" or "denied").
     if ($status) {
         if ($status eq "+-") {
             push(@criteria, "flags.status IN ('+', '-')");
-            push(@excluded_columns, 'status') unless $cgi->param('do_union');
+            push(@excluded_columns, 'status') unless $do_union;
         }
         elsif ($status ne "all") {
             push(@criteria, "flags.status = '$status'");
-            push(@excluded_columns, 'status') unless $cgi->param('do_union');
+            push(@excluded_columns, 'status') unless $do_union;
         }
     }
     
@@ -191,7 +178,7 @@ sub queue {
         my $requester = $dbh->quote($cgi->param('requester'));
         trick_taint($requester); # Quoted above
         push(@criteria, $dbh->sql_istrcmp('requesters.login_name', $requester));
-        push(@excluded_columns, 'requester') unless $cgi->param('do_union');
+        push(@excluded_columns, 'requester') unless $do_union;
     }
     if (defined $cgi->param('requestee') && $cgi->param('requestee') ne "") {
         if ($cgi->param('requestee') ne "-") {
@@ -201,19 +188,19 @@ sub queue {
                             $requestee));
         }
         else { push(@criteria, "flags.requestee_id IS NULL") }
-        push(@excluded_columns, 'requestee') unless $cgi->param('do_union');
+        push(@excluded_columns, 'requestee') unless $do_union;
     }
     
     # Filter results by exact product or component.
     if (defined $cgi->param('product') && $cgi->param('product') ne "") {
         my $product = Bugzilla::Product->check(scalar $cgi->param('product'));
         push(@criteria, "bugs.product_id = " . $product->id);
-        push(@excluded_columns, 'product') unless $cgi->param('do_union');
+        push(@excluded_columns, 'product') unless $do_union;
         if (defined $cgi->param('component') && $cgi->param('component') ne "") {
             my $component = Bugzilla::Component->check({ product => $product,
                                                          name => scalar $cgi->param('component') });
             push(@criteria, "bugs.component_id = " . $component->id);
-            push(@excluded_columns, 'component') unless $cgi->param('do_union');
+            push(@excluded_columns, 'component') unless $do_union;
         }
     }
 
@@ -231,13 +218,12 @@ sub queue {
         my $quoted_form_type = $dbh->quote($form_type);
         trick_taint($quoted_form_type); # Already SQL quoted
         push(@criteria, "flagtypes.name = " . $quoted_form_type);
-        push(@excluded_columns, 'type') unless $cgi->param('do_union');
+        push(@excluded_columns, 'type') unless $do_union;
     }
     
-    # Add the criteria to the query.  We do an intersection by default 
-    # but do a union if the "do_union" URL parameter (for which there is no UI 
-    # because it's an advanced feature that people won't usually want) is true.
-    my $and_or = $cgi->param('do_union') ? " OR " : " AND ";
+    # Add the criteria to the query. Do a union if OR is selected.
+    # Otherwise do an intersection.
+    my $and_or = $do_union ? ' OR ' : ' AND ';
     $query .= " AND (" . join($and_or, @criteria) . ") " if scalar(@criteria);
     
     # Group the records by flag ID so we don't get multiple rows of data
@@ -276,7 +262,7 @@ sub queue {
     # Pass the query to the template for use when debugging this script.
     $vars->{'query'} = $query;
     $vars->{'debug'} = $cgi->param('debug') ? 1 : 0;
-    
+
     my $results = $dbh->selectall_arrayref($query);
     my @requests = ();
     foreach my $result (@$results) {

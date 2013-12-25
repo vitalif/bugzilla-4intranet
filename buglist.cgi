@@ -1,29 +1,10 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-#
-# The Initial Developer of the Original Code is Netscape Communications
-# Corporation. Portions created by Netscape are
-# Copyright (C) 1998 Netscape Communications Corporation. All
-# Rights Reserved.
-#
-# Contributor(s): Terry Weissman <terry@mozilla.org>
-#                 Dan Mosedale <dmose@mozilla.org>
-#                 Stephan Niemz  <st.n@gmx.net>
-#                 Andreas Franke <afranke@mathweb.org>
-#                 Myk Melez <myk@mozilla.org>
-#                 Max Kanat-Alexander <mkanat@bugzilla.org>
+# This Source Code Form is "Incompatible With Secondary Licenses", as
+# defined by the Mozilla Public License, v. 2.0.
 
 ################################################################################
 # Script Initialization
@@ -43,10 +24,8 @@ use Bugzilla::Search;
 use Bugzilla::Search::Quicksearch;
 use Bugzilla::Search::Recent;
 use Bugzilla::Search::Saved;
-use Bugzilla::User;
 use Bugzilla::Bug;
 use Bugzilla::Product;
-use Bugzilla::Keyword;
 use Bugzilla::Field;
 use Bugzilla::Status;
 use Bugzilla::Token;
@@ -57,6 +36,7 @@ use POSIX;
 
 # FIXME TRASHCODE!!! MUST BE REFACTORED!!!
 # For example: buglist.cgi?dotweak=1&format=superworktime => $vars->{token} will be incorrect
+use Time::HiRes qw(gettimeofday tv_interval);
 
 my $cgi = Bugzilla->cgi;
 my $dbh = Bugzilla->dbh;
@@ -86,7 +66,6 @@ if (($cgi->param('format')||'') eq 'superworktime')
     BugWorkTime::HandleSuperWorktime($vars);
 }
 
-$cgi->redirect_search_url();
 
 if ($superworktime)
 {
@@ -165,21 +144,17 @@ $format = $template->get_format($format, scalar $cgi->param('format'), scalar $c
 # the bug list as HTML and they have not disabled it by adding &serverpush=0
 # to the URL.
 #
-# Server push is a Netscape 3+ hack incompatible with MSIE, Lynx, and others.
-# Even Communicator 4.51 has bugs with it, especially during page reload.
-# http://www.browsercaps.org used as source of compatible browsers.
-# Safari (WebKit) does not support it, despite a UA that says otherwise (bug 188712)
-# MSIE 5+ supports it on Mac (but not on Windows) (bug 190370)
-#
+# Server push is compatible with Gecko-based browsers and Opera, but not with
+# MSIE, Lynx or Safari (bug 441496).
+
 my $serverpush =
   $format->{'extension'} eq "html"
-    && exists $ENV{'HTTP_USER_AGENT'}
-      && $ENV{'HTTP_USER_AGENT'} =~ /Mozilla.[3-9]/
-        && (($ENV{'HTTP_USER_AGENT'} !~ /[Cc]ompatible/) || ($ENV{'HTTP_USER_AGENT'} =~ /MSIE 5.*Mac_PowerPC/))
+    && exists $ENV{'HTTP_USER_AGENT'} 
+      && $ENV{'HTTP_USER_AGENT'} =~ /(Mozilla.[3-9]|Opera)/
+        && $ENV{'HTTP_USER_AGENT'} !~ /compatible/i
           && $ENV{'HTTP_USER_AGENT'} !~ /WebKit/
-            && !$agent
-              && !defined($cgi->param('serverpush'))
-                || $cgi->param('serverpush');
+            && !defined($cgi->param('serverpush'))
+              || $cgi->param('serverpush');
 
 my $order = $cgi->param('order') || "";
 
@@ -253,7 +228,9 @@ sub LookupNamedQuery {
     $query->url
        || ThrowUserError("buglist_parameters_required");
 
-    return wantarray ? ($query->url, $query->id) : $query->url;
+    # Detaint $sharer_id.
+    $sharer_id = $query->user->id if $sharer_id;
+    return wantarray ? ($query->url, $query->id, $sharer_id) : $query->url;
 }
 
 # Inserts a Named Query (a "Saved Search") into the database, or
@@ -372,6 +349,7 @@ sub _close_standby_message {
 
 my $cmdtype   = $cgi->param('cmdtype')   || '';
 my $remaction = $cgi->param('remaction') || '';
+my $sharer_id;
 
 # Backwards-compatibility - the old interface had cmdtype="runnamed" to run
 # a named command, and we can't break this because it's in bookmarks.
@@ -408,9 +386,9 @@ $filename =~ s/"/\\"/g; # escape quotes
 if ($cmdtype eq "dorem") {
     if ($remaction eq "run") {
         my $query_id;
-        ($buffer, $query_id) = Bugzilla::Search::LookupNamedQuery(
-            scalar $cgi->param("namedcmd"), scalar $cgi->param('sharer_id')
-        );
+        ($buffer, $query_id, $sharer_id) =
+          LookupNamedQuery(scalar $cgi->param("namedcmd"),
+                           scalar $cgi->param('sharer_id'));
         # If this is the user's own query, remember information about it
         # so that it can be modified easily.
         $vars->{'searchname'} = $cgi->param('namedcmd');
@@ -489,7 +467,9 @@ if ($cmdtype eq "dorem") {
         # Generate and return the UI (HTML page) from the appropriate template.
         $vars->{'message'} = "buglist_query_gone";
         $vars->{'namedcmd'} = $qname;
-        $vars->{'url'} = "buglist.cgi?newquery=" . url_quote($buffer) . "&cmdtype=doit&remtype=asnamed&newqueryname=" . url_quote($qname);
+        $vars->{'url'} = "buglist.cgi?newquery=" . url_quote($buffer)
+                         . "&cmdtype=doit&remtype=asnamed&newqueryname=" . url_quote($qname)
+                         . "&token=" . url_quote(issue_hash_token(['savedsearch']));
         $template->process("global/message.html.tmpl", $vars)
           || ThrowTemplateError($template->error());
         exit;
@@ -498,6 +478,8 @@ if ($cmdtype eq "dorem") {
 elsif (($cmdtype eq "doit") && defined $cgi->param('remtype')) {
     if ($cgi->param('remtype') eq "asdefault") {
         $user = Bugzilla->login(LOGIN_REQUIRED);
+        my $token = $cgi->param('token');
+        check_hash_token($token, ['searchknob']);
         InsertNamedQuery(DEFAULT_QUERY_NAME, $buffer);
         $vars->{'message'} = "buglist_new_default_query";
     }
@@ -508,86 +490,18 @@ elsif (($cmdtype eq "doit") && defined $cgi->param('remtype')) {
         my $token = $cgi->param('token');
         my $query_type;
         check_hash_token($token, ['savedsearch']);
-        # If list_of_bugs is true, we are adding/removing tags to/from
-        # individual bugs.
-        if ($cgi->param('list_of_bugs')) {
-            # We add/remove tags based on the action choosen.
-            my $action = trim($cgi->param('action') || '');
-            $action =~ /^(add|remove)$/
-              || ThrowUserError('unknown_action', {action => $action});
-
-            my $method = "${action}_tag";
-
-            my %bug_ids;
-            my $is_new_name = 0;
-            if ($query_name) {
-                # Make sure this name is not already in use by a normal saved search.
-                my ($query, $query_id) =
-                    Bugzilla::Search::LookupNamedQuery($query_name, undef, QUERY_LIST, !THROW_ERROR);
-                if ($query)
-                {
-                    ThrowUserError('query_name_exists', { name     => $query_name,
-                                                          query_id => $query_id });
-                }
-                $is_new_name = 1;
-            }
-            # If no new tag name has been given, use the selected one.
-            $query_name ||= $cgi->param('oldqueryname')
-              or ThrowUserError('no_tag_to_edit', {action => $action});
-
-            # Don't throw an error if it's a new tag name: if the tag already
-            # exists, add/remove bugs to it, else create it. But if we are
-            # considering an existing tag, then it has to exist and we throw
-            # an error if it doesn't (hence the usage of !$is_new_name).
-            my ($old_query, $query_id) =
-                Bugzilla::Search::LookupNamedQuery($query_name, undef, LIST_OF_BUGS, !$is_new_name);
-
-            if ($old_query)
-            {
-                # We get the encoded query. We need to decode it.
-                my $old_cgi = new Bugzilla::CGI($old_query);
-                foreach my $bug_id (split /[\s,]+/, scalar $old_cgi->param('bug_id'))
-                {
-                    $bug_ids{$bug_id} = 1 if detaint_natural($bug_id);
-                }
-            }
-
-            my $keep_bug = ($action eq 'add') ? 1 : 0;
-            my $changes = 0;
-            my @bug_ids = split(/[\s,]+/, $cgi->param('bug_ids'));
-            my @buglist;
-            foreach my $bug_id (@bug_ids) {
-                next unless $bug_id;
-                push(@buglist, Bugzilla::Bug->check($bug_id));
-            }
-
-            foreach my $bug (@buglist) {
-                $bug->$method($query_name);
-            }
-            $new_query = "bug_id_type=anyexact&bug_id=" . join(',', sort {$a <=> $b} @bug_ids);
-            $query_type = LIST_OF_BUGS;
-        }
-        my $tofooter = 1;
-        my $existed_before = InsertNamedQuery($query_name, $new_query,
-                                              $tofooter, $query_type);
+        my $existed_before = InsertNamedQuery($query_name, $new_query, 1);
         if ($existed_before) {
             $vars->{'message'} = "buglist_updated_named_query";
         }
         else {
-            my $existed_before = InsertNamedQuery($query_name, $new_query, 1);
-            if ($existed_before) {
-                $vars->{'message'} = "buglist_updated_named_query";
-            }
-            else {
-                $vars->{'message'} = "buglist_new_named_query";
-            }
-
-            # Make sure to invalidate any cached query data, so that the footer is
-            # correctly displayed
-            $user->flush_queries_cache();
-
-            $vars->{'queryname'} = $query_name;
+            $vars->{'message'} = "buglist_new_named_query";
         }
+        $vars->{'queryname'} = $query_name;
+
+        # Make sure to invalidate any cached query data, so that the footer is
+        # correctly displayed
+        $user->flush_queries_cache();
 
         # Make sure to invalidate any cached query data, so that the footer is
         # correctly displayed
@@ -842,9 +756,10 @@ if ($query_format eq 'specific') {
 }
 
 # Generate the basic SQL query that will be used to generate the bug list.
-my $search = new Bugzilla::Search('fields' => \@selectcolumns,
-                                  'params' => $params,
-                                  'order' => \@orderstrings);
+my $search = new Bugzilla::Search('fields' => \@selectcolumns, 
+                                  'params' => scalar $params->Vars,
+                                  'order'  => \@order_columns,
+                                  'sharer' => $sharer_id);
 my $query = $search->sql;
 $vars->{search_description} = $search->search_description_html;
 my $H = { %{ $params->Vars } };
@@ -942,8 +857,10 @@ $::SIG{PIPE} = 'DEFAULT';
 my $query_sql_time = gettimeofday();
 
 # Execute the query.
+my $start_time = [gettimeofday()];
 my $buglist_sth = $dbh->prepare($query);
 $buglist_sth->execute();
+$vars->{query_time} = tv_interval($start_time);
 
 ################################################################################
 # Results Retrieval
@@ -1275,7 +1192,7 @@ $vars->{abbrev} = {
 my $contenttype;
 my $disposition = "inline";
 
-if ($format->{'extension'} eq "html" && !$agent) {
+if ($format->{'extension'} eq "html") {
     my $list_id = $cgi->param('list_id') || $cgi->param('regetlastlist');
     my $search = $user->save_last_search(
         { bugs => \@bugidlist, order => $order, vars => $vars, list_id => $list_id });

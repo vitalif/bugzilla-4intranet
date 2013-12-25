@@ -1,22 +1,13 @@
-/* The contents of this file are subject to the Mozilla Public
- * License Version 1.1 (the "License"); you may not use this file
- * except in compliance with the License. You may obtain a copy of
- * the License at http://www.mozilla.org/MPL/
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  *
- * Software distributed under the License is distributed on an "AS
- * IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
- * implied. See the License for the specific language governing
- * rights and limitations under the License.
- *
- * The Original Code is the Bugzilla Bug Tracking System.
- *
- * The Initial Developer of the Original Code is Everything Solved, Inc.
- * Portions created by Everything Solved are Copyright (C) 2007 Everything
- * Solved, Inc. All Rights Reserved.
- *
- * Contributor(s): Max Kanat-Alexander <mkanat@bugzilla.org>
- *                 Guy Pyrzak <guy.pyrzak@gmail.com>
+ * This Source Code Form is "Incompatible With Secondary Licenses", as
+ * defined by the Mozilla Public License, v. 2.0.
  */
+
+/* This library assumes that the needed YUI libraries have been loaded 
+   already. */
 
 /* Hide input fields and show the text with (edit) next to it */
 function hideEditableField( container, input, action, field_id, original_value )
@@ -31,13 +22,14 @@ function hideEditableField( container, input, action, field_id, original_value )
 }
 
 /* showEditableField (e, ContainerInputArray)
- * Function hides the (edit) link and the text and displays the input
+ * Function hides the (edit) link and the text and displays the input/select field
  *
  * var e: the event
  * var ContainerInputArray: An array containing the (edit) and text area and the input being displayed
  * var ContainerInputArray[0]: the container that will be hidden usually shows the (edit) or (take) text
  * var ContainerInputArray[1]: the input area and label that will be displayed
- * var ContainerInputArray[2]: the new value to set the input field to when (take) is clicked
+ * var ContainerInputArray[2]: the input/select field id for which the new value must be set
+ * var ContainerInputArray[3]: the new value to set the input/select field to when (take) is clicked
  */
 function showEditableField(e, ContainerInputArray)
 {
@@ -60,7 +52,9 @@ function showEditableField(e, ContainerInputArray)
     {
         // focus on the first field, this makes it easier to edit
         inputs[0].focus();
-        inputs[0].select();
+        if ( type == "input" ) {
+            inputs[0].select();
+        }
     }
     if (e.preventDefault) e.preventDefault();
     return false;
@@ -83,7 +77,7 @@ function checkForChangedFieldValues(e, ContainerInputArray ) {
     var unhide = false;
     if ( el ) {
         if ( el.value != ContainerInputArray[3] ||
-            ( el.value == "" && el.id != "alias") ) {
+            ( el.value == "" && el.id != "alias" && el.id != 'qa_contact') ) {
             unhide = true;
         }
         else {

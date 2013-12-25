@@ -1,33 +1,9 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-#
-# The Initial Developer of the Original Code is Netscape Communications
-# Corporation. Portions created by Netscape are
-# Copyright (C) 1998 Netscape Communications Corporation. All
-# Rights Reserved.
-#
-# Contributor(s): Terry Weissman <terry@mozilla.org>
-#                 Dan Mosedale <dmose@mozilla.org>
-#                 Jacob Steenhagen <jake@bugzilla.org>
-#                 Bradley Baetz <bbaetz@student.usyd.edu.au>
-#                 Christopher Aillon <christopher@aillon.com>
-#                 Tobias Burnus <burnus@net-b.de>
-#                 Myk Melez <myk@mozilla.org>
-#                 Max Kanat-Alexander <mkanat@bugzilla.org>
-#                 Frédéric Buclin <LpSolit@gmail.com>
-#                 Greg Hendricks <ghendricks@novell.com>
-#                 David D. Kilzer <ddkilzer@kilzer.net>
+# This Source Code Form is "Incompatible With Secondary Licenses", as
+# defined by the Mozilla Public License, v. 2.0.
 
 
 package Bugzilla::Template;
@@ -35,18 +11,16 @@ package Bugzilla::Template;
 use utf8;
 use strict;
 
-use Bugzilla::Bug;
 use Bugzilla::Constants;
+use Bugzilla::WebService::Constants;
 use Bugzilla::Hook;
 use Bugzilla::Install::Requirements;
 use Bugzilla::Install::Util qw(install_string template_include_path
                                include_languages);
 use Bugzilla::Keyword;
 use Bugzilla::Util;
-use Bugzilla::User;
 use Bugzilla::Error;
 use Bugzilla::Search;
-use Bugzilla::Status;
 use Bugzilla::Token;
 
 use Cwd qw(abs_path);
@@ -73,12 +47,12 @@ use constant FORMAT_2_SIZE => [19,55];
 # Pseudo-constant.
 sub SAFE_URL_REGEXP {
     my $safe_protocols = join('|', SAFE_PROTOCOLS);
-    return qr/($safe_protocols):[^\s<>\"]+[\w\/]/i;
+    return qr/($safe_protocols):[^:\s<>\"][^\s<>\"]+[\w\/]/i;
 }
 
-# Convert the constants in the Bugzilla::Constants module into a hash we can
-# pass to the template object for reflection into its "constants" namespace
-# (which is like its "variables" namespace, but for constants).  To do so, we
+# Convert the constants in the Bugzilla::Constants and Bugzilla::WebService::Constants
+# modules into a hash we can pass to the template object for reflection into its "constants" 
+# namespace (which is like its "variables" namespace, but for constants). To do so, we
 # traverse the arrays of exported and exportable symbols and ignoring the rest
 # (which, if Constants.pm exports only constants, as it should, will be nothing else).
 sub _load_constants {
@@ -91,6 +65,18 @@ sub _load_constants {
         }
         else {
             my @list = (Bugzilla::Constants->$constant);
+            $constants{$constant} = (scalar(@list) == 1) ? $list[0] : \@list;
+        }
+    }
+
+    foreach my $constant (@Bugzilla::WebService::Constants::EXPORT, 
+                          @Bugzilla::WebService::Constants::EXPORT_OK)
+    {
+        if (ref Bugzilla::WebService::Constants->$constant) {
+            $constants{$constant} = Bugzilla::WebService::Constants->$constant;
+        }
+        else {
+            my @list = (Bugzilla::WebService::Constants->$constant);
             $constants{$constant} = (scalar(@list) == 1) ? $list[0] : \@list;
         }
     }
@@ -219,8 +205,9 @@ sub makeTables
 # If you want to modify this routine, read the comments carefully
 
 sub quoteUrls {
-    my ($text, $bug, $comment) = (@_);
+    my ($text, $bug, $comment, $user) = @_;
     return $text unless $text;
+    $user ||= Bugzilla->user;
 
     $text = makeTables($text);
 
@@ -252,7 +239,7 @@ sub quoteUrls {
     my @hook_regexes;
     Bugzilla::Hook::process('bug_format_comment',
         { text => \$text, bug => $bug, regexes => \@hook_regexes,
-          comment => $comment });
+          comment => $comment, user => $user });
 
     foreach my $re (@hook_regexes) {
         my ($match, $replace) = @$re{qw(match replace)};
@@ -274,7 +261,7 @@ sub quoteUrls {
         map { qr/$_/ } grep($_, Bugzilla->params->{'urlbase'},
                             Bugzilla->params->{'sslbase'})) . ')';
     $text =~ s~\b(${urlbase_re}\Qshow_bug.cgi?id=\E([0-9]+)(\#c([0-9]+))?)\b
-              ~($things[$count++] = get_bug_link($3, $1, { comment_num => $5 })) &&
+              ~($things[$count++] = get_bug_link($3, $1, { comment_num => $5, user => $user })) &&
                ("\0\0" . ($count-1) . "\0\0")
               ~egox;
 
@@ -348,7 +335,7 @@ sub quoteUrls {
 
     # attachment links
     $text =~ s~\b(attachment\s*\#?\s*(\d+)(?:\s+\[details\])?)
-              ~($things[$count++] = get_attachment_link($2, $1)) &&
+              ~($things[$count++] = get_attachment_link($2, $1, $user)) &&
                ("\0\0" . ($count-1) . "\0\0")
               ~egsxi;
 
@@ -366,14 +353,16 @@ sub quoteUrls {
     $text =~ s~\b($bug_re(?:\s*,?\s*$comment_re)?|$comment_re)
               ~ # We have several choices. $1 here is the link, and $2-4 are set
                 # depending on which part matched
-               (defined($2) ? get_bug_link($2, $1, { comment_num => $3 }) :
+               (defined($2) ? get_bug_link($2, $1, { comment_num => $3, user => $user }) :
                               "<a href=\"$current_bugurl#c$4\">$1</a>")
               ~egsox;
 
     # Old duplicate markers. These don't use $bug_word because they are old
     # and were never customizable.
-    $text =~ s~(^\*\*\*\ This\ bug\ has\ been\ marked\ as\ a\ duplicate\ of\ )(\d+)(\ \*\*\*\Z)
-              ~$1.get_bug_link($2, $2).$3
+    $text =~ s~(?<=^\*\*\*\ This\ bug\ has\ been\ marked\ as\ a\ duplicate\ of\ )
+               (\d+)
+               (?=\ \*\*\*\Z)
+              ~get_bug_link($1, $1, { user => $user })
               ~egmx;
 
     # Now remove the encoding hacks in reverse order
@@ -387,15 +376,18 @@ sub quoteUrls {
 
 # Creates a link to an attachment, including its title.
 sub get_attachment_link {
-    my ($attachid, $link_text) = @_;
+    my ($attachid, $link_text, $user) = @_;
     my $dbh = Bugzilla->dbh;
+    $user ||= Bugzilla->user;
 
     my $attachment = new Bugzilla::Attachment($attachid);
 
     if ($attachment) {
         my $title = "";
         my $className = "";
-        if (Bugzilla->user->can_see_bug($attachment->bug_id)) {
+        if ($user->can_see_bug($attachment->bug_id)
+            && (!$attachment->isprivate || $user->is_insider))
+        {
             $title = $attachment->description;
         }
         if ($attachment->isobsolete) {
@@ -447,10 +439,14 @@ sub get_attachment_link {
 sub get_bug_link {
     my ($bug, $link_text, $options) = @_;
     $options ||= {};
+    $options->{user} ||= Bugzilla->user;
     my $dbh = Bugzilla->dbh;
 
     if (defined $bug) {
-        $bug = blessed($bug) ? $bug : new Bugzilla::Bug($bug);
+        if (!blessed($bug)) {
+            require Bugzilla::Bug;
+            $bug = new Bugzilla::Bug($bug);
+        }
         return $link_text if $bug->{error};
     }
 
@@ -860,10 +856,10 @@ sub create {
             clean_text => \&Bugzilla::Util::clean_text ,
 
             quoteUrls => [ sub {
-                               my ($context, $bug, $comment) = @_;
+                               my ($context, $bug, $comment, $user) = @_;
                                return sub {
                                    my $text = shift;
-                                   return quoteUrls($text, $bug, $comment);
+                                   return quoteUrls($text, $bug, $comment, $user);
                                };
                            },
                            1
@@ -894,10 +890,9 @@ sub create {
                 return 0;
             } }, 1 ],
 
-            bug_list_link => sub
-            {
-                my $buglist = shift;
-                return join(", ", map(get_bug_link($_, $_), split(/ *, */, $buglist)));
+            bug_list_link => sub {
+                my ($buglist, $options) = @_;
+                return join(", ", map(get_bug_link($_, $_, $options), split(/ *, */, $buglist)));
             },
 
             # In CSV, quotes are doubled, and any value containing a quote or a
@@ -1184,7 +1179,15 @@ sub create {
                     { map { $_->name => $_ } Bugzilla->get_fields() };
                 return $cache->{template_bug_fields};
             },
-            
+
+            # A general purpose cache to store rendered templates for reuse.
+            # Make sure to not mix language-specific data.
+            'template_cache' => sub {
+                my $cache = Bugzilla->request_cache->{template_cache} ||= {};
+                $cache->{users} ||= {};
+                return $cache;
+            },
+
             'css_files' => \&css_files,
             yui_resolve_deps => \&yui_resolve_deps,
 
@@ -1201,7 +1204,9 @@ sub create {
             'use_keywords' => sub { return Bugzilla::Keyword->any_exist; },
 
             # All the keywords.
-            'all_keywords' => sub { return Bugzilla::Keyword->get_all(); },
+            'all_keywords' => sub {
+                return [map { $_->name } Bugzilla::Keyword->get_all()];
+            },
 
             'feature_enabled' => sub { return Bugzilla->feature(@_); },
 

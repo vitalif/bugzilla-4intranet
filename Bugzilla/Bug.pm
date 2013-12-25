@@ -1,32 +1,9 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-#
-# The Initial Developer of the Original Code is Netscape Communications
-# Corporation. Portions created by Netscape are
-# Copyright (C) 1998 Netscape Communications Corporation. All
-# Rights Reserved.
-#
-# Contributor(s): Dawn Endico    <endico@mozilla.org>
-#                 Terry Weissman <terry@mozilla.org>
-#                 Chris Yeh      <cyeh@bluemartini.com>
-#                 Bradley Baetz  <bbaetz@acm.org>
-#                 Dave Miller    <justdave@bugzilla.org>
-#                 Max Kanat-Alexander <mkanat@bugzilla.org>
-#                 Frédéric Buclin <LpSolit@gmail.com>
-#                 Lance Larsh <lance.larsh@oracle.com>
-#                 Elliotte Martin <elliotte_martin@yahoo.com>
-#                 Christian Legnitto <clegnitto@mozilla.com>
+# This Source Code Form is "Incompatible With Secondary Licenses", as
+# defined by the Mozilla Public License, v. 2.0.
 
 package Bugzilla::Bug;
 
@@ -77,6 +54,7 @@ use constant ID_FIELD   => 'bug_id';
 use constant NAME_FIELD => 'alias';
 use constant LIST_ORDER => ID_FIELD;
 # Bugs have their own auditing table, bugs_activity.
+use constant AUDIT_CREATES => 0;
 use constant AUDIT_UPDATES => 0;
 
 # This is a sub because it needs to call other subroutines.
@@ -1438,7 +1416,8 @@ sub _check_assigned_to {
 sub _check_bug_file_loc {
     my ($invocant, $url) = @_;
     $url = '' if !defined($url);
-    # On bug entry, if bug_file_loc is "http://", the default, use an
+    $url = trim($url);
+    # On bug entry, if bug_file_loc is "http://", the default, use an 
     # empty value instead. However, on bug editing people can set that
     # back if they *really* want to.
     if (!ref $invocant && $url eq 'http://') {
@@ -2178,6 +2157,12 @@ sub _check_field_is_mandatory {
     return if !$field->is_mandatory;
 
     return if !$field->is_visible_on_bug($params || $invocant);
+
+    return if ($field->type == FIELD_TYPE_SINGLE_SELECT
+                 && scalar @{ get_legal_field_values($field->name) } == 1);
+
+    return if ($field->type == FIELD_TYPE_MULTI_SELECT
+                 && !scalar @{ get_legal_field_values($field->name) });
 
     if (ref($value) eq 'ARRAY') {
         $value = join('', @$value);
@@ -3164,14 +3149,13 @@ sub add_see_also {
     $class->check_required_create_fields($params);
 
     my $field_values = $class->run_create_validators($params);
-    $uri = $field_values->{value};
-    $field_values->{value} = $uri->as_string;
+    my $value = $field_values->{value}->as_string;
+    trick_taint($value);
+    $field_values->{value} = $value;
 
     # We only add the new URI if it hasn't been added yet. URIs are
     # case-sensitive, but most of our DBs are case-insensitive, so we do
     # this check case-insensitively.
-    my $value = $uri->as_string;
-
     if (!grep { lc($_->name) eq lc($value) } @{ $self->see_also }) {
         my $privs;
         my $can = $self->check_can_change_field('see_also', '', $value, \$privs);
@@ -3443,7 +3427,7 @@ sub attachments {
     return [] if $self->{'error'};
 
     $self->{'attachments'} =
-        Bugzilla::Attachment->get_attachments_by_bug($self->bug_id, {preload => 1});
+        Bugzilla::Attachment->get_attachments_by_bug($self, {preload => 1});
     return $self->{'attachments'};
 }
 
@@ -3957,23 +3941,23 @@ sub user {
     return {} if $self->{'error'};
 
     my $user = Bugzilla->user;
-
     my $prod_id = $self->{'product_id'};
 
-    my $unknown_privileges = $user->in_group('editbugs', $prod_id);
-    my $canedit = $unknown_privileges
-                  || $user->id == $self->{'assigned_to'}
-                  || (Bugzilla->params->{'useqacontact'}
-                      && $self->{'qa_contact'}
-                      && $user->id == $self->{'qa_contact'});
-    my $canconfirm = $unknown_privileges
-                     || $user->in_group('canconfirm', $prod_id);
-    my $isreporter = $user->id
-                     && $user->id == $self->{reporter_id};
+    my $editbugs = $user->in_group('editbugs', $prod_id);
+    my $is_reporter = $user->id == $self->{reporter_id} ? 1 : 0;
+    my $is_assignee = $user->id == $self->{'assigned_to'} ? 1 : 0;
+    my $is_qa_contact = Bugzilla->params->{'useqacontact'}
+                        && $self->{'qa_contact'}
+                        && $user->id == $self->{'qa_contact'} ? 1 : 0;
+
+    my $canedit = $editbugs || $is_assignee || $is_qa_contact;
+    my $canconfirm = $editbugs || $user->in_group('canconfirm', $prod_id);
+    my $has_any_role = $is_reporter || $is_assignee || $is_qa_contact;
 
     $self->{'user'} = {canconfirm => $canconfirm,
                        canedit    => $canedit,
-                       isreporter => $isreporter};
+                       isreporter => $is_reporter,
+                       has_any_role => $has_any_role};
     return $self->{'user'};
 }
 

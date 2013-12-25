@@ -1,32 +1,10 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-#
-# The Initial Developer of the Original Code is Netscape Communications
-# Corporation. Portions created by Netscape are
-# Copyright (C) 1998 Netscape Communications Corporation. All
-# Rights Reserved.
-#
-# Contributor(s): Harrison Page <harrison@netscape.com>
-#                 Terry Weissman <terry@mozilla.org>
-#                 Dawn Endico <endico@mozilla.org>
-#                 Bryce Nesbitt <bryce@nextbus.com>
-#                 Joe Robins <jmrobins@tgix.com>
-#                 Gervase Markham <gerv@gerv.net>
-#                 Adam Spiers <adam@spiers.net>
-#                 Myk Melez <myk@mozilla.org>
-#                 Frédéric Buclin <LpSolit@gmail.com>
+# This Source Code Form is "Incompatible With Secondary Licenses", as
+# defined by the Mozilla Public License, v. 2.0.
 
 use strict;
 
@@ -39,7 +17,7 @@ use Bugzilla::Error;
 use Bugzilla::Status;
 
 use File::Basename;
-use Digest::MD5 qw(md5_hex);
+use Digest::SHA qw(hmac_sha256_base64);
 
 # If we're using bug groups for products, we should apply those restrictions
 # to viewing reports, as well.  Time to check the login in that case.
@@ -105,9 +83,16 @@ else {
         ThrowUserError('invalid_datasets', {'datasets' => \@datasets});
     }
 
-    my $data_file = daily_stats_filename($product);
-    my $image_file = chart_image_name($data_file, @datasets);
-    my $url_image = correct_urlbase() . "$graph_url/$image_file";
+    # Filenames must not be guessable as they can point to products
+    # you are not allowed to see. Also, different projects can have
+    # the same product names.
+    my $project = bz_locations()->{'project'} || '';
+    my $image_file =  join(':', ($project, $prod_id, @datasets));
+    my $key = Bugzilla->localconfig->{'site_wide_secret'};
+    $image_file = hmac_sha256_base64($image_file, $key) . '.png';
+    $image_file =~ s/\+/-/g;
+    $image_file =~ s/\//_/g;
+    trick_taint($image_file);
 
     if (! -e "$graph_dir/$image_file") {
         generate_chart("$dir/$data_file", "$graph_dir/$image_file", $product, @datasets);

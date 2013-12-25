@@ -1,22 +1,9 @@
-[%# The contents of this file are subject to the Mozilla Public
-  # License Version 1.1 (the "License"); you may not use this file
-  # except in compliance with the License. You may obtain a copy of
-  # the License at http://www.mozilla.org/MPL/
+[%# This Source Code Form is subject to the terms of the Mozilla Public
+  # License, v. 2.0. If a copy of the MPL was not distributed with this
+  # file, You can obtain one at http://mozilla.org/MPL/2.0/.
   #
-  # Software distributed under the License is distributed on an "AS
-  # IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-  # implied. See the License for the specific language governing
-  # rights and limitations under the License.
-  #
-  # The Original Code is the Bugzilla Bug Tracking System.
-  #
-  # The Initial Developer of the Original Code is Netscape Communications
-  # Corporation. Portions created by Netscape are
-  # Copyright (C) 1998 Netscape Communications Corporation. All
-  # Rights Reserved.
-  #
-  # Contributor(s): Gervase Markham <gerv@gerv.net>
-  #                 Vitaliy Filippov <vitalif@mail.ru>
+  # This Source Code Form is "Incompatible With Secondary Licenses", as
+  # defined by the Mozilla Public License, v. 2.0.
   #%]
 
 [%# INTERFACE:
@@ -89,10 +76,9 @@
     A legal address must contain exactly one '@',
     and at least one '.' after the @.
   [% ELSE %]
-    [%+ Param('emailregexpdesc') %]
+    [%+ Param('emailregexpdesc') FILTER html_light %]
   [% END %]
-  It must also not contain any of these special characters:
-  <tt>\ ( ) &amp; &lt; &gt; , ; : &quot; [ ]</tt>, or any whitespace.
+  It also must not contain any illegal characters.
 [% END %]
 
 [% BLOCK error_authres_unhandled %]
@@ -104,6 +90,7 @@
   [% title = "Invalid Page ID" %]
   The ID <code>[% page_id FILTER html %]</code> is not a
   valid page identifier.
+
 [% END %]
 
 [% BLOCK error_bad_arg %]
@@ -127,12 +114,12 @@
   [% END %]
   Please wait a day and try again.
   If you're seeing this message after a day, then you should contact
-  <a href="[% Param("user_mailto") %][% Param('maintainer') %]">[% Param('maintainer') %]</a>
+  <a href="mailto:[% Param('maintainer') %]">[% Param('maintainer') %]</a>
   and reference this error.
 [% END %]
 
 [% BLOCK error_chart_dir_nonexistent %]
-  One of the directories <tt>[% dir FILTER html %]</tt> and
+  One of the directories <tt>[% dir FILTER html %]</tt> and 
   <tt>[% graph_dir FILTER html %]</tt> does not exist.
 [% END %]
 
@@ -153,7 +140,7 @@
 [% END %]
 
 [% BLOCK error_comment_extra_data_not_allowed %]
-  You tried to set the <code>extra_data</code> field to
+  You tried to set the <code>extra_data</code> field to 
   '[% extra_data FILTER html %]' but comments of type [% type FILTER html %]
   do not accept an <code>extra_data</code> argument.
 [% END %]
@@ -175,7 +162,7 @@
 
 [% BLOCK error_db_rename_conflict %]
   Name conflict: Cannot rename [% old FILTER html %] to
-  [% new FILTER html %] because [% new FILTER html %] already exists.
+  [%+ new FILTER html %] because [% new FILTER html %] already exists.
 [% END %]
 
 [% BLOCK error_cookies_need_value %]
@@ -183,7 +170,7 @@
 [% END %]
 
 [% BLOCK error_env_no_email %]
-  [% terms.Bugzilla %] did not receive an email address from the
+  [% terms.Bugzilla %] did not receive an email address from the 
   environment.
   [% IF Param("auth_env_email") %]
     This means that the '[% Param("auth_env_email") FILTER html %]'
@@ -202,7 +189,7 @@
 [% END %]
 
 [% BLOCK error_extension_must_be_subclass %]
-  <code>[% package FILTER html %]</code> from
+  <code>[% package FILTER html %]</code> from 
   <code>[% filename FILTER html %]</code> is not a subclass of
   <code>[% class FILTER html %]</code>.
 [% END %]
@@ -217,7 +204,7 @@
 [% END %]
 
 [% BLOCK error_extension_no_name %]
-  We did not find a <code>NAME</code> method in
+  We did not find a <code>NAME</code> method in 
   <code>[% package FILTER html %]</code> (loaded from
   <code>[% filename FILTER html %]</code>). This means that
   the extension has one or more of the following problems:
@@ -268,7 +255,7 @@
 
 [% BLOCK error_invalid_attach_id_to_obsolete %]
    The attachment number of one of the attachments you wanted to obsolete,
-   [% attach_id FILTER html %], is invalid.
+   [%+ attach_id FILTER html %], is invalid.
 [% END %]
 
 [% BLOCK error_invalid_customfield_type %]
@@ -284,7 +271,7 @@
 [% BLOCK error_invalid_feature %]
   [% title = "Invalid Feature Name" %]
   [% feature FILTER html %] is not a valid feature name. See
-  <code>OPTIONAL_MODULES</code> in
+  <code>OPTIONAL_MODULES</code> in 
   <code>Bugzilla::Install::Requirements</code> for valid names.
 [% END %]
 
@@ -315,17 +302,17 @@
 [% END %]
 
 [% BLOCK error_mismatched_bug_ids_on_obsolete %]
-  Attachment [% attach_id FILTER html %] ([% description FILTER html %])
-  is attached to [% terms.bug %] [%+ attach_bug_id FILTER html %],
-  but you tried to flag it as obsolete while creating a new attachment to
-  [% terms.bug %] [%+ my_bug_id FILTER html %].
+  Attachment [% attach_id FILTER html %] ([% description FILTER html %]) 
+  is attached to [% terms.bug %] [%+ attach_bug_id FILTER html %], 
+  but you tried to flag it as obsolete while creating a new attachment to 
+  [%+ terms.bug %] [%+ my_bug_id FILTER html %].
 [% END %]
 
 [% BLOCK error_feature_disabled %]
   The [% install_string("feature_$feature") FILTER html %] feature is not
-  available in this [% terms.Bugzilla %].
+  available in this [% terms.Bugzilla %]. 
   [% IF user.in_group('admin') %]
-    If you would like to enable this feature, please run
+    If you would like to enable this feature, please run 
     <kbd>checksetup.pl</kbd> to see how to install the necessary
     requirements for this feature.
   [% END %]
@@ -376,19 +363,20 @@
 [% END %]
 
 [% BLOCK error_jobqueue_insert_failed %]
- [% title = "Job Queue Failure" %]
-  Inserting a <code>[% job FILTER html %]</code> job into the Job
+  [% title = "Job Queue Failure" %]
+  Inserting a <code>[% job FILTER html %]</code> job into the Job 
   Queue failed with the following error: [% errmsg FILTER html %]
 [% END %]
 
 [% BLOCK error_jobqueue_no_job_mapping %]
   <code>Bugzilla::JobQueue</code> has not been configured to handle
   the job "[% job FILTER html %]".  You need to add this job type
-  to the <code>JOB_MAP</code> constant in <code>Bugzilla::JobQueue</code>.
+  to the <code>JOB_MAP</code> constant in <code>Bugzilla::JobQueue</code>,
+  perhaps by using the 'job_map' hook.
 [% END %]
 
 [% BLOCK error_ldap_bind_failed %]
-  Failed to bind to the LDAP server. The error message was:
+  Failed to bind to the LDAP server. The error message was: 
   <code>[% errstr FILTER html %]</code>
 [% END %]
 
@@ -419,7 +407,7 @@
 [% END %]
 
 [% BLOCK error_column_not_null_no_default_alter %]
-  You cannot alter the [% name FILTER html %] column to be NOT NULL
+  You cannot alter the [% name FILTER html %] column to be NOT NULL 
   without specifying a default or something for $set_nulls_to, because
   there are NULL values currently in it.
 [% END %]
@@ -508,7 +496,12 @@
 
   outside the package. This function may only be called from
   a subclass of <code>[% superclass FILTER html %]</code>.
-[% END %]
+[% END %]	  
+
+[% BLOCK error_search_field_operator_unsupported %]
+  [% terms.Bugzilla %] does not support the search type
+    "[% operator FILTER html %]".
+[% END %]  
 
 [% BLOCK error_radius_preparation_error %]
   An error occurred while preparing for a RADIUS authentication request:
@@ -632,7 +625,7 @@
   [% ELSE %]
      I could not figure out what you wanted to do.
   [% END %]
-[% END %]
+[% END %]	 
 
 [% BLOCK error_comma_operator_deprecated %]
   [% title = "SQL query generator internal error" %]

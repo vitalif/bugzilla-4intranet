@@ -1,23 +1,10 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Inbound Email System.
-#
-# The Initial Developer of the Original Code is Akamai Technologies, Inc.
-# Portions created by Akamai are Copyright (C) 2006 Akamai Technologies, 
-# Inc. All Rights Reserved.
-#
-# Contributor(s): Max Kanat-Alexander <mkanat@bugzilla.org>
+# This Source Code Form is "Incompatible With Secondary Licenses", as
+# defined by the Mozilla Public License, v. 2.0.
 
 use strict;
 use warnings;
@@ -43,6 +30,7 @@ use HTML::FormatText::WithLinks;
 use Pod::Usage;
 use Encode;
 use Scalar::Util qw(blessed);
+use List::MoreUtils qw(firstidx);
 
 use Bugzilla;
 use Bugzilla::Attachment;
@@ -51,6 +39,7 @@ use Bugzilla::Hook;
 use Bugzilla::BugMail;
 use Bugzilla::Constants;
 use Bugzilla::Error;
+use Bugzilla::Field;
 use Bugzilla::Mailer;
 use Bugzilla::Token;
 use Bugzilla::User;
@@ -163,6 +152,29 @@ sub parse_mail {
     # a bug_id specified in the body of the email.
     if (!$fields{'bug_id'} && !$fields{'short_desc'}) {
         $fields{'short_desc'} = $summary;
+    }
+
+    # The Importance/X-Priority headers are only used when creating a new bug.
+    # 1) If somebody specifies a priority, use it.
+    # 2) If there is an Importance or X-Priority header, use it as
+    #    something that is relative to the default priority.
+    #    If the value is High or 1, increase the priority by 1.
+    #    If the value is Low or 5, decrease the priority by 1.
+    # 3) Otherwise, use the default priority.
+    # Note: this will only work if the 'letsubmitterchoosepriority'
+    # parameter is enabled.
+    my $importance = $input_email->header('Importance')
+                     || $input_email->header('X-Priority');
+    if (!$fields{'bug_id'} && !$fields{'priority'} && $importance) {
+        my @legal_priorities = @{get_legal_field_values('priority')};
+        my $i = firstidx { $_ eq Bugzilla->params->{'defaultpriority'} } @legal_priorities;
+        if ($importance =~ /(high|[12])/i) {
+            $i-- unless $i == 0;
+        }
+        elsif ($importance =~ /(low|[45])/i) {
+            $i++ unless $i == $#legal_priorities;
+        }
+        $fields{'priority'} = $legal_priorities[$i];
     }
 
     my $comment = '';
@@ -311,7 +323,8 @@ sub process_bug {
 
     my $added_comment;
     if (trim($fields{'comment'})) {
-        $added_comment = $bug->comments->[-1];
+        # The "old" bug object doesn't contain the comment we just added.
+        $added_comment = Bugzilla::Bug->check($bug_id)->comments->[-1];
     }
     return ($bug, $added_comment);
 }
