@@ -1216,6 +1216,7 @@ sub _sync_fulltext
     # Determine if we are using Sphinx or MySQL fulltext search
     my ($sph, $id_field);
     my $index = Bugzilla->localconfig->{sphinx_index};
+    my $table = $index;
     if ($index)
     {
         $sph = Bugzilla->dbh_sphinx;
@@ -1224,20 +1225,20 @@ sub _sync_fulltext
     }
     else
     {
-        $index = 'bugs_fulltext';
+        $table = 'bugs_fulltext';
         $sph = $dbh;
         $id_field = 'bug_id';
         $_ = $dbh->quote_fulltext($_) for @$row;
     }
     my $sql;
-    if ($new_bug)
+    if ($new_bug || $index)
     {
-        $sql = "INSERT INTO $index ($id_field, short_desc, comments, comments_private)".
+        $sql = ($index ? 'REPLACE' : 'INSERT')." INTO $table ($id_field, short_desc, comments, comments_private)".
             " VALUES (".join(',', $self->id, @$row).")";
     }
     else
     {
-        $sql = "UPDATE $index SET short_desc=$row->[0],".
+        $sql = "UPDATE $table SET short_desc=$row->[0],".
             " comments=$row->[1], comments_private=$row->[2] WHERE $id_field=".$self->id;
     }
     return $sph->do($sql);
