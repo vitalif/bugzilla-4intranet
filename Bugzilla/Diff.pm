@@ -8,7 +8,9 @@ package Bugzilla::Diff;
 use utf8;
 use strict;
 
-use String::Diff;
+use File::Temp;
+use Bugzilla::Util;
+use Encode;
 
 use base qw(Exporter);
 @Bugzilla::Diff::EXPORT = qw(
@@ -49,7 +51,6 @@ sub new
     bless($object, $class) if $object;
     $object->{'old'} = $old;
     $object->{'new'} = $new;
-    $object->{'diff'} = String::Diff::diff_fully($old, $new, line_break => 1);
     return $object;
 }
 
@@ -60,6 +61,7 @@ sub get_hash
     $force = 0 if !$force;
     if ($force || !($self->{'context'}))
     {
+        $self->{'diff'} = $self->diff($self->{old}, $self->{new});
         $self->make_context;
         $self->apply_min_restriction;
         $self->short_context;
@@ -98,6 +100,82 @@ sub get_table
         $result .= '</tr>';
     }
     $result .= '</table>';
+    return $result;
+}
+
+# 
+sub diff
+{
+    my ($self, $old, $new) = @_;
+    my $old_file = File::Temp->new();
+    $old_file->unlink_on_destroy(1);
+    my $new_file = File::Temp->new();
+    $new_file->unlink_on_destroy(1);
+
+    $old =~ s/\\/\\\\/g;
+    $old =~ s/\n/\\n/g;
+    $new =~ s/\\/\\\\/g;
+    $new =~ s/\n/\\n/g;
+    my $lines = split('', $old);
+    $lines = split('', $new) if $lines < split('', $new);
+    print $old_file join("\n", split('', $old));
+    print $new_file join("\n", split('', $new));
+
+    my $diff = `diff -u -U $lines $old_file $new_file`;
+    trick_taint($diff);
+    Encode::_utf8_on($diff);
+
+    my $result = [[], []];
+    ($old, $new) = @$result;
+    my $prev_action;
+    my $i = 0;
+    my $j = 0;
+    my @diff = split ("\n", $diff);
+    splice @diff, 0, 2;
+    for my $line (@diff)
+    {
+        Encode::_utf8_on($line);
+        my $action = substr $line, 0, 1;
+        $action = TYPE_UNI if $action eq ' ';
+        $prev_action = $action if !$prev_action;
+        $line = substr $line, 1;
+        if ($action ne $prev_action)
+        {
+            $prev_action = $action;
+            $i++;
+            $j++;
+        }
+        if ($action eq TYPE_UNI || $action eq TYPE_REM)
+        {
+            $i-- while($i > scalar(@$old));
+            if (!$old->[$i])
+            {
+                push $old, ['e', ''];
+            }
+            $old->[$i][0] = $action;
+            $old->[$i][1] .= $line;
+        }
+        if ($action eq TYPE_UNI || $action eq TYPE_ADD)
+        {
+            $j-- while($j > scalar(@$new));
+            if (!$new->[$j])
+            {
+                push $new, ['e', ''];
+            }
+            $new->[$j][0] = $action;
+            $new->[$j][1] .= $line;
+        }
+    }
+    for my $str (@$old)
+    {
+        $str->[1] =~ s/\\n/\n/g;
+        $str->[1] =~ s/\\\\/\\/g;
+    }
+    for my $str (@$new)
+    {
+        $str->[1] =~ s/\\n/\n/g;
+        $str->[1] =~ s/\\\\/\\/g;
+    }
     return $result;
 }
 
