@@ -2151,7 +2151,7 @@ sub _content_matches
             # Close unclosed double quote
             $pattern_part .= '"';
         }
-        $text =~ s/((?:^|[^\\])(?:\\\\)*)([$pattern_part])/$1\\$2/gs;
+        $text =~ s/((?:^|[^\\])(?:\\\\)*)([$pattern_part])/$1\$2/gs;
         $text = ($self->{user}->is_insider ? '@(short_desc,comments,comments_private) ' : '@(short_desc,comments) ') . $text;
         if (Bugzilla->localconfig->{sphinxse_port})
         {
