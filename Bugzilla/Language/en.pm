@@ -72,7 +72,7 @@ $Bugzilla::messages->{en} = {
         FIELD_TYPE_TEXTAREA()      => 'Large Text Box',
         FIELD_TYPE_DATETIME()      => 'Date/Time',
         FIELD_TYPE_BUG_ID()        => $terms->{Bug}.' ID',
-        FIELD_TYPE_NUMERIC()       => 'Numeric',
+        FIELD_TYPE_KEYWORDS()      => 'Keyword'
     },
     control_options => {
         CONTROLMAPNA() => 'NA',

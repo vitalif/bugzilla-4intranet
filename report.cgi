@@ -21,6 +21,7 @@ use List::MoreUtils qw(uniq);
 my $cgi = Bugzilla->cgi;
 my $template = Bugzilla->template;
 my $vars = {};
+my $buffer = $cgi->query_string();
 
 # Go straight back to query.cgi if we are adding a boolean chart.
 if (grep(/^cmd-/, $cgi->param())) {
@@ -139,6 +140,7 @@ $query =
 $::SIG{TERM} = 'DEFAULT';
 $::SIG{PIPE} = 'DEFAULT';
 
+my $dbh = Bugzilla->switch_to_shadow_db();
 my $results = $dbh->selectall_arrayref($query, {Slice=>{}});
 
 # We have a hash of hashes for the data itself, and a hash to hold the

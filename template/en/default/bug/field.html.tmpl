@@ -160,14 +160,6 @@
           <input type="hidden" name="defined_[% field.name FILTER html %]">
         [% END %]
 
-        <script type="text/javascript">
-        <!--
-          initHidingOptionsForIE('[% field.name FILTER js %]');
-          [%+ INCLUDE "bug/field-events.js.tmpl"
-                      field = field, product = bug.product_obj %]
-        //-->
-        </script>
-
      [% CASE constants.FIELD_TYPE_TEXTAREA %]
        [% INCLUDE global/textarea.html.tmpl
            id = field.name name = field.name minrows = 4 maxrows = 8

@@ -508,7 +508,8 @@ sub CleanupOldDots
         # symlinks), this can't escape to delete anything it shouldn't
         # (unless someone moves the location of $webdotdir, of course)
         trick_taint($f);
-        if (file_mod_time($f) < $since) {
+        my $mtime = (stat($f))[9];
+        if ($mtime && $mtime < $since) {
             unlink $f;
         }
     }

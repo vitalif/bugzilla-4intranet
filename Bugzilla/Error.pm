@@ -14,71 +14,23 @@ use base qw(Exporter);
 
 use Bugzilla::Constants;
 use Bugzilla::WebService::Constants;
-use Bugzilla::Util;
-use Bugzilla::Mailer;
 use Bugzilla::Hook;
 
 use Carp;
 use Data::Dumper;
 use Date::Format;
-use JSON;
-use Data::Dumper;
-
-use overload '""' => sub { $_[0]->{message} };
 
 my $HAVE_DEVEL_STACKTRACE = eval { require Devel::StackTrace };
 
-our $IN_EVAL = 0;
-
 # We cannot use $^S to detect if we are in an eval(), because mod_perl
 # already eval'uates everything, so $^S = 1 in all cases under mod_perl!
-sub _in_eval
-{
-    my $in = -$IN_EVAL;
-    for (my $stack = 1; my $sub = (caller($stack))[3]; $stack++)
-    {
-        $in--, last if $sub =~ /^Bugzilla::HTTPServerSimple/;
+sub _in_eval {
+    my $in_eval = 0;
+    for (my $stack = 1; my $sub = (caller($stack))[3]; $stack++) {
         last if $sub =~ /^ModPerl/;
-        if ($sub =~ /^\(eval\)/)
-        {
-            $in++;
-        }
+        $in_eval = 1 if $sub =~ /^\(eval\)/;
     }
-    return $in > 0;
-}
-
-# build error message for printing into error log or sending to maintainer e-mail
-sub _error_message
-{
-    my ($type, $error, $vars) = @_;
-    my $mesg = '';
-    $mesg .= "[$$] " . time2str("%D %H:%M:%S ", time());
-    $mesg .= uc($type)." $error ";
-    $mesg .= Bugzilla::Util::remote_ip();
-    if (Bugzilla->user)
-    {
-        $mesg .= ' ' . Bugzilla->user->login;
-        $mesg .= (' actually ' . Bugzilla->sudoer->login) if Bugzilla->sudoer;
-    }
-    $mesg .= "\n";
-    $Data::Dumper::Indent = 1;
-    # Don't try to dump upload data, dump upload info instead
-    my $cgi = Bugzilla->cgi;
-    my $cgivars = { $cgi->Vars };
-    for (keys %$cgivars)
-    {
-        $cgivars->{$_} = $cgi->uploadInfo($cgivars->{$_}) if $cgi->upload($_);
-    }
-    $mesg .= Data::Dumper->Dump([$vars, $cgivars, { %ENV }], ['error_vars', 'cgi_params', 'env']);
-    # ugly workaround for Data::Dumper's \x{425} unicode characters
-    $mesg =~ s/((?:\\x\{(?:[\dA-Z]+)\})+)/eval("\"$1\"")/egiso;
-    return $mesg;
-}
-
-sub throw
-{
-    my $self = shift;
-    ref $self and _throw_error($self->{type}, $self->{error}, $self->{vars});
+    return $in_eval;
 }
 
 my $frame_filter_finished = 0;
@@ -100,133 +52,97 @@ sub _frame_filter
     return 1;
 }
 
-# Object method: log the Bugzilla::Error object to [data/]errorlog if it is configured
-sub log
-{
-    my $self = shift;
-    # Report error into [$datadir/] params.error_log if requested
-    if (my $logfile = Bugzilla->params->{error_log})
-    {
-        $logfile = bz_locations()->{datadir} . '/' . $logfile if substr($logfile, 0, 1) ne '/';
-        my $fd;
-        # If we can write into error log, log error details there
-        if (open $fd, ">>", $logfile)
-        {
-            print $fd (("-" x 75) . "\n" . ($self->{message} ||= _error_message($self->{type}, $self->{error}, $self->{vars})) . "\n");
-            close $fd;
-        }
-    }
-}
 
-sub _throw_error
-{
-    my ($type, $error, $vars) = @_;
 
-    my $msg;
+sub _throw_error {
+    my ($name, $error, $vars) = @_;
+    my $dbh = Bugzilla->dbh;
     $vars ||= {};
+
     $vars->{error} = $error;
+
     if (!$vars->{stack_trace} && $HAVE_DEVEL_STACKTRACE)
     {
         # Append stack trace if Devel::StackTrace is available
         $frame_filter_finished = 0;
         $vars->{stack_trace} = Devel::StackTrace->new(frame_filter => \&_frame_filter)->as_string;
     }
-    my $mode = Bugzilla->error_mode;
-
-    my $do_die = $mode == ERROR_MODE_DIE ||
-        $mode != ERROR_MODE_DIE_SOAP_FAULT && $mode != ERROR_MODE_JSON_RPC && _in_eval();
-
-    # Report error into [$datadir/] params.error_log if requested
-    if (($mode == ERROR_MODE_DIE || !$do_die) &&
-        (my $logfile = Bugzilla->params->{error_log}))
-    {
-        $logfile = bz_locations()->{datadir} . '/' . $logfile if substr($logfile, 0, 1) ne '/';
-        my $fd;
-        # If we can write into error log, log error details there
-        if (open $fd, ">>", $logfile)
-        {
-            print $fd (("-" x 20) . "\n" . ($msg ||= _error_message($type, $error, $vars)) . "\n");
-            close $fd;
-        }
-    }
-
-    # If we are within an eval(), do not do anything more
-    # as we are eval'uating some test on purpose.
-    if ($do_die)
-    {
-        die bless { message => ($msg ||= _error_message($type, $error, $vars)), type => $type, error => $error, vars => $vars };
-    }
 
     # Make sure any transaction is rolled back (if supported).
-    my $dbh = Bugzilla->dbh;
-    $dbh->bz_rollback_transaction() if $dbh->bz_in_transaction();
+    # If we are within an eval(), do not roll back transactions as we are
+    # eval'uating some test on purpose.
+    $dbh->bz_rollback_transaction() if ($dbh->bz_in_transaction() && !_in_eval());
 
+    my $datadir = bz_locations()->{'datadir'};
+    # If a writable $datadir/errorlog exists, log error details there.
+    if (-w "$datadir/errorlog") {
+        require Bugzilla::Util;
+        require Data::Dumper;
+        my $mesg = "";
+        for (1..75) { $mesg .= "-"; };
+        $mesg .= "\n[$$] " . time2str("%D %H:%M:%S ", time());
+        $mesg .= "$name $error ";
+        $mesg .= Bugzilla::Util::remote_ip();
+        $mesg .= Bugzilla->user->login;
+        $mesg .= (' actually ' . Bugzilla->sudoer->login) if Bugzilla->sudoer;
+        $mesg .= "\n";
+        my %params = Bugzilla->cgi->Vars;
+        $Data::Dumper::Useqq = 1;
+        for my $param (sort keys %params) {
+            my $val = $params{$param};
+            # obscure passwords
+            $val = "*****" if $param =~ /password/i;
+            # limit line length
+            $val =~ s/^(.{512}).*$/$1\[CHOP\]/;
+            $mesg .= "[$$] " . Data::Dumper->Dump([$val],["param($param)"]);
+        }
+        for my $var (sort keys %ENV) {
+            my $val = $ENV{$var};
+            $val = "*****" if $val =~ /password|http_pass/i;
+            $mesg .= "[$$] " . Data::Dumper->Dump([$val],["env($var)"]);
+        }
+        open(ERRORLOGFID, ">>$datadir/errorlog");
+        print ERRORLOGFID "$mesg\n";
+        close ERRORLOGFID;
+    }
+
+    my $template = Bugzilla->template;
     my $message;
-    unless (Bugzilla->template->process("global/$type-error.html.tmpl", $vars, \$message))
-    {
-        # A template error occurred during reporting the error...
-        $message = Bugzilla->template->error() . ' during reporting ' . uc($type) . ' error ' . $error;
-        $vars = {
-            nested_error       => $vars,
-            error              => 'template_error',
-            template_error_msg => $message,
-        };
-        if ($type ne 'code' || $error ne 'template_error')
-        {
-            _throw_error('code', 'template_error', $vars);
-        }
-        # If we failed processing template error, just die
-        die bless { message => ($msg ||= _error_message($type, $error, $vars)), type => $type, error => $error, vars => $vars };
+    # There are some tests that throw and catch a lot of errors,
+    # and calling $template->process over and over for those errors
+    # is too slow. So instead, we just "die" with a dump of the arguments.
+    if (Bugzilla->error_mode != ERROR_MODE_TEST) {
+        $template->process($name, $vars, \$message)
+          || ThrowTemplateError($template->error());
     }
 
-    # Report error to maintainer email if requested
-    if (Bugzilla->params->{"report_${type}_errors_to_maintainer"})
-    {
-        # Don't call _error_message twice
-        $msg ||= _error_message($type, $error, $vars);
-        my $t =
-            "From: ".Bugzilla->params->{mailfrom}."\n".
-            "To: ".Bugzilla->params->{maintainer}."\n".
-            "Subject: ".uc($type)." error $error\n".
-            "X-Bugzilla-Type: ${type}error\n\n".
-            $msg;
-        MessageToMTA($t, 1);
-    }
+    # Let's call the hook first, so that extensions can override
+    # or extend the default behavior, or add their own error codes.
+    Bugzilla::Hook::process('error_catch', { error => $error, vars => $vars,
+                                             message => \$message });
 
-    if ($mode == ERROR_MODE_WEBPAGE)
-    {
-        if (Bugzilla->cgi->{_multipart_initialized})
-        {
-            Bugzilla->cgi->send_multipart_end();
-            Bugzilla->cgi->send_multipart_start(
-                -type => 'text/html',
-                -content_disposition => 'inline',
-            );
-        }
-        else
-        {
-            Bugzilla->cgi->send_header;
-        }
+    if (Bugzilla->error_mode == ERROR_MODE_WEBPAGE) {
+        print Bugzilla->cgi->header();
         print $message;
     }
-    elsif ($mode == ERROR_MODE_DIE_SOAP_FAULT || $mode == ERROR_MODE_JSON_RPC)
+    elsif (Bugzilla->error_mode == ERROR_MODE_TEST) {
+        die Dumper($vars);
+    }
+    elsif (Bugzilla->error_mode == ERROR_MODE_DIE) {
+        die("$message\n");
+    }
+    elsif (Bugzilla->error_mode == ERROR_MODE_DIE_SOAP_FAULT
+           || Bugzilla->error_mode == ERROR_MODE_JSON_RPC)
     {
-        # FIXME FIXME FIXME: Numeric error codes are UGLY!!!
-        # But we can't change them without breaking the compatibility...
-        # So we'll just use REST-XML for our APIs and screw SOAP and JSON-RPC.
-
         # Clone the hash so we aren't modifying the constant.
         my %error_map = %{ WS_ERROR_CODE() };
-        eval
-        {
-            require Bugzilla::Hook;
-            Bugzilla::Hook::process('webservice_error_codes',
-                                    { error_map => \%error_map });
-            my $code = $error_map{$error};
-            if (!$code) {
-                $code = ERROR_UNKNOWN_FATAL if $type =~ /code/i;
-                $code = ERROR_UNKNOWN_TRANSIENT if $type =~ /user/i;
-            }
+        Bugzilla::Hook::process('webservice_error_codes',
+                                { error_map => \%error_map });
+        my $code = $error_map{$error};
+        if (!$code) {
+            $code = ERROR_UNKNOWN_FATAL if $name =~ /code/i;
+            $code = ERROR_UNKNOWN_TRANSIENT if $name =~ /user/i;
+        }
 
         if (Bugzilla->error_mode == ERROR_MODE_DIE_SOAP_FAULT) {
             die SOAP::Fault->faultcode($code)->faultstring($message);
@@ -248,36 +164,73 @@ sub _throw_error
             $server->response($server->error_response_header);
         }
     }
-    elsif ($mode == ERROR_MODE_AJAX)
-    {
-        # JSON can't handle strings across lines.
-        $message =~ s/\n/ /gm;
-        my $err;
-        $err->{'success'} = JSON::false;
-        $err->{'error'} = $error;
-        $err->{'message'} = $message;
-        my $json = new JSON;
-        Bugzilla->send_header;
-        print $json->encode($err);
-    }
-    else
-    {
-        die "Fatal error: '$mode' is an unknown error reporting mode!";
-    }
     exit;
 }
 
+sub ThrowUserError {
+    _throw_error("global/user-error.html.tmpl", @_);
+}
+
 sub ThrowCodeError {
-    _throw_error('code', @_);
+    my (undef, $vars) = @_;
+
+    # Don't show function arguments, in case they contain
+    # confidential data.
+    local $Carp::MaxArgNums = -1;
+    # Don't show the error as coming from Bugzilla::Error, show it
+    # as coming from the caller.
+    local $Carp::CarpInternal{'Bugzilla::Error'} = 1;
+    $vars->{traceback} = Carp::longmess();
+
+    _throw_error("global/code-error.html.tmpl", @_);
 }
 
 sub ThrowTemplateError {
     my ($template_err) = @_;
-    _throw_error('code', 'template_error', { template_error_msg => "$template_err" });
-}
+    my $dbh = Bugzilla->dbh;
 
-sub ThrowUserError {
-    _throw_error('user', @_);
+    # Make sure the transaction is rolled back (if supported).
+    $dbh->bz_rollback_transaction() if $dbh->bz_in_transaction();
+
+    my $vars = {};
+    if (Bugzilla->error_mode == ERROR_MODE_DIE) {
+        die("error: template error: $template_err");
+    }
+
+    $vars->{'template_error_msg'} = $template_err;
+    $vars->{'error'} = "template_error";
+
+    my $template = Bugzilla->template;
+
+    # Try a template first; but if this one fails too, fall back
+    # on plain old print statements.
+    if (!$template->process("global/code-error.html.tmpl", $vars)) {
+        require Bugzilla::Util;
+        import Bugzilla::Util qw(html_quote);
+        my $maintainer = Bugzilla->params->{'maintainer'};
+        my $error = html_quote($vars->{'template_error_msg'});
+        my $error2 = html_quote($template->error());
+        print <<END;
+        <tt>
+          <p>
+            Bugzilla has suffered an internal error. Please save this page and 
+            send it to $maintainer with details of what you were doing at the 
+            time this message appeared.
+          </p>
+          <script type="text/javascript"> <!--
+          document.write("<p>URL: " + 
+                          document.location.href.replace(/&/g,"&amp;")
+                                                .replace(/</g,"&lt;")
+                                                .replace(/>/g,"&gt;") + "</p>");
+          // -->
+          </script>
+          <p>Template->process() failed twice.<br>
+          First error: $error<br>
+          Second error: $error2</p>
+        </tt>
+END
+    }
+    exit;
 }
 
 1;

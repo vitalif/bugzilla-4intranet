@@ -602,7 +602,7 @@ sub sendMail
     push(@watchingrel, 'None') unless @watchingrel;
     push @watchingrel, map { user_id_to_login($_) } @$watchingRef;
 
-    my @changedfields = uniq map { $_->{field_name} } @display_diffs;
+    my @changedfields = uniq map { $_->{field_name} } @$diffs;
     
     # Add attachments.created to changedfields if one or more
     # comments contain information about a new attachment

@@ -785,8 +785,8 @@ sub messages
         eval { require 'Bugzilla/Language/'.$lc.'.pm' };
         if ($@)
         {
-            $lc = 'en';
             require 'Bugzilla/Language/en.pm';
+            $lc = 'en';
         }
     }
     return $Bugzilla::messages->{$lc};

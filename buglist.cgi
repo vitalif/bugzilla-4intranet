@@ -757,8 +757,8 @@ if ($query_format eq 'specific') {
 
 # Generate the basic SQL query that will be used to generate the bug list.
 my $search = new Bugzilla::Search('fields' => \@selectcolumns, 
-                                  'params' => scalar $params->Vars,
-                                  'order'  => \@order_columns,
+                                  'params' => $params,
+                                  'order'  => \@orderstrings,
                                   'sharer' => $sharer_id);
 my $query = $search->sql;
 $vars->{search_description} = $search->search_description_html;

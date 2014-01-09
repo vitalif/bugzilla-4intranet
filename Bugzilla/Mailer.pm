@@ -1,9 +1,34 @@
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# -*- Mode: perl; indent-tabs-mode: nil -*-
 #
-# This Source Code Form is "Incompatible With Secondary Licenses", as
-# defined by the Mozilla Public License, v. 2.0.
+# The contents of this file are subject to the Mozilla Public
+# License Version 1.1 (the "License"); you may not use this file
+# except in compliance with the License. You may obtain a copy of
+# the License at http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS
+# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
+# implied. See the License for the specific language governing
+# rights and limitations under the License.
+#
+# The Original Code is the Bugzilla Bug Tracking System.
+#
+# The Initial Developer of the Original Code is Netscape Communications
+# Corporation. Portions created by Netscape are
+# Copyright (C) 1998 Netscape Communications Corporation. All
+# Rights Reserved.
+#
+# Contributor(s): Terry Weissman <terry@mozilla.org>,
+#                 Bryce Nesbitt <bryce-mozilla@nextbus.com>
+#                 Dan Mosedale <dmose@mozilla.org>
+#                 Alan Raetz <al_raetz@yahoo.com>
+#                 Jacob Steenhagen <jake@actex.net>
+#                 Matthew Tuck <matty@chariot.net.au>
+#                 Bradley Baetz <bbaetz@student.usyd.edu.au>
+#                 J. Paul Reed <preed@sigkill.com>
+#                 Gervase Markham <gerv@gerv.net>
+#                 Byron Jones <bugzilla@glob.com.au>
+#                 Frédéric Buclin <LpSolit@gmail.com>
+#                 Max Kanat-Alexander <mkanat@bugzilla.org>
 
 package Bugzilla::Mailer;
 
@@ -23,11 +48,14 @@ use Encode qw(encode);
 use Encode::MIME::Header;
 use Email::Address;
 use Email::MIME;
-use Email::Send;
+# Loading this gives us encoding_set.
+use Email::MIME::Modifier;
+use Email::Sender::Simple;
 
 sub MessageToMTA {
     my ($msg, $send_now) = (@_);
     my $method = Bugzilla->params->{'mail_delivery_method'};
+    $method = 'Test' if Bugzilla->cgi->param('MailDeliveryTest');
     return if $method eq 'None';
 
     if (Bugzilla->params->{'use_mailer_queue'} and !$send_now) {
@@ -62,82 +90,11 @@ sub MessageToMTA {
     # thus to hopefully avoid auto replies.
     $email->header_set('Auto-Submitted', 'auto-generated');
 
-    # MIME-Version must be set otherwise some mailsystems ignore the charset
-    $email->header_set('MIME-Version', '1.0') if !$email->header('MIME-Version');
-
-    # Encode the headers correctly in quoted-printable
-    foreach my $header ($email->header_names) {
-        my @values = $email->header($header);
-        # We don't recode headers that happen multiple times.
-        next if scalar(@values) > 1;
-        if (my $value = $values[0]) {
-            if (Bugzilla->params->{'utf8'} && !utf8::is_utf8($value)) {
-                utf8::decode($value);
-            }
-
-            # avoid excessive line wrapping done by Encode.
-            local $Encode::Encoding{'MIME-Q'}->{'bpl'} = 998;
-
-            my $encoded = encode('MIME-Q', $value);
-            $email->header_set($header, $encoded);
-        }
-    }
-
-    my $from = $email->header('From');
-
-    my ($hostname, @args);
-    my $mailer_class = $method;
-    if ($method eq "Sendmail") {
-        $mailer_class = 'Bugzilla::Send::Sendmail';
-        if (ON_WINDOWS) {
-            $Email::Send::Sendmail::SENDMAIL = SENDMAIL_EXE;
-        }
-        push @args, "-i";
-        # We want to make sure that we pass *only* an email address.
-        if ($from) {
-            my ($email_obj) = Email::Address->parse($from);
-            if ($email_obj) {
-                my $from_email = $email_obj->address;
-                push(@args, "-f$from_email") if $from_email;
-            }
-        }
-    }
-    else {
-        # Sendmail will automatically append our hostname to the From
-        # address, but other mailers won't.
-        my $urlbase = Bugzilla->params->{'urlbase'};
-        $urlbase =~ m|//([^:/]+)[:/]?|;
-        $hostname = $1;
-        $from .= "\@$hostname" if $from !~ /@/;
-        $email->header_set('From', $from);
-        
-        # Sendmail adds a Date: header also, but others may not.
-        if (!defined $email->header('Date')) {
-            $email->header_set('Date', time2str("%a, %d %b %Y %T %z", time()));
-        }
-    }
-
-    if ($method eq "SMTP") {
-        push @args, Host  => Bugzilla->params->{"smtpserver"},
-                    username => Bugzilla->params->{"smtp_username"},
-                    password => Bugzilla->params->{"smtp_password"},
-                    Hello => $hostname, 
-                    ssl => Bugzilla->params->{'smtp_ssl'},
-                    Debug => Bugzilla->params->{'smtp_debug'};
-    }
-
-    Bugzilla::Hook::process('mailer_before_send', 
-                            { email => $email, mailer_args => \@args });
-
     $email->walk_parts(sub {
         my ($part) = @_;
         return if $part->parts > 1; # Top-level
         my $content_type = $part->content_type || '';
-        $content_type =~ /charset=['"](.+)['"]/;
-        # If no charset is defined or is the default us-ascii,
-        # then we encode the email to UTF-8 if Bugzilla has utf8 enabled.
-        # XXX - This is a hack to workaround bug 723944.
-        if (!$1 || $1 eq 'us-ascii') {
+        if ($content_type !~ /;/) {
             my $body = $part->body;
             if (Bugzilla->params->{'utf8'}) {
                 $part->charset_set('UTF-8');
@@ -148,12 +105,58 @@ sub MessageToMTA {
                     $part->body_set($raw);
                 }
             }
-            
-            die(Data::Dumper::Dumper($body));
-            
             $part->encoding_set('quoted-printable') if !is_7bit_clean($body);
         }
     });
+
+    # MIME-Version must be set otherwise some mailsystems ignore the charset
+    $email->header_set('MIME-Version', '1.0') if !$email->header('MIME-Version');
+
+    # Encode the headers correctly in quoted-printable
+    foreach my $header ($email->header_names) {
+        my @values = $email->header($header);
+        my @encoded_values;
+        foreach my $value (@values) {
+            if (Bugzilla->params->{'utf8'} && !utf8::is_utf8($value)) {
+                utf8::decode($value);
+            }
+            push @encoded_values, encode('MIME-B', $value);
+        }
+        $email->header_set($header, @encoded_values);
+    }
+
+    my $from = $email->header('From');
+
+    my ($hostname, @args);
+    if ($method eq "Sendmail") {
+        if (ON_WINDOWS) {
+            push @args, sendmail => SENDMAIL_EXE;
+        }
+    }
+    else {
+        # Sendmail will automatically append our hostname to the From
+        # address, but other mailers won't.
+        my $urlbase = Bugzilla->params->{'urlbase'};
+        $urlbase =~ m|//([^:/]+)[:/]?|;
+        $hostname = $1;
+        $from .= "\@$hostname" if $from !~ /@/;
+        $email->header_set('From', $from);
+
+        # Sendmail adds a Date: header also, but others may not.
+        if (!defined $email->header('Date')) {
+            $email->header_set('Date', time2str("%a, %e %b %Y %T %z", time()));
+        }
+    }
+
+    if ($method eq "SMTP") {
+        push @args, host  => Bugzilla->params->{"smtpserver"},
+                    username => Bugzilla->params->{"smtp_username"},
+                    password => Bugzilla->params->{"smtp_password"},
+                    helo  => $hostname;
+    }
+
+    Bugzilla::Hook::process('mailer_before_send',
+                            { email => $email, mailer_args => \@args });
 
     if ($method eq "Test") {
         my $filename = bz_locations()->{'datadir'} . '/mailer.testfile';
@@ -162,14 +165,16 @@ sub MessageToMTA {
         print TESTFILE "\n\nFrom - " . $email->header('Date') . "\n" . $email->as_string;
         close TESTFILE;
     }
-    else {
+    else
+    {
         # This is useful for both Sendmail and Qmail, so we put it out here.
-        local $ENV{PATH} = SENDMAIL_PATH;
-        my $mailer = Email::Send->new({ mailer => $mailer_class, 
-                                        mailer_args => \@args });
-        my $retval = $mailer->send($email);
-        ThrowCodeError('mail_send_error', { msg => $retval, mail => $email })
-            if !$retval;
+        local $ENV{PATH} = SENDMAIL_PATH.($ENV{PATH} ? ':'.$ENV{PATH} : '');
+        my $p = 'Email::Sender::Transport::'.$method;
+        my $pk = $p.'.pm';
+        $pk =~ s!::!/!g;
+        require $pk;
+        my $transport = $p->new({ @args });
+        Email::Sender::Simple->send($email, { transport => $transport });
     }
 }
 
@@ -193,9 +198,7 @@ sub build_thread_marker {
         $threadingmarker = "Message-ID: <bug-$bug_id-$user_id$sitespec>";
     }
     else {
-        my $rand_bits = Bugzilla::Util::generate_random_password(10);
-        $threadingmarker = "Message-ID: <bug-$bug_id-$user_id-$rand_bits$sitespec>" .
-                           "\nIn-Reply-To: <bug-$bug_id-$user_id$sitespec>" .
+        $threadingmarker = "In-Reply-To: <bug-$bug_id-$user_id$sitespec>" .
                            "\nReferences: <bug-$bug_id-$user_id$sitespec>";
     }
 

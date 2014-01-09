@@ -136,7 +136,7 @@ sub VALIDATORS {
         short_desc     => \&_check_short_desc,
         status_whiteboard => \&_check_status_whiteboard,
         target_milestone  => \&_check_target_milestone,
-        version           => \&_check_version,
+#        version           => \&_check_version,
 
         cclist_accessible   => \&Bugzilla::Object::check_boolean,
         reporter_accessible => \&Bugzilla::Object::check_boolean,
@@ -1885,9 +1885,10 @@ sub _check_priority {
 }
 
 sub _check_qa_contact {
-    my ($invocant, $qa_contact, $component) = @_;
+    my ($invocant, $qa_contact, undef, $params) = @_;
     $qa_contact = trim($qa_contact) if !ref $qa_contact;
-
+    my $component = blessed($invocant) ? $invocant->component_obj
+                                       : $params->{component};
     my $id;
     if (!ref $invocant) {
         # Bugs get no QA Contact on creation if useqacontact is off.

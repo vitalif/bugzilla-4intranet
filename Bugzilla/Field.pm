@@ -163,7 +163,6 @@ use constant SQL_DEFINITIONS => {
                                 NOTNULL => 1, DEFAULT => "''"},
     FIELD_TYPE_DATETIME,      { TYPE => 'DATETIME'   },
     FIELD_TYPE_BUG_ID,        { TYPE => 'INT3'       },
-    FIELD_TYPE_NUMERIC,       { TYPE => 'NUMERIC', NOTNULL => 1, DEFAULT => '0' },
 };
 
 # FIXME add default value_fields here

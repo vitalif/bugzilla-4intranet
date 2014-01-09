@@ -180,9 +180,9 @@ sub quicksearch {
                             if (!$self->_special_field_syntax($word, $negate)) {
                                 $self->_default_quicksearch_word($word, $negate);
                             }
+                            _handle_urls($word, $negate);
                         }
                     }
-                    _handle_urls($word, $negate);
                 }
             }
             $self->{and}++;

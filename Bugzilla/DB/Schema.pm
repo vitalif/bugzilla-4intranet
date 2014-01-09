@@ -1,4 +1,4 @@
-# This Source Code Form is subject to the terms of the Mozilla Public
+		# This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
@@ -330,6 +330,11 @@ use constant ABSTRACT_SCHEMA => {
         FIELDS => [
             id        => {TYPE => 'INTSERIAL', NOTNULL => 1, 
                           PRIMARYKEY => 1}, 
+            comment_id => {TYPE => 'INT4',
+                           REFERENCES => { TABLE  => 'longdescs',
+                                           COLUMN => 'comment_id',
+                                           DELETE => 'CASCADE'}},
+
             bug_id    => {TYPE => 'INT3', NOTNULL => 1,
                           REFERENCES    =>  {TABLE  =>  'bugs',
                                              COLUMN =>  'bug_id',
@@ -347,10 +352,6 @@ use constant ABSTRACT_SCHEMA => {
                                              COLUMN =>  'id'}},
             added     => {TYPE => 'varchar(255)'},
             removed   => {TYPE => 'varchar(255)'},
-            comment_id => {TYPE => 'INT4', 
-                           REFERENCES => { TABLE  => 'longdescs',
-                                           COLUMN => 'comment_id',
-                                           DELETE => 'CASCADE'}},
         ],
         INDEXES => [
             bugs_activity_bug_id_idx  => ['bug_id'],
@@ -1825,7 +1826,9 @@ C<ALTER TABLE> SQL statement
 
     my $self = shift;
     my $finfo = (@_ == 1 && ref($_[0]) eq 'HASH') ? $_[0] : { @_ };
+	
     my $type = $finfo->{TYPE};
+	
     confess "A valid TYPE was not specified for this column (got " 
             . Dumper($finfo) . ")" unless ($type);
 
@@ -2765,7 +2768,7 @@ sub columns_equal {
     my $self = shift;
     my $col_one = dclone(shift);
     my $col_two = dclone(shift);
-
+	
     $col_one->{TYPE} = uc($col_one->{TYPE});
     $col_two->{TYPE} = uc($col_two->{TYPE});
 

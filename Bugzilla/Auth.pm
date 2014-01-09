@@ -79,8 +79,6 @@ sub login {
     }
     $user->set_authorizer($self);
 
-    Bugzilla::Hook::process('auth-post-login', { user => $user });
-
     return $self->_handle_login_result($login_info, $type);
 }
 
@@ -170,7 +168,7 @@ sub _handle_login_result {
     # the password was just wrong. (This makes it harder for a cracker
     # to find account names by brute force)
     elsif ($fail_code == AUTH_LOGINFAILED or $fail_code == AUTH_NO_SUCH_USER) {
-        my $remaining_attempts = Bugzilla->params->{max_login_attempts}
+        my $remaining_attempts = MAX_LOGIN_ATTEMPTS 
                                  - ($result->{failure_count} || 0);
         ThrowUserError("invalid_username_or_password", 
                        { remaining => $remaining_attempts });
@@ -189,11 +187,11 @@ sub _handle_login_result {
 
         # We want to know when the account will be unlocked. This is 
         # determined by the 5th-from-last login failure (or more/less than
-        # 5th, if Bugzilla->params->{max_login_attempts} is not 5).
-        my $determiner = $attempts->[scalar(@$attempts) - Bugzilla->params->{max_login_attempts}];
+        # 5th, if MAX_LOGIN_ATTEMPTS is not 5).
+        my $determiner = $attempts->[scalar(@$attempts) - MAX_LOGIN_ATTEMPTS];
         my $unlock_at = datetime_from($determiner->{login_time}, 
                                       Bugzilla->local_timezone);
-        $unlock_at->add(minutes => Bugzilla->params->{login_lockout_interval});
+        $unlock_at->add(minutes => LOGIN_LOCKOUT_INTERVAL);
 
         # If we were *just* locked out, notify the maintainer about the
         # lockout.
@@ -313,8 +311,8 @@ Usually this is throw only by C<Bugzilla::Auth::login>.
 =head2 C<AUTH_LOCKOUT>
 
 The user's account is locked out after having failed to log in too many
-times within a certain period of time (as specified by login_lockout_interval
-Bugzilla parameter).
+times within a certain period of time (as specified by
+L<Bugzilla::Constants/LOGIN_LOCKOUT_INTERVAL>).
 
 The hashref will also contain a C<user> element, representing the
 L<Bugzilla::User> whose account is locked out.

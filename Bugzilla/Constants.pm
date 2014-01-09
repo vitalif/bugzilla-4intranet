@@ -88,7 +88,7 @@ use Memoize;
     POS_EVENTS
     EVT_OTHER EVT_ADDED_REMOVED EVT_COMMENT EVT_ATTACHMENT EVT_ATTACHMENT_DATA
     EVT_PROJ_MANAGEMENT EVT_OPENED_CLOSED EVT_KEYWORD EVT_CC EVT_DEPEND_BLOCK
-    EVT_BUG_CREATED EVT_COMPONENT
+    EVT_BUG_CREATED EVT_COMPONENT EVT_DEPEND_REOPEN
 
     NEG_EVENTS
     EVT_UNCONFIRMED EVT_CHANGED_BY_ME 
@@ -111,7 +111,8 @@ use Memoize;
     FIELD_TYPE_BUG_ID
     FIELD_TYPE_BUG_URLS
     FIELD_TYPE_EXTURL
-    FIELD_TYPE_NUMERIC
+    FIELD_TYPE_KEYWORDS
+
 
     FIELD_TYPE__BOUNDARY
     EMPTY_DATETIME_REGEX
@@ -131,7 +132,7 @@ use Memoize;
     ERROR_MODE_DIE
     ERROR_MODE_DIE_SOAP_FAULT
     ERROR_MODE_JSON_RPC
-    ERROR_MODE_AJAX
+    ERROR_MODE_TEST
 
     COLOR_ERROR
     COLOR_SUCCESS
@@ -363,6 +364,7 @@ use constant EVT_CC                 => 8;
 use constant EVT_DEPEND_BLOCK       => 9;
 use constant EVT_BUG_CREATED        => 10;
 use constant EVT_COMPONENT          => 11;
+use constant EVT_DEPEND_REOPEN      => 12;
 
 use constant POS_EVENTS => EVT_OTHER, EVT_ADDED_REMOVED, EVT_COMMENT, 
                            EVT_ATTACHMENT, EVT_ATTACHMENT_DATA, 
@@ -408,7 +410,7 @@ use constant FIELD_TYPE_TEXTAREA => 4;
 use constant FIELD_TYPE_DATETIME => 5;
 use constant FIELD_TYPE_BUG_ID => 6;
 use constant FIELD_TYPE_BUG_URLS => 7;
-use constant FIELD_TYPE_NUMERIC => 8;
+use constant FIELD_TYPE_KEYWORDS => 8;
 use constant FIELD_TYPE_EXTURL => 9;
 
 # Upper boundary for FIELD_TYPE_* values
@@ -490,7 +492,7 @@ use constant ERROR_MODE_WEBPAGE        => 0;
 use constant ERROR_MODE_DIE            => 1;
 use constant ERROR_MODE_DIE_SOAP_FAULT => 2;
 use constant ERROR_MODE_JSON_RPC       => 3;
-use constant ERROR_MODE_AJAX           => 4;
+use constant ERROR_MODE_TEST           => 4;
 
 # The ANSI colors of messages that command-line scripts use
 use constant COLOR_ERROR => 'red';
