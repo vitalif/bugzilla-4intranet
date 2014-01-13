@@ -16,6 +16,8 @@ use base qw(Exporter);
 @Bugzilla::Diff::EXPORT = qw(
     get_table
     get_hash
+    get_removed
+    get_added
 );
 
 use constant MIN_LENGTH => 8;
@@ -41,13 +43,19 @@ use constant VIEW_TAGS => {
     '<rem>'  => '<b style="background: #CCC; color: #F00;">',
     '</rem>' => '</b>'
 };
+use constant VIEW_PLAIN_TAGS => {
+    '<add>'  => "\n+",
+    '</add>' => "\n",
+    '<rem>'  => "\n-",
+    '</rem>' => "\n"
+};
 
 sub new
 {
     my $invocant = shift;
     my $class    = ref($invocant) || $invocant;
     my $object = {};
-    my ($old, $new) = @_;
+    my ($old, $new, $a) = @_;
     bless($object, $class) if $object;
     $object->{'old'} = $old;
     $object->{'new'} = $new;
@@ -58,7 +66,7 @@ sub new
 sub get_hash
 {
     my ($self, $force) = @_;
-    $force = 0 if !$force;
+    $force = 0 unless $force;
     if ($force || !($self->{'context'}))
     {
         $self->{'diff'} = $self->diff($self->{old}, $self->{new});
@@ -67,6 +75,7 @@ sub get_hash
         $self->short_context;
         $self->glue_context;
     }
+    $self->{'context'}->{'length'} = scalar @{$self->{'context'}->{'removed'}};
     return $self->{'context'};
 }
 
@@ -74,7 +83,7 @@ sub get_hash
 sub get_table
 {
     my ($self, $force) = @_;
-    $force = 0 if !$force;
+    $force = 0 unless $force;
     my $diff = $self->get_hash($force);
     my $result = '<table width="100%">';
     for (my $i = 0; $i < $self->{'context'}->{'length'}; $i++)
@@ -103,7 +112,45 @@ sub get_table
     return $result;
 }
 
-# 
+# get only removed (with context)
+sub get_removed
+{
+    my ($self, $force) = @_;
+    return $self->get_part(1, $force);
+}
+# get only added (with context)
+sub get_added
+{
+    my ($self, $force) = @_;
+    return $self->get_part(0, $force);
+}
+
+#  get only specified part (with context): first param - bool is_removed
+sub get_part
+{
+    my ($self, $removed, $force) = @_;
+    $force = 0 unless $force;
+    $removed = 0 unless $removed;
+    $removed = $removed ? 'removed' : 'added';
+    my $diff = $self->get_hash($force);
+    my $result = '';
+    for (my $i = 0; $i < $self->{'context'}->{'length'}; $i++)
+    {
+        my $line = $self->{'context'}->{$removed}->[$i];
+        my $lval = $line->{'value'};
+
+        for my $key (keys VIEW_PLAIN_TAGS)
+        {
+            my $val = VIEW_PLAIN_TAGS->{$key};
+            $lval =~ s/$key/$val/g;
+        }
+
+        $result .= "\n" . ($line->{'type'} eq TYPE_ADD ? TYPE_ADD : ($line->{'type'} eq TYPE_REM ? TYPE_REM : ' ')) . $lval;
+    }
+    return $result;
+}
+
+# make diff
 sub diff
 {
     my ($self, $old, $new) = @_;
@@ -495,42 +542,49 @@ sub glue_context_i
     my $array = $self->{'context'}->{$what};
     my $rarray = $self->{'context'}->{$what eq 'removed' ? 'added' : 'removed'};
     my $act = TYPE_REM;
-    my $ract = TYPE_ADD;
     $act = TYPE_ADD if $what ne 'removed';
-    $ract = TYPE_REM if $what ne 'removed';
     if (substr($array->[$i]->{'value'}, -1) ne "\n" && substr($array->[$i+1]->{'value'}, 0, 1) ne "\n")
     {
+        my $result = -1;
         # glue variants (x(what) = {removed => -, added => +}; u = [u, u+, u-, e]): {i=>x, i+1=>u}, {i=>x, i+1=>u}, {i=>u, i+1=>u, reverse}
-        if ($array->[$i]->{'type'} eq $act && substr($array->[$i+1]->{'type'}, 0, 1) eq TYPE_UNI)
+        if (($array->[$i]->{'type'} eq TYPE_SKP) || ($array->[$i+1]->{'type'} eq TYPE_SKP) || ($rarray->[$i]->{'type'} eq TYPE_SKP) || ($rarray->[$i+1]->{'type'} eq TYPE_SKP))
         {
-            $array->[$i]->{'value'} = TAGS->{$act}->[0] . $array->[$i]->{'value'} . TAGS->{$act}->[1] . $array->[$i+1]->{'value'};
-            $array->[$i]->{'type'} = TYPE_UNI . $act;
-            my $result = $self->glue_context_i($i, 'added') if ($what eq 'removed');
-            splice $array, $i+1, 1;
-            return $result if ($what eq 'removed');
-            return -1;
+            return 0;
+        }
+        elsif ($array->[$i]->{'type'} eq $act && substr($array->[$i+1]->{'type'}, 0, 1) eq TYPE_UNI)
+        {
+            $result = $self->glue_context_i($i, 'added') if ($what eq 'removed');
+            if ($result != 0)
+            {
+                $array->[$i]->{'value'} = TAGS->{$act}->[0] . $array->[$i]->{'value'} . TAGS->{$act}->[1] . $array->[$i+1]->{'value'};
+                $array->[$i]->{'type'} = TYPE_UNI . $act;
+                splice $array, $i+1, 1;
+            }
         }
         elsif (substr($array->[$i]->{'type'}, 0, 1) eq TYPE_UNI && $array->[$i+1]->{'type'} eq $act)
         {
-            $array->[$i]->{'value'} = $array->[$i]->{'value'} . TAGS->{$act}->[0] . $array->[$i+1]->{'value'} . TAGS->{$act}->[1];
-            $array->[$i]->{'type'} = TYPE_UNI . $act;
-            my $result = $self->glue_context_i($i, 'added') if ($what eq 'removed');
-            splice $array, $i+1, 1;
-            return $result if ($what eq 'removed');
-            return -1;
+            $result = $self->glue_context_i($i, 'added') if ($what eq 'removed');
+            if ($result != 0)
+            {
+                $array->[$i]->{'value'} = $array->[$i]->{'value'} . TAGS->{$act}->[0] . $array->[$i+1]->{'value'} . TAGS->{$act}->[1];
+                $array->[$i]->{'type'} = TYPE_UNI . $act;
+                splice $array, $i+1, 1;
+            }
         }
-        elsif (($array->[$i]->{'type'} ne TYPE_SKP) && ($array->[$i+1]->{'type'} ne TYPE_SKP) && ($rarray->[$i]->{'type'} ne $ract) && ($rarray->[$i+1]->{'type'} ne $ract))
+        else
         {
-            $array->[$i]->{'value'} = $array->[$i]->{'value'} . $array->[$i+1]->{'value'};
-            $array->[$i]->{'type'} = (
-                $array->[$i]->{'type'} ne TYPE_UNI && $array->[$i]->{'type'} ne TYPE_EMP  ? $array->[$i]->{'type'} :
-                ($array->[$i+1]->{'type'} ne TYPE_UNI && $array->[$i+1]->{'type'} ne TYPE_EMP ? $array->[$i+1]->{'type'} : TYPE_UNI)
-            );
-            my $result = $self->glue_context_i($i, 'added') if ($what eq 'removed');
-            splice $array, $i+1, 1;
-            return $result if ($what eq 'removed');
-            return -1;
+            $result = $self->glue_context_i($i, 'added') if ($what eq 'removed');
+            if ($result != 0)
+            {
+                $array->[$i]->{'value'} = $array->[$i]->{'value'} . $array->[$i+1]->{'value'};
+                $array->[$i]->{'type'} = (
+                    $array->[$i]->{'type'} ne TYPE_UNI && $array->[$i]->{'type'} ne TYPE_EMP  ? $array->[$i]->{'type'} :
+                    ($array->[$i+1]->{'type'} ne TYPE_UNI && $array->[$i+1]->{'type'} ne TYPE_EMP ? $array->[$i+1]->{'type'} : TYPE_UNI)
+                );
+                splice $array, $i+1, 1;
+            }
         }
+        return $result;
     }
     return 0;
 }

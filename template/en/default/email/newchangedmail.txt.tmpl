@@ -82,7 +82,7 @@ Bug [% d.dep %] summary: [% d.short_desc %]
 
 [%- END %]
 [%- # ------ What Removed Added ------ %]
-[% three_columns(d.fielddesc, d.removed, d.added) %]
+[% three_columns(d.fielddesc, d.diff_removed ? d.diff_removed : d.removed, d.diff_added ? d.diff_added : d.added) %]
 [%- END %]
 [%- END %]
 [%- # comments %]

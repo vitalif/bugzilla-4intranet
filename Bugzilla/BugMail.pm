@@ -636,12 +636,12 @@ sub sendMail
     for my $change (@$diffs)
     {
         my $field = Bugzilla->get_field($change->{'fieldname'});
-        if (0 && ($change->{'fieldname'} eq 'longdesc' || $field->{'type'} eq FIELD_TYPE_TEXTAREA))
+        if (($change->{'fieldname'} eq 'longdesc' || $field->{'type'} eq FIELD_TYPE_TEXTAREA) && !$change->{'both'})
         {
             my $diff = new Bugzilla::Diff($change->{'removed'}, $change->{'added'});
             $change->{'both'} = $diff->get_table;
-            $change->{'removed'} = '';
-            $change->{'added'} = '';
+            $change->{'diff_removed'} = $diff->get_removed;
+            $change->{'diff_added'} = $diff->get_added;
         }
     }
 
