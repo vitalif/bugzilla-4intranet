@@ -67,7 +67,7 @@ sub get_hash
 {
     my ($self, $force) = @_;
     $force = 0 unless $force;
-    if ($force || !($self->{'context'}))
+    if ($force || !$self->{'context'})
     {
         $self->{'diff'} = $self->diff($self->{old}, $self->{new});
         $self->make_context;
@@ -79,13 +79,13 @@ sub get_hash
     return $self->{'context'};
 }
 
-# templated diff
+# formatted diff
 sub get_table
 {
-    my ($self, $force) = @_;
+    my ($self, $force, $column) = @_;
     $force = 0 unless $force;
     my $diff = $self->get_hash($force);
-    my $result = '<table width="100%">';
+    my $result = [];
     for (my $i = 0; $i < $self->{'context'}->{'length'}; $i++)
     {
         # old and new texts - [type, value]
@@ -101,14 +101,12 @@ sub get_table
             $nval =~ s/\n/<br\/>/g;
         }
 
-        $result .= '<tr>';
-        $result .= '<td valign="top" width="1%">' . ($old->{'type'} eq TYPE_REM ? TYPE_REM : '') . '</td>';
-        $result .= '<td valign="top" width="49%"' . ($old->{'type'} eq TYPE_REM ? ' style="border: 1px solid #900;"' : '') . '>' . $oval . '</td>';
-        $result .= '<td valign="top" width="1%">' . ($new->{'type'} eq TYPE_ADD ? TYPE_ADD : '') . '</td>';
-        $result .= '<td valign="top" width="49%"' . ($new->{'type'} eq TYPE_ADD ? ' style="border: 1px solid #090;"' : '') . '>' . $nval . '</td>';
-        $result .= '</tr>';
+        push @$result, '<td style="vertical-align: top' .
+            ($old->{'type'} eq TYPE_REM ? '; border-width: 1px 1px 1px 5px; border-style: solid; border-color: red' : '').'">' .
+            $oval . '</td><td style="vertical-align: top' .
+            ($new->{'type'} eq TYPE_ADD ? '; border-width: 1px 1px 1px 5px; border-style: solid; border-color: #0a0' : '').'">' .
+            $nval . '</td>';
     }
-    $result .= '</table>';
     return $result;
 }
 
@@ -118,6 +116,7 @@ sub get_removed
     my ($self, $force) = @_;
     return $self->get_part(1, $force);
 }
+
 # get only added (with context)
 sub get_added
 {

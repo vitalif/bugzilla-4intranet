@@ -60,20 +60,25 @@ my $operations;
 ($operations, $vars->{'incomplete_data'}) =
     Bugzilla::Bug::GetBugActivity($bug->id);
 
-for (my $i = 0; $i < (scalar @$operations); $i++)
+for (my $i = 0; $i < scalar @$operations; $i++)
 {
-    for (my $j = 0; $j < (scalar @{$operations->[$i]->{'changes'}}); $j++)
+    my $lines = 0;
+    for (my $j = 0; $j < scalar @{$operations->[$i]->{changes}}; $j++)
     {
-        my $change = $operations->[$i]->{'changes'}->[$j];
-        my $field = Bugzilla->get_field($change->{'fieldname'});
-        if (($change->{'fieldname'} eq 'longdesc' || $field->{'type'} eq FIELD_TYPE_TEXTAREA))
+        my $change = $operations->[$i]->{changes}->[$j];
+        my $field = Bugzilla->get_field($change->{fieldname});
+        if ($change->{fieldname} eq 'longdesc' || $field->{type} eq FIELD_TYPE_TEXTAREA)
         {
-            my $diff = new Bugzilla::Diff($change->{'removed'}, $change->{'added'});
-            $operations->[$i]->{'changes'}->[$j]->{'both'} = $diff->get_table;
-            $operations->[$i]->{'changes'}->[$j]->{'removed'} = '';
-            $operations->[$i]->{'changes'}->[$j]->{'added'} = '';
+            my $diff = new Bugzilla::Diff($change->{removed}, $change->{added})->get_table;
+            $operations->[$i]->{changes}->[$j]->{lines} = $diff;
+            $lines += scalar @$diff;
+        }
+        else
+        {
+            $lines++;
         }
     }
+    $operations->[$i]->{total_lines} = $lines;
 }
 
 $vars->{'operations'} = $operations;

@@ -20,7 +20,19 @@
 
 From: [% Param('mailfrom') %]
 To: [% to_user.email %]
-Subject: [% (isnew ? '' : 'Re: ') _ '[' _ terms.Bug _ ' ' _ bugid _ '] ' _ (severity == 'blocker' ? '[BLOCKER] ' : '') _ (severity == 'critical' ? '[CRITICAL] ' : '') _ summary %]
+[% IF product == 'СМ-ОК' || product == 'СМ-RMS' || product == 'СМ-View' || product == 'СМ-МРТ' || product == 'СМ-Опт' %]
+Subject: [% (isnew ? '' : 'Re: ') _ '['
+  _ terms.Bug _ ' ' _ bugid _ '] ' _
+  (severity == 'blocker' ? '[BLOCKER] ' : '') _
+  (severity == 'critical' ? '[CRITICAL] ' : '') _
+'[' _ product _ '] ' _ summary %]
+[% ELSE %]
+Subject: [% (isnew ? '' : 'Re: ') _ '['
+  _ terms.Bug _ ' ' _ bugid _ '] ' _
+  (severity == 'blocker' ? '[BLOCKER] ' : '') _
+  (severity == 'critical' ? '[CRITICAL] ' : '') _
+  summary %]
+[% END %]
 X-Bugzilla-Reason: [% reasonsheader %]
 X-Bugzilla-Type: [% isnew ? 'new' : 'changed' %]
 X-Bugzilla-Watch-Reason: [% reasonswatchheader %]
@@ -218,7 +230,8 @@ body { font-family: Segoe UI, sans-serif; }
   [% END %]
 
   [%# ------ What Removed Added ------ %]
-  <tr class="n"><td>
+  <tr class="n">
+  <td valign="top"[% IF d.lines %] rowspan="[% d.lines.size %]"[% END %]>
   [% IF d.fieldname == 'longdesc' %]
     <a href="[% urlbase %]show_bug.cgi?id=[% bugid %]#c[% d.comment_count %]">
     [% IF d.comment_count > 0 %]Comment #[% d.comment_count %][% ELSE %]Description[% END %]
@@ -227,7 +240,15 @@ body { font-family: Segoe UI, sans-serif; }
     [% d.fielddesc %]
   [% END %]
   </td>
-  [% IF d.both %]<td colspan="2">[% d.both %]</td>[% ELSE %]<td>[% d.removed %]</td><td>[% d.added %]</td>[% END %]
+  [% IF d.lines %]
+    [% FOR l = d.lines %]
+      [% "</tr><tr>" IF loop.index > 0 %]
+      [% l %]
+    [% END %]
+  [% ELSE %]
+    <td>[% d.removed %]</td>
+    <td>[% d.added %]</td>
+  [% END %]
   </tr>
 
 [% END %]

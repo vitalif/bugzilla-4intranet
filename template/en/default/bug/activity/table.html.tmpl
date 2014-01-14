@@ -58,15 +58,15 @@
     [% FOREACH operation = operations %]
       [% op_loop = loop.count %]
       <tr>
-        <td rowspan="[% operation.changes.size %]" valign="top">
+        <td rowspan="[% operation.total_lines %]" valign="top">
           [% operation.who FILTER email FILTER html %]
         </td>
-        <td rowspan="[% operation.changes.size %]" valign="top">
+        <td rowspan="[% operation.total_lines %]" valign="top">
           [% operation.when FILTER time %]
         </td>
         [% FOREACH change = operation.changes %]
           [% "</tr><tr>" IF loop.index > 0 %]
-            <td>
+            <td valign="top"[% IF change.lines %] rowspan="[% change.lines.size %]"[% END %]>
               [% IF change.attachid %]
                 <a href="attachment.cgi?id=[% change.attachid %]">
                 Attachment #[% change.attachid %]</a>
@@ -78,18 +78,21 @@
                 [% ELSE %]
                   Description
                 [% END %]
-                [% IF change.removed.length > 85 || change.added.length > 85 %]
+                [% IF !change.lines && (change.removed.length > 85 || change.added.length > 85) %]
                   <br/><a href="#" id="link_[% op_loop %]_[% loop.count %]" onclick="showFullComment('[% op_loop %]_[% loop.count %]'); return false;">Show full text</a>
                 [% END %]
               [% ELSE %]
                 [%+ field_descs.${change.fieldname} || Bugzilla.get_field(change.fieldname).description FILTER html %]
               [% END %]
             </td>
-            [% IF change.both %]
-            <td colspan="2">[% change.both %]</td>
+            [% IF change.lines %]
+              [% FOR l = change.lines %]
+                [% "</tr><tr>" IF loop.index > 0 %]
+                [% l %]
+              [% END %]
             [% ELSE %]
-            [% PROCESS change_column change_type = change.removed op_type = "removed" op_count = loop.count op_loop = op_loop %]
-            [% PROCESS change_column change_type = change.added op_type = "added" op_count = loop.count op_short_comment %]
+              [% PROCESS change_column change_type = change.removed op_type = "removed" op_count = loop.count op_loop = op_loop %]
+              [% PROCESS change_column change_type = change.added op_type = "added" op_count = loop.count op_short_comment %]
             [% END %]
         [% END %]
       </tr>

@@ -43,6 +43,7 @@ use Bugzilla::Product;
 use Bugzilla::Component;
 use Bugzilla::Status;
 use Bugzilla::Mailer;
+use Bugzilla::Diff;
 
 use Date::Parse;
 use Date::Format;
@@ -635,13 +636,13 @@ sub sendMail
 
     for my $change (@$diffs)
     {
-        my $field = Bugzilla->get_field($change->{'fieldname'});
-        if (($change->{'fieldname'} eq 'longdesc' || $field->{'type'} eq FIELD_TYPE_TEXTAREA) && !$change->{'both'})
+        my $field = Bugzilla->get_field($change->{fieldname});
+        if (($change->{fieldname} eq 'longdesc' || $field->{type} eq FIELD_TYPE_TEXTAREA) && !$change->{lines})
         {
-            my $diff = new Bugzilla::Diff($change->{'removed'}, $change->{'added'});
-            $change->{'both'} = $diff->get_table;
-            $change->{'diff_removed'} = $diff->get_removed;
-            $change->{'diff_added'} = $diff->get_added;
+            my $diff = new Bugzilla::Diff($change->{removed}, $change->{added});
+            $change->{lines} = $diff->get_table;
+            $change->{diff_removed} = $diff->get_removed;
+            $change->{diff_added} = $diff->get_added;
         }
     }
 
