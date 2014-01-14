@@ -2151,12 +2151,14 @@ sub _content_matches
             # Close unclosed double quote
             $pattern_part .= '"';
         }
-        $text =~ s/((?:^|[^\\])(?:\\\\)*)([$pattern_part])/$1\$2/gs;
+        $text =~ s/((?<!\\)(?:\\\\)*)([$pattern_part])/$1\\$2/gs;
+        $text =~ s/(?<=[\s-])-(?=[\s-])/\\-/gso;
         $text = ($self->{user}->is_insider ? '@(short_desc,comments,comments_private) ' : '@(short_desc,comments) ') . $text;
         if (Bugzilla->localconfig->{sphinxse_port})
         {
             # Using SphinxSE
-            $text =~ s/;/\\\\;/gso;
+            $text =~ s/;/\\;/gso;
+            $text =~ s/\\/\\\\/gso;
             $text = "$text;mode=extended;limit=1000;fieldweights=short_desc,5,comments,1,comments_private,1";
             $self->{term} = {
                 table => "bugs_fulltext_sphinx $table",
