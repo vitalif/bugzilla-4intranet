@@ -32,9 +32,10 @@
 
 package Bugzilla::Mailer;
 
+use 5.10.1;
 use strict;
 
-use base qw(Exporter);
+use parent qw(Exporter);
 @Bugzilla::Mailer::EXPORT = qw(MessageToMTA build_thread_marker);
 
 use Bugzilla::Constants;
@@ -206,3 +207,13 @@ sub build_thread_marker {
 }
 
 1;
+
+=head1 B<Methods in need of POD>
+
+=over
+
+=item build_thread_marker
+
+=item MessageToMTA
+
+=back

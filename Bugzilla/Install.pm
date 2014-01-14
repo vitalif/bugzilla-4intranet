@@ -15,6 +15,7 @@ package Bugzilla::Install;
 # make those assumptions, then it should go into one of the
 # packages under the Bugzilla::Install namespace.
 
+use 5.10.1;
 use strict;
 
 use Bugzilla::Component;
@@ -498,5 +499,21 @@ Description: Creates the default product and component if
 Params:      none
 
 Returns:     nothing
+
+=back
+
+=head1 B<Methods in need of POD>
+
+=over
+
+=item update_system_groups
+
+=item reset_password
+
+=item make_admin
+
+=item create_admin
+
+=item init_workflow
 
 =back

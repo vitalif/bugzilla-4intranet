@@ -6,6 +6,8 @@
 # defined by the Mozilla Public License, v. 2.0.
 
 package Bugzilla::Migrate;
+
+use 5.10.1;
 use strict;
 
 use Bugzilla::Attachment;
@@ -16,7 +18,7 @@ use Bugzilla::Error;
 use Bugzilla::Install::Requirements ();
 use Bugzilla::Install::Util qw(indicate_progress);
 use Bugzilla::Product;
-use Bugzilla::Util qw(get_text trim generate_random_password say);
+use Bugzilla::Util qw(get_text trim generate_random_password);
 use Bugzilla::User ();
 use Bugzilla::Status ();
 use Bugzilla::Version;
@@ -1158,3 +1160,49 @@ or any custom fields are created. The default implementation does nothing.
 
 This is run after all data is inserted into Bugzilla. The default
 implementation does nothing.
+
+=head1 B<Methods in need of POD>
+
+=over
+
+=item do_migration
+
+=item verbose
+
+=item bug_fields
+
+=item insert_users
+
+=item users
+
+=item check_requirements
+
+=item bugs
+
+=item map_value
+
+=item insert_products
+
+=item products
+
+=item translate_all_bugs
+
+=item config_file_name
+
+=item dry_run
+
+=item name
+
+=item create_custom_fields
+
+=item reset_serial_values
+
+=item read_config
+
+=item write_config
+
+=item insert_bugs
+
+=item create_legal_values
+
+=back

@@ -16,8 +16,8 @@
 #
 ##############################################################################
 
+use 5.10.1;
 use strict;
-
 use lib qw(. lib);
 
 use Bugzilla;
@@ -25,11 +25,8 @@ use Bugzilla::Constants;
 use Bugzilla::Util;
 use Bugzilla::Error;
 use Bugzilla::Bug;
-use Bugzilla::User;
 use Bugzilla::Hook;
-use Bugzilla::Product;
 use Bugzilla::Classification;
-use Bugzilla::Keyword;
 use Bugzilla::Token;
 use Bugzilla::Field;
 use Bugzilla::Status;
@@ -67,23 +64,7 @@ if ($product_name eq '') {
     my @classifications;
 
     unless ($classification && $classification ne '__all') {
-        if (Bugzilla->params->{'useclassification'}) {
-            my $class;
-            # Get all classifications with at least one enterable product.
-            foreach my $product (@enterable_products) {
-                $class->{$product->classification_id}->{'object'} ||=
-                    new Bugzilla::Classification($product->classification_id);
-                # Nice way to group products per classification, without querying
-                # the DB again.
-                push(@{$class->{$product->classification_id}->{'products'}}, $product);
-            }
-            @classifications = sort {$a->{'object'}->sortkey <=> $b->{'object'}->sortkey
-                                     || lc($a->{'object'}->name) cmp lc($b->{'object'}->name)}
-                                    (values %$class);
-        }
-        else {
-            @classifications = ({object => undef, products => \@enterable_products});
-        }
+        @classifications = @{sort_products_by_classification(\@enterable_products)};
     }
 
     unless ($classification) {
@@ -242,14 +223,10 @@ if ($cloned_bug_id) {
     $vars->{'deadline'}       = $cloned_bug->deadline;
     $vars->{'status_whiteboard'} = $cloned_bug->status_whiteboard;
 
-    my @cc;
-    my $comp = Bugzilla::Component->new({ product => $product, name => $cloned_bug->component });
-    if ($comp && $product->id != $cloned_bug->product_id) {
-        @cc = map { $_->login } @{$comp->initial_cc || []};
-    } elsif (formvalue('cc')) {
-        @cc = split /[\s,]+/, formvalue('cc');
-    } elsif (defined $cloned_bug->cc) {
-        @cc = @{$cloned_bug->cc};
+    if (scalar @{$cloned_bug->cc}) {
+        $vars->{'cc'}         = join (", ", @{$cloned_bug->cc});
+    } else {
+        $vars->{'cc'}         = formvalue('cc');
     }
     
     if ($cloned_bug->reporter->id != $user->id

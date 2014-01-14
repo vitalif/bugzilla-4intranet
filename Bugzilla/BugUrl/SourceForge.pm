@@ -6,8 +6,11 @@
 # defined by the Mozilla Public License, v. 2.0.
 
 package Bugzilla::BugUrl::SourceForge;
+
+use 5.10.1;
 use strict;
-use base qw(Bugzilla::BugUrl);
+
+use parent qw(Bugzilla::BugUrl);
 
 ###############################
 ####        Methods        ####

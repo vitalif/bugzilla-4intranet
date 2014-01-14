@@ -149,8 +149,12 @@
           <li>Description removed</li>
       [% END %]
       [% END %]
-      [% IF changes.sortkey.defined %]
-        <li>Sortkey updated to '[% classification.sortkey | html %]'</li>
+      [% IF changes.initialqacontact.defined %]
+        [% IF comp.default_qa_contact %]
+          <li>Default QA contact updated to '[% comp.default_qa_contact.login FILTER html %]'</li>
+        [% ELSE %]
+          <li>Default QA contact deleted</li>
+        [% END %]
       [% END %]
       [% Hook.process('classification_updated_fields') %]
     </ul>
@@ -790,15 +794,15 @@
 [% END %]
 
 [% BLOCK msg_series_all_open %]
-  All Open
+    All Open
 [% END %]
 
 [% BLOCK msg_series_all_closed %]
-  All Closed
+    All Closed
 [% END %]
 
 [% BLOCK msg_series_subcategory %]
-  -All-
+    -All-
 [% END %]
 
 [% BLOCK msg_series_deleted %]
@@ -962,55 +966,67 @@
 [% END %]
 
 [% BLOCK msg_product_deleted %]
-  [% title = "Product Deleted" %]
-  The product <em>[% product.name FILTER html %]</em> and all its versions,
-  components, milestones and group controls have been deleted.
-  [% IF product.bug_count %]
-    All [% terms.bugs %] being in this product and all references
-    to them have also been deleted.
-  [% END %]
+    [% title = "Product Deleted" %]
+    The product <em>[% product.name FILTER html %]</em> and all its versions,
+    components, milestones and group controls have been deleted.
+    [% IF product.bug_count %]
+      All [% terms.bugs %] being in this product and all references
+      to them have also been deleted.
+    [% END %]
 [% END %]
 
 [% BLOCK msg_product_invalid %]
-  [% title = "$terms.Bugzilla Component Descriptions" %]
-  The product <em>[% product FILTER html %]</em> does not exist
-  or you don't have access to it. The following is a list of the
-  products you can choose from.
+    [% title = "$terms.Bugzilla Component Descriptions" %]
+    The product <em>[% product FILTER html %]</em> does not exist
+    or you don't have access to it. The following is a list of the
+    products you can choose from.
 [% END %]
 
 [% BLOCK msg_remaining_time_zeroed %]
-  The [% field_descs.remaining_time FILTER html %] field has been 
-  set to zero automatically as part of closing this [% terms.bug %]
-  or moving it from one closed state to another.
+    The [% field_descs.remaining_time FILTER html %] field has been 
+    set to zero automatically as part of closing this [% terms.bug %]
+    or moving it from one closed state to another.
 [% END %]
 
 [% BLOCK msg_sanitycheck %]
-  [%# We use this way to call sanitycheck-specific messages so that
-    # we can still use get_text(). %]
-  [% PROCESS "admin/sanitycheck/messages.html.tmpl" %]
+    [%# We use this way to call sanitycheck-specific messages so that
+      # we can still use get_text(). %]
+    [% PROCESS "admin/sanitycheck/messages.html.tmpl" %]
 [% END %]
 
 [% BLOCK msg_sudo_started %]
-  [% title = "Sudo session started" %]
-    The sudo session has been started.  For the next 6 hours, or until you 
-    end the session, everything you do you do as the user you are 
-    impersonating ([% target FILTER html %]).
+    [% title = "Sudo session started" %]
+      The sudo session has been started.  For the next 6 hours, or until you 
+      end the session, everything you do you do as the user you are 
+      impersonating ([% target FILTER html %]).
 [% END %]
 
 [% BLOCK msg_sudo_ended %]
-  [% title = "Sudo session complete" %]
-    The sudo session has been ended.  From this point forward, everything you 
-    do you do as yourself.
+    [% title = "Sudo session complete" %]
+      Your sudo session has ended. All future actions will be attributed
+      to your own account.
 [% END %]
 
 [% BLOCK msg_series_created %]
-  [% title = "Series Created" %]
-    The series <em>[% series.category FILTER html %] /
-    [%+ series.subcategory FILTER html %] / 
-    [%+ series.name FILTER html %]</em>
-    has been created. Note that you may need to wait up to 
-    [%+ series.frequency * 2 %] days before there will be enough data for a
-    chart of this series to be produced.
+    [% title = "Series Created" %]
+      The series <em>[% series.category FILTER html %] /
+      [%+ series.subcategory FILTER html %] / 
+      [%+ series.name FILTER html %]</em>
+      has been created. Note that you may need to wait up to 
+      [%+ series.frequency * 2 %] days before there will be enough data for a
+      chart of this series to be produced.
+[% END %]
+  
+[% BLOCK msg_report_created %]
+    OK, you have a new saved report named <em>[% reportname FILTER html %]</em>.
+[% END %]
+
+[% BLOCK msg_report_deleted %]
+    OK, the <em>[% reportname FILTER html %]</em> report is gone.
+[% END %]
+
+[% BLOCK msg_report_updated %]
+    The saved report <em>[% reportname FILTER html %]</em> has been updated.
 [% END %]
 
 [% BLOCK msg_install_fk_setup %]

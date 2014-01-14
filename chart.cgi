@@ -27,6 +27,7 @@
 # Bonus:
 # Offer subscription when you get a "series already exists" error?
 
+use 5.10.1;
 use strict;
 use lib qw(. lib);
 
@@ -37,7 +38,6 @@ use Bugzilla::Error;
 use Bugzilla::Util;
 use Bugzilla::Chart;
 use Bugzilla::Series;
-use Bugzilla::User;
 use Bugzilla::Token;
 
 # For most scripts we don't make $cgi and $template global variables. But
@@ -52,7 +52,7 @@ my $dbh = Bugzilla->dbh;
 my $user = Bugzilla->login(LOGIN_REQUIRED);
 
 if (!Bugzilla->feature('new_charts')) {
-    ThrowCodeError('feature_disabled', { feature => 'new_charts' });
+    ThrowUserError('feature_disabled', { feature => 'new_charts' });
 }
 
 # Go back to query.cgi if we are adding a boolean chart parameter.
@@ -267,12 +267,12 @@ sub validateWidthAndHeight {
 
     if (defined($vars->{'width'})) {
        (detaint_natural($vars->{'width'}) && $vars->{'width'} > 0)
-         || ThrowCodeError("invalid_dimensions");
+         || ThrowUserError("invalid_dimensions");
     }
 
     if (defined($vars->{'height'})) {
        (detaint_natural($vars->{'height'}) && $vars->{'height'} > 0)
-         || ThrowCodeError("invalid_dimensions");
+         || ThrowUserError("invalid_dimensions");
     }
 
     # The equivalent of 2000 square seems like a very reasonable maximum size.

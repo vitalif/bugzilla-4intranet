@@ -6,6 +6,8 @@
 # defined by the Mozilla Public License, v. 2.0.
 
 package Bugzilla::Search::Clause;
+
+use 5.10.1;
 use strict;
 
 use Bugzilla::Error;
@@ -26,6 +28,11 @@ sub children {
     my ($self) = @_;
     $self->{children} ||= [];
     return $self->{children};
+}
+
+sub update_search_args {
+    my ($self, $search_args) = @_;
+    # abstract
 }
 
 sub joiner { return $_[0]->{joiner} }
@@ -69,7 +76,7 @@ sub walk_conditions {
     my ($self, $callback) = @_;
     foreach my $child (@{ $self->children }) {
         if ($child->isa('Bugzilla::Search::Condition')) {
-            $callback->($child);
+            $callback->($self, $child);
         }
         else {
             $child->walk_conditions($callback);
@@ -122,3 +129,27 @@ sub as_params {
 }
 
 1;
+
+=head1 B<Methods in need of POD>
+
+=over
+
+=item has_translated_conditions
+
+=item as_string
+
+=item add
+
+=item children
+
+=item negate
+
+=item update_search_args
+
+=item walk_conditions
+
+=item joiner
+
+=item as_params
+
+=back

@@ -7,12 +7,13 @@
 
 package Bugzilla::JobQueue;
 
+use 5.10.1;
 use strict;
 
 use Bugzilla::Constants;
 use Bugzilla::Error;
 use Bugzilla::Install::Util qw(install_string);
-use base qw(TheSchwartz);
+use parent qw(TheSchwartz);
 
 # This maps job names for Bugzilla::JobQueue to the appropriate modules.
 # If you add new types of jobs, you should add a mapping here.
@@ -41,7 +42,7 @@ sub new {
     my $class = shift;
 
     if (!Bugzilla->feature('jobqueue')) {
-        ThrowCodeError('feature_disabled', { feature => 'jobqueue' });
+        ThrowUserError('feature_disabled', { feature => 'jobqueue' });
     }
 
     my $lc = Bugzilla->localconfig;
@@ -119,3 +120,15 @@ Bugzilla to use some sort of service to schedule jobs to happen asyncronously.
 See the synopsis above for an easy to follow example on how to insert a
 job into the queue.  Give it a name and some arguments and the job will
 be sent away to be done later.
+
+=head1 B<Methods in need of POD>
+
+=over
+
+=item insert
+
+=item bz_databases
+
+=item job_map
+
+=back

@@ -5,11 +5,12 @@
 # This Source Code Form is "Incompatible With Secondary Licenses", as
 # defined by the Mozilla Public License, v. 2.0.
 
-use strict;
-
 package Bugzilla::Keyword;
 
-use base qw(Bugzilla::Object);
+use 5.10.1;
+use strict;
+
+use parent qw(Bugzilla::Object);
 
 use Bugzilla::Error;
 use Bugzilla::Util;
@@ -188,3 +189,17 @@ implements.
 =back
 
 =cut
+
+=head1 B<Methods in need of POD>
+
+=over
+
+=item set_description
+
+=item bug_count
+
+=item set_name
+
+=item description
+
+=back

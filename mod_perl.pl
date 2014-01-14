@@ -7,6 +7,8 @@
 # defined by the Mozilla Public License, v. 2.0.
 
 package Bugzilla::ModPerl;
+
+use 5.10.1;
 use strict;
 use warnings;
 
@@ -79,7 +81,7 @@ PerlChildInitHandler "sub { Bugzilla::RNG::srand(); srand(); }"
     $sizelimit
     PerlOptions +ParseHeaders
     Options +ExecCGI
-    AllowOverride Limit FileInfo Indexes
+    AllowOverride Limit FileInfo Indexes Options
     DirectoryIndex index.cgi index.html
 </Directory>
 EOT
@@ -113,8 +115,11 @@ foreach my $file (glob "$cgi_path/*.cgi") {
 }
 
 package Bugzilla::ModPerl::ResponseHandler;
+
+use 5.10.1;
 use strict;
-use base qw(ModPerl::Registry);
+
+use parent qw(ModPerl::Registry);
 use Bugzilla;
 
 sub handler : method {
@@ -208,7 +213,10 @@ sub unload
 }
 
 package Bugzilla::ModPerl::CleanupHandler;
+
+use 5.10.1;
 use strict;
+
 use Apache2::Const -compile => qw(OK);
 
 sub handler {

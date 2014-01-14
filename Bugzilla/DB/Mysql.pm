@@ -20,8 +20,11 @@ For interface details see L<Bugzilla::DB> and L<DBI>.
 =cut
 
 package Bugzilla::DB::Mysql;
+
+use 5.10.1;
 use strict;
-use base qw(Bugzilla::DB);
+
+use parent qw(Bugzilla::DB);
 
 use Bugzilla::Constants;
 use Bugzilla::Install::Util qw(install_string);
@@ -947,7 +950,9 @@ sub _bz_raw_column_info {
               $index = name of an index
  Returns:     An abstract index definition, always in hashref format.
               If the index does not exist, the function returns undef.
+
 =cut
+
 sub bz_index_info_real {
     my ($self, $table, $index) = @_;
 
@@ -1055,3 +1060,49 @@ sub _bz_build_schema_from_disk {
 }
 
 1;
+
+=head1 B<Methods in need of POD>
+
+=over
+
+=item sql_date_format
+
+=item bz_explain
+
+=item bz_last_key
+
+=item sql_position
+
+=item sql_fulltext_search
+
+=item sql_iposition
+
+=item bz_enum_initial_values
+
+=item sql_group_by
+
+=item sql_limit
+
+=item sql_not_regexp
+
+=item sql_string_concat
+
+=item sql_date_math
+
+=item sql_to_days
+
+=item bz_check_server_version
+
+=item sql_from_days
+
+=item sql_regexp
+
+=item sql_istring
+
+=item sql_group_concat
+
+=item bz_setup_database
+
+=item bz_db_is_utf8
+
+=back

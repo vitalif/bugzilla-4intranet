@@ -13,8 +13,10 @@ package Bugzilla::DB::Schema::Pg;
 #
 ###############################################################################
 
+use 5.10.1;
 use strict;
-use base qw(Bugzilla::DB::Schema);
+
+use parent qw(Bugzilla::DB::Schema);
 use Storable qw(dclone);
 
 #------------------------------------------------------------------------------
@@ -56,63 +58,14 @@ sub _initialize {
 } #eosub--_initialize
 #--------------------------------------------------------------------
 
-sub _get_create_table_ddl
-{
-    my ($self, $table) = @_;
-
-    my $thash = $self->{schema}{$table};
-    die "Table $table does not exist in the database schema."
-        unless ref $thash;
-
-    # Find fulltext fields
-    my %is_ft;
-    for (my $i = 1; $i < @{$thash->{INDEXES}}; $i += 2)
-    {
-        if ($thash->{INDEXES}->[$i]->{TYPE} eq 'FULLTEXT')
-        {
-            $is_ft{$_} = 1 for @{$thash->{INDEXES}->[$i]->{FIELDS}};
-        }
-    }
-
-    my $create_table = "CREATE TABLE $table \(\n";
-
-    my @fields = @{ $thash->{FIELDS} };
-    while (@fields)
-    {
-        my $field = shift @fields;
-        my $finfo = shift @fields;
-        $create_table .= "\t$field\t";
-        if ($is_ft{$field})
-        {
-            # Don't store the contents of fulltext fields in PostgreSQL,
-            # just store the real tsvector's. This allows optimal performance
-            # while ranking results.
-            $create_table .= 'tsvector';
-        }
-        else
-        {
-            $create_table .= $self->get_type_ddl($finfo);
-        }
-        $create_table .= "," if @fields;
-        $create_table .= "\n";
-    }
-
-    $create_table .= "\)";
-
-    return $create_table;
-}
-
-sub _get_create_index_ddl
-{
-    my $self = shift;
-    my ($table, $name, $index_fields, $index_type) = @_;
-    if ($index_type && $index_type eq 'FULLTEXT')
-    {
-        # Override fulltext index creation clause
-        $index_fields = join(" || ", @$index_fields);
-        return "CREATE INDEX $name ON $table USING gin($index_fields)";
-    }
-    return $self->SUPER::_get_create_index_ddl(@_);
+sub get_create_database_sql {
+    my ($self, $name) = @_;
+    # We only create as utf8 if we have no params (meaning we're doing
+    # a new installation) or if the utf8 param is on.
+    my $create_utf8 = Bugzilla->params->{'utf8'}
+                      || !defined Bugzilla->params->{'utf8'};
+    my $charset = $create_utf8 ? "ENCODING 'UTF8' TEMPLATE template0" : '';
+    return ("CREATE DATABASE $name $charset");
 }
 
 sub get_rename_column_ddl {
@@ -217,3 +170,17 @@ sub _get_alter_type_sql {
 }
 
 1;
+
+=head1 B<Methods in need of POD>
+
+=over
+
+=item get_rename_column_ddl
+
+=item get_rename_table_sql
+
+=item get_create_database_sql
+
+=item get_set_serial_sql
+
+=back

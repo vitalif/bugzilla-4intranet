@@ -5,9 +5,10 @@
 # This Source Code Form is "Incompatible With Secondary Licenses", as
 # defined by the Mozilla Public License, v. 2.0.
 
-use strict;
-
 package Bugzilla::Flag;
+
+use 5.10.1;
+use strict;
 
 =head1 NAME
 
@@ -49,7 +50,7 @@ use Bugzilla::Mailer;
 use Bugzilla::Constants;
 use Bugzilla::Field;
 
-use base qw(Bugzilla::Object Exporter);
+use parent qw(Bugzilla::Object Exporter);
 @Bugzilla::Flag::EXPORT = qw(SKIP_REQUESTEE_ON_ERROR);
 
 ###############################
@@ -180,22 +181,20 @@ is an attachment flag, else undefined.
 sub type {
     my $self = shift;
 
-    $self->{'type'} ||= new Bugzilla::FlagType($self->{'type_id'});
-    return $self->{'type'};
+    return $self->{'type'} ||= new Bugzilla::FlagType($self->{'type_id'});
 }
 
 sub setter {
     my $self = shift;
 
-    $self->{'setter'} ||= new Bugzilla::User($self->{'setter_id'});
-    return $self->{'setter'};
+    return $self->{'setter'} ||= new Bugzilla::User({ id => $self->{'setter_id'}, cache => 1 });
 }
 
 sub requestee {
     my $self = shift;
 
     if (!defined $self->{'requestee'} && $self->{'requestee_id'}) {
-        $self->{'requestee'} = new Bugzilla::User($self->{'requestee_id'});
+        $self->{'requestee'} = new Bugzilla::User({ id => $self->{'requestee_id'}, cache => 1 });
     }
     return $self->{'requestee'};
 }
@@ -205,16 +204,15 @@ sub attachment {
     return undef unless $self->attach_id;
 
     require Bugzilla::Attachment;
-    $self->{'attachment'} ||= new Bugzilla::Attachment($self->attach_id);
-    return $self->{'attachment'};
+    return $self->{'attachment'}
+      ||= new Bugzilla::Attachment({ id => $self->attach_id, cache => 1 });
 }
 
 sub bug {
     my $self = shift;
 
     require Bugzilla::Bug;
-    $self->{'bug'} ||= new Bugzilla::Bug($self->bug_id);
-    return $self->{'bug'};
+    return $self->{'bug'} ||= new Bugzilla::Bug({ id => $self->bug_id, cache => 1 });
 }
 
 ################################
@@ -669,7 +667,7 @@ sub _check_requestee {
         # is specifically requestable. For existing flags, if the requestee
         # was set before the flag became specifically unrequestable, the
         # user can either remove him or leave him alone.
-        ThrowCodeError('flag_requestee_disabled', { type => $self->type })
+        ThrowUserError('flag_requestee_disabled', { type => $self->type })
           if !$self->type->is_requesteeble;
 
         # Make sure the requestee can see the bug.
@@ -728,7 +726,7 @@ sub _check_setter {
     # By default, the currently logged in user is the setter.
     $setter ||= Bugzilla->user;
     (blessed($setter) && $setter->isa('Bugzilla::User') && $setter->id)
-      || ThrowCodeError('invalid_user');
+      || ThrowUserError('invalid_user');
 
     # set_status() has already been called. So this refers
     # to the new flag status.
@@ -1136,29 +1134,30 @@ sub _flag_types {
     return $flag_types;
 }
 
-=head1 SEE ALSO
-
-=over
-
-=item B<Bugzilla::FlagType>
-
-=back
-
-
-=head1 CONTRIBUTORS
-
-=over
-
-=item Myk Melez <myk@mozilla.org>
-
-=item Jouni Heikniemi <jouni@heikniemi.net>
-
-=item Kevin Benton <kevin.benton@amd.com>
-
-=item Frédéric Buclin <LpSolit@gmail.com>
-
-=back
-
-=cut
-
 1;
+
+=head1 B<Methods in need of POD>
+
+=over
+
+=item update_activity
+
+=item setter_id
+
+=item bug
+
+=item requestee_id
+
+=item DB_COLUMNS
+
+=item set_flag
+
+=item type_id
+
+=item snapshot
+
+=item update_flags
+
+=item update
+
+=back

@@ -70,12 +70,16 @@
 <form action="showdependencygraph.cgi" method="GET">
   <table>
     <tr>
-      <th align="left"><label for="id">[% terms.Bug %] numbers</label>:</th>
-      <td colspan="2"><input id="id" name="id" value="[% bug_id %]" size="60" /></td>
+      <th><label for="id">[% terms.Bug %] numbers</label>:</th>
+      <td><input id="id" name="id" value="[% bug_id %]"></td>
+      <td>
+        <input type="checkbox" id="showsummary" name="showsummary" [% " checked" IF showsummary %]>
+        <label for="showsummary">Show the summaries of all displayed [% terms.bugs %]</label>
+      </td>
     </tr>
 
     <tr>
-      <th align="left"><label for="display">Display:</label></th>
+      <th><label for="display">Display:</label></th>
       <td colspan="2">
         <select id="display" name="display">
           <option value="only" [% 'selected="selected"' IF display == "only" %]>
@@ -89,7 +93,7 @@
     </tr>
 
     <tr>
-      <th align="left"><label for="rankdir">Orientation:</label></th>
+      <th><label for="rankdir">Orientation:</label></th>
       <td colspan="2">
         <select id="rankdir" name="rankdir">
           <option value="TB"[% " selected" IF rankdir == "TB" %]>Top to bottom</option>

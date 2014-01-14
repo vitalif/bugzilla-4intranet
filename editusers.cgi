@@ -6,6 +6,7 @@
 # This Source Code Form is "Incompatible With Secondary Licenses", as
 # defined by the Mozilla Public License, v. 2.0.
 
+use 5.10.1;
 use strict;
 use lib qw(. lib);
 
@@ -144,8 +145,7 @@ if ($action eq 'search') {
             } elsif ($matchtype eq 'exact') {
                 $query .= $expr . ' = ?';
             } else { # substr or unknown
-                $query .= $dbh->sql_istrcmp($expr, '?', 'LIKE');
-                $matchstr = "%$matchstr%";
+                $query .= $dbh->sql_iposition('?', $expr) . ' > 0';
             }
             $nextCondition = 'AND';
             push(@bindValues, $matchstr);
@@ -708,7 +708,7 @@ sub check_user {
         $otherUser = new Bugzilla::User({ name => $otherUserLogin });
         $vars->{'user_login'} = $otherUserLogin;
     }
-    ($otherUser && $otherUser->id) || ThrowCodeError('invalid_user', $vars);
+    ($otherUser && $otherUser->id) || ThrowUserError('invalid_user', $vars);
 
     return $otherUser;
 }

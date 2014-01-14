@@ -351,7 +351,11 @@ use strict;
 use warnings;
 
 package Bugzilla::Search;
-use base qw(Exporter);
+
+use 5.10.1;
+use strict;
+
+use parent qw(Exporter);
 @Bugzilla::Search::EXPORT = qw(
     EMPTY_COLUMN
 
@@ -366,6 +370,7 @@ use Bugzilla::Group;
 use Bugzilla::User;
 use Bugzilla::Field;
 use Bugzilla::Search::Clause;
+use Bugzilla::Search::ClauseGroup;
 use Bugzilla::Search::Condition qw(condition);
 use Bugzilla::Status;
 use Bugzilla::Keyword;

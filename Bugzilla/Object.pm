@@ -5,9 +5,10 @@
 # This Source Code Form is "Incompatible With Secondary Licenses", as
 # defined by the Mozilla Public License, v. 2.0.
 
-use strict;
-
 package Bugzilla::Object;
+
+use 5.10.1;
+use strict;
 
 use Bugzilla::Constants;
 use Bugzilla::Hook;
@@ -57,6 +58,8 @@ sub new {
 sub _init {
     my $class = shift;
     my ($param) = @_;
+    my $object = $class->_cache_get($param);
+    return $object if $object;
     my $dbh = Bugzilla->dbh;
     my $columns = join(',', $class->_get_db_columns);
     my $table   = $class->DB_TABLE;
@@ -116,6 +119,33 @@ sub _init {
 
     $object = $dbh->selectrow_hashref($sql, undef, @values);
     return $object;
+}
+
+# Provides a mechanism for objects to be cached in the request_cache
+sub _cache_get {
+    my $class = shift;
+    my ($param) = @_;
+    my $cache_key = $class->cache_key($param)
+      || return;
+    return Bugzilla->request_cache->{$cache_key};
+}
+
+sub _cache_set {
+    my $class = shift;
+    my ($param, $object) = @_;
+    my $cache_key = $class->cache_key($param)
+      || return;
+    Bugzilla->request_cache->{$cache_key} = $object;
+}
+
+sub cache_key {
+    my $class = shift;
+    my ($param) = @_;
+    if (ref($param) && $param->{cache} && ($param->{id} || $param->{name})) {
+        return $class . ',' . ($param->{id} || $param->{name});
+    } else {
+        return;
+    }
 }
 
 sub check {
@@ -320,9 +350,23 @@ sub set {
 
 sub set_all {
     my ($self, $params) = @_;
-    foreach my $key (keys %$params) {
+
+    # Don't let setters modify the values in $params for the caller.
+    my %field_values = %$params;
+
+    my @sorted_names = $self->_sort_by_dep(keys %field_values);
+
+    foreach my $key (@sorted_names) {
+        # It's possible for one set_ method to delete a key from $params
+        # for another set method, so if that's happened, we don't call the
+        # other set method.
+        next if !exists $field_values{$key};
         my $method = "set_$key";
-        $self->$method($params->{$key});
+        if (!$self->can($method)) {
+            my $class = ref($self) || $self;
+            ThrowCodeError("unknown_method", { method => "${class}::${method}" });
+        }
+        $self->$method($field_values{$key}, \%field_values);
     }
     Bugzilla::Hook::process('object_end_of_set_all', { object => $self,
                                                        params => $params });
@@ -789,8 +833,8 @@ your own C<DB_COLUMNS> subroutine in a subclass.)
 
 The name of the column that should be considered to be the unique
 "name" of this object. The 'name' is a B<string> that uniquely identifies
-this Object in the database. Defaults to 'name'. When you specify
-C<{name => $name}> to C<new()>, this is the column that will be
+this Object in the database. Defaults to 'name'. When you specify 
+C<< {name => $name} >> to C<new()>, this is the column that will be 
 matched against in the DB.
 
 =item C<ID_FIELD>
@@ -939,7 +983,7 @@ for each placeholder in C<condition>, in order.
 
 This is to allow subclasses to have complex parameters, and then to
 translate those parameters into C<condition> and C<values> when they
-call C<$self->SUPER::new> (which is this function, usually).
+call C<< $self->SUPER::new >> (which is this function, usually).
 
 If you try to call C<new> outside of a subclass with the C<condition>
 and C<values> parameters, Bugzilla will throw an error. These parameters
@@ -1064,8 +1108,9 @@ Notes:       In order for this function to work in your subclass,
              your subclass's L</ID_FIELD> must be of C<SERIAL>
              type in the database.
 
-             Subclass Implementors: This function basically just
-             calls L</check_required_create_fields>, then
+Subclass Implementors:
+             This function basically just calls 
+             L</check_required_create_fields>, then
              L</run_create_validators>, and then finally
              L</insert_create_data>. So if you have a complex system that
              you need to implement, you can do it by calling these
@@ -1258,10 +1303,26 @@ C<0> otherwise.
 
  Returns:     A list of objects, or an empty list if there are none.
 
- Notes:       Note that you must call this as C<$class->get_all>. For
-              example, C<Bugzilla::Keyword->get_all>.
-              C<Bugzilla::Keyword::get_all> will not work.
+ Notes:       Note that you must call this as $class->get_all. For 
+              example, Bugzilla::Keyword->get_all. 
+              Bugzilla::Keyword::get_all will not work.
 
 =back
 
 =cut
+
+=head1 B<Methods in need of POD>
+
+=over
+
+=item cache_key
+
+=item check_time
+
+=item id
+
+=item TO_JSON
+
+=item audit_log
+
+=back

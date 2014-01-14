@@ -7,7 +7,7 @@
 
 package Bugzilla::Search::Quicksearch;
 
-# Make it harder for us to do dangerous things in Perl.
+use 5.10.1;
 use strict;
 
 use Bugzilla::Error;
@@ -22,7 +22,7 @@ use Text::ParseWords qw(quotewords);
 use List::MoreUtils qw(firstidx);
 use Text::ParseWords qw(parse_line);
 
-use base qw(Exporter);
+use parent qw(Exporter);
 @Bugzilla::Search::Quicksearch::EXPORT = qw(quicksearch);
 
 # Custom mappings for some fields.
@@ -270,9 +270,10 @@ sub _handle_alias {
     if ($searchstring =~ /^([^,\s]+)$/) {
         my $alias = $1;
         # We use this direct SQL because we want quicksearch to be VERY fast.
-        my $is_alias = Bugzilla->dbh->selectrow_array(
-            q{SELECT 1 FROM bugs WHERE alias = ?}, undef, $alias);
-        if ($is_alias) {
+        my $bug_id = Bugzilla->dbh->selectrow_array(
+            q{SELECT bug_id FROM bugs WHERE alias = ?}, undef, $alias);
+        # If the user cannot see the bug, do not resolve its alias.
+        if ($bug_id && Bugzilla->user->can_see_bug($bug_id)) {
             $alias = url_quote($alias);
             print Bugzilla->cgi->redirect(
                 -uri => correct_urlbase() . "show_bug.cgi?id=$alias");
@@ -660,3 +661,21 @@ sub makeChart {
 }
 
 1;
+
+=head1 B<Methods in need of POD>
+
+=over
+
+=item FIELD_MAP
+
+=item quicksearch
+
+=item negateComparisonType
+
+=item makeChart
+
+=item addChart
+
+=item matchPrefixes
+
+=back

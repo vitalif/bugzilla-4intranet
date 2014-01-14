@@ -6,8 +6,8 @@
 # This Source Code Form is "Incompatible With Secondary Licenses", as
 # defined by the Mozilla Public License, v. 2.0.
 
+use 5.10.1;
 use strict;
-
 use lib qw(. lib);
 
 use Date::Parse;         # strptime
@@ -289,7 +289,16 @@ if ($do_report)
 {
     my @bugs = @ids;
 
-    # Validate dates
+    # Dependency mode requires a single bug and grabs dependents.
+    if ($do_depends) {
+        if (scalar(@bugs) != 1) {
+            ThrowCodeError("bad_arg", { argument=>"id",
+                                        function=>"summarize_time"});
+        }
+        @bugs = get_blocker_ids($bugs[0]);
+        @bugs = @{ $user->visible_bugs(\@bugs) };
+    }
+
     $start_date = trim $cgi->param('start_date');
     $end_date = trim $cgi->param('end_date');
 

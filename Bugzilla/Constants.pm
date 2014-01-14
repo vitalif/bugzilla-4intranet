@@ -6,8 +6,11 @@
 # defined by the Mozilla Public License, v. 2.0.
 
 package Bugzilla::Constants;
+
+use 5.10.1;
 use strict;
-use base qw(Exporter);
+
+use parent qw(Exporter);
 
 # For bz_locations
 use File::Basename;
@@ -172,6 +175,7 @@ use Memoize;
     MAX_BUG_URL_LENGTH
     MAX_POSSIBLE_DUPLICATES
     MAX_ATTACH_FILENAME_LENGTH
+    MAX_QUIP_LENGTH
 
     PASSWORD_DIGEST_ALGORITHM
     PASSWORD_SALT_LENGTH
@@ -198,7 +202,7 @@ use Memoize;
 # CONSTANTS
 #
 # Bugzilla version
-use constant BUGZILLA_VERSION => "4.3.2+";
+use constant BUGZILLA_VERSION => "4.5";
 
 # Location of the remote and local XML files to track new releases.
 use constant REMOTE_FILE => 'http://updates.bugzilla.org/bugzilla-update.xml';
@@ -522,7 +526,9 @@ use constant DB_MODULE => {
                 dbd => {
                     package => 'DBD-Pg',
                     module  => 'DBD::Pg',
-                    version => '1.45',
+                    # 2.7.0 fixes a problem with quoting strings
+                    # containing backslashes in them.
+                    version => '2.7.0',
                 },
                 name => 'PostgreSQL'},
      'oracle'=> {db => 'Bugzilla::DB::Oracle', db_version => '10.02.0',
@@ -595,13 +601,16 @@ use constant MAX_POSSIBLE_DUPLICATES => 25;
 # necessary schema changes to store longer names.
 use constant MAX_ATTACH_FILENAME_LENGTH => 255;
 
+# Maximum length of a quip.
+use constant MAX_QUIP_LENGTH => 512;
+
 # This is the name of the algorithm used to hash passwords before storing
 # them in the database. This can be any string that is valid to pass to
 # Perl's "Digest" module. Note that if you change this, it won't take
-# effect until a user changes his password.
+# effect until a user logs in or changes his password.
 use constant PASSWORD_DIGEST_ALGORITHM => 'SHA-256';
-# How long of a salt should we use? Note that if you change this, none
-# of your users will be able to log in until they reset their passwords.
+# How long of a salt should we use? Note that if you change this, it
+# won't take effect until a user logs in or changes his password.
 use constant PASSWORD_SALT_LENGTH => 8;
 
 # Certain scripts redirect to GET even if the form was submitted originally
@@ -708,3 +717,13 @@ sub bz_locations {
 BEGIN { memoize('bz_locations') };
 
 1;
+
+=head1 B<Methods in need of POD>
+
+=over
+
+=item DB_MODULE
+
+=item contenttypes
+
+=back

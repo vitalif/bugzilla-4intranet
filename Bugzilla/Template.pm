@@ -8,7 +8,7 @@
 
 package Bugzilla::Template;
 
-use utf8;
+use 5.10.1;
 use strict;
 
 use Bugzilla::Constants;
@@ -36,7 +36,7 @@ use IO::Dir;
 use List::MoreUtils qw(firstidx);
 use Scalar::Util qw(blessed);
 
-use base qw(Template);
+use parent qw(Template);
 
 my ($custom_proto, $custom_proto_regex, $custom_proto_cached);
 use constant FORMAT_TRIPLE => '%19s|%-28s|%-28s';
@@ -349,13 +349,44 @@ sub quoteUrls {
     # empty string
     my $bug_word = template_var('terms')->{bug};
     my $bug_re = qr/\Q$bug_word\E\s*\#?\s*(\d+)/i;
-    my $comment_re = qr/comment\s*\#?\s*(\d+)/i;
+    my $comment_word = template_var('terms')->{comment};
+    my $comment_re = qr/(?:\Q$comment_word\E|comment)\s*\#?\s*(\d+)/i;
     $text =~ s~\b($bug_re(?:\s*,?\s*$comment_re)?|$comment_re)
               ~ # We have several choices. $1 here is the link, and $2-4 are set
                 # depending on which part matched
                (defined($2) ? get_bug_link($2, $1, { comment_num => $3, user => $user }) :
                               "<a href=\"$current_bugurl#c$4\">$1</a>")
               ~egsox;
+
+    # Handle a list of bug ids: bugs 1, #2, 3, 4
+    # Currently, the only delimiter supported is comma.
+    # Concluding "and" and "or" are not supported.
+    my $bugs_word = template_var('terms')->{bugs};
+
+    my $bugs_re = qr/\Q$bugs_word\E\s*\#?\s*
+                     \d+(?:\s*,\s*\#?\s*\d+)+/ix;
+    while ($text =~ m/($bugs_re)/go) {
+        my $offset = $-[0];
+        my $length = $+[0] - $-[0];
+        my $match  = $1;
+
+        $match =~ s/((?:#\s*)?(\d+))/get_bug_link($2, $1);/eg;
+        # Replace the old string with the linkified one.
+        substr($text, $offset, $length) = $match;
+    }
+
+    my $comments_word = template_var('terms')->{comments};
+
+    my $comments_re = qr/(?:comments|\Q$comments_word\E)\s*\#?\s*
+                         \d+(?:\s*,\s*\#?\s*\d+)+/ix;
+    while ($text =~ m/($comments_re)/go) {
+        my $offset = $-[0];
+        my $length = $+[0] - $-[0];
+        my $match  = $1;
+
+        $match =~ s|((?:#\s*)?(\d+))|<a href="$current_bugurl#c$2">$1</a>|g;
+        substr($text, $offset, $length) = $match;
+    }
 
     # Old duplicate markers. These don't use $bug_word because they are old
     # and were never customizable.
@@ -380,7 +411,7 @@ sub get_attachment_link {
     my $dbh = Bugzilla->dbh;
     $user ||= Bugzilla->user;
 
-    my $attachment = new Bugzilla::Attachment($attachid);
+    my $attachment = new Bugzilla::Attachment({ id => $attachid, cache => 1 });
 
     if ($attachment) {
         my $title = "";
@@ -442,10 +473,10 @@ sub get_bug_link {
     $options->{user} ||= Bugzilla->user;
     my $dbh = Bugzilla->dbh;
 
-    if (defined $bug) {
+    if (defined $bug && $bug ne '') {
         if (!blessed($bug)) {
             require Bugzilla::Bug;
-            $bug = new Bugzilla::Bug($bug);
+            $bug = new Bugzilla::Bug({ id => $bug, cache => 1 });
         }
         return $link_text if $bug->{error};
     }
@@ -680,10 +711,9 @@ $Template::Stash::SCALAR_OPS->{ substr } =
 $Template::Stash::SCALAR_OPS->{ truncate } =
   sub {
       my ($string, $length, $ellipsis) = @_;
-      $ellipsis ||= "";
-
       return $string if !$length || length($string) <= $length;
 
+      $ellipsis ||= '';
       my $strlen = $length - length($ellipsis);
       my $newstr = substr($string, 0, $strlen) . $ellipsis;
       return $newstr;
@@ -748,6 +778,10 @@ sub create {
         RELATIVE => $ENV{MOD_PERL} ? 0 : 1,
 
         COMPILE_DIR => bz_locations()->{'template_cache'},
+
+        # Don't check for a template update until 1 hour has passed since the
+        # last check.
+        STAT_TTL    => 60 * 60,
 
         # Initialize templates (f.e. by loading plugins like Hook).
         PRE_PROCESS => ["global/variables.none.tmpl"],
@@ -1245,6 +1279,12 @@ sub create {
             'default_authorizer' => new Bugzilla::Auth(),
         },
     };
+    # Use a per-process provider to cache compiled templates in memory across
+    # requests.
+    my $provider_key = join(':', @{ $config->{INCLUDE_PATH} });
+    my $shared_providers = Bugzilla->process_cache->{shared_providers} ||= {};
+    $shared_providers->{$provider_key} ||= Template::Provider->new($config);
+    $config->{LOAD_TEMPLATES} = [ $shared_providers->{$provider_key} ];
 
     local $Template::Config::CONTEXT = 'Bugzilla::Template::Context';
 
@@ -1309,6 +1349,9 @@ sub precompile_templates {
             # effect of writing the compiled version to disk.
             $template->context->template($file);
         }
+
+        # Clear out the cached Provider object
+        Bugzilla->process_cache->{shared_providers} = undef;
     }
 
     # Under mod_perl, we look for templates using the absolute path of the
@@ -1427,3 +1470,29 @@ Returns:     nothing
 =head1 SEE ALSO
 
 L<Bugzilla>, L<Template>
+
+=head1 B<Methods in need of POD>
+
+=over
+
+=item multiline_sprintf
+
+=item create
+
+=item css_files
+
+=item mtime_filter
+
+=item yui_resolve_deps
+
+=item process
+
+=item get_bug_link
+
+=item quoteUrls
+
+=item get_attachment_link
+
+=item SAFE_URL_REGEXP
+
+=back

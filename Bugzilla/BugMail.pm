@@ -5,9 +5,10 @@
 # This Source Code Form is "Incompatible With Secondary Licenses", as
 # defined by the Mozilla Public License, v. 2.0.
 
-use strict;
-
 package Bugzilla::BugMail;
+
+use 5.10.1;
+use strict;
 
 use Bugzilla::Error;
 use Bugzilla::User;
@@ -694,6 +695,8 @@ sub _generate_bugmail {
         $email->content_type_set($parts[0]->content_type);
     } else {
         $email->content_type_set('multipart/alternative');
+        # Some mail clients need same encoding for each part, even empty ones.
+        $email->charset_set('UTF-8') if Bugzilla->params->{'utf8'};
     }
     $email->parts_set(\@parts);
     return $email;
@@ -778,3 +781,15 @@ sub _get_new_bugmail_fields {
 }
 
 1;
+
+=head1 B<Methods in need of POD>
+
+=over
+
+=item relationships
+
+=item sendMail
+
+=item Send
+
+=back

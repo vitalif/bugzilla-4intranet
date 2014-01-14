@@ -7,10 +7,10 @@
 
 package Bugzilla::Util;
 
-use utf8;
+use 5.10.1;
 use strict;
 
-use base qw(Exporter);
+use parent qw(Exporter);
 @Bugzilla::Util::EXPORT = qw(trick_taint detaint_natural trick_taint_copy 
                              detaint_signed
                              html_quote url_quote url_quote_noslash xml_quote
@@ -26,7 +26,7 @@ use base qw(Exporter);
                              validate_email_syntax clean_text stem_text bz_encode_json
                              xml_element xml_element_quote xml_dump_simple xml_simple
                              get_text template_var disable_utf8
-                             detect_encoding);
+                             detect_encoding email_filter);
 
 use Bugzilla::Constants;
 use Bugzilla::RNG qw(irand);
@@ -38,7 +38,6 @@ use Digest;
 use Email::Address;
 use List::Util qw(first);
 use Scalar::Util qw(tainted blessed);
-use Template::Filters;
 use Text::Wrap;
 use Text::TabularDisplay::Utf8;
 use JSON;
@@ -78,7 +77,11 @@ sub detaint_signed {
 #             visible strings.
 # Bug 319331: Handle BiDi disruptions.
 sub html_quote {
-    my ($var) = Template::Filters::html_filter(@_);
+    my $var = shift;
+    $var =~ s/&/&amp;/g;
+    $var =~ s/</&lt;/g;
+    $var =~ s/>/&gt;/g;
+    $var =~ s/"/&quot;/g;
     # Obscure '@'.
     $var =~ s/\@/\&#64;/g;
     if (Bugzilla->params->{'utf8'}) {
@@ -110,6 +113,9 @@ sub html_quote {
 
 sub html_light_quote {
     my ($text) = @_;
+    # admin/table.html.tmpl calls |FILTER html_light| many times.
+    # There is no need to recreate the HTML::Scrubber object again and again.
+    my $scrubber = Bugzilla->process_cache->{html_scrubber};
 
     # List of allowed HTML elements having no attributes.
     my @allow = qw(b strong em i u p br abbr acronym ins del cite code var
@@ -131,7 +137,7 @@ sub html_light_quote {
         $text =~ s#$chr($safe)$chr#<$1>#go;
         return $text;
     }
-    else {
+    elsif (!$scrubber) {
         # We can be less restrictive. We can accept elements with attributes.
         push(@allow, qw(a blockquote q span));
 
@@ -175,14 +181,14 @@ sub html_light_quote {
                           },
                     );
 
-        my $scrubber = HTML::Scrubber->new(default => \@default,
-                                           allow   => \@allow,
-                                           rules   => \@rules,
-                                           comment => 0,
-                                           process => 0);
-
-        return $scrubber->scrub($text);
+        Bugzilla->process_cache->{html_scrubber} = $scrubber =
+          HTML::Scrubber->new(default => \@default,
+                              allow   => \@allow,
+                              rules   => \@rules,
+                              comment => 0,
+                              process => 0);
     }
+    return $scrubber->scrub($text);
 }
 
 sub email_filter {
@@ -434,13 +440,6 @@ sub diff_arrays {
     return (\@removed, \@added);
 }
 
-# XXX - This is a temporary subroutine till we require Perl 5.10.1.
-# This will happen before Bugzilla 5.0rc1.
-sub say (@) {
-    print @_;
-    print "\n";
-}
-
 sub trim {
     my ($str) = @_;
     if ($str) {
@@ -522,11 +521,11 @@ sub find_wrap_point {
     if (!$string) { return 0 }
     if (length($string) < $maxpos) { return length($string) }
     my $wrappoint = rindex($string, ",", $maxpos); # look for comma
-    if ($wrappoint < 0) {  # can't find comma
+    if ($wrappoint <= 0) {  # can't find comma
         $wrappoint = rindex($string, " ", $maxpos); # look for space
-        if ($wrappoint < 0) {  # can't find space
+        if ($wrappoint <= 0) {  # can't find space
             $wrappoint = rindex($string, "-", $maxpos); # look for hyphen
-            if ($wrappoint < 0) {  # can't find hyphen
+            if ($wrappoint <= 0) {  # can't find hyphen
                 $wrappoint = $maxpos;  # just truncate it
             } else {
                 $wrappoint++; # leave hyphen on the left side
@@ -670,23 +669,16 @@ sub bz_crypt {
         if (Bugzilla->params->{'utf8'}) {
             utf8::encode($password) if utf8::is_utf8($password);
         }
-    
+
         # Crypt the password.
         $crypted_password = crypt($password, $salt);
-
-        # HACK: Perl has bug where returned crypted password is considered
-        # tainted. See http://rt.perl.org/rt3/Public/Bug/Display.html?id=59998
-        unless(tainted($password) || tainted($salt)) {
-            trick_taint($crypted_password);
-        } 
     }
     else {
         my $hasher = Digest->new($algorithm);
-        # We only want to use the first characters of the salt, no
-        # matter how long of a salt we may have been passed.
-        $salt = substr($salt, 0, PASSWORD_SALT_LENGTH);
+        # Newly created salts won't yet have a comma.
+        ($salt) = $salt =~ /^([^,]+),?/;
         $hasher->add($password, $salt);
-        $crypted_password = $salt . $hasher->b64digest . "{$algorithm}";
+        $crypted_password = $salt . ',' . $hasher->b64digest . "{$algorithm}";
     }
 
     # Return the crypted password.
@@ -808,10 +800,12 @@ sub get_text
 
 sub template_var {
     my $name = shift;
-    my $cache = Bugzilla->request_cache->{util_template_var} ||= {};
-    my $template = Bugzilla->template_inner;
-    my $lang = $template->context->{bz_language};
+    my $request_cache = Bugzilla->request_cache;
+    my $cache = $request_cache->{util_template_var} ||= {};
+    my $lang = $request_cache->{template_current_lang}->[0];
     return $cache->{$lang}->{$name} if defined $cache->{$lang};
+
+    my $template = Bugzilla->template_inner($lang);
     my %vars;
     # Note: If we suddenly start needing a lot of template_var variables,
     # they should move into their own template, not field-descs.
@@ -824,11 +818,7 @@ sub template_var {
 
 sub display_value {
     my ($field, $value) = @_;
-    my $value_descs = template_var('value_descs');
-    if (defined $value_descs->{$field}->{$value}) {
-        return $value_descs->{$field}->{$value};
-    }
-    return $value;
+    return template_var('value_descs')->{$field}->{$value} // $value;
 }
 
 sub disable_utf8 {
@@ -1041,7 +1031,7 @@ sub detect_encoding {
     my $data = shift;
 
     Bugzilla->feature('detect_charset')
-      || ThrowCodeError('feature_disabled', { feature => 'detect_charset' });
+      || ThrowUserError('feature_disabled', { feature => 'detect_charset' });
 
     require Encode::Detect::Detector;
     import Encode::Detect::Detector 'detect';
@@ -1062,12 +1052,12 @@ sub detect_encoding {
     }
 
     # Encode::Detect sometimes mis-detects various ISO encodings as iso-8859-8,
-    # but Encode::Guess can usually tell which one it is.
-    if ($encoding && $encoding eq 'iso-8859-8') {
+    # or cp1255, but Encode::Guess can usually tell which one it is.
+    if ($encoding && ($encoding eq 'iso-8859-8' || $encoding eq 'cp1255')) {
         my $decoded_as = _guess_iso($data, 'iso-8859-8', 
             # These are ordered this way because it gives the most 
             # accurate results.
-            qw(iso-8859-7 iso-8859-2));
+            qw(cp1252 iso-8859-7 iso-8859-2));
         $encoding = $decoded_as if $decoded_as;
     }
 
@@ -1461,5 +1451,21 @@ if Bugzilla is currently using the shadowdb or not. Used like:
      my $dbh = Bugzilla->dbh;
      $dbh->do("INSERT ...");
  }
+
+=back
+
+=head1 B<Methods in need of POD>
+
+=over
+
+=item do_ssl_redirect_if_required
+
+=item validate_time
+
+=item is_ipv4
+
+=item is_ipv6
+
+=item display_value
 
 =back

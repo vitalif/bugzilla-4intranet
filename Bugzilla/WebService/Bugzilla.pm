@@ -7,8 +7,10 @@
 
 package Bugzilla::WebService::Bugzilla;
 
+use 5.10.1;
 use strict;
-use base qw(Bugzilla::WebService);
+
+use parent qw(Bugzilla::WebService);
 use Bugzilla::Constants;
 use Bugzilla::Util qw(datetime_from);
 use Bugzilla::WebService::Util qw(validate filter_wants);
@@ -67,6 +69,7 @@ use constant PARAMETERS_LOGGED_IN => qw(
     urlbase
     use_see_also
     useclassification
+    usemenuforusers
     useqacontact
     usestatuswhiteboard
     usetargetmilestone
@@ -392,6 +395,7 @@ A logged-in user can access the following parameters (listed alphabetically):
     C<urlbase>,
     C<use_see_also>,
     C<useclassification>,
+    C<usemenuforusers>,
     C<useqacontact>,
     C<usestatuswhiteboard>,
     C<usetargetmilestone>.

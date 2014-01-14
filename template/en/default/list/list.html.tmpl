@@ -38,6 +38,9 @@
         &list_id=[% cgi.param('list_id') FILTER uri %]
       [%~ END %]
     [% END %]
+  [% ELSIF cgi.param('token') != '' %]
+    [% new_url = 'buglist.cgi?'
+                 _ cgi.canonicalise_query('token', 'cmdtype', 'remtype') %]
   [% END %]
 
   if (history && history.replaceState) {
@@ -174,9 +177,8 @@ function showbugcomma()
     [% IF bugs.size > 0 %]
       <td valign="middle" class="bz_query_buttons">
         <form method="post" action="show_bug.cgi">
-          [% FOREACH id = buglist %]
-            <input type="hidden" name="id" value="[% id FILTER html %]">
-          [% END %]
+          [% id = buglist.join(",") %]
+          <input type="hidden" name="id" value="[% id FILTER html %]">
           <input type="hidden" name="format" value="multiple">
           <input type="submit" id="long_format" value="Long Format">
         </form>

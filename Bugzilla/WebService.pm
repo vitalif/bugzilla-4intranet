@@ -8,7 +8,10 @@
 # This is the base class for $self in WebService method calls. For the 
 # actual RPC server, see Bugzilla::WebService::Server and its subclasses.
 package Bugzilla::WebService;
+
+use 5.10.1;
 use strict;
+
 use Bugzilla::WebService::Server;
 
 # Used by the JSON-RPC server to convert incoming date fields apprpriately.
@@ -68,6 +71,11 @@ A floating-point number. May be null.
 =item C<string>
 
 A string. May be null.
+
+=item C<email>
+
+A string representing an email address. This value, when returned, 
+may be filtered based on if the user is logged in or not. May be null.
 
 =item C<dateTime>
 
@@ -294,7 +302,7 @@ would return something like:
 
 =back
 
-=head2 WebService Methods
+=head2 WebService Modules
 
 =over
 
@@ -302,10 +310,20 @@ would return something like:
 
 =item L<Bugzilla::WebService::Bugzilla>
 
+=item L<Bugzilla::WebService::Classification>
+
 =item L<Bugzilla::WebService::Group>
 
 =item L<Bugzilla::WebService::Product>
 
 =item L<Bugzilla::WebService::User>
+
+=back
+
+=head1 B<Methods in need of POD>
+
+=over
+
+=item login_exempt
 
 =back

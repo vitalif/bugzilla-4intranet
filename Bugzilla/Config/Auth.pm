@@ -7,6 +7,7 @@
 
 package Bugzilla::Config::Auth;
 
+use 5.10.1;
 use strict;
 
 use Bugzilla::Config::Common;
@@ -70,6 +71,12 @@ sub get_param_list {
    name => 'requirelogin',
    type => 'b',
    default => '0'
+  },
+
+  {
+   name => 'webservice_email_filter',
+   type => 'b',
+   default => 0
   },
 
   {

@@ -10,12 +10,13 @@
 # as its only argument.  It attempts to troubleshoot as many installation
 # issues as possible.
 
+use 5.10.1;
 use strict;
 use lib qw(. lib);
 
 use Bugzilla;
 use Bugzilla::Constants;
-use Bugzilla::Util qw(say);
+use Bugzilla::Util;
 
 use Socket;
 
@@ -97,7 +98,7 @@ Check your web server configuration and try again.";
 }
 
 # Try to execute a cgi script
-my $response = fetch($ARGV[0] . "/testagent.cgi");
+my $response = clean_text(fetch($ARGV[0] . "/testagent.cgi"));
 if ($response =~ /^OK (.*)$/) {
     say "TEST-OK Webserver is executing CGIs via $1.";
 } elsif ($response =~ /^#!/) {

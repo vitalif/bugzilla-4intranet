@@ -13,6 +13,7 @@ package Bugzilla::Install::Requirements;
 # Subroutines may "require" and "import" from modules, but they
 # MUST NOT "use."
 
+use 5.10.1;
 use strict;
 
 use Bugzilla::Constants;
@@ -21,7 +22,7 @@ use List::Util qw(max);
 use Safe;
 use Term::ANSIColor;
 
-use base qw(Exporter);
+use parent qw(Exporter);
 our @EXPORT = qw(
     REQUIRED_MODULES
     OPTIONAL_MODULES
@@ -113,18 +114,19 @@ sub REQUIRED_MODULES {
         module  => 'DateTime::TimeZone',
         version => ON_WINDOWS ? '0.79' : '0.71'
     },
+    # 1.54 is required for Perl 5.10+. It also makes DBD::Oracle happy.
     {
         package => 'DBI',
         module  => 'DBI',
-        version => (vers_cmp($perl_ver, '5.13.3') > -1) ? '1.614' : '1.41'
+        version => (vers_cmp($perl_ver, '5.13.3') > -1) ? '1.614' : '1.54'
     },
-    # 2.22 fixes various problems related to UTF8 strings in hash keys,
-    # as well as line endings on Windows.
+    # 2.24 contains several useful text virtual methods.
     {
         package => 'Template-Toolkit',
         module  => 'Template',
-        version => '2.22'
+        version => '2.24'
     },
+    # 2.04 implement the "Test" method (to write to data/mailer.testfile).
     {
         package => 'Email-Sender',
         module  => 'Email::Sender',
@@ -295,7 +297,8 @@ sub OPTIONAL_MODULES {
     {
         package => 'Test-Taint',
         module  => 'Test::Taint',
-        version => 0,
+        # 1.06 no longer throws warnings with Perl 5.10+.
+        version => 1.06,
         feature => ['jsonrpc', 'xmlrpc'],
     },
     {
@@ -592,21 +595,11 @@ sub print_module_instructions {
     # We only print the PPM repository note if we have to.
     my $perl_ver = sprintf('%vd', $^V);
     if ($need_module_instructions && ON_ACTIVESTATE && vers_cmp($perl_ver, '5.12') < 0) {
-        # URL when running Perl 5.8.x.
-        my $url_to_theory58S = 'http://theoryx5.uwinnipeg.ca/ppms';
-        # Packages for Perl 5.10 are not compatible with Perl 5.8.
-        if (vers_cmp($perl_ver, '5.10') > -1) {
-            $url_to_theory58S = 'http://cpan.uwinnipeg.ca/PPMPackages/10xx/';
-        }
+        my $url_to_theory58S = 'http://cpan.uwinnipeg.ca/PPMPackages/10xx/';
         print colored(
             install_string('ppm_repo_add', 
                            { theory_url => $url_to_theory58S }),
             COLOR_ERROR);
-
-        # ActivePerls older than revision 819 require an additional command.
-        if (ON_ACTIVESTATE < 819) {
-            print install_string('ppm_repo_up');
-        }
     }
 
     if ($need_module_instructions or @{ $check_results->{apache} }) {
@@ -957,5 +950,13 @@ Returns:     C<1> if the check was successful, C<0> otherwise.
 
 Returns a hashref where file names are the keys and the value is the feature
 that must be enabled in order to compile that file.
+
+=back
+
+=head1 B<Methods in need of POD>
+
+=over
+
+=item print_module_instructions
 
 =back

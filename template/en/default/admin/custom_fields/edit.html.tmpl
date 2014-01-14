@@ -31,10 +31,7 @@
 </p>
 
 <form id="edit_field" action="editfields.cgi" method="GET">
-  <table border="0" cellspacing="0" cellpadding="5" id="edit_custom_field">
-    <tr>
-      <th class="narrow_label">Name:</th>
-      <td>[% field.name FILTER html %]</td>
+  [% PROCESS "admin/custom_fields/edit-common.html.tmpl" field = field %]
 
       [% IF field.custom %]
       <th align="right">

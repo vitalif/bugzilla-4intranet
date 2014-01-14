@@ -7,6 +7,7 @@
 
 package Bugzilla::Extension;
 
+use 5.10.1;
 use strict;
 
 # Don't use any more Bugzilla modules here as Bugzilla::Extension
@@ -244,7 +245,7 @@ F<extensions/Foo.pm>:
 
  package Bugzilla::Extension::Foo
  use strict;
- use base qw(Bugzilla::Extension);
+ use parent qw(Bugzilla::Extension);
 
  our $VERSION = '0.02';
  use constant NAME => 'Foo';
@@ -803,4 +804,15 @@ Load one extension named $name.
 
 =head1 SEE ALSO
 
-F<Bugzilla::Hook>
+Calls L</load> for every enabled extension installed into Bugzilla,
+and returns an arrayref of all the package names that were loaded.
+
+=head1 B<Methods in need of POD>
+
+=over
+
+=item modify_inc
+
+=item my_inc
+
+=back

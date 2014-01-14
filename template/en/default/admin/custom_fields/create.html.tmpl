@@ -41,12 +41,7 @@
 </ul>
 
 <form id="add_field" action="editfields.cgi" method="GET">
-  <table border="0" cellspacing="0" cellpadding="5" id="edit_custom_field">
-    <tr>
-      <th class="narrow_label"><label for="name">Name:</label></th>
-      <td>
-        <input type="text" id="name" name="name" value="cf_" size="40" maxlength="64">
-      </td>
+  [% PROCESS "admin/custom_fields/edit-common.html.tmpl" %]
 
       <th>
         <label for="enter_bug">Can be set on [% terms.bug %] creation:</label>

@@ -6,13 +6,8 @@
 # This Source Code Form is "Incompatible With Secondary Licenses", as
 # defined by the Mozilla Public License, v. 2.0.
 
-################################################################################
-# Script Initialization
-################################################################################
-
-# Make it harder for us to do dangerous things in Perl.
+use 5.10.1;
 use strict;
-
 use lib qw(. lib);
 
 use Bugzilla;
@@ -24,11 +19,9 @@ use Bugzilla::FlagType;
 use Bugzilla::User;
 use Bugzilla::Util;
 use Bugzilla::Bug;
-use Bugzilla::Field;
 use Bugzilla::Attachment;
 use Bugzilla::Attachment::PatchReader;
 use Bugzilla::Token;
-use Bugzilla::Keyword;
 
 use Lingua::Translit;
 use Archive::Zip qw ( :ERROR_CODES :CONSTANTS );
@@ -41,10 +34,6 @@ use Encode qw(encode find_encoding);
 local our $cgi = Bugzilla->cgi;
 local our $template = Bugzilla->template;
 local our $vars = {};
-
-################################################################################
-# Main Body Execution
-################################################################################
 
 # All calls to this script should contain an "action" variable whose
 # value determines what the user wants to do.  The code below checks
@@ -163,7 +152,7 @@ sub validateID {
                           { attach_id => scalar $cgi->param($param) });
 
     # Make sure the attachment exists in the database.
-    my $attachment = new Bugzilla::Attachment($attach_id)
+    my $attachment = new Bugzilla::Attachment({ id => $attach_id, cache => 1 })
         || ThrowUserError("invalid_attach_id", { attach_id => $attach_id });
 
     return $attachment if ($dont_validate_access || check_can_access($attachment));
@@ -175,9 +164,9 @@ sub check_can_access {
     my $user = Bugzilla->user;
 
     # Make sure the user is authorized to access this attachment's bug.
-    Bugzilla::Bug->check($attachment->bug_id);
-    if ($attachment->isprivate && $user->id != $attachment->attacher->id
-        && !$user->is_insider)
+    Bugzilla::Bug->check({ id => $attachment->bug_id, cache => 1 });
+    if ($attachment->isprivate && $user->id != $attachment->attacher->id 
+        && !$user->is_insider) 
     {
         ThrowUserError('auth_failure', {action => 'access',
                                         object => 'attachment',
@@ -462,7 +451,7 @@ sub diff {
 # HTML page.
 sub viewall {
     # Retrieve and validate parameters
-    my $bug = Bugzilla::Bug->check(scalar $cgi->param('bugid'));
+    my $bug = Bugzilla::Bug->check({ id => scalar $cgi->param('bugid'), cache => 1 });
 
     my $attachments = Bugzilla::Attachment->get_attachments_by_bug($bug);
     # Ignore deleted attachments.
@@ -851,7 +840,6 @@ sub delete_attachment {
         # The token is valid. Delete the content of the attachment.
         my $msg;
         $vars->{'attachment'} = $attachment;
-        $vars->{'date'} = $date;
         $vars->{'reason'} = clean_text($cgi->param('reason') || '');
 
         $template->process("attachment/delete_reason.txt.tmpl", $vars, \$msg)

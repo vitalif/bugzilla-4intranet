@@ -6,8 +6,8 @@
 # This Source Code Form is "Incompatible With Secondary Licenses", as
 # defined by the Mozilla Public License, v. 2.0.
 
+use 5.10.1;
 use strict;
-
 use lib qw(. lib);
 
 use Bugzilla;
@@ -65,6 +65,10 @@ if ($action eq "add") {
                    || $user->in_group('bz_quip_moderators') || 0;
     my $comment = $cgi->param("quip");
     $comment || ThrowUserError("need_quip");
+    
+    ThrowUserError("quip_too_long", { length => length($comment) }) 
+        if length($comment) > MAX_QUIP_LENGTH;
+
     trick_taint($comment); # Used in a placeholder below
 
     $dbh->do("INSERT INTO quips (userid, quip, approved) VALUES (?, ?, ?)",
@@ -119,8 +123,7 @@ if ($action eq "delete") {
                                          action => "delete",
                                          object => "quips"});
     my $quipid = $cgi->param("quipid");
-    ThrowCodeError("need_quipid") unless $quipid =~ /(\d+)/; 
-    $quipid = $1;
+    detaint_natural($quipid) || ThrowUserError("need_quipid");
     check_hash_token($token, ['quips', $quipid]);
 
     ($vars->{'deleted_quip'}) = $dbh->selectrow_array(

@@ -15,7 +15,9 @@ package Bugzilla::DB::Schema;
 #
 ###########################################################################
 
+use 5.10.1;
 use strict;
+
 use Bugzilla::Error;
 use Bugzilla::Hook;
 use Bugzilla::Util;
@@ -423,7 +425,8 @@ use constant ABSTRACT_SCHEMA => {
                                             DELETE => 'CASCADE'}},
         ],
         INDEXES => [
-            dependencies_blocked_idx   => ['blocked'],
+            dependencies_blocked_idx => {FIELDS => [qw(blocked dependson)],
+                                         TYPE   => 'UNIQUE'},
             dependencies_dependson_idx => ['dependson'],
         ],
     },
@@ -1028,6 +1031,23 @@ use constant ABSTRACT_SCHEMA => {
         ],
     },
 
+    reports => {
+        FIELDS => [
+            id      => {TYPE => 'MEDIUMSERIAL', NOTNULL => 1,
+                        PRIMARYKEY => 1},
+            user_id => {TYPE => 'INT3', NOTNULL => 1,
+                        REFERENCES => {TABLE  => 'profiles',
+                                       COLUMN => 'userid',
+                                       DELETE => 'CASCADE'}},
+            name    => {TYPE => 'varchar(64)', NOTNULL => 1},
+            query   => {TYPE => 'LONGTEXT', NOTNULL => 1},
+        ],
+        INDEXES => [
+            reports_user_id_idx => {FIELDS => [qw(user_id name)],
+                                   TYPE => 'UNIQUE'},
+        ],
+    },
+
     component_cc => {
 
         FIELDS => [
@@ -1469,7 +1489,7 @@ use constant ABSTRACT_SCHEMA => {
                          REFERENCES => {TABLE  => 'profiles', 
                                         COLUMN => 'userid',
                                         DELETE => 'SET NULL'}},
-            quip     => {TYPE => 'MEDIUMTEXT', NOTNULL => 1},
+            quip     => {TYPE => 'varchar(512)', NOTNULL => 1},
             approved => {TYPE => 'BOOLEAN', NOTNULL => 1,
                          DEFAULT => 'TRUE'},
         ],
@@ -1853,6 +1873,7 @@ C<ALTER TABLE> SQL statement
 
 
 sub get_fk_ddl {
+
 =item C<_get_fk_ddl>
 
 =over
@@ -1866,7 +1887,9 @@ Protected method. Translates the C<REFERENCES> item of a column into SQL.
 =over
 
 =item C<$table>  - The name of the table the reference is from.
+
 =item C<$column> - The name of the column the reference is from
+
 =item C<$references> - The C<REFERENCES> hashref from a column.
 
 =back
@@ -1967,6 +1990,7 @@ Converts a TYPE from the L</ABSTRACT_SCHEMA> format into the real SQL type.
 }
 
 sub get_column {
+
 =item C<get_column($table, $column)>
 
  Description: Public method to get the abstract definition of a column.
@@ -2832,6 +2856,7 @@ sub serialize_abstract {
               in the same fashion as) the current version of Schema. 
               However, it will represent the serialized data instead of
               ABSTRACT_SCHEMA.
+
 =cut
 
 sub deserialize_abstract {
@@ -2993,3 +3018,19 @@ L<Bugzilla::DB>
 L<http://www.bugzilla.org/docs/developer.html#sql-schema>
 
 =cut
+
+=head1 B<Methods in need of POD>
+
+=over
+
+=item get_table_indexes_abstract
+
+=item get_create_database_sql
+
+=item get_add_fks_sql
+
+=item get_fk_ddl
+
+=item get_drop_fk_sql
+
+=back

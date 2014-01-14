@@ -8,9 +8,10 @@
 
 package Bugzilla::User::Setting::Skin;
 
+use 5.10.1;
 use strict;
 
-use base qw(Bugzilla::User::Setting);
+use parent qw(Bugzilla::User::Setting);
 
 use Bugzilla::Constants;
 use File::Spec::Functions;

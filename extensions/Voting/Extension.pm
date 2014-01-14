@@ -7,7 +7,7 @@
 
 package Bugzilla::Extension::Voting;
 use strict;
-use base qw(Bugzilla::Extension);
+use parent qw(Bugzilla::Extension);
 
 use Bugzilla::Bug;
 use Bugzilla::BugMail;
@@ -21,7 +21,6 @@ use Bugzilla::Token;
 
 use List::Util qw(min);
 
-use constant NAME => 'Voting';
 use constant VERSION => BUGZILLA_VERSION;
 use constant DEFAULT_VOTES_PER_BUG => 1;
 # These came from Bugzilla itself, so they maintain the old numbers
@@ -435,6 +434,7 @@ sub _page_user {
                                     ORDER BY votes.bug_id',
                                       undef, ($who->id, $product->id));
 
+        $user->visible_bugs([map { $_->[0] } @$vote_list]);
         foreach (@$vote_list) {
             my ($id, $count, $summary) = @$_;
             $total += $count;
@@ -628,7 +628,7 @@ sub _update_votes {
         # Set header_done to 1 only after the first bug.
         $vars->{'header_done'} = 1;
     }
-    $vars->{'votes_recorded'} = 1;
+    $vars->{'message'} = 'votes_recorded';
 }
 
 ######################

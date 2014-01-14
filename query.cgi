@@ -6,6 +6,7 @@
 # This Source Code Form is "Incompatible With Secondary Licenses", as
 # defined by the Mozilla Public License, v. 2.0.
 
+use 5.10.1;
 use strict;
 use lib qw(. lib);
 
@@ -222,6 +223,16 @@ $vars->{chart_fields} = [
 
 # Another hack...
 unshift @{$vars->{chart_fields}}, { id => 'noop', name => '---' };
+
+if ($user->is_timetracker) {
+    push @chfields, "work_time";
+} else {
+    foreach my $tt_field (TIMETRACKING_FIELDS) {
+        @chfields = grep($_ ne $tt_field, @chfields);
+    }
+}
+@chfields = (sort(@chfields));
+$vars->{'chfield'} = \@chfields;
 $vars->{'bug_status'} = Bugzilla::Field->new({name => 'bug_status'})->legal_values;
 $vars->{'rep_platform'} = Bugzilla::Field->new({name => 'rep_platform'})->legal_values;
 $vars->{'op_sys'} = Bugzilla::Field->new({name => 'op_sys'})->legal_values;
@@ -231,6 +242,8 @@ $vars->{'resolution'} = Bugzilla::Field->new({name => 'resolution'})->legal_valu
 
 # Boolean charts
 my @fields = @{ Bugzilla->fields({ obsolete => 0 }) };
+
+my %exclude_fields = ();
 
 # If we're not in the time-tracking group, exclude time-tracking fields.
 if (!$user->is_timetracker) {

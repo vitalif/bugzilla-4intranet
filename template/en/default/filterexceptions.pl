@@ -85,14 +85,12 @@
 ],
 
 'reports/report.html.tmpl' => [
-  'width',
-  'height',
-  'imageurl',
-  'formaturl',
-  'other_format.name',
-  'sizeurl',
+  'width', 
+  'height', 
+  'imageurl', 
+  'formaturl', 
+  'other_format.name', 
   'switchbase',
-  'format',
   'cumulate',
 ],
 
@@ -139,8 +137,7 @@
 
 'list/table.html.tmpl' => [
   'tableheader',
-  'bug.bug_id',
-  'abbrev.$id.title || field_descs.$id || column.title',
+  'bug.bug_id', 
 ],
 
 'list/list.csv.tmpl' => [
@@ -195,7 +192,6 @@
 
 'global/confirm-user-match.html.tmpl' => [
   'script',
-  'fields.${field_name}.flag_type.name',
 ],
 
 'global/site-navigation.html.tmpl' => [
@@ -266,16 +262,13 @@
 
 
 'bug/time.html.tmpl' => [
-  'time_unit FILTER format(\'%.1f\')',
-  'time_unit FILTER format(\'%.2f\')',
-  '(act / (act + rem)) * 100
-       FILTER format("%d")',
+  "time_unit.replace('0\\Z', '')",
+  '(act / (act + rem)) * 100 
+       FILTER format("%d")', 
 ],
 
 'bug/process/results.html.tmpl' => [
-  'title.$type',
-  '"$terms.Bug $id" FILTER bug_link(id)',
-  '"$terms.bug $id" FILTER bug_link(id)',
+  'title.$type.ucfirst',
 ],
 
 'bug/create/create.html.tmpl' => [
@@ -353,7 +346,7 @@
 ],
 
 'admin/table.html.tmpl' => [
-  'link_uri'
+  'contentlink'
 ],
 
 'admin/custom_fields/cf-js.js.tmpl' => [
@@ -394,7 +387,7 @@
 
 'admin/flag-type/edit.html.tmpl' => [
   'type.id', 
-  'type.sortkey || 1',
+  'type.sortkey || 0',
   'selname',
 ],
 

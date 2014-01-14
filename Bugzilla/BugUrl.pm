@@ -6,8 +6,11 @@
 # defined by the Mozilla Public License, v. 2.0.
 
 package Bugzilla::BugUrl;
+
+use 5.10.1;
 use strict;
-use base qw(Bugzilla::Object);
+
+use parent qw(Bugzilla::Object);
 
 use Bugzilla::Util;
 use Bugzilla::Error;
@@ -198,3 +201,17 @@ sub _check_value {
 }
 
 1;
+
+=head1 B<Methods in need of POD>
+
+=over
+
+=item should_handle
+
+=item class_for
+
+=item class
+
+=item bug_id
+
+=back

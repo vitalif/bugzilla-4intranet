@@ -7,7 +7,7 @@
 
 package Bugzilla::Bug;
 
-use utf8;
+use 5.10.1;
 use strict;
 
 use Bugzilla::Attachment;
@@ -38,7 +38,7 @@ use Date::Format qw(time2str);
 use POSIX qw(floor);
 use Scalar::Util qw(blessed);
 
-use base qw(Bugzilla::Object Exporter);
+use parent qw(Bugzilla::Object Exporter);
 @Bugzilla::Bug::EXPORT = qw(
     bug_alias_to_id
     LogActivityEntry
@@ -159,6 +159,9 @@ sub VALIDATORS {
         }
         elsif ($field->type == FIELD_TYPE_BUG_ID) {
             $validator = \&_check_bugid_field;
+        }
+        elsif ($field->type == FIELD_TYPE_TEXTAREA) {
+            $validator = \&_check_textarea_field;
         }
         else {
             $validator = \&_check_default_field;
@@ -323,9 +326,13 @@ sub new {
 
     # If we get something that looks like a word (not a number),
     # make it the "name" param.
-    if (!defined $param || (!ref($param) && $param !~ /^\d+$/)) {
+    if (!defined $param
+        || (!ref($param) && $param =~ /\D/)
+        || (ref($param) && $param->{id} =~ /\D/))
+    {
         if ($param) {
-            $param = { name => $param };
+            $param = { name => ref($param) ? $param->{id} : $param,
+                       cache => ref($param) ? $param->{cache} : 0 };
         }
         else {
             # We got something that's not a number.
@@ -359,6 +366,13 @@ sub new {
     return $self;
 }
 
+sub cache_key {
+    my $class = shift;
+    my $key = $class->SUPER::cache_key(@_)
+      || return;
+    return $key . ',' . Bugzilla->user->id;
+}
+
 sub check {
     my $class = shift;
     my ($id, $field) = @_;
@@ -367,12 +381,14 @@ sub check {
 
     # Bugzilla::Bug throws lots of special errors, so we don't call
     # SUPER::check, we just call our new and do our own checks.
-    my $self = $class->new(trim($id));
-    # For error messages, use the id that was returned by new(), because
-    # it's cleaned up.
-    $id = $self->id;
+    $id = trim($id);
+    my $self = $class->new($id);
 
     if ($self->{error}) {
+        # For error messages, use the id that was returned by new(), because
+        # it's cleaned up.
+        $id = $self->id;
+
         if ($self->{error} eq 'NotFound') {
              ThrowUserError("bug_id_does_not_exist", { bug_id => $id });
         }
@@ -384,7 +400,7 @@ sub check {
     }
 
     unless ($field && $field =~ /^(dependson|blocked|dup_id)$/) {
-        $self->check_is_visible;
+        $self->check_is_visible($id);
     }
     return $self;
 }
@@ -400,20 +416,19 @@ sub check_for_edit {
 }
 
 sub check_is_visible {
-    my $self = shift;
+    my ($self, $input_id) = @_;
+    $input_id ||= $self->id;
     my $user = Bugzilla->user;
 
     if (!$user->can_see_bug($self->id)) {
         # The error the user sees depends on whether or not they are
         # logged in (i.e. $user->id contains the user's positive integer ID).
-        my $err_args = { bug_id => $self->id };
+        # If we are validating an alias, then use it in the error message
+        # instead of its corresponding bug ID, to not disclose it.
         if ($user->id) {
-            if (Bugzilla->params->{unauth_bug_details}) {
-                $err_args->{product} = $self->product;
-            }
-            ThrowUserError("bug_access_denied", $err_args);
+            ThrowUserError("bug_access_denied", { bug_id => $input_id });
         } else {
-            ThrowUserError("bug_access_query", $err_args);
+            ThrowUserError("bug_access_query", { bug_id => $input_id });
         }
     }
 }
@@ -527,17 +542,14 @@ sub possible_duplicates {
     if ($dbh->FULLTEXT_OR) {
         my $joined_terms = join($dbh->FULLTEXT_OR, @words);
         ($where_sql, $relevance_sql) = 
-            $dbh->sql_fulltext_search('bugs_fulltext.short_desc', 
-                                      $joined_terms, 1);
+            $dbh->sql_fulltext_search('bugs_fulltext.short_desc', $joined_terms);
         $relevance_sql ||= $where_sql;
     }
     else {
         my (@where, @relevance);
-        my $count = 0;
         foreach my $word (@words) {
-            $count++;
             my ($term, $rel_term) = $dbh->sql_fulltext_search(
-                'bugs_fulltext.short_desc', $word, $count);
+                'bugs_fulltext.short_desc', $word);
             push(@where, $term);
             push(@relevance, $rel_term || $term);
         }
@@ -969,6 +981,10 @@ sub update
     Bugzilla::Hook::process('bug_pre_update', { bug => $self });
 
     my ($changes, $old_bug) = $self->SUPER::update(@_);
+
+    Bugzilla::Hook::process('bug_start_of_update',
+        { timestamp => $delta_ts, bug => $self,
+           old_bug => $old_bug, changes => $changes });
 
     # Certain items in $changes have to be fixed so that they hold
     # a name instead of an ID.
@@ -1486,11 +1502,12 @@ sub _check_bug_status {
     }
 
     # Check if a comment is required for this change.
-    if ($new_status->comment_required_on_change_from($old_status) && !$comment)
+    if ($new_status->comment_required_on_change_from($old_status)
+        && !$comment->{'thetext'})
     {
         ThrowUserError('comment_required',
-          { old => $old_status->name, new => $new_status->name,
-            field => 'bug_status' });
+          { old => $old_status ? $old_status->name : undef,
+            new => $new_status->name, field => 'bug_status' });
     }
     
     if (ref $invocant 
@@ -1659,8 +1676,6 @@ sub _check_dependencies {
             : split(/[\s,]+/, $deps_in{$type});
         # Eliminate nulls.
         @bug_ids = grep {$_} @bug_ids;
-        # We do this up here to make sure all aliases are converted to IDs.
-        @bug_ids = map { $invocant->check($_, $type)->id } @bug_ids;
 
         my @check_access = @bug_ids;
         # When we're updating a bug, only added or removed bug_ids are
@@ -1691,7 +1706,8 @@ sub _check_dependencies {
                 }
             }
         }
-
+        # Replace all aliases by their corresponding bug ID.
+        @bug_ids = map { $_ =~ /^(\d+)$/ ? $1 : $invocant->check($_, $type)->id } @bug_ids;
         $deps_in{$type} = \@bug_ids;
     }
 
@@ -1709,7 +1725,8 @@ sub _check_dup_id {
     my ($self, $dupe_of) = @_;
     my $dbh = Bugzilla->dbh;
 
-    $dupe_of = trim($dupe_of);
+    # Store the bug ID/alias passed by the user for visibility checks.
+    my $orig_dupe_of = $dupe_of = trim($dupe_of);
     $dupe_of || ThrowCodeError('undefined_field', { field => 'dup_id' });
     # Validate the bug ID. The second argument will force check() to only
     # make sure that the bug exists, and convert the alias to the bug ID
@@ -1722,7 +1739,7 @@ sub _check_dup_id {
 
     # If we come here, then the duplicate is new. We have to make sure
     # that we can view/change it (issue A on bug 96085).
-    $dupe_of_bug->check_is_visible;
+    $dupe_of_bug->check_is_visible($orig_dupe_of);
 
     # Make sure a loop isn't created when marking this bug
     # as duplicate.
@@ -1889,7 +1906,6 @@ sub _check_qa_contact {
     $qa_contact = trim($qa_contact) if !ref $qa_contact;
     my $component = blessed($invocant) ? $invocant->component_obj
                                        : $params->{component};
-    my $id;
     if (!ref $invocant) {
         # Bugs get no QA Contact on creation if useqacontact is off.
         return undef if !Bugzilla->params->{useqacontact};
@@ -1898,13 +1914,14 @@ sub _check_qa_contact {
         if (!Bugzilla->user->in_group('editbugs', $component->product_id)
             || !$qa_contact)
         {
-            $id = $component->default_qa_contact->id;
+            return $component->default_qa_contact ? $component->default_qa_contact->id : undef;
         }
     }
-    
+
     # If a QA Contact was specified or if we're updating, check
     # the QA Contact for validity.
-    if (!defined $id && $qa_contact) {
+    my $id;
+    if ($qa_contact) {
         $qa_contact = Bugzilla::User->check($qa_contact) if !ref $qa_contact;
         $id = $qa_contact->id;
         # create() checks this another way, so we don't have to run this
@@ -2263,6 +2280,19 @@ sub _check_bugid_field
     }
 
     return $checked_id;
+}
+
+sub _check_textarea_field {
+    my ($invocant, $text, $field) = @_;
+
+    $text = (defined $text) ? trim($text) : '';
+
+    # Web browsers submit newlines as \r\n.
+    # Sanitize all input to match the web standard.
+    # XMLRPC input could be either \n or \r\n
+    $text =~ s/\r?\n/\r\n/g;
+
+    return $text;
 }
 
 sub _check_relationship_loop {
@@ -3169,7 +3199,8 @@ sub add_see_also {
         # ref bug id for sending changes email.
         my $ref_bug = delete $field_values->{ref_bug};
         if ($class->isa('Bugzilla::BugUrl::Bugzilla::Local')
-            and !$skip_recursion)
+            and !$skip_recursion
+            and $ref_bug->check_can_change_field('see_also', '', $self->id, \$privs))
         {
             $ref_bug->add_see_also($self->id, 'skip_recursion');
             push @{ $self->{_update_ref_bugs} }, $ref_bug;
@@ -3201,12 +3232,15 @@ sub remove_see_also {
     # we need to notify changes for that bug too.
     $removed_bug_url = $removed_bug_url->[0];
     if (!$skip_recursion and $removed_bug_url
-        and $removed_bug_url->isa('Bugzilla::BugUrl::Bugzilla::Local'))
+        and $removed_bug_url->isa('Bugzilla::BugUrl::Bugzilla::Local')
+        and $removed_bug_url->ref_bug_url)
     {
         my $ref_bug
             = Bugzilla::Bug->check($removed_bug_url->ref_bug_url->bug_id);
 
-        if (Bugzilla->user->can_edit_product($ref_bug->product_id)) {
+        if (Bugzilla->user->can_edit_product($ref_bug->product_id)
+            and $ref_bug->check_can_change_field('see_also', $self->id, '', \$privs))
+        {
             my $self_url = $removed_bug_url->local_uri($self->id);
             $ref_bug->remove_see_also($self_url, 'skip_recursion');
             push @{ $self->{_update_ref_bugs} }, $ref_bug;
@@ -3436,7 +3470,7 @@ sub assigned_to {
     my ($self) = @_;
     return $self->{'assigned_to_obj'} if exists $self->{'assigned_to_obj'};
     $self->{'assigned_to'} = 0 if $self->{'error'};
-    $self->{'assigned_to_obj'} ||= new Bugzilla::User($self->{'assigned_to'});
+    $self->{'assigned_to_obj'} ||= new Bugzilla::User({ id => $self->{'assigned_to'}, cache => 1 });
     return $self->{'assigned_to_obj'};
 }
 
@@ -3481,8 +3515,6 @@ sub cc {
         ORDER BY profiles.login_name},
       undef, $self->bug_id);
 
-    $self->{'cc'} = undef if !scalar(@{$self->{'cc'}});
-
     return $self->{'cc'};
 }
 
@@ -3514,7 +3546,8 @@ sub component_obj {
     my ($self) = @_;
     return $self->{component_obj} if defined $self->{component_obj};
     return {} if $self->{error};
-    $self->{component_obj} = new Bugzilla::Component($self->{component_id});
+    $self->{component_obj} =
+        new Bugzilla::Component({ id => $self->{component_id}, cache => 1 });
     return $self->{component_obj};
 }
 
@@ -3728,7 +3761,8 @@ sub product {
 sub product_obj {
     my $self = shift;
     return {} if $self->{error};
-    $self->{product_obj} ||= new Bugzilla::Product($self->{product_id});
+    $self->{product_obj} ||=
+        new Bugzilla::Product({ id => $self->{product_id}, cache => 1 });
     return $self->{product_obj};
 }
 
@@ -3738,11 +3772,8 @@ sub qa_contact {
     return undef if $self->{'error'};
 
     if (Bugzilla->params->{'useqacontact'} && $self->{'qa_contact'}) {
-        $self->{'qa_contact_obj'} = new Bugzilla::User($self->{'qa_contact'});
+        $self->{'qa_contact_obj'} = new Bugzilla::User({ id => $self->{'qa_contact'}, cache => 1 });
     } else {
-        # XXX - This is somewhat inconsistent with the assignee/reporter
-        # methods, which will return an empty User if they get a 0.
-        # However, we're keeping it this way now, for backwards-compatibility.
         $self->{'qa_contact_obj'} = undef;
     }
     return $self->{'qa_contact_obj'};
@@ -3752,7 +3783,7 @@ sub reporter {
     my ($self) = @_;
     return $self->{'reporter'} if exists $self->{'reporter'};
     $self->{'reporter_id'} = 0 if $self->{'error'};
-    $self->{'reporter'} = new Bugzilla::User($self->{'reporter_id'});
+    $self->{'reporter'} = new Bugzilla::User({ id => $self->{'reporter_id'}, cache => 1 });
     return $self->{'reporter'};
 }
 
@@ -4248,8 +4279,8 @@ sub get_activity {
                 && ($attachid || 0) == ($operation->{'attachid'} || 0))
             {
                 my $old_change = pop @$changes;
-                $removed = $old_change->{'removed'} . $removed;
-                $added = $old_change->{'added'} . $added;
+                $removed = _join_activity_entries($fieldname, $old_change->{'removed'}, $removed);
+                $added = _join_activity_entries($fieldname, $old_change->{'added'}, $added);
             }
             $operation->{'who'} = $who;
             $operation->{'when'} = $when;
@@ -4296,6 +4327,35 @@ sub SilentLog
     }
 }
 
+sub _join_activity_entries {
+    my ($field, $current_change, $new_change) = @_;
+    # We need to insert characters as these were removed by old
+    # LogActivityEntry code.
+
+    return $new_change if $current_change eq '';
+
+    # Buglists and see_also need the comma restored
+    if ($field eq 'dependson' || $field eq 'blocked' || $field eq 'see_also') {
+        if (substr($new_change, 0, 1) eq ',' || substr($new_change, 0, 1) eq ' ') {
+            return $current_change . $new_change;
+        } else {
+            return $current_change . ', ' . $new_change;
+        }
+    }
+
+    # Assume bug_file_loc contain a single url, don't insert a delimiter
+    if ($field eq 'bug_file_loc') {
+        return $current_change . $new_change;
+    }
+
+    # All other fields get a space
+    if (substr($new_change, 0, 1) eq ' ') {
+        return $current_change . $new_change;
+    } else {
+        return $current_change . ' ' . $new_change;
+    }
+}
+
 # Update the bugs_activity table to reflect changes made in bugs.
 sub LogActivityEntry {
     my ($i, $col, $removed, $added, $whoid, $timestamp, $comment_id) = @_;
@@ -4312,7 +4372,6 @@ sub LogActivityEntry {
             my $commaposition = find_wrap_point($removed, MAX_LINE_LENGTH);
             $removestr = substr($removed, 0, $commaposition);
             $removed = substr($removed, $commaposition);
-            $removed =~ s/^[,\s]+//; # remove any comma or space
         } else {
             $removed = ""; # no more entries
         }
@@ -4320,7 +4379,6 @@ sub LogActivityEntry {
             my $commaposition = find_wrap_point($added, MAX_LINE_LENGTH);
             $addstr = substr($added, 0, $commaposition);
             $added = substr($added, $commaposition);
-            $added =~ s/^[,\s]+//; # remove any comma or space
         } else {
             $added = ""; # no more entries
         }
@@ -4421,9 +4479,10 @@ sub check_can_change_field {
     # $PrivilegesRequired = PRIVILEGES_REQUIRED_REPORTER : the reporter, assignee or an empowered user;
     # $PrivilegesRequired = PRIVILEGES_REQUIRED_ASSIGNEE : the assignee or an empowered user;
     # $PrivilegesRequired = PRIVILEGES_REQUIRED_EMPOWERED : an empowered user.
-    
-    # Only users in the time-tracking group can change time-tracking fields.
-    if ( grep($_ eq $field, TIMETRACKING_FIELDS) ) {
+
+    # Only users in the time-tracking group can change time-tracking fields,
+    # including the deadline.
+    if (grep { $_ eq $field } (TIMETRACKING_FIELDS, 'deadline')) {
         if (!$user->is_timetracker) {
             $$PrivilegesRequired = PRIVILEGES_REQUIRED_EMPOWERED;
             return 0;
@@ -4656,3 +4715,269 @@ sub _multi_select_accessor {
 }
 
 1;
+
+=head1 B<Methods in need of POD>
+
+=over
+
+=item remove_cc
+
+=item add_see_also
+
+=item choices
+
+=item keywords
+
+=item blocked
+
+=item qa_contact
+
+=item add_comment
+
+=item bug_severity
+
+=item dup_id
+
+=item set_priority
+
+=item any_flags_requesteeble
+
+=item set_bug_status
+
+=item estimated_time
+
+=item set_platform
+
+=item statuses_available
+
+=item set_custom_field
+
+=item remove_see_also
+
+=item remove_from_db
+
+=item product_obj
+
+=item reporter_accessible
+
+=item set_summary
+
+=item LogActivityEntry
+
+=item set_assigned_to
+
+=item add_group
+
+=item bug_file_loc
+
+=item DATE_COLUMNS
+
+=item set_component
+
+=item delta_ts
+
+=item set_resolution
+
+=item version
+
+=item deadline
+
+=item fields
+
+=item dependson
+
+=item check_can_change_field
+
+=item update
+
+=item set_op_sys
+
+=item cache_key
+
+=item bug_group
+
+=item comments
+
+=item map_fields
+
+=item assigned_to
+
+=item user
+
+=item ValidateDependencies
+
+=item short_desc
+
+=item duplicate_ids
+
+=item isopened
+
+=item remaining_time
+
+=item set_deadline
+
+=item preload
+
+=item groups_in
+
+=item clear_resolution
+
+=item set_estimated_time
+
+=item in_group
+
+=item status
+
+=item get_activity
+
+=item reporter
+
+=item rep_platform
+
+=item DB_COLUMNS
+
+=item flag_types
+
+=item bug_status
+
+=item attachments
+
+=item flags
+
+=item set_flags
+
+=item actual_time
+
+=item component
+
+=item UPDATE_COLUMNS
+
+=item set_cclist_accessible
+
+=item product
+
+=item VALIDATORS
+
+=item show_attachment_flags
+
+=item set_comment_is_private
+
+=item set_severity
+
+=item send_changes
+
+=item add_tag
+
+=item bug_id
+
+=item reset_qa_contact
+
+=item remove_group
+
+=item set_alias
+
+=item set_dup_id
+
+=item set_target_milestone
+
+=item cc_users
+
+=item everconfirmed
+
+=item check_is_visible
+
+=item check_for_edit
+
+=item match
+
+=item VALIDATOR_DEPENDENCIES
+
+=item possible_duplicates
+
+=item set_url
+
+=item add_cc
+
+=item blocks_obj
+
+=item set_status_whiteboard
+
+=item product_id
+
+=item error
+
+=item reset_assigned_to
+
+=item status_whiteboard
+
+=item create
+
+=item set_all
+
+=item set_reporter_accessible
+
+=item classification_id
+
+=item tags
+
+=item modify_keywords
+
+=item priority
+
+=item keyword_objects
+
+=item set_dependencies
+
+=item depends_on_obj
+
+=item cclist_accessible
+
+=item cc
+
+=item duplicates
+
+=item component_obj
+
+=item see_also
+
+=item groups
+
+=item default_bug_status
+
+=item related_bugs
+
+=item editable_bug_fields
+
+=item resolution
+
+=item lastdiffed
+
+=item classification
+
+=item alias
+
+=item op_sys
+
+=item remove_tag
+
+=item percentage_complete
+
+=item EmitDependList
+
+=item bug_alias_to_id
+
+=item set_qa_contact
+
+=item creation_ts
+
+=item set_version
+
+=item component_id
+
+=item new_bug_statuses
+
+=item set_remaining_time
+
+=item target_milestone
+
+=back

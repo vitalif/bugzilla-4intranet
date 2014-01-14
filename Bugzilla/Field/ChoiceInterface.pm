@@ -6,6 +6,8 @@
 # defined by the Mozilla Public License, v. 2.0.
 
 package Bugzilla::Field::ChoiceInterface;
+
+use 5.10.1;
 use strict;
 
 use Bugzilla::Constants;
@@ -266,5 +268,15 @@ L<Bugzilla::Bug>). For multi-valued fields, we return C<1> if
 I<any> of the currently selected values are this value.
 
 Returns C<0> otherwise.
+
+=back
+
+=head1 B<Methods in need of POD>
+
+=over
+
+=item FIELD_NAME
+
+=item controlled_values_array
 
 =back

@@ -7,10 +7,11 @@
 
 package Bugzilla::WebService::User;
 
+use 5.10.1;
 use strict;
-use base qw(Bugzilla::WebService);
 
-use Bugzilla;
+use parent qw(Bugzilla::WebService);
+
 use Bugzilla::Constants;
 use Bugzilla::Error;
 use Bugzilla::Group;
@@ -167,8 +168,8 @@ sub get {
             \@user_objects, $params);
         @users = map {filter $params, {
                      id        => $self->type('int', $_->id),
-                     real_name => $self->type('string', $_->name), 
-                     name      => $self->type('string', $_->login),
+                     real_name => $self->type('string', $_->name),
+                     name      => $self->type('email', $_->login),
                  }} @$in_group;
 
         return { users => \@users };
@@ -212,31 +213,34 @@ sub get {
 
     my $in_group = $self->_filter_users_by_group(
         \@user_objects, $params);
-    if (Bugzilla->user->in_group('editusers')) {
-        @users = 
-            map {filter $params, {
-                id        => $self->type('int', $_->id),
-                real_name => $self->type('string', $_->name),
-                name      => $self->type('string', $_->login),
-                email     => $self->type('string', $_->email),
-                can_login => $self->type('boolean', $_->is_enabled ? 1 : 0),
-                groups    => $self->_filter_bless_groups($_->groups), 
-                email_enabled     => $self->type('boolean', $_->email_enabled),
-                login_denied_text => $self->type('string', $_->disabledtext),
-                saved_searches    => [map { $self->_query_to_hash($_) } @{ $_->queries }],
-            }} @$in_group;
-    }
-    else {
-        @users =
-            map {filter $params, {
-                id        => $self->type('int', $_->id),
-                real_name => $self->type('string', $_->name),
-                name      => $self->type('string', $_->login),
-                email     => $self->type('string', $_->email),
-                can_login => $self->type('boolean', $_->is_enabled ? 1 : 0),
-                groups    => $self->_filter_bless_groups($_->groups),
-                saved_searches => [map { $self->_query_to_hash($_) } @{ $_->queries }],
-            }} @$in_group;
+
+    foreach my $user (@$in_group) {
+        my $user_info = {
+            id        => $self->type('int', $user->id),
+            real_name => $self->type('string', $user->name),
+            name      => $self->type('email', $user->login),
+            email     => $self->type('email', $user->email),
+            can_login => $self->type('boolean', $user->is_enabled ? 1 : 0),
+        };
+
+        if (Bugzilla->user->in_group('editusers')) {
+            $user_info->{email_enabled}     = $self->type('boolean', $user->email_enabled);
+            $user_info->{login_denied_text} = $self->type('string', $user->disabledtext);
+        }
+
+        if (Bugzilla->user->id == $user->id) {
+            $user_info->{saved_searches} = [map { $self->_query_to_hash($_) } @{ $user->queries }];
+            $user_info->{saved_reports}  = [map { $self->_report_to_hash($_) } @{ $user->reports }];
+        }
+
+        if (Bugzilla->user->id == $user->id || Bugzilla->user->in_group('editusers')) {
+            $user_info->{groups} = [map {$self->_group_to_hash($_)} @{ $user->groups }];
+        }
+        else {
+            $user_info->{groups} = $self->_filter_bless_groups($user->groups);
+        }
+
+        push(@users, filter($params, $user_info));
     }
 
     return { users => \@users };
@@ -315,15 +319,23 @@ sub _filter_users_by_group {
     # If no groups are specified, we return all users.
     return $users if (!$group_ids and !$group_names);
 
-    my @groups = map { Bugzilla::Group->check({ id => $_ }) } 
-                     @{ $group_ids || [] };
-    my @name_groups = map { Bugzilla::Group->check($_) } 
-                          @{ $group_names || [] };
-    push(@groups, @name_groups);
-    
+    my $user = Bugzilla->user;
+    my (@groups, %groups);
 
-    my @in_group = grep { $self->_user_in_any_group($_, \@groups) }
-                        @$users;
+    if ($group_ids) {
+        @groups = map { Bugzilla::Group->check({ id => $_ }) } @$group_ids;
+        $groups{$_->id} = $_ foreach @groups;
+    }
+    if ($group_names) {
+        foreach my $name (@$group_names) {
+            my $group = Bugzilla::Group->check({ name => $name, _error => 'invalid_group_name' });
+            $user->in_group($group) || ThrowUserError('invalid_group_name', { name => $name });
+            $groups{$group->id} = $group;
+        }
+    }
+    @groups = values %groups;
+
+    my @in_group = grep { $self->_user_in_any_group($_, \@groups) } @$users;
     return \@in_group;
 }
 
@@ -341,7 +353,7 @@ sub _filter_bless_groups {
 
     my @filtered_groups;
     foreach my $group (@$groups) {
-        next unless ($user->in_group('editusers') || $user->can_bless($group->id));
+        next unless $user->can_bless($group->id);
         push(@filtered_groups, $self->_group_to_hash($group));
     }
 
@@ -361,11 +373,20 @@ sub _group_to_hash {
 sub _query_to_hash {
     my ($self, $query) = @_;
     my $item = {
-        id   => $self->type('int', $query->id),
-        name => $self->type('string', $query->name),
-        url  => $self->type('string', $query->url),
+        id    => $self->type('int', $query->id),
+        name  => $self->type('string', $query->name),
+        query => $self->type('string', $query->url),
     };
+    return $item;
+}
 
+sub _report_to_hash {
+    my ($self, $report) = @_;
+    my $item = {
+        id    => $self->type('int', $report->id),
+        name  => $self->type('string', $report->name),
+        query => $self->type('string', $report->query),
+    };
     return $item;
 }
 
@@ -791,8 +812,11 @@ disabled/closed.
 
 =item groups
 
-C<array> An array of group hashes the user is a member of. Each hash describes
-the group and contains the following items:
+C<array> An array of group hashes the user is a member of. If the currently
+logged in user is querying his own account or is a member of the 'editusers'
+group, the array will contain all the groups that the user is a
+member of. Otherwise, the array will only contain groups that the logged in
+user can bless. Each hash describes the group and contains the following items:
 
 =over
 
@@ -810,8 +834,6 @@ C<string> The description for the group
 
 =back
 
-=over
-
 =item saved_searches
 
 C<array> An array of hashes, each of which represents a user's saved search and has
@@ -827,22 +849,40 @@ C<int> An integer id uniquely identifying the saved search.
 
 C<string> The name of the saved search.
 
-=item url
+=item query
 
 C<string> The CGI parameters for the saved search.
 
 =back
 
-B<Note>: The elements of the returned array (i.e. hashes) are ordered by the 
-name of each saved search.
+=item saved_reports
+
+C<array> An array of hashes, each of which represents a user's saved report and has
+the following keys:
+
+=over
+
+=item id
+
+C<int> An integer id uniquely identifying the saved report.
+
+=item name
+
+C<string> The name of the saved report.
+
+=item query
+
+C<string> The CGI parameters for the saved report.
 
 =back
 
 B<Note>: If you are not logged in to Bugzilla when you call this function, you
 will only be returned the C<id>, C<name>, and C<real_name> items. If you are
 logged in and not in editusers group, you will only be returned the C<id>, C<name>, 
-C<real_name>, C<email>, and C<can_login> items. The groups returned are filtered
-based on your permission to bless each group.
+C<real_name>, C<email>, C<can_login>, and C<groups> items. The groups returned are
+filtered based on your permission to bless each group.
+The C<saved_searches> and C<saved_reports> items are only returned if you are
+querying your own account, even if you are in the editusers group.
 
 =back
 
@@ -850,10 +890,10 @@ based on your permission to bless each group.
 
 =over
 
-=item 51 (Bad Login Name or Group Name)
+=item 51 (Bad Login Name or Group ID)
 
 You passed an invalid login name in the "names" array or a bad
-group name/id in the C<groups>/C<group_ids> arguments.
+group ID in the C<group_ids> argument.
 
 =item 304 (Authorization Required)
 
@@ -865,6 +905,11 @@ wanted to get information about by user id.
 Logged-out users cannot use the "ids" or "match" arguments to this 
 function.
 
+=item 804 (Invalid Group Name)
+
+You passed a group name in the C<groups> argument which either does not
+exist or you do not belong to it.
+
 =back
 
 =item B<History>
@@ -875,12 +920,14 @@ function.
 
 =item C<group_ids> and C<groups> were added in Bugzilla B<4.0>.
 
-=item C<include_disabled> added in Bugzilla B<4.0>. Default behavior 
-for C<match> has changed to only returning enabled accounts.
+=item C<include_disabled> was added in Bugzilla B<4.0>. Default
+behavior for C<match> was changed to only return enabled accounts.
 
-=item C<groups> Added in Bugzilla B<4.4>.
+=item Error 804 has been added in Bugzilla 4.0.9 and 4.2.4. It's now
+illegal to pass a group name you don't belong to.
 
-=item C<saved_searches> Added in Bugzilla B<4.4>.
+=item C<groups>, C<saved_searches>, and C<saved_reports> were added
+in Bugzilla B<4.4>.
 
 =back
 

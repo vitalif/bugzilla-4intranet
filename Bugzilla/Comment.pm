@@ -7,8 +7,10 @@
 
 package Bugzilla::Comment;
 
+use 5.10.1;
 use strict;
-use base qw(Bugzilla::Object);
+
+use parent qw(Bugzilla::Object);
 
 use Bugzilla::Attachment;
 use Bugzilla::Constants;
@@ -130,13 +132,15 @@ sub is_about_attachment {
 sub attachment {
     my ($self) = @_;
     return undef if not $self->is_about_attachment;
-    $self->{attachment} ||= new Bugzilla::Attachment($self->extra_data);
+    $self->{attachment} ||=
+        new Bugzilla::Attachment({ id => $self->extra_data, cache => 1 });
     return $self->{attachment};
 }
 
 sub author { 
     my $self = shift;
-    $self->{'author'} ||= new Bugzilla::User($self->{'who'});
+    $self->{'author'}
+      ||= new Bugzilla::User({ id => $self->{'who'}, cache => 1 });
     return $self->{'author'};
 }
 
@@ -427,3 +431,29 @@ A string, the full text of the comment as it would be displayed to an end-user.
 =back
 
 =cut
+
+=head1 B<Methods in need of POD>
+
+=over
+
+=item set_type
+
+=item bug
+
+=item set_extra_data
+
+=item set_is_private
+
+=item attachment
+
+=item is_about_attachment
+
+=item extra_data
+
+=item preload
+
+=item type
+
+=item update
+
+=back

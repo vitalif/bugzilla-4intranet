@@ -7,8 +7,9 @@
 
 package Bugzilla::WebService::Server::XMLRPC;
 
+use 5.10.1;
 use strict;
-use SOAP::Transport::HTTP;
+
 use XMLRPC::Transport::HTTP;
 use Bugzilla::WebService::Server;
 if ($ENV{MOD_PERL}) {
@@ -18,6 +19,7 @@ if ($ENV{MOD_PERL}) {
 }
 
 use Bugzilla::WebService::Constants;
+use Bugzilla::Util;
 
 # Allow WebService methods to call XMLRPC::Lite's type method directly
 BEGIN {
@@ -28,6 +30,12 @@ BEGIN {
             # Our "base" implementation is in Bugzilla::WebService::Server.
             $value = Bugzilla::WebService::Server->datetime_format_outbound($value);
             $value =~ s/-//g;
+        }
+        elsif ($type eq 'email') {
+            $type = 'string';
+            if (Bugzilla->params->{'webservice_email_filter'}) {
+                $value = email_filter($value);
+            }
         }
         return XMLRPC::Data->type($type)->value($value);
     };
@@ -155,8 +163,11 @@ sub handle_login {
 # This exists to validate input parameters (which XMLRPC::Lite doesn't do)
 # and also, in some cases, to more-usefully decode them.
 package Bugzilla::XMLRPC::Deserializer;
+
+use 5.10.1;
 use strict;
-# We can't use "use base" because XMLRPC::Serializer doesn't return
+
+# We can't use "use parent" because XMLRPC::Serializer doesn't return
 # a true value.
 use XMLRPC::Lite;
 our @ISA = qw(XMLRPC::Deserializer);
@@ -250,7 +261,10 @@ sub _validation_subs {
 1;
 
 package Bugzilla::XMLRPC::SOM;
+
+use 5.10.1;
 use strict;
+
 use XMLRPC::Lite;
 our @ISA = qw(XMLRPC::SOM);
 use Bugzilla::WebService::Util qw(taint_data);
@@ -273,9 +287,12 @@ sub paramsin {
 # This package exists to fix a UTF-8 bug in SOAP::Lite.
 # See http://rt.cpan.org/Public/Bug/Display.html?id=32952.
 package Bugzilla::XMLRPC::Serializer;
-use Scalar::Util qw(blessed);
+
+use 5.10.1;
 use strict;
-# We can't use "use base" because XMLRPC::Serializer doesn't return
+
+use Scalar::Util qw(blessed);
+# We can't use "use parent" because XMLRPC::Serializer doesn't return
 # a true value.
 use XMLRPC::Lite;
 our @ISA = qw(XMLRPC::Serializer);
@@ -450,3 +467,15 @@ perl-SOAP-Lite package in versions 0.68-1 and above.
 =head1 SEE ALSO
 
 L<Bugzilla::WebService>
+
+=head1 B<Methods in need of POD>
+
+=over
+
+=item make_response
+
+=item initialize
+
+=item handle_login
+
+=back

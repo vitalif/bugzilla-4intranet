@@ -373,7 +373,7 @@ OPTIONAL NOTE: If you want to be able to use the 'difference between two
 patches' feature of Bugzilla (which requires the PatchReader Perl module
 as well), you should install patchutils from:
 
-    http://cyberelk.net/tim/patchutils/
+    http://cyberelk.net/tim/software/patchutils/
 END
     ppm_repo_add => <<EOT,
 ***********************************************************************
@@ -383,15 +383,6 @@ END
 * the following command as an Administrator:                          *
 *                                                                     *
 *   ppm repo add theory58S ##theory_url##
-EOT
-    ppm_repo_up => <<EOT,
-*                                                                     *
-* Then you have to do (also as an Administrator):                     *
-*                                                                     *
-*   ppm repo up theory58S                                             *
-*                                                                     *
-* Do that last command over and over until you see "theory58S" at the *
-* top of the displayed list.                                          *
 EOT
     template_precompile   => "Precompiling templates...",
     template_removal_failed => <<END,

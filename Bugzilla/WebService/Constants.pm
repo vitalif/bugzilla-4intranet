@@ -7,8 +7,10 @@
 
 package Bugzilla::WebService::Constants;
 
+use 5.10.1;
 use strict;
-use base qw(Exporter);
+
+use parent qw(Exporter);
 
 our @EXPORT = qw(
     WS_ERROR_CODE
@@ -156,6 +158,10 @@ use constant WS_ERROR_CODE => {
     group_exists => 801,
     empty_group_description => 802,
     invalid_regexp => 803,
+    invalid_group_name => 804,
+
+    # Classification errors are 900-1000
+    auth_classification_not_enabled => 900,
 
     # Errors thrown by the WebService itself. The ones that are negative 
     # conform to http://xmlrpc-epi.sourceforge.net/specs/rfc.fault_codes.php
@@ -185,14 +191,23 @@ sub WS_DISPATCH {
     Bugzilla::Hook::process('webservice', { dispatch => \%hook_dispatch });
 
     my $dispatch = {
-        'Bugzilla' => 'Bugzilla::WebService::Bugzilla',
-        'Bug'      => 'Bugzilla::WebService::Bug',
-        'User'     => 'Bugzilla::WebService::User',
-        'Product'  => 'Bugzilla::WebService::Product',
-        'Group'    => 'Bugzilla::WebService::Group',
+        'Bugzilla'       => 'Bugzilla::WebService::Bugzilla',
+        'Bug'            => 'Bugzilla::WebService::Bug',
+        'Classification' => 'Bugzilla::WebService::Classification',
+        'Group'          => 'Bugzilla::WebService::Group',
+        'Product'        => 'Bugzilla::WebService::Product',
+        'User'           => 'Bugzilla::WebService::User',
         %hook_dispatch
     };
     return $dispatch;
 };
 
 1;
+
+=head1 B<Methods in need of POD>
+
+=over
+
+=item WS_DISPATCH
+
+=back

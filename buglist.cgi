@@ -6,13 +6,8 @@
 # This Source Code Form is "Incompatible With Secondary Licenses", as
 # defined by the Mozilla Public License, v. 2.0.
 
-################################################################################
-# Script Initialization
-################################################################################
-
-# Make it harder for us to do dangerous things in Perl.
+use 5.10.1;
 use strict;
-
 use lib qw(. lib);
 
 use Bugzilla;
@@ -42,13 +37,17 @@ my $cgi = Bugzilla->cgi;
 my $dbh = Bugzilla->dbh;
 my $template = Bugzilla->template;
 my $vars = {};
-my $buffer = $cgi->query_string;
 my $query_format = $cgi->param('query_format') || 'advanced';
 
 # We have to check the login here to get the correct footer if an error is
 # thrown and to prevent a logged out user to use QuickSearch if 'requirelogin'
 # is turned 'on'.
 my $user = Bugzilla->login();
+
+my $buffer = $cgi->query_string();
+if (length($buffer) == 0) {
+    ThrowUserError("buglist_parameters_required");
+}
 
 # CustIS Bug 68921 - "Супер-TodayWorktime", или массовая фиксация трудозатрат
 # по нескольким багам, за нескольких сотрудников, за различные периоды.
@@ -223,7 +222,7 @@ sub LookupNamedQuery {
     Bugzilla->login(LOGIN_REQUIRED);
 
     my $query = Bugzilla::Search::Saved->check(
-        { user => $sharer_id, name => $name });
+        { user => $sharer_id, name => $name, _error => 'missing_query' });
 
     $query->url
        || ThrowUserError("buglist_parameters_required");
@@ -480,6 +479,8 @@ elsif (($cmdtype eq "doit") && defined $cgi->param('remtype')) {
         $user = Bugzilla->login(LOGIN_REQUIRED);
         my $token = $cgi->param('token');
         check_hash_token($token, ['searchknob']);
+        $buffer = $params->canonicalise_query('cmdtype', 'remtype',
+                                              'query_based_on', 'token');
         InsertNamedQuery(DEFAULT_QUERY_NAME, $buffer);
         $vars->{'message'} = "buglist_new_default_query";
     }
@@ -571,11 +572,9 @@ $_ = Bugzilla::Search->COLUMN_ALIASES->{$_} || $_ for @displaycolumns;
 # Remove the timetracking columns if they are not a part of the group
 # (happens if a user had access to time tracking and it was revoked/disabled)
 if (!$user->is_timetracker) {
-   @displaycolumns = grep($_ ne 'estimated_time', @displaycolumns);
-   @displaycolumns = grep($_ ne 'remaining_time', @displaycolumns);
-   @displaycolumns = grep($_ ne 'actual_time', @displaycolumns);
-   @displaycolumns = grep($_ ne 'percentage_complete', @displaycolumns);
-   @displaycolumns = grep($_ ne 'deadline', @displaycolumns);
+   foreach my $tt_field (TIMETRACKING_FIELDS) {
+       @displaycolumns = grep($_ ne $tt_field, @displaycolumns);
+   }
 }
 
 # Remove the relevance column if the user is not doing a fulltext search.
@@ -1205,7 +1204,8 @@ else {
 
 # Set 'urlquerypart' once the buglist ID is known.
 $vars->{'urlquerypart'} = $params->canonicalise_query('order', 'cmdtype',
-                                                      'query_based_on');
+                                                      'query_based_on',
+                                                      'token');
 
 if ($format->{'extension'} eq "csv") {
     # We set CSV files to be downloaded, as they are designed for importing

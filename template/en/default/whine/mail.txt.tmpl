@@ -13,6 +13,7 @@
   #     bugs: array containing hashes of fieldnames->values for each bug
   #     title: the title given in the whine scheduling mechanism
   #     name: the name of the query
+  #     columnlist: array of fieldnames to display in the mail
   # author: user object for the person who scheduled this whine
   # recipient: user object for the intended recipient of the message
   #%]
@@ -44,7 +45,6 @@
             [%- END %]
    Summary: [% bug.short_desc %]
 
-   [% END %]
 View as [% terms.bug %] list: [% urlbase %]buglist.cgi?cmdtype=runnamed&namedcmd=[% query.name FILTER uri %]
   [% END %]
 [% ELSE %]

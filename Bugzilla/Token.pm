@@ -5,15 +5,10 @@
 # This Source Code Form is "Incompatible With Secondary Licenses", as
 # defined by the Mozilla Public License, v. 2.0.
 
-################################################################################
-# Module Initialization
-################################################################################
-
-# Make it harder for us to do dangerous things in Perl.
-use strict;
-
-# Bundle the functions in this file together into the "Bugzilla::Token" package.
 package Bugzilla::Token;
+
+use 5.10.1;
+use strict;
 
 use Bugzilla::Constants;
 use Bugzilla::Error;
@@ -26,7 +21,7 @@ use Date::Parse;
 use File::Basename;
 use Digest::SHA qw(hmac_sha256_base64);
 
-use base qw(Exporter);
+use parent qw(Exporter);
 
 @Bugzilla::Token::EXPORT = qw(issue_session_token check_token_data delete_token
                               issue_hash_token check_hash_token);
@@ -603,3 +598,13 @@ although they can be used separately.
 =back
 
 =cut
+
+=head1 B<Methods in need of POD>
+
+=over
+
+=item check_hash_token
+
+=item issue_hash_token
+
+=back

@@ -209,16 +209,12 @@ function set_assign_to() {
                 // Also hide the requestee field, if it exists.
                 inputElement = document.getElementById("requestee_type-" + id);
             }
-        }
-        // Now enable flags available for the selected component.
-        for (var i = 0; i < flags[index].length; i++) {
-            flagField = document.getElementById("flag_type-" + flags[index][i]);
-            // Do not enable flags the user cannot set nor request.
-            if (flagField && flagField.options.length > 1) {
-                flagField.disabled = false;
-                // Re-enabling the requestee field depends on the status
-                // of the flag.
-                toggleRequesteeField(flagField, 1);
+            if (show && can_set) {
+                flag_select.disabled = false;
+                YAHOO.util.Dom.removeClass(flag_rows[i], 'bz_default_hidden');
+            } else {
+                flag_select.disabled = true;
+                YAHOO.util.Dom.addClass(flag_rows[i], 'bz_default_hidden');
             }
         }
 

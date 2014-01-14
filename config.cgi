@@ -6,13 +6,8 @@
 # This Source Code Form is "Incompatible With Secondary Licenses", as
 # defined by the Mozilla Public License, v. 2.0.
 
-################################################################################
-# Script Initialization
-################################################################################
-
-# Make it harder for us to do dangerous things in Perl.
+use 5.10.1;
 use strict;
-
 use lib qw(. lib);
 
 use Bugzilla;
@@ -105,7 +100,21 @@ $vars->{'closed_status'} = \@closed_status;
 my @fields = Bugzilla->get_fields({obsolete => 0});
 # Exclude fields the user cannot query.
 if (!$user->is_timetracker) {
-    @fields = grep { $_->name !~ /^(estimated_time|remaining_time|work_time|percentage_complete|deadline)$/ } @fields;
+    foreach my $tt_field (TIMETRACKING_FIELDS) {
+        @fields = grep { $_->name ne $tt_field } @fields;
+    }
+}
+
+my %FIELD_PARAMS = (
+    classification    => 'useclassification',
+    target_milestone  => 'usetargetmilestone',
+    qa_contact        => 'useqacontact',
+    status_whiteboard => 'usestatuswhiteboard',
+    see_also          => 'use_see_also',
+);
+foreach my $field (@fields) {
+    my $param = $FIELD_PARAMS{$field->name};
+    $field->{is_active} =  Bugzilla->params->{$param} if $param;
 }
 $vars->{'field'} = \@fields;
 

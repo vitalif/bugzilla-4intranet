@@ -6,6 +6,7 @@
 # This Source Code Form is "Incompatible With Secondary Licenses", as
 # defined by the Mozilla Public License, v. 2.0.
 
+use 5.10.1;
 use strict;
 use lib qw(. lib);
 
@@ -16,7 +17,6 @@ use Bugzilla::CGI;
 use Bugzilla::Search;
 use Bugzilla::Search::Saved;
 use Bugzilla::Error;
-use Bugzilla::User;
 use Bugzilla::Token;
 
 use Storable qw(dclone);
@@ -27,6 +27,7 @@ use constant COLUMN_PARAMS => {
     'usetargetmilestone'  => ['target_milestone'],
     'useqacontact'        => ['qa_contact', 'qa_contact_realname'],
     'usestatuswhiteboard' => ['status_whiteboard'],
+    'timetrackinggroup'   => ['deadline'],
 };
 
 # We only show these columns if an object of this type exists in the

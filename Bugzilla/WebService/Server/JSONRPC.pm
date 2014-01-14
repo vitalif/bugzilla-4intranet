@@ -7,7 +7,9 @@
 
 package Bugzilla::WebService::Server::JSONRPC;
 
+use 5.10.1;
 use strict;
+
 use Bugzilla::WebService::Server;
 BEGIN {
     our @ISA = qw(Bugzilla::WebService::Server);
@@ -24,7 +26,7 @@ BEGIN {
 use Bugzilla::Error;
 use Bugzilla::WebService::Constants;
 use Bugzilla::WebService::Util qw(taint_data);
-use Bugzilla::Util qw(correct_urlbase trim disable_utf8);
+use Bugzilla::Util;
 
 use HTTP::Message;
 use MIME::Base64 qw(decode_base64 encode_base64);
@@ -206,6 +208,9 @@ sub type {
     elsif ($type eq 'base64') {
         utf8::encode($value) if utf8::is_utf8($value);
         $retval = encode_base64($value, '');
+    }
+    elsif ($type eq 'email' && Bugzilla->params->{'webservice_email_filter'}) {
+        $retval = email_filter($value);
     }
 
     return $retval;
@@ -566,3 +571,25 @@ the JSON-RPC library that Bugzilla uses, not by Bugzilla.
 =head1 SEE ALSO
 
 L<Bugzilla::WebService>
+
+=head1 B<Methods in need of POD>
+
+=over
+
+=item response
+
+=item response_header
+
+=item cgi
+
+=item retrieve_json_from_get
+
+=item create_json_coder
+
+=item type
+
+=item handle_login
+
+=item datetime_format_outbound
+
+=back

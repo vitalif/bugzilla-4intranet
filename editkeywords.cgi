@@ -6,6 +6,7 @@
 # This Source Code Form is "Incompatible With Secondary Licenses", as
 # defined by the Mozilla Public License, v. 2.0.
 
+use 5.10.1;
 use strict;
 use lib qw(. lib);
 
@@ -89,7 +90,7 @@ if ($action eq 'new') {
 
 if ($action eq 'edit') {
     my $keyword = new Bugzilla::Keyword($key_id)
-        || ThrowCodeError('invalid_keyword_id', { id => $key_id });
+        || ThrowUserError('invalid_keyword_id', { id => $key_id });
 
     $vars->{'keyword'} = $keyword;
     $vars->{'token'} = issue_session_token('edit_keyword');
@@ -107,7 +108,7 @@ if ($action eq 'edit') {
 if ($action eq 'update') {
     check_token_data($token, 'edit_keyword');
     my $keyword = new Bugzilla::Keyword($key_id)
-        || ThrowCodeError('invalid_keyword_id', { id => $key_id });
+        || ThrowUserError('invalid_keyword_id', { id => $key_id });
 
     $keyword->set_all({
         name        => scalar $cgi->param('name'),
@@ -129,7 +130,7 @@ if ($action eq 'update') {
 
 if ($action eq 'del') {
     my $keyword =  new Bugzilla::Keyword($key_id)
-        || ThrowCodeError('invalid_keyword_id', { id => $key_id });
+        || ThrowUserError('invalid_keyword_id', { id => $key_id });
 
     $vars->{'keyword'} = $keyword;
     $vars->{'token'} = issue_session_token('delete_keyword');
@@ -142,7 +143,7 @@ if ($action eq 'del') {
 if ($action eq 'delete') {
     check_token_data($token, 'delete_keyword');
     my $keyword =  new Bugzilla::Keyword($key_id)
-        || ThrowCodeError('invalid_keyword_id', { id => $key_id });
+        || ThrowUserError('invalid_keyword_id', { id => $key_id });
 
     $keyword->remove_from_db();
 

@@ -11,6 +11,7 @@ package Bugzilla::Install::Util;
 # module may require *only* Bugzilla::Constants and built-in
 # perl modules.
 
+use 5.10.1;
 use strict;
 
 use Bugzilla::Constants;
@@ -24,7 +25,7 @@ use Scalar::Util qw(tainted);
 use Term::ANSIColor qw(colored);
 use PerlIO;
 
-use base qw(Exporter);
+use parent qw(Exporter);
 our @EXPORT_OK = qw(
     bin_loc
     get_version_and_os
@@ -910,5 +911,37 @@ C<-1> if C<$a> is less than C<$b>, C<0> if they are equal, or C<1> if C<$a>
 is greater than C<$b>.
 
 =back
+
+=back
+
+=head1 B<Methods in need of POD>
+
+=over
+
+=item supported_languages
+
+=item extension_template_directory
+
+=item extension_code_files
+
+=item extension_web_directory
+
+=item trick_taint
+
+=item success
+
+=item trim
+
+=item extension_package_directory
+
+=item set_output_encoding
+
+=item extension_requirement_packages
+
+=item prevent_windows_dialog_boxes
+
+=item sortQvalue
+
+=item no_checksetup_from_cgi
 
 =back

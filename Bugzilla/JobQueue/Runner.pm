@@ -11,7 +11,9 @@
 
 package Bugzilla::JobQueue::Runner;
 
+use 5.10.1;
 use strict;
+
 use Cwd qw(abs_path);
 use File::Basename;
 use File::Copy;
@@ -20,7 +22,7 @@ use Pod::Usage;
 use Bugzilla::Constants;
 use Bugzilla::JobQueue;
 use Bugzilla::Util qw(get_text);
-BEGIN { eval "use base qw(Daemon::Generic)"; }
+BEGIN { eval "use parent qw(Daemon::Generic)"; }
 
 our $VERSION = BUGZILLA_VERSION;
 
@@ -229,3 +231,31 @@ job queue.
 
 This is a subclass of L<Daemon::Generic> that is used by L<jobqueue>
 to run the Bugzilla job queue.
+
+=head1 B<Methods in need of POD>
+
+=over
+
+=item gd_check
+
+=item gd_run
+
+=item gd_can_install
+
+=item gd_other_cmd
+
+=item gd_more_opt
+
+=item gd_postconfig
+
+=item gd_usage
+
+=item gd_getopt
+
+=item gd_preconfig
+
+=item gd_can_uninstall
+
+=item gd_setup_signals
+
+=back

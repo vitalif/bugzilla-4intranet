@@ -5,15 +5,10 @@
 # This Source Code Form is "Incompatible With Secondary Licenses", as
 # defined by the Mozilla Public License, v. 2.0.
 
-################################################################################
-# Module Initialization
-################################################################################
-
-# Make it harder for us to do dangerous things in Perl.
-use strict;
-
-# This module implements utilities for dealing with Bugzilla users.
 package Bugzilla::User;
+
+use 5.10.1;
+use strict;
 
 use Bugzilla::Error;
 use Bugzilla::Util;
@@ -33,7 +28,7 @@ use Storable qw(dclone);
 use URI;
 use URI::QueryParam;
 
-use base qw(Bugzilla::Object Exporter);
+use parent qw(Bugzilla::Object Exporter);
 @Bugzilla::User::EXPORT = qw(is_available_username
     login_to_id user_id_to_login validate_password
     USER_MATCH_MULTIPLE USER_MATCH_FAILED USER_MATCH_SUCCESS
@@ -219,7 +214,7 @@ sub check_login_name {
     check_email_syntax($name);
 
     # Check the name if it's a new user, or if we're changing the name.
-    if (!ref($invocant) || $invocant->login ne $name) {
+    if (!ref($invocant) || lc($invocant->login) ne lc($name)) {
         my @params = ($name);
         push(@params, $invocant->login) if ref($invocant);
         is_available_username(@params)
@@ -589,14 +584,23 @@ sub save_last_search {
     return $search;
 }
 
-sub testopia_queries {
+sub reports {
     my $self = shift;
+    return $self->{reports} if defined $self->{reports};
+    return [] unless $self->id;
+
     my $dbh = Bugzilla->dbh;
-    my $ref = $dbh->selectall_arrayref(
-        "SELECT name, query FROM test_named_queries
-         WHERE userid = ? AND isvisible = 1",
-         {'Slice' =>{}}, $self->id);
-    return $ref;
+    my $report_ids = $dbh->selectcol_arrayref(
+        'SELECT id FROM reports WHERE user_id = ?', undef, $self->id);
+    require Bugzilla::Report;
+    $self->{reports} = Bugzilla::Report->new_from_list($report_ids);
+    return $self->{reports};
+}
+
+sub flush_reports_cache {
+    my $self = shift;
+
+    delete $self->{reports};
 }
 
 sub settings {
@@ -933,6 +937,14 @@ sub visible_bugs {
     if (@check_ids) {
         my $dbh = Bugzilla->dbh;
         my $user_id = $self->id;
+
+        foreach my $id (@check_ids) {
+            my $orig_id = $id;
+            detaint_natural($id)
+              || ThrowCodeError('param_must_be_numeric', { param    => $orig_id,
+                                                           function => 'Bugzilla::User->visible_bugs'});
+        }
+
         my $sth;
         # Speed up the can_see_bug case.
         if (scalar(@check_ids) == 1) {
@@ -1653,6 +1665,8 @@ sub match_field {
         my @logins;
         for my $query (@queries) {
             $query = trim($query);
+            next if $query eq '';
+
             my $users = match(
                 $query,   # match string
                 $limit,   # match limit
@@ -2374,6 +2388,35 @@ Returns a hashref with tag IDs as key, and a hashref with tag 'id',
 
 =back
 
+=head2 Saved Recent Bug Lists
+
+=over
+
+=item C<recent_searches>
+
+Returns an arrayref of L<Bugzilla::Search::Recent> objects
+containing the user's recent searches.
+
+=item C<recent_search_containing(bug_id)>
+
+Returns a L<Bugzilla::Search::Recent> object that contains the most recent
+search by the user for the specified bug id. Retuns undef if no match is found.
+
+=item C<recent_search_for(bug)>
+
+Returns a L<Bugzilla::Search::Recent> object that contains a search by the
+user. Uses the list_id of the current loaded page, or the referrer page, and
+the bug id if that fails. Finally it will check the BUGLIST cookie, and create
+an object based on that, or undef if it does not exist.
+
+=item C<save_last_search>
+
+Saves the users most recent search in the database if logged in, or in the
+BUGLIST cookie if not logged in. Parameters are bug_ids, order, vars and
+list_id.
+
+=back
+
 =head2 Account Lockout
 
 =over
@@ -2450,6 +2493,17 @@ Should only be called by C<Bugzilla::Auth::login>, for the most part.
 =item C<disabledtext>
 
 Returns the disable text of the user, if any.
+
+=item C<reports>
+
+Returns an arrayref of the user's own saved reports. The array contains 
+L<Bugzilla::Reports> objects.
+
+=item C<flush_reports_cache>
+
+Some code modifies the set of stored reports. Because C<Bugzilla::User> does
+not handle these modifications, but does cache the result of calling C<reports>
+internally, such code must call this method to flush the cached result.
 
 =item C<settings>
 
@@ -2840,3 +2894,57 @@ is done with the data.
 =head1 SEE ALSO
 
 L<Bugzilla|Bugzilla>
+
+=head1 B<Methods in need of POD>
+
+=over
+
+=item email_enabled
+
+=item cryptpassword
+
+=item clear_login_failures
+
+=item set_disable_mail
+
+=item has_audit_entries
+
+=item groups_with_icon
+
+=item check_login_name
+
+=item set_extern_id
+
+=item mail_settings
+
+=item email_disabled
+
+=item update
+
+=item is_timetracker
+
+=item is_enabled
+
+=item queryshare_groups_as_string
+
+=item set_login
+
+=item set_password
+
+=item last_seen_date
+
+=item set_disabledtext
+
+=item update_last_seen_date
+
+=item set_name
+
+=item DB_COLUMNS
+
+=item extern_id
+
+=item visible_bugs
+
+=item UPDATE_COLUMNS
+
+=back

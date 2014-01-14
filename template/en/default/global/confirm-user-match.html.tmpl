@@ -145,7 +145,7 @@
                   <b>[% query.value.users.0.identity FILTER html %]</b>
                 [% END %]
             [% ELSE %]
-                [% IF (query.key.length < 3) && !Param('emailsuffix') %]
+                [% IF query.key.length < 3 %]
                   <font color="#FF0000">was too short for substring match
                   (minimum 3 characters)</font>
                 [% ELSE %]
@@ -194,7 +194,7 @@
   [% ELSIF field_labels.$field_name %]
     [% field_labels.$field_name FILTER html %]
   [% ELSIF field_name.match("^requestee") %]
-    [% fields.${field_name}.flag_type.name %] requestee
+    [% fields.${field_name}.flag_type.name FILTER html %] requestee
   [% ELSE %]
     [% field_name FILTER html %]
   [% END %]
