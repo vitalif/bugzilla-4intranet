@@ -1,7 +1,8 @@
-# Text diffirence engine
-# License: Dual-license GPL 3.0+ or MPL 1.1+
-# Contributor(s): Vladimir Koptev <vladimir.koptev@gmail.com>
+#!/usr/bin/perl
 
+# Text difference engine
+# License: Dual-license GPL 3.0+ or MPL 1.1+
+# Contributor(s): Vladimir Koptev <vladimir.koptev@gmail.com>, Vitaliy Filippov <vitalif@mail.ru>
 
 package Bugzilla::Diff;
 
@@ -57,40 +58,40 @@ sub new
     my $object = {};
     my ($old, $new, $a) = @_;
     bless($object, $class) if $object;
-    $object->{'old'} = $old;
-    $object->{'new'} = $new;
+    $object->{old} = $old;
+    $object->{new} = $new;
     return $object;
 }
 
-# Diffs with full context
+# returns diff data formatted as a hash
 sub get_hash
 {
     my ($self, $force) = @_;
     $force = 0 unless $force;
-    if ($force || !$self->{'context'})
+    if ($force || !$self->{context})
     {
-        $self->{'diff'} = $self->diff($self->{old}, $self->{new});
+        $self->{diff} = $self->diff($self->{old}, $self->{new});
         $self->make_context;
         $self->apply_min_restriction;
-        $self->short_context;
+        $self->cut_context;
         $self->glue_context;
+        $self->{context}->{length} = scalar @{$self->{context}->{removed}};
     }
-    $self->{'context'}->{'length'} = scalar @{$self->{'context'}->{'removed'}};
-    return $self->{'context'};
+    return $self->{context};
 }
 
-# formatted diff
+# returns diff formatted as two-column HTML pairs
 sub get_table
 {
     my ($self, $force, $column) = @_;
     $force = 0 unless $force;
     my $diff = $self->get_hash($force);
     my $result = [];
-    for (my $i = 0; $i < $self->{'context'}->{'length'}; $i++)
+    for (my $i = 0; $i < $self->{context}->{length}; $i++)
     {
         # old and new texts - [type, value]
-        my ($old, $new) = ($self->{'context'}->{'removed'}->[$i], $self->{'context'}->{'added'}->[$i]);
-        my ($oval, $nval) = ($old->{'value'}, $new->{'value'});
+        my ($old, $new) = ($self->{context}->{removed}->[$i], $self->{context}->{added}->[$i]);
+        my ($oval, $nval) = ($old->{value}, $new->{value});
 
         for my $key (keys VIEW_TAGS)
         {
@@ -102,9 +103,9 @@ sub get_table
         }
 
         push @$result, '<td style="vertical-align: top' .
-            ($old->{'type'} eq TYPE_REM ? '; border-width: 1px 1px 1px 5px; border-style: solid; border-color: red' : '').'">' .
+            ($old->{type} eq TYPE_REM ? '; border-width: 1px 1px 1px 5px; border-style: solid; border-color: red' : '').'">' .
             $oval . '</td><td style="vertical-align: top' .
-            ($new->{'type'} eq TYPE_ADD ? '; border-width: 1px 1px 1px 5px; border-style: solid; border-color: #0a0' : '').'">' .
+            ($new->{type} eq TYPE_ADD ? '; border-width: 1px 1px 1px 5px; border-style: solid; border-color: #0a0' : '').'">' .
             $nval . '</td>';
     }
     return $result;
@@ -133,10 +134,10 @@ sub get_part
     $removed = $removed ? 'removed' : 'added';
     my $diff = $self->get_hash($force);
     my $result = '';
-    for (my $i = 0; $i < $self->{'context'}->{'length'}; $i++)
+    for (my $i = 0; $i < $self->{context}->{length}; $i++)
     {
-        my $line = $self->{'context'}->{$removed}->[$i];
-        my $lval = $line->{'value'};
+        my $line = $self->{context}->{$removed}->[$i];
+        my $lval = $line->{value};
 
         for my $key (keys VIEW_PLAIN_TAGS)
         {
@@ -144,7 +145,7 @@ sub get_part
             $lval =~ s/$key/$val/g;
         }
 
-        $result .= "\n" . ($line->{'type'} eq TYPE_ADD ? TYPE_ADD : ($line->{'type'} eq TYPE_REM ? TYPE_REM : ' ')) . $lval;
+        $result .= "\n" . ($line->{type} eq TYPE_ADD ? TYPE_ADD : ($line->{type} eq TYPE_REM ? TYPE_REM : ' ')) . $lval;
     }
     return $result;
 }
@@ -153,74 +154,78 @@ sub get_part
 sub diff
 {
     my ($self, $old, $new) = @_;
-    my $old_file = File::Temp->new();
+    my $old_file = File::Temp->new;
     $old_file->unlink_on_destroy(1);
-    my $new_file = File::Temp->new();
+    my $new_file = File::Temp->new;
     $new_file->unlink_on_destroy(1);
 
-    $old =~ s/\\/\\\\/g;
-    $old =~ s/\n/\\n/g;
-    $new =~ s/\\/\\\\/g;
-    $new =~ s/\n/\\n/g;
-    my $lines = split('', $old);
-    $lines = split('', $new) if $lines < split('', $new);
-    print $old_file join("\n", split('', $old));
-    print $new_file join("\n", split('', $new));
+    s/(.)/$1\n/gso for $old, $new;
+    print $old_file $old;
+    print $new_file $new;
 
-    my $diff = `diff -u -U $lines $old_file $new_file`;
+    my $diff = `diff -u -U 2147483647 $old_file $new_file`;
     trick_taint($diff);
     Encode::_utf8_on($diff);
+    my @diff = split "\n", $diff, -1;
+    splice @diff, 0, 2;
 
     my $result = [[], []];
-    ($old, $new) = @$result;
-    my $prev_action;
-    my $i = 0;
-    my $j = 0;
-    my @diff = split ("\n", $diff);
-    splice @diff, 0, 2;
+    my ($old, $new) = @$result;
+    my ($prev_action, $chunk, $nl);
+
+    push @diff, '^'; # EOF character for if ($prev_action ne $action)
     for my $line (@diff)
     {
-        Encode::_utf8_on($line);
-        my $action = substr $line, 0, 1;
+        my $action = substr $line, 0, 1, '';
         $action = TYPE_UNI if $action eq ' ';
-        $prev_action = $action if !$prev_action;
-        $line = substr $line, 1;
-        if ($action ne $prev_action)
+        if ($prev_action ne $action)
         {
+            if (defined $prev_action)
+            {
+                # save previous chunk
+                if ($prev_action eq TYPE_UNI || $prev_action eq TYPE_REM)
+                {
+                    if (@$new < @$old)
+                    {
+                        push @$new, [ TYPE_UNI, '' ];
+                    }
+                    push @$old, [ $prev_action, $chunk ];
+                }
+                if ($prev_action eq TYPE_UNI || $prev_action eq TYPE_ADD)
+                {
+                    push @$new, [ $prev_action, $chunk ];
+                    if (@$old < @$new)
+                    {
+                        push @$old, [ TYPE_UNI, '' ];
+                    }
+                }
+            }
+            # start new chunk
             $prev_action = $action;
-            $i++;
-            $j++;
+            $chunk = '';
         }
-        if ($action eq TYPE_UNI || $action eq TYPE_REM)
+        if ($line eq '')
         {
-            $i-- while($i > scalar(@$old));
-            if (!$old->[$i])
+            # newline character = 2 empty lines
+            if ($nl)
             {
-                push $old, ['e', ''];
+                $line = "\n";
+                $nl = 0;
             }
-            $old->[$i][0] = $action;
-            $old->[$i][1] .= $line;
+            else
+            {
+                $nl = 1;
+            }
         }
-        if ($action eq TYPE_UNI || $action eq TYPE_ADD)
+        else
         {
-            $j-- while($j > scalar(@$new));
-            if (!$new->[$j])
-            {
-                push $new, ['e', ''];
-            }
-            $new->[$j][0] = $action;
-            $new->[$j][1] .= $line;
+            $nl = 0;
         }
+        $chunk .= $line;
     }
-    for my $str (@$old)
+    if (@$new < @$old)
     {
-        $str->[1] =~ s/\\n/\n/g;
-        $str->[1] =~ s/\\\\/\\/g;
-    }
-    for my $str (@$new)
-    {
-        $str->[1] =~ s/\\n/\n/g;
-        $str->[1] =~ s/\\\\/\\/g;
+        push @$new, [ TYPE_UNI, '' ];
     }
     return $result;
 }
@@ -229,84 +234,63 @@ sub diff
 sub make_context
 {
     my ($self) = @_;
-    # indexes to $self->{diff} arrays
-    my ($ri, $ai) = (0, 0);
-    # lengthes of $self->{diff} arrays
-    my ($r_count, $a_count) = ((scalar @{$self->{'diff'}->[0]}), (scalar @{$self->{'diff'}->[1]}));
-
-    # clear context
-    $self->{'context'} = {'removed' => [], 'added' => []};
-    # link to contexts
-    my ($removed, $added) = ($self->{'context'}->{'removed'}, $self->{'context'}->{'added'});
-    # Go!
-    for (; $ri < $r_count && $ai < $a_count ;)
+    my $len = scalar @{$self->{diff}->[0]};
+    my ($removed, $added) = ([], []);
+    $self->{context} = { removed => $removed, added => $added };
+    for (my $i = 0; $i < $len; $i++)
     {
         # old and new texts - [type, value]
-        my ($old, $new) = ($self->{'diff'}->[0]->[$ri], $self->{'diff'}->[1]->[$ai]);
-         # if not changed
+        my ($old, $new) = ($self->{diff}->[0]->[$i], $self->{diff}->[1]->[$i]);
+        # if unchanged (context)
         if ($old->[0] eq TYPE_UNI && $new->[0] eq TYPE_UNI)
         {
-            # compare lengthes and push to context equal parts according to lengthes
+            # compare lengths and push equal parts of context according to lengths
             my ($rl, $al) = (length($old->[1]), length($new->[1]));
             if ($rl < $al)
             {
-                push $removed, {'value' => $old->[1], 'type' => TYPE_UNI};
-                push $removed, {'value' => '', 'type' => TYPE_EMP};
-                push $added,   {'value' => substr($new->[1], 0, $rl), 'type' => TYPE_UNI};
-                push $added,   {'value' => substr($new->[1], $rl), 'type' => TYPE_UNI};
+                push $removed, { value => $old->[1], type => TYPE_UNI };
+                push $removed, { value => '', type => TYPE_EMP };
+                push $added,   { value => substr($new->[1], 0, $rl), type => TYPE_UNI };
+                push $added,   { value => substr($new->[1], $rl), type => TYPE_UNI };
             }
             elsif ($rl > $al)
             {
-                push $added,   {'value' => $new->[1], 'type' => TYPE_UNI};
-                push $added,   {'value' => '', 'type' => TYPE_EMP};
-                push $removed, {'value' => substr($old->[1], 0, $al), 'type' => TYPE_UNI};
-                push $removed, {'value' => substr($old->[1], $al), 'type' => TYPE_UNI};
+                push $added,   { value => $new->[1], type => TYPE_UNI };
+                push $added,   { value => '', type => TYPE_EMP };
+                push $removed, { value => substr($old->[1], 0, $al), type => TYPE_UNI };
+                push $removed, { value => substr($old->[1], $al), type => TYPE_UNI };
             }
             else
             {
-                push $removed, {'value' => $old->[1], 'type' => TYPE_UNI};
-                push $added,   {'value' => $new->[1], 'type' => TYPE_UNI};
+                push $removed, { value => $old->[1], type => TYPE_UNI };
+                push $added,   { value => $new->[1], type => TYPE_UNI };
             }
-            $ri++;
-            $ai++;
         }
-        # if old removed and new not changed
+        # if removed
         elsif ($old->[0] eq TYPE_REM && $new->[0] eq TYPE_UNI)
         {
-            push $removed, {'value' => $old->[1], 'type' => TYPE_REM};
-            push $added,   {'value' => '', 'type' => TYPE_EMP};
-            $ri++;
+            push $removed, { value => $old->[1], type => TYPE_REM };
+            push $added,   { value => '', type => TYPE_EMP };
         }
-        # if old not changed and new added
+        # if added
         elsif ($old->[0] eq TYPE_UNI && $new->[0] eq TYPE_ADD)
         {
-            push $removed, {'value' => '', 'type' => TYPE_EMP};
-            push $added,   {'value' => $new->[1], 'type' => TYPE_ADD};
-            $ai++;
+            push $removed, { value => '', type => TYPE_EMP };
+            push $added,   { value => $new->[1], type => TYPE_ADD };
         }
-        # if old removed and new added
+        # if changed
         elsif ($old->[0] eq TYPE_REM && $new->[0] eq TYPE_ADD)
         {
-            push $removed, {'value' => $old->[1], 'type' => TYPE_REM};
-            push $added,   {'value' => $new->[1], 'type' => TYPE_ADD};
-            $ri++;
-            $ai++;
+            push $removed, { value => $old->[1], type => TYPE_REM };
+            push $added,   { value => $new->[1], type => TYPE_ADD };
+        }
+        else
+        {
+            die __PACKAGE__.' BUG at diff part '.$i.'/'.$len.': ' . $old->[0] . ' vs ' . $new->[0];
         }
     }
-    # if something removed from end
-    for (; $ri < $r_count; $ri++)
-    {
-        push $removed, {'value' => $self->{'diff'}->[0]->[$ri]->[1], 'type' => $self->{'diff'}->[0]->[$ri]->[0]};
-        push $added,   {'value' => '', 'type' => TYPE_EMP};
-    }
-    # if something added to end
-    for (; $ai < $a_count; $ai++)
-    {
-        push $removed, {'value' => '', 'type' => TYPE_EMP};
-        push $added,   {'value' => $self->{'diff'}->[1]->[$ai]->[1], 'type' => $self->{'diff'}->[1]->[$ai]->[0]};
-    }
-    # recacl length
-    $self->{'context'}->{'length'} = scalar @$removed;
+    # recalc length
+    $self->{context}->{length} = scalar @$removed;
 }
 
 # apply min length of "u" restriction
@@ -314,132 +298,132 @@ sub apply_min_restriction
 {
     my ($self) = @_;
     # link to contexts
-    my ($removed, $added) = ($self->{'context'}->{'removed'}, $self->{'context'}->{'added'});
+    my ($removed, $added) = ($self->{context}->{removed}, $self->{context}->{added});
     # for each line
-    for (my $i = 0; $i < $self->{'context'}->{'length'}; $i++)
+    for (my $i = 0; $i < $self->{context}->{length}; $i++)
     {
         my ($old, $new) = ($removed->[$i], $added->[$i]);
         # if length is less than MIN_LENGTH mark "u" as rem/add
-        if ((length($old->{'value'}) <= MIN_LENGTH) && ($old->{'type'} eq TYPE_UNI))
+        if ((length($old->{value}) <= MIN_LENGTH) && ($old->{type} eq TYPE_UNI))
         {
-            $old->{'type'} = TYPE_REM;
-            $new->{'type'} = TYPE_ADD;
+            $old->{type} = TYPE_REM;
+            $new->{type} = TYPE_ADD;
         }
     }
     # glue close rem/add
-    for (my $i = 0; $i < $self->{'context'}->{'length'} - 1; $i++)
+    for (my $i = 0; $i < $self->{context}->{length} - 1; $i++)
     {
         # hell condition:
         # (--) && (++ || +e || e+ || ee) || (-- || -e || e- || ee) && (++)
-        my $a  = $removed->[$i]->{'type'} eq TYPE_REM;
-        my $a1 = $removed->[$i]->{'type'} eq TYPE_EMP;
-        my $b  = $removed->[$i+1]->{'type'} eq TYPE_REM;
-        my $b1 = $removed->[$i+1]->{'type'} eq TYPE_EMP;
-        my $c  = $added->[$i]->{'type'} eq TYPE_ADD;
-        my $c1 = $added->[$i]->{'type'} eq TYPE_EMP;
-        my $d  = $added->[$i+1]->{'type'} eq TYPE_ADD;
-        my $d1 = $added->[$i+1]->{'type'} eq TYPE_EMP;
+        my $a  = $removed->[$i]->{type} eq TYPE_REM;
+        my $a1 = $removed->[$i]->{type} eq TYPE_EMP;
+        my $b  = $removed->[$i+1]->{type} eq TYPE_REM;
+        my $b1 = $removed->[$i+1]->{type} eq TYPE_EMP;
+        my $c  = $added->[$i]->{type} eq TYPE_ADD;
+        my $c1 = $added->[$i]->{type} eq TYPE_EMP;
+        my $d  = $added->[$i+1]->{type} eq TYPE_ADD;
+        my $d1 = $added->[$i+1]->{type} eq TYPE_EMP;
         if (
             $a && $b && ($c && $d || $c && $d1 || $c1 && $d || $c1 && $d1) ||
             $c && $d && ($a && $b || $a && $b1 || $a1 && $b || $a1 && $b1)
         )
         {
             # glue them
-            $removed->[$i]->{'value'} .= $removed->[$i+1]->{'value'};
-            $removed->[$i]->{'type'} = TYPE_REM;
-            $added->[$i]->{'value'} .= $added->[$i+1]->{'value'};
-            $added->[$i]->{'type'} = TYPE_ADD;
+            $removed->[$i]->{value} .= $removed->[$i+1]->{value};
+            $removed->[$i]->{type} = TYPE_REM;
+            $added->[$i]->{value} .= $added->[$i+1]->{value};
+            $added->[$i]->{type} = TYPE_ADD;
             splice $removed, $i+1, 1;
             splice $added, $i+1, 1;
-            $self->{'context'}->{'length'} = scalar @$removed;
+            $self->{context}->{length} = scalar @$removed;
             $i--;
         }
     }
 }
 
 # Make context shorter
-sub short_context
+sub cut_context
 {
     my ($self) = @_;
-    # first apply length restriction
-    for (my $i = 0; $i < $self->{'context'}->{'length'}; $i++)
+    # first restrict length
+    for (my $i = 0; $i < $self->{context}->{length}; $i++)
     {
         $self->apply_length_restriction($i);
-        $self->{'context'}->{'length'} = scalar @{$self->{'context'}->{'removed'}};
+        $self->{context}->{length} = scalar @{$self->{context}->{removed}};
     }
-    #last apply lines restriction
-    for (my $i = 0; $i < $self->{'context'}->{'length'}; $i++)
+    # then restrict line count
+    for (my $i = 0; $i < $self->{context}->{length}; $i++)
     {
         $self->apply_line_restriction($i);
-        $self->{'context'}->{'length'} = scalar @{$self->{'context'}->{'removed'}};
+        $self->{context}->{length} = scalar @{$self->{context}->{removed}};
     }
 }
 
-# apply max length of "u" restriction
+# restrict max length of "u"
 sub apply_length_restriction
 {
     my ($self, $i) = @_;
     for my $what (('removed', 'added'))
     {
-        my $array = $self->{'context'}->{$what};
+        my $array = $self->{context}->{$what};
         my $line = $array->[$i];
         # only if type of line is "u"
-        if ($line->{'type'} eq TYPE_UNI)
+        if ($line->{type} eq TYPE_UNI)
         {
-            my $l = length($line->{'value'});
+            my $l = length($line->{value});
             # length of first item is greater than MAX_LENGTH
             if (($l > MAX_LENGTH) && ($i == 0))
             {
                 # cut it to MAX_LENGTH and insert before "skip" line
-                splice $array, $i, 0, {'type' => TYPE_SKP, 'value' => SKIP_STRING};
-                $array->[$i+1]->{'value'} = SKIP_STRING . substr($line->{'value'}, -(MAX_LENGTH + SKIP_LENGTH));
+                splice $array, $i, 0, { type => TYPE_SKP, value => SKIP_STRING };
+                $array->[$i+1]->{value} = SKIP_STRING . substr($line->{value}, -(MAX_LENGTH + SKIP_LENGTH));
             }
             # length of last item is greater than MAX_LENGTH
-            elsif (($l > MAX_LENGTH) && ($i == $self->{'context'}->{'length'} - 1))
+            elsif (($l > MAX_LENGTH) && ($i == $self->{context}->{length} - 1))
             {
                 # cut it to MAX_LENGTH and insert after "skip" line
-                $array->[$i]->{'value'} = substr($line->{'value'}, 0, MAX_LENGTH - SKIP_LENGTH) . SKIP_STRING;
-                push $array, {'type' => TYPE_SKP, 'value' => SKIP_STRING};
+                $array->[$i]->{value} = substr($line->{value}, 0, MAX_LENGTH - SKIP_LENGTH) . SKIP_STRING;
+                push $array, { type => TYPE_SKP, value => SKIP_STRING };
             }
             # length of i-th item is greater than 2*MAX_LENGTH (per MAX_LENGTH for prev and next lines)
-            elsif ($l > 2*MAX_LENGTH && ($i > 0) && ($i < $self->{'context'}->{'length'} - 1))
+            elsif ($l > 2*MAX_LENGTH && ($i > 0) && ($i < $self->{context}->{length} - 1))
             {
                 # cut it to (MAX_LENGTH, "skip", MAX_LENGTH)
-                splice $array, $i+1, 0, {'type' => TYPE_SKP, 'value' => SKIP_STRING};
-                splice $array, $i+2, 0, {'type' => TYPE_UNI, 'value' => SKIP_STRING . substr($line->{'value'}, -(MAX_LENGTH + SKIP_LENGTH))};
-                $array->[$i]->{'value'} = substr($line->{'value'}, 0, MAX_LENGTH - SKIP_LENGTH) . SKIP_STRING;
+                splice $array, $i+1, 0, { type => TYPE_SKP, value => SKIP_STRING };
+                splice $array, $i+2, 0, { type => TYPE_UNI, value => SKIP_STRING . substr($line->{value}, -(MAX_LENGTH + SKIP_LENGTH)) };
+                $array->[$i]->{value} = substr($line->{value}, 0, MAX_LENGTH - SKIP_LENGTH) . SKIP_STRING;
             }
         }
     }
 }
 
-# apply max lines count of "u" restriction
+# restrict max lines count of "u"
 sub apply_line_restriction
 {
     my ($self, $i) = @_;
     for my $what (('removed', 'added'))
     {
-        my $array = $self->{'context'}->{$what};
+        my $array = $self->{context}->{$what};
         my $line = $array->[$i];
         # only if type of line is "u"
-        if ($line->{'type'} eq TYPE_UNI)
+        if ($line->{type} eq TYPE_UNI)
         {
-            my $n = ($line->{'value'} =~ tr/\n/\n/);
+            my $n = ($line->{value} =~ tr/\n/\n/);
             # lines count of first item is greater than MAX_LINES
             if (($n > MAX_LINES) && ($i == 0))
             {
                 # cut it to MAX_LINES lines and insert before "skip" line
-                my $offset = $self->rindex_i($line->{'value'}, "\n", MAX_LINES) + 1;
-                splice $array, $i, 0, {'type' => TYPE_SKP, 'value' => SKIP_STRING};
-                $array->[$i+1]->{'value'} = substr($line->{'value'}, $offset);
+                my $offset = $self->rindex_i($line->{value}, "\n", MAX_LINES) + 1;
+                splice $array, $i, 0, { type => TYPE_SKP, value => SKIP_STRING };
+                $array->[$i+1]->{value} = substr($line->{value}, $offset);
             }
             # lines count of last item is greater than MAX_LINES
-            elsif (($n > MAX_LINES) && ($i == $self->{'context'}->{'length'} - 1))
+            elsif (($n > MAX_LINES) && ($i == $self->{context}->{length} - 1))
             {
                 # cut it to MAX_LINES lines and insert after "skip" line
-                my $offset = $self->index_i($line->{'value'}, "\n", MAX_LINES) + 1;
-                $array->[$i]->{'value'} = substr($line->{'value'}, 0, $offset);
-                push $array, {'type' => TYPE_SKP, 'value' => SKIP_STRING};
+                my $offset = $self->index_i($line->{value}, "\n", MAX_LINES) + 1;
+                $array->[$i]->{value} = substr($line->{value}, 0, $offset);
+                push $array, { type => TYPE_SKP, value => SKIP_STRING };
             }
             # other cases
             else
@@ -455,37 +439,37 @@ sub apply_line_restriction
 sub apply_line_restriction_i
 {
     my ($self, $i, $what) = @_;
-    my $array = $self->{'context'}->{$what};
+    my $array = $self->{context}->{$what};
     my $line = $array->[$i];
-    my $n = ($line->{'value'} =~ tr/\n/\n/);
+    my $n = ($line->{value} =~ tr/\n/\n/);
     # if before there is "skip" and current contains more than MAX_LINES lines
-    if (($array->[$i-1]->{'type'} eq TYPE_SKP) && ($n > MAX_LINES))
+    if (($array->[$i-1]->{type} eq TYPE_SKP) && ($n > MAX_LINES))
     {
         # just cut it
-        my $offset = $self->rindex_i($line->{'value'}, "\n", MAX_LINES) + 1;
-        $array->[$i]->{'value'} = substr($line->{'value'}, $offset);
+        my $offset = $self->rindex_i($line->{value}, "\n", MAX_LINES) + 1;
+        $array->[$i]->{value} = substr($line->{value}, $offset);
     }
     # if after there is "skip" and current contains more than MAX_LINES lines
-    elsif (($array->[$i+1]->{'type'} eq TYPE_SKP) && ($n > MAX_LINES))
+    elsif (($array->[$i+1]->{type} eq TYPE_SKP) && ($n > MAX_LINES))
     {
         # just cut it
-        my $offset = $self->index_i($line->{'value'}, "\n", MAX_LINES) + 1;
-        $array->[$i]->{'value'} = substr($line->{'value'}, 0, $offset);
+        my $offset = $self->index_i($line->{value}, "\n", MAX_LINES) + 1;
+        $array->[$i]->{value} = substr($line->{value}, 0, $offset);
     }
     # if around there is no "skip" and current contains more than 2*MAX_LINES (per MAX_LINES for prev and next lines) lines
     elsif ($n > 2*MAX_LINES)
     {
         # cut it to (MAX_LINES, "skip", MAX_LINES)
-        my $begin = substr($line->{'value'}, 0, $self->index_i($line->{'value'}, "\n", MAX_LINES) + 1);
-        my $end   = substr($line->{'value'}, $self->rindex_i($line->{'value'}, "\n", MAX_LINES) + 1);
-        splice $array, $i+1, 0, {'type' => TYPE_SKP, 'value' => SKIP_STRING};
-        splice $array, $i+2, 0, {'type' => TYPE_UNI, 'value' => $end};
-        $array->[$i]->{'value'} = $begin;
+        my $begin = substr($line->{value}, 0, $self->index_i($line->{value}, "\n", MAX_LINES) + 1);
+        my $end   = substr($line->{value}, $self->rindex_i($line->{value}, "\n", MAX_LINES) + 1);
+        splice $array, $i+1, 0, { type => TYPE_SKP, value => SKIP_STRING };
+        splice $array, $i+2, 0, { type => TYPE_UNI, value => $end };
+        $array->[$i]->{value} = $begin;
     }
 }
 
 # helper: index n-th needle in search
-sub index_i()
+sub index_i
 {
     my ($self, $search, $needle, $n) = @_;
     my $offset = 0;
@@ -497,7 +481,7 @@ sub index_i()
 }
 
 # helper: rindex n-th needle in search
-sub rindex_i()
+sub rindex_i
 {
     my ($self, $search, $needle, $n) = @_;
     my $offset = length($search);
@@ -508,84 +492,32 @@ sub rindex_i()
     return $offset + 1;
 }
 
-# glue context if there are no linebreaks at begin or end of item
 sub glue_context
 {
     my ($self) = @_;
-    # recalc count every iteration
-    for (my $i = 0; $i < (scalar @{$self->{'context'}->{'removed'}}) - 1; $i++)
+    my ($or, $oa) = @{$self->{context}}{qw(removed added)};
+    my $len = scalar @$or;
+    for (my $i = 0; $i < $len; $i++)
     {
-        # glue i-th item
-        $i += $self->glue_context_i($i);
-    }
-    $self->{'context'}->{'length'} = scalar @{$self->{'context'}->{'removed'}};
-    # encloed in tags if item is full rem/add
-    for (my $i = 0; $i < $self->{'context'}->{'length'}; $i++)
-    {
-        for my $key (('removed', 'added'))
+        if ($or->[$i]->{type} eq '-' && $or->[$i-1]->{value} !~ /\n$/s ||
+            $oa->[$i]->{type} eq '+' && $oa->[$i-1]->{value} !~ /\n$/s)
         {
-            my $line = $self->{'context'}->{$key}->[$i];
-            my $act = TYPE_REM;
-            $act = TYPE_ADD if $key ne 'removed';
-            $line->{'value'} = TAGS->{$act}->[0] . $line->{'value'} . TAGS->{$act}->[1] if $line->{'type'} eq $act;
-            $line->{'type'} = $act if $line->{'type'} eq TYPE_UNI . $act;
-        }
-    }
-}
-
-# glue context of i-th item
-sub glue_context_i
-{
-    my ($self, $i, $what) = @_;
-    $what = 'removed' if !$what;
-    my $array = $self->{'context'}->{$what};
-    my $rarray = $self->{'context'}->{$what eq 'removed' ? 'added' : 'removed'};
-    my $act = TYPE_REM;
-    $act = TYPE_ADD if $what ne 'removed';
-    if (substr($array->[$i]->{'value'}, -1) ne "\n" && substr($array->[$i+1]->{'value'}, 0, 1) ne "\n")
-    {
-        my $result = -1;
-        # glue variants (x(what) = {removed => -, added => +}; u = [u, u+, u-, e]): {i=>x, i+1=>u}, {i=>x, i+1=>u}, {i=>u, i+1=>u, reverse}
-        if (($array->[$i]->{'type'} eq TYPE_SKP) || ($array->[$i+1]->{'type'} eq TYPE_SKP) || ($rarray->[$i]->{'type'} eq TYPE_SKP) || ($rarray->[$i+1]->{'type'} eq TYPE_SKP))
-        {
-            return 0;
-        }
-        elsif ($array->[$i]->{'type'} eq $act && substr($array->[$i+1]->{'type'}, 0, 1) eq TYPE_UNI)
-        {
-            $result = $self->glue_context_i($i, 'added') if ($what eq 'removed');
-            if ($result != 0)
+            if ($or->[$i]->{type} eq '-')
             {
-                $array->[$i]->{'value'} = TAGS->{$act}->[0] . $array->[$i]->{'value'} . TAGS->{$act}->[1] . $array->[$i+1]->{'value'};
-                $array->[$i]->{'type'} = TYPE_UNI . $act;
-                splice $array, $i+1, 1;
+                $or->[$i]->{value} = '<rem>' . $or->[$i]->{value} . '</rem>';
             }
-        }
-        elsif (substr($array->[$i]->{'type'}, 0, 1) eq TYPE_UNI && $array->[$i+1]->{'type'} eq $act)
-        {
-            $result = $self->glue_context_i($i, 'added') if ($what eq 'removed');
-            if ($result != 0)
+            if ($oa->[$i]->{type} eq '+')
             {
-                $array->[$i]->{'value'} = $array->[$i]->{'value'} . TAGS->{$act}->[0] . $array->[$i+1]->{'value'} . TAGS->{$act}->[1];
-                $array->[$i]->{'type'} = TYPE_UNI . $act;
-                splice $array, $i+1, 1;
+                $oa->[$i]->{value} = '<add>' . $oa->[$i]->{value} . '</add>';
             }
+            $or->[$i-1] = { type => $or->[$i]->{type}, value => $or->[$i-1]->{value} . $or->[$i]->{value} };
+            $oa->[$i-1] = { type => $oa->[$i]->{type}, value => $oa->[$i-1]->{value} . $oa->[$i]->{value} };
+            splice @$_, $i, 1 for $or, $oa;
+            $i--;
+            $len--;
         }
-        else
-        {
-            $result = $self->glue_context_i($i, 'added') if ($what eq 'removed');
-            if ($result != 0)
-            {
-                $array->[$i]->{'value'} = $array->[$i]->{'value'} . $array->[$i+1]->{'value'};
-                $array->[$i]->{'type'} = (
-                    $array->[$i]->{'type'} ne TYPE_UNI && $array->[$i]->{'type'} ne TYPE_EMP  ? $array->[$i]->{'type'} :
-                    ($array->[$i+1]->{'type'} ne TYPE_UNI && $array->[$i+1]->{'type'} ne TYPE_EMP ? $array->[$i+1]->{'type'} : TYPE_UNI)
-                );
-                splice $array, $i+1, 1;
-            }
-        }
-        return $result;
     }
-    return 0;
+    $self->{context}->{length} = scalar @{$self->{context}->{removed}};
 }
 
 1;

@@ -46,6 +46,7 @@ use base qw(Exporter);
     stem_text intersect union
     get_text disable_utf8 bz_encode_json
     xml_element xml_element_quote xml_dump_simple xml_simple
+    Dumper
 );
 
 use Bugzilla::Constants;
@@ -62,6 +63,10 @@ use Template::Filters;
 use Text::Wrap;
 use Text::TabularDisplay::Utf8;
 use JSON;
+
+use Data::Dumper;
+$Data::Dumper::Useperl = 1;
+*Data::Dumper::qquote = sub { my $s = $_[0]; s/\"/\\"/gs; return '"'.$s.'"' };
 
 eval { require 'Lingua/Stem/Snowball.pm' };
 
@@ -945,6 +950,11 @@ sub xml_simple_char
     my $stack = $parser->{_simple_stack};
     my $frame = $stack->[$#$stack];
     $frame->{char} .= $text;
+}
+
+sub Dumper
+{
+    return Data::Dumper::Dumper(@_);
 }
 
 1;
