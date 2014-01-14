@@ -808,6 +808,10 @@ sub FUNCTIONS
         type     => [ FIELD_TYPE_MULTI_SELECT, FIELD_TYPE_BUG_URLS ],
         obsolete => 0
     });
+    my $date_fields = join '|', map { $_->name } Bugzilla->get_fields({
+        type     => FIELD_TYPE_DATETIME,
+        obsolete => 0
+    });
     $FUNCTIONS = {
         'blocked|dependson' => {
             '*' => \&_blocked_dependson,
@@ -849,7 +853,7 @@ sub FUNCTIONS
             'changed' => \&changed,
             '*' => sub { ThrowUserError('search_changes_without_changed'); },
         },
-        'deadline|creation_ts|delta_ts' => {
+        'deadline|creation_ts|delta_ts'.($date_fields ? '|'.$date_fields : '') => {
             'lessthan|greaterthan|equals|notequals' => \&_timestamp_compare,
         },
         'days_elapsed' => {
@@ -2227,7 +2231,7 @@ sub _timestamp_compare
     my $self = shift;
     my $dbh = Bugzilla->dbh;
     $self->{fieldsql} = 'bugs.'.$self->{field};
-    if ($self->{value} =~ /^[+-]?\d+:[dwmy]$/is)
+    if ($self->{value} =~ /^[+-]?\d+[dwmy]$/is)
     {
         $self->{value} = SqlifyDate($self->{value});
         $self->{quoted} = $dbh->quote($self->{value});
