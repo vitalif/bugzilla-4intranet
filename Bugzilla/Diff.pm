@@ -33,11 +33,6 @@ use constant TYPE_SKP  => 's';
 use constant SKIP_STRING  => '...';
 use constant SKIP_LENGTH  => length(SKIP_STRING);
 
-use constant TAGS => {
-    '+' => ['<add>', '</add>'],
-    '-' => ['<rem>', '</rem>']
-};
-
 use constant VIEW_TAGS => {
     '<add>'  => '<b style="background: #CCC; color: #090;">',
     '</add>' => '</b>',
@@ -176,6 +171,7 @@ sub diff
     push @diff, '^'; # EOF character for if ($prev_action ne $action)
     for my $line (@diff)
     {
+        Encode::_utf8_on($line);
         my $action = substr $line, 0, 1, '';
         $action = TYPE_UNI if $action eq ' ';
         if ($prev_action ne $action)
@@ -375,15 +371,13 @@ sub apply_length_restriction
             if (($l > MAX_LENGTH) && ($i == 0))
             {
                 # cut it to MAX_LENGTH and insert before "skip" line
-                splice $array, $i, 0, { type => TYPE_SKP, value => SKIP_STRING };
-                $array->[$i+1]->{value} = SKIP_STRING . substr($line->{value}, -(MAX_LENGTH + SKIP_LENGTH));
+                $array->[0]->{value} = SKIP_STRING . substr($line->{value}, -(MAX_LENGTH + SKIP_LENGTH));
             }
             # length of last item is greater than MAX_LENGTH
             elsif (($l > MAX_LENGTH) && ($i == $self->{context}->{length} - 1))
             {
                 # cut it to MAX_LENGTH and insert after "skip" line
                 $array->[$i]->{value} = substr($line->{value}, 0, MAX_LENGTH - SKIP_LENGTH) . SKIP_STRING;
-                push $array, { type => TYPE_SKP, value => SKIP_STRING };
             }
             # length of i-th item is greater than 2*MAX_LENGTH (per MAX_LENGTH for prev and next lines)
             elsif ($l > 2*MAX_LENGTH && ($i > 0) && ($i < $self->{context}->{length} - 1))
@@ -496,23 +490,27 @@ sub glue_context
 {
     my ($self) = @_;
     my ($or, $oa) = @{$self->{context}}{qw(removed added)};
-    my $len = scalar @$or;
-    for (my $i = 0; $i < $len; $i++)
+    for (@$or)
     {
-        if ($or->[$i]->{type} eq '-' && $or->[$i-1]->{value} !~ /\n$/s ||
-            $oa->[$i]->{type} eq '+' && $oa->[$i-1]->{value} !~ /\n$/s)
+        $_->{value} = '<rem>' . $_->{value} . '</rem>' if $_->{type} eq TYPE_REM;
+    }
+    for (@$oa)
+    {
+        $_->{value} = '<add>' . $_->{value} . '</add>' if $_->{type} eq TYPE_ADD;
+    }
+    my $len = scalar @$or;
+    for (my $i = 1; $i < $len; $i++)
+    {
+        if (($or->[$i-1]->{type} ne TYPE_SKP && $or->[$i]->{type} ne TYPE_SKP) &&
+            ($or->[$i-1]->{value} !~ /\n$/s || $oa->[$i-1]->{value} !~ /\n$/s))
         {
-            if ($or->[$i]->{type} eq '-')
+            for ($or, $oa)
             {
-                $or->[$i]->{value} = '<rem>' . $or->[$i]->{value} . '</rem>';
+                $_->[$i-1]->{value} .= $_->[$i]->{value};
+                # Don't care about (i-1 == EMP && i == UNI) - it doesn't make sense after glue_context
+                $_->[$i-1]->{type} = $_->[$i]->{type} if $_->[$i]->{type} eq TYPE_REM || $_->[$i]->{type} eq TYPE_ADD;
+                splice @$_, $i, 1;
             }
-            if ($oa->[$i]->{type} eq '+')
-            {
-                $oa->[$i]->{value} = '<add>' . $oa->[$i]->{value} . '</add>';
-            }
-            $or->[$i-1] = { type => $or->[$i]->{type}, value => $or->[$i-1]->{value} . $or->[$i]->{value} };
-            $oa->[$i-1] = { type => $oa->[$i]->{type}, value => $oa->[$i-1]->{value} . $oa->[$i]->{value} };
-            splice @$_, $i, 1 for $or, $oa;
             $i--;
             $len--;
         }
