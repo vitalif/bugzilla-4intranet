@@ -369,7 +369,7 @@ sub view {
             if ($contenttype =~ m!^text/!iso)
             {
                 Encode::_utf8_on($data);
-                $is_utf8 = utf8::valid($data);
+                $is_utf8 = utf8::decode($data);
                 Encode::_utf8_off($data);
             }
             # In order to prevent Apache from adding a charset, we have to send a
