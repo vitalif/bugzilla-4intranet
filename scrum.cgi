@@ -3,6 +3,7 @@
 
 use strict;
 use Bugzilla;
+use Bugzilla::Bug;
 use Bugzilla::Util qw(trim html_quote);
 use Bugzilla::Error;
 

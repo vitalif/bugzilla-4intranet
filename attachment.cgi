@@ -891,7 +891,7 @@ sub all_attachments_in_zip {
     my $bug = Bugzilla::Bug->check(scalar $cgi->param('bugid'));
     my $bugid = $bug->id;
 
-    my $attachments = Bugzilla::Attachment->get_attachments_by_bug($bugid);
+    my $attachments = Bugzilla::Attachment->get_attachments_by_bug($bug);
     # Ignore deleted attachments.
     @$attachments = grep { $_->datasize } @$attachments;
 

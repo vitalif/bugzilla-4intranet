@@ -87,8 +87,8 @@ function onchange_bug_status()
 }
 addListener('bug_status', 'change', onchange_bug_status);
 addListener('resolution', 'change', showDuplicateItem);
-addListener('dup_id_discoverable_action', 'click', function() {
-  setResolutionToDuplicate('[% Param('duplicate_or_move_bug_status') | js %]');
+addListener('dup_id_discoverable_action', 'click', function(e) {
+  setResolutionToDuplicate(e, '[% Param('duplicate_or_move_bug_status') | js %]');
 });
 addListener(window, 'load', function() {
   showHideStatusItems('[% "is_duplicate" IF bug.dup_id %]', '[% bug.bug_status | js %]');

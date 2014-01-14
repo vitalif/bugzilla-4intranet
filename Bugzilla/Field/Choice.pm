@@ -305,6 +305,30 @@ sub _check_visibility_value_id {
     return $value_obj->id;
 }
 
+# Returns names of all _active_ values, enabled for products that current user can see
+sub get_all_names
+{
+    my $class = shift;
+    my $dup = {};
+    my $names = [];
+    my $idf = $class->ID_FIELD;
+    my $namef = $class->NAME_FIELD;
+    # Remember IDs of each name
+    for ($class->get_all())
+    {
+        if (!$dup->{$_->{$namef}})
+        {
+            push @$names, ($dup->{$_->{$namef}} = { name => $_->{$namef}, ids => [ $_->{$idf} ] });
+        }
+        else
+        {
+            push @{$dup->{$_->{$namef}}->{ids}}, $_->{$idf};
+        }
+    }
+    return $names;
+}
+
+
 1;
 
 __END__

@@ -626,6 +626,14 @@ sub legal_values {
     return $self->{'legal_values'};
 }
 
+sub legal_value_names
+{
+    my $self = shift;
+    return [] unless $self->is_select;
+    return Bugzilla::Field::Choice->type($self)->get_all_names();
+}
+
+
 # Always excludes disabled values
 sub restricted_legal_values
 {

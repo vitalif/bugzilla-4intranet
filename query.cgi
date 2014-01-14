@@ -224,15 +224,6 @@ $vars->{chart_fields} = [
 # Another hack...
 unshift @{$vars->{chart_fields}}, { id => 'noop', name => '---' };
 
-if ($user->is_timetracker) {
-    push @chfields, "work_time";
-} else {
-    foreach my $tt_field (TIMETRACKING_FIELDS) {
-        @chfields = grep($_ ne $tt_field, @chfields);
-    }
-}
-@chfields = (sort(@chfields));
-$vars->{'chfield'} = \@chfields;
 $vars->{'bug_status'} = Bugzilla::Field->new({name => 'bug_status'})->legal_values;
 $vars->{'rep_platform'} = Bugzilla::Field->new({name => 'rep_platform'})->legal_values;
 $vars->{'op_sys'} = Bugzilla::Field->new({name => 'op_sys'})->legal_values;
@@ -361,7 +352,7 @@ $vars->{keyword_list} = \@keyword_list_out;
 
 # Set cookie to current format as default, but only if the format
 # one that we should remember.
-if (defined $vars->{format} && IsValidQueryType($vars->{format}))
+if (defined $vars->{format} && Bugzilla::Search::Saved::IsValidQueryType($vars->{format}))
 {
     $cgi->send_cookie(
         -name => 'DEFAULTFORMAT',

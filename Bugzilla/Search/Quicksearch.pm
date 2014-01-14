@@ -522,23 +522,6 @@ sub _default_quicksearch_word {
     my $self = shift;
     my ($word, $negate) = @_;
     $self->{content} .= ' '.$word;
-    
-    if (!grep { lc($word) eq $_ } PRODUCT_EXCEPTIONS and length($word) > 2) {
-        addChart('product', 'substring', $word, $negate);
-    }
-    
-    if (!grep { lc($word) eq $_ } COMPONENT_EXCEPTIONS and length($word) > 2) {
-        addChart('component', 'substring', $word, $negate);
-    }
-    
-    my @legal_keywords = map($_->name, Bugzilla::Keyword->get_all);
-    if (grep { lc($word) eq lc($_) } @legal_keywords) {
-        addChart('keywords', 'substring', $word, $negate);
-    }
-    
-    addChart('alias', 'substring', $word, $negate);
-    addChart('short_desc', 'substring', $word, $negate);
-    addChart('status_whiteboard', 'substring', $word, $negate);
 }
 
 sub _handle_urls {

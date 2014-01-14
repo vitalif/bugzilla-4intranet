@@ -20,6 +20,8 @@ use Bugzilla::Error;
 use Bugzilla::User;
 use Bugzilla::Util;
 
+our @EXPORT = qw(IsValidQueryType);
+
 use Scalar::Util qw(blessed);
 
 #############

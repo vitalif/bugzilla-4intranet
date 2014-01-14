@@ -218,7 +218,7 @@ function showDuplicateItem(e)
     return false;
 }
 
-function setResolutionToDuplicate(duplicate_or_move_bug_status)
+function setResolutionToDuplicate(e, duplicate_or_move_bug_status)
 {
     var status = document.getElementById('bug_status');
     var resolution = document.getElementById('resolution');

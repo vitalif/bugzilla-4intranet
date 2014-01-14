@@ -1092,11 +1092,13 @@ sub can_enter_product {
         ThrowUserError('no_products');
     }
 
-    my $name = blessed($input) ? $input->name : $input;
+    my $product = blessed($input) ? $input 
+                                  : new Bugzilla::Product({ name => $input });
+    my $can_enter =
+      $product && grep($_->name eq $product->name,
+                       @{ $self->get_enterable_products });
 
-    my $can_enter = grep($_->name eq $name, @{ $self->get_enterable_products });
-
-    return 1 if $can_enter;
+    return $product if $can_enter;
 
     return 0 unless $warn == THROW_ERROR;
 
@@ -1106,7 +1108,7 @@ sub can_enter_product {
     # We don't just use $product->name for error messages, because if it
     # changes case from $input, then that's a clue that the product does
     # exist but is hidden.
-    my $product = blessed($input) ? $input : new Bugzilla::Product({ name => $input });
+    my $name = blessed($input) ? $input->name : $input;
 
     # The product could not exist or you could be denied...
     if (!$product || !$product->user_has_access($self)) {
@@ -1127,10 +1129,6 @@ sub can_enter_product {
            || !grep { $_->is_active } @{$product->versions})
     {
         ThrowUserError ('missing_version', { product => $product });
-    }
-    # It could have the name in a different case :)
-    elsif (!blessed($input) && $product->name ne $input) {
-        ThrowUserError ('product_invalid_case', { product => $input, suggested => $product->name });
     }
 
     die "can_enter_product reached an unreachable location.";

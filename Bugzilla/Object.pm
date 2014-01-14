@@ -70,7 +70,7 @@ sub _init {
     if (ref $param eq 'HASH') {
         $id = $param->{id};
     }
-    my ($object, $sql, @values);
+    my ($sql, @values);
 
     if (defined $id) {
         # We special-case if somebody specifies an ID, so that we can

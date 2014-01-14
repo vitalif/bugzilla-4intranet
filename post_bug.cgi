@@ -217,6 +217,7 @@ if (defined($cgi->upload('data')) || $cgi->param('attach_text')) {
 # Set bug flags.
 my ($flags, $new_flags) = Bugzilla::Flag->extract_flags_from_cgi($bug, undef, $vars);
 $bug->set_flags($flags, $new_flags);
+
 $bug->update($timestamp);
 
 $vars->{'id'} = $id;

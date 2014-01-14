@@ -106,7 +106,7 @@ sub MessageToMTA {
                     $part->body_set($raw);
                 }
             }
-            $part->encoding_set('quoted-printable') if !is_7bit_clean($body);
+            $part->encoding_set('quoted-printable') if !Bugzilla::Util::is_7bit_clean($body);
         }
     });
 

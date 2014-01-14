@@ -136,7 +136,6 @@ sub VALIDATORS {
         short_desc     => \&_check_short_desc,
         status_whiteboard => \&_check_status_whiteboard,
         target_milestone  => \&_check_target_milestone,
-#        version           => \&_check_version,
 
         cclist_accessible   => \&Bugzilla::Object::check_boolean,
         reporter_accessible => \&Bugzilla::Object::check_boolean,
@@ -1887,10 +1886,8 @@ sub _check_product {
     }
     # Check that the product exists and that the user
     # is allowed to enter bugs into this product.
-    Bugzilla->user->can_enter_product($name, THROW_ERROR);
-    # can_enter_product already does everything that check_product
-    # would do for us, so we don't need to use it.
-    return new Bugzilla::Product({ name => $name });
+    my $product = Bugzilla->user->can_enter_product($name, THROW_ERROR);
+    return $product;
 }
 
 sub _check_priority {
@@ -3547,7 +3544,7 @@ sub component_obj {
     return $self->{component_obj} if defined $self->{component_obj};
     return {} if $self->{error};
     $self->{component_obj} =
-        new Bugzilla::Component({ id => $self->{component_id}, cache => 1 });
+        new Bugzilla::Component($self->{component_id});
     return $self->{component_obj};
 }
 

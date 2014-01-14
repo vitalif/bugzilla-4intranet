@@ -194,6 +194,10 @@ function bz_fireEvent(anElement, anEvent)
         var evt = document.createEventObject();
         return anElement.fireEvent('on' + anEvent, evt);
     }
+    // Firefox, etc.
+    var evt = document.createEvent("HTMLEvents");
+    evt.initEvent(anEvent, true, true); // event type, bubbling, cancelable
+    return !anElement.dispatchEvent(evt);
 }
 
 /* map { $_ => 1 } %h */

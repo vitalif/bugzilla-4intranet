@@ -26,7 +26,7 @@ use parent qw(Exporter);
                              validate_email_syntax clean_text stem_text bz_encode_json
                              xml_element xml_element_quote xml_dump_simple xml_simple
                              get_text template_var disable_utf8
-                             detect_encoding email_filter);
+                             detect_encoding email_filter union);
 
 use Bugzilla::Constants;
 use Bugzilla::RNG qw(irand);

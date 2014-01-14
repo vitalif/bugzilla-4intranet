@@ -237,7 +237,7 @@ if ($cloned_bug_id) {
     # CustIS Bug 38616 - CC list restriction
     if ($product->cc_restrict_group)
     {
-        my $removed = $product->restrict_cc(\@cc, 'login_name');
+        my $removed = $product->restrict_cc(@$vars->{'cc'}, 'login_name');
         if ($removed && @$removed)
         {
             $vars->{restricted_cc} = [ map { $_->login } @$removed ];
@@ -245,8 +245,6 @@ if ($cloned_bug_id) {
             $vars->{message} = 'cc_list_restricted';
         }
     }
-
-    $vars->{cc} = join ', ', @cc;
 
     # Copy values of custom fields marked with 'clone_bug = TRUE'
     # But don't copy values of custom fields which are invisible for the new product
