@@ -189,7 +189,9 @@ function replyToComment(num, id)
         /* make sure we split on all newlines -- IE or Moz use \r and \n
          * respectively.
          */
-        text = text.replace(/\s*$/, '').split(/\r|\n/);
+        text = text.replace(/\s*$/, '')
+        text = text.replace(/(Created attachment.*?\[details\])\s*?\[Online-view\]/, '$1');
+        text = text.split(/\r|\n/);
 
         var prev_ist = false, ist = false;
         for (var i = 0; i < text.length; i++)
