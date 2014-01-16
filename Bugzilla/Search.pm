@@ -855,11 +855,10 @@ sub FUNCTIONS
             '*' => sub { ThrowUserError('search_changes_without_changed'); },
         },
         'deadline|creation_ts|delta_ts'.($date_fields ? '|'.$date_fields : '') => {
-            'lessthan|greaterthan|equals|notequals' => \&_timestamp_compare,
+            'lessthan|lessthaneq|greaterthan|greaterthaneq|equals|notequals' => \&_timestamp_compare,
         },
         'days_elapsed' => {
-            'equals|lessthan|lessthaneq|'.
-            'greaterthan|greaterthaneq' => \&_days_elapsed,
+            'lessthan|lessthaneq|greaterthan|greaterthaneq|equals|notequals' => \&_days_elapsed,
             '*' => sub { ThrowUserError('search_days_elapsed_non_numeric') },
         },
         'owner_idle_time' => {
