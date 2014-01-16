@@ -51,6 +51,7 @@ use Bugzilla::Field;
 use Bugzilla::Group;
 use Bugzilla::Status;
 
+use POSIX;
 use DateTime::TimeZone;
 use Scalar::Util qw(blessed);
 use Storable qw(dclone);
@@ -1791,6 +1792,16 @@ sub create {
 
     # Return the newly created user account.
     return $user;
+}
+
+sub read_new_functionality {
+    my ($self) = @_;
+    my $cgi = Bugzilla->cgi;
+    my $time = $cgi->cookie('read_new_functionality');
+    $time = 0 unless $time;
+    my @lu = map { $_ - 0} Bugzilla->params->{new_functionality_tsp} =~ m/(\d+)/g;
+    my $last_updated = POSIX::mktime(@lu[5], @lu[4], @lu[3], @lu[2], @lu[1] - 1, @lu[0] - 1900);
+    return $last_updated >= $time;
 }
 
 ###########################

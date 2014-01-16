@@ -244,3 +244,12 @@ function showFullComment(oper_id)
     }
     document.getElementById("link_" + oper_id).style.display = 'none';
 }
+
+function readNewFunctionality()
+{
+    var u = 'xml.cgi?method=User.read_new_functionality&output=json';
+    var el = document.getElementById('new_functionality');
+    el.parentElement.removeChild(el);
+    AjaxLoader(u, function() {});
+    return false;
+}

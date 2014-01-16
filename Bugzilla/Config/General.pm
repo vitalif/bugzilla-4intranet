@@ -32,6 +32,7 @@
 package Bugzilla::Config::General;
 use strict;
 use Bugzilla::Config::Common;
+use POSIX;
 
 our $sortkey = 150;
 
@@ -77,6 +78,18 @@ use constant get_param_list => (
                'stable_branch_release', 'disabled'],
    default => 'latest_stable_release',
    checker => \&check_notification
+  },
+
+  {
+   name => 'new_functionality_msg',
+   type => 'l',
+   default => ''
+  },
+
+  {
+   name => 'new_functionality_tsp',
+   type => 't',
+   default => POSIX::strftime "%Y-%m-%d %H:%M:%S", localtime
   },
 );
 
