@@ -351,7 +351,7 @@ sub param {
 
         # Fix UTF-8-ness of input parameters.
         if (Bugzilla->params->{'utf8'}) {
-            @result = map { _fix_utf8($_) } @result;
+            @result = map { ref $_ ? $_ : _fix_utf8($_) } @result;
         }
 
         return wantarray ? @result : $result[0];
