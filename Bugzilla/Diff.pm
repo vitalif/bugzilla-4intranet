@@ -486,6 +486,7 @@ sub rindex_i
     return $offset + 1;
 }
 
+# Glue adjacent chunks if they span a line.
 sub glue_context
 {
     my ($self) = @_;

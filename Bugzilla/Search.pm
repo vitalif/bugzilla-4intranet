@@ -373,6 +373,7 @@ use Bugzilla::Search::Saved;
 use Storable qw(dclone);
 use Date::Format;
 use Date::Parse;
+use DateTime;
 
 ##############################################
 ## Catalogs: columns, search operators, etc ##
@@ -1444,57 +1445,36 @@ sub bugid_query
 sub SqlifyDate
 {
     my ($str) = @_;
-    $str = "" if (!defined $str || lc($str) eq 'now');
+    $str = "" if !defined $str || lc $str eq 'now';
     if ($str eq "")
     {
-        my ($sec, $min, $hour, $mday, $month, $year, $wday) = localtime(time());
-        return sprintf("%4d-%02d-%02d 00:00:00", $year+1900, $month+1, $mday);
+        return DateTime->now->ymd . ' 00:00:00';
     }
-
     if ($str =~ /^(-|\+)?(\d+)([hHdDwWmMyY])$/)
     {
         # relative date
-        my ($sign, $amount, $unit, $date) = ($1, $2, lc $3, time);
-        my ($sec, $min, $hour, $mday, $month, $year, $wday) = localtime($date);
+        my ($sign, $amount, $unit) = ($1, $2, lc $3);
         $amount = -$amount if $sign && $sign eq '+';
-        if ($unit eq 'w')
-        {
-            # convert weeks to days
-            $amount = 7*$amount + $wday;
-            $unit = 'd';
-        }
-        if ($unit eq 'd')
-        {
-            $date -= $sec + 60*$min + 3600*$hour + 24*3600*$amount;
-            return time2str("%Y-%m-%d %H:%M:%S", $date);
-        }
-        elsif ($unit eq 'y')
-        {
-            return sprintf("%4d-01-01 00:00:00", $year+1900-$amount);
-        }
-        elsif ($unit eq 'm')
-        {
-            use integer;
-            $month -= $amount;
-            $year += $month / 12;
-            $month = $month % 12;
-            return sprintf("%4d-%02d-01 00:00:00", $year+1900, $month+1);
-        }
-        elsif ($unit eq 'h')
+        my $dt = DateTime->now;
+        if ($unit eq 'h')
         {
             # Special case 0h for 'beginning of this hour'
             if ($amount == 0)
             {
-                $date -= $sec + 60*$min;
+                $dt->set(minute => 0, second => 0);
             }
             else
             {
-                $date -= 3600*$amount;
+                $dt->subtract(hours => $amount);
             }
-            return time2str("%Y-%m-%d %H:%M:%S", $date);
+            return $dt->ymd . ' ' . $dt->hms;
         }
-        # should not happen due to regexp at top
-        return undef;
+        else
+        {
+            $unit = { d => 'days', y => 'years', w => 'weeks', 'm' => 'months' }->{$unit};
+            $dt->subtract($unit => $amount);
+            return $dt->ymd . ' 00:00:00';
+        }
     }
     my $date = str2time($str);
     if (!defined($date))
@@ -2231,7 +2211,7 @@ sub _timestamp_compare
     my $self = shift;
     my $dbh = Bugzilla->dbh;
     $self->{fieldsql} = 'bugs.'.$self->{field};
-    if ($self->{value} =~ /^[+-]?\d+[dwmy]$/is)
+    if ($self->{value} =~ /^[+-]?\d+[dhwmy]$/is)
     {
         $self->{value} = SqlifyDate($self->{value});
         $self->{quoted} = $dbh->quote($self->{value});
