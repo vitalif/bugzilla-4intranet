@@ -467,6 +467,10 @@ sub enter {
       grep { $_->is_requestable && $_->is_requesteeble } @$flag_types;
     $vars->{'token'} = issue_session_token('create_attachment:');
 
+    my $comment = $cgi->param('comment');
+    $comment = '' unless defined $comment;
+    $vars->{'commenttext'} = $comment;
+
     # Generate and return the UI (HTML page) from the appropriate template.
     $template->process("attachment/create.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
