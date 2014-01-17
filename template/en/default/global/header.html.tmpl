@@ -319,7 +319,7 @@
 
 [% IF Param('new_functionality_msg') && Param('new_functionality_tsp') && user.read_new_functionality %]
 <div id="new_functionality">
-    <div><a href="javascript:void(0)" onclick="return readNewFunctionality();">Close</a></div>
+    <div class="close-link"><a href="javascript:void(0)" onclick="return readNewFunctionality();" title="Mark news as read">Close</a></div>
     <div>[% Param('new_functionality_msg') FILTER none %]</div>
 </div>
 [% END %]

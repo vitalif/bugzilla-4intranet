@@ -589,3 +589,14 @@ fieldset.chart._neg { background-image: url(../../images/neg.gif); }
 .hintActiveItem .hintEmail {
     color: #c0c0c0;
 }
+
+/* New Functionality */
+#new_functionality {
+    margin: 1em;
+    border: 1px dashed #3A3;
+    padding: 0.5em 1em;
+}
+#new_functionality .close-link {
+    float: right;
+    margin: 0 0 1em 1em;
+}
