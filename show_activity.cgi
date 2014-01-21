@@ -70,8 +70,16 @@ for (my $i = 0; $i < scalar @$operations; $i++)
         if ($change->{fieldname} eq 'longdesc' || $field->{type} eq FIELD_TYPE_TEXTAREA)
         {
             my $diff = new Bugzilla::Diff($change->{removed}, $change->{added})->get_table;
-            $operations->[$i]->{changes}->[$j]->{lines} = $diff;
-            $lines += scalar @$diff;
+            if (!@$diff)
+            {
+                splice @{$operations->[$i]->{changes}}, $j, 1;
+                $j--;
+            }
+            else
+            {
+                $operations->[$i]->{changes}->[$j]->{lines} = $diff;
+                $lines += scalar @$diff;
+            }
         }
         else
         {
