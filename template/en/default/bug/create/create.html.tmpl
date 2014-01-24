@@ -33,7 +33,7 @@
   quicksearch_tabindex = 30
   style_urls = [ 'skins/standard/create_attachment.css', 'skins/standard/calendar.css' ]
   javascript_urls = [
-    "js/attachment.js", "js/field.js", "js/calendar.js",
+    "js/attachment.js", "js/bug.js", "js/field.js", "js/calendar.js",
     "js/TUI.js", "js/bug-visibility.js", "fieldvaluecontrol.cgi?type=bug&user=${Bugzilla.user.id}"
   ]
   onload = 'set_assign_to();document.getElementById(\'short_desc\').focus();'
@@ -659,12 +659,69 @@ function checkWorktime(inp)
       </script>
         <fieldset>
           <legend>Add an attachment</legend>
+          <a href="javascript:void(0)" onclick="toggle_multy_attach(this)" id="single-attach" class="single-attach">Single attach</a>
           <table class="attachment_entry">
             [% PROCESS attachment/createformcontents.html.tmpl
                        flag_types = product.flag_types.attachment
                        any_flags_requesteeble = 1
-                       flag_table_id ="attachment_flags" %]
+                       flag_table_id ="attachment_flags"
+                       attach_multi = "show_attach_multi(this);"  %]
           </table>
+          <hr/>
+          <a href="javascript:void(0)" onclick="toggle_multy_attach(this)" id="multi-attach" class="multi-attach">Multiple files</a>
+            <script type="text/javascript">
+            <!--
+            function toggle_multy_attach(obj)
+            {
+                var table, div;
+                div = document.getElementById('att_multiple');
+                var els = obj.parentElement.children;
+                for(var i = 0; i < els.length; i++)
+                {
+                    if (els[i].className.match(/attachment_entry/))
+                    {
+                        table = els[i];
+                        break;
+                    }
+                }
+                if (obj.className.match(/multi-attach/))
+                {
+                    table.style.display = 'none';
+                    div.style.display   = '';
+                    var input = table.getElementsByTagName( 'input' );
+                    for ( var z = 0; z < input.length; z++ )
+                    {
+                        input[z].value = '';
+                    }
+                }
+                else
+                {
+                    table.style.display = '';
+                    div.style.display   = 'none';
+                    var files = document.getElementById('files').children;
+                    for ( var z = 0; z < files.length; z++ )
+                    {
+                        if (files[z].id == 'file0')
+                        {
+                            continue;
+                        }
+                        files[z].parentElement.removeChild(files[z]);
+                        z--;
+                    }
+                    var input = div.getElementsByTagName( 'input' );
+                    for ( var z = 0; z < input.length; z++ )
+                    {
+                        input[z].value = '';
+                    }
+                }
+            }
+            iframeajax('page.cgi?id=attach-multiple.html', {});
+            setTimeout( function(){
+                toggle_multy_attach(document.getElementById('single-attach'));
+            }, 500);
+            //-->
+            </script>
+            <div id="att_multiple" style="display: none"></div>
         </fieldset>
       <script type="text/javascript">
         <!--

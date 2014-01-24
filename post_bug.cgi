@@ -197,7 +197,24 @@ if (defined $cgi->param('version') && length $cgi->param('version'))
 # after the bug is filed.
 
 # Add an attachment if requested.
-if (defined($cgi->upload('data')) || $cgi->param('attachurl') ||
+my $is_multiple = 0;
+for (keys $cgi->Vars)
+{
+    if (/^attachmulti_(.*)_([^_]*)$/so)
+    {
+        if ($1 eq 'data' && $cgi->upload($_))
+        {
+            $is_multiple = 1;
+        }
+    }
+}
+
+if ($is_multiple)
+{
+    my $send_attrs = {};
+    Bugzilla::Attachment::add_multiple($bug, $cgi, $send_attrs);
+}
+elsif (defined($cgi->upload('data')) || $cgi->param('attachurl') ||
     $cgi->param('text_attachment') || $cgi->param('base64_content'))
 {
     $cgi->param('isprivate', $cgi->param('commentprivacy'));
