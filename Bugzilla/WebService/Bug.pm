@@ -17,7 +17,7 @@ use Bugzilla::Constants;
 use Bugzilla::Error;
 use Bugzilla::Field;
 use Bugzilla::WebService::Constants;
-use Bugzilla::WebService::Util qw(filter filter_wants validate);
+use Bugzilla::WebService::Util qw(filter filter_wants validate translate);
 use Bugzilla::Bug;
 use Bugzilla::BugMail;
 use Bugzilla::Util qw(trick_taint trim diff_arrays);
@@ -25,6 +25,12 @@ use Bugzilla::Version;
 use Bugzilla::Milestone;
 use Bugzilla::Status;
 use Bugzilla::Token qw(issue_hash_token);
+use Bugzilla::Search;
+use Bugzilla::Search::Quicksearch;
+
+use List::Util qw(max);
+use List::MoreUtils qw(uniq);
+use Storable qw(dclone);
 
 #############
 # Constants #
@@ -50,6 +56,20 @@ use constant READ_ONLY => qw(
     legal_values
     search
 );
+
+use constant ATTACHMENT_MAPPED_SETTERS => {
+    file_name => 'filename',
+    summary   => 'description',
+};
+
+use constant ATTACHMENT_MAPPED_RETURNS => {
+    description => 'summary',
+    ispatch     => 'is_patch',
+    isprivate   => 'is_private',
+    isobsolete  => 'is_obsolete',
+    filename    => 'file_name',
+    mimetype    => 'content_type',
+};
 
 ######################################################
 # Add aliases here for old method name compatibility #
@@ -324,6 +344,12 @@ sub get {
 
     my @bugs;
     my @faults;
+
+    # Cache permissions for bugs. This highly reduces the number of calls to the DB.
+    # visible_bugs() is only able to handle bug IDs, so we have to skip aliases.
+    my @int = grep { $_ =~ /^\d+$/ } @$ids;
+    Bugzilla->user->visible_bugs(\@int);
+
     foreach my $bug_id (@$ids) {
         my $bug;
         if ($params->{permissive}) {
@@ -342,6 +368,18 @@ sub get {
             $bug = Bugzilla::Bug->check($bug_id);
         }
         push(@bugs, $self->_bug_to_hash($bug, $params));
+    }
+
+    # Set the ETag before inserting the update tokens
+    # since the tokens will always be unique even if
+    # the data has not changed.
+    $self->bz_etag(\@bugs);
+
+    if (Bugzilla->user->id) {
+        foreach my $bug (@bugs) {
+            my $token = issue_hash_token([$bug->{'id'}, $bug->{'last_change_time'}]);
+            $bug->{'update_token'} = $self->type('string', $token);
+        }
     }
 
     return { bugs => \@bugs, faults => \@faults };
@@ -407,52 +445,106 @@ sub history {
 
 sub search {
     my ($self, $params) = @_;
-   
+    my $user = Bugzilla->user;
+    my $dbh  = Bugzilla->dbh;
+
     Bugzilla->switch_to_shadow_db();
 
-    if ( defined($params->{offset}) and !defined($params->{limit}) ) {
-        ThrowCodeError('param_required', 
+    my $match_params = dclone($params);
+    delete $match_params->{include_fields};
+    delete $match_params->{exclude_fields};
+
+    # Determine whether this is a quicksearch query
+    if (exists $match_params->{quicksearch}) {
+        my $quicksearch = quicksearch($match_params->{'quicksearch'});
+        my $cgi = Bugzilla::CGI->new($quicksearch);
+        $match_params = $cgi->Vars;
+    }
+
+    if ( defined($match_params->{offset}) and !defined($match_params->{limit}) ) {
+        ThrowCodeError('param_required',
                        { param => 'limit', function => 'Bug.search()' });
     }
-    
-    $params = Bugzilla::Bug::map_fields($params);
-    delete $params->{WHERE};
 
-    unless (Bugzilla->user->is_timetracker) {
-        delete $params->{$_} foreach TIMETRACKING_FIELDS;
+    my $max_results = Bugzilla->params->{max_search_results};
+    unless (defined $match_params->{limit} && $match_params->{limit} == 0) {
+        if (!defined $match_params->{limit} || $match_params->{limit} > $max_results) {
+            $match_params->{limit} = $max_results;
+        }
     }
+    else {
+        delete $match_params->{limit};
+        delete $match_params->{offset};
+    }
+
+    $match_params = Bugzilla::Bug::map_fields($match_params);
+
+    my %options = ( fields => ['bug_id'] );
+
+    # Find the highest custom field id
+    my @field_ids = grep(/^f(\d+)$/, keys %$match_params);
+    my $last_field_id = @field_ids ? max @field_ids + 1 : 1;
 
     # Do special search types for certain fields.
-    if ( my $bug_when = delete $params->{delta_ts} ) {
-        $params->{WHERE}->{'delta_ts >= ?'} = $bug_when;
+    if (my $change_when = delete $match_params->{'delta_ts'}) {
+        $match_params->{"f${last_field_id}"} = 'delta_ts';
+        $match_params->{"o${last_field_id}"} = 'greaterthaneq';
+        $match_params->{"v${last_field_id}"} = $change_when;
+        $last_field_id++;
     }
-    if (my $when = delete $params->{creation_ts}) {
-        $params->{WHERE}->{'creation_ts >= ?'} = $when;
+    if (my $creation_when = delete $match_params->{'creation_ts'}) {
+        $match_params->{"f${last_field_id}"} = 'creation_ts';
+        $match_params->{"o${last_field_id}"} = 'greaterthaneq';
+        $match_params->{"v${last_field_id}"} = $creation_when;
+        $last_field_id++;
     }
-    if (my $summary = delete $params->{short_desc}) {
-        my @strings = ref $summary ? @$summary : ($summary);
-        my @likes = ("short_desc LIKE ?") x @strings;
-        my $clause = join(' OR ', @likes);
-        $params->{WHERE}->{"($clause)"} = [map { "\%$_\%" } @strings];
-    }
-    if (my $whiteboard = delete $params->{status_whiteboard}) {
-        my @strings = ref $whiteboard ? @$whiteboard : ($whiteboard);
-        my @likes = ("status_whiteboard LIKE ?") x @strings;
-        my $clause = join(' OR ', @likes);
-        $params->{WHERE}->{"($clause)"} = [map { "\%$_\%" } @strings];
-    }
-   
-    # We want include_fields and exclude_fields to be passed to
-    # _bug_to_hash but not to Bugzilla::Bug->match so we copy the 
-    # params and delete those before passing to Bugzilla::Bug->match.
-    my %match_params = %{ $params };
-    delete $match_params{'include_fields'};
-    delete $match_params{'exclude_fields'};
 
-    my $bugs = Bugzilla::Bug->match(\%match_params);
-    my $visible = Bugzilla->user->visible_bugs($bugs);
-    my @hashes = map { $self->_bug_to_hash($_, $params) } @$visible;
-    return { bugs => \@hashes };
+    # Some fields require a search type such as short desc, keywords, etc.
+    foreach my $param (qw(short_desc longdesc status_whiteboard bug_file_loc)) {
+        if (defined $match_params->{$param} && !defined $match_params->{$param . '_type'}) {
+            $match_params->{$param . '_type'} = 'allwordssubstr';
+        }
+    }
+    if (defined $match_params->{'keywords'} && !defined $match_params->{'keywords_type'}) {
+        $match_params->{'keywords_type'} = 'allwords';
+    }
+
+    # Backwards compatibility with old method regarding role search
+    $match_params->{'reporter'} = delete $match_params->{'creator'} if $match_params->{'creator'};
+    foreach my $role (qw(assigned_to reporter qa_contact longdesc cc)) {
+        next if !exists $match_params->{$role};
+        my $value = delete $match_params->{$role};
+        $match_params->{"f${last_field_id}"} = $role;
+        $match_params->{"o${last_field_id}"} = "anywordssubstr";
+        $match_params->{"v${last_field_id}"} = ref $value ? join(" ", @{$value}) : $value;
+        $last_field_id++;
+    }
+
+    # If no other parameters have been passed other than limit and offset
+    # then we throw error if system is configured to do so.
+    if (!grep(!/^(limit|offset)$/, keys %$match_params)
+        && !Bugzilla->params->{search_allow_no_criteria})
+    {
+        ThrowUserError('buglist_parameters_required');
+    }
+
+    $options{order}  = [ split(/\s*,\s*/, delete $match_params->{order}) ] if $match_params->{order};
+    $options{params} = $match_params;
+
+    my $search = new Bugzilla::Search(%options);
+    my ($data) = $search->data;
+
+    if (!scalar @$data) {
+        return { bugs => [] };
+    }
+
+    # Search.pm won't return bugs that the user shouldn't see so no filtering is needed.
+    my @bug_ids = map { $_->[0] } @$data;
+    my %bug_objects = map { $_->id => $_ } @{ Bugzilla::Bug->new_from_list(\@bug_ids) };
+    my @bugs = map { $bug_objects{$_} } @bug_ids;
+    @bugs = map { $self->_bug_to_hash($_, $params) } @bugs;
+
+    return { bugs => \@bugs };
 }
 
 sub possible_duplicates {
@@ -667,6 +759,86 @@ sub add_attachment {
     return { ids => \@created_ids };
 }
 
+sub update_attachment {
+    my ($self, $params) = validate(@_, 'ids');
+
+    my $user = Bugzilla->login(LOGIN_REQUIRED);
+    my $dbh = Bugzilla->dbh;
+
+    my $ids = delete $params->{ids};
+    defined $ids || ThrowCodeError('param_required', { param => 'ids' });
+
+    # Some fields cannot be sent to set_all
+    foreach my $key (qw(login password token)) {
+        delete $params->{$key};
+    }
+
+    # We can't update flags, and summary is really description
+    delete $params->{flags};
+
+    $params = translate($params, ATTACHMENT_MAPPED_SETTERS);
+
+    # Get all the attachments, after verifying that they exist and are editable
+    my @attachments = ();
+    my %bugs = ();
+    foreach my $id (@$ids) {
+        my $attachment = Bugzilla::Attachment->new($id)
+          || ThrowUserError("invalid_attach_id", { attach_id => $id });
+        my $bug = $attachment->bug;
+        $attachment->_check_bug;
+        $attachment->validate_can_edit($bug->product_id)
+          || ThrowUserError("illegal_attachment_edit", { attach_id => $id });
+
+        push @attachments, $attachment;
+        $bugs{$bug->id} = $bug;
+    }
+
+    # Update the values
+    foreach my $attachment (@attachments) {
+        $attachment->set_all($params);
+    }
+
+    $dbh->bz_start_transaction();
+
+    # Do the actual update and get information to return to user
+    my @result;
+    foreach my $attachment (@attachments) {
+        my $changes = $attachment->update();
+
+        $changes = translate($changes, ATTACHMENT_MAPPED_RETURNS);
+
+        my %hash = (
+            id               => $self->type('int', $attachment->id),
+            last_change_time => $self->type('dateTime', $attachment->modification_time),
+            changes          => {},
+        );
+
+        foreach my $field (keys %$changes) {
+            my $change = $changes->{$field};
+
+            # We normalize undef to an empty string, so that the API
+            # stays consistent for things like Deadline that can become
+            # empty.
+            $hash{changes}->{$field} = {
+                removed => $self->type('string', $change->[0] // ''),
+                added   => $self->type('string', $change->[1] // '')
+            };
+        }
+
+        push(@result, \%hash);
+    }
+
+    $dbh->bz_commit_transaction();
+
+    # Email users about the change
+    foreach my $bug (values %bugs) {
+        Bugzilla::BugMail::Send($bug->id, { 'changer' => $user });
+    }
+
+    # Return the information to the user
+    return { attachments => \@result };
+}
+
 sub add_comment {
     my ($self, $params) = @_;
 
@@ -848,8 +1020,6 @@ sub _bug_to_hash {
     # database call to get the info.
     my %item = (
         alias            => $self->type('string', $bug->alias),
-        classification   => $self->type('string', $bug->classification),
-        component        => $self->type('string', $bug->component),
         creation_time    => $self->type('dateTime', $bug->creation_ts),
         # No need to format $bug->deadline specially, because Bugzilla::Bug
         # already does it for us.
@@ -860,7 +1030,6 @@ sub _bug_to_hash {
         op_sys           => $self->type('string', $bug->op_sys),
         platform         => $self->type('string', $bug->rep_platform),
         priority         => $self->type('string', $bug->priority),
-        product          => $self->type('string', $bug->product),
         resolution       => $self->type('string', $bug->resolution),
         severity         => $self->type('string', $bug->bug_severity),
         status           => $self->type('string', $bug->bug_status),
@@ -881,6 +1050,12 @@ sub _bug_to_hash {
     if (filter_wants $params, 'blocks') {
         my @blocks = map { $self->type('int', $_) } @{ $bug->blocked };
         $item{'blocks'} = \@blocks;
+    }
+    if (filter_wants $params, 'classification') {
+        $item{classification} = $self->type('string', $bug->classification);
+    }
+    if (filter_wants $params, 'component') {
+        $item{component} = $self->type('string', $bug->component);
     }
     if (filter_wants $params, 'cc') {
         my @cc = map { $self->type('email', $_) } @{ $bug->cc };
@@ -909,6 +1084,9 @@ sub _bug_to_hash {
                        @{ $bug->keyword_objects };
         $item{'keywords'} = \@keywords;
     }
+    if (filter_wants $params, 'product') {
+        $item{product} = $self->type('string', $bug->product);
+    }
     if (filter_wants $params, 'qa_contact') {
         my $qa_login = $bug->qa_contact ? $bug->qa_contact->login : '';
         $item{'qa_contact'} = $self->type('email', $qa_login);
@@ -930,7 +1108,9 @@ sub _bug_to_hash {
         if ($field->type == FIELD_TYPE_BUG_ID) {
             $item{$name} = $self->type('int', $bug->$name);
         }
-        elsif ($field->type == FIELD_TYPE_DATETIME) {
+        elsif ($field->type == FIELD_TYPE_DATETIME
+               || $field->type == FIELD_TYPE_DATE)
+        {
             $item{$name} = $self->type('dateTime', $bug->$name);
         }
         elsif ($field->type == FIELD_TYPE_MULTI_SELECT) {
@@ -946,12 +1126,10 @@ sub _bug_to_hash {
     if (Bugzilla->user->is_timetracker) {
         $item{'estimated_time'} = $self->type('double', $bug->estimated_time);
         $item{'remaining_time'} = $self->type('double', $bug->remaining_time);
-        $item{'actual_time'} = $self->type('double', $bug->actual_time);
-    }
 
-    if (Bugzilla->user->id) {
-        my $token = issue_hash_token([$bug->id, $bug->delta_ts]);
-        $item{'update_token'} = $self->type('string', $token);
+        if (filter_wants $params, 'actual_time') {
+            $item{'actual_time'} = $self->type('double', $bug->actual_time);
+        }
     }
 
     # The "accessible" bits go here because they have long names and it
@@ -1044,6 +1222,10 @@ or get information about bugs that have already been filed.
 See L<Bugzilla::WebService> for a description of how parameters are passed,
 and what B<STABLE>, B<UNSTABLE>, and B<EXPERIMENTAL> mean.
 
+Although the data input and output is the same for JSONRPC, XMLRPC and REST,
+the directions for how to access the data via REST is noted in each method
+where applicable.
+
 =head1 Utility Functions
 
 =head2 fields
@@ -1057,11 +1239,26 @@ B<UNSTABLE>
 Get information about valid bug fields, including the lists of legal values
 for each field.
 
+=item B<REST>
+
+You have several options for retreiving information about fields. The first
+part is the request method and the rest is the related path needed.
+
+To get information about all fields:
+
+GET /field/bug
+
+To get information related to a single field:
+
+GET /field/bug/<id_or_name>
+
+The returned data format is the same as below.
+
 =item B<Params>
 
 You can pass either field ids or field names.
 
-B<Note>: If neither C<ids> nor C<names> is specified, then all 
+B<Note>: If neither C<ids> nor C<names> is specified, then all
 non-obsolete fields will be returned.
 
 In addition to the parameters below, this method also accepts the
@@ -1257,6 +1454,8 @@ You specified an invalid field name or id.
 
 =item C<is_active> return key for C<values> was added in Bugzilla B<4.4>.
 
+=item REST API call added in Bugzilla B<5.0>
+
 =back
 
 =back
@@ -1271,6 +1470,18 @@ B<DEPRECATED> - Use L</fields> instead.
 =item B<Description>
 
 Tells you what values are allowed for a particular field.
+
+=item B<REST>
+
+To get information on the values for a field based on field name:
+
+GET /field/bug/<field_name>/values
+
+To get information based on field name and a specific product:
+
+GET /field/bug/<field_name>/<product_id>/values
+
+The returned data format is the same as below.
 
 =item B<Params>
 
@@ -1304,6 +1515,14 @@ You specified a field that doesn't exist or isn't a drop-down field.
 
 =back
 
+=item B<History>
+
+=over
+
+=item REST API call added in Bugzilla B<5.0>.
+
+=back
+
 =back
 
 =head1 Bug Information
@@ -1321,6 +1540,18 @@ and/or attachment ids.
 
 B<Note>: Private attachments will only be returned if you are in the 
 insidergroup or if you are the submitter of the attachment.
+
+=item B<REST>
+
+To get all current attachments for a bug:
+
+GET /bug/<bug_id>/attachment
+
+To get a specific attachment based on attachment ID:
+
+GET /bug/attachment/<attachment_id>
+
+The returned data format is the same as below.
 
 =item B<Params>
 
@@ -1519,6 +1750,8 @@ C<summary>.
 
 =item The C<flags> array was added in Bugzilla B<4.4>.
 
+=item REST API call added in Bugzilla B<5.0>.
+
 =back
 
 =back
@@ -1534,6 +1767,18 @@ B<STABLE>
 
 This allows you to get data about comments, given a list of bugs 
 and/or comment ids.
+
+=item B<REST>
+
+To get all comments for a particular bug using the bug ID or alias:
+
+GET /bug/<id_or_alias>/comment
+
+To get a specific comment based on the comment ID:
+
+GET /bug/comment/<comment_id>
+
+The returned data format is the same as below.
 
 =item B<Params>
 
@@ -1680,6 +1925,8 @@ C<creator>.
 
 =item C<creation_time> was added in Bugzilla B<4.4>.
 
+=item REST API call added in Bugzilla B<5.0>.
+
 =back
 
 =back
@@ -1696,6 +1943,14 @@ B<STABLE>
 Gets information about particular bugs in the database.
 
 Note: Can also be called as "get_bugs" for compatibilty with Bugzilla 3.0 API.
+
+=item B<REST>
+
+To get information about a particular bug using its ID or alias:
+
+GET /bug/<id_or_alias>
+
+The returned data format is the same as below.
 
 =item B<Params>
 
@@ -2024,7 +2279,7 @@ You do not have access to the bug_id you specified.
 
 =over
 
-=item C<permissive> argument added to this method's params in Bugzilla B<3.4>. 
+=item C<permissive> argument added to this method's params in Bugzilla B<3.4>.
 
 =item The following properties were added to this method's return values
 in Bugzilla B<3.4>:
@@ -2072,6 +2327,8 @@ and all custom fields.
 =item The C<actual_time> item was added to the C<bugs> return value
 in Bugzilla B<4.4>.
 
+=item REST API call added in Bugzilla B<5.0>.
+
 =back
 
 =back
@@ -2085,6 +2342,14 @@ B<EXPERIMENTAL>
 =item B<Description>
 
 Gets the history of changes for particular bugs in the database.
+
+=item B<REST>
+
+To get the history for a specific bug ID:
+
+GET /bug/<bug_id>/history
+
+The returned data format will be the same as below.
 
 =item B<Params>
 
@@ -2177,10 +2442,65 @@ The same as L</get>.
 consistent with other methods. Since Bugzilla B<4.4>, they now match
 names used by L<Bug.update|/"update"> for consistency.
 
-=back
+=item REST API call added Bugzilla B<5.0>.
 
 =back
 
+=back
+
+=head2 possible_duplicates
+
+B<UNSTABLE>
+
+=over
+
+=item B<Description>
+
+Allows a user to find possible duplicate bugs based on a set of keywords
+such as a user may use as a bug summary. Optionally the search can be
+narrowed down to specific products.
+
+=item B<Params>
+
+=over
+
+=item C<summary> (string) B<Required> - A string of keywords defining
+the type of bug you are trying to report.
+
+=item C<products> (array) - One or more product names to narrow the
+duplicate search to. If omitted, all bugs are searched.
+
+=back
+
+=item B<Returns>
+
+The same as L</get>.
+
+Note that you will only be returned information about bugs that you
+can see. Bugs that you can't see will be entirely excluded from the
+results. So, if you want to see private bugs, you will have to first 
+log in and I<then> call this method.
+
+=item B<Errors>
+
+=over
+
+=item 50 (Param Required)
+
+You must specify a value for C<summary> containing a string of keywords to 
+search for duplicates.
+
+=back
+
+=item B<History>
+
+=over
+
+=item Added in Bugzilla B<4.0>.
+
+=back
+
+=back
 
 =head2 search
 
@@ -2191,6 +2511,14 @@ B<UNSTABLE>
 =item B<Description>
 
 Allows you to search for bugs based on particular criteria.
+
+=item <REST>
+
+To search for bugs:
+
+GET /bug
+
+The URL parameters and the returned data format are the same as below.
 
 =item B<Params>
 
@@ -2212,9 +2540,18 @@ the "Foo" or "Bar" products, you'd pass:
  product => ['Foo', 'Bar']
 
 Some Bugzillas may treat your arguments case-sensitively, depending
-on what database system they are using. Most commonly, though, Bugzilla is 
-not case-sensitive with the arguments passed (because MySQL is the 
+on what database system they are using. Most commonly, though, Bugzilla is
+not case-sensitive with the arguments passed (because MySQL is the
 most-common database to use with Bugzilla, and MySQL is not case sensitive).
+
+In addition to the fields listed below, you may also use criteria that
+is similar to what is used in the Advanced Search screen of the Bugzilla
+UI. This includes fields specified by C<Search by Change History> and
+C<Custom Search>. The easiest way to determine what the field names are and what
+format Bugzilla expects, is to first construct your query using the
+Advanced Search UI, execute it and use the query parameters in they URL
+as your key/value pairs for the WebService call. With REST, you can
+just reuse the query parameter portion in the REST call itself.
 
 =over
 
@@ -2256,13 +2593,16 @@ May not be an array.
 
 =item C<limit>
 
-C<int> Limit the number of results returned to C<int> records.
+C<int> Limit the number of results returned to C<int> records. If the limit
+is more than zero and higher than the maximum limit set by the administrator,
+then the maximum limit will be used instead. If you set the limit equal to zero,
+then all matching results will be returned instead.
 
 =item C<offset>
 
-C<int> Used in conjunction with the C<limit> argument, C<offset> defines 
-the starting position for the search. For example, given a search that 
-would return 100 bugs, setting C<limit> to 10 and C<offset> to 10 would return 
+C<int> Used in conjunction with the C<limit> argument, C<offset> defines
+the starting position for the search. For example, given a search that
+would return 100 bugs, setting C<limit> to 10 and C<offset> to 10 would return
 bugs 11 through 20 from the set of 100.
 
 =item C<op_sys>
@@ -2335,6 +2675,10 @@ C<string> Search the "Status Whiteboard" field on bugs for a substring.
 Works the same as the C<summary> field described above, but searches the
 Status Whiteboard field.
 
+=item C<quicksearch>
+
+C<string> Search for bugs using quicksearch syntax.
+
 =back
 
 =item B<Returns>
@@ -2348,10 +2692,16 @@ log in and I<then> call this method.
 
 =item B<Errors>
 
-Currently, this function doesn't throw any special errors (other than
-the ones that all webservice functions can throw). If you specify
-an invalid value for a particular field, you just won't get any results
-for that value.
+If you specify an invalid value for a particular field, you just won't
+get any results for that value.
+
+=over
+
+=item 1000 (Parameters Required)
+
+You may not search without any search terms.
+
+=back
 
 =item B<History>
 
@@ -2363,6 +2713,17 @@ for that value.
 
 =item The C<reporter> input parameter was renamed to C<creator>
 in Bugzilla B<4.0>.
+
+=item In B<4.2.6> and newer, added the ability to return all results if
+C<limit> is set equal to zero. Otherwise maximum results returned are limited
+by system configuration.
+
+=item REST API call added in Bugzilla B<5.0>.
+
+=item Updated to allow for full search capability similar to the Bugzilla UI
+in Bugzilla B<5.0>.
+
+=item Updated to allow quicksearch capability in Bugzilla B<5.0>.
 
 =back
 
@@ -2390,10 +2751,19 @@ The WebService interface may allow you to set things other than those listed
 here, but realize that anything undocumented is B<UNSTABLE> and will very
 likely change in the future.
 
+=item B<REST>
+
+To create a new bug in Bugzilla:
+
+POST /bug
+
+The params to include in the POST body as well as the returned data format,
+are the same as below.
+
 =item B<Params>
 
 Some params must be set, or an error will be thrown. These params are
-marked B<Required>. 
+marked B<Required>.
 
 Some parameters can have defaults set in Bugzilla, by the administrator.
 If these parameters have defaults set, you can omit them. These parameters
@@ -2554,6 +2924,8 @@ loop errors had a generic code of C<32000>.
 =item The ability to file new bugs with a C<resolution> was added in
 Bugzilla B<4.4>.
 
+=item REST API call added in Bugzilla B<5.0>.
+
 =back
 
 =back
@@ -2568,6 +2940,16 @@ B<STABLE>
 =item B<Description>
 
 This allows you to add an attachment to a bug in Bugzilla.
+
+=item B<REST>
+
+To create attachment on a current bug:
+
+POST /bug/<bug_id>/attachment
+
+The params to include in the POST body, as well as the returned
+data format are the same as below. The C<ids> param will be
+overridden as it it pulled from the URL path.
 
 =item B<Params>
 
@@ -2666,6 +3048,158 @@ You set the "data" field to an empty string.
 
 =item The return value has changed in Bugzilla B<4.4>.
 
+=item REST API call added in Bugzilla B<5.0>.
+
+=back
+
+=back
+
+
+=head2 update_attachment
+
+B<UNSTABLE>
+
+=over
+
+=item B<Description>
+
+This allows you to update attachment metadata in Bugzilla.
+
+=item B<REST>
+
+To update attachment metadata on a current attachment:
+
+PUT /bug/attachment/<attach_id>
+
+The params to include in the POST body, as well as the returned
+data format are the same as below. The C<ids> param will be
+overridden as it it pulled from the URL path.
+
+=item B<Params>
+
+=over
+
+=item C<ids>
+
+B<Required> C<array> An array of integers -- the ids of the attachments you
+want to update.
+
+=item C<file_name>
+
+C<string> The "file name" that will be displayed
+in the UI for this attachment.
+
+=item C<summary>
+
+C<string> A short string describing the
+attachment.
+
+=item C<content_type>
+
+C<string> The MIME type of the attachment, like
+C<text/plain> or C<image/png>.
+
+=item C<is_patch>
+
+C<boolean> True if Bugzilla should treat this attachment as a patch.
+If you specify this, you do not need to specify a C<content_type>.
+The C<content_type> of the attachment will be forced to C<text/plain>.
+
+=item C<is_private>
+
+C<boolean> True if the attachment should be private (restricted
+to the "insidergroup"), False if the attachment should be public.
+
+=item C<is_obsolete>
+
+C<boolean> True if the attachment is obsolete, False otherwise.
+
+=back
+
+=item B<Returns>
+
+A C<hash> with a single field, "attachment". This points to an array of hashes
+with the following fields:
+
+=over
+
+=item C<id>
+
+C<int> The id of the attachment that was updated.
+
+=item C<last_change_time>
+
+C<dateTime> The exact time that this update was done at, for this attachment.
+If no update was done (that is, no fields had their values changed and
+no comment was added) then this will instead be the last time the attachment
+was updated.
+
+=item C<changes>
+
+C<hash> The changes that were actually done on this bug. The keys are
+the names of the fields that were changed, and the values are a hash
+with two keys:
+
+=over
+
+=item C<added> (C<string>) The values that were added to this field.
+possibly a comma-and-space-separated list if multiple values were added.
+
+=item C<removed> (C<string>) The values that were removed from this
+field.
+
+=back
+
+=back
+
+Here's an example of what a return value might look like:
+
+ {
+   attachments => [
+     {
+       id    => 123,
+       last_change_time => '2010-01-01T12:34:56',
+       changes => {
+         summary => {
+           removed => 'Sample ptach',
+           added   => 'Sample patch'
+         },
+         is_obsolete => {
+           removed => '0',
+           added   => '1',
+         }
+       },
+     }
+   ]
+ }
+
+=item B<Errors>
+
+This method can throw all the same errors as L</get>, plus:
+
+=over
+
+=item 601 (Invalid MIME Type)
+
+You specified a C<content_type> argument that was blank, not a valid
+MIME type, or not a MIME type that Bugzilla accepts for attachments.
+
+=item 603 (File Name Not Specified)
+
+You did not specify a valid for the C<file_name> argument.
+
+=item 604 (Summary Required)
+
+You did not specify a value for the C<summary> argument.
+
+=back
+
+=item B<History>
+
+=over
+
+=item Added in Bugzilla B<5.0>.
+
 =back
 
 =back
@@ -2680,6 +3214,15 @@ B<STABLE>
 =item B<Description>
 
 This allows you to add a comment to a bug in Bugzilla.
+
+=item B<REST>
+
+To create a comment on a current bug:
+
+POST /bug/<bug_id>/comment
+
+The params to include in the POST body as well as the returned data format,
+are the same as below.
 
 =item B<Params>
 
@@ -2756,6 +3299,8 @@ purposes if you wish.
 =item Before Bugzilla B<3.6>, error 54 and error 114 had a generic error
 code of 32000.
 
+=item REST API call added in Bugzilla B<5.0>.
+
 =back
 
 =back
@@ -2771,6 +3316,16 @@ B<UNSTABLE>
 
 Allows you to update the fields of a bug. Automatically sends emails
 out about the changes.
+
+=item B<REST>
+
+To update the fields of a current bug:
+
+PUT /bug/<bug_id>
+
+The params to include in the PUT body as well as the returned data format,
+are the same as below. The C<ids> param will be overridden as it is
+pulled from the URL path.
 
 =item B<Params>
 
@@ -3216,6 +3771,8 @@ rules don't allow that change.
 
 =item Added in Bugzilla B<4.0>.
 
+=item REST API call added Bugzilla B<5.0>.
+
 =back
 
 =back
@@ -3402,8 +3959,6 @@ This method can throw the same errors as L</get>.
 =over
 
 =item get_bugs
-
-=item possible_duplicates
 
 =item get_history
 

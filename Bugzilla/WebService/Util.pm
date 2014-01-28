@@ -23,6 +23,7 @@ our @EXPORT_OK = qw(
     validate
     translate
     params_to_objects
+    fix_credentials
 );
 
 sub filter ($$;$) {
@@ -38,19 +39,38 @@ sub filter ($$;$) {
 
 sub filter_wants ($$;$) {
     my ($params, $field, $prefix) = @_;
+
+    # Since this is operation is resource intensive, we will cache the results
+    # This assumes that $params->{*_fields} doesn't change between calls
+    my $cache = Bugzilla->request_cache->{filter_wants} ||= {};
+    $field = "${prefix}.${field}" if $prefix;
+
+    if (exists $cache->{$field}) {
+        return $cache->{$field};
+    }
+
     my %include = map { $_ => 1 } @{ $params->{'include_fields'} || [] };
     my %exclude = map { $_ => 1 } @{ $params->{'exclude_fields'} || [] };
 
-    $field = "${prefix}.${field}" if $prefix;
-
-    if (defined $params->{include_fields}) {
-        return 0 if !$include{$field};
+    my $wants = 1;
+    if (defined $params->{exclude_fields} && $exclude{$field}) {
+        $wants = 0;
     }
-    if (defined $params->{exclude_fields}) {
-        return 0 if $exclude{$field};
+    elsif (defined $params->{include_fields} && !$include{$field}) {
+        if ($prefix) {
+            # Include the field if the parent is include (and this one is not excluded)
+            $wants = 0 if !$include{$prefix};
+        }
+        else {
+            # We want to include this if one of the sub keys is included
+            my $key = $field . '.';
+            my $len = length($key);
+            $wants = 0 if ! grep { substr($_, 0, $len) eq $key  } keys %include;
+        }
     }
 
-    return 1;
+    $cache->{$field} = $wants;
+    return $wants;
 }
 
 sub taint_data {
@@ -127,6 +147,22 @@ sub params_to_objects {
     return \@objects;
 }
 
+sub fix_credentials {
+    my ($params) = @_;
+    # Allow user to pass in login=foo&password=bar as a convenience
+    # even if not calling GET /login. We also do not delete them as
+    # GET /login requires "login" and "password".
+    if (exists $params->{'login'} && exists $params->{'password'}) {
+        $params->{'Bugzilla_login'}    = $params->{'login'};
+        $params->{'Bugzilla_password'} = $params->{'password'};
+    }
+    # Allow user to pass token=12345678 as a convenience which becomes
+    # "Bugzilla_token" which is what the auth code looks for.
+    if (exists $params->{'token'}) {
+        $params->{'Bugzilla_token'} = $params->{'token'};
+    }
+}
+
 __END__
 
 =head1 NAME
@@ -189,6 +225,12 @@ parameters passed to a WebService method (the first parameter to this function).
 Helps make life simpler for WebService methods that internally create objects
 via both "ids" and "names" fields. Also de-duplicates objects that were loaded
 by both "ids" and "names". Returns an arrayref of objects.
+
+=head2 fix_credentials
+
+Allows for certain parameters related to authentication such as Bugzilla_login,
+Bugzilla_password, and Bugzilla_token to have shorter named equivalents passed in.
+This function converts the shorter versions to their respective internal names.
 
 =head1 B<Methods in need of POD>
 

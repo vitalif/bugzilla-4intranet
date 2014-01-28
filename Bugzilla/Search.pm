@@ -983,6 +983,7 @@ sub init
             delete $H->{resolution};
         }
     }
+    $clause->add($join_clause);
 
     # All fields that don't have a . in their name should be specifyable
     # in the URL directly.
@@ -1575,7 +1576,8 @@ sub pronoun
     {
         return "bugs.qa_contact";
     }
-    return 0;
+
+    ThrowUserError('illegal_pronoun', { pronoun => $noun });
 }
 
 # BuildOrderBy - Private Subroutine
@@ -3372,4 +3374,141 @@ use overload '""' => sub
 };
 
 1;
+
 __END__
+
+=head1 NAME
+
+Bugzilla::Search - Provides methods to run queries against bugs.
+
+=head1 SYNOPSIS
+
+    use Bugzilla::Search;
+
+    my $search = new Bugzilla::Search({'fields' => \@fields,
+                                       'params' => \%search_criteria,
+                                       'sharer' => $sharer_id,
+                                       'user'   => $user_obj,
+                                       'allow_unlimited' => 1});
+
+    my $data = $search->data;
+    my ($data, $extra_data) = $search->data;
+
+=head1 DESCRIPTION
+
+Search.pm represents a search object. It's the single way to collect
+data about bugs in a secure way. The list of bugs matching criteria
+defined by the caller are filtered based on the user privileges.
+
+=head1 METHODS
+
+=head2 new
+
+=over
+
+=item B<Description>
+
+Create a Bugzilla::Search object.
+
+=item B<Params>
+
+=over
+
+=item C<fields>
+
+An arrayref representing the bug attributes for which data is desired.
+Legal attributes are listed in the fielddefs DB table. At least one field
+must be defined, typically the 'bug_id' field.
+
+=item C<params>
+
+A hashref representing search criteria. Each key => value pair represents
+a search criteria, where the key is the search field and the value is the
+value for this field. At least one search criteria must be defined if the
+'search_allow_no_criteria' parameter is turned off, else an error is thrown.
+
+=item C<sharer>
+
+When a saved search is shared by a user, this is his user ID.
+
+=item C<user>
+
+A L<Bugzilla::User> object representing the user to whom the data is addressed.
+All security checks are done based on this user object, so it's not safe
+to share results of the query with other users as not all users have the
+same privileges or have the same role for all bugs in the list. If this
+parameter is not defined, then the currently logged in user is taken into
+account. If no user is logged in, then only public bugs will be returned.
+
+=item C<allow_unlimited>
+
+If set to a true value, the number of bugs retrieved by the query is not
+limited.
+
+=back
+
+=item B<Returns>
+
+A L<Bugzilla::Search> object.
+
+=back
+
+=head2 data
+
+=over
+
+=item B<Description>
+
+Returns bugs matching search criteria passed to C<new()>.
+
+=item B<Params>
+
+None
+
+=item B<Returns>
+
+In scalar context, this method returns a reference to a list of bugs.
+Each item of the list represents a bug, which is itself a reference to
+a list where each item represents a bug attribute, in the same order as
+specified in the C<fields> parameter of C<new()>.
+
+In list context, this methods also returns a reference to a list containing
+references to hashes. For each hash, two keys are defined: C<sql> contains
+the SQL query which has been executed, and C<time> contains the time spent
+to execute the SQL query, in seconds. There can be either a single hash, or
+two hashes if two SQL queries have been executed sequentially to get all the
+required data.
+
+=back
+
+=head1 B<Methods in need of POD>
+
+=over
+
+=item invalid_order_columns
+
+=item COLUMN_JOINS
+
+=item split_order_term
+
+=item SqlifyDate
+
+=item REPORT_COLUMNS
+
+=item pronoun
+
+=item COLUMNS
+
+=item order
+
+=item search_description
+
+=item IsValidQueryType
+
+=item build_subselect
+
+=item do_search_function
+
+=item boolean_charts_to_custom_search
+
+=back

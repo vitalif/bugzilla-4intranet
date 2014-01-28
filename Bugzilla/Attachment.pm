@@ -130,8 +130,7 @@ the ID of the bug to which the attachment is attached
 =cut
 
 sub bug_id {
-    my $self = shift;
-    return $self->{bug_id};
+    return $_[0]->{bug_id};
 }
 
 =over
@@ -145,11 +144,8 @@ the bug object to which the attachment is attached
 =cut
 
 sub bug {
-    my $self = shift;
-
     require Bugzilla::Bug;
-    $self->{bug} ||= Bugzilla::Bug->new({ id => $self->bug_id, cache => 1 });
-    return $self->{bug};
+    return $_[0]->{bug} //= Bugzilla::Bug->new({ id => $_[0]->bug_id, cache => 1 });
 }
 
 =over
@@ -163,8 +159,7 @@ user-provided text describing the attachment
 =cut
 
 sub description {
-    my $self = shift;
-    return $self->{description};
+    return $_[0]->{description};
 }
 
 =over
@@ -178,8 +173,7 @@ the attachment's MIME media type
 =cut
 
 sub contenttype {
-    my $self = shift;
-    return $self->{mimetype};
+    return $_[0]->{mimetype};
 }
 
 =over
@@ -193,9 +187,8 @@ the user who attached the attachment
 =cut
 
 sub attacher {
-    my $self = shift;
-    return $self->{attacher}
-      ||= new Bugzilla::User({ id => $self->{submitter_id}, cache => 1 });
+    return $_[0]->{attacher}
+      //= new Bugzilla::User({ id => $_[0]->{submitter_id}, cache => 1 });
 }
 
 =over
@@ -209,8 +202,7 @@ the date and time on which the attacher attached the attachment
 =cut
 
 sub attached {
-    my $self = shift;
-    return $self->{creation_ts};
+    return $_[0]->{creation_ts};
 }
 
 =over
@@ -224,8 +216,7 @@ the date and time on which the attachment was last modified.
 =cut
 
 sub modification_time {
-    my $self = shift;
-    return $self->{modification_time};
+    return $_[0]->{modification_time};
 }
 
 =over
@@ -239,8 +230,7 @@ the name of the file the attacher attached
 =cut
 
 sub filename {
-    my $self = shift;
-    return $self->{filename};
+    return $_[0]->{filename};
 }
 
 =over
@@ -254,8 +244,7 @@ whether or not the attachment is a patch
 =cut
 
 sub ispatch {
-    my $self = shift;
-    return $self->{ispatch};
+    return $_[0]->{ispatch};
 }
 
 =over
@@ -269,8 +258,7 @@ whether or not the attachment is obsolete
 =cut
 
 sub isobsolete {
-    my $self = shift;
-    return $self->{isobsolete};
+    return $_[0]->{isobsolete};
 }
 
 =over
@@ -284,8 +272,7 @@ whether or not the attachment is private
 =cut
 
 sub isprivate {
-    my $self = shift;
-    return $self->{isprivate};
+    return $_[0]->{isprivate};
 }
 
 =over
@@ -302,8 +289,7 @@ matches, because this will return a value even if it's matched by the generic
 =cut
 
 sub is_viewable {
-    my $self = shift;
-    my $contenttype = $self->contenttype;
+    my $contenttype = $_[0]->contenttype;
     my $cgi = Bugzilla->cgi;
 
     # We assume we can view all text and image types.
@@ -443,7 +429,7 @@ the length (in bytes) of the attachment content
 
 sub datasize {
     my $self = shift;
-    return $self->{datasize} if exists $self->{datasize};
+    return $self->{datasize} if defined $self->{datasize};
 
     # If we have already retrieved the data, return its size.
     return length($self->{data}) if exists $self->{data};
@@ -500,11 +486,8 @@ flags that have been set on the attachment
 =cut
 
 sub flags {
-    my $self = shift;
-
     # Don't cache it as it must be in sync with ->flag_types.
-    $self->{flags} = [map { @{$_->{flags}} } @{$self->flag_types}];
-    return $self->{flags};
+    return $_[0]->{flags} = [map { @{$_->{flags}} } @{$_[0]->flag_types}];
 }
 
 =over
@@ -529,8 +512,7 @@ sub flag_types {
                  bug_obj      => $self->bug,
                };
 
-    $self->{flag_types} = Bugzilla::Flag->_flag_types($vars);
-    return $self->{flag_types};
+    return $self->{flag_types} = Bugzilla::Flag->_flag_types($vars);
 }
 
 ###############################
@@ -634,6 +616,7 @@ sub _check_content_type {
         }
 
         my $mimetype = mimetype($fh);
+        $fh->seek(0, 0);
         $content_type = $mimetype if $mimetype;
     }
 
@@ -771,7 +754,7 @@ sub get_attachments_by_bug {
     # To avoid $attachment->flags to run SQL queries itself for each
     # attachment listed here, we collect all the data at once and
     # populate $attachment->{flags} ourselves.
-    # We also load all attachers at once for the same reason.
+    # We also load all attachers and datasizes at once for the same reason.
     if ($vars->{preload}) {
         # Preload flags.
         $_->{flags} = [] foreach @$attachments;
@@ -793,6 +776,16 @@ sub get_attachments_by_bug {
         foreach my $attachment (@$attachments) {
             $attachment->{attacher} = $user_map{$attachment->{submitter_id}};
         }
+
+        # Preload datasizes.
+        my $sizes =
+          $dbh->selectall_hashref('SELECT attach_id, LENGTH(thedata) AS datasize
+                                   FROM attachments LEFT JOIN attach_data ON attach_id = id
+                                   WHERE bug_id = ?',
+                                   'attach_id', undef, $bug->id);
+
+        # Force the size of attachments not in the DB to be recalculated.
+        $_->{datasize} = $sizes->{$_->id}->{datasize} || undef foreach @$attachments;
     }
     return $attachments;
 }
@@ -1004,12 +997,12 @@ sub update
         );
     }
 
-    if (scalar keys %$changes)
-    {
+    if (scalar(keys %$changes)) {
         $dbh->do('UPDATE attachments SET modification_time = ? WHERE attach_id = ?',
-                 undef, $timestamp, $self->id);
+                 undef, ($timestamp, $self->id));
         $dbh->do('UPDATE bugs SET delta_ts = ? WHERE bug_id = ?',
-                 undef, $timestamp, $self->bug_id);
+                 undef, ($timestamp, $self->bug_id));
+        $self->{modification_time} = $timestamp;
     }
 
     return $changes;

@@ -294,6 +294,12 @@ sub set_flag {
         ThrowCodeError('flag_unexpected_object', { 'caller' => ref $obj });
     }
 
+    # Make sure the user can change flags
+    my $privs;
+    $bug->check_can_change_field('flagtypes.name', 0, 1, \$privs)
+        || ThrowUserError('illegal_change',
+                          { field => 'flagtypes.name', privs => $privs });
+
     # Update (or delete) an existing flag.
     if ($params->{id}) {
         my $flag = $class->check({ id => $params->{id} });
@@ -392,7 +398,7 @@ sub _validate {
     my $old_requestee_id = $obj_flag->requestee_id;
 
     $obj_flag->_set_status($params->{status});
-    $obj_flag->_set_requestee($params->{requestee}, $attachment, $params->{skip_roe});
+    $obj_flag->_set_requestee($params->{requestee}, $bug, $attachment, $params->{skip_roe});
 
     # The requestee ID can be undefined.
     my $requestee_changed = ($obj_flag->requestee_id || 0) != ($old_requestee_id || 0);
@@ -622,10 +628,10 @@ sub force_retarget {
 ###############################
 
 sub _set_requestee {
-    my ($self, $requestee, $attachment, $skip_requestee_on_error) = @_;
+    my ($self, $requestee, $bug, $attachment, $skip_requestee_on_error) = @_;
 
     $self->{requestee} =
-      $self->_check_requestee($requestee, $attachment, $skip_requestee_on_error);
+      $self->_check_requestee($requestee, $bug, $attachment, $skip_requestee_on_error);
 
     $self->{requestee_id} =
       $self->{requestee} ? $self->{requestee}->id : undef;
@@ -647,7 +653,7 @@ sub _set_status {
 }
 
 sub _check_requestee {
-    my ($self, $requestee, $attachment, $skip_requestee_on_error) = @_;
+    my ($self, $requestee, $bug, $attachment, $skip_requestee_on_error) = @_;
 
     # If the flag status is not "?", then no requestee can be defined.
     return undef if ($self->status ne '?');
@@ -667,21 +673,29 @@ sub _check_requestee {
         # is specifically requestable. For existing flags, if the requestee
         # was set before the flag became specifically unrequestable, the
         # user can either remove him or leave him alone.
-        ThrowUserError('flag_requestee_disabled', { type => $self->type })
+        ThrowUserError('flag_type_requestee_disabled', { type => $self->type })
           if !$self->type->is_requesteeble;
+
+        # You can't ask a disabled account, as they don't have the ability to
+        # set the flag.
+        ThrowUserError('flag_requestee_disabled', { requestee => $requestee })
+          if !$requestee->is_enabled;
 
         # Make sure the requestee can see the bug.
         # Note that can_see_bug() will query the DB, so if the bug
         # is being added/removed from some groups and these changes
         # haven't been committed to the DB yet, they won't be taken
-        # into account here. In this case, old restrictions matters.
-        if (!$requestee->can_see_bug($self->bug_id)) {
-            if (Bugzilla->params->{auto_add_flag_requestees_to_cc})
-            {
-                # CustIS Bug 55712 - Add flag requestees to CC list
-                Bugzilla->cgi->param(-name => 'newcc', -value => [ Bugzilla->cgi->param('newcc'), $requestee->login ]);
-            }
-            elsif ($skip_requestee_on_error) {
+        # into account here. In this case, old group restrictions matter.
+        # However, if the user has just been changed to the assignee,
+        # qa_contact, or added to the cc list of the bug and the bug
+        # is cclist_accessible, the requestee is allowed.
+        if (!$requestee->can_see_bug($self->bug_id)
+            && (!$bug->cclist_accessible
+                || !grep($_->id == $requestee->id, @{ $bug->cc_users })
+            && $requestee->id != $bug->assigned_to->id
+            && (!$bug->qa_contact || $requestee->id != $bug->qa_contact->id)))
+        {
+            if ($skip_requestee_on_error) {
                 undef $requestee;
             }
             else {

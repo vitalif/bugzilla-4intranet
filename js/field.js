@@ -8,7 +8,6 @@
 
 /* This library assumes that the needed YUI libraries have been loaded 
    already. */
-
 /* Hide input fields and show the text with (edit) next to it */
 function hideEditableField( container, input, action, field_id, original_value )
 {
@@ -52,7 +51,7 @@ function showEditableField(e, ContainerInputArray)
     {
         // focus on the first field, this makes it easier to edit
         inputs[0].focus();
-        if ( type == "input" ) {
+        if ( type == "input" || type == "textarea" ) {
             inputs[0].select();
         }
     }
@@ -76,8 +75,10 @@ function checkForChangedFieldValues(e, ContainerInputArray ) {
     var el = document.getElementById(ContainerInputArray[2]);
     var unhide = false;
     if ( el ) {
-        if ( el.value != ContainerInputArray[3] ||
-            ( el.value == "" && el.id != "alias" && el.id != 'qa_contact') ) {
+        if ( !ContainerInputArray[4]
+             && (el.value != ContainerInputArray[3]
+                 || (el.value == "" && el.id != "alias" && el.id != "qa_contact")) )
+        {
             unhide = true;
         }
         else {

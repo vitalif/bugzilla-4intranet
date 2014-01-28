@@ -153,6 +153,9 @@ sub VALIDATORS {
         elsif ($field->type == FIELD_TYPE_DATETIME) {
             $validator = \&_check_datetime_field;
         }
+        elsif ($field->type == FIELD_TYPE_DATE) {
+            $validator = \&_check_date_field;
+        }
         elsif ($field->type == FIELD_TYPE_FREETEXT) {
             $validator = \&_check_freetext_field;
         }
@@ -240,7 +243,9 @@ use constant NUMERIC_COLUMNS => qw(
 );
 
 sub DATE_COLUMNS {
-    my @fields = @{ Bugzilla->fields({ type => FIELD_TYPE_DATETIME }) };
+    my @fields = (@{ Bugzilla->fields({ type => [FIELD_TYPE_DATETIME,
+                                                 FIELD_TYPE_DATE] })
+                   });
     return map { $_->name } @fields;
 }
 
@@ -272,10 +277,6 @@ use constant FIELD_MAP => {
     summary          => 'short_desc',
     url              => 'bug_file_loc',
     whiteboard       => 'status_whiteboard',
-
-    # These are special values for the WebService Bug.search method.
-    limit            => 'LIMIT',
-    offset           => 'OFFSET',
 };
 
 use constant REQUIRED_FIELD_MAP => {
@@ -303,20 +304,10 @@ use constant EXTRA_REQUIRED_FIELDS => qw(creation_ts target_milestone cc qa_cont
 
 #####################################################################
 
-# This and "new" catch every single way of creating a bug, so that we
-# can call _create_cf_accessors.
-sub _do_list_select {
-    my $invocant = shift;
-    $invocant->_create_cf_accessors();
-    return $invocant->SUPER::_do_list_select(@_);
-}
-
 sub new {
     my $invocant = shift;
     my $class = ref($invocant) || $invocant;
     my $param = shift;
-
-    $class->_create_cf_accessors();
 
     # Remove leading "#" mark if we've just been passed an id.
     if (!ref $param && $param =~ /^#(\d+)$/) {
@@ -365,6 +356,10 @@ sub new {
     return $self;
 }
 
+sub initialize {
+    $_[0]->_create_cf_accessors();
+}
+
 sub cache_key {
     my $class = shift;
     my $key = $class->SUPER::cache_key(@_)
@@ -374,14 +369,16 @@ sub cache_key {
 
 sub check {
     my $class = shift;
-    my ($id, $field) = @_;
-
-    ThrowUserError('improper_bug_id_field_value', { field => $field }) unless defined $id;
+    my ($param, $field) = @_;
 
     # Bugzilla::Bug throws lots of special errors, so we don't call
     # SUPER::check, we just call our new and do our own checks.
-    $id = trim($id);
-    my $self = $class->new($id);
+    my $id = ref($param)
+        ? ($param->{id} = trim($param->{id}))
+        : ($param = trim($param));
+    ThrowUserError('improper_bug_id_field_value', { field => $field }) unless defined $id;
+
+    my $self = $class->new($param);
 
     if ($self->{error}) {
         # For error messages, use the id that was returned by new(), because
@@ -755,7 +752,7 @@ sub create {
     # Because MySQL doesn't support transactions on the fulltext table,
     # we do this after we've committed the transaction. That way we're
     # sure we're inserting a good Bug ID.
-    $bug->_sync_fulltext('new bug');
+    $bug->_sync_fulltext( new_bug => 1 );
 
     return $bug;
 }
@@ -764,6 +761,17 @@ sub run_create_validators {
     my $class  = shift;
 
     my $params = $class->SUPER::run_create_validators(@_);
+
+    # Add classification for checking mandatory fields which depend on it
+    $params->{classification} = $params->{product}->classification->name;
+
+    my @mandatory_fields = @{ Bugzilla->fields({ is_mandatory => 1,
+                                                 enter_bug    => 1,
+                                                 obsolete     => 0 }) };
+    foreach my $field (@mandatory_fields) {
+        $class->_check_field_is_mandatory($params->{$field->name}, $field,
+                                          $params);
+    }
 
     my $product = delete $params->{product};
     $params->{product_id} = $product->id;
@@ -784,17 +792,10 @@ sub run_create_validators {
     # You can't set these fields.
     delete $params->{lastdiffed};
     delete $params->{bug_id};
+    delete $params->{classification};
 
     Bugzilla::Hook::process('bug_end_of_create_validators',
                             { params => $params });
-
-    my @mandatory_fields = @{ Bugzilla->fields({ is_mandatory => 1,
-                                                 enter_bug    => 1,
-                                                 obsolete     => 0 }) };
-    foreach my $field (@mandatory_fields) {
-        $class->_check_field_is_mandatory($params->{$field->name}, $field,
-                                          $params);
-    }
 
     # And this is not a valid DB field, it's just used as part of 
     # _check_dependencies to avoid running it twice for both blocked 
@@ -964,15 +965,9 @@ sub check_dependent_fields
 sub update
 {
     my $self = shift;
-
-    # First check dependent field values
-    if ($self->{dependent_validators})
-    {
-        check_dependent_fields($self->{dependent_validators}, $self);
-    }
-
-    my $dbh = Bugzilla->dbh;
+    my $dbh  = Bugzilla->dbh;
     my $user = Bugzilla->user;
+
     # XXX This is just a temporary hack until all updating happens
     # inside this function.
     my $delta_ts = shift || $dbh->selectrow_array('SELECT LOCALTIMESTAMP(0)');
@@ -1134,12 +1129,14 @@ sub update
     }
 
     # Comments
-    foreach my $comment (@{$self->{added_comments} || []})
-    {
-        if (Bugzilla->cgi->param('commentsilent'))
-        {
-            # Log silent comments
-            SilentLog($self->bug_id, $comment->{thetext});
+    foreach my $comment (@{$self->{added_comments} || []}) {
+        # Override the Comment's timestamp to be identical to the update
+        # timestamp.
+        $comment->{bug_when} = $delta_ts;
+        $comment = Bugzilla::Comment->insert_create_data($comment);
+        if ($comment->work_time) {
+            LogActivityEntry($self->id, "work_time", "", $comment->work_time,
+                             $user->id, $delta_ts);
         }
         $comment->{bug_id} = $self->bug_id;
         $comment->{who} ||= $user->id;
@@ -1241,8 +1238,8 @@ sub update
         my $change = $changes->{$field};
         my $from = defined $change->[0] ? $change->[0] : '';
         my $to   = defined $change->[1] ? $change->[1] : '';
-        LogActivityEntry($self->id, $field, $from, $to, Bugzilla->user->id,
-                         $delta_ts);
+        LogActivityEntry($self->id, $field, $from, $to,
+                         $user->id, $delta_ts);
     }
 
     # Check if we have to update the duplicates table and the other bug.
@@ -1273,17 +1270,35 @@ sub update
         $self->{delta_ts} = $delta_ts;
     }
 
-    Bugzilla::Hook::process('bug_end_of_update',
-        { bug => $self, timestamp => $delta_ts, changes => $changes,
-          old_bug => $old_bug });
+    # Update bug ignore data if user wants to ignore mail for this bug
+    if (exists $self->{'bug_ignored'}) {
+        my $bug_ignored_changed;
+        if ($self->{'bug_ignored'} && !$user->is_bug_ignored($self->id)) {
+            $dbh->do('INSERT INTO email_bug_ignore
+                      (user_id, bug_id) VALUES (?, ?)',
+                     undef, $user->id, $self->id);
+            $bug_ignored_changed = 1;
+
+        }
+        elsif (!$self->{'bug_ignored'} && $user->is_bug_ignored($self->id)) {
+            $dbh->do('DELETE FROM email_bug_ignore
+                      WHERE user_id = ? AND bug_id = ?',
+                     undef, $user->id, $self->id);
+            $bug_ignored_changed = 1;
+        }
+        delete $user->{bugs_ignored} if $bug_ignored_changed;
+    }
+
+    $dbh->bz_commit_transaction();
 
     # The only problem with this here is that update() is often called
     # in the middle of a transaction, and if that transaction is rolled
     # back, this change will *not* be rolled back. As we expect rollbacks
     # to be extremely rare, that is OK for us.
-    $self->_sync_fulltext()
-        if $self->{added_comments} || $changes->{short_desc}
-           || $self->{comment_isprivate} || $self->{edited_comments};
+    $self->_sync_fulltext(
+        update_short_desc => $changes->{short_desc},
+        update_comments   => $self->{added_comments} || $self->{comment_isprivate} || $self->{edited_comments}
+    );
 
     # Remove obsolete internal variables.
     delete $self->{'_old_assigned_to'};
@@ -1293,7 +1308,7 @@ sub update
 
     # Also flush the visible_bugs cache for this bug as the user's
     # relationship with this bug may have changed.
-    delete Bugzilla->user->{_visible_bugs_cache}->{$self->id};
+    delete $user->{_visible_bugs_cache}->{$self->id};
 
     return $changes;
 }
@@ -1318,40 +1333,44 @@ sub _extract_multi_selects {
 }
 
 # Should be called any time you update short_desc or change a comment.
-sub _sync_fulltext
-{
-    use utf8;
-    my ($self, $new_bug) = @_;
+sub _sync_fulltext {
+    my ($self, %options) = @_;
     my $dbh = Bugzilla->dbh;
-    my ($short_desc) = $dbh->selectrow_array(
-        "SELECT short_desc FROM bugs WHERE bug_id=?", undef, $self->id
-    );
-    my ($nopriv, $priv) = ([], []);
-    for (@{ $dbh->selectall_arrayref(
-        "SELECT thetext, isprivate FROM longdescs WHERE bug_id=?",
-        undef, $self->id
-    ) || [] })
-    {
-        $_->[1] ? push @$priv, $_->[0] : push @$nopriv, $_->[0];
+
+    my($all_comments, $public_comments);
+    if ($options{new_bug} || $options{update_comments}) {
+        my $comments = $dbh->selectall_arrayref(
+            'SELECT thetext, isprivate FROM longdescs WHERE bug_id = ?',
+            undef, $self->id);
+        $all_comments = join("\n", map { $_->[0] } @$comments);
+        my @no_private = grep { !$_->[1] } @$comments;
+        $public_comments = join("\n", map { $_->[0] } @no_private);
     }
-    $nopriv = join "\n", @$nopriv;
-    $priv = join "\n", @$priv;
-    my $row = [ $short_desc, $nopriv, $priv ];
-    $_ = $dbh->quote_fulltext($_) for @$row;
-    ## O_o Don't know how can it be tainted here, sometimes it was. Checking if it goes away.
-    #trick_taint($row);
-    my $sql;
-    if ($new_bug)
-    {
-        $sql = "INSERT INTO bugs_fulltext (bug_id, short_desc, comments, comments_private)".
-            " VALUES (".join(',', $self->id, @$row).")";
+
+    if ($options{new_bug}) {
+        $dbh->do('INSERT INTO bugs_fulltext (bug_id, short_desc, comments,
+                                             comments_noprivate)
+                 VALUES (?, ?, ?, ?)',
+                 undef,
+                 $self->id, $self->short_desc, $all_comments, $public_comments);
+    } else {
+        my(@names, @values);
+        if ($options{update_short_desc}) {
+            push @names, 'short_desc';
+            push @values, $self->short_desc;
+        }
+        if ($options{update_comments}) {
+            push @names, ('comments', 'comments_noprivate');
+            push @values, ($all_comments, $public_comments);
+        }
+        if (@names) {
+            $dbh->do('UPDATE bugs_fulltext SET ' .
+                     join(', ', map { "$_ = ?" } @names) .
+                     ' WHERE bug_id = ?',
+                     undef,
+                     @values, $self->id);
+        }
     }
-    else
-    {
-        $sql = "UPDATE bugs_fulltext SET short_desc=$row->[0],".
-            " comments=$row->[1], comments_private=$row->[2] WHERE bug_id=".$self->id;
-    }
-    return $dbh->do($sql);
 }
 
 sub remove_from_db {
@@ -1621,8 +1640,12 @@ sub _check_component {
     $name || ThrowUserError("require_component");
     my $product = blessed($invocant) ? $invocant->product_obj 
                                      : $params->{product};
-    my $obj = Bugzilla::Component->check({ product => $product, name => $name });
-    return $obj;
+    my $old_comp = blessed($invocant) ? $invocant->component : '';
+    my $object = Bugzilla::Component->check({ product => $product, name => $name });
+    if ($object->name ne $old_comp && !$object->is_active) {
+        ThrowUserError('value_inactive', { class => ref($object), value => $name });
+    }
+    return $object;
 }
 
 sub _check_creation_ts {
@@ -2111,10 +2134,14 @@ sub _check_target_milestone {
     my ($invocant, $target, undef, $params) = @_;
     my $product = blessed($invocant) ? $invocant->product_obj 
                                      : $params->{product};
+    my $old_target = blessed($invocant) ? $invocant->target_milestone : '';
     $target = trim($target);
     $target = $product->default_milestone if !defined $target;
     my $object = Bugzilla::Milestone->check(
         { product => $product, name => $target });
+    if ($old_target && $object->name ne $old_target && !$object->is_active) {
+        ThrowUserError('value_inactive', { class => ref($object),  value => $target });
+    }
     return $object->name;
 }
 
@@ -2154,8 +2181,11 @@ sub _check_version {
     $version = trim($version);
     my $product = blessed($invocant) ? $invocant->product_obj 
                                      : $params->{product};
-    my $object = 
-        Bugzilla::Version->check({ product => $product, name => $version });
+    my $old_vers = blessed($invocant) ? $invocant->version : '';
+    my $object = Bugzilla::Version->check({ product => $product, name => $version });
+    if ($object->name ne $old_vers && !$object->is_active) {
+        ThrowUserError('value_inactive', { class => ref($object), value => $version });
+    }
     return $object->name;
 }
 
@@ -2194,8 +2224,13 @@ sub _check_field_is_mandatory {
     }
 }
 
+sub _check_date_field {
+    my ($invocant, $date) = @_;
+    return $invocant->_check_datetime_field($date, undef, {date_only => 1});
+}
+
 sub _check_datetime_field {
-    my ($invocant, $date_time) = @_;
+    my ($invocant, $date_time, $field, $params) = @_;
 
     # Empty datetimes are empty strings or strings only containing
     # 0's, whitespace, and punctuation.
@@ -2207,6 +2242,10 @@ sub _check_datetime_field {
     my ($date, $time) = split(' ', $date_time);
     if ($date && !validate_date($date)) {
         ThrowUserError('illegal_date', { date   => $date,
+                                         format => 'YYYY-MM-DD' });
+    }
+    if ($time && $params->{date_only}) {
+        ThrowUserError('illegal_date', { date   => $date_time,
                                          format => 'YYYY-MM-DD' });
     }
     if ($time && !validate_time($time)) {
@@ -2502,7 +2541,7 @@ sub set_all {
     # we have to check that the current assignee, qa, and CCs are still
     # valid if we've switched products, under strict_isolation. We can only
     # do that here, because if they *did* change the assignee, qa, or CC,
-    # then we don't want to check the original ones, only the new ones. 
+    # then we don't want to check the original ones, only the new ones.
     $self->_check_strict_isolation() if $product_changed;
 }
 
@@ -2532,6 +2571,7 @@ sub reset_assigned_to {
     my $comp = $self->component_obj;
     $self->set_assigned_to($comp->default_assignee);
 }
+sub set_bug_ignored       { $_[0]->set('bug_ignored',       $_[1]); }
 sub set_cclist_accessible { $_[0]->set('cclist_accessible', $_[1]); }
 sub set_comment_is_private {
     my ($self, $comment_id, $isprivate) = @_;
@@ -2735,9 +2775,9 @@ sub _set_product {
                 milestone => $milestone_ok ? $self->target_milestone
                                            : $product->default_milestone
             };
-            $vars{components} = [map { $_->name } @{$product->components}];
-            $vars{milestones} = [map { $_->name } @{$product->milestones}];
-            $vars{versions}   = [map { $_->name } @{$product->versions}];
+            $vars{components} = [map { $_->name } grep($_->is_active, @{$product->components})];
+            $vars{milestones} = [map { $_->name } grep($_->is_active, @{$product->milestones})];
+            $vars{versions}   = [map { $_->name } grep($_->is_active, @{$product->versions})];
         }
 
         if (!$verified) {
@@ -2761,6 +2801,10 @@ sub _set_product {
                                        OR gcm.othercontrol != ?) )',
                 undef, (@idlist, $product->id, CONTROLMAPNA, CONTROLMAPNA));
             $vars{'old_groups'} = Bugzilla::Group->new_from_list($gids);            
+
+            # Did we come here from editing multiple bugs? (affects how we
+            # show optional group changes)
+            $vars{multiple_bugs} = Bugzilla->cgi->param('id') ? 0 : 1;
         }
         
         if (%vars) {
@@ -3530,11 +3574,8 @@ sub cc_users {
 
 sub component {
     my ($self) = @_;
-    return $self->{component} if exists $self->{component};
     return '' if $self->{error};
-    ($self->{component}) = Bugzilla->dbh->selectrow_array(
-        'SELECT name FROM components WHERE id = ?',
-        undef, $self->{component_id});
+    $self->{component} //= $self->component_obj->name;
     return $self->{component};
 }
 
@@ -3550,21 +3591,15 @@ sub component_obj {
 
 sub classification_id {
     my ($self) = @_;
-    return $self->{classification_id} if exists $self->{classification_id};
     return 0 if $self->{error};
-    ($self->{classification_id}) = Bugzilla->dbh->selectrow_array(
-        'SELECT classification_id FROM products WHERE id = ?',
-        undef, $self->{product_id});
+    $self->{classification_id} //= $self->product_obj->classification_id;
     return $self->{classification_id};
 }
 
 sub classification {
     my ($self) = @_;
-    return $self->{classification} if exists $self->{classification};
     return '' if $self->{error};
-    ($self->{classification}) = Bugzilla->dbh->selectrow_array(
-        'SELECT name FROM classifications WHERE id = ?',
-        undef, $self->classification_id);
+    $self->{classification} //= $self->product_obj->classification->name;
     return $self->{classification};
 }
 
@@ -3746,11 +3781,8 @@ sub percentage_complete {
 
 sub product {
     my ($self) = @_;
-    return $self->{product} if exists $self->{product};
     return '' if $self->{error};
-    ($self->{product}) = Bugzilla->dbh->selectrow_array(
-        'SELECT name FROM products WHERE id = ?',
-        undef, $self->{product_id});
+    $self->{product} //= $self->product_obj->name;
     return $self->{product};
 }
 
@@ -4273,11 +4305,12 @@ sub get_activity {
             if ($operation->{'who'} && $who eq $operation->{'who'}
                 && $when eq $operation->{'when'}
                 && $fieldname eq $operation->{'fieldname'}
+                && ($comment_id || 0) == ($operation->{'comment_id'} || 0)
                 && ($attachid || 0) == ($operation->{'attachid'} || 0))
             {
                 my $old_change = pop @$changes;
-                $removed = _join_activity_entries($fieldname, $old_change->{'removed'}, $removed);
-                $added = _join_activity_entries($fieldname, $old_change->{'added'}, $added);
+                $removed = join_activity_entries($fieldname, $old_change->{'removed'}, $removed);
+                $added = join_activity_entries($fieldname, $old_change->{'added'}, $added);
             }
             $operation->{'who'} = $who;
             $operation->{'when'} = $when;
@@ -4287,7 +4320,7 @@ sub get_activity {
             $change{'added'} = $added;
 
             if ($comment_id) {
-                $change{'comment'} = Bugzilla::Comment->new($comment_id);
+                $operation->{comment_id} = $change{'comment'} = Bugzilla::Comment->new($comment_id);
             }
 
             push (@$changes, \%change);
@@ -4463,8 +4496,8 @@ sub check_can_change_field {
         return 1;
     }
 
-    # Allow anyone to change comments.
-    if ($field =~ /^longdesc/) {
+    # Allow anyone to change comments, or set flags
+    if ($field =~ /^longdesc/ || $field eq 'flagtypes.name') {
         return 1;
     }
 
@@ -4713,6 +4746,16 @@ sub _multi_select_accessor {
 
 1;
 
+=head1 B<Methods>
+
+=over
+
+=item C<initialize>
+
+Ensures the accessors for custom fields are always created.
+
+=back
+
 =head1 B<Methods in need of POD>
 
 =over
@@ -4850,6 +4893,8 @@ sub _multi_select_accessor {
 =item UPDATE_COLUMNS
 
 =item set_cclist_accessible
+
+=item set_bug_ignored
 
 =item product
 

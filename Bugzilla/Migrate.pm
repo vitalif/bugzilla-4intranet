@@ -153,6 +153,7 @@ sub do_migration {
     }    
     $dbh->bz_start_transaction();
 
+    $self->before_read();
     # Read Other Database
     my $users    = $self->users;
     my $products = $self->products;
@@ -447,8 +448,11 @@ sub translate_value {
     }
 
     my $field_obj = $self->bug_fields->{$field};
-    if ($field eq 'creation_ts' or $field eq 'delta_ts'
-        or ($field_obj and $field_obj->type == FIELD_TYPE_DATETIME))
+    if ($field eq 'creation_ts'
+        or $field eq 'delta_ts'
+        or ($field_obj and
+             ($field_obj->type == FIELD_TYPE_DATETIME
+              or $field_obj->type == FIELD_TYPE_DATE)))
     {
         $value = trim($value);
         return undef if !$value;
@@ -541,6 +545,7 @@ sub write_config {
 sub after_insert  {}
 sub before_insert {}
 sub after_read    {}
+sub before_read   {}
 
 #############
 # Inserters #
@@ -815,7 +820,7 @@ sub _insert_comments {
         $self->_do_table_insert('longdescs', \%copy);
         $self->debug("  Inserted comment from " . $who->login, 2);
     }
-    $bug->_sync_fulltext();
+    $bug->_sync_fulltext( update_comments => 1 );
 }
 
 sub _insert_history {
@@ -1143,6 +1148,11 @@ An array (not an arrayref). If there are fields that are not translated
 and yet shouldn't be added to the initial description of the bug when
 translating bugs, then they should be listed here. See L</translate_bug> for
 more detail.
+
+=head2 before_read
+
+This is called before any data is read from the "other bug-tracker".
+The default implementation does nothing.
 
 =head2 after_read
 

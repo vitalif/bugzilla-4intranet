@@ -111,13 +111,14 @@ use Memoize;
     FIELD_TYPE_MULTI_SELECT
     FIELD_TYPE_TEXTAREA
     FIELD_TYPE_DATETIME
+    FIELD_TYPE_DATE
     FIELD_TYPE_BUG_ID
     FIELD_TYPE_BUG_URLS
     FIELD_TYPE_EXTURL
     FIELD_TYPE_KEYWORDS
 
-
     FIELD_TYPE__BOUNDARY
+    FIELD_TYPE_HIGHEST_PLUS_ONE
     EMPTY_DATETIME_REGEX
 
     ABNORMAL_SELECTS
@@ -130,12 +131,14 @@ use Memoize;
     USAGE_MODE_EMAIL
     USAGE_MODE_JSON
     USAGE_MODE_TEST
+    USAGE_MODE_REST
 
     ERROR_MODE_WEBPAGE
     ERROR_MODE_DIE
     ERROR_MODE_DIE_SOAP_FAULT
     ERROR_MODE_JSON_RPC
     ERROR_MODE_TEST
+    ERROR_MODE_REST
 
     COLOR_ERROR
     COLOR_SUCCESS
@@ -176,6 +179,7 @@ use Memoize;
     MAX_POSSIBLE_DUPLICATES
     MAX_ATTACH_FILENAME_LENGTH
     MAX_QUIP_LENGTH
+    MAX_WEBDOT_BUGS
 
     PASSWORD_DIGEST_ALGORITHM
     PASSWORD_SALT_LENGTH
@@ -416,6 +420,10 @@ use constant FIELD_TYPE_BUG_ID => 6;
 use constant FIELD_TYPE_BUG_URLS => 7;
 use constant FIELD_TYPE_KEYWORDS => 8;
 use constant FIELD_TYPE_EXTURL => 9;
+use constant FIELD_TYPE_DATE => 9;
+# Add new field types above this line, and change the below value in the
+# obvious fashion
+use constant FIELD_TYPE_HIGHEST_PLUS_ONE => 10;
 
 # Upper boundary for FIELD_TYPE_* values
 use constant FIELD_TYPE__BOUNDARY => 9;
@@ -489,6 +497,7 @@ use constant USAGE_MODE_XMLRPC     => 2;
 use constant USAGE_MODE_EMAIL      => 3;
 use constant USAGE_MODE_JSON       => 4;
 use constant USAGE_MODE_TEST       => 5;
+use constant USAGE_MODE_REST       => 6;
 
 # Error modes. Default set by Bugzilla->usage_mode (so ERROR_MODE_WEBPAGE
 # usually). Use with Bugzilla->error_mode.
@@ -497,6 +506,7 @@ use constant ERROR_MODE_DIE            => 1;
 use constant ERROR_MODE_DIE_SOAP_FAULT => 2;
 use constant ERROR_MODE_JSON_RPC       => 3;
 use constant ERROR_MODE_TEST           => 4;
+use constant ERROR_MODE_REST           => 5;
 
 # The ANSI colors of messages that command-line scripts use
 use constant COLOR_ERROR => 'red';
@@ -603,6 +613,9 @@ use constant MAX_ATTACH_FILENAME_LENGTH => 255;
 
 # Maximum length of a quip.
 use constant MAX_QUIP_LENGTH => 512;
+
+# Maximum number of bugs to display in a dependency graph
+use constant MAX_WEBDOT_BUGS => 2000;
 
 # This is the name of the algorithm used to hash passwords before storing
 # them in the database. This can be any string that is valid to pass to

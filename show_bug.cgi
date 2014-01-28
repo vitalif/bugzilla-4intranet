@@ -23,10 +23,11 @@ my $template = Bugzilla->template;
 my $vars = {};
 my $user = Bugzilla->login();
 
+my $format = $template->get_format("bug/show", scalar $cgi->param('format'),
+                                   scalar $cgi->param('ctype'));
+
 # Editable, 'single' HTML bugs are treated slightly specially in a few places
-my $single = !$cgi->param('format')
-  && (!$cgi->param('ctype') || $cgi->param('ctype') eq 'html');
-$vars->{multiple} = !$single;
+my $single = !$format->{format} && $format->{extension} eq 'html';
 
 # If we don't have an ID, _AND_ we're only doing a single bug, then prompt
 if (!$cgi->param('id') && $single) {
@@ -34,9 +35,6 @@ if (!$cgi->param('id') && $single) {
       ThrowTemplateError($template->error());
     exit;
 }
-
-my $format = $template->get_format("bug/show", scalar $cgi->param('format'), 
-                                   scalar $cgi->param('ctype'));
 
 my (@bugs, @illegal_bugs);
 my %marks;
@@ -162,6 +160,5 @@ if (Bugzilla->session && ($sd = Bugzilla->session_data) && $sd->{sent})
 
 $cgi->send_header($format->{ctype});
 
-$template->process($format->{template}, $vars)
-    || ThrowTemplateError($template->error());
-exit;
+$template->process($format->{'template'}, $vars)
+  || ThrowTemplateError($template->error());

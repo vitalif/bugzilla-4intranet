@@ -72,11 +72,20 @@ function supaPasteAgain()
     return true;
 }
 
-function setContentTypeDisabledState(form)
-{
+function updateCommentPrivacy(checkbox) {
+    var text_elem = document.getElementById('comment');
+    if (checkbox.checked) {
+        text_elem.className='bz_private';
+    } else {
+        text_elem.className='';
+    }
+}
+
+function setContentTypeDisabledState(form) {
     var isdisabled = false;
     if (form.ispatch.checked)
         isdisabled = true;
+
     for (var i = 0; i < form.contenttypemethod.length; i++)
         form.contenttypemethod[i].disabled = isdisabled;
     form.contenttypeselection.disabled = isdisabled;

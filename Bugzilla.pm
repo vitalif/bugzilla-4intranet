@@ -20,7 +20,7 @@ use Bugzilla::Extension;
 use Bugzilla::DB;
 use Bugzilla::Install::Localconfig qw(read_localconfig);
 use Bugzilla::Install::Requirements qw(OPTIONAL_MODULES);
-use Bugzilla::Install::Util qw(init_console);
+use Bugzilla::Install::Util qw(init_console include_languages);
 use Bugzilla::Template;
 use Bugzilla::User;
 use Bugzilla::Error;
@@ -207,7 +207,7 @@ sub _tt_provider_load_compiled {
 # Global Code
 #####################################################################
 
-# $::SIG{__DIE__} = i_am_cgi() ? \&CGI::Carp::confess : \&Carp::confess;
+#$::SIG{__DIE__} = i_am_cgi() ? \&CGI::Carp::confess : \&Carp::confess;
 
 # Note that this is a raw subroutine, not a method, so $class isn't available.
 sub init_page {
@@ -400,12 +400,7 @@ sub feature {
 
     my $success = 1;
     foreach my $module (@{ $feature_map->{$feature} }) {
-        # We can't use a string eval and "use" here (it kills Template-Toolkit,
-        # see https://rt.cpan.org/Public/Bug/Display.html?id=47929), so we have
-        # to do a block eval.
-        $module =~ s{::}{/}g;
-        $module .= ".pm";
-        eval { require $module; 1; } or $success = 0;
+        eval "require $module" or $success = 0;
     }
     $cache->{feature}->{$feature} = $success;
     return $success;
@@ -601,6 +596,10 @@ sub languages {
     return Bugzilla::Install::Util::supported_languages();
 }
 
+sub current_language {
+    return $_[0]->request_cache->{current_language} ||= (include_languages())[0];
+}
+
 sub error_mode {
     my ($class, $newval) = @_;
     if (defined $newval) {
@@ -642,6 +641,9 @@ sub usage_mode {
         }
         elsif ($newval == USAGE_MODE_EMAIL) {
             $class->error_mode(ERROR_MODE_DIE);
+        }
+        elsif ($newval == USAGE_MODE_TEST) {
+            $class->error_mode(ERROR_MODE_TEST);
         }
         else {
             ThrowCodeError('usage_mode_invalid',
@@ -953,7 +955,7 @@ sub has_flags {
 }
 
 sub local_timezone {
-    return $_[0]->request_cache->{local_timezone}
+    return $_[0]->process_cache->{local_timezone}
              ||= DateTime::TimeZone->new(name => 'local');
 }
 
@@ -973,6 +975,18 @@ sub request_cache {
         return $request->pnotes();
     }
     return $_request_cache ||= {};
+}
+
+sub clear_request_cache {
+    $_request_cache = {};
+    if ($ENV{MOD_PERL}) {
+        require Apache2::RequestUtil;
+        my $request = eval { Apache2::RequestUtil->request };
+        if ($request) {
+            my $pnotes = $request->pnotes;
+            delete @$pnotes{(keys %$pnotes)};
+        }
+    }
 }
 
 # This is a per-process cache.  Under mod_cgi it's identical to the
@@ -996,7 +1010,7 @@ sub _cleanup {
         $dbh->bz_rollback_transaction() if $dbh->bz_in_transaction;
         $dbh->disconnect;
     }
-    undef $_request_cache;
+    clear_request_cache();
 
     # These are both set by CGI.pm but need to be undone so that
     # Apache can actually shut down its children if it needs to.
@@ -1118,10 +1132,10 @@ not an arrayref.
 
 =item C<user>
 
-C<undef> if there is no currently logged in user or if the login code has not
-yet been run.  If an sudo session is in progress, the C<Bugzilla::User>
-corresponding to the person who is being impersonated.  If no session is in
-progress, the current C<Bugzilla::User>.
+Default C<Bugzilla::User> object if there is no currently logged in user or
+if the login code has not yet been run.  If an sudo session is in progress,
+the C<Bugzilla::User> corresponding to the person who is being impersonated.
+If no session is in progress, the current C<Bugzilla::User>.
 
 =item C<set_user>
 
@@ -1258,6 +1272,10 @@ The main database handle. See L<DBI>.
 Currently installed languages.
 Returns a reference to a list of RFC 1766 language tags of installed languages.
 
+=item C<current_language>
+
+The currently active language.
+
 =item C<switch_to_shadow_db>
 
 Switch from using the main database to using the shadow database.
@@ -1288,6 +1306,10 @@ this Bugzilla installation.
 
 Tells you whether or not a specific feature is enabled. For names
 of features, see C<OPTIONAL_MODULES> in C<Bugzilla::Install::Requirements>.
+
+=item C<clear_request_cache>
+
+Removes all entries from the C<request_cache>.
 
 =back
 

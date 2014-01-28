@@ -1036,8 +1036,8 @@ sub process_bug {
                 push(@query, $custom_field);
                 push(@values, $value);
             }
-        } elsif ($field->type == FIELD_TYPE_NUMERIC) {
-            eval { $value = Bugzilla::Bug->_check_numeric_field($value); };
+        } elsif ($field->type == FIELD_TYPE_DATE) {
+            eval { $value = Bugzilla::Bug->_check_date_field($value); };
             if ($@) {
                 $err .= "Skipping illegal value \"$value\" in $custom_field.\n" ;
             }
@@ -1214,7 +1214,7 @@ sub process_bug {
                               $c->{isprivate}, $c->{thetext}, 0);
     }
     $sth_comment->execute($id, $exporterid, $timestamp, 0, $comments, $worktime);
-    Bugzilla::Bug->new($id)->_sync_fulltext('new_bug');
+    Bugzilla::Bug->new($id)->_sync_fulltext( new_bug => 1);
 
     # Add this bug to each group of which its product is a member.
     my $sth_group = $dbh->prepare("INSERT INTO bug_group_map (bug_id, group_id) 

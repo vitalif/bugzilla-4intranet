@@ -315,8 +315,8 @@ if (Bugzilla->params->{usestatuswhiteboard})
 push @{$vars->{freetext_fields}},
     Bugzilla->active_custom_fields({ type => [ FIELD_TYPE_TEXTAREA, FIELD_TYPE_FREETEXT, FIELD_TYPE_EXTURL ] });
 
-($vars->{known_name}) = list $params->{known_name};
-$vars->{columnlist} = $params->{columnlist};
+$vars->{'known_name'} = $cgi->param('known_name');
+$vars->{'columnlist'} = $cgi->param('columnlist');
 
 # Add in the defaults.
 $vars->{default} = $default;

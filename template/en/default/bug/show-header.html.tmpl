@@ -15,8 +15,8 @@
 
 [% USE Bugzilla %]
 
+[% filtered_alias = bug.alias FILTER html %]
 [% filtered_desc = bug.short_desc FILTER html %]
-[% subheader = filtered_desc %]
 [% filtered_timestamp = bug.delta_ts FILTER time %]
 [% filtered_prodcomp = bug.product _ '/' _ bug.component | html %]
 [% filtered_stat = bug.bug_status _ ' ' _ bug.resolution | html %]

@@ -391,64 +391,65 @@
 [% END %]
 
 [% BLOCK msg_group_updated %]
-  [% IF changes.keys.size %]
-    The following changes have been made to the '[% group.name | html %]'
-    group:
-    <ul>
-    [% FOREACH field = changes.keys.sort %]
-      [% SWITCH field %]
-        [% CASE 'name' %]
-          <li>The name was changed to '[% changes.name.1 | html %]'</li>
-        [% CASE 'description' %]
-          <li>The description was updated.</li>
-        [% CASE 'userregexp' %]
-          <li>The regular expression was updated.</li>
-        [% CASE 'isactive' %]
-          [% IF changes.isactive.1 %]
-            <li>The group will now be used for [% terms.bugs %].</li>
-          [% ELSE %]
-            <li>The group will no longer be used for [% terms.bugs %].</li>
-          [% END %]
-        [% CASE 'icon_url' %]
-          <li>The group icon URL has been updated.</li>
-        [% CASE 'members_add' %]
-          <li>The following groups are now members of this group:
-            [%+ changes.members_add.join(', ') | html %]</li>
-        [% CASE 'members_remove' %]
-          <li>The following groups are no longer members of this group:
-            [%+ changes.members_remove.join(', ') | html %]</li>
-        [% CASE 'member_of_add' %]
-          <li>This group is now a member of the following groups:
-            [%+ changes.member_of_add.join(', ') | html %]</li>
-        [% CASE 'member_of_remove' %]
-          <li>This group is no longer a member of the following groups:
-            [%+ changes.member_of_remove.join(', ') | html %]</li>
-        [% CASE 'bless_from_add' %]
-          <li>The following groups may now add users to this group:
-            [%+ changes.bless_from_add.join(', ') | html %]</li>
-        [% CASE 'bless_from_remove' %]
-          <li>The following groups may no longer add users to this group:
-            [%+ changes.bless_from_remove.join(', ') | html %]</li>
-        [% CASE 'bless_to_add' %]
-          <li>This group may now add users to the following groups:
-            [%+ changes.bless_to_add.join(', ') | html %]</li>
-        [% CASE 'bless_to_remove' %]
-          <li>This group may no longer add users to the following groups:
-            [%+ changes.bless_to_remove.join(', ') | html %]</li>
-        [% CASE 'visible_from_add' %]
-          <li>The following groups can now see users in this group:
-            [%+ changes.visible_from_add.join(', ') | html %]</li>
-        [% CASE 'visible_from_remove' %]
-          <li>The following groups may no longer see users in this group:
-            [%+ changes.visible_from_remove.join(', ') | html %]</li>
-        [% CASE 'visible_to_me_add' %]
-          <li>This group may now see users in the following groups:
-            [%+ changes.visible_to_me_add.join(', ') | html %]</li>
-        [% CASE 'visible_to_me_remove' %]
-          <li>This group may no longer see users in the following groups:
-            [%+ changes.visible_to_me_remove.join(', ') | html %]</li>
-      [% END %]
-    [% END %]
+    [% IF changes.keys.size %]
+      The following changes have been made to the '[% group.name FILTER html %]'
+      group:
+      <ul>
+      [% FOREACH field = changes.keys.sort %]
+        [% SWITCH field %]
+          [% CASE 'name' %]
+            <li>The name was changed to '[% changes.name.1 FILTER html %]'</li>
+          [% CASE 'description' %]
+            <li>The description was updated.</li>
+          [% CASE 'userregexp' %]
+            <li>The regular expression was updated.</li>
+          [% CASE 'isactive' %]
+            [% IF changes.isactive.1 %]
+              <li>The group will now be used for [% terms.bugs %].</li>
+            [% ELSE %]
+              <li>The group will no longer be used for [% terms.bugs %].</li>
+            [% END %]
+          [% CASE 'icon_url' %]
+            <li>The group icon URL has been updated.</li>
+          [% CASE 'members_add' %]
+            <li>The following groups are now members of this group:
+              [%+ changes.members_add.join(', ') FILTER html %]</li>
+          [% CASE 'members_remove' %]
+            <li>The following groups are no longer members of this group:
+              [%+ changes.members_remove.join(', ') FILTER html %]</li>
+          [% CASE 'member_of_add' %]
+            <li>This group is now a member of the following groups:
+              [%+ changes.member_of_add.join(', ') FILTER html %]</li>
+          [% CASE 'member_of_remove' %]
+            <li>This group is no longer a member of the following groups:
+              [%+ changes.member_of_remove.join(', ') FILTER html %]</li>
+          [% CASE 'bless_from_add' %]
+            <li>The following groups may now add users to this group:
+              [%+ changes.bless_from_add.join(', ') FILTER html %]</li>
+          [% CASE 'bless_from_remove' %]
+            <li>The following groups may no longer add users to this group:
+              [%+ changes.bless_from_remove.join(', ') FILTER html %]</li>
+          [% CASE 'bless_to_add' %]
+            <li>This group may now add users to the following groups:
+              [%+ changes.bless_to_add.join(', ') FILTER html %]</li>
+          [% CASE 'bless_to_remove' %]
+            <li>This group may no longer add users to the following groups:
+              [%+ changes.bless_to_remove.join(', ') FILTER html %]</li>
+          [% CASE 'visible_from_add' %]
+            <li>The following groups can now see users in this group:
+              [%+ changes.visible_from_add.join(', ') FILTER html %]</li>
+          [% CASE 'visible_from_remove' %]
+            <li>The following groups may no longer see users in this group:
+              [%+ changes.visible_from_remove.join(', ') FILTER html %]</li>
+          [% CASE 'visible_to_me_add' %]
+            <li>This group may now see users in the following groups:
+              [%+ changes.visible_to_me_add.join(', ') FILTER html %]</li>
+          [% CASE 'visible_to_me_remove' %]
+            <li>This group may no longer see users in the following groups:
+              [%+ changes.visible_to_me_remove.join(', ') FILTER html %]</li>
+          [% CASE %]
+            [% Hook.process('group_updated_fields') %]
+        [% END %]
     </ul>
   [% ELSE %]
     You didn't request any change for the '[% group.name | html %]'
@@ -484,15 +485,15 @@
     <ul>
       [% IF changes.name.defined %]
         <li>Keyword renamed to <em>[% keyword.name FILTER html %]</em>.</li>
-      [% END %]
-      [% IF changes.description.defined %]
-        <li>Description updated to <em>[% keyword.description FILTER html %]</em></li>
-      [% END %]
+	  [% END %]
+    [% IF changes.description.defined %]
+      <li>Description updated to <em>[% keyword.description FILTER html %]</em></li>
+    [% END %]
     </ul>
   [% ELSE %]
     No changes made.
   [% END %]
-[% END %]
+[% END %]		
 
 [% BLOCK msg_logged_out %]
   [% title = "Logged Out" %]
@@ -609,27 +610,28 @@
     [% terms.Bugzilla %] has now been shut down. To re-enable the system,
     clear the <em>shutdownhtml</em> field.
   [% END%]
-[% END %]
+[% END %]	  
 
 [% BLOCK msg_password_change_canceled %]
-  [% title = "Cancel Request to Change Password" %]
-  Your request has been canceled.
+    [% title = "Cancel Request to Change Password" %]
+    Your request has been canceled.
 [% END %]
 
 [% BLOCK msg_password_change_request %]
-  [% title = "Request to Change Password" %]
-  A token for changing your password has been emailed to you.
-  Follow the instructions in that email to change your password.
+    [% title = "Request to Change Password" %]
+    A token for changing your password has been emailed to
+    <em>[% login_name FILTER html %]</em>.
+    Follow the instructions in that email to change your password.
 [% END %]
 
 [% BLOCK msg_password_changed %]
-  [% title = "Password Changed" %]
-  Your password has been changed.
+    [% title = "Password Changed" %]
+    Your password has been changed.
 [% END %]
 
 [% BLOCK msg_flag_type_created %]
-  [% title = BLOCK %]Flag Type '[% name FILTER html %]' Created[% END %]
-  The flag type <em>[% name FILTER html %]</em> has been created.
+    [% title = BLOCK %]Flag Type '[% name FILTER html %]' Created[% END %]
+    The flag type <em>[% name FILTER html %]</em> has been created.
 [% END %]
 
 [% BLOCK msg_flag_type_changes_saved %]
@@ -873,63 +875,63 @@
 [% END %]
 
 [% BLOCK msg_flag_type_updated %]
-  [% title = BLOCK %]Flag Type '[% flagtype.name FILTER html %]' Updated[% END %]
-  [% IF changes.size %]
-    Changes to the flag type <em>[% flagtype.name FILTER html %]</em>
-    have been saved:
-    <ul>
-      [% IF changes.is_active.defined %]
-        <li>Flag type is now [% flagtype.is_active ? "active" : "inactive" %]</li>
-      [% END %]
-      [% IF changes.name.defined %]
-        <li>Flag type renamed to <em>[% flagtype.name FILTER html %]</em></li>
-      [% END %]
-      [% IF changes.description.defined %]
-        <li>Description updated to <em>[% flagtype.description FILTER html %]</em></li>
-      [% END %]
-      [% IF changes.cc_list.defined %]
-        [% IF flagtype.cc_list %]
-          <li>CC list updated to <em>[% flagtype.cc_list FILTER html %]</em></li>
-        [% ELSE %]
-          <li>CC list is now empty</li>
+	[% title = BLOCK %]Flag Type '[% flagtype.name FILTER html %]' Updated[% END %]
+    [% IF changes.size %]
+      Changes to the flag type <em>[% flagtype.name FILTER html %]</em>
+      have been saved:
+      <ul>
+        [% IF changes.is_active.defined %]
+          <li>Flag type is now [% flagtype.is_active ? "active" : "inactive" %]</li>
         [% END %]
-      [% END %]
-      [% IF changes.sortkey.defined %]
-        <li>Sortkey updated to <em>[% flagtype.sortkey FILTER html %]</em></li>
-      [% END %]
-      [% IF changes.is_requestable.defined %]
-        <li>Flag type is [% "no longer" UNLESS flagtype.is_requestable %] requestable</li>
-      [% END %]
-      [% IF changes.is_requesteeble.defined AND flagtype.is_requestable %]
-        <li>
-          Flag type is [% "no longer" UNLESS flagtype.is_requesteeble %]
-          specifically requestable
-        </li>
-      [% END %]
-      [% IF changes.is_multiplicable.defined %]
-        <li>Flag type is [% "no longer" UNLESS flagtype.is_multiplicable %] multiplicable</li>
-      [% END %]
-      [% IF changes.grant_group_id.defined %]
-        [% IF flagtype.grant_group_id %]
-          <li>Grant group updated to <em>[% flagtype.grant_group.name FILTER html %]</em></li>
-        [% ELSE %]
-          <li>Grant group deleted</li>
+        [% IF changes.name.defined %]
+          <li>Flag type renamed to <em>[% flagtype.name FILTER html %]</em></li>
         [% END %]
-      [% END %]
-      [% IF changes.request_group_id.defined %]
-        [% IF flagtype.request_group_id %]
-          <li>Request group updated to <em>[% flagtype.request_group.name FILTER html %]</em></li>
-        [% ELSE %]
-          <li>Request group deleted</li>
+        [% IF changes.description.defined %]
+          <li>Description updated to <em>[% flagtype.description FILTER html %]</em></li>
         [% END %]
-      [% END %]
-      [% IF changes.inclusions.defined || changes.exclusions.defined %]
-        <li>The inclusions and exclusions lists have been updated</li>
-      [% END %]
-   </ul>
-  [% ELSE %]
-    No changes made to flag type <em>[% flagtype.name FILTER html %]</em>.
-  [% END %]
+        [% IF changes.cc_list.defined %]
+          [% IF flagtype.cc_list %]
+            <li>CC list updated to <em>[% flagtype.cc_list FILTER html %]</em></li>
+          [% ELSE %]
+            <li>CC list is now empty</li>
+          [% END %]
+        [% END %]
+        [% IF changes.sortkey.defined %]
+          <li>Sortkey updated to <em>[% flagtype.sortkey FILTER html %]</em></li>
+        [% END %]
+        [% IF changes.is_requestable.defined %]
+          <li>Flag type is [% "no longer" UNLESS flagtype.is_requestable %] requestable</li>
+        [% END %]
+        [% IF changes.is_requesteeble.defined AND flagtype.is_requestable %]
+          <li>
+            Flag type is [% "no longer" UNLESS flagtype.is_requesteeble %]
+            specifically requestable
+          </li>
+        [% END %]
+        [% IF changes.is_multiplicable.defined %]
+          <li>Flag type is [% "no longer" UNLESS flagtype.is_multiplicable %] multiplicable</li>
+        [% END %]
+        [% IF changes.grant_group_id.defined %]
+          [% IF flagtype.grant_group_id %]
+            <li>Grant group updated to <em>[% flagtype.grant_group.name FILTER html %]</em></li>
+          [% ELSE %]
+            <li>Grant group deleted</li>
+          [% END %]
+        [% END %]
+        [% IF changes.request_group_id.defined %]
+          [% IF flagtype.request_group_id %]
+            <li>Request group updated to <em>[% flagtype.request_group.name FILTER html %]</em></li>
+          [% ELSE %]
+            <li>Request group deleted</li>
+          [% END %]
+        [% END %]
+        [% IF changes.inclusions.defined || changes.exclusions.defined %]
+          <li>The inclusions and exclusions lists have been updated</li>
+        [% END %]
+     </ul>
+    [% ELSE %]
+      No changes made to flag type <em>[% flagtype.name FILTER html %]</em>.
+    [% END %]
 [% END %]
 
 [% BLOCK msg_workflow_updated %]

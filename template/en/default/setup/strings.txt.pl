@@ -95,6 +95,7 @@ END
     feature_moving            => 'Move Bugs Between Installations',
     feature_patch_viewer      => 'Patch Viewer',
     feature_rand_security     => 'Improve cookie and token security',
+    feature_rest              => 'REST Interface',
     feature_smtp_auth         => 'SMTP Authentication',
     feature_smtp_ssl          => 'SSL Support for SMTP',
     feature_updates           => 'Automatic Update Notifications',
@@ -375,15 +376,6 @@ as well), you should install patchutils from:
 
     http://cyberelk.net/tim/software/patchutils/
 END
-    ppm_repo_add => <<EOT,
-***********************************************************************
-* Note For Windows Users                                              *
-***********************************************************************
-* In order to install the modules listed below, you first have to run * 
-* the following command as an Administrator:                          *
-*                                                                     *
-*   ppm repo add theory58S ##theory_url##
-EOT
     template_precompile   => "Precompiling templates...",
     template_removal_failed => <<END,
 WARNING: The directory '##template_cache##' could not be removed.

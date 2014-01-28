@@ -66,7 +66,9 @@
 [% PROCESS "bug/comment-preview-div.html.tmpl" %]
 
 [% FOREACH comment = comments %]
-  [% PROCESS a_comment %]
+  [% IF comment.count >= start_at %]
+    [% PROCESS a_comment %]
+  [% END %]
 [% END %]
 
 [% IF mode == "edit" && user.id
@@ -151,7 +153,7 @@
         </span>
         [% END %]
 
-        [% IF mode == "edit" && user.is_insider %]
+        [% IF mode == "edit" && user.is_insider && bug.check_can_change_field('longdesc', 0, 1) %]
           <div class="bz_private_checkbox">
             <input type="hidden" value="1"
                    name="defined_isprivate_[% comment.id %]" />

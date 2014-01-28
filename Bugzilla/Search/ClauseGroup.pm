@@ -10,7 +10,7 @@ package Bugzilla::Search::ClauseGroup;
 use 5.10.1;
 use strict;
 
-use base qw(Bugzilla::Search::Clause);
+use parent qw(Bugzilla::Search::Clause);
 
 use Bugzilla::Error;
 use Bugzilla::Search::Condition qw(condition);
@@ -66,7 +66,10 @@ sub add {
 
     # Unsupported fields
     if (grep { $_ eq $field } UNSUPPORTED_FIELDS ) {
-        ThrowUserError('search_grouped_field_invalid', { field => $field });
+        # XXX - Hack till bug 916882 is fixed.
+        my $operator = scalar(@args) == 3 ? $args[1] : $args[0]->{operator};
+        ThrowUserError('search_grouped_field_invalid', { field => $field })
+          unless (($field eq 'product' || $field eq 'component') && $operator =~ /^changed/);
     }
 
     $self->SUPER::add(@args);

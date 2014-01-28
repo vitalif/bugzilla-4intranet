@@ -30,6 +30,8 @@ use constant DEFAULT_WHITELIST => qr/^(?:new|new_from_list|check|run_create_vali
 use constant SUB_WHITELIST => (
     'Bugzilla::Flag'     => qr/^(?:(force_)?retarget|force_cleanup)$/,
     'Bugzilla::FlagType' => qr/^sqlify_criteria$/,
+    'Bugzilla::JobQueue' => qr/(?:^work_once|subprocess_worker)$/,
+    'Bugzilla::Search'   => qr/^SPECIAL_PARSING$/,
 );
 
 # These modules do not need to be documented, generally because they
@@ -41,6 +43,8 @@ use constant MODULE_WHITELIST => qw(
     Bugzilla::Auth::Verify::
     Bugzilla::BugUrl::
     Bugzilla::Config::
+    Bugzilla::Extension::
+    Bugzilla::Job::
 );
 
 # Capture the TESTOUT from Test::More or Test::Builder for printing errors.
@@ -79,6 +83,7 @@ foreach my $file (@module_files) {
     my $module = $file;
     $module =~ s/\.pm$//;
     $module =~ s#/#::#g;
+    $module =~ s/^extensions/Bugzilla::Extension/;
 
     my @whitelist = (DEFAULT_WHITELIST);
     push(@whitelist, $sub_whitelist{$module}) if $sub_whitelist{$module};

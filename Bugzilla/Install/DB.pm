@@ -725,6 +725,15 @@ sub update_table_definitions {
     # 2012-12-29 reed@reedloden.com - Bug 785283
     _add_password_salt_separator();
 
+    # 2013-01-02 LpSolit@gmail.com - Bug 824361
+    _fix_longdescs_indexes();
+
+    # 2013-02-04 dkl@mozilla.com - Bug 824346
+    _fix_flagclusions_indexes();
+
+    # 2013-08-26 sgreen@redhat.com - Bug 903895
+    _fix_components_primary_key();
+
     ################################################################
     # New --TABLE-- changes should go *** A B O V E *** this point #
     ################################################################
@@ -1443,9 +1452,9 @@ sub _use_ids_for_products_and_components {
         print "Updating the database to use component IDs.\n";
 
         $dbh->bz_add_column("components", "id",
-            {TYPE => 'SMALLSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
+            {TYPE => 'MEDIUMSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
         $dbh->bz_add_column("bugs", "component_id",
-                            {TYPE => 'INT2', NOTNULL => 1}, 0);
+                            {TYPE => 'INT3', NOTNULL => 1}, 0);
 
         my %components;
         $sth = $dbh->prepare("SELECT id, value, product_id FROM components");
@@ -3731,9 +3740,6 @@ sub _migrate_user_tags {
                                      VALUES (?, ?)');
     my $sth_nq = $dbh->prepare('UPDATE namedqueries SET query = ?
                                 WHERE id = ?');
-    my $sth_nq_footer = $dbh->prepare(
-        'DELETE FROM namedqueries_link_in_footer 
-               WHERE user_id = ? AND namedquery_id = ?');
 
     if (scalar @$tags) {
         print install_string('update_queries_to_tags'), "\n";
@@ -3773,13 +3779,11 @@ sub _migrate_user_tags {
             next if !$bug_id;
             $sth_bug_tag->execute($bug_id, $tag_id);
         }
-        
+
         # Existing tags may be used in whines, or shared with
         # other users. So we convert them rather than delete them.
         $uri->query_param('tag', $tag_name);
         $sth_nq->execute($uri->query, $query_id);
-        # But we don't keep showing them in the footer.
-        $sth_nq_footer->execute($user_id, $query_id);
     }
 
     $dbh->bz_commit_transaction();
@@ -3890,6 +3894,15 @@ sub _fix_longdescs_primary_key {
     }
 }
 
+sub _fix_longdescs_indexes {
+    my $dbh = Bugzilla->dbh;
+    my $bug_id_idx = $dbh->bz_index_info('longdescs', 'longdescs_bug_id_idx');
+    if ($bug_id_idx && scalar @{$bug_id_idx->{'FIELDS'}} < 2) {
+        $dbh->bz_drop_index('longdescs', 'longdescs_bug_id_idx');
+        $dbh->bz_add_index('longdescs', 'longdescs_bug_id_idx', [qw(bug_id work_time)]);
+    }
+}
+
 sub _fix_dependencies_dupes {
     my $dbh = Bugzilla->dbh;
     my $blocked_idx = $dbh->bz_index_info('dependencies', 'dependencies_blocked_idx');
@@ -3967,6 +3980,52 @@ sub _add_password_salt_separator {
         }
     }
     $dbh->bz_commit_transaction();
+}
+
+sub _fix_flagclusions_indexes {
+    my $dbh = Bugzilla->dbh;
+    foreach my $table ('flaginclusions', 'flagexclusions') {
+        my $index = $table . '_type_id_idx';
+        my $idx_info = $dbh->bz_index_info($table, $index);
+        if ($idx_info && $idx_info->{'TYPE'} ne 'UNIQUE') {
+            # Remove duplicated entries
+            my $dupes = $dbh->selectall_arrayref("
+                SELECT type_id, product_id, component_id, COUNT(*) AS count
+                  FROM $table " .
+                $dbh->sql_group_by('type_id, product_id, component_id') . "
+                HAVING COUNT(*) > 1",
+                { Slice => {} });
+            say "Removing duplicated entries from the '$table' table..." if @$dupes;
+            foreach my $dupe (@$dupes) {
+                $dbh->do("DELETE FROM $table 
+                          WHERE type_id = ? AND product_id = ? AND component_id = ?",
+                         undef, $dupe->{type_id}, $dupe->{product_id}, $dupe->{component_id});
+                $dbh->do("INSERT INTO $table (type_id, product_id, component_id) VALUES (?, ?, ?)",
+                         undef, $dupe->{type_id}, $dupe->{product_id}, $dupe->{component_id});
+            }
+            $dbh->bz_drop_index($table, $index);
+            $dbh->bz_add_index($table, $index,
+                { FIELDS => [qw(type_id product_id component_id)],
+                  TYPE   => 'UNIQUE' });
+        }
+    }
+}
+
+sub _fix_components_primary_key {
+    my $dbh = Bugzilla->dbh;
+    if ($dbh->bz_column_info('components', 'id')->{TYPE} ne 'MEDIUMSERIAL') {
+        $dbh->bz_drop_related_fks('components', 'id');
+        $dbh->bz_alter_column("components", "id",
+                              {TYPE => 'MEDIUMSERIAL',  NOTNULL => 1,  PRIMARYKEY => 1});
+        $dbh->bz_alter_column("flaginclusions", "component_id",
+                              {TYPE => 'INT3'});
+        $dbh->bz_alter_column("flagexclusions", "component_id",
+                              {TYPE => 'INT3'});
+        $dbh->bz_alter_column("bugs", "component_id",
+                              {TYPE => 'INT3', NOTNULL => 1});
+        $dbh->bz_alter_column("component_cc", "component_id",
+                              {TYPE => 'INT3', NOTNULL => 1});
+    }
 }
 
 1;

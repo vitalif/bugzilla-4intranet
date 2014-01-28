@@ -25,7 +25,7 @@ my $datadir = bz_locations()->{'datadir'};
 eval "require LWP; require LWP::UserAgent;";
 my $lwp = $@ ? 0 : 1;
 
-if ((@ARGV != 1) || ($ARGV[0] !~ /^https?:/))
+if ((@ARGV != 1) || ($ARGV[0] !~ /^https?:/i))
 {
     print "Usage: $0 <URL to this Bugzilla installation>\n";
     print "e.g.:  $0 http://www.mycompany.com/bugzilla\n";

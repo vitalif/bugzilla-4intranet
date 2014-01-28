@@ -6,6 +6,8 @@
 # defined by the Mozilla Public License, v. 2.0.
 
 package Bugzilla::Extension::MoreBugUrl::GetSatisfaction;
+
+use 5.10.1;
 use strict;
 use parent qw(Bugzilla::BugUrl);
 
@@ -18,7 +20,7 @@ sub should_handle {
 
     # GetSatisfaction URLs only have one form:
     #   http(s)://getsatisfaction.com/PROJECT_NAME/topics/TOPIC_NAME
-    return ($uri->authority =~ /^getsatisfaction.com$/i
+    return (lc($uri->authority) eq 'getsatisfaction.com'
             and $uri->path =~ m|^/[^/]+/topics/[^/]+$|) ? 1 : 0;
 }
 

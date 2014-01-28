@@ -254,7 +254,7 @@ use constant ABSTRACT_SCHEMA => {
                                     REFERENCES => {TABLE  => 'profiles',
                                                    COLUMN => 'userid'}},
             version             => {TYPE => 'varchar(64)', NOTNULL => 1},
-            component_id        => {TYPE => 'INT2', NOTNULL => 1,
+            component_id        => {TYPE => 'INT3', NOTNULL => 1,
                                     REFERENCES => {TABLE  => 'components',
                                                    COLUMN => 'id'}},
             resolution          => {TYPE => 'varchar(64)',
@@ -407,7 +407,7 @@ use constant ABSTRACT_SCHEMA => {
             extra_data      => {TYPE => 'varchar(255)'}
         ],
         INDEXES => [
-            longdescs_bug_id_idx   => ['bug_id'],
+            longdescs_bug_id_idx   => [qw(bug_id work_time)],
             longdescs_who_idx     => [qw(who bug_id)],
             longdescs_bug_when_idx => ['bug_when'],
         ],
@@ -641,14 +641,14 @@ use constant ABSTRACT_SCHEMA => {
                              REFERENCES => {TABLE  => 'products',
                                             COLUMN => 'id',
                                             DELETE => 'CASCADE'}},
-            component_id => {TYPE => 'INT2',
+            component_id => {TYPE => 'INT3',
                              REFERENCES => {TABLE  => 'components',
                                             COLUMN => 'id',
                                             DELETE => 'CASCADE'}},
         ],
         INDEXES => [
-            flaginclusions_type_id_idx =>
-                [qw(type_id product_id component_id)],
+            flaginclusions_type_id_idx => { FIELDS => [qw(type_id product_id component_id)],
+                                            TYPE   => 'UNIQUE' },
         ],
     },
 
@@ -662,14 +662,14 @@ use constant ABSTRACT_SCHEMA => {
                              REFERENCES => {TABLE  => 'products',
                                             COLUMN => 'id',
                                             DELETE => 'CASCADE'}},
-            component_id => {TYPE => 'INT2',
+            component_id => {TYPE => 'INT3',
                              REFERENCES => {TABLE  => 'components',
                                             COLUMN => 'id',
                                             DELETE => 'CASCADE'}},
         ],
         INDEXES => [
-            flagexclusions_type_id_idx =>
-                [qw(type_id product_id component_id)],
+            flagexclusions_type_id_idx => { FIELDS => [qw(type_id product_id component_id)],
+                                            TYPE   => 'UNIQUE' },
         ],
     },
 
@@ -948,6 +948,23 @@ use constant ABSTRACT_SCHEMA => {
         ],
     },
 
+    email_bug_ignore => {
+        FIELDS => [
+            user_id => {TYPE => 'INT3', NOTNULL => 1,
+                        REFERENCES => {TABLE  => 'profiles',
+                                       COLUMN => 'userid',
+                                       DELETE => 'CASCADE'}},
+            bug_id  => {TYPE => 'INT3', NOTNULL => 1,
+                        REFERENCES => {TABLE  => 'bugs',
+                                       COLUMN => 'bug_id',
+                                       DELETE => 'CASCADE'}},
+        ],
+        INDEXES => [
+            email_bug_ignore_user_id_idx => {FIELDS => [qw(user_id bug_id)],
+                                             TYPE   => 'UNIQUE'},
+        ],
+    },
+
     watch => {
         FIELDS => [
             watcher => {TYPE => 'INT3', NOTNULL => 1,
@@ -1055,7 +1072,7 @@ use constant ABSTRACT_SCHEMA => {
                              REFERENCES => {TABLE  => 'profiles',
                                             COLUMN => 'userid',
                                             DELETE => 'CASCADE'}},
-            component_id => {TYPE => 'INT2', NOTNULL => 1,
+            component_id => {TYPE => 'INT3', NOTNULL => 1,
                              REFERENCES => {TABLE  => 'components',
                                             COLUMN => 'id',
                                             DELETE => 'CASCADE'}},
@@ -1333,7 +1350,7 @@ use constant ABSTRACT_SCHEMA => {
 
     components => {
         FIELDS => [
-            id               => {TYPE => 'SMALLSERIAL', NOTNULL => 1,
+            id               => {TYPE => 'MEDIUMSERIAL', NOTNULL => 1,
                                  PRIMARYKEY => 1},
             name             => {TYPE => 'varchar(64)', NOTNULL => 1},
             product_id       => {TYPE => 'INT2', NOTNULL => 1,

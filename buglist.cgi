@@ -27,11 +27,6 @@ use Bugzilla::Token;
 
 use Time::HiRes qw(gettimeofday);
 use Date::Parse;
-use POSIX;
-
-# FIXME TRASHCODE!!! MUST BE REFACTORED!!!
-# For example: buglist.cgi?dotweak=1&format=superworktime => $vars->{token} will be incorrect
-use Time::HiRes qw(gettimeofday tv_interval);
 
 my $cgi = Bugzilla->cgi;
 my $dbh = Bugzilla->dbh;
@@ -151,7 +146,7 @@ my $serverpush =
     && exists $ENV{'HTTP_USER_AGENT'} 
       && $ENV{'HTTP_USER_AGENT'} =~ /(Mozilla.[3-9]|Opera)/
         && $ENV{'HTTP_USER_AGENT'} !~ /compatible/i
-          && $ENV{'HTTP_USER_AGENT'} !~ /WebKit/
+          && $ENV{'HTTP_USER_AGENT'} !~ /(?:WebKit|Trident|KHTML)/
             && !defined($cgi->param('serverpush'))
               || $cgi->param('serverpush');
 
@@ -326,9 +321,10 @@ sub GetGroups {
 }
 
 sub _close_standby_message {
-    my ($contenttype, $disposition, $serverpush) = @_;
+    my ($contenttype, $disp, $disp_prefix, $extension, $serverpush) = @_;
     my $cgi = Bugzilla->cgi;
-
+    $cgi->set_dated_content_disp($disp, $disp_prefix, $extension);
+    
     # Close the "please wait" page, then open the buglist page
     if ($serverpush) {
         $cgi->send_multipart_end();
@@ -369,17 +365,10 @@ $params ||= new Bugzilla::CGI($cgi);
 # if available.  We have to do this now, even though we return HTTP headers
 # at the end, because the fact that there is a remembered query gets
 # forgotten in the process of retrieving it.
-my @time = localtime(time());
-my $date = sprintf "%04d-%02d-%02d", 1900+$time[5],$time[4]+1,$time[3];
-my $filename = "bugs-$date.$format->{extension}";
+my $disp_prefix = "bugs";
 if ($cmdtype eq "dorem" && $remaction =~ /^run/) {
-    $filename = $cgi->param('namedcmd') . "-$date.$format->{extension}";
-    # Remove white-space from the filename so the user cannot tamper
-    # with the HTTP headers.
-    $filename =~ s/\s/_/g;
+    $disp_prefix = $cgi->param('namedcmd');
 }
-$filename =~ s/\\/\\\\/g; # escape backslashes
-$filename =~ s/"/\\"/g; # escape quotes
 
 # Take appropriate action based on user's request.
 if ($cmdtype eq "dorem") {
@@ -809,18 +798,6 @@ if ($superworktime)
 # Query Execution
 ################################################################################
 
-if ($cgi->param('debug')) {
-    $vars->{'debug'} = 1;
-    $vars->{'query'} = $query;
-    # Explains are limited to admins because you could use them to figure
-    # out how many hidden bugs are in a particular product (by doing
-    # searches and looking at the number of rows the explain says it's
-    # examining).
-    if ($user->in_group('admin')) {
-        $vars->{'query_explain'} = $dbh->bz_explain($query);
-    }
-}
-
 # Time to use server push to display an interim message to the user until
 # the query completes and we can display the bug list.
 if ($serverpush) {
@@ -856,10 +833,28 @@ $::SIG{PIPE} = 'DEFAULT';
 my $query_sql_time = gettimeofday();
 
 # Execute the query.
-my $start_time = [gettimeofday()];
-my $buglist_sth = $dbh->prepare($query);
-$buglist_sth->execute();
-$vars->{query_time} = tv_interval($start_time);
+my ($data, $extra_data) = $search->data;
+$vars->{'search_description'} = $search->search_description;
+
+if ($cgi->param('debug')
+    && Bugzilla->params->{debug_group}
+    && $user->in_group(Bugzilla->params->{debug_group})
+) {
+    $vars->{'debug'} = 1;
+    $vars->{'queries'} = $extra_data;
+    my $query_time = 0;
+    $query_time += $_->{'time'} foreach @$extra_data;
+    $vars->{'query_time'} = $query_time;
+    # Explains are limited to admins because you could use them to figure
+    # out how many hidden bugs are in a particular product (by doing
+    # searches and looking at the number of rows the explain says it's
+    # examining).
+    if ($user->in_group('admin')) {
+        foreach my $query (@$extra_data) {
+            $query->{explain} = $dbh->bz_explain($query->{sql});
+        }
+    }
+}
 
 ################################################################################
 # Results Retrieval
@@ -892,14 +887,14 @@ my @bugidlist;
 
 my @bugs; # the list of records
 
-while (my @row = $buglist_sth->fetchrow_array()) {
+foreach my $row (@$data) {
     my $bug = {}; # a record
 
     # Slurp the row of data into the record.
     # The second from last column in the record is the number of groups
     # to which the bug is restricted.
     foreach my $column (@selectcolumns) {
-        $bug->{$column} = shift @row;
+        $bug->{$column} = shift @$row;
     }
 
     # Process certain values further (i.e. date format conversion).
@@ -1030,7 +1025,10 @@ if (scalar(@bugowners) > 1 && $user->in_group('editbugs')) {
 # the list more compact.
 $vars->{'splitheader'} = $cgi->cookie('SPLITHEADER') ? 1 : 0;
 
-$vars->{'quip'} = GetQuip();
+if ($user->settings->{'display_quips'}->{'value'} eq 'on') {
+    $vars->{'quip'} = GetQuip();
+}
+
 $vars->{'currenttime'} = localtime(time());
 
 # See if there's only one product in all the results (or only one product
@@ -1055,7 +1053,8 @@ if ($one_product && $user->can_enter_product($one_product)) {
 # The following variables are used when the user is making changes to multiple bugs.
 if ($dotweak && scalar @bugs) {
     if (!$vars->{'caneditbugs'}) {
-        _close_standby_message('text/html', 'inline', $serverpush);
+        _close_standby_message('text/html', 
+                               'inline', "error", "html", $serverpush);
         ThrowUserError('auth_failure', {group  => 'editbugs',
                                         action => 'modify',
                                         object => 'multiple_bugs'});
@@ -1217,10 +1216,8 @@ if ($format->{'extension'} eq "csv") {
     $vars->{'human'} = $cgi->param('human');
 }
 
-# Suggest a name for the bug list if the user wants to save it as a file.
-$disposition .= "; filename=\"$filename\"";
-
-_close_standby_message($contenttype, $disposition, $serverpush);
+_close_standby_message($contenttype, $disposition, $disp_prefix, 
+                       $format->{'extension'}, $serverpush);
 
 ################################################################################
 # Content Generation

@@ -56,7 +56,7 @@ sub new {
     # the rendering of pages.
     my $script = basename($0);
     if (my $path_info = $self->path_info) {
-        my @whitelist;
+        my @whitelist = ("rest.cgi");
         Bugzilla::Hook::process('path_info_whitelist', { whitelist => \@whitelist });
         if (!grep($_ eq $script, @whitelist)) {
             # IIS includes the full path to the script in PATH_INFO,
@@ -240,11 +240,11 @@ sub check_etag {
         $possible_etag =~ s/^\"//g;
         $possible_etag =~ s/\"$//g;
         if ($possible_etag eq $valid_etag or $possible_etag eq '*') {
-            print $self->header(-ETag => $possible_etag,
-                                -status => '304 Not Modified');
-            exit;
+            return 1;
         }
     }
+
+    return 0;
 }
 
 # Have to add the cookies in.
@@ -284,6 +284,10 @@ sub header {
     if (scalar(@_) == 1) {
         # Since we're adding parameters below, we have to name it.
         unshift(@_, '-type' => shift(@_));
+    }
+
+    if ($self->{'_content_disp'}) {
+        unshift(@_, '-content_disposition' => $self->{'_content_disp'});
     }
 
     # Add the cookies in if we have any
@@ -518,9 +522,9 @@ sub redirect_search_url {
 
     # GET requests that lacked a list_id are always redirected. POST requests
     # are only redirected if they're under the CGI_URI_LIMIT though.
-    my $uri_length = length($self->self_url());
-    if ($self->request_method() ne 'POST' or $uri_length < CGI_URI_LIMIT) {
-        print $self->redirect(-url => $self->self_url());
+    my $self_url = $self->self_url();
+    if ($self->request_method() ne 'POST' or length($self_url) < CGI_URI_LIMIT) {
+        print $self->redirect(-url => $self_url);
         exit;
     }
 }
@@ -574,7 +578,23 @@ sub url_is_attachment_base {
         $regex =~ s/\\\%bugid\\\%/\\d+/;
     }
     $regex = "^$regex";
-    return ($self->self_url =~ $regex) ? 1 : 0;
+    return ($self->url =~ $regex) ? 1 : 0;
+}
+
+sub set_dated_content_disp {
+    my ($self, $type, $prefix, $ext) = @_;
+
+    my @time = localtime(time());
+    my $date = sprintf "%04d-%02d-%02d", 1900+$time[5], $time[4]+1, $time[3];
+    my $filename = "$prefix-$date.$ext";
+
+    $filename =~ s/\s/_/g; # Remove whitespace to avoid HTTP header tampering
+    $filename =~ s/\\/_/g; # Remove backslashes as well
+    $filename =~ s/"/\\"/g; # escape quotes
+
+    my $disposition = "$type; filename=\"$filename\"";
+
+    $self->{'_content_disp'} = $disposition;
 }
 
 ##########################
@@ -736,6 +756,11 @@ instead of calling this directly.
 =item C<redirect_to_urlbase>
 
 Redirects from the current URL to one prefixed by the urlbase parameter.
+
+=item C<set_dated_content_disp>
+
+Sets an appropriate date-dependent value for the Content Disposition header
+for a downloadable resource.
 
 =back
 

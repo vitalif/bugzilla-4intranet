@@ -163,6 +163,7 @@ use constant SQL_DEFINITIONS => {
     FIELD_TYPE_TEXTAREA,      { TYPE => 'MEDIUMTEXT', 
                                 NOTNULL => 1, DEFAULT => "''"},
     FIELD_TYPE_DATETIME,      { TYPE => 'DATETIME'   },
+    FIELD_TYPE_DATE,          { TYPE => 'DATE'       },
     FIELD_TYPE_BUG_ID,        { TYPE => 'INT3'       },
 };
 
@@ -212,7 +213,7 @@ use constant DEFAULT_FIELDS => (
      buglist => 1},
     {name => 'cc',           desc => 'CC',         in_new_bugmail => 1},
     {name => 'dependson',    desc => 'Depends on', in_new_bugmail => 1,
-     is_numeric => 1},
+     is_numeric => 1, buglist => 1},
     {name => 'blocked',      desc => 'Blocks',     in_new_bugmail => 1,
      is_numeric => 1},
     {name => 'dup_id',       desc => 'Duplicate of', buglist => 1, in_new_bugmail => 1, type => FIELD_TYPE_BUG_ID},
@@ -357,9 +358,7 @@ sub _check_sortkey {
 sub _check_type {
     my ($invocant, $type, undef, $params) = @_;
     my $saved_type = $type;
-    # The constant here should be updated every time a new,
-    # higher field type is added.
-    (detaint_natural($type) && $type <= FIELD_TYPE__BOUNDARY)
+    (detaint_natural($type) && $type < FIELD_TYPE_HIGHEST_PLUS_ONE)
       || ThrowCodeError('invalid_customfield_type', { type => $saved_type });
 
     my $custom = blessed($invocant) ? $invocant->custom : $params->{custom};
@@ -1066,7 +1065,10 @@ sub remove_from_db {
     }
     else {
         $bugs_query = "SELECT COUNT(*) FROM bugs WHERE $name IS NOT NULL";
-        if ($self->type != FIELD_TYPE_BUG_ID && $self->type != FIELD_TYPE_DATETIME) {
+        if ($self->type != FIELD_TYPE_BUG_ID
+            && $self->type != FIELD_TYPE_DATE
+            && $self->type != FIELD_TYPE_DATETIME)
+        {
             $bugs_query .= " AND $name != ''";
         }
         # Ignore the default single select value
@@ -1457,7 +1459,7 @@ sub check_field {
 Description: Returns the ID of the specified field name and throws
              an error if this field does not exist.
 
-Params:      $name - a field name
+Params:      $fieldname - a field name
 
 Returns:     the corresponding field ID or an error if the field name
              does not exist.
@@ -1466,12 +1468,10 @@ Returns:     the corresponding field ID or an error if the field name
 
 =cut
 
-sub get_field_id
-{
-    my ($name) = @_;
-    trick_taint($name);
-    my $field = Bugzilla->get_field($name);
-    ThrowCodeError('invalid_field_name', {field => $name}) unless $field;
+sub get_field_id {
+    my $field = Bugzilla->fields({ by_name => 1 })->{$_[0]}
+      or ThrowCodeError('invalid_field_name', {field => $_[0]});
+
     return $field->id;
 }
 

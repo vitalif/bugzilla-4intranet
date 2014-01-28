@@ -71,12 +71,8 @@
     [% END %]
     [% style_urls.unshift('skins/standard/global.css') %]
 
-    [%# CSS cascade, part 1: Standard Bugzilla stylesheet set (persistent).
-      # Always present.
-      #%]
-    [%# This allows people to switch back to the "Classic" skin if they
-      # are in another skin. 
-      #%]
+    [%# CSS cascade, parts 1 & 2: YUI & Standard Bugzilla stylesheet set (persistent).
+      # Always present. %]
     <link href="[% 'skins/standard/global.css' FILTER mtime FILTER html %]"
           rel="alternate stylesheet" 
           title="[% setting_descs.standard FILTER html %]">
@@ -84,73 +80,12 @@
       [% PROCESS format_css_link css_set_name = 'standard' %]
     [% END %]
 
-    [%# CSS cascade, part 2 & 3: Third-party stylesheet set (selected and
-      # selectable). All third-party skins are present as alternate
-      # stylesheets, even if they are not currently in use.
-      #%]
-    [%# Зачем стандартные стили упоминать дважды? То есть понятно, зачем -
-      # чтобы выбрать можно было. Но это не дело, оно ломает Opera 10.6.
-      # Причём в Bugzilla 4 их указывают в другом порядке, и получается нормально. O_o %]
-    [% IF 0 # user.settings.skin.is_enabled %]
-      [% FOREACH style_url = style_urls %]
-        <link href="[% style_url FILTER html %]"
-              rel="[% 'alternate ' IF user_skin %]stylesheet"
-              title="[% lc_messages.setting_descs.standard FILTER html %]"
-              type="text/css">
-      [% END %]
-      <!--[if lte IE 7]>
-      [%# Internet Explorer treats [if IE] HTML comments as uncommented.
-        # Use it to import CSS fixes so that Bugzilla looks decent on IE 7
-        # and below.
-        #%]
-        <link href="skins/standard/IE-fixes.css"
-              rel="[% 'alternate ' IF user_skin %]stylesheet"
-              title="[% lc_messages.setting_descs.standard FILTER html %]"
-              type="text/css">
-      <![endif]-->
+    [%# CSS cascade, part 3: Third-party stylesheet set, per user prefs. %]
+    [% FOREACH style_url = css_sets.skin %]
+      [% PROCESS format_css_link css_set_name = user.settings.skin.value %]
     [% END %]
 
-    [%# CSS cascade, part 3: Third-party stylesheet set (selectable).
-      # All third-party skins are present if skin selection is enabled.
-      # The admin-selected skin is always present.
-      #%]
-    [% FOREACH contrib_skin = user.settings.skin.legal_values %]
-      [% NEXT IF contrib_skin == 'standard' %]
-      [% NEXT UNLESS contrib_skin == user_skin
-                  OR user.settings.skin.is_enabled %]
-      [% contrib_skin = contrib_skin FILTER url_quote %]
-      [% IF contrib_skin.match('\.css$') %]
-        [%# 1st skin variant: single-file stylesheet %]
-        <link href="[% "skins/contrib/$contrib_skin" %]"
-              rel="[% 'alternate ' UNLESS contrib_skin == user_skin %]stylesheet"
-              title="[% contrib_skin FILTER html %]"
-              type="text/css">
-      [% ELSE %]
-        [%# 2nd skin variant: stylesheet set %]
-        [% FOREACH style_url = style_urls %]
-          [% IF style_url.match('^skins/standard/') %]
-            <link href="[% style_url.replace('^skins/standard/',
-                                             "skins/contrib/$contrib_skin/") %]"
-                  rel="[% 'alternate ' UNLESS contrib_skin == user_skin %]stylesheet"
-                  title="[% contrib_skin FILTER html %]"
-                  type="text/css">
-          [% END %]
-        [% END %]
-        <!--[if lte IE 7]>
-          [%# Internet Explorer treats [if IE] HTML comments as uncommented.
-            # Use it to import CSS fixes so that Bugzilla looks decent on IE 7
-            # and below.
-            #%]
-          <link href="skins/contrib/[% contrib_skin FILTER html %]/IE-fixes.css"
-                rel="[% 'alternate ' UNLESS contrib_skin == user_skin %]stylesheet"
-                title="[% contrib_skin FILTER html %]"
-                type="text/css" />
-        <![endif]-->
-      [% END %]
-    [% END %]
-
-    [%# CSS cascade, part 4: page-specific styles.
-      #%]
+    [%# CSS cascade, part 4: page-specific styles. %]
     [% IF style %]
       <style type="text/css">
         [% style %]
@@ -253,7 +188,7 @@
   #%]
 
   <body onload="[% onload %]"
-        class="[% urlbase.replace('^https?://','').replace('/$','').replace('[-~@:/.]+','-') %]
+        class="[% urlbase.replace('^https?://','').replace('/$','').replace('[-~@:/.]+','-') FILTER css_class_quote %]
                [% FOREACH class = bodyclasses %]
                  [% ' ' %][% class FILTER css_class_quote %]
                [% END %] yui-skin-sam">
@@ -321,10 +256,31 @@
 [% END %]
 
 [% IF message %]
-<div id="message" class="message">[% message %]</div>
+  <div id="message">[% message %]</div>
 [% END %]
 
-[% Hook.process('aftermessage') %]
+[% BLOCK format_css_link %]
+  [% IF style_url.match('/IE-fixes\.css') %]
+    <!--[if lte IE 7]>
+      [%# Internet Explorer treats [if IE] HTML comments as uncommented.
+        # We use it to import CSS fixes so that Bugzilla looks decent on IE 7
+        # and below.
+        #%]
+  [% END %]
+
+  [% IF css_set_name == 'standard' %]
+    [% SET css_title_link = '' %]
+  [% ELSE %]
+    [% css_title_link = BLOCK ~%]
+      title="[% setting_descs.${user.settings.skin.value} || user.settings.skin.value FILTER html %]"
+    [% END %]
+  [% END %]
+
+  <link href="[% style_url FILTER html %]" rel="stylesheet"
+        type="text/css" [% css_title_link FILTER none %]>
+
+  [% '<![endif]-->' IF style_url.match('/IE-fixes\.css') %]
+[% END %]
 
 [% BLOCK format_js_link %]
   <script type="text/javascript" src="[% javascript_url FILTER mtime FILTER html %]"></script>

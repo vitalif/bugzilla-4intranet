@@ -121,6 +121,7 @@ use strict;
 
 use parent qw(ModPerl::Registry);
 use Bugzilla;
+use Bugzilla::Constants qw(USAGE_MODE_REST);
 
 sub handler : method {
     my $class = shift;
@@ -142,7 +143,14 @@ sub handler : method {
         reload();
     }
     Bugzilla::init_page();
-    return $class->SUPER::handler(@_);
+    my $result = $class->SUPER::handler(@_);
+
+    # When returning data from the REST api we must only return 200 or 304,
+    # which tells Apache not to append its error html documents to the
+    # response.
+    return Bugzilla->usage_mode == USAGE_MODE_REST && $result != 304
+           ? Apache2::Const::OK
+           : $result;
 }
 
 sub error_check

@@ -45,7 +45,9 @@
             [%- END %]
    Summary: [% bug.short_desc %]
 
+  [% IF author.login == recipient.login %]
 View as [% terms.bug %] list: [% urlbase %]buglist.cgi?cmdtype=runnamed&namedcmd=[% query.name FILTER uri %]
+  [% END %]
   [% END %]
 [% ELSE %]
 

@@ -422,16 +422,8 @@ sub run_queries {
         next unless $savedquery;    # silently ignore missing queries
 
         # Execute the saved query
-        my @searchfields = qw(
-            bug_id
-            bug_severity
-            priority
-            rep_platform
-            assigned_to
-            bug_status
-            resolution
-            short_desc
-        );
+        my @searchfields = ('bug_id', DEFAULT_COLUMN_LIST);
+
         # A new Bugzilla::CGI object needs to be created to allow
         # Bugzilla::Search to execute a saved query.  It's exceedingly weird,
         # but that's how it works.
@@ -453,7 +445,7 @@ sub run_queries {
             'order'  => \@orderstrings
         );
         # If a query fails for whatever reason, it shouldn't kill the script.
-        my $sqlquery = eval { $search->sql };
+        my $data = eval { $search->data };
         if ($@) {
             print STDERR get_text('whine_query_failed', { query_name => $thisquery->{'name'},
                                                           author => $args->{'author'},
@@ -461,15 +453,12 @@ sub run_queries {
             next;
         }
 
-        $sth = $dbh->prepare($sqlquery);
-        $sth->execute;
-
-        while (my @row = $sth->fetchrow_array) {
+        foreach my $row (@$data) {
             my $bug = {};
             for my $field (@searchfields) {
                 my $fieldname = $field;
                 $fieldname =~ s/^bugs\.//;  # No need for bugs.whatever
-                $bug->{$fieldname} = shift @row;
+                $bug->{$fieldname} = shift @$row;
             }
 
             if ($thisquery->{'onemailperbug'}) {

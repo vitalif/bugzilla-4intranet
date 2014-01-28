@@ -19,8 +19,14 @@ use strict;
 use Bugzilla::Constants;
 use Bugzilla::Install::Util qw(vers_cmp install_string bin_loc);
 use List::Util qw(max);
-use Safe;
 use Term::ANSIColor;
+
+# Return::Value 1.666002 pollutes the error log with warnings about this
+# deprecated module. We have to set NO_CLUCK = 1 before loading Email::Send
+# in have_vers() to disable these warnings.
+BEGIN {
+    $Return::Value::NO_CLUCK = 1;
+}
 
 use parent qw(Exporter);
 our @EXPORT = qw(
@@ -145,6 +151,7 @@ sub REQUIRED_MODULES {
         # in a URL query string.
         version => '1.37',
     },
+    # 0.32 fixes several memory leaks in the XS version of some functions.
     {
         package => 'Lingua-Translit',
         module  => 'Lingua::Translit',
@@ -158,7 +165,7 @@ sub REQUIRED_MODULES {
     {
         package => 'List-MoreUtils',
         module  => 'List::MoreUtils',
-        version => 0.22,
+        version => 0.32,
     },
     {
         package => 'Math-Random-ISAAC',
@@ -273,6 +280,8 @@ sub OPTIONAL_MODULES {
         version => 0,
         feature => ['auth_radius'],
     },
+    # XXX - Once we require XMLRPC::Lite 0.717 or higher, we can
+    # remove SOAP::Lite from the list.
     {
         package => 'SOAP-Lite',
         module  => 'SOAP::Lite',
@@ -281,11 +290,19 @@ sub OPTIONAL_MODULES {
         version => '0.712',
         feature => ['xmlrpc'],
     },
+    # Since SOAP::Lite 1.0, XMLRPC::Lite is no longer included
+    # and so it must be checked separately.
+    {
+        package => 'XMLRPC-Lite',
+        module  => 'XMLRPC::Lite',
+        version => '0.712',
+        feature => ['xmlrpc'],
+    },
     {
         package => 'JSON-RPC',
         module  => 'JSON::RPC',
         version => 0,
-        feature => ['jsonrpc'],
+        feature => ['jsonrpc', 'rest'],
     },
     {
         package => 'JSON-XS',
@@ -299,7 +316,7 @@ sub OPTIONAL_MODULES {
         module  => 'Test::Taint',
         # 1.06 no longer throws warnings with Perl 5.10+.
         version => 1.06,
-        feature => ['jsonrpc', 'xmlrpc'],
+        feature => ['jsonrpc', 'xmlrpc', 'rest'],
     },
     {
         # We need the 'utf8_mode' method of HTML::Parser, for HTML::Scrubber.
@@ -347,7 +364,8 @@ sub OPTIONAL_MODULES {
     {
         package => 'TheSchwartz',
         module  => 'TheSchwartz',
-        version => 0,
+        # 1.07 supports the prioritization of jobs.
+        version => 1.07,
         feature => ['jobqueue'],
     },
     {
@@ -413,6 +431,7 @@ use constant FEATURE_FILES => (
     jsonrpc       => ['Bugzilla/WebService/Server/JSONRPC.pm', 'jsonrpc.cgi'],
     xmlrpc        => ['Bugzilla/WebService/Server/XMLRPC.pm', 'xmlrpc.cgi',
                       'Bugzilla/WebService.pm', 'Bugzilla/WebService/*.pm'],
+    rest          => ['Bugzilla/WebService/Server/REST.pm', 'rest.cgi'],
     moving        => ['importxml.pl'],
     auth_ldap     => ['Bugzilla/Auth/Verify/LDAP.pm'],
     auth_radius   => ['Bugzilla/Auth/Verify/RADIUS.pm'],
@@ -592,16 +611,6 @@ sub print_module_instructions {
         ( (!$output and @{$check_results->{missing}})
           or ($output and $check_results->{any_missing}) ) ? 1 : 0;
 
-    # We only print the PPM repository note if we have to.
-    my $perl_ver = sprintf('%vd', $^V);
-    if ($need_module_instructions && ON_ACTIVESTATE && vers_cmp($perl_ver, '5.12') < 0) {
-        my $url_to_theory58S = 'http://cpan.uwinnipeg.ca/PPMPackages/10xx/';
-        print colored(
-            install_string('ppm_repo_add', 
-                           { theory_url => $url_to_theory58S }),
-            COLOR_ERROR);
-    }
-
     if ($need_module_instructions or @{ $check_results->{apache} }) {
         # If any output was required, we want to close the "table"
         print "*" x TABLE_WIDTH . "\n";
@@ -708,16 +717,17 @@ sub have_vers {
     Bugzilla::Install::Util::set_output_encoding();
 
     # VERSION is provided by UNIVERSAL::, and can be called even if
-    # the module isn't loaded.
-    my $vnum = $module->VERSION || -1;
-
-    # CGI's versioning scheme went 2.75, 2.751, 2.752, 2.753, 2.76
-    # That breaks the standard version tests, so we need to manually correct
-    # the version
-    if ($module eq 'CGI' && $vnum =~ /(2\.7\d)(\d+)/) {
-        $vnum = $1 . "." . $2;
+    # the module isn't loaded. We eval'uate ->VERSION because it can die
+    # when the version is not valid (yes, this happens from time to time).
+    # In that case, we use an uglier method to get the version.
+    my $vnum = eval { $module->VERSION };
+    if ($@) {
+        no strict 'refs';
+        $vnum = ${"${module}::VERSION"};
     }
-    # CPAN did a similar thing, where it has versions like 1.9304.
+    $vnum ||= -1;
+
+    # Fix CPAN versions like 1.9304.
     if ($module eq 'CPAN' and $vnum =~ /^(\d\.\d{2})\d{2}$/) {
         $vnum = $1;
     }

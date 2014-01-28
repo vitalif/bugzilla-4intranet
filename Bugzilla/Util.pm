@@ -15,7 +15,7 @@ use parent qw(Exporter);
                              detaint_signed
                              html_quote url_quote url_quote_noslash xml_quote
                              css_class_quote html_light_quote url_decode
-                             i_am_cgi correct_urlbase remote_ip validate_ip
+                             i_am_cgi i_am_webservice correct_urlbase remote_ip validate_ip
                              lsearch do_ssl_redirect_if_required use_attachbase
                              diff_arrays list on_main_db say
                              trim wrap_hard wrap_comment find_wrap_point makeCitations
@@ -25,8 +25,8 @@ use parent qw(Exporter);
                              bz_crypt generate_random_password check_email_syntax 
                              validate_email_syntax clean_text stem_text bz_encode_json
                              xml_element xml_element_quote xml_dump_simple xml_simple
-                             get_text template_var disable_utf8
-                             detect_encoding email_filter union);
+                             get_text template_var disable_utf8 display_value
+                             detect_encoding email_filter union join_activity_entries);
 
 use Bugzilla::Constants;
 use Bugzilla::RNG qw(irand);
@@ -84,7 +84,10 @@ sub html_quote {
     $var =~ s/"/&quot;/g;
     # Obscure '@'.
     $var =~ s/\@/\&#64;/g;
-    if (Bugzilla->params->{'utf8'}) {
+
+    state $use_utf8 = Bugzilla->params->{'utf8'};
+
+    if ($use_utf8) {
         # Remove the following characters because they're
         # influencing BiDi:
         # --------------------------------------------------------
@@ -106,7 +109,7 @@ sub html_quote {
         # |U+200e|Left-To-Right Mark        |0xe2 0x80 0x8e      |
         # |U+200f|Right-To-Left Mark        |0xe2 0x80 0x8f      |
         # --------------------------------------------------------
-        $var =~ s/[\x{202a}-\x{202e}]//g;
+        $var =~ tr/\x{202a}-\x{202e}//d;
     }
     return $var;
 }
@@ -255,6 +258,13 @@ sub i_am_cgi {
     # I use SERVER_SOFTWARE because it's required to be
     # defined for all requests in the CGI spec.
     return exists $ENV{'SERVER_SOFTWARE'} ? 1 : 0;
+}
+
+sub i_am_webservice {
+    my $usage_mode = Bugzilla->usage_mode;
+    return $usage_mode == USAGE_MODE_XMLRPC
+           || $usage_mode == USAGE_MODE_JSON
+           || $usage_mode == USAGE_MODE_REST;
 }
 
 # This exists as a separate function from Bugzilla::CGI::redirect_to_https
@@ -533,6 +543,35 @@ sub find_wrap_point {
         }
     }
     return $wrappoint;
+}
+
+sub join_activity_entries {
+    my ($field, $current_change, $new_change) = @_;
+    # We need to insert characters as these were removed by old
+    # LogActivityEntry code.
+
+    return $new_change if $current_change eq '';
+
+    # Buglists and see_also need the comma restored
+    if ($field eq 'dependson' || $field eq 'blocked' || $field eq 'see_also') {
+        if (substr($new_change, 0, 1) eq ',' || substr($new_change, 0, 1) eq ' ') {
+            return $current_change . $new_change;
+        } else {
+            return $current_change . ', ' . $new_change;
+        }
+    }
+
+    # Assume bug_file_loc contain a single url, don't insert a delimiter
+    if ($field eq 'bug_file_loc') {
+        return $current_change . $new_change;
+    }
+
+    # All other fields get a space
+    if (substr($new_change, 0, 1) eq ' ') {
+        return $current_change . $new_change;
+    } else {
+        return $current_change . ' ' . $new_change;
+    }
 }
 
 sub wrap_hard {
@@ -1103,6 +1142,7 @@ Bugzilla::Util - Generic utility functions for bugzilla
 
   # Functions that tell you about your environment
   my $is_cgi   = i_am_cgi();
+  my $is_webservice = i_am_webservice();
   my $urlbase  = correct_urlbase();
 
   # Data manipulation
@@ -1230,6 +1270,11 @@ Tells you whether or not you are being run as a CGI script in a web
 server. For example, it would return false if the caller is running
 in a command-line script.
 
+=item C<i_am_webservice()>
+
+Tells you whether or not the current usage mode is WebServices related
+such as JSONRPC, XMLRPC, or REST.
+
 =item C<correct_urlbase()>
 
 Returns either the C<sslbase> or C<urlbase> parameter, depending on the
@@ -1300,6 +1345,12 @@ database.
 Search for a comma, a whitespace or a hyphen to split $string, within the first
 $maxpos characters. If none of them is found, just split $string at $maxpos.
 The search starts at $maxpos and goes back to the beginning of the string.
+
+=item C<join_activity_entries($field, $current_change, $new_change)>
+
+Joins two strings together so they appear as one. The field name is specified
+as the method of joining the two strings depends on this. Returns the
+combined string.
 
 =item C<is_7bit_clean($str)>
 
