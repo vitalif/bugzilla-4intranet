@@ -2126,9 +2126,9 @@ sub _content_matches
     if (my $index = Bugzilla->localconfig->{sphinx_index})
     {
         # Escape search query
-        my $pattern_part = '\[\]:\(\)!@~&\/^$';
+        my $pattern_part = '\[\]:\(\)!@~&\/^$=';
         $text = trim($text);
-        $text =~ s/^[|\-=$pattern_part]+|[|\-=$pattern_part]+$//gs; # erase special chars in the beginning and at the end of query
+        $text =~ s/^[|\-$pattern_part]+|[|\-$pattern_part]+$//gs; # erase special chars in the beginning and at the end of query
         if (($text =~ tr/"/"/) % 2)
         {
             # Close unclosed double quote
