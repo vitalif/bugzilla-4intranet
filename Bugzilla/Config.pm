@@ -338,6 +338,9 @@ sub read_param_file {
        die "The $datadir/params file does not exist."
            . ' You probably need to run checksetup.pl.',
     }
+    if ($params{utf8}) {
+        Encode::_utf8_on($_) for values %params;
+    }
     return \%params;
 }
 
