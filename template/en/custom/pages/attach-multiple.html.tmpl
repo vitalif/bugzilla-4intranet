@@ -7,9 +7,9 @@
 
 [% fileX = BLOCK %]
 <td id="cont_XXX"><input type="file" id="data_XXX" name="attachmulti_data_XXX" onchange="att_file_onchange(this)" /></td>
-<td><input type="text" id="description_XXX" name="attachmulti_description_XXX" onchange="this._changed=true" /></td>
+<td><input type="text" id="description_XXX" name="attachmulti_description_XXX" style="width: 20em" onchange="this._changed=true" /></td>
 <td>
-  <select name="attachmulti_ctype_XXX" id="contenttypeselection_XXX">
+  <select name="attachmulti_ctype_XXX" id="contenttypeselection_XXX" style="width: 12em">
     <option value="">Detect automatically</option>
     <option value="text/x-diff">Patch</option>
     [% PROCESS "attachment/content-types.html.tmpl" %]
@@ -18,7 +18,12 @@
 <td style="width: 1px; display: none" id="del_XXX"><input class="button" type="button" onclick="att_file_clear('data_XXX')" value="clear" /></td>
 [% END %]
 
-<h3>Create Multiple Attachments to [% terms.Bug %] [%+ Bugzilla.cgi.param('bug_id') %]</h3>
+[% IF Bugzilla.cgi.param('bug_id') %]
+  <h3>Create Multiple Attachments to [% terms.Bug %] [%+ 0+Bugzilla.cgi.param('bug_id') %]</h3>
+  [% SET s = "Save Changes" %]
+[% ELSE %]
+  [% SET s = "Submit Bug" %]
+[% END %]
 
 <p>Additional file selection boxes will appear as you select more files.
 Press <b>Save Changes</b> when you're finished.</p>

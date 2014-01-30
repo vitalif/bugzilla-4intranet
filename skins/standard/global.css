@@ -372,11 +372,10 @@ dl dl > dt {
     border: 1px solid #333333;
 }
 
-#att_multiple { border: 1px solid #333333; margin-top: 8px; padding: 8px; }
-#att_multiple h3 { margin: 0; }
-#att_multiple p { margin: 8px 0; }
-#att_multiple table { border-collapse: collapse; width: 100%; }
-#att_multiple th { background-color: #E0E0E0; }
+#att_multiple h3 { margin: 0 0 8px; }
+#att_multiple p { margin: 0 0 8px; }
+#att_multiple table { border-collapse: separate; }
+#att_multiple th { background-color: #E0E0E0; text-align: left !important; }
 #att_multiple input, #att_multiple select { width: 100%; }
 #att_multiple input.button { width: auto; }
 

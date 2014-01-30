@@ -250,8 +250,18 @@ function handleWantsAttachment(wants_attachment)
 {
     var f = document.getElementById('attachment_false');
     var t = document.getElementById('attachment_true');
-    f.style.display = wants_attachment ? 'none' : '';
-    t.style.display = wants_attachment ? '' : 'none';
+    var m = document.getElementById('attachment_multi');
+    f.style.display = wants_attachment == 'none'   ? '' : 'none';
+    t.style.display = wants_attachment == 'single' ? '' : 'none';
+    m.style.display = wants_attachment == 'multi'  ? '' : 'none';
+    if (wants_attachment != 'multi')
+    {
+        document.getElementById('att_multiple').innerHTML = '';
+    }
+    else
+    {
+        iframeajax('page.cgi?id=attach-multiple.html', {});
+    }
 }
 
 function show_resolution_field(showhide)
@@ -642,24 +652,15 @@ function checkWorktime(inp)
   <tr>
     <th>Attachment:</th>
     <td colspan="3">
-      <script type="text/javascript">
-        <!--
-        document.write( '<div id="attachment_false">'
-                      +   '<input type="button" value="Add an attachment" '
-                      +          'onClick="handleWantsAttachment(true)"> '
-                      +   '<em style="display: none">This button has no '
-                      +   'functionality for you because your browser does '
-                      +   'not support CSS or does not use it.<\/em>'
-                      + '<\/div>'
-                      + '<div id="attachment_true" style="display: none">'
-                      +   '<input type="button" '
-                      +          'value="Don\'t add an attachment " '
-                      +          'onClick="handleWantsAttachment(false)">');
-        //-->
-      </script>
+      <div id="attachment_false">
+        <input type="button" value="Add an attachment" onclick="handleWantsAttachment('single')" />
+        <input type="button" value="Add multiple" onclick="handleWantsAttachment('multi')" />
+      </div>
+      <div id="attachment_true" style="display: none">
+        <input type="button" value="Don't add an attachment" onClick="handleWantsAttachment('none')" />
+        <input type="button" value="Add multiple" onclick="handleWantsAttachment('multi')" />
         <fieldset>
           <legend>Add an attachment</legend>
-          <a href="javascript:void(0)" onclick="toggle_multy_attach(this)" id="single-attach" class="single-attach">Single attach</a>
           <table class="attachment_entry">
             [% PROCESS attachment/createformcontents.html.tmpl
                        flag_types = product.flag_types.attachment
@@ -667,67 +668,16 @@ function checkWorktime(inp)
                        flag_table_id ="attachment_flags"
                        attach_multi = "show_attach_multi(this);"  %]
           </table>
-          <hr/>
-          <a href="javascript:void(0)" onclick="toggle_multy_attach(this)" id="multi-attach" class="multi-attach">Multiple files</a>
-            <script type="text/javascript">
-            <!--
-            function toggle_multy_attach(obj)
-            {
-                var table, div;
-                div = document.getElementById('att_multiple');
-                var els = obj.parentElement.children;
-                for(var i = 0; i < els.length; i++)
-                {
-                    if (els[i].className.match(/attachment_entry/))
-                    {
-                        table = els[i];
-                        break;
-                    }
-                }
-                if (obj.className.match(/multi-attach/))
-                {
-                    table.style.display = 'none';
-                    div.style.display   = '';
-                    var input = table.getElementsByTagName( 'input' );
-                    for ( var z = 0; z < input.length; z++ )
-                    {
-                        input[z].value = '';
-                    }
-                }
-                else
-                {
-                    table.style.display = '';
-                    div.style.display   = 'none';
-                    var files = document.getElementById('files').children;
-                    for ( var z = 0; z < files.length; z++ )
-                    {
-                        if (files[z].id == 'file0')
-                        {
-                            continue;
-                        }
-                        files[z].parentElement.removeChild(files[z]);
-                        z--;
-                    }
-                    var input = div.getElementsByTagName( 'input' );
-                    for ( var z = 0; z < input.length; z++ )
-                    {
-                        input[z].value = '';
-                    }
-                }
-            }
-            iframeajax('page.cgi?id=attach-multiple.html', {});
-            setTimeout( function(){
-                toggle_multy_attach(document.getElementById('single-attach'));
-            }, 500);
-            //-->
-            </script>
-            <div id="att_multiple" style="display: none"></div>
         </fieldset>
-      <script type="text/javascript">
-        <!--
-        document.write('<\/div>');
-        //-->
-      </script>
+      </div>
+      <div id="attachment_multi" style="display: none">
+        <input type="button" value="Add single attachment" onclick="handleWantsAttachment('single')" />
+        <input type="button" value="Don't add an attachment" onClick="handleWantsAttachment('none')" />
+        <fieldset>
+          <legend>Add multiple attachments</legend>
+          <div id="att_multiple" style="display: none"></div>
+        </fieldset>
+      </div>
     </td>
   </tr>
 </tbody>
