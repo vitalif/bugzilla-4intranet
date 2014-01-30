@@ -257,18 +257,11 @@ hr {
     }
 }
 
-textarea, select {
+textarea, select, input[type="text"], input:not([type]) {
     border-width: 1px;
     border-style: solid;
     border-color: #747e93;
     font-family: Verdana;
-    font-size: 13px;
-}
-
-input:not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]):not([type="reset"]) {
-    border-width: 1px;
-    border-style: solid;
-    border-color: #747e93;
 }
 
 .grant_table {
