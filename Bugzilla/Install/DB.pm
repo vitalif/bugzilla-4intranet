@@ -618,14 +618,13 @@ sub update_table_definitions {
             'CREATE TABLE bugs_activity_backup AS SELECT a.* FROM fielddefs f, bugs_activity a'.
             ' WHERE f.type='.FIELD_TYPE_TEXTAREA.' AND a.fieldid=f.id'
         );
+        $dbh->do('DELETE FROM a USING fielddefs f, bugs_activity a WHERE f.type='.FIELD_TYPE_TEXTAREA.' AND a.fieldid=f.id');
         $dbh->do(
             'CREATE TABLE bugs_activity_joined AS SELECT bug_id, who, bug_when, fieldid, '.
             $dbh->sql_group_concat('a.added', "''").' added, '.
             $dbh->sql_group_concat('a.removed', "''").' removed'.
-            ' FROM fielddefs f, bugs_activity a'.
-            ' WHERE f.type='.FIELD_TYPE_TEXTAREA.' AND a.fieldid=f.id GROUP BY bug_id, bug_when, who, fieldid'
+            ' FROM bugs_activity_backup a GROUP BY bug_id, bug_when, who, fieldid'
         );
-        $dbh->do('DELETE FROM a USING fielddefs f, bugs_activity a WHERE f.type='.FIELD_TYPE_TEXTAREA.' AND a.fieldid=f.id');
         $dbh->do('INSERT INTO bugs_activity SELECT bug_id, who, bug_when, fieldid, added, removed, NULL FROM bugs_activity_joined');
         $dbh->do('DROP TABLE bugs_activity_joined');
     }
