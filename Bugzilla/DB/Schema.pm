@@ -359,15 +359,15 @@ use constant ABSTRACT_SCHEMA => {
             fieldid   => {TYPE => 'INT3', NOTNULL => 1,
                           REFERENCES    =>  {TABLE  =>  'fielddefs',
                                              COLUMN =>  'id'}},
-            added     => {TYPE => 'varchar(255)'},
-            removed   => {TYPE => 'TINYTEXT'},
+            added     => {TYPE => 'LONGTEXT'},
+            removed   => {TYPE => 'LONGTEXT'},
         ],
         INDEXES => [
             bugs_activity_bug_id_idx  => ['bug_id'],
             bugs_activity_who_idx     => ['who'],
             bugs_activity_bug_when_idx => ['bug_when'],
             bugs_activity_fieldid_idx => ['fieldid'],
-            bugs_activity_added_idx   => ['added'],
+            bugs_activity_added_idx   => ['added(255)'],
         ],
     },
 

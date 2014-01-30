@@ -589,10 +589,6 @@ sub update_table_definitions {
 
     _convert_disallownew_to_isactive();
 
-    $dbh->bz_alter_column('bugs_activity', 'added', 
-        { TYPE => 'varchar(255)' });
-    $dbh->bz_add_index('bugs_activity', 'bugs_activity_added_idx', ['added']);
-
     # 2009-09-28 LpSolit@gmail.com - Bug 519032
     $dbh->bz_drop_column('series', 'last_viewed');
 
@@ -611,6 +607,28 @@ sub update_table_definitions {
     _fix_decimal_types();
     _fix_series_creator_fk();
 
+    if ($dbh->bz_column_info(bugs_activity => 'added')->{TYPE} ne 'LONGTEXT')
+    {
+        $dbh->bz_drop_index('bugs_activity', 'bugs_activity_added_idx');
+        $dbh->bz_alter_column('bugs_activity', 'added', { TYPE => 'LONGTEXT' });
+        $dbh->bz_alter_column('bugs_activity', 'removed', { TYPE => 'LONGTEXT' });
+        $dbh->bz_add_index('bugs_activity', 'bugs_activity_added_idx', ['added(255)']);
+        # Concatenate separate lines in bugs_activity for long text fields
+        $dbh->do(
+            'CREATE TABLE bugs_activity_backup AS SELECT a.* FROM fielddefs f, bugs_activity a'.
+            ' WHERE f.type='.FIELD_TYPE_TEXTAREA.' AND a.fieldid=f.id'
+        );
+        $dbh->do(
+            'CREATE TABLE bugs_activity_joined AS SELECT bug_id, who, bug_when, fieldid, '.
+            $dbh->sql_group_concat('a.added', "''").' added, '.
+            $dbh->sql_group_concat('a.removed', "''").' removed'.
+            ' FROM fielddefs f, bugs_activity a'.
+            ' WHERE f.type='.FIELD_TYPE_TEXTAREA.' AND a.fieldid=f.id GROUP BY bug_id, bug_when, who, fieldid'
+        );
+        $dbh->do('DELETE FROM a USING fielddefs f, bugs_activity a WHERE f.type='.FIELD_TYPE_TEXTAREA.' AND a.fieldid=f.id');
+        $dbh->do('INSERT INTO bugs_activity SELECT bug_id, who, bug_when, fieldid, added, removed, NULL FROM bugs_activity_joined');
+        $dbh->do('DROP TABLE bugs_activity_joined');
+    }
     ################################################################
     # New --TABLE-- changes should go *** A B O V E *** this point #
     ################################################################

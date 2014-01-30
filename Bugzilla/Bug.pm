@@ -244,10 +244,6 @@ use constant UPDATE_COMMENT_COLUMNS => qw(
     isprivate
 );
 
-# Used in LogActivityEntry(). Gives the max length of lines in the
-# activity table.
-use constant MAX_LINE_LENGTH => 254;
-
 # This maps the names of internal Bugzilla bug fields to things that would
 # make sense to somebody who's not intimately familiar with the inner workings
 # of Bugzilla. (These are the field names that the WebService and email_in.pl
@@ -3740,37 +3736,11 @@ sub LogActivityEntry
         $f->update;
     }
     my $dbh = Bugzilla->dbh;
-    # in the case of CCs, deps, and keywords, there's a possibility that someone
-    # might try to add or remove a lot of them at once, which might take more
-    # space than the activity table allows.  We'll solve this by splitting it
-    # into multiple entries if it's too long.
-    while ($removed || $added)
-    {
-        my ($removestr, $addstr) = ($removed, $added);
-        if (length($removestr) > MAX_LINE_LENGTH) {
-            my $commaposition = find_wrap_point($removed, MAX_LINE_LENGTH);
-            $removestr = substr($removed, 0, $commaposition);
-            $removed = substr($removed, $commaposition);
-            $removed =~ s/^[,\s]+//; # remove any comma or space
-        } else {
-            $removed = ""; # no more entries
-        }
-        if (length($addstr) > MAX_LINE_LENGTH) {
-            my $commaposition = find_wrap_point($added, MAX_LINE_LENGTH);
-            $addstr = substr($added, 0, $commaposition);
-            $added = substr($added, $commaposition);
-            $added =~ s/^[,\s]+//; # remove any comma or space
-        } else {
-            $added = ""; # no more entries
-        }
-        trick_taint($addstr);
-        trick_taint($removestr);
-        $dbh->do(
-            "INSERT INTO bugs_activity (bug_id, who, bug_when, fieldid, removed, added, attach_id)".
-            " VALUES (?, ?, ".($timestamp ? "?" : "NOW()").", ?, ?, ?, ?)", undef,
-            $bug_id, $whoid, ($timestamp ? ($timestamp) : ()), $f->id, $removestr, $addstr, $attach_id
-        );
-    }
+    $dbh->do(
+        "INSERT INTO bugs_activity (bug_id, who, bug_when, fieldid, removed, added, attach_id)".
+        " VALUES (?, ?, ".($timestamp ? "?" : "NOW()").", ?, ?, ?, ?)", undef,
+        $bug_id, $whoid, ($timestamp ? ($timestamp) : ()), $f->id, $removed, $added, $attach_id
+    );
 }
 
 # Convert WebService API and email_in.pl field names to internal DB field
