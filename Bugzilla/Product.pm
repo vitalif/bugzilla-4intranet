@@ -508,7 +508,7 @@ sub _check_cc_group
 {
     my ($invocant, $cc_group) = @_;
 
-    $cc_group  = trim($cc_group);
+    $cc_group = trim($cc_group);
     return $cc_group ? $cc_group : undef;
 }
 

@@ -65,7 +65,7 @@ sub db_schema_abstract_schema
     push @{$schema->{products}->{FIELDS}}, extproduct => {TYPE => 'INT2', REFERENCES => {TABLE => 'products', COLUMN => 'id'}};
 
     # Bug 139829 - Ограничение CC продукта
-    push @{$schema->{products}->{FIELDS}}, cc_group => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"};
+    push @{$schema->{products}->{FIELDS}}, cc_group => {TYPE => 'varchar(255)'};
 
     # Bug 53725 - Версия по умолчанию
     push @{$schema->{components}->{FIELDS}}, default_version => {TYPE => 'varchar(64)', NOTNULL => 1, DEFAULT => "''"};
@@ -245,7 +245,8 @@ sub install_update_db
     $dbh->bz_add_column('products', extproduct => {TYPE => 'INT2', REFERENCES => {TABLE => 'products', COLUMN => 'id'}});
 
     # Bug 139829 - Ограничение CC продукта
-    $dbh->bz_add_column('products', cc_group => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"});
+    $dbh->bz_add_column('products', cc_group => {TYPE => 'varchar(255)'});
+    $dbh->bz_alter_column('products', cc_group => {TYPE => 'varchar(255)'});
 
     # Bug 53725 - Версия по умолчанию
     $dbh->bz_add_column('components', default_version => {TYPE => 'varchar(64)', NOTNULL => 1, DEFAULT => "''"});
