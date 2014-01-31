@@ -182,7 +182,10 @@ sub get_script
     ($content) = $content =~ /^(.*)$/s;
     $content =~ s/\n__END__.*/\n/s;
     $content = "\n#line 1 \"$script\"\n$content";
-    $content = $for_require ? "$preload package main; $content" : "package main; sub { $preload$content }";
+    my $package = lc $script;
+    $package =~ s/^(\W)/'x'.unpack('H*', $1)/es;
+    $package =~ s/(\W)/unpack('H*', $1)/ges;
+    $content = $for_require ? "$preload package Bugzilla::$package; $content" : "package Bugzilla::$package; sub { $preload$content }";
     return $content;
 }
 
