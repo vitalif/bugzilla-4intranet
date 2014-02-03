@@ -291,15 +291,23 @@ sub handle_request
     # Serve static files (should be done by nginx, but we support it for completeness)
     my $fd;
     $script =~ s!^/*!!so;
-    if (($script !~ /\.cgi$/iso || $script =~ /\//so) && open $fd, '<', $script)
+    if ($script !~ /\.cgi$/iso || $script =~ /\//so)
     {
-        print $ENV{SERVER_PROTOCOL}." 200 OK\r\n".
-            "Content-Type: ".guess_media_type($script)."\r\n".
-            "Content-Length: ".(-s $script)."\r\n\r\n";
-        sendfile(fileno(STDOUT), fileno($fd), 0, -s $script);
-        close $fd;
-        print STDERR strftime("[%Y-%m-%d %H:%M:%S]", localtime)." Served $script via sendfile()\n";
-        return 200;
+        if (open $fd, '<', $script)
+        {
+            print $ENV{SERVER_PROTOCOL}." 200 OK\r\n".
+                "Content-Type: ".guess_media_type($script)."\r\n".
+                "Content-Length: ".(-s $script)."\r\n\r\n";
+            sendfile(fileno(STDOUT), fileno($fd), 0, -s $script);
+            close $fd;
+            print STDERR strftime("[%Y-%m-%d %H:%M:%S]", localtime)." Served $script via sendfile()\n";
+            return 200;
+        }
+        else
+        {
+            # Failed to open file
+            return $self->print_error('403', 'Access Denied', "You are not allowed to access URL $script on this server.");
+        }
     }
     if ($self->{_config_hash}->{http_env})
     {
