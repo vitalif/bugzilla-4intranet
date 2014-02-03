@@ -54,6 +54,7 @@ use base qw(HTTP::Server::Simple::CGI);
 
 # Code cache
 my %subs = ();
+my %mtime = ();
 
 sub new
 {
@@ -194,10 +195,12 @@ sub load_script
 {
     my $self = shift;
     my ($script) = @_;
-    if (!$subs{$script})
+    my $m;
+    if ((!$subs{$script} || $self->{_config_hash}->{reload}) && ($m = [stat $script]->[9] || 0) > $mtime{$script})
     {
         my $content = $self->get_script($script);
         $subs{$script} = eval $content;
+        $mtime{$script} = $m;
         if ($@)
         {
             $self->internal_error("Error while loading $script:\n$@");

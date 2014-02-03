@@ -295,6 +295,6 @@ sub expression
 sub process_card
 {
     my ($bug, $tpl) = @_;
-    $tpl =~ s/\{([^}]+)\}/html_quote(expression($bug, $1))/geiso;
+    $tpl =~ s/\{((?:[^}\"\']+|"(?:[^\"\\]+|\\\\|\\\")*"|'(?:[^\'\\]+|\\\\|\\\')*')+)\}/html_quote(expression($bug, $1))/geiso;
     return $tpl;
 }
