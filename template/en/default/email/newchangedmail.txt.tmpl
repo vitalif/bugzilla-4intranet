@@ -240,7 +240,7 @@ body { font-family: Segoe UI, sans-serif; }
     [% d.fielddesc %]
   [% END %]
   </td>
-  [% IF d.lines %]
+  [% IF d.lines && d.lines.size %]
     [% FOR l = d.lines %]
       [% "</tr><tr>" IF loop.index > 0 %]
       [% l %]
