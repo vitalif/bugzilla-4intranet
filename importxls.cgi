@@ -34,6 +34,7 @@ my $dbh = Bugzilla->dbh;
 my $template = Bugzilla->template;
 my $vars = {};
 
+# TODO: Check if CGI does utf8, use just { Vars } instead of decoding
 my $args = {};
 for ($cgi->param)
 {
@@ -47,10 +48,10 @@ for ($cgi->param)
     {
         $args->{$v} = $cgi->param($_);
     }
-    utf8::decode($args->{$v}) unless Encode::is_utf8($args->{$v});
+    utf8::decode($args->{$v}) unless ref $args->{$v} || Encode::is_utf8($args->{$v});
 }
 
-# проверяем группу
+# Check permissions
 $user->in_group('importxls') ||
     ThrowUserError('auth_failure', {
         group  => 'importxls',
@@ -71,7 +72,8 @@ my $upload;
 my $name_tr = {};
 my $bug_tpl = {};
 
-$bug_tpl->{platform} = Bugzilla->params->{defaultplatform} if Bugzilla->params->{defaultplatform};
+$bug_tpl->{platform} = Bugzilla->params->{defaultplatform}
+    if Bugzilla->params->{defaultplatform} && Bugzilla->params->{useplatform};
 
 for (keys %$args)
 {
@@ -110,7 +112,7 @@ my $guess_field_descs = [
     keys %$field_descs
 ];
 
-# Функция угадывания поля
+# Field guesser
 sub guess_field_name
 {
     my ($name, $guess_field_descs) = @_;
