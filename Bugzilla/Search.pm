@@ -1455,25 +1455,37 @@ sub SqlifyDate
         my ($sign, $amount, $unit) = ($1, $2, lc $3);
         $amount = -$amount if $sign && $sign eq '+';
         my $dt = DateTime->now;
-        if ($unit eq 'h')
+        if (!$amount)
         {
-            # Special case 0h for 'beginning of this hour'
-            if ($amount == 0)
+            # Special case 0 for beginning of this hour/day/week/month/year
+            $dt->set(minute => 0, second => 0);
+            if ($unit ne 'h')
             {
-                $dt->set(minute => 0, second => 0);
+                $dt->set(hour => 0);
+                if ($unit eq 'w')
+                {
+                    $dt->subtract(days => $dt->day_of_week-1);
+                }
+                elsif ($unit ne 'd')
+                {
+                    $dt->set(day => 1);
+                    if ($unit ne 'm')
+                    {
+                        $dt->set(month => 1);
+                    }
+                }
             }
-            else
-            {
-                $dt->subtract(hours => $amount);
-            }
-            return $dt->ymd . ' ' . $dt->hms;
         }
         else
         {
-            $unit = { d => 'days', y => 'years', w => 'weeks', 'm' => 'months' }->{$unit};
+            if ($unit ne 'h')
+            {
+                $dt->set(hour => 0, minute => 0, second => 0);
+            }
+            $unit = { h => 'hours', d => 'days', y => 'years', w => 'weeks', 'm' => 'months' }->{$unit};
             $dt->subtract($unit => $amount);
-            return $dt->ymd . ' 00:00:00';
         }
+        return $dt->ymd . ' ' . $dt->hms;
     }
     my $date = str2time($str);
     if (!defined($date))
