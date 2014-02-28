@@ -872,6 +872,18 @@ $vars->{search_description} = $search->search_description_html;
 my $H = { %{ $params->Vars } };
 $vars->{list_params} = $H;
 
+# Generate equality operators for the "Create bug from querystring" link
+# FIXME: check if there are some differently named fields
+my $eq_query = {};
+for my $eq (@{$search->get_equalities})
+{
+    if (!ref $eq->[2])
+    {
+        $eq_query->{$eq->[0]} = $eq->[2];
+    }
+}
+$vars->{equality_querystring} = http_build_query($eq_query);
+
 if (defined $cgi->param('limit')) {
     my $limit = $cgi->param('limit');
     if (detaint_natural($limit)) {

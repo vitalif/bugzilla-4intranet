@@ -70,6 +70,9 @@ my $product_name = trim($cgi->param('product') || '');
 my $product;
 
 if ($product_name eq '') {
+    # Save URL parameters
+    $vars->{query_params} = http_build_query({ %{ $cgi->Vars } });
+
     # If the user cannot enter bugs in any product, stop here.
     my @enterable_products = @{$user->get_enterable_products};
     ThrowUserError('no_products') unless scalar(@enterable_products);

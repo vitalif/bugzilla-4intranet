@@ -46,7 +46,7 @@ use base qw(Exporter);
     stem_text intersect union
     get_text disable_utf8 bz_encode_json
     xml_element xml_element_quote xml_dump_simple xml_simple
-    Dumper
+    Dumper http_build_query
 );
 
 use Bugzilla::Constants;
@@ -238,6 +238,17 @@ sub url_quote_noslash
         if Bugzilla->params->{utf8} && utf8::is_utf8($toencode);
     $toencode =~ s!([^a-zA-Z0-9_\-\./])!uc sprintf("%%%02x",ord($1))!ego;
     return $toencode;
+}
+
+# http_build_query($hashref) like PHP's one
+sub http_build_query($)
+{
+    my ($query) = @_;
+    return join('&', map {
+        url_quote($_).'='.(ref $query->{$_}
+            ? join('&'.url_quote($_).'=', map { url_quote($_) } @{$query->{$_}})
+            : url_quote($query->{$_}))
+    } keys %$query);
 }
 
 sub css_class_quote {

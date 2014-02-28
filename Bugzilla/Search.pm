@@ -1232,6 +1232,19 @@ sub init
         ThrowUserError("buglist_parameters_required");
     }
 
+    # Determine global equality operators
+    $self->{equalities} = [];
+    if (substr($OUTER_AND->[0], 0, 3) eq 'AND')
+    {
+        foreach my $term (@$OUTER_AND)
+        {
+            if (ref $term eq 'HASH' && $term->{description}->[1] eq 'equals')
+            {
+                push @{$self->{equalities}}, $term->{description};
+            }
+        }
+    }
+
     if (!$user->is_super_user)
     {
         # If there are some terms in the search, assume it's enough
@@ -1339,7 +1352,14 @@ sub init
     $self->{sql} = $query;
 }
 
-# search value + quote
+# Return query-wide equality operators
+sub get_equalities
+{
+    my $self = shift;
+    return $self->{equalities};
+}
+
+# HTML quote a value and wrap it into a search_value span
 sub sv_quote
 {
     return '<span class="search_value">'.html_quote($_[0]).'</span>';
@@ -1808,7 +1828,6 @@ sub run_chart
         if (ref $self->{term} eq 'HASH')
         {
             my $op = $self->{type};
-            $op = NEGATE_ALL_OPERATORS->{$op} || $op if $self->{negated};
             $self->{term}->{description} ||= [ $f, $op, $self->{value} ];
         }
         negate_expression($self->{term}) if $self->{negated};
@@ -2941,6 +2960,7 @@ sub negate_expression
     if (ref $q eq 'HASH')
     {
         $q->{neg} = !$q->{neg};
+        $q->{description}->[1] = NEGATE_ALL_OPERATORS->{$q->{description}->[1]} || $q->{description}->[1];
     }
     elsif (!ref $q)
     {

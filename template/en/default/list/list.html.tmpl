@@ -77,10 +77,6 @@
 
 [% search_description %]
 
-[% IF bugs.size > 0 %]
-<br /><a href="enter_bug.cgi?[% urlquerypart | html %]">Create new [% terms.bug %] with the same fields</a>
-[% END %]
-
 <hr />
 
 [%############################################################################%]
@@ -101,7 +97,12 @@ function showbugcomma()
 }
 </script>
 
-<div id="showbugcommacmd" style="margin: 0 0 8px 0"><a href="javascript:void showbugcomma()">Display Bug ID list...</a></div>
+<div style="margin: 8px 0">
+  <a style="margin: 0 20px 0 0" id="showbugcommacmd" href="javascript:void showbugcomma()">Display Bug ID list</a>
+  [% IF equality_querystring %]
+  <a href="enter_bug.cgi?[% equality_querystring | html %]">Create new [% terms.bug %] from search parameters</a>
+  [% END %]
+</div>
 <div id="bugcomma" style="display: none; margin: 0 0 8px 0">
   Bug ID list: <input type="text" readonly="true" value="[% buglist.join(" ") %]" size="100" />
 </div>
