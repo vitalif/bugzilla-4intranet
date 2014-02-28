@@ -1234,9 +1234,9 @@ sub init
 
     # Determine global equality operators
     $self->{equalities} = [];
-    if (substr($OUTER_AND->[0], 0, 3) eq 'AND')
+    if (ref $OUTER_AND eq 'HASH' || substr($OUTER_AND->[0], 0, 3) eq 'AND')
     {
-        foreach my $term (@$OUTER_AND)
+        foreach my $term (ref $OUTER_AND eq 'HASH' ? $OUTER_AND : @$OUTER_AND)
         {
             if (ref $term eq 'HASH' && ($term->{description}->[1] eq 'equals' ||
                 $term->{description}->[1] eq 'anyexact' || $term->{description}->[1] eq 'anywords' ||
