@@ -1238,7 +1238,9 @@ sub init
     {
         foreach my $term (@$OUTER_AND)
         {
-            if (ref $term eq 'HASH' && $term->{description}->[1] eq 'equals')
+            if (ref $term eq 'HASH' && ($term->{description}->[1] eq 'equals' ||
+                $term->{description}->[1] eq 'anyexact' || $term->{description}->[1] eq 'anywords' ||
+                $term->{description}->[1] eq 'allwords'))
             {
                 push @{$self->{equalities}}, $term->{description};
             }

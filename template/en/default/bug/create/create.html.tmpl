@@ -153,8 +153,7 @@ function set_assign_to() {
         var version = componentdefaultversions[index];
         if (assigned_to == last_initialowner
             || assigned_to == owner
-            || assigned_to == ''
-            || assigned_to == "[% assigned_to FILTER js %]") {
+            || assigned_to == '') {
             form.assigned_to.value = owner;
             last_initialowner = owner;
         }
