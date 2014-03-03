@@ -25,6 +25,8 @@
   'divide_other_bug_id' => 2
 } %]
 
+[% for_all_users = "за всех участников" %]
+
 [% MACRO hidden_inputs BLOCK %]
   [% FOR k = query_params.keys %]
     [% IF !hidden_fields.$k || hidden_fields.$k == HideIndex %]
@@ -41,7 +43,7 @@
 
 <fieldset>
 <legend>Выборка трудозатрат:</legend>
-<form action="?" method="POST" />
+<form action="?" method="POST">
 <input type="hidden" name="format" value="superworktime" />
 
 [% hidden_inputs(HideIndex=2) %]
@@ -65,7 +67,7 @@
 </p>
 [% END %]
 
-<form action="?" method="POST">
+<form action="?" method="POST" onsubmit="wt_user_check()">
 
 <input type="hidden" name="format" value="superworktime" />
 <input type="hidden" name="save_worktime" value="1" />
@@ -98,10 +100,9 @@
 [% IF wt_admin %]
   На дату: <input type="text" name="worktime_date" value="[% worktime_date | html %]" /> <span style="color: #aaa">(YYYY-MM-DD HH:MM:SS)</span> &nbsp;
   За пользователя:
-  <div style="display:inline-block">
-  <span id="wt_forall" onclick="document.getElementById('worktime_user').focus()" style="cursor: text; z-index: 2; padding-top: 3pt; position: absolute; font-weight: bold; color: red">&nbsp;за&nbsp;всех&nbsp;участников</span>
-  <input type="text" name="worktime_user" id="worktime_user" value="[% worktime_user | html %]" onfocus="forall_focus()" onblur="forall_unfocus()" /> &nbsp;
-  </div>
+  <input type="hidden" name="worktime_user" id="worktime_user_real" value="" />
+  <input type="text" id="worktime_user" value="[% worktime_user || html %]"
+    onfocus="wt_user_focus()" onblur="wt_user_blur()"[% IF !worktime_user %] style="color: red"[% END %] /> &nbsp;
 [% ELSE %]
   На дату: <b>[% worktime_date | html %]</b> &nbsp;
   За пользователя: <b>[%+ Bugzilla.user.login | html %]</b> &nbsp;
@@ -195,19 +196,32 @@ function divide_hours_check()
   var incorrect = val !== '' && (sum != sum || sum === null || sum === undefined);
   document.getElementById('divide_hours_cont').style.backgroundColor = incorrect ? '#ffe0e0' : '';
 }
-function forall_unfocus()
+function wt_user_blur()
 {
   var ed = document.getElementById('worktime_user');
-  document.getElementById('wt_forall').style.display = ed.value ? 'none' : '';
+  if (!ed.value)
+  {
+    ed.value = '[% for_all_users %]';
+    ed.style.color = 'red';
+    document.getElementById('divide_other_bug_id').value = '';
+  }
   document.getElementById('divide_other_bug_id_text').style.color = ed.value ? 'gray' : '';
   document.getElementById('divide_other_bug_id_text_2').style.color = ed.value ? 'gray' : '';
   document.getElementById('divide_other_bug_id').disabled = ed.value ? true : false;
-  if (!ed.value)
-    document.getElementById('divide_other_bug_id').value = '';
 }
-function forall_focus()
+function wt_user_focus()
 {
-  document.getElementById('wt_forall').style.display = 'none';
+  var ed = document.getElementById('worktime_user');
+  if (ed.value == '[% for_all_users %]')
+  {
+    ed.value = '';
+    ed.style.color = '';
+  }
+}
+function wt_user_check()
+{
+  var ed = document.getElementById('worktime_user');
+  document.getElementById('worktime_user_real').value = ed.value == '[% for_all_users %]' ? '' : ed.value;
 }
 function refresh_total_wt()
 {
@@ -255,7 +269,7 @@ function do_dry_run(frm)
   frm.dry_run.value = '';
   frm.target = '';
 }
-forall_unfocus();
+wt_user_blur();
 check_who_enabled();
 </script>
 
