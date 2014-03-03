@@ -121,7 +121,7 @@ sub _check_name {
 
     $name = trim($name);
     $name eq "" && ThrowUserError("keyword_blank_name");
-    if ($name =~ /[\s,]/) {
+    if ($name =~ /,/) {
         ThrowUserError("keyword_invalid_name");
     }
 

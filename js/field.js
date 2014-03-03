@@ -295,7 +295,7 @@ function check_new_keywords(form)
         var kd_container = document.getElementById("keywords_description_container");
 
         var desc_html = "";
-        for(var i = 0; i < non_exist_keywords.length; i++)
+        for (var i = 0; i < non_exist_keywords.length; i++)
         {
             var this_value = "";
             if (document.getElementById('kd_' + i) && document.getElementById('kd_' + i).value != "" &&
@@ -303,7 +303,7 @@ function check_new_keywords(form)
             {
                 this_value = document.getElementById('kd_' + i).value;
             }
-            desc_html += "<br /><label>Description for new item of keywords - <b>" + htmlspecialchars(non_exist_keywords[i]) +
+            desc_html += "<br /><label>Description for new keyword - <b>" + htmlspecialchars(non_exist_keywords[i]) +
                 "</b></label><br /><input type=\"text\" value=\"" + htmlspecialchars(this_value) + "\" class=\"text_input\" name=\"kd\" id=\"kd_" +
                 i + "\" data-key=\"" + htmlspecialchars(non_exist_keywords[i]) + "\" style=\"border: solid 1px red;\" /> <br/>";
         }
@@ -317,7 +317,7 @@ function check_new_keywords(form)
             {
                 if (kd_descriptions_val != "")
                 {
-                    kd_descriptions_val += "@";
+                    kd_descriptions_val += "&";
                 }
                 var this_key = kd_descriptions[i].getAttribute('data-key');
                 kd_descriptions_val += encodeURIComponent(this_key) + "=" + encodeURIComponent(kd_descriptions[i].value);
@@ -335,6 +335,8 @@ function check_new_keywords(form)
         {
             keywords_submit = false;
         }
+        document.getElementById('keywords').focus();
+        document.getElementById('kd_0').focus();
         return keywords_submit;
     }
     return true;

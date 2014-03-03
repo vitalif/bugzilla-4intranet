@@ -41,10 +41,11 @@ my $vars = {};
 
 my $user = Bugzilla->login(LOGIN_REQUIRED);
 
-$user->in_group('editkeywords')
-  || ThrowUserError("auth_failure", {group  => "editkeywords",
-                                     action => "edit",
-                                     object => "keywords"});
+$user->in_group('editkeywords') || ThrowUserError("auth_failure", {
+    group  => "editkeywords",
+    action => "edit",
+    object => "keywords",
+});
 
 my $action = trim($cgi->param('action')  || '');
 my $key_id = $cgi->param('id');
@@ -57,20 +58,21 @@ if ($action eq "") {
     $vars->{'keywords'} = Bugzilla::Keyword->get_all_with_bug_count();
 
     $template->process("admin/keywords/list.html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
+        || ThrowTemplateError($template->error());
 
     exit;
 }
-    
+
 
 if ($action eq 'add') {
     $vars->{'token'} = issue_session_token('add_keyword');
 
     $template->process("admin/keywords/create.html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
+        || ThrowTemplateError($template->error());
 
     exit;
 }
+
 
 #
 # action='new' -> add keyword entered in the 'action=add' screen
@@ -90,7 +92,7 @@ if ($action eq 'new') {
     $vars->{'keywords'} = Bugzilla::Keyword->get_all_with_bug_count();
 
     $template->process("admin/keywords/list.html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
+        || ThrowTemplateError($template->error());
     exit;
 }
 
@@ -109,7 +111,7 @@ if ($action eq 'edit') {
     $vars->{'token'} = issue_session_token('edit_keyword');
 
     $template->process("admin/keywords/edit.html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
+        || ThrowTemplateError($template->error());
     exit;
 }
 
@@ -137,7 +139,7 @@ if ($action eq 'update') {
     $vars->{'keywords'} = Bugzilla::Keyword->get_all_with_bug_count();
 
     $template->process("admin/keywords/list.html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
+        || ThrowTemplateError($template->error());
     exit;
 }
 
@@ -149,13 +151,13 @@ if ($action eq 'del') {
     $vars->{'token'} = issue_session_token('delete_keyword');
 
     $template->process("admin/keywords/confirm-delete.html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
+        || ThrowTemplateError($template->error());
     exit;
 }
 
 if ($action eq 'delete') {
     check_token_data($token, 'delete_keyword');
-    my $keyword =  new Bugzilla::Keyword($key_id)
+    my $keyword = new Bugzilla::Keyword($key_id)
         || ThrowCodeError('invalid_keyword_id', { id => $key_id });
 
     $keyword->remove_from_db();
@@ -167,7 +169,7 @@ if ($action eq 'delete') {
     $vars->{'keywords'} = Bugzilla::Keyword->get_all_with_bug_count();
 
     $template->process("admin/keywords/list.html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
+        || ThrowTemplateError($template->error());
     exit;
 }
 

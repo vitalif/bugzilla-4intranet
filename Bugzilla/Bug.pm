@@ -1757,37 +1757,33 @@ sub _check_groups {
     return \@add_groups;
 }
 
-sub _check_keywords {
+sub _check_keywords
+{
     my ($invocant, $keyword_string, $keyword_description_string, $product) = @_;
     $keyword_string = trim($keyword_string);
     return [] if !$keyword_string;
 
     # On creation, only editbugs users can set keywords.
-    if (!ref $invocant) {
+    if (!ref $invocant)
+    {
         return [] if !Bugzilla->user->in_group('editbugs', $product->id);
     }
 
     # CustIS Bug 66910 - Adding new keyword to DB
-    my %keyword_descriptions;
-    trick_taint($keyword_description_string);
-    foreach my $kd (split(/\@+/, trim($keyword_description_string))) {
-        my @this_kd = map { $_ = url_decode($_); Encode::_utf8_on($_); $_ } split /=+/, $kd;
-        $keyword_descriptions{$this_kd[0]} = $this_kd[1];
-    }
-
+    my $keyword_descriptions = http_decode_query($keyword_description_string);
     my %keywords;
-    foreach my $keyword (split(/[\s,]+/, $keyword_string)) {
+    foreach my $keyword (split /[\s,]*,[\s,]*/, $keyword_string)
+    {
         next unless $keyword;
         my $obj = new Bugzilla::Keyword({ name => $keyword });
 
         if (!$obj)
         {
             my $this_kd = "";
-            if (exists($keyword_descriptions{$keyword}))
+            if (exists($keyword_descriptions->{$keyword}))
             {
-                $this_kd = $keyword_descriptions{$keyword};
+                $this_kd = $keyword_descriptions->{$keyword};
             }
-
             my $obj = Bugzilla::Keyword->create({
                 name => $keyword,
                 description => $this_kd,

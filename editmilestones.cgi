@@ -107,9 +107,11 @@ if ($action eq 'add') {
 
 if ($action eq 'new') {
     check_token_data($token, 'add_milestone');
-    my $milestone = Bugzilla::Milestone->create({ name    => $milestone_name,
-                                                  product => $product,
-                                                  sortkey => $sortkey });
+    my $milestone = Bugzilla::Milestone->create({
+        name    => $milestone_name,
+        product => $product,
+        sortkey => $sortkey,
+    });
     delete_token($token);
 
     $vars->{'message'} = 'milestone_created';
@@ -127,9 +129,11 @@ if ($action eq 'new') {
 #
 
 if ($action eq 'del') {
-    my $milestone = Bugzilla::Milestone->check({ product => $product,
-                                                 name    => $milestone_name });
-    
+    my $milestone = Bugzilla::Milestone->check({
+        product => $product,
+        name    => $milestone_name,
+    });
+
     $vars->{'milestone'} = $milestone;
     $vars->{'product'} = $product;
 
@@ -140,7 +144,7 @@ if ($action eq 'del') {
     $vars->{'token'} = issue_session_token('delete_milestone');
 
     $template->process("admin/milestones/confirm-delete.html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
+        || ThrowTemplateError($template->error());
     exit;
 }
 
@@ -150,8 +154,10 @@ if ($action eq 'del') {
 
 if ($action eq 'delete') {
     check_token_data($token, 'delete_milestone');
-    my $milestone = Bugzilla::Milestone->check({ product => $product,
-                                                 name    => $milestone_name });
+    my $milestone = Bugzilla::Milestone->check({
+        product => $product,
+        name    => $milestone_name,
+    });
     $milestone->remove_from_db;
     delete_token($token);
 
@@ -161,7 +167,7 @@ if ($action eq 'delete') {
     $vars->{'no_edit_milestone_link'} = 1;
 
     $template->process("admin/milestones/list.html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
+        || ThrowTemplateError($template->error());
     exit;
 }
 
@@ -181,7 +187,7 @@ if ($action eq 'edit') {
     $vars->{'token'} = issue_session_token('edit_milestone');
 
     $template->process("admin/milestones/edit.html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
+        || ThrowTemplateError($template->error());
     exit;
 }
 
@@ -192,8 +198,10 @@ if ($action eq 'edit') {
 if ($action eq 'update') {
     check_token_data($token, 'edit_milestone');
     my $milestone_old_name = trim($cgi->param('milestoneold') || '');
-    my $milestone = Bugzilla::Milestone->check({ product => $product,
-                                                 name    => $milestone_old_name });
+    my $milestone = Bugzilla::Milestone->check({
+        product => $product,
+        name    => $milestone_old_name,
+    });
 
     $milestone->set_name($milestone_name);
     $milestone->set_sortkey($sortkey);
@@ -206,7 +214,7 @@ if ($action eq 'update') {
     $vars->{'product'} = $product;
     $vars->{'changes'} = $changes;
     $template->process("admin/milestones/list.html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
+        || ThrowTemplateError($template->error());
     exit;
 }
 

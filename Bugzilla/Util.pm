@@ -46,7 +46,7 @@ use base qw(Exporter);
     stem_text intersect union
     get_text disable_utf8 bz_encode_json
     xml_element xml_element_quote xml_dump_simple xml_simple
-    Dumper http_build_query
+    Dumper http_build_query http_decode_query
 );
 
 use Bugzilla::Constants;
@@ -249,6 +249,28 @@ sub http_build_query($)
             ? join('&'.url_quote($_).'=', map { url_quote($_) } @{$query->{$_}})
             : url_quote($query->{$_}))
     } keys %$query);
+}
+
+# Decode query string to a hashref
+sub http_decode_query($)
+{
+    my ($query) = @_;
+    my $h = {};
+    foreach my $part (split /&/, $query)
+    {
+        my ($k, $v) = map { url_decode($_); } split /=/, $part, 2;
+        utf8::decode($_) for $k, $v;
+        if (exists $h->{$k})
+        {
+            $h->{$k} = [ $h->{$k} ] if !ref $h->{$k};
+            push @{$h->{$k}}, $v;
+        }
+        else
+        {
+            $h->{$k} = $v;
+        }
+    }
+    return $h;
 }
 
 sub css_class_quote {
