@@ -102,7 +102,7 @@
   За пользователя:
   <input type="hidden" name="worktime_user" id="worktime_user_real" value="" />
   <input type="text" id="worktime_user" value="[% worktime_user || html %]"
-    onfocus="wt_user_focus()" onblur="wt_user_blur()"[% IF !worktime_user %] style="color: red"[% END %] /> &nbsp;
+    onfocus="wt_user_focus()" onblur="wt_user_blur()" /> &nbsp;
 [% ELSE %]
   На дату: <b>[% worktime_date | html %]</b> &nbsp;
   За пользователя: <b>[%+ Bugzilla.user.login | html %]</b> &nbsp;
@@ -263,6 +263,7 @@ function check_move(c)
 }
 function do_dry_run(frm)
 {
+  wt_user_check();
   frm.dry_run.value = '1';
   frm.target = '_blank';
   frm.submit();
