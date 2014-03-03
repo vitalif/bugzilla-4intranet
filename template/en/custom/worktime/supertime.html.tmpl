@@ -141,6 +141,7 @@
 
 <script language="JavaScript">
 var period_times = { [% FOREACH bug = bugs %][% IF NOT loop.first %],[% END %]'[% bug.bug_id %]':[% bug.interval_time || 0 %][% END %] };
+var period_times_sorted;
 function divide_hours_click()
 {
   var min_inc = bzParseTime(document.getElementById('divide_min_inc').value);
@@ -150,16 +151,33 @@ function divide_hours_click()
     alert('Нечего распределять! Введите число, время в формате HH:MM, или в днях 1d, 2d, 3d и т.п.');
     return;
   }
+  if (!period_times_sorted)
+  {
+    // Чтобы сумма списываемых часов сходилась, а результаты были логичными
+    // (т.е. чтобы в баг с бОльшим временем попадало большее время),
+    // пропорциональное распределение лучше делать в порядке от меньших
+    // значений к бОльшим. Посему сортируем список багов.
+    period_times_sorted = [];
+    for (var i in period_times)
+    {
+      period_times_sorted.push(i);
+    }
+    period_times_sorted.sort(function(a, b)
+    {
+      return period_times[a] < period_times[b] ? -1 : (period_times[a] > period_times[b] ? 1 : 0);
+    });
+  }
   var period_sum = 0, period_count = 0;
   for (var i in period_times)
   {
     period_sum += period_times[i];
     period_count++;
   }
-  var cur, inc, ed;
+  var cur, inc, ed, i;
   var total_inc = 0;
-  for (var i in period_times)
+  for (var ii in period_times_sorted)
   {
+    i = period_times_sorted[ii];
     ed = document.getElementById('wtime_'+i);
     cur = bzParseTime(ed.value);
     if (!cur || cur != cur)
@@ -171,14 +189,15 @@ function divide_hours_click()
     inc = Math.round(inc*100)/100;
     if (inc < min_inc && inc > -min_inc)
     {
-      [%# не списываем время совсем уж мелкими суммами %]
+      // не списываем время совсем уж мелкими суммами
       period_count--;
-      period_sum -= period_times[i];
+      if (period_sum != 0)
+        period_sum -= period_times[i];
       continue;
     }
-    [%# Следующие 3 строчки - извратик, призванный корректировать
-      # возникающую ошибку округления, чтобы реальная сумма
-      # списываемых часов была более близка к заданной %]
+    // Следующие строчки - извратик, призванный корректировать
+    // возникающую ошибку округления, чтобы реальная сумма
+    // списываемых часов была более близка к заданной
     sum -= inc;
     period_count--;
     period_sum -= period_times[i];
@@ -251,14 +270,20 @@ function check_move(c)
   {
     var e = true;
     for (var i in period_times)
+    {
       if (document.getElementById('wtime_'+i).value != '')
       {
         e = false;
         break;
       }
+    }
     if (e)
+    {
       for (var i in period_times)
+      {
         document.getElementById('wtime_'+i).value = '1';
+      }
+    }
   }
 }
 function do_dry_run(frm)
