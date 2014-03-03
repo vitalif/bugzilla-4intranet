@@ -188,7 +188,6 @@ $Bugzilla::messages->{en} = {
         'never'                             => 'Never',
         'cc_unless_role'                    => 'Only if I have no role on them',
         'lang'                              => 'Language used in email',
-        'view_testopia'                     => 'View the Testopia links',
         'quote_replies'                     => 'Quote the associated comment when you click on its reply link',
         'quoted_reply'                      => 'Quote the full comment',
         'simple_reply'                      => 'Reference the comment number only',

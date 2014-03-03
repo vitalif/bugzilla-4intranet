@@ -792,9 +792,6 @@ EOF
                     else {
                         delete $indexes{$index_name};
                     }
-                    if ($table eq 'test_runs' && $index_name eq 'summary') {
-                        $self->bz_drop_index('test_runs', 'test_runs_summary_idx');
-                    }
                 }
 
                 print "Converting the $table table to UTF-8...\n";
