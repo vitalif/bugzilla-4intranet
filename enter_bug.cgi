@@ -388,7 +388,7 @@ if (scalar(@{$product->active_components}) == 1) {
 
 my %default;
 
-$vars->{'product'}               = $product;
+$vars->{'product'} = $product;
 
 # CustIS Bug 65812 - Flags are not restored from bug entry template
 {
@@ -442,8 +442,6 @@ if ($cloned_bug_id) {
     $default{'rep_platform'}  = $cloned_bug->rep_platform if Bugzilla->params->{useplatform};
     $default{'op_sys'}        = $cloned_bug->op_sys if Bugzilla->params->{useopsys};
 
-    $vars->{'assigned_to'}  ||= $cloned_bug->component_obj->default_assignee->login;
-    $vars->{'qa_contact'}   ||= $cloned_bug->component_obj->default_qa_contact->login;
     $vars->{'short_desc'}     = $cloned_bug->short_desc;
     $vars->{'bug_file_loc'}   = $cloned_bug->bug_file_loc;
     $vars->{'keywords'}       = $cloned_bug->keywords;
