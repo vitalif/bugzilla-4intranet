@@ -54,11 +54,10 @@ bugs which have 'foo' as one CC AND 'bar' as another.
 Now, this magic is only enabled for bug comments, bug changes, flags
 and attachments. See "CORRELATED SEARCH TERMS" below.
 
-FIXME: Add support for manual selection of match target for such terms.
-I.e. the user should be able to select "comment 1 author = ..." AND
-"comment 2 author = ..." search terms by hand, without thinking about
-any magic. Now, it's also the single piece of functionality which is lost
-compared to the old search engine.
+FIXME: This magic is now a single piece of functionality which is lost
+compared to the old search engine. The most correct solution is to allow
+specifying 'subqueries' on _other_entities_ (not just bugs). For example:
+(comment: subquery(author=A1 & date=D1)) & (comment: subquery(author=A2 & date=D2))
 
 =head1 QUERY OPTIMISATION
 
@@ -401,16 +400,8 @@ sub SPECIAL_ORDER
         my $name = $type->DB_TABLE;
         $special_order->{$field->name} = {
             fields => [ map { "$name.$_" } split /\s*,\s*/, $type->LIST_ORDER ],
-            joins  => [ "LEFT JOIN $name ON $name.".$type->NAME_FIELD." = bugs.".$field->name ],
+            joins  => [ "LEFT JOIN $name ON $name.".$type->ID_FIELD."=bugs.".$field->name ],
         };
-        # FIXME this is part of: merge standard and custom dependent fields mechanisms
-        # Problem: target_milestone is not uniquely identified by its name, so when many products have
-        # milestones with same name, this join can generate the insane row count and kill DB performance
-        # Solution: also join on product_id
-        if ($field->name eq 'target_milestone' || $field->name eq 'version')
-        {
-            $special_order->{$field->name}->{joins}->[0] .= " AND $name.product_id=bugs.product_id";
-        }
     }
     Bugzilla::Hook::process('search_special_order', { columns => $special_order });
     return $cache->{special_order} = $special_order;
@@ -569,7 +560,9 @@ sub STATIC_COLUMNS
     foreach my $field (Bugzilla->get_fields)
     {
         my $id = $field->name;
-        $columns->{$id}->{name} ||= 'bugs.' . $field->name;
+        next if $id eq 'product' || $id eq 'component' || $id eq 'classification';
+        my $type = Bugzilla::Field::Choice->type($field);
+        $columns->{$id}->{name} ||= "bugs.$id";
         $columns->{$id}->{title} = $field->description;
         $columns->{$id}->{nobuglist} = !$field->buglist || $field->obsolete;
         $columns->{$id}->{nocharts} = $field->obsolete;
@@ -577,10 +570,15 @@ sub STATIC_COLUMNS
         {
             push @bugid_fields, $field;
         }
+        elsif ($field->type == FIELD_TYPE_SINGLE_SELECT)
+        {
+            $columns->{$id}->{name} = "$id.".$type->NAME_FIELD;
+            $columns->{$id}->{joins} = [ "LEFT JOIN $id ON $id.".$type->ID_FIELD."=bugs.$id" ];
+        }
         elsif ($field->type == FIELD_TYPE_MULTI_SELECT)
         {
-            $columns->{$id}->{name} = "$id.value";
-            $columns->{$id}->{joins} = [ "LEFT JOIN (bug_$id INNER JOIN $id ON $id.id=bug_$id.value_id) ON bug_$id.bug_id=bugs.bug_id" ];
+            $columns->{$id}->{name} = "$id.".$type->NAME_FIELD;
+            $columns->{$id}->{joins} = [ "LEFT JOIN (bug_$id INNER JOIN $id ON $id.".$type->ID_FIELD."=bug_$id.value_id) ON bug_$id.bug_id=bugs.bug_id" ];
         }
     }
 
@@ -1573,7 +1571,7 @@ sub GetByWordListSubstr
     return \@list;
 }
 
-# FIXME: In Bugzilla 4 trunk, pronoun() and relative timestamp support is replaced by SPECIAL_PARSING
+# Note: In Bugzilla 4 trunk, pronoun() and relative timestamp support is replaced by SPECIAL_PARSING
 sub pronoun
 {
     my $self = shift;

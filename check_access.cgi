@@ -37,7 +37,7 @@ sub viewlist {
     # Retrieve and validate parameters
     my $bug = Bugzilla::Bug->check(scalar $cgi->param('id'));
     my $bugid = $bug->id;
-    my $user_list = $bug->getAccessUserList();
+    my $user_list = $bug->get_access_user_list();
 
     $vars->{'user_list'} = $user_list;
     $vars->{'count_user_list'} = scalar @$user_list;
@@ -45,5 +45,5 @@ sub viewlist {
 
     # Generate and return the UI (HTML page) from the appropriate template.
     $template->process("bug/checkaccess.html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
+        || ThrowTemplateError($template->error());
 }

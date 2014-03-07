@@ -204,7 +204,7 @@
            [% IF editable %]
              <label><input type="checkbox" value="[% url FILTER html %]"
                            [% IF tabindex %] tabindex="[% tabindex FILTER html %]"[% END %]
-                           name="remove_[% field.name FILTER html %]" />
+                           name="remove_[% field.name FILTER html %][]" />
                Remove</label>
            [% END %]
          </li>

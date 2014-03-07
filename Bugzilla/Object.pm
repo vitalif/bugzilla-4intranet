@@ -47,11 +47,12 @@ sub TO_JSON { return { %{ $_[0] } }; }
 ####    Initialization     ####
 ###############################
 
-sub new {
+sub new
+{
     my $invocant = shift;
     my $class    = ref($invocant) || $invocant;
     my $object   = $class->_init(@_);
-    bless($object, $class) if $object;
+    bless $object, $class if $object;
     return $object;
 }
 
@@ -59,57 +60,63 @@ sub new {
 # Bugzilla::Object, make sure that you modify bz_setup_database
 # in Bugzilla::DB::Pg appropriately, to add the right LOWER
 # index. You can see examples already there.
-sub _init {
+sub _init
+{
     my $class = shift;
     my ($param) = @_;
     my $dbh = Bugzilla->dbh;
     my $columns = join(',', $class->DB_COLUMNS);
-    my $table   = $class->DB_TABLE;
+    my $table = $class->DB_TABLE;
     my $name_field = $class->NAME_FIELD;
-    my $id_field   = $class->ID_FIELD;
+    my $id_field = $class->ID_FIELD;
 
     my $id = $param;
-    if (ref $param eq 'HASH') {
+    if (ref $param eq 'HASH')
+    {
         $id = $param->{id};
     }
     my ($object, $sql, @values);
 
-    if (defined $id) {
+    if (defined $id)
+    {
         # We special-case if somebody specifies an ID, so that we can
         # validate it as numeric.
-        detaint_natural($id)
-          || ThrowCodeError('param_must_be_numeric',
-                            {function => $class . '::_init'});
+        detaint_natural($id) || ThrowCodeError('param_must_be_numeric', {function => $class . '::_init'});
 
-        # Too large integers make PostgreSQL crash.
+        # Too large integers make PostgreSQL crash. (FIXME O_OOOOOO)
         return if $id > MAX_INT_32;
 
         $sql = "$id_field = ?";
         @values = ($id);
-    } else {
-        unless (defined $param->{name} || (defined $param->{condition}
-                                           && defined $param->{values}))
+    }
+    else
+    {
+        unless (defined $param->{name} || (defined $param->{condition} && defined $param->{values}))
         {
-            ThrowCodeError('bad_arg', { argument => 'param',
-                                        function => $class . '::new',
-                                        value    => $param });
+            ThrowCodeError('bad_arg', {
+                argument => 'param',
+                function => $class . '::new',
+                value    => $param,
+            });
         }
 
-        if (defined $param->{name}) {
+        if (defined $param->{name})
+        {
             $sql = $dbh->sql_istrcmp($name_field, '?');
-            push(@values, $param->{name});
+            push @values, $param->{name};
         }
-        elsif (defined $param->{condition} && defined $param->{values}) {
-            caller->isa('Bugzilla::Object')
-                || ThrowCodeError('protection_violation',
-                       { caller    => caller,
-                         function  => $class . '::new',
-                         argument  => 'condition/values' });
+        elsif (defined $param->{condition} && defined $param->{values})
+        {
+            caller->isa('Bugzilla::Object') || ThrowCodeError('protection_violation', {
+                caller   => caller,
+                function => $class . '::new',
+                argument => 'condition/values',
+            });
             $sql = $param->{condition};
-            push(@values, @{$param->{values}});
+            push @values, @{$param->{values}};
         }
 
-        map { trick_taint($_) } @values;
+        trick_taint($_) for @values;
     }
 
     # It is recommended to use FOR UPDATE when updating!
@@ -123,50 +130,54 @@ sub _init {
     return $object;
 }
 
-sub check {
+sub check
+{
     my ($invocant, $param) = @_;
     my $class = ref($invocant) || $invocant;
     # If we were just passed a name, then just use the name.
-    if (!ref $param) {
+    if (!ref $param)
+    {
         $param = { name => $param };
     }
-
     # Don't allow empty names or ids.
     my $check_param = exists $param->{id} ? 'id' : 'name';
     $param->{$check_param} = trim($param->{$check_param});
     # If somebody passes us "0", we want to throw an error like
     # "there is no X with the name 0". This is true even for ids. So here,
     # we only check if the parameter is undefined or empty.
-    if (!defined $param->{$check_param} or $param->{$check_param} eq '') {
+    if (!defined $param->{$check_param} or $param->{$check_param} eq '')
+    {
         ThrowUserError('object_not_specified', { class => $class });
     }
-
     my $obj = $class->new($param);
-    if (!$obj) {
+    if (!$obj)
+    {
         # We don't want to override the normal template "user" object if
         # "user" is one of the params.
         delete $param->{user};
-        if (my $error = delete $param->{_error}) {
+        if (my $error = delete $param->{_error})
+        {
             ThrowUserError($error, { %$param, class => $class });
         }
-        else {
+        else
+        {
             ThrowUserError('object_does_not_exist', { %$param, class => $class });
         }
     }
     return $obj;
 }
 
-sub new_from_list {
+sub new_from_list
+{
     my $invocant = shift;
     my $class = ref($invocant) || $invocant;
     my ($id_list) = @_;
     my $id_field = $class->ID_FIELD;
 
     my @detainted_ids;
-    foreach my $id (@$id_list) {
-        detaint_natural($id) ||
-            ThrowCodeError('param_must_be_numeric',
-                          {function => $class . '::new_from_list'});
+    foreach my $id (@$id_list)
+    {
+        detaint_natural($id) || ThrowCodeError('param_must_be_numeric', {function => $class . '::new_from_list'});
         # Too large integers make PostgreSQL crash.
         next if $id > MAX_INT_32;
         push(@detainted_ids, $id);
@@ -181,7 +192,8 @@ sub new_from_list {
 # Note: Future extensions to this could be:
 #  * Add a MATCH_JOIN constant so that we can join against
 #    certain other tables for the WHERE criteria.
-sub match {
+sub match
+{
     my ($invocant, $criteria) = @_;
     my $class = ref($invocant) || $invocant;
     my $dbh   = Bugzilla->dbh;
@@ -189,62 +201,66 @@ sub match {
     return [$class->get_all] if !$criteria;
 
     my (@terms, @values, $postamble);
-    foreach my $field (keys %$criteria) {
+    foreach my $field (keys %$criteria)
+    {
         my $value = $criteria->{$field};
 
         # allow for LIMIT and OFFSET expressions via the criteria.
         next if $field eq 'OFFSET';
-        if ( $field eq 'LIMIT' ) {
+        if ($field eq 'LIMIT')
+        {
             next unless defined $value;
-            detaint_natural($value)
-              or ThrowCodeError('param_must_be_numeric',
-                                { param    => 'LIMIT',
-                                  function => "${class}::match" });
+            detaint_natural($value) || ThrowCodeError('param_must_be_numeric',
+                { param => 'LIMIT', function => "${class}::match" });
             my $offset;
-            if (defined $criteria->{OFFSET}) {
+            if (defined $criteria->{OFFSET})
+            {
                 $offset = $criteria->{OFFSET};
-                detaint_signed($offset)
-                  or ThrowCodeError('param_must_be_numeric',
-                                    { param    => 'OFFSET',
-                                      function => "${class}::match" });
+                detaint_signed($offset) || ThrowCodeError('param_must_be_numeric',
+                    { param => 'OFFSET', function => "${class}::match" });
             }
             $postamble = $dbh->sql_limit($value, $offset);
             next;
         }
-        elsif ( $field eq 'WHERE' ) {
+        elsif ($field eq 'WHERE')
+        {
             # the WHERE value is a hashref where the keys are
             # "column_name operator ?" and values are the placeholder's
             # value (either a scalar or an array of values).
-            foreach my $k (keys %$value) {
-                push(@terms, $k);
-                my @this_value = ref($value->{$k}) ? @{ $value->{$k} }
-                                                   : ($value->{$k});
-                push(@values, @this_value);
+            foreach my $k (keys %$value)
+            {
+                push @terms, $k;
+                my @this_value = ref($value->{$k}) ? @{ $value->{$k} } : ($value->{$k});
+                push @values, @this_value;
             }
             next;
         }
 
         $class->_check_field($field, 'match');
 
-        if (ref $value eq 'ARRAY') {
+        if (ref $value eq 'ARRAY')
+        {
             # IN () is invalid SQL, and if we have an empty list
             # to match against, we're just returning an empty
             # array anyhow.
             return [] if !scalar @$value;
 
             my @qmarks = ("?") x @$value;
-            push(@terms, $dbh->sql_in($field, \@qmarks));
-            push(@values, @$value);
+            push @terms, $dbh->sql_in($field, \@qmarks);
+            push @values, @$value;
         }
-        elsif ($value eq NOT_NULL) {
-            push(@terms, "$field IS NOT NULL");
+        elsif ($value eq NOT_NULL)
+        {
+            push @terms, "$field IS NOT NULL";
         }
-        elsif ($value eq IS_NULL) {
-            push(@terms, "$field IS NULL");
+        elsif ($value eq IS_NULL)
+        {
+            push @terms, "$field IS NULL";
         }
-        else {
-            push(@terms, "$field = ?");
-            push(@values, $value);
+        else
+        {
+            push @terms, "$field = ?";
+            push @values, $value;
         }
     }
 
@@ -252,14 +268,16 @@ sub match {
     return $class->_do_list_select($where, \@values, $postamble);
 }
 
-sub _do_list_select {
+sub _do_list_select
+{
     my ($class, $where, $values, $postamble) = @_;
     my $table = $class->DB_TABLE;
     my $cols  = join(',', $class->DB_COLUMNS);
     my $order = $class->LIST_ORDER;
 
     my $sql = "SELECT $cols FROM $table";
-    if (defined $where) {
+    if (defined $where)
+    {
         $sql .= " WHERE $where ";
     }
     $sql .= " ORDER BY $order";
@@ -288,48 +306,53 @@ sub name { return $_[0]->{$_[0]->NAME_FIELD}; }
 ####        Methods        ####
 ###############################
 
-sub set {
+sub set
+{
     my ($self, $field, $value) = @_;
 
     # This method is protected. It's used to help implement set_ functions.
-    caller->isa('Bugzilla::Object')
-        || ThrowCodeError('protection_violation',
-                          { caller     => caller,
-                            superclass => __PACKAGE__,
-                            function   => 'Bugzilla::Object->set' });
+    caller->isa('Bugzilla::Object') || ThrowCodeError('protection_violation', {
+        caller     => caller,
+        superclass => __PACKAGE__,
+        function   => 'Bugzilla::Object->set',
+    });
 
-    Bugzilla::Hook::process('object_before_set',
-                            { object => $self, field => $field,
-                              value => $value });
+    Bugzilla::Hook::process('object_before_set', {
+        object => $self,
+        field => $field,
+        value => $value,
+    });
 
     my %validators = (%{$self->VALIDATORS}, %{$self->UPDATE_VALIDATORS});
-    if (exists $validators{$field}) {
+    if (exists $validators{$field})
+    {
         my $validator = $validators{$field};
         $value = $self->$validator($value, $field);
-        trick_taint($value) if (defined $value && !ref($value));
-
-        if ($self->can('_set_global_validator')) {
+        trick_taint($value) if defined $value && !ref $value;
+        if ($self->can('_set_global_validator'))
+        {
             $self->_set_global_validator($value, $field);
         }
     }
 
     $self->{$field} = $value;
 
-    Bugzilla::Hook::process('object_end_of_set',
-                            { object => $self, field => $field });
+    Bugzilla::Hook::process('object_end_of_set', { object => $self, field => $field });
 }
 
-sub set_all {
+sub set_all
+{
     my ($self, $params) = @_;
-    foreach my $key (keys %$params) {
+    foreach my $key (keys %$params)
+    {
         my $method = "set_$key";
         $self->$method($params->{$key});
     }
-    Bugzilla::Hook::process('object_end_of_set_all', { object => $self,
-                                                       params => $params });
+    Bugzilla::Hook::process('object_end_of_set_all', { object => $self, params => $params });
 }
 
-sub update {
+sub update
+{
     my $self = shift;
 
     my $dbh      = Bugzilla->dbh;
@@ -343,70 +366,76 @@ sub update {
     my %numeric = map { $_ => 1 } $self->NUMERIC_COLUMNS;
     my %date    = map { $_ => 1 } $self->DATE_COLUMNS;
     my (@update_columns, @values, %changes);
-    foreach my $column ($self->UPDATE_COLUMNS) {
+    foreach my $column ($self->UPDATE_COLUMNS)
+    {
         my ($old, $new) = ($old_self->{$column}, $self->{$column});
+
         # This has to be written this way in order to allow us to set a field
         # from undef or to undef, and avoid warnings about comparing an undef
         # with the "eq" operator.
-        if (!defined $new || !defined $old) {
+        if (!defined $new || !defined $old)
+        {
             next if !defined $new && !defined $old;
         }
-        elsif ( ($numeric{$column} && $old == $new)
-                || ($date{$column} && str2time($old) == str2time($new))
-                || $old eq $new ) {
+        elsif ($numeric{$column} && $old == $new ||
+            $date{$column} && str2time($old) == str2time($new) ||
+            $old eq $new)
+        {
             next;
         }
 
         trick_taint($new) if defined $new;
-        push(@values, $new);
-        push(@update_columns, $column);
-        # We don't use $new because we don't want to detaint this for
-        # the caller.
-        $changes{$column} = [$old, $self->{$column}];
+        push @values, $new;
+        push @update_columns, $column;
+        # We don't use $new because we don't want to detaint this for the caller.
+        $changes{$column} = [ $old, $self->{$column} ];
     }
 
     my $columns = join(', ', map {"$_ = ?"} @update_columns);
 
-    $dbh->do("UPDATE $table SET $columns WHERE $id_field = ?", undef,
-             @values, $self->id) if @values;
+    $dbh->do("UPDATE $table SET $columns WHERE $id_field = ?", undef, @values, $self->id) if @values;
 
-    Bugzilla::Hook::process('object_end_of_update',
-                            { object => $self, old_object => $old_self,
-                              changes => \%changes });
+    Bugzilla::Hook::process('object_end_of_update', {
+        object => $self,
+        old_object => $old_self,
+        changes => \%changes,
+    });
 
     $dbh->bz_commit_transaction();
 
-    if (wantarray) {
+    if (wantarray)
+    {
         return (\%changes, $old_self);
     }
 
     return \%changes;
 }
 
-sub remove_from_db {
+sub remove_from_db
+{
     my $self = shift;
     Bugzilla::Hook::process('object_before_delete', { object => $self });
     my $table = $self->DB_TABLE;
     my $id_field = $self->ID_FIELD;
-    Bugzilla->dbh->do("DELETE FROM $table WHERE $id_field = ?",
-                      undef, $self->id);
-    undef $self;
+    Bugzilla->dbh->do("DELETE FROM $table WHERE $id_field = ?", undef, $self->id);
+    undef $_[0];
 }
 
 ###############################
 ####      Subroutines    ######
 ###############################
 
-sub any_exist {
+sub any_exist
+{
     my $class = shift;
     my $table = $class->DB_TABLE;
     my $dbh = Bugzilla->dbh;
-    my $any_exist = $dbh->selectrow_array(
-        "SELECT 1 FROM $table " . $dbh->sql_limit(1));
+    my $any_exist = $dbh->selectrow_array("SELECT 1 FROM $table " . $dbh->sql_limit(1));
     return $any_exist ? 1 : 0;
 }
 
-sub create {
+sub create
+{
     my ($class, $params) = @_;
     my $dbh = Bugzilla->dbh;
 
@@ -421,26 +450,27 @@ sub create {
 
 # Used to validate that a field name is in fact a valid column in the
 # current table before inserting it into SQL.
-sub _check_field {
+sub _check_field
+{
     my ($invocant, $field, $function) = @_;
     my $class = ref($invocant) || $invocant;
-    if (!Bugzilla->dbh->bz_column_info($class->DB_TABLE, $field)) {
-        ThrowCodeError('param_invalid', { param    => $field,
-                                          function => "${class}::$function" });
+    if (!Bugzilla->dbh->bz_column_info($class->DB_TABLE, $field))
+    {
+        ThrowCodeError('param_invalid', { param => $field, function => "${class}::$function" });
     }
 }
 
-sub check_required_create_fields {
+sub check_required_create_fields
+{
     my ($class, $params) = @_;
 
     # This hook happens here so that even subclasses that don't call
     # SUPER::create are still affected by the hook.
-    Bugzilla::Hook::process('object_before_create', { class => $class,
-                                                      params => $params });
+    Bugzilla::Hook::process('object_before_create', { class => $class, params => $params });
 
-    foreach my $field ($class->REQUIRED_CREATE_FIELDS) {
-        ThrowCodeError('param_required',
-            { function => "${class}->create", param => $field })
+    foreach my $field ($class->REQUIRED_CREATE_FIELDS)
+    {
+        ThrowCodeError('param_required', { function => "${class}->create", param => $field })
             if !exists $params->{$field};
     }
 }
@@ -469,12 +499,13 @@ sub run_create_validators
     }
 
     Bugzilla::Hook::process('object_end_of_create_validators',
-                            { class => $class, params => \%field_values });
+        { class => $class, params => \%field_values });
 
     return \%field_values;
 }
 
-sub insert_create_data {
+sub insert_create_data
+{
     my ($class, $field_values) = @_;
     my $dbh = Bugzilla->dbh;
 
@@ -484,7 +515,8 @@ sub insert_create_data {
     }
 
     my (@field_names, @values);
-    while (my ($field, $value) = each %$field_values) {
+    while (my ($field, $value) = each %$field_values)
+    {
         $class->_check_field($field, 'create');
         push(@field_names, $field);
         push(@values, $value);
@@ -493,10 +525,11 @@ sub insert_create_data {
     my $qmarks = '?,' x @field_names;
     chop($qmarks);
     my $table = $class->DB_TABLE;
-    $dbh->do("INSERT INTO $table (" . join(', ', @field_names)
-             . ") VALUES ($qmarks)", undef, @values);
-    my $id = $field_values->{$class->ID_FIELD} ||
-        $dbh->bz_last_key($table, $class->ID_FIELD);
+    $dbh->do(
+        "INSERT INTO $table (" . join(', ', @field_names) .
+        ") VALUES ($qmarks)", undef, @values
+    );
+    my $id = $field_values->{$class->ID_FIELD} || $dbh->bz_last_key($table, $class->ID_FIELD);
 
     my $object = $class->new($id);
 
@@ -505,7 +538,8 @@ sub insert_create_data {
     return $object;
 }
 
-sub get_all {
+sub get_all
+{
     my $class = shift;
     return @{$class->_do_list_select()};
 }

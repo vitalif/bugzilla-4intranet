@@ -51,7 +51,6 @@ Bugzilla::Field - a particular piece of information about bugs
   }
 
   # Validation Routines
-  check_field($name, $value, \@legal_values, $no_warn);
   $fieldid = get_field_id($fieldname);
 
 =head1 DESCRIPTION
@@ -72,7 +71,7 @@ package Bugzilla::Field;
 use strict;
 
 use base qw(Exporter Bugzilla::Object);
-@Bugzilla::Field::EXPORT = qw(check_field get_field_id get_legal_field_values update_visibility_values);
+@Bugzilla::Field::EXPORT = qw(get_field_id get_legal_field_values update_visibility_values);
 
 use Bugzilla::Constants;
 use Bugzilla::Error;
@@ -154,11 +153,10 @@ use constant SQL_DEFINITIONS => {
     # be auto-quoted by the "=>" operator.
     FIELD_TYPE_FREETEXT,      { TYPE => 'varchar(255)' },
     FIELD_TYPE_EXTURL,        { TYPE => 'varchar(255)' },
-    FIELD_TYPE_SINGLE_SELECT, { TYPE => 'varchar(255)', NOTNULL => 1,
-                                DEFAULT => "'---'" },
+    FIELD_TYPE_SINGLE_SELECT, { TYPE => 'INT4' },
     FIELD_TYPE_TEXTAREA,      { TYPE => 'MEDIUMTEXT' },
     FIELD_TYPE_DATETIME,      { TYPE => 'DATETIME'   },
-    FIELD_TYPE_BUG_ID,        { TYPE => 'INT3'       },
+    FIELD_TYPE_BUG_ID,        { TYPE => 'INT4'       },
     FIELD_TYPE_NUMERIC,       { TYPE => 'NUMERIC', NOTNULL => 1, DEFAULT => '0' },
 };
 
@@ -1127,64 +1125,6 @@ sub populate_field_definitions {
                               description => $field_description })
         unless new Bugzilla::Field({ name => $new_field_name });
 
-}
-
-=head2 Data Validation
-
-=over
-
-=item C<check_field($name, $value, \@legal_values, $no_warn)>
-
-Description: Makes sure the field $name is defined and its $value
-             is non empty. If @legal_values is defined, this routine
-             checks whether its value is one of the legal values
-             associated with this field, else it checks against
-             the default valid values for this field obtained by
-             C<get_legal_field_values($name)>. If the test is successful,
-             the function returns 1. If the test fails, an error
-             is thrown (by default), unless $no_warn is true, in which
-             case the function returns 0.
-
-Params:      $name         - the field name
-             $value        - the field value
-             @legal_values - (optional) list of legal values
-             $no_warn      - (optional) do not throw an error if true
-             \%args        - (optional) additional template variables for error message
-
-Returns:     1 on success; 0 on failure if $no_warn is true (else an
-             error is thrown).
-
-=back
-
-=cut
-
-sub check_field {
-    my ($name, $value, $legalsRef, $no_warn, $args) = @_;
-    my $dbh = Bugzilla->dbh;
-
-    # If $legalsRef is undefined, we use the default valid values.
-    # Valid values for this check are all possible values.
-    # Using get_legal_values would only return active values, but since
-    # some bugs may have inactive values set, we want to check them too.
-    unless (defined $legalsRef) {
-        $legalsRef = Bugzilla->get_field($name)->legal_values;
-        my @values = map($_->name, @$legalsRef);
-        $legalsRef = \@values;
-
-    }
-
-    if (!defined($value)
-        || trim($value) eq ""
-        || !grep { $_ eq $value } @$legalsRef)
-    {
-        return 0 if $no_warn; # We don't want an error to be thrown; return.
-        trick_taint($name);
-
-        my $field = Bugzilla->get_field($name);
-        my $field_desc = $field ? $field->description : $name;
-        ThrowUserError('illegal_field', { field => $field_desc, value => $value, legals => $legalsRef, ($args ? %$args : ()) });
-    }
-    return 1;
 }
 
 =pod

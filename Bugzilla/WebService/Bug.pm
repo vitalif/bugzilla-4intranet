@@ -399,7 +399,7 @@ sub search {
         ThrowCodeError('param_required', 
                        { param => 'limit', function => 'Bug.search()' });
     }
-    
+
     $params = Bugzilla::Bug::map_fields($params);
     delete $params->{WHERE};
 
@@ -426,7 +426,7 @@ sub search {
         my $clause = join(' OR ', @likes);
         $params->{WHERE}->{"($clause)"} = [map { "\%$_\%" } @strings];
     }
-    
+
     my $bugs = Bugzilla::Bug->match($params);
     my $visible = Bugzilla->user->visible_bugs($bugs);
     my @hashes = map { $self->_bug_to_hash($_, $params) } @$visible;

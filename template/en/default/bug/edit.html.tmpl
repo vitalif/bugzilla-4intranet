@@ -756,13 +756,12 @@ document.changeform = document.[% cfname %];
                 %]
             </div>
           </div>
-          <div><small><a href="show-mail-groups.cgi">Список почтовых групп</a><small></div>
           [% END %]
+          <div><small><a href="show-mail-groups.cgi">Список почтовых групп</a><small></div>
           [% IF bug.cc %]
-            <select id="cc" name="cc" multiple="multiple" size="5">
+            <select id="cc" name="cc[]" multiple="multiple" size="5">
               [% FOREACH c = bug.cc %]
-                <option value="[% c FILTER email FILTER html %]">
-                  [% c FILTER email FILTER html %]</option>
+                <option value="[% c | email | html %]">[% c | email | html %]</option>
               [% END %]
             </select>
             [% IF user.id %]
