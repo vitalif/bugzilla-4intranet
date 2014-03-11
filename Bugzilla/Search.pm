@@ -2175,7 +2175,8 @@ sub _content_matches
             # Using SphinxSE
             $text =~ s/;/\\;/gso;
             $text =~ s/\\/\\\\/gso;
-            $text = "$text;mode=extended;limit=1000;fieldweights=short_desc,5,comments,1,comments_private,1";
+            # Space is needed after $text so Sphinx doesn't escape ";"
+            $text = "$text ;mode=extended;limit=1000;fieldweights=short_desc,5,comments,1,comments_private,1";
             $self->{term} = {
                 table => "bugs_fulltext_sphinx $table",
                 where => "$table.query=".$dbh->quote($text),
