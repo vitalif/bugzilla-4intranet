@@ -89,9 +89,9 @@ sub update_fielddefs_definition {
         }
     }
 
-    $dbh->bz_add_column('fielddefs', 'visibility_field_id', {TYPE => 'INT3'});
+    $dbh->bz_add_column('fielddefs', 'visibility_field_id', {TYPE => 'INT4'});
     # visibility_value_id is not added anymore during update - it's now in fieldvaluecontrol
-    $dbh->bz_add_column('fielddefs', 'value_field_id', {TYPE => 'INT3'});
+    $dbh->bz_add_column('fielddefs', 'value_field_id', {TYPE => 'INT4'});
     $dbh->bz_add_index('fielddefs', 'fielddefs_value_field_id_idx',
                        ['value_field_id']);
 
@@ -139,7 +139,7 @@ sub update_table_definitions {
     _update_pre_checksetup_bugzillas();
 
     $dbh->bz_add_column('attachments', 'submitter_id',
-                        {TYPE => 'INT3', NOTNULL => 1}, 0); 
+                        {TYPE => 'INT4', NOTNULL => 1}, 0); 
 
     $dbh->bz_rename_column('bugs_activity', 'when', 'bug_when');
 
@@ -175,14 +175,7 @@ sub update_table_definitions {
 
     _populate_milestones_table();
 
-    # 2000-03-22 Changed the default value for target_milestone to be "---"
-    # (which is still not quite correct, but much better than what it was
-    # doing), and made the size of the value field in the milestones table match
-    # the size of the target_milestone field in the bugs table.
-    $dbh->bz_alter_column('bugs', 'target_milestone',
-        {TYPE => 'varchar(20)', NOTNULL => 1, DEFAULT => "'---'"});
-    $dbh->bz_alter_column('milestones', 'value',
-                          {TYPE => 'varchar(20)', NOTNULL => 1});
+    $dbh->bz_alter_column('milestones', 'value', {TYPE => 'varchar(20)', NOTNULL => 1});
 
     _add_products_defaultmilestone();
 
@@ -228,11 +221,6 @@ sub update_table_definitions {
 
     _recrypt_plaintext_passwords();
 
-    # 2001-06-15 kiko@async.com.br - Change bug:version size to avoid
-    # truncates re http://bugzilla.mozilla.org/show_bug.cgi?id=9352
-    $dbh->bz_alter_column('bugs', 'version',
-                          {TYPE => 'varchar(64)', NOTNULL => 1});
-
     _update_bugs_activity_to_only_record_changes();
 
     # bug 90933: Make disabledtext NOT NULL
@@ -246,7 +234,7 @@ sub update_table_definitions {
     $dbh->bz_add_column("bugs", "cclist_accessible",
                         {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'});
 
-    $dbh->bz_add_column("bugs_activity", "attach_id", {TYPE => 'INT3'});
+    $dbh->bz_add_column("bugs_activity", "attach_id", {TYPE => 'INT4'});
 
     _delete_logincookies_cryptpassword_and_handle_invalid_cookies();
 
@@ -288,7 +276,7 @@ sub update_table_definitions {
     # 2006-08-03 remi_zara@mac.com bug 346241, make series.creator nullable
     # This must happen before calling _copy_old_charts_into_database().
     if ($dbh->bz_column_info('series', 'creator')->{NOTNULL}) {
-        $dbh->bz_alter_column('series', 'creator', {TYPE => 'INT3'});
+        $dbh->bz_alter_column('series', 'creator', {TYPE => 'INT4'});
         $dbh->do("UPDATE series SET creator = NULL WHERE creator = 0");
     }
 
@@ -299,8 +287,8 @@ sub update_table_definitions {
 
     $dbh->bz_add_column("profiles", "extern_id", {TYPE => 'varchar(64)'});
 
-    $dbh->bz_add_column('flagtypes', 'grant_group_id', {TYPE => 'INT3'});
-    $dbh->bz_add_column('flagtypes', 'request_group_id', {TYPE => 'INT3'});
+    $dbh->bz_add_column('flagtypes', 'grant_group_id', {TYPE => 'INT4'});
+    $dbh->bz_add_column('flagtypes', 'request_group_id', {TYPE => 'INT4'});
 
     # mailto is no longer just userids
     $dbh->bz_rename_column('whine_schedules', 'mailto_userid', 'mailto');
@@ -309,27 +297,10 @@ sub update_table_definitions {
 
     _add_longdescs_already_wrapped();
 
-    # Moved enum types to separate tables so we need change the old enum 
-    # types to standard varchars in the bugs table.
-    $dbh->bz_alter_column('bugs', 'bug_status',
-                          {TYPE => 'varchar(64)', NOTNULL => 1});
-    # 2005-03-23 Tomas.Kopal@altap.cz - add default value to resolution,
-    # bug 286695
-    $dbh->bz_alter_column('bugs', 'resolution',
-        {TYPE => 'varchar(64)', NOTNULL => 1, DEFAULT => "''"});
-    $dbh->bz_alter_column('bugs', 'priority',
-                          {TYPE => 'varchar(64)', NOTNULL => 1});
-    $dbh->bz_alter_column('bugs', 'bug_severity',
-                          {TYPE => 'varchar(64)', NOTNULL => 1});
-    $dbh->bz_alter_column('bugs', 'rep_platform',
-                          {TYPE => 'varchar(64)', NOTNULL => 1}, '');
-    $dbh->bz_alter_column('bugs', 'op_sys',
-                          {TYPE => 'varchar(64)', NOTNULL => 1});
-
     # When migrating quips from the '$datadir/comments' file to the DB,
     # the user ID should be NULL instead of 0 (which is an invalid user ID).
     if ($dbh->bz_column_info('quips', 'userid')->{NOTNULL}) {
-        $dbh->bz_alter_column('quips', 'userid', {TYPE => 'INT3'});
+        $dbh->bz_alter_column('quips', 'userid', {TYPE => 'INT4'});
         print "Changing owner to NULL for quips where the owner is",
               " unknown...\n";
         $dbh->do('UPDATE quips SET userid = NULL WHERE userid = 0');
@@ -352,7 +323,7 @@ sub update_table_definitions {
     }
 
     $dbh->bz_add_column('products', 'classification_id',
-                        {TYPE => 'INT2', NOTNULL => 1, DEFAULT => '1'});
+                        {TYPE => 'INT4', NOTNULL => 1, DEFAULT => '1'});
 
     _fix_group_with_empty_name();
 
@@ -370,14 +341,14 @@ sub update_table_definitions {
 
     # 2005-03-09 qa_contact should be NULL instead of 0, bug 285534
     if ($dbh->bz_column_info('bugs', 'qa_contact')->{NOTNULL}) {
-        $dbh->bz_alter_column('bugs', 'qa_contact', {TYPE => 'INT3'});
+        $dbh->bz_alter_column('bugs', 'qa_contact', {TYPE => 'INT4'});
         $dbh->do("UPDATE bugs SET qa_contact = NULL WHERE qa_contact = 0");
     }
 
     # 2005-03-27 initialqacontact should be NULL instead of 0, bug 287483
     if ($dbh->bz_column_info('components', 'initialqacontact')->{NOTNULL}) {
         $dbh->bz_alter_column('components', 'initialqacontact', 
-                              {TYPE => 'INT3'});
+                              {TYPE => 'INT4'});
     }
     $dbh->do("UPDATE components SET initialqacontact = NULL " .
               "WHERE initialqacontact = 0");
@@ -388,12 +359,12 @@ sub update_table_definitions {
 
     # make classification_id field type be consistent with DB:Schema
     $dbh->bz_alter_column('products', 'classification_id',
-                          {TYPE => 'INT2', NOTNULL => 1, DEFAULT => '1'});
+                          {TYPE => 'INT4', NOTNULL => 1, DEFAULT => '1'});
 
     # initialowner was accidentally NULL when we checked-in Schema,
     # when it really should be NOT NULL.
     $dbh->bz_alter_column('components', 'initialowner',
-                          {TYPE => 'INT3', NOTNULL => 1}, 0);
+                          {TYPE => 'INT4', NOTNULL => 1}, 0);
 
     # 2005-03-28 - bug 238800 - index flags.type_id for editflagtypes.cgi
     $dbh->bz_add_index('flags', 'flags_type_id_idx', [qw(type_id)]);
@@ -448,14 +419,14 @@ sub update_table_definitions {
 
     # 2005-12-07 altlst@sonic.net -- Bug 225221
     $dbh->bz_add_column('longdescs', 'comment_id',
-        {TYPE => 'MEDIUMSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
+        {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
 
     _stop_storing_inactive_flags();
     _change_short_desc_from_mediumtext_to_varchar();
 
     # 2006-07-01 wurblzap@gmail.com -- Bug 69000
     $dbh->bz_add_column('namedqueries', 'id',
-        {TYPE => 'MEDIUMSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
+        {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
     _move_namedqueries_linkinfooter_to_its_own_table();
 
     _add_classifications_sortkey();
@@ -481,13 +452,13 @@ sub update_table_definitions {
 
     # 2006-08-06 LpSolit@gmail.com - Bug 347521
     $dbh->bz_alter_column('flagtypes', 'id',
-          {TYPE => 'SMALLSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
+          {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
 
     $dbh->bz_alter_column('keyworddefs', 'id',
-        {TYPE => 'SMALLSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
+        {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
 
     # 2006-08-19 LpSolit@gmail.com - Bug 87795
-    $dbh->bz_alter_column('tokens', 'userid', {TYPE => 'INT3'});
+    $dbh->bz_alter_column('tokens', 'userid', {TYPE => 'INT4'});
 
     $dbh->bz_drop_index('bugs', 'bugs_short_desc_idx');
 
@@ -518,9 +489,9 @@ sub update_table_definitions {
     $dbh->bz_add_column('longdescs', 'extra_data', {TYPE => 'varchar(255)'});
 
     $dbh->bz_add_column('versions', 'id', 
-        {TYPE => 'MEDIUMSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
+        {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
     $dbh->bz_add_column('milestones', 'id',
-        {TYPE => 'MEDIUMSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
+        {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
 
     _fix_uppercase_custom_field_names();
     _fix_uppercase_index_names();
@@ -569,7 +540,7 @@ sub update_table_definitions {
 
     # 2008-07-28 tfu@redhat.com - Bug 431669
     $dbh->bz_alter_column('group_control_map', 'product_id',
-        { TYPE => 'INT2', NOTNULL => 1 });
+        { TYPE => 'INT4', NOTNULL => 1 });
 
     # 2008-09-07 LpSolit@gmail.com - Bug 452893
     _fix_illegal_flag_modification_dates();
@@ -628,6 +599,43 @@ sub update_table_definitions {
         $dbh->do('INSERT INTO bugs_activity SELECT bug_id, who, bug_when, fieldid, added, removed, NULL FROM bugs_activity_joined');
         $dbh->do('DROP TABLE bugs_activity_joined');
     }
+
+    # Store IDs for all select fields in bugs table
+    my $change_to_id = {
+        target_milestone => 'milestones',
+        version          => 'versions',
+        bug_status       => 'bug_status',
+        resolution       => 'resolution',
+        bug_severity     => 'bug_severity',
+        priority         => 'priority',
+        op_sys           => 'op_sys',
+        rep_platform     => 'rep_platform',
+    };
+    my $product_depend = {
+        target_milestone => 'milestones',
+        version          => 'versions',
+    };
+    for my $col (keys %$change_to_id)
+    {
+        my $tab = $change_to_id->{$col};
+        my $prod = $product_depend->{$col};
+        if ($dbh->bz_column_info('bugs', $col)->{TYPE} !~ /INT/i)
+        {
+            $dbh->bz_alter_column('bugs', $col, {TYPE => 'varchar(255)'});
+            $dbh->do(
+                "UPDATE bugs b LEFT JOIN $tab m ON m.value=b.$col".
+                ($prod ? " AND m.product_id=b.product_id AND" : '').
+                " SET b.$col=NULL WHERE m.id IS NULL OR b.$col='---' OR b.$col=''"
+            );
+        }
+        $dbh->do(
+            "UPDATE bugs b INNER JOIN $tab m ON m.value=b.$col".
+            ($prod ? " AND m.product_id=b.product_id" : '').
+            " SET b.$col=m.id"
+        );
+        $dbh->bz_alter_column('bugs', $col, {TYPE => 'INT4'});
+    }
+
     ################################################################
     # New --TABLE-- changes should go *** A B O V E *** this point #
     ################################################################
@@ -655,7 +663,7 @@ sub _update_pre_checksetup_bugzillas {
 
     $dbh->bz_add_column('bugs', 'target_milestone',
         {TYPE => 'varchar(20)', NOTNULL => 1, DEFAULT => "'---'"});
-    $dbh->bz_add_column('bugs', 'qa_contact', {TYPE => 'INT3'});
+    $dbh->bz_add_column('bugs', 'qa_contact', {TYPE => 'INT4'});
     $dbh->bz_add_column('bugs', 'status_whiteboard',
                        {TYPE => 'MEDIUMTEXT', NOTNULL => 1, DEFAULT => "''"});
     if (!$dbh->bz_column_info('products', 'isactive')){
@@ -682,7 +690,7 @@ sub _add_bug_vote_cache {
 
     $dbh->bz_drop_column('bugs', 'area');
     if (!$dbh->bz_column_info('bugs', 'votes')) {
-        $dbh->bz_add_column('bugs', 'votes', {TYPE => 'INT3', NOTNULL => 1,
+        $dbh->bz_add_column('bugs', 'votes', {TYPE => 'INT4', NOTNULL => 1,
                                               DEFAULT => 0});
         $dbh->bz_add_index('bugs', 'bugs_votes_idx', [qw(votes)]);
     }
@@ -856,7 +864,7 @@ sub _update_bugs_activity_field_to_fieldid {
     # now has a pointer into that table instead of recording the name directly.
     if ($dbh->bz_column_info('bugs_activity', 'field')) {
         $dbh->bz_add_column('bugs_activity', 'fieldid',
-                            {TYPE => 'INT3', NOTNULL => 1}, 0);
+                            {TYPE => 'INT4', NOTNULL => 1}, 0);
 
         $dbh->bz_add_index('bugs_activity', 'bugs_activity_fieldid_idx',
                            [qw(fieldid)]);
@@ -962,7 +970,7 @@ sub _update_component_user_fields_to_ids {
                        WHERE program = ? AND value = ?", undef,
                      $id, $program, $value);
         }
-        $dbh->bz_alter_column('components','initialowner',{TYPE => 'INT3'});
+        $dbh->bz_alter_column('components','initialowner',{TYPE => 'INT4'});
     }
 
     # components.initialqacontact
@@ -992,7 +1000,7 @@ sub _update_component_user_fields_to_ids {
                      $id, $program, $value);
         }
 
-        $dbh->bz_alter_column('components','initialqacontact',{TYPE => 'INT3'});
+        $dbh->bz_alter_column('components','initialqacontact',{TYPE => 'INT4'});
     }
 }
 
@@ -1343,15 +1351,15 @@ sub _use_ids_for_products_and_components {
         $dbh->do("DELETE FROM components WHERE value IS NULL");
 
         $dbh->bz_add_column("products", "id",
-            {TYPE => 'SMALLSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
+            {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
         $dbh->bz_add_column("components", "product_id",
-            {TYPE => 'INT2', NOTNULL => 1}, 0);
+            {TYPE => 'INT4', NOTNULL => 1}, 0);
         $dbh->bz_add_column("versions", "product_id",
-            {TYPE => 'INT2', NOTNULL => 1}, 0);
+            {TYPE => 'INT4', NOTNULL => 1}, 0);
         $dbh->bz_add_column("milestones", "product_id",
-            {TYPE => 'INT2', NOTNULL => 1}, 0);
+            {TYPE => 'INT4', NOTNULL => 1}, 0);
         $dbh->bz_add_column("bugs", "product_id",
-            {TYPE => 'INT2', NOTNULL => 1}, 0);
+            {TYPE => 'INT4', NOTNULL => 1}, 0);
 
         # The attachstatusdefs table was added in version 2.15, but 
         # removed again in early 2.17.  If it exists now, we still need 
@@ -1361,7 +1369,7 @@ sub _use_ids_for_products_and_components {
         # or earlier (because it won't be there to convert).
         if ($dbh->bz_table_info("attachstatusdefs")) {
             $dbh->bz_add_column("attachstatusdefs", "product_id",
-                {TYPE => 'INT2', NOTNULL => 1}, 0);
+                {TYPE => 'INT4', NOTNULL => 1}, 0);
         }
 
         my %products;
@@ -1390,9 +1398,9 @@ sub _use_ids_for_products_and_components {
         print "Updating the database to use component IDs.\n";
 
         $dbh->bz_add_column("components", "id",
-            {TYPE => 'SMALLSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
+            {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
         $dbh->bz_add_column("bugs", "component_id",
-                            {TYPE => 'INT2', NOTNULL => 1}, 0);
+                            {TYPE => 'INT4', NOTNULL => 1}, 0);
 
         my %components;
         $sth = $dbh->prepare("SELECT id, value, product_id FROM components");
@@ -1506,7 +1514,7 @@ sub _convert_groups_system_from_groupset {
         }
 
         $dbh->bz_add_column('groups', 'id',
-            {TYPE => 'MEDIUMSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
+            {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
 
         $dbh->bz_add_index('groups', 'groups_name_idx',
                            {TYPE => 'UNIQUE', FIELDS => [qw(name)]});
@@ -2833,15 +2841,15 @@ sub _stop_storing_inactive_flags {
     my $dbh = Bugzilla->dbh;
     # 2006-03-02 LpSolit@gmail.com - Bug 322285
     # Do not store inactive flags in the DB anymore.
-    if ($dbh->bz_column_info('flags', 'id')->{'TYPE'} eq 'INT3') {
+    if ($dbh->bz_column_info('flags', 'id')->{'TYPE'} =~ /INT/i) {
         # We first have to remove all existing inactive flags.
         if ($dbh->bz_column_info('flags', 'is_active')) {
             $dbh->do('DELETE FROM flags WHERE is_active = 0');
         }
 
-       # Now we convert the id column to the auto_increment format.
+        # Now we convert the id column to the auto_increment format.
         $dbh->bz_alter_column('flags', 'id',
-           {TYPE => 'MEDIUMSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
+           {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
 
         # And finally, we remove the is_active column.
         $dbh->bz_drop_column('flags', 'is_active');
@@ -3267,7 +3275,7 @@ sub _convert_multiselects
     {
         if (!$dbh->bz_column_info("bug_$field", 'value_id'))
         {
-            $dbh->bz_add_column("bug_$field", value_id => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0});
+            $dbh->bz_add_column("bug_$field", value_id => {TYPE => 'INT4', NOTNULL => 1, DEFAULT => 0});
             $dbh->do("UPDATE bug_$field bf, $field f SET bf.value_id=f.id WHERE bf.value=f.value");
             $dbh->bz_drop_fk("bug_$field", 'value');
             $dbh->bz_drop_column("bug_$field", 'value');

@@ -36,7 +36,7 @@ sub db_schema_abstract_schema
     $schema->{emailin_aliases} = {
         FIELDS => [
             address   => {TYPE => 'varchar(255)', NOTNULL => 1},
-            userid    => {TYPE => 'INT3', NOTNULL => 1,
+            userid    => {TYPE => 'INT4', NOTNULL => 1,
                           REFERENCES => {TABLE => 'profiles',
                                          COLUMN => 'userid'}},
             fromldap  => {TYPE => 'BOOLEAN'},
@@ -62,7 +62,7 @@ sub db_schema_abstract_schema
     push @{$schema->{products}->{FIELDS}}, notimetracking => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0};
 
     # Bug 68921 - Связь внутренний/внешний продукт
-    push @{$schema->{products}->{FIELDS}}, extproduct => {TYPE => 'INT2', REFERENCES => {TABLE => 'products', COLUMN => 'id'}};
+    push @{$schema->{products}->{FIELDS}}, extproduct => {TYPE => 'INT4', REFERENCES => {TABLE => 'products', COLUMN => 'id'}};
 
     # Bug 139829 - Ограничение CC продукта
     push @{$schema->{products}->{FIELDS}}, cc_group => {TYPE => 'varchar(255)'};
@@ -76,9 +76,9 @@ sub db_schema_abstract_schema
     # Bug 53617 - Ограничение Custom Fields двумя и более значениями контролирующего поля
     $schema->{fieldvaluecontrol} = {
         FIELDS => [
-            field_id => {TYPE => 'INT3', NOTNULL => 1},
-            value_id => {TYPE => 'INT2', NOTNULL => 1},
-            visibility_value_id => {TYPE => 'INT2', NOTNULL => 1},
+            field_id => {TYPE => 'INT4', NOTNULL => 1},
+            value_id => {TYPE => 'INT4', NOTNULL => 1},
+            visibility_value_id => {TYPE => 'INT4', NOTNULL => 1},
             # Bug 91153 - Default'ные значения Custom полей
             is_default => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0},
         ],
@@ -92,7 +92,7 @@ sub db_schema_abstract_schema
     # Bug 45485 - Scrum-карточки из Bugzilla
     $schema->{scrum_cards} = {
         FIELDS => [
-            bug_id   => {TYPE => 'INT3', NOTNULL => 1},
+            bug_id   => {TYPE => 'INT4', NOTNULL => 1},
             sprint   => {TYPE => 'varchar(255)', NOTNULL => 1},
             type     => {TYPE => 'varchar(255)', NOTNULL => 1},
             estimate => {TYPE => 'varchar(255)', NOTNULL => 1},
@@ -131,9 +131,9 @@ sub db_schema_abstract_schema
     # Bug 108088 - Триггеры (пока поддерживается только 1 триггер: добавление CC)
     $schema->{checkers} = {
         FIELDS => [
-            id             => {TYPE => 'MEDIUMSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
-            query_id       => {TYPE => 'INT3', NOTNULL => 1, REFERENCES => {TABLE => 'namedqueries', COLUMN => 'id'}},
-            user_id        => {TYPE => 'INT3', REFERENCES => {TABLE => 'profiles', COLUMN => 'userid'}},
+            id             => {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
+            query_id       => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'namedqueries', COLUMN => 'id'}},
+            user_id        => {TYPE => 'INT4', REFERENCES => {TABLE => 'profiles', COLUMN => 'userid'}},
             flags          => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0},
             message        => {TYPE => 'LONGTEXT', NOTNULL => 1},
             sql_code       => {TYPE => 'LONGTEXT'},
@@ -148,17 +148,17 @@ sub db_schema_abstract_schema
     # Bug 134368 - Edit comments
     $schema->{longdescs_history} = {
         FIELDS => [
-            bug_id     => { TYPE => 'INT3', NOTNULL => 1,
+            bug_id     => { TYPE => 'INT4', NOTNULL => 1,
                           REFERENCES => { TABLE => 'bugs',
                                          COLUMN => 'bug_id' } },
-            who        => { TYPE => 'INT3', NOTNULL => 1,
+            who        => { TYPE => 'INT4', NOTNULL => 1,
                           REFERENCES => { TABLE => 'profiles',
                                          COLUMN => 'userid' } },
             bug_when   => { TYPE => 'DATETIME', NOTNULL => 1 },
             oldthetext => { TYPE => 'LONGTEXT', NOTNULL => 1 },
             thetext    => { TYPE => 'LONGTEXT', NOTNULL => 1 },
-            comment_id => { TYPE => 'INT3', NOTNULL => 1 },
-            comment_count => { TYPE => 'INT3', NOTNULL => 1 },
+            comment_id => { TYPE => 'INT4', NOTNULL => 1 },
+            comment_count => { TYPE => 'INT4', NOTNULL => 1 },
         ],
         INDEXES => [
             longdescs_history_bug_when_idx      => { FIELDS => [ 'bug_when' ] },
@@ -242,7 +242,7 @@ sub install_update_db
     $dbh->bz_add_column('products', notimetracking => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0});
 
     # Bug 68921 - Связь внешний/внутренний продукт
-    $dbh->bz_add_column('products', extproduct => {TYPE => 'INT2', REFERENCES => {TABLE => 'products', COLUMN => 'id'}});
+    $dbh->bz_add_column('products', extproduct => {TYPE => 'INT4', REFERENCES => {TABLE => 'products', COLUMN => 'id'}});
 
     # Bug 139829 - Ограничение CC продукта
     $dbh->bz_add_column('products', cc_group => {TYPE => 'varchar(255)'});
