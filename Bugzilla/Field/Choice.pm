@@ -387,16 +387,15 @@ sub is_default {
     return ($self->name eq Bugzilla->params->{$name}) ? 1 : 0;
 }
 
-sub is_static {
+sub is_static
+{
     my $self = shift;
     # If we need to special-case Resolution for *anything* else, it should
     # get its own subclass.
-    if ($self->field->name eq 'resolution') {
+    if ($self->field->name eq 'resolution')
+    {
         return grep($_ eq $self->name, ('', 'FIXED', 'MOVED', 'DUPLICATE'))
                ? 1 : 0;
-    }
-    elsif ($self->field->custom) {
-        return $self->name eq '---' ? 1 : 0;
     }
     return 0;
 }
@@ -468,7 +467,7 @@ sub has_visibility_value
     my $self = shift;
     my ($value, $default) = @_;
     $default = 1 if !defined $default;
-    return $default if $self->name eq '---' || !$self->field->value_field_id;
+    return $default if !$self->field->value_field_id;
     $value = $value->id if ref $value;
     my $hash = Bugzilla->fieldvaluecontrol_hash
         ->{$self->field->value_field_id}
@@ -484,7 +483,7 @@ sub visible_for_all
     my $self = shift;
     my ($default) = @_;
     $default = 0 if !defined $default;
-    return $default if $self->name eq '---' || !$self->field->value_field_id;
+    return $default if !$self->field->value_field_id;
     my $hash = Bugzilla->fieldvaluecontrol_hash
         ->{$self->field->value_field_id}
         ->{values}
@@ -505,7 +504,6 @@ sub is_default_controlled_value
 sub check_visibility
 {
     my $self = shift;
-    return 1 if $self->name eq '---';
     my $bug = shift || return 1;
     my $vf = $self->field->value_field || return 1;
     my $m = $vf->name;

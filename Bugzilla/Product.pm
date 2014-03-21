@@ -124,7 +124,8 @@ sub create
 
     my $params = $class->run_create_validators(@_);
     # Some fields do not exist in the DB as is.
-    if (defined $params->{classification}) {
+    if (defined $params->{classification})
+    {
         $params->{classification_id} = delete $params->{classification}; 
     }
     my $version = delete $params->{version};
@@ -134,13 +135,9 @@ sub create
     my $product = $class->insert_create_data($field_values);
     Bugzilla->user->clear_product_cache();
 
-    # Add the new version and milestone into the DB as valid values.
+    # Add the new version into the DB as valid values.
     Bugzilla::Version->create({
         name => $version,
-        product => $product,
-    });
-    Bugzilla::Milestone->create({
-        name => $product->default_milestone,
         product => $product,
     });
 
@@ -565,27 +562,28 @@ sub _check_version {
     return $version;
 }
 
-sub _check_default_milestone {
+sub _check_default_milestone
+{
     my ($invocant, $milestone) = @_;
 
     # Do nothing if target milestones are not in use.
-    unless (Bugzilla->params->{'usetargetmilestone'}) {
-        return (ref $invocant) ? $invocant->default_milestone : '---';
+    unless (Bugzilla->params->{usetargetmilestone})
+    {
+        return ref $invocant ? $invocant->default_milestone : undef;
     }
 
     $milestone = trim($milestone);
-
-    if (ref $invocant) {
+    if ($milestone && ref $invocant)
+    {
         # The default milestone must be one of the existing milestones.
         my $mil_obj = new Bugzilla::Milestone({name => $milestone, product => $invocant});
+        $mil_obj || ThrowUserError(
+            'product_must_define_defaultmilestone',
+            { product => $invocant->name, milestone => $milestone }
+        );
+        $milestone = $mil_obj->id;
+    }
 
-        $mil_obj || ThrowUserError('product_must_define_defaultmilestone',
-                                   {product   => $invocant->name,
-                                    milestone => $milestone});
-    }
-    else {
-        $milestone ||= '---';
-    }
     return $milestone;
 }
 

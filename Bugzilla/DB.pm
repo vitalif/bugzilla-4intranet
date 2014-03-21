@@ -65,7 +65,7 @@ use constant ISOLATION_LEVEL => 'REPEATABLE READ';
 use constant ENUM_DEFAULTS => {
     bug_severity  => ['blocker', 'critical', 'major', 'normal',
                       'minor', 'trivial', 'enhancement'],
-    priority     => ["Highest", "High", "Normal", "Low", "Lowest", "---"],
+    priority     => ["Highest", "High", "Normal", "Low", "Lowest"],
     op_sys       => ["All","Windows","Mac OS","Linux","Other"],
     rep_platform => ["All","PC","Macintosh","Other"],
     bug_status   => ["UNCONFIRMED","NEW","ASSIGNED","REOPENED","RESOLVED",

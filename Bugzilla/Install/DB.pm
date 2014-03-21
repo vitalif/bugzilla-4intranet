@@ -655,26 +655,23 @@ sub update_table_definitions {
 # Subroutines should be ordered in the order that they are called.
 # Thus, newer subroutines should be at the bottom.
 
-sub _update_pre_checksetup_bugzillas {
+sub _update_pre_checksetup_bugzillas
+{
     my $dbh = Bugzilla->dbh;
     # really old fields that were added before checksetup.pl existed
     # but aren't in very old bugzilla's (like 2.1)
     # Steve Stock (sstock@iconnect-inc.com)
 
-    $dbh->bz_add_column('bugs', 'target_milestone',
-        {TYPE => 'varchar(20)', NOTNULL => 1, DEFAULT => "'---'"});
+    $dbh->bz_add_column('bugs', 'target_milestone', {TYPE => 'INT4', REFERENCES => {TABLE => 'milestones', COLUMN => 'id'}});
     $dbh->bz_add_column('bugs', 'qa_contact', {TYPE => 'INT4'});
-    $dbh->bz_add_column('bugs', 'status_whiteboard',
-                       {TYPE => 'MEDIUMTEXT', NOTNULL => 1, DEFAULT => "''"});
-    if (!$dbh->bz_column_info('products', 'isactive')){
-        $dbh->bz_add_column('products', 'disallownew',
-                            {TYPE => 'BOOLEAN', NOTNULL => 1}, 0);
+    $dbh->bz_add_column('bugs', 'status_whiteboard', {TYPE => 'MEDIUMTEXT', NOTNULL => 1, DEFAULT => "''"});
+    if (!$dbh->bz_column_info('products', 'isactive'))
+    {
+        $dbh->bz_add_column('products', 'disallownew', {TYPE => 'BOOLEAN', NOTNULL => 1}, 0);
     }
 
-    $dbh->bz_add_column('components', 'initialqacontact',
-                        {TYPE => 'TINYTEXT'});
-    $dbh->bz_add_column('components', 'description',
-                        {TYPE => 'MEDIUMTEXT', NOTNULL => 1}, '');
+    $dbh->bz_add_column('components', 'initialqacontact', {TYPE => 'TINYTEXT'});
+    $dbh->bz_add_column('components', 'description', {TYPE => 'MEDIUMTEXT', NOTNULL => 1}, '');
 }
 
 sub _add_bug_vote_cache {
@@ -1000,89 +997,79 @@ sub _update_component_user_fields_to_ids {
                      $id, $program, $value);
         }
 
-        $dbh->bz_alter_column('components','initialqacontact',{TYPE => 'INT4'});
+        $dbh->bz_alter_column('components', 'initialqacontact', {TYPE => 'INT4'});
     }
 }
 
-sub _populate_milestones_table {
+sub _populate_milestones_table
+{
     my $dbh = Bugzilla->dbh;
     # 2000-03-21 Adding a table for target milestones to
     # database - matthew@zeroknowledge.com
     # If the milestones table is empty, and we're still back in a Bugzilla
     # that has a bugs.product field, that means that we just created
     # the milestones table and it needs to be populated.
-    my $milestones_exist = $dbh->selectrow_array(
-        "SELECT DISTINCT 1 FROM milestones");
-    if (!$milestones_exist && $dbh->bz_column_info('bugs', 'product')) {
+    my $milestones_exist = $dbh->selectrow_array("SELECT DISTINCT 1 FROM milestones");
+    if (!$milestones_exist && $dbh->bz_column_info('bugs', 'product'))
+    {
         print "Replacing blank milestones...\n";
 
-        $dbh->do("UPDATE bugs
-                     SET target_milestone = '---'
-                   WHERE target_milestone = ' '");
+        $dbh->do("UPDATE bugs SET target_milestone = '---' WHERE target_milestone = ' '");
 
         # If we are upgrading from 2.8 or earlier, we will have *created*
         # the milestones table with a product_id field, but Bugzilla expects
         # it to have a "product" field. So we change the field backward so
         # other code can run. The change will be reversed later in checksetup.
-        if ($dbh->bz_column_info('milestones', 'product_id')) {
+        if ($dbh->bz_column_info('milestones', 'product_id'))
+        {
             # Dropping the column leaves us with a milestones_product_id_idx
             # index that is only on the "value" column. We need to drop the
             # whole index so that it can be correctly re-created later.
             $dbh->bz_drop_index('milestones', 'milestones_product_id_idx');
             $dbh->bz_drop_column('milestones', 'product_id');
-            $dbh->bz_add_column('milestones', 'product',
-                                {TYPE => 'varchar(64)', NOTNULL => 1}, '');
+            $dbh->bz_add_column('milestones', 'product', {TYPE => 'varchar(64)', NOTNULL => 1}, '');
         }
 
         # Populate the milestone table with all existing values in the database
-        my $sth = $dbh->prepare("SELECT DISTINCT target_milestone, product 
-                                   FROM bugs");
+        my $sth = $dbh->prepare("SELECT DISTINCT target_milestone, product FROM bugs");
         $sth->execute();
 
         print "Populating milestones table...\n";
 
-        while (my ($value, $product) = $sth->fetchrow_array()) {
+        while (my ($value, $product) = $sth->fetchrow_array())
+        {
             # check if the value already exists
             my $sortkey = substr($value, 1);
-            if ($sortkey !~ /^\d+$/) {
+            if ($sortkey !~ /^\d+$/)
+            {
                 $sortkey = 0;
-            } else {
+            }
+            else
+            {
                 $sortkey *= 10;
             }
             my $ms_exists = $dbh->selectrow_array(
-                "SELECT value FROM milestones
-                  WHERE value = ? AND product = ?", undef, $value, $product);
-
-            if (!$ms_exists) {
-                $dbh->do("INSERT INTO milestones(value, product, sortkey) 
-                          VALUES (?,?,?)", undef, $value, $product, $sortkey);
+                "SELECT value FROM milestones WHERE value=? AND product=?",
+                undef, $value, $product
+            );
+            if (!$ms_exists)
+            {
+                $dbh->do(
+                    "INSERT INTO milestones (value, product, sortkey) VALUES (?,?,?)",
+                    undef, $value, $product, $sortkey
+                );
             }
         }
     }
 }
 
-sub _add_products_defaultmilestone {
+sub _add_products_defaultmilestone
+{
     my $dbh = Bugzilla->dbh;
 
     # 2000-03-23 Added a defaultmilestone field to the products table, so that
     # we know which milestone to initially assign bugs to.
-    if (!$dbh->bz_column_info('products', 'defaultmilestone')) {
-        $dbh->bz_add_column('products', 'defaultmilestone',
-                 {TYPE => 'varchar(20)', NOTNULL => 1, DEFAULT => "'---'"});
-        my $sth = $dbh->prepare(
-            "SELECT product, defaultmilestone FROM products");
-        $sth->execute();
-        while (my ($product, $default_ms) = $sth->fetchrow_array()) {
-            my $exists = $dbh->selectrow_array(
-                "SELECT value FROM milestones
-                  WHERE value = ? AND product = ?", 
-                undef, $default_ms, $product);
-            if (!$exists) {
-                $dbh->do("INSERT INTO milestones(value, product) " .
-                         "VALUES (?, ?)", undef, $default_ms, $product);
-            }
-        }
-    }
+    $dbh->bz_add_column('products', 'defaultmilestone', {TYPE => 'INT4', REFERENCES => {TABLE => 'milestones', COLUMN => 'id'}});
 }
 
 sub _copy_from_comments_to_longdescs {
@@ -2747,10 +2734,10 @@ EOT
                 else {
                     print <<EOT;
 
-WARNING - Series $broken_series_id was meant to collect non-open bug 
+WARNING - Series $broken_series_id was meant to collect non-open bug
 counts, but it has counted all bugs instead. It cannot be repaired
 automatically because no series that collected open bug counts was found.
-You'll probably want to delete or repair collected data for 
+You will probably want to delete or repair collected data for
 series $broken_series_id manually
 
 Continuing repairs...

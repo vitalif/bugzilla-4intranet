@@ -80,7 +80,6 @@ use Cwd qw(abs_path);
 
     DEFAULT_COLUMN_LIST
     DEFAULT_QUERY_NAME
-    DEFAULT_MILESTONE
 
     QUERY_LIST
     LIST_OF_BUGS
@@ -279,9 +278,6 @@ use constant DEFAULT_COLUMN_LIST => (
 # Used by query.cgi and buglist.cgi as the named-query name
 # for the default settings.
 use constant DEFAULT_QUERY_NAME => '(Default query)';
-
-# The default "defaultmilestone" created for products.
-use constant DEFAULT_MILESTONE => '---';
 
 # The possible types for saved searches.
 use constant QUERY_LIST => 0;

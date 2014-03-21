@@ -716,15 +716,11 @@ sub check_dependent_fields
         if (!$field->check_visibility($params))
         {
             # Field is invisible and must be cleared
-            if ($field->type == FIELD_TYPE_SINGLE_SELECT)
-            {
-                $params->{$field_name} = '---';
-            }
-            elsif ($field->type == FIELD_TYPE_MULTI_SELECT)
+            if ($field->type == FIELD_TYPE_MULTI_SELECT)
             {
                 $params->{$field_name} = [];
             }
-            elsif ($field->type == FIELD_TYPE_BUG_ID)
+            elsif ($field->type == FIELD_TYPE_BUG_ID || $field->type == FIELD_TYPE_SINGLE_SELECT)
             {
                 $params->{$field_name} = undef;
             }

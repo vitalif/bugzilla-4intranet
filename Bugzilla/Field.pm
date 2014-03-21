@@ -830,7 +830,7 @@ sub remove_from_db {
         }
         # Ignore the default single select value
         if ($self->type == FIELD_TYPE_SINGLE_SELECT) {
-            $bugs_query .= " AND $name != '---'";
+            $bugs_query .= " AND $name IS NOT NULL";
         }
     }
 
@@ -941,11 +941,6 @@ sub create {
         if ($obj->is_select) {
             # Create the table that holds the legal values for this field.
             $dbh->bz_add_field_tables($obj);
-        }
-
-        if ($type == FIELD_TYPE_SINGLE_SELECT) {
-            # Insert a default value of "---" into the legal values table.
-            $dbh->do("INSERT INTO $name (value) VALUES ('---')");
         }
     }
 

@@ -188,7 +188,6 @@ use constant DEFAULT_PRODUCT => {
         . ' finished installation of bugzilla.',
     version => Bugzilla::Version::DEFAULT_VERSION,
     classification => 'Unclassified',
-    defaultmilestone => DEFAULT_MILESTONE,
 };
 
 use constant DEFAULT_COMPONENT => {
@@ -244,13 +243,14 @@ sub create_default_classification {
 }
 
 # This function should be called only after creating the admin user.
-sub create_default_product {
+sub create_default_product
+{
     my $dbh = Bugzilla->dbh;
 
     # And same for the default product/component.
-    if (!$dbh->selectrow_array('SELECT 1 FROM products')) {
-        print get_text('install_default_product', 
-                       { name => DEFAULT_PRODUCT->{name} }) . "\n";
+    if (!$dbh->selectrow_array('SELECT 1 FROM products'))
+    {
+        print get_text('install_default_product', { name => DEFAULT_PRODUCT->{name} }) . "\n";
 
         my $product = Bugzilla::Product->create(DEFAULT_PRODUCT);
 
@@ -259,16 +259,18 @@ sub create_default_product {
         # admin checksetup.pl just created.
         my $admin_group = new Bugzilla::Group({name => 'admin'});
         my ($admin_id)  = $dbh->selectrow_array(
-            'SELECT user_id FROM user_group_map WHERE group_id = ?
-           ORDER BY user_id ' . $dbh->sql_limit(1),
-            undef, $admin_group->id);
+            'SELECT user_id FROM user_group_map WHERE group_id = ?'.
+            ' ORDER BY user_id ' . $dbh->sql_limit(1),
+            undef, $admin_group->id
+        );
         my $admin = Bugzilla::User->new($admin_id);
 
         Bugzilla::Component->create({
-            %{ DEFAULT_COMPONENT() }, product => $product,
-            initialowner => $admin->login });
+            %{ DEFAULT_COMPONENT() },
+            product => $product,
+            initialowner => $admin->login,
+        });
     }
-
 }
 
 sub create_admin {

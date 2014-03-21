@@ -938,7 +938,7 @@ use constant ABSTRACT_SCHEMA => {
             votesperuser      => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0},
             maxvotesperbug    => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => '10000'},
             votestoconfirm    => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0},
-            defaultmilestone  => {TYPE => 'varchar(20)', NOTNULL => 1, DEFAULT => "'---'"},
+            defaultmilestone  => {TYPE => 'INT4', REFERENCES => {TABLE => 'milestones', COLUMN => 'id'}},
             allows_unconfirmed => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
         ],
         INDEXES => [
