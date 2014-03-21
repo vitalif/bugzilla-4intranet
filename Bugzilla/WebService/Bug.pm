@@ -717,8 +717,7 @@ sub create {
 
     $dbh->bz_commit_transaction();
 
-    $bug->send_changes();
-
+    Bugzilla::BugMail::Send($bug->bug_id, { changer => $bug->reporter });
     return { id => $self->type('int', $bug->bug_id) };
 }
 
