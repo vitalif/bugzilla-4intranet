@@ -55,13 +55,15 @@
             </td>
             <td align="center">
               [% IF value.visible_for_all() %]
-              <input type="checkbox" id="val_[% value.id %]" value="[% value.id %]" name="values" onchange="changeDefaultEnabling(this);" checked="checked" disabled="disabled"/>
+              <input type="checkbox" id="val_[% value.id %]" value="[% value.id %]" name="values[]" onchange="changeDefaultEnabling(this);" checked="checked" disabled="disabled"/>
               [% ELSE %]
-              <input type="checkbox" id="val_[% value.id %]" value="[% value.id %]" name="values" onchange="changeDefaultEnabling(this);"[% ' checked="checked"' IF value.has_visibility_value(field_value.id, 0) %]/>
+              <input type="checkbox" id="val_[% value.id %]" value="[% value.id %]" name="values[]" onchange="changeDefaultEnabling(this);"[% ' checked="checked"' IF value.has_visibility_value(field_value.id, 0) %]/>
               [% END %]
             </td>
             <td align="center">
-              <input type="[% (field.type == constants.FIELD_TYPE_MULTI_SELECT ? 'checkbox' : 'radio') %]" id="def_val_[% value.id %]" value="[% value.id %]" name="default_value_ids"[% ' checked="checked"' IF value.is_default_controlled_value(field_value.id, 0) %]/>
+              <input type="[% (field.type == constants.FIELD_TYPE_MULTI_SELECT ? 'checkbox' : 'radio') %]"
+                id="def_val_[% value.id %]" value="[% value.id %]"
+                name="default_value_id[]"[% ' checked="checked"' IF value.is_default_controlled_value(field_value.id, 0) %]/>
             </td>
             <td>
               [% IF value.visible_for_all() %]
@@ -81,14 +83,14 @@
   [% ELSIF step == 2 %]
     <p>Значения <strong>[% field.description FILTER html %]</strong> для <strong>[% field_value.name FILTER html %]</strong> сохранены.</p>
     <a href="editvalues.cgi?action=control_list&field=
-            [%- field.name FILTER url_quote %]&visibility_value_id=[% visibility_value_id %]">К выбору значений <strong>[% field.description FILTER html %]</strong> для <strong>[% field_value.name FILTER html %]</strong></a>
+      [%- field.name FILTER url_quote %]&visibility_value_id=[% visibility_value_id %]">К выбору значений <strong>[% field.description FILTER html %]</strong> для <strong>[% field_value.name FILTER html %]</strong></a>
     |
     <a href="editvalues.cgi?action=control_list&field=
-            [%- field.name FILTER url_quote %]">К выбору <strong>[% field.value_field.description FILTER html %]</strong></a>
+      [%- field.name FILTER url_quote %]">К выбору <strong>[% field.value_field.description FILTER html %]</strong></a>
     |
   [% END; %]
   <a href="editvalues.cgi?field=
-            [%- field.name FILTER url_quote %]">К списку значений <strong>[% field.description FILTER html %]</strong></a>
+    [%- field.name FILTER url_quote %]">К списку значений <strong>[% field.description FILTER html %]</strong></a>
 </form>
 <script type="text/javascript">
 function clearDefault()
@@ -112,7 +114,7 @@ function changeDefaultEnabling(self)
     }
 }
 
-var checkboxes = document.forms['setValuesForm'].elements['values'];
+var checkboxes = document.forms['setValuesForm'].elements['values[]'];
 for (var i in checkboxes)
 {
     if (!checkboxes[i].tagName) continue;

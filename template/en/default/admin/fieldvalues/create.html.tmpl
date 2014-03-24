@@ -17,7 +17,7 @@
 [%# INTERFACE:
   # field: object; the field the value is being created for
   #%]
-  
+
 [% title = BLOCK %]
   Add Value for the '[% field.description FILTER html %]' ([% field.name FILTER html %]) field
 [% END %]
@@ -26,7 +26,7 @@
 %]
 
 <p>
-  This page allows you to add a new value for the 
+  This page allows you to add a new value for the
   '[% field.description FILTER html %]' field.
 </p>
 
@@ -78,7 +78,7 @@
       </tr>
       <tr>
         <td></td><td>
-          <select name="visibility_value_id" id="visibility_value_id" multiple="multiple" size="15">
+          <select name="visibility_value_id[]" id="visibility_value_id" multiple="multiple" size="15">
             <option></option>
             [% FOREACH field_value = field.value_field.legal_values %]
               [% NEXT IF field_value.name == '' %]

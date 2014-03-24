@@ -67,7 +67,7 @@
       </tr>
       <tr>
         <td></td><td>
-          <select name="visibility_value_id" id="visibility_value_id" multiple="multiple" size="15">
+          <select name="visibility_value_id[]" id="visibility_value_id" multiple="multiple" size="15">
             [% FOREACH field_value = field.value_field.legal_values %]
               [% NEXT IF field_value.name == '' %]
               <option value="[% field_value.id FILTER none %]" [% ' selected="selected"' IF value.has_visibility_value(field_value.id, 0) %]>
@@ -80,15 +80,16 @@
     [% END %]
     <tr>
       <th align="right"><label for="is_active">Enabled for [% terms.bugs %]:</label></th>
-      <td><input id="is_active" name="is_active" type="checkbox" value="1" 
-           [%+ 'checked="checked"' IF value.is_active %]
-           [%+ 'disabled="disabled"' IF value.is_default OR value.is_static %] />
-           [% IF value.is_default %]
-             This value is selected as default in the parameters for this field. It cannot be disabled.
-           [% ELSIF value.is_static %]
-             This value is non-deletable and cannot be disabled.
-           [% END %]
-           </td>
+      <td>
+        <input id="is_active" name="is_active" type="checkbox" value="1"
+          [%+ 'checked="checked"' IF value.is_active %]
+          [%+ 'disabled="disabled"' IF value.is_default OR value.is_static %] />
+        [% IF value.is_default %]
+          This value is selected as default in the parameters for this field. It cannot be disabled.
+        [% ELSIF value.is_static %]
+          This value is non-deletable and cannot be disabled.
+        [% END %]
+      </td>
     </tr>
     [% Hook.process('fields') %]
   </table>
