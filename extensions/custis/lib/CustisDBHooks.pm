@@ -357,36 +357,6 @@ sub install_update_db
         $dbh->do('INSERT INTO setting_value (name, value, sortindex) VALUES (\'showhide_comments\', \'none\', 10), (\'showhide_comments\', \'worktime\', 20), (\'showhide_comments\', \'all\', 30)');
     }
 
-    # New system groups
-    my $special_groups = [
-        [ 'bz_editcheckers', 'Users who can edit Bugzilla Correctness Checkers',        [ 'admin' ] ],
-        [ 'editfields',      'Users who can edit Bugzilla field parameters',            [ 'admin' ] ],
-        [ 'editvalues',      'Users who can edit Bugzilla field values',                [ 'admin' ] ],
-        [ 'importxls',       'Users who are allowed to use Excel Import feature',       [ 'editbugs' ] ],
-        [ 'worktimeadmin',   'Users who are allowed to use extended Fix Worktime form', [ 'admin' ] ],
-        [ 'admin_index',     'Users who can enter Administration area', [ qw(admin tweakparams
-            editusers editclassifications editcomponents creategroups editfields editkeywords
-            bz_canusewhines bz_editcheckers) ] ],
-        # Bug 129216 - Группа доступа к редактированию флагов
-        [ 'editflagtypes',   'Users who can edit flag types',                           [ 'admin' ] ], 
-    ];
-    foreach my $group (@$special_groups)
-    {
-        if (!$dbh->selectrow_array('SELECT name FROM groups WHERE name=?', undef, $group->[0]))
-        {
-            print "Adding group '$group->[0]'\n";
-            $dbh->do(
-                'INSERT INTO groups (name, description, isbuggroup, isactive) VALUES (?, ?, 0, 1)',
-                undef, $group->[0], $group->[1]
-            );
-            $dbh->do(
-                'INSERT INTO group_group_map (member_id, grantor_id, grant_type)'.
-                ' SELECT g.id, ai.id, 0 FROM groups ai, groups g WHERE ai.name=?'.
-                ' AND g.name IN (\''.join("','", @{$group->[2]}).'\')', undef, $group->[0]
-            );
-        }
-    }
-
     # Bug 100052 - Сообщения от зависимых багов
     if (!$dbh->selectrow_array('SELECT * FROM email_setting WHERE event=\''.EVT_DEPEND_REOPEN.'\' LIMIT 1'))
     {

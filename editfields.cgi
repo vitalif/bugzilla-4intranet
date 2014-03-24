@@ -31,10 +31,11 @@ my $vars = {};
 
 # Make sure the user is logged in and is an administrator.
 my $user = Bugzilla->login(LOGIN_REQUIRED);
-$user->in_group('editfields')
-  || ThrowUserError('auth_failure', {group  => 'admin',
-                                     action => 'edit',
-                                     object => 'custom_fields'});
+$user->in_group('editfields') || ThrowUserError('auth_failure', {
+    group  => 'editfields',
+    action => 'edit',
+    object => 'custom_fields',
+});
 
 my $action = trim($cgi->param('action') || '');
 my $token  = $cgi->param('token');

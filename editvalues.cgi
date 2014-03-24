@@ -58,10 +58,11 @@ my $vars = {};
 # the documentation about legal values becomes bigger.
 $vars->{'doc_section'} = 'edit-values.html';
 
-Bugzilla->user->in_group('editvalues') ||
-    ThrowUserError('auth_failure', {group  => "admin",
-                                    action => "edit",
-                                    object => "field_values"});
+Bugzilla->user->in_group('editvalues') || ThrowUserError('auth_failure', {
+    group  => 'editvalues',
+    action => 'edit',
+    object => 'field_values',
+});
 
 #
 # often-used variables

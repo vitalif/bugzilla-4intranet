@@ -78,6 +78,8 @@ sub SETTINGS {
     }
 };
 
+# Initial system groups.
+# 'admin' group will be added to all these groups as member by default.
 use constant SYSTEM_GROUPS => (
     {
         name        => 'admin',
@@ -117,14 +119,61 @@ use constant SYSTEM_GROUPS => (
         description => 'Can confirm a bug or mark it a duplicate'
     },
     {
+        name        => 'bz_canusewhineatothers',
+        description => 'Can configure whine reports for other users',
+    },
+    {
         name        => 'bz_canusewhines',
-        description => 'User can configure whine reports for self'
+        description => 'User can configure whine reports for self',
+        include     => [ 'bz_canusewhiteatothers' ],
     },
     {
         name        => 'bz_sudoers',
         description => 'Can perform actions as other users'
     },
-    # There are also other groups created in update_system_groups.
+    {
+        name        => 'bz_sudo_protect',
+        description => 'Can not be impersonated by other users',
+        include     => [ 'bz_sudoers' ],
+    },
+    {
+        name        => 'bz_editcheckers',
+        description => 'Can edit Bugzilla Correctness Checkers',
+    },
+    {
+        name        => 'editfields',
+        description => 'Can edit Bugzilla field parameters',
+    },
+    {
+        name        => 'editvalues',
+        description => 'Can edit Bugzilla field values',
+    },
+    {
+        name        => 'importxls',
+        description => 'Can use Excel Import feature',
+        include     => [ 'editbugs' ],
+    },
+    {
+        name        => 'worktimeadmin',
+        description => 'Can use extended Fix Worktime form',
+    },
+    {
+        name        => 'editflagtypes',
+        description => 'Can edit flag types',
+    },
+    {
+        name        => 'admin_index',
+        description => 'Can enter Administration area',
+        include     => [
+            qw(tweakparams editusers editclassifications editcomponents creategroups
+            editfields editflagtypes editkeywords bz_canusewhines bz_editcheckers)
+        ],
+    },
+);
+
+use constant GROUP_INCLUSIONS => (
+    bz_canusewhines => [ 'bz_canusewhineatothers' ],
+    bz_sudo_protect => [ 'bz_sudoers' ],
 );
 
 use constant DEFAULT_CLASSIFICATION => {
@@ -153,46 +202,33 @@ sub update_settings {
     my %settings = %{SETTINGS()};
     foreach my $setting (keys %settings) {
         add_setting($setting,
-                    $settings{$setting}->{options}, 
+                    $settings{$setting}->{options},
                     $settings{$setting}->{default},
                     $settings{$setting}->{subclass});
     }
 }
 
-sub update_system_groups {
+sub update_system_groups
+{
     my $dbh = Bugzilla->dbh;
 
-    # Create most of the system groups
-    foreach my $definition (SYSTEM_GROUPS) {
+    foreach my $definition (SYSTEM_GROUPS)
+    {
         my $exists = new Bugzilla::Group({ name => $definition->{name} });
         $definition->{isbuggroup} = 0;
-        Bugzilla::Group->create($definition) unless $exists;
-    }
-
-    # Certain groups need something done after they are created. We do
-    # that here.
-
-    # Make sure people who can whine at others can also whine.
-    if (!new Bugzilla::Group({name => 'bz_canusewhineatothers'})) {
-        my $whineatothers = Bugzilla::Group->create({
-            name        => 'bz_canusewhineatothers',
-            description => 'Can configure whine reports for other users',
-            isbuggroup  => 0 });
-        my $whine = new Bugzilla::Group({ name => 'bz_canusewhines' });
-
-        $dbh->do('INSERT INTO group_group_map (grantor_id, member_id) 
-                       VALUES (?,?)', undef, $whine->id, $whineatothers->id);
-    }
-
-    # Make sure sudoers are automatically protected from being sudoed.
-    if (!new Bugzilla::Group({name => 'bz_sudo_protect'})) {
-        my $sudo_protect = Bugzilla::Group->create({
-            name        => 'bz_sudo_protect',
-            description => 'Can not be impersonated by other users',
-            isbuggroup  => 0 });
-        my $sudo = new Bugzilla::Group({ name => 'bz_sudoers' });
-        $dbh->do('INSERT INTO group_group_map (grantor_id, member_id) 
-                       VALUES (?,?)', undef, $sudo_protect->id, $sudo->id);
+        my $include = delete $definition->{include};
+        if (!$exists)
+        {
+            Bugzilla::Group->create($definition);
+            if ($include && @$include)
+            {
+                $dbh->do(
+                    'INSERT INTO group_group_map (member_id, grantor_id, grant_type)'.
+                    ' SELECT g.id, ai.id, 0 FROM groups ai, groups g WHERE ai.name=?'.
+                    ' AND g.name IN (\''.join("','", @$include).'\')', undef, $definition->{name}
+                );
+            }
+        }
     }
 }
 
@@ -260,12 +296,14 @@ sub create_admin {
         print "\n" . get_text('install_admin_setup') . "\n\n";
     }
 
-    while (!$login) {
+    while (!$login)
+    {
         print get_text('install_admin_get_email') . ' ';
         $login = <STDIN>;
         chomp $login;
         eval { Bugzilla::User->check_login_name_for_creation($login); };
-        if ($@) {
+        if ($@)
+        {
             print $@ . "\n";
             undef $login;
         }

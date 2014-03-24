@@ -211,7 +211,7 @@ sub _tt_provider_load_compiled {
     delete $INC{ $file };
     eval { $compiled = require $file; };
     return $@
-        ? $self->error("compiled template $compiled: $@")
+        ? $self->error("compiled template ".($compiled||$file).": $@")
         : $compiled;
 }
 

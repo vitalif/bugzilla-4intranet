@@ -130,6 +130,9 @@ sub log
     }
 }
 
+# TODO Print sensible errors on the console, like:
+# Bugzilla->template->process("global/".$@->{type}."-error.html.tmpl", { %{ $@ }, %{ $@->{vars} } }, \$message);
+
 sub _throw_error
 {
     my ($type, $error, $vars) = @_;
