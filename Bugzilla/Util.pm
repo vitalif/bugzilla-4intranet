@@ -67,7 +67,13 @@ use JSON;
 use Data::Dumper qw(Dumper);
 $Data::Dumper::Useperl = 1;
 no warnings 'redefine';
-*Data::Dumper::qquote = sub { my $s = $_[0]; s/\"/\\"/gs; return '"'.$s.'"' };
+*Data::Dumper::qquote = sub
+{
+    my $s = $_[0];
+    $s = '' unless defined $s;
+    $s =~ s/\"/\\"/gs;
+    return '"'.$s.'"';
+};
 
 eval { require 'Lingua/Stem/Snowball.pm' };
 

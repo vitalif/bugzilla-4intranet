@@ -143,15 +143,14 @@ sub _get_create_index_ddl {
     # Extend superclass method to create FULLTEXT indexes on text fields.
     # Returns a "create index" SQL statement.
 
-    my($self, $table_name, $index_name, $index_fields, $index_type) = @_;
+    my ($self, $table_name, $index_name, $index_fields, $index_type) = @_;
 
     my $sql = "CREATE ";
-    $sql .= "$index_type " if ($index_type eq 'UNIQUE'
-                               || $index_type eq 'FULLTEXT');
+    $sql .= "$index_type " if $index_type && ($index_type eq 'UNIQUE' || $index_type eq 'FULLTEXT');
     $sql .= "INDEX \`$index_name\` ON $table_name \(" .
-      join(", ", @$index_fields) . "\)";
+        join(", ", @$index_fields) . "\)";
 
-    return($sql);
+    return $sql;
 
 } #eosub--_get_create_index_ddl
 #--------------------------------------------------------------------
