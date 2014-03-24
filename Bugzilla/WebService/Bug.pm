@@ -562,7 +562,7 @@ sub legal_values {
     if (grep($_->name eq $field, @global_selects)) {
         # The field is a valid one.
         trick_taint($field);
-        $values = get_legal_field_values($field);
+        $values = Bugzilla->get_field($field)->legal_value_names;
     }
     elsif (grep($_ eq $field, PRODUCT_SPECIFIC_FIELDS)) {
         my $id = $params->{product_id};

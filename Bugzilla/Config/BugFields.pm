@@ -48,6 +48,13 @@ use constant USENAMES => {
     useopsys            => 'op_sys',
 };
 
+use constant DEFAULTNAMES => {
+    defaultpriority     => 'priority',
+    defaultseverity     => 'bug_severity',
+    defaultplatform     => 'platform',
+    defaultopsys        => 'op_sys',
+};
+
 our $sortkey = 600;
 
 # A bridge from products.classification_id to fielddefs.visibility_field
@@ -76,143 +83,140 @@ sub set_usefield
     return '';
 }
 
-sub get_param_list {
-  my $class = shift;
+sub check_value
+{
+    my ($value, $param) = @_;
+    my $f = DEFAULTNAMES->{$param->{name}};
+    my $legal = Bugzilla->get_field($f)->legal_value_names;
+    if (!grep { $_ eq $value } @$legal)
+    {
+        return "Must be a valid $f: one of ".join(', ', @$legal);
+    }
+    return '';
+}
 
-  my @legal_priorities = @{get_legal_field_values('priority')};
-  my @legal_severities = @{get_legal_field_values('bug_severity')};
-  my @legal_platforms  = @{get_legal_field_values('rep_platform')};
-  my @legal_OS         = @{get_legal_field_values('op_sys')};
+sub get_param_list
+{
+    my $class = shift;
 
-  my @param_list = (
-  {
-   name => 'useclassification',
-   type => 'b',
-   default => 0,
-   checker => \&set_useclassification,
-  },
+    my $legal = {};
+    for (qw(priority bug_severity platform op_sys))
+    {
+        $legal->{$_} = [ Bugzilla->get_field($_)->legal_value_names ];
+    }
 
-  {
-   name => 'usetargetmilestone',
-   type => 'b',
-   default => 0,
-   checker => \&set_usefield,
-  },
-
-  {
-   name => 'useqacontact',
-   type => 'b',
-   default => 0,
-   checker => \&set_usefield,
-  },
-
-  {
-   name => 'usestatuswhiteboard',
-   type => 'b',
-   default => 0,
-   checker => \&set_usefield,
-  },
-
-  {
-   name => 'usevotes',
-   type => 'b',
-   default => 0,
-   checker => \&set_usefield,
-  },
-
-  {
-   name => 'usebugaliases',
-   type => 'b',
-   default => 0,
-   checker => \&set_usefield,
-  },
-
-  {
-   name => 'use_see_also',
-   type => 'b',
-   default => 1,
-   checker => \&set_usefield,
-  },
-
-  {
-   name => 'defaultpriority',
-   type => 's',
-   choices => \@legal_priorities,
-   default => $legal_priorities[-1],
-   checker => \&check_priority
-  },
-
-  {
-   name => 'defaultseverity',
-   type => 's',
-   choices => \@legal_severities,
-   default => $legal_severities[-1],
-   checker => \&check_severity
-  },
-
-  {
-   name => 'useplatform',
-   type => 'b',
-   default => 1,
-   checker => \&set_usefield,
-  },
-
-  {
-   name => 'defaultplatform',
-   type => 's',
-   choices => ['', @legal_platforms],
-   default => '',
-   checker => \&check_platform
-  },
-
-  {
-   name => 'auto_add_flag_requestees_to_cc',
-   type => 'b',
-   default => 1,
-  },
-
-  {
-   name => 'useopsys',
-   type => 'b',
-   default => 1,
-   checker => \&set_usefield,
-  },
-
-  {
-   name => 'defaultopsys',
-   type => 's',
-   choices => ['', @legal_OS],
-   default => '',
-   checker => \&check_opsys
-  },
-
-  {
-   name => 'clear_requests_on_close',
-   type => 'b',
-   default => 1,
-  },
-
-  {
-   name => 'unauth_bug_details',
-   type => 'b',
-   default => 0,
-  },
-
-  {
-   name => 'comment_line_length',
-   type => 't',
-   default => '80',
-   checker => \&check_numeric
-  },
-
-  {
-   name => 'preview_comment_lines',
-   type => 't',
-   default => '30',
-   checker => \&check_numeric
-  },
-  );
-  return @param_list;
+    my @param_list = (
+        {
+            name => 'useclassification',
+            type => 'b',
+            default => 0,
+            checker => \&set_useclassification,
+        },
+        {
+            name => 'usetargetmilestone',
+            type => 'b',
+            default => 0,
+            checker => \&set_usefield,
+        },
+        {
+            name => 'useqacontact',
+            type => 'b',
+            default => 0,
+            checker => \&set_usefield,
+        },
+        {
+            name => 'usestatuswhiteboard',
+            type => 'b',
+            default => 0,
+            checker => \&set_usefield,
+        },
+        {
+            name => 'usevotes',
+            type => 'b',
+            default => 0,
+            checker => \&set_usefield,
+        },
+        {
+            name => 'usebugaliases',
+            type => 'b',
+            default => 0,
+            checker => \&set_usefield,
+        },
+        {
+            name => 'use_see_also',
+            type => 'b',
+            default => 1,
+            checker => \&set_usefield,
+        },
+        {
+            name => 'defaultpriority',
+            type => 's',
+            choices => $legal->{priority},
+            default => $legal->{priority}->[-1],
+            checker => \&check_value,
+        },
+        {
+            name => 'defaultseverity',
+            type => 's',
+            choices => $legal->{bug_severity},
+            default => $legal->{bug_severity}->[-1],
+            checker => \&check_value,
+        },
+        {
+            name => 'useplatform',
+            type => 'b',
+            default => 1,
+            checker => \&set_usefield,
+        },
+        {
+            name => 'defaultplatform',
+            type => 's',
+            choices => ['', @{$legal->{platform}}],
+            default => '',
+            checker => \&check_value,
+        },
+        {
+            name => 'auto_add_flag_requestees_to_cc',
+            type => 'b',
+            default => 1,
+        },
+        {
+            name => 'useopsys',
+            type => 'b',
+            default => 1,
+            checker => \&set_usefield,
+        },
+        {
+            name => 'defaultopsys',
+            type => 's',
+            choices => ['', @{$legal->{op_sys}}],
+            default => '',
+            checker => \&check_value,
+        },
+        {
+            name => 'clear_requests_on_close',
+            type => 'b',
+            default => 1,
+        },
+        {
+            name => 'unauth_bug_details',
+            type => 'b',
+            default => 0,
+        },
+        {
+            name => 'comment_line_length',
+            type => 't',
+            default => '80',
+            checker => \&check_numeric,
+        },
+        {
+            name => 'preview_comment_lines',
+            type => 't',
+            default => '30',
+            checker => \&check_numeric,
+        },
+    );
+    return @param_list;
 }
 
 1;

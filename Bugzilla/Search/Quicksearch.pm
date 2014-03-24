@@ -196,9 +196,11 @@ sub quicksearch {
         $cgi->param('content', $self->{content});
 
         # If we have wanted resolutions, allow closed states
-        if (keys %{$self->{resolutions}}) {
-            foreach (@{get_legal_field_values('bug_status')}) {
-                $self->{states}->{$_} = 1 unless is_open_state($_);
+        if (keys %{$self->{resolutions}})
+        {
+            foreach (@{ Bugzilla->get_field('bug_status')->legal_values })
+            {
+                $self->{states}->{$_->name} = 1 if !$_->is_open;
             }
         }
 
@@ -289,9 +291,9 @@ sub _handle_alias {
 sub _handle_status_and_resolution
 {
     my $self = shift;
-    $self->{legal_statuses} = get_legal_field_values('bug_status');
+    $self->{legal_statuses} = Bugzilla->get_field('bug_status')->legal_value_names;
     push @{$self->{legal_statuses}}, 'OPEN';
-    $self->{legal_resolutions} = get_legal_field_values('resolution');
+    $self->{legal_resolutions} = Bugzilla->get_field('resolution')->legal_value_names;
 
     my (%st, %res);
     if ($self->{words}->[0] =~ /^[A-Z]+(,[A-Z]+)*$/ &&
@@ -502,7 +504,7 @@ sub _special_field_syntax {
     # P1-5 Syntax
     if ($word =~ m/^P(\d+)(?:-(\d+))?$/i) {
         my ($p_start, $p_end) = ($1, $2);
-        my $legal_priorities = get_legal_field_values('priority');
+        my $legal_priorities = Bugzilla->get_field('priority')->legal_value_names;
 
         # If Pn exists explicitly, use it.
         my $start = lsearch($legal_priorities, "P$p_start");

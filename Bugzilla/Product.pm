@@ -642,37 +642,45 @@ use constant is_default => 0;
 ####       Methods         ####
 ###############################
 
-sub _create_bug_group {
+sub _create_bug_group
+{
     my $self = shift;
     my $dbh = Bugzilla->dbh;
 
     my $group_name = $self->name;
-    while (new Bugzilla::Group({name => $group_name})) {
-        $group_name .= '_';
+    my $i = 1;
+    while (new Bugzilla::Group({ name => $group_name }))
+    {
+        $group_name = $self->name . ($i++);
     }
-    my $group_description = get_text('bug_group_description', {product => $self});
+    my $group_description = get_text('bug_group_description', { product => $self });
 
-    my $group = Bugzilla::Group->create({name        => $group_name,
-                                         description => $group_description,
-                                         isbuggroup  => 1});
+    my $group = Bugzilla::Group->create({
+        name        => $group_name,
+        description => $group_description,
+        isbuggroup  => 1,
+    });
 
     # Associate the new group and new product.
-    $dbh->do('INSERT INTO group_control_map
-              (group_id, product_id, membercontrol, othercontrol)
-              VALUES (?, ?, ?, ?)',
-              undef, ($group->id, $self->id, CONTROLMAPDEFAULT, CONTROLMAPNA));
+    $dbh->do(
+        'INSERT INTO group_control_map (group_id, product_id, membercontrol, othercontrol)'.
+        ' VALUES (?, ?, ?, ?)', undef, $group->id, $self->id, CONTROLMAPDEFAULT, CONTROLMAPNA
+    );
 }
 
-sub _create_series {
+sub _create_series
+{
     my $self = shift;
 
     my @series;
     # We do every status, every resolution, and an "opened" one as well.
-    foreach my $bug_status (@{get_legal_field_values('bug_status')}) {
+    foreach my $bug_status (@{ Bugzilla->get_field('bug_status')->legal_value_names })
+    {
         push(@series, [$bug_status, "bug_status=" . url_quote($bug_status)]);
     }
 
-    foreach my $resolution (@{get_legal_field_values('resolution')}) {
+    foreach my $resolution (@{ Bugzilla->get_field('resolution')->legal_value_names })
+    {
         next if !$resolution;
         push(@series, [$resolution, "resolution=" . url_quote($resolution)]);
     }
@@ -681,11 +689,13 @@ sub _create_series {
     my $query = join("&", map { "bug_status=" . url_quote($_) } @openedstatuses);
     push(@series, [get_text('series_all_open'), $query]);
 
-    foreach my $sdata (@series) {
-        my $series = new Bugzilla::Series(undef, $self->name,
-                        get_text('series_subcategory'),
-                        $sdata->[0], Bugzilla->user->id, 1,
-                        $sdata->[1] . "&product=" . url_quote($self->name), 1);
+    foreach my $sdata (@series)
+    {
+        my $series = new Bugzilla::Series(
+            undef, $self->name, get_text('series_subcategory'),
+            $sdata->[0], Bugzilla->user->id, 1,
+            $sdata->[1] . "&product=" . url_quote($self->name), 1
+        );
         $series->writeToDatabase();
     }
 }

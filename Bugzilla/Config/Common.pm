@@ -46,8 +46,7 @@ use Bugzilla::Status;
 use base qw(Exporter);
 @Bugzilla::Config::Common::EXPORT =
     qw(check_multi check_numeric check_regexp check_url check_group
-       check_sslbase check_priority check_severity check_platform
-       check_opsys check_shadowdb check_urlbase check_webdotbase
+       check_sslbase check_shadowdb check_urlbase check_webdotbase
        check_user_verify_class
        check_mail_delivery_method check_notification check_utf8
        check_bug_status check_smtp_auth check_theschwartz_available
@@ -137,50 +136,6 @@ sub check_utf8 {
     if ($dbh->isa('Bugzilla::DB::Mysql') && $dbh->bz_db_is_utf8 && !$utf8) {
         return "You cannot disable UTF-8 support, because your MySQL database"
                . " is encoded in UTF-8";
-    }
-    return "";
-}
-
-sub check_priority {
-    my ($value) = (@_);
-    my $legal_priorities = get_legal_field_values('priority');
-    if (!grep { $_ eq $value } @$legal_priorities)
-    {
-        return "Must be a legal priority value: one of " .
-            join(", ", @$legal_priorities);
-    }
-    return "";
-}
-
-sub check_severity {
-    my ($value) = (@_);
-    my $legal_severities = get_legal_field_values('bug_severity');
-    if (!grep { $_ eq $value } @$legal_severities)
-    {
-        return "Must be a legal severity value: one of " .
-            join(", ", @$legal_severities);
-    }
-    return "";
-}
-
-sub check_platform {
-    my ($value) = (@_);
-    my $legal_platforms = get_legal_field_values('rep_platform');
-    if (!grep { $_ eq $value } '', @$legal_platforms)
-    {
-        return "Must be empty or a legal platform value: one of " .
-            join(", ", @$legal_platforms);
-    }
-    return "";
-}
-
-sub check_opsys {
-    my ($value) = (@_);
-    my $legal_OS = get_legal_field_values('op_sys');
-    if (!grep { $_ eq $value } '', @$legal_OS)
-    {
-        return "Must be empty or a legal operating system value: one of " .
-            join(", ", @$legal_OS);
     }
     return "";
 }

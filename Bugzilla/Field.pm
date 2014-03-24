@@ -16,6 +16,9 @@
 #                 Frédéric Buclin <LpSolit@gmail.com>
 #                 Myk Melez <myk@mozilla.org>
 #                 Greg Hendricks <ghendricks@novell.com>
+#
+# Deep refactoring by Vitaliy Filippov <vitalif@mail.ru>
+# http://wiki.4intra.net/Bugzilla4Intranet
 
 =head1 NAME
 
@@ -71,7 +74,7 @@ package Bugzilla::Field;
 use strict;
 
 use base qw(Exporter Bugzilla::Object);
-@Bugzilla::Field::EXPORT = qw(get_field_id get_legal_field_values update_visibility_values);
+@Bugzilla::Field::EXPORT = qw(get_field_id update_visibility_values);
 
 use Bugzilla::Constants;
 use Bugzilla::Error;
@@ -343,13 +346,13 @@ sub _check_add_to_deps
 
 the name of the field in the database; begins with "cf_" if field
 is a custom field, but test the value of the boolean "custom" property
-to determine if a given field is a custom field;
+to determine if a given field is a custom field
 
 =item C<description>
 
 a short string describing the field; displayed to Bugzilla users
 in several places within Bugzilla's UI, f.e. as the form field label
-on the "show bug" page;
+on the "show bug" page
 
 =back
 
@@ -376,7 +379,7 @@ sub type { return $_[0]->{type} }
 
 a boolean specifying whether or not the field is a custom field;
 if true, field name should start "cf_", but use this property to determine
-which fields are custom fields;
+which fields are custom fields
 
 =back
 
@@ -401,7 +404,7 @@ sub in_new_bugmail { return $_[0]->{mailhead} }
 
 =item C<sortkey>
 
-an integer specifying the sortkey of the field.
+an integer specifying the sortkey of the field
 
 =back
 
@@ -413,7 +416,7 @@ sub sortkey { return $_[0]->{sortkey} }
 
 =item C<obsolete>
 
-a boolean specifying whether or not the field is obsolete;
+a boolean specifying whether or not the field is obsolete
 
 =back
 
@@ -475,9 +478,10 @@ objects.
 
 =cut
 
-sub is_select {
+sub is_select
+{
     return ($_[0]->type == FIELD_TYPE_SINGLE_SELECT
-            || $_[0]->type == FIELD_TYPE_MULTI_SELECT) ? 1 : 0
+        || $_[0]->type == FIELD_TYPE_MULTI_SELECT) ? 1 : 0;
 }
 
 sub has_activity { $_[0]->{has_activity} }
@@ -562,13 +566,14 @@ Returns undef if there is no field that controls this field's visibility.
 
 =cut
 
-sub visibility_field {
+sub visibility_field
+{
     my $self = shift;
-    if ($self->{visibility_field_id}) {
-        $self->{visibility_field} ||=
-            $self->new($self->{visibility_field_id});
+    if ($self->{visibility_field_id})
+    {
+        return Bugzilla->get_field($self->{visibility_field_id});
     }
-    return $self->{visibility_field};
+    return undef;
 }
 
 sub visibility_field_id
@@ -654,7 +659,8 @@ field controls the visibility of.
 
 =cut
 
-sub controls_visibility_of {
+sub controls_visibility_of
+{
     my $self = shift;
     $self->{controls_visibility_of} ||= [ Bugzilla->get_fields({ visibility_field_id => $self->id, obsolete => 0 }) ];
     return $self->{controls_visibility_of};
@@ -674,9 +680,11 @@ Returns undef if there is no field that controls this field's visibility.
 
 =cut
 
-sub value_field {
+sub value_field
+{
     my $self = shift;
-    if ($self->{value_field_id}) {
+    if ($self->{value_field_id})
+    {
         $self->{value_field} ||= $self->new($self->{value_field_id});
     }
     return $self->{value_field};
@@ -701,7 +709,8 @@ field controls the values of.
 
 =cut
 
-sub controls_values_of {
+sub controls_values_of
+{
     my $self = shift;
     $self->{controls_values_of} ||= [ Bugzilla->get_fields({ value_field_id => $self->id }) ];
     return $self->{controls_values_of};
@@ -978,35 +987,6 @@ sub run_create_validators
     return $params;
 }
 
-=pod
-
-=over
-
-=item C<get_legal_field_values($field)>
-
-Description: returns all the legal values for a field that has a
-             list of legal values, like rep_platform or resolution.
-             The table where these values are stored must at least have
-             the following columns: value, isactive, sortkey.
-
-Params:    C<$field> - Name of the table where valid values are.
-
-Returns:   a reference to a list of valid values.
-
-=back
-
-=cut
-
-sub get_legal_field_values {
-    my ($field) = @_;
-    my $dbh = Bugzilla->dbh;
-    my $result_ref = $dbh->selectcol_arrayref(
-         "SELECT value FROM $field
-           WHERE isactive = ?
-        ORDER BY sortkey, value", undef, (1));
-    return $result_ref;
-}
-
 =over
 
 =item C<populate_field_definitions()>
@@ -1022,21 +1002,26 @@ Returns:     nothing
 
 =cut
 
-sub populate_field_definitions {
+sub populate_field_definitions
+{
     my $dbh = Bugzilla->dbh;
 
     # ADD and UPDATE field definitions
-    foreach my $def (DEFAULT_FIELDS) {
+    foreach my $def (DEFAULT_FIELDS)
+    {
         my $field = new Bugzilla::Field({ name => $def->{name} });
-        if ($field) {
+        if ($field)
+        {
             $field->set_description($def->{desc});
             $field->set_in_new_bugmail($def->{in_new_bugmail});
             $field->set_buglist($def->{buglist});
             $field->_set_type($def->{type}) if $def->{type};
             $field->update();
         }
-        else {
-            if (exists $def->{in_new_bugmail}) {
+        else
+        {
+            if (exists $def->{in_new_bugmail})
+            {
                 $def->{mailhead} = $def->{in_new_bugmail};
                 delete $def->{in_new_bugmail};
             }
@@ -1064,62 +1049,68 @@ sub populate_field_definitions {
     my $new_field_name = 'days_elapsed';
     my $field_description = 'Days since bug changed';
 
-    my ($old_field_id, $old_field_name) =
-        $dbh->selectrow_array('SELECT id, name FROM fielddefs
-                                WHERE description = ?',
-                              undef, $field_description);
+    my ($old_field_id, $old_field_name) = $dbh->selectrow_array(
+        'SELECT id, name FROM fielddefs WHERE description = ?',
+        undef, $field_description
+    );
 
-    if ($old_field_id && ($old_field_name ne $new_field_name)) {
+    if ($old_field_id && ($old_field_name ne $new_field_name))
+    {
         print "SQL fragment found in the 'fielddefs' table...\n";
         print "Old field name: " . $old_field_name . "\n";
         # We have to fix saved searches first. Queries have been escaped
         # before being saved. We have to do the same here to find them.
         $old_field_name = url_quote($old_field_name);
-        my $broken_named_queries =
-            $dbh->selectall_arrayref('SELECT userid, name, query
-                                        FROM namedqueries WHERE ' .
-                                      $dbh->sql_istrcmp('query', '?', 'LIKE'),
-                                      undef, "%=$old_field_name%");
+        my $broken_named_queries = $dbh->selectall_arrayref(
+            'SELECT userid, name, query FROM namedqueries WHERE ' .
+            $dbh->sql_istrcmp('query', '?', 'LIKE'),
+            undef, "%=$old_field_name%"
+        );
 
-        my $sth_UpdateQueries = $dbh->prepare('UPDATE namedqueries SET query = ?
-                                                WHERE userid = ? AND name = ?');
+        my $sth_UpdateQueries = $dbh->prepare(
+            'UPDATE namedqueries SET query = ? WHERE userid = ? AND name = ?'
+        );
 
-        print "Fixing saved searches...\n" if scalar(@$broken_named_queries);
-        foreach my $named_query (@$broken_named_queries) {
+        print "Fixing saved searches...\n" if scalar @$broken_named_queries;
+        foreach my $named_query (@$broken_named_queries)
+        {
             my ($userid, $name, $query) = @$named_query;
             $query =~ s/=\Q$old_field_name\E(&|$)/=$new_field_name$1/gi;
             $sth_UpdateQueries->execute($query, $userid, $name);
         }
 
         # We now do the same with saved chart series.
-        my $broken_series =
-            $dbh->selectall_arrayref('SELECT series_id, query
-                                        FROM series WHERE ' .
-                                      $dbh->sql_istrcmp('query', '?', 'LIKE'),
-                                      undef, "%=$old_field_name%");
+        my $broken_series = $dbh->selectall_arrayref(
+            'SELECT series_id, query FROM series WHERE ' .
+            $dbh->sql_istrcmp('query', '?', 'LIKE'),
+            undef, "%=$old_field_name%"
+        );
 
-        my $sth_UpdateSeries = $dbh->prepare('UPDATE series SET query = ?
-                                               WHERE series_id = ?');
+        my $sth_UpdateSeries = $dbh->prepare('UPDATE series SET query = ? WHERE series_id = ?');
 
-        print "Fixing saved chart series...\n" if scalar(@$broken_series);
-        foreach my $series (@$broken_series) {
+        print "Fixing saved chart series...\n" if scalar @$broken_series;
+        foreach my $series (@$broken_series)
+        {
             my ($series_id, $query) = @$series;
             $query =~ s/=\Q$old_field_name\E(&|$)/=$new_field_name$1/gi;
             $sth_UpdateSeries->execute($query, $series_id);
         }
+
         # Now that saved searches have been fixed, we can fix the field name.
         print "Fixing the 'fielddefs' table...\n";
         print "New field name: " . $new_field_name . "\n";
-        $dbh->do('UPDATE fielddefs SET name = ? WHERE id = ?',
-                  undef, ($new_field_name, $old_field_id));
+        $dbh->do('UPDATE fielddefs SET name = ? WHERE id = ?', undef, $new_field_name, $old_field_id);
     }
 
     # This field has to be created separately, or the above upgrade code
     # might not run properly.
-    Bugzilla::Field->create({ name => $new_field_name,
-                              description => $field_description })
-        unless new Bugzilla::Field({ name => $new_field_name });
-
+    unless (new Bugzilla::Field({ name => $new_field_name }))
+    {
+        Bugzilla::Field->create({
+            name => $new_field_name,
+            description => $field_description
+        });
+    }
 }
 
 =pod
@@ -1145,7 +1136,7 @@ sub get_field_id
     my ($name) = @_;
     trick_taint($name);
     my $field = Bugzilla->get_field($name);
-    ThrowCodeError('invalid_field_name', {field => $name}) unless $field;
+    ThrowCodeError('invalid_field_name', { field => $name }) unless $field;
     return $field->id;
 }
 
@@ -1200,7 +1191,7 @@ sub update_controlled_values
     if ($visibility_value_id)
     {
         my $type = Bugzilla::Field::Choice->type($vis_field);
-        $visibility_value_id = $type->new($visibility_value_id)->{'id'};
+        $visibility_value_id = $type->new($visibility_value_id)->{id};
     }
     Bugzilla->dbh->do(
         "DELETE FROM fieldvaluecontrol WHERE field_id=? AND visibility_value_id=? AND value_id!=0",

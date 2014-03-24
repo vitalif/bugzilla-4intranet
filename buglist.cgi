@@ -1113,7 +1113,7 @@ $vars->{'closedstates'} = [map {$_->name} closed_bug_statuses()];
 if ($format->{'extension'} eq 'ics') {
     my $n = 1;
     $vars->{'ics_priorities'} = {};
-    my $priorities = get_legal_field_values('priority');
+    my $priorities = Bugzilla->get_field('priority')->legal_value_names;
     foreach my $p (@$priorities) {
         $vars->{'ics_priorities'}->{$p} = ($n > 9) ? 9 : $n++;
     }
@@ -1199,11 +1199,11 @@ if ($dotweak && scalar @bugs) {
     Bugzilla->switch_to_shadow_db();
 
     $vars->{'products'} = Bugzilla->user->get_enterable_products;
-    $vars->{'platforms'} = get_legal_field_values('rep_platform') if Bugzilla->params->{useplatform};
-    $vars->{'op_sys'} = get_legal_field_values('op_sys') if Bugzilla->params->{useopsys};
-    $vars->{'priorities'} = get_legal_field_values('priority');
-    $vars->{'severities'} = get_legal_field_values('bug_severity');
-    $vars->{'resolutions'} = get_legal_field_values('resolution');
+    $vars->{'platforms'} = Bugzilla->get_field('platform')->legal_value_names if Bugzilla->params->{useplatform};
+    $vars->{'op_sys'} = Bugzilla->get_field('op_sys')->legal_value_names if Bugzilla->params->{useopsys};
+    $vars->{'priorities'} = Bugzilla->get_field('priority')->legal_value_names;
+    $vars->{'severities'} = Bugzilla->get_field('bug_severity')->legal_value_names;
+    $vars->{'resolutions'} = Bugzilla->get_field('resolution')->legal_value_names
 
     # Convert bug statuses to their ID.
     my @bug_statuses = map {$dbh->quote($_)} keys %$bugstatuses;

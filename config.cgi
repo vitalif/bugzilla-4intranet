@@ -55,13 +55,13 @@ Bugzilla->switch_to_shadow_db;
 
 # Pass a bunch of Bugzilla configuration to the templates.
 my $vars = {};
-$vars->{'priority'}  = get_legal_field_values('priority');
-$vars->{'severity'}  = get_legal_field_values('bug_severity');
-$vars->{'platform'}  = get_legal_field_values('rep_platform') if Bugzilla->params->{useplatform};
-$vars->{'op_sys'}    = get_legal_field_values('op_sys') if Bugzilla->params->{useopsys};
+$vars->{'priority'}  = Bugzilla->get_field('priority')->legal_value_names;
+$vars->{'severity'}  = Bugzilla->get_field('bug_severity')->legal_value_names;
+$vars->{'platform'}  = Bugzilla->get_field('rep_platform')->legal_value_names if Bugzilla->params->{useplatform};
+$vars->{'op_sys'}    = Bugzilla->get_field('op_sys')->legal_value_names if Bugzilla->params->{useopsys};
 $vars->{'keyword'}    = [map($_->name, Bugzilla::Keyword->get_all)];
-$vars->{'resolution'} = get_legal_field_values('resolution');
-$vars->{'status'}    = get_legal_field_values('bug_status');
+$vars->{'resolution'} = Bugzilla->get_field('resolution')->legal_value_names;
+$vars->{'status'}    = Bugzilla->get_field('bug_status')->legal_value_names;
 $vars->{'custom_fields'} =
     [ grep {$_->is_select} Bugzilla->active_custom_fields ];
 

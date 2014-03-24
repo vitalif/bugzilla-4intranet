@@ -80,7 +80,7 @@ unshift(@myproducts, "-All-");
 # may have existed in the past, or have been renamed. We want them all.
 my $fields = {};
 foreach my $field ('bug_status', 'resolution') {
-    my $values = get_legal_field_values($field);
+    my $values = Bugzilla->get_field($field)->legal_value_names;
     my $old_values = $dbh->selectcol_arrayref(
                              "SELECT bugs_activity.added
                                 FROM bugs_activity
