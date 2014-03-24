@@ -110,7 +110,7 @@ sub body
         my $line_length = Bugzilla->params->{comment_line_length} - 1;
         my $result = $self->{'thetext'};
         $result =~ s/(>[^\n]*?\n)+/>...\n/g;
-        $result =~ s/^((?>[^\n]{0,$line_length}.){0,$max_lines}(?>[^\n]{0,$line_length}\s)).*$/\1.../s if !$self->check_length($result);
+        $result =~ s/^((?>[^\n]{0,$line_length}.){0,$max_lines}(?>[^\n]{0,$line_length}\s)).*$/$1.../s if !$self->check_length($result);
         return $result;
     }
     return $_[0]->{'thetext'};

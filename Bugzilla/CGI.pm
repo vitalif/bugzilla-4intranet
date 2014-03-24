@@ -562,6 +562,28 @@ sub cookie
     return new CGI::Cookie(@param);
 }
 
+# Request variables in PHP-like format:
+# - parameters without [] are always treated as scalars
+# - parameters with [] are always treated as arrays
+sub VarHash
+{
+    my $self = shift;
+    my $args = { %{ $self->Vars } };
+    my $filtered = {};
+    for my $key (keys %$args)
+    {
+        if ($key =~ /\[\]$/so)
+        {
+            $filtered->{substr $key, 0, -2} = ref $args->{$key} ? $args->{$key} : [ $args->{$key} ];
+        }
+        else
+        {
+            $filtered->{$key} = ref $args->{$key} ? $args->{$key}->[-1] : $args->{$key};
+        }
+    }
+    return $filtered;
+}
+
 1;
 
 __END__

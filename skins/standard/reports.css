@@ -24,54 +24,34 @@
   margin-bottom: 1em;
 }
 
-.product_container {
-  width: 65%;
-}
-
 .product_name {
   margin: 0;
+  font-size: 200%;
 }
 
 .product_desc {
-  /* This is padding instead of margin because it looks better 
-   * with the scrollbar. */
-  padding: 0 2em;
+  margin: 0 32px;
   font-style: italic;
-  max-height: 5em;
+  font-size: 130%;
   overflow: auto;
 }
 
-.instructions {
-  font-weight: bold;
-  font-size: 105%;
-  padding-right: 1em;
-}
-
 .components_header {
-  margin: 0;
   font-size: 140%;
+  margin-bottom: 0;
 }
 
 .component_table {
-  margin-top: -1em;
-  margin-left: 2em;
+  margin-top: 1em;
+  margin-left: 32px;
+  border-collapse: collapse;
 }
 
-.component_table thead th {
-  padding-right: 1em;
-  vertical-align: bottom;
+.component_table td, .component_table th {
+  padding: .3em;
+  vertical-align: middle;
   text-align: left;
-}
-
-.component_table td {
-  border-bottom: 1px dotted gray;
-}
-
-.component_table td.component_assignee,
-.component_table td.component_qa_contact
-{
-  border: none;
-  padding-top: .5em;
+  border: 1px dotted gray;
 }
 
 .component_name {
@@ -81,9 +61,3 @@
   vertical-align: middle;
   min-width: 8em;
 }
-
-.component_description {
-  padding-bottom: .5em;
-  color: #333;
-}
-

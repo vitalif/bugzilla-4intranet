@@ -48,8 +48,7 @@ use Safe;
 # Historical, needed for SCHEMA_VERSION = '1.00'
 use Storable qw(dclone freeze thaw);
 
-# New SCHEMA_VERSION (2.00) use this
-use Data::Dumper;
+# New SCHEMA_VERSION (2.00) uses Dumper
 
 =head1 NAME
 

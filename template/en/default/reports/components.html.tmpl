@@ -39,26 +39,20 @@
   [% numcols = 2 %]
 [% END %]
 
-<table cellpadding="0" cellspacing="0" id="components_header_table">
-  <tr>
-    <td class="instructions">
-      Select a component to see open [% terms.bugs %] in that component:
-    </td>
-    <td class="product_container">
-      <h2 class="product_name">[% product.name FILTER html %]</h2>
-      <div class="product_desc">
-        [% product.description FILTER html_light %]
-      </div>
-    </td>
-  </tr>
-</table>
+<h2 class="product_name">[% product.name FILTER html %]</h2>
+<div class="product_desc">
+  [% product.description FILTER html_light %]
+</div>
 
 <h3 class="components_header">Components</h3>
+
+<p>Select a component to see open [% terms.bugs %] in that component:</p>
 
 <table class="component_table" cellspacing="0" cellpadding="0">
   <thead>
   <tr>
     <th>&nbsp;</th>
+    <th>Description</th>
     <th>Default Assignee</th>
     [% IF Param("useqacontact") %]
       <th>Default QA Contact</th>
@@ -81,12 +75,15 @@
 
 [% BLOCK describe_comp %]
   <tr>
-    <td rowspan="2" class="component_name">
+    <td class="component_name">
       <a name="[% comp.name FILTER html %]"
          href="buglist.cgi?product=
                [%- product.name FILTER url_quote %]&amp;component=
                [%- comp.name FILTER url_quote %]&amp;resolution=---">
       [% comp.name FILTER html %]</a>
+    </td>
+    <td class="component_description">
+      [% comp.description FILTER html_light %]
     </td>
     <td class="component_assignee">
       [% INCLUDE global/user.html.tmpl who = comp.default_assignee %]
@@ -96,10 +93,5 @@
         [% INCLUDE global/user.html.tmpl who = comp.default_qa_contact %]
       </td>
     [% END %]
-  </tr>
-  <tr>
-    <td colspan="[% numcols - 1 %]" class="component_description">
-      [% comp.description FILTER html_light %]
-    </td>
   </tr>
 [% END %]

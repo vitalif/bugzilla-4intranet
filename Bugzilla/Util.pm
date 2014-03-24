@@ -64,8 +64,9 @@ use Text::Wrap;
 use Text::TabularDisplay::Utf8;
 use JSON;
 
-use Data::Dumper;
+use Data::Dumper qw(Dumper);
 $Data::Dumper::Useperl = 1;
+no warnings 'redefine';
 *Data::Dumper::qquote = sub { my $s = $_[0]; s/\"/\\"/gs; return '"'.$s.'"' };
 
 eval { require 'Lingua/Stem/Snowball.pm' };
@@ -357,7 +358,7 @@ sub correct_urlbase {
 
 sub remote_ip {
     my $ip = $ENV{'REMOTE_ADDR'} || '127.0.0.1';
-    my @proxies = '127.0.0.1', split(/[\s,]+/, Bugzilla->params->{'inbound_proxies'});
+    my @proxies = ('127.0.0.1', split /[\s,]+/, Bugzilla->params->{'inbound_proxies'});
     if (grep { $_ eq $ip } @proxies) {
         $ip = $ENV{'HTTP_X_FORWARDED_FOR'} if $ENV{'HTTP_X_FORWARDED_FOR'};
     }
@@ -983,11 +984,6 @@ sub xml_simple_char
     my $stack = $parser->{_simple_stack};
     my $frame = $stack->[$#$stack];
     $frame->{char} .= $text;
-}
-
-sub Dumper
-{
-    return Data::Dumper::Dumper(@_);
 }
 
 1;
