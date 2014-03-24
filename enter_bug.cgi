@@ -401,11 +401,6 @@ $vars->{'product'} = $product;
     $vars->{product_flag_types} = $types;
 }
 
-$vars->{'priority'}              = Bugzilla->get_field('priority')->legal_value_names;
-$vars->{'bug_severity'}          = Bugzilla->get_field('bug_severity')->legal_value_names;
-$vars->{'rep_platform'}          = Bugzilla->get_field('rep_platform')->legal_value_names if Bugzilla->params->{useplatform};
-$vars->{'op_sys'}                = Bugzilla->get_field('op_sys')->legal_value_names if Bugzilla->params->{useopsys};
-
 $vars->{'assigned_to'}           = formvalue('assigned_to');
 $vars->{'assigned_to_disabled'}  = !$has_editbugs;
 $vars->{'cc_disabled'}           = 0;
@@ -615,7 +610,6 @@ unless ($has_editbugs || $has_canconfirm) {
 }
 
 $vars->{bug_status} = \@status;
-$vars->{resolution} = [ grep ($_, @{Bugzilla->get_field('resolution')->legal_value_names}) ];
 
 # Get the default from a template value if it is legitimate.
 # Otherwise, and only if the user has privs, set the default

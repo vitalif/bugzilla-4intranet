@@ -424,6 +424,9 @@ sub install_update_fielddefs
     # Bug 90854 - Тип поля "ссылка во внешнюю систему по ID"
     $dbh->bz_add_column('fielddefs', url => {TYPE => 'VARCHAR(255)'});
 
+    # Nullable field property
+    $dbh->bz_add_column('fielddefs', nullable => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'});
+
     # Bug 70605 - Кэширование зависимостей полей для поиска и формы бага на клиентской стороне
     if (!$dbh->bz_column_info('fielddefs', 'delta_ts'))
     {

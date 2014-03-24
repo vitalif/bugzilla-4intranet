@@ -350,8 +350,10 @@
         </li>
       [% END %]
       [% IF changes.sortkey %]
-        <li>Sortkey updated to
-          <em>[% changes.sortkey.1 | html %]</em>.</li>
+        <li>Sortkey updated to <em>[% changes.sortkey.1 | html %]</em>.</li>
+      [% END %]
+      [% IF changes.isactive %]
+        <li>It is now [% IF changes.isactive.1 %]enabled[% ELSE %]disabled[% END %] for selection.</li>
       [% END %]
       [% IF changes.visibility_values.defined %]
         [% IF value.visibility_values.size > 0 %]

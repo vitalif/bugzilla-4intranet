@@ -29,13 +29,13 @@
   #   allow_dont_change: display the --do_not_change-- option for select fields.
   #   value_span: A colspan for the table cell containing
   #               the field value.
-  #   no_tds: boolean; if true, don't display the label <th> or the 
+  #   no_tds: boolean; if true, don't display the label <th> or the
   #           wrapping <td> for the field.
   #   desc_url: string; Normally the label of a non-custom field links to
   #             fields.html. If you want it to link elsewhere, specify the
   #             relative URL you want to link to, here. Remember to call
   #             url_quote on any query string arguments.
-  #   bug: (optional) The current Bugzilla::Bug being displayed, or a hash 
+  #   bug: (optional) The current Bugzilla::Bug being displayed, or a hash
   #        with default field values being displayed on a page.
   #   tabindex: (optional) HTML tabindex.
   #%]
@@ -57,14 +57,10 @@
       [%- '</a>' IF (!field.custom || desc_url) %]
     [% '</label>' IF editable %]
   </th>
-[% END %]
-
-[% IF NOT no_tds %]
-<td class="field_value [% ' bz_hidden_field' IF hidden %]"
-    id="field_container_[% field.name FILTER html %]" 
+  <td class="field_value [% ' bz_hidden_field' IF hidden %]"
+    id="field_container_[% field.name FILTER html %]"
     [% " colspan=\"$value_span\"" FILTER none IF value_span %]>
 [% END %]
-[% Hook.process('start_field_column') %]
 [% IF editable %]
   [% SWITCH field.type %]
     [% CASE constants.FIELD_TYPE_FREETEXT %]
@@ -131,11 +127,11 @@
                           '[% field.name FILTER js %]',
                           "[% bug.${field.name} FILTER js %]");
         </script>
-    [% CASE [ constants.FIELD_TYPE_SINGLE_SELECT 
+    [% CASE [ constants.FIELD_TYPE_SINGLE_SELECT
               constants.FIELD_TYPE_MULTI_SELECT ] %]
-        <select id="[% field.name FILTER html %]" 
+        <select id="[% field.name FILTER html %]"
                 [% IF tabindex %] tabindex="[% tabindex FILTER html %]"[% END %]
-                name="[% field.name FILTER html %]" 
+                name="[% field.name FILTER html %]"
                 [% IF field.type == constants.FIELD_TYPE_MULTI_SELECT %]
                     [% SET field_size = 5 %]
                     [% IF field.legal_values.size < 5 %]
@@ -239,11 +235,10 @@
 [% ELSIF field.type == constants.FIELD_TYPE_TEXTAREA %]
   <div class="uneditable_textarea">[% value FILTER html FILTER wrap_comment %]</div>
 [% ELSIF field.type == constants.FIELD_TYPE_BUG_ID %]
-    [% IF bug.${field.name} %]  
-        [% bug.${field.name} FILTER bug_link(bug.${field.name}) FILTER none %]
-    [% END %]
+  [% IF bug.${field.name} %]
+    [% bug.${field.name} FILTER bug_link(bug.${field.name}) FILTER none %]
+  [% END %]
 [% ELSE %]
   [% value.join(', ') FILTER html %]
 [% END %]
-[% Hook.process('end_field_column') %]
 [% '</td>' IF NOT no_tds %]

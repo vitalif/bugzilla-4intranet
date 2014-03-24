@@ -541,6 +541,7 @@ use constant ABSTRACT_SCHEMA => {
             mailhead    => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
             sortkey     => {TYPE => 'INT2', NOTNULL => 1},
             obsolete    => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
+            nullable    => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
             enter_bug   => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
             buglist     => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
             visibility_field_id => {TYPE => 'INT4', REFERENCES => {TABLE => 'fielddefs', COLUMN => 'id'}},

@@ -102,6 +102,7 @@ use constant DB_COLUMNS => qw(
     mailhead
     sortkey
     obsolete
+    nullable
     enter_bug
     clone_bug
     buglist
@@ -123,6 +124,7 @@ use constant VALIDATORS => {
     buglist     => \&Bugzilla::Object::check_boolean,
     mailhead    => \&Bugzilla::Object::check_boolean,
     obsolete    => \&Bugzilla::Object::check_boolean,
+    nullable    => \&Bugzilla::Object::check_boolean,
     sortkey     => \&_check_sortkey,
     type        => \&_check_type,
     visibility_field_id => \&_check_visibility_field_id,
@@ -138,6 +140,7 @@ use constant UPDATE_COLUMNS => qw(
     mailhead
     sortkey
     obsolete
+    nullable
     enter_bug
     clone_bug
     buglist
@@ -168,7 +171,7 @@ use constant SQL_DEFINITIONS => {
 # These are used by populate_field_definitions to populate
 # the fielddefs table.
 use constant DEFAULT_FIELDS => (
-    {name => 'bug_id',       desc => 'Bug ID',      buglist => 1, in_new_bugmail => 1},
+    {name => 'bug_id',       desc => 'Bug ID',     buglist => 1, in_new_bugmail => 1},
     {name => 'short_desc',   desc => 'Summary',    buglist => 1, in_new_bugmail => 1},
     {name => 'classification', desc => 'Classification', buglist => 1, in_new_bugmail => 1},
     {name => 'product',      desc => 'Product',    buglist => 1, in_new_bugmail => 1, type => FIELD_TYPE_SINGLE_SELECT},
@@ -426,10 +429,21 @@ sub obsolete { return $_[0]->{obsolete} }
 
 =over
 
+=item C<nullable>
+
+a boolean specifying whether NULL value is allowed for this field
+
+=back
+
+=cut
+
+sub nullable { return $_[0]->{nullable} }
+
+=over
+
 =item C<enter_bug>
 
-A boolean specifying whether or not this field should appear on
-enter_bug.cgi
+A boolean specifying whether this field should appear on enter_bug.cgi
 
 =back
 
@@ -736,6 +750,8 @@ They will throw an error if you try to set the values to something invalid.
 
 =item C<set_obsolete>
 
+=item C<set_nullable>
+
 =item C<set_sortkey>
 
 =item C<set_in_new_bugmail>
@@ -754,6 +770,7 @@ sub set_description    { $_[0]->set('description', $_[1]); }
 sub set_enter_bug      { $_[0]->set('enter_bug',   $_[1]); }
 sub set_clone_bug      { $_[0]->set('clone_bug',   $_[1]); }
 sub set_obsolete       { $_[0]->set('obsolete',    $_[1]); }
+sub set_nullable       { $_[0]->set('nullable',    $_[1]); }
 sub set_sortkey        { $_[0]->set('sortkey',     $_[1]); }
 sub set_in_new_bugmail { $_[0]->set('mailhead',    $_[1]); }
 sub set_buglist        { $_[0]->set('buglist',     $_[1]); }

@@ -1,30 +1,9 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Initial Developer of the Original Code is NASA.
-# Portions created by NASA are Copyright (C) 2006 San Jose State
-# University Foundation. All Rights Reserved.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-#
-# Contributor(s): Max Kanat-Alexander <mkanat@bugzilla.org>
-#                 Greg Hendricks <ghendricks@novell.com>
-#                 Vitaliy Filippov    <vitalif@mail.ru>
+# Class representing single value of a field
+# Nearly 100% refactored
+# Author(s): Vitaliy Filippov <vitalif@mail.ru>, Max Kanat-Alexander <mkanat@bugzilla.org>, Greg Hendricks <ghendricks@novell.com>
+# License: Dual-license GPL 3.0+ or MPL 1.1+
 
 use strict;
-
-##############################################
-# Class representing single value of a field #
-##############################################
 
 package Bugzilla::Field::Choice;
 
@@ -139,9 +118,11 @@ EOC
 # We just make new() enforce this, which should give developers 
 # the understanding that you can't use Bugzilla::Field::Choice
 # without calling type().
-sub new {
+sub new
+{
     my $class = shift;
-    if ($class eq 'Bugzilla::Field::Choice') {
+    if ($class eq 'Bugzilla::Field::Choice')
+    {
         ThrowCodeError('field_choice_must_use_type');
     }
     $class->SUPER::new(@_);
@@ -164,7 +145,8 @@ sub create
     return $self;
 }
 
-sub update {
+sub update
+{
     my $self = shift;
     my $dbh = Bugzilla->dbh;
     my $fname = $self->field->name;
@@ -172,7 +154,8 @@ sub update {
     $dbh->bz_start_transaction();
 
     my ($changes, $old_self) = $self->SUPER::update(@_);
-    if (exists $changes->{$self->NAME_FIELD}) {
+    if (exists $changes->{$self->NAME_FIELD})
+    {
         my ($old, $new) = @{ $changes->{$self->NAME_FIELD} };
         if ($self->field->type != FIELD_TYPE_MULTI_SELECT)
         {
@@ -185,8 +168,8 @@ sub update {
             $dbh->do("UPDATE bugs SET $fname = ?, lastdiffed = NOW() WHERE $fname = ?",
                      undef, $new, $old);
         }
-
-        if ($old_self->is_default) {
+        if ($old_self->is_default)
+        {
             my $param = $self->DEFAULT_MAP->{$self->field->name};
             SetParam($param, $self->name);
             write_params();
@@ -198,21 +181,30 @@ sub update {
     return wantarray ? ($changes, $old_self) : $changes;
 }
 
-sub remove_from_db {
+sub remove_from_db
+{
     my $self = shift;
-    if ($self->is_default) {
-        ThrowUserError('fieldvalue_is_default',
-                       { field => $self->field, value => $self,
-                         param_name => $self->DEFAULT_MAP->{$self->field->name},
-                       });
+    if ($self->is_default)
+    {
+        ThrowUserError('fieldvalue_is_default', {
+            field => $self->field,
+            value => $self,
+            param_name => $self->DEFAULT_MAP->{$self->field->name},
+        });
     }
-    if ($self->is_static) {
-        ThrowUserError('fieldvalue_not_deletable', 
-                       { field => $self->field, value => $self });
+    if ($self->is_static)
+    {
+        ThrowUserError('fieldvalue_not_deletable', {
+            field => $self->field,
+            value => $self,
+        });
     }
-    if ($self->bug_count) {
-        ThrowUserError('fieldvalue_still_has_bugs',
-                       { field => $self->field, value => $self });
+    if ($self->bug_count)
+    {
+        ThrowUserError('fieldvalue_still_has_bugs', {
+            field => $self->field,
+            value => $self,
+        });
     }
     $self->_check_if_controller();
     $self->set_visibility_values(undef);
@@ -353,20 +345,20 @@ sub _check_if_controller
 sub is_active { return $_[0]->{'isactive'}; }
 sub sortkey   { return $_[0]->{'sortkey'};  }
 
-sub bug_count {
+sub bug_count
+{
     my $self = shift;
     return $self->{bug_count} if defined $self->{bug_count};
     my $dbh = Bugzilla->dbh;
     my $fname = $self->field->name;
     my $count;
-    if ($self->field->type == FIELD_TYPE_MULTI_SELECT) {
-        $count = $dbh->selectrow_array("SELECT COUNT(*) FROM bug_$fname
-                                         WHERE value_id = ?", undef, $self->id);
+    if ($self->field->type == FIELD_TYPE_MULTI_SELECT)
+    {
+        $count = $dbh->selectrow_array("SELECT COUNT(*) FROM bug_$fname WHERE value_id = ?", undef, $self->id);
     }
-    else {
-        $count = $dbh->selectrow_array("SELECT COUNT(*) FROM bugs 
-                                         WHERE $fname = ?",
-                                       undef, $self->name);
+    else
+    {
+        $count = $dbh->selectrow_array("SELECT COUNT(*) FROM bugs WHERE $fname = ?", undef, $self->id);
     }
     $self->{bug_count} = $count;
     return $count;
@@ -378,7 +370,8 @@ sub field
     return Bugzilla->get_field($invocant->FIELD_NAME);
 }
 
-sub is_default {
+sub is_default
+{
     my $self = shift;
     my $name = $self->DEFAULT_MAP->{$self->field->name};
     # If it doesn't exist in DEFAULT_MAP, then there is no parameter
@@ -389,14 +382,6 @@ sub is_default {
 
 sub is_static
 {
-    my $self = shift;
-    # If we need to special-case Resolution for *anything* else, it should
-    # get its own subclass.
-    if ($self->field->name eq 'resolution')
-    {
-        return grep($_ eq $self->name, ('', 'FIXED', 'MOVED', 'DUPLICATE'))
-               ? 1 : 0;
-    }
     return 0;
 }
 
@@ -529,14 +514,15 @@ sub set_visibility_values
     my ($value_ids) = @_;
     update_visibility_values($self->field, $self->id, $value_ids);
     delete $self->{visibility_values};
-    return 1;
+    return $value_ids;
 }
 
 ##############
 # Validators #
 ##############
 
-sub _check_value {
+sub _check_value
+{
     my ($invocant, $value) = @_;
 
     my $field = $invocant->field;
@@ -544,11 +530,9 @@ sub _check_value {
     $value = trim($value);
 
     # Make sure people don't rename static values
-    if (blessed($invocant) && $value ne $invocant->name 
-        && $invocant->is_static) 
+    if (blessed($invocant) && $value ne $invocant->name && $invocant->is_static) 
     {
-        ThrowUserError('fieldvalue_not_editable',
-                       { field => $field, old_value => $invocant });
+        ThrowUserError('fieldvalue_not_editable', { field => $field, old_value => $invocant });
     }
 
     ThrowUserError('fieldvalue_undefined') if !defined $value || $value eq "";
@@ -556,24 +540,25 @@ sub _check_value {
         if length($value) > MAX_FIELD_VALUE_SIZE;
 
     my $exists = $invocant->type($field)->new({ name => $value });
-    if ($exists && (!blessed($invocant) || $invocant->id != $exists->id)) {
-        ThrowUserError('fieldvalue_already_exists', 
-                       { field => $field, value => $exists });
+    if ($exists && (!blessed($invocant) || $invocant->id != $exists->id))
+    {
+        ThrowUserError('fieldvalue_already_exists', { field => $field, value => $exists });
     }
 
     return $value;
 }
 
-sub _check_sortkey {
+sub _check_sortkey
+{
     my ($invocant, $value) = @_;
     $value = trim($value);
     return 0 if !$value;
     # Store for the error message in case detaint_natural clears it.
     my $orig_value = $value;
-    detaint_natural($value)
-        || ThrowUserError('fieldvalue_sortkey_invalid',
-                          { sortkey => $orig_value,
-                            field   => $invocant->field });
+    detaint_natural($value) || ThrowUserError('fieldvalue_sortkey_invalid', {
+        sortkey => $orig_value,
+        field   => $invocant->field,
+    });
     return $value;
 }
 

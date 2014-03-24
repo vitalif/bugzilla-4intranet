@@ -102,9 +102,10 @@ sub get_param_list
     my $legal = {};
     for (qw(priority bug_severity platform op_sys))
     {
-        $legal->{$_} = [ Bugzilla->get_field($_)->legal_value_names ];
+        # Ignore evaluation errors - this piece of code may be called in checksetup.pl,
+        # fielddefs table may not be created at that time...
+        $legal->{$_} = eval { Bugzilla->get_field($_)->legal_value_names } || [];
     }
-
     my @param_list = (
         {
             name => 'useclassification',

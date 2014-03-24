@@ -397,8 +397,8 @@ function checkWorktime(inp)
 [% IF Param('useopsys') %]
   <tr>
     [% INCLUDE bug/field.html.tmpl
-       bug = default, field = select_fields.op_sys, editable = 1,
-       value = default.op_sys %]
+      bug = default, field = select_fields.op_sys, editable = 1,
+      value = default.op_sys %]
   </tr>
 [% END %]
 </tbody>
@@ -406,8 +406,9 @@ function checkWorktime(inp)
 <tbody class="expert_fields">
   <tr>
     [% IF Param('usetargetmilestone') && Param('letsubmitterchoosemilestone') %]
-      [% sel = { description => 'Target Milestone', name => 'target_milestone' } %]
-      [% INCLUDE select %]
+      [% INCLUDE bug/field.html.tmpl
+        bug = default, field = select_fields.target_milestone, editable = 1,
+        value = default.target_milestone %]
     [% ELSE %]
       <td colspan="2">&nbsp;</td>
     [% END %]
@@ -445,8 +446,7 @@ function checkWorktime(inp)
 
   <tr>
 [% IF bug_status.size <= 1 %]
-  <input type="hidden" name="bug_status" 
-         value="[% default.bug_status FILTER html %]">
+    <input type="hidden" name="bug_status" value="[% default.bug_status FILTER html %]" />
     <th>Initial State:</th>
     <td>[% default.bug_status FILTER html %]</td>
 [% ELSE %]
@@ -461,15 +461,8 @@ function checkWorktime(inp)
   </tr>
 
   <tr id="resolution_container" style="display:none">
-  <th><a href="page.cgi?id=fields.html#resolution">Resolution</a>:</th>
-  <td>
-    <select name="resolution" id="resolution">
-    [%- FOREACH x = resolution %]
-      [% NEXT IF x == "MOVED" %]
-      <option value="[% x FILTER html %]">[% x FILTER html %]</option>
-    [% END %]
-    </select>
-  </td>
+    [% INCLUDE bug/field.html.tmpl
+      bug = default, field = select_fields.resolution, editable = 1 %]
   </tr>
 
   <tr><td colspan="4"><hr /></td></tr>

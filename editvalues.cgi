@@ -215,24 +215,27 @@ if ($action eq 'edit') {
 #
 # action='update' -> update the field value
 #
-if ($action eq 'update') {
+if ($action eq 'update')
+{
     check_token_data($token, 'edit_field_value');
-    $vars->{'value_old'} = $value->name;
-    my $visibility_values;
-    if (!($value->is_static || $value->is_default)) {
-        $value->set_is_active($cgi->param('is_active'));
-        $value->set_name($cgi->param('value_new'));
-        $visibility_values = [ $cgi->param('visibility_value_id') ];
-    }
-    if ($value->can('set_timetracking')) {
+    $vars->{value_old} = $value->name;
+    if ($value->can('set_timetracking'))
+    {
         $value->set_timetracking($cgi->param('timetracking') ? 1 : 0);
     }
     $value->set_sortkey($cgi->param('sortkey'));
-    $vars->{'changes'} = $value->update();
-    my $ch = $value->set_visibility_values($visibility_values);
-    $vars->{'changes'}->{'visibility_values'} = $ch if $visibility_values && $ch;
+    if (!($value->is_static || $value->is_default))
+    {
+        $value->set_is_active($cgi->param('is_active'));
+        $value->set_name($cgi->param('value_new'));
+        if ($value->field->value_field)
+        {
+            $vars->{changes}->{visibility_values} = $value->set_visibility_values([ $cgi->param('visibility_value_id') ]);
+        }
+    }
     delete_token($token);
-    $vars->{'message'} = 'field_value_updated';
+    $vars->{changes} = $value->update;
+    $vars->{message} = 'field_value_updated';
     display_field_values($vars);
 }
 
