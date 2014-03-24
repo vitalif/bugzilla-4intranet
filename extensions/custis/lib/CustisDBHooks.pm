@@ -289,20 +289,6 @@ sub install_update_db
         $dbh->bz_drop_column('fielddefs', 'visibility_value_id');
     }
 
-    # Testopia:
-    if ($dbh->bz_table_info('test_fielddefs'))
-    {
-        # Bug 53254 - Test plan integration with MediaWiki
-        unless ($dbh->bz_column_info('test_plans', 'wiki'))
-        {
-            $dbh->bz_add_column('test_plans', wiki => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"});
-        }
-        unless ($dbh->selectrow_array("SELECT name FROM test_fielddefs WHERE table_name='test_plans' AND name='wiki'"))
-        {
-            $dbh->do("INSERT INTO test_fielddefs (name, description, table_name) VALUES ('wiki', 'Wiki Category', 'test_plans')");
-        }
-    }
-
     # Bug 64562 - Redirect to bug page after processing bug
     $dbh->bz_add_column('logincookies', session_data => {TYPE => 'LONGBLOB'});
 

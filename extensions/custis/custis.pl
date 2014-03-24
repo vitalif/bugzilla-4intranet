@@ -82,9 +82,6 @@ if (!Bugzilla->params->{ext_disable_refresh_views})
     add_hook('custis', 'install_before_final_checks',   'FlushViews::install_before_final_checks');
 }
 
-# Хуки для синхронизации тест-плана Testopia с Wiki-категорией
-set_hook('custis', 'tr_show_plan_after_fetch',      'CustisTestPlanSync::tr_show_plan_after_fetch');
-
 # Хуки для системы проверки корректности изменений багов
 set_hook('custis', 'bug_pre_update',                'Checkers::bug_pre_update');
 set_hook('custis', 'bug_end_of_update',             'Checkers::bug_end_of_update');

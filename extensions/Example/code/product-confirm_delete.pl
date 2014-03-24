@@ -11,7 +11,7 @@
 # implied. See the License for the specific language governing
 # rights and limitations under the License.
 #
-# The Original Code is the Bugzilla Testopia System.
+# The Original Code is the Bugzilla Example Plugin.
 #
 # The Initial Developer of the Original Code is Greg Hendricks.
 # Portions created by Greg Hendricks are Copyright (C) 2008

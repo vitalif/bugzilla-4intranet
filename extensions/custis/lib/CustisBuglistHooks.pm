@@ -40,13 +40,6 @@ sub buglist_static_columns
         name => $dbh->sql_date_format('bugs.creation_ts', '%Y-%m-%d'),
     };
 
-    ### Testopia ###
-    $columns->{test_cases} = {
-        title => "Test cases",
-        name  => "(SELECT ".$dbh->sql_group_concat("DISTINCT case_id", "', '")." FROM test_case_bugs tcb WHERE tcb.bug_id=bugs.bug_id)",
-    };
-    ### end Testopia ###
-
     # Needed for SuperWorkTime, would not be needed if buglist.cgi loaded bugs as objects
     $columns->{product_notimetracking} = {
         name => 'map_products.notimetracking',
