@@ -310,13 +310,6 @@ sub set
 {
     my ($self, $field, $value) = @_;
 
-    # This method is protected. It's used to help implement set_ functions.
-    caller->isa('Bugzilla::Object') || ThrowCodeError('protection_violation', {
-        caller     => caller,
-        superclass => __PACKAGE__,
-        function   => 'Bugzilla::Object->set',
-    });
-
     Bugzilla::Hook::process('object_before_set', {
         object => $self,
         field => $field,
