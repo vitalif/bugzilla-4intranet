@@ -167,8 +167,6 @@ sub VALIDATORS
         remaining_time => \&_check_remaining_time,
         short_desc     => \&_check_short_desc,
         status_whiteboard => \&_check_status_whiteboard,
-        target_milestone  => \&_check_select_field,
-        version        => \&_check_select_field,
     };
 
     $validators->{op_sys} = \&_check_select_field if Bugzilla->params->{useopsys};
@@ -194,6 +192,8 @@ use constant UPDATE_VALIDATORS => {
     qa_contact          => \&_check_qa_contact,
     reporter_accessible => \&Bugzilla::Object::check_boolean,
     resolution          => \&_check_resolution,
+    target_milestone    => \&_check_target_milestone,
+    version             => \&_check_version,
 };
 
 sub UPDATE_COLUMNS
@@ -652,6 +652,8 @@ sub run_create_validators
         $params->{resolution} = $resolution->id;
     }
 
+    $params->{target_milestone} = $class->_check_target_milestone($params->{target_milestone}, $product);
+    $params->{version} = $class->_check_version($params->{version}, $product);
     $params->{keywords} = $class->_check_keywords($params->{keywords}, $params->{keywords_description}, $product);
     $params->{groups} = $class->_check_groups($product, $params->{groups});
 
@@ -2092,6 +2094,49 @@ sub _check_strict_isolation_for_user
     }
 }
 
+sub _check_target_milestone
+{
+    my ($invocant, $target, $product) = @_;
+    $product = $invocant->product_obj if ref $invocant;
+    $target = trim($target);
+    # Reporters can move bugs between products but not set the TM.
+    # So reset it to the default value.
+    if (!defined $target || !Bugzilla->params->{usetargetmilestone} ||
+        blessed $invocant && !$invocant->check_can_change_field('target_milestone', 0, 1))
+    {
+        $target = $product->default_milestone;
+    }
+    if ((!defined $target || !length $target) && Bugzilla->get_field('target_milestone')->nullable)
+    {
+        return undef;
+    }
+    my $object = Bugzilla::Milestone->new({ product => $product, name => $target });
+    if (!$object)
+    {
+        $invocant->dependent_validators->{target_milestone} = $target;
+        return undef;
+    }
+    return $object->id;
+}
+
+sub _check_version
+{
+    my ($invocant, $version, $product) = @_;
+    $version = trim($version);
+    ($product = $invocant->product_obj) if ref $invocant;
+    if ((!defined $version || !length $version) && Bugzilla->get_field('version')->nullable)
+    {
+        return undef;
+    }
+    my $object = Bugzilla::Version->new({ product => $product, name => $version });
+    if (!$object)
+    {
+        $invocant->dependent_validators->{version} = $version;
+        return undef;
+    }
+    return $object->id;
+}
+
 sub _check_time
 {
     my ($invocant, $time, $field) = @_;
@@ -2198,6 +2243,10 @@ sub _check_select_field
 {
     my ($invocant, $value, $field) = @_;
     $field = Bugzilla->get_field($field);
+    if ((!defined $value || !length $value) && $field->nullable)
+    {
+        return undef;
+    }
     # Check dependent field values
     if ($field->visibility_field_id || $field->value_field_id)
     {
