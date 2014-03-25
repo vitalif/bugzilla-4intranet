@@ -2512,8 +2512,6 @@ sub set_product
         $self->{product_obj} = $product;
         # For update()
         $self->{_old_product_name} = $old_product->name;
-        # Delete fields that depend upon the old Product value.
-        delete $self->{choices};
         $self->{product_changed} = 1;
     }
 
@@ -2543,7 +2541,6 @@ sub set_resolution {
 
     my $old_res = $self->resolution;
     $self->set('resolution', $value);
-    delete $self->{choices};
     my $new_res = $self->resolution;
 
     if ($new_res ne $old_res) {
@@ -3477,45 +3474,6 @@ sub user
         isreporter => $isreporter,
     };
     return $self->{user};
-}
-
-# This is intended to get values that can be selected by the user in the
-# UI. It should not be used for security or validation purposes.
-sub choices
-{
-    my $self = shift;
-    return $self->{choices} if exists $self->{choices};
-    return {} if $self->{error};
-    my $user = Bugzilla->user;
-
-    my @products = @{ $user->get_enterable_products };
-    # The current product is part of the popup, even if new bugs are no longer
-    # allowed for that product
-    if (!grep { $_->name eq $self->product_obj->name } @products)
-    {
-        unshift @products, $self->product_obj;
-    }
-
-    my %choices = (
-        bug_status => $self->statuses_available,
-        product    => \@products,
-        component  => $self->product_obj->active_components,
-        version    => $self->product_obj->versions,
-        target_milestone => $self->product_obj->milestones,
-    );
-
-    my $resolution_field = Bugzilla->get_field('resolution');
-    # Don't include the empty resolution in drop-downs.
-    my @resolutions = grep($_->name, @{ $resolution_field->legal_values });
-    # And don't include MOVED in the list unless the bug is already MOVED.
-    if ($self->resolution ne 'MOVED')
-    {
-        @resolutions = grep { $_->name ne 'MOVED' } @resolutions;
-    }
-    $choices{resolution} = \@resolutions;
-
-    $self->{choices} = \%choices;
-    return $self->{choices};
 }
 
 sub votes

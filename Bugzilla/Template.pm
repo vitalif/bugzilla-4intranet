@@ -999,6 +999,7 @@ sub create {
             'json' => \&Bugzilla::Util::bz_encode_json,
 
             # Whether or not keywords are enabled, in this Bugzilla.
+            # FIXME find a better place for this function
             'use_keywords' => sub { return Bugzilla::Keyword->any_exist; },
 
             'last_bug_list' => sub {

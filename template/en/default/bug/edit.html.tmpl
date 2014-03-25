@@ -249,7 +249,6 @@ document.changeform = document.[% cfname %];
     <tr>
        [% INCLUDE bug/field.html.tmpl
             bug = bug, field = select_fields.product,
-            override_legal_values = bug.choices.product
             desc_url = 'describecomponents.cgi', value = bug.product
             editable = bug.check_can_change_field('product', 0, 1) %]
     </tr>
@@ -257,21 +256,16 @@ document.changeform = document.[% cfname %];
     [%#  Component  #%]
     [%###############%]
     <tr>
-      <td class="field_label">
-        <label for="component" accesskey="m">
-          <b><a href="describecomponents.cgi?product=[% bug.product FILTER url_quote %]">
-            Co<u>m</u>ponent</a>:
-          </b>
-        </label>
-      </td>
-      [% PROCESS select selname => "component" %]
+      [% INCLUDE bug/field.html.tmpl
+           bug = bug, field = select_fields.component,
+           value = bug.component,
+           editable = bug.check_can_change_field('component', 0, 1) %]
     </tr>
     <tr>
-      <td class="field_label">
-        <label for="version"><b>Version</b></label>:
-      </td>
-
-      [% PROCESS select selname => "version" %]
+      [% INCLUDE bug/field.html.tmpl
+           bug = bug, field = select_fields.version,
+           value = bug.version,
+           editable = bug.check_can_change_field('version', 0, 1) %]
     </tr>
 
     [%###################%]
@@ -373,14 +367,12 @@ document.changeform = document.[% cfname %];
       </td>
     </tr>
 
-    [% IF Param("usetargetmilestone") && bug.target_milestone %]
+    [% IF Param("usetargetmilestone") %]
       <tr>
-        <td class="field_label">
-          <label for="target_milestone">
-              <a href="page.cgi?id=fields.html#target_milestone">
-            Target&nbsp;Milestone</a></label>:
-        </td>
-        [% PROCESS select selname = "target_milestone" %]
+       [% INCLUDE bug/field.html.tmpl
+            bug = bug, field = select_fields.target_milestone,
+            value = bug.target_milestone,
+            editable = bug.check_can_change_field('target_milestone', 0, 1) %]
       </tr>
     [% END %]
 
@@ -1031,33 +1023,6 @@ document.changeform = document.[% cfname %];
       </fieldset></table><tr></td>
     [% END %]
   </div>
-[% END %]
-
-[%############################################################################%]
-[%# Block for SELECT fields                                                  #%]
-[%############################################################################%]
-
-[% BLOCK select %]
-  <td>
-    [% IF bug.check_can_change_field(selname, 0, 1)
-          AND bug.choices.${selname}.size > 1 %]
-      <select id="[% selname %]" name="[% selname %]">
-        [% FOREACH x = bug.choices.${selname} %]
-          <option value="[% x.name FILTER html %]"
-            [% " selected" IF x.name == bug.${selname} %]>
-            [%- x.name FILTER html %]
-          </option>
-        [% END %]
-      </select>
-      [%#
-        # Custis Bug 129375 - Add search link for some custom fields 
-        #%]
-        &nbsp;(<a href="buglist.cgi?query_format=advanced&product=[% bug.product FILTER uri %]&[% selname %]=[% bug.${selname} FILTER uri %]" target="_blank" id="search_link_[% selname %]" class="search-link">search</a>)
-    [% ELSE %]
-      [% bug.${selname} FILTER html %]
-      <input type="hidden" name="[% selname | html %]" value="[% bug.$selname | html %]" />
-    [% END %]
-  </td>
 [% END %]
 
 [%############################################################################%]

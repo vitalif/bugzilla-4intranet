@@ -26,11 +26,11 @@
       no_tds = 1
       field  = bug_fields.bug_status
       value  = bug.bug_status
-      override_legal_values = bug.choices.bug_status
-      editable = bug.choices.bug_status.size > 1
+      override_legal_values = bug.statuses_available
+      editable = bug.statuses_available.size > 1
   %]
 
-  [% IF bug.resolution 
+  [% IF bug.resolution
         OR bug.check_can_change_field('resolution', bug.resolution, 1)
   %]
     <noscript><br>resolved&nbsp;as&nbsp;</noscript>
@@ -41,7 +41,6 @@
       no_tds = 1
       field  = bug_fields.resolution
       value  = bug.resolution
-      override_legal_values = bug.choices.resolution
       editable = bug.check_can_change_field('resolution', bug.resolution, 1)
   %]
   </span>
@@ -74,7 +73,7 @@
 
 <script type="text/javascript">
 var close_status_array = [
-  [% FOREACH status = bug.choices.bug_status %]
+  [% FOREACH status = bug.statuses_available %]
     [% NEXT IF status.is_open %]
     '[% status.name FILTER js %]'[% ',' UNLESS loop.last %]
   [% END %]
