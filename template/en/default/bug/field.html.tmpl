@@ -140,6 +140,9 @@
                     size="[% field_size FILTER html %]" multiple="multiple"
                 [% END %]
                 >
+          [% IF field.nullable %]
+            <option value="">---</option>
+          [% END %]
           [% IF allow_dont_change %]
             <option value="[% dontchange FILTER html %]"
                    [% ' selected="selected"' IF value == dontchange %]>

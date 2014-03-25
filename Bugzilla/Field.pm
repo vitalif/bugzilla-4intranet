@@ -166,16 +166,15 @@ use constant SQL_DEFINITIONS => {
     FIELD_TYPE_NUMERIC,       { TYPE => 'NUMERIC', NOTNULL => 1, DEFAULT => '0' },
 };
 
-# FIXME add default value_fields here
 # Field definitions for the fields that ship with Bugzilla.
 # These are used by populate_field_definitions to populate
 # the fielddefs table.
 use constant DEFAULT_FIELDS => (
     {name => 'bug_id',       desc => 'Bug ID',     buglist => 1, in_new_bugmail => 1},
     {name => 'short_desc',   desc => 'Summary',    buglist => 1, in_new_bugmail => 1},
-    {name => 'classification', desc => 'Classification', buglist => 1, in_new_bugmail => 1},
+    {name => 'classification', desc => 'Classification', buglist => 1, in_new_bugmail => 1, type => FIELD_TYPE_SINGLE_SELECT},
     {name => 'product',      desc => 'Product',    buglist => 1, in_new_bugmail => 1, type => FIELD_TYPE_SINGLE_SELECT},
-    {name => 'version',      desc => 'Version',    buglist => 1, in_new_bugmail => 1},
+    {name => 'version',      desc => 'Version',    buglist => 1, in_new_bugmail => 1, type => FIELD_TYPE_SINGLE_SELECT, value_field_id => 4},
     {name => 'rep_platform', desc => 'Platform',   buglist => 1, in_new_bugmail => 1, type => FIELD_TYPE_SINGLE_SELECT},
     {name => 'bug_file_loc', desc => 'URL',        buglist => 1, in_new_bugmail => 1},
     {name => 'op_sys',       desc => 'OS/Version', buglist => 1, in_new_bugmail => 1, type => FIELD_TYPE_SINGLE_SELECT},
@@ -184,8 +183,8 @@ use constant DEFAULT_FIELDS => (
     {name => 'keywords',     desc => 'Keywords',   buglist => 1, in_new_bugmail => 1},
     {name => 'resolution',   desc => 'Resolution', buglist => 1,                      type => FIELD_TYPE_SINGLE_SELECT},
     {name => 'bug_severity', desc => 'Severity',   buglist => 1, in_new_bugmail => 1, type => FIELD_TYPE_SINGLE_SELECT},
-    {name => 'priority',     desc => 'Priority',   buglist => 1, in_new_bugmail => 1, type => FIELD_TYPE_SINGLE_SELECT},
-    {name => 'component',    desc => 'Component',  buglist => 1, in_new_bugmail => 1},
+    {name => 'priority',     desc => 'Priority',   buglist => 1, in_new_bugmail => 1, nullable => 1, type => FIELD_TYPE_SINGLE_SELECT},
+    {name => 'component',    desc => 'Component',  buglist => 1, in_new_bugmail => 1, type => FIELD_TYPE_SINGLE_SELECT, value_field_id => 4},
     {name => 'assigned_to',  desc => 'Assignee',   buglist => 1, in_new_bugmail => 1},
     {name => 'reporter',     desc => 'Reporter',   buglist => 1, in_new_bugmail => 1},
     {name => 'votes',        desc => 'Votes',      buglist => 1},
@@ -203,7 +202,7 @@ use constant DEFAULT_FIELDS => (
     {name => 'attachments.isprivate',   desc => 'Attachment is private'},
     {name => 'attachments.submitter',   desc => 'Attachment creator'},
 
-    {name => 'target_milestone',      desc => 'Target Milestone',    buglist => 1},
+    {name => 'target_milestone',      desc => 'Target Milestone',    buglist => 1, nullable => 1, type => FIELD_TYPE_SINGLE_SELECT, value_field_id => 4},
     {name => 'creation_ts',           desc => 'Creation time',       buglist => 1, in_new_bugmail => 1},
     {name => 'delta_ts',              desc => 'Last changed time',   buglist => 1, in_new_bugmail => 1},
     {name => 'longdesc',              desc => 'Comment'},

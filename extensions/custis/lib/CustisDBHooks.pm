@@ -73,22 +73,6 @@ sub db_schema_abstract_schema
     # Bug 68921 - Закрытие компонента (так же как закрытие продукта), чтобы в него нельзя было ставить новые баги
     push @{$schema->{components}->{FIELDS}}, is_active => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 1};
 
-    # Bug 53617 - Ограничение Custom Fields двумя и более значениями контролирующего поля
-    $schema->{fieldvaluecontrol} = {
-        FIELDS => [
-            field_id => {TYPE => 'INT4', NOTNULL => 1},
-            value_id => {TYPE => 'INT4', NOTNULL => 1},
-            visibility_value_id => {TYPE => 'INT4', NOTNULL => 1},
-            # Bug 91153 - Default'ные значения Custom полей
-            is_default => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0},
-        ],
-        INDEXES => [
-            fieldvaluecontrol_primary_idx =>
-                {FIELDS => ['field_id', 'visibility_value_id', 'value_id'],
-                 TYPE => 'UNIQUE'},
-        ],
-    };
-
     # Bug 45485 - Scrum-карточки из Bugzilla
     $schema->{scrum_cards} = {
         FIELDS => [
@@ -148,12 +132,8 @@ sub db_schema_abstract_schema
     # Bug 134368 - Edit comments
     $schema->{longdescs_history} = {
         FIELDS => [
-            bug_id     => { TYPE => 'INT4', NOTNULL => 1,
-                          REFERENCES => { TABLE => 'bugs',
-                                         COLUMN => 'bug_id' } },
-            who        => { TYPE => 'INT4', NOTNULL => 1,
-                          REFERENCES => { TABLE => 'profiles',
-                                         COLUMN => 'userid' } },
+            bug_id     => { TYPE => 'INT4', NOTNULL => 1, REFERENCES => { TABLE => 'bugs', COLUMN => 'bug_id' } },
+            who        => { TYPE => 'INT4', NOTNULL => 1, REFERENCES => { TABLE => 'profiles', COLUMN => 'userid' } },
             bug_when   => { TYPE => 'DATETIME', NOTNULL => 1 },
             oldthetext => { TYPE => 'LONGTEXT', NOTNULL => 1 },
             thetext    => { TYPE => 'LONGTEXT', NOTNULL => 1 },
@@ -169,6 +149,93 @@ sub db_schema_abstract_schema
     };
 
     return 1;
+}
+
+# Fill 'fieldvaluecontrol' table when upgrading a stock Bugzilla installation
+sub _make_fieldvaluecontrol
+{
+    my ($dbh) = @_;
+
+    # Dependent default values for custom fields (CustIS Bug 91153)
+    $dbh->bz_add_column('fieldvaluecontrol', is_default => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0});
+
+    if ($dbh->bz_column_info('fielddefs', 'visibility_value_id'))
+    {
+        $dbh->do("UPDATE fielddefs SET nullable=1 WHERE name IN ('target_milestone', 'priority')");
+
+        # Set single select type for standard select fields
+        my @ss = qw(classification product version rep_platform op_sys bug_status resolution bug_severity priority component target_milestone);
+        $dbh->do("UPDATE fielddefs SET type=".FIELD_TYPE_SINGLE_SELECT()." WHERE name IN ('".join('\',\'', @ss)."')");
+
+        # Move visibility_value_id of values of standard fields to fieldvaluecontrol (CustIS Bug 53617)
+        my @standard_fields = qw(bug_status resolution priority bug_severity op_sys rep_platform);
+        my $custom_fields = $dbh->selectall_arrayref(
+            'SELECT * FROM fielddefs WHERE type IN (?, ?) AND (custom=1 OR name IN ('.
+            join(',', ('?') x @standard_fields).'))', {Slice=>{}},
+            FIELD_TYPE_SINGLE_SELECT, FIELD_TYPE_MULTI_SELECT, @standard_fields);
+        foreach my $field (@$custom_fields)
+        {
+            if ($dbh->bz_table_info($field->{name}) &&
+                $dbh->bz_column_info($field->{name}, 'visibility_value_id'))
+            {
+                print "Migrating $field->{name}'s visibility_value_id into fieldvaluecontrol\n";
+                $dbh->do(
+                    "REPLACE INTO fieldvaluecontrol (field_id, visibility_value_id, value_id)".
+                    " SELECT f.id, v.visibility_value_id, v.id FROM fielddefs f, `$field->{name}` v".
+                    " WHERE f.name=? AND v.visibility_value_id IS NOT NULL", undef, $field->{name});
+                print "Making backup of table $field->{name}\n";
+                $dbh->do("CREATE TABLE `backup_$field->{name}_".time."` AS SELECT * FROM `$field->{name}`");
+                print "Dropping column $field->{name}.visibility_value_id\n";
+                $dbh->bz_drop_column($field->{name}, 'visibility_value_id');
+            }
+        }
+
+        # Move visibility_value_id of standard fields to fieldvaluecontrol
+        print "Migrating fielddefs's visibility_value_id into fieldvaluecontrol\n";
+        $dbh->do(
+            "REPLACE INTO fieldvaluecontrol (field_id, visibility_value_id, value_id)".
+            " SELECT id, visibility_value_id, 0 FROM fielddefs WHERE visibility_value_id IS NOT NULL"
+        );
+        print "Making backup of table fielddefs\n";
+        $dbh->do("CREATE TABLE `backup_fielddefs_".time."` AS SELECT * FROM fielddefs");
+        print "Dropping column fielddefs.visibility_value_id\n";
+        $dbh->bz_drop_column('fielddefs', 'visibility_value_id');
+
+        # Copy product_id and classification_id dependencies to fieldvaluecontrol
+        # so query.cgi can show/hide all fields using common code (CustIS Bug 69481)
+        print "Copying standard fields product_id/classification_id to fieldvaluecontrol\n";
+        for([ 'product', 'classification', 'products' ],
+            [ 'component', 'product', 'components' ],
+            [ 'version', 'product', 'versions' ],
+            [ 'target_milestone', 'product', 'milestones' ])
+        {
+            my ($id) = $dbh->selectrow_array('SELECT id FROM fielddefs WHERE name=?', undef, $_->[0]);
+            my ($pid) = $dbh->selectrow_array('SELECT id FROM fielddefs WHERE name=?', undef, $_->[1]);
+            $dbh->do('UPDATE fielddefs SET value_field_id=? WHERE id=?', undef, $pid, $id);
+            $dbh->do('DELETE FROM fieldvaluecontrol WHERE field_id=? AND value_id!=0', undef, $id);
+            $dbh->do(
+                'INSERT INTO fieldvaluecontrol (field_id, value_id, visibility_value_id)'.
+                ' SELECT ?, id, '.$_->[1].'_id FROM '.$_->[2], undef, $id
+            );
+        }
+    }
+
+    # Copy useXXX to DB config
+    if (Bugzilla->params->{useclassification})
+    {
+        my ($cl_id) = $dbh->selectrow_array('SELECT id FROM fielddefs WHERE name=\'classification\'');
+        $dbh->do('UPDATE fielddefs SET value_field_id=? WHERE name=\'product\'', undef, $cl_id);
+    }
+    else
+    {
+        $dbh->do('UPDATE fielddefs SET value_field_id=NULL WHERE name=\'product\'');
+    }
+    require Bugzilla::Config::BugFields;
+    my $h = Bugzilla::Config::BugFields->USENAMES;
+    for (keys %$h)
+    {
+        $dbh->do('UPDATE fielddefs SET obsolete=? WHERE name=?', undef, Bugzilla->params->{$_} ? 0 : 1, $h->{$_});
+    }
 }
 
 # ./checksetup'овые обновления базы
@@ -254,40 +321,7 @@ sub install_update_db
     # Bug 68921 - Закрытие компонента (так же как закрытие продукта), чтобы в него нельзя было ставить новые баги
     $dbh->bz_add_column('components', is_active => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 1});
 
-    # Bug 53617 - Ограничение Custom Fields двумя и более значениями контролирующего поля
-    my @standard_fields = qw(bug_status resolution priority bug_severity op_sys rep_platform);
-    my $custom_fields = $dbh->selectall_arrayref(
-        'SELECT * FROM fielddefs WHERE (custom=1 AND type IN (?,?)) OR name IN ('.
-        join(',',('?') x @standard_fields).')', {Slice=>{}},
-        FIELD_TYPE_SINGLE_SELECT, FIELD_TYPE_MULTI_SELECT, @standard_fields);
-    foreach my $field (@$custom_fields)
-    {
-        if ($dbh->bz_table_info($field->{name}) &&
-            $dbh->bz_column_info($field->{name}, 'visibility_value_id'))
-        {
-            print "Migrating $field->{name}'s visibility_value_id into fieldvaluecontrol\n";
-            $dbh->do(
-                "REPLACE INTO fieldvaluecontrol (field_id, visibility_value_id, value_id)".
-                " SELECT f.id, v.visibility_value_id, v.id FROM fielddefs f, `$field->{name}` v".
-                " WHERE f.name=? AND v.visibility_value_id IS NOT NULL", undef, $field->{name});
-            print "Making backup of table $field->{name}\n";
-            $dbh->do("CREATE TABLE `backup_$field->{name}_".time."` AS SELECT * FROM `$field->{name}`");
-            print "Dropping column $field->{name}.visibility_value_id\n";
-            $dbh->bz_drop_column($field->{name}, 'visibility_value_id');
-        }
-    }
-
-    if ($dbh->bz_column_info('fielddefs', 'visibility_value_id'))
-    {
-        print "Migrating fielddefs's visibility_value_id into fieldvaluecontrol\n";
-        $dbh->do(
-            "REPLACE INTO fieldvaluecontrol (field_id, visibility_value_id, value_id)".
-            " SELECT id, visibility_value_id, 0 FROM fielddefs WHERE visibility_value_id IS NOT NULL");
-        print "Making backup of table fielddefs\n";
-        $dbh->do("CREATE TABLE `backup_fielddefs_".time."` AS SELECT * FROM fielddefs");
-        print "Dropping column fielddefs.visibility_value_id\n";
-        $dbh->bz_drop_column('fielddefs', 'visibility_value_id');
-    }
+    _make_fieldvaluecontrol($dbh);
 
     # Bug 64562 - Redirect to bug page after processing bug
     $dbh->bz_add_column('logincookies', session_data => {TYPE => 'LONGBLOB'});
@@ -303,38 +337,6 @@ sub install_update_db
     if (!$dbh->selectrow_array('SELECT name FROM setting_value WHERE name=\'csv_charset\' LIMIT 1'))
     {
         $dbh->do('INSERT INTO setting_value (name, value, sortindex) VALUES (\'csv_charset\', \'utf-8\', 10), (\'csv_charset\', \'windows-1251\', 20), (\'csv_charset\', \'koi8-r\', 30)');
-    }
-
-    # Bug 69481 - Рефакторинг query.cgi с целью показа всех select полей общим механизмом
-    if (!$dbh->selectrow_array("SELECT 1 FROM fieldvaluecontrol c, fielddefs f WHERE f.name='component' AND c.field_id=f.id LIMIT 1"))
-    {
-        print "Populating fieldvaluecontrol from bindings of standard fields\n";
-        my @ss = qw(classification product version rep_platform op_sys bug_status resolution bug_severity priority component target_milestone);
-        $dbh->do("UPDATE fielddefs SET type=".FIELD_TYPE_SINGLE_SELECT()." WHERE name IN ('".join('\',\'', @ss)."')");
-        for([ 'product',   'classification', 'products'   ],
-            [ 'component',        'product', 'components' ],
-            [ 'version',          'product', 'versions'   ],
-            [ 'target_milestone', 'product', 'milestones' ])
-        {
-            my ($id) = $dbh->selectrow_array('SELECT id FROM fielddefs WHERE name=?', undef, $_->[0]);
-            my ($pid) = $dbh->selectrow_array('SELECT id FROM fielddefs WHERE name=?', undef, $_->[1]);
-            $dbh->do('UPDATE fielddefs SET value_field_id=? WHERE id=?', undef, $pid, $id);
-            $dbh->do('DELETE FROM fieldvaluecontrol WHERE field_id=? AND value_id!=0', undef, $id);
-            $dbh->do(
-                'INSERT INTO fieldvaluecontrol (field_id, value_id, visibility_value_id)'.
-                ' SELECT ?, id, '.$_->[1].'_id FROM '.$_->[2], undef, $id
-            );
-        }
-        if (!Bugzilla->params->{useclassification})
-        {
-            $dbh->do('UPDATE fielddefs SET value_field_id=NULL WHERE name=?', undef, 'product');
-        }
-        require Bugzilla::Config::BugFields;
-        my $h = Bugzilla::Config::BugFields->USENAMES;
-        for (keys %$h)
-        {
-            $dbh->do('UPDATE fielddefs SET obsolete=? WHERE name=?', undef, Bugzilla->params->{$_} ? 0 : 1, $h->{$_});
-        }
     }
 
     # Bug 72510 - Настройка действия/недействия Silent на почту о флагах
@@ -369,9 +371,6 @@ sub install_update_db
             );
         }
     }
-
-    # Bug 91153 - Default'ные значения Custom полей
-    $dbh->bz_add_column('fieldvaluecontrol', is_default => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0});
 
     # Bug 125374 - Настройки пользователя для управления шириной комментариев
     if (!$dbh->selectrow_array('SELECT * FROM setting WHERE name=\'comment_width\' LIMIT 1'))

@@ -556,6 +556,21 @@ use constant ABSTRACT_SCHEMA => {
         ],
     },
 
+    # All value/value and value/field dependencies are stored here
+    # (originally CustIS Bugs 53617, 91153)
+    fieldvaluecontrol => {
+        FIELDS => [
+            field_id => {TYPE => 'INT4', NOTNULL => 1},
+            value_id => {TYPE => 'INT4', NOTNULL => 1},
+            visibility_value_id => {TYPE => 'INT4', NOTNULL => 1},
+            is_default => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0},
+        ],
+        INDEXES => [
+            fieldvaluecontrol_primary_idx =>
+                {FIELDS => ['field_id', 'visibility_value_id', 'value_id'], TYPE => 'UNIQUE'},
+        ],
+    },
+
     # Per-product Field Values
     # ------------------------
 
