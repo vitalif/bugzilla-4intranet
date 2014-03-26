@@ -181,7 +181,7 @@ use constant DEFAULT_FIELDS => (
     {name => 'bug_status',   desc => 'Status',     buglist => 1, in_new_bugmail => 1, type => FIELD_TYPE_SINGLE_SELECT},
     {name => 'status_whiteboard', desc => 'Status Whiteboard', buglist => 1, in_new_bugmail => 1},
     {name => 'keywords',     desc => 'Keywords',   buglist => 1, in_new_bugmail => 1},
-    {name => 'resolution',   desc => 'Resolution', buglist => 1,                      type => FIELD_TYPE_SINGLE_SELECT},
+    {name => 'resolution',   desc => 'Resolution', buglist => 1, nullable => 1,       type => FIELD_TYPE_SINGLE_SELECT},
     {name => 'bug_severity', desc => 'Severity',   buglist => 1, in_new_bugmail => 1, type => FIELD_TYPE_SINGLE_SELECT},
     {name => 'priority',     desc => 'Priority',   buglist => 1, in_new_bugmail => 1, nullable => 1, type => FIELD_TYPE_SINGLE_SELECT},
     {name => 'component',    desc => 'Component',  buglist => 1, in_new_bugmail => 1, type => FIELD_TYPE_SINGLE_SELECT, value_field_id => 4},
@@ -502,6 +502,12 @@ sub has_activity { $_[0]->{has_activity} }
 sub add_to_deps { $_[0]->{add_to_deps} }
 
 sub url { $_[0]->{url} }
+
+sub new_choice
+{
+    my $self = shift;
+    return Bugzilla::Field::Choice->type($self)->new(@_);
+}
 
 # Includes disabled values is $include_disabled = true
 sub legal_values

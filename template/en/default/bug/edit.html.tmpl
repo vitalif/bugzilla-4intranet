@@ -249,7 +249,7 @@ document.changeform = document.[% cfname %];
     <tr>
        [% INCLUDE bug/field.html.tmpl
             bug = bug, field = select_fields.product,
-            desc_url = 'describecomponents.cgi', value = bug.product
+            desc_url = 'describecomponents.cgi', value = bug.product_id
             editable = bug.check_can_change_field('product', 0, 1) %]
     </tr>
     [%###############%]
@@ -258,7 +258,7 @@ document.changeform = document.[% cfname %];
     <tr>
       [% INCLUDE bug/field.html.tmpl
            bug = bug, field = select_fields.component,
-           value = bug.component,
+           value = bug.component_id,
            editable = bug.check_can_change_field('component', 0, 1) %]
     </tr>
     <tr>
@@ -309,9 +309,9 @@ document.changeform = document.[% cfname %];
     </td>
     <td id="bz_field_status">
       <span id="static_bug_status">
-        [% bug.bug_status FILTER html %]
+        [% select_fields.bug_status.new_choice(bug.bug_status).name FILTER html %]
         [% IF bug.resolution %]
-          [%+ bug.resolution FILTER html %]
+          [%+ select_fields.resolution.new_choice(bug.resolution).name FILTER html %]
           [% IF bug.dup_id %]
             of [% "${terms.bug} ${bug.dup_id}" FILTER bug_link(bug.dup_id) FILTER none %]
           [% END %]
@@ -807,8 +807,10 @@ document.changeform = document.[% cfname %];
     <tr>
       <td class="field_label" colspan="2">
         [% IF bug.flag_types.size > 0 %]
-          [% PROCESS "flag/list.html.tmpl" flag_types = bug.flag_types
-                                           any_flags_requesteeble = bug.any_flags_requesteeble %]
+          [% PROCESS "flag/list.html.tmpl"
+            flag_types = bug.flag_types
+            any_flags_requesteeble = bug.any_flags_requesteeble
+          %]
         [% END %]
       </td>
     </tr>
@@ -820,13 +822,12 @@ document.changeform = document.[% cfname %];
 [%############################################################################%]
 
 [% BLOCK section_customfields %]
-[%# *** Custom Fields *** %]
-
   [% FOREACH field = Bugzilla.active_custom_fields %]
     <tr>
-      [% PROCESS bug/field.html.tmpl value=bug.${field.name}
-                                     editable = bug.check_can_change_field(field.name, 0, 1)
-                                     value_span = 2 %]
+      [% INCLUDE bug/field.html.tmpl
+        value = bug.${field.name}
+        editable = bug.check_can_change_field(field.name, 0, 1)
+        value_span = 2 %]
     </tr>
   [% END %]
 [% END %]
@@ -840,9 +841,6 @@ document.changeform = document.[% cfname %];
     <td colspan="2" class="bz_section_spacer"></td>
   </tr>
 [% END %]
-
-
-
 
 [%############################################################################%]
 [%# Block for dependencies                                                   #%]

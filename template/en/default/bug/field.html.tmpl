@@ -144,8 +144,7 @@
             <option value="">---</option>
           [% END %]
           [% IF allow_dont_change %]
-            <option value="[% dontchange FILTER html %]"
-                   [% ' selected="selected"' IF value == dontchange %]>
+            <option value="[% dontchange FILTER html %]" [% ' selected="selected"' IF value == dontchange %]>
               [% dontchange FILTER html %]
             </option>
           [% END %]
@@ -154,15 +153,15 @@
           [% ELSE %]
             [% legal_values = field.legal_values %]
             [% SET control_field = field.value_field.name %]
+            [% SET control_field = "classification_id" IF control_field == "classification" %]
             [% SET control_field = "product_obj" IF control_field == "product" %]
             [% SET control_field = "component_obj" IF control_field == "component" %]
             [% legal_values = field.restricted_legal_values(bug.$control_field) %]
           [% END %]
           [% value_found = allow_dont_change AND value == dontchange %]
           [% FOREACH legal_value = legal_values %]
-            <option value="[% legal_value.name FILTER html %]"
-                    id="v[% legal_value.id FILTER html %]_[% field.name FILTER html %]"
-              [% IF value.contains(legal_value.name).size %]
+            <option value="[% legal_value.name FILTER html %]" id="v[% legal_value.id FILTER html %]_[% field.name FILTER html %]"
+              [% IF value.contains(legal_value.id).size %]
                 selected="selected"
                 [% value_found = 1 %]
               [% END %]>
@@ -171,7 +170,8 @@
           [% END %]
           [% IF NOT value_found %]
             [% FOR v = value %]
-            <option selected="selected" value="[% v | html %]">[% v | html %]</option>
+            [% v = field.new_choice(v) %]
+            <option selected="selected" value="[% v.name | html %]">[% v.name | html %]</option>
             [% END %]
           [% END %]
         </select>
@@ -183,7 +183,7 @@
           # isn't, we know that the multi-select was emptied.
         %]
         [% IF field.type == constants.FIELD_TYPE_MULTI_SELECT %]
-          <input type="hidden" name="defined_[% field.name FILTER html %]">
+          <input type="hidden" name="defined_[% field.name FILTER html %]" />
         [% END %]
 
      [% CASE constants.FIELD_TYPE_TEXTAREA %]

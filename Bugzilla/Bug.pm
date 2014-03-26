@@ -887,10 +887,10 @@ sub update
     }
     for my $f (Bugzilla->get_fields({ type => FIELD_TYPE_SINGLE_SELECT }))
     {
-        my $id = $f->name;
-        next if $id eq 'product' || $id eq 'component' || $id eq 'classification' || !$changes->{$id};
-        $changes->{$id}->[0] = $old_bug->$id->name if $changes->{$id}->[0];
-        $changes->{$id}->[1] = $self->$id->name if $changes->{$id}->[1];
+        my $name = $f->name;
+        next if $name eq 'product' || $name eq 'component' || $name eq 'classification' || !$changes->{$name};
+        $changes->{$name}->[0] = $f->new_choice($changes->{$name}->[0])->name if $changes->{$name}->[0];
+        $changes->{$name}->[1] = $f->new_choice($changes->{$name}->[1])->name if $changes->{$name}->[1];
     }
 
     # Transform user fields to names + add previous values to CC list
@@ -913,7 +913,7 @@ sub update
     }
 
     # Add/remove CC
-    my @old_cc = map {$_->id} @{$old_bug->cc_users};
+    my @old_cc = map { $_->id } @{$old_bug->cc_users};
     my @new_cc = @{$self->cc_users};
 
     # CustIS Bug 38616 - CC list restriction
@@ -922,7 +922,7 @@ sub update
         $self->{restricted_cc} = $self->product_obj->restrict_cc(\@new_cc);
     }
 
-    @new_cc = map {$_->id} @new_cc;
+    @new_cc = map { $_->id } @new_cc;
     my ($removed_cc, $added_cc) = diff_arrays(\@old_cc, \@new_cc);
 
     if (scalar @$removed_cc)
@@ -1958,7 +1958,7 @@ sub _check_reporter
 sub _check_resolution
 {
     my ($self, $resolution) = @_;
-    $resolution = trim($resolution);
+    $resolution = trim($resolution) || undef;
 
     # Throw a special error for resolving bugs without a resolution
     # (or trying to change the resolution to '' on a closed bug without
@@ -1987,7 +1987,7 @@ sub _check_resolution
     }
 
     # Check if they're changing the resolution and need to comment.
-    if (Bugzilla->params->{'commentonchange_resolution'}
+    if (Bugzilla->params->{commentonchange_resolution}
         && $self->resolution && $resolution ne $self->resolution
         && !$self->{added_comments})
     {
@@ -2571,40 +2571,49 @@ sub set_resolution {
         }
     }
 }
-sub clear_resolution {
+
+sub clear_resolution
+{
     my $self = shift;
-    if (!$self->status->is_open) {
+    if (!$self->status->is_open)
+    {
         ThrowUserError('resolution_cant_clear', { bug_id => $self->id });
     }
-    $self->{'resolution'} = '';
+    $self->{resolution} = undef;
     $self->_clear_dup_id;
 }
-sub set_status {
+
+sub set_status
+{
     my ($self, $status, $params) = @_;
     my $old_status = $self->status;
     $self->set('bug_status', $status);
-    delete $self->{'status'};
-    delete $self->{'statuses_available'};
-    delete $self->{'choices'};
+    delete $self->{status};
+    delete $self->{statuses_available};
+    delete $self->{choices};
     my $new_status = $self->status;
 
-    if ($new_status->is_open) {
+    if ($new_status->is_open)
+    {
         # Check for the everconfirmed transition
         $self->_set_everconfirmed($new_status->name eq 'UNCONFIRMED' ? 0 : 1);
         $self->clear_resolution();
     }
-    else {
+    else
+    {
         # We do this here so that we can make sure closed statuses have
         # resolutions.
         my $resolution = delete $params->{resolution} || $self->resolution;
         $self->set_resolution($resolution, $params);
 
         # Changing between closed statuses zeros the remaining time.
-        if ($new_status->id != $old_status->id && $self->remaining_time != 0) {
+        if ($new_status->id != $old_status->id && $self->remaining_time != 0)
+        {
             $self->_zero_remaining_time();
         }
     }
 }
+
 sub depscompletedpercent  { $_[0]->checkdepsinfo; $_[0]->{depscompletedpercent}; }
 sub lastchangeddeps       { $_[0]->checkdepsinfo; $_[0]->{lastchangeddeps}; }
 
@@ -3777,6 +3786,7 @@ sub LogActivityEntry
 {
     my ($bug_id, $col, $removed, $added, $whoid, $timestamp, $attach_id) = @_;
     my $f = Bugzilla->get_field($col);
+    die "BUG: Invalid field passed to LogActivityEntry" if !$f;
     if (!$f->{has_activity})
     {
         $f->{has_activity} = 1;
@@ -4255,8 +4265,7 @@ sub AUTOLOAD
     return unless $attr =~ /[^A-Z]/;
     if (!_validate_attribute($attr))
     {
-        require Carp;
-        Carp::confess("invalid bug attribute $attr");
+        die "invalid bug attribute $attr";
     }
 
     no strict 'refs';
@@ -4273,7 +4282,7 @@ sub AUTOLOAD
             # away once we require 5.10.1 or newer.
             trick_taint($attr);
             $self->{$attr} ||= Bugzilla->dbh->selectcol_arrayref(
-                "SELECT value FROM bug_$attr, $attr WHERE value_id=id AND bug_id=? ORDER BY value",
+                "SELECT id FROM bug_$attr, $attr WHERE value_id=id AND bug_id=? ORDER BY value",
                 undef, $self->id);
             return $self->{$attr};
         }

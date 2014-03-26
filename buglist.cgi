@@ -1203,10 +1203,10 @@ if ($dotweak && scalar @bugs) {
     $vars->{'op_sys'} = Bugzilla->get_field('op_sys')->legal_value_names if Bugzilla->params->{useopsys};
     $vars->{'priorities'} = Bugzilla->get_field('priority')->legal_value_names;
     $vars->{'severities'} = Bugzilla->get_field('bug_severity')->legal_value_names;
-    $vars->{'resolutions'} = Bugzilla->get_field('resolution')->legal_value_names
+    $vars->{'resolutions'} = Bugzilla->get_field('resolution')->legal_value_names;
 
     # Convert bug statuses to their ID.
-    my @bug_statuses = map {$dbh->quote($_)} keys %$bugstatuses;
+    my @bug_statuses = map { $dbh->quote($_) } keys %$bugstatuses;
     my $bug_status_ids = $dbh->selectcol_arrayref('SELECT id FROM bug_status WHERE ' . $dbh->sql_in('value', \@bug_statuses));
 
     # The groups the user belongs to and which are editable for the given buglist.

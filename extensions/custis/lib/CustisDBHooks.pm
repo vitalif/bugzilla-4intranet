@@ -161,7 +161,9 @@ sub _make_fieldvaluecontrol
 
     if ($dbh->bz_column_info('fielddefs', 'visibility_value_id'))
     {
-        $dbh->do("UPDATE fielddefs SET nullable=1 WHERE name IN ('target_milestone', 'priority')");
+        # FIXME do this in other place
+        $dbh->do("UPDATE fielddefs SET nullable=1 WHERE name IN ('target_milestone', 'priority', 'resolution')");
+        # FIXME delete --- target_milestones and '' resolution, set MOVED resolution disabled
 
         # Set single select type for standard select fields
         my @ss = qw(classification product version rep_platform op_sys bug_status resolution bug_severity priority component target_milestone);

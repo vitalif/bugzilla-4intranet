@@ -559,8 +559,6 @@ sub _default_quicksearch_word {
 sub splitString
 {
     my $string = shift;
-    my @quoteparts;
-    my @parts;
 
     my @quoteparts = split /\"/, $string, -1;
     my @parts;
