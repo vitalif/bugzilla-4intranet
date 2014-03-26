@@ -383,14 +383,14 @@ function checkWorktime(inp)
 
     [% INCLUDE bug/field.html.tmpl
       bug = default, field = select_fields.bug_severity, editable = 1,
-      value = default.bug_severity %]
+      value_name = default.bug_severity %]
   </tr>
 
 [% IF Param('useplatform') %]
   <tr>
     [% INCLUDE bug/field.html.tmpl
       bug = default, field = select_fields.rep_platform, editable = 1,
-      value = default.rep_platform %]
+      value_name = default.rep_platform %]
   </tr>
 [% END %]
 
@@ -398,7 +398,7 @@ function checkWorktime(inp)
   <tr>
     [% INCLUDE bug/field.html.tmpl
       bug = default, field = select_fields.op_sys, editable = 1,
-      value = default.op_sys %]
+      value_name = default.op_sys %]
   </tr>
 [% END %]
 </tbody>
@@ -408,7 +408,7 @@ function checkWorktime(inp)
     [% IF Param('usetargetmilestone') && Param('letsubmitterchoosemilestone') %]
       [% INCLUDE bug/field.html.tmpl
         bug = default, field = select_fields.target_milestone, editable = 1,
-        value = default.target_milestone %]
+        value_name = default.target_milestone %]
     [% ELSE %]
       <td colspan="2">&nbsp;</td>
     [% END %]
@@ -416,7 +416,7 @@ function checkWorktime(inp)
     [% IF Param('letsubmitterchoosepriority') %]
       [% INCLUDE bug/field.html.tmpl
         bug = default, field = select_fields.priority, editable = 1,
-        value = default.priority %]
+        value_name = default.priority %]
     [% ELSE %]
       <td colspan="2">&nbsp;</td>
     [% END %]
@@ -575,10 +575,11 @@ function checkWorktime(inp)
 
   [% FOREACH field = Bugzilla.active_custom_fields %]
     [% NEXT UNLESS field.enter_bug %]
+    [%# FIXME Default value?! %]
     [% SET value = ${field.name}.defined ? ${field.name} : "" %]
     <tr>
       [% INCLUDE bug/field.html.tmpl
-        bug = default, field = field, value = value, editable = 1,
+        bug = default, field = field, value_name = value, editable = 1,
         value_span = 3 %]
     </tr>
   [% END %]
