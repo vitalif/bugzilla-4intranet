@@ -563,11 +563,12 @@ sub cookie
 }
 
 # Request variables in PHP-like format:
-# - parameters without [] are always treated as scalars
+# - parameters without [] are always treated as scalars, except listed as keys of %$force_array
 # - parameters with [] are always treated as arrays
 sub VarHash
 {
     my $self = shift;
+    my ($force_array) = @_;
     my $args = { %{ $self->Vars } };
     my $filtered = {};
     for my $key (keys %$args)
@@ -575,6 +576,10 @@ sub VarHash
         if ($key =~ /\[\]$/so)
         {
             $filtered->{substr $key, 0, -2} = ref $args->{$key} ? $args->{$key} : [ $args->{$key} ];
+        }
+        elsif ($force_array->{$key})
+        {
+            $filtered->{$key} = ref $args->{$key} ? $args->{$key} : [ $args->{$key} ];
         }
         else
         {

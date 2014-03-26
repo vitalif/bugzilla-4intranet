@@ -35,7 +35,7 @@ Bugzilla->login(LOGIN_REQUIRED);
 my $dbh      = Bugzilla->dbh;
 my $cgi      = Bugzilla->cgi;
 my $template = Bugzilla->template;
-my $ARGS     = { %{ $cgi->VarHash } };
+my $ARGS     = $cgi->VarHash;
 my $vars     = {};
 
 # Replace this entry by separate entries in templates when
