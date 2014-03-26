@@ -1,27 +1,8 @@
-[%# The contents of this file are subject to the Mozilla Public
-  # License Version 1.1 (the "License"); you may not use this file
-  # except in compliance with the License. You may obtain a copy of
-  # the License at http://www.mozilla.org/MPL/
-  #
-  # Software distributed under the License is distributed on an "AS
-  # IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-  # implied. See the License for the specific language governing
-  # rights and limitations under the License.
-  #
-  # The Original Code is the Bugzilla Bug Tracking System.
-  #
-  # The Initial Developer of the Original Code is NASA.
-  # Portions created by NASA are Copyright (C) 2008 
-  # San Jose State University Foundation. All Rights Reserved.
-  #
-  # Contributor(s): Max Kanat-Alexander <mkanat@bugzilla.org>
+[%# License: Dual-license MPL 1.1+ or GPL 3.0+
+  # Author: Vitaliy Filippov <vitalif@mail.ru>
   #%]
 
-// Disable a checkbox based on the state of another one.
-function toggleCheckbox(this_checkbox, other_checkbox_id) {
-  var other_checkbox = document.getElementById(other_checkbox_id);
-  other_checkbox.disabled = !this_checkbox.checked;
-}
+[%# FIXME: Move this out from templates into scripts %]
 
 var select_values = new Array();
 [% USE Bugzilla %]
@@ -33,19 +14,26 @@ select_values[[% sel_field.id FILTER js %]] = [
 ];
 [% END %]
 
-function onChangeType(type_field) {
+function onChangeType()
+{
+  var type_field = document.getElementById('type');
   var value_field = document.getElementById('value_field_id');
   if (type_field.value == [% constants.FIELD_TYPE_SINGLE_SELECT %]
       || type_field.value == [% constants.FIELD_TYPE_MULTI_SELECT %])
     value_field.disabled = false;
   else
     value_field.disabled = true;
-  var u = type_field.value == [% constants.FIELD_TYPE_EXTURL %];
+  var u = document.getElementById('nullable');
+  u.disabled = type_field.value != [% constants.FIELD_TYPE_SINGLE_SELECT %];
+  if (u.disabled)
+    u.checked = false;
+  u = type_field.value == [% constants.FIELD_TYPE_EXTURL %];
   document.getElementById('url_title').style.display = u ? '' : 'none';
   document.getElementById('url_field').style.display = u ? '' : 'none';
 }
 
-function onChangeVisibilityField() {
+function onChangeVisibilityField()
+{
   var vis_field = document.getElementById('visibility_field_id');
   var vis_value = document.getElementById('visibility_value_id');
   var vis_label = document.getElementById('visibility_value_id_label');
@@ -57,5 +45,15 @@ function onChangeVisibilityField() {
     bz_populateSelectFromArray(vis_value, values);
   }
   else
+  {
     bz_clearOptions(vis_value);
+  }
+}
+
+function onChangeEnterBug()
+{
+  var c = document.getElementById('new_bugmail');
+  c.disabled = !document.getElementById('enter_bug').checked;
+  if (c.disabled)
+    c.checked = false;
 }

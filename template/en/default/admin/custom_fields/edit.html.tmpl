@@ -1,4 +1,4 @@
-[%# The contents of this file are subject to the Mozilla Public
+[%#
   # License Version 1.1 (the "License"); you may not use this file
   # except in compliance with the License. You may obtain a copy of
   # the License at http://www.mozilla.org/MPL/
@@ -18,141 +18,177 @@
   #%]
 
 [% title = BLOCK %]
-  Edit the [% "Custom" IF field.custom %] field '[% field.name FILTER html %]' ([% field.description FILTER html %])
+  [% IF field.id %]
+    Edit the [% "Custom" IF field.custom %] field '[% field.name | html %]' ([% field.description | html %])
+  [% ELSE %]
+    Add a new Custom Field
+  [% END %]
 [% END %]
 
 [% javascript = BLOCK %]
   [% INCLUDE "admin/custom_fields/cf-js.js.tmpl" %]
 [% END %]
 
-[% PROCESS global/header.html.tmpl
-           title = title
-           onload = field.custom ? "toggleCheckbox(document.getElementById('enter_bug'), 'new_bugmail');" : ""
-           doc_section = "custom-fields.html#edit-custom-fields"
+[% PROCESS
+  global/header.html.tmpl
+  title = title
+  doc_section = "custom-fields.html#" _ (field.id ? "edit" : "add") _ "-custom-fields"
 %]
 
-<p>
-  Descriptions are a very short string describing the field and will be used as
-  the label for this field in the user interface.
+[% IF !field.id %]
+<p style="font-size: 120%">
+  Adding custom fields can make the interface of [% terms.Bugzilla %] very
+  complicated. Many admins who are new to [% terms.Bugzilla %] start off
+  adding many custom fields, and then their users complain that the interface
+  is "too complex". Please think carefully before adding any custom fields.
+  It may be the case that [% terms.Bugzilla %] already does what you need,
+  and you just haven't enabled the correct feature yet.
 </p>
+
+<ul style="font-size: 120%">
+  <li>Custom field names must begin with "cf_" to distinguish them from
+      standard fields. If you omit "cf_" from the beginning of the name, it
+      will be added for you.</li>
+  <li>Descriptions are a very short string describing the field and will be
+      used as the label for this field in the user interface.</li>
+</ul>
+[% END %]
 
 <form id="edit_field" action="editfields.cgi" method="GET">
   <table border="0" cellspacing="0" cellpadding="5">
     <tr>
-      <th align="right">Name:</th>
-      <td>[% field.name FILTER html %]</td>
-
-      [% IF field.custom %]
-      <th align="right">
-        <label for="enter_bug">Can be set on [% terms.bug %] creation:</label>
-      </th>
-      <td><input type="checkbox" id="enter_bug" name="enter_bug" value="1"
-                 [%- " checked" IF field.enter_bug %]
-                 onchange="toggleCheckbox(this, 'new_bugmail');" /></td>
-      [% END %]
-    </tr>
-    [% IF field.custom %]
-    <tr>
-      <td colspan="2"></td>
-      <th align="right">
-        <label for="clone_bug">Is copied into the cloned [% terms.bug %]:</label>
-      </th>
-      <td><input type="checkbox" id="clone_bug" name="clone_bug" value="1"
-                 [%- " checked" IF field.clone_bug %] /></td>
-    </tr>
-    [% END %]
-    <tr>
-      <th align="right"><label for="desc">Description:</label></th>
-      <td><input type="text" id="desc" name="desc" size="40"
-                 value="[% field.description FILTER html %]"></td>
-
-      <th align="right">
-        <label for="new_bugmail">Displayed in [% terms.bug %]mail for new [% terms.bugs %]:</label>
-      </th>
-      <td><input type="checkbox" id="new_bugmail" name="new_bugmail" value="1"
-                 [%- " checked" IF field.mailhead %]></td>
-    </tr>
-    <tr>
-      <th align="right">Type:</th>
-      <td>[% field_types.${field.type} FILTER html %]</td>
-
-      <th align="right"><label for="obsolete">Is obsolete:</label></th>
-      <td><input type="checkbox" id="obsolete" name="obsolete" value="1"
-                 [%- " checked" IF field.obsolete %]></td>
-    </tr>
-    <tr valign="top">
-      <th align="right"><label for="sortkey">Sortkey:</label></th>
+      <th align="left">Name:</th>
       <td>
-        <input type="text" id="sortkey" name="sortkey" size="6" maxlength="6"
-               value="[% field.sortkey FILTER html %]">
+        [% IF field.id %]
+          [% field.name | html %]
+        [% ELSE %]
+          <input type="text" id="name" name="name" value="cf_" size="40" maxlength="64" />
+        [% END %]
       </td>
 
-      [% IF field.custom %]
-      <th align="right">
-        <label for="visibility_field_id">Field only appears when:</label>
+      [% IF field.custom || !field.id %]
+      <th align="left">
+        <label for="enter_bug">Can be set on [% terms.bug %] creation:</label>
       </th>
-      <td valign="top">
-        <select name="visibility_field_id" id="visibility_field_id"
-                onchange="onChangeVisibilityField()">
-          <option></option>
+      <td>
+        <input type="checkbox" id="enter_bug" name="enter_bug" value="1"
+          [%- " checked" IF field.enter_bug %]
+          onchange="onChangeEnterBug()" />
+      </td>
+      [% END %]
+    </tr>
+    <tr>
+      <th align="left"><label for="desc">Title:</label></th>
+      <td><input type="text" id="desc" name="desc" style="width: 400px" value="[% field.description | html %]" /></td>
+
+      <th align="left"><label for="clone_bug">Is copied into the cloned [% terms.bug %]:</label></th>
+      <td><input type="checkbox" id="clone_bug" name="clone_bug" value="1" [%- " checked" IF field.clone_bug %] /></td>
+    </tr>
+    <tr>
+      <th align="left"><label for="sortkey">Sortkey:</label></th>
+      <td>
+        <input type="text" id="sortkey" name="sortkey" size="6"
+          maxlength="6" value="[% field.sortkey | html %]" />
+      </td>
+      <th align="left">
+        <label for="new_bugmail">Displayed in [% terms.bug %]mail for new [% terms.bugs %]:</label>
+      </th>
+      <td><input type="checkbox" id="new_bugmail" name="new_bugmail" value="1" [%- " checked" IF field.mailhead %] /></td>
+    </tr>
+    <tr>
+      <th align="left">Type:</th>
+      <td>
+        [% IF field.id %]
+          [% field_types.${field.type} | html %]
+        [% ELSE %]
+          <select id="type" name="type" onchange="onChangeType()">
+            [% FOREACH type = field_types.keys %]
+              [% NEXT IF type == constants.FIELD_TYPE_UNKNOWN %]
+              <option value="[% type | html %]">[% field_types.$type | html %]</option>
+            [% END %]
+          </select>
+        [% END %]
+      </td>
+      <th align="left"><label for="obsolete">Is obsolete:</label></th>
+      <td>
+        <input type="checkbox" id="obsolete" name="obsolete" value="1"
+          [%- " checked" IF field.obsolete %] />
+      </td>
+    </tr>
+    [% IF field.is_select AND field.name != 'product' || !field.id %]
+    <tr valign="top">
+      <td></td>
+      <td>
+        [% IF field.id %]
+          <a href="editvalues.cgi?field=[% field.name | url_quote %]">Edit legal values for this field</a>
+        [% END %]
+      </td>
+      [% IF !field.id || field.type == constants.FIELD_TYPE_SINGLE_SELECT %]
+      <th align="left"><label for="nullable">Allow empty value:</label></th>
+      <td>
+        <input type="checkbox" id="nullable" name="nullable"
+          value="1" [%- " checked" IF field.nullable %] />
+      </td>
+      [% END %]
+    </tr>
+    [% END %]
+    [% IF field.custom || !field.id %]
+    <tr valign="top">
+      <th align="left" colspan="2"><label for="visibility_field_id">
+        Show/hide the field depending on the value of:
+      </label></th>
+      <td colspan="2">
+        <select style="width: 400px" name="visibility_field_id" id="visibility_field_id" onchange="onChangeVisibilityField()">
+          <option value="">---</option>
           [% FOREACH sel_field = Bugzilla.get_fields({ is_select => 1 }) %]
             [%# FIXME now, fields with non-unique value name is not allowed %]
             [% NEXT IF sel_field.id == field.id || sel_field.name == "component" ||
                 sel_field.name == "version" || sel_field.name == "target_milestone" %]
-            <option value="[% sel_field.id FILTER html %]"
-             [% ' selected="selected"' 
-                IF sel_field.id == field.visibility_field.id %]>
-              [% sel_field.description FILTER html %]
-              ([% sel_field.name FILTER html %])
-            </option>
-          [% END %]
-        </select>
-        <label for="visibility_value_id"><strong>&nbsp;is set to one of:</strong></label>
-      </td>
-      <td rowspan="2">
-        <select style="min-width: 100px" id="visibility_value_id"
-          name="visibility_value_id" size="7" multiple="multiple">
-          [% FOREACH value = field.visibility_field.legal_values %]
-          <option value="[% value.id FILTER html %]"[% ' selected="selected"' IF field.has_visibility_value(value.id) %]>
-              [% value.name FILTER html %]
+            <option value="[% sel_field.id | html %]"
+              [% ' selected="selected"' IF sel_field.id == field.visibility_field.id %]>
+              [% sel_field.description | html %]
+              ([% sel_field.name | html %])
             </option>
           [% END %]
         </select>
       </td>
-      [% END %]
     </tr>
-    [% IF field.is_select AND field.name != 'product' %]
-    <tr>
-      <th>&nbsp;</th>
-      <td>
-        <a href="editvalues.cgi?field=[% field.name FILTER url_quote %]">Edit
-          legal values for this field</a>.
-      </td>
-
-    [% IF field.custom %]
-      <th>
-        <label for="value_field_id">
-          Field that controls the values<br>
-          that appear in this field:
-        </label>
-      </th>
-
-      <td>
-        <select name="value_field_id" id="value_field_id">
-          <option></option>
+    <tr valign="top">
+      <th colspan="2" align="left"><label for="value_field_id">
+        Field that controls the values that appear in this field:
+      </label></th>
+      <td colspan="2">
+        <select style="width: 400px" name="value_field_id" id="value_field_id">
+          <option value="">---</option>
           [% FOREACH sel_field = Bugzilla.get_fields({ is_select => 1 }) %]
             [% NEXT IF sel_field.id == field.id %]
-            <option value="[% sel_field.id FILTER html %]"
-             [% ' selected="selected"' 
-                IF sel_field.id == field.value_field.id %]>
-              [% sel_field.description FILTER html %]
-              ([% sel_field.name FILTER html %])
+            <option value="[% sel_field.id | html %]"
+              [% ' selected="selected"' IF sel_field.id == field.value_field.id %]>
+              [% sel_field.description | html %]
+              ([% sel_field.name | html %])
             </option>
           [% END %]
         </select>
       </td>
-    [% END %]
     </tr>
+    [% IF field.visibility_field %]
+    <tr valign="top">
+      <th colspan="2" align="left"><label for="visibility_value_id">
+        Show the field only if [% field.visibility_field.description | html %] is set to:
+      </label></th>
+      <td colspan="2">
+        [% SET all = field.has_all_visibility_values %]
+        <select style="width: 400px" id="visibility_value_id"
+          name="visibility_value_id" size="7" multiple="multiple">
+          [% FOREACH value = field.visibility_field.legal_values %]
+            <option value="[% value.id | html %]"[% ' selected="selected"' IF !all && field.has_visibility_value(value.id) %]>
+              [% value.name | html %]
+            </option>
+          [% END %]
+        </select>
+      </td>
+    </tr>
+    [% END %]
     [% END %]
 
     [% IF field.type == constants.FIELD_TYPE_BUG_ID %]
@@ -181,23 +217,27 @@
     </tr>
     [% END %]
   </table>
-  <input type="hidden" name="action" value="update">
-  <input type="hidden" name="name" value="[% field.name FILTER html %]">
-  <input type="hidden" name="token" value="[% token FILTER html %]">
-  <input type="submit" id="edit" value="Submit">
+  <input type="hidden" name="action" value="[% field.id ? "update" : "new" %]" />
+  <input type="hidden" name="name" value="[% field.name | html %]" />
+  <input type="hidden" name="token" value="[% token | html %]" />
+  <input type="submit" id="edit" value="[% IF field.id %]Save[% ELSE %]Create[% END %]" />
 </form>
 
 [% IF field.obsolete AND field.custom %]
 <p>
-  <a href="editfields.cgi?action=del&amp;name=[% field.name FILTER html %]">Remove
-    this custom field from the database.</a><br>
-  This action will only be successful if the custom field has never been used
-  in [% terms.abug %].<br>
+  <a href="editfields.cgi?action=del&amp;name=[% field.name | html %]">Remove this custom field from the database.</a><br />
+  This action will only be successful if the custom field has never been used in [% terms.abug %].
 </p>
 [% END %]
 
 <p>
   <a href="editfields.cgi">Back to the list of existing fields</a>
 </p>
+
+<script>
+onChangeEnterBug();
+onChangeType();
+onChangeVisibilityField();
+</script>
 
 [% PROCESS global/footer.html.tmpl %]

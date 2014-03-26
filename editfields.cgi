@@ -51,7 +51,7 @@ if (!$action)
 elsif ($action eq 'add')
 {
     $vars->{token} = issue_session_token('add_field');
-    $template->process('admin/custom_fields/create.html.tmpl', $vars)
+    $template->process('admin/custom_fields/edit.html.tmpl', $vars)
         || ThrowTemplateError($template->error());
 }
 elsif ($action eq 'new')
@@ -68,6 +68,7 @@ elsif ($action eq 'new')
         enter_bug   => scalar $cgi->param('enter_bug'),
         clone_bug   => scalar $cgi->param('clone_bug'),
         obsolete    => scalar $cgi->param('obsolete'),
+        nullable    => scalar $cgi->param('nullable'),
         custom      => 1,
         buglist     => 1, # FIXME remove non-editable 'buglist' field spec
         visibility_field_id => scalar $cgi->param('visibility_field_id'),
@@ -109,6 +110,7 @@ elsif ($action eq 'update')
     $field->set_sortkey($cgi->param('sortkey'));
     $field->set_in_new_bugmail($cgi->param('new_bugmail'));
     $field->set_obsolete($cgi->param('obsolete'));
+    $field->set_nullable($cgi->param('nullable'));
     $field->set_url($cgi->param('url'));
     if ($field->custom)
     {
@@ -116,10 +118,18 @@ elsif ($action eq 'update')
         # At the moment, though, it has no effect for non-custom fields.
         $field->set_enter_bug($cgi->param('enter_bug'));
         $field->set_clone_bug($cgi->param('clone_bug'));
-        $field->set_visibility_field($cgi->param('visibility_field_id'));
-        $field->set_visibility_values([ $cgi->param('visibility_value_id') ]);
         $field->set_value_field($cgi->param('value_field_id'));
         $field->set_add_to_deps($cgi->param('add_to_deps'));
+        my $vf = $cgi->param('visibility_field_id');
+        if ($field->visibility_field_id != $vf)
+        {
+            $field->set_visibility_field($vf);
+            $field->set_visibility_values([]);
+        }
+        else
+        {
+            $field->set_visibility_values([ $cgi->param('visibility_value_id') ]);
+        }
     }
     $field->update();
 

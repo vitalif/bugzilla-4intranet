@@ -304,26 +304,30 @@ sub _check_type {
     return $type;
 }
 
-sub _check_value_field_id {
+sub _check_value_field_id
+{
     my ($invocant, $field_id, $is_select) = @_;
     $is_select = $invocant->is_select if !defined $is_select;
-    if ($field_id && !$is_select) {
+    if ($field_id && !$is_select)
+    {
         ThrowUserError('field_value_control_select_only');
     }
     return $invocant->_check_visibility_field_id($field_id);
 }
 
-sub _check_visibility_field_id {
+sub _check_visibility_field_id
+{
     my ($invocant, $field_id) = @_;
     $field_id = trim($field_id);
     return undef if !$field_id;
     my $field = Bugzilla->get_field($field_id);
-    if (blessed($invocant) && $field->id == $invocant->id) {
+    if (blessed($invocant) && $field->id == $invocant->id)
+    {
         ThrowUserError('field_cant_control_self', { field => $field });
     }
-    if (!$field->is_select) {
-        ThrowUserError('field_control_must_be_select',
-                       { field => $field });
+    if (!$field->is_select)
+    {
+        ThrowUserError('field_control_must_be_select', { field => $field });
     }
     return $field->id;
 }
