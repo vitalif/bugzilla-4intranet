@@ -572,13 +572,15 @@ sub STATIC_COLUMNS
         }
         elsif ($field->type == FIELD_TYPE_SINGLE_SELECT)
         {
-            $columns->{$id}->{name} = "$id.".$type->NAME_FIELD;
-            $columns->{$id}->{joins} = [ "LEFT JOIN $id ON $id.".$type->ID_FIELD."=bugs.$id" ];
+            my $t = $type->DB_TABLE;
+            $columns->{$id}->{name} = "$t.".$type->NAME_FIELD;
+            $columns->{$id}->{joins} = [ "LEFT JOIN $t ON $t.".$type->ID_FIELD."=bugs.$id" ];
         }
         elsif ($field->type == FIELD_TYPE_MULTI_SELECT)
         {
-            $columns->{$id}->{name} = "$id.".$type->NAME_FIELD;
-            $columns->{$id}->{joins} = [ "LEFT JOIN (bug_$id INNER JOIN $id ON $id.".$type->ID_FIELD."=bug_$id.value_id) ON bug_$id.bug_id=bugs.bug_id" ];
+            my $t = $type->DB_TABLE;
+            $columns->{$id}->{name} = "$t.".$type->NAME_FIELD;
+            $columns->{$id}->{joins} = [ "LEFT JOIN (bug_$id INNER JOIN $t ON $t.".$type->ID_FIELD."=bug_$id.value_id) ON bug_$id.bug_id=bugs.bug_id" ];
         }
     }
 
@@ -2601,8 +2603,8 @@ sub _multiselect_nonchanged
     my $dbh = Bugzilla->dbh;
 
     my @terms;
-    my $t = "bug_$self->{field}";
-    my $ft = $self->{field};
+    my $t = "bug_".$self->{field};
+    my $ft = Bugzilla->get_field($self->{field})->value_type->DB_TABLE;
     my $ta = $t.'_'.$self->{sequence};
     my $fta = $ft.'_'.$self->{sequence};
 
@@ -2613,7 +2615,7 @@ sub _multiselect_nonchanged
     if ($self->{type} eq 'anywords' || $self->{type} eq 'anyexact')
     {
         $self->{term} = {
-            table => "($t $ta INNER JOIN $ft $fta WHERE $fta.id=$t.value_id)",
+            table => "($t $ta INNER JOIN $ft $fta ON $fta.id=$ta.value_id)",
             where => "$fta.value IN ($self->{quoted})",
             bugid_field => "$ta.bug_id",
         };
@@ -2632,7 +2634,7 @@ sub _multiselect_nonchanged
         $self->{value} = $v[0];
         $self->call_op;
         $self->{term} = {
-            table => "($t $ta INNER JOIN $ft $fta WHERE $fta.id=$t.value_id)",
+            table => "($t $ta INNER JOIN $ft $fta ON $fta.id=$t.value_id)",
             where => $self->{term},
             bugid_field => "$ta.bug_id",
         };
