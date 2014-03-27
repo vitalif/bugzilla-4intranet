@@ -44,7 +44,7 @@ function initControlledField(i)
                 {
                     if (!vals[value_id][control_id])
                     {
-                                continue;
+                        continue;
                     }
                     if (vals[value_id][control_id].is_default == 1)
                     {

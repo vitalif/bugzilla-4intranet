@@ -132,6 +132,7 @@ sub BUG_STATE_OPEN {
 }
 
 # Tells you whether or not the argument is a valid "open" state.
+# FIXME Remove is_open_state
 sub is_open_state {
     my ($state) = @_;
     return (grep($_ eq $state, BUG_STATE_OPEN) ? 1 : 0);
