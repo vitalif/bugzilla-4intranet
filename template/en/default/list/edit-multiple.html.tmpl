@@ -53,88 +53,89 @@ document.write(' <input type="button" name="check_all" value="Check All" onclick
   <li>Click the <em>Commit</em> button.</li>
 </ol>
 
+[%############################################# FIXME %]
+[% USE Bugzilla %]
+[%############################################# FIXME %]
+
 <table id="form">
   <tr>
 
-    <th><label for="product">Product:</label></th>
-    <td>
-      [% PROCESS selectmenu menuname = "product"
-                            menuitems = products
-                            property = "name" %]
-    </td>
+    [% INCLUDE bug/field.html.tmpl
+        field = Bugzilla.get_field('product')
+        editable = 1
+        allow_dont_change = 1
+        dontchange = dontchange
+    %]
 
-    <th><label for="version">Version:</label></th>
-    <td>
-      [% PROCESS selectmenu menuname = "version"
-                            menuitems = versions
-                            property = "" %]
-    </td>
+    [% INCLUDE bug/field.html.tmpl
+        field = Bugzilla.get_field('version')
+        editable = 1
+        allow_dont_change = 1
+        dontchange = dontchange
+        override_legal_values = tweak_legal_values.version
+    %]
 
   </tr>
   <tr>
 
-    <th><label for="component">Component:</label></th>
-    <td>
-      [% PROCESS selectmenu menuname = "component"
-                            menuitems = components %]
-    </td>
+    [% INCLUDE bug/field.html.tmpl
+        field = Bugzilla.get_field('component')
+        editable = 1
+        allow_dont_change = 1
+        dontchange = dontchange
+        override_legal_values = tweak_legal_values.component
+    %]
 
-    <th>
-      <label for="priority">
-        <a href="page.cgi?id=fields.html#priority">Priority</a>:
-      </label>
-    </th>
-    <td>
-      [% PROCESS selectmenu menuname = "priority"
-                            menuitems = priorities %]
-    </td>
+    [% INCLUDE bug/field.html.tmpl
+        field = Bugzilla.get_field('priority')
+        editable = 1
+        allow_dont_change = 1
+        dontchange = dontchange
+        override_legal_values = tweak_legal_values.priority
+    %]
 
   </tr>
   <tr>
 
     [% IF Param('useplatform') %]
-    <th>
-      <label for="rep_platform">
-        <a href="page.cgi?id=fields.html#rep_platform">Platform</a>:
-      </label>
-    </th>
-    <td>
-      [% PROCESS selectmenu menuname = "rep_platform"
-                            menuitems = platforms %]
-    </td>
+      [% INCLUDE bug/field.html.tmpl
+        field = Bugzilla.get_field('rep_platform')
+        editable = 1
+        allow_dont_change = 1
+        dontchange = dontchange
+        override_legal_values = tweak_legal_values.rep_platform
+      %]
     [% END %]
 
-    <th>
-      <label for="bug_severity">
-        <a href="page.cgi?id=fields.html#bug_severity">Severity</a>:
-      </label>
-    </th>
-    <td>
-      [% PROCESS selectmenu menuname = "bug_severity"
-                            menuitems = severities %]
-    </td>
+    [% INCLUDE bug/field.html.tmpl
+        field = Bugzilla.get_field('bug_severity')
+        editable = 1
+        allow_dont_change = 1
+        dontchange = dontchange
+        override_legal_values = tweak_legal_values.bug_severity
+    %]
 
   </tr>
 
   <tr>
     [% IF Param('useopsys') %]
-    <th>
-      <label for="op_sys">
-        <a href="page.cgi?id=fields.html#op_sys">OS</a>:
-      </label>
-    </th>
-    <td [% " colspan=\"3\"" IF !Param("usetargetmilestone") %]>
-      [% PROCESS selectmenu menuname = "op_sys"
-                            menuitems = op_sys %]
-    </td>
+      [% INCLUDE bug/field.html.tmpl
+        field = Bugzilla.get_field('op_sys')
+        editable = 1
+        allow_dont_change = 1
+        dontchange = dontchange
+        override_legal_values = tweak_legal_values.op_sys
+      %]
     [% END %]
 
     [% IF Param("usetargetmilestone") %]
-      <th><label for="target_milestone">Target Milestone:</label></th>
-      <td>
-        [% PROCESS selectmenu menuname = "target_milestone"
-                              menuitems = targetmilestones %]
-      </td>
+      [% INCLUDE bug/field.html.tmpl
+        field = Bugzilla.get_field('target_milestone')
+        editable = 1
+        allow_dont_change = 1
+        dontchange = dontchange
+        override_legal_values = tweak_legal_values.target_milestone
+      %]
     [% END %]
   </tr>
 
@@ -282,12 +283,13 @@ document.write(' <input type="button" name="check_all" value="Check All" onclick
   [% USE Bugzilla %]
   [% FOREACH f = tweak_custom_fields %]
     <tr>
-      [% PROCESS bug/field.html.tmpl
-          field = f.field
-          value = dontchange
+      [% INCLUDE bug/field.html.tmpl
+          field = f
           editable = 1
           allow_dont_change = 1
-          override_legal_values = f.values
+          dontchange = dontchange
+          value = dontchange
+          override_legal_values = tweak_legal_values.${f.name}
       %]
     </tr>
   [% END %]
@@ -371,22 +373,6 @@ document.write(' <input type="button" name="check_all" value="Check All" onclick
 
 [% IF Param('move-enabled') && user.is_mover %]
   <input type="submit" name="action" id="action" value="[% Param('move-button-text') %]">
-[% END %]
-
-[%############################################################################%]
-[%# Select Menu Block                                                        #%]
-[%############################################################################%]
-
-[% BLOCK selectmenu %]
-  <select id="[% menuname %]" name="[% menuname %]">
-    <option value="[% dontchange FILTER html %]" selected="selected">
-      [% dontchange FILTER html %]
-    </option>
-    [% FOREACH menuitem = menuitems %]
-      [% IF property %][% menuitem = menuitem.$property %][% END %]
-      <option value="[% menuitem FILTER html %]">[% menuitem FILTER html %]</option>
-    [% END %]
-  </select>
 [% END %]
 
 [%############################################################################%]

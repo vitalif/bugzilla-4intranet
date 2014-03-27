@@ -1198,19 +1198,12 @@ if ($dotweak && scalar @bugs) {
     $vars->{'token'} = issue_session_token('buglist_mass_change');
     Bugzilla->switch_to_shadow_db();
 
-    $vars->{'products'} = Bugzilla->user->get_enterable_products;
-    $vars->{'platforms'} = Bugzilla->get_field('platform')->legal_value_names if Bugzilla->params->{useplatform};
-    $vars->{'op_sys'} = Bugzilla->get_field('op_sys')->legal_value_names if Bugzilla->params->{useopsys};
-    $vars->{'priorities'} = Bugzilla->get_field('priority')->legal_value_names;
-    $vars->{'severities'} = Bugzilla->get_field('bug_severity')->legal_value_names;
-    $vars->{'resolutions'} = Bugzilla->get_field('resolution')->legal_value_names;
+    # The groups the user belongs to and which are editable for the given buglist.
+    $vars->{groups} = GetGroups(\@products);
 
     # Convert bug statuses to their ID.
     my @bug_statuses = map { $dbh->quote($_) } keys %$bugstatuses;
     my $bug_status_ids = $dbh->selectcol_arrayref('SELECT id FROM bug_status WHERE ' . $dbh->sql_in('value', \@bug_statuses));
-
-    # The groups the user belongs to and which are editable for the given buglist.
-    $vars->{'groups'} = GetGroups(\@products);
 
     # Select new statuses which are settable for ANY of current bug statuses,
     # plus transitions where the bug status doesn't change.
@@ -1220,70 +1213,82 @@ if ($dotweak && scalar @bugs) {
         ' WHERE bug_status.isactive = 1 AND '.$dbh->sql_in('old_status', $bug_status_ids)
     ) }) } } ];
 
-    $vars->{'current_bug_statuses'} = [keys %$bugstatuses];
-    $vars->{'new_bug_statuses'} = Bugzilla::Status->new_from_list($bug_status_ids);
-
-    # Generate unions of possible components, versions and milestones for all selected products
-    @products = @{ Bugzilla::Product->match({ name => \@products }) };
-    $vars->{components} = union(map { [ map { $_->name } @{ $_->components } ] } @products);
-    $vars->{versions} = union(map { [ map { $_->name } @{ $_->versions } ] } @products);
-    if (Bugzilla->params->{usetargetmilestone})
-    {
-        $vars->{targetmilestones} = union(map { [ map { $_->name } @{ $_->milestones } ] } @products);
-    }
+    $vars->{current_bug_statuses} = [keys %$bugstatuses];
+    $vars->{new_bug_statuses} = Bugzilla::Status->new_from_list($bug_status_ids);
 
     # Generate unions of possible custom field values for all current controller values
     # This requires bug objects, at last!
     my $custom = [];
     my $bug_objects = Bugzilla::Bug->new_from_list(\@bugidlist);
     my $bug_vals = {};
+    my $legal = {};
+    my $visible = {};
     for my $field (Bugzilla->active_custom_fields)
     {
         my $vis_field = $field->visibility_field;
+        my $vis = 1;
         if ($vis_field)
         {
-            my $visible;
+            $vis = 0;
             for my $cv (@{ get_bug_vals($vis_field, $bug_objects, $bug_vals) })
             {
                 if ($field->has_visibility_value($cv))
                 {
-                    $visible = 1;
+                    $vis = 1;
                     last;
                 }
             }
-            next if !$visible;
         }
+        if ($vis)
+        {
+            push @$custom, $field;
+            $visible->{$field->name} = 1;
+        }
+    }
+    for my $field (Bugzilla->get_fields({ obsolete => 0, type => [ FIELD_TYPE_SINGLE_SELECT, FIELD_TYPE_MULTI_SELECT ] }))
+    {
+        next if $field->custom && !$visible->{$field->name} || $field->name eq 'product';
+        my %dup;
         my $value_field = $field->value_field;
-        if (!$value_field || $field->type != FIELD_TYPE_MULTI_SELECT && $field->type != FIELD_TYPE_SINGLE_SELECT)
+        my $values;
+        if (!$value_field)
         {
-            push @$custom, { field => $field, values => $field->legal_value_names };
-            next;
+            $values = [ grep { !$dup{$_->name}++ } @{$field->legal_values} ];
         }
-        my $union = [];
-        for my $cv (@{ get_bug_vals($value_field, $bug_objects, $bug_vals) })
+        else
         {
-            push @$union, $field->restricted_legal_values($cv);
+            $values = [];
+            for my $cv (@{ get_bug_vals($value_field, $bug_objects, $bug_vals) })
+            {
+                push @$values, grep { !$dup{$_->name}++ } @{$field->restricted_legal_values($cv)};
+            }
         }
-        push @$custom, { field => $field, values => union(@$union) };
+        $legal->{$field->name} = $values;
     }
     $vars->{tweak_custom_fields} = $custom;
+    $vars->{tweak_legal_values} = $legal;
 }
 
 sub get_bug_vals
 {
     my ($field, $bugs, $bug_vals) = @_;
-    return $bug_vals->{$field} if $bug_vals->{$field};
-    my $field_name = $field->name;
-    my $name_field = $field->NAME_FIELD;
-    my $vals = {};
-    my $v;
-    for my $bug (@$bugs)
+    if (!$bug_vals->{$field})
     {
-        $v = $bug->$field_name;
-        $vals->{ref($v) ? $v->$name_field : $v} = 1;
+        my $field_name = $field->name;
+        my $type = Bugzilla::Field::Choice->type($field);
+        my $id_field = $type->ID_FIELD;
+        my $m = $field_name;
+        $m .= '_obj' if $field_name eq 'product' || $field_name eq 'component'; # FIXME remove when product_obj replaces product
+        my $ids = {};
+        my $v;
+        for my $bug (@$bugs)
+        {
+            $v = $bug->$m;
+            $ids->{ref($v) ? $v->$id_field : $v} = 1;
+        }
+        $bug_vals->{$field} = $type->new_from_list([ keys %$ids ]);
     }
-    my $class = Bugzilla::Field::Choice->type($field);
-    return $bug_vals->{$field} = $class->match({ $name_field => [ keys %$vals ] });
+    return $bug_vals->{$field};
 }
 
 # If we're editing a stored query, use the existing query name as default for

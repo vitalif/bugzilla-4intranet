@@ -533,7 +533,14 @@ sub legal_value_names
 {
     my $self = shift;
     return [] unless $self->is_select;
-    return Bugzilla::Field::Choice->type($self)->get_all_names();
+    return [ map { $_->{name} } @{ Bugzilla::Field::Choice->type($self)->get_all_names } ];
+}
+
+sub legal_value_names_with_ids
+{
+    my $self = shift;
+    return [] unless $self->is_select;
+    return Bugzilla::Field::Choice->type($self)->get_all_names;
 }
 
 # Always excludes disabled values

@@ -153,6 +153,8 @@
         </select>
       </td>
     </tr>
+    [% END %]
+    [% IF field.is_select || !field.id %]
     <tr valign="top">
       <th colspan="2" align="left"><label for="value_field_id">
         Field that controls the values that appear in this field:
@@ -171,6 +173,7 @@
         </select>
       </td>
     </tr>
+    [% END %]
     [% IF field.visibility_field %]
     <tr valign="top">
       <th colspan="2" align="left"><label for="visibility_value_id">
@@ -188,7 +191,6 @@
         </select>
       </td>
     </tr>
-    [% END %]
     [% END %]
 
     [% IF field.type == constants.FIELD_TYPE_BUG_ID %]
