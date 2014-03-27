@@ -507,10 +507,16 @@ sub add_to_deps { $_[0]->{add_to_deps} }
 
 sub url { $_[0]->{url} }
 
+sub value_type
+{
+    my $self = shift;
+    return Bugzilla::Field::Choice->type($self);
+}
+
 sub new_choice
 {
     my $self = shift;
-    return Bugzilla::Field::Choice->type($self)->new(@_);
+    return $self->value_type->new(@_);
 }
 
 # Includes disabled values is $include_disabled = true

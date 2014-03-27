@@ -595,9 +595,9 @@ sub create
         if (@{$ms_values->{$field}})
         {
             $dbh->do(
-                "INSERT INTO bug_$field (bug_id, value_id) SELECT ?, id FROM $field".
-                " WHERE value IN (".join(',', ('?') x @{$ms_values->{$field}}).")",
-                undef, $bug->bug_id, @{$ms_values->{$field}}
+                "INSERT INTO bug_$field (bug_id, value_id) VALUES ".
+                join(', ', ('(?, ?)') x @{$ms_values->{$field}}),
+                undef, map { ($bug->bug_id, $_) } @{$ms_values->{$field}}
             );
         }
     }
@@ -1103,14 +1103,17 @@ sub update
         my ($removed, $added) = diff_arrays($old_bug->$name, $self->$name);
         if (scalar @$removed || scalar @$added)
         {
-            $changes->{$name} = [join(', ', @$removed), join(', ', @$added)];
+            $changes->{$name} = [
+                join(', ', map { $_->name } @{$field->value_type->new_from_list($removed)}),
+                join(', ', map { $_->name } @{$field->value_type->new_from_list($added)})
+            ];
             $dbh->do("DELETE FROM bug_$name where bug_id = ?", undef, $self->id);
             if (@{$self->$name})
             {
                 $dbh->do(
-                    "INSERT INTO bug_$name (bug_id, value_id) SELECT ?, id FROM $name".
-                    " WHERE value IN (".join(',', ('?') x @{$self->$name}).")",
-                    undef, $self->bug_id, @{$self->$name}
+                    "INSERT INTO bug_$name (bug_id, value_id) VALUES ".
+                    join(',', ('(?, ?)') x @{$self->$name}),
+                    undef, map { ($self->bug_id, $_) } @{$self->$name}
                 );
             }
         }
