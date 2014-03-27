@@ -99,19 +99,20 @@ use Cwd qw(abs_path);
     CMT_BACKDATED_WORKTIME
 
     THROW_ERROR
-    
+    RETURN_ERROR
+
     RELATIONSHIPS
     REL_ASSIGNEE REL_QA REL_REPORTER REL_CC REL_VOTER REL_GLOBAL_WATCHER
     REL_ANY
-    
+
     POS_EVENTS
     EVT_OTHER EVT_ADDED_REMOVED EVT_COMMENT EVT_ATTACHMENT EVT_ATTACHMENT_DATA
     EVT_PROJ_MANAGEMENT EVT_OPENED_CLOSED EVT_KEYWORD EVT_CC EVT_DEPEND_BLOCK
     EVT_BUG_CREATED EVT_DEPEND_REOPEN
 
     NEG_EVENTS
-    EVT_UNCONFIRMED EVT_CHANGED_BY_ME 
-        
+    EVT_UNCONFIRMED EVT_CHANGED_BY_ME
+
     GLOBAL_EVENTS
     EVT_FLAG_REQUESTED EVT_REQUESTED_FLAG
 
@@ -209,9 +210,9 @@ use constant NOT_NULL => '  __NOT_NULL__  ';
 #
 # ControlMap constants for group_control_map.
 # membercontol:othercontrol => meaning
-# Na:Na               => Bugs in this product may not be restricted to this 
+# Na:Na               => Bugs in this product may not be restricted to this
 #                        group.
-# Shown:Na            => Members of the group may restrict bugs 
+# Shown:Na            => Members of the group may restrict bugs
 #                        in this product to this group.
 # Shown:Shown         => Members of the group may restrict bugs
 #                        in this product to this group.
@@ -304,9 +305,9 @@ use constant CMT_WORKTIME => 32;
 # worktime through the "super-worktime" form.
 use constant CMT_BACKDATED_WORKTIME => 33;
 
-# Determine whether a validation routine should return 0 or throw
-# an error when the validation fails.
+# Conveniency aliases for $throw_error and $return_error argument values.
 use constant THROW_ERROR => 1;
+use constant RETURN_ERROR => 1;
 
 use constant REL_ASSIGNEE           => 0;
 use constant REL_QA                 => 1;
@@ -315,7 +316,7 @@ use constant REL_CC                 => 3;
 use constant REL_VOTER              => 4;
 use constant REL_GLOBAL_WATCHER     => 5;
 
-use constant RELATIONSHIPS => REL_ASSIGNEE, REL_QA, REL_REPORTER, REL_CC, 
+use constant RELATIONSHIPS => REL_ASSIGNEE, REL_QA, REL_REPORTER, REL_CC,
                               REL_VOTER, REL_GLOBAL_WATCHER;
 
 # Used for global events like EVT_FLAG_REQUESTED
@@ -340,8 +341,8 @@ use constant EVT_DEPEND_BLOCK       => 9;
 use constant EVT_BUG_CREATED        => 10;
 use constant EVT_DEPEND_REOPEN      => 11;
 
-use constant POS_EVENTS => EVT_OTHER, EVT_ADDED_REMOVED, EVT_COMMENT, 
-                           EVT_ATTACHMENT, EVT_ATTACHMENT_DATA, 
+use constant POS_EVENTS => EVT_OTHER, EVT_ADDED_REMOVED, EVT_COMMENT,
+                           EVT_ATTACHMENT, EVT_ATTACHMENT_DATA,
                            EVT_PROJ_MANAGEMENT, EVT_OPENED_CLOSED, EVT_KEYWORD,
                            EVT_CC, EVT_DEPEND_BLOCK, EVT_BUG_CREATED,
                            EVT_DEPEND_REOPEN;
@@ -450,7 +451,7 @@ use constant INSTALLATION_MODE_NON_INTERACTIVE => 1;
 # Data about what we require for different databases.
 use constant DB_MODULE => {
     'mysql' => {db => 'Bugzilla::DB::Mysql', db_version => '4.1.2',
-                dbd => { 
+                dbd => {
                     package => 'DBD-mysql',
                     module  => 'DBD::mysql',
                     # Disallow development versions
@@ -578,7 +579,7 @@ sub bz_locations {
         $datadir = "data";
     }
 
-    # We have to return absolute paths for mod_perl. 
+    # We have to return absolute paths for mod_perl.
     # That means that if you modify these paths, they must be absolute paths.
     return {
         'libpath'     => $libpath,
@@ -593,10 +594,10 @@ sub bz_locations {
         'attachdir'   => "$libpath/$datadir/attachments",
         'skinsdir'    => "$libpath/skins",
         'graphsdir'   => "$libpath/graphs",
-        # $webdotdir must be in the web server's tree somewhere. Even if you use a 
-        # local dot, we output images to there. Also, if $webdotdir is 
-        # not relative to the bugzilla root directory, you'll need to 
-        # change showdependencygraph.cgi to set image_url to the correct 
+        # $webdotdir must be in the web server's tree somewhere. Even if you use a
+        # local dot, we output images to there. Also, if $webdotdir is
+        # not relative to the bugzilla root directory, you'll need to
+        # change showdependencygraph.cgi to set image_url to the correct
         # location.
         # The script should really generate these graphs directly...
         'webdotdir'   => "$libpath/$datadir/webdot",

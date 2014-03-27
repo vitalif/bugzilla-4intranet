@@ -90,13 +90,13 @@ else
         my @ids = split /,/, $id;
         foreach (@ids)
         {
-            my $bug = new Bugzilla::Bug($_);
+            my $bug = new Bugzilla::Bug($_, RETURN_ERROR);
             # This is basically a backwards-compatibility hack from when
             # Bugzilla::Bug->new used to set 'NotPermitted' if you couldn't
             # see the bug.
             if (!$bug->{error} && !$user->can_see_bug($bug->bug_id))
             {
-                $bug->{error} = 'NotPermitted';
+                $bug = { bug_id => $bug->bug_id, error => 'NotPermitted' };
             }
             push @bugs, $bug;
         }

@@ -274,7 +274,7 @@ sub new
 {
     my $invocant = shift;
     my $class = ref($invocant) || $invocant;
-    my $param = shift;
+    my ($param, $return_error) = @_;
 
     # Remove leading "#" mark if we've just been passed an id.
     if (!ref $param && $param =~ /^#(\d+)$/)
@@ -284,7 +284,7 @@ sub new
 
     # If we get something that looks like a word (not a number),
     # make it the "name" param.
-    if (!defined $param || (!ref($param) && $param !~ /^\d+$/))
+    if (!defined $param || (!ref $param && $param !~ /^\d+$/))
     {
         # But only if aliases are enabled.
         if (Bugzilla->params->{usebugaliases} && $param)
@@ -294,34 +294,27 @@ sub new
         else
         {
             # Aliases are off, and we got something that's not a number.
-            my $error_self = {};
-            bless $error_self, $class;
-            $error_self->{bug_id} = $param;
-            $error_self->{error}  = 'InvalidBugId';
-            return $error_self;
+            return { error => 'InvalidBugId', bug_id => $param } if $return_error;
+            return undef;
         }
     }
 
-    unshift @_, $param;
-    my $self = $class->SUPER::new(@_);
+    my $self = $class->SUPER::new($param);
 
-    # Bugzilla::Bug->new always returns something, but sets $self->{error}
-    # if the bug wasn't found in the database.
-    if (!$self)
+    if (!$self && $return_error)
     {
-        my $error_self = {};
+        my $error = {};
         if (ref $param)
         {
-            $error_self->{bug_id} = $param->{name};
-            $error_self->{error}  = 'InvalidBugId';
+            $error->{bug_id} = $param->{name};
+            $error->{error}  = 'InvalidBugId';
         }
         else
         {
-            $error_self->{bug_id} = $param;
-            $error_self->{error}  = 'NotFound';
+            $error->{bug_id} = $param;
+            $error->{error}  = 'NotFound';
         }
-        bless $error_self, $class;
-        return $error_self;
+        return $error;
     }
 
     return $self;
@@ -334,18 +327,13 @@ sub check
 
     ThrowUserError('improper_bug_id_field_value', { field => $field }) unless defined $id;
 
-    # Bugzilla::Bug throws lots of special errors, so we don't call
-    # SUPER::check, we just call our new and do our own checks.
-    my $self = $class->new(trim($id));
-    # For error messages, use the id that was returned by new(), because
-    # it's cleaned up.
-    $id = $self->id;
-
+    my $self = $class->new(trim($id), RETURN_ERROR);
     if ($self->{error})
     {
+        $id = $self->{bug_id};
         if ($self->{error} eq 'NotFound')
         {
-             ThrowUserError('bug_id_does_not_exist', { bug_id => $id });
+            ThrowUserError('bug_id_does_not_exist', { bug_id => $id });
         }
         if ($self->{error} eq 'InvalidBugId')
         {
@@ -353,6 +341,7 @@ sub check
         }
     }
 
+    # FIXME Remove Bugzilla::Bug->check(, field) hardcode
     unless ($field && $field =~ /^(dependson|blocked|dup_id)$/)
     {
         $self->check_is_visible;
@@ -1277,11 +1266,6 @@ sub remove_from_db
     my ($self) = @_;
     my $dbh = Bugzilla->dbh;
 
-    if ($self->{error})
-    {
-        ThrowCodeError("bug_error", { bug => $self });
-    }
-
     my $bug_id = $self->{bug_id};
 
     # tables having 'bugs.bug_id' as a foreign key:
@@ -1362,9 +1346,9 @@ sub _check_alias
     }
     # Make sure the alias is unique, or that it's already our alias.
     my $other_bug = new Bugzilla::Bug($alias);
-    if (!$other_bug->{error} && (!ref $invocant || $other_bug->id != $invocant->id))
+    if ($other_bug && (!ref $invocant || $other_bug->id != $invocant->id))
     {
-        ThrowUserError("alias_in_use", { alias => $alias, bug_id => $other_bug->id });
+        ThrowUserError('alias_in_use', { alias => $alias, bug_id => $other_bug->id });
     }
 
     return $alias;
@@ -3087,19 +3071,11 @@ sub remove_see_also
 # If you add a new sub, please try to keep it in alphabetical order
 # with the other ones.
 
-# Note: If you add a new method, remember that you must check the error
-# state of the bug before returning any data. If $self->{error} is
-# defined, then return something empty. Otherwise you risk potential
-# security holes.
-
 sub dup_id
 {
     my ($self) = @_;
     return $self->{dup_id} if exists $self->{dup_id};
-
     $self->{dup_id} = undef;
-    return if $self->{error};
-
     if ($self->{resolution} eq 'DUPLICATE')
     {
         my $dbh = Bugzilla->dbh;
@@ -3116,7 +3092,7 @@ sub actual_time
     my ($self) = @_;
     return $self->{actual_time} if exists $self->{actual_time};
 
-    if ($self->{error} || !Bugzilla->user->is_timetracker)
+    if (!Bugzilla->user->is_timetracker)
     {
         $self->{actual_time} = undef;
         return $self->{actual_time};
@@ -3133,7 +3109,6 @@ sub any_flags_requesteeble
 {
     my ($self) = @_;
     return $self->{any_flags_requesteeble} if exists $self->{any_flags_requesteeble};
-    return 0 if $self->{error};
 
     my $any_flags_requesteeble = grep { $_->is_requestable && $_->is_requesteeble } @{$self->flag_types};
     # Useful in case a flagtype is no longer requestable but a requestee
@@ -3148,7 +3123,6 @@ sub attachments
 {
     my ($self) = @_;
     return $self->{attachments} if exists $self->{attachments};
-    return [] if $self->{error};
 
     $self->{attachments} = Bugzilla::Attachment->get_attachments_by_bug($self->bug_id, { preload => 1 });
     return $self->{attachments};
@@ -3158,7 +3132,6 @@ sub assigned_to
 {
     my ($self) = @_;
     return $self->{assigned_to_obj} if exists $self->{assigned_to_obj};
-    $self->{assigned_to} = 0 if $self->{error};
     $self->{assigned_to_obj} ||= new Bugzilla::User($self->{assigned_to});
     return $self->{assigned_to_obj};
 }
@@ -3167,7 +3140,6 @@ sub blocked
 {
     my ($self) = @_;
     return $self->{blocked} if exists $self->{blocked};
-    return [] if $self->{error};
     $self->{blocked} = EmitDependList('dependson', 'blocked', $self->bug_id);
     return $self->{blocked};
 }
@@ -3182,7 +3154,6 @@ sub cc
 {
     my ($self) = @_;
     return $self->{cc} if exists $self->{cc};
-    return [] if $self->{error};
 
     my $dbh = Bugzilla->dbh;
     $self->{cc} = $dbh->selectcol_arrayref(
@@ -3202,7 +3173,6 @@ sub cc_users
 {
     my $self = shift;
     return $self->{cc_users} if exists $self->{cc_users};
-    return [] if $self->{error};
 
     my $dbh = Bugzilla->dbh;
     my $cc_ids = $dbh->selectcol_arrayref('SELECT who FROM cc WHERE bug_id = ?', undef, $self->id);
@@ -3214,7 +3184,6 @@ sub component
 {
     my ($self) = @_;
     return $self->{component} if exists $self->{component};
-    return '' if $self->{error};
     ($self->{component}) = Bugzilla->dbh->selectrow_array(
         'SELECT name FROM components WHERE id = ?',
         undef, $self->{component_id}
@@ -3227,7 +3196,6 @@ sub component_obj
 {
     my ($self) = @_;
     return $self->{component_obj} if defined $self->{component_obj};
-    return {} if $self->{error};
     $self->{component_obj} = new Bugzilla::Component($self->{component_id});
     return $self->{component_obj};
 }
@@ -3236,7 +3204,6 @@ sub classification_id
 {
     my ($self) = @_;
     return $self->{classification_id} if exists $self->{classification_id};
-    return 0 if $self->{error};
     ($self->{classification_id}) = Bugzilla->dbh->selectrow_array(
         'SELECT classification_id FROM products WHERE id = ?',
         undef, $self->{product_id});
@@ -3247,7 +3214,6 @@ sub classification
 {
     my ($self) = @_;
     return $self->{classification} if exists $self->{classification};
-    return '' if $self->{error};
     ($self->{classification}) = Bugzilla->dbh->selectrow_array(
         'SELECT name FROM classifications WHERE id = ?',
         undef, $self->classification_id);
@@ -3258,7 +3224,6 @@ sub dependson
 {
     my ($self) = @_;
     return $self->{dependson} if exists $self->{dependson};
-    return [] if $self->{error};
     $self->{dependson} = EmitDependList('blocked', 'dependson', $self->bug_id);
     return $self->{dependson};
 }
@@ -3267,7 +3232,6 @@ sub flag_types
 {
     my ($self) = @_;
     return $self->{flag_types} if exists $self->{flag_types};
-    return [] if $self->{error};
 
     my $vars = {
         target_type  => 'bug',
@@ -3308,7 +3272,6 @@ sub keyword_objects
 {
     my $self = shift;
     return $self->{keyword_objects} if defined $self->{keyword_objects};
-    return [] if $self->{error};
 
     my $dbh = Bugzilla->dbh;
     my $ids = $dbh->selectcol_arrayref(
@@ -3321,7 +3284,6 @@ sub keyword_objects
 sub comments
 {
     my ($self, $params) = @_;
-    return [] if $self->{error};
     $params ||= {};
 
     if (!defined $self->{comments})
@@ -3367,7 +3329,6 @@ sub comments
 sub product
 {
     my ($self) = @_;
-    return undef if $self->{error};
     return $self->product_obj->name;
 }
 
@@ -3375,7 +3336,6 @@ sub product
 sub product_obj
 {
     my $self = shift;
-    return undef if $self->{error};
     $self->{product_obj} ||= new Bugzilla::Product($self->{product_id});
     return $self->{product_obj};
 }
@@ -3383,7 +3343,6 @@ sub product_obj
 sub qa_contact
 {
     my ($self) = @_;
-    return undef if $self->{error};
     return $self->{qa_contact_obj} if exists $self->{qa_contact_obj};
     if (Bugzilla->params->{useqacontact} && $self->{qa_contact})
     {
@@ -3399,7 +3358,6 @@ sub qa_contact
 sub reporter
 {
     my ($self) = @_;
-    return undef if $self->{error};
     return $self->{reporter} if exists $self->{reporter};
     $self->{reporter} ||= new Bugzilla::User($self->{reporter_id});
     return $self->{reporter};
@@ -3408,7 +3366,6 @@ sub reporter
 sub see_also
 {
     my ($self) = @_;
-    return [] if $self->{error};
     $self->{see_also} ||= Bugzilla->dbh->selectcol_arrayref('SELECT value FROM bug_see_also WHERE bug_id = ?', undef, $self->id);
     return $self->{see_also};
 }
@@ -3416,7 +3373,6 @@ sub see_also
 sub status
 {
     my $self = shift;
-    return undef if $self->{error};
     $self->{status} ||= new Bugzilla::Status($self->{bug_status});
     return $self->{status};
 }
@@ -3424,7 +3380,6 @@ sub status
 sub statuses_available
 {
     my $self = shift;
-    return [] if $self->{error};
     return $self->{statuses_available} if defined $self->{statuses_available};
 
     my @statuses = @{ $self->status->can_change_to };
@@ -3457,7 +3412,6 @@ sub show_attachment_flags
 {
     my ($self) = @_;
     return $self->{show_attachment_flags} if exists $self->{show_attachment_flags};
-    return 0 if $self->{error};
 
     # The number of types of flags that can be set on attachments to this bug
     # and the number of flags on those attachments.  One of these counts must be
@@ -3481,7 +3435,6 @@ sub show_attachment_flags
 sub use_votes
 {
     my ($self) = @_;
-    return 0 if $self->{error}; # FIXME what's this 'error'?
     return Bugzilla->params->{usevotes} && $self->product_obj->votes_per_user > 0;
 }
 
@@ -3489,7 +3442,6 @@ sub groups
 {
     my $self = shift;
     return $self->{groups} if exists $self->{groups};
-    return [] if $self->{error};
 
     my $dbh = Bugzilla->dbh;
     my @groups;
@@ -3551,7 +3503,6 @@ sub groups_in
 {
     my $self = shift;
     return $self->{groups_in} if exists $self->{groups_in};
-    return [] if $self->{error};
     my $group_ids = Bugzilla->dbh->selectcol_arrayref(
         'SELECT group_id FROM bug_group_map WHERE bug_id = ?', undef, $self->id
     );
@@ -3563,7 +3514,6 @@ sub user
 {
     my $self = shift;
     return $self->{user} if exists $self->{user};
-    return {} if $self->{error};
 
     my $user = Bugzilla->user;
     my $canmove = Bugzilla->params->{'move-enabled'} && $user->is_mover;
@@ -3588,7 +3538,6 @@ sub user
 sub votes
 {
     my ($self) = @_;
-    return 0 if $self->{error};
     return $self->{votes} if defined $self->{votes};
 
     my $dbh = Bugzilla->dbh;
@@ -4164,23 +4113,19 @@ sub check_can_change_field
         return $user->in_group('canconfirm', $self->{product_id});
     }
 
-    # Make sure that a valid bug ID has been given.
-    if (!$self->{error})
+    # Allow the assignee to change anything else.
+    if ($self->{assigned_to} == $user->id ||
+        $self->{_old_assigned_to} && $self->{_old_assigned_to} == $user->id)
     {
-        # Allow the assignee to change anything else.
-        if ($self->{assigned_to} == $user->id ||
-            $self->{_old_assigned_to} && $self->{_old_assigned_to} == $user->id)
-        {
-            return 1;
-        }
+        return 1;
+    }
 
-        # Allow the QA contact to change anything else.
-        if (Bugzilla->params->{useqacontact} &&
-            ($self->{qa_contact} && $self->{qa_contact} == $user->id ||
-            $self->{_old_qa_contact} && $self->{_old_qa_contact} == $user->id))
-        {
-            return 1;
-        }
+    # Allow the QA contact to change anything else.
+    if (Bugzilla->params->{useqacontact} &&
+        ($self->{qa_contact} && $self->{qa_contact} == $user->id ||
+        $self->{_old_qa_contact} && $self->{_old_qa_contact} == $user->id))
+    {
+        return 1;
     }
 
     # At this point, the user is either the reporter or an
@@ -4228,7 +4173,7 @@ sub check_can_change_field
     }
 
     # The reporter is allowed to change anything else.
-    if (!$self->{error} && $self->{reporter_id} == $user->id)
+    if ($self->{reporter_id} == $user->id)
     {
         return 1;
     }

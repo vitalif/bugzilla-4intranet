@@ -30,13 +30,18 @@ use Bugzilla::Constants;
 my $cgi = Bugzilla->cgi;
 my $id = $cgi->param('id');
 
-# Ugly hack :(
+# FIXME requirelogin=0: ugly hack :(
 Bugzilla->params->{requirelogin} = 0;
 my $user = Bugzilla->login(LOGIN_NORMAL);
+
 my $bug = Bugzilla::Bug->new($id);
 my $str;
 my $format = lc $cgi->param('format') || 'short';
-if (!$user || !$bug->{error} && !$user->can_see_bug($bug))
+if (!$bug)
+{
+    $str = "Bug $id не существует";
+}
+elsif (!$user || !$user->can_see_bug($bug))
 {
     # Access denied
     $str = "Bug $id: нет доступа";

@@ -101,11 +101,11 @@ if ($args->{id})
     }
     for (@$bugs)
     {
-        if ($_ && !$_->{error})
+        if ($_)
         {
             if (!$user->can_see_bug($_))
             {
-                $_ = bless { bug_id => $_->bug_id, error => 'AccessDenied' }, 'Bugzilla::Bug';
+                $_ = { bug_id => $_->bug_id, error => 'AccessDenied' };
             }
             else
             {

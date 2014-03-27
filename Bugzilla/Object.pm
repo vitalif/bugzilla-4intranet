@@ -292,7 +292,7 @@ sub _do_list_select
     trick_taint($_) foreach @untainted;
     my $objects = $dbh->selectall_arrayref($sql, {Slice=>{}}, @untainted);
     bless ($_, $class) foreach @$objects;
-    return $objects
+    return $objects;
 }
 
 ###############################
