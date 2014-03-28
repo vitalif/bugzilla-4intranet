@@ -42,7 +42,7 @@
   [% IF ids.size > 1 %]
     <div class="bz_query_buttons">
       <form method="post" action="buglist.cgi">
-        <input type="hidden" name="bug_id" value="[% ids.join(",") FILTER html %]">
+        <input type="hidden" name="bug_id" value="[% ids.join(",") | html %]">
         <input type="submit" id="short_format" value="Short Format">
       </form>
     </div>
@@ -61,10 +61,10 @@
 
 [% BLOCK bug_display %]
   <h1>
-    [% terms.Bug %] <a href="show_bug.cgi?id=[% bug.bug_id FILTER html %]">[% bug.bug_id FILTER html %]</a>
+    [% terms.Bug %] <a href="show_bug.cgi?id=[% bug.bug_id | html %]">[% bug.bug_id | html %]</a>
     [% IF Param("usebugaliases") AND bug.alias AND NOT bug.error %]
-      (<a href="show_bug.cgi?id=[% bug.alias FILTER url_quote %]">
-        [% bug.alias FILTER html %]</a>)
+      (<a href="show_bug.cgi?id=[% bug.alias | url_quote %]">
+        [% bug.alias | html %]</a>)
     [% END %]
   </h1>
 
@@ -73,14 +73,14 @@
     <tr>
       <td class="error">
         [% IF bug.error == "InvalidBugId" %]
-          '[%+ bug.bug_id FILTER html %]' is not a valid [% terms.bug %] number
+          '[%+ bug.bug_id | html %]' is not a valid [% terms.bug %] number
           [%- IF Param("usebugaliases") %] nor a known [% terms.bug %] alias[% END %].
         [% ELSIF bug.error == "NotPermitted" %]
           You are not allowed to view this [% terms.bug %].
         [% ELSIF bug.error == "NotFound" %]
           This [% terms.bug %] cannot be found.
         [% ELSE %]
-          [%+ bug.error FILTER html %]
+          [%+ bug.error | html %]
         [% END %]
       </td>
     </tr>
@@ -110,12 +110,12 @@
     [% PROCESS row cell = "short_desc" fullrow = 1 %]
 
     <tr>
-      <th>[% field_descs.product FILTER html %]:</th>
+      <th>[% field_descs.product | html %]:</th>
       <td>
         [% IF Param("useclassification") && bug.classification_id != 1 %]
-          [[% bug.classification_obj.name FILTER html %]]&nbsp;
+          [[% bug.classification_obj.name | html %]]&nbsp;
         [% END %]
-        [% bug.product_obj.name FILTER html %]
+        [% bug.product_obj.name | html %]
       </td>
 
       [% PROCESS rightcell %]
@@ -124,28 +124,28 @@
     [% PROCESS row cell = "component" %]
 
     <tr>
-      <th>[% field_descs.bug_status  FILTER html %]:</th>
+      <th>[% field_descs.bug_status  | html %]:</th>
       <td>
-        [% bug.bug_status_obj.name FILTER html %]
-        [%+ bug.resolution_obj.name FILTER html %]
+        [% bug.bug_status_obj.name | html %]
+        [%+ bug.resolution_obj.name | html %]
       </td>
 
       [% PROCESS rightcell %]
     </tr>
 
     <tr>
-      <th>[% field_descs.bug_severity FILTER html %]:</th>
-      <td class="bz_[% bug.bug_severity_obj.name FILTER css_class_quote -%]">
-        [% bug.bug_severity_obj.name FILTER html %]
+      <th>[% field_descs.bug_severity | html %]:</th>
+      <td class="bz_[% bug.bug_severity_obj.name | css_class_quote -%]">
+        [% bug.bug_severity_obj.name | html %]
       </td>
 
       [% PROCESS rightcell %]
     </tr>
 
     <tr>
-      <th>[% field_descs.priority FILTER html %]:</th>
-      <td class="bz_[% bug.priority_obj.name FILTER css_class_quote -%]">
-        [% bug.priority_obj.name FILTER html %]
+      <th>[% field_descs.priority | html %]:</th>
+      <td class="bz_[% bug.priority_obj.name | css_class_quote -%]">
+        [% bug.priority_obj.name | html %]
       </td>
 
       [% PROCESS rightcell %]
@@ -159,13 +159,13 @@
 
     [% IF bug.bug_file_loc %]
       <tr>
-        <th>[% field_descs.bug_file_loc FILTER html %]:</th>
+        <th>[% field_descs.bug_file_loc | html %]:</th>
         <td colspan="3">
           [% IF is_safe_url(bug.bug_file_loc) %]
-            <a href="[% bug.bug_file_loc FILTER html %]">
-                     [% bug.bug_file_loc FILTER html %]</a>
+            <a href="[% bug.bug_file_loc | html %]">
+                     [% bug.bug_file_loc | html %]</a>
           [% ELSE %]
-            [% bug.bug_file_loc FILTER html %]
+            [% bug.bug_file_loc | html %]
           [% END %]
         </td>
       </tr>
@@ -199,34 +199,20 @@
         <td colspan="3">
           <table class="timetracking">
             <tr>
-              <th>[% field_descs.estimated_time FILTER html %]</th>
-              <th>[% field_descs.actual_time FILTER html %]</th>
-              <th>[% field_descs.work_time FILTER html %]</th>
-              <th>[% field_descs.remaining_time FILTER html %]</th>
-              <th>[% field_descs.percentage_complete FILTER html %]</th>
+              <th>[% field_descs.estimated_time | html %]</th>
+              <th>[% field_descs.actual_time | html %]</th>
+              <th>[% field_descs.work_time | html %]</th>
+              <th>[% field_descs.remaining_time | html %]</th>
+              <th>[% field_descs.percentage_complete | html %]</th>
               <th>Gain</th>
             </tr>
             <tr>
-              <td>
-                [% PROCESS formattimeunit time_unit = bug.estimated_time %]
-              </td>
-              <td>
-                [% PROCESS formattimeunit
-                           time_unit=(bug.remaining_time + bug.actual_time) %]
-              </td>
-              <td>[% PROCESS formattimeunit time_unit = bug.actual_time %]</td>
-              <td>
-                [% PROCESS formattimeunit time_unit = bug.remaining_time %]
-              </td>
-              <td>
-                [% PROCESS calculatepercentage act = bug.actual_time
-                                               rem = bug.remaining_time %]
-              </td>
-              <td>
-                [% PROCESS formattimeunit
-                     time_unit=bug.estimated_time - 
-                               (bug.actual_time + bug.remaining_time) %]
-              </td>
+              <td>[% PROCESS formattimeunit time_unit=bug.estimated_time %]</td>
+              <td>[% PROCESS formattimeunit time_unit=(bug.remaining_time+bug.actual_time) %]</td>
+              <td>[% PROCESS formattimeunit time_unit=bug.actual_time %]</td>
+              <td>[% PROCESS formattimeunit time_unit=bug.remaining_time %]</td>
+              <td>[% PROCESS calculatepercentage act=bug.actual_time rem=bug.remaining_time %]</td>
+              <td>[% PROCESS formattimeunit time_unit=bug.estimated_time-(bug.actual_time+bug.remaining_time) %]</td>
             </tr>
           </table>
         </td>
@@ -248,7 +234,7 @@
                 <tr>
                   <td>
                     <a href="attachment.cgi?id=[% attachment.id %]">
-                      [% attachment.description FILTER html %]
+                      [% attachment.description | html %]
                     </a>[% "<br>" IF not loop.last() %]
                   </td>
                   <td>
@@ -256,10 +242,10 @@
                       <i>none</i>
                     [% ELSE %]
                       [% FOREACH flag = attachment.flags %]
-                        [% flag.setter.nick FILTER html %]:
-                        [%+ flag.type.name FILTER html FILTER no_break %][% flag.status %]
+                        [% flag.setter.nick | html %]:
+                        [%+ flag.type.name | html | no_break %][% flag.status %]
                         [% IF flag.status == "?" && flag.requestee %]
-                          ([% flag.requestee.nick FILTER html %])
+                          ([% flag.requestee.nick | html %])
                         [% END %][% ", " IF not loop.last() %]
                       [% END %]
                     [% END %]
@@ -270,7 +256,7 @@
           [% ELSE %]
             [% FOREACH attachment = bug.attachments %]
               <a href="attachment.cgi?id=[% attachment.id %]">
-                [% attachment.description FILTER html %]
+                [% attachment.description | html %]
               </a>[% "<br>" IF not loop.last() %]
             [% END %]
           [% END %]
@@ -296,12 +282,12 @@
 
 [% BLOCK row %]
   <tr>
-    <th>[% field_descs.${cell} FILTER html %]:</th>
+    <th>[% field_descs.${cell} | html %]:</th>
     [% IF obj %]
       [% SET cell = cell _ "_obj" %]
-      <td[% " colspan=3" IF fullrow %]>[% bug.$cell.name FILTER html %]</td>
+      <td[% " colspan=3" IF fullrow %]>[% bug.$cell.name | html %]</td>
     [% ELSE %]
-      <td[% " colspan=3" IF fullrow %]>[% bug.$cell FILTER html %]</td>
+      <td[% " colspan=3" IF fullrow %]>[% bug.$cell | html %]</td>
     [% END %]
     [% PROCESS rightcell IF !fullrow %]
   </tr>
@@ -314,10 +300,10 @@
 
 [% BLOCK dependencies %]
   <tr>
-    <th>[% terms.Bug %] [%+ field_descs.${name} FILTER html %]:</th>
+    <th>[% terms.Bug %] [%+ field_descs.${name} | html %]:</th>
     <td>
       [% FOREACH depbug = bug.${name} %]
-        [% depbug FILTER bug_link(depbug) FILTER none %][% ", " IF not loop.last() %]
+        [% depbug | bug_link(depbug) | none %][% ", " IF not loop.last() %]
       [% END %]
     </td>
 
@@ -333,31 +319,30 @@
   [% IF rightcells %]
     [% name = rightcells.shift %]
     [% IF name == "cc" %]
-      <th class="rightcell">[% field_descs.cc FILTER html %]:</th>
+      <th class="rightcell">[% field_descs.cc | html %]:</th>
       <td>
         [% FOREACH c = bug.cc %]
-          [% c FILTER email FILTER html %][% ", " IF not loop.last() %]
+          [% c | email | html %][% ", " IF not loop.last() %]
         [% END %]
-    [% ELSIF name == "reporter" || name == "assigned_to" 
-             || name == "qa_contact" %]
-      <th class="rightcell">[% field_descs.${name} FILTER html %]:</th>
-      <td>[% bug.${name}.identity FILTER email FILTER html %]</td>
+    [% ELSIF name == "reporter" || name == "assigned_to" || name == "qa_contact" %]
+      <th class="rightcell">[% field_descs.${name} | html %]:</th>
+      <td>[% bug.${name}.identity | email | html %]</td>
     [% ELSIF name == "flags" %]
         <th class="rightcell">Flags:</th>
         <td>
           [% FOREACH type = bug.flag_types %]
             [% FOREACH flag = type.flags %]
-                [% flag.setter.nick FILTER html %]:
-                [%+ flag.type.name FILTER html FILTER no_break %][% flag.status %]
-                [%+ IF flag.status == "?" && flag.requestee %]
-                  ([% flag.requestee.nick FILTER html %])
-                [% END %]<br>
+              [% flag.setter.nick | html %]:
+              [%+ flag.type.name | html | no_break %][% flag.status %]
+              [%+ IF flag.status == "?" && flag.requestee %]
+                ([% flag.requestee.nick | html %])
+              [% END %]<br>
             [% END %]
           [% END %]
         </td>
     [% ELSIF name != "" %]
-      <th class="rightcell">[% field_descs.${name} FILTER html %]:</th>
-      <td>[% bug.${name} FILTER html %]</td>
+      <th class="rightcell">[% field_descs.${name} | html %]:</th>
+      <td>[% bug.${name} | html %]</td>
     [% ELSE %]
       <td>&nbsp;</td>
       <td>&nbsp;</td>

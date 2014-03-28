@@ -44,105 +44,107 @@
 
 [% IF NOT no_tds %]
   <th class="field_label [% ' bz_hidden_field' IF hidden %]"
-      id="field_label_[% field.name FILTER html %]">
+      id="field_label_[% field.name | html %]">
     [% IF editable %]
-      <label for="[% field.name FILTER html %]">
+      <label for="[% field.name | html %]">
     [% END %]
       [% IF desc_url %]
-        <a href="[% desc_url FILTER html %]">
+        <a href="[% desc_url | html %]">
       [% ELSIF !field.custom %]
-        <a href="page.cgi?id=fields.html#[% field.name FILTER url_quote %]">
+        <a href="page.cgi?id=fields.html#[% field.name | url_quote %]">
       [% END -%]
-        [% field_descs.${field.name} || field.description FILTER html %]:
+        [% field_descs.${field.name} || field.description | html %]:
       [%- '</a>' IF (!field.custom || desc_url) %]
     [% '</label>' IF editable %]
   </th>
   <td class="field_value [% ' bz_hidden_field' IF hidden %]"
-    id="field_container_[% field.name FILTER html %]"
-    [% " colspan=\"$value_span\"" FILTER none IF value_span %]>
+    id="field_container_[% field.name | html %]"
+    [% " colspan=\"$value_span\"" | none IF value_span %]>
 [% END %]
 [% IF editable %]
   [% SWITCH field.type %]
     [% CASE constants.FIELD_TYPE_FREETEXT %]
-      <input id="[% field.name FILTER html %]" class="text_input"
-             name="[% field.name FILTER html %]"
-             value="[% value FILTER html %]" size="40"
-             [% IF tabindex %] tabindex="[% tabindex FILTER html %]"[% END %]
-             maxlength="[% constants.MAX_FREETEXT_LENGTH FILTER none %]" />
+      <input id="[% field.name | html %]" class="text_input"
+        name="[% field.name | html %]"
+        value="[% value | html %]" size="40"
+        [% IF tabindex %] tabindex="[% tabindex | html %]"[% END %]
+        maxlength="[% constants.MAX_FREETEXT_LENGTH | none %]" />
     [% CASE constants.FIELD_TYPE_NUMERIC %]
       <input id="[% field.name | html %]" class="numeric_input"
-             name="[% field.name | html %]"
-             value="[% value | html %]" size="14"
-             [% IF tabindex %] tabindex="[% tabindex FILTER html %]"[% END %]
-             maxlength="[% constants.MAX_NUMERIC_LENGTH | none %]"
-             onchange="this.className = 'numeric_input' + (isNaN(this.value) ? ' numeric_invalid' : '');"
-             onkeyup="this.className = 'numeric_input' + (isNaN(this.value) ? ' numeric_invalid' : '');" />
+        name="[% field.name | html %]"
+        value="[% value | html %]" size="14"
+        [% IF tabindex %] tabindex="[% tabindex | html %]"[% END %]
+        maxlength="[% constants.MAX_NUMERIC_LENGTH | none %]"
+        onchange="this.className = 'numeric_input' + (isNaN(this.value) ? ' numeric_invalid' : '');"
+        onkeyup="this.className = 'numeric_input' + (isNaN(this.value) ? ' numeric_invalid' : '');" />
     [% CASE constants.FIELD_TYPE_DATETIME %]
-      <input name="[% field.name FILTER html %]" size="20"
-             [% IF tabindex %] tabindex="[% tabindex FILTER html %]"[% END %]
-             id="[% field.name FILTER html %]"
-             value="[% value FILTER html %]" />
+      <input name="[% field.name | html %]" size="20"
+        [% IF tabindex %] tabindex="[% tabindex | html %]"[% END %]
+        id="[% field.name | html %]"
+        value="[% value | html %]" />
 
       <script type="text/javascript">
-        Calendar.set('[% field.name FILTER js %]')
+        Calendar.set('[% field.name | js %]')
       </script>
     [% CASE constants.FIELD_TYPE_BUG_ID %]
-        <span id="[% field.name FILTER html %]_input_area">
-          <input name="[% field.name FILTER html %]" id="[% field.name FILTER html %]"
-                 [% IF tabindex %] tabindex="[% tabindex FILTER html %]"[% END %]
-                 value="[% value FILTER html %]" size="7" />
+        <span id="[% field.name | html %]_input_area">
+          <input name="[% field.name | html %]" id="[% field.name | html %]"
+            [% IF tabindex %] tabindex="[% tabindex | html %]"[% END %]
+            value="[% value | html %]" size="7" />
         </span>
 
         [% IF bug.${field.name} %]
-          [% bug.${field.name} FILTER bug_link(bug.${field.name}) FILTER none %]
+          [% bug.${field.name} | bug_link(bug.${field.name}) | none %]
         [% END %]
-        <span id="[% field.name FILTER html %]_edit_container" class="edit_me bz_default_hidden">
-          (<a href="#" id="[% field.name FILTER html %]_edit_action" [% IF tabindex %] tabindex="[% tabindex FILTER html %]"[% END %]>edit</a>)
+        <span id="[% field.name | html %]_edit_container" class="edit_me bz_default_hidden">
+          (<a href="#" id="[% field.name | html %]_edit_action" [% IF tabindex %] tabindex="[% tabindex | html %]"[% END %]>edit</a>)
         </span>
         <script type="text/javascript">
-        hideEditableField('[% field.name FILTER js %]_edit_container',
-                          '[% field.name FILTER js %]_input_area',
-                          '[% field.name FILTER js %]_edit_action',
-                          '[% field.name FILTER js %]',
-                          "[% bug.${field.name} FILTER js %]");
+        hideEditableField(
+          '[% field.name | js %]_edit_container',
+          '[% field.name | js %]_input_area',
+          '[% field.name | js %]_edit_action',
+          '[% field.name | js %]',
+          "[% bug.${field.name} | js %]"
+        );
         </script>
     [% CASE constants.FIELD_TYPE_EXTURL %]
-        <span id="[% field.name FILTER html %]_input_area">
-          <input name="[% field.name FILTER html %]" id="[% field.name FILTER html %]"
-                 [% IF tabindex %] tabindex="[% tabindex FILTER html %]"[% END %]
-                 value="[% value FILTER html %]" size="30" />
+        <span id="[% field.name | html %]_input_area">
+          <input name="[% field.name | html %]" id="[% field.name | html %]"
+            [% IF tabindex %] tabindex="[% tabindex | html %]"[% END %]
+            value="[% value | html %]" size="30" />
         </span>
 
         [% IF bug.${field.name} %]
           [% SET url_quoted = bug.${field.name} | url_quote_ns %]
           <a href="[% field.url.replace('\$1', url_quoted) %]">[% bug.${field.name} | html %]</a>
         [% END %]
-        <span id="[% field.name FILTER html %]_edit_container" class="edit_me bz_default_hidden">
-          (<a href="#" id="[% field.name FILTER html %]_edit_action" [% IF tabindex %] tabindex="[% tabindex FILTER html %]"[% END %]>edit</a>)
+        <span id="[% field.name | html %]_edit_container" class="edit_me bz_default_hidden">
+          (<a href="#" id="[% field.name | html %]_edit_action" [% IF tabindex %] tabindex="[% tabindex | html %]"[% END %]>edit</a>)
         </span>
         <script type="text/javascript">
-        hideEditableField('[% field.name FILTER js %]_edit_container',
-                          '[% field.name FILTER js %]_input_area',
-                          '[% field.name FILTER js %]_edit_action',
-                          '[% field.name FILTER js %]',
-                          "[% bug.${field.name} FILTER js %]");
+        hideEditableField(
+          '[% field.name | js %]_edit_container',
+          '[% field.name | js %]_input_area',
+          '[% field.name | js %]_edit_action',
+          '[% field.name | js %]',
+          "[% bug.${field.name} | js %]"
+        );
         </script>
-    [% CASE [ constants.FIELD_TYPE_SINGLE_SELECT
-              constants.FIELD_TYPE_MULTI_SELECT ] %]
-        <select id="[% field.name FILTER html %]"
-                [% IF tabindex %] tabindex="[% tabindex FILTER html %]"[% END %]
-                name="[% field.name FILTER html %]"
-                [% IF field.type == constants.FIELD_TYPE_MULTI_SELECT %]
-                    [% SET field_size = 5 %]
-                    [% IF field.legal_values.size < 5 %]
-                        [% SET field_size = field.legal_values.size %]
-                    [% END %]
-                    size="[% field_size FILTER html %]" multiple="multiple"
-                [% END %]
-                >
+    [% CASE [ constants.FIELD_TYPE_SINGLE_SELECT, constants.FIELD_TYPE_MULTI_SELECT ] %]
+        <select id="[% field.name | html %]"
+          [% IF tabindex %] tabindex="[% tabindex | html %]"[% END %]
+          name="[% field.name | html %]"
+          [% IF field.type == constants.FIELD_TYPE_MULTI_SELECT %]
+            [% SET field_size = 5 %]
+            [% IF field.legal_values.size < 5 %]
+              [% SET field_size = field.legal_values.size %]
+            [% END %]
+            size="[% field_size | html %]" multiple="multiple"
+          [% END %]>
           [% IF allow_dont_change %]
-            <option value="[% dontchange FILTER html %]" [% ' selected="selected"' IF value == dontchange %]>
-              [% dontchange FILTER html %]
+            <option value="[% dontchange | html %]" [% ' selected="selected"' IF value == dontchange %]>
+              [% dontchange | html %]
             </option>
           [% END %]
           [% IF field.nullable %]
@@ -160,19 +162,20 @@
           [% END %]
           [% value_found = allow_dont_change AND value == dontchange %]
           [% FOREACH legal_value = legal_values %]
-            <option value="[% legal_value.name FILTER html %]" id="v[% legal_value.id FILTER html %]_[% field.name FILTER html %]"
+            <option value="[% legal_value.name | html %]" id="v[% legal_value.id | html %]_[% field.name | html %]"
               [% IF value.contains(legal_value.id).size || value_name.defined && value_name.contains(legal_value.name).size %]
                 selected="selected"
                 [% value_found = 1 %]
               [% END %]>
-              [%- legal_value.name FILTER html ~%]
+              [%- legal_value.name | html ~%]
             </option>
           [% END %]
           [% IF NOT value_found %]
             [% IF value.defined %]
               [% FOR v = value %]
-              [% v = field.new_choice(v) %]
-              <option selected="selected" value="[% v.name | html %]">[% v.name | html %]</option>
+                [%# FIXME use _obj accessor? %]
+                [% v = field.new_choice(v) %]
+                <option selected="selected" value="[% v.name | html %]">[% v.name | html %]</option>
               [% END %]
             [% END %]
           [% END %]
@@ -185,7 +188,7 @@
           # isn't, we know that the multi-select was emptied.
         %]
         [% IF field.type == constants.FIELD_TYPE_MULTI_SELECT %]
-          <input type="hidden" name="defined_[% field.name FILTER html %]" />
+          <input type="hidden" name="defined_[% field.name | html %]" />
         [% END %]
 
      [% CASE constants.FIELD_TYPE_TEXTAREA %]
@@ -201,24 +204,23 @@
        [% '<ul class="bug_urls">' IF value.size %]
        [% FOREACH url = value %]
          <li>
-           <a href="[% url FILTER html %]">[% url FILTER html %]</a>
+           <a href="[% url | html %]">[% url | html %]</a>
            [% IF editable %]
-             <label><input type="checkbox" value="[% url FILTER html %]"
-                           [% IF tabindex %] tabindex="[% tabindex FILTER html %]"[% END %]
-                           name="remove_[% field.name FILTER html %][]" />
-               Remove</label>
+             <label><input type="checkbox" value="[% url | html %]"
+               [% IF tabindex %] tabindex="[% tabindex | html %]"[% END %]
+               name="remove_[% field.name | html %][]" />Remove</label>
            [% END %]
          </li>
        [% END %]
        [% '</ul>' IF value.size %]
 
        [% IF editable && Param('use_see_also') %]
-         <label for="[% field.name FILTER html %]">
+         <label for="[% field.name | html %]">
            <strong>Add [% terms.Bug %] URLs:</strong>
          </label><br>
-         <input type="text" id="[% field.name FILTER html %]" size="40"
-                [% IF tabindex %] tabindex="[% tabindex FILTER html %]"[% END %]
-                class="text_input" name="[% field.name FILTER html %]" />
+         <input type="text" id="[% field.name | html %]" size="40"
+           [% IF tabindex %] tabindex="[% tabindex | html %]"[% END %]
+           class="text_input" name="[% field.name | html %]" />
        [% END %]
   [% END %]
 
@@ -226,21 +228,21 @@
     # Custis Bug 129375 - Add search link for some custom fields
     #%]
   [% IF bug.id && (field.name != 'priority' AND field.name != 'bug_status' AND field.name != 'resolution') %]
-  &nbsp;(<a href="buglist.cgi?query_format=advanced&product=[% bug.product FILTER uri %]
+  &nbsp;(<a href="buglist.cgi?query_format=advanced&product=[% bug.product | uri %]
     [%- IF field.name != 'product' %]&
       [%- IF field.type == constants.FIELD_TYPE_DATETIME -%]
-        type0-1-0=greaterthaneq&field0-1-0=[% field.name %]&field0-0-0=[% field.name %]&value0-1-0=[% bug.${field.name}.substr(0,10) FILTER uri -%]
-        +00%3A00%3A00&type0-0-0=lessthaneq&value0-0-0=[% bug.${field.name}.substr(0,10) FILTER uri %]+23%3A59%3A59
+        type0-1-0=greaterthaneq&field0-1-0=[% field.name %]&field0-0-0=[% field.name %]&value0-1-0=[% bug.${field.name}.substr(0,10) | uri -%]
+        +00%3A00%3A00&type0-0-0=lessthaneq&value0-0-0=[% bug.${field.name}.substr(0,10) | uri %]+23%3A59%3A59
       [%- ELSE -%]
-        [%- field.name %]=[% bug.${field.name} FILTER uri -%]
+        [%- field.name %]=[% bug.${field.name} | uri -%]
       [%- END -%]
     [%- END -%]" target="_blank" id="search_link_[% field.name %]" class="search-link">search</a>)
   [% END %]
 [% ELSIF field.type == constants.FIELD_TYPE_TEXTAREA %]
-  <div class="uneditable_textarea">[% value FILTER html FILTER wrap_comment %]</div>
+  <div class="uneditable_textarea">[% value | html | wrap_comment %]</div>
 [% ELSIF field.type == constants.FIELD_TYPE_BUG_ID %]
   [% IF bug.${field.name} %]
-    [% bug.${field.name} FILTER bug_link(bug.${field.name}) FILTER none %]
+    [% bug.${field.name} | bug_link(bug.${field.name}) | none %]
   [% END %]
 [% ELSIF field.type == constants.FIELD_TYPE_SINGLE_SELECT %]
   [% f = field.name _ '_obj' %]
@@ -249,6 +251,6 @@
   [% f = field.name _ '_obj' %]
   [% bug.$f.name.join(', ') | html %]
 [% ELSE %]
-  [% value.join(', ') FILTER html %]
+  [% value.join(', ') | html %]
 [% END %]
 [% '</td>' IF NOT no_tds %]
