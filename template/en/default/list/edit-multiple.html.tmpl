@@ -53,22 +53,18 @@ document.write(' <input type="button" name="check_all" value="Check All" onclick
   <li>Click the <em>Commit</em> button.</li>
 </ol>
 
-[%############################################# FIXME %]
-[% USE Bugzilla %]
-[%############################################# FIXME %]
-
 <table id="form">
   <tr>
 
     [% INCLUDE bug/field.html.tmpl
-        field = Bugzilla.get_field('product')
+        field = bug_fields.product
         editable = 1
         allow_dont_change = 1
         dontchange = dontchange
     %]
 
     [% INCLUDE bug/field.html.tmpl
-        field = Bugzilla.get_field('version')
+        field = bug_fields.version
         editable = 1
         allow_dont_change = 1
         dontchange = dontchange
@@ -79,7 +75,7 @@ document.write(' <input type="button" name="check_all" value="Check All" onclick
   <tr>
 
     [% INCLUDE bug/field.html.tmpl
-        field = Bugzilla.get_field('component')
+        field = bug_fields.component
         editable = 1
         allow_dont_change = 1
         dontchange = dontchange
@@ -87,7 +83,7 @@ document.write(' <input type="button" name="check_all" value="Check All" onclick
     %]
 
     [% INCLUDE bug/field.html.tmpl
-        field = Bugzilla.get_field('priority')
+        field = bug_fields.priority
         editable = 1
         allow_dont_change = 1
         dontchange = dontchange
@@ -99,7 +95,7 @@ document.write(' <input type="button" name="check_all" value="Check All" onclick
 
     [% IF Param('useplatform') %]
       [% INCLUDE bug/field.html.tmpl
-        field = Bugzilla.get_field('rep_platform')
+        field = bug_fields.rep_platform
         editable = 1
         allow_dont_change = 1
         dontchange = dontchange
@@ -108,7 +104,7 @@ document.write(' <input type="button" name="check_all" value="Check All" onclick
     [% END %]
 
     [% INCLUDE bug/field.html.tmpl
-        field = Bugzilla.get_field('bug_severity')
+        field = bug_fields.bug_severity
         editable = 1
         allow_dont_change = 1
         dontchange = dontchange
@@ -120,7 +116,7 @@ document.write(' <input type="button" name="check_all" value="Check All" onclick
   <tr>
     [% IF Param('useopsys') %]
       [% INCLUDE bug/field.html.tmpl
-        field = Bugzilla.get_field('op_sys')
+        field = bug_fields.op_sys
         editable = 1
         allow_dont_change = 1
         dontchange = dontchange
@@ -130,7 +126,7 @@ document.write(' <input type="button" name="check_all" value="Check All" onclick
 
     [% IF Param("usetargetmilestone") %]
       [% INCLUDE bug/field.html.tmpl
-        field = Bugzilla.get_field('target_milestone')
+        field = bug_fields.target_milestone
         editable = 1
         allow_dont_change = 1
         dontchange = dontchange

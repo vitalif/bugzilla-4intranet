@@ -560,12 +560,12 @@ sub STATIC_COLUMNS
     foreach my $field (Bugzilla->get_fields)
     {
         my $id = $field->name;
-        next if $id eq 'product' || $id eq 'component' || $id eq 'classification';
         my $type = Bugzilla::Field::Choice->type($field);
-        $columns->{$id}->{name} ||= "bugs.$id";
         $columns->{$id}->{title} = $field->description;
         $columns->{$id}->{nobuglist} = !$field->buglist || $field->obsolete;
         $columns->{$id}->{nocharts} = $field->obsolete;
+        next if $id eq 'product' || $id eq 'component' || $id eq 'classification';
+        $columns->{$id}->{name} ||= "bugs.$id";
         if ($field->type == FIELD_TYPE_BUG_ID)
         {
             push @bugid_fields, $field;

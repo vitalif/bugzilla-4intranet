@@ -982,6 +982,7 @@ sub create {
             'issue_hash_token' => \&Bugzilla::Token::issue_hash_token,
 
             # A way for all templates to get at Field data, cached.
+            # FIXME maybe find a better name? maybe uppercase?
             'bug_fields' => sub {
                 my $cache = Bugzilla->request_cache;
                 $cache->{template_bug_fields} ||=

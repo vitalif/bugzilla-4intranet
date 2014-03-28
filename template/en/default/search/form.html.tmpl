@@ -600,7 +600,7 @@ addListener(window, 'load', function() {
   <td align="left">
     <select name="[% sel.name | html %]" id="[% sel.name | html %]"
             multiple="multiple" size="[% sel.size %]">
-      [% FOREACH value = Bugzilla.get_field(sel.name).legal_value_names_with_ids %]
+      [% FOREACH value = bug_fields.${sel.name}.legal_value_names_with_ids %]
         <option value="[% value.name OR '---' FILTER html %]" id="qf_[% sel.name | html %]_[% value.ids.join('_') %]"
           [% " selected" IF lsearch(default.${sel.name}, value.name) != -1 %]>
           [% value.name FILTER html

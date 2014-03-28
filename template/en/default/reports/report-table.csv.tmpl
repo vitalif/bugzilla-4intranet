@@ -23,9 +23,9 @@
 [% colsepchar = user.settings.csv_colsepchar.value %]
 
 [% num_bugs = BLOCK %]Number of [% terms.bugs %][% END %]
-[% tbl_field_disp = field_descs.$tbl_field || Bugzilla.get_field(tbl_field).description || tbl_field %]
-[% col_field_disp = field_descs.$col_field || Bugzilla.get_field(col_field).description || col_field %]
-[% row_field_disp = field_descs.$row_field || Bugzilla.get_field(row_field).description || row_field %]
+[% tbl_field_disp = field_descs.$tbl_field || bug_fields.$tbl_field.description || tbl_field %]
+[% col_field_disp = field_descs.$col_field || bug_fields.$col_field.description || col_field %]
+[% row_field_disp = field_descs.$row_field || bug_fields.$row_field.description || row_field %]
 
 [% IF tbl_field %]
   [% IF tbl_field == 'assigned_to' OR tbl_field == 'reporter'
