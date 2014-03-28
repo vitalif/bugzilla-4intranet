@@ -51,7 +51,7 @@ use constant USENAMES => {
 use constant DEFAULTNAMES => {
     defaultpriority     => 'priority',
     defaultseverity     => 'bug_severity',
-    defaultplatform     => 'platform',
+    defaultplatform     => 'rep_platform',
     defaultopsys        => 'op_sys',
 };
 
@@ -88,7 +88,7 @@ sub check_value
     my ($value, $param) = @_;
     my $f = DEFAULTNAMES->{$param->{name}};
     my $legal = Bugzilla->get_field($f)->legal_value_names;
-    if (!grep { $_ eq $value } @$legal)
+    if ($value ne '' && !grep { $_ eq $value } @$legal)
     {
         return "Must be a valid $f: one of ".join(', ', @$legal);
     }
@@ -100,7 +100,7 @@ sub get_param_list
     my $class = shift;
 
     my $legal = {};
-    for (qw(priority bug_severity platform op_sys))
+    for (qw(priority bug_severity rep_platform op_sys))
     {
         # Ignore evaluation errors - this piece of code may be called in checksetup.pl,
         # fielddefs table may not be created at that time...
@@ -172,7 +172,7 @@ sub get_param_list
         {
             name => 'defaultplatform',
             type => 's',
-            choices => ['', @{$legal->{platform}}],
+            choices => ['', @{$legal->{rep_platform}}],
             default => '',
             checker => \&check_value,
         },

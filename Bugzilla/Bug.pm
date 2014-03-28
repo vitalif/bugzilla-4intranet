@@ -2196,22 +2196,30 @@ sub _check_multi_select_field
 {
     my ($invocant, $values, $field) = @_;
 
+    # FIXME Move splitting of multiselect on ',' into email_in.pl itself!
     # Allow users (mostly email_in.pl) to specify multi-selects as
     # comma-separated values.
-    if (defined $values and !ref $values)
+    if (defined $values && !ref $values)
     {
         # We don't split on spaces because multi-select values can and often
         # do have spaces in them. (Theoretically they can have commas in them
         # too, but that's much less common and people should be able to work
         # around it pretty cleanly, if they want to use email_in.pl.)
-        $values = [split(',', $values)];
+        $values = [ split ',', $values ];
     }
     return [] if !$values;
 
     my @checked_values;
+    my @value_objects;
     foreach my $value (@$values)
     {
-        push(@checked_values, $invocant->_check_select_field($value, $field));
+        push @checked_values, $invocant->_check_select_field($value, $field);
+        push @value_objects, $invocant->{$field} if ref $invocant;
+    }
+    if (ref $invocant)
+    {
+        $invocant->{$field.'_obj'} = \@value_objects;
+        $invocant->{$field} = \@checked_values;
     }
     return \@checked_values;
 }
@@ -2234,6 +2242,8 @@ sub _check_select_field
         return undef;
     }
     # Check dependent field values
+    # FIXME: Check $field->visibility_field_id not only for select fields,
+    # but for all (at least for all custom) fields
     if ($field->visibility_field_id || $field->value_field_id)
     {
         my $t = Bugzilla::Field::Choice->type($field);
@@ -2252,6 +2262,7 @@ sub _check_select_field
         return $value;
     }
     my $object = Bugzilla::Field::Choice->type($field)->check($value);
+    $invocant->{$field.'_obj'} = $object if ref $invocant;
     return $object->id;
 }
 
@@ -2271,7 +2282,6 @@ sub _check_bugid_field
     }
     # Check if the field is not visible anymore
     # + Optionally add to dependencies
-    # FIXME probably move it somewhere
     if (Bugzilla->get_field($field)->visibility_field_id ||
         Bugzilla->get_field($field)->add_to_deps)
     {
@@ -3144,8 +3154,6 @@ sub blocked
     return $self->{blocked};
 }
 
-# Even bugs in an error state always have a bug_id.
-# FIXME Check if there is a better way to do the error state...
 sub bug_id { $_[0]->{bug_id}; }
 
 sub failed_checkers { $_[0]->{failed_checkers} }
@@ -3180,44 +3188,29 @@ sub cc_users
     return $self->{cc_users};
 }
 
+# FIXME This should eventually be replaced by the "product_obj" subroutine.
+sub product
+{
+    my ($self) = @_;
+    return $self->product_obj->name;
+}
+
 sub component
 {
     my ($self) = @_;
-    return $self->{component} if exists $self->{component};
-    ($self->{component}) = Bugzilla->dbh->selectrow_array(
-        'SELECT name FROM components WHERE id = ?',
-        undef, $self->{component_id}
-    );
-    return $self->{component};
-}
-
-# FIXME Eventually this will replace component()
-sub component_obj
-{
-    my ($self) = @_;
-    return $self->{component_obj} if defined $self->{component_obj};
-    $self->{component_obj} = new Bugzilla::Component($self->{component_id});
-    return $self->{component_obj};
+    return $self->component_obj->name;
 }
 
 sub classification_id
 {
     my ($self) = @_;
-    return $self->{classification_id} if exists $self->{classification_id};
-    ($self->{classification_id}) = Bugzilla->dbh->selectrow_array(
-        'SELECT classification_id FROM products WHERE id = ?',
-        undef, $self->{product_id});
-    return $self->{classification_id};
+    return $self->product_obj->classification_id;
 }
 
 sub classification
 {
     my ($self) = @_;
-    return $self->{classification} if exists $self->{classification};
-    ($self->{classification}) = Bugzilla->dbh->selectrow_array(
-        'SELECT name FROM classifications WHERE id = ?',
-        undef, $self->classification_id);
-    return $self->{classification};
+    return $self->product_obj->classification_obj->name;
 }
 
 sub dependson
@@ -3324,20 +3317,6 @@ sub comments
         @comments = grep { datetime_from($_->creation_ts) <= $to } @comments;
     }
     return \@comments;
-}
-
-sub product
-{
-    my ($self) = @_;
-    return $self->product_obj->name;
-}
-
-# FIXME This should eventually replace the "product" subroutine.
-sub product_obj
-{
-    my $self = shift;
-    $self->{product_obj} ||= new Bugzilla::Product($self->{product_id});
-    return $self->{product_obj};
 }
 
 sub qa_contact
@@ -4308,11 +4287,18 @@ sub _validate_attribute
            show_attachment_flags any_flags_requesteeble),
 
         # Bug fields.
-        Bugzilla::Bug->fields
+        Bugzilla::Bug->fields,
+
+        map { $_->name.'_obj' } Bugzilla->get_fields({ type => [ FIELD_TYPE_SINGLE_SELECT, FIELD_TYPE_MULTI_SELECT ] }),
     );
 
     return grep($attribute eq $_, @valid_attributes) ? 1 : 0;
 }
+
+use constant OVERRIDE_ID_FIELD => {
+    product => 'product_id',
+    component => 'component_id',
+};
 
 sub AUTOLOAD
 {
@@ -4332,13 +4318,29 @@ sub AUTOLOAD
         my $self = shift;
         return $self->{$attr} if defined $self->{$attr};
 
+        if ($attr =~ /^(.*)_obj$/s)
+        {
+            my $fn = $1;
+            my $field = Bugzilla->get_field($fn);
+            $fn = OVERRIDE_ID_FIELD->{$fn} || $fn;
+            if ($field && $field->type == FIELD_TYPE_SINGLE_SELECT)
+            {
+                $self->{$attr} = $self->{$fn} ? $field->value_type->new($self->{$fn}) : undef;
+            }
+            elsif ($field && $field->type == FIELD_TYPE_MULTI_SELECT)
+            {
+                $self->{$attr} = $field->value_type->new_from_list($self->$fn);
+            }
+            else
+            {
+                die "Invalid join requested - ".__PACKAGE__."::$attr";
+            }
+            return $self->{$attr};
+        }
+
         my $field = Bugzilla->get_field($attr);
         if ($field && $field->type == FIELD_TYPE_MULTI_SELECT)
         {
-            # There is a bug in Perl 5.10.0, which is fixed in 5.10.1,
-            # which taints $attr at this point. trick_taint() can go
-            # away once we require 5.10.1 or newer.
-            trick_taint($attr);
             $self->{$attr} ||= Bugzilla->dbh->selectcol_arrayref(
                 "SELECT id FROM bug_$attr, $attr WHERE value_id=id AND bug_id=? ORDER BY value",
                 undef, $self->id);

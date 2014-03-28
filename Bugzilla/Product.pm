@@ -80,7 +80,6 @@ use constant UPDATE_COLUMNS => qw(
     notimetracking
     extproduct
     description
-    defaultmilestone
     isactive
     votesperuser
     maxvotesperbug
@@ -116,17 +115,17 @@ use constant EXCLUDE_CONTROLLED_FIELDS => ('component', 'target_milestone', 'ver
 sub create
 {
     my $class = shift;
-    my $dbh = Bugzilla->dbh;
+    my ($params) = @_;
 
+    my $dbh = Bugzilla->dbh;
     $dbh->bz_start_transaction();
 
-    $class->check_required_create_fields(@_);
+    $class->check_required_create_fields($params);
 
-    my $params = $class->run_create_validators(@_);
     # Some fields do not exist in the DB as is.
     if (defined $params->{classification})
     {
-        $params->{classification_id} = delete $params->{classification}; 
+        $params->{classification_id} = delete $params->{classification};
     }
     my $version = delete $params->{version};
     my $create_series = delete $params->{create_series};
@@ -572,7 +571,7 @@ sub _check_default_milestone
         return ref $invocant ? $invocant->default_milestone : undef;
     }
 
-    $milestone = trim($milestone);
+    $milestone = trim($milestone) || undef;
     if ($milestone && ref $invocant)
     {
         # The default milestone must be one of the existing milestones.
@@ -1026,6 +1025,13 @@ sub cc_group          { return $_[0]->{'cc_group'};          }
 ###############################
 ####      Subroutines    ######
 ###############################
+
+sub classification_obj
+{
+    my $self = shift;
+    $self->{classification_obj} ||= Bugzilla::Classification->new($self->classification_id);
+    return $self->{classification_obj};
+}
 
 sub extproduct_obj
 {

@@ -31,6 +31,7 @@
                 "skins/standard/comments.css"]
   doc_section = "bug_page.html"
 %]
+
 [% PROCESS bug/time.html.tmpl %]
 [% IF bugs.first %]
   [% ids = [] %]
@@ -52,9 +53,7 @@
   </p>
 [% END %]
 
-
 [% PROCESS global/footer.html.tmpl %]
-
 
 [%###########################################################################%]
 [%# Block for an individual bug                                             #%]
@@ -62,8 +61,7 @@
 
 [% BLOCK bug_display %]
   <h1>
-    [% terms.Bug %] 
-    <a href="show_bug.cgi?id=[% bug.bug_id FILTER html %]">[% bug.bug_id FILTER html %]</a>
+    [% terms.Bug %] <a href="show_bug.cgi?id=[% bug.bug_id FILTER html %]">[% bug.bug_id FILTER html %]</a>
     [% IF Param("usebugaliases") AND bug.alias AND NOT bug.error %]
       (<a href="show_bug.cgi?id=[% bug.alias FILTER url_quote %]">
         [% bug.alias FILTER html %]</a>)
@@ -115,9 +113,9 @@
       <th>[% field_descs.product FILTER html %]:</th>
       <td>
         [% IF Param("useclassification") && bug.classification_id != 1 %]
-          [[% bug.classification FILTER html %]]&nbsp;
+          [[% bug.classification_obj.name FILTER html %]]&nbsp;
         [% END %]
-        [% bug.product FILTER html %]
+        [% bug.product_obj.name FILTER html %]
       </td>
 
       [% PROCESS rightcell %]
@@ -128,8 +126,8 @@
     <tr>
       <th>[% field_descs.bug_status  FILTER html %]:</th>
       <td>
-        [% bug.bug_status FILTER html %]
-        [%+ bug.resolution FILTER html %]
+        [% bug.bug_status_obj.name FILTER html %]
+        [%+ bug.resolution_obj.name FILTER html %]
       </td>
 
       [% PROCESS rightcell %]
@@ -137,8 +135,8 @@
 
     <tr>
       <th>[% field_descs.bug_severity FILTER html %]:</th>
-      <td class="bz_[% bug.bug_severity FILTER css_class_quote -%]">
-        [% bug.bug_severity FILTER html %]
+      <td class="bz_[% bug.bug_severity_obj.name FILTER css_class_quote -%]">
+        [% bug.bug_severity_obj.name FILTER html %]
       </td>
 
       [% PROCESS rightcell %]
@@ -146,17 +144,18 @@
 
     <tr>
       <th>[% field_descs.priority FILTER html %]:</th>
-      <td class="bz_[% bug.priority FILTER css_class_quote -%]">
-        [% bug.priority FILTER html %]
+      <td class="bz_[% bug.priority_obj.name FILTER css_class_quote -%]">
+        [% bug.priority_obj.name FILTER html %]
       </td>
 
       [% PROCESS rightcell %]
     </tr>
 
-    [% PROCESS row cell = "version" %]
-    [% PROCESS row cell = "target_milestone"  IF Param('usetargetmilestone') %]
-    [% PROCESS row cell = "rep_platform" IF Param('useplatform') %]
-    [% PROCESS row cell = "op_sys" IF Param('useopsys') %]
+    [% PROCESS row obj=1 cell="version" %]
+    [% PROCESS row obj=1 cell="target_milestone" IF Param('usetargetmilestone') %]
+    [% PROCESS row obj=1 cell="rep_platform" IF Param('useplatform') %]
+    [% PROCESS row obj=1 cell="op_sys" IF Param('useopsys') %]
+    [% obj=0 %]
 
     [% IF bug.bug_file_loc %]
       <tr>
@@ -179,12 +178,12 @@
     [% USE Bugzilla %]
     [% field_counter = 0 %]
     [% FOREACH field = Bugzilla.active_custom_fields %]
-        [% field_counter = field_counter + 1 %]
-        [%# Odd-numbered fields get an opening <tr> %]
-        [% '<tr>' IF field_counter % 2 %]
-        [% PROCESS bug/field.html.tmpl value=bug.${field.name} editable=0 %]
-        [%# Even-numbered fields get a closing <tr> %]
-        [% '</tr>' IF !(field_counter % 2) %]
+      [% field_counter = field_counter + 1 %]
+      [%# Odd-numbered fields get an opening <tr> %]
+      [% '<tr>' IF field_counter % 2 %]
+      [% PROCESS bug/field.html.tmpl value=bug.${field.name} editable=0 %]
+      [%# Even-numbered fields get a closing <tr> %]
+      [% '</tr>' IF !(field_counter % 2) %]
     [% END %]
     [%# And we have to finish the row if we ended on an odd number. %]
     [% '<th></th><td></td></tr>' IF field_counter % 2 %]
@@ -279,13 +278,11 @@
       </tr>
     [% END %]
   [% END %]
-  
+
   [% Hook.process("last_row", "bug/show-multiple.html.tmpl") %]
-   
   </table>
 
-
-  <br>
+  <br />
 
   [% PROCESS bug/comments.html.tmpl
      comments = bug.comments %]
@@ -300,12 +297,16 @@
 [% BLOCK row %]
   <tr>
     <th>[% field_descs.${cell} FILTER html %]:</th>
-    <td[% " colspan=3" IF fullrow %]>[% bug.${cell} FILTER html %]</td>
+    [% IF obj %]
+      [% SET cell = cell _ "_obj" %]
+      <td[% " colspan=3" IF fullrow %]>[% bug.$cell.name FILTER html %]</td>
+    [% ELSE %]
+      <td[% " colspan=3" IF fullrow %]>[% bug.$cell FILTER html %]</td>
+    [% END %]
     [% PROCESS rightcell IF !fullrow %]
   </tr>
   [% fullrow = 0 %]
 [% END %]
-
 
 [%############################################################################%]
 [%# Block for dependencies                                                   #%]

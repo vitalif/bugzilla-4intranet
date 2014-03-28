@@ -309,9 +309,9 @@ document.changeform = document.[% cfname %];
     </td>
     <td id="bz_field_status">
       <span id="static_bug_status">
-        [% select_fields.bug_status.new_choice(bug.bug_status).name FILTER html %]
+        [% bug.bug_status_obj.name FILTER html %]
         [% IF bug.resolution %]
-          [%+ select_fields.resolution.new_choice(bug.resolution).name FILTER html %]
+          [%+ bug.resolution_obj.name FILTER html %]
           [% IF bug.dup_id %]
             of [% "${terms.bug} ${bug.dup_id}" FILTER bug_link(bug.dup_id) FILTER none %]
           [% END %]

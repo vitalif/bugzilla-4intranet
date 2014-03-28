@@ -236,13 +236,18 @@
       [%- END -%]
     [%- END -%]" target="_blank" id="search_link_[% field.name %]" class="search-link">search</a>)
   [% END %]
-
 [% ELSIF field.type == constants.FIELD_TYPE_TEXTAREA %]
   <div class="uneditable_textarea">[% value FILTER html FILTER wrap_comment %]</div>
 [% ELSIF field.type == constants.FIELD_TYPE_BUG_ID %]
   [% IF bug.${field.name} %]
     [% bug.${field.name} FILTER bug_link(bug.${field.name}) FILTER none %]
   [% END %]
+[% ELSIF field.type == constants.FIELD_TYPE_SINGLE_SELECT %]
+  [% f = field.name _ '_obj' %]
+  [% bug.$f.name | html %]
+[% ELSIF field.type == constants.FIELD_TYPE_MULTI_SELECT %]
+  [% f = field.name _ '_obj' %]
+  [% bug.$f.name.join(', ') | html %]
 [% ELSE %]
   [% value.join(', ') FILTER html %]
 [% END %]
