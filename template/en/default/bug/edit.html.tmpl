@@ -751,7 +751,7 @@ document.changeform = document.[% cfname %];
           [% END %]
           <div><small><a href="show-mail-groups.cgi">Список почтовых групп</a><small></div>
           [% IF bug.cc %]
-            <select id="cc" name="cc[]" multiple="multiple" size="5">
+            <select id="cc" name="cc" multiple="multiple" size="5">
               [% FOREACH c = bug.cc %]
                 <option value="[% c | email | html %]">[% c | email | html %]</option>
               [% END %]

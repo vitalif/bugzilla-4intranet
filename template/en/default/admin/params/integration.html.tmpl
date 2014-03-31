@@ -8,6 +8,11 @@
 %]
 
 [% param_descs = {
+    see_also_url_regexes =>
+      "<p style='margin: 0'>Perl regular expressions for checking 'See Also' field. Only values that match one of these regexes are allowed. Format:</p>"
+      _ "<pre style='margin: 8px 0; padding: 4px; background: white;"
+      _ " border: 1px solid gray;'># Lines that start with # are treated as comments\n&lt;REGEX&gt;   &lt;REPLACEMENT&gt;</pre>",
+
     viewvc_url => "ViewVC query URL for browsing bug code",
     wiki_url => "Default MediaWiki URL for bug links",
     mediawiki_urls =>

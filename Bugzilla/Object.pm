@@ -310,12 +310,6 @@ sub set
 {
     my ($self, $field, $value) = @_;
 
-    Bugzilla::Hook::process('object_before_set', {
-        object => $self,
-        field => $field,
-        value => $value,
-    });
-
     my %validators = (%{$self->VALIDATORS}, %{$self->UPDATE_VALIDATORS});
     if (exists $validators{$field})
     {
@@ -329,8 +323,6 @@ sub set
     }
 
     $self->{$field} = $value;
-
-    Bugzilla::Hook::process('object_end_of_set', { object => $self, field => $field });
 }
 
 sub set_all
@@ -341,7 +333,6 @@ sub set_all
         my $method = "set_$key";
         $self->$method($params->{$key});
     }
-    Bugzilla::Hook::process('object_end_of_set_all', { object => $self, params => $params });
 }
 
 sub update
@@ -354,6 +345,7 @@ sub update
 
     $dbh->bz_start_transaction();
 
+    # Use a copy of old object
     my $old_self = $self->new($self->id);
 
     my %numeric = map { $_ => 1 } $self->NUMERIC_COLUMNS;
@@ -526,8 +518,7 @@ sub insert_create_data
 
     my $object = $class->new($id);
 
-    Bugzilla::Hook::process('object_end_of_create', { class => $class,
-                                                      object => $object });
+    Bugzilla::Hook::process('object_end_of_create', { class => $class, object => $object });
     return $object;
 }
 

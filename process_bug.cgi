@@ -72,8 +72,8 @@ my $cgi = Bugzilla->cgi;
 my $dbh = Bugzilla->dbh;
 my $template = Bugzilla->template;
 my $vars = {};
-#my $ARGS = $cgi->VarHash; # TODO
 my $ARGS = { %{ $cgi->Vars } };
+#my $ARGS = $cgi->VarHash; # FIXME (see lines with "FIXME array[]")
 
 ######################################################################
 # Begin Data/Security Validation
@@ -86,7 +86,7 @@ $dbh->bz_start_transaction();
 my @bug_objects;
 if ($ARGS->{id})
 {
-    $ARGS->{id} = $ARGS->{id}->[0] if ref $ARGS->{id}; # TODO
+    ($ARGS->{id}) = @{$ARGS->{id}} if ref $ARGS->{id}; # FIXME array[]
     my $bug = Bugzilla::Bug->check({ id => $ARGS->{id}, for_update => 1 });
     $ARGS->{id} = $bug->id;
     push @bug_objects, $bug;
@@ -116,7 +116,8 @@ if ($ARGS->{dontchange})
         next if $name eq 'dontchange'; # But don't delete dontchange itself!
         # Skip ones we've already deleted (such as "defined_$name").
         next if !defined $ARGS->{$name};
-        if ($ARGS->{$name} eq $ARGS->{dontchange})
+        if ($ARGS->{$name} eq $ARGS->{dontchange} ||
+            ref $ARGS->{$name} && @{$ARGS->{$name}} == 1 && $ARGS->{$name}->[0] eq $ARGS->{dontchange})
         {
             delete $ARGS->{$name};
             delete $ARGS->{"defined_$name"};
@@ -127,8 +128,8 @@ if ($ARGS->{dontchange})
 # do a match on the fields if applicable
 Bugzilla::User::match_field({
     'qa_contact'  => { type => 'single' },
-    'newcc'       => { type => 'multi'  },
-    'masscc'      => { type => 'multi'  },
+    'newcc'       => { type => 'multi'  }, # FIXME array[]
+    'masscc'      => { type => 'multi'  }, # FIXME array[]
     'assigned_to' => { type => 'single' },
 });
 
@@ -414,16 +415,16 @@ foreach my $b (@bug_objects)
         my @see_also = split ',', $ARGS->{see_also};
         $b->add_see_also($_) foreach @see_also;
     }
-    if (defined $ARGS->{remove_see_also})
+    if (defined $ARGS->{remove_see_also}) # FIXME array[]
     {
-        $b->remove_see_also($_) foreach @{$ARGS->{remove_see_also}};
+        $b->remove_see_also($_) foreach ref $ARGS->{remove_see_also} ? @{$ARGS->{remove_see_also}} : $ARGS->{remove_see_also};
     }
 
     # And set custom fields.
     foreach my $field (@custom_fields)
     {
         my $fname = $field->name;
-        if (defined $ARGS->{$fname} || defined $ARGS->{"defined_$fname"})
+        if (defined $ARGS->{$fname} || defined $ARGS->{"defined_$fname"}) # FIXME array[] for multiselects
         {
             $b->set_custom_field($field, $ARGS->{$fname});
         }
@@ -453,11 +454,11 @@ if ($ARGS->{id})
     # the user can change them and they appear on the page.
     if (defined $ARGS->{cclist_accessible} || defined $ARGS->{defined_cclist_accessible})
     {
-        $first_bug->set_cclist_accessible($ARGS->{cclist_accessible});
+        $first_bug->set('cclist_accessible', $ARGS->{cclist_accessible});
     }
     if (defined $ARGS->{reporter_accessible} || defined $ARGS->{defined_reporter_accessible})
     {
-        $first_bug->set_reporter_accessible($ARGS->{reporter_accessible});
+        $first_bug->set('reporter_accessible', $ARGS->{reporter_accessible});
     }
 
     # You can only mark/unmark comments as private on single bugs. If
@@ -507,7 +508,7 @@ if ($ARGS->{newcc} || $ARGS->{addselfcc} || $ARGS->{removecc} || $ARGS->{masscc}
         $cc_add = $ARGS->{newcc};
         # We came from bug_form which uses a select box to determine what cc's
         # need to be removed...
-        if (defined $ARGS->{removecc} && $ARGS->{cc})
+        if (defined $ARGS->{removecc} && $ARGS->{cc}) # FIXME array[]
         {
             $cc_remove = join ",", @{$ARGS->{cc}};
         }

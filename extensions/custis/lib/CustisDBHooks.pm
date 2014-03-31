@@ -98,19 +98,6 @@ sub db_schema_abstract_schema
         ],
     };
 
-    # Bug 69325 - Настройка копирования / не копирования значения поля при клонировании бага
-    push @{$schema->{fielddefs}->{FIELDS}}, clone_bug => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 1};
-
-    # Bug 90854 - Тип поля "ссылка во внешнюю систему по ID"
-    push @{$schema->{fielddefs}->{FIELDS}}, url => {TYPE => 'VARCHAR(255)'};
-
-    # Bug 70605 - Кэширование зависимостей полей для поиска и формы бага на клиентской стороне
-    push @{$schema->{fielddefs}->{FIELDS}}, delta_ts => {TYPE => 'DATETIME'};
-    push @{$schema->{fielddefs}->{FIELDS}}, has_activity => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0};
-
-    # Bug 73054 - Возможность автоматического добавления значений полей типа Bug ID в зависимости бага
-    push @{$schema->{fielddefs}->{FIELDS}}, add_to_deps => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0};
-
     # Bug 68921 - Предикаты корректности из запросов поиска
     # Bug 108088 - Триггеры (пока поддерживается только 1 триггер: добавление CC)
     $schema->{checkers} = {

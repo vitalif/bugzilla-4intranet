@@ -861,6 +861,7 @@ sub update
     Bugzilla::Hook::process('bug_pre_update', { bug => $self });
 
     my ($changes, $old_bug) = $self->SUPER::update(@_);
+    $self->{_old_self} = $old_bug;
 
     # Transform ID values to names
     if ($changes->{product_id})
@@ -1177,8 +1178,7 @@ sub update
     }
 
     # Remove obsolete internal variables.
-    delete $self->{_old_assigned_to};
-    delete $self->{_old_qa_contact};
+    delete $self->{_old_self};
     delete $self->{added_comments};
     delete $self->{edited_comments};
 
@@ -2373,8 +2373,6 @@ sub _set_global_validator
 sub set_assigned_to
 {
     my ($self, $value) = @_;
-    # Store the old assignee. check_can_change_field() needs it.
-    $self->{_old_assigned_to} = $self->{assigned_to};
     $self->set('assigned_to', $value);
     delete $self->{assigned_to_obj};
 }
@@ -2385,8 +2383,6 @@ sub reset_assigned_to
     my $comp = $self->component_obj;
     $self->set_assigned_to($comp->default_assignee);
 }
-
-sub set_cclist_accessible { $_[0]->set('cclist_accessible', $_[1]); }
 
 sub set_comment_is_private
 {
@@ -2428,8 +2424,6 @@ sub set_component
         $self->{component_id}  = $component->id;
         $self->{component}     = $component->name;
         $self->{component_obj} = $component;
-        # For update()
-        $self->{_old_component_name} = $old_comp->name;
         # CustIS Bug 55095: Don't enforce default CC
         ## Add the Default CC of the new Component
         #foreach my $cc (@{$component->initial_cc})
@@ -2498,8 +2492,6 @@ sub set_dup_id
     }
 }
 
-sub _set_everconfirmed { $_[0]->set('everconfirmed', $_[1]); }
-
 sub set_flags
 {
     my ($self, $flags, $new_flags) = @_;
@@ -2518,8 +2510,6 @@ sub set_product
         $self->{product_id}  = $product->id;
         $self->{product}     = $product->name;
         $self->{product_obj} = $product;
-        # For update()
-        $self->{_old_product_name} = $old_product->name;
         $self->{product_changed} = 1;
     }
 
@@ -2530,12 +2520,6 @@ sub set_qa_contact
 {
     my ($self, $value) = @_;
     $self->set('qa_contact', $value);
-    # Store the old QA contact. check_can_change_field() needs it.
-    # FIXME use copy of old bug for validation?
-    if ($self->{qa_contact_obj})
-    {
-        $self->{_old_qa_contact} = $self->{qa_contact_obj}->id;
-    }
     delete $self->{qa_contact_obj};
 }
 
@@ -2545,13 +2529,6 @@ sub reset_qa_contact
     my $comp = $self->component_obj;
     $self->set_qa_contact($comp->default_qa_contact);
 }
-
-# Used only when closing a bug or moving between closed states.
-# sub _zero_remaining_time { $_[0]->{remaining_time} = 0; }
-# FIXME Is it needed?
-sub _zero_remaining_time { }
-
-sub set_reporter_accessible { $_[0]->set('reporter_accessible', $_[1]); }
 
 sub set_resolution
 {
@@ -2575,7 +2552,7 @@ sub set_resolution
         # Duplicates should have no remaining time left.
         elsif ($new_res eq 'DUPLICATE' && $self->remaining_time != 0)
         {
-            $self->_zero_remaining_time();
+            $self->set('remaining_time', 0);
         }
     }
 
@@ -2620,7 +2597,7 @@ sub set_status
     if ($new_status->is_open)
     {
         # Check for the everconfirmed transition
-        $self->_set_everconfirmed($new_status->name eq 'UNCONFIRMED' ? 0 : 1);
+        $self->set('everconfirmed', $new_status->name eq 'UNCONFIRMED' ? 0 : 1);
         $self->clear_resolution();
     }
     else
@@ -2633,30 +2610,9 @@ sub set_status
         # Changing between closed statuses zeros the remaining time.
         if ($new_status->id != $old_status->id && $self->remaining_time != 0)
         {
-            $self->_zero_remaining_time();
+            $self->set('remaining_time', 0);
         }
     }
-}
-
-sub depscompletedpercent  { $_[0]->checkdepsinfo; $_[0]->{depscompletedpercent}; }
-sub lastchangeddeps       { $_[0]->checkdepsinfo; $_[0]->{lastchangeddeps}; }
-
-sub checkdepsinfo
-{
-    my $self = shift;
-    my $dep = $self->dependson;
-    return if defined $self->{lastchangeddeps} || !$dep || !@$dep;
-    my $where = "bug_id IN (" . join(",", ("?") x @$dep) . ")";
-    my ($last, $rem) = Bugzilla->dbh->selectrow_array(
-        "SELECT MAX(delta_ts), SUM(remaining_time)" .
-        " FROM bugs WHERE $where", undef, @$dep
-    );
-    my ($work) = Bugzilla->dbh->selectrow_array(
-        "SELECT SUM(work_time) FROM longdescs WHERE $where",
-        undef, @$dep
-    );
-    $self->{lastchangeddeps} = $last;
-    $self->{depscompletedpercent} = int(100*$work/($work+$rem || 1));
 }
 
 ########################
@@ -2834,18 +2790,23 @@ sub add_group
 
     # Make sure that bugs in this product can actually be restricted
     # to this group.
-    grep($group->id == $_->id, @{$self->product_obj->groups_valid})
+    unless (grep { $group->id == $_->id } @{$self->product_obj->groups_valid} ||
         # But during product change, verification happens anyway in update().
-        || $self->{_old_product_name}
-        || ThrowUserError('group_invalid_restriction',
-                { product => $self->product, group_id => $group->id });
+        $self->{_old_self} && $self->{_old_self}->product_id != $self->product_id)
+    {
+        ThrowUserError('group_invalid_restriction', {
+            product => $self->product,
+            group_id => $group->id,
+        });
+    }
 
     # OtherControl people can add groups only during a product change,
     # and only when the group is not NA for them.
     if (!Bugzilla->user->in_group($group->name))
     {
         my $controls = $self->product_obj->group_controls->{$group->id};
-        if (!$self->{_old_product_name} || $controls->{othercontrol} == CONTROLMAPNA)
+        if ($controls->{othercontrol} == CONTROLMAPNA ||
+            !$self->{_old_self} || $self->{_old_self}->product_id == $self->product_id)
         {
             ThrowUserError('group_change_denied', { bug => $self, group_id => $group->id });
         }
@@ -2871,14 +2832,14 @@ sub remove_group
     #
     # This particularly happens when isbuggroup is no longer 1, and we're
     # moving a bug to a new product.
-    if (grep($_->id == $group->id, @{$self->product_obj->groups_valid}))
+    if (grep { $_->id == $group->id } @{$self->product_obj->groups_valid})
     {
         my $controls = $self->product_obj->group_controls->{$group->id};
 
         # Nobody can ever remove a Mandatory group.
         # But during product change, verification happens anyway in update().
-        if (!$self->{_old_product_name} &&
-            $controls->{membercontrol} == CONTROLMAPMANDATORY)
+        if ($controls->{membercontrol} == CONTROLMAPMANDATORY &&
+            (!$self->{_old_self} || $self->{_old_self}->product_id == $self->product_id))
         {
             ThrowUserError('group_invalid_removal', {
                 product  => $self->product,
@@ -2891,7 +2852,7 @@ sub remove_group
         # and only when they are non-Mandatory and non-NA.
         if (!Bugzilla->user->in_group($group->name))
         {
-            if (!$self->{_old_product_name}
+            if ((!$self->{_old_self} || $self->{_old_self}->product_id == $self->product_id)
                 || $controls->{othercontrol} == CONTROLMAPMANDATORY
                 || $controls->{othercontrol} == CONTROLMAPNA)
             {
@@ -2907,127 +2868,33 @@ sub remove_group
     @$current_groups = grep { $_->id != $group->id } @$current_groups;
 }
 
-# FIXME Move these regexes to parameter
 sub add_see_also
 {
     my ($self, $input) = @_;
     $input = trim($input);
-
-    # We assume that the URL is an HTTP URL if there is no (something)://
-    # in front.
-    my $uri = new URI($input);
-    if (!$uri->scheme)
-    {
-        # This works better than setting $uri->scheme('http'), because
-        # that creates URLs like "http:domain.com" and doesn't properly
-        # differentiate the path from the domain.
-        $uri = new URI("http://$input");
-    }
-    elsif ($uri->scheme ne 'http' && $uri->scheme ne 'https')
-    {
-        ThrowUserError('bug_url_invalid', { url => $input, reason => 'http' });
-    }
-
-    # This stops the following edge cases from being accepted:
-    # * show_bug.cgi?id=1
-    # * /show_bug.cgi?id=1
-    # * http:///show_bug.cgi?id=1
-    if (!$uri->authority or $uri->path !~ m{/})
-    {
-        ThrowUserError('bug_url_invalid', { url => $input, reason => 'path_only' });
-    }
-
     my $result;
-    # Launchpad URLs
-    if ($uri->authority =~ /launchpad.net$/)
-    {
-        # Launchpad bug URLs can look like various things:
-        #   https://bugs.launchpad.net/ubuntu/+bug/1234
-        #   https://launchpad.net/bugs/1234
-        # All variations end with either "/bugs/1234" or "/+bug/1234"
-        if ($uri->path =~ m|bugs?/(\d+)$|)
-        {
-            # This is the shortest standard URL form for Launchpad bugs,
-            # and so we reduce all URLs to this.
-            $result = "https://launchpad.net/bugs/$1";
-        }
-        else
-        {
-            ThrowUserError('bug_url_invalid', { url => $input, reason => 'id' });
-        }
-    }
-    # Google Code URLs
-    elsif ($uri->authority =~ /^code.google.com$/i)
-    {
-        # Google Code URLs only have one form:
-        #   http(s)://code.google.com/p/PROJECT_NAME/issues/detail?id=1234
-        my $project_name;
-        if ($uri->path =~ m|^/p/([^/]+)/issues/detail$|)
-        {
-            $project_name = $1;
-        }
-        else
-        {
-            ThrowUserError('bug_url_invalid', { url => $input });
-        }
-        my $bug_id = $uri->query_param('id');
-        detaint_natural($bug_id);
-        if (!$bug_id)
-        {
-            ThrowUserError('bug_url_invalid', { url => $input, reason => 'id' });
-        }
-        # While Google Code URLs can be either HTTP or HTTPS,
-        # always go with the HTTP scheme, as that's the default.
-        $result = "http://code.google.com/p/" . $project_name . "/issues/detail?id=" . $bug_id;
-    }
-    # Debian BTS URLs
-    elsif ($uri->authority =~ /^bugs.debian.org$/i)
-    {
-        # Debian BTS URLs can look like various things:
-        #   http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1234
-        #   http://bugs.debian.org/1234
-        my $bug_id;
-        if ($uri->path =~ m|^/(\d+)$|)
-        {
-            $bug_id = $1;
-        }
-        elsif ($uri->path =~ /bugreport\.cgi$/)
-        {
-            $bug_id = $uri->query_param('bug');
-            detaint_natural($bug_id);
-        }
-        if (!$bug_id)
-        {
-            ThrowUserError('bug_url_invalid', { url => $input, reason => 'id' });
-        }
-        # This is the shortest standard URL form for Debian BTS URLs,
-        # and so we reduce all URLs to this.
-        $result = "http://bugs.debian.org/" . $bug_id;
-    }
-    # Bugzilla URLs
-    else
-    {
-        if ($uri->path !~ /show_bug\.cgi$/)
-        {
-            ThrowUserError('bug_url_invalid', { url => $input, reason => 'show_bug' });
-        }
 
-        my $bug_id = $uri->query_param('id');
-        # We don't currently allow aliases, because we can't check to see
-        # if somebody's putting both an alias link and a numeric ID link.
-        # When we start validating the URL by accessing the other Bugzilla,
-        # we can allow aliases.
-        detaint_natural($bug_id);
-        if (!$bug_id)
+    my $regexes = Bugzilla->params->{see_also_url_regexes};
+    my $found = 0;
+    for my $line (split /\n/, $regexes)
+    {
+        next if /^#/;
+        my ($regex, $replacement) = split /\s+/, $line;
+        if ($regex && $input =~ /$regex/)
         {
-            ThrowUserError('bug_url_invalid', { url => $input, reason => 'id' });
+            my @starts = @-;
+            my @ends = @+;
+            $result = $replacement;
+            $result =~ s/(^|[^\\](?:\\\\)*)\$(\d+)/$1.(defined $starts[$2] ? substr($input, $starts[$2], $ends[$2]-$starts[$2]) : '$'.$2)/gsoe;
+            trick_taint($result);
+            $found = 1;
+            last;
         }
+    }
 
-        # Make sure that "id" is the only query parameter.
-        $uri->query("id=$bug_id");
-        # And remove any # part if there is one.
-        $uri->fragment(undef);
-        $result = $uri->canonical->as_string;
+    if (!$found)
+    {
+        ThrowUserError('bug_url_invalid', { url => $input });
     }
 
     if (length($result) > MAX_BUG_URL_LENGTH)
@@ -3590,6 +3457,27 @@ sub get_access_user_list
         ORDER BY p.realname");
 }
 
+sub depscompletedpercent  { $_[0]->checkdepsinfo; $_[0]->{depscompletedpercent}; }
+sub lastchangeddeps       { $_[0]->checkdepsinfo; $_[0]->{lastchangeddeps}; }
+
+sub checkdepsinfo
+{
+    my $self = shift;
+    my $dep = $self->dependson;
+    return if defined $self->{lastchangeddeps} || !$dep || !@$dep;
+    my $where = "bug_id IN (" . join(",", ("?") x @$dep) . ")";
+    my ($last, $rem) = Bugzilla->dbh->selectrow_array(
+        "SELECT MAX(delta_ts), SUM(remaining_time)" .
+        " FROM bugs WHERE $where", undef, @$dep
+    );
+    my ($work) = Bugzilla->dbh->selectrow_array(
+        "SELECT SUM(work_time) FROM longdescs WHERE $where",
+        undef, @$dep
+    );
+    $self->{lastchangeddeps} = $last;
+    $self->{depscompletedpercent} = int(100*$work/($work+$rem || 1));
+}
+
 #####################################################################
 # Subroutines
 #####################################################################
@@ -3999,7 +3887,7 @@ sub CheckIfVotedConfirmed
         else
         {
             # If the bug is in a closed state, only set everconfirmed to 1.
-            # Do not call $bug->_set_everconfirmed(), for the same reason as above.
+            # Do not call $bug->set(), for the same reason as above.
             $bug->{everconfirmed} = 1;
         }
         $bug->update();
@@ -4094,7 +3982,7 @@ sub check_can_change_field
 
     # Allow the assignee to change anything else.
     if ($self->{assigned_to} == $user->id ||
-        $self->{_old_assigned_to} && $self->{_old_assigned_to} == $user->id)
+        $self->{_old_self} && $self->{_old_self}->{assigned_to} == $user->id)
     {
         return 1;
     }
@@ -4102,7 +3990,7 @@ sub check_can_change_field
     # Allow the QA contact to change anything else.
     if (Bugzilla->params->{useqacontact} &&
         ($self->{qa_contact} && $self->{qa_contact} == $user->id ||
-        $self->{_old_qa_contact} && $self->{_old_qa_contact} == $user->id))
+        $self->{_old_self} && $self->{_old_self}->{qa_contact} == $user->id))
     {
         return 1;
     }

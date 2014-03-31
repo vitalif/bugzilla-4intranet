@@ -543,11 +543,19 @@ use constant ABSTRACT_SCHEMA => {
             obsolete    => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
             nullable    => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
             enter_bug   => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
+            clone_bug   => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
             buglist     => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
             visibility_field_id => {TYPE => 'INT4', REFERENCES => {TABLE => 'fielddefs', COLUMN => 'id'}},
             # CustIS Bug 53617 - visibility_value_id is removed from here
             # (migrated to fieldvaluecontrol table)
             value_field_id => {TYPE => 'INT4', REFERENCES => {TABLE => 'fielddefs', COLUMN => 'id'}},
+            # Used for "external link via template" type fields (CustIS Bug 90854)
+            url => {TYPE => 'VARCHAR(255)'},
+            # Used for refreshing client-side field/value cache (CustIS Bug 70605)
+            delta_ts => {TYPE => 'DATETIME'},
+            has_activity => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0},
+            # Automatic addition of Bug ID field value dependencies (CustIS Bug 73054)
+            add_to_deps => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0},
         ],
         INDEXES => [
             fielddefs_name_idx    => {FIELDS => ['name'], TYPE => 'UNIQUE'},
