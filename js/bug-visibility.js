@@ -134,6 +134,10 @@ function handleControllerField(e, controller)
         controlled = document.getElementById(controlled_id);
         copt = getSelectedIds(controlled);
         bz_clearOptions(controlled);
+        if (show_fields[controlled.id]['nullable'])
+        {
+            bz_createOptionInSelect(controlled, '---', '');
+        }
         for (var i in show_fields[controlled.id]['legal'])
         {
             controlled_value = show_fields[controlled.id]['legal'][i];

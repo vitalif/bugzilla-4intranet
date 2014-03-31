@@ -401,26 +401,29 @@ $vars->{'product'} = $product;
     $vars->{product_flag_types} = $types;
 }
 
-$vars->{'assigned_to'}           = formvalue('assigned_to');
+$default{'assigned_to'}          = formvalue('assigned_to');
 $vars->{'assigned_to_disabled'}  = !$has_editbugs;
 $vars->{'cc_disabled'}           = 0;
 
-$vars->{'qa_contact'}           = formvalue('qa_contact');
-$vars->{'qa_contact_disabled'}  = !$has_editbugs;
+$default{'qa_contact'}           = formvalue('qa_contact');
+$vars->{'qa_contact_disabled'}   = !$has_editbugs;
 
 $vars->{'cloned_bug_id'}         = $cloned_bug_id;
 
-$vars->{'token'}             = issue_session_token('createbug:');
+$vars->{'token'}                 = issue_session_token('createbug:');
 
 my @enter_bug_fields = grep { $_->enter_bug } Bugzilla->active_custom_fields;
-foreach my $field (@enter_bug_fields) {
+foreach my $field (@enter_bug_fields)
+{
     my $cf_name = $field->name;
     my $cf_value = $cgi->param($cf_name);
-    if (defined $cf_value) {
-        if ($field->type == FIELD_TYPE_MULTI_SELECT) {
-            $cf_value = [$cgi->param($cf_name)];
+    if (defined $cf_value)
+    {
+        if ($field->type == FIELD_TYPE_MULTI_SELECT)
+        {
+            $cf_value = [ $cgi->param($cf_name) ];
         }
-        $default{$cf_name} = $vars->{$cf_name} = $cf_value;
+        $default{$cf_name} = $cf_value;
     }
 }
 
@@ -431,19 +434,19 @@ $default{'product_obj'} = $product;
 
 if ($cloned_bug_id) {
 
-    $default{'component_'}    = $cloned_bug->component;
-    $default{'priority'}      = $cloned_bug->priority;
-    $default{'bug_severity'}  = $cloned_bug->bug_severity;
-    $default{'rep_platform'}  = $cloned_bug->rep_platform if Bugzilla->params->{useplatform};
-    $default{'op_sys'}        = $cloned_bug->op_sys if Bugzilla->params->{useopsys};
+    $default{'component_'}     = $cloned_bug->component;
+    $default{'priority'}       = $cloned_bug->priority_obj->name;
+    $default{'bug_severity'}   = $cloned_bug->bug_severity_obj->name;
+    $default{'rep_platform'}   = $cloned_bug->rep_platform_obj->name if Bugzilla->params->{useplatform};
+    $default{'op_sys'}         = $cloned_bug->op_sys_obj->name if Bugzilla->params->{useopsys};
 
-    $vars->{'short_desc'}     = $cloned_bug->short_desc;
-    $vars->{'bug_file_loc'}   = $cloned_bug->bug_file_loc;
-    $vars->{'keywords'}       = $cloned_bug->keywords;
-    $vars->{'dependson'}      = "";
-    $vars->{'blocked'}        = $cloned_bug_id;
-    $vars->{'deadline'}       = $cloned_bug->deadline;
-    $vars->{'status_whiteboard'} = $cloned_bug->status_whiteboard;
+    $default{'short_desc'}     = $cloned_bug->short_desc;
+    $default{'bug_file_loc'}   = $cloned_bug->bug_file_loc;
+    $default{'keywords'}       = $cloned_bug->keywords;
+    $default{'dependson'}      = "";
+    $default{'blocked'}        = $cloned_bug_id;
+    $default{'deadline'}       = $cloned_bug->deadline;
+    $default{'status_whiteboard'} = $cloned_bug->status_whiteboard;
 
     my @cc;
     my $comp = Bugzilla::Component->new({ product => $product, name => $cloned_bug->component });
@@ -482,7 +485,19 @@ if ($cloned_bug_id) {
     foreach my $field (@clone_bug_fields)
     {
         my $field_name = $field->name;
-        $vars->{$field_name} = $cloned_bug->$field_name;
+        if ($field->type == FIELD_TYPE_SINGLE_SELECT)
+        {
+            $default{$field_name} = $cloned_bug->get_object($field_name);
+            $default{$field_name} = $default{$field_name}->name if $default{$field_name};
+        }
+        elsif ($field->type == FIELD_TYPE_MULTI_SELECT)
+        {
+            $default{$field_name} = [ map { $_->name } @{ $cloned_bug->get_object($field_name) } ];
+        }
+        else
+        {
+            $default{$field_name} = $cloned_bug->$field_name;
+        }
     }
 
     # We need to ensure that we respect the 'insider' status of
@@ -523,16 +538,16 @@ else {
     $default{'rep_platform'}  = pickplatform() if Bugzilla->params->{useplatform};
     $default{'op_sys'}        = pickos() if Bugzilla->params->{useopsys};
 
-    $vars->{'alias'}          = formvalue('alias');
-    $vars->{'short_desc'}     = formvalue('short_desc');
-    $vars->{'bug_file_loc'}   = formvalue('bug_file_loc', "http://");
-    $vars->{'keywords'}       = formvalue('keywords');
-    $vars->{'status_whiteboard'} = formvalue('status_whiteboard');
-    $vars->{'dependson'}      = formvalue('dependson');
-    $vars->{'blocked'}        = formvalue('blocked');
-    $vars->{'deadline'}       = formvalue('deadline');
-    $vars->{'estimated_time'} = 0+formvalue('estimated_time') || "0.0";
-    $vars->{'work_time'}      = 0+formvalue('work_time') || "0.0";
+    $default{'alias'}          = formvalue('alias');
+    $default{'short_desc'}     = formvalue('short_desc');
+    $default{'bug_file_loc'}   = formvalue('bug_file_loc', "http://");
+    $default{'keywords'}       = formvalue('keywords');
+    $default{'status_whiteboard'} = formvalue('status_whiteboard');
+    $default{'dependson'}      = formvalue('dependson');
+    $default{'blocked'}        = formvalue('blocked');
+    $default{'deadline'}       = formvalue('deadline');
+    $default{'estimated_time'} = 0+formvalue('estimated_time') || "0.0";
+    $default{'work_time'}      = 0+formvalue('work_time') || "0.0";
 
     $vars->{'cc'}             = join(', ', $cgi->param('cc'));
 
@@ -557,8 +572,6 @@ else {
 #
 # Eventually maybe each product should have a "current version"
 # parameter.
-$vars->{version} = [ map($_->name, @{$product->versions}) ];
-
 my $vercookie = $cgi->cookie("VERSION-" . $product->name);
 if ($cloned_bug_id && $product->name eq $cloned_bug->product)
 {
@@ -581,7 +594,6 @@ else
 
 # Get list of milestones.
 if ( Bugzilla->params->{'usetargetmilestone'} ) {
-    $vars->{'target_milestone'} = [map($_->name, @{$product->milestones})];
     if (formvalue('target_milestone')) {
        $default{'target_milestone'} = formvalue('target_milestone');
     } else {

@@ -138,7 +138,7 @@
         Show/hide the field depending on the value of:
       </label></th>
       <td colspan="2">
-        <select style="width: 400px" name="visibility_field_id" id="visibility_field_id" onchange="onChangeVisibilityField()">
+        <select style="width: 400px" name="visibility_field_id" id="visibility_field_id">
           <option value="">---</option>
           [% FOREACH sel_field = Bugzilla.get_fields({ is_select => 1 }) %]
             [%# FIXME now, fields with non-unique value name is not allowed %]
@@ -175,9 +175,9 @@
     </tr>
     [% END %]
     [% IF field.visibility_field %]
-    <tr valign="top">
+    <tr valign="top" id="visibility_value_row">
       <th colspan="2" align="left"><label for="visibility_value_id">
-        Show the field only if [% field.visibility_field.description | html %] is set to:
+        Show the field only if <span id="visibility_value_name_span">[% field.visibility_field.description | html %]</span> is set to:
       </label></th>
       <td colspan="2">
         [% SET all = field.has_all_visibility_values %]
@@ -238,8 +238,9 @@
 
 <script>
 onChangeEnterBug();
+[% IF !field.id %]
 onChangeType();
-onChangeVisibilityField();
+[% END %]
 </script>
 
 [% PROCESS global/footer.html.tmpl %]

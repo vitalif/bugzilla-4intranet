@@ -1262,6 +1262,7 @@ sub json_visibility
         legal => [ map { [ $_->id, $_->name ] } @{$self->legal_values} ],
         visibility_field => $self->visibility_field ? $self->visibility_field->name : undef,
         value_field => $self->value_field ? $self->value_field->name : undef,
+        nullable => $self->nullable ? 1 : 0,
         fields => {},
         values => {},
     };

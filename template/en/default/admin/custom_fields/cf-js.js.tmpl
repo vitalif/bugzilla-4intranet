@@ -4,16 +4,6 @@
 
 [%# FIXME: Move this out from templates into scripts %]
 
-var select_values = new Array();
-[% USE Bugzilla %]
-[% FOREACH sel_field = Bugzilla.get_fields({ is_select => 1 }) %]
-select_values[[% sel_field.id FILTER js %]] = [
-  [% FOREACH legal_value = sel_field.legal_values %]
-    [[% legal_value.id FILTER js %], '[% legal_value.name FILTER js %]'][% ',' UNLESS loop.last %]
-  [% END %]
-];
-[% END %]
-
 function onChangeType()
 {
   var type_field = document.getElementById('type');
@@ -30,24 +20,6 @@ function onChangeType()
   u = type_field.value == [% constants.FIELD_TYPE_EXTURL %];
   document.getElementById('url_title').style.display = u ? '' : 'none';
   document.getElementById('url_field').style.display = u ? '' : 'none';
-}
-
-function onChangeVisibilityField()
-{
-  var vis_field = document.getElementById('visibility_field_id');
-  var vis_value = document.getElementById('visibility_value_id');
-  var vis_label = document.getElementById('visibility_value_id_label');
-
-  vis_value.style.display = vis_label.style.display = vis_field.value ? '' : 'none';
-  if (vis_field.value)
-  {
-    var values = select_values[vis_field.value];
-    bz_populateSelectFromArray(vis_value, values);
-  }
-  else
-  {
-    bz_clearOptions(vis_value);
-  }
 }
 
 function onChangeEnterBug()

@@ -4156,6 +4156,30 @@ sub ValidateDependencies
 # Autoloaded Accessors
 #####################################################################
 
+# Get value(s) of a select field as object(s)
+sub get_object
+{
+    my $self = shift;
+    my ($fn) = @_;
+    my $attr = $fn.'_obj';
+    return $self->{$attr} if exists $self->{$attr};
+    my $field = Bugzilla->get_field($fn);
+    $fn = OVERRIDE_ID_FIELD->{$fn} || $fn;
+    if ($field && $field->type == FIELD_TYPE_SINGLE_SELECT)
+    {
+        $self->{$attr} = $self->{$fn} ? $field->value_type->new($self->{$fn}) : undef;
+    }
+    elsif ($field && $field->type == FIELD_TYPE_MULTI_SELECT)
+    {
+        $self->{$attr} = $field->value_type->new_from_list($self->$fn);
+    }
+    else
+    {
+        die "Invalid join requested - ".__PACKAGE__."::$attr";
+    }
+    return $self->{$attr};
+}
+
 # Determines whether an attribute access trapped by the AUTOLOAD function
 # is for a valid bug attribute.  Bug attributes are properties and methods
 # predefined by this module as well as bug fields for which an accessor
@@ -4211,22 +4235,7 @@ sub AUTOLOAD
 
         if ($attr =~ /^(.*)_obj$/s)
         {
-            my $fn = $1;
-            my $field = Bugzilla->get_field($fn);
-            $fn = OVERRIDE_ID_FIELD->{$fn} || $fn;
-            if ($field && $field->type == FIELD_TYPE_SINGLE_SELECT)
-            {
-                $self->{$attr} = $self->{$fn} ? $field->value_type->new($self->{$fn}) : undef;
-            }
-            elsif ($field && $field->type == FIELD_TYPE_MULTI_SELECT)
-            {
-                $self->{$attr} = $field->value_type->new_from_list($self->$fn);
-            }
-            else
-            {
-                die "Invalid join requested - ".__PACKAGE__."::$attr";
-            }
-            return $self->{$attr};
+            return $self->get_object($1);
         }
 
         my $field = Bugzilla->get_field($attr);

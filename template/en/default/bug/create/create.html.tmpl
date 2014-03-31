@@ -477,7 +477,7 @@ function checkWorktime(inp)
     <td>
       [% INCLUDE global/userselect.html.tmpl
          name => "assigned_to"
-         value => assigned_to
+         value => default.assigned_to
          disabled => assigned_to_disabled
          size => 30
          emptyok => 1
@@ -509,14 +509,14 @@ function checkWorktime(inp)
       [% END %]
     </td>
   </tr>
-  
+
 [% IF Param("useqacontact") %]
     <tr>
       <th>QA Contact:</th>
       <td>
       [% INCLUDE global/userselect.html.tmpl
          name => "qa_contact"
-         value => qa_contact
+         value => default.qa_contact
          disabled => qa_contact_disabled
          size => 30
          emptyok => 1
@@ -546,19 +546,19 @@ function checkWorktime(inp)
 [% IF user.is_timetracker %]
     <th>Estimated Hours:</th>
     <td>
-      <input name="estimated_time" size="6" maxlength="6" value="[% estimated_time | html %]">&nbsp;
+      <input name="estimated_time" size="6" maxlength="6" value="[% default.estimated_time | html %]">&nbsp;
       <b>Hours Worked:</b>
-      <input name="work_time" id="work_time" value="[% work_time | html %]" size="6" maxlength="6" onchange="checkWorktime(this)" onkeyup="checkWorktime(this)"" />
+      <input name="work_time" id="work_time" value="[% default.work_time | html %]" size="6" maxlength="6" onchange="checkWorktime(this)" onkeyup="checkWorktime(this)"" />
     </td>
 [% END %]
     <th>Depends on:</th>
-    <td><input name="dependson" accesskey="d" value="[% dependson FILTER html %]"></td>
+    <td><input name="dependson" accesskey="d" value="[% default.dependson FILTER html %]"></td>
   </tr>
   <tr>
 [% IF user.in_group(Param('timetrackinggroup')) %]
     <th>Deadline:</th>
     <td>
-      <input name="deadline" id="deadline" size="10" maxlength="10" value="[% deadline FILTER html %]">
+      <input name="deadline" id="deadline" size="10" maxlength="10" value="[% default.deadline FILTER html %]">
       <small>(YYYY-MM-DD)</small>
       <script type="text/javascript">
          Calendar.set('deadline');
@@ -566,12 +566,12 @@ function checkWorktime(inp)
     </td>
 [% END %]
     <th>Blocks:</th>
-    <td><input name="blocked" accesskey="b" value="[% blocked FILTER html %]"></td>
+    <td><input name="blocked" accesskey="b" value="[% default.blocked FILTER html %]"></td>
   </tr>
 
   <tr>
     <th>URL:</th>
-    <td colspan="2"><input name="bug_file_loc" size="40" value="[% bug_file_loc FILTER html %]"></td>
+    <td colspan="2"><input name="bug_file_loc" size="40" value="[% default.bug_file_loc FILTER html %]"></td>
   </tr>
 </tbody>
 
@@ -581,11 +581,15 @@ function checkWorktime(inp)
   [% FOREACH field = Bugzilla.active_custom_fields %]
     [% NEXT UNLESS field.enter_bug %]
     [%# FIXME Default value?! %]
-    [% SET value = ${field.name}.defined ? ${field.name} : "" %]
     <tr>
+      [%# Do not care about missing default value IDs or objects - JS will re-fill dependent fields %]
       [% INCLUDE bug/field.html.tmpl
-        bug = default, field = field, value_name = value, editable = 1,
-        value_span = 3 %]
+        bug = default
+        field = field
+        value_name = default.${field.name}
+        editable = 1
+        value_span = 3
+      %]
     </tr>
   [% END %]
 </tbody>
@@ -596,7 +600,7 @@ function checkWorktime(inp)
   <tr>
     <th class="required">Summary:</th>
     <td colspan="3">
-      <input name="short_desc" id="short_desc" size="70" value="[% short_desc FILTER html %]"
+      <input name="short_desc" id="short_desc" size="70" value="[% default.short_desc FILTER html %]"
              maxlength="255" spellcheck="true" aria-required="true"
              class="required" />
     </td>
@@ -690,7 +694,7 @@ function checkWorktime(inp)
         [% ELSE %]
         <td>
         [% END %]
-          <input id="keywords" name="keywords" size="40" value="[% keywords FILTER html %]">
+          <input id="keywords" name="keywords" size="40" value="[% default.keywords FILTER html %]">
           <script type="text/javascript">
             var emptyKeywordsOptions = [% keyword_list ? json(keyword_list) : "null" %];
             addListener(window, 'load', function() {
@@ -704,13 +708,13 @@ function checkWorktime(inp)
         </td>
       [% IF Param("usebugaliases") %]
         <th>Alias:</th>
-        <td><input name="alias" size="20"></td>
+        <td><input name="alias" size="20" value="[% default.alias | html %]" /></td>
       [% END %]
       </tr>
     [% ELSIF Param("usebugaliases") %]
       <tr>
         <th>Alias:</th>
-        <td colspan="3"><input name="alias" size="20"></td>
+        <td colspan="3"><input name="alias" size="20" value="[% default.alias | html %]" /></td>
       </tr>
     [% END %]
   [% END %]
@@ -718,7 +722,7 @@ function checkWorktime(inp)
     <tr>
       <th>Whiteboard:</th>
       <td colspan="3">
-        <input id="status_whiteboard" name="status_whiteboard" size="40" value="[% status_whiteboard FILTER html %]">
+        <input id="status_whiteboard" name="status_whiteboard" size="40" value="[% default.status_whiteboard FILTER html %]">
       </td>
     </tr>
   [% END %]
