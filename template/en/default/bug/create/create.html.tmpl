@@ -264,16 +264,29 @@ function handleWantsAttachment(wants_attachment)
     }
 }
 
-function show_resolution_field(showhide)
+function bug_status_change()
 {
-    if (showhide)
+    if (this.value == "RESOLVED")
+    {
         document.getElementById('resolution_container').style.display = '';
+    }
     else
     {
+        if (this.value == "ASSIGNED")
+        {
+            document.Create.assigned_to.value="[% user.login %]";
+        }
         document.getElementById('resolution_container').style.display = 'none';
         document.Create.resolution.value = '';
     }
 }
+
+addListener(window, 'load', function()
+{
+    var f = document.getElementById('bug_status');
+    addListener(f, 'change', bug_status_change);
+    bug_status_change.apply(f);
+});
 
 function checkWorktime(inp)
 {
@@ -439,24 +452,22 @@ function checkWorktime(inp)
 <tbody class="expert_fields">
 
   <tr>
-[% IF bug_status.size <= 1 %]
-    <input type="hidden" name="bug_status" value="[% default.bug_status FILTER html %]" />
-    <th>Initial State:</th>
-    <td>[% default.bug_status FILTER html %]</td>
-[% ELSE %]
-    [% sel = {
-        description => 'Initial State',
-        name => 'bug_status',
-        onchange => 'if(this.value=="ASSIGNED"){ document.Create.assigned_to.value="' _ user.login _ '" } show_resolution_field(this.value=="RESOLVED");',
-    } %]
-    [% INCLUDE select %]
-  </td>
-[% END %]
+    [% INCLUDE bug/field.html.tmpl
+      bug = default
+      field = select_fields.bug_status
+      editable = bug_status.size > 1
+      value_name = default.bug_status
+      override_legal_values = bug_status
+      custom_label = "Initial State"
+    %]
   </tr>
 
   <tr id="resolution_container" style="display:none">
     [% INCLUDE bug/field.html.tmpl
-      bug = default, field = select_fields.resolution, editable = 1 %]
+      bug = default
+      field = select_fields.resolution
+      editable = 1
+    %]
   </tr>
 
   <tr><td colspan="4"><hr /></td></tr>
@@ -681,15 +692,15 @@ function checkWorktime(inp)
         [% END %]
           <input id="keywords" name="keywords" size="40" value="[% keywords FILTER html %]">
           <script type="text/javascript">
-	    var emptyKeywordsOptions = [% keyword_list ? json(keyword_list) : "null" %];
+            var emptyKeywordsOptions = [% keyword_list ? json(keyword_list) : "null" %];
             addListener(window, 'load', function() {
-                new SimpleAutocomplete("keywords",
-                    function(h) { keywordAutocomplete(h, emptyKeywordsOptions); },
-                    { emptyText: 'No keywords found', multipleDelimiter: "," }
-                );
-            }); 
+              new SimpleAutocomplete("keywords",
+                function(h) { keywordAutocomplete(h, emptyKeywordsOptions); },
+                { emptyText: 'No keywords found', multipleDelimiter: "," }
+              );
+            });
           </script>
-	    <div id="keywords_description_container"></div>
+          <div id="keywords_description_container"></div>
         </td>
       [% IF Param("usebugaliases") %]
         <th>Alias:</th>
@@ -711,7 +722,6 @@ function checkWorktime(inp)
       </td>
     </tr>
   [% END %]
-  
 </tbody>
 
 <tbody class="expert_fields">
@@ -766,29 +776,6 @@ function checkWorktime(inp)
 [% Hook.process("end") %]
 
 [% PROCESS global/footer.html.tmpl %]
-
-[%############################################################################%]
-[%# Block for SELECT fields                                                  #%]
-[%############################################################################%]
-
-[% BLOCK select %]
-  [% IF sel.description %]
-    <th>
-      <a href="page.cgi?id=fields.html#[% sel.name %]">[% sel.description %]</a>:
-    </th>
-  [% END %]
-
-  <td>
-    <select name="[% sel.name %]" id="[% sel.name %]"[% IF sel.onchange %] onchange='[% sel.onchange %]'[% END %]>
-    [%- FOREACH x = ${sel.name} %]
-      <option value="[% x FILTER html %]"
-        [% " selected=\"selected\"" IF x == default.${sel.name} %]>
-        [% x FILTER html %]
-      </option>
-    [% END %]
-    </select>
-  </td>
-[% END %]
 
 [% BLOCK build_userlist %]
   [% user_found = 0 %]

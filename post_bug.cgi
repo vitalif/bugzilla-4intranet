@@ -163,10 +163,15 @@ else
     $bug_params{'work_time'} = 0;
 }
 
-my @multi_selects = grep {$_->type == FIELD_TYPE_MULTI_SELECT && $_->enter_bug}
-                         Bugzilla->active_custom_fields;
+my @multi_selects = Bugzilla->get_fields({
+    custom => 1,
+    type => FIELD_TYPE_MULTI_SELECT,
+    enter_bug => 1,
+    obsolete => 0,
+});
 
-foreach my $field (@multi_selects) {
+foreach my $field (@multi_selects)
+{
     $bug_params{$field->name} = [$cgi->param($field->name)];
 }
 

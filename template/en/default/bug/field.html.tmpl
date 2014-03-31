@@ -23,20 +23,26 @@
 [%# INTERFACE:
   #   field: a Bugzilla::Field object
   #   value: The value of the field for this bug.
-  #   override_legal_values (optional): The list of legal values, for select fields.
-  #   editable: Whether the field should be displayed as an editable
-  #             <input> or as just the plain text of its value.
+  #   override_legal_values: (optional)
+  #     The list of legal values, for select fields.
+  #   editable:
+  #     Whether the field should be displayed as an editable
+  #     <input> or as just the plain text of its value.
   #   allow_dont_change: display the --do_not_change-- option for select fields.
-  #   value_span: A colspan for the table cell containing
-  #               the field value.
-  #   no_tds: boolean; if true, don't display the label <th> or the
-  #           wrapping <td> for the field.
-  #   desc_url: string; Normally the label of a non-custom field links to
-  #             fields.html. If you want it to link elsewhere, specify the
-  #             relative URL you want to link to, here. Remember to call
-  #             url_quote on any query string arguments.
-  #   bug: (optional) The current Bugzilla::Bug being displayed, or a hash
-  #        with default field values being displayed on a page.
+  #   value_span:
+  #     A colspan for the table cell containing the field value.
+  #   no_tds: boolean;
+  #     If true, don't display the label <th> or the wrapping <td> for the field.
+  #   custom_label: string;
+  #     Label for this field. Default label is takes from the field description.
+  #   desc_url: string;
+  #     Normally the label of a non-custom field links to
+  #     fields.html. If you want it to link elsewhere, specify the
+  #     relative URL you want to link to, here. Remember to call
+  #     url_quote on any query string arguments.
+  #   bug: (optional)
+  #     The current Bugzilla::Bug being displayed, or a hash
+  #     with default field values being displayed on a page.
   #   tabindex: (optional) HTML tabindex.
   #%]
 
@@ -45,13 +51,13 @@
     [% IF editable %]
       <label for="[% field.name | html %]">
     [% END %]
-      [% IF desc_url %]
-        <a href="[% desc_url | html %]">
-      [% ELSIF !field.custom %]
-        <a href="page.cgi?id=fields.html#[% field.name | url_quote %]">
-      [% END -%]
-        [% field_descs.${field.name} || field.description | html %]:
-      [%- '</a>' IF (!field.custom || desc_url) %]
+    [% IF desc_url %]
+      <a href="[% desc_url | html %]">
+    [% ELSIF !field.custom %]
+      <a href="page.cgi?id=fields.html#[% field.name | url_quote %]">
+    [% END -%]
+      [% custom_label || field_descs.${field.name} || field.description | html %]:
+    [%- '</a>' IF desc_url || !field.custom %]
     [% '</label>' IF editable %]
   </th>
   <td class="field_value"
@@ -243,8 +249,12 @@
     [% bug.${field.name} | bug_link(bug.${field.name}) | none %]
   [% END %]
 [% ELSIF field.type == constants.FIELD_TYPE_SINGLE_SELECT %]
-  [% f = field.name _ '_obj' %]
-  [% bug.$f.name | html %]
+  [% IF value_name %]
+    [% value_name | html %]
+  [% ELSE %]
+    [% f = field.name _ '_obj' %]
+    [% bug.$f.name | html %]
+  [% END %]
 [% ELSIF field.type == constants.FIELD_TYPE_MULTI_SELECT %]
   [% f = field.name _ '_obj' %]
   [% bug.$f.name.join(', ') | html %]
