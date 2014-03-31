@@ -76,9 +76,8 @@ use constant ID_FIELD   => 'bug_id';
 use constant NAME_FIELD => 'alias';
 use constant LIST_ORDER => ID_FIELD;
 
-# FIXME NUMERIC_COLUMNS
+# FIXME define NUMERIC_COLUMNS based on custom field types
 
-# This is a sub because it needs to call other subroutines.
 sub DB_COLUMNS
 {
     my $cache = Bugzilla->cache_fields;
@@ -526,7 +525,8 @@ sub create
     my $bug = $class->insert_create_data($params);
 
     # CustIS Bug 38616 - CC list restriction
-    if ($bug->product_obj->cc_restrict_group)
+    # FIXME Use strict_isolation
+    if ($bug->product_obj->cc_group)
     {
         $bug->{restricted_cc} = $bug->product_obj->restrict_cc($cc_ids, 'id');
     }
@@ -906,7 +906,8 @@ sub update
     my @new_cc = @{$self->cc_users};
 
     # CustIS Bug 38616 - CC list restriction
-    if ($self->product_obj->cc_restrict_group)
+    # FIXME Use strict_isolation
+    if ($self->product_obj->cc_group)
     {
         $self->{restricted_cc} = $self->product_obj->restrict_cc(\@new_cc);
     }
@@ -1373,18 +1374,20 @@ sub _check_assigned_to
         {
             $assignee = trim($assignee);
             # When updating a bug, assigned_to can't be empty.
-            ThrowUserError("reassign_to_empty") if ref $invocant && !$assignee;
+            ThrowUserError('reassign_to_empty') if ref $invocant && !$assignee;
             $assignee = Bugzilla::User->check($assignee);
         }
         $id = $assignee->id;
         # create() checks this another way, so we don't have to run this
         # check during create().
         $invocant->_check_strict_isolation_for_user($assignee) if ref $invocant;
+        # CustIS Bug 38616 - CC list restriction
+        # FIXME use strict_isolation
         my $prod = ref $invocant ? $invocant->product_obj : $component->product;
-        my ($ccg) = $prod->description =~ /\[[CС]{2}:\s*([^\]]+)\s*\]/iso;
+        my ($ccg) = $prod->cc_group;
         if ($ccg && !$assignee->in_group($ccg))
         {
-            ThrowUserError("cc_group_restriction", { user => $assignee->login });
+            ThrowUserError('cc_group_restriction', { user => $assignee->login });
         }
     }
     return $id;
@@ -1894,10 +1897,10 @@ sub _check_qa_contact
         # If there is no QA contact, this check is not required.
         $invocant->_check_strict_isolation_for_user($qa_contact) if ref $invocant && $id;
         my $prod = ref $invocant ? $invocant->product_obj : $component->product;
-        my ($ccg) = $prod->description =~ /\[[CС]{2}:\s*([^\]]+)\s*\]/iso;
+        my $ccg = $prod->cc_group;
         if ($ccg && !$qa_contact->in_group($ccg))
         {
-            ThrowUserError("cc_group_restriction", { user => $qa_contact->login });
+            ThrowUserError('cc_group_restriction', { user => $qa_contact->login });
         }
     }
 
@@ -1928,14 +1931,14 @@ sub _check_reporter
     }
     if ($reporter && ref $invocant)
     {
-        # Custis Bug 38616
-        # For situations of moving external bugs into internal
-        my $prod = $invocant->product_obj;
-        my ($ccg) = $prod->description =~ /\[[CС]{2}:\s*([^\]]+)\s*\]/iso;
+        # CustIS Bug 38616
+        # FIXME Use strict_isolation
+        # Clean reporter when moving external bug into internal product with protected CC group
+        my $ccg = $invocant->product_obj->cc_group;
         my $user = Bugzilla::User->new($reporter);
         if ($ccg && !$user->in_group($ccg))
         {
-            ThrowUserError("cc_group_restriction", { user => $user->login });
+            ThrowUserError('cc_group_restriction', { user => $user->login });
         }
     }
     return $reporter;

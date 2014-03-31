@@ -460,13 +460,13 @@ if ($cloned_bug_id) {
     }
 
     # CustIS Bug 38616 - CC list restriction
-    if ($product->cc_restrict_group)
+    if ($product->cc_group)
     {
         my $removed = $product->restrict_cc(\@cc, 'login_name');
         if ($removed && @$removed)
         {
             $vars->{restricted_cc} = [ map { $_->login } @$removed ];
-            $vars->{cc_restrict_group} = $product->cc_restrict_group;
+            $vars->{cc_restrict_group} = $product->cc_group;
             $vars->{message} = 'cc_list_restricted';
         }
     }

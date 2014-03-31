@@ -326,7 +326,7 @@ if (Bugzilla->usage_mode != USAGE_MODE_EMAIL)
     {
         $ses->{message_vars} = {
             restricted_cc     => [ map { $_->login } @{ $bug->{restricted_cc} } ],
-            cc_restrict_group => $bug->product_obj->cc_restrict_group,
+            cc_restrict_group => $bug->product_obj->cc_group,
         };
         $ses->{message} = 'cc_list_restricted';
     }

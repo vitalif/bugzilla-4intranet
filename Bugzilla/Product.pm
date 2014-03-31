@@ -1069,19 +1069,13 @@ sub enterable_intproduct_name
 }
 
 # CustIS Bug 38616 - CC list restriction
-sub cc_restrict_group
-{
-    my $self = shift;
-    return $self->cc_group;
-}
-
 sub restrict_cc
 {
     my $self = shift;
     my ($cclist, $field) = @_;
     my $id = $field eq 'id';
     my $login = $field eq 'login' || $field eq 'login_name';
-    my $group = $self->cc_restrict_group || return undef;
+    my $group = $self->cc_group || return undef;
     my @cclist = @$cclist;
     if ($login)
     {

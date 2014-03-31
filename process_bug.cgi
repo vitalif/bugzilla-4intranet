@@ -700,7 +700,7 @@ foreach my $bug (@bug_objects)
     if ($bug->{restricted_cc})
     {
         $vars->{restricted_cc} = [map { $_->login } @{$bug->{restricted_cc}}];
-        $vars->{cc_restrict_group} = $bug->product_obj->cc_restrict_group;
+        $vars->{cc_restrict_group} = $bug->product_obj->cc_group;
         $vars->{message} = 'cc_list_restricted';
     }
 
@@ -843,7 +843,7 @@ elsif (($action eq 'next_bug' or $action eq 'same_bug') && ($bug = $vars->{bug})
     {
         $ses->{message_vars} = {
             restricted_cc     => [ map { $_->login } @{ $bug_objects[0]->{restricted_cc} } ],
-            cc_restrict_group => $bug_objects[0]->product_obj->cc_restrict_group,
+            cc_restrict_group => $bug_objects[0]->product_obj->cc_group,
         };
         $ses->{message} = 'cc_list_restricted';
     }

@@ -310,16 +310,15 @@ sub set
 {
     my ($self, $field, $value) = @_;
 
-    my %validators = (%{$self->VALIDATORS}, %{$self->UPDATE_VALIDATORS});
-    if (exists $validators{$field})
+    my $validator = $self->VALIDATORS->{$field} || $self->UPDATE_VALIDATORS->{$field};
+    if ($validator)
     {
-        my $validator = $validators{$field};
         $value = $self->$validator($value, $field);
         trick_taint($value) if defined $value && !ref $value;
-        if ($self->can('_set_global_validator'))
-        {
-            $self->_set_global_validator($value, $field);
-        }
+    }
+    if ($self->can('_set_global_validator'))
+    {
+        $self->_set_global_validator($value, $field);
     }
 
     $self->{$field} = $value;
