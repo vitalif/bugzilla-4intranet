@@ -40,11 +40,8 @@
   #   tabindex: (optional) HTML tabindex.
   #%]
 
-[% SET hidden = !field.check_visibility(bug) %]
-
 [% IF NOT no_tds %]
-  <th class="field_label [% ' bz_hidden_field' IF hidden %]"
-      id="field_label_[% field.name | html %]">
+  <th class="field_label" id="field_label_[% field.name | html %]">
     [% IF editable %]
       <label for="[% field.name | html %]">
     [% END %]
@@ -57,7 +54,7 @@
       [%- '</a>' IF (!field.custom || desc_url) %]
     [% '</label>' IF editable %]
   </th>
-  <td class="field_value [% ' bz_hidden_field' IF hidden %]"
+  <td class="field_value"
     id="field_container_[% field.name | html %]"
     [% " colspan=\"$value_span\"" | none IF value_span %]>
 [% END %]

@@ -677,7 +677,7 @@ sub check_visibility
         # FIXME: This does not allow selecting of fields
         # non-uniquely identified by name, as a visibility
         # controller field (for example, "component")
-        $value = Bugzilla::Field::Choice->type($vf)->new({ name => $value }) || return 1;
+        $value = Bugzilla::Field::Choice->type($vf)->new($value) || return 1;
     }
     return $self->has_visibility_value($value);
 }
@@ -1254,13 +1254,14 @@ sub update_controlled_values
     return 1;
 }
 
-# Moved from bug/field-events.js.tmpl
-# Now uses one pass over cached fieldvaluecontrol table
+# Field and value dependency data, intended for use in client JavaScript
 sub json_visibility
 {
     my $self = shift;
     my $data = {
-        legal  => [ map { [ $_->id, $_->name ] } @{$self->legal_values} ],
+        legal => [ map { [ $_->id, $_->name ] } @{$self->legal_values} ],
+        visibility_field => $self->visibility_field ? $self->visibility_field->name : undef,
+        value_field => $self->value_field ? $self->value_field->name : undef,
         fields => {},
         values => {},
     };

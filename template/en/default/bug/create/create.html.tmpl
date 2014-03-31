@@ -43,6 +43,7 @@
 <script type="text/javascript">
 <!--
 
+var product_id = [% product.id %];
 var last_cc = "[% cc | js %]";
 var cc_rem = {}, cc_add = {};
 var initialowners = new Array([% product.active_components.size %]);
@@ -297,10 +298,10 @@ function checkWorktime(inp)
 <form name="Create" id="Create" method="post" action="post_bug.cgi"
       enctype="multipart/form-data" onkeypress="return ctrlEnter(event||window.event,this)"
       onsubmit="return validateEntryForm(this)">
-<input type="hidden" name="product" value="[% product.name FILTER html %]" id="product">
-<input type="hidden" name="token" value="[% token FILTER html %]">
-<input type="hidden" name="cloned_bug_id" value="[% cloned_bug_id FILTER html %]">
-<input type="hidden" name="cloned_comment" value="[% cloned_comment FILTER html %]">
+<input type="hidden" name="product" value="[% product.name FILTER html %]" id="product" />
+<input type="hidden" name="token" value="[% token FILTER html %]" />
+<input type="hidden" name="cloned_bug_id" value="[% cloned_bug_id FILTER html %]" />
+<input type="hidden" name="cloned_comment" value="[% cloned_comment FILTER html %]" />
 
 <p>
 [%# Migration note: The following file corresponds to the old Param
@@ -330,7 +331,7 @@ function checkWorktime(inp)
       Component</a>:
     </th>
     <td>
-      <select name="component" onchange="set_assign_to();" size="7"
+      <select id="component" name="component" onchange="set_assign_to();" size="7"
               aria-required="true" class="required">
         [%# Build the lists of assignees and QA contacts if "usemenuforusers" is enabled. %]
         [% IF Param("usemenuforusers") %]
@@ -370,16 +371,9 @@ function checkWorktime(inp)
   </tr>
 
   <tr>
-    <th>Version:</th>
-    <td>
-      <select name="version">
-        [%- FOREACH v = version %]
-          <option value="[% v FILTER html %]"
-            [% ' selected="selected"' IF v == default.version %]>[% v FILTER html -%]
-          </option>
-        [%- END %]
-      </select>
-    </td>
+    [% INCLUDE bug/field.html.tmpl
+      bug = default, field = select_fields.version, editable = 1,
+      value_name = default.version %]
 
     [% INCLUDE bug/field.html.tmpl
       bug = default, field = select_fields.bug_severity, editable = 1,
@@ -423,16 +417,16 @@ function checkWorktime(inp)
   </tr>
 </tbody>
 
-[% IF !Param('defaultplatform') || !Param('defaultopsys') %]
+[% IF Param('useplatform') && !Param('defaultplatform') || Param('useopsys') && !Param('defaultopsys') %]
   <tbody>
     <tr>
       <th>&nbsp;</th>
       <td colspan="3" class="comment">
         We've made a guess at your
-        [% IF Param('defaultplatform') %]
-          operating system. Please check it
-        [% ELSIF Param('defaultopsys') %]
+        [% IF !Param('useplatform') || Param('defaultplatform') %]
           platform. Please check it
+        [% ELSIF !Param('useopsys') || Param('defaultopsys') %]
+          operating system. Please check it
         [% ELSE %]
           operating system and platform. Please check them
         [% END %]

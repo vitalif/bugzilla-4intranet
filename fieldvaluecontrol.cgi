@@ -1,5 +1,7 @@
 #!/usr/bin/perl -wT
-# Bug 70605 - Client-side caching of field value visibility data
+# Client-side caching of field and value dependencies (CustIS Bug 70605)
+# Author: (c) 2010+ Vitaliy Filippov <vitalif@mail.ru>
+# License: Dual-license GPL 3.0+ or MPL 1.1+
 
 use strict;
 use lib qw(. lib);

@@ -1,42 +1,54 @@
 /* Functions used to show/hide dependent bug fields and change their select options
  * License: Dual-license GPL 3.0+ or MPL 1.1+
- * Contributor(s): Vitaliy Filippov <vitalif@mail.ru>
+ * Author(s): Vitaliy Filippov <vitalif@mail.ru>
  */
 
-// This is set to onload event from fieldvaluecontrol.cgi
+// This is set to window.onload event from fieldvaluecontrol.cgi
 function initControlledFields()
 {
+    // Initialise fields in correct order (from up-most controller fields)
+    var initialised = {};
+    var doInit = function(f)
+    {
+        if (f && !initialised[f])
+        {
+            initialised[f] = true;
+            doInit(show_fields[f].visibility_field);
+            doInit(show_fields[f].value_field);
+            initControllerField(f);
+        }
+    };
     for (var i in show_fields)
-        initControlledField(i);
+    {
+        doInit(i);
+    }
 }
 
-function initControlledField(i)
+function initControllerField(i)
 {
     var f = document.getElementById(i);
     if (f)
     {
         if (document.forms['Create'])
         {
-            var control_id = null;
-            var controlled,copt;
+            // Find current value of field f by its name
+            var control_id;
+            for (var i in show_fields[f.id]['legal'])
+            {
+                if (f.value == show_fields[f.id]['legal'][i][1])
+                {
+                    control_id = show_fields[f.id]['legal'][i][0];
+                    break;
+                }
+            }
 
+            // Select default value in each controlled field
             for (var controlled_id in show_fields[f.id]['values'])
             {
-                controlled = document.getElementById(controlled_id);
+                var controlled = document.getElementById(controlled_id);
                 if (!controlled)
                 {
                     continue;
-                }
-                if (!control_id)
-                {
-                    for (var i in show_fields[f.id]['legal'])
-                    {
-                        if (f.value == show_fields[f.id]['legal'][i][1])
-                        {
-                            control_id = show_fields[f.id]['legal'][i][0];
-                            break;
-                        }
-                    }
                 }
 
                 var vals = show_fields[f.id]['values'][controlled_id];
@@ -52,9 +64,9 @@ function initControlledField(i)
                     }
                 }
             }
-
         }
 
+        handleControllerField(null, f);
         addListener(f, 'change', handleControllerField_this);
     }
 }
@@ -63,6 +75,12 @@ function getSelectedIds(sel)
 {
     var lm = sel.id.length+2;
     var opt = {};
+    if (sel.type == 'hidden' && sel.name == 'product')
+    {
+        // product is a special case - it is preselected as hidden field on bug creation form
+        opt[product_id] = true;
+        return opt;
+    }
     for (var i = 0; i < sel.options.length; i++)
     {
         if (sel.options[i].selected)
@@ -79,10 +97,12 @@ function handleControllerField_this(e)
     return handleControllerField(e, this);
 }
 
+// Turn on/off fields and values controlled by 'controller' argument
 function handleControllerField(e, controller)
 {
     var vis, label_container, field_container, id;
     var opt = getSelectedIds(controller);
+    // Show/hide fields
     for (var controlled_id in show_fields[controller.id]['fields'])
     {
         vis = false;
@@ -107,6 +127,7 @@ function handleControllerField(e, controller)
             addClass(field_container, 'bz_hidden_field');
         }
     }
+    // Change select options
     var item, controlled, copt, controlled_value;
     for (var controlled_id in show_fields[controller.id]['values'])
     {
@@ -135,7 +156,9 @@ function handleControllerField(e, controller)
                 item = bz_createOptionInSelect(controlled, controlled_value[1], controlled_value[1]);
                 item.id = 'v'+controlled_value[0]+'_'+controlled_id;
                 if (copt[controlled_value[0]])
+                {
                     item.selected = true;
+                }
             }
         }
     }
