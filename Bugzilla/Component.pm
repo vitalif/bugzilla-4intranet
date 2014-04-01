@@ -399,24 +399,26 @@ sub bug_ids {
     return $self->{'bugs_ids'};
 }
 
-sub default_assignee {
+sub default_assignee
+{
     my $self = shift;
-
-    if (!defined $self->{'default_assignee'}) {
-        $self->{'default_assignee'} =
-            new Bugzilla::User($self->{'initialowner'});
+    if (!exists $self->{default_assignee})
+    {
+        $self->{default_assignee} = $self->{initialowner}
+            ? new Bugzilla::User($self->{initialowner}) : undef;
     }
-    return $self->{'default_assignee'};
+    return $self->{default_assignee};
 }
 
-sub default_qa_contact {
+sub default_qa_contact
+{
     my $self = shift;
-
-    if (!defined $self->{'default_qa_contact'}) {
-        $self->{'default_qa_contact'} =
-            new Bugzilla::User($self->{'initialqacontact'});
+    if (!exists $self->{default_qa_contact})
+    {
+        $self->{default_qa_contact} = $self->{initialqacontact}
+            ? new Bugzilla::User($self->{initialqacontact}) : undef;
     }
-    return $self->{'default_qa_contact'};
+    return $self->{default_qa_contact};
 }
 
 sub flag_types
@@ -439,8 +441,8 @@ sub flag_types
         {
             # Build custom userlist for setting flag (for enter_bug.cgi)
             my $cl = new Bugzilla::FlagType::UserList;
-            $cl->add(Assignee => $_) for $self->default_assignee || ();
-            $cl->add(QA => $_) for $self->default_qa_contact || ();
+            $cl->add(DefaultAssignee => $_) for $self->default_assignee || ();
+            $cl->add(CompQA => $_) for $self->default_qa_contact || ();
             $cl->add(CC => @{ $self->initial_cc || [] });
             $type->{custom_list} = $cl;
             $type->{allow_other} = 1;
