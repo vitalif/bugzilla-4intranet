@@ -54,13 +54,13 @@ function component_change()
          * CustIS Bug 57457 & Bug 58657
          *
          * Infernal logic for High Usability
-         * Remembers modifications entered by user (added and removed CC), and
-         * builds new CC list from initial value plus initial component CCs
-         * (initial CC for component), preserving entry order.
+         * Remembers modifications entered by user (added and removed CC),
+         * builds new CC list by applying them to the initial value
+         * plus initial component CCs, preserving entry order.
          *
          * Адская логика для Высокого Юзабилити
          * Запоминает изменения, внесённые пользователем в список CC и
-         * строит новый список CC как объединение начального значения и
+         * строит новый список CC, применяя их к объединению начального значения и
          * CC по умолчанию для компонента, да ещё и сохраняет порядок ввода.
          */
         if (!last_cc)
@@ -77,9 +77,9 @@ function component_change()
         var new_cc = array_hash(initial_cc.split(/[\s,]+/));;
         for (i in c.initial_cc)
             new_cc[c.initial_cc[i]] = 1;
-        for (i in cc_diff[0])
+        for (i in cc_add)
             new_cc[i] = 1;
-        for (i in cc_diff[1])
+        for (i in cc_rem)
             new_cc[i] = 0;
         last_cc = form.cc.value = hash_join(new_cc);
 
@@ -95,32 +95,14 @@ function component_change()
             }
         }
 
-        // First, we disable all flags. Then we re-enable those
-        // which are available for the selected component.
-        var inputElements = document.getElementsByTagName("select");
-        var inputElement, flagField;
-        for (var i = 0; i < inputElements.length; i++)
+        // Enable/disable flags
+        for (var i = 0; i < product_flag_type_ids.length; i++)
         {
-            inputElement = inputElements.item(i);
-            if (inputElement.name.search(/^flag_type-(\d+)$/) != -1)
+            flagField = document.getElementById('flag_type-' + product_flag_type_ids[i]);
+            if (flagField)
             {
-                var id = inputElement.name.replace(/^flag_type-(\d+)$/, "$1");
-                inputElement.disabled = true;
-                // Also disable the requestee field, if it exists.
-                inputElement = document.getElementById('requestee_type-' + id);
-                if (inputElement)
-                    inputElement.disabled = true;
-            }
-        }
-        // Now enable flags available for the selected component.
-        for (var i = 0; i < c.flags.length; i++)
-        {
-            flagField = document.getElementById("flag_type-" + c.flags[i]);
-            // Do not enable flags the user cannot set nor request.
-            if (flagField && flagField.options.length > 1)
-            {
-                flagField.disabled = false;
-                // Re-enabling the requestee field depends on the status of the flag.
+                // Do not enable flags the user cannot set nor request.
+                flagField.disabled = !c.flags[product_flag_type_ids[i]] || flagField.options.length <= 1;
                 toggleRequesteeField(flagField, 1);
             }
         }

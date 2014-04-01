@@ -32,22 +32,26 @@ function toggleRequesteeField(flagField, no_focus)
     // requestee field and then use the ID to get the field.
     var id = flagField.name.replace(/flag(_type)?-(\d+)/, "requestee$1-$2");
     var requesteeField = document.getElementById(id);
-    if (!requesteeField) return;
+    if (!requesteeField)
+        return;
 
     // Enable or disable the requestee field based on the value
     // of the flag field.
     if (flagField.value == "?")
     {
-        requesteeField.disabled = false;
-        if (!no_focus)
+        requesteeField.disabled = flagField.disabled;
+        if (!no_focus && !requesteeField.disabled)
             requesteeField.focus();
     }
     else
         requesteeField.disabled = true;
+
     // For combo-boxes
     var rcombosel = document.getElementById(id+'_s');
     if (rcombosel && (rcombosel.disabled = requesteeField.disabled))
+    {
         menuforusers_showmulti(id);
+    }
 }
 
 // Disables requestee fields when the window is loaded since they shouldn't

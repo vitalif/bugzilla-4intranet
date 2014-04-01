@@ -37,7 +37,12 @@
     pre, code, kbd {
         font-size: medium;
     }
-    select { background: #fff; }
+    select {
+        background: #fff;
+    }
+    select[disabled] {
+        background: #eee;
+    }
 /* global (end) */
 
 /* header (begin) */

@@ -392,10 +392,10 @@ sub components_json
             default_assignee => $c->default_assignee && $c->default_assignee->login,
             default_qa_contact => $c->default_qa_contact && $c->default_qa_contact->login,
             initial_cc => [ map { $_->login } @{$c->initial_cc} ],
-            flags => [
-                (map { $_->id } grep { $_->is_active } @{$c->flag_types->{bug}}),
-                (map { $_->id } grep { $_->is_active } @{$c->flag_types->{attachment}}),
-            ],
+            flags => {
+                (map { $_->id => 1 } grep { $_->is_active } @{$c->flag_types->{bug}}),
+                (map { $_->id => 1 } grep { $_->is_active } @{$c->flag_types->{attachment}}),
+            },
         };
     }
     return $components;
@@ -429,6 +429,7 @@ my %default;
 
 $vars->{product} = $product;
 $vars->{components_json} = components_json($product);
+$vars->{product_flag_type_ids} = [ map { $_->id } map { @$_ } values %{$product->flag_types} ];
 
 # CustIS Bug 65812 - Flags are not restored from bug entry template
 {

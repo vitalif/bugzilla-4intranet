@@ -42,6 +42,7 @@
 <!--
 
 var product_id = [% product.id %];
+var product_flag_type_ids = [% json(product_flag_type_ids) %];
 var current_user_login = "[% user.login | js %]";
 var initial_cc = "[% cc | js %]";
 var overridedefaultversion = [% default.version ? 0 : 1 %];
