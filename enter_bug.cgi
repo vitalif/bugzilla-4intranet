@@ -61,25 +61,27 @@ my $cgi = Bugzilla->cgi;
 my $dbh = Bugzilla->dbh;
 my $template = Bugzilla->template;
 my $vars = {};
+my $ARGS = $cgi->VarHash({
+    (map { ($_->name => 1) } grep { $_->enter_bug && $_->type == FIELD_TYPE_MULTI_SELECT } Bugzilla->active_custom_fields),
+});
 
 # All pages point to the same part of the documentation.
 $vars->{doc_section} = 'bugreports.html';
 
-my $product_name = trim($cgi->param('product') || '');
+my $product_name = trim($ARGS->{product} || '');
 # Will contain the product object the bug is created in.
 my $product;
 
 if ($product_name eq '')
 {
     # Save URL parameters
-    $vars->{query_params} = http_build_query({ %{ $cgi->Vars } });
+    $vars->{query_params} = http_build_query($ARGS);
 
     # If the user cannot enter bugs in any product, stop here.
     my @enterable_products = @{$user->get_enterable_products};
     ThrowUserError('no_products') unless scalar(@enterable_products);
 
-    my $classification = Bugzilla->params->{useclassification}
-        ? scalar($cgi->param('classification')) : '__all';
+    my $classification = Bugzilla->params->{useclassification} ? $ARGS->{classification} : '__all';
 
     # Unless a real classification name is given, we sort products
     # by classification.
@@ -118,9 +120,9 @@ if ($product_name eq '')
             $vars->{classifications} = [ map { $_->{object} } @classifications ];
 
             $vars->{target} = "enter_bug.cgi";
-            $vars->{format} = $cgi->param('format');
-            $vars->{cloned_bug_id} = $cgi->param('cloned_bug_id');
-            $vars->{cloned_comment} = $cgi->param('cloned_comment');
+            $vars->{format} = $ARGS->{format};
+            $vars->{cloned_bug_id} = $ARGS->{cloned_bug_id};
+            $vars->{cloned_comment} = $ARGS->{cloned_comment};
 
             $template->process("global/choose-classification.html.tmpl", $vars)
                 || ThrowTemplateError($template->error());
@@ -154,9 +156,9 @@ if ($product_name eq '')
     {
         $vars->{classifications} = \@classifications;
         $vars->{target} = 'enter_bug.cgi';
-        $vars->{format} = $cgi->param('format');
-        $vars->{cloned_bug_id} = $cgi->param('cloned_bug_id');
-        $vars->{cloned_comment} = $cgi->param('cloned_comment');
+        $vars->{format} = $ARGS->{format};
+        $vars->{cloned_bug_id} = $ARGS->{cloned_bug_id};
+        $vars->{cloned_comment} = $ARGS->{cloned_comment};
 
         $template->process('global/choose-product.html.tmpl', $vars)
             || ThrowTemplateError($template->error());
@@ -179,15 +181,6 @@ else
 # to enter a bug against this product.
 $user->can_enter_product($product ? $product->name : $product_name, THROW_ERROR);
 
-##############################################################################
-# Useful Subroutines
-##############################################################################
-sub formvalue
-{
-    my ($name, $default) = (@_);
-    return Bugzilla->cgi->param($name) || $default || "";
-}
-
 # Takes the name of a field and a list of possible values for that
 # field. Returns the first value in the list that is actually a
 # valid value for that field.
@@ -206,7 +199,7 @@ sub pick_valid_field_value (@)
 
 sub pickplatform
 {
-    return formvalue("rep_platform") if formvalue("rep_platform");
+    return $ARGS->{rep_platform} if $ARGS->{rep_platform};
 
     my @platform;
 
@@ -278,10 +271,7 @@ sub pickplatform
 
 sub pickos
 {
-    if (formvalue('op_sys') ne "")
-    {
-        return formvalue('op_sys');
-    }
+    return $ARGS->{op_sys} if $ARGS->{op_sys};
 
     my @os = ();
 
@@ -399,7 +389,7 @@ my $has_canconfirm = $user->in_group('canconfirm', $product->id);
 # If a user is trying to clone a bug
 #   Check that the user has authorization to view the parent bug
 #   Create an instance of Bug that holds the info from the parent
-$cloned_bug_id = $cgi->param('cloned_bug_id');
+$cloned_bug_id = $ARGS->{cloned_bug_id};
 
 if ($cloned_bug_id)
 {
@@ -410,8 +400,8 @@ if ($cloned_bug_id)
 if (scalar(@{$product->active_components}) == 1)
 {
     # Only one component; just pick it.
-    $cgi->param('component', $product->components->[0]->name);
-    $cgi->param('version', $product->components->[0]->default_version);
+    $ARGS->{component} = $product->components->[0]->name;
+    $ARGS->{version} = $product->components->[0]->default_version; # FIXME
 }
 
 my %default;
@@ -423,17 +413,17 @@ $vars->{product} = $product;
     my $types = $product->flag_types->{bug};
     for (@$types)
     {
-        $_->{default_value} = formvalue('flag_type-'.$_->id);
-        $_->{default_requestee} = formvalue('requestee_type-'.$_->id);
+        $_->{default_value} = $ARGS->{'flag_type-'.$_->id};
+        $_->{default_requestee} = $ARGS->{'requestee_type-'.$_->id};
     }
     $vars->{product_flag_types} = $types;
 }
 
-$default{assigned_to}          = formvalue('assigned_to');
+$default{assigned_to}          = $ARGS->{assigned_to};
 $vars->{assigned_to_disabled}  = !$has_editbugs;
 $vars->{cc_disabled}           = 0;
 
-$default{qa_contact}           = formvalue('qa_contact');
+$default{qa_contact}           = $ARGS->{qa_contact};
 $vars->{qa_contact_disabled}   = !$has_editbugs;
 
 $vars->{cloned_bug_id}         = $cloned_bug_id;
@@ -444,13 +434,9 @@ my @enter_bug_fields = grep { $_->enter_bug } Bugzilla->active_custom_fields;
 foreach my $field (@enter_bug_fields)
 {
     my $cf_name = $field->name;
-    my $cf_value = $cgi->param($cf_name);
+    my $cf_value = $ARGS->{$cf_name};
     if (defined $cf_value)
     {
-        if ($field->type == FIELD_TYPE_MULTI_SELECT)
-        {
-            $cf_value = [ $cgi->param($cf_name) ];
-        }
         $default{$cf_name} = $cf_value;
     }
 }
@@ -482,9 +468,9 @@ if ($cloned_bug_id)
     {
         @cc = map { $_->login } @{$comp->initial_cc || []};
     }
-    elsif (formvalue('cc'))
+    elsif ($ARGS->{cc})
     {
-        @cc = split /[\s,]+/, formvalue('cc');
+        @cc = split /[\s,]+/, $ARGS->{cc};
     }
     elsif (defined $cloned_bug->cc)
     {
@@ -538,7 +524,7 @@ if ($cloned_bug_id)
     # the first comment, if it has one. Either way, make a note
     # that this bug was cloned from another bug.
 
-    my $cloned_comment = formvalue('cloned_comment', 0);
+    my $cloned_comment = $ARGS->{cloned_comment} || 0;
     my $bug_desc = $cloned_bug->comments({ order => 'oldest_to_newest' });
     my ($comment_obj) = grep { $_->{count} == $cloned_comment } @$bug_desc;
     $comment_obj ||= $bug_desc->[0];
@@ -566,27 +552,27 @@ if ($cloned_bug_id)
 } # end of cloned bug entry form
 else
 {
-    $default{component_}    = formvalue('component');
-    $default{priority}      = formvalue('priority', Bugzilla->params->{defaultpriority});
-    $default{bug_severity}  = formvalue('bug_severity', Bugzilla->params->{defaultseverity});
+    $default{component_}    = $ARGS->{component};
+    $default{priority}      = $ARGS->{priority} || Bugzilla->params->{defaultpriority};
+    $default{bug_severity}  = $ARGS->{bug_severity} || Bugzilla->params->{defaultseverity};
     $default{rep_platform}  = pickplatform() if Bugzilla->params->{useplatform};
     $default{op_sys}        = pickos() if Bugzilla->params->{useopsys};
 
-    $default{alias}          = formvalue('alias');
-    $default{short_desc}     = formvalue('short_desc');
-    $default{bug_file_loc}   = formvalue('bug_file_loc', "http://");
-    $default{keywords}       = formvalue('keywords');
-    $default{status_whiteboard} = formvalue('status_whiteboard');
-    $default{dependson}      = formvalue('dependson');
-    $default{blocked}        = formvalue('blocked');
-    $default{deadline}       = formvalue('deadline');
-    $default{estimated_time} = 0+formvalue('estimated_time') || "0.0";
-    $default{work_time}      = 0+formvalue('work_time') || "0.0";
+    $default{alias}          = $ARGS->{alias};
+    $default{short_desc}     = $ARGS->{short_desc};
+    $default{bug_file_loc}   = $ARGS->{bug_file_loc} || "http://";
+    $default{keywords}       = $ARGS->{keywords};
+    $default{status_whiteboard} = $ARGS->{status_whiteboard};
+    $default{dependson}      = $ARGS->{dependson};
+    $default{blocked}        = $ARGS->{blocked};
+    $default{deadline}       = $ARGS->{deadline};
+    $default{estimated_time} = 0+$ARGS->{estimated_time} || "0.0";
+    $default{work_time}      = 0+$ARGS->{work_time} || "0.0";
 
-    $vars->{cc}             = join(', ', $cgi->param('cc'));
+    $vars->{cc}             = $ARGS->{cc};
 
-    $vars->{comment}        = formvalue('comment');
-    $vars->{commentprivacy} = formvalue('commentprivacy');
+    $vars->{comment}        = $ARGS->{comment};
+    $vars->{commentprivacy} = $ARGS->{commentprivacy};
 } # end of normal/bookmarked entry form
 
 # IF this is a cloned bug,
@@ -610,10 +596,10 @@ if ($cloned_bug_id && $product->name eq $cloned_bug->product)
     $vars->{overridedefaultversion} = 1;
     $default{version} = $cloned_bug->version;
 }
-elsif (formvalue('version'))
+elsif ($ARGS->{version})
 {
     $vars->{overridedefaultversion} = 1;
-    $default{version} = formvalue('version');
+    $default{version} = $ARGS->{version};
 }
 elsif (defined $vercookie && grep { $_ eq $vercookie } @{$vars->{version}})
 {
@@ -627,9 +613,9 @@ else
 # Get list of milestones.
 if (Bugzilla->params->{usetargetmilestone})
 {
-    if (formvalue('target_milestone'))
+    if ($ARGS->{target_milestone})
     {
-        $default{target_milestone} = formvalue('target_milestone');
+        $default{target_milestone} = $ARGS->{target_milestone};
     }
     else
     {
@@ -665,7 +651,7 @@ $vars->{bug_status} = $initial_statuses;
 # Otherwise, and only if the user has privs, set the default
 # to the first confirmed bug status on the list, if available.
 
-$default{bug_status} = formvalue('bug_status');
+$default{bug_status} = $ARGS->{bug_status};
 if (!grep { $_->name eq $default{bug_status} } @$initial_statuses)
 {
     $default{bug_status} = $initial_statuses->[0]->name;
@@ -706,9 +692,9 @@ foreach my $row (@$grouplist)
             }
         }
     }
-    elsif (formvalue("maketemplate") ne "")
+    elsif ($ARGS->{maketemplate})
     {
-        $check = formvalue("bit-$id", 0);
+        $check = $ARGS->{"bit-$id"} || 0;
     }
     else
     {
@@ -738,11 +724,7 @@ Bugzilla::Hook::process('enter_bug_entrydefaultvars', { vars => $vars });
 
 $vars->{default} = \%default;
 
-my $format = $template->get_format(
-    'bug/create/create',
-    scalar $cgi->param('format'),
-    scalar $cgi->param('ctype')
-);
+my $format = $template->get_format('bug/create/create', $ARGS->{format}, $ARGS->{ctype});
 
 $cgi->send_header($format->{ctype});
 $template->process($format->{template}, $vars)

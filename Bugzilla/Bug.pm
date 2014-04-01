@@ -4156,6 +4156,11 @@ sub ValidateDependencies
 # Autoloaded Accessors
 #####################################################################
 
+use constant OVERRIDE_ID_FIELD => {
+    product => 'product_id',
+    component => 'component_id',
+};
+
 # Get value(s) of a select field as object(s)
 sub get_object
 {
@@ -4209,11 +4214,6 @@ sub _validate_attribute
 
     return grep($attribute eq $_, @valid_attributes) ? 1 : 0;
 }
-
-use constant OVERRIDE_ID_FIELD => {
-    product => 'product_id',
-    component => 'component_id',
-};
 
 sub AUTOLOAD
 {
