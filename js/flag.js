@@ -45,13 +45,6 @@ function toggleRequesteeField(flagField, no_focus)
     }
     else
         requesteeField.disabled = true;
-
-    // For combo-boxes
-    var rcombosel = document.getElementById(id+'_s');
-    if (rcombosel && (rcombosel.disabled = requesteeField.disabled))
-    {
-        menuforusers_showmulti(id);
-    }
 }
 
 // Disables requestee fields when the window is loaded since they shouldn't

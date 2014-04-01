@@ -24,10 +24,7 @@
 %]
 
 [% param_descs = {
-  usemenuforusers => "If this option is set, a selectbox with all registered users will be shown " _
-                     "always instead of a text entry field.<br /><span style='color:red'>WARNING:</span> " _
-                     "As $terms.Bugzilla now has an autocomplete feature for users, you most probably " _
-                     "don't need this option and you definitely should not turn it on sites with more than 10 users.",
+  usemenuforusers => "If this option is set, all registered users will be shown in user autocomplete boxes when the corresponding field is empty.",
 
   maxusermatches => "Search for no more than this many matches.<br> " _
                     "If set to '1', no users will be displayed on ambiguous matches. " _

@@ -131,9 +131,9 @@ function convertUserList(u)
 }
 
 // Data loader for user autocomplete
-function userAutocomplete(hint, emptyOptions)
+function userAutocomplete(hint, emptyOptions, loadAllOnEmpty)
 {
-    if (!hint.input.value)
+    if (!hint.input.value && (!loadAllOnEmpty || emptyOptions))
     {
         hint.emptyText = 'Type at least 3 letters';
         if (emptyOptions)
@@ -144,12 +144,21 @@ function userAutocomplete(hint, emptyOptions)
     }
 
     var u = window.location.href.replace(/[^\/]+$/, '');
-    u += 'xml.cgi?method=User.get&output=json&maxusermatches=20&excludedisabled=1';
-    var l = hint.input.value.split(/[\s,]*,[\s,]*/);
-    for (var i = 0; i < l.length; i++)
-        u += '&match='+encodeURI(l[i]);
+    u += 'xml.cgi?method=User.get&output=json&excludedisabled=1&maxusermatches=';
+    if (hint.input.value)
+    {
+        u += '20';
+        var l = hint.input.value.split(/[\s,]*,[\s,]*/);
+        for (var i = 0; i < l.length; i++)
+            u += '&match='+encodeURI(l[i]);
+    }
+    else
+    {
+        u += '500&match=*';
+    }
 
-    AjaxLoader(u, function(x) {
+    AjaxLoader(u, function(x)
+    {
         var r = {};
         try { eval('r = '+x.responseText+';'); } catch (e) { return; }
         if (r.status == 'ok')

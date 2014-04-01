@@ -224,6 +224,7 @@ explicitly excluded from the flagtype.
 sub grant_list {
     my $self = shift;
     my @custusers;
+    # FIXME stop using User->get_userlist
     my @allusers = @{Bugzilla->user->get_userlist};
     foreach my $user (@allusers) {
         my $user_obj = new Bugzilla::User({name => $user->{login}});

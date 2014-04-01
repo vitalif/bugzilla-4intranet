@@ -284,14 +284,15 @@ sub authorizer {
 
 # Generate a string to identify the user by name + login if the user
 # has a name or by login only if she doesn't.
-sub identity {
+sub identity
+{
     my $self = shift;
 
     return "" unless $self->id;
 
-    if (!defined $self->{identity}) {
-        $self->{identity} =
-          $self->name ? $self->name . " <" . $self->login. ">" : $self->login;
+    if (!defined $self->{identity})
+    {
+        $self->{identity} = $self->name ? $self->name . " <" . $self->login . ">" : $self->login;
     }
 
     return $self->{identity};
@@ -1666,46 +1667,42 @@ sub wants_request_reminder {
         ? 1 : 0;
 }
 
-sub get_userlist {
+sub get_userlist
+{
     my $self = shift;
 
-    return $self->{'userlist'} if defined $self->{'userlist'};
+    return $self->{userlist} if defined $self->{userlist};
 
     my $dbh = Bugzilla->dbh;
-    my $query  = "SELECT DISTINCT login_name, realname,";
-    if (Bugzilla->params->{'usevisibilitygroups'}) {
-        $query .= " COUNT(group_id) ";
-    } else {
-        $query .= " 1 ";
-    }
-    $query     .= "FROM profiles ";
-    if (Bugzilla->params->{'usevisibilitygroups'}) {
-        $query .= "LEFT JOIN user_group_map " .
-                  "ON user_group_map.user_id = userid AND isbless = 0 " .
-                  "AND group_id IN(" .
-                  join(', ', (-1, @{$self->visible_groups_inherited})) . ")";
-    }
-    $query    .= " WHERE disabledtext = '' ";
-    $query    .= $dbh->sql_group_by('userid', 'login_name, realname');
+    my $query = "SELECT DISTINCT login_name, realname," .
+        (Bugzilla->params->{usevisibilitygroups}
+            ? " COUNT(group_id) FROM profiles LEFT JOIN user_group_map" .
+            " ON user_group_map.user_id = userid AND isbless = 0" .
+            " AND group_id IN (" . join(', ', -1, @{$self->visible_groups_inherited}) . ")"
+            : " 1 FROM profiles").
+        " WHERE disabledtext = '' ".
+        $dbh->sql_group_by('userid', 'login_name, realname');
 
     my $sth = $dbh->prepare($query);
     $sth->execute;
 
     my @userlist;
-    while (my($login, $name, $visible) = $sth->fetchrow_array) {
+    while (my ($login, $name, $visible) = $sth->fetchrow_array)
+    {
         push @userlist, {
             login => $login,
             identity => $name ? "$name <$login>" : $login,
             visible => $visible,
         };
     }
-    @userlist = sort { lc $$a{'identity'} cmp lc $$b{'identity'} } @userlist;
+    @userlist = sort { lc $a->{identity} cmp lc $b->{identity} } @userlist;
 
-    $self->{'userlist'} = \@userlist;
-    return $self->{'userlist'};
+    $self->{userlist} = \@userlist;
+    return $self->{userlist};
 }
 
-sub create {
+sub create
+{
     my $invocant = shift;
     my $class = ref($invocant) || $invocant;
     my $dbh = Bugzilla->dbh;
