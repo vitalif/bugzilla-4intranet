@@ -379,6 +379,28 @@ sub pickos
     return pick_valid_field_value('op_sys', @os) || "Other";
 }
 
+sub components_json
+{
+    my ($product) = @_;
+    my $components = [];
+    for my $c (@{$product->active_components})
+    {
+        push @$components, {
+            name => $c->name,
+            default_version => $c->default_version,
+            description => html_light_quote($c->description),
+            default_assignee => $c->default_assignee && $c->default_assignee->login,
+            default_qa_contact => $c->default_qa_contact && $c->default_qa_contact->login,
+            initial_cc => [ map { $_->login } @{$c->initial_cc} ],
+            flags => [
+                (map { $_->id } grep { $_->is_active } @{$c->flag_types->{bug}}),
+                (map { $_->id } grep { $_->is_active } @{$c->flag_types->{attachment}}),
+            ],
+        };
+    }
+    return $components;
+}
+
 ##############################################################################
 # End of subroutines
 ##############################################################################
@@ -401,12 +423,12 @@ if (scalar(@{$product->active_components}) == 1)
 {
     # Only one component; just pick it.
     $ARGS->{component} = $product->components->[0]->name;
-    $ARGS->{version} = $product->components->[0]->default_version; # FIXME
 }
 
 my %default;
 
 $vars->{product} = $product;
+$vars->{components_json} = components_json($product);
 
 # CustIS Bug 65812 - Flags are not restored from bug entry template
 {
@@ -590,24 +612,18 @@ else
 #
 # Eventually maybe each product should have a "current version"
 # parameter.
-my $vercookie = $cgi->cookie("VERSION-" . $product->name);
+my $vercookie = $cgi->cookie('VERSION-' . $product->name);
 if ($cloned_bug_id && $product->name eq $cloned_bug->product)
 {
-    $vars->{overridedefaultversion} = 1;
     $default{version} = $cloned_bug->version;
 }
 elsif ($ARGS->{version})
 {
-    $vars->{overridedefaultversion} = 1;
     $default{version} = $ARGS->{version};
 }
 elsif (defined $vercookie && grep { $_ eq $vercookie } @{$vars->{version}})
 {
     $default{version} = $vercookie;
-}
-else
-{
-    $default{version} = $vars->{version}->[$#{$vars->{version}}];
 }
 
 # Get list of milestones.

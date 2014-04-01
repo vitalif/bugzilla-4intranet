@@ -33,269 +33,21 @@
   quicksearch_tabindex = 30
   style_urls = [ 'skins/standard/create_attachment.css', 'skins/standard/calendar.css' ]
   javascript_urls = [
-    "js/attachment.js", "js/bug.js", "js/field.js", "js/calendar.js",
+    "js/attachment.js", "js/bug.js", "js/enter_bug.js", "js/field.js", "js/calendar.js",
     "js/TUI.js", "js/bug-visibility.js", "fieldvaluecontrol.cgi?type=bug&user=${Bugzilla.user.id}"
   ]
-  onload = 'set_assign_to();document.getElementById(\'short_desc\').focus();'
 %]
 
-[%# FIXME move most JS from here to a *.js file %]
 <script type="text/javascript">
 <!--
 
 var product_id = [% product.id %];
-var last_cc = "[% cc | js %]";
-var cc_rem = {}, cc_add = {};
-var initialowners = new Array([% product.active_components.size %]);
-var last_initialowner;
-var initialccs = new Array([% product.active_components.size %]);
-var components = new Array([% product.active_components.size %]);
-var componentdefaultversions = new Array([% product.active_components.size %]);
-var last_component = -1;
-var comp_desc = new Array([% product.active_components.size %]);
-var flags = new Array([% product.active_components.size %]);
-[% IF Param("useqacontact") %]
-    var initialqacontacts = new Array([% product.active_components.size %]);
-    var last_initialqacontact;
-[% END %]
-[% count = 0 %]
-[%- FOREACH c = product.active_components %]
-    components[[% count %]] = "[% c.name FILTER js %]";
-    componentdefaultversions[[% count %]] = "[% c.default_version FILTER js %]";
-    comp_desc[[% count %]] = "[% c.description FILTER html_light FILTER js %]";
-    initialowners[[% count %]] = "[% c.default_assignee.login FILTER js %]";
-    [% flag_list = [] %]
-    [% FOREACH f = c.flag_types.bug %]
-      [% NEXT UNLESS f.is_active %]
-      [% flag_list.push(f.id) %]
-    [% END %]
-    [% FOREACH f = c.flag_types.attachment %]
-      [% NEXT UNLESS f.is_active %]
-      [% flag_list.push(f.id) %]
-    [% END %]
-    flags[[% count %]] = [[% flag_list.join(",") FILTER js %]];
-    [% IF Param("useqacontact") %]
-        initialqacontacts[[% count %]] = "[% c.default_qa_contact.login FILTER js %]";
-    [% END %]
-
-    [% SET initial_cc_list = [] %]
-    [% FOREACH cc_user = c.initial_cc %]
-      [% ccl = cc_user.login FILTER js %]
-      [% initial_cc_list.push(ccl) %]
-    [% END %]
-    initialccs[[% count %]] = ["[% initial_cc_list.join('", "') %]"];
-
-    [% count = count + 1 %]
-[%- END %]
-
+var current_user_login = "[% user.login | js %]";
+var initial_cc = "[% cc | js %]";
+var overridedefaultversion = [% default.version ? 0 : 1 %];
+var component_data = [% json(components_json) %];
 var wantsReminder = [% Bugzilla.user.wants_worktime_reminder('new bug') ? 'true' : 'false' %];
 var noTimeTracking = [% product.notimetracking ? 'true' : 'false' %];
-
-function validateEntryForm(theform)
-{
-    if (check_new_keywords(document.Create) == false) return false;
-
-    if (theform.short_desc.value == '')
-    {
-        alert('Please enter a summary sentence for this [% terms.bug %].');
-        return false;
-    }
-    // Validate attachment
-    var t = document.getElementById('attachment_true');
-    if (t.style.display != 'none' && !validateAttachmentForm(theform))
-        return false;
-    else if (t.style.display == 'none')
-    {
-        // Clear attachment description so it won't be created
-        theform.description.value = '';
-    }
-    // Validate worktime
-    var wt = bzParseTime(theform.work_time.value);
-    if (wt !== null && (wt === undefined || wt != wt))
-        wt = null;
-    else if (wt < 0)
-        wt = 0;
-    if (wantsReminder && (wt === null || noTimeTracking == (wt != 0)))
-    {
-        wt = prompt("Please, verify working time:", "0");
-        if (wt == null || wt == undefined || (""+wt).length <= 0)
-        {
-            theform.work_time.focus();
-            return false;
-        }
-    }
-    if (wt === null)
-        wt = 0;
-    theform.work_time.value = wt;
-    return true;
-}
-
-function set_assign_to() {
-    // Based on the selected component, fill the "Assign To:" field
-    // with the default component owner, and the "QA Contact:" field
-    // with the default QA Contact. It also selectively enables flags.
-    var form = document.Create;
-    var assigned_to = form.assigned_to.value;
-
-[% IF Param("useqacontact") %]
-    var qa_contact = form.qa_contact.value;
-[% END %]
-
-    var index = -1;
-    if (form.component.type == 'select-one') {
-        index = form.component.selectedIndex;
-    } else if (form.component.type == 'hidden') {
-        // Assume there is only one component in the list
-        index = 0;
-    }
-    if (index != -1) {
-        var owner = initialowners[index];
-        var component = components[index];
-        var version = componentdefaultversions[index];
-        if (assigned_to == last_initialowner
-            || assigned_to == owner
-            || assigned_to == '') {
-            form.assigned_to.value = owner;
-            last_initialowner = owner;
-        }
-
-        if ([% overridedefaultversion ? 0 : 1 %] &&
-            (((last_component < 0 || componentdefaultversions[last_component] == '') && form.version.value == "[% default.version FILTER js %]") ||
-            last_component >= 0 && form.version.value == componentdefaultversions[last_component]))
-        {
-            for (var i = 0; i < form.version.options.length; i++)
-            {
-                if (form.version.options[i].value == version)
-                {
-                    form.version.selectedIndex = i;
-                    break;
-                }
-            }
-        }
-
-        /* CustIS Bug 57457 & Bug 58657 */
-        /** Infernal logic for High Usability
-         * Remembers modifications entered by user (added and removed CC), and
-         * builds new CC list from initial value plus initialccs[index]
-         * (initial CC for component), preserving entry order.
-         *
-         ** Адская логика для Высокого Юзабилити
-         * Запоминает изменения, внесённые пользователем в список CC и
-         * строит новый список CC как объединение начального значения и
-         * initialccs[index] (CC по умолчанию для компонента), да ещё и сохраняет
-         * порядок ввода.
-         */
-        var cc_diff = diff_arrays(last_cc.split(/[\s,]+/), document.Create.cc.value.split(/[\s,]+/));
-        for (i in cc_rem)
-            if (cc_rem[i] && !cc_diff[0][i])
-                cc_diff[1][i] = 1;
-        for (i in cc_add)
-            if (cc_add[i] && !cc_diff[1][i])
-                cc_diff[0][i] = 1;
-        cc_add = cc_diff[0];
-        cc_rem = cc_diff[1];
-        var new_cc = array_hash("[% cc | js %]".split(/[\s,]+/));
-        for (i in initialccs[index])
-            if (initialccs[index][i])
-                new_cc[initialccs[index][i]] = 1;
-        for (i in cc_diff[0])
-            new_cc[i] = 1;
-        for (i in cc_diff[1])
-            new_cc[i] = 0;
-        last_cc = document.Create.cc.value = hash_join(new_cc);
-        document.getElementById('comp_desc').innerHTML = comp_desc[index];
-
-        [% IF Param("useqacontact") %]
-            var contact = initialqacontacts[index];
-            if (qa_contact == last_initialqacontact
-                || qa_contact == contact
-                || qa_contact == ''
-                || qa_contact == "[% qa_contact FILTER js %]") {
-                  form.qa_contact.value = contact;
-                  last_initialqacontact = contact;
-            }
-        [% END %]
-
-        // First, we disable all flags. Then we re-enable those
-        // which are available for the selected component.
-        var inputElements = document.getElementsByTagName("select");
-        var inputElement, flagField;
-        for ( var i=0 ; i<inputElements.length ; i++ ) {
-            inputElement = inputElements.item(i);
-            if (inputElement.name.search(/^flag_type-(\d+)$/) != -1) {
-                var id = inputElement.name.replace(/^flag_type-(\d+)$/, "$1");
-                inputElement.disabled = true;
-                // Also disable the requestee field, if it exists.
-                inputElement = document.getElementById("requestee_type-" + id);
-                if (inputElement) inputElement.disabled = true;
-            }
-        }
-        // Now enable flags available for the selected component.
-        for (var i = 0; i < flags[index].length; i++) {
-            flagField = document.getElementById("flag_type-" + flags[index][i]);
-            // Do not enable flags the user cannot set nor request.
-            if (flagField && flagField.options.length > 1) {
-                flagField.disabled = false;
-                // Re-enabling the requestee field depends on the status
-                // of the flag.
-                toggleRequesteeField(flagField, 1);
-            }
-        }
-
-        last_component = index;
-    }
-}
-
-function handleWantsAttachment(wants_attachment)
-{
-    var f = document.getElementById('attachment_false');
-    var t = document.getElementById('attachment_true');
-    var m = document.getElementById('attachment_multi');
-    f.style.display = wants_attachment == 'none'   ? '' : 'none';
-    t.style.display = wants_attachment == 'single' ? '' : 'none';
-    m.style.display = wants_attachment == 'multi'  ? '' : 'none';
-    if (wants_attachment != 'multi')
-    {
-        document.getElementById('att_multiple').innerHTML = '';
-    }
-    else
-    {
-        iframeajax('page.cgi?id=attach-multiple.html', {});
-    }
-}
-
-function bug_status_change()
-{
-    if (this.value == "RESOLVED")
-    {
-        document.getElementById('resolution_container').style.display = '';
-    }
-    else
-    {
-        if (this.value == "ASSIGNED")
-        {
-            document.Create.assigned_to.value="[% user.login %]";
-        }
-        document.getElementById('resolution_container').style.display = 'none';
-        document.Create.resolution.value = '';
-    }
-}
-
-addListener(window, 'load', function()
-{
-    var f = document.getElementById('bug_status');
-    addListener(f, 'change', bug_status_change);
-    bug_status_change.apply(f);
-});
-
-function checkWorktime(inp)
-{
-    if (noTimeTracking)
-    {
-        wt = bzParseTime(inp.value);
-        inp.parentNode.style.backgroundColor = (wt != 0 ? '#FFC0C0' : null);
-    }
-}
 
 -->
 </script>
@@ -344,8 +96,7 @@ function checkWorktime(inp)
       Component</a>:
     </th>
     <td>
-      <select id="component" name="component" onchange="set_assign_to();" size="7"
-              aria-required="true" class="required">
+      <select id="component" name="component" size="7" aria-required="true" class="required">
         [%# Build the lists of assignees and QA contacts if "usemenuforusers" is enabled. %]
         [% IF Param("usemenuforusers") %]
           [% assignees_list = user.get_userlist.clone %]
