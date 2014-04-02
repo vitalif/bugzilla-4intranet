@@ -613,6 +613,17 @@ sub has_visibility_value
     return !$hash || !%$hash || $hash->{$value};
 }
 
+sub has_all_visibility_values
+{
+    my $self = shift;
+    return 1 if !$self->visibility_field_id;
+    my $hash = Bugzilla->fieldvaluecontrol_hash
+        ->{$self->visibility_field_id}
+        ->{fields}
+        ->{$self->id};
+    return !$hash || !%$hash;
+}
+
 # Check visibility of field for a bug
 sub check_visibility
 {
@@ -647,7 +658,7 @@ field controls the visibility of.
 
 sub controls_visibility_of {
     my $self = shift;
-    $self->{controls_visibility_of} ||= [ Bugzilla->get_fields({ visibility_field_id => $self->id }) ];
+    $self->{controls_visibility_of} ||= [ Bugzilla->get_fields({ visibility_field_id => $self->id, obsolete => 0 }) ];
     return $self->{controls_visibility_of};
 }
 
