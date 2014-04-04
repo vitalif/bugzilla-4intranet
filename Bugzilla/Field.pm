@@ -719,9 +719,9 @@ Returns undef if there is no field that controls this field's visibility.
 sub value_field
 {
     my $self = shift;
-    if ($self->{value_field_id})
+    if (my $id = $self->value_field_id)
     {
-        $self->{value_field} ||= $self->new($self->{value_field_id});
+        $self->{value_field} ||= Bugzilla::Field->new($id);
     }
     return $self->{value_field};
 }
@@ -729,6 +729,7 @@ sub value_field
 sub value_field_id
 {
     my $self = shift;
+    return undef if !$self->is_select;
     return $self->{value_field_id};
 }
 
