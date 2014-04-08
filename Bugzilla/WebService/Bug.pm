@@ -830,7 +830,7 @@ sub _bug_to_hash {
         $item{'blocks'} = \@blocks;
     }
     if (filter_wants $params, 'cc') {
-        my @cc = map { $self->type('string', $_) } @{ $bug->cc || [] };
+        my @cc = map { $self->type('string', $_->login) } @{ $bug->cc_users || [] };
         $item{'cc'} = \@cc;
     }
     if (filter_wants $params, 'creator') {

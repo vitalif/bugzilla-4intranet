@@ -495,9 +495,9 @@ if ($cloned_bug_id)
     {
         @cc = split /[\s,]+/, $ARGS->{cc};
     }
-    elsif (defined $cloned_bug->cc)
+    elsif (@{$cloned_bug->cc_users})
     {
-        @cc = @{$cloned_bug->cc};
+        @cc = map { $_->login } @{$cloned_bug->cc_users};
     }
 
     if ($cloned_bug->reporter->id != $user->id)

@@ -1,5 +1,3 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -35,8 +33,8 @@ use constant ID_FIELD   => 'id';
 use constant LIST_ORDER => NAME_FIELD;
 
 use constant UPDATE_VALIDATORS => {};
-use constant NUMERIC_COLUMNS   => ();
-use constant DATE_COLUMNS      => ();
+use constant NUMERIC_COLUMNS   => {};
+use constant DATE_COLUMNS      => {};
 
 # This allows the JSON-RPC interface to return Bugzilla::Object instances
 # as though they were hashes. In the future, this may be modified to return
@@ -347,8 +345,8 @@ sub update
     # Use a copy of old object
     my $old_self = $self->new($self->id);
 
-    my %numeric = map { $_ => 1 } $self->NUMERIC_COLUMNS;
-    my %date    = map { $_ => 1 } $self->DATE_COLUMNS;
+    my $numeric = $self->NUMERIC_COLUMNS;
+    my $date    = $self->DATE_COLUMNS;
     my (@update_columns, @values, %changes);
     foreach my $column ($self->UPDATE_COLUMNS)
     {
@@ -361,8 +359,8 @@ sub update
         {
             next if !defined $new && !defined $old;
         }
-        elsif ($numeric{$column} && $old == $new ||
-            $date{$column} && str2time($old) == str2time($new) ||
+        elsif ($numeric->{$column} && $old == $new ||
+            $date->{$column} && str2time($old) == str2time($new) ||
             $old eq $new)
         {
             next;
@@ -623,6 +621,8 @@ If a field can't be changed, it shouldn't be listed here. (For example,
 the L</ID_FIELD> usually can't be updated.)
 
 =item C<NUMERIC_COLUMNS>
+
+Hashref (field_name => 1).
 
 When L</update> is called, it compares each column in the object to its
 current value in the database. It only updates columns that have changed.

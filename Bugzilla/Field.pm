@@ -503,7 +503,7 @@ sub is_select
 
 sub has_activity { $_[0]->{has_activity} }
 
-sub add_to_deps { $_[0]->{add_to_deps} }
+sub add_to_deps { $_[0]->type == FIELD_TYPE_BUG_ID && $_[0]->{add_to_deps} }
 
 sub url { $_[0]->{url} }
 

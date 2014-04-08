@@ -651,10 +651,11 @@ sub can_edit_bug
         $bug->assigned_to && $bug->assigned_to->id == $self->id ||
         Bugzilla->params->{useqacontact} && $bug->qa_contact && $bug->qa_contact->id == $self->id ||
         $bug->reporter && $bug->reporter->id == $self->id;
-    my $cc = $bug->cc;
+    # FIXME check cc logic
+    my $cc = $bug->cc_users;
     foreach (@$cc)
     {
-        return 1 if $_ eq $self->login;
+        return 1 if $_->id eq $self->id;
     }
     return 1 if $self->can_edit_product($bug->product_obj->id);
     ThrowUserError("product_edit_denied", { product => $bug->product }) if $throw_error;

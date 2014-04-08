@@ -551,7 +551,8 @@ if ($move_action eq Bugzilla->params->{'move-button-text'})
     my $new_status = Bugzilla->params->{duplicate_or_move_bug_status};
     foreach my $bug (@bug_objects)
     {
-        $bug->set_status($new_status, {resolution => 'MOVED', moving => 1});
+        $bug->{moving} = 1;
+        $bug->set_status($new_status, {resolution => 'MOVED'});
     }
     $_->update() foreach @bug_objects;
     $dbh->bz_commit_transaction();
@@ -571,18 +572,17 @@ if ($move_action eq Bugzilla->params->{'move-button-text'})
     $from =~ s/@/\@/;
     my $msg = "To: $to\n";
     $msg .= "From: Bugzilla <" . $from . ">\n";
-    $msg .= "Subject: Moving bug(s) " . join(', ', map($_->id, @bug_objects))
-            . "\n\n";
+    $msg .= "Subject: Moving bug(s) " . join(', ', map($_->id, @bug_objects)) . "\n\n";
 
-    my @fieldlist = (Bugzilla::Bug->fields, 'group', 'long_desc',
-                     'attachment', 'attachmentdata');
+    # FIXME Bug moving definitely does not work with all our changes.
+    my @fieldlist = (Bugzilla::Bug->fields, 'group', 'long_desc', 'attachment', 'attachmentdata');
     my %displayfields;
     foreach (@fieldlist)
     {
         $displayfields{$_} = 1;
     }
 
-    $template->process("bug/show.xml.tmpl", {
+    $template->process('bug/show.xml.tmpl', {
         bugs => $bugs,
         displayfields => \%displayfields,
     }, \$msg) || ThrowTemplateError($template->error());

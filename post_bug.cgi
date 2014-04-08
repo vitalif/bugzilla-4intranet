@@ -62,7 +62,7 @@ my $ARGS = $cgi->VarHash({
 ######################################################################
 
 # redirect to enter_bug if no field is passed.
-print $cgi->redirect(correct_urlbase() . 'enter_bug.cgi') unless $cgi->param();
+print $cgi->redirect(correct_urlbase() . 'enter_bug.cgi') unless $cgi->param;
 
 # Detect if the user already used the same form to submit a bug
 my $token = trim($ARGS->{token});
@@ -76,7 +76,7 @@ if ($old_bug_id)
     $vars->{allow_override} = defined $ARGS->{ignore_token} ? 0 : 1;
     $vars->{new_token} = issue_session_token('createbug:');
 
-    $template->process("bug/create/confirm-create-dupe.html.tmpl", $vars)
+    $template->process('bug/create/confirm-create-dupe.html.tmpl', $vars)
        || ThrowTemplateError($template->error);
     exit;
 }
@@ -98,8 +98,6 @@ if (defined $ARGS->{maketemplate})
     exit;
 }
 
-umask 0; # FIXME WTF???
-
 # Group Validation
 my @selected_groups;
 for (keys %$ARGS)
@@ -119,9 +117,6 @@ $template->process($format->{template}, $vars, \$comment)
 
 # Include custom fields editable on bug creation.
 my @custom_bug_fields = grep { $_->enter_bug } Bugzilla->active_custom_fields;
-
-# Undefined custom fields are ignored to ensure they will get their default
-# value (e.g. "---" for custom single select fields).
 my @bug_fields = grep { defined $ARGS->{$_} } map { $_->name } @custom_bug_fields;
 
 push(@bug_fields, qw(
@@ -180,7 +175,7 @@ my $bug = new Bugzilla::Bug;
 
 $bug->set...
 dependencies => { dependson, blocked }
-comment => { thetext, work_time, isprivate, type }
+add_comment => { thetext, work_time, isprivate => commentprivacy, type }
 keywords => { keywords, descriptions }
 
 # Get the bug ID back.
