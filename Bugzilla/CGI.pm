@@ -568,6 +568,7 @@ sub cookie
 sub VarHash
 {
     my $self = shift;
+    return $self->{_VarHash} if $self->{_VarHash};
     my ($force_array) = @_;
     my $args = { %{ $self->Vars } };
     my $filtered = {};
@@ -575,18 +576,18 @@ sub VarHash
     {
         if ($key =~ /\[\]$/so)
         {
-            $filtered->{substr $key, 0, -2} = ref $args->{$key} ? $args->{$key} : [ $args->{$key} ];
+            $filtered->{substr $key, 0, -2} = ref $args->{$key} eq 'ARRAY' ? $args->{$key} : [ $args->{$key} ];
         }
         elsif ($force_array->{$key})
         {
-            $filtered->{$key} = ref $args->{$key} ? $args->{$key} : [ $args->{$key} ];
+            $filtered->{$key} = ref $args->{$key} eq 'ARRAY' ? $args->{$key} : [ $args->{$key} ];
         }
         else
         {
-            $filtered->{$key} = ref $args->{$key} ? $args->{$key}->[-1] : $args->{$key};
+            $filtered->{$key} = ref $args->{$key} eq 'ARRAY' ? $args->{$key}->[-1] : $args->{$key};
         }
     }
-    return $filtered;
+    return $self->{_VarHash} = $filtered;
 }
 
 1;

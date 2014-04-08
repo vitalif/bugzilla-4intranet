@@ -511,7 +511,7 @@ sub insert
     }
 
     # Must be called before create() as it may alter $cgi->param('ispatch').
-    my $content_type = Bugzilla::Attachment::get_content_type();
+    my ($content_type, $ispatch) = Bugzilla::Attachment::get_content_type();
 
     my $data = scalar $cgi->param('attachurl') || $cgi->upload('data');
     my $filename = '';
@@ -537,7 +537,7 @@ sub insert
          data          => $data,
          description   => scalar $cgi->param('description'),
          filename      => $filename,
-         ispatch       => scalar $cgi->param('ispatch'),
+         ispatch       => $ispatch,
          isprivate     => scalar $cgi->param('isprivate'),
          isurl         => scalar $cgi->param('attachurl'),
          mimetype      => $content_type,

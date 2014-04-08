@@ -283,7 +283,7 @@ if (defined $ARGS->{product})
     foreach my $b (@bug_objects)
     {
         $b->{_other_bugs} = \@bug_objects;
-        my $changed = $b->set_product($ARGS->{product});
+        my $changed = $b->set('product', $ARGS->{product});
         $product_change ||= $changed;
     }
 }
@@ -323,7 +323,7 @@ if ($ARGS->{id})
 
 if ($ARGS->{id} && (defined $ARGS->{dependson} || defined $ARGS->{blocked}))
 {
-    $first_bug->set_dependencies($ARGS->{dependson}, $ARGS->{blocked});
+    $first_bug->set('dependencies', { dependson => $ARGS->{dependson}, blocked => $ARGS->{blocked} });
 }
 elsif (defined $ARGS->{dependson} || defined $ARGS->{blocked})
 {
@@ -348,7 +348,7 @@ elsif (defined $ARGS->{dependson} || defined $ARGS->{blocked})
                 }
             }
         }
-        $bug->set_dependencies([ keys %{$temp_deps{dependson}} ], [ keys %{$temp_deps{blocked}} ]);
+        $bug->set('dependencies', { dependson => [ keys %{$temp_deps{dependson}} ], blocked => [ keys %{$temp_deps{blocked}} ] });
     }
 }
 
@@ -371,14 +371,12 @@ if ($ARGS->{keywords})
 # them twice.
 my @custom_fields = Bugzilla->active_custom_fields;
 
-my $methods = { component => 'set_component' };
-$methods->{assigned_to} = 'set_assigned_to' if !$ARGS->{set_default_assignee};
-$methods->{qa_contact} = 'set_qa_contact' if !$ARGS->{set_default_qa_contact};
-
 my @set_fields = qw(
-    deadline remaining_time estimated_time alias op_sys rep_platform bug_severity
+    component deadline remaining_time estimated_time alias op_sys rep_platform bug_severity
     priority status_whiteboard short_desc target_milestone bug_file_loc version
 );
+push @set_fields, 'assigned_to' if !$ARGS->{set_default_assignee};
+push @set_fields, 'qa_contact' if !$ARGS->{set_default_qa_contact};
 
 foreach my $b (@bug_objects)
 {
@@ -397,14 +395,7 @@ foreach my $b (@bug_objects)
         if (defined $ARGS->{$field_name} ||
             defined $ARGS->{product} && $field_name =~ /^(component|target_milestone|version)$/)
         {
-            if (my $m = $methods->{$field_name})
-            {
-                $b->$m($ARGS->{$field_name} || '');
-            }
-            else
-            {
-                $b->set($field_name, $ARGS->{$field_name} || '');
-            }
+            $b->set($field_name, $ARGS->{$field_name} || '');
         }
     }
     $b->reset_assigned_to if $ARGS->{set_default_assignee};
@@ -426,7 +417,7 @@ foreach my $b (@bug_objects)
         my $fname = $field->name;
         if (defined $ARGS->{$fname} || defined $ARGS->{"defined_$fname"}) # FIXME array[] for multiselects
         {
-            $b->set_custom_field($field, $ARGS->{$fname});
+            $b->set($fname, $ARGS->{$fname});
         }
     }
 

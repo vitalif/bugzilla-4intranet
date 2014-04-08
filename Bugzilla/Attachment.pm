@@ -1102,21 +1102,25 @@ sub guess_content_type
 sub get_content_type
 {
     my $cgi = Bugzilla->cgi;
+    my $ARGS = $cgi->VarHash;
 
-    return 'text/plain' if ($cgi->param('ispatch') ||
-        $cgi->param('text_attachment') !~ /^\s*$/so ||
-        $cgi->param('attachurl'));
+    my $ispatch = $ARGS->{ispatch};
+    if ($ispatch || $ARGS->{text_attachment} !~ /^\s*$/so || $ARGS->{attachurl})
+    {
+        return ('text/plain', $ispatch);
+    }
 
     my $content_type;
-    if (!defined $cgi->param('contenttypemethod')) {
-        ThrowUserError("missing_content_type_method");
+    if (!defined $ARGS->{contenttypemethod})
+    {
+        ThrowUserError('missing_content_type_method');
     }
-    elsif ($cgi->param('contenttypemethod') eq 'autodetect') {
+    elsif ($ARGS->{contenttypemethod} eq 'autodetect')
+    {
         defined $cgi->upload('data') || ThrowUserError('file_not_specified');
         # The user asked us to auto-detect the content type, so use the type
         # specified in the HTTP request headers.
-        $content_type =
-            $cgi->uploadInfo($cgi->param('data'))->{'Content-Type'};
+        $content_type = $cgi->uploadInfo($cgi->param('data'))->{'Content-Type'};
         if (!_legal_content_type($content_type))
         {
             $content_type = guess_content_type($cgi->param('data'));
@@ -1129,31 +1133,35 @@ sub get_content_type
 
         # Set the ispatch flag to 1 if the content type
         # is text/x-diff or text/x-patch
-        if ($content_type =~ m{text/x-(?:diff|patch)}) {
-            $cgi->param('ispatch', 1);
+        if ($content_type =~ m{text/x-(?:diff|patch)})
+        {
+            $ispatch = 1;
             $content_type = 'text/plain';
         }
-
         # Internet Explorer sends image/x-png for PNG images,
         # so convert that to image/png to match other browsers.
-        if ($content_type eq 'image/x-png') {
+        elsif ($content_type eq 'image/x-png')
+        {
             $content_type = 'image/png';
         }
     }
-    elsif ($cgi->param('contenttypemethod') eq 'list') {
-        # The user selected a content type from the list, so use their
-        # selection.
-        $content_type = $cgi->param('contenttypeselection');
+    elsif ($ARGS->{contenttypemethod} eq 'list')
+    {
+        # The user selected a content type from the list, so use their selection.
+        $content_type = $ARGS->{contenttypeselection};
     }
-    elsif ($cgi->param('contenttypemethod') eq 'manual') {
+    elsif ($ARGS->{contenttypemethod} eq 'manual')
+    {
         # The user entered a content type manually, so use their entry.
-        $content_type = $cgi->param('contenttypeentry');
+        $content_type = $ARGS->{contenttypeentry};
     }
-    else {
-        ThrowCodeError("illegal_content_type_method",
-                       { contenttypemethod => $cgi->param('contenttypemethod') });
+    else
+    {
+        ThrowCodeError('illegal_content_type_method', {
+            contenttypemethod => $ARGS->{contenttypemethod},
+        });
     }
-    return $content_type;
+    return ($content_type, $ispatch);
 }
 
 # CustIS Bug 68919 - Create multiple attachments to bug

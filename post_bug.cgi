@@ -1,6 +1,4 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -50,6 +48,14 @@ my $cgi = Bugzilla->cgi;
 my $dbh = Bugzilla->dbh;
 my $template = Bugzilla->template;
 my $vars = {};
+my $ARGS = $cgi->VarHash({
+    cc => 1,
+    (map { ($_->name => 1) } Bugzilla->get_fields({
+        type => FIELD_TYPE_MULTI_SELECT,
+        enter_bug => 1,
+        obsolete => 0,
+    })),
+});
 
 ######################################################################
 # Main Script
@@ -59,7 +65,7 @@ my $vars = {};
 print $cgi->redirect(correct_urlbase() . 'enter_bug.cgi') unless $cgi->param();
 
 # Detect if the user already used the same form to submit a bug
-my $token = trim($cgi->param('token'));
+my $token = trim($ARGS->{token});
 check_token_data($token, qr/^createbug:/s, 'enter_bug.cgi');
 
 my (undef, undef, $old_bug_id) = Bugzilla::Token::GetTokenData($token);
@@ -67,55 +73,56 @@ $old_bug_id =~ s/^createbug://;
 if ($old_bug_id)
 {
     $vars->{bugid} = $old_bug_id;
-    $vars->{allow_override} = defined $cgi->param('ignore_token') ? 0 : 1;
+    $vars->{allow_override} = defined $ARGS->{ignore_token} ? 0 : 1;
     $vars->{new_token} = issue_session_token('createbug:');
 
     $template->process("bug/create/confirm-create-dupe.html.tmpl", $vars)
-       || ThrowTemplateError($template->error());
+       || ThrowTemplateError($template->error);
     exit;
 }
 
 # do a match on the fields if applicable
-Bugzilla::User::match_field ({
-    'cc'            => { 'type' => 'multi'  },
-    'assigned_to'   => { 'type' => 'single' },
-    'qa_contact'    => { 'type' => 'single' },
+Bugzilla::User::match_field({
+    cc          => { type => 'multi'  },
+    assigned_to => { type => 'single' },
+    qa_contact  => { type => 'single' },
 });
 
-if (defined $cgi->param('maketemplate')) {
-    $vars->{'url'} = $cgi->canonicalise_query('token', 'cloned_bug_id', 'cloned_comment');
-    $vars->{'short_desc'} = $cgi->param('short_desc');
+if (defined $ARGS->{maketemplate})
+{
+    $vars->{url} = $cgi->canonicalise_query('token', 'cloned_bug_id', 'cloned_comment');
+    $vars->{short_desc} = $ARGS->{short_desc};
 
     $template->process("bug/create/make-template.html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
+        || ThrowTemplateError($template->error);
     exit;
 }
 
-umask 0;
+umask 0; # FIXME WTF???
 
 # Group Validation
 my @selected_groups;
-foreach my $group (grep(/^bit-\d+$/, $cgi->param())) {
-    $group =~ /^bit-(\d+)$/;
-    push(@selected_groups, $1);
+for (keys %$ARGS)
+{
+    if (/^bit-(\d+)$/)
+    {
+        push @selected_groups, $1;
+    }
 }
 
 # The format of the initial comment can be structured by adding fields to the
 # enter_bug template and then referencing them in the comment template.
 my $comment;
-my $format = $template->get_format("bug/create/comment",
-                                   scalar($cgi->param('format')), "txt");
-$template->process($format->{'template'}, $vars, \$comment)
-    || ThrowTemplateError($template->error());
+my $format = $template->get_format('bug/create/comment', $ARGS->{format}, 'txt');
+$template->process($format->{template}, $vars, \$comment)
+    || ThrowTemplateError($template->error);
 
 # Include custom fields editable on bug creation.
-my @custom_bug_fields = grep {$_->type != FIELD_TYPE_MULTI_SELECT && $_->enter_bug}
-                             Bugzilla->active_custom_fields;
+my @custom_bug_fields = grep { $_->enter_bug } Bugzilla->active_custom_fields;
 
 # Undefined custom fields are ignored to ensure they will get their default
 # value (e.g. "---" for custom single select fields).
-my @bug_fields = grep { defined $cgi->param($_->name) } @custom_bug_fields;
-@bug_fields = map { $_->name } @bug_fields;
+my @bug_fields = grep { defined $ARGS->{$_} } map { $_->name } @custom_bug_fields;
 
 push(@bug_fields, qw(
     product
@@ -147,54 +154,49 @@ push(@bug_fields, qw(
 push @bug_fields, 'op_sys' if Bugzilla->params->{useopsys};
 push @bug_fields, 'rep_platform' if Bugzilla->params->{useplatform};
 my %bug_params;
-foreach my $field (@bug_fields) {
-    $bug_params{$field} = $cgi->param($field);
+foreach my $field (@bug_fields)
+{
+    $bug_params{$field} = $ARGS->{$field};
 }
-$bug_params{'cc'}          = [$cgi->param('cc')];
-$bug_params{'groups'}      = \@selected_groups;
-$bug_params{'comment'}     = $comment;
+$bug_params{cc}      = $ARGS->{cc};
+$bug_params{groups}  = \@selected_groups;
+$bug_params{comment} = $comment;
 
 if ($user->is_timetracker)
 {
-    $bug_params{'work_time'} = $cgi->param('work_time') || 0;
+    $bug_params{work_time} = $ARGS->{work_time} || 0;
 }
 else
 {
-    $bug_params{'work_time'} = 0;
+    $bug_params{work_time} = 0;
 }
 
-my @multi_selects = Bugzilla->get_fields({
-    custom => 1,
-    type => FIELD_TYPE_MULTI_SELECT,
-    enter_bug => 1,
-    obsolete => 0,
-});
-
-foreach my $field (@multi_selects)
-{
-    $bug_params{$field->name} = [$cgi->param($field->name)];
-}
-
-# CustIS Bug 63152 - Duplicated bugs on attachment create errors
+# Wrap bug creation in a transaction, so attachment create errors
+# don't lead to duplicated bugs. Also it allows many ugly hacks
+# to be removed from Bugzilla::Bug. (CustIS Bug 63152)
 Bugzilla->dbh->bz_start_transaction;
 
-my $bug = Bugzilla::Bug->create(\%bug_params);
+my $bug = new Bugzilla::Bug;
+
+$bug->set...
+dependencies => { dependson, blocked }
+comment => { thetext, work_time, isprivate, type }
+keywords => { keywords, descriptions }
 
 # Get the bug ID back.
 my $id = $bug->bug_id;
 
-# We do this directly from the DB because $bug->creation_ts has the seconds
-# formatted out of it (which should be fixed some day).
-my $timestamp = $dbh->selectrow_array(
-    'SELECT creation_ts FROM bugs WHERE bug_id = ?', undef, $id);
+my $timestamp = $bug->creation_ts;
 
 # Set Version cookie, but only if the user actually selected
 # a version on the page.
-if (defined $cgi->param('version') && length $cgi->param('version'))
+if (defined $ARGS->{version} && $ARGS->{version} ne '')
 {
-    $cgi->send_cookie(-name => "VERSION-" . $bug->product,
-                      -value => $bug->version,
-                      -expires => "Fri, 01-Jan-2038 00:00:00 GMT");
+    $cgi->send_cookie(
+        -name => "VERSION-" . $bug->product,
+        -value => $bug->version,
+        -expires => "Fri, 01-Jan-2038 00:00:00 GMT"
+    );
 }
 
 # We don't have to check if the user can see the bug, because a user filing
@@ -203,7 +205,7 @@ if (defined $cgi->param('version') && length $cgi->param('version'))
 
 # Add an attachment if requested.
 my $is_multiple = 0;
-for (keys %{$cgi->Vars})
+for (keys %$ARGS)
 {
     if (/^attachmulti_(.*)_([^_]*)$/so)
     {
@@ -219,45 +221,47 @@ if ($is_multiple)
     my $send_attrs = {};
     Bugzilla::Attachment::add_multiple($bug, $cgi, $send_attrs);
 }
-elsif (defined($cgi->upload('data')) || $cgi->param('attachurl') ||
-    $cgi->param('text_attachment') || $cgi->param('base64_content'))
+elsif (defined($cgi->upload('data')) || $ARGS->{attachurl} ||
+    $ARGS->{text_attachment} || $ARGS->{base64_content})
 {
-    $cgi->param('isprivate', $cgi->param('commentprivacy'));
+    $ARGS->{isprivate} = $ARGS->{commentprivacy};
 
-    # Must be called before create() as it may alter $cgi->param('ispatch').
-    my $content_type = Bugzilla::Attachment::get_content_type();
+    # Must be called before create() as it may alter $ARGS->{ispatch}.
+    my ($content_type, $ispatch) = Bugzilla::Attachment::get_content_type();
     my $attachment;
 
     # If the attachment cannot be successfully added to the bug,
     # we notify the user, but we don't interrupt the bug creation process.
     my $error_mode_cache = Bugzilla->error_mode;
     Bugzilla->error_mode(ERROR_MODE_DIE);
-    eval {
-        my $data = scalar $cgi->param('attachurl') || $cgi->upload('data');
+    eval
+    {
+        my $data = $ARGS->{attachurl} || $ARGS->{data};
         my $filename = '';
-        $filename = scalar $cgi->upload('data') || $cgi->param('filename') unless $cgi->param('attachurl');
-        if (scalar $cgi->param('text_attachment') !~ /^\s*$/so)
+        $filename = scalar($cgi->upload('data')) || $ARGS->{filename} unless $ARGS->{attachurl};
+        if ($ARGS->{text_attachment} !~ /^\s*$/so)
         {
-            $data = $cgi->param('text_attachment');
-            $filename = $cgi->param('description');
+            $data = $ARGS->{text_attachment};
+            $filename = $ARGS->{description};
         }
-        $attachment = Bugzilla::Attachment->create(
-            {bug           => $bug,
-             creation_ts   => $timestamp,
-             data          => $data,
-             description   => scalar $cgi->param('description'),
-             filename      => $filename,
-             ispatch       => scalar $cgi->param('ispatch'),
-             isprivate     => scalar $cgi->param('isprivate'),
-             isurl         => scalar $cgi->param('attachurl'),
-             mimetype      => $content_type,
-             store_in_file => scalar $cgi->param('bigfile'),
-             base64_content => scalar $cgi->param('base64_content'),
-            });
+        $attachment = Bugzilla::Attachment->create({
+            bug             => $bug,
+            creation_ts     => $timestamp,
+            data            => $data,
+            description     => $ARGS->{description},
+            filename        => $filename,
+            ispatch         => $ispatch,
+            isprivate       => $ARGS->{isprivate},
+            isurl           => $ARGS->{attachurl},
+            mimetype        => $content_type,
+            store_in_file   => $ARGS->{bigfile},
+            base64_content  => $ARGS->{base64_content},
+        });
     };
     Bugzilla->error_mode($error_mode_cache);
 
-    if ($attachment) {
+    if ($attachment)
+    {
         # Set attachment flags.
         my ($flags, $new_flags) = Bugzilla::Flag->extract_flags_from_cgi(
             $bug, $attachment, $vars
@@ -268,8 +272,9 @@ elsif (defined($cgi->upload('data')) || $cgi->param('attachurl') ||
         $comment->set_type(CMT_ATTACHMENT_CREATED, $attachment->id);
         $comment->update();
     }
-    else {
-        $vars->{'message'} = 'attachment_creation_failed';
+    else
+    {
+        $vars->{message} = 'attachment_creation_failed';
     }
 }
 
@@ -278,21 +283,17 @@ my ($flags, $new_flags) = Bugzilla::Flag->extract_flags_from_cgi($bug, undef, $v
 $bug->set_flags($flags, $new_flags);
 $bug->update($timestamp);
 
-$vars->{'id'} = $id;
-$vars->{'bug'} = $bug;
+$vars->{id} = $id;
+$vars->{bug} = $bug;
 
-# CustIS Bug 63152 - Duplicated bugs on attachment create errors
 Bugzilla->dbh->bz_commit_transaction;
 
 Bugzilla::Hook::process('post_bug_after_creation', { vars => $vars });
 
-ThrowCodeError("bug_error", { bug => $bug }) if $bug->error;
-
 if ($token)
 {
     trick_taint($token);
-    $dbh->do('UPDATE tokens SET eventdata = ? WHERE token = ?', undef, 
-             ("createbug:$id", $token));
+    $dbh->do('UPDATE tokens SET eventdata = ? WHERE token = ?', undef, "createbug:$id", $token);
 }
 
 my $bug_sent = { bug_id => $id, type => 'created', mailrecipients => { changer => $user->login } };

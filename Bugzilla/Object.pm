@@ -379,12 +379,6 @@ sub update
 
     $dbh->do("UPDATE $table SET $columns WHERE $id_field = ?", undef, @values, $self->id) if @values;
 
-    Bugzilla::Hook::process('object_end_of_update', {
-        object => $self,
-        old_object => $old_self,
-        changes => \%changes,
-    });
-
     $dbh->bz_commit_transaction();
 
     if (wantarray)
@@ -398,7 +392,6 @@ sub update
 sub remove_from_db
 {
     my $self = shift;
-    Bugzilla::Hook::process('object_before_delete', { object => $self });
     my $table = $self->DB_TABLE;
     my $id_field = $self->ID_FIELD;
     Bugzilla->dbh->do("DELETE FROM $table WHERE $id_field = ?", undef, $self->id);
@@ -448,10 +441,6 @@ sub check_required_create_fields
 {
     my ($class, $params) = @_;
 
-    # This hook happens here so that even subclasses that don't call
-    # SUPER::create are still affected by the hook.
-    Bugzilla::Hook::process('object_before_create', { class => $class, params => $params });
-
     foreach my $field ($class->REQUIRED_CREATE_FIELDS)
     {
         ThrowCodeError('param_required', { function => "${class}->create", param => $field })
@@ -466,8 +455,6 @@ sub run_create_validators
     my $validators = $class->VALIDATORS;
     my %field_values = %$params;
 
-    local $Bugzilla::Object::CREATE_PARAMS = \%field_values;
-
     # We do the sort just to make sure that validation always
     # happens in a consistent order.
     foreach my $field (sort keys %field_values)
@@ -481,9 +468,6 @@ sub run_create_validators
         # and that means they can be set to undef.
         trick_taint($field_values{$field}) if defined $field_values{$field} && !ref $field_values{$field};
     }
-
-    Bugzilla::Hook::process('object_end_of_create_validators',
-        { class => $class, params => \%field_values });
 
     return \%field_values;
 }
@@ -517,7 +501,6 @@ sub insert_create_data
 
     my $object = $class->new($id);
 
-    Bugzilla::Hook::process('object_end_of_create', { class => $class, object => $object });
     return $object;
 }
 
