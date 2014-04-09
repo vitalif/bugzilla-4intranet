@@ -394,16 +394,17 @@ sub set_flag {
     }
 }
 
-sub _validate {
+sub _validate
+{
     my ($class, $flag, $flag_type, $params, $bug, $attachment) = @_;
 
     # If it's a new flag, let's create it now.
-    my $obj_flag = $flag || bless({ type_id   => $flag_type->id,
-                                    status    => '',
-                                    bug_id    => $bug->id,
-                                    attach_id => $attachment ?
-                                                   $attachment->id : undef},
-                                    $class);
+    my $obj_flag = $flag || bless({
+        type_id   => $flag_type->id,
+        status    => '',
+        bug_id    => $bug->id,
+        attach_id => $attachment ? $attachment->id : undef
+    }, $class);
 
     my $old_status = $obj_flag->status;
     my $old_requestee_id = $obj_flag->requestee_id;
@@ -421,12 +422,14 @@ sub _validate {
     }
 
     # If the flag is deleted, remove it from the list.
-    if ($obj_flag->status eq 'X') {
+    if ($obj_flag->status eq 'X')
+    {
         @{$flag_type->{flags}} = grep { $_->id != $obj_flag->id } @{$flag_type->{flags}};
     }
     # Add the newly created flag to the list.
-    elsif (!$obj_flag->id) {
-        push(@{$flag_type->{flags}}, $obj_flag);
+    elsif (!$obj_flag->id)
+    {
+        push @{$flag_type->{flags}}, $obj_flag;
     }
 }
 
@@ -501,12 +504,13 @@ sub update_activity {
 sub update_flags {
     my ($class, $self, $old_self, $timestamp) = @_;
 
-    my @old_summaries = $class->snapshot($old_self->flags);
-    my %old_flags = map { $_->id => $_ } @{$old_self->flags};
+    my @old_summaries = $class->snapshot($old_self ? $old_self->flags : []);
+    my %old_flags = map { $_->id => $_ } @{$old_self ? $old_self->flags : []};
 
     foreach my $new_flag (@{$self->flags}) {
         if (!$new_flag->id) {
             # This is a new flag.
+            $new_flag->{bug_id} = $self->id;
             my $flag = $class->create($new_flag, $timestamp);
             $new_flag->{id} = $flag->id;
             $class->notify($new_flag, undef, $self);

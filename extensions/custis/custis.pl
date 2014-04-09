@@ -62,9 +62,6 @@ set_hook('custis', 'buglist_columns',               'CustisBuglistHooks::buglist
 
 # Хуки в обработку почты
 set_hook('custis', 'bugmail_pre_template',          'CustisMailHooks::bugmail_pre_template');
-set_hook('custis', 'bugmail_post_send',             'CustisMailHooks::bugmail_post_send');
-set_hook('custis', 'flag_notify_pre_template',      'CustisMailHooks::flag_notify_pre_template');
-set_hook('custis', 'flag_notify_post_send',         'CustisMailHooks::flag_notify_post_send');
 set_hook('custis', 'emailin_filter_body',           'CustisMailHooks::emailin_filter_body');
 set_hook('custis', 'emailin_filter_html',           'CustisMailHooks::emailin_filter_html');
 

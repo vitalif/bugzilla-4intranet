@@ -115,56 +115,31 @@ my $format = $template->get_format('bug/create/comment', $ARGS->{format}, 'txt')
 $template->process($format->{template}, $vars, \$comment)
     || ThrowTemplateError($template->error);
 
-# Include custom fields editable on bug creation.
-my @custom_bug_fields = grep { $_->enter_bug } Bugzilla->active_custom_fields;
-my @bug_fields = grep { defined $ARGS->{$_} } map { $_->name } @custom_bug_fields;
-
-push(@bug_fields, qw(
+# Product must be set first
+my @bug_fields = qw(
     product
     component
-
     assigned_to
     qa_contact
-
     alias
-    blocked
-    commentprivacy
     bug_file_loc
-    bug_severity
     bug_status
     resolution
-    dependson
-    keywords
-    keywords_description
     short_desc
+    bug_severity
     priority
     version
     target_milestone
     status_whiteboard
-
     estimated_time
     deadline
-));
+    cc
+);
 # FIXME kill op_sys and rep_platform completely, make them custom fields
 push @bug_fields, 'op_sys' if Bugzilla->params->{useopsys};
 push @bug_fields, 'rep_platform' if Bugzilla->params->{useplatform};
-my %bug_params;
-foreach my $field (@bug_fields)
-{
-    $bug_params{$field} = $ARGS->{$field};
-}
-$bug_params{cc}      = $ARGS->{cc};
-$bug_params{groups}  = \@selected_groups;
-$bug_params{comment} = $comment;
-
-if ($user->is_timetracker)
-{
-    $bug_params{work_time} = $ARGS->{work_time} || 0;
-}
-else
-{
-    $bug_params{work_time} = 0;
-}
+# Include custom fields editable on bug creation.
+push @bug_fields, map { $_->name } Bugzilla->active_custom_fields({ enter_bug => 1 });
 
 # Wrap bug creation in a transaction, so attachment create errors
 # don't lead to duplicated bugs. Also it allows many ugly hacks
@@ -173,12 +148,34 @@ Bugzilla->dbh->bz_start_transaction;
 
 my $bug = new Bugzilla::Bug;
 
-$bug->set...
-dependencies => { dependson, blocked }
-add_comment => { thetext, work_time, isprivate => commentprivacy, type }
-keywords => { keywords, descriptions }
+for my $f (@bug_fields)
+{
+    $bug->set($f, $ARGS->{$f});
+}
 
-# Get the bug ID back.
+$bug->add_comment({
+    thetext => $comment,
+    isprivate => $ARGS->{commentprivacy},
+    work_time => $user->is_timetracker && $ARGS->{work_time} || 0,
+});
+$bug->set('keywords', {
+    keywords => $ARGS->{keywords},
+    descriptions => http_decode_query($ARGS->{keywords_description}),
+});
+$bug->set_dependencies({
+    blocked => $ARGS->{blocked},
+    dependson => $ARGS->{dependson},
+});
+$bug->set('groups', \@selected_groups);
+
+# Set bug flags
+my ($flags, $new_flags) = Bugzilla::Flag->extract_flags_from_cgi($bug, undef, $vars);
+$bug->set_flags($flags, $new_flags);
+
+# Save bug
+$bug->update;
+
+# Get the bug ID back
 my $id = $bug->bug_id;
 
 my $timestamp = $bug->creation_ts;
@@ -272,11 +269,6 @@ elsif (defined($cgi->upload('data')) || $ARGS->{attachurl} ||
         $vars->{message} = 'attachment_creation_failed';
     }
 }
-
-# Set bug flags.
-my ($flags, $new_flags) = Bugzilla::Flag->extract_flags_from_cgi($bug, undef, $vars);
-$bug->set_flags($flags, $new_flags);
-$bug->update($timestamp);
 
 $vars->{id} = $id;
 $vars->{bug} = $bug;

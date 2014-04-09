@@ -1,17 +1,15 @@
 #!/usr/bin/perl
-# Different email hooks
+# Various email hooks
 
 package CustisMailHooks;
 
 use strict;
 
 use Bugzilla::Constants;
-use CustisLocalBugzillas;
 use Bugzilla::Util;
 use POSIX qw(strftime);
 
-# Hack into urlbase and set it to be correct for email recipient
-# Also log all messages with comment and diff count to data/maillog
+# Log all messages with comment and diff count to data/maillog
 sub bugmail_pre_template
 {
     my ($args) = @_;
@@ -37,32 +35,6 @@ sub bugmail_pre_template
         close $fd;
     }
 
-    CustisLocalBugzillas::HackIntoUrlbase($vars->{to});
-    return 1;
-}
-
-# Unhack urlbase :-)
-sub bugmail_post_send
-{
-    my ($args) = @_;
-    CustisLocalBugzillas::HackIntoUrlbase(undef);
-    return 1;
-}
-
-# Hack into urlbase and set it to be correct for email recipient
-sub flag_notify_pre_template
-{
-    my ($args) = @_;
-    my $vars = $args->{vars};
-    CustisLocalBugzillas::HackIntoUrlbase($vars->{to});
-    return 1;
-}
-
-# Unhack urlbase :-)
-sub flag_notify_post_send
-{
-    my ($args) = @_;
-    CustisLocalBugzillas::HackIntoUrlbase(undef);
     return 1;
 }
 

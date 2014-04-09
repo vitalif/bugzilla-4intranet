@@ -144,7 +144,6 @@ document.changeform = document.[% cfname %];
     [% PROCESS attachment/list.html.tmpl
                attachments = bug.attachments
                bugid       = bug.bug_id
-               num_attachment_flag_types = bug.num_attachment_flag_types
                show_attachment_flags = bug.show_attachment_flags
     %]
   </td>

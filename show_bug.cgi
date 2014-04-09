@@ -106,7 +106,7 @@ else
 $vars->{bugs} = \@bugs;
 $vars->{marks} = \%marks;
 
-my @bugids = map { $_->bug_id } grep { !$_->error } @bugs;
+my @bugids = map { $_->bug_id } grep { ref $_ } @bugs;
 $vars->{bugids} = join(', ', @bugids);
 
 # Work out which fields we are displaying (currently XML only)
