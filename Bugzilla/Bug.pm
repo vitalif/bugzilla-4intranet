@@ -821,7 +821,7 @@ sub _check_bug_status
 
     # We skip this check if we are changing from a status to itself.
     if ((!$old_status || $old_status->id != $new_status->id) &&
-        !grep { $_->id eq $new_status->id } @valid_statuses)
+        !grep { $_->id == $new_status->id } @valid_statuses)
     {
         ThrowUserError('illegal_bug_status_transition', { old => $old_status, new => $new_status });
     }
@@ -930,25 +930,28 @@ sub _check_dup_id
     my $cur_dup = $self->dup_id || 0;
     my $old_dup = $self->{_old_self} ? $self->{_old_self}->dup_id || 0 : 0;
 
-    if ($cur_dup != $old_dup && Bugzilla->params->{commentonduplicate} && !@{ $self->{added_comments} || [] })
+    if ($cur_dup != $old_dup)
     {
-        ThrowUserError('comment_required');
-    }
-
-    if ($self->dup_id)
-    {
-        # Make sure that we add a duplicate comment on *this* bug.
-        # (Change an existing comment into a dup comment, if there is one, or add an empty dup comment)
-        my @normal = grep { !defined $_->{type} || $_->{type} == CMT_NORMAL } @{ $self->{added_comments} || [] };
-        if (@normal)
+        if (Bugzilla->params->{commentonduplicate} && !@{ $self->{added_comments} || [] })
         {
-            # Turn the last one into a dup comment.
-            $normal[-1]->{type} = CMT_DUPE_OF;
-            $normal[-1]->{extra_data} = $cur_dup;
+            ThrowUserError('comment_required');
         }
-        else
+
+        if ($cur_dup)
         {
-            $self->add_comment('', { type => CMT_DUPE_OF, extra_data => $cur_dup });
+            # Make sure that we add a duplicate comment on *this* bug.
+            # (Change an existing comment into a dup comment, if there is one, or add an empty dup comment)
+            my @normal = grep { !defined $_->{type} || $_->{type} == CMT_NORMAL } @{ $self->{added_comments} || [] };
+            if (@normal)
+            {
+                # Turn the last one into a dup comment.
+                $normal[-1]->{type} = CMT_DUPE_OF;
+                $normal[-1]->{extra_data} = $cur_dup;
+            }
+            else
+            {
+                $self->add_comment('', { type => CMT_DUPE_OF, extra_data => $cur_dup });
+            }
         }
     }
 }
@@ -2572,7 +2575,7 @@ sub dup_id
     my ($self) = @_;
     return $self->{dup_id} if exists $self->{dup_id};
     $self->{dup_id} = undef;
-    if ($self->{resolution} eq 'DUPLICATE' && $self->id)
+    if ($self->resolution_obj && $self->resolution_obj->name eq 'DUPLICATE' && $self->id)
     {
         my $dbh = Bugzilla->dbh;
         $self->{dup_id} = $dbh->selectrow_array(

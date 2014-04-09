@@ -159,37 +159,44 @@ function showHideStatusItems(is_duplicate, initial_status)
     var el = document.getElementById('bug_status');
     if (el)
     {
-        showDuplicateItem(el);
         // Make sure that fields whose visibility or values are controlled
         // by "resolution" behave properly when resolution is hidden.
         var resolution = document.getElementById('resolution');
-        if (resolution && resolution.options[0].value != '' &&
-            resolution.options[0].value != '--do_not_change--')
-        {
-            resolution.bz_lastSelected = resolution.selectedIndex;
-            var emptyOption = new Option('', '');
-            resolution.insertBefore(emptyOption, resolution.options[0]);
-            emptyOption.selected = true;
-        }
-        addClass('resolution_settings', 'bz_default_hidden');
-        if (document.getElementById('resolution_settings_warning'))
-            addClass('resolution_settings_warning', 'bz_default_hidden');
         addClass('duplicate_display', 'bz_default_hidden');
-        if (el.value == initial_status && is_duplicate == "is_duplicate" ||
-            bz_isValueInArray(close_status_array, el.value))
+        showDuplicateItem(el);
+        if (el.options[el.selectedIndex].text == initial_status && is_duplicate == "is_duplicate" ||
+            bz_isValueInArray(close_status_array, el.options[el.selectedIndex].text))
         {
             removeClass('resolution_settings', 'bz_default_hidden');
             removeClass('resolution_settings_warning', 'bz_default_hidden');
-
-            // Remove the blank option we inserted.
+            // Remove the blank resolution option
             if (resolution && resolution.options[0].value == '')
             {
+                if (resolution.bz_lastSelected)
+                {
+                    resolution.selectedIndex = resolution.bz_lastSelected;
+                }
                 resolution.removeChild(resolution.options[0]);
-                resolution.selectedIndex = resolution.bz_lastSelected;
             }
         }
+        else
+        {
+            addClass('resolution_settings', 'bz_default_hidden');
+            addClass('resolution_settings_warning', 'bz_default_hidden');
+            // Add the blank resolution option back
+            if (resolution && resolution.options[0].value != '' &&
+                resolution.options[0].value != '--do_not_change--')
+            {
+                var emptyOption = new Option('---', '');
+                resolution.insertBefore(emptyOption, resolution.options[0]);
+            }
+            resolution.bz_lastSelected = resolution.selectedIndex;
+            resolution.options[0].selected = true;
+        }
         if (resolution)
+        {
             bz_fireEvent(resolution, 'change');
+        }
     }
 }
 
@@ -200,7 +207,9 @@ function showDuplicateItem(e)
     var dup_id = document.getElementById('dup_id');
     if (resolution && dup_id)
     {
-        if (resolution.value == 'DUPLICATE' && bz_isValueInArray(close_status_array, bug_status.value))
+        // FIXME remove name hardcode
+        if (resolution.options[resolution.selectedIndex].text == 'DUPLICATE' &&
+            bz_isValueInArray(close_status_array, bug_status.options[bug_status.selectedIndex].text))
         {
             // hide resolution show duplicate
             removeClass('duplicate_settings', 'bz_default_hidden');
