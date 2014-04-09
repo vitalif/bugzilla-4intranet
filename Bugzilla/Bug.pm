@@ -489,6 +489,7 @@ sub update
     }
     else
     {
+        # FIXME implement default select field values!
         $self->{bug_severity} = Bugzilla->params->{defaultseverity} if !$self->{bug_severity};
         $self->{priority} = Bugzilla->params->{defaultpriority}     if !$self->{priority};
         $self->{op_sys} = Bugzilla->params->{defaultopsys}          if Bugzilla->params->{useopsys} && !$self->{op_sys};
@@ -517,6 +518,7 @@ sub update
 
     # Transform IDs to names for the activity log
     $self->transform_id_changes($changes);
+    delete $changes->{delta_ts};
 
     # Add previous assignee and QA to the CC list
     if ($changes->{qa_contact} && $old_bug && $old_bug->qa_contact)
@@ -2245,7 +2247,7 @@ sub set_dependencies
         if ($self->id)
         {
             my $old = $self->$type;
-            my ($removed, $added) = diff_arrays($old, @bug_ids);
+            my ($removed, $added) = diff_arrays($old, \@bug_ids);
             %check_access = map { $_ => 1 } @$added, @$removed;
         }
         else
@@ -2336,12 +2338,13 @@ sub _check_comment_text
     return $text;
 }
 
-# $bug->add_comment({ thetext => '', work_time => 0, isprivate => 0, type => CMT_WORKTIME });
+# $bug->add_comment('<text>', { work_time => 0, isprivate => 0, type => CMT_WORKTIME });
 sub add_comment
 {
-    my ($self, $params) = @_;
+    my ($self, $text, $params) = @_;
 
-    $params->{thetext} = _check_comment_text($params->{thetext});
+    $params ||= {};
+    $params->{thetext} = _check_comment_text($text);
 
     if (exists $params->{work_time})
     {

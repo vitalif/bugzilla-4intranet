@@ -21,6 +21,8 @@
 #                 Joe Robins <jmrobins@tgix.com>
 #                 Gervase Markham <gerv@gerv.net>
 #                 Marc Schumann <wurblzap@gmail.com>
+#
+# Deep refactoring by Vitaliy Filippov <vitalif@mail.ru> -- see http://wiki.4intra.net
 
 use utf8;
 use strict;
@@ -153,8 +155,7 @@ for my $f (@bug_fields)
     $bug->set($f, $ARGS->{$f});
 }
 
-$bug->add_comment({
-    thetext => $comment,
+$bug->add_comment($comment, {
     isprivate => $ARGS->{commentprivacy},
     work_time => $user->is_timetracker && $ARGS->{work_time} || 0,
 });

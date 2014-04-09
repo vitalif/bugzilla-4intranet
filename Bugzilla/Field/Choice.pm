@@ -374,8 +374,7 @@ sub is_default
 {
     my $self = shift;
     my $name = $self->DEFAULT_MAP->{$self->field->name};
-    # If it doesn't exist in DEFAULT_MAP, then there is no parameter
-    # related to this field.
+    # If it doesn't exist in DEFAULT_MAP, then there is no parameter related to this field.
     return 0 unless $name;
     return ($self->name eq Bugzilla->params->{$name}) ? 1 : 0;
 }

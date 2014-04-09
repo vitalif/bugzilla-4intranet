@@ -16,8 +16,10 @@
 # Corporation. Portions created by the Initial Developer are Copyright
 # (C) 2009 the Initial Developer. All Rights Reserved.
 #
-# Contributor(s): 
+# Contributor(s):
 #   Max Kanat-Alexander <mkanat@bugzilla.org>
+
+# FIXME: Migration probably does not work. Check and fix it.
 
 package Bugzilla::Migrate;
 use strict;
@@ -68,7 +70,7 @@ use constant CONFIG_VARS => (
 #
 # If you are mapping to any custom fields in Bugzilla, you have to create
 # the custom fields using Bugzilla Administration interface before you run
-# migrate.pl. However, if they are drop down or multi-select fields, you 
+# migrate.pl. However, if they are drop down or multi-select fields, you
 # don't have to populate the list of values--migrate.pl will do that for you.
 # Some migrators create certain custom fields by default. If you see a
 # field name starting with "cf_" on the right side of this configuration
@@ -136,7 +138,7 @@ END
         default => 'local',
         desc => <<'END',
 # If migrate.pl comes across any dates without timezones, while doing the
-# migration, what timezone should we assume those dates are in? 
+# migration, what timezone should we assume those dates are in?
 # The best format for this variable is something like "America/Los Angeles".
 # However, time zone abbreviations (like PST, PDT, etc.) are also acceptable,
 # but will result in a less-accurate conversion of times and dates.
@@ -162,7 +164,7 @@ sub do_migration {
     if ($self->config('starting_bug_id')) {
         $dbh->bz_set_next_serial_value('bugs', 'bug_id',
                                        $self->config('starting_bug_id'));
-    }    
+    }
     $dbh->bz_start_transaction();
 
     # Read Other Database
@@ -170,11 +172,11 @@ sub do_migration {
     my $products = $self->products;
     my $bugs     = $self->bugs;
     $self->after_read();
-    
+
     $self->translate_all_bugs($bugs);
 
     Bugzilla->set_user(Bugzilla::User->super_user);
-    
+
     # Insert into Bugzilla
     $self->before_insert();
     $self->insert_users($users);
@@ -326,11 +328,11 @@ sub reset_serial_values {
         next if $field->name eq 'product';
         $reset{$field->name} = 'id';
     }
-    
+
     while (my ($table, $column) = each %reset) {
         $dbh->bz_set_next_serial_value($table, $column);
     }
-    
+
     $self->{serial_values_reset} = 1;
 }
 
@@ -366,22 +368,22 @@ sub translate_bug {
             $other_fields{$field} = $value;
         }
     }
-    
+
     if (defined $original_status and !defined $bug{resolution}
         and $self->map_value('bug_status_resolution', $original_status))
     {
         $bug{resolution} = $self->map_value('bug_status_resolution',
                                             $original_status);
     }
-    
+
     $bug{comment} = $self->_generate_description(\%bug, \%other_fields);
-    
+
     return wantarray ? (\%bug, \%other_fields) : \%bug;
 }
 
 sub _generate_description {
     my ($self, $bug, $fields) = @_;
-    
+
     my $description = "";
     foreach my $field (sort keys %$fields) {
         next if grep($_ eq $field, $self->NON_COMMENT_FIELDS);
@@ -428,7 +430,7 @@ sub parse_date {
         hour   => $time[2],
         minute => $time[1],
         second => int($time[0]),
-        time_zone => $tz, 
+        time_zone => $tz,
     });
     $dt->set_time_zone(Bugzilla->local_timezone);
     return $dt->iso8601;
@@ -436,21 +438,21 @@ sub parse_date {
 
 sub translate_value {
     my ($self, $field, $value) = @_;
-    
+
     if (!defined $value) {
         warn("Got undefined value for $field\n");
         $value = '';
     }
-    
+
     if (ref($value) eq 'ARRAY') {
         return [ map($self->translate_value($field, $_), @$value) ];
     }
 
-    
+
     if (defined $self->map_value($field, $value)) {
         return $self->map_value($field, $value);
     }
-    
+
     if (grep($_ eq $field, USER_FIELDS)) {
         if (defined $self->map_value('user', $value)) {
             return $self->map_value('user', $value);
@@ -465,7 +467,7 @@ sub translate_value {
         return undef if !$value;
         return $self->parse_date($value);
     }
-    
+
     return $value;
 }
 
@@ -577,14 +579,14 @@ sub insert_products {
     my ($self, $products) = @_;
     foreach my $product (@$products) {
         my $components = delete $product->{components};
-        
+
         my $created_prod = new Bugzilla::Product({ name => $product->{name} });
         if (!$created_prod) {
             $created_prod = Bugzilla::Product->create($product);
             print get_text('migrate_product_created',
                            { created => $created_prod }), "\n";
         }
-        
+
         foreach my $component (@$components) {
             next if new Bugzilla::Component({ product => $created_prod,
                                               name    => $component->{name} });
@@ -637,7 +639,7 @@ sub create_legal_values {
             $product_values{$bug->{product}}->{$field}->{$bug->{$field}} = 1;
         }
     }
-    
+
     foreach my $field (@select_fields) {
         my $name = $field->name;
         foreach my $value (keys %{ $values{$name} }) {
@@ -647,7 +649,7 @@ sub create_legal_values {
                            { field => $field, value => $value }), "\n";
         }
     }
-    
+
     foreach my $product (keys %product_values) {
         my $prod_obj = Bugzilla::Product->check($product);
         foreach my $version (keys %{ $product_values{$product}->{version} }) {
@@ -669,10 +671,10 @@ sub create_legal_values {
             print get_text('migrate_value_created', { product => $prod_obj,
                                                       field   => $field,
                                                       value   => $created->name }), "\n";
-            
+
         }
     }
-    
+
 }
 
 sub insert_bugs {
@@ -681,19 +683,16 @@ sub insert_bugs {
     print get_text('migrate_creating_bugs'), "\n";
 
     my $init_statuses = Bugzilla::Status->can_change_to();
-    my %allowed_statuses = map { lc($_->name) => 1 } @$init_statuses;
+    my %allowed_statuses = map { lc $_->name => 1 } @$init_statuses;
     # Bypass the question of whether or not we can file UNCONFIRMED
     # in any product by simply picking a non-UNCONFIRMED status as our
     # default for bugs that don't have a status specified.
     my $default_status = first { $_->name ne 'UNCONFIRMED' } @$init_statuses;
     # Use the first resolution that's not blank.
-    my $default_resolution =
-        first { $_->name ne '' }
-              @{ $self->bug_fields->{resolution}->legal_values };
+    my $default_resolution = first { $_->name ne '' } @{ $self->bug_fields->{resolution}->legal_values };
 
     # Set the values of any required drop-down fields that aren't set.
-    my @standard_drop_downs = grep { !$_->custom and $_->is_select }
-                                   (values %{ $self->bug_fields });
+    my @standard_drop_downs = grep { !$_->custom && $_->is_select } values %{ $self->bug_fields };
     # Make bug_status get set before resolution.
     @standard_drop_downs = sort { $a->name cmp $b->name } @standard_drop_downs;
     # Cache all statuses for setting the resolution.
@@ -712,18 +711,16 @@ sub insert_bugs {
             my $field_name = $field->name;
             next if $field_name eq 'product';
             if (!defined $bug->{$field_name}) {
-                # If there's a default value for this, then just let create()
-                # pick it.
-                next if grep($_->is_default, @{ $field->legal_values });
-                # Otherwise, pick the first valid value if this is a required
-                # field.
+                # If there's a default value for this, then just let create() pick it.
+                next if grep { $_->is_default } @{ $field->legal_values };
+                # Otherwise, pick the first valid value if this is a required field.
                 if ($field_name eq 'bug_status') {
                     $bug->{bug_status} = $default_status;
                 }
                 elsif ($field_name eq 'resolution') {
-                    my $status = $statuses{lc($bug->{bug_status})};
+                    my $status = $statuses{lc $bug->{bug_status}};
                     if (!$status->is_open) {
-                        $bug->{resolution} =  $default_resolution;
+                        $bug->{resolution} = $default_resolution;
                     }
                 }
                 else {
@@ -731,24 +728,23 @@ sub insert_bugs {
                 }
             }
         }
-        
+
         my $product = Bugzilla::Product->check($bug->{product});
-        
+
         # If this isn't a legal starting status, or if the bug has a
         # resolution, then those will have to be set after creating the bug.
         # We make them into objects so that we can normalize their names.
         my ($set_status, $set_resolution);
         if (defined $bug->{resolution}) {
-            $set_resolution = Bugzilla::Field::Choice->type('resolution')
-                              ->new({ name => $bug->{resolution} });
+            $set_resolution = Bugzilla::Field::Choice->type('resolution')->new({ name => $bug->{resolution} });
         }
-        if (!$allowed_statuses{lc($bug->{bug_status})}) {
+        if (!$allowed_statuses{lc $bug->{bug_status}}) {
             $set_status = new Bugzilla::Status({ name => $bug->{bug_status} });
             # Set the starting status to some status that Bugzilla will
             # accept. We're going to overwrite it immediately afterward.
             $bug->{bug_status} = $default_status;
         }
-        
+
         # If we're in dry-run mode, our custom fields haven't been created
         # yet, so we shouldn't try to set them on creation.
         if ($self->dry_run) {
@@ -756,20 +752,21 @@ sub insert_bugs {
                 delete $bug->{$field};
             }
         }
-        
+
         # File the bug as the reporter.
         my $super_user = Bugzilla->user;
         my $reporter = Bugzilla::User->check($bug->{reporter});
-        # Allow the user to file a bug in any product, no matter his current
-        # permissions.
+        # Allow the user to file a bug in any product, no matter his current permissions.
         $reporter->{groups} = $super_user->groups;
         Bugzilla->set_user($reporter);
-        my $created = Bugzilla::Bug->create($bug);
+        my $created = Bugzilla::Bug->new;
+        $created->set_all($bug);
+        $created->update;
         $self->debug('Created bug ' . $created->id);
         Bugzilla->set_user($super_user);
 
         if (defined $bug->{creation_ts}) {
-            $dbh->do('UPDATE bugs SET creation_ts = ?, delta_ts = ? 
+            $dbh->do('UPDATE bugs SET creation_ts = ?, delta_ts = ?
                        WHERE bug_id = ?', undef, $bug->{creation_ts},
                      $bug->{creation_ts}, $created->id);
         }
@@ -785,13 +782,13 @@ sub insert_bugs {
         # a bugs_activity entry that we don't want.
         if ($set_status) {
             $dbh->do('UPDATE bugs SET bug_status = ? WHERE bug_id = ?',
-                     undef, $set_status->name, $created->id);
+                     undef, $set_status->id, $created->id);
         }
         if ($set_resolution) {
             $dbh->do('UPDATE bugs SET resolution = ? WHERE bug_id = ?',
-                     undef, $set_resolution->name, $created->id);
+                     undef, $set_resolution->id, $created->id);
         }
-        
+
         $self->_insert_comments($created, $comments);
         $self->_insert_history($created, $history);
         $self->_insert_attachments($created, $attachments);
@@ -1016,7 +1013,7 @@ configuration parameter will be used as the timezone of the date.
 
 =head2 translate_bug
 
-(Note: Normally you don't have to call this yourself, as 
+(Note: Normally you don't have to call this yourself, as
 C<Bugzilla::Migrate> does it for you.)
 
 Uses the C<$translate_fields> and C<$translate_values> configuration variables
@@ -1049,7 +1046,7 @@ inserting into the database.
 
 =head2 translate_field
 
-(Note: Normally you don't need to use this, because L</translate_bug> 
+(Note: Normally you don't need to use this, because L</translate_bug>
 handles it for you.)
 
 Translates a field name in your bug-tracker to a field name in Bugzilla,
@@ -1126,7 +1123,7 @@ object of your subclass by L<Bugzilla::Migrate> itself.
 =head2 REQUIRED_MODULES
 
 Returns an arrayref of Perl modules that must be installed in order
-for your migrator to run, in the same format as 
+for your migrator to run, in the same format as
 L<Bugzilla::Install::Requirements/REQUIRED_MODULES>.
 
 =head2 CUSTOM_FIELDS

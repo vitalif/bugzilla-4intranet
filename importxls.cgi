@@ -576,7 +576,7 @@ sub process_internal_bugs
             my $internal_bug = Bugzilla::Bug->new($internal_bug_id);
             ThrowUserError('import_intbug_does_not_exist', {bug_id => $internal_bug->{bug_id}}) if $internal_bug->{error};
             # update internal bug
-            $internal_bug->set_custom_field($cf_extbug_field, [$id]);
+            $internal_bug->set($cf_extbug_field, [$id]);
             $internal_bug->update();
         }
     }

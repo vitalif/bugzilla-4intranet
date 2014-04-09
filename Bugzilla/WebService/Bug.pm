@@ -495,7 +495,7 @@ sub update {
         $all_changes{$bug->id} = $bug->update();
     }
     $dbh->bz_commit_transaction();
-    
+
     foreach my $bug (@bugs) {
         $bug->send_changes($all_changes{$bug->id});
     }
@@ -545,7 +545,10 @@ sub create {
     my ($self, $params) = @_;
     Bugzilla->login(LOGIN_REQUIRED);
     $params = Bugzilla::Bug::map_fields($params);
-    my $bug = Bugzilla::Bug->create($params);
+    my $bug = Bugzilla::Bug->new;
+    $bug->set_all($params);
+    $bug->add_comment($params->{comment});
+    $bug->update;
     Bugzilla::BugMail::Send($bug->bug_id, { changer => $bug->reporter });
     return { id => $self->type('int', $bug->bug_id) };
 }

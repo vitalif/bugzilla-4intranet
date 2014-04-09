@@ -576,13 +576,9 @@ sub insert
                                              new => $bug_status });
         }
 
-        $bug->set_status(
-            scalar $cgi->param('bug_status'),
-            {
-                resolution =>  scalar $cgi->param('resolution'),
-                dupe_of => scalar $cgi->param('dup_id')
-            }
-        );
+        $bug->set(bug_status => scalar $cgi->param('bug_status'));
+        $bug->set(resolution => scalar $cgi->param('resolution'));
+        $bug->set(dup_id => scalar $cgi->param('dup_id'));
     }
 
     # Assign the bug to the user, if they are allowed to take it
@@ -591,7 +587,7 @@ sub insert
     {
         # Make sure the person we are taking the bug from gets mail.
         $owner = $bug->assigned_to->login;
-        $bug->set_assigned_to($user);
+        $bug->set('assigned_to', $user);
     }
     $bug->update($timestamp);
 

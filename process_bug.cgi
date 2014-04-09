@@ -1,6 +1,4 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -277,14 +275,11 @@ foreach my $bug (@bug_objects)
 
 # For security purposes, and because lots of other checks depend on it,
 # we set the product first before anything else.
-my $product_change; # Used only for strict_isolation checks, right now.
 if (defined $ARGS->{product})
 {
     foreach my $b (@bug_objects)
     {
-        $b->{_other_bugs} = \@bug_objects;
-        my $changed = $b->set('product', $ARGS->{product});
-        $product_change ||= $changed;
+        $b->set(product => $ARGS->{product});
     }
 }
 
@@ -292,29 +287,29 @@ if (defined $ARGS->{product})
 # immediately after changing the product.
 foreach my $b (@bug_objects)
 {
+    my $g;
     foreach my $group (@{$b->product_obj->groups_valid})
     {
         my $gid = $group->id;
         if (defined $ARGS->{"bit-$gid"} || defined $ARGS->{"defined_bit-$gid"})
         {
+            $g ||= { map { $_->id => 1 } @{$b->groups} };
             # Check ! first to avoid having to check defined below.
             if (!$ARGS->{"bit-$gid"})
             {
-                $b->remove_group($gid);
+                delete $g->{$gid};
             }
             # "== 1" is important because mass-change uses -1 to mean
             # "don't change this restriction"
             elsif ($ARGS->{"bit-$gid"} == 1)
             {
-                $b->add_group($gid);
+                $g->{$gid} = 1;
             }
         }
     }
+    $b->set(groups => [ keys %$g ]) if $g;
 }
 
-Bugzilla::Hook::process('process_bug-after_move', { bug_objects => \@bug_objects, vars => $vars });
-
-# Flags should be set AFTER the bug has been moved into another product/component.
 if ($ARGS->{id})
 {
     my ($flags, $new_flags) = Bugzilla::Flag->extract_flags_from_cgi($first_bug, undef, $vars);
@@ -323,7 +318,7 @@ if ($ARGS->{id})
 
 if ($ARGS->{id} && (defined $ARGS->{dependson} || defined $ARGS->{blocked}))
 {
-    $first_bug->set('dependencies', { dependson => $ARGS->{dependson}, blocked => $ARGS->{blocked} });
+    $first_bug->set_dependencies({ dependson => $ARGS->{dependson}, blocked => $ARGS->{blocked} });
 }
 elsif (defined $ARGS->{dependson} || defined $ARGS->{blocked})
 {
@@ -348,7 +343,7 @@ elsif (defined $ARGS->{dependson} || defined $ARGS->{blocked})
                 }
             }
         }
-        $bug->set('dependencies', { dependson => [ keys %{$temp_deps{dependson}} ], blocked => [ keys %{$temp_deps{blocked}} ] });
+        $bug->set_dependencies({ dependson => [ keys %{$temp_deps{dependson}} ], blocked => [ keys %{$temp_deps{blocked}} ] });
     }
 }
 
@@ -366,11 +361,8 @@ if ($ARGS->{keywords})
     }
 }
 
-# Component, target_milestone, and version are in here just in case
-# the 'product' field wasn't defined in the CGI. It doesn't hurt to set
-# them twice.
+# FIXME use a global set_fields list
 my @custom_fields = Bugzilla->active_custom_fields;
-
 my @set_fields = qw(
     component deadline remaining_time estimated_time alias op_sys rep_platform bug_severity
     priority status_whiteboard short_desc target_milestone bug_file_loc version
@@ -438,18 +430,18 @@ if ($ARGS->{id})
     # for one bug at a time.
     if (Bugzilla->params->{usebugaliases} && defined $ARGS->{alias})
     {
-        $first_bug->set('alias', $ARGS->{alias});
+        $first_bug->set(alias => $ARGS->{alias});
     }
 
     # reporter_accessible and cclist_accessible--these are only set if
     # the user can change them and they appear on the page.
     if (defined $ARGS->{cclist_accessible} || defined $ARGS->{defined_cclist_accessible})
     {
-        $first_bug->set('cclist_accessible', $ARGS->{cclist_accessible});
+        $first_bug->set(cclist_accessible => $ARGS->{cclist_accessible});
     }
     if (defined $ARGS->{reporter_accessible} || defined $ARGS->{defined_reporter_accessible})
     {
-        $first_bug->set('reporter_accessible', $ARGS->{reporter_accessible});
+        $first_bug->set(reporter_accessible => $ARGS->{reporter_accessible});
     }
 
     # You can only mark/unmark comments as private on single bugs. If
@@ -514,16 +506,6 @@ foreach my $b (@bug_objects)
 {
     $b->remove_cc($_) foreach @cc_remove;
     $b->add_cc($_) foreach @cc_add;
-    # Theoretically you could move a product without ever specifying
-    # a new assignee or qa_contact, or adding/removing any CCs. So,
-    # we have to check that the current assignee, qa, and CCs are still
-    # valid if we've switched products, under strict_isolation. We can only
-    # do that here. There ought to be some better way to do this,
-    # architecturally, but I haven't come up with it.
-    if ($product_change)
-    {
-        $b->_check_strict_isolation();
-    }
 }
 
 # TODO move saved state into a global object
@@ -552,7 +534,8 @@ if ($move_action eq Bugzilla->params->{'move-button-text'})
     foreach my $bug (@bug_objects)
     {
         $bug->{moving} = 1;
-        $bug->set_status($new_status, {resolution => 'MOVED'});
+        $bug->set(bug_status => $new_status);
+        $bug->set(resolution => 'MOVED');
     }
     $_->update() foreach @bug_objects;
     $dbh->bz_commit_transaction();
@@ -606,6 +589,7 @@ if ($move_action eq Bugzilla->params->{'move-button-text'})
     exit;
 }
 
+Bugzilla::Hook::process('process_bug-after_move', { bug_objects => \@bug_objects, vars => $vars });
 
 # You cannot mark bugs as duplicates when changing several bugs at once
 # (because currently there is no way to check for duplicate loops in that
@@ -622,18 +606,15 @@ foreach my $b (@bug_objects)
 {
     if (defined $ARGS->{bug_status})
     {
-        $b->set_status($ARGS->{bug_status}, {
-            resolution  => $ARGS->{resolution},
-            dupe_of     => $ARGS->{dup_id},
-        });
+        $b->set(bug_status => $ARGS->{bug_status});
     }
-    elsif (defined $ARGS->{resolution})
+    if (defined $ARGS->{resolution})
     {
-        $b->set_resolution($ARGS->{resolution}, { dupe_of => $ARGS->{dup_id} });
+        $b->set(resolution => $ARGS->{resolution});
     }
-    elsif (defined $ARGS->{dup_id})
+    if (defined $ARGS->{dup_id})
     {
-        $b->set_dup_id($ARGS->{dup_id});
+        $b->set(dup_id => $ARGS->{dup_id});
     }
 }
 
