@@ -1,9 +1,12 @@
 #!/usr/bin/perl -wT
-# Вывод SCRUM-карточек для печати
+# Print SCRUM-like cards for bugs
+# License: Dual-license GPL 3.0+ or MPL 1.1+
+# Author: Vitaliy Filippov <vitalif@mail.ru>
 
 use strict;
 use Bugzilla;
 use Bugzilla::Util qw(trim html_quote);
+use Scalar::Util qw(blessed);
 use Bugzilla::Error;
 
 my $cgi = Bugzilla->cgi;
@@ -11,8 +14,7 @@ my $user = Bugzilla->login;
 my $args = { %{ $cgi->Vars } };
 my $vars = {};
 
-# Параметры по умолчанию:
-# $l = настройки Layout
+# Default $Layout settings
 my $l = {
     cols => int($args->{t_cols} || 0) > 0 ? int($args->{t_cols} || 0) : undef,
     rows => int($args->{t_rows} || 0) > 0 ? int($args->{t_rows} || 0) : undef,
@@ -31,7 +33,7 @@ $l->{cardtext} = <<'EOF';
 <table class="card" cellspacing="5">
  <tr>
   <td class="dot"><a href="show_bug.cgi?id={bug_id}">{bug_id}</a></td>
-  <td class="sevpri">{substr(bug_severity, 0, 3)}&nbsp;{priority}</td>
+  <td class="sevpri">{substr(bug_severity, 0, 3)}&nbsp;{substr(priority, 0, 3)}</td>
   <td class="dot">{substr(target_milestone, 0, 5)}</td>
  </tr>
  <tr><td colspan="3" class="spc"></td></tr>
@@ -49,13 +51,13 @@ $l->{cardtext} = <<'EOF';
 </table>
 EOF
 
-# Загрузка параметров из запроса
+# Parse layout settings from the request
 for (qw(pw ph cw ch cmt cmr cmb cml fs))
 {
     $l->{$_} = $1 if defined $args->{"t_$_"} && $args->{"t_$_"} =~ /^([\d\.]+)$/ && $1 >= 0;
 }
 
-# Загрузка параметров из текста настроек
+# Parse layout settings from text
 if ($args->{load_settings})
 {
     my $ls = load_settings($args->{settings_text});
@@ -66,7 +68,7 @@ if ($args->{load_settings})
     $vars->{load_settings} = 1;
 }
 
-# Вычисление размера карточек по количеству, либо количества по размерам
+# Calculate card size from wanted count, or count from wanted size
 if ($l->{cols} && $l->{rows})
 {
     $l->{ncw} = sprintf("%.2f", ($l->{pw} / $l->{cols}) - $l->{cml} - $l->{cmr});
@@ -87,7 +89,7 @@ else
     $l->{rows} = int($l->{ph} / ($l->{ch} + $l->{cmt} + $l->{cmb}));
 }
 
-# Загрузка багов
+# Load bugs
 my $bugs = [];
 my $est = {};
 
@@ -115,7 +117,7 @@ if ($args->{id})
     }
 }
 
-# Загрузка оценок из запроса
+# Load time estimates from the request
 my $k;
 for my $id (keys %$est)
 {
@@ -126,7 +128,7 @@ for my $id (keys %$est)
     }
 }
 
-# Дополнение таблицы пустыми ячейками
+# Fill the sheet with empty cells
 if (scalar @$bugs > 1)
 {
     if (@$bugs % ($l->{cols} * $l->{rows}))
@@ -135,7 +137,7 @@ if (scalar @$bugs > 1)
     }
 }
 
-# Разбиение на таблицы и строки
+# Make tables and rows
 my $pages = [];
 my ($p, $r, $c) = (0, 0, 0);
 my $repeated = {};
@@ -162,7 +164,7 @@ for (@$bugs)
     }
 }
 
-# Вывод в шаблон
+# Output variables
 $vars->{pages} = $pages;
 $vars->{t} = $l;
 $vars->{idlist} = join ',', map { $_ && $_->{bug} && $_->{bug}->id ? $_->{bug}->id : "" } @$bugs;
@@ -222,14 +224,15 @@ sub load_settings
     return $l;
 }
 
-# Дальше очередной мини-шаблонизатор, потому что TT выставлять
-# наружу и неудобно, и непонятно, как, и небезопасно...
+# The following is a mini template engine -
+# we use it because TT is insecure and inconvenient
 
 sub replace
 {
     my ($s, $re, $repl) = @_;
+    s!\\!\\\\!gso for $re, $repl;
     s!/!\\/!gso for $re, $repl;
-    eval("\$s =~ s/$re/$repl/gso");
+    eval("\$s =~ s/$re/$repl/gs");
     return $s;
 }
 
@@ -260,23 +263,28 @@ sub expression
         my $x = $1;
         if ($x =~ s/^[\"\'](.*)[\"\']$/$1/so)
         {
-            $x =~ s/\\//gso;
+            $x =~ s/\\(.)/$1/gso;
         }
         $v = $x;
     }
     elsif ($e =~ s/^\s*([a-z_]+)//iso)
     {
         my $n = $1;
-        my ($realname) = $n =~ s/_realname//so;
-        $v = $bug->can($n) ? $bug->$n : $bug->{$n};
-        if (ref $v eq 'Bugzilla::User')
+        my $f = Bugzilla->get_field($n);
+        if ($f && $f->is_select)
         {
-            $v = $realname ? $v->name : $v->login;
+            $v = $bug->get_object($n);
         }
-        elsif (ref $v eq 'ARRAY')
+        else
         {
-            $v = join(",", @$v);
+            my ($realname) = $n =~ s/_realname//so;
+            $v = $bug->can($n) ? $bug->$n : $bug->{$n};
+            if (ref $v eq 'Bugzilla::User')
+            {
+                $v = $realname ? $v->name : $v->login;
+            }
         }
+        $v = join(", ", map { blessed($_) ? $_->name : $_ } (ref $v eq 'ARRAY' ? @$v : $v));
     }
     else
     {
