@@ -1098,8 +1098,8 @@ sub save_dependencies
     if (@add_deps)
     {
         Bugzilla->dbh->do(
-            'INSERT INTO dependencies (blocked, dependson) VALUES ('.
-            join(', ', map { "($_->{blocked}, $_->{dependson})" } @add_deps).')'
+            'INSERT INTO dependencies (blocked, dependson) VALUES '.
+            join(', ', map { "($_->{blocked}, $_->{dependson})" } @add_deps)
         );
     }
     if (%touch_bugs)

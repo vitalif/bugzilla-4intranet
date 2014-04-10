@@ -117,6 +117,9 @@ if ($ARGS->{dontchange})
         if ($ARGS->{$name} eq $ARGS->{dontchange} ||
             ref $ARGS->{$name} && @{$ARGS->{$name}} == 1 && $ARGS->{$name}->[0] eq $ARGS->{dontchange})
         {
+            # FIXME remove these $cgi->delete when Bugzilla::User::match_field won't need CGI
+            $cgi->delete($name);
+            $cgi->delete("defined_$name");
             delete $ARGS->{$name};
             delete $ARGS->{"defined_$name"};
         }
