@@ -1,5 +1,3 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -360,6 +358,27 @@ use constant ABSTRACT_SCHEMA => {
             longdescs_bug_id_idx   => ['bug_id'],
             longdescs_who_idx      => [qw(who bug_id)],
             longdescs_bug_when_idx => ['bug_when'],
+            # WTF this index was removed in 3.x?! CustIS Bug 53687
+            longdescs_who_bug_when_idx => ['who', 'bug_when'],
+        ],
+    },
+
+    # Editable comments (CustIS Bug 134368)
+    longdescs_history => {
+        FIELDS => [
+            bug_id     => { TYPE => 'INT4', NOTNULL => 1, REFERENCES => { TABLE => 'bugs', COLUMN => 'bug_id' } },
+            who        => { TYPE => 'INT4', NOTNULL => 1, REFERENCES => { TABLE => 'profiles', COLUMN => 'userid' } },
+            bug_when   => { TYPE => 'DATETIME', NOTNULL => 1 },
+            oldthetext => { TYPE => 'LONGTEXT', NOTNULL => 1 },
+            thetext    => { TYPE => 'LONGTEXT', NOTNULL => 1 },
+            comment_id => { TYPE => 'INT4', NOTNULL => 1 },
+            comment_count => { TYPE => 'INT4', NOTNULL => 1 },
+        ],
+        INDEXES => [
+            longdescs_history_bug_when_idx      => { FIELDS => [ 'bug_when' ] },
+            longdescs_history_who_idx           => { FIELDS => [ 'who', 'bug_id' ] },
+            longdescs_history_who_bug_when_idx  => { FIELDS => [ 'who', 'bug_when' ] },
+            longdescs_history_bug_id_idx        => { FIELDS => [ 'bug_id', 'bug_when' ] },
         ],
     },
 
@@ -721,6 +740,31 @@ use constant ABSTRACT_SCHEMA => {
         ],
     },
 
+    # Predefined field value for incoming emails
+    emailin_fields => {
+        FIELDS => [
+            address => {TYPE => 'varchar(255)', NOTNULL => 1},
+            field   => {TYPE => 'varchar(255)', NOTNULL => 1},
+            value   => {TYPE => 'varchar(255)', NOTNULL => 1},
+        ],
+        INDEXES => [
+            emailin_fields_primary => { FIELDS => ['address', 'field'], TYPE => 'UNIQUE' },
+        ],
+    },
+
+    # Address aliases for incoming emails
+    emailin_aliases => {
+        FIELDS => [
+            address   => {TYPE => 'varchar(255)', NOTNULL => 1},
+            userid    => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'profiles', COLUMN => 'userid'}},
+            fromldap  => {TYPE => 'BOOLEAN'},
+            isprimary => {TYPE => 'BOOLEAN'},
+        ],
+        INDEXES => [
+            emailin_aliases_address => { FIELDS => ['address'], TYPE => 'UNIQUE' },
+        ],
+    },
+
     watch => {
         FIELDS => [
             watcher => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'profiles', COLUMN => 'userid', DELETE => 'CASCADE'}},
@@ -742,6 +786,36 @@ use constant ABSTRACT_SCHEMA => {
         ],
         INDEXES => [
             namedqueries_userid_idx => {FIELDS => [qw(userid name)], TYPE => 'UNIQUE'},
+        ],
+    },
+
+    # Correctness predicate checks, triggers based on saved queries (triggers can only add CC by now): CustIS Bug 68921, 108088
+    checkers => {
+        FIELDS => [
+            id             => {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
+            query_id       => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'namedqueries', COLUMN => 'id'}},
+            user_id        => {TYPE => 'INT4', REFERENCES => {TABLE => 'profiles', COLUMN => 'userid'}},
+            flags          => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0},
+            message        => {TYPE => 'LONGTEXT', NOTNULL => 1},
+            sql_code       => {TYPE => 'LONGTEXT'},
+            except_fields  => {TYPE => 'LONGBLOB'},
+            triggers       => {TYPE => 'LONGBLOB'},
+        ],
+        INDEXES => [
+            checkers_query_id_idx => { FIELDS => ['query_id'] },
+        ],
+    },
+
+    # Additional estimates for SCRUM cards printed from Bugzilla (CustIS Bug 45485)
+    scrum_cards => {
+        FIELDS => [
+            bug_id   => {TYPE => 'INT4', NOTNULL => 1},
+            sprint   => {TYPE => 'varchar(255)', NOTNULL => 1},
+            type     => {TYPE => 'varchar(255)', NOTNULL => 1},
+            estimate => {TYPE => 'varchar(255)', NOTNULL => 1},
+        ],
+        INDEXES => [
+            scrum_cards_primary_idx => { FIELDS => ['bug_id', 'sprint', 'type'], TYPE => 'UNIQUE' },
         ],
     },
 
@@ -775,6 +849,7 @@ use constant ABSTRACT_SCHEMA => {
             userid   => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'profiles', COLUMN => 'userid', DELETE => 'CASCADE'}},
             ipaddr   => {TYPE => 'varchar(40)'},
             lastused => {TYPE => 'DATETIME', NOTNULL => 1},
+            session_data => {TYPE => 'LONGBLOB'},
         ],
         INDEXES => [
             logincookies_lastused_idx => ['lastused'],
@@ -964,6 +1039,13 @@ use constant ABSTRACT_SCHEMA => {
             votestoconfirm    => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0},
             defaultmilestone  => {TYPE => 'INT4', REFERENCES => {TABLE => 'milestones', COLUMN => 'id'}},
             allows_unconfirmed => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
+            wiki_url          => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"},
+            # CustIS Bug 59357 - Prefer no time-tracking in some products
+            notimetracking    => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0},
+            # CustIS Bug 68921 - External/internal products
+            extproduct        => {TYPE => 'INT4', REFERENCES => {TABLE => 'products', COLUMN => 'id'}},
+            # CustIS Bug  - Per-product "strict isolation" setting
+            cc_group          => {TYPE => 'varchar(255)'},
         ],
         INDEXES => [
             products_name_idx   => {FIELDS => ['name'], TYPE => 'UNIQUE'},
@@ -978,6 +1060,9 @@ use constant ABSTRACT_SCHEMA => {
             initialowner     => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'profiles', COLUMN => 'userid'}},
             initialqacontact => {TYPE => 'INT4', REFERENCES => {TABLE => 'profiles', COLUMN => 'userid', DELETE => 'SET NULL'}},
             description      => {TYPE => 'MEDIUMTEXT', NOTNULL => 1},
+            wiki_url         => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"},
+            default_version  => {TYPE => 'varchar(64)', NOTNULL => 1, DEFAULT => "''"},
+            is_active        => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 1},
         ],
         INDEXES => [
             components_product_id_idx => {FIELDS => [qw(product_id name)], TYPE => 'UNIQUE'},
@@ -1112,7 +1197,7 @@ use constant ABSTRACT_SCHEMA => {
             setting_value_nv_unique_idx  => {FIELDS => [qw(name value)], TYPE => 'UNIQUE'},
             setting_value_ns_unique_idx  => {FIELDS => [qw(name sortindex)], TYPE => 'UNIQUE'},
         ],
-     },
+    },
 
     profile_setting => {
         FIELDS => [
@@ -1123,7 +1208,7 @@ use constant ABSTRACT_SCHEMA => {
         INDEXES => [
             profile_setting_value_unique_idx  => {FIELDS => [qw(user_id setting_name)], TYPE => 'UNIQUE'},
         ],
-     },
+    },
 
     # THESCHWARTZ TABLES
     # ------------------

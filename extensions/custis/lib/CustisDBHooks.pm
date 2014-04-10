@@ -16,77 +16,7 @@ sub db_schema_abstract_schema
     my ($args) = @_;
     my $schema = $args->{schema};
 
-    # FIELD VALUES FOR INCOMING EMAILS
-    # --------------
-
-    $schema->{emailin_fields} = {
-        FIELDS => [
-            address => {TYPE => 'varchar(255)', NOTNULL => 1},
-            field   => {TYPE => 'varchar(255)', NOTNULL => 1},
-            value   => {TYPE => 'varchar(255)', NOTNULL => 1},
-        ],
-        INDEXES => [
-            emailin_fields_primary => { FIELDS => ['address', 'field'], TYPE => 'UNIQUE' },
-        ],
-    };
-
-    # ALIASES FOR INCOMING EMAILS
-    # --------------
-
-    $schema->{emailin_aliases} = {
-        FIELDS => [
-            address   => {TYPE => 'varchar(255)', NOTNULL => 1},
-            userid    => {TYPE => 'INT4', NOTNULL => 1,
-                          REFERENCES => {TABLE => 'profiles',
-                                         COLUMN => 'userid'}},
-            fromldap  => {TYPE => 'BOOLEAN'},
-            isprimary => {TYPE => 'BOOLEAN'},
-        ],
-        INDEXES => [
-            emailin_aliases_address => { FIELDS => ['address'], TYPE => 'UNIQUE' },
-        ],
-    };
-
-    # Bug 64562 - надо идти на дом. страницу бага после постановки, а не на post_bug.cgi
-    push @{$schema->{logincookies}->{FIELDS}}, session_data => {TYPE => 'LONGBLOB'};
-
-    # Ну и зачем авторы убрали этот индекс?
-    # Bug 53687 - Тормозят запросы из Plantime в багзиллу
-    push @{$schema->{longdescs}->{INDEXES}}, longdescs_who_bug_when_idx => { FIELDS => ['who', 'bug_when'] };
-
-    # Bug 13593 - Интеграция с Wiki
-    push @{$schema->{components}->{FIELDS}}, wiki_url => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"};
-    push @{$schema->{products}->{FIELDS}}, wiki_url => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"};
-
-    # Bug 59357 - Отключение учёта времени в отдельных продуктах
-    push @{$schema->{products}->{FIELDS}}, notimetracking => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0};
-
-    # Bug 68921 - Связь внутренний/внешний продукт
-    push @{$schema->{products}->{FIELDS}}, extproduct => {TYPE => 'INT4', REFERENCES => {TABLE => 'products', COLUMN => 'id'}};
-
-    # Bug 139829 - Ограничение CC продукта
-    push @{$schema->{products}->{FIELDS}}, cc_group => {TYPE => 'varchar(255)'};
-
-    # Bug 53725 - Версия по умолчанию
-    push @{$schema->{components}->{FIELDS}}, default_version => {TYPE => 'varchar(64)', NOTNULL => 1, DEFAULT => "''"};
-
-    # Bug 68921 - Закрытие компонента (так же как закрытие продукта), чтобы в него нельзя было ставить новые баги
-    push @{$schema->{components}->{FIELDS}}, is_active => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 1};
-
-    # Bug 45485 - Scrum-карточки из Bugzilla
-    $schema->{scrum_cards} = {
-        FIELDS => [
-            bug_id   => {TYPE => 'INT4', NOTNULL => 1},
-            sprint   => {TYPE => 'varchar(255)', NOTNULL => 1},
-            type     => {TYPE => 'varchar(255)', NOTNULL => 1},
-            estimate => {TYPE => 'varchar(255)', NOTNULL => 1},
-        ],
-        INDEXES => [
-            scrum_cards_primary_idx => { FIELDS => ['bug_id', 'sprint', 'type'], TYPE => 'UNIQUE' },
-        ],
-    };
-
-    # Bug 63447 - Глобальная авторизация
+    # Bug 63447 - Simple Global Authentication provider for web applications
     $schema->{globalauth} = {
         FIELDS => [
             id     => {TYPE => 'varchar(255)', NOTNULL => 1},
@@ -95,43 +25,6 @@ sub db_schema_abstract_schema
         ],
         INDEXES => [
             globalauth_primary_idx => { FIELDS => ['id'], TYPE => 'UNIQUE' },
-        ],
-    };
-
-    # Bug 68921 - Предикаты корректности из запросов поиска
-    # Bug 108088 - Триггеры (пока поддерживается только 1 триггер: добавление CC)
-    $schema->{checkers} = {
-        FIELDS => [
-            id             => {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
-            query_id       => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'namedqueries', COLUMN => 'id'}},
-            user_id        => {TYPE => 'INT4', REFERENCES => {TABLE => 'profiles', COLUMN => 'userid'}},
-            flags          => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0},
-            message        => {TYPE => 'LONGTEXT', NOTNULL => 1},
-            sql_code       => {TYPE => 'LONGTEXT'},
-            except_fields  => {TYPE => 'LONGBLOB'},
-            triggers       => {TYPE => 'LONGBLOB'},
-        ],
-        INDEXES => [
-            checkers_query_id_idx => { FIELDS => ['query_id'] },
-        ],
-    };
-
-    # Bug 134368 - Edit comments
-    $schema->{longdescs_history} = {
-        FIELDS => [
-            bug_id     => { TYPE => 'INT4', NOTNULL => 1, REFERENCES => { TABLE => 'bugs', COLUMN => 'bug_id' } },
-            who        => { TYPE => 'INT4', NOTNULL => 1, REFERENCES => { TABLE => 'profiles', COLUMN => 'userid' } },
-            bug_when   => { TYPE => 'DATETIME', NOTNULL => 1 },
-            oldthetext => { TYPE => 'LONGTEXT', NOTNULL => 1 },
-            thetext    => { TYPE => 'LONGTEXT', NOTNULL => 1 },
-            comment_id => { TYPE => 'INT4', NOTNULL => 1 },
-            comment_count => { TYPE => 'INT4', NOTNULL => 1 },
-        ],
-        INDEXES => [
-            longdescs_history_bug_when_idx      => { FIELDS => [ 'bug_when' ] },
-            longdescs_history_who_idx           => { FIELDS => [ 'who', 'bug_id' ] },
-            longdescs_history_who_bug_when_idx  => { FIELDS => [ 'who', 'bug_when' ] },
-            longdescs_history_bug_id_idx        => { FIELDS => [ 'bug_id', 'bug_when' ] },
         ],
     };
 
@@ -290,24 +183,24 @@ sub install_update_db
         }
     }
 
-    # Bug 13593 - Интеграция с Wiki
+    # CustIS Bug 13593 - Wiki integration
     $dbh->bz_add_column('products', wiki_url => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"});
     $dbh->bz_add_column('components', wiki_url => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"});
 
-    # Bug 59357 - Отключение учёта времени в отдельных продуктах
+    # CustIS Bug 59357 - Prefer no time-tracking in some products
     $dbh->bz_add_column('products', notimetracking => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0});
 
-    # Bug 68921 - Связь внешний/внутренний продукт
+    # CustIS Bug 68921 - Internal/external products
     $dbh->bz_add_column('products', extproduct => {TYPE => 'INT4', REFERENCES => {TABLE => 'products', COLUMN => 'id'}});
 
-    # Bug 139829 - Ограничение CC продукта
+    # CustIS Bug 139829 - Per-product "strict isolation" settings
     $dbh->bz_add_column('products', cc_group => {TYPE => 'varchar(255)'});
     $dbh->bz_alter_column('products', cc_group => {TYPE => 'varchar(255)'});
 
-    # Bug 53725 - Версия по умолчанию
+    # CustIS Bug 53725 - Default version
     $dbh->bz_add_column('components', default_version => {TYPE => 'varchar(64)', NOTNULL => 1, DEFAULT => "''"});
 
-    # Bug 68921 - Закрытие компонента (так же как закрытие продукта), чтобы в него нельзя было ставить новые баги
+    # CustIS Bug 68921 - Closed components
     $dbh->bz_add_column('components', is_active => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 1});
 
     _make_fieldvaluecontrol($dbh);
