@@ -1,5 +1,7 @@
 #!/usr/bin/perl -wT
-# CustIS Bug 16210 - Bug comments and activity RSS feed
+# RSS feed bug comments and activity (CustIS Bug 16210)
+# License: Dual-license GPL 3.0+ or MPL 1.1+
+# Author: Vitaliy Filippov <vitalif@mail.ru>
 
 use strict;
 use lib qw(. lib);
@@ -79,9 +81,9 @@ if ($who)
 my ($join, $subq, $lhint) = ("($sqlquery)", "=i.bug_id", "");
 if ($dbh->isa('Bugzilla::DB::Mysql'))
 {
-    # Help MySQL to select the optimal way of calculating (bug_id IN (...)):
-    # "From inside to outside" or vice versa
-    # Plus, wrap the inner query into a temp table, as it's calculated nevertheless
+    # Help MySQL to choose the optimal plan for (bug_id IN (...)),
+    # i.e. "from inside to outside" or vice versa.
+    # Also wrap the inner query into a temporary table, as it's calculated anyway.
     $join = "_rssc1";
     $lhint = $who ? "USE INDEX (longdescs_who_bug_when_idx)" : "USE INDEX (longdescs_bug_when_idx)";
     $dbh->do("CREATE TEMPORARY TABLE _rssc1 AS $sqlquery");
@@ -100,11 +102,12 @@ if ($dbh->isa('Bugzilla::DB::Mysql'))
 # Monstrous queries
 $join = "INNER JOIN $join i" if $join;
 
-# First query gets new bugs' descriptions, and any comments added (not including duplicate information)
-# Worktime-only comments are excluded
+# First query selects descriptions of new bugs and added comments (without duplicate information).
+# Worktime-only comments are excluded.
+# FIXME: Also use longdescs_history.
 my $longdescs = $dbh->selectall_arrayref(
 "SELECT
-    b.bug_id, b.short_desc, pr.name product, cm.name component, b.bug_severity, b.bug_status,
+    b.bug_id, b.short_desc, pr.name product, cm.name component, bs.value, st.value,
     l.work_time, l.thetext,
     ".$dbh->sql_date_format('l.bug_when', '%Y%m%d%H%i%s')." commentlink,
     ".$dbh->sql_date_format('l.bug_when', '%a, %d %b %Y %H:%i:%s '.$tz)." datetime_rfc822,
@@ -115,6 +118,8 @@ my $longdescs = $dbh->selectall_arrayref(
  FROM longdescs l $lhint
  $join
  LEFT JOIN bugs b ON b.bug_id=l.bug_id
+ LEFT JOIN bug_status st ON st.id=b.bug_status
+ LEFT JOIN bug_severity bs ON bs.id=b.bug_severity
  LEFT JOIN profiles p ON p.userid=l.who
  LEFT JOIN products pr ON pr.id=b.product_id
  LEFT JOIN components cm ON cm.id=b.component_id
@@ -123,20 +128,22 @@ my $longdescs = $dbh->selectall_arrayref(
  ORDER BY l.bug_when DESC
  LIMIT $limit", {Slice=>{}});
 
-# Second query gets any changes to the fields of a bug (eg assignee, status etc)
+# Second query selects bug field change history
 my $activity = $dbh->selectall_arrayref(
 "SELECT
-    b.bug_id, b.short_desc, pr.name product, cm.name component, b.bug_severity, b.bug_status,
+    b.bug_id, b.short_desc, pr.name product, cm.name component, bs.value, st.value,
     0 AS work_time, '' thetext,
     ".$dbh->sql_date_format('a.bug_when', '%Y%m%d%H%i%s')." commentlink,
     ".$dbh->sql_date_format('a.bug_when', '%a, %d %b %Y %H:%i:%s '.$tz)." datetime_rfc822,
     a.bug_when,
     p.login_name, p.realname,
     f.name AS fieldname, f.description AS fielddesc, a.attach_id, a.removed AS old, a.added AS new,
-    0=1 as is_new, a.who
+    0=1 AS is_new, a.who
  FROM bugs_activity a
  $join
  LEFT JOIN bugs b ON b.bug_id=a.bug_id
+ LEFT JOIN bug_status st ON st.id=b.bug_status
+ LEFT JOIN bug_severity bs ON bs.id=b.bug_severity
  LEFT JOIN profiles p ON p.userid=a.who
  LEFT JOIN products pr ON pr.id=b.product_id
  LEFT JOIN components cm ON cm.id=b.component_id
