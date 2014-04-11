@@ -159,7 +159,7 @@ use constant SQL_DEFINITIONS => {
     # be auto-quoted by the "=>" operator.
     FIELD_TYPE_FREETEXT,      { TYPE => 'varchar(255)' },
     FIELD_TYPE_EXTURL,        { TYPE => 'varchar(255)' },
-    FIELD_TYPE_SINGLE_SELECT, { TYPE => 'INT4' },
+    FIELD_TYPE_SINGLE_SELECT, { TYPE => 'INT4'       },
     FIELD_TYPE_TEXTAREA,      { TYPE => 'MEDIUMTEXT' },
     FIELD_TYPE_DATETIME,      { TYPE => 'DATETIME'   },
     FIELD_TYPE_BUG_ID,        { TYPE => 'INT4'       },
@@ -968,7 +968,8 @@ C<obsolete> - boolean - Whether this field is obsolete. Defaults to 0.
 
 =cut
 
-sub create {
+sub create
+{
     my $class = shift;
     my ($params) = @_;
 
@@ -979,17 +980,30 @@ sub create {
     my $obj = bless $field_values, ref($class)||$class;
 
     my $dbh = Bugzilla->dbh;
-    if ($obj->custom) {
+    if ($obj->custom)
+    {
         my $name = $obj->name;
         my $type = $obj->type;
-        if (SQL_DEFINITIONS->{$type}) {
+        if (SQL_DEFINITIONS->{$type})
+        {
             # Create the database column that stores the data for this field.
             $dbh->bz_add_column('bugs', $name, SQL_DEFINITIONS->{$type});
         }
 
-        if ($obj->is_select) {
+        if ($obj->is_select)
+        {
             # Create the table that holds the legal values for this field.
             $dbh->bz_add_field_tables($obj);
+        }
+
+        # Add foreign keys
+        if ($type == FIELD_TYPE_SINGLE_SELECT)
+        {
+            $dbh->bz_add_fk('bugs', $name, { TABLE => $obj->name, COLUMN => 'id' });
+        }
+        elsif ($type == FIELD_TYPE_BUG_ID)
+        {
+            $dbh->bz_add_fk('bugs', $name, { TABLE => 'bugs', COLUMN => 'bug_id' });
         }
     }
 

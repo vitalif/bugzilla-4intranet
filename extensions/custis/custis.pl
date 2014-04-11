@@ -56,7 +56,6 @@ clear_hooks('custis');
 # DB schema changes
 set_hook('custis', 'db_schema_abstract_schema',     'CustisDBHooks::db_schema_abstract_schema');
 set_hook('custis', 'install_update_db',             'CustisDBHooks::install_update_db');
-set_hook('custis', 'install_update_fielddefs',      'CustisDBHooks::install_update_fielddefs');
 
 # Bug list hooks
 set_hook('custis', 'buglist_static_columns',        'CustisBuglistHooks::buglist_static_columns');

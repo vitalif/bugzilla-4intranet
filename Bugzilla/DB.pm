@@ -512,7 +512,7 @@ sub bz_setup_foreign_keys {
     }
 }
 
-# This is used by contrib/bzdbcopy.pl, mostly.
+# This is used by contrib/bzdbcopy.pl and by Bugzilla::Install::DB during ID type conversion.
 sub bz_drop_foreign_keys {
     my ($self) = @_;
 

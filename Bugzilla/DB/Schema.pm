@@ -252,7 +252,7 @@ use constant ABSTRACT_SCHEMA => {
             component_id        => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'components', COLUMN => 'id'}},
             resolution          => {TYPE => 'INT4', REFERENCES => {TABLE => 'resolution', COLUMN => 'id'}},
             target_milestone    => {TYPE => 'INT4', REFERENCES => {TABLE => 'milestones', COLUMN => 'id'}},
-            qa_contact          => {TYPE => 'INT4', NOTNULL => 1, REERENCES => {TABLE => 'profiles', COLUMN => 'userid'}},
+            qa_contact          => {TYPE => 'INT4', REFERENCES => {TABLE => 'profiles', COLUMN => 'userid'}},
             status_whiteboard   => {TYPE => 'MEDIUMTEXT', NOTNULL => 1, DEFAULT => "''"},
             votes               => {TYPE => 'INT4', NOTNULL => 1, DEFAULT => '0'},
             # Note: keywords field is only a cache; the real data

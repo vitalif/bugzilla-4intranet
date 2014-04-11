@@ -156,13 +156,13 @@ sub update_fielddefs_definition {
 # to describe why the change was made. You don't need to describe
 # the purpose of a column.
 #
-sub update_table_definitions {
+sub update_table_definitions
+{
     my $old_params = shift;
     my $dbh = Bugzilla->dbh;
     _update_pre_checksetup_bugzillas();
 
-    $dbh->bz_add_column('attachments', 'submitter_id',
-                        {TYPE => 'INT4', NOTNULL => 1}, 0); 
+    $dbh->bz_add_column('attachments', 'submitter_id', {TYPE => 'INT4', NOTNULL => 1}, 0); 
 
     $dbh->bz_rename_column('bugs_activity', 'when', 'bug_when');
 
@@ -170,14 +170,14 @@ sub update_table_definitions {
     _update_product_name_definition();
     _add_bug_keyword_cache();
 
-    $dbh->bz_add_column('profiles', 'disabledtext',
-                        {TYPE => 'MEDIUMTEXT', NOTNULL => 1}, '');
+    $dbh->bz_add_column('profiles', 'disabledtext', {TYPE => 'MEDIUMTEXT', NOTNULL => 1}, '');
 
     _populate_longdescs();
     _update_bugs_activity_field_to_fieldid();
 
-    if (!$dbh->bz_column_info('bugs', 'lastdiffed')) {
-        $dbh->bz_add_column('bugs', 'lastdiffed', {TYPE =>'DATETIME'});
+    if (!$dbh->bz_column_info('bugs', 'lastdiffed'))
+    {
+        $dbh->bz_add_column('bugs', 'lastdiffed', {TYPE => 'DATETIME'});
         $dbh->do('UPDATE bugs SET lastdiffed = NOW()');
     }
 
@@ -298,8 +298,11 @@ sub update_table_definitions {
 
     # 2006-08-03 remi_zara@mac.com bug 346241, make series.creator nullable
     # This must happen before calling _copy_old_charts_into_database().
-    if ($dbh->bz_column_info('series', 'creator')->{NOTNULL}) {
-        $dbh->bz_alter_column('series', 'creator', {TYPE => 'INT4'});
+    if ($dbh->bz_column_info('series', 'creator')->{NOTNULL})
+    {
+        my $new = { %{$dbh->bz_column_info('series', 'creator')} };
+        delete $new->{NOTNULL};
+        $dbh->bz_alter_column('series', 'creator', $new);
         $dbh->do("UPDATE series SET creator = NULL WHERE creator = 0");
     }
 
@@ -322,10 +325,12 @@ sub update_table_definitions {
 
     # When migrating quips from the '$datadir/comments' file to the DB,
     # the user ID should be NULL instead of 0 (which is an invalid user ID).
-    if ($dbh->bz_column_info('quips', 'userid')->{NOTNULL}) {
-        $dbh->bz_alter_column('quips', 'userid', {TYPE => 'INT4'});
-        print "Changing owner to NULL for quips where the owner is",
-              " unknown...\n";
+    if ($dbh->bz_column_info('quips', 'userid')->{NOTNULL})
+    {
+        my $new = { %{$dbh->bz_column_info('quips', 'userid')} };
+        delete $new->{NOTNULL};
+        $dbh->bz_alter_column('quips', 'userid', $new);
+        print "Changing owner to NULL for quips where the owner is unknown...\n";
         $dbh->do('UPDATE quips SET userid = NULL WHERE userid = 0');
     }
 
@@ -340,13 +345,12 @@ sub update_table_definitions {
     _rename_votes_count_and_force_group_refresh();
 
     # 2004/02/15 - Summaries shouldn't be null - see bug 220232
-    if (!exists $dbh->bz_column_info('bugs', 'short_desc')->{NOTNULL}) {
-        $dbh->bz_alter_column('bugs', 'short_desc',
-                              {TYPE => 'MEDIUMTEXT', NOTNULL => 1}, '');
+    if (!exists $dbh->bz_column_info('bugs', 'short_desc')->{NOTNULL})
+    {
+        $dbh->bz_alter_column('bugs', 'short_desc', {TYPE => 'MEDIUMTEXT', NOTNULL => 1}, '');
     }
 
-    $dbh->bz_add_column('products', 'classification_id',
-                        {TYPE => 'INT4', NOTNULL => 1, DEFAULT => '1'});
+    $dbh->bz_add_column('products', 'classification_id', {TYPE => 'INT4', NOTNULL => 1, DEFAULT => '1'});
 
     _fix_group_with_empty_name();
 
@@ -363,31 +367,40 @@ sub update_table_definitions {
     $dbh->bz_alter_column('bugs', 'lastdiffed', {TYPE => 'DATETIME'});
 
     # 2005-03-09 qa_contact should be NULL instead of 0, bug 285534
-    if ($dbh->bz_column_info('bugs', 'qa_contact')->{NOTNULL}) {
-        $dbh->bz_alter_column('bugs', 'qa_contact', {TYPE => 'INT4'});
+    if ($dbh->bz_column_info('bugs', 'qa_contact')->{NOTNULL})
+    {
+        my $new = { %{$dbh->bz_column_info('bugs', 'qa_contact')} };
+        delete $new->{NOTNULL};
+        $dbh->bz_alter_column('bugs', 'qa_contact', $new);
         $dbh->do("UPDATE bugs SET qa_contact = NULL WHERE qa_contact = 0");
     }
 
     # 2005-03-27 initialqacontact should be NULL instead of 0, bug 287483
-    if ($dbh->bz_column_info('components', 'initialqacontact')->{NOTNULL}) {
-        $dbh->bz_alter_column('components', 'initialqacontact', 
-                              {TYPE => 'INT4'});
+    if ($dbh->bz_column_info('components', 'initialqacontact')->{NOTNULL})
+    {
+        my $new = { %{$dbh->bz_column_info('components', 'initialqacontact')} };
+        delete $new->{NOTNULL};
+        $dbh->bz_alter_column('components', 'initialqacontact', $new);
     }
-    $dbh->do("UPDATE components SET initialqacontact = NULL " .
-              "WHERE initialqacontact = 0");
+    $dbh->do("UPDATE components SET initialqacontact = NULL WHERE initialqacontact = 0");
 
     _migrate_email_prefs_to_new_table();
     _initialize_dependency_tree_changes_email_pref();
     _change_all_mysql_booleans_to_tinyint();
 
     # make classification_id field type be consistent with DB:Schema
-    $dbh->bz_alter_column('products', 'classification_id',
-                          {TYPE => 'INT4', NOTNULL => 1, DEFAULT => '1'});
+    $dbh->bz_alter_column('products', 'classification_id', {
+        %{$dbh->bz_column_info('products', 'classification_id')},
+        NOTNULL => 1,
+        DEFAULT => '1',
+    });
 
     # initialowner was accidentally NULL when we checked-in Schema,
     # when it really should be NOT NULL.
-    $dbh->bz_alter_column('components', 'initialowner',
-                          {TYPE => 'INT4', NOTNULL => 1}, 0);
+    if (!$dbh->bz_column_info('components', 'initialowner')->{NOTNULL})
+    {
+        $dbh->bz_alter_column('components', 'initialowner', { %{$dbh->bz_column_info('components', 'initialowner')}, NOTNULL => 1 });
+    }
 
     # 2005-03-28 - bug 238800 - index flags.type_id for editflagtypes.cgi
     $dbh->bz_add_index('flags', 'flags_type_id_idx', [qw(type_id)]);
@@ -474,14 +487,15 @@ sub update_table_definitions {
     $dbh->bz_drop_column('groups', 'last_changed');
 
     # 2006-08-06 LpSolit@gmail.com - Bug 347521
-    $dbh->bz_alter_column('flagtypes', 'id',
-          {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
+    if ($dbh->bz_column_info('flagtypes', 'id')->{TYPE} !~ /SERIAL/is)
+    {
+        $dbh->bz_alter_column('flagtypes', 'id', {TYPE => 'SMALLSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
+    }
 
-    $dbh->bz_alter_column('keyworddefs', 'id',
-        {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
-
-    # 2006-08-19 LpSolit@gmail.com - Bug 87795
-    $dbh->bz_alter_column('tokens', 'userid', {TYPE => 'INT4'});
+    if ($dbh->bz_column_info('keyworddefs', 'id')->{TYPE} !~ /SERIAL/is)
+    {
+        $dbh->bz_alter_column('keyworddefs', 'id', {TYPE => 'SMALLSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
+    }
 
     $dbh->bz_drop_index('bugs', 'bugs_short_desc_idx');
 
@@ -561,10 +575,6 @@ sub update_table_definitions {
     # Add FK to multi select field tables
     _add_foreign_keys_to_multiselects();
 
-    # 2008-07-28 tfu@redhat.com - Bug 431669
-    $dbh->bz_alter_column('group_control_map', 'product_id',
-        { TYPE => 'INT4', NOTNULL => 1 });
-
     # 2008-09-07 LpSolit@gmail.com - Bug 452893
     _fix_illegal_flag_modification_dates();
 
@@ -630,6 +640,7 @@ sub update_table_definitions {
     _make_fieldvaluecontrol($dbh);
 
     # CustIS Bug 100052 - "A blocking bug is reopened or closed" mail event
+    # FIXME is there a more standard place to add mail events during update? if yes, move it there
     if (!$dbh->selectrow_array('SELECT * FROM email_setting WHERE event=\''.EVT_DEPEND_REOPEN.'\' LIMIT 1'))
     {
         print "Adding 'A blocking bug is reopened or closed' mail event, On by default for all users\n";
@@ -642,7 +653,7 @@ sub update_table_definitions {
         }
     }
 
-    # CustIS Bug 139829 - Move per-product 'strict isolation' setting into attribute
+    # CustIS Bug 139829 - Move per-product 'strict isolation'-like setting into attribute
     if ($dbh->selectrow_array('SELECT id FROM products WHERE description LIKE \'%[CC:%\' LIMIT 1'))
     {
         $dbh->do('
@@ -686,40 +697,20 @@ WHERE description LIKE\'%[CC:%\'');
         $dbh->do('DROP TABLE bugs_activity_joined');
     }
 
-    # Store IDs for all select fields in bugs table
-    my $change_to_id = {
-        target_milestone => 'milestones',
-        version          => 'versions',
-        bug_status       => 'bug_status',
-        resolution       => 'resolution',
-        bug_severity     => 'bug_severity',
-        priority         => 'priority',
-        op_sys           => 'op_sys',
-        rep_platform     => 'rep_platform',
-    };
-    my $product_depend = {
-        target_milestone => 'milestones',
-        version          => 'versions',
-    };
-    for my $col (keys %$change_to_id)
+    # Change types of all ID fields to INT4
+    if ($dbh->bz_column_info('bugs', 'bug_id')->{TYPE} ne 'INTSERIAL')
     {
-        my $tab = $change_to_id->{$col};
-        my $prod = $product_depend->{$col};
-        if ($dbh->bz_column_info('bugs', $col)->{TYPE} !~ /INT/i)
-        {
-            $dbh->bz_alter_column('bugs', $col, {TYPE => 'varchar(255)'});
-            $dbh->do(
-                "UPDATE bugs b LEFT JOIN $tab m ON m.value=b.$col".
-                ($prod ? " AND m.product_id=b.product_id AND" : '').
-                " SET b.$col=NULL WHERE m.id IS NULL OR b.$col='---' OR b.$col=''"
-            );
-        }
-        $dbh->do(
-            "UPDATE bugs b INNER JOIN $tab m ON m.value=b.$col".
-            ($prod ? " AND m.product_id=b.product_id" : '').
-            " SET b.$col=m.id"
-        );
-        $dbh->bz_alter_column('bugs', $col, {TYPE => 'INT4'});
+        _change_int_keys_to_int4();
+    }
+
+    # Store IDs instead of names for all select fields in bugs table
+    _change_select_fields_to_ids();
+
+    # Add foreign keys for BUG_ID type fields
+    for (Bugzilla->get_fields({ custom => 1, type => FIELD_TYPE_BUG_ID }))
+    {
+        $dbh->bz_alter_column('bugs', $_->name, Bugzilla::Field->SQL_DEFINITIONS->{FIELD_TYPE_BUG_ID()});
+        $dbh->bz_add_fk('bugs', $_->name, { TABLE => 'bugs', COLUMN => 'bug_id' });
     }
 
     ################################################################
@@ -3750,6 +3741,103 @@ sub _make_fieldvaluecontrol
     {
         $dbh->do('UPDATE fielddefs SET obsolete=? WHERE name=?', undef, Bugzilla->params->{$_} ? 0 : 1, $h->{$_});
     }
+}
+
+# Change all integer keys to INT4
+sub _change_int_keys_to_int4
+{
+    my $dbh = Bugzilla->dbh;
+
+    print "-- Changing all integer ID fields to INT4 (32-bit) --\n";
+    my $sch_real = $dbh->_bz_real_schema;
+    my $sch_abstract = $dbh->_bz_schema;
+    my $real_tables = { map { lc $_ => 1 } $dbh->bz_table_list_real };
+    my $alter = [];
+    for my $table ($sch_real->get_table_list)
+    {
+        # Check if this table really exists or it is listed in bz_schema incorrectly
+        if (%$real_tables && $real_tables->{lc $table})
+        {
+            my %h = @{$sch_real->get_table_abstract($table)->{FIELDS}};
+            my $abs = $sch_abstract->get_table_abstract($table);
+            $abs = { @{$abs->{FIELDS}} } if $abs;
+            while (my ($column, $d) = each %h)
+            {
+                if ($d->{TYPE} =~ /INT/is && ($d->{REFERENCES} || $d->{PRIMARYKEY} || $abs && $abs->{$column}->{REFERENCES}))
+                {
+                    if ($d->{REFERENCES})
+                    {
+                        # Foreign keys will be automatically recreated later
+                        $dbh->bz_drop_fk($table, $column);
+                    }
+                    push @$alter, [ $table, $column, { %$d, TYPE => 'INT4' } ];
+                }
+                elsif ($d->{TYPE} =~ /SERIAL/is)
+                {
+                    push @$alter, [ $table, $column, { %$d, TYPE => 'INTSERIAL' } ];
+                }
+            }
+        }
+        else
+        {
+            # Table does not exist
+            $dbh->bz_drop_table($table);
+        }
+    }
+    # Apply changes
+    for (@$alter)
+    {
+        delete $_->[2]->{REFERENCES};
+        $dbh->bz_alter_column(@$_);
+    }
+    print "-- Done --\n";
+}
+
+# Store IDs instead of names for all select fields in bugs table
+sub _change_select_fields_to_ids
+{
+    my $dbh = Bugzilla->dbh;
+
+    my $change_to_id = [
+        [ 'bugs', target_milestone => 'milestones', ' AND m.product_id=b.product_id' ],
+        [ 'bugs', version          => 'versions', ' AND m.product_id=b.product_id' ],
+        [ 'bugs', bug_status       => 'bug_status' ],
+        [ 'bugs', resolution       => 'resolution' ],
+        [ 'bugs', bug_severity     => 'bug_severity' ],
+        [ 'bugs', priority         => 'priority' ],
+        [ 'bugs', op_sys           => 'op_sys' ],
+        [ 'bugs', rep_platform     => 'rep_platform' ],
+        [ 'products', defaultmilestone => 'milestones', ' AND m.product_id=b.id' ],
+    ];
+    for (Bugzilla->get_fields({ custom => 1, type => FIELD_TYPE_SINGLE_SELECT }))
+    {
+        push @$change_to_id, [ 'bugs', $_->name, $_->value_type->DB_TABLE ];
+    }
+    my $started;
+    for my $col (@$change_to_id)
+    {
+        my ($subject, $col, $tab, $depend) = @$col;
+        if ($dbh->bz_column_info($subject, $col)->{TYPE} !~ /INT/i)
+        {
+            $started ||= (print "-- Changing select fields to store IDs instead of names --\n");
+            # Change column to nullable varchar(255)
+            $dbh->bz_alter_column($subject, $col, { TYPE => 'varchar(255)' });
+            # Change '---', empty and incorrect values to NULL
+            $dbh->do(
+                "UPDATE $subject b LEFT JOIN $tab m ON m.value=b.$col".
+                ($depend || '')." SET b.$col=NULL WHERE m.id IS NULL OR b.$col='---' OR b.$col=''"
+            );
+            # Change value names to IDs
+            $dbh->do(
+                "UPDATE $subject b INNER JOIN $tab m ON m.value=b.$col".
+                ($depend || '')." SET b.$col=m.id"
+            );
+            # Change column to nullable INT4 and add the foreign key
+            $dbh->bz_alter_column($subject, $col, { TYPE => 'INT4' });
+            $dbh->bz_add_fk($subject, $col, { TABLE => $tab, COLUMN => 'id' });
+        }
+    }
+    print "-- Done --\n" if $started;
 }
 
 1;
