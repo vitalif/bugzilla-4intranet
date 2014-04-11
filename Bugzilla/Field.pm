@@ -1046,7 +1046,9 @@ sub populate_field_definitions
 {
     my $dbh = Bugzilla->dbh;
 
-    # ADD and UPDATE field definitions
+    my ($has_clone_bug) = $dbh->selectrow_array('SELECT 1 FROM fielddefs WHERE clone_bug AND NOT custom');
+
+    # Add/update field definitions
     foreach my $def (DEFAULT_FIELDS)
     {
         my $field = new Bugzilla::Field({ name => $def->{name} });
@@ -1056,6 +1058,8 @@ sub populate_field_definitions
             $field->set_in_new_bugmail($def->{in_new_bugmail});
             $field->set_buglist($def->{buglist});
             $field->_set_type($def->{type}) if $def->{type};
+            $field->set_clone_bug($def->{clone_bug}) if !$has_clone_bug;
+            $field->set_nullable($def->{nullable}) if !$has_clone_bug;
             $field->update();
         }
         else

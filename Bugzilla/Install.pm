@@ -73,8 +73,18 @@ sub SETTINGS {
     remind_me_about_worktime_newbug => { options => ['on', 'off'], default => 'off' },
     # 2009-10-21 vfilippov@custis.ru -- Custis Bug 53697
     saved_searches_position  => { options => ['footer', 'header', 'both'], default => 'footer' },
-    # 2010-01-11 vfilippov@custis.ru -- Custis Bug 58771
+    # 2010-01-11 vfilippov@custis.ru -- Custis Bug 58771 -- FIXME move to hooks (uses external script)
     email_weekly_worktime    => { options => ['on', 'off'], default => 'on' },
+    # CustIS Bug 69766 - Default CSV charset for M1cr0$0ft Excel
+    csv_charset              => { options => ['utf-8', 'windows-1251', 'koi8-r'], default => 'utf-8' },
+    # CustIS Bug 72510 - Choose whether Silent affects flags
+    silent_affects_flags     => { options => ['send', 'do_not_send'], default => 'send' },
+    # CustIS Bug 87696 - Setting to change comments which are allowed to be marked as collapsed by default ("worktime-only")
+    showhide_comments        => { options => ['none', 'worktime', 'all'], default => 'worktime' },
+    # CustIS Bug 125374 - Select whether to show comments in full page width
+    comment_width            => { options => ['off', 'on'], default => 'off' },
+    # CustIS Bug 138596 - Choose whether to hide long comments by default
+    preview_long_comments    => { options => ['off', 'on'], default => 'off' },
     }
 };
 
