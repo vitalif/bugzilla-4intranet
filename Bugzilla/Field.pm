@@ -1,5 +1,3 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -233,11 +231,13 @@ use constant DEFAULT_FIELDS => (
 ################
 
 # Override match to add is_select.
-sub match {
+sub match
+{
     my $self = shift;
     my ($params) = @_;
-    if (delete $params->{is_select}) {
-        $params->{type} = [FIELD_TYPE_SINGLE_SELECT, FIELD_TYPE_MULTI_SELECT];
+    if (delete $params->{is_select})
+    {
+        $params->{type} = [ FIELD_TYPE_SINGLE_SELECT, FIELD_TYPE_MULTI_SELECT ];
     }
     return $self->SUPER::match(@_);
 }
@@ -246,14 +246,16 @@ sub match {
 # Validators #
 ##############
 
-sub _check_description {
+sub _check_description
+{
     my ($invocant, $desc) = @_;
     $desc = clean_text($desc);
     $desc || ThrowUserError('field_missing_description');
     return $desc;
 }
 
-sub _check_name {
+sub _check_name
+{
     my ($invocant, $name, $is_custom) = @_;
     $name = lc(clean_text($name));
     $name || ThrowUserError('field_missing_name');
@@ -265,12 +267,15 @@ sub _check_name {
     $name_regex = qr/^[a-zA-Z0-9_]+$/ if $is_custom;
     # Custom fields can't be named just "cf_", and there is no normal
     # field named just "cf_".
-    ($name =~ $name_regex && $name ne "cf_")
-         || ThrowUserError('field_invalid_name', { name => $name });
+    if ($name !~ $name_regex || $name eq "cf_")
+    {
+        ThrowUserError('field_invalid_name', { name => $name });
+    }
 
     # If it's custom, prepend cf_ to the custom field name to distinguish
     # it from standard fields.
-    if ($name !~ /^cf_/ && $is_custom) {
+    if ($name !~ /^cf_/ && $is_custom)
+    {
         $name = 'cf_' . $name;
     }
 
@@ -282,25 +287,28 @@ sub _check_name {
     return $name;
 }
 
-sub _check_sortkey {
+sub _check_sortkey
+{
     my ($invocant, $sortkey) = @_;
     my $skey = $sortkey;
-    if (!defined $skey || $skey eq '') {
-        ($sortkey) = Bugzilla->dbh->selectrow_array(
-            'SELECT MAX(sortkey) + 100 FROM fielddefs') || 100;
+    if (!defined $skey || $skey eq '')
+    {
+        ($sortkey) = Bugzilla->dbh->selectrow_array('SELECT MAX(sortkey) + 100 FROM fielddefs') || 100;
     }
-    detaint_natural($sortkey)
-        || ThrowUserError('field_invalid_sortkey', { sortkey => $skey });
+    detaint_natural($sortkey) || ThrowUserError('field_invalid_sortkey', { sortkey => $skey });
     return $sortkey;
 }
 
-sub _check_type {
+sub _check_type
+{
     my ($invocant, $type) = @_;
     my $saved_type = $type;
     # The constant here should be updated every time a new,
     # higher field type is added.
-    (detaint_natural($type) && $type <= FIELD_TYPE__BOUNDARY)
-      || ThrowCodeError('invalid_customfield_type', { type => $saved_type });
+    if (!detaint_natural($type) || $type > FIELD_TYPE__BOUNDARY)
+    {
+        ThrowCodeError('invalid_customfield_type', { type => $saved_type });
+    }
     return $type;
 }
 
@@ -843,49 +851,57 @@ there are no values specified (or EVER specified) for the field.
 
 =cut
 
-sub remove_from_db {
+sub remove_from_db
+{
     my $self = shift;
     my $dbh = Bugzilla->dbh;
 
     my $name = $self->name;
 
-    if (!$self->custom) {
-        ThrowCodeError('field_not_custom', {'name' => $name });
+    if (!$self->custom)
+    {
+        ThrowCodeError('field_not_custom', { name => $name });
     }
 
-    if (!$self->obsolete) {
-        ThrowUserError('customfield_not_obsolete', {'name' => $self->name });
+    if (!$self->obsolete)
+    {
+        ThrowUserError('customfield_not_obsolete', { name => $self->name });
     }
 
     $dbh->bz_start_transaction();
 
     # Check to see if bug activity table has records (should be fast with index)
-    my $has_activity = $dbh->selectrow_array("SELECT COUNT(*) FROM bugs_activity
-                                      WHERE fieldid = ?", undef, $self->id);
-    if ($has_activity) {
-        ThrowUserError('customfield_has_activity', {'name' => $name });
+    my $has_activity = $dbh->selectrow_array("SELECT COUNT(*) FROM bugs_activity WHERE fieldid = ?", undef, $self->id);
+    if ($has_activity)
+    {
+        ThrowUserError('customfield_has_activity', { name => $name });
     }
 
     # Check to see if bugs table has records (slow)
     my $bugs_query = "";
 
-    if ($self->type == FIELD_TYPE_MULTI_SELECT) {
+    if ($self->type == FIELD_TYPE_MULTI_SELECT)
+    {
         $bugs_query = "SELECT COUNT(*) FROM bug_$name";
     }
-    else {
+    else
+    {
         $bugs_query = "SELECT COUNT(*) FROM bugs WHERE $name IS NOT NULL";
-        if ($self->type != FIELD_TYPE_BUG_ID && $self->type != FIELD_TYPE_DATETIME) {
+        if ($self->type != FIELD_TYPE_BUG_ID && $self->type != FIELD_TYPE_DATETIME)
+        {
             $bugs_query .= " AND $name != ''";
         }
-        # Ignore the default single select value
-        if ($self->type == FIELD_TYPE_SINGLE_SELECT) {
+        # Ignore the empty single select value
+        if ($self->type == FIELD_TYPE_SINGLE_SELECT)
+        {
             $bugs_query .= " AND $name IS NOT NULL";
         }
     }
 
     my $has_bugs = $dbh->selectrow_array($bugs_query);
-    if ($has_bugs) {
-        ThrowUserError('customfield_has_contents', {'name' => $name });
+    if ($has_bugs)
+    {
+        ThrowUserError('customfield_has_contents', { name => $name });
     }
 
     # Once we reach here, we should be OK to delete.
@@ -894,11 +910,13 @@ sub remove_from_db {
     my $type = $self->type;
 
     # the values for multi-select are stored in a seperate table
-    if ($type != FIELD_TYPE_MULTI_SELECT) {
+    if ($type != FIELD_TYPE_MULTI_SELECT)
+    {
         $dbh->bz_drop_column('bugs', $name);
     }
 
-    if ($self->is_select) {
+    if ($self->is_select)
+    {
         # Delete the table that holds the legal values for this field.
         $dbh->bz_drop_field_tables($self);
     }
@@ -1023,21 +1041,22 @@ sub run_create_validators
     my $params = $class->SUPER::run_create_validators(@_);
 
     $params->{name} = $class->_check_name($params->{name}, $params->{custom});
-    if (!exists $params->{sortkey}) {
-        $params->{sortkey} = $dbh->selectrow_array(
-            "SELECT MAX(sortkey) + 100 FROM fielddefs") || 100;
+    if (!exists $params->{sortkey})
+    {
+        $params->{sortkey} = $dbh->selectrow_array("SELECT MAX(sortkey) + 100 FROM fielddefs") || 100;
     }
 
     my $type = $params->{type} || 0;
 
-    if ($params->{custom} && !$type) {
+    if ($params->{custom} && !$type)
+    {
         ThrowCodeError('field_type_not_specified');
     }
 
-    $params->{value_field_id} =
-        $class->_check_value_field_id($params->{value_field_id},
-            ($type == FIELD_TYPE_SINGLE_SELECT
-             || $type == FIELD_TYPE_MULTI_SELECT) ? 1 : 0);
+    $params->{value_field_id} = $class->_check_value_field_id(
+        $params->{value_field_id},
+        ($type == FIELD_TYPE_SINGLE_SELECT || $type == FIELD_TYPE_MULTI_SELECT) ? 1 : 0
+    );
     return $params;
 }
 

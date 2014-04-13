@@ -640,7 +640,6 @@ sub update_table_definitions
     _make_fieldvaluecontrol($dbh);
 
     # CustIS Bug 100052 - "A blocking bug is reopened or closed" mail event
-    # FIXME is there a more standard place to add mail events during update? if yes, move it there
     if (!$dbh->selectrow_array('SELECT * FROM email_setting WHERE event=\''.EVT_DEPEND_REOPEN.'\' LIMIT 1'))
     {
         print "Adding 'A blocking bug is reopened or closed' mail event, On by default for all users\n";
@@ -705,6 +704,9 @@ WHERE description LIKE\'%[CC:%\'');
 
     # Store IDs instead of names for all select fields in bugs table
     _change_select_fields_to_ids();
+
+    # Set MOVED resolution disabled for bugs
+    $dbh->do('UPDATE resolution SET isactive=0 WHERE value=?', undef, 'MOVED');
 
     # Add foreign keys for BUG_ID type fields
     for (Bugzilla->get_fields({ custom => 1, type => FIELD_TYPE_BUG_ID }))
@@ -3664,10 +3666,6 @@ sub _make_fieldvaluecontrol
 
     if ($dbh->bz_column_info('fielddefs', 'visibility_value_id'))
     {
-        # FIXME do this in other place
-        $dbh->do("UPDATE fielddefs SET nullable=1 WHERE name IN ('target_milestone', 'priority', 'resolution')");
-        # FIXME delete --- target_milestones and '' resolution, set MOVED resolution disabled
-
         # Set single select type for standard select fields
         my @ss = qw(classification product version rep_platform op_sys bug_status resolution bug_severity priority component target_milestone);
         $dbh->do("UPDATE fielddefs SET type=".FIELD_TYPE_SINGLE_SELECT()." WHERE name IN ('".join('\',\'', @ss)."')");
@@ -3835,6 +3833,11 @@ sub _change_select_fields_to_ids
             # Change column to nullable INT4 and add the foreign key
             $dbh->bz_alter_column($subject, $col, { TYPE => 'INT4' });
             $dbh->bz_add_fk($subject, $col, { TABLE => $tab, COLUMN => 'id' });
+        }
+        if ($subject eq 'bugs')
+        {
+            # Delete "surrogate NULL" values
+            $dbh->do("DELETE FROM $tab WHERE value='' OR value='---'");
         }
     }
     print "-- Done --\n" if $started;

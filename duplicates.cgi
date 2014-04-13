@@ -219,11 +219,11 @@ foreach my $bug (@bugs) {
     next if ($openonly and !$bug->isopened);
     # If the bug has a status in @fully_exclude_status, we skip it,
     # no question.
-    next if grep($_ eq $bug->bug_status, @fully_exclude_status);
+    next if grep($_ eq $bug->bug_status_obj->name, @fully_exclude_status);
     # If the bug has a status in @partly_exclude_status, we skip it...
-    if (grep($_ eq $bug->bug_status, @partly_exclude_status)) {
+    if (grep($_ eq $bug->bug_status_obj->name, @partly_exclude_status)) {
         # ...unless it has a resolution in @except_resolution.
-        next if !grep($_ eq $bug->resolution, @except_resolution);
+        next if !grep($_ eq $bug->resolution_obj->name, @except_resolution);
     }
 
     if (scalar @query_products) {

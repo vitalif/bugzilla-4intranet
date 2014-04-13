@@ -133,8 +133,8 @@ sub fields {
            is_custom         => $self->type('boolean', $field->custom),
            name              => $self->type('string', $field->name),
            display_name      => $self->type('string', $field->description),
-# PENDING MERGE WITH 4.0
-#           is_mandatory      => $self->type('boolean', $field->is_mandatory),
+           # FIXME is_mandatory was added in 4.0, we don't support it yet
+           #is_mandatory      => $self->type('boolean', $field->is_mandatory),
            is_on_bug_entry   => $self->type('boolean', $field->enter_bug),
            visibility_field  => $self->type('string', $visibility_field),
            visibility_values => [ map { $self->type('string', $_->name) } @{ $vis_values || [] } ],
@@ -149,6 +149,7 @@ sub fields {
     return { fields => \@fields_out };
 }
 
+# FIXME Remove duplicated _legal_field_values API
 sub _legal_field_values {
     my ($self, $params) = @_;
     my $field = $params->{field};
@@ -392,6 +393,7 @@ sub history {
     return { bugs => \@return };
 }
 
+# FIXME replace by normal "Search"
 sub search {
     my ($self, $params) = @_;
     
@@ -558,7 +560,7 @@ sub legal_values {
     my $field = Bugzilla::Bug::FIELD_MAP->{$params->{field}} 
                 || $params->{field};
 
-    my @global_selects = grep { !$_->is_abnormal }
+    my @global_selects = grep { $_->name ne 'product' && $_->name ne 'classification' && $_->name ne 'component' }
                          Bugzilla->get_fields({ is_select => 1 });
 
     my $values;
@@ -567,6 +569,7 @@ sub legal_values {
         trick_taint($field);
         $values = Bugzilla->get_field($field)->legal_value_names;
     }
+    # FIXME return choices valid for this bug for all select fields
     elsif (grep($_ eq $field, PRODUCT_SPECIFIC_FIELDS)) {
         my $id = $params->{product_id};
         defined $id || ThrowCodeError('param_required',
@@ -798,28 +801,28 @@ sub _bug_to_hash {
         id               => $self->type('int', $bug->bug_id),
         is_confirmed     => $self->type('boolean', $bug->everconfirmed),
         last_change_time => $self->type('dateTime', $bug->delta_ts),
-        priority         => $self->type('string', $bug->priority),
+        priority         => $self->type('string', $bug->priority && $bug->priority_obj->name),
         product          => $self->type('string', $bug->product),
-        resolution       => $self->type('string', $bug->resolution),
-        severity         => $self->type('string', $bug->bug_severity),
-        status           => $self->type('string', $bug->bug_status),
+        resolution       => $self->type('string', $bug->resolution && $bug->resolution_obj->name),
+        severity         => $self->type('string', $bug->bug_severity && $bug->bug_severity_obj->name),
+        status           => $self->type('string', $bug->bug_status && $bug->bug_status_obj->name),
         summary          => $self->type('string', $bug->short_desc),
-        target_milestone => $self->type('string', $bug->target_milestone),
+        target_milestone => $self->type('string', $bug->target_milestone && $bug->target_milestone_obj->name),
         url              => $self->type('string', $bug->bug_file_loc),
-        version          => $self->type('string', $bug->version),
+        version          => $self->type('string', $bug->version && $bug->version_obj->name),
         whiteboard       => $self->type('string', $bug->status_whiteboard),
     );
 
     # FIXME change toggle method to fielddefs.is_obsolete
     if (Bugzilla->params->{useopsys} && filter_wants $params, 'op_sys')
     {
-        $item{op_sys} = $self->type('string', $bug->op_sys);
+        $item{op_sys} = $self->type('string', $bug->op_sys && $bug->op_sys_obj->name);
     }
 
     # FIXME change toggle method to fielddefs.is_obsolete
     if (Bugzilla->params->{useplatform} && filter_wants $params, 'platform')
     {
-        $item{platform} = $self->type('string', $bug->rep_platform);
+        $item{platform} = $self->type('string', $bug->rep_platform && $bug->rep_platform_obj->name);
     }
 
     # First we handle any fields that require extra SQL calls.
@@ -852,7 +855,7 @@ sub _bug_to_hash {
         $item{'groups'} = \@groups;
     }
     if (filter_wants $params, 'is_open') {
-        $item{'is_open'} = $self->type('boolean', $bug->status->is_open);
+        $item{'is_open'} = $self->type('boolean', $bug->bug_status_obj->is_open);
     }
     if (filter_wants $params, 'keywords') {
         my @keywords = map { $self->type('string', $_->name) }
@@ -881,11 +884,11 @@ sub _bug_to_hash {
             $item{$name} = $self->type('dateTime', $bug->$name);
         }
         elsif ($field->type == FIELD_TYPE_MULTI_SELECT) {
-            my @values = map { $self->type('string', $_) } @{ $bug->$name };
+            my @values = map { $self->type('string', $_->name) } @{ $bug->get_object($name) };
             $item{$name} = \@values;
         }
         else {
-            $item{$name} = $self->type('string', $bug->$name);
+            $item{$name} = $self->type('string', $bug->$name && $bug->get_object($name)->name);
         }
     }
 

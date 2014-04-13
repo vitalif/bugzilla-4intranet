@@ -799,7 +799,7 @@ elsif (($action eq 'next_bug' or $action eq 'same_bug') && ($bug = $vars->{bug})
         # FIXME hard-coded template title, also in bug/show-header.html.tmpl
         $title = Bugzilla->messages->{terms}->{Bug} . ' ' . $bug_objects[0]->id . ' processed &ndash; ' .
             $bug->short_desc . ' &ndash; ' . $bug->product . '/' . $bug->component . ' &ndash; ' .
-            $bug->bug_status . ' ' . $bug->resolution;
+            $bug->bug_status_obj->name . ($bug->resolution ? ' ' . $bug->resolution_obj->name : '');
     }
     else
     {

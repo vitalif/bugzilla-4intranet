@@ -54,6 +54,7 @@ my $query = q{SELECT bug_id, short_desc, login_name
 my %bugs;
 my %desc;
 
+# FIXME: Remove status hardcode: NEW | REOPENED == is_open & !ASSIGNED
 my $slt_bugs = $dbh->selectall_arrayref($query, undef, 'NEW', 'REOPENED');
 
 foreach my $bug (@$slt_bugs) {
