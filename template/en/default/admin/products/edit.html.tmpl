@@ -43,7 +43,7 @@
     [% PROCESS "admin/products/edit-common.html.tmpl" %]
 
     <tr>
-      <th align="right" valign="top">
+      <th align="left" valign="top">
         <a href="editcomponents.cgi?product=[% product.name FILTER url_quote %]">
         Edit components:
         </a>
@@ -65,9 +65,8 @@
       </td>
     </tr>
     <tr>
-      <th align="right" valign="top">
-        <a href="editversions.cgi?product=[% product.name FILTER url_quote %]">Edit
-versions:</a>
+      <th align="left" valign="top">
+        <a href="editversions.cgi?product=[% product.name FILTER url_quote %]">Edit versions:</a>
       </th>
       <td>
         [%- IF product.versions.size -%]
@@ -82,7 +81,7 @@ versions:</a>
     </tr>
     [% IF Param('usetargetmilestone') %]
       <tr>
-        <th align="right" valign="top">
+        <th align="left" valign="top">
           <a href="editmilestones.cgi?product=[% product.name FILTER url_quote %]">
           Edit milestones:</a>
         </th>
@@ -99,10 +98,18 @@ versions:</a>
       </tr>
     [% END %]
     <tr>
-      <th align="right" valign="top">
+      <th align="left">
+        <a href="editvisibility.cgi?field=product&value=[% product.name FILTER url_quote %]">
+          Active custom fields:
+        </a>
+      </th>
+      <td>[% controlled_field_names %]</td>
+    </tr>
+    <tr>
+      <th align="left" valign="top">
         <a href="editproducts.cgi?action=editgroupcontrols&product=
           [%- product.name FILTER url_quote %]">
-          Edit Group Access Controls:
+          Group access controls:
         </a>
       </th>
       <td>
@@ -128,17 +135,9 @@ versions:</a>
       </td>
     </tr>
     <tr>
-      <th align="right">[% terms.Bugs %]:</th>
+      <th align="left">[% terms.Bugs %]:</th>
       <td><a href="buglist.cgi?product=[% product.name FILTER url_quote %]">
             [% product.bug_count FILTER html %]</a></td>
-    </tr>
-    <tr>
-      <th align="right">
-        <a href="editvisibility.cgi?field=product&value=[% product.name FILTER url_quote %]">
-        Enable/disable custom fields in this product:
-        </a>
-      </th>
-      <td>[% controlled_field_names %]</td>
     </tr>
   </table>
   

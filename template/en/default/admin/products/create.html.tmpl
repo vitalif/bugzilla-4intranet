@@ -42,26 +42,24 @@
     [% PROCESS "admin/products/edit-common.html.tmpl" %]
 
     <tr>
-      <th align="right">Version:</th>
-      <td><input size="64" maxlength="255" name="version" 
-                value="[% version FILTER html %]">
+      <th align="left">Version:</th>
+      <td><input size="64" maxlength="255" name="version" value="[% version | html %]" />
       </td>
     </tr>
     <tr>
-      <th align="right">Create chart datasets for this product:</th>
+      <th align="left">Create chart datasets:</th>
       <td><input type="checkbox" name="createseries" value="1"></td>
     </tr>
   </table>
 
-  <input type="submit" value="Add">
-  <input type="hidden" name="action" value="new">
-  <input type="hidden" name="token" value="[% token FILTER html %]">
-  <input type="hidden" name="classification"
-        value="[% classification.name FILTER html %]">
+  <input type="submit" value="Add" />
+  <input type="hidden" name="action" value="new" />
+  <input type="hidden" name="token" value="[% token | html %]" />
+  <input type="hidden" name="classification" value="[% classification.name | html %]" />
 </form>
 
 [% PROCESS "admin/products/footer.html.tmpl"
-   no_add_product_link = 1 
+   no_add_product_link = 1
    no_edit_product_link = 1 %]
 
 [% PROCESS global/footer.html.tmpl %]

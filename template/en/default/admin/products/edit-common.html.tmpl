@@ -23,120 +23,113 @@
 
 [% IF Param('useclassification') %]
   <tr>
-    <th align="right"><b>Classification:</b></th>
-    <td><b>[% classification.name FILTER html %]</b></td>
+    <th align="left"><b>Classification:</b></th>
+    <td><b>[% classification.name | html %]</b></td>
   </tr>
 [% END %]
 
 <tr>
-  <th align="right">Product:</th>
-  <td><input size="64" maxlength="64" name="product" 
-             value="[% product.name FILTER html %]">
-  </td>
-</tr>
-<tr>
-  <th align="right">Description:</th>
-  <td><textarea rows="4" cols="64" wrap="virtual" name="description">
-        [% product.description FILTER html %]</textarea>
-  </td>
+  <th align="left"><label for="product">Name:</label></th>
+  <td><input size="64" maxlength="64" name="product" id="product" value="[% product.name | html %]" /></td>
 </tr>
 
 <tr>
-  <th align="right">Open for [% terms.bug %] entry:</th>
-  <td><input type="checkbox" name="is_active" value="1"
-       [% ' checked="checked"' IF product.is_active %]>
-  </td>
+  <th align="left"><label for="description">Description:</label></th>
+  <td><textarea rows="4" cols="64" wrap="virtual" name="description" id="description">[% product.description | html %]</textarea></td>
 </tr>
+
 <tr>
-  <th align="right">
-    <label for="allows_unconfirmed">Enable unconfirmed
-      bug state(s) in this product:</label>
-  </th>
-  <td><input type="checkbox" id="allows_unconfirmed" name="allows_unconfirmed"
-             [% ' checked="checked"' IF product.allows_unconfirmed %]
-             [% IF Param('usevotes') %]
-               onchange="toggleClass('votes_to_confirm_container', 'bz_default_hidden')"
-             [% END %]>
+  <th align="left"><label for="is_active">Open for [% terms.bug %] entry:</label></th>
+  <td><input type="checkbox" name="is_active" id="is_active" value="1" [% ' checked="checked"' IF product.is_active %] /></td>
+</tr>
+
+<tr>
+  <th align="left"><label for="allows_unconfirmed">Allow unconfirmed:</label></th>
+  <td>
+    <input type="checkbox" id="allows_unconfirmed" name="allows_unconfirmed"
+      [% ' checked="checked"' IF product.allows_unconfirmed %]
+      [% IF Param('usevotes') %]
+        onchange="toggleClass('votes_to_confirm_container', 'bz_default_hidden')"
+      [% END %] />
     [% IF Param('usevotes') %]
-      <span id="votes_to_confirm_container"
-            [% ' class="bz_default_hidden"' IF !product.allows_unconfirmed %]>
-        ...and automatically confirm [% terms.bugs %] if they get
-        <input size="3" maxlength="5" name="votestoconfirm" id="votestoconfirm"
-               value="[% product.votes_to_confirm FILTER html %]">
-         votes. (Setting this to 0 disables auto-confirming [% terms.bugs %]
-         by vote.)
-      </span>
+    <span id="votes_to_confirm_container" [% ' class="bz_default_hidden"' IF !product.allows_unconfirmed %]>
+      ...and automatically confirm [% terms.bugs %] if they get
+      <input size="3" maxlength="5" name="votestoconfirm"
+        id="votestoconfirm"
+        value="[% product.votes_to_confirm | html %]" />
+      votes. (Setting this to 0 disables auto-confirming [% terms.bugs %] by vote.)
+    </span>
     [% END %]
   </td>
 </tr>
 
 <tr>
-  <th align="right">
-    <label for="wiki_url">Wiki URL:</label>
-  </th>
+  <th align="left"><label for="wiki_url">Wiki URL prefix:</label></th>
   <td>
-    <input size="64" maxlength="64" name="wiki_url" value="[% product.wiki_url FILTER html %]" />
-    <br><em>Or use default setting when empty.</em>
+    <input size="64" maxlength="64" name="wiki_url" value="[% product.wiki_url | html %]" />
+    <br /><em>Empty means use default setting.</em>
   </td>
 </tr>
 
 <tr>
-  <th align="right">Prefer not to time-track this product:</th>
-  <td><input type="checkbox" name="notimetracking" value="1"
-       [% IF product.notimetracking %] checked="checked"[% END %] />
+  <th align="left"><label for="notimetracking">Prefer no timetracking:</th>
+  <td>
+    <input type="checkbox" id="notimetracking" name="notimetracking" value="1"
+      [% IF product.notimetracking %] checked="checked"[% END %] />
   </td>
 </tr>
 
 <tr>
-  <th align="right">External product for this:</th>
+  <th align="left"><label for="extproduct">External product:</label></th>
   <td>
-    <select name="extproduct">
+    <select name="extproduct" id="extproduct">
       <option value="">---</option>
-    [% FOREACH prod = Bugzilla.user.get_editable_products %]
+      [% FOREACH prod = Bugzilla.user.get_editable_products %]
       <option value="[% prod.id %]" [% ' selected="selected"' IF prod.id == product.extproduct %]>[% prod.name | html %]</option>
-    [% END %]
-    </select>
-  </td>
-</tr>
-
-<tr>
-  <th align="right">Restrict CC, assignee, QA and reporter to this group:</th>
-  <td>
-    <select name="cc_group">
-      <option value="">---</option>
-      [% FOR group = all_groups %]
-      <option value="[% group | html %]"[% ' selected="selected"' IF group == product.cc_group %]>[% group | html %]</option>
       [% END %]
     </select>
   </td>
 </tr>
 
+<tr>
+  <th align="left">CC group:</th>
+  <td>
+    <select name="cc_group">
+      <option value="">---</option>
+      [% FOREACH group = all_groups %]
+      <option value="[% group | html %]"[% ' selected="selected"' IF group == product.cc_group %]>[% group | html %]</option>
+      [% END %]
+    </select>
+    <br />
+    <i>
+      Disallow users not in this group to be Assignee, QA or CC in this product.<br />
+      They will still be allowed to see this product bugs or even report new ones if group
+      permissions allow them to do so though.
+    </i>
+  </td>
+</tr>
+
 [% IF Param('usevotes') %]
   <tr>
-    <th align="right">Maximum votes per person:</th>
-    <td><input size="5" maxlength="5" name="votesperuser" id="votesperuser"
-               value="[% product.votesperuser FILTER html %]">
-    </td>
-  </tr>
-  <tr>
-    <th align="right">
-      Maximum votes a person can put on a single [% terms.bug %]:
-    </th>
-    <td><input size="5" maxlength="5" name="maxvotesperbug" id="maxvotesperbug"
-               value="[% product.maxvotesperbug FILTER html %]">
+    <th align="left">Maximum votes:</label></th>
+    <td>
+      <label for="votesperuser">per user:</label>
+      <input size="5" maxlength="5" name="votesperuser" id="votesperuser"
+        value="[% product.votesperuser | html %]" />
+      <label for="maxvotesperbug">per user, per single [% terms.bug %]:</label>
+      <input size="5" maxlength="5" name="maxvotesperbug" id="maxvotesperbug" value="[% product.maxvotesperbug | html %]" />
     </td>
   </tr>
 [% END %]
 
 [% IF Param('usetargetmilestone') && product.milestones.size -%]
   <tr>
-    <th align="right">Default milestone:</th>
+    <th align="left"><label for="defaultmilestone">Default milestone:</label></th>
     <td>
-      <select name="defaultmilestone">
+      <select name="defaultmilestone" id="defaultmilestone">
+        <option value="">---</option>
         [% FOREACH m = product.milestones %]
-          <option value="[% m.name FILTER html %]"
-                  [% " selected=\"selected\"" IF m.name == product.defaultmilestone %]>
-            [%- m.name FILTER html -%]</option>
+        <option value="[% m.name | html %]" [% " selected=\"selected\"" IF m.id == product.defaultmilestone %]>[%- m.name | html -%]</option>
         [% END %]
       </select>
     </td>

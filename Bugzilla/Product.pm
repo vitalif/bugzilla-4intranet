@@ -1058,6 +1058,7 @@ sub enterable_intproduct_name
 }
 
 # CustIS Bug 38616 - CC list restriction
+# FIXME: Maybe also disallow bug access for these users?
 sub restrict_cc
 {
     my $self = shift;
