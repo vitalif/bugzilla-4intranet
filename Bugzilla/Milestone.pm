@@ -128,29 +128,7 @@ sub update
     my $dbh = Bugzilla->dbh;
     $dbh->bz_start_transaction();
 
-    # Not Bugzilla::Field::Choice! It will overwrite other products' bug values
     my ($changes, $old_self) = Bugzilla::Object::update($self, @_);
-
-    if (exists $changes->{value})
-    {
-        # Record activity
-        $self->field->{has_activity} = 1;
-        $dbh->do(
-            'INSERT INTO bugs_activity (bug_id, who, bug_when, fieldid, added, removed)'.
-            ' SELECT bug_id, ?, NOW(), ?, ?, ? FROM bugs WHERE target_milestone = ? AND product_id = ?', undef,
-            Bugzilla->user->id, $self->field->id, $self->name, $changes->{value}->[0], $changes->{value}->[0], $self->product_id
-        );
-        # The milestone value is stored in the bugs table instead of its ID.
-        $dbh->do(
-            'UPDATE bugs SET target_milestone = ?, lastdiffed = NOW() WHERE target_milestone = ? AND product_id = ?',
-            undef, $self->name, $changes->{value}->[0], $self->product_id
-        );
-        # The default milestone also stores the value instead of the ID.
-        $dbh->do(
-            'UPDATE products SET defaultmilestone = ? WHERE id = ? AND defaultmilestone = ?',
-            undef, $self->name, $self->product_id, $changes->{value}->[0]
-        );
-    }
 
     # Fill visibility values
     $self->set_visibility_values([ $self->product_id ]);
@@ -162,36 +140,41 @@ sub update
     return $changes;
 }
 
-sub remove_from_db {
+sub remove_from_db
+{
     my $self = shift;
     my $dbh = Bugzilla->dbh;
 
     # The default milestone cannot be deleted.
-    if ($self->name eq $self->product->default_milestone) {
+    if ($self->id eq $self->product->default_milestone)
+    {
         ThrowUserError('milestone_is_default', { milestone => $self });
     }
 
-    if ($self->bug_count) {
+    if ($self->bug_count)
+    {
         # We don't want to delete bugs when deleting a milestone.
         # Bugs concerned are reassigned to the default milestone.
-        my $bug_ids =
-          $dbh->selectcol_arrayref('SELECT bug_id FROM bugs
-                                    WHERE product_id = ? AND target_milestone = ?',
-                                    undef, ($self->product->id, $self->name));
+        my $bug_ids = $dbh->selectcol_arrayref(
+            'SELECT bug_id FROM bugs WHERE product_id = ? AND target_milestone = ?',
+            undef, ($self->product->id, $self->id)
+        );
 
         my $timestamp = $dbh->selectrow_array('SELECT NOW()');
 
-        $dbh->do('UPDATE bugs SET target_milestone = ?, delta_ts = ?
-                   WHERE ' . $dbh->sql_in('bug_id', $bug_ids),
-                 undef, ($self->product->default_milestone, $timestamp));
+        $dbh->do(
+            'UPDATE bugs SET target_milestone = ?, delta_ts = ? WHERE ' . $dbh->sql_in('bug_id', $bug_ids),
+            undef, ($self->product->default_milestone, $timestamp)
+        );
 
         require Bugzilla::Bug;
-        import Bugzilla::Bug qw(LogActivityEntry);
-        foreach my $bug_id (@$bug_ids) {
-            LogActivityEntry($bug_id, 'target_milestone',
-                             $self->name,
-                             $self->product->default_milestone,
-                             Bugzilla->user->id, $timestamp);
+        my $def = Bugzilla::Milestone->new($self->product->default_milestone);
+        foreach my $bug_id (@$bug_ids)
+        {
+            Bugzilla::Bug::LogActivityEntry(
+                $bug_id, 'target_milestone', $self->name,
+                $def && $def->name, Bugzilla->user->id, $timestamp
+            );
         }
     }
 
@@ -249,17 +232,19 @@ sub _check_product {
 sub set_name { $_[0]->set('value', $_[1]); }
 sub set_sortkey { $_[0]->set('sortkey', $_[1]); }
 
-sub bug_count {
+sub bug_count
+{
     my $self = shift;
     my $dbh = Bugzilla->dbh;
 
-    if (!defined $self->{'bug_count'}) {
-        $self->{'bug_count'} = $dbh->selectrow_array(q{
-            SELECT COUNT(*) FROM bugs
-            WHERE product_id = ? AND target_milestone = ?},
-            undef, $self->product_id, $self->name) || 0;
+    if (!defined $self->{bug_count})
+    {
+        $self->{bug_count} = $dbh->selectrow_array(
+            "SELECT COUNT(*) FROM bugs WHERE product_id = ? AND target_milestone = ?",
+            undef, $self->product_id, $self->id
+        ) || 0;
     }
-    return $self->{'bug_count'};
+    return $self->{bug_count};
 }
 
 ################################

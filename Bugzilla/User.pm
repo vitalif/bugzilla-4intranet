@@ -1549,17 +1549,19 @@ sub wants_bug_mail {
         $wants_mail &= $self->wants_mail([EVT_CHANGED_BY_ME], $relationship);
     }
 
-    if ($wants_mail) {
+    if ($wants_mail)
+    {
         my $dbh = Bugzilla->dbh;
         # We don't create a Bug object from the bug_id here because we only
         # need one piece of information, and doing so (as of 2004-11-23) slows
         # down bugmail sending by a factor of 2. If Bug creation was more
         # lazy, this might not be so bad.
-        my $bug_status = $dbh->selectrow_array('SELECT bug_status
-                                                FROM bugs WHERE bug_id = ?',
-                                                undef, $bug_id);
-
-        if ($bug_status eq "UNCONFIRMED") {
+        # FIXME: db abstraction?... or cache this value?...
+        my ($is_confirmed) = $dbh->selectrow_array(
+            'SELECT bs.is_confirmed FROM bugs b, bug_status bs WHERE b.bug_id=? AND bs.id=b.bug_status', undef, $bug_id
+        );
+        if (!$is_confirmed)
+        {
             $wants_mail &= $self->wants_mail([EVT_UNCONFIRMED], $relationship);
         }
     }

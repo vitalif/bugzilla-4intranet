@@ -212,19 +212,16 @@ if ($action eq 'update')
 {
     check_token_data($token, 'edit_field_value');
     $vars->{value_old} = $value->name;
-    if ($value->can('set_timetracking'))
+    for ($value->UPDATE_COLUMNS)
     {
-        $value->set_timetracking($ARGS->{timetracking} ? 1 : 0);
-    }
-    $value->set_sortkey($ARGS->{sortkey});
-    if (!($value->is_static || $value->is_default))
-    {
-        $value->set_is_active($ARGS->{is_active});
-        $value->set_name($ARGS->{value_new});
-        if ($value->field->value_field)
+        if ($_ ne 'isactive' && $_ ne $value->NAME_FIELD || !$value->is_static && !$value->is_default)
         {
-            $vars->{changes}->{visibility_values} = $value->set_visibility_values($ARGS->{visibility_value_id});
+            $value->set($_, $ARGS->{$_ eq $value->NAME_FIELD ? 'value_new' : $_});
         }
+    }
+    if (!($value->is_static || $value->is_default) && $value->field->value_field)
+    {
+        $vars->{changes}->{visibility_values} = $value->set_visibility_values($ARGS->{visibility_value_id});
     }
     delete_token($token);
     $vars->{changes} = $value->update;

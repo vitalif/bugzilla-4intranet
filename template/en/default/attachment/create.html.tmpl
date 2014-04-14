@@ -78,11 +78,7 @@
     </tr>
     [% END %]
 
-    [% bug_statuses = [] %]
-    [% FOREACH bug_status = bug.status.can_change_to %]
-      [% NEXT IF bug_status.name == "UNCONFIRMED" && !bug.product_obj.allows_unconfirmed %]
-      [% bug_statuses.push(bug_status) %]
-    [% END %]
+    [% bug_statuses = bug.statuses_available %]
     [% IF bug_statuses.size %]
     <tr>
       <th><label for="bug_status">Change bug status to:</label></th>
@@ -95,7 +91,7 @@
           [% END %]
         </select>
         [% IF bug.resolution OR bug.check_can_change_field('resolution', bug.resolution, 1) %]
-        <noscript><br>resolved&nbsp;as&nbsp;</noscript>
+        <noscript><br />resolved&nbsp;as&nbsp;</noscript>
         [% END %]
 
         <span id="resolution_settings">
@@ -107,12 +103,14 @@
         %]
         </span>
         <script type="text/javascript">
+        [%# FIXME Move close_status_array into "js resource data" %]
         var close_status_array = [
-            [% FOREACH status = bug.statuses_available %]
-                [% NEXT IF status.is_open %]
-                '[% status.name FILTER js %]'[% ',' UNLESS loop.last %]
-                [% END %]
-            ];
+          [% SET i = 0 %]
+          [% FOREACH status = bug.statuses_available %]
+            [% NEXT IF status.is_open %]
+            [% ',' IF i; SET i = 1 %]'[% status.name FILTER js %]'
+          [% END %]
+        ];
         function onchange_bug_status()
         {
           showHideStatusItems('[% "is_duplicate" IF bug.dup_id %]', '[% bug.bug_status | js %]');

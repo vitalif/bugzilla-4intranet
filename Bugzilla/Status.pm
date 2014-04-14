@@ -45,10 +45,15 @@ use constant SPECIAL_STATUS_WORKFLOW_ACTIONS => qw(
 use constant DB_TABLE => 'bug_status';
 use constant FIELD_NAME => 'bug_status';
 
-# This has all the standard Bugzilla::Field::Choice columns plus "is_open"
+# This has all the standard Bugzilla::Field::Choice columns plus some new ones
 sub DB_COLUMNS
 {
-    return ($_[0]->SUPER::DB_COLUMNS, 'is_open');
+    return ($_[0]->SUPER::DB_COLUMNS, qw(is_open is_assigned is_confirmed));
+}
+
+sub UPDATE_COLUMNS
+{
+    return ($_[0]->SUPER::UPDATE_COLUMNS, qw(is_open is_assigned is_confirmed));
 }
 
 sub VALIDATORS
@@ -56,6 +61,8 @@ sub VALIDATORS
     my $invocant = shift;
     my $validators = $invocant->SUPER::VALIDATORS;
     $validators->{is_open} = \&Bugzilla::Object::check_boolean;
+    $validators->{is_assigned} = \&Bugzilla::Object::check_boolean;
+    $validators->{is_confirmed} = \&Bugzilla::Object::check_boolean;
     $validators->{value} = \&_check_value;
     return $validators;
 }
@@ -91,15 +98,13 @@ sub remove_from_db
 
 sub is_active { return $_[0]->{isactive}; }
 sub is_open   { return $_[0]->{is_open};  }
+sub is_assigned  { return $_[0]->{is_assigned};  }
+sub is_confirmed { return $_[0]->{is_confirmed}; }
 
 sub is_static
 {
     my $self = shift;
-    if ($self->name eq 'UNCONFIRMED' || $self->name eq Bugzilla->params->{duplicate_or_move_bug_status})
-    {
-        return 1;
-    }
-    return 0;
+    return $self->name eq Bugzilla->params->{duplicate_or_move_bug_status} ? 1 : 0;
 }
 
 ##############

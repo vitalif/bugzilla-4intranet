@@ -1,25 +1,7 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-#
-# The Initial Developer of the Original Code is Netscape Communications
-# Corporation. Portions created by Netscape are
-# Copyright (C) 1998 Netscape Communications Corporation. All
-# Rights Reserved.
-#
-# Contributor(s): Terry Weissman <terry@mozilla.org>
-#                 Gervase Markham <gerv@gerv.net>
+# (Rewritten) Bug dependency graph display
+# License: Dual-license GPL 3.0+ or MPL 1.1+
+# Author(s): Vitaliy Filippov <vitalif@mail.ru>
 
 use utf8;
 use strict;
@@ -44,7 +26,8 @@ my $vars = {};
 
 # Check params
 my $display = $cgi->param('display') || 'tree';
-if (!defined $cgi->param('id') && $display ne 'doall') {
+if (!defined $cgi->param('id') && $display ne 'doall')
+{
     ThrowCodeError("missing_bug_id");
 }
 
@@ -376,24 +359,28 @@ sub GetNodes
     my $nodes = {};
     my $bugtitles = {};
     # Retrieve bug information from the database
+    # FIXME: Use Bugzilla::Search for this query
     my $rows = Bugzilla->dbh->selectall_arrayref(
 "SELECT
  t1.bug_id,
- t1.bug_status,
- t1.resolution,
+ bs.value bug_status,
+ res.value resolution,
  t1.short_desc,
  t1.estimated_time,
  SUM(t3.work_time) AS work_time,
  t1.assigned_to,
  t2.login_name AS assigned_to_login,
- t4.name AS product,
- t5.name AS component,
- t1.bug_severity
+ p.name AS product,
+ c.name AS component,
+ sev.value bug_severity
 FROM bugs AS t1
+LEFT JOIN bug_status AS bs ON bs.id=t1.bug_status
+LEFT JOIN resolution AS res ON res.id=t1.resolution
+LEFT JOIN bug_severity AS sev ON sev.id=t1.bug_severity
 LEFT JOIN profiles AS t2 ON t2.userid=t1.assigned_to
 LEFT JOIN longdescs AS t3 ON t3.bug_id=t1.bug_id AND t3.work_time > 0
-LEFT JOIN products AS t4 ON t4.id=t1.product_id
-LEFT JOIN components AS t5 ON t5.id=t1.component_id
+LEFT JOIN products AS p ON p.id=t1.product_id
+LEFT JOIN components AS c ON c.id=t1.component_id
 WHERE t1.bug_id IN (".join(",", ("?") x scalar keys %$seen).")
 GROUP BY t1.bug_id", {Slice=>{}}, keys %$seen) || {};
     foreach my $row (@$rows)
@@ -523,7 +510,8 @@ sub CleanupOldDots
         # symlinks), this can't escape to delete anything it shouldn't
         # (unless someone moves the location of $webdotdir, of course)
         trick_taint($f);
-        if (file_mod_time($f) < $since) {
+        if (file_mod_time($f) < $since)
+        {
             unlink $f;
         }
     }
@@ -533,6 +521,7 @@ sub GetColorByState
 {
     my ($state, $base) = (@_);
     $base = $base ? 0 : 0x40;
+    # FIXME Remove bug_status hardcode
     my %colorbystate = (
         UNCONFIRMED => 'ffffff',
         NEW         => 'ff8000',

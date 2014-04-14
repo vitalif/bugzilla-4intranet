@@ -94,6 +94,7 @@ td.bz_total {
 .bz_buglist .bz_dependson_column { width: 8%; white-space: normal; }
 
 /* Bug states - duplicated here for external stylesheet usage */
+/* FIXME: remove bug_status hardcode */
 .bz_st_UNCONFIRMED, .bz_UNCONFIRMED td.first-child a { font-style: italic; }
 .bz_st_RESOLVED, .bz_RESOLVED td.first-child a { text-decoration: line-through; }
 .bz_st_VERIFIED, .bz_VERIFIED td.first-child a { text-decoration: line-through; border: 1px dashed #2f6fab; margin: 0 -1px; color: black; background-color: #f9f9f9; line-height: 1.1em; }

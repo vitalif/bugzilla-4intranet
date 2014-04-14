@@ -2855,7 +2855,7 @@ sub statuses_available
     }
 
     # *Only* users with (product-specific) "canconfirm" privs can confirm bugs.
-    if (!$self->status->is_confirmed && !$user->in_group('canconfirm', $self->product_id))
+    if (!$self->status->is_confirmed && !Bugzilla->user->in_group('canconfirm', $self->product_id))
     {
         @statuses = grep { !$_->is_confirmed } @statuses;
     }

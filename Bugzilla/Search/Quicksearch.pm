@@ -1,5 +1,3 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -17,6 +15,8 @@
 #                 Andreas Franke <afranke@mathweb.org>
 #                 Stephen Lee <slee@uk.bnsmc.com>
 #                 Marc Schumann <wurblzap@gmail.com>
+#
+# Refactoring by Vitaliy Filippov <vitalif@mail.ru>
 
 package Bugzilla::Search::Quicksearch;
 

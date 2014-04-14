@@ -69,10 +69,12 @@
 </div>
 
 <script type="text/javascript">
+[%# FIXME Move close_status_array into "js resource data" %]
 var close_status_array = [
+  [% SET i = 0 %]
   [% FOREACH status = bug.statuses_available %]
     [% NEXT IF status.is_open %]
-    '[% status.name FILTER js %]'[% ',' UNLESS loop.last %]
+    [% ',' IF i; SET i = 1 %]'[% status.name FILTER js %]'
   [% END %]
 ];
 removeClass('dup_id_discoverable', 'bz_default_hidden');
@@ -84,6 +86,7 @@ function onchange_bug_status()
 {
   showHideStatusItems('[% "is_duplicate" IF bug.dup_id %]', '[% bug.bug_status_obj.name | js %]');
   var s = document.getElementById('bug_status');
+  [%# FIXME Remove hardcode bug_status==ASSIGNED => assign to self, bug_status==VERIFIED => qa to self %]
   if (s.value == "ASSIGNED" && document.changeform.assigned_to.value != "[% user.login %]")
   {
     document.changeform.assigned_to.value = "[% user.login %]";

@@ -180,10 +180,11 @@ my %since_dups = @{$dbh->selectcol_arrayref(
     "SELECT dupe_of, COUNT(dupe)
        FROM duplicates INNER JOIN bugs_activity 
                        ON bugs_activity.bug_id = duplicates.dupe 
-      WHERE added = 'DUPLICATE' AND fieldid = ? 
+      WHERE added = ? AND fieldid = ? 
             AND bug_when >= LOCALTIMESTAMP(0) - "
                 . $dbh->sql_interval('?', 'DAY') .
  " GROUP BY dupe_of", {Columns=>[1,2]},
+    Bugzilla->params->{duplicate_resolution},
     $reso_field_id, $changedsince)};
 add_indirect_dups(\%since_dups, \%dupe_relation);
 

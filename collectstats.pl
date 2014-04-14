@@ -118,9 +118,9 @@ my @resolutions = @{$fields->{'resolution'}};
 my (%bug_status, %bug_resolution, %removed);
 if ($regenerate) {
     %bug_resolution = @{ $dbh->selectcol_arrayref(
-        'SELECT bug_id, resolution FROM bugs', {Columns=>[1,2]}) };
+        'SELECT bug_id, resolution.value FROM bugs LEFT JOIN resolution ON resolution.id=bugs.resolution', {Columns=>[1,2]}) };
     %bug_status = @{ $dbh->selectcol_arrayref(
-        'SELECT bug_id, bug_status FROM bugs', {Columns=>[1,2]}) };
+        'SELECT bug_id, bug_status.value FROM bugs LEFT JOIN bug_status ON bug_status.id=bugs.bug_status', {Columns=>[1,2]}) };
 
     my $removed_sth = $dbh->prepare(
         q{SELECT bugs_activity.bug_id, bugs_activity.removed,}
@@ -209,8 +209,8 @@ sub collect_stats {
 
     # Now collect current data.
     my @row = (today());
-    my $status_sql = q{SELECT COUNT(*) FROM bugs WHERE bug_status = ?};
-    my $reso_sql   = q{SELECT COUNT(*) FROM bugs WHERE resolution = ?};
+    my $status_sql = q{SELECT COUNT(*) FROM bugs, bug_status WHERE bugs.bug_status=bug_status.id AND bug_status.value = ?};
+    my $reso_sql   = q{SELECT COUNT(*) FROM bugs, resolution WHERE bugs.resolution=resolution.id AND resolution.value = ?};
 
     if ($product ne '-All-') {
         $status_sql .= q{ AND product_id = ?};

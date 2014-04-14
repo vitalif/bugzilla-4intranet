@@ -645,12 +645,12 @@ my $initial_statuses = Bugzilla::Status->can_change_to();
 
 # Exclude closed states from the UI, even if the workflow allows them.
 # The back-end code will still accept them, though.
-@$initial_statuses = grep { $_->name eq 'RESOLVED' || $_->is_open } @$initial_statuses;
+@$initial_statuses = grep { $_->name eq Bugzilla->params->{duplicate_or_move_bug_status} || $_->is_open } @$initial_statuses;
 
 if (!$product->allows_unconfirmed)
 {
     # UNCONFIRMED is illegal if allows_unconfirmed is false.
-    @$initial_statuses = grep { $_->name ne 'UNCONFIRMED' } @$initial_statuses;
+    @$initial_statuses = grep { $_->is_confirmed } @$initial_statuses;
 }
 scalar(@$initial_statuses) || ThrowUserError('no_initial_bug_status');
 
@@ -658,7 +658,8 @@ scalar(@$initial_statuses) || ThrowUserError('no_initial_bug_status');
 unless ($has_editbugs || $has_canconfirm)
 {
     # ... use UNCONFIRMED if available, else use the first status of the list.
-    my $bug_status = (grep { $_->name eq 'UNCONFIRMED' } @$initial_statuses) ? 'UNCONFIRMED' : $initial_statuses->[0];
+    my ($bug_status) = grep { !$_->is_confirmed } @$initial_statuses;
+    $bug_status ||= $initial_statuses->[0];
     @$initial_statuses = ($bug_status);
 }
 

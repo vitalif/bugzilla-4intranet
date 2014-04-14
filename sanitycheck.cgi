@@ -226,6 +226,7 @@ if ($cgi->param('repair_creation_date')) {
 if ($cgi->param('repair_everconfirmed')) {
     Status('everconfirmed_start');
 
+    # FIXME Remove bug_status==UNCONFIRMED hardcode
     my @confirmed_open_states = grep {$_ ne 'UNCONFIRMED'} BUG_STATE_OPEN;
     my $confirmed_open_states = join(', ', map {$dbh->quote($_)} @confirmed_open_states);
 

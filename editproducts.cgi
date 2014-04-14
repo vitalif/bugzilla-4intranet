@@ -311,6 +311,7 @@ if ($action eq 'update') {
         $vars->{'classification'} = new Bugzilla::Classification($product->classification_id);
     }
     $vars->{'product'} = $product;
+    $vars->{unconfirmed_states} = [ map { $_->name } grep { !$_->is_confirmed } Bugzilla::Status->get_all ];
     $vars->{'changes'} = $changes;
 
     $template->process("admin/products/updated.html.tmpl", $vars)

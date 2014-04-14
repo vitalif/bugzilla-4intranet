@@ -104,16 +104,13 @@
 [% IF changes.allows_unconfirmed.defined %]
   <p>
   [% IF product.allows_unconfirmed %]
-    The product now allows the 
-    UNCONFIRMED status.
+    The product now allows unconfirmed states.
   [% ELSE %]
-    The product no longer allows the 
-    UNCONFIRMED status.
+    The product no longer allows unconfirmed states.
     Note that any
-    <a href="buglist.cgi?product=
-            [%- product.name FILTER url_quote %]&amp;bug_status=UNCONFIRMED"> 
-    [%- terms.bugs %] that currently have the 
-    UNCONFIRMED status</a>
+    <a href="buglist.cgi?product=[%- product.name FILTER url_quote %][% FOR s = unconfirmed_states %]&amp;bug_status=[% s | url_quote %][% END %]">
+      [%- terms.bugs %] that currently have unconfirmed states
+    </a>
     will remain in that status until they are edited.
   [% END %]
   </p>

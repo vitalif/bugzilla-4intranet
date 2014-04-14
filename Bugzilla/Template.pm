@@ -936,8 +936,7 @@ sub create {
             'user' => sub { return Bugzilla->user; },
 
             # Currenly active language
-            # XXX Eventually this should probably be replaced with something
-            # like Bugzilla->language.
+            # FIXME Eventually this should probably be replaced with something like Bugzilla->language.
             'current_language' => sub {
                 my ($language) = include_languages();
                 return $language;

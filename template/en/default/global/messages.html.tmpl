@@ -355,6 +355,13 @@
       [% IF changes.isactive %]
         <li>It is now [% IF changes.isactive.1 %]enabled[% ELSE %]disabled[% END %] for selection.</li>
       [% END %]
+      [%# For bug_status: %]
+      [% IF changes.is_assigned %]
+        <li>It is now an [% IF changes.is_assigned.1 %]"Assigned" (in-progress)[% ELSE %]normal[% END %] state.</li>
+      [% END %]
+      [% IF changes.is_confirmed %]
+        <li>It is now [% IF changes.is_confirmed.1 %]a confirmed[% ELSE %]an unconfirmed[% END %] state.</li>
+      [% END %]
       [% IF changes.visibility_values.defined %]
         [% IF value.visibility_values.size > 0 %]
           <li>It only appears when

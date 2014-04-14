@@ -1431,7 +1431,7 @@ Bugzilla::DB - Database access routines, using L<DBI>
   # prepare a query using DB methods
   my $sth = $dbh->prepare("SELECT " .
                           $dbh->sql_date_format("creation_ts", "%Y%m%d") .
-                          " FROM bugs WHERE bug_status != 'RESOLVED' " .
+                          " FROM bugs WHERE bug_status != 4 " .
                           $dbh->sql_limit(1));
 
   # Execute the query

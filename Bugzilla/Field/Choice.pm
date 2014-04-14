@@ -157,17 +157,6 @@ sub update
     if (exists $changes->{$self->NAME_FIELD})
     {
         my ($old, $new) = @{ $changes->{$self->NAME_FIELD} };
-        if ($self->field->type != FIELD_TYPE_MULTI_SELECT)
-        {
-            $self->field->{has_activity} = 1;
-            $dbh->do(
-                "INSERT INTO bugs_activity (bug_id, who, bug_when, fieldid, added, removed)".
-                " SELECT bug_id, ?, NOW(), ?, ?, ? FROM bugs WHERE $fname = ?", undef,
-                Bugzilla->user->id, $self->field->id, $new, $old, $old
-            );
-            $dbh->do("UPDATE bugs SET $fname = ?, lastdiffed = NOW() WHERE $fname = ?",
-                     undef, $new, $old);
-        }
         if ($old_self->is_default)
         {
             my $param = $self->DEFAULT_MAP->{$self->field->name};

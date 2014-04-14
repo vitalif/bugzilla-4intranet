@@ -115,17 +115,18 @@ sub run_create_validators {
     return $params;
 }
 
-sub bug_count {
+sub bug_count
+{
     my $self = shift;
     my $dbh = Bugzilla->dbh;
-
-    if (!defined $self->{'bug_count'}) {
-        $self->{'bug_count'} = $dbh->selectrow_array(qq{
-            SELECT COUNT(*) FROM bugs
-            WHERE product_id = ? AND version = ?}, undef,
-            ($self->product_id, $self->name)) || 0;
+    if (!defined $self->{bug_count})
+    {
+        $self->{bug_count} = $dbh->selectrow_array(
+            "SELECT COUNT(*) FROM bugs WHERE product_id = ? AND version = ?",
+            undef, ($self->product_id, $self->id)
+        ) || 0;
     }
-    return $self->{'bug_count'};
+    return $self->{bug_count};
 }
 
 sub create
@@ -149,24 +150,7 @@ sub update
     my $dbh = Bugzilla->dbh;
     $dbh->bz_start_transaction();
 
-    # Not Bugzilla::Field::Choice! It will overwrite other products' bug values
     my ($changes, $old_self) = Bugzilla::Object::update($self, @_);
-
-    if (exists $changes->{value})
-    {
-        # Record activity
-        $self->field->{has_activity} = 1;
-        $dbh->do(
-            'INSERT INTO bugs_activity (bug_id, who, bug_when, fieldid, added, removed)'.
-            ' SELECT bug_id, ?, NOW(), ?, ?, ? FROM bugs WHERE version = ? AND product_id = ?', undef,
-            Bugzilla->user->id, $self->field->id, $self->name, $old_self->name, $old_self->name, $self->product_id
-        );
-        # Rename version
-        $dbh->do(
-            'UPDATE bugs SET version = ?, lastdiffed = NOW() WHERE version = ? AND product_id = ?',
-            undef, $self->name, $old_self->name, $self->product_id
-        );
-    }
 
     # Fill visibility values
     $self->set_visibility_values([ $self->product_id ]);
@@ -178,13 +162,13 @@ sub update
     return $changes;
 }
 
-sub remove_from_db {
+sub remove_from_db
+{
     my $self = shift;
     my $dbh = Bugzilla->dbh;
-
-    # The version cannot be removed if there are bugs
-    # associated with it.
-    if ($self->bug_count) {
+    # The version cannot be removed if there are bugs associated with it.
+    if ($self->bug_count)
+    {
         ThrowUserError("version_has_bugs", { nb => $self->bug_count });
     }
     # Remove visibility values

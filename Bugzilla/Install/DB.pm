@@ -715,6 +715,12 @@ WHERE description LIKE\'%[CC:%\'');
         $dbh->bz_add_fk('bugs', $_->name, { TABLE => 'bugs', COLUMN => 'bug_id' });
     }
 
+    # Add is_assigned and is_confirmed columns to bug_status table
+    $dbh->bz_add_column('bug_status', is_assigned => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'});
+    $dbh->bz_add_column('bug_status', is_confirmed => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'});
+    $dbh->do('UPDATE bug_status SET is_assigned=0 WHERE NOT value=?', undef, 'ASSIGNED');
+    $dbh->do('UPDATE bug_status SET is_confirmed=0 WHERE value=?', undef, 'UNCONFIRMED');
+
     ################################################################
     # New --TABLE-- changes should go *** A B O V E *** this point #
     ################################################################

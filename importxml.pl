@@ -919,7 +919,7 @@ sub process_bug {
     # entry in the dup table. Since we can't tell the bug ID of bugs
     # that might not yet be in the database we have no way of populating
     # this table. Change the resolution instead.
-    if ( $valid_res  && ( $bug_fields{'resolution'} eq "DUPLICATE" ) ) {
+    if ( $valid_res  && ( $bug_fields{'resolution'} eq 'DUPLICATE' ) ) {
         $resolution = "MOVED";
         $err .= "This bug was marked DUPLICATE in the database ";
         $err .= "it was moved from.\n    Changing resolution to \"MOVED\"\n";
@@ -928,7 +928,7 @@ sub process_bug {
     # If there is at least 1 initial bug status different from UNCO, use it,
     # else use the open bug status with the lowest sortkey (different from UNCO).
     my @bug_statuses = @{Bugzilla::Status->can_change_to()};
-    @bug_statuses = grep { $_->name ne 'UNCONFIRMED' } @bug_statuses;
+    @bug_statuses = grep { $_->is_confirmed } @bug_statuses;
 
     my $initial_status;
     if (scalar(@bug_statuses)) {
@@ -937,7 +937,7 @@ sub process_bug {
     else {
         @bug_statuses = Bugzilla::Status->get_all();
         # Exclude UNCO and inactive bug statuses.
-        @bug_statuses = grep { $_->is_active && $_->name ne 'UNCONFIRMED'} @bug_statuses;
+        @bug_statuses = grep { $_->is_active && $_->is_confirmed } @bug_statuses;
         my @open_statuses = grep { $_->is_open } @bug_statuses;
         if (scalar(@open_statuses)) {
             $initial_status = $open_statuses[0]->name;
@@ -961,6 +961,7 @@ sub process_bug {
                         $status = $initial_status;
                     }
                     else{
+                        # FIXME Remove bug_status==UNCONFIRMED hardcode
                         $status = "UNCONFIRMED";
                     }
                     if ($status ne $bug_fields{'bug_status'}){
@@ -970,6 +971,7 @@ sub process_bug {
                     }
                 }
                 if($everconfirmed){
+                    # FIXME Remove bug_status==UNCONFIRMED hardcode
                     if($status eq "UNCONFIRMED"){
                         $err .= "Bug Status was UNCONFIRMED but everconfirmed was true\n";
                         $err .= "   Setting status to $initial_status\n";
@@ -978,6 +980,7 @@ sub process_bug {
                     }
                 }
                 else{ # $everconfirmed is false
+                    # FIXME Remove bug_status==UNCONFIRMED hardcode
                     if($status ne "UNCONFIRMED"){
                         $err .= "Bug Status was $status but everconfirmed was false\n";
                         $err .= "   Setting status to UNCONFIRMED\n";
