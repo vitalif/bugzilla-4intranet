@@ -631,6 +631,8 @@ use constant ABSTRACT_SCHEMA => {
         FIELDS => [
             @{ dclone(FIELD_TABLE_SCHEMA->{FIELDS}) },
             is_open => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'},
+            is_assigned => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'},
+            is_confirmed => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'},
         ],
         INDEXES => [
             bug_status_value_idx  => {FIELDS => ['value'], TYPE => 'UNIQUE'},

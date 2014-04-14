@@ -793,15 +793,13 @@ sub _check_bug_status
 
     if (!$product->allows_unconfirmed)
     {
-        # FIXME remove status name hardcode
-        @valid_statuses = grep { $_->name ne 'UNCONFIRMED' } @valid_statuses;
+        @valid_statuses = grep { $_->is_confirmed } @valid_statuses;
     }
 
     if ($self->{assigned_to} && $user->id != $self->{assigned_to})
     {
         # You can not assign bugs to other people
-        # FIXME remove status name hardcode
-        @valid_statuses = grep { $_->name ne 'ASSIGNED' } @valid_statuses;
+        @valid_statuses = grep { $_->is_assigned } @valid_statuses;
     }
 
     # Check permissions for users filing new bugs
@@ -811,8 +809,7 @@ sub _check_bug_status
         # A user with no privs cannot choose the initial status.
         # If UNCONFIRMED is possible, use it; else use the first
         # bug status available.
-        # FIXME remove status name hardcode
-        ($new_status) = grep { $_->name eq 'UNCONFIRMED' } @valid_statuses;
+        ($new_status) = grep { !$_->is_confirmed } @valid_statuses;
         if (!$new_status)
         {
             $new_status = $valid_statuses[0];
@@ -833,8 +830,7 @@ sub _check_bug_status
     }
 
     # Check musthavemilestoneonaccept.
-    # FIXME remove status name hardcode
-    if ($self->id && $new_status->name eq 'ASSIGNED'
+    if ($self->id && $new_status->is_assigned
         && Bugzilla->params->{usetargetmilestone}
         && Bugzilla->params->{musthavemilestoneonaccept}
         && !$self->target_milestone)
@@ -845,8 +841,7 @@ sub _check_bug_status
     if ($new_status->is_open)
     {
         # Check for the everconfirmed transition
-        # FIXME remove status name hardcode
-        if ($new_status->name ne 'UNCONFIRMED')
+        if ($new_status->is_confirmed)
         {
             $self->{everconfirmed} = 1;
         }
@@ -897,6 +892,7 @@ sub _check_resolution
         }
 
         # MOVED has a special meaning and can only be used when really moving bugs to another installation.
+        # FIXME Remove hardcode MOVED resolution
         ThrowCodeError('no_manual_moved') if $self->resolution && $self->resolution_obj->name eq 'MOVED' && !$self->{moving};
     }
 
@@ -904,8 +900,7 @@ sub _check_resolution
     # because we could be moving from being a dup of one bug to being a dup
     # of another, theoretically. Note that this code block will also run
     # when going between different closed states.
-    # FIXME remove resolution name hardcode
-    if ($self->resolution && $self->resolution_obj->name eq 'DUPLICATE')
+    if ($self->resolution && $self->resolution_obj->name eq Bugzilla->params->{duplicate_resolution})
     {
         if (!$self->dup_id)
         {
@@ -2575,7 +2570,7 @@ sub dup_id
     my ($self) = @_;
     return $self->{dup_id} if exists $self->{dup_id};
     $self->{dup_id} = undef;
-    if ($self->resolution_obj && $self->resolution_obj->name eq 'DUPLICATE' && $self->id)
+    if ($self->resolution_obj && $self->resolution_obj->name eq Bugzilla->params->{duplicate_resolution} && $self->id)
     {
         my $dbh = Bugzilla->dbh;
         $self->{dup_id} = $dbh->selectrow_array(
@@ -2856,7 +2851,13 @@ sub statuses_available
     # UNCONFIRMED is only a valid status if it is enabled in this product.
     if (!$self->product_obj->allows_unconfirmed)
     {
-        @statuses = grep { $_->name ne 'UNCONFIRMED' } @statuses;
+        @statuses = grep { $_->is_confirmed } @statuses;
+    }
+
+    # *Only* users with (product-specific) "canconfirm" privs can confirm bugs.
+    if (!$self->status->is_confirmed && !$user->in_group('canconfirm', $self->product_id))
+    {
+        @statuses = grep { !$_->is_confirmed } @statuses;
     }
 
     my @available;
@@ -3441,13 +3442,13 @@ sub CheckIfVotedConfirmed
     {
         $bug->add_comment('', { type => CMT_POPULAR_VOTES });
 
-        if ($bug->bug_status eq 'UNCONFIRMED')
+        if (!$bug->bug_status_obj->is_confirmed)
         {
             # Get a valid open state.
             my $new_status;
             foreach my $state (@{$bug->status->can_change_to})
             {
-                if ($state->is_open && $state->name ne 'UNCONFIRMED')
+                if ($state->is_open && $state->is_confirmed)
                 {
                     $new_status = $state->name;
                     last;
@@ -3592,7 +3593,8 @@ sub check_can_change_field
     }
 
     # *Only* users with (product-specific) "canconfirm" privs can confirm bugs.
-    if ($field eq 'bug_status' && !$self->everconfirmed && $newvalue ne 'UNCONFIRMED')
+    if ($field eq 'bug_status' && !$self->everconfirmed &&
+        grep { $newvalue eq $_->name && !$_->is_confirmed } @{ Bugzilla->get_field('bug_status')->legal_values })
     {
         $$PrivilegesRequired = 3;
         return $user->in_group('canconfirm', $self->{product_id});

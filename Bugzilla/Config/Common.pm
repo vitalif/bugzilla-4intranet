@@ -49,7 +49,7 @@ use base qw(Exporter);
        check_sslbase check_shadowdb check_urlbase check_webdotbase
        check_user_verify_class
        check_mail_delivery_method check_notification check_utf8
-       check_bug_status check_smtp_auth check_theschwartz_available
+       check_smtp_auth check_theschwartz_available
        check_maxattachmentsize check_email
 );
 
@@ -136,16 +136,6 @@ sub check_utf8 {
     if ($dbh->isa('Bugzilla::DB::Mysql') && $dbh->bz_db_is_utf8 && !$utf8) {
         return "You cannot disable UTF-8 support, because your MySQL database"
                . " is encoded in UTF-8";
-    }
-    return "";
-}
-
-sub check_bug_status {
-    my $bug_status = shift;
-    my @closed_bug_statuses = map {$_->name} closed_bug_statuses();
-    if (!grep { $_ eq $bug_status } @closed_bug_statuses)
-    {
-        return "Must be a valid closed status: one of " . join(', ', @closed_bug_statuses);
     }
     return "";
 }

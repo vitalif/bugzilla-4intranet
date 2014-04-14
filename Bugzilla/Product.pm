@@ -188,7 +188,7 @@ sub update {
     # Yet do not call its update() for the future
     my ($changes, $old_self) = Bugzilla::Object::update($self, @_);
 
-    # We also have to fix votes.
+    # We also have to fix votes. # FIXME WTF?
     my @msgs; # Will store emails to send to voters.
     if ($changes->{maxvotesperbug} || $changes->{votesperuser} || $changes->{votestoconfirm}) {
         # We cannot |use| these modules, due to dependency loops.
@@ -269,9 +269,9 @@ sub update {
 
         # 3. enough votes to confirm
         my $bug_list =
-          $dbh->selectcol_arrayref('SELECT bug_id FROM bugs WHERE product_id = ?
-                                    AND bug_status = ? AND votes >= ?',
-                      undef, ($self->id, 'UNCONFIRMED', $self->votes_to_confirm));
+          $dbh->selectcol_arrayref('SELECT bug_id FROM bugs, bug_status WHERE product_id = ?
+                                    AND bugs.bug_status = bug_status.id AND NOT bug_status.is_confirmed AND votes >= ?',
+                      undef, ($self->id, $self->votes_to_confirm));
 
         my @updated_bugs = ();
         foreach my $bug_id (@$bug_list) {
