@@ -883,8 +883,8 @@ sub get_enterable_products {
                  AND products.isactive = 1') || []};
 
     if (@enterable_ids) {
-        # And all of these products must have at least one component
-        # and one version.
+        # And all of these products must have at least one component and one version.
+        # FIXME: If we allow NULL for version, we must raise this restriction
         @enterable_ids = @{$dbh->selectcol_arrayref(
                'SELECT DISTINCT products.id FROM products
             INNER JOIN components ON components.product_id = products.id
@@ -912,7 +912,7 @@ sub get_accessible_products {
                        @{$self->get_selectable_products},
                        @{$self->get_enterable_products};
 
-    return [ values %products ];
+    return [ sort { $a->name cmp $b->name } values %products ];
 }
 
 sub check_can_admin_product {

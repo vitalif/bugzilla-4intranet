@@ -552,7 +552,8 @@ sub _check_description {
     return $description;
 }
 
-sub _check_version {
+sub _check_version
+{
     my ($invocant, $version) = @_;
 
     $version = trim($version);
@@ -565,17 +566,17 @@ sub _check_default_milestone
 {
     my ($invocant, $milestone) = @_;
 
-    # Do nothing if target milestones are not in use.
-    unless (Bugzilla->params->{usetargetmilestone})
-    {
-        return ref $invocant ? $invocant->default_milestone : undef;
-    }
+    # Do not create milestones when creating a product
+    return undef unless ref $invocant;
+
+    # Do nothing if target milestones are not in use
+    return $invocant->default_milestone unless Bugzilla->params->{usetargetmilestone};
 
     $milestone = trim($milestone) || undef;
-    if ($milestone && ref $invocant)
+    if ($milestone)
     {
         # The default milestone must be one of the existing milestones.
-        my $mil_obj = new Bugzilla::Milestone({name => $milestone, product => $invocant});
+        my $mil_obj = new Bugzilla::Milestone({ name => $milestone, product => $invocant });
         $mil_obj || ThrowUserError(
             'product_must_define_defaultmilestone',
             { product => $invocant->name, milestone => $milestone }
@@ -584,18 +585,6 @@ sub _check_default_milestone
     }
 
     return $milestone;
-}
-
-sub _check_milestone_url {
-    my ($invocant, $url) = @_;
-
-    # Do nothing if target milestones are not in use.
-    unless (Bugzilla->params->{'usetargetmilestone'}) {
-        return (ref $invocant) ? $invocant->milestone_url : '';
-    }
-
-    $url = trim($url || '');
-    return $url;
 }
 
 sub _check_votes_per_user {

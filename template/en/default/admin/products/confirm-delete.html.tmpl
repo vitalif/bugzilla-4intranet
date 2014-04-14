@@ -75,21 +75,6 @@
     </td>
   </tr>
 
-  [% IF Param('usetargetmilestone') %]
-    <tr>
-      <td>Milestone URL:</td>
-      <td>
-        [% IF product.milestone_url %]
-          <a href="[% product.milestone_url FILTER html %]">
-            [%- product.milestone_url FILTER html %]
-          </a>
-        [% ELSE %]
-          none
-        [% END %]
-      </td>
-    </tr>
-  [% END %]
-
   <tr>
     <td>Closed for [% terms.bugs %]:</td>
     <td>

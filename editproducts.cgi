@@ -140,6 +140,7 @@ if ($action eq 'add') {
         $vars->{'classification'} = $classification;
     }
     $vars->{'token'} = issue_session_token('add_product');
+    $vars->{all_groups} = [ map { $_->name } Bugzilla::Group->get_all ];
 
     $template->process("admin/products/create.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
@@ -166,7 +167,6 @@ if ($action eq 'new') {
         name             => $product_name,
         description      => scalar $cgi->param('description'),
         version          => scalar $cgi->param('version'),
-        defaultmilestone => scalar $cgi->param('defaultmilestone'),
         isactive         => scalar $cgi->param('is_active'),
         create_series    => scalar $cgi->param('createseries'),
         allows_unconfirmed => scalar $cgi->param('allows_unconfirmed'),
@@ -273,7 +273,7 @@ if ($action eq 'edit' || (!$action && $product_name)) {
     my $length = values %$controlled_fields;
     $vars->{'controlled_field_names'} = $length > 0 ? join(', ',  values %$controlled_fields) : "No fields";
 
-    $vars->{'groups'} = [map {$_->name} Bugzilla::Group->get_all];
+    $vars->{all_groups} = [ map { $_->name } Bugzilla::Group->get_all ];
 
     $template->process("admin/products/edit.html.tmpl", $vars)
         || ThrowTemplateError($template->error());

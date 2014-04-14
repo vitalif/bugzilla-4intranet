@@ -3827,6 +3827,7 @@ sub _change_select_fields_to_ids
             # Change column to nullable varchar(255)
             $dbh->bz_alter_column($subject, $col, { TYPE => 'varchar(255)' });
             # Change '---', empty and incorrect values to NULL
+            # FIXME: There's always a lot of 'unspecified' versions, which substantively are also NULL
             $dbh->do(
                 "UPDATE $subject b LEFT JOIN $tab m ON m.value=b.$col".
                 ($depend || '')." SET b.$col=NULL WHERE m.id IS NULL OR b.$col='---' OR b.$col=''"

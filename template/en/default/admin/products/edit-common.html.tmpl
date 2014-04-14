@@ -100,13 +100,13 @@
 </tr>
 
 <tr>
-  <th align="right">Restrict CC in this product bugs to group:</th>
+  <th align="right">Restrict CC, assignee, QA and reporter to this group:</th>
   <td>
     <select name="cc_group">
-    <option value="">---</option>
-    [% FOR group = groups %]
-    <option value="[% group FILTER html %]"[% ' selected="selected"' IF group==product.cc_group %]>[% group FILTER html %]</option>
-    [% END %]
+      <option value="">---</option>
+      [% FOR group = all_groups %]
+      <option value="[% group | html %]"[% ' selected="selected"' IF group == product.cc_group %]>[% group | html %]</option>
+      [% END %]
     </select>
   </td>
 </tr>
@@ -128,22 +128,17 @@
   </tr>
 [% END %]
 
-[% IF Param('usetargetmilestone') -%]
+[% IF Param('usetargetmilestone') && product.milestones.size -%]
   <tr>
     <th align="right">Default milestone:</th>
     <td>
-      [% IF product.milestones.size %]
-        <select name="defaultmilestone">
-          [% FOREACH m = product.milestones %]
-            <option value="[% m.name FILTER html %]"
-                    [% " selected=\"selected\"" IF m.name == product.defaultmilestone %]>
-              [%- m.name FILTER html -%]</option>
-          [% END %]
-        </select>
-      [% ELSE %]
-        <input type="text" size="20" maxlength="20" name="defaultmilestone"
-               value="[% product.defaultmilestone FILTER html %]">
-      [% END %]
+      <select name="defaultmilestone">
+        [% FOREACH m = product.milestones %]
+          <option value="[% m.name FILTER html %]"
+                  [% " selected=\"selected\"" IF m.name == product.defaultmilestone %]>
+            [%- m.name FILTER html -%]</option>
+        [% END %]
+      </select>
     </td>
   </tr>
 [% END %]

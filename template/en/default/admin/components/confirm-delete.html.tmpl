@@ -69,17 +69,6 @@ from '[% product.name FILTER html %]' product
   <td valign="top">[% product.description FILTER html_light %]</td>
 [% END %]
 
-[% IF Param('usetargetmilestone') %]
-</tr>
-<tr>
-  <td valign="top">Product Milestone URL:</td>
-  <td valign="top">
-    <a href="[% product.milestone_url FILTER html %]">
-      [% product.milestone_url FILTER html %]
-    </a>
-  </td>
-[% END %]
-
 </tr>
 <tr>
   <TD VALIGN="top">Open for [% terms.bugs %]:</TD>
