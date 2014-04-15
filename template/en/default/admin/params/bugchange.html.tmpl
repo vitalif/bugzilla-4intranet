@@ -24,28 +24,40 @@
 %]
 
 [% param_descs = {
-  duplicate_or_move_bug_status => "When $terms.abug is marked as a duplicate of another one " _
-                                  "or is moved to another installation, use this $terms.bug status."
 
-  letsubmitterchoosepriority => "If this is on, then people submitting $terms.bugs can " _
-                                "choose an initial priority for that ${terms.bug}. " _
-                                "If off, then all $terms.bugs initially have the default " _
-                                "priority selected below.",
+  duplicate_or_move_bug_status =>
+    "When $terms.abug is marked as a duplicate of another one " _
+    "or is moved to another installation, use this $terms.bug status."
 
-  letsubmitterchoosemilestone => "If this is on, then people submitting $terms.bugs can " _
-                                 "choose the Target Milestone for that ${terms.bug}. " _
-                                 "If off, then all $terms.bugs initially have the default " _
-                                 "milestone for the product being filed in.",
+  duplicate_resolution =>
+    "Duplicate bugs are marked as this resolution."
 
-  musthavemilestoneonaccept => "If you are using Target Milestone, do you want to require that " _
-                               "the milestone be set in order for a user to ACCEPT a ${terms.bug}?",
+  letsubmitterchoosepriority =>
+    "If this is on, then people submitting $terms.bugs can " _
+    "choose an initial priority for that ${terms.bug}. " _
+    "If off, then all $terms.bugs initially have the default " _
+    "priority selected below."
 
-  commentonchange_resolution => "If this option is on, the user needs to enter a short " _
-                                "comment if the resolution of the $terms.bug changes.",
+  letsubmitterchoosemilestone =>
+    "If this is on, then people submitting $terms.bugs can " _
+    "choose the Target Milestone for that ${terms.bug}. " _
+    "If off, then all $terms.bugs initially have the default " _
+    "milestone for the product being filed in."
 
-  commentonduplicate => "If this option is on, the user needs to enter a short comment " _
-                        "if the $terms.bug is marked as duplicate.",
+  musthavemilestoneonaccept =>
+    "If you are using Target Milestone, do you want to require that " _
+    "the milestone be set in order for a user to ACCEPT a ${terms.bug}?"
 
-  noresolveonopenblockers => "Don\'t allow $terms.bugs to be resolved as fixed " _
-                             "if they have unresolved dependencies." }
-%]
+  commentonchange_resolution =>
+    "If this option is on, the user needs to enter a short " _
+    "comment if the resolution of the $terms.bug changes."
+
+  commentonduplicate =>
+    "If this option is on, the user needs to enter a short comment " _
+    "if the $terms.bug is marked as duplicate."
+
+  noresolveonopenblockers =>
+    "Don\'t allow $terms.bugs to be resolved as fixed " _
+    "if they have unresolved dependencies."
+
+} %]
