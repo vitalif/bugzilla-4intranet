@@ -1,5 +1,3 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -144,7 +142,7 @@ sub create
     $product->set_visibility_values([ $product->classification_id ]);
 
     # Create groups and series for the new product, if requested.
-    $product->_create_bug_group() if Bugzilla->params->{'makeproductgroups'};
+    $product->_create_bug_group() if Bugzilla->params->{makeproductgroups};
     $product->_create_series() if $create_series;
 
     Bugzilla::Hook::process('product_end_of_create', { product => $product });
@@ -158,19 +156,22 @@ sub create
 # This is considerably faster than calling new_from_list three times
 # for each product in the list, particularly with hundreds or thousands
 # of products.
-sub preload {
+sub preload
+{
     my ($products) = @_;
     my %prods = map { $_->id => $_ } @$products;
     my @prod_ids = keys %prods;
     return unless @prod_ids;
 
     my $dbh = Bugzilla->dbh;
-    foreach my $field (qw(component version milestone)) {
+    foreach my $field (qw(component version milestone))
+    {
         my $classname = "Bugzilla::" . ucfirst($field);
         my $objects = $classname->match({ product_id => \@prod_ids });
 
         # Now populate the products with this set of objects.
-        foreach my $obj (@$objects) {
+        foreach my $obj (@$objects)
+        {
             my $product_id = $obj->product_id;
             $prods{$product_id}->{"${field}s"} ||= [];
             push(@{$prods{$product_id}->{"${field}s"}}, $obj);
@@ -178,7 +179,8 @@ sub preload {
     }
 }
 
-sub update {
+sub update
+{
     my $self = shift;
     my $dbh = Bugzilla->dbh;
 
@@ -187,6 +189,8 @@ sub update {
     # Bugzilla::Field::Choice is not a threat as we don't have 'value' field
     # Yet do not call its update() for the future
     my ($changes, $old_self) = Bugzilla::Object::update($self, @_);
+
+    # FIXME when renaming a product, try to rename it in all named queries
 
     # Convert default milestone to name
     if ($changes->{defaultmilestone})
@@ -199,7 +203,8 @@ sub update {
 
     # We also have to fix votes. # FIXME WTF?
     my @msgs; # Will store emails to send to voters.
-    if ($changes->{maxvotesperbug} || $changes->{votesperuser} || $changes->{votestoconfirm}) {
+    if ($changes->{maxvotesperbug} || $changes->{votesperuser} || $changes->{votestoconfirm})
+    {
         # We cannot |use| these modules, due to dependency loops.
         require Bugzilla::Bug;
         import Bugzilla::Bug qw(RemoveVotes CheckIfVotedConfirmed);
@@ -208,27 +213,25 @@ sub update {
 
         # 1. too many votes for a single user on a single bug.
         my @toomanyvotes_list = ();
-        if ($self->max_votes_per_bug < $self->votes_per_user) {
+        if ($self->max_votes_per_bug < $self->votes_per_user)
+        {
             my $votes = $dbh->selectall_arrayref(
-                        'SELECT votes.who, votes.bug_id
-                           FROM votes
-                                INNER JOIN bugs
-                                ON bugs.bug_id = votes.bug_id
-                          WHERE bugs.product_id = ?
-                                AND votes.vote_count > ?',
-                         undef, ($self->id, $self->max_votes_per_bug));
-
-            foreach my $vote (@$votes) {
+                'SELECT votes.who, votes.bug_id FROM votes'.
+                ' INNER JOIN bugs ON bugs.bug_id = votes.bug_id'.
+                ' WHERE bugs.product_id = ? AND votes.vote_count > ?',
+                undef, ($self->id, $self->max_votes_per_bug)
+            );
+            foreach my $vote (@$votes)
+            {
                 my ($who, $id) = (@$vote);
                 # If some votes are removed, RemoveVotes() returns a list
                 # of messages to send to voters.
-                push(@msgs, RemoveVotes($id, $who, 'votes_too_many_per_bug'));
+                push @msgs, RemoveVotes($id, $who, 'votes_too_many_per_bug');
                 my $name = user_id_to_login($who);
-
-                push(@toomanyvotes_list, {id => $id, name => $name});
+                push @toomanyvotes_list, {id => $id, name => $name};
             }
         }
-        $changes->{'too_many_votes'} = \@toomanyvotes_list;
+        $changes->{too_many_votes} = \@toomanyvotes_list;
 
         # 2. too many total votes for a single user.
         # This part doesn't work in the general case because RemoveVotes
@@ -236,62 +239,66 @@ sub update {
         # than maxvotesperbug).  See Bugzilla::Bug::RemoveVotes().
 
         my $votes = $dbh->selectall_arrayref(
-                    'SELECT votes.who, votes.vote_count
-                       FROM votes
-                            INNER JOIN bugs
-                            ON bugs.bug_id = votes.bug_id
-                      WHERE bugs.product_id = ?',
-                     undef, $self->id);
+            'SELECT votes.who, votes.vote_count FROM votes'.
+            ' INNER JOIN bugs ON bugs.bug_id = votes.bug_id'.
+            ' WHERE bugs.product_id = ?', undef, $self->id
+        );
 
         my %counts;
-        foreach my $vote (@$votes) {
+        foreach my $vote (@$votes)
+        {
             my ($who, $count) = @$vote;
-            if (!defined $counts{$who}) {
+            if (!defined $counts{$who})
+            {
                 $counts{$who} = $count;
-            } else {
+            }
+            else
+            {
                 $counts{$who} += $count;
             }
         }
         my @toomanytotalvotes_list = ();
-        foreach my $who (keys(%counts)) {
-            if ($counts{$who} > $self->votes_per_user) {
+        foreach my $who (keys(%counts))
+        {
+            if ($counts{$who} > $self->votes_per_user)
+            {
                 my $bug_ids = $dbh->selectcol_arrayref(
-                              'SELECT votes.bug_id
-                                 FROM votes
-                                      INNER JOIN bugs
-                                      ON bugs.bug_id = votes.bug_id
-                                WHERE bugs.product_id = ?
-                                      AND votes.who = ?',
-                               undef, ($self->id, $who));
-
-                foreach my $bug_id (@$bug_ids) {
+                    'SELECT votes.bug_id FROM votes'.
+                    ' INNER JOIN bugs ON bugs.bug_id = votes.bug_id'.
+                    ' WHERE bugs.product_id = ? AND votes.who = ?',
+                    undef, ($self->id, $who)
+                );
+                foreach my $bug_id (@$bug_ids)
+                {
                     # RemoveVotes() returns a list of messages to send
                     # in case some voters had too many votes.
-                    push(@msgs, RemoveVotes($bug_id, $who, 'votes_too_many_per_user'));
+                    push @msgs, RemoveVotes($bug_id, $who, 'votes_too_many_per_user');
                     my $name = user_id_to_login($who);
-
-                    push(@toomanytotalvotes_list, {id => $bug_id, name => $name});
+                    push @toomanytotalvotes_list, {id => $bug_id, name => $name};
                 }
             }
         }
-        $changes->{'too_many_total_votes'} = \@toomanytotalvotes_list;
+        $changes->{too_many_total_votes} = \@toomanytotalvotes_list;
 
         # 3. enough votes to confirm
-        my $bug_list =
-          $dbh->selectcol_arrayref('SELECT bug_id FROM bugs, bug_status WHERE product_id = ?
-                                    AND bugs.bug_status = bug_status.id AND NOT bug_status.is_confirmed AND votes >= ?',
-                      undef, ($self->id, $self->votes_to_confirm));
+        my $bug_list = $dbh->selectcol_arrayref(
+            'SELECT bug_id FROM bugs, bug_status WHERE product_id = ?'.
+            ' AND bugs.bug_status = bug_status.id AND NOT bug_status.is_confirmed AND votes >= ?',
+            undef, ($self->id, $self->votes_to_confirm)
+        );
 
         my @updated_bugs = ();
-        foreach my $bug_id (@$bug_list) {
+        foreach my $bug_id (@$bug_list)
+        {
             my $confirmed = CheckIfVotedConfirmed($bug_id);
             push (@updated_bugs, $bug_id) if $confirmed;
         }
-        $changes->{'confirmed_bugs'} = \@updated_bugs;
+        $changes->{confirmed_bugs} = \@updated_bugs;
     }
 
     # Also update group settings.
-    if ($self->{check_group_controls}) {
+    if ($self->{check_group_controls})
+    {
         require Bugzilla::Bug;
         import Bugzilla::Bug qw(LogActivityEntry);
 
@@ -299,7 +306,8 @@ sub update {
         my $new_settings = $self->group_controls;
         my $timestamp = $dbh->selectrow_array('SELECT NOW()');
 
-        foreach my $gid (keys %$new_settings) {
+        foreach my $gid (keys %$new_settings)
+        {
             my $old_setting = $old_settings->{$gid} || {};
             my $new_setting = $new_settings->{$gid};
             # If all new settings are 0 for a given group, we delete the entry
@@ -309,7 +317,7 @@ sub update {
             my @values;
 
             foreach my $field ('entry', 'membercontrol', 'othercontrol', 'canedit',
-                               'editcomponents', 'editbugs', 'canconfirm')
+                'editcomponents', 'editbugs', 'canconfirm')
             {
                 my $old_value = $old_setting->{$field};
                 my $new_value = $new_setting->{$field};
@@ -324,81 +332,96 @@ sub update {
             # Is there anything to update?
             if (@fields)
             {
-                if ($all_zero) {
-                    $dbh->do('DELETE FROM group_control_map
-                              WHERE product_id = ? AND group_id = ?',
-                              undef, $self->id, $gid);
+                if ($all_zero)
+                {
+                    $dbh->do(
+                        'DELETE FROM group_control_map WHERE product_id = ? AND group_id = ?',
+                        undef, $self->id, $gid
+                    );
                 }
-                else {
-                    if (exists $old_setting->{group}) {
+                else
+                {
+                    if (exists $old_setting->{group})
+                    {
                         # There is already an entry in the DB.
                         my $set_fields = join(', ', map {"$_ = ?"} @fields);
-                        $dbh->do("UPDATE group_control_map SET $set_fields
-                                  WHERE product_id = ? AND group_id = ?",
-                                  undef, (@values, $self->id, $gid));
+                        $dbh->do(
+                            "UPDATE group_control_map SET $set_fields".
+                            " WHERE product_id = ? AND group_id = ?",
+                            undef, (@values, $self->id, $gid)
+                        );
                     }
-                    else {
+                    else
+                    {
                         # No entry yet.
                         my $fields = join(', ', @fields);
                         # +2 because of the product and group IDs.
                         my $qmarks = join(',', ('?') x (scalar @fields + 2));
-                        $dbh->do("INSERT INTO group_control_map (product_id, group_id, $fields)
-                                  VALUES ($qmarks)", undef, ($self->id, $gid, @values));
+                        $dbh->do(
+                            "INSERT INTO group_control_map (product_id, group_id, $fields) VALUES ($qmarks)",
+                            undef, ($self->id, $gid, @values)
+                        );
                     }
                 }
             }
 
             # If the group is mandatory, restrict all bugs to it.
-            if ($new_setting->{membercontrol} == CONTROLMAPMANDATORY) {
-                my $bug_ids =
-                  $dbh->selectcol_arrayref('SELECT bugs.bug_id
-                                              FROM bugs
-                                                   LEFT JOIN bug_group_map
-                                                   ON bug_group_map.bug_id = bugs.bug_id
-                                                   AND group_id = ?
-                                             WHERE product_id = ?
-                                                   AND bug_group_map.bug_id IS NULL',
-                                             undef, $gid, $self->id);
+            if ($new_setting->{membercontrol} == CONTROLMAPMANDATORY)
+            {
+                my $bug_ids = $dbh->selectcol_arrayref(
+                    'SELECT bugs.bug_id FROM bugs'.
+                    ' LEFT JOIN bug_group_map ON bug_group_map.bug_id = bugs.bug_id AND group_id = ?'.
+                    ' WHERE product_id = ? AND bug_group_map.bug_id IS NULL',
+                    undef, $gid, $self->id
+                );
 
-                if (scalar @$bug_ids) {
-                    my $sth = $dbh->prepare('INSERT INTO bug_group_map (bug_id, group_id)
-                                             VALUES (?, ?)');
+                if (scalar @$bug_ids)
+                {
+                    my $sth = $dbh->prepare('INSERT INTO bug_group_map (bug_id, group_id) VALUES (?, ?)');
 
-                    foreach my $bug_id (@$bug_ids) {
+                    foreach my $bug_id (@$bug_ids)
+                    {
                         $sth->execute($bug_id, $gid);
                         # Add this change to the bug history.
-                        LogActivityEntry($bug_id, 'bug_group', '',
-                                         $new_setting->{group}->name,
-                                         Bugzilla->user->id, $timestamp);
+                        LogActivityEntry(
+                            $bug_id, 'bug_group', '', $new_setting->{group}->name,
+                            Bugzilla->user->id, $timestamp
+                        );
                     }
-                    push(@{$changes->{'group_controls'}->{'now_mandatory'}},
-                         {name      => $new_setting->{group}->name,
-                          bug_count => scalar @$bug_ids});
+                    push @{$changes->{group_controls}->{now_mandatory}}, {
+                        name      => $new_setting->{group}->name,
+                        bug_count => scalar @$bug_ids,
+                    };
                 }
             }
             # If the group can no longer be used to restrict bugs, remove them.
-            elsif ($new_setting->{membercontrol} == CONTROLMAPNA) {
-                my $bug_ids =
-                  $dbh->selectcol_arrayref('SELECT bugs.bug_id
-                                              FROM bugs
-                                                   INNER JOIN bug_group_map
-                                                   ON bug_group_map.bug_id = bugs.bug_id
-                                             WHERE product_id = ? AND group_id = ?',
-                                             undef, $self->id, $gid);
+            elsif ($new_setting->{membercontrol} == CONTROLMAPNA)
+            {
+                my $bug_ids = $dbh->selectcol_arrayref(
+                    'SELECT bugs.bug_id FROM bugs'.
+                    ' INNER JOIN bug_group_map ON bug_group_map.bug_id = bugs.bug_id'.
+                    ' WHERE product_id = ? AND group_id = ?', undef, $self->id, $gid
+                );
 
-                if (scalar @$bug_ids) {
-                    $dbh->do('DELETE FROM bug_group_map WHERE group_id = ? AND ' .
-                              $dbh->sql_in('bug_id', $bug_ids), undef, $gid);
+                if (scalar @$bug_ids)
+                {
+                    $dbh->do(
+                        'DELETE FROM bug_group_map WHERE group_id = ? AND ' .
+                        $dbh->sql_in('bug_id', $bug_ids), undef, $gid
+                    );
 
                     # Add this change to the bug history.
-                    foreach my $bug_id (@$bug_ids) {
-                        LogActivityEntry($bug_id, 'bug_group',
-                                         $old_setting->{group}->name, '',
-                                         Bugzilla->user->id, $timestamp);
+                    foreach my $bug_id (@$bug_ids)
+                    {
+                        LogActivityEntry(
+                            $bug_id, 'bug_group', $old_setting->{group}->name, '',
+                            Bugzilla->user->id, $timestamp
+                        );
                     }
-                    push(@{$changes->{'group_controls'}->{'now_na'}},
-                         {name => $old_setting->{group}->name,
-                          bug_count => scalar @$bug_ids});
+                    push @{$changes->{group_controls}->{now_na}}, {
+                        name => $old_setting->{group}->name,
+                        bug_count => scalar @$bug_ids
+                    };
                 }
             }
         }
@@ -413,14 +436,16 @@ sub update {
     Bugzilla->user->clear_product_cache();
 
     # Now that changes have been committed, we can send emails to voters.
-    foreach my $msg (@msgs) {
+    foreach my $msg (@msgs)
+    {
         MessageToMTA($msg);
     }
 
     # And send out emails about changed bugs
     require Bugzilla::BugMail;
-    foreach my $bug_id (@{ $changes->{'confirmed_bugs'} || [] }) {
-        $changes->{'confirmed_bugs_sent_bugmail'}->{$bug_id} = Bugzilla::BugMail::send_results({
+    foreach my $bug_id (@{ $changes->{confirmed_bugs} || [] })
+    {
+        $changes->{confirmed_bugs_sent_bugmail}->{$bug_id} = Bugzilla::BugMail::send_results({
             mailrecipients => { changer => Bugzilla->user->login },
             bug_id => $bug_id,
             type => "votes",
@@ -432,7 +457,8 @@ sub update {
     return $changes;
 }
 
-sub remove_from_db {
+sub remove_from_db
+{
     my ($self, $params) = @_;
     my $user = Bugzilla->user;
     my $dbh = Bugzilla->dbh;
@@ -441,44 +467,48 @@ sub remove_from_db {
 
     $self->_check_if_controller();
 
-    if ($self->bug_count) {
-        if (Bugzilla->params->{'allowbugdeletion'}) {
+    if ($self->bug_count)
+    {
+        if (Bugzilla->params->{allowbugdeletion})
+        {
             require Bugzilla::Bug;
-            foreach my $bug_id (@{$self->bug_ids}) {
+            foreach my $bug_id (@{$self->bug_ids})
+            {
                 # Note that we allow the user to delete bugs he can't see,
                 # which is okay, because he's deleting the whole Product.
                 my $bug = new Bugzilla::Bug($bug_id);
                 $bug->remove_from_db();
             }
         }
-        else {
+        else
+        {
             ThrowUserError('product_has_bugs', { nb => $self->bug_count });
         }
     }
 
-    if ($params->{delete_series}) {
-        my $series_ids =
-          $dbh->selectcol_arrayref('SELECT series_id
-                                      FROM series
-                                INNER JOIN series_categories
-                                        ON series_categories.id = series.category
-                                     WHERE series_categories.name = ?',
-                                    undef, $self->name);
+    if ($params->{delete_series})
+    {
+        my $series_ids = $dbh->selectcol_arrayref(
+            'SELECT series_id FROM series'.
+            ' INNER JOIN series_categories ON series_categories.id = series.category'.
+            ' WHERE series_categories.name = ?',
+            undef, $self->name
+        );
 
-        if (scalar @$series_ids) {
+        if (scalar @$series_ids)
+        {
             $dbh->do('DELETE FROM series WHERE ' . $dbh->sql_in('series_id', $series_ids));
         }
 
         # If no subcategory uses this product name, completely purge it.
-        my $in_use =
-          $dbh->selectrow_array('SELECT 1
-                                   FROM series
-                             INNER JOIN series_categories
-                                     ON series_categories.id = series.subcategory
-                                  WHERE series_categories.name = ? ' .
-                                   $dbh->sql_limit(1),
-                                  undef, $self->name);
-        if (!$in_use) {
+        my $in_use = $dbh->selectrow_array(
+            'SELECT 1 FROM series'.
+            ' INNER JOIN series_categories ON series_categories.id = series.subcategory'.
+            ' WHERE series_categories.name = ? ' . $dbh->sql_limit(1),
+            undef, $self->name
+        );
+        if (!$in_use)
+        {
             $dbh->do('DELETE FROM series_categories WHERE name = ?', undef, $self->name);
         }
     }
@@ -517,43 +547,54 @@ sub _check_cc_group
     return $cc_group ? $cc_group : undef;
 }
 
-sub _check_classification_id {
+sub _check_classification_id
+{
     my ($invocant, $classification_name) = @_;
 
     my $classification_id = 1;
-    if (Bugzilla->params->{'useclassification'}) {
-        my $classification = ref $classification_name ? $classification_name
+    if (Bugzilla->params->{useclassification})
+    {
+        my $classification = ref $classification_name
+            ? $classification_name
             : Bugzilla::Classification->check($classification_name);
         $classification_id = $classification->id;
     }
     return $classification_id;
 }
 
-sub _check_name {
+sub _check_name
+{
     my ($invocant, $name) = @_;
 
     $name = trim($name);
     $name || ThrowUserError('product_blank_name');
 
-    if (length($name) > MAX_PRODUCT_SIZE) {
-        ThrowUserError('product_name_too_long', {'name' => $name});
+    if (length($name) > MAX_PRODUCT_SIZE)
+    {
+        ThrowUserError('product_name_too_long', { name => $name });
     }
 
-    my $product = new Bugzilla::Product({name => $name});
-    if ($product && (!ref $invocant || $product->id != $invocant->id)) {
+    my $product = new Bugzilla::Product({ name => $name });
+    if ($product && (!ref $invocant || $product->id != $invocant->id))
+    {
         # Check for exact case sensitive match:
-        if ($product->name eq $name) {
-            ThrowUserError('product_name_already_in_use', {'product' => $product->name});
+        if ($product->name eq $name)
+        {
+            ThrowUserError('product_name_already_in_use', { product => $product->name });
         }
-        else {
-            ThrowUserError('product_name_diff_in_case', {'product'          => $name,
-                                                         'existing_product' => $product->name});
+        else
+        {
+            ThrowUserError('product_name_diff_in_case', {
+                product => $name,
+                existing_product => $product->name,
+            });
         }
     }
     return $name;
 }
 
-sub _check_description {
+sub _check_description
+{
     my ($invocant, $description) = @_;
 
     $description  = trim($description);
@@ -586,10 +627,10 @@ sub _check_default_milestone
     {
         # The default milestone must be one of the existing milestones.
         my $mil_obj = new Bugzilla::Milestone({ name => $milestone, product => $invocant });
-        $mil_obj || ThrowUserError(
-            'product_must_define_defaultmilestone',
-            { product => $invocant->name, milestone => $milestone }
-        );
+        $mil_obj || ThrowUserError('product_must_define_defaultmilestone', {
+            product => $invocant->name,
+            milestone => $milestone,
+        });
         $milestone = $mil_obj->id;
     }
     delete $invocant->{default_milestone_obj};
@@ -597,31 +638,38 @@ sub _check_default_milestone
     return $milestone;
 }
 
-sub _check_votes_per_user {
+sub _check_votes_per_user
+{
     return _check_votes(@_, 0);
 }
 
-sub _check_votes_per_bug {
+sub _check_votes_per_bug
+{
     return _check_votes(@_, 10000);
 }
 
-sub _check_votes_to_confirm {
+sub _check_votes_to_confirm
+{
     return _check_votes(@_, 0);
 }
 
 # This subroutine is only used internally by other _check_votes_* validators.
-sub _check_votes {
+sub _check_votes
+{
     my ($invocant, $votes, $field, $default) = @_;
 
     detaint_natural($votes);
     # On product creation, if the number of votes is not a valid integer,
     # we silently fall back to the given default value.
     # If the product already exists and the change is illegal, we complain.
-    if (!defined $votes) {
-        if (ref $invocant) {
-            ThrowUserError('product_illegal_votes', {field => $field, votes => $_[1]});
+    if (!defined $votes)
+    {
+        if (ref $invocant)
+        {
+            ThrowUserError('product_illegal_votes', { field => $field, votes => $_[1] });
         }
-        else {
+        else
+        {
             $votes = $default;
         }
     }
@@ -718,50 +766,58 @@ sub set_extproduct
     $self->set('extproduct', $product ? $product->id : undef);
 }
 
-sub set_group_controls {
+sub set_group_controls
+{
     my ($self, $group, $settings) = @_;
 
-    $group->is_active_bug_group
-      || ThrowUserError('product_illegal_group', {group => $group});
+    $group->is_active_bug_group || ThrowUserError('product_illegal_group', { group => $group });
 
-    scalar(keys %$settings)
-      || ThrowCodeError('product_empty_group_controls', {group => $group});
+    scalar(keys %$settings) || ThrowCodeError('product_empty_group_controls', { group => $group });
 
     # We store current settings for this group.
     my $gs = $self->group_controls->{$group->id};
     # If there is no entry for this group yet, create a default hash.
-    unless (defined $gs) {
-        $gs = { entry          => 0,
-                membercontrol  => CONTROLMAPNA,
-                othercontrol   => CONTROLMAPNA,
-                canedit        => 0,
-                editcomponents => 0,
-                editbugs       => 0,
-                canconfirm     => 0,
-                group          => $group };
+    unless (defined $gs)
+    {
+        $gs = {
+            entry          => 0,
+            membercontrol  => CONTROLMAPNA,
+            othercontrol   => CONTROLMAPNA,
+            canedit        => 0,
+            editcomponents => 0,
+            editbugs       => 0,
+            canconfirm     => 0,
+            group          => $group,
+        };
     }
 
     # Both settings must be defined, or none of them can be updated.
-    if (defined $settings->{membercontrol} && defined $settings->{othercontrol}) {
-        #  Legality of control combination is a function of
-        #  membercontrol\othercontrol
-        #                 NA SH DE MA
-        #              NA  +  -  -  -
-        #              SH  +  +  +  +
-        #              DE  +  -  +  +
-        #              MA  -  -  -  +
-        foreach my $field ('membercontrol', 'othercontrol') {
-            my ($is_legal) = grep { $settings->{$field} == $_ }
-              (CONTROLMAPNA, CONTROLMAPSHOWN, CONTROLMAPDEFAULT, CONTROLMAPMANDATORY);
-            defined $is_legal || ThrowCodeError('product_illegal_group_control',
-                                   { field => $field, value => $settings->{$field} });
-        }
-        unless ($settings->{membercontrol} == $settings->{othercontrol}
-                || $settings->{membercontrol} == CONTROLMAPSHOWN
-                || ($settings->{membercontrol} == CONTROLMAPDEFAULT
-                    && $settings->{othercontrol} != CONTROLMAPSHOWN))
+    if (defined $settings->{membercontrol} && defined $settings->{othercontrol})
+    {
+        # Legality of control combination is a function of
+        # membercontrol\othercontrol
+        #    NA SH DE MA
+        # NA  +  -  -  -
+        # SH  +  +  +  +
+        # DE  +  -  +  +
+        # MA  -  -  -  +
+        foreach my $field ('membercontrol', 'othercontrol')
         {
-            ThrowUserError('illegal_group_control_combination', {groupname => $group->name});
+            my ($is_legal) = grep { $settings->{$field} == $_ }
+                (CONTROLMAPNA, CONTROLMAPSHOWN, CONTROLMAPDEFAULT, CONTROLMAPMANDATORY);
+            if (!defined $is_legal)
+            {
+                ThrowCodeError('product_illegal_group_control', {
+                    field => $field,
+                    value => $settings->{$field},
+                });
+            }
+        }
+        unless ($settings->{membercontrol} == $settings->{othercontrol} ||
+            $settings->{membercontrol} == CONTROLMAPSHOWN ||
+            ($settings->{membercontrol} == CONTROLMAPDEFAULT && $settings->{othercontrol} != CONTROLMAPSHOWN))
+        {
+            ThrowUserError('illegal_group_control_combination', { groupname => $group->name });
         }
         $gs->{membercontrol} = $settings->{membercontrol};
         $gs->{othercontrol} = $settings->{othercontrol};
@@ -780,10 +836,10 @@ sub active_components
     my $self = shift;
     if (!defined $self->{active_components})
     {
-        my $ids = Bugzilla->dbh->selectcol_arrayref(q{
-            SELECT id FROM components
-            WHERE product_id = ? AND is_active = 1
-            ORDER BY name}, undef, $self->id);
+        my $ids = Bugzilla->dbh->selectcol_arrayref(
+            'SELECT id FROM components WHERE product_id = ?'.
+            ' AND is_active = 1 ORDER BY name', undef, $self->id
+        );
 
         require Bugzilla::Component;
         $self->{active_components} = Bugzilla::Component->new_from_list($ids);
@@ -791,15 +847,17 @@ sub active_components
     return $self->{active_components};
 }
 
-sub components {
+sub components
+{
     my $self = shift;
     my $dbh = Bugzilla->dbh;
 
-    if (!defined $self->{components}) {
-        my $ids = $dbh->selectcol_arrayref(q{
-            SELECT id FROM components
-            WHERE product_id = ?
-            ORDER BY name}, undef, $self->id);
+    if (!defined $self->{components})
+    {
+        my $ids = $dbh->selectcol_arrayref(
+            'SELECT id FROM components WHERE product_id = ? ORDER BY name',
+            undef, $self->id
+        );
 
         require Bugzilla::Component;
         $self->{components} = Bugzilla::Component->new_from_list($ids);
@@ -807,11 +865,13 @@ sub components {
     return $self->{components};
 }
 
-sub group_controls_full_data {
+sub group_controls_full_data
+{
     return $_[0]->group_controls(1);
 }
 
-sub group_controls {
+sub group_controls
+{
     my ($self, $full_data) = @_;
     my $dbh = Bugzilla->dbh;
 
@@ -820,7 +880,8 @@ sub group_controls {
     # return groups whose settings could be set for the product.
     my $where_or_and = 'WHERE';
     my $and_or_where = 'AND';
-    if ($full_data) {
+    if ($full_data)
+    {
         $where_or_and = 'AND';
         $and_or_where = 'WHERE';
     }
@@ -830,17 +891,16 @@ sub group_controls {
     # $full_data is never used except in the very special case where
     # all configurable bug groups are displayed to administrators,
     # so we don't care about collecting all the data again in this case.
-    if (!defined $self->{group_controls} || $full_data) {
+    if (!defined $self->{group_controls} || $full_data)
+    {
         # Include name to the list, to allow us sorting data more easily.
-        my $query = qq{SELECT id, name, entry, membercontrol, othercontrol,
-                              canedit, editcomponents, editbugs, canconfirm
-                         FROM groups
-                              LEFT JOIN group_control_map
-                              ON id = group_id 
-                $where_or_and product_id = ?
-                $and_or_where isbuggroup = 1};
-        $self->{group_controls} = 
-            $dbh->selectall_hashref($query, 'id', undef, $self->id);
+        my $query =
+            "SELECT id, name, entry, membercontrol, othercontrol,".
+            " canedit, editcomponents, editbugs, canconfirm".
+            " FROM groups LEFT JOIN group_control_map ON id = group_id".
+            " $where_or_and product_id = ?".
+            " $and_or_where isbuggroup = 1";
+        $self->{group_controls} = $dbh->selectall_hashref($query, 'id', undef, $self->id);
 
         # For each group ID listed above, create and store its group object.
         my @gids = keys %{$self->{group_controls}};
@@ -849,23 +909,24 @@ sub group_controls {
     }
 
     # We never cache bug counts, for the same reason as above.
-    if ($full_data) {
-        my $counts =
-          $dbh->selectall_arrayref('SELECT group_id, COUNT(bugs.bug_id) AS bug_count
-                                      FROM bug_group_map
-                                INNER JOIN bugs
-                                        ON bugs.bug_id = bug_group_map.bug_id
-                                     WHERE bugs.product_id = ? ' .
-                                     $dbh->sql_group_by('group_id'),
-                          {'Slice' => {}}, $self->id);
-        foreach my $data (@$counts) {
+    if ($full_data)
+    {
+        my $counts = $dbh->selectall_arrayref(
+            'SELECT group_id, COUNT(bugs.bug_id) AS bug_count FROM bug_group_map'.
+            ' INNER JOIN bugs ON bugs.bug_id = bug_group_map.bug_id'.
+            ' WHERE bugs.product_id = ? ' . $dbh->sql_group_by('group_id'),
+            {Slice => {}}, $self->id
+        );
+        foreach my $data (@$counts)
+        {
             $self->{group_controls}->{$data->{group_id}}->{bug_count} = $data->{bug_count};
         }
     }
     return $self->{group_controls};
 }
 
-sub groups_mandatory_for {
+sub groups_mandatory_for
+{
     my ($self, $user) = @_;
     my $groups = $user->groups_as_string;
     my $mandatory = CONTROLMAPMANDATORY;
@@ -873,96 +934,104 @@ sub groups_mandatory_for {
     # is Mandatory, the group is Mandatory for everybody, regardless of their
     # group membership.
     my $ids = Bugzilla->dbh->selectcol_arrayref(
-        "SELECT group_id FROM group_control_map
-          WHERE product_id = ?
-                AND (membercontrol = $mandatory
-                     OR (othercontrol = $mandatory
-                         AND group_id NOT IN ($groups)))",
-        undef, $self->id);
+        "SELECT group_id FROM group_control_map WHERE product_id = ?".
+        " AND (membercontrol = $mandatory OR (othercontrol = $mandatory AND group_id NOT IN ($groups)))",
+        undef, $self->id
+    );
     return Bugzilla::Group->new_from_list($ids);
 }
 
-sub groups_valid {
+sub groups_valid
+{
     my ($self) = @_;
     return $self->{groups_valid} if defined $self->{groups_valid};
 
     # Note that we don't check OtherControl below, because there is no
     # valid NA/* combination.
     my $ids = Bugzilla->dbh->selectcol_arrayref(
-        "SELECT DISTINCT group_id
-          FROM group_control_map AS gcm
-               INNER JOIN groups ON gcm.group_id = groups.id
-         WHERE product_id = ? AND isbuggroup = 1
-               AND membercontrol != " . CONTROLMAPNA,  undef, $self->id);
+        'SELECT DISTINCT group_id FROM group_control_map AS gcm'.
+        ' INNER JOIN groups ON gcm.group_id = groups.id'.
+        ' WHERE product_id = ? AND isbuggroup = 1'.
+        ' AND membercontrol != ' . CONTROLMAPNA,  undef, $self->id
+    );
     $self->{groups_valid} = Bugzilla::Group->new_from_list($ids);
     return $self->{groups_valid};
 }
 
-sub versions {
+sub versions
+{
     my $self = shift;
     my $dbh = Bugzilla->dbh;
 
-    if (!defined $self->{versions}) {
-        my $ids = $dbh->selectcol_arrayref(q{
-            SELECT id FROM versions
-            WHERE product_id = ?}, undef, $self->id);
-
+    if (!defined $self->{versions})
+    {
+        my $ids = $dbh->selectcol_arrayref(
+            'SELECT id FROM versions WHERE product_id = ?',
+            undef, $self->id
+        );
         $self->{versions} = Bugzilla::Version->new_from_list($ids);
     }
     return $self->{versions};
 }
 
-sub milestones {
+sub milestones
+{
     my $self = shift;
     my $dbh = Bugzilla->dbh;
 
-    if (!defined $self->{milestones}) {
-        my $ids = $dbh->selectcol_arrayref(q{
-            SELECT id FROM milestones
-             WHERE product_id = ?}, undef, $self->id);
-
+    if (!defined $self->{milestones})
+    {
+        my $ids = $dbh->selectcol_arrayref(
+            'SELECT id FROM milestones WHERE product_id = ?',
+            undef, $self->id
+        );
         $self->{milestones} = Bugzilla::Milestone->new_from_list($ids);
     }
     return $self->{milestones};
 }
 
-sub bug_count {
+sub bug_count
+{
     my $self = shift;
     my $dbh = Bugzilla->dbh;
 
-    if (!defined $self->{'bug_count'}) {
-        $self->{'bug_count'} = $dbh->selectrow_array(qq{
-            SELECT COUNT(bug_id) FROM bugs
-            WHERE product_id = ?}, undef, $self->id);
-
+    if (!defined $self->{bug_count})
+    {
+        $self->{bug_count} = $dbh->selectrow_array(
+            'SELECT COUNT(bug_id) FROM bugs WHERE product_id = ?',
+            undef, $self->id
+        );
     }
-    return $self->{'bug_count'};
+    return $self->{bug_count};
 }
 
-sub bug_ids {
+sub bug_ids
+{
     my $self = shift;
     my $dbh = Bugzilla->dbh;
 
-    if (!defined $self->{'bug_ids'}) {
-        $self->{'bug_ids'} = 
-            $dbh->selectcol_arrayref(q{SELECT bug_id FROM bugs
-                                       WHERE product_id = ?},
-                                     undef, $self->id);
+    if (!defined $self->{bug_ids})
+    {
+        $self->{bug_ids} = $dbh->selectcol_arrayref(
+            'SELECT bug_id FROM bugs WHERE product_id = ?',
+            undef, $self->id
+        );
     }
-    return $self->{'bug_ids'};
+    return $self->{bug_ids};
 }
 
-sub user_has_access {
+sub user_has_access
+{
     my ($self, $user) = @_;
 
     return Bugzilla->dbh->selectrow_array(
-        'SELECT CASE WHEN group_id IS NULL THEN 1 ELSE 0 END
-           FROM products LEFT JOIN group_control_map
-                ON group_control_map.product_id = products.id
-                   AND group_control_map.entry != 0
-                   AND group_id NOT IN (' . $user->groups_as_string . ')
-          WHERE products.id = ? ' . Bugzilla->dbh->sql_limit(1),
-          undef, $self->id);
+        'SELECT CASE WHEN group_id IS NULL THEN 1 ELSE 0 END'.
+        ' FROM products LEFT JOIN group_control_map'.
+        ' ON group_control_map.product_id = products.id'.
+        ' AND group_control_map.entry != 0 AND group_id NOT IN (' . $user->groups_as_string . ')'.
+        ' WHERE products.id = ? ' . Bugzilla->dbh->sql_limit(1),
+        undef, $self->id
+    );
 }
 
 sub flag_types
@@ -994,32 +1063,32 @@ sub flag_types
                 }
             }
             $self->{flag_types}->{$type} = [
-                sort { $a->{'sortkey'} <=> $b->{'sortkey'}
-                     || $a->{'name'} cmp $b->{'name'} }
+                sort { $a->{sortkey} <=> $b->{sortkey}
+                     || $a->{name} cmp $b->{name} }
                 values %flagtypes
             ];
         }
     }
 
-    return $self->{'flag_types'};
+    return $self->{flag_types};
 }
 
 ###############################
 ####      Accessors      ######
 ###############################
 
-sub allows_unconfirmed { return $_[0]->{'allows_unconfirmed'}; }
-sub description       { return $_[0]->{'description'};       }
-sub is_active         { return $_[0]->{'isactive'};          }
-sub votes_per_user    { return $_[0]->{'votesperuser'};      }
-sub max_votes_per_bug { return $_[0]->{'maxvotesperbug'};    }
-sub votes_to_confirm  { return $_[0]->{'votestoconfirm'};    }
-sub default_milestone { return $_[0]->{'defaultmilestone'};  }
-sub classification_id { return $_[0]->{'classification_id'}; }
-sub wiki_url          { return $_[0]->{'wiki_url'};          }
-sub notimetracking    { return $_[0]->{'notimetracking'};    }
-sub extproduct        { return $_[0]->{'extproduct'};        }
-sub cc_group          { return $_[0]->{'cc_group'};          }
+sub allows_unconfirmed { return $_[0]->{allows_unconfirmed}; }
+sub description       { return $_[0]->{description};       }
+sub is_active         { return $_[0]->{isactive};          }
+sub votes_per_user    { return $_[0]->{votesperuser};      }
+sub max_votes_per_bug { return $_[0]->{maxvotesperbug};    }
+sub votes_to_confirm  { return $_[0]->{votestoconfirm};    }
+sub default_milestone { return $_[0]->{defaultmilestone};  }
+sub classification_id { return $_[0]->{classification_id}; }
+sub wiki_url          { return $_[0]->{wiki_url};          }
+sub notimetracking    { return $_[0]->{notimetracking};    }
+sub extproduct        { return $_[0]->{extproduct};        }
+sub cc_group          { return $_[0]->{cc_group};          }
 
 ###############################
 ####      Subroutines    ######
@@ -1115,26 +1184,30 @@ sub restrict_cc
     return @remove ? \@remove : undef;
 }
 
-sub check_product {
+sub check_product
+{
     my ($product_name) = @_;
 
-    unless ($product_name) {
+    unless ($product_name)
+    {
         ThrowUserError('product_not_specified');
     }
-    my $product = new Bugzilla::Product({name => $product_name});
-    unless ($product) {
-        ThrowUserError('product_doesnt_exist',
-                       {'product' => $product_name});
+    my $product = new Bugzilla::Product({ name => $product_name });
+    unless ($product)
+    {
+        ThrowUserError('product_doesnt_exist', { product => $product_name });
     }
     return $product;
 }
 
-sub check {
+sub check
+{
     my ($class, $params) = @_;
     $params = { name => $params } if !ref $params;
     $params->{_error} = 'product_access_denied';
     my $product = $class->SUPER::check($params);
-    if (!Bugzilla->user->can_see_product($product)) {
+    if (!Bugzilla->user->can_see_product($product))
+    {
         ThrowUserError('product_access_denied', $params);
     }
     return $product;
