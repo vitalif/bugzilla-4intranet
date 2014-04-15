@@ -199,6 +199,7 @@ sub pick_valid_field_value (@)
 
 sub pickplatform
 {
+    my ($ARGS) = @_;
     return $ARGS->{rep_platform} if $ARGS->{rep_platform};
 
     my @platform;
@@ -271,6 +272,7 @@ sub pickplatform
 
 sub pickos
 {
+    my ($ARGS) = @_;
     return $ARGS->{op_sys} if $ARGS->{op_sys};
 
     my @os = ();
@@ -578,8 +580,8 @@ else
     $default{component_}    = $ARGS->{component};
     $default{priority}      = $ARGS->{priority} || Bugzilla->params->{defaultpriority};
     $default{bug_severity}  = $ARGS->{bug_severity} || Bugzilla->params->{defaultseverity};
-    $default{rep_platform}  = pickplatform() if Bugzilla->params->{useplatform};
-    $default{op_sys}        = pickos() if Bugzilla->params->{useopsys};
+    $default{rep_platform}  = pickplatform($ARGS) if Bugzilla->params->{useplatform};
+    $default{op_sys}        = pickos($ARGS) if Bugzilla->params->{useopsys};
 
     $default{alias}          = $ARGS->{alias};
     $default{short_desc}     = $ARGS->{short_desc};
