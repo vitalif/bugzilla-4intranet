@@ -715,14 +715,14 @@ sub process_bug {
             push( @values, $milestone->name );
         }
         else {
-            push( @values, $product->default_milestone );
+            push( @values, $product->default_milestone && $product->default_milestone_obj->name );
             $err .= "Unknown milestone \"";
             $err .= ( defined $bug_fields{'target_milestone'} )
                 ? $bug_fields{'target_milestone'}
                 : "unknown";
             $err .= " in product " . $product->name . ". \n";
             $err .= "   Setting to default milestone for this product, ";
-            $err .= "\"" . $product->default_milestone . "\".\n";
+            $err .= "\"" . ($product->default_milestone && $product->default_milestone_obj->name) . "\".\n";
         }
         push( @query, "target_milestone" );
     }

@@ -1986,7 +1986,7 @@ sub _set_target_milestone
     # FIXME This if() is dead because of check_field_permission.
     if (!$self->check_can_change_field('target_milestone', 0, 1))
     {
-        $self->{target_milestone_obj} = Bugzilla::Milestone->new($product->default_milestone);
+        $self->{target_milestone_obj} = $product->default_milestone_obj;
         return $self->{target_milestone_obj}->id;
     }
     if ((!defined $target || !length $target) && Bugzilla->get_field('target_milestone')->nullable)

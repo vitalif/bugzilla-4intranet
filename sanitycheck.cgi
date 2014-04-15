@@ -660,10 +660,10 @@ DoubleCrossCheck("components", "product_id", "id",
                  ['flagexclusions', 'product_id', 'component_id'],
                  ['flaginclusions', 'product_id', 'component_id']);
 
-DoubleCrossCheck("versions", "product_id", "value",
+DoubleCrossCheck("versions", "product_id", "id",
                  ["bugs", "product_id", "version", "bug_id"]);
- 
-DoubleCrossCheck("milestones", "product_id", "value",
+
+DoubleCrossCheck("milestones", "product_id", "id",
                  ["bugs", "product_id", "target_milestone", "bug_id"],
                  ["products", "id", "defaultmilestone", "name"]);
 

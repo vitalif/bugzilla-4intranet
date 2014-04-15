@@ -636,7 +636,7 @@ if (Bugzilla->params->{usetargetmilestone})
     }
     else
     {
-        $default{target_milestone} = $product->default_milestone;
+        $default{target_milestone} = $product->default_milestone && $product->default_milestone_obj->name;
     }
 }
 

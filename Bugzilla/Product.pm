@@ -188,6 +188,15 @@ sub update {
     # Yet do not call its update() for the future
     my ($changes, $old_self) = Bugzilla::Object::update($self, @_);
 
+    # Convert default milestone to name
+    if ($changes->{defaultmilestone})
+    {
+        $changes->{defaultmilestone} = [
+            $changes->{defaultmilestone}->[0] ? Bugzilla::Milestone->new($changes->{defaultmilestone}->[0])->name : '',
+            $changes->{defaultmilestone}->[1] ? Bugzilla::Milestone->new($changes->{defaultmilestone}->[1])->name : '',
+        ];
+    }
+
     # We also have to fix votes. # FIXME WTF?
     my @msgs; # Will store emails to send to voters.
     if ($changes->{maxvotesperbug} || $changes->{votesperuser} || $changes->{votestoconfirm}) {
@@ -583,6 +592,7 @@ sub _check_default_milestone
         );
         $milestone = $mil_obj->id;
     }
+    delete $invocant->{default_milestone_obj};
 
     return $milestone;
 }
@@ -1014,6 +1024,16 @@ sub cc_group          { return $_[0]->{'cc_group'};          }
 ###############################
 ####      Subroutines    ######
 ###############################
+
+sub default_milestone_obj
+{
+    my $self = shift;
+    if (!exists $self->{default_milestone_obj} && $self->default_milestone)
+    {
+        $self->{default_milestone_obj} = Bugzilla::Milestone->new($self->default_milestone);
+    }
+    return $self->{default_milestone_obj};
+}
 
 sub classification_obj
 {

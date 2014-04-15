@@ -615,7 +615,7 @@
   The milestone <em>[% milestone.name | html %]</em> has been deleted.
   [% IF milestone.bug_count %]
     [%+ terms.Bugs %] targetted to this milestone have been retargetted to
-    the default milestone <em>[% product.default_milestone | html %]</em>.
+    the default milestone <em>"[% product.default_milestone_obj.name | html %]"</em>.
   [% END %]
 [% END %]
 
