@@ -146,9 +146,9 @@
 [% END %]
 
 [% BLOCK buginfo %]
-  [% bug.bug_status FILTER html -%] [%+ bug.resolution FILTER html %];
+  [% bug.bug_status_obj.name FILTER html -%] [%+ bug.resolution_obj.name FILTER html IF bug.resolution %];
   [%-%] assigned to [% bug.assigned_to.login FILTER email FILTER html %]
-  [%-%][% "; Target: " _ bug.target_milestone IF bug.target_milestone %]
+  [%-%][% "; Target: " _ bug.target_milestone_obj.name FILTER html IF bug.target_milestone %]
 [% END %]
 
 [%###########################################################################%]

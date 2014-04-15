@@ -71,12 +71,12 @@
       <tr>
         <td align="left"><a href="[%+ urlbase FILTER html %]show_bug.cgi?id=
             [%- bug.bug_id %]">[% bug.bug_id %]</a></td>
-        <td align="left">[% bug.bug_severity FILTER html %]</td>
-        <td align="left">[% bug.priority FILTER html %]</td>
-        <td align="left">[% bug.rep_platform FILTER html %]</td>
+        <td align="left">[% bug.bug_severity_obj.name FILTER html %]</td>
+        <td align="left">[% bug.priority_obj.name FILTER html %]</td>
+        <td align="left">[% bug.rep_platform_obj.name FILTER html %]</td>
         <td align="left">[% bug.assigned_to FILTER html %]</td>
-        <td align="left">[% bug.bug_status FILTER html %]</td>
-        <td align="left">[% bug.resolution FILTER html %]</td>
+        <td align="left">[% bug.bug_status_obj.name FILTER html %]</td>
+        <td align="left">[% bug.resolution_obj.name FILTER html %]</td>
         <td align="left">[% bug.short_desc FILTER html %]</td>
       </tr>
     [% END %]

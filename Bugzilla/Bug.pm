@@ -2153,14 +2153,17 @@ sub _set_select_field
 {
     my ($self, $value, $field) = @_;
     my $field_obj = Bugzilla->get_field($field);
-    # Allow empty values, but only for nullable or invisible fields
-    if ((!defined $value || !length $value) &&
-        ($field_obj->nullable || !$field_obj->check_visibility($self)))
-    {
-        $self->{$field.'_obj'} = undef;
-        return $self->{$field} = undef;
-    }
     my $t = Bugzilla::Field::Choice->type($field_obj);
+    if (!defined $value || !length $value)
+    {
+        # Allow empty values, but only for nullable or invisible fields
+        if ($field_obj->nullable || !$field_obj->check_visibility($self))
+        {
+            $self->{$field.'_obj'} = undef;
+            return $self->{$field} = undef;
+        }
+        ThrowUserError('object_not_specified', { class => $t });
+    }
     my $value_obj = $t->new({ name => $value });
     if (!$value_obj)
     {

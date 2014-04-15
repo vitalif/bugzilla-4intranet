@@ -113,12 +113,12 @@
         ];
         function onchange_bug_status()
         {
-          showHideStatusItems('[% "is_duplicate" IF bug.dup_id %]', '[% bug.bug_status | js %]');
+          showHideStatusItems('[% "is_duplicate" IF bug.dup_id %]', '[% bug.bug_status_obj.name | js %]');
         }
         addListener('bug_status', 'change', onchange_bug_status);
         addListener('resolution', 'change', showDuplicateItem);
         addListener(window, 'load', function() {
-          showHideStatusItems('[% "is_duplicate" IF bug.dup_id %]', '[% bug.bug_status | js %]');
+          showHideStatusItems('[% "is_duplicate" IF bug.dup_id %]', '[% bug.bug_status_obj.name | js %]');
         });
         </script>
 

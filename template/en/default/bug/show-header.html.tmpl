@@ -33,8 +33,8 @@
 [% filtered_desc = bug.short_desc FILTER html %]
 [% subheader = filtered_desc %]
 [% filtered_timestamp = bug.delta_ts FILTER time %]
-[% filtered_prodcomp = bug.product _ '/' _ bug.component | html %]
-[% filtered_stat = bug.bug_status _ ' ' _ bug.resolution | html %]
+[% filtered_prodcomp = bug.product_obj.name _ '/' _ bug.component_obj.name | html %]
+[% filtered_stat = bug.bug_status_obj.name _ ' ' _ bug.resolution_obj.name | html %]
 [% title = "$terms.Bug $bug.bug_id &ndash; $filtered_desc &ndash; $filtered_prodcomp &ndash; $filtered_stat" %]
 [% header = "$terms.Bug&nbsp;$bug.bug_id" %]
 [% header_addl_info = "Last modified: $filtered_timestamp" %]
@@ -43,9 +43,9 @@
 [% doc_section = "bug_page.html" %]
 
 [% bodyclasses = ['bz_bug',
-                  "bz_status_$bug.bug_status",
-                  "bz_product_$bug.product",
-                  "bz_component_$bug.component",
+                  "bz_status_${bug.bug_status_obj.name}",
+                  "bz_product_${bug.product_obj.name}",
+                  "bz_component_${bug.component_obj.name}",
                   "bz_bug_$bug.bug_id",
                   ] %]
 [% FOREACH group = bug.groups_in %]

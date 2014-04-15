@@ -88,7 +88,13 @@
     [% FOREACH c = columns %]
       [%# Default to align left for headers %]
       <th align="[% (c.align || 'left') FILTER html %]">
-        [% c.heading FILTER html %]
+        [% IF c.hint %]
+        <abbr title="[% c.hint | html %]">
+          [% c.heading FILTER html %]
+        </abbr>
+        [% ELSE %]
+          [% c.heading FILTER html %]
+        [% END %]
       </th>
     [% END %]
   </tr>

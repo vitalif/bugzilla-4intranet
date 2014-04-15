@@ -103,17 +103,17 @@
           </td>
           <td class="count">[% item.count FILTER html %]</td>
           <td class="delta">[% item.delta FILTER html %]</td>
-          <td class="component">[% bug.component FILTER html %]</td>
+          <td class="component">[% bug.component_obj.name FILTER html %]</td>
           <td class="bug_severity">
-            [%- bug.bug_severity FILTER html %]
+            [%- bug.bug_severity_obj.name FILTER html IF bug.bug_severity %]
           </td>
           [% IF Param('useopsys') %]
           <td class="op_sys">
-            [%- bug.op_sys FILTER html %]
+            [%- bug.op_sys_obj.name FILTER html IF bug.op_sys %]
           </td>
           [% END %]
           <td class="target_milestone">
-            [% bug.target_milestone FILTER html %]
+            [% bug.target_milestone_obj.name FILTER html IF bug.target_milestone %]
           </td>
           <td class="short_desc">[% bug.short_desc FILTER html %]</td>
         </tr>

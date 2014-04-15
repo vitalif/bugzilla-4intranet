@@ -296,7 +296,7 @@ foreach my $b (@bug_objects)
         my $gid = $group->id;
         if (defined $ARGS->{"bit-$gid"} || defined $ARGS->{"defined_bit-$gid"})
         {
-            $g ||= { map { $_->id => 1 } @{$b->groups} };
+            $g ||= { map { $_->{bit} => 1 } @{$b->groups} };
             # Check ! first to avoid having to check defined below.
             if (!$ARGS->{"bit-$gid"})
             {

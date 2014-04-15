@@ -678,6 +678,7 @@ sub check_visibility
     my $bug = shift || return 1;
     my $vf = $self->visibility_field || return 1;
     my $m = $vf->name;
+    $m = Bugzilla::Bug->OVERRIDE_ID_FIELD->{$m} || $m;
     my $value = blessed $bug ? $bug->$m : $bug->{$m};
     return 1 unless $value;
     if (!blessed $value)
@@ -1079,7 +1080,7 @@ sub populate_field_definitions
 {
     my $dbh = Bugzilla->dbh;
 
-    my ($has_clone_bug) = $dbh->selectrow_array('SELECT 1 FROM fielddefs WHERE clone_bug AND NOT custom');
+    my ($has_nullable) = $dbh->selectrow_array('SELECT 1 FROM fielddefs WHERE nullable AND NOT custom');
 
     # Add/update field definitions
     foreach my $def (DEFAULT_FIELDS)
@@ -1091,8 +1092,8 @@ sub populate_field_definitions
             $field->set_in_new_bugmail($def->{in_new_bugmail});
             $field->set_buglist($def->{buglist});
             $field->_set_type($def->{type}) if $def->{type};
-            $field->set_clone_bug($def->{clone_bug}) if !$has_clone_bug;
-            $field->set_nullable($def->{nullable}) if !$has_clone_bug;
+            $field->set_clone_bug($def->{clone_bug}) if !$has_nullable;
+            $field->set_nullable($def->{nullable}) if !$has_nullable;
             $field->update();
         }
         else

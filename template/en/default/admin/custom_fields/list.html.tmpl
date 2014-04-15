@@ -44,15 +44,38 @@
      },
      {
        name => "enter_bug"
-       heading => "Editable on $terms.Bug Creation"
+       heading => "Entry"
+       hint => "Can be set on $terms.Bug Creation"
+       content_values => { '0' => '', '1' => 'Yes' }
+       align => 'center'
      },
      {
        name => "mailhead"
-       heading => "In ${terms.Bug}mail on $terms.Bug Creation"
+       heading => "${terms.Bug}mail",
+       hint => "Included in ${terms.bug}mail for new $terms.bugs"
+       content_values => { '0' => '', '1' => 'Yes' }
+       align => 'center'
      },
      {
        name => "obsolete"
-       heading => "Is Obsolete"
+       heading => "Obsolete"
+       hint => "Is disabled and unused"
+       content_values => { '0' => '', '1' => 'Yes' }
+       align => 'center'
+     },
+     {
+       name => "clone_bug"
+       heading => "Cloned"
+       hint => "Is copied into the cloned bug"
+       content_values => { '0' => '', '1' => 'Yes' }
+       align => 'center'
+     },
+     {
+       name => "nullable"
+       heading => "Nullable"
+       hint => "Allows empty (NULL) value"
+       content_values => { '0' => '', '1' => 'Yes' }
+       align => 'center'
      },
      {
        name => "action"
@@ -99,34 +122,10 @@
 
 <h2>Standard fields</h2>
 
-[% columns = [
-     {
-       name => "name"
-       heading => "Edit field..."
-       contentlink => "editfields.cgi?action=edit&amp;name=%%name%%"
-     },
-     {
-       name => "description"
-       heading => "Description"
-     },
-     {
-       name => "sortkey"
-       heading => "Sortkey"
-     },
-     {
-       name => "type"
-       heading => "Type"
-     },
-     {
-       name => "mailhead"
-       heading => "In ${terms.Bug}mail on $terms.Bug Creation"
-     },
-     {
-       name => "obsolete"
-       heading => "Is Obsolete"
-     },
-   ]
-%]
+[%# Remove 'action' and 'entry' columns %]
+[%# FIXME: 'entry' column should be filled for standard fields %]
+[% SET c = columns.pop() %]
+[% SET c = columns.splice(4, 1) %]
 
 [% PROCESS admin/table.html.tmpl
      columns = columns
