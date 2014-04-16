@@ -326,8 +326,7 @@ sub get_names
     my $f = Bugzilla->get_field($field);
     if ($f && $f->is_select)
     {
-        my $values = [ map { $_->name } @{ $f->legal_values } ];
-        unshift @$values, ' ' if $field eq 'resolution';
+        my $values = [ '', map { $_->name } @{ $f->legal_values(1) } ];
         my %dup;
         @$values = grep { exists($names->{$_}) && !($dup{$_}++) } @$values;
         return $values;
