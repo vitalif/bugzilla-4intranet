@@ -121,11 +121,14 @@ else {
 }
 
 my $measures = {
-    etime => "bugs.estimated_time",
-    rtime => "bugs.remaining_time",
-    wtime => "(SELECT SUM(lwt.work_time) FROM longdescs lwt WHERE lwt.bug_id=bugs.bug_id)",
-    count => "1",
+    etime => 'estimated_time',
+    rtime => 'remaining_time',
+    wtime => 'interval_time',
+    count => '_count',
 };
+# Trick Bugzilla::Search by adding '_count' column
+Bugzilla::Search->COLUMNS->{_count}->{name} = '1';
+
 my $measure = $cgi->param('measure');
 $measure = 'count' unless $measures->{$measure};
 $vars->{measure} = $measure;
@@ -133,10 +136,7 @@ $vars->{measure} = $measure;
 # Validate the values in the axis fields or throw an error.
 my %a;
 my @group_by = grep { !($a{$_}++) } values %$field;
-my @axis_fields = (@group_by, 'measure');
-
-# Trick Bugzilla::Search by adding 'measure' column
-Bugzilla::Search->COLUMNS->{measure}->{name} = $measures->{$measure};
+my @axis_fields = (@group_by, $measures->{$measure});
 
 # Clone the params, so that Bugzilla::Search can modify them
 my $params = new Bugzilla::CGI($cgi);
@@ -150,7 +150,7 @@ $query =
     ($field->{x} || "''")." x, ".
     ($field->{y} || "''")." y, ".
     ($field->{z} || "''")." z, ".
-    "SUM(measure) r FROM ($query) _report_table GROUP BY ".join(", ", @group_by);
+    "SUM(".$measures->{$measure}.") r FROM ($query) _report_table GROUP BY ".join(", ", @group_by);
 
 $::SIG{TERM} = 'DEFAULT';
 $::SIG{PIPE} = 'DEFAULT';
