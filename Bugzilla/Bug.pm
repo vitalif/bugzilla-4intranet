@@ -1481,7 +1481,11 @@ sub set
     {
         $self->make_dirty;
         $value = $self->$setter($value, $field);
-        $self->{$field} = $value if defined $value;
+        if (defined $value)
+        {
+            trick_taint($value);
+            $self->{$field} = $value;
+        }
         $self->_check_field_permission($field);
         return $value;
     }
