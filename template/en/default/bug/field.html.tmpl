@@ -178,7 +178,7 @@
               [% FOR v = value %]
                 [%# FIXME use _obj accessor? %]
                 [% v = field.new_choice(v) %]
-                <option selected="selected" value="[% v.name | html %]">[% v.name | html %]</option>
+                <option selected="selected" value="[% v.name | html %]" id="v[% v.id | html %]_[% field.name | html %]">[% v.name | html %]</option>
               [% END %]
             [% END %]
           [% END %]

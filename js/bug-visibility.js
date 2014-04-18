@@ -65,8 +65,7 @@ function initControllerField(i)
                 }
             }
         }
-
-        handleControllerField(null, f);
+        handleControllerField(document.forms['Create'] ? null : 'INITIAL', f);
         addListener(f, 'change', handleControllerField_this);
     }
 }
@@ -128,6 +127,12 @@ function handleControllerField(e, controller)
         }
     }
     // Change select options
+    if (e === 'INITIAL')
+    {
+        // Skip re-filling of fields on bug edit page load, because
+        // the bug may include incorrect values that must not be hidden initially
+        return;
+    }
     var item, controlled, copt, controlled_value;
     for (var controlled_id in show_fields[controller.id]['values'])
     {
