@@ -107,6 +107,7 @@ sub update_fielddefs_definition {
     $dbh->bz_add_column('fielddefs', clone_bug => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 1});
     $dbh->bz_add_column('fielddefs', url => {TYPE => 'VARCHAR(255)'});
     $dbh->bz_add_column('fielddefs', nullable => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'});
+    $dbh->do('UPDATE fielddefs SET nullable=1 WHERE custom=1');
     $dbh->bz_add_column('fielddefs', add_to_deps => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0});
 
     if (!$dbh->bz_column_info('fielddefs', 'delta_ts'))
