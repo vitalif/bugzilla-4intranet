@@ -60,35 +60,6 @@ my $operations;
 ($operations, $vars->{'incomplete_data'}) =
     Bugzilla::Bug::GetBugActivity($bug->id);
 
-for (my $i = 0; $i < scalar @$operations; $i++)
-{
-    my $lines = 0;
-    for (my $j = 0; $j < scalar @{$operations->[$i]->{changes}}; $j++)
-    {
-        my $change = $operations->[$i]->{changes}->[$j];
-        my $field = Bugzilla->get_field($change->{fieldname});
-        if ($change->{fieldname} eq 'longdesc' || $field->{type} eq FIELD_TYPE_TEXTAREA)
-        {
-            my $diff = new Bugzilla::Diff($change->{removed}, $change->{added})->get_table;
-            if (!@$diff)
-            {
-                splice @{$operations->[$i]->{changes}}, $j, 1;
-                $j--;
-            }
-            else
-            {
-                $operations->[$i]->{changes}->[$j]->{lines} = $diff;
-                $lines += scalar @$diff;
-            }
-        }
-        else
-        {
-            $lines++;
-        }
-    }
-    $operations->[$i]->{total_lines} = $lines;
-}
-
 $vars->{'operations'} = $operations;
 $vars->{'bug'} = $bug;
 

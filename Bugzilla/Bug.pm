@@ -50,6 +50,8 @@ use Bugzilla::Group;
 use Bugzilla::Status;
 use Bugzilla::Comment;
 
+use Bugzilla::Diff;
+
 use List::Util qw(min);
 use URI;
 use URI::QueryParam;
@@ -3179,14 +3181,20 @@ sub GetBugActivity
     {
         trick_taint($starttime);
         push @args, $starttime;
-        $datepart = "AND bugs_activity.bug_when > ?";
+        $datepart = "AND a.bug_when > ?";
     }
 
     my $attachpart = "";
     if ($attach_id)
     {
         push @args, $attach_id;
-        $attachpart = "AND bugs_activity.attach_id = ?";
+        $attachpart = "AND a.attach_id = ?";
+    }
+    else
+    {
+        # For UNION longdescs_history
+        push @args, $bug_id;
+        push @args, $starttime if defined $starttime;
     }
 
     # Only includes attachments the user is allowed to see.
@@ -3194,33 +3202,25 @@ sub GetBugActivity
     my $suppwhere = "";
     if (!Bugzilla->user->is_insider)
     {
-        $suppjoins = "LEFT JOIN attachments ON attachments.attach_id = bugs_activity.attach_id";
+        $suppjoins = "LEFT JOIN attachments ON attachments.attach_id = a.attach_id";
         $suppwhere = "AND COALESCE(attachments.isprivate, 0) = 0";
     }
-    # For UNION longdescs_history
-    push @args, $bug_id;
 
-    my $query = "SELECT fielddefs.name, bugs_activity.attach_id, " .
-        $dbh->sql_date_format('bugs_activity.bug_when', '%Y.%m.%d %H:%i:%s') .
-            " bug_when, bugs_activity.removed, bugs_activity.added, profiles.login_name, null as comment_id, null as comment_count
-        FROM bugs_activity
-            $suppjoins
-        LEFT JOIN fielddefs
-            ON bugs_activity.fieldid = fielddefs.id
-        INNER JOIN profiles
-            ON profiles.userid = bugs_activity.who
-        WHERE bugs_activity.bug_id = ?
-            $datepart
-            $attachpart
-            $suppwhere
-        UNION SELECT
-            'longdesc', null, DATE_FORMAT(lh.bug_when, '%Y.%m.%d %H:%i:%s') bug_when, lh.oldthetext removed, lh.thetext added, profile1.login_name, lh.comment_id, lh.comment_count
-        FROM longdescs_history lh
-        INNER JOIN profiles profile1
-            ON profile1.userid = lh.who
-        WHERE lh.bug_id = ?
-        ORDER BY bug_when
-      ";
+    my $query =
+        "SELECT fielddefs.name, a.attach_id, " .
+            $dbh->sql_date_format('a.bug_when', '%Y.%m.%d %H:%i:%s') .
+            " bug_when, a.removed, a.added, profiles.login_name, null AS comment_id, null AS comment_count" .
+        " FROM bugs_activity a $suppjoins".
+        " LEFT JOIN fielddefs ON a.fieldid = fielddefs.id".
+        " INNER JOIN profiles ON profiles.userid = a.who".
+        " WHERE a.bug_id = ? $datepart $attachpart $suppwhere".
+        ($attach_id ? "" :
+            " UNION SELECT 'longdesc', null, DATE_FORMAT(a.bug_when, '%Y.%m.%d %H:%i:%s') bug_when,".
+            " a.oldthetext removed, a.thetext added, profile1.login_name, a.comment_id, a.comment_count".
+            " FROM longdescs_history a".
+            " INNER JOIN profiles profile1 ON profile1.userid = a.who".
+            " WHERE a.bug_id = ? $datepart").
+        " ORDER BY bug_when";
 
     my $list = $dbh->selectall_arrayref($query, undef, @args);
 
@@ -3288,6 +3288,35 @@ sub GetBugActivity
     {
         $operation->{changes} = $changes;
         push @operations, $operation;
+    }
+
+    for (my $i = 0; $i < scalar @operations; $i++)
+    {
+        my $lines = 0;
+        for (my $j = 0; $j < scalar @{$operations[$i]{changes}}; $j++)
+        {
+            my $change = $operations[$i]{changes}[$j];
+            my $field = Bugzilla->get_field($change->{fieldname});
+            if ($change->{fieldname} eq 'longdesc' || $field->{type} eq FIELD_TYPE_TEXTAREA)
+            {
+                my $diff = Bugzilla::Diff->new($change->{removed}, $change->{added})->get_table;
+                if (!@$diff)
+                {
+                    splice @{$operations[$i]{changes}}, $j, 1;
+                    $j--;
+                }
+                else
+                {
+                    $operations[$i]{changes}[$j]{lines} = $diff;
+                    $lines += scalar @$diff;
+                }
+            }
+            else
+            {
+                $lines++;
+            }
+        }
+        $operations[$i]{total_lines} = $lines;
     }
 
     return (\@operations, $incomplete_data);
