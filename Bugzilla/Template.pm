@@ -432,29 +432,34 @@ sub get_attachment_link {
 #  - An optional comment number, for linking to a particular
 #    comment in the bug
 
-sub get_bug_link {
+sub get_bug_link
+{
     my ($bug, $link_text, $options) = @_;
     my $dbh = Bugzilla->dbh;
 
-    if (!$bug) {
+    if (!$bug)
+    {
         return html_quote('<missing bug number>');
     }
 
     $bug = blessed($bug) ? $bug : new Bugzilla::Bug($bug);
     return $link_text if $bug->{error};
 
-    my $title = get_text('get_status', { status => $bug->bug_status });
-    if ($bug->resolution) {
-        $title .= ' ' . get_text('get_resolution',
-                                 { resolution => $bug->resolution });
+    my $title = get_text('get_status', { status => $bug->bug_status_obj->name });
+    if ($bug->resolution)
+    {
+        $title .= ' ' . get_text('get_resolution', { resolution => $bug->resolution_obj->name });
     }
     my $cansee = Bugzilla->user->can_see_bug($bug);
-    if (Bugzilla->params->{unauth_bug_details} || $cansee) {
+    if (Bugzilla->params->{unauth_bug_details} || $cansee)
+    {
         $title .= ' - ' . $bug->product;
     }
-    if ($cansee) {
+    if ($cansee)
+    {
         $title .= '/' . $bug->component . ' - ' . $bug->short_desc;
-        if (Bugzilla->params->{usebugaliases} && $options->{use_alias} && $link_text =~ /^\d+$/ && $bug->alias) {
+        if (Bugzilla->params->{usebugaliases} && $options->{use_alias} && $link_text =~ /^\d+$/ && $bug->alias)
+        {
             $link_text = $bug->alias;
         }
     }
@@ -462,11 +467,12 @@ sub get_bug_link {
     $title = html_quote(clean_text($title));
 
     my $linkval = correct_urlbase()."show_bug.cgi?id=".$bug->id;
-    if (defined $options->{comment_num}) {
+    if (defined $options->{comment_num})
+    {
         $linkval .= "#c" . $options->{comment_num};
     }
     # CustIS Bug 53691 - Styles for bug states
-    return "<span class=\"bz_st_".$bug->bug_status."\"><a href=\"$linkval\" title=\"$title\">$link_text</a></span>";
+    return "<span class=\"bz_st_".$bug->bug_status_obj->name."\"><a href=\"$linkval\" title=\"$title\">$link_text</a></span>";
 }
 
 ###############################################################################
