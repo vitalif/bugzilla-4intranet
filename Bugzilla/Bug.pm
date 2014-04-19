@@ -801,7 +801,7 @@ sub _check_bug_status
     if ($self->{assigned_to} && $user->id != $self->{assigned_to})
     {
         # You can not assign bugs to other people
-        @valid_statuses = grep { $_->is_assigned } @valid_statuses;
+        @valid_statuses = grep { !$_->is_assigned } @valid_statuses;
     }
 
     # Check permissions for users filing new bugs
