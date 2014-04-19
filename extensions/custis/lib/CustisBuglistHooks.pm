@@ -58,7 +58,7 @@ sub buglist_static_columns
         $columns->{$t.'_enabled'} = {
             title => $cf->description.' is enabled',
             name => "$t.isactive",
-            joins => [ "LEFT JOIN $t ON $t.value=bugs.$t" ],
+            joins => [ "LEFT JOIN $t ON $t.id=bugs.$t" ],
         };
     }
 
