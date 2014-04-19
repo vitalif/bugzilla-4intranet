@@ -448,7 +448,7 @@ a boolean specifying whether NULL value is allowed for this field
 
 =cut
 
-sub nullable { return $_[0]->{nullable} }
+sub nullable { return $_[0]->type != FIELD_TYPE_SINGLE_SELECT || $_[0]->{nullable} }
 
 =over
 
