@@ -668,7 +668,7 @@ sub check_dependent_fields
             # Get the dependencies from DB
             if (!$self->{dependency_closure})
             {
-                $self->{dependency_closure} = ValidateDependencies($self, [ $self->id ], [ $self->id ]);
+                $self->{dependency_closure} = ValidateDependencies($self, $self->dependson, $self->blocked);
             }
             # Add the bug if it isn't already in the dependency tree
             if (!$self->{dependency_closure}->{blocked}->{$self->{$fn}} &&
@@ -2641,6 +2641,7 @@ sub assigned_to
     return $self->{assigned_to_obj};
 }
 
+# FIXME Try to load 'blocked' and 'dependson' using one query
 sub blocked
 {
     my ($self) = @_;
