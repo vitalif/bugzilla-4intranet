@@ -310,6 +310,10 @@
   but that is not a valid comment on this [% terms.bug %].
 [% END %]
 
+[% BLOCK error_comment_invalid_edit %]
+  You can only edit the description of a [% terms.bug %] or your own comments to it.
+[% END %]
+
 [% BLOCK error_comment_invalid_worktimeonly %]
   You tried to modify the type of comment id [% id FILTER html %],
   but that is either not a valid comment on this [% terms.bug %],

@@ -125,7 +125,7 @@
         <a name="[% comment.bug_when FILTER timestamp %]"></a>
         [% IF NOT wt_only %]
         <span class="bz_comment_number">
-          [% IF comment.author.id == user.id && collision != 1 %]
+          [% IF (comment.author.id == user.id || !comment.count) && collision != 1 %]
           [<a href="#" onclick="showEditComment([% comment.id %]); return false;">Edit Comment</a>]
           [% END %]
           <a name="c[% comment.count %]"

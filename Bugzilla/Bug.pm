@@ -2418,7 +2418,18 @@ sub edit_comment
 {
     my ($self, $comment_id, $comment) = @_;
 
-    my $db_comment = Bugzilla::Comment->new($comment_id);
+    my ($db_comment) = grep { $comment_id == $_->id } @{ $self->comments };
+    # Only allow to edit bug description or user's own comments,
+    # and only if it is not private or if the user is the insider
+    if (!$db_comment || $db_comment->is_private && !Bugzilla->user->is_insider)
+    {
+        ThrowUserError('comment_id_invalid', { id => $comment_id });
+    }
+    elsif ($db_comment->{count} && $db_comment->who != Bugzilla->user->id)
+    {
+        ThrowUserError('comment_invalid_edit', { id => $comment_id });
+    }
+
     my $old_comment = $db_comment->body;
     $comment = _check_comment_text($comment);
 
