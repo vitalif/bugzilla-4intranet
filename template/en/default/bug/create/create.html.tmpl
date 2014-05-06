@@ -318,7 +318,7 @@ var noTimeTracking = [% product.notimetracking ? 'true' : 'false' %];
   [% FOREACH field = Bugzilla.active_custom_fields %]
     [% NEXT UNLESS field.enter_bug %]
     [%# FIXME Default value?! %]
-    <tr>
+    <tr id="field_container_[% field.name | html %]">
       [%# Do not care about missing default value IDs or objects - JS will re-fill dependent fields %]
       [% INCLUDE bug/field.html.tmpl
         bug = default

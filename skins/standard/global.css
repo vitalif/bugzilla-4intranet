@@ -466,7 +466,7 @@ input.required, select.required, span.required_explanation {
 }
 
 form#Create th {
-    text-align: right;
+    text-align: left;
 }
 
 form#Create .comment {

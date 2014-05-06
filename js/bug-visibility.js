@@ -99,7 +99,7 @@ function handleControllerField_this(e)
 // Turn on/off fields and values controlled by 'controller' argument
 function handleControllerField(e, controller)
 {
-    var vis, label_container, field_container, id;
+    var vis, field_container, id;
     var opt = getSelectedIds(controller);
     // Show/hide fields
     for (var controlled_id in show_fields[controller.id]['fields'])
@@ -113,16 +113,13 @@ function handleControllerField(e, controller)
                 break;
             }
         }
-        label_container = document.getElementById('field_label_' + controlled_id);
         field_container = document.getElementById('field_container_' + controlled_id);
         if (vis)
         {
-            removeClass(label_container, 'bz_hidden_field');
             removeClass(field_container, 'bz_hidden_field');
         }
         else
         {
-            addClass(label_container, 'bz_hidden_field');
             addClass(field_container, 'bz_hidden_field');
         }
     }
