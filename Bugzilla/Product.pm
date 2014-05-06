@@ -207,9 +207,7 @@ sub update
     {
         # We cannot |use| these modules, due to dependency loops.
         require Bugzilla::Bug;
-        import Bugzilla::Bug qw(RemoveVotes CheckIfVotedConfirmed);
         require Bugzilla::User;
-        import Bugzilla::User qw(user_id_to_login);
 
         # 1. too many votes for a single user on a single bug.
         my @toomanyvotes_list = ();
@@ -226,8 +224,8 @@ sub update
                 my ($who, $id) = (@$vote);
                 # If some votes are removed, RemoveVotes() returns a list
                 # of messages to send to voters.
-                push @msgs, RemoveVotes($id, $who, 'votes_too_many_per_bug');
-                my $name = user_id_to_login($who);
+                push @msgs, Bugzilla::Bug::RemoveVotes($id, $who, 'votes_too_many_per_bug');
+                my $name = Bugzilla::User::user_id_to_login($who);
                 push @toomanyvotes_list, {id => $id, name => $name};
             }
         }
@@ -272,8 +270,8 @@ sub update
                 {
                     # RemoveVotes() returns a list of messages to send
                     # in case some voters had too many votes.
-                    push @msgs, RemoveVotes($bug_id, $who, 'votes_too_many_per_user');
-                    my $name = user_id_to_login($who);
+                    push @msgs, Bugzilla::Bug::RemoveVotes($bug_id, $who, 'votes_too_many_per_user');
+                    my $name = Bugzilla::User::user_id_to_login($who);
                     push @toomanytotalvotes_list, {id => $bug_id, name => $name};
                 }
             }
@@ -290,7 +288,7 @@ sub update
         my @updated_bugs = ();
         foreach my $bug_id (@$bug_list)
         {
-            my $confirmed = CheckIfVotedConfirmed($bug_id);
+            my $confirmed = Bugzilla::Bug::CheckIfVotedConfirmed($bug_id);
             push (@updated_bugs, $bug_id) if $confirmed;
         }
         $changes->{confirmed_bugs} = \@updated_bugs;
@@ -300,7 +298,6 @@ sub update
     if ($self->{check_group_controls})
     {
         require Bugzilla::Bug;
-        import Bugzilla::Bug qw(LogActivityEntry);
 
         my $old_settings = $old_self->group_controls;
         my $new_settings = $self->group_controls;
@@ -383,7 +380,7 @@ sub update
                     {
                         $sth->execute($bug_id, $gid);
                         # Add this change to the bug history.
-                        LogActivityEntry(
+                        Bugzilla::Bug::LogActivityEntry(
                             $bug_id, 'bug_group', '', $new_setting->{group}->name,
                             Bugzilla->user->id, $timestamp
                         );
@@ -413,7 +410,7 @@ sub update
                     # Add this change to the bug history.
                     foreach my $bug_id (@$bug_ids)
                     {
-                        LogActivityEntry(
+                        Bugzilla::Bug::LogActivityEntry(
                             $bug_id, 'bug_group', $old_setting->{group}->name, '',
                             Bugzilla->user->id, $timestamp
                         );

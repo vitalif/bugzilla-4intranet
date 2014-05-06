@@ -81,9 +81,6 @@ sub _init
         # validate it as numeric.
         detaint_natural($id) || ThrowCodeError('param_must_be_numeric', {function => $class . '::_init'});
 
-        # Too large integers make PostgreSQL crash. (FIXME O_OOOOOO)
-        return if $id > MAX_INT_32;
-
         $sql = "$id_field = ?";
         @values = ($id);
     }

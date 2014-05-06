@@ -37,8 +37,7 @@ use Bugzilla::User::Setting;
 use Bugzilla::Util qw(get_text);
 use Bugzilla::Version;
 
-sub SETTINGS {
-    return {
+use constant SETTINGS => {
     # 2005-03-03 travis@sedsystems.ca -- Bug 41972
     display_quips      => { options => ["on", "off"], default => "on" },
     # 2005-03-10 travis@sedsystems.ca -- Bug 199048
@@ -73,8 +72,6 @@ sub SETTINGS {
     remind_me_about_worktime_newbug => { options => ['on', 'off'], default => 'off' },
     # 2009-10-21 vfilippov@custis.ru -- Custis Bug 53697
     saved_searches_position  => { options => ['footer', 'header', 'both'], default => 'footer' },
-    # 2010-01-11 vfilippov@custis.ru -- Custis Bug 58771 -- FIXME move to hooks (uses external script)
-    email_weekly_worktime    => { options => ['on', 'off'], default => 'on' },
     # CustIS Bug 69766 - Default CSV charset for M1cr0$0ft Excel
     csv_charset              => { options => ['utf-8', 'windows-1251', 'koi8-r'], default => 'utf-8' },
     # CustIS Bug 72510 - Choose whether Silent affects flags
@@ -85,7 +82,6 @@ sub SETTINGS {
     comment_width            => { options => ['off', 'on'], default => 'off' },
     # CustIS Bug 138596 - Choose whether to hide long comments by default
     preview_long_comments    => { options => ['off', 'on'], default => 'off' },
-    }
 };
 
 # Initial system groups.
@@ -207,13 +203,17 @@ use constant DEFAULT_COMPONENT => {
         . ' a finished installation of Bugzilla.'
 };
 
-sub update_settings {
-    my %settings = %{SETTINGS()};
-    foreach my $setting (keys %settings) {
-        add_setting($setting,
-                    $settings{$setting}->{options},
-                    $settings{$setting}->{default},
-                    $settings{$setting}->{subclass});
+sub update_settings
+{
+    my $settings = SETTINGS();
+    foreach my $setting (keys %$settings)
+    {
+        add_setting(
+            $setting,
+            $settings->{$setting}->{options},
+            $settings->{$setting}->{default},
+            $settings->{$setting}->{subclass}
+        );
     }
 }
 

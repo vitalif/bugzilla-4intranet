@@ -50,18 +50,6 @@ sub buglist_static_columns
 
     $columns->{relevance}->{title} = 'Relevance';
 
-    # CustIS Bug 121622 - "WBS enabled" column
-    my $cf = Bugzilla->get_field('cf_wbs');
-    if ($cf && $cf->type == FIELD_TYPE_SINGLE_SELECT)
-    {
-        my $t = $cf->name;
-        $columns->{$t.'_enabled'} = {
-            title => $cf->description.' is enabled',
-            name => "$t.isactive",
-            joins => [ "LEFT JOIN $t ON $t.id=bugs.$t" ],
-        };
-    }
-
     return 1;
 }
 
