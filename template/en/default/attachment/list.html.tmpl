@@ -44,8 +44,7 @@ function toggle_display(link)
 
 function to_attachment_page(link)
 {
-    //var form = document.getElementById('form_bug_edit');
-    var form = document.createElement('form');//document.createElement('<form action="' + link.href + '" method="post"><textarea></textarea></form>');
+    var form = document.createElement('form');
     form.action = link.href;
     form.method = 'post';
     var textarea = document.createElement('textarea');
