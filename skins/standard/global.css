@@ -478,6 +478,18 @@ form#Create .comment {
     height: 8ex;
 }
 
+.choose_product td, .choose_product th {
+    padding: 0 8px 2px;
+    text-align: left;
+    border-bottom: 2px dotted #c0c0c0;
+    vertical-align: top;
+}
+
+.choose_product tr:last-child td, tr:last-child th,
+.choose_product tr.all td, tr.all th {
+    border-bottom: 0;
+}
+
 .image_button {
     background-repeat: no-repeat;
     background-position: center center;

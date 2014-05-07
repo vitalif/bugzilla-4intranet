@@ -23,41 +23,39 @@
   #%]
 
 [% IF target == "enter_bug.cgi" %]
-  [% title = "Select Classification" %]
-  [% subheader = "Please select the classification." %]
+  [% title = "Enter $terms.Bug" %]
+  [% subheader = "Choose a classification for the new $terms.bug" %]
+[% ELSIF target == "describecomponents.cgi" %]
+  [% title = "Browse" %]
+  [% subheader = "Select a classification to browse" %]
 [% END %]
 
 [% DEFAULT title = "Choose the classification" %]
 [% PROCESS global/header.html.tmpl %]
 
-<table>
-  <tr>
-    <th align="right">
-      <a href="[% target | url_quote %]?classification=__all&[% query_params | html %]">All</a>:
-    </th>
+<h3 style="margin-left: 20px">[% subheader || title | html %]:</h3>
 
-    <td valign="top">&nbsp;Show all products</td>
-  </tr>
-  <tr>
-    <th colspan="2">&nbsp;</th>
-  </tr>
+<table class="choose_product">
 
+  <tr class="all">
+    <th><a href="[% target | url_quote %]?classification=__all&[% query_params | html %]">All</a></th>
+    <td valign="top">Show all products</td>
+  </tr>
+  <tr class="all"><td colspan="2"><hr /></td></tr>
+
+  <tbody>
 [% FOREACH class = classifications %]
   <tr>
-    <th align="right">
-      <a href="[% target | url_quote %]?classification=[% class.name | url_quote -%]&[% query_params | html %]">[% class.name | html %]</a>:
-    </th>
-
-    [% IF class.description %]
-      <td valign="top">&nbsp;[% class.description | html_light %]</td>
-    [% END %]
+    <th><a href="[% target | url_quote %]?classification=[% class.name | url_quote -%]&[% query_params | html %]">[% class.name | html %]</a></th>
+    <td>[% class.description | html_light %]</td>
   </tr>
 [% END %]
+  </tbody>
 
 </table>
 
-[% IF user AND NOT cloned_bug_id AND user.in_group('importxls') %]
-<hr>
+[% IF target == "enter_bug.cgi" AND user AND NOT cloned_bug_id AND user.in_group('importxls') %]
+<hr />
 <p class="importxls_link"><span>See also:</span> <a href="importxls.cgi">Mass bug import from Excel files</a>.</p>
 [% END %]
 

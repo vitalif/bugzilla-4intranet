@@ -30,47 +30,44 @@
 
 [% IF target == "enter_bug.cgi" %]
   [% title = "Enter $terms.Bug" %]
-  [% h2 = BLOCK %]First, you must pick a product on which to enter [% terms.abug %]: [% END %]
+  [% subheader = BLOCK %]Choose a product for the new [% terms.bug %][% END %]
 [% ELSIF target == "describecomponents.cgi" %]
   [% title = "Browse" %]
-  [% h2 = "Select a product category to browse:" %]
+  [% subheader = "Select a product to browse" %]
 [% END %]
 
 [% DEFAULT title = "Choose a Product" %]
 [% PROCESS global/header.html.tmpl %]
 
-<h2>[% h2 FILTER html %]</h2>
+<h3>[% subheader || title | html %]:</h3>
 
-<table>
-
+<table class="choose_product">
 [% FOREACH c = classifications %]
+
+  [% IF !loop.first %]
+  <tr class="all"><th colspan="2">&nbsp;</th></tr>
+  [% END %]
+
+  <tbody>
   [% IF c.object %]
-    <tr>
-      <th colspan="2" align="left">[% c.object.name FILTER html %]:
-      [%+ c.object.description FILTER html_light %]</th>
-    </tr>
+    <tr><th colspan="2" style="border-bottom-color: gray; padding-bottom: 5px">[% c.object.name | html %]: [%+ c.object.description | html_light %]</th></tr>
+    <tr><th colspan="2" style="height: 2px; border-bottom-width: 0px"></th></tr>
   [% END %]
 
   [% FOREACH p = c.products %]
     <tr>
-      <th align="right" valign="top">
-        <a href="[% target %]?product=[% p.name | url_quote -%]&[% query_params | html %]">
-        [% p.name FILTER html FILTER no_break %]</a>:&nbsp;
-      </th>
-
-      <td valign="top">[% p.description FILTER html_light %]</td>
+      <th><a href="[% target %]?product=[% p.name | url_quote -%]&[% query_params | html %]">[% p.name | html %]</a></th>
+      <td>[% p.description | html_light %]</td>
     </tr>
   [% END %]
+  </tbody>
 
-  <tr>
-    <th colspan="2">&nbsp;</th>
-  </tr>
 [% END %]
 
 </table>
 
-[% IF user AND NOT Param('useclassification') AND NOT cloned_bug_id AND user.in_group('importxls') %]
-<hr>
+[% IF target == "enter_bug.cgi" AND user AND NOT Param('useclassification') AND NOT cloned_bug_id AND user.in_group('importxls') %]
+<hr />
 <p class="importxls_link"><span>See also:</span> <a href="importxls.cgi">Mass bug import from Excel files</a>.</p>
 [% END %]
 
