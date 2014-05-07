@@ -84,6 +84,7 @@ if ($single)
 }
 else
 {
+    my @errors;
     foreach my $id (@{$ARGS->{id}})
     {
         # Be kind enough and accept URLs of the form: id=1,2,3.
@@ -98,9 +99,17 @@ else
             {
                 $bug = { bug_id => $bug->bug_id, error => 'NotPermitted' };
             }
-            push @bugs, $bug;
+            if ($bug->{error})
+            {
+                push @errors, $bug;
+            }
+            else
+            {
+                push @bugs, $bug;
+            }
         }
     }
+    $vars->{error_bugs} = \@errors;
 }
 
 $vars->{bugs} = \@bugs;

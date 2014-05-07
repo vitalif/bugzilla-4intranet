@@ -2713,6 +2713,12 @@ sub classification_id
     return $self->product_obj && $self->product_obj->classification_id;
 }
 
+sub classification_obj
+{
+    my ($self) = @_;
+    return $self->product_obj && $self->product_obj->classification_obj;
+}
+
 sub classification
 {
     my ($self) = @_;

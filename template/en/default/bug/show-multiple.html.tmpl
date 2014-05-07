@@ -35,9 +35,13 @@
 [% PROCESS bug/time.html.tmpl %]
 [% IF bugs.first %]
   [% ids = [] %]
+  [% FOREACH bug = error_bugs %]
+    [% PROCESS bug_display error=1 %]
+    [% ids.push(bug.bug_id) %]
+  [% END %]
   [% FOREACH bug = bugs %]
-    [% PROCESS bug_display %]
-    [% ids.push(bug.bug_id) UNLESS bug.error %]
+    [% PROCESS bug_display error=0 %]
+    [% ids.push(bug.bug_id) %]
   [% END %]
   [% IF ids.size > 1 %]
     <div class="bz_query_buttons">
@@ -62,14 +66,14 @@
 [% BLOCK bug_display %]
   <h1>
     [% terms.Bug %] <a href="show_bug.cgi?id=[% bug.bug_id | html %]">[% bug.bug_id | html %]</a>
-    [% IF Param("usebugaliases") AND bug.alias AND NOT bug.error %]
+    [% IF Param("usebugaliases") AND bug.alias %]
       (<a href="show_bug.cgi?id=[% bug.alias | url_quote %]">
         [% bug.alias | html %]</a>)
     [% END %]
   </h1>
 
   <table class="bugfields">
-  [% IF bug.error %]
+  [% IF error %]
     <tr>
       <td class="error">
         [% IF bug.error == "InvalidBugId" %]
@@ -112,10 +116,10 @@
     <tr>
       <th>[% field_descs.product | html %]:</th>
       <td>
-        [% IF Param("useclassification") && bug.classification_id != 1 %]
-          [[% bug.classification_obj.name | html %]]&nbsp;
-        [% END %]
-        [% bug.product_obj.name | html %]
+        [% IF Param("useclassification") %]
+          [% bug.classification_obj.name | html %]/
+        [%- END -%]
+        [%- bug.product_obj.name | html %]
       </td>
 
       [% PROCESS rightcell %]
