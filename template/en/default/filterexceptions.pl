@@ -207,10 +207,6 @@
   'series.frequency * 2',
 ],
 
-'global/per-bug-queries.html.tmpl' => [
-  '" value=\"$bugids\"" IF bugids',
-],
-
 'global/select-menu.html.tmpl' => [
   'options',
   'size',

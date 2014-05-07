@@ -440,10 +440,6 @@ sub update_table_definitions
     $dbh->bz_add_column('attachments', 'isurl',
                         {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0});
 
-    # 2005-10-21 LpSolit@gmail.com - Bug 313020
-    $dbh->bz_add_column('namedqueries', 'query_type',
-                        {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0});
-
     # 2005-11-04 LpSolit@gmail.com - Bug 305927
     $dbh->bz_alter_column('groups', 'userregexp',
                           {TYPE => 'TINYTEXT', NOTNULL => 1, DEFAULT => "''"});
@@ -549,11 +545,9 @@ sub update_table_definitions
     # 2007-09-09 LpSolit@gmail.com - Bug 99215
     _fix_attachment_modification_date();
 
-    # This had the wrong definition in DB::Schema.
-    $dbh->bz_alter_column('namedqueries', 'query_type',
-                          {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0});
-
     $dbh->bz_drop_index('longdescs', 'longdescs_thetext_idx');
+
+    $dbh->bz_drop_column('namedqueries', 'query_type');
 
     # Change fulltext index type to new version (comments/comments_private)
     # We'll have to reindex anyway, so recreate the table

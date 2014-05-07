@@ -1734,10 +1734,12 @@ sub call_op
 sub is_noop
 {
     my ($f, $t, $v) = @_;
+    $f ||= 'noop';
+    $t ||= 'noop';
+    $v = '' if !defined $v;
     return
-        ($f || 'noop') eq 'noop' ||
-        ($t || 'noop') eq 'noop' ||
-        $v eq "" && $t ne "equals" && $t ne "notequals" && $t ne "exact";
+        $f eq 'noop' || $t eq 'noop' ||
+        $v eq '' && $t ne 'equals' && $t ne 'notequals' && $t ne 'exact';
 }
 
 # Construct a single search term from boolean charts
@@ -1749,8 +1751,8 @@ sub run_chart
     return undef if is_noop($f, $t, $v);
     local $self->{supptables} = [];
     local $self->{suppseen} = {};
-    local $self->{field} = $f || "noop";
-    local $self->{type} = $t || "noop";
+    local $self->{field} = $f || 'noop';
+    local $self->{type} = $t || 'noop';
     local $self->{value} = ref $v ? $v : trim(defined $v ? $v : "");
     local $self->{quoted};
     local $self->{fieldsql};
@@ -2892,7 +2894,7 @@ sub _in_search_results
 
 sub LookupNamedQuery
 {
-    my ($name, $sharer_id, $query_type, $throw_error) = @_;
+    my ($name, $sharer_id, $throw_error) = @_;
     $throw_error = THROW_ERROR unless defined $throw_error;
 
     Bugzilla->login(LOGIN_REQUIRED);
@@ -2901,7 +2903,7 @@ sub LookupNamedQuery
     my $query = Bugzilla::Search::Saved->$constructor(
         { user => $sharer_id, name => $name });
 
-    if (!$query || defined $query_type && $query->type != $query_type)
+    if (!$query)
     {
         if ($throw_error)
         {

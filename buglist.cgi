@@ -288,8 +288,6 @@ sub DiffDate
 #         empty, or we will throw a UserError.
 # link_in_footer (optional) - 1 if the Named Query should be
 # displayed in the user's footer, 0 otherwise.
-# query_type (optional) - 1 if the Named Query contains a list of
-# bug IDs only, 0 otherwise (default).
 #
 # All parameters are validated before passing them into the database.
 #
@@ -297,7 +295,7 @@ sub DiffDate
 # before, and we updated it. A boolean false value otherwise.
 sub InsertNamedQuery
 {
-    my ($query_name, $query, $link_in_footer, $query_type) = @_;
+    my ($query_name, $query, $link_in_footer) = @_;
     my $dbh = Bugzilla->dbh;
 
     $query_name = trim($query_name);
@@ -307,7 +305,6 @@ sub InsertNamedQuery
     {
         $query_obj->set_name($query_name);
         $query_obj->set_url($query);
-        $query_obj->set_query_type($query_type);
         $query_obj->update();
     }
     else
@@ -315,7 +312,6 @@ sub InsertNamedQuery
         Bugzilla::Search::Saved->create({
             name           => $query_name,
             query          => $query,
-            query_type     => $query_type,
             link_in_footer => $link_in_footer
         });
     }
@@ -550,84 +546,8 @@ elsif (($cmdtype eq 'doit') && defined $cgi->param('remtype'))
         my $user = Bugzilla->login(LOGIN_REQUIRED);
         my $query_name = $cgi->param('newqueryname');
         my $new_query = $cgi->param('newquery');
-        my $query_type = QUERY_LIST;
-        # If list_of_bugs is true, we are adding/removing individual bugs
-        # to a saved search. We get the existing list of bug IDs (if any)
-        # and add/remove the passed ones.
-        if ($cgi->param('list_of_bugs'))
-        {
-            # We add or remove bugs based on the action choosen.
-            my $action = trim($cgi->param('action') || '');
-            $action =~ /^(add|remove)$/ || ThrowCodeError('unknown_action', { action => $action });
-
-            # If we are removing bugs, then we must have an existing
-            # saved search selected.
-            if ($action eq 'remove')
-            {
-                $query_name && ThrowUserError('no_bugs_to_remove');
-            }
-
-            my %bug_ids;
-            my $is_new_name = 0;
-            if ($query_name)
-            {
-                # Make sure this name is not already in use by a normal saved search.
-                my ($query, $query_id) = Bugzilla::Search::LookupNamedQuery(
-                    $query_name, undef, QUERY_LIST, !THROW_ERROR
-                );
-                if ($query)
-                {
-                    ThrowUserError('query_name_exists', { name => $query_name, query_id => $query_id });
-                }
-                $is_new_name = 1;
-            }
-            # If no new tag name has been given, use the selected one.
-            $query_name ||= $cgi->param('oldqueryname');
-
-            # Don't throw an error if it's a new tag name: if the tag already
-            # exists, add/remove bugs to it, else create it. But if we are
-            # considering an existing tag, then it has to exist and we throw
-            # an error if it doesn't (hence the usage of !$is_new_name).
-            my ($old_query, $query_id) = Bugzilla::Search::LookupNamedQuery(
-                $query_name, undef, LIST_OF_BUGS, !$is_new_name
-            );
-
-            if ($old_query)
-            {
-                # We get the encoded query. We need to decode it.
-                my $old_cgi = new Bugzilla::CGI($old_query);
-                foreach my $bug_id (split /[\s,]+/, scalar $old_cgi->param('bug_id'))
-                {
-                    $bug_ids{$bug_id} = 1 if detaint_natural($bug_id);
-                }
-            }
-
-            my $keep_bug = ($action eq 'add') ? 1 : 0;
-            my $changes = 0;
-            foreach my $bug_id (split(/[\s,]+/, $cgi->param('bug_ids')))
-            {
-                next unless $bug_id;
-                my $bug = Bugzilla::Bug->check($bug_id);
-                $bug_ids{$bug->id} = $keep_bug;
-                $changes = 1;
-            }
-            ThrowUserError('no_bug_ids', { action => $action, tag => $query_name }) unless $changes;
-
-            # Only keep bug IDs we want to add/keep. Disregard deleted ones.
-            my @bug_ids = grep { $bug_ids{$_} == 1 } keys %bug_ids;
-            # If the list is now empty, we could as well delete it completely.
-            if (!scalar @bug_ids)
-            {
-                ThrowUserError('no_bugs_in_list', {
-                    name     => $query_name,
-                    query_id => $query_id,
-                });
-            }
-            $new_query = "bug_id_type=anyexact&bug_id=" . join(',', sort {$a <=> $b} @bug_ids);
-            $query_type = LIST_OF_BUGS;
-        }
         my $tofooter = 1;
-        my $existed_before = InsertNamedQuery($query_name, $new_query, $tofooter, $query_type);
+        my $existed_before = InsertNamedQuery($query_name, $new_query, $tofooter);
         if ($existed_before)
         {
             $vars->{message} = "buglist_updated_named_query";

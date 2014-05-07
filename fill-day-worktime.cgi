@@ -115,7 +115,7 @@ if (@idlist || @lines)
     exit;
 }
 
-my ($query, $query_id) = Bugzilla::Search::LookupNamedQuery('MyWorktimeBugs', undef, undef, 0);
+my ($query, $query_id) = Bugzilla::Search::LookupNamedQuery('MyWorktimeBugs', undef, 0);
 
 my $sqlquery = "";
 if ($query_id)
