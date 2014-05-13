@@ -1216,6 +1216,7 @@ sub _sync_fulltext
     if ($index)
     {
         $sph = Bugzilla->dbh_sphinx;
+        return unless $sph; # Do not die if Sphinx is restarting...
         $id_field = 'id';
         $_ = $sph->quote($_) for @$row;
     }

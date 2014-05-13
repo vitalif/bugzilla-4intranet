@@ -120,7 +120,7 @@ sub connect_sphinx
         raise_error => 0,
     });
 
-    $sphinx->do("SET NAMES utf8");
+    $sphinx->do("SET NAMES utf8") if $sphinx;
 
     return $sphinx;
 }
