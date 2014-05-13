@@ -198,7 +198,7 @@ if (defined $cgi->param('version') && length $cgi->param('version'))
 
 # Add an attachment if requested.
 my $is_multiple = 0;
-for (keys $cgi->Vars)
+for (keys %{$cgi->Vars})
 {
     if (/^attachmulti_(.*)_([^_]*)$/so)
     {

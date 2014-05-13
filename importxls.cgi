@@ -231,7 +231,7 @@ else
         $bug->{$_} ||= $bug_tpl->{$_} for keys %$bug_tpl;
 
         # Set default value if value is not set
-        foreach my $field (keys $custom_fields)
+        foreach my $field (keys %$custom_fields)
         {
             next if !$field || $bug->{$field};
             my $control_field = $custom_fields->{$field}->value_field;

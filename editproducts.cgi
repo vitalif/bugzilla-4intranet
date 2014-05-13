@@ -264,14 +264,14 @@ if ($action eq 'edit' || (!$action && $product_name)) {
     }
     $vars->{'product'} = $product;
     $vars->{'token'} = issue_session_token('edit_product');
-    my $controlled_fields = {map { $_->id => ($_->has_visibility_value($product) ? $_->description : undef) } values $product->field->controls_visibility_of()};
-    for my $i (keys $controlled_fields) {
+    my $controlled_fields = {map { $_->id => ($_->has_visibility_value($product) ? $_->description : undef) } values %{$product->field->controls_visibility_of()}};
+    for my $i (keys %$controlled_fields) {
         if (!defined($controlled_fields->{$i})) {
             delete $controlled_fields->{$i};
         }
     }
-    my $length = values $controlled_fields;
-    $vars->{'controlled_field_names'} = $length > 0 ? join(', ',  values $controlled_fields) : "No fields";
+    my $length = values %$controlled_fields;
+    $vars->{'controlled_field_names'} = $length > 0 ? join(', ',  values %$controlled_fields) : "No fields";
 
     $vars->{'groups'} = [map {$_->name} Bugzilla::Group->get_all];
 

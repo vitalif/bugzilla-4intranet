@@ -88,7 +88,7 @@ sub get_table
         my ($old, $new) = ($self->{context}->{removed}->[$i], $self->{context}->{added}->[$i]);
         my ($oval, $nval) = ($old->{value}, $new->{value});
 
-        for my $key (keys VIEW_TAGS)
+        for my $key (keys %{ VIEW_TAGS() })
         {
             my $val = VIEW_TAGS->{$key};
             $oval =~ s/$key/$val/g;
@@ -134,7 +134,7 @@ sub get_part
         my $line = $self->{context}->{$removed}->[$i];
         my $lval = $line->{value};
 
-        for my $key (keys VIEW_PLAIN_TAGS)
+        for my $key (keys %{ VIEW_PLAIN_TAGS() })
         {
             my $val = VIEW_PLAIN_TAGS->{$key};
             $lval =~ s/$key/$val/g;
@@ -244,41 +244,41 @@ sub make_context
             my ($rl, $al) = (length($old->[1]), length($new->[1]));
             if ($rl < $al)
             {
-                push $removed, { value => $old->[1], type => TYPE_UNI };
-                push $removed, { value => '', type => TYPE_EMP };
-                push $added,   { value => substr($new->[1], 0, $rl), type => TYPE_UNI };
-                push $added,   { value => substr($new->[1], $rl), type => TYPE_UNI };
+                push @$removed, { value => $old->[1], type => TYPE_UNI };
+                push @$removed, { value => '', type => TYPE_EMP };
+                push @$added,   { value => substr($new->[1], 0, $rl), type => TYPE_UNI };
+                push @$added,   { value => substr($new->[1], $rl), type => TYPE_UNI };
             }
             elsif ($rl > $al)
             {
-                push $added,   { value => $new->[1], type => TYPE_UNI };
-                push $added,   { value => '', type => TYPE_EMP };
-                push $removed, { value => substr($old->[1], 0, $al), type => TYPE_UNI };
-                push $removed, { value => substr($old->[1], $al), type => TYPE_UNI };
+                push @$added,   { value => $new->[1], type => TYPE_UNI };
+                push @$added,   { value => '', type => TYPE_EMP };
+                push @$removed, { value => substr($old->[1], 0, $al), type => TYPE_UNI };
+                push @$removed, { value => substr($old->[1], $al), type => TYPE_UNI };
             }
             else
             {
-                push $removed, { value => $old->[1], type => TYPE_UNI };
-                push $added,   { value => $new->[1], type => TYPE_UNI };
+                push @$removed, { value => $old->[1], type => TYPE_UNI };
+                push @$added,   { value => $new->[1], type => TYPE_UNI };
             }
         }
         # if removed
         elsif ($old->[0] eq TYPE_REM && $new->[0] eq TYPE_UNI)
         {
-            push $removed, { value => $old->[1], type => TYPE_REM };
-            push $added,   { value => '', type => TYPE_EMP };
+            push @$removed, { value => $old->[1], type => TYPE_REM };
+            push @$added,   { value => '', type => TYPE_EMP };
         }
         # if added
         elsif ($old->[0] eq TYPE_UNI && $new->[0] eq TYPE_ADD)
         {
-            push $removed, { value => '', type => TYPE_EMP };
-            push $added,   { value => $new->[1], type => TYPE_ADD };
+            push @$removed, { value => '', type => TYPE_EMP };
+            push @$added,   { value => $new->[1], type => TYPE_ADD };
         }
         # if changed
         elsif ($old->[0] eq TYPE_REM && $new->[0] eq TYPE_ADD)
         {
-            push $removed, { value => $old->[1], type => TYPE_REM };
-            push $added,   { value => $new->[1], type => TYPE_ADD };
+            push @$removed, { value => $old->[1], type => TYPE_REM };
+            push @$added,   { value => $new->[1], type => TYPE_ADD };
         }
         else
         {
@@ -329,8 +329,8 @@ sub apply_min_restriction
             $removed->[$i]->{type} = TYPE_REM;
             $added->[$i]->{value} .= $added->[$i+1]->{value};
             $added->[$i]->{type} = TYPE_ADD;
-            splice $removed, $i+1, 1;
-            splice $added, $i+1, 1;
+            splice @$removed, $i+1, 1;
+            splice @$added, $i+1, 1;
             $self->{context}->{length} = scalar @$removed;
             $i--;
         }
@@ -383,8 +383,8 @@ sub apply_length_restriction
             elsif ($l > 2*MAX_LENGTH && ($i > 0) && ($i < $self->{context}->{length} - 1))
             {
                 # cut it to (MAX_LENGTH, "skip", MAX_LENGTH)
-                splice $array, $i+1, 0, { type => TYPE_SKP, value => SKIP_STRING };
-                splice $array, $i+2, 0, { type => TYPE_UNI, value => SKIP_STRING . substr($line->{value}, -(MAX_LENGTH + SKIP_LENGTH)) };
+                splice @$array, $i+1, 0, { type => TYPE_SKP, value => SKIP_STRING };
+                splice @$array, $i+2, 0, { type => TYPE_UNI, value => SKIP_STRING . substr($line->{value}, -(MAX_LENGTH + SKIP_LENGTH)) };
                 $array->[$i]->{value} = substr($line->{value}, 0, MAX_LENGTH - SKIP_LENGTH) . SKIP_STRING;
             }
         }
@@ -408,7 +408,7 @@ sub apply_line_restriction
             {
                 # cut it to MAX_LINES lines and insert before "skip" line
                 my $offset = $self->rindex_i($line->{value}, "\n", MAX_LINES) + 1;
-                splice $array, $i, 0, { type => TYPE_SKP, value => SKIP_STRING };
+                splice @$array, $i, 0, { type => TYPE_SKP, value => SKIP_STRING };
                 $array->[$i+1]->{value} = substr($line->{value}, $offset);
             }
             # lines count of last item is greater than MAX_LINES
@@ -417,7 +417,7 @@ sub apply_line_restriction
                 # cut it to MAX_LINES lines and insert after "skip" line
                 my $offset = $self->index_i($line->{value}, "\n", MAX_LINES) + 1;
                 $array->[$i]->{value} = substr($line->{value}, 0, $offset);
-                push $array, { type => TYPE_SKP, value => SKIP_STRING };
+                push @$array, { type => TYPE_SKP, value => SKIP_STRING };
             }
             # other cases
             else
@@ -456,8 +456,8 @@ sub apply_line_restriction_i
         # cut it to (MAX_LINES, "skip", MAX_LINES)
         my $begin = substr($line->{value}, 0, $self->index_i($line->{value}, "\n", MAX_LINES) + 1);
         my $end   = substr($line->{value}, $self->rindex_i($line->{value}, "\n", MAX_LINES) + 1);
-        splice $array, $i+1, 0, { type => TYPE_SKP, value => SKIP_STRING };
-        splice $array, $i+2, 0, { type => TYPE_UNI, value => $end };
+        splice @$array, $i+1, 0, { type => TYPE_SKP, value => SKIP_STRING };
+        splice @$array, $i+2, 0, { type => TYPE_UNI, value => $end };
         $array->[$i]->{value} = $begin;
     }
 }

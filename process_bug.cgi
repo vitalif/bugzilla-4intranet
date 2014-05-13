@@ -215,7 +215,7 @@ if (defined $cgi->param('delta_ts'))
 
 
 my %edit_comment;
-foreach my $arg_key (keys $ARGS) {
+foreach my $arg_key (keys %$ARGS) {
     if ($arg_key =~ /edit_comment/){
         my $comment_id = $arg_key;
         $comment_id =~ s/^edit_comment\[(.*)\]$/$1/;
