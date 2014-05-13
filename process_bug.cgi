@@ -449,7 +449,7 @@ if ($ARGS->{id})
 
     # You can only mark/unmark comments as private on single bugs. If
     # you're not in the insider group, this code won't do anything.
-    foreach my $key (keys %$ARGS)
+    foreach (keys %$ARGS)
     {
         if (/^defined_isprivate_(\d+)$/)
         {

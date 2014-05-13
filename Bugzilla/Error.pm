@@ -120,6 +120,7 @@ sub log
     if (my $logfile = Bugzilla->params->{error_log})
     {
         $logfile = bz_locations()->{datadir} . '/' . $logfile if substr($logfile, 0, 1) ne '/';
+        trick_taint($logfile);
         my $fd;
         # If we can write into error log, log error details there
         if (open $fd, ">>", $logfile)

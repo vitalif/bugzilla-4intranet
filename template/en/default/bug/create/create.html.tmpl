@@ -198,6 +198,9 @@ var noTimeTracking = [% product.notimetracking ? 'true' : 'false' %];
       override_legal_values = bug_status
       custom_label = "Initial State"
     %]
+    [% IF bug_status.size == 1 %]
+      <input type="hidden" name="bug_status" value="[% bug_status.0.name | html %]" />
+    [% END %]
   </tr>
 
   <tr id="resolution_container" style="display:none">

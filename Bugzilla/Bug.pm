@@ -1904,7 +1904,7 @@ sub _set_qa_contact
         # user doesn't have editbugs.
         if (!Bugzilla->user->in_group('editbugs', $self->product_id) || !$qa_contact)
         {
-            $id = $self->component_obj->default_qa_contact->id;
+            $id = $self->component_obj->default_qa_contact && $self->component_obj->default_qa_contact->id;
             $self->{qa_contact_obj} = $self->component_obj->default_qa_contact;
         }
     }

@@ -591,8 +591,8 @@ else
     $default{dependson}      = $ARGS->{dependson};
     $default{blocked}        = $ARGS->{blocked};
     $default{deadline}       = $ARGS->{deadline};
-    $default{estimated_time} = 0+$ARGS->{estimated_time} || "0.0";
-    $default{work_time}      = 0+$ARGS->{work_time} || "0.0";
+    $default{estimated_time} = 0+($ARGS->{estimated_time} || 0) || "0.0";
+    $default{work_time}      = 0+($ARGS->{work_time} || 0) || "0.0";
 
     $vars->{cc}             = $ARGS->{cc};
 
@@ -672,7 +672,7 @@ $vars->{bug_status} = $initial_statuses;
 # to the first confirmed bug status on the list, if available.
 
 $default{bug_status} = $ARGS->{bug_status};
-if (!grep { $_->name eq $default{bug_status} } @$initial_statuses)
+if (!$default{bug_status} || !grep { $_->name eq $default{bug_status} } @$initial_statuses)
 {
     $default{bug_status} = $initial_statuses->[0]->name;
 }
