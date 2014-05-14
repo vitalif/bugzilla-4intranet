@@ -471,7 +471,7 @@ path_parent_regexp  bugs|bugzilla
 
 # HTTP 403 Access Denied will be shown for URLs matching deny_regexp:
 # You are URGED also to disable these URLs on your frontend.
-deny_regexp         ^(localconfig|data/|.*\.(pm|pl|sh)($|\?)|.*\.(ht|svn|hg|bzr|git).*)
+deny_regexp         ^(localconfig|data/(?!webdot/)|.*\.(pm|pl|sh)($|\?)|.*\.(ht|svn|hg|bzr|git).*)
 
 # 'http_env' specifies which environment variables to set from
 # a corresponding 'X-<name>' HTTP header (value is comma-separated).
