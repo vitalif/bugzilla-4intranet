@@ -143,6 +143,16 @@ sub REQUIRED_MODULES {
         module  => 'Archive::Zip',
         version => '1.30'
     },
+    {
+        package => 'Text-TabularDisplay',
+        module  => 'Text::TabularDisplay',
+        feature => 'Table formatting inside bug comments',
+    },
+    {
+        package => 'LWP-MediaTypes',
+        module  => 'LWP::MediaTypes',
+        feature => 'Guessing attachment types',
+    },
     );
 
     my $extra_modules = _get_extension_requirements('REQUIRED_MODULES');
@@ -303,13 +313,34 @@ sub OPTIONAL_MODULES {
         version => '0.05',
         feature => ['rand_security'],
     },
-
     # Snowball stemmers in full-text search
     {
         package => 'Lingua-Stem-Snowball',
         module  => 'Lingua::Stem::Snowball',
         version => 0,
         feature => ['fulltext_stem'],
+    },
+    {
+        package => 'Spreadsheet-ParseExcel',
+        module  => 'Spreadsheet::ParseExcel',
+        version => '0.54',
+        feature => 'Import of binary Excel files (*.xls)',
+    },
+    {
+        package => 'Spreadsheet-XLSX',
+        module  => 'Spreadsheet::XLSX',
+        version => '0.1',
+        feature => 'Import of OOXML Excel files (*.xlsx)',
+    },
+    {
+        package => 'Net-IP-Match-XS',
+        module  => 'Net::IP::Match::XS',
+        feature => 'FOF-Sudo system-to-system authentication',
+    },
+    {
+        package => 'HTML-Strip',
+        module  => 'HTML::Strip',
+        feature => 'Handling inbound HTML email',
     },
     );
 

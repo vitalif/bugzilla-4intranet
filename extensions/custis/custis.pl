@@ -11,43 +11,8 @@ use Bugzilla;
 use Bugzilla::Hook;
 use Bugzilla::Extension;
 
-my $REQUIRED_MODULES = [
-    {
-        package => 'Text-TabularDisplay',
-        module  => 'Text::TabularDisplay',
-        feature => 'Table formatting inside bug comments',
-    },
-];
-my $OPTIONAL_MODULES =
-[
-    {
-        package => 'Spreadsheet-ParseExcel',
-        module  => 'Spreadsheet::ParseExcel',
-        version => '0.54',
-        feature => 'Import of binary Excel files (*.xls)',
-    },
-    {
-        package => 'Spreadsheet-XLSX',
-        module  => 'Spreadsheet::XLSX',
-        version => '0.1',
-        feature => 'Import of OOXML Excel files (*.xlsx)',
-    },
-    {
-        package => 'Net-IP-Match-XS',
-        module  => 'Net::IP::Match::XS',
-        feature => 'FOF-Sudo system-to-system authorization',
-    },
-    {
-        package => 'LWP-MediaTypes',
-        module  => 'LWP::MediaTypes',
-        feature => 'Guessing attachment types',
-    },
-    {
-        package => 'HTML-Strip',
-        module  => 'HTML::Strip',
-        feature => 'Handling inbound HTML email',
-    },
-];
+my $REQUIRED_MODULES = [];
+my $OPTIONAL_MODULES = [];
 
 required_modules('custis', $REQUIRED_MODULES);
 optional_modules('custis', $OPTIONAL_MODULES);
