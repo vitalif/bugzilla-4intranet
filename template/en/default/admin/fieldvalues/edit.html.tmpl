@@ -52,8 +52,11 @@
     </tr>
     [% IF field.name == "bug_status" %]
       <tr>
-        <th align="left"><label for="is_open">Status Type:</label></th>
-        <td>[% IF value.is_open %]Open[% ELSE %]Closed[% END %]</td>
+        <th align="left"><label for="is_open">Is open:</label></th>
+        <td>
+          <input id="is_open" name="is_open" type="checkbox" value="1"
+            [%+ 'checked="checked"' IF value.is_open %] />
+        </td>
       </tr>
       <tr>
         <th align="left"><label for="is_assigned">Is it an assigned state?</label></th>
