@@ -18,17 +18,13 @@ my $l = {
     rows => int($args->{t_rows} || 0) > 0 ? int($args->{t_rows} || 0) : undef,
     fs   => 12,
     pw   => 20,
-    ph   => 25.2,
+    ph   => 27.7,
     cw   => undef,
     ch   => undef,
-    cmt  => 0.6,
-    cmr  => 0.2,
-    cmb  => 0.2,
-    cml  => 0.2,
-    pmt  => 0.5,
-    pmr  => 0.5,
-    pmb  => 0.5,
-    pml  => 0.5,
+    cmt  => 0.3,
+    cmr  => 0.1,
+    cmb  => 0.1,
+    cml  => 0.1,
 };
 
 $l->{cardtext} = <<'EOF';
@@ -54,7 +50,7 @@ $l->{cardtext} = <<'EOF';
 EOF
 
 # Загрузка параметров из запроса
-for (qw(pw ph cw ch cmt cmr cmb cml fs pmt pmr pmb pml))
+for (qw(pw ph cw ch cmt cmr cmb cml fs))
 {
     $l->{$_} = $1 if defined $args->{"t_$_"} && $args->{"t_$_"} =~ /^([\d\.]+)$/ && $1 >= 0;
 }
@@ -71,12 +67,10 @@ if ($args->{load_settings})
 }
 
 # Вычисление размера карточек по количеству, либо количества по размерам
-my ($pw, $ph) = ($l->{pw} - $l->{pml} - $l->{pmr}, $l->{ph} - $l->{pmt} - $l->{pmb});
-
 if ($l->{cols} && $l->{rows})
 {
-    $l->{ncw} = sprintf("%.2f", ($pw / $l->{cols}) - $l->{cml} - $l->{cmr});
-    $l->{nch} = sprintf("%.2f", ($ph / $l->{rows}) - $l->{cmt} - $l->{cmb});
+    $l->{ncw} = sprintf("%.2f", ($l->{pw} / $l->{cols}) - $l->{cml} - $l->{cmr});
+    $l->{nch} = sprintf("%.2f", ($l->{ph} / $l->{rows}) - $l->{cmt} - $l->{cmb});
     $l->{cw} = $l->{ncw} if !$l->{cw} || $l->{ncw} < $l->{cw};
     $l->{ch} = $l->{nch} if !$l->{ch} || $l->{nch} < $l->{ch};
     delete $l->{ncw};
@@ -89,8 +83,8 @@ else
         $l->{cw} = 6;
         $l->{ch} = 5;
     }
-    $l->{cols} = int($pw / ($l->{cw} + $l->{cml} + $l->{cmr}));
-    $l->{rows} = int($ph / ($l->{ch} + $l->{cmt} + $l->{cmb}));
+    $l->{cols} = int($l->{pw} / ($l->{cw} + $l->{cml} + $l->{cmr}));
+    $l->{rows} = int($l->{ph} / ($l->{ch} + $l->{cmt} + $l->{cmb}));
 }
 
 # Загрузка багов
@@ -180,7 +174,6 @@ $vars->{settings_text} =
 cardsize=$l->{cw}x$l->{ch}
 cards=$l->{cols}x$l->{rows}
 fontsize=$l->{fs}
-papermargin=$l->{pmt} $l->{pmr} $l->{pmb} $l->{pml}
 cardmargin=$l->{cmt} $l->{cmr} $l->{cmb} $l->{cml}
 template=<<EOF
 $l->{cardtext}
@@ -200,7 +193,6 @@ sub load_settings
         cardsize    => [ qw(cw ch) ],
         cards       => [ qw(cols rows) ],
         fontsize    => [ qw(fs) ],
-        papermargin => [ qw(pmt pmr pmb pml) ],
         cardmargin  => [ qw(cmt cmr cmb cml) ],
     );
     for (my $i = 0; $i < @text; $i++)
