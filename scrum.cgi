@@ -39,7 +39,7 @@ $l->{cardtext} = <<'EOF';
   <td class="dot">{substr(target_milestone, 0, 5)}</td>
  </tr>
  <tr>
-  <td colspan="3" class="desc" style="font-size: 120%">{short_desc}</td>
+  <td colspan="3" class="desc"><div>{short_desc}</div></td>
  </tr>
  <tr>
   <td colspan="3" style="font-size: 130%">
