@@ -21,10 +21,10 @@ my $l = {
     ph   => 25.2,
     cw   => undef,
     ch   => undef,
-    cmt  => 0.5,
-    cmr  => 0.1,
-    cmb  => 0.1,
-    cml  => 0.1,
+    cmt  => 0.6,
+    cmr  => 0.2,
+    cmb  => 0.2,
+    cml  => 0.2,
     pmt  => 0.5,
     pmr  => 0.5,
     pmb  => 0.5,
@@ -38,9 +38,11 @@ $l->{cardtext} = <<'EOF';
   <td class="sevpri">{substr(bug_severity, 0, 3)}&nbsp;{priority}</td>
   <td class="dot">{substr(target_milestone, 0, 5)}</td>
  </tr>
+ <tr><td colspan="3" class="spc"></td></tr>
  <tr>
   <td colspan="3" class="desc"><div>{short_desc}</div></td>
  </tr>
+ <tr><td colspan="3" class="spc"></td></tr>
  <tr>
   <td colspan="3" style="font-size: 130%">
    <input type="text" class="est"
