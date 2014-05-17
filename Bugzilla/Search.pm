@@ -1776,6 +1776,12 @@ sub run_chart
     if ($self->{type} eq "equals" || $self->{type} eq "exact" || $self->{type} eq "anyexact")
     {
         s/\%user\%/$self->{user}->login/isge for ref $self->{value} ? @{$self->{value}} : $self->{value};
+        # --- was previously used as "NULL" for select fields
+        if (join(', ', ref $self->{value} ? @{$self->{value}} : $self->{value}) eq '---' &&
+            Bugzilla->get_field($self->{field}) && Bugzilla->get_field($self->{field})->is_select)
+        {
+            $self->{value} = '';
+        }
     }
     # This is either from the internal chart (in which case we
     # already know about it), or it was in %chartfields, so it is
@@ -2733,17 +2739,22 @@ sub _anyexact
     my $dbh = Bugzilla->dbh;
 
     my @list;
-    my @v = ref $self->{value} ? @{$self->{value}} : split /[\s,]+/, $self->{value};
+    my @v = ref $self->{value} ? @{$self->{value}} : split /[\s,]+/, $self->{value}, -1;
+    @v = ('') if $self->{value} eq '';
+    my $null = 0;
     foreach my $w (@v)
     {
-        $w = '' if $w eq "---" && $self->{field} =~ /resolution/;
         $self->{quoted} = $dbh->quote($w);
+        $null = 1 if $w eq '';
         trick_taint($self->{quoted});
         push(@list, $self->{quoted});
     }
-    if (@list)
+    if (@list || $null)
     {
-        $self->{term} = $self->{fieldsql} . ' IN (' . join(',', @list) . ')';
+        $self->{term} = '('.join(' OR ',
+            (@list ? $self->{fieldsql} . ' IN (' . join(',', @list) . ')' : ()),
+            ($null ? $self->{fieldsql} . ' IS NULL' : ()),
+        ).')';
     }
 }
 
