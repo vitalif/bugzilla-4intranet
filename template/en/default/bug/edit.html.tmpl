@@ -245,7 +245,7 @@ document.changeform = document.[% cfname %];
     [%#  PRODUCT  #%]
     [%#############%]
 
-    <tr>
+    <tr id="field_row_product">
        [% INCLUDE bug/field.html.tmpl
             bug = bug, field = select_fields.product,
             desc_url = 'describecomponents.cgi', value = bug.product_id
@@ -254,13 +254,13 @@ document.changeform = document.[% cfname %];
     [%###############%]
     [%#  Component  #%]
     [%###############%]
-    <tr>
+    <tr id="field_row_component">
       [% INCLUDE bug/field.html.tmpl
            bug = bug, field = select_fields.component,
            value = bug.component_id,
            editable = bug.check_can_change_field('component', 0, 1) %]
     </tr>
-    <tr>
+    <tr id="field_row_version">
       [% INCLUDE bug/field.html.tmpl
            bug = bug, field = select_fields.version,
            value = bug.version,
@@ -276,21 +276,25 @@ document.changeform = document.[% cfname %];
         <label for="rep_platform" accesskey="h"><b>Platform</b></label>:
       </td>
       <td class="field_value">
-       [% IF Param('useplatform') %]
-       [% INCLUDE bug/field.html.tmpl
+        [% IF Param('useplatform') %]
+        <span id="field_row_rep_platform">
+          [% INCLUDE bug/field.html.tmpl
             bug = bug, field = select_fields.rep_platform,
             no_tds = 1, value = bug.rep_platform
             editable = bug.check_can_change_field('rep_platform', 0, 1) %]
-       [% END %]
-       [% IF Param('useopsys') %]
-       [%+ INCLUDE bug/field.html.tmpl
+         </span>
+        [% END %]
+        [% IF Param('useopsys') %]
+        <span id="field_row_op_sys">
+          [%+ INCLUDE bug/field.html.tmpl
             bug = bug, field = select_fields.op_sys,
             no_tds = 1, value = bug.op_sys
             editable = bug.check_can_change_field('op_sys', 0, 1) %]
-       [% END %]
-       <script type="text/javascript">
-         assignToDefaultOnChange(['product', 'component']);
-       </script>
+        </span>
+        [% END %]
+        <script type="text/javascript">
+          assignToDefaultOnChange(['product', 'component']);
+        </script>
       </td>
     </tr>
     [% END %]
@@ -339,14 +343,18 @@ document.changeform = document.[% cfname %];
           <b><a href="page.cgi?id=fields.html#importance"><u>I</u>mportance</a></b></label>:
       </td>
       <td>
-       [% INCLUDE bug/field.html.tmpl
+        <span id="field_row_priority">
+          [% INCLUDE bug/field.html.tmpl
             bug = bug, field = select_fields.priority,
             no_tds = 1, value = bug.priority
             editable = bug.check_can_change_field('priority', 0, 1) %]
-       [%+ INCLUDE bug/field.html.tmpl
+        </span>
+        <span id="field_row_bug_severity">
+          [%+ INCLUDE bug/field.html.tmpl
             bug = bug, field = select_fields.bug_severity,
             no_tds = 1, value = bug.bug_severity
             editable = bug.check_can_change_field('bug_severity', 0, 1) %]
+        </span>
         [% IF bug.use_votes %]
           <span id="votes_container">
           [% IF bug.votes %]
@@ -359,16 +367,15 @@ document.changeform = document.[% cfname %];
                 votes
               [% END %]</a>
           [% END %]
-          (<a href="votes.cgi?action=show_user&amp;bug_id=
-                  [% bug.bug_id %]#vote_[% bug.bug_id %]">vote</a>)
+          (<a href="votes.cgi?action=show_user&amp;bug_id=[% bug.bug_id %]#vote_[% bug.bug_id %]">vote</a>)
           </span>
         [% END %]
       </td>
     </tr>
 
     [% IF Param("usetargetmilestone") %]
-      <tr>
-       [% INCLUDE bug/field.html.tmpl
+      <tr id="field_row_target_milestone">
+        [% INCLUDE bug/field.html.tmpl
             bug = bug, field = select_fields.target_milestone,
             value = bug.target_milestone,
             editable = bug.check_can_change_field('target_milestone', 0, 1) %]
@@ -779,7 +786,7 @@ document.changeform = document.[% cfname %];
 [%############################################################################%]
 [% BLOCK section_see_also %]
   [% IF Param('use_see_also') || bug.see_also.size %]
-    <tr>
+    <tr id="field_row_see_also">
       [% INCLUDE bug/field.html.tmpl
            field    = bug_fields.see_also
            value    = bug.see_also
@@ -822,7 +829,7 @@ document.changeform = document.[% cfname %];
 
 [% BLOCK section_customfields %]
   [% FOREACH field = Bugzilla.active_custom_fields %]
-    <tr>
+    <tr id="field_row_[% field.name | html %]">
       [% INCLUDE bug/field.html.tmpl
         value = bug.${field.name}
         editable = bug.check_can_change_field(field.name, 0, 1)

@@ -61,7 +61,7 @@
     [%- '</a>' IF desc_url || !field.custom %]
     [% '</label>' IF editable %]
   </th>
-  <td class="field_value"
+  <td class="field_value" id="field_container_[% field.name | html %]"
     [% " colspan=\"$value_span\"" | none IF value_span %]>
 [% END %]
 [% IF editable %]

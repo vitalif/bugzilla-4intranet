@@ -113,14 +113,10 @@ function handleControllerField(e, controller)
                 break;
             }
         }
-        field_container = document.getElementById('field_container_' + controlled_id);
-        if (vis)
+        for (var i in { row: 1, container: 1, label: 1 })
         {
-            removeClass(field_container, 'bz_hidden_field');
-        }
-        else
-        {
-            addClass(field_container, 'bz_hidden_field');
+            field_container = document.getElementById('field_' + i + '_' + controlled_id);
+            (vis ? removeClass : addClass)(field_container, 'bz_hidden_field');
         }
     }
     // Change select options
