@@ -1761,7 +1761,7 @@ sub _set_groups
 
     my $user = Bugzilla->user;
 
-    my %add_groups;
+    my %new_groups;
     my $controls = $self->product_obj->group_controls;
 
     foreach my $id (@$group_ids)
@@ -1776,9 +1776,20 @@ sub _set_groups
         my $membercontrol = $controls->{$id} && $controls->{$id}->{membercontrol};
         my $othercontrol  = $controls->{$id} && $controls->{$id}->{othercontrol};
 
-        my $permit = ($membercontrol && $user->in_group($group->name)) || $othercontrol;
+        my $permit = $user->in_group($group->name) ? $membercontrol : $othercontrol;
 
-        $add_groups{$id} = 1 if $permit;
+        # Format for $self->groups and $self->groups_in
+        if ($permit)
+        {
+            $new_groups{$id} = {
+                bit => $id,
+                name => $group->name,
+                ison => 1,
+                ingroup => $user->in_group_id($id),
+                mandatory => $permit == CONTROLMAPMANDATORY,
+                description => $group->description,
+            };
+        }
     }
 
     foreach my $id (keys %$controls)
@@ -1792,11 +1803,32 @@ sub _set_groups
             ($othercontrol == CONTROLMAPMANDATORY && !$user->in_group_id($id)))
         {
             # User had no option, bug needs to be in this group.
-            $add_groups{$id} = 1;
+            $new_groups{$id} = {
+                bit => $id,
+                name => $controls->{$id}->{group}->name,
+                ison => 1,
+                ingroup => $user->in_group_id($id),
+                mandatory => 1,
+                description => $controls->{$id}->{group}->description,
+            };
+        }
+        elsif ($user->in_group_id($id) && !$new_groups{$id})
+        {
+            # Group is disabled, add for $self->groups consistency
+            $new_groups{$id} = {
+                bit => $id,
+                name => $controls->{$id}->{group}->name,
+                ison => 0,
+                ingroup => 1,
+                mandatory => 0,
+                description => $controls->{$id}->{group}->description,
+            };
         }
     }
 
-    return [ keys %add_groups ];
+    $self->{groups_in} = [ map { $controls->{$_->{bit}}->{group} } grep { $_->{ison} } values %new_groups ];
+    $self->{groups} = [ values %new_groups ];
+    return undef;
 }
 
 # For keyword autocreation:
@@ -2957,16 +2989,12 @@ sub groups
     my $grouplist = Bugzilla->user->groups_as_string;
     my $sth = $dbh->prepare(
         "SELECT DISTINCT groups.id, name, description," .
-        " CASE WHEN bug_group_map.group_id IS NOT NULL" .
-        " THEN 1 ELSE 0 END," .
-        " CASE WHEN groups.id IN($grouplist) THEN 1 ELSE 0 END," .
+        " CASE WHEN bug_group_map.group_id IS NOT NULL THEN 1 ELSE 0 END," .
+        " CASE WHEN groups.id IN ($grouplist) THEN 1 ELSE 0 END," .
         " isactive, membercontrol, othercontrol" .
         " FROM groups" .
-        " LEFT JOIN bug_group_map" .
-        " ON bug_group_map.group_id = groups.id" .
-        " AND bug_id = ?" .
-        " LEFT JOIN group_control_map" .
-        " ON group_control_map.group_id = groups.id" .
+        " LEFT JOIN bug_group_map ON bug_group_map.group_id = groups.id AND bug_id = ?" .
+        " LEFT JOIN group_control_map ON group_control_map.group_id = groups.id" .
         " AND group_control_map.product_id = ? " .
         " WHERE isbuggroup = 1" .
         " ORDER BY description"
