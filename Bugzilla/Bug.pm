@@ -1598,18 +1598,21 @@ sub _set_cc
     my ($self, $ccs) = @_;
 
     # Allow comma-separated input as well as arrayrefs.
-    $ccs = [ split /[\s,]+/, $ccs ] if !ref $ccs;
-
-    my %cc_ids;
-    foreach my $person (@$ccs)
+    $ccs = [ grep { $_ } split /[\s,]+/, trim($ccs) ] if !ref $ccs;
+    my $users = Bugzilla::Object::match('Bugzilla::User', { login_name => $ccs });
+    $ccs = { map { lc($_) => 1 } @$ccs };
+    for (@$users)
     {
-        next unless $person;
-        my $id = login_to_id($person, THROW_ERROR);
-        my $user = Bugzilla::User->new($id);
-        $cc_ids{$id} = 1;
+        delete $ccs->{lc $_->login};
+    }
+    ($ccs) = keys %$ccs;
+    if ($ccs)
+    {
+        ThrowUserError('invalid_username', { name => $ccs });
     }
 
-    return [ keys %cc_ids ];
+    $self->{cc_users} = $users;
+    return undef;
 }
 
 sub _set_component
