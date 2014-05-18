@@ -20,40 +20,41 @@
 
 From: [% Param('mailfrom') %]
 To: [% to_user.email %]
-[% IF product == 'СМ-ОК' || product == 'СМ-RMS' || product == 'СМ-View' || product == 'СМ-МРТ' || product == 'СМ-Опт' %]
+[%-# FIXME These are CUSTIS-specific product names - move this block somewhere? -%]
+[% IF bug.product == 'СМ-ОК' || bug.product == 'СМ-RMS' || bug.product == 'СМ-View' || bug.product == 'СМ-МРТ' || bug.product == 'СМ-Опт' %]
 Subject: [% (isnew ? '' : 'Re: ') _ '['
-  _ terms.Bug _ ' ' _ bugid _ '] ' _
-  (severity == 'blocker' ? '[BLOCKER] ' : '') _
-  (severity == 'critical' ? '[CRITICAL] ' : '') _
-'[' _ product _ '] ' _ summary %]
+  _ terms.Bug _ ' ' _ bug.id _ '] ' _
+  (bug.bug_severity_obj.name == 'blocker' ? '[BLOCKER] ' : '') _
+  (bug.bug_severity_obj.name == 'critical' ? '[CRITICAL] ' : '') _
+'[' _ bug.product _ '] ' _ bug.short_desc %]
 [% ELSE %]
 Subject: [% (isnew ? '' : 'Re: ') _ '['
-  _ terms.Bug _ ' ' _ bugid _ '] ' _
-  (severity == 'blocker' ? '[BLOCKER] ' : '') _
-  (severity == 'critical' ? '[CRITICAL] ' : '') _
-  summary %]
+  _ terms.Bug _ ' ' _ bug.id _ '] ' _
+  (bug.bug_severity_obj.name == 'blocker' ? '[BLOCKER] ' : '') _
+  (bug.bug_severity_obj.name == 'critical' ? '[CRITICAL] ' : '') _
+  bug.short_desc %]
 [% END %]
 X-Bugzilla-Reason: [% reasonsheader %]
 X-Bugzilla-Type: [% isnew ? 'new' : 'changed' %]
 X-Bugzilla-Watch-Reason: [% reasonswatchheader %]
 [% IF Param('useclassification') %]
-X-Bugzilla-Classification: [% classification %]
+X-Bugzilla-Classification: [% bug.classification_obj.name %]
 [% END %]
-[% IF severity == 'blocker' OR severity == 'critical' %]
+[% IF bug.bug_severity_obj.name == 'blocker' OR bug.bug_severity_obj.name == 'critical' %]
 Importance: high
 X-Priority: 1
 [% END %]
-X-Bugzilla-Product: [% product %]
-X-Bugzilla-Component: [% comp %]
-[% FOREACH keyword_item = keywords.split(", ") %]
-X-Bugzilla-Keywords: [% keyword_item %]
+X-Bugzilla-Product: [% bug.product_obj.name %]
+X-Bugzilla-Component: [% bug.component_obj.name %]
+[% FOREACH keyword_item = bug.keyword_objects %]
+X-Bugzilla-Keywords: [% keyword_item.name %]
 [% END%]
-X-Bugzilla-Severity: [% severity %]
+X-Bugzilla-Severity: [% bug.bug_severity_obj.name %]
 X-Bugzilla-Who: [% changer.login %]
-X-Bugzilla-Status: [% status %]
-X-Bugzilla-Priority: [% priority %]
-X-Bugzilla-Assigned-To: [% assignedto %]
-X-Bugzilla-Target-Milestone: [% targetmilestone %]
+X-Bugzilla-Status: [% bug.bug_status_obj.name %]
+X-Bugzilla-Priority: [% bug.priority_obj.name %]
+X-Bugzilla-Assigned-To: [% bug.assigned_to.login %]
+X-Bugzilla-Target-Milestone: [% bug.target_milestone %]
 X-Bugzilla-Changed-Fields: [% changedfields || "None" %]
 X-Bugzilla-Added-Comments: [% new_comments.size %]
 [%+ threadingmarker %]
@@ -67,7 +68,8 @@ Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: quoted-printable
 
 [% FILTER quoted_printable %]
-[%+ urlbase %]show_bug.cgi?id=[% bugid %] (prod:[% product %].[% comp %], pri:[% priority %], sev:[% severity %], miles:[% targetmilestone %])
+[%+ urlbase %]show_bug.cgi?id=[% bug.id %] (prod:[% bug.product %].[% bug.component -%]
+, pri:[% bug.priority_obj.name %], sev:[% bug.bug_severity_obj.name %], miles:[% bug.target_milestone_obj.name %])
 
 [%- IF diffs AND diffs.size > 0 %]
 [%- SET lastwho = "" %]
@@ -162,19 +164,23 @@ body { font-family: Segoe UI, sans-serif; }
 </style>
 <body>
 <p>
-[% IF severity == 'blocker' OR severity == 'critical' %]
-<a style="font-size: 120%; color: black; background-color: red; font-weight: bold;" href="[%+ urlbase %]show_bug.cgi?id=[% bugid %][% IF new_comments AND new_comments.size > 0 %]#c[% new_comments.0.count %][% END %]">&nbsp;Bug [% bugid %] [[% severity | upper %]] - [% summary | html %]&nbsp;</a>
+[% IF bug.bug_severity_obj.name == 'blocker' OR bug.bug_severity_obj.name == 'critical' %]
+<a style="font-size: 120%; color: black; background-color: red; font-weight: bold;" href="[%+ urlbase %]show_bug.cgi?id=[% bug.id -%]
+  [%- IF new_comments AND new_comments.size > 0 %]#c[% new_comments.0.count %][% END %]">&nbsp;Bug [% bug.id %] [
+  [%- bug.bug_severity_obj.name | upper %]] - [% bug.short_desc | html %]&nbsp;</a>
 [% ELSE %]
-<a style="font-size: 120%;" href="[%+ urlbase %]show_bug.cgi?id=[% bugid %][% IF new_comments AND new_comments.size > 0 %]#c[% new_comments.0.count %][% END %]">Bug [% bugid %] - [% summary | html %]</a>
+<a style="font-size: 120%;" href="[%+ urlbase %]show_bug.cgi?id=[% bug.id %]
+  [%- IF new_comments AND new_comments.size > 0 %]#c[% new_comments.0.count %][% END %]">Bug [% bug.id %] - [% bug.short_desc | html %]</a>
 [% END %]
-<br><span style="font-size: 90%">(prod:[% product %].[% comp %], pri:[% priority %], sev:[% severity %], miles:[% targetmilestone %])</span>
+<br><span style="font-size: 90%">(prod:[% bug.product | html %].[% bug.component | html %], pri:
+[%- bug.priority_obj.name | html %], sev:[% bug.bug_severity_obj.name %], miles:[% bug.target_milestone_obj.name | html %])</span>
 </p>
 
 <hr color="#A0A0A0" size="1" />
 
 [% IF new_comments AND new_comments.size > 0 %]
   [% FOR comment = new_comments %]
-  <p><a href="[%+ urlbase %]show_bug.cgi?id=[% bugid %]#c[% comment.count %]">Comment #[% comment.count %]</a> from
+  <p><a href="[%+ urlbase %]show_bug.cgi?id=[% bug.id %]#c[% comment.count %]">Comment #[% comment.count %]</a> from
       <span class="vcard">
           <a class="fn email" href="[% Param('user_mailto') %][% comment.author.email FILTER html %]">
           [% (comment.author.name || comment.author.login) FILTER html %]</a>
