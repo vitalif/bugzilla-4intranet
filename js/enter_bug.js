@@ -90,7 +90,7 @@ function component_change()
             var qa_contact = form.qa_contact.value;
             if (qa_contact == last_initialqacontact || qa_contact == c.default_qa_contact || !qa_contact)
             {
-                form.qa_contact.value = с.default_qa_contact;
+                form.qa_contact.value = c.default_qa_contact;
                 last_initialqacontact = c.default_qa_contact;
             }
         }
