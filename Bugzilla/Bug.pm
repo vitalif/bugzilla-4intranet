@@ -531,6 +531,7 @@ sub update
     # Transform IDs to names for the activity log
     $self->transform_id_changes($changes);
     delete $changes->{delta_ts};
+    delete $changes->{lastdiffed};
 
     # Add previous assignee and QA to the CC list
     if ($changes->{qa_contact} && $old_bug && $old_bug->qa_contact)
@@ -735,25 +736,10 @@ sub check_dependent_fields
             $verify_bug_groups = Bugzilla::Group->new_from_list($gids);
         }
 
-        # Remove groups that aren't valid in the new product. This will also
-        # have the side effect of removing the bug from groups that aren't
-        # active anymore.
-        #
-        # We copy this array because the original array is modified while we're
-        # working, and that confuses "foreach".
-        foreach my $group (@{$self->groups_in})
-        {
-            if (!grep($group->id == $_->id, @{$self->product_obj->groups_valid}))
-            {
-                $self->remove_group($group);
-            }
-        }
-
-        # Make sure the bug is in all the mandatory groups for the new product.
-        foreach my $group (@{$self->product_obj->groups_mandatory_for(Bugzilla->user)})
-        {
-            $self->add_group($group);
-        }
+        # Remove groups that aren't valid in the new product and add groups
+        # that are mandatory in the new product. This will also have the
+        # side effect of removing the bug from groups that aren't active anymore.
+        $self->set('groups', [ map { $_->id } @{$self->groups_in} ]);
     }
 
     # If we're not in browser or this is a new bug, throw an error

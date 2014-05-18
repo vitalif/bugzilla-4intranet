@@ -246,10 +246,10 @@ document.changeform = document.[% cfname %];
     [%#############%]
 
     <tr id="field_row_product">
-       [% INCLUDE bug/field.html.tmpl
-            bug = bug, field = select_fields.product,
-            desc_url = 'describecomponents.cgi', value = bug.product_id
-            editable = bug.check_can_change_field('product', 0, 1) %]
+      [% INCLUDE bug/field.html.tmpl
+           bug = bug, field = select_fields.product,
+           desc_url = 'describecomponents.cgi', value = bug.product_id
+           editable = bug.check_can_change_field('product', 0, 1) %]
     </tr>
     [%###############%]
     [%#  Component  #%]
