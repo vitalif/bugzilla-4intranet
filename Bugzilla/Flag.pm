@@ -1001,7 +1001,7 @@ sub notify {
     # Is there someone to notify?
     return unless ($addressee || $cc_list);
 
-# УБРАТЬ
+# FIXME УБРАТЬ
     # If the target bug is restricted to one or more groups, then we need
     # to make sure we don't send email about it to unauthorized users
     # on the request type's CC: list, so we have to trawl the list for users

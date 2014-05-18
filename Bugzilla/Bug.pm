@@ -1822,7 +1822,8 @@ sub _set_keywords
             $keyword_string =~ s/[\s,]+$//s;
             if ($keyword_string)
             {
-                my $kw = Bugzilla::Keyword->match({ name => [ split /[\s,]*,[\s,]*/, $keyword_string ] });
+                $keyword_string = [ split /[\s,]*,[\s,]*/, $keyword_string ];
+                my $kw = Bugzilla::Keyword->match({ name => $keyword_string });
                 $kw = { map { lc($_->name) => $_ } @$kw };
                 for my $name (@$keyword_string)
                 {
