@@ -97,18 +97,21 @@ sub send_results
 
 # We use this instead of format because format doesn't deal well with
 # multi-byte languages.
-sub multiline_sprintf {
+sub multiline_sprintf
+{
     my ($format, $args, $sizes) = @_;
     my @parts;
     my @my_sizes = @$sizes; # Copy this so we don't modify the input array.
-    foreach my $string (@$args) {
+    foreach my $string (@$args)
+    {
         my $size = shift @my_sizes;
         my @pieces = split("\n", wrap_hard($string, $size));
         push(@parts, \@pieces);
     }
 
     my $formatted;
-    while (1) {
+    while (1)
+    {
         # Get the first item of each part.
         my @line = map { shift @$_ } @parts;
         # If they're all undef, we're done.
@@ -125,7 +128,8 @@ sub multiline_sprintf {
     return $formatted;
 }
 
-sub three_columns {
+sub three_columns
+{
     return multiline_sprintf(FORMAT_TRIPLE, \@_, FORMAT_3_SIZE);
 }
 
@@ -266,17 +270,21 @@ sub Send
           ORDER BY bug_when", {Slice=>{}}, @args, @args);
 
     my @new_depbugs;
-    foreach my $diff (@$diffs) {
+    foreach my $diff (@$diffs)
+    {
         $diff->{attach_id} and $diff->{fielddesc} =~ s/^(Attachment )?/Attachment #$diff->{attach_id} /;
         if ($diff->{fieldname} eq 'estimated_time' ||
-            $diff->{fieldname} eq 'remaining_time') {
+            $diff->{fieldname} eq 'remaining_time')
+        {
             $diff->{removed} = format_time_decimal($diff->{removed});
             $diff->{added} = format_time_decimal($diff->{added});
         }
-        if ($diff->{fieldname} eq 'dependson') {
+        if ($diff->{fieldname} eq 'dependson')
+        {
             push(@new_depbugs, grep {$_ =~ /^\d+$/} split(/[\s,]+/, $diff->{added}));
         }
-        if ($diff->{attach_id}) {
+        if ($diff->{attach_id})
+        {
             ($diff->{isprivate}) = $dbh->selectrow_array(
                 'SELECT isprivate FROM attachments WHERE attach_id = ?',
                 undef, ($diff->{attach_id}));
@@ -288,11 +296,12 @@ sub Send
     # Do not include data about dependent bugs when they have just been added.
     # Completely skip checking for dependent bugs on bug creation as all
     # dependencies bugs will just have been added.
-    if ($start) {
+    if ($start)
+    {
         my $dep_restriction = "";
-        if (scalar @new_depbugs) {
-            $dep_restriction = "AND bugs_activity.bug_id NOT IN (" .
-                               join(", ", @new_depbugs) . ")";
+        if (scalar @new_depbugs)
+        {
+            $dep_restriction = "AND bugs_activity.bug_id NOT IN (" . join(", ", @new_depbugs) . ")";
         }
 
         my $dependency_diffs = $dbh->selectall_arrayref(
@@ -319,19 +328,22 @@ sub Send
         my $lastbug = "";
         my $interestingchange = 0;
         my @diff_tmp = ();
-        foreach my $dep_diff (@$dependency_diffs) {
+        foreach my $dep_diff (@$dependency_diffs)
+        {
             $dep_diff->{bug_id} = $id;
             $dep_diff->{type} = 'dep';
-            if ($dep_diff->{dep} ne $lastbug) {
-                if ($interestingchange) {
+            if ($dep_diff->{dep} ne $lastbug)
+            {
+                if ($interestingchange)
+                {
                     push @$diffs, @diff_tmp;
                 }
                 @diff_tmp = ();
                 $lastbug = $dep_diff->{dep};
                 $interestingchange = 0;
             }
-            if ($dep_diff->{fieldname} eq 'bug_status'
-                && is_open_state($dep_diff->{removed}) ne is_open_state($dep_diff->{added}))
+            if ($dep_diff->{fieldname} eq 'bug_status' &&
+                is_open_state($dep_diff->{removed}) ne is_open_state($dep_diff->{added}))
             {
                 $interestingchange = 1;
             }
@@ -339,7 +351,8 @@ sub Send
             push @diff_tmp, $dep_diff;
         }
 
-        if ($interestingchange) {
+        if ($interestingchange)
+        {
             push @$diffs, @diff_tmp;
         }
     }
@@ -370,8 +383,10 @@ sub Send
     $recipients{$reporter}->{+REL_REPORTER} = BIT_DIRECT;
 
     # QA Contact
-    if (Bugzilla->params->{'useqacontact'}) {
-        foreach (@qa_contacts) {
+    if (Bugzilla->params->{useqacontact})
+    {
+        foreach (@qa_contacts)
+        {
             # QA Contact can be blank; ignore it if so.
             $recipients{$_}->{+REL_QA} = BIT_DIRECT if $_;
         }
@@ -382,51 +397,58 @@ sub Send
 
     # The last relevant set of people are those who are being removed from
     # their roles in this change. We get their names out of the diffs.
-    foreach my $diff (@$diffs) {
-        if ($diff->{removed}) {
+    foreach my $diff (@$diffs)
+    {
+        if ($diff->{removed})
+        {
             # You can't stop being the reporter, and mail isn't sent if you
             # remove your vote.
             # Ignore people whose user account has been deleted or renamed.
-            if ($diff->{fielddesc} eq "CC") {
-                foreach my $cc_user (split(/[\s,]+/, $diff->{removed})) {
+            if ($diff->{fielddesc} eq "CC")
+            {
+                foreach my $cc_user (split(/[\s,]+/, $diff->{removed}))
+                {
                     my $uid = login_to_id($cc_user);
                     $recipients{$uid}->{+REL_CC} = BIT_DIRECT if $uid;
                 }
             }
-            elsif ($diff->{fielddesc} eq "QAContact") {
+            elsif ($diff->{fielddesc} eq "QAContact")
+            {
                 my $uid = login_to_id($diff->{removed});
                 $recipients{$uid}->{+REL_QA} = BIT_DIRECT if $uid;
             }
-            elsif ($diff->{fielddesc} eq "AssignedTo") {
+            elsif ($diff->{fielddesc} eq "AssignedTo")
+            {
                 my $uid = login_to_id($diff->{removed});
                 $recipients{$uid}->{+REL_ASSIGNEE} = BIT_DIRECT if $uid;
             }
         }
     }
 
-    Bugzilla::Hook::process('bugmail_recipients',
-                            { bug => $bug, recipients => \%recipients });
+    Bugzilla::Hook::process('bugmail_recipients', { bug => $bug, recipients => \%recipients });
 
     # Find all those user-watching anyone on the current list, who is not
     # on it already themselves.
     my $involved = join(",", keys %recipients);
 
-    my $userwatchers =
-        $dbh->selectall_arrayref("SELECT watcher, watched FROM watch
-                                  WHERE watched IN ($involved)");
+    my $userwatchers = $dbh->selectall_arrayref(
+        "SELECT watcher, watched FROM watch WHERE watched IN ($involved)"
+    );
 
     # Mark these people as having the role of the person they are watching
-    foreach my $watch (@$userwatchers) {
-        while (my ($role, $bits) = each %{$recipients{$watch->[1]}}) {
-            $recipients{$watch->[0]}->{$role} |= BIT_WATCHING
-                if $bits & BIT_DIRECT;
+    foreach my $watch (@$userwatchers)
+    {
+        while (my ($role, $bits) = each %{$recipients{$watch->[1]}})
+        {
+            $recipients{$watch->[0]}->{$role} |= BIT_WATCHING if $bits & BIT_DIRECT;
         }
         push(@{$watching{$watch->[0]}}, $watch->[1]);
     }
 
     # Global watcher
-    my @watchers = split(/[,\s]+/, Bugzilla->params->{'globalwatchers'});
-    foreach (@watchers) {
+    my @watchers = split(/[,\s]+/, Bugzilla->params->{globalwatchers});
+    foreach (@watchers)
+    {
         my $watcher_id = login_to_id($_);
         next unless $watcher_id;
         $recipients{$watcher_id}->{+REL_GLOBAL_WATCHER} = BIT_DIRECT;
@@ -438,7 +460,8 @@ sub Send
     my @sent;
     my @excluded;
 
-    foreach my $user_id (keys %recipients) {
+    foreach my $user_id (keys %recipients)
+    {
         my %rels_which_want;
         my $sent_mail = 0;
 
@@ -446,81 +469,71 @@ sub Send
         # Deleted users must be excluded.
         next unless $user;
 
-        if ($user->can_see_bug($id)) {
+        if ($user->can_see_bug($id))
+        {
             # Go through each role the user has and see if they want mail in
             # that role.
-            foreach my $relationship (keys %{$recipients{$user_id}}) {
-                if ($user->wants_bug_mail($id,
-                                          $relationship,
-                                          $diffs,
-                                          $comments,
-                                          $deptext,
-                                          $changer,
-                                          !$start))
+            foreach my $relationship (keys %{$recipients{$user_id}})
+            {
+                if ($user->wants_bug_mail($id, $relationship, $diffs, $comments, $deptext, $changer, !$start))
                 {
                     $rels_which_want{$relationship} = $recipients{$user_id}->{$relationship};
                 }
             }
         }
 
-        if (scalar(%rels_which_want)) {
+        if (scalar(%rels_which_want))
+        {
             # So the user exists, can see the bug, and wants mail in at least
             # one role. But do we want to send it to them?
 
             # Make sure the user isn't in the nomail list.
-            if ($user->email_enabled) {
+            if ($user->email_enabled)
+            {
                 # OK, OK, if we must. Email the user.
-                $sent_mail = sendMail(
+                $sent_mail = sendMail({
                     bug     => $bug,
                     user    => $user,
                     headers => \@headerlist,
                     rels    => \%rels_which_want,
-                    values  => \%values,
+                    changer => $values{changer},
+                    changername => $values{changername},
                     fields  => \%fielddescription,
                     diffs   => $diffs,
-                    newcomm => $comments,
+                    new_comments => $comments,
                     isnew   => !$start,
-                    id      => $id,
                     watch   => exists $watching{$user_id} ? $watching{$user_id} : undef,
-                );
+                });
             }
         }
 
-        if ($sent_mail) {
+        if ($sent_mail)
+        {
             push(@sent, $user->login);
         }
-        else {
+        else
+        {
             push(@excluded, $user->login);
         }
     }
 
-    $dbh->do('UPDATE bugs SET lastdiffed = ? WHERE bug_id = ?',
-             undef, ($end, $id));
+    $dbh->do('UPDATE bugs SET lastdiffed = ? WHERE bug_id = ?', undef, ($end, $id));
 
-    return {'sent' => \@sent, 'excluded' => \@excluded};
+    return { sent => \@sent, excluded => \@excluded };
 }
 
 sub sendMail
 {
-    my %arguments = @_;
-    my ($user, $hlRef, $relRef, $valueRef, $fdRef,
-        $diffs, $comments_in, $isnew,
-        $id, $watchingRef, $bug
-    ) = @arguments{qw(
-        user headers rels values fields
-        diffs newcomm isnew
-        id watch bug
-    )};
+    my ($args) = @_;
 
-    my @send_comments = @$comments_in;
-    my %values = %$valueRef;
-    my @headerlist = @$hlRef;
-    my %fielddescription = %$fdRef;
+    my $user = $args->{user};
+    my $bug = $args->{bug};
+    my $new_comments = $args->{new_comments};
 
     # Filter changes by verifying the user should see them
     my $new_diffs = [];
     my $tt_fields = { map { $_ => 1 } TIMETRACKING_FIELDS };
-    foreach my $diff (@$diffs)
+    foreach my $diff (@{$args->{diffs}})
     {
         # Exclude diffs with timetracking information for non-timetrackers
         # Exclude diffs with private attachments for non-insiders
@@ -534,23 +547,23 @@ sub sendMail
         }
     }
 
-    $diffs = $new_diffs;
-
-    if (!$user->is_insider) {
+    if (!$user->is_insider)
+    {
         # Exclude private comments for non-insiders
-        @send_comments = grep { !$_->is_private } @send_comments;
+        $new_comments = [ grep { !$_->is_private } @$new_comments ];
     }
 
-    if (!@$diffs && !scalar(@send_comments) && !$isnew) {
+    if (!@$new_diffs && !scalar(@$new_comments) && !$args->{isnew})
+    {
         # Whoops, no differences!
         return 0;
     }
 
-    my @showfieldvalues = (); # for HTML emails
-    if ($isnew)
+    my $showfieldvalues = []; # for HTML emails
+    if ($args->{isnew})
     {
         my ($value, $f);
-        foreach my $field (@headerlist)
+        foreach my $field (@{$args->{headers}})
         {
             $f = $field->name;
             $value = $bug->get_string($field);
@@ -559,13 +572,14 @@ sub sendMail
             # Only send time tracking information if it is enabled and the user is in the group.
             if (($f ne 'work_time' && $f ne 'estimated_time' && $f ne 'deadline') || $user->is_timetracker)
             {
-                push @showfieldvalues, { desc => $fielddescription{$f}, value => $value };
+                push @$showfieldvalues, { desc => $args->{fields}->{$f}, value => $value };
             }
         }
     }
 
     my (@reasons, @reasons_watch);
-    while (my ($relationship, $bits) = each %{$relRef}) {
+    while (my ($relationship, $bits) = each %{$args->{rels}})
+    {
         push(@reasons, $relationship) if ($bits & BIT_DIRECT);
         push(@reasons_watch, $relationship) if ($bits & BIT_WATCHING);
     }
@@ -574,9 +588,9 @@ sub sendMail
     my @watchingrel = map { REL_NAMES->{$_} } @reasons_watch;
     push @headerrel,   'None' unless @headerrel;
     push @watchingrel, 'None' unless @watchingrel;
-    push @watchingrel, map { user_id_to_login($_) } @$watchingRef;
+    push @watchingrel, map { user_id_to_login($_) } @{$args->{watch}};
 
-    for my $change (@$diffs)
+    for my $change (@$new_diffs)
     {
         my $field = Bugzilla->get_field($change->{fieldname});
         if (($change->{fieldname} eq 'longdesc' || $field->{type} eq FIELD_TYPE_TEXTAREA) && !$change->{lines})
@@ -589,21 +603,21 @@ sub sendMail
     }
 
     my $vars = {
-        isnew              => $isnew,
-        showfieldvalues    => \@showfieldvalues,
+        isnew              => $args->{isnew},
+        showfieldvalues    => $showfieldvalues,
         to                 => $user->email,
         to_user            => $user,
         bug                => $bug,
-        bugid              => $id,
+        bugid              => $bug->id,
         reasons            => \@reasons,
         reasons_watch      => \@reasons_watch,
         reasonsheader      => join(" ", @headerrel),
         reasonswatchheader => join(" ", @watchingrel),
-        changer            => $values{'changer'},
-        changername        => $values{'changername'},
-        diffs              => $diffs,
-        new_comments       => \@send_comments,
-        threadingmarker    => build_thread_marker($id, $user->id, $isnew),
+        changer            => $args->{changer},
+        changername        => $args->{changername},
+        diffs              => $new_diffs,
+        new_comments       => $new_comments,
+        threadingmarker    => build_thread_marker($bug->id, $user->id, $args->{isnew}),
         three_columns      => \&three_columns,
     };
 
