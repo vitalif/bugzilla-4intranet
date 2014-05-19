@@ -903,13 +903,13 @@
 
 [% BLOCK error_illegal_bug_status_transition %]
   [% title = "Illegal $terms.Bug Status Change" %]
-  [% IF old.defined && old.id != new.id %]
+  [% IF new.is_assigned && !allow_assigned %]
+    You are not allowed to assign [% terms.bugs %] to other people.
+  [% ELSIF !new.is_confirmed && !allow_unconfirmed %]
+    Unconfirmed states are disabled in this product.
+  [% ELSIF old.defined && old.id != new.id %]
     You are not allowed to change the [% terms.bug %] status from
     [%+ old.name FILTER html %] to [% new.name FILTER html %].
-  [% ELSIF new.is_assigned %]
-    You are not allowed to assign [% terms.bugs %] to other people.
-  [% ELSIF !new.is_confirmed %]
-    Unconfirmed states are disabled in this product.
   [% ELSE %]
     You are not allowed to file new [% terms.bugs %] with the
     [%+ new.name FILTER html %] status.

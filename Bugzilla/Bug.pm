@@ -820,7 +820,12 @@ sub _check_bug_status
     if ((!$old_status || $old_status->id != $new_status->id) &&
         !grep { $_->id == $new_status->id } @valid_statuses)
     {
-        ThrowUserError('illegal_bug_status_transition', { old => $old_status, new => $new_status });
+        ThrowUserError('illegal_bug_status_transition', {
+            old => $old_status,
+            new => $new_status,
+            allow_unconfirmed => $product->allows_unconfirmed,
+            allow_assigned => !$self->assigned_to_id || $user->id == $self->assigned_to_id,
+        });
     }
 
     # Check if a comment is required for this change.
