@@ -1471,6 +1471,13 @@ sub make_dirty
     if ($self->id && !$self->{_old_self})
     {
         $self->{_old_self} = bless { %$self }, 'Bugzilla::Bug';
+        for my $f (keys %{$self->{_old_self}})
+        {
+            if (ref $self->{_old_self}->{$f} eq 'ARRAY')
+            {
+                $self->{_old_self}->{$f} = [ @{$self->{_old_self}->{$f}} ];
+            }
+        }
     }
     return $self;
 }
