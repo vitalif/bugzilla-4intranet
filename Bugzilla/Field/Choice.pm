@@ -37,6 +37,8 @@ use constant UPDATE_COLUMNS => qw(
 use constant NAME_FIELD => 'value';
 use constant LIST_ORDER => 'sortkey, value';
 
+use constant CUSTOM_SORT => undef;
+
 use constant REQUIRED_CREATE_FIELDS => qw(value);
 
 use constant VALIDATORS => {
@@ -258,26 +260,30 @@ sub get_all
         }
         push @$filtered, $value if $vis;
     }
-    my $order = $class->LIST_ORDER;
-    $order =~ s/(\s+(A|DE)SC)(?!\w)//giso;
-    $order = [ split /[\s,]*,[\s,]*/, $order ];
-    $filtered = [ sort
+    # CUSTOM_SORT means the class has manual sorting in new_from_list, like Bugzilla::Version
+    if (!$class->CUSTOM_SORT)
     {
-        my $t;
-        for (@$order)
+        my $order = $class->LIST_ORDER;
+        $order =~ s/(\s+(A|DE)SC)(?!\w)//giso;
+        $order = [ split /[\s,]*,[\s,]*/, $order ];
+        $filtered = [ sort
         {
-            if ($a->{$_} =~ /^[\d\.]+$/s && $b->{$_} =~ /^[\d\.]+$/s)
+            my $t;
+            for (@$order)
             {
-                $t = $a->{$_} <=> $b->{$_};
+                if ($a->{$_} =~ /^[\d\.]+$/s && $b->{$_} =~ /^[\d\.]+$/s)
+                {
+                    $t = $a->{$_} <=> $b->{$_};
+                }
+                else
+                {
+                    $t = $a->{$_} cmp $b->{$_};
+                }
+                return $t if $t;
             }
-            else
-            {
-                $t = $a->{$_} cmp $b->{$_};
-            }
-            return $t if $t;
-        }
-        return 0;
-    } @$filtered ];
+            return 0;
+        } @$filtered ];
+    }
     $rc_cache->{get_all}->{$class}->{$include_disabled ? 1 : 0} = $filtered;
     return @$filtered;
 }

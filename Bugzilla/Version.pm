@@ -38,8 +38,9 @@ use constant FIELD_NAME => 'version';
 
 use constant NAME_FIELD => 'value';
 # This is "id" because it has to be filled in and id is probably the fastest.
-# We do a custom sort in new_from_list below.
+# We do a custom sort in _do_list_select below.
 use constant LIST_ORDER => 'id';
+use constant CUSTOM_SORT => 1;
 
 use constant DB_COLUMNS => qw(
     id
@@ -97,10 +98,10 @@ sub new {
     return $class->SUPER::new(@_);
 }
 
-sub new_from_list {
+sub _do_list_select {
     my $self = shift;
-    my $list = $self->SUPER::new_from_list(@_);
-    return [sort { vers_cmp(lc($a->name), lc($b->name)) } @$list];
+    my $list = $self->SUPER::_do_list_select(@_);
+    return [sort { vers_cmp(lc($a->{value}), lc($b->{value})) } @$list];
 }
 
 sub run_create_validators {
