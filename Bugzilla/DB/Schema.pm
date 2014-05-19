@@ -1231,7 +1231,7 @@ use constant ABSTRACT_SCHEMA => {
         FIELDS => [
             # In a standard TheSchwartz schema, this is a BIGINT, but we
             # don't have those and I didn't want to add them just for this.
-            jobid         => {TYPE => 'INTSERIAL', PRIMARYKEY => 1,  NOTNULL => 1},
+            jobid         => {TYPE => 'INTSERIAL', PRIMARYKEY => 1, NOTNULL => 1},
             funcid        => {TYPE => 'INT4', NOTNULL => 1},
             # In standard TheSchwartz, this is a MEDIUMBLOB.
             arg           => {TYPE => 'LONGBLOB'},

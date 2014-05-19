@@ -700,6 +700,9 @@ WHERE description LIKE\'%[CC:%\'');
     # Store IDs instead of names for all select fields in bugs table
     _change_select_fields_to_ids();
 
+    # _change_int_keys_to_int4 incorrectly changed ts_job.jobid column
+    $dbh->bz_alter_column('ts_job', jobid => {TYPE => 'INTSERIAL', PRIMARYKEY => 1, NOTNULL => 1});
+
     # Set MOVED resolution disabled for bugs
     $dbh->do('UPDATE resolution SET isactive=0 WHERE value=?', undef, 'MOVED');
 
