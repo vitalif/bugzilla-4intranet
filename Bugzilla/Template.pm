@@ -443,7 +443,7 @@ sub get_bug_link
     }
 
     $bug = blessed($bug) ? $bug : new Bugzilla::Bug($bug);
-    return $link_text if $bug->{error};
+    return $link_text if !$bug;
 
     my $title = get_text('get_status', { status => $bug->bug_status_obj->name });
     if ($bug->resolution)

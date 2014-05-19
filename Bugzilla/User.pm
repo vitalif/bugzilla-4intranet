@@ -645,7 +645,7 @@ sub can_edit_bug
     {
         my $new = $throw_error ? 'check' : 'new';
         $bug = Bugzilla::Bug->$new($bug);
-        return undef if $bug->{error};
+        return undef if !$bug;
     }
     return 1 if
         $bug->assigned_to && $bug->assigned_to->id == $self->id ||

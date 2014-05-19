@@ -142,7 +142,7 @@ my %field_values = (
 
 print "creating bugs...\n";
 Bugzilla::Bug->create( \%field_values );
-if (Bugzilla::Bug->new('public_bug')->{error}) {
+if (!Bugzilla::Bug->new('public_bug')) {
     # The deadline must be set so that this bug can be used to test
     # timetracking fields using WebServices.
     Bugzilla::Bug->create({ %field_values, alias => 'public_bug', deadline => '2010-01-01' });
@@ -511,7 +511,7 @@ my $test_user = Bugzilla::User->check($config->{QA_Selenium_TEST_user_login});
 Bugzilla->set_user($test_user);
 
 print "Creating private bug(s)...\n";
-if (Bugzilla::Bug->new('private_bug')->{error}) {
+if (!Bugzilla::Bug->new('private_bug')) {
     my %priv_values = %field_values;
     $priv_values{alias} = 'private_bug';
     $priv_values{product} = 'QA-Selenium-TEST';
