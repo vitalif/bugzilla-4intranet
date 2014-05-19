@@ -1652,6 +1652,7 @@ sub _set_deadline
     $date = trim($date);
     return undef if !$date;
 
+    $date =~ s/\s+.*//s;
     validate_date($date) || ThrowUserError('illegal_date', { date => $date, format => 'YYYY-MM-DD' });
     return $date;
 }
@@ -2633,6 +2634,14 @@ sub dup_id
         );
     }
     return $self->{dup_id};
+}
+
+sub deadline
+{
+    my ($self) = @_;
+    my $s = $self->{deadline};
+    $s =~ s/\s+.*//s;
+    return $s eq '0000-00-00' ? '' : $s;
 }
 
 sub actual_time
@@ -3791,7 +3800,7 @@ sub check_can_change_field
 sub ValidateDependencies
 {
     my ($invocant, $dependson, $blocked) = @_;
-    my $id = ref($invocant) ? $invocant->id : 0;
+    my $id = ref($invocant) ? $invocant->id || 0 : 0;
     return unless defined $dependson || defined $blocked;
 
     # These can be arrayrefs or they can be strings.
