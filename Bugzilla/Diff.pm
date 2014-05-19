@@ -165,7 +165,7 @@ sub diff
     splice @diff, 0, 2;
 
     my $result = [[], []];
-    my ($old, $new) = @$result;
+    ($old, $new) = @$result;
     my ($prev_action, $chunk, $nl);
 
     push @diff, '^'; # EOF character for if ($prev_action ne $action)
