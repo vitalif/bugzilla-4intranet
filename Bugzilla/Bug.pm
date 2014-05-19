@@ -508,6 +508,8 @@ sub update
         $self->{rep_platform} = Bugzilla->params->{defaultplatform} if Bugzilla->params->{useplatform} && !$self->{rep_platform};
         $self->{cc} = $self->component_obj->initial_cc              if !$self->{cc};
         $self->{everconfirmed} ||= 0;
+        $self->{estimated_time} ||= 0;
+        $self->{remaining_time} ||= 0;
         $self->{reporter_accessible} = 1 if !defined $self->{reporter_accessible};
         $self->{cclist_accessible} = 1 if !defined $self->{cclist_accessible};
         $self->set('reporter', undef);
@@ -2654,13 +2656,13 @@ sub actual_time
 sub estimated_time
 {
     my ($self) = @_;
-    return format_time_decimal($self->{estimated_time});
+    return format_time_decimal($self->{estimated_time} || 0);
 }
 
 sub remaining_time
 {
     my ($self) = @_;
-    return format_time_decimal($self->{remaining_time});
+    return format_time_decimal($self->{remaining_time} || 0);
 }
 
 sub any_flags_requesteeble
