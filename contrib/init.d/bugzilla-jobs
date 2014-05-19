@@ -1,0 +1,44 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          bugzilla-jobs
+# Required-Start:    $local_fs $remote_fs $network $syslog
+# Required-Stop:     $local_fs $remote_fs $network $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Start/stop Bugzilla job queue.
+### END INIT INFO
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+NAME=bugzilla-jobs
+DIR=/home/www/bugzilla3
+CONFIG=$DIR/HTTP_Prefork.conf
+USER=`grep ^user $CONFIG | awk '{print $2}'`
+
+. /lib/lsb/init-functions
+
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+
+case "$1" in
+	start)
+		log_daemon_msg "Starting Bugzilla job queue" $NAME
+		su $USER -s /bin/sh -c "$DIR/jobqueue.pl start"
+		log_end_msg $?
+		;;
+	stop)
+		log_daemon_msg "Stopping Bugzilla job queue" $NAME
+		su $USER -s /bin/sh -c "$DIR/jobqueue.pl stop"
+		log_end_msg $?
+		;;
+	restart|force-reload)
+		log_daemon_msg "Restarting Bugzilla job queue" $NAME
+		su $USER -s /bin/sh -c "$DIR/jobqueue.pl restart"
+		log_end_msg $?
+		;;
+	*)
+		echo "Usage: $0 {start|stop|restart|force-reload}"
+		exit 1
+		;;
+esac
+
+exit 0

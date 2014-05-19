@@ -9,10 +9,10 @@
 ### END INIT INFO
 
 PATH=/sbin:/bin:/usr/sbin:/usr/bin
-PIDFILE=/var/run/bugzilla.pid
-DIR=/home/www/localhost/bugs3
-CONFIG=$DIR/HTTP_Prefork.conf
 NAME=bugzilla
+PIDFILE=/var/run/bugzilla.pid
+DIR=/home/www/bugzilla3
+CONFIG=$DIR/HTTP_Prefork.conf
 
 . /lib/lsb/init-functions
 
