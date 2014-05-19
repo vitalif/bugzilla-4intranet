@@ -625,6 +625,18 @@ sub STATIC_COLUMNS
                     ],
                 };
             }
+            elsif ($subfield->type == FIELD_TYPE_SINGLE_SELECT)
+            {
+                my $type = Bugzilla::Field::Choice->type($subfield);
+                my $t = $type->DB_TABLE;
+                $columns->{$id.'_'.$subid} = {
+                    name  => "bugs_$id"."_$t.".$type->NAME_FIELD,
+                    title => $field->description . ' ' . $subfield->description,
+                    joins => [ @$join, "LEFT JOIN $t bugs_$id"."_$t ON bugs_$id"."_$t.".$type->ID_FIELD."=bugs_$id.$subid" ],
+                    subid => $subid,
+                    sortkey => 1,
+                };
+            }
         }
     }
 
