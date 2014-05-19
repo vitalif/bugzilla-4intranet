@@ -326,7 +326,8 @@ var noTimeTracking = [% product.notimetracking ? 'true' : 'false' %];
       [% INCLUDE bug/field.html.tmpl
         bug = default
         field = field
-        value_name = default.${field.name}
+        value_name = field.is_select ? default.${field.name} : ''
+        value = field.is_select ? '' : default.${field.name}
         editable = 1
         value_span = 3
       %]

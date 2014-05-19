@@ -90,12 +90,14 @@
         Calendar.set('[% field.name | js %]')
       </script>
     [% CASE constants.FIELD_TYPE_BUG_ID %]
-        <span id="[% field.name | html %]_input_area">
-          <input name="[% field.name | html %]" id="[% field.name | html %]"
-            [% IF tabindex %] tabindex="[% tabindex | html %]"[% END %]
-            value="[% value | html %]" size="7" />
-        </span>
+      <span id="[% field.name | html %]_input_area">
+        <input name="[% field.name | html %]" id="[% field.name | html %]"
+          [% IF tabindex %] tabindex="[% tabindex | html %]"[% END %]
+          value="[% value | html %]" size="7" />
+      </span>
 
+      [%# Do not hide input on bug creation form %]
+      [% IF bug.id %]
         [% IF bug.${field.name} %]
           [% bug.${field.name} | bug_link(bug.${field.name}) | none %]
         [% END %]
@@ -111,6 +113,7 @@
           "[% bug.${field.name} | js %]"
         );
         </script>
+      [% END %]
     [% CASE constants.FIELD_TYPE_EXTURL %]
         <span id="[% field.name | html %]_input_area">
           <input name="[% field.name | html %]" id="[% field.name | html %]"

@@ -573,7 +573,7 @@ if ($cloned_bug_id)
         $vars->{commentprivacy} = $isprivate;
     }
 
-    Bugzilla::Hook::process('enter_bug_cloned_bug', { vars => $vars, product => $product, cloned_bug => $cloned_bug });
+    Bugzilla::Hook::process('enter_bug_cloned_bug', { vars => $vars, default => \%default, product => $product, cloned_bug => $cloned_bug });
 } # end of cloned bug entry form
 else
 {

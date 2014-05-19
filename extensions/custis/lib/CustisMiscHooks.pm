@@ -124,12 +124,12 @@ sub enter_bug_cloned_bug
     my ($args) = @_;
     if (($args->{product}->extproduct || 0) == $args->{cloned_bug}->product_id)
     {
-        $args->{vars}->{cf_extbug} = $args->{cloned_bug}->id;
+        $args->{default}->{cf_extbug} = $args->{cloned_bug}->id;
     }
     elsif (($args->{cloned_bug}->product_obj->extproduct || 0) == $args->{product}->id)
     {
-        $args->{vars}->{dependson} = $args->{cloned_bug}->id;
-        $args->{vars}->{blocked} = '';
+        $args->{default}->{dependson} = $args->{cloned_bug}->id;
+        $args->{default}->{blocked} = '';
     }
     return 1;
 }
