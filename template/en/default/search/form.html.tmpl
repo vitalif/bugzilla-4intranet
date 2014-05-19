@@ -598,13 +598,15 @@ addListener(window, 'load', function() {
 
 [% BLOCK select %]
   <td align="left">
-    <select name="[% sel.name | html %]" id="[% sel.name | html %]"
-            multiple="multiple" size="[% sel.size %]">
+    <select name="[% sel.name | html %]" id="[% sel.name | html %]" multiple="multiple" size="[% sel.size %]">
+      [% IF bug_fields.${sel.name}.type == constants.FIELD_TYPE_SINGLE_SELECT && bug_fields.${sel.name}.nullable %]
+        <option value="---">---</option>
+      [% END %]
       [% FOREACH value = bug_fields.${sel.name}.legal_value_names_with_ids %]
-        <option value="[% value.name OR '---' FILTER html %]" id="qf_[% sel.name | html %]_[% value.ids.join('_') %]"
+        <option value="[% value.name | html %]" id="qf_[% sel.name | html %]_[% value.ids.join('_') %]"
           [% " selected" IF lsearch(default.${sel.name}, value.name) != -1 %]>
-          [% value.name FILTER html
-        %]</option>
+          [%- value.name | html -%]
+        </option>
       [% END %]
     </select>
     [% checkwidths.push(sel.name) %]

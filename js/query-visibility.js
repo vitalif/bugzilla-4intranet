@@ -72,7 +72,9 @@ function initQueryformField(i)
 {
     var f = document.getElementById(i);
     if (f)
+    {
         addListener(f, 'change', handleQueryformField_this);
+    }
 }
 
 // Get selected IDs of names selected in selectbox sel
@@ -101,7 +103,9 @@ function getQueryformSelectedIds(sel)
             // which are currently visible.
             a = sel.options[i].id.substr(l2).split('_');
             for (var j in a)
+            {
                 opt[a[j]] = true;
+            }
         }
     }
     return opt;
@@ -112,8 +116,12 @@ function getPlainSelectedIds(sel)
 {
     var o = {};
     for (var i = 0; i < sel.options.length; i++)
+    {
         if (sel.options[i].selected)
+        {
             o[sel.options[i].value] = true;
+        }
+    }
     return o;
 }
 
@@ -159,14 +167,20 @@ function handleQueryformField(event, controller)
     var visibility_selected = getQueryformSelectedIds(controller);
     var ids = {};
     for (var i in VD.fields)
+    {
         ids[i] = true;
+    }
     for (var i in VD.values)
+    {
         ids[i] = true;
+    }
     for (var controlled_id in ids)
     {
         controlled = document.getElementById(controlled_id);
         if (!controlled)
+        {
             continue;
+        }
         if (controlled.nodeName != 'SELECT')
         {
             // Just show/hide non-select fields
@@ -185,7 +199,7 @@ function handleQueryformField(event, controller)
         // Loop over all legal values and remember currently
         // visible IDs inside name2id preserving their original
         // order using name2id_order
-        legal = qfVisibility[controlled_id]['legal'];
+        legal = qfVisibility[controlled_id].legal;
         name2id = {};
         name2id_order = [];
         if (qfCheckVisibility(VD.fields[controlled_id], visibility_selected))
@@ -204,6 +218,15 @@ function handleQueryformField(event, controller)
                     }
                     name2id[legal[i][1]].push(legal[i][0]);
                 }
+            }
+        }
+        // Create NULL option
+        if (name2id_order.length > 0 && qfVisibility[controlled_id].nullable)
+        {
+            item = bz_createOptionInSelect(controlled, '---', '---');
+            if (controlled_selected[''])
+            {
+                item.selected = true;
             }
         }
         // Create options

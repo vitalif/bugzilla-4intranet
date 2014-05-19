@@ -1781,19 +1781,13 @@ sub run_chart
     # submitted form, so we'll blindly accept any values in chart -1
     if (!COLUMNS->{$self->{field}} && $check_field_name)
     {
-        ThrowUserError("invalid_field_name", { field => $self->{field} });
+        ThrowUserError('invalid_field_name', { field => $self->{field} });
     }
-    # CustIS Bug 53836
-    # FIXME this is replaced by SPECIAL_PARSING() in Bugzilla 4.0 trunk
-    if ($self->{type} eq "equals" || $self->{type} eq "exact" || $self->{type} eq "anyexact")
+    # FIXME (?) this is replaced by SPECIAL_PARSING() in Bugzilla 4.0 trunk
+    if ($self->{type} eq 'equals' || $self->{type} eq 'anyexact')
     {
+        # CustIS Bug 53836
         s/\%user\%/$self->{user}->login/isge for ref $self->{value} ? @{$self->{value}} : $self->{value};
-        # --- was previously used as "NULL" for select fields
-        if (join(', ', ref $self->{value} ? @{$self->{value}} : $self->{value}) eq '---' &&
-            Bugzilla->get_field($self->{field}) && Bugzilla->get_field($self->{field})->is_select)
-        {
-            $self->{value} = '';
-        }
     }
     # This is either from the internal chart (in which case we
     # already know about it), or it was in %chartfields, so it is
@@ -2670,6 +2664,7 @@ sub _equals
     my $self = shift;
     if ($self->{value} eq '')
     {
+        # FIXME Run UNION instead of OR?
         $self->{term} = "($self->{fieldsql} = $self->{quoted} OR $self->{fieldsql} IS NULL)";
     }
     else
@@ -2751,21 +2746,31 @@ sub _anyexact
     my $dbh = Bugzilla->dbh;
 
     my @list;
-    my @v = ref $self->{value} ? @{$self->{value}} : split /[\s,]+/, $self->{value}, -1;
-    @v = ('') if $self->{value} eq '';
+    my $nullable = Bugzilla->get_field($self->{field}) && Bugzilla->get_field($self->{field})->nullable;
     my $null = 0;
-    foreach my $w (@v)
+    my @v;
+    foreach my $w (ref $self->{value} ? @{$self->{value}} : split /[\s,]+/, $self->{value}, -1)
     {
+        if (defined $w && $w ne '')
+        {
+            push @v, $w;
+        }
+        if (!defined $w || $w eq '' || $w eq '---')
+        {
+            # --- was previously used as NULL surrogate, so be compatible with it
+            # And in fact the search form now also uses it as NULL
+            $null = 1;
+        }
         $self->{quoted} = $dbh->quote($w);
-        $null = 1 if $w eq '';
         trick_taint($self->{quoted});
         push(@list, $self->{quoted});
     }
-    if (@list || $null)
+    if (@list || $null && $nullable)
     {
+        # FIXME Run UNION instead of OR?
         $self->{term} = '('.join(' OR ',
             (@list ? $self->{fieldsql} . ' IN (' . join(',', @list) . ')' : ()),
-            ($null ? $self->{fieldsql} . ' IS NULL' : ()),
+            ($null && $nullable ? $self->{fieldsql} . ' IS NULL' : ()),
         ).')';
     }
 }
