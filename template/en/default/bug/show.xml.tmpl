@@ -36,86 +36,85 @@
 [% END %]
 >
 
+[% FOREACH bug = error_bugs %]
+  <bug error="[% bug.error | xml %]">
+    <bug_id>[% bug.bug_id | xml %]</bug_id>
+  </bug>
+[% END %]
 [% FOREACH bug = bugs %]
-  [% IF bug.error %]
-    <bug error="[% bug.error | xml %]">
-      <bug_id>[% bug.bug_id | xml %]</bug_id>
-    </bug>
-  [% ELSE %]
-    <bug>
-      [% FOREACH field = bug.fields %]
-        [% IF displayfields.$field %]
-          [%+ PROCESS bug_field %]
-        [% END %]
+  <bug>
+    [% FOREACH field = bug.fields %]
+      [% IF displayfields.$field %]
+        [%+ PROCESS bug_field %]
       [% END %]
+    [% END %]
 
-      [%# This is here so automated clients can still use process_bug.cgi %]
-      [% IF displayfields.token && user.id %]
-        <token>[% issue_hash_token([bug.id, bug.delta_ts]) | xml %]</token>
+    [%# This is here so automated clients can still use process_bug.cgi %]
+    [% IF displayfields.token && user.id %]
+      <token>[% issue_hash_token([bug.id, bug.delta_ts]) | xml %]</token>
+    [% END %]
+
+    [%# Now handle 'special' fields #%]
+    [% IF displayfields.group %]
+      [% FOREACH g = bug.groups %]
+        [% NEXT UNLESS g.ison %]
+        <group id="[% g.bit | xml %]">[% g.name | xml %]</group>
       [% END %]
+    [% END %]
 
-      [%# Now handle 'special' fields #%]
-      [% IF displayfields.group %]
-        [% FOREACH g = bug.groups %]
-          [% NEXT UNLESS g.ison %]
-          <group id="[% g.bit | xml %]">[% g.name | xml %]</group>
-        [% END %]
+    [%# Bug Flags %]
+    [% PROCESS section_flags obj => bug %]
+
+    [% IF displayfields.long_desc %]
+      [% FOREACH c = bug.comments %]
+        [% NEXT IF c.is_private && !user.is_insider %]
+        <long_desc isprivate="[% c.is_private | xml %]">
+          <commentid>[% c.id | xml %]</commentid>
+          [% IF c.is_about_attachment %]
+            <attachid>[% c.extra_data | xml %]</attachid>
+          [% END %]
+          <who name="[% c.author.name | xml %]">[% c.author.email | email | xml %]</who>
+          <bug_when>[% c.creation_ts | time("%Y-%m-%d %T %z") | xml %]</bug_when>
+          [% IF user.is_timetracker && (c.work_time - 0 != 0) %]
+            <work_time>[% PROCESS formattimeunit time_unit = c.work_time | xml %]</work_time>
+          [% END %]
+          <thetext>[% c.body_full | xml %]</thetext>
+        </long_desc>
       [% END %]
+    [% END %]
 
-      [%# Bug Flags %]
-      [% PROCESS section_flags obj => bug %]
+    [% IF displayfields.attachment %]
+      [% FOREACH a = bug.attachments %]
+        [% NEXT IF a.isprivate && !user.is_insider %]
+        <attachment
+            isobsolete="[% a.isobsolete | xml %]"
+            ispatch="[% a.ispatch | xml %]"
+            isprivate="[% a.isprivate | xml %]"
+            isurl="[% a.isurl | xml %]">
+          <attachid>[% a.id %]</attachid>
+          <date>[% a.attached | time("%Y-%m-%d %T %z") | xml %]</date>
+          <delta_ts>[% a.modification_time | time("%Y-%m-%d %T %z") | xml %]</delta_ts>
+          <desc>[% a.description | xml %]</desc>
+          <filename>[% a.filename | xml %]</filename>
+          <type>[% a.contenttype | xml %]</type>
+          <size>[% a.datasize | xml %]</size>
+          <attacher>[% a.attacher.email | email | xml %]</attacher>
+          [%# This is here so automated clients can still use attachment.cgi %]
+          [% IF displayfields.token && user.id %]
+            <token>[% issue_hash_token([a.id, a.modification_time]) | xml %]</token>
+          [% END %]
+          [% IF displayfields.attachmentdata %]
+            <data encoding="base64">[% a.data | base64 %]</data>
+          [% END %]
 
-      [% IF displayfields.long_desc %]
-        [% FOREACH c = bug.comments %]
-          [% NEXT IF c.is_private && !user.is_insider %]
-          <long_desc isprivate="[% c.is_private | xml %]">
-            <commentid>[% c.id | xml %]</commentid>
-            [% IF c.is_about_attachment %]
-              <attachid>[% c.extra_data | xml %]</attachid>
-            [% END %]
-            <who name="[% c.author.name | xml %]">[% c.author.email | email | xml %]</who>
-            <bug_when>[% c.creation_ts | time("%Y-%m-%d %T %z") | xml %]</bug_when>
-            [% IF user.is_timetracker && (c.work_time - 0 != 0) %]
-              <work_time>[% PROCESS formattimeunit time_unit = c.work_time | xml %]</work_time>
-            [% END %]
-            <thetext>[% c.body_full | xml %]</thetext>
-          </long_desc>
-        [% END %]
+          [% PROCESS section_flags obj => a %]
+        </attachment>
       [% END %]
+    [% END %]
 
-      [% IF displayfields.attachment %]
-        [% FOREACH a = bug.attachments %]
-          [% NEXT IF a.isprivate && !user.is_insider %]
-          <attachment
-              isobsolete="[% a.isobsolete | xml %]"
-              ispatch="[% a.ispatch | xml %]"
-              isprivate="[% a.isprivate | xml %]"
-              isurl="[% a.isurl | xml %]">
-            <attachid>[% a.id %]</attachid>
-            <date>[% a.attached | time("%Y-%m-%d %T %z") | xml %]</date>
-            <delta_ts>[% a.modification_time | time("%Y-%m-%d %T %z") | xml %]</delta_ts>
-            <desc>[% a.description | xml %]</desc>
-            <filename>[% a.filename | xml %]</filename>
-            <type>[% a.contenttype | xml %]</type>
-            <size>[% a.datasize | xml %]</size>
-            <attacher>[% a.attacher.email | email | xml %]</attacher>
-            [%# This is here so automated clients can still use attachment.cgi %]
-            [% IF displayfields.token && user.id %]
-              <token>[% issue_hash_token([a.id, a.modification_time]) | xml %]</token>
-            [% END %]
-            [% IF displayfields.attachmentdata %]
-              <data encoding="base64">[% a.data | base64 %]</data>
-            [% END %]
+    [% Hook.process("bug_end") %]
 
-            [% PROCESS section_flags obj => a %]
-          </attachment>
-        [% END %]
-      [% END %]
-
-      [% Hook.process("bug_end") %]
-
-    </bug>
-  [% END %]
+  </bug>
 [% END %]
 
 </bugzilla>
