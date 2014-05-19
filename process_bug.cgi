@@ -494,9 +494,9 @@ if ($ARGS->{newcc} || $ARGS->{addselfcc} || $ARGS->{removecc} || $ARGS->{masscc}
         $cc_add = $ARGS->{newcc};
         # We came from bug_form which uses a select box to determine what cc's
         # need to be removed...
-        if (defined $ARGS->{removecc} && $ARGS->{cc}) # FIXME array[]
+        if (defined $ARGS->{removecc} && $ARGS->{cc})
         {
-            $cc_remove = join ",", @{$ARGS->{cc}};
+            $cc_remove = $ARGS->{cc};
         }
     }
 
@@ -674,7 +674,7 @@ foreach my $bug (@bug_objects)
     # CustIS Bug 38616 - CC list restriction
     if ($bug->{restricted_cc})
     {
-        $vars->{restricted_cc} = [map { $_->login } @{$bug->{restricted_cc}}];
+        $vars->{restricted_cc} = [ map { $_->login } @{$bug->{restricted_cc}} ];
         $vars->{cc_restrict_group} = $bug->product_obj->cc_group;
         $vars->{message} = 'cc_list_restricted';
     }

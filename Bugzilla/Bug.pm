@@ -796,7 +796,7 @@ sub _check_bug_status
         @valid_statuses = grep { $_->is_confirmed } @valid_statuses;
     }
 
-    if ($self->{assigned_to} && $user->id != $self->{assigned_to})
+    if ($self->assigned_to_id && $user->id != $self->assigned_to_id)
     {
         # You can not assign bugs to other people
         @valid_statuses = grep { !$_->is_assigned } @valid_statuses;
@@ -1007,6 +1007,7 @@ sub save_cc
                 push @{$self->{restricted_cc}}, $_;
             }
         }
+        $self->{restricted_cc} = undef if !@{$self->{restricted_cc}};
     }
 
     my $removed_cc = [ grep { !$new_cc{$_} } keys %old_cc ];
@@ -2358,7 +2359,7 @@ sub remove_cc
     my ($self, $user_or_name) = @_;
     my $user = ref $user_or_name ? $user_or_name : Bugzilla::User->check($user_or_name);
     my $cc_users = $self->cc_users;
-    if (grep { $_->id != $user->id } @$cc_users)
+    if (grep { $_->id == $user->id } @$cc_users)
     {
         $self->make_dirty;
         @$cc_users = grep { $_->id != $user->id } @$cc_users;
@@ -2733,7 +2734,7 @@ sub cc_users
 {
     my $self = shift;
     return $self->{cc_users} if exists $self->{cc_users};
-    return [] if !$self->id;
+    return $self->{cc_users} = [] if !$self->id;
 
     my $dbh = Bugzilla->dbh;
     my $cc_ids = $dbh->selectcol_arrayref('SELECT who FROM cc WHERE bug_id = ?', undef, $self->id);
