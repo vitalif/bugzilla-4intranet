@@ -230,8 +230,8 @@ sub load_settings
 sub replace
 {
     my ($s, $re, $repl) = @_;
-    s!\\!\\\\!gso for $re, $repl;
-    s!/!\\/!gso for $re, $repl;
+    # Escape \ @ $ % /
+    s!([\\\@\$\%/])!\\$1!gso for $re, $repl;
     eval("\$s =~ s/$re/$repl/gs");
     return $s;
 }
