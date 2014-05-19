@@ -124,7 +124,13 @@ sub get_param_list
         name    => 'noresolveonopenblockers',
         type    => 'b',
         default => 0,
-    }
+    },
+
+    {
+        name => 'assign_to_others',
+        type => 'b',
+        default => 1,
+    },
     );
     return @param_list;
 }

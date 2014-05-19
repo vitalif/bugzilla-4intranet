@@ -796,9 +796,11 @@ sub _check_bug_status
         @valid_statuses = grep { $_->is_confirmed } @valid_statuses;
     }
 
-    if ($self->assigned_to_id && $user->id != $self->assigned_to_id)
+    my $allow_assigned = 1;
+    if (!Bugzilla->params->{assign_to_others} && $self->assigned_to_id && $user->id != $self->assigned_to_id)
     {
         # You can not assign bugs to other people
+        $allow_assigned = 0;
         @valid_statuses = grep { !$_->is_assigned } @valid_statuses;
     }
 
@@ -817,14 +819,15 @@ sub _check_bug_status
     }
 
     # We skip this check if we are changing from a status to itself.
-    if ((!$old_status || $old_status->id != $new_status->id) &&
+    if ((!$old_status || $old_status->id != $new_status->id ||
+        !$new_status->is_confirmed && !$product->allows_unconfirmed) &&
         !grep { $_->id == $new_status->id } @valid_statuses)
     {
         ThrowUserError('illegal_bug_status_transition', {
             old => $old_status,
             new => $new_status,
             allow_unconfirmed => $product->allows_unconfirmed,
-            allow_assigned => !$self->assigned_to_id || $user->id == $self->assigned_to_id,
+            allow_assigned => $allow_assigned,
         });
     }
 
