@@ -342,6 +342,21 @@ sub OPTIONAL_MODULES {
         module  => 'HTML::Strip',
         feature => 'Handling inbound HTML email',
     },
+    {
+        package => 'HTTP-Server-Simple',
+        module  => 'HTTP::Server::Simple',
+        feature => 'Standalone HTTP server',
+    },
+    {
+        package => 'Net-Server',
+        module  => 'Net::Server',
+        feature => 'Standalone HTTP server',
+    },
+    {
+        package => 'IO-SendFile',
+        module  => 'IO::SendFile',
+        feature => 'Standalone HTTP server',
+    },
     );
 
     my $extra_modules = _get_extension_requirements('OPTIONAL_MODULES');
