@@ -230,8 +230,9 @@ sub load_settings
 sub replace
 {
     my ($s, $re, $repl) = @_;
-    # Escape \ @ $ % /
-    s!([\\\@\$\%/])!\\$1!gso for $re, $repl;
+    # Escape \ @ $ % /, but allow $n ($1 $2 $3 ...) or $ (EOL) not followed by a word character...
+    $re =~ s!([\\\@\%/]|\$(?\![\W\d]))!\\$1!gso;
+    $repl =~ s!([\\\@\%/]|\$(?\!\d))!\\$1!gso;
     eval("\$s =~ s/$re/$repl/gs");
     return $s;
 }
