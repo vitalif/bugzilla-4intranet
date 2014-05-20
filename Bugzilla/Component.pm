@@ -70,6 +70,8 @@ use constant UPDATE_COLUMNS => qw(
     is_active
 );
 
+use constant ISACTIVE_COLUMN => 'is_active';
+
 use constant VALIDATORS => {
     create_series    => \&Bugzilla::Object::check_boolean,
     product          => \&_check_product,

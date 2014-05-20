@@ -36,8 +36,8 @@ use constant UPDATE_COLUMNS => qw(
 
 use constant NAME_FIELD => 'value';
 use constant LIST_ORDER => 'sortkey, value';
-
 use constant CUSTOM_SORT => undef;
+use constant ISACTIVE_COLUMN => 'isactive';
 
 use constant REQUIRED_CREATE_FIELDS => qw(value);
 
@@ -218,9 +218,9 @@ sub get_all
     my $f = $class->field;
     my $all;
     my $cache = Bugzilla->cache_fields;
-    if (!$include_disabled && grep { $_ eq 'isactive' } $class->DB_COLUMNS)
+    if (!$include_disabled && grep { $_ eq $class->ISACTIVE_COLUMN } $class->DB_COLUMNS)
     {
-        $all = $class->match({ isactive => 1 });
+        $all = $class->match({ $class->ISACTIVE_COLUMN => 1 });
     }
     elsif (!defined $f->{legal_values})
     {
