@@ -96,8 +96,7 @@ sub remove_from_db
 #####     Accessors        ####
 ###############################
 
-sub is_active { return $_[0]->{isactive}; }
-sub is_open   { return $_[0]->{is_open};  }
+sub is_open      { return $_[0]->{is_open};  }
 sub is_assigned  { return $_[0]->{is_assigned};  }
 sub is_confirmed { return $_[0]->{is_confirmed}; }
 

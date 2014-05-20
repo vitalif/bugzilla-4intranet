@@ -65,6 +65,8 @@ use constant UPDATE_VALIDATORS => {
     value => \&_check_value,
 };
 
+use constant is_active => 1;
+
 ################################
 
 sub new {

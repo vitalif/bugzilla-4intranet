@@ -37,7 +37,6 @@ use constant UPDATE_COLUMNS => qw(
 use constant NAME_FIELD => 'value';
 use constant LIST_ORDER => 'sortkey, value';
 use constant CUSTOM_SORT => undef;
-use constant ISACTIVE_COLUMN => 'isactive';
 
 use constant REQUIRED_CREATE_FIELDS => qw(value);
 
@@ -218,11 +217,7 @@ sub get_all
     my $f = $class->field;
     my $all;
     my $cache = Bugzilla->cache_fields;
-    if (!$include_disabled && grep { $_ eq $class->ISACTIVE_COLUMN } $class->DB_COLUMNS)
-    {
-        $all = $class->match({ $class->ISACTIVE_COLUMN => 1 });
-    }
-    elsif (!defined $f->{legal_values})
+    if (!defined $f->{legal_values})
     {
         # Only full unfiltered list of active values is cached between requests
         $all = [ $class->SUPER::get_all() ];
@@ -231,6 +226,10 @@ sub get_all
     else
     {
         $all = $f->{legal_values};
+    }
+    if (!$include_disabled)
+    {
+        $all = [ grep { $_->is_active } @$all ];
     }
     if (!$f->value_field_id || $f->value_field->name ne 'product')
     {
@@ -337,8 +336,8 @@ sub _check_if_controller
 # Accessors #
 #############
 
-sub is_active { return $_[0]->{'isactive'}; }
-sub sortkey   { return $_[0]->{'sortkey'};  }
+sub is_active { return $_[0]->{isactive}; }
+sub sortkey   { return $_[0]->{sortkey};  }
 
 sub bug_count
 {

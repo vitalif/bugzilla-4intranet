@@ -61,6 +61,8 @@ use constant VALIDATORS => {
 
 use constant EXCLUDE_CONTROLLED_FIELDS => ('product');
 
+use constant is_active => 1;
+
 ###############################
 ####     Constructors     #####
 ###############################
