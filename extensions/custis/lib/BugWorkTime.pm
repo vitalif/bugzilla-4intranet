@@ -335,7 +335,7 @@ sub HandleSuperWorktime
         foreach (map { /^wtime_(\d+)$/ } keys %$args)
         {
             $t = $args->{"wtime_$_"};
-            $times->{$_} = $t if $t;
+            $times->{$_} = Bugzilla::Bug::ValidateTime($t, 'work_time') if $t;
         }
         # В транзакции сначала готовим, потом коммитим
         Bugzilla->dbh->bz_start_transaction();
