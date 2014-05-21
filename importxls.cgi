@@ -480,6 +480,7 @@ sub post_bug
     }
     $cgi->param(dontsendbugmail => 1);
     $cgi->param(token => issue_session_token('createbug:'));
+    delete $cgi->{_VarHash};
     # Call post_bug.cgi
     my $vars_out = do 'post_bug.cgi';
     $Bugzilla::Error::IN_EVAL--;
@@ -548,6 +549,7 @@ sub process_bug
     $cgi->param('longdesclength', scalar @{ $bug->comments });
     $cgi->param('token', issue_hash_token([$bug->id, $bug->delta_ts]));
 
+    delete $cgi->{_VarHash};
     # FIXME All this is an ugly hack. Bug::update() should call anything needed, not process_bug.cgi
     $Bugzilla::Error::IN_EVAL++;
     my $vars_out = do 'process_bug.cgi';

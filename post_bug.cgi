@@ -58,7 +58,7 @@ my $ARGS = $cgi->VarHash({
         obsolete => 0,
     })),
 });
-$ARGS->{cc} = join(', ', @{$ARGS->{cc}});
+$ARGS->{cc} = join(', ', @{$ARGS->{cc}}) if $ARGS->{cc};
 
 ######################################################################
 # Main Script

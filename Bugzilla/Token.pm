@@ -169,7 +169,8 @@ sub issue_session_token {
     # the token to the caller.
 
     my $data = shift;
-    return _create_token(Bugzilla->user->id, 'session', $data);
+    my $token = _create_token(Bugzilla->user->id, 'session', $data);
+    return $token;
 }
 
 sub issue_hash_token {
