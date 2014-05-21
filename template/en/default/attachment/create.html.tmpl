@@ -117,9 +117,7 @@
         }
         addListener('bug_status', 'change', onchange_bug_status);
         addListener('resolution', 'change', showDuplicateItem);
-        addListener(window, 'load', function() {
-          showHideStatusItems('[% "is_duplicate" IF bug.dup_id %]', '[% bug.bug_status_obj.name | js %]');
-        });
+        addListener(window, 'load', onchange_bug_status);
         </script>
 
         [% IF bug.check_can_change_field('dup_id', 0, 1) %]

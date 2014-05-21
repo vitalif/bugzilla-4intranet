@@ -164,8 +164,8 @@ function showHideStatusItems(is_duplicate, initial_status)
         var resolution = document.getElementById('resolution');
         addClass('duplicate_display', 'bz_default_hidden');
         showDuplicateItem(el);
-        if (el.options[el.selectedIndex].text == initial_status && is_duplicate == "is_duplicate" ||
-            bz_isValueInArray(close_status_array, el.options[el.selectedIndex].text))
+        if (el.options[el.selectedIndex].value == initial_status && is_duplicate == "is_duplicate" ||
+            bz_isValueInArray(close_status_array, el.options[el.selectedIndex].value))
         {
             removeClass('resolution_settings', 'bz_default_hidden');
             removeClass('resolution_settings_warning', 'bz_default_hidden');
@@ -208,8 +208,8 @@ function showDuplicateItem(e)
     if (resolution && dup_id)
     {
         // FIXME remove name hardcode
-        if (resolution.options[resolution.selectedIndex].text == 'DUPLICATE' &&
-            bz_isValueInArray(close_status_array, bug_status.options[bug_status.selectedIndex].text))
+        if (resolution.options[resolution.selectedIndex].value == 'DUPLICATE' &&
+            bz_isValueInArray(close_status_array, bug_status.options[bug_status.selectedIndex].value))
         {
             // hide resolution show duplicate
             removeClass('duplicate_settings', 'bz_default_hidden');

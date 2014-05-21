@@ -50,6 +50,15 @@ var component_data = [% json(components_json) %];
 var wantsReminder = [% Bugzilla.user.wants_worktime_reminder('new bug') ? 'true' : 'false' %];
 var noTimeTracking = [% product.notimetracking ? 'true' : 'false' %];
 
+[%# FIXME Move close_status_array into "js resource data" %]
+var close_status_array = [
+  [% SET i = 0 %]
+  [% FOREACH status = Bugzilla.get_field('bug_status').legal_values %]
+    [% NEXT IF status.is_open %]
+    [% ',' IF i; SET i = 1 %]'[% status.name FILTER js %]'
+  [% END %]
+];
+
 -->
 </script>
 
@@ -203,7 +212,7 @@ var noTimeTracking = [% product.notimetracking ? 'true' : 'false' %];
     [% END %]
   </tr>
 
-  <tr id="resolution_container" style="display:none">
+  <tr id="resolution_settings" class="bz_default_hidden">
     [% INCLUDE bug/field.html.tmpl
       bug = default
       field = select_fields.resolution

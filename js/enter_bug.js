@@ -131,18 +131,11 @@ function handleWantsAttachment(wants_attachment)
 
 function bug_status_change()
 {
-    if (this.value == "RESOLVED")
+    showHideStatusItems();
+    // FIXME Remove hardcode bug_status==ASSIGNED => assign to self
+    if (this.value == "ASSIGNED")
     {
-        document.getElementById('resolution_container').style.display = '';
-    }
-    else
-    {
-        if (this.value == "ASSIGNED")
-        {
-            document.Create.assigned_to.value = current_user_login;
-        }
-        document.getElementById('resolution_container').style.display = 'none';
-        document.Create.resolution.value = '';
+        document.Create.assigned_to.value = current_user_login;
     }
 }
 
