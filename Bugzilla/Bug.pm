@@ -139,6 +139,8 @@ sub DATE_COLUMNS
 # This is used by add_comment to know what we validate before putting in the DB
 use constant UPDATE_COMMENT_COLUMNS => qw(
     thetext
+    who
+    bug_when
     work_time
     type
     extra_data
@@ -2421,6 +2423,7 @@ sub add_comment
                 ThrowUserError('comment_required');
             }
         }
+        # FIXME validate SuperWorkTime privileges
     }
     if (exists $params->{type})
     {
