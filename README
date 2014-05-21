@@ -4,6 +4,17 @@ Bugzilla is a free bug-tracking system that is developed by an active
 community of volunteers in the Mozilla community. You can install and
 use it without having to pay any license fee.
 
+What is Bugzilla4Intranet?
+==========================
+Bugzilla4Intranet is a highly improved fork of Bugzilla version 3.6.4,
+targeted at being a Fast and Customisable bug-tracker, and at cleaning
+Bugzilla code, which contains a lot of hardcoded behaviour and just
+ugly ideas or implementations.
+
+Of course that's an ideal goal :-)
+
+See also http://wiki.4intra.net/Bugzilla4Intranet (russian)
+
 Minimum requirements
 ====================
 It can be installed on Windows, Mac OS X, Linux and other Unix flavors.
