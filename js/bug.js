@@ -428,6 +428,7 @@ function showEditComment(comment_id)
                     submit_but.value = 'Save All Changes';
                     but_wrapper.appendChild(submit_but);
                     parent.appendChild(but_wrapper);
+                    textarea.focus();
                 }
             }
         }
