@@ -6,14 +6,8 @@
 function updateCommentPrivacy(checkbox, id)
 {
     var comment_elem = document.getElementById('comment_text_'+id).parentNode;
-    if (checkbox.checked)
-    {
-        if (!comment_elem.className.match('bz_private'))
-            comment_elem.className = comment_elem.className.concat(' bz_private');
-    }
-    else
-        comment_elem.className =
-            comment_elem.className.replace(/(\s*|^)bz_private(\s*|$)/, '$2');
+    var fn = checkbox.checked ? addClass : removeClass;
+    fn(comment_elem, 'bz_private');
 }
 
 /* The functions below expand and collapse comments  */
@@ -142,26 +136,36 @@ function addActionLinks(indexes)
  * This is used instead of innerHTML because we want the actual text (and
  * innerText is non-standard).
  */
-function getText(element) {
+function getText(element)
+{
     var child, text = "", prev, ct;
-    for (var i = 0; i < element.childNodes.length; i++) {
+    for (var i = 0; i < element.childNodes.length; i++)
+    {
         child = element.childNodes[i];
         var type = child.nodeType;
-        if (type == Node.TEXT_NODE || type == Node.ENTITY_REFERENCE_NODE) {
+        if (type == Node.TEXT_NODE || type == Node.ENTITY_REFERENCE_NODE)
+        {
             text += child.nodeValue;
-        } else if (child.nodeName == 'BR') {
+        }
+        else if (child.nodeName == 'BR')
+        {
             text += "\n";
-        } else {
+        }
+        else
+        {
             /* recurse into nodes of other types */
-            if (child.nodeName == 'P') {
+            if (child.nodeName == 'P')
+            {
                 text += "\n";
             }
             ct = getText(child);
-            if (child.className == 'quote') {
+            if (child.className == 'quote')
+            {
                 ct = ct.replace(/^/mg, '> ');
             }
             text += ct;
-            if (child.nodeName == 'P') {
+            if (child.nodeName == 'P')
+            {
                 text += "\n";
             }
         }
@@ -257,7 +261,8 @@ function updateRemainingTime()
 
 function changeform_onsubmit()
 {
-    if (check_new_keywords(document.changeform) == false) return false;
+    if (check_new_keywords(document.changeform) == false)
+        return false;
 
     var wtInput = document.changeform.work_time;
     if (!wtInput)
@@ -386,8 +391,9 @@ addListener(window, 'load', function()
     }
 });
 
-function showEditComment(comment_id) {
-    var el = document.getElementById("comment_text_"+comment_id);
+function showEditComment(comment_id)
+{
+    var el = document.getElementById('comment_text_' + comment_id);
     var parent = el.parentNode;
 
     var textarea = document.getElementById('edit_comment_' + comment_id);
@@ -398,14 +404,15 @@ function showEditComment(comment_id) {
 
     var u = window.location.href.replace(/[^\/]+$/, '');
     u += 'xml.cgi?method=Bug.comments&output=json&comment_ids=' + comment_id;
-    AjaxLoader(u, function(x) {
+    AjaxLoader(u, function(x)
+    {
         var r = {};
         try { eval('r = '+x.responseText+';'); } catch (e) { return; }
         if (r.status == 'ok')
         {
             if (r.comments)
             {
-                for(var key in r.comments)
+                for (var key in r.comments)
                 {
                     var comment = r.comments[key];
                     var textarea = document.createElement('textarea');
@@ -426,4 +433,3 @@ function showEditComment(comment_id) {
         }
     });
 }
-
