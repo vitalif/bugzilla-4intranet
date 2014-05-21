@@ -49,6 +49,8 @@ use constant FIELD_NAME => 'product';
 use constant NAME_FIELD => 'name';
 use constant LIST_ORDER => 'name';
 
+# FIXME add default version property
+
 use constant DB_COLUMNS => qw(
     id
     name
@@ -77,13 +79,14 @@ use constant UPDATE_COLUMNS => qw(
     wiki_url
     notimetracking
     extproduct
+    classification_id
     description
     isactive
     votesperuser
     maxvotesperbug
     votestoconfirm
+    defaultmilestone
     allows_unconfirmed
-    classification_id
     cc_group
 );
 
@@ -191,6 +194,15 @@ sub update
     my ($changes, $old_self) = Bugzilla::Object::update($self, @_);
 
     # FIXME when renaming a product, try to rename it in all named queries
+
+    # Update is_default for milestone in fieldvaluecontrol
+    if ($changes->{defaultmilestone})
+    {
+        Bugzilla::Field::update_default_values(
+            'target_milestone', $self->id,
+            [ $changes->{defaultmilestone}->[1] || () ]
+        );
+    }
 
     # Convert default milestone to name
     if ($changes->{defaultmilestone})
@@ -594,7 +606,7 @@ sub _check_description
 {
     my ($invocant, $description) = @_;
 
-    $description  = trim($description);
+    $description = trim($description);
     $description || ThrowUserError('product_must_have_description');
     return $description;
 }
@@ -754,6 +766,8 @@ sub set_votes_per_bug { $_[0]->set('maxvotesperbug', $_[1]); }
 sub set_votes_to_confirm { $_[0]->set('votestoconfirm', $_[1]); }
 sub set_allows_unconfirmed { $_[0]->set('allows_unconfirmed', $_[1]); }
 sub set_classification { $_[0]->set('classification_id', $_[1]); }
+
+# FIXME make cc_group reference group ID, not name
 sub set_cc_group { $_[0]->set('cc_group', $_[1]); }
 
 sub set_extproduct

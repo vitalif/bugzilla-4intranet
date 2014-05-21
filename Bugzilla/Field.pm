@@ -1293,6 +1293,22 @@ sub update_controlled_values
     return 1;
 }
 
+sub update_default_values
+{
+    my ($controlled_field, $visibility_value_id, $default_value_ids) = @_;
+    $controlled_field = Bugzilla->get_field($controlled_field) if !ref $controlled_field;
+    $visibility_value_id = int($visibility_value_id);
+    $default_value_ids = [ map { int $_ } @$default_value_ids || (0) ];
+    Bugzilla->dbh->do(
+        'UPDATE fieldvaluecontrol SET is_default=(value_id IN ('.join(', ', @$default_value_ids).
+        ')) WHERE field_id=? AND visibility_value_id=? AND value_id!=0',
+        undef, $controlled_field->id, $visibility_value_id
+    );
+    # Touch the field
+    $controlled_field->touch;
+    return 1;
+}
+
 # Field and value dependency data, intended for use in client JavaScript
 sub json_visibility
 {
