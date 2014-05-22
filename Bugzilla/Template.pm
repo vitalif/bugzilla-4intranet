@@ -338,7 +338,7 @@ sub quoteUrls {
 
     # attachment links
     $text =~ s~\b(attachment\s*\#?\s*(\d+)(?:\s+\[details\])?)
-              ~($things[$count++] = get_attachment_link($2, $1)) &&
+              ~($things[$count++] = get_attachment_link($2, $1, $comment)) &&
                ("\0\0" . ($count-1) . "\0\0")
               ~egsxi;
 
@@ -375,7 +375,7 @@ sub quoteUrls {
 
 # Creates a link to an attachment, including its title.
 sub get_attachment_link {
-    my ($attachid, $link_text) = @_;
+    my ($attachid, $link_text, $comment) = @_;
     my $dbh = Bugzilla->dbh;
 
     my $attachment = new Bugzilla::Attachment($attachid);
@@ -403,21 +403,25 @@ sub get_attachment_link {
         }
 
         # Custis Bug 126991
-        my $attachment_view = "";
-        if ($attachment->contenttype =~ /^(image)\//) {
-            $attachment_view = '<br /><a href="'.$linkval.$patchlink.'" name="attach_'.$attachid.'" title="'.$title.'" target="_blank"><img src="'.$linkval.$patchlink.'" alt="'.$title.'" title="'.$title.'" class="attachment_image" /></a><br />';
+        my $attachment_view = '';
+        if ($comment->type == CMT_ATTACHMENT_CREATED &&
+            $attachment->id == $comment->extra_data &&
+            $attachment->contenttype =~ /^image\//s)
+        {
+            $attachment_view .= '<br /><a href="'.$linkval.$patchlink.'" name="attach_'.$attachid.
+                '" title="'.$title.'" target="_blank"><img src="'.$linkval.$patchlink.'" alt="'.$title.
+                '" title="'.$title.'" class="attachment_image" /></a><br />';
         }
+
         # Custis Bug 129398
-        my $attachment_online_view = "";
         if ($attachment->isOfficeDocument()) {
-            $attachment_online_view = '<a href="'.$linkval.'&amp;action=online_view" title="$title" target="_blank">[Online-view]</a>';
+            $attachment_view .= ' <a href="'.$linkval.'&amp;action=online_view" title="$title" target="_blank">[Online-view]</a>';
         }
         # Whitespace matters here because these links are in <pre> tags.
         return qq|<span class="$className">|
                . qq|<a href="${linkval}${patchlink}" name="attach_${attachid}" title="$title" target="_blank">$link_text</a>|
                . qq| <a href="${linkval}&amp;action=edit" title="$title" target="_blank">[details]</a>|
-               . qq| ${attachment_online_view} |
-               . qq| ${attachment_view}|
+               . qq| $attachment_view|
                . qq|</span>|;
     }
     else {
