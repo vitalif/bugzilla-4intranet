@@ -472,6 +472,7 @@ sub create
 sub update
 {
     my $self = shift;
+    $self->make_dirty;
 
     my $method = $self->id ? 'update' : 'create';
 
