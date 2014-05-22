@@ -546,6 +546,12 @@ sub default_version_obj
     return $self->{default_version_obj} = $version;
 }
 
+sub default_version_name
+{
+    my $self = shift;
+    return $self->{default_version} && $self->default_version_obj->name;
+}
+
 ###############################
 ####      Subroutines      ####
 ###############################
