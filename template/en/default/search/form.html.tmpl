@@ -600,7 +600,7 @@ addListener(window, 'load', function() {
   <td align="left">
     <select name="[% sel.name | html %]" id="[% sel.name | html %]" multiple="multiple" size="[% sel.size %]">
       [% IF bug_fields.${sel.name}.type == constants.FIELD_TYPE_SINGLE_SELECT && bug_fields.${sel.name}.nullable %]
-        <option value="---">---</option>
+        <option value="---"[% " selected" IF lsearch(default.${sel.name}, '---') != -1 %]>---</option>
       [% END %]
       [% FOREACH value = bug_fields.${sel.name}.legal_value_names_with_ids %]
         <option value="[% value.name | html %]" id="qf_[% sel.name | html %]_[% value.ids.join('_') %]"
