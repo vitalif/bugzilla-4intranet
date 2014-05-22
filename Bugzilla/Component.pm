@@ -75,12 +75,12 @@ use constant VALIDATORS => {
     initialqacontact => \&_check_initialqacontact,
     description      => \&_check_description,
     initial_cc       => \&_check_cc_list,
-    is_active         => \&Bugzilla::Object::check_boolean,
+    is_active        => \&Bugzilla::Object::check_boolean,
 };
 
 use constant UPDATE_VALIDATORS => {
-    name => \&_check_name,
-    default_version => \&_check_default_version,
+    name             => \&_check_name,
+    default_version  => \&_check_default_version,
 };
 
 ###############################
@@ -312,11 +312,10 @@ sub _check_default_version
 {
     my ($invocant, $version, $product) = @_;
     $version = trim($version);
-    return '' unless $version;
+    return undef unless $version;
     $product = $invocant->product unless ref $product;
-    scalar(grep { $_->name eq $version } @{ $product->versions })
-        || ThrowUserError('illegal_field', { field => 'Default version' });
-    return $version;
+    $version = Bugzilla::Version->check({ product => $product, name => $version });
+    return $version->id;
 }
 
 ###############################
@@ -375,10 +374,18 @@ sub _create_series
 }
 
 sub set_is_active { $_[0]->set('is_active', $_[1]); }
-sub set_default_version { $_[0]->set('default_version', $_[1]); }
 sub set_wiki_url { $_[0]->set('wiki_url', $_[1]); }
 sub set_name { $_[0]->set('name', $_[1]); }
 sub set_description { $_[0]->set('description', $_[1]); }
+
+sub set_default_version
+{
+    my ($self, $version) = @_;
+
+    $self->set('default_version', $version);
+    # Reset the default version object
+    delete $self->{default_version_obj};
+}
 
 sub set_default_assignee
 {
@@ -528,7 +535,16 @@ sub description { return $_[0]->{description}; }
 sub wiki_url    { return $_[0]->{wiki_url};    }
 sub product_id  { return $_[0]->{product_id};  }
 sub is_active   { return $_[0]->{is_active};    }
+
 sub default_version { return $_[0]->{default_version}; }
+
+sub default_version_obj
+{
+    my $self = shift;
+    return $self->{default_version_obj} if $self->{default_version_obj} || !$self->{default_version};
+    my $version = Bugzilla::Version->new($self->{default_version});
+    return $self->{default_version_obj} = $version;
+}
 
 ###############################
 ####      Subroutines      ####

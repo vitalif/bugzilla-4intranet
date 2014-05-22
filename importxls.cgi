@@ -456,7 +456,7 @@ sub post_bug
             });
         };
         # If there is no default version in the component:
-        if (!$component || !($fields_in->{version} = $component->default_version))
+        if (!$component || !($fields_in->{version} = $component->default_version && $component->default_version_obj->name))
         {
             my $vers = [ map ($_->name, @{$product->versions}) ];
             my $v;

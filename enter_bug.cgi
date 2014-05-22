@@ -389,7 +389,7 @@ sub components_json
     {
         push @$components, {
             name => $c->name,
-            default_version => $c->default_version,
+            default_version => $c->default_version && $c->default_version_obj->name,
             description => html_light_quote($c->description),
             default_assignee => $c->default_assignee && $c->default_assignee->login,
             default_qa_contact => $c->default_qa_contact && $c->default_qa_contact->login,

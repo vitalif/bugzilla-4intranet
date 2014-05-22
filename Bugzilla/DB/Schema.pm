@@ -226,6 +226,7 @@ use constant FIELD_TABLE_SCHEMA => {
     ],
 };
 
+# FIXME remove all small varchars
 use constant ABSTRACT_SCHEMA => {
 
     # BUG-RELATED TABLES
@@ -1062,7 +1063,7 @@ use constant ABSTRACT_SCHEMA => {
             initialqacontact => {TYPE => 'INT4', REFERENCES => {TABLE => 'profiles', COLUMN => 'userid', DELETE => 'SET NULL'}},
             description      => {TYPE => 'MEDIUMTEXT', NOTNULL => 1},
             wiki_url         => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"},
-            default_version  => {TYPE => 'varchar(64)', NOTNULL => 1, DEFAULT => "''"},
+            default_version  => {TYPE => 'INT4', REFERENCES => {TABLE => 'versions', COLUMN => 'id', DELETE => 'SET NULL'}},
             is_active        => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 1},
         ],
         INDEXES => [

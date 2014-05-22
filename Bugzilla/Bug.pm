@@ -2227,7 +2227,7 @@ sub _set_select_field
         }
         ThrowUserError('object_not_specified', { class => $t });
     }
-    my $value_obj = $t->new({ name => $value });
+    my $value_obj = ref $value ? $value : $t->new({ name => $value });
     if (!$value_obj)
     {
         $self->{_unknown_dependent_values}->{$field} = [ $value ];

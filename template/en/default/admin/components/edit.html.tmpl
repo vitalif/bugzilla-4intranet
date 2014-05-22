@@ -104,7 +104,7 @@
         <select id="default_version" name="default_version">
           <option value="">---</option>
         [% FOREACH x = product.versions %]
-          <option value="[% x.name FILTER html %]" [% "selected" IF x.name == comp.default_version %] >[% x.name FILTER html %]</option>
+          <option value="[% x.name FILTER html %]" [% "selected" IF x.id == comp.default_version %] >[% x.name FILTER html %]</option>
         [% END %]
         </select>
       </td>

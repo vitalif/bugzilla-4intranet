@@ -3810,6 +3810,7 @@ sub _change_select_fields_to_ids
         [ 'bugs', op_sys           => 'op_sys' ],
         [ 'bugs', rep_platform     => 'rep_platform' ],
         [ 'products', defaultmilestone => 'milestones', ' AND m.product_id=b.id' ],
+        [ 'components', default_version => 'versions', ' AND m.product_id=b.product_id' ],
     ];
     for (Bugzilla->get_fields({ custom => 1, type => FIELD_TYPE_SINGLE_SELECT }))
     {
