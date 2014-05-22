@@ -1,5 +1,3 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -87,24 +85,30 @@ use constant UPDATE_VALIDATORS => {
 
 ###############################
 
-sub new {
+sub new
+{
     my $class = shift;
     my $param = shift;
     my $dbh = Bugzilla->dbh;
 
     my $product;
-    if (ref $param) {
+    if (ref $param)
+    {
         $product = $param->{product};
         my $name = $param->{name};
-        if (!defined $product) {
-            ThrowCodeError('bad_arg',
-                {argument => 'product',
-                 function => "${class}::new"});
+        if (!defined $product)
+        {
+            ThrowCodeError('bad_arg', {
+                argument => 'product',
+                function => "${class}::new",
+            });
         }
-        if (!defined $name) {
-            ThrowCodeError('bad_arg',
-                {argument => 'name',
-                 function => "${class}::new"});
+        if (!defined $name)
+        {
+            ThrowCodeError('bad_arg', {
+                argument => 'name',
+                function => "${class}::new",
+            });
         }
 
         my $condition = 'product_id = ? AND name = ?';
@@ -119,7 +123,8 @@ sub new {
     return $component;
 }
 
-sub create {
+sub create
+{
     my $class = shift;
     my $dbh = Bugzilla->dbh;
 
@@ -171,7 +176,8 @@ sub update
     $self->set_visibility_values([ $self->product_id ]);
 
     # Update the component_cc table if necessary.
-    if (defined $self->{cc_ids}) {
+    if (defined $self->{cc_ids})
+    {
         my $diff = $self->_update_cc_list($self->{cc_ids});
         $changes->{cc_list} = $diff if defined $diff;
     }
@@ -181,32 +187,35 @@ sub update
     return $changes;
 }
 
-sub remove_from_db {
+sub remove_from_db
+{
     my $self = shift;
     my $dbh = Bugzilla->dbh;
 
     $dbh->bz_start_transaction();
 
-    if ($self->bug_count) {
-        if (Bugzilla->params->{'allowbugdeletion'}) {
+    if ($self->bug_count)
+    {
+        if (Bugzilla->params->{allowbugdeletion})
+        {
             require Bugzilla::Bug;
-            foreach my $bug_id (@{$self->bug_ids}) {
+            foreach my $bug_id (@{$self->bug_ids})
+            {
                 # Note: We allow admins to delete bugs even if they can't
                 # see them, as long as they can see the product.
                 my $bug = new Bugzilla::Bug($bug_id);
                 $bug->remove_from_db();
             }
-        } else {
+        }
+        else
+        {
             ThrowUserError('component_has_bugs', {nb => $self->bug_count});
         }
     }
 
-    $dbh->do('DELETE FROM flaginclusions WHERE component_id = ?',
-             undef, $self->id);
-    $dbh->do('DELETE FROM flagexclusions WHERE component_id = ?',
-             undef, $self->id);
-    $dbh->do('DELETE FROM component_cc WHERE component_id = ?',
-             undef, $self->id);
+    $dbh->do('DELETE FROM flaginclusions WHERE component_id = ?', undef, $self->id);
+    $dbh->do('DELETE FROM flagexclusions WHERE component_id = ?', undef, $self->id);
+    $dbh->do('DELETE FROM component_cc WHERE component_id = ?', undef, $self->id);
     $dbh->do('DELETE FROM components WHERE id = ?', undef, $self->id);
 
     # Remove visibility values
@@ -221,26 +230,32 @@ sub remove_from_db {
 # Validators
 ################################
 
-sub _check_name {
+sub _check_name
+{
     my ($invocant, $name, $product) = @_;
 
     $name = trim($name);
     $name || ThrowUserError('component_blank_name');
 
-    if (length($name) > MAX_COMPONENT_SIZE) {
-        ThrowUserError('component_name_too_long', {'name' => $name});
+    if (length($name) > MAX_COMPONENT_SIZE)
+    {
+        ThrowUserError('component_name_too_long', { name => $name });
     }
 
     $product = $invocant->product if (ref $invocant);
-    my $component = new Bugzilla::Component({product => $product, name => $name});
-    if ($component && (!ref $invocant || $component->id != $invocant->id)) {
-        ThrowUserError('component_already_exists', { name    => $component->name,
-                                                     product => $product });
+    my $component = new Bugzilla::Component({ product => $product, name => $name });
+    if ($component && (!ref $invocant || $component->id != $invocant->id))
+    {
+        ThrowUserError('component_already_exists', {
+            name    => $component->name,
+            product => $product,
+        });
     }
     return $name;
 }
 
-sub _check_description {
+sub _check_description
+{
     my ($invocant, $description) = @_;
 
     $description = trim($description);
@@ -248,7 +263,8 @@ sub _check_description {
     return $description;
 }
 
-sub _check_initialowner {
+sub _check_initialowner
+{
     my ($invocant, $owner) = @_;
 
     $owner || ThrowUserError('component_need_initialowner');
@@ -256,33 +272,39 @@ sub _check_initialowner {
     return $owner_id;
 }
 
-sub _check_initialqacontact {
+sub _check_initialqacontact
+{
     my ($invocant, $qa_contact) = @_;
 
     my $qa_contact_id;
-    if (Bugzilla->params->{'useqacontact'}) {
+    if (Bugzilla->params->{useqacontact})
+    {
         $qa_contact_id = Bugzilla::User->check($qa_contact)->id if $qa_contact;
     }
-    elsif (ref $invocant) {
+    elsif (ref $invocant)
+    {
         $qa_contact_id = $invocant->{initialqacontact};
     }
     return $qa_contact_id;
 }
 
-sub _check_product {
+sub _check_product
+{
     my ($invocant, $product) = @_;
     return Bugzilla->user->check_can_admin_product($product->name);
 }
 
-sub _check_cc_list {
+sub _check_cc_list
+{
     my ($invocant, $cc_list) = @_;
 
     my %cc_ids;
-    foreach my $cc (@$cc_list) {
+    foreach my $cc (@$cc_list)
+    {
         my $id = login_to_id($cc, THROW_ERROR);
         $cc_ids{$id} = 1;
     }
-    return [keys %cc_ids];
+    return [ keys %cc_ids ];
 }
 
 # CustIS Bug 53725 - Версия по умолчанию
@@ -301,49 +323,53 @@ sub _check_default_version
 ####       Methods         ####
 ###############################
 
-sub _update_cc_list {
+sub _update_cc_list
+{
     my ($self, $cc_list) = @_;
     my $dbh = Bugzilla->dbh;
 
-    my $old_cc_list =
-      $dbh->selectcol_arrayref('SELECT user_id FROM component_cc
-                                WHERE component_id = ?', undef, $self->id);
+    my $old_cc_list = $dbh->selectcol_arrayref(
+        'SELECT user_id FROM component_cc WHERE component_id = ?', undef, $self->id
+    );
 
     my ($removed, $added) = diff_arrays($old_cc_list, $cc_list);
     my $diff;
-    if (scalar @$removed || scalar @$added) {
-        $diff = [join(', ', @$removed), join(', ', @$added)];
+    if (scalar @$removed || scalar @$added)
+    {
+        $diff = [ join(', ', @$removed), join(', ', @$added) ];
     }
 
     $dbh->do('DELETE FROM component_cc WHERE component_id = ?', undef, $self->id);
 
-    my $sth = $dbh->prepare('INSERT INTO component_cc
-                             (user_id, component_id) VALUES (?, ?)');
+    my $sth = $dbh->prepare('INSERT INTO component_cc (user_id, component_id) VALUES (?, ?)');
     $sth->execute($_, $self->id) foreach (@$cc_list);
 
     return $diff;
 }
 
-sub _create_series {
+sub _create_series
+{
     my $self = shift;
 
     # Insert default charting queries for this product.
     # If they aren't using charting, this won't do any harm.
-    my $prodcomp = "&product="   . url_quote($self->product->name) .
-                   "&component=" . url_quote($self->name);
+    my $prodcomp = "&product=" . url_quote($self->product->name) .
+        "&component=" . url_quote($self->name);
 
-    my $open_query = 'field0-0-0=resolution&type0-0-0=notregexp&value0-0-0=.' .
-                     $prodcomp;
-    my $nonopen_query = 'field0-0-0=resolution&type0-0-0=regexp&value0-0-0=.' .
-                        $prodcomp;
+    my $open_query = 'field0-0-0=resolution&type0-0-0=notregexp&value0-0-0=.' . $prodcomp;
+    my $nonopen_query = 'field0-0-0=resolution&type0-0-0=regexp&value0-0-0=.' . $prodcomp;
 
-    my @series = ([get_text('series_all_open'), $open_query],
-                  [get_text('series_all_closed'), $nonopen_query]);
+    my @series = (
+        [ get_text('series_all_open'), $open_query ],
+        [ get_text('series_all_closed'), $nonopen_query ]
+    );
 
-    foreach my $sdata (@series) {
-        my $series = new Bugzilla::Series(undef, $self->product->name,
-                                          $self->name, $sdata->[0],
-                                          Bugzilla->user->id, 1, $sdata->[1], 1);
+    foreach my $sdata (@series)
+    {
+        my $series = new Bugzilla::Series(
+            undef, $self->product->name, $self->name, $sdata->[0],
+            Bugzilla->user->id, 1, $sdata->[1], 1
+        );
         $series->writeToDatabase();
     }
 }
@@ -353,21 +379,27 @@ sub set_default_version { $_[0]->set('default_version', $_[1]); }
 sub set_wiki_url { $_[0]->set('wiki_url', $_[1]); }
 sub set_name { $_[0]->set('name', $_[1]); }
 sub set_description { $_[0]->set('description', $_[1]); }
-sub set_default_assignee {
+
+sub set_default_assignee
+{
     my ($self, $owner) = @_;
 
     $self->set('initialowner', $owner);
     # Reset the default owner object.
     delete $self->{default_assignee};
 }
-sub set_default_qa_contact {
+
+sub set_default_qa_contact
+{
     my ($self, $qa_contact) = @_;
 
     $self->set('initialqacontact', $qa_contact);
     # Reset the default QA contact object.
     delete $self->{default_qa_contact};
 }
-sub set_cc_list {
+
+sub set_cc_list
+{
     my ($self, $cc_list) = @_;
 
     $self->{cc_ids} = $self->_check_cc_list($cc_list);
@@ -375,28 +407,34 @@ sub set_cc_list {
     delete $self->{initial_cc};
 }
 
-sub bug_count {
+sub bug_count
+{
     my $self = shift;
     my $dbh = Bugzilla->dbh;
 
-    if (!defined $self->{'bug_count'}) {
-        $self->{'bug_count'} = $dbh->selectrow_array(q{
-            SELECT COUNT(*) FROM bugs
-            WHERE component_id = ?}, undef, $self->id) || 0;
+    if (!defined $self->{bug_count})
+    {
+        $self->{bug_count} = $dbh->selectrow_array(
+            'SELECT COUNT(*) FROM bugs WHERE component_id = ?',
+            undef, $self->id
+        ) || 0;
     }
-    return $self->{'bug_count'};
+    return $self->{bug_count};
 }
 
-sub bug_ids {
+sub bug_ids
+{
     my $self = shift;
     my $dbh = Bugzilla->dbh;
 
-    if (!defined $self->{'bugs_ids'}) {
-        $self->{'bugs_ids'} = $dbh->selectcol_arrayref(q{
-            SELECT bug_id FROM bugs
-            WHERE component_id = ?}, undef, $self->id);
+    if (!defined $self->{bugs_ids})
+    {
+        $self->{bugs_ids} = $dbh->selectcol_arrayref(
+            'SELECT bug_id FROM bugs WHERE component_id = ?',
+            undef, $self->id
+        );
     }
-    return $self->{'bugs_ids'};
+    return $self->{bugs_ids};
 }
 
 sub default_assignee
@@ -425,17 +463,16 @@ sub flag_types
 {
     my $self = shift;
 
-    if (!defined $self->{'flag_types'})
+    if (!defined $self->{flag_types})
     {
-        my $flagtypes = Bugzilla::FlagType::match({ product_id   => $self->product_id,
-                                                    component_id => $self->id });
+        my $flagtypes = Bugzilla::FlagType::match({
+            product_id   => $self->product_id,
+            component_id => $self->id,
+        });
 
-        $self->{'flag_types'} = {};
-        $self->{'flag_types'}->{'bug'} =
-          [grep { $_->target_type eq 'bug' } @$flagtypes];
-
-        $self->{'flag_types'}->{'attachment'} =
-          [grep { $_->target_type eq 'attachment' } @$flagtypes];
+        $self->{flag_types} = {};
+        $self->{flag_types}->{bug} = [ grep { $_->target_type eq 'bug' } @$flagtypes ];
+        $self->{flag_types}->{attachment} = [ grep { $_->target_type eq 'attachment' } @$flagtypes ];
 
         foreach my $type (@{$self->{flag_types}->{bug}}, @{$self->{flag_types}->{attachment}})
         {
@@ -448,33 +485,37 @@ sub flag_types
             $type->{allow_other} = 1;
         }
     }
-    return $self->{'flag_types'};
+    return $self->{flag_types};
 }
 
-sub initial_cc {
+sub initial_cc
+{
     my $self = shift;
     my $dbh = Bugzilla->dbh;
 
-    if (!defined $self->{'initial_cc'}) {
+    if (!defined $self->{initial_cc})
+    {
         # If set_cc_list() has been called but data are not yet written
         # into the DB, we want the new values defined by it.
-        my $cc_ids = $self->{cc_ids}
-                     || $dbh->selectcol_arrayref('SELECT user_id FROM component_cc
-                                                  WHERE component_id = ?',
-                                                  undef, $self->id);
+        my $cc_ids = $self->{cc_ids} || $dbh->selectcol_arrayref(
+            'SELECT user_id FROM component_cc WHERE component_id = ?',
+            undef, $self->id
+        );
 
-        $self->{'initial_cc'} = Bugzilla::User->new_from_list($cc_ids);
+        $self->{initial_cc} = Bugzilla::User->new_from_list($cc_ids);
     }
-    return $self->{'initial_cc'};
+    return $self->{initial_cc};
 }
 
-sub product {
+sub product
+{
     my $self = shift;
-    if (!defined $self->{'product'}) {
+    if (!defined $self->{product})
+    {
         require Bugzilla::Product; # We cannot |use| it.
-        $self->{'product'} = new Bugzilla::Product($self->product_id);
+        $self->{product} = new Bugzilla::Product($self->product_id);
     }
-    return $self->{'product'};
+    return $self->{product};
 }
 
 ###############################
@@ -486,8 +527,8 @@ sub name        { return $_[0]->{name};        }
 sub description { return $_[0]->{description}; }
 sub wiki_url    { return $_[0]->{wiki_url};    }
 sub product_id  { return $_[0]->{product_id};  }
-sub default_version { return $_[0]->{default_version}; }
 sub is_active   { return $_[0]->{is_active};    }
+sub default_version { return $_[0]->{default_version}; }
 
 ###############################
 ####      Subroutines      ####
@@ -518,8 +559,8 @@ Bugzilla::Component - Bugzilla product component class.
     my $default_qa_contact = $component->default_qa_contact;
     my $initial_cc         = $component->initial_cc;
     my $product            = $component->product;
-    my $bug_flag_types     = $component->flag_types->{'bug'};
-    my $attach_flag_types  = $component->flag_types->{'attachment'};
+    my $bug_flag_types     = $component->flag_types->{bug};
+    my $attach_flag_types  = $component->flag_types->{attachment};
 
     my $component = Bugzilla::Component->check({ product => $product, name => $name });
 
