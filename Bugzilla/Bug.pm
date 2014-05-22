@@ -833,8 +833,9 @@ sub _check_bug_status
         });
     }
 
-    # Check if a comment is required for this change.
-    if ($new_status->comment_required_on_change_from($old_status) && !@{$self->{added_comments} || []})
+    # Check if a comment is required for this change (also for new bugs).
+    if ((!$old_status || $new_status->comment_required_on_change_from($old_status)) &&
+        !@{$self->{added_comments} || []})
     {
         ThrowUserError('comment_required', { old => $old_status, new => $new_status });
     }
