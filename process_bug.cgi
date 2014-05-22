@@ -351,7 +351,7 @@ elsif (defined $ARGS->{dependson} || defined $ARGS->{blocked})
 }
 
 my $any_keyword_changes;
-if ($ARGS->{keywords})
+if (exists $ARGS->{keywords})
 {
     foreach my $b (@bug_objects)
     {

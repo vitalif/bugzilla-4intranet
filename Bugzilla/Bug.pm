@@ -1869,7 +1869,7 @@ sub _set_keywords
             my $keyword_string = $data->{keywords};
             $keyword_string =~ s/^[\s,]+//s;
             $keyword_string =~ s/[\s,]+$//s;
-            if ($keyword_string)
+            if ($keyword_string ne '')
             {
                 $keyword_string = [ split /[\s,]*,[\s,]*/, $keyword_string ];
                 my $kw = Bugzilla::Keyword->match({ name => $keyword_string });
@@ -1887,6 +1887,10 @@ sub _set_keywords
                     }
                 }
                 $new = [ values %$kw ];
+            }
+            else
+            {
+                $new = [];
             }
         }
         # Make sure we retain the sort order.
