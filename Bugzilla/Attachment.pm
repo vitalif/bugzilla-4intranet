@@ -1203,11 +1203,12 @@ sub add_multiple
             }
         }
     }
-    for (values %$multiple)
+    # Create attachments in the same order as on the form
+    for (sort { $a <=> $b } keys %$multiple)
     {
-        if ($_->{data})
+        if ($multiple->{$_}->{data})
         {
-            add_attachment($bug, $_, $send_attrs);
+            add_attachment($bug, $multiple->{$_}, $send_attrs);
         }
     }
 }
