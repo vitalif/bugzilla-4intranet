@@ -98,7 +98,7 @@ unless ($action) {
 if ($action eq 'add') {
     $vars->{'token'} = issue_session_token('add_component');
     $vars->{'product'} = $product;
-    $template->process("admin/components/create.html.tmpl", $vars)
+    $template->process("admin/components/edit.html.tmpl", $vars)
         || ThrowTemplateError($template->error());
     exit;
 }

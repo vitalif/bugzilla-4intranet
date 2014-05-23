@@ -27,7 +27,11 @@
   #%]
 
 [% title = BLOCK %]
+  [% IF comp.id %]
   Edit component '[% comp.name FILTER html %]' of product '[% product.name FILTER html %]'
+  [% ELSE %]
+  Add component to the [% product.name FILTER html %] product
+  [% END %]
 [% END %]
 [% PROCESS global/header.html.tmpl
   title = title
@@ -37,12 +41,12 @@
   <table border="0" cellpadding="4" cellspacing="0">
 
     <tr>
-      <td valign="top">Component:</td>
+      <th align="left">Component:</th>
       <td><input size="64" maxlength="64" name="component" value="
       [%- comp.name FILTER html %]"></td>
     </tr>
     <tr>
-      <td valign="top">Component Description:</td>
+      <th align="left">Description:</th>
       <td>
         [% INCLUDE global/textarea.html.tmpl
           name           = 'description'
@@ -54,7 +58,7 @@
       </td>
     </tr>
     <tr>
-      <td valign="top"><label for="initialowner">Default Assignee:</label></td>
+      <th align="left"><label for="initialowner">Default Assignee:</label></th>
       <td>
         [% INCLUDE global/userselect.html.tmpl
            name => "initialowner"
@@ -67,7 +71,7 @@
 [% IF Param('useqacontact') %]
     </tr>
     <tr>
-      <td valign="top"><label for="initialqacontact">Default QA contact:</label></td>
+      <th align="left"><label for="initialqacontact">Default QA contact:</label></th>
       <td>
         [% INCLUDE global/userselect.html.tmpl
            name => "initialqacontact"
@@ -81,9 +85,9 @@
 
     </tr>
     <tr>
-      <td valign="top">
+      <th align="left">
         <label for="initialcc">Default CC List:</label>
-      </td>
+      </th>
       <td>
         [% INCLUDE global/userselect.html.tmpl
            name     => "initialcc"
@@ -97,9 +101,9 @@
       </td>
     </tr>
     <tr>
-      <td valign="top">
+      <th align="left">
         <label for="default_version">Default version:</label>
-      </td>
+      </th>
       <td>
         <select id="default_version" name="default_version">
           <option value="">---</option>
@@ -110,44 +114,50 @@
       </td>
     </tr>
     <tr>
-      <td valign="top">Open for [% terms.bug %] entry:</td>
+      <th align="left">Open for [% terms.bug %] entry:</th>
       <td><input type="checkbox" name="is_active" value="1"
            [% ' checked="checked"' IF comp.is_active %]>
       </td>
     </tr>
     <tr>
-      <td valign="top">
+      <th align="left">
         <label for="wiki_url">Wiki URL:</label>
-      </td>
+      </th>
       <td>
         <input size="64" maxlength="64" name="wiki_url" value="[% comp.wiki_url FILTER html %]" />
         <br><em>Or use product setting when empty.</em>
       </td>
     </tr>
+
+    [% IF comp.id %]
     <tr>
-      <td>[% terms.Bugs %]:</td>
+      <th align="left">[% terms.Bugs %]:</th>
       <td>
-[% IF comp.bug_count > 0 %]
+        [% IF comp.bug_count > 0 %]
         <a title="[% terms.Bugs %] in component '[% comp.name FILTER html %]'"
            href="buglist.cgi?component=
                 [%- comp.name FILTER url_quote %]&amp;product=
                 [%- product.name FILTER url_quote %]">[% comp.bug_count %]</a>
-[% ELSE %]
+        [% ELSE %]
         None
-[% END %]
+        [% END %]
       </td>
     </tr>
+    [% END %]
 
   </table>
+  <hr />
 
-   <input type="hidden" name="action" value="update">
-   <input type="hidden" name="componentold" value="[% comp.name FILTER html %]">
-   <input type="hidden" name="product" value="[% product.name FILTER html %]">
-   <input type="hidden" name="token" value="[% token FILTER html %]">
-   <input type="submit" value="Save Changes" id="update"> or <a 
-        href="editcomponents.cgi?action=del&amp;product=
-        [%- product.name FILTER url_quote %]&amp;component=
-        [%- comp.name FILTER url_quote %]">Delete</a> this component.
+  <input type="hidden" name="action" value="[% comp.id ? 'update' : 'new' %]" />
+  <input type="hidden" name="product" value="[% product.name FILTER html %]" />
+  <input type="hidden" name="token" value="[% token FILTER html %]" />
+  <input type="submit" value="[% comp.id ? 'Save Changes' : 'Add Component' %]">
+  [% IF comp.id %]
+    or <a href="editcomponents.cgi?action=del&amp;product=
+       [%- product.name FILTER url_quote %]&amp;component=
+       [%- comp.name FILTER url_quote %]">Delete</a> this component.
+  <input type="hidden" name="componentold" value="[% comp.name FILTER html %]" />
+  [% END %]
 
 </form>
 
