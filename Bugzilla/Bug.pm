@@ -1225,8 +1225,10 @@ sub save_added_comments
 {
     my ($self, $changes) = @_;
 
+    delete $self->{comments} if @{$self->{added_comments} || []};
     foreach my $comment (@{$self->{added_comments} || []})
     {
+        # FIXME Don't talk to CGI from here
         if (Bugzilla->cgi->param('commentsilent'))
         {
             # Log silent comments
