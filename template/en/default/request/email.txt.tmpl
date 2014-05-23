@@ -151,8 +151,8 @@ body { font-family: Segoe UI, sans-serif; }
 <p><a style="font-size: 120%" href="[% urlbase %]show_bug.cgi?id=[% bug.bug_id %]#[% flag ? flag.creation_date : old_flag.creation_date | timestamp %]">[% terms.Bug %] [%+ bugidsummary %]</a>
 <br /><span style="font-size: 90%">(prod:[% bug.product %].[% bug.component -%]
     [%- IF bug.priority %], pri:[% bug.priority_obj.name %][% END -%]
-    [%- IF bug.bug_severity %], sev:[% bug.bug_severity %][% END -%]
-    [%- IF bug.target_milestone %], miles:[% bug.target_milestone %][% END -%])</span>
+    [%- IF bug.bug_severity %], sev:[% bug.bug_severity_obj.name %][% END -%]
+    [%- IF bug.target_milestone %], miles:[% bug.target_milestone_obj.name %][% END -%])</span>
 [% IF attachment %]
 <br /><a href="[%+ urlbase %]attachment.cgi?id=[% attachment.id %]&action=edit">Attachment [% attidsummary %]</a>
 [% END %]
