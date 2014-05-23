@@ -18,9 +18,6 @@
   # Contributor(s): Myk Melez <myk@mozilla.org>
   #%]
 
-[% USE Bugzilla %]
-[% cgi = Bugzilla.cgi %]
-
 [% PROCESS global/header.html.tmpl
   title="Request Queue"
   style = "
@@ -69,7 +66,7 @@ to some group are shown by default.
   <table id="filtering">
     <tr>
       <th>Requester:</th>
-      <td><input type="text" name="requester" value="[% cgi.param('requester') FILTER html %]" size="20" 
+      <td><input type="text" name="requester" value="[% selected_requester FILTER html %]" size="20" 
            title="Requester's email address"></td>
       <th>Product:</th>
       <td>
@@ -80,7 +77,7 @@ to some group are shown by default.
               <optgroup label="[% c.name FILTER html %]">
                 [% FOREACH p = user.get_selectable_products(c.id) %]
                   <option value="[% p.name FILTER html %]"
-                    [% " selected" IF cgi.param('product') == p.name %]>
+                    [% " selected" IF selected_product == p.name %]>
                     [% p.name FILTER html %]
                   </option>
                 [% END %]
@@ -89,7 +86,7 @@ to some group are shown by default.
           [% ELSE %]
             [% FOREACH p = user.get_selectable_products %]
               <option value="[% p.name FILTER html %]"
-                [% " selected" IF cgi.param('product') == p.name %]>
+                [% " selected" IF selected_product == p.name %]>
                 [% p.name FILTER html %]
               </option>
             [% END %]
@@ -101,31 +98,28 @@ to some group are shown by default.
         [% PROCESS "global/select-menu.html.tmpl"
                     name="type"
                     options=types
-                    default=cgi.param('type') %]
+                    default=selected_type %]
       </td>
 
-      [%# We could let people see a "queue" of non-pending requests. %]
-      <!--
       <th>Status:</th>
       <td>
-        [%# PROCESS "global/select-menu.html.tmpl"
+        [% PROCESS "global/select-menu.html.tmpl"
                     name="status"
                     options=["all", "?", "+-", "+", "-"]
-                    default=cgi.param('status') %]
+                    default=selected_status %]
       </td>
-      -->
 
     </tr>
     <tr>
       <th>Requestee:</th>
-      <td><input type="text" name="requestee" value="[% cgi.param('requestee') FILTER html %]" size="20" 
+      <td><input type="text" name="requestee" value="[% selected_requestee FILTER html %]" size="20" 
            title="Requestee's email address or &quot;-&quot; (hyphen) for requests with no requestee"></td>
       <th>Component:</th>
       <td>
         <select name="component">
           <option value="">Any</option>
           [% FOREACH comp = components %]
-            <option value="[% comp FILTER html %]" [% "selected" IF cgi.param('component') == comp %]>
+            <option value="[% comp FILTER html %]" [% "selected" IF selected_component == comp %]>
               [% comp FILTER html %]</option>
           [% END %]
         </select>
@@ -138,7 +132,7 @@ to some group are shown by default.
             "Flag" => 'type' ,
             "Product/Component" => 'category'
           } %]
-        [% PROCESS "global/select-menu.html.tmpl" name="group" options=groups default=cgi.param('group') %]
+        [% PROCESS "global/select-menu.html.tmpl" name="group" options=groups default=selected_group %]
       </td>
       <td><input type="submit" id="filter" value="Filter"></td>
     </tr>

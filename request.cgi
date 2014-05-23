@@ -304,6 +304,12 @@ sub queue {
     $vars->{'group_field'} = $form_group;
     $vars->{'requests'} = \@requests;
     $vars->{'types'} = \@types;
+    $vars->{selected_requester} = $cgi->param('requester');
+    $vars->{selected_product} = $cgi->param('product');
+    $vars->{selected_component} = $cgi->param('component');
+    $vars->{selected_type} = $cgi->param('type');
+    $vars->{selected_status} = $cgi->param('status');
+    $vars->{selected_group} = $cgi->param('group');
 
     my %components;
     foreach my $prod (@{$user->get_selectable_products}) {
