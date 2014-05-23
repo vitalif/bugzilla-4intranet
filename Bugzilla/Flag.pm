@@ -1046,10 +1046,10 @@ sub notify {
         my $thread_user_id = $recipients{$to} ? $recipients{$to}->id : 0;
 
         push @{$flagmail->{mail}}, {
-            'to'              => $to,
-            'threadingmarker' => build_thread_marker($bug->id, $thread_user_id),
-            'lang'            => $recipients{$to} ?
-                $recipients{$to}->settings->{'lang'}->{'value'} : $default_lang,
+            to              => $to,
+            threadingmarker => build_thread_marker($bug->id, $thread_user_id),
+            lang            => $recipients{$to} ?
+                $recipients{$to}->settings->{lang}->{value} : $default_lang,
         };
     }
     Bugzilla->add_mail_result({ type => 'flag', bug_id => $bug->id, notify_data => $flagmail });

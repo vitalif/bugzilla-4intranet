@@ -544,7 +544,8 @@ if ($move_action eq Bugzilla->params->{'move-button-text'})
     $dbh->bz_commit_transaction();
 
     # Now send emails.
-    foreach my $bug (@bug_objects) {
+    foreach my $bug (@bug_objects)
+    {
         push @$send_results, send_results({
             mailrecipients => { 'changer' => $user->login },
             bug_id         => $bug->id,

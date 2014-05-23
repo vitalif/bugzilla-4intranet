@@ -607,15 +607,16 @@ sub insert
     $vars->{'header_done'} = 1;
     $vars->{'contenttypemethod'} = $cgi->param('contenttypemethod');
 
-    my $send_results = send_results({
+    Bugzilla->add_mail_result({
         mailrecipients => { 'changer' => $user->login, 'owner' => $owner },
         bug_id         => $bugid,
     });
+    send_results($_) for @{Bugzilla->get_mail_result};
 
-    # Operation result to save into session (CustIS Bug 64562)
+    # Save operation result into session and redirect (CustIS Bug 64562)
     my $session_data = {
         title => "Attachment ".$attachment->id." added to ".Bugzilla->messages->{terms}->{Bug}." ".$attachment->bug_id,
-        sent => [$send_results],
+        sent => Bugzilla->get_mail_result,
         sent_attrs => {
             added_attachments => [ {
                 id          => $attachment->id,
@@ -629,17 +630,9 @@ sub insert
 
     Bugzilla::Hook::process('attachment_post_create_result', { session_data => $session_data, vars => $vars });
 
-    if (Bugzilla->usage_mode != USAGE_MODE_EMAIL)
-    {
-        if (Bugzilla->save_session_data($session_data))
-        {
-            print $cgi->redirect(-location => 'show_bug.cgi?id='.$attachment->bug_id);
-            exit;
-        }
-        # Generate and return the UI (HTML page) from the appropriate template.
-        $template->process("attachment/created.html.tmpl", $vars)
-          || ThrowTemplateError($template->error());
-    }
+    Bugzilla->save_session_data($session_data);
+    print $cgi->redirect(-location => 'show_bug.cgi?id='.$attachment->bug_id);
+    exit;
 }
 
 # Displays a form for editing attachment properties.
@@ -759,15 +752,15 @@ sub update {
     $vars->{'bugs'} = [$bug];
     $vars->{'header_done'} = 1;
 
-    my $send_results = send_results({
+    Bugzilla->add_mail_result({
         bug_id => $bug->id,
         mailrecipients => { 'changer' => $user->login },
     });
-    $vars->{$_} = $send_results->{$_} for keys %$send_results;
+    send_results($_) for @{Bugzilla->get_mail_result};
 
-    # Operation result to save into session (CustIS Bug 64562)
-    my $session_data = {
-        sent => [ $send_results ],
+    # Save operation result into session and redirect (CustIS Bug 64562)
+    Bugzilla->save_session_data({
+        sent => Bugzilla->get_mail_result,
         sent_attrs => {
             changed_attachment => {
                 id          => $attachment->id,
@@ -775,19 +768,10 @@ sub update {
                 description => $attachment->description,
             },
         },
-    };
+    });
 
-    if (Bugzilla->usage_mode != USAGE_MODE_EMAIL)
-    {
-        if (Bugzilla->save_session_data($session_data))
-        {
-            print $cgi->redirect(-location => 'show_bug.cgi?id='.$attachment->bug_id);
-            exit;
-        }
-        # Generate and return the UI (HTML page) from the appropriate template.
-        $template->process("attachment/updated.html.tmpl", $vars)
-            || ThrowTemplateError($template->error());
-    }
+    print $cgi->redirect(-location => 'show_bug.cgi?id='.$attachment->bug_id);
+    exit;
 }
 
 # Only administrators can delete attachments.
@@ -851,15 +835,25 @@ sub delete_attachment {
         $vars->{'bugs'} = [$bug];
         $vars->{'header_done'} = 1;
 
-        # TODO save this into session and redirect
-        my $sent = send_results({
+        Bugzilla->add_mail_result({
             bug_id => $bug->id,
             mailrecipients => { 'changer' => $user->login },
         });
-        $vars->{$_} = $sent->{$_} for keys %$sent;
+        send_results($_) for @{Bugzilla->get_mail_result};
 
-        $template->process("attachment/updated.html.tmpl", $vars)
-          || ThrowTemplateError($template->error());
+        # Save operation result into session and redirect (CustIS Bug 64562)
+        Bugzilla->save_session_data({
+            sent => Bugzilla->get_mail_result,
+            sent_attrs => {
+                changed_attachment => {
+                    id          => $attachment->id,
+                    bug_id      => $attachment->bug_id,
+                    description => $attachment->description,
+                },
+            },
+        });
+        print $cgi->redirect(-location => 'show_bug.cgi?id='.$attachment->bug_id);
+        exit;
     }
     else {
         # Create a token.
@@ -873,9 +867,9 @@ sub delete_attachment {
     }
 }
 
-# Bug 129399
-# Action скачивания всех прикреплённых файлов к багу в одном zip-архиве
-sub all_attachments_in_zip {
+# CustIS Bug 129399 - download all attachments in a single ZIP archive
+sub all_attachments_in_zip
+{
     my $user = Bugzilla->login(LOGIN_REQUIRED);
 
     # Retrieve and validate parameters
@@ -890,7 +884,8 @@ sub all_attachments_in_zip {
     my $transliter = Lingua::Translit->new('GOST 7.79 RUS');
     my $archive = Archive::Zip->new();
     my $filename = "attachments_for_bug_$bugid.zip";
-    foreach my $file (@$attachments) {
+    foreach my $file (@$attachments)
+    {
         my $fn = $file->{filename};
         Encode::_utf8_off($fn);
         $fn = $transliter->translit($fn);
@@ -900,7 +895,9 @@ sub all_attachments_in_zip {
     }
     # FIXME We don't send Content-Length - is it always OK?
     # We could use IO::Scalar for it.
-    $cgi->send_header(-type => "application/zip; name=\"$filename\"",
-                      -content_disposition => "attachment; filename=\"$filename\"");
+    $cgi->send_header(
+        -type => "application/zip; name=\"$filename\"",
+        -content_disposition => "attachment; filename=\"$filename\""
+    );
     $archive->writeToFileHandle(*STDOUT);
 }

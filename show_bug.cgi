@@ -1,6 +1,4 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -157,6 +155,7 @@ my @keyword_list_out = map { { name => $_->{name} } } @keyword_list;
 $vars->{keyword_list} = \@keyword_list_out;
 # END Custis Bug 66910
 
+# Show previous operation result from session
 my $sd;
 if (Bugzilla->session && ($sd = Bugzilla->session_data) && $sd->{sent})
 {
