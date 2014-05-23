@@ -591,9 +591,10 @@ sub set_is_obsolete  {
 }
 
 sub set_flags {
-    my ($self, $flags, $new_flags) = @_;
+    my ($self, $flags, $new_flags, $comment) = @_;
 
     Bugzilla::Flag->set_flag($self, $_) foreach (@$flags, @$new_flags);
+    $self->{flag_notify_comment} = $comment;
 }
 
 sub _check_bug {
@@ -1021,10 +1022,11 @@ sub update
 
     my ($changes, $old_self) = $self->SUPER::update(@_);
 
-    my ($removed, $added) = Bugzilla::Flag->update_flags($self, $old_self, $timestamp);
+    my ($removed, $added) = Bugzilla::Flag->update_flags($self, $old_self, $timestamp, $self->{flag_notify_comment});
     if ($removed || $added) {
         $changes->{'flagtypes.name'} = [$removed, $added];
     }
+    delete $self->{flag_notify_comment};
 
     # Log activity
     my $c;

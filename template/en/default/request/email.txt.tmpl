@@ -20,7 +20,6 @@
   #                     Frédéric Buclin <LpSolit@gmail.com>
   #%]
 
-[% USE Bugzilla %]
 [% BLOCK userlink %]<a href="[% Param('user_mailto') %][% u.email | html %]">[% (u.name || u.login) | html %]</a>[% END %]
 
 [% bugidsummary = bug.bug_id _ ': ' _ bug.short_desc %]
@@ -108,10 +107,10 @@ Attachment [% attidsummary %]
 [%- END %]
 [%- FILTER bullet = wrap(80) %]
 
-[%-# .defined is necessary to avoid a taint issue in Perl < 5.10.1, see bug 509794. %]
-[% IF Bugzilla.cgi.param("comment").defined && Bugzilla.cgi.param("comment").length > 0 %]
+[%# FIXME Maybe the comment object should be used here, but it's hard to do without merging email/newchangedmail and request/email %]
+[% IF comment != "" %]
 ------- Additional Comments from [% user.identity %]
-[%+ Bugzilla.cgi.param("comment") %]
+[%+ comment %]
 [% END %]
 
 [%- END %]
@@ -157,12 +156,13 @@ body { font-family: Segoe UI, sans-serif; }
 <br /><a href="[%+ urlbase %]attachment.cgi?id=[% attachment.id %]&action=edit">Attachment [% attidsummary %]</a>
 [% END %]
 </p>
-[% IF Bugzilla.cgi.param("comment").defined && Bugzilla.cgi.param("comment").length > 0 %]
+[%# FIXME Maybe the comment object should be used here, but it's hard to do without merging email/newchangedmail and request/email %]
+[% IF comment != "" %]
 <hr color="#A0A0A0" size="1" />
 <p>
 Additional Comments from [% PROCESS userlink u=user %]:
 <div class="bz_comment_text">
-[%# TODO comment objects %][%- Bugzilla.cgi.param("comment") | quoteUrls(bug) | wrap_comment | absolute_uris -%]
+[%- comment | quoteUrls(bug) | wrap_comment | absolute_uris -%]
 </div>
 </p>
 [% END %]

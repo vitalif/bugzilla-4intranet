@@ -550,15 +550,16 @@ sub insert
         $obsolete_attachment->update($timestamp);
     }
 
+    my $comment = $cgi->param('comment');
+    $comment = '' unless defined $comment;
+
     my ($flags, $new_flags) = Bugzilla::Flag->extract_flags_from_cgi(
         $bug, $attachment, $vars
     );
-    $attachment->set_flags($flags, $new_flags);
+    $attachment->set_flags($flags, $new_flags, $comment);
     $attachment->update($timestamp);
 
     # Insert a comment about the new attachment into the database.
-    my $comment = $cgi->param('comment');
-    $comment = '' unless defined $comment;
     $bug->add_comment($comment, { isprivate => $attachment->isprivate,
                                   type => CMT_ATTACHMENT_CREATED,
                                   work_time => scalar $cgi->param('work_time'),
@@ -728,7 +729,7 @@ sub update {
     if ($can_edit) {
         my ($flags, $new_flags) =
           Bugzilla::Flag->extract_flags_from_cgi($bug, $attachment, $vars);
-        $attachment->set_flags($flags, $new_flags);
+        $attachment->set_flags($flags, $new_flags, $comment);
     }
 
     # Figure out when the changes were made.

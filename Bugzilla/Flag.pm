@@ -502,7 +502,7 @@ sub update_activity {
 }
 
 sub update_flags {
-    my ($class, $self, $old_self, $timestamp) = @_;
+    my ($class, $self, $old_self, $timestamp, $comment) = @_;
 
     my @old_summaries = $class->snapshot($old_self ? $old_self->flags : []);
     my %old_flags = map { $_->id => $_ } @{$old_self ? $old_self->flags : []};
@@ -513,19 +513,19 @@ sub update_flags {
             $new_flag->{bug_id} = $self->id;
             my $flag = $class->create($new_flag, $timestamp);
             $new_flag->{id} = $flag->id;
-            $class->notify($new_flag, undef, $self);
+            $class->notify($new_flag, undef, $self, $comment);
         }
         else {
             my $changes = $new_flag->update($timestamp);
             if (scalar(keys %$changes)) {
-                $class->notify($new_flag, $old_flags{$new_flag->id}, $self);
+                $class->notify($new_flag, $old_flags{$new_flag->id}, $self, $comment);
             }
             delete $old_flags{$new_flag->id};
         }
     }
     # These flags have been deleted.
     foreach my $old_flag (values %old_flags) {
-        $class->notify(undef, $old_flag, $self);
+        $class->notify(undef, $old_flag, $self, $comment);
         $old_flag->remove_from_db();
     }
 
@@ -536,7 +536,7 @@ sub update_flags {
         && ($self->{_old_product_name} || $self->{_old_component_name}))
     {
         delete $self->{flag_types}; # very important (cleans cached flag types)
-        my @removed = $class->force_cleanup($self);
+        my @removed = $class->force_cleanup($self, $comment);
         push(@old_summaries, @removed);
     }
 
@@ -574,7 +574,7 @@ sub retarget {
 # In case the bug's product/component has changed, clear flags that are
 # no longer valid.
 sub force_cleanup {
-    my ($class, $bug) = @_;
+    my ($class, $bug, $comment) = @_;
     my $dbh = Bugzilla->dbh;
 
     my $flag_ids = $dbh->selectcol_arrayref(
@@ -589,7 +589,7 @@ sub force_cleanup {
           WHERE bugs.bug_id = ? AND i.type_id IS NULL',
          undef, $bug->id);
 
-    my @removed = $class->force_retarget($flag_ids, $bug);
+    my @removed = $class->force_retarget($flag_ids, $bug, $comment);
 
     $flag_ids = $dbh->selectcol_arrayref(
         'SELECT DISTINCT flags.id
@@ -601,13 +601,13 @@ sub force_cleanup {
                 AND (bugs.component_id = e.component_id OR e.component_id IS NULL)',
          undef, $bug->id);
 
-    push @removed, $class->force_retarget($flag_ids, $bug);
+    push @removed, $class->force_retarget($flag_ids, $bug, $comment);
 
     return @removed;
 }
 
 sub force_retarget {
-    my ($class, $flag_ids, $bug) = @_;
+    my ($class, $flag_ids, $bug, $comment) = @_;
     my $dbh = Bugzilla->dbh;
 
     my $flags = $class->new_from_list($flag_ids);
@@ -623,7 +623,7 @@ sub force_retarget {
         else {
             # Track deleted attachment flags.
             push(@removed, $class->snapshot([$flag])) if $flag->attach_id;
-            $class->notify(undef, $flag, $bug || $flag->bug);
+            $class->notify(undef, $flag, $bug || $flag->bug, $comment);
             $flag->remove_from_db();
         }
     }
@@ -957,7 +957,7 @@ or deleted.
 
 # FIXME move this notification out of here!
 sub notify {
-    my ($class, $flag, $old_flag, $obj) = @_;
+    my ($class, $flag, $old_flag, $obj, $comment) = @_;
 
     my ($bug, $attachment);
     if (blessed($obj) && $obj->isa('Bugzilla::Attachment')) {
@@ -1038,6 +1038,7 @@ sub notify {
         old_flag   => $old_flag,
         bug        => $bug,
         attachment => $attachment,
+        comment    => $comment,
         mail       => [],
     };
     foreach my $to (keys %recipients) {

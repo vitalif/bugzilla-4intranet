@@ -561,7 +561,10 @@ sub update
     $self->save_groups($changes);
 
     # Flags
-    my ($removed, $added) = Bugzilla::Flag->update_flags($self, $old_bug, $delta_ts);
+    my ($removed, $added) = Bugzilla::Flag->update_flags(
+        $self, $old_bug, $delta_ts,
+        $self->{added_comments}->[0] && $self->{added_comments}->[0]->{thetext}
+    );
     if ($removed || $added)
     {
         $changes->{'flagtypes.name'} = [ $removed, $added ];
