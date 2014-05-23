@@ -227,6 +227,7 @@ use constant FIELD_TABLE_SCHEMA => {
 };
 
 # FIXME remove all small varchars
+# FIXME make schema compatible with upstream 4.4
 use constant ABSTRACT_SCHEMA => {
 
     # BUG-RELATED TABLES
@@ -509,6 +510,7 @@ use constant ABSTRACT_SCHEMA => {
             id               => {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
             name             => {TYPE => 'varchar(50)', NOTNULL => 1},
             description      => {TYPE => 'MEDIUMTEXT', NOTNULL => 1},
+            # FIXME flagtypes.cc_list => store user ids
             cc_list          => {TYPE => 'varchar(200)'},
             target_type      => {TYPE => 'char(1)', NOTNULL => 1, DEFAULT => "'b'"},
             is_active        => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'},
@@ -1046,7 +1048,8 @@ use constant ABSTRACT_SCHEMA => {
             notimetracking    => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0},
             # CustIS Bug 68921 - External/internal products
             extproduct        => {TYPE => 'INT4', REFERENCES => {TABLE => 'products', COLUMN => 'id'}},
-            # CustIS Bug  - Per-product "strict isolation" setting
+            # CustIS Bug 38616 - Per-product "strict isolation" setting
+            # FIXME Reference ID in products.cc_group, not name
             cc_group          => {TYPE => 'varchar(255)'},
         ],
         INDEXES => [
