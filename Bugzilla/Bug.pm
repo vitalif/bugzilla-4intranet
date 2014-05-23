@@ -1585,7 +1585,7 @@ sub _set_assigned_to
         $self->{assigned_to_obj} = $assignee;
     }
 
-    return $self->{assigned_to_obj}->id;
+    return $self->{assigned_to_obj} && $self->{assigned_to_obj}->id;
 }
 
 sub _set_bug_file_loc
@@ -1640,7 +1640,9 @@ sub _set_component
     my ($self, $name) = @_;
     $name = trim($name);
     $name || ThrowUserError('require_component');
-    my $obj = Bugzilla::Component->new({ product => $self->product_obj, name => $name });
+    # Don't allow to set invalid components for new bugs
+    my $m = $self->id ? 'new' : 'check';
+    my $obj = Bugzilla::Component->$m({ product => $self->product_obj, name => $name });
     if (!$obj)
     {
         $self->{_unknown_dependent_values}->{component} = [ $name ];
@@ -1965,8 +1967,8 @@ sub _set_qa_contact
         # user doesn't have editbugs.
         if (!Bugzilla->user->in_group('editbugs', $self->product_id) || !$qa_contact)
         {
-            $id = $self->component_obj->default_qa_contact && $self->component_obj->default_qa_contact->id;
-            $self->{qa_contact_obj} = $self->component_obj->default_qa_contact;
+            $self->{qa_contact_obj} = $self->component_obj && $self->component_obj->default_qa_contact;
+            $id = $self->{qa_contact_obj} && $self->{qa_contact_obj}->id;
         }
     }
 
