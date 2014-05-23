@@ -404,7 +404,7 @@ sub get_attachment_link {
 
         # Custis Bug 126991
         my $attachment_view = '';
-        if ($comment->type == CMT_ATTACHMENT_CREATED &&
+        if ($comment && $comment->type == CMT_ATTACHMENT_CREATED &&
             $attachment->id == $comment->extra_data &&
             $attachment->contenttype =~ /^image\//s)
         {
