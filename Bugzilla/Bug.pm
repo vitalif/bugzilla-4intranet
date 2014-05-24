@@ -1536,7 +1536,8 @@ sub _set_alias
 {
     my ($self, $alias) = @_;
     $alias = trim($alias);
-    return undef if !Bugzilla->params->{usebugaliases} || !$alias;
+    return undef if !Bugzilla->params->{usebugaliases};
+    return $self->{alias} = undef if !$alias;
 
     # Make sure the alias isn't too long.
     if (length($alias) > 20)
