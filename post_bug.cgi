@@ -153,7 +153,7 @@ my $bug = new Bugzilla::Bug;
 
 for my $f (@bug_fields)
 {
-    $bug->set($f, $ARGS->{$f});
+    $bug->set($f, $ARGS->{$f}) if exists $ARGS->{$f};
 }
 
 $bug->add_comment($comment, {

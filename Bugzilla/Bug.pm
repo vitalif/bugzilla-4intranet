@@ -153,7 +153,7 @@ use constant OVERRIDE_ID_FIELD => {
     component => 'component_id',
 };
 
-our $CUSTOM_FIELD_VALIDATORS = {
+use constant CUSTOM_FIELD_VALIDATORS => {
     FIELD_TYPE_FREETEXT()       => \&_set_freetext_field,
     FIELD_TYPE_EXTURL()         => \&_set_freetext_field,
     FIELD_TYPE_SINGLE_SELECT()  => \&_set_select_field,
@@ -204,7 +204,7 @@ sub SETTERS
     for my $field (Bugzilla->get_fields({ obsolete => 0 }))
     {
         next if $s->{$field->name} || !$field->type;
-        $s->{$field->name} = $CUSTOM_FIELD_VALIDATORS->{$field->type};
+        $s->{$field->name} = CUSTOM_FIELD_VALIDATORS->{$field->type};
     }
 
     $cache->{bug_setters} = $s;
@@ -485,15 +485,18 @@ sub update
     # FIXME 'shift ||' is just a temporary hack until all updating happens inside this function
     my $delta_ts = shift || $dbh->selectrow_array('SELECT LOCALTIMESTAMP(0)');
 
-    Bugzilla::Hook::process("bug_pre_$method", { bug => $self });
-
-    my $old_bug = $self->{_old_self};
-    my $changes;
-
     # You can't set these fields by hand
     $self->{delta_ts} = $delta_ts;
     delete $self->{votes};
     delete $self->{lastdiffed};
+
+    # Check/set default values
+    $self->check_default_values if !$self->id;
+
+    Bugzilla::Hook::process("bug_pre_$method", { bug => $self });
+
+    my $old_bug = $self->{_old_self};
+    my $changes;
 
     # Keywords column is a cache for keyword objects
     local $self->{keywords} = $self->keywords;
@@ -504,20 +507,6 @@ sub update
     }
     else
     {
-        # FIXME implement default select field values!
-        $self->{bug_severity} = Bugzilla->params->{defaultseverity} if !$self->{bug_severity};
-        $self->{priority} = Bugzilla->params->{defaultpriority}     if !$self->{priority};
-        $self->{op_sys} = Bugzilla->params->{defaultopsys}          if Bugzilla->params->{useopsys} && !$self->{op_sys};
-        $self->{rep_platform} = Bugzilla->params->{defaultplatform} if Bugzilla->params->{useplatform} && !$self->{rep_platform};
-        $self->{cc} = $self->component_obj->initial_cc              if !$self->{cc};
-        $self->{everconfirmed} ||= 0;
-        $self->{estimated_time} ||= 0;
-        $self->{remaining_time} ||= 0;
-        $self->{reporter_accessible} = 1 if !defined $self->{reporter_accessible};
-        $self->{cclist_accessible} = 1 if !defined $self->{cclist_accessible};
-        $self->set('reporter', undef);
-        $self->{creation_ts} = $delta_ts;
-
         $changes = {};
         my $row = {};
         for my $f ($self->DB_COLUMNS)
@@ -623,6 +612,46 @@ sub update
     return $changes;
 }
 
+# There is no guarantee that any setters were called after creating an
+# empty object, so we must make sure all fields have allowed values.
+sub check_default_values
+{
+    my $self = shift;
+    # Check mandatory fields and/or set default values for new bugs
+    for (qw(product component short_desc status_whiteboard assigned_to qa_contact reporter))
+    {
+        $self->set($_, $self->$_);
+    }
+    # Default milestone may be set in product, default version may be set in component
+    for (qw(target_milestone version))
+    {
+        my $f = Bugzilla->get_field($_);
+        $self->set($_, undef) if !$f->obsolete && (!$f->nullable && !$self->{$_} || !exists $self->{$_});
+    }
+    # Some default values are still set in the configuration
+    while (my ($field, $value_name) = each %{Bugzilla::Field::Choice->DEFAULT_MAP})
+    {
+        $self->set($field, Bugzilla->params->{$value_name}) if !Bugzilla->get_field($field)->obsolete && !$self->{$field};
+    }
+    # Remove NULLs for custom fields
+    for my $field (Bugzilla->get_fields({ custom => 1, obsolete => 0 }))
+    {
+        $self->set($field->name, undef) if Bugzilla::Field->SQL_DEFINITIONS->{$field->type} &&
+            Bugzilla::Field->SQL_DEFINITIONS->{$field->type}->{NOTNULL} &&
+            !$self->{$field->name};
+    }
+    # Add some default values manually
+    $self->set('groups', [ map { $_->id } @{$self->groups_in} ]);
+    $self->{cc} = $self->component_obj->initial_cc if !$self->{cc};
+    $self->{everconfirmed} ||= 0;
+    $self->{estimated_time} ||= 0;
+    $self->{remaining_time} ||= 0;
+    $self->{reporter_accessible} = 1 if !defined $self->{reporter_accessible};
+    $self->{cclist_accessible} = 1 if !defined $self->{cclist_accessible};
+    $self->{creation_ts} = $self->{delta_ts} if !defined $self->{creation_ts};
+}
+
+# FIXME cache it
 sub get_dependent_check_order
 {
     my %seen = ();
@@ -657,12 +686,13 @@ sub get_dependent_check_order
 }
 
 # All validation of field values that depend on other fields' values MUST be done here!
+# It is needed because else the result of validation will depend on the calling order.
 sub check_dependent_fields
 {
     my $self = shift;
     my $incorrect_fields = {};
 
-    # First run some checks that previously were in old validators
+    # Run some checks that previously were in old validators
     $self->_check_bug_status;
     $self->_check_resolution;
     $self->_check_dup_id;
@@ -671,6 +701,12 @@ sub check_dependent_fields
     for my $field_obj (get_dependent_check_order())
     {
         my $fn = $field_obj->name;
+        if ($field_obj->obsolete)
+        {
+            # Do not validate values of obsolete fields, only set empty values for new bugs
+            $self->set($fn, undef) if !$self->id;
+            next;
+        }
         # Check field visibility
         if (!$field_obj->check_visibility($self))
         {
@@ -678,7 +714,7 @@ sub check_dependent_fields
             $self->set($fn, undef);
             next;
         }
-        # Optionally add the value of BUG_ID custom field to dependencies (4CustIS Bug 73054, Bug 75690)
+        # Optionally add the value of BUG_ID custom field to dependencies (CustIS Bug 73054, Bug 75690)
         # This allows to see it as a part of the dependency tree
         if ($field_obj->add_to_deps && $self->{$fn} && $self->{$fn} != $self->id)
         {
@@ -701,9 +737,11 @@ sub check_dependent_fields
         {
             # $self->{_unknown_dependent_values} may contain names of unidentified values
             my $value_objs = $self->{_unknown_dependent_values}->{$fn} || $self->get_object($fn);
-            if (!defined $value_objs && $field_obj->nullable)
+            if (!defined $value_objs)
             {
-                next;
+                # FIXME Implement default field values?
+                next if $field_obj->nullable;
+                ThrowUserError('object_not_specified', { class => $field_obj->value_type });
             }
             $value_objs = [ $value_objs ] if ref $value_objs ne 'ARRAY';
             my @bad = grep { !ref $_ || !$_->check_visibility($self) } @$value_objs;
@@ -1959,7 +1997,7 @@ sub _set_priority
     my ($self, $priority) = @_;
     if (!$self->id && !Bugzilla->params->{letsubmitterchoosepriority})
     {
-        $priority = Bugzilla->params->{defaultpriority};
+        $priority = undef;
     }
     return $self->_set_select_field($priority, 'priority');
 }
@@ -2057,27 +2095,28 @@ sub _set_status_whiteboard
 sub _set_target_milestone
 {
     my ($self, $target) = @_;
-    my $product = $self->product_obj;
-    $target = trim($target);
     if (!Bugzilla->params->{usetargetmilestone})
     {
+        # Don't change value if the field is disabled
         return undef;
     }
-    # Reporters can move bugs between products but not set the TM.
-    # So reset it to the default value.
-    # FIXME This if() is dead because of check_field_permission.
-    if (!$self->check_can_change_field('target_milestone', 0, 1))
+    $target = trim($target);
+    my $field_obj = Bugzilla->get_field('target_milestone');
+    if (!defined $target || $target eq '')
     {
-        $self->{target_milestone_obj} = $product->default_milestone_obj;
-        return $self->{target_milestone_obj}->id;
-    }
-    if ((!defined $target || !length $target) && Bugzilla->get_field('target_milestone')->nullable)
-    {
-        $self->{target_milestone_obj} = undef;
-        return $self->{target_milestone} = undef;
+        if (!$field_obj->nullable && $field_obj->check_visibility($self))
+        {
+            $self->{target_milestone_obj} = $self->product_obj->default_milestone_obj;
+            $self->{target_milestone} = $self->product_obj->default_milestone;
+            if (!$self->{target_milestone})
+            {
+                ThrowUserError('object_not_specified', { class => $field_obj->value_type });
+            }
+        }
+        return undef;
     }
     # FIXME use set_select_field
-    my $object = Bugzilla::Milestone->new({ product => $product, name => $target });
+    my $object = Bugzilla::Milestone->new({ product => $self->product_obj, name => $target });
     if (!$object)
     {
         $self->{_unknown_dependent_values}->{target_milestone} = [ $target ];
@@ -2091,10 +2130,19 @@ sub _set_version
 {
     my ($self, $version) = @_;
     $version = trim($version);
-    if ((!defined $version || !length $version) && Bugzilla->get_field('version')->nullable)
+    my $field_obj = Bugzilla->get_field('version');
+    if (!defined $version || $version eq '')
     {
-        $self->{version_obj} = undef;
-        return $self->{version} = undef;
+        if (!$field_obj->nullable && $field_obj->check_visibility($self))
+        {
+            $self->{version_obj} = $self->component_obj->default_version_obj;
+            $self->{version} = $self->component_obj->default_version;
+            if (!$self->{version})
+            {
+                ThrowUserError('object_not_specified', { class => $field_obj->value_type });
+            }
+        }
+        return undef;
     }
     # FIXME use set_select_field
     my $object = Bugzilla::Version->new({ product => $self->product_obj, name => $version });
@@ -2238,13 +2286,12 @@ sub _set_select_field
     my $t = Bugzilla::Field::Choice->type($field_obj);
     if (!defined $value || !length $value)
     {
-        # Allow empty values, but only for nullable or invisible fields
-        if ($field_obj->nullable || !$field_obj->check_visibility($self))
-        {
-            $self->{$field.'_obj'} = undef;
-            return $self->{$field} = undef;
-        }
-        ThrowUserError('object_not_specified', { class => $t });
+        # We allow empty values only for nullable or invisible fields,
+        # but it's done later in check_dependent_fields when the
+        # visibility status is known for sure.
+        $self->{_unknown_dependent_values}->{$field} = undef;
+        $self->{$field.'_obj'} = undef;
+        return $self->{$field} = undef;
     }
     my $value_obj = ref $value ? $value : $t->new({ name => $value });
     if (!$value_obj)
