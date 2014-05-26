@@ -10,6 +10,7 @@ package Bugzilla::Field::Choice;
 use base qw(Bugzilla::Object);
 
 use Bugzilla::Config qw(SetParam write_params);
+use Bugzilla::Config::BugFields;
 use Bugzilla::Constants;
 use Bugzilla::Error;
 use Bugzilla::Field;
@@ -55,12 +56,7 @@ use constant CLASS_MAP => {
     classification   => 'Bugzilla::Classification',
 };
 
-use constant DEFAULT_MAP => {
-    op_sys       => 'defaultopsys',
-    rep_platform => 'defaultplatform',
-    priority     => 'defaultpriority',
-    bug_severity => 'defaultseverity',
-};
+use constant DEFAULT_MAP => { reverse %{ Bugzilla::Config::BugFields::DEFAULTNAMES() } };
 
 use constant EXCLUDE_CONTROLLED_FIELDS => ();
 
@@ -478,17 +474,14 @@ sub is_default_controlled_value
     return $result->{is_default};
 }
 
-# Check visibility of field value for a bug
+# Check visibility of field value for a bug or a hashref with default value names
 sub check_visibility
 {
     my $self = shift;
     my $bug = shift || return 1;
     my $vf = $self->field->value_field || return 1;
-    my $m = $vf->name;
-    $m = blessed $bug ? $bug->$m : $bug->{$m};
-    $m = ref $m ? $m->name : $m;
-    my $value = Bugzilla::Field::Choice->type($vf)->new({ name => $m }) || return 1;
-    return $self->has_visibility_value($value);
+    my $value = Bugzilla::Field::bug_or_hash_value($bug, $vf);
+    return $value ? $self->has_visibility_value($value) : 1;
 }
 
 ############

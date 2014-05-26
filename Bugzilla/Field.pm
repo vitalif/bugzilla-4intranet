@@ -671,24 +671,14 @@ sub has_all_visibility_values
     return !$hash || !%$hash;
 }
 
-# Check visibility of field for a bug
+# Check visibility of field for a bug or for a hashref with default value names
 sub check_visibility
 {
     my $self = shift;
     my $bug = shift || return 1;
     my $vf = $self->visibility_field || return 1;
-    my $m = $vf->name;
-    $m = Bugzilla::Bug->OVERRIDE_ID_FIELD->{$m} || $m;
-    my $value = blessed $bug ? $bug->$m : $bug->{$m};
-    return 1 unless $value;
-    if (!blessed $value)
-    {
-        # FIXME: This does not allow selecting of fields
-        # non-uniquely identified by name, as a visibility
-        # controller field (for example, "component")
-        $value = Bugzilla::Field::Choice->type($vf)->new($value) || return 1;
-    }
-    return $self->has_visibility_value($value);
+    my $value = bug_or_hash_value($bug, $vf);
+    return $value ? $self->has_visibility_value($value) : 1;
 }
 
 =pod
@@ -1216,6 +1206,29 @@ sub get_field_id
     my $field = Bugzilla->get_field($name);
     ThrowCodeError('invalid_field_name', { field => $name }) unless $field;
     return $field->id;
+}
+
+# Get choice value object for a bug or for a hashref with default value names
+sub bug_or_hash_value
+{
+    my ($bug, $vf) = @_;
+    my $value;
+    if (blessed $bug)
+    {
+        $value = $bug->get_ids($vf->name);
+    }
+    else
+    {
+        $value = $bug->{$vf->name};
+        if (!ref $value)
+        {
+            # FIXME: This does not allow selecting of fields
+            # non-uniquely identified by name, as a visibility
+            # controller field (for example, "component")
+            $value = Bugzilla::Field::Choice->type($vf)->new({ name => $value });
+        }
+    }
+    return $value;
 }
 
 # Shared between Bugzilla::Field and Bugzilla::Field::Choice

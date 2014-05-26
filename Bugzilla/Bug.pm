@@ -782,14 +782,14 @@ sub _check_bug_status
 
     my $user = Bugzilla->user;
     my (@valid_statuses, $old_status);
-    my $new_status = $self->status; # FIXME rename $self->status to $self->bug_status_obj?
+    my $new_status = $self->bug_status_obj;
     my $product = $self->product_obj;
 
     # We can't use statuses_available because we check status transitions using an OLD value,
     # but we check assigned_to and allows_unconfirmed using NEW values.
     if ($self->{_old_self})
     {
-        $old_status = $self->{_old_self}->get_object('bug_status');
+        $old_status = $self->{_old_self}->bug_status_obj;
         @valid_statuses = @{$old_status->can_change_to};
     }
     else
@@ -811,8 +811,8 @@ sub _check_bug_status
     }
 
     # Check permissions for users filing new bugs
-    if (!$self->id && !$user->in_group('editbugs', $product->id) &&
-        !$user->in_group('canconfirm', $product->id))
+    if (!$self->id && (!$user->in_group('editbugs', $product->id) &&
+        !$user->in_group('canconfirm', $product->id) || !$new_status))
     {
         # A user with no privs cannot choose the initial status.
         # If UNCONFIRMED is possible, use it; else use the first
@@ -822,6 +822,7 @@ sub _check_bug_status
         {
             $new_status = $valid_statuses[0];
         }
+        $self->set('bug_status', $new_status);
     }
 
     # We skip this check if we are changing from a status to itself.
@@ -1642,11 +1643,19 @@ sub _set_cc
 sub _set_component
 {
     my ($self, $name) = @_;
-    $name = trim($name);
-    $name || ThrowUserError('require_component');
-    # Don't allow to set invalid components for new bugs
-    my $m = $self->id ? 'new' : 'check';
-    my $obj = Bugzilla::Component->$m({ product => $self->product_obj, name => $name });
+    my $obj;
+    if (!ref $name)
+    {
+        $name = trim($name);
+        $name || ThrowUserError('require_component');
+        # Don't allow to set invalid components for new bugs
+        my $m = $self->id ? 'new' : 'check';
+        $obj = Bugzilla::Component->$m({ product => $self->product_obj, name => $name });
+    }
+    else
+    {
+        $obj = $name;
+    }
     if (!$obj)
     {
         $self->{_unknown_dependent_values}->{component} = [ $name ];
@@ -2552,9 +2561,9 @@ sub modify_keywords
 {
     my ($self, $keywords, $descriptions, $action) = @_;
 
-    my $old_kw = $self->keyword_objects;
     if ($action eq 'delete')
     {
+        my $old_kw = $self->keyword_objects;
         my $kw = { map { lc($_->name) => $_ } @$old_kw };
         delete $kw->{lc $_} for split /[\s,]*,[\s,]*/, $keywords;
         $self->set('keywords', { keyword_objects => [ values %$kw ] });
@@ -2964,6 +2973,7 @@ sub see_also
 sub status
 {
     my $self = shift;
+    return undef if !$self->{bug_status};
     $self->{status} ||= new Bugzilla::Status($self->{bug_status});
     return $self->{status};
 }
@@ -3903,6 +3913,27 @@ sub ValidateDependencies
 #####################################################################
 # Autoloaded Accessors
 #####################################################################
+
+# Get id(s) of value(s) of a select field
+sub get_ids
+{
+    my $self = shift;
+    my ($fn) = @_;
+    my $field = Bugzilla->get_field($fn);
+    $fn = OVERRIDE_ID_FIELD->{$fn} || $fn;
+    if ($field && $field->type == FIELD_TYPE_SINGLE_SELECT)
+    {
+        return $self->{$fn};
+    }
+    elsif ($field && $field->type == FIELD_TYPE_MULTI_SELECT)
+    {
+        return $self->$fn;
+    }
+    else
+    {
+        die "Invalid join requested - ".__PACKAGE__."::$fn";
+    }
+}
 
 # Get value(s) of a select field as object(s)
 sub get_object
