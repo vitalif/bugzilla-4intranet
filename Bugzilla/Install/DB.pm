@@ -719,6 +719,23 @@ WHERE description LIKE\'%[CC:%\'');
     $dbh->do('UPDATE bug_status SET is_assigned=0 WHERE NOT value=?', undef, 'ASSIGNED');
     $dbh->do('UPDATE bug_status SET is_confirmed=0 WHERE value=?', undef, 'UNCONFIRMED');
 
+    # Copy products.defaultmilestone information into fieldvaluecontrol
+    if ((my $fid = Bugzilla->get_field('target_milestone')->id) &&
+        $dbh->selectrow_array(
+            "SELECT defaultmilestone FROM products p, fieldvaluecontrol c".
+            " WHERE c.field_id=$fid AND c.value_id=p.defaultmilestone".
+            " AND c.visibility_value_id=p.id AND NOT c.is_default"
+        ))
+    {
+        print "Copying default milestone information into fieldvaluecontrol table...\n";
+        $dbh->do("UPDATE fieldvaluecontrol c SET c.is_default=0 WHERE c.field_id=$fid AND c.value_id!=0");
+        $dbh->do(
+            "UPDATE fieldvaluecontrol c, products p SET c.is_default=1".
+            " WHERE c.field_id=$fid AND c.value_id=p.defaultmilestone".
+            " AND c.visibility_value_id=p.id AND NOT c.is_default"
+        );
+    }
+
     ################################################################
     # New --TABLE-- changes should go *** A B O V E *** this point #
     ################################################################
