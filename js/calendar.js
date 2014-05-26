@@ -12,8 +12,8 @@
  */
 var Calendar = {
     month_names: ["January","February","March","April","May","June","July","August","September","October","November","December"],
-    weekdays: ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],
-    sunday: 0,
+    weekdays: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
+    sunday: 6,
     month_days: [31,28,31,30,31,30,31,31,30,31,30,31],
     //Get today's date - year, month, day and date
     today : new Date(),
