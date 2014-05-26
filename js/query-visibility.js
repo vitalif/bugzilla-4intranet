@@ -224,7 +224,7 @@ function handleQueryformField(event, controller)
         if (name2id_order.length > 0 && qfVisibility[controlled_id].nullable)
         {
             item = bz_createOptionInSelect(controlled, '---', '---');
-            if (controlled_selected[''])
+            if (controlled_selected['---'])
             {
                 item.selected = true;
             }
