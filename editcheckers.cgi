@@ -1,7 +1,7 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-# Редактор предикатов корректности изменений
-# (c) Vitaliy Filippov 2010 <vitalif@mail.ru>
+# Bug data accuracy checker editor
+# License: Dual-license GPL 3.0+ or MPL 1.1+
+# Author(s): Vitaliy Filippov <vitalif@mail.ru>
 
 use strict;
 use lib qw(. lib);
@@ -19,10 +19,11 @@ my $cgi = Bugzilla->cgi;
 my $params = { %{ $cgi->Vars } };
 my $vars = {};
 
-$user->in_group('bz_editcheckers')
-  || ThrowUserError('auth_failure', {group  => 'bz_editcheckers',
-                                     action => 'modify',
-                                     object => 'checkers'});
+$user->in_group('bz_editcheckers') || ThrowUserError('auth_failure', {
+    group  => 'bz_editcheckers',
+    action => 'modify',
+    object => 'checkers',
+});
 
 my $id = $params->{id};
 defined($id) && detaint_natural($id);

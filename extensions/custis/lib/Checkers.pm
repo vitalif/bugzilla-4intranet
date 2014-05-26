@@ -315,7 +315,7 @@ sub bug_end_of_create
 {
     my ($args) = @_;
     my $bug = $args->{bug};
-    # При создании бага сия радость по изменениям не фильтруеццо!
+    # При создании бага сия радость по изменениям отдельных полей не фильтруеццо!
     $bug->{failed_checkers} = check($bug->bug_id, CF_CREATE, CF_CREATE);
     if (@{$bug->{failed_checkers}})
     {
