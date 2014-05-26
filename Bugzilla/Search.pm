@@ -725,8 +725,11 @@ sub CHANGEDFROMTO_FIELDS
 use constant OPERATORS => {
     equals          => \&_equals,
     casesubstring   => \&_casesubstring,
+    notcasesubstring=> \&_notcasesubstring,
     substring       => \&_substring,
     substr          => \&_substring,
+    notsubstring    => \&_notsubstring,
+    notsubstr       => \&_notsubstring,
     regexp          => \&_regexp,
     matches         => sub { ThrowUserError('search_content_without_matches'); },
     lessthan        => \&_lessthan,
@@ -1771,7 +1774,7 @@ sub run_chart
     local $self->{term} = undef;
     local $self->{negated};
     my $func;
-    if (my $t = NEGATE_OPERATORS->{$self->{type}})
+    if (!OPERATORS->{$self->{type}} && (my $t = NEGATE_OPERATORS->{$self->{type}}))
     {
         $self->{type} = $t;
         $self->{negated} = 1;
@@ -2692,6 +2695,12 @@ sub _casesubstring
     $self->{term} = Bugzilla->dbh->sql_position($self->{quoted}, $self->{fieldsql}) . " > 0";
 }
 
+sub _notcasesubstring
+{
+    my $self = shift;
+    $self->{term} = Bugzilla->dbh->sql_position($self->{quoted}, "COALESCE($self->{fieldsql}, '')") . " > 0";
+}
+
 sub _substring
 {
     my $self = shift;
@@ -2701,7 +2710,7 @@ sub _substring
 sub _notsubstring
 {
     my $self = shift;
-    $self->{term} = Bugzilla->dbh->sql_iposition($self->{quoted}, $self->{fieldsql}) . " = 0";
+    $self->{term} = Bugzilla->dbh->sql_iposition($self->{quoted}, "COALESCE($self->{fieldsql}, '')") . " = 0";
 }
 
 sub _regexp
