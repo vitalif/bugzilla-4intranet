@@ -477,6 +477,7 @@ sub STATIC_COLUMNS
                 "(SELECT ".$dbh->sql_group_concat($dbh->sql_string_concat('col_ft.name', 'col_f.status'), "', '").
                 " `flagtypes` FROM flags col_f JOIN flagtypes col_ft ON col_f.type_id=col_ft.id".
                 " WHERE col_f.bug_id=bugs.bug_id)",
+            title => "Flags and Requests",
         },
         flags => {
             name =>
@@ -725,11 +726,8 @@ sub CHANGEDFROMTO_FIELDS
 use constant OPERATORS => {
     equals          => \&_equals,
     casesubstring   => \&_casesubstring,
-    notcasesubstring=> \&_notcasesubstring,
     substring       => \&_substring,
     substr          => \&_substring,
-    notsubstring    => \&_notsubstring,
-    notsubstr       => \&_notsubstring,
     regexp          => \&_regexp,
     matches         => sub { ThrowUserError('search_content_without_matches'); },
     lessthan        => \&_lessthan,
@@ -2692,25 +2690,13 @@ sub _notequals
 sub _casesubstring
 {
     my $self = shift;
-    $self->{term} = Bugzilla->dbh->sql_position($self->{quoted}, $self->{fieldsql}) . " > 0";
-}
-
-sub _notcasesubstring
-{
-    my $self = shift;
     $self->{term} = Bugzilla->dbh->sql_position($self->{quoted}, "COALESCE($self->{fieldsql}, '')") . " > 0";
 }
 
 sub _substring
 {
     my $self = shift;
-    $self->{term} = Bugzilla->dbh->sql_iposition($self->{quoted}, $self->{fieldsql}) . " > 0";
-}
-
-sub _notsubstring
-{
-    my $self = shift;
-    $self->{term} = Bugzilla->dbh->sql_iposition($self->{quoted}, "COALESCE($self->{fieldsql}, '')") . " = 0";
+    $self->{term} = Bugzilla->dbh->sql_iposition($self->{quoted}, "COALESCE($self->{fieldsql}, '')") . " > 0";
 }
 
 sub _regexp

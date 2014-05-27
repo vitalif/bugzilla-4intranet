@@ -214,7 +214,7 @@ use constant DEFAULT_FIELDS => (
     {name => 'remaining_time',        desc => 'Remaining Hours',     buglist => 1, clone_bug => 0},
     {name => 'deadline',              desc => 'Deadline',            buglist => 1, in_new_bugmail => 1, clone_bug => 1},
     {name => 'commenter',             desc => 'Commenter',           clone_bug => 0},
-    {name => 'flagtypes.name',        desc => 'Flag Types',          buglist => 1, clone_bug => 0},
+    {name => 'flagtypes.name',        desc => 'Flags and Requests',  buglist => 1, clone_bug => 0},
     {name => 'requestees.login_name', desc => 'Flag Requestee',      clone_bug => 0},
     {name => 'setters.login_name',    desc => 'Flag Setter',         clone_bug => 0},
     {name => 'work_time',             desc => 'Hours Worked',        buglist => 1, clone_bug => 0},

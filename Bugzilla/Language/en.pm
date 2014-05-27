@@ -146,7 +146,7 @@ $Bugzilla::messages->{en} = {
         'attachments.isprivate'   => 'Attachment is private',
         'attachments.isurl'       => 'Attachment is a URL',
         'attachments.submitter'   => 'Attachment creator',
-        'flagtypes.name'          => 'Flag Types',
+        'flagtypes.name'          => 'Flags and Requests',
         'requestees.login_name'   => 'Flag Requestee',
         'setters.login_name'      => 'Flag Setter',
         # Names with other_ prefix are used with correlated search terms
