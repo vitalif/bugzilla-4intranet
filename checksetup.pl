@@ -119,6 +119,7 @@ require Bugzilla::Template;
 require Bugzilla::Field;
 require Bugzilla::Install;
 
+Bugzilla->error_mode(ERROR_MODE_CONSOLE);
 Bugzilla->installation_mode(INSTALLATION_MODE_NON_INTERACTIVE) if $answers_file;
 Bugzilla->installation_answers($answers_file);
 

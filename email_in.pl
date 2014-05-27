@@ -203,13 +203,6 @@ sub post_bug
 
     my $user = Bugzilla->user;
 
-    # Bugzilla::Bug->create throws a confusing CodeError if
-    # the REQUIRED_CREATE_FIELDS are missing, but much more
-    # sensible errors if the fields exist but are just undef.
-    foreach my $field (Bugzilla::Bug::REQUIRED_CREATE_FIELDS)
-    {
-        $fields->{$field} = undef if !exists $fields->{$field};
-    }
     $fields->{cc} = delete $fields->{newcc} if $fields->{newcc};
 
     # Restrict the bug to groups marked as Default.
@@ -250,12 +243,25 @@ sub post_bug
         $cgi->param(-name => $field, -value => $fields->{$field});
     }
     $cgi->param('token', issue_session_token('createbug:'));
+    delete $cgi->{_VarHash};
 
     my $bug;
     $Bugzilla::Error::IN_EVAL++;
     my $vars = do 'post_bug.cgi';
     $Bugzilla::Error::IN_EVAL--;
-    die $@ . "\n\nIncoming mail format for entering bugs:\n\@field = value\n\@field = value\n...\n\nBug text\n" if $@;
+    if (my $err = $@)
+    {
+        my $format = "\n\nIncoming mail format for entering bugs:\n\n\@field = value\n\@field = value\n...\n\n<Bug description...>\n";
+        if (blessed $err && $err->{message})
+        {
+            $err->{message} .= $format;
+        }
+        else
+        {
+            $err .= $format;
+        }
+        die $err;
+    }
     $bug = $vars->{bug};
     if ($bug)
     {
@@ -311,6 +317,7 @@ sub process_bug
     }
     $cgi->param('longdesclength', scalar @{ $bug->comments });
     $cgi->param('token', issue_hash_token([$bug->id, $bug->delta_ts]));
+    delete $cgi->{_VarHash};
 
     $Bugzilla::Error::IN_EVAL++;
     do 'process_bug.cgi';
@@ -399,6 +406,8 @@ sub get_body_and_attachments
         $body = get_text_alternative($message);
         $attachments = [$stripper->attachments];
     }
+    $email->charset_set('utf8');
+    $email->body_str_set($body);
 
     return ($body, $attachments);
 }
@@ -416,7 +425,7 @@ sub get_text_alternative
         # The charset may be quoted.
         if ($ct =~ /charset="?([^;"]+)/)
         {
-            $charset= $1;
+            $charset = $1;
         }
         debug_print("Part Content-Type: $ct", 2);
         debug_print("Part Character Encoding: $charset", 2);
@@ -458,22 +467,6 @@ sub remove_leading_blank_lines
     return $text;
 }
 
-sub html_strip
-{
-    my ($var) = @_;
-    # Trivial HTML tag remover (this is just for error messages, really.)
-    $var =~ s/<[^>]*>//g;
-    # And this basically reverses the Template-Toolkit html filter.
-    $var =~ s/\&amp;/\&/g;
-    $var =~ s/\&lt;/</g;
-    $var =~ s/\&gt;/>/g;
-    $var =~ s/\&quot;/\"/g;
-    $var =~ s/&#64;/@/g;
-    # Also remove undesired newlines and consecutive spaces.
-    $var =~ s/[\n\s]+/ /gms;
-    return $var;
-}
-
 sub die_handler
 {
     my ($msg) = @_;
@@ -496,7 +489,6 @@ sub die_handler
     # to generate one properly.
     if ($input_email)
     {
-        $msg = html_strip($msg);
         my $from = Bugzilla->params->{mailfrom};
         my $reply = reply(to => $input_email, from => $from, top_post => 1, body => "$msg\n");
         MessageToMTA($reply->as_string);
@@ -506,6 +498,32 @@ sub die_handler
     # to *also* send a failure notice.
     exit;
 }
+
+# Use UTF-8 in Email::Reply to correctly quote the body
+my $crlf = "\x0d\x0a";
+my $CRLF = $crlf;
+*Email::Reply::_quote_body = sub
+{
+    my ($self, $part) = @_;
+    return if length $self->{quoted};
+    return map $self->_quote_body($_), $part->parts if $part->parts > 1;
+    return if $part->content_type && $part->content_type !~ m[\btext/plain\b];
+
+    my $body = $part->body;
+    Encode::_utf8_on($body);
+
+    $body = ($self->_strip_sig($body) || $body)
+        if !$self->{keep_sig} && $body =~ /$crlf--\s*$crlf/o;
+
+    my ($end) = $body =~ /($crlf)/;
+    $end ||= $CRLF;
+    $body =~ s/[\r\n\s]+$//;
+    $body = $self->_quote_orig_body($body);
+    $body = "$self->{attrib}$end$body$end";
+
+    $self->{crlf}   = $end;
+    $self->{quoted} = $body;
+};
 
 ###############
 # Main Script #
@@ -524,7 +542,7 @@ my ($pipe) = join(' ', @ARGV) =~ /^(.*)$/iso;
 @ARGV = ();
 
 Bugzilla->usage_mode(USAGE_MODE_EMAIL);
-Bugzilla->error_mode(ERROR_MODE_DIE);
+Bugzilla->error_mode(ERROR_MODE_CONSOLE);
 
 my @mail_lines = <STDIN>;
 my ($mail_text) = join("", @mail_lines) =~ /^(.*)$/iso;

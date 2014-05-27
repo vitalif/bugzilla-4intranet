@@ -34,7 +34,7 @@ use strict;
 use base qw(Exporter);
 @Bugzilla::Util::EXPORT = qw(
     trick_taint detaint_natural trick_taint_copy detaint_signed
-    html_quote url_quote url_quote_noslash xml_quote css_class_quote html_light_quote url_decode
+    html_strip html_quote url_quote url_quote_noslash xml_quote css_class_quote html_light_quote url_decode
     i_am_cgi correct_urlbase remote_ip lsearch
     do_ssl_redirect_if_required use_attachbase
     diff_arrays list
@@ -102,6 +102,22 @@ sub detaint_signed {
     # The "int()" call removes any leading plus sign.
     $_[0] = $match ? int($1) : undef;
     return (defined($_[0]));
+}
+
+sub html_strip
+{
+    my ($var) = @_;
+    # Trivial HTML tag remover (this is just for error messages, really.)
+    $var =~ s/<[^>]*>//g;
+    # And this basically reverses the Template-Toolkit html filter.
+    $var =~ s/\&amp;/\&/g;
+    $var =~ s/\&lt;/</g;
+    $var =~ s/\&gt;/>/g;
+    $var =~ s/\&quot;/\"/g;
+    $var =~ s/&#64;/@/g;
+    # Also remove undesired newlines and consecutive spaces.
+    $var =~ s/[\n\s]+/ /gms;
+    return $var;
 }
 
 # Bug 120030: Override html filter to obscure the '@' in user

@@ -131,9 +131,6 @@ sub log
     }
 }
 
-# TODO Print sensible errors on the console, like:
-# Bugzilla->template->process("global/".$@->{type}."-error.html.tmpl", { %{ $@ }, %{ $@->{vars} } }, \$message);
-
 sub _throw_error
 {
     my ($type, $error, $vars) = @_;
@@ -275,6 +272,10 @@ sub _throw_error
         my $json = new JSON;
         Bugzilla->send_header;
         print $json->encode($err);
+    }
+    elsif ($mode == ERROR_MODE_CONSOLE)
+    {
+        die bless { message => html_strip($message), type => $type, error => $error, vars => $vars };
     }
     else
     {
