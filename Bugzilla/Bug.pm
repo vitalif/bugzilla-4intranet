@@ -1550,7 +1550,7 @@ sub set
         $value = $self->$setter($value, $field);
         if (defined $value)
         {
-            trick_taint($value);
+            trick_taint($value) if !ref $value;
             $self->{$field} = $value;
         }
         $self->_check_field_permission($field);

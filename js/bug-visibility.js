@@ -132,7 +132,7 @@ function handleControllerField(e, controller)
         controlled = document.getElementById(controlled_id);
         copt = getSelectedIds(controlled);
         bz_clearOptions(controlled);
-        if (show_fields[controlled.id]['nullable'])
+        if (show_fields[controlled.id]['nullable'] && !controlled.multiple)
         {
             bz_createOptionInSelect(controlled, '---', '');
         }
