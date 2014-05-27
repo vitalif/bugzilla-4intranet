@@ -69,10 +69,10 @@ You have the following choices:
 <ul>
   <li>
     <form method="post" action="process_bug.cgi">
-      <input type="hidden" name="delta_ts" 
-             value="[% bug.delta_ts FILTER html %]">
-      [% PROCESS "global/hidden-fields.html.tmpl" 
-          exclude="^Bugzilla_login|Bugzilla_password|delta_ts$" %]
+      <input type="hidden" name="delta_ts" value="[% bug.delta_ts FILTER html %]">
+      <input type="hidden" name="token" value="[% ARGS.token | html %]">
+      [% PROCESS "global/hidden-fields.html.tmpl"
+          exclude="^Bugzilla_login|Bugzilla_password|delta_ts|token$" %]
       <input type="submit" id="process" value="Submit my changes anyway">
         This will cause conflicting changes to be overwritten with yours
         [% ", except for the added comment(s)" IF comments.size %].
