@@ -720,8 +720,8 @@ WHERE description LIKE\'%[CC:%\'');
     $dbh->do('UPDATE bug_status SET is_confirmed=0 WHERE value=?', undef, 'UNCONFIRMED');
 
     # Copy products.defaultmilestone information into fieldvaluecontrol
-    if ((my $fid = Bugzilla->get_field('target_milestone')->id) &&
-        $dbh->selectrow_array(
+    my $fid = Bugzilla->get_field('target_milestone')->id;
+    if ($fid && $dbh->selectrow_array(
             "SELECT defaultmilestone FROM products p, fieldvaluecontrol c".
             " WHERE c.field_id=$fid AND c.value_id=p.defaultmilestone".
             " AND c.visibility_value_id=p.id AND NOT c.is_default"
