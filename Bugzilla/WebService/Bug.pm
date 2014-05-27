@@ -887,8 +887,11 @@ sub _bug_to_hash {
             my @values = map { $self->type('string', $_->name) } @{ $bug->get_object($name) };
             $item{$name} = \@values;
         }
-        else {
+        elsif ($field->type == FIELD_TYPE_SINGLE_SELECT) {
             $item{$name} = $self->type('string', $bug->$name && $bug->get_object($name)->name);
+        }
+        else {
+            $item{$name} = $self->type('string', $bug->$name);
         }
     }
 

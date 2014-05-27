@@ -276,11 +276,11 @@ if ($bug_id) {
         my $value = $bug->{$field};
         if (ref($value) eq 'HASH') {
             foreach (keys %$value) {
-                print "$_: " . $value->{$_} . "\n";
+                print "$_: " . (ref($value->{$_}) eq 'ARRAY' ? join(', ', @{$value->{$_}}) : $value->{$_}) . "\n";
             }
         }
         else {
-            print "$field: $value\n";
+            print "$field: " . (ref($value) eq 'ARRAY' ? join(', ', @$value) : $value) . "\n";
         }
     }
 }
