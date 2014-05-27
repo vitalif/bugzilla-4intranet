@@ -574,13 +574,16 @@ sub update
     # Save duplicate ID in 'duplicates' table
     $self->save_dup_id($changes);
 
-    # Log bugs_activity items
-    foreach my $field (keys %$changes)
+    if ($method ne 'create')
     {
-        my $change = $changes->{$field};
-        my $from = defined $change->[0] ? $change->[0] : '';
-        my $to   = defined $change->[1] ? $change->[1] : '';
-        LogActivityEntry($self->id, $field, $from, $to, Bugzilla->user->id, $delta_ts);
+        # Log bugs_activity items
+        foreach my $field (keys %$changes)
+        {
+            my $change = $changes->{$field};
+            my $from = defined $change->[0] ? $change->[0] : '';
+            my $to   = defined $change->[1] ? $change->[1] : '';
+            LogActivityEntry($self->id, $field, $from, $to, Bugzilla->user->id, $delta_ts);
+        }
     }
 
     Bugzilla::Hook::process("bug_end_of_$method", {
