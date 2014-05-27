@@ -1,25 +1,10 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-#
-# The Initial Developer of the Original Code is Netscape Communications
-# Corporation. Portions created by Netscape are
-# Copyright (C) 1998 Netscape Communications Corporation. All
-# Rights Reserved.
-#
-# Contributor(s): Bradley Baetz <bbaetz@acm.org>
-#                 Marc Schumann <wurblzap@gmail.com>
-#                 Frédéric Buclin <LpSolit@gmail.com>
+# Bugzilla error handling code -- almost totally refactored.
+# License: Dual-license GPL 3.0+ or MPL 1.1+
+# Contributor(s):
+#   Vitaliy Filippov <vitalif@mail.ru>
+#   Bradley Baetz <bbaetz@acm.org>
+#   Marc Schumann <wurblzap@gmail.com>
+#   Frédéric Buclin <LpSolit@gmail.com>
 
 package Bugzilla::Error;
 
@@ -233,26 +218,30 @@ sub _throw_error
         eval
         {
             require Bugzilla::Hook;
-            Bugzilla::Hook::process('webservice_error_codes',
-                                    { error_map => \%error_map });
+            Bugzilla::Hook::process('webservice_error_codes', { error_map => \%error_map });
         };
         my $code = $error_map{$error};
-        if (!$code) {
+        if (!$code)
+        {
             $code = ERROR_UNKNOWN_FATAL if $type eq 'code';
             $code = ERROR_UNKNOWN_TRANSIENT if $type eq 'user';
         }
-        if ($mode == ERROR_MODE_DIE_SOAP_FAULT) {
+        if ($mode == ERROR_MODE_DIE_SOAP_FAULT)
+        {
             die SOAP::Fault->faultcode($code)->faultstring($message);
         }
-        else {
+        else
+        {
             my $server = Bugzilla->_json_server;
             # Technically JSON-RPC isn't allowed to have error numbers
             # higher than 999, but we do this to avoid conflicts with
             # the internal JSON::RPC error codes.
-            $server->raise_error(code    => 100000 + $code,
-                                 message => $message,
-                                 id      => $server->{_bz_request_id},
-                                 version => $server->version);
+            $server->raise_error(
+                code    => 100000 + $code,
+                message => $message,
+                id      => $server->{_bz_request_id},
+                version => $server->version,
+            );
             # Most JSON-RPC Throw*Error calls happen within an eval inside
             # of JSON::RPC. So, in that circumstance, instead of exiting,
             # we die with no message. JSON::RPC checks raise_error before
@@ -266,9 +255,9 @@ sub _throw_error
         # JSON can't handle strings across lines.
         $message =~ s/\n/ /gm;
         my $err;
-        $err->{'success'} = JSON::false;
-        $err->{'error'} = $error;
-        $err->{'message'} = $message;
+        $err->{success} = JSON::false;
+        $err->{error} = $error;
+        $err->{message} = $message;
         my $json = new JSON;
         Bugzilla->send_header;
         print $json->encode($err);
