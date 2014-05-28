@@ -199,8 +199,6 @@ sub update_table_definitions
 
     _populate_milestones_table();
 
-    $dbh->bz_alter_column('milestones', 'value', {TYPE => 'varchar(20)', NOTNULL => 1});
-
     _add_products_defaultmilestone();
 
     # 2000-03-24 Added unique indexes into the cc and keyword tables.  This
@@ -282,7 +280,7 @@ sub update_table_definitions
     $dbh->bz_add_column('attachments', 'isprivate',
                         {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'});
 
-    $dbh->bz_add_column("bugs", "alias", {TYPE => "varchar(20)"});
+    $dbh->bz_add_column("bugs", "alias", {TYPE => "varchar(255)"});
     $dbh->bz_add_index('bugs', 'bugs_alias_idx',
                        {TYPE => 'UNIQUE', FIELDS => [qw(alias)]});
 
@@ -312,7 +310,7 @@ sub update_table_definitions
     _add_user_group_map_grant_type();
     _add_group_group_map_grant_type();
 
-    $dbh->bz_add_column("profiles", "extern_id", {TYPE => 'varchar(64)'});
+    $dbh->bz_add_column("profiles", "extern_id", {TYPE => 'varchar(255)'});
 
     $dbh->bz_add_column('flagtypes', 'grant_group_id', {TYPE => 'INT4'});
     $dbh->bz_add_column('flagtypes', 'request_group_id', {TYPE => 'INT4'});
@@ -410,8 +408,6 @@ sub update_table_definitions
     $dbh->bz_drop_index('flags', 'type_id');
 
     # 2005-04-28 - LpSolit@gmail.com - Bug 7233: add an index to versions
-    $dbh->bz_alter_column('versions', 'value',
-                          {TYPE => 'varchar(64)', NOTNULL => 1});
     _add_versions_product_id_index();
 
     if (!exists $dbh->bz_column_info('milestones', 'sortkey')->{DEFAULT}) {
@@ -504,7 +500,7 @@ sub update_table_definitions
 
     _update_longdescs_who_index();
 
-    $dbh->bz_add_column('setting', 'subclass', {TYPE => 'varchar(32)'});
+    $dbh->bz_add_column('setting', 'subclass', {TYPE => 'varchar(255)'});
 
     $dbh->bz_alter_column('longdescs', 'thetext', 
         {TYPE => 'LONGTEXT', NOTNULL => 1}, '');
@@ -614,7 +610,7 @@ sub update_table_definitions
     $dbh->bz_alter_column('products', cc_group => {TYPE => 'varchar(255)'});
 
     # New component fields
-    $dbh->bz_add_column('components', default_version => {TYPE => 'varchar(64)', NOTNULL => 1, DEFAULT => "''"});
+    $dbh->bz_add_column('components', default_version => {TYPE => 'INT4'});
     $dbh->bz_add_column('components', wiki_url => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"});
     $dbh->bz_add_column('components', is_active => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 1});
 
@@ -735,6 +731,9 @@ WHERE description LIKE\'%[CC:%\'');
             " AND c.visibility_value_id=p.id AND NOT c.is_default"
         );
     }
+
+    # Varchar is VARIABLE, it's generally pointless to set a size limit less than 255 chars for it
+    _set_varchar_255();
 
     ################################################################
     # New --TABLE-- changes should go *** A B O V E *** this point #
@@ -1532,10 +1531,10 @@ sub _use_ids_for_products_and_components {
             if $dbh->bz_table_info("attachstatusdefs");
         $dbh->bz_rename_column("products", "product", "name");
         $dbh->bz_alter_column("products", "name",
-                              {TYPE => 'varchar(64)', NOTNULL => 1});
+                              {TYPE => 'varchar(255)', NOTNULL => 1});
         $dbh->bz_rename_column("components", "value", "name");
         $dbh->bz_alter_column("components", "name",
-                              {TYPE => 'varchar(64)', NOTNULL => 1});
+                              {TYPE => 'varchar(255)', NOTNULL => 1});
 
         print "Adding indexes for products and components tables.\n";
         $dbh->bz_add_index('products', 'products_name_idx',
@@ -2302,7 +2301,7 @@ sub _convert_attachments_filename_from_mediumtext {
     # shouldn't be there for security.  Buggy browsers include them,
     # and attachment.cgi now takes them out, but old ones need converting.
     my $ref = $dbh->bz_column_info("attachments", "filename");
-    if ($ref->{TYPE} ne 'varchar(100)') {
+    if ($ref->{TYPE} ne 'varchar(255)') {
         print "Removing paths from filenames in attachments table...\n";
 
         my $sth = $dbh->prepare("SELECT attach_id, filename FROM attachments " .
@@ -2320,9 +2319,9 @@ sub _convert_attachments_filename_from_mediumtext {
         print "Done.\n";
 
         print "Resizing attachments.filename from mediumtext to",
-              " varchar(100).\n";
+              " varchar(255).\n";
         $dbh->bz_alter_column("attachments", "filename",
-                              {TYPE => 'varchar(100)', NOTNULL => 1});
+                              {TYPE => 'varchar(255)', NOTNULL => 1});
     }
 }
 
@@ -2596,7 +2595,7 @@ sub _fix_whine_queries_title_and_op_sys_value {
 
         # Add a DEFAULT to whine_queries stuff so that editwhines.cgi
         # works on PostgreSQL.
-        $dbh->bz_alter_column('whine_queries', 'title', {TYPE => 'varchar(128)',
+        $dbh->bz_alter_column('whine_queries', 'title', {TYPE => 'varchar(255)',
                               NOTNULL => 1, DEFAULT => "''"});
     }
 }
@@ -3864,6 +3863,29 @@ sub _change_select_fields_to_ids
         }
     }
     print "-- Done --\n" if $started;
+}
+
+# Set 255 limit for most varchar columns
+sub _set_varchar_255
+{
+    my $dbh = Bugzilla->dbh;
+    my $sch_real = $dbh->_bz_real_schema;
+    my $sch_abstract = $dbh->_bz_schema;
+    for my $table ($sch_real->get_table_list)
+    {
+        my $r = $sch_real->get_table_abstract($table);
+        $r = { @{$r->{FIELDS} || []} };
+        my $abs = $sch_abstract->get_table_abstract($table);
+        $abs = { @{$abs->{FIELDS} || []} };
+        for my $f (keys %$abs)
+        {
+            if (lc $abs->{$f}->{TYPE} eq 'varchar(255)' &&
+                lc $r->{$f}->{TYPE} ne 'varchar(255)')
+            {
+                $dbh->bz_alter_column($table, $f, $abs->{$f});
+            }
+        }
+    }
 }
 
 1;

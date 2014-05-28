@@ -226,7 +226,6 @@ use constant FIELD_TABLE_SCHEMA => {
     ],
 };
 
-# FIXME remove all small varchars
 # FIXME make schema compatible with upstream 4.4
 use constant ABSTRACT_SCHEMA => {
 
@@ -267,7 +266,7 @@ use constant ABSTRACT_SCHEMA => {
             estimated_time      => {TYPE => 'decimal(7,2)', NOTNULL => 1, DEFAULT => '0'},
             remaining_time      => {TYPE => 'decimal(7,2)', NOTNULL => 1, DEFAULT => '0'},
             deadline            => {TYPE => 'DATETIME'},
-            alias               => {TYPE => 'varchar(20)'},
+            alias               => {TYPE => 'varchar(255)'},
         ],
         INDEXES => [
             bugs_alias_idx            => {FIELDS => ['alias'], TYPE => 'UNIQUE'},
@@ -416,7 +415,7 @@ use constant ABSTRACT_SCHEMA => {
             description  => {TYPE => 'TINYTEXT', NOTNULL => 1},
             mimetype     => {TYPE => 'TINYTEXT', NOTNULL => 1},
             ispatch      => {TYPE => 'BOOLEAN'},
-            filename     => {TYPE => 'varchar(100)', NOTNULL => 1},
+            filename     => {TYPE => 'varchar(255)', NOTNULL => 1},
             submitter_id => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'profiles', COLUMN => 'userid'}},
             isobsolete   => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
             isprivate    => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
@@ -461,7 +460,7 @@ use constant ABSTRACT_SCHEMA => {
     keyworddefs => {
         FIELDS => [
             id          => {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
-            name        => {TYPE => 'varchar(64)', NOTNULL => 1},
+            name        => {TYPE => 'varchar(255)', NOTNULL => 1},
             description => {TYPE => 'MEDIUMTEXT'},
         ],
         INDEXES => [
@@ -508,10 +507,10 @@ use constant ABSTRACT_SCHEMA => {
     flagtypes => {
         FIELDS => [
             id               => {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
-            name             => {TYPE => 'varchar(50)', NOTNULL => 1},
+            name             => {TYPE => 'varchar(255)', NOTNULL => 1},
             description      => {TYPE => 'MEDIUMTEXT', NOTNULL => 1},
             # FIXME flagtypes.cc_list => store user ids
-            cc_list          => {TYPE => 'varchar(200)'},
+            cc_list          => {TYPE => 'varchar(255)'},
             target_type      => {TYPE => 'char(1)', NOTNULL => 1, DEFAULT => "'b'"},
             is_active        => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'},
             is_requestable   => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
@@ -556,7 +555,7 @@ use constant ABSTRACT_SCHEMA => {
     fielddefs => {
         FIELDS => [
             id          => {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
-            name        => {TYPE => 'varchar(64)', NOTNULL => 1},
+            name        => {TYPE => 'varchar(255)', NOTNULL => 1},
             type        => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => FIELD_TYPE_UNKNOWN},
             custom      => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
             description => {TYPE => 'TINYTEXT', NOTNULL => 1},
@@ -607,7 +606,7 @@ use constant ABSTRACT_SCHEMA => {
     versions => {
         FIELDS => [
             id         =>  {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
-            value      =>  {TYPE => 'varchar(64)', NOTNULL => 1},
+            value      =>  {TYPE => 'varchar(255)', NOTNULL => 1},
             product_id =>  {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'products', COLUMN => 'id', DELETE => 'CASCADE'}},
         ],
         INDEXES => [
@@ -619,7 +618,7 @@ use constant ABSTRACT_SCHEMA => {
         FIELDS => [
             id         => {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
             product_id => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'products', COLUMN => 'id', DELETE => 'CASCADE'}},
-            value      => {TYPE => 'varchar(20)', NOTNULL => 1},
+            value      => {TYPE => 'varchar(255)', NOTNULL => 1},
             sortkey    => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0},
         ],
         INDEXES => [
@@ -710,7 +709,7 @@ use constant ABSTRACT_SCHEMA => {
             disabledtext   => {TYPE => 'MEDIUMTEXT', NOTNULL => 1, DEFAULT => "''"},
             disable_mail   => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
             mybugslink     => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'},
-            extern_id      => {TYPE => 'varchar(64)'},
+            extern_id      => {TYPE => 'varchar(255)'},
         ],
         INDEXES => [
             profiles_login_name_idx => {FIELDS => ['login_name'], TYPE => 'UNIQUE'},
@@ -785,7 +784,7 @@ use constant ABSTRACT_SCHEMA => {
         FIELDS => [
             id           => {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
             userid       => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE  => 'profiles', COLUMN => 'userid', DELETE => 'CASCADE'}},
-            name         => {TYPE => 'varchar(64)', NOTNULL => 1},
+            name         => {TYPE => 'varchar(255)', NOTNULL => 1},
             query        => {TYPE => 'LONGTEXT', NOTNULL => 1},
         ],
         INDEXES => [
@@ -1022,7 +1021,7 @@ use constant ABSTRACT_SCHEMA => {
     classifications => {
         FIELDS => [
             id          => {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
-            name        => {TYPE => 'varchar(64)', NOTNULL => 1},
+            name        => {TYPE => 'varchar(255)', NOTNULL => 1},
             description => {TYPE => 'MEDIUMTEXT'},
             sortkey     => {TYPE => 'INT4', NOTNULL => 1, DEFAULT => '0'},
         ],
@@ -1034,7 +1033,7 @@ use constant ABSTRACT_SCHEMA => {
     products => {
         FIELDS => [
             id                => {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
-            name              => {TYPE => 'varchar(64)', NOTNULL => 1},
+            name              => {TYPE => 'varchar(255)', NOTNULL => 1},
             classification_id => {TYPE => 'INT4', NOTNULL => 1, DEFAULT => '1', REFERENCES => {TABLE => 'classifications', COLUMN => 'id', DELETE => 'CASCADE'}},
             description       => {TYPE => 'MEDIUMTEXT'},
             isactive          => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 1},
@@ -1060,7 +1059,7 @@ use constant ABSTRACT_SCHEMA => {
     components => {
         FIELDS => [
             id               => {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
-            name             => {TYPE => 'varchar(64)', NOTNULL => 1},
+            name             => {TYPE => 'varchar(255)', NOTNULL => 1},
             product_id       => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'products', COLUMN => 'id', DELETE => 'CASCADE'}},
             initialowner     => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'profiles', COLUMN => 'userid'}},
             initialqacontact => {TYPE => 'INT4', REFERENCES => {TABLE => 'profiles', COLUMN => 'userid', DELETE => 'SET NULL'}},
@@ -1084,7 +1083,7 @@ use constant ABSTRACT_SCHEMA => {
             creator     => {TYPE => 'INT4', REFERENCES => {TABLE => 'profiles', COLUMN => 'userid', DELETE => 'CASCADE'}},
             category    => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'series_categories', COLUMN => 'id', DELETE => 'CASCADE'}},
             subcategory => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'series_categories', COLUMN => 'id', DELETE => 'CASCADE'}},
-            name        => {TYPE => 'varchar(64)', NOTNULL => 1},
+            name        => {TYPE => 'varchar(255)', NOTNULL => 1},
             frequency   => {TYPE => 'INT2', NOTNULL => 1},
             query       => {TYPE => 'MEDIUMTEXT', NOTNULL => 1},
             is_public   => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
@@ -1108,7 +1107,7 @@ use constant ABSTRACT_SCHEMA => {
     series_categories => {
         FIELDS => [
             id   => {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
-            name => {TYPE => 'varchar(64)', NOTNULL => 1},
+            name => {TYPE => 'varchar(255)', NOTNULL => 1},
         ],
         INDEXES => [
             series_categories_name_idx => {FIELDS => ['name'], TYPE => 'UNIQUE'},
@@ -1122,10 +1121,10 @@ use constant ABSTRACT_SCHEMA => {
         FIELDS => [
             id            => {TYPE => 'INTSERIAL', PRIMARYKEY => 1, NOTNULL => 1},
             eventid       => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'whine_events', COLUMN => 'id', DELETE => 'CASCADE'}},
-            query_name    => {TYPE => 'varchar(64)', NOTNULL => 1, DEFAULT => "''"},
+            query_name    => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"},
             sortkey       => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => '0'},
             onemailperbug => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
-            title         => {TYPE => 'varchar(128)', NOTNULL => 1, DEFAULT => "''"},
+            title         => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"},
         ],
         INDEXES => [
             whine_queries_eventid_idx => ['eventid'],
@@ -1152,7 +1151,7 @@ use constant ABSTRACT_SCHEMA => {
         FIELDS => [
             id           => {TYPE => 'INTSERIAL', PRIMARYKEY => 1, NOTNULL => 1},
             owner_userid => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'profiles', COLUMN => 'userid', DELETE => 'CASCADE'}},
-            subject      => {TYPE => 'varchar(128)'},
+            subject      => {TYPE => 'varchar(255)'},
             body         => {TYPE => 'MEDIUMTEXT'},
             mailifnobugs => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
         ],
@@ -1185,17 +1184,17 @@ use constant ABSTRACT_SCHEMA => {
     #
     setting => {
         FIELDS => [
-            name          => {TYPE => 'varchar(32)', NOTNULL => 1, PRIMARYKEY => 1}, 
-            default_value => {TYPE => 'varchar(32)', NOTNULL => 1},
+            name          => {TYPE => 'varchar(255)', NOTNULL => 1, PRIMARYKEY => 1}, 
+            default_value => {TYPE => 'varchar(255)', NOTNULL => 1},
             is_enabled    => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'},
-            subclass      => {TYPE => 'varchar(32)'},
+            subclass      => {TYPE => 'varchar(255)'},
         ],
     },
 
     setting_value => {
         FIELDS => [
-            name        => {TYPE => 'varchar(32)', NOTNULL => 1, REFERENCES => {TABLE => 'setting', COLUMN => 'name', DELETE => 'CASCADE'}},
-            value       => {TYPE => 'varchar(32)', NOTNULL => 1},
+            name        => {TYPE => 'varchar(255)', NOTNULL => 1, REFERENCES => {TABLE => 'setting', COLUMN => 'name', DELETE => 'CASCADE'}},
+            value       => {TYPE => 'varchar(255)', NOTNULL => 1},
             sortindex   => {TYPE => 'INT2', NOTNULL => 1},
         ],
         INDEXES => [
@@ -1207,8 +1206,8 @@ use constant ABSTRACT_SCHEMA => {
     profile_setting => {
         FIELDS => [
             user_id       => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'profiles', COLUMN => 'userid', DELETE => 'CASCADE'}},
-            setting_name  => {TYPE => 'varchar(32)', NOTNULL => 1, REFERENCES => {TABLE => 'setting', COLUMN => 'name', DELETE => 'CASCADE'}},
-            setting_value => {TYPE => 'varchar(32)', NOTNULL => 1},
+            setting_name  => {TYPE => 'varchar(255)', NOTNULL => 1, REFERENCES => {TABLE => 'setting', COLUMN => 'name', DELETE => 'CASCADE'}},
+            setting_value => {TYPE => 'varchar(255)', NOTNULL => 1},
         ],
         INDEXES => [
             profile_setting_value_unique_idx  => {FIELDS => [qw(user_id setting_name)], TYPE => 'UNIQUE'},
