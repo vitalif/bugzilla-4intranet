@@ -2894,7 +2894,7 @@ sub flags
 sub isopened
 {
     my $self = shift;
-    return is_open_state($self->{bug_status}) ? 1 : 0;
+    return $self->bug_status_obj->is_open;
 }
 
 sub keywords

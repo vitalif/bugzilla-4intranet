@@ -127,9 +127,9 @@ sub GenerateTree {
         # if it exists, if we haven't exceeded the maximum depth the user 
         # wants the tree to go, and if the dependency isn't resolved 
         # (if we're ignoring resolved dependencies).
-        if (!$bugs->{$dep_id}->{'error'}
+        if ($bugs->{$dep_id}
             && Bugzilla->user->can_see_bug($dep_id)
-            && (!$maxdepth || $depth <= $maxdepth) 
+            && (!$maxdepth || $depth <= $maxdepth)
             && ($bugs->{$dep_id}->isopened || !$hide_resolved))
         {
             # Due to AUTOLOAD in Bug.pm, we cannot add 'dependencies'
