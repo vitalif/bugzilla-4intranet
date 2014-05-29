@@ -67,7 +67,7 @@
     <option value="[% g.id %]">[% g.name | html %]</option>
   [% END %]
   </select>
-  <a href="#" class="icon-add" onclick="addListGroup('[% name %]'); return false;">Add new group</a>
+  <a href="#" class="icon-add" onclick="addListGroup('[% name %]'); return false;">Add this group</a>
 </p>
 [% END %]
 
@@ -118,7 +118,7 @@
           [% END %]
         </select>
 
-        [%+ PROCESS control_select id='etalon_control', control=0 %]
+        [%+ PROCESS control_select id='etalon_control', control=constants.CONTROLMAPMANDATORY %]
     </div>
 
     <script language="JavaScript">
