@@ -403,20 +403,24 @@ sub get_attachment_link {
         }
 
         # Custis Bug 126991
+        # Show non-obsolete attachment images inline in comments in which they were created
         my $attachment_view = '';
         if ($comment && $comment->type == CMT_ATTACHMENT_CREATED &&
             $attachment->id == $comment->extra_data &&
+            !$attachment->isobsolete &&
             $attachment->contenttype =~ /^image\//s)
         {
-            $attachment_view .= '<br /><a href="'.$linkval.$patchlink.'" name="attach_'.$attachid.
-                '" title="'.$title.'" target="_blank"><img src="'.$linkval.$patchlink.'" alt="'.$title.
+            $attachment_view .= '<br /><a href="'.$linkval.'" name="attach_'.$attachid.
+                '" title="'.$title.'" target="_blank"><img src="'.$linkval.'" alt="'.$title.
                 '" title="'.$title.'" class="attachment_image" /></a><br />';
         }
 
         # Custis Bug 129398
-        if ($attachment->isOfficeDocument()) {
+        if ($attachment->isOfficeDocument())
+        {
             $attachment_view .= ' <a href="'.$linkval.'&amp;action=online_view" title="$title" target="_blank">[Online-view]</a>';
         }
+
         # Whitespace matters here because these links are in <pre> tags.
         return qq|<span class="$className">|
                . qq|<a href="${linkval}${patchlink}" name="attach_${attachid}" title="$title" target="_blank">$link_text</a>|
