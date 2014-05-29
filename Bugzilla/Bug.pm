@@ -753,7 +753,7 @@ sub check_dependent_fields
                 my $n = $field_obj->value_field->name;
                 $incorrect_fields->{$fn} = {
                     field => $field_obj,
-                    options => [ map { $_->name } @{ $field_obj->restricted_legal_values($self->$n) } ],
+                    options => [ map { $_->name } @{ $field_obj->restricted_legal_values($self->get_ids($n)) } ],
                     values => [ map { ref $_ ? $_ : undef } @bad ],
                     value_names => [ map { ref $_ ? $_->name : $_ } @bad ],
                     controller => $self->get_object($n),
@@ -801,7 +801,7 @@ sub check_dependent_fields
     }
 
     # Else display UI for value checking
-    if (Bugzilla->usage_mode == USAGE_MODE_BROWSER && (%$incorrect_fields || $verify_bug_groups) && $self->id)
+    if (Bugzilla->usage_mode == USAGE_MODE_BROWSER && (%$incorrect_fields || $verify_bug_groups && @$verify_bug_groups) && $self->id)
     {
         Bugzilla->template->process('bug/process/verify-field-values.html.tmpl', {
             product => $verify_bug_groups && $self->product_obj,
@@ -2116,6 +2116,8 @@ sub _set_target_milestone
                 ThrowUserError('object_not_specified', { class => $field_obj->value_type });
             }
         }
+        $self->{target_milestone_obj} = undef;
+        $self->{target_milestone} = undef;
         return undef;
     }
     # FIXME use set_select_field

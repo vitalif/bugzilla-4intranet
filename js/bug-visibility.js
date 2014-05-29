@@ -91,6 +91,24 @@ function getSelectedIds(sel)
     return opt;
 }
 
+function getSelectedNames(sel)
+{
+    var opt = {};
+    if (sel.type != 'select' || !sel.multi)
+    {
+        opt[sel.value] = true;
+        return opt;
+    }
+    for (var i = 0; i < sel.options.length; i++)
+    {
+        if (sel.options[i].selected)
+        {
+            opt[sel.options[i].value] = true;
+        }
+    }
+    return opt;
+}
+
 function handleControllerField_this(e)
 {
     return handleControllerField(e, this);
@@ -129,8 +147,10 @@ function handleControllerField(e, controller)
     var item, controlled, copt, controlled_value;
     for (var controlled_id in show_fields[controller.id]['values'])
     {
+        // It is more correct to match selected values on name, because a
+        // target_milestone/version/component with the same name may exist for a different product
         controlled = document.getElementById(controlled_id);
-        copt = getSelectedIds(controlled);
+        copt = getSelectedNames(controlled);
         bz_clearOptions(controlled);
         if (show_fields[controlled.id]['nullable'] && !controlled.multiple)
         {
@@ -157,7 +177,7 @@ function handleControllerField(e, controller)
             {
                 item = bz_createOptionInSelect(controlled, controlled_value[1], controlled_value[1]);
                 item.id = 'v'+controlled_value[0]+'_'+controlled_id;
-                if (copt[controlled_value[0]])
+                if (copt[controlled_value[1]])
                 {
                     item.selected = true;
                 }
