@@ -108,11 +108,17 @@
         statuses available on [% terms.bug %] creation and allowed [% terms.bug %] status
         transitions when editing existing [% terms.bugs %].</dd>
 
-        [% class = user.in_group('creategroups') ? "" : "forbidden" %]
+        [% class = user.in_group('creategroups') || user.can_bless ? "" : "forbidden" %]
         <dt id="groups" class="[% class %]"><a href="editgroups.cgi">Groups</a></dt>
-        <dd class="[% class %]">Define groups which will be used in the installation.
-        They can either be used to define new user privileges or to restrict the access
-        to some [% terms.bugs %].</dd>
+        <dd class="[% class %]">
+          [% IF user.can_bless && !user.in_group('creategroups') %]
+          Add/remove users in groups you are allowed to do so.
+          [% ELSE %]
+          Define groups which will be used in the installation.
+          They can either be used to define new user privileges or to restrict the access
+          to some [% terms.bugs %].
+          [% END %]
+        </dd>
 
         [% class = user.in_group('editkeywords') ? "" : "forbidden" %]
         <dt id="keywords" class="[% class %]"><a href="editkeywords.cgi">Keywords</a></dt>

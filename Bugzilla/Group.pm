@@ -120,7 +120,7 @@ sub _get_members {
     return Bugzilla::User->new_from_list($user_ids);
 }
 
-# Returns all active users who are in this group or can bless it
+# Returns all active visible users who are in this group or can bless it
 sub users_in_group
 {
     my $self = shift;
@@ -152,9 +152,14 @@ sub users_in_group
         $check_bless{$_} ||= 1 for map { keys %{$group_grants->{$_}} } keys %check_bless;
     }
 
+    # Optionally show only users in visible groups
+    my $vis = Bugzilla->params->{usevisibilitygroups} && Bugzilla->user->visible_groups_as_string;
+
     my $rows = Bugzilla->dbh->selectall_arrayref(
-        "SELECT ugm.*, g.name group_name FROM user_group_map ugm, groups g".
-        " WHERE ugm.group_id=g.id AND ugm.group_id IN (".join(', ', keys %check_grant, keys %check_bless).")",
+        "SELECT ugm.*, g.name group_name FROM user_group_map ugm".
+        " INNER JOIN groups g ON g.id=ugm.group_id".
+        ($vis ? " INNER JOIN user_group_map uvm ON uvm.user_id=ugm.user_id AND uvm.isbless=0 AND uvm.group_id IN ($vis)" : "").
+        " WHERE ugm.group_id IN (".join(', ', keys %check_grant, keys %check_bless).")",
         {Slice=>{}}
     );
     my $res = {};

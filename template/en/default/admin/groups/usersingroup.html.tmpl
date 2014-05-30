@@ -24,6 +24,12 @@
       <th>Description:</th>
       <td>[% group.description | html %]</td>
     </tr>
+    [% IF group.regexp %]
+    <tr>
+      <th>Regexp:</th>
+      <td>[% group.regexp | html %]</td>
+    </tr>
+    [% END %]
   </table>
 
   <p>Add users to this group:</p>
@@ -87,7 +93,7 @@
         [% ELSIF u.bless_regexp %][%# (in fact impossible) %]
           matches regexp
         [% ELSIF u.bless_indirect %]
-          via [% u.member_indirect | html %]
+          via [% u.bless_indirect | html %]
         [% END %]
       </td>
     </tr>

@@ -47,11 +47,6 @@ my $vars = {};
 
 my $user = Bugzilla->login(LOGIN_REQUIRED);
 
-$user->in_group('creategroups')
-  || ThrowUserError("auth_failure", {group  => "creategroups",
-                                     action => "edit",
-                                     object => "groups"});
-
 my $action = trim($cgi->param('action') || '');
 my $token  = $cgi->param('token');
 
@@ -146,16 +141,30 @@ sub get_current_and_available {
     }
 }
 
-# If no action is specified, get a list of all groups available.
+# If no action is specified, get a list of groups the current user can bless
+# so he can enter 'editusersingroup' for them, or the list of all groups
+# available if he has 'creategroups' permissions.
 
-unless ($action) {
-    my @groups = Bugzilla::Group->get_all;
-    $vars->{'groups'} = \@groups;
-    
+$vars->{allow_edit} = $user->in_group('creategroups');
+
+unless ($action)
+{
+    my $groups = $vars->{allow_edit}
+        ? [ Bugzilla::Group->get_all ]
+        : $user->bless_groups;
+    $vars->{groups} = $groups;
+
     $template->process("admin/groups/list.html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
+        || ThrowTemplateError($template->error());
     exit;
 }
+
+# All other actions are protected by the 'creategroups' permission.
+
+$vars->{allow_edit}
+  || ThrowUserError("auth_failure", {group  => "creategroups",
+                                     action => "edit",
+                                     object => "groups"});
 
 #
 # action='changeform' -> present form for altering an existing group

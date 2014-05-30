@@ -41,38 +41,49 @@
 [% editusers_contentlink = "editusersingroup.cgi?group=%%id%%" %]
 [% del_contentlink = "editgroups.cgi?action=del&amp;group=%%id%%" %]
 
-[% columns =
-  [{name               => 'name'
+[% columns = [
+   {
+    name               => 'name'
     heading            => 'Name'
-    contentlink        => edit_contentlink
+    contentlink        => allow_edit ? edit_contentlink : editusers_contentlink
    }
-   {name               => 'description'
+   {
+    name               => 'description'
     heading            => 'Description'
     allow_html_content => 1
    }
-   {name               => 'userregexp'
+  ];
+%]
+[% IF allow_edit;
+  columns.push(
+   {
+    name               => 'userregexp'
     heading            => 'User RegExp'
    }
-   {name               => 'is_active_bug_group'
+   {
+    name               => 'is_active_bug_group'
     heading            => "Use For $terms.Bugs"
     align              => 'center'
    }
-   {name               => 'type'
+   {
+    name               => 'type'
     heading            => 'Type'
     align              => 'center'
    }
-   {name               => 'action'
+   {
+    name               => 'action'
     heading            => 'Action'
     align              => 'center'
    }
-   {name               => 'members'
+   {
+    name               => 'members'
     heading            => 'Members'
     align              => 'center'
     contentlink        => editusers_contentlink
     content            => 'edit'
    }
-  ]
-%]
+  );
+  END %]
 
 [% overrides.is_active_bug_group = {
      'is_active_bug_group' => {
@@ -128,13 +139,15 @@
          content => "user"
      }
    }
-%] 
+%]
 
 [% PROCESS admin/table.html.tmpl
   columns = columns
   data    = groups
   overrides = overrides
 %]
+
+[% IF allow_edit %]
 
 <p><a href="editgroups.cgi?action=add">Add Group</a></p>
 
@@ -172,5 +185,7 @@ for [% terms.bug %] restrictions.
 <p>
   The <b>Type</b> field identifies system groups.
 </p>
+
+[% END %]
 
 [% PROCESS global/footer.html.tmpl %]
