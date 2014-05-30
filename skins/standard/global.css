@@ -485,8 +485,8 @@ form#Create .comment {
     vertical-align: top;
 }
 
-.choose_product tr:last-child td, tr:last-child th,
-.choose_product tr.all td, tr.all th {
+.choose_product tr:last-child td, .choose_product tr:last-child th,
+.choose_product tr.all td, .choose_product tr.all th {
     border-bottom: 0;
 }
 

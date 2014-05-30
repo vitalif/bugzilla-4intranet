@@ -1,68 +1,102 @@
-[%# 1.0@bugzilla.org %]
-
-[%# INTERFACE:
-  # group_id: number. The group ID.
-  # name:             Name of the group.
-  # description:      Name of the group.
-  # users: array with group objects having the properties:
-  #   - grpid: number. The ID of the group.
-  #   - grpname: string. The name of the group. [member]
-  #   - grpdesc: string. The description of the group.
-  #   - grpmember: boolean int. Is 1 if members of the group are to inherit
-  #                membership in the group being edited.
-  #   - blessmember: boolean int. Is 1 if members of the group are to be able
-  #                  to bless users into the group being edited.
-  #   - membercansee: boolean int. Is 1 if the members of the group are to
-  #                   be aware of the group being edited and its members.
-  #%]
+[%# UI for adding/removing users in a group
+  # License: Dual-license GPL 3.0+ or MPL 1.1+
+  # Author(s): Vitaliy Filippov <vitalif@mail.ru>, Stas Fomin <stas-fomin@yandex.ru> %]
 
 [% PROCESS global/header.html.tmpl
-  title = "Change Users in Group: $name"
+  title = "Add/remove users in group: $group.name"
   style = "
     .users { border-collapse: collapse; }
     .users tr { border: 1px solid #747e93; }
     .users th { background: #d8d8e6; border: 1px solid #747e93; }
   "
 %]
-<form method="post" action="editusersingroup.cgi">
-  <input name="group" type="hidden" value=[% group_id %]>
+
+<form method="POST" action="?">
+  <input name="group" type="hidden" value="[% group.id | html %]">
+  <input name="token" type="hidden" value="[% token | html %]">
+
   <table class="editgr_grinfo" cellpadding="4">
     <tr>
       <th>Group:</th>
-      <td>
-          [% name FILTER html %]
-      </td>
+      <td>[% group.name | html %]</td>
     </tr>
     <tr>
       <th>Description:</th>
-      <td>
-          [% description FILTER html %]
-      </td>
+      <td>[% group.description | html %]</td>
     </tr>
   </table>
 
-  <h4>Users in the group &laquo;[% name FILTER html %]&raquo;</h4>
-  <table class="users" cellspacing="0" cellpadding="2" width="80%">
+  <p>Add users to this group:</p>
+  <p>
+    [% INCLUDE global/userselect.html.tmpl
+      id => "add_members"
+      name => "add_members"
+      value => ""
+      size => 60
+      multiple => 5
+    %]
+  </p>
+
+  [% IF allow_bless %]
+  <p>Allow these users to grant this group ("grant option"):</p>
+  <p>
+    [% INCLUDE global/userselect.html.tmpl
+      id => "add_bless"
+      name => "add_bless"
+      value => ""
+      size => 60
+      multiple => 5
+    %]
+  </p>
+  [% END %]
+
+  <h4>Active users in group &laquo;[% group.name | html %]&raquo;</h4>
+
+  <table class="users" width="80%">
     <tr>
-      <th>Login</th><th>Name</th><th>Direct</th><th>Regexp</th>
+      <th>Login</th>
+      <th>User Name</th>
+      <th>Is member?</th>
+      <th>Can grant?</th>
     </tr>
     [% row = 0 %]
-    [% FOREACH user = users %]
-      [% row = row + 1 %]
-      <tr [% 'class="odd_row"' IF row % 2 %]>
-          <td><a target="edituser" href="editusers.cgi?action=edit&userid=[% user.userid %]">
-              [% user.login_name FILTER html %]</a>
-          </td>
-          <td>[% user.realname FILTER html %]</td>
-          <td align="center">[% user.direct_char  FILTER html %]</td>
-          <td align="center">[% user.regexp_char  FILTER html %]</td>
-      </tr>
+    [% FOREACH u = user_members %]
+    <tr[% ' class="odd_row"' IF !(loop.index % 2) %]>
+      <td><a target="edituser" href="editusers.cgi?action=edit&userid=[% u.user.id %]">
+        [% u.user.login | html %]</a>
+      </td>
+      <td>[% u.user.realname | html %]</td>
+      <td align="center">
+        [% IF u.member_direct %]
+          explicit, <input type="checkbox" id="remove_[% u.user.id %]" name="remove[]"
+            value="[% u.user.id %]" /><label title="remove [% u.user.login | html %] from [% group.name | html %]"
+            for="remove_[% u.user.id %]">remove</label>
+        [% ELSIF u.member_regexp %]
+          matches regexp
+        [% ELSIF u.member_indirect %]
+          via [% u.member_indirect | html %]
+        [% END %]
+      </td>
+      <td align="center">
+        [% IF u.bless_direct %]
+          explicit
+          [%- IF allow_bless %], <input type="checkbox" id="unbless_[% u.user.id %]" name="unbless[]"
+            value="[% u.user.id %]" /><label title="revoke [% group.name | html %] grant permission from [% u.user.login | html %]"
+            for="unbless_[% u.user.id %]">revoke</label>
+          [% END %]
+        [% ELSIF u.bless_regexp %][%# (in fact impossible) %]
+          matches regexp
+        [% ELSIF u.bless_indirect %]
+          via [% u.member_indirect | html %]
+        [% END %]
+      </td>
+    </tr>
     [% END %]
   </table>
+
   <p>
-  Add multiple user to the group (comma/space/newline separated list of userlogins):
+    <input value="Save changes" type="submit" />
   </p>
-  <textarea rows="3" cols="100" wrap="virtual" name="addusers"></textarea>
-  <p>
-  <input value="Add new users" type="submit">
 </form>
+
+[% PROCESS global/footer.html.tmpl %]

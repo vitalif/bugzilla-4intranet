@@ -1289,7 +1289,7 @@ sub match_field {
     foreach my $field (keys %{$fields}) {
         next unless defined $data->{$field};
 
-        #Concatenate login names, so that we have a common way to handle them.
+        # Concatenate login names, so that we have a common way to handle them.
         my $raw_field;
         if (ref $data->{$field}) {
             $raw_field = join(" ", @{$data->{$field}});
@@ -1896,13 +1896,15 @@ sub login_to_id
             undef, $login
         );
     }
-    if ($user_id) {
+    if ($user_id)
+    {
         return $user_id;
-    } elsif ($throw_error) {
-        ThrowUserError('invalid_username', { name => $login });
-    } else {
-        return 0;
     }
+    elsif ($throw_error)
+    {
+        ThrowUserError('invalid_username', { name => $login });
+    }
+    return 0;
 }
 
 sub user_id_to_login {

@@ -96,8 +96,11 @@
         </td>
       </tr>
     [% END %]
+
     [% Hook.process('field') %]
   </table>
+
+  <p><a href="editusersingroup.cgi?group=[% group.id %]">Add/remove users in this group</a></p>
 
   <h4>Group Permissions</h4>
 

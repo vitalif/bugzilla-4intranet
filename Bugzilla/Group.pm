@@ -120,6 +120,84 @@ sub _get_members {
     return Bugzilla::User->new_from_list($user_ids);
 }
 
+# Returns all active users who are in this group or can bless it
+sub users_in_group
+{
+    my $self = shift;
+    my %users;
+
+    my $group_grants = {};
+    my $group_bless = {};
+    for my $row (@{ Bugzilla->dbh->selectall_arrayref("SELECT * FROM group_group_map", {Slice=>{}}) })
+    {
+        if ($row->{grant_type} == GROUP_MEMBERSHIP)
+        {
+            # if a user is in member_id, he's automatically in grantor_id
+            $group_grants->{$row->{grantor_id}}->{$row->{member_id}} = 1;
+        }
+        else
+        {
+            $group_bless->{$row->{grantor_id}}->{$row->{member_id}} = 1;
+        }
+    }
+
+    my %check_grant = ($self->id => 1);
+    my %check_bless = (map { $_ => 1 } keys %{$group_bless->{$self->id}});
+    my ($n_grant, $n_bless) = (0, 0);
+    while ($n_grant < scalar keys %check_grant || $n_bless < scalar keys %check_bless)
+    {
+        $n_grant = scalar keys %check_grant;
+        $n_bless = scalar keys %check_bless;
+        $check_grant{$_} ||= 1 for map { keys %{$group_grants->{$_}} } keys %check_grant;
+        $check_bless{$_} ||= 1 for map { keys %{$group_grants->{$_}} } keys %check_bless;
+    }
+
+    my $rows = Bugzilla->dbh->selectall_arrayref(
+        "SELECT ugm.*, g.name group_name FROM user_group_map ugm, groups g".
+        " WHERE ugm.group_id=g.id AND ugm.group_id IN (".join(', ', keys %check_grant, keys %check_bless).")",
+        {Slice=>{}}
+    );
+    my $res = {};
+    my $k;
+    foreach my $row (@$rows)
+    {
+        if ($row->{group_id} == $self->id)
+        {
+            $k = $row->{isbless} ? 'bless' : 'member';
+            if ($row->{grant_type} == GRANT_REGEXP)
+            {
+                $res->{$row->{user_id}}->{$k.'_regexp'} = 1;
+            }
+            elsif ($row->{grant_type} == GRANT_DIRECT)
+            {
+                $res->{$row->{user_id}}->{$k.'_direct'} = 1;
+            }
+        }
+        else
+        {
+            if ($check_grant{$row->{group_id}})
+            {
+                $res->{$row->{user_id}}->{member_indirect} = $row->{group_name};
+            }
+            if ($check_bless{$row->{group_id}})
+            {
+                $res->{$row->{user_id}}->{bless_indirect} = $row->{group_name};
+            }
+        }
+    }
+
+    my $users = Bugzilla::Object::match('Bugzilla::User', {
+        Bugzilla::User->ID_FIELD => [ keys %$res ],
+        disabledtext => '',
+    });
+    for my $user (@$users)
+    {
+        $user = { user => $user, %{$res->{$user->id}} };
+    }
+
+    return $users;
+}
+
 sub flag_types {
     my $self = shift;
     require Bugzilla::FlagType;
