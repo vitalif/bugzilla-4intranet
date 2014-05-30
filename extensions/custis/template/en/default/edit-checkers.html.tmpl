@@ -51,7 +51,7 @@
     <a href="?mode=edit&id=[% c.id %]" title="править"><img src="images/edit.png" width="22" height="22" /></a>
     <a href="buglist.cgi?cmdtype=dorem&amp;remaction=run&amp;namedcmd=[% c.query.name | url_quote %]
      [% IF c.query.shared_with_group.id %]&amp;sharer_id=[% c.query.user.id %][% END %]" title="выполнить поиск"><img src="images/search.png" width="22" height="22" /></a>
-    <a href="query.cgi?[% c.query.query %]" title="править поиск"><img src="images/editsearch.png" width="22" height="22" /></a>
+    <a href="query.cgi?[% c.query.query %]&amp;known_name=[% c.query.name | url_quote %]" title="править поиск"><img src="images/editsearch.png" width="22" height="22" /></a>
     <a href="javascript:void(0)" title="удалить" onclick="if(confirm('Действительно удалить эту проверку?')){window.location.href='?save=1&delete=1&id=[% c.id %]';}"><img src="images/delete.png" width="22" height="22" /></a>
    </td>
    <td>[% c.message | html %]</td>
