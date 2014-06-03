@@ -1104,7 +1104,8 @@ sub _flag_types {
         # Build custom userlist for setting flag
         $cl = new Bugzilla::FlagType::UserList;
         $cl->add('CC', @{$bug->cc_users || []});
-        $cl->add(CompQA => $_)   for $bug->component_obj->default_qa_contact || ();
+        # component_obj can be NULL during creation of new bug
+        $cl->add(CompQA => $_)   for $bug->component_obj && $bug->component_obj->default_qa_contact || ();
         $cl->add(Reporter => $_) for $bug->reporter || ();
         $cl->add(QA => $_)       for $bug->qa_contact || ();
         $cl->add(Assignee => $_) for $bug->assigned_to || ();
