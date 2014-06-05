@@ -456,12 +456,12 @@ sub post_bug
             });
         };
         # If there is no default version in the component:
-        if (!$component || !($fields_in->{version} = $component->default_version && $component->default_version_obj->name))
+        if (!$component || !($fields_in->{version} = ($component->default_version && $component->default_version_obj->name)))
         {
             my $vers = [ map ($_->name, @{$product->versions}) ];
             my $v;
             if (($v = $cgi->cookie("VERSION-" . $product->name)) &&
-                !grep { $_ eq $v } @$vers)
+                grep { $_ eq $v } @$vers)
             {
                 # get from cookie
                 $fields_in->{version} = $v;

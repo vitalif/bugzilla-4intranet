@@ -618,7 +618,7 @@ else
 my $vercookie = $cgi->cookie('VERSION-' . $product->name);
 if ($cloned_bug_id && $product->name eq $cloned_bug->product)
 {
-    $default{version} = $cloned_bug->version;
+    $default{version} = $cloned_bug->version && $cloned_bug->version_obj->name;
 }
 elsif ($ARGS->{version})
 {

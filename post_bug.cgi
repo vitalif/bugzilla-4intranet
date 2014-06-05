@@ -184,11 +184,11 @@ my $timestamp = $bug->creation_ts;
 
 # Set Version cookie, but only if the user actually selected
 # a version on the page.
-if (defined $ARGS->{version} && $ARGS->{version} ne '')
+if (defined $ARGS->{version} && $ARGS->{version} ne '' && $bug->version)
 {
     $cgi->send_cookie(
         -name => "VERSION-" . $bug->product,
-        -value => $bug->version,
+        -value => $bug->version_obj->name,
         -expires => "Fri, 01-Jan-2038 00:00:00 GMT"
     );
 }
