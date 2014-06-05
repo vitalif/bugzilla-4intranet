@@ -565,20 +565,19 @@ sub process_bug
     return undef;
 }
 
+# FIXME: Either generalise it or move into 'custishacks' extension
 sub process_internal_bugs
 {
     my ($id, $internal_bug_ids) = @_;
     if ($id)
     {
-        my $cf_extbug_field = Bugzilla->get_field('cf_extbug');
-        my $bug = Bugzilla::Bug->check({id => $id});
         for my $internal_bug_id ($internal_bug_ids =~ /\d+/g)
         {
             # get internal bug if it exists
             my $internal_bug = Bugzilla::Bug->new($internal_bug_id);
-            ThrowUserError('import_intbug_does_not_exist', {bug_id => $internal_bug->{bug_id}}) if $internal_bug->{error};
+            ThrowUserError('import_intbug_does_not_exist', { bug_id => $internal_bug->{bug_id} }) if !$internal_bug;
             # update internal bug
-            $internal_bug->set($cf_extbug_field, [$id]);
+            $internal_bug->set('cf_extbug', $id);
             $internal_bug->update();
         }
     }
