@@ -1,5 +1,6 @@
 #!/usr/bin/perl -wT
 # CustIS Bug 12253
+# FIXME: Move somewhere or remove hardcode Группа%
 
 use strict;
 use lib qw(. lib);

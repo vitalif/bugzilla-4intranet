@@ -708,6 +708,8 @@ use constant ABSTRACT_SCHEMA => {
             disable_mail   => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
             mybugslink     => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'},
             extern_id      => {TYPE => 'varchar(255)'},
+            is_enabled     => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'},
+            last_seen_date => {TYPE => 'DATETIME'},
         ],
         INDEXES => [
             profiles_login_name_idx => {FIELDS => ['login_name'], TYPE => 'UNIQUE'},

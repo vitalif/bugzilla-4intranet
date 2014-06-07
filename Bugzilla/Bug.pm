@@ -3247,7 +3247,7 @@ sub get_access_user_list
     return $dbh->selectall_arrayref("
         SELECT p.userid, p.login_name, p.realname
         FROM profiles p
-        WHERE p.disabledtext = '' AND p.disable_mail = 0 AND p.userid in (".join(",", @user_ids).")
+        WHERE p.is_enabled = 1 AND p.disable_mail = 0 AND p.userid in (".join(",", @user_ids).")
         ORDER BY p.realname");
 }
 

@@ -80,6 +80,7 @@ use constant DEFAULT_USER => {
     'showmybugslink' => 0,
     'disabledtext'   => '',
     'disable_mail'   => 0,
+    'is_enabled'     => 1,
 };
 
 my $SUPERUSER = {};
@@ -97,6 +98,8 @@ use constant DB_COLUMNS => (
     'profiles.mybugslink AS showmybugslink',
     'profiles.disabledtext',
     'profiles.disable_mail',
+    'profiles.is_enabled',
+    'profiles.last_seen_date',
 );
 use constant NAME_FIELD => 'login_name';
 use constant ID_FIELD   => 'userid';
@@ -110,6 +113,7 @@ use constant VALIDATORS => {
     disabledtext  => \&_check_disabledtext,
     login_name    => \&check_login_name_for_creation,
     realname      => \&_check_realname,
+    extern_id     => \&_check_extern_id,
 };
 
 sub UPDATE_COLUMNS {
@@ -119,6 +123,8 @@ sub UPDATE_COLUMNS {
         disabledtext
         login_name
         realname
+        extern_id
+        is_enabled
     );
     push(@cols, 'cryptpassword') if exists $self->{cryptpassword};
     return @cols;
@@ -160,8 +166,20 @@ sub is_super_user
     return $self eq $SUPERUSER;
 }
 
-sub update {
+sub create
+{
     my $self = shift;
+    my ($params) = @_;
+    $params->{is_enabled} = !defined $params->{disabledtext} || $params->{disabledtext} eq '';
+    $self->SUPER::create($params);
+}
+
+sub update
+{
+    my $self = shift;
+
+    $self->{is_enabled} = !defined $self->{disabledtext} || $self->{disabledtext} eq '';
+
     my $changes = $self->SUPER::update(@_);
     my $dbh = Bugzilla->dbh;
 
@@ -189,6 +207,22 @@ sub update {
 
 sub _check_disable_mail { return $_[1] ? 1 : 0; }
 sub _check_disabledtext { return trim($_[1]) || ''; }
+
+# Check whether the extern_id is unique.
+sub _check_extern_id {
+    my ($invocant, $extern_id) = @_;
+    $extern_id = trim($extern_id);
+    return undef unless defined($extern_id) && $extern_id ne "";
+    if (!ref($invocant) || $invocant->extern_id ne $extern_id) {
+        my $existing_login = $invocant->new({ extern_id => $extern_id });
+        if ($existing_login) {
+            ThrowUserError( 'extern_id_exists',
+                            { extern_id => $extern_id,
+                              existing_login_name => $existing_login->login });
+        }
+    }
+    return $extern_id;
+}
 
 # This is public since createaccount.cgi needs to use it before issuing
 # a token for account creation.
@@ -245,6 +279,15 @@ sub set_name {
 
 sub set_password { $_[0]->set('cryptpassword', $_[1]); }
 
+sub update_last_seen_date {
+    my $self = shift;
+    return unless $self->id;
+    my $dbh = Bugzilla->dbh;
+    Bugzilla->dbh->do(
+        'UPDATE profiles SET last_seen_date = NOW() WHERE userid = ?',
+        undef, $self->id
+    );
+}
 
 ################################################################################
 # Methods
@@ -254,11 +297,12 @@ sub set_password { $_[0]->set('cryptpassword', $_[1]); }
 sub name  { $_[0]->{realname};   }
 sub login { $_[0]->{login_name}; }
 sub email { $_[0]->login . Bugzilla->params->{'emailsuffix'}; }
-sub disabledtext { $_[0]->{'disabledtext'}; }
-sub is_disabled { $_[0]->disabledtext ? 1 : 0; }
+sub disabledtext { $_[0]->{disabledtext}; }
+sub is_enabled { $_[0]->{is_enabled} }
 sub showmybugslink { $_[0]->{showmybugslink}; }
 sub email_disabled { $_[0]->{disable_mail}; }
 sub email_enabled { !($_[0]->{disable_mail}); }
+sub last_seen_date { $_[0]->{last_seen_date}; }
 sub cryptpassword {
     my $self = shift;
     # We don't store it because we never want it in the object (we
@@ -1165,7 +1209,7 @@ sub match {
                       "AND group_id IN(" .
                       join(', ', (-1, @{$user->visible_groups_inherited})) . ") ";
         }
-        $query    .= " AND disabledtext = '' " if $exclude_disabled;
+        $query    .= " AND is_enabled = 1 " if $exclude_disabled;
         $query    .= $dbh->sql_limit($limit) if $limit;
 
         # Execute the query, retrieve the results, and make them into
@@ -1210,7 +1254,7 @@ sub match {
         if (Bugzilla->params->{'usevisibilitygroups'}) {
             $query .= " AND isbless = 0 AND group_id IN(" . join(', ', (-1, @{$user->visible_groups_inherited})) . ") ";
         }
-        $query .= " AND disabledtext = '' " if $exclude_disabled;
+        $query .= " AND is_enabled = 1 " if $exclude_disabled;
         $query .= $dbh->sql_limit($limit) if $limit;
         my $user_ids = $dbh->selectcol_arrayref($query, undef, @bind);
         @users = @{Bugzilla::User->new_from_list($user_ids)};
@@ -1677,7 +1721,7 @@ sub get_userlist
             " ON user_group_map.user_id = userid AND isbless = 0" .
             " AND group_id IN (" . join(', ', -1, @{$self->visible_groups_inherited}) . ")"
             : " 1 FROM profiles").
-        " WHERE disabledtext = '' ".
+        " WHERE is_enabled = 1 ".
         $dbh->sql_group_by('userid', 'login_name, realname');
 
     my $sth = $dbh->prepare($query);

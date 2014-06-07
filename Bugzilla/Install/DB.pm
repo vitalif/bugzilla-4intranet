@@ -609,6 +609,12 @@ sub update_table_definitions
     # 2009-05-07 ghendricks@novell.com - Bug 77193
     _add_isactive_to_product_fields();
 
+    # 2011-06-15 dkl@mozilla.com - Bug 658929
+    _migrate_disabledtext_boolean();
+
+    # 2011-11-01 glob@mozilla.com - Bug 240437
+    $dbh->bz_add_column('profiles', 'last_seen_date', {TYPE => 'DATETIME'});
+
     # New product fields
     $dbh->bz_add_column('products', wiki_url => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"});
     $dbh->bz_add_column('products', notimetracking => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0});
@@ -3666,6 +3672,16 @@ sub _add_isactive_to_product_fields {
     $dbh->bz_add_column('versions', 'isactive', {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'});
 
     $dbh->bz_add_column('milestones', 'isactive', {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'});
+}
+
+sub _migrate_disabledtext_boolean {
+    my $dbh = Bugzilla->dbh;
+    if (!$dbh->bz_column_info('profiles', 'is_enabled')) {
+        $dbh->bz_add_column("profiles", 'is_enabled',
+                            {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'});
+        $dbh->do("UPDATE profiles SET is_enabled = 0 
+                  WHERE disabledtext != ''");
+    }
 }
 
 # Fill 'fieldvaluecontrol' table when upgrading a stock Bugzilla installation

@@ -592,6 +592,15 @@ sub login
         $class->set_user($authenticated_user);
     }
 
+    if ($class->sudoer)
+    {
+        $class->sudoer->update_last_seen_date();
+    }
+    else
+    {
+        $class->user->update_last_seen_date();
+    }
+
     return $class->user;
 }
 

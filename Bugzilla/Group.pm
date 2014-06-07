@@ -193,7 +193,7 @@ sub users_in_group
 
     my $users = Bugzilla::Object::match('Bugzilla::User', {
         Bugzilla::User->ID_FIELD => [ keys %$res ],
-        disabledtext => '',
+        is_enabled => 1,
     });
     for my $user (@$users)
     {
