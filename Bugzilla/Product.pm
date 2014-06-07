@@ -849,7 +849,7 @@ sub active_components
     {
         my $ids = Bugzilla->dbh->selectcol_arrayref(
             'SELECT id FROM components WHERE product_id = ?'.
-            ' AND is_active = 1 ORDER BY name', undef, $self->id
+            ' AND isactive = 1 ORDER BY name', undef, $self->id
         );
 
         require Bugzilla::Component;

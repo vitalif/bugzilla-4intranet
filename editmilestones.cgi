@@ -58,6 +58,7 @@ my $sortkey        = trim($cgi->param('sortkey')     || 0);
 my $action         = trim($cgi->param('action')      || '');
 my $showbugcounts = (defined $cgi->param('showbugcounts'));
 my $token          = $cgi->param('token');
+my $isactive       = $cgi->param('isactive');
 
 #
 # product = '' -> Show nice list of products
@@ -205,6 +206,7 @@ if ($action eq 'update') {
 
     $milestone->set_name($milestone_name);
     $milestone->set_sortkey($sortkey);
+    $milestone->set_is_active($isactive);
     my $changes = $milestone->update();
 
     delete_token($token);

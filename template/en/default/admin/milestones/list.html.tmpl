@@ -43,14 +43,19 @@
 
 
 [% columns = [
-     { 
+     {
        name => "name"
        heading => "Edit milestone..."
        contentlink => edit_contentlink
      },
-     { 
+     {
        name => "sortkey"
        heading => "Sortkey"
+     },
+     {
+       name => "isactive"
+       heading => "Active"
+       yesno_field => 1
      }
    ]
 %]

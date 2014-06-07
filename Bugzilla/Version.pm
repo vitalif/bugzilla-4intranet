@@ -46,6 +46,7 @@ use constant DB_COLUMNS => qw(
     id
     value
     product_id
+    isactive
 );
 
 use constant REQUIRED_CREATE_FIELDS => qw(
@@ -55,17 +56,17 @@ use constant REQUIRED_CREATE_FIELDS => qw(
 
 use constant UPDATE_COLUMNS => qw(
     value
+    isactive
 );
 
 use constant VALIDATORS => {
     product => \&_check_product,
+    isactive => \&Bugzilla::Object::check_boolean,
 };
 
 use constant UPDATE_VALIDATORS => {
     value => \&_check_value,
 };
-
-use constant is_active => 1;
 
 ################################
 # Methods
@@ -183,7 +184,8 @@ sub remove_from_db
 #####     Accessors        ####
 ###############################
 
-sub product_id { return $_[0]->{'product_id'}; }
+sub product_id { return $_[0]->{product_id}; }
+sub is_active  { return $_[0]->{isactive};   }
 
 sub product {
     my $self = shift;
@@ -198,6 +200,7 @@ sub product {
 ################################
 
 sub set_name { $_[0]->set('value', $_[1]); }
+sub set_is_active { $_[0]->set('isactive', $_[1]); }
 
 sub _check_value {
     my ($invocant, $name, $product) = @_;

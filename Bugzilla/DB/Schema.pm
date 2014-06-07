@@ -601,9 +601,10 @@ use constant ABSTRACT_SCHEMA => {
 
     versions => {
         FIELDS => [
-            id         =>  {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
-            value      =>  {TYPE => 'varchar(255)', NOTNULL => 1},
-            product_id =>  {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'products', COLUMN => 'id', DELETE => 'CASCADE'}},
+            id         => {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
+            value      => {TYPE => 'varchar(255)', NOTNULL => 1},
+            product_id => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'products', COLUMN => 'id', DELETE => 'CASCADE'}},
+            isactive   => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'},
         ],
         INDEXES => [
             versions_product_id_idx => {FIELDS => [qw(product_id value)], TYPE => 'UNIQUE'},
@@ -616,6 +617,7 @@ use constant ABSTRACT_SCHEMA => {
             product_id => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'products', COLUMN => 'id', DELETE => 'CASCADE'}},
             value      => {TYPE => 'varchar(255)', NOTNULL => 1},
             sortkey    => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0},
+            isactive   => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'},
         ],
         INDEXES => [
             milestones_product_id_idx => {FIELDS => [qw(product_id value)], TYPE => 'UNIQUE'},
@@ -1062,7 +1064,7 @@ use constant ABSTRACT_SCHEMA => {
             description      => {TYPE => 'MEDIUMTEXT', NOTNULL => 1},
             wiki_url         => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"},
             default_version  => {TYPE => 'INT4', REFERENCES => {TABLE => 'versions', COLUMN => 'id', DELETE => 'SET NULL'}},
-            is_active        => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 1},
+            isactive         => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'},
         ],
         INDEXES => [
             components_product_id_idx => {FIELDS => [qw(product_id name)], TYPE => 'UNIQUE'},

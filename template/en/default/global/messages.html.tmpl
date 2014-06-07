@@ -252,8 +252,8 @@
     [% IF changes.wiki_url.defined %]
       <li>Wiki URL updated to '[% comp.wiki_url | html %]'</li>
     [% END %]
-    [% IF changes.is_active.defined %]
-      <li>Component is now [% changes.is_active.1 ? "open" : "closed" %] for bug entry.</li>
+    [% IF changes.isactive.defined %]
+      <li>Component is now [% comp.isactive ? "open" : "closed" %] for bug entry.</li>
     [% END %]
     [% Hook.process('component_updated_fields') %]
     </ul>
@@ -631,6 +631,9 @@
       [% IF changes.sortkey.defined %]
         <li>Sortkey updated to <em>[% milestone.sortkey | html %]</em>
       [% END %]
+      [% IF changes.isactive.defined %]
+        <li>Milestone [% milestone.isactive ? "enabled" : "disabled" %] for [% terms.bugs %]</li>
+      [% END %]
     </ul>
   [% ELSE %]
     No changes made to milestone <em>[% milestone.name | html %]</em>.
@@ -957,9 +960,16 @@
 [% BLOCK msg_version_updated %]
   [% SET title = "Version Updated" IF 1 %]
   [% IF changes.size %]
-    [% IF changes.value.defined %]
-      Version renamed to <em>[% version.name FILTER html %]</em>.
-    [% END %]
+    Changes to the version <em>[% version.name FILTER html %]</em>
+    have been saved:
+    <ul>
+      [% IF changes.value.defined %]
+        <li>Version renamed to <em>[% version.name FILTER html %]</em></li>
+      [% END %]
+      [% IF changes.isactive.defined %]
+        <li>Version [% version.is_active ? "enabled" : "disabled" %] for [% terms.bugs %]</li>
+      [% END %]
+    </ul>
   [% ELSE %]
     No changes made to version <em>[% version.name FILTER html %]</em>.
   [% END %]

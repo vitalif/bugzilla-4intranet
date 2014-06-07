@@ -606,6 +606,9 @@ sub update_table_definitions
     # 2010-07-18 LpSolit@gmail.com - Bug 119703
     _remove_attachment_isurl();
 
+    # 2009-05-07 ghendricks@novell.com - Bug 77193
+    _add_isactive_to_product_fields();
+
     # New product fields
     $dbh->bz_add_column('products', wiki_url => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"});
     $dbh->bz_add_column('products', notimetracking => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0});
@@ -616,7 +619,6 @@ sub update_table_definitions
     # New component fields
     $dbh->bz_add_column('components', default_version => {TYPE => 'INT4'});
     $dbh->bz_add_column('components', wiki_url => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"});
-    $dbh->bz_add_column('components', is_active => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 1});
 
     # CustIS Bug 64562 - Redirect to bug page after processing bug
     $dbh->bz_add_column('logincookies', session_data => {TYPE => 'LONGBLOB'});
@@ -3650,6 +3652,20 @@ sub _remove_attachment_isurl {
         $dbh->bz_drop_column('attachments', 'isurl');
         $dbh->do("DELETE FROM fielddefs WHERE name='attachments.isurl'");
     }
+}
+
+sub _add_isactive_to_product_fields {
+    my $dbh = Bugzilla->dbh;
+
+    $dbh->bz_add_column('components', 'isactive', {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'});
+    if ($dbh->bz_column_info('components', 'is_active')) {
+        $dbh->do('UPDATE components SET isactive=is_active');
+        $dbh->bz_drop_column('components', 'is_active');
+    }
+
+    $dbh->bz_add_column('versions', 'isactive', {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'});
+
+    $dbh->bz_add_column('milestones', 'isactive', {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'});
 }
 
 # Fill 'fieldvaluecontrol' table when upgrading a stock Bugzilla installation

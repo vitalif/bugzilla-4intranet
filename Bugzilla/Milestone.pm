@@ -44,6 +44,7 @@ use constant DB_COLUMNS => qw(
     value
     product_id
     sortkey
+    isactive
 );
 
 use constant REQUIRED_CREATE_FIELDS => qw(
@@ -54,18 +55,18 @@ use constant REQUIRED_CREATE_FIELDS => qw(
 use constant UPDATE_COLUMNS => qw(
     value
     sortkey
+    isactive
 );
 
 use constant VALIDATORS => {
     product => \&_check_product,
     sortkey => \&_check_sortkey,
+    isactive => \&Bugzilla::Object::check_boolean,
 };
 
 use constant UPDATE_VALIDATORS => {
     value => \&_check_value,
 };
-
-use constant is_active => 1;
 
 ################################
 
@@ -233,6 +234,7 @@ sub _check_product {
 
 sub set_name { $_[0]->set('value', $_[1]); }
 sub set_sortkey { $_[0]->set('sortkey', $_[1]); }
+sub set_is_active { $_[0]->set('isactive', $_[1]); }
 
 sub bug_count
 {
@@ -253,9 +255,10 @@ sub bug_count
 #####      Accessors      ######
 ################################
 
-sub name       { return $_[0]->{'value'};      }
-sub product_id { return $_[0]->{'product_id'}; }
-sub sortkey    { return $_[0]->{'sortkey'};    }
+sub name       { return $_[0]->{value};      }
+sub product_id { return $_[0]->{product_id}; }
+sub sortkey    { return $_[0]->{sortkey};    }
+sub is_active  { return $_[0]->{isactive};   }
 
 sub product {
     my $self = shift;

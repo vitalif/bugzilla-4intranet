@@ -48,7 +48,7 @@ use constant DB_COLUMNS => qw(
     description
     wiki_url
     default_version
-    is_active
+    isactive
 );
 
 use constant REQUIRED_CREATE_FIELDS => qw(
@@ -65,7 +65,7 @@ use constant UPDATE_COLUMNS => qw(
     description
     wiki_url
     default_version
-    is_active
+    isactive
 );
 
 use constant VALIDATORS => {
@@ -75,7 +75,7 @@ use constant VALIDATORS => {
     initialqacontact => \&_check_initialqacontact,
     description      => \&_check_description,
     initial_cc       => \&_check_cc_list,
-    is_active        => \&Bugzilla::Object::check_boolean,
+    isactive         => \&Bugzilla::Object::check_boolean,
 };
 
 use constant UPDATE_VALIDATORS => {
@@ -373,7 +373,7 @@ sub _create_series
     }
 }
 
-sub set_is_active { $_[0]->set('is_active', $_[1]); }
+sub set_is_active { $_[0]->set('isactive', $_[1]); }
 sub set_wiki_url { $_[0]->set('wiki_url', $_[1]); }
 sub set_name { $_[0]->set('name', $_[1]); }
 sub set_description { $_[0]->set('description', $_[1]); }
@@ -534,7 +534,7 @@ sub name        { return $_[0]->{name};        }
 sub description { return $_[0]->{description}; }
 sub wiki_url    { return $_[0]->{wiki_url};    }
 sub product_id  { return $_[0]->{product_id};  }
-sub is_active   { return $_[0]->{is_active};    }
+sub is_active   { return $_[0]->{isactive};    }
 
 sub default_version { return $_[0]->{default_version}; }
 
