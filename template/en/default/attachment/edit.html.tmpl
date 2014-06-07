@@ -75,58 +75,51 @@
           [% END %]
         </div>
 
-        [% IF attachment.isurl %]
-            <input type="hidden" name="filename"
-                   value="[% attachment.filename FILTER html %]">
-            <input type="hidden" name="contenttypeentry"
-                   value="[% attachment.contenttype FILTER html %]">
-        [% ELSE %]
-          <div id="attachment_filename">
-            <label for="filename">Filename:</label>
-            <input type="text" size="20"  class="block[% editable_or_hide %]"
-                   id="filename" name="filename"
-                   value="[% attachment.filename FILTER html %]">
-            [% IF !can_edit %]
-              [%+ attachment.filename FILTER truncate(25) FILTER html %]
-            [% END %]
-          </div>
+        <div id="attachment_filename">
+          <label for="filename">Filename:</label>
+          <input type="text" size="20"  class="block[% editable_or_hide %]"
+                 id="filename" name="filename"
+                 value="[% attachment.filename FILTER html %]">
+          [% IF !can_edit %]
+            [%+ attachment.filename FILTER truncate(25) FILTER html %]
+          [% END %]
+        </div>
 
-          <div id="attachment_mimetype">
-            <label for="contenttypeentry">MIME Type:</label>
-            <input type="text" size="20" class="block[% editable_or_hide %]"
-                   id="contenttypeentry" name="contenttypeentry"
-                   value="[% attachment.contenttype FILTER html %]">
-            [% IF !can_edit %]
-              [%+ attachment.contenttype FILTER truncate(25) FILTER html %]
-            [% END %]
-          </div>
+        <div id="attachment_mimetype">
+          <label for="contenttypeentry">MIME Type:</label>
+          <input type="text" size="20" class="block[% editable_or_hide %]"
+                 id="contenttypeentry" name="contenttypeentry"
+                 value="[% attachment.contenttype FILTER html %]">
+          [% IF !can_edit %]
+            [%+ attachment.contenttype FILTER truncate(25) FILTER html %]
+          [% END %]
+        </div>
 
-          <div id="attachment_size">
-            <span class="label">Size:</span>
-            [% IF attachment.datasize %]
-              [%+ attachment.datasize FILTER unitconvert %]
-            [% ELSE %]
-              <em>deleted</em>
-            [% END %]
-          </div>
+        <div id="attachment_size">
+          <span class="label">Size:</span>
+          [% IF attachment.datasize %]
+            [%+ attachment.datasize FILTER unitconvert %]
+          [% ELSE %]
+            <em>deleted</em>
+          [% END %]
+        </div>
 
-          <div id="attachment_creator">
-            <span class="label">Creator:</span>
-            [%+ INCLUDE global/user.html.tmpl who = attachment.attacher %]
-          </div>
+        <div id="attachment_creator">
+          <span class="label">Creator:</span>
+          [%+ INCLUDE global/user.html.tmpl who = attachment.attacher %]
+        </div>
 
-          <div id="attachment_ispatch">
-            <input type="checkbox" id="ispatch" name="ispatch" value="1"
-                   [%+ IF !can_edit %]class="bz_hidden_option"[% END %]
-                   [%+ 'checked="checked"' IF attachment.ispatch %]>
-            [% IF can_edit %]
-              <label for="ispatch">patch</label>
-            [% ELSE %]
-              <span class="label">Is Patch:</span>
-              [%+ attachment.ispatch ? "yes" : "no" %]
-            [% END %]
-          </div>
-        [% END %]
+        <div id="attachment_ispatch">
+          <input type="checkbox" id="ispatch" name="ispatch" value="1"
+                 [%+ IF !can_edit %]class="bz_hidden_option"[% END %]
+                 [%+ 'checked="checked"' IF attachment.ispatch %]>
+          [% IF can_edit %]
+            <label for="ispatch">patch</label>
+          [% ELSE %]
+            <span class="label">Is Patch:</span>
+            [%+ attachment.ispatch ? "yes" : "no" %]
+          [% END %]
+        </div>
 
         <div id="attachment_isobsolete">
           <input type="checkbox" id="isobsolete" name="isobsolete" value="1"
@@ -190,18 +183,6 @@
 
       [% IF !attachment.datasize %]
         <td width="75%"><b>The content of this attachment has been deleted.</b></td>
-      [% ELSIF attachment.isurl %]
-        <td width="75%">
-          <a href="[% attachment.data FILTER html %]">
-            [% IF attachment.datasize < 120 %]
-              [% attachment.data FILTER html %]
-            [% ELSE %]
-              [% attachment.data FILTER truncate(80) FILTER html %]
-              &nbsp;...
-              [% attachment.data.match(".*(.{20})$").0 FILTER html %]
-            [% END %]
-          </a>
-        </td>
       [% ELSIF !Param("allow_attachment_display") %]
         <td id="view_disabled" width="50%">
           <p><b>

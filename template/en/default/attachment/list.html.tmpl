@@ -78,10 +78,8 @@ function to_attachment_page(link)
       [% IF attachment.isobsolete %]
         [% obsolete_attachments = obsolete_attachments + 1 %]
       [% END %]
-      <tr class="[% "bz_contenttype_" _ attachment.contenttype
-                     FILTER css_class_quote UNLESS attachment.isurl %]
+      <tr class="[% "bz_contenttype_" _ attachment.contenttype | css_class_quote %]
                  [% " bz_patch" IF attachment.ispatch %]
-                 [% " bz_url" IF attachment.isurl %]
                  [% " bz_private" IF attachment.isprivate %]
                  [% " bz_tr_obsolete bz_default_hidden" IF attachment.isobsolete %]">
         <td valign="top">
@@ -97,8 +95,6 @@ function to_attachment_page(link)
               ([% attachment.datasize FILTER unitconvert %],
               [% IF attachment.ispatch %]
                 patch)
-              [% ELSIF attachment.isurl %]
-                url)
               [% ELSE %]
                 [%+ attachment.contenttype FILTER html %])
               [% END %]

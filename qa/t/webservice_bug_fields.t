@@ -16,7 +16,6 @@ use constant GLOBAL_GENERAL_FIELDS => qw(
     attachments.isobsolete
     attachments.ispatch
     attachments.isprivate
-    attachments.isurl
     attachments.mimetype
     attachments.submitter
 

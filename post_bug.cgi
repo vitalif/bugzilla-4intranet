@@ -230,9 +230,9 @@ elsif (defined($cgi->upload('data')) || $ARGS->{attachurl} ||
     Bugzilla->error_mode(ERROR_MODE_DIE);
     eval
     {
-        my $data = $ARGS->{attachurl} || $ARGS->{data};
+        my $data = $ARGS->{data};
         my $filename = '';
-        $filename = scalar($cgi->upload('data')) || $ARGS->{filename} unless $ARGS->{attachurl};
+        $filename = scalar($cgi->upload('data')) || $ARGS->{filename};
         if ($ARGS->{text_attachment} !~ /^\s*$/so)
         {
             $data = $ARGS->{text_attachment};
@@ -246,7 +246,6 @@ elsif (defined($cgi->upload('data')) || $ARGS->{attachurl} ||
             filename        => $filename,
             ispatch         => $ispatch,
             isprivate       => $ARGS->{isprivate},
-            isurl           => $ARGS->{attachurl},
             mimetype        => $content_type,
             store_in_file   => $ARGS->{bigfile},
             base64_content  => $ARGS->{base64_content},

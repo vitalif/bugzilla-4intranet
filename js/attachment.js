@@ -39,14 +39,10 @@ function switchAttype(chk)
 {
     var t = chk.value=='text';
     var s = chk.value=='supa';
-    var u = chk.value=='url';
-    var ur = document.getElementById('attype_url_row');
     var sr = document.getElementById('attype_supa_row');
-    u = u && ur;
     s = s && sr;
     document.getElementById('attype_text_row').style.display = t ? '' : 'none';
-    document.getElementById('attype_file_row').style.display = t || s || u ? 'none' : '';
-    if (ur) ur.style.display = u ? '' : 'none';
+    document.getElementById('attype_file_row').style.display = t || s ? 'none' : '';
     if (sr) sr.style.display = s ? '' : 'none';
     document.getElementById('content_type_row').style.display = s ? 'none' : '';
     var d = document.getElementById('description');
@@ -142,32 +138,7 @@ function updateCommentPrivacy(checkbox)
         text_elem.className = '';
 }
 
-function URLFieldHandler()
-{
-    var field_attachurl = document.getElementById("attachurl");
-    var greyfields = [
-        "data", "ispatch", "autodetect",
-        "list", "manual", "bigfile",
-        "contenttypeselection",
-        "contenttypeentry"
-    ];
-    var i, thisfield;
-    if (field_attachurl.value.match(/^\s*$/)) {
-        for (i = 0; i < greyfields.length; i++) {
-            thisfield = document.getElementById(greyfields[i]);
-            if (thisfield)
-                thisfield.removeAttribute("disabled");
-        }
-    } else {
-        for (i = 0; i < greyfields.length; i++) {
-            thisfield = document.getElementById(greyfields[i]);
-            if (thisfield)
-                thisfield.setAttribute("disabled", "disabled");
-        }
-    }
-}
-
-function DataFieldHandler(AllowAttachUrl)
+function DataFieldHandler()
 {
     var field_data = document.getElementById("data");
     var fd_empty = field_data.value.match(/^\s*$/);
@@ -180,23 +151,6 @@ function DataFieldHandler(AllowAttachUrl)
             l = lw;
         field_description.value = field_data.value.substr(l);
     }
-    if (!AllowAttachUrl)
-        return;
-    var greyfields = new Array("attachurl");
-    var i, thisfield;
-    if (fd_empty) {
-        for (i = 0; i < greyfields.length; i++) {
-            thisfield = document.getElementById(greyfields[i]);
-            if (thisfield)
-                thisfield.removeAttribute("disabled");
-        }
-    } else {
-        for (i = 0; i < greyfields.length; i++) {
-            thisfield = document.getElementById(greyfields[i]);
-            if (thisfield)
-                thisfield.setAttribute("disabled", "disabled");
-        }
-    }
 }
 
 function clearAttachmentFields() {
@@ -206,10 +160,6 @@ function clearAttachmentFields() {
     DataFieldHandler();
     if ((element = document.getElementById('bigfile')))
         element.checked = '';
-    if ((element = document.getElementById('attachurl'))) {
-        element.value = '';
-        URLFieldHandler();
-    }
     document.getElementById('description').value = '';
     /* Fire onchange so that the disabled state of the content-type
      * radio buttons are also reset 

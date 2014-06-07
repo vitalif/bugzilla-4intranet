@@ -89,8 +89,7 @@
         <attachment
             isobsolete="[% a.isobsolete | xml %]"
             ispatch="[% a.ispatch | xml %]"
-            isprivate="[% a.isprivate | xml %]"
-            isurl="[% a.isurl | xml %]">
+            isprivate="[% a.isprivate | xml %]">
           <attachid>[% a.id %]</attachid>
           <date>[% a.attached | time("%Y-%m-%d %T %z") | xml %]</date>
           <delta_ts>[% a.modification_time | time("%Y-%m-%d %T %z") | xml %]</delta_ts>

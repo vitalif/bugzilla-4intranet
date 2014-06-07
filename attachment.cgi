@@ -513,9 +513,9 @@ sub insert
     # Must be called before create() as it may alter $cgi->param('ispatch').
     my ($content_type, $ispatch) = Bugzilla::Attachment::get_content_type();
 
-    my $data = scalar $cgi->param('attachurl') || $cgi->upload('data');
+    my $data = $cgi->upload('data');
     my $filename = '';
-    $filename = scalar $cgi->upload('data') || $cgi->param('filename') unless $cgi->param('attachurl');
+    $filename = scalar $cgi->upload('data') || $cgi->param('filename');
     if (scalar $cgi->param('text_attachment') !~ /^\s*$/so)
     {
         $data = $cgi->param('text_attachment');
@@ -539,7 +539,6 @@ sub insert
          filename      => $filename,
          ispatch       => $ispatch,
          isprivate     => scalar $cgi->param('isprivate'),
-         isurl         => scalar $cgi->param('attachurl'),
          mimetype      => $content_type,
          store_in_file => scalar $cgi->param('bigfile'),
          base64_content => scalar $cgi->param('base64_content'),

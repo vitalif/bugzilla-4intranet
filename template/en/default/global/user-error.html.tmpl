@@ -693,13 +693,8 @@
   kilobytes (KB) in size. Attachments cannot be more than
   [%+ Param('maxattachmentsize') %] KB. <br>
   We recommend that you store your attachment elsewhere
-  [% IF Param("allow_attach_url") %]
-    and then specify the URL to this file on the attachment
-    creation page in the <b>AttachURL</b> field.
-  [% ELSE %]
-    and then insert the URL to it in a comment, or in the URL field
-    for this [% terms.bug %].
-  [% END %]
+  and then insert the URL to it in a comment, or in the URL field
+  for this [% terms.bug %].
   <br>Alternately, if your attachment is an image, you could convert
   it to a compressible format like JPG or PNG and try again.
 [% END %]

@@ -630,7 +630,6 @@ sub add_attachment {
             mimetype    => $params->{content_type},
             ispatch     => $params->{is_patch},
             isprivate   => $params->{is_private},
-            isurl       => $params->{is_url},
         });
         my $comment = $params->{comment} || '';
         $attachment->bug->add_comment($comment, 
@@ -936,7 +935,6 @@ sub _attachment_to_hash {
         content_type     => $self->type('string', $attach->contenttype),
         is_private       => $self->type('int', $attach->isprivate),
         is_obsolete      => $self->type('int', $attach->isobsolete),
-        is_url           => $self->type('int', $attach->isurl),
         is_patch         => $self->type('int', $attach->ispatch),
     };
 

@@ -221,7 +221,6 @@ use constant DEFAULT_FIELDS => (
     {name => 'percentage_complete',   desc => 'Percentage Complete', buglist => 1, clone_bug => 0},
     {name => 'content',               desc => 'Content',             clone_bug => 0},
     {name => 'attach_data.thedata',   desc => 'Attachment data',     clone_bug => 0},
-    {name => 'attachments.isurl',     desc => 'Attachment is a URL', clone_bug => 0},
     {name => 'owner_idle_time',       desc => 'Time Since Assignee Touched', clone_bug => 0},
     {name => 'see_also',              desc => 'See Also',            buglist => 1, type => FIELD_TYPE_BUG_URLS, clone_bug => 0},
 );

@@ -27,10 +27,6 @@
   <td>
     <input onclick="switchAttype(this)" type="radio" name="attype" id="attype_file" value="file" checked="checked" />
     <label for="attype_file">Attach file</label>
-  [% IF Param("allow_attach_url") %]
-    <input onclick="switchAttype(this)" type="radio" name="attype" id="attype_url" value="url" />
-    <label for="attype_url">Attach URL</label>
-  [% END %]
     <input onclick="switchAttype(this)" type="radio" name="attype" id="attype_text" value="text" />
     <label for="attype_text">Enter text</label>
   [% IF Param("use_supa_applet") %]
@@ -44,7 +40,7 @@
   <td>
     <em>Enter the path to the file on your computer.</em><br />
     <input type="file" id="data" name="data" size="50"
-        onchange="DataFieldHandler([% Param("allow_attach_url") ? 1 : 0 %])" />
+        onchange="DataFieldHandler()" />
   </td>
 </tr>
 <tr class="expert_fields" id="attype_text_row" style="display: none">
@@ -86,18 +82,6 @@
     </label>
   </td>
 </tr>
-[% END %]
-[% IF Param("allow_attach_url") %]
-<tr class="expert_fields" id="attype_url_row" style="display: none">
-  <th><label for="attachurl">AttachURL</label>:</th>
-  <td>
-    <em>URL to be attached instead.</em><br />
-    <input type="text" id="attachurl" name="attachurl" size="60" 
-           maxlength="2000"
-           onkeyup="URLFieldHandler()" onblur="URLFieldHandler()">
-  </td>
-</tr>
-</tbody>
 [% END %]
 <tr>
   <th><label for="description">Description</label>:</th>

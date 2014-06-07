@@ -432,10 +432,6 @@ sub update_table_definitions
     # PUBLIC is a reserved word in Oracle.
     $dbh->bz_rename_column('series', 'public', 'is_public');
 
-    # 2005-09-28 bugreport@peshkin.net Bug 149504
-    $dbh->bz_add_column('attachments', 'isurl',
-                        {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0});
-
     # 2005-11-04 LpSolit@gmail.com - Bug 305927
     $dbh->bz_alter_column('groups', 'userregexp',
                           {TYPE => 'TINYTEXT', NOTNULL => 1, DEFAULT => "''"});
@@ -601,6 +597,14 @@ sub update_table_definitions
     _convert_flagtypes_fks_to_set_null();
     _fix_decimal_types();
     _fix_series_creator_fk();
+
+    # Add NOT NULL to some columns that need it, and DEFAULT to
+    # attachments.ispatch.
+    $dbh->bz_alter_column('attachments', 'ispatch',
+        { TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'});
+
+    # 2010-07-18 LpSolit@gmail.com - Bug 119703
+    _remove_attachment_isurl();
 
     # New product fields
     $dbh->bz_add_column('products', wiki_url => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"});
@@ -3673,6 +3677,18 @@ sub _fix_series_creator_fk {
     # automatically at the end of all DB changes.)
     if ($fk and $fk->{DELETE} eq 'SET NULL') {
         $dbh->bz_drop_fk('series', 'creator');
+    }
+}
+
+sub _remove_attachment_isurl {
+    my $dbh = Bugzilla->dbh;
+
+    if ($dbh->bz_column_info('attachments', 'isurl')) {
+        # Now all attachments must have a filename.
+        $dbh->do('UPDATE attachments SET filename = ? WHERE isurl = 1',
+                 undef, 'url.txt');
+        $dbh->bz_drop_column('attachments', 'isurl');
+        $dbh->do("DELETE FROM fielddefs WHERE name='attachments.isurl'");
     }
 }
 

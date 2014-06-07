@@ -414,12 +414,11 @@ use constant ABSTRACT_SCHEMA => {
             modification_time => {TYPE => 'DATETIME', NOTNULL => 1},
             description  => {TYPE => 'TINYTEXT', NOTNULL => 1},
             mimetype     => {TYPE => 'TINYTEXT', NOTNULL => 1},
-            ispatch      => {TYPE => 'BOOLEAN'},
+            ispatch      => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
             filename     => {TYPE => 'varchar(255)', NOTNULL => 1},
             submitter_id => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'profiles', COLUMN => 'userid'}},
             isobsolete   => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
             isprivate    => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
-            isurl        => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
         ],
         INDEXES => [
             attachments_bug_id_idx => ['bug_id'],
