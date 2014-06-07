@@ -238,7 +238,7 @@ use constant ABSTRACT_SCHEMA => {
         FIELDS => [
             bug_id              => {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
             assigned_to         => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'profiles', COLUMN => 'userid'}},
-            bug_file_loc        => {TYPE => 'MEDIUMTEXT'},
+            bug_file_loc        => {TYPE => 'MEDIUMTEXT', NOTNULL => 1, DEFAULT => "''"},
             bug_severity        => {TYPE => 'INT4', REFERENCES => {TABLE => 'bug_severity', COLUMN => 'id'}},
             bug_status          => {TYPE => 'INT4', REFERENCES => {TABLE => 'bug_status', COLUMN => 'id'}},
             creation_ts         => {TYPE => 'DATETIME'},
@@ -311,6 +311,7 @@ use constant ABSTRACT_SCHEMA => {
 
     bugs_activity => {
         FIELDS => [
+            id        => {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
             bug_id    => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'bugs', COLUMN => 'bug_id', DELETE => 'CASCADE'}},
             attach_id => {TYPE => 'INT4', REFERENCES => {TABLE => 'attachments', COLUMN  => 'attach_id', DELETE => 'CASCADE'}},
             who       => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'profiles', COLUMN => 'userid'}},
@@ -325,6 +326,7 @@ use constant ABSTRACT_SCHEMA => {
             bugs_activity_bug_when_idx => ['bug_when'],
             bugs_activity_fieldid_idx => ['fieldid'],
             bugs_activity_added_idx   => ['added(255)'],
+            bugs_activity_removed_idx => ['removed(255)'],
         ],
     },
 
@@ -353,11 +355,11 @@ use constant ABSTRACT_SCHEMA => {
             extra_data      => {TYPE => 'varchar(255)'}
         ],
         INDEXES => [
-            longdescs_bug_id_idx   => ['bug_id'],
+            longdescs_bug_id_idx   => [qw(bug_id work_time)],
             longdescs_who_idx      => [qw(who bug_id)],
             longdescs_bug_when_idx => ['bug_when'],
             # WTF this index was removed in 3.x?! CustIS Bug 53687
-            longdescs_who_bug_when_idx => ['who', 'bug_when'],
+            longdescs_who_bug_when_idx => [qw(who bug_when)],
         ],
     },
 
@@ -386,7 +388,7 @@ use constant ABSTRACT_SCHEMA => {
             dependson => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'bugs', COLUMN => 'bug_id', DELETE => 'CASCADE'}},
         ],
         INDEXES => [
-            dependencies_blocked_idx   => ['blocked'],
+            dependencies_blocked_idx   => {FIELDS => [qw(blocked dependson)], TYPE => 'UNIQUE'},
             dependencies_dependson_idx => ['dependson'],
         ],
     },
@@ -457,7 +459,7 @@ use constant ABSTRACT_SCHEMA => {
         FIELDS => [
             id          => {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
             name        => {TYPE => 'varchar(255)', NOTNULL => 1},
-            description => {TYPE => 'MEDIUMTEXT'},
+            description => {TYPE => 'MEDIUMTEXT', NOTNULL => 1},
         ],
         INDEXES => [
             keyworddefs_name_idx => {FIELDS => ['name'], TYPE => 'UNIQUE'},
@@ -488,7 +490,7 @@ use constant ABSTRACT_SCHEMA => {
             attach_id         => {TYPE => 'INT4', REFERENCES => {TABLE => 'attachments', COLUMN => 'attach_id', DELETE => 'CASCADE'}},
             creation_date     => {TYPE => 'DATETIME', NOTNULL => 1},
             modification_date => {TYPE => 'DATETIME'},
-            setter_id         => {TYPE => 'INT4', REFERENCES => {TABLE => 'profiles', COLUMN => 'userid'}},
+            setter_id         => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'profiles', COLUMN => 'userid'}},
             requestee_id      => {TYPE => 'INT4', REFERENCES => {TABLE => 'profiles', COLUMN => 'userid'}},
         ],
         INDEXES => [
@@ -528,8 +530,7 @@ use constant ABSTRACT_SCHEMA => {
             component_id => {TYPE => 'INT4', REFERENCES => {TABLE => 'components', COLUMN => 'id', DELETE => 'CASCADE'}},
         ],
         INDEXES => [
-            flaginclusions_type_id_idx =>
-                [qw(type_id product_id component_id)],
+            flaginclusions_type_id_idx => {FIELDS => [qw(type_id product_id component_id)], TYPE => 'UNIQUE'},
         ],
     },
 
@@ -540,8 +541,7 @@ use constant ABSTRACT_SCHEMA => {
             component_id => {TYPE => 'INT4', REFERENCES => {TABLE => 'components', COLUMN => 'id', DELETE => 'CASCADE'}},
         ],
         INDEXES => [
-            flagexclusions_type_id_idx =>
-                [qw(type_id product_id component_id)],
+            flagexclusions_type_id_idx => {FIELDS => [qw(type_id product_id component_id)], TYPE => 'UNIQUE'},
         ],
     },
 
@@ -719,6 +719,7 @@ use constant ABSTRACT_SCHEMA => {
 
     profiles_activity => {
         FIELDS => [
+            id            => {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
             userid        => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'profiles', COLUMN => 'userid', DELETE => 'CASCADE'}},
             who           => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'profiles', COLUMN => 'userid'}},
             profiles_when => {TYPE => 'DATETIME', NOTNULL => 1},
@@ -914,8 +915,8 @@ use constant ABSTRACT_SCHEMA => {
             group_id      => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'groups', COLUMN => 'id', DELETE => 'CASCADE'}},
             product_id    => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'products', COLUMN => 'id', DELETE => 'CASCADE'}},
             entry         => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
-            membercontrol => {TYPE => 'BOOLEAN', NOTNULL => 1},
-            othercontrol  => {TYPE => 'BOOLEAN', NOTNULL => 1},
+            membercontrol => {TYPE => 'INT1', NOTNULL => 1, DEFAULT => CONTROLMAPNA},
+            othercontrol  => {TYPE => 'INT1', NOTNULL => 1, DEFAULT => CONTROLMAPNA},
             canedit       => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
             editcomponents => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
             editbugs      => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
@@ -1035,7 +1036,7 @@ use constant ABSTRACT_SCHEMA => {
             id                => {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
             name              => {TYPE => 'varchar(255)', NOTNULL => 1},
             classification_id => {TYPE => 'INT4', NOTNULL => 1, DEFAULT => '1', REFERENCES => {TABLE => 'classifications', COLUMN => 'id', DELETE => 'CASCADE'}},
-            description       => {TYPE => 'MEDIUMTEXT'},
+            description       => {TYPE => 'MEDIUMTEXT', NOTNULL => 1},
             isactive          => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 1},
             votesperuser      => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0},
             maxvotesperbug    => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => '10000'},
@@ -1089,7 +1090,8 @@ use constant ABSTRACT_SCHEMA => {
             is_public   => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
         ],
         INDEXES => [
-            series_creator_idx  => {FIELDS => [qw(creator category subcategory name)], TYPE => 'UNIQUE'},
+            series_creator_idx => ['creator'],
+            series_category_idx => {FIELDS => [qw(category subcategory name)], TYPE => 'UNIQUE'},
         ],
     },
 

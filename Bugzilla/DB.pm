@@ -71,6 +71,12 @@ use constant ENUM_DEFAULTS => {
     resolution   => [qw(FIXED INVALID WONTFIX DUPLICATE WORKSFORME MOVED)],
 };
 
+# On most databases, in order to drop an index, you have to first drop
+# the foreign keys that use that index. However, on some databases,
+# dropping the FK immediately before dropping the index causes problems
+# and doesn't need to be done anyway, so those DBs set this to 0.
+use constant INDEX_DROPS_REQUIRE_FK_DROPS => 1;
+
 #####################################################################
 # Connection Methods
 #####################################################################
@@ -818,26 +824,34 @@ sub bz_drop_fk {
 
 }
 
-sub bz_drop_related_fks {
+sub bz_get_related_fks {
     my ($self, $table, $column) = @_;
     my @tables = $self->_bz_real_schema->get_table_list();
-    my @dropped;
+    my @related;
     foreach my $check_table (@tables) {
         my @columns = $self->bz_table_columns($check_table);
         foreach my $check_column (@columns) {
-            my $def = $self->bz_column_info($check_table, $check_column);
-            my $fk = $def->{REFERENCES};
+            my $fk = $self->bz_fk_info($check_table, $check_column);
             if ($fk 
                 and (($fk->{TABLE} eq $table and $fk->{COLUMN} eq $column)
                      or ($check_column eq $column and $check_table eq $table)))
             {
-                $self->bz_drop_fk($check_table, $check_column);
-                push(@dropped, [$check_table, $check_column, $fk]); 
+                push(@related, [$check_table, $check_column, $fk]);
             }
         } # foreach $column
     } # foreach $table
 
-    return \@dropped;
+    return \@related;
+}
+
+sub bz_drop_related_fks {
+    my $self = shift;
+    my $related = $self->bz_get_related_fks(@_);
+    foreach my $item (@$related) {
+        my ($table, $column) = @$item;
+        $self->bz_drop_fk($table, $column);
+    }
+    return $related;
 }
 
 sub bz_drop_index {
@@ -846,6 +860,12 @@ sub bz_drop_index {
     my $index_exists = $self->bz_index_info($table, $name);
 
     if ($index_exists) {
+        if ($self->INDEX_DROPS_REQUIRE_FK_DROPS) {
+            # We cannot delete an index used by a FK.
+            foreach my $column (@{$index_exists->{FIELDS}}) {
+                $self->bz_drop_related_fks($table, $column);
+            }
+        }
         $self->bz_drop_index_raw($table, $name);
         $self->_bz_real_schema->delete_index($table, $name);
         $self->_bz_store_real_schema;        

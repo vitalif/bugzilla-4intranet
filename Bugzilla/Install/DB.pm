@@ -495,7 +495,7 @@ sub update_table_definitions
 
     $dbh->bz_add_column('setting', 'subclass', {TYPE => 'varchar(255)'});
 
-    $dbh->bz_alter_column('longdescs', 'thetext', 
+    $dbh->bz_alter_column('longdescs', 'thetext',
         {TYPE => 'LONGTEXT', NOTNULL => 1}, '');
 
     # 2006-10-20 LpSolit@gmail.com - Bug 189627
@@ -598,10 +598,24 @@ sub update_table_definitions
     # 2010-04-07 LpSolit@gmail.com - Bug 69621
     $dbh->bz_drop_column('bugs', 'keywords');
 
+    # 2010-05-07 ewong@pw-wspx.org - Bug 463945
+    $dbh->bz_alter_column('group_control_map', 'membercontrol',
+                          {TYPE => 'INT1', NOTNULL => 1, DEFAULT => CONTROLMAPNA});
+    $dbh->bz_alter_column('group_control_map', 'othercontrol',
+                          {TYPE => 'INT1', NOTNULL => 1, DEFAULT => CONTROLMAPNA});
+
     # Add NOT NULL to some columns that need it, and DEFAULT to
     # attachments.ispatch.
     $dbh->bz_alter_column('attachments', 'ispatch',
         { TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'});
+    $dbh->bz_alter_column('keyworddefs', 'description',
+                          { TYPE => 'MEDIUMTEXT', NOTNULL => 1 }, '');
+    $dbh->bz_alter_column('products', 'description',
+                          { TYPE => 'MEDIUMTEXT', NOTNULL => 1 }, '');
+
+    # Revert 4.4 allows_unconfirmed default value change
+    $dbh->bz_alter_column('products', 'allows_unconfirmed',
+        { TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE' });
 
     # 2010-07-18 LpSolit@gmail.com - Bug 119703
     _remove_attachment_isurl();
@@ -609,11 +623,38 @@ sub update_table_definitions
     # 2009-05-07 ghendricks@novell.com - Bug 77193
     _add_isactive_to_product_fields();
 
+    # 2010-10-09 LpSolit@gmail.com - Bug 505165
+    $dbh->bz_alter_column('flags', 'setter_id', {TYPE => 'INT4', NOTNULL => 1});
+
+    # 2010-10-09 LpSolit@gmail.com - Bug 451735
+    _fix_series_indexes();
+
     # 2011-06-15 dkl@mozilla.com - Bug 658929
     _migrate_disabledtext_boolean();
 
     # 2011-11-01 glob@mozilla.com - Bug 240437
     $dbh->bz_add_column('profiles', 'last_seen_date', {TYPE => 'DATETIME'});
+
+    # 2011-11-28 dkl@mozilla.com - Bug 685611
+    _fix_notnull_defaults();
+
+    # 2012-06-13 dkl@mozilla.com - Bug 764457
+    $dbh->bz_add_column('bugs_activity', 'id', {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
+
+    # 2012-06-13 dkl@mozilla.com - Bug 764466
+    $dbh->bz_add_column('profiles_activity', 'id', {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
+
+    # 2012-07-24 dkl@mozilla.com - Bug 776972
+    $dbh->bz_alter_column('bugs_activity', 'id', {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
+
+    # 2012-08-02 dkl@mozilla.com - Bug 756953
+    _fix_dependencies_dupes();
+
+    # 2013-01-02 LpSolit@gmail.com - Bug 824361
+    _fix_longdescs_indexes();
+
+    # 2013-02-04 dkl@mozilla.com - Bug 824346
+    _fix_flagclusions_indexes();
 
     # New product fields
     $dbh->bz_add_column('products', wiki_url => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"});
@@ -680,6 +721,7 @@ WHERE description LIKE\'%[CC:%\'');
     if ($dbh->bz_column_info(bugs_activity => 'added')->{TYPE} ne 'LONGTEXT')
     {
         $dbh->bz_drop_index('bugs_activity', 'bugs_activity_added_idx');
+        $dbh->bz_drop_index('bugs_activity', 'bugs_activity_removed_idx');
         $dbh->bz_alter_column('bugs_activity', 'added', { TYPE => 'LONGTEXT' });
         $dbh->bz_alter_column('bugs_activity', 'removed', { TYPE => 'LONGTEXT' });
         $dbh->bz_add_index('bugs_activity', 'bugs_activity_added_idx', ['added(255)']);
@@ -698,6 +740,9 @@ WHERE description LIKE\'%[CC:%\'');
         $dbh->do('INSERT INTO bugs_activity SELECT bug_id, who, bug_when, fieldid, added, removed, NULL FROM bugs_activity_joined');
         $dbh->do('DROP TABLE bugs_activity_joined');
     }
+
+    # 2012-06-06 dkl@mozilla.com - Bug 762288
+    $dbh->bz_add_index('bugs_activity', 'bugs_activity_removed_idx', ['removed(255)']);
 
     # Change types of all ID fields to INT4
     if ($dbh->bz_column_info('bugs', 'bug_id')->{TYPE} ne 'INTSERIAL')
@@ -746,6 +791,9 @@ WHERE description LIKE\'%[CC:%\'');
 
     # Varchar is VARIABLE, it's generally pointless to set a size limit less than 255 chars for it
     _set_varchar_255();
+
+    # Revert 4.4 quips.quip varchar(512) change
+    $dbh->bz_alter_column('quips', 'quip', { TYPE => 'MEDIUMTEXT', NOTNULL => 1 });
 
     ################################################################
     # New --TABLE-- changes should go *** A B O V E *** this point #
@@ -3681,6 +3729,118 @@ sub _migrate_disabledtext_boolean {
                             {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'});
         $dbh->do("UPDATE profiles SET is_enabled = 0 
                   WHERE disabledtext != ''");
+    }
+}
+
+sub _fix_series_indexes {
+    my $dbh = Bugzilla->dbh;
+    return if $dbh->bz_index_info('series', 'series_category_idx');
+
+    $dbh->bz_drop_index('series', 'series_creator_idx');
+
+    # Fix duplicated names under the same category/subcategory before
+    # adding the more restrictive index.
+    my $duplicated_series = $dbh->selectall_arrayref(
+         'SELECT s1.series_id, s1.category, s1.subcategory, s1.name
+            FROM series AS s1
+      INNER JOIN series AS s2
+              ON s1.category = s2.category
+             AND s1.subcategory = s2.subcategory
+             AND s1.name = s2.name
+           WHERE s1.series_id != s2.series_id');
+    my $sth_series_update = $dbh->prepare('UPDATE series SET name = ? WHERE series_id = ?');
+    my $sth_series_query = $dbh->prepare('SELECT 1 FROM series WHERE name = ?
+                                          AND category = ? AND subcategory = ?');
+
+    my %renamed_series;
+    foreach my $series (@$duplicated_series) {
+        my ($series_id, $category, $subcategory, $name) = @$series;
+        # Leave the first series alone, then rename duplicated ones.
+        if ($renamed_series{"${category}_${subcategory}_${name}"}++) {
+            print "Renaming series ${category}/${subcategory}/${name}...\n";
+            my $c = 0;
+            my $exists = 1;
+            while ($exists) {
+                $sth_series_query->execute($name . ++$c, $category, $subcategory);
+                $exists = $sth_series_query->fetchrow_array;
+            }
+            $sth_series_update->execute($name . $c, $series_id);
+        }
+    }
+
+    $dbh->bz_add_index('series', 'series_creator_idx', ['creator']);
+    $dbh->bz_add_index('series', 'series_category_idx',
+        {FIELDS => [qw(category subcategory name)], TYPE => 'UNIQUE'});
+}
+
+sub _fix_notnull_defaults {
+    my $dbh = Bugzilla->dbh;
+
+    $dbh->bz_alter_column('bugs', 'bug_file_loc',
+                          {TYPE => 'MEDIUMTEXT', NOTNULL => 1,
+                           DEFAULT => "''"}, '');
+}
+
+sub _fix_longdescs_indexes {
+    my $dbh = Bugzilla->dbh;
+    my $bug_id_idx = $dbh->bz_index_info('longdescs', 'longdescs_bug_id_idx');
+    if ($bug_id_idx && scalar @{$bug_id_idx->{'FIELDS'}} < 2) {
+        $dbh->bz_drop_index('longdescs', 'longdescs_bug_id_idx');
+        $dbh->bz_add_index('longdescs', 'longdescs_bug_id_idx', [qw(bug_id work_time)]);
+    }
+}
+
+sub _fix_dependencies_dupes {
+    my $dbh = Bugzilla->dbh;
+    my $blocked_idx = $dbh->bz_index_info('dependencies', 'dependencies_blocked_idx');
+    if ($blocked_idx && scalar @{$blocked_idx->{'FIELDS'}} < 2) {
+        # Remove duplicated entries
+        my $dupes = $dbh->selectall_arrayref("
+            SELECT blocked, dependson, COUNT(*) AS count
+              FROM dependencies " .
+            $dbh->sql_group_by('blocked, dependson') . "
+            HAVING COUNT(*) > 1",
+            { Slice => {} });
+        print "Removing duplicated entries from the 'dependencies' table...\n" if @$dupes;
+        foreach my $dupe (@$dupes) {
+            $dbh->do("DELETE FROM dependencies
+                      WHERE blocked = ? AND dependson = ?",
+                     undef, $dupe->{blocked}, $dupe->{dependson});
+            $dbh->do("INSERT INTO dependencies (blocked, dependson) VALUES (?, ?)",
+                     undef, $dupe->{blocked}, $dupe->{dependson});
+        }
+        $dbh->bz_drop_index('dependencies', 'dependencies_blocked_idx');
+        $dbh->bz_add_index('dependencies', 'dependencies_blocked_idx',
+                           { FIELDS => [qw(blocked dependson)], TYPE => 'UNIQUE' });
+    }
+}
+
+sub _fix_flagclusions_indexes {
+    my $dbh = Bugzilla->dbh;
+    foreach my $table ('flaginclusions', 'flagexclusions') {
+        my $index = $table . '_type_id_idx';
+        my $idx_info = $dbh->bz_index_info($table, $index);
+        if ($idx_info && $idx_info->{'TYPE'} ne 'UNIQUE') {
+            # Remove duplicated entries
+            my $dupes = $dbh->selectall_arrayref("
+                SELECT type_id, product_id, component_id, COUNT(*) AS count
+                  FROM $table " .
+                $dbh->sql_group_by('type_id, product_id, component_id') . "
+                HAVING COUNT(*) > 1",
+                { Slice => {} });
+            print "Removing duplicated entries from the '$table' table...\n" if @$dupes;
+            foreach my $dupe (@$dupes) {
+                $dbh->do("DELETE FROM $table
+                          WHERE type_id = ? AND product_id = ? AND component_id = ?",
+                         undef, $dupe->{type_id}, $dupe->{product_id}, $dupe->{component_id});
+                $dbh->do("INSERT INTO $table (type_id, product_id, component_id) VALUES (?, ?, ?)",
+                         undef, $dupe->{type_id}, $dupe->{product_id}, $dupe->{component_id});
+            }
+            $dbh->bz_drop_index($table, $index);
+            $dbh->bz_add_index($table, $index,
+                { FIELDS => [qw(type_id product_id component_id)],
+                  TYPE   => 'UNIQUE' });
+        }
     }
 }
 
