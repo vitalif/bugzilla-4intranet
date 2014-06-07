@@ -104,7 +104,6 @@ sub DB_COLUMNS
         status_whiteboard
         target_milestone
         version
-        keywords
     );
     # FIXME kill op_sys and rep_platform completely, make them custom fields
     # FIXME change useplatform/useopsys/useqacontact to "field(xxx).is_obsolete"
@@ -497,9 +496,6 @@ sub update
 
     my $old_bug = $self->{_old_self};
     my $changes;
-
-    # Keywords column is a cache for keyword objects
-    local $self->{keywords} = $self->keywords;
 
     if ($self->id)
     {
