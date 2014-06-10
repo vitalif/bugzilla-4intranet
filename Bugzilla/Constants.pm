@@ -127,10 +127,9 @@ use Cwd qw(abs_path);
     FIELD_TYPE_DATETIME
     FIELD_TYPE_BUG_ID
     FIELD_TYPE_BUG_URLS
-    FIELD_TYPE_EXTURL
+    FIELD_TYPE_KEYWORDS
     FIELD_TYPE_NUMERIC
-
-    FIELD_TYPE__BOUNDARY
+    FIELD_TYPE_EXTURL
 
     TIMETRACKING_FIELDS
 
@@ -379,11 +378,10 @@ use constant FIELD_TYPE_TEXTAREA => 4;
 use constant FIELD_TYPE_DATETIME => 5;
 use constant FIELD_TYPE_BUG_ID => 6;
 use constant FIELD_TYPE_BUG_URLS => 7;
-use constant FIELD_TYPE_NUMERIC => 8;
-use constant FIELD_TYPE_EXTURL => 9;
+use constant FIELD_TYPE_KEYWORDS => 8;
 
-# Upper boundary for FIELD_TYPE_* values
-use constant FIELD_TYPE__BOUNDARY => 9;
+use constant FIELD_TYPE_NUMERIC => 30;
+use constant FIELD_TYPE_EXTURL => 31;
 
 use constant BUG_ID_ADD_TO_BLOCKED => 1;
 use constant BUG_ID_ADD_TO_DEPENDSON => 2;

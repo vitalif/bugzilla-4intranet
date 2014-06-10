@@ -178,7 +178,7 @@ use constant DEFAULT_FIELDS => (
     {name => 'op_sys',       desc => 'OS/Version', buglist => 1, in_new_bugmail => 1, type => FIELD_TYPE_SINGLE_SELECT, clone_bug => 1},
     {name => 'bug_status',   desc => 'Status',     buglist => 1, in_new_bugmail => 1, type => FIELD_TYPE_SINGLE_SELECT, clone_bug => 0},
     {name => 'status_whiteboard', desc => 'Status Whiteboard', buglist => 1, in_new_bugmail => 1, type => FIELD_TYPE_FREETEXT, clone_bug => 1},
-    {name => 'keywords',     desc => 'Keywords',   buglist => 1, in_new_bugmail => 1, clone_bug => 1},
+    {name => 'keywords',     desc => 'Keywords',   buglist => 1, in_new_bugmail => 1, type => FIELD_TYPE_KEYWORDS,      clone_bug => 1},
     {name => 'resolution',   desc => 'Resolution', buglist => 1, nullable => 1,       type => FIELD_TYPE_SINGLE_SELECT, clone_bug => 0},
     {name => 'bug_severity', desc => 'Severity',   buglist => 1, in_new_bugmail => 1, type => FIELD_TYPE_SINGLE_SELECT, clone_bug => 1},
     {name => 'priority',     desc => 'Priority',   buglist => 1, in_new_bugmail => 1, nullable => 1, type => FIELD_TYPE_SINGLE_SELECT, clone_bug => 1},
@@ -304,7 +304,9 @@ sub _check_type
     my $saved_type = $type;
     # The constant here should be updated every time a new,
     # higher field type is added.
-    if (!detaint_natural($type) || $type > FIELD_TYPE__BOUNDARY)
+    if (!detaint_natural($type) || $type < FIELD_TYPE_UNKNOWN ||
+        $type > FIELD_TYPE_KEYWORDS && $type < FIELD_TYPE_NUMERIC ||
+        $type > FIELD_TYPE_EXTURL)
     {
         ThrowCodeError('invalid_customfield_type', { type => $saved_type });
     }

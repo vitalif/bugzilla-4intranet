@@ -115,8 +115,20 @@ sub update_fielddefs_definition {
         $dbh->bz_add_column('fielddefs', delta_ts => {TYPE => 'DATETIME'});
         $dbh->do('UPDATE fielddefs SET delta_ts=NOW()');
     }
-    # Refresh field cache on each checksetup.pl run
+
+    # Refresh field cache on each run of checksetup.pl
     $dbh->do('UPDATE fielddefs SET delta_ts=NOW() WHERE name=\'delta_ts\'');
+
+    # In Bugzilla4Intranet, field types 8 and 9 were previously our types.
+    # Field type 8 was also added by the upstream, so we must decide
+    # if we are upgrading from newer upstream of from older Bugzilla4Intranet,
+    # and change type values accordingly.
+    if ($dbh->bz_column_info('fielddefs', 'has_activity') &&
+        $dbh->selectrow_array('SELECT 1 FROM fielddefs WHERE name=? AND type=0', undef, 'keywords'))
+    {
+        $dbh->do('UPDATE fielddefs SET type='.FIELD_TYPE_NUMERIC.' WHERE custom=1 AND type=8');
+        $dbh->do('UPDATE fielddefs SET type='.FIELD_TYPE_EXTURL.' WHERE custom=1 AND type=9');
+    }
 
     if (!$dbh->bz_column_info('fielddefs', 'has_activity'))
     {
