@@ -925,6 +925,15 @@ sub update
 {
     my $self = shift;
     $self->{delta_ts} = POSIX::strftime('%Y-%m-%d %H:%M:%S', localtime);
+    # FIXME Merge something like VALIDATOR_DEPENDENCIES from 4.4
+    if ($self->{type} != FIELD_TYPE_BUG_ID)
+    {
+        $self->{add_to_deps} = undef;
+    }
+    if ($self->{type} != FIELD_TYPE_EXTURL)
+    {
+        $self->{url} = undef;
+    }
     my ($changes, $old_self) = $self->SUPER::update(@_);
     Bugzilla->refresh_cache_fields;
     return wantarray ? ($changes, $old_self) : $changes;
@@ -1047,6 +1056,17 @@ sub run_create_validators
         $params->{value_field_id},
         ($type == FIELD_TYPE_SINGLE_SELECT || $type == FIELD_TYPE_MULTI_SELECT) ? 1 : 0
     );
+
+    # FIXME Merge something like VALIDATOR_DEPENDENCIES from 4.4
+    if ($type != FIELD_TYPE_BUG_ID)
+    {
+        $params->{add_to_deps} = undef;
+    }
+    if ($type != FIELD_TYPE_EXTURL)
+    {
+        $params->{url} = undef;
+    }
+
     return $params;
 }
 

@@ -26,13 +26,19 @@
 [% END %]
 
 [% javascript = BLOCK %]
-  [% INCLUDE "admin/custom_fields/cf-js.js.tmpl" %]
+var constants = {
+  FIELD_TYPE_SINGLE_SELECT: [% constants.FIELD_TYPE_SINGLE_SELECT %],
+  FIELD_TYPE_MULTI_SELECT: [% constants.FIELD_TYPE_MULTI_SELECT %],
+  FIELD_TYPE_BUG_ID: [% constants.FIELD_TYPE_BUG_ID %],
+  FIELD_TYPE_EXTURL: [% constants.FIELD_TYPE_EXTURL %]
+};
 [% END %]
 
 [% PROCESS
   global/header.html.tmpl
   title = title
   doc_section = "custom-fields.html#" _ (field.id ? "edit" : "add") _ "-custom-fields"
+  javascript_urls = [ "js/cf-edit.js" ]
 %]
 
 [% IF !field.id %]
@@ -115,14 +121,21 @@
           [%- " checked" IF field.obsolete %] />
       </td>
     </tr>
-    [% IF field.is_select AND field.name != 'product' || !field.id %]
+    [% IF field.is_select AND field.name != 'product' || field.type == constants.FIELD_TYPE_BUG_ID || !field.id %]
     <tr valign="top">
-      <td></td>
-      <td>
-        [% IF field.id %]
-          <a href="editvalues.cgi?field=[% field.name | url_quote %]">Edit legal values for this field</a>
-        [% END %]
+      [% IF !field.id || field.type == constants.FIELD_TYPE_BUG_ID %]
+      <th align="left"><label id="add_to_deps_title" for="add_to_deps">Deps:</label></th>
+      <td valign="top">
+        <select name="add_to_deps" id="add_to_deps">
+          <option value="no" [% ' selected="selected"' IF !field.add_to_deps %]>Do not add</option>
+          <option value="blocked" [% ' selected="selected"' IF field.add_to_deps == constants.BUG_ID_ADD_TO_BLOCKED %]>Add field value to blocked</option>
+          <option value="dependson" [% ' selected="selected"' IF field.add_to_deps == constants.BUG_ID_ADD_TO_DEPENDSON %]>Add field value to blockers</option>
+        </select>
       </td>
+      [% ELSIF field.is_select AND field.id %]
+      <td></td>
+      <td><a href="editvalues.cgi?field=[% field.name | url_quote %]">Edit legal values for this field</a></td>
+      [% END %]
       [% IF !field.id || field.type == constants.FIELD_TYPE_SINGLE_SELECT %]
       <th align="left"><label for="nullable">Allow empty value:</label></th>
       <td>
@@ -132,6 +145,21 @@
       [% END %]
     </tr>
     [% END %]
+
+    [% IF !field.id || field.type == constants.FIELD_TYPE_EXTURL %]
+    <tr valign="top" id="url_row">
+      <th align="left">
+        <label for="url">
+          URL template:
+        </label>
+      </th>
+      <td colspan="3">
+        <input name="url" type="text" size="40" value="[% field.url | html %]" />
+        ($1 = target ID)
+      </td>
+    </tr>
+    [% END %]
+
     [% IF field.custom || !field.id %]
     <tr valign="top">
       <th align="left" colspan="2"><label for="visibility_field_id">
@@ -189,32 +217,6 @@
             </option>
           [% END %]
         </select>
-      </td>
-    </tr>
-    [% END %]
-
-    [% IF field.type == constants.FIELD_TYPE_BUG_ID %]
-    <tr>
-      <th><label for="add_to_deps">Add to dependency tree:</label></th>
-      <td valign="top">
-        <select name="add_to_deps" id="add_to_deps">
-          <option value="no" [% ' selected="selected"' IF !field.add_to_deps %]>Do not add</option>
-          <option value="blocked" [% ' selected="selected"' IF field.add_to_deps == constants.BUG_ID_ADD_TO_BLOCKED %]>Add to blocked</option>
-          <option value="dependson" [% ' selected="selected"' IF field.add_to_deps == constants.BUG_ID_ADD_TO_DEPENDSON %]>Add to blockers</option>
-        </select>
-      </td>
-    </tr>
-    [% END %]
-
-    [% IF field.type == constants.FIELD_TYPE_EXTURL %]
-    <tr valign="top">
-      <th>
-        <label for="url" id="url_title">
-          URL template:<br />($1 = target ID)
-        </label>
-      </th>
-      <td>
-        <input id="url_field" name="url" type="text" size="40" value="[% field.url | html %]" />
       </td>
     </tr>
     [% END %]
