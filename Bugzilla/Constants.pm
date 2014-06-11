@@ -130,6 +130,7 @@ use Cwd qw(abs_path);
     FIELD_TYPE_KEYWORDS
     FIELD_TYPE_NUMERIC
     FIELD_TYPE_EXTURL
+    FIELD_TYPE_BUG_ID_REV
 
     TIMETRACKING_FIELDS
 
@@ -382,6 +383,7 @@ use constant FIELD_TYPE_KEYWORDS => 8;
 
 use constant FIELD_TYPE_NUMERIC => 30;
 use constant FIELD_TYPE_EXTURL => 31;
+use constant FIELD_TYPE_BUG_ID_REV => 32;
 
 use constant BUG_ID_ADD_TO_BLOCKED => 1;
 use constant BUG_ID_ADD_TO_DEPENDSON => 2;

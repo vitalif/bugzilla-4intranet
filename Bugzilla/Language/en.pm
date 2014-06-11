@@ -67,13 +67,14 @@ $Bugzilla::messages->{en} = {
     field_types => {
         FIELD_TYPE_UNKNOWN()       => 'Unknown Type',
         FIELD_TYPE_FREETEXT()      => 'Free Text',
-        FIELD_TYPE_EXTURL()        => 'External URL',
         FIELD_TYPE_SINGLE_SELECT() => 'Drop Down',
         FIELD_TYPE_MULTI_SELECT()  => 'Multiple-Selection Box',
         FIELD_TYPE_TEXTAREA()      => 'Large Text Box',
         FIELD_TYPE_DATETIME()      => 'Date/Time',
         FIELD_TYPE_BUG_ID()        => $terms->{Bug}.' ID',
         FIELD_TYPE_NUMERIC()       => 'Numeric',
+        FIELD_TYPE_EXTURL()        => 'External URL',
+        FIELD_TYPE_BUG_ID_REV()    => $terms->{Bug}.' ID reverse',
     },
     control_options => {
         CONTROLMAPNA() => 'NA',

@@ -3973,7 +3973,7 @@ sub get_ids
     {
         return $self->{$fn};
     }
-    elsif ($field && $field->type == FIELD_TYPE_MULTI_SELECT)
+    elsif ($field && ($field->type == FIELD_TYPE_MULTI_SELECT || $field->type == FIELD_TYPE_BUG_ID_REV))
     {
         return $self->$fn;
     }
@@ -4000,6 +4000,10 @@ sub get_object
     {
         $self->{$attr} = $field->value_type->new_from_list($self->$fn);
     }
+    elsif ($field && $field->type == FIELD_TYPE_BUG_ID_REV)
+    {
+        $self->{$attr} = Bugzilla::Bug->new_from_list($self->$fn);
+    }
     else
     {
         die "Invalid join requested - ".__PACKAGE__."::$attr";
@@ -4015,15 +4019,19 @@ sub get_string
     my $f = ref $field ? $field->name : $field;
     $field = Bugzilla->get_field($field) if !ref $field;
     my $value;
-    if ($field->type == FIELD_TYPE_SINGLE_SELECT)
+    if ($field && $field->type == FIELD_TYPE_SINGLE_SELECT)
     {
         $value = $self->get_object($f) && $self->get_object($f)->name;
     }
-    elsif ($field->type == FIELD_TYPE_MULTI_SELECT)
+    elsif ($field && $field->type == FIELD_TYPE_MULTI_SELECT)
     {
         $value = join ', ', map { $_->name } @{$self->get_object($f)};
     }
-    elsif ($field->type != FIELD_TYPE_UNKNOWN || SCALAR_FORMAT->{$f})
+    elsif ($field && $field->type == FIELD_TYPE_BUG_ID_REV)
+    {
+        $value = join ', ', @{ $self->$f };
+    }
+    elsif ($field && $field->type != FIELD_TYPE_UNKNOWN || SCALAR_FORMAT->{$f})
     {
         $value = $self->$f;
     }
@@ -4123,12 +4131,22 @@ sub AUTOLOAD
         }
 
         my $field = Bugzilla->get_field($attr);
-        if ($field && $field->type == FIELD_TYPE_MULTI_SELECT)
+        if ($field)
         {
-            $self->{$attr} ||= Bugzilla->dbh->selectcol_arrayref(
-                "SELECT id FROM bug_$attr, $attr WHERE value_id=id AND bug_id=? ORDER BY value",
-                undef, $self->id);
-            return $self->{$attr};
+            if ($field->type == FIELD_TYPE_MULTI_SELECT)
+            {
+                $self->{$attr} ||= Bugzilla->dbh->selectcol_arrayref(
+                    "SELECT id FROM bug_$attr, $attr WHERE value_id=id AND bug_id=? ORDER BY value",
+                    undef, $self->id);
+                return $self->{$attr};
+            }
+            elsif ($field->type == FIELD_TYPE_BUG_ID_REV)
+            {
+                $self->{$attr} ||= Bugzilla->dbh->selectcol_arrayref(
+                    "SELECT bug_id FROM bugs WHERE ".$field->value_field->name." = ".$self->id
+                );
+                return $self->{$attr};
+            }
         }
 
         return '';

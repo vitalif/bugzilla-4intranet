@@ -130,7 +130,7 @@ use constant VALIDATORS => {
 };
 
 use constant UPDATE_VALIDATORS => {
-    value_field_id      => \&_check_value_field_id,
+    value_field_id => \&_check_value_field_id,
 };
 
 use constant UPDATE_COLUMNS => qw(
@@ -306,7 +306,7 @@ sub _check_type
     # higher field type is added.
     if (!detaint_natural($type) || $type < FIELD_TYPE_UNKNOWN ||
         $type > FIELD_TYPE_KEYWORDS && $type < FIELD_TYPE_NUMERIC ||
-        $type > FIELD_TYPE_EXTURL)
+        $type > FIELD_TYPE_BUG_ID_REV)
     {
         ThrowCodeError('invalid_customfield_type', { type => $saved_type });
     }
@@ -315,9 +315,27 @@ sub _check_type
 
 sub _check_value_field_id
 {
-    my ($invocant, $field_id, $is_select) = @_;
-    $is_select = $invocant->is_select if !defined $is_select;
-    if ($field_id && !$is_select)
+    my ($invocant, $field_id, undef, $type) = @_;
+    $type = $invocant->type if !defined $type;
+    if ($type == FIELD_TYPE_BUG_ID_REV)
+    {
+        # For fields of type "reverse relation of BUG_ID field"
+        # value_field indicates the needed direct relation
+        my $field = Bugzilla->get_field(trim($field_id));
+        if (!$field || $field->type != FIELD_TYPE_BUG_ID)
+        {
+            ThrowUserError('direct_field_needed_for_reverse');
+        }
+        for (Bugzilla->get_fields({ type => FIELD_TYPE_BUG_ID_REV, value_field_id => $field->id }))
+        {
+            if (!ref $invocant || $_->id != $invocant->id)
+            {
+                ThrowUserError('duplicate_reverse_field');
+            }
+        }
+        return $field->id;
+    }
+    if ($field_id && $type != FIELD_TYPE_SINGLE_SELECT && $type != FIELD_TYPE_MULTI_SELECT)
     {
         ThrowUserError('field_value_control_select_only');
     }
@@ -729,7 +747,7 @@ sub value_field
 sub value_field_id
 {
     my $self = shift;
-    return undef if !$self->is_select;
+    return undef if !$self->is_select && $self->type != FIELD_TYPE_BUG_ID_REV;
     return $self->{value_field_id};
 }
 
@@ -930,7 +948,7 @@ sub update
     # FIXME Merge something like VALIDATOR_DEPENDENCIES from 4.4
     if ($self->{type} != FIELD_TYPE_BUG_ID)
     {
-        $self->{add_to_deps} = undef;
+        $self->{add_to_deps} = 0;
     }
     if ($self->{type} != FIELD_TYPE_EXTURL)
     {
@@ -1054,15 +1072,12 @@ sub run_create_validators
         ThrowCodeError('field_type_not_specified');
     }
 
-    $params->{value_field_id} = $class->_check_value_field_id(
-        $params->{value_field_id},
-        ($type == FIELD_TYPE_SINGLE_SELECT || $type == FIELD_TYPE_MULTI_SELECT) ? 1 : 0
-    );
+    $params->{value_field_id} = $class->_check_value_field_id($params->{value_field_id}, undef, $type);
 
     # FIXME Merge something like VALIDATOR_DEPENDENCIES from 4.4
     if ($type != FIELD_TYPE_BUG_ID)
     {
-        $params->{add_to_deps} = undef;
+        $params->{add_to_deps} = 0;
     }
     if ($type != FIELD_TYPE_EXTURL)
     {

@@ -30,7 +30,8 @@ var constants = {
   FIELD_TYPE_SINGLE_SELECT: [% constants.FIELD_TYPE_SINGLE_SELECT %],
   FIELD_TYPE_MULTI_SELECT: [% constants.FIELD_TYPE_MULTI_SELECT %],
   FIELD_TYPE_BUG_ID: [% constants.FIELD_TYPE_BUG_ID %],
-  FIELD_TYPE_EXTURL: [% constants.FIELD_TYPE_EXTURL %]
+  FIELD_TYPE_EXTURL: [% constants.FIELD_TYPE_EXTURL %],
+  FIELD_TYPE_BUG_ID_REV: [% constants.FIELD_TYPE_BUG_ID_REV %]
 };
 [% END %]
 
@@ -108,7 +109,7 @@ var constants = {
           [% field_types.${field.type} | html %]
         [% ELSE %]
           <select id="type" name="type" onchange="onChangeType()">
-            [% FOREACH type = field_types.keys %]
+            [% FOREACH type = field_types.sort %]
               [% NEXT IF type == constants.FIELD_TYPE_UNKNOWN %]
               <option value="[% type | html %]">[% field_types.$type | html %]</option>
             [% END %]
@@ -183,7 +184,7 @@ var constants = {
     </tr>
     [% END %]
     [% IF field.is_select || !field.id %]
-    <tr valign="top">
+    <tr valign="top" id="value_field_row">
       <th colspan="2" align="left"><label for="value_field_id">
         Field that controls the values that appear in this field:
       </label></th>
@@ -191,6 +192,27 @@ var constants = {
         <select style="width: 400px" name="value_field_id" id="value_field_id">
           <option value="">---</option>
           [% FOREACH sel_field = Bugzilla.get_fields({ is_select => 1 }) %]
+            [% NEXT IF sel_field.id == field.id %]
+            <option value="[% sel_field.id | html %]"
+              [% ' selected="selected"' IF sel_field.id == field.value_field.id %]>
+              [% sel_field.description | html %]
+              ([% sel_field.name | html %])
+            </option>
+          [% END %]
+        </select>
+      </td>
+    </tr>
+    [% END %]
+    [% IF field.type == constants.FIELD_TYPE_BUG_ID_REV || !field.id %]
+    <tr valign="top" id="bug_id_rev_row">
+      <th colspan="2" align="left"><label for="bug_id_rev_value_field_id">
+        Direct Bug ID field for this reverse one:
+      </label></th>
+      <td colspan="2">
+        [%# Duplicate name will be cleared by JS on creation form %]
+        <select style="width: 400px" name="value_field_id" id="bug_id_rev_value_field_id">
+          <option value="">---</option>
+          [% FOREACH sel_field = Bugzilla.get_fields({ custom => 1, type => constants.FIELD_TYPE_BUG_ID }) %]
             [% NEXT IF sel_field.id == field.id %]
             <option value="[% sel_field.id | html %]"
               [% ' selected="selected"' IF sel_field.id == field.value_field.id %]>

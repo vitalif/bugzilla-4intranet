@@ -130,6 +130,7 @@ sub update_fielddefs_definition {
         $dbh->do('UPDATE fielddefs SET type='.FIELD_TYPE_EXTURL.' WHERE custom=1 AND type=9');
     }
 
+    # This column is used for fast lookup of fields used in bug history
     if (!$dbh->bz_column_info('fielddefs', 'has_activity'))
     {
         $dbh->bz_add_column('fielddefs', has_activity => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0});
@@ -138,6 +139,26 @@ sub update_fielddefs_definition {
             ' WHERE id IN (SELECT DISTINCT fieldid FROM bugs_activity)'.
             ' OR name IN (\'longdesc\', \'longdescs.isprivate\', \'commenter\', \'creation_ts\')'
         );
+    }
+
+    # Migrate reverse_desc (upstream implementation) into separate field objects
+    if ($dbh->bz_column_info('fielddefs', 'reverse_desc'))
+    {
+        my $rows = $dbh->selectall_arrayref(
+            'SELECT * FROM fielddefs WHERE custom=1 AND type='.FIELD_TYPE_BUG_ID.
+            ' AND reverse_desc IS NOT NULL AND reverse_desc != \'\'', {Slice=>{}}
+        );
+        for (@$rows)
+        {
+            Bugzilla::Field->create({
+                name => $_->{name}.'_rev',
+                custom => 1,
+                description => $_->{reverse_desc},
+                type => FIELD_TYPE_BUG_ID_REV,
+                value_field_id => $_->{id},
+            });
+        }
+        $dbh->bz_drop_column('fielddefs', 'reverse_desc');
     }
 
     # Remember, this is not the function for adding general table changes.

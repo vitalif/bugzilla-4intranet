@@ -544,6 +544,20 @@
   is not the right type of field.
 [% END %]
 
+[% BLOCK error_direct_field_needed_for_reverse %]
+  [% title = "Invalid Direct Field selected" %]
+  Each field of type "[% lc_messages.field_types.${constants.FIELD_TYPE_BUG_ID_REV} %]" must correspond
+  to one, and only one field of type "[% lc_messages.field_types.${constants.FIELD_TYPE_BUG_ID} %]" and
+  represent its "reverse relation". For example, it may be "Internal Bugs" for the corresponding
+  "External Bug" field.
+[% END %]
+
+[% BLOCK error_duplicate_reverse_field %]
+  [% title = "Duplicate Reverse Field" %]
+  It is prohibited to create more than one field of type "[% lc_messages.field_types.${constants.FIELD_TYPE_BUG_ID_REV} %]"
+  corresponding to a single "[% lc_messages.field_types.${constants.FIELD_TYPE_BUG_ID} %]" type field.
+[% END %]
+
 [% BLOCK error_field_type_mismatch %]
   Cannot seem to handle <code>[% field FILTER html %]</code>
   and <code>[% type FILTER html %]</code> together.
