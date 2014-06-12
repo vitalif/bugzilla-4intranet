@@ -573,6 +573,13 @@ sub STATIC_COLUMNS
         {
             push @bugid_fields, $field;
         }
+        elsif ($field->type == FIELD_TYPE_BUG_ID_REV)
+        {
+            push @bugid_fields, $field;
+            $columns->{$id}->{name} = "(SELECT ".
+                $dbh->sql_group_concat("rev_$id.bug_id", "', '").
+                " FROM bugs rev_$id WHERE rev_$id.".$field->value_field->name."=bugs.bug_id)";
+        }
         elsif ($field->type == FIELD_TYPE_SINGLE_SELECT)
         {
             my $t = $type->DB_TABLE;
@@ -582,8 +589,10 @@ sub STATIC_COLUMNS
         elsif ($field->type == FIELD_TYPE_MULTI_SELECT)
         {
             my $t = $type->DB_TABLE;
-            $columns->{$id}->{name} = "$t.".$type->NAME_FIELD;
-            $columns->{$id}->{joins} = [ "LEFT JOIN (bug_$id INNER JOIN $t ON $t.".$type->ID_FIELD."=bug_$id.value_id) ON bug_$id.bug_id=bugs.bug_id" ];
+            $columns->{$id}->{name} = "(SELECT ".
+                $dbh->sql_group_concat("$t.".$type->NAME_FIELD, "', '").
+                " FROM bug_$id, $t WHERE $t.".$type->ID_FIELD."=bug_$id.value_id".
+                " AND bug_$id.bug_id=bugs.bug_id)";
         }
     }
 
@@ -824,6 +833,10 @@ sub FUNCTIONS
         type     => [ FIELD_TYPE_MULTI_SELECT, FIELD_TYPE_BUG_URLS ],
         obsolete => 0
     });
+    my $bugid_rev_fields = join '|', map { $_->name } Bugzilla->get_fields({
+        type     => FIELD_TYPE_BUG_ID_REV,
+        obsolete => 0
+    });
     my $date_fields = join '|', map { $_->name } Bugzilla->get_fields({
         type     => FIELD_TYPE_DATETIME,
         obsolete => 0
@@ -890,6 +903,7 @@ sub FUNCTIONS
         'requestees.login_name'     => { '*' => \&_requestees_login_name },
         'setters.login_name'        => { '*' => \&_setters_login_name },
         $multi_fields               => { '*' => \&_multiselect_nonchanged },
+        $bugid_rev_fields           => { '*' => \&_bugid_rev_nonchanged },
         'keywords'                  => { 'anyexact|anywords|allwords' => \&_keywords_exact },
     };
     # Expand | or-lists in hash keys
@@ -2654,6 +2668,48 @@ sub _multiselect_nonchanged
             table => "($t $ta INNER JOIN $ft $fta ON $fta.id=$t.value_id)",
             where => $self->{term},
             bugid_field => "$ta.bug_id",
+        };
+    }
+}
+
+sub _bugid_rev_nonchanged
+{
+    my $self = shift;
+    my $dbh = Bugzilla->dbh;
+
+    my @terms;
+    my $fn = Bugzilla->get_field($self->{field})->value_field->name;
+    my $t = 'bugs_'.$self->{sequence};
+
+    my @v = ref $self->{value} ? @{$self->{value}} : $self->{value};
+    $self->{quoted} = join ', ', map { $dbh->quote($_) } @v;
+
+    $self->{type} =~ s/^(all|any)wordssubstr$/$1words/so;
+    if ($self->{type} eq 'anywords' || $self->{type} eq 'anyexact')
+    {
+        $self->{term} = {
+            table => "bugs $t",
+            where => "$t.bug_id IN ($self->{quoted})",
+            bugid_field => "$t.$fn",
+        };
+    }
+    elsif ($self->{type} eq 'allwords')
+    {
+        $self->{term} = {
+            table => "(SELECT $fn FROM $t WHERE $t.bug_id IN ($self->{quoted})".
+                " GROUP BY $fn HAVING COUNT($fn) = ".@v.") c_$t",
+            bugid_field => "c_$t.bug_id",
+        };
+    }
+    else
+    {
+        $self->{fieldsql} = $self->{field} = "$t.bug_id";
+        $self->{value} = $v[0];
+        $self->call_op;
+        $self->{term} = {
+            table => "bugs $t",
+            where => $self->{term},
+            bugid_field => "$t.$fn",
         };
     }
 }

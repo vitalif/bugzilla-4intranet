@@ -88,7 +88,6 @@ for (keys %$args)
         $name_tr->{$'} = $args->{$_};
     }
 }
-$name_tr->{'Internal Bug'} = "internal_bug";
 
 $vars->{bug_tpl} = $bug_tpl;
 $vars->{name_tr} = $name_tr;
@@ -101,7 +100,6 @@ for ((grep { /\./ } keys %$field_descs), (qw/rep_platform longdesc bug_group cha
 {
     delete $field_descs->{$_};
 }
-$field_descs->{internal_bug} = 'Internal Bug';
 
 $vars->{import_field_descs} = $field_descs;
 $vars->{import_fields} = [ sort { $field_descs->{$a} cmp $field_descs->{$b} } keys %$field_descs ];
@@ -489,7 +487,6 @@ sub post_bug
     {
         my $bug_id = $vars_out->{bug}->id;
         push @$bugmail, @{$vars_out->{sentmail}};
-        process_internal_bugs($bug_id, $fields_in->{internal_bug});
         return $bug_id;
     }
     return undef;
@@ -559,28 +556,9 @@ sub process_bug
     if ($vars_out)
     {
         push @$bugmail, @{$vars_out->{sentmail}};
-        process_internal_bugs($bug_id, $fields_in->{internal_bug});
         return $bug_id;
     }
     return undef;
-}
-
-# FIXME: Either generalise it or move into 'custishacks' extension
-sub process_internal_bugs
-{
-    my ($id, $internal_bug_ids) = @_;
-    if ($id)
-    {
-        for my $internal_bug_id ($internal_bug_ids =~ /\d+/g)
-        {
-            # get internal bug if it exists
-            my $internal_bug = Bugzilla::Bug->new($internal_bug_id);
-            ThrowUserError('import_intbug_does_not_exist', { bug_id => $internal_bug->{bug_id} }) if !$internal_bug;
-            # update internal bug
-            $internal_bug->set('cf_extbug', $id);
-            $internal_bug->update();
-        }
-    }
 }
 
 1;

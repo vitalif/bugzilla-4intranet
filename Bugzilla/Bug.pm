@@ -109,7 +109,9 @@ sub DB_COLUMNS
     # FIXME change useplatform/useopsys/useqacontact to "field(xxx).is_obsolete"
     push @columns, 'op_sys' if Bugzilla->params->{useopsys};
     push @columns, 'rep_platform' if Bugzilla->params->{useplatform};
-    push @columns, map { $_->name } grep { $_->type != FIELD_TYPE_MULTI_SELECT } Bugzilla->active_custom_fields;
+    push @columns, map { $_->name }
+        grep { $_->type != FIELD_TYPE_MULTI_SELECT && $_->type != FIELD_TYPE_BUG_ID_REV }
+        Bugzilla->active_custom_fields;
 
     Bugzilla::Hook::process('bug_columns', { columns => \@columns });
 
@@ -160,6 +162,7 @@ use constant CUSTOM_FIELD_VALIDATORS => {
     FIELD_TYPE_TEXTAREA()       => \&_set_default_field,
     FIELD_TYPE_DATETIME()       => \&_set_datetime_field,
     FIELD_TYPE_BUG_ID()         => \&_set_bugid_field,
+    FIELD_TYPE_BUG_ID_REV()     => \&_set_bugid_rev_field,
     FIELD_TYPE_BUG_URLS()       => \&_set_default_field,
     FIELD_TYPE_NUMERIC()        => \&_set_numeric_field,
 };
@@ -564,6 +567,9 @@ sub update
     # Insert the values into the multiselect value tables
     $self->save_multiselects($changes);
 
+    # Save reversed bug_id fields
+    $self->save_reverse_bugid_fields($changes);
+
     # See Also
     $self->save_see_also($changes);
 
@@ -617,7 +623,7 @@ sub check_default_values
 {
     my $self = shift;
     # Check mandatory fields and/or set default values for new bugs
-    for (qw(product component short_desc status_whiteboard assigned_to qa_contact reporter))
+    for (qw(product component short_desc status_whiteboard assigned_to qa_contact reporter bug_file_loc))
     {
         $self->set($_, $self->$_);
     }
@@ -715,7 +721,8 @@ sub check_dependent_fields
         }
         # Optionally add the value of BUG_ID custom field to dependencies (CustIS Bug 73054, Bug 75690)
         # This allows to see it as a part of the dependency tree
-        if ($field_obj->add_to_deps && $self->{$fn} && $self->{$fn} != $self->id)
+        if ($field_obj->type == FIELD_TYPE_BUG_ID && $field_obj->add_to_deps &&
+            $self->{$fn} && $self->{$fn} != $self->id)
         {
             my $blk = $field_obj->add_to_deps == BUG_ID_ADD_TO_BLOCKED;
             my $to = $blk ? 'blocked' : 'dependson';
@@ -732,7 +739,7 @@ sub check_dependent_fields
             }
         }
         # Check field values of dependent select fields
-        if ($field_obj->value_field_id)
+        if ($field_obj->is_select && $field_obj->value_field_id)
         {
             # $self->{_unknown_dependent_values} may contain names of unidentified values
             my $value_objs = $self->{_unknown_dependent_values}->{$fn} || $self->get_object($fn);
@@ -1154,10 +1161,61 @@ sub save_dependencies
     if (%touch_bugs)
     {
         # Touch other bugs so that we trigger mid-airs
+        # FIXME Maybe check it and trigger mid-air before updating?
         Bugzilla->dbh->do(
             'UPDATE bugs SET delta_ts=? WHERE bug_id IN ('.
             join(', ', keys %touch_bugs).')', undef, $self->{delta_ts}
         );
+    }
+}
+
+sub save_reverse_bugid_fields
+{
+    my ($self, $changes) = @_;
+
+    for my $field (Bugzilla->get_fields({ custom => 1, obsolete => 0, type => FIELD_TYPE_BUG_ID_REV }))
+    {
+        my $name = $field->name;
+        next if !defined $self->{$name};
+        my $vf = $field->value_field->name;
+        my ($removed, $added) = diff_arrays($self->{_old_self} ? $self->{_old_self}->$name : [], $self->$name);
+        my @up = (map { ($_, undef) } @$removed), (map { ($_, $self->id) } @$added);
+        my $bug_obj = { map { $_->id => $_ } @{$self->{$name.'_obj'}} };
+        # FIXME Maybe trigger mid-air collisions before updating?
+        if (@$removed)
+        {
+            my $old_bugs = {};
+            my $user = Bugzilla->user;
+            if ($self->{_old_self} && $self->{_old_self}->{$name.'_obj'})
+            {
+                $old_bugs->{$_->id} = $_ for @{$self->{_old_self}->{$name.'_obj'}};
+            }
+            else
+            {
+                $old_bugs = { map { $_->id => $_ } Bugzilla::Bug->new_from_list($removed) };
+            }
+            for (@$removed)
+            {
+                $old_bugs->{$_}->check_is_visible;
+                if (!$user->can_edit_bug($old_bugs->{$_}))
+                {
+                    ThrowUserError('illegal_change_bugid_rev_field', { field => $field, bug_id => $old_bugs->{$_}->id });
+                }
+            }
+            Bugzilla->dbh->do(
+                'UPDATE bugs SET delta_ts=?, '.$vf.'=NULL'.
+                ' WHERE bug_id IN ('.join(', ', @$removed).')', undef, $self->{delta_ts}
+            );
+            for (@$removed)
+            {
+                LogActivityEntry($_, $vf, $self->id, '', Bugzilla->user->id, $self->{delta_ts});
+            }
+        }
+        for (@$added)
+        {
+            $bug_obj->{$_}->set($vf, $self->id);
+            $bug_obj->{$_}->update;
+        }
     }
 }
 
@@ -1198,6 +1256,7 @@ sub save_multiselects
     foreach my $field (@multi_selects)
     {
         my $name = $field->name;
+        next if !defined $self->{$name};
         my ($removed, $added) = diff_arrays($self->{_old_self} ? $self->{_old_self}->$name : [], $self->$name);
         if (scalar @$removed || scalar @$added)
         {
@@ -2321,6 +2380,24 @@ sub _set_bugid_field
     }
 
     return $r;
+}
+
+sub _set_bugid_rev_field
+{
+    my ($self, $bug_ids, $field) = @_;
+    return [] if !$bug_ids;
+    $bug_ids = [ $bug_ids ] if !ref $bug_ids;
+    $self->{$field.'_obj'} = Bugzilla::Bug->new_from_list($bug_ids);
+    my $user = Bugzilla->user;
+    for my $bug (@{$self->{$field.'_obj'}})
+    {
+        $bug->check_is_visible;
+        if (!$user->can_edit_bug($bug))
+        {
+            ThrowUserError('illegal_change_bugid_rev_field', { field => $field, bug_id => $bug->id });
+        }
+    }
+    return [ map { $_->id } @{ $self->{$field.'_obj'} } ];
 }
 
 #############################################################
@@ -4072,8 +4149,12 @@ sub fields
         qw(component product classification classification_id
            dup_id see_also dependson blocked votes cc actual_time),
 
-        # Multi-select custom fields (also not in DB columns)
-        map { $_->name } Bugzilla->get_fields({ obsolete => 0, custom => 1, type => FIELD_TYPE_MULTI_SELECT }),
+        # Multi-select and BUG_ID_REV custom fields (also not in DB columns)
+        map { $_->name } Bugzilla->get_fields({
+            obsolete => 0,
+            custom => 1,
+            type => [ FIELD_TYPE_MULTI_SELECT, FIELD_TYPE_BUG_ID_REV ],
+        }),
     );
     Bugzilla::Hook::process('bug_fields', { fields => \@fields });
 
@@ -4096,8 +4177,8 @@ sub _validate_attribute
         %valid_attributes = (
             # every DB column may be returned via an autoloaded accessor
             (map { $_ => 1 } Bugzilla::Bug->DB_COLUMNS),
-            # multiselect fields
-            (map { $_->name => 1 } Bugzilla->get_fields({ type => FIELD_TYPE_MULTI_SELECT })),
+            # multiselect, bug_id_rev fields
+            (map { $_->name => 1 } Bugzilla->get_fields({ type => [ FIELD_TYPE_MULTI_SELECT, FIELD_TYPE_BUG_ID_REV ] })),
             # get_object accessors
             (map { $_->name.'_obj' => 1 } Bugzilla->get_fields({ type => [ FIELD_TYPE_SINGLE_SELECT, FIELD_TYPE_MULTI_SELECT ] })),
         );
