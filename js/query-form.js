@@ -26,8 +26,10 @@ addListener(window, 'load', function()
   {
     var s = document.getElementById(e);
     s.style.minWidth = '100%';
+    // Expand select fields on hover to maximum available screen width
     if (s && s.offsetWidth > lim)
     {
+      s.style.minWidth = lim+'px';
       s.style.width = lim+'px';
       addListener(s, 'mouseover', function(e)
       {
@@ -41,7 +43,7 @@ addListener(window, 'load', function()
         var w = (lim+c.parentNode.offsetWidth-c.offsetWidth);
         if (w > lim+10)
         {
-          s.style.width = '';
+          s.style.width = 'auto';
           s.style.maxWidth = w + 'px';
         }
       });
