@@ -3881,6 +3881,7 @@ sub _fix_flagclusions_indexes {
 }
 
 # Fill 'fieldvaluecontrol' table when upgrading a stock Bugzilla installation
+# FIXME: Make it compatible with databases other than MySQL
 sub _make_fieldvaluecontrol
 {
     my ($dbh) = @_;
@@ -3890,34 +3891,7 @@ sub _make_fieldvaluecontrol
 
     if ($dbh->bz_column_info('fielddefs', 'visibility_value_id'))
     {
-        # Set single select type for standard select fields
-        my @ss = qw(classification product version rep_platform op_sys bug_status resolution bug_severity priority component target_milestone);
-        $dbh->do("UPDATE fielddefs SET type=".FIELD_TYPE_SINGLE_SELECT()." WHERE name IN ('".join('\',\'', @ss)."')");
-
-        # Move visibility_value_id of values of standard fields to fieldvaluecontrol (CustIS Bug 53617)
-        my @standard_fields = qw(bug_status resolution priority bug_severity op_sys rep_platform);
-        my $custom_fields = $dbh->selectall_arrayref(
-            'SELECT * FROM fielddefs WHERE type IN (?, ?) AND (custom=1 OR name IN ('.
-            join(',', ('?') x @standard_fields).'))', {Slice=>{}},
-            FIELD_TYPE_SINGLE_SELECT, FIELD_TYPE_MULTI_SELECT, @standard_fields);
-        foreach my $field (@$custom_fields)
-        {
-            if ($dbh->bz_table_info($field->{name}) &&
-                $dbh->bz_column_info($field->{name}, 'visibility_value_id'))
-            {
-                print "Migrating $field->{name}'s visibility_value_id into fieldvaluecontrol\n";
-                $dbh->do(
-                    "REPLACE INTO fieldvaluecontrol (field_id, visibility_value_id, value_id)".
-                    " SELECT f.id, v.visibility_value_id, v.id FROM fielddefs f, `$field->{name}` v".
-                    " WHERE f.name=? AND v.visibility_value_id IS NOT NULL", undef, $field->{name});
-                print "Making backup of table $field->{name}\n";
-                $dbh->do("CREATE TABLE `backup_$field->{name}_".time."` AS SELECT * FROM `$field->{name}`");
-                print "Dropping column $field->{name}.visibility_value_id\n";
-                $dbh->bz_drop_column($field->{name}, 'visibility_value_id');
-            }
-        }
-
-        # Move visibility_value_id of standard fields to fieldvaluecontrol
+        # Move 3.x visibility_value_id of standard fields to fieldvaluecontrol
         print "Migrating fielddefs's visibility_value_id into fieldvaluecontrol\n";
         $dbh->do(
             "REPLACE INTO fieldvaluecontrol (field_id, visibility_value_id, value_id)".
@@ -3927,9 +3901,46 @@ sub _make_fieldvaluecontrol
         $dbh->do("CREATE TABLE `backup_fielddefs_".time."` AS SELECT * FROM fielddefs");
         print "Dropping column fielddefs.visibility_value_id\n";
         $dbh->bz_drop_column('fielddefs', 'visibility_value_id');
+    }
 
-        # Copy product_id and classification_id dependencies to fieldvaluecontrol
-        # so query.cgi can show/hide all fields using common code (CustIS Bug 69481)
+    if ($dbh->bz_table_info('field_visibility'))
+    {
+        # Copy 4.x field_visibility to fieldvaluecontrol
+        print "Migrating field_visibility to fieldvaluecontrol\n";
+        $dbh->do(
+            "REPLACE INTO fieldvaluecontrol (field_id, visibility_value_id, value_id)".
+            " SELECT field_id, value_id, 0 FROM field_visibility"
+        );
+    }
+
+    # Move visibility_value_id of values of standard fields to fieldvaluecontrol (CustIS Bug 53617)
+    my @standard_fields = qw(bug_status resolution priority bug_severity op_sys rep_platform);
+    my $custom_fields = $dbh->selectall_arrayref(
+        'SELECT * FROM fielddefs WHERE type IN (?, ?) AND (custom=1 OR name IN ('.
+        join(',', ('?') x @standard_fields).'))', {Slice=>{}},
+        FIELD_TYPE_SINGLE_SELECT, FIELD_TYPE_MULTI_SELECT, @standard_fields);
+    foreach my $field (@$custom_fields)
+    {
+        if ($dbh->bz_table_info($field->{name}) &&
+            $dbh->bz_column_info($field->{name}, 'visibility_value_id'))
+        {
+            print "Migrating $field->{name}'s visibility_value_id into fieldvaluecontrol\n";
+            $dbh->do(
+                "REPLACE INTO fieldvaluecontrol (field_id, visibility_value_id, value_id)".
+                " SELECT f.id, v.visibility_value_id, v.id FROM fielddefs f, `$field->{name}` v".
+                " WHERE f.name=? AND v.visibility_value_id IS NOT NULL", undef, $field->{name});
+            print "Making backup of table $field->{name}\n";
+            $dbh->do("CREATE TABLE backup_$field->{name}_".time." AS SELECT * FROM `$field->{name}`");
+            $dbh->bz_drop_column($field->{name}, 'visibility_value_id');
+        }
+    }
+
+    # Copy product_id and classification_id dependencies to fieldvaluecontrol
+    # so query.cgi can show/hide all fields using common code (CustIS Bug 69481)
+    if (!$dbh->selectrow_array(
+        'SELECT f.id FROM fieldvaluecontrol c, fielddefs f WHERE c.field_id=f.id'.
+        ' AND f.name=?', undef, 'product'))
+    {
         print "Copying standard fields product_id/classification_id to fieldvaluecontrol\n";
         for([ 'product', 'classification', 'products' ],
             [ 'component', 'product', 'components' ],
@@ -3947,7 +3958,7 @@ sub _make_fieldvaluecontrol
         }
     }
 
-    # Copy useXXX parameters to fielddefs
+    # Copy useXXX parameter values to fielddefs.is_obsolete
     if (Bugzilla->params->{useclassification})
     {
         my ($cl_id) = $dbh->selectrow_array('SELECT id FROM fielddefs WHERE name=\'classification\'');
