@@ -161,6 +161,9 @@ sub update_fielddefs_definition {
         $dbh->bz_drop_column('fielddefs', 'reverse_desc');
     }
 
+    # Upstream is_numeric field just duplicates BUG_ID type logic and is not needed at all
+    $dbh->bz_drop_column('fielddefs', 'is_numeric');
+
     # Remember, this is not the function for adding general table changes.
     # That is below. Add new changes to the fielddefs table above this
     # comment.
