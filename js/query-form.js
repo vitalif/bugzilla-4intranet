@@ -38,10 +38,6 @@ addListener(window, 'load', function()
         var c = s;
         while (c && c.nodeName != 'TABLE')
           c = c.parentNode;
-        // FIXME: Удалить вторую таблицу внутри каждой ячейки! Она там нах* не нужна!
-        c = c.parentNode;
-        while (c && c.nodeName != 'TABLE')
-          c = c.parentNode;
         var w = (lim+c.parentNode.offsetWidth-c.offsetWidth);
         if (w > lim+10)
         {

@@ -69,70 +69,28 @@
   <tr>
   [% Hook.process('before_selects_top') %]
   [% IF Param('useclassification') %]
-    <td valign="top" id="classification_cont">
-      <table>
-        <tr valign="bottom">
-          <th align="left">
-            <label for="classification">Classification</label>:
-          </th>
-        </tr>
-        <tr valign="top">
-          [% PROCESS select sel = { name => 'classification', size => 5 } %]
-        </tr>
-      </table>
-    </td>
+    <th align="left" valign="top" id="classification_cont">
+      <label for="classification">Classification</label>:<br />
+      [% PROCESS select sel = { name => 'classification', size => 5 } %]
+    </th>
   [% END %]
-    <td valign="top" id="product_cont">
-      <table>
-        <tr valign="bottom">
-          <th align="left">
-            <label for="product" accesskey="p"><u>P</u>roduct</label>:
-          </th>
-        </tr>
-        <tr valign="top">
-          [% PROCESS select sel = { name => 'product', size => 5 } %]
-        </tr>
-      </table>
-    </td>
-    <td valign="top" id="component_cont">
-      <table>
-        <tr valign="bottom">
-          <th align="left">
-            <label for="component" accesskey="m"><a href="describecomponents.cgi">Co<u>m</u>ponent</a></label>:
-          </th>
-        </tr>
-        <tr valign="top">
-          [% PROCESS select sel = { name => 'component', size => 5 } %]
-        </tr>
-      </table>
-    </td>
-    <td valign="top" id="version_cont">
-      <table>
-        <tr valign="bottom">
-          <th align="left">
-            <label for="version">Version</label>:
-          </th>
-        </tr>
-        <tr valign="top">
-          [% PROCESS select sel = { name => 'version',
-                                    size => 5 } %]
-        </tr>
-      </table>
-    </td>
+    <th align="left"  valign="top" id="product_cont">
+      <label for="product" accesskey="p"><u>P</u>roduct</label>:<br />
+      [% PROCESS select sel = { name => 'product', size => 5 } %]
+    </th>
+    <th align="left"  valign="top" id="component_cont">
+      <label for="component" accesskey="m"><a href="describecomponents.cgi">Co<u>m</u>ponent</a></label>:<br />
+      [% PROCESS select sel = { name => 'component', size => 5 } %]
+    </th>
+    <th align="left"  valign="top" id="version_cont">
+      <label for="version">Version</label>:<br />
+      [% PROCESS select sel = { name => 'version', size => 5 } %]
+    </th>
   [% IF Param('usetargetmilestone') %]
-    <td valign="top" id="target_milestone_cont">
-      <table>
-        <tr valign="bottom">
-          <th align="left">
-            <label for="target_milestone">Target</label>:
-          </th>
-        </tr>
-        <tr valign="top">
-          [% PROCESS select sel = { name => 'target_milestone',
-                                    size => 5 } %]
-        </tr>
-      </table>
-    </td>
+    <th align="left"  valign="top" id="target_milestone_cont">
+      <label for="target_milestone">Target</label>:<br />
+      [% PROCESS select sel = { name => 'target_milestone', size => 5 } %]
+    </th>
   [% END %]
   [% Hook.process('after_selects_top') %]
   </tr>
@@ -151,18 +109,10 @@
 <table>
   <tr>
       [% END %]
-      <td valign="top" id="[% f.name | html %]_cont">
-        <table>
-          <tr valign="bottom">
-            <th align="left">
-              <label for="[% f.name | html %]">[% f.description | html %]</label>:
-            </th>
-          </tr>
-          <tr valign="top">
-            [% PROCESS select sel = { name => f.name, size => 5 } %]
-          </tr>
-        </table>
-      </td>
+      <th align="left" valign="top" id="[% f.name | html %]_cont">
+        <label for="[% f.name | html %]">[% f.description | html %]</label>:<br />
+        [% PROCESS select sel = { name => f.name, size => 5 } %]
+      </th>
       [% i = i+1 %]
     [% END %]
   [% END %]
@@ -510,20 +460,18 @@
 [%############################################################################%]
 
 [% BLOCK select %]
-  <td align="left">
-    <select name="[% sel.name | html %]" id="[% sel.name | html %]" multiple="multiple" size="[% sel.size %]">
-      [% IF bug_fields.${sel.name}.type == constants.FIELD_TYPE_SINGLE_SELECT && bug_fields.${sel.name}.nullable %]
-        <option value="---"[% " selected" IF lsearch(default.${sel.name}, '---') != -1 %]>---</option>
-      [% END %]
-      [% FOREACH value = bug_fields.${sel.name}.legal_value_names_with_ids %]
-        <option value="[% value.name | html %]" id="qf_[% sel.name | html %]_[% value.ids.join('_') %]"
-          [% " selected" IF lsearch(default.${sel.name}, value.name) != -1 %]>
-          [%- value.name | html -%]
-        </option>
-      [% END %]
-    </select>
-    [% checkwidths.push(sel.name) %]
-  </td>
+  <select name="[% sel.name | html %]" id="[% sel.name | html %]" multiple="multiple" size="[% sel.size %]">
+    [% IF bug_fields.${sel.name}.type == constants.FIELD_TYPE_SINGLE_SELECT && bug_fields.${sel.name}.nullable %]
+      <option value="---"[% " selected" IF lsearch(default.${sel.name}, '---') != -1 %]>---</option>
+    [% END %]
+    [% FOREACH value = bug_fields.${sel.name}.legal_value_names_with_ids %]
+      <option value="[% value.name | html %]" id="qf_[% sel.name | html %]_[% value.ids.join('_') %]"
+        [% " selected" IF lsearch(default.${sel.name}, value.name) != -1 %]>
+        [%- value.name | html -%]
+      </option>
+    [% END %]
+  </select>
+  [% checkwidths.push(sel.name) %]
 [% END %]
 
 <script type="text/javascript">
