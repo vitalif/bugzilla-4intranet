@@ -236,7 +236,9 @@
   [%#
     # Custis Bug 129375 - Add search link for some custom fields
     #%]
-  [% IF bug.id && (field.name != 'priority' AND field.name != 'bug_status' AND field.name != 'resolution') %]
+  [% IF bug.id && field.name != 'priority' && field.name != 'bug_status' &&
+    field.name != 'resolution' && field.type != constants.FIELD_TYPE_BUG_ID_REV &&
+    field.type != constants.FIELD_TYPE_MULTI_SELECT %]
   &nbsp;(<a href="buglist.cgi?query_format=advanced&product=[% bug.product | uri %]
     [%- IF field.name != 'product' %]&
       [%- IF field.type == constants.FIELD_TYPE_DATETIME -%]
