@@ -25,58 +25,7 @@
 <script type="text/javascript" src="js/query-visibility.js"></script>
 <script type="text/javascript" src="js/field.js"></script>
 <script type="text/javascript" src="fieldvaluecontrol.cgi?type=search&user=[% Bugzilla.user.id %]"></script>
-
-<script type="text/javascript">
-
-var first_load = true;         [%# is this the first time we load the page? %]
-var last_sel = new Array();    [%# caches last selection %]
-var useclassification = [% Param('useclassification') ? 'true' : 'false' %];
-
-addListener(window, 'load', function()
-{
-  var lim = 250;
-  function checkw(e)
-  {
-    var s = document.getElementById(e);
-    s.style.minWidth = '100%';
-    if (s && s.offsetWidth > lim)
-    {
-      s.style.width = lim+'px';
-      addListener(s, 'mouseover', function(e)
-      {
-        e = e || window.event;
-        var f = e.relatedTarget || e.fromElement;
-        if (f == s || f.parentNode == s || !s.style.width && s.offsetWidth <= lim)
-          return;
-        var c = s;
-        while (c && c.nodeName != 'TABLE')
-          c = c.parentNode;
-        [%# FIXME: Удалить вторую таблицу внутри каждой ячейки! Она там нах* не нужна! %]
-        c = c.parentNode;
-        while (c && c.nodeName != 'TABLE')
-          c = c.parentNode;
-        var w = (lim+c.parentNode.offsetWidth-c.offsetWidth);
-        if (w > lim+10)
-        {
-          s.style.width = '';
-          s.style.maxWidth = w + 'px';
-        }
-      });
-      addListener(s, 'mouseout', function(e) {
-        e = e || window.event;
-        var t = e.relatedTarget || e.toElement;
-        if (t == s || t.parentNode == s)
-          return;
-        s.style.width = lim+'px';
-        s.style.maxWidth = '';
-      });
-    }
-  }
-  for (var i in checkwidths)
-    checkw(checkwidths[i]);
-});
-
-</script>
+<script type="text/javascript" src="js/query-form.js"></script>
 
 [% SET checkwidths = [] %]
 
@@ -94,10 +43,6 @@ addListener(window, 'load', function()
     <td>
       <input name="content" size="40" id="content"
              value="[% default.content.0 FILTER html %]">
-      <script type="text/javascript"> <!--
-          document.forms[queryform].content.focus();
-      // -->
-      </script>
     </td>
   </tr>
 
@@ -109,10 +54,6 @@ addListener(window, 'load', function()
     <td>
       <input name="short_desc" id="short_desc" size="40"
              value="[% default.short_desc.0 FILTER html %]">
-      <script type="text/javascript"> <!--
-          document.forms[queryform].short_desc.focus();
-      // -->
-      </script>
     </td>
     <td>
       [% IF button_name %]
@@ -274,16 +215,6 @@ addListener(window, 'load', function()
       <td>
         <input name="keywords" id="keywords" size="40"
                value="[% default.keywords.0 FILTER html %]">
-        <script type="text/javascript">
-        addListener(window, 'load', function() {
-            var emptyOptions = [% keyword_list ? json(keyword_list) : "null" %];
-            new SimpleAutocomplete("keywords",
-                function(h) { keywordAutocomplete(h, emptyOptions); },
-                { emptyText: 'No keywords found', multipleDelimiter: "," }
-            );
-        }); 
-        </script>
-
       </td>
     </tr>
   [% END %]
@@ -299,10 +230,6 @@ addListener(window, 'load', function()
                     value="[% default.deadlinefrom.0 FILTER html %]">
         to <input name="deadlineto" id="deadlineto" size="10" maxlength="10"
                   value="[% default.deadlineto.0 FILTER html %]">
-        <script type="text/javascript">
-           Calendar.set('deadlinefrom');
-           Calendar.set('deadlineto');
-        </script>
       </td>
       <td>
         <small>(YYYY-MM-DD or relative dates)</small>
@@ -508,11 +435,6 @@ addListener(window, 'load', function()
 </table>
 
     </td>
-    <script language="JavaScript">
-    addListener(window, 'load', function() {
-      new SimpleAutocomplete("email[% n %]", userAutocomplete, { emptyText: 'No users found' });
-    });
-    </script>
   [% END %]
   </tr>
 </table>
@@ -566,10 +488,6 @@ addListener(window, 'load', function()
            size="10" value="[% default.chfieldfrom.0 FILTER html %]" />
     and <input name="chfieldto" id="chfieldto" size="10" value="[% default.chfieldto.0 FILTER html %]" />
     <br />(YYYY-MM-DD or relative dates)
-        <script type="text/javascript">
-           Calendar.set('chfieldfrom');
-           Calendar.set('chfieldto');
-        </script>
   </dd>
   <dt><label for="chfieldwho">By user:</label></dt>
   <dd><input name="chfieldwho" id="chfieldwho" size="20" value="[% default.chfieldwho.0 | html %]" /> (user login)</dd>
@@ -581,11 +499,6 @@ addListener(window, 'load', function()
            size="20" value="[% default.chfieldvalue.0 FILTER html %]">
   </dd>
 </dl>
-<script language="JavaScript">
-addListener(window, 'load', function() {
-  new SimpleAutocomplete("chfieldwho", userAutocomplete, { emptyText: 'No users found' });
-});
-</script>
 
        </fieldset>
      </td>
@@ -615,4 +528,5 @@ addListener(window, 'load', function() {
 
 <script type="text/javascript">
 var checkwidths = [% json(checkwidths) %];
+var allKeywords = [% keyword_list ? json(keyword_list) : "null" %];
 </script>
