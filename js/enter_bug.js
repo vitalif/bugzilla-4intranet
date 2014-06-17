@@ -6,7 +6,7 @@
 var cc_rem = {}, cc_add = {};
 var last_cc;
 var last_initialowner;
-var last_component = -1;
+var last_component;
 var last_initialqacontact;
 
 function component_change()
@@ -17,19 +17,10 @@ function component_change()
     var form = document.Create;
     var assigned_to = form.assigned_to.value;
 
-    var index = -1;
-    if (form.component.type == 'select-one')
+    var selectedName = form.component.value;
+    if (selectedName)
     {
-        index = form.component.selectedIndex;
-    }
-    else if (form.component.type == 'hidden')
-    {
-        // Assume there is only one component in the list
-        index = 0;
-    }
-    if (index != -1)
-    {
-        var c = component_data[index];
+        var c = component_data[selectedName];
         if (assigned_to == last_initialowner || assigned_to == c.default_assignee || !assigned_to)
         {
             form.assigned_to.value = c.default_assignee;
@@ -37,7 +28,7 @@ function component_change()
         }
 
         if (!overridedefaultversion &&
-            (last_component < 0 || !component_data[last_component].default_version ||
+            (!last_component || !component_data[last_component].default_version ||
             form.version.value == component_data[last_component].default_version))
         {
             for (var i = 0; i < form.version.options.length; i++)
@@ -107,7 +98,7 @@ function component_change()
             }
         }
 
-        last_component = index;
+        last_component = selectedName;
     }
 }
 

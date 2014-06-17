@@ -384,10 +384,10 @@ sub pickos
 sub components_json
 {
     my ($product) = @_;
-    my $components = [];
+    my $components = {};
     for my $c (@{$product->active_components})
     {
-        push @$components, {
+        $components->{$c->name} = {
             name => $c->name,
             default_version => $c->default_version && $c->default_version_obj->name,
             description => html_light_quote($c->description),
