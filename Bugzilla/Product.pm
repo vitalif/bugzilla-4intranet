@@ -847,13 +847,8 @@ sub active_components
     my $self = shift;
     if (!defined $self->{active_components})
     {
-        my $ids = Bugzilla->dbh->selectcol_arrayref(
-            'SELECT id FROM components WHERE product_id = ?'.
-            ' AND isactive = 1 ORDER BY name', undef, $self->id
-        );
-
         require Bugzilla::Component;
-        $self->{active_components} = Bugzilla::Component->new_from_list($ids);
+        $self->{active_components} = Bugzilla::Component->match({ product_id => $self->id, isactive => 1 });
     }
     return $self->{active_components};
 }

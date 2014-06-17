@@ -273,7 +273,7 @@ sub get_all
                 }
                 else
                 {
-                    $t = $a->{$_} cmp $b->{$_};
+                    $t = lc $a->{$_} cmp lc $b->{$_};
                 }
                 return $t if $t;
             }
