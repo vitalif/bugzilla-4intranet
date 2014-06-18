@@ -663,9 +663,6 @@ sub update_table_definitions
     # 2009-05-07 ghendricks@novell.com - Bug 77193
     _add_isactive_to_product_fields();
 
-    # 2010-10-09 LpSolit@gmail.com - Bug 505165
-    $dbh->bz_alter_column('flags', 'setter_id', {TYPE => 'INT4', NOTNULL => 1});
-
     # 2010-10-09 LpSolit@gmail.com - Bug 451735
     _fix_series_indexes();
 
@@ -699,7 +696,7 @@ sub update_table_definitions
     # New product fields
     $dbh->bz_add_column('products', wiki_url => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"});
     $dbh->bz_add_column('products', notimetracking => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0});
-    $dbh->bz_add_column('products', extproduct => {TYPE => 'INT4', REFERENCES => {TABLE => 'products', COLUMN => 'id'}});
+    $dbh->bz_add_column('products', extproduct => {TYPE => 'INT4'});
     $dbh->bz_add_column('products', cc_group => {TYPE => 'varchar(255)'});
     $dbh->bz_alter_column('products', cc_group => {TYPE => 'varchar(255)'});
 
@@ -767,17 +764,23 @@ WHERE description LIKE\'%[CC:%\'');
         $dbh->bz_add_index('bugs_activity', 'bugs_activity_added_idx', ['added(255)']);
         # Concatenate separate lines in bugs_activity for long text fields
         $dbh->do(
-            'CREATE TABLE bugs_activity_backup AS SELECT a.* FROM fielddefs f, bugs_activity a'.
+            'CREATE TABLE backup_bugs_activity AS SELECT a.* FROM fielddefs f, bugs_activity a'.
             ' WHERE f.type='.FIELD_TYPE_TEXTAREA.' AND a.fieldid=f.id'
         );
-        $dbh->do('DELETE FROM a USING fielddefs f, bugs_activity a WHERE f.type='.FIELD_TYPE_TEXTAREA.' AND a.fieldid=f.id');
+        $dbh->do(
+            'DELETE FROM a USING fielddefs f, bugs_activity a'.
+            ' WHERE f.type='.FIELD_TYPE_TEXTAREA.' AND a.fieldid=f.id'
+        );
         $dbh->do(
             'CREATE TABLE bugs_activity_joined AS SELECT bug_id, who, bug_when, fieldid, '.
             $dbh->sql_group_concat('a.added', "''").' added, '.
             $dbh->sql_group_concat('a.removed', "''").' removed'.
-            ' FROM bugs_activity_backup a GROUP BY bug_id, bug_when, who, fieldid'
+            ' FROM backup_bugs_activity a GROUP BY bug_id, bug_when, who, fieldid'
         );
-        $dbh->do('INSERT INTO bugs_activity SELECT bug_id, who, bug_when, fieldid, added, removed, NULL FROM bugs_activity_joined');
+        $dbh->do(
+            'INSERT INTO bugs_activity (bug_id, who, bug_when, fieldid, added, removed, attach_id)'.
+            ' SELECT bug_id, who, bug_when, fieldid, added, removed, NULL FROM bugs_activity_joined'
+        );
         $dbh->do('DROP TABLE bugs_activity_joined');
     }
 
@@ -792,9 +795,6 @@ WHERE description LIKE\'%[CC:%\'');
 
     # Store IDs instead of names for all select fields in bugs table
     _change_select_fields_to_ids();
-
-    # _change_int_keys_to_int4 incorrectly changed ts_job.jobid column
-    $dbh->bz_alter_column('ts_job', jobid => {TYPE => 'INTSERIAL', PRIMARYKEY => 1, NOTNULL => 1});
 
     # Set MOVED resolution disabled for bugs
     $dbh->do('UPDATE resolution SET isactive=0 WHERE value=?', undef, 'MOVED');
@@ -861,7 +861,7 @@ sub _update_pre_checksetup_bugzillas
     # but aren't in very old bugzilla's (like 2.1)
     # Steve Stock (sstock@iconnect-inc.com)
 
-    $dbh->bz_add_column('bugs', 'target_milestone', {TYPE => 'INT4', REFERENCES => {TABLE => 'milestones', COLUMN => 'id'}});
+    $dbh->bz_add_column('bugs', 'target_milestone', {TYPE => 'INT4'});
     $dbh->bz_add_column('bugs', 'qa_contact', {TYPE => 'INT4'});
     $dbh->bz_add_column('bugs', 'status_whiteboard', {TYPE => 'MEDIUMTEXT', NOTNULL => 1, DEFAULT => "''"});
     if (!$dbh->bz_column_info('products', 'isactive'))
@@ -1228,7 +1228,7 @@ sub _add_products_defaultmilestone
 
     # 2000-03-23 Added a defaultmilestone field to the products table, so that
     # we know which milestone to initially assign bugs to.
-    $dbh->bz_add_column('products', 'defaultmilestone', {TYPE => 'INT4', REFERENCES => {TABLE => 'milestones', COLUMN => 'id'}});
+    $dbh->bz_add_column('products', 'defaultmilestone', {TYPE => 'INT4'});
 }
 
 sub _copy_from_comments_to_longdescs {
@@ -3902,7 +3902,7 @@ sub _make_fieldvaluecontrol
             " SELECT id, visibility_value_id, 0 FROM fielddefs WHERE visibility_value_id IS NOT NULL"
         );
         print "Making backup of table fielddefs\n";
-        $dbh->do("CREATE TABLE `backup_fielddefs_".time."` AS SELECT * FROM fielddefs");
+        $dbh->do("CREATE TABLE `backup_fielddefs_".int(time)."` AS SELECT * FROM fielddefs");
         print "Dropping column fielddefs.visibility_value_id\n";
         $dbh->bz_drop_column('fielddefs', 'visibility_value_id');
     }
@@ -3934,7 +3934,7 @@ sub _make_fieldvaluecontrol
                 " SELECT f.id, v.visibility_value_id, v.id FROM fielddefs f, `$field->{name}` v".
                 " WHERE f.name=? AND v.visibility_value_id IS NOT NULL", undef, $field->{name});
             print "Making backup of table $field->{name}\n";
-            $dbh->do("CREATE TABLE backup_$field->{name}_".time." AS SELECT * FROM `$field->{name}`");
+            $dbh->do("CREATE TABLE backup_$field->{name}_".int(time)." AS SELECT * FROM `$field->{name}`");
             $dbh->bz_drop_column($field->{name}, 'visibility_value_id');
         }
     }
@@ -4000,7 +4000,11 @@ sub _change_int_keys_to_int4
             $abs = { @{$abs->{FIELDS}} } if $abs;
             while (my ($column, $d) = each %h)
             {
-                if ($d->{TYPE} =~ /INT/is && ($d->{REFERENCES} || $d->{PRIMARYKEY} || $abs && $abs->{$column}->{REFERENCES}))
+                if ($d->{TYPE} =~ /SERIAL/is)
+                {
+                    push @$alter, [ $table, $column, { %$d, TYPE => 'INTSERIAL' } ];
+                }
+                elsif ($d->{TYPE} =~ /INT/is && ($d->{REFERENCES} || $d->{PRIMARYKEY} || $abs && $abs->{$column}->{REFERENCES}))
                 {
                     if ($d->{REFERENCES})
                     {
@@ -4008,10 +4012,6 @@ sub _change_int_keys_to_int4
                         $dbh->bz_drop_fk($table, $column);
                     }
                     push @$alter, [ $table, $column, { %$d, TYPE => 'INT4' } ];
-                }
-                elsif ($d->{TYPE} =~ /SERIAL/is)
-                {
-                    push @$alter, [ $table, $column, { %$d, TYPE => 'INTSERIAL' } ];
                 }
             }
         }
@@ -4090,6 +4090,7 @@ sub _set_varchar_255
     my $dbh = Bugzilla->dbh;
     my $sch_real = $dbh->_bz_real_schema;
     my $sch_abstract = $dbh->_bz_schema;
+    my $started;
     for my $table ($sch_real->get_table_list)
     {
         my $r = $sch_real->get_table_abstract($table);
@@ -4101,10 +4102,12 @@ sub _set_varchar_255
             if (lc $abs->{$f}->{TYPE} eq 'varchar(255)' &&
                 lc $r->{$f}->{TYPE} ne 'varchar(255)')
             {
+                $started ||= (print "-- Raising length limit for all VARCHARs to 255 --\n");
                 $dbh->bz_alter_column($table, $f, $abs->{$f});
             }
         }
     }
+    print "-- Done --\n" if $started;
 }
 
 1;

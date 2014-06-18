@@ -861,7 +861,11 @@ sub set_value_field
 }
 
 # This is only used internally by upgrade code in Bugzilla::Field.
-sub _set_type { $_[0]->set('type', $_[1]); }
+sub _set_type
+{
+    trick_taint($_[1]);
+    $_[0]->{type} = int($_[1]);
+}
 
 =pod
 
