@@ -122,7 +122,7 @@ var constants = {
           [%- " checked" IF field.obsolete %] />
       </td>
     </tr>
-    [% IF field.is_select AND field.name != 'product' || field.type == constants.FIELD_TYPE_BUG_ID || !field.id %]
+    [% IF field.type && field.type != constants.FIELD_TYPE_BUG_ID_REV || !field.id %]
     <tr valign="top">
       [% IF !field.id || field.type == constants.FIELD_TYPE_BUG_ID %]
       <th align="left"><label id="add_to_deps_title" for="add_to_deps">Deps:</label></th>
@@ -133,11 +133,13 @@ var constants = {
           <option value="dependson" [% ' selected="selected"' IF field.add_to_deps == constants.BUG_ID_ADD_TO_DEPENDSON %]>Add field value to blockers</option>
         </select>
       </td>
-      [% ELSIF field.is_select AND field.id %]
+      [% ELSIF field.is_select AND field.name != 'product' AND field.id %]
       <td></td>
       <td><a href="editvalues.cgi?field=[% field.name | url_quote %]">Edit legal values for this field</a></td>
+      [% ELSE %]
+      <td colspan="2"></td>
       [% END %]
-      [% IF !field.id || field.type == constants.FIELD_TYPE_SINGLE_SELECT %]
+      [% IF !field.id || field.type && field.type != constants.FIELD_TYPE_BUG_ID_REV %]
       <th align="left"><label for="nullable">Allow empty value:</label></th>
       <td>
         <input type="checkbox" id="nullable" name="nullable"

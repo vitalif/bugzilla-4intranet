@@ -641,9 +641,11 @@ sub check_default_values
     # Remove NULLs for custom fields
     for my $field (Bugzilla->get_fields({ custom => 1, obsolete => 0 }))
     {
-        $self->set($field->name, undef) if Bugzilla::Field->SQL_DEFINITIONS->{$field->type} &&
-            Bugzilla::Field->SQL_DEFINITIONS->{$field->type}->{NOTNULL} &&
-            !$self->{$field->name};
+        if (!$self->{$field->name} && Bugzilla::Field->SQL_DEFINITIONS->{$field->type} &&
+            Bugzilla::Field->SQL_DEFINITIONS->{$field->type}->{NOTNULL})
+        {
+            $self->set($field->name, undef);
+        }
     }
     # Add some default values manually
     $self->set('groups', [ map { $_->id } @{$self->groups_in} ]);
@@ -762,6 +764,12 @@ sub check_dependent_fields
                     controller => $self->get_object($n),
                 };
             }
+        }
+        # Check other custom fields for empty values
+        elsif (!$field_obj->nullable && $fn ne 'classification' &&
+            (!$self->{$fn} || $field_obj->type == FIELD_TYPE_MULTI_SELECT && !@{$self->{$fn}}))
+        {
+            ThrowUserError('field_not_nullable', { field => $field_obj });
         }
     }
 

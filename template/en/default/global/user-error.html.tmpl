@@ -599,6 +599,11 @@
   You must enter a name for this field.
 [% END %]
 
+[% BLOCK error_field_not_nullable %]
+  [% title = "Missing " _ field.description | html %]
+  You must enter a non-empty [% field.description | html %] for this [% terms.bug %].
+[% END %]
+
 [% BLOCK error_field_value_control_select_only %]
   [% title = "Invalid Value Control Field" %]
   Only Drop-Down or Multi-Select fields can have a field that

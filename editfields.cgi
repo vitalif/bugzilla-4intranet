@@ -59,21 +59,21 @@ elsif ($action eq 'new')
     check_token_data($token, 'add_field');
 
     my $field = $vars->{field} = Bugzilla::Field->create({
-        name        => scalar $cgi->param('name'),
-        url         => scalar $cgi->param('url'),
-        description => scalar $cgi->param('desc'),
-        type        => scalar $cgi->param('type'),
-        sortkey     => scalar $cgi->param('sortkey'),
-        mailhead    => scalar $cgi->param('new_bugmail'),
-        enter_bug   => scalar $cgi->param('enter_bug'),
-        clone_bug   => scalar $cgi->param('clone_bug'),
-        obsolete    => scalar $cgi->param('obsolete'),
-        nullable    => scalar $cgi->param('nullable'),
-        custom      => 1,
-        buglist     => 1, # FIXME remove non-editable 'buglist' field spec
+        name                => scalar $cgi->param('name'),
+        url                 => scalar $cgi->param('url'),
+        description         => scalar $cgi->param('desc'),
+        type                => scalar $cgi->param('type'),
+        sortkey             => scalar $cgi->param('sortkey'),
+        mailhead            => scalar $cgi->param('new_bugmail'),
+        enter_bug           => scalar $cgi->param('enter_bug'),
+        clone_bug           => scalar $cgi->param('clone_bug'),
+        obsolete            => scalar $cgi->param('obsolete'),
+        is_mandatory        => !scalar $cgi->param('nullable'),
+        custom              => 1,
+        buglist             => 1, # FIXME remove non-editable 'buglist' field spec [?]
         visibility_field_id => scalar $cgi->param('visibility_field_id'),
-        value_field_id => scalar $cgi->param('value_field_id'),
-        add_to_deps => scalar $cgi->param('add_to_deps'),
+        value_field_id      => scalar $cgi->param('value_field_id'),
+        add_to_deps         => scalar $cgi->param('add_to_deps'),
     });
     $field->set_visibility_values([ $cgi->param('visibility_value_id') ]);
 
@@ -110,7 +110,7 @@ elsif ($action eq 'update')
     $field->set_sortkey($cgi->param('sortkey'));
     $field->set_in_new_bugmail($cgi->param('new_bugmail'));
     $field->set_obsolete($cgi->param('obsolete'));
-    $field->set_nullable($cgi->param('nullable'));
+    $field->set_is_mandatory(!scalar $cgi->param('nullable'));
     $field->set_url($cgi->param('url'));
     if ($field->custom)
     {
