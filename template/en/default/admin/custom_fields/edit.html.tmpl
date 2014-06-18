@@ -110,7 +110,10 @@ var constants = {
         [% ELSE %]
           <select id="type" name="type" onchange="onChangeType()">
             [% FOREACH type = field_types.sort %]
-              [% NEXT IF type == constants.FIELD_TYPE_UNKNOWN %]
+              [%# Types "Bug URLs" and "Keywords" are useless %]
+              [% NEXT IF type == constants.FIELD_TYPE_UNKNOWN ||
+                type == constants.FIELD_TYPE_BUG_URLS ||
+                type == constants.FIELD_TYPE_KEYWORDS %]
               <option value="[% type | html %]">[% field_types.$type | html %]</option>
             [% END %]
           </select>

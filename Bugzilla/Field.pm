@@ -302,14 +302,23 @@ sub _check_sortkey
 sub _check_type
 {
     my ($invocant, $type) = @_;
+    if (ref $invocant)
+    {
+        # Do not allow to change type of an existing custom field
+        return $invocant->type;
+    }
     my $saved_type = $type;
     # The constant here should be updated every time a new,
     # higher field type is added.
-    if (!detaint_natural($type) || $type < FIELD_TYPE_UNKNOWN ||
+    if (!detaint_natural($type) || $type <= FIELD_TYPE_UNKNOWN ||
         $type > FIELD_TYPE_KEYWORDS && $type < FIELD_TYPE_NUMERIC ||
         $type > FIELD_TYPE_BUG_ID_REV)
     {
         ThrowCodeError('invalid_customfield_type', { type => $saved_type });
+    }
+    elsif ($type == FIELD_TYPE_BUG_URLS || $type == FIELD_TYPE_KEYWORDS)
+    {
+        ThrowUserError('useless_customfield_type', { type => $type });
     }
     return $type;
 }

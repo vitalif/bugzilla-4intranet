@@ -524,6 +524,12 @@
   Can't use [% field FILTER html %] as a field name.
 [% END %]
 
+[% BLOCK error_useless_customfield_type %]
+  [% title = "Can't create field of a useless type" %]
+  It is impossible to create "[% lc_messages.field_types.$type %]" fields,
+  because functionality of this type is hard-coded to a single builtin field.
+[% END %]
+
 [% BLOCK error_field_already_exists %]
   [% title = "Field Already Exists" %]
   The field '[% field.name FILTER html %]'
