@@ -51,7 +51,14 @@ sub recurse_create_view
 sub refresh_some_views
 {
     my ($users) = @_;
-    my %u = ( map { $_ => 1 } @{ $users || [] } );
+    my %u;
+    for (@{$users || []})
+    {
+        $_ = lc $_;
+        s/[^a-z0-9]+/_/giso;
+        $_ = "_$_" if !/^[a-z]/;
+        $u{$_} = 1;
+    }
     my $dbh = Bugzilla->dbh;
     my $r = $dbh->real_table_list('view$%$bugs', 'VIEW');
     # Save current user
@@ -61,13 +68,15 @@ sub refresh_some_views
         # Determine user
         my (undef, $user, $query) = split /\$/, $_, -1;
         !%u || $u{$user} or next;
-        my ($userid) = $dbh->selectrow_array('SELECT userid FROM profiles WHERE login_name LIKE ? ORDER BY userid LIMIT 1', undef, $user.'@%');
+        my $q = $user;
+        $q =~ tr/_/%/;
+        my ($userid) = $dbh->selectrow_array('SELECT userid FROM profiles WHERE login_name LIKE ? ORDER BY userid LIMIT 1', undef, $q.'@%');
         $userid or next;
         my $userobj = Bugzilla::User->new($userid) or next;
         # Modify current user (hack)
         Bugzilla->request_cache->{user} = $userobj;
         # Determine saved search
-        my $q = $query;
+        $q = $query;
         $q =~ tr/_/%/;
         ($q) = $dbh->selectrow_array('SELECT name FROM namedqueries WHERE userid=? AND name LIKE ? LIMIT 1', undef, $userid, $q);
         $q or next;
