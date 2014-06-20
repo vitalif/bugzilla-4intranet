@@ -940,12 +940,10 @@ sub get_enterable_products {
                  AND products.isactive = 1') || []};
 
     if (@enterable_ids) {
-        # And all of these products must have at least one component and one version.
-        # FIXME: If we allow NULL for version, we must raise this restriction
+        # And all of these products must have at least one component.
         @enterable_ids = @{$dbh->selectcol_arrayref(
                'SELECT DISTINCT products.id FROM products
             INNER JOIN components ON components.product_id = products.id
-            INNER JOIN versions ON versions.product_id = products.id
                  WHERE products.id IN (' . (join(',', @enterable_ids)) .
             ')') || []};
     }

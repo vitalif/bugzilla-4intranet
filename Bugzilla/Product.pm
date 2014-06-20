@@ -49,8 +49,6 @@ use constant FIELD_NAME => 'product';
 use constant NAME_FIELD => 'name';
 use constant LIST_ORDER => 'name';
 
-# FIXME add default version property
-
 use constant DB_COLUMNS => qw(
     id
     name
@@ -136,10 +134,13 @@ sub create
     Bugzilla->user->clear_product_cache();
 
     # Add the new version into the DB as valid values.
-    Bugzilla::Version->create({
-        name => $version,
-        product => $product,
-    });
+    if ($version)
+    {
+        Bugzilla::Version->create({
+            name => $version,
+            product => $product,
+        });
+    }
 
     # Fill visibility values
     $product->set_visibility_values([ $product->classification_id ]);
@@ -614,9 +615,7 @@ sub _check_description
 sub _check_version
 {
     my ($invocant, $version) = @_;
-
     $version = trim($version);
-    $version || ThrowUserError('product_must_have_version');
     # We will check the version length when Bugzilla::Version->create will do it.
     return $version;
 }

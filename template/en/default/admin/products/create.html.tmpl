@@ -32,7 +32,6 @@
   product.maxvotesperbug = "10000",
   product.votes_to_confirm = "0",
   product.is_active = 1,
-  version = "unspecified",
   product.allows_unconfirmed = 0
 %]
 
@@ -42,7 +41,7 @@
     [% PROCESS "admin/products/edit-common.html.tmpl" %]
 
     <tr>
-      <th align="left">Version:</th>
+      <th align="left">Version (optional):</th>
       <td><input size="64" maxlength="255" name="version" value="[% version | html %]" />
       </td>
     </tr>

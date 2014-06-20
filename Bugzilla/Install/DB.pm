@@ -4061,7 +4061,6 @@ sub _change_select_fields_to_ids
             # Change column to nullable varchar(255)
             $dbh->bz_alter_column($subject, $col, { TYPE => 'varchar(255)' });
             # Change '---', empty and incorrect values to NULL
-            # FIXME: There's always a lot of 'unspecified' versions, which substantively are also NULL
             $dbh->do(
                 "UPDATE $subject b LEFT JOIN $tab m ON m.value=b.$col".
                 ($depend || '')." SET b.$col=NULL WHERE m.id IS NULL OR b.$col='---' OR b.$col=''"
@@ -4082,6 +4081,23 @@ sub _change_select_fields_to_ids
         }
     }
     print "-- Done --\n" if $started;
+    # Usually there's a lot of 'unspecified' versions, which substantively are also NULL. Remove them.
+    if ($dbh->do("SELECT * FROM versions WHERE value='unspecified'"))
+    {
+        print "Replacing 'unspecified' versions with NULL\n";
+        $dbh->do("UPDATE bugs b, versions v SET b.version=NULL WHERE b.version=v.id AND v.value='unspecified'");
+        $dbh->do("UPDATE components c, versions v SET c.default_version=NULL WHERE c.default_version=v.id AND v.value='unspecified'");
+        $dbh->do("DELETE FROM versions WHERE value='unspecified'");
+        $dbh->do("UPDATE fielddefs SET is_mandatory=0 WHERE name='version'");
+        foreach my $row (@{$dbh->selectall_arrayref("SELECT * FROM namedqueries WHERE query LIKE '%unspecified%'", {Slice=>{}})})
+        {
+            if ($row->{query} =~ s/=unspecified(&|$)/=---$1/gso)
+            {
+                print "unspecified will be replaced with empty value in query $row->{id} ($row->{name})\n";
+                $dbh->do("UPDATE namedqueries SET query=? WHERE id=?", undef, $row->{query}, $row->{id});
+            }
+        }
+    }
 }
 
 # Set 255 limit for most varchar columns

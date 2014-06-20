@@ -31,8 +31,6 @@ use Bugzilla::Error;
 #####   Initialization     #####
 ################################
 
-use constant DEFAULT_VERSION => 'unspecified';
-
 use constant DB_TABLE => 'versions';
 use constant FIELD_NAME => 'version';
 
