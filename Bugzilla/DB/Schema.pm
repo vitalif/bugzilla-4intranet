@@ -558,9 +558,7 @@ use constant ABSTRACT_SCHEMA => {
             mailhead    => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
             sortkey     => {TYPE => 'INT2', NOTNULL => 1},
             obsolete    => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
-            enter_bug   => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
             clone_bug   => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
-            buglist     => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
             is_mandatory => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
             visibility_field_id => {TYPE => 'INT4', REFERENCES => {TABLE => 'fielddefs', COLUMN => 'id'}},
             # CustIS Bug 53617 - visibility_value_id is removed from here
@@ -591,8 +589,7 @@ use constant ABSTRACT_SCHEMA => {
             is_default => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0},
         ],
         INDEXES => [
-            fieldvaluecontrol_primary_idx =>
-                {FIELDS => ['field_id', 'visibility_value_id', 'value_id'], TYPE => 'UNIQUE'},
+            fieldvaluecontrol_primary_idx => {FIELDS => ['field_id', 'visibility_value_id', 'value_id'], TYPE => 'UNIQUE'},
         ],
     },
 

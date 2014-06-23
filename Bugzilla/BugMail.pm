@@ -264,7 +264,7 @@ sub Send
         INNER JOIN profiles profile1
                 ON profile1.userid = lh.who
         INNER JOIN fielddefs fielddefs1
-                ON fielddefs1.name = 'longdesc' 
+                ON fielddefs1.name = 'longdesc'
              WHERE lh.bug_id = ?
                    $when_restriction
           ORDER BY bug_when", {Slice=>{}}, @args, @args);
@@ -570,7 +570,7 @@ sub sendMail
             # If there isn't anything to show, don't include this header.
             next unless $value;
             # Only send time tracking information if it is enabled and the user is in the group.
-            if (($f ne 'work_time' && $f ne 'estimated_time' && $f ne 'deadline') || $user->is_timetracker)
+            if (($f ne 'work_time' && $f ne 'estimated_time' && $f ne 'remaining_time' && $f ne 'deadline') || $user->is_timetracker)
             {
                 push @$showfieldvalues, { desc => $args->{fields}->{$f}, value => $value };
             }

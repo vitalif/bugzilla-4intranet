@@ -52,11 +52,7 @@ my $template = Bugzilla->template;
 my $vars = {};
 my $ARGS = $cgi->VarHash({
     cc => 1,
-    (map { ($_->name => 1) } Bugzilla->get_fields({
-        type => FIELD_TYPE_MULTI_SELECT,
-        enter_bug => 1,
-        obsolete => 0,
-    })),
+    (map { ($_->name => 1) } Bugzilla->get_fields({ type => FIELD_TYPE_MULTI_SELECT })),
 });
 $ARGS->{cc} = join(', ', @{$ARGS->{cc}}) if $ARGS->{cc};
 
@@ -141,8 +137,8 @@ my @bug_fields = qw(
 # FIXME kill op_sys and rep_platform completely, make them custom fields
 push @bug_fields, 'op_sys' if Bugzilla->params->{useopsys};
 push @bug_fields, 'rep_platform' if Bugzilla->params->{useplatform};
-# Include custom fields editable on bug creation.
-push @bug_fields, map { $_->name } Bugzilla->active_custom_fields({ enter_bug => 1 });
+# Include custom fields.
+push @bug_fields, map { $_->name } Bugzilla->active_custom_fields;
 
 # Wrap bug creation in a transaction, so attachment create errors
 # don't lead to duplicated bugs. Also it allows many ugly hacks

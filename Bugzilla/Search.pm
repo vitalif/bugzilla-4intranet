@@ -559,16 +559,16 @@ sub STATIC_COLUMNS
     }
 
     # Do the actual column-getting from fielddefs, now.
+    my $bug_columns = { map { $_ => 1 } Bugzilla::Bug->DB_COLUMNS };
     my @bugid_fields;
     foreach my $field (Bugzilla->get_fields)
     {
         my $id = $field->name;
         my $type = Bugzilla::Field::Choice->type($field);
         $columns->{$id}->{title} = $field->description;
-        $columns->{$id}->{nobuglist} = !$field->buglist || $field->obsolete;
+        $columns->{$id}->{nobuglist} = $field->obsolete;
         $columns->{$id}->{nocharts} = $field->obsolete;
         next if $id eq 'product' || $id eq 'component' || $id eq 'classification';
-        $columns->{$id}->{name} ||= "bugs.$id";
         if ($field->type == FIELD_TYPE_BUG_ID)
         {
             push @bugid_fields, $field;
@@ -594,6 +594,10 @@ sub STATIC_COLUMNS
                 " FROM bug_$id, $t WHERE $t.".$type->ID_FIELD."=bug_$id.value_id".
                 " AND bug_$id.bug_id=bugs.bug_id)";
         }
+        elsif ($bug_columns->{$id})
+        {
+            $columns->{$id}->{name} ||= "bugs.$id";
+        }
     }
 
     # Fields of bugs related to selected by some BUG_ID type field
@@ -604,7 +608,7 @@ sub STATIC_COLUMNS
             @{$columns->{$id}->{joins} || []},
             "LEFT JOIN bugs bugs_$id ON bugs_$id.bug_id=$columns->{$id}->{name}"
         ];
-        my @subfields = Bugzilla->get_fields({ obsolete => 0, buglist => 1 });
+        my @subfields = Bugzilla->get_fields({ obsolete => 0 });
         @subfields = (
             (grep { $_->name eq 'product' } @subfields),
             (grep { $_->name ne 'product' } @subfields)

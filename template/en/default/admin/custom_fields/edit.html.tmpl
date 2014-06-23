@@ -72,17 +72,10 @@ var constants = {
           <input type="text" id="name" name="name" value="cf_" size="40" maxlength="64" />
         [% END %]
       </td>
-
-      [% IF field.custom || !field.id %]
       <th align="left">
-        <label for="enter_bug">Can be set on [% terms.bug %] creation:</label>
+        <label for="new_bugmail">Displayed in [% terms.bug %]mail for new [% terms.bugs %]:</label>
       </th>
-      <td>
-        <input type="checkbox" id="enter_bug" name="enter_bug" value="1"
-          [%- " checked" IF field.enter_bug %]
-          onchange="onChangeEnterBug()" />
-      </td>
-      [% END %]
+      <td><input type="checkbox" id="new_bugmail" name="new_bugmail" value="1" [%- " checked" IF field.mailhead %] /></td>
     </tr>
     <tr>
       <th align="left"><label for="desc">Title:</label></th>
@@ -97,10 +90,11 @@ var constants = {
         <input type="text" id="sortkey" name="sortkey" size="6"
           maxlength="6" value="[% field.sortkey | html %]" />
       </td>
-      <th align="left">
-        <label for="new_bugmail">Displayed in [% terms.bug %]mail for new [% terms.bugs %]:</label>
-      </th>
-      <td><input type="checkbox" id="new_bugmail" name="new_bugmail" value="1" [%- " checked" IF field.mailhead %] /></td>
+      <th align="left"><label for="obsolete">Is obsolete:</label></th>
+      <td>
+        <input type="checkbox" id="obsolete" name="obsolete" value="1"
+          [%- " checked" IF field.obsolete %] />
+      </td>
     </tr>
     <tr>
       <th align="left">Type:</th>
@@ -118,11 +112,6 @@ var constants = {
             [% END %]
           </select>
         [% END %]
-      </td>
-      <th align="left"><label for="obsolete">Is obsolete:</label></th>
-      <td>
-        <input type="checkbox" id="obsolete" name="obsolete" value="1"
-          [%- " checked" IF field.obsolete %] />
       </td>
     </tr>
     [% IF field.type && field.type != constants.FIELD_TYPE_BUG_ID_REV || !field.id %]

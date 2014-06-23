@@ -64,9 +64,6 @@ sub update_fielddefs_definition {
     $dbh->bz_add_column('fielddefs', 'custom',
         {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'});
 
-    $dbh->bz_add_column('fielddefs', 'enter_bug',
-        {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'});
-
     # Change the name of the fieldid column to id, so that fielddefs
     # can use Bugzilla::Object easily. We have to do this up here, because
     # otherwise adding these field definitions will fail.
@@ -94,15 +91,6 @@ sub update_fielddefs_definition {
     $dbh->bz_add_column('fielddefs', 'value_field_id', {TYPE => 'INT4'});
     $dbh->bz_add_index('fielddefs', 'fielddefs_value_field_id_idx',
                        ['value_field_id']);
-
-    # Bug 344878
-    if (!$dbh->bz_column_info('fielddefs', 'buglist')) {
-        $dbh->bz_add_column('fielddefs', 'buglist',
-            {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'});
-        # Set non-multiselect custom fields as valid buglist fields
-        # Note that default fields will be handled in Field.pm
-        $dbh->do('UPDATE fielddefs SET buglist = 1 WHERE custom = 1 AND type != ' . FIELD_TYPE_MULTI_SELECT);
-    }
 
     $dbh->bz_add_column('fielddefs', clone_bug => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 1});
     $dbh->bz_add_column('fielddefs', url => {TYPE => 'VARCHAR(255)'});
@@ -167,6 +155,10 @@ sub update_fielddefs_definition {
 
     # Upstream is_numeric field just duplicates BUG_ID type logic and is not needed at all
     $dbh->bz_drop_column('fielddefs', 'is_numeric');
+
+    # Some old useless flags
+    $dbh->bz_drop_column('fielddefs', 'buglist');
+    $dbh->bz_drop_column('fielddefs', 'enter_bug');
 
     # Remember, this is not the function for adding general table changes.
     # That is below. Add new changes to the fielddefs table above this

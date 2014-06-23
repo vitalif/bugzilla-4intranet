@@ -41,11 +41,3 @@ function onChangeType()
   document.getElementById('url_row').style.display
     = u ? '' : 'none';
 }
-
-function onChangeEnterBug()
-{
-  var c = document.getElementById('new_bugmail');
-  c.disabled = !document.getElementById('enter_bug').checked;
-  if (c.disabled)
-    c.checked = false;
-}

@@ -133,9 +133,8 @@ sub fields {
            is_custom         => $self->type('boolean', $field->custom),
            name              => $self->type('string', $field->name),
            display_name      => $self->type('string', $field->description),
-           # FIXME is_mandatory was added in 4.0, we don't support it yet
-           #is_mandatory      => $self->type('boolean', $field->is_mandatory),
-           is_on_bug_entry   => $self->type('boolean', $field->enter_bug),
+           is_mandatory      => $self->type('boolean', $field->is_mandatory),
+           is_on_bug_entry   => $self->type('boolean', 1),
            visibility_field  => $self->type('string', $visibility_field),
            visibility_values => [ map { $self->type('string', $_->name) } @{ $vis_values || [] } ],
         );

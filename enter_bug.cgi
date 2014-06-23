@@ -62,7 +62,7 @@ my $dbh = Bugzilla->dbh;
 my $template = Bugzilla->template;
 my $vars = {};
 my $ARGS = $cgi->VarHash({
-    (map { ($_->name => 1) } grep { $_->enter_bug && $_->type == FIELD_TYPE_MULTI_SELECT } Bugzilla->active_custom_fields),
+    (map { ($_->name => 1) } grep { $_->type == FIELD_TYPE_MULTI_SELECT } Bugzilla->active_custom_fields),
 });
 
 # All pages point to the same part of the documentation.
@@ -455,8 +455,7 @@ $vars->{cloned_bug_id}         = $cloned_bug_id;
 
 $vars->{token}                 = issue_session_token('createbug:');
 
-my @enter_bug_fields = grep { $_->enter_bug } Bugzilla->active_custom_fields;
-foreach my $field (@enter_bug_fields)
+foreach my $field (Bugzilla->active_custom_fields)
 {
     my $cf_name = $field->name;
     my $cf_value = $ARGS->{$cf_name};

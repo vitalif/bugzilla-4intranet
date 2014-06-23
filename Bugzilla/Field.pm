@@ -101,9 +101,7 @@ use constant DB_COLUMNS => qw(
     sortkey
     obsolete
     is_mandatory
-    enter_bug
     clone_bug
-    buglist
     visibility_field_id
     value_field_id
     delta_ts
@@ -117,9 +115,7 @@ use constant REQUIRED_CREATE_FIELDS => qw(name description);
 use constant VALIDATORS => {
     custom              => \&Bugzilla::Object::check_boolean,
     description         => \&_check_description,
-    enter_bug           => \&Bugzilla::Object::check_boolean,
     clone_bug           => \&Bugzilla::Object::check_boolean,
-    buglist             => \&Bugzilla::Object::check_boolean,
     mailhead            => \&Bugzilla::Object::check_boolean,
     obsolete            => \&Bugzilla::Object::check_boolean,
     is_mandatory        => \&Bugzilla::Object::check_boolean,
@@ -139,9 +135,7 @@ use constant UPDATE_COLUMNS => qw(
     sortkey
     obsolete
     is_mandatory
-    enter_bug
     clone_bug
-    buglist
     visibility_field_id
     value_field_id
     type
@@ -167,63 +161,63 @@ use constant SQL_DEFINITIONS => {
 # Field definitions for the fields that ship with Bugzilla.
 # These are used by populate_field_definitions to populate
 # the fielddefs table.
-use constant DEFAULT_FIELD_COLUMNS => [ qw(name description buglist is_mandatory mailhead clone_bug type value_field_id) ];
+use constant DEFAULT_FIELD_COLUMNS => [ qw(name description is_mandatory mailhead clone_bug type value_field_id) ];
 use constant DEFAULT_FIELDS => (map { my $i = 0; $_ = { (map { (DEFAULT_FIELD_COLUMNS->[$i++] => $_) } @$_) } } (
-    [ 'bug_id',            'Bug ID',            1, 1, 1, 0 ],
-    [ 'short_desc',        'Summary',           1, 1, 1, 0, FIELD_TYPE_FREETEXT ],
-    [ 'classification',    'Classification',    1, 1, 1, 0, FIELD_TYPE_SINGLE_SELECT ],
-    [ 'product',           'Product',           1, 1, 1, 0, FIELD_TYPE_SINGLE_SELECT ],
-    [ 'version',           'Version',           1, 0, 1, 1, FIELD_TYPE_SINGLE_SELECT, 4 ],
-    [ 'rep_platform',      'Platform',          1, 0, 1, 0, FIELD_TYPE_SINGLE_SELECT ],
-    [ 'bug_file_loc',      'URL',               1, 0, 1, 1 ],
-    [ 'op_sys',            'OS/Version',        1, 0, 1, 1, FIELD_TYPE_SINGLE_SELECT ],
-    [ 'bug_status',        'Status',            1, 1, 1, 0, FIELD_TYPE_SINGLE_SELECT ],
-    [ 'status_whiteboard', 'Status Whiteboard', 1, 0, 1, 1, FIELD_TYPE_FREETEXT ],
-    [ 'keywords',          'Keywords',          1, 0, 1, 1, FIELD_TYPE_KEYWORDS ],
-    [ 'resolution',        'Resolution',        1, 0, 0, 0, FIELD_TYPE_SINGLE_SELECT ],
-    [ 'bug_severity',      'Severity',          1, 0, 1, 1, FIELD_TYPE_SINGLE_SELECT ],
-    [ 'priority',          'Priority',          1, 0, 1, 1, FIELD_TYPE_SINGLE_SELECT ],
-    [ 'component',         'Component',         1, 1, 1, 1, FIELD_TYPE_SINGLE_SELECT, 4 ],
-    [ 'assigned_to',       'Assignee',          1, 1, 1, 0 ],
-    [ 'reporter',          'Reporter',          1, 1, 1, 0 ],
-    [ 'votes',             'Votes',             1, 0, 0, 0 ],
-    [ 'qa_contact',        'QA Contact',        1, 0, 1, 0 ],
-    [ 'cc',                'CC',                1, 0, 1, 1 ], # Also reporter/assigned_to/qa are added to cloned bug...
-    [ 'dependson',         'Depends on',        1, 0, 1, 0 ],
-    [ 'blocked',           'Blocks',            1, 0, 1, 0 ],
-    [ 'dup_id',            'Duplicate of',      1, 0, 1, 0, FIELD_TYPE_BUG_ID ],
+    [ 'bug_id',            'Bug ID',            1, 1, 0 ],
+    [ 'short_desc',        'Summary',           1, 1, 0, FIELD_TYPE_FREETEXT ],
+    [ 'classification',    'Classification',    1, 1, 0, FIELD_TYPE_SINGLE_SELECT ],
+    [ 'product',           'Product',           1, 1, 0, FIELD_TYPE_SINGLE_SELECT ],
+    [ 'version',           'Version',           0, 1, 1, FIELD_TYPE_SINGLE_SELECT, 4 ],
+    [ 'rep_platform',      'Platform',          0, 1, 0, FIELD_TYPE_SINGLE_SELECT ],
+    [ 'bug_file_loc',      'URL',               0, 1, 1 ],
+    [ 'op_sys',            'OS/Version',        0, 1, 1, FIELD_TYPE_SINGLE_SELECT ],
+    [ 'bug_status',        'Status',            1, 1, 0, FIELD_TYPE_SINGLE_SELECT ],
+    [ 'status_whiteboard', 'Status Whiteboard', 0, 1, 1, 1, FIELD_TYPE_FREETEXT ],
+    [ 'keywords',          'Keywords',          0, 1, 1, FIELD_TYPE_KEYWORDS ],
+    [ 'resolution',        'Resolution',        0, 1, 0, FIELD_TYPE_SINGLE_SELECT ],
+    [ 'bug_severity',      'Severity',          0, 1, 1, FIELD_TYPE_SINGLE_SELECT ],
+    [ 'priority',          'Priority',          0, 1, 1, FIELD_TYPE_SINGLE_SELECT ],
+    [ 'component',         'Component',         1, 1, 1, FIELD_TYPE_SINGLE_SELECT, 4 ],
+    [ 'assigned_to',       'Assignee',          1, 1, 0 ],
+    [ 'reporter',          'Reporter',          1, 1, 0 ],
+    [ 'votes',             'Votes',             0, 1, 0 ],
+    [ 'qa_contact',        'QA Contact',        0, 1, 0 ],
+    [ 'cc',                'CC',                0, 1, 1 ], # Also reporter/assigned_to/qa are added to cloned bug...
+    [ 'dependson',         'Depends on',        0, 1, 0 ],
+    [ 'blocked',           'Blocks',            0, 1, 0 ],
+    [ 'dup_id',            'Duplicate of',      0, 1, 0, FIELD_TYPE_BUG_ID ],
 
-    [ 'attachments.description', 'Attachment description', 0, 0, 0, 0 ],
-    [ 'attachments.filename',    'Attachment filename',    0, 0, 0, 0 ],
-    [ 'attachments.mimetype',    'Attachment mime type',   0, 0, 0, 0 ],
-    [ 'attachments.ispatch',     'Attachment is patch',    0, 0, 0, 0 ],
-    [ 'attachments.isobsolete',  'Attachment is obsolete', 0, 0, 0, 0 ],
-    [ 'attachments.isprivate',   'Attachment is private',  0, 0, 0, 0 ],
-    [ 'attachments.submitter',   'Attachment creator',     0, 0, 0, 0 ],
+    [ 'attachments.description', 'Attachment description', 0, 0, 0 ],
+    [ 'attachments.filename',    'Attachment filename',    0, 0, 0 ],
+    [ 'attachments.mimetype',    'Attachment mime type',   0, 0, 0 ],
+    [ 'attachments.ispatch',     'Attachment is patch',    0, 0, 0 ],
+    [ 'attachments.isobsolete',  'Attachment is obsolete', 0, 0, 0 ],
+    [ 'attachments.isprivate',   'Attachment is private',  0, 0, 0 ],
+    [ 'attachments.submitter',   'Attachment creator',     0, 0, 0 ],
 
-    [ 'target_milestone',      'Target Milestone',      1, 0, 0, 1, FIELD_TYPE_SINGLE_SELECT, 4 ],
-    [ 'creation_ts',           'Creation time',         1, 1, 1, 0, FIELD_TYPE_DATETIME ],
-    [ 'delta_ts',              'Last changed time',     1, 1, 1, 0, FIELD_TYPE_DATETIME ],
-    [ 'longdesc',              'Comment',               0, 0, 0, 0 ],
-    [ 'longdescs.isprivate',   'Comment is private',    0, 0, 0, 0 ],
-    [ 'alias',                 'Alias',                 1, 0, 0, 0, FIELD_TYPE_FREETEXT ],
-    [ 'everconfirmed',         'Ever Confirmed',        0, 0, 0, 0 ],
-    [ 'reporter_accessible',   'Reporter Accessible',   0, 0, 0, 0 ],
-    [ 'cclist_accessible',     'CC Accessible',         0, 0, 0, 0 ],
-    [ 'bug_group',             'Group',                 0, 0, 1, 0 ], # FIXME maybe clone_bug=1?
-    [ 'estimated_time',        'Estimated Hours',       1, 0, 1, 0, FIELD_TYPE_NUMERIC ],
-    [ 'remaining_time',        'Remaining Hours',       1, 0, 0, 0, FIELD_TYPE_NUMERIC ],
-    [ 'deadline',              'Deadline',              1, 0, 1, 1, FIELD_TYPE_DATETIME ],
-    [ 'commenter',             'Commenter',             0, 0, 0, 0 ],
-    [ 'flagtypes.name',        'Flags and Requests',    1, 0, 0, 0 ],
-    [ 'requestees.login_name', 'Flag Requestee',        0, 0, 0, 0 ],
-    [ 'setters.login_name',    'Flag Setter',           0, 0, 0, 0 ],
-    [ 'work_time',             'Hours Worked',          1, 0, 0, 0 ],
-    [ 'percentage_complete',   'Percentage Complete',   1, 0, 0, 0 ],
-    [ 'content',               'Content',               0, 0, 0, 0 ],
-    [ 'attach_data.thedata',   'Attachment data',       0, 0, 0, 0 ],
-    [ 'owner_idle_time', 'Time Since Assignee Touched', 0, 0, 0, 0 ],
-    [ 'see_also',              'See Also',              1, 0, 0, 0, FIELD_TYPE_BUG_URLS ],
+    [ 'target_milestone',      'Target Milestone',      0, 1, 1, FIELD_TYPE_SINGLE_SELECT, 4 ],
+    [ 'creation_ts',           'Creation time',         1, 0, 0, FIELD_TYPE_DATETIME ],
+    [ 'delta_ts',              'Last changed time',     1, 0, 0, FIELD_TYPE_DATETIME ],
+    [ 'longdesc',              'Comment',               0, 0, 0 ],
+    [ 'longdescs.isprivate',   'Comment is private',    0, 0, 0 ],
+    [ 'alias',                 'Alias',                 0, 1, 0, FIELD_TYPE_FREETEXT ],
+    [ 'everconfirmed',         'Ever Confirmed',        0, 0, 0 ],
+    [ 'reporter_accessible',   'Reporter Accessible',   0, 1, 0 ],
+    [ 'cclist_accessible',     'CC Accessible',         0, 1, 0 ],
+    [ 'bug_group',             'Group',                 0, 0, 0 ], # FIXME maybe clone_bug=1?
+    [ 'estimated_time',        'Estimated Hours',       0, 1, 0, FIELD_TYPE_NUMERIC ],
+    [ 'remaining_time',        'Remaining Hours',       0, 0, 0, FIELD_TYPE_NUMERIC ],
+    [ 'deadline',              'Deadline',              0, 1, 1, FIELD_TYPE_DATETIME ],
+    [ 'commenter',             'Commenter',             0, 0, 0 ],
+    [ 'flagtypes.name',        'Flags and Requests',    0, 0, 0 ],
+    [ 'requestees.login_name', 'Flag Requestee',        0, 0, 0 ],
+    [ 'setters.login_name',    'Flag Setter',           0, 0, 0 ],
+    [ 'work_time',             'Hours Worked',          0, 0, 0 ],
+    [ 'percentage_complete',   'Percentage Complete',   0, 0, 0 ],
+    [ 'content',               'Content',               0, 0, 0 ],
+    [ 'attach_data.thedata',   'Attachment data',       0, 0, 0 ],
+    [ 'owner_idle_time', 'Time Since Assignee Touched', 0, 0, 0 ],
+    [ 'see_also',              'See Also',              0, 1, 0, FIELD_TYPE_BUG_URLS ],
 ));
 
 ################
@@ -489,18 +483,6 @@ sub is_mandatory { return !$_[0]->nullable }
 
 =over
 
-=item C<enter_bug>
-
-A boolean specifying whether this field should appear on enter_bug.cgi
-
-=back
-
-=cut
-
-sub enter_bug { return $_[0]->{enter_bug} }
-
-=over
-
 =item C<clone_bug>
 
 A boolean specifying whether or not this field should be copied on bug clone
@@ -510,19 +492,6 @@ A boolean specifying whether or not this field should be copied on bug clone
 =cut
 
 sub clone_bug { return $_[0]->{clone_bug} }
-
-=over
-
-=item C<buglist>
-
-A boolean specifying whether or not this field is selectable
-as a display or order column in buglist.cgi
-
-=back
-
-=cut
-
-sub buglist { return $_[0]->{buglist} }
 
 =over
 
@@ -803,8 +772,6 @@ They will throw an error if you try to set the values to something invalid.
 
 =item C<set_description>
 
-=item C<set_enter_bug>
-
 =item C<set_clone_bug>
 
 =item C<set_obsolete>
@@ -815,8 +782,6 @@ They will throw an error if you try to set the values to something invalid.
 
 =item C<set_in_new_bugmail>
 
-=item C<set_buglist>
-
 =item C<set_visibility_field>
 
 =item C<set_value_field>
@@ -826,13 +791,11 @@ They will throw an error if you try to set the values to something invalid.
 =cut
 
 sub set_description    { $_[0]->set('description',  $_[1]); }
-sub set_enter_bug      { $_[0]->set('enter_bug',    $_[1]); }
 sub set_clone_bug      { $_[0]->set('clone_bug',    $_[1]); }
 sub set_obsolete       { $_[0]->set('obsolete',     $_[1]); }
 sub set_is_mandatory   { $_[0]->set('is_mandatory', $_[1]); }
 sub set_sortkey        { $_[0]->set('sortkey',      $_[1]); }
 sub set_in_new_bugmail { $_[0]->set('mailhead',     $_[1]); }
-sub set_buglist        { $_[0]->set('buglist',      $_[1]); }
 sub set_add_to_deps    { $_[0]->set('add_to_deps',  $_[1]); }
 sub set_url            { $_[0]->set('url',          $_[1]); }
 
@@ -1013,12 +976,6 @@ will be added to the C<bugs> table if it does not exist. Defaults to 0.
 
 =item C<sortkey> - integer - The sortkey of the field. Defaults to 0.
 
-=item C<enter_bug> - boolean - Whether this field is
-editable on the bug creation form. Defaults to 0.
-
-=item C<buglist> - boolean - Whether this field is
-selectable as a display or order column in bug lists. Defaults to 0.
-
 C<obsolete> - boolean - Whether this field is obsolete. Defaults to 0.
 
 =back
@@ -1138,7 +1095,6 @@ sub populate_field_definitions
         {
             $field->set_description($def->{description});
             $field->set_in_new_bugmail($def->{mailhead});
-            $field->set_buglist($def->{buglist});
             $field->_set_type($def->{type}) if $def->{type};
             $field->set_clone_bug($def->{clone_bug}) if !$has_clone_bug;
             $field->set_is_mandatory($def->{is_mandatory}) if $def->{is_mandatory};

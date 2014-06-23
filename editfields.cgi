@@ -70,7 +70,6 @@ elsif ($action eq 'new')
         obsolete            => scalar $cgi->param('obsolete'),
         is_mandatory        => !scalar $cgi->param('nullable'),
         custom              => 1,
-        buglist             => 1, # FIXME remove non-editable 'buglist' field spec [?]
         visibility_field_id => scalar $cgi->param('visibility_field_id'),
         value_field_id      => scalar $cgi->param('value_field_id'),
         add_to_deps         => scalar $cgi->param('add_to_deps'),
