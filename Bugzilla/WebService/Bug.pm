@@ -128,15 +128,15 @@ sub fields {
         }
 
         my %field_data = (
-           id                => $self->type('int', $field->id),
-           type              => $self->type('int', $field->type),
-           is_custom         => $self->type('boolean', $field->custom),
-           name              => $self->type('string', $field->name),
-           display_name      => $self->type('string', $field->description),
-           is_mandatory      => $self->type('boolean', $field->is_mandatory),
-           is_on_bug_entry   => $self->type('boolean', 1),
-           visibility_field  => $self->type('string', $visibility_field),
-           visibility_values => [ map { $self->type('string', $_->name) } @{ $vis_values || [] } ],
+            id                => $self->type('int', $field->id),
+            type              => $self->type('int', $field->type),
+            is_custom         => $self->type('boolean', $field->custom),
+            name              => $self->type('string', $field->name),
+            display_name      => $self->type('string', $field->description),
+            is_mandatory      => $self->type('boolean', $field->is_mandatory),
+            is_on_bug_entry   => $self->type('boolean', 1),
+            visibility_field  => $self->type('string', $visibility_field),
+            visibility_values => [ map { $self->type('string', $_->name) } $field->visibility_field->value_type->new_from_list($vis_values) ],
         );
         if ($has_values) {
            $field_data{value_field} = $self->type('string', $value_field);

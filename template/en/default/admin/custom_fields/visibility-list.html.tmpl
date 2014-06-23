@@ -35,11 +35,11 @@
             <td>[% cfield.description | html %]</td>
             <td align="center">
                 <input type="checkbox" name="visible_[% cfield.id %]" value="1"
-                    [% "checked=\"checked\"" IF cfield.has_visibility_value(value) %]
-                    [% "disabled=\"disabled\"" IF cfield.has_all_visibility_values %] />
+                    [% "checked=\"checked\"" IF !cfield.visibility_values || cfield.visibility_values.${value.id} %]
+                    [% "disabled=\"disabled\"" IF !cfield.visibility_values %] />
             </td>
             <td>
-            [% IF cfield.has_all_visibility_values %]
+            [% IF !cfield.visibility_values %]
                 Поле видимо для всех значений поля <strong>[% field.description | html %]</strong><br/>
                 <a href="editfields.cgi?action=edit&name=[% cfield.name | url_quote %]">Редактировать</a>
             [% END %]

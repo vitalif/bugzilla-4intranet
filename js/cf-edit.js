@@ -40,4 +40,12 @@ function onChangeType()
   u = type_field.value == constants.FIELD_TYPE_EXTURL;
   document.getElementById('url_row').style.display
     = u ? '' : 'none';
+  onChangeNullable();
+}
+
+function onChangeNullable()
+{
+  var u = document.getElementById('nullable');
+  var n = document.getElementById('allow_null_in_row');
+  n.style.display = u.checked ? '' : 'none';
 }

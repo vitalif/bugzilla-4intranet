@@ -933,15 +933,16 @@ sub fieldvaluecontrol
     if (!$cache->{fieldvaluecontrol})
     {
         $cache->{fieldvaluecontrol} = $class->dbh->selectall_arrayref(
-            'SELECT c.*, (CASE WHEN c.value_id=0 THEN f.visibility_field_id ELSE f.value_field_id END) visibility_field_id'.
+            'SELECT c.*, (CASE WHEN c.value_id <= 0 THEN f.visibility_field_id ELSE f.value_field_id END) visibility_field_id'.
             ' FROM fieldvaluecontrol c, fielddefs f WHERE f.id=c.field_id'.
             ' ORDER BY c.field_id, c.value_id, (CASE WHEN c.value_id=0 THEN f.visibility_field_id ELSE f.value_field_id END), c.visibility_value_id', {Slice=>{}}
         );
         my $has = {};
         for (@{$cache->{fieldvaluecontrol}})
         {
-            if ($_->{value_id})
+            if ($_->{value_id} > 0)
             {
+                # Show value_id if value_field==visibility_value_id
                 $has->{$_->{visibility_field_id}}
                     ->{values}
                     ->{$_->{field_id}}
@@ -949,10 +950,19 @@ sub fieldvaluecontrol
                     ->{$_->{visibility_value_id}}
                     ->{is_default} = $_->{is_default};
             }
-            else
+            elsif (!$_->{value_id})
             {
+                # Show field if visibility_field==visibility_value_id
                 $has->{$_->{visibility_field_id}}
                     ->{fields}
+                    ->{$_->{field_id}}
+                    ->{$_->{visibility_value_id}} = 1;
+            }
+            elsif ($_->{value_id} == -1)
+            {
+                # Allow NULL if visibility_field==visibility_value_id
+                $has->{$_->{visibility_field_id}}
+                    ->{null}
                     ->{$_->{field_id}}
                     ->{$_->{visibility_value_id}} = 1;
             }

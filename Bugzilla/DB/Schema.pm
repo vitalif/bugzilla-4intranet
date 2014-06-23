@@ -226,7 +226,6 @@ use constant FIELD_TABLE_SCHEMA => {
     ],
 };
 
-# FIXME make schema compatible with upstream 4.4
 use constant ABSTRACT_SCHEMA => {
 
     # BUG-RELATED TABLES
@@ -580,6 +579,9 @@ use constant ABSTRACT_SCHEMA => {
     },
 
     # All value/value and value/field dependencies are stored here
+    # value_id > 0: value with this id is visible if value field has value visibility_value_id
+    # value_id == 0: field is visible if visibility field has value visibility_value_id
+    # value_id == -1: NULL is allowed if visibility field has value visibility_value_id
     # (originally CustIS Bugs 53617, 91153)
     fieldvaluecontrol => {
         FIELDS => [

@@ -134,7 +134,7 @@ var constants = {
       [% IF !field.id || field.type && field.type != constants.FIELD_TYPE_BUG_ID_REV %]
       <th align="left"><label for="nullable">Allow empty value:</label></th>
       <td>
-        <input type="checkbox" id="nullable" name="nullable"
+        <input type="checkbox" id="nullable" name="nullable" onclick="onChangeNullable()"
           value="1" [%- " checked" IF field.nullable %] />
       </td>
       [% END %]
@@ -219,16 +219,38 @@ var constants = {
     </tr>
     [% END %]
     [% IF field.visibility_field %]
-    <tr valign="top" id="visibility_value_row">
-      <th colspan="2" align="left"><label for="visibility_value_id">
-        Show the field only if <span id="visibility_value_name_span">[% field.visibility_field.description | html %]</span> is set to:
-      </label></th>
+    <tr valign="top">
+      <th colspan="2" align="left">
+        <label for="visibility_value_id">Show the field only if [% field.visibility_field.description | html %] is set to:</label><br />
+        <span style="font-weight: normal">(<a href="javascript:void(0)"
+          onclick="document.getElementById('visibility_value_id').selectedIndex=-1">clear options</a>
+          to make this field always appear)</span>
+      </th>
       <td colspan="2">
-        [% SET all = field.has_all_visibility_values %]
+        [% SET all = field.visibility_values %]
         <select style="width: 400px" id="visibility_value_id"
           name="visibility_value_id" size="7" multiple="multiple">
           [% FOREACH value = field.visibility_field.legal_values %]
-            <option value="[% value.id | html %]"[% ' selected="selected"' IF !all && field.has_visibility_value(value.id) %]>
+            <option value="[% value.id | html %]"[% ' selected="selected"' IF all && all.${value.id} %]>
+              [% value.name | html %]
+            </option>
+          [% END %]
+        </select>
+      </td>
+    </tr>
+    <tr valign="top" id="allow_null_in_row">
+      <th colspan="2" align="left">
+        <label for="null_visibility_values">Allow empty value only if [% field.visibility_field.description | html %] is set to:</label><br />
+        <span style="font-weight: normal">(<a href="javascript:void(0)"
+          onclick="document.getElementById('null_visibility_values').selectedIndex=-1">clear options</a>
+          to always allow empty value)</span>
+      </th>
+      <td colspan="2">
+        [% SET all = field.null_visibility_values %]
+        <select style="width: 400px" id="null_visibility_values"
+          name="null_visibility_values" size="7" multiple="multiple">
+          [% FOREACH value = field.visibility_field.legal_values %]
+            <option value="[% value.id | html %]"[% ' selected="selected"' IF field.nullable && all && all.${value.id} %]>
               [% value.name | html %]
             </option>
           [% END %]
@@ -255,7 +277,7 @@ var constants = {
 </p>
 
 <script>
-onChangeEnterBug();
+onChangeNullable();
 [% IF !field.id %]
 onChangeType();
 [% END %]

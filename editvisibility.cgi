@@ -68,9 +68,7 @@ if ($action eq 'update' && $token)
     for my $cfield (@{$field->controls_visibility_of})
     {
         # check if it is 'visible for all'
-        next if $cfield->has_all_visibility_values;
-        my $visibility_values = Bugzilla->fieldvaluecontrol_hash
-            ->{$field->id}->{fields}->{$cfield->id};
+        my $visibility_values = $cfield->visibility_values || next;
         # check if changed
         next unless ($ARGS->{'visible_'.$cfield->id} xor $visibility_values->{$value->id});
         if ($ARGS->{'visible_'.$cfield->id})

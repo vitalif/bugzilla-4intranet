@@ -636,21 +636,9 @@ sub visibility_values
 {
     my $self = shift;
     return undef if !$self->visibility_field_id;
-    my $f;
-    if ($self->visibility_field && !($f = $self->{visibility_values}))
-    {
-        $f = [ keys %{Bugzilla->fieldvaluecontrol_hash
-            ->{$self->visibility_field_id}
-            ->{fields}
-            ->{$self->id} || {} } ];
-        if (@$f)
-        {
-            my $type = Bugzilla::Field::Choice->type($self->visibility_field);
-            $f = $type->match({ id => $f });
-        }
-        $self->{visibility_values} = $f;
-    }
-    return $f;
+    my $h = Bugzilla->fieldvaluecontrol_hash
+        ->{$self->visibility_field_id}->{fields}->{$self->id};
+    return $h && %$h ? $h : undef;
 }
 
 sub has_visibility_value
@@ -666,15 +654,13 @@ sub has_visibility_value
     return !$hash || !%$hash || $hash->{$value};
 }
 
-sub has_all_visibility_values
+sub null_visibility_values
 {
     my $self = shift;
-    return 1 if !$self->visibility_field_id;
-    my $hash = Bugzilla->fieldvaluecontrol_hash
-        ->{$self->visibility_field_id}
-        ->{fields}
-        ->{$self->id};
-    return !$hash || !%$hash;
+    return undef if !$self->visibility_field_id;
+    my $h = Bugzilla->fieldvaluecontrol_hash
+        ->{$self->value_field_id}->{null}->{$self->id};
+    return $h && %$h ? $h : undef;
 }
 
 # Check visibility of field for a bug or for a hashref with default value names
@@ -685,6 +671,15 @@ sub check_visibility
     my $vf = $self->visibility_field || return 1;
     my $value = bug_or_hash_value($bug, $vf);
     return $value ? $self->has_visibility_value($value) : 1;
+}
+
+sub check_is_nullable
+{
+    my $self = shift;
+    $self->nullable || return 0;
+    my $vf = $self->visibility_field || return 1;
+    my $value = bug_or_hash_value($bug, $vf);
+    return $value ? $self->null_visibility_values->{$value->id} : 1;
 }
 
 =pod
@@ -804,7 +799,6 @@ sub set_visibility_field
     my ($self, $value) = @_;
     $self->set('visibility_field_id', $value);
     delete $self->{visibility_field};
-    delete $self->{visibility_values};
 }
 
 sub set_visibility_values
@@ -812,7 +806,14 @@ sub set_visibility_values
     my $self = shift;
     my ($value_ids) = @_;
     update_visibility_values($self, 0, $value_ids);
-    delete $self->{visibility_values};
+    return $value_ids && @$value_ids;
+}
+
+sub set_null_visibility_values
+{
+    my $self = shift;
+    my ($value_ids) = @_;
+    update_visibility_values($self, -1, $value_ids);
     return $value_ids && @$value_ids;
 }
 
@@ -1244,7 +1245,7 @@ sub update_visibility_values
 {
     my ($controlled_field, $controlled_value_id, $visibility_value_ids) = @_;
     $visibility_value_ids ||= [];
-    my $vis_field = $controlled_value_id
+    my $vis_field = $controlled_value_id != 0
         ? $controlled_field->value_field
         : $controlled_field->visibility_field;
     if (!$vis_field)

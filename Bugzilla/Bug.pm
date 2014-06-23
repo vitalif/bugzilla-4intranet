@@ -748,7 +748,7 @@ sub check_dependent_fields
             if (!defined $value_objs)
             {
                 # FIXME Implement default field values?
-                next if $field_obj->nullable;
+                next if $field_obj->check_is_nullable($self);
                 ThrowUserError('object_not_specified', { class => $field_obj->value_type });
             }
             $value_objs = [ $value_objs ] if ref $value_objs ne 'ARRAY';
@@ -766,7 +766,7 @@ sub check_dependent_fields
             }
         }
         # Check other custom fields for empty values
-        elsif (!$field_obj->nullable && $fn ne 'classification' &&
+        elsif (!$field_obj->check_is_nullable($self) && $fn ne 'classification' &&
             (!$self->{$fn} || $field_obj->type == FIELD_TYPE_MULTI_SELECT && !@{$self->{$fn}}))
         {
             ThrowUserError('field_not_nullable', { field => $field_obj });
