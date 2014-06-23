@@ -649,8 +649,7 @@ if ($superworktime && !grep($_ eq 'interval_time', @displaycolumns))
 # (happens if a user had access to time tracking and it was revoked/disabled)
 if (!Bugzilla->user->is_timetracker)
 {
-    my %tt_fields = map { $_ => 1 } TIMETRACKING_FIELDS;
-    @displaycolumns = grep { !$tt_fields{$_} } @displaycolumns;
+    @displaycolumns = grep { !TIMETRACKING_FIELDS->{$_} } @displaycolumns;
 }
 
 # Remove the relevance column if the user is not doing a fulltext search.

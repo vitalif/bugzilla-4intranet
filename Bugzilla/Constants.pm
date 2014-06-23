@@ -390,9 +390,15 @@ use constant BUG_ID_ADD_TO_DEPENDSON => 2;
 
 # The fields from fielddefs that are blocked from non-timetracking users.
 # work_time is sometimes called actual_time.
-use constant TIMETRACKING_FIELDS =>
-    qw(estimated_time remaining_time work_time actual_time
-       percentage_complete deadline interval_time); # see CustIS Bug 68921
+use constant TIMETRACKING_FIELDS => {
+    estimated_time => 1,
+    remaining_time => 1,
+    work_time => 1,
+    actual_time => 1, # FIXME this is an alias, may be unused
+    percentage_complete => 1,
+    deadline => 1,
+    interval_time => 1, # Time column dependent on change search interval [CustIS Bug 68921]
+};
 
 # The maximum number of days a token will remain valid.
 use constant MAX_TOKEN_AGE => 3;

@@ -685,7 +685,7 @@ sub COLUMNS
     my %columns = %{ STATIC_COLUMNS() };
     if (!Bugzilla->user->is_timetracker)
     {
-        delete $columns{$_} for TIMETRACKING_FIELDS;
+        delete $columns{$_} for keys %{TIMETRACKING_FIELDS()};
     }
     Bugzilla::Hook::process('buglist_columns', { columns => \%columns });
     return $cache->{columns} = \%columns;
@@ -731,8 +731,7 @@ sub CHANGEDFROMTO_FIELDS
     my @fields = grep { $_->{name} } Bugzilla->get_fields({ has_activity => 1 });
     if (!Bugzilla->user->is_timetracker)
     {
-        my %tt_fields = map { $_ => 1 } TIMETRACKING_FIELDS;
-        @fields = grep { !$tt_fields{$_->name} } @fields;
+        @fields = grep { !TIMETRACKING_FIELDS->{$_->name} } @fields;
     }
     return \@fields;
 }
@@ -1039,7 +1038,7 @@ sub init
     my $legal_fields = { map { $_->name => 1 } grep { $_->name !~ /\./ } Bugzilla->get_fields };
     if (!$user->is_timetracker)
     {
-        delete $legal_fields->{$_} for TIMETRACKING_FIELDS;
+        delete $legal_fields->{$_} for keys %{TIMETRACKING_FIELDS()};
     }
 
     # Extract <field> and <field>_type from parameters
@@ -1942,7 +1941,7 @@ sub changed
     else
     {
         # Non-timetrackers can't search on time tracking fields
-        delete $f{$_} for TIMETRACKING_FIELDS;
+        delete $f{$_} for keys %{TIMETRACKING_FIELDS()};
     }
 
     my $ld = "ld$self->{sequence}";

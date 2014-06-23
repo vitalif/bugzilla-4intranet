@@ -203,9 +203,7 @@ unshift @{$vars->{chart_fields}}, { id => 'noop', name => '---' };
 
 # If we're not in the time-tracking group, exclude time-tracking fields.
 if (!Bugzilla->user->is_timetracker) {
-    foreach my $tt_field (TIMETRACKING_FIELDS) {
-        @{$vars->{chart_fields}} = grep($_->{name} ne $tt_field, @{$vars->{chart_fields}});
-    }
+    @{$vars->{chart_fields}} = grep { !TIMETRACKING_FIELDS->{$_} } @{$vars->{chart_fields}};
 }
 
 # Parse boolean charts from the form hash

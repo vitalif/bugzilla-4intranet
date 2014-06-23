@@ -532,14 +532,13 @@ sub sendMail
 
     # Filter changes by verifying the user should see them
     my $new_diffs = [];
-    my $tt_fields = { map { $_ => 1 } TIMETRACKING_FIELDS };
     foreach my $diff (@{$args->{diffs}})
     {
         # Exclude diffs with timetracking information for non-timetrackers
         # Exclude diffs with private attachments for non-insiders
         # Exclude dependency diffs with if dependencies are not visible to the user
         if (exists($diff->{fieldname}) &&
-            (!$tt_fields->{$diff->{fieldname}} || $user->is_timetracker) &&
+            (!TIMETRACKING_FIELDS->{$diff->{fieldname}} || $user->is_timetracker) &&
             (!$diff->{isprivate} || $user->is_insider) &&
             (!$diff->{dep} || $user->can_see_bug($diff->{dep})))
         {
@@ -570,7 +569,7 @@ sub sendMail
             # If there isn't anything to show, don't include this header.
             next unless $value;
             # Only send time tracking information if it is enabled and the user is in the group.
-            if (($f ne 'work_time' && $f ne 'estimated_time' && $f ne 'remaining_time' && $f ne 'deadline') || $user->is_timetracker)
+            if (!TIMETRACKING_FIELDS->{$f} || $user->is_timetracker)
             {
                 push @$showfieldvalues, { desc => $args->{fields}->{$f}, value => $value };
             }
