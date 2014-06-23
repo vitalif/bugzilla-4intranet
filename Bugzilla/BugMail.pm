@@ -188,7 +188,7 @@ sub Send
     my $dbh = Bugzilla->dbh;
     my $bug = new Bugzilla::Bug($id);
 
-    foreach my $field (Bugzilla->get_fields({ obsolete => 0 }))
+    foreach my $field (Bugzilla->get_fields({ obsolete => 0, sort => 'sortkey' }))
     {
         push @headerlist, $field if $field->in_new_bugmail;
         $fielddescription{$field->name} = $field->description;
