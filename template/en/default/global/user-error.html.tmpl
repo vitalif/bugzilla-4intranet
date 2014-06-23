@@ -1758,7 +1758,7 @@
   You must enter a name for your report.
 [% END %]
 
-[% ELSIF error_report_access_denied %]
+[% BLOCK error_report_access_denied %]
   [% title = "Report Access Denied" %]
   You cannot access this report.
 [% END %]
