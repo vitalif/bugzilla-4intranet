@@ -100,7 +100,7 @@ unless ($action) {
 if ($action eq 'add') {
     $vars->{'token'} = issue_session_token('add_version');
     $vars->{'product'} = $product;
-    $template->process("admin/versions/create.html.tmpl", $vars)
+    $template->process("admin/versions/edit.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
 
     exit;

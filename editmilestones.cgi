@@ -97,7 +97,7 @@ unless ($action) {
 if ($action eq 'add') {
     $vars->{'token'} = issue_session_token('add_milestone');
     $vars->{'product'} = $product;
-    $template->process("admin/milestones/create.html.tmpl", $vars)
+    $template->process("admin/milestones/edit.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
     exit;
 }
