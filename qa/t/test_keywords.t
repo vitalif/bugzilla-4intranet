@@ -36,12 +36,6 @@ foreach my $keyword (@keywords) {
     $sel->title_is("Keyword Deleted");
 }
 
-# Even if no keyword has been deleted, make sure the cache is right.
-$sel->open_ok("/$config->{bugzilla_installation}/sanitycheck.cgi?rebuildkeywordcache=1");
-$sel->wait_for_page_to_load(WAIT_TIME);
-$sel->title_is("Sanity Check");
-$sel->is_text_present_ok("Sanity check completed.", undef, "Page displayed correctly");
-
 # Now let's create our first keyword.
 
 go_to_admin($sel);

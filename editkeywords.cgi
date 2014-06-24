@@ -67,7 +67,7 @@ if ($action eq "") {
 if ($action eq 'add') {
     $vars->{'token'} = issue_session_token('add_keyword');
 
-    $template->process("admin/keywords/create.html.tmpl", $vars)
+    $template->process("admin/keywords/edit.html.tmpl", $vars)
         || ThrowTemplateError($template->error());
 
     exit;

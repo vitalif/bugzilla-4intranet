@@ -38,9 +38,6 @@ $sel->is_text_present_ok("Sanity check completed.", undef, "Page displayed corre
 $sel->open_ok("/$config->{bugzilla_installation}/sanitycheck.cgi?remove_invalid_attach_references=1");
 $sel->title_is("Sanity Check", "Call sanitycheck.cgi with remove_invalid_attach_references=1");
 $sel->is_text_present_ok("Sanity check completed.", undef, "Page displayed correctly");
-$sel->open_ok("/$config->{bugzilla_installation}/sanitycheck.cgi?rebuildkeywordcache=1");
-$sel->title_is("Sanity Check", "Call sanitycheck.cgi with rebuildkeywordcache=1");
-$sel->is_text_present_ok("Sanity check completed.", undef, "Page displayed correctly");
 $sel->open_ok("/$config->{bugzilla_installation}/sanitycheck.cgi?remove_old_whine_targets=1");
 $sel->title_is("Sanity Check", "Call sanitycheck.cgi with remove_old_whine_targets=1");
 $sel->is_text_present_ok("Sanity check completed.", undef, "Page displayed correctly");

@@ -88,7 +88,6 @@ $cgi->send_header() unless Bugzilla->usage_mode == USAGE_MODE_CMDLINE;
 # As this script can now alter the group_control_map table, we no longer
 # let users with editbugs privs run it anymore.
 $user->in_group("editcomponents")
-  || ($user->in_group('editkeywords') && $cgi->param('rebuildkeywordcache'))
   || ThrowUserError("auth_failure", {group  => "editcomponents",
                                      action => "run",
                                      object => "sanity_check"});
@@ -98,11 +97,7 @@ unless (Bugzilla->usage_mode == USAGE_MODE_CMDLINE) {
       || ThrowTemplateError($template->error());
 }
 
-###########################################################################
-# Users with 'editkeywords' privs only can only check keywords.
-###########################################################################
 unless ($user->in_group('editcomponents')) {
-    check_votes_or_keywords('keywords');
     Status('checks_completed');
 
     $template->process('global/footer.html.tmpl', $vars)
@@ -691,27 +686,19 @@ sub check_votes_or_keywords {
     my $check = shift || 'all';
 
     my $dbh = Bugzilla->dbh;
-    my $sth = $dbh->prepare(q{SELECT bug_id, votes, keywords
+    my $sth = $dbh->prepare(q{SELECT bug_id, votes
                                 FROM bugs
-                               WHERE votes != 0 OR keywords != ''});
+                               WHERE votes != 0});
     $sth->execute;
 
     my %votes;
-    my %keyword;
 
     while (my ($id, $v, $k) = $sth->fetchrow_array) {
-        if ($v != 0) {
-            $votes{$id} = $v;
-        }
-        if ($k) {
-            $keyword{$id} = $k;
-        }
+        $votes{$id} = $v;
     }
 
     # If we only want to check keywords, skip checks about votes.
-    _check_votes(\%votes) unless ($check eq 'keywords');
-    # If we only want to check votes, skip checks about keywords.
-    _check_keywords(\%keyword) unless ($check eq 'votes');
+    _check_votes(\%votes);
 }
 
 sub _check_votes {
@@ -743,119 +730,6 @@ sub _check_votes {
     }
 
     Status('vote_cache_rebuild_fix') if $offer_votecache_rebuild;
-}
-
-sub _check_keywords {
-    my $keyword = shift;
-
-    Status('keyword_check_start');
-    my $dbh = Bugzilla->dbh;
-    my $cgi = Bugzilla->cgi;
-
-    my %keywordids;
-    my $keywords = $dbh->selectall_arrayref(q{SELECT id, name
-                                                FROM keyworddefs});
-
-    foreach (@$keywords) {
-        my ($id, $name) = @$_;
-        if ($keywordids{$id}) {
-            Status('keyword_check_alert', {id => $id}, 'alert');
-        }
-        $keywordids{$id} = 1;
-        if ($name =~ /[\s,]/) {
-            Status('keyword_check_invalid_name', {id => $id}, 'alert');
-        }
-    }
-
-    my $sth = $dbh->prepare(q{SELECT bug_id, keywordid
-                                FROM keywords
-                            ORDER BY bug_id, keywordid});
-    $sth->execute;
-    my $lastid;
-    my $lastk;
-    while (my ($id, $k) = $sth->fetchrow_array) {
-        if (!$keywordids{$k}) {
-            Status('keyword_check_invalid_id', {id => $k}, 'alert');
-        }
-        if (defined $lastid && $id eq $lastid && $k eq $lastk) {
-            Status('keyword_check_duplicated_ids', {id => $id}, 'alert');
-        }
-        $lastid = $id;
-        $lastk = $k;
-    }
-
-    Status('keyword_cache_start');
-
-    if ($cgi->param('rebuildkeywordcache')) {
-        $dbh->bz_start_transaction();
-    }
-
-    my $query = q{SELECT keywords.bug_id, keyworddefs.name
-                    FROM keywords
-              INNER JOIN keyworddefs
-                      ON keyworddefs.id = keywords.keywordid
-              INNER JOIN bugs
-                      ON keywords.bug_id = bugs.bug_id
-                ORDER BY keywords.bug_id, keyworddefs.name};
-
-    $sth = $dbh->prepare($query);
-    $sth->execute;
-
-    my $lastb = 0;
-    my @list;
-    my %realk;
-    while (1) {
-        my ($b, $k) = $sth->fetchrow_array;
-        if (!defined $b || $b != $lastb) {
-            if (@list) {
-                $realk{$lastb} = join(', ', @list);
-            }
-            last unless $b;
-
-            $lastb = $b;
-            @list = ();
-        }
-        push(@list, $k);
-    }
-
-    my @badbugs = ();
-
-    foreach my $b (keys(%$keyword)) {
-        if (!exists $realk{$b} || $realk{$b} ne $keyword->{$b}) {
-            push(@badbugs, $b);
-        }
-    }
-    foreach my $b (keys(%realk)) {
-        if (!exists $keyword->{$b}) {
-            push(@badbugs, $b);
-        }
-    }
-    if (@badbugs) {
-        @badbugs = sort {$a <=> $b} @badbugs;
-
-        if ($cgi->param('rebuildkeywordcache')) {
-            my $sth_update = $dbh->prepare(q{UPDATE bugs
-                                                SET keywords = ?
-                                              WHERE bug_id = ?});
-
-            Status('keyword_cache_fixing');
-            foreach my $b (@badbugs) {
-                my $k = '';
-                if (exists($realk{$b})) {
-                    $k = $realk{$b};
-                }
-                $sth_update->execute($k, $b);
-            }
-            Status('keyword_cache_fixed');
-        } else {
-            Status('keyword_cache_alert', {badbugs => \@badbugs}, 'alert');
-            Status('keyword_cache_rebuild');
-        }
-    }
-
-    if ($cgi->param('rebuildkeywordcache')) {
-        $dbh->bz_commit_transaction();
-    }
 }
 
 ###########################################################################

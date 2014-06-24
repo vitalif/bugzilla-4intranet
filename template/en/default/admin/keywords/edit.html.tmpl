@@ -1,20 +1,4 @@
-[%# The contents of this file are subject to the Mozilla Public
-  # License Version 1.1 (the "License"); you may not use this file
-  # except in compliance with the License. You may obtain a copy of
-  # the License at http://www.mozilla.org/MPL/
-  #
-  # Software distributed under the License is distributed on an "AS
-  # IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-  # implied. See the License for the specific language governing
-  # rights and limitations under the License.
-  #
-  # The Original Code is the Bugzilla Bug Tracking System.
-  #
-  # The Initial Developer of the Original Code is Netscape Communications
-  # Corporation. Portions created by Netscape are
-  # Copyright (C) 1998 Netscape Communications Corporation. All
-  # Rights Reserved.
-  #
+[%# License: MPL 2.0, incompatible with secondary licenses
   # Contributor(s): Terry Weissman <terry@mozilla.org>
   #                 Vlad Dascalu <jocuri@softhome.net>
   #                 Max Kanat-Alexander <mkanat@bugzilla.org>
@@ -25,15 +9,14 @@
   #%]
 
 [% PROCESS global/header.html.tmpl
-  title = "Edit keyword"
+  title = keyword.id ? "Edit keyword" : "Add keyword"
 %]
 
 <form method="post" action="editkeywords.cgi">
   <table border="0" cellpadding="4" cellspacing="0">
     <tr>
       <th align="right">Name:</th>
-      <td><input size="64" maxlength="64" name="name" 
-                 value="[% keyword.name FILTER html %]"></td>
+      <td><input size="64" maxlength="64" name="name" value="[% keyword.name | html %]" /></td>
     </tr>
     <tr>
       <th align="right">Description:</th>
@@ -47,23 +30,25 @@
         %]
       </td>
     </tr>
+    [% IF keyword.id %]
     <tr>
       <th align="right">[% terms.Bugs %]:</th>
       <td>
         [% IF keyword.bug_count > 0 %]
-          <a href="buglist.cgi?keywords=[% keyword.name FILTER url_quote %]">
-            [% keyword.bug_count FILTER html %]</a>
+          <a href="buglist.cgi?keywords=[% keyword.name | url_quote %]">
+            [% keyword.bug_count | html %]</a>
         [% ELSE %]
           none
         [% END %]
       </td>
     </tr>
+    [% END %]
   </table>
 
-  <input type="submit" id="update" value="Save Changes">
-  <input type="hidden" name="action" value="update">
-  <input type="hidden" name="id" value="[% keyword.id FILTER html %]">
-  <input type="hidden" name="token" value="[% token FILTER html %]">
+  <input type="submit" value="[% keyword.id ? "Save Changes" : "Add" %]">
+  <input type="hidden" name="action" value="[% keyword.id ? "update" : "new" %]">
+  <input type="hidden" name="id" value="[% keyword.id || -1 | html %]">
+  <input type="hidden" name="token" value="[% token | html %]">
 </form>
 
 <p><a href="editkeywords.cgi">Edit other keywords</a>.</p>

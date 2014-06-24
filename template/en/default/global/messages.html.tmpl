@@ -513,10 +513,6 @@
 [% BLOCK msg_keyword_deleted %]
   [% title = "Keyword Deleted" %]
   The <em>[% keyword.name | html %]</em> keyword has been deleted.
-  <b>After you have finished editing keywords, you need to
-  <a href="sanitycheck.cgi?rebuildkeywordcache=1">rebuild the keyword
-  cache</a></b> (on a very large installation of [% terms.Bugzilla %],
-  this can take several minutes).
 [% END %]
 
 [% BLOCK msg_keyword_updated %]
@@ -526,13 +522,7 @@
     been saved:
     <ul>
       [% IF changes.name.defined %]
-        <li>
-          Keyword renamed to <em>[% keyword.name | html %]</em>.
-          <b>After you have finished editing keywords, you need to
-          <a href="sanitycheck.cgi?rebuildkeywordcache=1">rebuild
-          the keyword cache</a></b> (on a very large installation
-          of [% terms.Bugzilla %], this can take several minutes).
-        </li>
+        <li>Keyword renamed to <em>[% keyword.name | html %]</em>.</li>
       [% END %]
       [% IF changes.description.defined %]
         <li>Description updated to <em>[% keyword.description | html %]</em></li>
