@@ -648,9 +648,7 @@ sub has_visibility_value
     my ($value) = @_;
     $value = $value->id if ref $value;
     my $hash = Bugzilla->fieldvaluecontrol_hash
-        ->{$self->visibility_field_id}
-        ->{fields}
-        ->{$self->id};
+        ->{$self->visibility_field_id}->{fields}->{$self->id};
     return !$hash || !%$hash || $hash->{$value};
 }
 
@@ -659,7 +657,7 @@ sub null_visibility_values
     my $self = shift;
     return undef if !$self->visibility_field_id;
     my $h = Bugzilla->fieldvaluecontrol_hash
-        ->{$self->value_field_id}->{null}->{$self->id};
+        ->{$self->visibility_field_id}->{null}->{$self->id};
     return $h && %$h ? $h : undef;
 }
 
@@ -677,9 +675,11 @@ sub check_is_nullable
 {
     my $self = shift;
     $self->nullable || return 0;
+    $self->null_visibility_values || return 1;
+    my $bug = shift || return 1;
     my $vf = $self->visibility_field || return 1;
     my $value = bug_or_hash_value($bug, $vf);
-    return $value ? $self->null_visibility_values->{$value->id} : 1;
+    return $value ? $self->null_visibility_values->{$value} : 1;
 }
 
 =pod
@@ -1235,6 +1235,7 @@ sub bug_or_hash_value
             # non-uniquely identified by name, as a visibility
             # controller field (for example, "component")
             $value = Bugzilla::Field::Choice->type($vf)->new({ name => $value });
+            $value = $value->id if $value;
         }
     }
     return $value;
@@ -1245,7 +1246,7 @@ sub update_visibility_values
 {
     my ($controlled_field, $controlled_value_id, $visibility_value_ids) = @_;
     $visibility_value_ids ||= [];
-    my $vis_field = $controlled_value_id != 0
+    my $vis_field = $controlled_value_id > 0
         ? $controlled_field->value_field
         : $controlled_field->visibility_field;
     if (!$vis_field)

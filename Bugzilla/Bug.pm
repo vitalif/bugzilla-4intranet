@@ -749,7 +749,7 @@ sub check_dependent_fields
             {
                 # FIXME Implement default field values?
                 next if $field_obj->check_is_nullable($self);
-                ThrowUserError('object_not_specified', { class => $field_obj->value_type });
+                ThrowUserError('object_not_specified', { class => $field_obj->value_type, field => $field_obj });
             }
             $value_objs = [ $value_objs ] if ref $value_objs ne 'ARRAY';
             my @bad = grep { !ref $_ || !$_->check_visibility($self) } @$value_objs;

@@ -1516,6 +1516,7 @@
 
 [% BLOCK error_object_not_specified %]
   [% type = BLOCK %][% INCLUDE object_name class = class %][% END %]
+  [% IF !type && field; type = field.description | html; END %]
   [% title = BLOCK %][% type FILTER ucfirst FILTER html %] Not
   Specified[% END %]
   You must select/enter a [% type FILTER html %].

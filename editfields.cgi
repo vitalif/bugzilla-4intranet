@@ -129,7 +129,7 @@ elsif ($action eq 'update')
         else
         {
             $field->set_visibility_values([ $cgi->param('visibility_value_id') ]);
-            $field->set_null_visibility_values([ $cgi->param('null_visibility_values') ]) if $field->is_select && $field->nullable;
+            $field->set_null_visibility_values([ $cgi->param('null_visibility_values') ]) if $field->nullable;
         }
     }
     $field->update();

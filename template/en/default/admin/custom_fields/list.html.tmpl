@@ -43,23 +43,9 @@
        heading => "Type"
      },
      {
-       name => "enter_bug"
-       heading => "Entry"
-       hint => "Can be set on $terms.Bug Creation"
-       content_values => { '0' => '', '1' => 'Yes' }
-       align => 'center'
-     },
-     {
        name => "mailhead"
        heading => "${terms.Bug}mail",
        hint => "Included in ${terms.bug}mail for new $terms.bugs"
-       content_values => { '0' => '', '1' => 'Yes' }
-       align => 'center'
-     },
-     {
-       name => "obsolete"
-       heading => "Obsolete"
-       hint => "Is disabled and unused"
        content_values => { '0' => '', '1' => 'Yes' }
        align => 'center'
      },
@@ -78,9 +64,11 @@
        align => 'center'
      },
      {
-       name => "action"
-       heading => "Action"
-       content => ""
+       name => "obsolete"
+       heading => "Obsolete"
+       hint => "Is disabled and unused"
+       content_values => { '0' => '', '1' => 'Yes' }
+       align => 'center'
      }
    ]
 %]
@@ -98,15 +86,13 @@
   %]
 [% END %]
 
-[% overrides.action.obsolete = {
-     "1" => {
-       override_content => 1
-       content => "Delete"
-       override_contentlink => 1
-       contentlink => delete_contentlink
-     }
-   }
-%]
+[% overrides.obsolete.obsolete.1 = {
+  override_contentlink => 1
+  contentlink => delete_contentlink
+  content_values => ''
+  override_content => 1
+  content => 'Yes, Delete'
+} %]
 
 <h2>Custom fields</h2>
 
@@ -122,10 +108,7 @@
 
 <h2>Standard fields</h2>
 
-[%# Remove 'action' and 'entry' columns %]
-[%# FIXME: 'entry' column should be filled for standard fields %]
-[% SET c = columns.pop() %]
-[% SET c = columns.splice(4, 1) %]
+[% overrides.obsolete.obsolete = {} %]
 
 [% PROCESS admin/table.html.tmpl
      columns = columns

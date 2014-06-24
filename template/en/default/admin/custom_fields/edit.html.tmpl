@@ -227,11 +227,11 @@ var constants = {
           to make this field always appear)</span>
       </th>
       <td colspan="2">
-        [% SET all = field.visibility_values %]
+        [% SET vis = field.visibility_values %]
         <select style="width: 400px" id="visibility_value_id"
           name="visibility_value_id" size="7" multiple="multiple">
           [% FOREACH value = field.visibility_field.legal_values %]
-            <option value="[% value.id | html %]"[% ' selected="selected"' IF all && all.${value.id} %]>
+            <option value="[% value.id | html %]"[% ' selected="selected"' IF vis && vis.${value.id} %]>
               [% value.name | html %]
             </option>
           [% END %]
@@ -246,13 +246,15 @@ var constants = {
           to always allow empty value)</span>
       </th>
       <td colspan="2">
-        [% SET all = field.null_visibility_values %]
+        [% SET null = field.null_visibility_values %]
         <select style="width: 400px" id="null_visibility_values"
           name="null_visibility_values" size="7" multiple="multiple">
           [% FOREACH value = field.visibility_field.legal_values %]
-            <option value="[% value.id | html %]"[% ' selected="selected"' IF field.nullable && all && all.${value.id} %]>
+            [% IF !vis || vis.${value.id} %]
+            <option value="[% value.id | html %]"[% ' selected="selected"' IF null && null.${value.id} %]>
               [% value.name | html %]
             </option>
+            [% END %]
           [% END %]
         </select>
       </td>
