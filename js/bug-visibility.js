@@ -114,6 +114,24 @@ function handleControllerField_this(e)
     return handleControllerField(e, this);
 }
 
+function checkValueVisibility(selected, visible)
+{
+    var vis = true;
+    if (visible)
+    {
+        for (var value in visible)
+        {
+            vis = false;
+            if (selected[value])
+            {
+                vis = true;
+                break;
+            }
+        }
+    }
+    return vis;
+}
+
 // Turn on/off fields and values controlled by 'controller' argument
 function handleControllerField(e, controller)
 {
@@ -122,15 +140,7 @@ function handleControllerField(e, controller)
     // Show/hide fields
     for (var controlled_id in show_fields[controller.id]['fields'])
     {
-        vis = false;
-        for (var value in show_fields[controller.id]['fields'][controlled_id])
-        {
-            if (opt[value])
-            {
-                vis = true;
-                break;
-            }
-        }
+        vis = checkValueVisibility(opt, show_fields[controller.id]['fields'][controlled_id]);
         for (var i in { row: 1, container: 1, label: 1 })
         {
             field_container = document.getElementById('field_' + i + '_' + controlled_id);
@@ -152,27 +162,14 @@ function handleControllerField(e, controller)
         controlled = document.getElementById(controlled_id);
         copt = getSelectedNames(controlled);
         bz_clearOptions(controlled);
-        if (show_fields[controlled.id]['nullable'] && !controlled.multiple)
+        if (show_fields[controlled.id].nullable && !controlled.multiple)
         {
             bz_createOptionInSelect(controlled, '---', '');
         }
         for (var i in show_fields[controlled.id]['legal'])
         {
             controlled_value = show_fields[controlled.id]['legal'][i];
-            vis = true;
-            item = show_fields[controller.id]['values'][controlled_id][controlled_value[0]];
-            if (item)
-            {
-                for (var value in item)
-                {
-                    vis = false;
-                    if (opt[value])
-                    {
-                        vis = true;
-                        break;
-                    }
-                }
-            }
+            vis = checkValueVisibility(opt, show_fields[controller.id]['values'][controlled_id][controlled_value[0]]);
             if (vis)
             {
                 item = bz_createOptionInSelect(controlled, controlled_value[1], controlled_value[1]);
@@ -181,6 +178,25 @@ function handleControllerField(e, controller)
                 {
                     item.selected = true;
                 }
+            }
+        }
+    }
+    // Enable/disable NULL in single-select fields
+    for (var controlled_id in show_fields[controller.id]['null'])
+    {
+        controlled = document.getElementById(controlled_id);
+        if (controlled && !controlled.multiple && show_fields[controlled.id] && show_fields[controlled.id].nullable)
+        {
+            vis = checkValueVisibility(opt, show_fields[controller.id]['null'][controlled_id]);
+            item = controlled.options[0].value == '';
+            if (vis && !item)
+            {
+                item = new Option('---', '');
+                controlled.insertBefore(item, controlled.options[0]);
+            }
+            else if (!vis && item)
+            {
+                controlled.removeChild(controlled.options[0]);
             }
         }
     }

@@ -154,7 +154,7 @@
             [% dontchange | html %]
           </option>
         [% END %]
-        [% IF field.type == constants.FIELD_TYPE_SINGLE_SELECT && field.nullable %]
+        [% IF field.type == constants.FIELD_TYPE_SINGLE_SELECT && field.check_is_nullable(bug) %]
           <option value="">---</option>
         [% END %]
         [% IF override_legal_values %]
