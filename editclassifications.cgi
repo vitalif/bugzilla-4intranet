@@ -40,14 +40,14 @@ sub LoadTemplate {
     my $cgi = Bugzilla->cgi;
     my $template = Bugzilla->template;
 
-    $vars->{'classifications'} = [Bugzilla::Classification->get_all]
-      if ($action eq 'select');
+    $vars->{'classifications'} = [Bugzilla::Classification->get_all] if ($action eq 'select');
     # There is currently only one section about classifications,
     # so all pages point to it. Let's define it here.
     $vars->{'doc_section'} = 'classifications.html';
 
     $action =~ /(\w+)/;
     $action = $1;
+    $action = 'edit' if $action eq 'add';
     $template->process("admin/classifications/$action.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
     exit;

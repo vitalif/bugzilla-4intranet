@@ -19,15 +19,14 @@
   #%]
 
 [% PROCESS global/header.html.tmpl
-  title = "Edit classification"
+  title = classification.id ? "Edit classification " _ classification.name : "Add classification"
 %]
 
 <form method=post action="editclassifications.cgi">
-  <table  border=0 cellpadding=4 cellspacing=0>
+  <table border=0 cellpadding=4 cellspacing=0>
     <tr>
       <th align="right">Classification:</th>
-      <td><input size=64 maxlength=64 name="classification" 
-                 value="[% classification.name FILTER html %]"></td>
+      <td><input size=64 maxlength=64 name="classification" value="[% classification.name | html %]"></td>
     </tr>
     <tr>
       <th align="right">Description:</th>
@@ -43,22 +42,22 @@
     <tr>
       <th align="right"><label for="sortkey">Sortkey:</label></th>
       <td><input id="sortkey" size="20" maxlength="20" name="sortkey" value="
-      [%- classification.sortkey FILTER html %]"></td>
+      [%- classification.sortkey | html %]"></td>
     </tr>
+    [% IF classification.id %]
     <tr valign=top>
       <th align="right">
-        <a href="editproducts.cgi?classification=[% classification.name FILTER url_quote %]">
-        Edit Products</a>:
+        <a href="editproducts.cgi?classification=[% classification.name | url_quote %]">Edit Products</a>:
       </th>
       <td>
         [% IF classification.products.size > 0 %]
           <table>
             [% FOREACH product = classification.products %]
               <tr>
-                <th align=right valign=top>[% product.name FILTER html %]</th>
+                <th align=left valign=top>[% product.name | html %]</th>
                 <td valign=top>
                   [% IF product.description %]
-                    [% product.description FILTER html_light %]
+                    [% product.description | html_light %]
                   [% ELSE %]
                     <font color="red">description missing</font>
                   [% END %]
@@ -71,15 +70,17 @@
         [% END %]
       </td>
     </tr>
+    [% END %]
   </table>
 
-  <input type=hidden name="classificationold" 
-         value="[% classification.name FILTER html %]">
-  <input type=hidden name="action" value="update">
-  <input type="hidden" name="token" value="[% token FILTER html %]">
-  <input type=submit value="Update">
+  [% IF classification.id %]
+  <input type="hidden" name="classificationold" value="[% classification.name | html %]">
+  [% END %]
+  <input type="hidden" name="action" value="[% classification.id ? "update" : "new" %]">
+  <input type="hidden" name="token" value="[% token | html %]">
+  <input type="submit" value="[% classification.id ? "Update" : "Add" %]">
 </form>
 
-[% PROCESS admin/classifications/footer.html.tmpl %] 
+[% PROCESS admin/classifications/footer.html.tmpl %]
 
-[% PROCESS global/footer.html.tmpl %] 
+[% PROCESS global/footer.html.tmpl %]
