@@ -161,13 +161,13 @@ use constant SQL_DEFINITIONS => {
 # Field definitions for the fields that ship with Bugzilla.
 # These are used by populate_field_definitions to populate
 # the fielddefs table.
-use constant DEFAULT_FIELD_COLUMNS => [ qw(name description is_mandatory mailhead clone_bug type value_field_id) ];
+use constant DEFAULT_FIELD_COLUMNS => [ qw(name description is_mandatory mailhead clone_bug type value_field visibility_field) ];
 use constant DEFAULT_FIELDS => (map { my $i = 0; $_ = { (map { (DEFAULT_FIELD_COLUMNS->[$i++] => $_) } @$_) } } (
     [ 'bug_id',            'Bug ID',            1, 1, 0 ],
     [ 'short_desc',        'Summary',           1, 1, 0, FIELD_TYPE_FREETEXT ],
     [ 'classification',    'Classification',    1, 1, 0, FIELD_TYPE_SINGLE_SELECT ],
     [ 'product',           'Product',           1, 1, 0, FIELD_TYPE_SINGLE_SELECT ],
-    [ 'version',           'Version',           0, 1, 1, FIELD_TYPE_SINGLE_SELECT, 4 ],
+    [ 'version',           'Version',           0, 1, 1, FIELD_TYPE_SINGLE_SELECT, 'product', 'product' ],
     [ 'rep_platform',      'Platform',          0, 1, 0, FIELD_TYPE_SINGLE_SELECT ],
     [ 'bug_file_loc',      'URL',               0, 1, 1 ],
     [ 'op_sys',            'OS/Version',        0, 1, 1, FIELD_TYPE_SINGLE_SELECT ],
@@ -177,7 +177,7 @@ use constant DEFAULT_FIELDS => (map { my $i = 0; $_ = { (map { (DEFAULT_FIELD_CO
     [ 'resolution',        'Resolution',        0, 1, 0, FIELD_TYPE_SINGLE_SELECT ],
     [ 'bug_severity',      'Severity',          0, 1, 1, FIELD_TYPE_SINGLE_SELECT ],
     [ 'priority',          'Priority',          0, 1, 1, FIELD_TYPE_SINGLE_SELECT ],
-    [ 'component',         'Component',         1, 1, 1, FIELD_TYPE_SINGLE_SELECT, 4 ],
+    [ 'component',         'Component',         1, 1, 1, FIELD_TYPE_SINGLE_SELECT, 'product' ],
     [ 'assigned_to',       'Assignee',          1, 1, 0 ],
     [ 'reporter',          'Reporter',          1, 1, 0 ],
     [ 'votes',             'Votes',             0, 1, 0 ],
@@ -195,7 +195,7 @@ use constant DEFAULT_FIELDS => (map { my $i = 0; $_ = { (map { (DEFAULT_FIELD_CO
     [ 'attachments.isprivate',   'Attachment is private',  0, 0, 0 ],
     [ 'attachments.submitter',   'Attachment creator',     0, 0, 0 ],
 
-    [ 'target_milestone',      'Target Milestone',      0, 1, 1, FIELD_TYPE_SINGLE_SELECT, 4 ],
+    [ 'target_milestone',      'Target Milestone',      0, 1, 1, FIELD_TYPE_SINGLE_SELECT, 'product' ],
     [ 'creation_ts',           'Creation time',         1, 0, 0, FIELD_TYPE_DATETIME ],
     [ 'delta_ts',              'Last changed time',     1, 0, 0, FIELD_TYPE_DATETIME ],
     [ 'longdesc',              'Comment',               0, 0, 0 ],
@@ -1099,6 +1099,8 @@ sub populate_field_definitions
             $field->_set_type($def->{type}) if $def->{type};
             $field->set_clone_bug($def->{clone_bug}) if !$has_clone_bug;
             $field->set_is_mandatory($def->{is_mandatory}) if $def->{is_mandatory};
+            $field->set_value_field($dbh->selectrow_array('SELECT id FROM fielddefs WHERE name=?', undef, $def->{value_field})) if $def->{value_field};
+            $field->set_visibility_field($dbh->selectrow_array('SELECT id FROM fielddefs WHERE name=?', undef, $def->{visibility_field})) if $def->{visibility_field};
             $field->update();
         }
         else

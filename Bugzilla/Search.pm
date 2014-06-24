@@ -616,7 +616,7 @@ sub STATIC_COLUMNS
         foreach my $subfield (@subfields)
         {
             my $subid = $subfield->name;
-            if ($subid ne 'bug_id' && $columns->{$subid}->{name} eq "bugs.$subid")
+            if ($subid ne 'bug_id' && $columns->{$subid}->{name} && $columns->{$subid}->{name} eq "bugs.$subid")
             {
                 $columns->{$id.'_'.$subid} = {
                     name  => "bugs_$id.".$subfield->name,

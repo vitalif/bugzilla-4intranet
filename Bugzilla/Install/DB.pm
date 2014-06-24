@@ -4073,14 +4073,20 @@ sub _change_select_fields_to_ids
         }
     }
     print "-- Done --\n" if $started;
-    # Usually there's a lot of 'unspecified' versions, which substantively are also NULL. Remove them.
+    # Usually there's a lot of 'unspecified' versions, which substantively are also NULL.
+    # Remove them and enable NULLs in these products.
     if ($dbh->do("SELECT * FROM versions WHERE value='unspecified'"))
     {
         print "Replacing 'unspecified' versions with NULL\n";
+        my $id = Bugzilla->get_field('version')->id;
         $dbh->do("UPDATE bugs b, versions v SET b.version=NULL WHERE b.version=v.id AND v.value='unspecified'");
         $dbh->do("UPDATE components c, versions v SET c.default_version=NULL WHERE c.default_version=v.id AND v.value='unspecified'");
-        $dbh->do("DELETE FROM versions WHERE value='unspecified'");
         $dbh->do("UPDATE fielddefs SET is_mandatory=0 WHERE name='version'");
+        $dbh->do(
+            "REPLACE INTO fieldvaluecontrol (field_id, value_id, visibility_value_id)".
+            " SELECT $id, -1, product_id FROM versions WHERE value='unspecified'"
+        );
+        $dbh->do("DELETE FROM versions WHERE value='unspecified'");
         foreach my $row (@{$dbh->selectall_arrayref("SELECT * FROM namedqueries WHERE query LIKE '%unspecified%'", {Slice=>{}})})
         {
             if ($row->{query} =~ s/=unspecified(&|$)/=---$1/gso)
