@@ -1,15 +1,4 @@
-[%# The contents of this file are subject to the Mozilla Public
-  # License Version 1.1 (the "License"); you may not use this file
-  # except in compliance with the License. You may obtain a copy of
-  # the License at http://www.mozilla.org/MPL/
-  #
-  # Software distributed under the License is distributed on an "AS
-  # IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-  # implied. See the License for the specific language governing
-  # rights and limitations under the License.
-  #
-  # The Original Code is the Bugzilla Bug Tracking System.
-  #
+[%# License: MPL 2.0, incompatible with secondary licenses
   # Contributor(s): Max Kanat-Alexander <mkanat@bugzilla.org>
   #%]
 
@@ -18,37 +7,35 @@
   # field: Bugzilla::Field; The field this value belongs to.
   #%]
 
-[% title = BLOCK %]
-  Edit Value '[% value.name FILTER html %]' for the 
-  '[% field.description FILTER html %]' ([% field.name FILTER html %]) field
+[% IF value.id %]
+  [% title = BLOCK %]Edit Value '[% value.name | html %]' for the '[% field.description | html %]' ([% field.name | html %]) field[% END %]
+[% ELSE %]
+  [% title = BLOCK %]Add Value for the '[% field.description | html %]' ([% field.name | html %]) field[% END %]
 [% END %]
+
 [% PROCESS global/header.html.tmpl
   title = title
 %]
 
 <form method="post" action="editvalues.cgi">
-  <table border="0" cellpadding="4" cellspacing="0">
 
+  <table border="0" cellpadding="4" cellspacing="0">
     <tr>
       <th valign="top" align="left">
-        <label for="value_new">Field Value:</label>
+        <label for="value">Field Value:</label>
       </th>
       <td>
         [% IF value.is_static %]
-          <input type="hidden" name="value_new" id="value_new"
-                 value="[% value.name FILTER html %]" />
-            [%- value.name FILTER html %]
+          <input type="hidden" name="value" id="value" value="[% value.name | html %]" />
+          [%- value.name | html %]
         [% ELSE %]
-          <input id="value_new" name="value_new" size="100"
-                 maxlength="[% constants.MAX_FIELD_VALUE_SIZE FILTER none %]"
-                 value="[% value.name FILTER html %]" />
+          <input id="value" name="value" size="100" maxlength="[% constants.MAX_FIELD_VALUE_SIZE | none %]" value="[% value.name | html %]" />
         [% END %]
       </td>
     </tr>
     <tr>
       <th align="left"><label for="sortkey">Sortkey:</label></th>
-      <td><input id="sortkey" size="6" maxlength="6" name="sortkey" 
-                 value="[%- value.sortkey FILTER html %]" /></td>
+      <td><input id="sortkey" size="6" maxlength="6" name="sortkey" value="[%- value.sortkey | html %]" /></td>
     </tr>
     [% IF field.name == "bug_status" %]
       <tr>
@@ -73,33 +60,11 @@
         </td>
       </tr>
     [% END %]
-    [% IF field.value_field && !value.is_static %]
-      <tr>
-        <th align="left">
-          Only appears when [%+ field.value_field.description FILTER html %] is set to:
-        </th>
-        <td>
-          <a href="javascript:void(0)" onclick="document.getElementById('visibility_value_id').selectedIndex=-1">clear options</a> to make this value always appear
-        </td>
-      </tr>
-      <tr>
-        <td></td><td>
-          <select name="visibility_value_id[]" id="visibility_value_id" multiple="multiple" size="15">
-            [% FOREACH field_value = field.value_field.legal_values %]
-              [% NEXT IF field_value.name == '' %]
-              <option value="[% field_value.id FILTER none %]" [% ' selected="selected"' IF value.has_visibility_value(field_value.id, 0) %]>
-                [%- field_value.name FILTER html -%]
-              </option>
-            [% END %]
-          </select>
-        </td>
-      </tr>
-    [% END %]
     <tr>
       <th align="left"><label for="isactive">Enabled for [% terms.bugs %]:</label></th>
       <td>
         <input id="isactive" name="isactive" type="checkbox" value="1"
-          [%+ 'checked="checked"' IF value.isactive %]
+          [%+ 'checked="checked"' IF value.isactive || !value.id %]
           [%+ 'disabled="disabled"' IF value.is_default OR value.is_static %] />
         [% IF value.is_default %]
           This value is selected as default in the parameters for this field. It cannot be disabled.
@@ -107,17 +72,44 @@
           This value is non-deletable and cannot be disabled.
         [% END %]
       </td>
+    [% IF field.value_field && !value.is_static %]
+      <tr>
+        <th colspan="2" align="left">
+          Only appears when [%+ field.value_field.description | html %] is set to:<br />
+          <span style="font-weight: normal">(<a href="javascript:void(0)"
+            onclick="document.getElementById('visibility_value_id').selectedIndex=-1">clear options</a>
+            to make this value always appear)</span>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2">
+          <select name="visibility_value_id[]" id="visibility_value_id" multiple="multiple" size="15" style="width: 400px">
+            [% FOREACH field_value = field.value_field.legal_values %]
+              [% NEXT IF field_value.name == '' %]
+              <option value="[% field_value.id | none %]" [% ' selected="selected"' IF value.has_visibility_value(field_value.id, 0) %]>
+                [%- field_value.name | html -%]
+              </option>
+            [% END %]
+          </select>
+        </td>
+      </tr>
+    [% END %]
     </tr>
     [% Hook.process('fields') %]
   </table>
-  <input type="hidden" name="value" value="[% value.name FILTER html %]" />
-  <input type="hidden" name="action" value="update" />
-  <input type="hidden" name="field" value="[% field.name FILTER html %]" />
-  <input type="hidden" name="token" value="[% token FILTER html %]" />
-  <input type="submit" id="update" value="Save Changes" />
+
+  [% IF value.id %]
+  <input type="hidden" name="value_old" value="[% value.name | html %]" />
+  [% END %]
+  <input type="hidden" name="action" value="[% value.id ? "update" : "new" %]" />
+  <input type="hidden" name="field" value="[% field.name | html %]" />
+  <input type="hidden" name="token" value="[% token | html %]" />
+  <input type="submit" value="[% value.id ? "Save Changes" : "Add" %]" />
 </form>
 
 [% PROCESS admin/fieldvalues/footer.html.tmpl
-  no_edit_link = 1 %]
+  no_edit_link = value.id
+  no_add_link = !value.id
+%]
 
 [% PROCESS global/footer.html.tmpl %]

@@ -90,7 +90,7 @@ display_field_values($vars) unless $action;
 if ($action eq 'add')
 {
     $vars->{token} = issue_session_token('add_field_value');
-    $template->process("admin/fieldvalues/create.html.tmpl", $vars)
+    $template->process("admin/fieldvalues/edit.html.tmpl", $vars)
         || ThrowTemplateError($template->error());
     exit;
 }
@@ -158,7 +158,7 @@ if ($action eq 'control_list')
 }
 
 # After this, we always have a value
-my $value = Bugzilla::Field::Choice->type($field)->check($ARGS->{value});
+my $value = Bugzilla::Field::Choice->type($field)->check(exists $ARGS->{value_old} ? $ARGS->{value_old} : $ARGS->{value});
 $vars->{value} = $value;
 
 #
@@ -216,7 +216,7 @@ if ($action eq 'update')
     {
         if ($_ ne 'isactive' && $_ ne $value->NAME_FIELD || !$value->is_static && !$value->is_default)
         {
-            $value->set($_, $ARGS->{$_ eq $value->NAME_FIELD ? 'value_new' : $_});
+            $value->set($_, $ARGS->{$_});
         }
     }
     if (!($value->is_static || $value->is_default) && $value->field->value_field)
