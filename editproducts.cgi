@@ -138,6 +138,7 @@ if ($action eq 'add') {
     if (Bugzilla->params->{'useclassification'}) {
         my $classification = Bugzilla::Classification->check($classification_name);
         $vars->{'classification'} = $classification;
+        $vars->{'classifications'} = [ Bugzilla::Classification->get_all ];
     }
     $vars->{'token'} = issue_session_token('add_product');
     $vars->{all_groups} = [ map { $_->name } Bugzilla::Group->get_all ];
@@ -260,7 +261,8 @@ if ($action eq 'edit' || (!$action && $product_name)) {
     my $product = $user->check_can_admin_product($product_name);
 
     if (Bugzilla->params->{'useclassification'}) {
-        $vars->{'classification'} = new Bugzilla::Classification($product->classification_id);
+        $vars->{'classification'} = $product->classification_obj;
+        $vars->{'classifications'} = [ Bugzilla::Classification->get_all ];
     }
     $vars->{'product'} = $product;
     $vars->{'token'} = issue_session_token('edit_product');
@@ -288,6 +290,10 @@ if ($action eq 'update') {
     my $product_old_name = trim($cgi->param('product_old_name') || '');
     my $product = $user->check_can_admin_product($product_old_name);
 
+    if (Bugzilla->params->{useclassification}) {
+        $vars->{old_classification} = $product->classification_obj;
+        $product->set_classification(scalar $cgi->param('classification'));
+    }
     $product->set_name($product_name);
     $product->set_wiki_url(scalar $cgi->param('wiki_url'));
     $product->set_notimetracking(scalar $cgi->param('notimetracking'));
@@ -308,7 +314,7 @@ if ($action eq 'update') {
     delete_token($token);
 
     if (Bugzilla->params->{'useclassification'}) {
-        $vars->{'classification'} = new Bugzilla::Classification($product->classification_id);
+        $vars->{'classification'} = $product->classification_obj;
     }
     $vars->{'product'} = $product;
     $vars->{unconfirmed_states} = [ map { $_->name } grep { !$_->is_confirmed } Bugzilla::Status->get_all ];

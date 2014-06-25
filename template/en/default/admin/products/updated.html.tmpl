@@ -47,6 +47,11 @@
   </p>
 [% END %]
 
+[% IF changes.classification_id.defined %]
+  <p>
+  Product moved from classification '[% old_classification.name | html %]' to '[% classification.name | html %]'.
+  </p>
+[% END %]
 
 [% IF changes.description.defined %]
   <p>

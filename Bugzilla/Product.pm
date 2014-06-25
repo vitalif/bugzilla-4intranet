@@ -569,6 +569,7 @@ sub _check_classification_id
             : Bugzilla::Classification->check($classification_name);
         $classification_id = $classification->id;
     }
+    delete $invocant->{classification_obj} if ref $invocant;
     return $classification_id;
 }
 

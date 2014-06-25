@@ -24,7 +24,11 @@
 [% IF Param('useclassification') %]
   <tr>
     <th align="left"><b>Classification:</b></th>
-    <td><b>[% classification.name | html %]</b></td>
+    <td><select name="classification">
+      [% FOR c = classifications %]
+      <option value="[% c.name | html %]" [% "selected" IF classification.id == c.id %]>[% c.name | html %]</option>
+      [% END %]
+    </select></td>
   </tr>
 [% END %]
 
