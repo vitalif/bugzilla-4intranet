@@ -1,6 +1,4 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -40,10 +38,6 @@ use Bugzilla::Product;
 use Bugzilla::Classification;
 use Bugzilla::Token;
 
-#
-# Preliminary checks:
-#
-
 my $user = Bugzilla->login(LOGIN_REQUIRED);
 my $whoid = $user->id;
 
@@ -53,13 +47,15 @@ my $template = Bugzilla->template;
 my $vars = {};
 # Remove this as soon as the documentation about products has been
 # improved and each action has its own section.
-$vars->{'doc_section'} = 'products.html';
+$vars->{doc_section} = 'products.html';
 
-$user->in_group('editcomponents')
-  || scalar(@{$user->get_editable_products})
-  || ThrowUserError("auth_failure", {group  => "editcomponents",
-                                     action => "edit",
-                                     object => "products"});
+$user->in_group('editcomponents') ||
+    scalar(@{$user->get_editable_products}) ||
+    ThrowUserError('auth_failure', {
+        group  => 'editcomponents',
+        action => 'edit',
+        object => 'products',
+    });
 
 #
 # often used variables
@@ -74,24 +70,25 @@ my $token = $cgi->param('token');
 # classifications enabled)
 #
 
-if (Bugzilla->params->{'useclassification'}
-    && !$classification_name
-    && !$product_name)
+if (Bugzilla->params->{useclassification}
+    && !$classification_name && !$product_name)
 {
     my $class;
-    if ($user->in_group('editcomponents')) {
+    if ($user->in_group('editcomponents'))
+    {
         $class = [Bugzilla::Classification->get_all];
     }
-    else {
+    else
+    {
         # Only keep classifications containing at least one product
         # which you can administer.
         my $products = $user->get_editable_products;
         my %class_ids = map { $_->classification_id => 1 } @$products;
         $class = Bugzilla::Classification->new_from_list([keys %class_ids]);
     }
-    $vars->{'classifications'} = $class;
+    $vars->{classifications} = $class;
 
-    $template->process("admin/products/list-classifications.html.tmpl", $vars)
+    $template->process('admin/products/list-classifications.html.tmpl', $vars)
         || ThrowTemplateError($template->error());
     exit;
 }
@@ -101,23 +98,27 @@ if (Bugzilla->params->{'useclassification'}
 #                is already specified (then edit it)
 #
 
-if (!$action && !$product_name) {
+if (!$action && !$product_name)
+{
     my $classification;
     my $products;
 
-    if (Bugzilla->params->{'useclassification'}) {
+    if (Bugzilla->params->{useclassification})
+    {
         $classification = Bugzilla::Classification->check($classification_name);
         $products = $user->get_editable_products($classification->id);
-        $vars->{'classification'} = $classification;
-    } else {
+        $vars->{classification} = $classification;
+    }
+    else
+    {
         $products = $user->get_editable_products;
     }
 
-    $vars->{'products'} = $products;
-    $vars->{'showbugcounts'} = $cgi->param('showbugcounts') ? 1 : 0;
+    $vars->{products} = $products;
+    $vars->{showbugcounts} = $cgi->param('showbugcounts') ? 1 : 0;
 
-    $template->process("admin/products/list.html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
+    $template->process('admin/products/list.html.tmpl', $vars)
+        || ThrowTemplateError($template->error());
     exit;
 }
 
@@ -127,24 +128,27 @@ if (!$action && !$product_name) {
 # (next action will be 'new')
 #
 
-if ($action eq 'add') {
+if ($action eq 'add')
+{
     # The user must have the global editcomponents privs to add
     # new products.
-    $user->in_group('editcomponents')
-      || ThrowUserError("auth_failure", {group  => "editcomponents",
-                                         action => "add",
-                                         object => "products"});
+    $user->in_group('editcomponents') || ThrowUserError('auth_failure', {
+        group  => 'editcomponents',
+        action => 'add',
+        object => 'products',
+    });
 
-    if (Bugzilla->params->{'useclassification'}) {
+    if (Bugzilla->params->{useclassification})
+    {
         my $classification = Bugzilla::Classification->check($classification_name);
-        $vars->{'classification'} = $classification;
-        $vars->{'classifications'} = [ Bugzilla::Classification->get_all ];
+        $vars->{classification} = $classification;
+        $vars->{classifications} = [ Bugzilla::Classification->get_all ];
     }
-    $vars->{'token'} = issue_session_token('add_product');
+    $vars->{token} = issue_session_token('add_product');
     $vars->{all_groups} = [ map { $_->name } Bugzilla::Group->get_all ];
 
-    $template->process("admin/products/create.html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
+    $template->process('admin/products/create.html.tmpl', $vars)
+        || ThrowTemplateError($template->error());
 
     exit;
 }
@@ -153,13 +157,15 @@ if ($action eq 'add') {
 # action='new' -> add product entered in the 'action=add' screen
 #
 
-if ($action eq 'new') {
+if ($action eq 'new')
+{
     # The user must have the global editcomponents privs to add
     # new products.
-    $user->in_group('editcomponents')
-      || ThrowUserError("auth_failure", {group  => "editcomponents",
-                                         action => "add",
-                                         object => "products"});
+    $user->in_group('editcomponents') || ThrowUserError('auth_failure', {
+        group  => 'editcomponents',
+        action => 'add',
+        object => 'products',
+    });
 
     check_token_data($token, 'add_product');
 
@@ -176,7 +182,8 @@ if ($action eq 'new') {
         extproduct       => scalar $cgi->param('extproduct'),
         cc_group         => scalar($cgi->param('cc_group')) || '',
     );
-    if (Bugzilla->params->{'usevotes'}) {
+    if (Bugzilla->params->{usevotes})
+    {
         $create_params{votesperuser}   = $cgi->param('votesperuser');
         $create_params{maxvotesperbug} = $cgi->param('maxvotesperbug');
         $create_params{votestoconfirm} = $cgi->param('votestoconfirm');
@@ -185,14 +192,15 @@ if ($action eq 'new') {
 
     delete_token($token);
 
-    $vars->{'message'} = 'product_created';
-    $vars->{'product'} = $product;
-    if (Bugzilla->params->{'useclassification'}) {
-        $vars->{'classification'} = new Bugzilla::Classification($product->classification_id);
+    $vars->{message} = 'product_created';
+    $vars->{product} = $product;
+    if (Bugzilla->params->{useclassification})
+    {
+        $vars->{classification} = new Bugzilla::Classification($product->classification_id);
     }
-    $vars->{'token'} = issue_session_token('edit_product');
+    $vars->{token} = issue_session_token('edit_product');
 
-    $template->process("admin/products/edit.html.tmpl", $vars)
+    $template->process('admin/products/edit.html.tmpl', $vars)
         || ThrowTemplateError($template->error());
     exit;
 }
@@ -203,18 +211,20 @@ if ($action eq 'new') {
 # (next action would be 'delete')
 #
 
-if ($action eq 'del') {
+if ($action eq 'del')
+{
     my $product = $user->check_can_admin_product($product_name);
 
-    if (Bugzilla->params->{'useclassification'}) {
-        $vars->{'classification'} = new Bugzilla::Classification($product->classification_id);
+    if (Bugzilla->params->{useclassification})
+    {
+        $vars->{classification} = new Bugzilla::Classification($product->classification_id);
     }
-    $vars->{'product'} = $product;
-    $vars->{'token'} = issue_session_token('delete_product');
+    $vars->{product} = $product;
+    $vars->{token} = issue_session_token('delete_product');
 
     Bugzilla::Hook::process('product_confirm_delete', { vars => $vars });
 
-    $template->process("admin/products/confirm-delete.html.tmpl", $vars)
+    $template->process('admin/products/confirm-delete.html.tmpl', $vars)
         || ThrowTemplateError($template->error());
     exit;
 }
@@ -223,29 +233,32 @@ if ($action eq 'del') {
 # action='delete' -> really delete the product
 #
 
-if ($action eq 'delete') {
+if ($action eq 'delete')
+{
     my $product = $user->check_can_admin_product($product_name);
     check_token_data($token, 'delete_product');
 
     $product->remove_from_db({ delete_series => scalar $cgi->param('delete_series')});
     delete_token($token);
 
-    $vars->{'message'} = 'product_deleted';
-    $vars->{'product'} = $product;
-    $vars->{'no_edit_product_link'} = 1;
+    $vars->{message} = 'product_deleted';
+    $vars->{product} = $product;
+    $vars->{no_edit_product_link} = 1;
 
-    if (Bugzilla->params->{'useclassification'}) {
-        $vars->{'classifications'} = $user->in_group('editcomponents') ?
-          [Bugzilla::Classification->get_all] : $user->get_selectable_classifications;
+    if (Bugzilla->params->{useclassification})
+    {
+        $vars->{classifications} = $user->in_group('editcomponents') ?
+            [Bugzilla::Classification->get_all] : $user->get_selectable_classifications;
 
-        $template->process("admin/products/list-classifications.html.tmpl", $vars)
-          || ThrowTemplateError($template->error());
+        $template->process('admin/products/list-classifications.html.tmpl', $vars)
+            || ThrowTemplateError($template->error());
     }
-    else {
-        $vars->{'products'} = $user->get_editable_products;
+    else
+    {
+        $vars->{products} = $user->get_editable_products;
 
-        $template->process("admin/products/list.html.tmpl", $vars)
-          || ThrowTemplateError($template->error());
+        $template->process('admin/products/list.html.tmpl', $vars)
+            || ThrowTemplateError($template->error());
     }
     exit;
 }
@@ -257,27 +270,31 @@ if ($action eq 'delete') {
 # (next action would be 'update')
 #
 
-if ($action eq 'edit' || (!$action && $product_name)) {
+if ($action eq 'edit' || (!$action && $product_name))
+{
     my $product = $user->check_can_admin_product($product_name);
 
-    if (Bugzilla->params->{'useclassification'}) {
-        $vars->{'classification'} = $product->classification_obj;
-        $vars->{'classifications'} = [ Bugzilla::Classification->get_all ];
+    if (Bugzilla->params->{useclassification})
+    {
+        $vars->{classification} = $product->classification_obj;
+        $vars->{classifications} = [ Bugzilla::Classification->get_all ];
     }
-    $vars->{'product'} = $product;
-    $vars->{'token'} = issue_session_token('edit_product');
+    $vars->{product} = $product;
+    $vars->{token} = issue_session_token('edit_product');
     my $controlled_fields = { map { $_->id => ($_->has_visibility_value($product) ? $_->description : undef) } @{ $product->field->controls_visibility_of() } };
-    for my $i (keys %$controlled_fields) {
-        if (!defined($controlled_fields->{$i})) {
+    for my $i (keys %$controlled_fields)
+    {
+        if (!defined($controlled_fields->{$i}))
+        {
             delete $controlled_fields->{$i};
         }
     }
     my $length = values %$controlled_fields;
-    $vars->{'controlled_field_names'} = $length > 0 ? join(', ',  values %$controlled_fields) : "No fields";
+    $vars->{controlled_field_names} = $length > 0 ? join(', ',  values %$controlled_fields) : 'No fields';
 
     $vars->{all_groups} = [ map { $_->name } Bugzilla::Group->get_all ];
 
-    $template->process("admin/products/edit.html.tmpl", $vars)
+    $template->process('admin/products/edit.html.tmpl', $vars)
         || ThrowTemplateError($template->error());
     exit;
 }
@@ -285,12 +302,14 @@ if ($action eq 'edit' || (!$action && $product_name)) {
 #
 # action='update' -> update the product
 #
-if ($action eq 'update') {
+if ($action eq 'update')
+{
     check_token_data($token, 'edit_product');
     my $product_old_name = trim($cgi->param('product_old_name') || '');
     my $product = $user->check_can_admin_product($product_old_name);
 
-    if (Bugzilla->params->{useclassification}) {
+    if (Bugzilla->params->{useclassification})
+    {
         $vars->{old_classification} = $product->classification_obj;
         $product->set_classification(scalar $cgi->param('classification'));
     }
@@ -302,7 +321,8 @@ if ($action eq 'update') {
     $product->set_description(scalar $cgi->param('description'));
     $product->set_default_milestone(scalar $cgi->param('defaultmilestone'));
     $product->set_is_active(scalar $cgi->param('is_active'));
-    if (Bugzilla->params->{'usevotes'}) {
+    if (Bugzilla->params->{usevotes})
+    {
         $product->set_votes_per_user(scalar $cgi->param('votesperuser'));
         $product->set_votes_per_bug(scalar $cgi->param('maxvotesperbug'));
         $product->set_votes_to_confirm(scalar $cgi->param('votestoconfirm'));
@@ -313,14 +333,15 @@ if ($action eq 'update') {
 
     delete_token($token);
 
-    if (Bugzilla->params->{'useclassification'}) {
-        $vars->{'classification'} = $product->classification_obj;
+    if (Bugzilla->params->{useclassification})
+    {
+        $vars->{classification} = $product->classification_obj;
     }
-    $vars->{'product'} = $product;
+    $vars->{product} = $product;
     $vars->{unconfirmed_states} = [ map { $_->name } grep { !$_->is_confirmed } Bugzilla::Status->get_all ];
-    $vars->{'changes'} = $changes;
+    $vars->{changes} = $changes;
 
-    $template->process("admin/products/updated.html.tmpl", $vars)
+    $template->process('admin/products/updated.html.tmpl', $vars)
         || ThrowTemplateError($template->error());
     exit;
 }
@@ -329,13 +350,14 @@ if ($action eq 'update') {
 # action='editgroupcontrols' -> display product group controls
 #
 
-if ($action eq 'editgroupcontrols') {
+if ($action eq 'editgroupcontrols')
+{
     my $product = $user->check_can_admin_product($product_name);
 
-    $vars->{'product'} = $product;
-    $vars->{'token'} = issue_session_token('edit_group_controls');
+    $vars->{product} = $product;
+    $vars->{token} = issue_session_token('edit_group_controls');
 
-    $template->process("admin/products/groupcontrol/edit.html.tmpl", $vars)
+    $template->process('admin/products/groupcontrol/edit.html.tmpl', $vars)
         || ThrowTemplateError($template->error());
     exit;
 }
@@ -344,7 +366,8 @@ if ($action eq 'editgroupcontrols') {
 # action='updategroupcontrols' -> update product group controls
 #
 
-if ($action eq 'updategroupcontrols') {
+if ($action eq 'updategroupcontrols')
+{
     my $product = $user->check_can_admin_product($product_name);
     check_token_data($token, 'edit_group_controls');
 
@@ -352,55 +375,57 @@ if ($action eq 'updategroupcontrols') {
     my @now_mandatory = ();
     my %membercontrol_g;
     my %othercontrol_g;
-    foreach my $f ($cgi->param()) {
-        if ($f =~ /^group_(\d+)$/) {
+    foreach my $f ($cgi->param())
+    {
+        if ($f =~ /^group_(\d+)$/)
+        {
             my $count_id = $1;
             my $id = $cgi->param($f);
             trick_taint($id);
-            if ($cgi->param("membercontrol_" . $count_id) == CONTROLMAPNA) {
+            if ($cgi->param("membercontrol_$count_id") == CONTROLMAPNA)
+            {
                 push @now_na, $id;
-            } elsif ($cgi->param("membercontrol_" . $count_id) == CONTROLMAPMANDATORY) {
+            }
+            elsif ($cgi->param("membercontrol_$count_id") == CONTROLMAPMANDATORY)
+            {
                 push @now_mandatory, $id;
             }
-            $membercontrol_g{$id} = $cgi->param("membercontrol_" . $count_id);
-            $othercontrol_g{$id} = $cgi->param("othercontrol_" . $count_id);
+            $membercontrol_g{$id} = $cgi->param("membercontrol_$count_id");
+            $othercontrol_g{$id} = $cgi->param("othercontrol_$count_id");
         }
     }
 
-    if (!defined $cgi->param('confirmed')) {
+    if (!defined $cgi->param('confirmed'))
+    {
         my $na_groups;
-        if (@now_na) {
+        if (@now_na)
+        {
             $na_groups = $dbh->selectall_arrayref(
-                    'SELECT groups.name, COUNT(bugs.bug_id) AS count
-                       FROM bugs
-                 INNER JOIN bug_group_map
-                         ON bug_group_map.bug_id = bugs.bug_id
-                 INNER JOIN groups
-                         ON bug_group_map.group_id = groups.id
-                      WHERE groups.id IN (' . join(', ', @now_na) . ')
-                        AND bugs.product_id = ? ' .
-                       $dbh->sql_group_by('groups.name'),
-                   {'Slice' => {}}, $product->id);
+                'SELECT groups.name, COUNT(bugs.bug_id) AS count FROM bugs' .
+                ' INNER JOIN bug_group_map ON bug_group_map.bug_id = bugs.bug_id' .
+                ' INNER JOIN groups ON bug_group_map.group_id = groups.id' .
+                ' WHERE groups.id IN (' . join(', ', @now_na) . ') AND bugs.product_id = ? ' .
+                $dbh->sql_group_by('groups.name'),
+                {Slice => {}}, $product->id
+            );
         }
 
         # return the mandatory groups which need to have bug entries
         # added to the bug_group_map and the corresponding bug count
 
         my $mandatory_groups;
-        if (@now_mandatory) {
+        if (@now_mandatory)
+        {
             $mandatory_groups = $dbh->selectall_arrayref(
-                    'SELECT groups.name,
-                           (SELECT COUNT(bugs.bug_id)
-                              FROM bugs
-                             WHERE bugs.product_id = ?
-                               AND bugs.bug_id NOT IN
-                                (SELECT bug_group_map.bug_id FROM bug_group_map
-                                  WHERE bug_group_map.group_id = groups.id))
-                           AS count
-                      FROM groups
-                     WHERE groups.id IN (' . join(', ', @now_mandatory) . ')
-                     ORDER BY groups.name',
-                   {'Slice' => {}}, $product->id);
+                'SELECT groups.name, ('.
+                    ' SELECT COUNT(bugs.bug_id) FROM bugs'.
+                    ' WHERE bugs.product_id = ? AND bugs.bug_id NOT IN ('.
+                        ' SELECT bug_group_map.bug_id FROM bug_group_map'.
+                        ' WHERE bug_group_map.group_id = groups.id'.
+                    ')) AS count'.
+                ' FROM groups WHERE groups.id IN (' . join(', ', @now_mandatory) . ')'.
+                ' ORDER BY groups.name', {Slice => {}}, $product->id
+            );
             # remove zero counts
             @$mandatory_groups = grep { $_->{count} } @$mandatory_groups;
 
@@ -408,35 +433,37 @@ if ($action eq 'updategroupcontrols') {
         if (($na_groups && scalar(@$na_groups))
             || ($mandatory_groups && scalar(@$mandatory_groups)))
         {
-            $vars->{'product'} = $product;
-            $vars->{'na_groups'} = $na_groups;
-            $vars->{'mandatory_groups'} = $mandatory_groups;
-            $template->process("admin/products/groupcontrol/confirm-edit.html.tmpl", $vars)
+            $vars->{product} = $product;
+            $vars->{na_groups} = $na_groups;
+            $vars->{mandatory_groups} = $mandatory_groups;
+            $template->process('admin/products/groupcontrol/confirm-edit.html.tmpl', $vars)
                 || ThrowTemplateError($template->error());
             exit;
         }
     }
 
     my $groups = Bugzilla::Group->match({isactive => 1, isbuggroup => 1});
-    foreach my $group (@$groups) {
+    foreach my $group (@$groups)
+    {
         my $group_id = $group->id;
-        $product->set_group_controls($group,
-                                     {entry          => scalar $cgi->param("entry_$group_id") || 0,
-                                      membercontrol  => scalar $membercontrol_g{$group_id} || CONTROLMAPNA,
-                                      othercontrol   => scalar $othercontrol_g{$group_id} || CONTROLMAPNA,
-                                      canedit        => scalar $cgi->param("canedit_$group_id") || 0,
-                                      editcomponents => scalar $cgi->param("editcomponents_$group_id") || 0,
-                                      editbugs       => scalar $cgi->param("editbugs_$group_id") || 0,
-                                      canconfirm     => scalar $cgi->param("canconfirm_$group_id") || 0});
+        $product->set_group_controls($group, {
+            entry          => scalar $cgi->param("entry_$group_id") || 0,
+            membercontrol  => scalar $membercontrol_g{$group_id} || CONTROLMAPNA,
+            othercontrol   => scalar $othercontrol_g{$group_id} || CONTROLMAPNA,
+            canedit        => scalar $cgi->param("canedit_$group_id") || 0,
+            editcomponents => scalar $cgi->param("editcomponents_$group_id") || 0,
+            editbugs       => scalar $cgi->param("editbugs_$group_id") || 0,
+            canconfirm     => scalar $cgi->param("canconfirm_$group_id") || 0,
+        });
     }
     my $changes = $product->update;
 
     delete_token($token);
 
-    $vars->{'product'} = $product;
-    $vars->{'changes'} = $changes;
+    $vars->{product} = $product;
+    $vars->{changes} = $changes;
 
-    $template->process("admin/products/groupcontrol/updated.html.tmpl", $vars)
+    $template->process('admin/products/groupcontrol/updated.html.tmpl', $vars)
         || ThrowTemplateError($template->error());
     exit;
 }
@@ -445,4 +472,4 @@ if ($action eq 'updategroupcontrols') {
 # No valid action found
 #
 
-ThrowUserError('no_valid_action', {field => "product"});
+ThrowUserError('no_valid_action', {field => 'product'});
