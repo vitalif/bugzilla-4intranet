@@ -74,15 +74,15 @@
       [% PROCESS select sel = { name => 'classification', size => 5 } %]
     </th>
   [% END %]
-    <th align="left"  valign="top" id="product_cont">
+    <th align="left" valign="top" id="product_cont">
       <label for="product" accesskey="p"><u>P</u>roduct</label>:<br />
       [% PROCESS select sel = { name => 'product', size => 5 } %]
     </th>
-    <th align="left"  valign="top" id="component_cont">
+    <th align="left" valign="top" id="component_cont">
       <label for="component" accesskey="m"><a href="describecomponents.cgi">Co<u>m</u>ponent</a></label>:<br />
       [% PROCESS select sel = { name => 'component', size => 5 } %]
     </th>
-    <th align="left"  valign="top" id="version_cont">
+    <th align="left" valign="top" id="version_cont">
       <label for="version">Version</label>:<br />
       [% PROCESS select sel = { name => 'version', size => 5 } %]
     </th>
@@ -198,87 +198,33 @@
 <table>
   <tr>
     [% Hook.process('before_selects_bottom') %]
-    <td>
-      <table>
-        <tr>
-          <th align="left">
-            <label for="bug_status" accesskey="a">St<u>a</u>tus</label>:
-          </th>
-        </tr>
-        <tr valign="top">
-          [% PROCESS select sel = { name => 'bug_status',
-                                    size => 7 } %]
-        </tr>
-      </table>
-    </td>
-    <td>
-      <table>
-        <tr>
-          <th align="left">
-            <label for="resolution" accesskey="r"><u>R</u>esolution</label>:
-          </th>
-        </tr>
-        <tr valign="top">
-          [% PROCESS select sel = { name => 'resolution',
-                                    size => 7 } %]
-        </tr>
-      </table>
-    </td>
-    <td>
-      <table>
-        <tr>
-          <th align="left">
-            <label for="bug_severity">Severity</label>:
-          </th>
-        </tr>
-        <tr valign="top">
-          [% PROCESS select sel = { name => 'bug_severity',
-                                    size => 7 }%]
-        </tr>
-      </table>
-    </td>
-    <td>
-      <table>
-        <tr>
-          <th align="left">
-            <label for="priority" accesskey="i">Pr<u>i</u>ority</label>:
-          </th>
-        </tr>
-        <tr valign="top">
-          [% PROCESS select sel = { name => 'priority',
-                                    size => 7 } %]
-        </tr>
-      </table>
-    </td>
+    <th align="left" valign="top" id="bug_status_cont">
+      <label for="bug_status" accesskey="a">St<u>a</u>tus</label>:<br />
+      [% PROCESS select sel = { name => 'bug_status', size => 7 } %]
+    </th>
+    <th align="left" valign="top" id="resolution_cont">
+      <label for="resolution" accesskey="r"><u>R</u>esolution</label>:<br />
+      [% PROCESS select sel = { name => 'resolution', size => 7 } %]
+    </th>
+    <th align="left" valign="top" id="bug_severity_cont">
+      <label for="bug_severity">Severity</label>:<br />
+      [% PROCESS select sel = { name => 'bug_severity', size => 7 }%]
+    </th>
+    <th align="left" valign="top" id="priority_cont">
+      <label for="priority" accesskey="i">Pr<u>i</u>ority</label>:<br />
+      [% PROCESS select sel = { name => 'priority', size => 7 } %]
+    </th>
     [% IF Param('useplatform') %]
-    <td>
-      <table>
-        <tr>
-          <th align="left">
-            <label for="rep_platform" accesskey="h"><u>H</u>ardware</label>:
-          </th>
-        </tr>
-        <tr valign="top">
-          [% PROCESS select sel = { name => 'rep_platform',
-                                    size => 7 } %]
-        </tr>
-      </table>
-    </td>
+    <th align="left" valign="top" id="rep_platform_cont">
+      <label for="rep_platform" accesskey="h"><u>H</u>ardware</label>:<br />
+      [% PROCESS select sel = { name => 'rep_platform', size => 7 } %]
+    </th>
     [% END %]
     [% IF Param('useopsys') %]
-    <td>
-      <table>
-        <tr>
-          <th align="left">
-            <label for="op_sys" accesskey="o"><u>O</u>S</label>:
-          </th>
-        </tr>
-        <tr valign="top">
-          [% PROCESS select sel = { name => 'op_sys',
-                                    size => 7 } %]
-        </tr>
-      </table>
-    </td>
+    <th align="left" valign="top" id="op_sys_cont">
+      <label for="op_sys" accesskey="o"><u>O</u>S</label>:<br />
+      [% PROCESS select sel = { name => 'op_sys', size => 7 } %]
+    </th>
     [% END %]
     [% Hook.process('after_selects_bottom') %]
   </tr>
