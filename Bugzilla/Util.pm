@@ -77,6 +77,11 @@ no warnings 'redefine';
 
 eval { require 'Lingua/Stem/Snowball.pm' };
 
+sub is_tainted
+{
+    return !eval { join('', @_), kill 0; 1; };
+}
+
 sub trick_taint
 {
     return undef unless defined $_[0];

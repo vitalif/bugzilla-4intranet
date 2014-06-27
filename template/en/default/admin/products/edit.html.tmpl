@@ -79,6 +79,26 @@
         [% END %]
       </td>
     </tr>
+    [% IF allow_nullable_version %]
+    <tr>
+      <th align="left" valign="top">
+        <label for="version_is_nullable">Allow empty Version:</label>
+      </th>
+      <td>
+        <input type="checkbox" name="version_is_nullable" id="version_is_nullable" value="1" [% " checked" IF version_is_nullable %] />
+      </td>
+    </tr>
+    [% END %]
+    [% IF allow_nullable_target_milestone %]
+    <tr>
+      <th align="left" valign="top">
+        <label for="target_milestone_is_nullable">Allow empty Target Milestone:</label>
+      </th>
+      <td>
+        <input type="checkbox" name="target_milestone_is_nullable" id="target_milestone_is_nullable" value="1" [% " checked" IF target_milestone_is_nullable %] />
+      </td>
+    </tr>
+    [% END %]
     [% IF Param('usetargetmilestone') %]
       <tr>
         <th align="left" valign="top">

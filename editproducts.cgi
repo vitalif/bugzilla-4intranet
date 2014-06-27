@@ -292,6 +292,15 @@ if ($action eq 'edit' || (!$action && $product_name))
     my $length = values %$controlled_fields;
     $vars->{controlled_field_names} = $length > 0 ? join(', ',  values %$controlled_fields) : 'No fields';
 
+    for (qw(version target_milestone))
+    {
+        my $f = Bugzilla->get_field($_);
+        if ($vars->{'allow_nullable_'.$f->name} = $f->nullable)
+        {
+            my $null = $f->null_visibility_values;
+            $vars->{$f->name.'_is_nullable'} = !$null || $null->{$product->id};
+        }
+    }
     $vars->{all_groups} = [ map { $_->name } Bugzilla::Group->get_all ];
 
     $template->process('admin/products/edit.html.tmpl', $vars)
@@ -330,6 +339,18 @@ if ($action eq 'update')
     $product->set_allows_unconfirmed(scalar $cgi->param('allows_unconfirmed'));
 
     my $changes = $product->update();
+
+    for (qw(version target_milestone))
+    {
+        my $f = Bugzilla->get_field($_);
+        if ($f->nullable)
+        {
+            my $c = Bugzilla::Field::toggle_value(
+                $f->id, -1, $product->id, scalar $cgi->param($f->name.'_is_nullable')
+            );
+            $changes->{$f->name.'_is_nullable'} = [ !$c, $c ] if defined $c;
+        }
+    }
 
     delete_token($token);
 

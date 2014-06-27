@@ -195,7 +195,7 @@ use constant DEFAULT_FIELDS => (map { my $i = 0; $_ = { (map { (DEFAULT_FIELD_CO
     [ 'attachments.isprivate',   'Attachment is private',  0, 0, 0 ],
     [ 'attachments.submitter',   'Attachment creator',     0, 0, 0 ],
 
-    [ 'target_milestone',      'Target Milestone',      0, 1, 1, FIELD_TYPE_SINGLE_SELECT, 'product' ],
+    [ 'target_milestone',      'Target Milestone',      0, 1, 1, FIELD_TYPE_SINGLE_SELECT, 'product', 'product' ],
     [ 'creation_ts',           'Creation time',         1, 0, 0, FIELD_TYPE_DATETIME ],
     [ 'delta_ts',              'Last changed time',     1, 0, 0, FIELD_TYPE_DATETIME ],
     [ 'longdesc',              'Comment',               0, 0, 0 ],
@@ -1278,13 +1278,55 @@ sub update_visibility_values
     return 1;
 }
 
+# FIXME Вот такая у нас сейчас логика... не нравится она мне... Скорее всего, надо делать так:
+# * если записей нет, а visibility_field_id есть - поле не видно никогда. новые поля не видны нигде.
+# * аналогично со значениями; новые значения не видны нигде.
+# * придётся добавить ещё null_field_id, т.к. например target_milestone может быть виден везде, а nullable быть не везде
+# * отдельное поле, от которого зависит дефолтное значение (default_field_id), отдельная таблица
+#   для хранения дефолтных значений (field_id, visibility_value_id, default_value). Т.к. это не только для select'ов...
+#   (тут точно нужно отдельное поле, т.к. например наборы версий зависят от продукта, но дефолтные версии - от компонента)
+# * и видимо отдельное поле, от которого зависит клонирование (clone_field_id), и хранить (field_id, -2, visibility_value_id)
+sub toggle_value
+{
+    my ($f, $v, $vv, $enable) = @_;
+    my ($any, $this) = Bugzilla->dbh->selectrow_array(
+        'SELECT COUNT(*), SUM(visibility_value_id=?) FROM fieldvaluecontrol WHERE field_id=? AND value_id=?', undef, $vv, $f, $v
+    );
+    if ($enable && $any && !$this)
+    {
+        Bugzilla->dbh->do('INSERT INTO fieldvaluecontrol (field_id, value_id, visibility_value_id) VALUES (?, ?, ?)', undef, $f, $v, $vv);
+        return 1;
+    }
+    elsif (!$enable && !$any)
+    {
+        my $obj = Bugzilla->get_field($f);
+        $obj = $v > 0 ? $obj->value_field : $obj->visibility_field;
+        # FIXME: Taint bug (5.18.2): $obj->value_type->DB_TABLE becomes tainted
+        # and taints SQL query if substituted directly into dbh->do()...
+        my $t = $obj->value_type->DB_TABLE;
+        Bugzilla->dbh->do(
+            'INSERT INTO fieldvaluecontrol (field_id, value_id, visibility_value_id)'.
+            'SELECT ?, ?, id FROM '.$t.' WHERE id != ?',
+            undef, $f, $v, $vv
+        );
+        return 0;
+    }
+    elsif (!$enable && $this)
+    {
+        Bugzilla->dbh->do(
+            'DELETE FROM fieldvaluecontrol WHERE field_id=? AND value_id=? AND visibility_value_id=?',
+            undef, $f, $v, $vv
+        );
+        return 0;
+    }
+    return undef;
+}
+
 sub update_controlled_values
 {
     my ($controlled_field, $controlled_value_ids, $visibility_value_id, $default_value_ids) = @_;
     $controlled_value_ids ||= [];
-    my $vis_field = $controlled_value_ids
-        ? $controlled_field->value_field
-        : $controlled_field->visibility_field;
+    my $vis_field = $controlled_field->value_field;
     if (!$vis_field)
     {
         return undef;
@@ -1305,7 +1347,6 @@ sub update_controlled_values
         $controlled_value_ids = [ map { $_->id } @{ $type->new_from_list($controlled_value_ids) } ];
         if ($default_value_ids)
         {
-            my $type = Bugzilla::Field::Choice->type($controlled_field);
             $default_value_ids = { map { $_->id => 1 } @{ $type->new_from_list($default_value_ids) } };
         }
         my $f = $controlled_field->id;

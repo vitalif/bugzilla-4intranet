@@ -137,6 +137,14 @@
   <p>External product is [% IF changes.extproduct %]set to [% product.extproduct_obj.name | html %][% ELSE %]cleared[% END %].</p>
 [% END %]
 
+[% IF changes.version_is_nullable.defined %]
+  <p>Empty version [% changes.version_is_nullable.1 ? 'enabled' : 'disabled' %].</p>
+[% END %]
+
+[% IF changes.target_milestone_is_nullable.defined %]
+  <p>Empty milestone [% changes.target_milestone_is_nullable.1 ? 'enabled' : 'disabled' %].</p>
+[% END %]
+
 [% IF !changes.keys.size %]
   <p>Nothing changed for product '[% product.name FILTER html %]'.</p>
 [% END %]
