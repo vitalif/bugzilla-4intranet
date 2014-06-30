@@ -37,7 +37,8 @@ use Time::HiRes qw(time);
 
 # NOTE: This is NOT the function for general table updates. See
 # update_table_definitions for that. This is only for the fielddefs table.
-sub update_fielddefs_definition {
+sub update_fielddefs_definition
+{
     my $dbh = Bugzilla->dbh;
 
     # 2005-02-21 - LpSolit@gmail.com - Bug 279910
@@ -46,61 +47,50 @@ sub update_fielddefs_definition {
     # table should therefore be marked as obsolete, meaning that they cannot
     # be used anymore when querying the database - they are not deleted in
     # order to keep track of these fields in the activity table.
-    if (!$dbh->bz_column_info('fielddefs', 'obsolete')) {
-        $dbh->bz_add_column('fielddefs', 'obsolete',
-            {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'});
-        print "Marking qacontact_accessible and assignee_accessible as",
-              " obsolete fields...\n";
-        $dbh->do("UPDATE fielddefs SET obsolete = 1
-                  WHERE name = 'qacontact_accessible'
-                        OR name = 'assignee_accessible'");
+    if (!$dbh->bz_column_info('fielddefs', 'obsolete'))
+    {
+        $dbh->bz_add_column('fielddefs', 'obsolete');
+        print "Marking qacontact_accessible and assignee_accessible as obsolete fields...\n";
+        $dbh->do("UPDATE fielddefs SET obsolete=1 WHERE name IN ('qacontact_accessible', 'assignee_accessible')");
     }
-
-    # 2005-08-10 Myk Melez <myk@mozilla.org> bug 287325
-    # Record each field's type and whether or not it's a custom field,
-    # in fielddefs.
-    $dbh->bz_add_column('fielddefs', 'type',
-                        {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0});
-    $dbh->bz_add_column('fielddefs', 'custom',
-        {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'});
 
     # Change the name of the fieldid column to id, so that fielddefs
     # can use Bugzilla::Object easily. We have to do this up here, because
     # otherwise adding these field definitions will fail.
     $dbh->bz_rename_column('fielddefs', 'fieldid', 'id');
 
+    # 2005-08-10 Myk Melez <myk@mozilla.org> bug 287325
+    # Record each field's type and whether or not it's a custom field,
+    # in fielddefs.
+
+    # Add columns that don't require special logic
+    for my $c (qw(type custom clone_bug url is_mandatory add_to_deps default_value
+        visibility_field_id value_field_id))
+    {
+        $dbh->bz_add_column('fielddefs', $c);
+    }
+    $dbh->bz_add_index('fielddefs', 'fielddefs_value_field_id_idx', ['value_field_id']);
+
     # If the largest fielddefs sortkey is less than 100, then
     # we're using the old sorting system, and we should convert
     # it to the new one before adding any new definitions.
-    if (!$dbh->selectrow_arrayref(
-            'SELECT COUNT(id) FROM fielddefs WHERE sortkey >= 100'))
+    if (!$dbh->selectrow_arrayref('SELECT COUNT(id) FROM fielddefs WHERE sortkey >= 100'))
     {
         print "Updating the sortkeys for the fielddefs table...\n";
-        my $field_ids = $dbh->selectcol_arrayref(
-            'SELECT id FROM fielddefs ORDER BY sortkey');
+        my $field_ids = $dbh->selectcol_arrayref('SELECT id FROM fielddefs ORDER BY sortkey');
         my $sortkey = 100;
-        foreach my $field_id (@$field_ids) {
-            $dbh->do('UPDATE fielddefs SET sortkey = ? WHERE id = ?',
-                     undef, $sortkey, $field_id);
+        foreach my $field_id (@$field_ids)
+        {
+            $dbh->do('UPDATE fielddefs SET sortkey = ? WHERE id = ?', undef, $sortkey, $field_id);
             $sortkey += 100;
         }
     }
 
-    $dbh->bz_add_column('fielddefs', 'visibility_field_id', {TYPE => 'INT4'});
-    # visibility_value_id is not added anymore during update - it's now in fieldvaluecontrol
-    $dbh->bz_add_column('fielddefs', 'value_field_id', {TYPE => 'INT4'});
-    $dbh->bz_add_index('fielddefs', 'fielddefs_value_field_id_idx',
-                       ['value_field_id']);
-
-    $dbh->bz_add_column('fielddefs', clone_bug => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 1});
-    $dbh->bz_add_column('fielddefs', url => {TYPE => 'VARCHAR(255)'});
-    $dbh->bz_add_column('fielddefs', is_mandatory => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'});
     if ($dbh->bz_column_info('fielddefs', 'nullable'))
     {
         $dbh->do('UPDATE fielddefs SET is_mandatory=NOT nullable');
         $dbh->bz_drop_column('fielddefs', 'nullable');
     }
-    $dbh->bz_add_column('fielddefs', add_to_deps => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0});
 
     if (!$dbh->bz_column_info('fielddefs', 'delta_ts'))
     {
@@ -804,20 +794,25 @@ WHERE description LIKE\'%[CC:%\'');
     $dbh->do('UPDATE bug_status SET is_assigned=0 WHERE NOT value=?', undef, 'ASSIGNED');
     $dbh->do('UPDATE bug_status SET is_confirmed=0 WHERE value=?', undef, 'UNCONFIRMED');
 
-    # Copy products.defaultmilestone information into fieldvaluecontrol
-    my $fid = Bugzilla->get_field('target_milestone')->id;
-    if ($fid && $dbh->selectrow_array(
-            "SELECT defaultmilestone FROM products p, fieldvaluecontrol c".
-            " WHERE c.field_id=$fid AND c.value_id=p.defaultmilestone".
-            " AND c.visibility_value_id=p.id AND NOT c.is_default"
-        ))
+    # Move fieldvaluecontrol.is_default to field_defaults
+    if ($dbh->bz_column_info(fieldvaluecontrol => 'is_default'))
     {
-        print "Copying default milestone information into fieldvaluecontrol table...\n";
-        $dbh->do("UPDATE fieldvaluecontrol c SET c.is_default=0 WHERE c.field_id=$fid AND c.value_id!=0");
         $dbh->do(
-            "UPDATE fieldvaluecontrol c, products p SET c.is_default=1".
-            " WHERE c.field_id=$fid AND c.value_id=p.defaultmilestone".
-            " AND c.visibility_value_id=p.id AND NOT c.is_default"
+            "INSERT INTO field_defaults (field_id, visibility_value_id, default_value)".
+            " SELECT field_id, visibility_value_id, ".$dbh->sql_group_concat('value_id', "','").
+            " FROM fieldvaluecontrol WHERE is_default=1"
+        );
+        $dbh->bz_drop_column(fieldvaluecontrol => 'is_default');
+    }
+
+    # Copy products.defaultmilestone information into field_defaults
+    my $fid = Bugzilla->get_field('target_milestone')->id;
+    if ($fid && $dbh->selectrow_array("SELECT * FROM field_defaults WHERE field_id=$fid"))
+    {
+        print "Copying default milestone information into field_defaults...\n";
+        $dbh->do(
+            "INSERT INTO field_defaults (field_id, visibility_value_id, default_value)".
+            " SELECT $fid, id, defaultmilestone FROM products"
         );
     }
 
@@ -3881,9 +3876,6 @@ sub _fix_flagclusions_indexes {
 sub _make_fieldvaluecontrol
 {
     my ($dbh) = @_;
-
-    # Dependent default values for custom fields (CustIS Bug 91153)
-    $dbh->bz_add_column('fieldvaluecontrol', is_default => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0});
 
     if ($dbh->bz_column_info('fielddefs', 'visibility_value_id'))
     {

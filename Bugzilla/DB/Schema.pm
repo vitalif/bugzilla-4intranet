@@ -549,32 +549,41 @@ use constant ABSTRACT_SCHEMA => {
 
     fielddefs => {
         FIELDS => [
-            id          => {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
-            name        => {TYPE => 'varchar(255)', NOTNULL => 1},
-            type        => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => FIELD_TYPE_UNKNOWN},
-            custom      => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
-            description => {TYPE => 'TINYTEXT', NOTNULL => 1},
-            mailhead    => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
-            sortkey     => {TYPE => 'INT2', NOTNULL => 1},
-            obsolete    => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
-            clone_bug   => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
-            is_mandatory => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
+            id              => {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
+            name            => {TYPE => 'varchar(255)', NOTNULL => 1},
+            type            => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => FIELD_TYPE_UNKNOWN},
+            custom          => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
+            description     => {TYPE => 'TINYTEXT', NOTNULL => 1},
+            mailhead        => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
+            sortkey         => {TYPE => 'INT2', NOTNULL => 1},
+            obsolete        => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
+            clone_bug       => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
+            is_mandatory    => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
+            url             => {TYPE => 'VARCHAR(255)'},    # template for FIELD_TYPE_EXTURL
+            delta_ts        => {TYPE => 'DATETIME'},        # for refreshing client-side cache
+            has_activity    => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0},
+            add_to_deps     => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0},    # for FIELD_TYPE_BUG_ID
+            default_value   => {TYPE => 'MEDIUMTEXT'},
+            # Fields that change the behaviour of this one in various ways
             visibility_field_id => {TYPE => 'INT4', REFERENCES => {TABLE => 'fielddefs', COLUMN => 'id'}},
-            # CustIS Bug 53617 - visibility_value_id is removed from here
-            # (migrated to fieldvaluecontrol table)
-            value_field_id => {TYPE => 'INT4', REFERENCES => {TABLE => 'fielddefs', COLUMN => 'id'}},
-            # Used for "external link via template" type fields (CustIS Bug 90854)
-            url => {TYPE => 'VARCHAR(255)'},
-            # Used for refreshing client-side field/value cache (CustIS Bug 70605)
-            delta_ts => {TYPE => 'DATETIME'},
-            has_activity => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0},
-            # Automatic addition of Bug ID field value dependencies (CustIS Bug 73054)
-            add_to_deps => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0},
+            value_field_id      => {TYPE => 'INT4', REFERENCES => {TABLE => 'fielddefs', COLUMN => 'id'}},
         ],
         INDEXES => [
             fielddefs_name_idx    => {FIELDS => ['name'], TYPE => 'UNIQUE'},
             fielddefs_sortkey_idx => ['sortkey'],
             fielddefs_value_field_id_idx => ['value_field_id'],
+        ],
+    },
+
+    # Default values
+    field_defaults => {
+        FIELDS => [
+            field_id => {TYPE => 'INT4', NOTNULL => 1},
+            visibility_value_id => {TYPE => 'INT4', NOTNULL => 1},
+            default_value => {TYPE => 'MEDIUMTEXT', NOTNULL => 1},
+        ],
+        INDEXES => [
+            fieldvaluecontrol_primary_idx => {FIELDS => ['field_id', 'visibility_value_id'], TYPE => 'PRIMARY'},
         ],
     },
 
@@ -588,7 +597,6 @@ use constant ABSTRACT_SCHEMA => {
             field_id => {TYPE => 'INT4', NOTNULL => 1},
             value_id => {TYPE => 'INT4', NOTNULL => 1},
             visibility_value_id => {TYPE => 'INT4', NOTNULL => 1},
-            is_default => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0},
         ],
         INDEXES => [
             fieldvaluecontrol_primary_idx => {FIELDS => ['field_id', 'visibility_value_id', 'value_id'], TYPE => 'UNIQUE'},
@@ -2099,6 +2107,7 @@ sub get_column_abstract {
     # Prevent a possible dereferencing of an undef hash, if the
     # table doesn't exist.
     if ($self->get_table_abstract($table)) {
+        # FIXME This hash is recreated each time you call get_column_abstract... :-(
         my %fields = (@{ $self->{abstract_schema}{$table}{FIELDS} });
         return $fields{$column};
     }

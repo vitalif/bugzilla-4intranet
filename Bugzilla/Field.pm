@@ -102,12 +102,13 @@ use constant DB_COLUMNS => qw(
     obsolete
     is_mandatory
     clone_bug
-    visibility_field_id
-    value_field_id
     delta_ts
     has_activity
     add_to_deps
     url
+    default_value
+    visibility_field_id
+    value_field_id
 );
 
 use constant REQUIRED_CREATE_FIELDS => qw(name description);
@@ -126,24 +127,11 @@ use constant VALIDATORS => {
 };
 
 use constant UPDATE_VALIDATORS => {
-    value_field_id => \&_check_value_field_id,
+    value_field_id      => \&_check_value_field_id,
+    default_value       => \&_check_default_value,
 };
 
-use constant UPDATE_COLUMNS => qw(
-    description
-    mailhead
-    sortkey
-    obsolete
-    is_mandatory
-    clone_bug
-    visibility_field_id
-    value_field_id
-    type
-    delta_ts
-    has_activity
-    add_to_deps
-    url
-);
+use constant UPDATE_COLUMNS => grep { $_ ne 'type' && $_ ne 'id' } DB_COLUMNS();
 
 # How various field types translate into SQL data definitions.
 use constant SQL_DEFINITIONS => {
@@ -373,6 +361,28 @@ sub _check_add_to_deps
     return $addto{$value || ''};
 }
 
+sub _check_default_value
+{
+    my ($self, $value) = @_;
+    if ($self->type == FIELD_TYPE_SINGLE_SELECT)
+    {
+        # ID
+        detaint_natural($value) || undef;
+    }
+    elsif ($self->type == FIELD_TYPE_MULTI_SELECT)
+    {
+        # Array of IDs
+        $value = [ $value ] if !ref $value;
+        detaint_natural($_) for @$value;
+        $value = @$value ? join(',', @$value) : undef;
+    }
+    elsif ($self->type == FIELD_TYPE_BUG_ID_REV)
+    {
+        return undef;
+    }
+    return $value;
+}
+
 =pod
 
 =head2 Instance Properties
@@ -521,6 +531,10 @@ sub add_to_deps { $_[0]->type == FIELD_TYPE_BUG_ID && $_[0]->{add_to_deps} }
 
 sub url { $_[0]->{url} }
 
+sub default_value { $_[0]->{default_value} }
+
+sub default_value_hash { $_[0]->is_select ? { map { $_ => 1 } split /,/, $_[0]->{default_value} } : undef }
+
 sub value_type
 {
     my $self = shift;
@@ -567,7 +581,7 @@ sub restricted_legal_values
     my $rc_cache = Bugzilla->rc_cache_fields;
     if (!$rc_cache->{$self}->{restricted_legal_values}->{$controller_value})
     {
-        my $hash = Bugzilla->fieldvaluecontrol_hash->{$self->value_field_id}->{values}->{$self->id};
+        my $hash = Bugzilla->fieldvaluecontrol->{$self->value_field_id}->{values}->{$self->id};
         $rc_cache->{$self}->{restricted_legal_values}->{$controller_value} = [
             grep {
                 $_->is_static || !exists $hash->{$_->id} ||
@@ -576,29 +590,6 @@ sub restricted_legal_values
         ];
     }
     return $rc_cache->{$self}->{restricted_legal_values}->{$controller_value};
-}
-
-# Select default values for a named value of controlling field
-sub get_default_values
-{
-    my $self = shift;
-    my ($controller_value) = @_;
-    return [] unless $self->value_field;
-    my @values;
-    my $field_values = $self->value_field->legal_values;
-    foreach my $field_value (@$field_values)
-    {
-        if ($field_value->{name} eq $controller_value)
-        {
-            my $cvalues = $self->legal_values;
-            foreach my $value (@$cvalues)
-            {
-                push @values, $value->{value} if $value->is_default_controlled_value($field_value->{id}) && !$value->is_static;
-            }
-            last;
-        }
-    }
-    return \@values;
 }
 
 =pod
@@ -636,7 +627,7 @@ sub visibility_values
 {
     my $self = shift;
     return undef if !$self->visibility_field_id;
-    my $h = Bugzilla->fieldvaluecontrol_hash
+    my $h = Bugzilla->fieldvaluecontrol
         ->{$self->visibility_field_id}->{fields}->{$self->id};
     return $h && %$h ? $h : undef;
 }
@@ -647,7 +638,7 @@ sub has_visibility_value
     return 1 if !$self->visibility_field_id;
     my ($value) = @_;
     $value = $value->id if ref $value;
-    my $hash = Bugzilla->fieldvaluecontrol_hash
+    my $hash = Bugzilla->fieldvaluecontrol
         ->{$self->visibility_field_id}->{fields}->{$self->id};
     return !$hash || !%$hash || $hash->{$value};
 }
@@ -656,7 +647,7 @@ sub null_visibility_values
 {
     my $self = shift;
     return undef if !$self->visibility_field_id;
-    my $h = Bugzilla->fieldvaluecontrol_hash
+    my $h = Bugzilla->fieldvaluecontrol
         ->{$self->visibility_field_id}->{null}->{$self->id};
     return $h && %$h ? $h : undef;
 }
@@ -785,14 +776,15 @@ They will throw an error if you try to set the values to something invalid.
 
 =cut
 
-sub set_description    { $_[0]->set('description',  $_[1]); }
-sub set_clone_bug      { $_[0]->set('clone_bug',    $_[1]); }
-sub set_obsolete       { $_[0]->set('obsolete',     $_[1]); }
-sub set_is_mandatory   { $_[0]->set('is_mandatory', $_[1]); }
-sub set_sortkey        { $_[0]->set('sortkey',      $_[1]); }
-sub set_in_new_bugmail { $_[0]->set('mailhead',     $_[1]); }
-sub set_add_to_deps    { $_[0]->set('add_to_deps',  $_[1]); }
-sub set_url            { $_[0]->set('url',          $_[1]); }
+sub set_description    { $_[0]->set('description',   $_[1]); }
+sub set_clone_bug      { $_[0]->set('clone_bug',     $_[1]); }
+sub set_obsolete       { $_[0]->set('obsolete',      $_[1]); }
+sub set_is_mandatory   { $_[0]->set('is_mandatory',  $_[1]); }
+sub set_sortkey        { $_[0]->set('sortkey',       $_[1]); }
+sub set_in_new_bugmail { $_[0]->set('mailhead',      $_[1]); }
+sub set_add_to_deps    { $_[0]->set('add_to_deps',   $_[1]); }
+sub set_url            { $_[0]->set('url',           $_[1]); }
+sub set_default_value  { $_[0]->set('default_value', $_[1]); }
 
 sub set_visibility_field
 {
@@ -1064,6 +1056,13 @@ sub run_create_validators
         $params->{url} = undef;
     }
 
+    # Check default value
+    if ($type == FIELD_TYPE_SINGLE_SELECT || $type == FIELD_TYPE_MULTI_SELECT ||
+        $type == FIELD_TYPE_BUG_ID || $type == FIELD_TYPE_BUG_ID_REV)
+    {
+        $params->{default_value} = undef;
+    }
+
     return $params;
 }
 
@@ -1324,7 +1323,7 @@ sub toggle_value
 
 sub update_controlled_values
 {
-    my ($controlled_field, $controlled_value_ids, $visibility_value_id, $default_value_ids) = @_;
+    my ($controlled_field, $controlled_value_ids, $visibility_value_id) = @_;
     $controlled_value_ids ||= [];
     my $vis_field = $controlled_field->value_field;
     if (!$vis_field)
@@ -1333,11 +1332,6 @@ sub update_controlled_values
     }
     $controlled_field = Bugzilla->get_field($controlled_field) if !ref $controlled_field;
     $visibility_value_id = int($visibility_value_id);
-    if ($visibility_value_id)
-    {
-        my $type = Bugzilla::Field::Choice->type($vis_field);
-        $visibility_value_id = $type->new($visibility_value_id)->{id};
-    }
     Bugzilla->dbh->do(
         "DELETE FROM fieldvaluecontrol WHERE field_id=? AND visibility_value_id=? AND value_id!=0",
         undef, $controlled_field->id, $visibility_value_id);
@@ -1345,13 +1339,9 @@ sub update_controlled_values
     {
         my $type = Bugzilla::Field::Choice->type($controlled_field);
         $controlled_value_ids = [ map { $_->id } @{ $type->new_from_list($controlled_value_ids) } ];
-        if ($default_value_ids)
-        {
-            $default_value_ids = { map { $_->id => 1 } @{ $type->new_from_list($default_value_ids) } };
-        }
         my $f = $controlled_field->id;
-        my $sql = "INSERT INTO fieldvaluecontrol (field_id, visibility_value_id, value_id, is_default) VALUES ".
-            join(",", map { "($f, $visibility_value_id, $_, " . ($default_value_ids->{$_} ? '1' : '0') . ')' } @$controlled_value_ids);
+        my $sql = "INSERT INTO fieldvaluecontrol (field_id, visibility_value_id, value_id) VALUES ".
+            join(",", map { "($f, $visibility_value_id, $_)" } @$controlled_value_ids);
         Bugzilla->dbh->do($sql);
     }
     # Touch the field
@@ -1361,15 +1351,24 @@ sub update_controlled_values
 
 sub update_default_values
 {
-    my ($controlled_field, $visibility_value_id, $default_value_ids) = @_;
+    my ($controlled_field, $visibility_value_id, $default_value) = @_;
     $controlled_field = Bugzilla->get_field($controlled_field) if !ref $controlled_field;
     $visibility_value_id = int($visibility_value_id);
-    $default_value_ids = [ map { int $_ } @$default_value_ids || (0) ];
-    Bugzilla->dbh->do(
-        'UPDATE fieldvaluecontrol SET is_default=(value_id IN ('.join(', ', @$default_value_ids).
-        ')) WHERE field_id=? AND visibility_value_id=? AND value_id!=0',
-        undef, $controlled_field->id, $visibility_value_id
-    );
+    $default_value = $controlled_field->_check_default_value($default_value);
+    if (!$default_value)
+    {
+        Bugzilla->dbh->do(
+            'DELETE FROM field_defaults WHERE field_id=? AND visibility_value_id=?',
+            undef, $controlled_field->id, $visibility_value_id
+        );
+    }
+    else
+    {
+        Bugzilla->dbh->do(
+            'REPLACE INTO field_defaults (field_id, visibility_value_id, default_value) VALUES (?, ?, ?)',
+            undef, $controlled_field->id, $visibility_value_id, $default_value
+        );
+    }
     # Touch the field
     $controlled_field->touch;
     return 1;
@@ -1388,7 +1387,7 @@ sub json_visibility
         values => {},
         null => {},
     };
-    my $hash = Bugzilla->fieldvaluecontrol_hash->{$self->id};
+    my $hash = Bugzilla->fieldvaluecontrol->{$self->id};
     for my $key (qw(fields values null))
     {
         $data->{$key} = { map { Bugzilla->get_field($_)->name => $hash->{$key}->{$_} } keys %{$hash->{$key}} };

@@ -113,6 +113,21 @@ var constants = {
           </select>
         [% END %]
       </td>
+      [% IF field.id %]
+      <th align="left" id="default_value_th">Default value:</th>
+      <td id="default_value_td">
+        [% IF field.is_select %]
+        <select name="default_value" style="width: 400px" [% "multiple size=3" IF field.type == constants.FIELD_TYPE_MULTI_SELECT %]>
+          <option value="">---</option>
+          [% FOREACH v = field.legal_values %]
+          <option value="[% v.id | html %]"[% " selected" IF field.default_value_hash.${v.id} %]>[% v.name | html %]</option>
+          [% END %]
+        </select>
+        [% ELSE %]
+        <input type="text" name="default_value" value="[% field.default_value | html %]" style="width: 400px" />
+        [% END %]
+      </td>
+      [% END %]
     </tr>
     [% IF field.type && field.type != constants.FIELD_TYPE_BUG_ID_REV || !field.id %]
     <tr valign="top">

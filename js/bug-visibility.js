@@ -43,25 +43,26 @@ function initControllerField(i)
             }
 
             // Select default value in each controlled field
-            for (var controlled_id in show_fields[f.id]['values'])
+            for (var controlled_id in show_fields[f.id]['defaults'])
             {
                 var controlled = document.getElementById(controlled_id);
                 if (!controlled)
                 {
                     continue;
                 }
-
-                var vals = show_fields[f.id]['values'][controlled_id];
-                for (var value_id in vals)
+                var v = show_fields[f.id]['defaults'][controlled_id];
+                if (controlled.nodeName == 'SELECT')
                 {
-                    if (!vals[value_id][control_id])
+                    for (var i in v)
                     {
-                        continue;
+                        i = document.getElementById('v' + v[i] + '_' + controlled_id);
+                        if (i)
+                            i.selected = true;
                     }
-                    if (vals[value_id][control_id].is_default == 1)
-                    {
-                        document.getElementById('v' + value_id + '_' + controlled_id).selected = true;
-                    }
+                }
+                else
+                {
+                    controlled.value = v;
                 }
             }
         }

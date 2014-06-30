@@ -538,6 +538,14 @@ sub bz_drop_foreign_keys {
 sub bz_add_column {
     my ($self, $table, $name, $new_def, $init_value) = @_;
 
+    if (!$new_def) {
+        # Take default definition from schema, but exclude REFERENCES
+        $new_def = $self->_bz_schema->get_column_abstract($table, $name)
+            || die "bz_add_column: unknown column $table.$name";
+        $new_def = { %$new_def };
+        delete $new_def->{REFERENCES};
+    }
+
     # You can't add a NOT NULL column to a table with
     # no DEFAULT statement, unless you have an init_value.
     # SERIAL types are an exception, though, because they can

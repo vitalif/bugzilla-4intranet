@@ -126,14 +126,17 @@ if ($action eq 'control_list')
 
     my $step = $ARGS->{step} || 0;
     my $visibility_value_id = $ARGS->{visibility_value_id};
+    $visibility_value_id = Bugzilla::Field::Choice->type($field->value_field)->new($visibility_value_id)->{id};
+
     my $values = $ARGS->{values};
-    my $default_value_id = $ARGS->{default_value_id};
     my $need_token = 0;
 
     $vars->{visibility_value_id} = -1;
     if ($visibility_value_id)
     {
         $vars->{visibility_value_id} = $visibility_value_id;
+        $vars->{default_value_hash} = { map { $_ => 1 } split /,/, Bugzilla->fieldvaluecontrol
+            ->{$field->value_field_id}->{defaults}->{$field->id}->{$visibility_value_id} };
         my %values = map { $_->{id} => $_ } @{$field->{value_field}->legal_values()};
         $vars->{field_value} = $values{$visibility_value_id};
         $step++ unless $token;
@@ -141,7 +144,10 @@ if ($action eq 'control_list')
         if ($token)
         {
             check_token_data($token, "edit_control_list");
-            $field->update_controlled_values($values, $visibility_value_id, $default_value_id);
+            $field->update_controlled_values($values, $visibility_value_id);
+            $field->update_default_values($visibility_value_id, $field->type == FIELD_TYPE_MULTI_SELECT
+                ? [ $cgi->param('default_value') ]
+                : scalar $cgi->param('default_value'));
             $step++;
             $need_token = 0;
             delete_token($token);

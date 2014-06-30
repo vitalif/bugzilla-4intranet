@@ -106,12 +106,13 @@ elsif ($action eq 'update')
     my $field = Bugzilla->get_field($name);
     $field || ThrowUserError('customfield_nonexistent', {'name' => $name});
 
-    $field->set_description($cgi->param('desc'));
-    $field->set_sortkey($cgi->param('sortkey'));
-    $field->set_in_new_bugmail($cgi->param('new_bugmail'));
-    $field->set_obsolete($cgi->param('obsolete'));
+    $field->set_description(scalar $cgi->param('desc'));
+    $field->set_sortkey(scalar $cgi->param('sortkey'));
+    $field->set_in_new_bugmail(scalar $cgi->param('new_bugmail'));
+    $field->set_obsolete(scalar $cgi->param('obsolete'));
     $field->set_is_mandatory(!scalar $cgi->param('nullable'));
-    $field->set_url($cgi->param('url'));
+    $field->set_url(scalar $cgi->param('url'));
+    $field->set_default_value($field->type == FIELD_TYPE_MULTI_SELECT ? [ $cgi->param('default_value') ] : scalar $cgi->param('default_value'));
     if ($field->custom)
     {
         # TODO enter_bug could be edited for non-custom fields, too.

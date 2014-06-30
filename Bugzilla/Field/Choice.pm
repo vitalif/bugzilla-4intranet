@@ -235,7 +235,7 @@ sub get_all
     # Product field is a special case: it has access controls applied.
     # So if our values are controlled by product field value,
     # return only ones visible inside products visible to current user.
-    my $h = Bugzilla->fieldvaluecontrol_hash
+    my $h = Bugzilla->fieldvaluecontrol
         ->{Bugzilla->get_field('product')->id}
         ->{values}
         ->{$f->id};
@@ -381,11 +381,9 @@ sub controls_visibility_of_fields
     my $vid = $self->id;
     my $fid = $self->field->id;
     $self->{controls_visibility_of_fields} ||= [
-        map { Bugzilla->get_field($_->{field_id}) }
-        grep { !$_->{value_id} &&
-            $_->{visibility_value_id} == $vid &&
-            $_->{visibility_field_id} == $fid }
-        @{Bugzilla->fieldvaluecontrol}
+        map { Bugzilla->get_field($_) }
+        grep { Bugzilla->fieldvaluecontrol->{$fid}->{fields}->{$_}->{$vid} }
+        keys %{Bugzilla->fieldvaluecontrol->{$fid}->{fields}}
     ];
     return $self->{controls_visibility_of_fields};
 }
@@ -397,20 +395,15 @@ sub controls_visibility_of_field_values
     my $fid = $self->field->id;
     if (!$self->{controls_visibility_of_field_values})
     {
+        my $h = Bugzilla->fieldvaluecontrol->{$fid}->{values};
         my $r = {};
-        for (@{Bugzilla->fieldvaluecontrol})
+        for my $f (keys %$h)
         {
-            if ($_->{value_id} &&
-                $_->{visibility_value_id} == $vid &&
-                $_->{visibility_field_id} == $fid)
-            {
-                push @{$r->{$_->{field_id}}}, $_->{value_id};
-            }
+            my $t = [ grep { $h->{$f}->{$_}->{$vid} } keys %{$h->{$f}} ];
+            $f = Bugzilla->get_field($f);
+            $r->{$f->name} = $f->value_type->new_from_list($t) if @$t;
         }
-        $self->{controls_visibility_of_field_values} = { map {
-            Bugzilla->get_field($_)->name =>
-                Bugzilla::Field::Choice->type(Bugzilla->get_field($_))->new_from_list($r->{$_})
-        } keys %$r };
+        $self->{controls_visibility_of_field_values} = $r;
     }
     return $self->{controls_visibility_of_field_values};
 }
@@ -421,7 +414,7 @@ sub visibility_values
     my $f;
     if ($self->field->value_field_id && !($f = $self->{visibility_values}))
     {
-        my $hash = Bugzilla->fieldvaluecontrol_hash
+        my $hash = Bugzilla->fieldvaluecontrol
             ->{$self->field->value_field_id}
             ->{values}
             ->{$self->field->id}
@@ -444,7 +437,7 @@ sub has_visibility_value
     $default = 1 if !defined $default;
     return $default if !$self->field->value_field_id;
     $value = $value->id if ref $value;
-    my $hash = Bugzilla->fieldvaluecontrol_hash
+    my $hash = Bugzilla->fieldvaluecontrol
         ->{$self->field->value_field_id}
         ->{values}
         ->{$self->field->id}
@@ -459,20 +452,12 @@ sub visible_for_all
     my ($default) = @_;
     $default = 0 if !defined $default;
     return $default if !$self->field->value_field_id;
-    my $hash = Bugzilla->fieldvaluecontrol_hash
+    my $hash = Bugzilla->fieldvaluecontrol
         ->{$self->field->value_field_id}
         ->{values}
         ->{$self->field->id}
         ->{$self->id};
     return !$hash || !%$hash;
-}
-
-sub is_default_controlled_value
-{
-    my $self = shift;
-    my $result = $self->has_visibility_value(@_);
-    return $result unless ref $result;
-    return $result->{is_default};
 }
 
 # Check visibility of field value for a bug or a hashref with default value names
