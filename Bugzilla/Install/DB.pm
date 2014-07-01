@@ -816,6 +816,17 @@ WHERE description LIKE\'%[CC:%\'');
         );
     }
 
+    # Copy components.default_version information into field_defaults
+    $fid = Bugzilla->get_field('version')->id;
+    if ($fid && !$dbh->selectrow_array("SELECT * FROM field_defaults WHERE field_id=$fid"))
+    {
+        print "Copying default version information into field_defaults...\n";
+        $dbh->do(
+            "INSERT INTO field_defaults (field_id, visibility_value_id, default_value)".
+            " SELECT $fid, id, default_version FROM components WHERE default_version IS NOT NULL"
+        );
+    }
+
     # Varchar is VARIABLE, it's generally pointless to set a size limit less than 255 chars for it
     _set_varchar_255();
 

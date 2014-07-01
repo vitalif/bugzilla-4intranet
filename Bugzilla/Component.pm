@@ -146,6 +146,9 @@ sub create
     # Create series for the new component.
     $component->_create_series() if $create_series;
 
+    # Duplicate default version in field_defaults.
+    Bugzilla->get_field('version')->update_default_values($component->id, $component->default_version);
+
     Bugzilla->get_field(FIELD_NAME)->touch;
 
     $dbh->bz_commit_transaction();
@@ -181,6 +184,9 @@ sub update
         my $diff = $self->_update_cc_list($self->{cc_ids});
         $changes->{cc_list} = $diff if defined $diff;
     }
+
+    # Duplicate default version in field_defaults.
+    Bugzilla->get_field('version')->update_default_values($self->id, $self->default_version);
 
     Bugzilla->get_field(FIELD_NAME)->touch;
 
