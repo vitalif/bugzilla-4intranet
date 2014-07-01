@@ -807,7 +807,7 @@ WHERE description LIKE\'%[CC:%\'');
 
     # Copy products.defaultmilestone information into field_defaults
     my $fid = Bugzilla->get_field('target_milestone')->id;
-    if ($fid && $dbh->selectrow_array("SELECT * FROM field_defaults WHERE field_id=$fid"))
+    if ($fid && !$dbh->selectrow_array("SELECT * FROM field_defaults WHERE field_id=$fid"))
     {
         print "Copying default milestone information into field_defaults...\n";
         $dbh->do(
@@ -3946,6 +3946,8 @@ sub _make_fieldvaluecontrol
         }
     }
 
+    # FIXME: Remove useXXX and defaultXXX parameters and make this migration only once
+
     # Copy useXXX parameter values to fielddefs.is_obsolete
     if (Bugzilla->params->{useclassification})
     {
@@ -3961,6 +3963,15 @@ sub _make_fieldvaluecontrol
     for (keys %$h)
     {
         $dbh->do('UPDATE fielddefs SET obsolete=? WHERE name=?', undef, Bugzilla->params->{$_} ? 0 : 1, $h->{$_});
+    }
+
+    # Copy defaultXXX parameter values to fielddefs.default_value
+    $h = Bugzilla::Config::BugFields->DEFAULTNAMES;
+    for (keys %$h)
+    {
+        my $f = Bugzilla->get_field($h->{$_});
+        my $v = $f->value_type->new({ name => Bugzilla->params->{$_} });
+        $dbh->do('UPDATE fielddefs SET default_value=? WHERE name=?', undef, $v ? $v->id : undef, $h->{$_});
     }
 }
 
@@ -4067,7 +4078,7 @@ sub _change_select_fields_to_ids
     print "-- Done --\n" if $started;
     # Usually there's a lot of 'unspecified' versions, which substantively are also NULL.
     # Remove them and enable NULLs in these products.
-    if ($dbh->do("SELECT * FROM versions WHERE value='unspecified'"))
+    if ($dbh->selectrow_array("SELECT COUNT(*) FROM versions WHERE value='unspecified'"))
     {
         print "Replacing 'unspecified' versions with NULL\n";
         my $id = Bugzilla->get_field('version')->id;

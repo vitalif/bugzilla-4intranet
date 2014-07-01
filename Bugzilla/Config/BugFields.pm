@@ -72,7 +72,7 @@ sub set_useclassification
     return '';
 }
 
-# A bridge from useXXX to fielddefs.obsolete
+# A bridge from useXXX to fielddefs.obsolete (FIXME: This should be removed at some point)
 sub set_usefield
 {
     my ($value, $param) = @_;
@@ -83,15 +83,18 @@ sub set_usefield
     return '';
 }
 
+# Checker + another bridge from defaultXXX to fielddefs.default_value (FIXME: This should be removed at some point)
 sub check_value
 {
     my ($value, $param) = @_;
-    my $f = DEFAULTNAMES->{$param->{name}};
-    my $legal = Bugzilla->get_field($f)->legal_value_names;
+    my $f = Bugzilla->get_field(DEFAULTNAMES->{$param->{name}});
+    my $legal = $f->legal_value_names;
     if ($value ne '' && !grep { $_ eq $value } @$legal)
     {
         return "Must be a valid $f: one of ".join(', ', @$legal);
     }
+    $f->set_default_value($f->value_type->new({ name => $value })->id);
+    $f->update;
     return '';
 }
 

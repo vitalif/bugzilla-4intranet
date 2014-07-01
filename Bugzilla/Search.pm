@@ -572,6 +572,7 @@ sub STATIC_COLUMNS
         if ($field->type == FIELD_TYPE_BUG_ID)
         {
             push @bugid_fields, $field;
+            $columns->{$id}->{name} = "bugs.$id";
         }
         elsif ($field->type == FIELD_TYPE_BUG_ID_REV)
         {

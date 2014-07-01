@@ -153,13 +153,13 @@ use constant SQL_DEFINITIONS => {
 # Field definitions for the fields that ship with Bugzilla.
 # These are used by populate_field_definitions to populate
 # the fielddefs table.
-use constant DEFAULT_FIELD_COLUMNS => [ qw(name description is_mandatory mailhead clone_bug type value_field null_field) ];
+use constant DEFAULT_FIELD_COLUMNS => [ qw(name description is_mandatory mailhead clone_bug type value_field null_field default_field) ];
 use constant DEFAULT_FIELDS => (map { my $i = 0; $_ = { (map { (DEFAULT_FIELD_COLUMNS->[$i++] => $_) } @$_) } } (
     [ 'bug_id',            'Bug ID',            1, 1, 0 ],
     [ 'short_desc',        'Summary',           1, 1, 0, FIELD_TYPE_FREETEXT ],
     [ 'classification',    'Classification',    1, 1, 0, FIELD_TYPE_SINGLE_SELECT ],
     [ 'product',           'Product',           1, 1, 0, FIELD_TYPE_SINGLE_SELECT ],
-    [ 'version',           'Version',           0, 1, 1, FIELD_TYPE_SINGLE_SELECT, 'product', 'product' ],
+    [ 'version',           'Version',           0, 1, 1, FIELD_TYPE_SINGLE_SELECT, 'product', 'product', 'component' ],
     [ 'rep_platform',      'Platform',          0, 1, 0, FIELD_TYPE_SINGLE_SELECT ],
     [ 'bug_file_loc',      'URL',               0, 1, 1 ],
     [ 'op_sys',            'OS/Version',        0, 1, 1, FIELD_TYPE_SINGLE_SELECT ],
@@ -187,7 +187,7 @@ use constant DEFAULT_FIELDS => (map { my $i = 0; $_ = { (map { (DEFAULT_FIELD_CO
     [ 'attachments.isprivate',   'Attachment is private',  0, 0, 0 ],
     [ 'attachments.submitter',   'Attachment creator',     0, 0, 0 ],
 
-    [ 'target_milestone',      'Target Milestone',      0, 1, 1, FIELD_TYPE_SINGLE_SELECT, 'product', 'product' ],
+    [ 'target_milestone',      'Target Milestone',      0, 1, 1, FIELD_TYPE_SINGLE_SELECT, 'product', 'product', 'product' ],
     [ 'creation_ts',           'Creation time',         1, 0, 0, FIELD_TYPE_DATETIME ],
     [ 'delta_ts',              'Last changed time',     1, 0, 0, FIELD_TYPE_DATETIME ],
     [ 'longdesc',              'Comment',               0, 0, 0 ],
@@ -677,6 +677,29 @@ sub check_is_nullable
     return $value ? $self->null_visibility_values->{$value} : 1;
 }
 
+sub get_default
+{
+    my $self = shift;
+    my ($bug) = @_;
+    my $default = $self->default_value;
+    if ($self->default_field_id)
+    {
+        my $value = $bug->get_ids($self->default_field->name);
+        my $d = Bugzilla->fieldvaluecontrol->{$self->default_field_id}
+            ->{defaults}->{$self->id};
+        for (ref $value ? @$value : $value)
+        {
+            $default = $d->{$_} if $d->{$_};
+        }
+    }
+    if ($default && $self->is_select)
+    {
+        $default = $self->value_type->new_from_list([ split /,/, $default ]);
+        $default = $default->[0] if $self->type == FIELD_TYPE_SINGLE_SELECT;
+    }
+    return $default;
+}
+
 =pod
 
 =over
@@ -1150,6 +1173,7 @@ sub populate_field_definitions
             $field->set_is_mandatory($def->{is_mandatory}) if $def->{is_mandatory};
             $field->set_value_field($dbh->selectrow_array('SELECT id FROM fielddefs WHERE name=?', undef, $def->{value_field})) if $def->{value_field};
             $field->set_null_field($dbh->selectrow_array('SELECT id FROM fielddefs WHERE name=?', undef, $def->{null_field})) if $def->{null_field};
+            $field->set_default_field($dbh->selectrow_array('SELECT id FROM fielddefs WHERE name=?', undef, $def->{default_field})) if $def->{default_field};
             $field->update();
         }
         else

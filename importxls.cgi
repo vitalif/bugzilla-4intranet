@@ -227,16 +227,6 @@ else
     for my $bug (@$bugs{sort {$a <=> $b} keys %$bugs})
     {
         $bug->{$_} ||= $bug_tpl->{$_} for keys %$bug_tpl;
-
-        # Set default value if value is not set
-        foreach my $field (keys %$custom_fields)
-        {
-            next if !$field || $bug->{$field};
-            my $control_field = $custom_fields->{$field}->value_field;
-            next unless $bug->{ $control_field->{name} };
-            $bug->{$field} = $custom_fields->{$field}->get_default_values( $bug->{ $control_field->{name} } );
-        }
-
         if ($bug->{enabled})
         {
             my $id;

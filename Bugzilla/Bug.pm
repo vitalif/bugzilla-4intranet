@@ -684,7 +684,7 @@ sub get_dependent_check_order
             {
                 unshift @a, $f;
                 delete $check{$f->id};
-                unshift @d, $f->visibility_field_id, $f->value_field_id;
+                unshift @d, $f->visibility_field_id, $f->value_field_id, $f->null_field_id, $f->default_field_id;
             }
         }
         push @check, @a;
@@ -747,9 +747,22 @@ sub check_dependent_fields
             my $value_objs = $self->{_unknown_dependent_values}->{$fn} || $self->get_object($fn);
             if (!defined $value_objs)
             {
-                # FIXME Implement default field values?
-                next if $field_obj->check_is_nullable($self);
-                ThrowUserError('object_not_specified', { class => $field_obj->value_type, field => $field_obj });
+                my $nullable = $field_obj->check_is_nullable($self);
+                if (!$nullable || !$self->id)
+                {
+                    # Try to select default value
+                    my $default = $field_obj->get_default($self);
+                    if ($default)
+                    {
+                        $self->set($field_obj->name, $default);
+                        $value_objs = $self->{_unknown_dependent_values}->{$fn} || $self->get_object($fn);
+                    }
+                }
+                if (!defined $value_objs)
+                {
+                    next if $nullable;
+                    ThrowUserError('object_not_specified', { class => $field_obj->value_type, field => $field_obj });
+                }
             }
             $value_objs = [ $value_objs ] if ref $value_objs ne 'ARRAY';
             my @bad = grep { !ref $_ || !$_->check_visibility($self) } @$value_objs;
@@ -765,11 +778,24 @@ sub check_dependent_fields
                 };
             }
         }
-        # Check other custom fields for empty values
-        elsif (!$field_obj->check_is_nullable($self) && $fn ne 'classification' &&
+        # Check other fields for empty values
+        elsif ($fn ne 'classification' &&
             (!$self->{$fn} || $field_obj->type == FIELD_TYPE_MULTI_SELECT && !@{$self->{$fn}}))
         {
-            ThrowUserError('field_not_nullable', { field => $field_obj });
+            my $nullable = $field_obj->check_is_nullable($self);
+            if (!$nullable || !$self->id)
+            {
+                # Try to set default value
+                my $default = $field_obj->get_default($self);
+                if ($default)
+                {
+                    $self->set($field_obj->name, $default);
+                }
+            }
+            if (!$nullable && (!$self->{$fn} || $field_obj->type == FIELD_TYPE_MULTI_SELECT && !@{$self->{$fn}}))
+            {
+                ThrowUserError('field_not_nullable', { field => $field_obj });
+            }
         }
     }
 
