@@ -49,6 +49,7 @@ Bugzilla->send_header(
     -cache_control => 'private, no-cache, must-revalidate',
 );
 
+# FIXME Use same URI for both types, because they are basically identical
 $args->{type} ||= '';
 if ($args->{type} eq 'search')
 {

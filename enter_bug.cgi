@@ -463,6 +463,11 @@ foreach my $field (Bugzilla->active_custom_fields)
     {
         $default{$cf_name} = $cf_value;
     }
+    elsif ($field->default_value && !$field->is_select)
+    {
+        # Default values for select fields are filled by bug-visibility.js
+        $default{$cf_name} = $field->default_value;
+    }
 }
 
 # This allows the Field visibility and value controls to work with the

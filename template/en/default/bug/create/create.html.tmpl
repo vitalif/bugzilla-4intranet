@@ -328,7 +328,6 @@ var close_status_array = [
   [% USE Bugzilla %]
 
   [% FOREACH field = Bugzilla.active_custom_fields %]
-    [%# FIXME Default value?! %]
     <tr id="field_row_[% field.name | html %]">
       [%# Do not care about missing default value IDs or objects - JS will re-fill dependent fields %]
       [% INCLUDE bug/field.html.tmpl

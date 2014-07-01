@@ -1383,12 +1383,14 @@ sub json_visibility
         visibility_field => $self->visibility_field ? $self->visibility_field->name : undef,
         value_field => $self->value_field ? $self->value_field->name : undef,
         nullable => $self->nullable ? 1 : 0,
+        default_value => $self->default_value || undef,
         fields => {},
         values => {},
+        defaults => {},
         null => {},
     };
     my $hash = Bugzilla->fieldvaluecontrol->{$self->id};
-    for my $key (qw(fields values null))
+    for my $key (qw(fields values defaults null))
     {
         $data->{$key} = { map { Bugzilla->get_field($_)->name => $hash->{$key}->{$_} } keys %{$hash->{$key}} };
     }

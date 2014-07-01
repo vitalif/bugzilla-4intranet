@@ -6,7 +6,7 @@
 // This is set to window.onload event from fieldvaluecontrol.cgi
 function initControlledFields()
 {
-    // Initialise fields in correct order (from up-most controller fields)
+    // Initialise fields in correct order (starting with top-most controller fields)
     var initialised = {};
     var doInit = function(f)
     {
@@ -29,42 +29,10 @@ function initControllerField(i)
     var f = document.getElementById(i);
     if (f)
     {
-        if (document.forms['Create'])
+        if (document.forms['Create'] && show_fields[i].default_value)
         {
-            // Find current value of field f by its name
-            var control_id;
-            for (var i in show_fields[f.id]['legal'])
-            {
-                if (f.value == show_fields[f.id]['legal'][i][1])
-                {
-                    control_id = show_fields[f.id]['legal'][i][0];
-                    break;
-                }
-            }
-
-            // Select default value in each controlled field
-            for (var controlled_id in show_fields[f.id]['defaults'])
-            {
-                var controlled = document.getElementById(controlled_id);
-                if (!controlled)
-                {
-                    continue;
-                }
-                var v = show_fields[f.id]['defaults'][controlled_id];
-                if (controlled.nodeName == 'SELECT')
-                {
-                    for (var i in v)
-                    {
-                        i = document.getElementById('v' + v[i] + '_' + controlled_id);
-                        if (i)
-                            i.selected = true;
-                    }
-                }
-                else
-                {
-                    controlled.value = v;
-                }
-            }
+            // Select global default value before selecting dependent ones
+            f._oldDefault = setFieldValue(f, show_fields[i].default_value);
         }
         handleControllerField(document.forms['Create'] ? null : 'INITIAL', f);
         addListener(f, 'change', handleControllerField_this);
@@ -133,6 +101,28 @@ function checkValueVisibility(selected, visible)
     return vis;
 }
 
+function setFieldValue(f, v)
+{
+    if (f.nodeName == 'SELECT')
+    {
+        f.selectedIndex = -1;
+        v = v.split(',');
+        for (var i in v)
+        {
+            i = document.getElementById('v' + v[i] + '_' + f.id);
+            if (i)
+            {
+                i.selected = true;
+            }
+        }
+    }
+    else if (f.type != 'hidden')
+    {
+        f.value = v;
+    }
+    return v;
+}
+
 // Turn on/off fields and values controlled by 'controller' argument
 function handleControllerField(e, controller)
 {
@@ -198,6 +188,59 @@ function handleControllerField(e, controller)
             else if (!vis && item)
             {
                 controlled.removeChild(controlled.options[0]);
+            }
+        }
+    }
+    // Select default values in controlled fields
+    var v;
+    for (var controlled_id in show_fields[controller.id]['defaults'])
+    {
+        controlled = document.getElementById(controlled_id);
+        if (!controlled)
+        {
+            continue;
+        }
+        var diff = false;
+        if (controlled._oldDefault)
+        {
+            // Check if the value is different from previous default
+            if (controlled.nodeName == 'SELECT')
+            {
+                copt = getSelectedIds(controlled);
+                for (var i in controlled._oldDefault)
+                {
+                    if (copt[controlled._oldDefault[i]])
+                    {
+                        delete copt[controlled._oldDefault[i]];
+                    }
+                    else
+                    {
+                        diff = true;
+                        break;
+                    }
+                }
+                for (var i in copt)
+                {
+                    diff = true;
+                    break;
+                }
+            }
+            else
+            {
+                diff = controlled.value != controlled._oldDefault;
+            }
+        }
+        // else means we are on creation form, so also select
+        if (!diff)
+        {
+            v = show_fields[controller.id].default_value;
+            for (var i in opt)
+            {
+                v = show_fields[controller.id]['defaults'][controlled_id][i];
+            }
+            if (v)
+            {
+                controlled._oldDefault = setFieldValue(controlled, v);
             }
         }
     }

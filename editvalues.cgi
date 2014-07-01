@@ -126,7 +126,10 @@ if ($action eq 'control_list')
 
     my $step = $ARGS->{step} || 0;
     my $visibility_value_id = $ARGS->{visibility_value_id};
-    $visibility_value_id = Bugzilla::Field::Choice->type($field->value_field)->new($visibility_value_id)->{id};
+    if ($visibility_value_id)
+    {
+        $visibility_value_id = Bugzilla::Field::Choice->type($field->value_field)->new($visibility_value_id)->{id};
+    }
 
     my $values = $ARGS->{values};
     my $need_token = 0;
