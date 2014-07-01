@@ -179,11 +179,51 @@ var constants = {
         <select style="width: 400px" name="visibility_field_id" id="visibility_field_id">
           <option value="">---</option>
           [% FOREACH sel_field = Bugzilla.get_fields({ is_select => 1 }) %]
-            [%# FIXME now, fields with non-unique value name is not allowed %]
+            [%# FIXME now, fields with non-unique value names are not allowed %]
             [% NEXT IF sel_field.id == field.id || sel_field.name == "component" ||
                 sel_field.name == "version" || sel_field.name == "target_milestone" %]
             <option value="[% sel_field.id | html %]"
               [% ' selected="selected"' IF sel_field.id == field.visibility_field.id %]>
+              [% sel_field.description | html %]
+              ([% sel_field.name | html %])
+            </option>
+          [% END %]
+        </select>
+      </td>
+    </tr>
+    <tr valign="top" id="null_field_id_row">
+      <th align="left" colspan="2"><label for="null_field_id">
+        Allow empty value depending on the value of:
+      </label></th>
+      <td colspan="2">
+        <select style="width: 400px" name="null_field_id" id="null_field_id">
+          <option value="">---</option>
+          [% FOREACH sel_field = Bugzilla.get_fields({ is_select => 1 }) %]
+            [%# FIXME now, fields with non-unique value names are not allowed %]
+            [% NEXT IF sel_field.id == field.id || sel_field.name == "component" ||
+                sel_field.name == "version" || sel_field.name == "target_milestone" %]
+            <option value="[% sel_field.id | html %]"
+              [% ' selected="selected"' IF sel_field.id == field.null_field.id %]>
+              [% sel_field.description | html %]
+              ([% sel_field.name | html %])
+            </option>
+          [% END %]
+        </select>
+      </td>
+    </tr>
+    <tr valign="top">
+      <th align="left" colspan="2"><label for="default_field_id">
+        Make default value dependent on the value of:
+      </label></th>
+      <td colspan="2">
+        <select style="width: 400px" name="default_field_id" id="default_field_id">
+          <option value="">---</option>
+          [% FOREACH sel_field = Bugzilla.get_fields({ is_select => 1 }) %]
+            [%# FIXME now, fields with non-unique value names are not allowed %]
+            [% NEXT IF sel_field.id == field.id || sel_field.name == "component" ||
+                sel_field.name == "version" || sel_field.name == "target_milestone" %]
+            <option value="[% sel_field.id | html %]"
+              [% ' selected="selected"' IF sel_field.id == field.default_field.id %]>
               [% sel_field.description | html %]
               ([% sel_field.name | html %])
             </option>
@@ -253,9 +293,11 @@ var constants = {
         </select>
       </td>
     </tr>
+    [% END %]
+    [% IF field.null_field %]
     <tr valign="top" id="allow_null_in_row">
       <th colspan="2" align="left">
-        <label for="null_visibility_values">Allow empty value only if [% field.visibility_field.description | html %] is set to:</label><br />
+        <label for="null_visibility_values">Allow empty value only if [% field.null_field.description | html %] is set to:</label><br />
         <span style="font-weight: normal">(<a href="javascript:void(0)"
           onclick="document.getElementById('null_visibility_values').selectedIndex=-1">clear options</a>
           to always allow empty value)</span>
@@ -264,8 +306,8 @@ var constants = {
         [% SET null = field.null_visibility_values %]
         <select style="width: 400px" id="null_visibility_values"
           name="null_visibility_values" size="7" multiple="multiple">
-          [% FOREACH value = field.visibility_field.legal_values %]
-            [% IF !vis || vis.${value.id} %]
+          [% FOREACH value = field.null_field.legal_values %]
+            [% IF field.null_field_id != field.visibility_field_id || !vis || vis.${value.id} %]
             <option value="[% value.id | html %]"[% ' selected="selected"' IF null && null.${value.id} %]>
               [% value.name | html %]
             </option>

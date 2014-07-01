@@ -109,6 +109,8 @@ use constant DB_COLUMNS => qw(
     default_value
     visibility_field_id
     value_field_id
+    null_field_id
+    default_field_id
 );
 
 use constant REQUIRED_CREATE_FIELDS => qw(name description);
@@ -124,6 +126,8 @@ use constant VALIDATORS => {
     type                => \&_check_type,
     visibility_field_id => \&_check_visibility_field_id,
     add_to_deps         => \&_check_add_to_deps,
+    null_field_id       => \&_check_visibility_field_id,
+    default_field_id    => \&_check_visibility_field_id,
 };
 
 use constant UPDATE_VALIDATORS => {
@@ -149,7 +153,7 @@ use constant SQL_DEFINITIONS => {
 # Field definitions for the fields that ship with Bugzilla.
 # These are used by populate_field_definitions to populate
 # the fielddefs table.
-use constant DEFAULT_FIELD_COLUMNS => [ qw(name description is_mandatory mailhead clone_bug type value_field visibility_field) ];
+use constant DEFAULT_FIELD_COLUMNS => [ qw(name description is_mandatory mailhead clone_bug type value_field null_field) ];
 use constant DEFAULT_FIELDS => (map { my $i = 0; $_ = { (map { (DEFAULT_FIELD_COLUMNS->[$i++] => $_) } @$_) } } (
     [ 'bug_id',            'Bug ID',            1, 1, 0 ],
     [ 'short_desc',        'Summary',           1, 1, 0, FIELD_TYPE_FREETEXT ],
@@ -646,9 +650,9 @@ sub has_visibility_value
 sub null_visibility_values
 {
     my $self = shift;
-    return undef if !$self->visibility_field_id;
+    return undef if !$self->null_field_id;
     my $h = Bugzilla->fieldvaluecontrol
-        ->{$self->visibility_field_id}->{null}->{$self->id};
+        ->{$self->null_field_id}->{null}->{$self->id};
     return $h && %$h ? $h : undef;
 }
 
@@ -668,7 +672,7 @@ sub check_is_nullable
     $self->nullable || return 0;
     $self->null_visibility_values || return 1;
     my $bug = shift || return 1;
-    my $vf = $self->visibility_field || return 1;
+    my $vf = $self->null_field || return 1;
     my $value = bug_or_hash_value($bug, $vf);
     return $value ? $self->null_visibility_values->{$value} : 1;
 }
@@ -722,6 +726,38 @@ sub value_field_id
     my $self = shift;
     return undef if !$self->is_select && $self->type != FIELD_TYPE_BUG_ID_REV;
     return $self->{value_field_id};
+}
+
+sub null_field
+{
+    my $self = shift;
+    if ($self->{null_field_id})
+    {
+        return Bugzilla->get_field($self->{null_field_id});
+    }
+    return undef;
+}
+
+sub null_field_id
+{
+    my $self = shift;
+    return $self->{null_field_id};
+}
+
+sub default_field
+{
+    my $self = shift;
+    if ($self->{default_field_id})
+    {
+        return Bugzilla->get_field($self->{default_field_id});
+    }
+    return undef;
+}
+
+sub default_field_id
+{
+    my $self = shift;
+    return $self->{default_field_id};
 }
 
 =pod
@@ -814,6 +850,20 @@ sub set_value_field
     my ($self, $value) = @_;
     $self->set('value_field_id', $value);
     delete $self->{value_field};
+}
+
+sub set_null_field
+{
+    my ($self, $value) = @_;
+    $self->set('null_field_id', $value);
+    delete $self->{null_field};
+}
+
+sub set_default_field
+{
+    my ($self, $value) = @_;
+    $self->set('default_field_id', $value);
+    delete $self->{default_field};
 }
 
 # This is only used internally by upgrade code in Bugzilla::Field.
@@ -1099,7 +1149,7 @@ sub populate_field_definitions
             $field->set_clone_bug($def->{clone_bug}) if !$has_clone_bug;
             $field->set_is_mandatory($def->{is_mandatory}) if $def->{is_mandatory};
             $field->set_value_field($dbh->selectrow_array('SELECT id FROM fielddefs WHERE name=?', undef, $def->{value_field})) if $def->{value_field};
-            $field->set_visibility_field($dbh->selectrow_array('SELECT id FROM fielddefs WHERE name=?', undef, $def->{visibility_field})) if $def->{visibility_field};
+            $field->set_null_field($dbh->selectrow_array('SELECT id FROM fielddefs WHERE name=?', undef, $def->{null_field})) if $def->{null_field};
             $field->update();
         }
         else
@@ -1247,9 +1297,10 @@ sub update_visibility_values
 {
     my ($controlled_field, $controlled_value_id, $visibility_value_ids) = @_;
     $visibility_value_ids ||= [];
-    my $vis_field = $controlled_value_id > 0
-        ? $controlled_field->value_field
-        : $controlled_field->visibility_field;
+    my $vis_field = $controlled_value_id == -1
+        ? $controlled_field->null_field : ($controlled_value_id > 0
+            ? $controlled_field->value_field
+            : $controlled_field->visibility_field);
     if (!$vis_field)
     {
         return undef;
@@ -1299,7 +1350,7 @@ sub toggle_value
     elsif (!$enable && !$any)
     {
         my $obj = Bugzilla->get_field($f);
-        $obj = $v > 0 ? $obj->value_field : $obj->visibility_field;
+        $obj = $v > 0 ? $obj->value_field : ($v == 0 ? $obj->visibility_field : $obj->null_field);
         # FIXME: Taint bug (5.18.2): $obj->value_type->DB_TABLE becomes tainted
         # and taints SQL query if substituted directly into dbh->do()...
         my $t = $obj->value_type->DB_TABLE;
@@ -1382,6 +1433,8 @@ sub json_visibility
         legal => [ map { [ $_->id, $_->name ] } @{$self->legal_values} ],
         visibility_field => $self->visibility_field ? $self->visibility_field->name : undef,
         value_field => $self->value_field ? $self->value_field->name : undef,
+        null_field => $self->null_field ? $self->null_field->name : undef,
+        default_field => $self->default_field ? $self->default_field->name : undef,
         nullable => $self->nullable ? 1 : 0,
         default_value => $self->default_value || undef,
         fields => {},

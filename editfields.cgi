@@ -119,6 +119,7 @@ elsif ($action eq 'update')
         # At the moment, though, it has no effect for non-custom fields.
         $field->set_clone_bug($cgi->param('clone_bug'));
         $field->set_value_field($cgi->param('value_field_id'));
+        $field->set_default_field($cgi->param('default_field_id'));
         $field->set_add_to_deps($cgi->param('add_to_deps'));
         my $vf = $cgi->param('visibility_field_id');
         if ($vf != $field->visibility_field_id)
@@ -130,6 +131,16 @@ elsif ($action eq 'update')
         else
         {
             $field->set_visibility_values([ $cgi->param('visibility_value_id') ]);
+            $field->set_null_visibility_values([ $cgi->param('null_visibility_values') ]) if $field->nullable;
+        }
+        $vf = $cgi->param('null_field_id');
+        if ($vf != $field->null_field_id)
+        {
+            $field->set_null_field($vf);
+            $field->set_null_visibility_values([]);
+        }
+        else
+        {
             $field->set_null_visibility_values([ $cgi->param('null_visibility_values') ]) if $field->nullable;
         }
     }

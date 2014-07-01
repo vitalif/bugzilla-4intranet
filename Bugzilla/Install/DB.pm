@@ -65,7 +65,7 @@ sub update_fielddefs_definition
 
     # Add columns that don't require special logic
     for my $c (qw(type custom clone_bug url is_mandatory add_to_deps default_value
-        visibility_field_id value_field_id))
+        visibility_field_id value_field_id null_field_id default_field_id))
     {
         $dbh->bz_add_column('fielddefs', $c);
     }

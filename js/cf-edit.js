@@ -47,5 +47,6 @@ function onChangeNullable()
 {
   var u = document.getElementById('nullable');
   var n = document.getElementById('allow_null_in_row');
-  n.style.display = u.checked ? '' : 'none';
+  var c = document.getElementById('null_field_id_row');
+  c.style.display = n.style.display = u.checked ? '' : 'none';
 }

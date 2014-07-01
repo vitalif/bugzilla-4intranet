@@ -933,9 +933,9 @@ sub fieldvaluecontrol
     if (!$cache->{fieldvaluecontrol})
     {
         my $rows = $class->dbh->selectall_arrayref(
-            'SELECT c.*, (CASE WHEN c.value_id <= 0 THEN f.visibility_field_id ELSE f.value_field_id END) visibility_field_id'.
-            ' FROM fieldvaluecontrol c, fielddefs f WHERE f.id=c.field_id'.
-            ' ORDER BY c.field_id, c.value_id, (CASE WHEN c.value_id=0 THEN f.visibility_field_id ELSE f.value_field_id END), c.visibility_value_id', {Slice=>{}}
+            'SELECT c.*, (CASE WHEN c.value_id=-1 THEN f.null_field_id'.
+            ' WHEN c.value_id=0 THEN f.visibility_field_id ELSE f.value_field_id END) visibility_field_id'.
+            ' FROM fieldvaluecontrol c, fielddefs f WHERE f.id=c.field_id', {Slice=>{}}
         );
         my $has = {};
         for (@$rows)
@@ -968,13 +968,12 @@ sub fieldvaluecontrol
         }
         # Dependent defaults
         $rows = $class->dbh->selectall_arrayref(
-            # FIXME: it will be default_field_id
-            'SELECT d.field_id, f.visibility_field_id, d.visibility_value_id, d.default_value'.
+            'SELECT d.field_id, f.default_field_id, d.visibility_value_id, d.default_value'.
             ' FROM field_defaults d, fielddefs f WHERE f.id=d.field_id', {Slice=>{}}
         );
         for (@$rows)
         {
-            $has->{$_->{visibility_field_id}}
+            $has->{$_->{default_field_id}}
                 ->{defaults}
                 ->{$_->{field_id}}
                 ->{$_->{visibility_value_id}} = $_->{default_value};

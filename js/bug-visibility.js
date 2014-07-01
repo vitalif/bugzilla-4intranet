@@ -15,6 +15,8 @@ function initControlledFields()
             initialised[f] = true;
             doInit(show_fields[f].visibility_field);
             doInit(show_fields[f].value_field);
+            doInit(show_fields[f].null_field);
+            doInit(show_fields[f].default_field);
             initControllerField(f);
         }
     };

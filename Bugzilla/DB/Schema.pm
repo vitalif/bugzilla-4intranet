@@ -567,6 +567,8 @@ use constant ABSTRACT_SCHEMA => {
             # Fields that change the behaviour of this one in various ways
             visibility_field_id => {TYPE => 'INT4', REFERENCES => {TABLE => 'fielddefs', COLUMN => 'id'}},
             value_field_id      => {TYPE => 'INT4', REFERENCES => {TABLE => 'fielddefs', COLUMN => 'id'}},
+            null_field_id       => {TYPE => 'INT4', REFERENCES => {TABLE => 'fielddefs', COLUMN => 'id'}},
+            default_field_id    => {TYPE => 'INT4', REFERENCES => {TABLE => 'fielddefs', COLUMN => 'id'}},
         ],
         INDEXES => [
             fielddefs_name_idx    => {FIELDS => ['name'], TYPE => 'UNIQUE'},
