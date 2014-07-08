@@ -175,7 +175,7 @@ my %dupe_relation = @{$dbh->selectcol_arrayref(
     {Columns => [1,2]})};
 add_indirect_dups(\%total_dups, \%dupe_relation);
 
-my $reso_field_id = get_field_id('resolution');
+my $reso_field_id = Bugzilla->get_field('resolution')->id;
 my %since_dups = @{$dbh->selectcol_arrayref(
     "SELECT dupe_of, COUNT(dupe)
        FROM duplicates INNER JOIN bugs_activity 

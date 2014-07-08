@@ -2014,7 +2014,7 @@ sub changed
     }
     if (%f)
     {
-        $ba_term->{where} .= " AND $ba.fieldid IN (".join(",", map { get_field_id($_) } keys %f).")";
+        $ba_term->{where} .= " AND $ba.fieldid IN (".join(",", map { Bugzilla->get_field($_)->id } keys %f).")";
         $v->{fields} = [ keys %f ];
     }
     elsif ($any_fields)

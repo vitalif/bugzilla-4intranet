@@ -1064,8 +1064,8 @@ sub transform_id_changes
     {
         my $name = $f->name;
         next if $name eq 'product' || $name eq 'component' || $name eq 'classification' || !$changes->{$name};
-        $changes->{$name}->[0] = $f->new_choice($changes->{$name}->[0])->name if $changes->{$name}->[0];
-        $changes->{$name}->[1] = $f->new_choice($changes->{$name}->[1])->name if $changes->{$name}->[1];
+        $changes->{$name}->[0] = $self->{_old_self}->get_string($name) if $changes->{$name}->[0];
+        $changes->{$name}->[1] = $self->get_string($name) if $changes->{$name}->[1];
     }
 
     # Transform user IDs to names
@@ -4132,7 +4132,8 @@ sub get_string
     my $value;
     if ($field && $field->type == FIELD_TYPE_SINGLE_SELECT)
     {
-        $value = $self->get_object($f) && $self->get_object($f)->name;
+        $value = $self->get_object($f);
+        $value = $value && $value->name;
     }
     elsif ($field && $field->type == FIELD_TYPE_MULTI_SELECT)
     {

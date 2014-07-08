@@ -132,6 +132,10 @@ use Cwd qw(abs_path);
     FIELD_TYPE_EXTURL
     FIELD_TYPE_BUG_ID_REV
 
+    FLAG_VISIBLE
+    FLAG_NULLABLE
+    FLAG_CLONED
+
     TIMETRACKING_FIELDS
 
     USAGE_MODE_BROWSER
@@ -384,6 +388,10 @@ use constant FIELD_TYPE_KEYWORDS => 8;
 use constant FIELD_TYPE_NUMERIC => 30;
 use constant FIELD_TYPE_EXTURL => 31;
 use constant FIELD_TYPE_BUG_ID_REV => 32;
+
+use constant FLAG_VISIBLE => 0;
+use constant FLAG_NULLABLE => -1;
+use constant FLAG_CLONED => -2;
 
 use constant BUG_ID_ADD_TO_BLOCKED => 1;
 use constant BUG_ID_ADD_TO_DEPENDSON => 2;

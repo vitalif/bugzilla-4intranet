@@ -51,9 +51,6 @@ Bugzilla::Field - a particular piece of information about bugs
       print $field->description . " is obsolete\n";
   }
 
-  # Validation Routines
-  $fieldid = get_field_id($fieldname);
-
 =head1 DESCRIPTION
 
 Field.pm defines field objects, which represent the particular pieces
@@ -72,7 +69,7 @@ package Bugzilla::Field;
 use strict;
 
 use base qw(Exporter Bugzilla::Object);
-@Bugzilla::Field::EXPORT = qw(get_field_id update_visibility_values);
+@Bugzilla::Field::EXPORT = qw(update_visibility_values);
 
 use Bugzilla::Constants;
 use Bugzilla::Error;
@@ -111,6 +108,7 @@ use constant DB_COLUMNS => qw(
     value_field_id
     null_field_id
     default_field_id
+    clone_field_id
 );
 
 use constant REQUIRED_CREATE_FIELDS => qw(name description);
@@ -128,6 +126,7 @@ use constant VALIDATORS => {
     add_to_deps         => \&_check_add_to_deps,
     null_field_id       => \&_check_visibility_field_id,
     default_field_id    => \&_check_visibility_field_id,
+    clone_field_id      => \&_check_visibility_field_id,
 };
 
 use constant UPDATE_VALIDATORS => {
@@ -156,11 +155,11 @@ use constant SQL_DEFINITIONS => {
 use constant DEFAULT_FIELD_COLUMNS => [ qw(name description is_mandatory mailhead clone_bug type value_field null_field default_field) ];
 use constant DEFAULT_FIELDS => (map { my $i = 0; $_ = { (map { (DEFAULT_FIELD_COLUMNS->[$i++] => $_) } @$_) } } (
     [ 'bug_id',            'Bug ID',            1, 1, 0 ],
-    [ 'short_desc',        'Summary',           1, 1, 0, FIELD_TYPE_FREETEXT ],
+    [ 'short_desc',        'Summary',           1, 1, 1, FIELD_TYPE_FREETEXT ],
     [ 'classification',    'Classification',    1, 1, 0, FIELD_TYPE_SINGLE_SELECT ],
     [ 'product',           'Product',           1, 1, 0, FIELD_TYPE_SINGLE_SELECT ],
     [ 'version',           'Version',           0, 1, 1, FIELD_TYPE_SINGLE_SELECT, 'product', 'product', 'component' ],
-    [ 'rep_platform',      'Platform',          0, 1, 0, FIELD_TYPE_SINGLE_SELECT ],
+    [ 'rep_platform',      'Platform',          0, 1, 1, FIELD_TYPE_SINGLE_SELECT ],
     [ 'bug_file_loc',      'URL',               0, 1, 1 ],
     [ 'op_sys',            'OS/Version',        0, 1, 1, FIELD_TYPE_SINGLE_SELECT ],
     [ 'bug_status',        'Status',            1, 1, 0, FIELD_TYPE_SINGLE_SELECT ],
@@ -545,12 +544,6 @@ sub value_type
     return Bugzilla::Field::Choice->type($self);
 }
 
-sub new_choice
-{
-    my $self = shift;
-    return $self->value_type->new(@_);
-}
-
 # Includes disabled values is $include_disabled = true
 sub legal_values
 {
@@ -596,37 +589,6 @@ sub restricted_legal_values
     return $rc_cache->{$self}->{restricted_legal_values}->{$controller_value};
 }
 
-=pod
-
-=over
-
-=item C<visibility_field>
-
-What field controls this field's visibility? Returns a C<Bugzilla::Field>
-object representing the field that controls this field's visibility.
-
-Returns undef if there is no field that controls this field's visibility.
-
-=back
-
-=cut
-
-sub visibility_field
-{
-    my $self = shift;
-    if ($self->{visibility_field_id})
-    {
-        return Bugzilla->get_field($self->{visibility_field_id});
-    }
-    return undef;
-}
-
-sub visibility_field_id
-{
-    my $self = shift;
-    return $self->{visibility_field_id};
-}
-
 sub visibility_values
 {
     my $self = shift;
@@ -656,6 +618,15 @@ sub null_visibility_values
     return $h && %$h ? $h : undef;
 }
 
+sub clone_visibility_values
+{
+    my $self = shift;
+    return undef if !$self->null_field_id;
+    my $h = Bugzilla->fieldvaluecontrol
+        ->{$self->clone_field_id}->{clone}->{$self->id};
+    return $h && %$h ? $h : undef;
+}
+
 # Check visibility of field for a bug or for a hashref with default value names
 sub check_visibility
 {
@@ -666,6 +637,7 @@ sub check_visibility
     return $value ? $self->has_visibility_value($value) : 1;
 }
 
+# Check if a field is nullable for a bug or for a hashref with default value names
 sub check_is_nullable
 {
     my $self = shift;
@@ -677,6 +649,19 @@ sub check_is_nullable
     return $value ? $self->null_visibility_values->{$value} : 1;
 }
 
+# Check if a field should be copied when cloning $bug
+sub check_clone
+{
+    my $self = shift;
+    $self->clone_bug || return 0;
+    my $vf = $self->clone_field || return 1;
+    $self->clone_visibility_values || return 1;
+    my $bug = shift || return 1;
+    my $value = bug_or_hash_value($bug, $vf);
+    return $value ? $self->clone_visibility_values->{$value} : 1;
+}
+
+# Get default value for this field in bug $bug
 sub get_default
 {
     my $self = shift;
@@ -720,29 +705,10 @@ sub controls_visibility_of
     return $self->{controls_visibility_of};
 }
 
-=pod
-
-=over
-
-=item C<value_field>
-
-The Bugzilla::Field that controls the list of values for this field.
-
-Returns undef if there is no field that controls this field's visibility.
-
-=back
-
-=cut
-
-sub value_field
-{
-    my $self = shift;
-    if (my $id = $self->value_field_id)
-    {
-        $self->{value_field} ||= Bugzilla::Field->new($id);
-    }
-    return $self->{value_field};
-}
+sub visibility_field_id { $_[0]->{visibility_field_id} }
+sub null_field_id { $_[0]->{null_field_id} }
+sub default_field_id { $_[0]->{default_field_id} }
+sub clone_field_id { $_[0]->{clone_field_id} }
 
 sub value_field_id
 {
@@ -751,6 +717,30 @@ sub value_field_id
     return $self->{value_field_id};
 }
 
+# Field that controls visibility of this one
+sub visibility_field
+{
+    my $self = shift;
+    if ($self->{visibility_field_id})
+    {
+        return Bugzilla->get_field($self->{visibility_field_id});
+    }
+    return undef;
+}
+
+# Field that controls values of this one, if this one is a select,
+# and related direct BUG_ID field, if this one is BUG_ID_REV
+sub value_field
+{
+    my $self = shift;
+    if (my $id = $self->value_field_id)
+    {
+        return Bugzilla->get_field($id);
+    }
+    return undef;
+}
+
+# Field that allows/forbids empty value for this one
 sub null_field
 {
     my $self = shift;
@@ -761,12 +751,7 @@ sub null_field
     return undef;
 }
 
-sub null_field_id
-{
-    my $self = shift;
-    return $self->{null_field_id};
-}
-
+# Field that controls default values for this one
 sub default_field
 {
     my $self = shift;
@@ -777,10 +762,15 @@ sub default_field
     return undef;
 }
 
-sub default_field_id
+# Field that controls copying the value of this field when cloning
+sub clone_field
 {
     my $self = shift;
-    return $self->{default_field_id};
+    if ($self->{clone_field_id})
+    {
+        return Bugzilla->get_field($self->{clone_field_id});
+    }
+    return undef;
 }
 
 =pod
@@ -849,14 +839,13 @@ sub set_visibility_field
 {
     my ($self, $value) = @_;
     $self->set('visibility_field_id', $value);
-    delete $self->{visibility_field};
 }
 
 sub set_visibility_values
 {
     my $self = shift;
     my ($value_ids) = @_;
-    update_visibility_values($self, 0, $value_ids);
+    update_visibility_values($self, FLAG_VISIBLE, $value_ids);
     return $value_ids && @$value_ids;
 }
 
@@ -864,7 +853,15 @@ sub set_null_visibility_values
 {
     my $self = shift;
     my ($value_ids) = @_;
-    update_visibility_values($self, -1, $value_ids);
+    update_visibility_values($self, FLAG_NULLABLE, $value_ids);
+    return $value_ids && @$value_ids;
+}
+
+sub set_clone_visibility_values
+{
+    my $self = shift;
+    my ($value_ids) = @_;
+    update_visibility_values($self, FLAG_CLONED, $value_ids);
     return $value_ids && @$value_ids;
 }
 
@@ -872,21 +869,18 @@ sub set_value_field
 {
     my ($self, $value) = @_;
     $self->set('value_field_id', $value);
-    delete $self->{value_field};
 }
 
 sub set_null_field
 {
     my ($self, $value) = @_;
     $self->set('null_field_id', $value);
-    delete $self->{null_field};
 }
 
 sub set_default_field
 {
     my ($self, $value) = @_;
     $self->set('default_field_id', $value);
-    delete $self->{default_field};
 }
 
 # This is only used internally by upgrade code in Bugzilla::Field.
@@ -983,6 +977,8 @@ sub remove_from_db
     }
 
     $self->set_visibility_values(undef);
+    $self->set_null_visibility_values(undef);
+    $self->set_clone_visibility_values(undef);
 
     # Update some other field (refresh the cache)
     Bugzilla->get_field('delta_ts')->touch;
@@ -1265,33 +1261,6 @@ sub populate_field_definitions
     }
 }
 
-=pod
-
-=over
-
-=item C<get_field_id($fieldname)>
-
-Description: Returns the ID of the specified field name and throws
-             an error if this field does not exist.
-
-Params:      $name - a field name
-
-Returns:     the corresponding field ID or an error if the field name
-             does not exist.
-
-=back
-
-=cut
-
-sub get_field_id
-{
-    my ($name) = @_;
-    trick_taint($name);
-    my $field = Bugzilla->get_field($name);
-    ThrowCodeError('invalid_field_name', { field => $name }) unless $field;
-    return $field->id;
-}
-
 # Get choice value object for a bug or for a hashref with default value names
 sub bug_or_hash_value
 {
@@ -1316,15 +1285,21 @@ sub bug_or_hash_value
     return $value;
 }
 
+sub flag_field
+{
+    my ($self, $flag) = @_;
+    return $self->value_field if $flag > 0;
+    return $self->visibility_field if $flag == FLAG_VISIBLE;
+    return $self->null_field if $flag == FLAG_NULLABLE;
+    return $self->clone_field if $flag == FLAG_CLONED;
+}
+
 # Shared between Bugzilla::Field and Bugzilla::Field::Choice
 sub update_visibility_values
 {
     my ($controlled_field, $controlled_value_id, $visibility_value_ids) = @_;
     $visibility_value_ids ||= [];
-    my $vis_field = $controlled_value_id == -1
-        ? $controlled_field->null_field : ($controlled_value_id > 0
-            ? $controlled_field->value_field
-            : $controlled_field->visibility_field);
+    my $vis_field = $controlled_field->flag_field($controlled_value_id);
     if (!$vis_field)
     {
         return undef;
@@ -1373,8 +1348,7 @@ sub toggle_value
     }
     elsif (!$enable && !$any)
     {
-        my $obj = Bugzilla->get_field($f);
-        $obj = $v > 0 ? $obj->value_field : ($v == 0 ? $obj->visibility_field : $obj->null_field);
+        my $obj = Bugzilla->get_field($f)->flag_field($v);
         # FIXME: Taint bug (5.18.2): $obj->value_type->DB_TABLE becomes tainted
         # and taints SQL query if substituted directly into dbh->do()...
         my $t = $obj->value_type->DB_TABLE;

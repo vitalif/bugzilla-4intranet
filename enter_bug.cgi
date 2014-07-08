@@ -197,6 +197,8 @@ sub pick_valid_field_value (@)
     return undef;
 }
 
+# FIXME Regexps for platform and operating system should be stored in the database,
+# probably in a property of Platform/OpSys objects.
 sub pickplatform
 {
     my ($ARGS) = @_;
@@ -477,22 +479,11 @@ $default{product_obj} = $product;
 
 if ($cloned_bug_id)
 {
-    $default{component_}     = $cloned_bug->component;
-    $default{priority}       = $cloned_bug->priority_obj->name if $cloned_bug->priority;
-    $default{bug_severity}   = $cloned_bug->bug_severity_obj->name if $cloned_bug->bug_severity;
-    $default{rep_platform}   = $cloned_bug->rep_platform_obj->name if Bugzilla->params->{useplatform} && $cloned_bug->rep_platform;
-    $default{op_sys}         = $cloned_bug->op_sys_obj->name if Bugzilla->params->{useopsys} && $cloned_bug->op_sys;
-
-    $default{short_desc}     = $cloned_bug->short_desc;
-    $default{bug_file_loc}   = $cloned_bug->bug_file_loc;
-    $default{keywords}       = $cloned_bug->keywords;
-    $default{dependson}      = "";
-    $default{blocked}        = $cloned_bug_id;
-    $default{deadline}       = $cloned_bug->deadline;
-    $default{status_whiteboard} = $cloned_bug->status_whiteboard;
+    $default{dependson} = "";
+    $default{blocked} = $cloned_bug_id;
 
     my @cc;
-    my $comp = Bugzilla::Component->new({ product => $product, name => $cloned_bug->component });
+    my $comp = $cloned_bug->component_obj;
     if ($comp && $product->id != $cloned_bug->product_id)
     {
         @cc = map { $_->login } @{$comp->initial_cc || []};
@@ -525,25 +516,23 @@ if ($cloned_bug_id)
 
     $vars->{cc} = join ', ', @cc;
 
-    # Copy values of custom fields marked with 'clone_bug = TRUE'
-    # But don't copy values of custom fields which are invisible for the new product
-    my @clone_bug_fields = grep { $_->clone_bug &&
-        (!$_->visibility_field || $_->visibility_field->name ne 'product' ||
-        $_->has_visibility_value($product))
-    } Bugzilla->active_custom_fields;
-    foreach my $field (@clone_bug_fields)
+    # Copy values of fields marked with 'clone_bug = TRUE'
+    foreach my $field (Bugzilla->get_fields({ obsolete => 0, clone_bug => 1 }))
     {
         my $field_name = $field->name;
+        next if $field_name eq 'product' || $field_name eq 'classification' ||
+            $field->type == FIELD_TYPE_BUG_ID_REV ||
+            !$field->check_clone($cloned_bug);
         if ($field->type == FIELD_TYPE_SINGLE_SELECT)
         {
-            $default{$field_name} = $cloned_bug->get_object($field_name);
-            $default{$field_name} = $default{$field_name}->name if $default{$field_name};
+            # component is a keyword in TT... :-X.($field_name eq 'component' ? '_' : '')
+            $default{$field_name} = $cloned_bug->get_string($field_name);
         }
         elsif ($field->type == FIELD_TYPE_MULTI_SELECT)
         {
             $default{$field_name} = [ map { $_->name } @{ $cloned_bug->get_object($field_name) } ];
         }
-        else
+        elsif (Bugzilla::Bug::_validate_attribute($field_name))
         {
             $default{$field_name} = $cloned_bug->$field_name;
         }

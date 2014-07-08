@@ -933,10 +933,16 @@ sub fieldvaluecontrol
     if (!$cache->{fieldvaluecontrol})
     {
         my $rows = $class->dbh->selectall_arrayref(
-            'SELECT c.*, (CASE WHEN c.value_id=-1 THEN f.null_field_id'.
-            ' WHEN c.value_id=0 THEN f.visibility_field_id ELSE f.value_field_id END) visibility_field_id'.
+            'SELECT c.*, (CASE WHEN c.value_id='.FLAG_CLONED.' THEN f.clone_field_id'.
+            ' WHEN c.value_id='.FLAG_NULLABLE.' THEN f.null_field_id'.
+            ' WHEN c.value_id='.FLAG_VISIBLE.' THEN f.visibility_field_id ELSE f.value_field_id END) visibility_field_id'.
             ' FROM fieldvaluecontrol c, fielddefs f WHERE f.id=c.field_id', {Slice=>{}}
         );
+        my $keys = {
+            FLAG_VISIBLE() => 'fields',
+            FLAG_NULLABLE() => 'null',
+            FLAG_CLONED() => 'clone',
+        };
         my $has = {};
         for (@$rows)
         {
@@ -949,19 +955,11 @@ sub fieldvaluecontrol
                     ->{$_->{value_id}}
                     ->{$_->{visibility_value_id}} = 1;
             }
-            elsif (!$_->{value_id})
+            else
             {
-                # Show field if visibility_field==visibility_value_id
+                # Show field / allow NULL / clone value if visibility_field==visibility_value_id
                 $has->{$_->{visibility_field_id}}
-                    ->{fields}
-                    ->{$_->{field_id}}
-                    ->{$_->{visibility_value_id}} = 1;
-            }
-            elsif ($_->{value_id} == -1)
-            {
-                # Allow NULL if visibility_field==visibility_value_id
-                $has->{$_->{visibility_field_id}}
-                    ->{null}
+                    ->{$keys->{$_->{value_id}}}
                     ->{$_->{field_id}}
                     ->{$_->{visibility_value_id}} = 1;
             }

@@ -569,6 +569,7 @@ use constant ABSTRACT_SCHEMA => {
             value_field_id      => {TYPE => 'INT4', REFERENCES => {TABLE => 'fielddefs', COLUMN => 'id'}},
             null_field_id       => {TYPE => 'INT4', REFERENCES => {TABLE => 'fielddefs', COLUMN => 'id'}},
             default_field_id    => {TYPE => 'INT4', REFERENCES => {TABLE => 'fielddefs', COLUMN => 'id'}},
+            clone_field_id      => {TYPE => 'INT4', REFERENCES => {TABLE => 'fielddefs', COLUMN => 'id'}},
         ],
         INDEXES => [
             fielddefs_name_idx    => {FIELDS => ['name'], TYPE => 'UNIQUE'},

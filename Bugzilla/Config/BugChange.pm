@@ -48,7 +48,7 @@ sub check_resolution
 {
     my $resolution = shift;
     my $f;
-    if (!$f->new_choice({ name => $resolution }))
+    if (!$f->value_type->new({ name => $resolution }))
     {
         return "Must be a valid resolution: one of " . join(', ', $f->legal_value_names);
     }

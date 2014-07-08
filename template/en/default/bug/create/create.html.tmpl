@@ -107,7 +107,7 @@ var close_status_array = [
       <select id="component" name="component" size="7" aria-required="true" class="required">
         [%- FOREACH c = product.active_components %]
           <option id="v[% c.id %]_component" value="[% c.name | html %]"
-            [% " selected=\"selected\"" IF c.name == default.component_ %]>
+            [% " selected=\"selected\"" IF c.name == default.component %]>
             [% c.name | html -%]
           </option>
         [%- END %]

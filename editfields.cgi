@@ -113,11 +113,9 @@ elsif ($action eq 'update')
     $field->set_is_mandatory(!scalar $cgi->param('nullable'));
     $field->set_url(scalar $cgi->param('url'));
     $field->set_default_value($field->type == FIELD_TYPE_MULTI_SELECT ? [ $cgi->param('default_value') ] : scalar $cgi->param('default_value'));
+    $field->set_clone_bug(scalar $cgi->param('clone_bug'));
     if ($field->custom)
     {
-        # TODO enter_bug could be edited for non-custom fields, too.
-        # At the moment, though, it has no effect for non-custom fields.
-        $field->set_clone_bug($cgi->param('clone_bug'));
         $field->set_value_field($cgi->param('value_field_id'));
         $field->set_default_field($cgi->param('default_field_id'));
         $field->set_add_to_deps($cgi->param('add_to_deps'));

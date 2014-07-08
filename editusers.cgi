@@ -332,7 +332,7 @@ if ($action eq 'search') {
                    },
                  undef,
                  ($otherUserID, $userid,
-                  get_field_id('bug_group'),
+                  Bugzilla->get_field('bug_group')->id,
                   join(', ', @groupsRemovedFrom), join(', ', @groupsAddedTo)));
     }
     # XXX: should create profiles_activity entries for blesser changes.
@@ -506,7 +506,7 @@ if ($action eq 'search') {
     # so we have to log these changes manually.
     my %bugs;
     push(@{$bugs{$_->bug_id}->{$_->attach_id || 0}}, $_) foreach @$flags;
-    my $fieldid = get_field_id('flagtypes.name');
+    my $fieldid = Bugzilla->get_field('flagtypes.name')->id;
     foreach my $bug_id (keys %bugs) {
         foreach my $attach_id (keys %{$bugs{$bug_id}}) {
             my @old_summaries = Bugzilla::Flag->snapshot($bugs{$bug_id}->{$attach_id});

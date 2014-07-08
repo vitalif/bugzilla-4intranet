@@ -1795,7 +1795,7 @@ sub create
     # $who is the user who created the new user account, i.e. either an
     # admin or the new user himself.
     my $who = Bugzilla->user->id || $user->id;
-    my $creation_date_fieldid = get_field_id('creation_ts');
+    my $creation_date_fieldid = Bugzilla->get_field('creation_ts')->id;
 
     $dbh->do('INSERT INTO profiles_activity
                           (userid, who, profiles_when, fieldid, newvalue)
