@@ -22,7 +22,7 @@ my $ctype = 'text/javascript'.(Bugzilla->params->{utf8} ? '; charset=utf-8' : ''
 Bugzilla->cache_fields;
 my $touched = datetime_from(Bugzilla->request_cache->{fields_delta_ts})->epoch;
 
-my $user_tag = 'JS'.($args->{type}||'x').($user->id||0);
+my $user_tag = 'JSmeta'.($user->id||0);
 my ($req_tag) = ($ENV{HTTP_IF_NONE_MATCH} || '') =~ /(JS[a-z0-9_]{3,})/iso;
 
 if ($ENV{HTTP_IF_MODIFIED_SINCE} && $user_tag eq $req_tag)
@@ -49,23 +49,14 @@ Bugzilla->send_header(
     -cache_control => 'private, no-cache, must-revalidate',
 );
 
-# FIXME Use same URI for both types, because they are basically identical
-$args->{type} ||= '';
-if ($args->{type} eq 'search')
+my $json = {};
+for (Bugzilla->get_fields({ is_select => 1, obsolete => 0 }))
 {
-    my $json = bz_encode_json(Bugzilla->full_json_visibility);
-    print "var qfVisCached = '$user_tag-".time."';
-var qfVisibility = $json;
-addListener(window, 'load', initQueryformFields);
-";
-}
-elsif ($args->{type} eq 'bug')
-{
-    my $json = bz_encode_json(Bugzilla->full_json_visibility);
-    print "var show_fields_cached = '$user_tag-".time."';
-var show_fields = $json;
-addListener(window, 'load', initControlledFields);
-";
+    $json->{$_->name} = $_->json_visibility;
 }
 
+$json = bz_encode_json($json);
+print "var field_metadata_cached = '$user_tag-".time."';
+var field_metadata = $json;
+";
 exit;

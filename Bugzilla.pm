@@ -981,17 +981,6 @@ sub fieldvaluecontrol
     return $cache->{fieldvaluecontrol};
 }
 
-sub full_json_visibility
-{
-    my $class = shift;
-    my $qv = {};
-    for ($class->get_fields({ is_select => 1, obsolete => 0 }))
-    {
-        $qv->{$_->name} = $_->json_visibility;
-    }
-    return $qv;
-}
-
 sub active_custom_fields
 {
     my $class = shift;

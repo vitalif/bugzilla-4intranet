@@ -3,7 +3,8 @@
  * Author(s): Vitaliy Filippov <vitalif@mail.ru>
  */
 
-// This is set to window.onload event from fieldvaluecontrol.cgi
+addListener(window, 'load', initControlledFields);
+
 function initControlledFields()
 {
     // Initialise fields in correct order (starting with top-most controller fields)
@@ -13,14 +14,14 @@ function initControlledFields()
         if (f && !initialised[f])
         {
             initialised[f] = true;
-            doInit(show_fields[f].visibility_field);
-            doInit(show_fields[f].value_field);
-            doInit(show_fields[f].null_field);
-            doInit(show_fields[f].default_field);
+            doInit(field_metadata[f].visibility_field);
+            doInit(field_metadata[f].value_field);
+            doInit(field_metadata[f].null_field);
+            doInit(field_metadata[f].default_field);
             initControllerField(f);
         }
     };
-    for (var i in show_fields)
+    for (var i in field_metadata)
     {
         doInit(i);
     }
@@ -31,10 +32,10 @@ function initControllerField(i)
     var f = document.getElementById(i);
     if (f)
     {
-        if (document.forms['Create'] && show_fields[i].default_value)
+        if (document.forms['Create'] && field_metadata[i].default_value)
         {
             // Select global default value before selecting dependent ones
-            f._oldDefault = setFieldValue(f, show_fields[i].default_value);
+            f._oldDefault = setFieldValue(f, field_metadata[i].default_value);
         }
         handleControllerField(document.forms['Create'] ? null : 'INITIAL', f);
         addListener(f, 'change', handleControllerField_this);
@@ -131,9 +132,9 @@ function handleControllerField(e, controller)
     var vis, field_container, id;
     var opt = getSelectedIds(controller);
     // Show/hide fields
-    for (var controlled_id in show_fields[controller.id]['fields'])
+    for (var controlled_id in field_metadata[controller.id]['fields'])
     {
-        vis = checkValueVisibility(opt, show_fields[controller.id]['fields'][controlled_id]);
+        vis = checkValueVisibility(opt, field_metadata[controller.id]['fields'][controlled_id]);
         for (var i in { row: 1, container: 1, label: 1 })
         {
             field_container = document.getElementById('field_' + i + '_' + controlled_id);
@@ -148,21 +149,21 @@ function handleControllerField(e, controller)
         return;
     }
     var item, controlled, copt, controlled_value;
-    for (var controlled_id in show_fields[controller.id]['values'])
+    for (var controlled_id in field_metadata[controller.id]['values'])
     {
         // It is more correct to match selected values on name, because a
         // target_milestone/version/component with the same name may exist for a different product
         controlled = document.getElementById(controlled_id);
         copt = getSelectedNames(controlled);
         bz_clearOptions(controlled);
-        if (show_fields[controlled.id].nullable && !controlled.multiple)
+        if (field_metadata[controlled.id].nullable && !controlled.multiple)
         {
             bz_createOptionInSelect(controlled, '---', '');
         }
-        for (var i in show_fields[controlled.id]['legal'])
+        for (var i in field_metadata[controlled.id]['legal'])
         {
-            controlled_value = show_fields[controlled.id]['legal'][i];
-            vis = checkValueVisibility(opt, show_fields[controller.id]['values'][controlled_id][controlled_value[0]]);
+            controlled_value = field_metadata[controlled.id]['legal'][i];
+            vis = checkValueVisibility(opt, field_metadata[controller.id]['values'][controlled_id][controlled_value[0]]);
             if (vis)
             {
                 item = bz_createOptionInSelect(controlled, controlled_value[1], controlled_value[1]);
@@ -175,12 +176,12 @@ function handleControllerField(e, controller)
         }
     }
     // Enable/disable NULL in single-select fields
-    for (var controlled_id in show_fields[controller.id]['null'])
+    for (var controlled_id in field_metadata[controller.id]['null'])
     {
         controlled = document.getElementById(controlled_id);
-        if (controlled && !controlled.multiple && show_fields[controlled.id] && show_fields[controlled.id].nullable)
+        if (controlled && !controlled.multiple && field_metadata[controlled.id] && field_metadata[controlled.id].nullable)
         {
-            vis = checkValueVisibility(opt, show_fields[controller.id]['null'][controlled_id]);
+            vis = checkValueVisibility(opt, field_metadata[controller.id]['null'][controlled_id]);
             item = controlled.options[0].value == '';
             if (vis && !item)
             {
@@ -195,7 +196,7 @@ function handleControllerField(e, controller)
     }
     // Select default values in controlled fields
     var v;
-    for (var controlled_id in show_fields[controller.id]['defaults'])
+    for (var controlled_id in field_metadata[controller.id]['defaults'])
     {
         controlled = document.getElementById(controlled_id);
         if (!controlled)
@@ -235,10 +236,10 @@ function handleControllerField(e, controller)
         // else means we are on creation form, so also select
         if (!diff)
         {
-            v = show_fields[controller.id].default_value;
+            v = field_metadata[controller.id].default_value;
             for (var i in opt)
             {
-                v = show_fields[controller.id]['defaults'][controlled_id][i];
+                v = field_metadata[controller.id]['defaults'][controlled_id][i];
             }
             if (v)
             {
