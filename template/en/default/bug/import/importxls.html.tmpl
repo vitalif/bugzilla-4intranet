@@ -1,10 +1,7 @@
-[%# 1.0@bugzilla.org %]
+[%# Mass bug import from Excel and CSV files
+  # License: Dual-license GPL 3.0+ or MPL 1.1+ %]
 
-[% USE Bugzilla %]
-[% cgi = Bugzilla.cgi %]
-[% title = 'Excel import' %]
-
-[% PROCESS global/header.html.tmpl %]
+[% PROCESS global/header.html.tmpl title = 'Excel import' %]
 
 [% IF form || show_error %]
 <h2>Mass Bug Import from Excel files</h2>

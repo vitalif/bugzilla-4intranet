@@ -263,10 +263,11 @@ sub get_all
         $order = [ split /[\s,]*,[\s,]*/, $order ];
         $filtered = [ sort
         {
+            # FIXME Think about "natural sort"?
             my $t;
             for (@$order)
             {
-                if ($a->{$_} =~ /^[\d\.]+$/s && $b->{$_} =~ /^[\d\.]+$/s)
+                if ($a->{$_} =~ /^-?\d+(\.\d+)?$/so && $b->{$_} =~ /^-?\d+(\.\d+)?$/so)
                 {
                     $t = $a->{$_} <=> $b->{$_};
                 }
