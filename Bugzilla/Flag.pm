@@ -412,6 +412,16 @@ sub _validate
     $obj_flag->_set_status($params->{status});
     $obj_flag->_set_requestee($params->{requestee}, $attachment, $params->{skip_roe});
 
+    if ($obj_flag->requestee_id)
+    {
+        # If the requestee doesn't have access to the bug, add him into bug CC list automatically
+        my $requestee = Bugzilla::User->new($obj_flag->requestee_id);
+        if (!$requestee->can_see_bug($bug))
+        {
+            $bug->add_cc($requestee);
+        }
+    }
+
     # The setter field MUST NOT be updated if neither the status
     # nor the requestee fields changed.
     if (($obj_flag->status ne $old_status)
