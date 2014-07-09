@@ -82,7 +82,7 @@ var constants = {
       <td><input type="text" id="desc" name="desc" style="width: 400px" value="[% field.description | html %]" /></td>
 
       <th align="left"><label for="clone_bug">Is copied into the cloned [% terms.bug %]:</label></th>
-      <td><input type="checkbox" id="clone_bug" name="clone_bug" value="1" [%- " checked" IF field.clone_bug %] /></td>
+      <td><input type="checkbox" id="clone_bug" name="clone_bug" value="1" [%- " checked" IF field.clone_bug %] onclick="onChangeCloned()" /></td>
     </tr>
     <tr>
       <th align="left"><label for="sortkey">Sortkey:</label></th>
@@ -211,6 +211,26 @@ var constants = {
         </select>
       </td>
     </tr>
+    <tr valign="top" id="clone_field_id_row">
+      <th align="left" colspan="2"><label for="clone_field_id">
+        Clone field depending on the value of:
+      </label></th>
+      <td colspan="2">
+        <select style="width: 400px" name="clone_field_id" id="clone_field_id">
+          <option value="">---</option>
+          [% FOREACH sel_field = Bugzilla.get_fields({ is_select => 1 }) %]
+            [%# FIXME now, fields with non-unique value names are not allowed %]
+            [% NEXT IF sel_field.id == field.id || sel_field.name == "component" ||
+                sel_field.name == "version" || sel_field.name == "target_milestone" %]
+            <option value="[% sel_field.id | html %]"
+              [% ' selected="selected"' IF sel_field.id == field.clone_field.id %]>
+              [% sel_field.description | html %]
+              ([% sel_field.name | html %])
+            </option>
+          [% END %]
+        </select>
+      </td>
+    </tr>
     <tr valign="top">
       <th align="left" colspan="2"><label for="default_field_id">
         Make default value dependent on the value of:
@@ -317,6 +337,29 @@ var constants = {
       </td>
     </tr>
     [% END %]
+    [% IF field.clone_field %]
+    <tr valign="top" id="allow_clone_in_row">
+      <th colspan="2" align="left">
+        <label for="clone_visibility_values">Clone field only if [% field.clone_field.description | html %] of the cloned [% terms.bug %] is set to:</label><br />
+        <span style="font-weight: normal">(<a href="javascript:void(0)"
+          onclick="document.getElementById('clone_visibility_values').selectedIndex=-1">clear options</a>
+          to always clone this field)</span>
+      </th>
+      <td colspan="2">
+        [% SET clone = field.clone_visibility_values %]
+        <select style="width: 400px" id="clone_visibility_values"
+          name="clone_visibility_values" size="7" multiple="multiple">
+          [% FOREACH value = field.clone_field.legal_values %]
+            [% IF field.clone_field_id != field.visibility_field_id || !vis || vis.${value.id} %]
+            <option value="[% value.id | html %]"[% ' selected="selected"' IF clone && clone.${value.id} %]>
+              [% value.name | html %]
+            </option>
+            [% END %]
+          [% END %]
+        </select>
+      </td>
+    </tr>
+    [% END %]
   </table>
   <input type="hidden" name="action" value="[% field.id ? "update" : "new" %]" />
   <input type="hidden" name="name" value="[% field.name | html %]" />
@@ -337,6 +380,7 @@ var constants = {
 
 <script>
 onChangeNullable();
+onChangeCloned();
 [% IF !field.id %]
 onChangeType();
 [% END %]

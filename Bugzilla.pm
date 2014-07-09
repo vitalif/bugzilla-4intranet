@@ -935,7 +935,7 @@ sub fieldvaluecontrol
         my $rows = $class->dbh->selectall_arrayref(
             'SELECT c.*, (CASE WHEN c.value_id='.FLAG_CLONED.' THEN f.clone_field_id'.
             ' WHEN c.value_id='.FLAG_NULLABLE.' THEN f.null_field_id'.
-            ' WHEN c.value_id='.FLAG_VISIBLE.' THEN f.visibility_field_id ELSE f.value_field_id END) visibility_field_id'.
+            ' WHEN c.value_id='.FLAG_VISIBLE.' THEN f.visibility_field_id ELSE f.value_field_id END) dep_field_id'.
             ' FROM fieldvaluecontrol c, fielddefs f WHERE f.id=c.field_id', {Slice=>{}}
         );
         my $keys = {
@@ -949,7 +949,7 @@ sub fieldvaluecontrol
             if ($_->{value_id} > 0)
             {
                 # Show value_id if value_field==visibility_value_id
-                $has->{$_->{visibility_field_id}}
+                $has->{$_->{dep_field_id}}
                     ->{values}
                     ->{$_->{field_id}}
                     ->{$_->{value_id}}
@@ -957,8 +957,8 @@ sub fieldvaluecontrol
             }
             else
             {
-                # Show field / allow NULL / clone value if visibility_field==visibility_value_id
-                $has->{$_->{visibility_field_id}}
+                # Show field / allow NULL / clone value if dep_field==visibility_value_id
+                $has->{$_->{dep_field_id}}
                     ->{$keys->{$_->{value_id}}}
                     ->{$_->{field_id}}
                     ->{$_->{visibility_value_id}} = 1;

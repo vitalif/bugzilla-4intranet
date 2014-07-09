@@ -621,7 +621,7 @@ sub null_visibility_values
 sub clone_visibility_values
 {
     my $self = shift;
-    return undef if !$self->null_field_id;
+    return undef if !$self->clone_field_id;
     my $h = Bugzilla->fieldvaluecontrol
         ->{$self->clone_field_id}->{clone}->{$self->id};
     return $h && %$h ? $h : undef;
@@ -875,6 +875,12 @@ sub set_null_field
 {
     my ($self, $value) = @_;
     $self->set('null_field_id', $value);
+}
+
+sub set_clone_field
+{
+    my ($self, $value) = @_;
+    $self->set('clone_field_id', $value);
 }
 
 sub set_default_field

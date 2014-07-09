@@ -48,5 +48,17 @@ function onChangeNullable()
   var u = document.getElementById('nullable');
   var n = document.getElementById('allow_null_in_row');
   var c = document.getElementById('null_field_id_row');
-  c.style.display = n.style.display = u.checked ? '' : 'none';
+  c.style.display = u.checked ? '' : 'none';
+  if (n)
+    n.style.display = c.style.display;
+}
+
+function onChangeCloned()
+{
+  var u = document.getElementById('clone_bug');
+  var n = document.getElementById('allow_clone_in_row');
+  var c = document.getElementById('clone_field_id_row');
+  c.style.display = u.checked ? '' : 'none';
+  if (n)
+    n.style.display = c.style.display;
 }
