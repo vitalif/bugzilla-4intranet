@@ -49,6 +49,8 @@ my $vars = {};
 # improved and each action has its own section.
 $vars->{doc_section} = 'products.html';
 
+my $ARGS = { %{ $cgi->Vars } };
+
 $user->in_group('editcomponents') ||
     scalar(@{$user->get_editable_products}) ||
     ThrowUserError('auth_failure', {
@@ -281,26 +283,6 @@ if ($action eq 'edit' || (!$action && $product_name))
     }
     $vars->{product} = $product;
     $vars->{token} = issue_session_token('edit_product');
-    my $controlled_fields = { map { $_->id => ($_->has_visibility_value($product) ? $_->description : undef) } @{ $product->field->controls_visibility_of() } };
-    for my $i (keys %$controlled_fields)
-    {
-        if (!defined($controlled_fields->{$i}))
-        {
-            delete $controlled_fields->{$i};
-        }
-    }
-    my $length = values %$controlled_fields;
-    $vars->{controlled_field_names} = $length > 0 ? join(', ',  values %$controlled_fields) : 'No fields';
-
-    for (qw(version target_milestone))
-    {
-        my $f = Bugzilla->get_field($_);
-        if ($vars->{'allow_nullable_'.$f->name} = $f->nullable)
-        {
-            my $null = $f->null_visibility_values;
-            $vars->{$f->name.'_is_nullable'} = !$null || $null->{$product->id};
-        }
-    }
     $vars->{all_groups} = [ map { $_->name } Bugzilla::Group->get_all ];
 
     $template->process('admin/products/edit.html.tmpl', $vars)
@@ -340,17 +322,7 @@ if ($action eq 'update')
 
     my $changes = $product->update();
 
-    for (qw(version target_milestone))
-    {
-        my $f = Bugzilla->get_field($_);
-        if ($f->nullable)
-        {
-            my $c = Bugzilla::Field::toggle_value(
-                $f->id, -1, $product->id, scalar $cgi->param($f->name.'_is_nullable')
-            );
-            $changes->{$f->name.'_is_nullable'} = [ !$c, $c ] if defined $c;
-        }
-    }
+    $product->field->update_control_lists($product->id, $ARGS);
 
     delete_token($token);
 

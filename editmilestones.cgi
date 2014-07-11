@@ -37,6 +37,8 @@ my $vars = {};
 # so all actions point to the same page.
 $vars->{'doc_section'} = 'milestones.html';
 
+my $ARGS = { %{ $cgi->Vars } };
+
 #
 # Preliminary checks:
 #
@@ -208,6 +210,8 @@ if ($action eq 'update') {
     $milestone->set_sortkey($sortkey);
     $milestone->set_is_active($isactive);
     my $changes = $milestone->update();
+
+    $milestone->field->update_control_lists($milestone->id, $ARGS);
 
     delete_token($token);
 

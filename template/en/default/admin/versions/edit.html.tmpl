@@ -32,6 +32,7 @@
       <th class="field_label"><label for="isactive">Enabled For [% terms.Bugs %]:</label></th>
       <td><input id="isactive" name="isactive" type="checkbox" value="1" [% 'checked="checked"' IF version.isactive %]></td>
     </tr>
+    [% INCLUDE "admin/fieldvalues/control-list-common.html.tmpl" this_field=version.field this_value_id=version.id %]
     [% END %]
   </table>
 

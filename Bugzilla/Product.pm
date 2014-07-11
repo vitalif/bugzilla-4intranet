@@ -689,8 +689,6 @@ sub _check_votes
 # Implement Bugzilla::Field::Choice #
 #####################################
 
-sub field { Bugzilla->get_field('product') }
-
 use constant is_default => 0;
 
 ###############################

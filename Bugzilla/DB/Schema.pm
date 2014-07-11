@@ -586,7 +586,7 @@ use constant ABSTRACT_SCHEMA => {
             default_value => {TYPE => 'MEDIUMTEXT', NOTNULL => 1},
         ],
         INDEXES => [
-            fieldvaluecontrol_primary_idx => {FIELDS => ['field_id', 'visibility_value_id'], TYPE => 'PRIMARY'},
+            PRIMARY => {FIELDS => ['field_id', 'visibility_value_id']},
         ],
     },
 
@@ -1886,6 +1886,10 @@ sub get_add_index_ddl {
         $index_type = '';
     }
 
+    if (lc($name) eq 'primary') {
+        return "ALTER TABLE $table ADD PRIMARY KEY (".join(", ", @$index_fields).")";
+    }
+
     return $self->_get_create_index_ddl($table, $name, $index_fields,
                                         $index_type);
 }
@@ -1988,6 +1992,10 @@ sub get_drop_index_ddl {
 =cut
 
     my ($self, $table, $name) = @_;
+
+    if (lc($name) eq 'primary') {
+        return "ALTER TABLE $table DROP PRIMARY KEY";
+    }
 
     # Although ANSI SQL-92 doesn't specify a method of dropping an index,
     # many DBs support this syntax.

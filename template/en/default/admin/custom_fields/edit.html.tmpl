@@ -252,7 +252,9 @@ var constants = {
       </td>
     </tr>
     [% END %]
-    [% IF field.is_select || !field.id %]
+    [%# FIXME These fields are still handled differently... %]
+    [% IF field.name != 'version' && field.name != 'target_milestone' &&
+      field.name != 'component' && field.is_select || !field.id %]
     <tr valign="top" id="value_field_row">
       <th colspan="2" align="left"><label for="value_field_id">
         Field that controls the values that appear in this field:

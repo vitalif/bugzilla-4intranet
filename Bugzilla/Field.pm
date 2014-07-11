@@ -536,8 +536,6 @@ sub url { $_[0]->{url} }
 
 sub default_value { $_[0]->{default_value} }
 
-sub default_value_hash { $_[0]->is_select ? { map { $_ => 1 } split /,/, $_[0]->{default_value} } : undef }
-
 sub value_type
 {
     my $self = shift;
@@ -662,14 +660,14 @@ sub check_clone
 }
 
 # Get default value for this field in bug $bug
-sub get_default
+sub get_default_value
 {
     my $self = shift;
-    my ($bug) = @_;
-    my $default = $self->default_value;
+    my ($bug, $useGlobal) = @_;
+    my $default = $useGlobal ? $self->default_value : undef;
     if ($self->default_field_id)
     {
-        my $value = $bug->get_ids($self->default_field->name);
+        my $value = bug_or_hash_value($bug, $self->default_field);
         my $d = Bugzilla->fieldvaluecontrol->{$self->default_field_id}
             ->{defaults}->{$self->id};
         for (ref $value ? @$value : $value)
@@ -683,6 +681,17 @@ sub get_default
         $default = $default->[0] if $self->type == FIELD_TYPE_SINGLE_SELECT;
     }
     return $default;
+}
+
+sub default_value_hash { $_[0]->is_select ? { map { $_ => 1 } split /,/, $_[0]->{default_value} } : undef }
+
+sub default_value_hash_for
+{
+    my ($self, $visibility_value_id) = @_;
+    return undef if !$self->is_select;
+    return { map { $_ => 1 } split /,/, Bugzilla->fieldvaluecontrol
+        ->{$self->default_field_id}->{defaults}
+        ->{$self->id}->{$visibility_value_id} };
 }
 
 =pod
@@ -1274,10 +1283,12 @@ sub bug_or_hash_value
     my $value;
     if (blessed $bug)
     {
+        # Bug object
         $value = $bug->get_ids($vf->name);
     }
-    else
+    elsif (ref $bug)
     {
+        # Hashref with value names
         $value = $bug->{$vf->name};
         if (!ref $value)
         {
@@ -1287,6 +1298,11 @@ sub bug_or_hash_value
             $value = Bugzilla::Field::Choice->type($vf)->new({ name => $value });
             $value = $value->id if $value;
         }
+    }
+    else
+    {
+        # Just value ID
+        $value = $bug;
     }
     return $value;
 }
@@ -1344,6 +1360,7 @@ sub update_visibility_values
 sub toggle_value
 {
     my ($f, $v, $vv, $enable) = @_;
+    $f = $f->id if ref $f;
     my ($any, $this) = Bugzilla->dbh->selectrow_array(
         'SELECT COUNT(*), SUM(visibility_value_id=?) FROM fieldvaluecontrol WHERE field_id=? AND value_id=?', undef, $vv, $f, $v
     );
@@ -1374,6 +1391,30 @@ sub toggle_value
         return 0;
     }
     return undef;
+}
+
+# FIXME: This issues A LOT OF sql queries and should be optimized.
+sub update_control_lists
+{
+    my ($controlling_field_id, $controlling_value_id, $params) = @_;
+    $controlling_field_id = $controlling_field_id->id if ref $controlling_field_id;
+    for my $f (Bugzilla->get_fields({ obsolete => 0, visibility_field_id => $controlling_field_id }))
+    {
+        $f->toggle_value(FLAG_VISIBLE, $controlling_value_id, $params->{'is_visible_'.$f->name} ? 1 : 0);
+    }
+    for my $f (Bugzilla->get_fields({ obsolete => 0, null_field_id => $controlling_field_id }))
+    {
+        $f->toggle_value(FLAG_NULLABLE, $controlling_value_id, $params->{'is_nullable_'.$f->name} ? 1 : 0);
+    }
+    for my $f (Bugzilla->get_fields({ obsolete => 0, clone_field_id => $controlling_field_id }))
+    {
+        $f->toggle_value(FLAG_CLONED, $controlling_value_id, $params->{'is_cloned_'.$f->name} ? 1 : 0);
+    }
+    for my $f (Bugzilla->get_fields({ obsolete => 0, default_field_id => $controlling_field_id }))
+    {
+        next if $f eq 'version'; # FIXME: default version is hardcoded to depend on component
+        $f->update_default_values($controlling_value_id, $params->{'default_'.$f->name});
+    }
 }
 
 sub update_controlled_values
@@ -1419,6 +1460,7 @@ sub update_default_values
     }
     else
     {
+        trick_taint($default_value);
         Bugzilla->dbh->do(
             'REPLACE INTO field_defaults (field_id, visibility_value_id, default_value) VALUES (?, ?, ?)',
             undef, $controlled_field->id, $visibility_value_id, $default_value

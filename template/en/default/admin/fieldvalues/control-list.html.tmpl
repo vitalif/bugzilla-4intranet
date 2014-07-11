@@ -38,7 +38,7 @@
     <input type="hidden" name="visibility_value_id" value="[% visibility_value_id FILTER html %]"/>
     <p>Значения <strong>[% field.description FILTER html %]</strong> для <strong>[% field_value.name FILTER html %]</strong>:</p>
 
-    [% IF field.visibility_field_id == field.value_field_id %] [%# FIXME should be default_field_id %]
+    [% IF field.default_field_id == field.value_field_id %]
       <p>Значение по умолчанию:[% "<br />" IF field.type == constants.FIELD_TYPE_MULTI_SELECT %]
       [% IF field.is_select %]
       <select name="default_value" style="width: 400px" [% "multiple size=3" IF field.type == constants.FIELD_TYPE_MULTI_SELECT %]>

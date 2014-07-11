@@ -94,6 +94,7 @@
         </td>
       </tr>
     [% END %]
+    [% INCLUDE "admin/fieldvalues/control-list-common.html.tmpl" this_field=field this_value_id=value.id %]
     </tr>
     [% Hook.process('fields') %]
   </table>

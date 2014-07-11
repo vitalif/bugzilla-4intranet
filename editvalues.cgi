@@ -138,9 +138,8 @@ if ($action eq 'control_list')
     if ($visibility_value_id)
     {
         $vars->{visibility_value_id} = $visibility_value_id;
-        $vars->{default_value_hash} = { map { $_ => 1 } split /,/, Bugzilla->fieldvaluecontrol
-            ->{$field->value_field_id}->{defaults}->{$field->id}->{$visibility_value_id} };
-        my %values = map { $_->{id} => $_ } @{$field->{value_field}->legal_values()};
+        $vars->{default_value_hash} = $field->default_value_hash_for($visibility_value_id);
+        my %values = map { $_->{id} => $_ } @{$field->value_field->legal_values};
         $vars->{field_value} = $values{$visibility_value_id};
         $step++ unless $token;
         $need_token = 1;
@@ -148,9 +147,12 @@ if ($action eq 'control_list')
         {
             check_token_data($token, "edit_control_list");
             $field->update_controlled_values($values, $visibility_value_id);
-            $field->update_default_values($visibility_value_id, $field->type == FIELD_TYPE_MULTI_SELECT
-                ? [ $cgi->param('default_value') ]
-                : scalar $cgi->param('default_value'));
+            if ($field->default_field_id == $field->value_field_id)
+            {
+                $field->update_default_values($visibility_value_id, $field->type == FIELD_TYPE_MULTI_SELECT
+                    ? [ $cgi->param('default_value') ]
+                    : scalar $cgi->param('default_value'));
+            }
             $step++;
             $need_token = 0;
             delete_token($token);

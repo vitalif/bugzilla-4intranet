@@ -41,6 +41,8 @@ my $vars = {};
 # so all actions point to the same page.
 $vars->{'doc_section'} = 'versions.html';
 
+my $ARGS = { %{ $cgi->Vars } };
+
 #
 # Preliminary checks:
 #
@@ -199,6 +201,8 @@ if ($action eq 'update') {
     $version->set_name($version_name);
     $version->set_is_active($isactive);
     my $changes = $version->update();
+
+    $version->field->update_control_lists($version->id, $ARGS);
 
     $dbh->bz_commit_transaction();
     delete_token($token);

@@ -751,7 +751,7 @@ sub check_dependent_fields
                 if (!$nullable || !$self->id)
                 {
                     # Try to select default value
-                    my $default = $field_obj->get_default($self);
+                    my $default = $field_obj->get_default_value($self, 1);
                     if ($default)
                     {
                         $self->set($field_obj->name, $default);
@@ -786,7 +786,7 @@ sub check_dependent_fields
             if (!$nullable || !$self->id)
             {
                 # Try to set default value
-                my $default = $field_obj->get_default($self);
+                my $default = $field_obj->get_default_value($self, 1);
                 if ($default)
                 {
                     $self->set($field_obj->name, $default);

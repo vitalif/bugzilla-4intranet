@@ -41,6 +41,8 @@ my $vars = {};
 # so all actions point to the same page.
 $vars->{'doc_section'} = 'components.html';
 
+my $ARGS = { %{ $cgi->Vars } };
+
 #
 # Preliminary checks:
 #
@@ -242,6 +244,8 @@ if ($action eq 'update') {
     $component->set_cc_list(\@initial_cc);
     $component->set_is_active(scalar $cgi->param('is_active'));
     my $changes = $component->update();
+
+    $component->field->update_control_lists($component->id, $ARGS);
 
     $vars->{'message'} = 'component_updated';
     $vars->{'comp'} = $component;
