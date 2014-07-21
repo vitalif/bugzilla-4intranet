@@ -1,5 +1,3 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -30,16 +28,17 @@ use Bugzilla::Util;
 
 use File::Basename;
 
-BEGIN {
-    if (ON_WINDOWS) {
+BEGIN
+{
+    if (ON_WINDOWS)
+    {
         # Help CGI find the correct temp directory as the default list
         # isn't Windows friendly (Bug 248988)
         $ENV{'TMPDIR'} = $ENV{'TEMP'} || $ENV{'TMP'} || "$ENV{'WINDIR'}\\TEMP";
     }
 }
 
-use CGI qw(-no_xhtml -oldstyle_urls :private_tempfiles
-           :unique_headers SERVER_PUSH);
+use CGI qw(-no_xhtml -oldstyle_urls :private_tempfiles :unique_headers SERVER_PUSH);
 use base qw(CGI);
 
 # We need to disable output buffering - see bug 179174
@@ -55,12 +54,14 @@ $::SIG{PIPE} = 'IGNORE';
 # We need to do so, too, otherwise perl dies when the object is destroyed
 # and we don't have a DESTROY method (because CGI.pm's AUTOLOAD will |die|
 # on getting an unknown sub to try to call)
-sub DESTROY {
+sub DESTROY
+{
     my $self = shift;
     $self->SUPER::DESTROY(@_);
-};
+}
 
-sub new {
+sub new
+{
     my ($invocant, @args) = @_;
     my $class = ref($invocant) || $invocant;
 
@@ -70,11 +71,12 @@ sub new {
     $self->{Bugzilla_cookie_list} = [];
 
     # Send appropriate charset
-    $self->charset(Bugzilla->params->{'utf8'} ? 'UTF-8' : '');
+    $self->charset(Bugzilla->params->{utf8} ? 'UTF-8' : '');
 
     # Redirect to urlbase/sslbase if we are not viewing an attachment.
     my $script = basename($ENV{SCRIPT_FILENAME} ||= $0);
-    if ($self->url_is_attachment_base and $script ne 'attachment.cgi') {
+    if ($self->url_is_attachment_base and $script ne 'attachment.cgi')
+    {
         $self->redirect_to_urlbase();
     }
 
@@ -84,11 +86,11 @@ sub new {
 
     my $err = $self->cgi_error;
 
-    if ($err) {
+    if ($err)
+    {
         # Note that this error block is only triggered by CGI.pm for malformed
         # multipart requests, and so should never happen unless there is a
         # browser bug.
-
         $self->send_header(-status => $err);
 
         # ThrowCodeError wants to print the header, so it grabs Bugzilla->cgi
@@ -107,19 +109,22 @@ sub new {
 }
 
 # DAMN CGI.pm AUTHORS for their newstyle_urls O_O O_O
-sub parse_params {
+sub parse_params
+{
     my $self = shift;
     $CGI::USE_PARAM_SEMICOLONS = 0;
     $self->SUPER::parse_params(@_);
 }
 
 # We want this sorted plus the ability to exclude certain params
-sub canonicalise_query {
+sub canonicalise_query
+{
     my ($self, @exclude) = @_;
 
     # Reconstruct the URL by concatenating the sorted param=value pairs
     my @parameters;
-    foreach my $key (sort($self->param())) {
+    foreach my $key (sort($self->param()))
+    {
         # Leave this key out if it's in the exclude list
         next if grep { $_ eq $key } @exclude;
 
@@ -129,8 +134,10 @@ sub canonicalise_query {
 
         my $esc_key = url_quote($key);
 
-        foreach my $value ($self->param($key)) {
-            if (defined($value)) {
+        foreach my $value ($self->param($key))
+        {
+            if (defined($value))
+            {
                 my $esc_value = url_quote($value);
 
                 push(@parameters, "$esc_key=$esc_value");
@@ -141,20 +148,23 @@ sub canonicalise_query {
     return join("&", @parameters);
 }
 
-sub clean_search_url {
+# FIXME: Move clean_search_url away from CGI to search-related code.
+sub clean_search_url
+{
     my $self = shift;
     # Delete any empty URL parameter.
     my @cgi_params = $self->param;
 
-    foreach my $param (@cgi_params) {
-        if (defined $self->param($param) && $self->param($param) eq '') {
+    foreach my $param (@cgi_params)
+    {
+        if (defined $self->param($param) && $self->param($param) eq '')
+        {
             $self->delete($param);
             $self->delete("${param}_type");
         }
 
         # Boolean Chart stuff is empty if it's "noop"
-        if ($param =~ /\d-\d-\d/ && defined $self->param($param)
-            && $self->param($param) eq 'noop')
+        if ($param =~ /\d-\d-\d/ && defined $self->param($param) && $self->param($param) eq 'noop')
         {
             $self->delete($param);
         }
@@ -163,10 +173,13 @@ sub clean_search_url {
     # Delete leftovers from the login form
     $self->delete('Bugzilla_remember', 'GoAheadAndLogIn');
 
-    foreach my $num (1,2) {
+    foreach my $num (1, 2)
+    {
         # If there's no value in the email field, delete the related fields.
-        if (!$self->param("email$num")) {
-            foreach my $field (qw(type assigned_to reporter qa_contact cc longdesc)) {
+        if (!$self->param("email$num"))
+        {
+            foreach my $field (qw(type assigned_to reporter qa_contact cc longdesc))
+            {
                 $self->delete("email$field$num");
             }
         }
@@ -180,16 +193,15 @@ sub clean_search_url {
 
     # cmdtype "doit" is the default from query.cgi, but it's only meaningful
     # if there's a remtype parameter.
-    if (defined $self->param('cmdtype') && $self->param('cmdtype') eq 'doit'
-        && !defined $self->param('remtype'))
+    if (defined $self->param('cmdtype') && $self->param('cmdtype') eq 'doit' &&
+        !defined $self->param('remtype'))
     {
         $self->delete('cmdtype');
     }
 
     # "Reuse same sort as last time" is actually the default, so we don't
     # need it in the URL.
-    if ($self->param('order') 
-        && $self->param('order') eq 'Reuse same sort as last time')
+    if ($self->param('order') && $self->param('order') eq 'Reuse same sort as last time')
     {
         $self->delete('order');
     }
@@ -202,19 +214,20 @@ sub clean_search_url {
 }
 
 # Overwrite to ensure nph doesn't get set, and unset HEADERS_ONCE
-sub multipart_init {
+sub multipart_init
+{
     my $self = shift;
 
     # Keys are case-insensitive, map to lowercase
     my %args = @_;
     my %param;
-    foreach my $key (keys %args) {
+    foreach my $key (keys %args)
+    {
         $param{lc $key} = $args{$key};
     }
 
     # Set the MIME boundary and content-type
-    my $boundary = $param{'-boundary'}
-        || '------- =_' . generate_random_password(16);
+    my $boundary = $param{'-boundary'} || '------- =_' . generate_random_password(16);
     delete $param{'-boundary'};
     $self->{'separator'} = "\r\n--$boundary\r\n";
     $self->{'final_separator'} = "\r\n--$boundary--\r\n";
@@ -231,14 +244,16 @@ sub multipart_init {
 }
 
 # Have to add the cookies in.
-sub multipart_start {
+sub multipart_start
+{
     my $self = shift;
 
     my %args = @_;
 
     # CGI.pm::multipart_start doesn't honour its own charset information, so
     # we do it ourselves here
-    if (defined $self->charset() && defined $args{-type}) {
+    if (defined $self->charset() && defined $args{-type})
+    {
         # Remove any existing charset specifier
         $args{-type} =~ s/;.*$//;
         # and add the specified one
@@ -251,7 +266,8 @@ sub multipart_start {
     # Add the cookies. We have to do it this way instead of
     # passing them to multpart_start, because CGI.pm's multipart_start
     # doesn't understand a '-cookie' argument pointing to an arrayref.
-    foreach my $cookie (@{$self->{Bugzilla_cookie_list}}) {
+    foreach my $cookie (@{$self->{Bugzilla_cookie_list}})
+    {
         $headers .= "Set-Cookie: ${cookie}${CGI::CRLF}";
     }
     $headers .= $CGI::CRLF;
@@ -260,12 +276,15 @@ sub multipart_start {
 }
 
 # Override header so we can add the cookies in
-sub header {
+sub header
+{
     my $self = shift;
 
     # Add the cookies in if we have any
-    if (scalar(@{$self->{Bugzilla_cookie_list}})) {
-        if (scalar(@_) == 1) {
+    if (scalar(@{$self->{Bugzilla_cookie_list}}))
+    {
+        if (scalar(@_) == 1)
+        {
             # if there's only one parameter, then it's a Content-Type.
             # Since we're adding parameters we have to name it.
             unshift(@_, '-type' => shift(@_));
@@ -318,18 +337,19 @@ sub send_multipart_final
     print $self->multipart_final(@_);
 }
 
-sub param {
+sub param
+{
     my $self = shift;
 
     # When we are just requesting the value of a parameter...
-    if (scalar(@_) == 1) {
-        my @result = $self->SUPER::param(@_); 
+    if (scalar(@_) == 1)
+    {
+        my @result = $self->SUPER::param(@_);
 
-        # Also look at the URL parameters, after we look at the POST 
+        # Also look at the URL parameters, after we look at the POST
         # parameters. This is to allow things like login-form submissions
         # with URL parameters in the form's "target" attribute.
-        if (!scalar(@result)
-            && $self->request_method && $self->request_method eq 'POST')
+        if (!scalar(@result) && $self->request_method && $self->request_method eq 'POST')
         {
             # Some servers fail to set the QUERY_STRING parameter, which
             # causes undef issues
@@ -338,7 +358,8 @@ sub param {
         }
 
         # Fix UTF-8-ness of input parameters.
-        if (Bugzilla->params->{'utf8'}) {
+        if (Bugzilla->params->{utf8})
+        {
             @result = map { ref $_ ? $_ : _fix_utf8($_) } @result;
         }
 
@@ -347,8 +368,7 @@ sub param {
     # And for various other functions in CGI.pm, we need to correctly
     # return the URL parameters in addition to the POST parameters when
     # asked for the list of parameters.
-    elsif (!scalar(@_) && $self->request_method 
-           && $self->request_method eq 'POST') 
+    elsif (!scalar(@_) && $self->request_method && $self->request_method eq 'POST')
     {
         my @post_params = $self->SUPER::param;
         my @url_params  = $self->url_param;
@@ -359,7 +379,8 @@ sub param {
     return $self->SUPER::param(@_);
 }
 
-sub _fix_utf8 {
+sub _fix_utf8
+{
     my $input = shift;
     # The is_utf8 is here in case CGI gets smart about utf8 someday.
     utf8::decode($input) if defined $input && !utf8::is_utf8($input);
@@ -369,60 +390,71 @@ sub _fix_utf8 {
 # The various parts of Bugzilla which create cookies don't want to have to
 # pass them around to all of the callers. Instead, store them locally here,
 # and then output as required from |header|.
-sub send_cookie {
+sub send_cookie
+{
     my $self = shift;
 
     # Move the param list into a hash for easier handling.
     my %paramhash;
     my @paramlist;
     my ($key, $value);
-    while ($key = shift) {
+    while ($key = shift)
+    {
         $value = shift;
         $paramhash{$key} = $value;
     }
 
     # Complain if -value is not given or empty (bug 268146).
-    if (!exists($paramhash{'-value'}) || !$paramhash{'-value'}) {
+    if (!exists($paramhash{'-value'}) || !$paramhash{'-value'})
+    {
         ThrowCodeError('cookies_need_value');
     }
 
     # Add the default path and the domain in.
-    $paramhash{'-path'} = Bugzilla->params->{'cookiepath'};
-    $paramhash{'-domain'} = Bugzilla->params->{'cookiedomain'}
-        if Bugzilla->params->{'cookiedomain'};
+    $paramhash{'-path'} = Bugzilla->params->{cookiepath};
+    $paramhash{'-domain'} = Bugzilla->params->{cookiedomain}
+        if Bugzilla->params->{cookiedomain};
 
     # Move the param list back into an array for the call to cookie().
-    foreach (keys(%paramhash)) {
+    foreach (keys(%paramhash))
+    {
         unshift(@paramlist, $_ => $paramhash{$_});
     }
 
     my $c = $self->{Bugzilla_cookie_hash}->{$paramhash{'-name'}} = $self->cookie(@paramlist);
-    @{$self->{'Bugzilla_cookie_list'}} = values %{$self->{Bugzilla_cookie_hash}};
+    @{$self->{Bugzilla_cookie_list}} = values %{$self->{Bugzilla_cookie_hash}};
 }
 
 # Cookies are removed by setting an expiry date in the past.
 # This method is a send_cookie wrapper doing exactly this.
-sub remove_cookie {
+sub remove_cookie
+{
     my $self = shift;
     my ($cookiename) = (@_);
 
     # Expire the cookie, giving a non-empty dummy value (bug 268146).
-    $self->send_cookie('-name'    => $cookiename,
-                       '-expires' => 'Tue, 15-Sep-1998 21:49:00 GMT',
-                       '-value'   => 'X');
+    $self->send_cookie(
+        '-name'    => $cookiename,
+        '-expires' => 'Tue, 15-Sep-1998 21:49:00 GMT',
+        '-value'   => 'X'
+    );
 }
 
-sub redirect_to_https {
+sub redirect_to_https
+{
     my $self = shift;
-    my $sslbase = Bugzilla->params->{'sslbase'};
+    my $sslbase = Bugzilla->params->{sslbase};
     # If this is a POST, we don't want ?POSTDATA in the query string.
     # We expect the client to re-POST, which may be a violation of
     # the HTTP spec, but the only time we're expecting it often is
     # in the WebService, and WebService clients usually handle this
     # correctly.
     $self->delete('POSTDATA');
-    my $url = $sslbase . $self->url('-path_info' => 1, '-query' => 1, 
-                                    '-relative' => 1);
+    my $url = $sslbase . $self->url(
+        '-path_info' => 1,
+        '-query' => 1,
+        '-relative' => 1,
+    );
 
     # XML-RPC clients (SOAP::Lite at least) require a 301 to redirect properly
     # and do not work with 302. Our redirect really is permanent anyhow, so
@@ -435,14 +467,16 @@ sub redirect_to_https {
 }
 
 # Redirect to the urlbase version of the current URL.
-sub redirect_to_urlbase {
+sub redirect_to_urlbase
+{
     my $self = shift;
     my $path = $self->url('-path_info' => 1, '-query' => 1, '-relative' => 1);
     print $self->redirect('-location' => correct_urlbase() . $path);
     exit;
 }
 
-sub url_is_attachment_base {
+sub url_is_attachment_base
+{
     my ($self, $id) = @_;
     return 0 if !use_attachbase() or !i_am_cgi();
     my $attach_base = Bugzilla->params->{'attachment_base'};
@@ -450,11 +484,13 @@ sub url_is_attachment_base {
     # for a particular bug. If we're not passed an ID, we just want to
     # know if our current URL matches the attachment_base *pattern*.
     my $regex;
-    if ($id) {
+    if ($id)
+    {
         $attach_base =~ s/\%bugid\%/$id/;
         $regex = quotemeta($attach_base);
     }
-    else {
+    else
+    {
         # In this circumstance we run quotemeta first because we need to
         # insert an active regex meta-character afterward.
         $regex = quotemeta($attach_base);
@@ -468,18 +504,20 @@ sub url_is_attachment_base {
 # Vars TIEHASH Interface #
 ##########################
 
-# Fix the TIEHASH interface (scalar $cgi->Vars) to return and accept 
-# arrayrefs.
-sub STORE {
+# Fix the TIEHASH interface (scalar $cgi->Vars) to return and accept arrayrefs.
+sub STORE
+{
     my $self = shift;
     my ($param, $value) = @_;
-    if (defined $value and ref $value eq 'ARRAY') {
+    if (defined $value and ref $value eq 'ARRAY')
+    {
         return $self->param(-name => $param, -value => $value);
     }
     return $self->SUPER::STORE(@_);
 }
 
-sub FETCH {
+sub FETCH
+{
     my ($self, $param) = @_;
     return $self if $param eq 'CGI'; # CGI.pm did this, so we do too.
     my @result = $self->param($param);
@@ -490,7 +528,8 @@ sub FETCH {
 
 # For the Vars TIEHASH interface: the normal CGI.pm DELETE doesn't return 
 # the value deleted, but Perl's "delete" expects that value.
-sub DELETE {
+sub DELETE
+{
     my ($self, $param) = @_;
     my $value = $self->FETCH($param);
     $self->delete($param);
