@@ -524,6 +524,25 @@ sub STATIC_COLUMNS
             title => "Duplicate of",
             joins => [ "LEFT JOIN duplicates ON duplicates.dupe=bugs.bug_id" ],
         },
+        comment0 => {
+            title => "First Comment",
+            noreports => 1,
+        },
+        lastcomment => {
+            title => "Last Comment",
+            noreports => 1,
+        },
+        lastcommenter => {
+            title => "Last Commenter",
+        },
+        last_comment_time => {
+            title => "Last Comment Time",
+        },
+        creation_ts_date => {
+            nocharts => 1,
+            title => "Creation Date",
+            name => $dbh->sql_date_format('bugs.creation_ts', '%Y-%m-%d'),
+        },
     };
 
     # Fields that are email addresses
@@ -669,6 +688,14 @@ sub STATIC_COLUMNS
     $columns->{short_short_desc}->{nocharts} = 1;
     $columns->{short_short_desc}->{noreports} = 1;
 
+    # Needed for SuperWorkTime, would not be needed if buglist.cgi loaded bugs as objects
+    $columns->{product_notimetracking} = {
+        name => 'map_products.notimetracking',
+        joins => $columns->{product}->{joins},
+        nobuglist => 1,
+        nocharts => 1,
+    };
+
     Bugzilla::Hook::process('buglist_static_columns', { columns => $columns });
 
     $columns->{$_}->{id} = $_ for keys %$columns;
@@ -683,13 +710,47 @@ sub COLUMNS
 {
     my $cache = Bugzilla->rc_cache_fields;
     return $cache->{columns} if $cache->{columns};
-    my %columns = %{ STATIC_COLUMNS() };
+    my $columns = { %{ STATIC_COLUMNS() } };
+
+    # Non-timetrackers shouldn't see any time-tracking fields
     if (!Bugzilla->user->is_timetracker)
     {
-        delete $columns{$_} for keys %{TIMETRACKING_FIELDS()};
+        delete $columns->{$_} for keys %{TIMETRACKING_FIELDS()};
     }
-    Bugzilla::Hook::process('buglist_columns', { columns => \%columns });
-    return $cache->{columns} = \%columns;
+
+    # Comment-related columns must honor current user's insider state
+    my $hint = '';
+    my $dbh = Bugzilla->dbh;
+    if ($dbh->isa('Bugzilla::DB::Mysql'))
+    {
+        $hint = ' FORCE INDEX (longdescs_bug_id_idx)';
+    }
+    my $priv = (Bugzilla->user->is_insider ? "" : "AND ldc0.isprivate=0 ");
+    # Not using JOIN (it could be joined on bug_when=creation_ts),
+    # because it would require COALESCE to an 'isprivate' subquery
+    # for private comments.
+    $columns->{comment0}->{name} =
+        "(SELECT thetext FROM longdescs ldc0$hint WHERE ldc0.bug_id = bugs.bug_id $priv".
+        " ORDER BY ldc0.bug_when LIMIT 1)";
+    $columns->{lastcomment}->{name} =
+        "(SELECT thetext FROM longdescs ldc0$hint WHERE ldc0.bug_id = bugs.bug_id $priv".
+        " ORDER BY ldc0.bug_when DESC LIMIT 1)";
+    # Last commenter and last comment time
+    my $login = 'ldp0.login_name';
+    if (!Bugzilla->user->id)
+    {
+        $login = $dbh->sql_string_until($login, $dbh->quote('@'));
+    }
+    $columns->{lastcommenter}->{name} =
+        "(SELECT $login FROM longdescs ldc0$hint".
+        " INNER JOIN profiles ldp0 ON ldp0.userid=ldc0.who WHERE ldc0.bug_id = bugs.bug_id $priv".
+        " ORDER BY ldc0.bug_when DESC LIMIT 1)";
+    $priv = (Bugzilla->user->is_insider ? "" : "AND lct.isprivate=0 ");
+    $columns->{last_comment_time}->{name} =
+        "(SELECT MAX(lct.bug_when) FROM longdescs lct$hint WHERE lct.bug_id = bugs.bug_id $priv)";
+
+    Bugzilla::Hook::process('buglist_columns', { columns => $columns });
+    return $cache->{columns} = $columns;
 }
 
 sub REPORT_COLUMNS

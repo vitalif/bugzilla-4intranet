@@ -22,10 +22,6 @@ clear_hooks('custis');
 set_hook('custis', 'db_schema_abstract_schema',     'CustisDBHooks::db_schema_abstract_schema');
 set_hook('custis', 'install_update_db',             'CustisDBHooks::install_update_db');
 
-# Bug list hooks
-set_hook('custis', 'buglist_static_columns',        'CustisBuglistHooks::buglist_static_columns');
-set_hook('custis', 'buglist_columns',               'CustisBuglistHooks::buglist_columns');
-
 # Email-related hooks
 set_hook('custis', 'bugmail_pre_template',          'CustisMailHooks::bugmail_pre_template');
 set_hook('custis', 'emailin_filter_body',           'CustisMailHooks::emailin_filter_body');
