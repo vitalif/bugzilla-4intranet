@@ -441,14 +441,10 @@ sub run_queries {
             resolution
             short_desc
         );
-        # A new Bugzilla::CGI object needs to be created to allow
-        # Bugzilla::Search to execute a saved query.  It's exceedingly weird,
-        # but that's how it works.
-        my $searchparams = new Bugzilla::CGI($savedquery);
         my $search = new Bugzilla::Search(
-            'fields' => \@searchfields,
-            'params' => $searchparams,
-            'user'   => $args->{'recipient'}, # the search runs as the recipient
+            fields => \@searchfields,
+            params => http_decode_query($savedquery),
+            user   => $args->{recipient}, # the search runs as the recipient
         );
         my $sqlquery = $search->getSQL();
         $sth = $dbh->prepare($sqlquery);

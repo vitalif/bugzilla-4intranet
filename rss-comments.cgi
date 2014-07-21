@@ -1,5 +1,5 @@
 #!/usr/bin/perl -wT
-# RSS feed bug comments and activity (CustIS Bug 16210)
+# RSS feed for bug comments and activity (CustIS Bug 16210)
 # License: Dual-license GPL 3.0+ or MPL 1.1+
 # Author: Vitaliy Filippov <vitalif@mail.ru>
 
@@ -20,42 +20,41 @@ use POSIX;
 my $user      = Bugzilla->login(LOGIN_REQUIRED);
 my $vars      = {};
 
-my $cgi       = Bugzilla->cgi;
 my $template  = Bugzilla->template;
 my $dbh       = Bugzilla->dbh;
+my $ARGS      = { %{ Bugzilla->cgi->Vars } };
 
-$vars->{selfurl} = $cgi->canonicalise_query();
-$vars->{buginfo} = $cgi->param('buginfo');
+$vars->{buginfo} = $ARGS->{buginfo};
 
 # See http://lib.custis.ru/ShowTeamWork for &ctype=showteamwork
 our %FORMATS = map { $_ => 1 } qw(rss showteamwork);
 
-my $who = $cgi->param('who');
+my $who = $ARGS->{who};
 
 my $limit;
-my $format = $cgi->param('ctype');
+my $format = $ARGS->{ctype};
 trick_taint($format);
 $FORMATS{$format} or $format = 'rss';
 
 # Determine activity limit (100 by default)
-$limit = int($cgi->param('limit')) if $format eq 'showteamwork';
+$limit = int($ARGS->{limit}) if $format eq 'showteamwork';
 $limit = 100 if !$limit || $limit < 1;
 
-my $title = $cgi->param('namedcmd');
+my $title = $ARGS->{namedcmd};
 if ($title)
 {
     my $storedquery = Bugzilla::Search::LookupNamedQuery($title, $user->id);
-    $cgi = new Bugzilla::CGI($storedquery);
+    $ARGS = http_decode_query($storedquery);
 }
 
-$title ||= $cgi->param('query_based_on') || "Bugs";
+$title ||= $ARGS->{query_based_on} || 'Bugs';
 
-my $queryparams = new Bugzilla::CGI($cgi);
-$vars->{urlquerypart} = $queryparams->canonicalise_query('order', 'cmdtype', 'query_based_on');
+delete $ARGS->{$_} for ('order', 'cmdtype', 'query_based_on');
+$vars->{urlquerypart} = http_build_query($ARGS);
 
 # Create Bugzilla::Search
 my $search = new Bugzilla::Search(
-    params => $queryparams,
+    params => $ARGS,
     fields => [ "bug_id" ],
 );
 

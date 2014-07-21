@@ -82,9 +82,8 @@ sub refresh_sql
     {
         $query = $self->query;
     }
-    my $params = new Bugzilla::CGI($query->url);
     my $search = new Bugzilla::Search(
-        params => $params,
+        params => http_decode_query($query->url),
         fields => [ 'bug_id' ],
         user   => $query->user,
     );

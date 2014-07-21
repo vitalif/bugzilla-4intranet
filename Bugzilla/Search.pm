@@ -945,10 +945,7 @@ sub init
     my $self = shift;
     my @fields = @{ $self->{fields} || [] };
 
-    my $params = $self->{params};
-    $params->convert_old_params();
-    # Copy hash and throw away tied reference returned by CGI::Vars()
-    my $H = { %{ $params->Vars } };
+    my $H = $self->{params};
 
     # $self->{user} = User under which the search will be ran
     # Bugzilla->user = Just current user
@@ -1040,6 +1037,11 @@ sub init
     if (!$user->is_timetracker)
     {
         delete $legal_fields->{$_} for keys %{TIMETRACKING_FIELDS()};
+    }
+
+    if (exists $H->{bugidtype})
+    {
+        $H->{bug_id_type} = delete $H->{bugidtype} eq 'exclude' ? 'nowords' : 'anyexact';
     }
 
     # Extract <field> and <field>_type from parameters
@@ -2957,9 +2959,8 @@ sub _in_search_results
 {
     my $self = shift;
     my $query = LookupNamedQuery(trim($self->{value}));
-    my $queryparams = new Bugzilla::CGI($query);
     my $search = new Bugzilla::Search(
-        params => $queryparams,
+        params => http_decode_query($query),
         fields => [ "bugs.bug_id" ],
         user   => Bugzilla->user,
     );

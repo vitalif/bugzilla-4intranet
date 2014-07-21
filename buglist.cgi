@@ -223,12 +223,12 @@ if (defined $cgi->param('regetlastlist'))
     my $bug_id = $cgi->cookie('BUGLIST');
     $bug_id =~ s/:/,/g;
     # set up the params for this new query
-    $params = new Bugzilla::CGI({
+    $params = {
         bug_id => $bug_id,
         bug_id_type => 'anyexact',
         order => $order,
         columnlist => scalar($cgi->param('columnlist')),
-    });
+    };
 }
 
 # Figure out whether or not the user is doing a fulltext search.  If not,
@@ -421,7 +421,7 @@ if ($cmdtype eq "runnamed")
 # earlier, for example by setting up a named query search.
 
 # This will be modified, so make a copy.
-$params ||= new Bugzilla::CGI($cgi);
+$params ||= { %{ $cgi->Vars } };
 
 # Generate a reasonable filename for the user agent to suggest to the user
 # when the user saves the bug list.  Uses the name of the remembered query
@@ -465,17 +465,16 @@ if ($cmdtype eq "dorem")
             print $cgi->redirect(-location => $buffer);
             exit;
         }
-        $params = new Bugzilla::CGI($buffer);
-        $order = $params->param('order') || $order;
-
+        $params = http_decode_query($buffer);
+        $order = $params->{order} || $order;
     }
     elsif ($remaction eq "runseries")
     {
         $buffer = LookupSeries(scalar $cgi->param("series_id"));
         $vars->{searchname} = $cgi->param('namedcmd');
         $vars->{searchtype} = "series";
-        $params = new Bugzilla::CGI($buffer);
-        $order = $params->param('order') || $order;
+        $params = http_decode_query($buffer);
+        $order = $params->{order} || $order;
     }
     elsif ($remaction eq "forget")
     {
@@ -582,9 +581,9 @@ my $columns = Bugzilla::Search::COLUMNS;
 # Determine the columns that will be displayed in the bug list via the
 # columnlist CGI parameter, the user's preferences, or the default.
 my @displaycolumns = ();
-if (defined $params->param('columnlist'))
+if (defined $params->{columnlist})
 {
-    if ($params->param('columnlist') eq "all")
+    if ($params->{columnlist} eq 'all')
     {
         # If the value of the CGI parameter is "all", display all columns,
         # but remove the redundant "short_desc" column.
@@ -592,7 +591,7 @@ if (defined $params->param('columnlist'))
     }
     else
     {
-        @displaycolumns = split(/[ ,]+/, $params->param('columnlist'));
+        @displaycolumns = split(/[ ,]+/, $params->{columnlist});
     }
 }
 elsif (defined $cgi->cookie('COLUMNLIST'))
@@ -633,7 +632,7 @@ $_ = Bugzilla::Search->COLUMN_ALIASES->{$_} || $_ for @displaycolumns;
 
 # Some versions of perl will taint 'votes' if this is done as a single
 # statement, because the votes param is tainted at this point
-my $votes = $params->param('votes');
+my $votes = $params->{votes};
 $votes ||= "";
 if (trim($votes) && !grep($_ eq 'votes', @displaycolumns))
 {
@@ -838,7 +837,7 @@ my @orderstrings = split(/,\s*/, $order);
 my $input_bug_status;
 if ($query_format eq 'specific')
 {
-    $input_bug_status = $params->param('bug_status');
+    $input_bug_status = $params->{bug_status};
 }
 
 # Generate the basic SQL query that will be used to generate the bug list.
@@ -849,8 +848,7 @@ my $search = new Bugzilla::Search(
 );
 my $query = $search->getSQL();
 $vars->{search_description} = $search->search_description_html;
-my $H = { %{ $params->Vars } };
-$vars->{list_params} = $H;
+$vars->{list_params} = $params;
 
 # Generate equality operators for the "Create bug from querystring" link
 # FIXME: check if there are some differently named fields
@@ -1121,14 +1119,16 @@ if ($format->{extension} eq 'ics')
 }
 
 # Restore the bug status used by the specific search.
-$params->param('bug_status', $input_bug_status) if $input_bug_status;
+$params->{bug_status} = $input_bug_status if $input_bug_status;
 
 # The list of query fields in URL query string format, used when creating
 # URLs to the same query results page with different parameters (such as
 # a different sort order or when taking some action on the set of query
 # results).  To get this string, we call the Bugzilla::CGI::canoncalise_query
 # function with a list of elements to be removed from the URL.
-$vars->{urlquerypart} = $params->canonicalise_query('order', 'cmdtype', 'query_based_on');
+$vars->{urlquerypart} = { %$params };
+delete $vars->{urlquerypart}->{$_} for ('order', 'cmdtype', 'query_based_on');
+$vars->{urlquerypart} = http_build_query($vars->{urlquerypart});
 $vars->{order} = $order;
 $vars->{order_columns} = [ @orderstrings ];
 $vars->{order_dir} = [ map { s/ DESC$// ? 1 : 0 } @{$vars->{order_columns}} ];
@@ -1136,7 +1136,7 @@ $vars->{order_dir} = [ map { s/ DESC$// ? 1 : 0 } @{$vars->{order_columns}} ];
 $vars->{caneditbugs} = 1;
 $vars->{time_info} = $time_info;
 
-$vars->{query_params} = { %{ $params->Vars } }; # now used only in superworktime
+$vars->{query_params} = { %$params }; # now used only in superworktime
 $vars->{query_params}->{chfieldfrom} = $Bugzilla::Search::interval_from;
 $vars->{query_params}->{chfieldto} = $Bugzilla::Search::interval_to;
 

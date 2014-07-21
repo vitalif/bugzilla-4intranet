@@ -4,7 +4,6 @@
 package FlushViews;
 
 use strict;
-use Bugzilla::CGI;
 use Bugzilla::User;
 use Bugzilla::Search;
 
@@ -81,11 +80,11 @@ sub refresh_some_views
         ($q) = $dbh->selectrow_array('SELECT name FROM namedqueries WHERE userid=? AND name LIKE ? LIMIT 1', undef, $userid, $q);
         $q or next;
         my $storedquery = Bugzilla::Search::LookupNamedQuery($q, $userid, 0) or next;
-        my $cgi = new Bugzilla::CGI($storedquery);
+        $storedquery = http_decode_query($storedquery);
         # get SQL code
         my $search = new Bugzilla::Search(
-            params => $cgi,
-            fields => [ 'bug_id', grep { $_ ne 'bug_id' } split(/[ ,]+/, $cgi->param('columnlist')||'') ],
+            params => $storedquery,
+            fields => [ 'bug_id', grep { $_ ne 'bug_id' } split(/[ ,]+/, $storedquery->{columnlist} || '') ],
             user   => $userobj,
         ) or next;
         # Re-create views

@@ -6,7 +6,7 @@
 <channel>
     <title>[% title FILTER xml %]</title>
     <link>[% Param('urlbase') %]buglist.cgi?[%- urlquerypart.replace('ctype=rss[&]?','') FILTER xml %]</link>
-    <atom:link href="[% Param('urlbase') %]rss-comments.cgi?[% selfurl FILTER xml %]" rel="self" type="application/rss+xml" />
+    <atom:link href="[% Param('urlbase') %]rss-comments.cgi?[% urlquerypart FILTER xml %]" rel="self" type="application/rss+xml" />
     <description>[% "$terms.Bugzilla:" FILTER xml %][% title FILTER xml %]</description>
     <language>en</language>
     <lastBuildDate>[% builddate %]</lastBuildDate>

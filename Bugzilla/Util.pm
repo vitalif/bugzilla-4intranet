@@ -268,7 +268,7 @@ sub url_quote_noslash
     return $toencode;
 }
 
-# http_build_query($hashref) like PHP's one
+# http_build_query($hashref), like PHP's one
 sub http_build_query($)
 {
     my ($query) = @_;
@@ -276,7 +276,7 @@ sub http_build_query($)
         url_quote($_).'='.(ref $query->{$_}
             ? join('&'.url_quote($_).'=', map { url_quote($_) } @{$query->{$_}})
             : url_quote($query->{$_}))
-    } keys %$query);
+    } sort keys %$query);
 }
 
 # Decode query string to a hashref

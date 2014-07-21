@@ -1,7 +1,7 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-# ------------------------------------------------------------------------
-# For Bug 12253
+# "Old" version of "Today Worktime" page for mass-filling worktime information (CustIS Bug 12253)
+# Author(s): Stas Fomin, Vitaliy Filippov
+# License: Dual-license GPL 3.0+ or MPL 1.1+
 
 use strict;
 use lib qw(. lib);
@@ -20,12 +20,12 @@ use BugWorkTime; # extensions/custis/lib/
 my $user     = Bugzilla->login(LOGIN_REQUIRED);
 my $userid   = $user->id;
 
-my $cgi      = Bugzilla->cgi;
 my $template = Bugzilla->template;
 my $dbh      = Bugzilla->dbh;
 my $vars     = {};
+my $ARGS     = { %{ Bugzilla->cgi->Vars } };
 
-my ($lastdays) = $cgi->param('lastdays') =~ /^(\d+)$/;
+my ($lastdays) = $ARGS->{lastdays} =~ /^(\d+)$/;
 $vars->{lastdays} = $lastdays ||= '1';
 
 sub add_wt
@@ -41,24 +41,23 @@ sub add_wt
 
 # Read buglist from query params
 my @idlist;
-my $args = { %{ $cgi->Vars } };
-foreach (keys %$args)
+foreach (keys %$ARGS)
 {
     if (/^wtime_(\d+)/)
     {
         my $id = $1;
-        push @idlist, $id if $args->{$_} || $args->{"comm_$id"} ||
-            $args->{"oldrtime_$id"} ne $args->{"newrtime_$id"};
+        push @idlist, $id if $ARGS->{$_} || $ARGS->{"comm_$id"} ||
+            $ARGS->{"oldrtime_$id"} ne $ARGS->{"newrtime_$id"};
     }
 }
 
-my @lines = split("\n", $cgi->param("worktime"));
+my @lines = split("\n", $ARGS->{worktime});
 if (@idlist || @lines)
 {
     my $wtime = { IDS => [] };
     foreach my $id (@idlist)
     {
-        add_wt($wtime, $id, scalar $cgi->param("wtime_$id"), scalar $cgi->param("comm_$id"));
+        add_wt($wtime, $id, $ARGS->{"wtime_$id"}, $ARGS->{"comm_$id"});
     }
     foreach my $line (@lines)
     {
@@ -111,7 +110,7 @@ if (@idlist || @lines)
         Bugzilla->dbh->bz_commit_transaction();
     }
     Checkers::show_checker_errors();
-    print $cgi->redirect(-location => "fill-day-worktime.cgi?lastdays=" . $lastdays);
+    print Bugzilla->cgi->redirect(-location => "fill-day-worktime.cgi?lastdays=" . $lastdays);
     exit;
 }
 
@@ -120,9 +119,8 @@ my ($query, $query_id) = Bugzilla::Search::LookupNamedQuery('MyWorktimeBugs', un
 my $sqlquery = "";
 if ($query_id)
 {
-    my $queryparams = new Bugzilla::CGI($query);
-    my $search      = new Bugzilla::Search(
-        params => $queryparams,
+    my $search = new Bugzilla::Search(
+        params => http_decode_query($query),
         fields => [ "bugs.bug_id" ],
     );
     $sqlquery = $search->bugid_query;
