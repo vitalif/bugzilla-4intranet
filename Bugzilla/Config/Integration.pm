@@ -6,7 +6,7 @@ package Bugzilla::Config::Integration;
 use strict;
 use warnings;
 
-use Bugzilla::Config::Common;
+our $sortkey = 910;
 
 sub get_param_list
 {
@@ -39,37 +39,6 @@ sub get_param_list
         name => 'ext_disable_refresh_views',
         type => 'b',
         default => 0,
-    },
-
-    # FIXME move following to custishacks...
-    {
-        name => 'login_urlbase_redirects',
-        type => 'l',
-        default => '',
-    },
-
-    {
-        name => 'sm_dotproject_wsdl_url',
-        type => 't',
-        default => '',
-    },
-
-    {
-        name => 'sm_dotproject_login',
-        type => 't',
-        default => '',
-    },
-
-    {
-        name => 'sm_dotproject_password',
-        type => 't',
-        default => '',
-    },
-
-    {
-        name => 'sm_dotproject_ws_user',
-        type => 't',
-        default => '',
     },
 
     {
