@@ -113,7 +113,7 @@ var constants = {
           </select>
         [% END %]
       </td>
-      [% IF field.id %]
+      [% IF !field.id || field.type && field.type != constants.FIELD_TYPE_BUG_ID_REV %]
       <th align="left" id="default_value_th">Default value:</th>
       <td id="default_value_td">
         [% IF field.is_select %]
@@ -129,7 +129,7 @@ var constants = {
       </td>
       [% END %]
     </tr>
-    [% IF field.type && field.type != constants.FIELD_TYPE_BUG_ID_REV || !field.id %]
+    [% IF !field.id || field.type && field.type != constants.FIELD_TYPE_BUG_ID_REV %]
     <tr valign="top">
       [% IF !field.id || field.type == constants.FIELD_TYPE_BUG_ID %]
       <th align="left"><label id="add_to_deps_title" for="add_to_deps">Deps:</label></th>
@@ -191,6 +191,7 @@ var constants = {
         </select>
       </td>
     </tr>
+    [% IF !field.id || field.type && field.type != constants.FIELD_TYPE_BUG_ID_REV %]
     <tr valign="top" id="null_field_id_row">
       <th align="left" colspan="2"><label for="null_field_id">
         Allow empty value depending on the value of:
@@ -251,6 +252,7 @@ var constants = {
         </select>
       </td>
     </tr>
+    [% END %]
     [% END %]
     [%# FIXME These fields are still handled differently... %]
     [% IF field.name != 'version' && field.name != 'target_milestone' &&
