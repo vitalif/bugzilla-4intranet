@@ -491,7 +491,7 @@ if ($ARGS->{newcc} || $ARGS->{addselfcc} || $ARGS->{removecc} || $ARGS->{masscc}
     }
     else
     {
-        $cc_add = $ARGS->{newcc};
+        $cc_add = ref $ARGS->{newcc} ? join(', ', @{$ARGS->{newcc}}) : $ARGS->{newcc}; # FIXME array[]
         # We came from bug_form which uses a select box to determine what cc's
         # need to be removed...
         if (defined $ARGS->{removecc} && $ARGS->{cc}) # FIXME array[]
