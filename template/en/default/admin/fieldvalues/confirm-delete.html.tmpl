@@ -15,13 +15,12 @@
 
 [%# INTERFACE:
   # value: Bugzilla::Field::Choice; The field value being deleted.
-  # value_count: number; The number of values available for this field.
   # field: object; the field the value is being deleted from.
   #%]
 
 [% title = BLOCK %]
-  Delete Value '[% value.name FILTER html %]' from the 
-  '[% field.description FILTER html %]' ([% field.name FILTER html %]) field
+  Delete Value '[% value.name | html %]' from the 
+  '[% field.description | html %]' ([% field.name | html %]) field
 [% END %]
 
 [% PROCESS global/header.html.tmpl
@@ -36,22 +35,22 @@
 </tr>
 <tr>
   <td valign="top">Field Name:</td>
-  <td valign="top">[% field.description FILTER html %]</td>
+  <td valign="top">[% field.description | html %]</td>
 </tr>
 <tr>
   <td valign="top">Field Value:</td>
-  <td valign="top">[% value.name FILTER html %]</td>
+  <td valign="top">[% value.name | html %]</td>
 </tr>
 <tr>
   <td valign="top">[% terms.Bugs %]:</td>
   <td valign="top">
 [% IF value.bug_count %]
   <a title="List of [% terms.bugs %] where '
-            [%- field.description FILTER html %]' is '
-            [%- value.name FILTER html %]'"
-     href="buglist.cgi?[% field.name FILTER url_quote %]=
-           [%- value.name FILTER url_quote %]">
-   [%- value.bug_count FILTER html %]</a>
+            [%- field.description | html %]' is '
+            [%- value.name | html %]'"
+     href="buglist.cgi?[% field.name | url_quote %]=
+           [%- value.name | url_quote %]">
+   [%- value.bug_count | html %]</a>
 [% ELSE %]
   None
 [% END %]
@@ -61,18 +60,18 @@
 
 <h2>Confirmation</h2>
 
-[% IF value.is_default || value.bug_count || (value_count == 1)
-      || value.controls_visibility_of_fields.size
-%]
+[% IF value.is_default || value.bug_count ||
+  value.controls_visibility_of_fields.size ||
+  value.controls_visibility_of_field_values.size %]
 
-  <p>Sorry, but the '[% value.name FILTER html %]' value cannot be deleted
-    from the '[% field.description FILTER html %]' field for the following 
+  <p>Sorry, but the '[% value.name | html %]' value cannot be deleted
+    from the '[% field.description | html %]' field for the following
     reason(s):</p>
 
   <ul class="warningmessages">
     [% IF value.is_default %]
-      <li>'[% value.name FILTER html %]' is the default value for
-        the '[% field.description FILTER html %]' field.
+      <li>'[% value.name | html %]' is the default value for
+        the '[% field.description | html %]' field.
         [% IF user.in_group('tweakparams') %]
           You first have to <a href="editparams.cgi?section=bugfields">change
           the default value</a> for this field before you can delete
@@ -84,17 +83,17 @@
     [% IF value.bug_count %]
       <li>
         [% IF value.bug_count > 1 %]
-          There are [% value.bug_count FILTER html %] [%+ terms.bugs %] 
+          There are [% value.bug_count | html %] [%+ terms.bugs %] 
           with this field value.
         [% ELSE %]
           There is 1 [% terms.bug %] with this field value.
         [% END %]
         You must change the field value on
           <a title="List of [% terms.bugs %] where '
-                    [%- field.description FILTER html %]' is '
-                    [%- value.name FILTER html %]'"
-             href="buglist.cgi?[% field.name FILTER url_quote %]=
-                   [%- value.name FILTER url_quote %]">
+                    [%- field.description | html %]' is '
+                    [%- value.name | html %]'"
+             href="buglist.cgi?[% field.name | url_quote %]=
+                   [%- value.name | url_quote %]">
             [% IF value.bug_count > 1 %]
               those [% terms.bugs %] 
             [% ELSE %]
@@ -102,12 +101,6 @@
             [% END %]
           </a>
           to another value before you can delete this value.
-      </li>
-    [% END %]
-
-    [% IF value_count == 1 %]
-      <li>'[% value.name FILTER html %]' is the last value for
-        '[%- field.description FILTER html %]', and so it can not be deleted.
       </li>
     [% END %]
 
@@ -121,7 +114,7 @@
       </li>
     [% END %]
 
-    [% IF value.controls_visibility_of_field_values %]
+    [% IF value.controls_visibility_of_field_values.size %]
       <li>This value controls the visibility of the following values in
         other fields:<br>
        [% FOREACH field_name = value.controls_visibility_of_field_values.keys %]
@@ -143,9 +136,9 @@
   <form method="post" action="editvalues.cgi">
     <input type="submit" value="Yes, delete" id="delete">
     <input type="hidden" name="action" value="delete">
-    <input type="hidden" name="field" value="[% field.name FILTER html %]">
-    <input type="hidden" name="value" value="[% value.name FILTER html %]">
-    <input type="hidden" name="token" value="[% token FILTER html %]">
+    <input type="hidden" name="field" value="[% field.name | html %]">
+    <input type="hidden" name="value" value="[% value.name | html %]">
+    <input type="hidden" name="token" value="[% token | html %]">
   </form>
 
 [% END %]
@@ -154,4 +147,4 @@
   no_edit_link = 1
  +%]
 
-[% PROCESS global/footer.html.tmpl %] 
+[% PROCESS global/footer.html.tmpl %]

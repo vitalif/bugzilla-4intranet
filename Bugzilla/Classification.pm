@@ -59,8 +59,6 @@ use constant VALIDATORS => {
     sortkey     => \&_check_sortkey,
 };
 
-use constant EXCLUDE_CONTROLLED_FIELDS => ('product');
-
 use constant is_active => 1;
 
 ###############################
@@ -72,8 +70,6 @@ sub remove_from_db
     my $dbh = Bugzilla->dbh;
 
     ThrowUserError("classification_not_deletable") if ($self->id == 1);
-
-    $self->_check_if_controller();
 
     $dbh->bz_start_transaction();
     # Reclassify products to the default classification, if needed.

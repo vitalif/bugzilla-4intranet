@@ -105,8 +105,6 @@ use constant VALIDATORS => {
     cc_group         => \&_check_cc_group,
 };
 
-use constant EXCLUDE_CONTROLLED_FIELDS => ('component', 'target_milestone', 'version');
-
 ###############################
 ####     Constructors     #####
 ###############################
@@ -474,8 +472,6 @@ sub remove_from_db
     my $dbh = Bugzilla->dbh;
 
     $dbh->bz_start_transaction();
-
-    $self->_check_if_controller();
 
     if ($self->bug_count)
     {

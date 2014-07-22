@@ -23,9 +23,6 @@
   # static: array; list of values which cannot be renamed nor deleted.
   #%]
 
-[% USE Bugzilla %]
-[% cgi = Bugzilla.cgi %]
-
 [% title = BLOCK %]Select value for the '[% field.description FILTER html %]'
                    ([% field.name FILTER html %]) field[% END %]
 [% PROCESS global/header.html.tmpl
@@ -38,21 +35,13 @@
   [%- field.name FILTER url_quote %]&amp;value=%%name%%[% END %]
 [% select_contentlink = BLOCK %]editvisibility.cgi?field=[%- field.name FILTER url_quote %]&amp;value=%%name%%[% END %]
 
-[% IF field.custom && field.value_field %]
-  <h4>
-    Чтобы отредактировать наборы активных [% field.description FILTER html %] и значения по умолчанию
-    для разных значений поля [% field.value_field.description FILTER html %],
-    <a href="editvalues.cgi?action=control_list&amp;field=[%- field.name FILTER url_quote %]">нажмите сюда</a>.
-  </h4>
-[% END %]
-
 [% columns = [
-     { 
+     {
        name => "name"
        heading => "Edit field value..."
        contentlink => edit_contentlink
      },
-     { 
+     {
        name => "sortkey"
        heading => "Sortkey"
      },
@@ -67,12 +56,7 @@
        content => "Delete"
        contentlink => delete_contentlink
      },
-     {
-        name => "controlledfield"
-        heading => "Выбрать поля, контролируемые этим"
-        content => "К странице выбора полей"
-        contentlink => select_contentlink
-     } ]
+   ]
 %]
 
 [% SET overrides.action = {} %]

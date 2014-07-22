@@ -98,8 +98,8 @@
 
 [% SET any_field = 0 %]
 [% FOR f = Bugzilla.get_fields({ obsolete => 0, default_field_id => this_field.id, sort => 1 }) %]
-  [%# FIXME: default version is hardcoded to depend on component %]
-  [% IF f.name != 'version' && (f.visibility_field_id != f.default_field_id || f.has_visibility_value(this_value_id)) %]
+  [%# FIXME: default version is hardcoded to depend on component, default milestone is hardcoded to depend on product %]
+  [% IF f.name != 'version' && f.name != 'target_milestone' && (f.visibility_field_id != f.default_field_id || f.has_visibility_value(this_value_id)) %]
     [% IF NOT any_field %]
     <tr>
       <th align="left" valign="top">

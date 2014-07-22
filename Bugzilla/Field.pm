@@ -578,10 +578,8 @@ sub restricted_legal_values
     {
         my $hash = Bugzilla->fieldvaluecontrol->{$self->value_field_id}->{values}->{$self->id};
         $rc_cache->{$self}->{restricted_legal_values}->{$controller_value} = [
-            grep {
-                $_->is_static || !exists $hash->{$_->id} ||
-                !%{$hash->{$_->id}} || $hash->{$_->id}->{$controller_value}
-            } @{$self->legal_values}
+            grep { $_->is_static || $hash->{$_->id} && $hash->{$_->id}->{$controller_value} }
+            @{$self->legal_values}
         ];
     }
     return $rc_cache->{$self}->{restricted_legal_values}->{$controller_value};
@@ -604,7 +602,7 @@ sub has_visibility_value
     $value = $value->id if ref $value;
     my $hash = Bugzilla->fieldvaluecontrol
         ->{$self->visibility_field_id}->{fields}->{$self->id};
-    return !$hash || !%$hash || $hash->{$value};
+    return $hash && $hash->{$value};
 }
 
 sub null_visibility_values
@@ -640,9 +638,9 @@ sub check_is_nullable
 {
     my $self = shift;
     $self->nullable || return 0;
-    $self->null_visibility_values || return 1;
-    my $bug = shift || return 1;
     my $vf = $self->null_field || return 1;
+    $self->null_visibility_values || return 0;
+    my $bug = shift || return 1;
     my $value = bug_or_hash_value($bug, $vf);
     return $value ? $self->null_visibility_values->{$value} : 1;
 }
@@ -653,7 +651,7 @@ sub check_clone
     my $self = shift;
     $self->clone_bug || return 0;
     my $vf = $self->clone_field || return 1;
-    $self->clone_visibility_values || return 1;
+    $self->clone_visibility_values || return 0;
     my $bug = shift || return 1;
     my $value = bug_or_hash_value($bug, $vf);
     return $value ? $self->clone_visibility_values->{$value} : 1;
@@ -1025,7 +1023,6 @@ sub update
 sub touch
 {
     my $self = shift;
-    $self->{delta_ts} = POSIX::strftime('%Y-%m-%d %H:%M:%S', localtime);
     $self->update;
 }
 
@@ -1349,84 +1346,97 @@ sub update_visibility_values
     return 1;
 }
 
-# FIXME Вот такая у нас сейчас логика... не нравится она мне... Скорее всего, надо делать так:
-# * если записей нет, а visibility_field_id есть - поле не видно никогда. новые поля не видны нигде.
-# * аналогично со значениями; новые значения не видны нигде.
-# * придётся добавить ещё null_field_id, т.к. например target_milestone может быть виден везде, а nullable быть не везде
-# * отдельное поле, от которого зависит дефолтное значение (default_field_id), отдельная таблица
-#   для хранения дефолтных значений (field_id, visibility_value_id, default_value). Т.к. это не только для select'ов...
-#   (тут точно нужно отдельное поле, т.к. например наборы версий зависят от продукта, но дефолтные версии - от компонента)
-# * и видимо отдельное поле, от которого зависит клонирование (clone_field_id), и хранить (field_id, -2, visibility_value_id)
-sub toggle_value
-{
-    my ($f, $v, $vv, $enable) = @_;
-    $f = $f->id if ref $f;
-    my ($any, $this) = Bugzilla->dbh->selectrow_array(
-        'SELECT COUNT(*), SUM(visibility_value_id=?) FROM fieldvaluecontrol WHERE field_id=? AND value_id=?', undef, $vv, $f, $v
-    );
-    if ($enable && $any && !$this)
-    {
-        Bugzilla->dbh->do('INSERT INTO fieldvaluecontrol (field_id, value_id, visibility_value_id) VALUES (?, ?, ?)', undef, $f, $v, $vv);
-        return 1;
-    }
-    elsif (!$enable && !$any)
-    {
-        my $obj = Bugzilla->get_field($f)->flag_field($v);
-        # FIXME: Taint bug (5.18.2): $obj->value_type->DB_TABLE becomes tainted
-        # and taints SQL query if substituted directly into dbh->do()...
-        my $t = $obj->value_type->DB_TABLE;
-        Bugzilla->dbh->do(
-            'INSERT INTO fieldvaluecontrol (field_id, value_id, visibility_value_id)'.
-            'SELECT ?, ?, id FROM '.$t.' WHERE id != ?',
-            undef, $f, $v, $vv
-        );
-        return 0;
-    }
-    elsif (!$enable && $this)
-    {
-        Bugzilla->dbh->do(
-            'DELETE FROM fieldvaluecontrol WHERE field_id=? AND value_id=? AND visibility_value_id=?',
-            undef, $f, $v, $vv
-        );
-        return 0;
-    }
-    return undef;
-}
-
-# FIXME: This issues A LOT OF sql queries and should be optimized.
 sub update_control_lists
 {
     my ($controlling_field_id, $controlling_value_id, $params) = @_;
     $controlling_field_id = $controlling_field_id->id if ref $controlling_field_id;
+    $controlling_value_id = Bugzilla->get_field($controlling_field_id)->value_type->new($controlling_value_id);
+    $controlling_value_id = $controlling_value_id ? $controlling_value_id->id : return undef;
+    # Save all visible, nullable and clone flags at once
+    my $mod = {};
     for my $f (Bugzilla->get_fields({ obsolete => 0, visibility_field_id => $controlling_field_id }))
     {
-        $f->toggle_value(FLAG_VISIBLE, $controlling_value_id, $params->{'is_visible_'.$f->name} ? 1 : 0);
+        push @{$mod->{$params->{'is_visible_'.$f->name} ? 'add' : 'del'}}, [ $f->id, FLAG_VISIBLE ];
     }
     for my $f (Bugzilla->get_fields({ obsolete => 0, null_field_id => $controlling_field_id }))
     {
-        $f->toggle_value(FLAG_NULLABLE, $controlling_value_id, $params->{'is_nullable_'.$f->name} ? 1 : 0);
+        push @{$mod->{$params->{'is_nullable_'.$f->name} ? 'add' : 'del'}}, [ $f->id, FLAG_NULLABLE ];
     }
     for my $f (Bugzilla->get_fields({ obsolete => 0, clone_field_id => $controlling_field_id }))
     {
-        $f->toggle_value(FLAG_CLONED, $controlling_value_id, $params->{'is_cloned_'.$f->name} ? 1 : 0);
+        push @{$mod->{$params->{'is_cloned_'.$f->name} ? 'add' : 'del'}}, [ $f->id, FLAG_CLONED ];
     }
+    if (@{$mod->{del}} || @{$mod->{add}})
+    {
+        Bugzilla->dbh->do(
+            'DELETE FROM fieldvaluecontrol WHERE visibility_value_id=? AND (field_id, value_id) IN ('.
+            join(',', map { "($_->[0], $_->[1])" } (@{$mod->{add}}, @{$mod->{del}})).')', undef,
+            $controlling_value_id
+        );
+    }
+    if (@{$mod->{add}})
+    {
+        Bugzilla->dbh->do(
+            'INSERT INTO fieldvaluecontrol (visibility_value_id, field_id, value_id) VALUES '.
+            join(',', map { "($controlling_value_id, $_->[0], $_->[1])" } @{$mod->{add}})
+        );
+    }
+    # Save all dependent defaults at once
+    my $touched = { map { $_->[0] => 1 } (@{$mod->{add}}, @{$mod->{del}}) };
+    $mod = {};
     for my $f (Bugzilla->get_fields({ obsolete => 0, default_field_id => $controlling_field_id }))
     {
-        next if $f eq 'version'; # FIXME: default version is hardcoded to depend on component
-        $f->update_default_values($controlling_value_id, $params->{'default_'.$f->name});
+        next if $f eq 'version' || $f eq 'target_milestone'; # FIXME: default version is hardcoded to depend on component, default milestone is hardcoded to depend on product
+        my $default = $params->{'default_'.$f->name};
+        $default = $f->_check_default_value($default);
+        if (!$default)
+        {
+            push @{$mod->{del}}, [ $f->id ];
+        }
+        else
+        {
+            trick_taint($default);
+            push @{$mod->{add}}, [ $f->id, $default ];
+        }
+        $touched->{$f->id} = 1;
+    }
+    if (@{$mod->{del}} || @{$mod->{add}})
+    {
+        Bugzilla->dbh->do(
+            'DELETE FROM field_defaults WHERE visibility_value_id=? AND field_id IN ('.
+            join(',', map { $_->[0] } (@{$mod->{add}}, @{$mod->{del}})).')',
+            undef, $controlling_value_id
+        );
+    }
+    if (@{$mod->{add}})
+    {
+        Bugzilla->dbh->do(
+            'INSERT INTO field_defaults (visibility_value_id, field_id, default_value) VALUES '.
+            join(',', map { "($controlling_value_id, $_->[0], ?)" } @{$mod->{add}}),
+            undef, map { $_->[1] } @{$mod->{add}}
+        );
+    }
+    # Update metadata timestamp for many fields at once
+    if (%$touched)
+    {
+        Bugzilla->dbh->do(
+            'UPDATE fielddefs SET delta_ts=? WHERE id IN ('.
+            join(',', keys %$touched).')', undef, POSIX::strftime('%Y-%m-%d %H:%M:%S', localtime)
+        );
+        Bugzilla->refresh_cache_fields;
     }
 }
 
 sub update_controlled_values
 {
     my ($controlled_field, $controlled_value_ids, $visibility_value_id) = @_;
+    $controlled_field = Bugzilla->get_field($controlled_field) if !ref $controlled_field;
     $controlled_value_ids ||= [];
     my $vis_field = $controlled_field->value_field;
     if (!$vis_field)
     {
         return undef;
     }
-    $controlled_field = Bugzilla->get_field($controlled_field) if !ref $controlled_field;
     $visibility_value_id = int($visibility_value_id);
     Bugzilla->dbh->do(
         "DELETE FROM fieldvaluecontrol WHERE field_id=? AND visibility_value_id=? AND value_id!=0",

@@ -130,17 +130,17 @@ function getPlainSelectedIds(sel)
 // which are keys of $visible_for_ids, and if $selected_ids are selected by now.
 // Examples:
 // f({ 1: 1, 3: 1 }, { 1: 1, 2: 1 }) = true
-// f({},             { 1: 1, 2: 1 }) = true
+// f({},             { 1: 1, 2: 1 }) = false
 // f({ 2: 1 },       { 1: 1 })       = false
+// FIXME: Similar to check_value_visibility from bug-visibility.js
 function qfCheckVisibility(visible_for_ids, selected_ids)
 {
-    vis = true;
+    vis = false;
     // Visible also if visible_for_ids is an empty hash
     if (visible_for_ids)
     {
         for (var cid in visible_for_ids)
         {
-            vis = false;
             if (selected_ids[cid])
             {
                 vis = true;

@@ -58,8 +58,6 @@ use constant CLASS_MAP => {
 
 use constant DEFAULT_MAP => { reverse %{ Bugzilla::Config::BugFields::DEFAULTNAMES() } };
 
-use constant EXCLUDE_CONTROLLED_FIELDS => ();
-
 #################
 # Class Factory #
 #################
@@ -192,8 +190,10 @@ sub remove_from_db
             value => $self,
         });
     }
-    $self->_check_if_controller();
+    # Delete visibility values
     $self->set_visibility_values(undef);
+    # Delete controlled value records
+    $self->field->update_control_lists($self->id, {});
     $self->field->touch;
     $self->SUPER::remove_from_db();
 }
@@ -212,7 +212,6 @@ sub get_all
     }
     my $f = $class->field;
     my $all;
-    my $cache = Bugzilla->cache_fields;
     if (!defined $f->{legal_values})
     {
         # Only full unfiltered list of active values is cached between requests
@@ -244,7 +243,7 @@ sub get_all
     my $filtered = [];
     for my $value (@$all)
     {
-        $vis = !$h->{$value->id} || !%{$h->{$value->id}} ? 1 : 0;
+        $vis = !$h->{$value->id} || !%{$h->{$value->id}};
         for (keys %{$h->{$value->id}})
         {
             if ($visible_ids->{$_})
@@ -307,28 +306,6 @@ sub get_all_names
     return $names;
 }
 
-sub _check_if_controller
-{
-    my $self = shift;
-    my %exclude = map { $_ => 1 } $self->EXCLUDE_CONTROLLED_FIELDS;
-    my $c_fields = $self->controls_visibility_of_fields;
-    my $c_values = $self->controls_visibility_of_field_values;
-    $c_fields = [ grep { !$exclude{$_->name} } @$c_fields ];
-    $c_values = {
-        map { $_ => $c_values->{$_} }
-        grep { !$exclude{$_} && $c_values->{$_} }
-        keys %$c_values
-    };
-    if (@$c_fields || %$c_values)
-    {
-        ThrowUserError('fieldvalue_is_controller', {
-            value  => $self,
-            fields => [ map { $_->name } @$c_fields ],
-            vals   => $c_values,
-        });
-    }
-}
-
 #############
 # Accessors #
 #############
@@ -336,6 +313,7 @@ sub _check_if_controller
 sub is_active { return $_[0]->{isactive}; }
 sub sortkey   { return $_[0]->{sortkey};  }
 
+# FIXME Never use bug_count() on a copy from legal_values, as the result will be cached...
 sub bug_count
 {
     my $self = shift;
@@ -380,12 +358,11 @@ sub controls_visibility_of_fields
     my $self = shift;
     my $vid = $self->id;
     my $fid = $self->field->id;
-    $self->{controls_visibility_of_fields} ||= [
+    return [
         map { Bugzilla->get_field($_) }
         grep { Bugzilla->fieldvaluecontrol->{$fid}->{fields}->{$_}->{$vid} }
         keys %{Bugzilla->fieldvaluecontrol->{$fid}->{fields}}
     ];
-    return $self->{controls_visibility_of_fields};
 }
 
 sub controls_visibility_of_field_values
@@ -433,31 +410,15 @@ sub visibility_values
 sub has_visibility_value
 {
     my $self = shift;
-    my ($value, $default) = @_;
-    $default = 1 if !defined $default;
-    return $default if !$self->field->value_field_id;
+    my ($value) = @_;
+    return 1 if !$self->field->value_field_id;
     $value = $value->id if ref $value;
     my $hash = Bugzilla->fieldvaluecontrol
         ->{$self->field->value_field_id}
         ->{values}
         ->{$self->field->id}
         ->{$self->id};
-    return $default if !$hash || !%$hash;
-    return $hash->{$value};
-}
-
-sub visible_for_all
-{
-    my $self = shift;
-    my ($default) = @_;
-    $default = 0 if !defined $default;
-    return $default if !$self->field->value_field_id;
-    my $hash = Bugzilla->fieldvaluecontrol
-        ->{$self->field->value_field_id}
-        ->{values}
-        ->{$self->field->id}
-        ->{$self->id};
-    return !$hash || !%$hash;
+    return $hash && $hash->{$value};
 }
 
 # Check visibility of field value for a bug or a hashref with default value names
@@ -467,7 +428,7 @@ sub check_visibility
     my $bug = shift || return 1;
     my $vf = $self->field->value_field || return 1;
     my $value = Bugzilla::Field::bug_or_hash_value($bug, $vf);
-    return $value ? $self->has_visibility_value($value) : 1;
+    return $value ? $self->has_visibility_value($value) : 0;
 }
 
 ############

@@ -88,12 +88,11 @@ function handleControllerField_this(e)
 
 function checkValueVisibility(selected, visible)
 {
-    var vis = true;
+    var vis = false;
     if (visible)
     {
         for (var value in visible)
         {
-            vis = false;
             if (selected[value])
             {
                 vis = true;

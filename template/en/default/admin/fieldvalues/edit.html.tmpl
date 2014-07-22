@@ -75,20 +75,18 @@
     [% IF field.value_field && !value.is_static %]
       <tr>
         <th colspan="2" align="left">
-          Only appears when [%+ field.value_field.description | html %] is set to:<br />
-          <span style="font-weight: normal">(<a href="javascript:void(0)"
-            onclick="document.getElementById('visibility_value_id').selectedIndex=-1">clear options</a>
-            to make this value always appear)</span>
+          <label for="visibility_value_id">Only appears when [%+ field.value_field.description | html %] is set to:</label>
         </td>
       </tr>
       <tr>
         <td colspan="2">
           <select name="visibility_value_id[]" id="visibility_value_id" multiple="multiple" size="15" style="width: 400px">
             [% FOREACH field_value = field.value_field.legal_values %]
-              [% NEXT IF field_value.name == '' %]
-              <option value="[% field_value.id | none %]" [% ' selected="selected"' IF value.has_visibility_value(field_value.id, 0) %]>
+              [% IF field.visibility_field_id != field.value_field_id || field.has_visibility_value(field_value.id) %]
+              <option value="[% field_value.id | none %]" [% ' selected="selected"' IF value.has_visibility_value(field_value.id) %]>
                 [%- field_value.name | html -%]
               </option>
+              [% END %]
             [% END %]
           </select>
         </td>

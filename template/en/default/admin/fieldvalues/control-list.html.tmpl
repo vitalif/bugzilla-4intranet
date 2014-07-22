@@ -1,6 +1,3 @@
-[% USE Bugzilla %]
-[% cgi = Bugzilla.cgi %]
-
 [% IF step == 0;
      SET title = "Выбор активных " _ field.description _ " для различных значений " _ field.value_field.description;
    ELSIF step == 1;
@@ -58,7 +55,6 @@
         <tr>
           <th align="left">Значение</th>
           <th align="left">Активно</th>
-          <th></th>
         </tr>
         [% count = 0 %]
         [% FOREACH value = field.legal_values %]
@@ -69,17 +65,7 @@
               <a title="Править значение..." href="editvalues.cgi?action=edit&field=[% field.name %]&value=[% value.name | uri %]">&rarr;</a>
             </td>
             <td align="center">
-              [% IF value.visible_for_all() %]
-              <input type="checkbox" id="val_[% value.id %]" value="[% value.id %]" name="values[]" onchange="changeDefaultEnabling(this);" checked="checked" disabled="disabled"/>
-              [% ELSE %]
-              <input type="checkbox" id="val_[% value.id %]" value="[% value.id %]" name="values[]" onchange="changeDefaultEnabling(this);"[% ' checked="checked"' IF value.has_visibility_value(field_value.id, 0) %]/>
-              [% END %]
-            </td>
-            <td>
-              [% IF value.visible_for_all() %]
-                Значение видимо для всех значений поля <strong>[% field.value_field.description FILTER html %]</strong><br/>
-                <a href="editvalues.cgi?action=edit&field=[% field.name %]&value=[% value.name | uri %]">Редактировать</a>
-              [% END %]
+              <input type="checkbox" id="val_[% value.id %]" value="[% value.id %]" name="values[]" onchange="changeDefaultEnabling(this);"[% ' checked="checked"' IF value.has_visibility_value(field_value.id) %]/>
             </td>
           </tr>
           [% count = count + 1 %]

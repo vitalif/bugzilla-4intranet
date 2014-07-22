@@ -9,6 +9,7 @@ use JSON;
 use Bugzilla::Search;
 use Bugzilla::Search::Saved;
 use Bugzilla::Error;
+use Bugzilla::Util;
 
 use constant DB_TABLE => 'checkers';
 

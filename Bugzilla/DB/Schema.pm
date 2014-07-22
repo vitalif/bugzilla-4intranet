@@ -592,8 +592,9 @@ use constant ABSTRACT_SCHEMA => {
 
     # All value/value and value/field dependencies are stored here
     # value_id > 0: value with this id is visible if value field has value visibility_value_id
-    # value_id == 0: field is visible if visibility field has value visibility_value_id
-    # value_id == -1: NULL is allowed if visibility field has value visibility_value_id
+    # value_id == FLAG_VISIBLE: field is visible if visibility_field has value visibility_value_id
+    # value_id == FLAG_NULLABLE: NULL is allowed if null_field has value visibility_value_id
+    # value_id == FLAG_CLONED: field is copied from cloned bugs with clone_field equal to visibility_value_id
     # (originally CustIS Bugs 53617, 91153)
     fieldvaluecontrol => {
         FIELDS => [

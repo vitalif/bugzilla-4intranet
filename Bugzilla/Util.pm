@@ -335,7 +335,7 @@ sub xml_quote {
 sub url_decode {
     my ($todecode) = (@_);
     $todecode =~ tr/+/ /;       # pluses become spaces
-    $todecode =~ s/%([0-9a-fA-F]{2})/pack("c",hex($1))/ge;
+    $todecode =~ s/%([0-9a-fA-F]{2})/pack("C",hex($1))/ge;
     return $todecode;
 }
 

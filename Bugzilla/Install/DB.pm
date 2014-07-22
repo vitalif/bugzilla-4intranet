@@ -35,6 +35,11 @@ use Date::Format;
 use IO::File;
 use Time::HiRes qw(time);
 
+# Behaviour of fieldvaluecontrol data is changed -- now a value is invisible
+# if it has no visibility values. Previously it was visible for all visibility
+# values in that case. This flag indicates that the DB has "old" contents.
+my $pre_null_fieldvaluecontrol = 0;
+
 # NOTE: This is NOT the function for general table updates. See
 # update_table_definitions for that. This is only for the fielddefs table.
 sub update_fielddefs_definition
@@ -62,6 +67,8 @@ sub update_fielddefs_definition
     # 2005-08-10 Myk Melez <myk@mozilla.org> bug 287325
     # Record each field's type and whether or not it's a custom field,
     # in fielddefs.
+
+    $pre_null_fieldvaluecontrol = !$dbh->bz_column_info('fielddefs', 'null_field_id');
 
     # Add columns that don't require special logic
     for my $c (qw(type custom clone_bug url is_mandatory add_to_deps default_value
@@ -3897,7 +3904,7 @@ sub _make_fieldvaluecontrol
             " SELECT id, visibility_value_id, 0 FROM fielddefs WHERE visibility_value_id IS NOT NULL"
         );
         print "Making backup of table fielddefs\n";
-        $dbh->do("CREATE TABLE `backup_fielddefs_".int(time)."` AS SELECT * FROM fielddefs");
+        $dbh->do("CREATE TABLE backup_fielddefs_".int(time)." AS SELECT * FROM fielddefs");
         print "Dropping column fielddefs.visibility_value_id\n";
         $dbh->bz_drop_column('fielddefs', 'visibility_value_id');
     }
@@ -3920,16 +3927,15 @@ sub _make_fieldvaluecontrol
         FIELD_TYPE_SINGLE_SELECT, FIELD_TYPE_MULTI_SELECT, @standard_fields);
     foreach my $field (@$custom_fields)
     {
-        if ($dbh->bz_table_info($field->{name}) &&
-            $dbh->bz_column_info($field->{name}, 'visibility_value_id'))
+        if ($dbh->bz_column_info($field->{name}, 'visibility_value_id'))
         {
             print "Migrating $field->{name}'s visibility_value_id into fieldvaluecontrol\n";
             $dbh->do(
                 "REPLACE INTO fieldvaluecontrol (field_id, visibility_value_id, value_id)".
-                " SELECT f.id, v.visibility_value_id, v.id FROM fielddefs f, `$field->{name}` v".
+                " SELECT f.id, v.visibility_value_id, v.id FROM fielddefs f, $field->{name} v".
                 " WHERE f.name=? AND v.visibility_value_id IS NOT NULL", undef, $field->{name});
             print "Making backup of table $field->{name}\n";
-            $dbh->do("CREATE TABLE backup_$field->{name}_".int(time)." AS SELECT * FROM `$field->{name}`");
+            $dbh->do("CREATE TABLE backup_$field->{name}_".int(time)." AS SELECT * FROM $field->{name}");
             $dbh->bz_drop_column($field->{name}, 'visibility_value_id');
         }
     }
@@ -3954,6 +3960,56 @@ sub _make_fieldvaluecontrol
                 'INSERT INTO fieldvaluecontrol (field_id, value_id, visibility_value_id)'.
                 ' SELECT ?, id, '.$_->[1].'_id FROM '.$_->[2], undef, $id
             );
+        }
+    }
+
+    if ($pre_null_fieldvaluecontrol)
+    {
+        my $rows = $dbh->selectcol_arrayref(
+            "SELECT f.id FROM fielddefs f LEFT JOIN fieldvaluecontrol c ON c.field_id=f.id AND c.value_id=0".
+            " WHERE f.visibility_field_id IS NOT NULL AND c.visibility_value_id IS NULL"
+        );
+        if (@$rows)
+        {
+            print "WARNING: The following fields have non-empty visibility field, but no visibility values in your DB:\n";
+            print "  ".Bugzilla->get_field($_)->description."\n" for @$rows;
+            print "They will be invisible in the new setup. Clear visibility field or fill visibility values for them.\n";
+        }
+        for my $f (Bugzilla->get_fields({ obsolete => 0 }))
+        {
+            if ($f->value_field_id && $f->type != FIELD_TYPE_BUG_ID_REV)
+            {
+                my $t = $f->value_type;
+                my $table = $t->DB_TABLE;
+                $rows = $dbh->selectall_arrayref(
+                    "SELECT v.* FROM $table v LEFT JOIN fieldvaluecontrol c ON c.field_id=? AND c.value_id=v.id".
+                    " WHERE v.isactive AND c.visibility_value_id IS NULL", {Slice=>{}}, $f->id
+                );
+                if (@$rows)
+                {
+                    my $all_ids;
+                    if ($f->value_field_id == $f->visibility_field_id)
+                    {
+                        $all_ids = [ keys %{ $f->visibility_values || {} } ];
+                    }
+                    else
+                    {
+                        $all_ids = [ map { $_->id } $f->value_field->legal_values ];
+                    }
+                    if (@$all_ids)
+                    {
+                        for (@$rows)
+                        {
+                            my $v = $f->id.", ".$_->{$t->ID_FIELD}.", ";
+                            print "Enabling value ".$_->{$t->NAME_FIELD}." of field ".$f->description." for all controlling values.\n";
+                            $dbh->do(
+                                "INSERT INTO fieldvaluecontrol (field_id, value_id, visibility_value_id)".
+                                " VALUES (".join("), (", map { $v.$_ } @$all_ids).")"
+                            );
+                        }
+                    }
+                }
+            }
         }
     }
 
