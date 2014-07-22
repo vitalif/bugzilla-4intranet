@@ -45,18 +45,21 @@ function initControllerField(i)
 function getSelectedIds(sel)
 {
     var lm = sel.id.length+2;
-    var opt = {};
     if (sel.type == 'hidden' && sel.name == 'product')
     {
         // product is a special case - it is preselected as hidden field on bug creation form
-        opt[product_id] = true;
-        return opt;
+        return { product_id: true };
     }
+    var opt;
     for (var i = 0; i < sel.options.length; i++)
     {
-        if (sel.options[i].selected)
+        if (sel.options[i].selected && sel.options[i].value.length)
         {
             id = sel.options[i].id;
+            if (!opt)
+            {
+                opt = {};
+            }
             opt[id.substr(1, id.length-lm)] = true;
         }
     }
@@ -88,6 +91,11 @@ function handleControllerField_this(e)
 
 function checkValueVisibility(selected, visible)
 {
+    if (!selected)
+    {
+        // FIXME: Now all options are visible if empty value is selected.
+        return true;
+    }
     var vis = false;
     if (visible)
     {

@@ -428,7 +428,8 @@ sub check_visibility
     my $bug = shift || return 1;
     my $vf = $self->field->value_field || return 1;
     my $value = Bugzilla::Field::bug_or_hash_value($bug, $vf);
-    return $value ? $self->has_visibility_value($value) : 0;
+    # FIXME: Now all options are visible if empty value is selected.
+    return $value ? $self->has_visibility_value($value) : 1;
 }
 
 ############

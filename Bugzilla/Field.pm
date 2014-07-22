@@ -572,6 +572,7 @@ sub restricted_legal_values
     my $self = shift;
     my ($controller_value) = @_;
     $controller_value = $controller_value->id if ref $controller_value;
+    # FIXME: Now all options are visible if empty value is selected.
     return $self->legal_values unless $controller_value && $self->value_field_id;
     my $rc_cache = Bugzilla->rc_cache_fields;
     if (!$rc_cache->{$self}->{restricted_legal_values}->{$controller_value})
