@@ -834,6 +834,15 @@ WHERE description LIKE\'%[CC:%\'');
         );
     }
 
+    # Fix bugs_activity.fieldid foreign key
+    {
+        my $fk = $dbh->bz_fk_info('bugs_activity', 'fieldid');
+        if ($fk && (!$fk->{DELETE} || $fk->{DELETE} ne 'CASCADE'))
+        {
+            $dbh->bz_drop_fk('bugs_activity', 'fieldid');
+        }
+    }
+
     # Varchar is VARIABLE, it's generally pointless to set a size limit less than 255 chars for it
     _set_varchar_255();
 

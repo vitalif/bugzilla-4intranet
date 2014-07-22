@@ -19,7 +19,7 @@
   #%]
 
 [% title = BLOCK %]
-  Delete the Custom Field '[% field.name FILTER html %]' ([% field.description FILTER html %])
+  Delete the Custom Field '[% field.name | html %]' ([% field.description | html %])
 [% END %]
 
 [% PROCESS global/header.html.tmpl
@@ -34,15 +34,15 @@
 </tr>
 <tr>
   <td valign="top">Custom Field:</td>
-  <td valign="top">[% field.name FILTER html %]</td>
+  <td valign="top">[% field.name | html %]</td>
 </tr>
 <tr>
   <td valign="top">Description:</td>
-  <td valign="top">[% field.description FILTER html %]</td>
+  <td valign="top">[% field.description | html %]</td>
 </tr>
 <tr>
   <td valign="top">Type:</td>
-  <td valign="top">[% field_types.${field.type} FILTER html %]</td>
+  <td valign="top">[% field_types.${field.type} | html %]</td>
 </tr>
 </table>
 
@@ -51,11 +51,11 @@
 <p>
   Are you sure you want to remove this field from the database?<br>
   <em>This action will only be successful if the field is obsolete,
-  and has never been used in [% terms.abug FILTER html %].</em>
+  and cleared in all [% terms.bugs | html %].</em>
 </p>
 
-<a href="editfields.cgi?action=delete&amp;name=[% field.name FILTER html %]&amp;token=[% token FILTER html %]">
-  Delete field '[% field.description FILTER html %]'</a>
+<a href="editfields.cgi?action=delete&amp;name=[% field.name | html %]&amp;token=[% token | html %]">
+  Delete field '[% field.description | html %]'</a>
 
 <p>
   <a href="editfields.cgi">Back to the list of existing custom fields</a>

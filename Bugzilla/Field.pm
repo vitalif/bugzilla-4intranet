@@ -939,13 +939,6 @@ sub remove_from_db
 
     $dbh->bz_start_transaction();
 
-    # Check to see if bug activity table has records (should be fast with index)
-    my $has_activity = $dbh->selectrow_array("SELECT COUNT(*) FROM bugs_activity WHERE fieldid = ?", undef, $self->id);
-    if ($has_activity)
-    {
-        ThrowUserError('customfield_has_activity', { name => $name });
-    }
-
     # Check to see if bugs table has records (slow)
     my $bugs_query = "";
 
@@ -959,11 +952,6 @@ sub remove_from_db
         if ($self->type != FIELD_TYPE_BUG_ID && $self->type != FIELD_TYPE_DATETIME)
         {
             $bugs_query .= " AND $name != ''";
-        }
-        # Ignore the empty single select value
-        if ($self->type == FIELD_TYPE_SINGLE_SELECT)
-        {
-            $bugs_query .= " AND $name IS NOT NULL";
         }
     }
 

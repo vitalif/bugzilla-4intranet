@@ -315,7 +315,7 @@ use constant ABSTRACT_SCHEMA => {
             attach_id => {TYPE => 'INT4', REFERENCES => {TABLE => 'attachments', COLUMN  => 'attach_id', DELETE => 'CASCADE'}},
             who       => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'profiles', COLUMN => 'userid'}},
             bug_when  => {TYPE => 'DATETIME', NOTNULL => 1},
-            fieldid   => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'fielddefs', COLUMN => 'id'}},
+            fieldid   => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'fielddefs', COLUMN => 'id', DELETE => 'CASCADE'}},
             added     => {TYPE => 'LONGTEXT'},
             removed   => {TYPE => 'LONGTEXT'},
         ],

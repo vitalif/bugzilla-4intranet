@@ -426,12 +426,6 @@
   Please obsolete a custom field before attempting to delete it.
 [% END %]
 
-[% BLOCK error_customfield_has_activity %]
-  [% title = "Custom Field Has Activity" %]
-  The custom field '[% name FILTER html %]' cannot be deleted because
-  it has recorded activity.
-[% END %]
-
 [% BLOCK error_customfield_has_contents %]
   [% title = "Custom Field Has Contents" %]
   The custom field '[% name FILTER html %]' cannot be deleted because
