@@ -306,6 +306,9 @@ var constants = {
         [% SET vis = field.visibility_values %]
         <select style="width: 400px" id="visibility_value_id"
           name="visibility_value_id" size="7" multiple="multiple">
+          [% IF field.visibility_field.nullable %]
+          <option value="0"[% IF vis.0 %] selected[% END %]>---</option>
+          [% END %]
           [% FOREACH value = field.visibility_field.legal_values %]
             <option value="[% value.id | html %]"[% ' selected="selected"' IF vis && vis.${value.id} %]>
               [% value.name | html %]
@@ -324,6 +327,9 @@ var constants = {
         [% SET null = field.null_visibility_values %]
         <select style="width: 400px" id="null_visibility_values"
           name="null_visibility_values" size="7" multiple="multiple">
+          [% IF field.null_field.nullable %]
+          <option value="0"[% IF null.0 %] selected[% END %]>---</option>
+          [% END %]
           [% FOREACH value = field.null_field.legal_values %]
             [% IF field.null_field_id != field.visibility_field_id || !vis || vis.${value.id} %]
             <option value="[% value.id | html %]"[% ' selected="selected"' IF null && null.${value.id} %]>
@@ -344,6 +350,9 @@ var constants = {
         [% SET clone = field.clone_visibility_values %]
         <select style="width: 400px" id="clone_visibility_values"
           name="clone_visibility_values" size="7" multiple="multiple">
+          [% IF field.clone_field.nullable %]
+          <option value="0"[% IF clone.0 %] selected[% END %]>---</option>
+          [% END %]
           [% FOREACH value = field.clone_field.legal_values %]
             [% IF field.clone_field_id != field.visibility_field_id || !vis || vis.${value.id} %]
             <option value="[% value.id | html %]"[% ' selected="selected"' IF clone && clone.${value.id} %]>

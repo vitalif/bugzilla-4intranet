@@ -566,14 +566,14 @@ sub legal_value_names_with_ids
     return Bugzilla::Field::Choice->type($self)->get_all_names;
 }
 
+# Return the set of possible values for selected $controller_value of controlling field
 # Always excludes disabled values
 sub restricted_legal_values
 {
     my $self = shift;
     my ($controller_value) = @_;
     $controller_value = $controller_value->id if ref $controller_value;
-    # FIXME: Now all options are visible if empty value is selected.
-    return $self->legal_values unless $controller_value && $self->value_field_id;
+    $controller_value ||= 0;
     my $rc_cache = Bugzilla->rc_cache_fields;
     if (!$rc_cache->{$self}->{restricted_legal_values}->{$controller_value})
     {
@@ -1317,7 +1317,10 @@ sub update_visibility_values
     if (@$visibility_value_ids)
     {
         my $type = Bugzilla::Field::Choice->type($vis_field);
-        $visibility_value_ids = [ map { $_->id } @{ $type->new_from_list($visibility_value_ids) } ];
+        $visibility_value_ids = [
+            (grep { $_ == 0 } @$visibility_value_ids ? (0) : ()),
+            map { $_->id } @{ $type->new_from_list($visibility_value_ids) }
+        ];
     }
     Bugzilla->dbh->do(
         "DELETE FROM fieldvaluecontrol WHERE field_id=? AND value_id=?",

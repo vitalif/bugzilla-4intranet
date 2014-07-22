@@ -1299,8 +1299,12 @@ sub get_bug_vals
             $v = $bug->$m;
             $ids->{ref($v) ? $v->$id_field : $v} = 1;
         }
-        delete $ids->{''};
+        my $null = delete $ids->{''};
         $bug_vals->{$field} = $type->new_from_list([ keys %$ids ]);
+        if ($null)
+        {
+            push @{$bug_vals->{$field}}, undef;
+        }
     }
     return $bug_vals->{$field};
 }

@@ -50,17 +50,13 @@ function getSelectedIds(sel)
         // product is a special case - it is preselected as hidden field on bug creation form
         return { product_id: true };
     }
-    var opt;
+    var opt = {};
     for (var i = 0; i < sel.options.length; i++)
     {
-        if (sel.options[i].selected && sel.options[i].value.length)
+        if (sel.options[i].selected)
         {
             id = sel.options[i].id;
-            if (!opt)
-            {
-                opt = {};
-            }
-            opt[id.substr(1, id.length-lm)] = true;
+            opt[id ? id.substr(1, id.length-lm) : 0] = true;
         }
     }
     return opt;
@@ -91,11 +87,6 @@ function handleControllerField_this(e)
 
 function checkValueVisibility(selected, visible)
 {
-    if (!selected)
-    {
-        // FIXME: Now all options are visible if empty value is selected.
-        return true;
-    }
     var vis = false;
     if (visible)
     {

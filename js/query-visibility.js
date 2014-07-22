@@ -102,10 +102,17 @@ function getQueryformSelectedIds(sel)
             // IDs of options are qf_<SELECTBOX_ID>_1_2_3_...
             // where 1_2_3 is the list of IDs mapped to this option name
             // which are currently visible.
-            a = sel.options[i].id.substr(l2).split('_');
-            for (var j in a)
+            if (!sel.options[i].id)
             {
-                opt[a[j]] = true;
+                opt['0'] = true;
+            }
+            else
+            {
+                a = sel.options[i].id.substr(l2).split('_');
+                for (var j in a)
+                {
+                    opt[a[j]] = true;
+                }
             }
         }
     }
@@ -135,12 +142,13 @@ function getPlainSelectedIds(sel)
 // FIXME: Similar to check_value_visibility from bug-visibility.js
 function qfCheckVisibility(visible_for_ids, selected_ids)
 {
-    vis = false;
+    vis = true;
     // Visible also if visible_for_ids is an empty hash
     if (visible_for_ids)
     {
         for (var cid in visible_for_ids)
         {
+            vis = false;
             if (selected_ids[cid])
             {
                 vis = true;

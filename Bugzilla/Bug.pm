@@ -4079,6 +4079,7 @@ sub get_ids
     my $self = shift;
     my ($fn) = @_;
     my $field = Bugzilla->get_field($fn);
+    $fn = $field->name;
     $fn = OVERRIDE_ID_FIELD->{$fn} || $fn;
     if ($field && $field->type == FIELD_TYPE_SINGLE_SELECT)
     {
