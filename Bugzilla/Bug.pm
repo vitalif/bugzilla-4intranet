@@ -761,7 +761,7 @@ sub check_dependent_fields
                 if (!defined $value_objs)
                 {
                     next if $nullable;
-                    ThrowUserError('object_not_specified', { class => $field_obj->value_type, field => $field_obj });
+                    ThrowUserError('object_not_specified', { bug_id => $self->id, class => $field_obj->value_type, field => $field_obj });
                 }
             }
             $value_objs = [ $value_objs ] if ref $value_objs ne 'ARRAY';

@@ -1513,7 +1513,7 @@
   [% IF !type && field; type = field.description | html; END %]
   [% title = BLOCK %][% type FILTER ucfirst FILTER html %] Not
   Specified[% END %]
-  You must select/enter a [% type FILTER html %].
+  You must select/enter a [% type FILTER html %][% IF bug_id %] for [% terms.Bug +%] [%+ bug_id %][% END %].
 [% END %]
 
 [% BLOCK error_object_does_not_exist %]
