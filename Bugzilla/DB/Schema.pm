@@ -41,7 +41,6 @@ use Bugzilla::Constants;
 
 use Carp qw(confess);
 use Digest::MD5 qw(md5_hex);
-use Hash::Util qw(lock_value unlock_hash lock_keys unlock_keys);
 use Safe;
 # Historical, needed for SCHEMA_VERSION = '1.00'
 use Storable qw(dclone freeze thaw);
@@ -1427,18 +1426,7 @@ sub _initialize {
         # So, we dclone it to prevent anything from mucking with the constant.
         $abstract_schema = dclone(ABSTRACT_SCHEMA);
 
-        # Let extensions add tables, but make sure they can't modify existing
-        # tables. If we don't lock/unlock keys, lock_value complains.
-        # FIXME Это не работает ни хрена вообще ;-)
-        lock_keys(%$abstract_schema);
-        foreach my $table (keys %{ABSTRACT_SCHEMA()}) {
-            lock_value(%$abstract_schema, $table) 
-                if exists $abstract_schema->{$table};
-        }
-        unlock_keys(%$abstract_schema);
-        Bugzilla::Hook::process('db_schema_abstract_schema', 
-                                { schema => $abstract_schema });
-        unlock_hash(%$abstract_schema);
+        Bugzilla::Hook::process('db_schema_abstract_schema', { schema => $abstract_schema });
     }
 
     $self->{schema} = dclone($abstract_schema);
