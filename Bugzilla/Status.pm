@@ -25,8 +25,6 @@ use Bugzilla::Error;
 use base qw(Bugzilla::Field::Choice Exporter);
 @Bugzilla::Status::EXPORT = qw(
     SPECIAL_STATUS_WORKFLOW_ACTIONS
-
-    closed_bug_statuses
 );
 
 ################################
@@ -121,13 +119,6 @@ sub _check_value
 ###############################
 #####       Methods        ####
 ###############################
-
-sub closed_bug_statuses
-{
-    my @bug_statuses = Bugzilla::Status->get_all;
-    @bug_statuses = grep { !$_->is_open } @bug_statuses;
-    return @bug_statuses;
-}
 
 sub can_change_to
 {
@@ -234,8 +225,6 @@ Bugzilla::Status - Bug status class.
     my $bug_status = new Bugzilla::Status({name => 'ASSIGNED'});
     my $bug_status = new Bugzilla::Status(4);
 
-    my @closed_bug_statuses = closed_bug_statuses();
-
     Bugzilla::Status::add_missing_bug_status_transitions($bug_status);
 
 =head1 DESCRIPTION
@@ -250,15 +239,6 @@ below.
 =head1 METHODS
 
 =over
-
-=item C<closed_bug_statuses>
-
- Description: Returns a list of C<Bugzilla::Status> objects which can have
-              a resolution associated with them ("closed" bug statuses).
-
- Params:      none.
-
- Returns:     A list of Bugzilla::Status objects.
 
 =item C<can_change_to>
 

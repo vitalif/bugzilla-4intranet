@@ -36,7 +36,7 @@ use Bugzilla::Status;
 sub check_bug_status
 {
     my $bug_status = shift;
-    my @closed_bug_statuses = map { $_->name } closed_bug_statuses();
+    my @closed_bug_statuses = map { $_->name } grep { !$_->is_open } Bugzilla::Status->get_all;
     if (!grep { $_ eq $bug_status } @closed_bug_statuses)
     {
         return "Must be a valid closed status: one of " . join(', ', @closed_bug_statuses);
@@ -69,7 +69,7 @@ sub get_param_list
     # the bug statuses above as they are still hardcoded.
     eval
     {
-        my @current_closed_states = map {$_->name} closed_bug_statuses();
+        my @current_closed_states = map { $_->name } grep { !$_->is_open } Bugzilla::Status->get_all;
         # If no closed state was found, use the default list above.
         @closed_bug_statuses = @current_closed_states if scalar(@current_closed_states);
     };

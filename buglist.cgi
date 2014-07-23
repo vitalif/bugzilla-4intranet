@@ -1102,8 +1102,8 @@ $vars->{displaycolumns} = \@displaycolumns;
 
 $vars->{openstates} = [ map { $_->name } grep { $_->is_open } Bugzilla::Status->get_all ];
 # used by list.ics.tmpl
-$vars->{assignedstates} = [ map { $_->name } grep { $_->is_active && $_->is_assigned } Bugzilla::Status->get_all ];
-$vars->{closedstates} = [ map { $_->name } closed_bug_statuses() ];
+$vars->{assignedstates} = [ map { $_->name } grep { $_->is_assigned } Bugzilla::Status->get_all ];
+$vars->{closedstates} = [ map { $_->name } grep { !$_->is_open } Bugzilla::Status->get_all ];
 
 # The iCal file needs priorities ordered from 1 to 9 (highest to lowest)
 # If there are more than 9 values, just make all the lower ones 9
