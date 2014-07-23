@@ -29,14 +29,6 @@ use Bugzilla::Error;
 use Bugzilla::Install::Util qw(install_string);
 use base qw(TheSchwartz);
 
-# This maps job names for Bugzilla::JobQueue to the appropriate modules.
-# If you add new types of jobs, you should add a mapping here.
-# FIXME A map again... Bugzilla such Bugzilla... So non-extensible...
-use constant JOB_MAP => {
-    send_mail => 'Bugzilla::Job::Mailer',
-    sm_sync   => 'Bugzilla::Job::SM',
-};
-
 sub new {
     my $class = shift;
 
@@ -71,9 +63,7 @@ sub insert {
     my $self = shift;
     my $job = shift;
 
-    my $mapped_job = JOB_MAP->{$job};
-    ThrowCodeError('jobqueue_no_job_mapping', { job => $job })
-        if !$mapped_job;
+    my $mapped_job = 'Bugzilla::Job::'.$job;
     unshift(@_, $mapped_job);
 
     my $retval = $self->SUPER::insert(@_);
@@ -81,7 +71,7 @@ sub insert {
     # I don't see any way to do that in TheSchwartz.
     ThrowCodeError('jobqueue_insert_failed', { job => $job, errmsg => $@ })
         if !$retval;
- 
+
     return $retval;
 }
 

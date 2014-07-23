@@ -196,7 +196,18 @@ sub gd_run {
 
     my $jq = Bugzilla->job_queue();
     $jq->set_verbose($self->{debug});
-    foreach my $module (values %{ Bugzilla::JobQueue::JOB_MAP() }) {
+    my $seen = {};
+    foreach my $path (@INC)
+    {
+        foreach my $file (<$path/Bugzilla/Job/*.pm>)
+        {
+            $file = substr($file, 1 + length $path, -3);
+            $file =~ s!/!::!gs;
+            $seen->{$file} = 1;
+        }
+    }
+    foreach my $module (keys %$seen)
+    {
         eval "use $module";
         $jq->can_do($module);
     }

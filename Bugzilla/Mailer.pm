@@ -59,7 +59,7 @@ sub MessageToMTA {
     return if $method eq 'None';
 
     if (Bugzilla->params->{'use_mailer_queue'} and !$send_now) {
-        Bugzilla->job_queue->insert('send_mail', { msg => $msg });
+        Bugzilla->job_queue->insert('Mailer', { msg => $msg });
         return;
     }
 
