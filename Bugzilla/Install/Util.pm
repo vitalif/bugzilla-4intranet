@@ -266,11 +266,11 @@ sub template_include_path
     my ($params) = @_;
     my @used_languages = include_languages($params);
     # Now, we add template directories in the order they will be searched:
-    my $template_dirs = _template_base_directories(); 
+    my $template_dirs = _template_base_directories();
 
     my @include_path;
     foreach my $template_dir (@$template_dirs) {
-        my @lang_dirs = _template_lang_directories(\@used_languages, 
+        my @lang_dirs = _template_lang_directories(\@used_languages,
                                                    $template_dir);
         # Hooks get each set of extension directories separately.
         if ($params->{hook}) {
@@ -281,6 +281,9 @@ sub template_include_path
             push(@include_path, @lang_dirs);
         }
     }
+    # Allow to fallback to full template path - not a security risk,
+    # because TT anyway allows to include any file from the FS
+    push @include_path, bz_locations()->{libpath} unless $params->{hook};
     return \@include_path;
 }
 

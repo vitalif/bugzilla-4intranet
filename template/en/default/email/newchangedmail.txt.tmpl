@@ -20,20 +20,11 @@
 
 From: [% Param('mailfrom') %]
 To: [% to_user.email %]
-[%-# FIXME These are CUSTIS-specific product names - move this block somewhere? -%]
-[% IF bug.product == 'СМ-ОК' || bug.product == 'СМ-RMS' || bug.product == 'СМ-View' || bug.product == 'СМ-МРТ' || bug.product == 'СМ-Опт' %]
-Subject: [% (isnew ? '' : 'Re: ') _ '['
-  _ terms.Bug _ ' ' _ bug.id _ '] ' _
-  (bug.bug_severity_obj.name == 'blocker' ? '[BLOCKER] ' : '') _
-  (bug.bug_severity_obj.name == 'critical' ? '[CRITICAL] ' : '') _
-'[' _ bug.product _ '] ' _ bug.short_desc %]
-[% ELSE %]
 Subject: [% (isnew ? '' : 'Re: ') _ '['
   _ terms.Bug _ ' ' _ bug.id _ '] ' _
   (bug.bug_severity_obj.name == 'blocker' ? '[BLOCKER] ' : '') _
   (bug.bug_severity_obj.name == 'critical' ? '[CRITICAL] ' : '') _
   bug.short_desc %]
-[% END %]
 X-Bugzilla-Reason: [% reasonsheader %]
 X-Bugzilla-Type: [% isnew ? 'new' : 'changed' %]
 X-Bugzilla-Watch-Reason: [% reasonswatchheader %]
