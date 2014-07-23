@@ -72,7 +72,7 @@ if (!$product_name) {
       || ThrowCodeError('chart_dir_nonexistent',
                         {dir => $dir, graph_dir => $graph_dir});
 
-    my %default_sel = map { $_ => 1 } BUG_STATE_OPEN;
+    my %default_sel = map { $_ => 1 } grep { $_->is_open } Bugzilla::Status->get_all;
 
     my @datasets;
     my @data = get_data($dir);

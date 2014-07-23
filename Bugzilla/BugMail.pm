@@ -343,7 +343,8 @@ sub Send
                 $interestingchange = 0;
             }
             if ($dep_diff->{fieldname} eq 'bug_status' &&
-                is_open_state($dep_diff->{removed}) ne is_open_state($dep_diff->{added}))
+                scalar(grep { $_->is_open && $_->name eq $dep_diff->{removed} } Bugzilla::Status->get_all) !=
+                scalar(grep { $_->is_open && $_->name eq $dep_diff->{added} } Bugzilla::Status->get_all))
             {
                 $interestingchange = 1;
             }

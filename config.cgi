@@ -92,13 +92,12 @@ else {
     $vars->{'show_flags'} = 1;
 }
 
-# Create separate lists of open versus resolved statuses.  This should really
-# be made part of the configuration.
+# Create separate lists of open versus resolved statuses.
 my @open_status;
 my @closed_status;
-foreach my $status (@{$vars->{'status'}}) {
-    is_open_state($status) ? push(@open_status, $status) 
-                           : push(@closed_status, $status);
+foreach my $status (@{ Bugzilla->get_field('bug_status')->legal_values })
+{
+    $status->is_open ? push(@open_status, $status->name) : push(@closed_stat, $status->name);
 }
 $vars->{'open_status'} = \@open_status;
 $vars->{'closed_status'} = \@closed_status;

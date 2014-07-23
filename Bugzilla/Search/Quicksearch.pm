@@ -392,7 +392,7 @@ sub _handle_field_names
                         if (lc $_ eq 'open')
                         {
                             delete $st{$_};
-                            $st{$_} = 1 for BUG_STATE_OPEN;
+                            $st{$_->name} = 1 for grep { $_->is_open } @{ Bugzilla->get_field('bug_status')->legal_values };
                         }
                     }
                     if (%st && %res && $negate)

@@ -900,7 +900,7 @@ sub process_bug {
     my $valid_status = check_field('bug_status',  
                                   scalar $bug_fields{'bug_status'}, 
                                   undef, ERR_LEVEL );
-    my $is_open = is_open_state($bug_fields{'bug_status'}); 
+    my $is_open = grep { $_->is_open && $_->name eq $bug_fields{'bug_status'} } Bugzilla::Status->get_all;
     my $status = $bug_fields{'bug_status'} || undef;
     my $resolution = $bug_fields{'resolution'} || undef;
     

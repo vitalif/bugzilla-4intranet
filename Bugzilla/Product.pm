@@ -734,7 +734,7 @@ sub _create_series
         push(@series, [$resolution, "resolution=" . url_quote($resolution)]);
     }
 
-    my @openedstatuses = BUG_STATE_OPEN;
+    my @openedstatuses = map { $_->name } grep { $_->is_open } @{ Bugzilla->get_field('bug_status')->legal_values };
     my $query = join("&", map { "bug_status=" . url_quote($_) } @openedstatuses);
     push(@series, [get_text('series_all_open'), $query]);
 

@@ -221,12 +221,11 @@ if ($cgi->param('repair_creation_date')) {
 if ($cgi->param('repair_everconfirmed')) {
     Status('everconfirmed_start');
 
-    # FIXME Remove bug_status==UNCONFIRMED hardcode
-    my @confirmed_open_states = grep {$_ ne 'UNCONFIRMED'} BUG_STATE_OPEN;
-    my $confirmed_open_states = join(', ', map {$dbh->quote($_)} @confirmed_open_states);
+    my $unconfirmed_states = join(', ', map { $dbh->quote($_->name) } grep { !$_->is_confirmed } Bugzilla::Status->get_all);
+    my $confirmed_states = join(', ', map { $dbh->quote($_->name) } grep { $_->is_confirmed } Bugzilla::Status->get_all);
 
-    $dbh->do("UPDATE bugs SET everconfirmed = 0 WHERE bug_status = 'UNCONFIRMED'");
-    $dbh->do("UPDATE bugs SET everconfirmed = 1 WHERE bug_status IN ($confirmed_open_states)");
+    $dbh->do("UPDATE bugs SET everconfirmed = 0 WHERE bug_status IN ($unconfirmed_states)");
+    $dbh->do("UPDATE bugs SET everconfirmed = 1 WHERE bug_status IN ($confirmed_states)");
 
     Status('everconfirmed_end');
 }
@@ -829,7 +828,7 @@ BugCheck("bugs LEFT JOIN duplicates ON bugs.bug_id = duplicates.dupe WHERE " .
 
 Status('bug_check_status_res');
 
-my @open_states = map($dbh->quote($_), BUG_STATE_OPEN);
+my @open_states = map($dbh->quote($_->name), grep { $_->is_open } Bugzilla::Status->get_all);
 my $open_states = join(', ', @open_states);
 
 BugCheck("bugs WHERE bug_status IN ($open_states) AND resolution != ''",
@@ -839,13 +838,14 @@ BugCheck("bugs WHERE bug_status NOT IN ($open_states) AND resolution = ''",
 
 Status('bug_check_status_everconfirmed');
 
-BugCheck("bugs WHERE bug_status = 'UNCONFIRMED' AND everconfirmed = 1",
+my $unconfirmed_states = join(', ', map { $dbh->quote($_->name) } grep { !$_->is_confirmed } Bugzilla::Status->get_all);
+
+BugCheck("bugs WHERE bug_status IN ($unconfirmed_states) AND everconfirmed = 1",
          'bug_check_status_everconfirmed_error_text', 'repair_everconfirmed');
 
-my @confirmed_open_states = grep {$_ ne 'UNCONFIRMED'} BUG_STATE_OPEN;
-my $confirmed_open_states = join(', ', map {$dbh->quote($_)} @confirmed_open_states);
+my $confirmed_states = join(', ', map { $dbh->quote($_->name) } grep { $_->is_confirmed } Bugzilla::Status->get_all);
 
-BugCheck("bugs WHERE bug_status IN ($confirmed_open_states) AND everconfirmed = 0",
+BugCheck("bugs WHERE bug_status IN ($confirmed_states) AND everconfirmed = 0",
          'bug_check_status_everconfirmed_error_text2', 'repair_everconfirmed');
 
 Status('bug_check_votes_everconfirmed');

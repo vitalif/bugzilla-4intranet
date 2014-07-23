@@ -300,9 +300,12 @@ sub GetEdges
         if ($display eq 'web' || $display eq 'openweb')
         {
             my $openweb = $display eq 'openweb' ? 1 : 0;
-            my $sth = $dbh->prepare("SELECT blocked, dependson, bs.bug_status blocked_status, ds.bug_status dependson_status
-                                     FROM dependencies, bugs bs, bugs ds
-                                     WHERE (blocked=? OR dependson=?) AND bs.bug_id=blocked AND ds.bug_id=dependson");
+            my $sth = $dbh->prepare(
+                "SELECT blocked, dependson, bss.is_open blocked_open, dss.is_open dependson_open".
+                " FROM dependencies, bugs bs, bugs ds, bug_status bss, bug_status dss".
+                " WHERE (blocked=? OR dependson=?) AND bs.bug_id=blocked AND ds.bug_id=dependson".
+                " AND bss.id=bs.bug_status AND dss.id=ds.bug_status"
+            );
             foreach my $id (@stack)
             {
                 my $dependencies = $dbh->selectall_arrayref($sth, undef, ($id, $id));
@@ -311,12 +314,12 @@ sub GetEdges
                     my ($blocked, $dependson, $bs, $ds) = @$dependency;
                     if ($blocked != $id && !exists $seen->{$blocked})
                     {
-                        next if $openweb && !is_open_state($bs); # skip AddLink also
+                        next if $openweb && !$bs; # skip AddLink also
                         push @stack, $blocked;
                     }
                     if ($dependson != $id && !exists $seen->{$dependson})
                     {
-                        next if $openweb && !is_open_state($ds); # skip AddLink also
+                        next if $openweb && !$ds; # skip AddLink also
                         push @stack, $dependson;
                     }
                     AddLink($blocked, $dependson, $seen, $edges);
@@ -364,6 +367,7 @@ sub GetNodes
 "SELECT
  t1.bug_id,
  bs.value bug_status,
+ bs.is_open is_open,
  res.value resolution,
  t1.short_desc,
  t1.estimated_time,
@@ -387,7 +391,6 @@ GROUP BY t1.bug_id", {Slice=>{}}, keys %$seen) || {};
     {
         # Resolution and summary are shown only if user can see the bug
         $row->{resolution} = $row->{short_desc} = '' unless Bugzilla->user->can_see_bug($row->{bug_id});
-        $row->{bug_status} ||= 'NEW';
         $row->{short_desc_uncut} = $row->{short_desc};
         if (length $row->{short_desc} > 32)
         {
@@ -397,8 +400,8 @@ GROUP BY t1.bug_id", {Slice=>{}}, keys %$seen) || {};
         $vars->{short_desc} = $row->{short_desc} if $row->{bug_id} eq Bugzilla->cgi->param('id');
         Encode::_utf8_off($row->{$_}) for keys %$row;
 
-        my $bgnodecolor = GetColorByState($row->{bug_status}, 1);
-        my $nodecolor = GetColorByState($row->{bug_status});
+        my $bgnodecolor = GetColorByState($row->{bug_status}, $row->{is_open}, 1);
+        my $nodecolor = GetColorByState($row->{bug_status}, $row->{is_open});
 
         my $assigneecolor = "white";
         $assigneecolor = "red1" if $row->{bug_severity} eq "blocker";
@@ -519,7 +522,7 @@ sub CleanupOldDots
 
 sub GetColorByState
 {
-    my ($state, $base) = (@_);
+    my ($state, $open, $base) = (@_);
     $base = $base ? 0 : 0x40;
     # FIXME Remove bug_status hardcode
     my %colorbystate = (
@@ -536,6 +539,6 @@ sub GetColorByState
     my $color = sprintf("\"#%02x%02x%02x\"", map { int(ord($_)/0xff*(0xff-$base)) }
         split //, pack 'H*',
         $colorbystate{$state} ||
-        $colorbystate{is_open_state($state) ? 'opened' : 'closed'});
+        $colorbystate{$open ? 'opened' : 'closed'});
     return $color;
 }

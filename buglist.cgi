@@ -1100,7 +1100,7 @@ $vars->{buglist_joined} = join(',', @bugidlist);
 $vars->{columns} = $columns;
 $vars->{displaycolumns} = \@displaycolumns;
 
-$vars->{openstates} = [BUG_STATE_OPEN];
+$vars->{openstates} = [ map { $_->name } grep { $_->is_open } Bugzilla::Status->get_all ];
 # used by list.ics.tmpl
 $vars->{assignedstates} = [ map { $_->name } grep { $_->is_active && $_->is_assigned } Bugzilla::Status->get_all ];
 $vars->{closedstates} = [ map { $_->name } closed_bug_statuses() ];

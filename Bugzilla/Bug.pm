@@ -3133,7 +3133,10 @@ sub status
 {
     my $self = shift;
     return undef if !$self->{bug_status};
-    $self->{status} ||= new Bugzilla::Status($self->{bug_status});
+    if (!$self->{status})
+    {
+        ($self->{status}) = grep { $_->id == $self->{bug_status} } Bugzilla::Status->get_all;
+    }
     return $self->{status};
 }
 *bug_status_obj = *status;
@@ -3975,7 +3978,9 @@ sub check_can_change_field
         return 0;
     }
     # - change the status from one open state to another
-    if ($field eq 'bug_status' && is_open_state($oldvalue) && is_open_state($newvalue))
+    if ($field eq 'bug_status' &&
+        (grep { $_->is_open && $_->name eq $oldvalue } Bugzilla::Status->get_all) &&
+        (grep { $_->is_open && $_->name eq $newvalue } Bugzilla::Status->get_all))
     {
         $$PrivilegesRequired = 2;
         return 0;

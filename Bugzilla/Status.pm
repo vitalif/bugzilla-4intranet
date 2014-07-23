@@ -24,10 +24,8 @@ use Bugzilla::Error;
 
 use base qw(Bugzilla::Field::Choice Exporter);
 @Bugzilla::Status::EXPORT = qw(
-    BUG_STATE_OPEN
     SPECIAL_STATUS_WORKFLOW_ACTIONS
 
-    is_open_state
     closed_bug_statuses
 );
 
@@ -75,7 +73,6 @@ sub create
 {
     my $class = shift;
     my $self = $class->SUPER::create(@_);
-    delete Bugzilla->request_cache->{status_bug_state_open};
     add_missing_bug_status_transitions();
     return $self;
 }
@@ -89,7 +86,6 @@ sub remove_from_db
     $self->SUPER::remove_from_db();
     $dbh->do('DELETE FROM status_workflow WHERE old_status = ? OR new_status = ?', undef, $id, $id);
     $dbh->bz_commit_transaction();
-    delete Bugzilla->request_cache->{status_bug_state_open};
 }
 
 ###############################
@@ -125,22 +121,6 @@ sub _check_value
 ###############################
 #####       Methods        ####
 ###############################
-
-sub BUG_STATE_OPEN
-{
-    my $dbh = Bugzilla->dbh;
-    my $cache = Bugzilla->request_cache;
-    $cache->{status_bug_state_open} ||= $dbh->selectcol_arrayref('SELECT value FROM bug_status WHERE is_open = 1');
-    return @{ $cache->{status_bug_state_open} };
-}
-
-# Tells you whether or not the argument is a valid "open" state.
-# FIXME Remove is_open_state
-sub is_open_state
-{
-    my ($state) = @_;
-    return (grep($_ eq $state, BUG_STATE_OPEN) ? 1 : 0);
-}
 
 sub closed_bug_statuses
 {
