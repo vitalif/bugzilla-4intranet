@@ -1,5 +1,5 @@
 #!/usr/bin/perl -wT
-# Mass bug import/update from Excel/CSV files (4IntraNet Bug 42133)
+# Mass bug import/update from Excel/CSV files (originally CustIS Bug 42133)
 # License: Dual-license GPL 3.0+ or MPL 1.1+
 # Contributor(s): Vitaliy Filippov <vitalif@mail.ru>
 
@@ -33,23 +33,7 @@ my $cgi = Bugzilla->cgi;
 my $dbh = Bugzilla->dbh;
 my $template = Bugzilla->template;
 my $vars = {};
-
-# TODO: Check if CGI does utf8, use just { Vars } instead of decoding
-my $args = {};
-for ($cgi->param)
-{
-    my $v = $_;
-    utf8::decode($v) unless Encode::is_utf8($v);
-    if ($v eq 'bug_id')
-    {
-        $args->{$v} = [ $cgi->param($_) ];
-    }
-    else
-    {
-        $args->{$v} = $cgi->param($_);
-    }
-    utf8::decode($args->{$v}) unless ref $args->{$v} || Encode::is_utf8($args->{$v});
-}
+my $ARGS = { %{ $cgi->Vars } };
 
 # Check permissions
 $user->in_group('importxls') ||
@@ -59,8 +43,8 @@ $user->in_group('importxls') ||
         object => 'bugs',
     });
 
-my $listname = $cgi->param('listname') || '';
-my $bugdays = $cgi->param('bugdays') || '';
+my $listname = $ARGS->{listname} || '';
+my $bugdays = $ARGS->{bugdays} || '';
 ($bugdays) = $bugdays =~ /^(\d+)$/so;
 $bugdays ||= BUG_DAYS;
 trick_taint($listname);
@@ -75,17 +59,17 @@ my $bug_tpl = {};
 $bug_tpl->{platform} = Bugzilla->params->{defaultplatform}
     if Bugzilla->params->{defaultplatform} && Bugzilla->params->{useplatform};
 
-for (keys %$args)
+for (keys %$ARGS)
 {
-    if (/^f_/so && $args->{$_})
+    if (/^f_/so && $ARGS->{$_})
     {
         # Default field values for bugs
-        $bug_tpl->{$'} = $args->{$_};
+        $bug_tpl->{$'} = $ARGS->{$_};
     }
-    elsif (/^t_/so && $args->{$_} ne $')
+    elsif (/^t_/so && $ARGS->{$_} ne $')
     {
         # Field mapping
-        $name_tr->{$'} = $args->{$_};
+        $name_tr->{$'} = $ARGS->{$_};
     }
 }
 
@@ -123,11 +107,11 @@ sub guess_field_name
     return $r;
 }
 
-unless ($args->{commit})
+unless ($ARGS->{commit})
 {
-    unless (my $upload = $cgi->param('xls'))
+    unless (my $upload = $ARGS->{xls})
     {
-        if (!defined $args->{result})
+        if (!defined $ARGS->{result})
         {
             # Show file upload form
             $vars->{form} = 1;
@@ -136,8 +120,8 @@ unless ($args->{commit})
         {
             # Show import result
             $vars->{show_result} = 1;
-            $vars->{result} = $args->{result};
-            $vars->{bug_id} = $args->{bug_id};
+            $vars->{result} = $ARGS->{result};
+            $vars->{bug_id} = $ARGS->{bug_id};
             $vars->{importnext} = 'importxls.cgi?'.http_build_query({
                 listname => $listname,
                 bugdays  => $bugdays,
@@ -150,14 +134,14 @@ unless ($args->{commit})
     {
         # Show parsed spreadsheet with checkboxes for selection
         my $table;
-        if ($args->{xls} !~ /\.(xlsx?)$/iso)
+        if ($ARGS->{xls} !~ /\.(xlsx?)$/iso)
         {
             # CSV
-            $table = parse_csv($upload, $args->{xls}, $name_tr, $args->{csv_delimiter});
+            $table = parse_csv($upload, $ARGS->{xls}, $name_tr, $ARGS->{csv_delimiter});
         }
         else
         {
-            $table = parse_excel($upload, $args->{xls}, $listname, $name_tr);
+            $table = parse_excel($upload, $ARGS->{xls}, $listname, $name_tr);
         }
         if (!$table || $table->{error})
         {
@@ -202,15 +186,15 @@ unless ($args->{commit})
 }
 else
 {
-    check_token_data($args->{token}, 'importxls', 'importxls.cgi');
+    check_token_data($ARGS->{token}, 'importxls', 'importxls.cgi');
     # Run import and redirect to result page
     my $bugs = {};
-    for (keys %$args)
+    for (keys %$ARGS)
     {
         if (/^b_(.*?)_(\d+)$/so)
         {
             # bug fields
-            $bugs->{$2}->{(exists $name_tr->{$1} ? $name_tr->{$1} : $1)} = $args->{$_};
+            $bugs->{$2}->{(exists $name_tr->{$1} ? $name_tr->{$1} : $1)} = $ARGS->{$_};
         }
     }
     my $r = 0;
