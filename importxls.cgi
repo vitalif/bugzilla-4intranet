@@ -138,13 +138,12 @@ unless ($args->{commit})
             $vars->{show_result} = 1;
             $vars->{result} = $args->{result};
             $vars->{bug_id} = $args->{bug_id};
-            my $newcgi = new Bugzilla::CGI({
+            $vars->{importnext} = 'importxls.cgi?'.http_build_query({
                 listname => $listname,
                 bugdays  => $bugdays,
                 (map { ("f_$_" => $bug_tpl->{$_}) } keys %$bug_tpl),
                 (map { ("t_$_" => $name_tr->{$_}) } keys %$name_tr),
             });
-            $vars->{importnext} = 'importxls.cgi?'.$newcgi->query_string;
         }
     }
     else
@@ -255,19 +254,18 @@ else
     }
     unless ($f)
     {
-        my $newcgi = new Bugzilla::CGI({
+        # Send bugmail only after successful completion
+        Bugzilla->cgi->delete('dontsendbugmail');
+        send_results($_) for @$bugmail;
+        Bugzilla->dbh->bz_commit_transaction;
+        print $cgi->redirect(-location => 'importxls.cgi?'.http_build_query({
             result   => $r,
             bug_id   => $ids,
             listname => $listname,
             bugdays  => $bugdays,
             (map { ("f_$_" => $bug_tpl->{$_}) } keys %$bug_tpl),
             (map { ("t_$_" => $name_tr->{$_}) } keys %$name_tr),
-        });
-        # Send bugmail only after successful completion
-        Bugzilla->cgi->delete('dontsendbugmail');
-        send_results($_) for @$bugmail;
-        Bugzilla->dbh->bz_commit_transaction;
-        print $cgi->redirect(-location => 'importxls.cgi?'.$newcgi->query_string);
+        }));
     }
     exit;
 }

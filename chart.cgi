@@ -221,10 +221,10 @@ elsif ($action eq "convert_search") {
     my ($query) = grep { $_->name eq $saved_search } @{ $user->queries };
     my $url = '';
     if ($query) {
-        my $params = new Bugzilla::CGI($query->edit_link);
+        my $params = http_decode_query($query->edit_link);
         # These two parameters conflict with the one below.
-        $url = $params->canonicalise_query('format', 'query_format');
-        $url = '&amp;' . html_quote($url);
+        delete $params->{$_} for ('format', 'query_format');
+        $url = '&amp;' . html_quote(http_build_query($params));
     }
     print $cgi->redirect(-location => correct_urlbase() . "query.cgi?format=create-series$url");
 }

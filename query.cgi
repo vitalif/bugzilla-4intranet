@@ -161,10 +161,9 @@ if ($params->{nukedefaultquery})
 }
 elsif (!PrefillForm($params, $default))
 {
-    # Ah-hah, there was no form stuff specified. Do it again with the
-    # default query.
-    my $buf = new Bugzilla::CGI($userdefaultquery || Bugzilla->params->{defaultquery});
-    PrefillForm({ %{ $buf->Vars } }, $default);
+    # Ah-hah, there was no form stuff specified. Do it again with the default query.
+    my $buf = http_decode_query($userdefaultquery || Bugzilla->params->{defaultquery});
+    PrefillForm($buf, $default);
 }
 
 if (!@{$default->{chfieldto}} || $default->{chfieldto}->[0] eq '')
