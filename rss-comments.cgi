@@ -43,7 +43,7 @@ $limit = 100 if !$limit || $limit < 1;
 my $title = $ARGS->{namedcmd};
 if ($title)
 {
-    my $storedquery = Bugzilla::Search::LookupNamedQuery($title, $user->id);
+    my $storedquery = Bugzilla::Search::Saved->check({ name => $title })->query;
     $ARGS = http_decode_query($storedquery);
 }
 

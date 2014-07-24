@@ -304,7 +304,7 @@ sub InsertNamedQuery
     if ($query_obj)
     {
         $query_obj->set_name($query_name);
-        $query_obj->set_url($query);
+        $query_obj->set_query($query);
         $query_obj->update();
     }
     else
@@ -446,26 +446,25 @@ if ($cmdtype eq "dorem")
 {
     if ($remaction eq "run")
     {
-        my $query_id;
-        ($buffer, $query_id) = Bugzilla::Search::LookupNamedQuery(
-            scalar $cgi->param("namedcmd"), scalar $cgi->param('sharer_id')
-        );
-        # If this is the user's own query, remember information about it
-        # so that it can be modified easily.
-        $vars->{searchname} = $cgi->param('namedcmd');
-        if (!$cgi->param('sharer_id') ||
-            $cgi->param('sharer_id') == Bugzilla->user->id)
-        {
-            $vars->{searchtype} = "saved";
-            $vars->{search_id} = $query_id;
-        }
-        if ($buffer =~ m!^[a-z][a-z0-9]*://!so)
+        my $query = Bugzilla::Search::Saved->check({
+            name => scalar $cgi->param('namedcmd'),
+            user => scalar $cgi->param('sharer_id'),
+        });
+        if ($query->query =~ m!^[a-z][a-z0-9]*://!so)
         {
             # CustIS Bug 53697: Custom links in saved searches and footer/header
-            print $cgi->redirect(-location => $buffer);
+            print $cgi->redirect(-location => $query->query);
             exit;
         }
-        $params = http_decode_query($buffer);
+        # If this is the user's own query, remember information about it
+        # so that it can be modified easily.
+        $vars->{searchname} = $query->name;
+        if ($query->userid == Bugzilla->user->id)
+        {
+            $vars->{searchtype} = 'saved';
+            $vars->{search_id} = $query->id;
+        }
+        $params = http_decode_query($query->query);
         $order = $params->{order} || $order;
     }
     elsif ($remaction eq "runseries")

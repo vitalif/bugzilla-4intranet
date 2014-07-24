@@ -114,13 +114,13 @@ if (@idlist || @lines)
     exit;
 }
 
-my ($query, $query_id) = Bugzilla::Search::LookupNamedQuery('MyWorktimeBugs', undef, 0);
+my $query = Bugzilla::Search::Saved->new({ name => 'MyWorktimeBugs' });
 
 my $sqlquery = "";
-if ($query_id)
+if ($query)
 {
     my $search = new Bugzilla::Search(
-        params => http_decode_query($query),
+        params => http_decode_query($query->query),
         fields => [ "bugs.bug_id" ],
     );
     $sqlquery = $search->bugid_query;

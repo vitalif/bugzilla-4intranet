@@ -237,16 +237,16 @@ sub remove_from_db
 # Complex Accessors #
 #####################
 
-sub edit_link {
+sub edit_link
+{
     my ($self) = @_;
     return $self->{edit_link} if defined $self->{edit_link};
-    my $cgi = new Bugzilla::CGI($self->url);
-    if (!$cgi->param('query_type') 
-        || !IsValidQueryType($cgi->param('query_type')))
+    my $params = http_decode_query($self->query);
+    if (!$params->{query_type} || !IsValidQueryType($params->{query_type}))
     {
-        $cgi->param('query_type', 'advanced');
+        $params->{query_type} = 'advanced';
     }
-    $self->{edit_link} = $cgi->canonicalise_query;
+    $self->{edit_link} = http_build_query($params);
     return $self->{edit_link};
 }
 
@@ -321,7 +321,7 @@ sub shared_with_users {
 # Simple Accessors #
 ####################
 
-sub url { $_[0]->{query}; }
+sub query { $_[0]->{query}; }
 sub userid { $_[0]->{userid} }
 
 sub user {
@@ -337,7 +337,7 @@ sub user {
 ############
 
 sub set_name       { $_[0]->set('name',       $_[1]); }
-sub set_url        { $_[0]->set('query',      $_[1]); }
+sub set_query      { $_[0]->set('query',      $_[1]); }
 
 sub set_link_in_footer
 {
@@ -419,7 +419,7 @@ Bugzilla::Search::Saved - A saved search
  my $query = new Bugzilla::Search::Saved($query_id);
 
  my $edit_link  = $query->edit_link;
- my $search_url = $query->url;
+ my $search_url = $query->query;
  my $owner      = $query->user;
  my $num_subscribers = $query->shared_with_users;
 

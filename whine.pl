@@ -55,9 +55,6 @@ my $sth_run_queries =
                   "FROM whine_queries " .
                   "WHERE eventid=? " .
                   "ORDER BY sortkey");
-my $sth_get_query =
-    $dbh->prepare("SELECT query FROM namedqueries " .
-                  "WHERE userid = ? AND name = ?");
 
 # get the event that's scheduled with the lowest run_next value
 my $sth_next_scheduled_event = $dbh->prepare(
@@ -427,7 +424,7 @@ sub run_queries {
     foreach my $thisquery (@queries) {
         next unless $thisquery->{'name'};   # named query is blank
 
-        my $savedquery = get_query($thisquery->{'name'}, $args->{'author'});
+        my $savedquery = Bugzilla::Search::Saved->new({ name => $thisquery->{name}, user => $args->{author} });
         next unless $savedquery;    # silently ignore missing queries
 
         # Execute the saved query
@@ -479,19 +476,6 @@ sub run_queries {
     }
 
     return $return_queries;
-}
-
-# get_query gets the namedquery.  It's similar to LookupNamedQuery (in
-# buglist.cgi), but doesn't care if a query name really exists or not, since
-# individual named queries might go away without the whine_queries that point
-# to them being removed.
-sub get_query {
-    my ($name, $user) = @_;
-    my $qname = $name;
-    $sth_get_query->execute($user->id, $qname);
-    my $fetched = $sth_get_query->fetch;
-    $sth_get_query->finish;
-    return $fetched ? $fetched->[0] : '';
 }
 
 # check_today gets a run day from the schedule and sees if it matches today

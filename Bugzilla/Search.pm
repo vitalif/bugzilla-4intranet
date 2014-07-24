@@ -3019,7 +3019,7 @@ sub _changedby
 sub _in_search_results
 {
     my $self = shift;
-    my $query = LookupNamedQuery(trim($self->{value}));
+    my $query = Bugzilla::Search::Saved->check({ name => trim($self->{value}) })->query;
     my $search = new Bugzilla::Search(
         params => http_decode_query($query),
         fields => [ "bugs.bug_id" ],
@@ -3037,38 +3037,6 @@ sub _in_search_results
         $self->{term}->{where} = "$self->{fieldsql} = $t.bug_id";
         $self->{term}->{notnull_field} = "$t.bug_id";
     }
-}
-
-sub LookupNamedQuery
-{
-    my ($name, $sharer_id, $throw_error) = @_;
-    $throw_error = THROW_ERROR unless defined $throw_error;
-
-    Bugzilla->login(LOGIN_REQUIRED);
-
-    my $constructor = $throw_error ? 'check' : 'new';
-    my $query = Bugzilla::Search::Saved->$constructor(
-        { user => $sharer_id, name => $name });
-
-    if (!$query)
-    {
-        if ($throw_error)
-        {
-            ThrowUserError("missing_query", { queryname => $name,
-                                              sharer_id => $sharer_id });
-        }
-        else
-        {
-            return undef;
-        }
-    }
-
-    if (!$query->url)
-    {
-        ThrowUserError("buglist_parameters_required", { queryname => $name });
-    }
-
-    return wantarray ? ($query->url, $query->id) : $query->url;
 }
 
 ##########################################################

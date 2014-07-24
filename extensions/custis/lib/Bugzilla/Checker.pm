@@ -84,7 +84,7 @@ sub refresh_sql
         $query = $self->query;
     }
     my $search = new Bugzilla::Search(
-        params => http_decode_query($query->url),
+        params => http_decode_query($query->query),
         fields => [ 'bug_id' ],
         user   => $query->user,
     );
@@ -142,7 +142,7 @@ sub _check_query_id
         ThrowUserError('query_access_denied', { query => $q });
     }
     # Тоже наша доработка - в сохранённый поиск может быть сохранён просто левый URL
-    if ($q->url =~ /^[a-z][a-z0-9]*:/iso)
+    if ($q->query =~ /^[a-z][a-z0-9]*:/iso)
     {
         ThrowUserError('query_not_savedsearch', { query => $q });
     }

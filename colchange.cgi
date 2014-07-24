@@ -98,17 +98,17 @@ if (defined $cgi->param('rememberedquery')) {
     }
 
     if ($cgi->param('save_columns_for_search')
-        && defined $search && $search->user->id == Bugzilla->user->id) 
+        && defined $search && $search->user->id == Bugzilla->user->id)
     {
-        my $params = new Bugzilla::CGI($search->url);
-        $params->param('columnlist', join(",", @collist));
-        $search->set_url($params->query_string());
+        my $params = http_decode_query($search->query);
+        $params->{columnlist} = join(",", @collist);
+        $search->set_query(http_build_query($params));
         $search->update();
     }
 
-    my $params = new Bugzilla::CGI($cgi->param('rememberedquery'));
-    $params->param('columnlist', join(",", @collist));
-    $vars->{'redirect_url'} = "buglist.cgi?".$params->query_string();
+    my $params = http_decode_query($cgi->param('rememberedquery'));
+    $params->{columnlist} = join(",", @collist);
+    $vars->{redirect_url} = "buglist.cgi?".http_build_query($params);
 
     # If we're running on Microsoft IIS, $cgi->redirect discards
     # the Set-Cookie lines. In mod_perl, $cgi->redirect with cookies

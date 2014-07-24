@@ -79,8 +79,8 @@ sub refresh_some_views
         $q =~ tr/_/%/;
         ($q) = $dbh->selectrow_array('SELECT name FROM namedqueries WHERE userid=? AND name LIKE ? LIMIT 1', undef, $userid, $q);
         $q or next;
-        my $storedquery = Bugzilla::Search::LookupNamedQuery($q, $userid, 0) or next;
-        $storedquery = http_decode_query($storedquery);
+        my $storedquery = Bugzilla::Search::Saved->new({ name => $q, user => $userid }) or next;
+        $storedquery = http_decode_query($storedquery->query);
         # get SQL code
         my $search = new Bugzilla::Search(
             params => $storedquery,
