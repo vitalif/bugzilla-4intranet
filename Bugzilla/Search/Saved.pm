@@ -33,6 +33,7 @@ use Bugzilla::Group;
 use Bugzilla::Error;
 use Bugzilla::User;
 use Bugzilla::Util;
+use Bugzilla::Search;
 
 use Scalar::Util qw(blessed);
 
@@ -137,11 +138,10 @@ sub _check_name {
 sub _check_query {
     my ($invocant, $query) = @_;
     $query || ThrowUserError("buglist_parameters_required");
-    my $cgi = new Bugzilla::CGI($query);
-    $cgi->clean_search_url;
+    my $params = http_decode_query($query);
     # Don't store the query name as a parameter.
-    $cgi->delete('known_name');
-    return $cgi->query_string;
+    delete $params->{known_name};
+    return http_build_query(Bugzilla::Search->clean_search_params($params));
 }
 
 #########################

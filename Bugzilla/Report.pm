@@ -15,6 +15,7 @@ use Bugzilla::CGI;
 use Bugzilla::Constants;
 use Bugzilla::Error;
 use Bugzilla::Util;
+use Bugzilla::Search;
 
 use constant DB_TABLE => 'reports';
 
@@ -61,12 +62,11 @@ sub _check_name {
     return $name;
 }
 
-sub _check_query {
+sub _check_query
+{
     my ($invocant, $query) = @_;
-    $query || ThrowUserError("buglist_parameters_required");
-    my $cgi = new Bugzilla::CGI($query);
-    $cgi->clean_search_url;
-    return $cgi->query_string;
+    $query || ThrowUserError('buglist_parameters_required');
+    return http_build_query(Bugzilla::Search->clean_search_params(http_decode_query($query)));
 }
 
 #############

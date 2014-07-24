@@ -999,6 +999,70 @@ sub new
     return $self;
 }
 
+sub clean_search_params
+{
+    shift if $_[0] eq __PACKAGE__;
+    my ($params) = @_;
+
+    # Delete any empty URL parameter.
+    foreach my $key (keys %$params)
+    {
+        if (!defined $params->{$key} || $params->{$key} eq '')
+        {
+            delete $params->{$key};
+            delete $params->{$key.'_type'};
+        }
+        elsif ($key =~ /\d-\d-\d/ && (!defined $params->{$key} || $params->{$key} eq 'noop'))
+        {
+            # Boolean Chart stuff is empty if it's "noop"
+            delete $params->{$key};
+        }
+    }
+
+    # Delete leftovers from the login form
+    delete $params->{$_} for qw(Bugzilla_remember GoAheadAndLogIn);
+
+    foreach my $num (1, 2)
+    {
+        # If there's no value in the email field, delete the related fields.
+        if (!$params->{"email$num"})
+        {
+            foreach my $field (qw(type assigned_to reporter qa_contact cc longdesc))
+            {
+                delete $params->{"email$field$num"};
+            }
+        }
+    }
+
+    # chfieldto is set to "Now" by default in query.cgi.
+    if (lc($params->{chfieldto} || '') eq 'now')
+    {
+        delete $params->{chfieldto};
+    }
+
+    # cmdtype "doit" is the default from query.cgi, but it's only meaningful
+    # if there's a remtype parameter.
+    if (defined $params->{cmdtype} && $params->{cmdtype} eq 'doit' && !defined $params->{remtype})
+    {
+        delete $params->{cmdtype};
+    }
+
+    # "Reuse same sort as last time" is actually the default, so we don't need it in the URL.
+    if (($params->{order} || '') eq 'Reuse same sort as last time')
+    {
+        delete $params->{order};
+    }
+
+    # And now finally, if query_format is our only parameter, that
+    # really means we have no parameters, so we should delete query_format.
+    if ($params->{query_format} && scalar(keys %$params) == 1)
+    {
+        delete $params->{query_format};
+    }
+
+    return $params;
+}
+
 # The main Bugzilla::Search function - parses search
 # parameters, builds search terms and SQL query
 sub init

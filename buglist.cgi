@@ -99,14 +99,12 @@ if (grep { $_ =~ /^cmd\-/ } $cgi->param())
 
 # If query was POSTed, clean the URL from empty parameters and redirect back to
 # itself. This will make advanced search URLs more tolerable.
-#
 if ($cgi->request_method() eq 'POST')
 {
-    $cgi->clean_search_url();
-    my $uri_length = length($cgi->self_url());
-    if ($uri_length < CGI_URI_LIMIT)
+    my $clean = http_build_query(Bugzilla::Search->clean_search_params({ %{ $cgi->Vars } }));
+    if (length($clean) < CGI_URI_LIMIT)
     {
-        print $cgi->redirect(-url => $cgi->self_url());
+        print $cgi->redirect(-url => $clean);
         exit;
     }
 }
