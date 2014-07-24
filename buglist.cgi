@@ -59,8 +59,8 @@ my $cgi = Bugzilla->cgi;
 my $dbh = Bugzilla->dbh;
 my $template = Bugzilla->template;
 my $vars = {};
-my $buffer = $cgi->query_string;
-my $query_format = $cgi->param('query_format') || 'advanced';
+my $ARGS = { %{ $cgi->Vars } };
+my $query_format = $ARGS->{query_format} || 'advanced';
 
 # We have to check the login here to get the correct footer if an error is
 # thrown and to prevent a logged out user to use QuickSearch if 'requirelogin'
@@ -75,19 +75,19 @@ Bugzilla->login();
 #   создание и выполнение запроса поиска, находится не в Bugzilla::Search, а именно здесь :-(
 #   кусочки логики находятся здесь по слову superworktime.
 my $superworktime;
-if (($cgi->param('format')||'') eq 'superworktime')
+if (($ARGS->{format}||'') eq 'superworktime')
 {
     require BugWorkTime;
     $superworktime = 1;
     Bugzilla->login(LOGIN_REQUIRED);
-    BugWorkTime::HandleSuperWorktime($vars);
+    BugWorkTime::HandleSuperWorktime($vars, $ARGS);
 }
 
 # If a parameter starts with cmd-, this means the And or Or button has been
 # pressed in the advanced search page with JS turned off.
-if (grep { $_ =~ /^cmd\-/ } $cgi->param())
+if (grep { $_ =~ /^cmd\-/ } keys %$ARGS)
 {
-    my $url = "query.cgi?$buffer#chart";
+    my $url = "query.cgi?".http_build_query($ARGS)."#chart";
     print $cgi->redirect(-location => $url);
     # Generate and return the UI (HTML page) from the appropriate template.
     $vars->{message} = "buglist_adding_field";
@@ -101,7 +101,7 @@ if (grep { $_ =~ /^cmd\-/ } $cgi->param())
 # itself. This will make advanced search URLs more tolerable.
 if ($cgi->request_method() eq 'POST')
 {
-    my $clean = http_build_query(Bugzilla::Search->clean_search_params({ %{ $cgi->Vars } }));
+    my $clean = http_build_query(Bugzilla::Search->clean_search_params($ARGS));
     if (length($clean) < CGI_URI_LIMIT)
     {
         print $cgi->redirect(-url => $clean);
@@ -111,17 +111,16 @@ if ($cgi->request_method() eq 'POST')
 
 if ($superworktime)
 {
-    $cgi->delete('format', 'ctype');
+    delete $ARGS->{$_} for qw(format ctype);
 }
 
 # Determine whether this is a quicksearch query.
-my $searchstring = $cgi->param('quicksearch');
-if (defined($searchstring))
+if (defined $ARGS->{quicksearch})
 {
-    $vars->{quicksearch} = $searchstring;
-    $buffer = quicksearch($searchstring);
+    $vars->{quicksearch} = $ARGS->{quicksearch};
+    quicksearch($ARGS->{quicksearch}, $ARGS);
     # Quicksearch may do a redirect, in which case it does not return.
-    # If it does return, it has modified $cgi->params so we can use them here
+    # If it does return, it returns modified $ARGS so we can use them here
     # as if this had been a normal query from the beginning.
 }
 
@@ -130,7 +129,7 @@ if (defined($searchstring))
 # several consecutive whitespaces only.
 if (!Bugzilla->params->{specific_search_allow_empty_words}
     && $query_format eq 'specific'
-    && ($cgi->param('content') || '') =~ /^\s*$/)
+    && ($ARGS->{content} || '') =~ /^\s*$/)
 {
     ThrowUserError("buglist_parameters_required");
 }
@@ -140,7 +139,7 @@ if (!Bugzilla->params->{specific_search_allow_empty_words}
 ################################################################################
 
 # Whether or not the user wants to change multiple bugs.
-my $dotweak = $cgi->param('tweak') ? 1 : 0;
+my $dotweak = $ARGS->{tweak} ? 1 : 0;
 
 # Log the user in
 if ($dotweak)
@@ -149,17 +148,16 @@ if ($dotweak)
 }
 
 # Hack to support legacy applications that think the RDF ctype is at format=rdf.
-if (defined $cgi->param('format') &&
-    $cgi->param('format') eq 'rdf' && !defined $cgi->param('ctype'))
+if ($ARGS->{format} && $ARGS->{format} eq 'rdf' && !defined $ARGS->{ctype})
 {
-    $cgi->param('ctype', 'rdf');
-    $cgi->delete('format');
+    $ARGS->{ctype} = 'rdf';
+    delete $ARGS->{format};
 }
 
 # Treat requests for ctype=rss as requests for ctype=atom
-if (defined $cgi->param('ctype') && $cgi->param('ctype') eq 'rss')
+if ($ARGS->{ctype} && $ARGS->{ctype} eq 'rss')
 {
-    $cgi->param('ctype', 'atom');
+    $ARGS->{ctype} = 'atom';
 }
 
 # The js ctype presents a security risk; a malicious site could use it
@@ -168,7 +166,7 @@ if (defined $cgi->param('ctype') && $cgi->param('ctype') eq 'rss')
 #
 # Note that if and when this call clears cookies or has other persistent
 # effects, we'll need to do this another way instead.
-if ((defined $cgi->param('ctype')) && ($cgi->param('ctype') eq 'js'))
+if ($ARGS->{ctype} && $ARGS->{ctype} eq 'js')
 {
     Bugzilla->logout_request();
 }
@@ -184,7 +182,7 @@ my $agent = ($cgi->http('X-Moz') && $cgi->http('X-Moz') =~ /\bmicrosummary\b/);
 # Uses the default format if the user did not specify an output format;
 # otherwise validates the user's choice against the list of available formats.
 my $format = $superworktime ? "worktime/supertime" : "list/list";
-$format = $template->get_format($format, scalar $cgi->param('format'), scalar $cgi->param('ctype'));
+$format = $template->get_format($format, $ARGS->{format}, $ARGS->{ctype});
 
 # Use server push to display a "Please wait..." message for the user while
 # executing their query if their browser supports it and they are viewing
@@ -204,17 +202,17 @@ my $serverpush =
         && (($ENV{HTTP_USER_AGENT} !~ /[Cc]ompatible/) || ($ENV{HTTP_USER_AGENT} =~ /MSIE 5.*Mac_PowerPC/))
           && $ENV{HTTP_USER_AGENT} !~ /WebKit/
             && !$agent
-              && !defined($cgi->param('serverpush'))
-                || $cgi->param('serverpush');
+              && !defined($ARGS->{serverpush})
+                || $ARGS->{serverpush};
 
-my $order = $cgi->param('order') || "";
+my $order = $ARGS->{order} || "";
 
 # The params object to use for the actual query itself
 my $params;
 
 # If the user is retrieving the last bug list they looked at, hack the buffer
 # storing the query string so that it looks like a query retrieving those bugs.
-if (defined $cgi->param('regetlastlist'))
+if (defined $ARGS->{regetlastlist})
 {
     $cgi->cookie('BUGLIST') || ThrowUserError('missing_cookie');
     $order = 'reuse last sort' unless $order;
@@ -225,7 +223,7 @@ if (defined $cgi->param('regetlastlist'))
         bug_id => $bug_id,
         bug_id_type => 'anyexact',
         order => $order,
-        columnlist => scalar($cgi->param('columnlist')),
+        columnlist => $ARGS->{columnlist},
     };
 }
 
@@ -233,15 +231,15 @@ if (defined $cgi->param('regetlastlist'))
 # we'll remove the relevance column from the lists of columns to display
 # and order by, since relevance only exists when doing a fulltext search.
 my $fulltext = 0;
-if ($cgi->param('content'))
+if ($ARGS->{content})
 {
     $fulltext = 1;
 }
 
-my @charts = map(/^field(\d-\d-\d)$/ ? $1 : (), $cgi->param());
+my @charts = map(/^field(\d-\d-\d)$/ ? $1 : (), keys %$ARGS);
 foreach my $chart (@charts)
 {
-    if ($cgi->param("field$chart") eq 'content' && $cgi->param("value$chart"))
+    if ($ARGS->{"field$chart"} eq 'content' && $ARGS->{"value$chart"})
     {
         $fulltext = 1;
         last;
@@ -403,8 +401,8 @@ sub _close_standby_message
 # Command Execution
 ################################################################################
 
-my $cmdtype   = $cgi->param('cmdtype')   || '';
-my $remaction = $cgi->param('remaction') || '';
+my $cmdtype   = $ARGS->{cmdtype} || '';
+my $remaction = $ARGS->{remaction} || '';
 
 # Backwards-compatibility - the old interface had cmdtype="runnamed" to run
 # a named command, and we can't break this because it's in bookmarks.
@@ -419,7 +417,7 @@ if ($cmdtype eq "runnamed")
 # earlier, for example by setting up a named query search.
 
 # This will be modified, so make a copy.
-$params ||= { %{ $cgi->Vars } };
+$params ||= { %$ARGS };
 
 # Generate a reasonable filename for the user agent to suggest to the user
 # when the user saves the bug list.  Uses the name of the remembered query
@@ -431,7 +429,7 @@ my $date = sprintf "%04d-%02d-%02d", 1900+$time[5],$time[4]+1,$time[3];
 my $filename = "bugs-$date.$format->{extension}";
 if ($cmdtype eq "dorem" && $remaction =~ /^run/)
 {
-    $filename = $cgi->param('namedcmd') . "-$date.$format->{extension}";
+    $filename = $ARGS->{namedcmd} . "-$date.$format->{extension}";
     # Remove white-space from the filename so the user cannot tamper
     # with the HTTP headers.
     $filename =~ s/\s/_/g;
@@ -445,8 +443,8 @@ if ($cmdtype eq "dorem")
     if ($remaction eq "run")
     {
         my $query = Bugzilla::Search::Saved->check({
-            name => scalar $cgi->param('namedcmd'),
-            user => scalar $cgi->param('sharer_id'),
+            name => $ARGS->{namedcmd},
+            user => $ARGS->{sharer_id},
         });
         if ($query->query =~ m!^[a-z][a-z0-9]*://!so)
         {
@@ -467,20 +465,19 @@ if ($cmdtype eq "dorem")
     }
     elsif ($remaction eq "runseries")
     {
-        $buffer = LookupSeries(scalar $cgi->param("series_id"));
-        $vars->{searchname} = $cgi->param('namedcmd');
+        $vars->{searchname} = $ARGS->{namedcmd};
         $vars->{searchtype} = "series";
-        $params = http_decode_query($buffer);
+        $params = http_decode_query(LookupSeries($ARGS->{"series_id"}));
         $order = $params->{order} || $order;
     }
     elsif ($remaction eq 'forget')
     {
         my $user = Bugzilla->login(LOGIN_REQUIRED);
-        my $qname = $cgi->param('namedcmd');
+        my $qname = $ARGS->{namedcmd};
         my $search = Bugzilla::Search::Saved->check({ name => $qname });
 
         # Make sure the user really wants to delete his saved search.
-        my $token = $cgi->param('token');
+        my $token = $ARGS->{token};
         check_hash_token($token, [ $search->id, $qname ]);
 
         $search->remove_from_db;
@@ -494,19 +491,19 @@ if ($cmdtype eq "dorem")
         exit;
     }
 }
-elsif (($cmdtype eq 'doit') && defined $cgi->param('remtype'))
+elsif (($cmdtype eq 'doit') && defined $ARGS->{remtype})
 {
-    if ($cgi->param('remtype') eq 'asdefault')
+    if ($ARGS->{remtype} eq 'asdefault')
     {
         my $user = Bugzilla->login(LOGIN_REQUIRED);
-        InsertNamedQuery(DEFAULT_QUERY_NAME, $buffer);
+        InsertNamedQuery(DEFAULT_QUERY_NAME, http_build_query($ARGS));
         $vars->{message} = 'buglist_new_default_query';
     }
-    elsif ($cgi->param('remtype') eq 'asnamed')
+    elsif ($ARGS->{remtype} eq 'asnamed')
     {
         my $user = Bugzilla->login(LOGIN_REQUIRED);
-        my $query_name = $cgi->param('newqueryname');
-        my $new_query = $cgi->param('newquery');
+        my $query_name = $ARGS->{newqueryname};
+        my $new_query = $ARGS->{newquery};
         my $tofooter = 1;
         my $existed_before = InsertNamedQuery($query_name, $new_query, $tofooter);
         if ($existed_before)
@@ -646,7 +643,7 @@ if ($format->{extension} eq 'ics')
 if ($format->{extension} eq 'atom')
 {
     # The title of the Atom feed will be the same one as for the bug list.
-    $vars->{title} = $cgi->param('title');
+    $vars->{title} = $ARGS->{title};
 
     # This is the list of fields that are needed by the Atom filter.
     my @required_atom_columns = (
@@ -797,9 +794,9 @@ for my $eq (@{$search->get_equalities})
 }
 $vars->{equality_querystring} = http_build_query($eq_query);
 
-if (defined $cgi->param('limit'))
+if (defined $ARGS->{limit})
 {
-    my $limit = $cgi->param('limit');
+    my $limit = $ARGS->{limit};
     if (detaint_natural($limit))
     {
         $query .= " " . $dbh->sql_limit($limit);
@@ -807,7 +804,7 @@ if (defined $cgi->param('limit'))
 }
 elsif ($fulltext)
 {
-    if ($cgi->param('order') && $cgi->param('order') =~ /^relevance/)
+    if ($ARGS->{order} && $ARGS->{order} =~ /^relevance/)
     {
         $vars->{message} = 'buglist_sorted_by_relevance';
     }
@@ -831,8 +828,8 @@ if ($superworktime)
         {
             $d = POSIX::strftime("%Y-%m-%d", localtime);
         }
-        $vars->{worktime_user} = $cgi->param('worktime_user') || ($Bugzilla::Search::interval_who ? $Bugzilla::Search::interval_who->login : undef);
-        $vars->{worktime_date} = $cgi->param('worktime_date') || $d;
+        $vars->{worktime_user} = $ARGS->{worktime_user} || ($Bugzilla::Search::interval_who ? $Bugzilla::Search::interval_who->login : undef);
+        $vars->{worktime_date} = $ARGS->{worktime_date} || $d;
     }
     else
     {
@@ -846,7 +843,7 @@ if ($superworktime)
 # Query Execution
 ################################################################################
 
-if ($cgi->param('debug'))
+if ($ARGS->{debug})
 {
     $vars->{debug} = 1;
     $vars->{query} = $query;
@@ -1112,12 +1109,12 @@ if (scalar(@products) == 1)
 {
     $one_product = new Bugzilla::Product({ name => $products[0] });
 }
-# This is used in the "Zarroo Boogs" case.
-elsif (my @product_input = $cgi->param('product'))
+# This is used in the "Zarro Boogs" case. -- FIXME take product from $equalitites
+elsif (my @product_input = $ARGS->{product})
 {
     if (scalar(@product_input) == 1 and $product_input[0] ne '')
     {
-        $one_product = new Bugzilla::Product({ name => $cgi->param('product') });
+        $one_product = new Bugzilla::Product({ name => $ARGS->{product} });
     }
 }
 # We only want the template to use it if the user can actually
@@ -1246,7 +1243,7 @@ sub get_bug_vals
 
 # If we're editing a stored query, use the existing query name as default for
 # the "Remember search as" field.
-$vars->{defaultsavename} = $cgi->param('query_based_on');
+$vars->{defaultsavename} = $ARGS->{query_based_on};
 $vars->{query_sql_time} = sprintf("%.2f", $query_sql_time);
 
 Bugzilla::Hook::process('after-buglist', { vars => $vars });
@@ -1285,7 +1282,7 @@ my $disposition = "inline";
 
 if ($format->{extension} eq "html" && !$agent)
 {
-    if ($order && !$cgi->param('sharer_id') && $query_format ne 'specific')
+    if ($order && !$ARGS->{sharer_id} && $query_format ne 'specific')
     {
         $cgi->send_cookie(
             -name => 'LASTORDER',
@@ -1336,7 +1333,7 @@ _close_standby_message($contenttype, $disposition, $serverpush);
 # Content Generation
 ################################################################################
 
-$vars->{template_format} = $cgi->param('format');
+$vars->{template_format} = $ARGS->{format};
 
 # Generate and return the UI (HTML page) from the appropriate template.
 my $output;
@@ -1345,7 +1342,7 @@ $template->process($format->{template}, $vars, \$output)
 
 $query_template_time = gettimeofday()-$query_template_time;
 # CustIS Bug 69766 - Default CSV charset for M1cr0$0ft Excel
-if (($cgi->param('ctype')||'') eq 'csv' &&
+if (($ARGS->{ctype}||'') eq 'csv' &&
     Bugzilla->user->settings->{csv_charset} &&
     Bugzilla->user->settings->{csv_charset}->{value} ne 'utf-8')
 {

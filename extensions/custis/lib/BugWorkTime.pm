@@ -298,16 +298,16 @@ sub PrepareWorktime
 }
 
 # Обработать запрос к SuperWorkTime
+# $vars - выходные переменные для шаблона
+# $args - входные параметры запроса
 sub HandleSuperWorktime
 {
-    my ($vars) = @_;
-    my $cgi = Bugzilla->cgi;
+    my ($vars, $args) = @_;
     my $template = Bugzilla->template;
     $vars->{wt_admin} = Bugzilla->user->in_group('worktimeadmin');
     # Обрабатываем списанное время, а потом делаем редирект на себя же
-    if ($cgi->param('save_worktime'))
+    if ($args->{save_worktime})
     {
-        my $args = { %{ $cgi->Vars } };
         # Проверяем токен
         check_token_data($args->{token}, 'superworktime');
         my ($wt_user, $wt_date);
@@ -369,7 +369,7 @@ sub HandleSuperWorktime
         else
         {
             # Удаляем параметры
-            $cgi->delete($_) for 'save_worktime', grep { /^wtime_(\d+)$/ } keys %$args;
+            delete $args->{$_} for 'save_worktime', grep { /^wtime_(\d+)$/ } keys %$args;
             if (MassAddWorktime($times, $comment, $wt_date))
             {
                 Bugzilla->dbh->bz_commit_transaction();
@@ -381,7 +381,7 @@ sub HandleSuperWorktime
                 Bugzilla->dbh->bz_rollback_transaction();
                 Checkers::show_checker_errors();
             }
-            print $cgi->redirect(-location => $cgi->self_url);
+            print Bugzilla->cgi->redirect(-location => $cgi->self_url);
             exit;
         }
     }

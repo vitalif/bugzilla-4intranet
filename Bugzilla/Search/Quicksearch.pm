@@ -134,15 +134,16 @@ use constant COMPONENT_EXCEPTIONS => (
              #                               ^^^^
 );
 
-sub quicksearch {
-    my ($searchstring) = (@_);
-    my $cgi = Bugzilla->cgi;
+sub quicksearch
+{
+    my ($searchstring, $ARGS) = (@_);
 
     # Don't use fucking globals, use a blessed object
     my $self = bless {
         chart => 0,
         and   => 0,
         or    => 0,
+        ARGS  => $ARGS,
     };
 
     # Remove leading and trailing commas and whitespace.
@@ -150,7 +151,7 @@ sub quicksearch {
     ThrowUserError('buglist_parameters_required') unless ($searchstring);
 
     if ($searchstring =~ m/^[0-9,\s]*$/) {
-        _bug_numbers_only($searchstring);
+        _bug_numbers_only($searchstring, $ARGS);
     }
     else {
         _handle_alias($searchstring);
@@ -193,7 +194,7 @@ sub quicksearch {
             $self->{and}++;
             $self->{or} = 0;
         } # foreach (@words)
-        $cgi->param('content', $self->{content});
+        $ARGS->{content} = $self->{content};
 
         # If we have wanted resolutions, allow closed states
         if (keys %{$self->{resolutions}})
@@ -204,8 +205,8 @@ sub quicksearch {
             }
         }
 
-        $cgi->param('bug_status', keys %{$self->{states}});
-        $cgi->param('resolution', keys %{$self->{resolutions}});
+        $ARGS->{bug_status} = [ keys %{$self->{states}} ];
+        $ARGS->{resolution} = [ keys %{$self->{resolutions}} ];
 
         # Inform user about any unknown fields
         if (@{$self->{unknown_fields}} || %{$self->{ambiguous_fields}}) {
@@ -215,15 +216,14 @@ sub quicksearch {
         }
 
         # Make sure we have some query terms left
-        scalar($cgi->param())>0 || ThrowUserError("buglist_parameters_required");
+        keys %$ARGS || ThrowUserError("buglist_parameters_required");
     }
 
     # List of quicksearch-specific CGI parameters to get rid of.
-    my @params_to_strip = ('quicksearch', 'load', 'run');
-    my $modified_query_string = $cgi->canonicalise_query(@params_to_strip);
+    delete $ARGS->{$_} for ('quicksearch', 'load', 'run');
 
     my $order;
-    if ($order = $cgi->cookie('LASTORDER'))
+    if ($order = Bugzilla->cgi->cookie('LASTORDER'))
     {
         $order =~ s/relevance(\s*(a|de)sc)?,|,relevance(\s*(a|de)sc)?//iso;
         $order = "relevance DESC,$order";
@@ -232,43 +232,40 @@ sub quicksearch {
     {
         $order = "relevance DESC";
     }
-    $cgi->param('order', $order);
+    $ARGS->{order} = $order;
 
-    if ($cgi->param('load')) {
-        my $urlbase = correct_urlbase();
+    if ($ARGS->{load})
+    {
         # Param 'load' asks us to display the query in the advanced search form.
-        print $cgi->redirect(-uri => "${urlbase}query.cgi?format=advanced&amp;"
-                             . $modified_query_string);
+        my $urlbase = correct_urlbase();
+        print Bugzilla->cgi->redirect(-uri => "${urlbase}query.cgi?format=advanced&" . http_build_query($ARGS));
     }
 
-    # Otherwise, pass the modified query string to the caller.
-    # We modified $cgi->params, so the caller can choose to look at that, too,
-    # and disregard the return value.
-    $cgi->delete(@params_to_strip);
-    return $modified_query_string;
+    return $ARGS;
 }
 
 ##########################
 # Parts of quicksearch() #
 ##########################
 
-sub _bug_numbers_only {
-    my $searchstring = shift;
-    my $cgi = Bugzilla->cgi;
+sub _bug_numbers_only
+{
+    my ($searchstring, $ARGS) = @_;
     # Allow separation by comma or whitespace.
     $searchstring =~ s/[,\s]+/,/g;
 
-    if ($searchstring !~ /,/) {
+    if ($searchstring !~ /,/)
+    {
         # Single bug number; shortcut to show_bug.cgi.
-        print $cgi->redirect(
-            -uri => correct_urlbase() . "show_bug.cgi?id=$searchstring");
+        print Bugzilla->cgi->redirect(-uri => correct_urlbase() . "show_bug.cgi?id=$searchstring");
         exit;
     }
-    else {
+    else
+    {
         # List of bug numbers.
-        $cgi->param('bug_id', $searchstring);
-        $cgi->param('order', 'bugs.bug_id');
-        $cgi->param('bug_id_type', 'anyexact');
+        $ARGS->{bug_id} = $searchstring;
+        $ARGS->{bug_id_type} = 'anyexact';
+        $ARGS->{order} = 'bugs.bug_id';
     }
 }
 
@@ -277,12 +274,10 @@ sub _handle_alias {
     if ($searchstring =~ /^([^,\s]+)$/) {
         my $alias = $1;
         # We use this direct SQL because we want quicksearch to be VERY fast.
-        my $is_alias = Bugzilla->dbh->selectrow_array(
-            q{SELECT 1 FROM bugs WHERE alias = ?}, undef, $alias);
+        my $is_alias = Bugzilla->dbh->selectrow_array('SELECT 1 FROM bugs WHERE alias = ?', undef, $alias);
         if ($is_alias) {
             $alias = url_quote($alias);
-            print Bugzilla->cgi->redirect(
-                -uri => correct_urlbase() . "show_bug.cgi?id=$alias");
+            print Bugzilla->cgi->redirect(-uri => correct_urlbase() . "show_bug.cgi?id=$alias");
             exit;
         }
     }
@@ -625,7 +620,7 @@ sub addChart {
     my ($field, $comparisonType, $value, $negate) = @_;
 
     $negate && ($comparisonType = negateComparisonType($comparisonType));
-    makeChart("$self->{chart}-$self->{and}-$self->{or}", $field, $comparisonType, $value);
+    $self->makeChart("$self->{chart}-$self->{and}-$self->{or}", $field, $comparisonType, $value);
     if ($negate) {
         $self->{and}++;
         $self->{or} = 0;
@@ -637,12 +632,11 @@ sub addChart {
 
 # Create the CGI parameters for a boolean chart
 sub makeChart {
+    my $self = shift;
     my ($expr, $field, $type, $value) = @_;
-
-    my $cgi = Bugzilla->cgi;
-    $cgi->param("field$expr", $field);
-    $cgi->param("type$expr",  $type);
-    $cgi->param("value$expr", url_decode($value));
+    $self->{ARGS}->{"field$expr"} = $field;
+    $self->{ARGS}->{"type$expr"} = $type;
+    $self->{ARGS}->{"value$expr"} = url_decode($value);
 }
 
 1;
