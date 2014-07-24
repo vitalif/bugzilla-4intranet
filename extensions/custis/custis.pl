@@ -18,10 +18,6 @@ required_modules('custis', $REQUIRED_MODULES);
 optional_modules('custis', $OPTIONAL_MODULES);
 clear_hooks('custis');
 
-# DB schema changes
-set_hook('custis', 'db_schema_abstract_schema',     'CustisDBHooks::db_schema_abstract_schema');
-set_hook('custis', 'install_update_db',             'CustisDBHooks::install_update_db');
-
 # Email-related hooks
 set_hook('custis', 'bugmail_pre_template',          'CustisMailHooks::bugmail_pre_template');
 set_hook('custis', 'emailin_filter_body',           'CustisMailHooks::emailin_filter_body');

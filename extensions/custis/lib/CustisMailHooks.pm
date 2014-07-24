@@ -15,8 +15,6 @@ sub bugmail_pre_template
     my ($args) = @_;
 
     my $vars = $args->{vars};
-    ${$args->{tmpl}} = 'email/newchangedmail-'.$vars->{product}.'.txt.tmpl';
-
     my $datadir = bz_locations()->{datadir};
     my $fd;
     if (-w "$datadir/maillog" && open $fd, ">>$datadir/maillog")
