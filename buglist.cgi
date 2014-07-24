@@ -476,52 +476,17 @@ if ($cmdtype eq "dorem")
         $params = http_decode_query($buffer);
         $order = $params->{order} || $order;
     }
-    elsif ($remaction eq "forget")
+    elsif ($remaction eq 'forget')
     {
         my $user = Bugzilla->login(LOGIN_REQUIRED);
-        # Copy the name into a variable, so that we can trick_taint it for
-        # the DB. We know it's safe, because we're using placeholders in
-        # the SQL, and the SQL is only a DELETE.
         my $qname = $cgi->param('namedcmd');
-        trick_taint($qname);
+        my $search = Bugzilla::Search::Saved->check({ name => $qname });
 
-        # Do not forget the saved search if it is being used in a whine
-        my $whines_in_use = $dbh->selectcol_arrayref(
-            'SELECT DISTINCT whine_events.subject FROM whine_events'.
-            ' INNER JOIN whine_queries ON whine_queries.eventid = whine_events.id'.
-            ' WHERE whine_events.owner_userid = ?'.
-            ' AND whine_queries.query_name = ?', undef, $user->id, $qname
-        );
-        if (scalar(@$whines_in_use))
-        {
-            ThrowUserError('saved_search_used_by_whines', {
-                subjects    => join(',', @$whines_in_use),
-                search_name => $qname,
-            });
-        }
+        # Make sure the user really wants to delete his saved search.
+        my $token = $cgi->param('token');
+        check_hash_token($token, [ $search->id, $qname ]);
 
-        # If we are here, then we can safely remove the saved search
-        my ($query_id) = $dbh->selectrow_array(
-            'SELECT id FROM namedqueries WHERE userid = ? AND name = ?',
-            undef, $user->id, $qname
-        );
-        if (!$query_id)
-        {
-            # The user has no query of this name. Play along.
-        }
-        else
-        {
-            # Make sure the user really wants to delete his saved search.
-            my $token = $cgi->param('token');
-            check_hash_token($token, [$query_id, $qname]);
-
-            $dbh->do('DELETE FROM namedqueries WHERE id = ?', undef, $query_id);
-            $dbh->do('DELETE FROM namedqueries_link_in_footer WHERE namedquery_id = ?', undef, $query_id);
-            $dbh->do('DELETE FROM namedquery_group_map WHERE namedquery_id = ?', undef, $query_id);
-        }
-
-        # Now reset the cached queries
-        $user->flush_queries_cache();
+        $search->remove_from_db;
 
         # Generate and return the UI (HTML page) from the appropriate template.
         $vars->{message} = 'buglist_query_gone';
@@ -581,33 +546,13 @@ my $columns = Bugzilla::Search::COLUMNS;
 # Determine the columns that will be displayed in the bug list via the
 # columnlist CGI parameter, the user's preferences, or the default.
 my @displaycolumns = ();
-if (defined $params->{columnlist})
+if (defined $params->{columnlist} && $params->{columnlist} ne 'all')
 {
-    if ($params->{columnlist} eq 'all')
-    {
-        # If the value of the CGI parameter is "all", display all columns,
-        # but remove the redundant "short_desc" column.
-        @displaycolumns = grep($_ ne 'short_desc', keys(%$columns));
-    }
-    else
-    {
-        @displaycolumns = split(/[ ,]+/, $params->{columnlist});
-    }
+    @displaycolumns = split(/[ ,]+/, $params->{columnlist});
 }
 elsif (defined $cgi->cookie('COLUMNLIST'))
 {
-    # 2002-10-31 Rename column names (see bug 176461)
-    my $columnlist = $cgi->cookie('COLUMNLIST');
-    $columnlist =~ s/\bowner\b/assigned_to/;
-    $columnlist =~ s/\bowner_realname\b/assigned_to_realname/;
-    $columnlist =~ s/\bplatform\b/rep_platform/;
-    $columnlist =~ s/\bseverity\b/bug_severity/;
-    $columnlist =~ s/\bstatus\b/bug_status/;
-    $columnlist =~ s/\bsummaryfull\b/short_desc/;
-    $columnlist =~ s/\bsummary\b/short_short_desc/;
-
-    # Use the columns listed in the user's preferences.
-    @displaycolumns = split(/ /, $columnlist);
+    @displaycolumns = split(/ /, $cgi->cookie('COLUMNLIST'));
 }
 else
 {
@@ -622,10 +567,6 @@ $_ = Bugzilla::Search->COLUMN_ALIASES->{$_} || $_ for @displaycolumns;
 # should not have access.  Detaint the data along the way.
 @displaycolumns = grep($columns->{$_} && trick_taint($_), @displaycolumns);
 
-# Remove the "ID" column from the list because bug IDs are always displayed
-# and are hard-coded into the display templates.
-@displaycolumns = grep($_ ne 'bug_id', @displaycolumns);
-
 # Add the votes column to the list of columns to be displayed
 # in the bug list if the user is searching for bugs with a certain
 # number of votes and the votes column is not already on the list.
@@ -637,11 +578,6 @@ $votes ||= "";
 if (trim($votes) && !grep($_ eq 'votes', @displaycolumns))
 {
     push(@displaycolumns, 'votes');
-}
-
-if ($superworktime && !grep($_ eq 'interval_time', @displaycolumns))
-{
-    push @displaycolumns, 'interval_time';
 }
 
 # Remove the timetracking columns if they are not a part of the group
@@ -657,6 +593,15 @@ if (grep('relevance', @displaycolumns) && !$fulltext)
     @displaycolumns = grep($_ ne 'relevance', @displaycolumns);
 }
 
+# Remove the "ID" column from the list because bug IDs are always displayed
+# and are hard-coded into the display templates.
+@displaycolumns = grep($_ ne 'bug_id', @displaycolumns);
+
+if ($superworktime && !grep($_ eq 'interval_time', @displaycolumns))
+{
+    push @displaycolumns, 'interval_time';
+}
+
 ################################################################################
 # Select Column Determination
 ################################################################################
@@ -667,13 +612,6 @@ if (grep('relevance', @displaycolumns) && !$fulltext)
 # Severity, priority, resolution and status are required for buglist
 # CSS classes.
 my @selectcolumns = ("bug_id", "bug_severity", "priority", "bug_status", "resolution", "product");
-
-# remaining and work_time are required for percentage_complete calculation:
-if (grep { $_ eq 'percentage_complete' } @displaycolumns)
-{
-    push (@selectcolumns, "remaining_time");
-    push (@selectcolumns, "work_time");
-}
 
 # Make sure that the login_name version of a field is always also
 # requested if the realname version is requested, so that we can
@@ -765,7 +703,7 @@ if (!$order || $order =~ /^reuse/i)
     }
 }
 
-# FIXME переместить в Bugzilla::Search
+# FIXME Move sort orders to Bugzilla::Search
 my $old_orders = {
     '' => 'bug_status,priority,assigned_to,bug_id', # Default
     'bug number' => 'bug_id',

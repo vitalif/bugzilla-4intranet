@@ -202,6 +202,37 @@ sub update {
     return @r;
 }
 
+sub remove_from_db
+{
+    my $self = shift;
+
+    # Do not forget the saved search if it is being used in a whine or a checker
+    if (my $whines_in_use = $self->used_in_whine)
+    {
+        ThrowUserError('saved_search_used_by_whines', {
+            subjects    => join(', ', @$whines_in_use),
+            search_name => $self->name,
+        });
+    }
+    if (my $checkers = $self->used_in_checkers)
+    {
+        ThrowUserError('saved_search_used_by_checkers', {
+            search_name => $self->name,
+        });
+    }
+
+    my $dbh = Bugzilla->dbh;
+    $dbh->do('DELETE FROM namedqueries WHERE id = ?', undef, $self->id);
+    $dbh->do('DELETE FROM namedqueries_link_in_footer WHERE namedquery_id = ?', undef, $self->id);
+    $dbh->do('DELETE FROM namedquery_group_map WHERE namedquery_id = ?', undef, $self->id);
+
+    if (Bugzilla->user->id == $self->userid)
+    {
+        # Reset the cached queries
+        $self->user->flush_queries_cache;
+    }
+}
+
 #####################
 # Complex Accessors #
 #####################
@@ -219,14 +250,17 @@ sub edit_link {
     return $self->{edit_link};
 }
 
-sub used_in_whine {
+sub used_in_whine
+{
     my ($self) = @_;
     return $self->{used_in_whine} if exists $self->{used_in_whine};
-    ($self->{used_in_whine}) = Bugzilla->dbh->selectrow_array(
-        'SELECT 1 FROM whine_events INNER JOIN whine_queries
-                       ON whine_events.id = whine_queries.eventid
-          WHERE whine_events.owner_userid = ? AND query_name = ?', undef, 
-          $self->{userid}, $self->name) || 0;
+    my $r = Bugzilla->dbh->selectcol_arrayref(
+        'SELECT DISTINCT whine_events.subject FROM whine_events'.
+        ' INNER JOIN whine_queries ON whine_events.id = whine_queries.eventid'.
+        ' WHERE whine_events.owner_userid = ? AND query_name = ?',
+        undef, $self->{userid}, $self->name
+    );
+    $self->{used_in_whine} = $r && @$r ? $r : undef;
     return $self->{used_in_whine};
 }
 
@@ -287,12 +321,13 @@ sub shared_with_users {
 # Simple Accessors #
 ####################
 
-sub type { return 0; }
-sub url  { return $_[0]->{'query'}; }
+sub url { $_[0]->{query}; }
+sub userid { $_[0]->{userid} }
 
 sub user {
     my ($self) = @_;
     return $self->{user} if defined $self->{user};
+    return Bugzilla->user if Bugzilla->user->id == $self->{userid};
     $self->{user} = new Bugzilla::User($self->{userid});
     return $self->{user};
 }

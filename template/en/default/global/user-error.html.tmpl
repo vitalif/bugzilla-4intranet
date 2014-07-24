@@ -1785,6 +1785,12 @@
   [%+ subjects FILTER html %]
 [% END %]
 
+[% BLOCK error_saved_search_used_by_checkers %]
+  [% title = "Saved Search In Use" %]
+  The saved search <em>[% search_name FILTER html %]</em> is being used
+  by <a href="editcheckers.cgi">Correctness Checks</a>.
+[% END %]
+
 [% BLOCK error_search_content_without_matches %]
   [% title = "Illegal Search" %]
   The "content" field can only be used with "matches" search

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -wT
-# Bug data accuracy checker editor
+# Bug data correctness checker editor
 # License: Dual-license GPL 3.0+ or MPL 1.1+
 # Author(s): Vitaliy Filippov <vitalif@mail.ru>
 
