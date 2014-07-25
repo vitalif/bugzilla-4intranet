@@ -675,7 +675,10 @@ use constant ABSTRACT_SCHEMA => {
     },
 
     rep_platform => {
-        FIELDS => dclone(FIELD_TABLE_SCHEMA->{FIELDS}),
+        FIELDS => [
+            @{ dclone(FIELD_TABLE_SCHEMA->{FIELDS}) },
+            ua_regex => {TYPE => 'VARCHAR(255)'},
+        ],
         INDEXES => [
             rep_platform_value_idx   => {FIELDS => ['value'], TYPE => 'UNIQUE'},
             rep_platform_sortkey_idx => ['sortkey', 'value'],
@@ -683,7 +686,10 @@ use constant ABSTRACT_SCHEMA => {
     },
 
     op_sys => {
-        FIELDS => dclone(FIELD_TABLE_SCHEMA->{FIELDS}),
+        FIELDS => [
+            @{ dclone(FIELD_TABLE_SCHEMA->{FIELDS}) },
+            ua_regex => {TYPE => 'VARCHAR(255)'},
+        ],
         INDEXES => [
             op_sys_value_idx   => {FIELDS => ['value'], TYPE => 'UNIQUE'},
             op_sys_sortkey_idx => ['sortkey', 'value'],

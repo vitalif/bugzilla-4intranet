@@ -59,6 +59,15 @@
             [%+ 'checked="checked"' IF value.is_confirmed %] />
         </td>
       </tr>
+    [% ELSIF field.name == "op_sys" || field.name == "rep_platform" %]
+      <tr>
+        <th valign="top" align="left">
+          <label for="ua_regex">User Agent Regexp:</label>
+        </th>
+        <td>
+          <input id="ua_regex" name="ua_regex" size="100" value="[% value.ua_regex | html %]" />
+        </td>
+      </tr>
     [% END %]
     <tr>
       <th align="left"><label for="isactive">Enabled for [% terms.bugs %]:</label></th>

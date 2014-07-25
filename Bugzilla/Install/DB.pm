@@ -796,8 +796,8 @@ WHERE description LIKE\'%[CC:%\'');
     }
 
     # Add is_assigned and is_confirmed columns to bug_status table
-    $dbh->bz_add_column('bug_status', is_assigned => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'});
-    $dbh->bz_add_column('bug_status', is_confirmed => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'});
+    $dbh->bz_add_column('bug_status', 'is_assigned');
+    $dbh->bz_add_column('bug_status', 'is_confirmed');
     $dbh->do('UPDATE bug_status SET is_assigned=0 WHERE NOT value=?', undef, 'ASSIGNED');
     $dbh->do('UPDATE bug_status SET is_confirmed=0 WHERE value=?', undef, 'UNCONFIRMED');
 
@@ -848,6 +848,21 @@ WHERE description LIKE\'%[CC:%\'');
 
     # Revert 4.4 quips.quip varchar(512) change
     $dbh->bz_alter_column('quips', 'quip', { TYPE => 'MEDIUMTEXT', NOTNULL => 1 });
+
+    # Add ua_regex field to op_sys and rep_platform
+    if (!$dbh->bz_column_info('op_sys', 'ua_regex'))
+    {
+        $dbh->bz_add_column('op_sys', 'ua_regex');
+        $dbh->bz_add_column('rep_platform', 'ua_regex');
+        for (@{Bugzilla::DB->ENUM_DEFAULTS->{op_sys}})
+        {
+            $dbh->do('UPDATE op_sys SET ua_regex=? WHERE value=?', undef, $_->{ua_regex}, $_->{value});
+        }
+        for (@{Bugzilla::DB->ENUM_DEFAULTS->{rep_platform}})
+        {
+            $dbh->do('UPDATE rep_platform SET ua_regex=? WHERE value=?', undef, $_->{ua_regex}, $_->{value});
+        }
+    }
 
     ################################################################
     # New --TABLE-- changes should go *** A B O V E *** this point #
@@ -4192,7 +4207,8 @@ sub _set_varchar_255
         $abs = { @{$abs->{FIELDS} || []} };
         for my $f (keys %$abs)
         {
-            if (lc $abs->{$f}->{TYPE} eq 'varchar(255)' &&
+            if ($r->{$f} &&
+                lc $abs->{$f}->{TYPE} eq 'varchar(255)' &&
                 lc $r->{$f}->{TYPE} ne 'varchar(255)')
             {
                 $started ||= (print "-- Raising length limit for all VARCHARs to 255 --\n");

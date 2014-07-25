@@ -144,8 +144,10 @@ Bugzilla::DB::bz_create_database() if $lc_hash->{'db_check'};
 
 # now get a handle to the database:
 my $dbh = Bugzilla->dbh;
+
 # Create the tables, and do any database-specific schema changes.
 $dbh->bz_setup_database();
+
 # Populate the tables that hold the values for the <select> fields.
 $dbh->bz_populate_enum_tables();
 

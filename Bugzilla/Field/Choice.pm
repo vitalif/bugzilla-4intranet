@@ -54,6 +54,8 @@ use constant CLASS_MAP => {
     version          => 'Bugzilla::Version',
     target_milestone => 'Bugzilla::Milestone',
     classification   => 'Bugzilla::Classification',
+    op_sys           => 'Bugzilla::OS',
+    rep_platform     => 'Bugzilla::Platform',
 };
 
 use constant DEFAULT_MAP => { reverse %{ Bugzilla::Config::BugFields::DEFAULTNAMES() } };

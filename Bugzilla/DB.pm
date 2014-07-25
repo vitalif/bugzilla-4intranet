@@ -65,8 +65,23 @@ use constant ISOLATION_LEVEL => 'REPEATABLE READ';
 use constant ENUM_DEFAULTS => {
     bug_severity => [qw(blocker critical major normal minor trivial enhancement)],
     priority     => [qw(Highest High Normal Low Lowest)],
-    op_sys       => [qw(All Windows Mac OS Linux Other)],
-    rep_platform => [qw(All PC Macintosh Other)],
+    op_sys       => [
+        { value => 'All',     ua_regex => '' },
+        { value => 'Windows', ua_regex => '\(.*(Windows|Win.*9[8x].*4\.9|Win(?:dows |)(M[Ee]|98|95|16)|Win(?:dows[ -]|)NT|WinMosaic).*\)' },
+        { value => 'MacOS',   ua_regex => '\(.*(Mac OS (X|9|8)|Darwin|PowerPC|PPC|68k).*\)' },
+        { value => 'Android', ua_regex => '\(.*Android.*\)' },
+        { value => 'iOS',     ua_regex => '\(.*(iPod|iPad|iPhone).*\)' },
+        { value => 'Linux',   ua_regex => '\(.*Linux.*\)' },
+        { value => 'BSD',     ua_regex => '\(.*BSD.*\)' },
+        { value => 'Other',   ua_regex => '\(.*(Solaris|SunOS|IRIX|OSF|BeOS|AIX|OS/2|QNX|VMS|HP-?UX|Amiga).*\)' },
+    ],
+    rep_platform => [
+        { value => 'All',     ua_regex => '' },
+        { value => 'PC',      ua_regex => '\(.*([ix0-9]86 (?:on |\()x86_64|amd64|x86_64|IA64|Intel|[ix0-9]86|Win(?:dows |)[39M]|Win(?:dows |)16|WOW64|Win64|WinMosaic|Win(?:dows[ -])NT).*\)|\(Win.*\)' },
+        { value => 'ARM',     ua_regex => '\(.*(iPod|iPad|iPhone|ARM|Android|Windows CE).*\)' },
+        { value => 'PowerPC', ua_regex => '\(.*(PowerPC|68K|680[x0]0|AIX|Macintosh|Mac OS [89]).*\)' },
+        { value => 'Other',   ua_regex => '\(.*(sparc|sun4|AXP|IRIX|MIPS|9000|OSF|HP-?UX|SunOS|Solaris).*\)|\(.*[ _]Alpha.\D|\(.*[ _]Alpha\)|Amiga' },
+    ],
     bug_status   => [qw(UNCONFIRMED NEW ASSIGNED REOPENED RESOLVED VERIFIED CLOSED)],
     resolution   => [qw(FIXED INVALID WONTFIX DUPLICATE WORKSFORME MOVED)],
 };
@@ -465,8 +480,7 @@ sub bz_check_regexp
 
     eval { $self->do("SELECT " . $self->sql_regexp($self->quote("a"), $pattern, 1)) };
 
-    $@ && ThrowUserError('illegal_regexp', 
-        { value => $pattern, dberror => $self->errstr }); 
+    $@ && ThrowUserError('illegal_regexp', { value => $pattern, dberror => $self->errstr }); 
 }
 
 #####################################################################
@@ -479,7 +493,7 @@ sub bz_setup_database {
     # If we haven't ever stored a serialized schema,
     # set up the bz_schema table and store it.
     $self->_bz_init_schema_storage();
-    
+
     my @desired_tables = $self->_bz_schema->get_table_list();
 
     foreach my $table_name (@desired_tables) {
@@ -487,17 +501,30 @@ sub bz_setup_database {
     }
 }
 
-# This really just exists to get overridden in Bugzilla::DB::Mysql.
-sub bz_enum_initial_values {
-    return ENUM_DEFAULTS;
-}
-
-sub bz_populate_enum_tables {
+sub bz_populate_enum_tables
+{
     my ($self) = @_;
 
-    my $enum_values = $self->bz_enum_initial_values();
-    while (my ($table, $values) = each %$enum_values) {
-        $self->_bz_populate_enum_table($table, $values);
+    my $enum_values = ENUM_DEFAULTS();
+    while (my ($table, $values) = each %$enum_values)
+    {
+        # Check if there are any table entries
+        my ($table_size) = $self->selectrow_array("SELECT COUNT(*) FROM $table");
+
+        # If the table is empty...
+        if (!$table_size)
+        {
+            print "Populating '$table' table:\n";
+            $values = [ map { { value => $_ } } @$values ] if !ref $values->[0];
+            my $sortorder = 0;
+            $_->{sortkey} = $sortorder += 100 for @$values;
+            my @keys = keys %{$values->[0]};
+            $self->do(
+                "INSERT INTO $table (".join(', ', @keys).") VALUES ".
+                join(', ', ("(".join(', ', ('?') x @keys).")") x @$values),
+                undef, map { @$_{@keys} } @$values
+            );
+        }
     }
 }
 
@@ -1359,30 +1386,6 @@ sub _bz_store_real_schema {
     $sth->bind_param(1, $store_me, $self->BLOB_TYPE);
     $sth->bind_param(2, $schema_version);
     $sth->execute();
-}
-
-# For bz_populate_enum_tables
-sub _bz_populate_enum_table {
-    my ($self, $table, $valuelist) = @_;
-
-    my $sql_table = $self->quote_identifier($table);
-
-    # Check if there are any table entries
-    my $table_size = $self->selectrow_array("SELECT COUNT(*) FROM $sql_table");
-
-    # If the table is empty...
-    if (!$table_size) {
-        my $insert = $self->prepare(
-            "INSERT INTO $sql_table (value,sortkey) VALUES (?,?)");
-        print "Inserting values into the '$table' table:\n";
-        my $sortorder = 0;
-        my $maxlen    = max(map(length($_), @$valuelist)) + 2;
-        foreach my $value (@$valuelist) {
-            $sortorder += 100;
-            printf "%-${maxlen}s sortkey: $sortorder\n", "'$value'";
-            $insert->execute($value, $sortorder);
-        }
-    }
 }
 
 # This is used before adding a foreign key to a column, to make sure
