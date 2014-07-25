@@ -10,7 +10,6 @@ my ($xmlrpc, $jsonrpc, $config) = get_rpc_clients();
 use constant INVALID_FIELD_NAME => 'invalid_field';
 use constant INVALID_FIELD_ID => -1;
 use constant GLOBAL_GENERAL_FIELDS => qw(
-    attach_data.thedata
     attachments.description
     attachments.filename
     attachments.isobsolete

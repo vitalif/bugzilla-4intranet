@@ -206,7 +206,6 @@ use constant DEFAULT_FIELDS => (map { my $i = 0; $_ = { (map { (DEFAULT_FIELD_CO
     [ 'work_time',             'Hours Worked',          0, 0, 0 ],
     [ 'percentage_complete',   'Percentage Complete',   0, 0, 0 ],
     [ 'content',               'Content',               0, 0, 0 ],
-    [ 'attach_data.thedata',   'Attachment data',       0, 0, 0 ],
     [ 'owner_idle_time', 'Time Since Assignee Touched', 0, 0, 0 ],
     [ 'see_also',              'See Also',              0, 1, 0, FIELD_TYPE_BUG_URLS ],
 ));
@@ -1189,6 +1188,7 @@ sub populate_field_definitions
     $dbh->do("DELETE FROM fielddefs WHERE name='requesters.login_name'");
     # This field was never tracked in bugs_activity, so it's safe to delete.
     $dbh->do("DELETE FROM fielddefs WHERE name='attachments.thedata'");
+    $dbh->do("DELETE FROM fielddefs WHERE name='attach_data.thedata'");
 
     # MODIFY old field definitions
 
