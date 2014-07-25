@@ -864,6 +864,8 @@ WHERE description LIKE\'%[CC:%\'');
         }
     }
 
+    _move_old_defaults($old_params);
+
     ################################################################
     # New --TABLE-- changes should go *** A B O V E *** this point #
     ################################################################
@@ -2669,18 +2671,6 @@ sub _fix_whine_queries_title_and_op_sys_value {
         print "Setting any 'other' op_sys to 'Other'...\n";
         $dbh->do('UPDATE op_sys SET value = ? WHERE value = ?',
                  undef, "Other", "other");
-        $dbh->do('UPDATE bugs SET op_sys = ? WHERE op_sys = ?',
-                 undef, "Other", "other");
-        if (Bugzilla->params->{'defaultopsys'} eq 'other') {
-            # We can't actually fix the param here, because WriteParams() will
-            # make $datadir/params unwriteable to the webservergroup.
-            # It's too much of an ugly hack to copy the permission-fixing code
-            # down to here. (It would create more potential future bugs than
-            # it would solve problems.)
-            print "WARNING: Your 'defaultopsys' param is set to 'other', but"
-                . " Bugzilla now\n"
-                . "         uses 'Other' (capital O).\n";
-        }
 
         # Add a DEFAULT to whine_queries stuff so that editwhines.cgi
         # works on PostgreSQL.
@@ -4055,15 +4045,6 @@ sub _make_fieldvaluecontrol
     {
         $dbh->do('UPDATE fielddefs SET obsolete=? WHERE name=?', undef, Bugzilla->params->{$_} ? 0 : 1, $h->{$_});
     }
-
-    # Copy defaultXXX parameter values to fielddefs.default_value
-    $h = Bugzilla::Config::BugFields->DEFAULTNAMES;
-    for (keys %$h)
-    {
-        my $f = Bugzilla->get_field($h->{$_});
-        my $v = $f->value_type->new({ name => Bugzilla->params->{$_} });
-        $dbh->do('UPDATE fielddefs SET default_value=? WHERE name=?', undef, $v ? $v->id : undef, $h->{$_});
-    }
 }
 
 # Change all integer keys to INT4
@@ -4217,6 +4198,25 @@ sub _set_varchar_255
         }
     }
     print "-- Done --\n" if $started;
+}
+
+sub _move_old_defaults
+{
+    my ($old_params) = @_;
+    my %old_defaults = qw(defaultplatform rep_platform defaultopsys op_sys defaultpriority priority defaultseverity bug_severity);
+    while (my ($p, $f) = each %old_defaults)
+    {
+        if ($old_params->{$p} && ($f = Bugzilla->get_field($f)))
+        {
+            my $v = $f->value_type->new({ name => $old_params->{$p} });
+            if ($v)
+            {
+                print "Setting default ".$f->description." to ".$v->name."\n";
+                $f->set_default_value($v->id);
+                $f->update;
+            }
+        }
+    }
 }
 
 1;

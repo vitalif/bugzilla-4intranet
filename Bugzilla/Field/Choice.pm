@@ -58,8 +58,6 @@ use constant CLASS_MAP => {
     rep_platform     => 'Bugzilla::Platform',
 };
 
-use constant DEFAULT_MAP => { reverse %{ Bugzilla::Config::BugFields::DEFAULTNAMES() } };
-
 #################
 # Class Factory #
 #################
@@ -151,16 +149,6 @@ sub update
     $dbh->bz_start_transaction();
 
     my ($changes, $old_self) = $self->SUPER::update(@_);
-    if (exists $changes->{$self->NAME_FIELD})
-    {
-        my ($old, $new) = @{ $changes->{$self->NAME_FIELD} };
-        if ($old_self->is_default)
-        {
-            my $param = $self->DEFAULT_MAP->{$self->field->name};
-            SetParam($param, $self->name);
-            write_params();
-        }
-    }
 
     $self->field->touch;
     $dbh->bz_commit_transaction();
@@ -175,7 +163,6 @@ sub remove_from_db
         ThrowUserError('fieldvalue_is_default', {
             field => $self->field,
             value => $self,
-            param_name => $self->DEFAULT_MAP->{$self->field->name},
         });
     }
     if ($self->is_static)
@@ -344,10 +331,7 @@ sub field
 sub is_default
 {
     my $self = shift;
-    my $name = $self->DEFAULT_MAP->{$self->field->name};
-    # If it doesn't exist in DEFAULT_MAP, then there is no parameter related to this field.
-    return 0 unless $name;
-    return ($self->name eq Bugzilla->params->{$name}) ? 1 : 0;
+    return $self->field->default_value_hash->{$self->id};
 }
 
 sub is_static

@@ -633,11 +633,6 @@ sub check_default_values
         my $f = Bugzilla->get_field($_);
         $self->set($_, undef) if !$f->obsolete && (!$f->nullable && !$self->{$_} || !exists $self->{$_});
     }
-    # Some default values are still set in the configuration
-    while (my ($field, $value_name) = each %{Bugzilla::Field::Choice->DEFAULT_MAP})
-    {
-        $self->set($field, Bugzilla->params->{$value_name}) if !Bugzilla->get_field($field)->obsolete && !$self->{$field};
-    }
     # Remove NULLs for custom fields
     for my $field (Bugzilla->get_fields({ custom => 1, obsolete => 0 }))
     {

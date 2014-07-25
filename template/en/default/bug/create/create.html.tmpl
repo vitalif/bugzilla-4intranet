@@ -177,15 +177,17 @@ var close_status_array = [
   </tr>
 </tbody>
 
-[% IF Param('useplatform') && !Param('defaultplatform') || Param('useopsys') && !Param('defaultopsys') %]
+[% guess_platform = Param('useplatform') && !Bugzilla.get_field('rep_platform').default_value %]
+[% guess_os = Param('useopsys') && !Bugzilla.get_field('op_sys').default_value %]
+[% IF guess_platform || guess_os %]
   <tbody>
     <tr>
       <th>&nbsp;</th>
       <td colspan="3" class="comment">
         We've made a guess at your
-        [% IF !Param('useplatform') || Param('defaultplatform') %]
+        [% IF !guess_os %]
           platform. Please check it
-        [% ELSIF !Param('useopsys') || Param('defaultopsys') %]
+        [% ELSIF !guess_platform %]
           operating system. Please check it
         [% ELSE %]
           operating system and platform. Please check them

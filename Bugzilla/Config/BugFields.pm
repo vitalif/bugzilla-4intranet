@@ -48,13 +48,6 @@ use constant USENAMES => {
     useopsys            => 'op_sys',
 };
 
-use constant DEFAULTNAMES => {
-    defaultpriority     => 'priority',
-    defaultseverity     => 'bug_severity',
-    defaultplatform     => 'rep_platform',
-    defaultopsys        => 'op_sys',
-};
-
 our $sortkey = 600;
 
 # A bridge from products.classification_id to fielddefs.visibility_field
@@ -83,33 +76,9 @@ sub set_usefield
     return '';
 }
 
-# Checker + another bridge from defaultXXX to fielddefs.default_value (FIXME: This should be removed at some point)
-sub check_value
-{
-    my ($value, $param) = @_;
-    my $f = Bugzilla->get_field(DEFAULTNAMES->{$param->{name}});
-    my $legal = $f->legal_value_names;
-    if ($value ne '' && !grep { $_ eq $value } @$legal)
-    {
-        return "Must be a valid $f: one of ".join(', ', @$legal);
-    }
-    $f->set_default_value($f->value_type->new({ name => $value })->id);
-    $f->update;
-    return '';
-}
-
 sub get_param_list
 {
-    my $class = shift;
-
-    my $legal = {};
-    for (qw(priority bug_severity rep_platform op_sys))
-    {
-        # Ignore evaluation errors - this piece of code may be called in checksetup.pl,
-        # fielddefs table may not be created at that time...
-        $legal->{$_} = eval { Bugzilla->get_field($_)->legal_value_names } || [];
-    }
-    my @param_list = (
+    return (
         {
             name => 'useclassification',
             type => 'b',
@@ -153,31 +122,10 @@ sub get_param_list
             checker => \&set_usefield,
         },
         {
-            name => 'defaultpriority',
-            type => 's',
-            choices => $legal->{priority},
-            default => $legal->{priority}->[-1],
-            checker => \&check_value,
-        },
-        {
-            name => 'defaultseverity',
-            type => 's',
-            choices => $legal->{bug_severity},
-            default => $legal->{bug_severity}->[-1],
-            checker => \&check_value,
-        },
-        {
             name => 'useplatform',
             type => 'b',
             default => 1,
             checker => \&set_usefield,
-        },
-        {
-            name => 'defaultplatform',
-            type => 's',
-            choices => ['', @{$legal->{rep_platform}}],
-            default => '',
-            checker => \&check_value,
         },
         {
             name => 'auto_add_flag_requestees_to_cc',
@@ -189,13 +137,6 @@ sub get_param_list
             type => 'b',
             default => 1,
             checker => \&set_usefield,
-        },
-        {
-            name => 'defaultopsys',
-            type => 's',
-            choices => ['', @{$legal->{op_sys}}],
-            default => '',
-            checker => \&check_value,
         },
         {
             name => 'clear_requests_on_close',
@@ -220,7 +161,6 @@ sub get_param_list
             checker => \&check_numeric,
         },
     );
-    return @param_list;
 }
 
 1;

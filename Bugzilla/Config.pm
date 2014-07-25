@@ -126,19 +126,6 @@ sub update_params {
     # We don't want it, so get rid of it
     delete $param->{'version'};
 
-    # Change from usebrowserinfo to defaultplatform/defaultopsys combo
-    if (exists $param->{'usebrowserinfo'}) {
-        if (!$param->{'usebrowserinfo'}) {
-            if (!exists $param->{'defaultplatform'}) {
-                $param->{'defaultplatform'} = 'Other';
-            }
-            if (!exists $param->{'defaultopsys'}) {
-                $param->{'defaultopsys'} = 'Other';
-            }
-        }
-        delete $param->{'usebrowserinfo'};
-    }
-
     # Change from a boolean for quips to multi-state
     if (exists $param->{'usequip'} && !exists $param->{'enablequips'}) {
         $param->{'enablequips'} = $param->{'usequip'} ? 'on' : 'off';

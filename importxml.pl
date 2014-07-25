@@ -1,4 +1,7 @@
 #!/usr/bin/perl -wT
+# FIXME: importxml.pl is badly broken. It should be rewritten to use new ORM code
+# instead of direct DB queries, and not to use old defaultopsys/defautlplatform etc params.
+
 # -*- Mode: perl; indent-tabs-mode: nil -*-
 #
 # The contents of this file are subject to the Mozilla Public
