@@ -126,7 +126,7 @@ sub update_fielddefs_definition
         $dbh->do(
             'UPDATE fielddefs SET has_activity=1'.
             ' WHERE id IN (SELECT DISTINCT fieldid FROM bugs_activity)'.
-            ' OR name IN (\'longdesc\', \'longdescs.isprivate\', \'commenter\', \'creation_ts\')'
+            ' OR name IN (\'longdesc\', \'creation_ts\')'
         );
     }
 

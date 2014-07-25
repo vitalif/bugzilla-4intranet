@@ -190,7 +190,6 @@ use constant DEFAULT_FIELDS => (map { my $i = 0; $_ = { (map { (DEFAULT_FIELD_CO
     [ 'creation_ts',           'Creation time',         1, 0, 0, FIELD_TYPE_DATETIME ],
     [ 'delta_ts',              'Last changed time',     1, 0, 0, FIELD_TYPE_DATETIME ],
     [ 'longdesc',              'Comment',               0, 0, 0 ],
-    [ 'longdescs.isprivate',   'Comment is private',    0, 0, 0 ],
     [ 'alias',                 'Alias',                 0, 1, 0, FIELD_TYPE_FREETEXT ],
     [ 'everconfirmed',         'Ever Confirmed',        0, 0, 0 ],
     [ 'reporter_accessible',   'Reporter Accessible',   0, 1, 0 ],
@@ -199,10 +198,7 @@ use constant DEFAULT_FIELDS => (map { my $i = 0; $_ = { (map { (DEFAULT_FIELD_CO
     [ 'estimated_time',        'Estimated Hours',       0, 1, 0, FIELD_TYPE_NUMERIC ],
     [ 'remaining_time',        'Remaining Hours',       0, 0, 0, FIELD_TYPE_NUMERIC ],
     [ 'deadline',              'Deadline',              0, 1, 1, FIELD_TYPE_DATETIME ],
-    [ 'commenter',             'Commenter',             0, 0, 0 ],
     [ 'flagtypes.name',        'Flags and Requests',    0, 0, 0 ],
-    [ 'requestees.login_name', 'Flag Requestee',        0, 0, 0 ],
-    [ 'setters.login_name',    'Flag Setter',           0, 0, 0 ],
     [ 'work_time',             'Hours Worked',          0, 0, 0 ],
     [ 'percentage_complete',   'Percentage Complete',   0, 0, 0 ],
     [ 'content',               'Content',               0, 0, 0 ],
@@ -1179,16 +1175,14 @@ sub populate_field_definitions
     }
 
     # DELETE fields which were added only accidentally, or which
-    # were never tracked in bugs_activity. Note that you can never
+    # were never tracked in bugs_activity. Note that you should not
     # delete fields which are used by bugs_activity.
 
-    # Oops. Bug 163299
-    $dbh->do("DELETE FROM fielddefs WHERE name='cc_accessible'");
-    # Oops. Bug 215319
-    $dbh->do("DELETE FROM fielddefs WHERE name='requesters.login_name'");
-    # This field was never tracked in bugs_activity, so it's safe to delete.
-    $dbh->do("DELETE FROM fielddefs WHERE name='attachments.thedata'");
-    $dbh->do("DELETE FROM fielddefs WHERE name='attach_data.thedata'");
+    $dbh->do(
+        "DELETE FROM fielddefs WHERE name IN ('cc_accessible', 'requesters.login_name',
+        'attachments.thedata', 'attach_data.thedata', 'content', 'requestees.login_name',
+        'setters.login_name', 'longdescs.isprivate', 'assignee_accessible', 'commenter')"
+    );
 
     # MODIFY old field definitions
 

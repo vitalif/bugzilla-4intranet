@@ -104,7 +104,7 @@ if ($cgi->request_method() eq 'POST')
     my $clean = http_build_query(Bugzilla::Search->clean_search_params($ARGS));
     if (length($clean) < CGI_URI_LIMIT)
     {
-        print $cgi->redirect(-url => $clean);
+        print $cgi->redirect(-url => "buglist.cgi?$clean");
         exit;
     }
 }

@@ -545,6 +545,12 @@ sub STATIC_COLUMNS
         },
     };
 
+    # Search-only fields that were previously in fielddefs
+    foreach my $col (qw(requestees.login_name setters.login_name longdescs.isprivate content commenter))
+    {
+        $columns->{$col}->{title} = Bugzilla->messages->{field_descs}->{$col};
+    }
+
     # Fields that are email addresses
     foreach my $col (qw(assigned_to reporter qa_contact))
     {

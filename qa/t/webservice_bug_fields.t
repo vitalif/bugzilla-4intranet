@@ -19,8 +19,6 @@ use constant GLOBAL_GENERAL_FIELDS => qw(
     attachments.submitter
 
     flagtypes.name
-    requestees.login_name
-    setters.login_name
 
     alias
     assigned_to
@@ -29,10 +27,7 @@ use constant GLOBAL_GENERAL_FIELDS => qw(
     bug_group
     bug_id
     cc
-    cclist_accessible
     classification
-    commenter
-    content
     creation_ts
     days_elapsed
     delta_ts
@@ -40,7 +35,6 @@ use constant GLOBAL_GENERAL_FIELDS => qw(
     everconfirmed
     keywords
     longdesc
-    longdescs.isprivate
     owner_idle_time
     product
     qa_contact
