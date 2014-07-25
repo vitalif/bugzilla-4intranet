@@ -46,7 +46,7 @@ Bugzilla::Field - a particular piece of information about bugs
     {name => 'cf_silly', description => 'Silly', custom => 1});
 
   # Instantiate a Field object for an existing field.
-  my $field = new Bugzilla::Field({name => 'qacontact_accessible'});
+  my $field = new Bugzilla::Field({name => 'target_milestone'});
   if ($field->obsolete) {
       print $field->description . " is obsolete\n";
   }
@@ -1181,7 +1181,7 @@ sub populate_field_definitions
     $dbh->do(
         "DELETE FROM fielddefs WHERE name IN ('cc_accessible', 'requesters.login_name',
         'attachments.thedata', 'attach_data.thedata', 'content', 'requestees.login_name',
-        'setters.login_name', 'longdescs.isprivate', 'assignee_accessible', 'commenter')"
+        'setters.login_name', 'longdescs.isprivate', 'assignee_accessible', 'qacontact_accessible', 'commenter')"
     );
 
     # MODIFY old field definitions

@@ -110,7 +110,7 @@ else
     # Есть специальное поле "longdesc", означающее добавление комментариев
     my $f = [ Bugzilla->get_fields ];
     @$f = sort { lc $a->description cmp lc $b->description } grep { $_->name !~ /
-        \. | ^owner_idle_time$ | ^cclist_accessible$ | ^creation_ts$ | ^days_elapsed$ | ^qacontact_accessible$ /xs } @$f;
+        \. | ^owner_idle_time$ | ^cclist_accessible$ | ^creation_ts$ | ^days_elapsed$ | ^reporter_accessible$ /xs } @$f;
     # Ещё есть специальное поле "work_time_date", означающее списание времени задним числом
     push @$f, { description => 'Backdated worktime', name => 'work_time_date' };
     $vars->{my_fielddefs} = $f;
