@@ -88,14 +88,10 @@
     <td class="admin_links">
       <dl>
         [% class = user.in_group('editfields') ? "" : "forbidden" %]
-        <dt id="custom_fields" class="[% class %]"><a href="editfields.cgi">Custom Fields</a></dt>
-        <dd class="[% class %]">[% terms.Bugzilla %] lets you define fields which are
-        not implemented by default, based on your local and specific requirements.
-        These fields can then be used as any other field, meaning that you can set
-        them in [% terms.bugs %] and run any search involving them.<br>
-        Before creating new fields, keep in mind that too many fields may make the user
-        interface more complex and harder to use. Be sure you have investigated other ways
-        to satisfy your needs before doing this.</dd>
+        <dt id="custom_fields" class="[% class %]"><a href="editfields.cgi">[% terms.Bug %] Fields</a></dt>
+        <dd class="[% class %]">Edit properties of existing [% terms.bug %] fields, disable them or define new ones.<br />
+        [% terms.Bugzilla %] lets you define complex relationships between fields, disable some standard
+        fields and even create your own "custom" ones which can then be used just like any other field.</dd>
 
         [% class = user.in_group('editvalues') ? "" : "forbidden" %]
         <dt id="field_values" class="[% class %]"><a href="editvalues.cgi">Field Values</a></dt>
