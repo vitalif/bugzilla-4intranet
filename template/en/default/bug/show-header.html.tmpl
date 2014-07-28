@@ -21,33 +21,23 @@
   #                 Max Kanat-Alexander <mkanat@bugzilla.org>
   #%]
 
-[%# This template should be called with PROCESS before processing
-  # "global/header.html.tmpl" in any template that is going to load the
-  # bug form. It expects only a "bug" object, and can even manage to get
-  # along without that. Some of these variables are just defaults that will
-  # be overridden by the calling templates.
-  #%]
-
 [% USE Bugzilla %]
 
-[% filtered_desc = bug.short_desc FILTER html %]
-[% subheader = filtered_desc %]
-[% filtered_timestamp = bug.delta_ts FILTER time %]
-[% filtered_prodcomp = bug.product_obj.name _ '/' _ bug.component_obj.name | html %]
-[% filtered_stat = bug.bug_status_obj.name _ ' ' _ bug.resolution_obj.name | html %]
-[% title = "$terms.Bug $bug.bug_id &ndash; $filtered_desc &ndash; $filtered_prodcomp &ndash; $filtered_stat" %]
-[% header = "$terms.Bug&nbsp;$bug.bug_id" %]
-[% header_addl_info = "Last modified: $filtered_timestamp" %]
-[% javascript_urls = [ "js/field.js", "js/calendar.js", "js/bug-visibility.js?rev=1397", "fieldvaluecontrol.cgi?user=${Bugzilla.user.id}" ] %]
+[% subheader = bug.short_desc | html %]
+[% DEFAULT title = "$terms.Bug $bug.bug_id – $bug.short_desc – " _
+    "${bug.product_obj.name}/${bug.component_obj.name} – " _
+    "${bug.bug_status_obj.name} _ ${bug.resolution_obj.name}" | html %]
+[% DEFAULT header = "$terms.Bug&nbsp;$bug.bug_id" %]
+[% header_addl_info = "Last modified: " _ bug.delta_ts | html %]
+[% javascript_urls = [ "js/field.js", "js/calendar.js", "js/bug-visibility.js", "fieldvaluecontrol.cgi?user=${Bugzilla.user.id}" ] %]
 [% style_urls = [ "skins/standard/calendar.css", "skins/standard/show_bug.css", "skins/standard/comments.css" ] %]
 [% doc_section = "bug_page.html" %]
-
-[% bodyclasses = ['bz_bug',
-                  "bz_status_${bug.bug_status_obj.name}",
-                  "bz_product_${bug.product_obj.name}",
-                  "bz_component_${bug.component_obj.name}",
-                  "bz_bug_$bug.bug_id",
-                  ] %]
+[% bodyclasses = [
+  'bz_bug', "bz_status_${bug.bug_status_obj.name}", "bz_product_${bug.product_obj.name}",
+  "bz_component_${bug.component_obj.name}", "bz_bug_$bug.bug_id",
+] %]
 [% FOREACH group = bug.groups_in %]
   [% bodyclasses.push("bz_group_$group.name") %]
 [% END %]
+
+[% PROCESS global/header.html.tmpl %]

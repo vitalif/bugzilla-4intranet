@@ -24,11 +24,13 @@
   # type: string; the type of change/check that was made: "bug" when a bug
   #   is changed, "dupe" when a duplication notation is added to a bug,
   #   and "dep" when a bug is checked for changes to its dependencies.
+  #
+  # sent_bugmail: The results of Bugzilla::BugMail::Send().
+  #
+  # commentsilent: boolean; whether sending of the e-mails was suppressed.
   #%]
 
-[% UNLESS header_done %]
-  [% PROCESS bug/process/header.html.tmpl %]
-[% END %]
+[% USE Bugzilla %]
 
 [% DEFAULT type="bug" %]
 
@@ -42,22 +44,57 @@
     'X' => "canceled"
     '?' => "requested"
   };
-  title = {
-    'bug'     => "Changes submitted for $link" ,
-    'dupe'    => "Duplicate notation added to $link" ,
-    'dep'     => "Checking for dependency changes on $link" ,
-    'votes'   => "$Link confirmed by number of votes" ,
-    'created' => "$Link has been added to the database" ,
-    'move'    => "$Link has been moved to another database" ,
-    'flag'    => "Flag $new_flag.name " _ statuses.${new_flag.status} ,
+  titles = {
+    'bug'     => "Changes submitted for $link",
+    'dupe'    => "Duplicate notation added to $link",
+    'dep'     => "Checking for dependency changes on $link",
+    'votes'   => "$Link confirmed by number of votes",
+    'created' => "$Link has been added to the database",
+    'move'    => "$Link has been moved to another database",
+    'flag'    => "Flag $new_flag.name " _ statuses.${new_flag.status},
+    'votes-removed' => "Votes removed from $Link in accordance with new product settings",
   }
 %]
 
 <dl>
-  <dt>[% title.$type %]</dt>
+  <dt>[% titles.$type %]</dt>
   <dd>
-    [% PROCESS "bug/process/bugmail.html.tmpl" mailing_bugid = bug_id %]
+    [% IF NOT commentsilent %]
+      <dl>
+      [% PROCESS emails
+         description = "Email sent to"
+         names = sent_bugmail.sent
+      %]
+      [% PROCESS emails
+         description = "Excluding"
+         names = sent_bugmail.excluded
+      %]
+      </dl>
+    [% ELSE %]
+      Your changes marked as Silent. No mail is sent.
+    [% END %]
     [%# Links to more information about the changed bug. %]
     [% Hook.process("links") %]
   </dd>
 </dl>
+
+[%############################################################################%]
+[%# Block for a set of email addresses                                       #%]
+[%############################################################################%]
+
+[% BLOCK emails %]
+  <dt>[% description FILTER html %]:</dt>
+  <dd>
+  [% IF Bugzilla.user.can_see_bug(bug_id) %]
+    [% IF names.size > 0 %]
+      [%+ FOREACH name = names %]
+        <code>[% name FILTER html %]</code>[% ", " UNLESS loop.last() %]
+      [% END %]
+    [% ELSE %]
+      no one
+    [% END %]
+  [% ELSE %]
+    (list of e-mails not available)
+  [% END %]
+  </dd>
+[% END %]

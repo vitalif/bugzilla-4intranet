@@ -1,10 +1,12 @@
-[%# 1.0@bugzilla.org %]
+[%# This page reminds the user of non-reset flag requests on each bug change.
+  # License: Dual-license MPL 1.1+ or GPL 3.0+
+  # Author(s): Vitaliy Filippov, Stas Fomin %]
 
 [% USE Bugzilla %]
 [% cgi = Bugzilla.cgi %]
-[% title = 'Verify flag requests' %]
 
-[% PROCESS global/header.html.tmpl %]
+[% PROCESS global/header.html.tmpl title='Verify flag requests' %]
+
 <h3>Please, verify flags:</h3>
 
 <form action="process_bug.cgi" method="post" enctype="multipart/form-data">

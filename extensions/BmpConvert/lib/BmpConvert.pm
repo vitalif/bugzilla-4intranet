@@ -52,7 +52,8 @@ sub attachment_post_create
 sub attachment_post_create_result
 {
     my ($args) = @_;
-    $args->{session_data}->{sent_attrs}->{convertedbmp} = $args->{vars}->{convertedbmp} = $args->{vars}->{attachment}->{convertedbmp};
+    my $r = Bugzilla->result_messages;
+    $r->[$#$r]->{convertedbmp} = $args->{vars}->{convertedbmp} = $args->{vars}->{attachment}->{convertedbmp};
     return 1;
 }
 

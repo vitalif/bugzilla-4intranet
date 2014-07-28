@@ -1131,7 +1131,7 @@ sub get_content_type
 # CustIS Bug 68919 - Create multiple attachments to bug
 sub add_multiple
 {
-    my ($bug, $cgi, $send_attrs) = @_;
+    my ($bug, $cgi) = @_;
     my $multiple = {};
     my $params = $cgi->Vars;
     my ($multi, $key);
@@ -1172,7 +1172,7 @@ sub add_multiple
     {
         if ($multiple->{$_}->{data})
         {
-            add_attachment($bug, $multiple->{$_}, $send_attrs);
+            add_attachment($bug, $multiple->{$_});
         }
     }
 }
@@ -1180,7 +1180,7 @@ sub add_multiple
 # Insert a new attachment into the database.
 sub add_attachment
 {
-    my ($bug, $params, $send_attrs) = @_;
+    my ($bug, $params) = @_;
 
     my $dbh = Bugzilla->dbh;
     my $user = Bugzilla->user;
@@ -1227,7 +1227,7 @@ sub add_attachment
     });
 
     # Insert a comment about the new attachment into the database.
-    # TODO move comment adding into Bugzilla::Attachment
+    # FIXME move comment adding into Bugzilla::Attachment
     my $comment = defined $params->{comment} ? $params->{comment} : '';
     $bug->add_comment($comment, {
         isprivate => $attachment->isprivate,
@@ -1240,13 +1240,14 @@ sub add_attachment
     $dbh->bz_commit_transaction;
 
     # Operation result to save into session (CustIS Bug 64562)
-    push @{$send_attrs->{added_attachments}}, {
+    Bugzilla->add_result_message({
+        message => 'added_attachment',
         id => $attachment->id,
         bug_id => $attachment->bug_id,
         description => $attachment->description,
         contenttype => $attachment->contenttype,
         ctype_auto => $ctype_auto,
-    };
+    });
 }
 
 1;

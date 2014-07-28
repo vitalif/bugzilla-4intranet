@@ -175,10 +175,9 @@
           </option>
         [% END %]
         [% IF NOT value_found %]
-          [% IF value.defined %]
+          [% value = bug.get_object(field.name) %]
+          [% IF value %]
             [% FOR v = value %]
-              [%# FIXME use _obj accessor? %]
-              [% v = field.value_type.new(v) %]
               <option selected="selected" value="[% v.name | html %]" id="v[% v.id | html %]_[% field.name | html %]">[% v.name | html %]</option>
             [% END %]
           [% END %]

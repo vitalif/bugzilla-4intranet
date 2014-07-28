@@ -183,9 +183,7 @@ sub unload
         eval { undef &$sub };
         if ($@)
         {
-            # TODO не выгружать то, что не можем выгрузить, ибо
-            # иначе часть выгружается, а часть нет, и потом всё
-            # равно всё дохнет.
+            # FIXME do not unload that we can't unload, because it unloads partly anyway and Bugzilla crashes
             warn "Can't unload sub '$sub' in '$file': $@";
             return undef;
         }

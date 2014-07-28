@@ -26,7 +26,6 @@ use IO::File;
 # Constants
 use constant BUG_DAYS => 92;
 use constant XLS_LISTNAME => '';
-use constant MANDATORY_FIELDS => qw(short_desc product component);
 
 my $user = Bugzilla->login(LOGIN_REQUIRED);
 my $cgi = Bugzilla->cgi;
@@ -194,7 +193,8 @@ else
         if (/^b_(.*?)_(\d+)$/so)
         {
             # bug fields
-            $bugs->{$2}->{(exists $name_tr->{$1} ? $name_tr->{$1} : $1)} = $ARGS->{$_};
+            my $k = (exists $name_tr->{$1} ? $name_tr->{$1} : $1);
+            $bugs->{$2}->{$k} = $ARGS->{$_} if $k;
         }
     }
     my $r = 0;
@@ -212,17 +212,8 @@ else
         $bug->{$_} ||= $bug_tpl->{$_} for keys %$bug_tpl;
         if ($bug->{enabled})
         {
-            my $id;
-            if ($bug->{bug_id} && Bugzilla::Bug->new($bug->{bug_id}))
-            {
-                # If bug with this same ID exists - update it
-                $id = process_bug($bug, $bugmail, $vars);
-            }
-            else
-            {
-                # Else post new bug
-                $id = post_bug($bug, $bugmail, $vars);
-            }
+            # If bug with this ID exists - update it, else - post new bug
+            my $id = Bugzilla::Bug::create_or_update($bug)->id;
             if ($id)
             {
                 $r++;
@@ -239,8 +230,7 @@ else
     unless ($f)
     {
         # Send bugmail only after successful completion
-        Bugzilla->cgi->delete('dontsendbugmail');
-        send_results($_) for @$bugmail;
+        Bugzilla->send_mail;
         Bugzilla->dbh->bz_commit_transaction;
         print $cgi->redirect(-location => 'importxls.cgi?'.http_build_query({
             result   => $r,
@@ -369,168 +359,6 @@ sub get_row
         tr/―‑/--/;
         trim($_);
     } ($col_min .. $col_max) ];
-}
-
-# TODO remove duplicate post_bug and process_bug code from here,
-# their .cgi and email_in.pl/importxml.pl versions, and move to Bugzilla::Bug
-
-# Add a bug
-sub post_bug
-{
-    my ($fields_in, $bugmail, $vars) = @_;
-    my $cgi = Bugzilla->cgi;
-    # FIXME mandatory fields check should be moved somewhere
-    my @unexist;
-    for (MANDATORY_FIELDS)
-    {
-        if (!exists $fields_in->{$_})
-        {
-            push @unexist, $vars->{import_field_descs}->{$_};
-        }
-    }
-    if (@unexist)
-    {
-        ThrowUserError('import_fields_mandatory', { fields => \@unexist });
-    }
-
-    # Simulate email usage with browser error mode
-    my $um = Bugzilla->usage_mode;
-    Bugzilla->usage_mode(USAGE_MODE_EMAIL);
-    Bugzilla->error_mode(ERROR_MODE_WEBPAGE);
-    $Bugzilla::Error::IN_EVAL++;
-    my $product = eval { Bugzilla::Product->check({ name => $fields_in->{product} }) };
-    if (!$product)
-    {
-        return undef;
-    }
-    # Add default product groups
-    my @gids;
-    my $controls = $product->group_controls;
-    foreach my $gid (keys %$controls)
-    {
-        if ($controls->{$gid}->{membercontrol} == CONTROLMAPDEFAULT && Bugzilla->user->in_group_id($gid) ||
-            $controls->{$gid}->{othercontrol} == CONTROLMAPDEFAULT && !Bugzilla->user->in_group_id($gid))
-        {
-            $fields_in->{"bit-$gid"} = 1;
-        }
-    }
-    unless ($fields_in->{version})
-    {
-        # Guess version
-        my $component;
-        eval
-        {
-            $component = Bugzilla::Component->new({
-                product => $product,
-                name    => $fields_in->{component},
-            });
-        };
-        # If there is no default version in the component:
-        if (!$component || !($fields_in->{version} = ($component->default_version && $component->default_version_obj->name)))
-        {
-            my $vers = [ map ($_->name, @{$product->versions}) ];
-            my $v;
-            if (($v = $cgi->cookie("VERSION-" . $product->name)) &&
-                grep { $_ eq $v } @$vers)
-            {
-                # get from cookie
-                $fields_in->{version} = $v;
-            }
-            else
-            {
-                # or just the last one, like in enter_bug.cgi
-                $fields_in->{version} = $vers->[$#$vers];
-            }
-        }
-    }
-    # Push params to $cgi
-    foreach my $field (keys %$fields_in)
-    {
-        $cgi->param(-name => $field, -value => $fields_in->{$field});
-    }
-    $cgi->param(dontsendbugmail => 1);
-    $cgi->param(token => issue_session_token('createbug:'));
-    delete $cgi->{_VarHash};
-    # Call post_bug.cgi
-    my $vars_out = do 'post_bug.cgi';
-    $Bugzilla::Error::IN_EVAL--;
-    Bugzilla->usage_mode($um);
-    if ($vars_out)
-    {
-        my $bug_id = $vars_out->{bug}->id;
-        push @$bugmail, @{$vars_out->{sentmail}};
-        return $bug_id;
-    }
-    return undef;
-}
-
-sub process_bug
-{
-    my ($fields_in, $bugmail, $vars) = @_;
-
-    my $um = Bugzilla->usage_mode;
-    Bugzilla->usage_mode(USAGE_MODE_EMAIL);
-    Bugzilla->error_mode(ERROR_MODE_WEBPAGE);
-    Bugzilla->cgi->param(-name => 'dontsendbugmail', -value => 1);
-
-    my %fields = %$fields_in;
-
-    my $bug_id = delete $fields{'bug_id'};
-    $fields{'id'} = $bug_id;
-
-    my $bug = Bugzilla::Bug->check($bug_id);
-
-    # process_bug.cgi always "tries to set" these fields
-    $fields{$_} ||= $bug->$_ for qw(product component target_milestone version);
-
-    if (exists $fields{blocked} || exists $fields{dependson})
-    {
-        $fields{blocked} ||= join ',', @{ $bug->blocked };
-        $fields{dependson} ||= join ',', @{ $bug->dependson };
-    }
-
-    if ($fields{'bug_status'}) {
-        $fields{'knob'} = $fields{'bug_status'};
-    }
-    # If no status is given, then we only want to change the resolution.
-    elsif ($fields{'resolution'}) {
-        $fields{'knob'} = 'change_resolution';
-        $fields{'resolution_knob_change_resolution'} = $fields{'resolution'};
-    }
-    if ($fields{'dup_id'}) {
-        $fields{'knob'} = 'duplicate';
-    }
-
-    # Move @cc to @newcc as @cc is used by process_bug.cgi to remove
-    # users from the CC list when @removecc is set.
-    $fields{newcc} = delete $fields{cc} if $fields{cc};
-
-    # Make it possible to remove CCs.
-    if ($fields{'removecc'}) {
-        $fields{'cc'} = [split(',', $fields{'removecc'})];
-        $fields{'removecc'} = 1;
-    }
-
-    my $cgi = Bugzilla->cgi;
-    foreach my $field (keys %fields) {
-        $cgi->param(-name => $field, -value => $fields{$field});
-    }
-    $cgi->param('longdesclength', scalar @{ $bug->comments });
-    $cgi->param('token', issue_hash_token([$bug->id, $bug->delta_ts]));
-
-    delete $cgi->{_VarHash};
-    # FIXME All this is an ugly hack. Bug::update() should call anything needed, not process_bug.cgi
-    $Bugzilla::Error::IN_EVAL++;
-    my $vars_out = do 'process_bug.cgi';
-    $Bugzilla::Error::IN_EVAL--;
-    Bugzilla->usage_mode($um);
-
-    if ($vars_out)
-    {
-        push @$bugmail, @{$vars_out->{sentmail}};
-        return $bug_id;
-    }
-    return undef;
 }
 
 1;

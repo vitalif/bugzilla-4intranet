@@ -582,11 +582,8 @@ sub insert
     }
 
     # Assign the bug to the user, if they are allowed to take it
-    my $owner = '';
     if ($cgi->param('takebug'))
     {
-        # Make sure the person we are taking the bug from gets mail.
-        $owner = $bug->assigned_to->login;
         $bug->set('assigned_to', $user);
     }
     $bug->update($timestamp);
@@ -607,30 +604,22 @@ sub insert
     $vars->{'header_done'} = 1;
     $vars->{'contenttypemethod'} = $cgi->param('contenttypemethod');
 
-    Bugzilla->add_mail_result({
-        mailrecipients => { 'changer' => $user->login, 'owner' => $owner },
-        bug_id         => $bugid,
+    Bugzilla->send_mail;
+
+    Bugzilla->add_result_message({
+        message     => 'added_attachment',
+        id          => $attachment->id,
+        bug_id      => $attachment->bug_id,
+        description => $attachment->description,
+        contenttype => $attachment->contenttype,
+        ctype_auto  => $vars->{contenttypemethod} eq 'autodetect',
     });
-    send_results($_) for @{Bugzilla->get_mail_result};
+
+    Bugzilla::Hook::process('attachment_post_create_result', { vars => $vars });
 
     # Save operation result into session and redirect (CustIS Bug 64562)
-    my $session_data = {
-        title => "Attachment ".$attachment->id." added to ".Bugzilla->messages->{terms}->{Bug}." ".$attachment->bug_id,
-        sent => Bugzilla->get_mail_result,
-        sent_attrs => {
-            added_attachments => [ {
-                id          => $attachment->id,
-                bug_id      => $attachment->bug_id,
-                description => $attachment->description,
-                contenttype => $attachment->contenttype,
-                ctype_auto  => $vars->{contenttypemethod} eq 'autodetect',
-            } ],
-        },
-    };
-
-    Bugzilla::Hook::process('attachment_post_create_result', { session_data => $session_data, vars => $vars });
-
-    Bugzilla->save_session_data($session_data);
+    my $title = "Attachment ".$attachment->id." added to ".Bugzilla->messages->{terms}->{Bug}." ".$attachment->bug_id;
+    Bugzilla->save_session_data({ title => $title });
     print $cgi->redirect(-location => 'show_bug.cgi?id='.$attachment->bug_id);
     exit;
 }
@@ -752,24 +741,17 @@ sub update {
     $vars->{'bugs'} = [$bug];
     $vars->{'header_done'} = 1;
 
-    Bugzilla->add_mail_result({
-        bug_id => $bug->id,
-        mailrecipients => { 'changer' => $user->login },
+    Bugzilla->send_mail;
+
+    Bugzilla->add_result_message({
+        message     => 'changed_attachment',
+        id          => $attachment->id,
+        bug_id      => $attachment->bug_id,
+        description => $attachment->description,
     });
-    send_results($_) for @{Bugzilla->get_mail_result};
 
     # Save operation result into session and redirect (CustIS Bug 64562)
-    Bugzilla->save_session_data({
-        sent => Bugzilla->get_mail_result,
-        sent_attrs => {
-            changed_attachment => {
-                id          => $attachment->id,
-                bug_id      => $attachment->bug_id,
-                description => $attachment->description,
-            },
-        },
-    });
-
+    Bugzilla->save_session_data;
     print $cgi->redirect(-location => 'show_bug.cgi?id='.$attachment->bug_id);
     exit;
 }
@@ -835,23 +817,16 @@ sub delete_attachment {
         $vars->{'bugs'} = [$bug];
         $vars->{'header_done'} = 1;
 
-        Bugzilla->add_mail_result({
-            bug_id => $bug->id,
-            mailrecipients => { 'changer' => $user->login },
-        });
-        send_results($_) for @{Bugzilla->get_mail_result};
+        Bugzilla->send_mail;
 
         # Save operation result into session and redirect (CustIS Bug 64562)
-        Bugzilla->save_session_data({
-            sent => Bugzilla->get_mail_result,
-            sent_attrs => {
-                changed_attachment => {
-                    id          => $attachment->id,
-                    bug_id      => $attachment->bug_id,
-                    description => $attachment->description,
-                },
-            },
+        Bugzilla->add_result_message({
+            message     => 'changed_attachment',
+            id          => $attachment->id,
+            bug_id      => $attachment->bug_id,
+            description => $attachment->description,
         });
+        Bugzilla->save_session_data;
         print $cgi->redirect(-location => 'show_bug.cgi?id='.$attachment->bug_id);
         exit;
     }

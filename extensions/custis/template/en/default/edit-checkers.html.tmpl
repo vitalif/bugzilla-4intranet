@@ -84,7 +84,7 @@
      <option value="[% q.id %]" [% " selected='selected'" IF checker.query_id == q.id %] >[% q.name | html %]</option>
     [% END %]
     [% IF checker.query_id AND !found %]
-     <option value="[% checker.query_id %]" selected='selected'>[% checker.query.name | html %]</option>
+     <option value="[% checker.query_id %]" selected='selected'>(Чужой) [% checker.query.name | html %]</option>
     [% END %]
    </select></td>
   </tr>

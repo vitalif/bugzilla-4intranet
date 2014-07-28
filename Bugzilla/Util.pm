@@ -946,7 +946,7 @@ sub xml_dump_simple
         }
         elsif ($data =~ 'SCALAR')
         {
-            # TODO потенциально можно сохранять ссылки
+            # FIXME maybe save references?
             $r = xml_dump_simple($$data);
         }
         else

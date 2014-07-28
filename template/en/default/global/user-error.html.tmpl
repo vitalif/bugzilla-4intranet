@@ -296,6 +296,11 @@
   You may not search, or create saved searches, without any search terms.
 [% END %]
 
+[% BLOCK error_cc_group_restriction %]
+  [% title = "CC Group Restriction" %]
+  User [% user %] is restricted to watch this bug.
+[% END %]
+
 [% BLOCK error_chart_too_large %]
   [% title = "Chart Too Large" %]
   Sorry, but 2000 x 2000 is the maximum size for a chart.
@@ -512,6 +517,10 @@
 [% BLOCK error_extension_first_letter_caps %]
   The first letter of your extension's name must be a capital letter.
   (You specified '[% name FILTER html %]'.)
+[% END %]
+
+[% BLOCK error_import_fields_mandatory %]
+  The following missing fields: [% fields.join(", ") | html %] are required to enter new bugs.
 [% END %]
 
 [% BLOCK error_invalid_field_name %]

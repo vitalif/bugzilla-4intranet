@@ -65,32 +65,36 @@ use constant REL_NAMES => {
     REL_GLOBAL_WATCHER, "GlobalWatcher"
 };
 
-use base qw(Exporter);
-our @EXPORT = qw(send_results);
-
 # Used to send email when an update is done.
 sub send_results
 {
     shift if $_[0] eq __PACKAGE__;
     my ($vars) = @_;
-    $vars->{commentsilent} = Bugzilla->cgi->param('commentsilent') ? 1 : 0;
-    if (Bugzilla->cgi->param('dontsendbugmail'))
+    next if $vars->{message} eq 'bugmail' && $vars->{sent_bugmail};
+    # FIXME check if commentsilent is working correctly
+    if ($vars->{message} eq 'flagmail')
     {
-        return $vars;
-    }
-    if ($vars->{type} eq 'flag')
-    {
+        $vars->{message} = 'bugmail';
+        $vars->{type} = 'flag';
         $vars->{sent_bugmail} = SendFlag($vars->{notify_data});
         $vars->{new_flag} = {
             name => $vars->{notify_data}->{flag} ? $vars->{notify_data}->{flag}->name : $vars->{notify_data}->{old_flag}->name,
             status => $vars->{notify_data}->{flag} ? $vars->{notify_data}->{flag}->status : 'X',
         };
-        delete $vars->{notify_data}; # erase data, without - JSON encode error
         $vars->{commentsilent} = 0; # Custis Bug 132647
+        delete $vars->{notify_data}; # erase data, don't store it in session
     }
-    else
+    elsif ($vars->{message} eq 'votes-removed')
+    {
+        $vars->{message} = 'bugmail';
+        $vars->{sent_bugmail} = SendVotesRemoved($vars);
+        delete $vars->{notify_data}; # erase data, don't store it in session
+    }
+    elsif ($vars->{message} eq 'bugmail')
     {
         $vars->{sent_bugmail} = Send($vars->{bug_id}, $vars->{mailrecipients}, $vars->{commentsilent});
+        # FIXME Don't take commentsilent from cgi here
+        $vars->{commentsilent} = Bugzilla->cgi->param('commentsilent') ? 1 : 0;
     }
     return $vars;
 }
@@ -159,6 +163,26 @@ sub SendFlag
     }
 
     return { sent => \@sent, excluded => \@excluded };
+}
+
+sub SendVotesRemoved
+{
+    my ($vars) = @_;
+
+    my @to;
+    for (@{$vars->{notify_data}})
+    {
+        $_->{bugid} = $vars->{bug_id};
+        my $voter = new Bugzilla::User($_->{userid});
+        my $template = Bugzilla->template_inner($voter->settings->{lang}->{value});
+        my $msg;
+        $template->process("email/votes-removed.txt.tmpl", $_, \$msg);
+        MessageToMTA($msg);
+        push @to, $voter->login;
+    }
+    Bugzilla->template_inner('');
+
+    return { sent => \@to, excluded => [] };
 }
 
 # This is a bit of a hack, basically keeping the old system()

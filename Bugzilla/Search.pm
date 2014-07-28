@@ -2216,7 +2216,7 @@ sub _blocked_dependson
     }
     if (ref $self->{term})
     {
-        # TODO move it to some function like combine_terms or so
+        # FIXME move it to some function like combine_terms or so
         $self->{term}->{table} = "(".$self->{term}->{table}.
             ($self->{term}->{neg} ? " LEFT" : " INNER").
             " JOIN dependencies $t ON $self->{term}->{where})";

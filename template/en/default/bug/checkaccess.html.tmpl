@@ -1,3 +1,7 @@
+[%# Listing of all users who have access to a bug
+  # License: Dual-license MPL 1.1+ or GPL 3.0+
+  # Author(s): Vitaliy Filippov %]
+
 [% INCLUDE global/header.html.tmpl title = "$terms.Bug $bug.id - Check access" %]
 
 <h2> [% IF count_user_list > 0 %][% count_user_list %]Users[% ELSE %]Everyone[% END %] can see <a href="show_bug.cgi?id=[% bug.id %]">[% terms.Bug _ " " _ bug.id %]</a></h2>

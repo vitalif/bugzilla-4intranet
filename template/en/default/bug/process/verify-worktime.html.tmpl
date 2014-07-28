@@ -1,22 +1,19 @@
-[%# 1.0@bugzilla.org %]
+[%# This page reminds the user to add "Hours Worked" on each bug change.
+  # License: Dual-license MPL 1.1+ or GPL 3.0+
+  # Author(s): Vitaliy Filippov, Stas Fomin %]
 
-[% USE Bugzilla %]
-[% cgi = Bugzilla.cgi %]
-[% title = 'Verify working time' %]
-
-[% PROCESS global/header.html.tmpl %]
+[% PROCESS global/header.html.tmpl title = 'Verify working time' %]
 <form action="process_bug.cgi" method="post">
 
 [% PROCESS "global/hidden-fields.html.tmpl" exclude=("^work_time$") %]
-<input type="hidden" name="force_work_time" value="1">
+<input type="hidden" name="force_work_time" value="1" />
 
 <h3>Please, verify working time:</h3>
 
-<p>Hours Worked: <input name="work_time" value="0" size="3" maxlength="6"></p>
+<p>Hours Worked: <input name="work_time" value="0" size="3" maxlength="6" /></p>
 
-<p><input type="submit" value="Commit"></p>
+<p><input type="submit" value="Commit" /></p>
 
 </form>
 
 [% PROCESS global/footer.html.tmpl %]
-

@@ -1,9 +1,11 @@
-[% PROCESS global/header.html.tmpl
-   title = 'Verify Field Values' %]
+[% USE Bugzilla %]
+[% cgi = Bugzilla.cgi %]
+
+[% PROCESS global/header.html.tmpl title='Verify Field Values' %]
 
 <form action="process_bug.cgi" method="post">
 
-[% PROCESS "global/hidden-fields.html.tmpl" exclude = exclude_params_re %]
+[% PROCESS "global/hidden-fields.html.tmpl" exclude=exclude_params_re %]
 
 [% IF incorrect_fields.size > 0 %]
 <h3>Verify [% incorrect_field_descs.join(', ') %]</h3>

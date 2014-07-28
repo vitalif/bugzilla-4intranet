@@ -185,12 +185,7 @@
   <p>Checking unconfirmed [% terms.bugs %] in this product for any which now have
   sufficient votes...<br>
   [% IF changes.confirmed_bugs.size %]
-    [% FOREACH id = changes.confirmed_bugs %]
-      [%# This is INCLUDED instead of PROCESSED to avoid variables getting
-          overwritten, which happens otherwise %]
-      [% FOR k = changes.confirmed_bugs_sent_bugmail.$id.keys; $k = changes.confirmed_bugs_sent_bugmail.$id.$k; END %]
-      [% INCLUDE bug/process/results.html.tmpl header_done = 1 %]
-    [% END %]
+    &rarr;[% changes.confirmed_bugs.size %] [% terms.bugs %] confirmed.
   [% ELSE %]
     &rarr;there were none.
   [% END %]

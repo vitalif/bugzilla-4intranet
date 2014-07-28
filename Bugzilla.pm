@@ -50,6 +50,7 @@ use File::Spec::Functions;
 use DateTime::TimeZone;
 use Date::Parse;
 use Safe;
+use JSON;
 use Encode::MIME::Header ();
 
 # We want any compile errors to get to the browser, if possible.
@@ -323,18 +324,32 @@ sub init_page
 # Subroutines and Methods
 #####################################################################
 
-sub add_mail_result
+sub add_result_message
 {
-    my ($class, $send_result_item) = @_;
-    my $cache = $class->request_cache;
-    push(@{$cache->{send_mail_result}}, $send_result_item);
+    my $class = shift;
+    push @{$class->result_messages}, @_;
 }
 
-sub get_mail_result
+sub result_messages
 {
     my $class = shift;
     my $cache = $class->request_cache;
-    return $cache->{send_mail_result} || [];
+    if (!$cache->{send_mail_result})
+    {
+        my $s = $class->session_data && $class->session_data;
+        $cache->{send_mail_result} = $s ? ($s->{result_messages} ||= []) : [];
+    }
+    return $cache->{send_mail_result};
+}
+
+sub send_mail
+{
+    my $class = shift;
+    my $cache = $class->request_cache;
+    for (@{$cache->{send_mail_result} || []})
+    {
+        Bugzilla::BugMail::send_results($_);
+    }
 }
 
 sub template
@@ -367,8 +382,12 @@ sub session_data
     my ($class, $s) = @_;
     my $c = $class->request_cache;
     $c->{session} || return undef;
-    $INC{'JSON.pm'} || require JSON || return undef;
-    my $d = $c->{session}->{session_data} ? JSON::decode_json($c->{session}->{session_data}) : {};
+    if (!$c->{session}->{_session_data_decoded})
+    {
+        $c->{session}->{_session_data_decoded} = ($c->{session}->{session_data}
+            ? JSON::decode_json($c->{session}->{session_data}) : {});
+    }
+    my $d = $c->{session}->{_session_data_decoded};
     if ($s && %$s)
     {
         for (keys %$s)
@@ -376,17 +395,26 @@ sub session_data
             $d->{$_} = $s->{$_};
             defined $d->{$_} or delete $d->{$_};
         }
-        $c->{session}->{session_data} = JSON::encode_json($d);
     }
     return $d;
+}
+
+sub delete_session_data
+{
+    my $class = shift;
+    $class->save_session_data({ map { ($_ => undef) } @_ });
 }
 
 sub save_session_data
 {
     my ($class, $s) = @_;
     my $c = $class->request_cache;
+    $class->session_data({ result_messages => $class->result_messages });
     $class->session_data($s) || return undef;
-    Bugzilla->dbh->do('UPDATE logincookies SET session_data=? WHERE cookie=?', undef, $c->{session}->{session_data}, $c->{session}->{cookie});
+    Bugzilla->dbh->do(
+        'UPDATE logincookies SET session_data=? WHERE cookie=?', undef,
+        JSON::encode_json($c->{session}->{_session_data_decoded}), $c->{session}->{cookie}
+    );
 }
 
 our $extension_packages;

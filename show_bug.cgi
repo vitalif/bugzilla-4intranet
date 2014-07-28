@@ -118,7 +118,7 @@ $vars->{bugids} = join(', ', @bugids);
 
 # Work out which fields we are displaying (currently XML only)
 # If no explicit list is defined, we show all fields. We then exclude any
-# on the exclusion list. This is so you can say e.g. "Everything except 
+# on the exclusion list. This is so you can say e.g. "Everything except
 # attachments" without listing almost all the fields.
 my @fieldlist = (
     Bugzilla::Bug->fields, 'flag', 'group', 'long_desc',
@@ -154,31 +154,6 @@ my @keyword_list = Bugzilla::Keyword->get_all();
 my @keyword_list_out = map { { name => $_->{name} } } @keyword_list;
 $vars->{keyword_list} = \@keyword_list_out;
 # END Custis Bug 66910
-
-# Show previous operation result from session
-my $sd;
-if (Bugzilla->session && ($sd = Bugzilla->session_data) && $sd->{sent})
-{
-    Bugzilla->save_session_data({
-        sent => undef,
-        title => undef,
-        header => undef,
-        sent_attrs => undef,
-        failed_checkers => undef,
-        message => undef,
-        message_vars => undef,
-    });
-    $vars->{last_title} = $sd->{title};
-    $vars->{last_header} = $sd->{header};
-    $vars->{sentmail} = $sd->{sent};
-    $vars->{failed_checkers} = Checkers::unfreeze_failed_checkers($sd->{failed_checkers});
-    if ($sd->{message})
-    {
-        $vars->{message} = $sd->{message};
-        $vars->{$_} = $sd->{message_vars}->{$_} for keys %{$sd->{message_vars} || {}};
-    }
-    $vars->{$_} = $sd->{sent_attrs}->{$_} for keys %{$sd->{sent_attrs} || {}};
-}
 
 Bugzilla->cgi->send_header($format->{ctype});
 $template->process($format->{template}, $vars)

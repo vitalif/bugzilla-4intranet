@@ -214,13 +214,11 @@ use constant FIELD_TABLE_SCHEMA => {
         value    => {TYPE => 'varchar(255)', NOTNULL => 1},
         sortkey  => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0},
         isactive => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'},
-# TODO        parent_value_id => {TYPE => 'INT4', NOTNULL => 1, DEFAULT => 0},
     ],
     # Note that bz_add_field_table should prepend the table name
     # to these index names.
     INDEXES => [
         value_idx => {FIELDS => ['value'], TYPE => 'UNIQUE'},
-# TODO        parent_value_idx => ['parent_value_id', 'sortkey'],
         sortkey_idx => ['sortkey', 'value'],
     ],
 };

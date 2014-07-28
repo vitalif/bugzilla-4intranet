@@ -349,11 +349,6 @@
   'attachment.id',
 ],
 
-'attachment/created.html.tmpl' => [
-  'attachment.id',
-  'attachment.bug_id',
-],
-
 'attachment/edit.html.tmpl' => [
   'attachment.id',
   'attachment.bug_id',
@@ -375,10 +370,6 @@
 'attachment/show-multiple.html.tmpl' => [
   'a.id',
   'flag.status'
-],
-
-'attachment/updated.html.tmpl' => [
-  'attachment.id',
 ],
 
 'attachment/diff-header.html.tmpl' => [

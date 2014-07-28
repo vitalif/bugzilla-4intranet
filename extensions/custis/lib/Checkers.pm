@@ -151,24 +151,16 @@ sub freeze_failed_checkers
     my $failedbugs = shift;
     $failedbugs && @$failedbugs || return undef;
     return [
-        map { [ $_->bug_id, [ map { $_->id } @{$_->{failed_checkers}} ] ] }
-        grep { @{$_->{failed_checkers} || []} } @$failedbugs
+        map { {
+            bug_id => $_->bug_id,
+            failed_checkers => [ map { {
+                name => $_->name,
+                is_fatal => $_->is_fatal,
+                is_freeze => $_->is_freeze,
+                message => $_->message,
+            } } @{$_->{failed_checkers}} ]
+        } } grep { @{$_->{failed_checkers} || []} } @$failedbugs
     ];
-}
-
-sub unfreeze_failed_checkers
-{
-    my $freezed = shift;
-    $freezed && @$freezed || return undef;
-    my @r;
-    for (@$freezed)
-    {
-        my ($bug, $cl) = @$_;
-        $bug = Bugzilla::Bug->check($bug);
-        $bug->{failed_checkers} = Bugzilla::Checker->new_from_list($cl);
-        push @r, $bug;
-    }
-    return \@r;
 }
 
 sub filter_failed_checkers
@@ -299,13 +291,25 @@ sub bug_end_of_update
     # ругаемся и откатываем изменения, если есть заваленные проверки
     if (@{$bug->{failed_checkers}})
     {
-        if (!alert($bug))
+        alert($bug);
+        # запоминаем сообщение о зафейленных проверках в result_messages
+        my $found;
+        for my $msg (@{ Bugzilla->result_messages })
         {
-            %{ $args->{changes} } = ();
-            $bug->{added_comments} = undef;
+            if ($msg->{message} eq 'checkers_failed')
+            {
+                $found = 1;
+                push @{$msg->{failed_checkers}}, @{ freeze_failed_checkers([ $bug ]) };
+                last;
+            }
         }
-        # запоминаем объект бага с зафейленными проверками в request_cache
-        push @{Bugzilla->request_cache->{failed_checkers} ||= []}, $bug;
+        if (!$found)
+        {
+            Bugzilla->add_result_message({
+                message => 'checkers_failed',
+                failed_checkers => freeze_failed_checkers([ $bug ]),
+            });
+        }
     }
 
     return 1;

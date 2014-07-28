@@ -331,9 +331,11 @@ if ($cloned_bug_id)
         my $removed = $product->restrict_cc(\@cc, 'login_name');
         if ($removed && @$removed)
         {
-            $vars->{restricted_cc} = [ map { $_->login } @$removed ];
-            $vars->{cc_restrict_group} = $product->cc_group;
-            $vars->{message} = 'cc_list_restricted';
+            Bugzilla->add_result_message({
+                message => 'cc_list_restricted',
+                cc_restrict_group => $product->cc_group,
+                restricted_cc => [ map { $_->login } @$removed ],
+            });
         }
     }
 

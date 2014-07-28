@@ -44,13 +44,14 @@ function initControllerField(i)
 
 function getSelectedIds(sel)
 {
+    var opt = {};
     var lm = sel.id.length+2;
     if (sel.type == 'hidden' && sel.name == 'product')
     {
         // product is a special case - it is preselected as hidden field on bug creation form
-        return { product_id: true };
+        opt[product_id] = true;
+        return opt;
     }
-    var opt = {};
     for (var i = 0; i < sel.options.length; i++)
     {
         if (sel.options[i].selected)
@@ -158,10 +159,10 @@ function handleControllerField(e, controller)
         {
             bz_createOptionInSelect(controlled, '---', '');
         }
-        for (var i in field_metadata[controlled.id]['legal'])
+        for (var i in field_metadata[controlled.id].legal)
         {
-            controlled_value = field_metadata[controlled.id]['legal'][i];
-            vis = checkValueVisibility(opt, field_metadata[controller.id]['values'][controlled_id][controlled_value[0]]);
+            controlled_value = field_metadata[controlled.id].legal[i];
+            vis = checkValueVisibility(opt, field_metadata[controller.id].values[controlled_id][controlled_value[0]]);
             if (vis)
             {
                 item = bz_createOptionInSelect(controlled, controlled_value[1], controlled_value[1]);

@@ -1,9 +1,9 @@
-[%# 1.0@bugzilla.org %]
-
-[% USE Bugzilla %]
-[% cgi = Bugzilla.cgi %]
+[%# Unsubsribe yourself from bug CC list with a single click
+  # License: Dual-license MPL 1.1+ or GPL 3.0+
+  # Author(s): Vitaliy Filippov %]
 
 [% PROCESS global/header.html.tmpl %]
+
 <h3>Removing you from CC list of bug #<a href="[% urlbase %]show_bug.cgi?id=[% bug.id %]">[% bug.id %]</a></h3>
 
 [% IF rm_cc_ok %]
@@ -13,4 +13,3 @@
 [% END %]
 
 [% PROCESS global/footer.html.tmpl %]
-

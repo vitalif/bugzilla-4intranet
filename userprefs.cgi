@@ -412,7 +412,7 @@ sub SaveSavedSearches
     my $sth_delete_ngm = $dbh->prepare('DELETE FROM namedquery_group_map
                                               WHERE namedquery_id = ?');
 
-    # TODO batch update
+    # FIXME do batch updates
 
     # For user's own queries, update namedquery_group_map.
     my $group;

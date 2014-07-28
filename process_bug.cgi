@@ -235,6 +235,7 @@ else
 $vars->{title_tag} = "bug_processed";
 $vars->{commentsilent} = $ARGS->{commentsilent};
 
+my $next_bug_id;
 my $action;
 if ($ARGS->{id})
 {
@@ -242,27 +243,20 @@ if ($ARGS->{id})
     if ($action eq 'next_bug')
     {
         my @bug_list;
-        if ($cgi->cookie("BUGLIST")) # TODO
+        if ($cgi->cookie("BUGLIST")) # FIXME
         {
             @bug_list = split /:/, $cgi->cookie("BUGLIST");
         }
         my $cur = lsearch(\@bug_list, $ARGS->{id});
         if ($cur >= 0 && $cur < $#bug_list)
         {
-            my $next_bug_id = $bug_list[$cur + 1];
+            $next_bug_id = $bug_list[$cur + 1];
             detaint_natural($next_bug_id);
-            if ($next_bug_id && $user->can_see_bug($next_bug_id))
+            if ($next_bug_id && !$user->can_see_bug($next_bug_id))
             {
-                # We create an object here so that send_results can use it
-                # when displaying the header.
-                $vars->{bug} = new Bugzilla::Bug($next_bug_id);
+                $next_bug_id = undef;
             }
         }
-    }
-    # Include both action = 'same_bug' and 'nothing'.
-    else
-    {
-        $vars->{bug} = $first_bug;
     }
 }
 else
@@ -513,10 +507,6 @@ foreach my $b (@bug_objects)
     $b->add_cc($_) foreach @cc_add;
 }
 
-# TODO move saved state into a global object
-my $send_results = [];
-my $send_attrs = {};
-
 my $move_action = $ARGS->{action} || '';
 if ($move_action eq Bugzilla->params->{'move-button-text'})
 {
@@ -548,10 +538,11 @@ if ($move_action eq Bugzilla->params->{'move-button-text'})
     # Now send emails.
     foreach my $bug (@bug_objects)
     {
-        push @$send_results, send_results({
-            mailrecipients => { 'changer' => $user->login },
-            bug_id         => $bug->id,
+        Bugzilla->add_result_message({
+            message        => 'bugmail',
             type           => 'move',
+            bug_id         => $bug->id,
+            mailrecipients => { 'changer' => $user->login },
         });
     }
     # Prepare and send all data about these bugs to the new database
@@ -579,19 +570,14 @@ if ($move_action eq Bugzilla->params->{'move-button-text'})
     $msg .= "\n";
     MessageToMTA($msg);
 
-    # End the response page.
-    unless (Bugzilla->usage_mode == USAGE_MODE_EMAIL)
-    {
-        foreach (@$send_results)
-        {
-            $template->process("bug/process/results.html.tmpl", { %$vars, %$_ })
-                || ThrowTemplateError($template->error());
-        }
-        $template->process("bug/navigate.html.tmpl", $vars)
-            || ThrowTemplateError($template->error());
-        $template->process("global/footer.html.tmpl", $vars)
-            || ThrowTemplateError($template->error());
-    }
+    Bugzilla->send_mail;
+
+    $template->process("global/header.html.tmpl", $vars)
+        || ThrowTemplateError($template->error());
+    $template->process("bug/navigate.html.tmpl", $vars)
+        || ThrowTemplateError($template->error());
+    $template->process("global/footer.html.tmpl", $vars)
+        || ThrowTemplateError($template->error());
     exit;
 }
 
@@ -605,9 +591,7 @@ if (!$ARGS->{id} && $ARGS->{dup_id})
     ThrowUserError('dupe_not_allowed');
 }
 
-# Set the status, resolution, and dupe_of (if needed). This has to be done
-# down here, because the validity of status changes depends on other fields,
-# such as Target Milestone.
+# Set the status, resolution, and dupe_of (if needed).
 foreach my $b (@bug_objects)
 {
     if (defined $ARGS->{bug_status})
@@ -626,9 +610,6 @@ foreach my $b (@bug_objects)
 
 Bugzilla::Hook::process('process_bug-pre_update', { bugs => \@bug_objects });
 
-# @msgs will store emails which have to be sent to voters, if any.
-my @msgs;
-
 Bugzilla->request_cache->{checkers_hide_error} = 1 if @bug_objects > 1;
 
 ##############################
@@ -638,123 +619,25 @@ foreach my $bug (@bug_objects)
 {
     $dbh->bz_start_transaction();
 
-    my $mail_count = @{Bugzilla->get_mail_result()};
-    my $timestamp = $dbh->selectrow_array(q{SELECT LOCALTIMESTAMP(0)});
-    my $old_status = $bug->{_old_self}->bug_status_obj;
-    my $changes = $bug->update($timestamp);
+    my $msg_count = @{Bugzilla->result_messages};
+    my $changes = $bug->update;
 
     if ($bug->{failed_checkers} && @{$bug->{failed_checkers}} &&
         !$bug->{passed_checkers})
     {
-        # This means update is blocked
-        # and rollback_to_savepoint is already done in Checkers.pm
-        # Roll back flag mail
-        splice @{Bugzilla->get_mail_result()}, $mail_count;
+        # Update is blocked and rollback_to_savepoint is already done in Checkers.pm.
+        # Rollback mail results and result messages.
+        splice @{Bugzilla->result_messages}, $msg_count;
         next;
     }
 
-    my %notify_deps;
-    if ($changes->{bug_status})
-    {
-        my $new_status = $bug->bug_status_obj;
-
-        # If this bug has changed from opened to closed or vice-versa,
-        # then all of the bugs we block need to be notified.
-        if ($old_status->is_open != $new_status->is_open)
-        {
-            $notify_deps{$_} = 1 foreach @{$bug->blocked};
-        }
-
-        # We may have zeroed the remaining time, if we moved into a closed
-        # status, so we should inform the user about that.
-        if (!$new_status->is_open && $changes->{remaining_time} &&
-            !$changes->{remaining_time}->[1] &&
-            Bugzilla->user->in_group(Bugzilla->params->{timetrackinggroup}))
-        {
-            $vars->{message} = "remaining_time_zeroed";
-        }
-    }
-
-    # CustIS Bug 38616 - CC list restriction
-    if ($bug->{restricted_cc})
-    {
-        $vars->{restricted_cc} = [ map { $_->login } @{$bug->{restricted_cc}} ];
-        $vars->{cc_restrict_group} = $bug->product_obj->cc_group;
-        $vars->{message} = 'cc_list_restricted';
-    }
-
-    # To get a list of all changed dependencies, convert the "changes" arrays
-    # into a long string, then collapse that string into unique numbers in
-    # a hash.
-    my $all_changed_deps = join(', ', @{ $changes->{dependson} || [] });
-    $all_changed_deps = join(', ', @{ $changes->{blocked} || [] }, $all_changed_deps);
-    my %changed_deps = map { $_ => 1 } split(', ', $all_changed_deps);
-    # When clearning one field (say, blocks) and filling in the other
-    # (say, dependson), an empty string can get into the hash and cause
-    # an error later.
-    delete $changed_deps{''};
-
-    if ($changes->{product})
-    {
-        # If some votes have been removed, RemoveVotes() returns
-        # a list of messages to send to voters.
-        # We delay the sending of these messages till changes are committed.
-        push @msgs, RemoveVotes($bug->id, 0, 'votes_bug_moved');
-        CheckIfVotedConfirmed($bug->id);
-    }
-
     $dbh->bz_commit_transaction();
-
-    my $old_qa  = $changes->{qa_contact}  ? $changes->{qa_contact}->[0] : '';
-    my $old_own = $changes->{assigned_to} ? $changes->{assigned_to}->[0] : '';
-    my $old_cc  = $changes->{cc}          ? $changes->{cc}->[0] : '';
-
-    # Let the user know the bug was changed and who did and didn't
-    # receive email about the change.
-    push @$send_results, {
-        mailrecipients => {
-            cc        => [split(/[\s,]+/, $old_cc)],
-            owner     => $old_own,
-            qacontact => $old_qa,
-            changer   => Bugzilla->user->login,
-        },
-        bug_id => $bug->id,
-        type => "bug",
-    };
-
-    # If the bug was marked as a duplicate, we need to notify users on the
-    # other bug of any changes to that bug.
-    my $new_dup_id = $changes->{dup_id} ? $changes->{dup_id}->[1] : undef;
-    if ($new_dup_id)
-    {
-        # Let the user know a duplication notation was added to the 
-        # original bug.
-        push @$send_results, {
-            mailrecipients => { changer => Bugzilla->user->login },
-            bug_id => $new_dup_id,
-            type => "dupe",
-        };
-    }
-
-    my %all_dep_changes = (%notify_deps, %changed_deps);
-    foreach my $id (sort { $a <=> $b } (keys %all_dep_changes))
-    {
-        # Let the user (if he is able to see the bug) know we checked to
-        # see if we should email notice of this change to users with a 
-        # relationship to the dependent bug and who did and didn't 
-        # receive email about it.
-        push @$send_results, {
-            mailrecipients => { changer => Bugzilla->user->login },
-            bug_id => $id,
-            type => "dep",
-        };
-    }
 }
 
 # CustIS Bug 68919 - Create multiple attachments to bug
 if (@bug_objects == 1)
 {
-    Bugzilla::Attachment::add_multiple($first_bug, $cgi, $send_attrs);
+    Bugzilla::Attachment::add_multiple($first_bug, $cgi);
 }
 
 $dbh->bz_commit_transaction();
@@ -763,100 +646,47 @@ $dbh->bz_commit_transaction();
 # Send Emails #
 ###############
 
-# TODO move votes removed mail to BugMail
-# Now is a good time to send email to voters.
-foreach my $msg (@msgs)
-{
-    MessageToMTA($msg);
-}
-
 # Send bugmail
+Bugzilla->send_mail;
 
-# Add flag notifications to send_results
-my $notify = Bugzilla->get_mail_result();
-push @$send_results, @$notify;
-
-send_results($_) for @$send_results;
-$vars->{sentmail} = $send_results;
-$vars->{failed_checkers} = Bugzilla->request_cache->{failed_checkers};
-
-my $bug;
-if (Bugzilla->usage_mode == USAGE_MODE_EMAIL)
+if (scalar(@bug_objects) > 1)
 {
-    # Do nothing.
+    Bugzilla->session_data({ title => Bugzilla->messages->{terms}->{Bugs} . ' processed' });
 }
-elsif (($action eq 'next_bug' or $action eq 'same_bug') && ($bug = $vars->{bug}) && $user->can_see_bug($bug))
+elsif ($action eq 'next_bug')
 {
-    if ($action eq 'same_bug')
+    if ($next_bug_id)
     {
-        # $bug->update() does not update the internal structure of
-        # the bug sufficiently to display the bug with the new values.
-        # (That is, if we just passed in the old Bug object, we'd get
-        # a lot of old values displayed.)
-        $bug = new Bugzilla::Bug($bug->id);
-        $vars->{bug} = $bug;
-    }
-    # Do redirect and exit
-    my $title;
-    if (scalar(@bug_objects) == 1)
-    {
-        # FIXME hard-coded template title, also in bug/show-header.html.tmpl
-        $title = Bugzilla->messages->{terms}->{Bug} . ' ' . $bug_objects[0]->id . ' processed &ndash; ' .
-            $bug->short_desc . ' &ndash; ' . $bug->product . '/' . $bug->component . ' &ndash; ' .
-            $bug->bug_status_obj->name . ($bug->resolution ? ' ' . $bug->resolution_obj->name : '');
+        # Do not override the title, but show a message
+        Bugzilla->add_result_message({ message => 'next_bug_shown', bug_id => $next_bug_id });
     }
     else
     {
-        $title = Bugzilla->messages->{terms}->{Bugs} . ' processed';
-    }
-    $send_attrs->{nextbug} = $action eq 'next_bug' ? 1 : 0;
-    my $ses = {
-        sent => $send_results,
-        title => $title,
-        sent_attrs => $send_attrs,
-        # CustIS Bug 68921 - Correctness checkers
-        failed_checkers => Checkers::freeze_failed_checkers(Bugzilla->request_cache->{failed_checkers}),
-    };
-    # CustIS Bug 38616 - CC list restriction
-    if (scalar(@bug_objects) == 1 && $bug_objects[0]->{restricted_cc})
-    {
-        $ses->{message_vars} = {
-            restricted_cc     => [ map { $_->login } @{ $bug_objects[0]->{restricted_cc} } ],
-            cc_restrict_group => $bug_objects[0]->product_obj->cc_group,
-        };
-        $ses->{message} = 'cc_list_restricted';
-    }
-    if (Bugzilla->save_session_data($ses))
-    {
-        print $cgi->redirect(-location => 'show_bug.cgi?id='.$bug->id);
-        exit;
+        $action = 'nothing';
     }
 }
-
-if ($action ne 'nothing' && $action ne 'next_bug' && $action ne 'same_bug')
+elsif ($action eq 'same_bug')
 {
-    ThrowCodeError("invalid_post_bug_submit_action");
+    # FIXME hard-coded template title, also in bug/show-header.html.tmpl
+    Bugzilla->session_data({ title => Bugzilla->messages->{terms}->{Bug} . ' ' . $first_bug->id . ' processed &ndash; ' .
+        $first_bug->short_desc . ' &ndash; ' . $first_bug->product . '/' . $first_bug->component . ' &ndash; ' .
+        $first_bug->bug_status_obj->name . ($first_bug->resolution ? ' ' . $first_bug->resolution_obj->name : '') });
 }
 
-# End the response page.
-unless (Bugzilla->usage_mode == USAGE_MODE_EMAIL)
+if (scalar(@bug_objects) == 1 && $action ne 'nothing' && Bugzilla->save_session_data)
 {
-    foreach (@$send_results)
-    {
-        $template->process("bug/process/results.html.tmpl", { %$vars, %$_ })
-            || ThrowTemplateError($template->error());
-        $vars->{header_done} = 1;
-    }
-    if (!$vars->{header_done})
-    {
-        $template->process("global/header.html.tmpl", $vars)
-            || ThrowTemplateError($template->error());
-    }
+    # Do redirect and exit
+    print $cgi->redirect(-location => 'show_bug.cgi?id='.($next_bug_id || $first_bug->id));
+}
+else
+{
+    # End the response page.
+    $template->process("global/header.html.tmpl", $vars)
+        || ThrowTemplateError($template->error());
     $template->process("bug/navigate.html.tmpl", $vars)
         || ThrowTemplateError($template->error());
     $template->process("global/footer.html.tmpl", $vars)
         || ThrowTemplateError($template->error());
 }
 
-$vars;
-__END__
+exit;

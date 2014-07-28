@@ -212,8 +212,7 @@ sub update
         ];
     }
 
-    # We also have to fix votes. # FIXME WTF?
-    my @msgs; # Will store emails to send to voters.
+    # We also have to fix votes.
     if ($changes->{maxvotesperbug} || $changes->{votesperuser} || $changes->{votestoconfirm})
     {
         # We cannot |use| these modules, due to dependency loops.
@@ -233,11 +232,9 @@ sub update
             foreach my $vote (@$votes)
             {
                 my ($who, $id) = (@$vote);
-                # If some votes are removed, RemoveVotes() returns a list
-                # of messages to send to voters.
-                push @msgs, Bugzilla::Bug::RemoveVotes($id, $who, 'votes_too_many_per_bug');
+                Bugzilla::Bug::RemoveVotes($id, $who, 'votes_too_many_per_bug');
                 my $name = Bugzilla::User::user_id_to_login($who);
-                push @toomanyvotes_list, {id => $id, name => $name};
+                push @toomanyvotes_list, { id => $id, name => $name };
             }
         }
         $changes->{too_many_votes} = \@toomanyvotes_list;
@@ -279,9 +276,7 @@ sub update
                 );
                 foreach my $bug_id (@$bug_ids)
                 {
-                    # RemoveVotes() returns a list of messages to send
-                    # in case some voters had too many votes.
-                    push @msgs, Bugzilla::Bug::RemoveVotes($bug_id, $who, 'votes_too_many_per_user');
+                    Bugzilla::Bug::RemoveVotes($bug_id, $who, 'votes_too_many_per_user');
                     my $name = Bugzilla::User::user_id_to_login($who);
                     push @toomanytotalvotes_list, {id => $bug_id, name => $name};
                 }
@@ -299,8 +294,12 @@ sub update
         my @updated_bugs = ();
         foreach my $bug_id (@$bug_list)
         {
-            my $confirmed = Bugzilla::Bug::CheckIfVotedConfirmed($bug_id);
-            push (@updated_bugs, $bug_id) if $confirmed;
+            my $bug = Bugzilla::Bug->new($bug_id);
+            if ($bug->check_if_voted_confirmed)
+            {
+                $bug->update;
+                push @updated_bugs, $bug_id;
+            }
         }
         $changes->{confirmed_bugs} = \@updated_bugs;
     }
@@ -444,21 +443,7 @@ sub update
     Bugzilla->user->clear_product_cache();
 
     # Now that changes have been committed, we can send emails to voters.
-    foreach my $msg (@msgs)
-    {
-        MessageToMTA($msg);
-    }
-
-    # And send out emails about changed bugs
-    require Bugzilla::BugMail;
-    foreach my $bug_id (@{ $changes->{confirmed_bugs} || [] })
-    {
-        $changes->{confirmed_bugs_sent_bugmail}->{$bug_id} = Bugzilla::BugMail::send_results({
-            mailrecipients => { changer => Bugzilla->user->login },
-            bug_id => $bug_id,
-            type => "votes",
-        });
-    }
+    Bugzilla->send_mail;
 
     Bugzilla->get_field(FIELD_NAME)->touch;
 

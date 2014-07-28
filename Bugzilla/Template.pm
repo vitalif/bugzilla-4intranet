@@ -716,7 +716,7 @@ sub create {
 
             # "Dynamic" [% PROCESS ... %]
             # FYI "process" and "block_exists" are filters because only filters have access to context
-            process => [ sub { my ($context) = @_; return sub { $context->process(@_) } }, 1 ],
+            process => [ sub { my ($context, $vars) = @_; return sub { $context->process($_[0], $vars) } }, 1 ],
 
             # Check if a named block of the current template exists
             block_exists => [ sub { my ($context) = @_; return sub {

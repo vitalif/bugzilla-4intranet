@@ -982,7 +982,7 @@ sub notify {
         return;
     }
 
-    # @TODO move "silent" indication out of cgi.commentsilent
+    # FIXME move "silent" indication out of cgi.commentsilent
     if (Bugzilla->cgi->param('commentsilent') &&
         Bugzilla->user->settings->{silent_affects_flags}->{value} eq 'do_not_send')
     {
@@ -1063,7 +1063,11 @@ sub notify {
                 $recipients{$to}->settings->{lang}->{value} : $default_lang,
         };
     }
-    Bugzilla->add_mail_result({ type => 'flag', bug_id => $bug->id, notify_data => $flagmail });
+    Bugzilla->add_result_message({
+        message => 'flagmail',
+        bug_id => $bug->id,
+        notify_data => $flagmail,
+    });
 }
 
 # This is an internal function used by $bug->flag_types
@@ -1138,7 +1142,7 @@ sub _flag_types {
                 $flag->{allow_other} = 1;
             }
             $st = [];
-            # TODO remove hardcoded status list
+            # FIXME remove hardcoded status list
             push @$st, 'X' if $user->can_request_flag($type) || $flag->setter_id == $user->id;
             if ($type->is_active)
             {

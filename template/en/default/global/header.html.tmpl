@@ -37,8 +37,19 @@
   # atomlink: Atom link URL, May contain HTML
   #%]
 
+[% USE Bugzilla %]
+
 [% IF message %]
-  [% PROCESS global/messages.html.tmpl %]
+  [% message = BLOCK %][% PROCESS global/messages.html.tmpl %][% END %]
+[% END %]
+
+[% IF Bugzilla.session_data.title %]
+  [% title = Bugzilla.session_data.title %]
+  [% do_save_session = 1 %]
+[% END %]
+[% IF Bugzilla.session_data.header %]
+  [% header = Bugzilla.session_data.header %]
+  [% do_save_session = 1 %]
 [% END %]
 
 [% DEFAULT
@@ -319,8 +330,8 @@
 
 [% IF Param('new_functionality_msg') && Param('new_functionality_tsp') && user.read_new_functionality %]
 <div id="new_functionality">
-    <div class="close-link"><a href="javascript:void(0)" onclick="return readNewFunctionality();" title="Mark news as read">Close</a></div>
-    <div>[% Param('new_functionality_msg') FILTER none %]</div>
+  <div class="close-link"><a href="javascript:void(0)" onclick="return readNewFunctionality();" title="Mark news as read">Close</a></div>
+  <div>[% Param('new_functionality_msg') FILTER none %]</div>
 </div>
 [% END %]
 
@@ -329,3 +340,13 @@
 [% END %]
 
 [% Hook.process('aftermessage') %]
+
+[%# Show result messages from the session and delete them %]
+[% IF Bugzilla.result_messages.size %]
+  [% FOR m = Bugzilla.result_messages %]
+    [% "global/messages.html.tmpl" FILTER process(m) %]
+  [% END %]
+  [% do_save_session = 1 %]
+[% END %]
+
+[% IF do_save_session; x = Bugzilla.delete_session_data('result_messages', 'title', 'header'); END %]

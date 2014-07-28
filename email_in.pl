@@ -201,55 +201,21 @@ sub post_bug
 {
     my ($fields) = @_;
     debug_print('Posting a new bug...');
-
-    my $user = Bugzilla->user;
-
-    $fields->{cc} = delete $fields->{newcc} if $fields->{newcc};
-
-    # Restrict the bug to groups marked as Default.
-    # We let Bug->create throw an error if the product is
-    # not accessible, to throw the correct message.
-    $fields->{product} = '' if !defined $fields->{product};
-    my $product = new Bugzilla::Product({ name => $fields->{product} });
-    if ($product)
-    {
-        my @gids;
-        my $controls = $product->group_controls;
-        foreach my $gid (keys %$controls)
-        {
-            if ($controls->{$gid}->{membercontrol} == CONTROLMAPDEFAULT && $user->in_group_id($gid) ||
-                $controls->{$gid}->{othercontrol} == CONTROLMAPDEFAULT && !$user->in_group_id($gid))
-            {
-                push(@gids, $gid);
-            }
-        }
-        $fields->{groups} = \@gids;
-    }
-
-    my ($retval, $non_conclusive_fields) =
-        Bugzilla::User::match_field({
-            assigned_to => { type => 'single' },
-            qa_contact  => { type => 'single' },
-            cc          => { type => 'multi'  }
-        }, $fields, MATCH_SKIP_CONFIRM);
-
-    if ($retval != USER_MATCH_SUCCESS)
-    {
-        ThrowUserError('user_match_too_many', {fields => $non_conclusive_fields});
-    }
-
-    my $cgi = Bugzilla->cgi;
-    foreach my $field (keys %$fields)
-    {
-        $cgi->param(-name => $field, -value => $fields->{$field});
-    }
-    $cgi->param('token', issue_session_token('createbug:'));
-    delete $cgi->{_VarHash};
-
     my $bug;
-    $Bugzilla::Error::IN_EVAL++;
-    my $vars = do 'post_bug.cgi';
-    $Bugzilla::Error::IN_EVAL--;
+    eval
+    {
+        my ($retval, $non_conclusive_fields) =
+            Bugzilla::User::match_field({
+                assigned_to => { type => 'single' },
+                qa_contact  => { type => 'single' },
+                cc          => { type => 'multi'  }
+            }, $fields, MATCH_SKIP_CONFIRM);
+        if ($retval != USER_MATCH_SUCCESS)
+        {
+            ThrowUserError('user_match_too_many', { fields => $non_conclusive_fields });
+        }
+        $bug = Bugzilla::Bug::create_or_update($fields);
+    };
     if (my $err = $@)
     {
         my $format = "\n\nIncoming mail format for entering bugs:\n\n\@field = value\n\@field = value\n...\n\n<Bug description...>\n";
@@ -263,75 +229,12 @@ sub post_bug
         }
         die $err;
     }
-    $bug = $vars->{bug};
     if ($bug)
     {
         debug_print("Created bug " . $bug->id);
         return ($bug, $bug->comments->[0]);
     }
     return undef;
-}
-
-sub process_bug
-{
-    my ($fields_in) = @_;
-    my %fields = %$fields_in;
-
-    my $bug_id = $fields{bug_id};
-    $fields{id} = $bug_id;
-    delete $fields{bug_id};
-
-    debug_print("Updating Bug $fields{id}...");
-
-    my $bug = Bugzilla::Bug->check($bug_id);
-
-    if ($fields{bug_status})
-    {
-        $fields{knob} = $fields{bug_status};
-    }
-    # If no status is given, then we only want to change the resolution.
-    elsif ($fields{resolution})
-    {
-        $fields{knob} = 'change_resolution';
-        $fields{resolution_knob_change_resolution} = $fields{resolution};
-    }
-    if ($fields{dup_id})
-    {
-        $fields{knob} = 'duplicate';
-    }
-
-    # Move @cc to @newcc as @cc is used by process_bug.cgi to remove
-    # users from the CC list when @removecc is set.
-    $fields{newcc} = delete $fields{cc} if $fields{cc};
-
-    # Make it possible to remove CCs.
-    if ($fields{removecc})
-    {
-        $fields{cc} = [split(',', $fields{removecc})];
-        $fields{removecc} = 1;
-    }
-
-    my $cgi = Bugzilla->cgi;
-    foreach my $field (keys %fields)
-    {
-        $cgi->param(-name => $field, -value => $fields{$field});
-    }
-    $cgi->param('longdesclength', scalar @{ $bug->comments });
-    $cgi->param('token', issue_hash_token([$bug->id, $bug->delta_ts]));
-    delete $cgi->{_VarHash};
-
-    $Bugzilla::Error::IN_EVAL++;
-    do 'process_bug.cgi';
-    $Bugzilla::Error::IN_EVAL--;
-    debug_print($@) if $@;
-    debug_print("Bug processed.");
-
-    my $added_comment;
-    if (trim($fields{comment}))
-    {
-        $added_comment = $bug->comments->[-1];
-    }
-    return ($bug, $added_comment);
 }
 
 sub handle_attachments
@@ -614,7 +517,9 @@ if ($mail_fields->{group_ids})
 my ($bug, $comment);
 if ($mail_fields->{bug_id})
 {
-    ($bug, $comment) = process_bug($mail_fields);
+    debug_print("Updating Bug $mail_fields->{bug_id}...");
+    $bug = Bugzilla::Bug::create_or_update($mail_fields);
+    $comment = $bug->comments->[-1] if trim($mail_fields->{comment});
 }
 else
 {
@@ -623,14 +528,8 @@ else
 
 handle_attachments($bug, $attachments, $comment);
 
-# This is here for post_bug and handle_attachments, so that when posting a bug
-# with an attachment, any comment goes out as an attachment comment.
-#
-# Eventually this should be sending the mail for process_bug, too, but we have
-# to wait for $bug->update() to be fully used in email_in.pl first. So
-# currently, process_bug.cgi does the mail sending for bugs, and this does
-# any mail sending for attachments after the first one.
-Bugzilla::BugMail::Send($bug->id, { changer => Bugzilla->user->login });
+Bugzilla->send_mail;
+
 debug_print("Sent bugmail");
 
 __END__

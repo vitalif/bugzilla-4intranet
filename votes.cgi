@@ -332,39 +332,26 @@ sub record_votes {
     # Update the cached values in the bugs table
     my @updated_bugs = ();
 
-    my $sth_getVotes = $dbh->prepare("SELECT SUM(vote_count) FROM votes
-                                      WHERE bug_id = ?");
-
-    my $sth_updateVotes = $dbh->prepare("UPDATE bugs SET votes = ?
-                                         WHERE bug_id = ?");
-
-    foreach my $id (keys %affected) {
+    my $sth_getVotes = $dbh->prepare("SELECT SUM(vote_count) FROM votes WHERE bug_id = ?");
+    my $sth_updateVotes = $dbh->prepare("UPDATE bugs SET votes = ? WHERE bug_id = ?");
+    foreach my $id (keys %affected)
+    {
         $sth_getVotes->execute($id);
         my $v = $sth_getVotes->fetchrow_array || 0;
         $sth_updateVotes->execute($v, $id);
 
-        my $confirmed = Bugzilla::Bug::CheckIfVotedConfirmed($id);
-        push (@updated_bugs, $id) if $confirmed;
+        my $bug = Bugzilla::Bug->new($id);
+        if ($bug->check_if_voted_confirmed)
+        {
+            $bug->update;
+            push @updated_bugs, $id;
+        }
     }
     $dbh->bz_commit_transaction();
+    Bugzilla->send_mail;
 
-    $vars->{'type'} = "votes";
-    $vars->{'title_tag'} = 'change_votes';
-
-    foreach my $bug_id (@updated_bugs)
-    {
-        # TODO save this into session and redirect
-        my $sent = send_results({
-            bug_id => $bug_id,
-            mailrecipients => { 'changer' => Bugzilla->user->login },
-            type => "votes",
-        });
-        $vars->{$_} = $sent->{$_} for keys %$sent;
-
-        $template->process("bug/process/results.html.tmpl", $vars)
-            || ThrowTemplateError($template->error());
-        # Set header_done to 1 only after the first bug.
-        $vars->{'header_done'} = 1;
-    }
-    $vars->{'votes_recorded'} = 1;
+    $vars->{title} = 'Change Votes';
+    $vars->{votes_recorded} = 1;
 }
+
+exit;

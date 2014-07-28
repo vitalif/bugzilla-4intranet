@@ -17,7 +17,6 @@
   # Contributor(s): Max Kanat-Alexander <mkanat@bugzilla.org>
   #%]
 
-[%# Yes, this may show some HTML. But it's the best we
-  # can do at the moment. %]
-[% PROCESS global/messages.html.tmpl %]
+[%# Yes, this may show some HTML. But it's the best we can do at the moment. %]
+[% message = BLOCK %][% PROCESS global/messages.html.tmpl %][% END %]
 [% message FILTER txt %]

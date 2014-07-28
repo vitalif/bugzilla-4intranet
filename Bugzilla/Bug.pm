@@ -60,7 +60,7 @@ use POSIX qw(floor);
 use Scalar::Util qw(blessed);
 
 use base qw(Bugzilla::Object Exporter);
-@Bugzilla::Bug::EXPORT = qw(RemoveVotes CheckIfVotedConfirmed LogActivityEntry);
+@Bugzilla::Bug::EXPORT = qw(RemoveVotes LogActivityEntry);
 @Bugzilla::Bug::EXPORT_OK = @Bugzilla::Bug::EXPORT;
 
 #####################################################################
@@ -481,6 +481,7 @@ sub update
     # First check dependent field values
     $self->check_dependent_fields;
     $self->check_strict_isolation;
+    $self->check_votes;
 
     my $dbh = Bugzilla->dbh;
     my $user = Bugzilla->user;
@@ -605,6 +606,9 @@ sub update
         $self->_sync_fulltext($method eq 'create');
     }
 
+    # Prepare email notifications.
+    $self->prepare_mail_results($changes);
+
     # Remove obsolete internal variables.
     delete $self->{_old_self};
     delete $self->{added_comments};
@@ -615,6 +619,106 @@ sub update
     delete Bugzilla->user->{_visible_bugs_cache}->{$self->id};
 
     return $changes;
+}
+
+sub prepare_mail_results
+{
+    my $self = shift;
+    my ($changes) = @_;
+
+    my %notify_deps;
+    if ($self->{_old_self} && $self->bug_status != $self->{_old_self}->bug_status)
+    {
+        my $old_status = $self->{_old_self}->bug_status_obj;
+        my $new_status = $self->bug_status_obj;
+
+        # If this bug has changed from opened to closed or vice-versa,
+        # then all of the bugs we block need to be notified.
+        if ($old_status->is_open != $new_status->is_open)
+        {
+            $notify_deps{$_} = 1 foreach @{$self->blocked};
+        }
+
+        # We may have zeroed the remaining time, if we moved into a closed
+        # status, so we should inform the user about that.
+        if (!$new_status->is_open && $changes->{remaining_time} &&
+            !$changes->{remaining_time}->[1] &&
+            Bugzilla->user->is_timetracker)
+        {
+            Bugzilla->add_result_message({ message => 'remaining_time_zeroed' });
+        }
+    }
+
+    # To get a list of all changed dependencies, convert the "changes" arrays
+    # into a long string, then collapse that string into unique numbers in
+    # a hash.
+    my $all_changed_deps = join(', ', @{ $changes->{dependson} || [] });
+    $all_changed_deps = join(', ', @{ $changes->{blocked} || [] }, $all_changed_deps);
+    my %changed_deps = map { $_ => 1 } split(', ', $all_changed_deps);
+    # When clearing one field (say, blocks) and filling in the other
+    # (say, dependson), an empty string can get into the hash and cause
+    # an error later.
+    delete $changed_deps{''};
+
+    my $old_qa  = $changes->{qa_contact}  ? $changes->{qa_contact}->[0] : '';
+    my $old_own = $changes->{assigned_to} ? $changes->{assigned_to}->[0] : '';
+    my $old_cc  = $changes->{cc}          ? $changes->{cc}->[0] : '';
+
+    # Let the user know the bug was changed and who did and didn't
+    # receive email about the change.
+    my $type = 'bug';
+    if (!$self->{_old_self})
+    {
+        $type = 'created';
+    }
+    elsif ($self->{added_comments} && grep { $_->{type} == CMT_POPULAR_VOTES } @{$self->{added_comments}})
+    {
+        $type = 'votes';
+    }
+    else
+    {
+        $type = 'bug';
+    }
+    Bugzilla->add_result_message({
+        message => 'bugmail',
+        type => $type,
+        bug_id => $self->id,
+        mailrecipients => {
+            cc        => [ split /[\s,]+/, $old_cc ],
+            owner     => $old_own,
+            qacontact => $old_qa,
+            changer   => Bugzilla->user->login,
+        },
+    });
+
+    # If the bug was marked as a duplicate, we need to notify users on the
+    # other bug of any changes to that bug.
+    my $new_dup_id = $changes->{dup_id} ? $changes->{dup_id}->[1] : undef;
+    if ($new_dup_id)
+    {
+        # Let the user know a duplication notation was added to the original bug.
+        Bugzilla->add_result_message({
+            message => 'bugmail',
+            mailrecipients => { changer => Bugzilla->user->login },
+            bug_id => $new_dup_id,
+            type => 'dupe',
+        });
+    }
+
+    my %all_dep_changes = (%notify_deps, %changed_deps);
+    foreach my $id (sort { $a <=> $b } (keys %all_dep_changes))
+    {
+        # Let the user (if he is able to see the bug) know we checked to
+        # see if we should email notice of this change to users with a
+        # relationship to the dependent bug and who did and didn't
+        # receive email about it.
+        Bugzilla->add_result_message({
+            message => 'bugmail',
+            type => 'dep',
+            mailrecipients => { changer => Bugzilla->user->login },
+            bug_id => $id,
+        });
+    }
 }
 
 # There is no guarantee that any setters were called after creating an
@@ -643,6 +747,21 @@ sub check_default_values
         }
     }
     # Add some default values manually
+    if (!$self->id && !exists $self->{groups_in})
+    {
+        # Add default product groups
+        my @gids;
+        my $controls = $self->product_obj->group_controls;
+        foreach my $gid (keys %$controls)
+        {
+            if ($controls->{$gid}->{membercontrol} == CONTROLMAPDEFAULT && Bugzilla->user->in_group_id($gid) ||
+                $controls->{$gid}->{othercontrol} == CONTROLMAPDEFAULT && !Bugzilla->user->in_group_id($gid))
+            {
+                push @gids, $gid;
+            }
+        }
+        $self->{groups_in} = \@gids;
+    }
     $self->set('groups', [ map { $_->id } @{$self->groups_in} ]);
     $self->{cc} = $self->component_obj->initial_cc if !$self->{cc};
     $self->{everconfirmed} ||= 0;
@@ -651,6 +770,18 @@ sub check_default_values
     $self->{reporter_accessible} = 1 if !defined $self->{reporter_accessible};
     $self->{cclist_accessible} = 1 if !defined $self->{cclist_accessible};
     $self->{creation_ts} = $self->{delta_ts} if !defined $self->{creation_ts};
+}
+
+# Check vote count after product change
+sub check_votes
+{
+    my $self = shift;
+    if ($self->id && $self->{_old_self}->product_id != $self->product_id)
+    {
+        my $votes = RemoveVotes($self->id, 0, 'votes_bug_moved');
+        $self->{votes} = $votes if defined $votes;
+        $self->check_if_voted_confirmed();
+    }
 }
 
 # FIXME cache it
@@ -1096,7 +1227,18 @@ sub save_cc
                 push @{$self->{restricted_cc}}, $_;
             }
         }
-        $self->{restricted_cc} = undef if !@{$self->{restricted_cc}};
+        if (@{$self->{restricted_cc}})
+        {
+            Bugzilla->add_result_message({
+                message => 'cc_list_restricted',
+                restricted_cc => [ map { $_->login } @{ $self->{restricted_cc} } ],
+                cc_restrict_group => $self->product_obj->cc_group,
+            });
+        }
+        else
+        {
+            $self->{restricted_cc} = undef;
+        }
     }
 
     my $removed_cc = [ grep { !$new_cc{$_} } keys %old_cc ];
@@ -1997,6 +2139,8 @@ sub _set_groups
 sub _set_keywords
 {
     my ($self, $data) = @_;
+
+    $data = { 'keywords' => $data, 'descriptions' => {} } if !ref $data;
 
     my $old = $self->keyword_objects;
     my $new = $old;
@@ -3668,24 +3812,21 @@ sub RemoveVotes
 
     my $dbh = Bugzilla->dbh;
     my $rows = $dbh->selectall_arrayref(
-        "SELECT profiles.login_name, profiles.userid, votes.vote_count," .
+        "SELECT profiles.userid, votes.vote_count," .
         " products.votesperuser, products.maxvotesperbug FROM profiles" .
         " LEFT JOIN votes ON profiles.userid = votes.who" .
         " LEFT JOIN bugs ON votes.bug_id = bugs.bug_id" .
         " LEFT JOIN products ON products.id = bugs.product_id" .
         " WHERE votes.bug_id = ?" .
-        ($who ? " AND votes.who = $who" : "")
+        ($who ? " AND votes.who = ?" : ""), undef, $id, ($who ? $who : ())
     );
-
-    # @messages stores all emails which have to be sent, if any.
-    # This array is passed to the caller which will send these emails itself.
-    my @messages = ();
 
     if (@$rows)
     {
+        my $mails = [];
         foreach my $ref (@$rows)
         {
-            my ($name, $userid, $oldvotes, $votesperuser, $maxvotesperbug) = (@$ref);
+            my ($userid, $oldvotes, $votesperuser, $maxvotesperbug) = (@$ref);
 
             $maxvotesperbug = min($votesperuser, $maxvotesperbug);
 
@@ -3721,41 +3862,37 @@ sub RemoveVotes
 
             # Now lets send the e-mail to alert the user to the fact that their votes have
             # been reduced or removed.
-            my $vars = {
-                to => $name . Bugzilla->params->{emailsuffix},
-                bugid => $id,
+            push @$mails, {
+                userid => $userid,
                 reason => $reason,
                 votesremoved => $removedvotes,
                 votesold => $oldvotes,
                 votesnew => $newvotes,
             };
-
-            my $voter = new Bugzilla::User($userid);
-            my $template = Bugzilla->template_inner($voter->settings->{lang}->{value});
-
-            my $msg;
-            $template->process("email/votes-removed.txt.tmpl", $vars, \$msg);
-            push @messages, $msg;
         }
-        Bugzilla->template_inner('');
+        if (@$mails)
+        {
+            Bugzilla->add_result_message({
+                message => 'votes-removed',
+                bug_id => $id,
+                notify_data => $mails,
+            });
+        }
 
         my $votes = $dbh->selectrow_array(
             "SELECT SUM(vote_count) FROM votes WHERE bug_id = ?", undef, $id
         ) || 0;
         $dbh->do("UPDATE bugs SET votes = ? WHERE bug_id = ?", undef, $votes, $id);
+        return $votes;
     }
-
-    # Now return the array containing emails to be sent.
-    return @messages;
+    return undef;
 }
 
 # If a user votes for a bug, or the number of votes required to
 # confirm a bug has been reduced, check if the bug is now confirmed.
-sub CheckIfVotedConfirmed
+sub check_if_voted_confirmed
 {
-    my $id = shift;
-    my $bug = new Bugzilla::Bug($id);
-
+    my $bug = shift;
     my $ret = 0;
     if (!$bug->everconfirmed && $bug->product_obj->votes_to_confirm &&
         $bug->votes >= $bug->product_obj->votes_to_confirm)
@@ -3782,6 +3919,7 @@ sub CheckIfVotedConfirmed
             $bug->{bug_status} = $new_status;
             $bug->{everconfirmed} = 1;
             delete $bug->{status}; # Contains the status object.
+            $ret = 1;
         }
         else
         {
@@ -3789,9 +3927,6 @@ sub CheckIfVotedConfirmed
             # Do not call $bug->set(), for the same reason as above.
             $bug->{everconfirmed} = 1;
         }
-        $bug->update();
-
-        $ret = 1;
     }
     return $ret;
 }
@@ -3991,6 +4126,39 @@ sub check_can_change_field
     # have the necessary permissions to change this field.
     $$PrivilegesRequired = 1;
     return 0;
+}
+
+#
+# Procedural helper, used in importxls.cgi and email_in.pl
+#
+
+# Create or update a bug
+sub create_or_update
+{
+    my ($fields_in) = @_;
+    my $bug = $fields_in->{bug_id} && Bugzilla::Bug->new(delete $fields_in->{bug_id}) || Bugzilla::Bug->new;
+    # We still rely on product and component being set first
+    my @set_fields = ('product', 'component', grep { $_ ne 'product' &&
+        $_ ne 'component' && $_ ne 'comment' && $_ ne 'work_time' } keys %$fields_in);
+    $bug->set($_ => $fields_in->{$_}) for @set_fields;
+    if (exists $fields_in->{comment})
+    {
+        $bug->add_comment($fields_in->{comment}, {
+            work_time => $fields_in->{work_time},
+        });
+        delete $fields_in->{comment};
+        delete $fields_in->{work_time};
+    }
+    if (exists $fields_in->{blocked} || exists $fields_in->{dependson})
+    {
+        $fields_in->{blocked} ||= join ',', @{ $bug->blocked };
+        $fields_in->{dependson} ||= join ',', @{ $bug->dependson };
+        $bug->set_dependencies({ dependson => $fields_in->{dependson}, blocked => $fields_in->{blocked} });
+        delete $fields_in->{blocked};
+        delete $fields_in->{dependson};
+    }
+    $bug->update;
+    return $bug;
 }
 
 #

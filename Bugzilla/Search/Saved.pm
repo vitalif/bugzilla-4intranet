@@ -83,7 +83,6 @@ sub new {
         detaint_natural($user_id)
           || ThrowCodeError('param_must_be_numeric',
                             {function => $class . '::_init', param => 'user'});
-        $name =~ s///;
         my @values = ($user_id, $name);
         $param = { condition => $condition, values => \@values };
     }

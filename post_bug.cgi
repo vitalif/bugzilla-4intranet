@@ -263,7 +263,7 @@ elsif (defined($cgi->upload('data')) || $ARGS->{attachurl} ||
     }
     else
     {
-        $vars->{message} = 'attachment_creation_failed';
+        Bugzilla->add_result_message({ message => 'attachment_creation_failed' });
     }
 }
 
@@ -280,55 +280,16 @@ if ($token)
     $dbh->do('UPDATE tokens SET eventdata = ? WHERE token = ?', undef, "createbug:$id", $token);
 }
 
-my $bug_sent = { bug_id => $id, type => 'created', mailrecipients => { changer => $user->login } };
-send_results($bug_sent);
-my @all_mail_results = ($bug_sent);
-
-# Add flag notify to send_result
-my $notify = Bugzilla->get_mail_result();
-send_results($_) for @$notify;
-push @all_mail_results, @$notify;
-
-foreach my $dep (@{$bug->dependson || []}, @{$bug->blocked || []})
-{
-    my $dep_sent = {
-        type       => 'dep',
-        bug_id     => $dep,
-        recipients => $bug_sent->{recipients},
-    };
-    send_results($dep_sent);
-    push @all_mail_results, $dep_sent;
-}
-$vars->{sentmail} = \@all_mail_results;
+Bugzilla->send_mail;
 
 if (Bugzilla->usage_mode != USAGE_MODE_EMAIL)
 {
-    my $title = Bugzilla->messages->{terms}->{Bug}.' '.$bug->id.' Submitted – '.$bug->short_desc;
-    my $header = Bugzilla->messages->{terms}->{Bug}.' '.$bug->id.' Submitted';
-    my $ses = {
-        sent => \@all_mail_results,
-        title => $title,
-        header => $header,
-        message => $vars->{message},
-    };
-    # CustIS Bug 38616 - CC list restriction
-    if (!$ses->{message} && $bug->{restricted_cc})
-    {
-        $ses->{message_vars} = {
-            restricted_cc     => [ map { $_->login } @{ $bug->{restricted_cc} } ],
-            cc_restrict_group => $bug->product_obj->cc_group,
-        };
-        $ses->{message} = 'cc_list_restricted';
-    }
-    if (Bugzilla->save_session_data($ses))
-    {
-        print $cgi->redirect(-location => 'show_bug.cgi?id='.$bug->id);
-    }
-    else
-    {
-        $template->process("bug/create/created.html.tmpl", $vars)
-            || ThrowTemplateError($template->error());
-    }
+    # FIXME title/header hardcode
+    Bugzilla->save_session_data({
+        title => Bugzilla->messages->{terms}->{Bug}.' '.$bug->id.' Submitted – '.$bug->short_desc,
+        header => Bugzilla->messages->{terms}->{Bug}.' '.$bug->id.' Submitted',
+    });
+    print $cgi->redirect(-location => 'show_bug.cgi?id='.$bug->id);
 }
 
 $vars;

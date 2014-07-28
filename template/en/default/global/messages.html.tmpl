@@ -19,6 +19,88 @@
   #                 Max Kanat-Alexander <mkanat@bugzilla.org>
   #%]
 
+[%# Operation result messages - these are shown from the session
+  # and without automatic wrapping in <div class="message"></div> %]
+
+[% BLOCK msg_bugmail %]
+  [% INCLUDE bug/process/results.html.tmpl %]
+[% END %]
+
+[% BLOCK msg_added_attachment %]
+  <dl>
+    <dt>
+      <a title="[% description | html %]"
+         href="attachment.cgi?id=[% id %]&amp;action=edit">Attachment #[% id %]</a>
+      to [% "$terms.bug $bug_id" FILTER bug_link(bug_id) FILTER none %] created
+    </dt>
+    <dd>
+      [% IF ctype_auto %]
+        <p>
+          <b>Note:</b> [% terms.Bugzilla %] automatically detected the content type
+          <em>[% contenttype | html %]</em> for this attachment. If this is
+          incorrect, correct the value by editing the attachment's
+          <a href="attachment.cgi?id=[% id %]&amp;action=edit">details</a>.
+        </p>
+      [% END %]
+    </dd>
+  </dl>
+  [% IF att.convertedbmp %]
+  <p>
+    <b>Note:</b> [% terms.Bugzilla %] automatically converted your BMP image file to a
+    compressed PNG format.
+  </p>
+  [% END %]
+[% END %]
+
+[% BLOCK msg_changed_attachment %]
+  [% SET title = "Changes Submitted to Attachment $id of $terms.Bug $bug_id" %]
+  <dl>
+    <dt>Changes to <a href="attachment.cgi?id=[% id %]&amp;action=edit">attachment [% id %]</a>
+      of [% "$terms.bug $bug_id" FILTER bug_link(bug_id) FILTER none %] submitted
+    </dt>
+  </dl>
+[% END %]
+
+[% BLOCK msg_next_bug_shown %]
+  <hr />
+  <p>
+    The next [% terms.bug %] in your list is [% terms.bug %]
+    <a href="show_bug.cgi?id=[% bug_id %]">[% bug_id %]</a>:
+  </p>
+  <hr />
+[% END %]
+
+[% BLOCK msg_remaining_time_zeroed %]
+  <p>
+  The [% field_descs.remaining_time | html %] field has been
+  set to zero automatically as part of closing this [% terms.bug %]
+  or moving it from one closed state to another.
+  </p>
+[% END %]
+
+[% BLOCK msg_cc_list_restricted %]
+  <div class="message">
+  CC list restricted to group <em>[% cc_restrict_group | html %]</em>,
+  <em>[% restricted_cc.join(', ') | html %]</em> removed.
+  </div>
+[% END %]
+
+[% BLOCK msg_attachment_creation_failed %]
+  <div class="message">The [% terms.bug %] was created successfully, but attachment creation
+  failed. Please add your attachment by clicking the "Add an Attachment" link
+  below.</div>
+[% END %]
+
+[% BLOCK msg_checkers_failed %]
+  [% IF failed_checkers AND failed_checkers.size %]
+  <div class="user-error-div">
+    <div class="user-error-div-first">
+      [% INCLUDE "failed-checkers.html.tmpl" f = failed_checkers %]
+    </div>
+  </div>
+  [% END %]
+[% END %]
+
 [%# This is a list of all the possible messages. Please keep them in
   # alphabetical order by message tag, and leave a blank line between messages.
   #%]
@@ -109,13 +191,6 @@
 [% BLOCK msg_account_disabled %]
   The user account [% account | html %] is disabled, so you
   cannot change its password.
-[% END %]
-
-[% BLOCK msg_attachment_creation_failed %]
-  The [% terms.bug %] was created successfully, but attachment creation
-  failed.
-  Please add your attachment by clicking the "Add an Attachment" link
-  below.
 [% END %]
 
 [% BLOCK msg_bug_group_description %]
@@ -851,12 +926,6 @@
   products you can choose from.
 [% END %]
 
-[% BLOCK msg_remaining_time_zeroed %]
-  The [% field_descs.remaining_time | html %] field has been
-  set to zero automatically as part of closing this [% terms.bug %]
-  or moving it from one closed state to another.
-[% END %]
-
 [% BLOCK msg_report_created %]
   OK, you have a new saved report named <em>[% reportname FILTER html %]</em>.
 [% END %]
@@ -981,28 +1050,15 @@
   The workflow has been updated.
 [% END %]
 
-[% BLOCK msg_cc_list_restricted %]
-  CC list restricted to group <em>[% cc_restrict_group | html %]</em>,
-  <em>[% restricted_cc.join(', ') | html %]</em> removed.
-[% END %]
-
 [% IF message %]
-[% message_tag = 'msg_' _ message %]
-[% message = BLOCK %]
-  [% message_tag FILTER process %]
-[% END %]
-
-[%# Give sensible error if error functions are used incorrectly. %]
-[% IF !message %]
-  You are using [% terms.Bugzilla %]'s messaging functions incorrectly. You
-  passed in the string '[% message_tag %]'. The correct use is to pass
-  in a tag, and define that tag in the file messages.html.tmpl.<br>
-  <br>
-  If you are a [% terms.Bugzilla %] end-user seeing this message, please
-  save this page and send it to [% Param('maintainer') %].
-[% END %]
-
-[% IF !message %]
-  [% message = Hook.process('messages') %]
-[% END %]
+  [% message_tag = message %]
+  [% message = BLOCK %][% 'msg_' _ message_tag FILTER process %][% END %]
+  [% IF !message %][% message = Hook.process('messages') %][% END %]
+  [% message %]
+  [%# Give sensible error if a message is unknown. %]
+  [% IF !message %]
+    Message '[% message_tag | html %]' is unknown.<br />
+    If you are a [% terms.Bugzilla %] end-user seeing this message, please
+    save this page and send it to [% Param('maintainer') %].
+  [% END %]
 [% END %]

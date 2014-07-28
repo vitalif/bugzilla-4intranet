@@ -38,26 +38,19 @@
   # all_bug_ids: List of all bug ids the user has voted for, across all products
   #%]
 
-[% IF !header_done %]
-  [% subheader = voting_user.login FILTER html %]
-  [% IF canedit %]
-    [% title = "Change Votes" %]
-    [% IF bug_id %]
-      [%# We .select and .focus the input so it works for textbox and 
-          checkbox %]
-      [% onload = "document.forms['voting_form'].bug_" _ bug_id _
-                  ".select();document.forms['voting_form'].bug_" _ bug_id _
-                  ".focus()" %]
-    [% END %]
-  [% ELSE %]
-    [% title = "Show Votes" %]
+[% subheader = voting_user.login FILTER html %]
+[% IF canedit %]
+  [% title = "Change Votes" %]
+  [% IF bug_id %]
+    [%# We .select and .focus the input so it works for textbox and checkbox %]
+    [% onload = "document.forms['voting_form'].bug_" _ bug_id _
+                ".select();document.forms['voting_form'].bug_" _ bug_id _
+                ".focus()" %]
   [% END %]
-  [% PROCESS global/header.html.tmpl
-             style_urls = [ "skins/standard/voting.css" ] 
-  %]
 [% ELSE %]
-  <hr>
+  [% title = "Show Votes" %]
 [% END %]
+[% PROCESS global/header.html.tmpl style_urls = [ "skins/standard/voting.css" ] %]
 
 [% IF votes_recorded %]
   <p>
