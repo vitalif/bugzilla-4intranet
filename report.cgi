@@ -136,7 +136,8 @@ $vars->{measure} = $measure;
 # Validate the values in the axis fields or throw an error.
 my %a;
 my @group_by = grep { !($a{$_}++) } values %$field;
-my @axis_fields = (@group_by, $measures->{$measure});
+my @axis_fields = @group_by;
+push @axis_fields, $measures->{$measure} unless $a{$measures->{$measure}};
 
 # Clone the params, so that Bugzilla::Search can modify them
 my $params = new Bugzilla::CGI($cgi);
