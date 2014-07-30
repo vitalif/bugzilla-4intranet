@@ -491,8 +491,13 @@ sub input_params
     }
     return $cache->{input_params} if defined $cache->{input_params};
 
-    # Throw away the tie.
-    $cache->{input_params} = { %{ $class->cgi->Vars } };
+    $cache->{input_params} = {};
+    my $cgi = $class->cgi;
+    for ($cgi->param)
+    {
+        my @v = $cgi->param($_);
+        $cache->{input_params}->{$_} = @v <= 1 ? $v[0] : \@v;
+    }
     return $cache->{input_params};
 }
 
@@ -998,6 +1003,7 @@ sub fieldvaluecontrol
         );
         for (@$rows)
         {
+            next if !defined $_->{default_field_id}; # FIXME: means field_defaults table has inconsistent data
             $has->{$_->{default_field_id}}
                 ->{defaults}
                 ->{$_->{field_id}}

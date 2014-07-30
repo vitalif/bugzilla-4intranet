@@ -70,6 +70,9 @@
         [% NEXT IF c.is_private && !user.is_insider %]
         <long_desc isprivate="[% c.is_private | xml %]">
           <commentid>[% c.id | xml %]</commentid>
+          [% IF c.type %]
+          <type>[% c.type | xml %]</type>
+          [% END %]
           [% IF c.is_about_attachment %]
             <attachid>[% c.extra_data | xml %]</attachid>
           [% END %]

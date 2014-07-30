@@ -433,7 +433,7 @@ my %was_known_as_id = ();
 my %depends_to_import = ();
 
 sub process_bug {
-    my ( $twig, $bug ) = @_;
+    my ($twig, $bug_xml) = @_;
     my $root             = $twig->root;
     my $maintainer       = $root->{'att'}->{'maintainer'};
     my $exporter_login   = $root->{'att'}->{'exporter'};
@@ -443,16 +443,16 @@ sub process_bug {
 
     # We will store output information in this variable.
     my $log = "";
-    if ( defined $bug->{'att'}->{'error'} ) {
-        $log .= "\nError in bug " . $bug->field('bug_id') . "\@$urlbase: ";
-        $log .= $bug->{'att'}->{'error'} . "\n";
-        if ( $bug->{'att'}->{'error'} =~ /NotFound/ ) {
-            $log .= "$exporter_login tried to move bug " . $bug->field('bug_id');
+    if ( defined $bug_xml->{'att'}->{'error'} ) {
+        $log .= "\nError in bug " . $bug_xml->field('bug_id') . "\@$urlbase: ";
+        $log .= $bug_xml->{'att'}->{'error'} . "\n";
+        if ( $bug_xml->{'att'}->{'error'} =~ /NotFound/ ) {
+            $log .= "$exporter_login tried to move bug " . $bug_xml->field('bug_id');
             $log .= " here, but $urlbase reports that this bug";
             $log .= " does not exist.\n";
         }
-        elsif ( $bug->{'att'}->{'error'} =~ /NotPermitted/ ) {
-            $log .= "$exporter_login tried to move bug " . $bug->field('bug_id');
+        elsif ( $bug_xml->{'att'}->{'error'} =~ /NotPermitted/ ) {
+            $log .= "$exporter_login tried to move bug " . $bug_xml->field('bug_id');
             $log .= " here, but $urlbase reports that $exporter_login does ";
             $log .= " not have access to that bug.\n";
         }
@@ -472,10 +472,10 @@ sub process_bug {
     my %bug_fields;
     my $err = "";
 
-   # Loop through all the xml tags inside a <bug> and compare them to the
-   # lists of fields. If they match throw them into the hash. Otherwise
-   # append it to the log, which will go into the comments when we are done.
-    foreach my $bugchild ( $bug->children() ) {
+    # Loop through all the xml tags inside a <bug> and compare them to the
+    # lists of fields. If they match throw them into the hash. Otherwise
+    # append it to the log, which will go into the comments when we are done.
+    foreach my $bugchild ( $bug_xml->children() ) {
         Debug( "Parsing field: " . $bugchild->name, DEBUG_LEVEL );
 
         # Skip the token if one is included. We don't want it included in
@@ -483,7 +483,7 @@ sub process_bug {
         next if $bugchild->name eq 'token';
 
         if ( defined $all_fields{ $bugchild->name } ) {
-            my @values = $bug->children_text($bugchild->name);
+            my @values = $bug_xml->children_text($bugchild->name);
             if (scalar @values > 1) {
                 $bug_fields{$bugchild->name} = \@values;
             }
@@ -514,7 +514,7 @@ sub process_bug {
     my $private = 0;
 
     # Parse long descriptions
-    foreach my $comment ( $bug->children('long_desc') ) {
+    foreach my $comment ($bug_xml->children('long_desc')) {
         Debug( "Parsing Long Description", DEBUG_LEVEL );
         my %long_desc;
         $long_desc{'who'}       = $comment->field('who');
@@ -1190,7 +1190,7 @@ sub process_bug {
     }
 
     # Parse bug flags
-    foreach my $bflag ( $bug->children('flag')) {
+    foreach my $bflag ($bug_xml->children('flag')) {
         next unless ( defined($bflag) );
         $err .= flag_handler(
             $bflag->{'att'}->{'name'},   $bflag->{'att'}->{'status'},

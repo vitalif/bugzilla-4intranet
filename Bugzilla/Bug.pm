@@ -1808,7 +1808,7 @@ sub _set_alias
     return $self->{alias} = undef if !$alias;
 
     # Make sure the alias isn't too long.
-    if (length($alias) > 20)
+    if (length($alias) > 255)
     {
         ThrowUserError('alias_too_long');
     }

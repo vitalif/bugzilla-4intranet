@@ -1,5 +1,6 @@
 #!/usr/bin/perl
 # CustIS Bug 61728 - external SQL interface to Bugzilla's bug tables
+# FIXME: Add UI for managing views
 
 package FlushViews;
 

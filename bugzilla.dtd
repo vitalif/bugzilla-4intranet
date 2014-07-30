@@ -50,7 +50,7 @@
 <!ELEMENT remaining_time (#PCDATA)>
 <!ELEMENT actual_time (#PCDATA)>
 <!ELEMENT deadline (#PCDATA)>
-<!ELEMENT long_desc (who, bug_when, work_time?, thetext)>
+<!ELEMENT long_desc (who, type?, bug_when, work_time?, thetext)>
 <!ATTLIST long_desc
           encoding (base64) #IMPLIED
           isprivate (0|1) #IMPLIED
