@@ -1270,7 +1270,7 @@ sub bug_or_hash_value
     {
         # Hashref with value names
         $value = $bug->{$vf->name};
-        if (!ref $value)
+        if (!ref $value && defined $value)
         {
             # FIXME: This does not allow selecting of fields
             # non-uniquely identified by name, as a visibility

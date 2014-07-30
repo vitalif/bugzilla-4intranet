@@ -15,8 +15,7 @@ use Bugzilla::Token;
 
 my $template = Bugzilla->template;
 my $user = Bugzilla->login(LOGIN_REQUIRED);
-my $cgi = Bugzilla->cgi;
-my $params = { %{ $cgi->Vars } };
+my $params = Bugzilla->input_params;
 my $vars = {};
 
 $user->in_group('bz_editcheckers') || ThrowUserError('auth_failure', {
@@ -91,7 +90,7 @@ if ($params->{save})
     {
         Bugzilla->dbh->do('DELETE FROM checkers WHERE id=?', undef, $id);
     }
-    print $cgi->redirect(-location => 'editcheckers.cgi');
+    print Bugzilla->cgi->redirect(-location => 'editcheckers.cgi');
     exit;
 }
 

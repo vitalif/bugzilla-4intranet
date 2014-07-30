@@ -41,7 +41,7 @@ my $vars = {};
 # so all actions point to the same page.
 $vars->{'doc_section'} = 'components.html';
 
-my $ARGS = { %{ $cgi->Vars } };
+my $ARGS = Bugzilla->input_params;
 
 #
 # Preliminary checks:

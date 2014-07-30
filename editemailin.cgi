@@ -1,5 +1,7 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
+# Preset field editor for incoming email
+# License: Dual-license GPL 3.0+ or MPL 1.1+
+# Author(s): Vitaliy Filippov <vitalif@mail.ru>
 
 use strict;
 use lib qw(. lib);
@@ -11,11 +13,11 @@ use Bugzilla::User;
 use Bugzilla::Util;
 use Mail::RFC822::Address qw(valid);
 
-my $cgi      = Bugzilla->cgi;
 my $dbh      = Bugzilla->dbh;
 my $user     = Bugzilla->login(LOGIN_REQUIRED);
 my $template = Bugzilla->template;
 my $userid   = $user->id;
+my $params   = Bugzilla->input_params;
 
 unless ($user->in_group('admin'))
 {
@@ -24,16 +26,6 @@ unless ($user->in_group('admin'))
         action => "edit",
         object => "e-mail parse parameters",
     });
-}
-
-my $params = {};
-for ($cgi->param)
-{
-    if (defined $cgi->param($_))
-    {
-        $params->{$_} = $cgi->param($_);
-        trick_taint($params->{$_});
-    }
 }
 
 my $vars = {
@@ -52,7 +44,7 @@ if ($params->{do})
         {
             $dbh->do("INSERT INTO `emailin_fields` SET `address`=?, `field`=?, `value`=?",
                 undef, $e, $f, $v);
-            print $cgi->redirect(-location => "editemailin.cgi");
+            print Bugzilla->cgi->redirect(-location => "editemailin.cgi");
             exit;
         }
         else
@@ -89,7 +81,7 @@ if ($params->{do})
                 join(",", ("(?,?)") x @$del) . ")", undef, map { @$_ } @$del
             );
         }
-        print $cgi->redirect(-location => "editemailin.cgi");
+        print Bugzilla->cgi->redirect(-location => "editemailin.cgi");
         exit;
     }
 }

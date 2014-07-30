@@ -472,7 +472,7 @@ sub page_before_template {
     
     # You can see this hook in action by loading page.cgi?id=example.html
     if ($page eq 'example.html') {
-        $vars->{cgi_variables} = { Bugzilla->cgi->Vars };
+        $vars->{cgi_variables} = Bugzilla->input_params;
     }
 }
 

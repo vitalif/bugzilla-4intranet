@@ -187,7 +187,7 @@ push @axis_fields, $measures->{$measure} unless $a{$measures->{$measure}};
 # Clone the params, so that Bugzilla::Search can modify them
 my $search = new Bugzilla::Search(
     'fields' => \@axis_fields,
-    'params' => { %{ $cgi->Vars } },
+    'params' => { %{ Bugzilla->input_params } },
 );
 my $query = $search->getSQL();
 $query =

@@ -44,6 +44,7 @@ sub get_login_info {
 
     my $username = trim(delete $params->{"Bugzilla_login"});
     my $password = delete $params->{"Bugzilla_password"};
+    Bugzilla->cgi->delete('Bugzilla_login', 'Bugzilla_password');
 
     if (!defined $username || !defined $password) {
         return { failure => AUTH_NODATA };

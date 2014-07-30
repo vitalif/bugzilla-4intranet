@@ -23,7 +23,7 @@ my $userid   = $user->id;
 my $template = Bugzilla->template;
 my $dbh      = Bugzilla->dbh;
 my $vars     = {};
-my $ARGS     = { %{ Bugzilla->cgi->Vars } };
+my $ARGS     = Bugzilla->input_params;
 
 my ($lastdays) = $ARGS->{lastdays} =~ /^(\d+)$/;
 $vars->{lastdays} = $lastdays ||= '1';

@@ -28,11 +28,10 @@ use constant BUG_DAYS => 92;
 use constant XLS_LISTNAME => '';
 
 my $user = Bugzilla->login(LOGIN_REQUIRED);
-my $cgi = Bugzilla->cgi;
 my $dbh = Bugzilla->dbh;
 my $template = Bugzilla->template;
 my $vars = {};
-my $ARGS = { %{ $cgi->Vars } };
+my $ARGS = Bugzilla->input_params;
 
 # Check permissions
 $user->in_group('importxls') ||
@@ -232,7 +231,7 @@ else
         # Send bugmail only after successful completion
         Bugzilla->send_mail;
         Bugzilla->dbh->bz_commit_transaction;
-        print $cgi->redirect(-location => 'importxls.cgi?'.http_build_query({
+        print Bugzilla->cgi->redirect(-location => 'importxls.cgi?'.http_build_query({
             result   => $r,
             bug_id   => $ids,
             listname => $listname,

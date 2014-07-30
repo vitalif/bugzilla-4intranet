@@ -89,7 +89,7 @@ sub parse_mail
     # to delivery status reports, so also check content-type.
     my $autosubmitted;
     if (lc($input_email->header('Auto-Submitted') || 'no') ne 'no' ||
-        $input_email->header('X-Auto-Response-Suppress') =~ /all/iso ||
+        ($input_email->header('X-Auto-Response-Suppress') || '') =~ /all/iso ||
         ($input_email->header('Content-Type') || '') =~ /delivery-status/iso)
     {
         debug_print("Rejecting email with Auto-Submitted = $autosubmitted");
@@ -113,8 +113,9 @@ sub parse_mail
     $fields{_subject} = $summary;
 
     # Add CC's from email Cc: header
-    $fields{newcc} = (join ', ', map { [ Email::Address->parse($_) ] -> [0] }
-        split /\s*,\s*/, $input_email->header('Cc')) || undef;
+    $fields{newcc} = $input_email->header('Cc');
+    $fields{newcc} = $fields{newcc} && (join ', ', map { [ Email::Address->parse($_) ] -> [0] }
+        split /\s*,\s*/, $fields{newcc}) || undef;
 
     my ($body, $attachments) = get_body_and_attachments($input_email);
     if (@$attachments)
@@ -127,6 +128,8 @@ sub parse_mail
     $body = remove_leading_blank_lines($body);
     Bugzilla::Hook::process("emailin-filter_body", { body => \$body });
     my @body_lines = split(/\r?\n/s, $body);
+
+    my $fields_by_name = { map { (lc($_->description) => $_->name, lc($_->name) => $_->name) } Bugzilla->get_fields({ obsolete => 0 }) };
 
     # If there are fields specified.
     if ($body =~ /^\s*@/s)
@@ -145,9 +148,9 @@ sub parse_mail
             # Otherwise, we stop parsing fields on the first blank line.
             $line = trim($line);
             last if !$line;
-            if ($line =~ /^\@(\w+)\s*(?:=|\s|$)\s*(.*)\s*/)
+            if ($line =~ /^\@\s*(.+?)\s*=\s*(.*)\s*/)
             {
-                $current_field = lc($1);
+                $current_field = $fields_by_name->{lc($1)} || lc($1);
                 $fields{$current_field} = $2;
             }
             else
@@ -202,6 +205,7 @@ sub post_bug
     my ($fields) = @_;
     debug_print('Posting a new bug...');
     my $bug;
+    $Bugzilla::Error::IN_EVAL++;
     eval
     {
         my ($retval, $non_conclusive_fields) =
@@ -216,6 +220,7 @@ sub post_bug
         }
         $bug = Bugzilla::Bug::create_or_update($fields);
     };
+    $Bugzilla::Error::IN_EVAL--;
     if (my $err = $@)
     {
         my $format = "\n\nIncoming mail format for entering bugs:\n\n\@field = value\n\@field = value\n...\n\n<Bug description...>\n";
@@ -406,6 +411,7 @@ sub die_handler
 # Use UTF-8 in Email::Reply to correctly quote the body
 my $crlf = "\x0d\x0a";
 my $CRLF = $crlf;
+undef *Email::Reply::_quote_body;
 *Email::Reply::_quote_body = sub
 {
     my ($self, $part) = @_;
@@ -499,20 +505,6 @@ unless ($user)
 }
 
 Bugzilla->set_user($user);
-
-if ($mail_fields->{group_ids})
-{
-    my @grp = $mail_fields->{group_ids} =~ /\d+/gso;
-    if (@grp)
-    {
-        Bugzilla->dbh->do(
-            "REPLACE INTO user_group_map (user_id, group_id, isbless, grant_type)
-            VALUES ".join(", ", ("(?,?,0,0)") x scalar @grp),
-            undef, map { $user->id, $_ } @grp
-        );
-    }
-    delete $mail_fields->{group_ids};
-}
 
 my ($bug, $comment);
 if ($mail_fields->{bug_id})

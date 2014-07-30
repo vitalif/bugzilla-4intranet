@@ -1131,9 +1131,10 @@ sub get_content_type
 # CustIS Bug 68919 - Create multiple attachments to bug
 sub add_multiple
 {
-    my ($bug, $cgi) = @_;
+    my ($bug) = @_;
     my $multiple = {};
-    my $params = $cgi->Vars;
+    my $params = Bugzilla->input_params;
+    my $cgi = Bugzilla->cgi;
     my ($multi, $key);
     for (keys %$params)
     {

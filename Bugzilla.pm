@@ -491,10 +491,8 @@ sub input_params
     }
     return $cache->{input_params} if defined $cache->{input_params};
 
-    # Making this scalar makes it a tied hash to the internals of $cgi,
-    # so if a variable is changed, then it actually changes the $cgi object
-    # as well.
-    $cache->{input_params} = $class->cgi->Vars;
+    # Throw away the tie.
+    $cache->{input_params} = { %{ $class->cgi->Vars } };
     return $cache->{input_params};
 }
 
@@ -974,6 +972,7 @@ sub fieldvaluecontrol
         my $has = {};
         for (@$rows)
         {
+            next if !defined $_->{dep_field_id}; # FIXME: means fieldvaluecontrol table has inconsistent data
             if ($_->{value_id} > 0)
             {
                 # Show value_id if value_field==visibility_value_id

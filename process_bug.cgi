@@ -70,7 +70,7 @@ my $cgi = Bugzilla->cgi;
 my $dbh = Bugzilla->dbh;
 my $template = Bugzilla->template;
 my $vars = {};
-my $ARGS = { %{ $cgi->Vars } };
+my $ARGS = Bugzilla->input_params;
 #my $ARGS = $cgi->VarHash; # FIXME (see lines with "FIXME array[]")
 
 ######################################################################
@@ -637,7 +637,7 @@ foreach my $bug (@bug_objects)
 # CustIS Bug 68919 - Create multiple attachments to bug
 if (@bug_objects == 1)
 {
-    Bugzilla::Attachment::add_multiple($first_bug, $cgi);
+    Bugzilla::Attachment::add_multiple($first_bug);
 }
 
 $dbh->bz_commit_transaction();

@@ -42,8 +42,7 @@ use Bugzilla::Field;
 use Bugzilla::Install::Util qw(vers_cmp);
 
 my $cgi = Bugzilla->cgi;
-# Copy hash and throw away tied reference returned by Vars()
-my $params = { %{ $cgi->Vars } };
+my $params = Bugzilla->input_params;
 my $dbh = Bugzilla->dbh;
 my $template = Bugzilla->template;
 my $vars = {};

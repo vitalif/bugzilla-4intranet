@@ -49,7 +49,7 @@ my $vars = {};
 # improved and each action has its own section.
 $vars->{doc_section} = 'products.html';
 
-my $ARGS = { %{ $cgi->Vars } };
+my $ARGS = Bugzilla->input_params;
 
 $user->in_group('editcomponents') ||
     scalar(@{$user->get_editable_products}) ||

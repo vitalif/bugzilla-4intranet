@@ -13,7 +13,7 @@ use Bugzilla;
 use Bugzilla::Util;
 use Bugzilla::Constants;
 
-my $args = { %{ Bugzilla->cgi->Vars } };
+my $args = Bugzilla->input_params;
 my $user = Bugzilla->login(~LOGIN_REQUIRED);
 
 my $ctype = 'text/javascript'.(Bugzilla->params->{utf8} ? '; charset=utf-8' : '');

@@ -208,8 +208,7 @@ for (keys %$ARGS)
 
 if ($is_multiple)
 {
-    my $send_attrs = {};
-    Bugzilla::Attachment::add_multiple($bug, $cgi, $send_attrs);
+    Bugzilla::Attachment::add_multiple($bug);
 }
 elsif (defined($cgi->upload('data')) || $ARGS->{attachurl} ||
     $ARGS->{text_attachment} || $ARGS->{base64_content})

@@ -79,6 +79,7 @@ eval { require 'Lingua/Stem/Snowball.pm' };
 
 sub is_tainted
 {
+    no warnings;
     return !eval { join('', @_), kill 0; 1; };
 }
 
@@ -452,9 +453,9 @@ sub makeCitations
     for (split /\n/, $input)
     {
         s/^((?:\s*&gt;)+ ?)?//s;
-        $re = ($1 =~ tr/&/&/);
         if ($_)
         {
+            $re = (($1 || '') =~ tr/&/&/);
             $text .= ("<div class=\"quote\">\n" x ($re-$last)) .
                 ("</div>\n" x ($last-$re)) . $_ . "\n";
             $last = $re;

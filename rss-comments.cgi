@@ -22,7 +22,7 @@ my $vars      = {};
 
 my $template  = Bugzilla->template;
 my $dbh       = Bugzilla->dbh;
-my $ARGS      = { %{ Bugzilla->cgi->Vars } };
+my $ARGS      = Bugzilla->input_params;
 
 $vars->{buginfo} = $ARGS->{buginfo};
 

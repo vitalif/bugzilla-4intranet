@@ -9,9 +9,8 @@ use Bugzilla::Util qw(trim html_quote);
 use Scalar::Util qw(blessed);
 use Bugzilla::Error;
 
-my $cgi = Bugzilla->cgi;
 my $user = Bugzilla->login;
-my $args = { %{ $cgi->Vars } };
+my $args = Bugzilla->input_params;
 my $vars = {};
 
 # Default $Layout settings

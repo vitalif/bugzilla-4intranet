@@ -166,14 +166,6 @@ sub is_super_user
     return $self eq $SUPERUSER;
 }
 
-sub create
-{
-    my $self = shift;
-    my ($params) = @_;
-    $params->{is_enabled} = !defined $params->{disabledtext} || $params->{disabledtext} eq '';
-    $self->SUPER::create($params);
-}
-
 sub update
 {
     my $self = shift;
@@ -1283,6 +1275,7 @@ sub match {
 sub match_field {
     my $fields       = shift;   # arguments as a hash
     my $data         = shift || Bugzilla->input_params; # hash to look up fields in
+    my $cgi          = $data eq Bugzilla->input_params ? Bugzilla->cgi : undef;
     my $behavior     = shift || 0; # A constant that tells us how to act
     my $matches      = {};      # the values sent to the template
     my $matchsuccess = 1;       # did the match fail?
@@ -1334,6 +1327,7 @@ sub match_field {
                         # has been deleted (may occur in race conditions).
                         delete $expanded_fields->{$field_name};
                         delete $data->{$field_name};
+                        $cgi->delete($field_name) if $cgi;
                     }
                 }
             }
@@ -1363,12 +1357,14 @@ sub match_field {
             # We will repopulate it later if a match is found, else it must
             # be set to an empty string so that the field remains defined.
             $data->{$field} = '';
+            $cgi->param($field, '') if $cgi;
         }
         elsif ($fields->{$field}->{'type'} eq 'multi') {
             @queries =  split(/[\s,;]+/, $raw_field);
             # We will repopulate it later if a match is found, else it must
             # be undefined.
             delete $data->{$field};
+            $cgi->delete($field) if $cgi;
         }
         else {
             # bad argument
@@ -1440,9 +1436,11 @@ sub match_field {
         # field was defined or not (and it was if we came here).
         if ($fields->{$field}->{'type'} eq 'single') {
             $data->{$field} = $logins[0] || '';
+            $cgi->param($field, $logins[0] || '') if $cgi;
         }
         elsif (scalar @logins) {
             $data->{$field} = \@logins;
+            $cgi->param($field, @logins) if $cgi;
         }
     }
 
@@ -1462,8 +1460,6 @@ sub match_field {
         return wantarray ? ($retval, \@non_conclusive_fields) : $retval;
     }
 
-    my $template = Bugzilla->template;
-    my $cgi = Bugzilla->cgi;
     my $vars = {};
 
     $vars->{'script'}        = $cgi->url(-relative => 1); # for self-referencing URLs
@@ -1472,10 +1468,8 @@ sub match_field {
     $vars->{'matchsuccess'}  = $matchsuccess; # continue or fail
     $vars->{'matchmultiple'} = $match_multiple;
 
-    $cgi->send_header();
-
-    $template->process("global/confirm-user-match.html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
+    Bugzilla->template->process("global/confirm-user-match.html.tmpl", $vars)
+        || ThrowTemplateError(Bugzilla->template->error());
     exit;
 }
 
@@ -1761,13 +1755,17 @@ sub get_userlist
 
 sub create
 {
-    my $invocant = shift;
-    my $class = ref($invocant) || $invocant;
+    my $class = shift;
+    $class = ref($class) || $class;
+
+    my ($params) = @_;
     my $dbh = Bugzilla->dbh;
+
+    $params->{is_enabled} = !defined $params->{disabledtext} || $params->{disabledtext} eq '';
 
     $dbh->bz_start_transaction();
 
-    my $user = $class->SUPER::create(@_);
+    my $user = $class->SUPER::create($params);
 
     # Turn on all email for the new user
     foreach my $rel (RELATIONSHIPS) {

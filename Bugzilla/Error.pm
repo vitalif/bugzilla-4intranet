@@ -61,7 +61,7 @@ sub _error_message
     $Data::Dumper::Indent = 1;
     # Don't try to dump upload data, dump upload info instead
     my $cgi = Bugzilla->cgi;
-    my $cgivars = { $cgi->Vars };
+    my $cgivars = Bugzilla->input_params;
     for (keys %$cgivars)
     {
         $cgivars->{$_} = $cgi->uploadInfo($cgivars->{$_}) if $cgi->upload($_);

@@ -29,5 +29,5 @@ my ($vars, $page) = @args{qw(vars page_id)};
 
 # You can see this hook in action by loading page.cgi?id=example.html
 if ($page eq 'example.html') {
-    $vars->{cgi_variables} = { Bugzilla->cgi->Vars };
+    $vars->{cgi_variables} = Bugzilla->input_params;
 }

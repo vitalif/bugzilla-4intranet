@@ -59,7 +59,7 @@ my $cgi = Bugzilla->cgi;
 my $dbh = Bugzilla->dbh;
 my $template = Bugzilla->template;
 my $vars = {};
-my $ARGS = { %{ $cgi->Vars } };
+my $ARGS = Bugzilla->input_params;
 my $query_format = $ARGS->{query_format} || 'advanced';
 
 # We have to check the login here to get the correct footer if an error is

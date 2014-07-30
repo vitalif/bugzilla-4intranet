@@ -15,7 +15,7 @@ use Bugzilla::Field;
 use Bugzilla::Field::Choice;
 use Bugzilla::Token;
 
-my $ARGS = { %{ Bugzilla->cgi->Vars } };
+my $ARGS = Bugzilla->input_params;
 my $template = Bugzilla->template;
 my $vars = {};
 

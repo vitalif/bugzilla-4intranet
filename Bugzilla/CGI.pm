@@ -435,42 +435,6 @@ sub url_is_attachment_base
     return ($self->self_url =~ $regex) ? 1 : 0;
 }
 
-##########################
-# Vars TIEHASH Interface #
-##########################
-
-# Fix the TIEHASH interface (scalar $cgi->Vars) to return and accept arrayrefs.
-sub STORE
-{
-    my $self = shift;
-    my ($param, $value) = @_;
-    if (defined $value and ref $value eq 'ARRAY')
-    {
-        return $self->param(-name => $param, -value => $value);
-    }
-    return $self->SUPER::STORE(@_);
-}
-
-sub FETCH
-{
-    my ($self, $param) = @_;
-    return $self if $param eq 'CGI'; # CGI.pm did this, so we do too.
-    my @result = $self->param($param);
-    return undef if !scalar(@result);
-    return $result[0] if scalar(@result) == 1;
-    return \@result;
-}
-
-# For the Vars TIEHASH interface: the normal CGI.pm DELETE doesn't return 
-# the value deleted, but Perl's "delete" expects that value.
-sub DELETE
-{
-    my ($self, $param) = @_;
-    my $value = $self->FETCH($param);
-    $self->delete($param);
-    return $value;
-}
-
 # cookie() with UTF-8 support...
 sub cookie
 {
@@ -532,7 +496,7 @@ sub VarHash
     my $self = shift;
     return $self->{_VarHash} if $self->{_VarHash};
     my ($force_array) = @_;
-    my $args = { %{ $self->Vars } };
+    my $args = Bugzilla->input_params;
     my $filtered = {};
     for my $key (keys %$args)
     {

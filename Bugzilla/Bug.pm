@@ -271,7 +271,7 @@ use constant FIELD_MAP => {
 use constant SCALAR_FORMAT => { map { $_ => 1 } qw(
     alias bug_file_loc bug_id dup_id cclist_accessible creation_ts deadline
     delta_ts estimated_time everconfirmed remaining_time reporter_accessible
-    short_desc status_whiteboard keywords
+    short_desc status_whiteboard keywords votes
 ) };
 
 use constant ARRAY_FORMAT => { map { $_ => 1 } qw(dependson blocked cc) };
@@ -671,7 +671,7 @@ sub prepare_mail_results
     {
         $type = 'created';
     }
-    elsif ($self->{added_comments} && grep { $_->{type} == CMT_POPULAR_VOTES } @{$self->{added_comments}})
+    elsif ($self->{added_comments} && grep { ($_->{type} || CMT_NORMAL) == CMT_POPULAR_VOTES } @{$self->{added_comments}})
     {
         $type = 'votes';
     }
@@ -805,7 +805,7 @@ sub get_dependent_check_order
         my @a;
         while (@d)
         {
-            $f = $check{shift @d};
+            $f = $check{shift(@d)||''};
             if ($f)
             {
                 unshift @a, $f;
@@ -1087,7 +1087,7 @@ sub _check_resolution
         ThrowUserError('missing_resolution', { status => $self->status->name });
     }
 
-    if (!$self->{_old_self} && $self->resolution || $self->{_old_self} && $self->resolution != $self->{_old_self}->resolution)
+    if (!$self->{_old_self} && $self->resolution || $self->{_old_self} && ($self->resolution || 0) != ($self->{_old_self}->resolution || 0))
     {
         # Check noresolveonopenblockers.
         if (Bugzilla->params->{noresolveonopenblockers} && $self->resolution && @{$self->dependson})
@@ -1928,7 +1928,7 @@ sub _set_component
         $self->{_unknown_dependent_values}->{component} = [ $name ];
         return undef;
     }
-    if ($self->component_id != $obj->id)
+    if (($self->component_id || 0) != $obj->id)
     {
         $self->{component_id}  = $obj->id;
         $self->{component}     = $obj->name;
@@ -1966,7 +1966,7 @@ sub _set_dup_id
     my ($self, $dupe_of) = @_;
 
     $dupe_of = defined $dupe_of ? trim($dupe_of) : undef;
-    if ($dupe_of eq $self->dup_id)
+    if (($dupe_of || 0) == ($self->dup_id || 0))
     {
         return undef;
     }
@@ -2214,7 +2214,7 @@ sub _set_product
     # can_enter_product already does everything that check_product
     # would do for us, so we don't need to use it.
     my $product = new Bugzilla::Product({ name => $name });
-    if ($self->product_id != $product->id)
+    if (($self->product_id || 0) != $product->id)
     {
         $self->{product_id}  = $product->id;
         $self->{product}     = $product->name;
@@ -2429,7 +2429,7 @@ sub _set_datetime_field
 
     # Empty datetimes are empty strings or strings only containing
     # 0's, whitespace, and punctuation.
-    if ($date_time =~ /^[\s0[:punct:]]*$/)
+    if (($date_time || '') =~ /^[\s0[:punct:]]*$/)
     {
         return $self->{$field} = undef;
     }
@@ -2460,7 +2460,7 @@ sub _set_default_field
 sub _set_numeric_field
 {
     my ($self, $text, $field) = @_;
-    ($text) = $text =~ /^(-?\d+(\.\d+)?)$/so;
+    ($text) = (($text || 0) =~ /^(-?\d+(\.\d+)?)$/so);
     return $text || 0;
 }
 
@@ -2979,7 +2979,7 @@ sub dup_id
 sub deadline
 {
     my ($self) = @_;
-    my $s = $self->{deadline};
+    my $s = $self->{deadline} || '';
     $s =~ s/\s+.*//s;
     return $s eq '0000-00-00' ? '' : $s;
 }
@@ -3556,8 +3556,8 @@ sub ValidateTime
 {
     my ($time, $field) = @_;
 
-    $time =~ tr/,/./;
     $time = trim($time) || 0;
+    $time =~ tr/,/./;
 
     if ($time =~ /^(-?)(\d+):(\d+)$/so)
     {
@@ -4335,7 +4335,7 @@ sub get_string
     else
     {
         warn "Don't know how to format field in text: $f";
-        next;
+        return '';
     }
     return $value;
 }

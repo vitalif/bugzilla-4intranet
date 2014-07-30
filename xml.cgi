@@ -15,9 +15,7 @@ use Bugzilla::Constants;
 use Bugzilla::Util;
 use Bugzilla::WebService::Server::XMLSimple;
 
-my $cgi = Bugzilla->cgi;
-
-my $args = { %{ $cgi->Vars } }; # throw away the tied hash
+my $args = Bugzilla->input_params;
 my $method = $args->{method};
 
 sub addmsg
@@ -42,13 +40,13 @@ if (!$method)
     # Convert comma/space separated elements into separate params
     my @ids = ();
 
-    if (defined $cgi->param('id')) {
-        @ids = split (/[, ]+/, $cgi->param('id'));
+    if (defined $args->{id}) {
+        @ids = ref $args->{id} ? @{$args->{id}} : split(/[, ]+/, $args->{id});
     }
 
     my $ids = join('', map { $_ = "&id=" . $_ } @ids);
 
-    print $cgi->redirect("show_bug.cgi?ctype=xml$ids");
+    print Bugzilla->cgi->redirect("show_bug.cgi?ctype=xml$ids");
 }
 else
 {

@@ -20,8 +20,7 @@ use JSON;
 
 my $gc_prob = 0.01;
 
-my $cgi  = Bugzilla->cgi;
-my $args = { %{ $cgi->Vars } };
+my $args = Bugzilla->input_params;
 my $check = $args->{ga_check} ? 1 : 0; # если 1 и пользователь не вошёл, входа не требовать
 
 # требуем входа, если пришёл пользователь (в запросе нет ключа) и в запросе не сказано "не требовать входа"
@@ -45,7 +44,7 @@ if (($id = $args->{ga_id}) && !$args->{ga_client})
     {
         trick_taint($key);
         $dbh->do("REPLACE INTO globalauth SET id=?, secret=?, expire=?", undef, $id, $key, time+$expire);
-        $cgi->send_header;
+        Bugzilla->cgi->send_header;
         print "1"; # потенциально здесь любой JSON
         exit;
     }
@@ -66,7 +65,7 @@ if (($id = $args->{ga_id}) && !$args->{ga_client})
             if (!$url)
             {
                 # ошибко :(
-                $cgi->send_header;
+                Bugzilla->cgi->send_header;
                 print "Global Auth: No ga_url in request for ID=$id";
                 warn "Global Auth: No ga_url in request for ID=$id";
                 exit;
@@ -125,7 +124,7 @@ if (($id = $args->{ga_id}) && !$args->{ga_client})
                 $url->query_param(ga_res => $res->code);
             }
             $dbh->do("DELETE FROM globalauth WHERE id=?", undef, $id);
-            print $cgi->redirect(-location => "$url");
+            print Bugzilla->cgi->redirect(-location => "$url");
             exit;
         }
         else
