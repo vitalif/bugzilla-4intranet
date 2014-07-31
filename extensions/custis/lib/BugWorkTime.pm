@@ -381,7 +381,8 @@ sub HandleSuperWorktime
                 Bugzilla->dbh->bz_rollback_transaction();
                 Checkers::show_checker_errors();
             }
-            print Bugzilla->cgi->redirect(-location => $cgi->self_url);
+            delete $args->{token};
+            print Bugzilla->cgi->redirect(-location => 'buglist.cgi?'.http_build_query($args));
             exit;
         }
     }
