@@ -478,14 +478,18 @@ sub STATIC_COLUMNS
         'flagtypes.name' => {
             name =>
                 "(SELECT ".$dbh->sql_group_concat($dbh->sql_string_concat('col_ft.name', 'col_f.status'), "', '").
-                " `flagtypes` FROM flags col_f JOIN flagtypes col_ft ON col_f.type_id=col_ft.id".
+                " flagtypes FROM flags col_f JOIN flagtypes col_ft ON col_f.type_id=col_ft.id".
                 " WHERE col_f.bug_id=bugs.bug_id)",
             title => "Flags and Requests",
+        },
+        keywords => {
+            name => "(SELECT ".$dbh->sql_group_concat('k.name', "', '")." FROM keywords kb, keyworddefs k".
+                " WHERE kb.bug_id=bugs.bug_id AND kb.keywordid=k.id)",
         },
         flags => {
             name =>
                 "(SELECT ".$dbh->sql_group_concat($dbh->sql_string_concat('col_ft.name', 'col_f.status'), "', '").
-                " `flags` FROM flags col_f JOIN flagtypes col_ft ON col_f.type_id=col_ft.id".
+                " flags FROM flags col_f JOIN flagtypes col_ft ON col_f.type_id=col_ft.id".
                 " WHERE col_f.bug_id=bugs.bug_id AND (col_ft.is_requesteeble=0 OR col_ft.is_requestable=0))",
             title => "Flags",
         },
@@ -497,7 +501,7 @@ sub STATIC_COLUMNS
                         'CASE WHEN col_p.login_name IS NULL THEN \'\' ELSE '.
                         $dbh->sql_string_concat("' '", 'col_p.login_name').' END'
                     ), "', '"
-                )." `requests` FROM flags col_f JOIN flagtypes col_ft ON col_f.type_id=col_ft.id".
+                )." requests FROM flags col_f JOIN flagtypes col_ft ON col_f.type_id=col_ft.id".
                 " INNER JOIN profiles col_p ON col_f.requestee_id=col_p.userid".
                 " WHERE col_f.bug_id=bugs.bug_id AND col_ft.is_requesteeble=1 AND col_ft.is_requestable=1)",
             title => "Requests",
@@ -506,14 +510,14 @@ sub STATIC_COLUMNS
             name => "(SELECT ".$dbh->sql_group_concat((Bugzilla->user->id
                 ? 'profiles.login_name'
                 : $dbh->sql_string_until('profiles.login_name', $dbh->quote('@'))), "','").
-                " `cc` FROM cc, profiles WHERE cc.bug_id=bugs.bug_id AND cc.who=profiles.userid)",
+                " cc FROM cc, profiles WHERE cc.bug_id=bugs.bug_id AND cc.who=profiles.userid)",
         },
         dependson => {
-            name  => "(SELECT ".$dbh->sql_group_concat('bugblockers.dependson', "','")." `dependson` FROM dependencies bugblockers WHERE bugblockers.blocked=bugs.bug_id)",
+            name  => "(SELECT ".$dbh->sql_group_concat('bugblockers.dependson', "','")." dependson FROM dependencies bugblockers WHERE bugblockers.blocked=bugs.bug_id)",
             title => "Bug dependencies",
         },
         blocked => {
-            name  => "(SELECT ".$dbh->sql_group_concat('bugblocked.blocked', "','")." `blocked` FROM dependencies bugblocked WHERE bugblocked.dependson=bugs.bug_id)",
+            name  => "(SELECT ".$dbh->sql_group_concat('bugblocked.blocked', "','")." blocked FROM dependencies bugblocked WHERE bugblocked.dependson=bugs.bug_id)",
             title => "Bugs blocked",
         },
         deadline => {
@@ -591,6 +595,7 @@ sub STATIC_COLUMNS
         my $id = $field->name;
         my $type = Bugzilla::Field::Choice->type($field);
         $columns->{$id}->{title} = $field->description;
+        # FIXME Maybe enable obsolete fields in search? Or do it optionally?
         $columns->{$id}->{nobuglist} = $field->obsolete;
         $columns->{$id}->{nocharts} = $field->obsolete;
         next if $id eq 'product' || $id eq 'component' || $id eq 'classification';
