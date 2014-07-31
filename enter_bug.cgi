@@ -313,7 +313,7 @@ if ($cloned_bug_id)
     }
     elsif ($ARGS->{cc})
     {
-        @cc = @{ Bugzilla::Object::match('Bugzilla::User', { login_name => [ split /[\s,]+/, $ARGS->{cc} ] }) };
+        @cc = @{ Bugzilla::User->match({ login_name => [ split /[\s,]+/, $ARGS->{cc} ] }) };
     }
     elsif (@{$cloned_bug->cc_users})
     {

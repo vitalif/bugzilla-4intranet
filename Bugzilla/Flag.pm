@@ -1011,29 +1011,25 @@ sub notify {
     # Is there someone to notify?
     return unless ($addressee || $cc_list);
 
-# FIXME УБРАТЬ
     # If the target bug is restricted to one or more groups, then we need
     # to make sure we don't send email about it to unauthorized users
     # on the request type's CC: list, so we have to trawl the list for users
     # not in those groups or email addresses that don't have an account.
-    my @bug_in_groups = grep {$_->{'ison'} || $_->{'mandatory'}} @{$bug->groups};
-    my $attachment_is_private = $attachment ? $attachment->isprivate : undef;
+    my $attachment_is_private = $attachment && $attachment->isprivate;
 
     my %recipients;
-    foreach my $cc (split(/[, ]+/, $cc_list)) {
-        my $ccuser = new Bugzilla::User({ name => $cc });
-        next if (scalar(@bug_in_groups) && (!$ccuser || !$ccuser->can_see_bug($bug->bug_id)));
-        next if $attachment_is_private && (!$ccuser || !$ccuser->is_insider);
-        # Prevent duplicated entries due to case sensitivity.
-        $cc = $ccuser ? $ccuser->email : $cc;
-        $recipients{$cc} = $ccuser;
+    foreach my $ccuser (@{ Bugzilla::User->match({ login_name => [ split /[, ]+/, $cc_list ] }) })
+    {
+        next if !$ccuser->can_see_bug($bug->bug_id);
+        next if $attachment_is_private && !$ccuser->is_insider;
+        # Prevent duplicated entries.
+        $recipients{$ccuser->email} = $ccuser;
     }
 
     # Only notify if the addressee is allowed to receive the email.
     if ($addressee && $addressee->email_enabled) {
         $recipients{$addressee->email} = $addressee;
     }
-# /УБРАТЬ
 
     # Process and send notification for each recipient.
     # If there are users in the CC list who don't have an account,

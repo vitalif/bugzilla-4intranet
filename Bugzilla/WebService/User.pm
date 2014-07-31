@@ -203,7 +203,7 @@ sub get {
         $limit = $params->{'maxusermatches'} + 1;
     }
     foreach my $match_string (@{ $params->{'match'} || [] }) {
-        my $matched = Bugzilla::User::match($match_string, $limit, $params->{excludedisabled} && 1);
+        my $matched = Bugzilla::User::match_name($match_string, $limit, $params->{excludedisabled} && 1);
         foreach my $user (@$matched) {
             if (!$unique_users{$user->id}) {
                 push(@user_objects, $user);

@@ -1242,7 +1242,7 @@ sub init
                 if ($name && lc $name ne '%user%' && !login_to_id($name))
                 {
                     # Do a match on user login or name
-                    my $u = Bugzilla::User::match($name, 1)->[0];
+                    my $u = Bugzilla::User::match_name($name, 1)->[0];
                     if ($u)
                     {
                         $name = $u->login;
@@ -2042,7 +2042,7 @@ sub changed
     my $who = $v->{who};
     if ($who)
     {
-        $who = $who eq '%user%' ? $self->{user} : Bugzilla::User::match($who, 1)->[0];
+        $who = $who eq '%user%' ? $self->{user} : Bugzilla::User::match_name($who, 1)->[0];
         if ($who)
         {
             $Bugzilla::Search::interval_who = $who;

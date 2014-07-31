@@ -185,7 +185,7 @@ sub ParseWtDate
 sub MatchWtUser
 {
     my ($wt_user) = @_;
-    my $matches = Bugzilla::User::match($wt_user);
+    my $matches = Bugzilla::User::match_name($wt_user);
     if (scalar(@$matches) != 1)
     {
         Bugzilla->cgi->delete('worktime_user');

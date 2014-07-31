@@ -50,7 +50,7 @@ if (@add_members || @add_bless || @rm_members || @rm_bless)
     if (@add_members || @add_bless)
     {
         my $users = { map { lc($_->login) => $_ } @{
-            Bugzilla::Object::match('Bugzilla::User', { login_name => [ @add_members, @add_bless ] })
+            Bugzilla::User->match({ login_name => [ @add_members, @add_bless ] })
         } };
         for (\@add_members, \@add_bless)
         {

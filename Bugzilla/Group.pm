@@ -191,7 +191,7 @@ sub users_in_group
         }
     }
 
-    my $users = Bugzilla::Object::match('Bugzilla::User', {
+    my $users = Bugzilla::User->match({
         Bugzilla::User->ID_FIELD => [ keys %$res ],
         is_enabled => 1,
     });

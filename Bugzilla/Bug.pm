@@ -422,9 +422,7 @@ sub match
             my $names = $params->{$field};
             my $type = $translate_fields{$field};
             my $param = $type eq 'Bugzilla::User' ? 'login_name' : 'name';
-            # We call Bugzilla::Object::match directly to avoid the
-            # Bugzilla::User::match implementation which is different.
-            my $objects = Bugzilla::Object::match($type, { $param => $names });
+            my $objects = $type->match({ $param => $names });
             push(@ids, map { $_->id } @$objects);
         }
         # You can also specify ids directly as arguments to this function,
@@ -1891,7 +1889,7 @@ sub _set_cc
 
     # Allow comma-separated input as well as arrayrefs.
     $ccs = [ grep { $_ } split /[\s,]+/, trim($ccs) ] if !ref $ccs;
-    my $users = Bugzilla::Object::match('Bugzilla::User', { login_name => $ccs });
+    my $users = Bugzilla::User->match({ login_name => $ccs });
     $ccs = { map { lc($_) => 1 } @$ccs };
     for (@$users)
     {

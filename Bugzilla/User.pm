@@ -1179,7 +1179,7 @@ sub can_bless {
     return grep($_->id == $group_id, @{ $self->bless_groups }) ? 1 : 0;
 }
 
-sub match {
+sub match_name {
     # Generates a list of users whose login name (email address) or real name
     # matches a substring or wildcard.
     # This is also called if matches are disabled (for error checking), but
@@ -1386,7 +1386,7 @@ sub match_field {
 
         my @logins;
         for my $query (@queries) {
-            my $users = match(
+            my $users = match_name(
                 $query,   # match string
                 $limit,   # match limit
                 1         # exclude_disabled
@@ -2517,7 +2517,7 @@ the two passwords match.
 
 =item B<Description>
 
-Wrapper for the C<match()> function.
+Wrapper for the C<match_name()> function.
 
 =item B<Params>
 
