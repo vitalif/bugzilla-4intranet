@@ -101,7 +101,7 @@
     <select name="cc_group">
       <option value="">---</option>
       [% FOREACH group = all_groups %]
-      <option value="[% group | html %]"[% ' selected="selected"' IF group == product.cc_group %]>[% group | html %]</option>
+      <option value="[% group.name | html %]"[% ' selected="selected"' IF group.id == product.cc_group %]>[% group.name | html %]</option>
       [% END %]
     </select>
     <br />

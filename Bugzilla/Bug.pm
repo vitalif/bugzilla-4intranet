@@ -1221,7 +1221,7 @@ sub save_cc
         $self->{restricted_cc} = [];
         for (values %new_cc)
         {
-            if (!$_->in_group($ccg))
+            if (!$_->in_group_id($ccg))
             {
                 delete $new_cc{$_->id};
                 push @{$self->{restricted_cc}}, $_;
@@ -1232,7 +1232,7 @@ sub save_cc
             Bugzilla->add_result_message({
                 message => 'cc_list_restricted',
                 restricted_cc => [ map { $_->login } @{ $self->{restricted_cc} } ],
-                cc_restrict_group => $self->product_obj->cc_group,
+                cc_restrict_group => $self->product_obj->cc_group_obj->name,
             });
         }
         else
@@ -1586,7 +1586,7 @@ sub check_strict_isolation
     {
         for (qw(assigned_to reporter qa_contact))
         {
-            if ($self->$_ && !$self->$_->in_group($ccg))
+            if ($self->$_ && !$self->$_->in_group_id($ccg))
             {
                 ThrowUserError('cc_group_restriction', { user => $self->$_->login });
             }
@@ -2289,7 +2289,7 @@ sub _set_reporter
         # FIXME Use strict_isolation
         # Clean reporter when moving external bug into internal product with protected CC group
         my $ccg = $self->product_obj->cc_group;
-        if ($ccg && !$reporter->in_group($ccg))
+        if ($ccg && !$reporter->in_group_id($ccg))
         {
             ThrowUserError('cc_group_restriction', { user => $reporter->login });
         }

@@ -683,11 +683,10 @@ sub update_table_definitions
     _fix_flagclusions_indexes();
 
     # New product fields
-    $dbh->bz_add_column('products', wiki_url => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"});
-    $dbh->bz_add_column('products', notimetracking => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0});
-    $dbh->bz_add_column('products', extproduct => {TYPE => 'INT4'});
-    $dbh->bz_add_column('products', cc_group => {TYPE => 'varchar(255)'});
-    $dbh->bz_alter_column('products', cc_group => {TYPE => 'varchar(255)'});
+    $dbh->bz_add_column('products', 'wiki_url');
+    $dbh->bz_add_column('products', 'notimetracking');
+    $dbh->bz_add_column('products', 'extproduct');
+    $dbh->bz_add_column('products', 'cc_group');
 
     # New component fields
     $dbh->bz_add_column('components', default_version => {TYPE => 'INT4'});
@@ -726,15 +725,14 @@ sub update_table_definitions
     if ($dbh->selectrow_array('SELECT id FROM products WHERE description LIKE \'%[CC:%\' LIMIT 1'))
     {
         $dbh->do('
-UPDATE products
-SET
-    cc_group = trim(
+UPDATE products p SET
+    cc_group = (SELECT g.id FROM groups g WHERE g.name=trim(
         substr(
-            description,
-            locate(\'[CC:\', description)+4,
-            locate(\']\', description, locate(\'[CC:\', description)+4) - locate(\'[CC:\', description)-4
+            p.description,
+            locate(\'[CC:\', p.description)+4,
+            locate(\']\', p.description, locate(\'[CC:\', p.description)+4) - locate(\'[CC:\', p.description)-4
         )
-    ),
+    )),
     description = trim(
         concat(
             substr(description, 1, locate(\'[CC:\', description)-1),
@@ -796,10 +794,13 @@ WHERE description LIKE\'%[CC:%\'');
     }
 
     # Add is_assigned and is_confirmed columns to bug_status table
-    $dbh->bz_add_column('bug_status', 'is_assigned');
-    $dbh->bz_add_column('bug_status', 'is_confirmed');
-    $dbh->do('UPDATE bug_status SET is_assigned=0 WHERE NOT value=?', undef, 'ASSIGNED');
-    $dbh->do('UPDATE bug_status SET is_confirmed=0 WHERE value=?', undef, 'UNCONFIRMED');
+    if (!$dbh->bz_column_info('bug_status', 'is_assigned'))
+    {
+        $dbh->bz_add_column('bug_status', 'is_assigned');
+        $dbh->bz_add_column('bug_status', 'is_confirmed');
+        $dbh->do('UPDATE bug_status SET is_assigned=0 WHERE NOT value=?', undef, 'ASSIGNED');
+        $dbh->do('UPDATE bug_status SET is_confirmed=0 WHERE value=?', undef, 'UNCONFIRMED');
+    }
 
     # Move fieldvaluecontrol.is_default to field_defaults
     if ($dbh->bz_column_info(fieldvaluecontrol => 'is_default'))
@@ -862,6 +863,13 @@ WHERE description LIKE\'%[CC:%\'');
         {
             $dbh->do('UPDATE rep_platform SET ua_regex=? WHERE value=?', undef, $_->{ua_regex}, $_->{value});
         }
+    }
+
+    # Change cc_group to store id
+    if ($dbh->bz_column_info('products', 'cc_group')->{TYPE} ne 'INT4')
+    {
+        $dbh->do('UPDATE products p SET cc_group=(SELECT g.id FROM groups g WHERE g.name=p.cc_group)');
+        $dbh->bz_alter_column('products', 'cc_group');
     }
 
     _move_old_defaults($old_params);

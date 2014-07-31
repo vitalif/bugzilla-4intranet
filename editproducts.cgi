@@ -147,7 +147,7 @@ if ($action eq 'add')
         $vars->{classifications} = [ Bugzilla::Classification->get_all ];
     }
     $vars->{token} = issue_session_token('add_product');
-    $vars->{all_groups} = [ map { $_->name } Bugzilla::Group->get_all ];
+    $vars->{all_groups} = [ Bugzilla::Group->get_all ];
 
     $template->process('admin/products/create.html.tmpl', $vars)
         || ThrowTemplateError($template->error());
@@ -283,7 +283,7 @@ if ($action eq 'edit' || (!$action && $product_name))
     }
     $vars->{product} = $product;
     $vars->{token} = issue_session_token('edit_product');
-    $vars->{all_groups} = [ map { $_->name } Bugzilla::Group->get_all ];
+    $vars->{all_groups} = [ Bugzilla::Group->get_all ];
 
     $template->process('admin/products/edit.html.tmpl', $vars)
         || ThrowTemplateError($template->error());

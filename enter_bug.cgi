@@ -309,37 +309,44 @@ if ($cloned_bug_id)
     my $comp = $cloned_bug->component_obj;
     if ($comp && $product->id != $cloned_bug->product_id)
     {
-        @cc = map { $_->login } @{$comp->initial_cc || []};
+        @cc = @{$comp->initial_cc || []};
     }
     elsif ($ARGS->{cc})
     {
-        @cc = split /[\s,]+/, $ARGS->{cc};
+        @cc = @{ Bugzilla::Object::match('Bugzilla::User', { login_name => [ split /[\s,]+/, $ARGS->{cc} ] }) };
     }
     elsif (@{$cloned_bug->cc_users})
     {
-        @cc = map { $_->login } @{$cloned_bug->cc_users};
+        @cc = @{$cloned_bug->cc_users};
     }
 
     if ($cloned_bug->reporter->id != $user->id)
     {
-        push @cc, $cloned_bug->reporter->login;
+        push @cc, $cloned_bug->reporter;
     }
 
     # CustIS Bug 38616 - CC list restriction
-    if ($product->cc_group)
+    if (my $ccg = $product->cc_group)
     {
-        my $removed = $product->restrict_cc(\@cc, 'login_name');
-        if ($removed && @$removed)
+        my @removed;
+        for (my $i = $#cc; $i >= 0; $i--)
+        {
+            if (!$cc[$i]->in_group_id($ccg))
+            {
+                push @removed, splice @cc, $i, 1;
+            }
+        }
+        if (@removed)
         {
             Bugzilla->add_result_message({
                 message => 'cc_list_restricted',
-                cc_restrict_group => $product->cc_group,
-                restricted_cc => [ map { $_->login } @$removed ],
+                cc_restrict_group => $product->cc_group_obj->name,
+                restricted_cc => [ map { $_->login } @removed ],
             });
         }
     }
 
-    $vars->{cc} = join ', ', @cc;
+    $vars->{cc} = join ', ', map { $_->login } @cc;
 
     # Copy values of fields marked with 'clone_bug = TRUE'
     foreach my $field (Bugzilla->get_fields({ obsolete => 0, clone_bug => 1 }))

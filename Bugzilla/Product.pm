@@ -102,6 +102,8 @@ use constant VALIDATORS => {
     create_series    => \&Bugzilla::Object::check_boolean,
     notimetracking   => \&Bugzilla::Object::check_boolean,
     extproduct       => \&_check_extproduct,
+    # CustIS Bug 38616 - CC list restriction
+    # FIXME: Maybe also disallow bug access for these users?
     cc_group         => \&_check_cc_group,
 };
 
@@ -533,9 +535,9 @@ sub _check_extproduct
 sub _check_cc_group
 {
     my ($invocant, $cc_group) = @_;
-
     $cc_group = trim($cc_group);
-    return $cc_group ? $cc_group : undef;
+    $cc_group = $cc_group ? Bugzilla::Group->check({ name => $cc_group })->id : undef;
+    return $cc_group;
 }
 
 sub _check_classification_id
@@ -738,7 +740,6 @@ sub set_name { $_[0]->set('name', $_[1]); }
 sub set_wiki_url { $_[0]->set('wiki_url', $_[1]); }
 sub set_notimetracking { $_[0]->set('notimetracking', $_[1]); }
 sub set_description { $_[0]->set('description', $_[1]); }
-sub set_default_milestone { $_[0]->set('defaultmilestone', $_[1]); }
 sub set_is_active { $_[0]->set('isactive', $_[1]); }
 sub set_votes_per_user { $_[0]->set('votesperuser', $_[1]); }
 sub set_votes_per_bug { $_[0]->set('maxvotesperbug', $_[1]); }
@@ -746,14 +747,31 @@ sub set_votes_to_confirm { $_[0]->set('votestoconfirm', $_[1]); }
 sub set_allows_unconfirmed { $_[0]->set('allows_unconfirmed', $_[1]); }
 sub set_classification { $_[0]->set('classification_id', $_[1]); }
 
-# FIXME make cc_group reference group ID, not name
-sub set_cc_group { $_[0]->set('cc_group', $_[1]); }
+sub set_default_milestone
+{
+    my ($self, $m) = @_;
+    $self->set('defaultmilestone', $m);
+    delete $self->{default_milestone_obj};
+}
+
+sub set_cc_group
+{
+    my ($self, $g) = @_;
+    $self->set('cc_group', $g);
+    delete $self->{cc_group_obj};
+}
 
 sub set_extproduct
 {
     my ($self, $product) = @_;
     $product = Bugzilla::Product->check({ id => $product }) if $product && !ref $product;
     $self->set('extproduct', $product ? $product->id : undef);
+    if ($self->{extproduct_obj})
+    {
+        delete $self->{extproduct_obj}->{intproduct_name};
+    }
+    delete $self->{extproduct_name};
+    delete $self->{extproduct_obj};
 }
 
 sub set_group_controls
@@ -1106,6 +1124,16 @@ sub extproduct_obj
     return $self->{extproduct_obj};
 }
 
+sub cc_group_obj
+{
+    my $self = shift;
+    if (!exists $self->{cc_group_obj})
+    {
+        $self->{cc_group_obj} = $self->{cc_group} ? Bugzilla::Group->new($self->{cc_group}) : undef;
+    }
+    return $self->{cc_group_obj};
+}
+
 sub enterable_extproduct_name
 {
     my $self = shift;
@@ -1129,44 +1157,6 @@ sub enterable_intproduct_name
         $self->{intproduct_name} = $n;
     }
     return $self->{intproduct_name};
-}
-
-# CustIS Bug 38616 - CC list restriction
-# FIXME: Maybe also disallow bug access for these users?
-sub restrict_cc
-{
-    my $self = shift;
-    my ($cclist, $field) = @_;
-    my $id = $field eq 'id';
-    my $login = $field eq 'login' || $field eq 'login_name';
-    my $group = $self->cc_group || return undef;
-    my @cclist = @$cclist;
-    if ($login)
-    {
-        @cclist = map { Bugzilla::User::login_to_id($_) } @cclist;
-    }
-    if ($id || $login)
-    {
-        @cclist = @{ Bugzilla::User->new_from_list(\@cclist) };
-    }
-    my (@ok, @remove);
-    for (@cclist)
-    {
-        $_->in_group($group) ? push(@ok, $_) : push(@remove, $_);
-    }
-    if ($login)
-    {
-        @$cclist = map { $_->login } @ok;
-    }
-    elsif ($id)
-    {
-        @$cclist = map { $_->id } @ok;
-    }
-    else
-    {
-        @$cclist = @ok;
-    }
-    return @remove ? \@remove : undef;
 }
 
 sub check_product

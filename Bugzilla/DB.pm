@@ -566,7 +566,7 @@ sub bz_add_column {
     my ($self, $table, $name, $new_def, $init_value) = @_;
 
     if (!$new_def) {
-        # Take default definition from schema, but exclude REFERENCES
+        # Take default definition from abstract schema, but exclude REFERENCES
         $new_def = $self->_bz_schema->get_column_abstract($table, $name)
             || die "bz_add_column: unknown column $table.$name";
         $new_def = { %$new_def };
@@ -620,6 +620,12 @@ sub bz_add_fk {
 
 sub bz_alter_column {
     my ($self, $table, $name, $new_def, $set_nulls_to) = @_;
+
+    if (!$new_def) {
+        # Take default definition from abstract schema
+        $new_def = $self->_bz_schema->get_column_abstract($table, $name)
+            || die "bz_add_column: unknown column $table.$name";
+    }
 
     my $current_def = $self->bz_column_info($table, $name);
 

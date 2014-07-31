@@ -1075,8 +1075,7 @@ use constant ABSTRACT_SCHEMA => {
             # CustIS Bug 68921 - External/internal products
             extproduct        => {TYPE => 'INT4', REFERENCES => {TABLE => 'products', COLUMN => 'id'}},
             # CustIS Bug 38616 - Per-product "strict isolation" setting
-            # FIXME Reference ID in products.cc_group, not name
-            cc_group          => {TYPE => 'varchar(255)'},
+            cc_group          => {TYPE => 'INT4', REFERENCES => {TABLE => 'groups', COLUMN => 'id'}},
         ],
         INDEXES => [
             products_name_idx   => {FIELDS => ['name'], TYPE => 'UNIQUE'},
@@ -2111,7 +2110,6 @@ sub get_column_abstract {
     # Prevent a possible dereferencing of an undef hash, if the
     # table doesn't exist.
     if ($self->get_table_abstract($table)) {
-        # FIXME This hash is recreated each time you call get_column_abstract... :-(
         my %fields = (@{ $self->{abstract_schema}{$table}{FIELDS} });
         return $fields{$column};
     }
