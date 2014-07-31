@@ -104,7 +104,7 @@ var constants = {
         [% ELSE %]
           <select id="type" name="type" onchange="onChangeType()">
             [% FOREACH type = field_types.sort %]
-              [%# Types "Bug URLs" and "Keywords" are useless %]
+              [%# Types "Bug URLs" and "Keywords" are rudiments from original Bugzilla %]
               [% NEXT IF type == constants.FIELD_TYPE_UNKNOWN ||
                 type == constants.FIELD_TYPE_BUG_URLS ||
                 type == constants.FIELD_TYPE_KEYWORDS %]

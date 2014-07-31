@@ -1202,24 +1202,9 @@
   HTTP method.
 [% END %]
 
-[% BLOCK error_keyword_already_exists %]
-  [% title = "Keyword Already Exists" %]
-  A keyword with the name [% name FILTER html %] already exists.
-[% END %]
-
 [% BLOCK error_keyword_blank_description %]
   [% title = "Blank Keyword Description Not Allowed" %]
   You must enter a non-blank description for the keyword.
-[% END %]
-
-[% BLOCK error_keyword_blank_name %]
-  [% title = "Blank Keyword Name Not Allowed" %]
-  You must enter a non-blank name for the keyword.
-[% END %]
-
-[% BLOCK error_keyword_invalid_name %]
-  [% title = "Invalid Keyword Name" %]
-  You may not use commas in a keyword name.
 [% END %]
 
 [% BLOCK error_local_file_too_large %]

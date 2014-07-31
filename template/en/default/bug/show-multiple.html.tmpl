@@ -99,7 +99,7 @@
     [% IF bug.cc %]
       [% rightcells.push('cc') %]
     [% END %]
-    [% IF bug.keywords %]
+    [% IF bug.get_string('keywords') %]
       [% rightcells.push('keywords') %]
     [% END %]
 
@@ -344,6 +344,9 @@
             [% END %]
           [% END %]
         </td>
+    [% ELSIF name == "keywords" %]
+      <th class="rightcell">[% field_descs.keywords | html %]:</th>
+      <td>[% bug.get_string('keywords') | html %]</td>
     [% ELSIF name != "" %]
       <th class="rightcell">[% field_descs.${name} | html %]:</th>
       <td>[% bug.${name} | html %]</td>

@@ -239,13 +239,6 @@ sub update_table_definitions
         $dbh->bz_add_index('cc', 'cc_bug_id_idx',
                            {TYPE => 'UNIQUE', FIELDS => [qw(bug_id who)]});
     }
-    if (!$dbh->bz_index_info('keywords', 'keywords_bug_id_idx')
-        || !$dbh->bz_index_info('keywords', 'keywords_bug_id_idx')->{TYPE})
-    {
-        $dbh->bz_drop_index('keywords', 'keywords_bug_id_idx');
-        $dbh->bz_add_index('keywords', 'keywords_bug_id_idx',
-            {TYPE => 'UNIQUE', FIELDS => [qw(bug_id keywordid)]});
-    }
 
     _copy_from_comments_to_longdescs();
     _populate_duplicates_table();
@@ -504,12 +497,7 @@ sub update_table_definitions
     # 2006-08-06 LpSolit@gmail.com - Bug 347521
     if ($dbh->bz_column_info('flagtypes', 'id')->{TYPE} !~ /SERIAL/is)
     {
-        $dbh->bz_alter_column('flagtypes', 'id', {TYPE => 'SMALLSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
-    }
-
-    if ($dbh->bz_column_info('keyworddefs', 'id')->{TYPE} !~ /SERIAL/is)
-    {
-        $dbh->bz_alter_column('keyworddefs', 'id', {TYPE => 'SMALLSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
+        $dbh->bz_alter_column('flagtypes', 'id');
     }
 
     $dbh->bz_drop_index('bugs', 'bugs_short_desc_idx');
@@ -637,8 +625,6 @@ sub update_table_definitions
     # attachments.ispatch.
     $dbh->bz_alter_column('attachments', 'ispatch',
         { TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'});
-    $dbh->bz_alter_column('keyworddefs', 'description',
-                          { TYPE => 'MEDIUMTEXT', NOTNULL => 1 }, '');
     $dbh->bz_alter_column('products', 'description',
                           { TYPE => 'MEDIUMTEXT', NOTNULL => 1 }, '');
 
@@ -870,6 +856,22 @@ WHERE description LIKE\'%[CC:%\'');
     {
         $dbh->do('UPDATE products p SET cc_group=(SELECT g.id FROM groups g WHERE g.name=p.cc_group)');
         $dbh->bz_alter_column('products', 'cc_group');
+    }
+
+    # Rename keyword tables and columns to match normal multiselect tables
+    if ($dbh->bz_table_info('keyworddefs'))
+    {
+        $dbh->bz_drop_table('bug_keywords'); # empty, created automatically
+        $dbh->bz_drop_fk('keywords', 'bug_id');
+        $dbh->bz_drop_fk('keywords', 'keywordid');
+        $dbh->bz_rename_table('keywords', 'bug_keywords');
+        $dbh->bz_rename_table('keyworddefs', 'keywords');
+        $dbh->bz_rename_column('keywords', 'name', 'value');
+        $dbh->bz_add_column('keywords', 'sortkey');
+        $dbh->bz_add_column('keywords', 'isactive');
+        $dbh->bz_add_index('keywords', keywords_sortkey_idx => ['sortkey', 'value']);
+        $dbh->bz_rename_column('bug_keywords', 'keywordid', 'value_id');
+        $dbh->bz_alter_column('keywords', 'description');
     }
 
     _move_old_defaults($old_params);

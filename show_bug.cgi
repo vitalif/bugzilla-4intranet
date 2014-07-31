@@ -149,11 +149,8 @@ if ($ARGS->{includefield} || $ARGS->{field})
 
 $vars->{displayfields} = \%displayfields;
 
-# Custis Bug 66910
-my @keyword_list = Bugzilla::Keyword->get_all();
-my @keyword_list_out = map { { name => $_->{name} } } @keyword_list;
-$vars->{keyword_list} = \@keyword_list_out;
-# END Custis Bug 66910
+# CustIS Bug 66910 - Autocomplete for keywords
+$vars->{keyword_list} = [ map { { name => $_->name } } Bugzilla::Keyword->get_all() ];
 
 Bugzilla->cgi->send_header($format->{ctype});
 $template->process($format->{template}, $vars)

@@ -274,9 +274,6 @@ sub bz_setup_database {
     _fix_case_differences('fielddefs', 'name');
     $self->bz_add_index('fielddefs', 'fielddefs_name_lower_idx',
         {FIELDS => ['LOWER(name)'], TYPE => 'UNIQUE'});
-    _fix_case_differences('keyworddefs', 'name');
-    $self->bz_add_index('keyworddefs', 'keyworddefs_name_lower_idx',
-        {FIELDS => ['LOWER(name)'], TYPE => 'UNIQUE'});
     _fix_case_differences('products', 'name');
     $self->bz_add_index('products', 'products_name_lower_idx',
         {FIELDS => ['LOWER(name)'], TYPE => 'UNIQUE'});

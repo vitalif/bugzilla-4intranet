@@ -23,17 +23,16 @@
   # static: array; list of values which cannot be renamed nor deleted.
   #%]
 
-[% title = BLOCK %]Select value for the '[% field.description FILTER html %]'
-                   ([% field.name FILTER html %]) field[% END %]
-[% PROCESS global/header.html.tmpl
-  title = title
-%]
+[% title = BLOCK %]
+Select value for the '[% field.description | html %]' ([% field.name | html %]) field
+[% END %]
+[% PROCESS global/header.html.tmpl title = title %]
 
 [% edit_contentlink = BLOCK %]editvalues.cgi?action=edit&amp;field=
-  [%- field.name FILTER url_quote %]&amp;value=%%name%%[% END %]
+  [%- field.name | url_quote %]&amp;value=%%name%%[% END %]
 [% delete_contentlink = BLOCK %]editvalues.cgi?action=del&amp;field=
-  [%- field.name FILTER url_quote %]&amp;value=%%name%%[% END %]
-[% select_contentlink = BLOCK %]editvisibility.cgi?field=[%- field.name FILTER url_quote %]&amp;value=%%name%%[% END %]
+  [%- field.name | url_quote %]&amp;value=%%name%%[% END %]
+[% select_contentlink = BLOCK %]editvisibility.cgi?field=[%- field.name | url_quote %]&amp;value=%%name%%[% END %]
 
 [% columns = [
      {
@@ -44,15 +43,18 @@
      {
        name => "sortkey"
        heading => "Sortkey"
+       align => 'center'
      },
      {
        name => "isactive"
-       heading => "Enabled for $terms.bugs"
+       heading => "Enabled"
+       align => 'center'
        yesno_field => 1
      },
      {
        name => "action"
        heading => "Action"
+       align => 'center'
        content => "Delete"
        contentlink => delete_contentlink
      },
@@ -87,6 +89,8 @@
   [% END %]
 
 [% END %]
+
+<h3>Values for the '[% field.description | html %]' ([% field.name | html %]) field</h3>
 
 [% IF field.name == "component" || field.name == "version" || field.name == "target_milestone" || field.name == "product" %]
 <p>[% field.description %]s must be edited from a product page. <a href="editproducts.cgi">Select a product</a> first.</p>

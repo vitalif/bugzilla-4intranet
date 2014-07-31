@@ -39,6 +39,9 @@ use constant NAME_FIELD => 'value';
 use constant LIST_ORDER => 'sortkey, value';
 use constant CUSTOM_SORT => undef;
 
+# Table storing many-to-many relationship for this field
+sub REL_TABLE { 'bug_'.$_[0]->FIELD_NAME }
+
 use constant REQUIRED_CREATE_FIELDS => qw(value);
 
 use constant VALIDATORS => {
@@ -94,12 +97,11 @@ sub type
         # this package definition will persist across requests)).
         if (!defined *{"${package}::DB_TABLE"})
         {
-            eval <<EOC;
-                package $package;
+            my $code = "package $package;
                 use base qw(Bugzilla::Field::Choice);
                 use constant DB_TABLE => '$field_name';
-                use constant FIELD_NAME => '$field_name';
-EOC
+                use constant FIELD_NAME => '$field_name';";
+            eval $code;
         }
     }
 
@@ -312,7 +314,7 @@ sub bug_count
     my $count;
     if ($self->field->type == FIELD_TYPE_MULTI_SELECT)
     {
-        $count = $dbh->selectrow_array("SELECT COUNT(*) FROM bug_$fname WHERE value_id = ?", undef, $self->id);
+        $count = $dbh->selectrow_array("SELECT COUNT(*) FROM ".$self->REL_TABLE." WHERE value_id = ?", undef, $self->id);
     }
     else
     {

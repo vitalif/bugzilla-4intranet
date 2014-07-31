@@ -32,21 +32,17 @@
   title = "$terms.Bugzilla Keyword Descriptions"
 %]
 
+[% IF keywords.size > 0 %]
+<table border="1" cellpadding="4" cellspacing="0">
+  <tr bgcolor="#6666FF">
+    <th align="left">Name</th>
+    <th align="left">Description</th>
+    <th align="left">Open [% terms.Bugs %]</th>
+    <th align="left">Total [% terms.Bugs %]</th>
+  </tr>
+[% END %]
+
 [% FOREACH keyword = keywords %]
-  [% IF loop.index % 50 == 0 %]
-    [% IF loop.index != 0 %]
-       </table>
-    [% END %]
-
-    <table border="1" cellpadding="4" cellspacing="0">
-      <tr bgcolor="#6666FF">
-        <th align="left">Name</th>
-        <th align="left">Description</th>
-        <th align="left">Open [% terms.Bugs %]</th>
-        <th align="left">Total [% terms.Bugs %]</th>
-      </tr>
-  [% END %]
-
   <tr>
     <th>
       <a name="[% keyword.name FILTER html %]">
@@ -73,13 +69,11 @@
 [% END %]
 
 [% IF keywords.size > 0 %]
-  </table>
+</table>
 [% END %]
 
 [% IF caneditkeywords %]
-  <p>
-    <a href="editkeywords.cgi">Edit keywords</a>.
-  </p>
+<p><a href="editvalues.cgi?field=keywords">Edit keywords</a></p>
 [% END %]
 
 [% PROCESS global/footer.html.tmpl %]

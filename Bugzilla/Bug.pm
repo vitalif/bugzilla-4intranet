@@ -271,7 +271,7 @@ use constant FIELD_MAP => {
 use constant SCALAR_FORMAT => { map { $_ => 1 } qw(
     alias bug_file_loc bug_id dup_id cclist_accessible creation_ts deadline
     delta_ts estimated_time everconfirmed remaining_time reporter_accessible
-    short_desc status_whiteboard keywords votes
+    short_desc status_whiteboard votes
 ) };
 
 use constant ARRAY_FORMAT => { map { $_ => 1 } qw(dependson blocked cc) };
@@ -537,9 +537,6 @@ sub update
 
     # Add/remove CC
     $self->save_cc($changes);
-
-    # Keywords
-    $self->save_keywords($changes);
 
     # Dependencies (blocked, dependson)
     $self->save_dependencies($changes);
@@ -1259,32 +1256,6 @@ sub save_cc
     }
 }
 
-sub save_keywords
-{
-    my ($self, $changes) = @_;
-
-    my %old_kw = $self->{_old_self} ? (map { $_->id => $_ } @{$self->{_old_self}->keyword_objects}) : ();
-    my %new_kw = map { $_->id => $_ } @{$self->keyword_objects};
-    my $removed_kw = [ grep { !$new_kw{$_} } keys %old_kw ];
-    my $added_kw = [ grep { !$old_kw{$_} } keys %new_kw ];
-    if (scalar @$removed_kw)
-    {
-        Bugzilla->dbh->do('DELETE FROM keywords WHERE bug_id=? AND ' . Bugzilla->dbh->sql_in('keywordid', $removed_kw), undef, $self->id);
-    }
-    foreach my $keyword_id (@$added_kw)
-    {
-        Bugzilla->dbh->do('INSERT INTO keywords (bug_id, keywordid) VALUES (?,?)', undef, $self->id, $keyword_id);
-    }
-
-    # Remember changes to log them in activity table
-    if (scalar @$removed_kw || scalar @$added_kw)
-    {
-        my $removed_names = join(', ', map { $old_kw{$_}->name } @$removed_kw);
-        my $added_names   = join(', ', map { $new_kw{$_}->name } @$added_kw);
-        $changes->{keywords} = [ $removed_names, $added_names ];
-    }
-}
-
 sub save_dependencies
 {
     my ($self, $changes) = @_;
@@ -1421,23 +1392,26 @@ sub save_multiselects
 {
     my ($self, $changes) = @_;
 
-    my @multi_selects = grep { $_->type == FIELD_TYPE_MULTI_SELECT } Bugzilla->active_custom_fields;
+    my @multi_selects = Bugzilla->get_fields({ obsolete => 0, type => FIELD_TYPE_MULTI_SELECT });
     foreach my $field (@multi_selects)
     {
         my $name = $field->name;
         next if !defined $self->{$name};
-        my ($removed, $added) = diff_arrays($self->{_old_self} ? $self->{_old_self}->$name : [], $self->$name);
-        if (scalar @$removed || scalar @$added)
+        my %old = $self->{_old_self} ? (map { $_->id => $_ } @{$self->{_old_self}->get_object($name)}) : ();
+        my %new = map { $_->id => $_ } @{$self->get_object($name)};
+        my $removed = [ grep { !$new{$_} } keys %old ];
+        my $added = [ grep { !$old{$_} } keys %new ];
+        if (@$removed || @$added)
         {
             $changes->{$name} = [
-                join(', ', map { $_->name } @{$field->value_type->new_from_list($removed)}),
-                join(', ', map { $_->name } @{$field->value_type->new_from_list($added)})
+                join(', ', map { $old{$_}->name } @$removed),
+                join(', ', map { $new{$_}->name } @$added)
             ];
-            Bugzilla->dbh->do("DELETE FROM bug_$name where bug_id = ?", undef, $self->id);
+            Bugzilla->dbh->do("DELETE FROM ".$field->value_type->REL_TABLE." WHERE bug_id = ?", undef, $self->id);
             if (@{$self->$name})
             {
                 Bugzilla->dbh->do(
-                    "INSERT INTO bug_$name (bug_id, value_id) VALUES ".
+                    "INSERT INTO ".$field->value_type->REL_TABLE." (bug_id, value_id) VALUES ".
                     join(',', ('(?, ?)') x @{$self->$name}),
                     undef, map { ($self->id, $_) } @{$self->$name}
                 );
@@ -1691,53 +1665,10 @@ sub remove_from_db
     my ($self) = @_;
     my $dbh = Bugzilla->dbh;
 
-    my $bug_id = $self->{bug_id};
+    $dbh->do("DELETE FROM bugs WHERE bug_id = ?", undef, $self->id);
 
-    # tables having 'bugs.bug_id' as a foreign key:
-    # - attachments
-    # - bug_group_map
-    # - bugs
-    # - bugs_activity
-    # - bugs_fulltext
-    # - cc
-    # - dependencies
-    # - duplicates
-    # - flags
-    # - keywords
-    # - longdescs
-    # - votes
-
-    # Also, the attach_data table uses attachments.attach_id as a foreign
-    # key, and so indirectly depends on a bug deletion too.
-
-    $dbh->bz_start_transaction();
-
-    $dbh->do("DELETE FROM bug_group_map WHERE bug_id = ?", undef, $bug_id);
-    $dbh->do("DELETE FROM bugs_activity WHERE bug_id = ?", undef, $bug_id);
-    $dbh->do("DELETE FROM cc WHERE bug_id = ?", undef, $bug_id);
-    $dbh->do("DELETE FROM dependencies WHERE blocked = ? OR dependson = ?", undef, ($bug_id, $bug_id));
-    $dbh->do("DELETE FROM duplicates WHERE dupe = ? OR dupe_of = ?", undef, ($bug_id, $bug_id));
-    $dbh->do("DELETE FROM flags WHERE bug_id = ?", undef, $bug_id);
-    $dbh->do("DELETE FROM keywords WHERE bug_id = ?", undef, $bug_id);
-    $dbh->do("DELETE FROM votes WHERE bug_id = ?", undef, $bug_id);
-
-    # The attach_data table doesn't depend on bugs.bug_id directly.
-    my $attach_ids = $dbh->selectcol_arrayref("SELECT attach_id FROM attachments WHERE bug_id = ?", undef, $bug_id);
-
-    if (scalar(@$attach_ids))
-    {
-        $dbh->do("DELETE FROM attach_data WHERE ".$dbh->sql_in('id', $attach_ids));
-    }
-
-    # Several of the previous tables also depend on attach_id.
-    $dbh->do("DELETE FROM attachments WHERE bug_id = ?", undef, $bug_id);
-    $dbh->do("DELETE FROM bugs WHERE bug_id = ?", undef, $bug_id);
-    $dbh->do("DELETE FROM longdescs WHERE bug_id = ?", undef, $bug_id);
-
-    $dbh->bz_commit_transaction();
-
-    # The bugs_fulltext table doesn't support transactions.
-    $dbh->do("DELETE FROM bugs_fulltext WHERE bug_id = ?", undef, $bug_id);
+    # The only table that requires manual delete cascading is bugs_fulltext (MyISAM)
+    $dbh->do("DELETE FROM bugs_fulltext WHERE bug_id = ?", undef, $self->id);
 
     # Now this bug no longer exists
     $self->DESTROY;
@@ -2140,7 +2071,7 @@ sub _set_keywords
 
     $data = { 'keywords' => $data, 'descriptions' => {} } if !ref $data;
 
-    my $old = $self->keyword_objects;
+    my $old = $self->get_object('keywords');
     my $new = $old;
 
     my $privs;
@@ -2158,7 +2089,7 @@ sub _set_keywords
             if ($keyword_string ne '')
             {
                 $keyword_string = [ split /[\s,]*,[\s,]*/, $keyword_string ];
-                my $kw = Bugzilla::Keyword->match({ name => $keyword_string });
+                my $kw = Bugzilla::Keyword->match({ value => $keyword_string });
                 $kw = { map { lc($_->name) => $_ } @$kw };
                 for my $name (@$keyword_string)
                 {
@@ -2181,14 +2112,15 @@ sub _set_keywords
         }
         # Make sure we retain the sort order.
         $new = [ sort { lc($a->name) cmp lc($b->name) } @$new ];
-        $self->{keyword_objects} = $new;
+        $self->{keywords_obj} = $new;
+        $self->{keywords} = [ map { $_->id } @$new ];
     }
     else
     {
         # Silently ignore the error
 #        ThrowUserError('illegal_change', {
 #            field    => 'keywords',
-#            oldvalue => $self->keywords,
+#            oldvalue => $self->get_string('keywords'),
 #            newvalue => join(', ', map { $_->name } @$new),
 #            privs    => $privs,
 #        });
@@ -2859,7 +2791,7 @@ sub modify_keywords
 
     if ($action eq 'delete')
     {
-        my $old_kw = $self->keyword_objects;
+        my $old_kw = $self->keywords_obj;
         my $kw = { map { lc($_->name) => $_ } @$old_kw };
         delete $kw->{lc $_} for split /[\s,]*,[\s,]*/, $keywords;
         $self->set('keywords', { keyword_objects => [ values %$kw ] });
@@ -2868,7 +2800,7 @@ sub modify_keywords
     {
         if ($action eq 'add')
         {
-            $keywords .= ', '.$self->keywords;
+            $keywords .= ', '.$self->get_string('keywords');
         }
         $self->set('keywords', {
             keywords => $keywords,
@@ -3141,27 +3073,6 @@ sub isopened
 {
     my $self = shift;
     return $self->bug_status_obj->is_open;
-}
-
-sub keywords
-{
-    my ($self) = @_;
-    return join(', ', (map { $_->name } @{$self->keyword_objects}));
-}
-
-# FIXME At some point, this should probably replace the normal "keywords" sub.
-sub keyword_objects
-{
-    my $self = shift;
-    return $self->{keyword_objects} if defined $self->{keyword_objects};
-    return [] if !$self->id;
-
-    my $dbh = Bugzilla->dbh;
-    my $ids = $dbh->selectcol_arrayref(
-         "SELECT keywordid FROM keywords WHERE bug_id = ?", undef, $self->id
-    );
-    $self->{keyword_objects} = Bugzilla::Keyword->new_from_list($ids);
-    return $self->{keyword_objects};
 }
 
 sub comments

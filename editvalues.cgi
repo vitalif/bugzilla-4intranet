@@ -42,7 +42,9 @@ my $vars     = {};
 # the documentation about legal values becomes bigger.
 $vars->{doc_section} = 'edit-values.html';
 
-Bugzilla->user->in_group('editvalues') || ThrowUserError('auth_failure', {
+Bugzilla->user->in_group('editvalues')
+|| $ARGS->{field} eq 'keywords' && Bugzilla->user->in_group('editkeywords')
+|| ThrowUserError('auth_failure', {
     group  => 'editvalues',
     action => 'edit',
     object => 'field_values',

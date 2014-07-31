@@ -214,12 +214,6 @@
   [% ELSIF san_tag == "keyword_check_start" %]
     Checking keywords table.
 
-  [% ELSIF san_tag == "keyword_check_alert" %]
-    Duplicate entry in keyworddefs for id [% id FILTER html %].
-
-  [% ELSIF san_tag == "keyword_check_invalid_name" %]
-    Bogus name in keyworddefs for id [% id FILTER html %].
-
   [% ELSIF san_tag == "keyword_check_invalid_id" %]
     Bogus keywordids [% id FILTER html %] found in keywords table.
 

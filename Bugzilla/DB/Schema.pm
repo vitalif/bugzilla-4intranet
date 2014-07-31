@@ -443,33 +443,31 @@ use constant ABSTRACT_SCHEMA => {
             value  => {TYPE => 'varchar(255)', NOTNULL => 1},
         ],
         INDEXES => [
-            bug_see_also_bug_id_idx => {FIELDS => [qw(bug_id value)],
-                                        TYPE   => 'UNIQUE'},
+            bug_see_also_bug_id_idx => {FIELDS => [qw(bug_id value)], TYPE => 'UNIQUE'},
         ],
     },
 
     # Keywords
     # --------
 
-    keyworddefs => {
+    keywords => {
         FIELDS => [
-            id          => {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
-            name        => {TYPE => 'varchar(255)', NOTNULL => 1},
+            @{ dclone(FIELD_TABLE_SCHEMA->{FIELDS}) },
             description => {TYPE => 'MEDIUMTEXT', NOTNULL => 1},
         ],
         INDEXES => [
-            keyworddefs_name_idx => {FIELDS => ['name'], TYPE => 'UNIQUE'},
+            keywords_value_idx   => {FIELDS => ['value'], TYPE => 'UNIQUE'},
+            keywords_sortkey_idx => ['sortkey', 'value'],
         ],
     },
 
-    keywords => {
+    bug_keywords => {
         FIELDS => [
-            bug_id    => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE  => 'bugs', COLUMN => 'bug_id', DELETE => 'CASCADE'}},
-            keywordid => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE  => 'keyworddefs', COLUMN => 'id', DELETE => 'CASCADE'}},
+            bug_id   => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'bugs', COLUMN => 'bug_id', DELETE => 'CASCADE'}},
+            value_id => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'keywords', COLUMN => 'id', DELETE => 'CASCADE'}},
         ],
         INDEXES => [
-            keywords_bug_id_idx    => {FIELDS => [qw(bug_id keywordid)], TYPE => 'UNIQUE'},
-            keywords_keywordid_idx => ['keywordid'],
+            bug_id_idx => {FIELDS => [qw(bug_id value_id)], TYPE => 'UNIQUE'},
         ],
     },
 
@@ -1588,6 +1586,7 @@ is undefined.
 # other reasons).
 sub _get_fk_name {
     my ($self, $table, $column, $references) = @_;
+    $table = 'keywords' if $table eq 'bug_keywords';
     my $to_table  = $references->{TABLE}; 
     my $to_column = $references->{COLUMN};
     my $name = "fk_${table}_${column}_${to_table}_${to_column}";

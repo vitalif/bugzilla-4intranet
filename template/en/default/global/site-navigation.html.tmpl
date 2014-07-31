@@ -85,7 +85,7 @@
     [% '<link rel="Administration" title="Products"     href="editproducts.cgi">'  IF user.in_group('editcomponents') || user.get_editable_products.size %]
     [% '<link rel="Administration" title="Flag Types"   href="editflagtypes.cgi">' IF user.in_group('editcomponents') %]
     [% '<link rel="Administration" title="Groups"       href="editgroups.cgi">'    IF user.in_group('creategroups') %]
-    [% '<link rel="Administration" title="Keywords"     href="editkeywords.cgi">'  IF user.in_group('editkeywords') %]
+    [% '<link rel="Administration" title="Field Values" href="editvalues.cgi">'    IF user.in_group('editvalues') %]
     [% '<link rel="Administration" title="Whining"      href="editwhines.cgi">'    IF user.in_group('bz_canusewhines') %]
     [% '<link rel="Administration" title="Sanity Check" href="sanitycheck.cgi">'   IF user.in_group('editcomponents') %]
   [% END %]  

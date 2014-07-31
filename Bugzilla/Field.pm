@@ -134,7 +134,7 @@ use constant UPDATE_VALIDATORS => {
     default_value       => \&_check_default_value,
 };
 
-use constant UPDATE_COLUMNS => grep { $_ ne 'type' && $_ ne 'id' } DB_COLUMNS();
+use constant UPDATE_COLUMNS => grep { $_ ne 'id' } DB_COLUMNS();
 
 # How various field types translate into SQL data definitions.
 use constant SQL_DEFINITIONS => {
@@ -164,7 +164,7 @@ use constant DEFAULT_FIELDS => (map { my $i = 0; $_ = { (map { (DEFAULT_FIELD_CO
     [ 'op_sys',            'OS/Version',        0, 1, 1, FIELD_TYPE_SINGLE_SELECT ],
     [ 'bug_status',        'Status',            1, 1, 0, FIELD_TYPE_SINGLE_SELECT ],
     [ 'status_whiteboard', 'Status Whiteboard', 0, 1, 1, 1, FIELD_TYPE_FREETEXT ],
-    [ 'keywords',          'Keywords',          0, 1, 1, FIELD_TYPE_KEYWORDS ],
+    [ 'keywords',          'Keywords',          0, 1, 1, FIELD_TYPE_MULTI_SELECT ],
     [ 'resolution',        'Resolution',        0, 1, 0, FIELD_TYPE_SINGLE_SELECT ],
     [ 'bug_severity',      'Severity',          0, 1, 1, FIELD_TYPE_SINGLE_SELECT ],
     [ 'priority',          'Priority',          0, 1, 1, FIELD_TYPE_SINGLE_SELECT ],
@@ -1158,12 +1158,12 @@ sub populate_field_definitions
         {
             $field->set_description($def->{description});
             $field->set_in_new_bugmail($def->{mailhead});
-            $field->_set_type($def->{type}) if $def->{type};
             $field->set_clone_bug($def->{clone_bug}) if !$has_clone_bug;
-            $field->set_is_mandatory($def->{is_mandatory}) if $def->{is_mandatory};
+            $field->set_is_mandatory($def->{is_mandatory}) if $def->{is_mandatory} || $def->{name} eq 'keywords' && $def->{type} ne $field->type;
             $field->set_value_field($dbh->selectrow_array('SELECT id FROM fielddefs WHERE name=?', undef, $def->{value_field})) if $def->{value_field};
             $field->set_null_field($dbh->selectrow_array('SELECT id FROM fielddefs WHERE name=?', undef, $def->{null_field})) if $def->{null_field};
             $field->set_default_field($dbh->selectrow_array('SELECT id FROM fielddefs WHERE name=?', undef, $def->{default_field})) if $def->{default_field};
+            $field->_set_type($def->{type}) if $def->{type};
             $field->update();
         }
         else

@@ -857,7 +857,7 @@ sub _bug_to_hash {
     }
     if (filter_wants $params, 'keywords') {
         my @keywords = map { $self->type('string', $_->name) }
-                       @{ $bug->keyword_objects };
+                       @{ $bug->keywords_obj };
         $item{'keywords'} = \@keywords;
     }
     if (Bugzilla->params->{useqacontact} &&

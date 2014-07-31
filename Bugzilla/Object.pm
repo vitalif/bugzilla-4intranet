@@ -550,7 +550,7 @@ and C<DB_COLUMNS> are required.
 =item C<DB_TABLE>
 
 The name of the table that these objects are stored in. For example,
-for C<Bugzilla::Keyword> this would be C<keyworddefs>.
+for C<Bugzilla::Milestone> this would be C<milestones>.
 
 =item C<DB_COLUMNS>
 

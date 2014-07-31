@@ -462,9 +462,6 @@ sub CrossCheck {
 CrossCheck('classifications', 'id',
            ['products', 'classification_id']);
 
-CrossCheck("keyworddefs", "id",
-           ["keywords", "keywordid"]);
-
 CrossCheck("fielddefs", "id",
            ["bugs_activity", "fieldid"],
            ['profiles_activity', 'fieldid']);

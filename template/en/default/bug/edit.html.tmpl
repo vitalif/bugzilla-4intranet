@@ -224,7 +224,7 @@ document.changeform = document.[% cfname %];
           </td>
           <td>
             [% PROCESS input inputname => "short_desc" size => "80" colspan => 2
-                             maxlength => 255 spellcheck => "true" no_td => 1 %]
+                maxlength => 255 spellcheck => "true" no_td => 1 %]
           </td>
         </tr>
       </table>
@@ -546,8 +546,7 @@ document.changeform = document.[% cfname %];
         <label for="keywords" accesskey="k">
           <b><a href="describekeywords.cgi"><u>K</u>eywords</a></b></label>:
       </td>
-      [% PROCESS input inputname => "keywords" size => 40 colspan => 2
-                       value => bug.keywords.join(', ') %]
+      [% PROCESS input inputname => "keywords" size => 40 colspan => 2 %]
     </tr>
   [% END %]
 [% END %]
@@ -1037,38 +1036,41 @@ document.changeform = document.[% cfname %];
   [% IF no_td != 1 %]
   <td[% " colspan=\"$colspan\"" IF colspan %]>
   [% END %]
-    [% val = value ? value : bug.$inputname %]
+    [% val = bug.$inputname %]
     [% IF bug.check_can_change_field(inputname, 0, 1) %]
-    [% IF inputname == "keywords" && val != "" %]
-       [% FOREACH keyword = val.split(', ') %]
-         <a href="buglist.cgi?keywords=[% keyword FILTER uri %]&keywords_type=allwords&query_format=advanced"
-           target="_blank">[% keyword FILTER html %]</a>
-         [% ',' UNLESS loop.last %]
-       [% END %]
-       (<a href="#" onclick="return toggle_keywords_field()">Edit</a>)
-        <script type="text/javascript">
-            function toggle_keywords_field()
-            {
-                var el = document.getElementById('keywords_field');
-                if (el.style.display == 'block')
-                    el.style.display = 'none';
-                else
-                    el.style.display = 'block';
-                return false;
-            }
-        </script>
-    <div id="keywords_field" style="display: none; margin-top: 3px;">
-    [% END %]
-       <input id="[% inputname %]" name="[% inputname %]" class="text_input"
-              value="[% val FILTER html %]"[% " size=\"$size\"" IF size %]
-              [% " maxlength=\"$maxlength\"" IF maxlength %]
-              [% " spellcheck=\"$spellcheck\"" IF spellcheck %]>
-    [% IF inputname == "keywords" %]
-    [% IF val != "" %]
-    </div>
-    [% END %]
-    <div id="keywords_description_container"></div>
-    [% END %]
+      [% IF inputname == "keywords" %]
+        [% val = bug.get_string(inputname) %]
+        [% IF val != '' %]
+          [% FOREACH keyword = bug.keywords_obj %]
+            <a href="buglist.cgi?keywords=[% keyword.name FILTER uri %]&keywords_type=allwords&query_format=advanced"
+              target="_blank">[% keyword.name FILTER html %]</a>
+            [% ',' UNLESS loop.last %]
+          [% END %]
+          (<a href="#" onclick="return toggle_keywords_field()">Edit</a>)
+          <script type="text/javascript">
+          function toggle_keywords_field()
+          {
+            var el = document.getElementById('keywords_field');
+            if (el.style.display == 'block')
+              el.style.display = 'none';
+            else
+              el.style.display = 'block';
+            return false;
+          }
+          </script>
+          <div id="keywords_field" style="display: none; margin-top: 3px;">
+        [% END %]
+      [% END %]
+      <input id="[% inputname %]" name="[% inputname %]" class="text_input"
+        value="[% val FILTER html %]"[% " size=\"$size\"" IF size %]
+        [% " maxlength=\"$maxlength\"" IF maxlength %]
+        [% " spellcheck=\"$spellcheck\"" IF spellcheck %]>
+      [% IF inputname == "keywords" %]
+        [% IF val != "" %]
+        </div>
+        [% END %]
+        <div id="keywords_description_container"></div>
+      [% END %]
     [% ELSE %]
       [% IF size && val.length > size %]
         <span title="[% val FILTER html %]">
@@ -1088,6 +1090,7 @@ document.changeform = document.[% cfname %];
   [% value = undef %]
   [% spellcheck = undef %]
 [% END %]
+
 [% BLOCK commit_button %]
   [% IF user.id %]
     [% w = BLOCK %]

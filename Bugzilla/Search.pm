@@ -482,10 +482,6 @@ sub STATIC_COLUMNS
                 " WHERE col_f.bug_id=bugs.bug_id)",
             title => "Flags and Requests",
         },
-        keywords => {
-            name => "(SELECT ".$dbh->sql_group_concat('k.name', "', '")." FROM keywords kb, keyworddefs k".
-                " WHERE kb.bug_id=bugs.bug_id AND kb.keywordid=k.id)",
-        },
         flags => {
             name =>
                 "(SELECT ".$dbh->sql_group_concat($dbh->sql_string_concat('col_ft.name', 'col_f.status'), "', '").
@@ -622,8 +618,8 @@ sub STATIC_COLUMNS
             my $t = $type->DB_TABLE;
             $columns->{$id}->{name} = "(SELECT ".
                 $dbh->sql_group_concat("$t.".$type->NAME_FIELD, "', '").
-                " FROM bug_$id, $t WHERE $t.".$type->ID_FIELD."=bug_$id.value_id".
-                " AND bug_$id.bug_id=bugs.bug_id)";
+                " FROM ".$type->REL_TABLE.", $t WHERE $t.".$type->ID_FIELD."=".$type->REL_TABLE.".value_id".
+                " AND ".$type->REL_TABLE.".bug_id=bugs.bug_id)";
         }
         elsif ($bug_columns->{$id})
         {
@@ -906,7 +902,7 @@ sub FUNCTIONS
 {
     return $FUNCTIONS if $FUNCTIONS;
     my $multi_fields = join '|', map { $_->name } Bugzilla->get_fields({
-        type     => [ FIELD_TYPE_MULTI_SELECT, FIELD_TYPE_BUG_URLS ],
+        type     => [ FIELD_TYPE_MULTI_SELECT ],
         obsolete => 0
     });
     my $bugid_rev_fields = join '|', map { $_->name } Bugzilla->get_fields({
@@ -980,7 +976,7 @@ sub FUNCTIONS
         'setters.login_name'        => { '*' => \&_setters_login_name },
         $multi_fields               => { '*' => \&_multiselect_nonchanged },
         $bugid_rev_fields           => { '*' => \&_bugid_rev_nonchanged },
-        'keywords'                  => { 'anyexact|anywords|allwords' => \&_keywords_exact },
+        'see_also'                  => { '*' => sub { die 'Not implemented'; } },
     };
     # Expand | or-lists in hash keys
     expand_hash($FUNCTIONS);
@@ -2669,60 +2665,6 @@ sub _days_elapsed
     }
 }
 
-# Handles keywords/anywords == keywords/anyexact, keywords/allwords
-sub _keywords_exact
-{
-    my $self = shift;
-    my @list;
-    my $table = "keywords_".$self->{sequence};
-    my $names = [ grep { $_ } (ref $self->{value} ? @{$self->{value}} : split /[\s,]+/, $self->{value}) ];
-    my $keywords = Bugzilla::Keyword->match({ name => $names });
-    if (@$keywords < @$names)
-    {
-        my $hash = { map { lc $_->name => 1 } @$keywords };
-        my ($first_unknown) = grep { !$hash->{lc $_} } @$names;
-        ThrowUserError('unknown_keyword', { keyword => $first_unknown });
-    }
-    my $ids = join ',', map { $_->{id} } @$keywords;
-    $self->{type} =~ s/substr$//so;
-    if ($self->{type} eq 'anywords' || $self->{type} eq 'anyexact')
-    {
-        $self->{term} = {
-            table => "keywords $table",
-            where => "$table.keywordid IN ($ids)",
-            bugid_field => "$table.bug_id",
-        };
-    }
-    elsif ($self->{type} eq 'allwords')
-    {
-        if (@$keywords > 3)
-        {
-            # Use subquery with HAVING COUNT
-            $self->{term} = {
-                table => "(SELECT bug_id FROM keywords WHERE keywordid IN ($ids)".
-                    " GROUP BY bug_id HAVING COUNT(keywordid) = ".@$keywords.") $table",
-                bugid_field => "$table.bug_id",
-            };
-        }
-        else
-        {
-            # Use join for each keyword
-            my $t = "keywords ${table}_0";
-            for my $i (1..$#$keywords)
-            {
-                $t .= " INNER JOIN keywords ${table}_$i";
-                $t .= " ON ${table}_0.bug_id=${table}_$i.bug_id";
-                $t .= " AND ${table}_$i.keywordid=".$keywords->[$i]->{id};
-            }
-            $self->{term} = {
-                table => $t,
-                where => "${table}_0.keywordid=".$keywords->[0]->{id},
-                bugid_field => "${table}_0.bug_id",
-            };
-        }
-    }
-}
-
 sub _owner_idle_time_less
 {
     my $self = shift;
@@ -2776,8 +2718,9 @@ sub _multiselect_nonchanged
     my $dbh = Bugzilla->dbh;
 
     my @terms;
-    my $t = "bug_".$self->{field};
-    my $ft = Bugzilla->get_field($self->{field})->value_type->DB_TABLE;
+    my $type = Bugzilla->get_field($self->{field})->value_type;
+    my $t = $type->REL_TABLE;
+    my $ft = $type->DB_TABLE;
     my $ta = $t.'_'.$self->{sequence};
     my $fta = $ft.'_'.$self->{sequence};
 
@@ -2789,21 +2732,21 @@ sub _multiselect_nonchanged
     {
         $self->{term} = {
             table => "($t $ta INNER JOIN $ft $fta ON $fta.id=$ta.value_id)",
-            where => "$fta.value IN ($self->{quoted})",
+            where => "$fta.".$type->NAME_FIELD." IN ($self->{quoted})",
             bugid_field => "$ta.bug_id",
         };
     }
     elsif ($self->{type} eq 'allwords')
     {
         $self->{term} = {
-            table => "(SELECT bug_id FROM $t, $ft WHERE id=value_id AND value IN ($self->{quoted})".
+            table => "(SELECT bug_id FROM $t, $ft WHERE id=value_id AND ".$type->NAME_FIELD." IN ($self->{quoted})".
                 " GROUP BY bug_id HAVING COUNT(bug_id) = ".@v.") $ta",
             bugid_field => "$ta.bug_id",
         };
     }
     else
     {
-        $self->{fieldsql} = $self->{field} = "$fta.value";
+        $self->{fieldsql} = $self->{field} = "$fta.".$type->NAME_FIELD;
         $self->{value} = $v[0];
         $self->call_op;
         $self->{term} = {
