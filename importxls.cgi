@@ -78,7 +78,7 @@ my $field_descs = { map { $_->name => $_->description } Bugzilla->get_fields({ o
 $field_descs->{platform} = $field_descs->{rep_platform} if $field_descs->{rep_platform};
 $field_descs->{comment} = $field_descs->{longdesc};
 for ((grep { /\./ } keys %$field_descs), (qw/rep_platform longdesc bug_group changeddate commenter content opendate
-    creation_ts delta_ts days_elapsed everconfirmed percentage_complete owner_idle_time work_time/))
+    creation_ts delta_ts days_elapsed everconfirmed percentage_complete work_time/))
 {
     delete $field_descs->{$_};
 }

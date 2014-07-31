@@ -150,7 +150,7 @@ $Bugzilla::messages->{en} = {
         'flagtypes.name'          => 'Flags and Requests',
         'requestees.login_name'   => 'Flag Requestee',
         'setters.login_name'      => 'Flag Setter',
-        # Names with other_ prefix are used with correlated search terms
+        # Names with other_ prefix are to be used with correlated search terms
         other_work_time                 => 'Hours Worked $1',
         other_longdesc                  => 'Comment $1',
         other_commenter                 => 'Comment $1 author',

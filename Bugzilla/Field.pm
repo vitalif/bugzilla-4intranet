@@ -184,7 +184,6 @@ use constant DEFAULT_FIELDS => (map { my $i = 0; $_ = { (map { (DEFAULT_FIELD_CO
     [ 'attachments.ispatch',     'Attachment is patch',    0, 0, 0 ],
     [ 'attachments.isobsolete',  'Attachment is obsolete', 0, 0, 0 ],
     [ 'attachments.isprivate',   'Attachment is private',  0, 0, 0 ],
-    [ 'attachments.submitter',   'Attachment creator',     0, 0, 0 ],
 
     [ 'target_milestone',      'Target Milestone',      0, 1, 1, FIELD_TYPE_SINGLE_SELECT, 'product', 'product', 'product' ],
     [ 'creation_ts',           'Creation time',         1, 0, 0, FIELD_TYPE_DATETIME ],
@@ -202,7 +201,6 @@ use constant DEFAULT_FIELDS => (map { my $i = 0; $_ = { (map { (DEFAULT_FIELD_CO
     [ 'work_time',             'Hours Worked',          0, 0, 0 ],
     [ 'percentage_complete',   'Percentage Complete',   0, 0, 0 ],
     [ 'content',               'Content',               0, 0, 0 ],
-    [ 'owner_idle_time', 'Time Since Assignee Touched', 0, 0, 0 ],
     [ 'see_also',              'See Also',              0, 1, 0, FIELD_TYPE_BUG_URLS ],
 ));
 
@@ -1181,7 +1179,8 @@ sub populate_field_definitions
     $dbh->do(
         "DELETE FROM fielddefs WHERE name IN ('cc_accessible', 'requesters.login_name',
         'attachments.thedata', 'attach_data.thedata', 'content', 'requestees.login_name',
-        'setters.login_name', 'longdescs.isprivate', 'assignee_accessible', 'qacontact_accessible', 'commenter')"
+        'setters.login_name', 'longdescs.isprivate', 'assignee_accessible', 'qacontact_accessible',
+        'commenter', 'owner_idle_time', 'attachments.submitter')"
     );
 
     # MODIFY old field definitions

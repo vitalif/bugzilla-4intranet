@@ -16,7 +16,6 @@ use constant GLOBAL_GENERAL_FIELDS => qw(
     attachments.ispatch
     attachments.isprivate
     attachments.mimetype
-    attachments.submitter
 
     flagtypes.name
 
@@ -35,7 +34,6 @@ use constant GLOBAL_GENERAL_FIELDS => qw(
     everconfirmed
     keywords
     longdesc
-    owner_idle_time
     product
     qa_contact
     reporter

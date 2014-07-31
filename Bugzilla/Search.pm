@@ -546,7 +546,7 @@ sub STATIC_COLUMNS
     };
 
     # Search-only fields that were previously in fielddefs
-    foreach my $col (qw(requestees.login_name setters.login_name longdescs.isprivate content commenter))
+    foreach my $col (qw(requestees.login_name setters.login_name longdescs.isprivate content commenter owner_idle_time attachments.submitter))
     {
         $columns->{$col}->{title} = Bugzilla->messages->{field_descs}->{$col};
     }
