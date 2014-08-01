@@ -168,13 +168,6 @@ sub remove_from_db
             value => $self,
         });
     }
-    if ($self->is_static)
-    {
-        ThrowUserError('fieldvalue_not_deletable', {
-            field => $self->field,
-            value => $self,
-        });
-    }
     if ($self->bug_count)
     {
         ThrowUserError('fieldvalue_still_has_bugs', {
@@ -337,11 +330,6 @@ sub is_default
     return $self->field->default_value_hash->{$self->id};
 }
 
-sub is_static
-{
-    return 0;
-}
-
 sub controls_visibility_of_fields
 {
     my $self = shift;
@@ -452,7 +440,7 @@ sub _check_value
     $value = trim($value);
 
     # Make sure people don't rename static values
-    if (blessed($invocant) && $value ne $invocant->name && $invocant->is_static) 
+    if (blessed($invocant) && $value ne $invocant->name)
     {
         ThrowUserError('fieldvalue_not_editable', { field => $field, old_value => $invocant });
     }

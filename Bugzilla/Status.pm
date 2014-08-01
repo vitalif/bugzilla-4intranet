@@ -31,13 +31,6 @@ use base qw(Bugzilla::Field::Choice Exporter);
 #####   Initialization     #####
 ################################
 
-use constant SPECIAL_STATUS_WORKFLOW_ACTIONS => qw(
-    none
-    duplicate
-    change_resolution
-    clearresolution
-);
-
 use constant DB_TABLE => 'bug_status';
 use constant FIELD_NAME => 'bug_status';
 
@@ -59,7 +52,6 @@ sub VALIDATORS
     $validators->{is_open} = \&Bugzilla::Object::check_boolean;
     $validators->{is_assigned} = \&Bugzilla::Object::check_boolean;
     $validators->{is_confirmed} = \&Bugzilla::Object::check_boolean;
-    $validators->{value} = \&_check_value;
     return $validators;
 }
 
@@ -78,12 +70,11 @@ sub create
 sub remove_from_db
 {
     my $self = shift;
-    my $dbh = Bugzilla->dbh;
-    my $id = $self->id;
-    $dbh->bz_start_transaction();
+    if ($self->name eq Bugzilla->params->{duplicate_or_move_bug_status})
+    {
+        ThrowUserError('cant_delete_duplicate_or_move_bug_status');
+    }
     $self->SUPER::remove_from_db();
-    $dbh->do('DELETE FROM status_workflow WHERE old_status = ? OR new_status = ?', undef, $id, $id);
-    $dbh->bz_commit_transaction();
 }
 
 ###############################
@@ -93,28 +84,6 @@ sub remove_from_db
 sub is_open      { return $_[0]->{is_open};  }
 sub is_assigned  { return $_[0]->{is_assigned};  }
 sub is_confirmed { return $_[0]->{is_confirmed}; }
-
-sub is_static
-{
-    my $self = shift;
-    return $self->name eq Bugzilla->params->{duplicate_or_move_bug_status} ? 1 : 0;
-}
-
-##############
-# Validators #
-##############
-
-sub _check_value
-{
-    my $invocant = shift;
-    my $value = $invocant->SUPER::_check_value(@_);
-
-    if (grep { lc($value) eq lc($_) } SPECIAL_STATUS_WORKFLOW_ACTIONS)
-    {
-        ThrowUserError('fieldvalue_reserved_word', { field => $invocant->field, value => $value });
-    }
-    return $value;
-}
 
 ###############################
 #####       Methods        ####

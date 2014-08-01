@@ -58,7 +58,6 @@
         </tr>
         [% count = 0 %]
         [% FOREACH value = field.legal_values %]
-          [% NEXT IF value.is_static %]
           <tr class="[%+ count % 2 == 1 ? 'odd' : 'even' +%]_row">
             <td>
               <label for="val_[% value.id %]">[% value.name FILTER html %]</label>

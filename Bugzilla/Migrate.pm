@@ -707,28 +707,6 @@ sub insert_bugs {
 
         $self->debug($bug, 3);
 
-        foreach my $field (@standard_drop_downs) {
-            my $field_name = $field->name;
-            next if $field_name eq 'product';
-            if (!defined $bug->{$field_name}) {
-                # If there's a default value for this, then just let create() pick it.
-                next if grep { $_->is_default } @{ $field->legal_values };
-                # Otherwise, pick the first valid value if this is a required field.
-                if ($field_name eq 'bug_status') {
-                    $bug->{bug_status} = $default_status;
-                }
-                elsif ($field_name eq 'resolution') {
-                    my $status = $statuses{lc $bug->{bug_status}};
-                    if (!$status->is_open) {
-                        $bug->{resolution} = $default_resolution;
-                    }
-                }
-                else {
-                    $bug->{$field_name} = $field->legal_values->[0]->name;
-                }
-            }
-        }
-
         my $product = Bugzilla::Product->check($bug->{product});
 
         # If this isn't a legal starting status, or if the bug has a

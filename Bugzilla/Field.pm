@@ -572,7 +572,7 @@ sub restricted_legal_values
     {
         my $hash = Bugzilla->fieldvaluecontrol->{$self->value_field_id}->{values}->{$self->id};
         $rc_cache->{$self}->{restricted_legal_values}->{$controller_value} = [
-            grep { $_->is_static || $hash->{$_->id} && $hash->{$_->id}->{$controller_value} }
+            grep { $hash->{$_->id} && $hash->{$_->id}->{$controller_value} }
             @{$self->legal_values}
         ];
     }

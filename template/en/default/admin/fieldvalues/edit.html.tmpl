@@ -25,12 +25,7 @@
         <label for="value">Field Value:</label>
       </th>
       <td>
-        [% IF value.is_static %]
-          <input type="hidden" name="value" id="value" value="[% value.name | html %]" />
-          [%- value.name | html %]
-        [% ELSE %]
-          <input id="value" name="value" size="100" maxlength="[% constants.MAX_FIELD_VALUE_SIZE | none %]" value="[% value.name | html %]" />
-        [% END %]
+        <input id="value" name="value" size="100" maxlength="[% constants.MAX_FIELD_VALUE_SIZE | none %]" value="[% value.name | html %]" />
       </td>
     </tr>
     <tr>
@@ -73,15 +68,10 @@
       <th align="left"><label for="isactive">Enabled for [% terms.bugs %]:</label></th>
       <td>
         <input id="isactive" name="isactive" type="checkbox" value="1"
-          [%+ 'checked="checked"' IF value.isactive || !value.id %]
-          [%+ 'disabled="disabled"' IF value.is_default OR value.is_static %] />
-        [% IF value.is_default %]
-          This value is selected as default in the parameters for this field. It cannot be disabled.
-        [% ELSIF value.is_static %]
-          This value is non-deletable and cannot be disabled.
-        [% END %]
+          [%+ 'checked="checked"' IF value.isactive || !value.id %] />
+        (this value is selected as default in the parameters for this field)
       </td>
-    [% IF field.value_field && !value.is_static %]
+    [% IF field.value_field %]
       <tr>
         <th colspan="2" align="left">
           <label for="visibility_value_id">Only appears when [%+ field.value_field.description | html %] is set to:</label>

@@ -180,11 +180,6 @@ $vars->{value} = $value;
 #
 if ($action eq 'del')
 {
-    # If the value cannot be deleted, throw an error.
-    if ($value->is_static)
-    {
-        ThrowUserError('fieldvalue_not_deletable', $vars);
-    }
     $vars->{token} = issue_session_token('delete_field_value');
 
     $template->process("admin/fieldvalues/confirm-delete.html.tmpl", $vars)
@@ -227,12 +222,12 @@ if ($action eq 'update')
     $vars->{value_old} = $value->name;
     for ($value->UPDATE_COLUMNS)
     {
-        if ($_ ne 'isactive' && $_ ne $value->NAME_FIELD || !$value->is_static && !$value->is_default)
+        if ($_ ne 'isactive' && $_ ne $value->NAME_FIELD)
         {
             $value->set($_, $ARGS->{$_});
         }
     }
-    if (!($value->is_static || $value->is_default) && $value->field->value_field)
+    if ($value->field->value_field)
     {
         $vars->{changes}->{visibility_values} = $value->set_visibility_values($ARGS->{visibility_value_id});
     }
