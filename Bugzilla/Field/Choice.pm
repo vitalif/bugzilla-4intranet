@@ -59,6 +59,7 @@ use constant CLASS_MAP => {
     classification   => 'Bugzilla::Classification',
     op_sys           => 'Bugzilla::OS',
     rep_platform     => 'Bugzilla::Platform',
+    keywords         => 'Bugzilla::Keyword',
 };
 
 #################
