@@ -180,13 +180,9 @@ function convertSimpleList(k)
 {
     var data = [];
     for (var i = 0; i < k.length; i++)
-        data.push([
-        '<span class="hintRealname">' + k[i].name +
-        '</span>',
-        k[i].name
-        ]);
+        data.push([ '<span class="hintRealname">' + k[i].name + '</span>', k[i].name ]);
     return data;
-} 
+}
 
 // Data loader for keyword autocomplete
 function keywordAutocomplete(hint, emptyOptions)
@@ -221,7 +217,7 @@ function keywordAutocomplete(hint, emptyOptions)
             hint.replaceItems(data);
         }
     });
-} 
+}
 
 // Data loader for field in buglist autocomplete
 function fieldBuglistAutocomplete(hint, field, emptyOptions)

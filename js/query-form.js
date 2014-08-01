@@ -2,14 +2,10 @@
 // License: Dual-license GPL 3.0+ or MPL 1.1+
 // Author(s): Vitaliy Filippov <vitalif@mail.ru>
 
-// Requires global vars: queryform, allKeywords, checkwidths, userAutocomplete
+// Requires global vars: queryform, checkwidths, userAutocomplete
 addListener(window, 'load', function()
 {
   document.forms[queryform].content.focus();
-  new SimpleAutocomplete("keywords",
-    function(h) { keywordAutocomplete(h, allKeywords); },
-    { emptyText: 'No keywords found', multipleDelimiter: "," }
-  );
   if (document.getElementById('deadlinefrom'))
   {
     Calendar.set('deadlinefrom');
@@ -20,6 +16,7 @@ addListener(window, 'load', function()
   Calendar.set('chfieldfrom');
   Calendar.set('chfieldto');
   new SimpleAutocomplete("chfieldwho", userAutocomplete, { emptyText: 'No users found' });
+  addKeywordsAutocomplete();
 
   var lim = 250;
   function checkw(e)

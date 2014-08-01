@@ -46,10 +46,13 @@ function getSelectedIds(sel)
 {
     var opt = {};
     var lm = sel.id.length+2;
-    if (sel.type == 'hidden' && sel.name == 'product')
+    if (sel.nodeName != 'SELECT')
     {
-        // product is a special case - it is preselected as hidden field on bug creation form
-        opt[product_id] = true;
+        if (sel.name == 'product')
+        {
+            // product is a special case - it is preselected as hidden field on bug creation form
+            opt[product_id] = true;
+        }
         return opt;
     }
     for (var i = 0; i < sel.options.length; i++)

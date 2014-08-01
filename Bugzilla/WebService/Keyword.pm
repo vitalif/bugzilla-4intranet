@@ -1,5 +1,3 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -25,7 +23,7 @@ use base qw(Bugzilla::WebService);
 use Bugzilla;
 use Bugzilla::Constants;
 use Bugzilla::Error;
-use Bugzilla::Util qw(trim);
+use Bugzilla::Util;
 use Bugzilla::WebService::Util qw(filter validate);
 
 # Function to return keywords by passing either keyword ids or
@@ -36,37 +34,42 @@ use Bugzilla::WebService::Util qw(filter validate);
 # Can be also used to match keywords based on their name:
 # $call = $rpc->call( 'Keyword.get', { match => [ 'testkeyworda', 'testkeywordb' ]});
 #
-sub get {
+sub get
+{
     my ($self, $params) = validate(@_, 'names', 'ids');
 
     # Make them arrays if they aren't
-    if ($params->{names} && !ref $params->{names}) {
+    if ($params->{names} && !ref $params->{names})
+    {
         $params->{names} = [ $params->{names} ];
     }
-    if ($params->{ids} && !ref $params->{ids}) {
+    if ($params->{ids} && !ref $params->{ids})
+    {
         $params->{ids} = [ $params->{ids} ];
     }
-    if ($params->{match} && !ref $params->{match}) {
+    if ($params->{match} && !ref $params->{match})
+    {
         $params->{match} = [ $params->{match} ];
     }
+    warn Dumper $params;
 
     my @keyword_list;
     if ($params->{names})
     {
-        my $keyword_objects = Bugzilla::Keyword->match( { name => @{$params->{names}} } );
-        @keyword_list = map { { name => $_->{name} } } @$keyword_objects;
+        my $keyword_objects = Bugzilla::Keyword->match({ value => @{$params->{names}} });
+        @keyword_list = map { { name => $_->name } } @$keyword_objects;
     }
 
     if ($params->{ids})
     {
-        my $keyword_objects = Bugzilla::Keyword->match( { id => @{$params->{ids}} } );
-        @keyword_list = map { { name => $_->{name} } } @$keyword_objects;
+        my $keyword_objects = Bugzilla::Keyword->match({ id => @{$params->{ids}} });
+        @keyword_list = map { { name => $_->name } } @$keyword_objects;
     }
 
     if ($params->{match})
     {
-        my $keyword_objects = Bugzilla::Keyword->get_by_match( @{$params->{match}} );
-        @keyword_list = map { { name => $_->{name} } } @$keyword_objects;
+        my $keyword_objects = Bugzilla::Keyword->get_by_match(@{$params->{match}});
+        @keyword_list = map { { name => $_->name } } @$keyword_objects;
     }
 
     return { keywords => \@keyword_list };

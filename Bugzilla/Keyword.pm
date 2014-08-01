@@ -60,10 +60,9 @@ sub get_by_match
     }
     if (@match_items)
     {
-        my $joined = join(' OR ', @match_items);
-        $keywords = $dbh->selectall_arrayref("SELECT * FROM keywords WHERE ".$joined, {Slice => {}});
-        return [] unless $keywords;
+        return $self->_do_list_select(join(' OR ', @match_items));
     }
+    return [];
 }
 
 1;

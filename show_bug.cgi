@@ -149,9 +149,6 @@ if ($ARGS->{includefield} || $ARGS->{field})
 
 $vars->{displayfields} = \%displayfields;
 
-# CustIS Bug 66910 - Autocomplete for keywords
-$vars->{keyword_list} = [ map { { name => $_->name } } Bugzilla::Keyword->get_all() ];
-
 Bugzilla->cgi->send_header($format->{ctype});
 $template->process($format->{template}, $vars)
     || ThrowTemplateError($template->error());

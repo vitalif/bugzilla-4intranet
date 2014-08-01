@@ -446,13 +446,7 @@ var close_status_array = [
         [% END %]
           <input id="keywords" name="keywords" size="40" value="[% default.keywords | html %]">
           <script type="text/javascript">
-            var emptyKeywordsOptions = [% keyword_list ? json(keyword_list) : "null" %];
-            addListener(window, 'load', function() {
-              new SimpleAutocomplete("keywords",
-                function(h) { keywordAutocomplete(h, emptyKeywordsOptions); },
-                { emptyText: 'No keywords found', multipleDelimiter: "," }
-              );
-            });
+            addListener(window, 'load', addKeywordsAutocomplete);
           </script>
           <div id="keywords_description_container"></div>
         </td>

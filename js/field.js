@@ -277,6 +277,19 @@ function _value_id(field_name, id)
     return 'v' + id + '_' + field_name;
 }
 
+function addKeywordsAutocomplete()
+{
+    var emptyKeywordsOptions = [];
+    for (var i = 0; i < field_metadata.keywords.legal.length; i++)
+    {
+        emptyKeywordsOptions.push({ name: field_metadata.keywords.legal[i][1] });
+    }
+    new SimpleAutocomplete("keywords",
+        function(h) { keywordAutocomplete(h, emptyKeywordsOptions); },
+        { emptyText: 'No keywords found', multipleDelimiter: "," }
+    );
+}
+
 // CustIS bug 66910 - check new keywords and requery description for its
 function check_new_keywords(form)
 {
