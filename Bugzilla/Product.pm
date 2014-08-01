@@ -545,7 +545,7 @@ sub _check_classification_id
     my ($invocant, $classification_name) = @_;
 
     my $classification_id = 1;
-    if (Bugzilla->params->{useclassification})
+    if (Bugzilla->get_field('classification')->enabled)
     {
         my $classification = ref $classification_name
             ? $classification_name
@@ -612,7 +612,7 @@ sub _check_default_milestone
     return undef unless ref $invocant;
 
     # Do nothing if target milestones are not in use
-    return $invocant->default_milestone unless Bugzilla->params->{usetargetmilestone};
+    return $invocant->default_milestone if !Bugzilla->get_field('target_milestone')->enabled;
 
     $milestone = trim($milestone) || undef;
     if ($milestone)

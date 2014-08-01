@@ -54,9 +54,6 @@ my $upload;
 my $name_tr = {};
 my $bug_tpl = {};
 
-$bug_tpl->{platform} = Bugzilla->params->{defaultplatform}
-    if Bugzilla->params->{defaultplatform} && Bugzilla->params->{useplatform};
-
 for (keys %$ARGS)
 {
     if (/^f_/so && $ARGS->{$_})

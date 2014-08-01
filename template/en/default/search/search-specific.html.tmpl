@@ -66,7 +66,7 @@ for "crash secure SSL flash".
     <td>
       <select name="product" id="product">
         <option value="">All</option>
-        [% IF Param('useclassification') %]
+        [% IF Bugzilla.get_field('classification').enabled %]
           [% FOREACH c = classification %]
             <optgroup label="[% c.name FILTER html %]">
             [% FOREACH p = user.get_selectable_products(c.id) %]

@@ -704,7 +704,7 @@ sub can_edit_bug
         return undef if !$bug;
     }
     return 1 if $bug->assigned_to_id && $bug->assigned_to_id == $self->id ||
-        Bugzilla->params->{useqacontact} && $bug->qa_contact_id && $bug->qa_contact_id == $self->id ||
+        Bugzilla->get_field('qa_contact')->enabled && $bug->qa_contact_id && $bug->qa_contact_id == $self->id ||
         $bug->reporter_accessible && $bug->reporter_id && $bug->reporter_id == $self->id ||
         $bug->cclist_accessible && grep($_->id == $self->id, @{$bug->cc_users}) ||
         $self->can_edit_product($bug->product_id);
@@ -760,7 +760,7 @@ sub visible_bugs {
         }
 
         $sth->execute(@check_ids);
-        my $use_qa_contact = Bugzilla->params->{'useqacontact'};
+        my $use_qa_contact = Bugzilla->get_field('qa_contact')->enabled;
         while (my $row = $sth->fetchrow_arrayref) {
             my ($bug_id, $reporter, $owner, $qacontact, $reporter_access,
                 $cclist_access, $isoncclist, $missinggroup) = @$row;

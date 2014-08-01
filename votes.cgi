@@ -85,7 +85,7 @@ elsif ($action eq "show_user") {
     show_user($bug_id);
 }
 elsif ($action eq "vote") {
-    record_votes() if Bugzilla->params->{'usevotes'};
+    record_votes() if Bugzilla->get_field('votes')->enabled;
     show_user($bug_id);
 }
 else {
@@ -133,8 +133,7 @@ sub show_user {
     my $who_id = $cgi->param('user_id') || $user->id;
     my $who = Bugzilla::User->check({ id => $who_id });
 
-    my $canedit = (Bugzilla->params->{'usevotes'} && $user->id == $who->id)
-                  ? 1 : 0;
+    my $canedit = (Bugzilla->get_field('votes')->enabled && $user->id == $who->id) ? 1 : 0;
 
     $dbh->bz_start_transaction();
 

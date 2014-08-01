@@ -149,7 +149,7 @@ sub queue {
                  (ccmap.who IS NOT NULL AND cclist_accessible = 1) OR
                  (bugs.reporter = $userid AND bugs.reporter_accessible = 1) OR
                  (bugs.assigned_to = $userid) " .
-                 (Bugzilla->params->{'useqacontact'} ? "OR
+                 (Bugzilla->get_field('qa_contact')->enabled ? "OR
                  (bugs.qa_contact = $userid))" : ")");
 
     unless ($user->is_insider) {

@@ -1071,7 +1071,7 @@
   [% END %]
   [% IF bug_id %]
     '[% bug_id FILTER html %]' is not a valid [% terms.bug %] number
-    [% IF Param("usebugaliases") %]
+    [% IF Bugzilla.get_field('alias').enabled %]
       nor an alias to [% terms.abug %]
     [% END %].
   [% ELSE %]
@@ -1957,7 +1957,7 @@
   [% admindocslinks = {'useradmin.html' => 'User administration'} %]
   The user you want to delete is set up as the default [% terms.bug %]
   assignee
-  [% IF Param('useqacontact') %]
+  [% IF Bugzilla.get_field('qa_contact').enabled %]
     or QA contact
   [% END %]
   for at least one component.

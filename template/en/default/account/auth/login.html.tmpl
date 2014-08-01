@@ -26,13 +26,11 @@
 [% IF !target %]
  [% target = "index.cgi" %]
 [% END %]
-  
+
 [% PROCESS global/header.html.tmpl
   title = "Log in to $terms.Bugzilla",
   onload = "document.forms['login'].Bugzilla_login.focus()"
 %]
-
-[% USE Bugzilla %]
 
 <p>
   I need a legitimate login and password to continue.

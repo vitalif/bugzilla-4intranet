@@ -75,7 +75,7 @@
     </Seq>
   </bz:keyword>
 
-  [% IF Param('useplatform') %]
+  [% IF Bugzilla.get_field('rep_platform').enabled %]
   <bz:platform>
     <Seq>
       [% FOREACH item = platform %]
@@ -85,7 +85,7 @@
   </bz:platform>
   [% END %]
 
-  [% IF Param('useopsys') %]
+  [% IF Bugzilla.get_field('op_sys').enabled %]
   <bz:op_sys>
     <Seq>
       [% FOREACH item = op_sys %]
@@ -147,7 +147,7 @@
               </Seq>
             </bz:versions>
 
-            [% IF Param('usetargetmilestone') %]
+            [% IF Bugzilla.get_field('target_milestone').enabled %]
               <bz:target_milestones>
                 <Seq>
                   [% FOREACH milestone = product.milestones %]
@@ -206,7 +206,7 @@
     </Seq>
   </bz:versions>
 
-  [% IF Param('usetargetmilestone') %]
+  [% IF Bugzilla.get_field('target_milestone').enabled %]
     <bz:target_milestones>
       <Seq>
         [% FOREACH product = products %]

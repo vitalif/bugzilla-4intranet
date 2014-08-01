@@ -18,7 +18,7 @@
 [%# INTERFACE:
   # product: Bugzilla::Product object; The product
   #
-  # (classification fields available if Param('useclassification') is enabled:)
+  # (classification fields available if classification is enabled:)
   #
   # classification: Bugzilla::Classification object; The classification 
   #                                                  the product is in
@@ -79,7 +79,7 @@
         [% END %]
       </td>
     </tr>
-    [% IF Param('usetargetmilestone') %]
+    [% IF Bugzilla.get_field('target_milestone').enabled %]
       <tr>
         <th align="left" valign="top">
           <a href="editmilestones.cgi?product=[% product.name FILTER url_quote %]">

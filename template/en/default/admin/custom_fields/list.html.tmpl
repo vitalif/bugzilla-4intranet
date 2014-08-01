@@ -65,15 +65,13 @@
      },
      {
        name => "obsolete"
-       heading => "Obsolete"
+       heading => "Disabled"
        hint => "Is disabled and unused"
        content_values => { '0' => '', '1' => 'Yes' }
        align => 'center'
      }
    ]
 %]
-
-[% USE Bugzilla %]
 
 [%# We want to display the type name of fields, not their type ID. %]
 [% overrides.type = {} %]
@@ -97,9 +95,9 @@
 <h2>Custom fields</h2>
 
 [% PROCESS admin/table.html.tmpl
-     columns = columns
-     overrides = overrides
-     data = Bugzilla.get_fields({custom => 1, sort => 1})
+  columns = columns
+  overrides = overrides
+  data = Bugzilla.get_fields({custom => 1, sort => 1})
 %]
 
 <p>
@@ -113,12 +111,87 @@
 
 <h2>Standard fields</h2>
 
+<p>
+  You can tweak the behaviour of standard [% terms.Bugzilla %] fields in various ways:
+  enable/disable them, set default values, allow or deny empty value, or even make
+  some of them depend on other fields.
+</p>
+<p>
+  Look for "Yes/No/Always" and tooltips in the table below for details.
+</p>
+
 [% overrides.obsolete.obsolete = {} %]
+[% columns.0.heading = "Edit standard field..." %]
+[% columns.4.block_name = "tweakable_boolean" %]
+[% columns.5.block_name = "tweakable_boolean" %]
+[% columns.6.block_name = "tweakable_boolean" %]
+[% columns.7.block_name = "tweakable_boolean" %]
+[% z = columns.splice(2, 2) %]
+[% columns.push({
+  heading => 'Default'
+  hint => 'Can you select the default value for this field?'
+  block_name => 'is_tweakable_default'
+  align => 'center'
+}, {
+  heading => 'Values'
+  hint => 'Can you make this field values to depend on other fields?'
+  block_name => 'is_tweakable_values'
+  align => 'center'
+}, {
+  heading => 'Visible'
+  hint => 'Can you show/hide this field depending on other fields?'
+  block_name => 'is_tweakable_visible'
+  align => 'center'
+}) %]
+
+[% tweaks = {
+  'mailhead' => 'You can show/hide this field from new ' _ terms.bug _ ' mail'
+  'clone_bug' => 'You can choose whether to copy this field when cloning ' _ terms.bugs
+  'nullable' => 'You can choose whether to allow this field to be empty'
+  'obsolete' => 'You can enable/disable this field'
+  'default_field_id' => 'You can select the default value for this field and make the default value depend on other fields'
+  'visibility_field_id' => 'You can show or hide this field based on the value of some other field'
+  'value_field_id' => 'You can show or hide this field based on the value of some other field'
+} %]
+
+[% BLOCK tweakable_boolean %]
+  [% IF row.can_tweak(c.name) %]
+    <abbr title="[% tweaks.${c.name} %]" style="color: [% row.${c.name} ? 'green">Yes' : '#a00">No' %]</abbr>
+  [% ELSE %]
+    <span style="color: gray">[% row.${c.name} ? 'Always' : '' %]</span>
+  [% END %]
+[% END %]
+
+[% BLOCK is_tweakable_default %]
+  [% IF row.can_tweak('default_field_id') %]
+    <abbr title="[% tweaks.default_field_id %]" style="color: blue">per-[% row.default_field ? row.default_field.description : 'any' | html %]</abbr>
+  [% ELSIF row.can_tweak('default_value') %]
+    <abbr title="You can select the default value for this field globally
+      [%- IF row.default_field %] or per each [% row.default_field.description | html %][% END %]" style="color: green">
+      [% row.default_field ? 'per-' _ row.default_field.description : 'global' | html %]</abbr>
+  [% END %]
+[% END %]
+
+[% BLOCK is_tweakable_values %]
+  [% IF row.can_tweak('value_field_id') || row.value_field_id %]
+    [% IF row.can_tweak('value_field_id') %]<abbr title="[% tweaks.value_field_id %]" style="color: blue">[% END %]
+    per-[% row.value_field && row.value_field.description || 'any' %]
+    [% IF row.can_tweak('value_field_id') %]</abbr>[% END %]
+  [% END %]
+[% END %]
+
+[% BLOCK is_tweakable_visible %]
+  [% IF row.can_tweak('visibility_field_id') || row.visibility_field_id %]
+    [% IF row.can_tweak('visibility_field_id') %]<abbr title="[% tweaks.visibility_field_id %]" style="color: blue">[% END %]
+    per-[% row.visibility_field && row.visibility_field.description || 'any' %]
+    [% IF row.can_tweak('visibility_field_id') %]</abbr>[% END %]
+  [% END %]
+[% END %]
 
 [% PROCESS admin/table.html.tmpl
-     columns = columns
-     overrides = overrides
-     data = Bugzilla.get_fields({custom => 0, sort => 'name'})
+  columns = columns
+  overrides = overrides
+  data = Bugzilla.get_fields({custom => 0, sort => 'name'})
 %]
 
 [% PROCESS global/footer.html.tmpl %]

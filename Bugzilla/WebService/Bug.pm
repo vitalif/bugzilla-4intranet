@@ -375,9 +375,9 @@ sub history {
         $item{history} = \@history;
 
         # alias is returned in case users passes a mixture of ids and aliases
-        # then they get to know which bug activity relates to which value  
+        # then they get to know which bug activity relates to which value
         # they passed
-        if (Bugzilla->params->{'usebugaliases'}) {
+        if (!Bugzilla->get_field('alias')->obsolete) {
             $item{alias} = $self->type('string', $bug->alias);
         }
         else {
@@ -517,7 +517,7 @@ sub update {
         # alias is returned in case users pass a mixture of ids and aliases,
         # so that they can know which set of changes relates to which value
         # they passed.
-        if (Bugzilla->params->{'usebugaliases'}) {
+        if (Bugzilla->get_field('alias')->enabled) {
             $hash{alias} = $self->type('string', $bug->alias);
         }
         else {
@@ -811,14 +811,12 @@ sub _bug_to_hash {
         whiteboard       => $self->type('string', $bug->status_whiteboard),
     );
 
-    # FIXME change toggle method to fielddefs.is_obsolete
-    if (Bugzilla->params->{useopsys} && filter_wants $params, 'op_sys')
+    if (Bugzilla->get_field('op_sys')->enabled && filter_wants $params, 'op_sys')
     {
         $item{op_sys} = $self->type('string', $bug->op_sys && $bug->op_sys_obj->name);
     }
 
-    # FIXME change toggle method to fielddefs.is_obsolete
-    if (Bugzilla->params->{useplatform} && filter_wants $params, 'platform')
+    if (Bugzilla->get_field('rep_platform')->enabled && filter_wants $params, 'platform')
     {
         $item{platform} = $self->type('string', $bug->rep_platform && $bug->rep_platform_obj->name);
     }
@@ -860,7 +858,7 @@ sub _bug_to_hash {
                        @{ $bug->keywords_obj };
         $item{'keywords'} = \@keywords;
     }
-    if (Bugzilla->params->{useqacontact} &&
+    if (Bugzilla->get_field('qa_contact')->enabled &&
         filter_wants $params, 'qa_contact') {
         my $qa_login = $bug->qa_contact ? $bug->qa_contact->login : '';
         $item{'qa_contact'} = $self->type('string', $qa_login);

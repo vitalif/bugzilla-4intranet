@@ -27,7 +27,7 @@ unless ($product && $user->can_access_product($product->name))
     {
         ThrowUserError('no_products');
     }
-    if (Bugzilla->params->{useclassification} && $ARGS->{classification} ne '__all')
+    if (Bugzilla->get_field('classification')->enabled && $ARGS->{classification} ne '__all')
     {
         my $cl = Bugzilla::Classification->new({ name => trim($ARGS->{classification} || '') });
         if (!$cl)

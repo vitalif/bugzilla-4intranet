@@ -108,22 +108,43 @@ elsif ($action eq 'update')
 
     $field->set_description(scalar $cgi->param('desc'));
     $field->set_sortkey(scalar $cgi->param('sortkey'));
-    $field->set_in_new_bugmail(scalar $cgi->param('new_bugmail'));
-    $field->set_obsolete(scalar $cgi->param('obsolete'));
-    $field->set_is_mandatory(!scalar $cgi->param('nullable'));
     $field->set_url(scalar $cgi->param('url'));
-    $field->set_default_value($field->type == FIELD_TYPE_MULTI_SELECT ? [ $cgi->param('default_value') ] : scalar $cgi->param('default_value'));
-    $field->set_clone_bug(scalar $cgi->param('clone_bug'));
-    if ($field->custom)
+    $field->set_add_to_deps($cgi->param('add_to_deps'));
+    if ($field->can_tweak('mailhead'))
     {
-        $field->set_value_field($cgi->param('value_field_id'));
+        $field->set_in_new_bugmail(scalar $cgi->param('new_bugmail'));
+    }
+    if ($field->can_tweak('obsolete'))
+    {
+        $field->set_obsolete(scalar $cgi->param('obsolete'));
+    }
+    if ($field->can_tweak('nullable'))
+    {
+        $field->set_is_mandatory(!scalar $cgi->param('nullable'));
+    }
+    if ($field->can_tweak('default_value'))
+    {
+        $field->set_default_value($field->type == FIELD_TYPE_MULTI_SELECT ? [ $cgi->param('default_value') ] : scalar $cgi->param('default_value'));
+    }
+    if ($field->can_tweak('clone_bug'))
+    {
+        $field->set_clone_bug(scalar $cgi->param('clone_bug'));
+    }
+    if ($field->can_tweak('value_field_id'))
+    {
+        $field->set_value_field(scalar $cgi->param('value_field_id'));
+    }
+    if ($field->can_tweak('default_field_id'))
+    {
         $field->set_default_field($cgi->param('default_field_id'));
-        $field->set_add_to_deps($cgi->param('add_to_deps'));
-        for (
-            [ qw(visibility_field_id set_visibility_field set_visibility_values visibility_value_id) ],
-            [ qw(null_field_id set_null_field set_null_visibility_values null_visibility_values) ],
-            [ qw(clone_field_id set_clone_field set_clone_visibility_values clone_visibility_values) ],
-        ) {
+    }
+    for (
+        [ qw(visibility_field_id set_visibility_field set_visibility_values visibility_value_id) ],
+        [ qw(null_field_id set_null_field set_null_visibility_values null_visibility_values) ],
+        [ qw(clone_field_id set_clone_field set_clone_visibility_values clone_visibility_values) ],
+    ) {
+        if ($field->can_tweak($_->[0]))
+        {
             my $vf = $cgi->param($_->[0]);
             if ($vf ne $field->${\$_->[0]}())
             {

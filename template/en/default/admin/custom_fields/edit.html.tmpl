@@ -61,6 +61,34 @@ var constants = {
 </ul>
 [% END %]
 
+[% IF field.id && !field.custom %]
+  [% SWITCH field.name %]
+    [% CASE 'classification' %]
+    <p>
+    If this field is enabled, [% terms.Bugzilla %] will associate each product with a
+    specific classification.<br /> But you must have 'editclassification'
+    permissions enabled in order to edit classifications.
+    </p>
+    [% CASE 'votes' %]
+    <p>
+    If this field is enabled, users will be allowed to vote for [% terms.bugs %].
+    Note that in order for this to be effective, you will have to change the maximum
+    votes allowed in a product to be non-zero in <a href="editproducts.cgi">the product edit page</a>.
+    </p>
+    [% CASE 'alias' %]
+    <p>
+    Enabling this field allows you to assign [% terms.bugs %] "aliases", which are
+    easy-to-remember names by which you can refer to [% terms.bugs %].
+    </p>
+    [% CASE 'see_also' %]
+    <p>
+    Enabling See Also field allows you to refer to [% terms.bugs %] in other installations.
+    Even if you disable this field, [% terms.bug %] relationships (URLs) which are already set
+    will still appear and can be removed.
+    </p>
+  [% END %]
+[% END %]
+
 <form id="edit_field" action="editfields.cgi" method="GET">
   <table border="0" cellspacing="0" cellpadding="5">
     <tr>
@@ -72,17 +100,20 @@ var constants = {
           <input type="text" id="name" name="name" value="cf_" size="40" maxlength="64" />
         [% END %]
       </td>
+      [% IF !field.id || field.can_tweak('mailhead') %]
       <th align="left">
         <label for="new_bugmail">Displayed in [% terms.bug %]mail for new [% terms.bugs %]:</label>
       </th>
-      <td><input type="checkbox" id="new_bugmail" name="new_bugmail" value="1" [%- " checked" IF field.mailhead %] /></td>
+      <td><input type="checkbox" id="new_bugmail" name="new_bugmail" value="1" [%- " checked" IF field.in_new_bugmail %] /></td>
+      [% END %]
     </tr>
     <tr>
       <th align="left"><label for="desc">Title:</label></th>
       <td><input type="text" id="desc" name="desc" style="width: 400px" value="[% field.description | html %]" /></td>
-
+      [% IF !field.id || field.can_tweak('clone_bug') %]
       <th align="left"><label for="clone_bug">Is copied into the cloned [% terms.bug %]:</label></th>
       <td><input type="checkbox" id="clone_bug" name="clone_bug" value="1" [%- " checked" IF field.clone_bug %] onclick="onChangeCloned()" /></td>
+      [% END %]
     </tr>
     <tr>
       <th align="left"><label for="sortkey">Sortkey:</label></th>
@@ -90,11 +121,13 @@ var constants = {
         <input type="text" id="sortkey" name="sortkey" size="6"
           maxlength="6" value="[% field.sortkey | html %]" />
       </td>
-      <th align="left"><label for="obsolete">Is obsolete:</label></th>
+      [% IF !field.id || field.can_tweak('obsolete') %]
+      <th align="left"><label for="obsolete">Is disabled:</label></th>
       <td>
         <input type="checkbox" id="obsolete" name="obsolete" value="1"
           [%- " checked" IF field.obsolete %] />
       </td>
+      [% END %]
     </tr>
     <tr>
       <th align="left">Type:</th>
@@ -113,7 +146,7 @@ var constants = {
           </select>
         [% END %]
       </td>
-      [% IF !field.id || field.type && field.type != constants.FIELD_TYPE_BUG_ID_REV %]
+      [% IF !field.id || field.can_tweak('default_value') %]
       <th align="left" id="default_value_th">Default value:</th>
       <td id="default_value_td">
         [% IF field.is_select %]
@@ -146,7 +179,7 @@ var constants = {
       [% ELSE %]
       <td colspan="2"></td>
       [% END %]
-      [% IF !field.id || field.type && field.type != constants.FIELD_TYPE_BUG_ID_REV %]
+      [% IF !field.id || field.can_tweak('nullable') %]
       <th align="left"><label for="nullable">Allow empty value:</label></th>
       <td>
         <input type="checkbox" id="nullable" name="nullable" onclick="onChangeNullable()"
@@ -170,7 +203,7 @@ var constants = {
     </tr>
     [% END %]
 
-    [% IF field.custom || !field.id %]
+    [% IF !field.id || field.can_tweak('visibility_field_id') %]
     <tr valign="top">
       <th align="left" colspan="2"><label for="visibility_field_id">
         Show/hide the field depending on the value of:
@@ -191,7 +224,8 @@ var constants = {
         </select>
       </td>
     </tr>
-    [% IF !field.id || field.type && field.type != constants.FIELD_TYPE_BUG_ID_REV %]
+    [% END %]
+    [% IF !field.id || field.can_tweak('null_field_id') %]
     <tr valign="top" id="null_field_id_row">
       <th align="left" colspan="2"><label for="null_field_id">
         Allow empty value depending on the value of:
@@ -212,6 +246,8 @@ var constants = {
         </select>
       </td>
     </tr>
+    [% END %]
+    [% IF !field.id || field.can_tweak('clone_field_id') %]
     <tr valign="top" id="clone_field_id_row">
       <th align="left" colspan="2"><label for="clone_field_id">
         Clone field depending on the value of:
@@ -232,6 +268,8 @@ var constants = {
         </select>
       </td>
     </tr>
+    [% END %]
+    [% IF !field.id || field.can_tweak('default_field_id') %]
     <tr valign="top">
       <th align="left" colspan="2"><label for="default_field_id">
         Make default value dependent on the value of:
@@ -253,10 +291,7 @@ var constants = {
       </td>
     </tr>
     [% END %]
-    [% END %]
-    [%# FIXME These fields are still handled differently... %]
-    [% IF field.name != 'version' && field.name != 'target_milestone' &&
-      field.name != 'component' && field.is_select || !field.id %]
+    [% IF !field.id || field.can_tweak('value_field_id') %]
     <tr valign="top" id="value_field_row">
       <th colspan="2" align="left"><label for="value_field_id">
         Field that controls the values that appear in this field:
@@ -276,7 +311,7 @@ var constants = {
       </td>
     </tr>
     [% END %]
-    [% IF field.type == constants.FIELD_TYPE_BUG_ID_REV || !field.id %]
+    [% IF !field.id || field.type == constants.FIELD_TYPE_BUG_ID_REV %]
     <tr valign="top" id="bug_id_rev_row">
       <th colspan="2" align="left"><label for="bug_id_rev_value_field_id">
         Direct Bug ID field for this reverse one:
@@ -374,7 +409,7 @@ var constants = {
 [% IF field.obsolete AND field.custom %]
 <p>
   <a href="editfields.cgi?action=del&amp;name=[% field.name | html %]">Remove this custom field from the database.</a><br />
-  This action will only be successful if the custom field has never been used in [% terms.abug %].
+  This action will only be successful if the custom field is cleared in all [% terms.bugs %].
 </p>
 [% END %]
 

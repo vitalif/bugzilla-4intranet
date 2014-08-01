@@ -24,8 +24,6 @@
    onload = 'document.forms[\'f\'].quicksearch.focus()'
  %]
 
-[% USE Bugzilla %]
-
 <p>Type in one or more words (or pieces of words) to search for:</p>
 
 <form name="f" action="buglist.cgi" method="get"
@@ -44,14 +42,14 @@
     [%+ field_descs.product FILTER html %],
     [%+ field_descs.component FILTER html %], 
     [%+ IF use_keywords %][%+ field_descs.keywords FILTER html %],[% END %]
-    [%+ IF Param('usebugaliases') %][% field_descs.alias FILTER html %],[% END %]
+    [%+ IF Bugzilla.get_field('alias').enabled %][% field_descs.alias FILTER html %],[% END %]
     [%+ field_descs.short_desc FILTER html %], 
-    [%+ IF Param('usestatuswhiteboard') %][% field_descs.status_whiteboard FILTER html %],[% END %]
+    [%+ IF Bugzilla.get_field('status_whiteboard').enabled %][% field_descs.status_whiteboard FILTER html %],[% END %]
     and [% field_descs.longdesc FILTER html %] fields for your word or words.</li>
 
   <li>Typing just a <strong>number</strong> in the search box will take
     you directly to the [% terms.bug %] with that ID. 
-    [% IF Param('usebugaliases') %]
+    [% IF Bugzilla.get_field('alias').enabled %]
       Also, just typing the <strong>alias</strong> of [% terms.abug %]
       will take you to that [% terms.bug %].
     [% END %]
@@ -259,7 +257,7 @@
         <strong>#</strong><em>value</em>
       </td>
     </tr>
-    [% IF Param('usestatuswhiteboard') %]
+    [% IF Bugzilla.get_field('status_whiteboard').enabled %]
       <tr>
         <td class="field_name">[% field_descs.short_desc FILTER html %]
           or [% field_descs.status_whiteboard FILTER html %]</td>

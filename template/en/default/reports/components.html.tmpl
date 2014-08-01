@@ -33,7 +33,7 @@
   title = title 
 %]
 
-[% IF Param("useqacontact") %]
+[% IF Bugzilla.get_field('qa_contact').enabled %]
   [% numcols = 3 %]
 [% ELSE %]
   [% numcols = 2 %]
@@ -54,7 +54,7 @@
     <th>&nbsp;</th>
     <th>Description</th>
     <th>Default Assignee</th>
-    [% IF Param("useqacontact") %]
+    [% IF Bugzilla.get_field('qa_contact').enabled %]
       <th>Default QA Contact</th>
     [% END %]
   </tr>
@@ -67,7 +67,7 @@
   </tbody>
 </table>
 
-[% IF Param("useclassification") %]
+[% IF Bugzilla.get_field('classification').enabled %]
 <p><a href="describecomponents.cgi?classification=[% product.classification_obj.name | uri %]">View other products of classification <b>[% product.classification_obj.name | html %]</b></a></p>
 [% END %]
 <p><a href="describecomponents.cgi">View other products</a></p>
@@ -93,7 +93,7 @@
     <td class="component_assignee">
       [% INCLUDE global/user.html.tmpl who = comp.default_assignee %]
     </td>
-    [% IF Param("useqacontact") %]
+    [% IF Bugzilla.get_field('qa_contact').enabled %]
       <td class="component_qa_contact">
         [% INCLUDE global/user.html.tmpl who = comp.default_qa_contact %]
       </td>

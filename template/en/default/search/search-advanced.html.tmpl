@@ -24,9 +24,6 @@
   # search/boolean-charts.html.tmpl.
   #%]
 
-[% USE Bugzilla %]
-[% cgi = Bugzilla.cgi %]
-
 [% js_data = BLOCK %]
 var queryform = "queryform"
 [% END %]
@@ -49,7 +46,7 @@ var queryform = "queryform"
 
 [%# The decent help requires Javascript %]
 <script type="text/javascript"> <!--
-[% IF NOT cgi.param("help") %]
+[% IF NOT Bugzilla.cgi.param("help") %]
   document.write("<p><a href='query.cgi?help=1&amp;format=advanced'>Give me some help<\/a> (reloads page).<\/p>");
 [% ELSE %]
   [% PROCESS "search/search-help.html.tmpl" %]

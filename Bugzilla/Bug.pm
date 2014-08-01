@@ -106,9 +106,8 @@ sub DB_COLUMNS
         version
     );
     # FIXME kill op_sys and rep_platform completely, make them custom fields
-    # FIXME change useplatform/useopsys/useqacontact to "field(xxx).is_obsolete"
-    push @columns, 'op_sys' if Bugzilla->params->{useopsys};
-    push @columns, 'rep_platform' if Bugzilla->params->{useplatform};
+    push @columns, 'op_sys' if Bugzilla->get_field('op_sys')->enabled;
+    push @columns, 'rep_platform' if Bugzilla->get_field('rep_platform')->enabled;
     push @columns, map { $_->name }
         grep { $_->type != FIELD_TYPE_MULTI_SELECT && $_->type != FIELD_TYPE_BUG_ID_REV }
         Bugzilla->active_custom_fields;
@@ -299,7 +298,7 @@ sub new
     if (!ref $param && $param !~ /^\d+$/)
     {
         # But only if aliases are enabled.
-        if (Bugzilla->params->{usebugaliases} && $param)
+        if (Bugzilla->get_field('alias')->enabled && $param)
         {
             $param = { name => $param };
         }
@@ -726,7 +725,7 @@ sub check_default_values
     for (qw(target_milestone version))
     {
         my $f = Bugzilla->get_field($_);
-        $self->set($_, undef) if !$f->obsolete && (!$f->nullable && !$self->{$_} || !exists $self->{$_});
+        $self->set($_, undef) if $f->enabled && (!$f->nullable && !$self->{$_} || !exists $self->{$_});
     }
     # Remove NULLs for custom fields
     for my $field (Bugzilla->get_fields({ custom => 1, obsolete => 0 }))
@@ -1042,7 +1041,7 @@ sub _check_bug_status
 
     # Check musthavemilestoneonaccept.
     if ($self->id && $new_status->is_assigned
-        && Bugzilla->params->{usetargetmilestone}
+        && Bugzilla->get_field('target_milestone')->enabled
         && Bugzilla->params->{musthavemilestoneonaccept}
         && !$self->target_milestone)
     {
@@ -1729,7 +1728,7 @@ sub _set_alias
 {
     my ($self, $alias) = @_;
     $alias = trim($alias);
-    return undef if !Bugzilla->params->{usebugaliases};
+    return undef if Bugzilla->get_field('alias')->enabled;
     return $self->{alias} = undef if !$alias;
 
     # Make sure the alias isn't too long.
@@ -2168,8 +2167,8 @@ sub _set_qa_contact
     my $id;
     if (!$self->id)
     {
-        # Bugs get no QA Contact on creation if useqacontact is off.
-        return undef if !Bugzilla->params->{useqacontact};
+        # Bugs get no QA Contact on creation if qa_contact is off.
+        return undef if !Bugzilla->get_field('qa_contact')->enabled;
 
         # Set the default QA Contact if one isn't specified or if the
         # user doesn't have editbugs.
@@ -2252,7 +2251,7 @@ sub _set_status_whiteboard
 sub _set_target_milestone
 {
     my ($self, $target) = @_;
-    if (!Bugzilla->params->{usetargetmilestone})
+    if (!Bugzilla->get_field('target_milestone')->enabled)
     {
         # Don't change value if the field is disabled
         return undef;
@@ -3145,7 +3144,7 @@ sub qa_contact
 {
     my ($self) = @_;
     return $self->{qa_contact_obj} if exists $self->{qa_contact_obj} || !$self->{qa_contact};
-    if (Bugzilla->params->{useqacontact} && $self->{qa_contact})
+    if (Bugzilla->get_field('qa_contact')->enabled && $self->{qa_contact})
     {
         $self->{qa_contact_obj} = new Bugzilla::User($self->{qa_contact});
     }
@@ -3251,7 +3250,7 @@ sub show_attachment_flags
 sub use_votes
 {
     my ($self) = @_;
-    return Bugzilla->params->{usevotes} && $self->product_obj->votes_per_user > 0;
+    return Bugzilla->get_field('votes')->enabled && $self->product_obj->votes_per_user > 0;
 }
 
 sub groups
@@ -3334,7 +3333,7 @@ sub user
 
     my $unknown_privileges = $user->in_group('editbugs', $prod_id);
     my $canedit = $unknown_privileges || $user->id == $self->{assigned_to}
-        || (Bugzilla->params->{useqacontact} && $self->{qa_contact} && $user->id == $self->{qa_contact});
+        || (Bugzilla->get_field('qa_contact')->enabled && $self->{qa_contact} && $user->id == $self->{qa_contact});
     my $canconfirm = $unknown_privileges || $user->in_group('canconfirm', $prod_id);
     my $isreporter = $user->id && $user->id == $self->{reporter};
 
@@ -3967,7 +3966,7 @@ sub check_can_change_field
     }
 
     # Allow the QA contact to change anything else.
-    if (Bugzilla->params->{useqacontact} &&
+    if (Bugzilla->get_field('qa_contact')->enabled &&
         ($self->{qa_contact} && $self->{qa_contact} == $user->id ||
         $self->{_old_self} && $self->{_old_self}->{qa_contact} == $user->id))
     {

@@ -24,43 +24,4 @@
 %]
 
 [% param_descs = {
-  useclassification => "If this is on, $terms.Bugzilla will associate each product with a " _
-                       "specific classification. But you must have 'editclassification' " _
-                       "permissions enabled in order to edit classifications.",
-
-  usetargetmilestone => "Do you wish to use the Target Milestone field?",
-
-  useqacontact => "Do you wish to use the QA Contact field?",
-
-  usestatuswhiteboard => "Do you wish to use the Status Whiteboard field?",
-
-  useplatform => "Do you wish to use the Hardware Platform field?",
-
-  useopsys => "Do you wish to use the Operating System field?",
-
-  usevotes => "Do you wish to allow users to vote for ${terms.bugs}? Note that in order " _
-              "for this to be effective, you will have to change the maximum " _
-              "votes allowed in a product to be non-zero in " _
-              "<a href=\"editproducts.cgi\">the product edit page</a>.",
-
-  usebugaliases => "Do you wish to use $terms.bug aliases, which allow you to assign " _
-                   "$terms.bugs an easy-to-remember name by which you can refer to them?",
-
-  use_see_also =>
-    "Do you wish to use the See Also field? It allows you refer to"
-    _ " $terms.bugs in other installations. Even if you disable this field,"
-    _ " $terms.bug relationships (URLs) already set on $terms.bugs will"
-    _ " still appear and can be removed.",
-
-  auto_add_flag_requestees_to_cc => "Add flag requestees to bug CC list automatically " _
-                     "to grant them the rights to view/change the bug if they " _
-                     "aren't in product groups?",
-
-  clear_requests_on_close => "Clear all unanswered flag requests when changing bug status to CLOSED",
-
-  unauth_bug_details => "Show product name to the user in Unauthorized message if he doesn't have access to bug.",
-
-  comment_line_length => "Symbols in one \"line\" whithout linebreaks.",
-
-  preview_comment_lines => "If comment's count of lines (one line is &lt;comment_line_length&gt; symbols or linebreaked line) is greater this value preview of text is shown.",
 } %]

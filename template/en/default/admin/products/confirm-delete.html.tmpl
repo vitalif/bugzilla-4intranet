@@ -16,7 +16,7 @@
 [%# INTERFACE:
   # product: Bugzilla::Product object; The product
   #
-  # (classification fields available if Param('useclassification') is enabled:)
+  # (classification fields available if classification is enabled)
   #
   # classification: Bugzilla::Classification object; The classification 
   #                                                  the product is in
@@ -37,7 +37,7 @@
     <th valign="top" align="left">Value</th>
   </tr>
 
-  [% IF Param('useclassification') %]
+  [% IF Bugzilla.get_field('classification').enabled %]
     <tr>
       <td>Classification:</td>
       <td>[% classification.name FILTER html %]</td>
@@ -142,7 +142,7 @@
   </tr>
 
 
-  [% IF Param('usetargetmilestone') %]
+  [% IF Bugzilla.get_field('target_milestone').enabled %]
     <tr>
       <td valign="top">
         [% IF product.milestones.size > 0 %]

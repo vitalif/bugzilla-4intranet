@@ -661,7 +661,7 @@ if ($format->{extension} eq 'atom')
         'component',
         'resolution'
     );
-    push(@required_atom_columns, 'target_milestone') if Bugzilla->params->{usetargetmilestone};
+    push(@required_atom_columns, 'target_milestone') if Bugzilla->get_field('target_milestone')->enabled;
 
     foreach my $required (@required_atom_columns)
     {

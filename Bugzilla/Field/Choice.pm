@@ -10,7 +10,6 @@ package Bugzilla::Field::Choice;
 use base qw(Bugzilla::Object);
 
 use Bugzilla::Config qw(SetParam write_params);
-use Bugzilla::Config::BugFields;
 use Bugzilla::Constants;
 use Bugzilla::Error;
 use Bugzilla::Field;

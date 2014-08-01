@@ -81,7 +81,7 @@ if ($product_name eq '')
     my @enterable_products = @{$user->get_enterable_products};
     ThrowUserError('no_products') unless scalar(@enterable_products);
 
-    my $classification = Bugzilla->params->{useclassification} ? $ARGS->{classification} : '__all';
+    my $classification = Bugzilla->get_field('classification')->enabled ? $ARGS->{classification} : '__all';
 
     # Unless a real classification name is given, we sort products
     # by classification.
@@ -89,7 +89,7 @@ if ($product_name eq '')
 
     unless ($classification && $classification ne '__all')
     {
-        if (Bugzilla->params->{useclassification})
+        if (Bugzilla->get_field('classification')->enabled)
         {
             my $class;
             # Get all classifications with at least one enterable product.
@@ -405,8 +405,8 @@ else
     $default{component_}    = $ARGS->{component};
     $default{priority}      = $ARGS->{priority} || Bugzilla->params->{defaultpriority};
     $default{bug_severity}  = $ARGS->{bug_severity} || Bugzilla->params->{defaultseverity};
-    $default{rep_platform}  = pick_by_ua($ARGS, 'rep_platform') if Bugzilla->params->{useplatform};
-    $default{op_sys}        = pick_by_ua($ARGS, 'op_sys') if Bugzilla->params->{useopsys};
+    $default{rep_platform}  = pick_by_ua($ARGS, 'rep_platform') if Bugzilla->get_field('rep_platform')->enabled;
+    $default{op_sys}        = pick_by_ua($ARGS, 'op_sys') if Bugzilla->get_field('op_sys')->enabled;
 
     $default{alias}          = $ARGS->{alias};
     $default{short_desc}     = $ARGS->{short_desc};
@@ -455,7 +455,7 @@ elsif (defined $vercookie && grep { $_ eq $vercookie } @{$vars->{version}})
 }
 
 # Get list of milestones.
-if (Bugzilla->params->{usetargetmilestone})
+if (Bugzilla->get_field('target_milestone')->enabled)
 {
     if ($ARGS->{target_milestone})
     {

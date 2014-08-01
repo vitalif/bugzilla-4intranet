@@ -283,7 +283,7 @@ sub _check_initialqacontact
     my ($invocant, $qa_contact) = @_;
 
     my $qa_contact_id;
-    if (Bugzilla->params->{useqacontact})
+    if (Bugzilla->get_field('qa_contact')->enabled)
     {
         $qa_contact_id = Bugzilla::User->check($qa_contact)->id if $qa_contact;
     }

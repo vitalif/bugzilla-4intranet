@@ -34,7 +34,7 @@
   var last_sel = []; // Caches last selection
   var cpts = new Array();
   [% n = 1 %]
-  [% IF Param('useclassification') %]
+  [% IF Bugzilla.get_field('classification').enabled %]
     [% FOREACH clas = user.get_selectable_classifications %]
       [% FOREACH prod = user.get_selectable_products(clas.id) %]
         [%+ PROCESS js_comp %]
@@ -72,7 +72,7 @@ to some group are shown by default.
       <td>
         <select name="product" onchange="selectProduct(this, this.form.component, null, null, 'Any');">
           <option value="">Any</option>
-          [% IF Param('useclassification') %]
+          [% IF Bugzilla.get_field('classification').enabled %]
             [% FOREACH c = user.get_selectable_classifications %]
               <optgroup label="[% c.name FILTER html %]">
                 [% FOREACH p = user.get_selectable_products(c.id) %]

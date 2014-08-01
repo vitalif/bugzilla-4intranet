@@ -18,8 +18,6 @@
   #    fields: Array of hashes. Each hash contains only one key, "name."
   #            The names are the same as the keys from field_descs 
   #%]
-[% USE Bugzilla %]
-[% cgi = Bugzilla.cgi %]
 
 [% PROCESS global/header.html.tmpl
   title = "Edit values for which field?"
@@ -35,8 +33,8 @@
 %]
 
 [% PROCESS admin/table.html.tmpl
-     columns = columns
-     data = fields
+  columns = columns
+  data = fields
 %]
 
 [% PROCESS global/footer.html.tmpl %]

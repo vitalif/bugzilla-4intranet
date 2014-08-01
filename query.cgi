@@ -269,7 +269,7 @@ $vars->{freetext_fields} = [
     Bugzilla->get_field('longdesc'),
     Bugzilla->get_field('bug_file_loc')
 ];
-if (Bugzilla->params->{usestatuswhiteboard})
+if (Bugzilla->get_field('status_whiteboard')->enabled)
 {
     push @{$vars->{freetext_fields}}, Bugzilla->get_field('status_whiteboard');
 }

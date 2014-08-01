@@ -1438,7 +1438,7 @@ sub init
                 # does index merge on such conditions
                 term => '(bugs.reporter_accessible = 1 AND bugs.reporter='.$user->id.
                     ' OR bugs.assigned_to='.$user->id.
-                    (Bugzilla->params->{useqacontact} ? ' OR bugs.qa_contact='.$user->id : '').')'
+                    (Bugzilla->get_field('qa_contact')->enabled ? ' OR bugs.qa_contact='.$user->id : '').')'
             }) : ()) ]
         ];
     }

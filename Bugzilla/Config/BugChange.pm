@@ -33,6 +33,8 @@ use strict;
 
 use Bugzilla::Status;
 
+our $sortkey = 500;
+
 sub check_bug_status
 {
     my $bug_status = shift;
@@ -55,23 +57,24 @@ sub check_resolution
     return "";
 }
 
-our $sortkey = 500;
-
 sub get_param_list
 {
     my $class = shift;
 
-    # Hardcoded bug statuses which existed before Bugzilla 3.1.
-    my @closed_bug_statuses = ('RESOLVED', 'VERIFIED', 'CLOSED');
+    # Hardcoded bug statuses and resolutions which existed before Bugzilla 3.1.
+    my @closed_bug_statuses = qw(RESOLVED VERIFIED CLOSED);
+    my @resolutions = qw(FIXED INVALID WONTFIX LATER REMIND DUPLICATE WORKSFORME MOVED);
 
     # If we are upgrading from 3.0 or older, bug statuses are not customisable
     # and bug_status.is_open is not yet defined (hence the eval), so we use
     # the bug statuses above as they are still hardcoded.
     eval
     {
-        my @current_closed_states = map { $_->name } grep { !$_->is_open } Bugzilla::Status->get_all;
-        # If no closed state was found, use the default list above.
-        @closed_bug_statuses = @current_closed_states if scalar(@current_closed_states);
+        my @st = map { $_->name } grep { !$_->is_open } Bugzilla::Status->get_all;
+        my @res = map { $_->name } @{ Bugzilla->get_field('resolution')->legal_values };
+        # If no closed states and resolutions were found was found, use the default list above.
+        @closed_bug_statuses = @st if @st;
+        @resolutions = @res if @res;
     };
 
     my @param_list = (
@@ -85,7 +88,8 @@ sub get_param_list
 
     {
         name => 'duplicate_resolution',
-        type => 't',
+        type => 's',
+        choices => \@resolutions,
         default => 'DUPLICATE',
         checker => \&check_resolution,
     },
@@ -130,6 +134,38 @@ sub get_param_list
         name => 'assign_to_others',
         type => 'b',
         default => 1,
+    },
+
+    {
+        name => 'auto_add_flag_requestees_to_cc',
+        type => 'b',
+        default => 1,
+    },
+
+    {
+        name => 'clear_requests_on_close',
+        type => 'b',
+        default => 1,
+    },
+
+    {
+        name => 'unauth_bug_details',
+        type => 'b',
+        default => 0,
+    },
+
+    {
+        name => 'preview_comment_lines',
+        type => 't',
+        default => '30',
+        checker => \&check_numeric,
+    },
+
+    {
+        name => 'comment_line_length',
+        type => 't',
+        default => '80',
+        checker => \&check_numeric,
     },
     );
     return @param_list;

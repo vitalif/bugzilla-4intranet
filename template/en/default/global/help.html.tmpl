@@ -18,10 +18,7 @@
   # Contributor(s): Gervase Markham <gerv@gerv.net>
   #%]
 
-[% USE Bugzilla %]
-[% cgi = Bugzilla.cgi %]
-
-[% IF cgi.param("help") %]
+[% IF Bugzilla.cgi.param("help") %]
   <script type="text/javascript"> <!--
     [% FOREACH h = help_html %]
       g_helpTexts["[% h.id FILTER js %]"] = "[%- h.html FILTER js -%]";

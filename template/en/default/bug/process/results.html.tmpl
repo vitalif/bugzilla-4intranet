@@ -30,8 +30,6 @@
   # commentsilent: boolean; whether sending of the e-mails was suppressed.
   #%]
 
-[% USE Bugzilla %]
-
 [% DEFAULT type="bug" %]
 
 [% Link = BLOCK %][% "$terms.Bug $bug_id" FILTER bug_link(bug_id) %][% END %]

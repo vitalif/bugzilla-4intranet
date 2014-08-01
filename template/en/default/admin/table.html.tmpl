@@ -116,6 +116,7 @@
          class = c.class
          allow_html_content = c.allow_html_content
          yesno_field = c.yesno_field
+         block_name = c.block_name
        %]
 
       [%# Get any specific "important" overrides for this c.name and row.name ? %]
@@ -140,6 +141,10 @@
 
       <td [% IF align %] align="[% align FILTER html %]" [% END %]
           [% IF class %] class="[% class FILTER html %]" [% END %]>
+
+      [% IF block_name %]
+        [% block_name FILTER process %]
+      [% ELSE %]
 
         [% IF contentlink %]
           [% link_uri = contentlink %]
@@ -180,6 +185,8 @@
         [% IF contentlink %]
           </a>
         [% END %]
+
+      [% END %]
 
       </td>
     [% END %]

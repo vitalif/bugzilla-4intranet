@@ -47,6 +47,7 @@ use Bugzilla::User;
 use Bugzilla::Error;
 use Bugzilla::Status;
 use Bugzilla::Token;
+use Bugzilla::Template::Plugin::Bugzilla;
 
 use Cwd qw(abs_path);
 use MIME::Base64;
@@ -466,7 +467,7 @@ sub get_bug_link
     if ($cansee)
     {
         $title .= '/' . $bug->component . ' - ' . $bug->short_desc;
-        if (Bugzilla->params->{usebugaliases} && $options->{use_alias} && $link_text =~ /^\d+$/ && $bug->alias)
+        if (!Bugzilla->get_field('alias')->obsolete && $options->{use_alias} && $link_text =~ /^\d+$/ && $bug->alias)
         {
             $link_text = $bug->alias;
         }
@@ -883,6 +884,7 @@ sub create {
             terms => Bugzilla->messages->{terms},
             field_descs => Bugzilla->messages->{field_descs},
             lc_messages => Bugzilla->messages,
+            Bugzilla => Bugzilla::Template::Plugin::Bugzilla->new,
 
             # HTML <select>
             # html_select(name, { <attr> => <value> }, <selected value>, (

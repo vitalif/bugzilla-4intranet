@@ -408,7 +408,7 @@ sub Send
     $recipients{$reporter}->{+REL_REPORTER} = BIT_DIRECT;
 
     # QA Contact
-    if (Bugzilla->params->{useqacontact})
+    if (Bugzilla->get_field('qa_contact')->enabled)
     {
         foreach (@qa_contacts)
         {

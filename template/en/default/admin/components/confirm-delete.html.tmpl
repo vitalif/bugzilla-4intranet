@@ -49,14 +49,14 @@ from '[% product.name FILTER html %]' product
 <tr>
   <td valign="top">Default assignee:</td>
   <td valign="top">[% comp.default_assignee.login FILTER html %]</td>
-  
-[% IF Param('useqacontact') %]
+
+[% IF Bugzilla.get_field('qa_contact').enabled %]
 </tr>
 <tr>
   <td valign="top">Default QA contact:</td>
   <td valign="top">[% comp.default_qa_contact.login FILTER html %]</td>
 [% END %]
-  
+
 </tr>
 <tr>
   <td valign="top">Component of Product:</td>

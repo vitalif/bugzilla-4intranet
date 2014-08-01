@@ -33,8 +33,8 @@
   #               receiving mail for that reason when in that role.
   #%]
 
-[% useqacontact = Param('useqacontact') %]
-[% usevotes = Param('usevotes') %]
+[% useqacontact = Bugzilla.get_field('qa_contact').enabled %]
+[% usevotes = Bugzilla.get_field('votes').enabled %]
 
 <p>
   If you don't like getting a notification for "trivial"

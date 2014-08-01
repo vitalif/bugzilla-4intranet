@@ -135,8 +135,8 @@ my @bug_fields = qw(
     cc
 );
 # FIXME kill op_sys and rep_platform completely, make them custom fields
-push @bug_fields, 'op_sys' if Bugzilla->params->{useopsys};
-push @bug_fields, 'rep_platform' if Bugzilla->params->{useplatform};
+push @bug_fields, 'op_sys' if Bugzilla->get_field('op_sys')->enabled;
+push @bug_fields, 'rep_platform' if Bugzilla->get_field('rep_platform')->enabled;
 # Include custom fields.
 push @bug_fields, map { $_->name } Bugzilla->active_custom_fields;
 

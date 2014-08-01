@@ -706,7 +706,7 @@ sub process_bug {
     }
 
     # Milestone
-    if ( $params->{"usetargetmilestone"} ) {
+    if (Bugzilla->get_field('target_milestone')->enabled) {
         my $milestone;
         if (defined $bug_fields{'target_milestone'}
             && $bug_fields{'target_milestone'} ne "") {
@@ -878,7 +878,7 @@ sub process_bug {
         }
     }
 
-    if ( $params->{"useqacontact"} ) {
+    if (Bugzilla->get_field('qa_contact')->enabled) {
         my $qa_contact;
         push( @query, "qa_contact" );
         if ( ( defined $bug_fields{'qa_contact'})

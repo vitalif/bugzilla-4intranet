@@ -79,7 +79,7 @@
       </tr><tr class="bz_feed_severity">
         <td>[% columns.bug_severity.title FILTER html %] </td>
         <td>[% bug.bug_severity FILTER html %]</td>
-      [% IF Param("usetargetmilestone") %]
+      [% IF Bugzilla.get_field('target_milestone').enabled %]
       </tr><tr class="bz_feed_target_milestone">
         <td>[% columns.target_milestone.title FILTER html %]</td>
         <td>[% bug.target_milestone FILTER html %]</td>

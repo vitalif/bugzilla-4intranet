@@ -68,7 +68,7 @@
          %]
       </td>
 
-[% IF Param('useqacontact') %]
+[% IF Bugzilla.get_field('qa_contact').enabled %]
     </tr>
     <tr>
       <th align="left"><label for="initialqacontact">Default QA contact:</label></th>

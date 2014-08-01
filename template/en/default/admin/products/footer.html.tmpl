@@ -28,7 +28,7 @@
   # no_add_product_link
   #%]
 
-[% IF Param('useclassification') && classification %]
+[% IF Bugzilla.get_field('classification').enabled && classification %]
   [% classification_url_part = BLOCK %]&amp;classification=
      [%- classification.name FILTER url_quote %]
   [% END %]
@@ -45,7 +45,7 @@
 [%# Strictly speaking, we should not have to check for a
     classification if they are enabled, but I'm just being paranoid %]
 [% UNLESS no_add_product_link || !user.in_group("editcomponents") %]
-  [% IF Param('useclassification') && classification %]
+  [% IF Bugzilla.get_field('classification').enabled && classification %]
   <p>
     <a title="Add a product to classification [% classification.name | html %]"
        href="editproducts.cgi?action=add[% classification_url_part %]">
@@ -75,7 +75,7 @@
           [% classification_text %]</a>.
 [% END %]
 
-[% IF Param('useclassification') && classification
+[% IF Bugzilla.get_field('classification').enabled && classification
       && user.in_group('editclassifications') %]
   Edit classification <a href="editclassifications.cgi?action=edit
     [%- classification_url_part %]">'

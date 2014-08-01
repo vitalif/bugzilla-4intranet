@@ -4019,25 +4019,6 @@ sub _make_fieldvaluecontrol
             }
         }
     }
-
-    # FIXME: Remove useXXX and defaultXXX parameters and make this migration only once
-
-    # Copy useXXX parameter values to fielddefs.is_obsolete
-    if (Bugzilla->params->{useclassification})
-    {
-        my ($cl_id) = $dbh->selectrow_array('SELECT id FROM fielddefs WHERE name=\'classification\'');
-        $dbh->do('UPDATE fielddefs SET value_field_id=? WHERE name=\'product\'', undef, $cl_id);
-    }
-    else
-    {
-        $dbh->do('UPDATE fielddefs SET value_field_id=NULL WHERE name=\'product\'');
-    }
-    require Bugzilla::Config::BugFields;
-    my $h = Bugzilla::Config::BugFields->USENAMES;
-    for (keys %$h)
-    {
-        $dbh->do('UPDATE fielddefs SET obsolete=? WHERE name=?', undef, Bugzilla->params->{$_} ? 0 : 1, $h->{$_});
-    }
 }
 
 # Change all integer keys to INT4
@@ -4208,6 +4189,18 @@ sub _move_old_defaults
                 $f->set_default_value($v->id);
                 $f->update;
             }
+        }
+    }
+    my %old_use = qw(useclassification classification usetargetmilestone target_milestone
+        useqacontact qa_contact usestatuswhiteboard status_whiteboard usevotes votes
+        usebugaliases alias use_see_also see_also useplatform rep_platform useopsys op_sys);
+    while (my ($p, $f) = each %old_use)
+    {
+        if (exists $old_params->{$p} && ($f = Bugzilla->get_field($f)))
+        {
+            print (($old_params->{$p} ? "Enabling " : "Disabling ").$f->description."\n");
+            $f->set_obsolete($old_params->{$p} ? 0 : 1);
+            $f->update;
         }
     }
 }

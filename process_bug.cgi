@@ -427,7 +427,7 @@ if ($ARGS->{id})
 {
     # Since aliases are unique (like bug numbers), they can only be changed
     # for one bug at a time.
-    if (Bugzilla->params->{usebugaliases} && defined $ARGS->{alias})
+    if (defined $ARGS->{alias})
     {
         $first_bug->set(alias => $ARGS->{alias});
     }

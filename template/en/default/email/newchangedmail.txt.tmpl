@@ -28,7 +28,7 @@ Subject: [% (isnew ? '' : 'Re: ') _ '['
 X-Bugzilla-Reason: [% reasonsheader %]
 X-Bugzilla-Type: [% isnew ? 'new' : 'changed' %]
 X-Bugzilla-Watch-Reason: [% reasonswatchheader %]
-[% IF Param('useclassification') %]
+[% IF Bugzilla.get_field('classification').enabled %]
 X-Bugzilla-Classification: [% bug.classification_obj.name %]
 [% END %]
 [% IF bug.bug_severity_obj.name == 'blocker' OR bug.bug_severity_obj.name == 'critical' %]

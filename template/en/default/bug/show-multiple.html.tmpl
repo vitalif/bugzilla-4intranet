@@ -66,7 +66,7 @@
 [% BLOCK bug_display %]
   <h1>
     [% terms.Bug %] <a href="show_bug.cgi?id=[% bug.bug_id | html %]">[% bug.bug_id | html %]</a>
-    [% IF Param("usebugaliases") AND bug.alias %]
+    [% IF Bugzilla.get_field('alias').enabled AND bug.alias %]
       (<a href="show_bug.cgi?id=[% bug.alias | url_quote %]">
         [% bug.alias | html %]</a>)
     [% END %]
@@ -78,7 +78,7 @@
       <td class="error">
         [% IF bug.error == "InvalidBugId" %]
           '[%+ bug.bug_id | html %]' is not a valid [% terms.bug %] number
-          [%- IF Param("usebugaliases") %] nor a known [% terms.bug %] alias[% END %].
+          [%- IF Bugzilla.get_field('alias').enabled %] nor a known [% terms.bug %] alias[% END %].
         [% ELSIF bug.error == "NotPermitted" %]
           You are not allowed to view this [% terms.bug %].
         [% ELSIF bug.error == "NotFound" %]
@@ -92,7 +92,7 @@
     [%# The rightcell block (also called by the row block) automatically shows
       # the fields from rightcells %]
     [% rightcells = ['reporter', 'assigned_to'] %]
-    [% IF Param('useqacontact') %]
+    [% IF Bugzilla.get_field('qa_contact').enabled %]
       [% rightcells.push('qa_contact') %]
     [% END %]
     [% rightcells.push('') %]
@@ -116,7 +116,7 @@
     <tr>
       <th>[% field_descs.product | html %]:</th>
       <td>
-        [% IF Param("useclassification") %]
+        [% IF Bugzilla.get_field('classification').enabled %]
           [% bug.classification_obj.name | html %]/
         [%- END -%]
         [%- bug.product_obj.name | html %]
@@ -156,9 +156,9 @@
     </tr>
 
     [% PROCESS row obj=1 cell="version" %]
-    [% PROCESS row obj=1 cell="target_milestone" IF Param('usetargetmilestone') %]
-    [% PROCESS row obj=1 cell="rep_platform" IF Param('useplatform') %]
-    [% PROCESS row obj=1 cell="op_sys" IF Param('useopsys') %]
+    [% PROCESS row obj=1 cell="target_milestone" IF Bugzilla.get_field('target_milestone').enabled %]
+    [% PROCESS row obj=1 cell="rep_platform" IF Bugzilla.get_field('rep_platform').enabled %]
+    [% PROCESS row obj=1 cell="op_sys" IF Bugzilla.get_field('op_sys').enabled %]
     [% obj=0 %]
 
     [% IF bug.bug_file_loc %]
@@ -175,11 +175,10 @@
       </tr>
     [% END %]
 
-    [% IF Param("usestatuswhiteboard") %]
+    [% IF Bugzilla.get_field('status_whiteboard').enabled %]
       [% PROCESS row cell = "status_whiteboard" fullrow = 1 %]
     [% END %]
 
-    [% USE Bugzilla %]
     [% field_counter = 0 %]
     [% FOREACH field = Bugzilla.active_custom_fields %]
       [% field_counter = field_counter + 1 %]

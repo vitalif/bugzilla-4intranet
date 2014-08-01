@@ -55,7 +55,7 @@ sub get_accessible_products {
 sub get_products_by_classification
 {
     my ($self, $params) = @_;
-    if (!Bugzilla->params->{useclassification})
+    if (!Bugzilla->get_field('classification')->enabled)
     {
         return {status => 'classification_is_off'};
     }

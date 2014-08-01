@@ -31,7 +31,6 @@ use Bugzilla::Version;
 use Bugzilla::Constants;
 use Bugzilla::Config qw(:admin);
 
-
 my $dbh = Bugzilla->dbh;
 
 # set Bugzilla usage mode to USAGE_MODE_CMDLINE
@@ -44,13 +43,13 @@ Bugzilla->usage_mode(USAGE_MODE_CMDLINE);
 my $params_modified = 0;
 # Some parameters must be turned on to create bugs requiring them.
 # They are also expected to be turned on by some webservice_*.t scripts.
-if (!Bugzilla->params->{usebugaliases}) {
-    SetParam('usebugaliases', 1);
-    $params_modified = 1;
-}
-if (!Bugzilla->params->{useqacontact}) {
-    SetParam('useqacontact', 1);
-    $params_modified = 1;
+for (qw(alias qa_contact))
+{
+    if ((my $f = Bugzilla->get_field($_))->obsolete)
+    {
+        $f->set_obsolete(0);
+        $f->update;
+    }
 }
 # Do not try to send emails for real!
 if (Bugzilla->params->{mail_delivery_method} ne 'Test') {

@@ -21,7 +21,7 @@
   # classification: Bugzilla::Classifiation object; classification product is in.
   #%]
 
-[% IF Param('useclassification') %]
+[% IF Bugzilla.get_field('classification').enabled %]
   <tr>
     <th align="left"><b>Classification:</b></th>
     <td><select name="classification">
@@ -52,10 +52,10 @@
   <td>
     <input type="checkbox" id="allows_unconfirmed" name="allows_unconfirmed"
       [% ' checked="checked"' IF product.allows_unconfirmed %]
-      [% IF Param('usevotes') %]
+      [% IF Bugzilla.get_field('votes').enabled %]
         onchange="toggleClass('votes_to_confirm_container', 'bz_default_hidden')"
       [% END %] />
-    [% IF Param('usevotes') %]
+    [% IF Bugzilla.get_field('votes').enabled %]
     <span id="votes_to_confirm_container" [% ' class="bz_default_hidden"' IF !product.allows_unconfirmed %]>
       ...and automatically confirm [% terms.bugs %] if they get
       <input size="3" maxlength="5" name="votestoconfirm"
@@ -113,7 +113,7 @@
   </td>
 </tr>
 
-[% IF Param('usevotes') %]
+[% IF Bugzilla.get_field('votes').enabled %]
   <tr>
     <th align="left">Maximum votes:</label></th>
     <td>
@@ -126,7 +126,7 @@
   </tr>
 [% END %]
 
-[% IF Param('usetargetmilestone') && product.milestones.size -%]
+[% IF Bugzilla.get_field('target_milestone').enabled && product.milestones.size -%]
   <tr>
     <th align="left"><label for="defaultmilestone">Default milestone:</label></th>
     <td>

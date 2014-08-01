@@ -217,7 +217,7 @@
       [% END %]
       [% '</ul>' IF value.size %]
 
-      [% IF editable && Param('use_see_also') %]
+      [% IF editable && Bugzilla.get_field('see_also').enabled %]
         <label for="[% field.name | html %]">
           <strong>Add [% terms.Bug %] URLs:</strong>
         </label><br>

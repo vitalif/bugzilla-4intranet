@@ -66,14 +66,14 @@ my $classification_name = trim($cgi->param('classification') || '');
 my $product_name = trim($cgi->param('product') || '');
 my $action  = trim($cgi->param('action')  || '');
 my $token = $cgi->param('token');
+my $useclassification = Bugzilla->get_field('classification')->enabled;
 
 #
 # product = '' -> Show nice list of classifications (if
 # classifications enabled)
 #
 
-if (Bugzilla->params->{useclassification}
-    && !$classification_name && !$product_name)
+if ($useclassification && !$classification_name && !$product_name)
 {
     my $class;
     if ($user->in_group('editcomponents'))
@@ -105,7 +105,7 @@ if (!$action && !$product_name)
     my $classification;
     my $products;
 
-    if (Bugzilla->params->{useclassification})
+    if ($useclassification)
     {
         $classification = Bugzilla::Classification->check($classification_name);
         $products = $user->get_editable_products($classification->id);
@@ -140,7 +140,7 @@ if ($action eq 'add')
         object => 'products',
     });
 
-    if (Bugzilla->params->{useclassification})
+    if ($useclassification)
     {
         my $classification = Bugzilla::Classification->check($classification_name);
         $vars->{classification} = $classification;
@@ -184,7 +184,7 @@ if ($action eq 'new')
         extproduct       => scalar $cgi->param('extproduct'),
         cc_group         => scalar($cgi->param('cc_group')) || '',
     );
-    if (Bugzilla->params->{usevotes})
+    if (Bugzilla->get_field('votes')->enabled)
     {
         $create_params{votesperuser}   = $cgi->param('votesperuser');
         $create_params{maxvotesperbug} = $cgi->param('maxvotesperbug');
@@ -196,7 +196,7 @@ if ($action eq 'new')
 
     $vars->{message} = 'product_created';
     $vars->{product} = $product;
-    if (Bugzilla->params->{useclassification})
+    if ($useclassification)
     {
         $vars->{classification} = new Bugzilla::Classification($product->classification_id);
     }
@@ -217,7 +217,7 @@ if ($action eq 'del')
 {
     my $product = $user->check_can_admin_product($product_name);
 
-    if (Bugzilla->params->{useclassification})
+    if ($useclassification)
     {
         $vars->{classification} = new Bugzilla::Classification($product->classification_id);
     }
@@ -247,7 +247,7 @@ if ($action eq 'delete')
     $vars->{product} = $product;
     $vars->{no_edit_product_link} = 1;
 
-    if (Bugzilla->params->{useclassification})
+    if ($useclassification)
     {
         $vars->{classifications} = $user->in_group('editcomponents') ?
             [Bugzilla::Classification->get_all] : $user->get_selectable_classifications;
@@ -276,7 +276,7 @@ if ($action eq 'edit' || (!$action && $product_name))
 {
     my $product = $user->check_can_admin_product($product_name);
 
-    if (Bugzilla->params->{useclassification})
+    if ($useclassification)
     {
         $vars->{classification} = $product->classification_obj;
         $vars->{classifications} = [ Bugzilla::Classification->get_all ];
@@ -299,7 +299,7 @@ if ($action eq 'update')
     my $product_old_name = trim($cgi->param('product_old_name') || '');
     my $product = $user->check_can_admin_product($product_old_name);
 
-    if (Bugzilla->params->{useclassification})
+    if ($useclassification)
     {
         $vars->{old_classification} = $product->classification_obj;
         $product->set_classification(scalar $cgi->param('classification'));
@@ -312,7 +312,7 @@ if ($action eq 'update')
     $product->set_description(scalar $cgi->param('description'));
     $product->set_default_milestone(scalar $cgi->param('defaultmilestone'));
     $product->set_is_active(scalar $cgi->param('is_active'));
-    if (Bugzilla->params->{usevotes})
+    if (Bugzilla->get_field('votes')->enabled)
     {
         $product->set_votes_per_user(scalar $cgi->param('votesperuser'));
         $product->set_votes_per_bug(scalar $cgi->param('maxvotesperbug'));
@@ -326,7 +326,7 @@ if ($action eq 'update')
 
     delete_token($token);
 
-    if (Bugzilla->params->{useclassification})
+    if ($useclassification)
     {
         $vars->{classification} = $product->classification_obj;
     }

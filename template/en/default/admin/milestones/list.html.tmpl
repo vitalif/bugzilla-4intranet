@@ -25,9 +25,6 @@
   # showbugcounts: if defined, then bug counts should be included in the table
   #%]
 
-[% USE Bugzilla %]
-[% cgi = Bugzilla.cgi %]
-
 [% title = BLOCK %]Select milestone of product
                    '[% product.name FILTER html %]'[% END %]
 [% PROCESS global/header.html.tmpl

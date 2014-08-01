@@ -262,7 +262,7 @@ This field describes the impact of [% terms.abug %].
     <td>Request for enhancement</td>
 </table>
 
-[% IF Param('useplatform') %]
+[% IF Bugzilla.get_field('rep_platform').enabled %]
 <h2><a name="rep_platform">Platform</a></h2>
 This is the hardware platform against which the [% terms.bug %] was
 reported. Legal platforms include: 
@@ -282,7 +282,7 @@ marked as occurring on all platforms, i.e. are designated
 <em>All</em>. 
 [% END %]
 
-[% IF Param('useopsys') %]
+[% IF Bugzilla.get_field('op_sys').enabled %]
 <h2><a name="op_sys">Operating System</a></h2>
 This is the operating system against which the [% terms.bug %] was
 reported. Legal operating systems include: 
@@ -316,7 +316,7 @@ When searching for [% terms.bugs %] that have been resolved or
 verified, remember to set the status field appropriately. 
 </p>
 
-[% IF Param("use_see_also") %]
+[% IF Bugzilla.get_field('see_also').enabled %]
   <h2><a name="see_also"></a>See Also</h2>
 
   <p>This allows you to refer to [% terms.bugs %] in other installations.

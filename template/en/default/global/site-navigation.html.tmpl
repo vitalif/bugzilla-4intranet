@@ -23,7 +23,6 @@
   # bug.bug_id: integer. Number of current bug (for navigation purposes)
   #%]
 
-[% USE Bugzilla %]
 [% cgi = Bugzilla.cgi %]
 
 [% IF NOT (cgi.user_agent("MSIE [1-6]") OR cgi.user_agent("Mozilla/4")) %]

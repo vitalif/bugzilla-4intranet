@@ -47,8 +47,8 @@
     { name => "bug_severity", description => field_descs.bug_severity },
 ] %]
 
-[% columns.push({ name => "op_sys", description => field_descs.op_sys }) IF Param('useopsys') %]
-[% columns.push({ name => "target_milestone", description => field_descs.target_milestone }) %]
+[% columns.push({ name => "op_sys", description => field_descs.op_sys }) IF Bugzilla.get_field('op_sys').enabled %]
+[% columns.push({ name => "target_milestone", description => field_descs.target_milestone }) IF Bugzilla.get_field('target_milestone').enabled %]
 [% columns.push({ name => "short_desc", description => field_descs.short_desc }) %]
 
 [% SET base_args = [] %]
@@ -107,7 +107,7 @@
           <td class="bug_severity">
             [%- bug.bug_severity_obj.name FILTER html IF bug.bug_severity %]
           </td>
-          [% IF Param('useopsys') %]
+          [% IF Bugzilla.get_field('op_sys').enabled %]
           <td class="op_sys">
             [%- bug.op_sys_obj.name FILTER html IF bug.op_sys %]
           </td>

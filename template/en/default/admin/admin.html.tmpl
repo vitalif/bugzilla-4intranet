@@ -59,14 +59,13 @@
         <dd class="[% class %]">Create new user accounts or edit existing ones. You can
         also add and remove users from groups (also known as "user privileges").</dd>
 
-        [% class = (Param('useclassification') && user.in_group('editclassifications')) ? "" : "forbidden" %]
+        [% class = (Bugzilla.get_field('classification').enabled && user.in_group('editclassifications')) ? "" : "forbidden" %]
         <dt id="classifications" class="[% class %]"><a href="editclassifications.cgi">Classifications</a></dt>
         <dd class="[% class %]">If your installation has to manage many products at once,
         it's a good idea to group these products into distinct categories. This lets users
         find information more easily when doing searches or when filing new [% terms.bugs %].</dd>
 
-        [% class = (user.in_group('editcomponents')
-                    || user.get_products_by_permission("editcomponents").size) ? "" : "forbidden" %]
+        [% class = (user.in_group('editcomponents') || user.get_products_by_permission("editcomponents").size) ? "" : "forbidden" %]
         <dt id="products" class="[% class %]"><a href="editproducts.cgi">Products</a></dt>
         <dd class="[% class %]">Edit all aspects of products, including group restrictions
         which let you define who can access [% terms.bugs %] being in these products. You

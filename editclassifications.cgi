@@ -64,8 +64,8 @@ Bugzilla->user->in_group('editclassifications')
                                      action => "edit",
                                      object => "classifications"});
 
-ThrowUserError("auth_classification_not_enabled") 
-    unless Bugzilla->params->{"useclassification"};
+ThrowUserError("auth_classification_not_enabled")
+    unless Bugzilla->get_field('classification')->enabled;
 
 #
 # often used variables

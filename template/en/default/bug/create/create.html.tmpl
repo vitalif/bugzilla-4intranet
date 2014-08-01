@@ -24,8 +24,6 @@
   #                 Frédéric Buclin <LpSolit@gmail.com>
   #%]
 
-[% USE Bugzilla %]
-
 [% title = BLOCK %]Enter [% terms.Bug %]: [% product.name | html %][% END %]
 
 [% PROCESS global/header.html.tmpl
@@ -62,7 +60,6 @@ var close_status_array = [
 -->
 </script>
 
-[% USE Bugzilla %]
 [% SET select_fields = {} %]
 [% FOREACH field = Bugzilla.get_fields(
   { type => constants.FIELD_TYPE_SINGLE_SELECT, custom => 0 })
@@ -140,7 +137,7 @@ var close_status_array = [
       value_name = default.bug_severity %]
   </tr>
 
-[% IF Param('useplatform') %]
+[% IF Bugzilla.get_field('rep_platform').enabled %]
   <tr>
     [% INCLUDE bug/field.html.tmpl
       bug = default, field = select_fields.rep_platform, editable = 1,
@@ -148,7 +145,7 @@ var close_status_array = [
   </tr>
 [% END %]
 
-[% IF Param('useopsys') %]
+[% IF Bugzilla.get_field('op_sys').enabled %]
   <tr>
     [% INCLUDE bug/field.html.tmpl
       bug = default, field = select_fields.op_sys, editable = 1,
@@ -159,7 +156,7 @@ var close_status_array = [
 
 <tbody class="expert_fields">
   <tr>
-    [% IF Param('usetargetmilestone') && Param('letsubmitterchoosemilestone') %]
+    [% IF Bugzilla.get_field('target_milestone').enabled && Param('letsubmitterchoosemilestone') %]
       [% INCLUDE bug/field.html.tmpl
         bug = default, field = select_fields.target_milestone, editable = 1,
         value_name = default.target_milestone %]
@@ -177,8 +174,8 @@ var close_status_array = [
   </tr>
 </tbody>
 
-[% guess_platform = Param('useplatform') && !Bugzilla.get_field('rep_platform').default_value %]
-[% guess_os = Param('useopsys') && !Bugzilla.get_field('op_sys').default_value %]
+[% guess_platform = Bugzilla.get_field('rep_platform').enabled && !Bugzilla.get_field('rep_platform').default_value %]
+[% guess_os = Bugzilla.get_field('op_sys').enabled && !Bugzilla.get_field('op_sys').default_value %]
 [% IF guess_platform || guess_os %]
   <tbody>
     <tr>
@@ -238,7 +235,7 @@ var close_status_array = [
     </td>
 
     [%# Calculate the number of rows we can use for flags %]
-    [% num_rows = 2 + (Param("useqacontact") ? 1 : 0) %]
+    [% num_rows = 2 + (Bugzilla.get_field('qa_contact').enabled ? 1 : 0) %]
 
     <td colspan="2" rowspan="[% num_rows | html %]">
       [% IF product.flag_types.bug.size > 0 %]
@@ -262,7 +259,7 @@ var close_status_array = [
     </td>
   </tr>
 
-[% IF Param("useqacontact") %]
+[% IF Bugzilla.get_field('qa_contact').enabled %]
     <tr>
       <th>QA Contact:</th>
       <td>
@@ -327,8 +324,6 @@ var close_status_array = [
 </tbody>
 
 <tbody class="expert_fields">
-  [% USE Bugzilla %]
-
   [% FOREACH field = Bugzilla.active_custom_fields %]
     <tr id="field_row_[% field.name | html %]">
       [%# Do not care about missing default value IDs or objects - JS will re-fill dependent fields %]
@@ -439,7 +434,7 @@ var close_status_array = [
     [% IF use_keywords %]
       <tr>
         <th><a href="describekeywords.cgi">Keywords</a>:</th>
-        [% UNLESS Param("usebugaliases") %]
+        [% IF !Bugzilla.get_field('alias').enabled %]
         <td colspan="3">
         [% ELSE %]
         <td>
@@ -450,19 +445,19 @@ var close_status_array = [
           </script>
           <div id="keywords_description_container"></div>
         </td>
-      [% IF Param("usebugaliases") %]
+      [% IF Bugzilla.get_field('alias').enabled %]
         <th>Alias:</th>
         <td><input name="alias" size="20" value="[% default.alias | html %]" /></td>
       [% END %]
       </tr>
-    [% ELSIF Param("usebugaliases") %]
+    [% ELSIF Bugzilla.get_field('alias').enabled %]
       <tr>
         <th>Alias:</th>
         <td colspan="3"><input name="alias" size="20" value="[% default.alias | html %]" /></td>
       </tr>
     [% END %]
   [% END %]
-  [% IF Param('usestatuswhiteboard') %]
+  [% IF Bugzilla.get_field('status_whiteboard').enabled %]
     <tr>
       <th>Whiteboard:</th>
       <td colspan="3">

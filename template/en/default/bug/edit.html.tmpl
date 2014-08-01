@@ -26,7 +26,6 @@
 
 [% PROCESS bug/time.html.tmpl %]
 
-[% USE Bugzilla %]
 [% SET select_fields = {} %]
 [% FOREACH field = Bugzilla.get_fields(
   { type => constants.FIELD_TYPE_SINGLE_SELECT, custom => 0 })
@@ -178,7 +177,7 @@ document.changeform = document.[% cfname %];
      <a href="show_bug.cgi?id=[% bug.bug_id %]">
         [%-# %]<b>[% terms.Bug %]&nbsp;[% bug.bug_id FILTER html %]</b>
      [%-# %]</a> -<span id="summary_alias_container" class="bz_default_hidden">
-      [% IF Param("usebugaliases") %]
+      [% IF Bugzilla.get_field('alias').enabled %]
         [% IF bug.alias != "" %]
           (<span id="alias_nonedit_display">[% bug.alias FILTER html %]</span>)
         [% END %]
@@ -193,7 +192,7 @@ document.changeform = document.[% cfname %];
 
     <div id="summary_alias_input">
       <table id="summary">
-        [% IF Param("usebugaliases") %]
+        [% IF Bugzilla.get_field('alias').enabled %]
           <tr>
           [% IF bug.check_can_change_field('alias', 0, 1) %]
             <td>
@@ -270,13 +269,13 @@ document.changeform = document.[% cfname %];
     [%###################%]
     [%# PLATFORM AND OS #%]
     [%###################%]
-    [% IF Param('useplatform') OR Param('useopsys') %]
+    [% IF Bugzilla.get_field('rep_platform').enabled OR Bugzilla.get_field('op_sys').enabled %]
     <tr>
       <td class="field_label">
-        <label for="rep_platform" accesskey="h"><b>Platform</b></label>:
+        <label for="rep_platform" accesskey="h"><b>OS/Platform</b></label>:
       </td>
       <td class="field_value">
-        [% IF Param('useplatform') %]
+        [% IF Bugzilla.get_field('rep_platform').enabled %]
         <span id="field_row_rep_platform">
           [% INCLUDE bug/field.html.tmpl
             bug = bug, field = select_fields.rep_platform,
@@ -284,7 +283,7 @@ document.changeform = document.[% cfname %];
             editable = bug.check_can_change_field('rep_platform', 0, 1) %]
          </span>
         [% END %]
-        [% IF Param('useopsys') %]
+        [% IF Bugzilla.get_field('op_sys').enabled %]
         <span id="field_row_op_sys">
           [%+ INCLUDE bug/field.html.tmpl
             bug = bug, field = select_fields.op_sys,
@@ -373,7 +372,7 @@ document.changeform = document.[% cfname %];
       </td>
     </tr>
 
-    [% IF Param("usetargetmilestone") %]
+    [% IF Bugzilla.get_field('target_milestone').enabled %]
       <tr id="field_row_target_milestone">
         [% INCLUDE bug/field.html.tmpl
             bug = bug, field = select_fields.target_milestone,
@@ -427,7 +426,7 @@ document.changeform = document.[% cfname %];
       </td>
     </tr>
 
-    [% IF Param('useqacontact') %]
+    [% IF Bugzilla.get_field('qa_contact').enabled %]
     <tr>
       <td class="field_label">
         <label for="qa_contact" accesskey="q"><b><u>Q</u>A Contact</b></label>:
@@ -522,7 +521,7 @@ document.changeform = document.[% cfname %];
     </td>
   </tr>
 
-  [% IF Param('usestatuswhiteboard') %]
+  [% IF Bugzilla.get_field('status_whiteboard').enabled %]
     <tr>
       <td class="field_label">
         <label for="status_whiteboard" accesskey="w"><b><u>W</u>hiteboard</b></label>:
@@ -660,7 +659,7 @@ document.changeform = document.[% cfname %];
         </div>
         <p class="instructions">
           The assignee
-          [% IF (Param('useqacontact')) %]
+          [% IF Bugzilla.get_field('qa_contact').enabled %]
              and QA contact
           [% END %]
           can always see [% terms.abug %], and this section does not
@@ -710,7 +709,7 @@ document.changeform = document.[% cfname %];
         [% IF user.id && (NOT bug.cc || NOT bug.cc.contains(user.login)) %]
         <div id="cc_edit_add_self">
           [% has_role = bug.user.isreporter || bug.assigned_to.id == user.id ||
-                        (Param('useqacontact') && bug.qa_contact && bug.qa_contact.id == user.id) %]
+                        (Bugzilla.get_field('qa_contact').enabled && bug.qa_contact && bug.qa_contact.id == user.id) %]
             <input type="checkbox" id="addselfcc" name="addselfcc"
               [% " checked=\"checked\""
                    IF user.settings.state_addselfcc.value == 'always'
@@ -777,7 +776,7 @@ document.changeform = document.[% cfname %];
 [%# Block for See Also                                                       #%]
 [%############################################################################%]
 [% BLOCK section_see_also %]
-  [% IF Param('use_see_also') || bug.see_also.size %]
+  [% IF Bugzilla.get_field('see_also').enabled || bug.see_also.size %]
     <tr id="field_row_see_also">
       [% INCLUDE bug/field.html.tmpl
            field    = bug_fields.see_also

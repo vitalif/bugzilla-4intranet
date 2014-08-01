@@ -203,6 +203,18 @@ use constant DEFAULT_FIELDS => (map { my $i = 0; $_ = { (map { (DEFAULT_FIELD_CO
     [ 'see_also',              'See Also',              0, 1, 0, FIELD_TYPE_BUG_URLS ],
 ));
 
+# Tweaks allowed for standard field properties
+use constant CAN_TWEAK => {
+    obsolete => { map { $_ => 1 } qw(alias classification op_sys qa_contact rep_platform see_also status_whiteboard target_milestone votes) },
+    clone_bug => { map { $_ => 1 } qw(short_desc version rep_platform bug_file_loc op_sys status_whiteboard
+        keywords bug_severity priority component assigned_to votes qa_contact dependson blocked target_milestone estimated_time remaining_time see_also) },
+    default_value => { map { $_ => 1 } qw(bug_severity deadline keywords op_sys priority rep_platform short_desc status_whiteboard target_milestone version) },
+    nullable => { map { $_ => 1 } qw(alias bug_severity deadline keywords op_sys priority rep_platform status_whiteboard target_milestone version) },
+    visibility_field_id => { map { $_ => 1 } qw(bug_severity op_sys priority rep_platform status_whiteboard target_milestone version) },
+    value_field_id => { map { $_ => 1 } qw(bug_severity op_sys priority rep_platform) },
+    default_field_id => { map { $_ => 1 } qw(bug_severity keywords op_sys priority component rep_platform status_whiteboard) },
+};
+
 ################
 # Constructors #
 ################
@@ -466,6 +478,8 @@ a boolean specifying whether or not the field is obsolete
 
 sub obsolete { return $_[0]->{obsolete} }
 
+sub enabled { return !$_[0]->{obsolete} }
+
 =over
 
 =item C<nullable>
@@ -532,6 +546,20 @@ sub value_type
 {
     my $self = shift;
     return Bugzilla::Field::Choice->type($self);
+}
+
+# Checks if a certain property can be changed for this field (either it is custom or standard)
+sub can_tweak
+{
+    my $self = shift;
+    my ($prop) = @_;
+    return $self->name !~ /^attachments\./ && $self->name ne 'longdesc' if $prop eq 'mailhead';
+    $prop = 'clone_bug' if $prop eq 'clone_field_id';
+    $prop = 'nullable' if $prop eq 'null_field_id';
+    return 0 if !$self->custom && !CAN_TWEAK->{$prop}->{$self->name};
+    return $self->type && $self->type != FIELD_TYPE_BUG_ID_REV if $prop eq 'default_value' || $prop eq 'nullable';
+    return $self->is_select if $prop eq 'value_field_id';
+    return 1;
 }
 
 # Includes disabled values is $include_disabled = true
@@ -997,6 +1025,12 @@ sub update
     }
     my ($changes, $old_self) = $self->SUPER::update(@_);
     Bugzilla->refresh_cache_fields;
+    if ($self->{name} eq 'classification')
+    {
+        my $prod = Bugzilla->get_field('product');
+        $prod->set_value_field($self->obsolete ? $self->id : undef);
+        $prod->update;
+    }
     return wantarray ? ($changes, $old_self) : $changes;
 }
 

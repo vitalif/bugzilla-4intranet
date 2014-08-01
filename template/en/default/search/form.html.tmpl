@@ -20,8 +20,6 @@
   #                 Gervase Markham <gerv@gerv.net>
   #%]
 
-[% USE Bugzilla %]
-
 <script type="text/javascript" src="js/query-visibility.js"></script>
 <script type="text/javascript" src="js/field.js"></script>
 <script type="text/javascript" src="fieldvaluecontrol.cgi?user=[% Bugzilla.user.id %]"></script>
@@ -68,7 +66,7 @@
 <table>
   <tr>
   [% Hook.process('before_selects_top') %]
-  [% IF Param('useclassification') %]
+  [% IF Bugzilla.get_field('classification').enabled %]
     <th align="left" valign="top" id="classification_cont">
       <label for="classification">Classification</label>:<br />
       [% PROCESS select sel = { name => 'classification', size => 5 } %]
@@ -86,8 +84,8 @@
       <label for="version">Version</label>:<br />
       [% PROCESS select sel = { name => 'version', size => 5 } %]
     </th>
-  [% IF Param('usetargetmilestone') %]
-    <th align="left"  valign="top" id="target_milestone_cont">
+  [% IF Bugzilla.get_field('target_milestone').enabled %]
+    <th align="left" valign="top" id="target_milestone_cont">
       <label for="target_milestone">Target Milestone</label>:<br />
       [% PROCESS select sel = { name => 'target_milestone', size => 5 } %]
     </th>
@@ -214,13 +212,13 @@
       <label for="priority" accesskey="i">Pr<u>i</u>ority</label>:<br />
       [% PROCESS select sel = { name => 'priority', size => 7 } %]
     </th>
-    [% IF Param('useplatform') %]
+    [% IF Bugzilla.get_field('rep_platform').enabled %]
     <th align="left" valign="top" id="rep_platform_cont">
       <label for="rep_platform" accesskey="h"><u>H</u>ardware</label>:<br />
       [% PROCESS select sel = { name => 'rep_platform', size => 7 } %]
     </th>
     [% END %]
-    [% IF Param('useopsys') %]
+    [% IF Bugzilla.get_field('op_sys').enabled %]
     <th align="left" valign="top" id="op_sys_cont">
       <label for="op_sys" accesskey="o"><u>O</u>S</label>:<br />
       [% PROCESS select sel = { name => 'op_sys', size => 7 } %]
@@ -238,7 +236,7 @@
       <fieldset>
         <legend>
           <strong>
-            [% IF Param('usevotes') %]
+            [% IF Bugzilla.get_field('votes').enabled %]
               Email Addresses, [% terms.Bug %] Numbers, and Votes
             [% ELSE %]
               Email Addresses and [% terms.Bug %] Numbers
@@ -278,7 +276,7 @@
       </label>
     </td>
   </tr>
-  [% IF Param('useqacontact') %]
+  [% IF Bugzilla.get_field('qa_contact').enabled %]
   <tr>
     <td>
       <input type="checkbox" name="emailqa_contact[% n %]"
@@ -353,7 +351,7 @@
     <td></td>
     <td>(comma-separated list)</td>
   </tr>
-  [% IF Param('usevotes') %]
+  [% IF Bugzilla.get_field('votes').enabled %]
     <tr>
       <td align="right">
         <label for="votes">Only [% terms.bugs %] with at least</label>:
