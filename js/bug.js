@@ -354,21 +354,14 @@ function att_file_onchange(e)
 // Bug 129375 - Use search filter for all values in fields
 function search_filter_click(e)
 {
-    var attr = this.attributes;
-    var href = attr.href.nodeValue;
-    var field_id = attr.id.nodeValue;
-    var field_name = field_id.substr(12);
-    var field_current_value = document.getElementById(field_name).value;
+    var field_name = this.attributes.id.nodeValue.substr(12);
+    var el = document.getElementById(field_name);
+    var field_current_value = el.value;
     if (field_current_value == '')
     {
-        alert('Cannot search on empty value!');
-        if (e.preventDefault)
-        {
-            e.preventDefault();
-        }
-        return false;
+        field_current_value = '---';
     }
-    var href_parts = href.split('&' + field_name + '=');
+    var href_parts = this.attributes.href.nodeValue.split('&' + field_name + '=');
     var new_href = href_parts[0] + '&' + field_name + '=' + field_current_value;
     this.href = new_href;
 }
