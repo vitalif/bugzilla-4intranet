@@ -521,75 +521,17 @@ if ($action eq 'search') {
         $updatedbugs{$bug_id} = 1;
     }
 
-    # Simple deletions in referred tables.
-    $dbh->do('DELETE FROM email_setting WHERE user_id = ?', undef,
-             $otherUserID);
-    $dbh->do('DELETE FROM logincookies WHERE userid = ?', undef, $otherUserID);
-    $dbh->do('DELETE FROM namedqueries WHERE userid = ?', undef, $otherUserID);
-    $dbh->do('DELETE FROM namedqueries_link_in_footer WHERE user_id = ?', undef,
-             $otherUserID);
-    if ($namedqueries_as_string) {
-        $dbh->do('DELETE FROM namedquery_group_map WHERE namedquery_id IN ' .
-                 "($namedqueries_as_string)");
-    }
-    $dbh->do('DELETE FROM profile_setting WHERE user_id = ?', undef,
-             $otherUserID);
-    $dbh->do('DELETE FROM profiles_activity WHERE userid = ? OR who = ?', undef,
-             ($otherUserID, $otherUserID));
-    $dbh->do('DELETE FROM tokens WHERE userid = ?', undef, $otherUserID);
-    $dbh->do('DELETE FROM user_group_map WHERE user_id = ?', undef,
-             $otherUserID);
-    $dbh->do('DELETE FROM votes WHERE who = ?', undef, $otherUserID);
-    $dbh->do('DELETE FROM watch WHERE watcher = ? OR watched = ?', undef,
-             ($otherUserID, $otherUserID));
-
     # Deletions in referred tables which need LogActivityEntry.
-    my $buglist = $dbh->selectcol_arrayref('SELECT bug_id FROM cc WHERE who = ?',
-                                            undef, $otherUserID);
+    my $buglist = $dbh->selectcol_arrayref('SELECT bug_id FROM cc WHERE who = ?', undef, $otherUserID);
     $dbh->do('DELETE FROM cc WHERE who = ?', undef, $otherUserID);
     foreach my $bug_id (@$buglist) {
-        LogActivityEntry($bug_id, 'cc', $otherUser->login, '', $userid,
-                         $timestamp);
+        LogActivityEntry($bug_id, 'cc', $otherUser->login, '', $userid, $timestamp);
         $sth_set_bug_timestamp->execute($timestamp, $bug_id);
         $updatedbugs{$bug_id} = 1;
     }
 
     # Even more complex deletions in referred tables.
     my $id;
-
-    # 1) Series
-    my $sth_seriesid = $dbh->prepare(
-           'SELECT series_id FROM series WHERE creator = ?');
-    my $sth_deleteSeries = $dbh->prepare(
-           'DELETE FROM series WHERE series_id = ?');
-    my $sth_deleteSeriesData = $dbh->prepare(
-           'DELETE FROM series_data WHERE series_id = ?');
-
-    $sth_seriesid->execute($otherUserID);
-    while ($id = $sth_seriesid->fetchrow_array()) {
-        $sth_deleteSeriesData->execute($id);
-        $sth_deleteSeries->execute($id);
-    }
-
-    # 2) Whines
-    my $sth_whineidFromEvents = $dbh->prepare(
-           'SELECT id FROM whine_events WHERE owner_userid = ?');
-    my $sth_deleteWhineEvent = $dbh->prepare(
-           'DELETE FROM whine_events WHERE id = ?');
-    my $sth_deleteWhineQuery = $dbh->prepare(
-           'DELETE FROM whine_queries WHERE eventid = ?');
-    my $sth_deleteWhineSchedule = $dbh->prepare(
-           'DELETE FROM whine_schedules WHERE eventid = ?');
-
-    $dbh->do('DELETE FROM whine_schedules WHERE mailto = ? AND mailto_type = ?',
-             undef, ($otherUserID, MAILTO_USER));
-
-    $sth_whineidFromEvents->execute($otherUserID);
-    while ($id = $sth_whineidFromEvents->fetchrow_array()) {
-        $sth_deleteWhineQuery->execute($id);
-        $sth_deleteWhineSchedule->execute($id);
-        $sth_deleteWhineEvent->execute($id);
-    }
 
     # 3) Bugs
     # 3.1) fall back to the default assignee

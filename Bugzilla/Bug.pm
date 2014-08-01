@@ -233,13 +233,9 @@ sub DEPENDENCIES
         # Product may have classification value_field, but it's not
         # stored in bugs table so we shouldn't check it
         next if $deps->{$field->name} || $field->name eq 'product';
-        if ($field->visibility_field)
+        for (qw(visibility_field value_field null_field))
         {
-            $deps->{$field->name}->{$field->visibility_field->name} = 1;
-        }
-        if ($field->value_field)
-        {
-            $deps->{$field->name}->{$field->value_field->name} = 1;
+            $deps->{$field->name}->{$field->$_->name} = 1 if $field->$_;
         }
     }
 
@@ -3544,8 +3540,7 @@ sub GetBugActivity
     }
 
     my $query =
-        "SELECT fielddefs.name, a.attach_id, " .
-            $dbh->sql_date_format('a.bug_when', '%Y.%m.%d %H:%i:%s') .
+        "SELECT fielddefs.name, a.attach_id, " . $dbh->sql_date_format('a.bug_when') .
             " bug_when, a.removed, a.added, profiles.login_name, null AS comment_id, null AS comment_count" .
         " FROM bugs_activity a $suppjoins".
         " LEFT JOIN fielddefs ON a.fieldid = fielddefs.id".

@@ -1337,7 +1337,7 @@ sub update_control_lists
     $controlling_value_id = Bugzilla->get_field($controlling_field_id)->value_type->new($controlling_value_id);
     $controlling_value_id = $controlling_value_id ? $controlling_value_id->id : return undef;
     # Save all visible, nullable and clone flags at once
-    my $mod = {};
+    my $mod = { del => [], add => [] };
     for my $f (Bugzilla->get_fields({ obsolete => 0, visibility_field_id => $controlling_field_id }))
     {
         push @{$mod->{$params->{'is_visible_'.$f->name} ? 'add' : 'del'}}, [ $f->id, FLAG_VISIBLE ];
@@ -1367,7 +1367,7 @@ sub update_control_lists
     }
     # Save all dependent defaults at once
     my $touched = { map { $_->[0] => 1 } (@{$mod->{add}}, @{$mod->{del}}) };
-    $mod = {};
+    $mod = { del => [], add => [] };
     for my $f (Bugzilla->get_fields({ obsolete => 0, default_field_id => $controlling_field_id }))
     {
         next if $f eq 'version' || $f eq 'target_milestone'; # FIXME: default version is hardcoded to depend on component, default milestone is hardcoded to depend on product

@@ -601,14 +601,26 @@ sub bz_add_column {
     }
 }
 
-sub bz_add_fk {
+sub bz_add_fk
+{
     my ($self, $table, $column, $def) = @_;
 
+    my $check = 1;
     my $col_def = $self->bz_column_info($table, $column);
-    if (!$col_def->{REFERENCES}) {
-        $self->_check_references($table, $column, $def);
-        print get_text('install_fk_add',
-                       { table => $table, column => $column, fk => $def }) 
+    if ($col_def->{REFERENCES} && (lc($col_def->{REFERENCES}->{DELETE} || 'RESTRICT') ne lc($def->{DELETE} || 'RESTRICT')
+        || lc($col_def->{REFERENCES}->{UPDATE} || 'CASCADE') ne lc($def->{UPDATE} || 'CASCADE')))
+    {
+        # Fix UPDATE and DELETE actions
+        $check = 0;
+        delete $col_def->{REFERENCES};
+        print get_text('install_fk_drop', { table => $table, column => $column, fk => $def })
+            . "\n" if Bugzilla->usage_mode == USAGE_MODE_CMDLINE;
+        $self->do($_) foreach $self->_bz_real_schema->get_drop_fk_sql($table, $column, $def);
+    }
+    if (!$col_def->{REFERENCES})
+    {
+        $self->_check_references($table, $column, $def) if $check;
+        print get_text('install_fk_add', { table => $table, column => $column, fk => $def })
             . "\n" if Bugzilla->usage_mode == USAGE_MODE_CMDLINE;
         my @sql = $self->_bz_real_schema->get_add_fk_sql($table, $column, $def);
         $self->do($_) foreach @sql;
@@ -1371,24 +1383,21 @@ sub _bz_real_schema {
 
 =cut
 
-sub _bz_store_real_schema {
+sub _bz_store_real_schema
+{
     my ($self) = @_;
 
     # Make sure that there's a schema to update
-    my $table_size = $self->selectrow_array("SELECT COUNT(*) FROM bz_schema");
-
-    die "Attempted to update the bz_schema table but there's nothing "
-        . "there to update. Run checksetup." unless $table_size;
+    $self->_bz_real_schema || die "Attempted to update the bz_schema table but there's nothing there to update. Run checksetup.";
 
     # We want to store the current object, not one
     # that we read from the database. So we use the actual hash
     # member instead of the subroutine call. If the hash
     # member is not defined, we will (and should) fail.
-    my $update_schema = $self->{private_real_schema};
+    my $update_schema = $self->_bz_real_schema;
     my $store_me = $update_schema->serialize_abstract();
     my $schema_version = $update_schema->SCHEMA_VERSION;
-    my $sth = $self->prepare("UPDATE bz_schema 
-                                 SET schema_data = ?, version = ?");
+    my $sth = $self->prepare("UPDATE bz_schema SET schema_data = ?, version = ?");
     $sth->bind_param(1, $store_me, $self->BLOB_TYPE);
     $sth->bind_param(2, $schema_version);
     $sth->execute();

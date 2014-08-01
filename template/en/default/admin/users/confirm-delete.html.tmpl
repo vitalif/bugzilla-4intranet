@@ -68,7 +68,7 @@
     <th>Group set:</th>
     <td>
       [% IF otheruser.groups.size %]
-        <ul>
+        <ul style="margin: 0">
           [% FOREACH group = otheruser.groups %]
             <li>[% group.name FILTER html %]</li>
           [% END %]

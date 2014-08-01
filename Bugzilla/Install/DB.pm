@@ -821,15 +821,6 @@ WHERE description LIKE\'%[CC:%\'');
         );
     }
 
-    # Fix bugs_activity.fieldid foreign key
-    {
-        my $fk = $dbh->bz_fk_info('bugs_activity', 'fieldid');
-        if ($fk && (!$fk->{DELETE} || $fk->{DELETE} ne 'CASCADE'))
-        {
-            $dbh->bz_drop_fk('bugs_activity', 'fieldid');
-        }
-    }
-
     # Varchar is VARIABLE, it's generally pointless to set a size limit less than 255 chars for it
     _set_varchar_255();
 
@@ -3458,22 +3449,14 @@ sub _convert_multiselects
     }
 }
 
-sub _add_foreign_keys_to_multiselects {
+sub _add_foreign_keys_to_multiselects
+{
     my $dbh = Bugzilla->dbh;
-
-    my $names = $dbh->selectcol_arrayref(
-        'SELECT name 
-           FROM fielddefs 
-          WHERE type = ' . FIELD_TYPE_MULTI_SELECT);
-
-    foreach my $name (@$names) {
-        $dbh->bz_add_fk("bug_$name", "bug_id", {TABLE  => 'bugs',
-                                                COLUMN => 'bug_id',
-                                                DELETE => 'CASCADE',});
-
-        $dbh->bz_add_fk("bug_$name", "value_id", {TABLE  => $name,
-                                                  COLUMN => 'id',
-                                                  DELETE => 'RESTRICT',});
+    my $names = $dbh->selectcol_arrayref('SELECT name FROM fielddefs WHERE type=' . FIELD_TYPE_MULTI_SELECT);
+    foreach my $name (@$names)
+    {
+        $dbh->bz_add_fk("bug_$name", "bug_id", {TABLE => 'bugs', COLUMN => 'bug_id', DELETE => 'CASCADE'});
+        $dbh->bz_add_fk("bug_$name", "value_id", {TABLE => $name, COLUMN => 'id', DELETE => 'CASCADE'});
     }
 }
 

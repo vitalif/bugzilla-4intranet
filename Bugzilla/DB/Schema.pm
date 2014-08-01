@@ -310,7 +310,7 @@ use constant ABSTRACT_SCHEMA => {
             id        => {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
             bug_id    => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'bugs', COLUMN => 'bug_id', DELETE => 'CASCADE'}},
             attach_id => {TYPE => 'INT4', REFERENCES => {TABLE => 'attachments', COLUMN  => 'attach_id', DELETE => 'CASCADE'}},
-            who       => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'profiles', COLUMN => 'userid'}},
+            who       => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'profiles', COLUMN => 'userid', DELETE => 'CASCADE'}},
             bug_when  => {TYPE => 'DATETIME', NOTNULL => 1},
             fieldid   => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'fielddefs', COLUMN => 'id', DELETE => 'CASCADE'}},
             added     => {TYPE => 'LONGTEXT'},
@@ -341,7 +341,7 @@ use constant ABSTRACT_SCHEMA => {
         FIELDS => [
             comment_id      => {TYPE => 'INTSERIAL',  NOTNULL => 1, PRIMARYKEY => 1},
             bug_id          => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'bugs', COLUMN => 'bug_id', DELETE => 'CASCADE'}},
-            who             => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'profiles', COLUMN => 'userid'}},
+            who             => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'profiles', COLUMN => 'userid', DELETE => 'CASCADE'}},
             bug_when        => {TYPE => 'DATETIME', NOTNULL => 1},
             work_time       => {TYPE => 'decimal(7,2)', NOTNULL => 1, DEFAULT => '0'},
             thetext         => {TYPE => 'LONGTEXT', NOTNULL => 1},
@@ -362,8 +362,8 @@ use constant ABSTRACT_SCHEMA => {
     # Editable comments (CustIS Bug 134368)
     longdescs_history => {
         FIELDS => [
-            bug_id     => { TYPE => 'INT4', NOTNULL => 1, REFERENCES => { TABLE => 'bugs', COLUMN => 'bug_id' } },
-            who        => { TYPE => 'INT4', NOTNULL => 1, REFERENCES => { TABLE => 'profiles', COLUMN => 'userid' } },
+            bug_id     => { TYPE => 'INT4', NOTNULL => 1, REFERENCES => { TABLE => 'bugs', COLUMN => 'bug_id', DELETE => 'CASCADE' } },
+            who        => { TYPE => 'INT4', NOTNULL => 1, REFERENCES => { TABLE => 'profiles', COLUMN => 'userid', DELETE => 'CASCADE' } },
             bug_when   => { TYPE => 'DATETIME', NOTNULL => 1 },
             oldthetext => { TYPE => 'LONGTEXT', NOTNULL => 1 },
             thetext    => { TYPE => 'LONGTEXT', NOTNULL => 1 },
@@ -733,7 +733,7 @@ use constant ABSTRACT_SCHEMA => {
         FIELDS => [
             id            => {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
             userid        => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'profiles', COLUMN => 'userid', DELETE => 'CASCADE'}},
-            who           => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'profiles', COLUMN => 'userid'}},
+            who           => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'profiles', COLUMN => 'userid', DELETE => 'CASCADE'}},
             profiles_when => {TYPE => 'DATETIME', NOTNULL => 1},
             fieldid       => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'fielddefs', COLUMN => 'id'}},
             oldvalue      => {TYPE => 'TINYTEXT'},
@@ -773,7 +773,7 @@ use constant ABSTRACT_SCHEMA => {
     emailin_aliases => {
         FIELDS => [
             address   => {TYPE => 'varchar(255)', NOTNULL => 1},
-            userid    => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'profiles', COLUMN => 'userid'}},
+            userid    => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'profiles', COLUMN => 'userid', DELETE => 'CASCADE'}},
             fromldap  => {TYPE => 'BOOLEAN'},
             isprimary => {TYPE => 'BOOLEAN'},
         ],
@@ -796,7 +796,7 @@ use constant ABSTRACT_SCHEMA => {
     namedqueries => {
         FIELDS => [
             id           => {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
-            userid       => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE  => 'profiles', COLUMN => 'userid', DELETE => 'CASCADE'}},
+            userid       => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'profiles', COLUMN => 'userid', DELETE => 'CASCADE'}},
             name         => {TYPE => 'varchar(255)', NOTNULL => 1},
             query        => {TYPE => 'LONGTEXT', NOTNULL => 1},
         ],
@@ -810,7 +810,7 @@ use constant ABSTRACT_SCHEMA => {
         FIELDS => [
             id             => {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
             query_id       => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'namedqueries', COLUMN => 'id'}},
-            user_id        => {TYPE => 'INT4', REFERENCES => {TABLE => 'profiles', COLUMN => 'userid'}},
+            user_id        => {TYPE => 'INT4', REFERENCES => {TABLE => 'profiles', COLUMN => 'userid', DELETE => 'SET NULL'}},
             flags          => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0},
             message        => {TYPE => 'LONGTEXT', NOTNULL => 1},
             sql_code       => {TYPE => 'LONGTEXT'},
@@ -849,7 +849,7 @@ use constant ABSTRACT_SCHEMA => {
     reports => {
         FIELDS => [
             id      => {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
-            user_id => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE  => 'profiles', COLUMN => 'userid', DELETE => 'CASCADE'}},
+            user_id => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'profiles', COLUMN => 'userid', DELETE => 'CASCADE'}},
             name    => {TYPE => 'varchar(255)', NOTNULL => 1},
             query   => {TYPE => 'LONGTEXT', NOTNULL => 1},
         ],
@@ -891,9 +891,9 @@ use constant ABSTRACT_SCHEMA => {
             ip_addr    => {TYPE => 'varchar(40)', NOTNULL => 1},
         ],
         INDEXES => [
-            # We do lookups by every item in the table simultaneously, but 
+            # We do lookups by every item in the table simultaneously, but
             # having an index with all three items would be the same size as
-            # the table. So instead we have an index on just the smallest item, 
+            # the table. So instead we have an index on just the smallest item,
             # to speed lookups.
             login_failure_user_id_idx => ['user_id'],
         ],
@@ -905,7 +905,7 @@ use constant ABSTRACT_SCHEMA => {
     #     for these changes.
     tokens => {
         FIELDS => [
-            userid    => {TYPE => 'INT4', REFERENCES => {TABLE  => 'profiles', COLUMN => 'userid', DELETE => 'CASCADE'}},
+            userid    => {TYPE => 'INT4', REFERENCES => {TABLE => 'profiles', COLUMN => 'userid', DELETE => 'CASCADE'}},
             issuedate => {TYPE => 'DATETIME', NOTNULL => 1},
             token     => {TYPE => 'varchar(16)', NOTNULL => 1, PRIMARYKEY => 1},
             tokentype => {TYPE => 'varchar(8)', NOTNULL => 1},
@@ -961,7 +961,6 @@ use constant ABSTRACT_SCHEMA => {
     # if GRANT_REGEXP - record was created by evaluating a regexp
     user_group_map => {
         FIELDS => [
-            user_id    => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'profiles', COLUMN => 'userid', DELETE => 'CASCADE'}},
             group_id   => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'groups', COLUMN => 'id', DELETE => 'CASCADE'}},
             isbless    => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
             grant_type => {TYPE => 'INT1', NOTNULL => 1, DEFAULT => GRANT_DIRECT},
@@ -1006,18 +1005,11 @@ use constant ABSTRACT_SCHEMA => {
     # in order to see a named query somebody else shares.
     namedquery_group_map => {
         FIELDS => [
-            namedquery_id => {TYPE => 'INT4', NOTNULL => 1,
-                              REFERENCES => {TABLE  => 'namedqueries',
-                                             COLUMN => 'id',
-                                             DELETE => 'CASCADE'}},
-            group_id      => {TYPE => 'INT4', NOTNULL => 1,
-                              REFERENCES => {TABLE  => 'groups',
-                                             COLUMN => 'id',
-                                             DELETE => 'CASCADE'}},
+            namedquery_id => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'namedqueries', COLUMN => 'id', DELETE => 'CASCADE'}},
+            group_id      => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'groups', COLUMN => 'id', DELETE => 'CASCADE'}},
         ],
         INDEXES => [
-            namedquery_group_map_namedquery_id_idx   =>
-                {FIELDS => [qw(namedquery_id)], TYPE => 'UNIQUE'},
+            namedquery_group_map_namedquery_id_idx => {FIELDS => [qw(namedquery_id)], TYPE => 'UNIQUE'},
             namedquery_group_map_group_id_idx => ['group_id'],
         ],
     },
