@@ -199,7 +199,6 @@ use constant DEFAULT_FIELDS => (map { my $i = 0; $_ = { (map { (DEFAULT_FIELD_CO
     [ 'deadline',              'Deadline',              0, 1, 1, FIELD_TYPE_DATETIME ],
     [ 'flagtypes.name',        'Flags and Requests',    0, 0, 0 ],
     [ 'work_time',             'Hours Worked',          0, 0, 0 ],
-    [ 'percentage_complete',   'Percentage Complete',   0, 0, 0 ],
     [ 'content',               'Content',               0, 0, 0 ],
     [ 'see_also',              'See Also',              0, 1, 0, FIELD_TYPE_BUG_URLS ],
 ));
@@ -1172,17 +1171,6 @@ sub populate_field_definitions
         }
     }
 
-    # DELETE fields which were added only accidentally, or which
-    # were never tracked in bugs_activity. Note that you should not
-    # delete fields which are used by bugs_activity.
-
-    $dbh->do(
-        "DELETE FROM fielddefs WHERE name IN ('cc_accessible', 'requesters.login_name',
-        'attachments.thedata', 'attach_data.thedata', 'content', 'requestees.login_name',
-        'setters.login_name', 'longdescs.isprivate', 'assignee_accessible', 'qacontact_accessible',
-        'commenter', 'owner_idle_time', 'attachments.submitter')"
-    );
-
     # MODIFY old field definitions
 
     # 2005-11-13 LpSolit@gmail.com - Bug 302599
@@ -1253,6 +1241,17 @@ sub populate_field_definitions
             description => $field_description
         });
     }
+
+    # DELETE fields which were added only accidentally, or which
+    # were never tracked in bugs_activity. Note that you should not
+    # delete fields which are used by bugs_activity.
+
+    $dbh->do(
+        "DELETE FROM fielddefs WHERE name IN ('cc_accessible', 'requesters.login_name',
+        'attachments.thedata', 'attach_data.thedata', 'content', 'requestees.login_name',
+        'setters.login_name', 'longdescs.isprivate', 'assignee_accessible', 'qacontact_accessible',
+        'commenter', 'owner_idle_time', 'attachments.submitter', 'days_elapsed', 'percentage_complete')"
+    );
 }
 
 # Get choice value object for a bug or for a hashref with default value names

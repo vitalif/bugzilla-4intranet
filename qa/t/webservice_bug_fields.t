@@ -28,7 +28,6 @@ use constant GLOBAL_GENERAL_FIELDS => qw(
     cc
     classification
     creation_ts
-    days_elapsed
     delta_ts
     dependson
     everconfirmed
@@ -45,7 +44,6 @@ use constant GLOBAL_GENERAL_FIELDS => qw(
 
     deadline
     estimated_time
-    percentage_complete
     remaining_time
     work_time
 );
