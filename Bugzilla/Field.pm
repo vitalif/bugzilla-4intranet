@@ -155,52 +155,60 @@ use constant SQL_DEFINITIONS => {
 use constant DEFAULT_FIELD_COLUMNS => [ qw(name description is_mandatory mailhead clone_bug type value_field null_field default_field) ];
 use constant DEFAULT_FIELDS => (map { my $i = 0; $_ = { (map { (DEFAULT_FIELD_COLUMNS->[$i++] => $_) } @$_) } } (
     [ 'bug_id',            'Bug ID',            1, 1, 0 ],
+    [ 'alias',             'Alias',             0, 1, 0, FIELD_TYPE_FREETEXT ],
+    [ 'creation_ts',       'Creation time',     1, 0, 0, FIELD_TYPE_DATETIME ],
+    [ 'delta_ts',          'Last changed time', 1, 0, 0, FIELD_TYPE_DATETIME ],
+
+    # Initial bug information
     [ 'short_desc',        'Summary',           1, 1, 1, FIELD_TYPE_FREETEXT ],
     [ 'classification',    'Classification',    1, 1, 0, FIELD_TYPE_SINGLE_SELECT ],
     [ 'product',           'Product',           1, 1, 0, FIELD_TYPE_SINGLE_SELECT ],
-    [ 'version',           'Version',           0, 1, 1, FIELD_TYPE_SINGLE_SELECT, 'product', 'product', 'component' ],
-    [ 'rep_platform',      'Platform',          0, 1, 1, FIELD_TYPE_SINGLE_SELECT ],
-    [ 'bug_file_loc',      'URL',               0, 1, 1 ],
-    [ 'op_sys',            'OS/Version',        0, 1, 1, FIELD_TYPE_SINGLE_SELECT ],
-    [ 'bug_status',        'Status',            1, 1, 0, FIELD_TYPE_SINGLE_SELECT ],
-    [ 'status_whiteboard', 'Status Whiteboard', 0, 1, 1, 1, FIELD_TYPE_FREETEXT ],
-    [ 'keywords',          'Keywords',          0, 1, 1, FIELD_TYPE_MULTI_SELECT ],
-    [ 'resolution',        'Resolution',        0, 1, 0, FIELD_TYPE_SINGLE_SELECT ],
+    [ 'component',         'Component',         1, 1, 1, FIELD_TYPE_SINGLE_SELECT, 'product' ],
     [ 'bug_severity',      'Severity',          0, 1, 1, FIELD_TYPE_SINGLE_SELECT ],
     [ 'priority',          'Priority',          0, 1, 1, FIELD_TYPE_SINGLE_SELECT ],
-    [ 'component',         'Component',         1, 1, 1, FIELD_TYPE_SINGLE_SELECT, 'product' ],
-    [ 'assigned_to',       'Assignee',          1, 1, 0 ],
+    [ 'rep_platform',      'Platform',          0, 1, 1, FIELD_TYPE_SINGLE_SELECT ],
+    [ 'op_sys',            'OS',                0, 1, 1, FIELD_TYPE_SINGLE_SELECT ],
+    [ 'bug_file_loc',      'URL',               0, 1, 1 ],
+    [ 'version',           'Version',           0, 1, 1, FIELD_TYPE_SINGLE_SELECT, 'product', 'product', 'component' ],
+
+    # Responsibility information
     [ 'reporter',          'Reporter',          1, 1, 0 ],
-    [ 'votes',             'Votes',             0, 1, 0 ],
+    [ 'assigned_to',       'Assignee',          1, 1, 0 ],
     [ 'qa_contact',        'QA Contact',        0, 1, 0 ],
-    [ 'cc',                'CC',                0, 1, 1 ], # Also reporter/assigned_to/qa are added to cloned bug...
+    [ 'cc',                'CC',                0, 1, 1 ], # reporter/assignee/qa are also added to cloned bug CC
+    [ 'flagtypes.name',    'Flags and Requests',0, 0, 0 ],
+
+    # Status information
+    [ 'keywords',          'Keywords',          0, 1, 1, FIELD_TYPE_MULTI_SELECT ],
+    [ 'see_also',          'See Also',          0, 1, 0, FIELD_TYPE_BUG_URLS ],
+    [ 'target_milestone',  'Target Milestone',  0, 1, 1, FIELD_TYPE_SINGLE_SELECT, 'product', 'product', 'product' ],
+    [ 'status_whiteboard', 'Status Whiteboard', 0, 1, 1, 1, FIELD_TYPE_FREETEXT ],
+    [ 'bug_status',        'Status',            1, 1, 0, FIELD_TYPE_SINGLE_SELECT ],
+    [ 'resolution',        'Resolution',        0, 1, 0, FIELD_TYPE_SINGLE_SELECT ],
+    [ 'everconfirmed',     'Ever Confirmed',    0, 0, 0 ],
     [ 'dependson',         'Depends on',        0, 1, 0 ],
     [ 'blocked',           'Blocks',            0, 1, 0 ],
     [ 'dup_id',            'Duplicate of',      0, 1, 0, FIELD_TYPE_BUG_ID ],
+    [ 'votes',             'Votes',             0, 1, 0 ],
 
+    [ 'estimated_time',    'Estimated Hours',   0, 1, 0, FIELD_TYPE_NUMERIC ],
+    [ 'remaining_time',    'Remaining Hours',   0, 0, 0, FIELD_TYPE_NUMERIC ],
+    [ 'work_time',         'Hours Worked',      0, 0, 0 ],
+    [ 'deadline',          'Deadline',          0, 1, 1, FIELD_TYPE_DATETIME ],
+    [ 'bug_group',         'Group',             0, 0, 0 ], # FIXME maybe clone_bug=1?
+    [ 'reporter_accessible', 'Reporter Accessible', 0, 1, 0 ],
+    [ 'cclist_accessible', 'CC Accessible',     0, 1, 0 ],
+
+    # Comment (never stored in bugs_activity...)
+    [ 'longdesc',          'Comment',           0, 0, 0 ],
+
+    # Attachment fields
     [ 'attachments.description', 'Attachment description', 0, 0, 0 ],
     [ 'attachments.filename',    'Attachment filename',    0, 0, 0 ],
     [ 'attachments.mimetype',    'Attachment mime type',   0, 0, 0 ],
     [ 'attachments.ispatch',     'Attachment is patch',    0, 0, 0 ],
     [ 'attachments.isobsolete',  'Attachment is obsolete', 0, 0, 0 ],
     [ 'attachments.isprivate',   'Attachment is private',  0, 0, 0 ],
-
-    [ 'target_milestone',      'Target Milestone',      0, 1, 1, FIELD_TYPE_SINGLE_SELECT, 'product', 'product', 'product' ],
-    [ 'creation_ts',           'Creation time',         1, 0, 0, FIELD_TYPE_DATETIME ],
-    [ 'delta_ts',              'Last changed time',     1, 0, 0, FIELD_TYPE_DATETIME ],
-    [ 'longdesc',              'Comment',               0, 0, 0 ],
-    [ 'alias',                 'Alias',                 0, 1, 0, FIELD_TYPE_FREETEXT ],
-    [ 'everconfirmed',         'Ever Confirmed',        0, 0, 0 ],
-    [ 'reporter_accessible',   'Reporter Accessible',   0, 1, 0 ],
-    [ 'cclist_accessible',     'CC Accessible',         0, 1, 0 ],
-    [ 'bug_group',             'Group',                 0, 0, 0 ], # FIXME maybe clone_bug=1?
-    [ 'estimated_time',        'Estimated Hours',       0, 1, 0, FIELD_TYPE_NUMERIC ],
-    [ 'remaining_time',        'Remaining Hours',       0, 0, 0, FIELD_TYPE_NUMERIC ],
-    [ 'deadline',              'Deadline',              0, 1, 1, FIELD_TYPE_DATETIME ],
-    [ 'flagtypes.name',        'Flags and Requests',    0, 0, 0 ],
-    [ 'work_time',             'Hours Worked',          0, 0, 0 ],
-    [ 'content',               'Content',               0, 0, 0 ],
-    [ 'see_also',              'See Also',              0, 1, 0, FIELD_TYPE_BUG_URLS ],
 ));
 
 # Tweaks allowed for standard field properties
@@ -496,7 +504,7 @@ the reverse of nullable
 
 =cut
 
-sub nullable { return !$_[0]->type || $_[0]->type == FIELD_TYPE_BUG_ID_REV || !$_[0]->{is_mandatory} }
+sub nullable { return !$_[0]->type && $_[0]->custom || $_[0]->type == FIELD_TYPE_BUG_ID_REV || !$_[0]->{is_mandatory} }
 
 sub is_mandatory { return !$_[0]->nullable }
 
@@ -1184,19 +1192,26 @@ sub populate_field_definitions
     my ($has_clone_bug) = $dbh->selectrow_array('SELECT 1 FROM fielddefs WHERE clone_bug AND NOT custom');
 
     # Add/update field definitions
+    my $i = 0;
     foreach my $def (DEFAULT_FIELDS())
     {
+        $i++;
         my $field = new Bugzilla::Field({ name => $def->{name} });
         if ($field)
         {
+            $field->_set_type($def->{type}) if $def->{type};
             $field->set_description($def->{description});
-            $field->set_in_new_bugmail($def->{mailhead});
-            $field->set_clone_bug($def->{clone_bug}) if !$has_clone_bug;
-            $field->set_is_mandatory($def->{is_mandatory}) if $def->{is_mandatory} || $def->{name} eq 'keywords' && $def->{type} ne $field->type;
+            $field->set_sortkey($i*10);
+            $field->set_in_new_bugmail($def->{mailhead}) if !$field->can_tweak('mailhead');
+            $field->set_clone_bug($def->{clone_bug}) if !$has_clone_bug || !$field->can_tweak('clone_bug');
+            if ($def->{is_mandatory} || $def->{name} eq 'keywords' && $def->{type} ne $field->type ||
+                !$field->can_tweak('nullable'))
+            {
+                $field->set_is_mandatory($def->{is_mandatory});
+            }
             $field->set_value_field($dbh->selectrow_array('SELECT id FROM fielddefs WHERE name=?', undef, $def->{value_field})) if $def->{value_field};
             $field->set_null_field($dbh->selectrow_array('SELECT id FROM fielddefs WHERE name=?', undef, $def->{null_field})) if $def->{null_field};
             $field->set_default_field($dbh->selectrow_array('SELECT id FROM fielddefs WHERE name=?', undef, $def->{default_field})) if $def->{default_field};
-            $field->_set_type($def->{type}) if $def->{type};
             $field->update();
         }
         else

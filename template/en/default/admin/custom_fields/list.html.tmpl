@@ -191,7 +191,7 @@
 [% PROCESS admin/table.html.tmpl
   columns = columns
   overrides = overrides
-  data = Bugzilla.get_fields({custom => 0, sort => 'name'})
+  data = Bugzilla.get_fields({custom => 0, sort => 1})
 %]
 
 [% PROCESS global/footer.html.tmpl %]

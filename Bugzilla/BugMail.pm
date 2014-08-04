@@ -218,7 +218,7 @@ sub Send
         $fielddescription{$field->name} = $field->description;
     }
 
-    my ($start, $end) = $dbh->selectrow_array("SELECT lastdiffed, LOCALTIMESTAMP(0) FROM bugs WHERE bug_id=$id");
+    my ($start, $creation_ts, $end) = $dbh->selectrow_array("SELECT lastdiffed, creation_ts, LOCALTIMESTAMP(0) FROM bugs WHERE bug_id=$id");
 
     # User IDs of people in various roles. More than one person can 'have' a
     # role, if the person in that role has changed, or people are watching.
@@ -261,18 +261,12 @@ sub Send
         $values{changer} = $changer;
     }
 
-    my @args = ($id);
-    my @dep_args = ($id);
-    # If lastdiffed is NULL, then we don't limit the search on time.
-    my $when_restriction = '';
-    if ($start)
-    {
-        $when_restriction = ' AND bug_when > ? AND bug_when <= ?';
-        push @args, ($start, $end);
-        push @dep_args, ($start, $end);
-    }
+    my @args = ($id, $start || $creation_ts, $end);
+    my @dep_args = ($id, $start || $creation_ts, $end);
+    my $when_restriction = ' AND bug_when > ? AND bug_when <= ?';
     my $diffs = $dbh->selectall_arrayref(
-           "SELECT profiles.login_name, profiles.realname, fielddefs.description fielddesc,
+           "(SELECT profiles.login_name, profiles.realname, fielddefs.description fielddesc,
+                   fielddefs.sortkey fieldsortkey,
                    bugs_activity.bug_when, bugs_activity.removed,
                    bugs_activity.added, bugs_activity.attach_id, fielddefs.name fieldname, null as comment_id, null as comment_count
               FROM bugs_activity
@@ -281,8 +275,9 @@ sub Send
         INNER JOIN profiles
                 ON profiles.userid = bugs_activity.who
              WHERE bugs_activity.bug_id = ?
-                   $when_restriction
-      UNION SELECT profile1.login_name, profile1.realname, fielddefs1.description fielddesc,
+                   $when_restriction)
+      UNION (SELECT profile1.login_name, profile1.realname, fielddefs1.description fielddesc,
+                   fielddefs1.sortkey fieldsortkey,
                    lh.bug_when, lh.oldthetext removed, lh.thetext added, null, fielddefs1.name fieldname, lh.comment_id, lh.comment_count
               FROM longdescs_history lh
         INNER JOIN profiles profile1
@@ -290,8 +285,8 @@ sub Send
         INNER JOIN fielddefs fielddefs1
                 ON fielddefs1.name = 'longdesc'
              WHERE lh.bug_id = ?
-                   $when_restriction
-          ORDER BY bug_when", {Slice=>{}}, @args, @args);
+                   $when_restriction)
+          ORDER BY bug_when, fieldsortkey", {Slice=>{}}, @args, @args);
 
     my @new_depbugs;
     foreach my $diff (@$diffs)
@@ -346,7 +341,7 @@ sub Send
                     OR fielddefs.name = 'resolution')
                    $when_restriction
                    $dep_restriction
-          ORDER BY bugs_activity.bug_when, bugs.bug_id", {Slice=>{}}, @dep_args);
+          ORDER BY bugs_activity.bug_when, bugs.bug_id, fielddefs.sortkey", {Slice=>{}}, @dep_args);
 
         my $thisdiff = "";
         my $lastbug = "";

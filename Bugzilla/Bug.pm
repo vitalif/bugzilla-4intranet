@@ -507,6 +507,8 @@ sub update
             next if $f eq 'bug_id';
             $row->{$f} = $self->{$f};
             trick_taint($row->{$f});
+            $changes->{$f} = [ '', $row->{$f} ] if $row->{$f} ne '' &&
+                (!NUMERIC_COLUMNS->{$f} || $row->{$f} != 0);
         }
         $dbh->do(
             'INSERT INTO '.$self->DB_TABLE.' (' . join(', ', keys %$row) .
@@ -1168,12 +1170,12 @@ sub transform_id_changes
     # Transform select field value IDs to names
     if ($changes->{product_id})
     {
-        $changes->{product} = [ $self->{_old_self}->product_obj->name, $self->product_obj->name ];
+        $changes->{product} = [ $self->{_old_self} ? $self->{_old_self}->product_obj->name : '', $self->product_obj->name ];
         delete $changes->{product_id};
     }
     if ($changes->{component_id})
     {
-        $changes->{component} = [ $self->{_old_self}->component_obj->name, $self->component_obj->name ];
+        $changes->{component} = [ $self->{_old_self} ? $self->{_old_self}->component_obj->name : '', $self->component_obj->name ];
         delete $changes->{component_id};
     }
     for my $f (Bugzilla->get_fields({ type => FIELD_TYPE_SINGLE_SELECT }))
@@ -1185,7 +1187,7 @@ sub transform_id_changes
     }
 
     # Transform user IDs to names
-    foreach my $field (qw(qa_contact assigned_to))
+    foreach my $field (qw(qa_contact assigned_to reporter))
     {
         if ($changes->{$field})
         {
@@ -3539,19 +3541,21 @@ sub GetBugActivity
     }
 
     my $query =
-        "SELECT fielddefs.name, a.attach_id, " . $dbh->sql_date_format('a.bug_when') .
+        "SELECT fielddefs.name field_name, fielddefs.sortkey field_desc, a.attach_id, " . $dbh->sql_date_format('a.bug_when') .
             " bug_when, a.removed, a.added, profiles.login_name, null AS comment_id, null AS comment_count" .
         " FROM bugs_activity a $suppjoins".
         " LEFT JOIN fielddefs ON a.fieldid = fielddefs.id".
         " INNER JOIN profiles ON profiles.userid = a.who".
-        " WHERE a.bug_id = ? $datepart $attachpart $suppwhere".
-        ($attach_id ? "" :
-            " UNION SELECT 'longdesc', null, DATE_FORMAT(a.bug_when, '%Y.%m.%d %H:%i:%s') bug_when,".
+        " WHERE a.bug_id = ? $datepart $attachpart $suppwhere";
+    if (!$attach_id)
+    {
+        $query = "($query) UNION (SELECT 'longdesc' field_name, 0 field_desc, null, DATE_FORMAT(a.bug_when, '%Y.%m.%d %H:%i:%s') bug_when,".
             " a.oldthetext removed, a.thetext added, profile1.login_name, a.comment_id, a.comment_count".
             " FROM longdescs_history a".
             " INNER JOIN profiles profile1 ON profile1.userid = a.who".
-            " WHERE a.bug_id = ? $datepart").
-        " ORDER BY bug_when";
+            " WHERE a.bug_id = ? $datepart)";
+    }
+    $query .= " ORDER BY bug_when, field_desc";
 
     my $list = $dbh->selectall_arrayref($query, undef, @args);
 
@@ -3562,7 +3566,7 @@ sub GetBugActivity
 
     foreach my $entry (@$list)
     {
-        my ($fieldname, $attachid, $when, $removed, $added, $who, $comment_id, $comment_count) = @$entry;
+        my ($fieldname, $fielddesc, $attachid, $when, $removed, $added, $who, $comment_id, $comment_count) = @$entry;
         my %change;
         my $activity_visible = 1;
 
