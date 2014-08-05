@@ -30,7 +30,7 @@
             <th align="left" colspan="2">Видимо ли</th>
         </tr>
         [% i = 0 %]
-        [% FOREACH cfield = field.controls_visibility_of %]
+        [% FOREACH cfield = Bugzilla.get_fields({ visibility_field_id => field.id }) %]
         <tr class="[% IF i mod 2 == 0 %]odd[% ELSE %]even[% END %]_row">
             <td>[% cfield.description | html %]</td>
             <td align="center">

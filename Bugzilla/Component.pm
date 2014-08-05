@@ -147,7 +147,7 @@ sub create
     $component->_create_series() if $create_series;
 
     # Duplicate default version in field_defaults.
-    Bugzilla->get_field('version')->update_default_values($component->id, $component->default_version);
+    Bugzilla->get_field('version')->update_default_value($component->id, $component->default_version);
 
     Bugzilla->get_field(FIELD_NAME)->touch;
 
@@ -186,7 +186,7 @@ sub update
     }
 
     # Duplicate default version in field_defaults.
-    Bugzilla->get_field('version')->update_default_values($self->id, $self->default_version);
+    Bugzilla->get_field('version')->update_default_value($self->id, $self->default_version);
 
     Bugzilla->get_field(FIELD_NAME)->touch;
 

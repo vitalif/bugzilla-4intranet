@@ -199,9 +199,8 @@ sub update
     # Update is_default for milestone in fieldvaluecontrol
     if ($changes->{defaultmilestone})
     {
-        Bugzilla::Field::update_default_values(
-            'target_milestone', $self->id,
-            [ $changes->{defaultmilestone}->[1] || () ]
+        Bugzilla->get_field('target_milestone')->update_default_value(
+            $self->id, [ $changes->{defaultmilestone}->[1] || () ]
         );
     }
 

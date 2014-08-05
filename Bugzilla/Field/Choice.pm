@@ -421,7 +421,7 @@ sub set_visibility_values
 {
     my $self = shift;
     my ($value_ids) = @_;
-    update_visibility_values($self->field, $self->id, $value_ids);
+    $self->field->update_visibility_values($self->id, $value_ids);
     delete $self->{visibility_values};
     return $value_ids;
 }

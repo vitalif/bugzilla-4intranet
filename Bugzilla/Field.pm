@@ -20,8 +20,7 @@
 
 =head1 NAME
 
-Bugzilla::Field - a particular piece of information about bugs
-                  and useful routines for form field manipulation
+Bugzilla::Field - a particular piece of information about bugs.
 
 =head1 SYNOPSIS
 
@@ -43,12 +42,13 @@ Bugzilla::Field - a particular piece of information about bugs
 
   # Create or update a custom field or field definition.
   my $field = Bugzilla::Field->create(
-    {name => 'cf_silly', description => 'Silly', custom => 1});
+    { name => 'cf_silly', description => 'Silly', custom => 1 });
 
   # Instantiate a Field object for an existing field.
-  my $field = new Bugzilla::Field({name => 'target_milestone'});
-  if ($field->obsolete) {
-      print $field->description . " is obsolete\n";
+  my $field = new Bugzilla::Field({ name => 'target_milestone' });
+  if ($field->obsolete)
+  {
+      print $field->description . " is disabled\n";
   }
 
 =head1 DESCRIPTION
@@ -56,9 +56,7 @@ Bugzilla::Field - a particular piece of information about bugs
 Field.pm defines field objects, which represent the particular pieces
 of information that Bugzilla stores about bugs.
 
-This package also provides functions for dealing with CGI form fields.
-
-C<Bugzilla::Field> is an implementation of L<Bugzilla::Object>, and
+B<Bugzilla::Field> is an implementation of L<Bugzilla::Object>, and
 so provides all of the methods available in L<Bugzilla::Object>,
 in addition to what is documented here.
 
@@ -68,13 +66,12 @@ package Bugzilla::Field;
 
 use strict;
 
-use base qw(Exporter Bugzilla::Object);
-@Bugzilla::Field::EXPORT = qw(update_visibility_values);
+use base qw(Bugzilla::Object);
 
 use Bugzilla::Constants;
 use Bugzilla::Error;
 use Bugzilla::Util;
-require 'Bugzilla/Field/Choice.pm';
+use Bugzilla::Field::Choice;
 
 use Scalar::Util qw(blessed);
 use Encode;
@@ -366,9 +363,6 @@ sub _check_visibility_field_id
     return $field->id;
 }
 
-# This has effect only for fields of FIELD_TYPE_BUG_ID type
-# When 1, add field value (bug id) to list of bugs blocked by current
-# When 2, add field value (bug id) to list of bugs depending on current
 sub _check_add_to_deps
 {
     my ($invocant, $value) = @_;
@@ -404,152 +398,138 @@ sub _check_default_value
 
 =over
 
-=item C<name>
+=item B<name>
 
-the name of the field in the database; begins with "cf_" if field
+The name of the field in the database; begins with "cf_" if field
 is a custom field, but test the value of the boolean "custom" property
 to determine if a given field is a custom field
 
-=item C<description>
+=item B<description>
 
-a short string describing the field; displayed to Bugzilla users
+A short string describing the field; displayed to Bugzilla users
 in several places within Bugzilla's UI, f.e. as the form field label
 on the "show bug" page
 
-=back
+=item B<type>
 
-=cut
-
-sub description { return $_[0]->{description} }
-
-=over
-
-=item C<type>
-
-an integer specifying the kind of field this is; values correspond to
+An integer specifying the kind of field this is; values correspond to
 the FIELD_TYPE_* constants in Constants.pm
 
-=back
+=item B<custom>
 
-=cut
-
-sub type { return $_[0]->{type} }
-
-=over
-
-=item C<custom>
-
-a boolean specifying whether or not the field is a custom field;
+A boolean specifying whether or not the field is a custom field;
 if true, field name should start "cf_", but use this property to determine
 which fields are custom fields
 
-=back
+=item B<in_new_bugmail>
 
-=cut
+A boolean specifying whether or not the field is displayed in bugmail
+for newly-created bugs
 
-sub custom { return $_[0]->{custom} }
+=item B<sortkey>
 
-=over
+sortkey is an integer value by which fields are sorted in the bugmail and change history tables
 
-=item C<in_new_bugmail>
+=item B<obsolete>
 
-a boolean specifying whether or not the field is displayed in bugmail
-for newly-created bugs;
+A boolean specifying whether or not the field is obsolete (disabled and unused in the UI)
 
-=back
+=item B<enabled>
 
-=cut
+The reverse of obsolete
 
-sub in_new_bugmail { return $_[0]->{mailhead} }
+=item B<nullable>
 
-=over
+A boolean specifying whether empty value is allowed for this field
 
-=item C<sortkey>
+=item B<is_mandatory>
 
-an integer specifying the sortkey of the field
+The reverse of nullable
 
-=back
-
-=cut
-
-sub sortkey { return $_[0]->{sortkey} }
-
-=over
-
-=item C<obsolete>
-
-a boolean specifying whether or not the field is obsolete
-
-=back
-
-=cut
-
-sub obsolete { return $_[0]->{obsolete} }
-
-sub enabled { return !$_[0]->{obsolete} }
-
-=over
-
-=item C<nullable>
-
-a boolean specifying whether empty value is allowed for this field
-
-=back
-
-=item C<is_mandatory>
-
-the reverse of nullable
-
-=back
-
-=cut
-
-sub nullable { return !$_[0]->type && $_[0]->custom || $_[0]->type == FIELD_TYPE_BUG_ID_REV || !$_[0]->{is_mandatory} }
-
-sub is_mandatory { return !$_[0]->nullable }
-
-=over
-
-=item C<clone_bug>
+=item B<clone_bug>
 
 A boolean specifying whether or not this field should be copied on bug clone
 
-=back
+=item B<is_select>
 
-=cut
-
-sub clone_bug { return $_[0]->{clone_bug} }
-
-=over
-
-=item C<is_select>
-
-True if this is a C<FIELD_TYPE_SINGLE_SELECT> or C<FIELD_TYPE_MULTI_SELECT>
+True if this is a B<FIELD_TYPE_SINGLE_SELECT> or B<FIELD_TYPE_MULTI_SELECT>
 field. It is only safe to call L</legal_values> if this is true.
 
-=item C<legal_values>
+=item B<has_activity>
 
-Valid values for this field, as an array of L<Bugzilla::Field::Choice>
-objects.
+True if this field has records in the bugs_activity table.
+Calculated automatically.
+
+=item B<add_to_deps>
+
+Has effect only for FIELD_TYPE_BUG_ID fields. One of 0, BUG_ID_ADD_TO_BLOCKED == 1
+or BUG_ID_ADD_TO_DEPENDSON == 2. Indicates whether the value of this field
+should be added to the bug dependency tree (blocked/dependson fields)
+automatically.
+
+=item B<url>
+
+URL template for FIELD_TYPE_EXTURL fields. $1 is replaced as this field
+value in this template.
+
+=item B<default_value>
+
+Global default value for this field. Format is: single ID for single-select
+fields; multiple comma-separated IDs for multi-select fields; always empty
+for BUG_ID_REV fields; string value for all other types.
+
+=item B<visibility_field_id>, B<visibility_field>
+
+A select field that controls visibility of this one.
+
+=item B<value_field_id>, B<value_field>
+
+Select field that controls values of this one, if this one is also a select,
+or related direct BUG_ID field, if this one is BUG_ID_REV type field.
+
+=item B<null_field_id>, B<null_field>
+
+A select field that controls if this one can be empty.
+
+=item B<default_field_id>, B<default_field>
+
+A select field that controls the default value for this field.
+
+=item B<clone_field_id>, B<clone_field>
+
+A select field that enables or disables copying of this field value when cloning bugs.
 
 =back
 
 =cut
 
-sub is_select
-{
-    return ($_[0]->type == FIELD_TYPE_SINGLE_SELECT
-        || $_[0]->type == FIELD_TYPE_MULTI_SELECT) ? 1 : 0;
-}
+sub description         { $_[0]->{description} }
+sub type                { $_[0]->{type} }
+sub custom              { $_[0]->{custom} }
+sub in_new_bugmail      { $_[0]->{mailhead} }
+sub sortkey             { $_[0]->{sortkey} }
+sub obsolete            { $_[0]->{obsolete} }
+sub enabled             { !$_[0]->{obsolete} }
+sub nullable            { !$_[0]->type && $_[0]->custom || $_[0]->type == FIELD_TYPE_BUG_ID_REV || !$_[0]->{is_mandatory} }
+sub is_mandatory        { !$_[0]->nullable }
+sub clone_bug           { $_[0]->{clone_bug} }
+sub is_select           { $_[0]->type == FIELD_TYPE_SINGLE_SELECT || $_[0]->type == FIELD_TYPE_MULTI_SELECT }
+sub has_activity        { $_[0]->{has_activity} }
+sub add_to_deps         { $_[0]->type == FIELD_TYPE_BUG_ID && $_[0]->{add_to_deps} }
+sub url                 { $_[0]->{url} }
+sub default_value       { $_[0]->{default_value} }
+sub visibility_field_id { $_[0]->{visibility_field_id} }
+sub value_field_id      { ($_[0]->is_select || $_[0]->type == FIELD_TYPE_BUG_ID_REV) ? $_[0]->{value_field_id} : undef }
+sub null_field_id       { $_[0]->{null_field_id} }
+sub default_field_id    { $_[0]->{default_field_id} }
+sub clone_field_id      { $_[0]->{clone_field_id} }
+sub visibility_field    { $_[0]->{visibility_field_id} && Bugzilla->get_field($_[0]->{visibility_field_id}) }
+sub value_field         { my $id = $_[0]->value_field_id; return $id && Bugzilla->get_field($id); }
+sub null_field          { $_[0]->{null_field_id} && Bugzilla->get_field($_[0]->{null_field_id}) }
+sub default_field       { $_[0]->{default_field_id} && Bugzilla->get_field($_[0]->{default_field_id}) }
+sub clone_field         { $_[0]->{clone_field_id} && Bugzilla->get_field($_[0]->{clone_field_id}) }
 
-sub has_activity { $_[0]->{has_activity} }
-
-sub add_to_deps { $_[0]->type == FIELD_TYPE_BUG_ID && $_[0]->{add_to_deps} }
-
-sub url { $_[0]->{url} }
-
-sub default_value { $_[0]->{default_value} }
-
+# Value class for this field
 sub value_type
 {
     my $self = shift;
@@ -570,7 +550,8 @@ sub can_tweak
     return 1;
 }
 
-# Includes disabled values is $include_disabled = true
+# Return valid values for this field, arrayref of Bugzilla::Field::Choice objects.
+# Includes disabled values is $include_disabled == true
 sub legal_values
 {
     my $self = shift;
@@ -579,7 +560,7 @@ sub legal_values
     return [ Bugzilla::Field::Choice->type($self)->get_all($include_disabled) ];
 }
 
-# Always excludes disabled values
+# Returns all valid value names for this field, always excluding disabled values
 sub legal_value_names
 {
     my $self = shift;
@@ -587,6 +568,7 @@ sub legal_value_names
     return [ map { $_->{name} } @{ Bugzilla::Field::Choice->type($self)->get_all_names } ];
 }
 
+# Returns all valid names with corresponding IDs for this field, always excluding disabled values
 sub legal_value_names_with_ids
 {
     my $self = shift;
@@ -623,17 +605,6 @@ sub visibility_values
     return $h && %$h ? $h : undef;
 }
 
-sub has_visibility_value
-{
-    my $self = shift;
-    return 1 if !$self->visibility_field_id;
-    my ($value) = @_;
-    $value = $value->id if ref $value;
-    my $hash = Bugzilla->fieldvaluecontrol
-        ->{$self->visibility_field_id}->{fields}->{$self->id};
-    return $hash && $hash->{$value};
-}
-
 sub null_visibility_values
 {
     my $self = shift;
@@ -650,6 +621,17 @@ sub clone_visibility_values
     my $h = Bugzilla->fieldvaluecontrol
         ->{$self->clone_field_id}->{clone}->{$self->id};
     return $h && %$h ? $h : undef;
+}
+
+sub has_visibility_value
+{
+    my $self = shift;
+    return 1 if !$self->visibility_field_id;
+    my ($value) = @_;
+    $value = $value->id if ref $value;
+    my $hash = Bugzilla->fieldvaluecontrol
+        ->{$self->visibility_field_id}->{fields}->{$self->id};
+    return $hash && $hash->{$value};
 }
 
 # Check visibility of field for a bug or for a hashref with default value names
@@ -721,209 +703,62 @@ sub default_value_hash_for
         ->{$self->id}->{$visibility_value_id} };
 }
 
-=pod
-
-=over
-
-=item C<controls_visibility_of>
-
-An arrayref of C<Bugzilla::Field> objects, representing fields that this
-field controls the visibility of.
-
-=back
-
-=cut
-
-sub controls_visibility_of
+# Field and value dependency data, intended for use in client JavaScript
+sub json_visibility
 {
     my $self = shift;
-    $self->{controls_visibility_of} ||= [ Bugzilla->get_fields({ visibility_field_id => $self->id, obsolete => 0 }) ];
-    return $self->{controls_visibility_of};
-}
-
-sub visibility_field_id { $_[0]->{visibility_field_id} }
-sub null_field_id { $_[0]->{null_field_id} }
-sub default_field_id { $_[0]->{default_field_id} }
-sub clone_field_id { $_[0]->{clone_field_id} }
-
-sub value_field_id
-{
-    my $self = shift;
-    return undef if !$self->is_select && $self->type != FIELD_TYPE_BUG_ID_REV;
-    return $self->{value_field_id};
-}
-
-# Field that controls visibility of this one
-sub visibility_field
-{
-    my $self = shift;
-    if ($self->{visibility_field_id})
+    my $data = {
+        legal => [ map { [ $_->id, $_->name ] } @{$self->legal_values} ],
+        visibility_field => $self->visibility_field ? $self->visibility_field->name : undef,
+        value_field => $self->value_field ? $self->value_field->name : undef,
+        null_field => $self->null_field ? $self->null_field->name : undef,
+        default_field => $self->default_field ? $self->default_field->name : undef,
+        nullable => $self->nullable ? 1 : 0,
+        default_value => $self->default_value || undef,
+        fields => {},
+        values => {},
+        defaults => {},
+        null => {},
+    };
+    my $hash = Bugzilla->fieldvaluecontrol->{$self->id};
+    for my $key (qw(fields values defaults null))
     {
-        return Bugzilla->get_field($self->{visibility_field_id});
+        $data->{$key} = { map { Bugzilla->get_field($_)->name => $hash->{$key}->{$_} } keys %{$hash->{$key}} };
     }
-    return undef;
-}
-
-# Field that controls values of this one, if this one is a select,
-# and related direct BUG_ID field, if this one is BUG_ID_REV
-sub value_field
-{
-    my $self = shift;
-    if (my $id = $self->value_field_id)
-    {
-        return Bugzilla->get_field($id);
-    }
-    return undef;
-}
-
-# Field that allows/forbids empty value for this one
-sub null_field
-{
-    my $self = shift;
-    if ($self->{null_field_id})
-    {
-        return Bugzilla->get_field($self->{null_field_id});
-    }
-    return undef;
-}
-
-# Field that controls default values for this one
-sub default_field
-{
-    my $self = shift;
-    if ($self->{default_field_id})
-    {
-        return Bugzilla->get_field($self->{default_field_id});
-    }
-    return undef;
-}
-
-# Field that controls copying the value of this field when cloning
-sub clone_field
-{
-    my $self = shift;
-    if ($self->{clone_field_id})
-    {
-        return Bugzilla->get_field($self->{clone_field_id});
-    }
-    return undef;
-}
-
-=pod
-
-=over
-
-=item C<controls_values_of>
-
-An arrayref of C<Bugzilla::Field> objects, representing fields that this
-field controls the values of.
-
-=back
-
-=cut
-
-sub controls_values_of
-{
-    my $self = shift;
-    $self->{controls_values_of} ||= [ Bugzilla->get_fields({ value_field_id => $self->id }) ];
-    return $self->{controls_values_of};
+    return $data;
 }
 
 =pod
 
 =head2 Instance Mutators
 
-These set the particular field that they are named after.
+$field->set_* functions set the particular field that they are named after.
 
-They take a single value--the new value for that field.
+They take a single value - the new value for that field.
 
 They will throw an error if you try to set the values to something invalid.
 
-=over
-
-=item C<set_description>
-
-=item C<set_clone_bug>
-
-=item C<set_obsolete>
-
-=item C<set_nullable>
-
-=item C<set_sortkey>
-
-=item C<set_in_new_bugmail>
-
-=item C<set_visibility_field>
-
-=item C<set_value_field>
-
-=back
+These are: B<set_description>, B<set_clone_bug>, B<set_obsolete>,
+B<set_is_mandatory>, B<set_sortkey>, B<set_in_new_bugmail>, B<set_add_to_deps>,
+B<set_url>, B<set_default_value>, B<set_visibility_field>, B<set_value_field>,
+B<set_null_field>, B<set_clone_field>, B<set_default_field>.
 
 =cut
 
-sub set_description    { $_[0]->set('description',   $_[1]); }
-sub set_clone_bug      { $_[0]->set('clone_bug',     $_[1]); }
-sub set_obsolete       { $_[0]->set('obsolete',      $_[1]); }
-sub set_is_mandatory   { $_[0]->set('is_mandatory',  $_[1]); }
-sub set_sortkey        { $_[0]->set('sortkey',       $_[1]); }
-sub set_in_new_bugmail { $_[0]->set('mailhead',      $_[1]); }
-sub set_add_to_deps    { $_[0]->set('add_to_deps',   $_[1]); }
-sub set_url            { $_[0]->set('url',           $_[1]); }
-sub set_default_value  { $_[0]->set('default_value', $_[1]); }
-
-sub set_visibility_field
-{
-    my ($self, $value) = @_;
-    $self->set('visibility_field_id', $value);
-}
-
-sub set_visibility_values
-{
-    my $self = shift;
-    my ($value_ids) = @_;
-    update_visibility_values($self, FLAG_VISIBLE, $value_ids);
-    return $value_ids && @$value_ids;
-}
-
-sub set_null_visibility_values
-{
-    my $self = shift;
-    my ($value_ids) = @_;
-    update_visibility_values($self, FLAG_NULLABLE, $value_ids);
-    return $value_ids && @$value_ids;
-}
-
-sub set_clone_visibility_values
-{
-    my $self = shift;
-    my ($value_ids) = @_;
-    update_visibility_values($self, FLAG_CLONED, $value_ids);
-    return $value_ids && @$value_ids;
-}
-
-sub set_value_field
-{
-    my ($self, $value) = @_;
-    $self->set('value_field_id', $value);
-}
-
-sub set_null_field
-{
-    my ($self, $value) = @_;
-    $self->set('null_field_id', $value);
-}
-
-sub set_clone_field
-{
-    my ($self, $value) = @_;
-    $self->set('clone_field_id', $value);
-}
-
-sub set_default_field
-{
-    my ($self, $value) = @_;
-    $self->set('default_field_id', $value);
-}
+sub set_description      { $_[0]->set('description',         $_[1]); }
+sub set_clone_bug        { $_[0]->set('clone_bug',           $_[1]); }
+sub set_obsolete         { $_[0]->set('obsolete',            $_[1]); }
+sub set_is_mandatory     { $_[0]->set('is_mandatory',        $_[1]); }
+sub set_sortkey          { $_[0]->set('sortkey',             $_[1]); }
+sub set_in_new_bugmail   { $_[0]->set('mailhead',            $_[1]); }
+sub set_add_to_deps      { $_[0]->set('add_to_deps',         $_[1]); }
+sub set_url              { $_[0]->set('url',                 $_[1]); }
+sub set_default_value    { $_[0]->set('default_value',       $_[1]); }
+sub set_visibility_field { $_[0]->set('visibility_field_id', $_[1]); }
+sub set_value_field      { $_[0]->set('value_field_id',      $_[1]); }
+sub set_null_field       { $_[0]->set('null_field_id',       $_[1]); }
+sub set_clone_field      { $_[0]->set('clone_field_id',      $_[1]); }
+sub set_default_field    { $_[0]->set('default_field_id',    $_[1]); }
 
 # This is only used internally by upgrade code in Bugzilla::Field.
 sub _set_type
@@ -934,15 +769,53 @@ sub _set_type
 
 =pod
 
-=head2 Instance Method
+=head2 Instance Methods
 
 =over
 
-=item C<remove_from_db>
+=item B<remove_from_db()>
 
 Attempts to remove the passed in field from the database.
 Deleting a field is only successful if the field is obsolete and
-there are no values specified (or EVER specified) for the field.
+there are no values specified for the field.
+
+=item B<update()>
+
+Saves modifications done with $field->set_* mutators in the DB,
+and refreshes field metadata cache.
+
+=item B<touch()>
+
+Just refreshes field metadata cache.
+
+=item B<update_visibility_values($controlled_value_id, $visibility_value_ids)>
+
+Enables $controlled_value_id for, and only for, controlling values specified
+by ID array $visibility_value_ids.
+
+$controlled_value_id may be either FLAG_VISIBLE, FLAG_NULLABLE, FLAG_CLONED,
+or a positive integer ID of a possible value for this field.
+
+=item B<set_visibility_values($value_ids)>, B<set_null_visibility_values($value_ids)>, B<set_clone_visibility_values($value_ids)>
+
+Same as the above method called with $controlled_value_id == FLAG_VISIBLE, FLAG_NULLABLE,
+or FLAG_CLONED respectively.
+
+=item B<update_control_lists($controlling_value_id, $params)>
+
+Given the ID of a possible value for this field, updates all field dependencies
+(which are other visible/nullable/cloned fields and default values for other fields
+controlled by this field) at once.
+
+=item B<update_controlled_values($controlled_value_ids, $visibility_value_id)>
+
+Sets this field possible values for a value of the value_field $visibility_value_id
+to ones identified by IDs $controlled_values.
+
+=item B<update_default_value($visibility_value_id, $default_value)>
+
+Sets the dependent default value for this field to $default_value in case
+when the ID of the value of default_field is equal to $visibility_value_id.
 
 =back
 
@@ -1017,7 +890,6 @@ sub remove_from_db
     $dbh->bz_commit_transaction();
 }
 
-# Overridden update() method - flushes field cache
 sub update
 {
     my $self = shift;
@@ -1049,33 +921,224 @@ sub touch
     $self->update;
 }
 
+sub set_visibility_values
+{
+    my $self = shift;
+    my ($value_ids) = @_;
+    $self->update_visibility_values(FLAG_VISIBLE, $value_ids);
+    return $value_ids && @$value_ids;
+}
+
+sub set_null_visibility_values
+{
+    my $self = shift;
+    my ($value_ids) = @_;
+    $self->update_visibility_values(FLAG_NULLABLE, $value_ids);
+    return $value_ids && @$value_ids;
+}
+
+sub set_clone_visibility_values
+{
+    my $self = shift;
+    my ($value_ids) = @_;
+    $self->update_visibility_values(FLAG_CLONED, $value_ids);
+    return $value_ids && @$value_ids;
+}
+
+# Helper, returns the dependency field based on value of fieldvaluecontrol $flag
+sub flag_field
+{
+    my ($self, $flag) = @_;
+    return $self->value_field if $flag > 0;
+    return $self->visibility_field if $flag == FLAG_VISIBLE;
+    return $self->null_field if $flag == FLAG_NULLABLE;
+    return $self->clone_field if $flag == FLAG_CLONED;
+}
+
+sub update_visibility_values
+{
+    my $self = shift;
+    my ($controlled_value_id, $visibility_value_ids) = @_;
+    $visibility_value_ids ||= [];
+    my $vis_field = $self->flag_field($controlled_value_id);
+    if (!$vis_field)
+    {
+        return undef;
+    }
+    $controlled_value_id = int($controlled_value_id);
+    if (@$visibility_value_ids)
+    {
+        my $type = Bugzilla::Field::Choice->type($vis_field);
+        $visibility_value_ids = [
+            (grep { $_ == 0 } @$visibility_value_ids ? (0) : ()),
+            map { $_->id } @{ $type->new_from_list($visibility_value_ids) }
+        ];
+    }
+    Bugzilla->dbh->do(
+        "DELETE FROM fieldvaluecontrol WHERE field_id=? AND value_id=?",
+        undef, $self->id, $controlled_value_id);
+    if (@$visibility_value_ids)
+    {
+        my $f = $self->id;
+        Bugzilla->dbh->do(
+            "INSERT INTO fieldvaluecontrol (field_id, value_id, visibility_value_id) VALUES ".
+            join(",", map { "($f, $controlled_value_id, $_)" } @$visibility_value_ids)
+        );
+    }
+    # Touch the field
+    $self->touch;
+    return 1;
+}
+
+sub update_control_lists
+{
+    my $self = shift;
+    my ($controlling_value_id, $params) = @_;
+    $controlling_value_id = $self->value_type->new($controlling_value_id);
+    $controlling_value_id = $controlling_value_id ? $controlling_value_id->id : return undef;
+    # Save all visible, nullable and clone flags at once
+    my $mod = { del => [], add => [] };
+    for my $f (Bugzilla->get_fields({ obsolete => 0, visibility_field_id => $self->id }))
+    {
+        push @{$mod->{$params->{'is_visible_'.$f->name} ? 'add' : 'del'}}, [ $f->id, FLAG_VISIBLE ];
+    }
+    for my $f (Bugzilla->get_fields({ obsolete => 0, null_field_id => $self->id }))
+    {
+        push @{$mod->{$params->{'is_nullable_'.$f->name} ? 'add' : 'del'}}, [ $f->id, FLAG_NULLABLE ];
+    }
+    for my $f (Bugzilla->get_fields({ obsolete => 0, clone_field_id => $self->id }))
+    {
+        push @{$mod->{$params->{'is_cloned_'.$f->name} ? 'add' : 'del'}}, [ $f->id, FLAG_CLONED ];
+    }
+    if (@{$mod->{del}} || @{$mod->{add}})
+    {
+        Bugzilla->dbh->do(
+            'DELETE FROM fieldvaluecontrol WHERE visibility_value_id=? AND (field_id, value_id) IN ('.
+            join(',', map { "($_->[0], $_->[1])" } (@{$mod->{add}}, @{$mod->{del}})).')', undef,
+            $controlling_value_id
+        );
+    }
+    if (@{$mod->{add}})
+    {
+        Bugzilla->dbh->do(
+            'INSERT INTO fieldvaluecontrol (visibility_value_id, field_id, value_id) VALUES '.
+            join(',', map { "($controlling_value_id, $_->[0], $_->[1])" } @{$mod->{add}})
+        );
+    }
+    # Save all dependent defaults at once
+    my $touched = { map { $_->[0] => 1 } (@{$mod->{add}}, @{$mod->{del}}) };
+    $mod = { del => [], add => [] };
+    for my $f (Bugzilla->get_fields({ obsolete => 0, default_field_id => $self->id }))
+    {
+        # FIXME: default version is hardcoded to depend on component, default milestone is hardcoded to depend on product
+        next if $f eq 'version' || $f eq 'target_milestone';
+        my $default = $params->{'default_'.$f->name};
+        $default = $f->_check_default_value($default);
+        if (!$default)
+        {
+            push @{$mod->{del}}, [ $f->id ];
+        }
+        else
+        {
+            trick_taint($default);
+            push @{$mod->{add}}, [ $f->id, $default ];
+        }
+        $touched->{$f->id} = 1;
+    }
+    if (@{$mod->{del}} || @{$mod->{add}})
+    {
+        Bugzilla->dbh->do(
+            'DELETE FROM field_defaults WHERE visibility_value_id=? AND field_id IN ('.
+            join(',', map { $_->[0] } (@{$mod->{add}}, @{$mod->{del}})).')',
+            undef, $controlling_value_id
+        );
+    }
+    if (@{$mod->{add}})
+    {
+        Bugzilla->dbh->do(
+            'INSERT INTO field_defaults (visibility_value_id, field_id, default_value) VALUES '.
+            join(',', map { "($controlling_value_id, $_->[0], ?)" } @{$mod->{add}}),
+            undef, map { $_->[1] } @{$mod->{add}}
+        );
+    }
+    # Update metadata timestamp for many fields at once
+    if (%$touched)
+    {
+        Bugzilla->dbh->do(
+            'UPDATE fielddefs SET delta_ts=? WHERE id IN ('.
+            join(',', keys %$touched).')', undef, POSIX::strftime('%Y-%m-%d %H:%M:%S', localtime)
+        );
+        Bugzilla->refresh_cache_fields;
+    }
+}
+
+sub update_controlled_values
+{
+    my $self = shift;
+    my ($controlled_value_ids, $visibility_value_id) = @_;
+    $controlled_value_ids ||= [];
+    my $vis_field = $self->value_field;
+    if (!$vis_field)
+    {
+        return undef;
+    }
+    $visibility_value_id = int($visibility_value_id);
+    Bugzilla->dbh->do(
+        "DELETE FROM fieldvaluecontrol WHERE field_id=? AND visibility_value_id=? AND value_id!=0",
+        undef, $self->id, $visibility_value_id);
+    if (@$controlled_value_ids)
+    {
+        my $type = Bugzilla::Field::Choice->type($self);
+        $controlled_value_ids = [ map { $_->id } @{ $type->new_from_list($controlled_value_ids) } ];
+        my $f = $self->id;
+        my $sql = "INSERT INTO fieldvaluecontrol (field_id, visibility_value_id, value_id) VALUES ".
+            join(",", map { "($f, $visibility_value_id, $_)" } @$controlled_value_ids);
+        Bugzilla->dbh->do($sql);
+    }
+    # Touch the field
+    $self->touch;
+    return 1;
+}
+
+sub update_default_value
+{
+    my $self = shift;
+    my ($visibility_value_id, $default_value) = @_;
+    $visibility_value_id = int($visibility_value_id);
+    $default_value = $self->_check_default_value($default_value);
+    if (!$default_value)
+    {
+        Bugzilla->dbh->do(
+            'DELETE FROM field_defaults WHERE field_id=? AND visibility_value_id=?',
+            undef, $self->id, $visibility_value_id
+        );
+    }
+    else
+    {
+        trick_taint($default_value);
+        Bugzilla->dbh->do(
+            'REPLACE INTO field_defaults (field_id, visibility_value_id, default_value) VALUES (?, ?, ?)',
+            undef, $self->id, $visibility_value_id, $default_value
+        );
+    }
+    # Touch the field
+    $self->touch;
+    return 1;
+}
+
 =pod
 
 =head2 Class Methods
 
 =over
 
-=item C<create>
+=item B<create($params)>
 
-Just like L<Bugzilla::Object/create>. Takes the following parameters:
+Creates a new field. Takes a single hashref with all instance properties (DB column values).
 
-=over
+=item B<populate_field_definitions()>
 
-=item C<name> B<Required> - The name of the field.
-
-=item C<description> B<Required> - The field label to display in the UI.
-
-=item C<mailhead> - boolean - Whether this field appears at the
-top of the bugmail for a newly-filed bug. Defaults to 0.
-
-=item C<custom> - boolean - True if this is a Custom Field. The field
-will be added to the C<bugs> table if it does not exist. Defaults to 0.
-
-=item C<sortkey> - integer - The sortkey of the field. Defaults to 0.
-
-C<obsolete> - boolean - Whether this field is obsolete. Defaults to 0.
-
-=back
+Populates the fielddefs table with standard fields during an installation or upgrade.
 
 =back
 
@@ -1169,21 +1232,6 @@ sub run_create_validators
 
     return $params;
 }
-
-=over
-
-=item C<populate_field_definitions()>
-
-Description: Populates the fielddefs table during an installation
-             or upgrade.
-
-Params:      none
-
-Returns:     nothing
-
-=back
-
-=cut
 
 sub populate_field_definitions
 {
@@ -1332,211 +1380,6 @@ sub bug_or_hash_value
         $value = $bug;
     }
     return $value;
-}
-
-sub flag_field
-{
-    my ($self, $flag) = @_;
-    return $self->value_field if $flag > 0;
-    return $self->visibility_field if $flag == FLAG_VISIBLE;
-    return $self->null_field if $flag == FLAG_NULLABLE;
-    return $self->clone_field if $flag == FLAG_CLONED;
-}
-
-# Shared between Bugzilla::Field and Bugzilla::Field::Choice
-sub update_visibility_values
-{
-    my ($controlled_field, $controlled_value_id, $visibility_value_ids) = @_;
-    $visibility_value_ids ||= [];
-    my $vis_field = $controlled_field->flag_field($controlled_value_id);
-    if (!$vis_field)
-    {
-        return undef;
-    }
-    $controlled_field = Bugzilla->get_field($controlled_field) if !ref $controlled_field;
-    $controlled_value_id = int($controlled_value_id);
-    if (@$visibility_value_ids)
-    {
-        my $type = Bugzilla::Field::Choice->type($vis_field);
-        $visibility_value_ids = [
-            (grep { $_ == 0 } @$visibility_value_ids ? (0) : ()),
-            map { $_->id } @{ $type->new_from_list($visibility_value_ids) }
-        ];
-    }
-    Bugzilla->dbh->do(
-        "DELETE FROM fieldvaluecontrol WHERE field_id=? AND value_id=?",
-        undef, $controlled_field->id, $controlled_value_id);
-    if (@$visibility_value_ids)
-    {
-        my $f = $controlled_field->id;
-        Bugzilla->dbh->do(
-            "INSERT INTO fieldvaluecontrol (field_id, value_id, visibility_value_id) VALUES ".
-            join(",", map { "($f, $controlled_value_id, $_)" } @$visibility_value_ids)
-        );
-    }
-    # Touch the field
-    $controlled_field->touch;
-    return 1;
-}
-
-sub update_control_lists
-{
-    my ($controlling_field_id, $controlling_value_id, $params) = @_;
-    $controlling_field_id = $controlling_field_id->id if ref $controlling_field_id;
-    $controlling_value_id = Bugzilla->get_field($controlling_field_id)->value_type->new($controlling_value_id);
-    $controlling_value_id = $controlling_value_id ? $controlling_value_id->id : return undef;
-    # Save all visible, nullable and clone flags at once
-    my $mod = { del => [], add => [] };
-    for my $f (Bugzilla->get_fields({ obsolete => 0, visibility_field_id => $controlling_field_id }))
-    {
-        push @{$mod->{$params->{'is_visible_'.$f->name} ? 'add' : 'del'}}, [ $f->id, FLAG_VISIBLE ];
-    }
-    for my $f (Bugzilla->get_fields({ obsolete => 0, null_field_id => $controlling_field_id }))
-    {
-        push @{$mod->{$params->{'is_nullable_'.$f->name} ? 'add' : 'del'}}, [ $f->id, FLAG_NULLABLE ];
-    }
-    for my $f (Bugzilla->get_fields({ obsolete => 0, clone_field_id => $controlling_field_id }))
-    {
-        push @{$mod->{$params->{'is_cloned_'.$f->name} ? 'add' : 'del'}}, [ $f->id, FLAG_CLONED ];
-    }
-    if (@{$mod->{del}} || @{$mod->{add}})
-    {
-        Bugzilla->dbh->do(
-            'DELETE FROM fieldvaluecontrol WHERE visibility_value_id=? AND (field_id, value_id) IN ('.
-            join(',', map { "($_->[0], $_->[1])" } (@{$mod->{add}}, @{$mod->{del}})).')', undef,
-            $controlling_value_id
-        );
-    }
-    if (@{$mod->{add}})
-    {
-        Bugzilla->dbh->do(
-            'INSERT INTO fieldvaluecontrol (visibility_value_id, field_id, value_id) VALUES '.
-            join(',', map { "($controlling_value_id, $_->[0], $_->[1])" } @{$mod->{add}})
-        );
-    }
-    # Save all dependent defaults at once
-    my $touched = { map { $_->[0] => 1 } (@{$mod->{add}}, @{$mod->{del}}) };
-    $mod = { del => [], add => [] };
-    for my $f (Bugzilla->get_fields({ obsolete => 0, default_field_id => $controlling_field_id }))
-    {
-        next if $f eq 'version' || $f eq 'target_milestone'; # FIXME: default version is hardcoded to depend on component, default milestone is hardcoded to depend on product
-        my $default = $params->{'default_'.$f->name};
-        $default = $f->_check_default_value($default);
-        if (!$default)
-        {
-            push @{$mod->{del}}, [ $f->id ];
-        }
-        else
-        {
-            trick_taint($default);
-            push @{$mod->{add}}, [ $f->id, $default ];
-        }
-        $touched->{$f->id} = 1;
-    }
-    if (@{$mod->{del}} || @{$mod->{add}})
-    {
-        Bugzilla->dbh->do(
-            'DELETE FROM field_defaults WHERE visibility_value_id=? AND field_id IN ('.
-            join(',', map { $_->[0] } (@{$mod->{add}}, @{$mod->{del}})).')',
-            undef, $controlling_value_id
-        );
-    }
-    if (@{$mod->{add}})
-    {
-        Bugzilla->dbh->do(
-            'INSERT INTO field_defaults (visibility_value_id, field_id, default_value) VALUES '.
-            join(',', map { "($controlling_value_id, $_->[0], ?)" } @{$mod->{add}}),
-            undef, map { $_->[1] } @{$mod->{add}}
-        );
-    }
-    # Update metadata timestamp for many fields at once
-    if (%$touched)
-    {
-        Bugzilla->dbh->do(
-            'UPDATE fielddefs SET delta_ts=? WHERE id IN ('.
-            join(',', keys %$touched).')', undef, POSIX::strftime('%Y-%m-%d %H:%M:%S', localtime)
-        );
-        Bugzilla->refresh_cache_fields;
-    }
-}
-
-sub update_controlled_values
-{
-    my ($controlled_field, $controlled_value_ids, $visibility_value_id) = @_;
-    $controlled_field = Bugzilla->get_field($controlled_field) if !ref $controlled_field;
-    $controlled_value_ids ||= [];
-    my $vis_field = $controlled_field->value_field;
-    if (!$vis_field)
-    {
-        return undef;
-    }
-    $visibility_value_id = int($visibility_value_id);
-    Bugzilla->dbh->do(
-        "DELETE FROM fieldvaluecontrol WHERE field_id=? AND visibility_value_id=? AND value_id!=0",
-        undef, $controlled_field->id, $visibility_value_id);
-    if (@$controlled_value_ids)
-    {
-        my $type = Bugzilla::Field::Choice->type($controlled_field);
-        $controlled_value_ids = [ map { $_->id } @{ $type->new_from_list($controlled_value_ids) } ];
-        my $f = $controlled_field->id;
-        my $sql = "INSERT INTO fieldvaluecontrol (field_id, visibility_value_id, value_id) VALUES ".
-            join(",", map { "($f, $visibility_value_id, $_)" } @$controlled_value_ids);
-        Bugzilla->dbh->do($sql);
-    }
-    # Touch the field
-    $controlled_field->touch;
-    return 1;
-}
-
-sub update_default_values
-{
-    my ($controlled_field, $visibility_value_id, $default_value) = @_;
-    $controlled_field = Bugzilla->get_field($controlled_field) if !ref $controlled_field;
-    $visibility_value_id = int($visibility_value_id);
-    $default_value = $controlled_field->_check_default_value($default_value);
-    if (!$default_value)
-    {
-        Bugzilla->dbh->do(
-            'DELETE FROM field_defaults WHERE field_id=? AND visibility_value_id=?',
-            undef, $controlled_field->id, $visibility_value_id
-        );
-    }
-    else
-    {
-        trick_taint($default_value);
-        Bugzilla->dbh->do(
-            'REPLACE INTO field_defaults (field_id, visibility_value_id, default_value) VALUES (?, ?, ?)',
-            undef, $controlled_field->id, $visibility_value_id, $default_value
-        );
-    }
-    # Touch the field
-    $controlled_field->touch;
-    return 1;
-}
-
-# Field and value dependency data, intended for use in client JavaScript
-sub json_visibility
-{
-    my $self = shift;
-    my $data = {
-        legal => [ map { [ $_->id, $_->name ] } @{$self->legal_values} ],
-        visibility_field => $self->visibility_field ? $self->visibility_field->name : undef,
-        value_field => $self->value_field ? $self->value_field->name : undef,
-        null_field => $self->null_field ? $self->null_field->name : undef,
-        default_field => $self->default_field ? $self->default_field->name : undef,
-        nullable => $self->nullable ? 1 : 0,
-        default_value => $self->default_value || undef,
-        fields => {},
-        values => {},
-        defaults => {},
-        null => {},
-    };
-    my $hash = Bugzilla->fieldvaluecontrol->{$self->id};
-    for my $key (qw(fields values defaults null))
-    {
-        $data->{$key} = { map { Bugzilla->get_field($_)->name => $hash->{$key}->{$_} } keys %{$hash->{$key}} };
-    }
-    return $data;
 }
 
 1;

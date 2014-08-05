@@ -151,7 +151,7 @@ if ($action eq 'control_list')
             $field->update_controlled_values($values, $visibility_value_id);
             if ($field->default_field_id == $field->value_field_id)
             {
-                $field->update_default_values($visibility_value_id, $field->type == FIELD_TYPE_MULTI_SELECT
+                $field->update_default_value($visibility_value_id, $field->type == FIELD_TYPE_MULTI_SELECT
                     ? [ $cgi->param('default_value') ]
                     : scalar $cgi->param('default_value'));
             }
