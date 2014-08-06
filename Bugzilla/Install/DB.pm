@@ -101,7 +101,7 @@ sub update_fielddefs_definition
 
     if (!$dbh->bz_column_info('fielddefs', 'delta_ts'))
     {
-        $dbh->bz_add_column('fielddefs', delta_ts => {TYPE => 'DATETIME'});
+        $dbh->bz_add_column('fielddefs', 'delta_ts');
         $dbh->do('UPDATE fielddefs SET delta_ts=NOW()');
     }
 
@@ -122,7 +122,7 @@ sub update_fielddefs_definition
     # This column is used for fast lookup of fields used in bug history
     if (!$dbh->bz_column_info('fielddefs', 'has_activity'))
     {
-        $dbh->bz_add_column('fielddefs', has_activity => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0});
+        $dbh->bz_add_column('fielddefs', 'has_activity');
         $dbh->do(
             'UPDATE fielddefs SET has_activity=1'.
             ' WHERE id IN (SELECT DISTINCT fieldid FROM bugs_activity)'.
@@ -192,38 +192,34 @@ sub update_table_definitions
     my $dbh = Bugzilla->dbh;
     _update_pre_checksetup_bugzillas();
 
-    $dbh->bz_add_column('attachments', 'submitter_id', {TYPE => 'INT4', NOTNULL => 1}, 0); 
+    $dbh->bz_add_column('attachments', 'submitter_id', undef, 0);
 
     $dbh->bz_rename_column('bugs_activity', 'when', 'bug_when');
 
     _add_bug_vote_cache();
     _update_product_name_definition();
 
-    $dbh->bz_add_column('profiles', 'disabledtext', {TYPE => 'MEDIUMTEXT', NOTNULL => 1}, '');
+    $dbh->bz_add_column('profiles', 'disabledtext', undef, '');
 
     _populate_longdescs();
     _update_bugs_activity_field_to_fieldid();
 
     if (!$dbh->bz_column_info('bugs', 'lastdiffed'))
     {
-        $dbh->bz_add_column('bugs', 'lastdiffed', {TYPE => 'DATETIME'});
+        $dbh->bz_add_column('bugs', 'lastdiffed');
         $dbh->do('UPDATE bugs SET lastdiffed = NOW()');
     }
 
     _add_unique_login_name_index_to_profiles();
 
-    $dbh->bz_add_column('profiles', 'mybugslink', 
-                        {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'});
+    $dbh->bz_add_column('profiles', 'mybugslink');
 
     _update_component_user_fields_to_ids();
 
-    $dbh->bz_add_column('bugs', 'everconfirmed',
-                        {TYPE => 'BOOLEAN', NOTNULL => 1}, 1);
+    $dbh->bz_add_column('bugs', 'everconfirmed', undef, 1);
 
-    $dbh->bz_add_column('products', 'maxvotesperbug',
-                        {TYPE => 'INT2', NOTNULL => 1, DEFAULT => '10000'});
-    $dbh->bz_add_column('products', 'votestoconfirm',
-                        {TYPE => 'INT2', NOTNULL => 1}, 0);
+    $dbh->bz_add_column('products', 'maxvotesperbug');
+    $dbh->bz_add_column('products', 'votestoconfirm', undef, 0);
 
     _populate_milestones_table();
 
@@ -247,11 +243,8 @@ sub update_table_definitions
         $dbh->bz_add_column('profiles', 'emailflags', {TYPE => 'MEDIUMTEXT'});
     }
 
-    $dbh->bz_add_column('groups', 'isactive',
-                        {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'});
-
-    $dbh->bz_add_column('attachments', 'isobsolete',
-                        {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'});
+    $dbh->bz_add_column('groups', 'isactive');
+    $dbh->bz_add_column('attachments', 'isobsolete');
 
     $dbh->bz_drop_column("profiles", "emailnotification");
     $dbh->bz_drop_column("profiles", "newemailtech");
@@ -259,8 +252,7 @@ sub update_table_definitions
     # 2003-11-19; chicks@chicks.net; bug 225973: fix field size to accommodate
     # wider algorithms such as Blowfish. Note that this needs to be run
     # before recrypting passwords in the following block.
-    $dbh->bz_alter_column('profiles', 'cryptpassword',
-                          {TYPE => 'varchar(128)'});
+    $dbh->bz_alter_column('profiles', 'cryptpassword');
 
     _recrypt_plaintext_passwords();
 
@@ -268,16 +260,13 @@ sub update_table_definitions
 
     # bug 90933: Make disabledtext NOT NULL
     if (!$dbh->bz_column_info('profiles', 'disabledtext')->{NOTNULL}) {
-        $dbh->bz_alter_column("profiles", "disabledtext",
-                              {TYPE => 'MEDIUMTEXT', NOTNULL => 1}, '');
+        $dbh->bz_alter_column('profiles', 'disabledtext');
     }
 
-    $dbh->bz_add_column("bugs", "reporter_accessible",
-                        {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'});
-    $dbh->bz_add_column("bugs", "cclist_accessible",
-                        {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'});
+    $dbh->bz_add_column("bugs", "reporter_accessible");
+    $dbh->bz_add_column("bugs", "cclist_accessible");
 
-    $dbh->bz_add_column("bugs_activity", "attach_id", {TYPE => 'INT4'});
+    $dbh->bz_add_column("bugs_activity", "attach_id");
 
     _delete_logincookies_cryptpassword_and_handle_invalid_cookies();
 
@@ -286,22 +275,17 @@ sub update_table_definitions
     $dbh->bz_drop_column("bugs", "assignee_accessible");
 
     # 2002-02-20 jeff.hedlund@matrixsi.com - bug 24789 time tracking
-    $dbh->bz_add_column("longdescs", "work_time",
-                        {TYPE => 'decimal(5,2)', NOTNULL => 1, DEFAULT => '0'});
-    $dbh->bz_add_column("bugs", "estimated_time",
-                        {TYPE => 'decimal(5,2)', NOTNULL => 1, DEFAULT => '0'});
-    $dbh->bz_add_column("bugs", "remaining_time",
-                        {TYPE => 'decimal(5,2)', NOTNULL => 1, DEFAULT => '0'});
-    $dbh->bz_add_column("bugs", "deadline", {TYPE => 'DATETIME'});
+    $dbh->bz_add_column("longdescs", "work_time");
+    $dbh->bz_add_column("bugs", "estimated_time");
+    $dbh->bz_add_column("bugs", "remaining_time");
+    $dbh->bz_add_column("bugs", "deadline");
 
     _use_ip_instead_of_hostname_in_logincookies();
 
-    $dbh->bz_add_column('longdescs', 'isprivate',
-                        {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'});
-    $dbh->bz_add_column('attachments', 'isprivate',
-                        {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'});
+    $dbh->bz_add_column('longdescs', 'isprivate');
+    $dbh->bz_add_column('attachments', 'isprivate');
 
-    $dbh->bz_add_column("bugs", "alias", {TYPE => "varchar(255)"});
+    $dbh->bz_add_column("bugs", "alias");
     $dbh->bz_add_index('bugs', 'bugs_alias_idx',
                        {TYPE => 'UNIQUE', FIELDS => [qw(alias)]});
 
@@ -331,15 +315,14 @@ sub update_table_definitions
     _add_user_group_map_grant_type();
     _add_group_group_map_grant_type();
 
-    $dbh->bz_add_column("profiles", "extern_id", {TYPE => 'varchar(255)'});
+    $dbh->bz_add_column("profiles", "extern_id");
 
-    $dbh->bz_add_column('flagtypes', 'grant_group_id', {TYPE => 'INT4'});
-    $dbh->bz_add_column('flagtypes', 'request_group_id', {TYPE => 'INT4'});
+    $dbh->bz_add_column('flagtypes', 'grant_group_id');
+    $dbh->bz_add_column('flagtypes', 'request_group_id');
 
     # mailto is no longer just userids
     $dbh->bz_rename_column('whine_schedules', 'mailto_userid', 'mailto');
-    $dbh->bz_add_column('whine_schedules', 'mailto_type',
-        {TYPE => 'INT2', NOTNULL => 1, DEFAULT => '0'});
+    $dbh->bz_add_column('whine_schedules', 'mailto_type');
 
     _add_longdescs_already_wrapped();
 
@@ -356,8 +339,7 @@ sub update_table_definitions
 
     _convert_attachments_filename_from_mediumtext();
 
-    $dbh->bz_add_column('quips', 'approved',
-                        {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'});
+    $dbh->bz_add_column('quips', 'approved');
 
     # 2002-12-20 Bug 180870 - remove manual shadowdb replication code
     $dbh->bz_drop_table("shadowlog");
@@ -367,22 +349,19 @@ sub update_table_definitions
     # 2004/02/15 - Summaries shouldn't be null - see bug 220232
     if (!exists $dbh->bz_column_info('bugs', 'short_desc')->{NOTNULL})
     {
-        $dbh->bz_alter_column('bugs', 'short_desc', {TYPE => 'MEDIUMTEXT', NOTNULL => 1}, '');
+        $dbh->bz_alter_column('bugs', 'short_desc', undef, '');
     }
 
-    $dbh->bz_add_column('products', 'classification_id', {TYPE => 'INT4', NOTNULL => 1, DEFAULT => '1'});
+    $dbh->bz_add_column('products', 'classification_id');
 
     _fix_group_with_empty_name();
 
     $dbh->bz_add_index('bugs_activity', 'bugs_activity_who_idx', [qw(who)]);
 
     # Add defaults for some fields that should have them but didn't.
-    $dbh->bz_alter_column('bugs', 'status_whiteboard',
-        {TYPE => 'MEDIUMTEXT', NOTNULL => 1, DEFAULT => "''"});
-    $dbh->bz_alter_column('bugs', 'votes',
-                          {TYPE => 'INT3', NOTNULL => 1, DEFAULT => '0'});
-
-    $dbh->bz_alter_column('bugs', 'lastdiffed', {TYPE => 'DATETIME'});
+    $dbh->bz_alter_column('bugs', 'status_whiteboard');
+    $dbh->bz_alter_column('bugs', 'votes');
+    $dbh->bz_alter_column('bugs', 'lastdiffed');
 
     # 2005-03-09 qa_contact should be NULL instead of 0, bug 285534
     if ($dbh->bz_column_info('bugs', 'qa_contact')->{NOTNULL})
@@ -430,12 +409,11 @@ sub update_table_definitions
     _add_versions_product_id_index();
 
     if (!exists $dbh->bz_column_info('milestones', 'sortkey')->{DEFAULT}) {
-        $dbh->bz_alter_column('milestones', 'sortkey',
-                              {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0});
+        $dbh->bz_alter_column('milestones', 'sortkey');
     }
 
     # 2005-06-14 - LpSolit@gmail.com - Bug 292544
-    $dbh->bz_alter_column('bugs', 'creation_ts', {TYPE => 'DATETIME'});
+    $dbh->bz_alter_column('bugs', 'creation_ts');
 
     _fix_whine_queries_title_and_op_sys_value();
     _fix_attachments_submitter_id_idx();
@@ -452,25 +430,21 @@ sub update_table_definitions
     $dbh->bz_rename_column('series', 'public', 'is_public');
 
     # 2005-11-04 LpSolit@gmail.com - Bug 305927
-    $dbh->bz_alter_column('groups', 'userregexp',
-                          {TYPE => 'TINYTEXT', NOTNULL => 1, DEFAULT => "''"});
+    $dbh->bz_alter_column('groups', 'userregexp');
 
     # 2005-09-26 - olav@bkor.dhs.org - Bug 119524
-    $dbh->bz_alter_column('logincookies', 'cookie',
-        {TYPE => 'varchar(16)', PRIMARYKEY => 1, NOTNULL => 1}); 
+    $dbh->bz_alter_column('logincookies', 'cookie');
 
     _clean_control_characters_from_short_desc();
 
     # 2005-12-07 altlst@sonic.net -- Bug 225221
-    $dbh->bz_add_column('longdescs', 'comment_id',
-        {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
+    $dbh->bz_add_column('longdescs', 'comment_id');
 
     _stop_storing_inactive_flags();
     _change_short_desc_from_mediumtext_to_varchar();
 
     # 2006-07-01 wurblzap@gmail.com -- Bug 69000
-    $dbh->bz_add_column('namedqueries', 'id',
-        {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
+    $dbh->bz_add_column('namedqueries', 'id');
     _move_namedqueries_linkinfooter_to_its_own_table();
 
     _add_classifications_sortkey();
@@ -485,10 +459,8 @@ sub update_table_definitions
         $dbh->bz_alter_column('products', 'disallownew',
                               {TYPE => 'BOOLEAN', NOTNULL => 1,  DEFAULT => 0});
     }
-    $dbh->bz_alter_column('products', 'votesperuser', 
-                          {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0});
-    $dbh->bz_alter_column('products', 'votestoconfirm',
-                          {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0});
+    $dbh->bz_alter_column('products', 'votesperuser');
+    $dbh->bz_alter_column('products', 'votestoconfirm');
 
     # 2006-08-04 LpSolit@gmail.com - Bug 305941
     $dbh->bz_drop_column('profiles', 'refreshed_when');
@@ -503,35 +475,26 @@ sub update_table_definitions
     $dbh->bz_drop_index('bugs', 'bugs_short_desc_idx');
 
     # The profiles table was missing some defaults.
-    $dbh->bz_alter_column('profiles', 'disabledtext',
-        {TYPE => 'MEDIUMTEXT', NOTNULL => 1, DEFAULT => "''"});
-    $dbh->bz_alter_column('profiles', 'realname',
-        {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"});
+    $dbh->bz_alter_column('profiles', 'disabledtext');
+    $dbh->bz_alter_column('profiles', 'realname');
 
     _update_longdescs_who_index();
 
-    $dbh->bz_add_column('setting', 'subclass', {TYPE => 'varchar(255)'});
+    $dbh->bz_add_column('setting', 'subclass');
 
-    $dbh->bz_alter_column('longdescs', 'thetext',
-        {TYPE => 'LONGTEXT', NOTNULL => 1}, '');
+    $dbh->bz_alter_column('longdescs', 'thetext', undef, '');
 
     # 2006-10-20 LpSolit@gmail.com - Bug 189627
-    $dbh->bz_add_column('group_control_map', 'editcomponents',
-                        {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'});
-    $dbh->bz_add_column('group_control_map', 'editbugs',
-                        {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'});
-    $dbh->bz_add_column('group_control_map', 'canconfirm',
-                        {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'});
+    $dbh->bz_add_column('group_control_map', 'editcomponents');
+    $dbh->bz_add_column('group_control_map', 'editbugs');
+    $dbh->bz_add_column('group_control_map', 'canconfirm');
 
     # 2006-11-07 LpSolit@gmail.com - Bug 353656
-    $dbh->bz_add_column('longdescs', 'type',
-                        {TYPE => 'INT2', NOTNULL => 1, DEFAULT => '0'});
-    $dbh->bz_add_column('longdescs', 'extra_data', {TYPE => 'varchar(255)'});
+    $dbh->bz_add_column('longdescs', 'type');
+    $dbh->bz_add_column('longdescs', 'extra_data');
 
-    $dbh->bz_add_column('versions', 'id', 
-        {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
-    $dbh->bz_add_column('milestones', 'id',
-        {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
+    $dbh->bz_add_column('versions', 'id');
+    $dbh->bz_add_column('milestones', 'id');
 
     _fix_uppercase_custom_field_names();
     _fix_uppercase_index_names();
@@ -540,7 +503,7 @@ sub update_table_definitions
     _initialize_workflow($old_params);
 
     # 2007-08-08 LpSolit@gmail.com - Bug 332149
-    $dbh->bz_add_column('groups', 'icon_url', {TYPE => 'TINYTEXT'});
+    $dbh->bz_add_column('groups', 'icon_url');
 
     # 2007-08-21 wurblzap@gmail.com - Bug 365378
     _make_lang_setting_dynamic();
@@ -567,8 +530,7 @@ sub update_table_definitions
     _populate_bugs_fulltext();
 
     # 2008-01-18 xiaoou.wu@oracle.com - Bug 414292
-    $dbh->bz_alter_column('series', 'query',
-        { TYPE => 'MEDIUMTEXT', NOTNULL => 1 });
+    $dbh->bz_alter_column('series', 'query');
 
     # Make multi select tables to store IDs, not values
     _convert_multiselects();
@@ -583,14 +545,11 @@ sub update_table_definitions
     _add_extern_id_index();
 
     # 2009-03-31 LpSolit@gmail.com - Bug 478972
-    $dbh->bz_alter_column('group_control_map', 'entry',
-                          {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'});
-    $dbh->bz_alter_column('group_control_map', 'canedit',
-                          {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'});
+    $dbh->bz_alter_column('group_control_map', 'entry');
+    $dbh->bz_alter_column('group_control_map', 'canedit');
 
     # 2009-01-16 oreomike@gmail.com - Bug 302420
-    $dbh->bz_add_column('whine_events', 'mailifnobugs',
-        { TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'});
+    $dbh->bz_add_column('whine_events', 'mailifnobugs');
 
     _convert_disallownew_to_isactive();
 
@@ -616,21 +575,16 @@ sub update_table_definitions
     $dbh->bz_drop_column('bugs', 'keywords');
 
     # 2010-05-07 ewong@pw-wspx.org - Bug 463945
-    $dbh->bz_alter_column('group_control_map', 'membercontrol',
-                          {TYPE => 'INT1', NOTNULL => 1, DEFAULT => CONTROLMAPNA});
-    $dbh->bz_alter_column('group_control_map', 'othercontrol',
-                          {TYPE => 'INT1', NOTNULL => 1, DEFAULT => CONTROLMAPNA});
+    $dbh->bz_alter_column('group_control_map', 'membercontrol');
+    $dbh->bz_alter_column('group_control_map', 'othercontrol');
 
     # Add NOT NULL to some columns that need it, and DEFAULT to
     # attachments.ispatch.
-    $dbh->bz_alter_column('attachments', 'ispatch',
-        { TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'});
-    $dbh->bz_alter_column('products', 'description',
-                          { TYPE => 'MEDIUMTEXT', NOTNULL => 1 }, '');
+    $dbh->bz_alter_column('attachments', 'ispatch');
+    $dbh->bz_alter_column('products', 'description', undef, '');
 
     # Revert 4.4 allows_unconfirmed default value change
-    $dbh->bz_alter_column('products', 'allows_unconfirmed',
-        { TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE' });
+    $dbh->bz_alter_column('products', 'allows_unconfirmed');
 
     # 2010-07-18 LpSolit@gmail.com - Bug 119703
     _remove_attachment_isurl();
@@ -645,19 +599,19 @@ sub update_table_definitions
     _migrate_disabledtext_boolean();
 
     # 2011-11-01 glob@mozilla.com - Bug 240437
-    $dbh->bz_add_column('profiles', 'last_seen_date', {TYPE => 'DATETIME'});
+    $dbh->bz_add_column('profiles', 'last_seen_date');
 
     # 2011-11-28 dkl@mozilla.com - Bug 685611
     _fix_notnull_defaults();
 
     # 2012-06-13 dkl@mozilla.com - Bug 764457
-    $dbh->bz_add_column('bugs_activity', 'id', {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
+    $dbh->bz_add_column('bugs_activity', 'id');
 
     # 2012-06-13 dkl@mozilla.com - Bug 764466
-    $dbh->bz_add_column('profiles_activity', 'id', {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
+    $dbh->bz_add_column('profiles_activity', 'id');
 
     # 2012-07-24 dkl@mozilla.com - Bug 776972
-    $dbh->bz_alter_column('bugs_activity', 'id', {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
+    $dbh->bz_alter_column('bugs_activity', 'id');
 
     # 2012-08-02 dkl@mozilla.com - Bug 756953
     _fix_dependencies_dupes();
@@ -675,21 +629,21 @@ sub update_table_definitions
     $dbh->bz_add_column('products', 'cc_group');
 
     # New component fields
-    $dbh->bz_add_column('components', default_version => {TYPE => 'INT4'});
-    $dbh->bz_add_column('components', wiki_url => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"});
+    $dbh->bz_add_column('components', 'default_version');
+    $dbh->bz_add_column('components', 'wiki_url');
 
     # CustIS Bug 64562 - Redirect to bug page after processing bug
-    $dbh->bz_add_column('logincookies', session_data => {TYPE => 'LONGBLOB'});
+    $dbh->bz_add_column('logincookies', 'session_data');
 
     # CustIS Bug 95168 - Support longer TheSchwartz error messages
-    $dbh->bz_alter_column('ts_error', message => {TYPE => 'MEDIUMTEXT', NOTNULL => 1}, '');
+    $dbh->bz_alter_column('ts_error', 'message');
 
     if ($dbh->bz_column_info('checkers', 'message')->{TYPE} ne 'LONGTEXT')
     {
-        $dbh->bz_alter_column('checkers', message => {TYPE => 'LONGTEXT', NOTNULL => 1});
+        $dbh->bz_alter_column('checkers', 'message');
     }
 
-    $dbh->bz_add_column('checkers', triggers => {TYPE => 'LONGBLOB'});
+    $dbh->bz_add_column('checkers', 'triggers');
 
     # fieldvaluecontrol table
     _make_fieldvaluecontrol($dbh);
@@ -732,8 +686,8 @@ WHERE description LIKE\'%[CC:%\'');
     {
         $dbh->bz_drop_index('bugs_activity', 'bugs_activity_added_idx');
         $dbh->bz_drop_index('bugs_activity', 'bugs_activity_removed_idx');
-        $dbh->bz_alter_column('bugs_activity', 'added', { TYPE => 'LONGTEXT' });
-        $dbh->bz_alter_column('bugs_activity', 'removed', { TYPE => 'LONGTEXT' });
+        $dbh->bz_alter_column('bugs_activity', 'added');
+        $dbh->bz_alter_column('bugs_activity', 'removed');
         $dbh->bz_add_index('bugs_activity', 'bugs_activity_added_idx', ['added(255)']);
         # Concatenate separate lines in bugs_activity for long text fields
         $dbh->do(
@@ -825,7 +779,7 @@ WHERE description LIKE\'%[CC:%\'');
     _set_varchar_255();
 
     # Revert 4.4 quips.quip varchar(512) change
-    $dbh->bz_alter_column('quips', 'quip', { TYPE => 'MEDIUMTEXT', NOTNULL => 1 });
+    $dbh->bz_alter_column('quips', 'quip');
 
     # Add ua_regex field to op_sys and rep_platform
     if (!$dbh->bz_column_info('op_sys', 'ua_regex'))
@@ -893,16 +847,16 @@ sub _update_pre_checksetup_bugzillas
     # but aren't in very old bugzilla's (like 2.1)
     # Steve Stock (sstock@iconnect-inc.com)
 
-    $dbh->bz_add_column('bugs', 'target_milestone', {TYPE => 'INT4'});
-    $dbh->bz_add_column('bugs', 'qa_contact', {TYPE => 'INT4'});
-    $dbh->bz_add_column('bugs', 'status_whiteboard', {TYPE => 'MEDIUMTEXT', NOTNULL => 1, DEFAULT => "''"});
+    $dbh->bz_add_column('bugs', 'target_milestone');
+    $dbh->bz_add_column('bugs', 'qa_contact');
+    $dbh->bz_add_column('bugs', 'status_whiteboard');
     if (!$dbh->bz_column_info('products', 'isactive'))
     {
         $dbh->bz_add_column('products', 'disallownew', {TYPE => 'BOOLEAN', NOTNULL => 1}, 0);
     }
 
-    $dbh->bz_add_column('components', 'initialqacontact', {TYPE => 'TINYTEXT'});
-    $dbh->bz_add_column('components', 'description', {TYPE => 'MEDIUMTEXT', NOTNULL => 1}, '');
+    $dbh->bz_add_column('components', 'initialqacontact');
+    $dbh->bz_add_column('components', 'description');
 }
 
 sub _add_bug_vote_cache {
@@ -918,12 +872,10 @@ sub _add_bug_vote_cache {
 
     $dbh->bz_drop_column('bugs', 'area');
     if (!$dbh->bz_column_info('bugs', 'votes')) {
-        $dbh->bz_add_column('bugs', 'votes', {TYPE => 'INT4', NOTNULL => 1,
-                                              DEFAULT => 0});
+        $dbh->bz_add_column('bugs', 'votes');
         $dbh->bz_add_index('bugs', 'bugs_votes_idx', [qw(votes)]);
     }
-    $dbh->bz_add_column('products', 'votesperuser',
-                        {TYPE => 'INT2', NOTNULL => 1}, 0);
+    $dbh->bz_add_column('products', 'votesperuser');
 }
 
 sub _update_product_name_definition {
@@ -1051,8 +1003,7 @@ sub _update_bugs_activity_field_to_fieldid {
     # different fields we keep an activity log on.  The bugs_activity table
     # now has a pointer into that table instead of recording the name directly.
     if ($dbh->bz_column_info('bugs_activity', 'field')) {
-        $dbh->bz_add_column('bugs_activity', 'fieldid',
-                            {TYPE => 'INT4', NOTNULL => 1}, 0);
+        $dbh->bz_add_column('bugs_activity', 'fieldid', undef, 0);
 
         $dbh->bz_add_index('bugs_activity', 'bugs_activity_fieldid_idx',
                            [qw(fieldid)]);
@@ -1158,7 +1109,7 @@ sub _update_component_user_fields_to_ids {
                        WHERE program = ? AND value = ?", undef,
                      $id, $program, $value);
         }
-        $dbh->bz_alter_column('components','initialowner',{TYPE => 'INT4'});
+        $dbh->bz_alter_column('components', 'initialowner');
     }
 
     # components.initialqacontact
@@ -1188,7 +1139,7 @@ sub _update_component_user_fields_to_ids {
                      $id, $program, $value);
         }
 
-        $dbh->bz_alter_column('components', 'initialqacontact', {TYPE => 'INT4'});
+        $dbh->bz_alter_column('components', 'initialqacontact');
     }
 }
 
@@ -1260,7 +1211,7 @@ sub _add_products_defaultmilestone
 
     # 2000-03-23 Added a defaultmilestone field to the products table, so that
     # we know which milestone to initially assign bugs to.
-    $dbh->bz_add_column('products', 'defaultmilestone', {TYPE => 'INT4'});
+    $dbh->bz_add_column('products', 'defaultmilestone');
 }
 
 sub _copy_from_comments_to_longdescs {
@@ -1362,8 +1313,8 @@ sub _update_bugs_activity_to_only_record_changes {
     # 2001-07-20 jake@bugzilla.org - Change bugs_activity to only record changes
     #  http://bugzilla.mozilla.org/show_bug.cgi?id=55161
     if ($dbh->bz_column_info('bugs_activity', 'oldvalue')) {
-        $dbh->bz_add_column("bugs_activity", "removed", {TYPE => "TINYTEXT"});
-        $dbh->bz_add_column("bugs_activity", "added", {TYPE => "TINYTEXT"});
+        $dbh->bz_add_column("bugs_activity", "removed");
+        $dbh->bz_add_column("bugs_activity", "added");
 
         # Need to get field id's for the fields that have multiple values
         my @multi;
@@ -1480,8 +1431,7 @@ sub _use_ip_instead_of_hostname_in_logincookies {
 
         # Now update the logincookies schema
         $dbh->bz_drop_column("logincookies", "hostname");
-        $dbh->bz_add_column("logincookies", "ipaddr",
-                            {TYPE => 'varchar(40)'});
+        $dbh->bz_add_column("logincookies", "ipaddr");
     }
 }
 
@@ -1528,16 +1478,11 @@ sub _use_ids_for_products_and_components {
         $dbh->do("DELETE FROM products WHERE product IS NULL");
         $dbh->do("DELETE FROM components WHERE value IS NULL");
 
-        $dbh->bz_add_column("products", "id",
-            {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
-        $dbh->bz_add_column("components", "product_id",
-            {TYPE => 'INT4', NOTNULL => 1}, 0);
-        $dbh->bz_add_column("versions", "product_id",
-            {TYPE => 'INT4', NOTNULL => 1}, 0);
-        $dbh->bz_add_column("milestones", "product_id",
-            {TYPE => 'INT4', NOTNULL => 1}, 0);
-        $dbh->bz_add_column("bugs", "product_id",
-            {TYPE => 'INT4', NOTNULL => 1}, 0);
+        $dbh->bz_add_column("products", "id");
+        $dbh->bz_add_column("components", "product_id", undef, 0);
+        $dbh->bz_add_column("versions", "product_id", undef, 0);
+        $dbh->bz_add_column("milestones", "product_id", undef, 0);
+        $dbh->bz_add_column("bugs", "product_id", undef, 0);
 
         # The attachstatusdefs table was added in version 2.15, but 
         # removed again in early 2.17.  If it exists now, we still need 
@@ -1575,10 +1520,8 @@ sub _use_ids_for_products_and_components {
 
         print "Updating the database to use component IDs.\n";
 
-        $dbh->bz_add_column("components", "id",
-            {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
-        $dbh->bz_add_column("bugs", "component_id",
-                            {TYPE => 'INT4', NOTNULL => 1}, 0);
+        $dbh->bz_add_column("components", "id");
+        $dbh->bz_add_column("bugs", "component_id", undef, 0);
 
         my %components;
         $sth = $dbh->prepare("SELECT id, value, product_id FROM components");
@@ -1622,11 +1565,9 @@ sub _use_ids_for_products_and_components {
         $dbh->bz_drop_column("attachstatusdefs", "product")
             if $dbh->bz_table_info("attachstatusdefs");
         $dbh->bz_rename_column("products", "product", "name");
-        $dbh->bz_alter_column("products", "name",
-                              {TYPE => 'varchar(255)', NOTNULL => 1});
+        $dbh->bz_alter_column("products", "name");
         $dbh->bz_rename_column("components", "value", "name");
-        $dbh->bz_alter_column("components", "name",
-                              {TYPE => 'varchar(255)', NOTNULL => 1});
+        $dbh->bz_alter_column("components", "name");
 
         print "Adding indexes for products and components tables.\n";
         $dbh->bz_add_index('products', 'products_name_idx',
@@ -1691,8 +1632,7 @@ sub _convert_groups_system_from_groupset {
             $dbh->do("ALTER TABLE groups DROP PRIMARY KEY");
         }
 
-        $dbh->bz_add_column('groups', 'id',
-            {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
+        $dbh->bz_add_column('groups', 'id');
 
         $dbh->bz_add_index('groups', 'groups_name_idx',
                            {TYPE => 'UNIQUE', FIELDS => [qw(name)]});
@@ -2333,8 +2273,7 @@ sub _add_user_group_map_grant_type {
     my $dbh = Bugzilla->dbh;
     # 2004-04-12 - Keep regexp-based group permissions up-to-date - Bug 240325
     if ($dbh->bz_column_info("user_group_map", "isderived")) {
-        $dbh->bz_add_column('user_group_map', 'grant_type',
-            {TYPE => 'INT1', NOTNULL => 1, DEFAULT => '0'});
+        $dbh->bz_add_column('user_group_map', 'grant_type');
         $dbh->do("DELETE FROM user_group_map WHERE isderived != 0");
         $dbh->do("UPDATE user_group_map SET grant_type = " . GRANT_DIRECT);
         $dbh->bz_drop_column("user_group_map", "isderived");
@@ -2351,8 +2290,7 @@ sub _add_group_group_map_grant_type {
     # 2004-07-16 - Make it possible to have group-group relationships other than
     # membership and bless.
     if ($dbh->bz_column_info("group_group_map", "isbless")) {
-        $dbh->bz_add_column('group_group_map', 'grant_type',
-            {TYPE => 'INT1', NOTNULL => 1, DEFAULT => '0'});
+        $dbh->bz_add_column('group_group_map', 'grant_type');
         $dbh->do("UPDATE group_group_map SET grant_type = " .
                  "IF(isbless, " . GROUP_BLESS . ", " .
                   GROUP_MEMBERSHIP . ")");
@@ -2369,8 +2307,7 @@ sub _add_longdescs_already_wrapped {
     # 2005-01-29 - mkanat@bugzilla.org
     if (!$dbh->bz_column_info('longdescs', 'already_wrapped')) {
         # Old, pre-wrapped comments should not be auto-wrapped
-        $dbh->bz_add_column('longdescs', 'already_wrapped',
-            {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'}, 1);
+        $dbh->bz_add_column('longdescs', 'already_wrapped', undef, 1);
         # If an old comment doesn't have a newline in the first 81 characters,
         # (or doesn't contain a newline at all) and it contains a space,
         # then it's probably a mis-wrapped comment and we should wrap it
@@ -2412,8 +2349,7 @@ sub _convert_attachments_filename_from_mediumtext {
 
         print "Resizing attachments.filename from mediumtext to",
               " varchar(255).\n";
-        $dbh->bz_alter_column("attachments", "filename",
-                              {TYPE => 'varchar(255)', NOTNULL => 1});
+        $dbh->bz_alter_column("attachments", "filename");
     }
 }
 
@@ -2675,8 +2611,7 @@ sub _fix_whine_queries_title_and_op_sys_value {
 
         # Add a DEFAULT to whine_queries stuff so that editwhines.cgi
         # works on PostgreSQL.
-        $dbh->bz_alter_column('whine_queries', 'title', {TYPE => 'varchar(255)',
-                              NOTNULL => 1, DEFAULT => "''"});
+        $dbh->bz_alter_column('whine_queries', 'title');
     }
 }
 
@@ -3014,8 +2949,7 @@ sub _stop_storing_inactive_flags {
         }
 
         # Now we convert the id column to the auto_increment format.
-        $dbh->bz_alter_column('flags', 'id',
-           {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1});
+        $dbh->bz_alter_column('flags', 'id');
 
         # And finally, we remove the is_active column.
         $dbh->bz_drop_column('flags', 'is_active');
@@ -3059,8 +2993,7 @@ EOT
             print join(', ', @affected_bugs) . "\n\n";
         }
 
-        $dbh->bz_alter_column('bugs', 'short_desc', {TYPE => 'varchar(255)',
-                                                     NOTNULL => 1});
+        $dbh->bz_alter_column('bugs', 'short_desc');
     }
 }
 
@@ -3086,8 +3019,7 @@ sub _add_classifications_sortkey {
     # 2006-07-07 olav@bkor.dhs.org - Bug 277377
     # Add a sortkey to the classifications
     if (!$dbh->bz_column_info('classifications', 'sortkey')) {
-        $dbh->bz_add_column('classifications', 'sortkey',
-                            {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0});
+        $dbh->bz_add_column('classifications', 'sortkey');
 
         my $class_ids = $dbh->selectcol_arrayref(
             'SELECT id FROM classifications ORDER BY name');
@@ -3106,8 +3038,7 @@ sub _move_data_nomail_into_db {
     my $datadir = bz_locations()->{'datadir'};
     # 2006-07-14 karl@kornel.name - Bug 100953
     # If a nomail file exists, move its contents into the DB
-    $dbh->bz_add_column('profiles', 'disable_mail',
-        { TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE' });
+    $dbh->bz_add_column('profiles', 'disable_mail');
     if (-e "$datadir/nomail") {
         # We have a data/nomail file, read it in and delete it
         my %nomail;
@@ -3217,8 +3148,7 @@ sub _initialize_workflow {
     my $old_params = shift;
     my $dbh = Bugzilla->dbh;
 
-    $dbh->bz_add_column('bug_status', 'is_open',
-                        {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'});
+    $dbh->bz_add_column('bug_status', 'is_open');
 
     # Till now, bug statuses were not customizable. Nevertheless, local
     # changes are possible and so we will try to respect these changes.
@@ -3348,14 +3278,13 @@ sub _fix_attachment_modification_date {
     my $dbh = Bugzilla->dbh;
     if (!$dbh->bz_column_info('attachments', 'modification_time')) {
         # Allow NULL values till the modification time has been set.
-        $dbh->bz_add_column('attachments', 'modification_time', {TYPE => 'DATETIME'});
+        $dbh->bz_add_column('attachments', 'modification_time');
 
         print "Setting the modification time for attachments...\n";
         $dbh->do('UPDATE attachments SET modification_time = creation_ts');
 
         # Now force values to be always defined.
-        $dbh->bz_alter_column('attachments', 'modification_time',
-                              {TYPE => 'DATETIME', NOTNULL => 1});
+        $dbh->bz_alter_column('attachments', 'modification_time');
 
         # Update the modification time for attachments which have been modified.
         my $attachments =
@@ -3381,27 +3310,16 @@ sub _change_text_types {
     _check_content_length('fielddefs',   'description', 255, 'id');
     _check_content_length('attachments', 'description', 255, 'attach_id');
 
-    $dbh->bz_alter_column('bugs', 'bug_file_loc',
-        { TYPE => 'MEDIUMTEXT'});
-    $dbh->bz_alter_column('longdescs', 'thetext',
-        { TYPE => 'LONGTEXT', NOTNULL => 1 });
-    $dbh->bz_alter_column('attachments', 'description',
-        { TYPE => 'TINYTEXT', NOTNULL => 1 });
-    $dbh->bz_alter_column('attachments', 'mimetype',
-        { TYPE => 'TINYTEXT', NOTNULL => 1 });
+    $dbh->bz_alter_column('bugs', 'bug_file_loc');
+    $dbh->bz_alter_column('longdescs', 'thetext');
+    $dbh->bz_alter_column('attachments', 'description');
+    $dbh->bz_alter_column('attachments', 'mimetype');
     # This also changes NULL to NOT NULL.
-    $dbh->bz_alter_column('flagtypes', 'description',
-        { TYPE => 'MEDIUMTEXT', NOTNULL => 1 }, '');
-    $dbh->bz_alter_column('fielddefs', 'description',
-        { TYPE => 'TINYTEXT', NOTNULL => 1 });
-    $dbh->bz_alter_column('groups', 'description',
-        { TYPE => 'MEDIUMTEXT', NOTNULL => 1 });
-    $dbh->bz_alter_column('quips', 'quip',
-        { TYPE => 'MEDIUMTEXT', NOTNULL => 1 });
-    $dbh->bz_alter_column('namedqueries', 'query',
-        { TYPE => 'LONGTEXT', NOTNULL => 1 });
-
-} 
+    $dbh->bz_alter_column('flagtypes', 'description', undef, '');
+    $dbh->bz_alter_column('fielddefs', 'description');
+    $dbh->bz_alter_column('groups', 'description');
+    $dbh->bz_alter_column('namedqueries', 'query');
+}
 
 sub _check_content_length {
     my ($table_name, $field_name, $max_length, $id_field) = @_;
@@ -3602,8 +3520,7 @@ sub _add_extern_id_index {
 sub _convert_disallownew_to_isactive {
     my $dbh = Bugzilla->dbh;
     if ($dbh->bz_column_info('products', 'disallownew')){
-        $dbh->bz_add_column('products', 'isactive', 
-                            { TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'});
+        $dbh->bz_add_column('products', 'isactive');
         
         # isactive is the boolean reverse of disallownew.
         $dbh->do('UPDATE products SET isactive = 0 WHERE disallownew = 1');
@@ -3617,7 +3534,7 @@ sub _fix_logincookies_ipaddr {
     my $dbh = Bugzilla->dbh;
     return if !$dbh->bz_column_info('logincookies', 'ipaddr')->{NOTNULL};
 
-    $dbh->bz_alter_column('logincookies', 'ipaddr', {TYPE => 'varchar(40)'});
+    $dbh->bz_alter_column('logincookies', 'ipaddr');
     $dbh->do('UPDATE logincookies SET ipaddr = NULL WHERE ipaddr = ?',
              undef, '0.0.0.0');
 }
@@ -3711,8 +3628,7 @@ sub _set_attachment_comment_types {
 sub _add_allows_unconfirmed_to_product_table {
     my $dbh = Bugzilla->dbh;
     if (!$dbh->bz_column_info('products', 'allows_unconfirmed')) {
-        $dbh->bz_add_column('products', 'allows_unconfirmed',
-            { TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE' });
+        $dbh->bz_add_column('products', 'allows_unconfirmed');
         $dbh->do('UPDATE products SET allows_unconfirmed = 1 
                    WHERE votestoconfirm > 0');
     }
@@ -3732,10 +3648,9 @@ sub _convert_flagtypes_fks_to_set_null {
 
 sub _fix_decimal_types {
     my $dbh = Bugzilla->dbh;
-    my $type = {TYPE => 'decimal(7,2)', NOTNULL => 1, DEFAULT => '0'};
-    $dbh->bz_alter_column('bugs', 'estimated_time', $type);
-    $dbh->bz_alter_column('bugs', 'remaining_time', $type);
-    $dbh->bz_alter_column('longdescs', 'work_time', $type);
+    $dbh->bz_alter_column('bugs', 'estimated_time');
+    $dbh->bz_alter_column('bugs', 'remaining_time');
+    $dbh->bz_alter_column('longdescs', 'work_time');
 }
 
 sub _fix_series_creator_fk {
@@ -3763,22 +3678,20 @@ sub _remove_attachment_isurl {
 sub _add_isactive_to_product_fields {
     my $dbh = Bugzilla->dbh;
 
-    $dbh->bz_add_column('components', 'isactive', {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'});
+    $dbh->bz_add_column('components', 'isactive');
     if ($dbh->bz_column_info('components', 'is_active')) {
         $dbh->do('UPDATE components SET isactive=is_active');
         $dbh->bz_drop_column('components', 'is_active');
     }
 
-    $dbh->bz_add_column('versions', 'isactive', {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'});
-
-    $dbh->bz_add_column('milestones', 'isactive', {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'});
+    $dbh->bz_add_column('versions', 'isactive');
+    $dbh->bz_add_column('milestones', 'isactive');
 }
 
 sub _migrate_disabledtext_boolean {
     my $dbh = Bugzilla->dbh;
     if (!$dbh->bz_column_info('profiles', 'is_enabled')) {
-        $dbh->bz_add_column("profiles", 'is_enabled',
-                            {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'});
+        $dbh->bz_add_column("profiles", 'is_enabled');
         $dbh->do("UPDATE profiles SET is_enabled = 0 
                   WHERE disabledtext != ''");
     }
@@ -3827,10 +3740,7 @@ sub _fix_series_indexes {
 
 sub _fix_notnull_defaults {
     my $dbh = Bugzilla->dbh;
-
-    $dbh->bz_alter_column('bugs', 'bug_file_loc',
-                          {TYPE => 'MEDIUMTEXT', NOTNULL => 1,
-                           DEFAULT => "''"}, '');
+    $dbh->bz_alter_column('bugs', 'bug_file_loc', undef, '');
 }
 
 sub _fix_longdescs_indexes {

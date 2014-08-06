@@ -714,7 +714,7 @@ use constant ABSTRACT_SCHEMA => {
         FIELDS => [
             userid         => {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
             login_name     => {TYPE => 'varchar(255)', NOTNULL => 1},
-            cryptpassword  => {TYPE => 'varchar(128)'},
+            cryptpassword  => {TYPE => 'varchar(255)'},
             realname       => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"},
             disabledtext   => {TYPE => 'MEDIUMTEXT', NOTNULL => 1, DEFAULT => "''"},
             disable_mail   => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
@@ -1079,7 +1079,7 @@ use constant ABSTRACT_SCHEMA => {
             product_id       => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'products', COLUMN => 'id', DELETE => 'CASCADE'}},
             initialowner     => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'profiles', COLUMN => 'userid'}},
             initialqacontact => {TYPE => 'INT4', REFERENCES => {TABLE => 'profiles', COLUMN => 'userid', DELETE => 'SET NULL'}},
-            description      => {TYPE => 'MEDIUMTEXT', NOTNULL => 1},
+            description      => {TYPE => 'MEDIUMTEXT', NOTNULL => 1, DEFAULT => "''"},
             wiki_url         => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"},
             default_version  => {TYPE => 'INT4', REFERENCES => {TABLE => 'versions', COLUMN => 'id', DELETE => 'SET NULL'}},
             isactive         => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'},
@@ -1289,7 +1289,7 @@ use constant ABSTRACT_SCHEMA => {
         FIELDS => [
             error_time => {TYPE => 'INT4', NOTNULL => 1},
             jobid      => {TYPE => 'INT4', NOTNULL => 1},
-            message    => {TYPE => 'MEDIUMTEXT', NOTNULL => 1},
+            message    => {TYPE => 'MEDIUMTEXT', NOTNULL => 1, DEFAULT => "''"},
             funcid     => {TYPE => 'INT4', NOTNULL => 1, DEFAULT => 0},
         ],
         INDEXES => [
