@@ -196,7 +196,7 @@ sub load_script
     my $self = shift;
     my ($script) = @_;
     my $m;
-    if ((!$subs{$script} || $self->{_config_hash}->{reload}) && ($m = [stat $script]->[9] || 0) > $mtime{$script})
+    if (!$subs{$script} || ($self->{_config_hash}->{reload} && ($m = [stat $script]->[9] || 0) > $mtime{$script}))
     {
         my $content = $self->get_script($script);
         $subs{$script} = eval $content;
