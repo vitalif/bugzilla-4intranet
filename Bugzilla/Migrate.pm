@@ -643,8 +643,8 @@ sub create_legal_values {
     foreach my $field (@select_fields) {
         my $name = $field->name;
         foreach my $value (keys %{ $values{$name} }) {
-            next if Bugzilla::Field::Choice->type($field)->new({ name => $value });
-            Bugzilla::Field::Choice->type($field)->create({ value => $value });
+            next if $field->value_type->new({ name => $value });
+            $field->value_type->create({ value => $value });
             print get_text('migrate_value_created',
                            { field => $field, value => $value }), "\n";
         }
@@ -714,7 +714,7 @@ sub insert_bugs {
         # We make them into objects so that we can normalize their names.
         my ($set_status, $set_resolution);
         if (defined $bug->{resolution}) {
-            $set_resolution = Bugzilla::Field::Choice->type('resolution')->new({ name => $bug->{resolution} });
+            $set_resolution = Bugzilla->get_field('resolution')->value_type->new({ name => $bug->{resolution} });
         }
         if (!$allowed_statuses{lc $bug->{bug_status}}) {
             $set_status = new Bugzilla::Status({ name => $bug->{bug_status} });

@@ -557,7 +557,7 @@ sub legal_values
     my $self = shift;
     my ($include_disabled) = @_;
     return [] unless $self->is_select;
-    return [ Bugzilla::Field::Choice->type($self)->get_all($include_disabled) ];
+    return [ $self->value_type->get_all($include_disabled) ];
 }
 
 # Returns all valid value names for this field, always excluding disabled values
@@ -565,7 +565,7 @@ sub legal_value_names
 {
     my $self = shift;
     return [] unless $self->is_select;
-    return [ map { $_->{name} } @{ Bugzilla::Field::Choice->type($self)->get_all_names } ];
+    return [ map { $_->{name} } @{ $self->value_type->get_all_names } ];
 }
 
 # Returns all valid names with corresponding IDs for this field, always excluding disabled values
@@ -573,7 +573,7 @@ sub legal_value_names_with_ids
 {
     my $self = shift;
     return [] unless $self->is_select;
-    return Bugzilla::Field::Choice->type($self)->get_all_names;
+    return $self->value_type->get_all_names;
 }
 
 # Return the set of possible values for selected $controller_value of controlling field
@@ -968,7 +968,7 @@ sub update_visibility_values
     $controlled_value_id = int($controlled_value_id);
     if (@$visibility_value_ids)
     {
-        my $type = Bugzilla::Field::Choice->type($vis_field);
+        my $type = $vis_field->value_type;
         $visibility_value_ids = [
             (grep { $_ == 0 } @$visibility_value_ids ? (0) : ()),
             map { $_->id } @{ $type->new_from_list($visibility_value_ids) }
@@ -1088,7 +1088,7 @@ sub update_controlled_values
         undef, $self->id, $visibility_value_id);
     if (@$controlled_value_ids)
     {
-        my $type = Bugzilla::Field::Choice->type($self);
+        my $type = $self->value_type;
         $controlled_value_ids = [ map { $_->id } @{ $type->new_from_list($controlled_value_ids) } ];
         my $f = $self->id;
         my $sql = "INSERT INTO fieldvaluecontrol (field_id, visibility_value_id, value_id) VALUES ".
@@ -1370,7 +1370,7 @@ sub bug_or_hash_value
             # FIXME: This does not allow selecting of fields
             # non-uniquely identified by name, as a visibility
             # controller field (for example, "component")
-            $value = Bugzilla::Field::Choice->type($vf)->new({ name => $value });
+            $value = $vf->value_type->new({ name => $value });
             $value = $value->id if $value;
         }
     }

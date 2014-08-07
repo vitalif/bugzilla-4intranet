@@ -396,7 +396,7 @@ sub SPECIAL_ORDER
         next if $field->name eq 'product' ||
             $field->name eq 'component' ||
             $field->name eq 'classification';
-        my $type = Bugzilla::Field::Choice->type($field);
+        my $type = $field->value_type;
         my $name = $type->DB_TABLE;
         $special_order->{$field->name} = {
             fields => [ map { "$name.$_" } split /\s*,\s*/, $type->LIST_ORDER ],
@@ -590,7 +590,7 @@ sub STATIC_COLUMNS
     foreach my $field (Bugzilla->get_fields)
     {
         my $id = $field->name;
-        my $type = Bugzilla::Field::Choice->type($field);
+        my $type = $field->value_type;
         $columns->{$id}->{title} = $field->description;
         # FIXME Maybe enable obsolete fields in search? Or do it optionally?
         $columns->{$id}->{nobuglist} = $field->obsolete;
@@ -671,7 +671,7 @@ sub STATIC_COLUMNS
             }
             elsif ($subfield->type == FIELD_TYPE_SINGLE_SELECT)
             {
-                my $type = Bugzilla::Field::Choice->type($subfield);
+                my $type = $subfield->value_type;
                 my $t = $type->DB_TABLE;
                 $columns->{$id.'_'.$subid} = {
                     name  => "bugs_$id"."_$t.".$type->NAME_FIELD,

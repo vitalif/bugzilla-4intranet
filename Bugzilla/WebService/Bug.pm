@@ -210,7 +210,7 @@ sub _legal_field_values {
     }
 
     else {
-        my @values = Bugzilla::Field::Choice->type($field)->get_all();
+        my @values = $field->value_type->get_all();
         foreach my $value (@values) {
             my $vis_values = $value->visibility_values;
             push(@result, {

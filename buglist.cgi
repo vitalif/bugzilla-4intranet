@@ -1220,7 +1220,7 @@ sub get_bug_vals
     if (!$bug_vals->{$field})
     {
         my $field_name = $field->name;
-        my $type = Bugzilla::Field::Choice->type($field);
+        my $type = $field->value_type;
         my $id_field = $type->ID_FIELD;
         my $m = $field_name;
         $m .= '_obj' if $field_name eq 'product' || $field_name eq 'component'; # FIXME remove when product_obj replaces product

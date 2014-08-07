@@ -23,7 +23,7 @@ sub _get_field
     my ($params) = @_;
     my $field = Bugzilla->get_field($params->{field});
     ThrowUserError('account_disabled') if !$field;
-    my $type = Bugzilla::Field::Choice->type($field);
+    my $type = $field->value_type;
     return ($field, $type);
 }
 
@@ -172,7 +172,7 @@ sub set_visibility_values
     my $value = _get_value($type, $params) || return {status => 'value_not_found'};
     my $ids = $params->{ids} || [];
     $ids = [ $ids ] unless ref $ids;
-    $ids = [ map { $_->id } @{ Bugzilla::Field::Choice->type($field->value_field)->new_from_list($ids) } ];
+    $ids = [ map { $_->id } @{ $field->value_field->value_type->new_from_list($ids) } ];
     $value->set_visibility_values($ids);
     return {status => 'ok', ids => $ids};
 }

@@ -2425,7 +2425,7 @@ sub _set_multi_select_field
     }
 
     my $field_obj = Bugzilla->get_field($field);
-    my $t = Bugzilla::Field::Choice->type($field_obj);
+    my $t = $field_obj->value_type;
     my $value_objs = $t->match({ $t->NAME_FIELD => $values });
     my $h = { map { lc($_->name) => $_ } @$value_objs };
     my @bad = grep { !$h->{lc $_} } @$values;
@@ -2443,7 +2443,7 @@ sub _set_select_field
 {
     my ($self, $value, $field) = @_;
     my $field_obj = Bugzilla->get_field($field);
-    my $t = Bugzilla::Field::Choice->type($field_obj);
+    my $t = $field_obj->value_type;
     if (!defined $value || !length $value)
     {
         # We allow empty values only for nullable or invisible fields,

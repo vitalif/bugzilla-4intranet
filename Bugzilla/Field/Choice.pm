@@ -375,8 +375,7 @@ sub visibility_values
         $f = $hash ? [ keys %$hash ] : [];
         if (@$f)
         {
-            my $type = Bugzilla::Field::Choice->type($self->field->value_field);
-            $f = $type->new_from_list($f);
+            $f = $self->field->value_field->value_type->new_from_list($f);
         }
         $self->{visibility_values} = $f;
     }
@@ -483,11 +482,11 @@ Bugzilla::Field::Choice - A legal value for a <select>-type field.
 
  my $field = new Bugzilla::Field({name => 'bug_status'});
 
- my $choice = new Bugzilla::Field::Choice->type($field)->new(1);
+ my $choice = $field->value_type->new(1);
 
- my $choices = Bugzilla::Field::Choice->type($field)->new_from_list([1,2,3]);
- my $choices = Bugzilla::Field::Choice->type($field)->get_all();
- my $choices = Bugzilla::Field::Choice->type($field->match({ sortkey => 10 }); 
+ my $choices = $field->value_type->new_from_list([1,2,3]);
+ my $choices = $field->value_type->get_all();
+ my $choices = $field->value_type->match({ sortkey => 10 });
 
 =head1 DESCRIPTION
 

@@ -104,7 +104,7 @@ if ($action eq 'new')
 {
     check_token_data($token, 'add_field_value');
 
-    my $type = Bugzilla::Field::Choice->type($field);
+    my $type = $field->value_type;
     # Some types have additional parameters inside REQUIRED_CREATE_FIELDS
     my $created_value = $type->create({
         map { $_ => $ARGS->{$_} }
@@ -130,7 +130,7 @@ if ($action eq 'control_list')
     my $visibility_value_id = $ARGS->{visibility_value_id};
     if ($visibility_value_id)
     {
-        $visibility_value_id = Bugzilla::Field::Choice->type($field->value_field)->new($visibility_value_id)->{id};
+        $visibility_value_id = $field->value_field->value_type->new($visibility_value_id)->{id};
     }
 
     my $values = $ARGS->{values};
@@ -171,7 +171,7 @@ if ($action eq 'control_list')
 }
 
 # After this, we always have a value
-my $value = Bugzilla::Field::Choice->type($field)->check(exists $ARGS->{value_old} ? $ARGS->{value_old} : $ARGS->{value});
+my $value = $field->value_type->check(exists $ARGS->{value_old} ? $ARGS->{value_old} : $ARGS->{value});
 $vars->{value} = $value;
 
 #

@@ -38,7 +38,7 @@ unless ($field_name)
 my $field = Bugzilla->get_field($field_name);
 ThrowUserError('no_valid_field', { field => 'field' }) unless $field;
 
-my $value = Bugzilla::Field::Choice->type($field)->check($value_name);
+my $value = $field->value_type->check($value_name);
 ThrowUserError('no_valid_value', { field => 'value' }) unless $value;
 
 if ($field->name eq 'product')
