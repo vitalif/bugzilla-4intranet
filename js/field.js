@@ -290,7 +290,7 @@ function getSelectedIds(sel)
     var lm = sel.id.length+2;
     if (sel.nodeName != 'SELECT')
     {
-        if (sel.name == 'product')
+        if (field_metadata_class == 'bug' && sel.name == 'product')
         {
             // product is a special case - it is preselected as hidden field on bug creation form
             opt[product_id] = true;

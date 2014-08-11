@@ -358,6 +358,36 @@
   Sorry, classification is not enabled.
 [% END %]
 
+[% BLOCK error_class_already_exists %]
+  [% title = "Class Already Exists" %]
+  Class named '[% name | html %]' already exists. Select another name.
+[% END %]
+
+[% BLOCK error_class_description_required %]
+  [% title = "Class Description Required" %]
+  You must enter a description for this class.
+[% END %]
+
+[% BLOCK error_class_invalid_list_order %]
+  [% title = "Invalid Class List Order" %]
+  List order '[% list_order | html %]' is invalid or references unknown columns for class '[% class.description || class.name | html %]'.
+[% END %]
+
+[% BLOCK error_class_invalid %]
+  [% title = "Class Does Not Exist" %]
+  The selected class "[% class | html %]" does not exist.
+[% END %]
+
+[% BLOCK error_class_blocked %]
+  [% title = "Class Is Blocked" %]
+  Objects of the selected class "[% class | html %]" must be edited using specific interfaces (bug form, product/component administration forms, etc).
+[% END %]
+
+[% BLOCK error_class_invalid_name %]
+  [% title = "Invalid Class Name" %]
+  You entered an invalid name for this class.
+[% END %]
+
 [% BLOCK error_classification_name_too_long %]
   [% title = "Classification Name Too Long" %]
   The name of a classification is limited to [% constants.MAX_FIELD_VALUE_SIZE | html %]
@@ -438,8 +468,8 @@
 
 [% BLOCK error_customfield_has_contents %]
   [% title = "Custom Field Has Contents" %]
-  The custom field '[% name FILTER html %]' cannot be deleted because
-  at least one [% terms.bug %] has a non empty value for this field.
+  The field '[% field.name | html %]' cannot be deleted because
+  at least one [% field.class.name | html %] has a non empty value for this field.
 [% END %]
 
 [% BLOCK error_dependency_loop_multi %]
@@ -537,6 +567,11 @@
   "[% field | html %]" is not a Bug ID field.
 [% END %]
 
+[% BLOCK error_invalid_customfield_type %]
+  [% title = "Invalid Field Type" %]
+  Type '[% type | html %]' is invalid for this field.
+[% END %]
+
 [% BLOCK error_useless_customfield_type %]
   [% title = "Can't create field of a useless type" %]
   It is impossible to create "[% lc_messages.field_types.$type %]" fields,
@@ -556,6 +591,11 @@
   itself.
 [% END %]
 
+[% BLOCK error_field_control_other_class %]
+  [% title = "Invalid Field Selected" %]
+  Dependency field must belong to the same class.
+[% END %]
+
 [% BLOCK error_field_control_must_be_select %]
   [% title = "Invalid Field Type Selected" %]
   Only drop-down and multi-select fields can be used to control
@@ -566,6 +606,12 @@
 [% BLOCK error_field_not_custom %]
   [% title = "Only Custom Fields May Be Deleted" %]
   Field [% name | html %] is non-custom and therefore may not be deleted.
+[% END %]
+
+[% BLOCK error_field_unknown_value_class %]
+  [% title = "Invalid Value Class Selected" %]
+  You must either select a valid value class for this select field, or choose "create a new class" option.
+  In the latter case a standard class will be created for you.
 [% END %]
 
 [% BLOCK error_direct_field_needed_for_reverse %]
@@ -623,6 +669,16 @@
   You must enter a name for this field.
 [% END %]
 
+[% BLOCK error_field_special_name %]
+  [% title = "Cannot use special name for a Field" %]
+  Name '[% name | html %]' is special and must not be used for new fields.
+[% END %]
+
+[% BLOCK error_field_unknown_class %]
+  [% title = "Missing Class for Field" %]
+  You must select a class this field is intended for.
+[% END %]
+
 [% BLOCK error_field_not_nullable %]
   [% title = "Missing " _ field.description | html %]
   You must enter a non-empty [% field.description | html %] for this [% terms.bug %].
@@ -669,10 +725,10 @@
 [% END %]
 
 [% BLOCK error_fieldvalue_is_default %]
-  [% title = "Specified Field Value Is Default" %]
-  '[% value.name FILTER html %]' is the default value for
-  the '[% field.description FILTER html %]' field and cannot be deleted.
-  You have to first change the default value for this field.
+  [% title = "Specified Object Is The Default Field Value" %]
+  Object '[% value.name FILTER html %]' is used as the global default value for
+  the '[% field.description FILTER html %]' field of type '[% field.class.description | html %]'
+  and cannot be deleted. You have to first change the default value for this field.
 [% END %]
 
 [% BLOCK error_fieldvalue_name_too_long %]
@@ -689,11 +745,11 @@
   (positive) number.
 [% END %]
 
-[% BLOCK error_fieldvalue_still_has_bugs %]
-  [% title = "You Cannot Delete This Field Value" %]
-  You cannot delete the value '[% value.name FILTER html %]' from the
-  [% field.description FILTER html %] field, because there are still
-  [%+ value.bug_count FILTER html %] [%+ terms.bugs %] using it.
+[% BLOCK error_fieldvalue_still_has_objects %]
+  [% title = "You Cannot Delete This Object" %]
+  You cannot delete the object '[% value.name FILTER html %]',
+  because there are still [%+ value.bug_count FILTER html %] objects
+  of type '[% field.class.name | html %]' using it in the field '[% field.name | html %]'.
 [% END %]
 
 [% BLOCK error_fieldvalue_undefined %]
@@ -1045,6 +1101,9 @@
 [% BLOCK error_incorrect_field_values %]
   [% IF bug_id %]
     [% terms.Bug %] [%+ bug_id %]:<br />
+  [% END %]
+  [% IF object AND object.id %]
+    [% object.class.description | html %] [%+ object.name %]:<br />
   [% END %]
   [% FOR f = incorrect_fields %]
     [% "<br />" IF !loop.first %]
@@ -1486,6 +1545,18 @@
   The value '[% num FILTER html %]'
   in the <em>[% field_descs.$field FILTER html %]</em> field
   is less than the minimum allowable value of '[% min_num FILTER html %]'.
+[% END %]
+
+[% BLOCK error_object_not_specified_generic %]
+  [% title = field.description _ " Not Specified" | html %]
+  You must select/enter a [% class.description | html %] in the field [% field.description | html %]
+  of [% subject_class.description | html %][% ' ' _ subject_id IF subject_id %].
+[% END %]
+
+[% BLOCK error_object_unknown_generic %]
+  [% title = "Invalid " _ field.value_class.description _ " for " _ field.description _ " field" | html %]
+  [% field.value_class.description | html %] "[% names.join('", "') | html %]"
+  [%+ names.length > 1 ? 'are' : 'is' %] unknown.
 [% END %]
 
 [% BLOCK error_object_not_specified %]

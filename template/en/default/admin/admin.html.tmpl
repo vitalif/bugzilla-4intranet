@@ -68,10 +68,7 @@
         [% class = (user.in_group('editcomponents') || user.get_products_by_permission("editcomponents").size) ? "" : "forbidden" %]
         <dt id="products" class="[% class %]"><a href="editproducts.cgi">Products</a></dt>
         <dd class="[% class %]">Edit all aspects of products, including group restrictions
-        which let you define who can access [% terms.bugs %] being in these products. You
-        can also edit some specific attributes of products such as
-        <a href="editcomponents.cgi">components</a>, <a href="editversions.cgi">versions</a>
-        and <a href="editmilestones.cgi">milestones</a> directly.</dd>
+        which let you define who can access [% terms.bugs %] being in these products.</dd>
 
         [% class = user.in_group('editcomponents') ? "" : "forbidden" %]
         <dt id="flags" class="[% class %]"><a href="editflagtypes.cgi">Flags</a></dt>

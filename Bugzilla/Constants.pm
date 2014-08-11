@@ -95,6 +95,7 @@ use Cwd qw(abs_path);
 
     THROW_ERROR
     RETURN_ERROR
+    INCLUDE_DISABLED
 
     RELATIONSHIPS
     REL_ASSIGNEE REL_QA REL_REPORTER REL_CC REL_VOTER REL_GLOBAL_WATCHER
@@ -129,6 +130,12 @@ use Cwd qw(abs_path);
     FIELD_TYPE_NUMERIC
     FIELD_TYPE_EXTURL
     FIELD_TYPE_BUG_ID_REV
+
+    FIELD_TYPE_SINGLE
+    FIELD_TYPE_MULTI
+    FIELD_TYPE_REVERSE
+    FIELD_TYPE_BOOLEAN
+    FIELD_TYPE_INTEGER
 
     FLAG_VISIBLE
     FLAG_NULLABLE
@@ -309,6 +316,7 @@ use constant CMT_BACKDATED_WORKTIME => 33;
 # Conveniency aliases for some function arguments
 use constant THROW_ERROR => 1;
 use constant RETURN_ERROR => 1;
+use constant INCLUDE_DISABLED => 1;
 
 use constant REL_ASSIGNEE       => 0;
 use constant REL_QA             => 1;
@@ -392,6 +400,12 @@ use constant FIELD_TYPE_KEYWORDS => 8;
 use constant FIELD_TYPE_NUMERIC => 30;
 use constant FIELD_TYPE_EXTURL => 31;
 use constant FIELD_TYPE_BUG_ID_REV => 32;
+use constant FIELD_TYPE_BOOLEAN => 33;
+use constant FIELD_TYPE_INTEGER => 34;
+
+use constant FIELD_TYPE_SINGLE => 2;
+use constant FIELD_TYPE_MULTI => 3;
+use constant FIELD_TYPE_REVERSE => 32;
 
 use constant FLAG_VISIBLE => 0;
 use constant FLAG_NULLABLE => -1;

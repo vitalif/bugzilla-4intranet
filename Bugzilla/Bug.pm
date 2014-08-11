@@ -58,7 +58,7 @@ use Date::Format qw(time2str);
 use POSIX qw(floor);
 use Scalar::Util qw(blessed);
 
-use base qw(Bugzilla::Object Exporter);
+use base qw(Bugzilla::NewObject Exporter);
 @Bugzilla::Bug::EXPORT = qw(RemoveVotes LogActivityEntry);
 
 #####################################################################
@@ -106,9 +106,7 @@ sub DB_COLUMNS
     # FIXME kill op_sys and rep_platform completely, make them custom fields
     push @columns, 'op_sys' if Bugzilla->get_field('op_sys')->enabled;
     push @columns, 'rep_platform' if Bugzilla->get_field('rep_platform')->enabled;
-    push @columns, map { $_->name }
-        grep { $_->type != FIELD_TYPE_MULTI_SELECT && $_->type != FIELD_TYPE_BUG_ID_REV }
-        Bugzilla->active_custom_fields;
+    push @columns, grep { $_ } map { $_->db_column } Bugzilla->active_custom_fields;
 
     Bugzilla::Hook::process('bug_columns', { columns => \@columns });
 
@@ -124,14 +122,14 @@ sub NUMERIC_COLUMNS
     my %columns = (
         estimated_time => 1,
         remaining_time => 1,
-        (map { $_->name => 1 } Bugzilla->get_fields({ custom => 1, type => FIELD_TYPE_NUMERIC })),
+        (map { $_->db_column => 1 } Bugzilla->get_fields({ custom => 1, type => FIELD_TYPE_NUMERIC })),
     );
     return \%columns;
 }
 
 sub DATE_COLUMNS
 {
-    return { map { $_->name => 1 } Bugzilla->get_fields({ custom => 1, type => FIELD_TYPE_DATETIME }) };
+    return { map { $_->db_column => 1 } Bugzilla->get_fields({ custom => 1, type => FIELD_TYPE_DATETIME }) };
 }
 
 # This is used by add_comment to know what we validate before putting in the DB
@@ -500,7 +498,7 @@ sub update
     if ($self->id)
     {
         $old_bug->{deadline} =~ s/\s+.*$//so;
-        ($changes, $old_bug) = $self->SUPER::update(undef, $old_bug);
+        $changes = $self->_do_update($self->{_old_self});
     }
     else
     {
@@ -731,7 +729,7 @@ sub check_default_values
     # Remove NULLs for custom fields
     for my $field (Bugzilla->get_fields({ custom => 1, obsolete => 0 }))
     {
-        if (!$self->{$field->name} && Bugzilla::Field->SQL_DEFINITIONS->{$field->type} &&
+        if (!$self->{$field->db_column} && Bugzilla::Field->SQL_DEFINITIONS->{$field->type} &&
             Bugzilla::Field->SQL_DEFINITIONS->{$field->type}->{NOTNULL})
         {
             $self->set($field->name, undef);
@@ -1428,11 +1426,11 @@ sub save_multiselects
                 join_escaped(', ', ',', map { $old{$_}->name } @$removed),
                 join_escaped(', ', ',', map { $new{$_}->name } @$added),
             ];
-            Bugzilla->dbh->do("DELETE FROM ".$field->value_type->REL_TABLE." WHERE bug_id = ?", undef, $self->id);
+            Bugzilla->dbh->do("DELETE FROM ".$field->rel_table." WHERE bug_id = ?", undef, $self->id);
             if (@{$self->$name})
             {
                 Bugzilla->dbh->do(
-                    "INSERT INTO ".$field->value_type->REL_TABLE." (bug_id, value_id) VALUES ".
+                    "INSERT INTO ".$field->rel_table." (bug_id, value_id) VALUES ".
                     join(',', ('(?, ?)') x @{$self->$name}),
                     undef, map { ($self->id, $_) } @{$self->$name}
                 );
@@ -1701,41 +1699,6 @@ sub remove_from_db
 # Validators/setters
 #####################################################################
 
-sub make_dirty
-{
-    my $self = shift;
-    if ($self->id && !$self->{_old_self})
-    {
-        $self->{_old_self} = bless { %$self }, 'Bugzilla::Bug';
-        for my $f (keys %{$self->{_old_self}})
-        {
-            if (ref $self->{_old_self}->{$f} eq 'ARRAY')
-            {
-                $self->{_old_self}->{$f} = [ @{$self->{_old_self}->{$f}} ];
-            }
-        }
-    }
-    return $self;
-}
-
-sub set
-{
-    my ($self, $field, $value) = @_;
-    if (my $setter = SETTERS->{$field})
-    {
-        $self->make_dirty;
-        $value = $self->$setter($value, $field);
-        if (defined $value)
-        {
-            trick_taint($value) if !ref $value;
-            $self->{$field} = $value;
-        }
-        $self->_check_field_permission($field);
-        return $value;
-    }
-    return undef;
-}
-
 # Set all field values from $params
 sub set_all
 {
@@ -1743,12 +1706,9 @@ sub set_all
     if (!$self->product || $params->{product})
     {
         # First set product because all access control checks depend on it
-        $self->set('product', $params->{product});
+        $self->set('product', delete $params->{product});
     }
-    for my $field (grep { $_ ne 'product' } keys %$params)
-    {
-        $self->set($field, $params->{$field});
-    }
+    $self->SUPER::set_all($params);
 }
 
 sub _set_alias
@@ -2887,6 +2847,12 @@ sub remove_see_also
 # These subs are in alphabetical order, as much as possible.
 # If you add a new sub, please try to keep it in alphabetical order
 # with the other ones.
+
+sub name
+{
+    my $self = shift;
+    return $self->alias && Bugzilla->get_field('alias')->enabled ? $self->alias : $self->id;
+}
 
 sub dup_id
 {

@@ -39,6 +39,7 @@ my $action = trim($ARGS->{action} || '');
 my $token  = $ARGS->{token};
 
 $vars->{field_types} = Bugzilla->messages->{field_types};
+$vars->{object_classes} = Bugzilla->get_classes;
 # List all existing custom fields if no action is given.
 if (!$action)
 {
@@ -58,6 +59,7 @@ elsif ($action eq 'new')
 
     my $field = $vars->{field} = Bugzilla::Field->create({
         (map { ($_ => $ARGS->{$_}) } Bugzilla::Field->DB_COLUMNS),
+        class_id => Bugzilla->get_class('bug')->id,
         custom => 1,
         is_mandatory => !$ARGS->{nullable},
     });

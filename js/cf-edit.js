@@ -14,13 +14,18 @@ function onChangeType()
         if (document.getElementById('action').value == 'new')
         {
             document.getElementById('default_value_row').style.display = 'none';
+            document.getElementById('value_class_span').style.display = '';
         }
     }
     else
     {
         value_field.disabled = true;
         document.getElementById('value_field_row').style.display = 'none';
-        document.getElementById('default_value_row').style.display = '';
+        if (document.getElementById('action').value == 'new')
+        {
+            document.getElementById('default_value_row').style.display = '';
+            document.getElementById('value_class_span').style.display = 'none';
+        }
     }
     document.getElementById('default_value_row').style.display =
         type_field.value == constants.FIELD_TYPE_BUG_ID_REV ||

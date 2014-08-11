@@ -123,7 +123,7 @@
   <tr>
     <td>
       [% IF product.versions.size > 0 %]
-        <a href="editversions.cgi?product=[%- product.name FILTER url_quote %]">
+        <a href="editvalues.cgi?class=version&product_id=[% product.id %]">
           Versions:
         </a>
       [% ELSE %]
@@ -146,7 +146,7 @@
     <tr>
       <td valign="top">
         [% IF product.milestones.size > 0 %]
-          <a href="editmilestones.cgi?product=[%- product.name FILTER url_quote %]">
+          <a href="editvalues.cgi?class=milestone&product_id=[% product.id %]">
             Milestones:
           </a>
         [% ELSE %]

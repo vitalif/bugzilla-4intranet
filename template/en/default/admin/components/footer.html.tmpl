@@ -24,31 +24,28 @@
   #               which the component belongs.
   #%]
 
-<hr>
+<hr />
 
 <p>
-Edit 
+
+[% IF comp %]
+  View <a href="show_activity.cgi?class=component&id=[% comp.id %]">change history</a> of this component.
+[% END %]
 
 [% IF comp && !no_edit_component_link %]
-  component <a 
-  title="Edit Component '[% comp.name FILTER html %]'"
-  href="editcomponents.cgi?action=edit&amp;product=
-  [%- product.name FILTER url_quote %]&amp;component=[% comp.name FILTER url_quote %]">
-   '[% comp.name FILTER html %]'</a> 
-  or edit
+  Edit component <a title="Edit Component '[% comp.name | html %]'"
+    href="editcomponents.cgi?action=edit&amp;product=[%- product.name | url_quote %]&amp;component=[% comp.name | url_quote %]">
+    '[% comp.name | html %]'</a>.
 [% END %]
 
 [% IF !no_edit_other_components_link %]
-other components of product <a 
-  title="Choose a component from product '[% product.name FILTER html %]' to edit"
-  href="editcomponents.cgi?product=
-  [%- product.name FILTER url_quote %]">'[% product.name FILTER html %]'</a>, 
-  or edit 
+  Edit other components of product <a title="Choose a component from product '[% product.name | html %]' to edit"
+    href="editcomponents.cgi?product=[%- product.name | url_quote %]">
+    '[% product.name | html %]'</a>.
 [% END %]
 
-product <a 
-  title="Edit Product '[% product.name FILTER html %]'"
-  href="editproducts.cgi?action=edit&amp;product=
-  [%- product.name FILTER url_quote %]">'[% product.name FILTER html %]'</a>.
+  Edit product <a title="Edit Product '[% product.name | html %]'"
+    href="editproducts.cgi?action=edit&amp;product=[%- product.name | url_quote %]">
+    '[% product.name | html %]'</a>.
 
 </p>

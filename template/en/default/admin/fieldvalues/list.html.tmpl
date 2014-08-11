@@ -1,49 +1,24 @@
-[%# The contents of this file are subject to the Mozilla Public
-  # License Version 1.1 (the "License"); you may not use this file
-  # except in compliance with the License. You may obtain a copy of
-  # the License at http://www.mozilla.org/MPL/
-  #
-  # Software distributed under the License is distributed on an "AS
-  # IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-  # implied. See the License for the specific language governing
-  # rights and limitations under the License.
-  #
-  # The Original Code is the Bugzilla Bug Tracking System.
-  #
-  # Contributor(s): Max Kanat-Alexander <mkanat@bugzilla.org>
+[%# List page for generic CRUD UI
+  # License: Dual-license GPL 3.0+ or MPL 1.1+
+  # Author(s): Vitaliy Filippov <vitalif@mail.ru>
   #%]
 
 [%# INTERFACE:
-  # values: array of hashes having the following properties:
-  #   - name: string; The value.
-  #   - sortkey: number; The sortkey used to order the value when 
-  #              displayed to the user in a list.
-  #
-  # field: object; the field we are editing values for.
-  # static: array; list of values which cannot be renamed nor deleted.
+  # obj_class: Bugzilla::Class instances of which we are editing.
+  # values: array of all objects of that class.
   #%]
 
-[% title = BLOCK %]
-Select value for the '[% field.description | html %]' ([% field.name | html %]) field
-[% END %]
-[% PROCESS global/header.html.tmpl title = title %]
+[% SET title = "Select " _ obj_class.description _ " to edit" | html %]
+[% PROCESS global/header.html.tmpl %]
 
-[% edit_contentlink = BLOCK %]editvalues.cgi?action=edit&amp;field=
-  [%- field.name | url_quote %]&amp;value=%%name%%[% END %]
-[% delete_contentlink = BLOCK %]editvalues.cgi?action=del&amp;field=
-  [%- field.name | url_quote %]&amp;value=%%name%%[% END %]
-[% select_contentlink = BLOCK %]editvisibility.cgi?field=[%- field.name | url_quote %]&amp;value=%%name%%[% END %]
+[% edit_contentlink = BLOCK %]editvalues.cgi?action=edit&amp;class=[%- obj_class.name | url_quote %]&amp;id=%%id%%[% END %]
+[% delete_contentlink = BLOCK %]editvalues.cgi?action=del&amp;class=[%- obj_class.name | url_quote %]&amp;id=%%id%%[% END %]
 
 [% columns = [
      {
        name => "name"
-       heading => "Edit field value..."
+       heading => "Edit " _ obj_class.description _ "..."
        contentlink => edit_contentlink
-     },
-     {
-       name => "sortkey"
-       heading => "Sortkey"
-       align => 'center'
      },
      {
        name => "isactive"
@@ -60,30 +35,31 @@ Select value for the '[% field.description | html %]' ([% field.name | html %]) 
      },
    ]
 %]
-
-[% SET overrides.action = {} %]
-[% FOREACH check_value = values %]
-  [% IF check_value.is_default %]
-    [% overrides.action.name.${check_value.name} = {
-         override_content => 1
-         content => "(Default value)"
-         override_contentlink => 1
-         contentlink => undef
-       }
-    %]
+[% FOREACH f = obj_class.get_fields() %]
+  [% IF f.name == 'sortkey' %]
+    [% SET _void = columns.splice(1, 0, {
+      name => "sortkey"
+      heading => "Sortkey"
+      align => 'center'
+    }) %]
   [% END %]
 [% END %]
 
-<h3>Values for the '[% field.description | html %]' ([% field.name | html %]) field</h3>
+<h3>Edit objects of class '[% obj_class.description | html %]'[% IF product %] for product '[% product.name | html %]'[% END %]</h3>
 
-[% IF field.name == "component" || field.name == "version" || field.name == "target_milestone" || field.name == "product" %]
-<p>[% field.description | html %]s must be edited from a product page. <a href="editproducts.cgi">Select a product</a> first.</p>
+[% IF obj_class.name == "component" || obj_class.name == "product" %]
+<p>[% obj_class.description | html %]s must be edited from a product page. <a href="editproducts.cgi">Select a product</a> first.</p>
 [% ELSE %]
-  [% PROCESS admin/table.html.tmpl
-       columns = columns
-       data = values
-       overrides = overrides
+  [% INCLUDE admin/table.html.tmpl
+    columns = columns
+    data = values
+    overrides = overrides
   %]
+  [% FOREACH f = Bugzilla.get_class_fields({ 'value_class_id' => obj_class.id }) %]
+  <p style="margin: 4px 0">
+    This class is used for [% f.class.description | html %] &rarr; [% f.description | html %] attribute.
+  </p>
+  [% END %]
   [% PROCESS admin/fieldvalues/footer.html.tmpl
     no_edit_other_link = 1
   %]

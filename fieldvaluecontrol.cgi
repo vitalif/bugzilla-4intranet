@@ -18,11 +18,13 @@ my $user = Bugzilla->login(~LOGIN_REQUIRED);
 
 my $ctype = 'text/javascript'.(Bugzilla->params->{utf8} ? '; charset=utf-8' : '');
 
+my $class = Bugzilla->get_class($args->{class} || 'bug');
+
 # Refresh field cache
 Bugzilla->cache_fields;
 my $touched = datetime_from(Bugzilla->request_cache->{fields_delta_ts})->epoch;
 
-my $user_tag = 'JSmeta'.($user->id||0);
+my $user_tag = 'JSmeta'.($user->id||0).'_'.$class->id;
 my ($req_tag) = ($ENV{HTTP_IF_NONE_MATCH} || '') =~ /(JS[a-z0-9_]{3,})/iso;
 
 if ($ENV{HTTP_IF_MODIFIED_SINCE} && $user_tag eq $req_tag)
@@ -58,5 +60,6 @@ for (Bugzilla->get_fields({ obsolete => 0 }))
 $json = bz_encode_json($json);
 print "var field_metadata_cached = '$user_tag-".time."';
 var field_metadata = $json;
+var field_metadata_class = '".$class->name."';
 ";
 exit;

@@ -1,4 +1,3 @@
-# Totally Rewritten Bugzilla4Intranet search engine
 # License: Dual-license GPL 3.0+ or MPL 1.1+
 # Contributor(s): Vitaliy Filippov <vitalif@mail.ru>
 
@@ -382,7 +381,7 @@ use DateTime;
 sub SPECIAL_ORDER
 {
     my $cache = Bugzilla->cache_fields;
-    return $cache->{special_order} if $cache->{special_order};
+    return $cache->{search_special_order} if $cache->{search_special_order};
     my $special_order = {};
     my @select_fields = Bugzilla->get_fields({ type => FIELD_TYPE_SINGLE_SELECT });
     foreach my $field (@select_fields)
@@ -398,14 +397,14 @@ sub SPECIAL_ORDER
         };
     }
     Bugzilla::Hook::process('search_special_order', { columns => $special_order });
-    return $cache->{special_order} = $special_order;
+    return $cache->{search_special_order} = $special_order;
 }
 
 # Backwards-compatibility for old field names. Goes old_name => new_name.
 sub COLUMN_ALIASES
 {
     my $cache = Bugzilla->cache_fields;
-    return $cache->{column_aliases} if $cache->{column_aliases};
+    return $cache->{search_column_aliases} if $cache->{search_column_aliases};
     my $COLUMN_ALIASES = {
         opendate => 'creation_ts',
         changeddate => 'delta_ts',
@@ -415,7 +414,7 @@ sub COLUMN_ALIASES
         '[Bug creation]' => 'creation_ts',
     };
     Bugzilla::Hook::process('search_column_aliases', { aliases => $COLUMN_ALIASES });
-    return $cache->{column_aliases} = $COLUMN_ALIASES;
+    return $cache->{search_column_aliases} = $COLUMN_ALIASES;
 }
 
 # STATIC_COLUMNS and COLUMNS define the columns that can be selected in a query
@@ -439,7 +438,7 @@ sub STATIC_COLUMNS
 {
     my $dbh = Bugzilla->dbh;
     my $cache = Bugzilla->cache_fields;
-    return $cache->{columns} if $cache->{columns};
+    return $cache->{search_static_columns} if $cache->{search_columns};
 
     # ---- vfilippov@custis.ru 2010-02-02
     # Originally, JOINed longdescs table was used for actual_time calculation:
@@ -611,8 +610,8 @@ sub STATIC_COLUMNS
             my $t = $type->DB_TABLE;
             $columns->{$id}->{name} = "(SELECT ".
                 $dbh->sql_group_concat("$t.".$type->NAME_FIELD, "', '").
-                " FROM ".$type->REL_TABLE.", $t WHERE $t.".$type->ID_FIELD."=".$type->REL_TABLE.".value_id".
-                " AND ".$type->REL_TABLE.".bug_id=bugs.bug_id)";
+                " FROM ".$field->rel_table.", $t WHERE $t.".$type->ID_FIELD."=".$field->rel_table.".value_id".
+                " AND ".$field->rel_table.".bug_id=bugs.bug_id)";
         }
         elsif ($bug_columns->{$id})
         {
@@ -715,8 +714,7 @@ sub STATIC_COLUMNS
 
     $columns->{$_}->{id} = $_ for keys %$columns;
 
-    $cache->{columns} = $columns;
-    return $cache->{columns};
+    return $cache->{search_static_columns} = $columns;
 }
 
 # Copy and modify STATIC_COLUMNS for current user / request
@@ -726,7 +724,7 @@ sub COLUMNS
     my ($self, $user) = @_;
     $user ||= Bugzilla->user;
     my $cache = Bugzilla->rc_cache_fields;
-    return $cache->{columns}->{$user->id || ''} if $cache->{columns} && $cache->{columns}->{$user->id || ''};
+    return $cache->{search_columns}->{$user->id || ''} if $cache->{search_columns} && $cache->{search_columns}->{$user->id || ''};
     my $columns = { %{ STATIC_COLUMNS() } };
 
     # Non-timetrackers shouldn't see any time-tracking fields
@@ -778,7 +776,7 @@ sub COLUMNS
     }
 
     Bugzilla::Hook::process('buglist_columns', { columns => $columns });
-    return $cache->{columns}->{$user->id || ''} = $columns;
+    return $cache->{search_columns}->{$user->id || ''} = $columns;
 }
 
 sub REPORT_COLUMNS
@@ -817,8 +815,8 @@ sub REPORT_COLUMNS
                 name  => $type->DB_TABLE.'.'.$type->NAME_FIELD,
                 title => $field->description,
                 joins => [
-                    "LEFT JOIN ".$type->REL_TABLE." ON ".$type->REL_TABLE.".bug_id=bugs.bug_id",
-                    "LEFT JOIN ".$type->DB_TABLE." ON ".$type->DB_TABLE.".".$type->ID_FIELD."=".$type->REL_TABLE.".value_id"
+                    "LEFT JOIN ".$field->rel_table." ON ".$field->rel_table.".bug_id=bugs.bug_id",
+                    "LEFT JOIN ".$type->DB_TABLE." ON ".$type->DB_TABLE.".".$type->ID_FIELD."=".$field->rel_table.".value_id"
                 ],
             };
         }
@@ -2268,7 +2266,7 @@ sub changed
     $cond = join(" AND ", @$cond);
 
     # CustIS Bug 68921 - "interval worktime" column depends
-    # on the time interval and user specified in "changes" search area
+    # on the time interval user specified in "changes" search area
     my $c;
     my %f = map { $_ => 1 } @{$v->{fields}};
     if (!$self->{user}->is_timetracker)
@@ -2917,8 +2915,10 @@ sub _multiselect_nonchanged
     my $self = shift;
     my $dbh = Bugzilla->dbh;
 
-    my $type = Bugzilla->get_field($self->{field})->value_type;
-    my $t = $type->REL_TABLE;
+    my @terms;
+    my $field = Bugzilla->get_field($self->{field});
+    my $type = $field->value_type;
+    my $t = $field->rel_table;
     my $ft = $type->DB_TABLE;
     my $ta = $t.'_'.$self->{sequence};
     my $fta = $ft.'_'.$self->{sequence};

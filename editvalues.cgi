@@ -1,18 +1,7 @@
 #!/usr/bin/perl -wT
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-#
-# Contributor(s): Max Kanat-Alexander <mkanat@bugzilla.org>
-#                 Frédéric Buclin <LpSolit@gmail.com>
+# Simple CRUD interface for generic object types
+# License: Dual-license GPL 3.0+ or MPL 1.1+
+# Author(s): Vitaliy Filippov <vitalif@mail.ru>
 
 use strict;
 use lib qw(. lib);
@@ -22,171 +11,134 @@ use Bugzilla::Util;
 use Bugzilla::Error;
 use Bugzilla::Constants;
 use Bugzilla::Token;
-use Bugzilla::Field;
-use Bugzilla::Field::Choice;
 
 # require the user to have logged in
 Bugzilla->login(LOGIN_REQUIRED);
 
-my $dbh      = Bugzilla->dbh;
 my $template = Bugzilla->template;
 my $ARGS     = Bugzilla->input_params;
 my $vars     = {};
 
 Bugzilla->user->in_group('editvalues')
-|| $ARGS->{field} eq 'keywords' && Bugzilla->user->in_group('editkeywords')
+|| $ARGS->{class} eq 'keyword' && Bugzilla->user->in_group('editkeywords')
 || ThrowUserError('auth_failure', {
     group  => 'editvalues',
     action => 'edit',
     object => 'field_values',
 });
 
-#
-# often-used variables
-#
 my $action = trim($ARGS->{action} || '');
 my $token  = $ARGS->{token};
 
-# Fields listed here must not be edited from this interface.
-my %block_list = map { $_ => 1 } qw(product);
+# Object classes listed here must not be edited from this interface.
+my %block_list = map { $_ => 1 } qw(
+    bug attachment comment user group flagtype flag
+    classification product component
+);
 
-#
-# field = '' -> Show nice list of fields
-#
-if (!$ARGS->{field})
+if (!$ARGS->{class})
 {
-    my @field_list = grep { !$block_list{$_->name} } Bugzilla->get_fields({ is_select => 1 });
-    $vars->{fields} = \@field_list;
+    my @classes = grep { !$block_list{$_->name} } Bugzilla::Class->get_all;
+    $vars->{classes} = \@classes;
     $template->process("admin/fieldvalues/select-field.html.tmpl", $vars)
         || ThrowTemplateError($template->error());
     exit;
 }
 
-# At this point, the field must be defined.
-my $field = Bugzilla::Field->check($ARGS->{field});
-if (!$field->is_select || $block_list{$field->name})
+my $class = Bugzilla->get_class($ARGS->{class});
+if (!$class)
 {
-    ThrowUserError('fieldname_invalid', { field => $field });
+    ThrowUserError('class_invalid', { class => $ARGS->{class} });
 }
-$vars->{field} = $field;
-
-#
-# action='' -> Show nice list of values.
-#
-display_field_values($vars) unless $action;
-
-#
-# action='add' -> show form for adding new field value.
-# (next action will be 'new')
-#
-if ($action eq 'add')
+if ($block_list{$class->name})
 {
-    $vars->{token} = issue_session_token('add_field_value');
-    $template->process("admin/fieldvalues/edit.html.tmpl", $vars)
-        || ThrowTemplateError($template->error());
-    exit;
+    ThrowUserError('class_blocked', { class => $ARGS->{class} });
 }
 
-#
-# action='new' -> add field value entered in the 'action=add' screen
-#
-if ($action eq 'new')
+my $obj = $class->type->new(int($ARGS->{id} || 0) || undef);
+if ($class->name eq 'version' || $class->name eq 'milestone')
 {
-    check_token_data($token, 'add_field_value');
+    $vars->{product} = $obj->id ? $obj->product : ($ARGS->{product_id} ? Bugzilla::Product->new($ARGS->{product_id}) : $ARGS->{product});
+    if (!$vars->{product})
+    {
+        $vars->{product} = Bugzilla::Product->choose_product(Bugzilla->user->get_editable_products, { class => $class->name });
+    }
+    else
+    {
+        $vars->{product} = Bugzilla->user->check_can_admin_product($vars->{product});
+    }
+    delete $ARGS->{product};
+    delete $ARGS->{product_id};
+}
 
-    my $type = $field->value_type;
-    # Some types have additional parameters inside REQUIRED_CREATE_FIELDS
-    my $created_value = $type->create({
-        map { $_ => $ARGS->{$_} }
-        grep { defined $ARGS->{$_} } ($type->DB_COLUMNS, $type->REQUIRED_CREATE_FIELDS)
+if ($action eq 'save' || $action eq 'delete')
+{
+    check_token_data($token, $action.'_object');
+    $obj ||= $class->type->new;
+    my $changes;
+    if ($action eq 'delete')
+    {
+        $obj->remove_from_db;
+    }
+    else
+    {
+        $obj->set_all({
+            map { $_->name => $ARGS->{$_->name} }
+            grep { defined $ARGS->{$_->name} || $_->type == FIELD_TYPE_BOOLEAN }
+            Bugzilla->get_fields({ class_id => $class->id, obsolete => 0 })
+        });
+        $changes = $obj->update;
+        for my $f (Bugzilla->get_class_fields({ value_class_id => $class->id }))
+        {
+            if ($ARGS->{'defined_visibility_value_id_'.$f->id} &&
+                ($f->name ne 'target_milestone' && $f->name ne 'version' || $f->class->name != 'bug'))
+            {
+                $changes->{_visibility_values} = 1 if $f->update_visibility_values($obj->id, [ list $ARGS->{'visibility_value_id_'.$f->id} ]);
+            }
+            $changes->{_control_lists} = 1 if $f->update_control_lists($obj->id, $ARGS);
+        }
+    }
+    delete_token($token);
+    Bugzilla->add_result_message({
+        message => $action eq 'delete' ? 'object_deleted' : ($ARGS->{id} ? 'object_updated' : 'object_created'),
+        class_id => $class->id,
+        id => $obj->id,
+        name => $obj->name,
+        changes => $changes,
     });
-    $created_value->set_visibility_values([ list $ARGS->{visibility_value_id} ]);
-
-    delete_token($token);
-
-    $vars->{message} = 'field_value_created';
-    $vars->{value} = $created_value;
-    display_field_values($vars);
-}
-
-# After this, we always have a value
-my $value = $field->value_type->check(exists $ARGS->{value_old} ? $ARGS->{value_old} : $ARGS->{value});
-$vars->{value} = $value;
-
-#
-# action='del' -> ask if user really wants to delete
-# (next action would be 'delete')
-#
-if ($action eq 'del')
-{
-    $vars->{token} = issue_session_token('delete_field_value');
-
-    $template->process("admin/fieldvalues/confirm-delete.html.tmpl", $vars)
-        || ThrowTemplateError($template->error());
-
+    Bugzilla->save_session_data;
+    print Bugzilla->cgi->redirect(
+        'editvalues.cgi?class='.$class->name.
+        ($action ne 'delete' && $ARGS->{id} ? '&action=edit&id='.$obj->id :
+            ($vars->{product} ? '&product_id=' . $vars->{product}->id : ''))
+    );
     exit;
 }
 
-#
-# action='delete' -> really delete the field value
-#
-if ($action eq 'delete')
+$vars->{obj_class} = $class;
+if ($action eq 'add' || $action eq 'edit' || $action eq 'del')
 {
-    check_token_data($token, 'delete_field_value');
-    $value->remove_from_db();
-    delete_token($token);
-    $vars->{message} = 'field_value_deleted';
-    $vars->{no_edit_link} = 1;
-    display_field_values($vars);
-}
-
-#
-# action='edit' -> present the edit-value form
-# (next action would be 'update')
-#
-if ($action eq 'edit')
-{
-    $vars->{token} = issue_session_token('edit_field_value');
-    $template->process("admin/fieldvalues/edit.html.tmpl", $vars)
-        || ThrowTemplateError($template->error());
-    exit;
-}
-
-#
-# action='update' -> update the field value
-#
-if ($action eq 'update')
-{
-    check_token_data($token, 'edit_field_value');
-    $vars->{value_old} = $value->name;
-    for ($value->UPDATE_COLUMNS)
+    # Show add/edit form
+    if ($action eq 'edit' || $action eq 'del')
     {
-        $value->set($_, $ARGS->{$_});
+        $vars->{obj} = $obj;
     }
-    if ($value->field->value_field)
-    {
-        $vars->{changes}->{visibility_values} = $value->set_visibility_values([ list $ARGS->{visibility_value_id} ], 'SKIP_INVISIBLE');
-    }
-    $vars->{changes}->{control_lists} = 1 if $field->update_control_lists($value->id, $ARGS);
-    delete_token($token);
-    $vars->{changes} = $value->update;
-    $vars->{message} = 'field_value_updated';
-    display_field_values($vars);
-}
-
-#
-# No valid action found
-#
-# We can't get here without $field being defined --
-# See the unless($field) block at the top.
-ThrowUserError('no_valid_action', { field => $field } );
-
-sub display_field_values
-{
-    my $vars = shift;
-    my $template = Bugzilla->template;
-    $vars->{values} = $vars->{field}->legal_values('include_disabled');
-    $template->process("admin/fieldvalues/list.html.tmpl", $vars)
+    $vars->{token} = issue_session_token($action eq 'del' ? 'delete_object' : 'save_object');
+    $template->process("admin/fieldvalues/".($action eq 'del' ? 'confirm-delete' : 'edit').".html.tmpl", $vars)
         || ThrowTemplateError($template->error());
     exit;
 }
+
+# List values
+if ($vars->{product})
+{
+    # FIXME: Allow to display bug counts for versions and milestones
+    $vars->{values} = $class->type->match({ product_id => $vars->{product}->id });
+}
+else
+{
+    $vars->{values} = [ $class->type->get_all(INCLUDE_DISABLED) ];
+}
+$template->process("admin/fieldvalues/list.html.tmpl", $vars)
+    || ThrowTemplateError($template->error());
+exit;

@@ -157,6 +157,8 @@ sub update_fielddefs_definition
     $dbh->bz_drop_column('fielddefs', 'buglist');
     $dbh->bz_drop_column('fielddefs', 'enter_bug');
 
+    _add_class_schema();
+
     # Remember, this is not the function for adding general table changes.
     # That is below. Add new changes to the fielddefs table above this
     # comment.
@@ -3398,13 +3400,9 @@ sub _check_content_length {
 sub _convert_multiselects
 {
     my $dbh = Bugzilla->dbh;
-
-    my $fields = $dbh->selectcol_arrayref(
-        'SELECT name FROM fielddefs WHERE type=' . FIELD_TYPE_MULTI_SELECT
-    );
-
-    foreach my $field (@$fields)
+    foreach my $field (Bugzilla->get_fields({ type => FIELD_TYPE_MULTI_SELECT }))
     {
+        $field = $field->name;
         if (!$dbh->bz_column_info("bug_$field", 'value_id'))
         {
             $dbh->bz_add_column("bug_$field", value_id => {TYPE => 'INT4', NOTNULL => 1, DEFAULT => 0});
@@ -3418,9 +3416,9 @@ sub _convert_multiselects
 sub _add_foreign_keys_to_multiselects
 {
     my $dbh = Bugzilla->dbh;
-    my $names = $dbh->selectcol_arrayref('SELECT name FROM fielddefs WHERE type=' . FIELD_TYPE_MULTI_SELECT);
-    foreach my $name (@$names)
+    foreach my $field (Bugzilla->get_fields({ type => FIELD_TYPE_MULTI_SELECT }))
     {
+        my $name = $field->name;
         $dbh->bz_add_fk("bug_$name", "bug_id", {TABLE => 'bugs', COLUMN => 'bug_id', DELETE => 'CASCADE'});
         $dbh->bz_add_fk("bug_$name", "value_id", {TABLE => $name, COLUMN => 'id', DELETE => 'CASCADE'});
     }
@@ -4189,6 +4187,238 @@ sub _move_old_defaults
             $f->set_obsolete($old_params->{$p} ? 0 : 1);
             $f->update;
         }
+    }
+}
+
+sub _add_class_schema
+{
+    my $dbh = Bugzilla->dbh;
+    if (!$dbh->bz_column_info('fielddefs', 'class_id'))
+    {
+        print "-- Adding explicit object classes for all fields --\n";
+        $dbh->bz_add_column('fielddefs', 'class_id', undef, 0);
+        $dbh->bz_add_column('fielddefs', 'value_class_id');
+        $dbh->bz_drop_index('fielddefs', 'fielddefs_name_idx');
+        $dbh->do('INSERT INTO classdefs (name, description, db_table) VALUES (?, ?, ?)', undef, 'bug', 'Bug', 'bugs');
+        my $cl = $dbh->bz_last_key('classdefs', 'id');
+        $dbh->do('UPDATE fielddefs SET class_id=?', undef, $cl);
+        $dbh->bz_add_index('fielddefs', 'fielddefs_name_idx', {FIELDS => ['class_id', 'name'], TYPE => 'UNIQUE'});
+        # Object classes are now explicit - add them for all custom select fields
+        my $std_select = Bugzilla::Class->STD_SELECT_CLASS->{fields};
+        my $field_class = {
+            target_milestone => 'milestone',
+            keywords => 'keyword',
+        };
+        my $class_description = {
+            user => 'User',
+            group => 'Group',
+            comment => 'Comment',
+            attachment => 'Attachment',
+            flagtype => 'Flag Type',
+            flag => 'Flag',
+            keyword => 'Keyword',
+        };
+        my $class_fields = {
+            bug_status => [
+                @$std_select,
+                [ 'is_open', 'Is Open', FIELD_TYPE_BOOLEAN ],
+                [ 'is_assigned', 'Is Assigned', FIELD_TYPE_BOOLEAN ],
+                [ 'is_confirmed', 'Is Confirmed', FIELD_TYPE_BOOLEAN ],
+            ],
+            bug_severity => $std_select,
+            priority => $std_select,
+            resolution => $std_select,
+            rep_platform => [
+                @$std_select,
+                [ 'ua_regex', 'User Agent Regexp', FIELD_TYPE_FREETEXT ],
+            ],
+            op_sys => [
+                @$std_select,
+                [ 'ua_regex', 'User Agent Regexp', FIELD_TYPE_FREETEXT ],
+            ],
+            keyword => [
+                @$std_select,
+                [ 'description', 'Description', FIELD_TYPE_TEXTAREA ],
+            ],
+            version => [
+                @$std_select,
+                [ 'product_id', 'Product', FIELD_TYPE_SINGLE, 'product' ],
+            ],
+            milestone => [
+                @$std_select,
+                [ 'product_id', 'Product', FIELD_TYPE_SINGLE, 'product' ],
+            ],
+            user => [
+                [ 'login_name', 'Login', FIELD_TYPE_FREETEXT ],
+                [ 'realname', 'Real Name', FIELD_TYPE_FREETEXT ],
+                [ 'disabledtext', 'Disabled Text', FIELD_TYPE_TEXTAREA ],
+                [ 'disable_mail', 'Disable Bugmail', FIELD_TYPE_BOOLEAN ],
+            ],
+            classification => [
+                [ 'name', 'Name', FIELD_TYPE_FREETEXT ],
+                [ 'description', 'Description', FIELD_TYPE_TEXTAREA ],
+                [ 'sortkey', 'Sortkey', FIELD_TYPE_INTEGER ],
+            ],
+            product => [
+                [ 'name', 'Name', FIELD_TYPE_FREETEXT ],
+                [ 'classification_id', 'Classification', FIELD_TYPE_SINGLE, 'classification' ],
+                [ 'description', 'Description', FIELD_TYPE_TEXTAREA ],
+                [ 'entryheaderhtml', 'Bug entry header HTML', FIELD_TYPE_TEXTAREA ],
+                [ 'isactive', 'Open for bug entry', FIELD_TYPE_BOOLEAN ],
+                [ 'allows_unconfirmed', 'Allows unconfirmed', FIELD_TYPE_BOOLEAN ],
+                [ 'wiki_url', 'Wiki URL', FIELD_TYPE_FREETEXT ],
+                [ 'cc_group', 'CC group', FIELD_TYPE_SINGLE, 'group' ],
+                # Votes:
+                [ 'votesperuser', 'Max. Votes Per User', FIELD_TYPE_INTEGER ],
+                [ 'maxvotesperbug', 'Max. Votes Per Bug', FIELD_TYPE_INTEGER ],
+                [ 'votestoconfirm', 'Votes to Confirm Bug', FIELD_TYPE_INTEGER ],
+                # CustIS:
+                [ 'notimetracking', 'Prefer No Time Tracking', FIELD_TYPE_BOOLEAN ],
+                [ 'extproduct', 'External Product for this', FIELD_TYPE_SINGLE, 'product' ],
+            ],
+            component => [
+                [ 'name', 'Name', FIELD_TYPE_FREETEXT ],
+                [ 'product_id', 'Product', FIELD_TYPE_SINGLE, 'product' ],
+                [ 'description', 'Description', FIELD_TYPE_TEXTAREA ],
+                [ 'initialowner', 'Default Assignee', FIELD_TYPE_SINGLE, 'user' ],
+                [ 'initialqacontact', 'Default QA Contact', FIELD_TYPE_SINGLE, 'user' ],
+                [ 'cc', 'Default CC', FIELD_TYPE_MULTI, 'user' ],
+                [ 'wiki_url', 'Wiki URL', FIELD_TYPE_FREETEXT ],
+                [ 'isactive', 'Open for bug entry', FIELD_TYPE_BOOLEAN ],
+            ],
+            group => [
+                [ 'name', 'Name', FIELD_TYPE_FREETEXT ],
+                [ 'description', 'Description', FIELD_TYPE_TEXTAREA ],
+                [ 'isbuggroup', 'Is custom', FIELD_TYPE_BOOLEAN ],
+                [ 'userregexp', 'User Regexp', FIELD_TYPE_FREETEXT ],
+                [ 'isactive', 'Active', FIELD_TYPE_BOOLEAN ],
+                [ 'icon_url', 'Icon URL', FIELD_TYPE_FREETEXT ],
+            ],
+            comment => [
+                [ 'bug_id', 'Bug', FIELD_TYPE_SINGLE, 'bug' ],
+                [ 'who', 'User', FIELD_TYPE_SINGLE, 'user' ],
+                [ 'bug_when', 'Time', FIELD_TYPE_DATETIME ],
+                [ 'work_time', 'Work Time', FIELD_TYPE_NUMERIC ],
+                [ 'thetext', 'Text', FIELD_TYPE_TEXTAREA ],
+                [ 'isprivate', 'Is Private', FIELD_TYPE_BOOLEAN ],
+                [ 'type', 'Type', FIELD_TYPE_INTEGER ],
+                [ 'extra_data', 'Extra Data', FIELD_TYPE_FREETEXT ],
+            ],
+            attachment => [
+                [ 'bug_id', 'Bug', FIELD_TYPE_SINGLE, 'bug' ],
+                [ 'submitter_id', 'Creator', FIELD_TYPE_SINGLE, 'user' ],
+                [ 'creation_ts', 'Creation Time', FIELD_TYPE_DATETIME ],
+                [ 'modification_time', 'Modification Time', FIELD_TYPE_DATETIME ],
+                [ 'description', 'Description', FIELD_TYPE_TEXTAREA ],
+                [ 'mimetype', 'MIME type', FIELD_TYPE_FREETEXT ],
+                [ 'ispatch', 'Is Patch', FIELD_TYPE_BOOLEAN ],
+                [ 'filename', 'Filename', FIELD_TYPE_FREETEXT ],
+                [ 'isobsolete', 'Is Obsolete', FIELD_TYPE_BOOLEAN ],
+                [ 'isprivate', 'Is Private', FIELD_TYPE_BOOLEAN ],
+            ],
+            flagtype => [
+                [ 'name', 'Name', FIELD_TYPE_FREETEXT ],
+                [ 'description', 'Description', FIELD_TYPE_TEXTAREA ],
+                [ 'cc_list', 'CC List', FIELD_TYPE_MULTI, 'user' ],
+                [ 'target_type', 'Target Type', FIELD_TYPE_FREETEXT ],
+                [ 'is_active', 'Active', FIELD_TYPE_BOOLEAN ],
+                [ 'is_requestable', 'Requestable', FIELD_TYPE_BOOLEAN ],
+                [ 'is_requesteeble', 'Spec. Requestable', FIELD_TYPE_BOOLEAN ],
+                [ 'is_multiplicable', 'Multiplicable', FIELD_TYPE_BOOLEAN ],
+                [ 'sortkey', 'Sortkey', FIELD_TYPE_INTEGER ],
+                [ 'grant_group_id', 'Grant Group', FIELD_TYPE_SINGLE, 'group' ],
+                [ 'request_group_id', 'Request Group', FIELD_TYPE_SINGLE, 'group' ],
+            ],
+            flag => [
+                [ 'type_id', 'Flag Type', FIELD_TYPE_SINGLE, 'flagtype' ],
+                [ 'status', 'Status', FIELD_TYPE_FREETEXT ],
+                [ 'bug_id', 'Bug', FIELD_TYPE_SINGLE, 'bug' ],
+                [ 'attach_id', 'ID', FIELD_TYPE_SINGLE, 'attachment' ],
+                [ 'creation_date', 'Creation Time', FIELD_TYPE_DATETIME ],
+                [ 'modification_date', 'Modification Time', FIELD_TYPE_DATETIME ],
+                [ 'setter_id', 'Setter', FIELD_TYPE_SINGLE, 'user' ],
+                [ 'requestee_id', 'Requestee', FIELD_TYPE_SINGLE, 'user' ],
+            ],
+        };
+        for my $f (Bugzilla->get_fields({ is_select => 1 }))
+        {
+            $class_fields->{$f->name} = $std_select if $f->custom;
+            $class_description->{$field_class->{$f->name} || $f->name} ||= $f->description;
+        }
+        for my $class_name (keys %$class_fields)
+        {
+            my $db_table = $class_name;
+            if (my $pkg = Bugzilla::Class->CLASS_MAP->{$class_name})
+            {
+                eval "require $pkg";
+                $db_table = $pkg->DB_TABLE;
+            }
+            $dbh->do(
+                "INSERT INTO classdefs (name, description, db_table) VALUES (?, ?, ?)",
+                undef, $class_name, $class_description->{$class_name} || $class_name, $db_table
+            );
+        }
+        Bugzilla->refresh_cache_fields;
+        for my $f (Bugzilla->get_fields({ is_select => 1 }))
+        {
+            $cl = Bugzilla->get_class($field_class->{$f->name} || $f->name);
+            die "Unknown class for ".$f->name if !$cl;
+            $dbh->do("UPDATE fielddefs SET value_class_id=? WHERE id=?", undef, $cl->id, $f->id);
+        }
+        Bugzilla->refresh_cache_fields;
+        for my $class_name (keys %$class_fields)
+        {
+            my $i = 0;
+            $cl = Bugzilla->get_class($class_name);
+            $dbh->do(
+                "INSERT INTO fielddefs (class_id, name, description, type, sortkey, value_class_id, delta_ts) VALUES ".
+                join(", ", ("(?, ?, ?, ?, ?, ?, NOW())") x @{$class_fields->{$class_name}}), undef,
+                map { ($cl->id, @$_[0..2], (++$i)*10, $_->[3] ? Bugzilla->get_class($_->[3])->id : undef) } @{$class_fields->{$class_name}}
+            );
+        }
+        Bugzilla->refresh_cache_fields;
+        for my $class_name (keys %$class_fields)
+        {
+            if (my $pkg = Bugzilla::Class->CLASS_MAP->{$class_name})
+            {
+                $cl = Bugzilla->get_class($class_name);
+                $cl->set('name_field_id', $pkg->NAME_FIELD);
+                $cl->set('list_order', $pkg->LIST_ORDER);
+                $cl->update;
+            }
+        }
+        for my $f (Bugzilla->get_fields({ is_select => 1 }))
+        {
+            $cl = $f->value_class;
+            if (!Bugzilla::Class->CLASS_MAP->{$cl->name})
+            {
+                $cl->set('name_field_id', 'value');
+                $cl->set('list_order', 'sortkey, value');
+                $cl->update;
+            }
+        }
+        Bugzilla->refresh_cache_fields;
+        print "-- Done --\n";
+    }
+    elsif (0)
+    {
+        # For testing purposes: drop class schema
+        $dbh->bz_drop_index('fielddefs', 'fielddefs_name_idx');
+        $dbh->bz_drop_fk('classdefs', 'name_field_id');
+        if ($dbh->bz_column_info('fielddefs', 'class_id'))
+        {
+            $dbh->do("DELETE FROM fielddefs WHERE class_id != 0 AND class_id != (SELECT id FROM classdefs WHERE name='bug')");
+        }
+        $dbh->bz_drop_fk('fielddefs', 'class_id');
+        $dbh->bz_drop_fk('fielddefs', 'value_class_id');
+        $dbh->bz_drop_column('fielddefs', 'class_id');
+        $dbh->bz_drop_column('fielddefs', 'value_class_id');
+        $dbh->do("DELETE FROM classdefs");
+        $dbh->do("ALTER TABLE classdefs AUTO_INCREMENT=1");
+        Bugzilla->refresh_cache_fields;
+        $dbh->bz_drop_table('objects_activity');
+        $dbh->bz_drop_table('classdefs');
+        exit;
     }
 }
 

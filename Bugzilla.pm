@@ -40,6 +40,7 @@ use Bugzilla::Template;
 use Bugzilla::User;
 use Bugzilla::Error;
 use Bugzilla::Util;
+use Bugzilla::Class;
 use Bugzilla::Field;
 use Bugzilla::Flag;
 use Bugzilla::Token;
@@ -895,13 +896,19 @@ sub _fill_fields_cache
     my ($r) = @_;
     if (!$r->{id})
     {
+        my $c = [ Bugzilla::Class->get_all ];
+        for (@$c)
+        {
+            $r->{class_id}->{$_->id} = $_;
+            $r->{class_name}->{$_->name} = $_;
+        }
         # FIXME take field descriptions from Bugzilla->messages->{field_descs}
         # FIXME and remove ugly hacks from templates (field_descs.${f.name} || f.description)
         my $f = [ Bugzilla::Field->get_all ];
         for (@$f)
         {
             $r->{id}->{$_->id} = $_;
-            $r->{name}->{$_->name} = $_;
+            $r->{by_class}->{$_->class_id}->{$_->name} = $_;
             if (!$r->{_cache_ts} || $r->{_cache_ts} lt $_->{delta_ts})
             {
                 $r->{_cache_ts} = $_->{delta_ts};
@@ -911,13 +918,64 @@ sub _fill_fields_cache
     return $r;
 }
 
+sub get_class
+{
+    my $bz = shift;
+    my ($id_or_name) = @_;
+    return $id_or_name if ref $id_or_name || !defined $id_or_name;
+    my $c = $bz->cache_fields;
+    $c = $id_or_name =~ /^\d+$/so ? $c->{class_id}->{$id_or_name} : $c->{class_name}->{$id_or_name};
+    return $c;
+}
+
+sub get_classes
+{
+    my $bz = shift;
+    my $c = $bz->cache_fields;
+    return [ sort { $a->id cmp $b->id } values %{$c->{class_id}} ];
+}
+
+sub get_class_field
+{
+    my $bz = shift;
+    my ($field_id_or_name, $class_id_or_name) = @_;
+    my $c = $bz->cache_fields;
+    my $field;
+    my $class = ref($class_id_or_name) ? $class_id_or_name : $bz->get_class($class_id_or_name);
+    return undef unless $class;
+    if (ref $field_id_or_name eq 'Bugzilla::Field')
+    {
+        $field = $field_id_or_name;
+    }
+    elsif ($field_id_or_name =~ /^\d+$/so)
+    {
+        $field = $c->{id}->{$field_id_or_name};
+    }
+    else
+    {
+        $field = $c->{by_class}->{$class->id}->{$field_id_or_name};
+    }
+    if ($field && $field->class_id != $class->id)
+    {
+        $field = undef;
+    }
+    return $field;
+}
+
 sub get_field
 {
     my $class = shift;
     my ($id_or_name, $throw_error) = @_;
     return $id_or_name if ref $id_or_name;
     my $c = $class->cache_fields;
-    $c = $id_or_name =~ /^\d+$/so ? $c->{id}->{$id_or_name} : $c->{name}->{$id_or_name};
+    if ($id_or_name =~ /^\d+$/)
+    {
+        $c = $c->{id}->{$id_or_name};
+    }
+    else
+    {
+        $c = $c->{by_class}->{1}->{$id_or_name}; # class 1 must be bug
+    }
     if (!$c && $throw_error)
     {
         ThrowUserError('object_does_not_exist', {
@@ -928,10 +986,27 @@ sub get_field
     return $c;
 }
 
+sub get_class_fields
+{
+    my $class = shift;
+    my $criteria = shift || {};
+    $criteria->{class_id} = undef if !exists $criteria->{class_id};
+    return $class->get_fields($criteria);
+}
+
 sub get_fields
 {
     my $class = shift;
     my $criteria = shift || {};
+    if (!exists $criteria->{class_id})
+    {
+        # Backwards compatibility: return only bug fields by default
+        $criteria->{class_id} = $class->get_class('bug')->id;
+    }
+    elsif (!defined $criteria->{class_id})
+    {
+        delete $criteria->{class_id};
+    }
     my $cache = $class->cache_fields;
     my @fields = values %{$cache->{id}};
     my $sort = delete $criteria->{sort};

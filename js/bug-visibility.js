@@ -101,6 +101,10 @@ function setFieldValue(f, v)
             f.selectedIndex = 0;
         }
     }
+    else if (f.type == 'checkbox')
+    {
+        f.checked = v && true;
+    }
     else if (f.type != 'hidden')
     {
         f.value = v;

@@ -216,8 +216,7 @@ use constant FIELD_TABLE_SCHEMA => {
         sortkey  => {TYPE => 'INT4', NOTNULL => 1, DEFAULT => 0},
         isactive => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'},
     ],
-    # Note that bz_add_field_table should prepend the table name
-    # to these index names.
+    # Note that you should use _bz_add_field_table() to prepend the table name to these index names.
     INDEXES => [
         value_idx => {FIELDS => ['value'], TYPE => 'UNIQUE'},
         sortkey_idx => ['sortkey', 'value'],
@@ -310,7 +309,7 @@ use constant ABSTRACT_SCHEMA => {
         FIELDS => [
             id        => {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
             bug_id    => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'bugs', COLUMN => 'bug_id', DELETE => 'CASCADE'}},
-            attach_id => {TYPE => 'INT4', REFERENCES => {TABLE => 'attachments', COLUMN  => 'attach_id', DELETE => 'CASCADE'}},
+            attach_id => {TYPE => 'INT4', REFERENCES => {TABLE => 'attachments', COLUMN => 'attach_id', DELETE => 'CASCADE'}},
             who       => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'profiles', COLUMN => 'userid', DELETE => 'CASCADE'}},
             bug_when  => {TYPE => 'DATETIME', NOTNULL => 1},
             fieldid   => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'fielddefs', COLUMN => 'id', DELETE => 'CASCADE'}},
@@ -322,6 +321,27 @@ use constant ABSTRACT_SCHEMA => {
             bugs_activity_who_idx     => ['who'],
             bugs_activity_bug_when_idx => ['bug_when'],
             bugs_activity_fieldid_idx => ['fieldid'],
+        ],
+    },
+
+    objects_activity => {
+        FIELDS => [
+            id        => {TYPE => 'BIGSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
+            class_id  => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'classdefs', COLUMN => 'id', DELETE => 'CASCADE'}},
+            # No foreign key for object_id, because (a) these will be IDs of different objects (b) we want to log deleted objects
+            object_id => {TYPE => 'INT4', NOTNULL => 1},
+            who       => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'profiles', COLUMN => 'userid', DELETE => 'CASCADE'}},
+            change_ts => {TYPE => 'DATETIME', NOTNULL => 1},
+            field_id  => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'fielddefs', COLUMN => 'id', DELETE => 'CASCADE'}},
+            removed   => {TYPE => 'LONGTEXT'},
+            added     => {TYPE => 'LONGTEXT'},
+        ],
+        INDEXES => [
+            objects_activity_object_id_idx => ['class_id', 'object_id'],
+            objects_activity_field_id_idx  => ['field_id'],
+            objects_activity_change_ts_idx => ['change_ts'],
+            objects_activity_added_idx     => ['added(255)'],
+            objects_activity_removed_idx   => ['removed(255)'],
         ],
     },
 
@@ -550,11 +570,27 @@ use constant ABSTRACT_SCHEMA => {
     # General Field Information
     # -------------------------
 
+    classdefs => {
+        FIELDS => [
+            id              => {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
+            name            => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"},
+            description     => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"},
+            db_table        => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"},
+            name_field_id   => {TYPE => 'INT4', REFERENCES => {TABLE => 'fielddefs', COLUMN => 'id'}},
+            list_order      => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"},
+        ],
+        INDEXES => [
+            classdefs_name_idx => {FIELDS => ['name'], TYPE => 'UNIQUE'},
+        ],
+    },
+
     fielddefs => {
         FIELDS => [
             id              => {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
+            class_id        => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'classdefs', COLUMN => 'id'}},
             name            => {TYPE => 'varchar(255)', NOTNULL => 1},
             type            => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => FIELD_TYPE_UNKNOWN},
+            value_class_id  => {TYPE => 'INT4', REFERENCES => {TABLE => 'classdefs', COLUMN => 'id'}},
             custom          => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
             description     => {TYPE => 'TINYTEXT', NOTNULL => 1},
             mailhead        => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
@@ -562,6 +598,7 @@ use constant ABSTRACT_SCHEMA => {
             obsolete        => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
             clone_bug       => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
             is_mandatory    => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
+            params          => {TYPE => 'MEDIUMTEXT', NOTNULL => 1, DEFAULT => "''"},
             url             => {TYPE => 'VARCHAR(255)'},    # template for FIELD_TYPE_EXTURL
             delta_ts        => {TYPE => 'DATETIME'},        # for refreshing client-side cache
             has_activity    => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0},
@@ -575,7 +612,7 @@ use constant ABSTRACT_SCHEMA => {
             clone_field_id      => {TYPE => 'INT4', REFERENCES => {TABLE => 'fielddefs', COLUMN => 'id'}},
         ],
         INDEXES => [
-            fielddefs_name_idx    => {FIELDS => ['name'], TYPE => 'UNIQUE'},
+            fielddefs_name_idx    => {FIELDS => ['class_id', 'name'], TYPE => 'UNIQUE'},
             fielddefs_sortkey_idx => ['sortkey'],
             fielddefs_value_field_id_idx => ['value_field_id'],
         ],
@@ -1313,17 +1350,6 @@ use constant ABSTRACT_SCHEMA => {
         ],
     },
 
-};
-
-# Foreign Keys are added in Bugzilla::DB::bz_add_field_tables
-use constant MULTI_SELECT_VALUE_TABLE => {
-    FIELDS => [
-        bug_id => {TYPE => 'INT4', NOTNULL => 1},
-        value_id => {TYPE => 'INT4', NOTNULL => 1, DEFAULT => 0},
-    ],
-    INDEXES => [
-        bug_id_idx => {FIELDS => [qw(bug_id value_id)], TYPE => 'UNIQUE'},
-    ],
 };
 
 #--------------------------------------------------------------------------

@@ -148,7 +148,7 @@ sub product_count
     if (!defined $self->{product_count})
     {
         $self->{product_count} = $dbh->selectrow_array(
-            'SELECT COUNT(*) FROM products WHERE classification_id = ?', undef, $self->id
+            'SELECT COUNT(*) FROM products WHERE classification_id=?', undef, $self->id
         ) || 0;
     }
     return $self->{product_count};

@@ -1,35 +1,21 @@
-# Keyword value type, rewritten to be just like normal multi-select value
+# Keyword type, rewritten to be just like normal multi-select value
 # License: Dual-license GPL 3.0+ or MPL 1.1+
 # Contributor(s): Vitaliy Filippov <vitalif@mail.ru>
 
 package Bugzilla::Keyword;
 
 use strict;
-use base qw(Bugzilla::Field::Choice);
+use base qw(Bugzilla::GenericObject);
 
 use Bugzilla::Error;
 use Bugzilla::Util;
 
+use constant NAME_FIELD => 'value';
+use constant LIST_ORDER => 'sortkey, value';
 use constant DB_TABLE => 'keywords';
-use constant FIELD_NAME => 'keywords';
-use constant DB_COLUMNS => (Bugzilla::Field::Choice->DB_COLUMNS, 'description');
-use constant UPDATE_COLUMNS => (Bugzilla::Field::Choice->UPDATE_COLUMNS, 'description');
-use constant REQUIRED_CREATE_FIELDS => qw(value description);
+use constant CLASS_NAME => 'keyword';
 
-use constant VALIDATORS => {
-    %{ Bugzilla::Field::Choice->VALIDATORS },
-    description => \&_check_description,
-};
-
-sub description { $_[0]->{description} }
-sub set_description { $_[0]->set('description', $_[1]); }
-sub _check_description
-{
-    my ($self, $desc) = @_;
-    $desc = trim($desc);
-    $desc eq '' && ThrowUserError("keyword_blank_description");
-    return $desc;
-}
+sub bug_count { $_[0]->{bug_count} }
 
 sub get_all_with_bug_count
 {
@@ -56,7 +42,7 @@ sub get_by_match
     my $dbh = Bugzilla->dbh;
     foreach (@_)
     {
-        push @match_items, "value LIKE ".$dbh->quote($_.'%');
+        push @match_items, $self->NAME_FIELD." LIKE ".$dbh->quote($_.'%');
     }
     if (@match_items)
     {
@@ -85,13 +71,9 @@ Bugzilla::Keyword - A Keyword that can be added to a bug.
 
 Bugzilla::Keyword represents a keyword that can be added to a bug.
 
-This implements all standard C<Bugzilla::Field::Choice> methods.
-
 =head1 SUBROUTINES
 
 This is only a list of subroutines specific to C<Bugzilla::Keyword>.
-See L<Bugzilla::Field::Choice> for more subroutines that this object
-implements.
 
 =over
 

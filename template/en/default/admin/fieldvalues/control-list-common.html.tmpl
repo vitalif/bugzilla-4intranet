@@ -17,9 +17,10 @@
   [% ELSE %]
     <br />
   [% END %]
-  <input type="checkbox" name="is_visible_[% f.name | html %]" id="is_visible_[% f.name | html %]" value="1"
-    [% ' checked="checked"' IF f.has_visibility_value(this_value.id) %] />
-  <label for="is_visible_[% f.name | html %]">[% f.description | html %]</label>
+  <input type="checkbox" name="is_visible_[% this_field.id %]_[% f.name | html %]"
+    id="is_visible_[% this_field.id %]_[% f.name | html %]" value="1"
+    [% " checked" IF f.has_visibility_value(this_value.id) %] />
+  <label for="is_visible_[% this_field.id %]_[% f.name | html %]">[% f.description | html %]</label>
 [% END %]
 [% IF any_field %]
     </td>
@@ -62,9 +63,10 @@
     [% ELSE %]
       <br />
     [% END %]
-    <input type="checkbox" name="is_nullable_[% f.name | html %]" id="is_nullable_[% f.name | html %]" value="1"
-      [% ' checked="checked"' IF f.check_is_nullable(this_value.id) %] />
-    <label for="is_nullable_[% f.name | html %]">[% f.description | html %]</label>
+    <input type="checkbox" name="is_nullable_[% this_field.id %]_[% f.name | html %]"
+      id="is_nullable_[% this_field.id %]_[% f.name | html %]" value="1"
+      [% " checked" IF f.check_is_nullable(this_value.id) %] />
+    <label for="is_nullable_[% this_field.id %]_[% f.name | html %]">[% f.description | html %]</label>
   [% END %]
 [% END %]
 [% IF any_field %]
@@ -86,9 +88,10 @@
     [% ELSE %]
       <br />
     [% END %]
-    <input type="checkbox" name="is_cloned_[% f.name | html %]" id="is_cloned_[% f.name | html %]" value="1"
-      [% ' checked="checked"' IF f.check_clone(this_value.id) %] />
-    <label for="is_cloned_[% f.name | html %]">[% f.description | html %]</label>
+    <input type="checkbox" name="is_cloned_[% this_field.id %]_[% f.name | html %]"
+      id="is_cloned_[% this_field.id %]_[% f.name | html %]" value="1"
+      [% " checked" IF f.check_clone(this_value.id) %] />
+    <label for="is_cloned_[% this_field.id %]_[% f.name | html %]">[% f.description | html %]</label>
   [% END %]
 [% END %]
 [% IF any_field %]
@@ -114,7 +117,7 @@
       <td>
       [% IF f.is_select %]
         [% SET cur_default = f.default_value_hash_for(this_value.id) %]
-        <select name="default_[% f.name | html %]" id="default_[% f.name | html %]"
+        <select name="default_[% this_field.id %]_[% f.name | html %]" id="default_[% this_field.id %]_[% f.name | html %]"
           [% IF f.type == constants.FIELD_TYPE_MULTI_SELECT %] multiple size="5"[% END %]>
           <option value="">---</option>
           [% SET vs = f.value_field_id == f.default_field_id ? f.restricted_legal_values(this_value.id) : f.legal_values %]
@@ -127,9 +130,11 @@
           [% END %]
         </select>
       [% ELSIF f.type == constants.FIELD_TYPE_TEXTAREA %]
-        <textarea cols="50" rows="5" name="default_[% f.name | html %]" id="default_[% f.name | html %]">[% f.get_default_value(this_value.id) | html %]</textarea>
+        <textarea cols="50" rows="5" name="default_[% this_field.id %]_[% f.name | html %]"
+          id="default_[% this_field.id %]_[% f.name | html %]">[% f.get_default_value(this_value.id) | html %]</textarea>
       [% ELSE %]
-        <input type="text" name="default_[% f.name | html %]" id="default_[% f.name | html %]" value="[% f.get_default_value(this_value.id) | html %]" />
+        <input type="text" name="default_[% this_field.id %]_[% f.name | html %]"
+          id="default_[% this_field.id %]_[% f.name | html %]" value="[% f.get_default_value(this_value.id) | html %]" />
       [% END %]
       </td>
     </tr>

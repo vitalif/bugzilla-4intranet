@@ -124,9 +124,12 @@ var constants = {
         <td valign="top">
           [% IF field.id %]
             [% field_types.${field.type} | html %]
+            [% IF field.is_select %]
+            of <a href="editclasses.cgi?id=[% field.value_class.id %]">[% field.value_class.description | html %]</a>
+            [% END %]
           [% ELSE %]
             <select id="type" name="type" onchange="onChangeType()">
-              [% FOREACH type = field_types.sort %]
+              [% FOREACH type = field_types.keys.nsort %]
                 [%# Types "Bug URLs" and "Keywords" are rudiments from original Bugzilla %]
                 [% NEXT IF type == constants.FIELD_TYPE_UNKNOWN ||
                   type == constants.FIELD_TYPE_BUG_URLS ||
@@ -134,14 +137,23 @@ var constants = {
                 <option value="[% type | html %]">[% field_types.$type | html %]</option>
               [% END %]
             </select>
+            <span id="value_class_span">
+              <label for="value_class_id">of</label>
+              <select id="value_class_id" name="value_class_id" onchange="onChangeType()" style="width: 12em">
+                <option value="">(create new class)</option>
+                [% FOREACH c = object_classes.sort %]
+                  <option value="[% c.id | html %]">[% c.description | html %]</option>
+                [% END %]
+              </select>
+            </span>
           [% END %]
         </td>
       </tr>
       [% IF !field.id || field.type && field.type != constants.FIELD_TYPE_BUG_ID_REV %]
-      <tr valign="top" id="add_to_deps_row">
+      <tr id="add_to_deps_row">
         [% IF !field.id || field.type == constants.FIELD_TYPE_BUG_ID %]
         <th align="left"><label for="add_to_deps">Deps:</label></th>
-        <td valign="top">
+        <td>
           <select name="add_to_deps" id="add_to_deps">
             <option value="no" [% ' selected="selected"' IF !field.add_to_deps %]>Do not add</option>
             <option value="blocked" [% ' selected="selected"' IF field.add_to_deps == constants.BUG_ID_ADD_TO_BLOCKED %]>Add field value to blocked</option>
@@ -150,7 +162,7 @@ var constants = {
         </td>
         [% ELSIF field.is_select AND field.name != 'product' AND field.id %]
         <td></td>
-        <td><a href="editvalues.cgi?field=[% field.name | url_quote %]">Edit legal values for this field</a></td>
+        <td><a href="editvalues.cgi?class=[% field.value_class.name | url_quote %]">Edit legal values for this field</a></td>
         [% END %]
       </tr>
       [% END %]

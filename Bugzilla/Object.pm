@@ -336,17 +336,28 @@ sub update
     my $self = shift;
     my (undef, $old_self) = @_;
 
-    my $dbh      = Bugzilla->dbh;
-    my $table    = $self->DB_TABLE;
+    Bugzilla->dbh->bz_start_transaction();
+    # Get a copy of old object from the DB
+    my $old_self = $self->new($self->id);
+    my $changes = $self->_do_update($old_self);
+    Bugzilla->dbh->bz_commit_transaction();
+
+    if (wantarray)
+    {
+        return ($changes, $old_self);
+    }
+
+    return $changes;
+}
+
+sub _do_update
+{
+    my ($self, $old_self) = @_;
+    my $dbh = Bugzilla->dbh;
+    my $table = $self->DB_TABLE;
     my $id_field = $self->ID_FIELD;
-
-    $dbh->bz_start_transaction();
-
-    # Use a copy of old object
-    $old_self ||= $self->new($self->id);
-
     my $numeric = $self->NUMERIC_COLUMNS;
-    my $date    = $self->DATE_COLUMNS;
+    my $date = $self->DATE_COLUMNS;
     my (@update_columns, @values, %changes);
     foreach my $column ($self->UPDATE_COLUMNS)
     {
@@ -376,13 +387,6 @@ sub update
     my $columns = join(', ', map {"$_ = ?"} @update_columns);
 
     $dbh->do("UPDATE $table SET $columns WHERE $id_field = ?", undef, @values, $self->id) if @values;
-
-    $dbh->bz_commit_transaction();
-
-    if (wantarray)
-    {
-        return (\%changes, $old_self);
-    }
 
     return \%changes;
 }

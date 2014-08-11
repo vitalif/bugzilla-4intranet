@@ -129,7 +129,7 @@
         [% END %]
       </td>
     </tr>
-    [% INCLUDE "admin/fieldvalues/control-list-common.html.tmpl" this_field=comp.field this_value=comp %]
+    [% INCLUDE "admin/fieldvalues/control-list-common.html.tmpl" this_field=Bugzilla.get_field('component') this_value=comp %]
     [% END %]
 
   </table>
@@ -148,8 +148,6 @@
 
 </form>
 
-[% PROCESS admin/components/footer.html.tmpl
-  no_edit_component_link = 1
-%]
+[% PROCESS admin/fieldvalues/footer.html.tmpl obj=comp obj_class=Bugzilla.get_class('component') no_edit_other_link=1 no_add_link=1 %]
 
 [% PROCESS global/footer.html.tmpl %]

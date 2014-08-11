@@ -1,0 +1,148 @@
+[%# Generic object field
+  # License: Dual-license GPL 3.0+ or MPL 1.1+
+  # Author: Vitaliy Filippov <vitalif@mail.ru>
+  #%]
+
+[%# INTERFACE:
+  #   obj: the object being displayed.
+  #   field: a Bugzilla::Field object.
+  #   editable: Whether the field should be displayed as an editable <input> or as just the plain text of its value.
+  #   no_tds: boolean; If true, don't display the label <th> or the wrapping <td> for the field.
+  #   desc_url: string; Link for the field label.
+  #   tabindex: (optional) HTML tabindex.
+  #   style: (optional) HTML style for the editbox.
+  #%]
+
+[% IF NOT no_tds %]
+  <th class="field_label" id="field_label_[% field.name | html %]">
+    [% IF editable %]<label for="[% field.name | html %]">[% END %]
+    [% IF desc_url %]<a href="[% desc_url | html %]">[% END -%][% field.description | html %]:[% '</a>' IF desc_url %]
+    [% '</label>' IF editable %]
+  </th>
+  <td class="field_value" id="field_container_[% field.name | html %]">
+[% END %]
+[% IF editable AND field.type != constants.FIELD_TYPE_REVERSE %]
+  [% SWITCH field.type %]
+    [% CASE constants.FIELD_TYPE_FREETEXT %]
+      <input id="[% field.name | html %]" class="text_input"
+        name="[% field.name | html %]"
+        value="[% obj.${field.name} | html %]" size="40"
+        [% IF tabindex %] tabindex="[% tabindex | html %]"[% END %]
+        maxlength="[% constants.MAX_FREETEXT_LENGTH | none %]" />
+    [% CASE [ constants.FIELD_TYPE_NUMERIC, constants.FIELD_TYPE_INTEGER ] %]
+      <input id="[% field.name | html %]" class="numeric_input"
+        name="[% field.name | html %]"
+        value="[% obj.${field.name} | html %]" size="14"
+        [% IF tabindex %] tabindex="[% tabindex | html %]"[% END %]
+        maxlength="[% constants.MAX_NUMERIC_LENGTH | none %]"
+        onchange="this.className = 'numeric_input' + (isNaN(this.value) ? ' numeric_invalid' : '');"
+        onkeyup="this.className = 'numeric_input' + (isNaN(this.value) ? ' numeric_invalid' : '');" />
+    [% CASE constants.FIELD_TYPE_DATETIME %]
+      <input name="[% field.name | html %]" size="20"
+        [% IF tabindex %] tabindex="[% tabindex | html %]"[% END %]
+        id="[% field.name | html %]"
+        value="[% obj.${field.name} | html %]" />
+      <script type="text/javascript">
+        Calendar.set('[% field.name | js %]')
+      </script>
+    [% CASE constants.FIELD_TYPE_TEXTAREA %]
+      [% INCLUDE global/textarea.html.tmpl
+        id = field.name
+        name = field.name
+        minrows = 4
+        maxrows = 8
+        cols = 60
+        defaultcontent = obj.${field.name}
+        tabindex = tabindex %]
+    [% CASE constants.FIELD_TYPE_BOOLEAN %]
+      <input type="checkbox" name="[% field.name | html %]" id="[% field.name | html %]"
+        value="1"[% ' checked="checked"' IF obj.${field.name} %] />
+    [% CASE constants.FIELD_TYPE_EXTURL %]
+      <span id="[% field.name | html %]_input_area">
+        <input name="[% field.name | html %]" id="[% field.name | html %]"
+          [% IF tabindex %] tabindex="[% tabindex | html %]"[% END %]
+          value="[% obj.${field.name} | html %]" size="30" />
+      </span>
+      [% IF obj.${field.name} %]
+        [% SET url_quoted = obj.${field.name} | url_quote_ns %]
+        <a href="[% field.url.replace('\$1', url_quoted) %]">[% obj.${field.name} | html %]</a>
+      [% END %]
+      <span id="[% field.name | html %]_edit_container" class="edit_me bz_default_hidden">
+        (<a href="#" id="[% field.name | html %]_edit_action" [% IF tabindex %] tabindex="[% tabindex | html %]"[% END %]>edit</a>)
+      </span>
+      <script type="text/javascript">
+      hideEditableField(
+        '[% field.name | js %]_edit_container',
+        '[% field.name | js %]_input_area',
+        '[% field.name | js %]_edit_action',
+        '[% field.name | js %]',
+        "[% obj.${field.name} | js %]"
+      );
+      </script>
+    [% CASE [ constants.FIELD_TYPE_SINGLE, constants.FIELD_TYPE_MULTI ] %]
+      [% IF !field.use_autocomplete %]
+        [% IF field.value_field %]
+          [% legal_values = field.restricted_legal_values(obj.get_ids(field.value_field.name)) %]
+        [% ELSE %]
+          [% legal_values = field.legal_values %]
+        [% END %]
+        <select id="[% field.name | html %]"
+          [% IF tabindex %] tabindex="[% tabindex | html %]"[% END %]
+          name="[% field.name | html %]"
+          [% IF style %] style="[% style | html %]"[% END %]
+          [% IF field.type == constants.FIELD_TYPE_MULTI %]
+            size="[% legal_values.size < 5 ? legal_values.size : 5 %]" multiple="multiple"
+          [% END %]>
+          [% IF field.type == constants.FIELD_TYPE_SINGLE_SELECT && field.check_is_nullable(bug) %]
+            <option value="">---</option>
+          [% END %]
+          [% value_hash = {}; FOREACH v = obj.get_object(field.name); value_hash.${v.id} = v; END %]
+          [% FOREACH v = legal_values %]
+            <option value="[% v.id | html %]"
+              [% IF value_hash.${v.id} %]
+                selected="selected"
+                [% value_hash.delete(v.id) %]
+              [% END %]>
+              [% v.name | html %]
+            </option>
+          [% END %]
+          [% IF value_hash.size %]
+            [% FOREACH v = value_hash.values %]
+              <option selected="selected" value="[% v.id | html %]">[% v.name | html %]</option>
+            [% END %]
+          [% END %]
+        </select>
+        [%# When you pass an empty multi-select in the web interface,
+          # it doesn't appear at all in the CGI object. Instead of
+          # forcing all users of process_bug to always specify every
+          # multi-select, we have this field defined if the multi-select
+          # field is defined, and then if this is passed but the multi-select
+          # isn't, we know that the multi-select was emptied.
+        %]
+        [% IF field.type == constants.FIELD_TYPE_MULTI_SELECT %]
+          <input type="hidden" name="defined_[% field.name | html %]" />
+        [% END %]
+      [% ELSE %]
+        <input id="[% field.name | html %]" name="[% field.name | html %]"
+          type="hidden" value="[% obj.get_ids(field.name).join(',') %]" />
+        <input id="[% field.name | html %]_names"
+          value="[% obj.get_string(field.name) | html %]" size="40"
+          [% IF style %] style="[% style | html %]"[% END %]
+          [% IF tabindex %] tabindex="[% tabindex | html %]"[% END %] />
+        <script type="text/javascript">
+          addFieldAutocomplete('[% field.class.name | js %]', '[% field.name | js %]');
+        </script>
+      [% END %]
+    [% END %]
+[% ELSIF field.type == constants.FIELD_TYPE_TEXTAREA %]
+  <div class="uneditable_textarea">[% obj.${field.name} | html | wrap_comment %]</div>
+[% ELSIF field.type == constants.FIELD_TYPE_EXTURL %]
+  [% IF obj.${field.name} %]
+    [% SET url_quoted = obj.${field.name} | url_quote_ns %]
+    <a href="[% field.url.replace('\$1', url_quoted) %]">[% obj.${field.name} | html %]</a>
+  [% END %]
+[% ELSE %]
+  [%# FIXME We need object view links... %]
+  [% obj.get_string(field.name) | html %]
+[% END %]
+[% '</td>' IF NOT no_tds %]

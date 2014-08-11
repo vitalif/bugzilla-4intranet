@@ -20,7 +20,7 @@
 
 =head1 NAME
 
-Bugzilla::Field - a particular piece of information about bugs.
+Bugzilla::Field - a particular piece of information about objects.
 
 =head1 SYNOPSIS
 
@@ -71,7 +71,6 @@ use base qw(Bugzilla::Object);
 use Bugzilla::Constants;
 use Bugzilla::Error;
 use Bugzilla::Util;
-use Bugzilla::Field::Choice;
 
 use Scalar::Util qw(blessed);
 use Encode;
@@ -87,9 +86,11 @@ use constant LIST_ORDER => 'sortkey, name';
 
 use constant DB_COLUMNS => qw(
     id
+    class_id
     name
     description
     type
+    value_class_id
     custom
     mailhead
     sortkey
@@ -108,9 +109,10 @@ use constant DB_COLUMNS => qw(
     clone_field_id
 );
 
-use constant REQUIRED_CREATE_FIELDS => qw(name description);
+use constant REQUIRED_CREATE_FIELDS => qw(class_id name description);
 
 use constant VALIDATORS => {
+    class_id            => \&_check_class_id,
     custom              => \&Bugzilla::Object::check_boolean,
     description         => \&_check_description,
     clone_bug           => \&Bugzilla::Object::check_boolean,
@@ -131,7 +133,8 @@ use constant UPDATE_VALIDATORS => {
     default_value       => \&_check_default_value,
 };
 
-use constant UPDATE_COLUMNS => grep { $_ ne 'id' && $_ ne 'custom' } DB_COLUMNS();
+use constant NO_UPDATE => { id => 1, name => 1, custom => 1, class_id => 1, value_class_id => 1 };
+use constant UPDATE_COLUMNS => grep { !NO_UPDATE->{$_} } DB_COLUMNS();
 
 # How various field types translate into SQL data definitions.
 use constant SQL_DEFINITIONS => {
@@ -144,6 +147,8 @@ use constant SQL_DEFINITIONS => {
     FIELD_TYPE_DATETIME,      { TYPE => 'DATETIME'   },
     FIELD_TYPE_BUG_ID,        { TYPE => 'INT4'       },
     FIELD_TYPE_NUMERIC,       { TYPE => 'DECIMAL(30,10)', NOTNULL => 1, DEFAULT => '0' },
+    FIELD_TYPE_INTEGER,       { TYPE => 'INT4',    NOTNULL => 1, DEFAULT => '0' },
+    FIELD_TYPE_BOOLEAN,       { TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE' },
 };
 
 # Field definitions for the fields that ship with Bugzilla.
@@ -224,6 +229,20 @@ use constant CAN_TWEAK => {
 # Constructors #
 ################
 
+# Field is uniquely identified by class+name, not by just name
+sub _init
+{
+    my $class = shift;
+    my ($param) = @_;
+    if (ref $param eq 'HASH' && defined $param->{name})
+    {
+        my $cl = delete $param->{class_id} || Bugzilla->get_class('bug')->id;
+        $param->{condition} = Bugzilla->dbh->sql_istrcmp('name', '?').' AND class_id=?';
+        $param->{values} = [ delete $param->{name}, $cl ]
+    }
+    return $class->SUPER::_init($param);
+}
+
 # Override match to add is_select.
 sub match
 {
@@ -240,6 +259,14 @@ sub match
 # Validators #
 ##############
 
+sub _check_class_id
+{
+    my ($invocant, $class) = @_;
+    $class = Bugzilla->get_class($class || 'bug');
+    $class || ThrowUserError('field_unknown_class');
+    return $class->id;
+}
+
 sub _check_description
 {
     my ($invocant, $desc) = @_;
@@ -250,33 +277,31 @@ sub _check_description
 
 sub _check_name
 {
-    my ($invocant, $name, $is_custom) = @_;
+    my ($params, $name) = @_;
     $name = lc(clean_text($name));
     $name || ThrowUserError('field_missing_name');
+    $name ne 'id' || ThrowUserError('field_special_name', { name => $name });
 
-    # Don't want to allow a name that might mess up SQL.
-    my $name_regex = qr/^[\w\.]+$/;
-    # Custom fields have more restrictive name requirements than
-    # standard fields.
-    $name_regex = qr/^[a-zA-Z0-9_]+$/ if $is_custom;
-    # Custom fields can't be named just "cf_", and there is no normal
-    # field named just "cf_".
-    if ($name !~ $name_regex || $name eq "cf_")
+    my $is_bug = $params->{class_id} == Bugzilla->get_class('bug')->id;
+    # FIXME . is still allowed in some standard bug fields
+    my $name_regex = $params->{custom} || !$is_bug ? qr/^[a-zA-Z0-9_]+$/ : qr/^[\w\.]+$/;
+    # Bug fields can't be named just "cf_"
+    if ($name !~ $name_regex || $is_bug && $name eq "cf_")
     {
         ThrowUserError('field_invalid_name', { name => $name });
     }
 
-    # If it's custom, prepend cf_ to the custom field name to distinguish
+    # If it's a custom bug field, prepend cf_ to the custom field name to distinguish
     # it from standard fields.
-    if ($name !~ /^cf_/ && $is_custom)
+    if ($is_bug && $name !~ /^cf_/ && $params->{custom})
     {
         $name = 'cf_' . $name;
     }
 
     # Assure the name is unique. Names can't be changed, so we don't have
     # to worry about what to do on updates.
-    my $field = Bugzilla->get_field($name);
-    ThrowUserError('field_already_exists', {'field' => $field }) if $field;
+    my $field = Bugzilla->get_class_field($name, $params->{class_id});
+    ThrowUserError('field_already_exists', { field => $field }) if $field;
 
     return $name;
 }
@@ -284,12 +309,7 @@ sub _check_name
 sub _check_sortkey
 {
     my ($invocant, $sortkey) = @_;
-    my $skey = $sortkey;
-    if (!defined $skey || $skey eq '')
-    {
-        ($sortkey) = Bugzilla->dbh->selectrow_array('SELECT MAX(sortkey) + 100 FROM fielddefs') || 100;
-    }
-    detaint_natural($sortkey) || ThrowUserError('field_invalid_sortkey', { sortkey => $skey });
+    !defined($sortkey) || detaint_natural($sortkey) || ThrowUserError('field_invalid_sortkey', { sortkey => $sortkey });
     return $sortkey;
 }
 
@@ -306,7 +326,7 @@ sub _check_type
     # higher field type is added.
     if (!detaint_natural($type) || $type <= FIELD_TYPE_UNKNOWN ||
         $type > FIELD_TYPE_KEYWORDS && $type < FIELD_TYPE_NUMERIC ||
-        $type > FIELD_TYPE_BUG_ID_REV)
+        $type > FIELD_TYPE_INTEGER)
     {
         ThrowCodeError('invalid_customfield_type', { type => $saved_type });
     }
@@ -320,31 +340,32 @@ sub _check_type
 
 sub _check_value_field_id
 {
-    my ($invocant, $field_id, undef, $type) = @_;
-    $type = $invocant->type if !defined $type;
-    if ($type == FIELD_TYPE_BUG_ID_REV)
+    my ($params, $field_id) = @_;
+    my $type = $params->{type} || 0;
+    if ($type == FIELD_TYPE_REVERSE)
     {
-        # For fields of type "reverse relation of BUG_ID field"
-        # value_field indicates the needed direct relation
+        # For reverse relationship fields value_field is the corresponding direct relationship
         my $field = Bugzilla->get_field(trim($field_id));
-        if (!$field || $field->type != FIELD_TYPE_BUG_ID)
+        if (!$field || !($field->type == FIELD_TYPE_SINGLE ||
+            Bugzilla->get_class($params->{class_id})->name eq 'bug' && $field->type == FIELD_TYPE_BUG_ID) ||
+            $field->value_class_id != $params->{class_id})
         {
             ThrowUserError('direct_field_needed_for_reverse');
         }
-        for (Bugzilla->get_fields({ type => FIELD_TYPE_BUG_ID_REV, value_field_id => $field->id }))
+        for (Bugzilla->get_fields({ class_id => $params->{class_id}, type => FIELD_TYPE_REVERSE, value_field_id => $field->id }))
         {
-            if (!ref $invocant || $_->id != $invocant->id)
+            if (!ref $params || $_->id != $params->id)
             {
                 ThrowUserError('duplicate_reverse_field');
             }
         }
         return $field->id;
     }
-    if ($field_id && $type != FIELD_TYPE_SINGLE_SELECT && $type != FIELD_TYPE_MULTI_SELECT)
+    if ($field_id && $type != FIELD_TYPE_SINGLE && $type != FIELD_TYPE_MULTI)
     {
         ThrowUserError('field_value_control_select_only');
     }
-    return $invocant->_check_visibility_field_id($field_id);
+    return _check_visibility_field_id($params, $field_id);
 }
 
 sub _check_visibility_field_id
@@ -361,6 +382,10 @@ sub _check_visibility_field_id
     {
         ThrowUserError('field_control_must_be_select', { field => $field });
     }
+    if ($invocant->{class_id} != $field->class_id)
+    {
+        ThrowUserError('field_control_other_class', { field => $field });
+    }
     return $field->id;
 }
 
@@ -374,19 +399,19 @@ sub _check_add_to_deps
 sub _check_default_value
 {
     my ($self, $value) = @_;
-    if ($self->type == FIELD_TYPE_SINGLE_SELECT)
+    if ($self->type == FIELD_TYPE_SINGLE)
     {
         # ID
         detaint_natural($value) || undef;
     }
-    elsif ($self->type == FIELD_TYPE_MULTI_SELECT)
+    elsif ($self->type == FIELD_TYPE_MULTI)
     {
         # Array of IDs
         $value = [ $value ] if !ref $value;
         detaint_natural($_) for @$value;
         $value = @$value ? join(',', sort @$value) : undef;
     }
-    elsif ($self->type == FIELD_TYPE_BUG_ID_REV)
+    elsif ($self->type == FIELD_TYPE_REVERSE)
     {
         return undef;
     }
@@ -405,6 +430,21 @@ The name of the field in the database; begins with "cf_" if field
 is a custom field, but test the value of the boolean "custom" property
 to determine if a given field is a custom field
 
+=item B<db_column>
+
+Name of the DB column of object table this field value is stored in, if appropriate
+
+FIXME: db_column is now equal to field name, and current code relies on it in many places
+
+=item B<rel_table>
+
+Only for many-to-many ("multiselect") fields. Name of the DB table ID pairs
+are stored in.
+
+=item B<class_id>, B<class>
+
+Class that this field is a property of
+
 =item B<description>
 
 A short string describing the field; displayed to Bugzilla users
@@ -415,6 +455,11 @@ on the "show bug" page
 
 An integer specifying the kind of field this is; values correspond to
 the FIELD_TYPE_* constants in Constants.pm
+
+=item B<value_class_id>, B<value_class>, B<value_type>
+
+Type ID, Bugzilla::Class object and package name of value class
+for FIELD_TYPE_SINGLE and FIELD_TYPE_MULTI fields
 
 =item B<custom>
 
@@ -500,12 +545,52 @@ A select field that controls the default value for this field.
 
 A select field that enables or disables copying of this field value when cloning bugs.
 
+=item C<type>
+
+an integer specifying the kind of field this is; values correspond to
+the FIELD_TYPE_* constants in Constants.pm
+
+=item C<custom>
+
+a boolean specifying whether or not the field is a custom field;
+if true, field name should start "cf_", but use this property to determine
+which fields are custom fields
+
+=item C<in_new_bugmail>
+
+a boolean specifying whether or not the field is displayed in bugmail
+for newly-created bugs;
+
+=item C<sortkey>
+
+an integer specifying the sortkey of the field
+
+=item C<obsolete>
+
+a boolean specifying whether or not the field is obsolete (disabled and unused in the UI)
+
+=item C<enabled>
+
+the reverse of obsolete
+
+=item C<nullable>
+
+a boolean specifying whether empty value is allowed for this field
+
+=item C<is_mandatory>
+
+the reverse of nullable
+
 =back
 
 =cut
 
+sub class_id            { $_[0]->{class_id} }
+sub class               { Bugzilla->get_class($_[0]->{class_id}) }
 sub description         { $_[0]->{description} }
 sub type                { $_[0]->{type} }
+sub value_class_id      { $_[0]->{value_class_id} }
+sub value_class         { $_[0]->{value_class_id} && Bugzilla->get_class($_[0]->{value_class_id}) }
 sub custom              { $_[0]->{custom} }
 sub in_new_bugmail      { $_[0]->{mailhead} }
 sub sortkey             { $_[0]->{sortkey} }
@@ -514,7 +599,7 @@ sub enabled             { !$_[0]->{obsolete} }
 sub nullable            { !$_[0]->type && $_[0]->custom || $_[0]->type == FIELD_TYPE_BUG_ID_REV || !$_[0]->{is_mandatory} }
 sub is_mandatory        { !$_[0]->nullable }
 sub clone_bug           { $_[0]->{clone_bug} }
-sub is_select           { $_[0]->type == FIELD_TYPE_SINGLE_SELECT || $_[0]->type == FIELD_TYPE_MULTI_SELECT }
+sub is_select           { $_[0]->type == FIELD_TYPE_SINGLE || $_[0]->type == FIELD_TYPE_MULTI }
 sub has_activity        { $_[0]->{has_activity} }
 sub add_to_deps         { $_[0]->type == FIELD_TYPE_BUG_ID && $_[0]->{add_to_deps} }
 sub url                 { $_[0]->{url} }
@@ -530,11 +615,40 @@ sub null_field          { $_[0]->{null_field_id} && Bugzilla->get_field($_[0]->{
 sub default_field       { $_[0]->{default_field_id} && Bugzilla->get_field($_[0]->{default_field_id}) }
 sub clone_field         { $_[0]->{clone_field_id} && Bugzilla->get_field($_[0]->{clone_field_id}) }
 
+sub db_column
+{
+    my $self = shift;
+    return undef if $self->{type} == FIELD_TYPE_MULTI || $self->{type} == FIELD_TYPE_REVERSE;
+    return $self->{name}.'_id' if $self->class->name eq 'bug' && ($self->{name} eq 'component' || $self->{name} eq 'product');
+    return $self->{name};
+}
+
+# Methods describing relationship table for multi-select fields
+sub rel_table
+{
+    $_[0]->{type} == FIELD_TYPE_MULTI ? $_[0]->class->name.'_'.$_[0]->{name} : undef
+}
+
+sub rel_object_id
+{
+    my $self = shift;
+    return 'component_id' if $self->name eq 'cc' && $self->class->name eq 'component';
+    return 'bug_id' if $self->class->name eq 'bug';
+    return 'object_id';
+}
+
+sub rel_value_id
+{
+    my $self = shift;
+    return 'user_id' if $self->name eq 'cc' && $self->class->name eq 'component';
+    return 'object_id';
+}
+
 # Value class for this field
 sub value_type
 {
     my $self = shift;
-    return Bugzilla::Field::Choice->type($self);
+    return $self->value_class->type if $self->{value_class_id};
 }
 
 # Checks if a certain property can be changed for this field (either it is custom or standard)
@@ -542,18 +656,20 @@ sub can_tweak
 {
     my $self = shift;
     my ($prop) = @_;
-    return $self->name !~ /^attachments\./ && $self->name ne 'longdesc' if $prop eq 'mailhead';
     $prop = 'clone_bug' if $prop eq 'clone_field_id';
     $prop = 'nullable' if $prop eq 'null_field_id';
-    return 0 if !$self->custom && !CAN_TWEAK->{$prop}->{$self->name};
+    if ($self->class->name eq 'bug')
+    {
+        return $self->name !~ /^attachments\./ && $self->name ne 'longdesc' if $prop eq 'mailhead';
+        return 0 if !$self->custom && !CAN_TWEAK->{$prop}->{$self->name};
+    }
     return $self->type && $self->type != FIELD_TYPE_BUG_ID_REV if $prop eq 'default_value' || $prop eq 'nullable';
     return $self->is_select if $prop eq 'value_field_id';
     return 1;
 }
 
-# Return valid values for this field, arrayref of Bugzilla::Field::Choice objects,
-# filtered by the current user's permissions.
-# Includes disabled values is $include_disabled == true
+# Return valid values for this field as an arrayref of value type objects.
+# Includes disabled values if $include_disabled == true
 sub legal_values
 {
     my $self = shift;
@@ -651,7 +767,7 @@ sub is_value_enabled
     return $hash && grep { $hash->{ref $_ ? $_->id : $_} } list $visibility_values;
 }
 
-# Check visibility of field for a bug or for a hashref with default value names
+# Check visibility of field for an object or for a hashref with default value names
 sub check_visibility
 {
     my $self = shift;
@@ -661,7 +777,7 @@ sub check_visibility
     return $value ? $self->has_visibility_value($value) : 1;
 }
 
-# Check if a field is nullable for a bug or for a hashref with default value names
+# Check if a field is nullable for an object or for a hashref with default value names
 sub check_is_nullable
 {
     my $self = shift;
@@ -673,7 +789,7 @@ sub check_is_nullable
     return $value ? $self->null_visibility_values->{$value} : 1;
 }
 
-# Check if a field should be copied when cloning $bug
+# Check if a field should be copied when cloning an object
 sub check_clone
 {
     my $self = shift;
@@ -685,12 +801,12 @@ sub check_clone
     return $value ? $self->clone_visibility_values->{$value} : 1;
 }
 
-# Get default value for this field in bug $bug
+# Get default value for this field in object $bug
 sub get_default_value
 {
     my $self = shift;
-    my ($bug, $useGlobal) = @_;
-    my $default = $useGlobal ? $self->default_value : undef;
+    my ($bug, $use_global) = @_;
+    my $default = $use_global ? $self->default_value : undef;
     if ($self->default_field_id)
     {
         my $value = bug_or_hash_value($bug, $self->default_field);
@@ -794,7 +910,7 @@ sub _set_type
 
 Attempts to remove the passed in field from the database.
 Deleting a field is only successful if the field is obsolete and
-there are no values specified for the field.
+there are no values specified for it.
 
 =item B<update()>
 
@@ -857,55 +973,45 @@ sub remove_from_db
 
     $dbh->bz_start_transaction();
 
-    if ($self->type != FIELD_TYPE_BUG_ID_REV)
+    if ($self->type != FIELD_TYPE_REVERSE)
     {
-        # Check to see if bugs table has records (slow)
-        my $bugs_query = "";
-
-        if ($self->type == FIELD_TYPE_MULTI_SELECT)
+        # Check to see if object table has records
+        my $sql = "";
+        if ($self->type == FIELD_TYPE_MULTI)
         {
-            $bugs_query = "SELECT COUNT(*) FROM bug_$name";
+            $sql = "SELECT COUNT(*) FROM ".$self->rel_table;
         }
         else
         {
-            $bugs_query = "SELECT COUNT(*) FROM bugs WHERE $name IS NOT NULL";
-            if ($self->type != FIELD_TYPE_BUG_ID && $self->type != FIELD_TYPE_DATETIME)
+            $sql = "SELECT COUNT(*) FROM ".$self->class->db_table." WHERE ".$self->db_column." IS NOT NULL";
+            if ($self->type != FIELD_TYPE_SINGLE &&
+                $self->type != FIELD_TYPE_BUG_ID && $self->type != FIELD_TYPE_DATETIME)
             {
-                $bugs_query .= " AND $name != ''";
+                $sql .= " AND ".$self->db_column." != ''";
             }
         }
-
-        my $has_bugs = $dbh->selectrow_array($bugs_query);
-        if ($has_bugs)
+        my ($has_objects) = $dbh->selectrow_array($sql);
+        if ($has_objects)
         {
-            ThrowUserError('customfield_has_contents', { name => $name });
+            ThrowUserError('customfield_has_contents', { field => $self });
         }
     }
 
     # Once we reach here, we should be OK to delete.
     $dbh->do('DELETE FROM fielddefs WHERE id = ?', undef, $self->id);
 
-    my $type = $self->type;
-
-    # the values for multi-select are stored in a seperate table
-    if ($type != FIELD_TYPE_MULTI_SELECT)
+    # the values for multi-select are stored in a separate table
+    if ($self->type == FIELD_TYPE_MULTI)
     {
-        $dbh->bz_drop_column('bugs', $name);
+        $dbh->bz_drop_table($self->rel_table);
     }
-
-    if ($self->is_select)
+    if (SQL_DEFINITIONS->{$self->type})
     {
-        # Delete the table that holds the legal values for this field.
-        $dbh->bz_drop_field_tables($self);
+        $dbh->bz_drop_column($self->class->db_table, $self->db_column);
     }
-
-    $self->set_visibility_values(undef);
-    $self->set_null_visibility_values(undef);
-    $self->set_clone_visibility_values(undef);
 
     # Update some other field (refresh the cache)
-    Bugzilla->get_field('delta_ts')->touch;
-    Bugzilla->refresh_cache_fields;
+    Bugzilla->get_class_field($self->class->type->ID_FIELD, $self->class->id)->touch;
 
     $dbh->bz_commit_transaction();
 }
@@ -925,7 +1031,7 @@ sub update
     }
     my ($changes, $old_self) = $self->SUPER::update(@_);
     Bugzilla->refresh_cache_fields;
-    if ($self->{name} eq 'classification')
+    if ($self->{name} eq 'classification' && $self->class->name eq 'bug')
     {
         my $prod = Bugzilla->get_field('product');
         $prod->set_value_field($self->obsolete ? undef : $self->id);
@@ -988,6 +1094,20 @@ sub clear_default_values
 {
     my $self = shift;
     Bugzilla->dbh->do("DELETE FROM field_defaults WHERE field_id=?", undef, $self->id);
+}
+
+sub count_value_objects
+{
+    my $self = shift;
+    return 0 if !$self->is_select;
+    my ($value_id) = @_;
+    my ($n) = Bugzilla->dbh->selectrow_array(
+        "SELECT COUNT(*) FROM ".
+        ($self->type == FIELD_TYPE_MULTI ? $self->rel_table : $self->class->db_table).
+        " WHERE ".($self->type == FIELD_TYPE_MULTI ? $self->rel_value_id : $self->db_column)."=?",
+        undef, $value_id
+    );
+    return $n;
 }
 
 sub update_visibility_values
@@ -1085,19 +1205,23 @@ sub update_control_lists
     $controlling_value_id = $self->value_type->new($controlling_value_id);
     $controlling_value_id = $controlling_value_id ? $controlling_value_id->id : return undef;
     # Save all visible, nullable and clone flags at once
+    my %p = (class_id => $self->class_id, obsolete => 0);
     my $mod = { del => [], add => [] };
     my $rpt = {};
     my $h = Bugzilla->fieldvaluecontrol->{$self->id};
+    # Include field ID in parameter names so control lists of the same object
+    # for different fields could be edited from the page
+    my $suff = '_'.$self->id.'_';
     for my $flag ([ 'visibility_field_id', 'is_visible', 'fields', FLAG_VISIBLE ],
         [ 'null_field_id', 'is_nullable', 'null', FLAG_NULLABLE ],
         [ 'clone_field_id', 'is_cloned', 'clone', FLAG_CLONED ])
     {
-        for my $f (Bugzilla->get_fields({ obsolete => 0, $flag->[0] => $self->id }))
+        for my $f (Bugzilla->get_fields({ %p, $flag->[0] => $self->id }))
         {
-            if ((1 && $params->{$flag->[1].'_'.$f->name}) != ($h->{$flag->[2]} &&
+            if ((1 && $params->{$flag->[1].$suff.$f->name}) != ($h->{$flag->[2]} &&
                 $h->{$flag->[2]}->{$f->id} && $h->{$flag->[2]}->{$f->id}->{$controlling_value_id}))
             {
-                my $ad = $params->{$flag->[1].'_'.$f->name} ? 'add' : 'del';
+                my $ad = $params->{$flag->[1].$suff.$f->name} ? 'add' : 'del';
                 push @{$rpt->{$ad.'_'.$flag->[1]}}, $f->id;
                 push @{$mod->{$ad}}, [ $f->id, $flag->[3] ];
             }
@@ -1122,9 +1246,9 @@ sub update_control_lists
     my $touched = { map { $_->[0] => 1 } (@{$mod->{add}}, @{$mod->{del}}) };
     my $def = { del => [], add => [] };
     $h = Bugzilla->fieldvaluecontrol->{$self->id}->{defaults};
-    for my $f (Bugzilla->get_fields({ obsolete => 0, default_field_id => $self->id }))
+    for my $f (Bugzilla->get_fields({ %p, default_field_id => $self->id }))
     {
-        my $default = $params->{'default_'.$f->name};
+        my $default = $params->{'default'.$suff.$f->name};
         $default = $f->_check_default_value($default);
         if ($default ne ($h->{$f->id} && $h->{$f->id}->{$controlling_value_id} || ''))
         {
@@ -1271,28 +1395,67 @@ sub create
     my $dbh = Bugzilla->dbh;
     if ($obj->custom)
     {
-        my $name = $obj->name;
+        # Check if we need to make a value class for this field
+        if ($obj->is_select && !$obj->value_class_id)
+        {
+            my $def = Bugzilla::Class->STD_SELECT_CLASS;
+            my $cl = Bugzilla::Class->new;
+            $cl->set('name', $obj->name);
+            $cl->set('description', $obj->description);
+            $cl->update;
+            for my $f (@{$def->{fields}})
+            {
+                Bugzilla::Field->create({
+                    class_id    => $cl->id,
+                    name        => $f->[0],
+                    description => $f->[1],
+                    type        => $f->[2],
+                    custom      => 1,
+                });
+            }
+            $params->{value_class_id} = $cl->id;
+            $cl->set('name_field_id', $def->{name_field_id});
+            $cl->set('list_order', $def->{list_order});
+            $cl->update;
+        }
         my $type = $obj->type;
         if (SQL_DEFINITIONS->{$type})
         {
             # Create the database column that stores the data for this field.
-            $dbh->bz_add_column('bugs', $name, SQL_DEFINITIONS->{$type});
+            $dbh->bz_add_column($obj->class->db_table, $obj->db_column, SQL_DEFINITIONS->{$type});
+            # Add foreign key
+            if ($type == FIELD_TYPE_SINGLE || $type == FIELD_TYPE_BUG_ID)
+            {
+                my $vt = $type == FIELD_TYPE_SINGLE ? $obj->value_type : 'Bugzilla::Bug';
+                $dbh->bz_add_fk($obj->class->db_table, $obj->db_column, {
+                    TABLE => $obj->value_type->DB_TABLE,
+                    COLUMN => $obj->value_type->ID_FIELD,
+                });
+            }
         }
-
-        if ($obj->is_select)
+        elsif ($type == FIELD_TYPE_MULTI)
         {
-            # Create the table that holds the legal values for this field.
-            $dbh->bz_add_field_tables($obj);
-        }
-
-        # Add foreign keys
-        if ($type == FIELD_TYPE_SINGLE_SELECT)
-        {
-            $dbh->bz_add_fk('bugs', $name, { TABLE => $obj->name, COLUMN => 'id' });
-        }
-        elsif ($type == FIELD_TYPE_BUG_ID)
-        {
-            $dbh->bz_add_fk('bugs', $name, { TABLE => 'bugs', COLUMN => 'bug_id' });
+            # Add many-to-many relationship table
+            my $ms_table = $obj->rel_table;
+            $dbh->_bz_add_field_table($ms_table, {
+                FIELDS => [
+                    $obj->rel_object_id => {TYPE => 'INT4', NOTNULL => 1},
+                    $obj->rel_value_id => {TYPE => 'INT4', NOTNULL => 1, DEFAULT => 0},
+                ],
+                INDEXES => [
+                    PRIMARY => [ $obj->rel_object_id, $obj->rel_value_id ],
+                ],
+            });
+            $dbh->bz_add_fk($ms_table, $obj->rel_object_id, {
+                TABLE => $obj->class->db_table,
+                COLUMN => $obj->class->type->ID_FIELD,
+                DELETE => 'CASCADE',
+            });
+            $dbh->bz_add_fk($ms_table, $obj->rel_value_id, {
+                TABLE => $obj->value_class->db_table,
+                COLUMN => $obj->value_type->ID_FIELD,
+                DELETE => 'CASCADE',
+            });
         }
     }
 
@@ -1311,20 +1474,28 @@ sub run_create_validators
     my $dbh = Bugzilla->dbh;
     my $params = $class->SUPER::run_create_validators(@_);
 
-    $params->{name} = $class->_check_name($params->{name}, $params->{custom});
+    $params->{name} = _check_name($params, $params->{name});
     if (!exists $params->{sortkey})
     {
-        $params->{sortkey} = $dbh->selectrow_array("SELECT MAX(sortkey) + 100 FROM fielddefs") || 100;
+        $params->{sortkey} = $dbh->selectrow_array(
+            "SELECT MAX(sortkey) + 100 FROM fielddefs WHERE class_id=?",
+            undef, $params->{class_id}
+        ) || 100;
     }
 
     my $type = $params->{type} || 0;
+    my $is_bug = Bugzilla->get_class($params->{class_id})->name eq 'bug';
 
-    if ($params->{custom} && !$type)
+    if (($params->{custom} || !$is_bug) && !$type)
     {
         ThrowCodeError('field_type_not_specified');
     }
+    if ($type == FIELD_TYPE_BUG_ID && !$is_bug)
+    {
+        ThrowUserError('invalid_customfield_type', { type => FIELD_TYPE_BUG_ID });
+    }
 
-    $params->{value_field_id} = $class->_check_value_field_id($params->{value_field_id}, undef, $type);
+    $params->{value_field_id} = _check_value_field_id($params, $params->{value_field_id});
 
     # FIXME Merge something like VALIDATOR_DEPENDENCIES from 4.4
     if ($type != FIELD_TYPE_BUG_ID)
@@ -1336,8 +1507,20 @@ sub run_create_validators
         $params->{url} = undef;
     }
 
-    # Check default value
-    if ($type == FIELD_TYPE_SINGLE_SELECT || $type == FIELD_TYPE_MULTI_SELECT ||
+    # Check value class
+    if (($type == FIELD_TYPE_SINGLE || $type == FIELD_TYPE_MULTI) &&
+        $params->{value_class_id})
+    {
+        my $cl = Bugzilla->get_class($params->{value_class_id});
+        if (!$cl)
+        {
+            ThrowUserError('field_unknown_value_class');
+        }
+        $params->{value_class_id} = $cl->id;
+    }
+
+    # Initial default value is empty for all select fields
+    if ($type == FIELD_TYPE_SINGLE || $type == FIELD_TYPE_MULTI ||
         $type == FIELD_TYPE_BUG_ID_REV)
     {
         $params->{default_value} = undef;
@@ -1352,14 +1535,27 @@ sub populate_field_definitions
 {
     my $dbh = Bugzilla->dbh;
 
-    my ($has_clone_bug) = $dbh->selectrow_array('SELECT 1 FROM fielddefs WHERE clone_bug=1 AND custom=0');
+    my $cl;
+    if (!($cl = Bugzilla->get_class('bug')))
+    {
+        $cl = Bugzilla::Class->new;
+        $cl->set_all({
+            name => 'bug',
+            description => 'Bug',
+        });
+        $cl->update;
+    }
+
+    my ($has_clone_bug) = $dbh->selectrow_array(
+        'SELECT 1 FROM fielddefs WHERE class_id=? AND clone_bug=1 AND custom=0', undef, $cl->id
+    );
 
     # Add/update field definitions
     my $i = 0;
     foreach my $def (DEFAULT_FIELDS())
     {
         $i++;
-        my $field = new Bugzilla::Field({ name => $def->{name} });
+        my $field = new Bugzilla::Field({ class_id => $cl->id, name => $def->{name} });
         if ($field)
         {
             $field->_set_type($def->{type}) if $def->{type};
@@ -1376,7 +1572,10 @@ sub populate_field_definitions
             {
                 if ($def->{$_} && !$field->{$_.'_id'})
                 {
-                    $field->set($_.'_id', $dbh->selectrow_array('SELECT id FROM fielddefs WHERE name=?', undef, $def->{$_}));
+                    $field->set($_.'_id', $dbh->selectrow_array(
+                        'SELECT id FROM fielddefs WHERE class_id=? AND name=?',
+                        undef, $cl->id, $def->{$_}
+                    ));
                 }
             }
             $field->update();
@@ -1388,6 +1587,7 @@ sub populate_field_definitions
             {
                 $copy->{$_.'_id'} = $dbh->selectrow_array('SELECT id FROM fielddefs WHERE name=?', undef, delete $copy->{$_});
             }
+            $copy->{class_id} = $cl->id;
             Bugzilla::Field->create($copy);
         }
     }
@@ -1458,6 +1658,7 @@ sub populate_field_definitions
     unless (new Bugzilla::Field({ name => $new_field_name }))
     {
         Bugzilla::Field->create({
+            class_id => $cl->id,
             name => $new_field_name,
             description => $field_description
         });
@@ -1466,7 +1667,7 @@ sub populate_field_definitions
     # DELETE fields which were added only accidentally, or which
     # were never (or almost never) tracked in bugs_activity.
 
-    my $names = "name IN ('cc_accessible', 'requesters.login_name',
+    my $names = "class_id=".int($cl->id)." AND name IN ('cc_accessible', 'requesters.login_name',
         'attachments.thedata', 'attach_data.thedata', 'content', 'requestees.login_name',
         'setters.login_name', 'longdescs.isprivate', 'assignee_accessible', 'qacontact_accessible',
         'commenter', 'owner_idle_time', 'attachments.submitter', 'days_elapsed', 'percentage_complete')";

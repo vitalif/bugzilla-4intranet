@@ -1,55 +1,57 @@
-[%# The contents of this file are subject to the Mozilla Public
-  # License Version 1.1 (the "License"); you may not use this file
-  # except in compliance with the License. You may obtain a copy of
-  # the License at http://www.mozilla.org/MPL/
-  #
-  # Software distributed under the License is distributed on an "AS
-  # IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-  # implied. See the License for the specific language governing
-  # rights and limitations under the License.
-  #
-  # The Original Code is the Bugzilla Bug Tracking System.
-  #
-  # Contributor(s): Max Kanat-Alexander <mkanat@bugzilla.org>
-  #%]
+[%# Footer for simple generic CRUD UI
+  # License: Dual-license GPL 3.0+ or MPL 1.1+
+  # Author: Vitaliy Filippov <vitalif@mail.ru>
+  # %]
 
 [%# INTERFACE:
-  # value: string; the value being inserted/edited.
-  # field: object; the field which the value belongs/belonged to.
-  #
-  # no_XXX_link: boolean; if defined, then don't show the corresponding
-  #                       link. Supported parameters are:
-  #
+  # obj: object; the object being inserted/edited.
+  # obj_class: object; the class to which the object belongs/belonged to.
   # no_edit_link
   # no_edit_other_link
   # no_add_link
   #%]
 
-<hr>
+<hr />
 
+[% IF obj && (!no_history_link || !no_edit_link) %]
 <p>
-
-[% UNLESS no_add_link %]
-  <a title="Add a value for the '[% field.description FILTER html %]' field."
-     href="editvalues.cgi?action=add&amp;field=
-          [%- field.name FILTER url_quote %]">Add</a> a value.
+[% IF !no_history_link %]
+  View <a href="show_activity.cgi?class=[% obj_class.name | url_quote %]&id=[% obj.id %]">change history</a> of
+  [%+ obj_class.description | html %] '[% obj.name || ('#' _ obj.id) | html %]'.
 [% END %]
 
-[% IF value.defined && !no_edit_link %]
-  Edit value <a 
-  title="Edit value '[% value.name FILTER html %]' for the '
-         [%- field.name FILTER html %]' field"
-  href="editvalues.cgi?action=edit&amp;field=
-        [%- field.name FILTER url_quote %]&amp;value=
-        [%- value.name FILTER url_quote %]">
-        '[% value.name FILTER html %]'</a>.
+[% IF !no_edit_link %]
+  [% IF obj_class.name == 'product' %]
+  <a href="editproducts.cgi?action=edit&product=[% obj.name | uri %]">
+    Edit product '[% obj.name | html %]'</a>.
+  [% ELSIF obj_class.name == 'classification' %]
+  <a href="editclassifications.cgi?action=edit&classification=[% obj.name | uri %]">
+    Edit classification '[% obj.name | html %]'</a>.
+  [% ELSIF obj_class.name == 'component' %]
+  <a href="editcomponents.cgi?action=edit&product=[% obj.product.name | uri %]&component=[% obj.name | uri %]">
+    Edit component '[% obj.name | html %]'</a>.
+  <a href="editproducts.cgi?action=edit&product=[% obj.product.name | uri %]">
+    Edit product '[% obj.product.name | html %]'</a>.
+  [% ELSE %]
+  <a href="editvalues.cgi?action=edit&class=[% obj_class.name | uri %]&id=[% obj.id | uri %]">
+    Edit [% obj_class.description | html %] '[% obj.name || ('#' _ obj.id) | html %]'</a>.
+  [% END %]
 [% END %]
-
-[% UNLESS no_edit_other_link %]
-  Edit other values for the <a 
-  href="editvalues.cgi?field=
-        [%- field.name FILTER url_quote %]">'[% field.description FILTER html %]'</a> field.
-
-[% END %]
-
 </p>
+[% END %]
+
+[% IF !no_add_link || !no_edit_other_link %]
+<p>
+  [% IF !no_add_link %]
+  <a title="Add a new [% obj_class.description | html %]."
+    href="editvalues.cgi?action=add&class=[% obj_class.name | url_quote %][% IF product %]&product_id=[% product.id %][% END %]">
+    Add a new [% obj_class.description | html %]
+    [% IF product %] for product [% product.name | html %][% END %]</a>.
+  [% END %]
+  [% IF !no_edit_other_link %]
+  <a href="editvalues.cgi?class=[% obj_class.name | url_quote %][% IF product %]&product_id=[% product.id %][% END %]">
+    Edit other objects of class [% obj_class.description | html %]</a>
+    [% IF product %] for product <a href="editproducts.cgi?action=edit&product=[% product.name | url_quote %]">[% product.name | html %]</a>[% END %].
+  [% END %]
+</p>
+[% END %]

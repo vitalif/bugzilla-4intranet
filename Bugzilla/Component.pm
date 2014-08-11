@@ -1,25 +1,16 @@
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-#
-# Contributor(s): Tiago R. Mello <timello@async.com.br>
-#                 Frédéric Buclin <LpSolit@gmail.com>
-#                 Max Kanat-Alexander <mkanat@bugzilla.org>
-#                 Akamai Technologies <bugzilla-dev@akamai.com>
-
-use strict;
+# Bugzilla Component class, based on GenericObject
+# License: MPL 1.1
+# Author(s): Vitaliy Filippov <vitalif@mail.ru>
+#   still contains some original code from:
+#   Tiago R. Mello <timello@async.com.br>
+#   Frédéric Buclin <LpSolit@gmail.com>
+#   Max Kanat-Alexander <mkanat@bugzilla.org>
+#   Akamai Technologies <bugzilla-dev@akamai.com>
 
 package Bugzilla::Component;
 
-use base qw(Bugzilla::Field::Choice);
+use strict;
+use base qw(Bugzilla::GenericObject);
 
 use Bugzilla::Constants;
 use Bugzilla::Util;
@@ -29,58 +20,25 @@ use Bugzilla::FlagType;
 use Bugzilla::FlagType::UserList;
 use Bugzilla::Series;
 
-###############################
-####    Initialization     ####
-###############################
-
 use constant DB_TABLE => 'components';
-use constant FIELD_NAME => 'component';
 use constant NAME_FIELD => 'name';
-
 use constant LIST_ORDER => 'product_id, name';
+use constant CLASS_NAME => 'component';
 
-sub DB_COLUMNS() { qw(
-    id
-    name
-    product_id
-    initialowner
-    initialqacontact
-    description
-    wiki_url
-    isactive
-) }
-
-use constant REQUIRED_CREATE_FIELDS => qw(
-    name
-    product
-    initialowner
-    description
-);
-
-use constant UPDATE_COLUMNS => qw(
-    name
-    initialowner
-    initialqacontact
-    description
-    wiki_url
-    isactive
-);
-
-use constant VALIDATORS => {
-    create_series    => \&Bugzilla::Object::check_boolean,
-    product          => \&_check_product,
-    initialowner     => \&_check_initialowner,
-    initialqacontact => \&_check_initialqacontact,
-    description      => \&_check_description,
-    initial_cc       => \&_check_cc_list,
-    isactive         => \&Bugzilla::Object::check_boolean,
+use constant OVERRIDE_SETTERS => {
+    name => \&_set_name,
+    description => \&_set_description,
+    initialowner => \&_set_initialowner,
+    initialqacontact => \&_set_initialqacontact,
+    product_id => \&_set_product_id,
+    cc_list => \&_set_cc_list,
 };
 
-use constant UPDATE_VALIDATORS => {
-    name             => \&_check_name,
-};
-
-###############################
+sub DEPENDENCIES
+{
+    my ($deps) = @_;
+    $deps->{name}->{product_id} = 1;
+}
 
 sub new
 {
@@ -113,73 +71,15 @@ sub new
         $param = { condition => $condition, values => \@values };
     }
 
-    unshift @_, $param;
-    my $component = $class->SUPER::new(@_);
-    # Add the product object as attribute only if the component exists.
-    $component->{product} = $product if ($component && $product);
-    return $component;
-}
-
-sub create
-{
-    my $class = shift;
-    my $dbh = Bugzilla->dbh;
-
-    $dbh->bz_start_transaction();
-
-    $class->check_required_create_fields(@_);
-    my $params = $class->run_create_validators(@_);
-    my $cc_list = delete $params->{initial_cc};
-    my $create_series = delete $params->{create_series};
-
-    my $component = $class->insert_create_data($params);
-
-    # Fill visibility values
-    $component->set_visibility_values([ $component->product_id ]);
-
-    # We still have to fill the component_cc table.
-    $component->_update_cc_list($cc_list) if $cc_list;
-
-    # Create series for the new component.
-    $component->_create_series() if $create_series;
-
-    Bugzilla->get_field(FIELD_NAME)->touch;
-
-    $dbh->bz_commit_transaction();
-    return $component;
-}
-
-sub run_create_validators
-{
-    my $class  = shift;
-    my $params = $class->SUPER::run_create_validators(@_);
-
-    my $product = delete $params->{product};
-    $params->{product_id} = $product->id;
-    $params->{name} = $class->_check_name($params->{name}, $product);
-
-    return $params;
+    return $class->SUPER::new($param);
 }
 
 sub update
 {
     my $self = shift;
-    # Bugzilla::Field::Choice is not a threat as we don't have 'value' field
-    # Yet do not call its update() for the future
-    my $changes = Bugzilla::Object::update($self, @_);
-
-    # Fill visibility values
-    $self->set_visibility_values([ $self->product_id ]);
-
-    # Update the component_cc table if necessary.
-    if (defined $self->{cc_ids})
-    {
-        my $diff = $self->_update_cc_list($self->{cc_ids});
-        $changes->{cc_list} = $diff if defined $diff;
-    }
-
-    Bugzilla->get_field(FIELD_NAME)->touch;
-
+    my $changes = $self->SUPER::update(@_);
+    # Duplicate visibility values into fieldvaluecontrol
+    Bugzilla->get_field('component')->update_visibility_values($self->id, [ $self->product_id ]);
     return $changes;
 }
 
@@ -190,7 +90,7 @@ sub remove_from_db
 
     $dbh->bz_start_transaction();
 
-    if ($self->bug_count)
+    if (my $nb = $self->bug_count)
     {
         if (Bugzilla->params->{allowbugdeletion})
         {
@@ -205,7 +105,7 @@ sub remove_from_db
         }
         else
         {
-            ThrowUserError('component_has_bugs', { nb => $self->bug_count });
+            ThrowUserError('component_has_bugs', { nb => $nb });
         }
     }
 
@@ -218,74 +118,56 @@ sub remove_from_db
 # Validators
 ################################
 
-sub _check_name
+sub _set_name
 {
-    my ($invocant, $name, $product) = @_;
-
-    $name = trim($name);
-    $name || ThrowUserError('component_blank_name');
-
+    my ($self, $name) = @_;
+    $name = trim($name) || ThrowUserError('component_blank_name');
     if (length($name) > MAX_FIELD_VALUE_SIZE)
     {
         ThrowUserError('component_name_too_long', { name => $name });
     }
-
-    $product = $invocant->product if (ref $invocant);
-    my $component = new Bugzilla::Component({ product => $product, name => $name });
-    if ($component && (!ref $invocant || $component->id != $invocant->id))
+    my $component = new Bugzilla::Component({ product => $self->product, name => $name });
+    if ($component && $component->id != $self->id)
     {
         ThrowUserError('component_already_exists', {
             name    => $component->name,
-            product => $product,
+            product => $self->product,
         });
     }
     return $name;
 }
 
-sub _check_description
+sub _set_description
 {
-    my ($invocant, $description) = @_;
-
-    $description = trim($description);
-    $description || ThrowUserError('component_blank_description');
+    my ($self, $description) = @_;
+    $description = trim($description) || ThrowUserError('component_blank_description');
     return $description;
 }
 
-sub _check_initialowner
+sub _set_initialowner
 {
-    my ($invocant, $owner) = @_;
-
+    my ($self, $owner, $field) = @_;
     $owner || ThrowUserError('component_need_initialowner');
-    my $owner_id = Bugzilla::User->check($owner)->id;
-    return $owner_id;
+    return $self->_set_select_field($owner, $field);
 }
 
-sub _check_initialqacontact
+sub _set_initialqacontact
 {
-    my ($invocant, $qa_contact) = @_;
-
-    my $qa_contact_id;
-    if (Bugzilla->get_field('qa_contact')->enabled)
-    {
-        $qa_contact_id = Bugzilla::User->check($qa_contact)->id if $qa_contact;
-    }
-    elsif (ref $invocant)
-    {
-        $qa_contact_id = $invocant->{initialqacontact};
-    }
-    return $qa_contact_id;
+    my ($self, $qa, $field) = @_;
+    return $self->initialqacontact if !Bugzilla->get_field('qa_contact')->enabled;
+    return $self->_set_select_field($qa, $field);
 }
 
-sub _check_product
+sub _set_product_id
 {
-    my ($invocant, $product) = @_;
-    return Bugzilla->user->check_can_admin_product($product->name);
+    my ($self, $product, $field) = @_;
+    $self->{product_id_obj} = Bugzilla->user->check_can_admin_product($product->name);
+    return $self->{product_id_obj}->id;
 }
 
-sub _check_cc_list
+sub _set_cc_list
 {
-    my ($invocant, $cc_list) = @_;
-
+    my ($self, $cc_list) = @_;
     my %cc_ids;
     foreach my $cc (@$cc_list)
     {
@@ -299,31 +181,7 @@ sub _check_cc_list
 ####       Methods         ####
 ###############################
 
-sub _update_cc_list
-{
-    my ($self, $cc_list) = @_;
-    my $dbh = Bugzilla->dbh;
-
-    my $old_cc_list = $dbh->selectcol_arrayref(
-        'SELECT user_id FROM component_cc WHERE component_id = ?', undef, $self->id
-    );
-
-    my ($removed, $added) = diff_arrays($old_cc_list, $cc_list);
-    my $diff;
-    if (scalar @$removed || scalar @$added)
-    {
-        $diff = [ join(', ', @$removed), join(', ', @$added) ];
-    }
-
-    $dbh->do('DELETE FROM component_cc WHERE component_id = ?', undef, $self->id);
-
-    my $sth = $dbh->prepare('INSERT INTO component_cc (user_id, component_id) VALUES (?, ?)');
-    $sth->execute($_, $self->id) foreach (@$cc_list);
-
-    return $diff;
-}
-
-sub _create_series
+sub create_series
 {
     my $self = shift;
 
@@ -354,94 +212,29 @@ sub _create_series
     }
 }
 
-sub set_is_active { $_[0]->set('isactive', $_[1]); }
-sub set_wiki_url { $_[0]->set('wiki_url', $_[1]); }
-sub set_name { $_[0]->set('name', $_[1]); }
-sub set_description { $_[0]->set('description', $_[1]); }
-
-sub set_default_assignee
-{
-    my ($self, $owner) = @_;
-
-    $self->set('initialowner', $owner);
-    # Reset the default owner object.
-    delete $self->{default_assignee};
-}
-
-sub set_default_qa_contact
-{
-    my ($self, $qa_contact) = @_;
-
-    $self->set('initialqacontact', $qa_contact);
-    # Reset the default QA contact object.
-    delete $self->{default_qa_contact};
-}
-
-sub set_cc_list
-{
-    my ($self, $cc_list) = @_;
-
-    $self->{cc_ids} = $self->_check_cc_list($cc_list);
-    # Reset the list of CC user objects.
-    delete $self->{initial_cc};
-}
-
 sub bug_count
 {
     my $self = shift;
-    my $dbh = Bugzilla->dbh;
-
-    if (!defined $self->{bug_count})
-    {
-        $self->{bug_count} = $dbh->selectrow_array(
-            'SELECT COUNT(*) FROM bugs WHERE component_id = ?',
-            undef, $self->id
-        ) || 0;
-    }
-    return $self->{bug_count};
+    return Bugzilla->get_field('component')->count_value_objects($self->id);
 }
 
 sub bug_ids
 {
     my $self = shift;
     my $dbh = Bugzilla->dbh;
-
-    if (!defined $self->{bugs_ids})
+    if (!defined $self->{bug_ids})
     {
-        $self->{bugs_ids} = $dbh->selectcol_arrayref(
+        $self->{bug_ids} = $dbh->selectcol_arrayref(
             'SELECT bug_id FROM bugs WHERE component_id = ?',
             undef, $self->id
         );
     }
-    return $self->{bugs_ids};
-}
-
-sub default_assignee
-{
-    my $self = shift;
-    if (!exists $self->{default_assignee})
-    {
-        $self->{default_assignee} = $self->{initialowner}
-            ? new Bugzilla::User($self->{initialowner}) : undef;
-    }
-    return $self->{default_assignee};
-}
-
-sub default_qa_contact
-{
-    my $self = shift;
-    if (!exists $self->{default_qa_contact})
-    {
-        $self->{default_qa_contact} = $self->{initialqacontact}
-            ? new Bugzilla::User($self->{initialqacontact}) : undef;
-    }
-    return $self->{default_qa_contact};
+    return $self->{bug_ids};
 }
 
 sub flag_types
 {
     my $self = shift;
-
     if (!defined $self->{flag_types})
     {
         my $flagtypes = Bugzilla::FlagType::match({
@@ -467,50 +260,15 @@ sub flag_types
     return $self->{flag_types};
 }
 
-sub initial_cc
-{
-    my $self = shift;
-    my $dbh = Bugzilla->dbh;
-
-    if (!defined $self->{initial_cc})
-    {
-        # If set_cc_list() has been called but data are not yet written
-        # into the DB, we want the new values defined by it.
-        my $cc_ids = $self->{cc_ids} || $dbh->selectcol_arrayref(
-            'SELECT user_id FROM component_cc WHERE component_id = ?',
-            undef, $self->id
-        );
-
-        $self->{initial_cc} = Bugzilla::User->new_from_list($cc_ids);
-    }
-    return $self->{initial_cc};
-}
-
-sub product
-{
-    my $self = shift;
-    if (!defined $self->{product})
-    {
-        require Bugzilla::Product; # We cannot |use| it.
-        $self->{product} = new Bugzilla::Product($self->product_id);
-    }
-    return $self->{product};
-}
-
 ###############################
 ####      Accessors        ####
 ###############################
 
-sub id          { return $_[0]->{id};          }
-sub name        { return $_[0]->{name};        }
-sub description { return $_[0]->{description}; }
-sub wiki_url    { return $_[0]->{wiki_url};    }
-sub product_id  { return $_[0]->{product_id};  }
-sub is_active   { return $_[0]->{isactive};    }
-
-###############################
-####      Subroutines      ####
-###############################
+sub is_active { $_[0]->isactive }
+sub initial_cc { $_[0]->cc_obj }
+sub product { $_[0]->product_id_obj }
+sub default_assignee { $_[0]->initialowner_obj }
+sub default_qa_contact { $_[0]->initialqacontact_obj }
 
 1;
 
@@ -522,212 +280,75 @@ Bugzilla::Component - Bugzilla product component class.
 
 =head1 SYNOPSIS
 
-    use Bugzilla::Component;
+use Bugzilla::Component;
 
-    my $component = new Bugzilla::Component($comp_id);
-    my $component = new Bugzilla::Component({ product => $product, name => $name });
+my $component = Bugzilla::Component->new($comp_id);
 
-    my $bug_count          = $component->bug_count();
-    my $bug_ids            = $component->bug_ids();
-    my $id                 = $component->id;
-    my $name               = $component->name;
-    my $description        = $component->description;
-    my $product_id         = $component->product_id;
-    my $default_assignee   = $component->default_assignee;
-    my $default_qa_contact = $component->default_qa_contact;
-    my $initial_cc         = $component->initial_cc;
-    my $product            = $component->product;
-    my $bug_flag_types     = $component->flag_types->{bug};
-    my $attach_flag_types  = $component->flag_types->{attachment};
-
-    my $component = Bugzilla::Component->check({ product => $product, name => $name });
-
-    my $component =
-      Bugzilla::Component->create({ name             => $name,
-                                    product          => $product,
-                                    initialowner     => $user_login1,
-                                    initialqacontact => $user_login2,
-                                    description      => $description});
-
-    $component->set_name($new_name);
-    $component->set_description($new_description);
-    $component->set_default_assignee($new_login_name);
-    $component->set_default_qa_contact($new_login_name);
-    $component->set_cc_list(\@new_login_names);
-    $component->update();
-
-    $component->remove_from_db;
+my $component = Bugzilla::Component->new({ product => $product, name => $name });
 
 =head1 DESCRIPTION
 
-Component.pm represents a Product Component object.
+Component.pm represents a Product Component object. It is a subclass of GenericObject,
+so all DB interaction is done exactly as with any other GenericObject.
+
+=head1 FIELDS
+
+=over
+
+=item B<product_id>: Bugzilla::Product
+
+Parent product
+
+=item B<name>: string
+
+Component name, unique in the product
+
+=item B<description>: text
+
+Description (shown on the bug entry form)
+
+=item B<initialowner>: Bugzilla::User
+
+Default assignee for new bugs in this component
+
+=item B<initialqacontact>: Bugzilla::User
+
+Default QA contact for new bugs in this component
+
+=item B<cc>: array(Bugzilla::User)
+
+Default CC list for new bugs in this component
+
+=item B<wiki_url>: string
+
+Overrides product and global wiki URL settings
+
+=item B<isactive>: boolean
+
+Specifies if this component is open for bug entry
+
+=back
 
 =head1 METHODS
 
 =over
 
-=item C<new($param)>
+=item new($id), new({ product => $product, name => $name })
 
- Description: The constructor is used to load an existing component
-              by passing a component ID or a hash with the product
-              object the component belongs to and the component name.
+ Contructor, gets a component from the DB.
 
- Params:      $param - If you pass an integer, the integer is the
-                       component ID from the database that we want to
-                       read in. If you pass in a hash with the 'name'
-                       and 'product' keys, then the value of the name
-                       key is the name of a component being in the given
-                       product.
+=item B<bug_count()>
 
- Returns:     A Bugzilla::Component object.
+ Returns the total of bugs that belong to the component.
 
-=item C<bug_count()>
+=item B<bug_ids()>
 
- Description: Returns the total of bugs that belong to the component.
+ Returns all bug IDs that belong to the component.
 
- Params:      none.
+=item B<flag_types()>
 
- Returns:     Integer with the number of bugs.
-
-=item C<bugs_ids()>
-
- Description: Returns all bug IDs that belong to the component.
-
- Params:      none.
-
- Returns:     A reference to an array of bug IDs.
-
-=item C<default_assignee()>
-
- Description: Returns a user object that represents the default assignee for
-              the component.
-
- Params:      none.
-
- Returns:     A Bugzilla::User object.
-
-=item C<default_qa_contact()>
-
- Description: Returns a user object that represents the default QA contact for
-              the component.
-
- Params:      none.
-
- Returns:     A Bugzilla::User object.
-
-=item C<initial_cc>
-
- Description: Returns a list of user objects representing users being
-              in the initial CC list.
-
- Params:      none.
-
- Returns:     An arrayref of L<Bugzilla::User> objects.
-
-=item C<flag_types()>
-
- Description: Returns all bug and attachment flagtypes available for
-              the component.
-
- Params:      none.
-
- Returns:     Two references to an array of flagtype objects.
-
-=item C<product()>
-
- Description: Returns the product the component belongs to.
-
- Params:      none.
-
- Returns:     A Bugzilla::Product object.
-
-=item C<set_name($new_name)>
-
- Description: Changes the name of the component.
-
- Params:      $new_name - new name of the component (string). This name
-                          must be unique within the product.
-
- Returns:     Nothing.
-
-=item C<set_description($new_desc)>
-
- Description: Changes the description of the component.
-
- Params:      $new_desc - new description of the component (string).
-
- Returns:     Nothing.
-
-=item C<set_default_assignee($new_assignee)>
-
- Description: Changes the default assignee of the component.
-
- Params:      $new_owner - login name of the new default assignee of
-                           the component (string). This user account
-                           must already exist.
-
- Returns:     Nothing.
-
-=item C<set_default_qa_contact($new_qa_contact)>
-
- Description: Changes the default QA contact of the component.
-
- Params:      $new_qa_contact - login name of the new QA contact of
-                                the component (string). This user
-                                account must already exist.
-
- Returns:     Nothing.
-
-=item C<set_cc_list(\@cc_list)>
-
- Description: Changes the list of users being in the CC list by default.
-
- Params:      \@cc_list - list of login names (string). All the user
-                          accounts must already exist.
-
- Returns:     Nothing.
-
-=item C<update()>
-
- Description: Write changes made to the component into the DB.
-
- Params:      none.
-
- Returns:     A hashref with changes made to the component object.
-
-=item C<remove_from_db()>
-
- Description: Deletes the current component from the DB. The object itself
-              is not destroyed.
-
- Params:      none.
-
- Returns:     Nothing.
-
-=back
-
-=head1 CLASS METHODS
-
-=over
-
-=item C<create(\%params)>
-
- Description: Create a new component for the given product.
-
- Params:      The hashref must have the following keys:
-              name            - name of the new component (string). This name
-                                must be unique within the product.
-              product         - a Bugzilla::Product object to which
-                                the Component is being added.
-              description     - description of the new component (string).
-              initialowner    - login name of the default assignee (string).
-              The following keys are optional:
-              initiaqacontact - login name of the default QA contact (string),
-                                or an empty string to clear it.
-              initial_cc      - an arrayref of login names to add to the
-                                CC list by default.
-
- Returns:     A Bugzilla::Component object.
+ Returns all bug and attachment flagtypes available for the component
+ as { bug => [ <FlagTypes for bugs> ], attachment => [ <FlagTypes for att.> ] }
 
 =back
 

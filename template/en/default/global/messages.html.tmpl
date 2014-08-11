@@ -131,28 +131,54 @@
   </p>
 [% END %]
 
-[% BLOCK msg_custom_field_created %]
-  [% title = "Custom Field Created" %]
-  <div class="message">
-  The new custom field '[% field.name | html %]' has been
-  successfully created.
-  </div>
+[% BLOCK msg_object_created %]
+  [% title = "New Object Created" %]
+  [% cl = Bugzilla.get_class(class_id) %]
+  The [% cl.description || ("object of class " _ cl.name) | html %]
+  <em>[% name || '#' _ id | html %]</em> has been created.
+  [% IF cl.name == "bug_status" %]
+    You should now visit the <a href="editworkflow.cgi">status workflow
+    page</a> to include your new [% terms.bug %] status.
+  [% END %]
 [% END %]
 
-[% BLOCK msg_custom_field_deleted %]
-  [% title = "Custom Field Deleted" %]
-  <div class="message">
-  The custom field '[% field.name | html %]' has been
-  successfully deleted.
-  </div>
+[% BLOCK msg_object_deleted %]
+  [% title = "Object Deleted" %]
+  [% cl = Bugzilla.get_class(class_id) %]
+  The [% cl.description || ("object of class " _ cl.name) | html %]
+  <em>[% name || '#' _ id | html %]</em> has been deleted.
 [% END %]
 
-[% BLOCK msg_custom_field_updated %]
-  [% title = "Custom Field Updated" %]
-  <div class="message">
-  Properties of the '[% field.name | html %]' field have been
-  successfully updated.
-  </div>
+[% BLOCK msg_object_updated %]
+  [% title = "Object Updated" %]
+  [% cl = Bugzilla.get_class(class_id) %]
+  [% obj = cl.new_object(id) %]
+  [% IF changes.keys.size %]
+    The [% cl.description || ("object of class " _ cl.name) | html %]
+    <em>[% name || '#' _ id | html %]</em> has been changed:
+    <ul>
+    [% FOREACH f = cl.get_fields() %]
+      [% IF changes.${f.name} %]
+      <li>
+        [% f.description | html %] updated to [% v = obj.get_string(f.name) %][% IF v.length %]<em>[% v | html %]</em>[% ELSE %]&lt;empty value&gt;[% END %].
+      </li>
+      [% END %]
+    [% END %]
+    [% IF changes._visibility_values %]
+      <li>
+        Visibility values updated.
+      </li>
+    [% END %]
+    [% IF changes._control_lists %]
+      <li>
+        Dependency lists updated (see above).
+      </li>
+    [% END %]
+    </ul>
+  [% ELSE %]
+    No changes made to the [% cl.description || ("object of class " _ cl.name) | html %]
+    <em>[% name || '#' _ id | html %]</em>.
+  [% END %]
 [% END %]
 
 [%# This is a list of all the possible messages. Please keep them in
@@ -368,7 +394,7 @@
         <li>Default QA contact deleted</li>
       [% END %]
     [% END %]
-    [% IF changes.cc_list.defined %]
+    [% IF changes.cc.defined %]
       [% IF comp.initial_cc.size %]
         [% cc_list = [] %]
         [% FOREACH cc_user = comp.initial_cc %]
@@ -417,74 +443,6 @@
   An extension named [% name | html %] has been created
   in [% path | html %]. Make sure you change "YOUR NAME" and 
   "YOUR EMAIL ADDRESS" in the code to your name and your email address.
-[% END %]
-
-[% BLOCK msg_field_value_created %]
-  [% title = "New Field Value Created" %]
-  The value <em>[% value.name | html %]</em> has been added as a
-  valid choice for the <em>[% field.description | html %]</em>
-  (<em>[% field.name | html %]</em>) field.
-  [% IF field.name == "bug_status" %]
-    You should now visit the <a href="editworkflow.cgi">status workflow
-    page</a> to include your new [% terms.bug %] status.
-  [% END %]
-[% END %]
-
-[% BLOCK msg_field_value_deleted %]
-  [% title = "Field Value Deleted" %]
-  The value <em>[% value.name | html %]</em> of the
-  <em>[% field.description | html %]</em>
-  (<em>[% field.name | html %]</em>) field has been deleted.
-[% END %]
-
-[% BLOCK msg_field_value_updated %]
-  [% title = "Field Value Updated" %]
-  [% IF changes.keys.size %]
-    The <em>[% value_old | html %]</em> value of the
-    <em>[% field.description | html %]</em>
-    (<em>[% field.name | html %]</em>) field has been changed:
-    <ul>
-      [% IF changes.value %]
-        <li>Field value updated to
-          <em>[% changes.value.1 | html %]</em>.
-          [% IF value.is_default %]
-            (Note that this value is the default for this field. All
-            references to the default value will now point to this new value.)
-        [% END %]
-        </li>
-      [% END %]
-      [% IF changes.sortkey %]
-        <li>Sortkey updated to <em>[% changes.sortkey.1 | html %]</em>.</li>
-      [% END %]
-      [% IF changes.isactive %]
-        <li>It is now [% IF changes.isactive.1 %]enabled[% ELSE %]disabled[% END %] for selection.</li>
-      [% END %]
-      [%# For bug_status: %]
-      [% IF changes.is_assigned %]
-        <li>It is now an [% IF changes.is_assigned.1 %]"Assigned" (in-progress)[% ELSE %]normal[% END %] state.</li>
-      [% END %]
-      [% IF changes.is_confirmed %]
-        <li>It is now [% IF changes.is_confirmed.1 %]a confirmed[% ELSE %]an unconfirmed[% END %] state.</li>
-      [% END %]
-      [% IF changes.visibility_values.defined %]
-        [% IF value.visibility_values.size > 0 %]
-          <li>It only appears when
-            [%+ value.field.value_field.description | html %] is set to
-            [% FOR vv = value.visibility_values %]
-              '[%+ vv.name | html %]'
-              [% " or " UNLESS loop.last %]
-            [% END %]
-          </li>
-        [% ELSE %]
-          <li>It now always appears, no matter what
-            [%+ value.field.value_field.description | html %] is set to.
-          </li>
-        [% END %]
-      [% END %]
-    </ul>
-  [% ELSE %]
-    No changes made to the field value <em>[% value_old | html %]</em>.
-  [% END %]
 [% END %]
 
 [% BLOCK msg_flag_cleared %]

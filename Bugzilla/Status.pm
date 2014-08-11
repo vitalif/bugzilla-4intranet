@@ -16,52 +16,28 @@
 #
 # Contributor(s): Frédéric Buclin <LpSolit@gmail.com>
 
-use strict;
-
 package Bugzilla::Status;
 
+use strict;
 use Bugzilla::Error;
-
-use base qw(Bugzilla::Field::Choice);
-
-################################
-#####   Initialization     #####
-################################
+use base qw(Bugzilla::GenericObject);
 
 use constant DB_TABLE => 'bug_status';
-use constant FIELD_NAME => 'bug_status';
-
-# This has all the standard Bugzilla::Field::Choice columns plus some new ones
-sub DB_COLUMNS
-{
-    return ($_[0]->SUPER::DB_COLUMNS, qw(is_open is_assigned is_confirmed));
-}
-
-sub UPDATE_COLUMNS
-{
-    return ($_[0]->SUPER::UPDATE_COLUMNS, qw(is_open is_assigned is_confirmed));
-}
-
-sub VALIDATORS
-{
-    my $invocant = shift;
-    my $validators = $invocant->SUPER::VALIDATORS;
-    $validators->{is_open} = \&Bugzilla::Object::check_boolean;
-    $validators->{is_assigned} = \&Bugzilla::Object::check_boolean;
-    $validators->{is_confirmed} = \&Bugzilla::Object::check_boolean;
-    return $validators;
-}
+use constant LIST_ORDER => 'sortkey, value';
+use constant NAME_FIELD => 'value';
+use constant CLASS_NAME => 'bug_status';
 
 #########################
 # Database Manipulation #
 #########################
 
-sub create
+sub update
 {
-    my $class = shift;
-    my $self = $class->SUPER::create(@_);
-    add_missing_bug_status_transitions();
-    return $self;
+    my $self = shift;
+    my $new = !$self->id;
+    my $r = $self->SUPER::update(@_);
+    add_missing_bug_status_transitions() if $new;
+    return $r;
 }
 
 sub remove_from_db
@@ -73,14 +49,6 @@ sub remove_from_db
     }
     $self->SUPER::remove_from_db();
 }
-
-###############################
-#####     Accessors        ####
-###############################
-
-sub is_open      { return $_[0]->{is_open};  }
-sub is_assigned  { return $_[0]->{is_assigned};  }
-sub is_confirmed { return $_[0]->{is_confirmed}; }
 
 ###############################
 #####       Methods        ####

@@ -1,0 +1,62 @@
+[%# Generic object history UI.
+  # License: Dual-license GPL 3.0+ or MPL 1.1+
+  # Author: Vitaliy Filippov <vitalif@mail.ru>
+  #%]
+
+[% SET title = "Changes made to " _ class.description _ " " _ (obj.name || '#' _ id) | html %]
+[% PROCESS global/header.html.tmpl %]
+[% PROCESS bug/time.html.tmpl %]
+
+[% IF operations.size > 0 %]
+
+  [% IF obj.id %]
+  <p><a href="editvalues.cgi?action=edit&class=[% class.name %]&id=[% obj.id %]">Edit [% class.description | html %] '[% obj.name || '#' _ id | html %]'</a></p>
+  [% ELSE %]
+  <p>[% class.description | html %] #[% id %] is now deleted. <a href="editvalues.cgi?class=[% class.name %]">Edit other objects of class '[% class.description | html %]'</a>.</p>
+  [% END %]
+
+  <table border="1" cellpadding="4" class="bz_emailprefs">
+    <tr>
+      <th>Who</th>
+      <th>When</th>
+      <th>What</th>
+      <th>Removed</th>
+      <th>Added</th>
+    </tr>
+
+    [% FOREACH operation = operations %]
+      [% op_loop = loop.count %]
+      <tr>
+        <td rowspan="[% operation.total_lines %]" valign="top">
+          [% operation.changer | email | html %]
+        </td>
+        <td rowspan="[% operation.total_lines %]" valign="top">
+          [% operation.when | time %]
+        </td>
+        [% FOREACH change = operation.changes %]
+          [% "</tr><tr>" IF loop.index > 0 %]
+            <td valign="top"[% IF change.lines %] rowspan="[% change.lines.size %]"[% END %]>
+              [%+ change.field.description | html %]
+            </td>
+            [% IF change.lines %]
+              [% FOR l = change.lines %]
+                [% "</tr><tr>" IF loop.index > 0 %]
+                [% l %]
+              [% END %]
+            [% ELSE %]
+            <td>[% change.removed | html %]</td>
+            <td>[% change.added | html %]</td>
+            [% END %]
+        [% END %]
+      </tr>
+    [% END %]
+  </table>
+[% ELSE %]
+  <p>
+    No changes have been made to this [% class.description | html %] yet.
+  </p>
+[% END %]
+
+[% PROCESS admin/fieldvalues/footer.html.tmpl no_history_link=1 obj_class=obj.class %]
+
+[% PROCESS global/footer.html.tmpl %]

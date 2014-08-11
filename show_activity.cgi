@@ -36,13 +36,26 @@ my $vars = {};
 # Check whether or not the user is currently logged in.
 Bugzilla->login();
 
-# Make sure the bug ID is a positive integer representing an existing
-# bug that the user is authorized to access.
-my $bug = Bugzilla::Bug->check($ARGS->{id});
-
 # Run queries against the shadow DB. In the worst case, new changes are not
 # visible immediately due to replication lag.
 Bugzilla->switch_to_shadow_db;
+
+my $class = Bugzilla->get_class($ARGS->{class} || 'bug');
+if ($class->name ne 'bug')
+{
+    # FIXME: How to check permissions for deleted objects?
+    $vars->{class} = $class;
+    $vars->{id} = int($ARGS->{id});
+    $vars->{obj} = $class->type->new($vars->{id});
+    $vars->{operations} = $class->type->get_history($vars->{id});
+    $template->process("admin/fieldvalues/history.html.tmpl", $vars)
+        || ThrowTemplateError($template->error());
+    exit;
+}
+
+# Make sure the bug ID is a positive integer representing an existing
+# bug that the user is authorized to access.
+my $bug = Bugzilla::Bug->check($ARGS->{id});
 
 my $operations;
 ($operations, $vars->{incomplete_data}) = Bugzilla::Bug::GetBugActivity($bug->id);

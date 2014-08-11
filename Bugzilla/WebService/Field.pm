@@ -95,10 +95,11 @@ sub get_values
     bless $_, $type for @$values;
     if ($field->value_field_id)
     {
+        my $vh = Bugzilla->fieldvaluecontrol->{$vf}->{values};
         $values = [ map { {
             id => $_->id,
             name => $_->name,
-            visibility_value_ids => [ map { $_->id } @{$_->visibility_values} ],
+            visibility_value_ids => [ keys %{$vh->{$_->id}} ],
         } } @$values ];
     }
     else
@@ -138,7 +139,9 @@ sub add_value
             $row->{$_} = $params->{$_};
         }
     }
-    $value = $type->create($row);
+    $value = $type->new;
+    $value->set_all($row);
+    $value->update;
     return {status => 'ok', id => $value->id};
 }
 
@@ -164,7 +167,7 @@ sub update_value
         {
             return {status => 'value_already_exists', other_id => $newvalue->id, my_id => $value->id};
         }
-        $value->set_name($params->{value});
+        $value->set('name', $params->{value});
     }
     # Other columns
     delete $params->{$type->ID_FIELD};
@@ -173,8 +176,7 @@ sub update_value
         if ($_ ne $type->NAME_FIELD &&
             exists $params->{$_})
         {
-            my $m = "set_$_";
-            $value->$m($params->{$_});
+            $value->set($_, $params->{$_});
         }
     }
     $value->update;
@@ -208,8 +210,7 @@ sub set_visibility_values
     my $value = _get_value($type, $params) || return {status => 'value_not_found'};
     my $ids = $params->{ids} || [];
     $ids = [ $ids ] unless ref $ids;
-    $ids = [ map { $_->id } @{ $field->value_field->value_type->new_from_list($ids) } ];
-    $value->set_visibility_values($ids);
+    $field->update_visibility_values($value->id, $ids);
     return {status => 'ok', ids => $ids};
 }
 

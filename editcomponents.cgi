@@ -95,19 +95,20 @@ elsif ($action eq 'new')
         initialcc        => { 'type' => 'multi'  },
     });
 
-    my $component = Bugzilla::Component->create({
+    my $component = Bugzilla::Component->new;
+    $component->set_all({
         name             => $comp_name,
-        product          => $product,
+        product_id       => $product,
         description      => $ARGS->{description},
-        initialowner     => trim($ARGS->{initialowner} || ''),
-        initialqacontact => trim($ARGS->{initialqacontact} || ''),
+        initialowner     => $ARGS->{initialowner},
+        initialqacontact => $ARGS->{initialqacontact},
         wiki_url         => $ARGS->{wiki_url},
-        initial_cc       => [ list $ARGS->{initialcc} ],
+        cc               => $ARGS->{initialcc},
         isactive         => $ARGS->{isactive},
-        # XXX We should not be creating series for products that we
-        # didn't create series for.
-        create_series    => 1,
     });
+    $component->update;
+    # XXX We should not be creating series for products that we didn't create series for.
+    $component->create_series;
 
     $vars->{message} = 'component_created';
     $vars->{comp} = $component;
@@ -171,16 +172,19 @@ elsif ($action eq 'update')
     });
 
     my $component = Bugzilla::Component->check({ product => $product, name => $ARGS->{componentold} });
-    $component->set_name($comp_name);
-    $component->set_description($ARGS->{description});
-    $component->set_default_assignee($ARGS->{initialowner});
-    $component->set_default_qa_contact($ARGS->{initialqacontact});
-    $component->set_wiki_url($ARGS->{wiki_url});
-    $component->set_cc_list([ list $ARGS->{initialcc} ]);
-    $component->set_is_active($ARGS->{isactive});
-    my $changes = $component->update();
+    $component->set_all({
+        name             => $comp_name,
+        product_id       => $product,
+        description      => $ARGS->{description},
+        initialowner     => $ARGS->{initialowner},
+        initialqacontact => $ARGS->{initialqacontact},
+        wiki_url         => $ARGS->{wiki_url},
+        cc               => $ARGS->{initialcc},
+        isactive         => $ARGS->{isactive},
+    });
+    my $changes = $component->update;
 
-    $changes->{control_lists} = 1 if $component->field->update_control_lists($component->id, $ARGS);
+    $changes->{control_lists} = 1 if Bugzilla->get_field('component')->update_control_lists($component->id, $ARGS);
 
     $vars->{message} = 'component_updated';
     $vars->{comp} = $component;
@@ -189,7 +193,7 @@ elsif ($action eq 'update')
     delete_token($token);
 
     $template->process('admin/components/list.html.tmpl', $vars)
-      || ThrowTemplateError($template->error());
+        || ThrowTemplateError($template->error());
     exit;
 }
 

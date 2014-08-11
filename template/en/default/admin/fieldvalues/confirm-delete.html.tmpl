@@ -1,26 +1,15 @@
-[%# The contents of this file are subject to the Mozilla Public
-  # License Version 1.1 (the "License"); you may not use this file
-  # except in compliance with the License. You may obtain a copy of
-  # the License at http://www.mozilla.org/MPL/
-  #
-  # Software distributed under the License is distributed on an "AS
-  # IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-  # implied. See the License for the specific language governing
-  # rights and limitations under the License.
-  #
-  # The Original Code is the Bugzilla Bug Tracking System.
-  #
-  # Contributor(s): Max Kanat-Alexander <mkanat@bugzilla.org>
+[%# Deletion page for generic CRUD UI
+  # License: Dual-license GPL 3.0+ or MPL 1.1+
+  # Author(s): Vitaliy Filippov <vitalif@mail.ru>
   #%]
 
 [%# INTERFACE:
-  # value: Bugzilla::Field::Choice; The field value being deleted.
-  # field: object; the field the value is being deleted from.
+  # obj: Object being deleted
+  # class: Its Bugzilla::Class
   #%]
 
 [% title = BLOCK %]
-  Delete Value '[% value.name | html %]' from the 
-  '[% field.description | html %]' ([% field.name | html %]) field
+  Delete [% obj_class.description | html %] '[% obj.name | html %]'
 [% END %]
 
 [% PROCESS global/header.html.tmpl
@@ -29,122 +18,60 @@
 %]
 
 <table class="admin_table">
-<tr>
-  <th valign="top" align="left">Property</th>
-  <th valign="top" align="left">Value</th>
+<tr class="odd_row">
+  <th align="left" valign="top">Class:</th>
+  <td valign="top">[% obj_class.description | html %]</td>
 </tr>
 <tr class="even_row">
-  <td valign="top">Field Name:</td>
-  <td valign="top">[% field.description | html %]</td>
+  <th align="left" valign="top">Object:</th>
+  <td valign="top">[% obj.name | html %]</td>
 </tr>
 <tr class="odd_row">
-  <td valign="top">Field Value:</td>
-  <td valign="top">[% value.name | html %]</td>
-</tr>
-<tr class="even_row">
-  <td valign="top">[% terms.Bugs %]:</td>
+  <th align="left" valign="top">Used in:</th>
   <td valign="top">
-[% IF value.bug_count %]
-  <a title="List of [% terms.bugs %] where '
-            [%- field.description | html %]' is '
-            [%- value.name | html %]'"
-     href="buglist.cgi?[% field.name | url_quote %]=
-           [%- value.name | url_quote %]">
-   [%- value.bug_count | html %]</a>
-[% ELSE %]
-  None
-[% END %]
+  [% FOREACH f = Bugzilla.get_class_fields({ 'value_class_id' => obj_class.id }) %]
+    [% n = f.count_value_objects(obj.id) %]
+    [% def = f.default_value_hash.${obj.id} %]
+    [% IF n || def %]
+      [% used = 1 %]
+      [% IF n %]
+        <a href="[% f.class.name == 'bug' ? 'buglist.cgi?' : 'list.cgi?class=' _ f.class.name %]
+          [%- f.name %]=[%- obj.name | url_quote %]">[% f.description | html %] of
+          [%+ n %] [%+ f.class.description | html %][% 's' IF n > 1 %]</a>
+        [% "(default value)" IF def %]
+      [% ELSE %]
+        Default [% f.name | html %] for [% f.class.description | html %]
+      [% END %]
+      <br />
+    [% END %]
+  [% END %]
+  [% IF !used %]
+    None
+  [% END %]
   </td>
 </tr>
 </table>
 
-<h2>Confirmation</h2>
+[% IF used %]
 
-[% IF value.is_default || value.bug_count ||
-  value.controls_visibility_of_fields.size ||
-  value.controls_visibility_of_field_values.size %]
-
-  <p>Sorry, but the '[% value.name | html %]' value cannot be deleted
-    from the '[% field.description | html %]' field for the following
-    reason(s):</p>
-
-  <ul class="warningmessages">
-    [% IF value.is_default %]
-      <li>'[% value.name | html %]' is the default value for
-        the '[% field.description | html %]' field.
-        [% IF user.in_group('tweakparams') %]
-          You first have to <a href="editparams.cgi?section=bugfields">change
-          the default value</a> for this field before you can delete
-          this value.
-        [% END %]
-      </li>
-    [% END %]
-
-    [% IF value.bug_count %]
-      <li>
-        [% IF value.bug_count > 1 %]
-          There are [% value.bug_count | html %] [%+ terms.bugs %] 
-          with this field value.
-        [% ELSE %]
-          There is 1 [% terms.bug %] with this field value.
-        [% END %]
-        You must change the field value on
-          <a title="List of [% terms.bugs %] where '
-                    [%- field.description | html %]' is '
-                    [%- value.name | html %]'"
-             href="buglist.cgi?[% field.name | url_quote %]=
-                   [%- value.name | url_quote %]">
-            [% IF value.bug_count > 1 %]
-              those [% terms.bugs %] 
-            [% ELSE %]
-              that [% terms.bug %]
-            [% END %]
-          </a>
-          to another value before you can delete this value.
-      </li>
-    [% END %]
-
-    [% IF value.controls_visibility_of_fields.size %]
-      <li>This value controls the visibility of the following fields:<br />
-        [% FOREACH field = value.controls_visibility_of_fields %]
-          <a href="editfields.cgi?action=edit&name=[% field.name | url_quote %]">
-            [%- field.description | html %]
-            ([% field.name | html %])</a><br />
-        [% END %]
-      </li>
-    [% END %]
-
-    [% IF value.controls_visibility_of_field_values.size %]
-      <li>This value controls the visibility of the following values in
-        other fields:<br />
-       [% FOREACH field_name = value.controls_visibility_of_field_values.keys %]
-         [% FOREACH controlled = value.controls_visibility_of_field_values.${field_name} %]
-           <a href="editvalues.cgi?action=edit&field=[% field_name | url_quote %]&value=[% controlled.name | url_quote %]">
-             [% controlled.field.description | html %]
-             ([% controlled.field.name | html %]):
-             [%+ controlled.name | html %]</a><br />
-         [% END %]
-       [% END %]
-      </li>
-    [% END %]
-  </ul>
+  <p>This object is still used and cannot be deleted.</p>
 
 [% ELSE %]
+
+  <h2>Confirmation</h2>
 
   <p>Do you really want to delete this value?</p>
 
   <form method="post" action="editvalues.cgi">
-    <input type="submit" value="Yes, delete" id="delete" />
+    <input type="submit" value="Yes, delete" />
     <input type="hidden" name="action" value="delete" />
-    <input type="hidden" name="field" value="[% field.name | html %]" />
-    <input type="hidden" name="value" value="[% value.name | html %]" />
-    <input type="hidden" name="token" value="[% token | html %]" />
+    <input type="hidden" name="class" value="[% obj_class.name | html %]">
+    <input type="hidden" name="id" value="[% obj.id | html %]">
+    <input type="hidden" name="token" value="[% token | html %]">
   </form>
 
 [% END %]
 
-[% PROCESS admin/fieldvalues/footer.html.tmpl
-  no_edit_link = 1
- +%]
+[% PROCESS admin/fieldvalues/footer.html.tmpl no_edit_link = 1 %]
 
 [% PROCESS global/footer.html.tmpl %]

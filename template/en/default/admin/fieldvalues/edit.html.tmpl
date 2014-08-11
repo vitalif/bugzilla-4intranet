@@ -1,143 +1,94 @@
-[%# License: MPL 2.0, incompatible with secondary licenses
-  # Contributor(s): Max Kanat-Alexander <mkanat@bugzilla.org>
+[%# Generic object editing UI.
+  # License: Dual-license GPL 3.0+ or MPL 1.1+
+  # Author: Vitaliy Filippov <vitalif@mail.ru>
   #%]
 
 [%# INTERFACE:
-  # value: Bugzilla::Field::Choice; The field value we are editing.
-  # field: Bugzilla::Field; The field this value belongs to.
+  # value: The object we are editing.
+  # obj_class: Its Bugzilla::Class.
   #%]
 
-[% IF value.id %]
-  [% title = BLOCK %]Edit Value '[% value.name | html %]' for the '[% field.description | html %]' ([% field.name | html %]) field[% END %]
+[% IF obj.id %]
+  [% title = BLOCK %]Edit '[% obj.name | html %]' [% obj_class.description | html %][% END %]
 [% ELSE %]
-  [% title = BLOCK %]Add Value for the '[% field.description | html %]' ([% field.name | html %]) field[% END %]
+  [% title = BLOCK %]Add new '[% obj_class.description | html %]'[% END %]
 [% END %]
 
 [% PROCESS global/header.html.tmpl
-  title = title
-%]
+  javascript_urls=['js/bug-visibility.js', "fieldvaluecontrol.cgi?class=${obj_class.id}&user=${Bugzilla.user.id}"] %]
 
-<form method="post" action="editvalues.cgi">
+<form method="post" action="editvalues.cgi"[% ' name="Create"' IF !obj.id %]>
 
   <table border="0" cellpadding="4" cellspacing="0">
-    <tr>
-      <th valign="top" align="left">
-        <label for="value">Field Value:</label>
-      </th>
-      <td>
-        <input id="value" name="value" size="100" maxlength="[% constants.MAX_FIELD_VALUE_SIZE | none %]" value="[% value.name | html %]" />
-      </td>
-    </tr>
-    <tr>
-      <th align="left"><label for="sortkey">Sortkey:</label></th>
-      <td><input id="sortkey" size="6" maxlength="6" name="sortkey" value="[%- value.sortkey | html %]" /></td>
-    </tr>
-    [% IF field.name == "bug_status" %]
+    [% FOREACH field = obj_class.get_fields({ 'obsolete' => 0, 'sort' => 1 }) %]
+      [% IF obj_class.name != 'version' && obj_class.name != 'milestone' || field.name != 'product_id' %]
       <tr>
-        <th align="left"><label for="is_open">Is open:</label></th>
-        <td>
-          <input id="is_open" name="is_open" type="checkbox" value="1"
-            [%+ 'checked="checked"' IF value.is_open %] />
-        </td>
+        [% PROCESS "admin/fieldvalues/object-field.html.tmpl" editable=1 %]
       </tr>
-      <tr>
-        <th align="left"><label for="is_assigned">Is it an assigned state?</label></th>
-        <td>
-          <input id="is_assigned" name="is_assigned" type="checkbox" value="1"
-            [%+ 'checked="checked"' IF value.is_assigned %] />
-        </td>
-      </tr>
-      <tr>
-        <th align="left"><label for="is_confirmed">Is it a confirmed state?</label></th>
-        <td>
-          <input id="is_confirmed" name="is_confirmed" type="checkbox" value="1"
-            [%+ 'checked="checked"' IF value.is_confirmed %] />
-        </td>
-      </tr>
-    [% ELSIF field.name == "op_sys" || field.name == "rep_platform" %]
-      <tr>
-        <th valign="top" align="left">
-          <label for="ua_regex">User Agent Regexp:</label>
-        </th>
-        <td>
-          <input id="ua_regex" name="ua_regex" size="100" value="[% value.ua_regex | html %]" />
-        </td>
-      </tr>
+      [% ELSE %]
+      <input type="hidden" name="product_id" value="[% product.id %]" />
+      [% END %]
     [% END %]
-    <tr>
-      <th align="left"><label for="isactive">Enabled for [% terms.bugs %]:</label></th>
-      <td>
-        <input id="isactive" name="isactive" type="checkbox" value="1"
-          [%+ 'checked="checked"' IF value.isactive || !value.id %] />
-        (this value is selected as default in the parameters for this field)
-      </td>
-    </tr>
-    [% IF field.name == "keywords" %]
-      <tr>
-        <th align="left">Description:</th>
-        <td>
-          [% INCLUDE global/textarea.html.tmpl
-            name           = 'description'
-            minrows        = 4
-            cols           = 64
-            wrap           = 'virtual'
-            defaultcontent = value.description
-          %]
-        </td>
-      </tr>
-      [% IF value.id %]
+    [% IF obj_class.name == "keywords" && obj.id %]
       <tr>
         <th align="left">[% terms.Bugs %]:</th>
         <td>
-          [% IF value.bug_count > 0 %]
-            <a href="buglist.cgi?keywords=[% value.name | url_quote %]">
-              [% value.bug_count | html %]</a>
+          [% IF obj.bug_count > 0 %]
+            <a href="buglist.cgi?keywords=[% obj.name | url_quote %]">
+              [% obj.bug_count | html %]</a>
           [% ELSE %]
             none
           [% END %]
         </td>
       </tr>
-      [% END %]
     [% END %]
-    [% IF field.value_field %]
-      <tr>
-        <th colspan="2" align="left">
-          <label for="visibility_value_id">Only appears when [%+ field.value_field.description | html %] is set to:</label>
-        </td>
-      </tr>
-      <tr>
-        <td colspan="2">
-          <select name="visibility_value_id" id="visibility_value_id" multiple="multiple" size="15" style="width: 400px">
-            [% IF field.value_field.nullable %]
-            <option value="0"[% IF field.is_value_enabled(value.id, 0) %] selected="selected"[% END %]>---</option>
+    [% FOREACH f = Bugzilla.get_class_fields({ 'value_class_id' => obj_class.id }) %]
+      [% SET show_vis = f.value_field && (f.class.name != 'bug' || f.name != 'target_milestone' && f.name != 'version') %]
+      [% SET show_def = f.default_value_hash.${obj.id} %]
+      [% IF show_vis || show_def %]
+      <tr><td colspan="2">
+        [% IF show_def %]
+          <p style="margin: 8px 0">
+            This object is a default [% f.description | html %] for [% f.class.description | html %] class.
+          </p>
+        [% END %]
+        [% IF show_vis %]
+          <p style="margin: 8px 0"><label for="visibility_value_id_[% f.id %]">This [% obj_class.description | html %]
+            appears in [% f.class.description | html %] field [% f.description | html %]
+            when [% f.class.description %] [%+ f.value_field.description | html %] is set to:</label></p>
+          <select name="visibility_value_id_[% f.id %]" id="visibility_value_id_[% f.id %]" multiple="multiple" size="15" style="width: 400px">
+            [% IF f.value_field.nullable %]
+            <option value="0"[% IF f.is_value_enabled(obj.id, 0) %] selected[% END %]>---</option>
             [% END %]
-            [% FOREACH field_value = field.value_field.legal_values %]
-              [% IF field.visibility_field_id != field.value_field_id || field.has_visibility_value(field_value.id) %]
-              <option value="[% field_value.id | none %]" [% ' selected="selected"' IF field.is_value_enabled(value.id, field_value.id) %]>
+            [% FOREACH field_value = f.value_field.legal_values %]
+              [% IF f.visibility_field_id != f.value_field_id || f.has_visibility_value(field_value.id) %]
+              <option value="[% field_value.id | none %]" [% ' selected="selected"' IF f.is_value_enabled(obj.id, field_value.id) %]>
                 [%- field_value.name | html -%]
               </option>
               [% END %]
             [% END %]
           </select>
-        </td>
-      </tr>
+          <input type="hidden" name="defined_visibility_value_id_[% f.id %]" value="1" />
+        [% END %]
+      </td></tr>
+      [% END %]
+      [% INCLUDE "admin/fieldvalues/control-list-common.html.tmpl" this_field=f this_value=obj %]
     [% END %]
-    [% INCLUDE "admin/fieldvalues/control-list-common.html.tmpl" this_field=field this_value=value %]
     [% Hook.process('fields') %]
   </table>
 
-  [% IF value.id %]
-  <input type="hidden" name="value_old" value="[% value.name | html %]" />
+  [% IF obj.id %]
+  <input type="hidden" name="id" value="[% obj.id | html %]" />
   [% END %]
-  <input type="hidden" name="action" value="[% value.id ? "update" : "new" %]" />
-  <input type="hidden" name="field" value="[% field.name | html %]" />
+  <input type="hidden" name="action" value="save" />
+  <input type="hidden" name="class" value="[% obj_class.name | html %]" />
   <input type="hidden" name="token" value="[% token | html %]" />
-  <input type="submit" value="[% value.id ? "Save Changes" : "Add" %]" />
+  <input type="submit" value="[% obj.id ? "Save Changes" : "Add" %]" />
 </form>
 
 [% PROCESS admin/fieldvalues/footer.html.tmpl
-  no_edit_link = value.id
-  no_add_link = !value.id
+  no_edit_link = obj.id
+  no_add_link = !obj.id
 %]
 
 [% PROCESS global/footer.html.tmpl %]

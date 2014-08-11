@@ -36,21 +36,4 @@
   <input type="submit" value="Save" />
 </form>
 
-<p>
-  <a href="editvalues.cgi?field=[% field.name %]">Edit or add [% field.description | html %] objects</a> |
-  [% IF field.value_field.name == 'product' %]
-  <a href="editproducts.cgi?action=edit&product=[% visibility_value.name | uri %]">Edit product [% visibility_value.name | html %]</a>
-  [% ELSIF field.value_field.name == 'classification' %]
-  <a href="editclassifications.cgi?action=edit&classification=[% visibility_value.name | uri %]">Edit classification [% visibility_value.name | html %]</a>
-  [% ELSIF field.value_field.name == 'target_milestone' %]
-  <a href="editmilestones.cgi?action=edit&product=[% visibility_value.product_obj.name | uri %]&milestone=[% visibility_value.name | uri %]">Edit milestone [% visibility_value.name | html %]</a>
-  [% ELSIF field.value_field.name == 'version' %]
-  <a href="editversions.cgi?action=edit&product=[% visibility_value.product_obj.name | uri %]&version=[% visibility_value.name | uri %]">Edit version [% visibility_value.name | html %]</a>
-  [% ELSIF field.value_field.name == 'component' %]
-  <a href="editcomponents.cgi?action=edit&product=[% visibility_value.product_obj.name | uri %]&component=[% visibility_value.name | uri %]">Edit component [% visibility_value.name | html %]</a>
-  [% ELSE %]
-  <a href="editvalues.cgi?action=edit&field=[% field.value_field.name %]&value=[% visibility_value.name | uri %]">Edit [% field.value_field.description | html %] [% visibility_value.name | html %]</a>
-  [% END %]
-</p>
-
 [% PROCESS global/footer.html.tmpl %]
