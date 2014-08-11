@@ -2405,25 +2405,12 @@ sub _set_freetext_field
 sub _set_multi_select_field
 {
     my ($self, $values, $field) = @_;
-
-    # FIXME Move splitting of multiselect on ',' into email_in.pl itself!
-    # Allow users (mostly email_in.pl) to specify multi-selects as
-    # comma-separated values.
-    if (defined $values && !ref $values)
-    {
-        # We don't split on spaces because multi-select values can and often
-        # do have spaces in them. (Theoretically they can have commas in them
-        # too, but that's much less common and people should be able to work
-        # around it pretty cleanly, if they want to use email_in.pl.)
-        $values = [ split ',', $values ];
-    }
-
+    $values = defined $values ? [ $values ] : [] if !ref $values;
     if (!$values || !@$values)
     {
         $self->{$field.'_obj'} = [];
         return [];
     }
-
     my $field_obj = Bugzilla->get_field($field);
     my $t = $field_obj->value_type;
     my $value_objs = $t->match({ $t->NAME_FIELD => $values });
@@ -2434,7 +2421,6 @@ sub _set_multi_select_field
         $self->{_unknown_dependent_values}->{$field} = \@bad;
         return undef;
     }
-
     $self->{$field.'_obj'} = $value_objs;
     return [ map { $_->id } @$value_objs ];
 }
@@ -4045,8 +4031,19 @@ sub create_or_update
     my ($fields_in) = @_;
     my $bug = $fields_in->{bug_id} && Bugzilla::Bug->new(delete $fields_in->{bug_id}) || Bugzilla::Bug->new;
     # We still rely on product and component being set first
-    my @set_fields = ('product', 'component', grep { $_ ne 'product' &&
-        $_ ne 'component' && $_ ne 'comment' && $_ ne 'work_time' } keys %$fields_in);
+    my @set_fields = ('product', 'component', grep {
+        $_ ne 'product' && $_ ne 'component' && $_ ne 'comment' && $_ ne 'work_time' &&
+        $_ ne 'blocked' && $_ ne 'dependson'
+    } keys %$fields_in);
+    # Allow comma-separated values for multi-selects
+    for my $f (Bugzilla->get_fields({ type => FIELD_TYPE_MULTI_SELECT, obsolete => 0 }))
+    {
+        $f = $f->name;
+        if (defined $fields_in->{$f} && !ref $fields_in->{$f})
+        {
+            $fields_in->{$f} = [ split ',', $fields_in->{$f} ];
+        }
+    }
     $bug->set($_ => $fields_in->{$_}) for @set_fields;
     if (exists $fields_in->{comment})
     {
