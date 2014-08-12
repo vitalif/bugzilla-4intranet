@@ -508,6 +508,36 @@ sub ValidateGroupName {
     return $ret;
 }
 
+sub get_per_group_permissions
+{
+    my $class = shift;
+    my $rows = Bugzilla->dbh->selectall_arrayref(
+        "SELECT g.*, p.name product_name FROM group_control_map g, products p".
+        " WHERE p.id=g.product_id", {Slice=>{}}
+    );
+    my $pergroup = {};
+    for my $row (@$rows)
+    {
+        for (qw(entry canedit editcomponents editbugs canconfirm))
+        {
+            if ($row->{$_})
+            {
+                push @{$pergroup->{$row->{group_id}}->{$_}}, $row->{product_name};
+            }
+        }
+        if ($row->{membercontrol} == CONTROLMAPMANDATORY &&
+            $row->{othercontrol} == CONTROLMAPMANDATORY)
+        {
+            push @{$pergroup->{$row->{group_id}}->{access}}, $row->{product_name};
+        }
+        elsif ($row->{membercontrol} || $row->{othercontrol})
+        {
+            push @{$pergroup->{$row->{group_id}}->{optional}}, $row->{product_name};
+        }
+    }
+    return $pergroup;
+}
+
 ###############################
 ###       Validators        ###
 ###############################

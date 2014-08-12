@@ -149,13 +149,7 @@ $vars->{allow_edit} = $user->in_group('creategroups');
 
 unless ($action)
 {
-    my $groups = $vars->{allow_edit}
-        ? [ Bugzilla::Group->get_all ]
-        : $user->bless_groups;
-    $vars->{groups} = $groups;
-
-    $template->process("admin/groups/list.html.tmpl", $vars)
-        || ThrowTemplateError($template->error());
+    ListGroups($vars, $template);
     exit;
 }
 
@@ -284,10 +278,7 @@ if ($action eq 'delete') {
     Bugzilla::Hook::process('editgroups-post_delete', { group => $group });
 
     $vars->{'message'} = 'group_deleted';
-    $vars->{'groups'} = [Bugzilla::Group->get_all];
-
-    $template->process("admin/groups/list.html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
+    ListGroups($vars, $template);
     exit;
 }
 
@@ -359,10 +350,8 @@ if ($action eq 'remove_regexp') {
 
     $vars->{'message'} = 'group_membership_removed';
     $vars->{'group'} = $group->name;
-    $vars->{'groups'} = [Bugzilla::Group->get_all];
 
-    $template->process("admin/groups/list.html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
+    ListGroups($vars, $template);
     exit;
 }
 
@@ -483,4 +472,18 @@ sub _do_remove {
         $changes->{$field} ||= [];
         push(@{$changes->{$field}}, $remove->name);
     }
+}
+
+sub ListGroups
+{
+    my ($vars, $template) = @_;
+    my $groups = $vars->{allow_edit}
+        ? [ Bugzilla::Group->get_all ]
+        : $user->bless_groups;
+    $vars->{all_groups} = $groups;
+    $vars->{pergroup} = Bugzilla::Group->get_per_group_permissions;
+
+    $template->process("admin/groups/list.html.tmpl", $vars)
+        || ThrowTemplateError($template->error());
+    exit;
 }

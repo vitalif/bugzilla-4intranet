@@ -2,108 +2,18 @@
   # License: Dual-license MPL 1.1+ or GPL 3.0+
   # Author(s): Vitaliy Filippov %]
 
-[% SET user = Bugzilla.user %]
-
-[% SET prod_perms = {
-  'access'         => terms.Bug _ ' access'
-  'optional'       => 'Optional ' _ terms.bug _ ' access'
-  'canedit'        => terms.Bug _ ' edit access'
-  'editcomponents' => 'Product administration'
-  'editbugs'       => 'Bug field change access'
-  'canconfirm'     => terms.Bug _ ' confirm access'
-} %]
-[% SET prod_perms_keys = [ 'access', 'optional', 'editcomponents', 'canedit', 'canconfirm', 'editbugs' ] %]
-
-[% BLOCK special_groups %]
-  [% IF group.name == Param('chartgroup') %]
-  <br />Used as 'chartgroup'. Allows to use <a href="chart.cgi">New Charts</a>.
-  [% END %]
-  [% IF group.name == Param('insidergroup') %]
-  <br />Used as 'insidergroup'. Allows to see private comments and attachments.
-  [% END %]
-  [% IF group.name == Param('querysharegroup') %]
-  <br />Used as 'querysharegroup'. Allows to share Saved Searches with other users.
-  [% END %]
-  [% IF group.name == Param('timetrackinggroup') %]
-  <br />Used as 'timetrackinggroup'. Allows to register add see working time for [% terms.bugs %].
-  [% END %]
-[% END %]
-
-[% IF user.groups.size OR user.can_bless %]
-  <p>
-    <b>System groups</b> just grant you some system-wide permission.<br />
-    <b>[% terms.Bug %] groups</b> are configured by [% terms.Bugzilla %] administrators to grant you some per-product permissions.
-    Note that several groups may restrict access to a single product; in this case you must be a member of <b>all</b> of them to see [% terms.bugs %] in that product.
-  </p>
+[% BLOCK before_group_table %]
   <p>
     You are[% ' either' IF user.can_bless %] a member of the following groups
     [%- ' and/or can include/exclude other users from them (clickable groups are editable)' IF user.can_bless %]:
   </p>
+[% END %]
+[% BLOCK group_row %][% END %]
+[% BLOCK group_head %][% END %]
 
-  <table>
-    [% FOREACH group = all_groups %]
-      [% IF user.in_group_id(group.id) OR user.can_bless(group.id) %]
-      [% IF NOT last_group OR last_group.is_bug_group != group.is_bug_group %]
-      <tr>
-        <th colspan="2" align="left" style="padding: [% last_group ? "1em" : "0" %] 0 1em 0">
-          [% group.is_bug_group ? terms.Bug _ " groups" : "System groups" %]
-        </th>
-        <th style="width: 50%" align="left">[% group.is_bug_group ? "Product permissions" : "" %]</th>
-        [% SET last_group = group %]
-        [% SET i = 0 %]
-      </tr>
-      [% END %]
-      [% SET i = i+1 %]
-      <tr[% (i % 2) ? ' style="background: #ddd"' : '' %]>
-        <th valign="top" align="left">
-          [% IF user.can_bless(group.id) %]
-            <a href="editusersingroup.cgi?group=[% group.id %]"[% IF !user.in_group_id(group.id) %] style="color: gray"[% END %]>[% group.name | html %]</a>
-          [% END %]
-        </th>
-        <td valign="top">
-          [% IF group.is_bug_group %]
-            [% group.description | html_light %]
-            [% PROCESS special_groups %]
-          [% ELSE %]
-            [% SET d = lc_messages.system_groups.${group.name} %]
-            [% IF d %]
-              [% d | none %]
-            [% ELSE %]
-              [% group.description | html_light %]
-            [% END %]
-            [% PROCESS special_groups %]
-          [% END %]
-        </td>
-        [% IF group.is_bug_group %]
-          <td valign="top">
-            [% SET p = pergroup.${group.id} %]
-            [% FOREACH k = prod_perms_keys %]
-              [% IF p.$k.size %]
-                [% prod_perms.$k %]: [% p.$k.join(', ') %]<br />
-              [% END %]
-            [% END %]
-          </td>
-        [% END %]
-      </tr>
-      [% END %]
-    [% END %]
-  </table>
+[% IF user.groups.size OR user.can_bless %]
 
-  [% FOREACH privs = ["editcomponents", "canconfirm", "editbugs"] %]
-    [% SET products = ${"local_$privs"} %]
-    [% IF products && products.size %]
-      <br>
-      <p>
-        You also have local '[% privs | html %]' privileges
-        for the following products:
-      </p>
-      <p>
-        [% FOREACH product = products %]
-          [% product.name | html %]<br>
-        [% END %]
-      </p>
-    [% END %]
-  [% END %]
+  [% PROCESS "account/prefs/group-list.html.tmpl" show_member=1 %]
 
 [% ELSE %]
 
