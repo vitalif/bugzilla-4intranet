@@ -364,40 +364,32 @@ sub SaveEmail {
 sub DoPermissions
 {
     my $dbh = Bugzilla->dbh;
-    my $user = Bugzilla->user;
-    my (@has_bits, @set_bits);
-
-    my $groups = $dbh->selectall_arrayref(
-               "SELECT DISTINCT name, description FROM groups WHERE id IN (" . 
-               $user->groups_as_string . ") ORDER BY name");
-    foreach my $group (@$groups) {
-        my ($nam, $desc) = @$group;
-        push(@has_bits, {"desc" => $desc, "name" => $nam});
-    }
-    $groups = $dbh->selectall_arrayref('SELECT DISTINCT id, name, description
-                                          FROM groups
-                                         ORDER BY name');
-    foreach my $group (@$groups) {
-        my ($group_id, $nam, $desc) = @$group;
-        if ($user->can_bless($group_id)) {
-            push(@set_bits, {"desc" => $desc, "name" => $nam});
+    $vars->{all_groups} = [ Bugzilla::Group->get_all ];
+    my $rows = $dbh->selectall_arrayref(
+        "SELECT g.*, p.name product_name FROM group_control_map g, products p".
+        " WHERE p.id=g.product_id", {Slice=>{}}
+    );
+    my $pergroup = {};
+    for my $row (@$rows)
+    {
+        for (qw(entry canedit editcomponents editbugs canconfirm))
+        {
+            if ($row->{$_})
+            {
+                push @{$pergroup->{$row->{group_id}}->{$_}}, $row->{product_name};
+            }
+        }
+        if ($row->{membercontrol} == CONTROLMAPMANDATORY &&
+            $row->{othercontrol} == CONTROLMAPMANDATORY)
+        {
+            push @{$pergroup->{$row->{group_id}}->{access}}, $row->{product_name};
+        }
+        elsif ($row->{membercontrol} || $row->{othercontrol})
+        {
+            push @{$pergroup->{$row->{group_id}}->{optional}}, $row->{product_name};
         }
     }
-
-    if (!$user->in_group('editcomponents'))
-    {
-        # There exists a distinct function for this
-        $vars->{local_editcomponents} = $user->get_editable_products;
-    }
-
-    foreach my $privs (PER_PRODUCT_PRIVILEGES)
-    {
-        next if $privs eq 'editcomponents' || $user->in_group($privs);
-        $vars->{"local_$privs"} = $user->get_products_by_permission($privs);
-    }
-
-    $vars->{'has_bits'} = \@has_bits;
-    $vars->{'set_bits'} = \@set_bits;    
+    $vars->{pergroup} = $pergroup;
 }
 
 # No SavePermissions() because this panel has no changeable fields.

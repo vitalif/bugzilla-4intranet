@@ -34,7 +34,7 @@ use Bugzilla::Group;
 use Bugzilla::Product;
 use Bugzilla::User;
 use Bugzilla::User::Setting;
-use Bugzilla::Util qw(get_text);
+use Bugzilla::Util qw(get_text html_strip);
 use Bugzilla::Version;
 
 use constant SETTINGS => {
@@ -85,90 +85,28 @@ use constant SETTINGS => {
 # Initial system groups.
 # 'admin' group will be added to all these groups as member by default.
 use constant SYSTEM_GROUPS => (
+    { name => 'admin' },
+    { name => 'tweakparams' },
+    { name => 'editusers' },
+    { name => 'creategroups' },
+    { name => 'editclassifications' },
+    { name => 'editcomponents' },
+    { name => 'editkeywords' },
+    { name => 'editbugs', userregexp => '.*' },
+    { name => 'canconfirm' },
+    { name => 'bz_canusewhineatothers' },
+    { name => 'bz_canusewhines', include => [ 'bz_canusewhiteatothers' ] },
+    { name => 'bz_sudoers' },
+    { name => 'bz_sudo_protect', include => [ 'bz_sudoers' ] },
+    { name => 'bz_editcheckers' },
+    { name => 'editfields' },
+    { name => 'editvalues' },
+    { name => 'importxls', include => [ 'editbugs' ] },
+    { name => 'worktimeadmin' },
+    { name => 'editflagtypes' },
     {
-        name        => 'admin',
-        description => 'Administrators'
-    },
-    {
-        name        => 'tweakparams',
-        description => 'Can change Parameters'
-    },
-    {
-        name        => 'editusers',
-        description => 'Can edit or disable users'
-    },
-    {
-        name        => 'creategroups',
-        description => 'Can create and destroy groups'
-    },
-    {
-        name        => 'editclassifications',
-        description => 'Can create, destroy, and edit classifications'
-    },
-    {
-        name        => 'editcomponents',
-        description => 'Can create, destroy, and edit components'
-    },
-    {
-        name        => 'editkeywords',
-        description => 'Can create, destroy, and edit keywords'
-    },
-    {
-        name        => 'editbugs',
-        description => 'Can edit all bug fields',
-        userregexp  => '.*'
-    },
-    {
-        name        => 'canconfirm',
-        description => 'Can confirm a bug or mark it a duplicate'
-    },
-    {
-        name        => 'bz_canusewhineatothers',
-        description => 'Can configure whine reports for other users',
-    },
-    {
-        name        => 'bz_canusewhines',
-        description => 'User can configure whine reports for self',
-        include     => [ 'bz_canusewhiteatothers' ],
-    },
-    {
-        name        => 'bz_sudoers',
-        description => 'Can perform actions as other users'
-    },
-    {
-        name        => 'bz_sudo_protect',
-        description => 'Can not be impersonated by other users',
-        include     => [ 'bz_sudoers' ],
-    },
-    {
-        name        => 'bz_editcheckers',
-        description => 'Can edit Bugzilla Correctness Checkers',
-    },
-    {
-        name        => 'editfields',
-        description => 'Can edit Bugzilla field parameters',
-    },
-    {
-        name        => 'editvalues',
-        description => 'Can edit Bugzilla field values',
-    },
-    {
-        name        => 'importxls',
-        description => 'Can use Excel Import feature',
-        include     => [ 'editbugs' ],
-    },
-    {
-        name        => 'worktimeadmin',
-        description => 'Can use extended Fix Worktime form',
-    },
-    {
-        name        => 'editflagtypes',
-        description => 'Can edit flag types',
-    },
-    {
-        name        => 'admin_index',
-        description => 'Can enter Administration area',
-        include     => [
+        name => 'admin_index',
+        include => [
             qw(tweakparams editusers editclassifications editcomponents creategroups
             editfields editflagtypes editkeywords bz_canusewhines bz_editcheckers)
         ],
@@ -226,6 +164,7 @@ sub update_system_groups
     {
         my $exists = new Bugzilla::Group({ name => $definition->{name} });
         $definition->{isbuggroup} = 0;
+        $definition->{description} = html_strip(Bugzilla->messages->{system_groups}->{$definition->{name}});
         my $include = delete $definition->{include};
         if (!$exists)
         {

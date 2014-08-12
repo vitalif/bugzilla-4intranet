@@ -213,6 +213,28 @@ $Bugzilla::messages->{en} = {
         'comment_width'                     => 'Show comments in the full screen width',
         'preview_long_comments'             => 'Fold long comments',
     },
+    system_groups => {
+        admin               => 'Administrator group. Usually allows to access <b>all</b> administrative functions.',
+        admin_index         => 'Allows to <a href="admin.cgi">enter Administration area</a>, granted automatically if you can access any of the administration functions.',
+        tweakparams         => 'Allows to <a href="editparams.cgi">change Parameters</a>.',
+        editusers           => 'Allows to <a href="editusers.cgi">edit or disable users</a> and include/exclude them from <b>all</b> groups.',
+        creategroups        => 'Allows to <a href="editgroups.cgi">create and destroy groups</a>.',
+        editclassifications => 'Allows to <a href="editclassifications.cgi">create, destroy, and edit classifications</a>.',
+        editcomponents      => 'Allows to <a href="editproducts.cgi">create, destroy, and edit all products, components, versions and milestones</a>.',
+        editkeywords        => 'Allows to <a href="editvalues.cgi?field=keywords">create, destroy, and edit keywords</a>.',
+        editbugs            => 'Allows to edit all fields of all bugs.',
+        canconfirm          => 'Allows to confirm bugs or mark them as duplicates.',
+        bz_canusewhineatothers => 'Allows to <a href="editwhines.cgi">configure whine reports for other users</a>.',
+        bz_canusewhines     => 'Allows to <a href="editwhines.cgi">configure whine reports for self</a>.',
+        bz_sudoers          => 'Allows to <a href="relogin.cgi?action=prepare-sudo">impersonate other users</a> and perform actions as them.',
+        bz_sudo_protect     => 'Forbids other users to impersonate you.',
+        bz_editcheckers     => 'Allows to <a href="editcheckers.cgi">edit Predicates</a> ("Correctness Checkers").',
+        editfields          => 'Allows to <a href="editfields.cgi">create, destroy and edit properties of bug fields</a>.',
+        editvalues          => 'Allows to <a href="editvalues.cgi">edit allowed values for all bug fields</a>.',
+        importxls           => 'Allows to <a href="importxls.cgi">create or update many bugs at once using Excel and CSV files</a>.',
+        worktimeadmin       => 'Allows to register working time for other users and for dates in the past (see "Fix Worktime" link under a bug list).',
+        editflagtypes       => 'Allows to <a href="editflagtypes.cgi">create, destroy and edit flag types</a>.',
+    },
 };
 
 __END__
