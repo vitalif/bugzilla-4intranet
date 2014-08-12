@@ -29,29 +29,25 @@
   [% END %]
 [% END %]
 
-[% SET canbless = !user.in_group('editusers') AND user.can_bless %]
-
-[% IF user.groups.size OR canbless %]
+[% IF user.groups.size OR user.can_bless %]
   <p>
     <b>System groups</b> just grant you some system-wide permission.<br />
     <b>[% terms.Bug %] groups</b> are configured by [% terms.Bugzilla %] administrators to grant you some per-product permissions.
     Note that several groups may restrict access to a single product; in this case you must be a member of <b>all</b> of them to see [% terms.bugs %] in that product.
   </p>
   <p>
-    You are[% ' either' IF canbless %] a member of the following groups[% ' or can <a href="editusers.cgi">include/exclude other users</a> from them' IF canbless %]:
+    You are[% ' either' IF user.can_bless %] a member of the following groups
+    [%- ' and/or can include/exclude other users from them (clickable groups are editable)' IF user.can_bless %]:
   </p>
 
   <table>
     [% FOREACH group = all_groups %]
-      [% IF user.in_group_id(group.id) %]
+      [% IF user.in_group_id(group.id) OR user.can_bless(group.id) %]
       [% IF NOT last_group OR last_group.is_bug_group != group.is_bug_group %]
       <tr>
         <th colspan="2" align="left" style="padding: [% last_group ? "1em" : "0" %] 0 1em 0">
           [% group.is_bug_group ? terms.Bug _ " groups" : "System groups" %]
         </th>
-        [% IF canbless %]
-        <th><abbr title="Can you include/exclude others from this group?">Grant</abbr></th>
-        [% END %]
         <th style="width: 50%" align="left">[% group.is_bug_group ? "Product permissions" : "" %]</th>
         [% SET last_group = group %]
         [% SET i = 0 %]
@@ -59,7 +55,11 @@
       [% END %]
       [% SET i = i+1 %]
       <tr[% (i % 2) ? ' style="background: #ddd"' : '' %]>
-        <th valign="top" align="left">[% group.name | html %]</th>
+        <th valign="top" align="left">
+          [% IF user.can_bless(group.id) %]
+            <a href="editusersingroup.cgi?group=[% group.id %]"[% IF !user.in_group_id(group.id) %] style="color: gray"[% END %]>[% group.name | html %]</a>
+          [% END %]
+        </th>
         <td valign="top">
           [% IF group.is_bug_group %]
             [% group.description | html_light %]
@@ -74,9 +74,6 @@
             [% PROCESS special_groups %]
           [% END %]
         </td>
-        [% IF canbless %]
-        <td align="center">[% IF user.can_bless(group.id) %]+[% END %]</td>
-        [% END %]
         [% IF group.is_bug_group %]
           <td valign="top">
             [% SET p = pergroup.${group.id} %]
