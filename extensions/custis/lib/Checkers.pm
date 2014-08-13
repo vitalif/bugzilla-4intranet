@@ -137,11 +137,11 @@ sub show_checker_errors
         ThrowUserError('checks_failed', { bugs => $info });
     }
     my $fatal = 1 && (grep { grep { $_->is_fatal } @{$_->{failed_checkers} || []} } @$bugs);
+    delete Bugzilla->input_params->{force_checkers};
     Bugzilla->template->process("verify-checkers.html.tmpl", {
         script_name => Bugzilla->cgi->script_name,
         failed => $bugs,
         allow_commit => !$fatal,
-        exclude_params_re => '^force_checkers$',
     }) || ThrowTemplateError(Bugzilla->template->error);
     exit;
 }
