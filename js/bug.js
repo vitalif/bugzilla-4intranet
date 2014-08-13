@@ -384,6 +384,25 @@ addListener(window, 'load', function()
     }
 });
 
+addListener(window, 'hashchange', function()
+{
+    var a = document.getElementsByName(window.location.hash.substr(1));
+    if (a.length)
+    {
+        a = a[0];
+        while (a && !/bz_comment($|\s)/.exec(a.className))
+        {
+            a = a.parentNode;
+        }
+        if (a)
+        {
+            var oc = a.className;
+            a.className += ' bz_comment_flash';
+            setTimeout(function() { a.className = oc; }, 300);
+        }
+    }
+});
+
 function showEditComment(comment_id)
 {
     var el = document.getElementById('comment_text_' + comment_id);

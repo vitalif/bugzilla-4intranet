@@ -307,11 +307,20 @@ div#docslinks {
     font-family: monospace;
 }
 
-.bz_comment_hilite pre {
+.bz_comment_hilite {
     background-color: lightgreen;
     margin: 0;
     padding: 1em 0;
 }
+
+.bz_comment_flash {
+    background: #ffc0d0;
+    -webkit-animation: bz_comment_flash 500ms;
+    animation: bz_comment_flash 500ms;
+}
+
+@-webkit-keyframes bz_comment_flash { from { background: #ffc0d0; } to { } }
+@keyframes bz_comment_flash { from { background: #ffc0d0; } to { } }
 
 /** End Comment text **/
 
