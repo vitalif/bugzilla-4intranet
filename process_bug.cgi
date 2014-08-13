@@ -144,40 +144,80 @@ if ($ARGS->{delta_ts})
     {
         ($vars->{operations}) = Bugzilla::Bug::GetBugActivity($first_bug->id, undef, $ARGS->{delta_ts});
 
-        # CustIS Bug 56327 - Change only fields the user wanted to change
+        ## Change only fields the user wanted to change (Originally CustIS Bug 56327)
+
+        # Merge all changes into a single hash
+        my $add_rm = {};
         for my $op (@{$vars->{operations}})
         {
-            for (@{$op->{changes}})
+            for my $chg (@{$op->{changes}})
             {
-                # FIXME similar detection is needed for other multi-selects
-                if ($_->{fieldname} eq 'dependson' || $_->{fieldname} eq 'blocked')
+                if ($chg->{fieldname} eq 'dependson' || $chg->{fieldname} eq 'blocked' ||
+                    Bugzilla->get_field($chg->{fieldname})->type == FIELD_TYPE_MULTI_SELECT)
                 {
-                    # Calculate old value from current value and activity log
-                    my $cur = $_->{fieldname};
-                    $cur = { map { $_ => 1 } @{ $first_bug->$cur() } };
-                    my $new = join ', ', keys %$cur;
-                    delete $cur->{$_} for split /[\s,]*,[\s,]*/, $_->{added};
-                    $cur->{$_} = 1 for split /[\s,]*,[\s,]*/, $_->{removed};
-                    # Compare the old value with submitted one
-                    my $equal = 1;
-                    for (split /[\s,]*,[\s,]*/, $ARGS->{$_->{fieldname}})
+                    my @rm = split_escaped(',\s*', $chg->{removed});
+                    my @add = split_escaped(',\s*', $chg->{added});
+                    my $h = ($add_rm->{$chg->{fieldname}} ||= [ {}, {} ]);
+                    for (@rm)
                     {
-                        if (!$cur->{$_})
-                        {
-                            $equal = 0;
-                            last;
-                        }
-                        delete $cur->{$_};
+                        delete $h->[1]->{$_} or $h->[0]->{$_} = 1;
                     }
-                    $equal = 0 if %$cur;
-                    # If equal to old value -> change to the new value
-                    $ARGS->{$_->{fieldname}} = $new if $equal;
+                    for (@add)
+                    {
+                        delete $h->[0]->{$_} or $h->[1]->{$_} = 1;
+                    }
                 }
-                elsif ($ARGS->{$_->{fieldname}} eq $_->{removed})
+                elsif (!defined $add_rm->{$chg->{fieldname}})
                 {
-                    # If equal to old value -> change to the new value
-                    $ARGS->{$_->{fieldname}} = $_->{added};
+                    $add_rm->{$chg->{fieldname}} = [ $chg->{removed}, $chg->{added} ];
                 }
+                else
+                {
+                    $add_rm->{$chg->{fieldname}}->[1] = $chg->{added};
+                }
+            }
+        }
+
+        for my $field (keys %$add_rm)
+        {
+            my ($removed, $added) = @{$add_rm->{$field}};
+            # FIXME Also detect bug_group changes?
+            if ($field eq 'dependson' || $field eq 'blocked' ||
+                Bugzilla->get_field($field)->type == FIELD_TYPE_MULTI_SELECT)
+            {
+                # Restore old value by rolling back the activity
+                my %new;
+                if ($field eq 'dependson' || $field eq 'blocked')
+                {
+                    %new = (map { $_ => 1 } @{ $first_bug->$field() });
+                }
+                else
+                {
+                    %new = (map { $_->name => 1 } @{ $first_bug->get_object($field) });
+                }
+                my %old = %new;
+                delete $old{$_} for keys %$added;
+                $old{$_} = 1 for keys %$removed;
+                # Compare old value with the submitted one
+                my $equal = 1;
+                $ARGS->{$field} = '' if !defined $ARGS->{$field};
+                for (ref $ARGS->{$field} ? @{$ARGS->{$field}} : split /[\s,]*,[\s,]*/, $ARGS->{$field})
+                {
+                    if (!$old{$_})
+                    {
+                        $equal = 0;
+                        last;
+                    }
+                    delete $old{$_};
+                }
+                $equal = 0 if %old;
+                # If equal to old value -> change to the new value
+                $ARGS->{$field} = [ keys %new ] if $equal;
+            }
+            elsif ($ARGS->{$field} eq $removed)
+            {
+                # If equal to old value -> change to the new value
+                $ARGS->{$field} = $added;
             }
         }
 

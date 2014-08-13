@@ -1401,8 +1401,8 @@ sub save_multiselects
         if (@$removed || @$added)
         {
             $changes->{$name} = [
-                join(', ', map { $old{$_}->name } @$removed),
-                join(', ', map { $new{$_}->name } @$added)
+                join_escaped(', ', ',', map { $old{$_}->name } @$removed),
+                join_escaped(', ', ',', map { $new{$_}->name } @$added),
             ];
             Bugzilla->dbh->do("DELETE FROM ".$field->value_type->REL_TABLE." WHERE bug_id = ?", undef, $self->id);
             if (@{$self->$name})
@@ -2771,22 +2771,22 @@ sub set_comment_worktimeonly
 sub modify_keywords
 {
     my ($self, $keywords, $descriptions, $action) = @_;
-
+    $keywords = [ split /[\s,]*,[\s,]*/, $keywords ] if !ref $keywords;
     if ($action eq 'delete')
     {
         my $old_kw = $self->keywords_obj;
         my $kw = { map { lc($_->name) => $_ } @$old_kw };
-        delete $kw->{lc $_} for split /[\s,]*,[\s,]*/, $keywords;
+        delete $kw->{lc $_} for @$keywords;
         $self->set('keywords', { keyword_objects => [ values %$kw ] });
     }
     else
     {
         if ($action eq 'add')
         {
-            $keywords .= ', '.$self->get_string('keywords');
+            push @$keywords, map { $_->name } $self->get_object('keywords');
         }
         $self->set('keywords', {
-            keywords => $keywords,
+            keywords => join(', ', @$keywords),
             descriptions => http_decode_query($descriptions),
         });
     }

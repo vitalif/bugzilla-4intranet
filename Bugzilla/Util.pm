@@ -46,7 +46,7 @@ use base qw(Exporter);
     stem_text intersect union
     get_text disable_utf8 bz_encode_json
     xml_element xml_element_quote xml_dump_simple xml_simple
-    Dumper http_build_query http_decode_query
+    Dumper http_build_query http_decode_query join_escaped split_escaped
 );
 
 use Bugzilla::Constants;
@@ -1012,6 +1012,26 @@ sub xml_simple_char
     my $stack = $parser->{_simple_stack};
     my $frame = $stack->[$#$stack];
     $frame->{char} .= $text;
+}
+
+sub join_escaped
+{
+    my ($str, $re, @array) = @_;
+    s/($re|\\)/\\$1/gs for @array;
+    return join $str, @array;
+}
+
+sub split_escaped
+{
+    my ($re, $s, $limit) = @_;
+    my @r;
+    while ($s =~ s/^(.*(?:^|[^\\])(?:\\\\)*)$re//gs)
+    {
+        push @r, $1;
+    }
+    push @r, $s if length $s;
+    s/\\(.)/$1/gso for @r;
+    return @r;
 }
 
 1;
