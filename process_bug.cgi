@@ -172,11 +172,13 @@ if ($ARGS->{delta_ts})
                     $equal = 0 if %$cur;
                     # If equal to old value -> change to the new value
                     $ARGS->{$_->{fieldname}} = $new if $equal;
+                    $cgi->param($_->{fieldname}, $new) if $equal;
                 }
                 elsif ($ARGS->{$_->{fieldname}} eq $_->{removed})
                 {
                     # If equal to old value -> change to the new value
                     $ARGS->{$_->{fieldname}} = $_->{added};
+                    $cgi->param($_->{fieldname}, $_->{added});
                 }
             }
         }
