@@ -97,7 +97,7 @@ my @open_status;
 my @closed_status;
 foreach my $status (@{ Bugzilla->get_field('bug_status')->legal_values })
 {
-    $status->is_open ? push(@open_status, $status->name) : push(@closed_stat, $status->name);
+    $status->is_open ? push(@open_status, $status->name) : push(@closed_status, $status->name);
 }
 $vars->{'open_status'} = \@open_status;
 $vars->{'closed_status'} = \@closed_status;

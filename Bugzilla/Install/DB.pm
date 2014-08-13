@@ -535,9 +535,6 @@ sub update_table_definitions
     # Make multi select tables to store IDs, not values
     _convert_multiselects();
 
-    # Add FK to multi select field tables
-    _add_foreign_keys_to_multiselects();
-
     # 2008-09-07 LpSolit@gmail.com - Bug 452893
     _fix_illegal_flag_modification_dates();
 
@@ -818,6 +815,9 @@ WHERE description LIKE\'%[CC:%\'');
         $dbh->bz_rename_column('bug_keywords', 'keywordid', 'value_id');
         $dbh->bz_alter_column('keywords', 'description');
     }
+
+    # Add FK to multi select field tables
+    _add_foreign_keys_to_multiselects();
 
     _move_old_defaults($old_params);
 

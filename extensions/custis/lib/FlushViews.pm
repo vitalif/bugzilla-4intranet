@@ -1,10 +1,14 @@
 #!/usr/bin/perl
-# CustIS Bug 61728 - external SQL interface to Bugzilla's bug tables
+# External SQL interface to Bugzilla Saved Searches (CustIS Bug 61728)
+# License: Dual-license GPL 3.0+ or MPL 1.1+
+# Author(s): Vitaliy Filippov
+
 # FIXME: Add UI for managing views
 
 package FlushViews;
 
 use strict;
+use Bugzilla::Util;
 use Bugzilla::User;
 use Bugzilla::Search;
 

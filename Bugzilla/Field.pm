@@ -1340,15 +1340,14 @@ sub populate_field_definitions
     }
 
     # DELETE fields which were added only accidentally, or which
-    # were never tracked in bugs_activity. Note that you should not
-    # delete fields which are used by bugs_activity.
+    # were never (or almost never) tracked in bugs_activity.
 
-    $dbh->do(
-        "DELETE FROM fielddefs WHERE name IN ('cc_accessible', 'requesters.login_name',
+    my $names = "name IN ('cc_accessible', 'requesters.login_name',
         'attachments.thedata', 'attach_data.thedata', 'content', 'requestees.login_name',
         'setters.login_name', 'longdescs.isprivate', 'assignee_accessible', 'qacontact_accessible',
-        'commenter', 'owner_idle_time', 'attachments.submitter', 'days_elapsed', 'percentage_complete')"
-    );
+        'commenter', 'owner_idle_time', 'attachments.submitter', 'days_elapsed', 'percentage_complete')";
+    $dbh->do("DELETE FROM bugs_activity WHERE fieldid IN (SELECT id FROM fielddefs WHERE $names)");
+    $dbh->do("DELETE FROM fielddefs WHERE $names");
 }
 
 # Get choice value object for a bug or for a hashref with default value names
