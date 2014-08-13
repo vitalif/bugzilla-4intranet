@@ -1334,6 +1334,7 @@ _close_standby_message($contenttype, $disposition, $serverpush);
 ################################################################################
 
 $vars->{template_format} = $ARGS->{format};
+$vars->{COLUMNS} = Bugzilla::Search->COLUMNS;
 
 # Generate and return the UI (HTML page) from the appropriate template.
 my $output;

@@ -109,6 +109,7 @@ sub _initialize {
         SMALLSERIAL =>  'smallint auto_increment',
         MEDIUMSERIAL => 'mediumint auto_increment',
         INTSERIAL =>    'integer auto_increment',
+        BIGSERIAL =>    'bigint auto_increment',
 
         TINYTEXT =>     'tinytext',
         MEDIUMTEXT =>   'mediumtext',

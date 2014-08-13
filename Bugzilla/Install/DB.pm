@@ -712,7 +712,8 @@ WHERE description LIKE\'%[CC:%\'');
     $dbh->bz_add_index('bugs_activity', 'bugs_activity_removed_idx', ['removed(255)']);
 
     # Change types of all ID fields to INT4
-    if ($dbh->bz_column_info('bugs', 'bug_id')->{TYPE} ne 'INTSERIAL')
+    if ($dbh->bz_column_info('bugs', 'bug_id')->{TYPE} ne 'INTSERIAL' ||
+        $dbh->bz_column_info('fieldvaluecontrol', 'field_id')->{TYPE} ne 'INT4')
     {
         _change_int_keys_to_int4();
     }
@@ -818,6 +819,11 @@ WHERE description LIKE\'%[CC:%\'');
 
     # Add FK to multi select field tables
     _add_foreign_keys_to_multiselects();
+
+    if (!$dbh->bz_fk_info('fieldvaluecontrol', 'field_id'))
+    {
+        $dbh->do("DELETE FROM fieldvaluecontrol WHERE field_id=0");
+    }
 
     _move_old_defaults($old_params);
 
@@ -3951,18 +3957,23 @@ sub _change_int_keys_to_int4
             $abs = { @{$abs->{FIELDS}} } if $abs;
             while (my ($column, $d) = each %h)
             {
-                if ($d->{TYPE} =~ /SERIAL/is)
+                if ($d->{TYPE} =~ /INT|SERIAL/ && ($abs && $abs->{$column} ||
+                    $d->{TYPE} =~ /(?<!INT)SERIAL/ || $d->{REFERENCES} || $d->{PRIMARYKEY}))
                 {
-                    push @$alter, [ $table, $column, { %$d, TYPE => 'INTSERIAL' } ];
-                }
-                elsif ($d->{TYPE} =~ /INT/is && ($d->{REFERENCES} || $d->{PRIMARYKEY} || $abs && $abs->{$column}->{REFERENCES}))
-                {
-                    if ($d->{REFERENCES})
+                    my $nt = $abs && $abs->{$column} && $abs->{$column}->{TYPE};
+                    if (!$nt)
                     {
-                        # Foreign keys will be automatically recreated later
-                        $dbh->bz_drop_fk($table, $column);
+                        $nt = $d->{TYPE} =~ /SERIAL/ ? 'INTSERIAL' : 'INT4';
                     }
-                    push @$alter, [ $table, $column, { %$d, TYPE => 'INT4' } ];
+                    if (lc $d->{TYPE} ne lc $nt)
+                    {
+                        if ($d->{REFERENCES})
+                        {
+                            # Foreign keys will be automatically recreated later
+                            $dbh->bz_drop_fk($table, $column);
+                        }
+                        push @$alter, [ $table, $column, { %$d, TYPE => $nt } ];
+                    }
                 }
             }
         }

@@ -873,9 +873,6 @@ sub cache_fields
     return $Bugzilla::CACHE_FIELDS;
 }
 
-sub COLUMNS { Bugzilla::Search->COLUMNS }
-sub COLUMN_ALIASES { Bugzilla::Search->COLUMN_ALIASES }
-
 sub rc_cache_fields
 {
     my $class = shift;

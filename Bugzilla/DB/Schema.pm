@@ -593,7 +593,7 @@ use constant ABSTRACT_SCHEMA => {
     # (originally CustIS Bugs 53617, 91153)
     fieldvaluecontrol => {
         FIELDS => [
-            field_id => {TYPE => 'INT4', NOTNULL => 1},
+            field_id => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'fielddefs', COLUMN => 'id'}},
             value_id => {TYPE => 'INT4', NOTNULL => 1},
             visibility_value_id => {TYPE => 'INT4', NOTNULL => 1},
         ],
@@ -1016,18 +1016,11 @@ use constant ABSTRACT_SCHEMA => {
 
     category_group_map => {
         FIELDS => [
-            category_id => {TYPE => 'INT4', NOTNULL => 1,
-                            REFERENCES => {TABLE  => 'series_categories',
-                                           COLUMN =>  'id',
-                                           DELETE => 'CASCADE'}},
-            group_id    => {TYPE => 'INT4', NOTNULL => 1,
-                            REFERENCES => {TABLE  => 'groups',
-                                           COLUMN => 'id',
-                                           DELETE => 'CASCADE'}},
+            category_id => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'series_categories', COLUMN => 'id', DELETE => 'CASCADE'}},
+            group_id    => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'groups', COLUMN => 'id', DELETE => 'CASCADE'}},
         ],
         INDEXES => [
-            category_group_map_category_id_idx =>
-                {FIELDS => [qw(category_id group_id)], TYPE => 'UNIQUE'},
+            category_group_map_category_id_idx => {FIELDS => [qw(category_id group_id)], TYPE => 'UNIQUE'},
         ],
     },
 

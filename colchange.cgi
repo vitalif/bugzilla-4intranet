@@ -51,7 +51,8 @@ my @masterlist =
 
 Bugzilla::Hook::process('colchange_columns', {'columns' => \@masterlist} );
 
-$vars->{'masterlist'} = \@masterlist;
+$vars->{masterlist} = \@masterlist;
+$vars->{COLUMNS} = Bugzilla::Search->COLUMNS;
 
 my @collist;
 if (defined $cgi->param('rememberedquery')) {

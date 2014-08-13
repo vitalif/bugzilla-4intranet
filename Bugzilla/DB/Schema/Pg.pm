@@ -54,6 +54,7 @@ sub _initialize {
         SMALLSERIAL =>  'serial unique',
         MEDIUMSERIAL => 'serial unique',
         INTSERIAL =>    'serial unique',
+        BIGSERIAL =>    'bigserial unique',
 
         TINYTEXT =>     'varchar(255)',
         MEDIUMTEXT =>   'text',

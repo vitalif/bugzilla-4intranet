@@ -206,7 +206,7 @@
 
     [% FOREACH column = displaycolumns %]
     <td class="bz_[% column FILTER css_class_quote %]_column bz_f[% bug_fields.$column.type %]
-        [%- IF Bugzilla.COLUMNS.$column.subid %] bz_[% Bugzilla.COLUMNS.$column.subid | css_class_quote %]_column[% END %]"
+        [%- IF COLUMNS.$column.subid %] bz_[% COLUMNS.$column.subid | css_class_quote %]_column[% END %]"
         [%- IF abbrev.$column.maxlength %] title="[%- bug.$column | html %]"[% END %]>
       [% IF abbrev.$column.format_value %]
         [%- bug.$column FILTER format(abbrev.$column.format_value) FILTER html -%]
