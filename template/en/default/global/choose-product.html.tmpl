@@ -66,6 +66,10 @@
 
 </table>
 
+[% IF target == "describecomponents.cgi" %]
+<p><a href="describecomponents.cgi">Select other classification</a></p>
+[% END %]
+
 [% IF target == "enter_bug.cgi" AND user AND NOT Param('useclassification') AND NOT cloned_bug_id AND user.in_group('importxls') %]
 <hr />
 <p class="importxls_link"><span>See also:</span> <a href="importxls.cgi">Mass bug import from Excel files</a>.</p>

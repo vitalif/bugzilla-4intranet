@@ -67,6 +67,11 @@
   </tbody>
 </table>
 
+[% IF Param("useclassification") %]
+<p><a href="describecomponents.cgi?classification=[% product.classification_obj.name | uri %]">View other products of classification <b>[% product.classification_obj.name | html %]</b></a></p>
+[% END %]
+<p><a href="describecomponents.cgi">View other products</a></p>
+
 [% PROCESS global/footer.html.tmpl %]
 
 [%############################################################################%]
