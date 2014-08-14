@@ -1,5 +1,3 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -98,37 +96,39 @@ sub bug_count { 0 }
 ####      Validators       ####
 ###############################
 
-sub _check_name {
+sub _check_name
+{
     my ($invocant, $name) = @_;
 
     $name = trim($name);
     $name || ThrowUserError('classification_not_specified');
-
-    if (length($name) > MAX_FIELD_VALUE_SIZE) {
-        ThrowUserError('classification_name_too_long', {'name' => $name});
+    if (length($name) > MAX_FIELD_VALUE_SIZE)
+    {
+        ThrowUserError('classification_name_too_long', { name => $name });
     }
 
-    my $classification = new Bugzilla::Classification({name => $name});
-    if ($classification && (!ref $invocant || $classification->id != $invocant->id)) {
+    my $classification = new Bugzilla::Classification({ name => $name });
+    if ($classification && (!ref $invocant || $classification->id != $invocant->id))
+    {
         ThrowUserError("classification_already_exists", { name => $classification->name });
     }
     return $name;
 }
 
-sub _check_description {
+sub _check_description
+{
     my ($invocant, $description) = @_;
-
     $description  = trim($description || '');
     return $description;
 }
 
-sub _check_sortkey {
+sub _check_sortkey
+{
     my ($invocant, $sortkey) = @_;
-
     $sortkey ||= 0;
-    my $stored_sortkey = $sortkey;
-    if (!detaint_natural($sortkey) || $sortkey > MAX_SMALLINT) {
-        ThrowUserError('classification_invalid_sortkey', { 'sortkey' => $stored_sortkey });
+    if (!detaint_natural($sortkey) || $sortkey > MAX_SMALLINT)
+    {
+        ThrowUserError('classification_invalid_sortkey', { sortkey => $sortkey });
     }
     return $sortkey;
 }
@@ -141,39 +141,36 @@ sub set_name        { $_[0]->set('name', $_[1]); }
 sub set_description { $_[0]->set('description', $_[1]); }
 sub set_sortkey     { $_[0]->set('sortkey', $_[1]); }
 
-sub product_count {
+sub product_count
+{
     my $self = shift;
     my $dbh = Bugzilla->dbh;
-
-    if (!defined $self->{'product_count'}) {
-        $self->{'product_count'} = $dbh->selectrow_array(q{
-            SELECT COUNT(*) FROM products
-            WHERE classification_id = ?}, undef, $self->id) || 0;
+    if (!defined $self->{product_count})
+    {
+        $self->{product_count} = $dbh->selectrow_array(
+            'SELECT COUNT(*) FROM products WHERE classification_id = ?', undef, $self->id
+        ) || 0;
     }
-    return $self->{'product_count'};
+    return $self->{product_count};
 }
 
-sub products {
+sub products
+{
     my $self = shift;
     my $dbh = Bugzilla->dbh;
-
-    if (!$self->{'products'}) {
-        my $product_ids = $dbh->selectcol_arrayref(q{
-            SELECT id FROM products
-            WHERE classification_id = ?
-            ORDER BY name}, undef, $self->id);
-
-        $self->{'products'} = Bugzilla::Product->new_from_list($product_ids);
+    if (!$self->{products})
+    {
+        $self->{products} = Bugzilla::Product->_do_list_select('classification_id=?', [ $self->id ]);
     }
-    return $self->{'products'};
+    return $self->{products};
 }
 
 ###############################
 ####      Accessors        ####
 ###############################
 
-sub description { return $_[0]->{'description'}; }
-sub sortkey     { return $_[0]->{'sortkey'};     }
+sub description { $_[0]->{description} }
+sub sortkey     { $_[0]->{sortkey}     }
 
 # Return all visible classifications.
 sub get_all { @{ Bugzilla->user->get_selectable_classifications } }
@@ -215,7 +212,7 @@ A Classification is a higher-level grouping of Products.
 
 =over
 
-=item C<product_count()>
+=item B<product_count()>
 
  Description: Returns the total number of products that belong to
               the classification.
@@ -224,7 +221,7 @@ A Classification is a higher-level grouping of Products.
 
  Returns:     Integer - The total of products inside the classification.
 
-=item C<products>
+=item B<products>
 
  Description: Returns all products of the classification.
 

@@ -1,5 +1,3 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -77,12 +75,14 @@ sub update {
 
 # Speeds up displays of comment lists by loading all ->author objects
 # at once for a whole list.
-sub preload {
+sub preload
+{
     my ($class, $comments) = @_;
     my %user_ids = map { $_->{who} => 1 } @$comments;
     my $users = Bugzilla::User->new_from_list([keys %user_ids]);
     my %user_map = map { $_->id => $_ } @$users;
-    foreach my $comment (@$comments) {
+    foreach my $comment (@$comments)
+    {
         $comment->{author} = $user_map{$comment->{who}};
     }
 }
@@ -91,14 +91,14 @@ sub preload {
 ####      Accessors      ######
 ###############################
 
-sub already_wrapped { return $_[0]->{'already_wrapped'}; }
-sub bug_id      { return $_[0]->{'bug_id'};    }
-sub creation_ts { return $_[0]->{'bug_when'};  }
-sub is_private  { return $_[0]->{'isprivate'}; }
-sub work_time   { return $_[0]->{'work_time'}; }
-sub type        { return $_[0]->{'type'};      }
-sub extra_data  { return $_[0]->{'extra_data'} }
-sub who         { return $_[0]->{'who'};       }
+sub already_wrapped { $_[0]->{already_wrapped} }
+sub bug_id          { $_[0]->{bug_id}          }
+sub creation_ts     { $_[0]->{bug_when}        }
+sub is_private      { $_[0]->{isprivate}       }
+sub work_time       { $_[0]->{work_time}       }
+sub type            { $_[0]->{type}            }
+sub extra_data      { $_[0]->{extra_data}      }
+sub who             { $_[0]->{who}             }
 
 sub body
 {
@@ -108,45 +108,49 @@ sub body
     {
         my $max_lines = Bugzilla->params->{preview_comment_lines} - 1;
         my $line_length = Bugzilla->params->{comment_line_length} - 1;
-        my $result = $self->{'thetext'};
+        my $result = $self->{thetext};
         $result =~ s/(>[^\n]*?\n)+/>...\n/g;
         $result =~ s/^((?>[^\n]{0,$line_length}.){0,$max_lines}(?>[^\n]{0,$line_length}\s)).*$/$1.../s if !$self->check_length($result);
         return $result;
     }
-    return $_[0]->{'thetext'};
+    return $_[0]->{thetext};
 }
 
-sub bug {
+sub bug
+{
     my $self = shift;
     require Bugzilla::Bug;
     $self->{bug} ||= new Bugzilla::Bug($self->bug_id);
     return $self->{bug};
 }
 
-sub is_about_attachment {
+sub is_about_attachment
+{
     my ($self) = @_;
-    return 1 if ($self->type == CMT_ATTACHMENT_CREATED
-                 or $self->type == CMT_ATTACHMENT_UPDATED);
+    return 1 if ($self->type == CMT_ATTACHMENT_CREATED || $self->type == CMT_ATTACHMENT_UPDATED);
     return 0;
 }
 
-sub attachment {
+sub attachment
+{
     my ($self) = @_;
     return undef if not $self->is_about_attachment;
     $self->{attachment} ||= new Bugzilla::Attachment($self->extra_data);
     return $self->{attachment};
 }
 
-sub author { 
+sub author
+{
     my $self = shift;
-    $self->{'author'} ||= new Bugzilla::User($self->{'who'});
-    return $self->{'author'};
+    $self->{author} ||= new Bugzilla::User($self->{'who'});
+    return $self->{author};
 }
 
 # %$params:
 # is_bugmail => format as plaintext (TODO rename to 'plaintext')
 # wrap => wrap or not
-sub body_full {
+sub body_full
+{
     my ($self, $params) = @_;
     $params ||= {};
     my $preview = $params->{preview} ? $params->{preview} : 0;
@@ -155,28 +159,33 @@ sub body_full {
     my $template = Bugzilla->template_inner;
     my $body;
     my $t = $self->type;
-    if ($t && $t != CMT_BACKDATED_WORKTIME &&
-        $t != CMT_WORKTIME)
+    if ($t && $t != CMT_BACKDATED_WORKTIME && $t != CMT_WORKTIME)
     {
-        $template->process("bug/format_comment.txt.tmpl", 
-                           { comment => $self, %$params }, \$body)
+        $template->process("bug/format_comment.txt.tmpl", { comment => $self, %$params }, \$body)
             || ThrowTemplateError($template->error());
         $body =~ s/^X//;
     }
-    else {
+    else
+    {
         $body = $self->body($preview);
     }
-    if (!$params->{is_bugmail}) {
+    if (!$params->{is_bugmail})
+    {
         $body = Bugzilla::Template::quoteUrls($body, $self->bug_id, $self);
     }
-    if ($params->{wrap}) {
+    if ($params->{wrap})
+    {
         $body = wrap_comment($body);
         if (!$preview && !($self->check_length) && !$wo_preview)
         {
             $params->{preview} = 1;
             my $new_body;
-            $template->process("bug/comment-preview-text.html.tmpl",
-                               { preview => $self->body_full($params), body => $body, id => $self->id }, \$new_body)
+            my $vars = {
+                preview => $self->body_full($params),
+                body => $body,
+                id => $self->id,
+            };
+            $template->process("bug/comment-preview-text.html.tmpl", $vars, \$new_body)
                 || ThrowTemplateError($template->error());
             $body = $new_body;
         }
@@ -187,7 +196,7 @@ sub body_full {
 sub check_length
 {
     my ($self, $test) = @_;
-    $test ||= $self->{'thetext'};
+    $test ||= $self->{thetext};
     my $line_length = Bugzilla->params->{comment_line_length};
     my $length = $test =~ s/([^\n]{$line_length}|\n)/$1/g;
     $length = 0 if !$length;
@@ -200,7 +209,8 @@ sub check_length
 
 sub set_extra_data { $_[0]->set('extra_data', $_[1]); }
 
-sub set_type {
+sub set_type
+{
     my ($self, $type, $extra_data) = @_;
     $self->set('type', $type);
     $self->set_extra_data($extra_data);
@@ -210,46 +220,49 @@ sub set_type {
 # Validators #
 ##############
 
-sub _check_extra_data {
+sub _check_extra_data
+{
     my ($invocant, $extra_data, $type) = @_;
     $type = $invocant->type if ref $invocant;
-    if ($type == CMT_NORMAL or $type == CMT_POPULAR_VOTES) {
-        if (defined $extra_data) {
-            ThrowCodeError('comment_extra_data_not_allowed',
-                           { type => $type, extra_data => $extra_data });
+    if ($type == CMT_NORMAL or $type == CMT_POPULAR_VOTES)
+    {
+        if (defined $extra_data)
+        {
+            ThrowCodeError('comment_extra_data_not_allowed', { type => $type, extra_data => $extra_data });
         }
     }
-    else {
-        if (!defined $extra_data) {
+    else
+    {
+        if (!defined $extra_data)
+        {
             ThrowCodeError('comment_extra_data_required', { type => $type });
         }
-        if ($type == CMT_MOVED_TO) {
+        if ($type == CMT_MOVED_TO)
+        {
             $extra_data = Bugzilla::User->check($extra_data)->login;
         }
-        elsif ($type == CMT_ATTACHMENT_CREATED 
-               or $type == CMT_ATTACHMENT_UPDATED) 
+        elsif ($type == CMT_ATTACHMENT_CREATED || $type == CMT_ATTACHMENT_UPDATED)
         {
-             my $attachment = Bugzilla::Attachment->check({ 
-                 id => $extra_data });
+             my $attachment = Bugzilla::Attachment->check({ id => $extra_data });
              $extra_data = $attachment->id;
         }
-        else {
+        else
+        {
             my $original = $extra_data;
-            detaint_natural($extra_data) 
-              or ThrowCodeError('comment_extra_data_not_numeric',
-                                { type => $type, extra_data => $original });
+            detaint_natural($extra_data) || ThrowCodeError('comment_extra_data_not_numeric',
+                { type => $type, extra_data => $original });
         }
     }
 
     return $extra_data;
 }
 
-sub _check_type {
+sub _check_type
+{
     my ($invocant, $type) = @_;
     $type ||= CMT_NORMAL;
     my $original = $type;
-    detaint_natural($type)
-        or ThrowCodeError('comment_type_invalid', { type => $original });
+    detaint_natural($type) || ThrowCodeError('comment_type_invalid', { type => $original });
     return $type;
 }
 
@@ -337,8 +350,6 @@ C<boolean>. C<1> if the comment should be returned word-wrapped.
 A string, the full text of the comment as it would be displayed to an end-user.
 
 =back
-
-
 
 =back
 

@@ -1,5 +1,4 @@
 #!/usr/bin/perl
-
 # Text difference engine
 # License: Dual-license GPL 3.0+ or MPL 1.1+
 # Contributor(s): Vladimir Koptev <vladimir.koptev@gmail.com>, Vitaliy Filippov <vitalif@mail.ru>
