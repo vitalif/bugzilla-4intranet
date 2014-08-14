@@ -782,6 +782,8 @@ sub get_dependent_check_order
             # classification isn't stored in bugs table so we don't check it
             && $_->name ne 'product' ||
         $_->type == FIELD_TYPE_MULTI_SELECT ||
+        # include these to check them for an empty value
+        $_->name eq 'deadline' || $_->name eq 'status_whiteboard' || $_->name eq 'alias' ||
         $_->custom
     } Bugzilla->get_fields({ obsolete => 0 });
     my @check;
