@@ -152,7 +152,7 @@ sub _check_value {
 
     $name = trim($name);
     $name || ThrowUserError('milestone_blank_name');
-    if (length($name) > MAX_MILESTONE_SIZE) {
+    if (length($name) > MAX_FIELD_VALUE_SIZE) {
         ThrowUserError('milestone_name_too_long', {name => $name});
     }
 

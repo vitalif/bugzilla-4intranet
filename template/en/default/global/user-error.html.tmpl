@@ -360,7 +360,7 @@
 
 [% BLOCK error_classification_name_too_long %]
   [% title = "Classification Name Too Long" %]
-  The name of a classification is limited to [% constants.MAX_CLASSIFICATION_SIZE FILTER html %]
+  The name of a classification is limited to [% constants.MAX_FIELD_VALUE_SIZE | html %]
   characters. '[% name FILTER html %]' is too long ([% name.length %] characters).
 [% END %]
 
@@ -416,7 +416,7 @@
 
 [% BLOCK error_component_name_too_long %]
   [% title = "Component Name Is Too Long" %]
-  The name of a component is limited to [% constants.MAX_COMPONENT_SIZE FILTER html %]
+  The name of a component is limited to [% constants.MAX_FIELD_VALUE_SIZE | html %]
   characters. '[% name FILTER html %]' is too long ([% name.length %] characters).
 [% END %]
 
@@ -1246,7 +1246,7 @@
 
 [% BLOCK error_milestone_name_too_long %]
   [% title = "Milestone Name Is Too Long" %]
-  The name of a milestone is limited to [% constants.MAX_MILESTONE_SIZE FILTER html %]
+  The name of a milestone is limited to [% constants.MAX_FIELD_VALUE_SIZE | html %]
   characters. '[% name FILTER html %]' is too long ([% name.length %] characters).
 [% END %]
 
@@ -1606,7 +1606,7 @@
 
 [% BLOCK error_product_name_too_long %]
   [% title = "Product name too long" %]
-  The name of a product is limited to [% constants.MAX_PRODUCT_SIZE FILTER html %]
+  The name of a product is limited to [% constants.MAX_FIELD_VALUE_SIZE | html %]
   characters. '[% name FILTER html %]' is too long ([% name.length %] characters).
 [% END %]
 
@@ -1678,7 +1678,7 @@
 
 [% BLOCK error_query_name_too_long %]
   [% title = "Query Name Too Long" %]
-  The name of the query must be less than [% constants.MAX_LEN_QUERY_NAME FILTER html %]
+  The name of the query must be less than [% constants.MAX_FIELD_VALUE_SIZE | html %]
   characters long.
 [% END %]
 

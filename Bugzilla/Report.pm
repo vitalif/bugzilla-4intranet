@@ -19,11 +19,6 @@ use Bugzilla::Search;
 
 use constant DB_TABLE => 'reports';
 
-# Do not track reports saved by users.
-use constant AUDIT_CREATES => 0;
-use constant AUDIT_UPDATES => 0;
-use constant AUDIT_REMOVES => 0;
-
 use constant DB_COLUMNS => qw(
     id
     user_id
@@ -51,12 +46,14 @@ use constant VALIDATORS => {
 # Validators #
 ##############
 
-sub _check_name {
+sub _check_name
+{
     my ($invocant, $name) = @_;
     $name = clean_text($name);
     $name || ThrowUserError("report_name_missing");
     $name !~ /[<>&]/ || ThrowUserError("illegal_query_name");
-    if (length($name) > MAX_LEN_QUERY_NAME) {
+    if (length($name) > MAX_FIELD_VALUE_SIZE)
+    {
         ThrowUserError("query_name_too_long");
     }
     return $name;
@@ -73,7 +70,8 @@ sub _check_query
 # Accessors #
 #############
 
-sub query { return $_[0]->{'query'}; }
+sub query { $_[0]->{query} }
+sub user_id { $_[0]->{user_id} }
 
 sub set_name { $_[0]->set('name', $_[1]); }
 sub set_query { $_[0]->set('query', $_[1]); }
@@ -82,26 +80,28 @@ sub set_query { $_[0]->set('query', $_[1]); }
 # Methods #
 ###########
 
-sub create {
+sub create
+{
     my $class = shift;
     my $param = shift;
 
     Bugzilla->login(LOGIN_REQUIRED);
-    $param->{'user_id'} = Bugzilla->user->id;
+    $param->{user_id} = Bugzilla->user->id;
 
     unshift @_, $param;
     my $self = $class->SUPER::create(@_);
 }
 
-sub check {
+sub check
+{
     my $class = shift;
     my $report = $class->SUPER::check(@_);
     my $user = Bugzilla->user;
-    if ( grep($_->id eq $report->id, @{$user->reports})) {
-        return $report;
-    } else {
+    if ($report->user_id != Bugzilla->user->id)
+    {
         ThrowUserError('report_access_denied');
     }
+    return $report;
 }
 
 1;

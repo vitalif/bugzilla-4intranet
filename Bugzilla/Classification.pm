@@ -104,7 +104,7 @@ sub _check_name {
     $name = trim($name);
     $name || ThrowUserError('classification_not_specified');
 
-    if (length($name) > MAX_CLASSIFICATION_SIZE) {
+    if (length($name) > MAX_FIELD_VALUE_SIZE) {
         ThrowUserError('classification_name_too_long', {'name' => $name});
     }
 

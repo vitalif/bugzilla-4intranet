@@ -128,7 +128,7 @@ sub _check_name {
     $name = trim($name);
     $name || ThrowUserError("query_name_missing");
     $name !~ /[<>&]/ || ThrowUserError("illegal_query_name");
-    if (length($name) > MAX_LEN_QUERY_NAME) {
+    if (length($name) > MAX_FIELD_VALUE_SIZE) {
         ThrowUserError("query_name_too_long");
     }
     return $name;

@@ -535,7 +535,7 @@ sub _check_name
     $name = trim($name);
     $name || ThrowUserError('product_blank_name');
 
-    if (length($name) > MAX_PRODUCT_SIZE)
+    if (length($name) > MAX_FIELD_VALUE_SIZE)
     {
         ThrowUserError('product_name_too_long', { name => $name });
     }

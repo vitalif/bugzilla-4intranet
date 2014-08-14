@@ -225,7 +225,7 @@ sub _check_name
     $name = trim($name);
     $name || ThrowUserError('component_blank_name');
 
-    if (length($name) > MAX_COMPONENT_SIZE)
+    if (length($name) > MAX_FIELD_VALUE_SIZE)
     {
         ThrowUserError('component_name_too_long', { name => $name });
     }

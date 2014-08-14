@@ -194,6 +194,9 @@ sub _check_value {
     # Remove unprintable characters
     $name = clean_text($name);
 
+    ThrowUserError('fieldvalue_name_too_long', { value => $name })
+        if length($name) > MAX_FIELD_VALUE_SIZE;
+
     $product = $invocant->product if (ref $invocant);
     my $version = new Bugzilla::Version({ product => $product, name => $name });
     if ($version && (!ref $invocant || $version->id != $invocant->id)) {

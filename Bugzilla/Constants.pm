@@ -169,11 +169,6 @@ use Cwd qw(abs_path);
     MAX_SMALLINT
     MAX_INT_32
 
-    MAX_LEN_QUERY_NAME
-    MAX_CLASSIFICATION_SIZE
-    MAX_PRODUCT_SIZE
-    MAX_MILESTONE_SIZE
-    MAX_COMPONENT_SIZE
     MAX_FIELD_VALUE_SIZE
     MAX_FREETEXT_LENGTH
     MAX_NUMERIC_LENGTH
@@ -495,21 +490,6 @@ use constant ROOT_USER => ON_WINDOWS ? 'Administrator' : 'root';
 use constant MIN_SMALLINT => -32768;
 use constant MAX_SMALLINT => 32767;
 use constant MAX_INT_32 => 2147483647;
-
-# The longest that a saved search name can be.
-use constant MAX_LEN_QUERY_NAME => 64;
-
-# The longest classification name allowed.
-use constant MAX_CLASSIFICATION_SIZE => 64;
-
-# The longest product name allowed.
-use constant MAX_PRODUCT_SIZE => 64;
-
-# The longest milestone name allowed.
-use constant MAX_MILESTONE_SIZE => 20;
-
-# The longest component name allowed.
-use constant MAX_COMPONENT_SIZE => 64;
 
 # The maximum length for values of <select> fields.
 use constant MAX_FIELD_VALUE_SIZE => 255;
