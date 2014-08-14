@@ -27,9 +27,7 @@
 
 [% SET checkwidths = [] %]
 
-[%# If we resubmit to ourselves, we need to know if we are using a format. %]
-[% thisformat = query_format != '' ? query_format : format %]
-<input type="hidden" name="query_format" value="[% thisformat FILTER html %]">
+<input type="hidden" name="query_format" value="[% query_format FILTER html %]">
 
 [%# *** Summary *** %]
 

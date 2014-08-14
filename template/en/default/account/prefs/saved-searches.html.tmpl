@@ -100,8 +100,7 @@
                    [% IF q.shared_with_group.id %]&amp;sharer_id=[% user.id FILTER url_quote %][% END %]">Run</a>
         </td>
         <td>
-          <a href="query.cgi?[% q.edit_link FILTER html %]&amp;known_name=
-                   [% q.name FILTER url_quote %]">Edit</a>
+          <a href="query.cgi?[% q.query | html %]&amp;known_name=[% q.name | url_quote %]">Edit</a>
         </td>
         <td>
           [% IF q.used_in_whine OR q.used_in_checkers %]
@@ -202,8 +201,7 @@
                    [% q.user.id FILTER url_quote %]">Run</a>
         </td>
         <td>
-          <a href="query.cgi?[% q.edit_link FILTER html %]&amp;known_name=
-                   [% q.name FILTER url_quote %]">Edit</a>
+          <a href="query.cgi?[% q.query | html %]&amp;known_name=[% q.name | url_quote %]">Edit</a>
         </td>
         <td align="center">
           <input type="checkbox" 

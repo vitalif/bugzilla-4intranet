@@ -20,9 +20,7 @@ use strict;
 
 package Bugzilla::Search::Saved;
 
-use base qw(Bugzilla::Object Exporter);
-
-our @EXPORT = qw(IsValidQueryType);
+use base qw(Bugzilla::Object);
 
 use Bugzilla::CGI;
 use Bugzilla::Hook;
@@ -232,8 +230,6 @@ sub remove_from_db
 
     my $dbh = Bugzilla->dbh;
     $dbh->do('DELETE FROM namedqueries WHERE id = ?', undef, $self->id);
-    $dbh->do('DELETE FROM namedqueries_link_in_footer WHERE namedquery_id = ?', undef, $self->id);
-    $dbh->do('DELETE FROM namedquery_group_map WHERE namedquery_id = ?', undef, $self->id);
 
     if (Bugzilla->user->id == $self->userid)
     {
@@ -245,19 +241,6 @@ sub remove_from_db
 #####################
 # Complex Accessors #
 #####################
-
-sub edit_link
-{
-    my ($self) = @_;
-    return $self->{edit_link} if defined $self->{edit_link};
-    my $params = http_decode_query($self->query);
-    if (!$params->{query_type} || !IsValidQueryType($params->{query_type}))
-    {
-        $params->{query_type} = 'advanced';
-    }
-    $self->{edit_link} = http_build_query($params);
-    return $self->{edit_link};
-}
 
 sub used_in_whine
 {
@@ -408,16 +391,6 @@ sub set_shared_with_group
         }
     }
     $self->{shared_with_group} = $group;
-}
-
-# Validate that the query type is one we can deal with
-sub IsValidQueryType
-{
-    my ($queryType) = @_;
-    if (grep { $_ eq $queryType } qw(specific advanced)) {
-        return 1;
-    }
-    return 0;
 }
 
 1;

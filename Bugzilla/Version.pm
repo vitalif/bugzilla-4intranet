@@ -25,6 +25,7 @@ use base qw(Bugzilla::Field::Choice);
 use Bugzilla::Install::Util qw(vers_cmp);
 use Bugzilla::Util;
 use Bugzilla::Field;
+use Bugzilla::Constants;
 use Bugzilla::Error;
 
 ################################

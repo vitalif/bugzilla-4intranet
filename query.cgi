@@ -282,48 +282,28 @@ $vars->{columnlist} = $params->{columnlist};
 # Add in the defaults.
 $vars->{default} = $default;
 
-$vars->{format} = $params->{format};
-
 # Set default page to "advanced" if none provided
-if (!$params->{query_format} && !$params->{format})
-{
-    if (defined $cgi->cookie('DEFAULTFORMAT'))
-    {
-        $params->{format} = $cgi->cookie('DEFAULTFORMAT');
-    }
-    else
-    {
-        $params->{format} = 'advanced';
-    }
-}
-
-$vars->{query_format} = $params->{query_format} || $params->{format};
-if ($vars->{query_format} eq "create-series")
+$vars->{query_format} = $params->{query_format} || $params->{format} || $cgi->cookie('DEFAULTFORMAT') || 'advanced';
+if ($vars->{query_format} eq 'create-series')
 {
     require Bugzilla::Chart;
     $vars->{category} = Bugzilla::Chart::getVisibleSeries();
 }
 
-# Set cookie to current format as default, but only if the format
-# one that we should remember.
-if (defined $vars->{format} && IsValidQueryType($vars->{format}))
+# Set cookie to current format as default.
+if ($vars->{query_format})
 {
     $cgi->send_cookie(
         -name => 'DEFAULTFORMAT',
-        -value => $vars->{format},
+        -value => $vars->{query_format},
         -expires => "Fri, 01-Jan-2038 00:00:00 GMT"
     );
 }
 
 # Generate and return the UI (HTML page) from the appropriate template.
 # If we submit back to ourselves (for e.g. boolean charts), we need to
-# preserve format information; hence query_format taking priority over
-# format.
-my $format = $template->get_format(
-    "search/search",
-    $params->{query_format} || $params->{format},
-    $params->{ctype}
-);
+# preserve format information; hence query_format taking priority over format.
+my $format = $template->get_format("search/search", $vars->{query_format}, $params->{ctype});
 
 $cgi->send_header($format->{ctype});
 $template->process($format->{template}, $vars)

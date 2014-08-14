@@ -447,7 +447,8 @@ sub cookie
     # if no value is supplied, then we retrieve the
     # value of the cookie, if any.  For efficiency, we cache the parsed
     # cookies in our state variables.
-    unless ( defined($value) ) {
+    unless (defined $value)
+    {
         unless ($self->{'.cookies'})
         {
             $self->{'.cookies'} = CGI::Cookie->fetch;
@@ -458,7 +459,7 @@ sub cookie
                 for (keys %{$self->{'.cookies'}})
                 {
                     $v = $self->{'.cookies'}->{$_}->value;
-                    Encode::_utf8_on($_) if /[\x80-\xFFFF]/;
+                    Encode::_utf8_on($_) if /[\x{0080}-\x{FFFF}]/;
                     Encode::_utf8_on($v);
                     push @a, $_, $v;
                 }
