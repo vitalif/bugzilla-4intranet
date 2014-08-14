@@ -1244,15 +1244,6 @@
   You must enter a name for this milestone.
 [% END %]
 
-[% BLOCK error_milestone_is_default %]
-  [% title = "Default milestone not deletable" %]
-  [% admindocslinks = {'products.html' => 'Administering products',
-                       'milestones.html' => 'About Milestones'} %]
-  Sorry, but [% milestone.name FILTER html %] is the default milestone
-  for the '[% milestone.product.name FILTER html %]' product, and so
-  it cannot be deleted.
-[% END %]
-
 [% BLOCK error_milestone_name_too_long %]
   [% title = "Milestone Name Is Too Long" %]
   The name of a milestone is limited to [% constants.MAX_MILESTONE_SIZE FILTER html %]
@@ -1617,15 +1608,6 @@
   [% title = "Product name too long" %]
   The name of a product is limited to [% constants.MAX_PRODUCT_SIZE FILTER html %]
   characters. '[% name FILTER html %]' is too long ([% name.length %] characters).
-[% END %]
-
-[% BLOCK error_product_must_define_defaultmilestone %]
-  [% title = "Must define new default milestone" %]
-  [% admindocslinks = {'products.html' => 'Administering products',
-                       'milestones.html' => 'About Milestones'} %]
-  You must <a href="editmilestones.cgi?action=add&amp;product=[% product FILTER url_quote %]">
-  create the milestone '[% milestone FILTER html %]'</a> before
-  it can be made the default milestone for product '[% product FILTER html %]'.
 [% END %]
 
 [% BLOCK error_product_admin_denied %]

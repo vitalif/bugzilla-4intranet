@@ -125,17 +125,3 @@
     </td>
   </tr>
 [% END %]
-
-[% IF Bugzilla.get_field('target_milestone').enabled && product.milestones.size -%]
-  <tr>
-    <th align="left"><label for="defaultmilestone">Default milestone:</label></th>
-    <td>
-      <select name="defaultmilestone" id="defaultmilestone">
-        <option value="">---</option>
-        [% FOREACH m = product.milestones %]
-        <option value="[% m.name | html %]" [% " selected=\"selected\"" IF m.id == product.defaultmilestone %]>[%- m.name | html -%]</option>
-        [% END %]
-      </select>
-    </td>
-  </tr>
-[% END %]

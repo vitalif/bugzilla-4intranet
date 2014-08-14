@@ -77,15 +77,6 @@
      })
 %]
 
-[%# We want to override the usual 'Delete' link for the default milestone %]
-[% overrides.action.name.${product.default_milestone_obj.name} = {
-     override_content => 1
-     content => "(Default milestone)"
-     override_contentlink => 1
-     contentlink => undef
-   } 
-%] 
-
 [% Hook.process('before_table') %]
 
 [% PROCESS admin/table.html.tmpl
@@ -94,7 +85,7 @@
      overrides = overrides
 %]
 
-[% IF ! showbugcounts %]
+[% IF !showbugcounts %]
 
   <p><a href="editmilestones.cgi?product=[% product.name FILTER url_quote %]&amp;showbugcounts=1">
       Redisplay table with [% terms.bug %] counts (slower)</a></p>

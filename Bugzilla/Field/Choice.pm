@@ -178,6 +178,24 @@ sub remove_from_db
     $self->set_visibility_values(undef);
     # Delete controlled value records
     $self->field->update_control_lists($self->id, {});
+    # Delete records about this value used as default
+    my $dbh = Bugzilla->dbh;
+    $dbh->do("DELETE FROM field_defaults WHERE field_id=? AND default_value=?", undef, $self->field->id, $self->id);
+    if ($self->field->type == FIELD_TYPE_MULTI_SELECT)
+    {
+        $dbh->do(
+            "UPDATE field_defaults SET default_value=REPLACE(default_value, ?, ?) WHERE field_id=?".
+            " AND default_value LIKE ?", undef, ','.$self->id.',', ',', $self->field->id, '%,'.$self->id.',%'
+        );
+        $dbh->do(
+            "UPDATE field_defaults SET default_value=SUBSTR(default_value, ?) WHERE field_id=?".
+            " AND default_value LIKE ?", undef, length($self->id)+2, $self->field->id, $self->id.',%'
+        );
+        $dbh->do(
+            "UPDATE field_defaults SET default_value=SUBSTR(default_value, 1, LENGTH(default_value)-?) WHERE field_id=?".
+            " AND default_value LIKE ?", undef, length($self->id)+1, $self->field->id, '%,'.$self->id
+        );
+    }
     $self->field->touch;
     $self->SUPER::remove_from_db();
 }

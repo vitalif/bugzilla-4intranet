@@ -223,8 +223,6 @@ sub update_table_definitions
 
     _populate_milestones_table();
 
-    _add_products_defaultmilestone();
-
     # 2000-03-24 Added unique indexes into the cc and keyword tables.  This
     # prevents certain database inconsistencies, and, moreover, is required for
     # new generalized list code to work.
@@ -741,29 +739,32 @@ WHERE description LIKE\'%[CC:%\'');
     }
 
     # Move fieldvaluecontrol.is_default to field_defaults
-    if ($dbh->bz_column_info(fieldvaluecontrol => 'is_default'))
+    if ($dbh->bz_column_info('fieldvaluecontrol', 'is_default'))
     {
+        print "Moving default value information to the new table field_defaults...\n";
         $dbh->do(
             "INSERT INTO field_defaults (field_id, visibility_value_id, default_value)".
             " SELECT field_id, visibility_value_id, ".$dbh->sql_group_concat('value_id', "','").
             " FROM fieldvaluecontrol WHERE is_default=1"
         );
-        $dbh->bz_drop_column(fieldvaluecontrol => 'is_default');
+        $dbh->bz_drop_column('fieldvaluecontrol', 'is_default');
     }
 
     # Copy products.defaultmilestone information into field_defaults
-    my $fid = Bugzilla->get_field('target_milestone')->id;
-    if ($fid && !$dbh->selectrow_array("SELECT * FROM field_defaults WHERE field_id=$fid"))
+    $dbh->bz_add_column('products', defaultmilestone => {TYPE => 'INT4', REFERENCES => {TABLE => 'milestones', COLUMN => 'id'}});
+    if ($dbh->bz_column_info('products', 'defaultmilestone'))
     {
-        print "Copying default milestone information into field_defaults...\n";
+        print "Moving default milestone information into field_defaults...\n";
+        my $fid = Bugzilla->get_field('target_milestone')->id;
         $dbh->do(
-            "INSERT INTO field_defaults (field_id, visibility_value_id, default_value)".
-            " SELECT $fid, id, defaultmilestone FROM products"
+            "REPLACE INTO field_defaults (field_id, visibility_value_id, default_value)".
+            " SELECT $fid, id, defaultmilestone FROM products WHERE defaultmilestone IS NOT NULL"
         );
+        $dbh->bz_drop_column('products', 'defaultmilestone');
     }
 
     # Copy components.default_version information into field_defaults
-    $fid = Bugzilla->get_field('version')->id;
+    my $fid = Bugzilla->get_field('version')->id;
     if ($fid && !$dbh->selectrow_array("SELECT * FROM field_defaults WHERE field_id=$fid"))
     {
         print "Copying default version information into field_defaults...\n";
@@ -1209,15 +1210,6 @@ sub _populate_milestones_table
             }
         }
     }
-}
-
-sub _add_products_defaultmilestone
-{
-    my $dbh = Bugzilla->dbh;
-
-    # 2000-03-23 Added a defaultmilestone field to the products table, so that
-    # we know which milestone to initially assign bugs to.
-    $dbh->bz_add_column('products', 'defaultmilestone');
 }
 
 sub _copy_from_comments_to_longdescs {
@@ -4017,7 +4009,8 @@ sub _change_select_fields_to_ids
     for my $col (@$change_to_id)
     {
         my ($subject, $col, $tab, $depend) = @$col;
-        if ($dbh->bz_column_info($subject, $col)->{TYPE} !~ /INT/i)
+        my $info = $dbh->bz_column_info($subject, $col);
+        if ($info && $info->{TYPE} !~ /INT/i)
         {
             $started ||= (print "-- Changing select fields to store IDs instead of names --\n");
             # Change column to nullable varchar(255)

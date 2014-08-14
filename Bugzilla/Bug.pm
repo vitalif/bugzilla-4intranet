@@ -2262,15 +2262,6 @@ sub _set_target_milestone
     my $field_obj = Bugzilla->get_field('target_milestone');
     if (!defined $target || $target eq '')
     {
-        if (!$field_obj->nullable && $field_obj->check_visibility($self))
-        {
-            $self->{target_milestone_obj} = $self->product_obj->default_milestone_obj;
-            $self->{target_milestone} = $self->product_obj->default_milestone;
-            if (!$self->{target_milestone})
-            {
-                ThrowUserError('object_not_specified', { class => $field_obj->value_type });
-            }
-        }
         $self->{target_milestone_obj} = undef;
         $self->{target_milestone} = undef;
         return undef;

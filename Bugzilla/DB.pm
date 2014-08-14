@@ -831,22 +831,26 @@ sub bz_drop_field_tables {
     $self->bz_drop_table($field->name);
 }
 
-sub bz_drop_column {
+sub bz_drop_column
+{
     my ($self, $table, $column) = @_;
-
     my $current_def = $self->bz_column_info($table, $column);
-
-    if ($current_def) {
-        my @statements = $self->_bz_real_schema->get_drop_column_ddl(
-            $table, $column);
-        print get_text('install_column_drop', 
-                       { table => $table, column => $column }) . "\n"
-            if Bugzilla->usage_mode == USAGE_MODE_CMDLINE;
-        foreach my $sql (@statements) {
-            # Because this is a deletion, we don't want to die hard if
-            # we fail because of some local customization. If something
-            # is already gone, that's fine with us!
-            eval { $self->do($sql); } or warn "Failed SQL: [$sql] Error: $@";
+    if ($current_def)
+    {
+        my @statements = $self->_bz_real_schema->get_drop_column_ddl($table, $column);
+        if ($current_def->{REFERENCES})
+        {
+            unshift @statements, $self->_bz_real_schema->get_drop_fk_sql(
+                $table, $column, $current_def->{REFERENCES}
+            );
+        }
+        if (Bugzilla->usage_mode == USAGE_MODE_CMDLINE)
+        {
+            print get_text('install_column_drop', { table => $table, column => $column }) . "\n"
+        }
+        foreach my $sql (@statements)
+        {
+            $self->do($sql);
         }
         $self->_bz_real_schema->delete_column($table, $column);
         $self->_bz_store_real_schema;

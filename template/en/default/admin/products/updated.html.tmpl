@@ -62,20 +62,7 @@
 
 [% IF changes.isactive.defined %]
   <p>
-  Product is now
-  [% IF product.is_active %]
-    open for
-  [% ELSE %]
-    closed to 
-  [% END %]
-  new [% terms.bugs %].
-  </p>
-[% END %]
-
-[% IF changes.defaultmilestone.defined %]
-  <p>
-  Updated default milestone from '[% changes.defaultmilestone.0 FILTER html %]' to
-  '[% changes.defaultmilestone.1 FILTER html %]'.
+  Product is now [% product.is_active ? 'open' : 'closed' %] for new [% terms.bugs %].
   </p>
 [% END %]
 

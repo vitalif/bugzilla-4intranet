@@ -61,7 +61,6 @@ use constant DB_COLUMNS => qw(
     votesperuser
     maxvotesperbug
     votestoconfirm
-    defaultmilestone
     allows_unconfirmed
     cc_group
 );
@@ -83,7 +82,6 @@ use constant UPDATE_COLUMNS => qw(
     votesperuser
     maxvotesperbug
     votestoconfirm
-    defaultmilestone
     allows_unconfirmed
     cc_group
 );
@@ -94,7 +92,6 @@ use constant VALIDATORS => {
     name             => \&_check_name,
     description      => \&_check_description,
     version          => \&_check_version,
-    defaultmilestone => \&_check_default_milestone,
     isactive         => \&Bugzilla::Object::check_boolean,
     votesperuser     => \&_check_votes_per_user,
     maxvotesperbug   => \&_check_votes_per_bug,
@@ -195,23 +192,6 @@ sub update
     my ($changes, $old_self) = Bugzilla::Object::update($self, @_);
 
     # FIXME when renaming a product, try to rename it in all named queries
-
-    # Update is_default for milestone in fieldvaluecontrol
-    if ($changes->{defaultmilestone})
-    {
-        Bugzilla->get_field('target_milestone')->update_default_value(
-            $self->id, [ $changes->{defaultmilestone}->[1] || () ]
-        );
-    }
-
-    # Convert default milestone to name
-    if ($changes->{defaultmilestone})
-    {
-        $changes->{defaultmilestone} = [
-            $changes->{defaultmilestone}->[0] ? Bugzilla::Milestone->new($changes->{defaultmilestone}->[0])->name : '',
-            $changes->{defaultmilestone}->[1] ? Bugzilla::Milestone->new($changes->{defaultmilestone}->[1])->name : '',
-        ];
-    }
 
     # We also have to fix votes.
     if ($changes->{maxvotesperbug} || $changes->{votesperuser} || $changes->{votestoconfirm})
@@ -603,32 +583,6 @@ sub _check_version
     return $version;
 }
 
-sub _check_default_milestone
-{
-    my ($invocant, $milestone) = @_;
-
-    # Do not create milestones when creating a product
-    return undef unless ref $invocant;
-
-    # Do nothing if target milestones are not in use
-    return $invocant->default_milestone if !Bugzilla->get_field('target_milestone')->enabled;
-
-    $milestone = trim($milestone) || undef;
-    if ($milestone)
-    {
-        # The default milestone must be one of the existing milestones.
-        my $mil_obj = new Bugzilla::Milestone({ name => $milestone, product => $invocant });
-        $mil_obj || ThrowUserError('product_must_define_defaultmilestone', {
-            product => $invocant->name,
-            milestone => $milestone,
-        });
-        $milestone = $mil_obj->id;
-    }
-    delete $invocant->{default_milestone_obj};
-
-    return $milestone;
-}
-
 sub _check_votes_per_user
 {
     return _check_votes(@_, 0);
@@ -745,13 +699,6 @@ sub set_votes_per_bug { $_[0]->set('maxvotesperbug', $_[1]); }
 sub set_votes_to_confirm { $_[0]->set('votestoconfirm', $_[1]); }
 sub set_allows_unconfirmed { $_[0]->set('allows_unconfirmed', $_[1]); }
 sub set_classification { $_[0]->set('classification_id', $_[1]); }
-
-sub set_default_milestone
-{
-    my ($self, $m) = @_;
-    $self->set('defaultmilestone', $m);
-    delete $self->{default_milestone_obj};
-}
 
 sub set_cc_group
 {
@@ -1085,7 +1032,6 @@ sub is_active         { return $_[0]->{isactive};          }
 sub votes_per_user    { return $_[0]->{votesperuser};      }
 sub max_votes_per_bug { return $_[0]->{maxvotesperbug};    }
 sub votes_to_confirm  { return $_[0]->{votestoconfirm};    }
-sub default_milestone { return $_[0]->{defaultmilestone};  }
 sub classification_id { return $_[0]->{classification_id}; }
 sub wiki_url          { return $_[0]->{wiki_url};          }
 sub notimetracking    { return $_[0]->{notimetracking};    }
@@ -1095,16 +1041,6 @@ sub cc_group          { return $_[0]->{cc_group};          }
 ###############################
 ####      Subroutines    ######
 ###############################
-
-sub default_milestone_obj
-{
-    my $self = shift;
-    if (!exists $self->{default_milestone_obj} && $self->default_milestone)
-    {
-        $self->{default_milestone_obj} = Bugzilla::Milestone->new($self->default_milestone);
-    }
-    return $self->{default_milestone_obj};
-}
 
 sub classification_obj
 {
@@ -1225,7 +1161,6 @@ Bugzilla::Product - Bugzilla product class.
     my $votestoconfirm   = $product->votes_to_confirm;
     my $wiki_url         = $product->wiki_url;
     my $notimetracking   = $product->notimetracking;
-    my $defaultmilestone = $product->default_milestone;
     my $classificationid = $product->classification_id;
     my $allows_unconfirmed = $product->allows_unconfirmed;
 

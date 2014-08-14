@@ -1050,7 +1050,6 @@ use constant ABSTRACT_SCHEMA => {
             votesperuser      => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0},
             maxvotesperbug    => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => '10000'},
             votestoconfirm    => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0},
-            defaultmilestone  => {TYPE => 'INT4', REFERENCES => {TABLE => 'milestones', COLUMN => 'id'}},
             allows_unconfirmed => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
             wiki_url          => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"},
             # CustIS Bug 59357 - Prefer no time-tracking in some products

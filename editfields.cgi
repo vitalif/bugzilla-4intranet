@@ -136,6 +136,7 @@ elsif ($action eq 'update')
     }
     if ($field->can_tweak('default_field_id'))
     {
+        # FIXME Disallow to change default field if it will lead to losing all the default values
         $field->set_default_field($cgi->param('default_field_id'));
     }
     for (

@@ -170,7 +170,6 @@ my @products = (
         description      => "used by Selenium test.. DON'T DELETE",
         versions         => ['unspecified', 'QAVersion'],
         milestones       => ['QAMilestone'],
-        defaultmilestone => '---',
         components       => [
             {   name             => "QA-Selenium-TEST",
                 description      => "used by Selenium test.. DON'T DELETE",
@@ -187,7 +186,6 @@ my @products = (
             "Alternate product used by Selenium. <b>Do not edit!</b>",
         versions         => ['unspecified', 'Another1', 'Another2'],
         milestones       => ['AnotherMS1', 'AnotherMS2', 'Milestone'],
-        defaultmilestone => '---',
         
         components       => [
             {   name             => "c1",
@@ -213,7 +211,6 @@ my @products = (
         classification   => 'Class2_QA',
         versions         => ['unspecified', 'C2Ver'],
         milestones       => ['C2Mil'],
-        defaultmilestone => '---',
         components       => [
             {   name             => "Helium",
                 description      => "Feel free to add bugs to me",
@@ -229,7 +226,6 @@ my @products = (
         description      => 'Only the QA group may enter bugs here.',
         versions         => ['unspecified'],
         milestones       => [],
-        defaultmilestone => '---',
         components       => [
             {   name             => "c1",
                 description      => "Same name as Another Product's component",
@@ -244,7 +240,6 @@ my @products = (
         description      => 'Only the QA group may search for bugs here.',
         versions         => ['unspecified'],
         milestones       => [],
-        defaultmilestone => '---',
         components       => [
             {   name             => "c1",
                 description      => "Still same name as the Another component",
@@ -270,9 +265,6 @@ for my $product (@products) {
 
         $new_product
             = new Bugzilla::Product( { name => $product->{product_name} } );
-
-        $dbh->do( 'INSERT INTO milestones (product_id, value) VALUES (?, ?)',
-            undef, ( $new_product->id, $product->{defaultmilestone} ) );
 
         # Now clear the internal list of accessible products.
         delete Bugzilla->user->{selectable_products};

@@ -217,7 +217,7 @@ use constant CAN_TWEAK => {
     nullable => { map { $_ => 1 } qw(alias bug_severity deadline keywords op_sys priority rep_platform status_whiteboard target_milestone version) },
     visibility_field_id => { map { $_ => 1 } qw(bug_severity op_sys priority rep_platform status_whiteboard target_milestone version) },
     value_field_id => { map { $_ => 1 } qw(bug_severity op_sys priority rep_platform) },
-    default_field_id => { map { $_ => 1 } qw(bug_severity keywords op_sys priority component rep_platform status_whiteboard) },
+    default_field_id => { map { $_ => 1 } qw(bug_severity keywords op_sys priority component rep_platform status_whiteboard target_milestone) },
 };
 
 ################
@@ -990,6 +990,7 @@ sub update_visibility_values
     return 1;
 }
 
+# FIXME: Make this function report saved changes
 sub update_control_lists
 {
     my $self = shift;
@@ -1030,8 +1031,8 @@ sub update_control_lists
     $mod = { del => [], add => [] };
     for my $f (Bugzilla->get_fields({ obsolete => 0, default_field_id => $self->id }))
     {
-        # FIXME: default version is hardcoded to depend on component, default milestone is hardcoded to depend on product
-        next if $f eq 'version' || $f eq 'target_milestone';
+        # FIXME: default version is hardcoded to depend on component
+        next if $f eq 'version';
         my $default = $params->{'default_'.$f->name};
         $default = $f->_check_default_value($default);
         if (!$default)
@@ -1257,9 +1258,13 @@ sub populate_field_definitions
             {
                 $field->set_is_mandatory($def->{is_mandatory});
             }
-            $field->set_value_field($dbh->selectrow_array('SELECT id FROM fielddefs WHERE name=?', undef, $def->{value_field})) if $def->{value_field};
-            $field->set_null_field($dbh->selectrow_array('SELECT id FROM fielddefs WHERE name=?', undef, $def->{null_field})) if $def->{null_field};
-            $field->set_default_field($dbh->selectrow_array('SELECT id FROM fielddefs WHERE name=?', undef, $def->{default_field})) if $def->{default_field};
+            for (qw(value_field null_field default_field))
+            {
+                if ($def->{$_} && !$field->{$_.'_id'})
+                {
+                    $field->set($_.'_id', $dbh->selectrow_array('SELECT id FROM fielddefs WHERE name=?', undef, $def->{$_}));
+                }
+            }
             $field->update();
         }
         else

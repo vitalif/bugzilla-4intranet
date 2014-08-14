@@ -140,10 +140,6 @@ if ($action eq 'del') {
     $vars->{'milestone'} = $milestone;
     $vars->{'product'} = $product;
 
-    # The default milestone cannot be deleted.
-    if ($product->default_milestone eq $milestone->name) {
-        ThrowUserError("milestone_is_default", { milestone => $milestone });
-    }
     $vars->{'token'} = issue_session_token('delete_milestone');
 
     $template->process("admin/milestones/confirm-delete.html.tmpl", $vars)

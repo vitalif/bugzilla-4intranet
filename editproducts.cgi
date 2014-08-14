@@ -310,7 +310,6 @@ if ($action eq 'update')
     $product->set_extproduct(scalar $cgi->param('extproduct'));
     $product->set_cc_group(scalar $cgi->param('cc_group') || '');
     $product->set_description(scalar $cgi->param('description'));
-    $product->set_default_milestone(scalar $cgi->param('defaultmilestone'));
     $product->set_is_active(scalar $cgi->param('is_active'));
     if (Bugzilla->get_field('votes')->enabled)
     {

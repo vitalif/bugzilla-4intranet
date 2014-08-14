@@ -655,8 +655,7 @@ DoubleCrossCheck("versions", "product_id", "id",
                  ["bugs", "product_id", "version", "bug_id"]);
 
 DoubleCrossCheck("milestones", "product_id", "id",
-                 ["bugs", "product_id", "target_milestone", "bug_id"],
-                 ["products", "id", "defaultmilestone", "name"]);
+                 ["bugs", "product_id", "target_milestone", "bug_id"]);
 
 ###########################################################################
 # Perform login checks

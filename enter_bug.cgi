@@ -454,18 +454,7 @@ elsif (defined $vercookie && grep { $_ eq $vercookie } @{$vars->{version}})
     $default{version} = $vercookie;
 }
 
-# Get list of milestones.
-if (Bugzilla->get_field('target_milestone')->enabled)
-{
-    if ($ARGS->{target_milestone})
-    {
-        $default{target_milestone} = $ARGS->{target_milestone};
-    }
-    else
-    {
-        $default{target_milestone} = $product->default_milestone && $product->default_milestone_obj->name;
-    }
-}
+$default{target_milestone} = $ARGS->{target_milestone};
 
 # Construct the list of allowable statuses.
 my $initial_statuses = Bugzilla::Status->can_change_to();

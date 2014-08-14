@@ -143,52 +143,6 @@ sub update
     return $changes;
 }
 
-sub remove_from_db
-{
-    my $self = shift;
-    my $dbh = Bugzilla->dbh;
-
-    # The default milestone cannot be deleted.
-    if ($self->id eq $self->product->default_milestone)
-    {
-        ThrowUserError('milestone_is_default', { milestone => $self });
-    }
-
-    if ($self->bug_count)
-    {
-        # We don't want to delete bugs when deleting a milestone.
-        # Bugs concerned are reassigned to the default milestone.
-        my $bug_ids = $dbh->selectcol_arrayref(
-            'SELECT bug_id FROM bugs WHERE product_id = ? AND target_milestone = ?',
-            undef, ($self->product->id, $self->id)
-        );
-
-        my $timestamp = $dbh->selectrow_array('SELECT NOW()');
-
-        $dbh->do(
-            'UPDATE bugs SET target_milestone = ?, delta_ts = ? WHERE ' . $dbh->sql_in('bug_id', $bug_ids),
-            undef, ($self->product->default_milestone, $timestamp)
-        );
-
-        require Bugzilla::Bug;
-        my $def = Bugzilla::Milestone->new($self->product->default_milestone);
-        foreach my $bug_id (@$bug_ids)
-        {
-            Bugzilla::Bug::LogActivityEntry(
-                $bug_id, 'target_milestone', $self->name,
-                $def && $def->name, Bugzilla->user->id, $timestamp
-            );
-        }
-    }
-
-    # Remove visibility values
-    $self->set_visibility_values(undef);
-
-    $dbh->do('DELETE FROM milestones WHERE id = ?', undef, $self->id);
-
-    Bugzilla->get_field(FIELD_NAME)->touch;
-}
-
 ################################
 # Validators
 ################################
