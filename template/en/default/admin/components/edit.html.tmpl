@@ -101,19 +101,6 @@
       </td>
     </tr>
     <tr>
-      <th align="left">
-        <label for="default_version">Default version:</label>
-      </th>
-      <td>
-        <select id="default_version" name="default_version">
-          <option value="">---</option>
-        [% FOREACH x = product.versions %]
-          <option value="[% x.name FILTER html %]" [% "selected" IF x.id == comp.default_version %] >[% x.name FILTER html %]</option>
-        [% END %]
-        </select>
-      </td>
-    </tr>
-    <tr>
       <th align="left">Open for [% terms.bug %] entry:</th>
       <td><input type="checkbox" name="is_active" value="1"
            [% ' checked="checked"' IF comp.isactive OR !comp.id %]>
@@ -143,7 +130,7 @@
         [% END %]
       </td>
     </tr>
-    [% INCLUDE "admin/fieldvalues/control-list-common.html.tmpl" this_field=comp.field this_value_id=comp.id %]
+    [% INCLUDE "admin/fieldvalues/control-list-common.html.tmpl" this_field=comp.field this_value=comp %]
     [% END %]
 
   </table>

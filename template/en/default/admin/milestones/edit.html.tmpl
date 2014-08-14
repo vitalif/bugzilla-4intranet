@@ -36,7 +36,7 @@
       <th class="field_label"><label for="isactive">Enabled For [% terms.Bugs %]:</label></th>
       <td><input id="isactive" name="isactive" type="checkbox" value="1" [% 'checked="checked"' IF milestone.isactive %]></td>
     </tr>
-    [% INCLUDE "admin/fieldvalues/control-list-common.html.tmpl" this_field=milestone.field this_value_id=milestone.id %]
+    [% INCLUDE "admin/fieldvalues/control-list-common.html.tmpl" this_field=milestone.field this_value=milestone %]
     [% END %]
   </table>
 

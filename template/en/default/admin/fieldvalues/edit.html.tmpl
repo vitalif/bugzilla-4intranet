@@ -121,7 +121,7 @@
       </tr>
       [% END %]
     [% END %]
-    [% INCLUDE "admin/fieldvalues/control-list-common.html.tmpl" this_field=field this_value_id=value.id %]
+    [% INCLUDE "admin/fieldvalues/control-list-common.html.tmpl" this_field=field this_value=value %]
     </tr>
     [% Hook.process('fields') %]
   </table>

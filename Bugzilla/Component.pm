@@ -47,7 +47,6 @@ use constant DB_COLUMNS => qw(
     initialqacontact
     description
     wiki_url
-    default_version
     isactive
 );
 
@@ -64,7 +63,6 @@ use constant UPDATE_COLUMNS => qw(
     initialqacontact
     description
     wiki_url
-    default_version
     isactive
 );
 
@@ -80,7 +78,6 @@ use constant VALIDATORS => {
 
 use constant UPDATE_VALIDATORS => {
     name             => \&_check_name,
-    default_version  => \&_check_default_version,
 };
 
 ###############################
@@ -146,9 +143,6 @@ sub create
     # Create series for the new component.
     $component->_create_series() if $create_series;
 
-    # Duplicate default version in field_defaults.
-    Bugzilla->get_field('version')->update_default_value($component->id, $component->default_version);
-
     Bugzilla->get_field(FIELD_NAME)->touch;
 
     $dbh->bz_commit_transaction();
@@ -163,7 +157,6 @@ sub run_create_validators
     my $product = delete $params->{product};
     $params->{product_id} = $product->id;
     $params->{name} = $class->_check_name($params->{name}, $product);
-    $params->{default_version} = $class->_check_default_version($params->{default_version}, $product);
 
     return $params;
 }
@@ -184,9 +177,6 @@ sub update
         my $diff = $self->_update_cc_list($self->{cc_ids});
         $changes->{cc_list} = $diff if defined $diff;
     }
-
-    # Duplicate default version in field_defaults.
-    Bugzilla->get_field('version')->update_default_value($self->id, $self->default_version);
 
     Bugzilla->get_field(FIELD_NAME)->touch;
 
@@ -215,19 +205,11 @@ sub remove_from_db
         }
         else
         {
-            ThrowUserError('component_has_bugs', {nb => $self->bug_count});
+            ThrowUserError('component_has_bugs', { nb => $self->bug_count });
         }
     }
 
-    $dbh->do('DELETE FROM flaginclusions WHERE component_id = ?', undef, $self->id);
-    $dbh->do('DELETE FROM flagexclusions WHERE component_id = ?', undef, $self->id);
-    $dbh->do('DELETE FROM component_cc WHERE component_id = ?', undef, $self->id);
-    $dbh->do('DELETE FROM components WHERE id = ?', undef, $self->id);
-
-    # Remove visibility values
-    $self->set_visibility_values(undef);
-
-    Bugzilla->get_field(FIELD_NAME)->touch;
+    $self->SUPER::remove_from_db();
 
     $dbh->bz_commit_transaction();
 }
@@ -313,17 +295,6 @@ sub _check_cc_list
     return [ keys %cc_ids ];
 }
 
-# CustIS Bug 53725 - Версия по умолчанию
-sub _check_default_version
-{
-    my ($invocant, $version, $product) = @_;
-    $version = trim($version);
-    return undef unless $version;
-    $product = $invocant->product unless ref $product;
-    $version = Bugzilla::Version->check({ product => $product, name => $version });
-    return $version->id;
-}
-
 ###############################
 ####       Methods         ####
 ###############################
@@ -383,15 +354,6 @@ sub set_is_active { $_[0]->set('isactive', $_[1]); }
 sub set_wiki_url { $_[0]->set('wiki_url', $_[1]); }
 sub set_name { $_[0]->set('name', $_[1]); }
 sub set_description { $_[0]->set('description', $_[1]); }
-
-sub set_default_version
-{
-    my ($self, $version) = @_;
-
-    $self->set('default_version', $version);
-    # Reset the default version object
-    delete $self->{default_version_obj};
-}
 
 sub set_default_assignee
 {
@@ -541,22 +503,6 @@ sub description { return $_[0]->{description}; }
 sub wiki_url    { return $_[0]->{wiki_url};    }
 sub product_id  { return $_[0]->{product_id};  }
 sub is_active   { return $_[0]->{isactive};    }
-
-sub default_version { return $_[0]->{default_version}; }
-
-sub default_version_obj
-{
-    my $self = shift;
-    return $self->{default_version_obj} if $self->{default_version_obj} || !$self->{default_version};
-    my $version = Bugzilla::Version->new($self->{default_version});
-    return $self->{default_version_obj} = $version;
-}
-
-sub default_version_name
-{
-    my $self = shift;
-    return $self->{default_version} && $self->default_version_obj->name;
-}
 
 ###############################
 ####      Subroutines      ####

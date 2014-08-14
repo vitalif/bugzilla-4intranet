@@ -1073,7 +1073,6 @@ use constant ABSTRACT_SCHEMA => {
             initialqacontact => {TYPE => 'INT4', REFERENCES => {TABLE => 'profiles', COLUMN => 'userid', DELETE => 'SET NULL'}},
             description      => {TYPE => 'MEDIUMTEXT', NOTNULL => 1, DEFAULT => "''"},
             wiki_url         => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"},
-            default_version  => {TYPE => 'INT4', REFERENCES => {TABLE => 'versions', COLUMN => 'id', DELETE => 'SET NULL'}},
             isactive         => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'},
         ],
         INDEXES => [

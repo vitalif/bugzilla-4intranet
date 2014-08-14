@@ -2,7 +2,7 @@
   # License: Dual-license GPL 3.0+ or MPL 1.1+
   # Author: (c) Vitaliy Filippov 2014 %]
 
-[% IF this_field && this_value_id %]
+[% IF this_field && this_value.id %]
 
 [% SET any_field = 0 %]
 [% FOR f = Bugzilla.get_fields({ obsolete => 0, visibility_field_id => this_field.id, sort => 1 }) %]
@@ -18,7 +18,7 @@
     <br />
   [% END %]
   <input type="checkbox" name="is_visible_[% f.name | html %]" id="is_visible_[% f.name | html %]" value="1"
-    [% " checked" IF f.has_visibility_value(this_value_id) %] />
+    [% " checked" IF f.has_visibility_value(this_value.id) %] />
   <label for="is_visible_[% f.name | html %]">[% f.description | html %]</label>
 [% END %]
 [% IF any_field %]
@@ -29,7 +29,7 @@
 [% SET any_field = 0 %]
 [% FOR f = Bugzilla.get_fields({ obsolete => 0, value_field_id => this_field.id, sort => 1 }) %]
   [% IF f.name != 'version' && f.name != 'target_milestone' && f.name != 'component' &&
-    (f.visibility_field_id != f.value_field_id || f.has_visibility_value(this_value_id)) %]
+    (f.visibility_field_id != f.value_field_id || f.has_visibility_value(this_value.id)) %]
     [% IF NOT any_field %]
     <tr>
       <th align="left" valign="top">
@@ -40,7 +40,7 @@
       [% SET any_field = 1 %]
     [% ELSE %],
     [% END %]
-    <a href="editvalues.cgi?action=control_list&field=[% f.name | html %]&visibility_value_id=[% this_value_id %]">[% f.description | html %]</a>
+    <a href="editvalues.cgi?action=control_list&field=[% f.name | html %]&visibility_value_id=[% this_value.id %]">[% f.description | html %]</a>
   [% END %]
 [% END %]
 [% IF any_field %]
@@ -50,7 +50,7 @@
 
 [% SET any_field = 0 %]
 [% FOR f = Bugzilla.get_fields({ obsolete => 0, null_field_id => this_field.id, sort => 1 }) %]
-  [% IF f.visibility_field_id != f.null_field_id || f.has_visibility_value(this_value_id) %]
+  [% IF f.visibility_field_id != f.null_field_id || f.has_visibility_value(this_value.id) %]
     [% IF NOT any_field %]
     <tr>
       <th align="left" valign="top">
@@ -63,7 +63,7 @@
       <br />
     [% END %]
     <input type="checkbox" name="is_nullable_[% f.name | html %]" id="is_nullable_[% f.name | html %]" value="1"
-      [% " checked" IF f.check_is_nullable(this_value_id) %] />
+      [% " checked" IF f.check_is_nullable(this_value.id) %] />
     <label for="is_nullable_[% f.name | html %]">[% f.description | html %]</label>
   [% END %]
 [% END %]
@@ -74,7 +74,7 @@
 
 [% SET any_field = 0 %]
 [% FOR f = Bugzilla.get_fields({ obsolete => 0, clone_field_id => this_field.id, sort => 1 }) %]
-  [% IF f.visibility_field_id != f.clone_field_id || f.has_visibility_value(this_value_id) %]
+  [% IF f.visibility_field_id != f.clone_field_id || f.has_visibility_value(this_value.id) %]
     [% IF NOT any_field %]
     <tr>
       <th align="left" valign="top">
@@ -87,7 +87,7 @@
       <br />
     [% END %]
     <input type="checkbox" name="is_cloned_[% f.name | html %]" id="is_cloned_[% f.name | html %]" value="1"
-      [% " checked" IF f.check_clone(this_value_id) %] />
+      [% " checked" IF f.check_clone(this_value.id) %] />
     <label for="is_cloned_[% f.name | html %]">[% f.description | html %]</label>
   [% END %]
 [% END %]
@@ -98,8 +98,7 @@
 
 [% SET any_field = 0 %]
 [% FOR f = Bugzilla.get_fields({ obsolete => 0, default_field_id => this_field.id, sort => 1 }) %]
-  [%# FIXME: default version is hardcoded to depend on component %]
-  [% IF f.name != 'version' && (f.visibility_field_id != f.default_field_id || f.has_visibility_value(this_value_id)) %]
+  [% IF f.visibility_field_id != f.default_field_id || f.has_visibility_value(this_value.id) %]
     [% IF NOT any_field %]
     <tr>
       <th align="left" valign="top">
@@ -114,19 +113,23 @@
       <td><label for="default_[% f.name | html %]">[% f.description | html %]:</label></td>
       <td>
       [% IF f.is_select %]
-        [% SET cur_default = f.default_value_hash_for(this_value_id) %]
+        [% SET cur_default = f.default_value_hash_for(this_value.id) %]
         <select name="default_[% f.name | html %]" id="default_[% f.name | html %]"
           [% IF f.type == constants.FIELD_TYPE_MULTI_SELECT %] multiple size="5"[% END %]>[%# FIXME array[] %]
           <option value="">---</option>
-          [% SET vs = f.value_field_id == f.default_field_id ? f.restricted_legal_values(this_value_id) : f.legal_values %]
+          [% SET vs = f.value_field_id == f.default_field_id ? f.restricted_legal_values(this_value.id) : f.legal_values %]
+          [%# FIXME: component/target_milestone/version product_id is taken via hardcode here %]
+          [% IF f.value_field.name == 'product' AND (this_field.name == 'component' OR this_field.name == 'target_milestone' OR this_field.name == 'version') %]
+            [% SET vs = f.restricted_legal_values(this_value.product_id) %]
+          [% END %]
           [% FOR v = vs %]
             <option value="[% v.id %]"[% " selected" IF cur_default.${v.id} %]>[% v.name | html %]</option>
           [% END %]
         </select>
       [% ELSIF f.type == constants.FIELD_TYPE_TEXTAREA %]
-        <textarea cols="50" rows="5" name="default_[% f.name | html %]" id="default_[% f.name | html %]">[% f.get_default_value(this_value_id) | html %]</textarea>
+        <textarea cols="50" rows="5" name="default_[% f.name | html %]" id="default_[% f.name | html %]">[% f.get_default_value(this_value.id) | html %]</textarea>
       [% ELSE %]
-        <input type="text" name="default_[% f.name | html %]" id="default_[% f.name | html %]" value="[% f.get_default_value(this_value_id) | html %]" />
+        <input type="text" name="default_[% f.name | html %]" id="default_[% f.name | html %]" value="[% f.get_default_value(this_value.id) | html %]" />
       [% END %]
       </td>
     </tr>

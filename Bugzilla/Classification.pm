@@ -64,6 +64,7 @@ use constant is_active => 1;
 ###############################
 ####     Constructors     #####
 ###############################
+
 sub remove_from_db
 {
     my $self = shift;
@@ -72,6 +73,7 @@ sub remove_from_db
     ThrowUserError("classification_not_deletable") if ($self->id == 1);
 
     $dbh->bz_start_transaction();
+
     # Reclassify products to the default classification, if needed.
     $dbh->do("UPDATE products SET classification_id=1 WHERE classification_id=?", undef, $self->id);
     my @dependent_fields = map { $_->id } Bugzilla->get_fields({ visibility_field_id => $self->field->id });
@@ -84,19 +86,13 @@ sub remove_from_db
     }
 
     # Touch the field
-    Bugzilla->get_field('classification')->touch;
-
-    Bugzilla::Object::remove_from_db($self);
+    $self->SUPER::remove_from_db();
 
     $dbh->bz_commit_transaction();
 }
 
-sub update
-{
-    # Not Bugzilla::Field::Choice! It will try to overwrite
-    # bugs.classification, but no such field exists in the DB
-    Bugzilla::Object::update(@_);
-}
+sub is_default { 0 }
+sub bug_count { 0 }
 
 ###############################
 ####      Validators       ####

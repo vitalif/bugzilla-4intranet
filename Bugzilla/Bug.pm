@@ -723,12 +723,6 @@ sub check_default_values
     {
         $self->set($_, $self->$_);
     }
-    # Default milestone may be set in product, default version may be set in component
-    for (qw(target_milestone version))
-    {
-        my $f = Bugzilla->get_field($_);
-        $self->set($_, undef) if $f->enabled && (!$f->nullable && !$self->{$_} || !exists $self->{$_});
-    }
     # Remove NULLs for custom fields
     for my $field (Bugzilla->get_fields({ custom => 1, obsolete => 0 }))
     {
@@ -2284,15 +2278,7 @@ sub _set_version
     my $field_obj = Bugzilla->get_field('version');
     if (!defined $version || $version eq '')
     {
-        if (!$field_obj->nullable && $field_obj->check_visibility($self))
-        {
-            $self->{version_obj} = $self->component_obj->default_version_obj;
-            $self->{version} = $self->component_obj->default_version;
-            if (!$self->{version})
-            {
-                ThrowUserError('object_not_specified', { class => $field_obj->value_type });
-            }
-        }
+
         return undef;
     }
     # FIXME use set_select_field

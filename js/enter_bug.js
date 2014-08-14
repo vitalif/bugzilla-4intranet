@@ -27,20 +27,6 @@ function component_change()
             last_initialowner = c.default_assignee;
         }
 
-        if (!overridedefaultversion &&
-            (!last_component || !component_data[last_component].default_version ||
-            form.version.value == component_data[last_component].default_version))
-        {
-            for (var i = 0; i < form.version.options.length; i++)
-            {
-                if (form.version.options[i].value == c.default_version)
-                {
-                    form.version.selectedIndex = i;
-                    break;
-                }
-            }
-        }
-
         /**
          * CustIS Bug 57457 & Bug 58657
          *

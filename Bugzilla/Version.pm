@@ -164,20 +164,6 @@ sub update
     return $changes;
 }
 
-sub remove_from_db
-{
-    my $self = shift;
-    my $dbh = Bugzilla->dbh;
-    # The version cannot be removed if there are bugs associated with it.
-    if ($self->bug_count)
-    {
-        ThrowUserError("version_has_bugs", { nb => $self->bug_count });
-    }
-    # Remove visibility values
-    $self->set_visibility_values(undef);
-    $self->SUPER::remove_from_db();
-}
-
 ###############################
 #####     Accessors        ####
 ###############################

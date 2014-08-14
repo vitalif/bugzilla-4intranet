@@ -122,7 +122,6 @@ if ($action eq 'new') {
     my $default_qa_contact = trim($cgi->param('initialqacontact') || '');
     my $description        = trim($cgi->param('description')      || '');
     my $wiki_url           = trim($cgi->param('wiki_url')         || '');
-    my $default_version    = trim($cgi->param('default_version')  || '');
     my @initial_cc         = $cgi->param('initialcc');
 
     my $component = Bugzilla::Component->create({
@@ -131,10 +130,9 @@ if ($action eq 'new') {
         description      => $description,
         initialowner     => $default_assignee,
         initialqacontact => $default_qa_contact,
-        default_version  => $default_version,
         wiki_url         => $wiki_url,
         initial_cc       => \@initial_cc,
-        is_active        => scalar $cgi->param('is_active'),
+        isactive         => scalar $cgi->param('is_active'),
         # XXX We should not be creating series for products that we
         # didn't create series for.
         create_series    => 1,
@@ -229,7 +227,6 @@ if ($action eq 'update') {
     my $default_qa_contact    = trim($cgi->param('initialqacontact') || '');
     my $description           = trim($cgi->param('description')      || '');
     my $wiki_url              = trim($cgi->param('wiki_url')         || '');
-    my $default_version       = trim($cgi->param('default_version')  || '');
     my @initial_cc            = $cgi->param('initialcc');
 
     my $component =
@@ -239,7 +236,6 @@ if ($action eq 'update') {
     $component->set_description($description);
     $component->set_default_assignee($default_assignee);
     $component->set_default_qa_contact($default_qa_contact);
-    $component->set_default_version($default_version);
     $component->set_wiki_url($wiki_url);
     $component->set_cc_list(\@initial_cc);
     $component->set_is_active(scalar $cgi->param('is_active'));

@@ -43,7 +43,6 @@ var product_id = [% product.id %];
 var product_flag_type_ids = [% json(product_flag_type_ids) %];
 var current_user_login = "[% user.login | js %]";
 var initial_cc = "[% cc | js %]";
-var overridedefaultversion = [% default.version ? 1 : 0 %];
 var component_data = [% json(components_json) %];
 var wantsReminder = [% Bugzilla.user.wants_worktime_reminder('new bug') ? 'true' : 'false' %];
 var noTimeTracking = [% product.notimetracking ? 'true' : 'false' %];

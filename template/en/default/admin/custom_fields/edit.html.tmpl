@@ -212,9 +212,6 @@ var constants = {
         <select style="width: 400px" name="visibility_field_id" id="visibility_field_id">
           <option value="">---</option>
           [% FOREACH sel_field = Bugzilla.get_fields({ is_select => 1 }) %]
-            [%# FIXME now, fields with non-unique value names are not allowed %]
-            [% NEXT IF sel_field.id == field.id || sel_field.name == "component" ||
-                sel_field.name == "version" || sel_field.name == "target_milestone" %]
             <option value="[% sel_field.id | html %]"
               [% ' selected="selected"' IF sel_field.id == field.visibility_field.id %]>
               [% sel_field.description | html %]
@@ -234,9 +231,6 @@ var constants = {
         <select style="width: 400px" name="null_field_id" id="null_field_id">
           <option value="">---</option>
           [% FOREACH sel_field = Bugzilla.get_fields({ is_select => 1 }) %]
-            [%# FIXME now, fields with non-unique value names are not allowed %]
-            [% NEXT IF sel_field.id == field.id || sel_field.name == "component" ||
-                sel_field.name == "version" || sel_field.name == "target_milestone" %]
             <option value="[% sel_field.id | html %]"
               [% ' selected="selected"' IF sel_field.id == field.null_field.id %]>
               [% sel_field.description | html %]
@@ -256,9 +250,6 @@ var constants = {
         <select style="width: 400px" name="clone_field_id" id="clone_field_id">
           <option value="">---</option>
           [% FOREACH sel_field = Bugzilla.get_fields({ is_select => 1 }) %]
-            [%# FIXME now, fields with non-unique value names are not allowed %]
-            [% NEXT IF sel_field.id == field.id || sel_field.name == "component" ||
-                sel_field.name == "version" || sel_field.name == "target_milestone" %]
             <option value="[% sel_field.id | html %]"
               [% ' selected="selected"' IF sel_field.id == field.clone_field.id %]>
               [% sel_field.description | html %]
@@ -278,9 +269,7 @@ var constants = {
         <select style="width: 400px" name="default_field_id" id="default_field_id">
           <option value="">---</option>
           [% FOREACH sel_field = Bugzilla.get_fields({ is_select => 1 }) %]
-            [%# FIXME now, fields with non-unique value names are not allowed %]
-            [% NEXT IF sel_field.id == field.id || sel_field.name == "component" ||
-                sel_field.name == "version" || sel_field.name == "target_milestone" %]
+            [% NEXT IF sel_field.id == field.id %]
             <option value="[% sel_field.id | html %]"
               [% ' selected="selected"' IF sel_field.id == field.default_field.id %]>
               [% sel_field.description | html %]

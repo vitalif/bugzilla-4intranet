@@ -179,7 +179,7 @@ use constant DEFAULT_FIELDS => (map { my $i = 0; $_ = { (map { (DEFAULT_FIELD_CO
     [ 'keywords',          'Keywords',          0, 1, 1, FIELD_TYPE_MULTI_SELECT ],
     [ 'see_also',          'See Also',          0, 1, 0, FIELD_TYPE_BUG_URLS ],
     [ 'target_milestone',  'Target Milestone',  0, 1, 1, FIELD_TYPE_SINGLE_SELECT, 'product', 'product', 'product' ],
-    [ 'status_whiteboard', 'Status Whiteboard', 0, 1, 1, 1, FIELD_TYPE_FREETEXT ],
+    [ 'status_whiteboard', 'Status Whiteboard', 0, 1, 1, FIELD_TYPE_FREETEXT ],
     [ 'bug_status',        'Status',            1, 1, 0, FIELD_TYPE_SINGLE_SELECT ],
     [ 'resolution',        'Resolution',        0, 1, 0, FIELD_TYPE_SINGLE_SELECT ],
     [ 'everconfirmed',     'Ever Confirmed',    0, 0, 0 ],
@@ -217,7 +217,7 @@ use constant CAN_TWEAK => {
     nullable => { map { $_ => 1 } qw(alias bug_severity deadline keywords op_sys priority rep_platform status_whiteboard target_milestone version) },
     visibility_field_id => { map { $_ => 1 } qw(bug_severity op_sys priority rep_platform status_whiteboard target_milestone version) },
     value_field_id => { map { $_ => 1 } qw(bug_severity op_sys priority rep_platform) },
-    default_field_id => { map { $_ => 1 } qw(bug_severity keywords op_sys priority component rep_platform status_whiteboard target_milestone) },
+    default_field_id => { map { $_ => 1 } qw(bug_severity keywords op_sys priority component rep_platform status_whiteboard target_milestone version) },
 };
 
 ################
@@ -1031,8 +1031,6 @@ sub update_control_lists
     $mod = { del => [], add => [] };
     for my $f (Bugzilla->get_fields({ obsolete => 0, default_field_id => $self->id }))
     {
-        # FIXME: default version is hardcoded to depend on component
-        next if $f eq 'version';
         my $default = $params->{'default_'.$f->name};
         $default = $f->_check_default_value($default);
         if (!$default)

@@ -624,7 +624,6 @@ sub update_table_definitions
     $dbh->bz_add_column('products', 'cc_group');
 
     # New component fields
-    $dbh->bz_add_column('components', 'default_version');
     $dbh->bz_add_column('components', 'wiki_url');
 
     # CustIS Bug 64562 - Redirect to bug page after processing bug
@@ -751,27 +750,35 @@ WHERE description LIKE\'%[CC:%\'');
     }
 
     # Copy products.defaultmilestone information into field_defaults
-    $dbh->bz_add_column('products', defaultmilestone => {TYPE => 'INT4', REFERENCES => {TABLE => 'milestones', COLUMN => 'id'}});
     if ($dbh->bz_column_info('products', 'defaultmilestone'))
     {
         print "Moving default milestone information into field_defaults...\n";
         my $fid = Bugzilla->get_field('target_milestone')->id;
         $dbh->do(
-            "REPLACE INTO field_defaults (field_id, visibility_value_id, default_value)".
+            "DELETE FROM field_defaults WHERE (field_id, visibility_value_id, default_value) IN".
+            " (SELECT $fid, id, defaultmilestone FROM products WHERE defaultmilestone IS NOT NULL)"
+        );
+        $dbh->do(
+            "INSERT INTO field_defaults (field_id, visibility_value_id, default_value)".
             " SELECT $fid, id, defaultmilestone FROM products WHERE defaultmilestone IS NOT NULL"
         );
         $dbh->bz_drop_column('products', 'defaultmilestone');
     }
 
     # Copy components.default_version information into field_defaults
-    my $fid = Bugzilla->get_field('version')->id;
-    if ($fid && !$dbh->selectrow_array("SELECT * FROM field_defaults WHERE field_id=$fid"))
+    if ($dbh->bz_column_info('components', 'default_version'))
     {
-        print "Copying default version information into field_defaults...\n";
+        print "Moving default version information into field_defaults...\n";
+        my $fid = Bugzilla->get_field('version')->id;
+        $dbh->do(
+            "DELETE FROM field_defaults WHERE (field_id, visibility_value_id, default_value) IN".
+            " (SELECT $fid, id, default_version FROM components WHERE default_version IS NOT NULL)"
+        );
         $dbh->do(
             "INSERT INTO field_defaults (field_id, visibility_value_id, default_value)".
             " SELECT $fid, id, default_version FROM components WHERE default_version IS NOT NULL"
         );
+        $dbh->bz_drop_column('components', 'default_version');
     }
 
     # Varchar is VARIABLE, it's generally pointless to set a size limit less than 255 chars for it

@@ -214,7 +214,6 @@ sub components_json
     {
         $components->{$c->name} = {
             name => $c->name,
-            default_version => $c->default_version && $c->default_version_obj->name,
             description => html_light_quote($c->description),
             default_assignee => $c->default_assignee && $c->default_assignee->login,
             default_qa_contact => $c->default_qa_contact && $c->default_qa_contact->login,
@@ -429,8 +428,6 @@ else
 # AND the clone's product is the same as the parent's
 #   THEN use the version from the parent bug
 # ELSE IF a version is supplied in the URL
-#   THEN use it
-# ELSE IF there is a default version for the selected component
 #   THEN use it
 # ELSE IF there is a version in the cookie
 #   THEN use it (Posting a bug sets a cookie for the current version.)

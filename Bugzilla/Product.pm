@@ -32,8 +32,6 @@ use Bugzilla::Series;
 use Bugzilla::FlagType::UserList;
 use Bugzilla::Hook;
 
-# Currently, we only implement enough of the Bugzilla::Field::Choice
-# interface to control the visibility of other fields.
 use base qw(Bugzilla::Field::Choice);
 
 use constant DEFAULT_CLASSIFICATION_ID => 1;
@@ -485,12 +483,7 @@ sub remove_from_db
         }
     }
 
-    # Remove visibility values
-    $self->set_visibility_values(undef);
-
-    $dbh->do("DELETE FROM products WHERE id = ?", undef, $self->id);
-
-    Bugzilla->get_field(FIELD_NAME)->touch;
+    $self->SUPER::remove_from_db();
 
     $dbh->bz_commit_transaction();
 

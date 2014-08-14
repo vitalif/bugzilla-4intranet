@@ -1913,13 +1913,6 @@
   You must enter a name for this version.
 [% END %]
 
-[% BLOCK error_version_has_bugs %]
-  [% title = BLOCK %]Version has [% terms.Bugs %][% END %]
-  There are [% nb FILTER html %] [%+ terms.bugs %] associated with this
-  version! You must reassign those [% terms.bugs %] to another version
-  before you can delete this one.
-[% END %]
-
 [% BLOCK error_unknown_action %]
   [% IF action %]
      Unknown action [% action FILTER html %]!
