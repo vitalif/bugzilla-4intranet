@@ -14,10 +14,6 @@
 # Contributor(s): Max Kanat-Alexander <mkanat@bugzilla.org>
 #                 Frédéric Buclin <LpSolit@gmail.com>
 
-# This is a script to edit the values of fields that have drop-down
-# or select boxes. It is largely a copy of editmilestones.cgi, but 
-# with some cleanup.
-
 use strict;
 use lib qw(. lib);
 
@@ -38,10 +34,6 @@ my $template = Bugzilla->template;
 my $ARGS     = $cgi->VarHash;
 my $vars     = {};
 
-# Replace this entry by separate entries in templates when
-# the documentation about legal values becomes bigger.
-$vars->{doc_section} = 'edit-values.html';
-
 Bugzilla->user->in_group('editvalues')
 || $ARGS->{field} eq 'keywords' && Bugzilla->user->in_group('editkeywords')
 || ThrowUserError('auth_failure', {
@@ -57,8 +49,7 @@ my $action = trim($ARGS->{action} || '');
 my $token  = $ARGS->{token};
 
 # Fields listed here must not be edited from this interface.
-my @non_editable_fields = qw(product);
-my %block_list = map { $_ => 1 } @non_editable_fields;
+my %block_list = map { $_ => 1 } qw(product);
 
 #
 # field = '' -> Show nice list of fields
@@ -117,57 +108,6 @@ if ($action eq 'new')
     $vars->{message} = 'field_value_created';
     $vars->{value} = $created_value;
     display_field_values($vars);
-}
-
-#
-# action='control_list' -> enable/disable values controlled by this one
-#
-if ($action eq 'control_list')
-{
-    die('This field has no value field') unless $field->custom && $field->value_field;
-
-    my $step = $ARGS->{step} || 0;
-    my $visibility_value_id = $ARGS->{visibility_value_id};
-    if ($visibility_value_id)
-    {
-        $visibility_value_id = $field->value_field->value_type->new($visibility_value_id)->{id};
-    }
-
-    my $values = $ARGS->{values};
-    my $need_token = 0;
-
-    $vars->{visibility_value_id} = -1;
-    if ($visibility_value_id)
-    {
-        $vars->{visibility_value_id} = $visibility_value_id;
-        $vars->{default_value_hash} = $field->default_value_hash_for($visibility_value_id);
-        my %values = map { $_->{id} => $_ } @{$field->value_field->legal_values};
-        $vars->{field_value} = $values{$visibility_value_id};
-        $step++ unless $token;
-        $need_token = 1;
-        if ($token)
-        {
-            check_token_data($token, "edit_control_list");
-            $field->update_controlled_values($values, $visibility_value_id);
-            if ($field->default_field_id == $field->value_field_id)
-            {
-                $field->update_default_value($visibility_value_id, $field->type == FIELD_TYPE_MULTI_SELECT
-                    ? [ $cgi->param('default_value') ]
-                    : scalar $cgi->param('default_value'));
-            }
-            $step++;
-            $need_token = 0;
-            delete_token($token);
-        }
-    }
-
-    $vars->{step} = $step;
-    $vars->{token} = issue_session_token("edit_control_list") if $need_token;
-
-    $template->process("admin/fieldvalues/control-list.html.tmpl", $vars)
-        || ThrowTemplateError($template->error());
-
-    exit;
 }
 
 # After this, we always have a value

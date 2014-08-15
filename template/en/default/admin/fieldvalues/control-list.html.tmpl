@@ -1,91 +1,56 @@
-[% IF step == 0;
-     SET title = "Выбор активных " _ field.description _ " для различных значений " _ field.value_field.description;
-   ELSIF step == 1;
-     SET title = "Значения " _ field.description _ " для " _ field_value.name;
-   ELSIF step == 2;
-     SET title = "Значения " _ field.description _ " для " _ field_value.name _ " сохранены.";
-   END;
-%]
+[%# Enable/disable field values for a selected value of its controlling value_field
+  # License: Dual-license GPL 3.0+ or MPL 1.1+
+  # Authors: Vitaliy Filippov <vitalif@mail.ru>, Vladimir Koptev <vladimir.koptev@gmail.com>
+  #%]
+
+[% SET title = "Select Active " _ field.description _ "s For " _ field.value_field.description _ ' ' _ visibility_value.name | html %]
 
 [% PROCESS global/header.html.tmpl %]
 
-<h3>Выбор активных [% field.description FILTER html %] для различных значений поля [% field.value_field.description FILTER html %]</h3>
+<h3>[% title %]</h3>
 
-<form action="editvalues.cgi?action=control_list&field=[% field.name FILTER html %][% '&visibility_value_id=' _ visibility_value_id IF visibility_value_id %]"
-      method="[% IF step > 0 %]POST[% ELSE %]GET[% END %]"
-      name="setValuesForm">
-  [% IF token %]<input type="hidden" name="token" value="[% token %]"/>[% END %]
-  [% IF step == 0 %]
-    <input type="hidden" name="action" value="control_list"/>
-    <input type="hidden" name="field" value="[% field.name FILTER html %]"/>
-    <p>
-      <strong>Выберите [% field.value_field.description FILTER html %]:&nbsp;</strong>
-      <select name="visibility_value_id" id="visibility_value_id">
-        [% FOREACH field_value = field.value_field.legal_values %]
-          [% NEXT IF field_value.name == '' %]
-            <option value="[% field_value.id FILTER none %]"[% ' selected="selected"' IF field_value.id == visibility_value_id %]>
-              [%- field_value.name FILTER html -%]
-            </option>
-        [% END %]
-      </select>
-      <input type="submit" id="update" value="Далее"/>
-    </p>
-  [% ELSIF step == 1 %]
-    <input type="hidden" name="step" value="[% step FILTER html %]"/>
-    <input type="hidden" name="visibility_value_id" value="[% visibility_value_id FILTER html %]"/>
-    <p>Значения <strong>[% field.description FILTER html %]</strong> для <strong>[% field_value.name FILTER html %]</strong>:</p>
-
-    [% IF field.default_field_id == field.value_field_id %]
-      <p>Значение по умолчанию:[% "<br />" IF field.type == constants.FIELD_TYPE_MULTI_SELECT %]
-      [% IF field.is_select %]
-      <select name="default_value" style="width: 400px" [% "multiple size=3" IF field.type == constants.FIELD_TYPE_MULTI_SELECT %]>
-        <option value="">---</option>
-        [% FOREACH v = field.legal_values %]
-        <option value="[% v.id | html %]"[% " selected" IF default_value_hash.${v.id} %]>[% v.name | html %]</option>
-        [% END %]
-      </select>
-      </p>
-      [% ELSE %]
-      <input type="text" name="default_value" value="[% field.default_value | html %]" style="width: 400px" />
+<form action="editvisibility.cgi?field=[% field.name | html %]&visibility_value_id=[% visibility_value.id %]" method="POST">
+  <input type="hidden" name="token" value="[% token | html %]" />
+  <input type="hidden" name="action" value="save" />
+  <table id="admin_table" cellpadding="4">
+    <tbody>
+      <tr>
+        <th align="left">Active</th>
+        <th align="left">Value</th>
+      </tr>
+      [% FOREACH value = field.legal_values %]
+      <tr class="[% loop.index % 2 == 1 ? 'odd' : 'even' +%]_row">
+        <td align="center">
+          <input type="checkbox" id="val_[% value.id %]" value="[% value.id %]" name="values"
+            [% ' checked="checked"' IF field.is_value_enabled(value.id, visibility_value.id) %]/>
+        </td>
+        <td>
+          <label for="val_[% value.id %]">[% value.name | html %]</label>
+          <a title="Edit this value" href="editvalues.cgi?action=edit&field=[% field.name %]&value=[% value.name | uri %]">&rarr;</a>
+        </td>
+      </tr>
       [% END %]
-    [% END %]
-
-    <table id="admin_table" cellpadding="4">
-      <tbody>
-        <tr>
-          <th align="left">Значение</th>
-          <th align="left">Активно</th>
-        </tr>
-        [% count = 0 %]
-        [% FOREACH value = field.legal_values %]
-          <tr class="[%+ count % 2 == 1 ? 'odd' : 'even' +%]_row">
-            <td>
-              <label for="val_[% value.id %]">[% value.name FILTER html %]</label>
-              <a title="Править значение..." href="editvalues.cgi?action=edit&field=[% field.name %]&value=[% value.name | uri %]">&rarr;</a>
-            </td>
-            <td align="center">
-              <input type="checkbox" id="val_[% value.id %]" value="[% value.id %]" name="values[]" onchange="changeDefaultEnabling(this);"[% ' checked="checked"' IF value.has_visibility_value(field_value.id) %]/>
-            </td>
-          </tr>
-          [% count = count + 1 %]
-        [% END %]
-      </tbody>
-    </table>
-    <br/>
-    <input type="submit" id="update" name="update" value="Сохранить"/>
-    <a href="editvalues.cgi?action=control_list&field=[% field.name FILTER html %]">К выбору <strong>[% field.value_field.description FILTER html %]</strong></a>
-    |
-  [% ELSIF step == 2 %]
-    <p>Значения <strong>[% field.description FILTER html %]</strong> для <strong>[% field_value.name FILTER html %]</strong> сохранены.</p>
-    <a href="editvalues.cgi?action=control_list&field=
-      [%- field.name FILTER url_quote %]&visibility_value_id=[% visibility_value_id %]">К выбору значений <strong>[% field.description FILTER html %]</strong> для <strong>[% field_value.name FILTER html %]</strong></a>
-    |
-    <a href="editvalues.cgi?action=control_list&field=
-      [%- field.name FILTER url_quote %]">К выбору <strong>[% field.value_field.description FILTER html %]</strong></a>
-    |
-  [% END; %]
-  <a href="editvalues.cgi?field=
-    [%- field.name FILTER url_quote %]">К списку значений <strong>[% field.description FILTER html %]</strong></a>
+    </tbody>
+  </table>
+  <br />
+  <input type="submit" value="Save" />
 </form>
+
+<p>
+  <a href="editvalues.cgi?field=[% field.name %]">Edit or add [% field.description | html %]s</a> |
+  [% IF field.value_field.name == 'product' %]
+  <a href="editproducts.cgi?action=edit&product=[% visibility_value.name | uri %]">Edit product [% visibility_value.name | html %]</a>
+  [% ELSIF field.value_field.name == 'classification' %]
+  <a href="editclassifications.cgi?action=edit&classification=[% visibility_value.name | uri %]">Edit classification [% visibility_value.name | html %]</a>
+  [% ELSIF field.value_field.name == 'target_milestone' %]
+  <a href="editmilestones.cgi?action=edit&product=[% visibility_value.product_obj.name | uri %]&milestone=[% visibility_value.name | uri %]">Edit milestone [% visibility_value.name | html %]</a>
+  [% ELSIF field.value_field.name == 'version' %]
+  <a href="editversions.cgi?action=edit&product=[% visibility_value.product_obj.name | uri %]&version=[% visibility_value.name | uri %]">Edit version [% visibility_value.name | html %]</a>
+  [% ELSIF field.value_field.name == 'component' %]
+  <a href="editcomponents.cgi?action=edit&product=[% visibility_value.product_obj.name | uri %]&component=[% visibility_value.name | uri %]">Edit component [% visibility_value.name | html %]</a>
+  [% ELSE %]
+  <a href="editvalues.cgi?action=edit&field=[% field.value_field.name %]&value=[% visibility_value.name | uri %]">Edit [% field.value_field.description | html %] [% visibility_value.name | html %]</a>
+  [% END %]
+</p>
 
 [% PROCESS global/footer.html.tmpl %]

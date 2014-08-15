@@ -28,7 +28,7 @@
 
 [% SET any_field = 0 %]
 [% FOR f = Bugzilla.get_fields({ obsolete => 0, value_field_id => this_field.id, sort => 1 }) %]
-  [% IF f.name != 'version' && f.name != 'target_milestone' && f.name != 'component' &&
+  [% IF f.name != 'version' && f.name != 'target_milestone' && f.name != 'component' && f.name != 'product' &&
     (f.visibility_field_id != f.value_field_id || f.has_visibility_value(this_value.id)) %]
     [% IF NOT any_field %]
     <tr>
@@ -40,7 +40,7 @@
       [% SET any_field = 1 %]
     [% ELSE %],
     [% END %]
-    <a href="editvalues.cgi?action=control_list&field=[% f.name | html %]&visibility_value_id=[% this_value.id %]">[% f.description | html %]</a>
+    <a href="editvisibility.cgi?field=[% f.name | html %]&visibility_value_id=[% this_value.id %]">[% f.description | html %]</a>
   [% END %]
 [% END %]
 [% IF any_field %]

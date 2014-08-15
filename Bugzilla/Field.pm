@@ -634,6 +634,21 @@ sub has_visibility_value
     return $hash && $hash->{$value};
 }
 
+# Check if a value is enabled for some controlling value
+sub is_value_enabled
+{
+    my $self = shift;
+    my ($value, $visibility_value) = @_;
+    return 1 if !$self->value_field_id;
+    ref $_ and $_ = $_->id for $value, $visibility_value;
+    my $hash = Bugzilla->fieldvaluecontrol
+        ->{$self->value_field_id}
+        ->{values}
+        ->{$self->id}
+        ->{$value};
+    return $hash && $hash->{$visibility_value};
+}
+
 # Check visibility of field for a bug or for a hashref with default value names
 sub check_visibility
 {
@@ -1076,6 +1091,7 @@ sub update_controlled_values
     my $self = shift;
     my ($controlled_value_ids, $visibility_value_id) = @_;
     $controlled_value_ids ||= [];
+    $controlled_value_ids = [ $controlled_value_ids ] if !ref $controlled_value_ids;
     my $vis_field = $self->value_field;
     if (!$vis_field)
     {
