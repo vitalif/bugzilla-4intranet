@@ -3,8 +3,6 @@
 # - Expand "group" users in flag requestee
 # - Remember about nonanswered flag requests
 # - Automatic settings of cf_extbug
-# - Add a comment to cloned bug
-# - Expand MediaWiki urls
 
 package CustisMiscHooks;
 
@@ -15,7 +13,7 @@ use Bugzilla::Util;
 use Bugzilla::Constants;
 use Bugzilla::Error;
 
-# Expand "group" users in flag requestee
+# Expand CUSTIS-specific "group" users in flag requestee
 sub flag_check_requestee_list
 {
     my ($args) = @_;
@@ -37,20 +35,20 @@ sub process_bug_after_move
 {
     my ($args) = @_;
 
-    my $cgi = Bugzilla->cgi;
+    my $ARGS = Bugzilla->input_params;
     my $bug_objects = $args->{bug_objects};
     my $vars = $args->{vars};
 
     my $single = @$bug_objects == 1;
     my $clear_on_close =
-        $cgi->param('bug_status') eq 'CLOSED' &&
+        $ARGS->{bug_status} eq 'CLOSED' &&
         Bugzilla->user->settings->{clear_requests_on_close}->{value} eq 'on';
     my $verify_flags = $single &&
         Bugzilla->usage_mode != USAGE_MODE_EMAIL &&
         Bugzilla->user->wants_request_reminder;
-    my $reset_own_flags = $verify_flags && $cgi->param('comment') !~ /^\s*$/so;
+    my $reset_own_flags = $verify_flags && $ARGS->{comment} !~ /^\s*$/so;
 
-    if (($clear_on_close || $reset_own_flags) && !$cgi->param('force_flags'))
+    if (($clear_on_close || $reset_own_flags) && !$ARGS->{force_flags})
     {
         my $flags;
         my @requery_flags;
@@ -58,18 +56,17 @@ sub process_bug_after_move
         my $login;
         # 1) Check flag requests and remind user about resetting his own incoming requests.
         # 2) When closing bugs, clear all flag requests (CustIS Bug 68430).
-        # Not used in mass update and email modes.
         for my $bug (@$bug_objects)
         {
             if ($single)
             {
-                for ($cgi->param())
+                for (keys %$ARGS)
                 {
                     if (/^(flag-(\d+))$/)
                     {
                         $flag = Bugzilla::Flag->new({ id => $2 });
-                        $flag->{status} = $cgi->param($1);
-                        if (($login = trim($cgi->param("requestee-".$flag->{id}))) &&
+                        $flag->{status} = $ARGS->{$_};
+                        if (($login = trim($ARGS->{"requestee-".$flag->{id}})) &&
                             ($login = login_to_id($login)))
                         {
                             $flag->{requestee_id} = $login;
@@ -94,10 +91,11 @@ sub process_bug_after_move
                     if ($verify_flags)
                     {
                         push @requery_flags, $flag;
+                        delete $ARGS->{'flag-'.$flag->{id}};
                     }
                     elsif ($single)
                     {
-                        $cgi->param('flag-'.$flag->{id} => 'X');
+                        $ARGS->{'flag-'.$flag->{id}} = 'X';
                     }
                     else
                     {
@@ -108,7 +106,6 @@ sub process_bug_after_move
             if ($verify_flags && @requery_flags)
             {
                 push @{$vars->{verify_flags}}, @requery_flags;
-                $vars->{field_filter} = '^('.join('|', map { "flag-".$_->id } @{$vars->{verify_flags}}).')$';
                 Bugzilla->template->process("bug/process/verify-flags.html.tmpl", $vars)
                     || ThrowTemplateError(Bugzilla->template->error());
                 exit;
@@ -134,77 +131,37 @@ sub enter_bug_cloned_bug
     return 1;
 }
 
-# Bug 53590 - add a comment to cloned bug
-# Bug 69514 - automatic setting of cf_extbug during clone to external product
-sub bug_end_of_create
+# Bug 69514 - Automatic setting of cf_extbug during clone to external product
+sub post_bug_cloned_bug
 {
     my ($args) = @_;
-    my $cloned_bug_id = scalar Bugzilla->cgi->param('cloned_bug_id');
-    my $cloned_comment = scalar Bugzilla->cgi->param('cloned_comment');
-    my $bug = $args->{bug};
-    if ($cloned_bug_id)
+    if (($args->{cloned_bug}->product_obj->extproduct || 0) == $args->{bug}->product_id &&
+        !$args->{cloned_bug}->{cf_extbug})
     {
-        my $cmt = "Bug ".$bug->id." was cloned from ";
-        if ($cloned_comment)
-        {
-            detaint_natural($cloned_comment);
-            $cmt .= 'comment ';
-            $cmt .= $cloned_comment;
-        }
-        else
-        {
-            $cmt .= 'this bug';
-        }
-        detaint_natural($cloned_bug_id);
-        my $cloned_bug = Bugzilla::Bug->check($cloned_bug_id);
-        $cloned_bug->add_comment($cmt);
-        if (($cloned_bug->product_obj->extproduct || 0) == $bug->product_id &&
-            !$cloned_bug->{cf_extbug})
-        {
-            $cloned_bug->{cf_extbug} = $bug->id;
-        }
-        $cloned_bug->update($bug->creation_ts);
+        $args->{cloned_bug}->{cf_extbug} = $args->{bug}->id;
     }
     return 1;
 }
 
-# MediaWiki link integration
-sub quote_urls_custom_proto
+# Filter text body of input messages to remove Outlook link URLs.
+sub emailin_filter_body
 {
     my ($args) = @_;
-    for (split /\n/, Bugzilla->params->{mediawiki_urls})
+
+    for (${$args->{body}})
     {
-        my ($wiki, $url) = split /\s+/, trim($_), 2;
-        $args->{custom_proto}->{$wiki} = sub { process_wiki_url($url, @_) } if $wiki && $url;
+        if (/From:\s+bugzilla-daemon(\s*[a-z0-9_\-]+\s*:.*?\n)*\s*Bug\s*\d+<[^>]*>\s*\([^\)]*\)\s*/iso)
+        {
+            my ($pr, $ps) = ($`, $');
+            $ps =~ s/\n+(\r*\n+)+/\n/giso;
+            $_ = $pr . $ps;
+            s!from\s+.*?<http://plantime[^>]*search=([^>]*)>!from $1!giso;
+            s!((Comment|Bug)\s+\#?\d+)<[^<>]*>!$1!giso;
+            s!\n[^\n]*<http://plantime[^>]*search=[^>]*>\s+changed:[ \t\r]*\n.*?$!!iso;
+            s/\s*\n--\s*Configure\s*bugmail<[^>]*>(([ \t\r]*\n[^\n]*)*)//iso;
+        }
     }
     return 1;
-}
-
-##
-## NON-HOOK FUNCTIONS
-##
-
-# MediaWiki page anchor encoding
-sub process_wiki_anchor
-{
-    my ($anchor) = (@_);
-    return "" unless $anchor;
-    $anchor =~ tr/ /_/;
-    $anchor = url_quote($anchor);
-    $anchor =~ s/\%3A/:/giso;
-    $anchor =~ tr/%/./;
-    return $anchor;
-}
-
-# Convert MediaWiki page titles to URLs
-sub process_wiki_url
-{
-    my ($base, $url, $anchor) = @_;
-    $url = trim($url);
-    $url =~ s/\s+/_/gso;
-    # Use url_quote without converting / to %2F
-    $url = url_quote_noslash($url);
-    return $base . $url . '#' . process_wiki_anchor($anchor);
 }
 
 1;

@@ -45,6 +45,7 @@ use Bugzilla::Diff;
 
 use Date::Parse;
 use Date::Format;
+use POSIX;
 
 use constant FORMAT_TRIPLE => "%19s|%-28s|%-28s";
 use constant FORMAT_3_SIZE => [19,28,28];
@@ -649,11 +650,35 @@ sub sendMail
     $template->process($tmpl, $vars, \$msg) || ThrowTemplateError($template->error());
     Bugzilla->template_inner("");
 
+    logMail($vars);
     MessageToMTA($msg);
 
     Bugzilla::Hook::process('bugmail-post_send', { tmpl => \$tmpl, vars => $vars });
 
     return 1;
+}
+
+# Log all messages with comment and diff count to data/maillog
+sub logMail
+{
+    my ($vars) = @_;
+    my $datadir = bz_locations()->{datadir};
+    my $fd;
+    if (-w "$datadir/maillog" && open $fd, ">>$datadir/maillog")
+    {
+        my $s = [ POSIX::strftime("%Y-%m-%d %H:%M:%S: ", localtime) . ($vars->{isnew} ? "" : "Re: ") . "Bug #$vars->{bugid} mail to $vars->{to}" ];
+        if ($vars->{new_comments} && @{$vars->{new_comments}})
+        {
+            push @$s, scalar(@{$vars->{new_comments}}) . ' comment(s) (#' . (join ',', map { $_->{count} } @{$vars->{new_comments}}) . ')';
+        }
+        if ($vars->{diffarray} && @{$vars->{diffarray}})
+        {
+            push @$s, scalar(grep { $_->{type} eq 'change' } @{$vars->{diffarray}}) . ' diffs';
+        }
+        $s = join "; ", @$s;
+        print $fd $s, "\n";
+        close $fd;
+    }
 }
 
 1;

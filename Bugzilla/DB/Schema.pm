@@ -822,19 +822,6 @@ use constant ABSTRACT_SCHEMA => {
         ],
     },
 
-    # Additional estimates for SCRUM cards printed from Bugzilla (CustIS Bug 45485)
-    scrum_cards => {
-        FIELDS => [
-            bug_id   => {TYPE => 'INT4', NOTNULL => 1},
-            sprint   => {TYPE => 'varchar(255)', NOTNULL => 1},
-            type     => {TYPE => 'varchar(255)', NOTNULL => 1},
-            estimate => {TYPE => 'varchar(255)', NOTNULL => 1},
-        ],
-        INDEXES => [
-            scrum_cards_primary_idx => { FIELDS => ['bug_id', 'sprint', 'type'], TYPE => 'UNIQUE' },
-        ],
-    },
-
     namedqueries_link_in_footer => {
         FIELDS => [
             namedquery_id => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'namedqueries', COLUMN => 'id', DELETE => 'CASCADE'}},

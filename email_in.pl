@@ -55,7 +55,6 @@ use Bugzilla::Mailer;
 use Bugzilla::Token;
 use Bugzilla::User;
 use Bugzilla::Util;
-use Bugzilla::Hook;
 
 #############
 # Constants #
@@ -79,8 +78,7 @@ sub parse_mail
     $input_email = Email::MIME->new($mail_text);
 
     my %fields;
-    Bugzilla::Hook::process('email_in_before_parse', { mail => $input_email,
-                                                       fields => \%fields });
+    Bugzilla::Hook::process('email_in_before_parse', { mail => $input_email, fields => \%fields });
     # RFC 3834 - Recommendations for Automatic Responses to Electronic Mail
     # Automatic responses SHOULD NOT be issued in response to any
     # message which contains an Auto-Submitted header field (see below),
@@ -126,9 +124,10 @@ sub parse_mail
     debug_print("Body:\n" . $body, 3);
 
     $body = remove_leading_blank_lines($body);
-    Bugzilla::Hook::process("emailin-filter_body", { body => \$body });
-    my @body_lines = split(/\r?\n/s, $body);
 
+    Bugzilla::Hook::process("emailin-filter_body", { body => \$body });
+
+    my @body_lines = split(/\r?\n/s, $body);
     my $fields_by_name = { map { (lc($_->description) => $_->name, lc($_->name) => $_->name) } Bugzilla->get_fields({ obsolete => 0 }) };
 
     # If there are fields specified.
@@ -321,6 +320,13 @@ sub get_body_and_attachments
     return ($body, $attachments);
 }
 
+sub rm_line_feeds
+{
+    my ($t) = @_;
+    $t =~ s/[\n\r]+/ /giso;
+    return $t;
+}
+
 sub get_text_alternative
 {
     my ($email) = @_;
@@ -345,6 +351,8 @@ sub get_text_alternative
         elsif ($ct =~ /^text\/html/i)
         {
             $body = $part->body;
+            $body =~ s/<table[^<>]*class=[\"\']?difft[^<>]*>.*?<\/table\s*>//giso;
+            $body =~ s/(<a[^<>]*>.*?<\/a\s*>)/rm_line_feeds($1)/gieso;
             Bugzilla::Hook::process("emailin-filter_html", { body => \$body });
             $body = HTML::Strip->new->parse($body);
         }

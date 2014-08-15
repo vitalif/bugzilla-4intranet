@@ -2,16 +2,16 @@
   # License: Dual-license MPL 1.1+ or GPL 3.0+
   # Author(s): Vitaliy Filippov, Stas Fomin %]
 
-[% cgi = Bugzilla.cgi %]
-
 [% PROCESS global/header.html.tmpl title='Verify flag requests' %]
+
+[% ARGS = Bugzilla.input_params %]
 
 <h3>Please, verify flags:</h3>
 
 <form action="process_bug.cgi" method="post" enctype="multipart/form-data">
 
 <input type="hidden" name="force_flags" value="1" />
-[% PROCESS "global/hidden-fields.html.tmpl" exclude=field_filter %]
+[% PROCESS "global/hidden-fields.html.tmpl" %]
 
 <table cellspacing="0" cellpadding="4" style="border-width: 1px 1px 0 1px; border-style: solid; border-color: gray">
   <tr style="background-color: #e0e0e0">
@@ -29,7 +29,7 @@
       "[% flag.type.description %]"
     </td>
     <td style="border-width: 0 0 1px 0; border-style: solid; border-color: gray">
-      [% cgi.param("requestee-$flag.id" ) %]
+      [% ARGS.${"requestee-$flag.id"}.join(', ') %]
     </td>
     <td style="border-width: 0 0 1px 0; border-style: solid; border-color: gray">
       <select id="flag-[% flag.id %]" name="flag-[% flag.id %]">

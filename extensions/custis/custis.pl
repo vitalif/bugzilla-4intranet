@@ -18,11 +18,6 @@ required_modules('custis', $REQUIRED_MODULES);
 optional_modules('custis', $OPTIONAL_MODULES);
 clear_hooks('custis');
 
-# Email-related hooks
-set_hook('custis', 'bugmail_pre_template',          'CustisMailHooks::bugmail_pre_template');
-set_hook('custis', 'emailin_filter_body',           'CustisMailHooks::emailin_filter_body');
-set_hook('custis', 'emailin_filter_html',           'CustisMailHooks::emailin_filter_html');
-
 # Hooks allowing to create MySQL Views representing saved searches for users
 if (!Bugzilla->params->{ext_disable_refresh_views})
 {
@@ -47,9 +42,9 @@ add_hook('custis', 'install_before_final_checks',   'Checkers::install_before_fi
 # Other hooks
 set_hook('custis', 'flag_check_requestee_list',     'CustisMiscHooks::flag_check_requestee_list');
 set_hook('custis', 'process_bug_after_move',        'CustisMiscHooks::process_bug_after_move');
-set_hook('custis', 'quote_urls_custom_proto',       'CustisMiscHooks::quote_urls_custom_proto');
 set_hook('custis', 'enter_bug_cloned_bug',          'CustisMiscHooks::enter_bug_cloned_bug');
-add_hook('custis', 'bug_end_of_create',             'CustisMiscHooks::bug_end_of_create');
+set_hook('custis', 'post_bug_cloned_bug',           'CustisMiscHooks::post_bug_cloned_bug');
+set_hook('custis', 'emailin_filter_body',           'CustisMiscHooks::emailin_filter_body');
 
 1;
 __END__

@@ -284,6 +284,12 @@ sub quoteUrls {
         # initialize custom protocols
         $custom_proto_cached = time;
         $custom_proto = {};
+        # MediaWiki link integration
+        for (split /\n/, Bugzilla->params->{mediawiki_urls})
+        {
+            my ($wiki, $url) = split /\s+/, trim($_), 2;
+            $custom_proto->{$wiki} = sub { process_wiki_url($url, @_) } if $wiki && $url;
+        }
         Bugzilla::Hook::process('quote_urls-custom_proto', { custom_proto => $custom_proto });
         $custom_proto_regex = join '|', keys %$custom_proto;
     }
@@ -372,6 +378,29 @@ sub quoteUrls {
     $text =~ s/$chr1\0/\0/g;
 
     return $text;
+}
+
+# MediaWiki page anchor encoding
+sub process_wiki_anchor
+{
+    my ($anchor) = (@_);
+    return "" unless $anchor;
+    $anchor =~ tr/ /_/;
+    $anchor = url_quote($anchor);
+    $anchor =~ s/\%3A/:/giso;
+    $anchor =~ tr/%/./;
+    return $anchor;
+}
+
+# Convert MediaWiki page titles to URLs
+sub process_wiki_url
+{
+    my ($base, $url, $anchor) = @_;
+    $url = trim($url);
+    $url =~ s/\s+/_/gso;
+    # Use url_quote without converting / to %2F
+    $url = url_quote_noslash($url);
+    return $base . $url . '#' . process_wiki_anchor($anchor);
 }
 
 # Creates a link to an attachment, including its title.

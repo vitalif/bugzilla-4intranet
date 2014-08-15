@@ -1,4 +1,7 @@
 #!/usr/bin/perl
+# Bug predicate / "checker" object
+# License: Dual-license GPL 3.0+ or MPL 1.1+
+# Contributor(s): Vitaliy Filippov <vitalif@mail.ru>
 
 package Bugzilla::Checker;
 
@@ -14,17 +17,18 @@ use Bugzilla::Util;
 use constant DB_TABLE => 'checkers';
 
 use constant {
-    # Да => проверка старого состояния бага ("заморозка")
-    # Нет => проверка нового состояния бага ("проверка новых значений")
+    # Yes => check old state of the bug ("freezer")
+    # No => check new state of the bug ("checker")
     CF_FREEZE => 0x01,
-    # Да => ошибка, нет => предупреждение
+    # Yes => throw an error, no => give a warning
     CF_FATAL  => 0x02,
-    # Да => проверять при создании бага, нет => не проверять
+    # Yes <=> check new bugs
     CF_CREATE => 0x04,
-    # Да => проверять при обновлении бага, нет => не проверять
+    # Yes <=> check updates
     CF_UPDATE => 0x08,
-    # Да => запрещать изменения всех полей, кроме except_fields
-    # Нет => разрешать изменения всех полей, кроме except_fields
+    # Yes => forbid to change everything except except_fields
+    # No => allow to change everything except except_fields
+    # except_fields are empty => CF_DENY added automatically
     CF_DENY   => 0x10,
 };
 
@@ -32,22 +36,13 @@ our @EXPORT = qw(CF_FREEZE CF_FATAL CF_CREATE CF_UPDATE CF_DENY);
 
 use constant DB_COLUMNS => (
     'id',
-    # <Это состояние> задаётся соответствием запросу поиска.
-    'query_id',
-    # Кто создал
-    'user_id',
-    # Флаги
-    'flags',
-    # Сообщение об ошибке в случае некорректности
-    'message',
-    # SQL-код генерировать при каждом изменении бага долго, поэтому кэшируем
-    'sql_code',
-    # Поля-исключения: если CF_DENY, то разрешить только их,
-    # если !(flags & CF_DENY), то запретить только их,
-    # если !(flags & CF_DENY) и их нет, то flags |= CF_DENY
-    'except_fields',
-    # Триггеры - действия над полями багов (требует CF_FREEZE и !CF_FATAL)
-    'triggers',
+    'query_id', # "Bad state" is described by this search query
+    'user_id',  # Creator
+    'flags',    # Bit field of CF_* flags
+    'message',  # Error message text
+    'sql_code', # SQL code for query is cached here
+    'except_fields', # "Exception" fields - see CF_DENY above.
+    'triggers', # Triggers (bug changes) (requires CF_FREEZE & !CF_FATAL)
 );
 use constant NAME_FIELD => 'message';
 use constant ID_FIELD   => 'id';
@@ -69,12 +64,10 @@ use constant UPDATE_COLUMNS => (
     'triggers',
 );
 
-# Перепостроение и перекэширование SQL-запроса в базу
-#  от имени суперпользователя (без проверок групп).
-# На всякий случай из запроса убирается ORDER BY и SELECT ... FROM,
-#  а потом при исполнении приписывается.
-# Вообще проверка работает дёрганьем SQL-запроса с добавленным условием
-#  на bugs.bug_id=...
+# The check works by executing this SQL query with added bugs.bug_id=? condition.
+# Rebuild and save SQL code in the DB, from under the superuser
+# (without permission checks). ORDER BY and SELECT ... FROM are removed
+# and then added for more security.
 sub refresh_sql
 {
     my $self = shift;
@@ -97,7 +90,7 @@ sub refresh_sql
     $self->set_sql_code($sql);
 }
 
-# Создание нового предиката - сразу кэшируется SQL-код
+# Create a predicate, generating SQL code for it
 sub create
 {
     my ($class, $params) = @_;
@@ -115,7 +108,7 @@ sub create
     return $self;
 }
 
-# Обновление - всегда перекэшируется SQL-код
+# Update a predicate, regenerating SQL code for it
 sub update
 {
     my $self = shift;
@@ -128,20 +121,19 @@ sub update
     $self->SUPER::update(@_);
 }
 
-# Проверяем, что такой поиск существует и доступен пользователю
+# Check this named query exists and is accessible to the user
 sub _check_query_id
 {
     my ($invocant, $value, $field) = @_;
     my $q = Bugzilla::Search::Saved->check({ id => $value });
-    # Потенциально мы разрешаем создавать предикаты
-    # на основе расшаренных другими людьми поисков,
-    # но в интерфейсе этого сейчас нет
+    # This code allows to create predicates using searches shared by other users,
+    # but the UI doesn't allow it (yet?).
     if ($q->user->id != Bugzilla->user->id &&
         (!$q->shared_with_group || !Bugzilla->user->in_group($q->shared_with_group)))
     {
         ThrowUserError('query_access_denied', { query => $q });
     }
-    # Тоже наша доработка - в сохранённый поиск может быть сохранён просто левый URL
+    # Check if a named query is not a search query, but just an HTTP url
     if ($q->query =~ /^[a-z][a-z0-9]*:/iso)
     {
         ThrowUserError('query_not_savedsearch', { query => $q });
@@ -163,7 +155,7 @@ sub message         { $_[0]->{message} }
 sub sql_code        { $_[0]->{sql_code} }
 sub flags           { $_[0]->{flags} }
 
-# Отдельные флаги
+# Specific flags from the bitfield
 sub is_freeze       { $_[0]->{flags} & CF_FREEZE }
 sub is_fatal        { ($_[0]->{flags} & CF_FATAL) && !$_[0]->triggers }
 sub on_create       { $_[0]->{flags} & CF_CREATE }
@@ -171,8 +163,7 @@ sub on_update       { $_[0]->{flags} & CF_UPDATE }
 sub deny_all        { $_[0]->{flags} & CF_DENY }
 
 # { field_name => value }
-# Исключать изменения поля field_name на значение value,
-# либо на любое значение, если value = undef
+# Make an exception for change of field_name to 'value', or to any value if value is undef
 sub except_fields
 {
     my $self = shift;
@@ -184,10 +175,9 @@ sub except_fields
 }
 
 # { field_name => value }
-# Изменить значение поля field_name на value. Для полей с множествами значений
-# field_name также может быть add_<field_name> или remove_<field_name>, что означает
-# добавить значение или удалить значение соответственно.
-# FIXME Пока поддерживается только add_cc.
+# Change field 'field_name' to 'value'. For multivalued fields field_name may also
+# by 'add_<field_name>' or 'remove_<field_name>', which means add or remove something.
+# FIXME Now the only function supported is 'add_cc'
 sub triggers
 {
     my $self = shift;
@@ -224,11 +214,11 @@ sub user
     return $self->{user};
 }
 
-sub set_query_id        { $_[0]->set('query_id', Bugzilla::Search::Saved->check({ id => $_[1] })->id) }
-sub set_user_id         { $_[0]->set('user_id', Bugzilla::User->check({ userid => $_[1] })->id) }
-sub set_flags           { $_[0]->set('flags', $_[1]) }
-sub set_message         { $_[0]->set('message', $_[1]) }
-sub set_sql_code        { $_[0]->set('sql_code', $_[1]) }
+sub set_query_id { $_[0]->set('query_id', Bugzilla::Search::Saved->check({ id => $_[1] })->id) }
+sub set_user_id  { $_[0]->set('user_id', Bugzilla::User->check({ userid => $_[1] })->id) }
+sub set_flags    { $_[0]->set('flags', $_[1]) }
+sub set_message  { $_[0]->set('message', $_[1]) }
+sub set_sql_code { $_[0]->set('sql_code', $_[1]) }
 
 sub set_except_fields
 {
