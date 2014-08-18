@@ -281,6 +281,7 @@ sub write_params {
     my ($fh, $tmpname) = File::Temp::tempfile('params.XXXXX',
                                               DIR => $datadir );
 
+    no warnings 'utf8';
     print $fh (Data::Dumper->Dump([$param_data], ['*param']))
       || die "Can't write param file: $!";
 
