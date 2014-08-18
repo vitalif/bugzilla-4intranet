@@ -1,3 +1,8 @@
+/* JS for new group control UI
+ * License: Dual-license GPL 3.0+ or MPL 1.1+
+ * Contributor(s): Andrey Krasilnikov, Vitaliy Filippov
+ */
+
 var exist_changes = false;
 
 function helpToggle(btn_id, div_id)
@@ -31,7 +36,8 @@ function flashItem(e)
     var i = 0;
     clearTimeout(e.flashIntervalId);
     e.style.background = 'red';
-    e.flashIntervalId = setInterval(function() {
+    e.flashIntervalId = setInterval(function()
+    {
         if (++i < 6)
             e.style.background = e.style.backgroundColor == 'red' ? '' : 'red';
         else
@@ -78,28 +84,35 @@ function addListGroup(list_name)
     highlightButton();
 }
 
-function clearSelectedOption(el) {
+function clearSelectedOption(el)
+{
     var aValue = el.getAttribute("data-lastvalue");
     el.setAttribute("data-lastvalue", el.value);
     var options = el.options;
     var length = options.length;
-    for (var i = 0; i < length; i++) {
-        if (options[i].value == aValue) {
+    for (var i = 0; i < length; i++)
+    {
+        if (options[i].value == aValue)
+        {
             options[i].selected = true;
             options[i].setAttribute("selected", "selected");
-        } else {
+        }
+        else
+        {
             options[i].selected = false;
             options[i].removeAttribute("selected");
         }
     }
 }
 
-function deleteGroup(el_link, grp_id) {
+function deleteGroup(el_link, grp_id)
+{
     var el = document.getElementById('control_' + grp_id);
     var el_group = document.getElementById('group_' + grp_id);
     var el_membercontrol = document.getElementById('membercontrol_' + grp_id);
     var el_othercontrol = document.getElementById('othercontrol_' + grp_id);
-    if (el.getAttribute("data-deleted") == null) {
+    if (el.getAttribute("data-deleted") == null)
+    {
         el.setAttribute("data-deleted", "1")
         el.style.textDecoration = 'line-through';
         el_group.setAttribute('disabled', true);
@@ -108,7 +121,9 @@ function deleteGroup(el_link, grp_id) {
         clearSelectedOption(el_membercontrol);
         clearSelectedOption(el_othercontrol);
         el_link.innerHTML = 'Undo delete';
-    } else {
+    }
+    else
+    {
         el.removeAttribute("data-deleted");
         el.style.textDecoration = 'none';
         el_group.removeAttribute('disabled');
@@ -121,8 +136,10 @@ function deleteGroup(el_link, grp_id) {
     highlightButton();
 }
 
-function addNewGroup() {
-    if (existElement("control_empty")) {
+function addNewGroup()
+{
+    if (existElement("control_empty"))
+    {
         var empty_el = document.getElementById('control_empty');
         empty_el.parentNode.removeChild(empty_el);
     }
@@ -160,14 +177,17 @@ function addNewGroup() {
     highlightButton();
 }
 
-function deleteGroupCheckbox(el_id) {
-    if (existElement("li_" + el_id)) {
+function deleteGroupCheckbox(el_id)
+{
+    if (existElement("li_" + el_id))
+    {
         var empty_el = document.getElementById("li_" + el_id);
         empty_el.parentNode.removeChild(empty_el);
     }
     var params_arr = el_id.split('_');
     var exsist_list = document.getElementById(params_arr[0] + '_list');
-    if (exsist_list.getElementsByTagName('li').length == 0) {
+    if (exsist_list.getElementsByTagName('li').length == 0)
+    {
         added_li = document.createElement('li');
         added_li.id = 'li_' + params_arr[0] + '_empty';
         added_li.className = 'group_empty';
@@ -177,8 +197,10 @@ function deleteGroupCheckbox(el_id) {
     highlightButton();
 }
 
-function highlightButton() {
-    if (!exist_changes) {
+function highlightButton()
+{
+    if (!exist_changes)
+    {
         document.getElementById('submit_group_control').className = 'submit_highlight';
         exist_changes = true;
     }
