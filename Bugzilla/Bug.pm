@@ -2768,7 +2768,7 @@ sub modify_keywords
     {
         if ($action eq 'add')
         {
-            push @$keywords, map { $_->name } $self->get_object('keywords');
+            push @$keywords, map { $_->name } @{$self->get_object('keywords')};
         }
         $self->set('keywords', {
             keywords => join(', ', @$keywords),

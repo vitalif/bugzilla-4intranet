@@ -1,8 +1,8 @@
 #!/usr/bin/perl
 # Misc hooks:
 # - Expand "group" users in flag requestee
-# - Remember about nonanswered flag requests
-# - Automatic settings of cf_extbug
+# - Set cf_extbug automatically during bug cloning
+# - Filter text body of input messages to remove Outlook link URLs
 
 package CustisMiscHooks;
 
@@ -26,91 +26,6 @@ sub flag_check_requestee_list
         );
         my %del = map { ($_->{group_user} => 1) } @$group_users;
         @$requestees = ((grep { !$del{$_} } @$requestees), (map { $_->{login_name} } @$group_users));
-    }
-    return 1;
-}
-
-# Remind about flag requests during bug changes
-sub process_bug_after_move
-{
-    my ($args) = @_;
-
-    my $ARGS = Bugzilla->input_params;
-    my $bug_objects = $args->{bug_objects};
-    my $vars = $args->{vars};
-
-    my $single = @$bug_objects == 1;
-    my $clear_on_close =
-        $ARGS->{bug_status} eq 'CLOSED' &&
-        Bugzilla->user->settings->{clear_requests_on_close}->{value} eq 'on';
-    my $verify_flags = $single &&
-        Bugzilla->usage_mode != USAGE_MODE_EMAIL &&
-        Bugzilla->user->wants_request_reminder;
-    my $reset_own_flags = $verify_flags && $ARGS->{comment} !~ /^\s*$/so;
-
-    if (($clear_on_close || $reset_own_flags) && !$ARGS->{force_flags})
-    {
-        my $flags;
-        my @requery_flags;
-        my $flag;
-        my $login;
-        # 1) Check flag requests and remind user about resetting his own incoming requests.
-        # 2) When closing bugs, clear all flag requests (CustIS Bug 68430).
-        for my $bug (@$bug_objects)
-        {
-            if ($single)
-            {
-                for (keys %$ARGS)
-                {
-                    if (/^(flag-(\d+))$/)
-                    {
-                        $flag = Bugzilla::Flag->new({ id => $2 });
-                        $flag->{status} = $ARGS->{$_};
-                        if (($login = trim($ARGS->{"requestee-".$flag->{id}})) &&
-                            ($login = login_to_id($login)))
-                        {
-                            $flag->{requestee_id} = $login;
-                        }
-                        push @$flags, $flag;
-                    }
-                }
-            }
-            else
-            {
-                $flags = Bugzilla::Flag->match({ bug_id => $bug->id });
-            }
-            foreach $flag (@$flags)
-            {
-                if ($flag->{status} eq '?' &&
-                    ($clear_on_close || $flag->{requestee_id} eq Bugzilla->user->id))
-                {
-                    if ($clear_on_close)
-                    {
-                        $flag->{status} = 'X';
-                    }
-                    if ($verify_flags)
-                    {
-                        push @requery_flags, $flag;
-                        delete $ARGS->{'flag-'.$flag->{id}};
-                    }
-                    elsif ($single)
-                    {
-                        $ARGS->{'flag-'.$flag->{id}} = 'X';
-                    }
-                    else
-                    {
-                        Bugzilla::Flag->set_flag($bug, $flag);
-                    }
-                }
-            }
-            if ($verify_flags && @requery_flags)
-            {
-                push @{$vars->{verify_flags}}, @requery_flags;
-                Bugzilla->template->process("bug/process/verify-flags.html.tmpl", $vars)
-                    || ThrowTemplateError(Bugzilla->template->error());
-                exit;
-            }
-        }
     }
     return 1;
 }

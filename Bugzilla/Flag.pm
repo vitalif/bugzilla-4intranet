@@ -818,7 +818,7 @@ array of hashes. This array is then passed to Flag::create().
 
 sub extract_flags_from_cgi {
     my ($class, $bug, $attachment, $vars, $skip) = @_;
-    my $cgi = Bugzilla->cgi;
+    my $ARGS = Bugzilla->input_params;
 
     my $match_status = Bugzilla::User::match_field({
         '^requestee(_type)?-(\d+)$' => { 'type' => 'multi' },
@@ -833,11 +833,11 @@ sub extract_flags_from_cgi {
     }
 
     # Extract a list of flag type IDs from field names.
-    my @flagtype_ids = map(/^flag_type-(\d+)$/ ? $1 : (), $cgi->param());
-    @flagtype_ids = grep($cgi->param("flag_type-$_") ne 'X', @flagtype_ids);
+    my @flagtype_ids = map(/^flag_type-(\d+)$/ ? $1 : (), keys %$ARGS);
+    @flagtype_ids = grep($ARGS->{"flag_type-$_"} ne 'X', @flagtype_ids);
 
     # Extract a list of existing flag IDs.
-    my @flag_ids = map(/^flag-(\d+)$/ ? $1 : (), $cgi->param());
+    my @flag_ids = map(/^flag-(\d+)$/ ? $1 : (), keys %$ARGS);
 
     return () if (!scalar(@flagtype_ids) && !scalar(@flag_ids));
 
@@ -847,13 +847,13 @@ sub extract_flags_from_cgi {
         # If the flag no longer exists, ignore it.
         next unless $flag;
 
-        my $status = $cgi->param("flag-$flag_id");
+        my $status = $ARGS->{"flag-$flag_id"};
 
         # If the user entered more than one name into the requestee field
         # (i.e. they want more than one person to set the flag) we can reuse
         # the existing flag for the first person (who may well be the existing
         # requestee), but we have to create new flags for each additional requestee.
-        my @requestees = $cgi->param("requestee-$flag_id");
+        my @requestees = list $ARGS->{"requestee-$flag_id"};
 
         Bugzilla::Hook::process('flag_check_requestee_list', { flag => $flag, status => $status, requestees => \@requestees, skip => $skip });
 
@@ -877,7 +877,7 @@ sub extract_flags_from_cgi {
             # If there are several requestees and the flag type is not multiplicable,
             # this will fail. But that's the job of the validator to complain. All
             # we do here is to extract and convert data from the CGI.
-            $requestee_email = trim($cgi->param("requestee-$flag_id") || '');
+            $requestee_email = join ', ', @requestees;
         }
 
         push(@flags, { id        => $flag_id,
@@ -921,10 +921,10 @@ sub extract_flags_from_cgi {
         # not multiplicable and already has a flag set.
         next if (!$flag_type->is_multiplicable && $has_flags);
 
-        my $status = $cgi->param("flag_type-$type_id");
+        my $status = $ARGS->{"flag_type-$type_id"};
         trick_taint($status);
 
-        my @logins = $cgi->param("requestee_type-$type_id");
+        my @logins = list $ARGS->{"requestee_type-$type_id"};
 
         Bugzilla::Hook::process('flag_check_requestee_list', {
             flag_type   => $flag_type,
@@ -950,6 +950,89 @@ sub extract_flags_from_cgi {
 
     # Return the list of flags to update and/or to create.
     return (\@flags, \@new_flags);
+}
+
+# Remind about flag requests during process_bug.cgi
+sub show_flag_reminders
+{
+    my ($bug_objects) = @_;
+
+    my $ARGS = Bugzilla->input_params;
+    my $single = @$bug_objects == 1;
+    my $CLOSED = Bugzilla->params->{closed_bug_status};
+    my $clear_on_close = $ARGS->{bug_status} eq $CLOSED &&
+        Bugzilla->user->settings->{clear_requests_on_close}->{value} eq 'on';
+    my $verify_flags = $single &&
+        Bugzilla->usage_mode != USAGE_MODE_EMAIL &&
+        Bugzilla->user->wants_request_reminder;
+    my $reset_own_flags = $verify_flags && $ARGS->{comment} !~ /^\s*$/so;
+
+    if (($clear_on_close || $reset_own_flags) && !$ARGS->{force_flags})
+    {
+        my $flags;
+        my @requery_flags;
+        my $flag;
+        my $login;
+        # 1) Check flag requests and remind user about resetting his own incoming requests.
+        # 2) When closing bugs, clear all flag requests (CustIS Bug 68430).
+        for my $bug (@$bug_objects)
+        {
+            my $clear_this = $clear_on_close && $bug->{_old_self}->bug_status_obj->name ne $CLOSED;
+            next if !$clear_this && !$reset_own_flags;
+            if ($single)
+            {
+                for (keys %$ARGS)
+                {
+                    if (/^(flag-(\d+))$/)
+                    {
+                        $flag = Bugzilla::Flag->new({ id => $2 });
+                        $flag->{status} = $ARGS->{$_};
+                        if (($login = trim($ARGS->{"requestee-".$flag->{id}})) &&
+                            ($login = login_to_id($login)))
+                        {
+                            $flag->{requestee_id} = $login;
+                        }
+                        push @$flags, $flag;
+                    }
+                }
+            }
+            else
+            {
+                $flags = Bugzilla::Flag->match({ bug_id => $bug->id });
+            }
+            foreach $flag (@$flags)
+            {
+                if ($flag->{status} eq '?' &&
+                    ($clear_this || $flag->{requestee_id} eq Bugzilla->user->id))
+                {
+                    if ($clear_this)
+                    {
+                        $flag->{status} = 'X';
+                    }
+                    if ($verify_flags)
+                    {
+                        push @requery_flags, $flag;
+                        delete $ARGS->{'flag-'.$flag->{id}};
+                    }
+                    elsif ($single)
+                    {
+                        $ARGS->{'flag-'.$flag->{id}} = 'X';
+                    }
+                    else
+                    {
+                        Bugzilla::Flag->set_flag($bug, $flag);
+                    }
+                }
+            }
+            if ($verify_flags && @requery_flags)
+            {
+                my $vars = { verify_flags => [ @requery_flags ] };
+                Bugzilla->template->process("bug/process/verify-flags.html.tmpl", $vars)
+                    || ThrowTemplateError(Bugzilla->template->error());
+                exit;
+            }
+        }
+    }
 }
 
 =pod

@@ -19,11 +19,10 @@ optional_modules('custis', $OPTIONAL_MODULES);
 clear_hooks('custis');
 
 # Other hooks
-set_hook('custis', 'flag_check_requestee_list',     'CustisMiscHooks::flag_check_requestee_list');
-set_hook('custis', 'process_bug_after_move',        'CustisMiscHooks::process_bug_after_move');
-set_hook('custis', 'enter_bug_cloned_bug',          'CustisMiscHooks::enter_bug_cloned_bug');
-set_hook('custis', 'post_bug_cloned_bug',           'CustisMiscHooks::post_bug_cloned_bug');
-set_hook('custis', 'emailin_filter_body',           'CustisMiscHooks::emailin_filter_body');
+set_hook('custis', 'flag_check_requestee_list', 'CustisMiscHooks::flag_check_requestee_list');
+set_hook('custis', 'enter_bug_cloned_bug',      'CustisMiscHooks::enter_bug_cloned_bug');
+set_hook('custis', 'post_bug_cloned_bug',       'CustisMiscHooks::post_bug_cloned_bug');
+set_hook('custis', 'emailin_filter_body',       'CustisMiscHooks::emailin_filter_body');
 
 1;
 __END__

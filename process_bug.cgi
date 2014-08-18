@@ -346,6 +346,8 @@ foreach my $b (@bug_objects)
     $b->set(groups => [ keys %$g ]) if $g;
 }
 
+Bugzilla::Flag::show_flag_reminders(\@bug_objects);
+
 if ($ARGS->{id})
 {
     my ($flags, $new_flags) = Bugzilla::Flag->extract_flags_from_cgi($first_bug, undef, $vars);

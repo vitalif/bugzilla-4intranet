@@ -87,6 +87,14 @@ sub get_param_list
     },
 
     {
+        name => 'closed_bug_status',
+        type => 's',
+        choices => \@closed_bug_statuses,
+        default => 'CLOSED',
+        checker => \&check_bug_status,
+    },
+
+    {
         name => 'duplicate_resolution',
         type => 's',
         choices => \@resolutions,
@@ -138,12 +146,6 @@ sub get_param_list
 
     {
         name => 'auto_add_flag_requestees_to_cc',
-        type => 'b',
-        default => 1,
-    },
-
-    {
-        name => 'clear_requests_on_close',
         type => 'b',
         default => 1,
     },

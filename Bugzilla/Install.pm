@@ -80,6 +80,8 @@ use constant SETTINGS => {
     comment_width            => { options => ['off', 'on'], default => 'off' },
     # CustIS Bug 138596 - Choose whether to hide long comments by default
     preview_long_comments    => { options => ['off', 'on'], default => 'off' },
+    # Clear all flag requests when changing bug status to 'closed_bug_status' parameter
+    clear_requests_on_close  => { options => ['off', 'on'], default => 'off' },
 };
 
 # Initial system groups.
