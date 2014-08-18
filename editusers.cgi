@@ -35,6 +35,7 @@ use Bugzilla::Flag;
 use Bugzilla::Field;
 use Bugzilla::Group;
 use Bugzilla::Token;
+use Bugzilla::Views;
 
 my $user = Bugzilla->login(LOGIN_REQUIRED);
 
@@ -344,6 +345,7 @@ if ($action eq 'search') {
     delete_token($token);
 
     Bugzilla::Hook::process('editusers-post_update', { userid => $otherUserID });
+    Bugzilla::Views::refresh_some_views([ $otherUser->login ]);
 
     $vars->{'message'} = 'account_updated';
     $vars->{'changed_fields'} = [keys %$changes];
@@ -587,6 +589,7 @@ if ($action eq 'search') {
     delete_token($token);
 
     Bugzilla::Hook::process('editusers-post_delete', { userid => $otherUserID });
+    Bugzilla::Views::refresh_some_views([ $otherUser->login ]);
 
     $vars->{'message'} = 'account_deleted';
     $vars->{'otheruser'}{'login'} = $otherUser->login;

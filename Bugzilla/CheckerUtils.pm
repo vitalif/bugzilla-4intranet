@@ -355,7 +355,8 @@ sub savedsearch_post_update
 # Refresh cached SQL code of checks at the end of checksetup.pl
 sub install_before_final_checks
 {
-    print "Refreshing Checkers SQL...\n";
+    my ($args) = @_;
+    print "Refreshing Checkers SQL...\n" if !$args->{silent};
     Bugzilla->request_cache->{user} = Bugzilla::User->super_user;
     for (Bugzilla::Checker->get_all)
     {

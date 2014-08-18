@@ -18,20 +18,6 @@ required_modules('custis', $REQUIRED_MODULES);
 optional_modules('custis', $OPTIONAL_MODULES);
 clear_hooks('custis');
 
-# Hooks allowing to create MySQL Views representing saved searches for users
-if (!Bugzilla->params->{ext_disable_refresh_views})
-{
-    set_hook('custis', 'editgroups_post_create',        'FlushViews::refresh_views');
-    set_hook('custis', 'editgroups_post_delete',        'FlushViews::refresh_views');
-    set_hook('custis', 'editgroups_post_edit',          'FlushViews::refresh_views');
-    set_hook('custis', 'editgroups_post_remove_regexp', 'FlushViews::refresh_views');
-    set_hook('custis', 'editusersingroup_post_add',     'FlushViews::refresh_views');
-    set_hook('custis', 'editusers_post_delete',         'FlushViews::editusers_post_update_delete');
-    set_hook('custis', 'editusers_post_update',         'FlushViews::editusers_post_update_delete');
-    set_hook('custis', 'savedsearch_post_update',       'FlushViews::savedsearch_post_update');
-    add_hook('custis', 'install_before_final_checks',   'FlushViews::install_before_final_checks');
-}
-
 # Other hooks
 set_hook('custis', 'flag_check_requestee_list',     'CustisMiscHooks::flag_check_requestee_list');
 set_hook('custis', 'process_bug_after_move',        'CustisMiscHooks::process_bug_after_move');

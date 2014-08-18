@@ -1,25 +1,16 @@
 #!/usr/bin/perl
-# External SQL interface to Bugzilla Saved Searches (CustIS Bug 61728)
+# External SQL interface to Bugzilla Saved Searches (originally CustIS Bug 61728)
 # License: Dual-license GPL 3.0+ or MPL 1.1+
-# Author(s): Vitaliy Filippov
+# Author(s): Vitaliy Filippov <vitalif@mail.ru>
 
 # FIXME: Add UI for managing views
 
-package FlushViews;
+package Bugzilla::Views;
 
 use strict;
 use Bugzilla::Util;
 use Bugzilla::User;
 use Bugzilla::Search;
-
-our @ISA = qw(Exporter);
-our @EXPORT = qw(refresh_views);
-
-sub refresh_views
-{
-    refresh_some_views();
-    return 1;
-}
 
 # MySQL has a limitation on views! :-(
 # Views in MySQL cannot include a subquery in the FROM clause.
@@ -52,12 +43,15 @@ sub recurse_create_view
 }
 
 # Refresh views, optionally only for $users = [ 'username@domain.org', ... ]
+# FIXME @domain.org should not be stripped from the username in the name of view
 sub refresh_some_views
 {
     my ($users) = @_;
+    return if Bugzilla->params->{ext_disable_refresh_views};
     my %u;
     for (@{$users || []})
     {
+        s/\@.*$//so;
         $_ = lc $_;
         s/[^a-z0-9]+/_/giso;
         $_ = "_$_" if !/^[a-z]/;
@@ -118,35 +112,6 @@ sub refresh_some_views
     }
     # Restore current user
     Bugzilla->request_cache->{user} = $old_user;
-}
-
-# hooks:
-sub savedsearch_post_update
-{
-    my ($args) = @_;
-    my $name = $args->{search}->user->login;
-    $name =~ s/\@.*$//so;
-    refresh_some_views([ $name ]);
-    return 1;
-}
-
-sub editusers_post_update_delete
-{
-    my ($args) = @_;
-    my $name = $args->{userid};
-    if ($name)
-    {
-        $name = user_id_to_login($name);
-        $name =~ s/\@.*$//so;
-        refresh_some_views([ $name ]);
-    }
-    return 1;
-}
-
-sub install_before_final_checks
-{
-    print "Refreshing Views...\n";
-    refresh_views();
 }
 
 1;

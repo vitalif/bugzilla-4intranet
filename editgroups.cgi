@@ -37,6 +37,7 @@ use Bugzilla::Group;
 use Bugzilla::Product;
 use Bugzilla::User;
 use Bugzilla::Token;
+use Bugzilla::Views;
 
 use constant SPECIAL_GROUPS => ('chartgroup', 'insidergroup', 'timetrackinggroup', 'querysharegroup');
 
@@ -276,6 +277,7 @@ if ($action eq 'delete') {
     delete_token($token);
 
     Bugzilla::Hook::process('editgroups-post_delete', { group => $group });
+    Bugzilla::Views::refresh_some_views();
 
     $vars->{'message'} = 'group_deleted';
     ListGroups($vars);
@@ -291,6 +293,7 @@ if ($action eq 'postchanges') {
     my $changes = doGroupChanges();
 
     Bugzilla::Hook::process('editgroups-post_edit', {});
+    Bugzilla::Views::refresh_some_views();
 
     delete_token($token);
 
@@ -345,6 +348,7 @@ if ($action eq 'remove_regexp') {
     $vars->{'regexp'} = $regexp;
 
     Bugzilla::Hook::process('editgroups-post_remove_regexp', { deleted => \@deleted });
+    Bugzilla::Views::refresh_some_views();
 
     delete_token($token);
 

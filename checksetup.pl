@@ -233,7 +233,11 @@ Bugzilla::Install::reset_password($switch{'reset-password'})
 Bugzilla::Install::create_default_product();
 
 require Bugzilla::CheckerUtils;
-Bugzilla::CheckerUtils::install_before_final_checks();
+Bugzilla::CheckerUtils::install_before_final_checks({ silent => $silent });
+
+require Bugzilla::Views;
+print "Refreshing Views...\n" unless $silent;
+Bugzilla::Views::refresh_some_views();
 
 Bugzilla::Hook::process('install_before_final_checks', { silent => $silent });
 

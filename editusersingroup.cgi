@@ -86,6 +86,10 @@ if (@add_members || @add_bless || @rm_members || @rm_bless)
             group_id => $vars->{group}->id,
         });
     }
+    if (@add_members || @rm_members)
+    {
+        Bugzilla::Views::refresh_some_views();
+    }
     delete_token($ARGS->{token});
     my $url = "editusersingroup.cgi?group=".$vars->{group}->id;
     print Bugzilla->cgi->redirect(-location => $url);

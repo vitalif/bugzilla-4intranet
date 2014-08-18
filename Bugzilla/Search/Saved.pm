@@ -31,6 +31,7 @@ use Bugzilla::User;
 use Bugzilla::Util;
 use Bugzilla::Search;
 use Bugzilla::CheckerUtils;
+use Bugzilla::Views;
 
 use Scalar::Util qw(blessed);
 
@@ -206,8 +207,9 @@ sub update
     {
         @r = scalar $self->SUPER::update(@_);
     }
-    Bugzilla::CheckerUtils::savedsearch_post_update({ search => $self });
     Bugzilla::Hook::process('savedsearch-post-update', { search => $self });
+    Bugzilla::CheckerUtils::savedsearch_post_update({ search => $self });
+    Bugzilla::Views::refresh_some_views([ $self->user->login ]);
     return @r;
 }
 
