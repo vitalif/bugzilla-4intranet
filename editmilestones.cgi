@@ -207,7 +207,7 @@ if ($action eq 'update') {
     $milestone->set_is_active($isactive);
     my $changes = $milestone->update();
 
-    $milestone->field->update_control_lists($milestone->id, $ARGS);
+    $changes->{control_lists} = 1 if $milestone->field->update_control_lists($milestone->id, $ARGS);
 
     delete_token($token);
 

@@ -321,7 +321,7 @@ if ($action eq 'update')
 
     my $changes = $product->update();
 
-    $product->field->update_control_lists($product->id, $ARGS);
+    $changes->{control_lists} = 1 if $product->field->update_control_lists($product->id, $ARGS);
 
     delete_token($token);
 

@@ -383,7 +383,7 @@ sub _check_default_value
         # Array of IDs
         $value = [ $value ] if !ref $value;
         detaint_natural($_) for @$value;
-        $value = @$value ? join(',', @$value) : undef;
+        $value = @$value ? join(',', sort @$value) : undef;
     }
     elsif ($self->type == FIELD_TYPE_BUG_ID_REV)
     {
@@ -1005,7 +1005,6 @@ sub update_visibility_values
     return 1;
 }
 
-# FIXME: Make this function report saved changes
 sub update_control_lists
 {
     my $self = shift;
@@ -1014,17 +1013,22 @@ sub update_control_lists
     $controlling_value_id = $controlling_value_id ? $controlling_value_id->id : return undef;
     # Save all visible, nullable and clone flags at once
     my $mod = { del => [], add => [] };
-    for my $f (Bugzilla->get_fields({ obsolete => 0, visibility_field_id => $self->id }))
+    my $rpt = {};
+    my $h = Bugzilla->fieldvaluecontrol->{$self->id};
+    for my $flag ([ 'visibility_field_id', 'is_visible', 'fields', FLAG_VISIBLE ],
+        [ 'null_field_id', 'is_nullable', 'null', FLAG_NULLABLE ],
+        [ 'clone_field_id', 'is_cloned', 'clone', FLAG_CLONED ])
     {
-        push @{$mod->{$params->{'is_visible_'.$f->name} ? 'add' : 'del'}}, [ $f->id, FLAG_VISIBLE ];
-    }
-    for my $f (Bugzilla->get_fields({ obsolete => 0, null_field_id => $self->id }))
-    {
-        push @{$mod->{$params->{'is_nullable_'.$f->name} ? 'add' : 'del'}}, [ $f->id, FLAG_NULLABLE ];
-    }
-    for my $f (Bugzilla->get_fields({ obsolete => 0, clone_field_id => $self->id }))
-    {
-        push @{$mod->{$params->{'is_cloned_'.$f->name} ? 'add' : 'del'}}, [ $f->id, FLAG_CLONED ];
+        for my $f (Bugzilla->get_fields({ obsolete => 0, $flag->[0] => $self->id }))
+        {
+            if ((1 && $params->{$flag->[1].'_'.$f->name}) != ($h->{$flag->[2]} &&
+                $h->{$flag->[2]}->{$f->id} && $h->{$flag->[2]}->{$f->id}->{$controlling_value_id}))
+            {
+                my $ad = $params->{$flag->[1].'_'.$f->name} ? 'add' : 'del';
+                push @{$rpt->{$ad.'_'.$flag->[1]}}, $f->id;
+                push @{$mod->{$ad}}, [ $f->id, $flag->[3] ];
+            }
+        }
     }
     if (@{$mod->{del}} || @{$mod->{add}})
     {
@@ -1043,36 +1047,40 @@ sub update_control_lists
     }
     # Save all dependent defaults at once
     my $touched = { map { $_->[0] => 1 } (@{$mod->{add}}, @{$mod->{del}}) };
-    $mod = { del => [], add => [] };
+    my $def = { del => [], add => [] };
+    $h = Bugzilla->fieldvaluecontrol->{$self->id}->{defaults};
     for my $f (Bugzilla->get_fields({ obsolete => 0, default_field_id => $self->id }))
     {
         my $default = $params->{'default_'.$f->name};
         $default = $f->_check_default_value($default);
-        if (!$default)
+        if ($default ne ($h->{$f->id} && $h->{$f->id}->{$controlling_value_id} || ''))
         {
-            push @{$mod->{del}}, [ $f->id ];
+            if (!$default)
+            {
+                push @{$def->{del}}, [ $f->id ];
+            }
+            else
+            {
+                trick_taint($default);
+                push @{$def->{add}}, [ $f->id, $default ];
+            }
+            $touched->{$f->id} = 1;
         }
-        else
-        {
-            trick_taint($default);
-            push @{$mod->{add}}, [ $f->id, $default ];
-        }
-        $touched->{$f->id} = 1;
     }
-    if (@{$mod->{del}} || @{$mod->{add}})
+    if (@{$def->{del}} || @{$def->{add}})
     {
         Bugzilla->dbh->do(
             'DELETE FROM field_defaults WHERE visibility_value_id=? AND field_id IN ('.
-            join(',', map { $_->[0] } (@{$mod->{add}}, @{$mod->{del}})).')',
+            join(',', map { $_->[0] } (@{$def->{add}}, @{$def->{del}})).')',
             undef, $controlling_value_id
         );
     }
-    if (@{$mod->{add}})
+    if (@{$def->{add}})
     {
         Bugzilla->dbh->do(
             'INSERT INTO field_defaults (visibility_value_id, field_id, default_value) VALUES '.
-            join(',', map { "($controlling_value_id, $_->[0], ?)" } @{$mod->{add}}),
-            undef, map { $_->[1] } @{$mod->{add}}
+            join(',', map { "($controlling_value_id, $_->[0], ?)" } @{$def->{add}}),
+            undef, map { $_->[1] } @{$def->{add}}
         );
     }
     # Update metadata timestamp for many fields at once
@@ -1084,6 +1092,19 @@ sub update_control_lists
         );
         Bugzilla->refresh_cache_fields;
     }
+    if (@{$mod->{add}} || @{$mod->{del}} || @{$def->{del}} || @{$def->{add}})
+    {
+        Bugzilla->add_result_message({
+            message => 'control_lists_updated',
+            field_id => $self->id,
+            value_id => $controlling_value_id,
+            del_defaults => [ map { $_->[0] } @{$def->{del}} ],
+            add_defaults => [ map { $_->[0] } @{$def->{add}} ],
+            %$rpt,
+        });
+        return 1;
+    }
+    return 0;
 }
 
 sub update_controlled_values

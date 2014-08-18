@@ -99,6 +99,28 @@
   <div class="message">Active values updated.</div>
 [% END %]
 
+[% BLOCK msg_control_lists_updated %]
+  <p>
+    [% t = Bugzilla.get_field(field_id).description | html %]
+    [% ch = {
+      'add_is_visible' => 'Field(s) X are now visible for this ' _ t
+      'del_is_visible' => 'Field(s) X are now invisible for this ' _ t
+      'add_is_cloned' => 'Field(s) X will be copied during clone of ' _ terms.Bugs _ ' with this ' _ t
+      'del_is_cloned' => 'Field(s) X will not be copied during clone of ' _ terms.Bugs _ ' with this ' _ t
+      'add_is_nullable' => 'Field(s) X may now be empty in this ' _ t
+      'del_is_nullable' => 'Field(s) X are now mandatory in this ' _ t
+      'add_defaults' => 'Default X updated for this ' _ t
+      'del_defaults' => 'Default X deleted for this ' _ t
+    } %]
+    [% FOREACH k = ch.keys %]
+      [% IF $k.size %]
+        [% fields = BLOCK %][% FOR f = $k %][% ", " IF loop.index %][% Bugzilla.get_field(f).description | html %][% END %][% END %]
+        [% ch.$k.replace('X', fields) | html %].<br />
+      [% END %]
+    [% END %]
+  </p>
+[% END %]
+
 [%# This is a list of all the possible messages. Please keep them in
   # alphabetical order by message tag, and leave a blank line between messages.
   #%]
@@ -290,7 +312,7 @@
 [% BLOCK msg_component_updated %]
   [% title = "Component Updated" %]
   [% IF changes.keys.size %]
-    Changes to the component <em>[% comp.name | html %]</em> have been saved:
+    Changes to the component <em>[% comp.name | html %]</em> have been saved.
     <ul>
     [% IF changes.name.defined %]
       <li>Name updated to '[% comp.name | html %]'</li>
@@ -678,8 +700,7 @@
 [% BLOCK msg_milestone_updated %]
   [% title = "Milestone Updated" %]
   [% IF changes.size %]
-    Changes to the milestone <em>[% milestone.name | html %]</em>
-    have been saved:
+    Changes to the milestone <em>[% milestone.name | html %]</em> have been saved.
     <ul>
       [% IF changes.value.defined %]
         <li>Milestone name updated to <em>[% milestone.name | html %]</em></li>
@@ -1022,8 +1043,7 @@
 [% BLOCK msg_version_updated %]
   [% SET title = "Version Updated" IF 1 %]
   [% IF changes.size %]
-    Changes to the version <em>[% version.name FILTER html %]</em>
-    have been saved:
+    Changes to the version <em>[% version.name FILTER html %]</em> have been saved.
     <ul>
       [% IF changes.value.defined %]
         <li>Version renamed to <em>[% version.name FILTER html %]</em></li>

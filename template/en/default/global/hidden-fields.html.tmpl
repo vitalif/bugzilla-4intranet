@@ -44,7 +44,7 @@
       </p>
     </div>
   [% ELSE %]
-    [% FOREACH mvalue = p.$field %]
+    [% FOREACH mvalue = p.$field.slice(0) %]
       <input type="hidden" name="[% field | html %]" value="[% mvalue | html | html_linebreak %]" />
     [% END %]
   [% END %]

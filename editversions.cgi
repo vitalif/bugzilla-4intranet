@@ -202,7 +202,7 @@ if ($action eq 'update') {
     $version->set_is_active($isactive);
     my $changes = $version->update();
 
-    $version->field->update_control_lists($version->id, $ARGS);
+    $changes->{control_lists} = 1 if $version->field->update_control_lists($version->id, $ARGS);
 
     $dbh->bz_commit_transaction();
     delete_token($token);

@@ -241,7 +241,7 @@ if ($action eq 'update') {
     $component->set_is_active(scalar $cgi->param('is_active'));
     my $changes = $component->update();
 
-    $component->field->update_control_lists($component->id, $ARGS);
+    $changes->{control_lists} = 1 if $component->field->update_control_lists($component->id, $ARGS);
 
     $vars->{'message'} = 'component_updated';
     $vars->{'comp'} = $component;
