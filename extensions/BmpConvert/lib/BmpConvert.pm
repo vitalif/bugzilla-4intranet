@@ -3,14 +3,12 @@
 package BmpConvert;
 
 use strict;
+use Bugzilla;
 use Image::Magick;
-
-my $convertedbmp;
 
 sub attachment_process_data
 {
     my ($args) = @_;
-    $convertedbmp = 0;
     return 1 unless $args->{attributes}->{mimetype} eq 'image/bmp';
 
     my $data = ${$args->{data}};
@@ -38,22 +36,23 @@ sub attachment_process_data
     ${$args->{data}} = $data;
     $args->{attributes}->{mimetype} = 'image/png';
     $args->{attributes}->{filename} =~ s/^(.+)\.bmp$/$1.png/i;
-    $convertedbmp = 1;
-    return 1;
-}
-
-sub attachment_post_create
-{
-    my ($args) = @_;
-    $args->{attachment}->{convertedbmp} = 1 if $convertedbmp;
+    Bugzilla->add_result_message({ message => 'attachment_convertedbmp' });
     return 1;
 }
 
 sub attachment_post_create_result
 {
-    my ($args) = @_;
-    my $r = Bugzilla->result_messages;
-    $r->[$#$r]->{convertedbmp} = $args->{vars}->{convertedbmp} = $args->{vars}->{attachment}->{convertedbmp};
+    # Move last attachment_convertedbmp to the end of result_messages
+    my $rm = Bugzilla->result_messages;
+    my $l = @$rm;
+    for (my $i = $l-1; $i >= 0; $i--)
+    {
+        if ($rm->[$i]->{message} eq 'attachment_convertedbmp' && $i != $l-1)
+        {
+            push @$rm, splice @$rm, $i, 1;
+            last;
+        }
+    }
     return 1;
 }
 

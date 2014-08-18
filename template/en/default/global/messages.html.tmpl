@@ -44,12 +44,6 @@
       [% END %]
     </dd>
   </dl>
-  [% IF att.convertedbmp %]
-  <p>
-    <b>Note:</b> [% terms.Bugzilla %] automatically converted your BMP image file to a
-    compressed PNG format.
-  </p>
-  [% END %]
 [% END %]
 
 [% BLOCK msg_changed_attachment %]
@@ -1049,8 +1043,12 @@
 
 [% IF message %]
   [% message_tag = message %]
-  [% message = BLOCK %][% 'msg_' _ message_tag FILTER process %][% END %]
-  [% IF !message %][% message = Hook.process('messages') %][% END %]
+  [% message_exists = 'msg_' _ message_tag FILTER block_exists %]
+  [% IF message_exists;
+      message = 'msg_' _ message_tag | process;
+    ELSE;
+      message = Hook.process('messages');
+    END %]
   [% message %]
   [%# Give sensible error if a message is unknown. %]
   [% IF !message %]
