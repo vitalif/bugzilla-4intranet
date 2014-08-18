@@ -395,6 +395,7 @@ sub check_token_data {
         # If no token was found, create a valid token for the given action.
         unless ($creator_id) {
             $token = issue_session_token($expected_action);
+            Bugzilla->input_params->{token} = $token;
             $cgi->param('token', $token);
         }
 

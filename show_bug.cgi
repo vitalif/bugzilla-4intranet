@@ -29,8 +29,6 @@ use Bugzilla::User;
 use Bugzilla::Keyword;
 use Bugzilla::Bug;
 
-use Checkers;
-
 my $template = Bugzilla->template;
 my $vars = {};
 my $ARGS = Bugzilla->cgi->VarHash({ id => 1, excludefield => 1, field => 1, includefield => 1 });

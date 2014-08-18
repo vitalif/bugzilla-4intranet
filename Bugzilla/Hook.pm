@@ -108,6 +108,7 @@ sub process
         elsif (!ref $f && $f =~ /^(.*)::[^:]*$/)
         {
             my $pk = $1 . '.pm';
+            $pk =~ s/::/\//gso;
             if ($pk)
             {
                 eval { require $pk };

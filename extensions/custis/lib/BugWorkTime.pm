@@ -369,7 +369,6 @@ sub HandleSuperWorktime
         else
         {
             # Удаляем параметры
-            delete $args->{$_} for 'save_worktime', grep { /^wtime_(\d+)$/ } keys %$args;
             if (MassAddWorktime($times, $comment, $wt_date))
             {
                 Bugzilla->dbh->bz_commit_transaction();
@@ -379,9 +378,9 @@ sub HandleSuperWorktime
             {
                 # Цельный откат, если хотя бы одно изменение заблокировано проверками
                 Bugzilla->dbh->bz_rollback_transaction();
-                Checkers::show_checker_errors();
+                Bugzilla::CheckerUtils::show_checker_errors();
             }
-            delete $args->{token};
+            delete $args->{$_} for 'token', 'save_worktime', grep { /^wtime_(\d+)$/ } keys %$args;
             print Bugzilla->cgi->redirect(-location => 'buglist.cgi?'.http_build_query($args));
             exit;
         }

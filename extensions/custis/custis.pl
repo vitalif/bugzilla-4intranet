@@ -32,13 +32,6 @@ if (!Bugzilla->params->{ext_disable_refresh_views})
     add_hook('custis', 'install_before_final_checks',   'FlushViews::install_before_final_checks');
 }
 
-# Hooks for bug change correctness checks
-set_hook('custis', 'bug_pre_update',                'Checkers::bug_pre_update');
-set_hook('custis', 'bug_end_of_update',             'Checkers::bug_end_of_update');
-set_hook('custis', 'bug_end_of_create',             'Checkers::bug_end_of_create');
-add_hook('custis', 'savedsearch_post_update',       'Checkers::savedsearch_post_update');
-add_hook('custis', 'install_before_final_checks',   'Checkers::install_before_final_checks');
-
 # Other hooks
 set_hook('custis', 'flag_check_requestee_list',     'CustisMiscHooks::flag_check_requestee_list');
 set_hook('custis', 'process_bug_after_move',        'CustisMiscHooks::process_bug_after_move');

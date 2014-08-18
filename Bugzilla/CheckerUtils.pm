@@ -1,11 +1,15 @@
 #!/usr/bin/perl
-# CustIS Bug 68921 - "Предикаты проверки корректности"
-# - Задаётся сохранённый запрос поиска.
-# - Принимается, что баги, соответствующие (или НЕ соответствующие) этому запросу
-#   до (или после) любых изменений - некорректные, и надо выдать предупреждение или ошибку.
-# - Выставляется флажок, можно ли всё-таки оставлять комментарии без рабочего времени.
+# Bug change check predicates (originally CustIS Bug 68921)
+# License: Dual-license GPL 3.0+ or MPL 1.1+
 
-package Checkers;
+# Idea:
+# - The user specifies a saved search.
+# - Before or after each bug update, the saved search is executed on updated bugs.
+#   It is also possible to run the check when only the specific bug fields are updated.
+# - If bug is matched by this saved search, we assume it is in an "incorrect" state,
+#   and show an error or a warning.
+
+package Bugzilla::CheckerUtils;
 
 use strict;
 use POSIX qw(strftime);
@@ -15,6 +19,7 @@ use Bugzilla::Constants;
 use Bugzilla::Checker;
 use Bugzilla::Search::Saved;
 use Bugzilla::Error;
+use Bugzilla::Util;
 
 sub refresh_checker
 {
@@ -34,11 +39,9 @@ sub all
     return $c->{checkers};
 }
 
-# Запустить набор проверок по одному багу
-# $mask - маска из флагов, которые нужно проверять для фильтрации проверок
-# $flags - требуемые значения этих флагов
-# Т.е. check(..., CF_UPDATE, CF_FREEZE | CF_UPDATE) выберет проверки
-# с флагом CF_UPDATE, но без флага CF_FREEZE
+# Run a set of checks for a single bug. Checks are selected based on their flags,
+# such that (<flags> & $mask) = $flags. I.e. check(..., CF_UPDATE, CF_FREEZE | CF_UPDATE)
+# will select checks with CF_UPDATE, but without CF_FREEZE.
 sub check
 {
     my ($bug_id, $flags, $mask) = @_;
@@ -68,9 +71,11 @@ sub check
     return $checked;
 }
 
-# Откатывает изменения до последней SAVEPOINT, если проверки не прошли.
-# Ставит $bug->{passed_checkers} = прошли ли проверки (с учётом "do what i say"), и возвращает его же.
-# Если завалены только мягкие проверки и !Bugzilla->request_cache->{checkers_hide_error} - показывает предупреждение.
+# Run checks and rollback changes to the last SAVEPOINT if there are failed ones.
+# If only "soft" checks are failed and Bugzilla->request_cache->{checkers_hide_error} is false,
+# the warning message with a "Do what I say" button is shown and the request is terminated.
+# The function returns true if all checks passed, or if the user said "do what i say" for
+# non-fatal checks, and sets $bug->{passed_checkers} to the same value.
 sub alert
 {
     my ($bug, $is_new) = @_;
@@ -79,7 +84,7 @@ sub alert
     {
         if ($_->triggers)
         {
-            # Триггеры нас вообще не расстраивают
+            # Triggers never result in an error
         }
         elsif ($_->is_fatal)
         {
@@ -93,14 +98,14 @@ sub alert
     my $force = 1 && Bugzilla->cgi->param('force_checkers');
     if (!@fatal && (!@warn || $force))
     {
-        # фатальных нет, нефатальных либо тоже нет, либо пользователь сказал "DO WHAT I SAY"
+        # Either there are no errors or there are only non-fatal ones and the used clicked "DO WHAT I SAY"
         $bug->{passed_checkers} = 1;
     }
     else
     {
-        # откатываем изменения
+        # Some checks failed. Roll changes back.
         $bug->{passed_checkers} = 0;
-        # bugs_fulltext нужно откатывать отдельно...
+        # bugs_fulltext is non-transactional...
         if ($is_new)
         {
             Bugzilla->dbh->do('DELETE FROM bugs_fulltext WHERE bug_id=?', undef, $bug->bug_id);
@@ -109,7 +114,7 @@ sub alert
         {
             $bug->_sync_fulltext;
         }
-        # нужно откатить изменения ТОЛЬКО ОДНОГО бага (см. process_bug.cgi)
+        # Rollback changes of a SINGLE bug (see process_bug.cgi)
         Bugzilla->dbh->bz_rollback_to_savepoint;
         if (!Bugzilla->request_cache->{checkers_hide_error})
         {
@@ -119,13 +124,13 @@ sub alert
     return $bug->{passed_checkers};
 }
 
-# Показать сообщение об ошибке проверки/проверок
+# Show check error message
 sub show_checker_errors
 {
     my ($bugs) = @_;
-    $bugs ||= Bugzilla->request_cache->{failed_checkers};
+    $bugs ||= saved_failed_checkers();
     return if !grep { !$_->{passed_checkers} } @$bugs;
-    if (Bugzilla->error_mode != ERROR_MODE_WEBPAGE) 
+    if (Bugzilla->error_mode != ERROR_MODE_WEBPAGE)
     {
         my $info = [
             map { {
@@ -136,9 +141,10 @@ sub show_checker_errors
         ];
         ThrowUserError('checks_failed', { bugs => $info });
     }
-    my $fatal = 1 && (grep { grep { $_->is_fatal } @{$_->{failed_checkers} || []} } @$bugs);
+    @{Bugzilla->result_messages} = ();
+    my $fatal = 1 && (grep { grep { $_->{is_fatal} } @{$_->{failed_checkers} || []} } @$bugs);
     delete Bugzilla->input_params->{force_checkers};
-    Bugzilla->template->process("verify-checkers.html.tmpl", {
+    Bugzilla->template->process("bug/process/verify-checkers.html.tmpl", {
         script_name => Bugzilla->cgi->script_name,
         failed => $bugs,
         allow_commit => !$fatal,
@@ -166,13 +172,13 @@ sub freeze_failed_checkers
 sub filter_failed_checkers
 {
     my ($checkers, $changes, $bug) = @_;
-    # Фильтруем подошедшие проверки по изменённым полям
+    # Filter failed checkers by changes
     my @rc;
     for (@$checkers)
     {
         if ($_->triggers)
         {
-            # Не трогаем триггеры
+            # Skip triggers
             push @rc, $_;
             next;
         }
@@ -180,11 +186,11 @@ sub filter_failed_checkers
         my $ok = 1;
         if ($_->deny_all)
         {
-            # разрешить только изменения полей-исключений только на значения-исключения
+            # Allow only changes of except_fields to except values
             for (keys %$changes)
             {
-                # если это поле не перечислено в списке исключений ЛИБО
-                # если в исключениях задано разрешённое новое значение, и у нас не оно
+                # If the field is not listed in except_fields, OR
+                # if there is a specific value in except_fields and our one is not equal
                 if (!exists $e->{$_} || (defined $e->{$_} && $changes->{$_}->[1] ne $e->{$_}))
                 {
                     $ok = 0;
@@ -194,13 +200,13 @@ sub filter_failed_checkers
         }
         else
         {
-            # запретить изменения полей-исключений на значения-исключения
+            # Forbid changes of except_fields to except values
             for (keys %$e)
             {
-                # специальное псевдо-поле, означающее списание времени задним числом
-                # а значение этого псевдо-поля означает списание времени датой меньшей этого значения
-                # т.е. например запретить изменения поля "work_time_date" на дату "2010-09-01"
-                # значит запретить списывать время задним числом на даты раньше 2010-09-01
+                # work_time_date is a special pseudo-field meaning addition of backdated worktime
+                # the value of this pseudo-field is the date before which it is forbidden to fix worktime
+                # for example except_fields={work_time_date=2010-09-01} means forbid fixing worktime
+                # for dates before 2010-09-01
                 if ($_ eq 'work_time_date')
                 {
                     my $today_date = strftime('%Y-%m-%d', localtime);
@@ -232,7 +238,7 @@ sub filter_failed_checkers
     @$checkers = @rc;
 }
 
-# Запустить триггеры для бага $bug из $bug->{failed_checkers}
+# Run triggers for bug $bug from $bug->{failed_checkers}
 sub run_triggers
 {
     my ($bug) = @_;
@@ -244,7 +250,7 @@ sub run_triggers
         {
             if ($checker->triggers->{add_cc})
             {
-                # FIXME Пока поддерживается только добавление CC, но несложно докрутить произвольные изменения
+                # FIXME Only "add CC" trigger is supported by now, but it's not that hard to support more
                 for (split /[\s,]+/, $checker->triggers->{add_cc})
                 {
                     $bug->add_cc($_);
@@ -252,10 +258,32 @@ sub run_triggers
                 }
             }
         }
-        # FIXME Нужно показывать информацию о применённом триггере (сейчас оно работает втихаря)
+        # FIXME Show information about the applied trigger (use result_messages)
         splice @{$bug->{failed_checkers}}, $i, 1;
     }
     return $modified;
+}
+
+sub saved_failed_checkers
+{
+    my ($create_if_not_found) = @_;
+    for my $msg (@{ Bugzilla->result_messages })
+    {
+        if ($msg->{message} eq 'checkers_failed')
+        {
+            return $msg->{failed_checkers} ||= [];
+        }
+    }
+    if ($create_if_not_found)
+    {
+        my $list = [];
+        Bugzilla->add_result_message({
+            message => 'checkers_failed',
+            failed_checkers => $list,
+        });
+        return $list;
+    }
+    return undef;
 }
 
 # hooks:
@@ -264,7 +292,7 @@ sub bug_pre_update
 {
     my ($args) = @_;
     my $bug = $args->{bug};
-    # запускаем проверки, работающие ДО внесения изменений - заморозку багов и триггеры
+    # Run checks BEFORE updating the bug. These are "freezers" and triggers.
     $bug->{failed_checkers} = check($bug->bug_id, CF_FREEZE | CF_UPDATE, CF_FREEZE | CF_UPDATE);
     run_triggers($bug);
     return 1;
@@ -275,41 +303,25 @@ sub bug_end_of_update
     my ($args) = @_;
 
     my $bug = $args->{bug};
-    my $changes = { %{ $args->{changes} } }; # копируем хеш
+    my $changes = { %{ $args->{changes} } }; # copy hash
     $changes->{longdesc} = $args->{bug}->{added_comments} && @{ $args->{bug}->{added_comments} }
         ? [ '', scalar @{$args->{bug}->{added_comments}} ] : undef;
 
-    # запускаем проверки, работающие ПОСЛЕ внесения изменений
+    # run checks AFTER updating the bug (normal "checkers")
     push @{$bug->{failed_checkers}}, @{ check($bug->bug_id, CF_UPDATE, CF_FREEZE | CF_UPDATE) };
 
-    # фильтруем по изменениям
+    # filter by changes
     if (@{$bug->{failed_checkers}})
     {
         filter_failed_checkers($bug->{failed_checkers}, $changes, $bug);
     }
 
-    # ругаемся и откатываем изменения, если есть заваленные проверки
+    # complain and roll changes back if there are failed checks
     if (@{$bug->{failed_checkers}})
     {
         alert($bug);
-        # запоминаем сообщение о зафейленных проверках в result_messages
-        my $found;
-        for my $msg (@{ Bugzilla->result_messages })
-        {
-            if ($msg->{message} eq 'checkers_failed')
-            {
-                $found = 1;
-                push @{$msg->{failed_checkers}}, @{ freeze_failed_checkers([ $bug ]) };
-                last;
-            }
-        }
-        if (!$found)
-        {
-            Bugzilla->add_result_message({
-                message => 'checkers_failed',
-                failed_checkers => freeze_failed_checkers([ $bug ]),
-            });
-        }
+        # remember failed checks in result_messages
+        push @{saved_failed_checkers(1)}, @{ freeze_failed_checkers([ $bug ]) };
     }
 
     return 1;
@@ -319,13 +331,13 @@ sub bug_end_of_create
 {
     my ($args) = @_;
     my $bug = $args->{bug};
-    # При создании бага сия радость по изменениям отдельных полей не фильтруеццо!
+    # We don't filter anything by field changes when creating bugs!
     $bug->{failed_checkers} = check($bug->bug_id, CF_CREATE, CF_CREATE);
     if (@{$bug->{failed_checkers}})
     {
         alert($bug, 1);
     }
-    # А ещё при создании бага триггеры срабатывают отдельным запросом
+    # Triggers are ran in a separate UPDATE on bug creation.
     if (run_triggers($bug))
     {
         $bug->update;
@@ -340,7 +352,7 @@ sub savedsearch_post_update
     return 1;
 }
 
-# Конец checksetup'а - обновляем SQL-код проверок
+# Refresh cached SQL code of checks at the end of checksetup.pl
 sub install_before_final_checks
 {
     print "Refreshing Checkers SQL...\n";

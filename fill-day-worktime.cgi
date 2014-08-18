@@ -14,6 +14,7 @@ use Bugzilla::Product;
 use Bugzilla::Search;
 use Bugzilla::Search::Saved;
 use Bugzilla::Constants;
+use Bugzilla::CheckerUtils;
 
 use BugWorkTime; # extensions/custis/lib/
 
@@ -109,7 +110,7 @@ if (@idlist || @lines)
     {
         Bugzilla->dbh->bz_commit_transaction();
     }
-    Checkers::show_checker_errors();
+    Bugzilla::CheckerUtils::show_checker_errors();
     print Bugzilla->cgi->redirect(-location => "fill-day-worktime.cgi?lastdays=" . $lastdays);
     exit;
 }

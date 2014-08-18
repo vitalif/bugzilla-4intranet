@@ -59,8 +59,7 @@ use Bugzilla::Keyword;
 use Bugzilla::Flag;
 use Bugzilla::Status;
 use Bugzilla::Token;
-
-use Checkers;
+use Bugzilla::CheckerUtils;
 
 use Storable qw(dclone);
 
@@ -676,6 +675,10 @@ foreach my $bug (@bug_objects)
 if (@bug_objects == 1)
 {
     Bugzilla::Attachment::add_multiple($first_bug);
+}
+else
+{
+    Bugzilla::CheckerUtils::show_checker_errors();
 }
 
 $dbh->bz_commit_transaction();

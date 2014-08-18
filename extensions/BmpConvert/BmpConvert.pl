@@ -38,3 +38,6 @@ required_modules('BmpConvert', $REQUIRED_MODULES);
 set_hook('BmpConvert', 'attachment_process_data', 'BmpConvert::attachment_process_data');
 set_hook('BmpConvert', 'attachment_post_create', 'BmpConvert::attachment_post_create');
 set_hook('BmpConvert', 'attachment_post_create_result', 'BmpConvert::attachment_post_create_result');
+
+1;
+__END__

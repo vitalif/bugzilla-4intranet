@@ -95,7 +95,7 @@
   [% IF failed_checkers AND failed_checkers.size %]
   <div class="user-error-div">
     <div class="user-error-div-first">
-      [% INCLUDE "failed-checkers.html.tmpl" f = failed_checkers %]
+      [% INCLUDE "bug/process/failed-checkers.html.tmpl" f = failed_checkers %]
     </div>
   </div>
   [% END %]

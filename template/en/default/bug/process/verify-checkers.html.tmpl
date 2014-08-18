@@ -1,9 +1,16 @@
+[%# Error or warning page for failed checks
+  # License: Dual-license GPL 3.0+ or MPL 1.1+
+  # Author: Vitaliy Filippov <vitalif@mail.ru>
+  #%]
+
+[%# FIXME Template is in russian %]
+
 [% PROCESS global/header.html.tmpl
    title = 'Изменения не удовлетворяют проверкам' %]
 
 <div class="user-error-div">
 
-[% PROCESS "failed-checkers.html.tmpl" f = failed %]
+[% PROCESS "bug/process/failed-checkers.html.tmpl" f = failed %]
 
 [% IF allow_commit %]
 

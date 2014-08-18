@@ -123,7 +123,8 @@ else
     }
 }
 
-$template->process('edit-checkers.html.tmpl', $vars)
+$template->process('admin/edit-checkers.html.tmpl', $vars)
   || ThrowTemplateError($template->error());
+exit;
 
 __END__

@@ -51,6 +51,7 @@ use Bugzilla::Status;
 use Bugzilla::Comment;
 
 use Bugzilla::Diff;
+use Bugzilla::CheckerUtils;
 
 use List::Util qw(min);
 use URI;
@@ -489,6 +490,10 @@ sub update
     # Check/set default values
     $self->check_default_values if !$self->id;
 
+    if ($method eq 'update')
+    {
+        Bugzilla::CheckerUtils::bug_pre_update({ bug => $self });
+    }
     Bugzilla::Hook::process("bug_pre_$method", { bug => $self });
 
     my $old_bug = $self->{_old_self};
@@ -581,12 +586,13 @@ sub update
         }
     }
 
-    Bugzilla::Hook::process("bug_end_of_$method", {
+    Bugzilla::Hook::process("bug_end_of_$method", my $hook_args = {
         bug => $self,
         timestamp => $delta_ts,
         changes => $changes,
         old_bug => $old_bug,
     });
+    $method eq 'update' ? Bugzilla::CheckerUtils::bug_end_of_update($hook_args) : Bugzilla::CheckerUtils::bug_end_of_create($hook_args);
 
     # The only problem with this here is that update() is usually called
     # in the middle of a transaction, and if that transaction is rolled
