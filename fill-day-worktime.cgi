@@ -15,8 +15,7 @@ use Bugzilla::Search;
 use Bugzilla::Search::Saved;
 use Bugzilla::Constants;
 use Bugzilla::CheckerUtils;
-
-use BugWorkTime; # extensions/custis/lib/
+use Bugzilla::FixWorktimePage;
 
 my $user     = Bugzilla->login(LOGIN_REQUIRED);
 my $userid   = $user->id;
@@ -90,7 +89,7 @@ if (@idlist || @lines)
     foreach my $id (@{$wtime->{IDS}})
     {
         $dbh->bz_start_transaction();
-        if (!BugWorkTime::FixWorktime($id, $wtime->{$id}->{time}, join("\n", @{$wtime->{$id}->{comments} || []})))
+        if (!Bugzilla::FixWorktimePage::FixWorktime($id, $wtime->{$id}->{time}, join("\n", @{$wtime->{$id}->{comments} || []})))
         {
             $rollback = 1;
         }

@@ -1,9 +1,11 @@
 #!/usr/bin/perl
-# CustIS Bug 68921 - "Супер-TodayWorktime", или массовая фиксация трудозатрат
-# по нескольким багам, за нескольких сотрудников, за различные периоды.
-# Для фиксации времени задним числом / другим юзером требует группу worktimeadmin.
+# "Super-Fix-Worktime" page - allows to enter worktime for many bugs at once,
+# even for past dates and/or for other users, if you have 'superworktime' privilege.
+# Originally CustIS Bug 68921.
+# License: Dual-license GPL 3.0+ or MPL 1.1+
+# Author: Vitaliy Filippov <vitalif@mail.ru>
 
-package BugWorkTime;
+package Bugzilla::FixWorktimePage;
 
 use strict;
 use POSIX;

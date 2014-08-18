@@ -1,8 +1,0 @@
-[% IF error == "move_worktime_empty" %]
-  Вы пытаетесь перенести время или распределить его в пропорции, взятой из
-  <a href="show_bug.cgi?id=[% bug_id | html %]">[% terms.Bug %] [% bug_id | html %]</a>,
-  но в нём нет списанного
-  [% IF who %]пользователем [% who.identity | html %][% END %]
-  [% IF from || to %]за период [% IF from %]с [% from | html%][% IF to %] по [% END %][% END %][% to | html %][% END %]
-  времени.
-[% END %]

@@ -1380,6 +1380,21 @@
   [% END %]
 [% END %]
 
+[% BLOCK error_move_worktime_empty %]
+  [% title = "No Worktime In Selected Bug" %]
+  You are trying to move or split Hours Worked by in ratio taken from
+  <a href="show_bug.cgi?id=[% bug_id | html %]">[% terms.Bug %] [% bug_id | html %]</a>,
+  bug there is no working time entered
+  [% IF who %]by user [% who.identity | html %][% END %]
+  [% IF from && to %]
+    between [% from | html %] and [% to | html %]
+  [% ELSIF from %]
+    after [% from | html %]
+  [% ELSIF to %]
+    before [% to | html %]
+  [% END %].
+[% END %]
+
 [% BLOCK error_need_quip %]
   [% title = "Quip Required" %]
   [% docslinks = {'quips.html' => 'About quips'} %]

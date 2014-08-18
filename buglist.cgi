@@ -47,6 +47,7 @@ use Bugzilla::Keyword;
 use Bugzilla::Field;
 use Bugzilla::Status;
 use Bugzilla::Token;
+use Bugzilla::FixWorktimePage;
 
 use Time::HiRes qw(gettimeofday);
 use Date::Parse;
@@ -77,10 +78,9 @@ Bugzilla->login();
 my $superworktime;
 if (($ARGS->{format}||'') eq 'superworktime')
 {
-    require BugWorkTime;
     $superworktime = 1;
     Bugzilla->login(LOGIN_REQUIRED);
-    BugWorkTime::HandleSuperWorktime($vars, $ARGS);
+    Bugzilla::FixWorktimePage::HandleSuperWorktime($vars, $ARGS);
 }
 
 # If a parameter starts with cmd-, this means the And or Or button has been
