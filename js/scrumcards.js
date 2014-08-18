@@ -1,11 +1,8 @@
 /**
-Печать SCRUM-карточек из Bugzilla
-(c) Виталий Филиппов 2010-2011
-
-Весь смысл сего скрипта - манипуляции с расположением и набором карточек.
-Даёт возможность удалять, добавлять, перемещать карточки.
-Перемещение - методами drag&drop'а и вырезания/вставки.
-**/
+ * Code for drag&drop and/or editing of SCRUM-like cards from Bugzilla
+ * License: Dual-license GPL 3.0+ or MPL 1.1+
+ * Author: (c) Vitaliy Filippov 2010-2011
+ */
 var pressedButton;
 var pasteMode = false;
 var ctrl = false;
