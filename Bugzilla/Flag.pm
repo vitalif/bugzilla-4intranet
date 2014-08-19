@@ -54,6 +54,8 @@ whose names start with _ or a re specifically noted as being private.
 use Scalar::Util qw(blessed);
 use Storable qw(dclone);
 
+use Bugzilla::Bug;
+use Bugzilla::Attachment;
 use Bugzilla::FlagType;
 use Bugzilla::Hook;
 use Bugzilla::User;
@@ -63,8 +65,7 @@ use Bugzilla::Mailer;
 use Bugzilla::Constants;
 use Bugzilla::Field;
 
-use base qw(Bugzilla::Object Exporter);
-@Bugzilla::Flag::EXPORT = qw(SKIP_REQUESTEE_ON_ERROR);
+use base qw(Bugzilla::Object);
 
 ###############################
 ####    Initialization     ####
@@ -72,8 +73,6 @@ use base qw(Bugzilla::Object Exporter);
 
 use constant DB_TABLE => 'flags';
 use constant LIST_ORDER => 'id';
-
-use constant SKIP_REQUESTEE_ON_ERROR => 1;
 
 use constant DB_COLUMNS => qw(
     id
@@ -208,7 +207,6 @@ sub attachment
 {
     my $self = shift;
     return undef unless $self->attach_id;
-    require Bugzilla::Attachment;
     $self->{attachment} ||= new Bugzilla::Attachment($self->attach_id);
     return $self->{attachment};
 }
@@ -216,7 +214,6 @@ sub attachment
 sub bug
 {
     my $self = shift;
-    require Bugzilla::Bug;
     $self->{bug} ||= new Bugzilla::Bug($self->bug_id);
     return $self->{bug};
 }
@@ -427,14 +424,11 @@ sub _validate
     $obj_flag->_set_status($params->{status});
     $obj_flag->_set_requestee($params->{requestee}, $attachment, $params->{skip_roe});
 
-    if ($obj_flag->requestee_id)
+    # If the requestee doesn't have access to the bug, add him into bug CC list automatically
+    if (Bugzilla->params->{auto_add_flag_requestees_to_cc} && $obj_flag->requestee_id &&
+        !$obj_flag->{requestee}->can_see_bug($bug))
     {
-        # If the requestee doesn't have access to the bug, add him into bug CC list automatically
-        my $requestee = Bugzilla::User->new($obj_flag->requestee_id);
-        if (!$requestee->can_see_bug($bug))
-        {
-            $bug->add_cc($requestee);
-        }
+        $bug->add_cc($obj_flag->{requestee});
     }
 
     # The setter field MUST NOT be updated if neither the status
@@ -719,8 +713,7 @@ sub _check_requestee
         {
             if (Bugzilla->params->{auto_add_flag_requestees_to_cc})
             {
-                # CustIS Bug 55712 - Add flag requestees to CC list
-                Bugzilla->cgi->param(-name => 'newcc', -value => [ Bugzilla->cgi->param('newcc'), $requestee->login ]);
+                # Flag requestee will be added to bug CC list
             }
             elsif ($skip_requestee_on_error)
             {

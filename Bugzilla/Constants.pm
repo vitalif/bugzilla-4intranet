@@ -298,7 +298,7 @@ use constant CMT_WORKTIME => 32;
 # worktime through the "super-worktime" form.
 use constant CMT_BACKDATED_WORKTIME => 33;
 
-# Conveniency aliases for $throw_error and $return_error argument values.
+# Conveniency aliases for some function arguments
 use constant THROW_ERROR => 1;
 use constant RETURN_ERROR => 1;
 

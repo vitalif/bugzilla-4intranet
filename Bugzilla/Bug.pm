@@ -62,7 +62,6 @@ use Scalar::Util qw(blessed);
 
 use base qw(Bugzilla::Object Exporter);
 @Bugzilla::Bug::EXPORT = qw(RemoveVotes LogActivityEntry);
-@Bugzilla::Bug::EXPORT_OK = @Bugzilla::Bug::EXPORT;
 
 #####################################################################
 # Constants
