@@ -70,18 +70,21 @@
       <input id="[% field.name | html %]" class="text_input"
         name="[% field.name | html %]"
         value="[% value | html %]" size="40"
+        [% IF style %] style="[% style | html %]"[% END %]
         [% IF tabindex %] tabindex="[% tabindex | html %]"[% END %]
         maxlength="[% constants.MAX_FREETEXT_LENGTH | none %]" />
     [% CASE constants.FIELD_TYPE_NUMERIC %]
       <input id="[% field.name | html %]" class="numeric_input"
         name="[% field.name | html %]"
         value="[% value | html %]" size="14"
+        [% IF style %] style="[% style | html %]"[% END %]
         [% IF tabindex %] tabindex="[% tabindex | html %]"[% END %]
         maxlength="[% constants.MAX_NUMERIC_LENGTH | none %]"
         onchange="this.className = 'numeric_input' + (isNaN(this.value) ? ' numeric_invalid' : '');"
         onkeyup="this.className = 'numeric_input' + (isNaN(this.value) ? ' numeric_invalid' : '');" />
     [% CASE constants.FIELD_TYPE_DATETIME %]
       <input name="[% field.name | html %]" size="20"
+        [% IF style %] style="[% style | html %]"[% END %]
         [% IF tabindex %] tabindex="[% tabindex | html %]"[% END %]
         id="[% field.name | html %]"
         value="[% value | html %]" />
@@ -92,6 +95,7 @@
     [% CASE constants.FIELD_TYPE_BUG_ID %]
       <span id="[% field.name | html %]_input_area">
         <input name="[% field.name | html %]" id="[% field.name | html %]"
+          [% IF style %] style="[% style | html %]"[% END %]
           [% IF tabindex %] tabindex="[% tabindex | html %]"[% END %]
           value="[% value | html %]" size="7" />
       </span>
@@ -117,6 +121,7 @@
     [% CASE constants.FIELD_TYPE_EXTURL %]
       <span id="[% field.name | html %]_input_area">
         <input name="[% field.name | html %]" id="[% field.name | html %]"
+          [% IF style %] style="[% style | html %]"[% END %]
           [% IF tabindex %] tabindex="[% tabindex | html %]"[% END %]
           value="[% value | html %]" size="30" />
       </span>
@@ -139,6 +144,7 @@
       </script>
     [% CASE [ constants.FIELD_TYPE_SINGLE_SELECT, constants.FIELD_TYPE_MULTI_SELECT ] %]
       <select id="[% field.name | html %]"
+        [% IF style %] style="[% style | html %]"[% END %]
         [% IF tabindex %] tabindex="[% tabindex | html %]"[% END %]
         name="[% field.name | html %]"
         [% IF field.type == constants.FIELD_TYPE_MULTI_SELECT %]

@@ -47,7 +47,7 @@
   <th><label for="text_attachment">Attachment text:</label></th>
   <td>
     <em>Enter or paste attachment text here:</em><br />
-    <textarea wrap="soft" id="text_attachment" name="text_attachment" rows="4" cols="80"></textarea>
+    <textarea wrap="soft" id="text_attachment" name="text_attachment" rows="4" cols="60"></textarea>
   </td>
 </tr>
 [% IF Param("use_supa_applet") %]
@@ -87,7 +87,7 @@
   <th><label for="description">Description</label>:</th>
   <td>
     <em>Describe the attachment briefly.</em><br />
-    <input type="text" id="description" name="description" size="60" maxlength="200" onchange="this._changed=true">
+    <input type="text" id="description" name="description" size="60" maxlength="200" onchange="this._changed=true" />
   </td>
 </tr>
 <tr class="expert_fields" id="content_type_row">

@@ -81,26 +81,17 @@ var close_status_array = [
 [% INCLUDE 'bug/create/user-message.html.tmpl' %]
 </p>
 
-<p>(<span class="required_star">*</span> = <span class="required_explanation">Required Field</span>)</p>
+<table width="100%"><tr><td width="100%">
 
-<table cellspacing="4" cellpadding="2" border="0">
+<table cellspacing="4" cellpadding="2" border="0" width="100%">
 <tbody>
-  <tr><td colspan="4"><hr /></td></tr>
-
   <tr>
-    <th>Product:</th>
-    <td width="10%">[% product.name | html %]</td>
-
-    <th>Reporter:</th>
-    <td width="100%">[% user.login | html %]</td>
-  </tr>
-
-  <tr>
-    <th class="required">
-      <a href="describecomponents.cgi?product=[% product.name | url_quote %]">Component</a>:
+    <th rowspan="2" style="width: 10em; white-space: normal; word-wrap: break-word">
+      Product: <a href="buglist.cgi?product=[% product.name | uri %]&bug_status=OPEN">[% product.name | html %]</a>
     </th>
     <td>
-      <select id="component" name="component" size="7" aria-required="true" class="required">
+      <b><label class="required" for="component"><a href="describecomponents.cgi?product=[% product.name | url_quote %]">Component</a></label>:</b>
+      <select id="component" name="component" aria-required="true" class="required">
         [%- FOREACH c = product.active_components %]
           <option id="v[% c.id %]_component" value="[% c.name | html %]"
             [% " selected=\"selected\"" IF c.name == default.component %]>
@@ -108,253 +99,28 @@ var close_status_array = [
           </option>
         [%- END %]
       </select>
-    </td>
-
-    <td colspan="2">
-      [%# Enclose the fieldset in a nested table so that its width changes based
-        # on the length on the component description. %]
-      <table>
-        <tr>
-          <td>
-            <fieldset>
-              <legend>Component Description</legend>
-              <div id="comp_desc" class="comment">Select a component to read its description.</div>
-            </fieldset>
-          </td>
-        </tr>
-      </table>
+      <span style="color: gray">(<span class="required_star">*</span> = <span class="required_explanation">Required Field</span>)</span>
     </td>
   </tr>
 
   <tr>
-    [% INCLUDE bug/field.html.tmpl
-      bug = default, field = select_fields.version, editable = 1,
-      value_name = default.version %]
-
-    [% INCLUDE bug/field.html.tmpl
-      bug = default, field = select_fields.bug_severity, editable = 1,
-      value_name = default.bug_severity %]
+    <td><div id="comp_desc"></div></td>
   </tr>
-
-[% IF Bugzilla.get_field('rep_platform').enabled %]
-  <tr>
-    [% INCLUDE bug/field.html.tmpl
-      bug = default, field = select_fields.rep_platform, editable = 1,
-      value_name = default.rep_platform %]
-  </tr>
-[% END %]
-
-[% IF Bugzilla.get_field('op_sys').enabled %]
-  <tr>
-    [% INCLUDE bug/field.html.tmpl
-      bug = default, field = select_fields.op_sys, editable = 1,
-      value_name = default.op_sys %]
-  </tr>
-[% END %]
-</tbody>
-
-<tbody class="expert_fields">
-  <tr>
-    [% IF Bugzilla.get_field('target_milestone').enabled && Param('letsubmitterchoosemilestone') %]
-      [% INCLUDE bug/field.html.tmpl
-        bug = default, field = select_fields.target_milestone, editable = 1,
-        value_name = default.target_milestone %]
-    [% ELSE %]
-      <td colspan="2">&nbsp;</td>
-    [% END %]
-
-    [% IF Param('letsubmitterchoosepriority') %]
-      [% INCLUDE bug/field.html.tmpl
-        bug = default, field = select_fields.priority, editable = 1,
-        value_name = default.priority %]
-    [% ELSE %]
-      <td colspan="2">&nbsp;</td>
-    [% END %]
-  </tr>
-</tbody>
-
-[% guess_platform = Bugzilla.get_field('rep_platform').enabled && !Bugzilla.get_field('rep_platform').default_value %]
-[% guess_os = Bugzilla.get_field('op_sys').enabled && !Bugzilla.get_field('op_sys').default_value %]
-[% IF guess_platform || guess_os %]
-  <tbody>
-    <tr>
-      <th>&nbsp;</th>
-      <td colspan="3" class="comment">
-        We've made a guess at your
-        [% IF !guess_os %]
-          platform. Please check it
-        [% ELSIF !guess_platform %]
-          operating system. Please check it
-        [% ELSE %]
-          operating system and platform. Please check them
-        [% END %]
-        and make any corrections if necessary.
-      </td>
-    </tr>
-  </tbody>
-[% END %]
-
-<tbody class="expert_fields">
 
   <tr>
-    [% INCLUDE bug/field.html.tmpl
-      bug = default
-      field = select_fields.bug_status
-      editable = bug_status.size > 1
-      value_name = default.bug_status
-      override_legal_values = bug_status
-      custom_label = "Initial State"
-    %]
-    [% IF bug_status.size == 1 %]
-      <input type="hidden" name="bug_status" value="[% bug_status.0.name | html %]" />
-    [% END %]
-  </tr>
-
-  <tr id="resolution_settings" class="bz_default_hidden">
-    [% INCLUDE bug/field.html.tmpl
-      bug = default
-      field = select_fields.resolution
-      editable = 1
-    %]
-  </tr>
-
-  <tr><td colspan="4"><hr /></td></tr>
-
-  <tr>
-    <th><a href="page.cgi?id=fields.html#assigned_to">Assign To</a>:</th>
+    <th>
+      <label for="short_desc" class="required">Summary</label>:
+    </th>
     <td>
-      [% INCLUDE global/userselect.html.tmpl
-        name => "assigned_to"
-        value => default.assigned_to
-        disabled => assigned_to_disabled
-        size => 30
-        emptyok => 1
-      %]
-      <noscript>(Leave blank to assign to component's default assignee)</noscript>
-    </td>
-
-    [%# Calculate the number of rows we can use for flags %]
-    [% num_rows = 2 + (Bugzilla.get_field('qa_contact').enabled ? 1 : 0) %]
-
-    <td colspan="2" rowspan="[% num_rows | html %]">
-      [% IF product.flag_types.bug.size > 0 %]
-        [% display_flag_headers = 0 %]
-        [% any_flags_requesteeble = 0 %]
-
-        [% FOREACH flag_type = product.flag_types.bug %]
-          [% NEXT UNLESS flag_type.is_active %]
-          [% display_flag_headers = 1 %]
-          [% SET any_flags_requesteeble = 1 IF flag_type.is_requestable && flag_type.is_requesteeble %]
-        [% END %]
-
-        [% IF display_flag_headers %]
-          [% PROCESS "flag/list.html.tmpl"
-            flag_types = product_flag_types
-            any_flags_requesteeble = any_flags_requesteeble
-            flag_table_id = "bug_flags"
-          %]
-        [% END %]
-      [% END %]
-    </td>
-  </tr>
-
-[% IF Bugzilla.get_field('qa_contact').enabled %]
-    <tr>
-      <th>QA Contact:</th>
-      <td>
-        [% INCLUDE global/userselect.html.tmpl
-          name => "qa_contact"
-          value => default.qa_contact
-          disabled => qa_contact_disabled
-          size => 30
-          emptyok => 1
-        %]
-        <noscript>(Leave blank to assign to default qa contact)</noscript>
-      </td>
-    </tr>
-[% END %]
-
-  <tr>
-    <th>CC:</th>
-    <td>
-      [% INCLUDE global/userselect.html.tmpl
-        name => "cc"
-        value => cc
-        disabled => cc_disabled
-        size => 30
-        multiple => 5
-      %]
-    </td>
-  </tr>
-
-  <tr><td colspan="4"><hr /></td></tr>
-
-  <tr>
-[% IF user.is_timetracker %]
-    <th>Estimated Hours:</th>
-    <td>
-      <input name="estimated_time" size="6" maxlength="6" value="[% default.estimated_time | html %]">&nbsp;
-      <b>Hours Worked:</b>
-      <input name="work_time" id="work_time" value="[% default.work_time | html %]" size="6" maxlength="6" onchange="checkWorktime(this)" onkeyup="checkWorktime(this)"" />
-    </td>
-[% END %]
-    <th>Depends on:</th>
-    <td><input name="dependson" accesskey="d" value="[% default.dependson | html %]"></td>
-  </tr>
-  <tr>
-[% IF user.in_group(Param('timetrackinggroup')) %]
-    <th>Deadline:</th>
-    <td>
-      <input name="deadline" id="deadline" size="10" maxlength="10" value="[% default.deadline | html %]">
-      <small>(YYYY-MM-DD)</small>
-      <script type="text/javascript">
-        Calendar.set('deadline');
-      </script>
-    </td>
-[% END %]
-    <th>Blocks:</th>
-    <td><input name="blocked" accesskey="b" value="[% default.blocked | html %]"></td>
-  </tr>
-
-  <tr>
-    <th>URL:</th>
-    <td colspan="2"><input name="bug_file_loc" size="40" value="[% default.bug_file_loc | html %]"></td>
-  </tr>
-</tbody>
-
-<tbody class="expert_fields">
-  [% FOREACH field = Bugzilla.active_custom_fields %]
-    <tr id="field_row_[% field.name | html %]">
-      [%# Do not care about missing default value IDs or objects - JS will re-fill dependent fields %]
-      [% INCLUDE bug/field.html.tmpl
-        bug = default
-        field = field
-        value_name = field.is_select ? default.${field.name} : ''
-        value = field.is_select ? '' : default.${field.name}
-        editable = 1
-        value_span = 3
-      %]
-    </tr>
-  [% END %]
-</tbody>
-
-<tbody>
-  <tr><td colspan="4"><hr /></td></tr>
-
-  <tr>
-    <th class="required">Summary:</th>
-    <td colspan="3">
-      <input name="short_desc" id="short_desc" size="70" value="[% default.short_desc | html %]"
-             maxlength="255" spellcheck="true" aria-required="true"
+      <input name="short_desc" id="short_desc" size="40" value="[% default.short_desc | html %]"
+             maxlength="255" spellcheck="true" aria-required="true" style="width: 100%"
              class="required" />
     </td>
   </tr>
-</tbody>
 
-<tbody>
   <tr>
-    <th class="required">Description:</th>
-    <td colspan="3" style="padding-bottom: 0">
+    <th><label for="comment_textarea" class="required">Description</label>:</th>
+    <td style="padding-bottom: 0">
       [% defaultcontent = BLOCK %]
         [% IF cloned_bug_id %]
 +++ This [% terms.bug %] was initially created as a clone of [% terms.Bug %] #[% cloned_bug_id %][% IF cloned_comment %] comment [% cloned_comment %][% END %] +++
@@ -367,33 +133,27 @@ var close_status_array = [
       [%- END %]
       [% INCLUDE global/textarea.html.tmpl
          name           = 'comment'
-         id             = 'comment'
-         minrows        = 10
-         maxrows        = 25
-         cols           = constants.COMMENT_COLS
+         id             = 'comment_textarea'
+         style          = 'width: 100%'
+         minrows        = 15
+         maxrows        = 15
+         cols           = 40
          defaultcontent = defaultcontent
        %]
-      <br /><input type="button" value="Preview comment" onclick="document.getElementById('wrapcommentpreview').style.width = document.getElementById('comment').offsetWidth+'px'; showcommentpreview('comment');" />
-      [% PROCESS "bug/comment-preview-div.html.tmpl" %]
-    </td>
-  </tr>
-
-  [% IF user.is_insider %]
-    <tr class="expert_fields">
-      <th>&nbsp;</th>
-      <td colspan="3">
-        &nbsp;&nbsp;
+      <br /><input type="button" value="Preview comment" onclick="document.getElementById('wrapcommentpreview').style.width = document.getElementById('comment_textarea').offsetWidth+'px'; showcommentpreview();" />
+      [% IF user.is_insider %]
+      <p>
         <input type="checkbox" id="commentprivacy" name="commentprivacy"
           [% " checked=\"checked\"" IF commentprivacy %]>
         <label for="commentprivacy">
           Make description private (visible only to members of the 
           <strong>[% Param('insidergroup') | html %]</strong> group)
         </label>
-      </td>
-    </tr>
-  [% END %]
-
-  <tr><td colspan="4"><hr /></td></tr>
+      </p>
+      [% END %]
+      [% PROCESS "bug/comment-preview-div.html.tmpl" %]
+    </td>
+  </tr>
 
   <tr>
     <th>Attachment:</th>
@@ -426,116 +186,292 @@ var close_status_array = [
       </div>
     </td>
   </tr>
-</tbody>
 
-<tbody class="expert_fields">
-  [% IF user.in_group('editbugs', product.id) %]
-    [% IF use_keywords %]
-      <tr>
-        <th><a href="describekeywords.cgi">Keywords</a>:</th>
-        [% IF !Bugzilla.get_field('alias').enabled %]
-        <td colspan="3">
-        [% ELSE %]
-        <td>
-        [% END %]
-          <input id="keywords" name="keywords" size="40" value="[% default.keywords | html %]">
-          <script type="text/javascript">
-            addListener(window, 'load', addKeywordsAutocomplete);
-          </script>
-          <div id="keywords_description_container"></div>
-        </td>
-      [% IF Bugzilla.get_field('alias').enabled %]
-        <th>Alias:</th>
-        <td><input name="alias" size="20" value="[% default.alias | html %]" /></td>
-      [% END %]
-      </tr>
-    [% ELSIF Bugzilla.get_field('alias').enabled %]
-      <tr>
-        <th>Alias:</th>
-        <td colspan="3"><input name="alias" size="20" value="[% default.alias | html %]" /></td>
-      </tr>
-    [% END %]
+  [% IF user.in_group('editbugs', product.id) && use_keywords %]
+    <tr>
+      <th><a href="describekeywords.cgi">Keywords</a>:</th>
+      <td>
+        <input id="keywords" name="keywords" size="60" value="[% default.keywords | html %]">
+        <script type="text/javascript">
+          addListener(window, 'load', addKeywordsAutocomplete);
+        </script>
+        <div id="keywords_description_container"></div>
+      </td>
+    </tr>
   [% END %]
   [% IF Bugzilla.get_field('status_whiteboard').enabled %]
     <tr>
       <th>Whiteboard:</th>
       <td colspan="3">
-        <input id="status_whiteboard" name="status_whiteboard" size="40" value="[% default.status_whiteboard | html %]">
+        <input id="status_whiteboard" name="status_whiteboard" size="60" value="[% default.status_whiteboard | html %]">
       </td>
     </tr>
   [% END %]
-</tbody>
 
-<tbody class="expert_fields">
   [% IF group.size %]
   <tr>
-    <th>&nbsp;</th>
-    <td colspan="3">
-      <br>
-        <strong>
-          Only users in all of the selected groups can view this [% terms.bug %]:
-        </strong>
-      <br>
-      <font size="-1">
-        (Leave all boxes unchecked to make this a public [% terms.bug %].)
-      </font>
-      <br>
-      <br>
-
+    <td></td>
+    <td>
+      <strong>Only users in all of the selected groups can view this [% terms.bug %]:</strong>
+      <br /><font size="-1">(Leave all boxes unchecked to make this a public [% terms.bug %].)</font>
+      <br />
       [%# Group checkboxes %]
       [% FOREACH g = group %]
         &nbsp;&nbsp;&nbsp;&nbsp;
         <input type="checkbox" id="bit-[% g.bit %]"
           name="bit-[% g.bit %]" value="1"
           [% " checked=\"checked\"" IF g.checked %]>
-          <label for="bit-[% g.bit %]">[% g.description | html_light %]</label><br>
+          <label for="bit-[% g.bit %]">[% g.description | html_light %]</label><br />
       [% END %]
     </td>
   </tr>
   [% END %]
-</tbody>
 
-<tbody>
-  [%# Form controls for entering additional data about the bug being created. %]
-  [% Hook.process("form") %]
+  [% INCLUDE custom_fields style = "width: 40em"
+    cf = Bugzilla.active_custom_fields({ 'type' => constants.FIELD_TYPE_TEXTAREA }) %]
 
+  [% INCLUDE custom_fields style = "min-width: 20em; max-width: 40em"
+    cf = Bugzilla.active_custom_fields({ 'type' => constants.FIELD_TYPE_MULTI_SELECT }) %]
+
+</table>
+
+</td><td>
+
+<table cellspacing="4" cellpadding="2" border="0">
+  [% IF Bugzilla.get_field('version').enabled %]
   <tr>
-    <th>&nbsp;</th>
-    <td colspan="3">
-      <input type="submit" id="commit" value="Submit [% terms.Bug %]" />
-      &nbsp;&nbsp;&nbsp;&nbsp;
-      <input type="submit" name="maketemplate" id="maketemplate"
-        value="Remember values as bookmarkable template"
-        class="expert_fields" />
+    [% INCLUDE bug/field.html.tmpl
+      bug = default, field = select_fields.version, editable = 1,
+      value_name = default.version %]
+  </tr>
+  [% END %]
+  [% IF Bugzilla.get_field('target_milestone').enabled && Param('letsubmitterchoosemilestone') %]
+  <tr>
+    [% INCLUDE bug/field.html.tmpl
+      bug = default, field = select_fields.target_milestone, editable = 1,
+      value_name = default.target_milestone %]
+  </tr>
+  [% END %]
+  [% IF Bugzilla.get_field('bug_severity').enabled %]
+  <tr>
+    <th><label for="bug_severity"><a href="page.cgi?id=fields.html#bug_severity">Severity:</a></label></th>
+    <td>
+      [% INCLUDE bug/field.html.tmpl
+        bug = default, field = select_fields.bug_severity, editable = 1, no_tds = 1,
+        value_name = default.bug_severity %]
+      [% IF Param('letsubmitterchoosepriority') %]
+        <label for="priority" style="margin-left: 30px"><b><a href="page.cgi?id=fields.html#priority">Priority:</a></b> </label>
+        [% INCLUDE bug/field.html.tmpl
+          bug = default, field = select_fields.priority, editable = 1, no_tds = 1,
+          value_name = default.priority %]
+      [% END %]
     </td>
   </tr>
-</tbody>
-  </table>
-  <input type="hidden" name="form_name" value="enter_bug" />
+  [% ELSIF Param('letsubmitterchoosepriority') && Bugzilla.get_field('priority').enabled %]
+  <tr>
+    [% INCLUDE bug/field.html.tmpl
+      bug = default, field = select_fields.priority, editable = 1,
+      value_name = default.priority %]
+  </tr>
+  [% END %]
+  [% IF Bugzilla.get_field('bug_file_loc').enabled %]
+  <tr>
+    <th>URL:</th>
+    <td colspan="2"><input name="bug_file_loc" size="40" value="[% default.bug_file_loc | html %]"></td>
+  </tr>
+  [% END %]
+  [% IF Bugzilla.get_field('rep_platform').enabled %]
+  <tr>
+    [% INCLUDE bug/field.html.tmpl
+      bug = default, field = select_fields.rep_platform, editable = 1,
+      value_name = default.rep_platform %]
+  </tr>
+  [% END %]
+  [% IF Bugzilla.get_field('op_sys').enabled %]
+  <tr>
+    [% INCLUDE bug/field.html.tmpl
+      bug = default, field = select_fields.op_sys, editable = 1,
+      value_name = default.op_sys %]
+  </tr>
+  [% END %]
+  [% guess_platform = Bugzilla.get_field('rep_platform').enabled && !Bugzilla.get_field('rep_platform').default_value %]
+  [% guess_os = Bugzilla.get_field('op_sys').enabled && !Bugzilla.get_field('op_sys').default_value %]
+  [% IF guess_platform || guess_os %]
+  <tr>
+    <td colspan="2">
+      We've made a guess at your
+      [% IF !guess_os %]
+        platform. Please check it
+      [% ELSIF !guess_platform %]
+        operating system. Please check it
+      [% ELSE %]
+        operating system and platform. Please check them
+      [% END %]
+      and make any corrections if necessary.
+    </td>
+  </tr>
+  [% END %]
+  <tr><td colspan="2"><hr /></td></tr>
+  <th><a href="page.cgi?id=fields.html#assigned_to">Assign To</a>:</th>
+  <td>
+    [% INCLUDE global/userselect.html.tmpl
+      name => "assigned_to"
+      value => default.assigned_to
+      disabled => assigned_to_disabled
+      size => 30
+      emptyok => 1
+    %]
+    <noscript>(Leave blank to assign to component's default assignee)</noscript>
+  </td>
+  [% IF Bugzilla.get_field('qa_contact').enabled %]
+  <tr>
+    <th>QA Contact:</th>
+    <td>
+      [% INCLUDE global/userselect.html.tmpl
+        name => "qa_contact"
+        value => default.qa_contact
+        disabled => qa_contact_disabled
+        size => 30
+        emptyok => 1
+      %]
+      <noscript>(Leave blank to assign to default qa contact)</noscript>
+    </td>
+  </tr>
+  [% END %]
+  <tr>
+    <th>CC:</th>
+    <td>
+      [% INCLUDE global/userselect.html.tmpl
+        name => "cc"
+        value => cc
+        disabled => cc_disabled
+        size => 30
+        multiple => 5
+      %]
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2" rowspan="[% num_rows | html %]">
+      [% IF product.flag_types.bug.size > 0 %]
+        [% display_flag_headers = 0 %]
+        [% any_flags_requesteeble = 0 %]
+
+        [% FOREACH flag_type = product.flag_types.bug %]
+          [% NEXT UNLESS flag_type.is_active %]
+          [% display_flag_headers = 1 %]
+          [% SET any_flags_requesteeble = 1 IF flag_type.is_requestable && flag_type.is_requesteeble %]
+        [% END %]
+
+        [% IF display_flag_headers %]
+          [% PROCESS "flag/list.html.tmpl"
+            flag_types = product_flag_types
+            any_flags_requesteeble = any_flags_requesteeble
+            flag_table_id = "bug_flags"
+          %]
+        [% END %]
+      [% END %]
+    </td>
+  </tr>
+  <tr><td colspan="2"><hr /></td></tr>
+  [% IF bug_status.size == 1 %]
+  <input type="hidden" name="bug_status" value="[% bug_status.0.name | html %]" />
+  [% ELSE %]
+  <tr>
+    [% INCLUDE bug/field.html.tmpl
+      bug = default
+      field = select_fields.bug_status
+      editable = bug_status.size > 1
+      value_name = default.bug_status
+      override_legal_values = bug_status
+      custom_label = "Initial State"
+    %]
+  </tr>
+  [% END %]
+  <tr id="resolution_settings" class="bz_default_hidden">
+    [% INCLUDE bug/field.html.tmpl
+      bug = default
+      field = select_fields.resolution
+      editable = 1
+    %]
+  </tr>
+  [% IF Bugzilla.get_field('alias').enabled %]
+  <tr>
+    <th><label for="alias">[% terms.Bug %] alias:</label></th>
+    <td><input id="alias" name="alias" size="20" value="[% default.alias | html %]" /></td>
+  </tr>
+  [% END %]
+  <tr>
+    <th>Depends on:</th>
+    <td><input name="dependson" accesskey="d" value="[% default.dependson | html %]"></td>
+  </tr>
+  <tr>
+    <th>Blocks:</th>
+    <td><input name="blocked" accesskey="b" value="[% default.blocked | html %]"></td>
+  </tr>
+  [% IF user.is_timetracker %]
+  <tr>
+    <th>Estimated Hours:</th>
+    <td>
+      <input name="estimated_time" size="6" maxlength="6" value="[% default.estimated_time | html %]">&nbsp;
+      <b>Hours Worked:</b>
+      <input name="work_time" id="work_time" value="[% default.work_time | html %]" size="6" maxlength="6" onchange="checkWorktime(this)" onkeyup="checkWorktime(this)"" />
+    </td>
+  </tr>
+  <tr>
+    <th>Deadline:</th>
+    <td>
+      <input name="deadline" id="deadline" size="10" maxlength="10" value="[% default.deadline | html %]">
+      <small>(YYYY-MM-DD)</small>
+      <script type="text/javascript">
+        Calendar.set('deadline');
+      </script>
+    </td>
+  </tr>
+  [% END %]
+
+  [% IF Bugzilla.active_custom_fields.size %]
+  <tr><td colspan="2"><hr /></td></tr>
+  [% END %]
+
+  [% PROCESS custom_fields style = "width: 27em"
+    cf = Bugzilla.active_custom_fields({ 'type' => [ constants.FIELD_TYPE_SINGLE_SELECT, constants.FIELD_TYPE_FREETEXT ] }) %]
+  [% PROCESS custom_fields style = "width: 27em"
+    cf = Bugzilla.active_custom_fields({ 'type' => [ constants.FIELD_TYPE_DATETIME, constants.FIELD_TYPE_NUMERIC, constants.FIELD_TYPE_BUG_ID, constants.FIELD_TYPE_EXTURL ] }) %]
+</table>
+
+[% BLOCK custom_fields %]
+  [% FOREACH field = cf %]
+    <tr id="field_row_[% field.name | html %]">
+      [%# Do not care about missing default value IDs or objects - JS will re-fill dependent fields %]
+      [% INCLUDE bug/field.html.tmpl
+        bug = default
+        field = field
+        value_name = field.is_select ? default.${field.name} : ''
+        value = field.is_select ? '' : default.${field.name}
+        editable = 1
+        value_span = 3
+      %]
+    </tr>
+  [% END %]
+[% END %]
+
+</td></tr></table>
+
+<hr />
+
+<p>
+  <input type="submit" id="commit" value="Submit [% terms.Bug %]" />
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <input type="submit" name="maketemplate" id="maketemplate"
+    value="Remember values as bookmarkable template"
+    class="expert_fields" />
+</p>
+
+<input type="hidden" name="form_name" value="enter_bug" />
+
 </form>
 
 [%# Links or content with more information about the bug being created. %]
 [% Hook.process("end") %]
 
 [% PROCESS global/footer.html.tmpl %]
-
-[% BLOCK build_userlist %]
-  [% user_found = 0 %]
-  [% default_login = default_user.login %]
-  [% RETURN UNLESS default_login %]
-
-  [% FOREACH user = userlist %]
-    [% IF user.login == default_login %]
-      [% user_found = 1 %]
-      [% LAST %]
-    [% END %]
-  [% END %]
-
-  [% UNLESS user_found %]
-    [% userlist.push({
-      login    => default_login,
-      identity => default_user.identity,
-      visible  => 1})
-    %]
-  [% END %]
-[% END %]

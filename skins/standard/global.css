@@ -446,14 +446,13 @@ div.user_match {
     font-weight: bold;
 }
 
-/*.field_value, */
 form#Create th, form#Create td {
     vertical-align: top;
 }
-th.required:before {
-    content: "* ";
+th.required:after, label.required:after {
+    content: "*";
 }
-th.required:before, span.required_star {
+th.required:after, label.required:after, span.required_star {
     color: red;
 }
 input.required, select.required, span.required_explanation {
