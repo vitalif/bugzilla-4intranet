@@ -178,7 +178,6 @@ if ($ARGS->{cloned_bug_id})
     # Add a comment to cloned bug
     my $cmt = "Bug ".$bug->id." was cloned from ".
         ($ARGS->{cloned_comment} =~ /(\d+)/ ? "comment $1" : 'this bug');
-    detaint_natural($cloned_bug_id);
     my $cloned_bug = Bugzilla::Bug->check($ARGS->{cloned_bug_id});
     $cloned_bug->add_comment($cmt);
     Bugzilla::Hook::process('post_bug_cloned_bug', { bug => $bug, cloned_bug => $cloned_bug });
