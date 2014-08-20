@@ -258,19 +258,6 @@ sub OPTIONAL_MODULES {
         version => 0,
         feature => ['jsonrpc', 'xmlrpc'],
     },
-    {
-        # We need the 'utf8_mode' method of HTML::Parser, for HTML::Scrubber.
-        package => 'HTML-Parser',
-        module  => 'HTML::Parser',
-        version => '3.40',
-        feature => ['html_desc'],
-    },
-    {
-        package => 'HTML-Scrubber',
-        module  => 'HTML::Scrubber',
-        version => 0,
-        feature => ['html_desc'],
-    },
 
     # Inbound Email
     {

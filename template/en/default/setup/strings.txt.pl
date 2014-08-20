@@ -53,7 +53,6 @@ END
     feature_auth_ldap         => 'LDAP Authentication',
     feature_auth_radius       => 'RADIUS Authentication',
     feature_graphical_reports => 'Graphical Reports',
-    feature_html_desc         => 'More HTML in Product/Group Descriptions',
     feature_inbound_email     => 'Inbound Email',
     feature_jobqueue          => 'Mail Queueing',
     feature_jsonrpc           => 'JSON-RPC Interface',

@@ -160,80 +160,36 @@ sub html_quote {
     return $var;
 }
 
+sub _skip_attrs
+{
+    my ($tag, $attrs) = @_;
+    $tag = lc $tag;
+    return "<$tag>" if $tag =~ m!^/!so;
+    my ($enclosed) = $attrs =~ m!/$!so ? ' /' : '';
+    $attrs = { $attrs =~ /([^\s=]+)=([^\s=\'\"]+|\"[^\"]*\"|\'[^\']*\')/gso };
+    my $new = {};
+    for (qw(name id class style title))
+    {
+        $new->{$_} = $attrs->{$_} if $attrs->{$_};
+    }
+    my %l = (a => 'href', blockquote => 'cite', q => 'cite');
+    if ($attrs->{$l{$tag}} && $attrs->{$l{$tag}} !~ /^[\"\']?javascript/iso)
+    {
+        $new->{$l{$tag}} = $attrs->{$l{$tag}};
+    }
+    return "<$tag".join("", map { " $_=".$new->{$_} } keys %$new).$enclosed.">";
+}
+
 sub html_light_quote {
     my ($text) = @_;
-
     # List of allowed HTML elements having no attributes.
-    my @allow = qw(b strong em i u p br abbr acronym ins del cite code var
-                   dfn samp kbd big small sub sup tt dd dt dl ul li ol
-                   fieldset legend);
-
-    if (!Bugzilla->feature('html_desc')) {
-        my $safe = join('|', @allow);
-        my $chr = chr(1);
-
-        # First, escape safe elements.
-        $text =~ s#<($safe)>#$chr$1$chr#go;
-        $text =~ s#</($safe)>#$chr/$1$chr#go;
-        # Now filter < and >.
-        $text =~ s#<#&lt;#g;
-        $text =~ s#>#&gt;#g;
-        # Restore safe elements.
-        $text =~ s#$chr/($safe)$chr#</$1>#go;
-        $text =~ s#$chr($safe)$chr#<$1>#go;
-        return $text;
-    }
-    else {
-        # We can be less restrictive. We can accept elements with attributes.
-        push(@allow, qw(a blockquote q span));
-
-        # Allowed protocols.
-        my $safe_protocols = join('|', SAFE_PROTOCOLS);
-        my $protocol_regexp = qr{(^(?:$safe_protocols):|^[^:]+$)}i;
-
-        # Deny all elements and attributes unless explicitly authorized.
-        my @default = (0 => {
-                             id    => 1,
-                             name  => 1,
-                             class => 1,
-                             '*'   => 0, # Reject all other attributes.
-                            }
-                       );
-
-        # Specific rules for allowed elements. If no specific rule is set
-        # for a given element, then the default is used.
-        my @rules = (a => {
-                           href  => $protocol_regexp,
-                           title => 1,
-                           id    => 1,
-                           name  => 1,
-                           class => 1,
-                           '*'   => 0, # Reject all other attributes.
-                          },
-                     blockquote => {
-                                    cite => $protocol_regexp,
-                                    id    => 1,
-                                    name  => 1,
-                                    class => 1,
-                                    '*'  => 0, # Reject all other attributes.
-                                   },
-                     'q' => {
-                             cite => $protocol_regexp,
-                             id    => 1,
-                             name  => 1,
-                             class => 1,
-                             '*'  => 0, # Reject all other attributes.
-                          },
-                    );
-
-        my $scrubber = HTML::Scrubber->new(default => \@default,
-                                           allow   => \@allow,
-                                           rules   => \@rules,
-                                           comment => 0,
-                                           process => 0);
-
-        return $scrubber->scrub($text);
-    }
+    my @allow = qw(
+        a b big blockquote strong em i u p br abbr acronym ins del cite code var
+        dfn samp kbd q small span sub sup tt dd dt dl ul li ol fieldset legend
+    );
+    my $safe = join('|', @allow);
+    $text =~ s{(<(/?(?:$safe))(\s+(?:[^>"']+|"[^"]*"|'[^']*')*)?>)|(<)|(>)}{($1 ? _skip_attrs($2, $3) : ($4 ? '&lt;' : '&gt;'))}egiso;
+    return $text;
 }
 
 sub email_filter {
@@ -1150,8 +1106,8 @@ deleted.
 =item C<html_light_quote($val)>
 
 Returns a string where only explicitly allowed HTML elements and attributes
-are kept. All HTML elements and attributes not being in the whitelist are either
-escaped (if HTML::Scrubber is not installed) or removed.
+are kept. All HTML elements not being in the whitelist are escaped; all HTML
+attributes no being in the whitelist are removed.
 
 =item C<url_quote($val)>
 
