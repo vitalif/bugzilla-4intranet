@@ -175,6 +175,7 @@ if ($action eq 'new')
         classification   => $classification_name,
         name             => $product_name,
         description      => scalar $cgi->param('description'),
+        entryheaderhtml  => scalar $cgi->param('entryheaderhtml'),
         version          => scalar $cgi->param('version'),
         isactive         => scalar $cgi->param('is_active'),
         create_series    => scalar $cgi->param('createseries'),
@@ -310,6 +311,7 @@ if ($action eq 'update')
     $product->set_extproduct(scalar $cgi->param('extproduct'));
     $product->set_cc_group(scalar $cgi->param('cc_group') || '');
     $product->set_description(scalar $cgi->param('description'));
+    $product->set_entryheaderhtml(scalar $cgi->param('entryheaderhtml'));
     $product->set_is_active(scalar $cgi->param('is_active'));
     if (Bugzilla->get_field('votes')->enabled)
     {

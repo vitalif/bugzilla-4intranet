@@ -61,6 +61,7 @@ use constant DB_COLUMNS => qw(
     votestoconfirm
     allows_unconfirmed
     cc_group
+    entryheaderhtml
 );
 
 use constant REQUIRED_CREATE_FIELDS => qw(
@@ -69,20 +70,8 @@ use constant REQUIRED_CREATE_FIELDS => qw(
     version
 );
 
-use constant UPDATE_COLUMNS => qw(
-    name
-    wiki_url
-    notimetracking
-    extproduct
-    classification_id
-    description
-    isactive
-    votesperuser
-    maxvotesperbug
-    votestoconfirm
-    allows_unconfirmed
-    cc_group
-);
+# Allow to update every valid DB column
+*UPDATE_COLUMNS = *DB_COLUMNS;
 
 use constant VALIDATORS => {
     allows_unconfirmed => \&Bugzilla::Object::check_boolean,
@@ -692,6 +681,7 @@ sub set_votes_per_bug { $_[0]->set('maxvotesperbug', $_[1]); }
 sub set_votes_to_confirm { $_[0]->set('votestoconfirm', $_[1]); }
 sub set_allows_unconfirmed { $_[0]->set('allows_unconfirmed', $_[1]); }
 sub set_classification { $_[0]->set('classification_id', $_[1]); }
+sub set_entryheaderhtml { $_[0]->set('entryheaderhtml', $_[1]); }
 
 sub set_cc_group
 {
@@ -1030,6 +1020,7 @@ sub wiki_url          { return $_[0]->{wiki_url};          }
 sub notimetracking    { return $_[0]->{notimetracking};    }
 sub extproduct        { return $_[0]->{extproduct};        }
 sub cc_group          { return $_[0]->{cc_group};          }
+sub entryheaderhtml   { return $_[0]->{entryheaderhtml};   }
 
 ###############################
 ####      Subroutines    ######

@@ -1038,6 +1038,7 @@ use constant ABSTRACT_SCHEMA => {
             maxvotesperbug    => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => '10000'},
             votestoconfirm    => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => 0},
             allows_unconfirmed => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
+            entryheaderhtml   => {TYPE => 'MEDIUMTEXT', NOTNULL => 1, DEFAULT => "''"},
             wiki_url          => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"},
             # CustIS Bug 59357 - Prefer no time-tracking in some products
             notimetracking    => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 0},

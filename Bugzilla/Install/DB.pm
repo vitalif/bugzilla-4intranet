@@ -619,6 +619,7 @@ sub update_table_definitions
 
     # New product fields
     $dbh->bz_add_column('products', 'wiki_url');
+    $dbh->bz_add_column('products', 'entryheaderhtml');
     $dbh->bz_add_column('products', 'notimetracking');
     $dbh->bz_add_column('products', 'extproduct');
     $dbh->bz_add_column('products', 'cc_group');

@@ -74,12 +74,8 @@ var close_status_array = [
 <input type="hidden" name="cloned_bug_id" value="[% cloned_bug_id | html %]" />
 <input type="hidden" name="cloned_comment" value="[% cloned_comment | html %]" />
 
-<p>
-[%# Migration note: The following file corresponds to the old Param
-  # 'entryheaderhtml'
-  #%]
-[% INCLUDE 'bug/create/user-message.html.tmpl' %]
-</p>
+[%# Note: in original Bugzilla, this was customised by editing 'bug/create/user-message.html.tmpl' template %]
+[% product.entryheaderhtml || Param('entryheaderhtml') | html_light %]
 
 <table width="100%"><tr><td width="100%">
 

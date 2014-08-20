@@ -60,6 +60,13 @@
   <p style="margin: 1em 3em 1em 3em">[% product.description FILTER html_light %]</p>
 [% END %]
 
+[% IF changes.entryheaderhtml.defined %]
+  <p>
+    Updated bug entry header HTML to:
+  </p>
+  <p style="margin: 1em 3em 1em 3em">[% product.entryheaderhtml FILTER html_light %]</p>
+[% END %]
+
 [% IF changes.isactive.defined %]
   <p>
   Product is now [% product.is_active ? 'open' : 'closed' %] for new [% terms.bugs %].

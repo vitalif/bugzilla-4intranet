@@ -60,15 +60,19 @@ use constant get_param_list => (
   },
 
   {
-   name => 'shutdownhtml',
+   name => 'announcehtml',
    type => 'l',
    default => ''
   },
 
   {
-   name => 'announcehtml',
+   name => 'entryheaderhtml',
    type => 'l',
-   default => ''
+   default =>
+'<p>Before reporting a bug, please read the <a href="page.cgi?id=bug-writing.html">
+bug writing guidelines</a>, please look at the list of
+<a href="duplicates.cgi">most frequently reported bugs</a>, and please
+<a href="query.cgi">search</a> for the bug.</p><hr />'
   },
 
   {
@@ -90,6 +94,12 @@ use constant get_param_list => (
    name => 'new_functionality_tsp',
    type => 't',
    default => POSIX::strftime "%Y-%m-%d %H:%M:%S", localtime
+  },
+
+  {
+   name => 'shutdownhtml',
+   type => 'l',
+   default => ''
   },
 );
 

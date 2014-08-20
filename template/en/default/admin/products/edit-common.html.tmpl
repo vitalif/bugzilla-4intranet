@@ -43,6 +43,11 @@
 </tr>
 
 <tr>
+  <th align="left"><label for="entryheaderhtml">HTML code to display<br /> above the bug form:</label></th>
+  <td><textarea rows="4" cols="64" wrap="virtual" name="entryheaderhtml" id="entryheaderhtml">[% product.entryheaderhtml | html %]</textarea></td>
+</tr>
+
+<tr>
   <th align="left"><label for="is_active">Open for [% terms.bug %] entry:</label></th>
   <td><input type="checkbox" name="is_active" id="is_active" value="1" [% ' checked="checked"' IF product.is_active %] /></td>
 </tr>

@@ -184,8 +184,8 @@ sub html_light_quote {
     my ($text) = @_;
     # List of allowed HTML elements having no attributes.
     my @allow = qw(
-        a b big blockquote strong em i u p br abbr acronym ins del cite code var
-        dfn samp kbd q small span sub sup tt dd dt dl ul li ol fieldset legend
+        a abbr acronym b big blockquote br cite code dd del dfn dl dt em fieldset hr i ins
+        kbd legend li ol p q samp small span strong sub sup tt u ul var
     );
     my $safe = join('|', @allow);
     $text =~ s{(<(/?(?:$safe))(\s+(?:[^>"']+|"[^"]*"|'[^']*')*)?>)|(<)|(>)}{($1 ? _skip_attrs($2, $3) : ($4 ? '&lt;' : '&gt;'))}egiso;
