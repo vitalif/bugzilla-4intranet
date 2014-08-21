@@ -455,12 +455,6 @@ sub _check_value
 
     $value = trim($value);
 
-    # Make sure people don't rename static values
-    if (blessed($invocant) && $value ne $invocant->name)
-    {
-        ThrowUserError('fieldvalue_not_editable', { field => $field, old_value => $invocant });
-    }
-
     ThrowUserError('fieldvalue_undefined') if !defined $value || $value eq "";
     ThrowUserError('fieldvalue_name_too_long', { value => $value })
         if length($value) > MAX_FIELD_VALUE_SIZE;

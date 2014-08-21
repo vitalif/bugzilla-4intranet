@@ -162,10 +162,7 @@ if ($action eq 'update')
     $vars->{value_old} = $value->name;
     for ($value->UPDATE_COLUMNS)
     {
-        if ($_ ne 'isactive' && $_ ne $value->NAME_FIELD)
-        {
-            $value->set($_, $ARGS->{$_});
-        }
+        $value->set($_, $ARGS->{$_});
     }
     if ($value->field->value_field)
     {

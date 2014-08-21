@@ -672,13 +672,6 @@
   '[% value FILTER html %]' is too long ([% value.length %] characters).
 [% END %]
 
-[% BLOCK error_fieldvalue_not_editable %]
-  [% title = "Field Value Not Editable" %]
-  The value '[% old_value.name FILTER html %]' cannot be renamed because
-  it plays some special role for the '[% field.description FILTER html %]'
-  field.
-[% END %]
-
 [% BLOCK error_fieldvalue_sortkey_invalid %]
   [% title = "Invalid Field Value Sortkey" %]
   The sortkey '[% sortkey FILTER html %]' for the
