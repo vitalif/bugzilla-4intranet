@@ -1,4 +1,4 @@
-[%# Autocompleted editbox for selecting users
+[%# Autocompleting editbox for selecting users
   # License: Dual-license GPL 3.0+ or MPL 1.1+
   # Author: Vitaliy Filippov <vitalif@mail.ru>
   #%]
@@ -18,14 +18,15 @@
 
 [% id = id || name %]
 <input
-  name="[% name FILTER html %]"
-  id="[% id FILTER html %]"
-  value="[% value FILTER html %]"
-  [% IF tabindex %] tabindex="[% tabindex FILTER html %]" [% END %]
-  [% IF onchange %] onchange="[% onchange FILTER html %]" [% END %]
-  [% IF disabled %] disabled="[% disabled FILTER html %]" [% END %]
-  [% IF accesskey %] accesskey="[% accesskey FILTER html %]" [% END %]
-  [% IF size %] size="[% size FILTER html %]" [% END %]
+  name="[% name | html %]"
+  id="[% id | html %]"
+  value="[% value | html %]"
+  [% IF tabindex %] tabindex="[% tabindex | html %]" [% END %]
+  [% IF onchange %] onchange="[% onchange | html %]" [% END %]
+  [% IF disabled %] disabled="[% disabled | html %]" [% END %]
+  [% IF accesskey %] accesskey="[% accesskey | html %]" [% END %]
+  [% IF size %] size="[% size | html %]" [% END %]
+  [% IF style %] style="[% style | html %]" [% END %]
 />
 <script language="JavaScript">
 addListener(window, 'load', function() {

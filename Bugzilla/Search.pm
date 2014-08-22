@@ -1423,7 +1423,6 @@ sub init
         # i.e., when it contains only the security restrictions, attach them
         # in normal efficient way, using UNIONs.
         $OUTER_AND = [ 'AND', $OUTER_AND,
-            { term => "bugs.creation_ts IS NOT NULL" },
             [ $OUTER_AND ? 'OR_MANY' : 'OR', {
                 table => 'bug_group_map g',
                 where => @{$user->groups} ? 'g.group_id NOT IN ('.$user->groups_as_string.')' : undef,
