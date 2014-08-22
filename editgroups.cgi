@@ -479,7 +479,7 @@ sub ListGroups
     my ($vars, $template) = @_;
     my $groups = $vars->{allow_edit}
         ? [ Bugzilla::Group->get_all ]
-        : $user->bless_groups;
+        : Bugzilla->user->bless_groups;
     $vars->{all_groups} = $groups;
     $vars->{pergroup} = Bugzilla::Group->get_per_group_permissions;
 
