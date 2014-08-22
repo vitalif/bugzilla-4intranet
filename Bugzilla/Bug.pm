@@ -3353,11 +3353,7 @@ sub get_access_user_list
     }
     if ($self->cclist_accessible)
     {
-        my $cc_list = $dbh->selectall_arrayref("SELECT cc.who FROM cc cc WHERE cc.bug_id = ?", undef, $self->id);
-        foreach my $cc_item (@$cc_list)
-        {
-            push @user_ids, $cc_item->[0];
-        }
+        push @user_ids, map { $_->id } @{$self->cc_users};
     }
 
     my $user_ids_group = {};

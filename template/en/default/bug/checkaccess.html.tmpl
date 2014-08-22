@@ -4,9 +4,9 @@
 
 [% INCLUDE global/header.html.tmpl title = "$terms.Bug $bug.id - Check access" %]
 
-<h2> [% IF count_user_list > 0 %][% count_user_list %]Users[% ELSE %]Everyone[% END %] can see <a href="show_bug.cgi?id=[% bug.id %]">[% terms.Bug _ " " _ bug.id %]</a></h2>
+<h2>[% IF user_list.size > 0 %][% user_list.size %] [%+ user_list.size > 1 ? 'users' : 'user' %][% ELSE %]Everyone[% END %] can see <a href="show_bug.cgi?id=[% bug.id %]">[% terms.Bug _ " " _ bug.id %]</a></h2>
 
-[% IF count_user_list > 0 %]
+[% IF user_list.size > 0 %]
 <hr/>
 
 <table>
