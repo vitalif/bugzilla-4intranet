@@ -746,7 +746,6 @@ document.changeform = document.[% cfname %];
             </div>
           </div>
           [% END %]
-          <div><small><a href="show-mail-groups.cgi">Список почтовых групп</a><small></div>
           [% IF bug.cc %]
             <select id="cc" name="cc" multiple="multiple" size="5">
               [% FOREACH c = bug.cc %]
@@ -760,6 +759,7 @@ document.changeform = document.[% cfname %];
               <br>
             [% END %]
           [% END %]
+          [% Hook.process('after_cc_list') %]
         </div>
         <script type="text/javascript">
           hideEditableField( 'cc_edit_area_showhide_container',

@@ -1,5 +1,3 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -33,17 +31,32 @@ use Bugzilla::Error;
 
 use File::Spec;
 
-sub new {
+sub new
+{
     my ($class, $context) = @_;
     return bless { _CONTEXT => $context }, $class;
 }
 
 sub _context { return $_[0]->{_CONTEXT} }
 
-sub process {
+sub process
+{
     my ($self, $hook_name, $template) = @_;
     my $context = $self->_context();
-    $template ||= $context->stash->get([ 'component', 0, 'name', 0 ]);
+
+    if (!$template)
+    {
+        $template = $context->stash->get([ 'component', 0, 'name', 0 ]);
+        if ($template !~ /\.tmpl$/s)
+        {
+            my @callers = @{ $context->stash->get([ 'component', 0 ])->{callers} };
+            do
+            {
+                return '' if !@callers;
+                $template = pop @callers;
+            } while ($template !~ /\.tmpl$/s);
+        }
+    }
 
     # sanity check:
     # WHAT IDIOT HAS CALLED SPECIAL TT VARIABLE 'component'?
@@ -75,15 +88,19 @@ sub process {
     return $context->process($cache->{"${lang}__$extension_template"});
 }
 
-sub _get_hooks {
+sub _get_hooks
+{
     my ($self, $extension_template) = @_;
 
     my $template_sets = _template_hook_include_path();
     my @hooks;
-    foreach my $dir_set (@$template_sets) {
-        foreach my $template_dir (@$dir_set) {
+    foreach my $dir_set (@$template_sets)
+    {
+        foreach my $template_dir (@$dir_set)
+        {
             my $file = "$template_dir/hook/$extension_template";
-            if (-e $file) {
+            if (-e $file)
+            {
                 my $template = $self->_context->template($file);
                 push(@hooks, $template);
                 # Don't run the hook for more than one language.
@@ -95,7 +112,8 @@ sub _get_hooks {
     return \@hooks;
 }
 
-sub _template_hook_include_path {
+sub _template_hook_include_path
+{
     my $cache = Bugzilla->request_cache;
     my $language = $cache->{language} || '';
     my $cache_key = "template_plugin_hook_include_path_$language";
