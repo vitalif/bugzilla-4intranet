@@ -834,6 +834,25 @@ WHERE description LIKE\'%[CC:%\'');
         $dbh->do("DELETE FROM fieldvaluecontrol WHERE field_id=0");
     }
 
+    if ($dbh->bz_column_info('flagtypes', 'cc_list'))
+    {
+        my $add = [];
+        foreach my $type (@{$dbh->selectall_arrayref('SELECT * FROM flagtypes', {Slice=>{}})})
+        {
+            my $cc = [ split /[\s,]*,[\s,]*/, $type->{cc_list} ];
+            if (@$cc)
+            {
+                $cc = Bugzilla::User->match({ login_name => $cc });
+                push @$add, '('.$type->{id}.', '.$_->id.')' for @$cc;
+            }
+        }
+        if (@$add)
+        {
+            $dbh->do('INSERT INTO flagtype_cc_list (object_id, value_id) VALUES '.join(', ', @$add));
+        }
+        $dbh->bz_drop_column('flagtypes', 'cc_list');
+    }
+
     _move_old_defaults($old_params);
 
     ################################################################

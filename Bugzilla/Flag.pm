@@ -1135,7 +1135,7 @@ sub notify
         }
     }
 
-    my $cc_list = $flag ? $flag->type->cc_list : $old_flag->type->cc_list;
+    my $cc_list = $flag ? $flag->type->cc_list_obj : $old_flag->type->cc_list_obj;
     # Is there someone to notify?
     return unless ($addressee || $cc_list);
 
@@ -1146,7 +1146,7 @@ sub notify
     my $attachment_is_private = $attachment && $attachment->isprivate;
 
     my %recipients;
-    foreach my $ccuser (@{ Bugzilla::User->match({ login_name => [ split /[, ]+/, $cc_list ] }) })
+    foreach my $ccuser (@$cc_list)
     {
         next if !$ccuser->can_see_bug($bug->bug_id);
         next if $attachment_is_private && !$ccuser->is_insider;

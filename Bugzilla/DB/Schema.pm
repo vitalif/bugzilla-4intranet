@@ -501,8 +501,6 @@ use constant ABSTRACT_SCHEMA => {
             id               => {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
             name             => {TYPE => 'varchar(255)', NOTNULL => 1},
             description      => {TYPE => 'MEDIUMTEXT', NOTNULL => 1},
-            # FIXME flagtypes.cc_list => store user ids
-            cc_list          => {TYPE => 'varchar(255)'},
             target_type      => {TYPE => 'char(1)', NOTNULL => 1, DEFAULT => "'b'"},
             is_active        => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'},
             is_requestable   => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
@@ -511,6 +509,16 @@ use constant ABSTRACT_SCHEMA => {
             sortkey          => {TYPE => 'INT2', NOTNULL => 1, DEFAULT => '0'},
             grant_group_id   => {TYPE => 'INT4', REFERENCES => {TABLE  => 'groups', COLUMN => 'id', DELETE => 'SET NULL'}},
             request_group_id => {TYPE => 'INT4', REFERENCES => {TABLE  => 'groups', COLUMN => 'id', DELETE => 'SET NULL'}},
+        ],
+    },
+
+    flagtype_cc_list => {
+        FIELDS => [
+            object_id => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'flagtypes', COLUMN => 'id', DELETE => 'CASCADE'}},
+            value_id => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'profiles', COLUMN => 'userid'}},
+        ],
+        INDEXES => [
+            PRIMARY => {FIELDS => [qw(object_id value_id)]},
         ],
     },
 

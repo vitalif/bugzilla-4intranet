@@ -296,7 +296,6 @@ sub insert {
     check_token_data($token, 'add_flagtype');
     my $name = validateName();
     my $description = validateDescription();
-    my $cc_list = validateCCList();
     validateTargetType();
     validateSortKey();
     validateIsActive();
@@ -313,12 +312,12 @@ sub insert {
 
     # Insert a record for the new flag type into the database.
     $dbh->do('INSERT INTO flagtypes
-                          (name, description, cc_list, target_type,
+                          (name, description, target_type,
                            sortkey, is_active, is_requestable, 
                            is_requesteeble, is_multiplicable, 
                            grant_group_id, request_group_id) 
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-              undef, ($name, $description, $cc_list, $target_type,
+              undef, ($name, $description, $target_type,
                       $cgi->param('sortkey'), $cgi->param('is_active'),
                       $cgi->param('is_requestable'), $cgi->param('is_requesteeble'),
                       $cgi->param('is_multiplicable'), scalar($cgi->param('grant_gid')),
@@ -351,7 +350,6 @@ sub update {
     my $id = $flag_type->id;
     my $name = validateName();
     my $description = validateDescription();
-    my $cc_list = validateCCList();
     validateTargetType();
     validateSortKey();
     validateIsActive();
@@ -364,12 +362,12 @@ sub update {
     my $user = Bugzilla->user;
     $dbh->bz_start_transaction();
     $dbh->do('UPDATE flagtypes
-                 SET name = ?, description = ?, cc_list = ?,
+                 SET name = ?, description = ?,
                      sortkey = ?, is_active = ?, is_requestable = ?,
                      is_requesteeble = ?, is_multiplicable = ?,
                      grant_group_id = ?, request_group_id = ?
                WHERE id = ?',
-              undef, ($name, $description, $cc_list, $cgi->param('sortkey'),
+              undef, ($name, $description, $cgi->param('sortkey'),
                       $cgi->param('is_active'), $cgi->param('is_requestable'),
                       $cgi->param('is_requesteeble'), $cgi->param('is_multiplicable'),
                       scalar($cgi->param('grant_gid')), scalar($cgi->param('request_gid')),
@@ -538,29 +536,6 @@ sub validateDescription {
     return $description;
 }
 
-sub validateCCList {
-    my $cc_list = $cgi->param('cc_list');
-    length($cc_list) <= 200
-      || ThrowUserError("flag_type_cc_list_invalid", 
-                        { cc_list => $cc_list });
-
-    my @addresses = split(/[, ]+/, $cc_list);
-    # We do not call Util::validate_email_syntax because these
-    # addresses do not require to match 'emailregexp' and do not
-    # depend on 'emailsuffix'. So we limit ourselves to a simple
-    # sanity check:
-    # - match the syntax of a fully qualified email address;
-    # - do not contain any illegal character.
-    foreach my $address (@addresses) {
-        ($address =~ /^[\w\.\+\-=]+@[\w\.\-]+\.[\w\-]+$/
-           && $address !~ /[\\\(\)<>&,;:"\[\] \t\r\n]/)
-          || ThrowUserError('illegal_email_address',
-                            {addr => $address, default => 1});
-    }
-    trick_taint($cc_list);
-    return $cc_list;
-}
-
 sub validateProduct {
     my $product_name = shift;
     return unless $product_name;
@@ -664,6 +639,16 @@ sub validateAndSubmit {
             $component_id ||= undef;
             $sth->execute($id, $product_id, $component_id);
         }
+    }
+
+    my $cc_list = Bugzilla::User->match({ login_name => [ split /[\s,]*,[\s,]*/, scalar $cgi->param('cc_list') ] });
+    $dbh->do("DELETE FROM flagtype_cc_list WHERE object_id=?", undef, $id);
+    if (@$cc_list)
+    {
+        $dbh->do(
+            "INSERT INTO flagtype_cc_list (object_id, value_id) VALUES ".
+            join(', ', map { "(?, ?)" } @$cc_list), undef, map { ($id, $_->id) } @$cc_list
+        );
     }
 }
 

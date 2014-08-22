@@ -78,7 +78,6 @@ use constant DB_COLUMNS => qw(
     flagtypes.id
     flagtypes.name
     flagtypes.description
-    flagtypes.cc_list
     flagtypes.target_type
     flagtypes.sortkey
     flagtypes.is_active
@@ -133,7 +132,7 @@ Returns the description of the flagtype.
 
 =item C<cc_list>
 
-Returns the concatenated CC list for the flagtype, as a single string.
+Returns the CC list for the flagtype, as an arrayref of Bugzilla::User objects.
 
 =item C<target_type>
 
@@ -170,7 +169,6 @@ Returns the sortkey of the flagtype.
 sub id               { return $_[0]->{'id'};               }
 sub name             { return $_[0]->{'name'};             }
 sub description      { return $_[0]->{'description'};      }
-sub cc_list          { return $_[0]->{'cc_list'};          }
 sub target_type      { return $_[0]->{'target_type'} eq 'b' ? 'bug' : 'attachment'; }
 sub is_active        { return $_[0]->{'is_active'};        }
 sub is_requestable   { return $_[0]->{'is_requestable'};   }
@@ -179,6 +177,24 @@ sub is_multiplicable { return $_[0]->{'is_multiplicable'}; }
 sub sortkey          { return $_[0]->{'sortkey'};          }
 sub request_group_id { return $_[0]->{'request_group_id'}; }
 sub grant_group_id   { return $_[0]->{'grant_group_id'};   }
+
+sub cc_list
+{
+    my $self = shift;
+    return $self->{cc_list} if $self->{cc_list};
+    $self->{cc_list} = Bugzilla->dbh->selectall_arrayref(
+        'SELECT p.* FROM profiles p, flagtype_cc_list c'.
+        ' WHERE c.value_id=p.userid AND c.object_id=?', {Slice=>{}}, $self->id
+    );
+    bless $_, 'Bugzilla::User' for @{$self->{cc_list}};
+    return $self->{cc_list};
+}
+
+sub cc_list_str
+{
+    my $self = shift;
+    return join(', ', map { $_->login } @{$self->cc_list});
+}
 
 ###############################
 ####       Methods         ####
