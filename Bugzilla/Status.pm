@@ -22,10 +22,7 @@ package Bugzilla::Status;
 
 use Bugzilla::Error;
 
-use base qw(Bugzilla::Field::Choice Exporter);
-@Bugzilla::Status::EXPORT = qw(
-    SPECIAL_STATUS_WORKFLOW_ACTIONS
-);
+use base qw(Bugzilla::Field::Choice);
 
 ################################
 #####   Initialization     #####
