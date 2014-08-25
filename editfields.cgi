@@ -65,7 +65,6 @@ elsif ($action eq 'new')
         type                => scalar $cgi->param('type'),
         sortkey             => scalar $cgi->param('sortkey'),
         mailhead            => scalar $cgi->param('new_bugmail'),
-        enter_bug           => scalar $cgi->param('enter_bug'),
         clone_bug           => scalar $cgi->param('clone_bug'),
         obsolete            => scalar $cgi->param('obsolete'),
         is_mandatory        => !scalar $cgi->param('nullable'),
