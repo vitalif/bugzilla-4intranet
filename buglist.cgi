@@ -680,11 +680,11 @@ if (grep { $_ eq 'percentage_complete' } @displaycolumns)
 # Make sure that the login_name version of a field is always also
 # requested if the realname version is requested, so that we can
 # display the login name when the realname is empty.
-my @realname_fields = grep(/_realname$/, @displaycolumns);
+my @realname_fields = grep(/_realname$|_short$/, @displaycolumns);
 foreach my $item (@realname_fields)
 {
     my $login_field = $item;
-    $login_field =~ s/_realname$//;
+    $login_field =~ s/_realname$|_short$//;
     if (!grep($_ eq $login_field, @selectcolumns))
     {
         push(@selectcolumns, $login_field);
@@ -1320,6 +1320,9 @@ $vars->{abbrev} = {
     assigned_to          => { maxlength => 30, ellipsis => "..." },
     reporter             => { maxlength => 30, ellipsis => "..." },
     qa_contact           => { maxlength => 30, ellipsis => "..." },
+    assigned_to_short    => { title => "Assignee" },
+    reporter_short       => { title => "Reporter" },
+    qa_contact_short     => { title => "QA" },
     resolution           => { maxlength => 4 },
     short_short_desc     => { maxlength => 60, ellipsis => "..." },
     status_whiteboard    => { title => "Whiteboard" },

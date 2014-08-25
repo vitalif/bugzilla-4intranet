@@ -465,6 +465,9 @@ sub STATIC_COLUMNS
         assigned_to_realname => { title => 'Assignee Name' },
         reporter_realname    => { title => 'Reporter Name' },
         qa_contact_realname  => { title => 'QA Contact Name' },
+        assigned_to_short    => { title => 'Assignee Login' },
+        reporter_short       => { title => 'Reporter Login' },
+        qa_contact_short     => { title => 'QA Contact Login' },
         # FIXME save aggregated work_time in bugs table and search on it
         work_time            => { name => $actual_time },
         interval_time        => { name => $actual_time, title => 'Period Worktime', noreports => 1 },
@@ -527,14 +530,13 @@ sub STATIC_COLUMNS
     foreach my $col (qw(assigned_to reporter qa_contact))
     {
         my $sql = "map_${col}.login_name";
-        if (!Bugzilla->user->id)
-        {
-            $sql = $dbh->sql_string_until($sql, $dbh->quote('@'));
-        }
         $columns->{$col.'_realname'}->{name} = "map_${col}.realname";
-        $columns->{$col}->{name} = $sql;
+        $columns->{$col.'_short'}->{name} = $dbh->sql_string_until($sql, $dbh->quote('@'));
+        $columns->{$col}->{name} = Bugzilla->user->id ? $sql : $columns->{$col.'_short'}->{name};
         # Only the qa_contact field can be NULL
-        $columns->{$col}->{joins} = $columns->{"${col}_realname"}->{joins} = [
+        $columns->{$col}->{joins} =
+        $columns->{$col.'_short'}->{joins} =
+        $columns->{$col.'_realname'}->{joins} = [
             ($col eq 'qa_contact' ? 'LEFT' : 'INNER').
             " JOIN profiles AS map_$col ON bugs.$col = map_$col.userid"
         ];

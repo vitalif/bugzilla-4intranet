@@ -236,6 +236,11 @@
             [%- bug.$column.truncate(abbrev.$column.maxlength, abbrev.$column.ellipsis) FILTER html -%]
           </a>
         [% END %]
+      [% ELSIF column == 'assigned_to_short' || column == 'qa_contact_short' || column == 'reporter_short' %]
+        [% SET login_column = column.remove('_short$') %]
+        <a href="buglist.cgi?quicksearch=[% 'OPEN ' _ login_column _ ':' _ bug.$login_column | url_quote %]">
+          [%- bug.$column.truncate(abbrev.$column.maxlength, abbrev.$column.ellipsis) FILTER html -%]
+        </a>
       [% ELSIF column == 'product' %]
         <a href="buglist.cgi?quicksearch=[% "OPEN product:" _ bug.$column | url_quote %]">
           [%- bug.$column.truncate(abbrev.$column.maxlength, abbrev.$column.ellipsis) FILTER html -%]
