@@ -75,17 +75,17 @@ database.
 =cut
 
 use constant DB_COLUMNS => qw(
-    flagtypes.id
-    flagtypes.name
-    flagtypes.description
-    flagtypes.target_type
-    flagtypes.sortkey
-    flagtypes.is_active
-    flagtypes.is_requestable
-    flagtypes.is_requesteeble
-    flagtypes.is_multiplicable
-    flagtypes.grant_group_id
-    flagtypes.request_group_id
+    id
+    name
+    description
+    target_type
+    sortkey
+    is_active
+    is_requestable
+    is_requesteeble
+    is_multiplicable
+    grant_group_id
+    request_group_id
 );
 
 =pod

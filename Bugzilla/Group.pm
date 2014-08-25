@@ -38,13 +38,13 @@ use Bugzilla::Config qw(:admin);
 ###############################
 
 use constant DB_COLUMNS => qw(
-    groups.id
-    groups.name
-    groups.description
-    groups.isbuggroup
-    groups.userregexp
-    groups.isactive
-    groups.icon_url
+    id
+    name
+    description
+    isbuggroup
+    userregexp
+    isactive
+    icon_url
 );
 
 use constant DB_TABLE => 'groups';
