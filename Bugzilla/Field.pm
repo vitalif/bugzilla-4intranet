@@ -131,7 +131,7 @@ use constant UPDATE_VALIDATORS => {
     default_value       => \&_check_default_value,
 };
 
-use constant UPDATE_COLUMNS => grep { $_ ne 'id' } DB_COLUMNS();
+use constant UPDATE_COLUMNS => grep { $_ ne 'id' && $_ ne 'custom' } DB_COLUMNS();
 
 # How various field types translate into SQL data definitions.
 use constant SQL_DEFINITIONS => {
@@ -845,7 +845,7 @@ sub remove_from_db
 
     if (!$self->custom)
     {
-        ThrowCodeError('field_not_custom', { name => $name });
+        ThrowUserError('field_not_custom', { name => $name });
     }
 
     if (!$self->obsolete)
@@ -968,6 +968,21 @@ sub flag_field
     return $self->visibility_field if $flag == FLAG_VISIBLE;
     return $self->null_field if $flag == FLAG_NULLABLE;
     return $self->clone_field if $flag == FLAG_CLONED;
+}
+
+sub clear_value_visibility_values
+{
+    my $self = shift;
+    Bugzilla->dbh->do(
+        "DELETE FROM fieldvaluecontrol WHERE field_id=? AND value_id > 0",
+        undef, $self->id
+    );
+}
+
+sub clear_default_values
+{
+    my $self = shift;
+    Bugzilla->dbh->do("DELETE FROM field_defaults WHERE field_id=?", undef, $self->id);
 }
 
 sub update_visibility_values

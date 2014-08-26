@@ -168,6 +168,7 @@ if ($action eq 'update')
     {
         $vars->{changes}->{visibility_values} = $value->set_visibility_values($ARGS->{visibility_value_id});
     }
+    $vars->{changes}->{control_lists} = 1 if $field->update_control_lists($value->id, $ARGS);
     delete_token($token);
     $vars->{changes} = $value->update;
     $vars->{message} = 'field_value_updated';

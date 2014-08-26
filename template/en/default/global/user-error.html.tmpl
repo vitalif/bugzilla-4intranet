@@ -431,9 +431,9 @@
 [% END %]
 
 [% BLOCK error_customfield_not_obsolete %]
-  [% title = "Custom Field Not Obsolete" %]
-  The custom field '[% name FILTER html %]' is not obsolete.
-  Please obsolete a custom field before attempting to delete it.
+  [% title = "Custom Field Not Disabled" %]
+  The custom field '[% name | html %]' is not disabled.
+  Please disable a custom field before attempting to delete it.
 [% END %]
 
 [% BLOCK error_customfield_has_contents %]
@@ -556,6 +556,11 @@
   Only drop-down and multi-select fields can be used to control
   the visibility/values of other fields. [% field.description FILTER html %]
   is not the right type of field.
+[% END %]
+
+[% BLOCK error_field_not_custom %]
+  [% title = "Only Custom Fields May Be Deleted" %]
+  Field [% name | html %] is non-custom and therefore may not be deleted.
 [% END %]
 
 [% BLOCK error_direct_field_needed_for_reverse %]

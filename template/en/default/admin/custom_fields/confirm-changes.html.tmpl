@@ -1,0 +1,31 @@
+[%# Warning about data loss when changing value field or default field
+  # License: Dual-license GPL 3.0+ or MPL 1.1+
+  # Author: Vitaliy Filippov <vitalif@mail.ru>
+  #%]
+
+[% PROCESS global/header.html.tmpl title='Confirm Changes' %]
+
+<div class="user-error-div">
+  <form action="[% script_name %]" method="post" style="margin-top: 0" enctype="multipart/form-data">
+    <h3 style="margin: 0">Confirm Changes</h3>
+    [% IF value_dep_count %]
+    <p>
+      Warning: value dependencies are set for [% value_dep_count %] values of
+      [%+ field.value_field.description | html %] field. They will be <b>lost</b> when
+      changing value controlling field.
+    </p>
+    [% END %]
+    [% IF default_count %]
+    <p>
+      Warning: default [% field.description | html %] values are set for [% default_count %] values of
+      [%+ field.default_field.description | html %] field. They will be <b>lost</b> when
+      changing default controlling field.
+    </p>
+    [% END %]
+    [% PROCESS "global/hidden-fields.html.tmpl" %]
+    <input type="hidden" name="force_changes" value="1" />
+    <input type="submit" value="Clear dependencies and save changes" />
+  </form>
+</div>
+
+[% PROCESS global/footer.html.tmpl %]

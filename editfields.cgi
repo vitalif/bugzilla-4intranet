@@ -1,6 +1,4 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -25,8 +23,8 @@ use Bugzilla::Util;
 use Bugzilla::Field;
 use Bugzilla::Token;
 
-my $cgi = Bugzilla->cgi;
 my $template = Bugzilla->template;
+my $ARGS = Bugzilla->input_params;
 my $vars = {};
 
 # Make sure the user is logged in and is an administrator.
@@ -37,8 +35,8 @@ $user->in_group('editfields') || ThrowUserError('auth_failure', {
     object => 'custom_fields',
 });
 
-my $action = trim($cgi->param('action') || '');
-my $token  = $cgi->param('token');
+my $action = trim($ARGS->{action} || '');
+my $token  = $ARGS->{token};
 
 $vars->{field_types} = Bugzilla->messages->{field_types};
 # List all existing custom fields if no action is given.
@@ -59,38 +57,29 @@ elsif ($action eq 'new')
     check_token_data($token, 'add_field');
 
     my $field = $vars->{field} = Bugzilla::Field->create({
-        name                => scalar $cgi->param('name'),
-        url                 => scalar $cgi->param('url'),
-        description         => scalar $cgi->param('desc'),
-        type                => scalar $cgi->param('type'),
-        sortkey             => scalar $cgi->param('sortkey'),
-        mailhead            => scalar $cgi->param('new_bugmail'),
-        clone_bug           => scalar $cgi->param('clone_bug'),
-        obsolete            => scalar $cgi->param('obsolete'),
-        is_mandatory        => !scalar $cgi->param('nullable'),
-        custom              => 1,
-        visibility_field_id => scalar $cgi->param('visibility_field_id'),
-        value_field_id      => scalar $cgi->param('value_field_id'),
-        add_to_deps         => scalar $cgi->param('add_to_deps'),
+        map { ($_ => $ARGS->{$_}) } Bugzilla::Field->DB_COLUMNS,
+        custom => 1,
+        is_mandatory => !$ARGS->{nullable},
     });
-    $field->set_visibility_values([ $cgi->param('visibility_value_id') ]);
-    $field->set_null_visibility_values([ $cgi->param('null_visibility_values') ]);
+    $field->set_visibility_values([ list $ARGS->{visibility_value_id} ]);
+    $field->set_null_visibility_values([ list $ARGS->{null_visibility_values} ]);
+    $field->set_clone_visibility_values([ list $ARGS->{clone_visibility_values} ]);
 
     delete_token($token);
 
-    $vars->{'message'} = 'custom_field_created';
+    $vars->{message} = 'custom_field_created';
 
     $template->process('admin/custom_fields/list.html.tmpl', $vars)
         || ThrowTemplateError($template->error());
 }
 elsif ($action eq 'edit')
 {
-    my $name = $cgi->param('name') || ThrowUserError('field_missing_name');
+    my $name = $ARGS->{name} || ThrowUserError('field_missing_name');
     my $field = Bugzilla->get_field($name);
-    $field || ThrowUserError('customfield_nonexistent', {'name' => $name});
+    $field || ThrowUserError('customfield_nonexistent', { name => $name });
 
-    $vars->{'field'} = $field;
-    $vars->{'token'} = issue_session_token('edit_field');
+    $vars->{field} = $field;
+    $vars->{token} = issue_session_token('edit_field');
 
     $template->process('admin/custom_fields/edit.html.tmpl', $vars)
         || ThrowTemplateError($template->error());
@@ -98,46 +87,52 @@ elsif ($action eq 'edit')
 elsif ($action eq 'update')
 {
     check_token_data($token, 'edit_field');
-    my $name = $cgi->param('name');
 
-    # Validate fields.
-    $name || ThrowUserError('field_missing_name');
+    my $name = $ARGS->{name} || ThrowUserError('field_missing_name');
     my $field = Bugzilla->get_field($name);
-    $field || ThrowUserError('customfield_nonexistent', {'name' => $name});
+    $field || ThrowUserError('customfield_nonexistent', { name => $name });
+    $vars->{field} = $field;
 
-    $field->set_description(scalar $cgi->param('desc'));
-    $field->set_sortkey(scalar $cgi->param('sortkey'));
-    $field->set_url(scalar $cgi->param('url'));
-    $field->set_add_to_deps($cgi->param('add_to_deps'));
-    if ($field->can_tweak('mailhead'))
+    if ($field->can_tweak('value_field_id') &&
+        ($ARGS->{value_field_id} || 0) != ($field->value_field_id || 0))
     {
-        $field->set_in_new_bugmail(scalar $cgi->param('new_bugmail'));
+        if (!$ARGS->{force_changes} && $field->value_field_id)
+        {
+            my $h = Bugzilla->fieldvaluecontrol->{$field->value_field_id}->{values}->{$field->id};
+            $vars->{value_dep_count} = scalar keys %{ { map { %$_ } values %$h } };
+        }
+        if (!$vars->{value_dep_count})
+        {
+            $field->set('value_field_id', $ARGS->{value_field_id});
+            $field->clear_value_visibility_values;
+        }
     }
-    if ($field->can_tweak('obsolete'))
+    if ($field->can_tweak('default_field_id') &&
+        ($ARGS->{default_field_id} || 0) != ($field->default_field_id || 0))
     {
-        $field->set_obsolete(scalar $cgi->param('obsolete'));
+        if (!$ARGS->{force_changes} && $field->default_field_id)
+        {
+            my $h = Bugzilla->fieldvaluecontrol->{$field->default_field_id}->{defaults}->{$field->id};
+            $vars->{default_count} = scalar keys %$h;
+        }
+        if (!$vars->{default_count})
+        {
+            $field->set('default_field_id', $ARGS->{default_field_id});
+            $field->clear_default_values;
+        }
     }
-    if ($field->can_tweak('nullable'))
+    if ($vars->{default_count} || $vars->{value_dep_count})
     {
-        $field->set_is_mandatory(!scalar $cgi->param('nullable'));
+        $template->process('admin/custom_fields/confirm-changes.html.tmpl', $vars)
+            || ThrowTemplateError($template->error());
+        exit;
     }
-    if ($field->can_tweak('default_value'))
+
+    for (grep { !/_field_id/ && $_ ne 'is_mandatory' } Bugzilla::Field->UPDATE_COLUMNS)
     {
-        $field->set_default_value($field->type == FIELD_TYPE_MULTI_SELECT ? [ $cgi->param('default_value') ] : scalar $cgi->param('default_value'));
+        $field->set($_, $ARGS->{$_}) if $field->can_tweak($_);
     }
-    if ($field->can_tweak('clone_bug'))
-    {
-        $field->set_clone_bug(scalar $cgi->param('clone_bug'));
-    }
-    if ($field->can_tweak('value_field_id'))
-    {
-        $field->set_value_field(scalar $cgi->param('value_field_id'));
-    }
-    if ($field->can_tweak('default_field_id'))
-    {
-        # FIXME Disallow to change default field if it will lead to losing all the default values
-        $field->set_default_field($cgi->param('default_field_id'));
-    }
+    $field->set_is_mandatory(!$ARGS->{nullable}) if $field->can_tweak('nullable');
     for (
         [ qw(visibility_field_id set_visibility_field set_visibility_values visibility_value_id) ],
         [ qw(null_field_id set_null_field set_null_visibility_values null_visibility_values) ],
@@ -145,7 +140,7 @@ elsif ($action eq 'update')
     ) {
         if ($field->can_tweak($_->[0]))
         {
-            my $vf = $cgi->param($_->[0]);
+            my $vf = $ARGS->{$_->[0]};
             if ($vf ne $field->${\$_->[0]}())
             {
                 $field->${\$_->[1]}($vf);
@@ -153,7 +148,7 @@ elsif ($action eq 'update')
             }
             else
             {
-                $field->${\$_->[2]}([ $cgi->param($_->[3]) ]);
+                $field->${\$_->[2]}([ list $ARGS->{$_->[3]} ]);
             }
         }
     }
@@ -161,28 +156,21 @@ elsif ($action eq 'update')
 
     delete_token($token);
 
-    $vars->{'field'}   = $field;
-    $vars->{'message'} = 'custom_field_updated';
+    $vars->{message} = 'custom_field_updated';
 
     $template->process('admin/custom_fields/list.html.tmpl', $vars)
         || ThrowTemplateError($template->error());
 }
 elsif ($action eq 'del')
 {
-    my $name = $cgi->param('name');
-
-    # Validate field.
-    $name || ThrowUserError('field_missing_name');
-    # Do not allow deleting non-custom fields.
-    # Custom field names must start with "cf_".
-    if ($name !~ /^cf_/) {
-        $name = 'cf_' . $name;
-    }
+    my $name = $ARGS->{name} || ThrowUserError('field_missing_name');
     my $field = Bugzilla->get_field($name);
-    $field || ThrowUserError('customfield_nonexistent', {'name' => $name});
+    $field || ThrowUserError('customfield_nonexistent', { name => $name });
+    $field->custom || ThrowUserError('field_not_custom', { name => $name });
+    $field->obsolete || ThrowUserError('field_not_obsolete', { name => $name });
 
-    $vars->{'field'} = $field;
-    $vars->{'token'} = issue_session_token('delete_field');
+    $vars->{field} = $field;
+    $vars->{token} = issue_session_token('delete_field');
 
     $template->process('admin/custom_fields/confirm-delete.html.tmpl', $vars)
             || ThrowTemplateError($template->error());
@@ -190,24 +178,16 @@ elsif ($action eq 'del')
 elsif ($action eq 'delete')
 {
     check_token_data($token, 'delete_field');
-    my $name = $cgi->param('name');
-
-    # Validate fields.
-    $name || ThrowUserError('field_missing_name');
-    # Do not allow deleting non-custom fields.
-    # Custom field names must start with "cf_".
-    if ($name !~ /^cf_/) {
-        $name = 'cf_' . $name;
-    }
+    my $name = $ARGS->{name} || ThrowUserError('field_missing_name');
     my $field = Bugzilla->get_field($name);
-    $field || ThrowUserError('customfield_nonexistent', {'name' => $name});
+    $field || ThrowUserError('customfield_nonexistent', { name => $name });
 
     # Calling remove_from_db will check if field can be deleted.
     # If the field cannot be deleted, it will throw an error.
     $field->remove_from_db();
 
-    $vars->{'field'}   = $field;
-    $vars->{'message'} = 'custom_field_deleted';
+    $vars->{field}   = $field;
+    $vars->{message} = 'custom_field_deleted';
 
     delete_token($token);
 
@@ -216,5 +196,6 @@ elsif ($action eq 'delete')
 }
 else
 {
-    ThrowUserError('no_valid_action', {'field' => 'custom_field'});
+    ThrowUserError('no_valid_action', { field => 'custom_field' });
 }
+exit;

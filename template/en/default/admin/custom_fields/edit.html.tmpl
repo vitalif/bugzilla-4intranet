@@ -102,14 +102,14 @@ var constants = {
       </td>
       [% IF !field.id || field.can_tweak('mailhead') %]
       <th align="left">
-        <label for="new_bugmail">Displayed in [% terms.bug %]mail for new [% terms.bugs %]:</label>
+        <label for="mailhead">Displayed in [% terms.bug %]mail for new [% terms.bugs %]:</label>
       </th>
-      <td><input type="checkbox" id="new_bugmail" name="new_bugmail" value="1" [%- " checked" IF field.in_new_bugmail %] /></td>
+      <td><input type="checkbox" id="mailhead" name="mailhead" value="1" [%- " checked" IF field.in_new_bugmail %] /></td>
       [% END %]
     </tr>
     <tr>
-      <th align="left"><label for="desc">Title:</label></th>
-      <td><input type="text" id="desc" name="desc" style="width: 400px" value="[% field.description | html %]" /></td>
+      <th align="left"><label for="description">Title:</label></th>
+      <td><input type="text" id="description" name="description" style="width: 400px" value="[% field.description | html %]" /></td>
       [% IF !field.id || field.can_tweak('clone_bug') %]
       <th align="left"><label for="clone_bug">Is copied into the cloned [% terms.bug %]:</label></th>
       <td><input type="checkbox" id="clone_bug" name="clone_bug" value="1" [%- " checked" IF field.clone_bug %] onclick="onChangeCloned()" /></td>
