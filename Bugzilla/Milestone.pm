@@ -1,5 +1,3 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -70,26 +68,31 @@ use constant UPDATE_VALIDATORS => {
 
 ################################
 
-sub new {
+sub new
+{
     my $class = shift;
     my $param = shift;
     my $dbh = Bugzilla->dbh;
 
     my $product;
-    if (ref $param) {
+    if (ref $param)
+    {
         $product = $param->{product};
         my $name = $param->{name};
-        if (!defined $product) {
-            ThrowCodeError('bad_arg',
-                {argument => 'product',
-                 function => "${class}::new"});
+        if (!defined $product)
+        {
+            ThrowCodeError('bad_arg', {
+                argument => 'product',
+                function => "${class}::new",
+            });
         }
-        if (!defined $name) {
-            ThrowCodeError('bad_arg',
-                {argument => 'name',
-                 function => "${class}::new"});
+        if (!defined $name)
+        {
+            ThrowCodeError('bad_arg', {
+                argument => 'name',
+                function => "${class}::new",
+            });
         }
-
         my $condition = 'product_id = ? AND value = ?';
         my @values = ($product->id, $name);
         $param = { condition => $condition, values => \@values };
@@ -99,7 +102,8 @@ sub new {
     return $class->SUPER::new(@_);
 }
 
-sub run_create_validators {
+sub run_create_validators
+{
     my $class  = shift;
     my $params = $class->SUPER::run_create_validators(@_);
 
@@ -147,37 +151,41 @@ sub update
 # Validators
 ################################
 
-sub _check_value {
+sub _check_value
+{
     my ($invocant, $name, $product) = @_;
-
     $name = trim($name);
     $name || ThrowUserError('milestone_blank_name');
-    if (length($name) > MAX_FIELD_VALUE_SIZE) {
+    if (length($name) > MAX_FIELD_VALUE_SIZE)
+    {
         ThrowUserError('milestone_name_too_long', {name => $name});
     }
-
     $product = $invocant->product if (ref $invocant);
     my $milestone = new Bugzilla::Milestone({product => $product, name => $name});
-    if ($milestone && (!ref $invocant || $milestone->id != $invocant->id)) {
-        ThrowUserError('milestone_already_exists', { name    => $milestone->name,
-                                                     product => $product->name });
+    if ($milestone && (!ref $invocant || $milestone->id != $invocant->id))
+    {
+        ThrowUserError('milestone_already_exists', {
+            name    => $milestone->name,
+            product => $product->name,
+        });
     }
     return $name;
 }
 
-sub _check_sortkey {
+sub _check_sortkey
+{
     my ($invocant, $sortkey) = @_;
-
     # Keep a copy in case detaint_signed() clears the sortkey
     my $stored_sortkey = $sortkey;
-
-    if (!detaint_signed($sortkey) || $sortkey < MIN_SMALLINT || $sortkey > MAX_SMALLINT) {
+    if (!detaint_signed($sortkey) || $sortkey < MIN_SMALLINT || $sortkey > MAX_SMALLINT)
+    {
         ThrowUserError('milestone_sortkey_invalid', {sortkey => $stored_sortkey});
     }
     return $sortkey;
 }
 
-sub _check_product {
+sub _check_product
+{
     my ($invocant, $product) = @_;
     return Bugzilla->user->check_can_admin_product($product->name);
 }
@@ -194,7 +202,6 @@ sub bug_count
 {
     my $self = shift;
     my $dbh = Bugzilla->dbh;
-
     if (!defined $self->{bug_count})
     {
         $self->{bug_count} = $dbh->selectrow_array(
@@ -214,12 +221,12 @@ sub product_id { return $_[0]->{product_id}; }
 sub sortkey    { return $_[0]->{sortkey};    }
 sub is_active  { return $_[0]->{isactive};   }
 
-sub product {
+sub product
+{
     my $self = shift;
-
     require Bugzilla::Product;
-    $self->{'product'} ||= new Bugzilla::Product($self->product_id);
-    return $self->{'product'};
+    $self->{product} ||= new Bugzilla::Product($self->product_id);
+    return $self->{product};
 }
 
 1;

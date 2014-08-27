@@ -1,5 +1,3 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -71,26 +69,31 @@ use constant UPDATE_VALIDATORS => {
 # Methods
 ################################
 
-sub new {
+sub new
+{
     my $class = shift;
     my $param = shift;
     my $dbh = Bugzilla->dbh;
 
     my $product;
-    if (ref $param) {
+    if (ref $param)
+    {
         $product = $param->{product};
         my $name = $param->{name};
-        if (!defined $product) {
-            ThrowCodeError('bad_arg',
-                {argument => 'product',
-                 function => "${class}::new"});
+        if (!defined $product)
+        {
+            ThrowCodeError('bad_arg', {
+                argument => 'product',
+                function => "${class}::new",
+            });
         }
-        if (!defined $name) {
-            ThrowCodeError('bad_arg',
-                {argument => 'name',
-                 function => "${class}::new"});
+        if (!defined $name)
+        {
+            ThrowCodeError('bad_arg', {
+                argument => 'name',
+                function => "${class}::new",
+            });
         }
-
         my $condition = 'product_id = ? AND value = ?';
         my @values = ($product->id, $name);
         $param = { condition => $condition, values => \@values };
@@ -100,14 +103,16 @@ sub new {
     return $class->SUPER::new(@_);
 }
 
-sub _do_list_select {
+sub _do_list_select
+{
     my $self = shift;
     my $list = $self->SUPER::_do_list_select(@_);
-    return [sort { vers_cmp(lc($a->{value}), lc($b->{value})) } @$list];
+    return [ sort { vers_cmp(lc($a->{value}), lc($b->{value})) } @$list ];
 }
 
-sub run_create_validators {
-    my $class  = shift;
+sub run_create_validators
+{
+    my $class = shift;
     my $params = $class->SUPER::run_create_validators(@_);
 
     my $product = delete $params->{product};
@@ -172,12 +177,12 @@ sub update
 sub product_id { return $_[0]->{product_id}; }
 sub is_active  { return $_[0]->{isactive};   }
 
-sub product {
+sub product
+{
     my $self = shift;
-
     require Bugzilla::Product;
-    $self->{'product'} ||= new Bugzilla::Product($self->product_id);
-    return $self->{'product'};
+    $self->{product} ||= new Bugzilla::Product($self->product_id);
+    return $self->{product};
 }
 
 ################################
@@ -187,7 +192,8 @@ sub product {
 sub set_name { $_[0]->set('value', $_[1]); }
 sub set_is_active { $_[0]->set('isactive', $_[1]); }
 
-sub _check_value {
+sub _check_value
+{
     my ($invocant, $name, $product) = @_;
 
     $name = trim($name);
@@ -200,14 +206,18 @@ sub _check_value {
 
     $product = $invocant->product if (ref $invocant);
     my $version = new Bugzilla::Version({ product => $product, name => $name });
-    if ($version && (!ref $invocant || $version->id != $invocant->id)) {
-        ThrowUserError('version_already_exists', { name    => $version->name,
-                                                   product => $product->name });
+    if ($version && (!ref $invocant || $version->id != $invocant->id))
+    {
+        ThrowUserError('version_already_exists', {
+            name    => $version->name,
+            product => $product->name,
+        });
     }
     return $name;
 }
 
-sub _check_product {
+sub _check_product
+{
     my ($invocant, $product) = @_;
     return Bugzilla->user->check_can_admin_product($product->name);
 }
