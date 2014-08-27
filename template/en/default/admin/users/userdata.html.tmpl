@@ -39,14 +39,14 @@
   </td>
 </tr>
 <tr>
-  <th><label for="name">Real name:</label></th>
+  <th><label for="realname">Real name:</label></th>
   <td>
     [% IF editusers %]
-      <input size="64" maxlength="255" name="name"
+      <input size="64" maxlength="255" name="realname"
              autocomplete="off"
-             id="name" value="[% otheruser.name FILTER html %]" />
+             id="realname" value="[% otheruser.realname FILTER html %]" />
     [% ELSE %]
-      [% otheruser.name FILTER html %]
+      [% otheruser.realname FILTER html %]
     [% END %]
   </td>
 </tr>

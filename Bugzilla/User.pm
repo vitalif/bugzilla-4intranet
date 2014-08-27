@@ -264,7 +264,7 @@ sub set_login {
     delete $self->{nick};
 }
 
-sub set_name {
+sub set_realname {
     my ($self, $name) = @_;
     $self->set('realname', $name);
     delete $self->{identity};
@@ -287,9 +287,10 @@ sub update_last_seen_date {
 ################################################################################
 
 # Accessors for user attributes
-sub name  { $_[0]->{realname};   }
-sub login { $_[0]->{login_name}; }
-sub email { $_[0]->login . Bugzilla->params->{'emailsuffix'}; }
+sub name { $_[0]->{login_name} }
+sub login { $_[0]->{login_name} }
+sub email { $_[0]->login . Bugzilla->params->{emailsuffix}; }
+sub realname { $_[0]->{realname} }
 sub disabledtext { $_[0]->{disabledtext}; }
 sub is_enabled { $_[0]->{is_enabled} }
 sub showmybugslink { $_[0]->{mybugslink}; }

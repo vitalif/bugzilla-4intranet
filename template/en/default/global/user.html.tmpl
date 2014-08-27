@@ -14,7 +14,7 @@
   # Portions created by the Initial Developer are Copyright (C) 2007
   # the Initial Developer. All Rights Reserved.
   #
-  # Contributor(s): 
+  # Contributor(s):
   #   Daniel Brooks <db48x@db48x.net>
   #   Max Kanat-Alexander <mkanat@bugzilla.org>
   #%]
@@ -29,8 +29,8 @@
       <a class="email" href="[% Param("user_mailto") %][% who.email FILTER html %]"
          title="[% who.identity FILTER html %]">
     [%- END -%]
-    [% IF who.name %]
-       <span class="fn">[% who.name FILTER html %]</span>
+    [% IF who.realname %]
+      <span class="fn">[% who.realname FILTER html %]</span>
     [% ELSE %]
       [% who.login FILTER email FILTER html %]
     [% END %]

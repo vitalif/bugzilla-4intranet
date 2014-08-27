@@ -212,7 +212,7 @@ if ($action eq 'search') {
     my $new_user = Bugzilla::User->create({
         login_name    => scalar $cgi->param('login'),
         cryptpassword => $password,
-        realname      => scalar $cgi->param('name'),
+        realname      => scalar $cgi->param('realname'),
         disabledtext  => scalar $cgi->param('disabledtext'),
         disable_mail  => scalar $cgi->param('disable_mail')});
 
@@ -252,7 +252,7 @@ if ($action eq 'search') {
     my $changes = {};
     if ($editusers) {
         $otherUser->set_login($cgi->param('login'));
-        $otherUser->set_name($cgi->param('name'));
+        $otherUser->set_realname($cgi->param('realname'));
         $otherUser->set_password($cgi->param('password'))
             if $cgi->param('password');
         $otherUser->set_disabledtext($cgi->param('disabledtext'));
