@@ -1,6 +1,4 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -34,222 +32,163 @@ use Bugzilla::User;
 use Bugzilla::Component;
 use Bugzilla::Token;
 
-my $cgi = Bugzilla->cgi;
+my $ARGS = Bugzilla->input_params;
 my $template = Bugzilla->template;
 my $vars = {};
-# There is only one section about components in the documentation,
-# so all actions point to the same page.
-$vars->{'doc_section'} = 'components.html';
-
-my $ARGS = Bugzilla->input_params;
-
-#
-# Preliminary checks:
-#
+$vars->{doc_section} = 'components.html';
 
 my $user = Bugzilla->login(LOGIN_REQUIRED);
 
 $user->in_group('editcomponents')
-  || scalar(@{$user->get_editable_products})
-  || ThrowUserError("auth_failure", {group  => "editcomponents",
-                                     action => "edit",
-                                     object => "components"});
-
-#
-# often used variables
-#
-my $product_name  = trim($cgi->param('product')     || '');
-my $comp_name     = trim($cgi->param('component')   || '');
-my $action        = trim($cgi->param('action')      || '');
-my $showbugcounts = (defined $cgi->param('showbugcounts'));
-my $token         = $cgi->param('token');
-
-#
-# product = '' -> Show nice list of products
-#
-
-unless ($product_name) {
-    $vars->{'products'} = $user->get_editable_products;
-    $vars->{'showbugcounts'} = $showbugcounts;
-
-    $template->process("admin/components/select-product.html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
-    exit;
-}
-
-my $product = $user->check_can_admin_product($product_name);
-
-#
-# action='' -> Show nice list of components
-#
-
-unless ($action) {
-    $vars->{'showbugcounts'} = $showbugcounts;
-    $vars->{'product'} = $product;
-    $template->process("admin/components/list.html.tmpl", $vars)
-        || ThrowTemplateError($template->error());
-    exit;
-}
-
-#
-# action='add' -> present form for parameters for new component
-#
-# (next action will be 'new')
-#
-
-if ($action eq 'add') {
-    $vars->{'token'} = issue_session_token('add_component');
-    $vars->{'product'} = $product;
-    $template->process("admin/components/edit.html.tmpl", $vars)
-        || ThrowTemplateError($template->error());
-    exit;
-}
-
-#
-# action='new' -> add component entered in the 'action=add' screen
-#
-
-if ($action eq 'new') {
-    check_token_data($token, 'add_component');
-    # Do the user matching
-    Bugzilla::User::match_field ({
-        'initialowner'     => { 'type' => 'single' },
-        'initialqacontact' => { 'type' => 'single' },
-        'initialcc'        => { 'type' => 'multi'  },
+    || scalar(@{$user->get_editable_products})
+    || ThrowUserError('auth_failure', {
+        group  => 'editcomponents',
+        action => 'edit',
+        object => 'components'
     });
 
-    my $default_assignee   = trim($cgi->param('initialowner')     || '');
-    my $default_qa_contact = trim($cgi->param('initialqacontact') || '');
-    my $description        = trim($cgi->param('description')      || '');
-    my $wiki_url           = trim($cgi->param('wiki_url')         || '');
-    my @initial_cc         = $cgi->param('initialcc');
+my $comp_name     = trim($ARGS->{component} || '');
+my $action        = trim($ARGS->{action} || '');
+my $showbugcounts = defined $ARGS->{showbugcounts};
+my $token         = $ARGS->{token};
+
+unless ($ARGS->{product})
+{
+    # Select product
+    $vars->{products} = $user->get_editable_products;
+    $vars->{showbugcounts} = $showbugcounts;
+    $template->process('admin/components/select-product.html.tmpl', $vars)
+        || ThrowTemplateError($template->error());
+    exit;
+}
+
+# Check product admin permission
+my $product = $user->check_can_admin_product($ARGS->{product});
+
+if (!$action)
+{
+    # Show nice list of components
+    $vars->{showbugcounts} = $showbugcounts;
+    $vars->{product} = $product;
+    $template->process('admin/components/list.html.tmpl', $vars)
+        || ThrowTemplateError($template->error());
+    exit;
+}
+elsif ($action eq 'add')
+{
+    # Present form for parameters for new component (next action will be 'new')
+    $vars->{token} = issue_session_token('add_component');
+    $vars->{product} = $product;
+    $template->process('admin/components/edit.html.tmpl', $vars)
+        || ThrowTemplateError($template->error());
+    exit;
+}
+elsif ($action eq 'new')
+{
+    # Add component entered in the 'action=add' screen
+    check_token_data($token, 'add_component');
+
+    # Do the user matching
+    Bugzilla::User::match_field({
+        initialowner     => { 'type' => 'single' },
+        initialqacontact => { 'type' => 'single' },
+        initialcc        => { 'type' => 'multi'  },
+    });
 
     my $component = Bugzilla::Component->create({
         name             => $comp_name,
         product          => $product,
-        description      => $description,
-        initialowner     => $default_assignee,
-        initialqacontact => $default_qa_contact,
-        wiki_url         => $wiki_url,
-        initial_cc       => \@initial_cc,
-        isactive         => scalar $cgi->param('is_active'),
+        description      => $ARGS->{description},
+        initialowner     => trim($ARGS->{initialowner} || ''),
+        initialqacontact => trim($ARGS->{initialqacontact} || ''),
+        wiki_url         => $ARGS->{wiki_url},
+        initial_cc       => [ list $ARGS->{initialcc} ],
+        isactive         => $ARGS->{isactive},
         # XXX We should not be creating series for products that we
         # didn't create series for.
         create_series    => 1,
     });
 
-    $vars->{'message'} = 'component_created';
-    $vars->{'comp'} = $component;
-    $vars->{'product'} = $product;
+    $vars->{message} = 'component_created';
+    $vars->{comp} = $component;
+    $vars->{product} = $product;
     delete_token($token);
 
-    $template->process("admin/components/list.html.tmpl", $vars)
+    $template->process('admin/components/list.html.tmpl', $vars)
       || ThrowTemplateError($template->error());
     exit;
 }
+elsif ($action eq 'del')
+{
+    # Ask if user really wants to delete (next action would be 'delete')
+    $vars->{token} = issue_session_token('delete_component');
+    $vars->{comp} = Bugzilla::Component->check({ product => $product, name => $comp_name });
+    $vars->{product} = $product;
 
-#
-# action='del' -> ask if user really wants to delete
-#
-# (next action would be 'delete')
-#
-
-if ($action eq 'del') {
-    $vars->{'token'} = issue_session_token('delete_component');
-    $vars->{'comp'} =
-        Bugzilla::Component->check({ product => $product, name => $comp_name });
-    $vars->{'product'} = $product;
-
-    $template->process("admin/components/confirm-delete.html.tmpl", $vars)
+    $template->process('admin/components/confirm-delete.html.tmpl', $vars)
         || ThrowTemplateError($template->error());
     exit;
 }
-
-#
-# action='delete' -> really delete the component
-#
-
-if ($action eq 'delete') {
+elsif ($action eq 'delete')
+{
+    # Really delete the component
     check_token_data($token, 'delete_component');
-    my $component =
-        Bugzilla::Component->check({ product => $product, name => $comp_name });
-
+    my $component = Bugzilla::Component->check({ product => $product, name => $comp_name });
     $component->remove_from_db;
 
-    $vars->{'message'} = 'component_deleted';
-    $vars->{'comp'} = $component;
-    $vars->{'product'} = $product;
-    $vars->{'no_edit_component_link'} = 1;
+    $vars->{message} = 'component_deleted';
+    $vars->{comp} = $component;
+    $vars->{product} = $product;
+    $vars->{no_edit_component_link} = 1;
     delete_token($token);
 
-    $template->process("admin/components/list.html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
+    $template->process('admin/components/list.html.tmpl', $vars)
+        || ThrowTemplateError($template->error());
     exit;
 }
-
-#
-# action='edit' -> present the edit component form
-#
-# (next action would be 'update')
-#
-
-if ($action eq 'edit') {
-    $vars->{'token'} = issue_session_token('edit_component');
-    my $component =
-        Bugzilla::Component->check({ product => $product, name => $comp_name });
-    $vars->{'comp'} = $component;
-
-    $vars->{'initial_cc_names'} = 
-        join(', ', map($_->login, @{$component->initial_cc}));
-
-    $vars->{'product'} = $product;
-
-    $template->process("admin/components/edit.html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
+elsif ($action eq 'edit')
+{
+    # Present the edit component form (next action would be 'update')
+    $vars->{token} = issue_session_token('edit_component');
+    my $component = Bugzilla::Component->check({ product => $product, name => $comp_name });
+    $vars->{comp} = $component;
+    $vars->{initial_cc_names} = join(', ', map($_->login, @{$component->initial_cc}));
+    $vars->{product} = $product;
+    $template->process('admin/components/edit.html.tmpl', $vars)
+        || ThrowTemplateError($template->error());
     exit;
 }
-
-#
-# action='update' -> update the component
-#
-
-if ($action eq 'update') {
+elsif ($action eq 'update')
+{
+    # Update the component
     check_token_data($token, 'edit_component');
+
     # Do the user matching
-    Bugzilla::User::match_field ({
-        'initialowner'     => { 'type' => 'single' },
-        'initialqacontact' => { 'type' => 'single' },
-        'initialcc'        => { 'type' => 'multi'  },
+    Bugzilla::User::match_field({
+        initialowner     => { 'type' => 'single' },
+        initialqacontact => { 'type' => 'single' },
+        initialcc        => { 'type' => 'multi'  },
     });
 
-    my $comp_old_name         = trim($cgi->param('componentold')     || '');
-    my $default_assignee      = trim($cgi->param('initialowner')     || '');
-    my $default_qa_contact    = trim($cgi->param('initialqacontact') || '');
-    my $description           = trim($cgi->param('description')      || '');
-    my $wiki_url              = trim($cgi->param('wiki_url')         || '');
-    my @initial_cc            = $cgi->param('initialcc');
-
-    my $component =
-        Bugzilla::Component->check({ product => $product, name => $comp_old_name });
-
+    my $component = Bugzilla::Component->check({ product => $product, name => $ARGS->{componentold} });
     $component->set_name($comp_name);
-    $component->set_description($description);
-    $component->set_default_assignee($default_assignee);
-    $component->set_default_qa_contact($default_qa_contact);
-    $component->set_wiki_url($wiki_url);
-    $component->set_cc_list(\@initial_cc);
-    $component->set_is_active(scalar $cgi->param('is_active'));
+    $component->set_description($ARGS->{description});
+    $component->set_default_assignee($ARGS->{initialowner});
+    $component->set_default_qa_contact($ARGS->{initialqacontact});
+    $component->set_wiki_url($ARGS->{wiki_url});
+    $component->set_cc_list([ list $ARGS->{initialcc} ]);
+    $component->set_is_active($ARGS->{isactive});
     my $changes = $component->update();
 
     $changes->{control_lists} = 1 if $component->field->update_control_lists($component->id, $ARGS);
 
-    $vars->{'message'} = 'component_updated';
-    $vars->{'comp'} = $component;
-    $vars->{'product'} = $product;
-    $vars->{'changes'} = $changes;
+    $vars->{message} = 'component_updated';
+    $vars->{comp} = $component;
+    $vars->{product} = $product;
+    $vars->{changes} = $changes;
     delete_token($token);
 
-    $template->process("admin/components/list.html.tmpl", $vars)
+    $template->process('admin/components/list.html.tmpl', $vars)
       || ThrowTemplateError($template->error());
     exit;
 }
@@ -257,4 +196,4 @@ if ($action eq 'update') {
 #
 # No valid action found
 #
-ThrowUserError('no_valid_action', {'field' => "component"});
+ThrowUserError('no_valid_action', { field => 'component' });

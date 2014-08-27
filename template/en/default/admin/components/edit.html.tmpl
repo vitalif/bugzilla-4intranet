@@ -102,8 +102,7 @@
     </tr>
     <tr>
       <th align="left">Open for [% terms.bug %] entry:</th>
-      <td><input type="checkbox" name="is_active" value="1"
-           [% ' checked="checked"' IF comp.isactive OR !comp.id %]>
+      <td><input type="checkbox" name="isactive" value="1" [% ' checked="checked"' IF comp.isactive OR !comp.id %] />
       </td>
     </tr>
     <tr>
