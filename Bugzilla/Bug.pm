@@ -860,7 +860,7 @@ sub check_dependent_fields
             }
         }
         # Check field values of dependent select fields
-        if ($field_obj->is_select && $field_obj->value_field_id)
+        if ($field_obj->is_select)
         {
             # $self->{_unknown_dependent_values} may contain names of unidentified values
             my $value_objs = $self->{_unknown_dependent_values}->{$fn} || $self->get_object($fn);
@@ -877,29 +877,37 @@ sub check_dependent_fields
                         $value_objs = $self->{_unknown_dependent_values}->{$fn} || $self->get_object($fn);
                     }
                 }
-                if (!defined $value_objs)
+                if (!defined $value_objs && !$nullable)
                 {
-                    next if $nullable;
                     ThrowUserError('object_not_specified', { bug_id => $self->id, class => $field_obj->value_type, field => $field_obj });
                 }
             }
-            $value_objs = [ $value_objs ] if ref $value_objs ne 'ARRAY';
-            my @bad = grep { !ref $_ || !$_->check_visibility($self) } @$value_objs;
-            if (@bad)
+            elsif ($field_obj->value_field_id)
             {
-                my $n = $field_obj->value_field->name;
-                $incorrect_fields->{$fn} = {
-                    field => $field_obj,
-                    options => [ map { $_->name } @{ $field_obj->restricted_legal_values($self->get_ids($n)) } ],
-                    values => [ map { ref $_ ? $_ : undef } @bad ],
-                    value_names => [ map { ref $_ ? $_->name : $_ } @bad ],
-                    controller => $self->get_object($n),
-                };
+                my @bad = grep { !ref $_ || !$_->check_visibility($self) } list($value_objs);
+                if (@bad)
+                {
+                    my $n = $field_obj->value_field->name;
+                    $incorrect_fields->{$fn} = {
+                        field => $field_obj,
+                        options => [ map { $_->name } @{ $field_obj->restricted_legal_values($self->get_ids($n)) } ],
+                        values => [ map { ref $_ ? $_ : undef } @bad ],
+                        value_names => [ map { ref $_ ? $_->name : $_ } @bad ],
+                        controller => $self->get_object($n),
+                    };
+                }
+            }
+            elsif (my @bad = grep { !ref $_ } list($value_objs))
+            {
+                ThrowUserError('object_does_not_exist', {
+                    class => $field_obj->value_type,
+                    name => $bad[0],
+                });
             }
         }
         # Check other fields for empty values
-        elsif ($fn ne 'classification' &&
-            (!$self->{$fn} || $field_obj->type == FIELD_TYPE_MULTI_SELECT && !@{$self->{$fn}}))
+        elsif ($fn ne 'classification' && (!$self->{$fn} || ($field_obj->type == FIELD_TYPE_FREETEXT ||
+            $field_obj->type == FIELD_TYPE_TEXTAREA) && $self->{$fn} =~ /^\s*$/so))
         {
             my $nullable = $field_obj->check_is_nullable($self);
             if (!$nullable || !$self->id)
@@ -911,7 +919,8 @@ sub check_dependent_fields
                     $self->set($field_obj->name, $default);
                 }
             }
-            if (!$nullable && (!$self->{$fn} || $field_obj->type == FIELD_TYPE_MULTI_SELECT && !@{$self->{$fn}}))
+            if (!$nullable && (!$self->{$fn} || ($field_obj->type == FIELD_TYPE_FREETEXT ||
+                $field_obj->type == FIELD_TYPE_TEXTAREA) && $self->{$fn} =~ /^\s*$/so))
             {
                 ThrowUserError('field_not_nullable', { field => $field_obj });
             }
