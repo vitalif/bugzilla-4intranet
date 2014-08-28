@@ -827,6 +827,8 @@ sub check_dependent_fields
     for my $field_obj (get_dependent_check_order())
     {
         my $fn = $field_obj->name;
+        # Do not validate classification because it's not stored as a bug property
+        next if $fn eq 'classification';
         if ($field_obj->obsolete)
         {
             # Do not validate values of obsolete fields, only set empty values for new bugs
@@ -906,8 +908,8 @@ sub check_dependent_fields
             }
         }
         # Check other fields for empty values
-        elsif ($fn ne 'classification' && (!$self->{$fn} || ($field_obj->type == FIELD_TYPE_FREETEXT ||
-            $field_obj->type == FIELD_TYPE_TEXTAREA) && $self->{$fn} =~ /^\s*$/so))
+        elsif (!$self->{$fn} || ($field_obj->type == FIELD_TYPE_FREETEXT ||
+            $field_obj->type == FIELD_TYPE_TEXTAREA) && $self->{$fn} =~ /^\s*$/so)
         {
             my $nullable = $field_obj->check_is_nullable($self);
             if (!$nullable || !$self->id)
