@@ -1,6 +1,4 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -29,40 +27,29 @@ use lib qw(. lib);
 use Bugzilla;
 use Bugzilla::Error;
 use Bugzilla::Bug;
-use Bugzilla::Diff;
 use Bugzilla::Constants;
 
-my $cgi = Bugzilla->cgi;
+my $ARGS = Bugzilla->input_params;
 my $template = Bugzilla->template;
 my $vars = {};
 
-###############################################################################
-# Begin Data/Security Validation
-###############################################################################
-
-# Check whether or not the user is currently logged in. 
+# Check whether or not the user is currently logged in.
 Bugzilla->login();
 
 # Make sure the bug ID is a positive integer representing an existing
 # bug that the user is authorized to access.
-my $id = $cgi->param('id');
-my $bug = Bugzilla::Bug->check($id);
-
-###############################################################################
-# End Data/Security Validation
-###############################################################################
+my $bug = Bugzilla::Bug->check($ARGS->{id});
 
 # Run queries against the shadow DB. In the worst case, new changes are not
 # visible immediately due to replication lag.
 Bugzilla->switch_to_shadow_db;
 
 my $operations;
-($operations, $vars->{'incomplete_data'}) =
-    Bugzilla::Bug::GetBugActivity($bug->id);
+($operations, $vars->{incomplete_data}) = Bugzilla::Bug::GetBugActivity($bug->id);
 
-$vars->{'operations'} = $operations;
-$vars->{'bug'} = $bug;
+$vars->{operations} = $operations;
+$vars->{bug} = $bug;
 
 $template->process("bug/activity/show.html.tmpl", $vars)
-  || ThrowTemplateError($template->error());
+    || ThrowTemplateError($template->error());
 exit;
