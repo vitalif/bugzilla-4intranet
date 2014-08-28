@@ -1111,8 +1111,79 @@ sub check
 # So return all products visible to current user.
 sub get_all { @{ Bugzilla->user->get_selectable_products } }
 
-1;
+###############################
+####    Class Methods    ######
+###############################
 
+# FIXME: This is a "controller" method and should probably be moved out from "model" class Product
+sub choose_product
+{
+    my $class = shift;
+    my ($products, $query_params, $target) = @_;
+    $products ||= Bugzilla->user->get_enterable_products;
+    ThrowUserError('no_products') unless @$products;
+    return $products->[0] if @$products == 1;
+
+    delete $query_params->{classification};
+    $query_params = http_build_query($query_params);
+    $query_params .= '&' if length $query_params;
+    if (!$target)
+    {
+        $target = $ENV{REQUEST_URI};
+        $target =~ s/\?.*//so;
+        $target =~ s/^\/+//so;
+    }
+    my $vars = {
+        target => $target,
+        query_params => $query_params,
+    };
+    if (Bugzilla->get_field('classification')->enabled)
+    {
+        my $classifs;
+        push @{$classifs->{$_->classification_id}}, $_ for @$products;
+        $classifs = [
+            map { { object => $_, products => $classifs->{$_->id} } }
+            @{ Bugzilla::Classification->new_from_list([ keys %$classifs ]) }
+        ];
+        if (scalar @$classifs == 1)
+        {
+            $vars->{classifications} = [ $classifs->[0] ];
+            if (scalar @{$classifs->[0]->{products}} == 1)
+            {
+                return $classifs->[0]->{products}->[0];
+            }
+        }
+        else
+        {
+            my $cl = Bugzilla->input_params->{classification};
+            if (!$cl || $cl ne '__all' && !(($cl) = grep { $_->{object}->name eq $cl } @$classifs))
+            {
+                $vars->{classifications} = [ map { $_->{object} } @$classifs ];
+                Bugzilla->template->process("global/choose-classification.html.tmpl", $vars)
+                    || ThrowTemplateError(Bugzilla->template->error());
+                exit;
+            }
+            elsif ($cl eq '__all')
+            {
+                $vars->{classifications} = $classifs;
+            }
+            else
+            {
+                $vars->{classifications} = [ $cl ];
+            }
+        }
+    }
+    else
+    {
+        $vars->{classifications} = [ { object => undef, products => $products } ];
+    }
+
+    Bugzilla->template->process('global/choose-product.html.tmpl', $vars)
+        || ThrowTemplateError(Bugzilla->template->error());
+    exit;
+}
+
+1;
 __END__
 
 =head1 NAME

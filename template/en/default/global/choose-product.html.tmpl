@@ -56,7 +56,7 @@
 
   [% FOREACH p = c.products %]
     <tr>
-      <th><a href="[% target %]?product=[% p.name | url_quote -%]&[% query_params | html %]">[% p.name | html %]</a></th>
+      <th><a href="[% target %]?[% query_params | html %]product=[% p.name | url_quote -%]">[% p.name | html %]</a></th>
       <td>[% p.description | html_light %]</td>
     </tr>
   [% END %]

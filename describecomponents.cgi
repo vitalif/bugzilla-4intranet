@@ -18,43 +18,10 @@ my $ARGS = Bugzilla->cgi->VarHash;
 
 Bugzilla->switch_to_shadow_db;
 
-my $product = new Bugzilla::Product({ name => trim($ARGS->{product} || '') });
+my $product = Bugzilla::Product->new({ name => trim($ARGS->{product} || '') });
 unless ($product && $user->can_access_product($product->name))
 {
-    # Products which the user is allowed to see.
-    my $products = $user->get_accessible_products;
-    if (!@$products)
-    {
-        ThrowUserError('no_products');
-    }
-    if (Bugzilla->get_field('classification')->enabled && $ARGS->{classification} ne '__all')
-    {
-        my $cl = Bugzilla::Classification->new({ name => trim($ARGS->{classification} || '') });
-        if (!$cl)
-        {
-            my $acc = [ keys %{ { map { $_->classification_id => 1 } @$products } } ];
-            $vars->{classifications} = Bugzilla::Classification->new_from_list($acc);
-            $vars->{target} = 'describecomponents.cgi';
-            $template->process('global/choose-classification.html.tmpl', $vars)
-                || ThrowTemplateError($template->error());
-            exit;
-        }
-        $vars->{classifications} = [ {
-            object => $cl,
-            products => [ grep { $_->classification_id == $cl->id } @$products ],
-        } ];
-    }
-    else
-    {
-        $vars->{classifications} = [ {
-            object => undef,
-            products => $products
-        } ];
-    }
-    $vars->{target} = 'describecomponents.cgi';
-    $template->process('global/choose-product.html.tmpl', $vars)
-        || ThrowTemplateError($template->error());
-    exit;
+    $product = Bugzilla::Product->choose_product($user->get_accessible_products);
 }
 
 $vars->{product} = $product;
