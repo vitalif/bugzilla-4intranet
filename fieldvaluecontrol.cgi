@@ -50,7 +50,7 @@ Bugzilla->send_header(
 );
 
 my $json = {};
-for (Bugzilla->get_fields({ is_select => 1, obsolete => 0 }))
+for (Bugzilla->get_fields({ obsolete => 0 }))
 {
     $json->{$_->name} = $_->json_visibility;
 }

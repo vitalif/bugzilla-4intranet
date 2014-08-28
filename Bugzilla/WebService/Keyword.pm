@@ -51,7 +51,6 @@ sub get
     {
         $params->{match} = [ $params->{match} ];
     }
-    warn Dumper $params;
 
     my @keyword_list;
     if ($params->{names})

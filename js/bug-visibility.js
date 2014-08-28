@@ -37,7 +37,10 @@ function initControllerField(i)
             // Select global default value before selecting dependent ones
             f._oldDefault = setFieldValue(f, field_metadata[i].default_value);
         }
-        handleControllerField(document.forms['Create'] ? null : 'INITIAL', f);
+        if (f.nodeName == 'SELECT')
+        {
+            handleControllerField(document.forms['Create'] ? null : 'INITIAL', f);
+        }
         addListener(f, 'change', handleControllerField_this);
     }
 }

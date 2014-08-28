@@ -192,16 +192,15 @@ sub update
         if ($self->max_votes_per_bug < $self->votes_per_user)
         {
             my $votes = $dbh->selectall_arrayref(
-                'SELECT votes.who, votes.bug_id FROM votes'.
-                ' INNER JOIN bugs ON bugs.bug_id = votes.bug_id'.
-                ' WHERE bugs.product_id = ? AND votes.vote_count > ?',
-                undef, ($self->id, $self->max_votes_per_bug)
+                'SELECT votes.who, votes.bug_id, profiles.login_name FROM votes, bugs, profiles'.
+                ' WHERE bugs.product_id = ? AND votes.vote_count > ?'.
+                ' AND bugs.bug_id=votes.bug_id AND profiles.id=votes.who',
+                undef, $self->id, $self->max_votes_per_bug
             );
             foreach my $vote (@$votes)
             {
-                my ($who, $id) = (@$vote);
+                my ($who, $id, $name) = (@$vote);
                 Bugzilla::Bug::RemoveVotes($id, $who, 'votes_too_many_per_bug');
-                my $name = Bugzilla::User::user_id_to_login($who);
                 push @toomanyvotes_list, { id => $id, name => $name };
             }
         }
@@ -213,39 +212,37 @@ sub update
         # than maxvotesperbug).  See Bugzilla::Bug::RemoveVotes().
 
         my $votes = $dbh->selectall_arrayref(
-            'SELECT votes.who, votes.vote_count FROM votes'.
-            ' INNER JOIN bugs ON bugs.bug_id = votes.bug_id'.
-            ' WHERE bugs.product_id = ?', undef, $self->id
+            'SELECT votes.who, votes.vote_count, profiles.login_name FROM votes, bugs, profiles'.
+            ' WHERE bugs.product_id = ? AND bugs.bug_id = votes.bug_id AND profiles.userid=votes.who', undef, $self->id
         );
 
         my %counts;
         foreach my $vote (@$votes)
         {
-            my ($who, $count) = @$vote;
+            my ($who, $count, $name) = @$vote;
             if (!defined $counts{$who})
             {
-                $counts{$who} = $count;
+                $counts{$who} = [ $count, $name ];
             }
             else
             {
-                $counts{$who} += $count;
+                $counts{$who}[0] += $count;
             }
         }
         my @toomanytotalvotes_list = ();
         foreach my $who (keys(%counts))
         {
-            if ($counts{$who} > $self->votes_per_user)
+            if ($counts{$who}[0] > $self->votes_per_user)
             {
+                my $name = $counts{$who}[1];
                 my $bug_ids = $dbh->selectcol_arrayref(
-                    'SELECT votes.bug_id FROM votes'.
-                    ' INNER JOIN bugs ON bugs.bug_id = votes.bug_id'.
+                    'SELECT votes.bug_id FROM votes, bugs'.
                     ' WHERE bugs.product_id = ? AND votes.who = ?',
                     undef, ($self->id, $who)
                 );
                 foreach my $bug_id (@$bug_ids)
                 {
                     Bugzilla::Bug::RemoveVotes($bug_id, $who, 'votes_too_many_per_user');
-                    my $name = Bugzilla::User::user_id_to_login($who);
                     push @toomanytotalvotes_list, {id => $bug_id, name => $name};
                 }
             }
