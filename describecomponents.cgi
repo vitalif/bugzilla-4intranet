@@ -14,7 +14,7 @@ use Bugzilla::Product;
 my $user = Bugzilla->login;
 my $template = Bugzilla->template;
 my $vars = {};
-my $ARGS = Bugzilla->cgi->VarHash;
+my $ARGS = Bugzilla->input_params;
 
 Bugzilla->switch_to_shadow_db;
 
