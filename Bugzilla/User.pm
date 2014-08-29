@@ -1,5 +1,5 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
+# This module implements utilities for dealing with Bugzilla users.
+
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -35,10 +35,8 @@
 # Module Initialization
 ################################################################################
 
-# Make it harder for us to do dangerous things in Perl.
 use strict;
 
-# This module implements utilities for dealing with Bugzilla users.
 package Bugzilla::User;
 
 use Bugzilla::Error;
@@ -116,7 +114,8 @@ use constant VALIDATORS => {
     extern_id     => \&_check_extern_id,
 };
 
-sub UPDATE_COLUMNS {
+sub UPDATE_COLUMNS
+{
     my $self = shift;
     my @cols = qw(
         disable_mail
@@ -126,21 +125,22 @@ sub UPDATE_COLUMNS {
         extern_id
         is_enabled
     );
-    push(@cols, 'cryptpassword') if exists $self->{cryptpassword};
+    push @cols, 'cryptpassword' if exists $self->{cryptpassword};
     return @cols;
-};
+}
 
 ################################################################################
 # Functions
 ################################################################################
 
-sub new {
+sub new
+{
     my $invocant = shift;
     my $class = ref($invocant) || $invocant;
     my ($param) = @_;
 
     my $user = DEFAULT_USER;
-    bless ($user, $class);
+    bless $user, $class;
     return $user unless $param;
 
     return $class->SUPER::new(@_);
@@ -175,7 +175,8 @@ sub update
     my $changes = $self->SUPER::update(@_);
     my $dbh = Bugzilla->dbh;
 
-    if (exists $changes->{login_name}) {
+    if (exists $changes->{login_name})
+    {
         # If we changed the login, silently delete any tokens.
         $dbh->do('DELETE FROM tokens WHERE userid = ?', undef, $self->id);
         # And rederive regex groups
@@ -183,9 +184,11 @@ sub update
     }
 
     # Logout the user if necessary.
-    Bugzilla->logout_user($self)
-        if (exists $changes->{login_name} || exists $changes->{disabledtext}
-            || exists $changes->{cryptpassword});
+    if (exists $changes->{login_name} || exists $changes->{disabledtext} ||
+        exists $changes->{cryptpassword})
+    {
+        Bugzilla->logout_user($self)
+    }
 
     # XXX Can update profiles_activity here as soon as it understands
     #     field names like login_name.
@@ -201,16 +204,20 @@ sub _check_disable_mail { return $_[1] ? 1 : 0; }
 sub _check_disabledtext { return trim($_[1]) || ''; }
 
 # Check whether the extern_id is unique.
-sub _check_extern_id {
+sub _check_extern_id
+{
     my ($invocant, $extern_id) = @_;
     $extern_id = trim($extern_id);
     return undef unless defined($extern_id) && $extern_id ne "";
-    if (!ref($invocant) || $invocant->extern_id ne $extern_id) {
+    if (!ref $invocant || $invocant->extern_id ne $extern_id)
+    {
         my $existing_login = $invocant->new({ extern_id => $extern_id });
-        if ($existing_login) {
-            ThrowUserError( 'extern_id_exists',
-                            { extern_id => $extern_id,
-                              existing_login_name => $existing_login->login });
+        if ($existing_login)
+        {
+            ThrowUserError( 'extern_id_exists', {
+                extern_id => $extern_id,
+                existing_login_name => $existing_login->login,
+            });
         }
     }
     return $extern_id;
@@ -218,30 +225,27 @@ sub _check_extern_id {
 
 # This is public since createaccount.cgi needs to use it before issuing
 # a token for account creation.
-sub check_login_name_for_creation {
+sub check_login_name_for_creation
+{
     my ($invocant, $name) = @_;
     $name = trim($name);
     $name || ThrowUserError('user_login_required');
-    validate_email_syntax($name)
-        || ThrowUserError('illegal_email_address', { addr => $name });
-
+    validate_email_syntax($name) || ThrowUserError('illegal_email_address', { addr => $name });
     # Check the name if it's a new user, or if we're changing the name.
-    if (!ref($invocant) || $invocant->login ne $name) {
-        is_available_username($name)
-            || ThrowUserError('account_exists', { email => $name });
+    if (!ref($invocant) || $invocant->login ne $name)
+    {
+        is_available_username($name) || ThrowUserError('account_exists', { email => $name });
     }
-
     return $name;
 }
 
-sub _check_password {
+sub _check_password
+{
     my ($self, $pass) = @_;
-
     # If the password is '*', do not encrypt it or validate it further--we
     # are creating a user who should not be able to log in using DB
     # authentication.
     return $pass if $pass eq '*';
-
     validate_password($pass);
     my $cryptpassword = bz_crypt($pass);
     return $cryptpassword;
@@ -256,14 +260,16 @@ sub _check_realname { return trim($_[1]) || ''; }
 sub set_disabledtext { $_[0]->set('disabledtext', $_[1]); }
 sub set_disable_mail { $_[0]->set('disable_mail', $_[1]); }
 
-sub set_login {
+sub set_login
+{
     my ($self, $login) = @_;
     $self->set('login_name', $login);
     delete $self->{identity};
     delete $self->{nick};
 }
 
-sub set_realname {
+sub set_realname
+{
     my ($self, $name) = @_;
     $self->set('realname', $name);
     delete $self->{identity};
@@ -271,7 +277,8 @@ sub set_realname {
 
 sub set_password { $_[0]->set('cryptpassword', $_[1]); }
 
-sub update_last_seen_date {
+sub update_last_seen_date
+{
     my $self = shift;
     return unless $self->id;
     my $dbh = Bugzilla->dbh;
@@ -296,23 +303,30 @@ sub showmybugslink { $_[0]->{mybugslink}; }
 sub email_disabled { $_[0]->{disable_mail}; }
 sub email_enabled { !($_[0]->{disable_mail}); }
 sub last_seen_date { $_[0]->{last_seen_date}; }
-sub cryptpassword {
+
+sub cryptpassword
+{
     my $self = shift;
     # We don't store it because we never want it in the object (we
     # don't want to accidentally dump even the hash somewhere).
     my ($pw) = Bugzilla->dbh->selectrow_array(
         'SELECT cryptpassword FROM profiles WHERE userid = ?',
-        undef, $self->id);
+        undef, $self->id
+    );
     return $pw;
 }
 
-sub set_authorizer {
+sub set_authorizer
+{
     my ($self, $authorizer) = @_;
     $self->{authorizer} = $authorizer;
 }
-sub authorizer {
+
+sub authorizer
+{
     my ($self) = @_;
-    if (!$self->{authorizer}) {
+    if (!$self->{authorizer})
+    {
         require Bugzilla::Auth;
         $self->{authorizer} = new Bugzilla::Auth();
     }
@@ -324,37 +338,33 @@ sub authorizer {
 sub identity
 {
     my $self = shift;
-
     return "" unless $self->id;
-
     if (!defined $self->{identity})
     {
         $self->{identity} = $self->name ? $self->name . " <" . $self->login . ">" : $self->login;
     }
-
     return $self->{identity};
 }
 
-sub nick {
+sub nick
+{
     my $self = shift;
-
     return "" unless $self->id;
-
-    if (!defined $self->{nick}) {
+    if (!defined $self->{nick})
+    {
         $self->{nick} = (split(/@/, $self->login, 2))[0];
     }
-
     return $self->{nick};
 }
 
-sub queries {
+sub queries
+{
     my $self = shift;
     return $self->{queries} if defined $self->{queries};
     return [] unless $self->id;
 
     my $dbh = Bugzilla->dbh;
-    my $query_ids = $dbh->selectcol_arrayref(
-        'SELECT id FROM namedqueries WHERE userid = ?', undef, $self->id);
+    my $query_ids = $dbh->selectcol_arrayref('SELECT id FROM namedqueries WHERE userid = ?', undef, $self->id);
     require Bugzilla::Search::Saved;
     $self->{queries} = Bugzilla::Search::Saved->new_from_list($query_ids);
 
@@ -365,7 +375,8 @@ sub queries {
     return $self->{queries};
 }
 
-sub queries_subscribed {
+sub queries_subscribed
+{
     my $self = shift;
     return $self->{queries_subscribed} if defined $self->{queries_subscribed};
     return [] unless $self->id;
@@ -378,21 +389,19 @@ sub queries_subscribed {
     # user changes the shared group of a query, our subscription
     # will remain but we won't have access to the query anymore.
     my $subscribed_query_ids = Bugzilla->dbh->selectcol_arrayref(
-        "SELECT lif.namedquery_id
-           FROM namedqueries_link_in_footer lif
-                INNER JOIN namedquery_group_map ngm
-                ON ngm.namedquery_id = lif.namedquery_id
-          WHERE lif.user_id = ?
-                AND lif.namedquery_id NOT IN ($query_id_string)
-                AND ngm.group_id IN (" . $self->groups_as_string . ")",
-          undef, $self->id);
+        "SELECT lif.namedquery_id FROM namedqueries_link_in_footer lif".
+        " INNER JOIN namedquery_group_map ngm ON ngm.namedquery_id = lif.namedquery_id".
+        " WHERE lif.user_id = ? AND lif.namedquery_id NOT IN ($query_id_string)".
+        " AND ngm.group_id IN (" . $self->groups_as_string . ")",
+        undef, $self->id
+    );
     require Bugzilla::Search::Saved;
-    $self->{queries_subscribed} =
-        Bugzilla::Search::Saved->new_from_list($subscribed_query_ids);
+    $self->{queries_subscribed} = Bugzilla::Search::Saved->new_from_list($subscribed_query_ids);
     return $self->{queries_subscribed};
 }
 
-sub queries_available {
+sub queries_available
+{
     my $self = shift;
     return $self->{queries_available} if defined $self->{queries_available};
     return [] unless $self->id;
@@ -400,98 +409,100 @@ sub queries_available {
     # Exclude the user's own queries.
     my @my_query_ids = map($_->id, @{$self->queries});
     my $query_id_string = join(',', @my_query_ids) || '-1';
-
     my $avail_query_ids = Bugzilla->dbh->selectcol_arrayref(
-        'SELECT namedquery_id FROM namedquery_group_map
-          WHERE group_id IN (' . $self->groups_as_string . ")
-                AND namedquery_id NOT IN ($query_id_string)");
+        'SELECT namedquery_id FROM namedquery_group_map'.
+        ' WHERE group_id IN (' . $self->groups_as_string . ')'.
+        " AND namedquery_id NOT IN ($query_id_string)"
+    );
     require Bugzilla::Search::Saved;
-    $self->{queries_available} =
-        Bugzilla::Search::Saved->new_from_list($avail_query_ids);
+    $self->{queries_available} = Bugzilla::Search::Saved->new_from_list($avail_query_ids);
     return $self->{queries_available};
 }
 
-sub reports {
+sub reports
+{
     my $self = shift;
     return $self->{reports} if defined $self->{reports};
     return [] unless $self->id;
-
     my $dbh = Bugzilla->dbh;
-    my $report_ids = $dbh->selectcol_arrayref(
-        'SELECT id FROM reports WHERE user_id = ?', undef, $self->id);
+    my $report_ids = $dbh->selectcol_arrayref('SELECT id FROM reports WHERE user_id = ?', undef, $self->id);
     require Bugzilla::Report;
     $self->{reports} = Bugzilla::Report->new_from_list($report_ids);
     return $self->{reports};
 }
 
-sub flush_reports_cache {
+sub flush_reports_cache
+{
     my $self = shift;
-
     delete $self->{reports};
 }
 
-sub settings {
+sub settings
+{
     my ($self) = @_;
-
-    return $self->{'settings'} if (defined $self->{'settings'});
-
+    return $self->{settings} if defined $self->{settings};
     # IF the user is logged in
     # THEN get the user's settings
     # ELSE get default settings
-    if ($self->id) {
-        $self->{'settings'} = get_all_settings($self->id);
-    } else {
-        $self->{'settings'} = get_defaults();
+    if ($self->id)
+    {
+        $self->{settings} = get_all_settings($self->id);
     }
-
-    return $self->{'settings'};
+    else
+    {
+        $self->{settings} = get_defaults();
+    }
+    return $self->{settings};
 }
 
-sub timezone {
+sub timezone
+{
     my $self = shift;
-
-    if (!defined $self->{timezone}) {
+    if (!defined $self->{timezone})
+    {
         my $tz = $self->settings->{timezone}->{value};
-        if ($tz eq 'local') {
+        if ($tz eq 'local')
+        {
             # The user wants the local timezone of the server.
             $self->{timezone} = Bugzilla->local_timezone;
         }
-        else {
+        else
+        {
             $self->{timezone} = DateTime::TimeZone->new(name => $tz);
         }
     }
     return $self->{timezone};
 }
 
-sub flush_queries_cache {
+sub flush_queries_cache
+{
     my $self = shift;
-
     delete $self->{queries};
     delete $self->{queries_subscribed};
     delete $self->{queries_available};
 }
 
-sub groups {
+sub groups
+{
     my $self = shift;
-
     return $self->{groups} if defined $self->{groups};
     return [] unless $self->id;
 
     my $dbh = Bugzilla->dbh;
     my $groups_to_check = $dbh->selectcol_arrayref(
-        q{SELECT DISTINCT group_id
-            FROM user_group_map
-           WHERE user_id = ? AND isbless = 0}, undef, $self->id);
-
+        'SELECT DISTINCT group_id FROM user_group_map'.
+        ' WHERE user_id = ? AND isbless = 0', undef, $self->id
+    );
     my $rows = $dbh->selectall_arrayref(
-        "SELECT DISTINCT grantor_id, member_id
-           FROM group_group_map
-          WHERE grant_type = " . GROUP_MEMBERSHIP);
+        'SELECT DISTINCT grantor_id, member_id FROM group_group_map'.
+        ' WHERE grant_type = ' . GROUP_MEMBERSHIP
+    );
 
     my %group_membership;
-    foreach my $row (@$rows) {
+    foreach my $row (@$rows)
+    {
         my ($grantor_id, $member_id) = @$row;
-        push (@{ $group_membership{$member_id} }, $grantor_id);
+        push @{ $group_membership{$member_id} }, $grantor_id;
     }
 
     # Let's walk the groups hierarchy tree (using FIFO)
@@ -502,12 +513,14 @@ sub groups {
     # As a result, %groups will have all the groups we are the member of.
     my %checked_groups;
     my %groups;
-    while (scalar(@$groups_to_check) > 0) {
+    while (scalar(@$groups_to_check) > 0)
+    {
         # Pop the head group from FIFO
         my $member_id = shift @$groups_to_check;
 
         # Skip the group if we have already checked it
-        if (!$checked_groups{$member_id}) {
+        if (!$checked_groups{$member_id})
+        {
             # Mark group as checked
             $checked_groups{$member_id} = 1;
 
@@ -516,33 +529,34 @@ sub groups {
             # for all groups. Accessible by group number.
             my $members = $group_membership{$member_id};
             my @new_to_check = grep(!$checked_groups{$_}, @$members);
-            push(@$groups_to_check, @new_to_check);
+            push @$groups_to_check, @new_to_check;
 
             $groups{$member_id} = 1;
         }
     }
 
     $self->{groups} = Bugzilla::Group->new_from_list([keys %groups]);
-
     return $self->{groups};
 }
 
-sub groups_as_string {
+sub groups_as_string
+{
     my $self = shift;
     my @ids = map { $_->id } @{ $self->groups };
     return scalar(@ids) ? join(',', @ids) : '-1';
 }
 
-sub bless_groups {
+sub bless_groups
+{
     my $self = shift;
-
-    return $self->{'bless_groups'} if defined $self->{'bless_groups'};
+    return $self->{bless_groups} if defined $self->{bless_groups};
     return [] unless $self->id;
 
-    if ($self->in_group('editusers')) {
+    if ($self->in_group('editusers'))
+    {
         # Users having editusers permissions may bless all groups.
-        $self->{'bless_groups'} = [Bugzilla::Group->get_all];
-        return $self->{'bless_groups'};
+        $self->{bless_groups} = [Bugzilla::Group->get_all];
+        return $self->{bless_groups};
     }
 
     my $dbh = Bugzilla->dbh;
@@ -550,53 +564,49 @@ sub bless_groups {
     # Get all groups for the user where:
     #    + They have direct bless privileges
     #    + They are a member of a group that inherits bless privs.
-    my @group_ids = map {$_->id} @{ $self->groups };
+    my @group_ids = map { $_->id } @{ $self->groups };
     @group_ids = (-1) if !@group_ids;
     my $query =
-        'SELECT DISTINCT groups.id
-           FROM groups, user_group_map, group_group_map AS ggm
-          WHERE user_group_map.user_id = ?
-                AND ( (user_group_map.isbless = 1
-                       AND groups.id=user_group_map.group_id)
-                     OR (groups.id = ggm.grantor_id
-                         AND ggm.grant_type = ' . GROUP_BLESS . '
-                         AND ' . $dbh->sql_in('ggm.member_id', \@group_ids)
-                     . ') )';
+        'SELECT DISTINCT groups.id FROM groups, user_group_map, group_group_map AS ggm'.
+        ' WHERE user_group_map.user_id = ?'.
+        ' AND ((user_group_map.isbless = 1 AND groups.id=user_group_map.group_id)'.
+        ' OR (groups.id = ggm.grantor_id AND ggm.grant_type = ' . GROUP_BLESS .
+        ' AND ' . $dbh->sql_in('ggm.member_id', \@group_ids) . ') )';
 
     # If visibilitygroups are used, restrict the set of groups.
-    if (Bugzilla->params->{'usevisibilitygroups'}) {
+    if (Bugzilla->params->{usevisibilitygroups})
+    {
         return [] if !$self->visible_groups_as_string;
         # Users need to see a group in order to bless it.
-        $query .= " AND "
-            . $dbh->sql_in('groups.id', $self->visible_groups_inherited);
+        $query .= " AND " . $dbh->sql_in('groups.id', $self->visible_groups_inherited);
     }
 
     my $ids = $dbh->selectcol_arrayref($query, undef, $self->id);
-    return $self->{'bless_groups'} = Bugzilla::Group->new_from_list($ids);
+    return $self->{bless_groups} = Bugzilla::Group->new_from_list($ids);
 }
 
-sub in_group {
+sub in_group
+{
     my ($self, $group, $product_id) = @_;
     $group = $group->name if blessed $group;
-    if (scalar grep($_->name eq $group, @{ $self->groups })) {
+    if (scalar grep($_->name eq $group, @{ $self->groups }))
+    {
         return 1;
     }
-    elsif ($product_id && detaint_natural($product_id)) {
+    elsif ($product_id && detaint_natural($product_id))
+    {
         # Make sure $group exists on a per-product basis.
-        return 0 unless (grep {$_ eq $group} PER_PRODUCT_PRIVILEGES);
+        return 0 unless (grep { $_ eq $group } PER_PRODUCT_PRIVILEGES);
 
         $self->{"product_$product_id"} = {} unless exists $self->{"product_$product_id"};
-        if (!defined $self->{"product_$product_id"}->{$group}) {
+        if (!defined $self->{"product_$product_id"}->{$group})
+        {
             my $dbh = Bugzilla->dbh;
             my $in_group = $dbh->selectrow_array(
-                           "SELECT 1
-                              FROM group_control_map
-                             WHERE product_id = ?
-                                   AND $group != 0
-                                   AND group_id IN (" . $self->groups_as_string . ") " .
-                              $dbh->sql_limit(1),
-                             undef, $product_id);
-
+                "SELECT 1 FROM group_control_map WHERE product_id = ? AND $group != 0".
+                " AND group_id IN (" . $self->groups_as_string . ") " . $dbh->sql_limit(1),
+                undef, $product_id
+            );
             $self->{"product_$product_id"}->{$group} = $in_group ? 1 : 0;
         }
         return $self->{"product_$product_id"}->{$group};
@@ -605,24 +615,25 @@ sub in_group {
     return 0;
 }
 
-sub in_group_id {
+sub in_group_id
+{
     my ($self, $id) = @_;
     return grep($_->id == $id, @{ $self->groups }) ? 1 : 0;
 }
 
-sub get_products_by_permission {
+sub get_products_by_permission
+{
     my ($self, $group) = @_;
     # Make sure $group exists on a per-product basis.
-    return [] unless (grep {$_ eq $group} PER_PRODUCT_PRIVILEGES);
+    return [] unless grep { $_ eq $group } PER_PRODUCT_PRIVILEGES;
 
     my $product_ids = Bugzilla->dbh->selectcol_arrayref(
-                          "SELECT DISTINCT product_id
-                             FROM group_control_map
-                            WHERE $group != 0
-                              AND group_id IN(" . $self->groups_as_string . ")");
+        "SELECT DISTINCT product_id FROM group_control_map".
+        " WHERE $group != 0 AND group_id IN(" . $self->groups_as_string . ")"
+    );
 
     # No need to go further if the user has no "special" privs.
-    return [] unless scalar(@$product_ids);
+    return [] unless scalar @$product_ids;
 
     # We will restrict the list to products the user can see.
     my $selectable_products = $self->get_selectable_products;
@@ -650,47 +661,41 @@ sub get_editable_products
     return Bugzilla::Product->new_from_list(Bugzilla->dbh->selectcol_arrayref($sql) || []);
 }
 
-sub can_see_user {
+sub can_see_user
+{
     my ($self, $otherUser) = @_;
     my $query;
-
-    if (Bugzilla->params->{'usevisibilitygroups'}) {
+    if (Bugzilla->params->{usevisibilitygroups})
+    {
         # If the user can see no groups, then no users are visible either.
         my $visibleGroups = $self->visible_groups_as_string() || return 0;
-        $query = qq{SELECT COUNT(DISTINCT userid)
-                    FROM profiles, user_group_map
-                    WHERE userid = ?
-                    AND user_id = userid
-                    AND isbless = 0
-                    AND group_id IN ($visibleGroups)
-                   };
-    } else {
-        $query = qq{SELECT COUNT(userid)
-                    FROM profiles
-                    WHERE userid = ?
-                   };
+        $query =
+            "SELECT COUNT(DISTINCT userid) FROM profiles, user_group_map".
+            " WHERE userid = ? AND user_id = userid AND isbless = 0 AND group_id IN ($visibleGroups)";
+    }
+    else
+    {
+        $query = 'SELECT 1 FROM profiles WHERE userid = ?';
     }
     return Bugzilla->dbh->selectrow_array($query, undef, $otherUser->id);
 }
 
-sub can_edit_product {
+sub can_edit_product
+{
     my ($self, $prod_id) = @_;
     my $dbh = Bugzilla->dbh;
-
-    my $has_external_groups =
-      $dbh->selectrow_array('SELECT 1
-                               FROM group_control_map
-                              WHERE product_id = ?
-                                AND canedit != 0
-                                AND group_id NOT IN(' . $self->groups_as_string . ')',
-                             undef, $prod_id);
-
+    my $has_external_groups = $dbh->selectrow_array(
+        'SELECT 1 FROM group_control_map WHERE product_id = ?'.
+        ' AND canedit != 0 AND group_id NOT IN(' . $self->groups_as_string . ')',
+        undef, $prod_id
+    );
     return !$has_external_groups;
 }
 
-sub can_see_bug {
+sub can_see_bug
+{
     my ($self, $bug_id) = @_;
-    return @{ $self->visible_bugs([$bug_id]) } ? 1 : 0;
+    return @{ $self->visible_bugs([ $bug_id ]) } ? 1 : 0;
 }
 
 sub can_edit_bug
@@ -712,69 +717,63 @@ sub can_edit_bug
     return undef;
 }
 
-sub visible_bugs {
+sub visible_bugs
+{
     my ($self, $bugs) = @_;
     # Allow users to pass in Bug objects and bug ids both.
     my @bug_ids = map { blessed $_ ? $_->id : $_ } @$bugs;
 
-    # We only check the visibility of bugs that we haven't
-    # checked yet.
+    # We only check the visibility of bugs that we haven't checked yet.
     # Bugzilla::Bug->update automatically removes updated bugs
     # from the cache to force them to be checked again.
     my $visible_cache = $self->{_visible_bugs_cache} ||= {};
     my @check_ids = grep(!exists $visible_cache->{$_}, @bug_ids);
 
-    if (@check_ids) {
+    if (@check_ids)
+    {
         my $dbh = Bugzilla->dbh;
         my $user_id = $self->id;
         my $sth;
         # Speed up the can_see_bug case.
-        if (scalar(@check_ids) == 1) {
+        if (scalar(@check_ids) == 1)
+        {
             $sth = Bugzilla->dbh->{_sth_one_visible_bug};
         }
+        # This checks for groups that the bug is in that the user
+        # *isn't* in. Then, in the Perl code below, we check if
+        # the user can otherwise access the bug (for example, by being
+        # the assignee or QA Contact).
+        #
+        # The DISTINCT exists because the bug could be in *several*
+        # groups that the user isn't in, but they will all return the
+        # same result for bug_group_map.bug_id (so DISTINCT filters
+        # out duplicate rows).
         $sth ||= $dbh->prepare(
-            # This checks for groups that the bug is in that the user
-            # *isn't* in. Then, in the Perl code below, we check if
-            # the user can otherwise access the bug (for example, by being
-            # the assignee or QA Contact).
-            #
-            # The DISTINCT exists because the bug could be in *several*
-            # groups that the user isn't in, but they will all return the
-            # same result for bug_group_map.bug_id (so DISTINCT filters
-            # out duplicate rows).
-            "SELECT DISTINCT bugs.bug_id, reporter, assigned_to, qa_contact,
-                    reporter_accessible, cclist_accessible, cc.who,
-                    bug_group_map.bug_id
-               FROM bugs
-                    LEFT JOIN cc
-                              ON cc.bug_id = bugs.bug_id
-                                 AND cc.who = $user_id
-                    LEFT JOIN bug_group_map
-                              ON bugs.bug_id = bug_group_map.bug_id
-                                 AND bug_group_map.group_id NOT IN ("
-                                     . $self->groups_as_string . ')
-              WHERE bugs.bug_id IN (' . join(',', ('?') x @check_ids) . ')
-                    AND creation_ts IS NOT NULL ');
-        if (scalar(@check_ids) == 1) {
+            "SELECT DISTINCT bugs.bug_id, reporter, assigned_to, qa_contact,".
+            " reporter_accessible, cclist_accessible, cc.who on_cc, bug_group_map.bug_id grp".
+            " FROM bugs LEFT JOIN cc ON cc.bug_id = bugs.bug_id AND cc.who = ?".
+            " LEFT JOIN bug_group_map ON bugs.bug_id = bug_group_map.bug_id".
+            " AND bug_group_map.group_id NOT IN (" . $self->groups_as_string . ")".
+            " WHERE bugs.bug_id IN (" . join(',', ('?') x @check_ids) . ")"
+        );
+        if (scalar @check_ids == 1)
+        {
             Bugzilla->dbh->{_sth_one_visible_bug} = $sth;
         }
-
-        $sth->execute(@check_ids);
+        $sth->execute($user_id, @check_ids);
         my $use_qa_contact = Bugzilla->get_field('qa_contact')->enabled;
-        while (my $row = $sth->fetchrow_arrayref) {
-            my ($bug_id, $reporter, $owner, $qacontact, $reporter_access,
-                $cclist_access, $isoncclist, $missinggroup) = @$row;
-            $visible_cache->{$bug_id} ||=
-                ((($reporter == $user_id) && $reporter_access)
-                 || ($use_qa_contact
-                     && $qacontact && ($qacontact == $user_id))
-                 || ($owner == $user_id)
-                 || ($isoncclist && $cclist_access)
-                 || !$missinggroup);
+        while (my $row = $sth->fetchrow_hashref)
+        {
+            $visible_cache->{$row->{bug_id}} ||=
+                $row->{reporter} == $user_id && $row->{reporter_accessible} ||
+                $use_qa_contact && $row->{qa_contact} && $row->{qa_contact} == $user_id ||
+                $row->{assigned_to} == $user_id ||
+                $row->{on_cc} && $row->{cclist_accessible} ||
+                !$row->{grp};
         }
     }
 
-    return [grep { $visible_cache->{blessed $_ ? $_->id : $_} } @$bugs];
+    return [ grep { $visible_cache->{blessed $_ ? $_->id : $_} } @$bugs ];
 }
 
 sub administration_visible
@@ -785,24 +784,26 @@ sub administration_visible
         scalar(@{$self->get_editable_products});
 }
 
-sub clear_product_cache {
+sub clear_product_cache
+{
     my $self = shift;
     delete $self->{enterable_products};
     delete $self->{selectable_products};
     delete $self->{selectable_classifications};
 }
 
-sub can_see_product {
+sub can_see_product
+{
     my ($self, $product) = @_;
     $product = $product->name if ref $product;
-    return scalar(grep {$_->name eq $product} @{$self->get_selectable_products});
+    return scalar(grep { $_->name eq $product } @{$self->get_selectable_products});
 }
 
-sub get_selectable_products {
+sub get_selectable_products
+{
     my $self = shift;
     my $class_id = shift;
-    my $class_restricted = Bugzilla->params->{'useclassification'} && $class_id;
-
+    my $class_restricted = Bugzilla->get_field('classification')->enabled && $class_id;
     if (!defined $self->{selectable_products})
     {
         my $prod_ids;
@@ -827,10 +828,10 @@ sub get_selectable_products {
         }
         $self->{selectable_products} = Bugzilla::Product->new_from_list($prod_ids);
     }
-
     # Restrict the list of products to those being in the classification, if any.
-    if ($class_restricted) {
-        return [grep {$_->classification_id == $class_id} @{$self->{selectable_products}}];
+    if ($class_restricted)
+    {
+        return [ grep { $_->classification_id == $class_id } @{$self->{selectable_products}} ];
     }
     # If we come here, then we want all selectable products.
     return $self->{selectable_products};
@@ -857,29 +858,27 @@ sub get_selectable_classifications
     return $self->{selectable_classifications};
 }
 
-sub can_enter_product {
+sub can_enter_product
+{
     my ($self, $input, $warn) = @_;
     my $dbh = Bugzilla->dbh;
     $warn ||= 0;
 
     $input = trim($input) if !ref $input;
-    if (!defined $input or $input eq '') {
+    if (!defined $input || $input eq '')
+    {
         return unless $warn == THROW_ERROR;
-        ThrowUserError('object_not_specified',
-                       { class => 'Bugzilla::Product' });
+        ThrowUserError('object_not_specified', { class => 'Bugzilla::Product' });
     }
-
-    if (!scalar @{ $self->get_enterable_products }) {
+    if (!scalar @{ $self->get_enterable_products })
+    {
         return unless $warn == THROW_ERROR;
         ThrowUserError('no_products');
     }
 
     my $name = blessed($input) ? $input->name : $input;
-
     my $can_enter = grep($_->name eq $name, @{ $self->get_enterable_products });
-
     return 1 if $can_enter;
-
     return 0 unless $warn == THROW_ERROR;
 
     # Check why access was denied. These checks are slow,
@@ -891,79 +890,74 @@ sub can_enter_product {
     my $product = blessed($input) ? $input : new Bugzilla::Product({ name => $input });
 
     # The product could not exist or you could be denied...
-    if (!$product || !$product->user_has_access($self)) {
+    if (!$product || !$product->user_has_access($self))
+    {
         ThrowUserError('entry_access_denied', { product => $name });
     }
     # It could be closed for bug entry...
-    elsif (!$product->is_active) {
+    elsif (!$product->is_active)
+    {
         ThrowUserError('product_disabled', { product => $product });
     }
     # It could have no active components...
-    elsif (!@{$product->active_components}) {
+    elsif (!@{$product->active_components})
+    {
         ThrowUserError('missing_component', { product => $product });
     }
-    # It could have no versions...
-    elsif (!@{$product->versions}) {
-        ThrowUserError ('missing_version', { product => $product });
-    }
     # It could have the name in a different case :)
-    elsif (!blessed($input) && $product->name ne $input) {
-        ThrowUserError ('product_invalid_case', { product => $input, suggested => $product->name });
+    elsif (!blessed($input) && $product->name ne $input)
+    {
+        ThrowUserError('product_invalid_case', { product => $input, suggested => $product->name });
     }
 
     die "can_enter_product reached an unreachable location.";
 }
 
-sub get_enterable_products {
+sub get_enterable_products
+{
     my $self = shift;
     my $dbh = Bugzilla->dbh;
-
-    if (defined $self->{enterable_products}) {
+    if (defined $self->{enterable_products})
+    {
         return $self->{enterable_products};
     }
-
     # All products which the user has "Entry" access to.
     my @enterable_ids = @{$dbh->selectcol_arrayref(
-          'SELECT products.id FROM products
-        LEFT JOIN group_control_map
-                  ON group_control_map.product_id = products.id
-                     AND group_control_map.entry != 0
-                     AND group_id NOT IN (' . $self->groups_as_string . ')
-           WHERE group_id IS NULL
-                 AND products.isactive = 1') || []};
-
-    if (@enterable_ids) {
+        'SELECT products.id FROM products LEFT JOIN group_control_map'.
+        ' ON group_control_map.product_id = products.id AND group_control_map.entry != 0'.
+        ' AND group_id NOT IN (' . $self->groups_as_string . ')'.
+        ' WHERE group_id IS NULL AND products.isactive = 1'
+    ) || []};
+    if (@enterable_ids)
+    {
         # And all of these products must have at least one component.
         @enterable_ids = @{$dbh->selectcol_arrayref(
-               'SELECT DISTINCT products.id FROM products
-            INNER JOIN components ON components.product_id = products.id
-                 WHERE products.id IN (' . (join(',', @enterable_ids)) .
-            ')') || []};
+            'SELECT DISTINCT products.id FROM products'.
+            ' INNER JOIN components ON components.product_id = products.id'.
+            ' WHERE products.id IN (' . (join(',', @enterable_ids)) . ')'
+        ) || []};
     }
-
-    $self->{enterable_products} =
-         Bugzilla::Product->new_from_list(\@enterable_ids);
+    $self->{enterable_products} = Bugzilla::Product->new_from_list(\@enterable_ids);
     return $self->{enterable_products};
 }
 
-sub can_access_product {
+sub can_access_product
+{
     my ($self, $product) = @_;
     my $product_name = blessed($product) ? $product->name : $product;
     return scalar(grep {$_->name eq $product_name} @{$self->get_accessible_products});
 }
 
-sub get_accessible_products {
+sub get_accessible_products
+{
     my $self = shift;
-
     # Map the objects into a hash using the ids as keys
-    my %products = map { $_->id => $_ }
-                       @{$self->get_selectable_products},
-                       @{$self->get_enterable_products};
-
+    my %products = map { $_->id => $_ } @{$self->get_selectable_products}, @{$self->get_enterable_products};
     return [ sort { $a->name cmp $b->name } values %products ];
 }
 
-sub check_can_admin_product {
+sub check_can_admin_product
+{
     my ($self, $product_name) = @_;
 
     # First make sure the product name is valid.
@@ -977,42 +971,39 @@ sub check_can_admin_product {
     return $product;
 }
 
-sub can_request_flag {
+sub can_request_flag
+{
     my ($self, $flag_type) = @_;
-
-    return ($self->can_set_flag($flag_type)
-            || !$flag_type->request_group_id
-            || $self->in_group_id($flag_type->request_group_id)) ? 1 : 0;
+    return ($self->can_set_flag($flag_type) || !$flag_type->request_group_id
+        || $self->in_group_id($flag_type->request_group_id)) ? 1 : 0;
 }
 
-sub can_set_flag {
+sub can_set_flag
+{
     my ($self, $flag_type) = @_;
-
-    return (!$flag_type->grant_group_id
-            || $self->in_group_id($flag_type->grant_group_id)) ? 1 : 0;
+    return (!$flag_type->grant_group_id ||
+        $self->in_group_id($flag_type->grant_group_id)) ? 1 : 0;
 }
 
-sub direct_group_membership {
+sub direct_group_membership
+{
     my $self = shift;
     my $dbh = Bugzilla->dbh;
-
-    if (!$self->{'direct_group_membership'}) {
-        my $gid = $dbh->selectcol_arrayref('SELECT id
-                                              FROM groups
-                                        INNER JOIN user_group_map
-                                                ON groups.id = user_group_map.group_id
-                                             WHERE user_id = ?
-                                               AND isbless = 0',
-                                             undef, $self->id);
-        $self->{'direct_group_membership'} = Bugzilla::Group->new_from_list($gid);
+    if (!$self->{direct_group_membership})
+    {
+        my $gid = $dbh->selectcol_arrayref(
+            'SELECT id FROM groups INNER JOIN user_group_map ON groups.id = user_group_map.group_id'.
+            ' WHERE user_id = ? AND isbless = 0', undef, $self->id
+        );
+        $self->{direct_group_membership} = Bugzilla::Group->new_from_list($gid);
     }
-    return $self->{'direct_group_membership'};
+    return $self->{direct_group_membership};
 }
-
 
 # visible_groups_inherited returns a reference to a list of all the groups
 # whose members are visible to this user.
-sub visible_groups_inherited {
+sub visible_groups_inherited
+{
     my $self = shift;
     return $self->{visible_groups_inherited} if defined $self->{visible_groups_inherited};
     return [] unless $self->id;
@@ -1024,37 +1015,38 @@ sub visible_groups_inherited {
 
 # visible_groups_direct returns a reference to a list of all the groups that
 # are visible to this user.
-sub visible_groups_direct {
+sub visible_groups_direct
+{
     my $self = shift;
     my @visgroups = ();
     return $self->{visible_groups_direct} if defined $self->{visible_groups_direct};
     return [] unless $self->id;
-
     my $dbh = Bugzilla->dbh;
     my $sth;
-
-    if (Bugzilla->params->{'usevisibilitygroups'}) {
+    if (Bugzilla->params->{usevisibilitygroups})
+    {
         my $glist = $self->groups_as_string;
-        $sth = $dbh->prepare("SELECT DISTINCT grantor_id
-                                 FROM group_group_map
-                                WHERE member_id IN($glist)
-                                  AND grant_type=" . GROUP_VISIBLE);
+        $sth = $dbh->prepare(
+            "SELECT DISTINCT grantor_id FROM group_group_map".
+            " WHERE member_id IN ($glist) AND grant_type=" . GROUP_VISIBLE
+        );
     }
-    else {
+    else
+    {
         # All groups are visible if usevisibilitygroups is off.
         $sth = $dbh->prepare('SELECT id FROM groups');
     }
     $sth->execute();
-
-    while (my ($row) = $sth->fetchrow_array) {
-        push @visgroups,$row;
+    while (my ($row) = $sth->fetchrow_array)
+    {
+        push @visgroups, $row;
     }
     $self->{visible_groups_direct} = \@visgroups;
-
     return $self->{visible_groups_direct};
 }
 
-sub visible_groups_as_string {
+sub visible_groups_as_string
+{
     my $self = shift;
     return join(', ', @{$self->visible_groups_inherited()});
 }
@@ -1062,124 +1054,125 @@ sub visible_groups_as_string {
 # This function defines the groups a user may share a query with.
 # More restrictive sites may want to build this reference to a list of group IDs
 # from bless_groups instead of mirroring visible_groups_inherited, perhaps.
-sub queryshare_groups {
+sub queryshare_groups
+{
     my $self = shift;
     my @queryshare_groups;
-
     return $self->{queryshare_groups} if defined $self->{queryshare_groups};
-
-    if ($self->in_group(Bugzilla->params->{'querysharegroup'})) {
+    if ($self->in_group(Bugzilla->params->{querysharegroup}))
+    {
         # We want to be allowed to share with groups we're in only.
         # If usevisibilitygroups is on, then we need to restrict this to groups
         # we may see.
-        if (Bugzilla->params->{'usevisibilitygroups'}) {
-            foreach(@{$self->visible_groups_inherited()}) {
+        if (Bugzilla->params->{usevisibilitygroups})
+        {
+            foreach (@{$self->visible_groups_inherited()})
+            {
                 next unless $self->in_group_id($_);
-                push(@queryshare_groups, $_);
+                push @queryshare_groups, $_;
             }
         }
-        else {
+        else
+        {
             @queryshare_groups = map { $_->id } @{ $self->groups };
         }
     }
-
     return $self->{queryshare_groups} = \@queryshare_groups;
 }
 
-sub queryshare_groups_as_string {
+sub queryshare_groups_as_string
+{
     my $self = shift;
     return join(', ', @{$self->queryshare_groups()});
 }
 
-sub derive_regexp_groups {
+sub derive_regexp_groups
+{
     my ($self) = @_;
-
     my $id = $self->id;
     return unless $id;
 
     my $dbh = Bugzilla->dbh;
-
     my $sth;
 
     # add derived records for any matching regexps
-
-    $sth = $dbh->prepare("SELECT id, userregexp, user_group_map.group_id
-                            FROM groups
-                       LEFT JOIN user_group_map
-                              ON groups.id = user_group_map.group_id
-                             AND user_group_map.user_id = ?
-                             AND user_group_map.grant_type = ?");
+    $sth = $dbh->prepare(
+        "SELECT id, userregexp, user_group_map.group_id FROM groups".
+        " LEFT JOIN user_group_map ON groups.id = user_group_map.group_id".
+        " AND user_group_map.user_id = ? AND user_group_map.grant_type = ?"
+    );
     $sth->execute($id, GRANT_REGEXP);
 
-    my $group_insert = $dbh->prepare(q{INSERT INTO user_group_map
-                                       (user_id, group_id, isbless, grant_type)
-                                       VALUES (?, ?, 0, ?)});
-    my $group_delete = $dbh->prepare(q{DELETE FROM user_group_map
-                                       WHERE user_id = ?
-                                         AND group_id = ?
-                                         AND isbless = 0
-                                         AND grant_type = ?});
-    while (my ($group, $regexp, $present) = $sth->fetchrow_array()) {
-        if (($regexp ne '') && ($self->login =~ m/$regexp/i)) {
+    my $group_insert = $dbh->prepare(
+        'INSERT INTO user_group_map (user_id, group_id, isbless, grant_type) VALUES (?, ?, 0, ?)'
+    );
+    my $group_delete = $dbh->prepare(
+        'DELETE FROM user_group_map WHERE user_id=? AND group_id=? AND isbless=0 AND grant_type=?'
+    );
+    while (my ($group, $regexp, $present) = $sth->fetchrow_array())
+    {
+        if ($regexp ne '' && $self->login =~ m/$regexp/i)
+        {
             $group_insert->execute($id, $group, GRANT_REGEXP) unless $present;
-        } else {
+        }
+        else
+        {
             $group_delete->execute($id, $group, GRANT_REGEXP) if $present;
         }
     }
 }
 
-sub product_responsibilities {
+sub product_responsibilities
+{
     my $self = shift;
     my $dbh = Bugzilla->dbh;
-
-    return $self->{'product_resp'} if defined $self->{'product_resp'};
+    return $self->{product_resp} if defined $self->{product_resp};
     return [] unless $self->id;
-
-    my $list = $dbh->selectall_arrayref('SELECT product_id, id
-                                           FROM components
-                                          WHERE initialowner = ?
-                                             OR initialqacontact = ?',
-                                  {Slice => {}}, ($self->id, $self->id));
-
-    unless ($list) {
-        $self->{'product_resp'} = [];
-        return $self->{'product_resp'};
+    my $list = $dbh->selectall_arrayref(
+        'SELECT product_id, id FROM components'.
+        ' WHERE initialowner = ? OR initialqacontact = ?',
+        {Slice => {}}, ($self->id, $self->id)
+    );
+    unless ($list)
+    {
+        $self->{product_resp} = [];
+        return $self->{product_resp};
     }
-
-    my @prod_ids = map {$_->{'product_id'}} @$list;
-    my $products = Bugzilla::Product->new_from_list(\@prod_ids);
+    my $products = Bugzilla::Product->new_from_list([ map { $_->{product_id} } @$list ]);
     # We cannot |use| it, because Component.pm already |use|s User.pm.
     require Bugzilla::Component;
-    my @comp_ids = map {$_->{'id'}} @$list;
-    my $components = Bugzilla::Component->new_from_list(\@comp_ids);
-
+    my $components = Bugzilla::Component->new_from_list([ map { $_->{id} } @$list ]);
     my @prod_list;
     # @$products is already sorted alphabetically.
-    foreach my $prod (@$products) {
+    foreach my $prod (@$products)
+    {
         # We use @components instead of $prod->components because we only want
         # components where the user is either the default assignee or QA contact.
-        push(@prod_list, {product    => $prod,
-                          components => [grep {$_->product_id == $prod->id} @$components]});
+        push @prod_list, {
+            product    => $prod,
+            components => [ grep { $_->product_id == $prod->id } @$components ],
+        };
     }
-    $self->{'product_resp'} = \@prod_list;
-    return $self->{'product_resp'};
+    $self->{product_resp} = \@prod_list;
+    return $self->{product_resp};
 }
 
-sub can_bless {
+sub can_bless
+{
     my $self = shift;
-
-    if (!scalar(@_)) {
+    if (!scalar(@_))
+    {
         # If we're called without an argument, just return
         # whether or not we can bless at all.
         return scalar(@{ $self->bless_groups }) ? 1 : 0;
     }
-
     # Otherwise, we're checking a specific group
     my $group_id = shift;
     return grep($_->id == $group_id, @{ $self->bless_groups }) ? 1 : 0;
 }
 
-sub match_name {
+sub match_name
+{
     # Generates a list of users whose login name (email address) or real name
     # matches a substring or wildcard.
     # This is also called if matches are disabled (for error checking), but
@@ -1203,52 +1196,52 @@ sub match_name {
     my $wildstr = $str;
 
     # Do not do wildcards if there is no '*' in the string.
-    if ($wildstr =~ s/\*/\%/g && $user->id) {
+    if ($wildstr =~ s/\*/\%/g && $user->id)
+    {
         # Build the query.
         trick_taint($wildstr);
-        my $query  = "SELECT DISTINCT userid FROM profiles ";
-        if (Bugzilla->params->{'usevisibilitygroups'}) {
-            $query .= "INNER JOIN user_group_map
-                               ON user_group_map.user_id = profiles.userid ";
+        my $query  = "SELECT DISTINCT userid FROM profiles";
+        if (Bugzilla->params->{usevisibilitygroups})
+        {
+            $query .= " INNER JOIN user_group_map ON user_group_map.user_id = profiles.userid";
         }
-        $query .= "WHERE ("
-            . $dbh->sql_istrcmp('login_name', '?', "LIKE") . " OR " .
-              $dbh->sql_istrcmp('realname', '?', "LIKE") . ") ";
-        if (Bugzilla->params->{'usevisibilitygroups'}) {
-            $query .= "AND isbless = 0 " .
-                      "AND group_id IN(" .
-                      join(', ', (-1, @{$user->visible_groups_inherited})) . ") ";
+        $query .= " WHERE (" . $dbh->sql_istrcmp('login_name', '?', "LIKE") .
+            " OR " . $dbh->sql_istrcmp('realname', '?', "LIKE") . ")";
+        if (Bugzilla->params->{usevisibilitygroups})
+        {
+            $query .= " AND isbless = 0 AND group_id IN (" .
+                join(', ', (-1, @{$user->visible_groups_inherited})) . ")";
         }
-        $query    .= " AND is_enabled = 1 " if $exclude_disabled;
-        $query    .= $dbh->sql_limit($limit) if $limit;
+        $query .= " AND is_enabled = 1" if $exclude_disabled;
+        $query .= ' '.$dbh->sql_limit($limit) if $limit;
 
         # Execute the query, retrieve the results, and make them into
         # User objects.
-        my $user_ids = $dbh->selectcol_arrayref($query, undef, ($wildstr, $wildstr));
+        my $user_ids = $dbh->selectcol_arrayref($query, undef, $wildstr, $wildstr);
         @users = @{Bugzilla::User->new_from_list($user_ids)};
     }
-    else {    # try an exact match
-        # Exact matches don't care if a user is disabled.
+    else
+    {
+        # Try an exact match; exact matches don't care if a user is disabled.
         trick_taint($str);
-        my $user_id = $dbh->selectrow_array('SELECT userid FROM profiles
-                                             WHERE ' . $dbh->sql_istrcmp('login_name', '?'),
-                                             undef, $str);
-
-        push(@users, new Bugzilla::User($user_id)) if $user_id;
+        my $user_id = $dbh->selectrow_array(
+            'SELECT userid FROM profiles WHERE ' . $dbh->sql_istrcmp('login_name', '?'),
+            undef, $str
+        );
+        push @users, Bugzilla::User->new($user_id) if $user_id;
     }
 
     # then try substring search
     if (!scalar(@users) && length($str) >= 3 && $user->id)
     {
         trick_taint($str);
-
         my $query = "SELECT DISTINCT userid FROM profiles ";
-        if (Bugzilla->params->{'usevisibilitygroups'}) {
+        if (Bugzilla->params->{usevisibilitygroups})
+        {
             $query .= "INNER JOIN user_group_map ON user_group_map.user_id = profiles.userid ";
         }
-        $query .= " WHERE (" .
-            $dbh->sql_iposition('?', 'login_name') . " > 0" . " OR " .
-            $dbh->sql_iposition('?', 'realname') . " > 0";
+        $query .= " WHERE (" . $dbh->sql_iposition('?', 'login_name') . " > 0" .
+            " OR " . $dbh->sql_iposition('?', 'realname') . " > 0";
         my @bind = ($str, $str);
         if (Bugzilla->params->{levenshteinusermatch} > 0)
         {
@@ -1256,16 +1249,19 @@ sub match_name {
             # try Levenshtein distance also, if enabled
             my $n = Bugzilla->params->{levenshteinusermatch};
             $query .= " OR levenshtein(?, login_name) < ".($n < 1 ? "FLOOR(? * LENGTH(login_name))" : "?");
-            $query .= " OR (CASE WHEN INSTR(login_name, '\@') > 0 THEN levenshtein(?, SUBSTR(login_name, 1, INSTR(login_name, '\@')-1)) ELSE NULL END) < ".($n < 1 ? "FLOOR(? * (INSTR(login_name, '\@')-1))" : "?");
+            $query .= " OR (CASE WHEN INSTR(login_name, '\@') > 0".
+                " THEN levenshtein(?, SUBSTR(login_name, 1, INSTR(login_name, '\@')-1))".
+                " ELSE NULL END) < ".($n < 1 ? "FLOOR(? * (INSTR(login_name, '\@')-1))" : "?");
             push @bind, $str, $n;
             push @bind, $str, $n;
         }
         $query .= ") ";
-        if (Bugzilla->params->{'usevisibilitygroups'}) {
-            $query .= " AND isbless = 0 AND group_id IN(" . join(', ', (-1, @{$user->visible_groups_inherited})) . ") ";
+        if (Bugzilla->params->{usevisibilitygroups})
+        {
+            $query .= " AND isbless = 0 AND group_id IN (" . join(', ', (-1, @{$user->visible_groups_inherited})) . ")";
         }
-        $query .= " AND is_enabled = 1 " if $exclude_disabled;
-        $query .= $dbh->sql_limit($limit) if $limit;
+        $query .= " AND is_enabled = 1" if $exclude_disabled;
+        $query .= ' '.$dbh->sql_limit($limit) if $limit;
         my $user_ids = $dbh->selectcol_arrayref($query, undef, @bind);
         @users = @{Bugzilla::User->new_from_list($user_ids)};
     }
@@ -1273,7 +1269,8 @@ sub match_name {
     return \@users;
 }
 
-sub match_field {
+sub match_field
+{
     my $fields       = shift;   # arguments as a hash
     my $data         = shift || Bugzilla->input_params; # hash to look up fields in
     my $cgi          = $data eq Bugzilla->input_params ? Bugzilla->cgi : undef;
@@ -1292,38 +1289,46 @@ sub match_field {
     # (f.e. "requestee-(\d+)"), so expand each non-literal field
     # into the list of form fields it matches.
     my $expanded_fields = {};
-    foreach my $field_pattern (keys %{$fields}) {
+    foreach my $field_pattern (keys %{$fields})
+    {
         # Check if the field has any non-word characters.  Only those fields
         # can be regular expressions, so don't expand the field if it doesn't
         # have any of those characters.
-        if ($field_pattern =~ /^\w+$/) {
+        if ($field_pattern =~ /^\w+$/)
+        {
             $expanded_fields->{$field_pattern} = $fields->{$field_pattern};
         }
-        else {
+        else
+        {
             my @field_names = grep(/$field_pattern/, keys %$data);
 
-            foreach my $field_name (@field_names) {
-                $expanded_fields->{$field_name} =
-                  { type => $fields->{$field_pattern}->{'type'} };
+            foreach my $field_name (@field_names)
+            {
+                $expanded_fields->{$field_name} = { type => $fields->{$field_pattern}->{type} };
 
                 # The field is a requestee field; in order for its name
                 # to show up correctly on the confirmation page, we need
                 # to find out the name of its flag type.
-                if ($field_name =~ /^requestee(_type)?-(\d+)$/) {
+                if ($field_name =~ /^requestee(_type)?-(\d+)$/)
+                {
                     my $flag_type;
-                    if ($1) {
+                    if ($1)
+                    {
                         require Bugzilla::FlagType;
                         $flag_type = new Bugzilla::FlagType($2);
                     }
-                    else {
+                    else
+                    {
                         require Bugzilla::Flag;
                         my $flag = new Bugzilla::Flag($2);
                         $flag_type = $flag->type if $flag;
                     }
-                    if ($flag_type) {
-                        $expanded_fields->{$field_name}->{'flag_type'} = $flag_type;
+                    if ($flag_type)
+                    {
+                        $expanded_fields->{$field_name}->{flag_type} = $flag_type;
                     }
-                    else {
+                    else
+                    {
                         # No need to look for a valid requestee if the flag(type)
                         # has been deleted (may occur in race conditions).
                         delete $expanded_fields->{$field_name};
@@ -1336,15 +1341,18 @@ sub match_field {
     }
     $fields = $expanded_fields;
 
-    foreach my $field (keys %{$fields}) {
+    foreach my $field (keys %{$fields})
+    {
         next unless defined $data->{$field};
 
         # Concatenate login names, so that we have a common way to handle them.
         my $raw_field;
-        if (ref $data->{$field}) {
+        if (ref $data->{$field})
+        {
             $raw_field = join(" ", @{$data->{$field}});
         }
-        else {
+        else
+        {
             $raw_field = $data->{$field};
         }
         $raw_field = clean_text($raw_field || '');
@@ -1353,26 +1361,29 @@ sub match_field {
         # into @queries, or in the case of fields which only accept single
         # entries, we simply use the verbatim text.
         my @queries;
-        if ($fields->{$field}->{'type'} eq 'single') {
+        if ($fields->{$field}->{type} eq 'single')
+        {
             @queries = ($raw_field);
             # We will repopulate it later if a match is found, else it must
             # be set to an empty string so that the field remains defined.
             $data->{$field} = '';
             $cgi->param($field, '') if $cgi;
         }
-        elsif ($fields->{$field}->{'type'} eq 'multi') {
-            @queries =  split(/[\s,;]+/, $raw_field);
+        elsif ($fields->{$field}->{type} eq 'multi')
+        {
+            @queries = split(/[\s,;]+/, $raw_field);
             # We will repopulate it later if a match is found, else it must
             # be undefined.
             delete $data->{$field};
             $cgi->delete($field) if $cgi;
         }
-        else {
+        else
+        {
             # bad argument
-            ThrowCodeError('bad_arg',
-                           { argument => $fields->{$field}->{'type'},
-                             function =>  'Bugzilla::User::match_field',
-                           });
+            ThrowCodeError('bad_arg', {
+                argument => $fields->{$field}->{'type'},
+                function =>  'Bugzilla::User::match_field',
+            });
         }
 
         # Tolerate fields that do not exist (in case you specify
@@ -1380,12 +1391,14 @@ sub match_field {
         next unless (defined $raw_field && $raw_field ne '');
 
         my $limit = 0;
-        if ($params->{'maxusermatches'}) {
-            $limit = $params->{'maxusermatches'} + 1;
+        if ($params->{maxusermatches})
+        {
+            $limit = $params->{maxusermatches} + 1;
         }
 
         my @logins;
-        for my $query (@queries) {
+        for my $query (@queries)
+        {
             my $users = match_name(
                 $query,   # match string
                 $limit,   # match limit
@@ -1393,82 +1406,84 @@ sub match_field {
             );
 
             # here is where it checks for multiple matches
-            if (scalar(@{$users}) == 1) { # exactly one match
-                push(@logins, @{$users}[0]->login);
+            if (scalar @$users == 1)
+            {
+                # exactly one match
+                push @logins, @{$users}[0]->login;
 
                 # skip confirmation for exact matches
-                next if (lc(@{$users}[0]->login) eq lc($query));
+                next if lc(@{$users}[0]->login) eq lc($query);
 
-                $matches->{$field}->{$query}->{'status'} = 'success';
-                $need_confirm = 1 if $params->{'confirmuniqueusermatch'};
+                $matches->{$field}->{$query}->{status} = 'success';
+                $need_confirm = 1 if $params->{confirmuniqueusermatch};
 
             }
-            elsif ((scalar(@{$users}) > 1)
-                    && ($params->{'maxusermatches'} != 1)) {
+            elsif (scalar @$users > 1 && $params->{maxusermatches} != 1)
+            {
                 $need_confirm = 1;
                 $match_multiple = 1;
-                push(@non_conclusive_fields, $field);
-
-                if (($params->{'maxusermatches'})
-                   && (scalar(@{$users}) > $params->{'maxusermatches'}))
+                push @non_conclusive_fields, $field;
+                if ($params->{maxusermatches} && scalar @$users > $params->{maxusermatches})
                 {
-                    $matches->{$field}->{$query}->{'status'} = 'trunc';
-                    pop @{$users};  # take the last one out
+                    $matches->{$field}->{$query}->{status} = 'trunc';
+                    pop @{$users}; # take the last one out
                 }
-                else {
-                    $matches->{$field}->{$query}->{'status'} = 'success';
+                else
+                {
+                    $matches->{$field}->{$query}->{status} = 'success';
                 }
-
             }
-            else {
+            else
+            {
                 # everything else fails
                 $matchsuccess = 0; # fail
-                push(@non_conclusive_fields, $field);
-                $matches->{$field}->{$query}->{'status'} = 'fail';
+                push @non_conclusive_fields, $field;
+                $matches->{$field}->{$query}->{status} = 'fail';
                 $need_confirm = 1;  # confirmation screen shows failures
             }
-
-            $matches->{$field}->{$query}->{'users'}  = $users;
+            $matches->{$field}->{$query}->{users} = $users;
         }
-
         # If no match or more than one match has been found for a field
         # expecting only one match (type eq "single"), we set it back to ''
         # so that the caller of this function can still check whether this
         # field was defined or not (and it was if we came here).
-        if ($fields->{$field}->{'type'} eq 'single') {
+        if ($fields->{$field}->{type} eq 'single')
+        {
             $data->{$field} = $logins[0] || '';
             $cgi->param($field, $logins[0] || '') if $cgi;
         }
-        elsif (scalar @logins) {
+        elsif (scalar @logins)
+        {
             $data->{$field} = \@logins;
             $cgi->param($field, @logins) if $cgi;
         }
     }
-
     my $retval;
-    if (!$matchsuccess) {
+    if (!$matchsuccess)
+    {
         $retval = USER_MATCH_FAILED;
     }
-    elsif ($match_multiple) {
+    elsif ($match_multiple)
+    {
         $retval = USER_MATCH_MULTIPLE;
     }
-    else {
+    else
+    {
         $retval = USER_MATCH_SUCCESS;
     }
 
     # Skip confirmation if we were told to, or if we don't need to confirm.
-    if ($behavior == MATCH_SKIP_CONFIRM || !$need_confirm) {
+    if ($behavior == MATCH_SKIP_CONFIRM || !$need_confirm)
+    {
         return wantarray ? ($retval, \@non_conclusive_fields) : $retval;
     }
 
     my $vars = {};
-
-    $vars->{'script'}        = $cgi->url(-relative => 1); # for self-referencing URLs
-    $vars->{'fields'}        = $fields; # fields being matched
-    $vars->{'matches'}       = $matches; # matches that were made
-    $vars->{'matchsuccess'}  = $matchsuccess; # continue or fail
-    $vars->{'matchmultiple'} = $match_multiple;
-
+    $vars->{script}        = $cgi->url(-relative => 1); # for self-referencing URLs
+    $vars->{fields}        = $fields; # fields being matched
+    $vars->{matches}       = $matches; # matches that were made
+    $vars->{matchsuccess}  = $matchsuccess; # continue or fail
+    $vars->{matchmultiple} = $match_multiple;
     Bugzilla->template->process("global/confirm-user-match.html.tmpl", $vars)
         || ThrowTemplateError(Bugzilla->template->error());
     exit;
@@ -1509,43 +1524,46 @@ our %names_to_events = (
     'Attachment mime type'   => EVT_ATTACHMENT_DATA,
     'Attachment is patch'    => EVT_ATTACHMENT_DATA,
     'Depends on'             => EVT_DEPEND_BLOCK,
-    'Blocks'                 => EVT_DEPEND_BLOCK);
+    'Blocks'                 => EVT_DEPEND_BLOCK,
+);
 
 # Returns true if the user wants mail for a given bug change.
 # Note: the "+" signs before the constants suppress bareword quoting.
-sub wants_bug_mail {
+sub wants_bug_mail
+{
     my $self = shift;
-    my ($bug_id, $relationship, $fieldDiffs, $comments, $dependencyText,
-        $changer, $bug_is_new) = @_;
+    my ($bug_id, $relationship, $fieldDiffs, $comments, $dependencyText, $changer, $bug_is_new) = @_;
 
     # Make a list of the events which have happened during this bug change,
     # from the point of view of this user.
     my %events;
-    foreach my $diff (@$fieldDiffs) {
-        # Custis Bug 100052
-        if ($diff->{dep}) {
+    foreach my $diff (@$fieldDiffs)
+    {
+        # "Blocking bug is reopened or closed" (Custis Bug 100052)
+        if ($diff->{dep})
+        {
             $events{+EVT_DEPEND_REOPEN} = 1;
             next;
         }
-
         # A change to any of the above fields sets the corresponding event
-        if (defined($names_to_events{$diff->{fielddesc}})) {
+        if (defined($names_to_events{$diff->{fielddesc}}))
+        {
             $events{$names_to_events{$diff->{fielddesc}}} = 1;
         }
-        else {
+        else
+        {
             # Catch-all for any change not caught by a more specific event
             $events{+EVT_OTHER} = 1;
         }
-
         # If the user is in a particular role and the value of that role
         # changed, we need the ADDED_REMOVED event.
-        if (($diff->{fielddesc} eq "AssignedTo" && $relationship == REL_ASSIGNEE) ||
-            ($diff->{fielddesc} eq "QAContact" && $relationship == REL_QA))
+        if ($diff->{fielddesc} eq "AssignedTo" && $relationship == REL_ASSIGNEE ||
+            $diff->{fielddesc} eq "QAContact" && $relationship == REL_QA)
         {
             $events{+EVT_ADDED_REMOVED} = 1;
         }
-
-        if ($diff->{fielddesc} eq "CC") {
+        if ($diff->{fielddesc} eq "CC")
+        {
             my $login = $self->login;
             my $inold = ($diff->{removed} =~ /^(.*,\s*)?\Q$login\E(,.*)?$/);
             my $innew = ($diff->{added} =~ /^(.*,\s*)?\Q$login\E(,.*)?$/);
@@ -1556,46 +1574,45 @@ sub wants_bug_mail {
         }
     }
 
-    if ($bug_is_new) {
+    if ($bug_is_new)
+    {
         # Notify about new bugs.
         $events{+EVT_BUG_CREATED} = 1;
-
         # You role is new if the bug itself is.
         # Only makes sense for the assignee, QA contact and the CC list.
         # FIXME Remove this block. Its inconvenience is:
-        # FIXME you remove the "Bug Created" checkbox on the Email Preferences page,
-        # FIXME but emails are still sent. This is non-intuitive.
-        if ($relationship == REL_ASSIGNEE
-            || $relationship == REL_QA
-            || $relationship == REL_CC)
+        # FIXME   you remove the "Bug Created" checkbox on the Email Preferences page,
+        # FIXME   but emails are still sent. This is non-intuitive.
+        if ($relationship == REL_ASSIGNEE || $relationship == REL_QA || $relationship == REL_CC)
         {
             $events{+EVT_ADDED_REMOVED} = 1;
         }
     }
 
-    if (grep { $_->type == CMT_ATTACHMENT_CREATED } @$comments) {
+    if (grep { $_->type == CMT_ATTACHMENT_CREATED } @$comments)
+    {
         $events{+EVT_ATTACHMENT} = 1;
     }
-    elsif (defined($$comments[0])) {
+    elsif (defined $$comments[0])
+    {
         $events{+EVT_COMMENT} = 1;
     }
 
-    # Dependent changed bugmails must have an event to ensure the bugmail is
-    # emailed.
-    if ($dependencyText ne '') {
+    # Dependent changed bugmails must have an event to ensure the bugmail is emailed.
+    if ($dependencyText ne '')
+    {
         $events{+EVT_DEPEND_BLOCK} = 1;
     }
 
     my @event_list = keys %events;
-
     my $wants_mail = $self->wants_mail(\@event_list, $relationship);
 
     # The negative events are handled separately - they can't be incorporated
     # into the first wants_mail call, because they are of the opposite sense.
     #
-    # We do them separately because if _any_ of them are set, we don't want
-    # the mail.
-    if ($wants_mail && $changer && $self->id eq $changer->id) {
+    # We do them separately because if _any_ of them are set, we don't want the mail.
+    if ($wants_mail && $changer && $self->id eq $changer->id)
+    {
         $wants_mail &= $self->wants_mail([EVT_CHANGED_BY_ME], $relationship);
     }
 
@@ -1612,7 +1629,7 @@ sub wants_bug_mail {
         );
         if (!$is_confirmed)
         {
-            $wants_mail &= $self->wants_mail([EVT_UNCONFIRMED], $relationship);
+            $wants_mail &= $self->wants_mail([ EVT_UNCONFIRMED ], $relationship);
         }
     }
 
@@ -1620,7 +1637,8 @@ sub wants_bug_mail {
 }
 
 # Returns true if the user wants mail for a given set of events.
-sub wants_mail {
+sub wants_mail
+{
     my $self = shift;
     my ($events, $relationship) = @_;
 
@@ -1634,7 +1652,8 @@ sub wants_mail {
     return 0 if !scalar(@$events);
 
     # If a relationship isn't given, default to REL_ANY.
-    if (!defined($relationship)) {
+    if (!defined($relationship))
+    {
         $relationship = REL_ANY;
     }
 
@@ -1642,16 +1661,11 @@ sub wants_mail {
     return 1 if $relationship == REL_GLOBAL_WATCHER;
 
     my $dbh = Bugzilla->dbh;
-
-    my $wants_mail =
-        $dbh->selectrow_array('SELECT 1
-                                 FROM email_setting
-                                WHERE user_id = ?
-                                  AND relationship = ?
-                                  AND event IN (' . join(',', @$events) . ') ' .
-                                      $dbh->sql_limit(1),
-                              undef, ($self->id, $relationship));
-
+    my $wants_mail = $dbh->selectrow_array(
+        'SELECT 1 FROM email_setting WHERE user_id = ? AND relationship = ?'.
+        ' AND event IN (' . join(',', @$events) . ') ' . $dbh->sql_limit(1),
+        undef, $self->id, $relationship
+    );
     return defined($wants_mail) ? 1 : 0;
 }
 
@@ -1666,39 +1680,41 @@ sub is_mover
     return $self->{is_mover};
 }
 
-sub is_insider {
+sub is_insider
+{
     my $self = shift;
-
-    if (!defined $self->{'is_insider'}) {
-        my $insider_group = Bugzilla->params->{'insidergroup'};
-        $self->{'is_insider'} =
-            ($insider_group && $self->in_group($insider_group)) ? 1 : 0;
+    if (!defined $self->{is_insider})
+    {
+        my $insider_group = Bugzilla->params->{insidergroup};
+        $self->{is_insider} = $insider_group && $self->in_group($insider_group) ? 1 : 0;
     }
-    return $self->{'is_insider'};
+    return $self->{is_insider};
 }
 
-sub is_global_watcher {
+sub is_global_watcher
+{
     my $self = shift;
-
-    if (!defined $self->{'is_global_watcher'}) {
-        my @watchers = split(/[,\s]+/, Bugzilla->params->{'globalwatchers'});
-        $self->{'is_global_watcher'} = scalar(grep { $_ eq $self->login } @watchers) ? 1 : 0;
+    if (!defined $self->{is_global_watcher})
+    {
+        my @watchers = split /[,\s]+/, Bugzilla->params->{globalwatchers};
+        $self->{is_global_watcher} = scalar(grep { $_ eq $self->login } @watchers) ? 1 : 0;
     }
-    return  $self->{'is_global_watcher'};
+    return $self->{is_global_watcher};
 }
 
-sub is_timetracker {
+sub is_timetracker
+{
     my $self = shift;
-
-    if (!defined $self->{'is_timetracker'}) {
-        my $tt_group = Bugzilla->params->{'timetrackinggroup'};
-        $self->{'is_timetracker'} =
-            ($tt_group && $self->in_group($tt_group)) ? 1 : 0;
+    if (!defined $self->{is_timetracker})
+    {
+        my $tt_group = Bugzilla->params->{timetrackinggroup};
+        $self->{is_timetracker} = ($tt_group && $self->in_group($tt_group)) ? 1 : 0;
     }
-    return $self->{'is_timetracker'};
+    return $self->{is_timetracker};
 }
 
-sub wants_worktime_reminder {
+sub wants_worktime_reminder
+{
     my $self = shift;
     my ($new_bug) = @_;
     my $set = 'remind_me_about_worktime';
@@ -1711,7 +1727,8 @@ sub wants_worktime_reminder {
         ? 1 : 0;
 }
 
-sub wants_request_reminder {
+sub wants_request_reminder
+{
     my $self = shift;
     return $self &&
         $self->settings->{remind_me_about_flags} &&
@@ -1720,6 +1737,7 @@ sub wants_request_reminder {
         ? 1 : 0;
 }
 
+# FIXME: Remove get_userlist API; it's highly specific to caller
 sub get_userlist
 {
     my $self = shift;
@@ -1769,23 +1787,28 @@ sub create
     my $user = $class->SUPER::create($params);
 
     # Turn on all email for the new user
-    foreach my $rel (RELATIONSHIPS) {
-        foreach my $event (POS_EVENTS, NEG_EVENTS) {
+    foreach my $rel (RELATIONSHIPS)
+    {
+        foreach my $event (POS_EVENTS, NEG_EVENTS)
+        {
             # These "exceptions" define the default email preferences.
             #
             # We enable mail unless the change was made by the user, or it's
             # just a CC list addition and the user is not the reporter.
-            next if ($event == EVT_CHANGED_BY_ME);
-            next if (($event == EVT_CC) && ($rel != REL_REPORTER));
-
-            $dbh->do('INSERT INTO email_setting (user_id, relationship, event)
-                      VALUES (?, ?, ?)', undef, ($user->id, $rel, $event));
+            next if $event == EVT_CHANGED_BY_ME;
+            next if $event == EVT_CC && $rel != REL_REPORTER;
+            $dbh->do(
+                'INSERT INTO email_setting (user_id, relationship, event) VALUES (?, ?, ?)',
+                undef, $user->id, $rel, $event
+            );
         }
     }
-
-    foreach my $event (GLOBAL_EVENTS) {
-        $dbh->do('INSERT INTO email_setting (user_id, relationship, event)
-                  VALUES (?, ?, ?)', undef, ($user->id, REL_ANY, $event));
+    foreach my $event (GLOBAL_EVENTS)
+    {
+        $dbh->do(
+            'INSERT INTO email_setting (user_id, relationship, event) VALUES (?, ?, ?)',
+            undef, $user->id, REL_ANY, $event
+        );
     }
 
     $user->derive_regexp_groups();
@@ -1796,10 +1819,11 @@ sub create
     my $who = Bugzilla->user->id || $user->id;
     my $creation_date_fieldid = Bugzilla->get_field('creation_ts')->id;
 
-    $dbh->do('INSERT INTO profiles_activity
-                          (userid, who, profiles_when, fieldid, newvalue)
-                   VALUES (?, ?, NOW(), ?, NOW())',
-                   undef, ($user->id, $who, $creation_date_fieldid));
+    $dbh->do(
+        'INSERT INTO profiles_activity (userid, who, profiles_when, fieldid, newvalue)'.
+        ' VALUES (?, ?, NOW(), ?, NOW())',
+        undef, $user->id, $who, $creation_date_fieldid
+    );
 
     $dbh->bz_commit_transaction();
 
@@ -1807,7 +1831,8 @@ sub create
     return $user;
 }
 
-sub read_new_functionality {
+sub read_new_functionality
+{
     my ($self) = @_;
     my $cgi = Bugzilla->cgi;
     my $time = $cgi->cookie('read_new_functionality');
@@ -1821,43 +1846,49 @@ sub read_new_functionality {
 # Account Lockout Methods #
 ###########################
 
-sub account_is_locked_out {
+sub account_is_locked_out
+{
     my $self = shift;
     my $login_failures = scalar @{ $self->account_ip_login_failures };
     return Bugzilla->params->{max_login_attempts} && $login_failures >= Bugzilla->params->{max_login_attempts} ? 1 : 0;
 }
 
-sub note_login_failure {
+sub note_login_failure
+{
     my $self = shift;
     my $ip_addr = remote_ip();
     trick_taint($ip_addr);
-    Bugzilla->dbh->do("INSERT INTO login_failure (user_id, ip_addr, login_time)
-                       VALUES (?, ?, LOCALTIMESTAMP(0))",
-                      undef, $self->id, $ip_addr);
+    Bugzilla->dbh->do(
+        "INSERT INTO login_failure (user_id, ip_addr, login_time) VALUES (?, ?, LOCALTIMESTAMP(0))",
+        undef, $self->id, $ip_addr
+    );
     delete $self->{account_ip_login_failures};
 }
 
-sub clear_login_failures {
+sub clear_login_failures
+{
     my $self = shift;
     my $ip_addr = remote_ip();
     trick_taint($ip_addr);
     Bugzilla->dbh->do(
         'DELETE FROM login_failure WHERE user_id = ? AND ip_addr = ?',
-        undef, $self->id, $ip_addr);
+        undef, $self->id, $ip_addr
+    );
     delete $self->{account_ip_login_failures};
 }
 
-sub account_ip_login_failures {
+sub account_ip_login_failures
+{
     my $self = shift;
     my $dbh = Bugzilla->dbh;
     my $time = $dbh->sql_interval(Bugzilla->params->{login_lockout_interval}, 'MINUTE');
     my $ip_addr = remote_ip();
     trick_taint($ip_addr);
     $self->{account_ip_login_failures} ||= Bugzilla->dbh->selectall_arrayref(
-        "SELECT login_time, ip_addr, user_id FROM login_failure
-          WHERE user_id = ? AND login_time > LOCALTIMESTAMP(0) - $time
-                AND ip_addr = ?
-       ORDER BY login_time", {Slice => {}}, $self->id, $ip_addr);
+        "SELECT login_time, ip_addr, user_id FROM login_failure".
+        " WHERE user_id = ? AND login_time > LOCALTIMESTAMP(0) - $time AND ip_addr = ?".
+        " ORDER BY login_time", {Slice => {}}, $self->id, $ip_addr
+    );
     return $self->{account_ip_login_failures};
 }
 
@@ -1865,13 +1896,13 @@ sub account_ip_login_failures {
 # Subroutines #
 ###############
 
-sub is_available_username {
+sub is_available_username
+{
     my ($username, $old_username) = @_;
-
-    if(login_to_id($username) != 0) {
+    if (login_to_id($username) != 0)
+    {
         return 0;
     }
-
     my $dbh = Bugzilla->dbh;
     # $username is safe because it is only used in SELECT placeholders.
     trick_taint($username);
@@ -1882,46 +1913,41 @@ sub is_available_username {
     # was unsafe and required weird escaping; using substring to pull out
     # the new/old email addresses and sql_position() to find the delimiter (':')
     # is cleaner/safer
+    my $sc = $dbh->sql_position("':'", 'eventdata');
     my $eventdata = $dbh->selectrow_array(
-        "SELECT eventdata
-           FROM tokens
-          WHERE (tokentype = 'emailold'
-                AND SUBSTRING(eventdata, 1, (" .
-                    $dbh->sql_position(q{':'}, 'eventdata') . "-  1)) = ?)
-             OR (tokentype = 'emailnew'
-                AND SUBSTRING(eventdata, (" .
-                    $dbh->sql_position(q{':'}, 'eventdata') . "+ 1), LENGTH(eventdata)) = ?)",
-         undef, ($username, $username));
-
-    if ($eventdata) {
+        "SELECT eventdata FROM tokens".
+        " WHERE (tokentype = 'emailold' AND SUBSTRING(eventdata, 1, $sc - 1) = ?)" .
+        " OR (tokentype = 'emailnew' AND SUBSTRING(eventdata, $sc + 1, LENGTH(eventdata)) = ?)",
+         undef, $username, $username
+    );
+    if ($eventdata)
+    {
         # Allow thru owner of token
-        if($old_username && ($eventdata eq "$old_username:$username")) {
+        if ($old_username && ($eventdata eq "$old_username:$username"))
+        {
             return 1;
         }
         return 0;
     }
-
     return 1;
 }
 
-sub check_account_creation_enabled {
+sub check_account_creation_enabled
+{
     my $self = shift;
-
     # If we're using e.g. LDAP for login, then we can't create a new account.
-    $self->authorizer->user_can_create_account
-      || ThrowUserError('auth_cant_create_account');
-
-    Bugzilla->params->{'createemailregexp'}
-      || ThrowUserError('account_creation_disabled');
+    $self->authorizer->user_can_create_account || ThrowUserError('auth_cant_create_account');
+    Bugzilla->params->{createemailregexp} || ThrowUserError('account_creation_disabled');
 }
 
-sub check_and_send_account_creation_confirmation {
+sub check_and_send_account_creation_confirmation
+{
     my ($self, $login) = @_;
 
     $login = $self->check_login_name_for_creation($login);
-    my $creation_regexp = Bugzilla->params->{'createemailregexp'};
-
-    if ($login !~ /$creation_regexp/i) {
+    my $creation_regexp = Bugzilla->params->{createemailregexp};
+    if ($login !~ /$creation_regexp/i)
+    {
         ThrowUserError('account_creation_restricted');
     }
 
@@ -1961,12 +1987,15 @@ sub login_to_id
     return 0;
 }
 
-sub validate_password {
+sub validate_password
+{
     my ($password, $matchpassword) = @_;
-
-    if (length($password) < USER_PASSWORD_MIN_LENGTH) {
+    if (length($password) < USER_PASSWORD_MIN_LENGTH)
+    {
         ThrowUserError('password_too_short');
-    } elsif ((defined $matchpassword) && ($password ne $matchpassword)) {
+    }
+    elsif (defined $matchpassword && $password ne $matchpassword)
+    {
         ThrowUserError('passwords_dont_match');
     }
     # Having done these checks makes us consider the password untainted.
