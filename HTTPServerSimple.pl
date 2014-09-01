@@ -268,13 +268,16 @@ sub handle_request
 {
     my $self = shift;
     # Set SCRIPT_NAME to REQUEST_URI and clear PATH_INFO
+    # Prevent path traversal
+    $ENV{REQUEST_URI} =~ tr!\\!/!;
+    $ENV{REQUEST_URI} =~ s!\.+/+!!giso;
+    $ENV{REQUEST_URI} =~ s!^/*!/!iso;
     $ENV{SCRIPT_NAME} = $ENV{REQUEST_URI};
     $ENV{PATH_INFO} = '';
     # Set non-parsed-headers CGI mode
     CGI::nph(1);
     # Determine SCRIPT_FILENAME
     my $script = $ENV{SCRIPT_FILENAME};
-    $ENV{REQUEST_URI} =~ s!^/*!/!iso;
     unless ($script)
     {
         ($script) = $ENV{REQUEST_URI} =~ m!/+([^\?\#]*)!so;
