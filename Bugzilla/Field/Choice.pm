@@ -400,30 +400,6 @@ sub visibility_values
     return $f;
 }
 
-sub has_visibility_value
-{
-    my $self = shift;
-    my ($value) = @_;
-    return 1 if !$self->field->value_field_id;
-    $value = $value->id if ref $value;
-    my $hash = Bugzilla->fieldvaluecontrol
-        ->{$self->field->value_field_id}
-        ->{values}
-        ->{$self->field->id}
-        ->{$self->id};
-    return $hash && $hash->{$value};
-}
-
-# Check visibility of field value for a bug or a hashref with default value names
-sub check_visibility
-{
-    my $self = shift;
-    my $bug = shift || return 1;
-    my $vf = $self->field->value_field || return 1;
-    my $value = Bugzilla::Field::bug_or_hash_value($bug, $vf) || 0;
-    return $self->has_visibility_value($value);
-}
-
 ############
 # Mutators #
 ############

@@ -634,19 +634,19 @@ sub has_visibility_value
     return $hash && $hash->{$value};
 }
 
-# Check if a value is enabled for some controlling value
+# Check if a value is enabled for some controlling value or arrayref of values
 sub is_value_enabled
 {
     my $self = shift;
-    my ($value, $visibility_value) = @_;
+    my ($value, $visibility_values) = @_;
     return 1 if !$self->value_field_id;
-    ref $_ and $_ = $_->id for $value, $visibility_value;
+    ref $value and $value = $value->id;
     my $hash = Bugzilla->fieldvaluecontrol
         ->{$self->value_field_id}
         ->{values}
         ->{$self->id}
         ->{$value};
-    return $hash && $hash->{$visibility_value};
+    return $hash && grep { $hash->{ref $_ ? $_->id : $_} } list $visibility_values;
 }
 
 # Check visibility of field for a bug or for a hashref with default value names

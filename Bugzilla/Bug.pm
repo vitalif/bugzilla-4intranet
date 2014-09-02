@@ -886,7 +886,8 @@ sub check_dependent_fields
             }
             elsif ($field_obj->value_field_id)
             {
-                my @bad = grep { !ref $_ || !$_->check_visibility($self) } list($value_objs);
+                my $vv = $self->get_ids($field_obj->value_field->name);
+                my @bad = grep { !ref $_ || !$field_obj->is_value_enabled($_, $vv) } list($value_objs);
                 if (@bad)
                 {
                     my $n = $field_obj->value_field->name;
