@@ -1738,41 +1738,6 @@ sub wants_request_reminder
         ? 1 : 0;
 }
 
-# FIXME: Remove get_userlist API; it's highly specific to caller
-sub get_userlist
-{
-    my $self = shift;
-
-    return $self->{userlist} if defined $self->{userlist};
-
-    my $dbh = Bugzilla->dbh;
-    my $query = "SELECT DISTINCT login_name, realname," .
-        (Bugzilla->params->{usevisibilitygroups}
-            ? " COUNT(group_id) FROM profiles LEFT JOIN user_group_map" .
-            " ON user_group_map.user_id = userid AND isbless = 0" .
-            " AND group_id IN (" . join(', ', -1, @{$self->visible_groups_inherited}) . ")"
-            : " 1 FROM profiles").
-        " WHERE is_enabled = 1 ".
-        $dbh->sql_group_by('userid', 'login_name, realname');
-
-    my $sth = $dbh->prepare($query);
-    $sth->execute;
-
-    my @userlist;
-    while (my ($login, $name, $visible) = $sth->fetchrow_array)
-    {
-        push @userlist, {
-            login => $login,
-            identity => $name ? "$name <$login>" : $login,
-            visible => $visible,
-        };
-    }
-    @userlist = sort { lc $a->{identity} cmp lc $b->{identity} } @userlist;
-
-    $self->{userlist} = \@userlist;
-    return $self->{userlist};
-}
-
 sub create
 {
     my $class = shift;
@@ -2377,12 +2342,6 @@ not be aware of the existence of the product.
 
  Returns:     1 if the user can set flags of the given type,
               0 otherwise.
-
-=item C<get_userlist>
-
-Returns a reference to an array of users.  The array is populated with hashrefs
-containing the login, identity and visibility.  Users that are not visible to this
-user will have 'visible' set to zero.
 
 =item C<direct_group_membership>
 
