@@ -159,6 +159,10 @@ function handleControllerField(e, controller)
         // It is more correct to match selected values on name, because a
         // target_milestone/version/component with the same name may exist for a different product
         controlled = document.getElementById(controlled_id);
+        if (controlled.nodeName != 'SELECT')
+        {
+            continue;
+        }
         copt = getSelectedNames(controlled);
         bz_clearOptions(controlled);
         if (field_metadata[controlled.id].nullable && !controlled.multiple)

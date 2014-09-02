@@ -215,8 +215,8 @@ use constant CAN_TWEAK => {
         keywords bug_severity priority component assigned_to votes qa_contact dependson blocked target_milestone estimated_time remaining_time see_also) },
     default_value => { map { $_ => 1 } qw(bug_severity deadline keywords op_sys priority rep_platform short_desc status_whiteboard target_milestone version) },
     nullable => { map { $_ => 1 } qw(alias bug_severity deadline keywords op_sys priority rep_platform status_whiteboard target_milestone version) },
-    visibility_field_id => { map { $_ => 1 } qw(bug_severity op_sys priority rep_platform status_whiteboard target_milestone version) },
-    value_field_id => { map { $_ => 1 } qw(bug_severity op_sys priority rep_platform) },
+    visibility_field_id => { map { $_ => 1 } qw(bug_severity op_sys priority rep_platform status_whiteboard target_milestone version keywords) },
+    value_field_id => { map { $_ => 1 } qw(bug_severity op_sys priority rep_platform keywords) },
     default_field_id => { map { $_ => 1 } qw(bug_severity keywords op_sys priority component rep_platform status_whiteboard target_milestone version) },
 };
 
@@ -1004,20 +1004,52 @@ sub update_visibility_values
             map { $_->id } @{ $type->new_from_list($visibility_value_ids) }
         ];
     }
-    Bugzilla->dbh->do(
-        "DELETE FROM fieldvaluecontrol WHERE field_id=? AND value_id=?",
-        undef, $self->id, $controlled_value_id);
-    if (@$visibility_value_ids)
+    my $h = Bugzilla->fieldvaluecontrol->{$vis_field->id};
+    $h = $h->{values}->{$self->id}->{$controlled_value_id} if $controlled_value_id > 0;
+    $h = $h->{fields}->{$self->id} if $controlled_value_id == FLAG_VISIBLE;
+    $h = $h->{null}->{$self->id} if $controlled_value_id == FLAG_NULLABLE;
+    $h = $h->{clone}->{$self->id} if $controlled_value_id == FLAG_CLONED;
+    $h = { %$h };
+    my $add = [];
+    for (@$visibility_value_ids)
     {
-        my $f = $self->id;
+        $h->{$_} ? delete $h->{$_} : push @$add, $_;
+    }
+    my $del = [ keys %$h ];
+    return 0 if !@$add && !@$del;
+    Bugzilla->dbh->do(
+        "DELETE FROM fieldvaluecontrol WHERE field_id=? AND value_id=?".
+        " AND visibility_value_id IN (".join(", ", @$del).")",
+        undef, $self->id, $controlled_value_id
+    );
+    $self->add_visibility_values($controlled_value_id, $add);
+    return 1;
+}
+
+sub add_visibility_values
+{
+    my $self = shift;
+    my ($controlled_value_id, $visibility_value_ids) = @_;
+    my $f = $self->id;
+    for ($controlled_value_id)
+    {
+        $_ eq FLAG_VISIBLE or $_ = int($_) or return 0;
+    }
+    for (@$visibility_value_ids)
+    {
+        ($_ = int($_)) > 0 or return 0;
+    }
+    # Ignore duplicate row errors
+    eval
+    {
         Bugzilla->dbh->do(
             "INSERT INTO fieldvaluecontrol (field_id, value_id, visibility_value_id) VALUES ".
             join(",", map { "($f, $controlled_value_id, $_)" } @$visibility_value_ids)
         );
-    }
-    # Touch the field
+    };
+    my $ok = !$@;
     $self->touch;
-    return 1;
+    return $ok;
 }
 
 sub update_control_lists

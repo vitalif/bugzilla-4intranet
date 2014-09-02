@@ -888,6 +888,12 @@ sub check_dependent_fields
             {
                 my $vv = $self->get_ids($field_obj->value_field->name);
                 my @bad = grep { !ref $_ || !$field_obj->is_value_enabled($_, $vv) } list($value_objs);
+                if ($fn eq 'keywords')
+                {
+                    # Keywords are silently enabled for any new visibility value.
+                    $field_obj->add_visibility_values($_->id, [ list $vv ]) for grep { ref $_ } @bad;
+                    @bad = grep { !ref $_ } @bad;
+                }
                 if (@bad)
                 {
                     my $n = $field_obj->value_field->name;

@@ -9,6 +9,7 @@ use strict;
 use base qw(Bugzilla::WebService);
 use Bugzilla::Field::Choice;
 use Bugzilla::User;
+use Bugzilla::Util;
 use Bugzilla::WebService::Util qw(validate);
 use Bugzilla::Error;
 
@@ -46,8 +47,13 @@ sub _get_value
     return $value;
 }
 
-# Get all values for a field. Arguments:
-# field => <field_name>
+# Get all or some values for a field. Arguments:
+# field => <field name>
+# optional:
+# name => <name(s) to search for exact match>
+# match => <string(s) to search in the beginning of value name>
+# visibility_value_ids => <ID(s) of controlling value in which returned ones should be visible>
+# limit => maximum number of matches
 sub get_values
 {
     my ($self, $params) = @_;
@@ -56,18 +62,48 @@ sub get_values
     {
         return {status => 'field_not_select'};
     }
-    my $values;
+    my $join = '';
+    my $where = [];
+    my $bind = [];
+    my $type = $field->value_type;
+    my @vv = $field->value_field_id ? list $params->{visibility_value_ids} : ();
+    my @match = list $params->{match};
+    my @name = list $params->{name};
+    if (@match || @name)
+    {
+        my @m;
+        push @m, ('v.'.$type->NAME_FIELD.' LIKE ?') x @match;
+        push @m, 'v.'.$type->NAME_FIELD.' IN ('.join(', ', ('?') x @name).')' if @name;
+        push @$where, '('.join(' OR ', @m).')';
+        push @$bind, (map { $_.'%' } @match), @name;
+    }
+    if (@vv)
+    {
+        $join = " INNER JOIN fieldvaluecontrol fc ON fc.field_id=?".
+            " AND fc.value_id=v.id AND fc.visibility_value_id IN (".join(", ", ("?") x @vv).")";
+        unshift @$bind, $field->id, @vv;
+    }
+    $where = @$where ? join(' AND ', @$where) : '1=1';
+    my $order = $type->LIST_ORDER;
+    $order =~ s/(^|,)\s*(\S)/$1v.$2/gso;
+    trick_taint($_) for @$bind;
+    my $values = Bugzilla->dbh->selectall_arrayref(
+        "SELECT v.* FROM ".$type->DB_TABLE." v $join WHERE $where GROUP BY v.id".
+        " ORDER BY $order ".($params->{limit} ? Bugzilla->dbh->sql_limit(int($params->{limit})) : ''),
+        {Slice=>{}}, @$bind
+    );
+    bless $_, $type for @$values;
     if ($field->value_field_id)
     {
         $values = [ map { {
             id => $_->id,
             name => $_->name,
             visibility_value_ids => [ map { $_->id } @{$_->visibility_values} ],
-        } } @{$field->legal_values} ];
+        } } @$values ];
     }
     else
     {
-        $values = [ map { { id => $_->id, name => $_->name } } @{$field->legal_values} ];
+        $values = [ map { { id => $_->id, name => $_->name } } @$values ];
     }
     return {
         status => 'ok',

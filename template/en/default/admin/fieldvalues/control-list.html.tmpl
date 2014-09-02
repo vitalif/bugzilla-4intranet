@@ -3,7 +3,7 @@
   # Authors: Vitaliy Filippov <vitalif@mail.ru>, Vladimir Koptev <vladimir.koptev@gmail.com>
   #%]
 
-[% SET title = "Select Active " _ field.description _ "s For " _ field.value_field.description _ ' ' _ visibility_value.name | html %]
+[% SET title = "Select Active " _ field.description _ " Objects For " _ field.value_field.description _ ' ' _ visibility_value.name | html %]
 
 [% PROCESS global/header.html.tmpl %]
 
@@ -37,7 +37,7 @@
 </form>
 
 <p>
-  <a href="editvalues.cgi?field=[% field.name %]">Edit or add [% field.description | html %]s</a> |
+  <a href="editvalues.cgi?field=[% field.name %]">Edit or add [% field.description | html %] objects</a> |
   [% IF field.value_field.name == 'product' %]
   <a href="editproducts.cgi?action=edit&product=[% visibility_value.name | uri %]">Edit product [% visibility_value.name | html %]</a>
   [% ELSIF field.value_field.name == 'classification' %]

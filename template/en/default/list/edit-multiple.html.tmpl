@@ -212,13 +212,7 @@ document.write(' <input type="button" name="check_all" value="Check All" onclick
     <tr>
       <th>
         <script type="text/javascript">
-        var emptyKeywordsOptions = "null";
-        addListener(window, 'load', function() {
-            new SimpleAutocomplete("keywords",
-                function(h) { keywordAutocomplete(h, emptyKeywordsOptions); },
-                { emptyText: 'No keywords found', multipleDelimiter: "," }
-            );
-        }); 
+        addListener(window, 'load', addKeywordsAutocomplete);
         </script>
         <label for="keywords">
           <a href="describekeywords.cgi">Keywords</a>:
@@ -232,7 +226,6 @@ document.write(' <input type="button" name="check_all" value="Check All" onclick
           <option value="makeexact">Make the keywords be exactly this list</option>
         </select>
       </td>
-
     </tr>
   [% END %]
 

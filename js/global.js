@@ -174,49 +174,13 @@ function userAutocomplete(hint, emptyOptions, loadAllOnEmpty)
     });
 }
 
-
 // Convert keyword list from API format for SimpleAutocomplete
 function convertSimpleList(k)
 {
     var data = [];
     for (var i = 0; i < k.length; i++)
-        data.push([ '<span class="hintRealname">' + k[i].name + '</span>', k[i].name ]);
+        data.push([ '<span class="hintRealname">' + htmlspecialchars(k[i].name) + '</span>', k[i].name ]);
     return data;
-}
-
-// Data loader for keyword autocomplete
-function keywordAutocomplete(hint, emptyOptions)
-{
-    if (!hint.input.value)
-    {
-        hint.emptyText = 'Type at least 3 letters';
-        if (emptyOptions)
-            hint.replaceItems(convertSimpleList(emptyOptions));
-        else
-            hint.replaceItems(null);
-        return;
-    }
-
-    var u = window.location.href.replace(/[^\/]+$/, '');
-    u += 'xml.cgi?method=Keyword.get&output=json&maxkeywordmatches=20';
-    var l = hint.input.value.split(/[\s,]*,[\s,]*/);
-    for (var i = 0; i < l.length; i++)
-        u += '&match='+encodeURI(l[i]);
-
-    AjaxLoader(u, function(x) {
-        var r = {};
-        try { eval('r = '+x.responseText+';'); } catch (e) { return; }
-        if (r.status == 'ok')
-        {
-            var data = convertSimpleList(r.keywords);
-            // FIXME "3" constant, messages: remove hardcode, also in Bugzilla::User::match()
-            if (data.length == 0 && hint.input.value.length < 3)
-                hint.emptyText = 'Type at least 3 letters';
-            else
-                hint.emptyText = 'No keywords found';
-            hint.replaceItems(data);
-        }
-    });
 }
 
 // Data loader for field in buglist autocomplete
@@ -233,7 +197,7 @@ function fieldBuglistAutocomplete(hint, field, emptyOptions)
             hint.replaceItems(data);
         }
     });
-} 
+}
 
 function showFullComment(oper_id)
 {

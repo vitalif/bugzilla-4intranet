@@ -277,12 +277,77 @@ function _value_id(field_name, id)
     return 'v' + id + '_' + field_name;
 }
 
+// Data loader for keyword autocomplete
+function keywordAutocomplete(hint, emptyOptions)
+{
+    if (!hint.input.value)
+    {
+        hint.emptyText = 'Type at least 3 letters';
+        if (emptyOptions)
+            hint.replaceItems(convertSimpleList(emptyOptions));
+        else if (field_metadata.keywords.value_field)
+        {
+            var vv = getSelectedIds(document.getElementById(field_metadata.keywords.value_field));
+            var h = field_metadata[field_metadata.keywords.value_field].values.keywords;
+            var o = [];
+            for (var i in field_metadata.keywords.legal)
+            {
+                var controlled_value = field_metadata.keywords.legal[i];
+                if (checkValueVisibility(vv, h[controlled_value[0]]))
+                {
+                    o.push([ '<span class="hintRealname">' + htmlspecialchars(controlled_value[1]) + '</span>', controlled_value[1] ]);
+                }
+            }
+            hint.replaceItems(o);
+        }
+        else
+            hint.replaceItems(null);
+        return;
+    }
+
+    var u = window.location.href.replace(/[^\/]+$/, '');
+    u += 'xml.cgi?output=json&method=Field.get_values&field=keywords&limit=20';
+    if (field_metadata.keywords.value_field)
+    {
+        var vv = getSelectedIds(document.getElementById(field_metadata.keywords.value_field));
+        for (var v in vv)
+        {
+            u += '&visibility_value_ids='+v;
+        }
+    }
+    var l = hint.input.value.split(/[\s,]*,[\s,]*/);
+    for (var i = 0; i < l.length; i++)
+    {
+        u += '&match='+encodeURI(l[i]);
+    }
+
+    AjaxLoader(u, function(x)
+    {
+        var r = {};
+        try { eval('r = '+x.responseText+';'); } catch (e) { return; }
+        if (r.status == 'ok')
+        {
+            var data = convertSimpleList(r.values);
+            // FIXME "3" constant, messages: remove hardcode, also in Bugzilla::User::match()
+            if (data.length == 0 && hint.input.value.length < 3)
+                hint.emptyText = 'Type at least 3 letters';
+            else
+                hint.emptyText = 'No keywords found';
+            hint.replaceItems(data);
+        }
+    });
+}
+
 function addKeywordsAutocomplete()
 {
-    var emptyKeywordsOptions = [];
-    for (var i = 0; i < field_metadata.keywords.legal.length; i++)
+    var emptyKeywordsOptions = null;
+    if (!field_metadata.keywords.value_field)
     {
-        emptyKeywordsOptions.push({ name: field_metadata.keywords.legal[i][1] });
+        emptyKeywordsOptions = [];
+        for (var i = 0; i < field_metadata.keywords.legal.length; i++)
+        {
+            emptyKeywordsOptions.push({ name: field_metadata.keywords.legal[i][1] });
+        }
     }
     new SimpleAutocomplete("keywords",
         function(h) { keywordAutocomplete(h, emptyKeywordsOptions); },
@@ -290,27 +355,22 @@ function addKeywordsAutocomplete()
     );
 }
 
-// CustIS bug 66910 - check new keywords and requery description for its
+// CustIS bug 66910 - check new keywords and requery description for it
 function check_new_keywords(form)
 {
-    var non_exist_keywords = [];
-    var cnt_exist_keywords = 0;
-    var input_keywords = form.keywords.value.split(",");
-    var exist_keywords = [];
-    for(var i = 0; i < emptyKeywordsOptions.length; i++)
+    var input_kw = form.keywords.value.trim().split(/[,\s]*,[,\s]*/);
+    var kw_hash = {};
+    for (var i = 0; i < field_metadata.keywords.legal.length; i++)
     {
-        exist_keywords[i] = emptyKeywordsOptions[i].name.trim();
+        kw_hash[field_metadata.keywords.legal[i][1].toLowerCase()] = true;
     }
-
-    for(var i = 0; i < input_keywords.length; i++)
+    for (var i = 0; i < input_kw.length; i++)
     {
-        if (input_keywords[i].trim() != "" && exist_keywords.indexOf(input_keywords[i].trim()) == -1)
+        if (!kw_hash[input_kw[i].toLowerCase()])
         {
-            non_exist_keywords[cnt_exist_keywords] = input_keywords[i].trim();
-            cnt_exist_keywords++;
+            non_exist_keywords.push(input_kw[i]);
         }
     }
-
     if (non_exist_keywords.length > 0)
     {
         var keywords_submit = true;
