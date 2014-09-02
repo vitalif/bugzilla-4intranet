@@ -1248,10 +1248,11 @@ sub match_name
             # CustIS Bug 64855
             # try Levenshtein distance also, if enabled
             my $n = Bugzilla->params->{levenshteinusermatch};
+            my $dog = $dbh->sql_position("'\@'", 'login_name');
             $query .= " OR levenshtein(?, login_name) < ".($n < 1 ? "FLOOR(? * LENGTH(login_name))" : "?");
-            $query .= " OR (CASE WHEN INSTR(login_name, '\@') > 0".
-                " THEN levenshtein(?, SUBSTR(login_name, 1, INSTR(login_name, '\@')-1))".
-                " ELSE NULL END) < ".($n < 1 ? "FLOOR(? * (INSTR(login_name, '\@')-1))" : "?");
+            $query .= " OR (CASE WHEN $dog > 0".
+                " THEN levenshtein(?, SUBSTR(login_name, 1, $dog-1))".
+                " ELSE NULL END) < ".($n < 1 ? "FLOOR(? * ($dog-1))" : "?");
             push @bind, $str, $n;
             push @bind, $str, $n;
         }

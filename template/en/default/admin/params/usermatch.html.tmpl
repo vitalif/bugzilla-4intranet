@@ -19,31 +19,36 @@
   #                 Frédéric Buclin <LpSolit@gmail.com>
   #%]
 [%
-   title = "User Matching"
-   desc = "Set up your user matching policies"
+  title = "User Matching"
+  desc = "Set up your user matching policies"
 %]
 
 [% param_descs = {
-  usemenuforusers => "If this option is set, all registered users will be shown in user autocomplete boxes when the corresponding field is empty.",
+  usemenuforusers =>
+    "If this option is set, all registered users will be shown in user " _
+    "autocomplete boxes when the corresponding field is empty. Enable " _
+    "only if you have a fairly small amount of registered users.",
 
-  maxusermatches => "Search for no more than this many matches.<br> " _
-                    "If set to '1', no users will be displayed on ambiguous matches. " _
-                    "This is useful for user privacy purposes.<br> " _
-                    "A value of zero means no limit.",
+  maxusermatches =>
+    "Search for no more than this many matches.<br> " _
+    "If set to '1', no users will be displayed on ambiguous matches. " _
+    "A value of zero means no limit.",
 
-  confirmuniqueusermatch => "Whether a confirmation screen should be displayed when only " _
-                            "one user matches a search entry.",
+  confirmuniqueusermatch =>
+    "Whether a confirmation screen should be displayed when only " _
+    "one user matches a search entry.",
 
-  emailin_autoregister => "Whether an unknown e-mail address should be converted into an " _
-                          "automatically registered disabled user account when processing incoming emails by email_in.pl",
+  emailin_autoregister =>
+    "Whether an unknown e-mail address should be converted into an " _
+    "automatically registered disabled user account when processing incoming emails by email_in.pl",
 
-  levenshteinusermatch => "If this option is set to a positive value (say N), $terms.Bugzilla will " _
-                          "also offer you any user if Levenshtein distance between " _
-                          "his login name and the entered value is less than N. <br>" _
-                          "I.e. this option allows $terms.Bugzilla to automatically correct N-1 " _
-                          "misprints in user fields.<br>" _
-                          "If N is not an integer value, it is treated relative to the length of compared string. <br>" _
-                          "Levenshtein distance is calculated via MySQL User-Defined Function levenshtein(). " _
-                          "This function is not available by default and must be installed into MySQL separately.",
+  levenshteinusermatch =>
+    "If this option is set to a positive integer N, $terms.Bugzilla will " _
+    "effectively correct N 'misprints' in user login names by using " _
+    "the Levenshtein distance function for matching users. " _
+    "If N is a floating point value, it is treated relative to the length of user name. <br>" _
+    "<b>WARNING:</b> Levenshtein distance is calculated via SQL function levenshtein() " _
+    "which must be installed <b>separately</b> as a <a href='https://github.com/vitalif/mysql-levenshtein'>UDF for MySQL</a> " _
+    "or <a href='http://www.postgresql.org/docs/9.3/static/fuzzystrmatch.html'>fuzzystrmatch module for PostgreSQL</a>."
 }
 %]
