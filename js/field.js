@@ -358,12 +358,14 @@ function addKeywordsAutocomplete()
 // CustIS bug 66910 - check new keywords and requery description for it
 function check_new_keywords(form)
 {
-    var input_kw = form.keywords.value.trim().split(/[,\s]*,[,\s]*/);
+    var input_kw = form.keywords.value.trim();
+    input_kw = input_kw.length ? input_kw.split(/[,\s]*,[,\s]*/) : [];
     var kw_hash = {};
     for (var i = 0; i < field_metadata.keywords.legal.length; i++)
     {
         kw_hash[field_metadata.keywords.legal[i][1].toLowerCase()] = true;
     }
+    var non_exist_keywords = [];
     for (var i = 0; i < input_kw.length; i++)
     {
         if (!kw_hash[input_kw[i].toLowerCase()])
@@ -385,9 +387,9 @@ function check_new_keywords(form)
             {
                 this_value = document.getElementById('kd_' + i).value;
             }
-            desc_html += "<br /><label>Description for new keyword - <b>" + htmlspecialchars(non_exist_keywords[i]) +
-                "</b></label><br /><input type=\"text\" value=\"" + htmlspecialchars(this_value) + "\" class=\"text_input\" name=\"kd\" id=\"kd_" +
-                i + "\" data-key=\"" + htmlspecialchars(non_exist_keywords[i]) + "\" style=\"border: solid 1px red;\" /> <br/>";
+            desc_html += "<div style='margin-top: 8px'><label>Describe new keyword <b>" + htmlspecialchars(non_exist_keywords[i]) +
+                "</b>:</label><br /><input type=\"text\" value=\"" + htmlspecialchars(this_value) + "\" class=\"text_input\" name=\"kd\" id=\"kd_" +
+                i + "\" data-key=\"" + htmlspecialchars(non_exist_keywords[i]) + "\" style=\"border: solid 1px red;\" /></div>";
         }
         kd_container.innerHTML = desc_html;
 

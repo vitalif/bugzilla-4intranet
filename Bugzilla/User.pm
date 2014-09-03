@@ -341,7 +341,7 @@ sub identity
     return "" unless $self->id;
     if (!defined $self->{identity})
     {
-        $self->{identity} = $self->name ? $self->name . " <" . $self->login . ">" : $self->login;
+        $self->{identity} = $self->realname ? $self->realname . " <" . $self->login . ">" : $self->login;
     }
     return $self->{identity};
 }
