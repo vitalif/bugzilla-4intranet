@@ -2173,7 +2173,7 @@ sub _set_estimated_time
 {
     my ($self, $time, $field) = @_;
     my $v = $self->_set_time($time, $field);
-    if (!$self->id && !$self->remaining_time && $v)
+    if (!$self->id && $self->remaining_time == 0 && $v)
     {
         # Set remaining_time == estimated_time on new bugs if it was empty
         $self->{remaining_time} = $v;
@@ -2185,7 +2185,7 @@ sub _set_remaining_time
 {
     my ($self, $time, $field) = @_;
     my $v = $self->_set_time($time, $field);
-    if (!$self->id && !$v && $self->estimated_time)
+    if (!$self->id && $v == 0 && $self->estimated_time != 0)
     {
         # Set remaining_time == estimated_time on new bugs if it was empty
         $v = $self->estimated_time;
