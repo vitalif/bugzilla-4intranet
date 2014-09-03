@@ -608,7 +608,7 @@ sub sendMail
     my @watchingrel = map { REL_NAMES->{$_} } @reasons_watch;
     push @headerrel,   'None' unless @headerrel;
     push @watchingrel, 'None' unless @watchingrel;
-    push @watchingrel, map { $_->login } @{ Bugzilla::User->new_from_list(@{$args->{watch}}) };
+    push @watchingrel, map { $_->login } @{ Bugzilla::User->new_from_list($args->{watch}) };
 
     for my $change (@$new_diffs)
     {

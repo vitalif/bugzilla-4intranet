@@ -134,7 +134,7 @@ function validateEntryForm(theform)
 
     if (theform.short_desc.value == '')
     {
-        alert('Please enter a summary sentence for this [% terms.bug %].');
+        alert('Please enter a summary sentence for this bug.');
         return false;
     }
 
