@@ -37,7 +37,7 @@ function initControllerField(i)
             // Select global default value before selecting dependent ones
             f._oldDefault = setFieldValue(f, field_metadata[i].default_value);
         }
-        if (f.nodeName == 'SELECT')
+        if (f.nodeName == 'SELECT' || f.name == 'product' && f.nodeName == 'INPUT' && f.type == 'hidden')
         {
             handleControllerField(document.forms['Create'] ? null : 'INITIAL', f);
         }
