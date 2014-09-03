@@ -218,7 +218,7 @@ sub get {
         @users =
             map {filter $params, {
                 id        => $self->type('int', $_->id),
-                real_name => $self->type('string', $_->name),
+                real_name => $self->type('string', $_->realname),
                 name      => $self->type('string', $_->login),
                 email     => $self->type('string', $_->email),
                 can_login => $self->type('boolean', $_->is_enabled),
@@ -230,7 +230,7 @@ sub get {
         @users =
             map {filter $params, {
                 id        => $self->type('int', $_->id),
-                real_name => $self->type('string', $_->name),
+                real_name => $self->type('string', $_->realname),
                 name      => $self->type('string', $_->login),
                 email     => $self->type('string', $_->email),
                 can_login => $self->type('boolean', $_->is_enabled),
