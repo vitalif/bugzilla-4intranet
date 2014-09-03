@@ -502,12 +502,6 @@ sub STATIC_COLUMNS
                 " WHERE col_f.bug_id=bugs.bug_id AND col_ft.is_requesteeble=1 AND col_ft.is_requestable=1)",
             title => "Requests",
         },
-        cc => {
-            name => "(SELECT ".$dbh->sql_group_concat((Bugzilla->user->id
-                ? 'profiles.login_name'
-                : $dbh->sql_string_until('profiles.login_name', $dbh->quote('@'))), "','").
-                " cc FROM cc, profiles WHERE cc.bug_id=bugs.bug_id AND cc.who=profiles.userid)",
-        },
         dependson => {
             name  => "(SELECT ".$dbh->sql_group_concat('bugblockers.dependson', "','")." dependson FROM dependencies bugblockers WHERE bugblockers.blocked=bugs.bug_id)",
             title => "Bug dependencies",
@@ -558,7 +552,6 @@ sub STATIC_COLUMNS
         my $sql = "map_${col}.login_name";
         $columns->{$col.'_realname'}->{name} = "map_${col}.realname";
         $columns->{$col.'_short'}->{name} = $dbh->sql_string_until($sql, $dbh->quote('@'));
-        $columns->{$col}->{name} = Bugzilla->user->id ? $sql : $columns->{$col.'_short'}->{name};
         # Only the qa_contact field can be NULL
         $columns->{$col}->{joins} =
         $columns->{$col.'_short'}->{joins} =
@@ -756,6 +749,17 @@ sub COLUMNS
     $priv = (Bugzilla->user->is_insider ? "" : "AND lct.isprivate=0 ");
     $columns->{last_comment_time}->{name} =
         "(SELECT MAX(lct.bug_when) FROM longdescs lct$hint WHERE lct.bug_id = bugs.bug_id $priv)";
+
+    # Hide email domain for anonymous users
+    $columns->{cc}->{name} = "(SELECT ".$dbh->sql_group_concat((Bugzilla->user->id
+        ? 'profiles.login_name'
+        : $dbh->sql_string_until('profiles.login_name', $dbh->quote('@'))), "','").
+        " cc FROM cc, profiles WHERE cc.bug_id=bugs.bug_id AND cc.who=profiles.userid)";
+    foreach my $col (qw(assigned_to reporter qa_contact))
+    {
+        my $sql = "map_${col}.login_name";
+        $columns->{$col}->{name} = Bugzilla->user->id ? $sql : $columns->{$col.'_short'}->{name};
+    }
 
     Bugzilla::Hook::process('buglist_columns', { columns => $columns });
     return $cache->{columns} = $columns;
