@@ -172,6 +172,11 @@ function handleControlledField(controlled_id, is_initial_editform)
         // the bug may include incorrect values that must not be hidden initially
         return;
     }
+    if (!controlled)
+    {
+        // Maybe the field is not editable.
+        return;
+    }
     // Change select options
     if (controlled.nodeName == 'SELECT')
     {
