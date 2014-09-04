@@ -169,6 +169,22 @@
       );
       </script>
     [% CASE [ constants.FIELD_TYPE_SINGLE_SELECT, constants.FIELD_TYPE_MULTI_SELECT ] %]
+      [% IF field.use_combobox %]
+        [% IF field.type == constants.FIELD_TYPE_MULTI_SELECT %]
+          [% FOREACH v = bug.get_object(field.name) %]
+            <input type="hidden" id="v[% v.id | html %]_[% field.name | html %]"
+              name="[% field.name | html %]" value="[% v.name | html %]" />
+          [% END %]
+        [% END %]
+        <input id="[% field.name | html %]" data-ids="[% bug.get_ids(field.name).join(',') | html %]"
+          [% IF field.type == constants.FIELD_TYPE_SINGLE_SELECT %] name="[% field.name | html %]"[% END %]
+          [% IF style %] style="[% style | html %]"[% END %]
+          [% IF tabindex %] tabindex="[% tabindex | html %]"[% END %]
+          size="40" value="[% bug.get_string(field.name) | html %]"
+          style="border-top-right-radius: 0; border-bottom-right-radius: 0; border-right-width: 0; z-index: 10"
+          onfocus="this.nextSibling.className='combo_btn combo_active'" onblur="this.nextSibling.className='combo_btn'"
+        /><span class="combo_btn" onclick="this.previousSibling.focus()">&#x25be;</span>
+      [% ELSE %]
       <select id="[% field.name | html %]"
         [% IF style %] style="[% style | html %]"[% END %]
         [% IF tabindex %] tabindex="[% tabindex | html %]"[% END %]
@@ -229,7 +245,7 @@
       [% IF field.type == constants.FIELD_TYPE_MULTI_SELECT %]
         <input type="hidden" name="defined_[% field.name | html %]" />
       [% END %]
-
+      [% END %]
     [% CASE constants.FIELD_TYPE_TEXTAREA %]
       [% INCLUDE global/textarea.html.tmpl
         id = field.name

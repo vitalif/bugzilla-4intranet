@@ -162,6 +162,7 @@ SimpleAutocomplete.prototype.init = function()
 // items = [ [ name, value ], [ name, value ], ... ]
 SimpleAutocomplete.prototype.replaceItems = function(items, append)
 {
+    this.selectedOrig = null;
     if (!append)
     {
         this.hintLayer.scrollTop = 0;
@@ -189,10 +190,13 @@ SimpleAutocomplete.prototype.replaceItems = function(items, append)
         for (var i in items)
             items[i][3] = h[items[i][1]];
     }
-    for (var i in items)
+    for (var i = 0; i < items.length; i++)
     {
-        this.hintLayer.appendChild(this.makeItem(this.items.length, items[i]));
+        var d = this.makeItem(this.items.length, items[i]);
+        this.hintLayer.appendChild(d);
         this.items.push(items[i]);
+        if (items[i][3])
+            this.selectedOrig = i;
     }
 };
 
@@ -297,7 +301,7 @@ SimpleAutocomplete.prototype.getItem = function(index)
         index = this.selectedIndex;
     if (index < 0)
         return null;
-    return document.getElementById(this.id+'_item_'+this.selectedIndex);
+    return document.getElementById(this.id+'_item_'+index);
 };
 
 // Select index'th item - change the input value and hide the hint if not a multi-select
@@ -317,6 +321,7 @@ SimpleAutocomplete.prototype.selectItem = function(index)
     if (!this.multipleDelimiter && !this.multipleListener)
     {
         this.input.value = this.items[index][1];
+        this.selectedOrig = index;
         this.hide();
     }
     else
@@ -396,6 +401,12 @@ SimpleAutocomplete.prototype.show = function()
         {
             this.hintLayer.style.right = (sw-p.left-this.input.offsetWidth)+'px';
             this.hintLayer.style.left = '';
+        }
+        if (this.selectedOrig !== null)
+        {
+            var o = this.getItem(this.selectedOrig);
+            this.highlightItem(o);
+            this.hintLayer.scrollTop = o.offsetTop;
         }
         return true;
     }

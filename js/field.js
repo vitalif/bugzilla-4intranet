@@ -289,6 +289,17 @@ function getSelectedIds(sel)
     var lm = sel.id.length+2;
     if (sel.nodeName != 'SELECT')
     {
+        if (field_metadata[sel.id].use_combobox)
+        {
+            // IDs stored separately
+            var ids = sel.getAttribute('data-ids');
+            ids = ids.length ? ids.split(',') : [];
+            for (var i = 0; i < ids.length; i++)
+            {
+                opt[ids[i]] = true;
+            }
+            return opt;
+        }
         if (sel.name == 'product')
         {
             // product is a special case - it is preselected as hidden field on bug creation form

@@ -719,6 +719,8 @@ sub default_value_hash_for
         ->{$self->id}->{$visibility_value_id} };
 }
 
+sub use_combobox { return $_[0]->name eq 'product' || $_[0]->name eq 'cf_keywords'; }
+
 # Field and value dependency data, intended for use in client JavaScript
 sub json_visibility
 {
@@ -731,6 +733,8 @@ sub json_visibility
         default_field => $self->default_field ? $self->default_field->name : undef,
         nullable => $self->nullable ? 1 : 0,
         default_value => $self->default_value || undef,
+        use_combobox => $self->use_combobox,
+        multiple => $self->type == FIELD_TYPE_MULTI_SELECT,
         fields => {},
         values => {},
         defaults => {},
