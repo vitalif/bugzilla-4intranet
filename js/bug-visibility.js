@@ -30,17 +30,17 @@ function initControlledFields()
 function initControlledField(i)
 {
     var f = document.getElementById(i);
+    if (f && document.forms['Create'] && field_metadata[i].default_value)
+    {
+        // Select global default value before selecting dependent ones
+        f._oldDefault = setFieldValue(f, field_metadata[i].default_value);
+    }
+    if (!f || f.nodeName != 'INPUT' || f.type != 'hidden')
+    {
+        handleControlledField(i, !document.forms['Create']);
+    }
     if (f)
     {
-        if (document.forms['Create'] && field_metadata[i].default_value)
-        {
-            // Select global default value before selecting dependent ones
-            f._oldDefault = setFieldValue(f, field_metadata[i].default_value);
-        }
-        if (f.nodeName != 'INPUT' || f.type != 'hidden')
-        {
-            handleControlledField(f.id, !document.forms['Create']);
-        }
         addListener(f, 'change', handleControllerField_this);
     }
 }
