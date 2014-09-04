@@ -2,7 +2,7 @@
 
    Homepage: http://yourcmc.ru/wiki/SimpleAutocomplete
    License: MPL 2.0+ (http://www.mozilla.org/MPL/2.0/)
-   Version: 2014-09-04
+   Version: 2014-09-05
    (c) Vitaliy Filippov 2011-2014
 
    Usage:
@@ -42,7 +42,7 @@
        If you don't want to touch the input value, but want to use multi-select for
        your own purposes, specify a callback that will handle item clicks here.
        Also you can disable and check/uncheck items during loading in this mode.
-     onChangeListener(hint, index)
+     onChangeListener(hint, index, item)
        Callback which is called when input value is changed using this dropdown.
        index is the number of element which selection is changed, starting with 0.
        It must be used instead of normal 'onchange' event.
@@ -332,7 +332,7 @@ SimpleAutocomplete.prototype.selectItem = function(index)
     }
     this.curValue = this.input.value;
     if (this.onChangeListener)
-        this.onChangeListener(this, index);
+        this.onChangeListener(this, index, this.items[index]);
 };
 
 // Change input value so it will respect index'th item state in a multi-select
@@ -377,7 +377,10 @@ SimpleAutocomplete.prototype.hide = function()
     if (!this.persist)
     {
         if (!this.skipHideCounter)
+        {
             this.hintLayer.style.display = 'none';
+            return true;
+        }
         else
             this.skipHideCounter = 0;
     }
@@ -386,12 +389,13 @@ SimpleAutocomplete.prototype.hide = function()
 // Show hinter
 SimpleAutocomplete.prototype.show = function()
 {
-    if (!this.disabled && !this.persist)
+    if (!this.disabled && !this.persist && this.hintLayer.style.display == 'none')
     {
         var p = getOffset(this.input);
         this.hintLayer.style.top = (p.top+this.input.offsetHeight) + 'px';
         this.hintLayer.style.left = p.left + 'px';
         this.hintLayer.style.display = '';
+        return true;
     }
 };
 
