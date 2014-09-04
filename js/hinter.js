@@ -2,7 +2,8 @@
 
    Homepage: http://yourcmc.ru/wiki/SimpleAutocomplete
    License: MPL 2.0+ (http://www.mozilla.org/MPL/2.0/)
-   (c) Vitaliy Filippov 2011-2013
+   Version: 2014-09-04
+   (c) Vitaliy Filippov 2011-2014
 
    Usage:
      Include hinter.css, hinter.js on your page. Then write:
@@ -17,7 +18,7 @@
          newOptions = [ [ name, value, disabled, checked ] ], [ name, value ], ... ]
            name = HTML option name
            value = plaintext option value
-           disabled = only meaningful when multipleListener is set
+           disabled = prevent selection of this option
            checked = only meaningful when multipleListener is set
          append = 'more' parameter should be passed here
        Callback parameters:
@@ -60,6 +61,11 @@
        of the list, and SimpleAutocomplete will issue another request to
        dataLoader with incremented 'more' parameter when it will be clicked.
        You can also set moreMarker to false to disable this feature.
+     persist
+       If true, the hint layer will never be hidden. You can use it to create
+       multiselect-like controls (see example at the homepage).
+     className
+       CSS class name for the hint layer. Default is 'hintLayer'.
 
    Destroy instance:
      hint.remove(); hint = null;
@@ -84,6 +90,8 @@ var SimpleAutocomplete = function(input, dataLoader, params)
     this.prompt = params.prompt;
     this.delay = params.delay;
     this.moreMarker = params.moreMarker;
+    this.persist = params.persist;
+    this.className = params.className || 'hintLayer';
 
     // Default values
     if (this.moreMarker === undefined)
@@ -110,7 +118,6 @@ var SimpleAutocomplete = function(input, dataLoader, params)
 SimpleAutocomplete.prototype.init = function()
 {
     var e = this.input;
-    e.autocomplete = 'off';
     var l = SimpleAutocomplete.SimpleAutocompletes;
     this.id = this.input.id + l.length;
     l.push(this);
@@ -119,17 +126,31 @@ SimpleAutocomplete.prototype.init = function()
 
     // Create hint layer
     var t = this.hintLayer = document.createElement('div');
-    t.className = 'hintLayer';
-    t.style.display = 'none';
-    t.style.position = 'absolute';
-    t.style.top = (p.top+e.offsetHeight) + 'px';
-    t.style.zIndex = 1000;
-    t.style.left = p.left + 'px';
-    document.body.appendChild(t);
+    t.className = this.className;
+    if (!this.persist)
+    {
+        t.style.display = 'none';
+        t.style.position = 'absolute';
+        t.style.top = (p.top+e.offsetHeight) + 'px';
+        t.style.zIndex = 1000;
+        t.style.left = p.left + 'px';
+        document.body.appendChild(t);
+    }
+    else
+    {
+        e.nextSibling ? e.parentNode.insertBefore(t, e.nextSibling) : e.parentNode.appendChild(t);
+    }
 
     // Remember instance
     e.SimpleAutocomplete_input = this;
     t.SimpleAutocomplete_layer = this;
+
+    // Set autocomplete to off and reenable before unload
+    if (typeof e.autocomplete !== 'undefined')
+    {
+        e.autocomplete = 'off';
+        addListener(window, 'beforeunload', function() { e.autocomplete = 'on'; });
+    }
 
     // Set event listeners
     var self = this;
@@ -138,9 +159,8 @@ SimpleAutocomplete.prototype.init = function()
     this.addRmListener('change', function() { return self.onChange(); });
     this.addRmListener('focus', function() { return self.onInputFocus(); });
     this.addRmListener('blur', function() { return self.onInputBlur(); });
-    addListener(window, 'beforeunload', function() { e.autocomplete = 'on'; });
     addListener(t, 'mousedown', function(ev) { return self.cancelBubbleOnHint(ev); });
-    this.onChange();
+    this.onChange(true);
 };
 
 // items = [ [ name, value ], [ name, value ], ... ]
@@ -159,12 +179,11 @@ SimpleAutocomplete.prototype.replaceItems = function(items, append)
                 this.disable();
             return;
         }
+        while (this.selectedIndex < items.length && items[this.selectedIndex][2])
+            this.selectedIndex++;
         this.hintLayer.innerHTML = this.prompt ? '<div class="hintPrompt">'+this.prompt+'</div>' : '';
         this.enable();
     }
-    if (!this.multipleListener)
-        for (var i in items)
-            items[i][2] = 0;
     if (this.multipleDelimiter)
     {
         var h = {};
@@ -181,7 +200,7 @@ SimpleAutocomplete.prototype.replaceItems = function(items, append)
     }
 };
 
-// Add removable listener (remember the function)
+// Add removable listener on this.input (remember the function)
 SimpleAutocomplete.prototype.addRmListener = function(n, f)
 {
     this.closure[n] = f;
@@ -232,13 +251,13 @@ SimpleAutocomplete.prototype.makeItem = function(index, item)
         l.htmlFor = c.id;
         l.innerHTML = item[0];
         d.appendChild(l);
-        addListener(c, 'click', this.preventCheck);
+        addListener(l, 'click', this.preventCheck);
     }
     else
         d.innerHTML = item[0];
     var self = this;
     addListener(d, 'mouseover', function() { return self.onItemMouseOver(this); });
-    addListener(d, 'mousedown', function(ev) { return self.onItemClick(ev, this); });
+    addListener(d, 'click', function(ev) { return self.onItemClick(ev, this); });
     return d;
 };
 
@@ -248,6 +267,8 @@ SimpleAutocomplete.prototype.moveHighlight = function(by)
     var n = this.selectedIndex+by;
     if (n < 0)
         n = 0;
+    while (this.items[n] && this.items[n][2])
+        n += by;
     var elem = document.getElementById(this.id+'_item_'+n);
     if (!elem)
         return true;
@@ -264,7 +285,9 @@ SimpleAutocomplete.prototype.highlightItem = function(elem)
     {
         var c = this.getItem();
         if (c)
-            c.className = 'hintItem';
+        {
+            c.className = this.items[this.selectedIndex][2] ? 'hintDisabledItem' : 'hintItem';
+        }
     }
     this.selectedIndex = ni;
     elem.className = 'hintActiveItem';
@@ -284,6 +307,17 @@ SimpleAutocomplete.prototype.getItem = function(index)
 // Select index'th item - change the input value and hide the hint if not a multi-select
 SimpleAutocomplete.prototype.selectItem = function(index)
 {
+    if (this.items[index][2])
+        return false;
+    if (this.moreMarker && this.items[index][1] == this.moreMarker)
+    {
+        // User clicked 'more'. Load more items without delay.
+        this.items.splice(index, 1);
+        elm.parentNode.removeChild(elm);
+        this.more++;
+        this.onChange(true);
+        return;
+    }
     if (!this.multipleDelimiter && !this.multipleListener)
     {
         this.input.value = this.items[index][1];
@@ -340,16 +374,19 @@ SimpleAutocomplete.prototype.toggleValue = function(index)
 // Hide hinter
 SimpleAutocomplete.prototype.hide = function()
 {
-    if (!this.skipHideCounter)
-        this.hintLayer.style.display = 'none';
-    else
-        this.skipHideCounter = 0;
+    if (!this.persist)
+    {
+        if (!this.skipHideCounter)
+            this.hintLayer.style.display = 'none';
+        else
+            this.skipHideCounter = 0;
+    }
 };
 
 // Show hinter
 SimpleAutocomplete.prototype.show = function()
 {
-    if (!this.disabled)
+    if (!this.disabled && !this.persist)
     {
         var p = getOffset(this.input);
         this.hintLayer.style.top = (p.top+this.input.offsetHeight) + 'px';
@@ -375,11 +412,10 @@ SimpleAutocomplete.prototype.enable = function()
 
 // *** Event handlers ***
 
-// Prevent default action on checkbox
+// Prevent propagating label click to checkbox
 SimpleAutocomplete.prototype.preventCheck = function(ev)
 {
-    ev = ev||window.event;
-    return stopEvent(ev, false, true);
+    return stopEvent(ev||window.event, false, true);
 };
 
 // Cancel event propagation
@@ -401,17 +437,6 @@ SimpleAutocomplete.prototype.onItemMouseOver = function(elm)
 SimpleAutocomplete.prototype.onItemClick = function(ev, elm)
 {
     var index = parseInt(elm.id.substr(this.id.length+6));
-    if (this.items[index][2])
-        return false;
-    if (this.moreMarker && this.items[index][1] == this.moreMarker)
-    {
-        // User clicked 'more'. Load more items without delay.
-        this.items.splice(index, 1);
-        elm.parentNode.removeChild(elm);
-        this.more++;
-        this.onChange(true);
-        return true;
-    }
     this.selectItem(index);
     return true;
 };
