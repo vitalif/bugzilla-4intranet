@@ -104,7 +104,6 @@ hr {
 
 #attachment-list {
     border: 2px solid #c8c8ba;
-    font-size: 9pt;
 }
 
 #attachment-list th {
@@ -131,7 +130,6 @@ hr {
 /************/
 
 #comments th {
-    font-size: 9pt;
     font-weight: bold;
     padding-top: 5px;
     padding-right: 5px;
@@ -157,13 +155,13 @@ hr {
     border-style: solid;
     border-color: #c8c8ba;
     padding: 5px;
-    font-size: 9pt;
 }
 
 .bz_comment_head, .bz_first_comment_head {
     margin: 0; padding: 0;
     background-color: transparent;
     font-weight: bold;
+    font-size: 9pt;
 }
 
 .bz_comment_user {
@@ -260,7 +258,6 @@ textarea, select, input[type="text"], input:not([type]), input[type="password"] 
     border-width: 1px;
     border-style: solid;
     border-color: #747e93;
-    font-family: Verdana;
 }
 
 .grant_table {

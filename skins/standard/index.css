@@ -16,8 +16,7 @@
 
 /* index page (begin) */
 
-#page-index
-{
+#page-index {
     padding: 0.2em 0.2em 0.15em 0.2em;
 }
 
@@ -30,33 +29,30 @@
 
 /* Hide from NN4 */
 
-#new_release
-{
+#new_release {
     border: 2px solid red;
     padding: 0.5em 1em;
     margin: 1em;
     font-weight: bold;
 }
 
-#new_release .notice
-{
+#new_release .notice {
     font-size: 80%;
     font-weight: normal;
 }
 
-#welcome-admin a
-{
+#welcome-admin a {
     font-weight: bold;
 }
 
 .bz_common_actions {
-    display: block;
+    display: inline-block;
     height: 190px;
     width: 195px;
-    float: left;
     margin: 0 3ex 3em 0;
     text-align: center;
 }
+
 .bz_common_actions span {
     position: relative;
     top: 95%;
@@ -96,8 +92,7 @@
     border-collapse: collapse;
 }
 
-#welcome
-{
+#welcome {
     font-size: x-large;
     font-weight: bold;
     text-align: center;
