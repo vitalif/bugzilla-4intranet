@@ -5,16 +5,24 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as
  * defined by the Mozilla Public License, v. 2.0. */
 
+.bz_common_actions {
+    display: inline-block;
+    height: 150px;
+    width: 150px;
+}
+#welcome {
+    margin: 0;
+}
 #enter_bug {
-    background: url(bugzilla-papericon.png) no-repeat;
+    background: url(bugzilla-papericon.png) center center no-repeat;
 }
 #query {
-    background: url(bugzilla-magnifier.png) no-repeat;
+    background: url(bugzilla-magnifier.png) center center no-repeat;
 }
 #account {
-    background: url(bugzilla-person-alternate.png) no-repeat;
+    background: url(bugzilla-person-alternate.png) center center no-repeat;
     margin-right: 0;
 }
 #get_help {
-    background: url(bugzilla-questionmark2.png) no-repeat !important;
+    background: url(bugzilla-questionmark2.png) center center no-repeat !important;
 }
