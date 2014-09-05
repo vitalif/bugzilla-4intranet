@@ -133,15 +133,25 @@ function setFieldValue(f, v)
 {
     if (f.nodeName == 'SELECT')
     {
-        f.selectedIndex = -1;
-        v = v.split(',');
-        for (var i in v)
+        if (f.multiple)
         {
-            i = document.getElementById('v' + v[i] + '_' + f.id);
-            if (i)
+            f.selectedIndex = -1;
+        }
+        if (v.length)
+        {
+            v = v.split(',');
+            for (var i in v)
             {
-                i.selected = true;
+                i = document.getElementById('v' + v[i] + '_' + f.id);
+                if (i)
+                {
+                    i.selected = true;
+                }
             }
+        }
+        else if (!f.multiple)
+        {
+            f.selectedIndex = 0;
         }
     }
     else if (f.type != 'hidden')
@@ -166,20 +176,20 @@ function handleControlledField(controlled_id, is_initial_editform)
             (vis ? removeClass : addClass)(field_container, 'bz_hidden_field');
         }
     }
-    if (is_initial_editform)
-    {
-        // Skip re-filling of fields on bug edit page load, because
-        // the bug may include incorrect values that must not be hidden initially
-        return;
-    }
     if (!controlled)
     {
         // Maybe the field is not editable.
         return;
     }
-    // Change select options
-    if (controlled.nodeName == 'SELECT')
+    if (is_initial_editform)
     {
+        // Skip re-filling of fields on bug edit page load, because
+        // the bug may include incorrect values that must not be hidden initially.
+        // Also remember, but do not select the default value in this case.
+    }
+    else if (controlled.nodeName == 'SELECT')
+    {
+        // Change select options
         if (m.value_field)
         {
             // It is more correct to match selected values on name, because a
@@ -203,7 +213,7 @@ function handleControlledField(controlled_id, is_initial_editform)
                 vis = checkValueVisibility(opt, vh[controlled_value[0]]);
                 if (vis)
                 {
-                    item = bz_createOptionInSelect(controlled, controlled_value[1], controlled_value[1]);
+                    var item = bz_createOptionInSelect(controlled, controlled_value[1], controlled_value[1]);
                     item.id = 'v'+controlled_value[0]+'_'+controlled_id;
                     if (copt[controlled_value[1]])
                     {
@@ -227,7 +237,7 @@ function handleControlledField(controlled_id, is_initial_editform)
             }
         }
     }
-    // Select default value
+    // Select and/or remember default value
     if (m.default_field)
     {
         var diff = false;
@@ -260,21 +270,19 @@ function handleControlledField(controlled_id, is_initial_editform)
                 diff = controlled.value != controlled._oldDefault;
             }
         }
-        // else means we are on creation form, so also select
-        if (!diff)
+        // Remember default value for the new controller
+        var v = m.default_value;
+        if (field_metadata[m.default_field]['defaults'][controlled_id])
         {
-            var v = m.default_value;
-            if (field_metadata[m.default_field]['defaults'][controlled_id])
+            for (var i in getSelectedIds(m.default_field))
             {
-                for (var i in getSelectedIds(m.default_field))
-                {
-                    v = field_metadata[m.default_field]['defaults'][controlled_id][i];
-                }
+                v = field_metadata[m.default_field]['defaults'][controlled_id][i];
             }
-            if (v)
-            {
-                controlled._oldDefault = setFieldValue(controlled, v);
-            }
+        }
+        controlled._oldDefault = v;
+        if (!diff && !is_initial_editform)
+        {
+            setFieldValue(controlled, v);
         }
     }
 }
