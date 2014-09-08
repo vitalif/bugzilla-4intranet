@@ -508,10 +508,12 @@ input.required, select.required, span.required_explanation {
 
 .bz_comment {
     margin: 0 0 20px;
+    box-sizing: border-box;
 }
 
 .bz_comment_text {
     width: 65em;
+    box-sizing: border-box;
     font-family: "Droid Sans Mono", Menlo, Monaco, monospace;
 }
 
@@ -525,7 +527,7 @@ input.required, select.required, span.required_explanation {
     margin: .2em 0;
 }
 
-.bz_first_comment_head, .bz_comment_head {
+.bz_first_comment_head, .bz_comment_head, .bz_comment_wthead {
     font-weight: normal;
     line-height: 32px;
     padding-bottom: 2px;

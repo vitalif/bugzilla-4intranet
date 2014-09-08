@@ -2,15 +2,6 @@
   # License: Dual-license GPL 3.0+ or MPL 1.1+ %]
 
 <html id="cmthtm" style="overflow: hidden">
-<head>
-<style type="text/css">
-/* Bug states  */
-.bz_st_UNCONFIRMED { font-style: italic; }
-.bz_st_RESOLVED { text-decoration: line-through; }
-.bz_st_VERIFIED { text-decoration: line-through; border: 1px dashed #2f6fab; color: black; background-color: #f9f9f9; line-height: 1.1em; }
-.bz_st_CLOSED { text-decoration: line-through; border: 1px solid #2f6fab; background-color: #f9f9f9; line-height: 1.1em; }
-</style>
-</head>
 <body style="margin: 0; padding: 0; overflow: hidden">
 <div class="bz_comment" style="border-style: dotted; border-width: 2px; border-color: #969696; background-color: #e8e8e8; padding: 5px">
 <div class="bz_comment_text[% ' bz_fullscreen_comment' IF user.settings.comment_width.value == 'on' %]">[%- Bugzilla.cgi.param("comment") | quoteUrls | wrap_comment | links_targetblank -%]</div>

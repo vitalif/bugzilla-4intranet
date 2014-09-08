@@ -87,10 +87,8 @@
 
       <div class="[% class_name %]">
 
-        <span class="bz_comment_actions" id="comment_act_[% comment.id %]"></span>
-
+        <span class="bz_comment_actions" id="comment_act_[% comment.id %]">
         [% IF wt_btn %]
-        <span class="bz_comment_actions">
           [% IF wt_only %]
           <img src="images/clock.gif" width="16" height="16"
               alt="Comment is marked as worktime-only. Click to mark it as normal, then click Save Changes"
@@ -106,8 +104,8 @@
             onclick="toggle_wtonly([% comment.id %],0,this)" />
           <input type="hidden" id="cmt_worktime_[% comment.id %]" name="cmt_worktime_[% comment.id %]" value="" />
           [% END %]
-        </span>
         [% END %]
+        </span>
 
         [% IF mode == "edit" && user.is_insider %]
           <div class="bz_private_checkbox">

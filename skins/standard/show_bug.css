@@ -123,6 +123,7 @@ table#flags {
     padding-right: 20px;
     height: 100px;
     overflow: auto;
+    overflow-x: hidden;
     float: left;
     max-width: 465px;
     border: 1px solid #CCC;
