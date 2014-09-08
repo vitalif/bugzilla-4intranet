@@ -45,52 +45,6 @@ function initControlledField(i)
     }
 }
 
-function getSelectedIds(sel)
-{
-    if (typeof sel == "string")
-    {
-        sel = document.getElementById(sel);
-    }
-    var opt = {};
-    var lm = sel.id.length+2;
-    if (sel.nodeName != 'SELECT')
-    {
-        if (sel.name == 'product')
-        {
-            // product is a special case - it is preselected as hidden field on bug creation form
-            opt[product_id] = true;
-        }
-        return opt;
-    }
-    for (var i = 0; i < sel.options.length; i++)
-    {
-        if (sel.options[i].selected)
-        {
-            id = sel.options[i].id;
-            opt[id ? id.substr(1, id.length-lm) : 0] = true;
-        }
-    }
-    return opt;
-}
-
-function getSelectedNames(sel)
-{
-    var opt = {};
-    if (sel.type != 'select' || !sel.multi)
-    {
-        opt[sel.value] = true;
-        return opt;
-    }
-    for (var i = 0; i < sel.options.length; i++)
-    {
-        if (sel.options[i].selected)
-        {
-            opt[sel.options[i].value] = true;
-        }
-    }
-    return opt;
-}
-
 function handleControllerField_this(e)
 {
     var m = field_metadata[this.id];
@@ -110,23 +64,6 @@ function handleControllerField_this(e)
     {
         handleControlledField(i);
     }
-}
-
-function checkValueVisibility(selected, visible)
-{
-    var vis = false;
-    if (visible)
-    {
-        for (var value in visible)
-        {
-            if (selected[value])
-            {
-                vis = true;
-                break;
-            }
-        }
-    }
-    return vis;
 }
 
 function setFieldValue(f, v)
@@ -194,7 +131,7 @@ function handleControlledField(controlled_id, is_initial_editform)
         {
             // It is more correct to match selected values on name, because a
             // target_milestone/version/component with the same name may exist for a different product
-            var copt = getSelectedNames(controlled);
+            var copt = getSelectedValues(controlled);
             bz_clearOptions(controlled);
             var nullable = m.nullable && !controlled.multiple;
             if (m.null_field && nullable)
