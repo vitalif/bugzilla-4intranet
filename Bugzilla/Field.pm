@@ -923,7 +923,7 @@ sub update
     if ($self->{name} eq 'classification')
     {
         my $prod = Bugzilla->get_field('product');
-        $prod->set_value_field($self->obsolete ? $self->id : undef);
+        $prod->set_value_field($self->obsolete ? undef : $self->id);
         $prod->update;
     }
     return wantarray ? ($changes, $old_self) : $changes;
