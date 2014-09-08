@@ -101,10 +101,10 @@
         <p><b>Flags:</b></p>
         [% header_displayed = 1 %]
       [% END %]
-      [% flag.setter.nick FILTER html %]:
-      [%+ type.name FILTER html FILTER no_break %][% flag.status %]
+      [% flag.setter.nick | html %]:
+      [%+ type.name | html | no_break %][% flag.status %]
       [% IF flag.requestee %]
-        ([% flag.requestee.nick FILTER html %])
+        ([% flag.requestee.nick | html %])
       [% END %]<br>
     [% END %]
   [% END %]
@@ -115,12 +115,12 @@
 [% BLOCK flag_row %]
   <tr>
     <td>
-      [% addl_text FILTER html %]
-      <label title="[% type.description FILTER html %]" for="flag_type-[% type.id %]" style="white-space: nowrap">[%- type.name | html %]</label>
+      [% addl_text | html %]
+      <label title="[% type.description | html %]" for="flag_type-[% type.id %]" style="white-space: nowrap">[%- type.name | html %]</label>
     </td>
     <td>
       <select id="flag_type-[% type.id %]" name="flag_type-[% type.id %]"
-              title="[% type.description FILTER html %]"
+              title="[% type.description | html %]"
               [% " disabled=\"disabled\"" UNLESS (type.is_requestable && user.can_request_flag(type)) || user.can_set_flag(type) %]
               onchange="toggleRequesteeField(this);"
               class="flag_select flag_type-[% type.id %]">

@@ -20,10 +20,6 @@
 
 [% PROCESS global/header.html.tmpl
   title="Request Queue"
-  style = "
-    table.requests th { text-align: left; }
-    table#filtering th { text-align: right; }
-  "
   onload="var f = document.request_form; selectProduct(f.product, f.component, null, null, 'Any');"
   javascript_urls=["js/productform.js"]
 %]
@@ -49,7 +45,7 @@
 
 [% BLOCK js_comp %]
   cpts['[% n %]'] = [
-    [%- FOREACH comp = prod.components %]'[% comp.name FILTER js %]'[% ", " UNLESS loop.last %] [%- END -%]];
+    [%- FOREACH comp = prod.components %]'[% comp.name | js %]'[% ", " UNLESS loop.last %] [%- END -%]];
   [% n = n+1 %]
 [% END %]
 
@@ -61,39 +57,39 @@ to some group are shown by default.
 </p>
 
 <form id="request_form" name="request_form" action="request.cgi" method="get">
-  <input type="hidden" name="action" value="queue">
+  <input type="hidden" name="action" value="queue" />
 
   <table id="filtering">
     <tr>
-      <th>Requester:</th>
-      <td><input type="text" name="requester" value="[% selected_requester FILTER html %]" size="20" 
+      <th align="left">Requester:</th>
+      <td><input type="text" name="requester" value="[% selected_requester | html %]" size="20" 
            title="Requester's email address"></td>
-      <th>Product:</th>
+      <th align="right">Product:</th>
       <td>
         <select name="product" onchange="selectProduct(this, this.form.component, null, null, 'Any');">
           <option value="">Any</option>
           [% IF Bugzilla.get_field('classification').enabled %]
             [% FOREACH c = user.get_selectable_classifications %]
-              <optgroup label="[% c.name FILTER html %]">
+              <optgroup label="[% c.name | html %]">
                 [% FOREACH p = user.get_selectable_products(c.id) %]
-                  <option value="[% p.name FILTER html %]"
+                  <option value="[% p.name | html %]"
                     [% " selected" IF selected_product == p.name %]>
-                    [% p.name FILTER html %]
+                    [% p.name | html %]
                   </option>
                 [% END %]
               </optgroup>
             [% END %]
           [% ELSE %]
             [% FOREACH p = user.get_selectable_products %]
-              <option value="[% p.name FILTER html %]"
+              <option value="[% p.name | html %]"
                 [% " selected" IF selected_product == p.name %]>
-                [% p.name FILTER html %]
+                [% p.name | html %]
               </option>
             [% END %]
           [% END %]
         </select>
       </td>
-      <th>Flag:</th>
+      <th align="right">Flag:</th>
       <td>
         [% PROCESS "global/select-menu.html.tmpl"
                     name="type"
@@ -101,30 +97,22 @@ to some group are shown by default.
                     default=selected_type %]
       </td>
 
-      <th>Status:</th>
-      <td>
-        [% PROCESS "global/select-menu.html.tmpl"
-                    name="status"
-                    options=["all", "?", "+-", "+", "-"]
-                    default=selected_status %]
-      </td>
-
     </tr>
     <tr>
-      <th>Requestee:</th>
-      <td><input type="text" name="requestee" value="[% selected_requestee FILTER html %]" size="20" 
+      <th align="left">Requestee:</th>
+      <td><input type="text" name="requestee" value="[% selected_requestee | html %]" size="20" 
            title="Requestee's email address or &quot;-&quot; (hyphen) for requests with no requestee"></td>
-      <th>Component:</th>
+      <th align="right">Component:</th>
       <td>
         <select name="component">
           <option value="">Any</option>
           [% FOREACH comp = components %]
-            <option value="[% comp FILTER html %]" [% "selected" IF selected_component == comp %]>
-              [% comp FILTER html %]</option>
+            <option value="[% comp | html %]" [% "selected" IF selected_component == comp %]>
+              [% comp | html %]</option>
           [% END %]
         </select>
       </td>
-      <th>Group By:</th>
+      <th align="right">Group By:</th>
       <td>
         [% groups = {
             "Requester" => 'requester' ,
@@ -134,7 +122,14 @@ to some group are shown by default.
           } %]
         [% PROCESS "global/select-menu.html.tmpl" name="group" options=groups default=selected_group %]
       </td>
-      <td><input type="submit" id="filter" value="Filter"></td>
+      <th align="right">Status:</th>
+      <td>
+        [% PROCESS "global/select-menu.html.tmpl"
+                    name="status"
+                    options=["all", "?", "+-", "+", "-"]
+                    default=selected_status %]
+      </td>
+      <td><input type="submit" id="filter" value="Filter" /></td>
     </tr>
   </table>
 
@@ -156,7 +151,7 @@ to some group are shown by default.
 %]
 
 [% IF debug %]
-  <p>[% query FILTER html %]</p>
+  <p>[% query | html %]</p>
 [% END %]
 
 [% IF requests.size == 0 %]
@@ -171,7 +166,7 @@ to some group are shown by default.
       [% PROCESS start_new_table %]
     [% END %]
     [% buglist.${request.bug_id} = 1 %]
-    <tr>
+    <tr class="[% loop.index % 2 ? 'even_row' : 'odd_row' %]">
       [% FOREACH column = display_columns %]
         [% NEXT IF column == group_field || excluded_columns.contains(column) %]
         <td>[% PROCESS "display_$column" %]</td>
@@ -187,8 +182,8 @@ to some group are shown by default.
   [% buglist = {} %]
 
   <h3>[% column_headers.$group_field %]: 
-    [%+ (request.$group_field || "None") FILTER email FILTER html %]</h3>
-  <table class="requests" cellspacing="0" cellpadding="4" border="1">
+    [%+ (request.$group_field || "None") | email | html %]</h3>
+  <table class="admin_table">
     <tr>
       [% FOREACH column = display_columns %]
         [% NEXT IF column == group_field || excluded_columns.contains(column) %]
@@ -198,7 +193,7 @@ to some group are shown by default.
 [% END %]
 
 [% BLOCK display_type %]
-  [% request.type FILTER html %]
+  [% request.type | html %]
 [% END %]
 
 [% BLOCK display_status %]
@@ -207,34 +202,34 @@ to some group are shown by default.
 
 [% BLOCK display_bug %]
   <a href="show_bug.cgi?id=[% request.bug_id %]">
-    [% request.bug_id %]: [%+ request.bug_summary FILTER html %]</a>
+    [% request.bug_id %]: [%+ request.bug_summary | html %]</a>
 [% END %]
 
 [% BLOCK display_attachment %]
   [% IF request.attach_id %]
     <a href="attachment.cgi?id=[% request.attach_id %]&amp;action=edit">
-      [% request.attach_id %]: [%+ request.attach_summary FILTER html %]</a>
+      [% request.attach_id %]: [%+ request.attach_summary | html %]</a>
   [% ELSE %]
     N/A
   [% END %]
 [% END %]
 
 [% BLOCK display_requestee %]
-  [% request.requestee FILTER email FILTER html %]
+  [% request.requestee | email | html %]
 [% END %]
 
 [% BLOCK display_requester %]
-  [% request.requester FILTER email FILTER html %]
+  [% request.requester | email | html %]
 [% END %]
 
 [% BLOCK display_created %]
-  [% request.created FILTER time %]
+  [% request.created | time %]
 [% END %]
 
 [% BLOCK display_buglist %]
   </table>
   [% NEXT UNLESS buglist.keys.size %]
   <a href="buglist.cgi?bug_id_type=anyexact&bug_id=
-           [%- buglist.keys.nsort.join(",") FILTER html %]">(view as
+           [%- buglist.keys.nsort.join(",") | html %]">(view as
   [%+ terms.bug %] list)</a>
 [% END %]
