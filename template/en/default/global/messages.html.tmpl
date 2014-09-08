@@ -99,6 +99,16 @@
   <div class="message">Active values updated.</div>
 [% END %]
 
+[% BLOCK msg_default_settings_updated %]
+  <div class="message">
+  [% IF changes_saved %]
+    Changes to default preferences have been saved.
+  [% ELSE %]
+    No changes made.
+  [% END %]
+  </div>
+[% END %]
+
 [% BLOCK msg_control_lists_updated %]
   <p>
     [% t = Bugzilla.get_field(field_id).description | html %]
@@ -370,14 +380,6 @@
   [% title = "Custom Field Updated" %]
   Properties of the '[% field.name | html %]' field have been
   successfully updated.
-[% END %]
-
-[% BLOCK msg_default_settings_updated %]
-  [% IF changes_saved %]
-    Changes to default preferences have been saved.
-  [% ELSE %]
-    No changes made.
-  [% END %]
 [% END %]
 
 [% BLOCK msg_emailold_change_canceled %]

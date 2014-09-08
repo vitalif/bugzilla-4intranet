@@ -54,12 +54,10 @@ page, and the Default Value will automatically apply to everyone.
         <th>Default Value</th>
       </tr>
       [% FOREACH name = settings.keys.sort %]
-        [% checkbox_name = name _ '-enabled' %]
         <tr>
           <td align="center">
-            <input type="checkbox"
-              name="[% checkbox_name | html %]"
-              id="[% checkbox_name | html %]"
+            <input type="checkbox" name="[% name | html %]-enabled"
+              id="[% name | html %]-enabled" value="1"
               [% " checked=\"checked\"" IF settings.${name}.is_enabled %] />
           </td>
           <td align="left">
