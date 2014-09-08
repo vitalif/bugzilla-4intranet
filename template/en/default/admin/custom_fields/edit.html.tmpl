@@ -61,32 +61,30 @@ var constants = {
 </ul>
 [% END %]
 
-[% IF field.id && !field.custom %]
-  [% SWITCH field.name %]
-    [% CASE 'classification' %]
-    <p>
-    If this field is enabled, [% terms.Bugzilla %] will associate each product with a
-    specific classification.<br /> But you must have 'editclassification'
-    permissions enabled in order to edit classifications.
-    </p>
-    [% CASE 'votes' %]
-    <p>
-    If this field is enabled, users will be allowed to vote for [% terms.bugs %].
-    Note that in order for this to be effective, you will have to change the maximum
-    votes allowed in a product to be non-zero in <a href="editproducts.cgi">the product edit page</a>.
-    </p>
-    [% CASE 'alias' %]
-    <p>
-    Enabling this field allows you to assign [% terms.bugs %] "aliases", which are
-    easy-to-remember names by which you can refer to [% terms.bugs %].
-    </p>
-    [% CASE 'see_also' %]
-    <p>
-    Enabling See Also field allows you to refer to [% terms.bugs %] in other installations.
-    Even if you disable this field, [% terms.bug %] relationships (URLs) which are already set
-    will still appear and can be removed.
-    </p>
-  [% END %]
+[% SET has_help = { 'classification' => 1, 'votes' => 1, 'alias' => 1, 'see_also' => 1 } %]
+[% IF field.id && !field.custom && has_help.${field.name} %]
+<table><tr>
+  <td><img style="margin: 0 8px 0 0" src="images/info.png" /></td>
+  <td>
+    [% SWITCH field.name %]
+      [% CASE 'classification' %]
+      If this field is enabled, [% terms.Bugzilla %] will associate each product with a
+      specific classification.<br /> But you must have 'editclassification'
+      permissions enabled in order to edit classifications.
+      [% CASE 'votes' %]
+      If this field is enabled, users will be allowed to vote for [% terms.bugs %].<br />
+      Note that in order for this to be effective, you will have to change the maximum
+      votes allowed in a product to be non-zero in <a href="editproducts.cgi">the product edit page</a>.
+      [% CASE 'alias' %]
+      Enabling this field allows you to assign [% terms.bugs %] "aliases", which are
+      easy-to-remember names by which you can refer to [% terms.bugs %].
+      [% CASE 'see_also' %]
+      Enabling See Also field allows you to refer to [% terms.bugs %] in other installations.<br />
+      Even if you disable this field, [% terms.bug %] relationships (URLs) which are already set
+      will still appear and can be removed.
+    [% END %]
+  </td>
+</tr></table>
 [% END %]
 
 <form id="edit_field" action="editfields.cgi" method="GET">
