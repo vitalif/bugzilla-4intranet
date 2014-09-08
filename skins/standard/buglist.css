@@ -3,6 +3,8 @@
  * Contributor(s): Vitaliy Filippov <vitalif@mail.ru>
  */
 
+.bz_result_count { margin: 0 0 8px 0; }
+
 .search_description { display: inline-block; margin: 2px; padding: 2px; border: 1px solid gray; }
 .search_description._and { background-color: #e0e0ff; }
 .search_description._or { background-color: #ffffe0; }

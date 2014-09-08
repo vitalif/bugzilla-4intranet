@@ -83,12 +83,6 @@
 [%# Preceding Status Line                                                    #%]
 [%############################################################################%]
 
-[% IF bugs.size > 9 %]
-  <span class="bz_result_count">
-    [% bugs.size %] [%+ terms.bugs %] found.
-  </span>
-[% END %]
-
 <script language="JavaScript">
 function showbugcomma()
 {
@@ -97,8 +91,9 @@ function showbugcomma()
 }
 </script>
 
-<div style="margin: 8px 0">
-  <a style="margin: 0 20px 0 0" id="showbugcommacmd" href="javascript:void showbugcomma()">Display Bug ID list</a>
+<div class="bz_result_count">
+  [% bugs.size %] [%+ bugs.size > 1 ? terms.bugs : terms.bug %] found.
+  <a style="margin: 0 20px" id="showbugcommacmd" href="javascript:void showbugcomma()">Display Bug ID list</a>
   [% IF equality_querystring %]
   <a href="enter_bug.cgi?[% equality_querystring | html %]">Create new [% terms.bug %] from search parameters</a>
   [% END %]
