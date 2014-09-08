@@ -106,8 +106,32 @@ a:hover, #header a:hover, #footer a:hover {
     box-shadow: inset 0 1px rgba(0, 0, 0, 0.1);
     background: white;
     padding: 1px;
+    margin-top: -2px;
     color: #404040;
     vertical-align: top;
+}
+
+input[type=text][disabled], input[type=password][disabled], input[disabled]:not([type]) {
+    background: #eee;
+}
+
+.hintActiveItem {
+    background: #63cdff; /* Old browsers */
+    background: -moz-linear-gradient(top, #63cdff 0%, #0095dd 90%, #63cdff 100%); /* FF3.6+ */
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#63cdff), color-stop(90%,#0095dd), color-stop(100%,#63cdff)); /* Chrome,Safari4+ */
+    background: -webkit-linear-gradient(top, #63cdff 0%,#0095dd 90%,#63cdff 100%); /* Chrome10+,Safari5.1+ */
+    background: -o-linear-gradient(top, #63cdff 0%,#0095dd 90%,#63cdff 100%); /* Opera 11.10+ */
+    background: -ms-linear-gradient(top, #63cdff 0%,#0095dd 90%,#63cdff 100%); /* IE10+ */
+    background: linear-gradient(to bottom, #63cdff 0%,#0095dd 90%,#63cdff 100%); /* W3C */
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#63cdff', endColorstr='#63cdff',GradientType=0 ); /* IE6-9 */
+}
+
+.hintLayer {
+    font-size: 90%;
+}
+
+.hintActiveItem .hintEmail {
+    color: #eee;
 }
 
 select[multiple]:focus, textarea:focus, .text-input:focus, -yui-ac-input:focus, input:focus {
@@ -247,6 +271,10 @@ hr {
 
 #footer .links .quicksearch_form {
     display: none;
+}
+
+#links-saved, #reports-saved {
+    margin-left: 10px;
 }
 
 #header .form a {
@@ -430,8 +458,15 @@ table.edit_form hr {
     width: 100%;
 }
 
-input.required, select.required {
-    background-color: white;
+input.required, select.required, span.required_explanation {
+    background: #ffffff; /* Old browsers */
+    background: -moz-linear-gradient(top, #ffffff 0%, #ffffff 85%, #c0e4f6 100%); /* FF3.6+ */
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#ffffff), color-stop(85%,#ffffff), color-stop(100%,#c0e4f6)); /* Chrome,Safari4+ */
+    background: -webkit-linear-gradient(top, #ffffff 0%,#ffffff 85%,#c0e4f6 100%); /* Chrome10+,Safari5.1+ */
+    background: -o-linear-gradient(top, #ffffff 0%,#ffffff 85%,#c0e4f6 100%); /* Opera 11.10+ */
+    background: -ms-linear-gradient(top, #ffffff 0%,#ffffff 85%,#c0e4f6 100%); /* IE10+ */
+    background: linear-gradient(to bottom, #ffffff 0%,#ffffff 85%,#c0e4f6 100%); /* W3C */
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ffffff', endColorstr='#c0e4f6',GradientType=0 ); /* IE6-9 */
 }
 
 #attachment_table {
@@ -693,6 +728,7 @@ button, input[type=submit], input[type=button], #commit, #commit_top, #header .b
     text-decoration: none;
     text-shadow: 0px 1px 0px rgba(0, 0, 0, 0.25);
     padding: .2em 1em .2em;
+    margin-top: -2px;
 }
 
 button:hover, input[type=submit]:hover, input[type=button]:hover, #commit:hover, #commit_top:hover, #header .btn:hover, #header input[type=submit]:hover {
