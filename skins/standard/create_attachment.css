@@ -46,7 +46,7 @@ table#flags td {
 
 .file_head a {
   text-decoration: none;
-  font-family: monospace;
+  font-family: Consolas, monospace;
   font-size: 1.1em;
 }
 

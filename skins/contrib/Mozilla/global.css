@@ -514,7 +514,7 @@ input.required, select.required, span.required_explanation {
 .bz_comment_text {
     width: 65em;
     box-sizing: border-box;
-    font-family: "Droid Sans Mono", Menlo, Monaco, monospace;
+    font-family: "Droid Sans Mono", Menlo, Monaco, Consolas, monospace;
 }
 
 .bz_comment_text p:first-child {

@@ -312,7 +312,7 @@ div#docslinks {
 /* The rules for these classes make international text wrap correctly,
    even for languages like Japanese that have no spaces. */
 .bz_comment_text, .uneditable_textarea {
-    font-family: monospace;
+    font-family: Consolas, monospace;
 }
 
 .bz_comment_hilite {
@@ -564,7 +564,7 @@ table.alcontent { width: 100%; }
 .importxls_link { margin-left: 20px; }
 .importxls_link span { font-weight: bold; }
 
-#comment_status_commit #comment { width: 50em; font-size: medium; font-family: monospace; }
+#comment_status_commit #comment { width: 50em; font-size: medium; font-family: Consolas, monospace; }
 
 .selectfree_ie iframe {
 display:none;
