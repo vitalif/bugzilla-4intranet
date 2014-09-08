@@ -12,7 +12,7 @@
 <form action="editvisibility.cgi?field=[% field.name | html %]&visibility_value_id=[% visibility_value.id %]" method="POST">
   <input type="hidden" name="token" value="[% token | html %]" />
   <input type="hidden" name="action" value="save" />
-  <table id="admin_table" cellpadding="4">
+  <table id="admin_table" class="admin_table">
     <tbody>
       <tr>
         <th align="left">Active</th>

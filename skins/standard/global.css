@@ -375,7 +375,18 @@ dl dl > dt {
     border-top: none;
 }
 
-#admin_table th {
+.admin_table {
+    border-collapse: collapse;
+}
+.admin_table tr.odd_row {
+    background: #f0f0f0;
+}
+.admin_table th {
+    background: #e0e0e0;
+}
+.admin_table td, .admin_table th {
+    border: 1px solid gray;
+    padding: 4px;
     white-space: normal !important;
 }
 

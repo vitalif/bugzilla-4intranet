@@ -335,25 +335,16 @@ textarea, select, input[type="text"], input:not([type]), input[type="password"] 
     border-color: #747e93;
 }
 
-#admin_table {
+.admin_table {
     border-collapse: collapse;
 }
 
-#admin_table td {
-    border-width: 1px;
-    border-style: solid;
-    border-color: #747e93;
+.admin_table td, .admin_table th {
+    border: 1px solid #747e93;
 }
 
-#admin_table tr.odd_row {
+.admin_table tr.odd_row {
     background-color: #e5e5e5;
-}
-
-#admin_table th {
-    background-color: #d8d8e6;
-    border-width: 1px;
-    border-style: solid;
-    border-color: #747e93;
 }
 
 .editemin th {
