@@ -28,13 +28,26 @@
 [% DEFAULT mode = "show" %]
 
 [%# This auto-sizes the comments and positions the collapse/expand links to the right. %]
-<table class="bz_comment_table" cellpadding="0" cellspacing="0"[% ' width="100%"' IF user.settings.comment_width.value == 'on' %]><tr>
-<td>
+<table class="bz_comment_table" cellpadding="0" cellspacing="0">
+<tr><td>
 
 [% PROCESS "bug/comment-preview-div.html.tmpl" %]
 
+[% IF mode == "edit" %]
+  <div align="right" id="collapse_expand_comments">
+    <a href="javascript:void(0)" onclick="toggle_all_comments('collapse'); return false;">Collapse All Comments</a>
+    <a href="javascript:void(0)" onclick="toggle_all_comments('expand'); return false;">Expand All Comments</a>
+  </div>
+[% END %]
+
 [% FOREACH comment = comments %]
   [% PROCESS a_comment %]
+[% END %]
+
+[% IF mode == "edit" %]
+  <script type="text/javascript">
+    addActionLinks([% json(comment_indexes(comments)) %]);
+  </script>
 [% END %]
 
 [%# Note: this template is used in multiple places; if you use this hook,
@@ -42,19 +55,9 @@
   #%]
 [% Hook.process("aftercomments") %]
 
-</td>
-<td width="200">
-  [% IF mode == "edit" %]
-    <script type="text/javascript">
-      addActionLinks([% json(comment_indexes(comments)) %]);
-    </script>
-    <ul class="bz_collapse_expand_comments">
-      <li><a href="#" onclick="toggle_all_comments('collapse'); return false;">Collapse All Comments</a></li>
-      <li><a href="#" onclick="toggle_all_comments('expand'); return false;">Expand All Comments</a></li>
-    </ul>
-  [% END %]
-</td>
-</tr></table>
+</td></tr>
+
+</table>
 
 [%############################################################################%]
 [%# Block for individual comments                                            #%]
@@ -150,7 +153,7 @@
         </span>
 
         [% IF wt_only && has_worktime %]
-        <div class="bz_comment_worktime">
+        <div class="bz_comment_worktime" title="Additional hours worked: [% PROCESS formattimeunit time_unit=comment.work_time %]">
           [% PROCESS formattimeunit time_unit=comment.work_time %]h
         </div>
         [% END %]
@@ -159,9 +162,9 @@
       </div>
 
       [% IF !wt_only && has_worktime %]
-        <br />
-        Additional hours worked:
-        [%+ PROCESS formattimeunit time_unit=comment.work_time %]
+      <div class="bz_comment_hours">
+        Additional hours worked: [%+ PROCESS formattimeunit time_unit=comment.work_time %]
+      </div>
       [% END %]
 
 [%# Don't indent the <pre> block, since then the spaces are displayed in the

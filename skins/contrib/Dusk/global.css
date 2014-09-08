@@ -157,7 +157,11 @@ hr {
     padding: 5px;
 }
 
-.bz_comment_head, .bz_first_comment_head {
+.bz_comment_hours {
+    font-size: 9pt;
+}
+
+.bz_comment_head, .bz_comment_wthead, .bz_first_comment_head {
     margin: 0; padding: 0;
     background-color: transparent;
     font-weight: bold;

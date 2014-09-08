@@ -327,6 +327,10 @@ div#docslinks {
     animation: bz_comment_flash 500ms;
 }
 
+.bz_comment_hours {
+    margin-top: 8px;
+}
+
 @-webkit-keyframes bz_comment_flash { from { background: #ffc0d0; } to { } }
 @keyframes bz_comment_flash { from { background: #ffc0d0; } to { } }
 

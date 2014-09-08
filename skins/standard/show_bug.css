@@ -107,10 +107,6 @@ table#flags {
     vertical-align:top;
 }
 
-#status {
-    margin-bottom: 3ex;
-}
-
 .knob-buttons {
     float: right;
     text-align: right;
