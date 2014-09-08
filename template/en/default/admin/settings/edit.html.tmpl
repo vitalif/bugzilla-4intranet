@@ -42,55 +42,47 @@ and will be allowed to choose their own value if they desire.<br>
 If it is not checked, this preference will not appear on the User Preference
 page, and the Default Value will automatically apply to everyone.
 </p>
-<hr>
+
+<hr />
 
 [% IF settings.size %]
-    <form name="adminsettingform" method="post" action="editsettings.cgi">
-      <table border="1" cellpadding="4">
-      <tr>
-        <th>Preference Text</th>
-        <th>Default Value</th>
-        <th>Enabled</th>
-      </tr>
-
-      [% FOREACH name = settings.keys %]
-          [% checkbox_name = name _ '-enabled' %]
-          <tr>
-            <td align="right">
-              [% lc_messages.setting_descs.$name OR name FILTER html %]
-            </td>
-            <td>
-              <select name="[% name FILTER html %]" id="[% name FILTER html %]">
-                [% FOREACH x = settings.${name}.legal_values %]
-                    <option value="[% x FILTER html %]"
-                      [% " selected=\"selected\"" IF x == settings.${name}.default_value %]>
-                      [% lc_messages.setting_descs.${x} OR x FILTER html %]
-                    </option>
-                [% END %]
-              </select>
-            </td>
-            <td align="center">
-              <input type="checkbox"
-                name="[% checkbox_name FILTER html %]"
-                id="[% checkbox_name FILTER html %]"
-                [% " checked=\"checked\"" IF settings.${name}.is_enabled %]>
-              <br>
-            </td>
-          </tr>
-      [% END %]
-      </table>
-
-    <input type="hidden" name="action" value="update">
-    <input type="hidden" name="token" value="[% token FILTER html %]">
+  <form name="adminsettingform" method="post" action="editsettings.cgi">
     <table>
       <tr>
-        <td width="150"></td>
-        <td>
-          <input type="submit" id="update" value="Submit Changes">
-        </td>
+        <th>Enabled</th>
+        <th>Preference Text</th>
+        <th>Default Value</th>
       </tr>
+      [% FOREACH name = settings.keys.sort %]
+        [% checkbox_name = name _ '-enabled' %]
+        <tr>
+          <td align="center">
+            <input type="checkbox"
+              name="[% checkbox_name | html %]"
+              id="[% checkbox_name | html %]"
+              [% " checked=\"checked\"" IF settings.${name}.is_enabled %] />
+          </td>
+          <td align="left">
+            [% lc_messages.setting_descs.$name OR name | html %]
+          </td>
+          <td>
+            <select name="[% name | html %]" id="[% name | html %]" style="width: 100%">
+              [% FOREACH x = settings.${name}.legal_values %]
+              <option value="[% x | html %]"
+                [% " selected=\"selected\"" IF x == settings.${name}.default_value %]>
+                [% lc_messages.setting_descs.${x} OR x | html %]
+              </option>
+              [% END %]
+            </select>
+          </td>
+        </tr>
+      [% END %]
+      <tr><td colspan="3" align="center" style="border-width: 0; padding-top: 20px">
+        <input type="submit" id="update" value="Submit Changes" />
+      </td></tr>
     </table>
-  
+    <input type="hidden" name="action" value="update" />
+    <input type="hidden" name="token" value="[% token | html %]" />
   </form>
 [% ELSE %]
   There are no preferences to edit.
