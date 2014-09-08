@@ -58,6 +58,7 @@ function initQueryformFields()
     {
         doInit(i);
     }
+    reflowFieldRows();
 }
 
 function initQueryformField(i)
@@ -231,9 +232,12 @@ function handleQueryformControlledField(controlled)
     }
 }
 
-function handleQueryformField_this()
+function handleQueryformField_this(e, nonfirst)
 {
-    _getIdCache = {};
+    if (!nonfirst)
+    {
+        _getIdCache = {};
+    }
     var m = field_metadata[this.id];
     if (!m)
     {
@@ -254,6 +258,61 @@ function handleQueryformField_this()
     // Cascade events
     for (var i in f)
     {
-        handleQueryformField_this.apply(document.getElementById(i));
+        handleQueryformField_this.apply(document.getElementById(i), [ null, true ]);
+    }
+    if (!nonfirst)
+    {
+        reflowFieldRows();
+    }
+}
+
+function reflowFieldRows()
+{
+    var cells_per_row = 4;
+    var rows = [];
+    for (var i = 0, e; e = document.getElementById('cf_row_'+i); i++)
+    {
+        rows.push(e.rows[0]);
+    }
+    var prev = [];
+    for (var i = 0; i < rows.length; i++)
+    {
+        var vis = 0;
+        for (var j = 0; j < rows[i].cells.length; j++)
+        {
+            var v = rows[i].cells[j].style.display != 'none';
+            if (prev.length && prev[0][0] < cells_per_row)
+            {
+                // Move this cell up
+                rows[prev[0][1]].appendChild(rows[i].cells[j]);
+                j--;
+                if (v)
+                {
+                    prev[0][0]++;
+                    if (prev[0][0] >= 4)
+                    {
+                        prev.shift();
+                    }
+                }
+            }
+            else if (v)
+            {
+                vis++;
+                if (vis >= cells_per_row && i < rows.length-1)
+                {
+                    // Move remaining cells down
+                    for (var k = rows[i].cells.length-1; k > j; k--)
+                    {
+                        rows[i+1].cells.length
+                            ? rows[i+1].insertBefore(rows[i].cells[k], rows[i+1].cells[0])
+                            : rows[i+1].appendChild(rows[i].cells[k]);
+                    }
+                }
+            }
+        }
+        if (vis < cells_per_row)
+        {
+            prev.push([ vis, i ]);
+        }
     }
 }

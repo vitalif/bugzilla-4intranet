@@ -94,7 +94,7 @@
 
 [%# *** Custom select fields *** %]
 [% IF Bugzilla.get_fields({ is_select => 1, obsolete => 0, custom => 1 }).size %]
-<table>
+<table id="cf_row_0">
   <tr>
   [% i = 0 %]
   [% FOR f = Bugzilla.get_fields({ is_select => 1, obsolete => 0, custom => 1, sort => 1 }) %]
@@ -102,7 +102,7 @@
       [% IF i AND !(i % 4) %]
   </tr>
 </table>
-<table>
+<table id="cf_row_[% (i / 4) %]">
   <tr>
       [% END %]
       <th align="left" valign="top" id="[% f.name | html %]_cont">
