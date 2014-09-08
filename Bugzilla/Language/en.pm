@@ -213,7 +213,7 @@ $Bugzilla::messages->{en} = {
     },
     system_groups => {
         admin               => 'Administrator group. Usually allows to access <b>all</b> administrative functions.',
-        admin_index         => 'Allows to <a href="admin.cgi">enter Administration area</a>, granted automatically if you can access any of the administration functions.',
+        admin_index         => 'Allows to <a href="admin.cgi">enter Administration area</a>, granted automatically if you can access any of the administrative functions.',
         tweakparams         => 'Allows to <a href="editparams.cgi">change Parameters</a>.',
         editusers           => 'Allows to <a href="editusers.cgi">edit or disable users</a> and include/exclude them from <b>all</b> groups.',
         creategroups        => 'Allows to <a href="editgroups.cgi">create, destroy and edit groups</a>.',

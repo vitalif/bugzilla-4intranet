@@ -35,21 +35,17 @@
   [% END %]
 [% END %]
 
-<style type="text/css">
-.first_group_head th { padding: 0 0 1em 0; }
-.group_head th { padding: 1em 0; }
-</style>
-
 <p>
   <b>System groups</b> just grant you some system-wide permission.<br />
   <b>[% terms.Bug %] groups</b> are configured by [% terms.Bugzilla %] administrators to grant you some per-product permissions.
   Note that several groups may restrict access to a single product; in this case you must be a member of <b>all</b> of them to see [% terms.bugs %] in that product.
 </p>
 [% PROCESS before_group_table %]
-<table>
+<table class="admin_table">
   [% FOREACH group = all_groups %]
     [% IF show_member AND user.in_group_id(group.id) OR user.can_bless(group.id) %]
     [% IF NOT last_group OR last_group.is_bug_group != group.is_bug_group %]
+    [% IF last_group %]<tr><td colspan="4" style="border-width: 0; background: transparent">&nbsp;</td></tr>[% END %]
     <tr class="[% last_group ? "group_head" : "first_group_head" %]">
       <th align="left">
         [% group.is_bug_group ? terms.Bug _ " group" : "System group" %]
@@ -66,12 +62,14 @@
     </tr>
     [% END %]
     [% SET i = i+1 %]
-    <tr[% (i % 2) ? ' style="background: #ddd"' : '' %]>
-      <th valign="top" align="left">
+    <tr class="[% (i % 2) ? 'even_row' : 'odd_row' %]">
+      <td valign="top" align="left">
         [% IF user.can_bless(group.id) %]
-          <a href="editusersingroup.cgi?group=[% group.id %]"[% IF !user.in_group_id(group.id) %] style="color: gray"[% END %]>[% group.name | html %]</a>
+          <b><a href="editusersingroup.cgi?group=[% group.id %]"[% IF !user.in_group_id(group.id) %] style="color: gray"[% END %]>[% group.name | html %]</a></b>
+        [% ELSE %]
+          <b>[% group.name | html %]</b>
         [% END %]
-      </th>
+      </td>
       [% PROCESS group_row %]
       [% IF group.is_bug_group %]
         <td valign="top">
