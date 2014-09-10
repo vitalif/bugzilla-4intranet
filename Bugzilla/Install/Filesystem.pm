@@ -248,20 +248,6 @@ sub FILESYSTEM {
                                         contents => '' },
     );
 
-    # Each standard stylesheet has an associated custom stylesheet that
-    # we create. Also, we create placeholders for standard stylesheets
-    # for contrib skins which don't provide them themselves.
-    foreach my $skin_dir ("$skinsdir/custom", <$skinsdir/contrib/*>) {
-        next if basename($skin_dir) =~ /^cvs$/i;
-        foreach my $base_css (<$skinsdir/standard/*.css>) {
-            _add_custom_css($skin_dir, basename($base_css), \%create_files, $ws_readable);
-        }
-        foreach my $dir_css (<$skinsdir/standard/*/*.css>) {
-            $dir_css =~ s{.+?([^/]+/[^/]+)$}{$1};
-            _add_custom_css($skin_dir, $dir_css, \%create_files, $ws_readable);
-        }
-    }
-
     # Because checksetup controls the creation of index.html separately
     # from all other files, it gets its very own hash.
     my %index_html = (
@@ -441,18 +427,6 @@ EOT
         print "Removing duplicates directory...\n";
         rmtree("$datadir/duplicates");
     }
-}
-
-# A simple helper for creating "empty" CSS files.
-sub _add_custom_css {
-    my ($skin_dir, $path, $create_files, $perms) = @_;
-    $create_files->{"$skin_dir/$path"} = { perms => $perms, contents => <<EOT
-/*
- * Custom rules for $path.
- * The rules you put here override rules in that stylesheet.
- */
-EOT
-    };
 }
 
 sub create_htaccess {
