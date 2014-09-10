@@ -531,6 +531,11 @@ input.required, select.required, span.required_explanation {
     margin: 0;
 }
 
+.bz_comment textarea {
+    margin: 8px 0;
+    padding: 10px;
+}
+
 .bz_first_comment_head, .bz_comment_head, .bz_comment_wthead {
     font-weight: normal;
     line-height: 32px;
