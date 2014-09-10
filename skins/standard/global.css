@@ -36,10 +36,6 @@
     textarea {
         font-size: small;
     }
-    /* monospace is much smaller than Verdana by default, so we make it a bit bigger. */
-    pre, code, kbd {
-        font-size: medium;
-    }
     select {
         background: #fff;
     }
