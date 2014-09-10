@@ -11,6 +11,7 @@
 .bz_comment_actions, .bz_comment_number, .bz_private_checkbox { float: right; }
 
 .bz_comment_worktime { font-weight: bold; margin-left: 1em; }
+.cmt_wtonly { font-size: 80%; vertical-align: middle; }
 .bz_comment_unmark_wtonly { margin-left: 1em; }
 .bz_private_checkbox input { margin: 0; vertical-align: middle; }
 .bz_comment_user_images img { vertical-align: bottom; }

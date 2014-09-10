@@ -496,9 +496,9 @@ if ($ARGS->{id})
     # Same with worktime-only
     foreach (keys %$ARGS)
     {
-        if (/^cmt_(normal|worktime)_(\d+)$/ && $ARGS->{$_})
+        if (/^wtonly_(\d+)$/)
         {
-            $first_bug->set_comment_worktimeonly($2, $1 eq 'worktime');
+            $first_bug->set_comment_worktimeonly($1, $ARGS->{$_});
         }
     }
 }

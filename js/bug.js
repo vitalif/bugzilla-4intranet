@@ -32,11 +32,8 @@ function showhide_comment(comment_id, show)
 {
     var link = document.getElementById('comment_link_' + comment_id);
     var comment = document.getElementById('comment_text_' + comment_id);
-    var unmark = document.getElementById('unmark_wtonly_' + comment_id);
     link.innerHTML = show ? "[-]" : "[+]";
     link.title = (show ? "Collapse" : "Expand")+" the comment.";
-    if (unmark)
-        unmark.style.display = show ? '' : 'none';
     if (show)
         removeClass(comment, 'collapsed');
     else
@@ -65,18 +62,13 @@ function showhide_comment_preview(comment_id)
     return false;
 }
 
-// Mark comment as worktime-only or normal
-function toggle_wtonly(id, initial_wtonly, img)
+function edit_wtonly(l, id)
 {
-    var f = document.getElementById((initial_wtonly ? 'cmt_normal_' : 'cmt_worktime_') + id);
-    var mark = f.value == '1';
-    f.value = mark ? '' : '1';
-    mark = initial_wtonly ? mark : !mark;
-    img.src = 'images/clock' + (mark ? '' : 'x') + '.gif';
-    img.alt = mark ?
-        'Comment is marked worktime-only. Click to mark it as normal, then click Save Changes' :
-        'Comment is marked as normal. Click to mark it as worktime-only, then click Save Changes';
-    img.title = img.alt;
+    l.style.display = 'none';
+    var e = document.getElementById('wtonly_' + id);
+    e.name = e.id;
+    e.style.display = '';
+    e.focus();
 }
 
 // This way, we are sure that browsers which do not support JS
