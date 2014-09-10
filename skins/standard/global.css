@@ -293,13 +293,17 @@ div#docslinks {
     margin-bottom: 2em;
 }
 
-.bz_comment_text {
+.bz_comment_text, #comment_textarea {
     width: 50em;
     white-space: normal;
 }
 
 .bz_comment_text p {
     margin: 1em 0;
+}
+
+.bz_comment_text p:last-child {
+    margin-bottom: .5em;
 }
 
 .bz_comment_text .quote {
@@ -311,7 +315,7 @@ div#docslinks {
 
 /* The rules for these classes make international text wrap correctly,
    even for languages like Japanese that have no spaces. */
-.bz_comment_text, .uneditable_textarea {
+.bz_comment_text, .uneditable_textarea, textarea {
     font-family: Consolas, monospace;
 }
 
