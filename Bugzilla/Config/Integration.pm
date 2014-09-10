@@ -12,6 +12,12 @@ sub get_param_list
 {
     return (
     {
+        name => 'gravatar_url',
+        type => 't',
+        default => 'http://www.gravatar.com/avatar/$MD5',
+    },
+
+    {
         name => 'wiki_url',
         type => 't',
         default => '',

@@ -12,7 +12,11 @@
       "<p style='margin: 0'>Perl regular expressions for checking 'See Also' field. Only values that match one of these regexes are allowed. Format:</p>"
       _ "<pre style='margin: 8px 0; padding: 4px; background: white;"
       _ " border: 1px solid gray;'># Lines that start with # are treated as comments\n&lt;REGEX&gt;   &lt;REPLACEMENT&gt;</pre>",
-
+    gravatar_url =>
+      "URL template for Gravatar-like avatars. You can use either \$MD5 or \$EMAIL in it to get avatar picture by user email."
+      _ " \$EMAIL will be replaced by cleartext user email, so you should only never use it in public networks;"
+      _ " \$MD5 will be replaced by MD5 hash of user email, just like it is required by real Gravatar service."
+      _ " You can also disable avatar display by clearing this parameter.",
     viewvc_url => "ViewVC query URL for browsing bug code",
     wiki_url => "Default MediaWiki URL for bug links",
     mediawiki_urls =>

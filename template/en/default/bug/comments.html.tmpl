@@ -40,6 +40,9 @@
   </div>
 [% END %]
 
+[% show_avatars = Param('gravatar_url') && user.settings.show_gravatars.value == 'on' %]
+[% show_avatars = show_avatars ? (user.settings.skin.value == 'Mozilla' ? 1 : 2) : 0 %]
+
 [% FOREACH comment = comments %]
   [% PROCESS a_comment %]
 [% END %]
@@ -76,95 +79,113 @@
        && (wt_wt && (has_worktime || wt_only) || wt_all)
        && (comment.who == user.id || user.in_group('worktimeadmin'))
   %]
-  <div class="bz_comment
-                [%- " bz_private" IF comment.is_private %]
-                [%- " bz_comment_hilite" IF marks.$count %]
-                [%- " bz_first_comment" IF comment.count == 0 %]">
-      [% IF comment.count == 0 %]
-        [% class_name = "bz_first_comment_head" %]
-        [% comment_label = "Description" %]
-      [% ELSE %]
-        [% class_name = wt_only ? "bz_comment_wthead" : "bz_comment_head" %]
-        [% comment_label = "Comment " _ comment.count %]
+  <div class="bz_comment[%- " bz_private" IF comment.is_private %][%- " bz_comment_hilite" IF marks.$count %]
+    [%- " bz_first_comment" IF comment.count == 0 %]">
+    [% IF comment.count == 0 %]
+      [% class_name = "bz_first_comment_head" %]
+      [% comment_label = "Description" %]
+    [% ELSE %]
+      [% class_name = wt_only ? "bz_comment_wthead" : "bz_comment_head" %]
+      [% comment_label = "Comment " _ comment.count %]
+    [% END %]
+
+    <div class="[% class_name %]"[% IF show_avatars == 1 %] style="line-height: 40px"[% END %]>
+
+      <span class="bz_comment_actions" id="comment_act_[% comment.id %]">
+      [% IF wt_btn %]
+        <img src="images/clock[% IF !wt_only %]g[% END %].gif" width="16" height="16"
+          alt="[% wt_only ? 'Comment is worktime-only' : 'Comment is not worktime-only' %]"
+          title="[% wt_only ? 'Comment is worktime-only' : 'Comment is not worktime-only' %]"
+          style="cursor: pointer; vertical-align: middle"
+          onclick="edit_wtonly(this, [% comment.id %])" />
+        <select class="cmt_wtonly" id="wtonly_[% comment.id %]" style="display: none">
+          <option value="0">normal</option>
+          <option value="1"[% " selected" IF wt_only %]>worktime-only</option>
+        </select>
       [% END %]
+      </span>
 
-      <div class="[% class_name %]">
-
-        <span class="bz_comment_actions" id="comment_act_[% comment.id %]">
-        [% IF wt_btn %]
-          <img src="images/clock[% IF !wt_only %]g[% END %].gif" width="16" height="16"
-            alt="[% wt_only ? 'Comment is worktime-only' : 'Comment is not worktime-only' %]"
-            title="[% wt_only ? 'Comment is worktime-only' : 'Comment is not worktime-only' %]"
-            style="cursor: pointer; vertical-align: middle"
-            onclick="edit_wtonly(this, [% comment.id %])" />
-          <select class="cmt_wtonly" id="wtonly_[% comment.id %]" style="display: none">
-            <option value="0">normal</option>
-            <option value="1"[% " selected" IF wt_only %]>worktime-only</option>
-          </select>
-        [% END %]
-        </span>
-
-        [% IF mode == "edit" && user.is_insider %]
-          <div class="bz_private_checkbox">
-            <input type="hidden" value="1"
-                   name="defined_isprivate_[% comment.id %]" />
-            <input type="checkbox"
-                   name="isprivate_[% comment.id %]" value="1"
-                   id="isprivate_[% comment.id %]"
-                   onClick="updateCommentPrivacy(this, [% comment.id %])"
-                   [% " checked=\"checked\"" IF comment.is_private %] />
-            <label for="isprivate_[% comment.id %]">Private</label>
-          </div>
-        [% END %]
-
-        <a name="[% comment.bug_when FILTER timestamp %]"></a>
-        [% IF NOT wt_only %]
-        <span class="bz_comment_number">
-          [% IF (comment.author.id == user.id || !comment.count) && collision != 1 %]
-          [<a href="#" onclick="showEditComment([% comment.id %]); return false;">Edit</a>]
-          [% END %]
-          <a name="c[% comment.count %]" href="show_bug.cgi?id=[% bug.bug_id %]#c[% comment.count %]">
-            [%- comment_label FILTER html %]</a>
-        </span>
-        [% END %]
-
-        <span class="bz_comment_user">
-          [% INCLUDE global/user.html.tmpl who = comment.author %]
-        </span>
-
-        <span class="bz_comment_user_images">
-          [% FOREACH group = comment.author.direct_group_membership %]
-            [% NEXT UNLESS group.icon_url %]
-            <img src="[% group.icon_url FILTER html %]"
-                 alt="[% group.name FILTER html %]"
-                 title="[% group.name FILTER html %] - [% group.description FILTER html %]">
-          [% END %]
-        </span>
-
-        <span class="bz_comment_time">
-          [%+ comment.creation_ts FILTER time %]
-        </span>
-
-        [% IF wt_only && has_worktime %]
-        <div class="bz_comment_worktime" title="Additional hours worked: [% PROCESS formattimeunit time_unit=comment.work_time %]">
-          [% PROCESS formattimeunit time_unit=comment.work_time %]h
+      [% IF mode == "edit" && user.is_insider %]
+        <div class="bz_private_checkbox">
+          <input type="hidden" value="1"
+                 name="defined_isprivate_[% comment.id %]" />
+          <input type="checkbox"
+                 name="isprivate_[% comment.id %]" value="1"
+                 id="isprivate_[% comment.id %]"
+                 onClick="updateCommentPrivacy(this, [% comment.id %])"
+                 [% " checked=\"checked\"" IF comment.is_private %] />
+          <label for="isprivate_[% comment.id %]">Private</label>
         </div>
+      [% END %]
+
+      <a name="[% comment.bug_when FILTER timestamp %]"></a>
+      [% IF NOT wt_only %]
+      <span class="bz_comment_number">
+        [% IF (comment.author.id == user.id || !comment.count) && collision != 1 %]
+        [<a href="#" onclick="showEditComment([% comment.id %]); return false;">Edit</a>]
         [% END %]
+        <a name="c[% comment.count %]" href="show_bug.cgi?id=[% bug.bug_id %]#c[% comment.count %]">
+          [%- comment_label FILTER html %]</a>
+      </span>
+      [% END %]
 
-        <div style="clear: both"></div>
-      </div>
+      [%# FIXME: Mozilla skin is hardcoded :-( %]
+      [% IF show_avatars == 1 %]
+      <span class="bz_comment_user">
+        <a href="[% Param("user_mailto") %][% comment.author.email | html %]"
+          title="[% comment.author.identity | html %]">
+          <img src="[% comment.author.gravatar_url('s=40&d=' _ urlbase _ '/images/noavatar40.png') %]" />
+        </a>
+      </span>
+      [% END %]
 
-      [% IF !wt_only && has_worktime %]
-      <div class="bz_comment_hours">
-        Additional hours worked: [%+ PROCESS formattimeunit time_unit=comment.work_time %]
+      <span class="bz_comment_user">
+        [% INCLUDE global/user.html.tmpl who = comment.author %]
+      </span>
+
+      <span class="bz_comment_user_images">
+        [% FOREACH group = comment.author.direct_group_membership %]
+          [% NEXT UNLESS group.icon_url %]
+          <img src="[% group.icon_url FILTER html %]"
+               alt="[% group.name FILTER html %]"
+               title="[% group.name FILTER html %] - [% group.description FILTER html %]">
+        [% END %]
+      </span>
+
+      <span class="bz_comment_time">
+        [%+ comment.creation_ts FILTER time %]
+      </span>
+
+      [% IF wt_only && has_worktime %]
+      <div class="bz_comment_worktime" title="Additional hours worked: [% PROCESS formattimeunit time_unit=comment.work_time %]">
+        [% PROCESS formattimeunit time_unit=comment.work_time %]h
       </div>
       [% END %]
 
-[%# Don't indent the <pre> block, since then the spaces are displayed in the
-  # generated HTML
-  #%]
-<div class="bz_comment_text[% " collapsed" IF wt_only %][% " bz_fullscreen_comment" IF user.settings.comment_width.value == 'on' %]" id="comment_text_[% comment.id %]">
-  [%- comment.body_full({ wrap => 1, wo_preview => (user.settings.preview_long_comments.value == 'off') }) -%]
-</div>
+      <div style="clear: both"></div>
     </div>
+
+    [% IF !wt_only && has_worktime %]
+    <div class="bz_comment_hours">
+      Additional hours worked: [%+ PROCESS formattimeunit time_unit=comment.work_time %]
+    </div>
+    [% END %]
+
+    <div class="bz_comment_text[% " collapsed" IF wt_only %][% " bz_fullscreen_comment" IF user.settings.comment_width.value == 'on' %]" id="comment_text_[% comment.id %]">
+      [%# FIXME: Mozilla skin is hardcoded :-( %]
+      [% IF show_avatars == 2 %]
+      <span class="bz_comment_avatar">
+        <a href="[% Param("user_mailto") %][% comment.author.email | html %]"
+          title="[% comment.author.identity | html %]">
+          <img src="[% comment.author.gravatar_url('s=80') %]"
+            onerror="this.style.display='none'" />
+        </a>
+      </span>
+      [% END %]
+      [%- comment.body_full({ wrap => 1, wo_preview => (user.settings.preview_long_comments.value == 'off') }) -%]
+    </div>
+    [% IF !wt_only && Param('gravatar_url') && user.settings.skin.value != 'Mozilla' %]
+    <div style="clear: both"></div>
+    [% END %]
+  </div>
 [% END %]

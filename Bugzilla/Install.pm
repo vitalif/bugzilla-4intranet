@@ -77,11 +77,13 @@ use constant SETTINGS => {
     # CustIS Bug 87696 - Setting to change comments which are allowed to be marked as collapsed by default ("worktime-only")
     showhide_comments        => { options => ['none', 'worktime', 'all'], default => 'worktime' },
     # CustIS Bug 125374 - Select whether to show comments in full page width
-    comment_width            => { options => ['off', 'on'], default => 'off' },
+    comment_width            => { options => ['off', 'on'], default => 'on' },
     # CustIS Bug 138596 - Choose whether to hide long comments by default
     preview_long_comments    => { options => ['off', 'on'], default => 'off' },
     # Clear all flag requests when changing bug status to 'closed_bug_status' parameter
     clear_requests_on_close  => { options => ['off', 'on'], default => 'off' },
+    # Select whether to show avatar
+    show_gravatars           => { options => ['off', 'on'], default => 'on' },
 };
 
 # Initial system groups.

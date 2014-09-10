@@ -49,6 +49,7 @@ use Bugzilla::Field;
 use Bugzilla::Group;
 use Bugzilla::Status;
 
+use Digest::MD5 qw(md5_hex);
 use POSIX;
 use DateTime::TimeZone;
 use Scalar::Util qw(blessed);
@@ -314,6 +315,19 @@ sub cryptpassword
         undef, $self->id
     );
     return $pw;
+}
+
+sub gravatar_url
+{
+    my ($self, $params) = @_;
+    my $url = Bugzilla->params->{gravatar_url} or return '';
+    $url =~ s/\$MD5/md5_hex(lc $self->email)/e or $url =~ s/\$EMAIL/url_quote(lc $self->email)/e;
+    if ($params)
+    {
+        $url .= $url =~ /\?/ ? '&' : '?';
+        $url .= $params;
+    }
+    return $url;
 }
 
 sub set_authorizer

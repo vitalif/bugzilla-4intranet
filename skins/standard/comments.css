@@ -5,6 +5,7 @@
 .bz_comment_user, .bz_comment_time,
 .bz_comment_number, .bz_private_checkbox,
 .bz_comment_actions { margin: 0 .5em; white-space: nowrap; }
+.bz_comment_avatar { display: block; float: right; margin: -8px 8px 0; }
 
 .bz_comment_user, .bz_comment_time, .bz_comment_user_images,
 .bz_comment_worktime, .bz_comment_unmark_wtonly { float: left; }

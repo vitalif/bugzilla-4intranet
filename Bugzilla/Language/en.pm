@@ -210,6 +210,7 @@ $Bugzilla::messages->{en} = {
         'comment_width'                     => 'Show comments in the full screen width',
         'preview_long_comments'             => 'Fold long comments',
         'clear_requests_on_close'           => 'Clear flag requests when closing bugs',
+        'show_gravatars'                    => 'Show avatar images (Gravatars)',
     },
     system_groups => {
         admin               => 'Administrator group. Usually allows to access <b>all</b> administrative functions.',
