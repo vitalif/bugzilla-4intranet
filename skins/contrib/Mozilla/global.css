@@ -111,6 +111,10 @@ a:hover, #header a:hover, #footer a:hover {
     vertical-align: top;
 }
 
+input[type=checkbox], input[type=radio] {
+    vertical-align: middle;
+}
+
 legend {
     background: inherit;
 }
