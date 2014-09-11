@@ -2,7 +2,7 @@
 
    Homepage: http://yourcmc.ru/wiki/SimpleAutocomplete
    License: MPL 2.0+ (http://www.mozilla.org/MPL/2.0/)
-   Version: 2014-09-05
+   Version: 2014-09-11
    (c) Vitaliy Filippov 2011-2014
 
    Usage:
@@ -122,8 +122,6 @@ SimpleAutocomplete.prototype.init = function()
     this.id = this.input.id + l.length;
     l.push(this);
 
-    var p = getOffset(e);
-
     // Create hint layer
     var t = this.hintLayer = document.createElement('div');
     t.className = this.className;
@@ -131,9 +129,7 @@ SimpleAutocomplete.prototype.init = function()
     {
         t.style.display = 'none';
         t.style.position = 'absolute';
-        t.style.top = (p.top+e.offsetHeight) + 'px';
         t.style.zIndex = 1000;
-        t.style.left = p.left + 'px';
         document.body.appendChild(t);
     }
     else

@@ -506,6 +506,15 @@ input.required, select.required, span.required_explanation {
     background: #ffffff;
 }
 
+.bz_comment_flash .bz_comment_text {
+    background: #ffc0d0;
+    -webkit-animation: bz_comment_flash_text 500ms;
+    animation: bz_comment_flash_text 500ms;
+}
+
+@-webkit-keyframes bz_comment_flash_text { from { background: #ffc0d0; } to { background: #ffffff; } }
+@keyframes bz_comment_flash_text { from { background: #ffc0d0; } to { background: #ffffff; } }
+
 .bz_comment {
     margin: 0 0 20px;
     box-sizing: border-box;

@@ -388,9 +388,9 @@ addListener(window, 'hashchange', function()
         }
         if (a)
         {
-            var oc = a.className;
+            var oc = a.className.replace(' bz_comment_flash', '');
             a.className += ' bz_comment_flash';
-            setTimeout(function() { a.className = oc; }, 300);
+            setTimeout(function() { a.className = oc; }, 500);
         }
     }
 });

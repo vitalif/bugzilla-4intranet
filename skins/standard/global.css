@@ -331,8 +331,8 @@ div#docslinks {
     margin-top: 8px;
 }
 
-@-webkit-keyframes bz_comment_flash { from { background: #ffc0d0; } to { } }
-@keyframes bz_comment_flash { from { background: #ffc0d0; } to { } }
+@-webkit-keyframes bz_comment_flash { from { background: #ffc0d0; } to { background: inherit; } }
+@keyframes bz_comment_flash { from { background: #ffc0d0; } to { background: inherit; } }
 
 /** End Comment text **/
 
