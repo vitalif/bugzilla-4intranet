@@ -74,7 +74,7 @@ function setFieldValue(f, v)
         {
             f.selectedIndex = -1;
         }
-        if (v.length)
+        if (v)
         {
             v = v.split(',');
             for (var i in v)
