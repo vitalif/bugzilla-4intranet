@@ -409,7 +409,7 @@ sub makeCitations
     for (split /\n/, $input)
     {
         s/^((?:\s*&gt;)+ ?)?//s;
-        if ($_)
+        if ($_ ne '')
         {
             $re = (($1 || '') =~ tr/&/&/);
             $text .= ("<div class=\"quote\">\n" x ($re-$last)) .
