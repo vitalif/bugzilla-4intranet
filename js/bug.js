@@ -358,7 +358,7 @@ function search_filter_click(e)
     this.href = new_href;
 }
 
-addListener(window, 'load', function()
+onDomReady(function()
 {
     if (document.getElementById('form_bug_edit'))
     {

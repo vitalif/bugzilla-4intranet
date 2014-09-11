@@ -37,7 +37,7 @@ respecting this "list of active IDs".
 
 */
 
-addListener(window, 'load', initQueryformFields);
+onDomReady(initQueryformFields);
 
 function initQueryformFields()
 {

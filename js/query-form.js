@@ -3,7 +3,7 @@
 // Author(s): Vitaliy Filippov <vitalif@mail.ru>
 
 // Requires global vars: queryform, checkwidths, userAutocomplete
-addListener(window, 'load', function()
+onDomReady(function()
 {
   document.forms[queryform].content.focus();
   if (document.getElementById('deadlinefrom'))

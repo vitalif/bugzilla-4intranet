@@ -29,11 +29,8 @@
   [% IF style %] style="[% style | html %]" [% END %]
 />
 <script language="JavaScript">
-addListener(window, 'load', function() {
-  [%-# FIXME: remove hardcoded i18n message, also from js/field.js::userAutocomplete() %]
-  var emptyOptions = [% custom_userlist ? json(custom_userlist) : "null" %];
-  new SimpleAutocomplete("[% id | js %]",
-    function(h) { userAutocomplete(h, emptyOptions, [% Param('usemenuforusers') ? 1 : 0 %]); },
-    { emptyText: 'No users found'[% ', multipleDelimiter: ","' IF multiple %] });
-});
+[%-# FIXME: remove hardcoded i18n message, also from js/field.js::userAutocomplete() %]
+new SimpleAutocomplete("[% id | js %]",
+  function(h) { userAutocomplete(h, [% custom_userlist ? json(custom_userlist) : "null" %], [% Param('usemenuforusers') ? 1 : 0 %]); },
+  { emptyText: 'No users found'[% ', multipleDelimiter: ","' IF multiple %] });
 </script>

@@ -211,9 +211,6 @@ document.write(' <input type="button" name="check_all" value="Check All" onclick
   [% IF use_keywords %]
     <tr>
       <th>
-        <script type="text/javascript">
-        addListener(window, 'load', addKeywordsAutocomplete);
-        </script>
         <label for="keywords">
           <a href="describekeywords.cgi">Keywords</a>:
         </label>
@@ -225,6 +222,9 @@ document.write(' <input type="button" name="check_all" value="Check All" onclick
           <option value="delete">Delete these keywords</option>
           <option value="makeexact">Make the keywords be exactly this list</option>
         </select>
+        <script type="text/javascript">
+        addKeywordsAutocomplete();
+        </script>
       </td>
     </tr>
   [% END %]

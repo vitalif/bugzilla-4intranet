@@ -3,7 +3,7 @@
  * Author(s): Vitaliy Filippov <vitalif@mail.ru>
  */
 
-addListener(window, 'load', initControlledFields);
+onDomReady(initControlledFields);
 
 function initControlledFields()
 {

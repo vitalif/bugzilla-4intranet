@@ -537,7 +537,7 @@ document.changeform = document.[% cfname %];
       </td>
       [% PROCESS input inputname => "keywords" size => 40 colspan => 2 %]
       <script>
-      addListener(window, 'load', addKeywordsAutocomplete);
+        addKeywordsAutocomplete();
       </script>
     </tr>
   [% END %]
@@ -942,7 +942,7 @@ document.changeform = document.[% cfname %];
          <input name="deadline" id="deadline" value="[% bug.deadline %]"
                 size="10" maxlength="10"><br />
          <script type="text/javascript">
-            Calendar.set('deadline');
+           Calendar.set('deadline');
          </script>
          <small>(YYYY-MM-DD)</small>
       </td>

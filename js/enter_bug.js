@@ -169,7 +169,7 @@ function validateEntryForm(theform)
     return true;
 }
 
-addListener(window, 'load', function()
+onDomReady(function()
 {
     var f = document.getElementById('bug_status');
     addListener(f, 'change', bug_status_change);

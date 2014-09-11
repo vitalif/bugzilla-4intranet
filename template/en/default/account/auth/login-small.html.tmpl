@@ -86,7 +86,7 @@
         "login" : "login",
         "warning" : "You must set the login and password before logging in."
       };
-      addListener(window, 'load', function() {
+      onDomReady(function() {
         init_mini_login_form('_[% qs_suffix %]');
       });
     </script>

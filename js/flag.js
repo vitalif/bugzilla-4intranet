@@ -82,4 +82,4 @@ function disableRequesteeFields()
     }
 }
 
-addListener(window, "load", disableRequesteeFields);
+onDomReady(disableRequesteeFields);

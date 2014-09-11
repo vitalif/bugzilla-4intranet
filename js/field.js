@@ -25,7 +25,7 @@ function hideEditableField( container, input, action, field_id, original_value )
     addClass(input, 'bz_default_hidden');
     addListener(action, 'click', function(ev) { return showEditableField(ev, [ container, input ]); });
     if (field_id != "")
-        addListener(window, 'load', function(ev) {
+        onDomReady(function(ev) {
             return checkForChangedFieldValues(ev, [ container, input, field_id, original_value ])
         });
 }
@@ -114,9 +114,7 @@ function hideAliasAndSummary(short_desc_value, alias_value)
     var bz_alias_check_array = [
         'summary_alias_container', 'summary_alias_input', 'alias', alias_value
     ];
-    addListener(window, 'load',
-        function(ev) { return checkForChangedFieldValues(ev, bz_alias_check_array) }
-    );
+    onDomReady(function(ev) { return checkForChangedFieldValues(ev, bz_alias_check_array) });
 }
 
 function showPeopleOnChange(field_id_list)
@@ -145,13 +143,16 @@ function assignToDefaultOnChange(field_id_list)
 function initDefaultCheckbox(field_id)
 {
     addListener('set_default_'+field_id, 'change',
-        function(ev) { return boldOnChange(ev, 'set_default_'+field_id) });
-    addListener(window, 'load',
-        function(ev) { return checkForChangedFieldValues(ev, [
+        function(ev) { return boldOnChange(ev, 'set_default_'+field_id) }
+    );
+    onDomReady(function(ev)
+    {
+        checkForChangedFieldValues(ev, [
             'bz_'+field_id+'_edit_container', 'bz_'+field_id+'_input',
-            'set_default_'+field_id, '1' ]) });
-    addListener(window, 'load',
-        function(ev) { return boldOnChange(ev, 'set_default_'+field_id) });
+            'set_default_'+field_id, '1' ]
+        );
+        boldOnChange(ev, 'set_default_'+field_id);
+    });
 }
 
 function showHideStatusItems(is_duplicate, initial_status)
