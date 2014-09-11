@@ -63,7 +63,7 @@ document.write('<input type="button" value="Disable All Mail" onclick="SetCheckb
 // -->
 </script>
 
-<hr>
+<hr />
 
 <table>
   <tr>
@@ -76,94 +76,86 @@ document.write('<input type="button" value="Disable All Mail" onclick="SetCheckb
     <td width="150"></td>
     <td>
       [% prefname = "email-$constants.REL_ANY-$constants.EVT_FLAG_REQUESTED" %]
-      <input type="checkbox" name="[% prefname %]" id="[% prefname %]" 
-        value="1"
-        [% " checked" IF 
-                  mail.${constants.REL_ANY}.${constants.EVT_FLAG_REQUESTED} %]>
+      <input type="checkbox" name="[% prefname %]" id="[% prefname %]"
+        value="1" [% " checked" IF mail.${constants.REL_ANY}.${constants.EVT_FLAG_REQUESTED} %] />
       <label for="[% prefname %]">Email me when someone asks me to set a flag</label>
-      <br>
     </td>
   </tr>
   <tr>
     <td width="150"></td>
     <td>
       [% prefname = "email-$constants.REL_ANY-$constants.EVT_REQUESTED_FLAG" %]
-      <input type="checkbox" name="[% prefname %]" id="[% prefname %]" 
-        value="1"
-        [% " checked" IF 
-                  mail.${constants.REL_ANY}.${constants.EVT_REQUESTED_FLAG} %]>
+      <input type="checkbox" name="[% prefname %]" id="[% prefname %]"
+        value="1" [% " checked" IF mail.${constants.REL_ANY}.${constants.EVT_REQUESTED_FLAG} %] />
       <label for="[% prefname %]">Email me when someone sets a flag I asked for</label>
-      <br>
     </td>
   </tr>
 [% IF user.is_global_watcher %]
   <tr>
     <td width="150"></td>
     <td>
-      You are watching all [% terms.bugs %]. To be removed from this role,
-      contact
+      You are watching all [% terms.bugs %]. To be removed from this role, contact
       <a href="[% Param("user_mailto") %][% Param("maintainer") %]">[% Param("maintainer") %]</a>.
     </td>
   </tr>
 [% END %]
 </table>
 
-<hr>
+<hr />
 <b>Field/recipient specific options:</b>
-<br>
-<br>
+
+<br /><br />
 
 [% events = [
-    { id = constants.EVT_ADDED_REMOVED,
-      description = "I'm added to or removed from this capacity" },
-    { id = constants.EVT_BUG_CREATED,
-      description = "A new $terms.bug is created" },
-    { id = constants.EVT_OPENED_CLOSED,
-      description = "The $terms.bug is resolved or reopened" },
-    { id = constants.EVT_PROJ_MANAGEMENT,
-      description = "The priority, status, severity, or milestone changes" },
-    { id = constants.EVT_COMMENT,
-      description = "New comments are added" },
-    { id = constants.EVT_ATTACHMENT,
-      description = "New attachments are added" },
-    { id = constants.EVT_ATTACHMENT_DATA,
-      description = "Some attachment data changes" },
-    { id = constants.EVT_KEYWORD,
-      description = "The keywords field changes" },
-    { id = constants.EVT_CC,
-      description = "The CC field changes" },
-    { id = constants.EVT_DEPEND_BLOCK,
-      description = "The dependency tree changes" },
-    { id = constants.EVT_OTHER,
-      description = "Any field not mentioned above changes" },
-    { id = constants.EVT_DEPEND_REOPEN,
-      description = "A blocking bug is reopened or closed" },
+  { id = constants.EVT_ADDED_REMOVED,
+    description = "I'm added to or removed from this capacity" },
+  { id = constants.EVT_BUG_CREATED,
+    description = "A new $terms.bug is created" },
+  { id = constants.EVT_OPENED_CLOSED,
+    description = "The $terms.bug is resolved or reopened" },
+  { id = constants.EVT_PROJ_MANAGEMENT,
+    description = "The priority, status, severity, or milestone changes" },
+  { id = constants.EVT_COMMENT,
+    description = "New comments are added" },
+  { id = constants.EVT_ATTACHMENT,
+    description = "New attachments are added" },
+  { id = constants.EVT_ATTACHMENT_DATA,
+    description = "Some attachment data changes" },
+  { id = constants.EVT_KEYWORD,
+    description = "The keywords field changes" },
+  { id = constants.EVT_CC,
+    description = "The CC field changes" },
+  { id = constants.EVT_DEPEND_BLOCK,
+    description = "The dependency tree changes" },
+  { id = constants.EVT_OTHER,
+    description = "Any field not mentioned above changes" },
+  { id = constants.EVT_DEPEND_REOPEN,
+    description = "A blocking bug is reopened or closed" },
 ] %]
 
 [% neg_events = [
-    { id = constants.EVT_UNCONFIRMED,
-      description = "The $terms.bug is in the unconfirmed state" },
-    { id = constants.EVT_CHANGED_BY_ME,
-      description = "The change was made by me" },
+  { id = constants.EVT_UNCONFIRMED,
+    description = "The $terms.bug is in the unconfirmed state" },
+  { id = constants.EVT_CHANGED_BY_ME,
+    description = "The change was made by me" },
 ] %]
 
 [% relationships = [
-    { id = constants.REL_ASSIGNEE,
-      description = "Assignee" },
-    { id = constants.REL_QA,
-      description = "QA Contact" },
-    { id = constants.REL_REPORTER,
-      description = "Reporter" },
-    { id = constants.REL_CC,
-      description = "CCed" },
-    { id = constants.REL_VOTER,
-      description = "Voter" },
+  { id = constants.REL_ASSIGNEE,
+    description = "Assignee" },
+  { id = constants.REL_QA,
+    description = "QA Contact" },
+  { id = constants.REL_REPORTER,
+    description = "Reporter" },
+  { id = constants.REL_CC,
+    description = "CCed" },
+  { id = constants.REL_VOTER,
+    description = "Voter" },
 ] %]
 
 <table class="bz_emailprefs" border="1">
   <tr>
-    <td colspan="[% (useqacontact AND usevotes) ? '5' : 
-                     ((useqacontact OR usevotes) ? '4' : '3') %]" 
+    <td colspan="[% (useqacontact AND usevotes) ? '5' : ((useqacontact OR usevotes) ? '4' : '3') %]" 
         align="center" width="50%">
       <b>When my relationship to this [% terms.bug %] is:</b>
     </td>
@@ -175,95 +167,89 @@ document.write('<input type="button" value="Disable All Mail" onclick="SetCheckb
   <tr>
     [% FOREACH relationship = relationships %]
       [% NEXT IF (relationship.id == constants.REL_QA AND NOT useqacontact) OR
-                 (relationship.id == constants.REL_VOTER AND NOT usevotes) %]
+        (relationship.id == constants.REL_VOTER AND NOT usevotes) %]
       <th align="center" width="9%">
-        [% relationship.description FILTER html %]
+        [% relationship.description | html %]
       </th>
     [% END %]
   </tr>
-  
-  [% FOREACH event = events %]  
+
+  [% FOREACH event = events %]
     [% count = loop.count() %]
     <tr class="bz_row_[% count % 2 == 1 ? "odd" : "even" %]">
       [% FOREACH relationship = relationships %]
       [% NEXT IF (relationship.id == constants.REL_QA AND NOT useqacontact) OR
-                 (relationship.id == constants.REL_VOTER AND NOT usevotes) %]
+        (relationship.id == constants.REL_VOTER AND NOT usevotes) %]
         <td align="center">
-          <input type="checkbox" 
+          <input type="checkbox" value="1"
             name="email-[% relationship.id %]-[% event.id %]"
-            value="1"
             [%# The combinations don't always make sense; disable a couple %]
-            [% IF event.id == constants.EVT_ADDED_REMOVED AND 
-                 (relationship.id == constants.REL_REPORTER OR
-                  relationship.id == constants.REL_VOTER) %]
+            [% IF event.id == constants.EVT_ADDED_REMOVED AND
+              (relationship.id == constants.REL_REPORTER OR relationship.id == constants.REL_VOTER) %]
                disabled
             [% ELSIF mail.${relationship.id}.${event.id} %]
                checked
-            [% END %]>
+            [% END %] />
         </td>
       [% END %]
       <td>
-        [% event.description FILTER html %]
+        [% event.description | html %]
       </td>
     </tr>
   [% END %]
-  
+
   <tr>
-    <td colspan="[% (useqacontact AND usevotes) ? '5' : 
-                     ((useqacontact OR usevotes) ? '4' : '3') %]" 
-        align="center" width="50%">
-      &nbsp;
-    </td>
+    <td colspan="[% (useqacontact AND usevotes) ? '5' : ((useqacontact OR usevotes) ? '4' : '3') %]"
+      align="center" width="50%">&nbsp;</td>
     <td width="40%">
       <b>but not when (overrides above):</b>
     </td>
   </tr>
 
-  [% FOREACH event = neg_events %]  
+  [% FOREACH event = neg_events %]
     [% count = loop.count() %]
     <tr class="bz_row_[% count % 2 == 1 ? "odd" : "even" %]">
       [% FOREACH relationship = relationships %]
         [% NEXT IF (relationship.id == constants.REL_QA AND NOT useqacontact) OR
                    (relationship.id == constants.REL_VOTER AND NOT usevotes) %]
         <td align="center">
-          <input type="checkbox" 
+          <input type="checkbox" value="1"
             name="neg-email-[% relationship.id %]-[% event.id %]"
-            value="1"
-            [% " checked" IF NOT mail.${relationship.id}.${event.id} %]>
+            [% " checked" IF NOT mail.${relationship.id}.${event.id} %] />
         </td>
       [% END %]
       <td>
-        [% event.description FILTER html %]
+        [% event.description | html %]
       </td>
     </tr>
   [% END %]
-  
+
 </table>
 
 [%# Add hidden form fields for fields not used %]
-[% FOREACH event = events %]  
+[% FOREACH event = events %]
   [% FOREACH relationship = relationships %]
     [% IF (relationship.id == constants.REL_QA AND NOT useqacontact) OR
-          (relationship.id == constants.REL_VOTER AND NOT usevotes) %]
-      <input type="hidden" 
+      (relationship.id == constants.REL_VOTER AND NOT usevotes) %]
+      <input type="hidden"
         name="email-[% relationship.id %]-[% event.id %]"
-        value="[% mail.${relationship.id}.${event.id} ? "1" : "0" %]">
+        value="[% mail.${relationship.id}.${event.id} ? "1" : "0" %]" />
     [% END %]
   [% END %]
 [% END %]
 
-[% FOREACH event = neg_events %]  
+[% FOREACH event = neg_events %]
   [% FOREACH relationship = relationships %]
     [% IF (relationship.id == constants.REL_QA AND NOT useqacontact) OR
-          (relationship.id == constants.REL_VOTER AND NOT usevotes) %]
-      <input type="hidden" 
+      (relationship.id == constants.REL_VOTER AND NOT usevotes) %]
+      <input type="hidden"
         name="neg-email-[% relationship.id %]-[% event.id %]"
-        value="[% mail.${relationship.id}.${event.id} ? "0" : "1" %]">
+        value="[% mail.${relationship.id}.${event.id} ? "0" : "1" %]" />
     [% END %]
   [% END %]
 [% END %]
 
-<hr>
+<hr />
 <b>User Watching</b>
 
 <p>
@@ -273,48 +259,51 @@ preferences for <u>their</u> relationship to the [% terms.bug %]
 (e.g. Assignee).
 </p>
 
-<hr>
+<hr />
 
 <p>
 [% IF watchedusers.size %]
-You are watching everyone in the following list:
-  </p>
-  <p>
-    <select id="watched_by_you" name="watched_by_you" multiple="multiple" size="5">
-        [% FOREACH w = watchedusers %]
-           <option value="[% w.login FILTER html %]">[% w.identity FILTER html %]</option>
-        [% END %]
-    </select> <br />
-    <input type="checkbox" id="remove_watched_users" name="remove_watched_users" value="1">
-    <label for="remove_watched_users">Remove selected users from my watch list</label>
+  You are watching everyone in the following list:
+</p>
+<p>
+  <select id="watched_by_you" name="watched_by_you" multiple="multiple" size="5">
+    [% FOREACH w = watchedusers %]
+    <option value="[% w.login | html %]">[% w.identity | html %]</option>
+    [% END %]
+  </select> <br />
+  <input type="checkbox" id="remove_watched_users" name="remove_watched_users" value="1">
+  <label for="remove_watched_users">Remove selected users from my watch list</label>
 [% ELSE %]
-You are currently not watching any users.
+  You are currently not watching any users.
 [% END %]
 </p>
 
-<p><a name="new_watched_by_you">Add users to my watch list (comma separated list)</a>:
+<p>
+  <a name="new_watched_by_you">Add users to my watch list (comma separated list)</a>:
   <input size="60" name="new_watchedusers" id="new_watchedusers" value="" />
 </p>
 
 <hr />
 
-<p><a name="watching_you" id="watching_you">Users watching you</a>:<br>
+<p>
+  <a name="watching_you" id="watching_you">Users watching you</a>:<br>
 [% IF watchers.size %]
-  </p>
-  <p>
-    <select id="watchers" name="watchers" multiple="multiple" size="5">
-        [% FOREACH w = watchers %]
-           <option value="[% w.login FILTER html %]">[% w.identity FILTER html %]</option>
+</p>
+<p>
+  <select id="watchers" name="watchers" multiple="multiple" size="5">
+    [% FOREACH w = watchers %]
+    <option value="[% w.login | html %]">[% w.identity | html %]</option>
     [% END %]
-    </select> <br />
-    <input type="checkbox" id="remove_watchers" name="remove_watchers" value="1">
-    <label for="remove_watchers">Remove selected users watching me</label>
+  </select> <br />
+  <input type="checkbox" id="remove_watchers" name="remove_watchers" value="1" />
+  <label for="remove_watchers">Remove selected users watching me</label>
 [% ELSE %]
-    <i>No one</i>
+  <i>No one</i>
 [% END %]
 </p>
 
-<p><a name="new_watchers">Add users to watch me (comma separated list)</a>:
+<p>
+  <a name="new_watchers">Add users to watch me (comma separated list)</a>:
   <input size="60" name="new_watchers" id="new_watchers" value="" />
 </p>
 
