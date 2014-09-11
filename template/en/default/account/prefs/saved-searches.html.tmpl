@@ -43,7 +43,7 @@
 <p>Your saved searches are as follows:</p>
 
 <blockquote>
-  <table border="1" cellpadding="3">
+  <table class="admin_table">
     <tr>
       <th>Search</th>
       <th>Run</th>
@@ -55,7 +55,7 @@
         <th>Share With a Group</th>
       [% END %]
     </tr>
-    <tr>
+    <tr class="odd_row">
       <td>My [% terms.Bugs %]</td>
       <td>
         [% filtered_username = user.login | url_quote %]
@@ -71,7 +71,7 @@
       [% END %]
     </tr>
     [% FOREACH q = user.queries %]
-      <tr>
+      <tr class="[% (loop.count % 2) ? 'even_row' : 'odd_row' %]">
         <td>[% q.name | html %]</td>
         <td>
           <a href="buglist.cgi?cmdtype=dorem&amp;remaction=run&amp;namedcmd=[% q.name | url_quote %]
@@ -98,7 +98,7 @@
         </td>
         [% IF may_share %]
           <td>
-            <select name="share_[% q.id | html %]"
+            <select name="share_[% q.id | html %]" style="border-width: 0; margin: 0"
               [% IF user.can_bless %] onchange="update_checkbox(this);"[% END %]>
               <option value="">Don't share</option>
               [% FOREACH group = queryshare_groups %]
@@ -110,7 +110,7 @@
             </select>
             [% IF user.can_bless %]
               <input type="checkbox" id="force_[% q.id | html %]"
-                name="force_[% q.id | html %]" value="1"
+                name="force_[% q.id | html %]" value="1" style="vertical-align: middle"
                 [% " disabled" IF !bless_group_ids.grep("^$q.shared_with_group.id\$").0 %] />
               <label for="force_[% q.id | html %]">Add to footer</label>
             [% END %]
@@ -143,7 +143,7 @@
 
   <p>You may use these searches saved and shared by others:</p>
 
-  <table border="1" cellpadding="3">  
+  <table class="admin_table">
     <tr>
       <th>Search</th>
       <th>Shared By</th>
@@ -153,7 +153,7 @@
       <th>Show in Footer</th>
     </tr>
     [% FOREACH q = user.queries_available %]
-      <tr>
+      <tr class="[% (loop.index % 2) ? 'even_row' : 'odd_row' %]">
         <td>[% q.name | html %]</td>
         <td>[% q.user.identity | html %]</td>
         <td>[% q.shared_with_group.name | html %]</td>
