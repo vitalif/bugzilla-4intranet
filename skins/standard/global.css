@@ -383,7 +383,7 @@ dl dl > dt {
     border-collapse: collapse;
 }
 .admin_table tr.odd_row {
-    background: #f0f0f0;
+    background: #f4f4f4;
 }
 .admin_table th {
     background: #e0e0e0;

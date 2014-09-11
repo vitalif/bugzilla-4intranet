@@ -4,29 +4,24 @@
 
 [% PROCESS global/header.html.tmpl
   title = "Add/remove users in group: $group.name"
-  style = "
-    .users { border-collapse: collapse; }
-    .users tr { border: 1px solid #747e93; }
-    .users th { background: #d8d8e6; border: 1px solid #747e93; }
-  "
 %]
 
 <form method="POST" action="?">
   <input name="group" type="hidden" value="[% group.id | html %]">
   <input name="token" type="hidden" value="[% token | html %]">
 
-  <table class="editgr_grinfo" cellpadding="4">
+  <table class="admin_table" cellpadding="4">
     <tr>
-      <th>Group:</th>
+      <th align="left">Group:</th>
       <td>[% group.name | html %]</td>
     </tr>
     <tr>
-      <th>Description:</th>
+      <th align="left">Description:</th>
       <td>[% group.description | html %]</td>
     </tr>
     [% IF group.regexp %]
     <tr>
-      <th>Regexp:</th>
+      <th align="left">Regexp:</th>
       <td>[% group.regexp | html %]</td>
     </tr>
     [% END %]
@@ -58,7 +53,7 @@
 
   <h4>Active users in group &laquo;[% group.name | html %]&raquo;</h4>
 
-  <table class="users" width="80%">
+  <table class="admin_table" width="80%">
     <tr>
       <th>Login</th>
       <th>User Name</th>
@@ -67,7 +62,7 @@
     </tr>
     [% row = 0 %]
     [% FOREACH u = user_members %]
-    <tr[% ' class="odd_row"' IF !(loop.index % 2) %]>
+    <tr class="[% loop.index % 2 ? 'odd_row' : 'even_row' %]">
       <td><a target="edituser" href="editusers.cgi?action=edit&userid=[% u.user.id %]">
         [% u.user.login | html %]</a>
       </td>
