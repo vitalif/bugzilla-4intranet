@@ -483,22 +483,26 @@ input.required, select.required, span.required_explanation {
     filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ffffff', endColorstr='#c0e4f6',GradientType=0 ); /* IE6-9 */
 }
 
-#attachment_table {
+#attachment_table, .bz_time_tracking_table {
     background: #fff;
     border: none;
     border-collapse: collapse;
     border-bottom: 1px solid rgba(0, 0, 0, 0.2);
     box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
-    margin-bottom: 40px;
 }
 
-#attachment_table td {
-    border: none;
+#attachment_table th, .bz_time_tracking_table th {
+    background: #ddd;
 }
 
-#attachment_table th, .bz_attach_footer, .bz_time_tracking_table th {
-    background: #eee;
+.bz_attach_footer {
+    background: white;
+}
+
+#attachment_table th, #attachment_table td,
+.bz_time_tracking_table th, .bz_time_tracking_table td {
     color: #404040;
+    border: none;
 }
 
 #attachment_table .bz_attach_actions {
