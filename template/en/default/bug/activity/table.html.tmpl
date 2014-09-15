@@ -46,7 +46,7 @@
   </p>
 [% END %]
 [% IF operations.size > 0 %]
-  <table border cellpadding="4" class=bz_emailprefs>
+  <table class="admin_table">
     <tr>
       <th>Who</th>
       <th>When</th>
@@ -57,7 +57,8 @@
 
     [% FOREACH operation = operations %]
       [% op_loop = loop.count %]
-      <tr>
+      [% class_name = loop.index % 2 ? 'even_row' : 'odd_row' %]
+      <tr class="[% class_name %]">
         <td rowspan="[% operation.total_lines %]" valign="top">
           [% operation.who FILTER email FILTER html %]
         </td>
@@ -65,7 +66,7 @@
           [% operation.when FILTER time %]
         </td>
         [% FOREACH change = operation.changes %]
-          [% "</tr><tr>" IF loop.index > 0 %]
+          [% "</tr><tr class='" _ class_name _ "'>" IF loop.index > 0 %]
             <td valign="top"[% IF change.lines %] rowspan="[% change.lines.size %]"[% END %]>
               [% IF change.attachid %]
                 <a href="attachment.cgi?id=[% change.attachid %]">
