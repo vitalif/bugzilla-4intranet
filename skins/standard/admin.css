@@ -94,14 +94,18 @@ td.forbidden {
     background-color: #811;
 }
 
-/* Light green color */
-td.set {
-    background-color: #efe;
+table.eventbox {
+    border: 1px solid black;
+    margin: 8px 0;
 }
 
-/* Light red color */
+td.set {
+    background: #ddd;
+    padding: 5px;
+}
+
 td.unset {
-    background-color: #fee;
+    color: red;
 }
 
 tr.highlight:hover {

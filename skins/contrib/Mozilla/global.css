@@ -869,6 +869,14 @@ table.tabs {
     background: white;
 }
 
+table.eventbox {
+    border-color: gray;
+    padding: 5px;
+    background: white;
+    border-radius: 5px;
+    box-shadow: 2px 2px 3px 0 rgba(0, 0, 0, 0.2);
+}
+
 /* search */
 
 #summary_field.search_field_row input {

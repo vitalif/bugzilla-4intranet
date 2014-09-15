@@ -109,10 +109,10 @@
 
 
 [% BLOCK display_flag_types %]
-  <table id="flag_types_[% types_id FILTER html %]" cellspacing="0" cellpadding="4" border="1">
+  <table class="admin_table" id="flag_types_[% types_id FILTER html %]" cellspacing="0" cellpadding="4" border="1">
 
     <tr>
-      <th>Edit name ...</th>
+      <th>Name</th>
       <th>Description</th>
       <th>Sortkey</th>
       <th>Properties</th>
@@ -128,7 +128,7 @@
 
     [% FOREACH type = types %]
 
-      <tr class="[% IF type.is_active %]active[% ELSE %]inactive[% END %]">
+      <tr class="[% loop.index % 2 ? "even_row" : "odd_row" %] [%+ type.is_active ? 'active' : 'inactive' %]">
         <td><a href="editflagtypes.cgi?action=edit&amp;id=[% type.id %]">[% type.name FILTER html FILTER no_break %]</a></td>
         <td>[% type.description FILTER html %]</td>
         <td align="right">[% type.sortkey FILTER html %]</td>

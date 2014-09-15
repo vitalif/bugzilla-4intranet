@@ -22,8 +22,8 @@
   title = "Select classification"
 %]
 
-<table border=1 cellpadding=4 cellspacing=0>
-  <tr bgcolor="#6666ff">
+<table class="admin_table">
+  <tr>
     <th align="left">Edit Classification ...</th>
     <th align="left">Description</th>
     <th align="left">Sortkey</th>
@@ -32,7 +32,7 @@
   </tr>
 
   [% FOREACH cl = classifications %]
-    <tr>
+    <tr class="[% loop.index % 2 ? "even_row" : "odd_row" %]">
       <td valign="top"><a href="editclassifications.cgi?action=edit&amp;classification=[% cl.name FILTER url_quote %]"><b>[% cl.name FILTER html %]</b></a></td>
       <td valign="top"> 
       [% IF cl.description %]
