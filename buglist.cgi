@@ -460,7 +460,7 @@ if ($cmdtype eq "dorem")
             $vars->{searchtype} = 'saved';
             $vars->{search_id} = $query->id;
         }
-        $params = http_decode_query($query->query);
+        $params = http_decode_query($query->query.'&sharer_id='.$query->userid);
         $order = $params->{order} || $order;
     }
     elsif ($remaction eq "runseries")

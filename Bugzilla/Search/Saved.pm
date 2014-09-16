@@ -141,6 +141,7 @@ sub _check_query
     my $params = http_decode_query($query);
     # Don't store the query name as a parameter.
     delete $params->{known_name};
+    delete $params->{sharer_id};
     return http_build_query(Bugzilla::Search->clean_search_params($params));
 }
 

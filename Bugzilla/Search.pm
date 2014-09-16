@@ -3041,7 +3041,18 @@ sub _changedby
 sub _in_search_results
 {
     my $self = shift;
-    my $query = Bugzilla::Search::Saved->check({ name => trim($self->{value}) })->query;
+    my $v = $self->{value};
+    my $sharer = $self->{params}->{sharer_id};
+    if ($v =~ /^(.*)<([^>]*)>/so)
+    {
+        # Allow to match on shared searches via 'SearchName <user@domain.com>' syntax
+        $v = $1;
+        $sharer = login_to_id(trim($2), THROW_ERROR);
+    }
+    my $query = Bugzilla::Search::Saved->check({
+        name => trim($v),
+        user => $sharer,
+    })->query;
     my $search = new Bugzilla::Search(
         params => http_decode_query($query),
         fields => [ "bugs.bug_id" ],
