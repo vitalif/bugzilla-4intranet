@@ -1553,8 +1553,8 @@ sub search_description_html
         $html = '<ul class="search_description _'.lc($op).'">';
         for my $i (1 .. $#$exp)
         {
-            $html .= "<li>$op</li>" if $i > 1;
-            $html .= '<li>'.search_description_html($exp->[$i], $debug, 1).'</li>';
+            $html .= " <li class='_".lc($op)."'>$op</li>" if $i > 1;
+            $html .= ' <li>'.search_description_html($exp->[$i], $debug, 1).'</li>';
         }
         $html .= '</ul>';
     }
