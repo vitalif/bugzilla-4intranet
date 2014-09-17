@@ -117,6 +117,79 @@ input[type=checkbox], input[type=radio] {
 
 legend {
     background: inherit;
+    border-radius: 5px;
+}
+
+/* Boolean Charts */
+
+.chart input[type=button] {
+    padding: 1px .8em;
+    margin-left: 4px;
+}
+.chart select, .chart input {
+    margin-top: 0 !important;
+}
+.chart legend {
+    padding: 3px 8px;
+    margin: 0 0 5px 0;
+    font-weight: bold;
+    box-shadow: none !important;
+    border-top-width: 1px;
+    border-top-style: solid;
+}
+.search_description {
+    border-radius: 5px;
+}
+.chart._and, legend._and, .search_description._and {
+    background-color: #e0f0ff;
+    border-color: #80caee;
+    color: #0095dd;
+    box-shadow: 0 1px 2px 1px rgba(0, 149, 221, 0.4);
+}
+.chart._or, legend._or, .search_description._or {
+    background-color: #fff0e0;
+    border-color: #eeca80;
+    color: #dd9500;
+    box-shadow: 0 1px 2px 1px rgba(221, 149, 0, 0.4);
+}
+.chart._neg, legend._neg {
+    background-color: #fff0f0;
+    border-color: #eecaca;
+    color: #ff4040;
+    box-shadow: 0 1px 2px 1px rgba(255, 64, 64, 0.2);
+}
+.search_description._and {
+    color: #004f75;
+}
+.search_description._or {
+    color: #754f00;
+}
+.chart._or > legend > input[type=button] {
+    background-color: #e2a643;
+    background-image: -moz-linear-gradient(#e2a643,#c17a27);
+    background-image: -webkit-linear-gradient(#e2a643,#c17a27);
+    background-image: linear-gradient(#e2a643,#c17a27);
+}
+.chart._or > legend > input[type=button]:hover {
+    -webkit-box-shadow: 0 1px 0 0 rgba(0,0,0,0.2),inset 0 -1px 0 0 rgba(0,0,0,0.3),inset 0 12px 24px 2px #eda938;
+    -moz-box-shadow: 0 1px 0 0 rgba(0,0,0,0.2),inset 0 -1px 0 0 rgba(0,0,0,0.3),inset 0 12px 24px 2px #eda938;
+    box-shadow: 0 1px 0 0 rgba(0,0,0,0.2),inset 0 -1px 0 0 rgba(0,0,0,0.3),inset 0 12px 24px 2px #eda938;
+}
+.chart._neg > legend > input[type=button] {
+    background-color: #e24343;
+    background-image: -moz-linear-gradient(#f04747,#cf2a2a);
+    background-image: -webkit-linear-gradient(#f04747,#cf2a2a);
+    background-image: linear-gradient(#f04747,#cf2a2a);
+}
+.chart._neg > legend > input[type=button]:hover {
+    -webkit-box-shadow: 0 1px 0 0 rgba(0,0,0,0.2),inset 0 -1px 0 0 rgba(0,0,0,0.3),inset 0 12px 24px 2px #fc3c3c;
+    -moz-box-shadow: 0 1px 0 0 rgba(0,0,0,0.2),inset 0 -1px 0 0 rgba(0,0,0,0.3),inset 0 12px 24px 2px #fc3c3c;
+    box-shadow: 0 1px 0 0 rgba(0,0,0,0.2),inset 0 -1px 0 0 rgba(0,0,0,0.3),inset 0 12px 24px 2px #fc3c3c;
+}
+.chart._or > legend > input[type=button]:active, .chart._neg > legend > input[type=button]:active {
+    -webkit-box-shadow: inset 0 2px 0 0 rgba(0,0,0,0.2),inset 0 12px 24px 6px rgba(0,0,0,0.2),inset 0 0 2px 2px rgba(0,0,0,0.2);
+    -moz-box-shadow: inset 0 2px 0 0 rgba(0,0,0,0.2),inset 0 12px 24px 6px rgba(0,0,0,0.2),inset 0 0 2px 2px rgba(0,0,0,0.2);
+    box-shadow: inset 0 2px 0 0 rgba(0,0,0,0.2),inset 0 12px 24px 6px rgba(0,0,0,0.2),inset 0 0 2px 2px rgba(0,0,0,0.2);
 }
 
 fieldset {
@@ -148,7 +221,7 @@ input[type=text][disabled], input[type=password][disabled], input[disabled]:not(
     color: #eee;
 }
 
-select[multiple]:focus, textarea:focus, .text-input:focus, -yui-ac-input:focus, input:focus {
+select:focus, textarea:focus, .text-input:focus, -yui-ac-input:focus, input:focus {
     border-color: #42a4e0;
     -webkit-box-shadow: 0 0 0 2px rgba(73,173,227,0.4);
     -moz-box-shadow: 0 0 0 2px rgba(73,173,227,0.4);

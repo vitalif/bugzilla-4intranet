@@ -34,14 +34,26 @@
 [% END %]
 
 [% FOREACH chart = charts %]
-  [% C = loop.count - 1 %]
+  [% C = loop.index %]
+
+  [% IF C > 0 %]
+  <div style="clear: both"></div>
+  [% END %]
+
+  [% IF chart.negate %]
+  <fieldset class="chart _neg" id="negchart[% C %]">
+    <legend class="_neg">
+      NOT
+      <input type="button" value="&#x2718;" class="chart_rm_button" id="unneg[% C %]-btn" onclick="chart_rm(this)" />
+    </legend>
+  [% END %]
 
   [% IF chart.rows.size > 1 %]
   <fieldset class="chart _and" id="chart[% C %]">
-  <legend class="_and">AND
-    <input type="button" value="+" class="chart_add_button" id="chart[% C %]-btn" onclick="chart_add(this.id)" />
-    <input type="button" value="NOT" class="chart_not_[% chart.negate ? 'c' : 'u' %]" style="font-size: 85%" id="negate[% C %]-btn" onclick="chart_neg(this)" />
-  </legend>
+    <legend class="_and">
+      AND
+      <input type="button" value="+" class="chart_add_button" id="chart[% C %]-btn" onclick="chart_add(this.id)" />
+    </legend>
   [% ELSE %]
   <div class="chart" id="chart[% C %]">
   [% END %]
@@ -51,7 +63,7 @@
 
     [% IF row.size > 1 %]
     <fieldset class="chart _or" id="chart[% C %]-[% I %]">
-    <legend class="_or">OR <input type="button" value="+" class="chart_add_button" id="chart[% C %]-[% I %]-btn" onclick="chart_add(this.id)" /></legend>
+      <legend class="_or">OR <input type="button" value="+" class="chart_add_button" id="chart[% C %]-[% I %]-btn" onclick="chart_add(this.id)" /></legend>
     [% ELSE %]
     <div class="chart" id="chart[% C %]-[% I %]">
     [% END %]
@@ -67,28 +79,36 @@
     [% IF row.size > 1 %]
     </fieldset>
     [% ELSE %]
-    <input type="button" value="OR" id="chart[% C %]-[% I %]-btn" onclick="chart_add_second(this)" />
+      <input type="button" value="OR" id="chart[% C %]-[% I %]-btn" onclick="chart_add_second(this)" />
     </div>
     [% END %]
 
   [% END %]
 
-  [% IF chart.rows.size > 1 %]
-  </fieldset>
-  [% ELSE %]
-  <input type="button" value="AND" id="chart[% C %]-btn" onclick="chart_add_second(this)"
-  /><input type="button" value="NOT" class="chart_not_[% chart.negate ? 'c' : 'u' %]"
-      id="negate[% C %]-btn" onclick="chart_neg(this)" />
-  </div>
+  [% IF chart.rows.size == 1 %]
+    <input type="button" value="AND" id="chart[% C %]-btn" onclick="chart_add_second(this)" />
   [% END %]
-  <input type="hidden" value="[% chart.negate %]" id="negate[% C %]" name="negate[% C %]" />
+  [% IF chart.rows.size > 1 %]
+    </fieldset>
+  [% ELSE %]
+    </div>
+  [% END %]
+  [% IF !chart.negate %]
+    <input type="button" value="NOT" id="negate[% C %]-btn" onclick="chart_neg(this)" />
+  [% END %]
+
+  [% IF chart.negate %]
+  </fieldset>
+  [% END %]
+
+  <input type="hidden" value="[% chart.negate ? '1' : '' %]" id="negate[% C %]" name="negate[% C %]" />
 
 [% END %]
 
 [% IF charts.size > 1 %]
 </fieldset>
 [% ELSE %]
-<input type="button" value="OR" id="chartR-btn" onclick="chart_add_second(this)" />
+  <input type="button" value="OR" id="chartR-btn" onclick="chart_add_second(this)" />
 </div>
 [% END %]
 

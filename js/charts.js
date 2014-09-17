@@ -16,20 +16,8 @@ function chart_add_second(btn)
     var f = document.createElement('fieldset');
     f.id = 'chart'+n;
     f.className = 'chart _'+op;
-    var legend_html = op.toUpperCase()+' '+
+    var legend_html = op.toUpperCase() + ' ' +
         '<input type="button" value="+" class="chart_add_button" id="chart'+n+'-btn" onclick="chart_add(this.id)" />';
-    if (op == 'and')
-    {
-        // Move [NOT] to the legend for 'AND' charts
-        var neg = document.getElementById('negate'+n);
-        legend_html +=
-            '<input type="button" value="NOT" class="chart_not_'+(neg.value ? 'c' : 'u')+'"'+
-            ' style="font-size: 85%" id="negate'+n+'-btn" onclick="chart_neg(this)" />';
-        if (neg.value)
-            f.className += ' _neg';
-        neg = document.getElementById('negate'+n+'-btn');
-        neg.parentNode.removeChild(neg);
-    }
     // Create <legend>
     var l = document.createElement('legend');
     l.className = '_'+op;
@@ -47,10 +35,10 @@ function chart_add_second(btn)
 function chart_add_btn(d, s)
 {
     var i = document.createElement('input');
-    i.type = 'button';
-    i.id = d.id+'-btn';
-    i.onclick = chart_add_second_event;
-    i.value = s;
+    i.setAttribute('type', 'button');
+    i.setAttribute('id', d.id+'-btn');
+    i.setAttribute('onclick', 'chart_add_second(this)');
+    i.setAttribute('value', s);
     d.appendChild(document.createTextNode(' '));
     d.appendChild(i);
 }
@@ -85,7 +73,12 @@ function chart_add(btnid)
     var d, i, add_and, add_or, n;
     d = document.getElementById(btnid.substr(0, btnid.length-4)); // chartN-btn
     if (d.id == 'chartR')
+    {
+        var clr = document.createElement('div');
+        clr.style.clear = 'both';
+        d.appendChild(clr);
         add_and = d = chart_add_div(d, 'chart');
+    }
     if (d.id.indexOf('-') < 0)
         add_or = d = chart_add_div(d, d.id+'-');
     var cn = d.id.substr(5);
@@ -106,12 +99,11 @@ function chart_add(btnid)
         // Add negate button
         var n = add_and.id.substr(5);
         var i = document.createElement('input');
-        i.type = 'button';
-        i.className = 'chart_not_u';
-        i.id = 'negate'+n+'-btn';
-        i.onclick = chart_neg_event;
-        i.value = 'NOT';
-        add_and.appendChild(i);
+        i.setAttribute('type', 'button');
+        i.setAttribute('id', 'negate'+n+'-btn');
+        i.setAttribute('onclick', 'chart_neg(this)');
+        i.setAttribute('value', 'NOT');
+        add_and.parentNode.appendChild(i);
         // Add hidden input for negate button
         i = document.createElement('input');
         i.type = 'hidden';
@@ -122,25 +114,43 @@ function chart_add(btnid)
         chart_add_btn(add_or, 'OR');
 }
 
+function chart_rm(btn)
+{
+    var m;
+    if (m = /^unneg(.*)-btn$/.exec(btn.id))
+    {
+        // Remove negation group
+        document.getElementById('negate'+m[1]).value = '';
+        var e = document.getElementById('negchart'+m[1]);
+        var c = document.getElementById('chart'+m[1]);
+        btn.setAttribute('id', 'negate'+m[1]+'-btn');
+        btn.setAttribute('onclick', 'chart_neg(this)');
+        btn.setAttribute('value', 'NOT');
+        btn.setAttribute('class', '');
+        e.parentNode.insertBefore(c, e);
+        e.parentNode.insertBefore(btn, e);
+        e.parentNode.removeChild(e);
+    }
+}
+
 function chart_neg(btn)
 {
-    var n = btn.id.substr(6, btn.id.length-10); // negateN
-    var i = document.getElementById('negate'+n);
-    i.value = i.value ? '' : '1';
-    btn.className = 'chart_not_' + (i.value ? 'c' : 'u');
-    var c = document.getElementById('chart'+n);
-    if (i.value)
-        c.className += ' _neg';
-    else
-        c.className = c.className.replace(/ _neg/, '');
-}
-
-function chart_add_second_event()
-{
-    chart_add_second(this);
-}
-
-function chart_neg_event()
-{
-    chart_neg(this);
+    var chartid = /^negate(.*)-btn$/.exec(btn.id);
+    chartid = chartid[1];
+    document.getElementById('negate'+chartid).value = '1';
+    btn.setAttribute('id', 'unneg'+chartid+'-btn');
+    btn.setAttribute('onclick', 'chart_rm(this)');
+    btn.setAttribute('value', '✘');
+    btn.setAttribute('class', 'chart_rm_button');
+    var fieldset = document.createElement('fieldset');
+    fieldset.id = 'negchart'+chartid;
+    fieldset.className = 'chart _neg';
+    var l = document.createElement('legend');
+    l.className = '_neg';
+    l.appendChild(document.createTextNode(' NOT '));
+    l.appendChild(btn);
+    fieldset.appendChild(l);
+    var c = document.getElementById('chart'+chartid);
+    c.parentNode.insertBefore(fieldset, c);
+    fieldset.appendChild(c);
 }

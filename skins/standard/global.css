@@ -585,17 +585,13 @@ filter:mask();
 .quicksearch { width: 300px; }
 
 /* query form */
-.chart_add_button { font-size: 85%; }
 .chart { float: left; clear: left; }
-fieldset.chart { margin-bottom: 8px; padding: 0 8px 4px; }
+fieldset.chart { margin: 0 0 8px; padding: 0 8px 4px; }
 .chart select { margin: 0 4px 4px 0; background-color: white; }
 .chart._and, legend._and { background-color: #e0e0ff; }
 .chart._or, legend._or { background-color: #ffffe0; }
+.chart._neg, legend._neg { background-color: #ffe0e0; }
 .chart_add_second { height: 18pt; position: relative; margin-top: -18pt; top: 50%; }
-.chart_not_u { border: 1px outset gray; background-color: #e0e0e0; width: 3.5em; }
-.chart_not_c { border: 1px inset gray; background-color: white; font-weight: bold; width: 3.5em; }
-div.chart._neg { border: 1px solid black; background-image: url(../../images/neg.gif); margin: 1px; padding: 2px 1px 0 1px; }
-fieldset.chart._neg { background-image: url(../../images/neg.gif); }
 
 /* SimpleAutocomplete styles */
 .hintLayer {
