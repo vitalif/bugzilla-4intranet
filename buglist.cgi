@@ -1056,10 +1056,24 @@ $params->{bug_status} = $input_bug_status if $input_bug_status;
 # The list of query fields in URL query string format, used when creating
 # URLs to the same query results page with different parameters (such as
 # a different sort order or when taking some action on the set of query
-# results).  To get this string, we call the Bugzilla::CGI::canoncalise_query
-# function with a list of elements to be removed from the URL.
+# results).
 $vars->{urlquerypart} = { %$params };
 delete $vars->{urlquerypart}->{$_} for ('order', 'cmdtype', 'query_based_on');
+if ($vars->{urlquerypart}->{sharer_id})
+{
+    my $sharer = Bugzilla::User->new($vars->{urlquerypart}->{sharer_id});
+    # "Depersonalize" shared query by replacing user-specific references
+    for (keys %{$vars->{urlquerypart}})
+    {
+        my ($n) = /^type(\d+-\d+-\d+)$/so;
+        if ($n && $vars->{urlquerypart}->{"type$n"} =~ /^(not)?insearch$/s &&
+            $vars->{urlquerypart}->{"value$n"} !~ /<.*>/)
+        {
+            $vars->{urlquerypart}->{"value$n"} .= ' <'.$sharer->login.'>';
+        }
+    }
+    delete $vars->{urlquerypart}->{sharer_id};
+}
 $vars->{urlquerypart} = http_build_query($vars->{urlquerypart});
 $vars->{order} = $order;
 $vars->{order_columns} = [ @orderstrings ];
