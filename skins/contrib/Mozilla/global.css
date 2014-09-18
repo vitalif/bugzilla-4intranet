@@ -126,6 +126,9 @@ legend {
     padding: 1px .8em;
     margin-left: 4px;
 }
+.chart input[type=button].chart_rm_button {
+    margin-left: 0;
+}
 .chart select, .chart input {
     margin-top: 0 !important;
 }
