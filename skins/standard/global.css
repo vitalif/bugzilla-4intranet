@@ -29,6 +29,9 @@
         color: #000;
         background: #fff url("global/body-back.gif") repeat-x;
     }
+    table {
+        border-collapse: collapse;
+    }
     body, td, th, input, select {
         font-family: Verdana, sans-serif;
         font-size: small;
@@ -118,6 +121,7 @@
 
 /* titles (begin) */
     #titles {
+        border-collapse: separate;
         width: 100%;
         background-color: #404D6C;
         color: #fff;
@@ -468,7 +472,24 @@ div.user_match {
 .field_label {
     text-align: left;
     vertical-align: top;
+}
+.bug_field {
+    margin-bottom: 8px;
+}
+.bug_field label {
     font-weight: bold;
+}
+.bug_field select, .bug_field textarea {
+    width: 98%;
+}
+.bug_field table select {
+    width: 100%;
+}
+.bug_field input[type=text], .bug_field input:not([type]) {
+    width: 98%;
+}
+.bug_field table input[type=text], .bug_field table input:not([type]) {
+    width: 100%;
 }
 
 form#Create th, form#Create td {
@@ -558,8 +579,6 @@ form#Create .comment {
 table.alcontent { width: 100%; }
 
 #useful-links { margin-left: 0; }
-
-#field_container_see_also #see_also { max-width: 500px; }
 
 #visibility_values_td select { margin-bottom: 2px; }
 

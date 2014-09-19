@@ -53,8 +53,8 @@
     [% FOREACH flag = type.flags %]
       <tr>
         <td>
-          <a href="#[% flag.creation_date | timestamp %]">[% flag.setter.nick | html %]</a>:
-          <label title="[% type.description | html %]" for="flag-[% flag.id %]" style="white-space: nowrap">[%- type.name | html -%]</label>
+          <a href="#[% flag.creation_date | timestamp %]">[% flag.setter.nick | html %]</a>:&nbsp;
+          [%%]<label title="[% type.description | html %]" for="flag-[% flag.id %]" style="white-space: nowrap">[%- type.name | html -%]</label>
         </td>
         <td>
           <select id="flag-[% flag.id %]" name="flag-[% flag.id %]" 
@@ -67,12 +67,13 @@
           </select>
         </td>
         [% IF any_flags_requesteeble %]
-          <td>
+          <td width="100%">
             [% IF (type.is_active && type.is_requestable && type.is_requesteeble) || flag.requestee %]
               <span style="white-space: nowrap;">
                 [% INCLUDE "global/userselect.html.tmpl"
                     name     => "requestee-$flag.id"
-                    size     => 40
+                    size     => 20
+                    style    => "width: 100%"
                     id       => "requestee-$flag.id"
                     value    => flag.requestee.login
                     emptyok  => 1
@@ -84,7 +85,7 @@
         [% END %]
       </tr>
     [% END %]
-    
+
     [%# Step 2: Display UI for setting flag. %]
     [% IF (!type.flags || type.flags.size == 0 || type.is_multiplicable) && type.is_active %]
       [% PROCESS flag_row %]
@@ -135,13 +136,14 @@
       </select>
     </td>
     [% IF any_flags_requesteeble %]
-      <td>
+      <td width="100%">
         [% IF type.is_requestable && type.is_requesteeble %]
           <span style="white-space: nowrap;">
             [% INCLUDE "global/userselect.html.tmpl"
                 name => "requestee_type-$type.id"
                 id => "requestee_type-$type.id"
-                size => 40
+                size => 20
+                style => "width: 100%"
                 value => type.default_requestee
                 multiple => type.is_multiplicable
                 emptyok => !type.is_multiplicable

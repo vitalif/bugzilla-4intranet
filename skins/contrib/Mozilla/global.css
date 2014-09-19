@@ -79,6 +79,7 @@ body {
     color: #404040;
     margin: 0;
     font-size: 16px; /* Base font size. NEVER hardcode absolute sizes anywhere except this place. */
+    -moz-text-size-adjust: none; /* Fix inconsistent font sizes in mobile Firefox */
 }
 
 body, td, th, input, select, option, optgroup, .text_input {
@@ -479,7 +480,7 @@ u {
     font-weight: normal;
 }
 
-table.edit_form {
+.edit_form {
     background: #fff;
     border-bottom: 1px solid rgba(0, 0, 0, 0.2);
     box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
@@ -487,38 +488,24 @@ table.edit_form {
     position: relative;
 }
 
-table.edit_form tbody {
-    width: 100%;
-}
-
-table.edit_form hr {
-    display: none;
+.edit_form hr {
+    border-width: 0;
+    background: transparent;
+    margin: 0;
 }
 
 .field_label {
-    font-weight: bold !important;
+    color: #404040;
     padding-right: 10px;
-    vertical-align: baseline;
     white-space: nowrap;
 }
 
-.field_label a, .field_label b {
+.field_label label a {
     color: #404040;
-    font-weight: bold;
 }
 
-.field_value .text_input {
-    min-width: 0;
-}
-
-#product, #component {
-    width: 235px;
-}
-
-#bz_show_bug_column_1 tr:last-child span {
-    position: absolute;
-    left: 20px;
-    bottom: 20px;
+.bug_field {
+    margin-bottom: 4px;
 }
 
 #commit_top {
@@ -966,10 +953,20 @@ table.eventbox {
     padding-bottom: 6px;
 }
 
+@media only screen and (max-width: 1365px) {
+    .bz_show_bug_column {
+        float: none;
+        width: 100%;
+    }
+}
+
 /* Smaller than standard 990 (devices and browsers) */
 @media only screen and (max-width: 989px) {
     #header .links {
         float: none;
+    }
+    .flatten_table, .flatten_table > tbody, .flatten_table > tbody > tr, .flatten_table > tbody > tr > td {
+        display: block;
     }
 }
 
@@ -996,12 +993,9 @@ table.eventbox {
 
 /* All Mobile Sizes */
 @media only screen and (max-width: 767px) {
-    table.edit_form, table.edit_form > tbody > tr > td {
-        -moz-box-sizing: border-box;
-        -webkit-box-sizing: border-box;
-        box-sizing: border-box;
-        display: block;
-        width: 100% !important;
+    .bz_show_bug_colpair {
+        float: none;
+        width: 100%;
     }
 
     #titles {
@@ -1020,8 +1014,11 @@ table.eventbox {
     }
 
     .bz_column_spacer {
-        width: auto;
-        height: 20px;
+        display: none;
+    }
+
+    .bz_group_visibility_section {
+        margin: 0;
     }
 
     #summary_alias_container span {

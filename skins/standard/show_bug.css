@@ -7,16 +7,26 @@
     font-weight: bold;
 }
 
-.bz_bug .edit_form {
-    width: 100%;
+.bz_show_bug_colpair {
+    width: 50%;
+    float: left;
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    box-sizing: border-box;
 }
-.bz_bug .edit_form table {
-    width: 100%;
+
+.bz_show_bug_column {
+    width: 50%;
+    float: left;
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    box-sizing: border-box;
 }
-.bz_bug .edit_form .text_input {
-    width: 100%;
-    min-width: 25em;
+
+.edit_form hr {
+    clear: both;
 }
+
 .bz_bug #alias {
     min-width: 0;
     width: 10em;
@@ -50,10 +60,6 @@ table#flags {
     display: inline;
 }
 
-.bz_show_bug_column {
-    vertical-align: top;
-}
-
 .bz_section_spacer {
     height: 1em;
 }
@@ -66,16 +72,13 @@ table#flags {
     vertical-align: top;
 }
 
-.bz_group_visibility_section {
-    margin-left: 1em;
-}
-
 .bz_group_visibility_section .instructions {
     font-style: italic;
+    margin: 8px 0;
 }
 
 #bz_restrict_group_visibility_help .instructions {
-    margin-top: 0;
+    margin: 0 0 8px 0;
 }
 
 #bz_enable_role_visibility_help { margin-bottom: 0.5em; }

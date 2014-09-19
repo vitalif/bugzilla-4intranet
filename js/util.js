@@ -288,6 +288,12 @@ window.eventTarget = function(ev)
  */
 window.addClass = function(obj, c)
 {
+    if (obj instanceof Array)
+    {
+        for (var i = 0; i < obj.length; i++)
+            addClass(obj[i], c);
+        return;
+    }
     if (typeof(obj) == 'string')
         obj = document.getElementById(obj);
     if (obj)
@@ -295,6 +301,12 @@ window.addClass = function(obj, c)
 };
 window.removeClass = function(obj, c)
 {
+    if (obj instanceof Array)
+    {
+        for (var i = 0; i < obj.length; i++)
+            removeClass(obj[i], c);
+        return;
+    }
     if (typeof(obj) == 'string')
         obj = document.getElementById(obj);
     if (!obj)
