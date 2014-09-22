@@ -395,9 +395,10 @@ dl dl > dt {
 }
 
 /* Style of the attachment table and time tracking table */
-#attachment_table {
+#attachment_table, .bz_time_tracking_table {
     border-collapse: collapse;
     border: 1px solid #333333;
+    margin-bottom: 16px;
 }
 
 #attachment_table th, .bz_attach_footer, .bz_time_tracking_table th {
@@ -409,6 +410,7 @@ dl dl > dt {
     border: 1px solid #333333;
 }
 
+#att_multiple { border: 1px solid #333333; margin: 0 0 16px 0; padding: 8px; }
 #att_multiple h3 { margin: 0 0 8px; }
 #att_multiple p { margin: 0 0 8px; }
 #att_multiple table { border-collapse: separate; }

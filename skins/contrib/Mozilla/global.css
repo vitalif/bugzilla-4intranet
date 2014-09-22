@@ -483,7 +483,6 @@ table.edit_form {
     background: #fff;
     border-bottom: 1px solid rgba(0, 0, 0, 0.2);
     box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
-    margin-bottom: 20px;
     padding: 5px;
     position: relative;
 }
@@ -559,7 +558,11 @@ input.required, select.required, span.required_explanation {
     filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ffffff', endColorstr='#c0e4f6',GradientType=0 ); /* IE6-9 */
 }
 
-#attachment_table, .bz_time_tracking_table {
+#att_multiple h3, #att_multiple th {
+    color: #0095dd;
+}
+
+#attachment_table, .bz_time_tracking_table, #att_multiple {
     background: #fff;
     border: none;
     border-collapse: collapse;

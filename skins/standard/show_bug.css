@@ -29,6 +29,10 @@ table#flags {
     width: auto;
 }
 
+.edit_form {
+    margin-bottom: 16px;
+}
+
 .bz_column_spacer {
     width: 0.5em;
 }
