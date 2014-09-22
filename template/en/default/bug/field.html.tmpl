@@ -242,7 +242,9 @@
     #%]
   [% IF bug.id && field.name != 'priority' && field.name != 'bug_status' &&
     field.name != 'resolution' && field.type != constants.FIELD_TYPE_BUG_ID_REV &&
-    field.type != constants.FIELD_TYPE_MULTI_SELECT %]
+    field.type != constants.FIELD_TYPE_MULTI_SELECT &&
+    field.type != constants.FIELD_TYPE_TEXTAREA &&
+    field.type != constants.FIELD_TYPE_BUG_URLS %]
   &nbsp;(<a href="buglist.cgi?query_format=advanced&product=[% bug.product | uri %]
     [%- IF field.name != 'product' %]&
       [%- IF field.type == constants.FIELD_TYPE_DATETIME -%]
