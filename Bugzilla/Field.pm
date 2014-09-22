@@ -1009,7 +1009,7 @@ sub update_visibility_values
     $h = $h->{fields}->{$self->id} if $controlled_value_id == FLAG_VISIBLE;
     $h = $h->{null}->{$self->id} if $controlled_value_id == FLAG_NULLABLE;
     $h = $h->{clone}->{$self->id} if $controlled_value_id == FLAG_CLONED;
-    $h = { %$h };
+    $h = $h ? { %$h } : {};
     my $add = [];
     for (@$visibility_value_ids)
     {
