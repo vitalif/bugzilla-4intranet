@@ -178,7 +178,7 @@ sub sortkey          { return $_[0]->{'sortkey'};          }
 sub request_group_id { return $_[0]->{'request_group_id'}; }
 sub grant_group_id   { return $_[0]->{'grant_group_id'};   }
 
-sub cc_list
+sub cc_list_obj
 {
     my $self = shift;
     return $self->{cc_list} if $self->{cc_list};
