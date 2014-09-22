@@ -628,7 +628,7 @@ document.changeform = document.[% cfname %];
 
     [% IF inagroup %]
       <div id="bz_enable_role_visibility_help" [% ' style="margin-top: 0.5em"' IF emitted_description %]>
-        <b>A[% 'lso a' IF emitted_description %]llow to view this [% terms.bug %]:</b>
+        <b>[% emitted_description ? 'Also allow' : 'Allow' %] to view this [% terms.bug %]:</b>
       </div>
       <div id="bz_enable_role_visibility">
         <div>
@@ -720,7 +720,7 @@ document.changeform = document.[% cfname %];
         [% END %]
         <div id="cc_edit_area_showhide_container" class="bz_default_hidden">
           <div id="cc_list_num_users">
-            [% bug.cc.size || 0 FILTER html %] user[% IF bug.cc.size != 1 %]s[% END %]
+            [% bug.cc.size || 0 FILTER html %] [%+ bug.cc.size > 1 ? 'users' : 'user' %]
             [% IF user.id AND bug.cc.contains(user.email) %] including you[% END %]
             (<a href="#" id="cc_edit_area_showhide">[% IF user.id %]edit[% ELSE %]show[% END %]</a>)
           </div>
