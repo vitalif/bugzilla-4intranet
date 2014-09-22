@@ -316,8 +316,7 @@ hr {
     border: none;
     border-radius: 0;
     color: #404040;
-    position: relative;
-    width: 50%;
+    margin: 0 10px;
 }
 
 #header .links {
@@ -331,8 +330,13 @@ hr {
     display: inline;
 }
 
-.links a {
-    margin: 0 10px 0 10px;
+.links {
+    text-indent: 0;
+}
+
+.links li {
+    margin: 0 10px 0 0;
+    padding: 0;
 }
 
 .links .home {
@@ -361,10 +365,6 @@ hr {
 
 #footer .links .quicksearch_form {
     display: none;
-}
-
-#links-saved, #reports-saved {
-    margin-left: 10px;
 }
 
 #header .form a {
@@ -1001,6 +1001,21 @@ table.eventbox {
         width: 100% !important;
     }
 
+    #titles {
+        display: block;
+    }
+    #titles tbody, #titles tr, #titles td, #titles p {
+        display: inline;
+        vertical-align: baseline;
+    }
+    #titles td:nth-child(2):before {
+        content: " - ";
+    }
+
+    #header .subheader {
+        padding-left: 0;
+    }
+
     .bz_column_spacer {
         width: auto;
         height: 20px;
@@ -1009,23 +1024,13 @@ table.eventbox {
 
 /* Mobile Landscape Size to Tablet Portrait */
 @media only screen and (min-width: 480px) and (max-width: 767px) {
-    body {
-        min-width: 480px;
-    }
-
-    #header .wrapper, #bugzilla-body, #attachment_table,
-    .bz_comment, #add_comment > table, #comment {
+    #attachment_table, .bz_comment, .bz_comment_text, #add_comment > table, #comment {
         -moz-box-sizing: border-box;
         -webkit-box-sizing: border-box;
         box-sizing: border-box;
-        width: 480px !important;
-    }
-
-    #footer > * {
-        -moz-box-sizing: border-box;
-        -webkit-box-sizing: border-box;
-        box-sizing: border-box;
-        width: 480px;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
     }
 }
 
