@@ -2,7 +2,7 @@
 
    Homepage: http://yourcmc.ru/wiki/SimpleAutocomplete
    License: MPL 2.0+ (http://www.mozilla.org/MPL/2.0/)
-   Version: 2014-09-11
+   Version: 2014-09-22
    (c) Vitaliy Filippov 2011-2014
 
    Usage:
@@ -391,6 +391,12 @@ SimpleAutocomplete.prototype.show = function()
         this.hintLayer.style.top = (p.top+this.input.offsetHeight) + 'px';
         this.hintLayer.style.left = p.left + 'px';
         this.hintLayer.style.display = '';
+        var sw = document.clientWidth || document.documentElement.clientWidth || document.body.clientWidth;
+        if (p.left + this.hintLayer.offsetWidth > sw)
+        {
+            this.hintLayer.style.right = (sw-p.left-this.input.offsetWidth)+'px';
+            this.hintLayer.style.left = '';
+        }
         return true;
     }
 };
