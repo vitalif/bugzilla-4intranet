@@ -252,6 +252,8 @@
         +00%3A00%3A00&type0-0-0=lessthaneq&value0-0-0=[% bug.${field.name}.substr(0,10) | uri %]+23%3A59%3A59
       [%- ELSIF field.type == constants.FIELD_TYPE_BUG_ID_REV -%]
         [%- field.name %]=[% bug.${field.name}.join(' ') | uri -%]
+      [%- ELSIF field.type == constants.FIELD_TYPE_SINGLE_SELECT -%]
+        [%- field.name %]=[% bug.get_object(field.name).name | uri -%]
       [%- ELSE -%]
         [%- field.name %]=[% bug.${field.name} | uri -%]
       [%- END -%]
