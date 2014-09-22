@@ -65,7 +65,7 @@ sub ready_list
     $self->{r} ||= [
         map { {
             email => $_->[0]->login,
-            real_name => $_->[1] . ': ' . $_->[0]->name,
+            real_name => $_->[1] . ': ' . $_->[0]->realname,
         } }
         sort { ($roleindex{$b->[1]} <=> $roleindex{$a->[1]})
             || ($a->[0]->login cmp $b->[0]->login) }
