@@ -1020,6 +1020,10 @@ table.eventbox {
         width: auto;
         height: 20px;
     }
+
+    #summary_alias_container span {
+        display: none;
+    }
 }
 
 /* Mobile Landscape Size to Tablet Portrait */

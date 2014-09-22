@@ -171,24 +171,23 @@ document.changeform = document.[% cfname %];
 [%############################################################################%]
 
 [% BLOCK section_title %]
-  [%# That's the main table, which contains all editable fields. %]
-  <div class="bz_alias_short_desc_container edit_form">
-     [% PROCESS commit_button id="_top" nobr=1 %]
-     <a href="show_bug.cgi?id=[% bug.bug_id %]">
-        [%-# %]<b>[% terms.Bug %]&nbsp;[% bug.bug_id FILTER html %]</b>
-     [%-# %]</a> -<span id="summary_alias_container" class="bz_default_hidden">
-      [% IF Bugzilla.get_field('alias').enabled %]
-        [% IF bug.alias != "" %]
-          (<span id="alias_nonedit_display">[% bug.alias FILTER html %]</span>)
-        [% END %]
+  <div class="bz_alias_short_desc_container">
+    [% PROCESS commit_button id="_top" nobr=1 %]
+    <a href="show_bug.cgi?id=[% bug.bug_id %]">
+      <b>[% terms.Bug %]&nbsp;[% bug.bug_id FILTER html %]</b>
+    </a>
+    <span id="summary_alias_container" class="bz_default_hidden">
+      <span>-
+      [% IF Bugzilla.get_field('alias').enabled && bug.alias != '' %]
+        (<span id="alias_nonedit_display">[% bug.alias FILTER html %]</span>)
       [% END %]
+      </span>
       <span id="short_desc_nonedit_display">[% bug.short_desc FILTER html %]</span>
       [% IF bug.check_can_change_field('short_desc', 0, 1) ||
-            bug.check_can_change_field('alias', 0, 1)  %]
+        bug.check_can_change_field('alias', 0, 1) %]
         <small class="editme">(<a href="#" id="editme_action">edit</a>)</small>
       [% END %]
-     </span>
-
+    </span>
 
     <div id="summary_alias_input">
       <table id="summary">
