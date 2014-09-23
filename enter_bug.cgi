@@ -474,10 +474,10 @@ $default{product_obj} = $product;
 if ($cloned_bug_id)
 {
     $default{component_}     = $cloned_bug->component;
-    $default{priority}       = $cloned_bug->priority_obj->name;
-    $default{bug_severity}   = $cloned_bug->bug_severity_obj->name;
-    $default{rep_platform}   = $cloned_bug->rep_platform_obj->name if Bugzilla->params->{useplatform};
-    $default{op_sys}         = $cloned_bug->op_sys_obj->name if Bugzilla->params->{useopsys};
+    $default{priority}       = $cloned_bug->priority_obj->name if $cloned_bug->priority;
+    $default{bug_severity}   = $cloned_bug->bug_severity_obj->name if $cloned_bug->bug_severity;
+    $default{rep_platform}   = $cloned_bug->rep_platform_obj->name if Bugzilla->params->{useplatform} && $cloned_bug->rep_platform;
+    $default{op_sys}         = $cloned_bug->op_sys_obj->name if Bugzilla->params->{useopsys} && $cloned_bug->op_sys;
 
     $default{short_desc}     = $cloned_bug->short_desc;
     $default{bug_file_loc}   = $cloned_bug->bug_file_loc;
