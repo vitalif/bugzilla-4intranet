@@ -164,6 +164,7 @@ groups with entry selected.
 [% END %]
 
 [% BLOCK help_canedit %]
+<p>
 If any group has <b>Canedit</b> selected, then this product
 will be read-only for any users who are not members of all of
 the groups with Canedit selected. ONLY users who are members of
@@ -203,22 +204,18 @@ in this group to edit all fields of [% terms.bugs %] in this product.
 
 <div id="control_help" class="help_popup" style="display: none">
 <p>
-Every bug can be 'placed' into number of groups. The more groups bug is placed in,
-the more secret it is.
+Access to <i>every particular [% terms.bug %]</i> may be restricted by number of groups.
+The more groups bug is restricted by, the more secret it is.
 </p>
 
-<p>Some of these groups can be optional &mdash; in this case
-some people will be able to decide about making the bug more or less secret.
+<p>Some of these groups may be optional &mdash; in this case <i>some people</i>
+will be able to decide about making the bug more or less secret by setting or clearing
+the checkboxes shown on the [% terms.bug %] entry/edit form for such groups.<br />
+Group is optional when it has "Shown" or "Default" MemberControl or OtherControl.<br />
 "Some people" means "members of the group" for MemberControl and
-"non-members of the group" for OtherControl.</p>
+"everyone else" for OtherControl.</p>
 
-<p>
-The <b>MemberControl</b> and <b>OtherControl</b> fields
-indicate which [% terms.bugs %] will be placed in
-this group according to the following definitions.
-</p>
-
-<table class="help_table">
+<table class="admin_table">
   <tr>
     <th>
       MemberControl
@@ -232,93 +229,13 @@ this group according to the following definitions.
   </tr>
   <tr>
     <td>
-      NA
-    </td>
-    <td>
-      NA
-    </td>
-    <td>
-      [% terms.Bugs %] in this product are never associated with this group.
-    </td>
-  </tr>
-  <tr>
-    <td>
-      Shown
-    </td>
-    <td>
-      NA
-    </td>
-    <td>
-      [% terms.Bugs %] in this product are permitted to be restricted to this
-      group.  Users who are members of this group will be able to place [% terms.bugs %] in
-      this group.
-    </td>
-  </tr>
-  <tr>
-    <td>
-      Shown
-    </td>
-    <td>
-      Shown
-    </td>
-    <td>
-      [% terms.Bugs %] in this product can be placed in this group by anyone
-      with permission to edit the [% terms.bug %] even if they are not a member
-      of this group.
-    </td>
-  </tr>
-  <tr>
-    <td>
-      Shown
-    </td>
-    <td>
-      Default
-    </td>
-    <td>
-      [% terms.Bugs %] in this product can be placed in this group by anyone
-      with permission to edit the [% terms.bug %] even if they are not a member
-      of this group. Non-members place [% terms.bugs %] in this group by default.
-    </td>
-  </tr>
-  <tr>
-    <td>
-      Shown
+      Mandatory
     </td>
     <td>
       Mandatory
     </td>
     <td>
-      [% terms.Bugs %] in this product are permitted to be restricted to this
-      group.  Users who are members of this group will be able to place [% terms.bugs %]
-       in this group.  Non-members will be forced to restrict [% terms.bugs %] to
-       this group when they initially enter [% terms.abug %] in this product.
-    </td>
-  </tr>
-  <tr>
-    <td>
-      Default
-    </td>
-    <td>
-      NA
-    </td>
-    <td>
-      [% terms.Bugs %] in this product are permitted to be restricted to this
-      group and are placed in this group by default.  Users who are members of this
-      group will be able to place [% terms.bugs %] in this group.
-    </td>
-  </tr>
-  <tr>
-    <td>
-      Default
-    </td>
-    <td>
-      Default
-    </td>
-    <td>
-      [% terms.Bugs %] in this product are permitted to be restricted to this
-      group and are placed in this group by default.  Users who are members of this group
-      will be able to place [% terms.bugs %] in this group.  Non-members will be
-      able to restrict [% terms.bugs %] to this group on entry and will do so by default.
+      Simplest case: all [% terms.bugs %] in this product are always restricted by this group.
     </td>
   </tr>
   <tr>
@@ -329,22 +246,101 @@ this group according to the following definitions.
       Mandatory
     </td>
     <td>
-      [% terms.Bugs %] in this product are permitted to be restricted to this
-      group and are placed in this group by default.  Users who are members of this group
-      will be able to place [% terms.bugs %] in this group. Non-members will be forced
-      to place [% terms.bugs %] in this group on entry.
+      Members of this group are able to restrict or not to restrict [% terms.bugs %] in this product by this group.
+      <br />Non-members are forced to restrict their new [% terms.bugs %] by this group and
+      may not change the restriction of existing [% terms.bugs %] by this group.
+      <br />[% terms.Bug %] entry form has the group checkbox checked by default for group members.
     </td>
   </tr>
   <tr>
     <td>
-      Mandatory
+      Default
+    </td>
+    <td>
+      Default
+    </td>
+    <td>
+      Everyone is able to restrict or not to restrict [% terms.bugs %] in this product by this group.
+      <br />[% terms.Bug %] entry form has the group checkbox checked by default for everyone.
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Default
+    </td>
+    <td>
+      NA
+    </td>
+    <td>
+      Members of this group are able to restrict or not to restrict [% terms.bugs %] in this product by this group.
+      <br />Non-members may not restrict [% terms.bugs %] by this group.
+      <br />[% terms.Bug %] entry form has the group checkbox checked by default for group members.
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Shown
     </td>
     <td>
       Mandatory
     </td>
     <td>
-      [% terms.Bugs %] in this product are required to be restricted to this
-      group.  Users are not given any option.
+      Members of this group are able to restrict or not to restrict [% terms.bugs %] in this product by this group.
+      <br />Non-members are forced to restrict their new [% terms.bugs %] by this group and
+      may not change the restriction of existing [% terms.bugs %] by this group.
+      <br />[% terms.Bug %] entry form has the group checkbox unchecked by default for group members.
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Shown
+    </td>
+    <td>
+      Default
+    </td>
+    <td>
+      Everyone is able to restrict or not to restrict [% terms.bugs %] in this product by this group.
+      <br />[% terms.Bug %] entry form has the group checkbox
+      unchecked by default for members of this group, and checked by default
+      for non-members of this group.
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Shown
+    </td>
+    <td>
+      Shown
+    </td>
+    <td>
+      Everyone is able to restrict or not to restrict [% terms.bugs %] in this product by this group.
+      <br />[% terms.Bug %] entry form has the group checkbox unchecked by default for everyone.
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Shown
+    </td>
+    <td>
+      NA
+    </td>
+    <td>
+      Members of this group are able
+      to restrict or not to restrict [% terms.bugs %] in this product by this group.
+      <br />Non-members may not restrict [% terms.bugs %] by this group.
+      <br />[% terms.Bug %] entry form has the group checkbox unchecked by default.
+    </td>
+  </tr>
+  <tr>
+    <td>
+      NA
+    </td>
+    <td>
+      NA
+    </td>
+    <td>
+      [% terms.Bugs %] in this product are never restricted by this group.
+      Equivalent to removing the group from the list.
     </td>
   </tr>
 </table>
