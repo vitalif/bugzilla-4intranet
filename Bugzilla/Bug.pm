@@ -4271,26 +4271,26 @@ sub fields
 # is for a valid bug attribute. Bug attributes are properties and methods
 # predefined by this module as well as bug fields for which an accessor
 # can be defined by AUTOLOAD at runtime when the accessor is first accessed.
-my %valid_attributes;
 sub _validate_attribute
 {
     my ($attr) = @_;
 
-    if (!%valid_attributes)
+    my $cache = Bugzilla->cache_fields;
+    if (!$cache->{valid_bug_attributes})
     {
         # Field data may change, but we generate methods on the fly anyway,
         # so don't care about refreshing this value on a per-request basis
-        %valid_attributes = (
+        $cache->{valid_bug_attributes} = {
             # every DB column may be returned via an autoloaded accessor
             (map { $_ => 1 } Bugzilla::Bug->DB_COLUMNS),
             # multiselect, bug_id_rev fields
             (map { $_->name => 1 } Bugzilla->get_fields({ type => [ FIELD_TYPE_MULTI_SELECT, FIELD_TYPE_BUG_ID_REV ] })),
             # get_object accessors
             (map { $_->name.'_obj' => 1 } Bugzilla->get_fields({ type => [ FIELD_TYPE_SINGLE_SELECT, FIELD_TYPE_MULTI_SELECT ] })),
-        );
+        };
     }
 
-    return $valid_attributes{$attr} ? 1 : 0;
+    return $cache->{valid_bug_attributes}->{$attr} ? 1 : 0;
 }
 
 our $AUTOLOAD;
