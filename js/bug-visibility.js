@@ -45,7 +45,7 @@ function initControlledField(i)
     }
 }
 
-function handleControllerField_this(e)
+function handleControllerField_this(e, nonfirst)
 {
     var m = field_metadata[this.id];
     if (!m)
@@ -63,6 +63,11 @@ function handleControllerField_this(e)
     for (var i in f)
     {
         handleControlledField(i);
+    }
+    // Cascade events
+    for (var i in f)
+    {
+        handleControllerField_this.apply(document.getElementById(i), [ null, true ]);
     }
 }
 

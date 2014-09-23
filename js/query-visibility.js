@@ -268,51 +268,30 @@ function handleQueryformField_this(e, nonfirst)
 
 function reflowFieldRows()
 {
-    var cells_per_row = 4;
+    var per_row = 4;
     var rows = [];
+    var fields = [];
+    var visible = 0;
     for (var i = 0, e; e = document.getElementById('cf_row_'+i); i++)
     {
         rows.push(e.rows[0]);
-    }
-    var prev = [];
-    for (var i = 0; i < rows.length; i++)
-    {
-        var vis = 0;
-        for (var j = 0; j < rows[i].cells.length; j++)
+        for (var j = 0; j < e.rows[0].cells.length; j++)
         {
-            var v = rows[i].cells[j].style.display != 'none';
-            if (prev.length && prev[0][0] < cells_per_row)
-            {
-                // Move this cell up
-                rows[prev[0][1]].appendChild(rows[i].cells[j]);
-                j--;
-                if (v)
-                {
-                    prev[0][0]++;
-                    if (prev[0][0] >= 4)
-                    {
-                        prev.shift();
-                    }
-                }
-            }
-            else if (v)
-            {
-                vis++;
-                if (vis >= cells_per_row && i < rows.length-1)
-                {
-                    // Move remaining cells down
-                    for (var k = rows[i].cells.length-1; k > j; k--)
-                    {
-                        rows[i+1].cells.length
-                            ? rows[i+1].insertBefore(rows[i].cells[k], rows[i+1].cells[0])
-                            : rows[i+1].appendChild(rows[i].cells[k]);
-                    }
-                }
-            }
+            var v = e.rows[0].cells[j].style.display != 'none' ? 1 : 0;
+            fields.push([ e.rows[0].cells[j], v ]);
+            visible += v;
         }
-        if (vis < cells_per_row)
+    }
+    for (var cur_row = 0, j = 0; cur_row < rows.length && j < fields.length; cur_row++)
+    {
+        var v = 0;
+        for (; j < fields.length; v += fields[j][1], j++)
         {
-            prev.push([ vis, i ]);
+            if (v >= per_row && fields[j][1])
+            {
+                break;
+            }
+            rows[cur_row].appendChild(fields[j][0]);
         }
     }
 }

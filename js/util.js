@@ -311,6 +311,8 @@ window.hasClass = function(obj, c)
 {
     if (typeof(obj) == 'string')
         obj = document.getElementById(obj);
+    if (obj.className === undefined)
+        return false;
     var l = obj.className.split(/\s+/);
     for (var i = l.length-1; i >= 0; i--)
         if (l[i] == c)
