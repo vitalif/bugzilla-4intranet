@@ -235,6 +235,9 @@
       [% FOREACH b = bug.${field.name} %]
         [% ", " IF !loop.first %][% b | bug_link(b) | none %]
       [% END %]
+      [% IF !bug.${field.name}.size %]
+        None
+      [% END %]
     [% END %]
 
   [%#
