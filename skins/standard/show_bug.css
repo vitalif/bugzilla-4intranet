@@ -140,12 +140,6 @@ table#flags {
     width: inherit;
 }
 
-/* FIXME: CustIS-specific style, move away */
-#cf_sprint {
-    max-width: 25em;
-    min-width: 0;
-}
-
 .attach_multi td, .attach_multi th {
     padding: 2px;
 }
