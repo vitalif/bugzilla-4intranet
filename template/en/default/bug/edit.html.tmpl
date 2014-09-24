@@ -265,10 +265,16 @@ document.changeform = document.[% cfname %];
            editable = bug.check_can_change_field('version', 0, 1) %]
     </tr>
 
+    <script type="text/javascript">
+      assignToDefaultOnChange(['product', 'component']);
+    </script>
+
     [%###################%]
     [%# PLATFORM AND OS #%]
     [%###################%]
-    [% IF Bugzilla.get_field('rep_platform').enabled OR Bugzilla.get_field('op_sys').enabled %]
+    [% IF (Bugzilla.get_field('rep_platform').enabled OR Bugzilla.get_field('op_sys').enabled) AND
+      (bug.check_can_change_field('rep_platform', 0, 1) || bug.check_can_change_field('op_sys', 0, 1) ||
+      bug.op_sys || bug.rep_platform) %]
     <tr>
       <td class="field_label">
         <label for="rep_platform" accesskey="h"><b>OS/Platform</b></label>:
@@ -290,9 +296,6 @@ document.changeform = document.[% cfname %];
             editable = bug.check_can_change_field('op_sys', 0, 1) %]
         </span>
         [% END %]
-        <script type="text/javascript">
-          assignToDefaultOnChange(['product', 'component']);
-        </script>
       </td>
     </tr>
     [% END %]
@@ -476,8 +479,10 @@ document.changeform = document.[% cfname %];
 [%############################################################################%]
 [% BLOCK section_url_keyword_whiteboard %]
 [%# *** URL Whiteboard Keywords *** %]
+  [% SET url_trimmed = bug.bug_file_loc.replace('^\s+|\s+$', '') %]
+  [% SET chg = bug.check_can_change_field("bug_file_loc", 0, 1) %]
+  [% IF chg OR url_trimmed != '' %]
   <tr>
-    [% SET url_trimmed = bug.bug_file_loc.replace('^\s+|\s+$', '') %]
     <td class="field_label">
       <label for="bug_file_loc" accesskey="u"><b>
         [% IF is_safe_url(url_trimmed) %]
@@ -488,7 +493,7 @@ document.changeform = document.[% cfname %];
       [%%]</b></label>:
     </td>
     <td>
-      [% IF bug.check_can_change_field("bug_file_loc", 0, 1) %]
+      [% IF chg %]
         <span id="bz_url_edit_container" class="bz_default_hidden">
         [% IF is_safe_url(url_trimmed) %]
            <a href="[% url_trimmed FILTER html %]" target="_blank"
@@ -501,26 +506,29 @@ document.changeform = document.[% cfname %];
       [% END %]
       <span id="bz_url_input_area">
         [% url_output = PROCESS input no_td=1 inputname => "bug_file_loc" size => "40" colspan => 2 %]
-        [% IF NOT bug.check_can_change_field("bug_file_loc", 0, 1)
-              AND is_safe_url(url_trimmed)  %]
+        [% IF NOT chg AND is_safe_url(url_trimmed)  %]
           <a href="[% url_trimmed FILTER html %]">[% url_output FILTER none %]</a>
         [% ELSE %]
           [% url_output FILTER none %]
         [% END %]
       </span>
-      [% IF bug.check_can_change_field("bug_file_loc", 0, 1) %]
+      [% IF chg %]
         <script type="text/javascript">
-          hideEditableField('bz_url_edit_container',
-                            'bz_url_input_area',
-                            'bz_url_edit_action',
-                            'bug_file_loc',
-                            "[% bug.bug_file_loc FILTER js %]");
+          hideEditableField(
+            'bz_url_edit_container',
+            'bz_url_input_area',
+            'bz_url_edit_action',
+            'bug_file_loc',
+            "[% bug.bug_file_loc FILTER js %]"
+          );
         </script>
       [% END %]
     </td>
   </tr>
+  [% END %]
 
-  [% IF Bugzilla.get_field('status_whiteboard').enabled %]
+  [% IF Bugzilla.get_field('status_whiteboard').enabled &&
+    (bug.status_whiteboard != '' OR bug.check_can_change_field('status_whiteboard', 0, 1)) %]
     <tr>
       <td class="field_label">
         <label for="status_whiteboard" accesskey="w"><b><u>W</u>hiteboard</b></label>:
@@ -530,15 +538,52 @@ document.changeform = document.[% cfname %];
   [% END %]
 
   [% IF use_keywords %]
+    [% val = bug.get_string('keywords') %]
+    [% chg = bug.check_can_change_field('keywords', 0, 1) %]
+    [% IF val != '' OR chg %]
     <tr>
       <td class="field_label">
         <label for="keywords" accesskey="k"><b><a href="describekeywords.cgi"><u>K</u>eywords</a></b></label>:
       </td>
-      [% PROCESS input inputname => "keywords" size => 40 colspan => 2 %]
-      <script>
-        addKeywordsAutocomplete();
-      </script>
+      <td colspan="2">
+      [% IF chg %]
+        [% IF val != '' %]
+          [% FOREACH keyword = bug.keywords_obj %]
+            <a href="buglist.cgi?keywords=[% keyword.name FILTER uri %]&keywords_type=allwords&query_format=advanced"
+              target="_blank">[% keyword.name FILTER html %]</a>
+            [% ',' UNLESS loop.last %]
+          [% END %]
+          (<a href="#" onclick="return toggle_keywords_field()">Edit</a>)
+          <script type="text/javascript">
+          function toggle_keywords_field()
+          {
+            var el = document.getElementById('keywords_field');
+            if (el.style.display == 'block')
+              el.style.display = 'none';
+            else
+              el.style.display = 'block';
+            return false;
+          }
+          </script>
+          <div id="keywords_field" style="display: none; margin-top: 3px;">
+        [% END %]
+        <input id="keywords" name="keywords" class="text_input"
+          value="[% val FILTER html %]"[% " size=\"$size\"" IF size %]
+          [% " maxlength=\"$maxlength\"" IF maxlength %]
+          [% " spellcheck=\"$spellcheck\"" IF spellcheck %]>
+        <script>
+          addKeywordsAutocomplete();
+        </script>
+        [% IF val != "" %]
+        </div>
+        [% END %]
+        <div id="keywords_description_container"></div>
+      [% ELSE %]
+        [% val FILTER html %]
+      [% END %]
+      </td>
     </tr>
+    [% END %]
   [% END %]
 [% END %]
 
@@ -717,11 +762,12 @@ document.changeform = document.[% cfname %];
             <label for="addselfcc">Add me to CC list</label>
         </div>
         [% END %]
-        <div id="cc_edit_area_showhide_container" class="bz_default_hidden">
+        [% chg = bug.check_can_change_field('cc', 0, 1) %]
+        <div id="cc_edit_area_showhide_container"[% IF chg %] class="bz_default_hidden"[% END %]>
           <div id="cc_list_num_users">
             [% bug.cc.size || 0 FILTER html %] [%+ bug.cc.size > 1 ? 'users' : 'user' %]
             [% IF user.id AND bug.cc.contains(user.email) %] including you[% END %]
-            (<a href="#" id="cc_edit_area_showhide">[% IF user.id %]edit[% ELSE %]show[% END %]</a>)
+            [%+ IF chg %](<a href="#" id="cc_edit_area_showhide">edit</a>)[% END %]
           </div>
           [% IF bug.cc.size > 0 %]
           <ul class="cc_list_display">
@@ -731,6 +777,7 @@ document.changeform = document.[% cfname %];
           </ul>
         [% END %]
         </div>
+        [% IF chg %]
         <div id="cc_edit_area">
           [% IF user.id %]
             <div>
@@ -767,6 +814,7 @@ document.changeform = document.[% cfname %];
                              '',
                              '');
         </script>
+        [% END %]
       </td>
     </tr>
 [% END %]
@@ -844,6 +892,9 @@ document.changeform = document.[% cfname %];
 
 [% BLOCK dependencies %]
 
+  [% chg = bug.check_can_change_field(dep.fieldname, 0, 1) %]
+
+  [% IF chg || bug.${dep.fieldname}.size %]
   <th class="field_label">
     <label for="[% dep.fieldname %]"[% " accesskey=\"$accesskey\"" IF accesskey %]>
     [% dep.title %]</label>:
@@ -860,7 +911,7 @@ document.changeform = document.[% cfname %];
     [% FOREACH depbug = bug.${dep.fieldname} %]
       [% depbug FILTER bug_link(depbug, use_alias => 1) FILTER none %][% " " %]
     [% END %]
-    [% IF bug.check_can_change_field(dep.fieldname, 0, 1) %]
+    [% IF chg %]
       <span id="[% dep.fieldname %]_edit_container" class="edit_me bz_default_hidden" >
         (<a href="#" id="[% dep.fieldname %]_edit_action">edit</a>)
       </span>
@@ -873,6 +924,7 @@ document.changeform = document.[% cfname %];
       </script>
     [% END %]
   </td>
+  [% END %]
 
   [% accesskey = undef %]
 
@@ -1029,39 +1081,10 @@ document.changeform = document.[% cfname %];
   [% END %]
     [% val = bug.$inputname %]
     [% IF bug.check_can_change_field(inputname, 0, 1) %]
-      [% IF inputname == "keywords" %]
-        [% val = bug.get_string(inputname) %]
-        [% IF val != '' %]
-          [% FOREACH keyword = bug.keywords_obj %]
-            <a href="buglist.cgi?keywords=[% keyword.name FILTER uri %]&keywords_type=allwords&query_format=advanced"
-              target="_blank">[% keyword.name FILTER html %]</a>
-            [% ',' UNLESS loop.last %]
-          [% END %]
-          (<a href="#" onclick="return toggle_keywords_field()">Edit</a>)
-          <script type="text/javascript">
-          function toggle_keywords_field()
-          {
-            var el = document.getElementById('keywords_field');
-            if (el.style.display == 'block')
-              el.style.display = 'none';
-            else
-              el.style.display = 'block';
-            return false;
-          }
-          </script>
-          <div id="keywords_field" style="display: none; margin-top: 3px;">
-        [% END %]
-      [% END %]
       <input id="[% inputname %]" name="[% inputname %]" class="text_input"
         value="[% val FILTER html %]"[% " size=\"$size\"" IF size %]
         [% " maxlength=\"$maxlength\"" IF maxlength %]
         [% " spellcheck=\"$spellcheck\"" IF spellcheck %]>
-      [% IF inputname == "keywords" %]
-        [% IF val != "" %]
-        </div>
-        [% END %]
-        <div id="keywords_description_container"></div>
-      [% END %]
     [% ELSE %]
       [% IF size && val.length > size %]
         <span title="[% val FILTER html %]">

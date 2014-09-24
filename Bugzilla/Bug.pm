@@ -269,7 +269,7 @@ use constant SCALAR_FORMAT => { map { $_ => 1 } qw(
     short_desc status_whiteboard votes
 ) };
 
-use constant ARRAY_FORMAT => { map { $_ => 1 } qw(dependson blocked cc) };
+use constant ARRAY_FORMAT => { map { $_ => 1 } qw(dependson blocked cc see_also) };
 
 use constant USER_FORMAT => { map { $_ => 1 } qw(assigned_to qa_contact reporter) };
 
@@ -4214,10 +4214,6 @@ sub get_string
     {
         $value = join ', ', @{ $self->$f };
     }
-    elsif ($field && $field->type != FIELD_TYPE_UNKNOWN || SCALAR_FORMAT->{$f})
-    {
-        $value = $self->$f;
-    }
     elsif (ARRAY_FORMAT->{$f})
     {
         $value = join ', ', @{$self->$f};
@@ -4225,6 +4221,10 @@ sub get_string
     elsif (USER_FORMAT->{$f})
     {
         $value = $self->$f && $self->$f->login;
+    }
+    elsif ($field && $field->type != FIELD_TYPE_UNKNOWN || SCALAR_FORMAT->{$f})
+    {
+        $value = $self->$f;
     }
     elsif ($f eq 'bug_group')
     {

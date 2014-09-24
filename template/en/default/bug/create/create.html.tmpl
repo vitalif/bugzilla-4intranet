@@ -378,6 +378,7 @@ var close_status_array = [
   <tr>
     [% INCLUDE bug/field.html.tmpl
       bug = default
+      editable = 1
       field = select_fields.bug_status
       editable = bug_status.size > 1
       value_name = default.bug_status

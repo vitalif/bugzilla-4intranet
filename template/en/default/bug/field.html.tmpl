@@ -47,6 +47,8 @@
   #   tabindex: (optional) HTML tabindex.
   #%]
 
+[% IF editable || bug && bug.get_string(field.name) != '' %]
+
 [% IF NOT no_tds %]
   <th class="field_label" id="field_label_[% field.name | html %]">
     [% IF editable %]
@@ -282,3 +284,5 @@
   [% value.join(', ') | html %]
 [% END %]
 [% '</td>' IF NOT no_tds %]
+
+[% END %]
