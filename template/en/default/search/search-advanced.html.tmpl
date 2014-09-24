@@ -47,13 +47,13 @@ var queryform = "queryform"
 [%# The decent help requires Javascript %]
 <script type="text/javascript"> <!--
 [% IF NOT Bugzilla.cgi.param("help") %]
-  document.write("<p><a href='query.cgi?help=1&amp;format=advanced'>Give me some help<\/a> (reloads page).<\/p>");
+  document.write("<p><a href='query.cgi?help=1&amp;format=advanced'>[% L('Give me some help') %]<\/a> [% L('(reloads page).') %]<\/p>");
 [% ELSE %]
   [% PROCESS "search/search-help.html.tmpl" %]
   if (generateHelp())
-    document.write("<p>For help, mouse over the page elements.<\/p>");
+    document.write("<p>[% L('For help, mouse over the page elements.') %]<\/p>");
   else
-    document.write("<p>Help initialization failed, no help available.<\/p>");
+    document.write("<p>[% L('Help initialization failed, no help available.') %]<\/p>");
 [% END %]
 // -->
 </script>

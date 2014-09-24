@@ -112,8 +112,8 @@ Bug [% d.dep %] summary: [% d.short_desc %]
 [% END %]
 
 -- [%# Protect the trailing space of the signature marker %]
-Configure [% terms.bug %]mail: [% urlbase %]userprefs.cgi?tab=email
-------- You are receiving this mail because: -------
+Configure [% terms.bugmail %]: [% urlbase %]userprefs.cgi?tab=email
+------- [%+ "You are receiving this mail because:" %] -------
 [% FOREACH relationship = reasons %]
   [% SWITCH relationship %]
     [% CASE constants.REL_ASSIGNEE %]
@@ -266,7 +266,7 @@ body { font-family: Segoe UI, sans-serif; }
 [% END %]
 
 <p style="font-size: 12px; font-style: italic; margin-bottom: 0">
-<a href="[% urlbase %]userprefs.cgi?tab=email">Configure [% terms.bug %]mail</a><br />
+<a href="[% urlbase %]userprefs.cgi?tab=email">Configure [% terms.bugmail %]</a><br />
 You are receiving this mail because:
 </p>
 <ul style="font-size: 12px; font-style: italic; margin: 0; padding-left: 2em"><li>

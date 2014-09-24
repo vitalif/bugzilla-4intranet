@@ -49,11 +49,11 @@ function addSidebar() {
     sidebarname="[% terms.Bugzilla %] "+sidebarname;
   window.sidebar.addPanel (sidebarname, "[% urlbase FILTER html %]sidebar.cgi", "");
 }
-var quicksearch_message = "Enter [% terms.abug %] # or some search terms";
+var quicksearch_message = '[% L('Enter $terms.abug # or some search terms') %]';
 
 function checkQuicksearch( form ) {
   if (form.quicksearch.value == '' || form.quicksearch.value == quicksearch_message ) {
-    alert('Please enter one or more search terms first.');
+    alert('[% L('Please enter one or more search terms first.') %]');
     return false;
   }
   return true;

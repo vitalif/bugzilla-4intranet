@@ -25,7 +25,15 @@
   [% END %]
 [% END %]
 
-[% javascript = BLOCK %]
+[% PROCESS
+  global/header.html.tmpl
+  title = title
+  doc_section = "custom-fields.html#" _ (field.id ? "edit" : "add") _ "-custom-fields"
+  javascript_urls = [ "js/cf-edit.js" ]
+%]
+
+[%# FIXME Move to "js resource data" %]
+<script language="JavaScript">
 var constants = {
   FIELD_TYPE_SINGLE_SELECT: [% constants.FIELD_TYPE_SINGLE_SELECT %],
   FIELD_TYPE_MULTI_SELECT: [% constants.FIELD_TYPE_MULTI_SELECT %],
@@ -33,14 +41,7 @@ var constants = {
   FIELD_TYPE_EXTURL: [% constants.FIELD_TYPE_EXTURL %],
   FIELD_TYPE_BUG_ID_REV: [% constants.FIELD_TYPE_BUG_ID_REV %]
 };
-[% END %]
-
-[% PROCESS
-  global/header.html.tmpl
-  title = title
-  doc_section = "custom-fields.html#" _ (field.id ? "edit" : "add") _ "-custom-fields"
-  javascript_urls = [ "js/cf-edit.js" ]
-%]
+</script>
 
 [% IF !field.id %]
 <p style="font-size: 120%">
@@ -123,15 +124,17 @@ var constants = {
         <th align="left">Type:</th>
         <td valign="top">
           [% IF field.id %]
-            [% field_types.${field.type} | html %]
+            [% lc_messages.field_types.${constants.FIELD_TYPE_NAMES.${field.type}} | html %]
           [% ELSE %]
             <select id="type" name="type" onchange="onChangeType()">
-              [% FOREACH type = field_types.sort %]
+              [% FOREACH type = constants.FIELD_TYPE_NAMES.sort %]
                 [%# Types "Bug URLs" and "Keywords" are rudiments from original Bugzilla %]
                 [% NEXT IF type == constants.FIELD_TYPE_UNKNOWN ||
                   type == constants.FIELD_TYPE_BUG_URLS ||
                   type == constants.FIELD_TYPE_KEYWORDS %]
-                <option value="[% type | html %]">[% field_types.$type | html %]</option>
+                <option value="[% type | html %]">
+                  [% lc_messages.field_types.${constants.FIELD_TYPE_NAMES.$type} | html %]
+                </option>
               [% END %]
             </select>
           [% END %]
@@ -172,7 +175,7 @@ var constants = {
       [% IF !field.id || field.can_tweak('mailhead') %]
       <tr>
         <th align="left">
-          <label for="mailhead">Displayed in [% terms.bug %]mail for new [% terms.bugs %]:</label>
+          <label for="mailhead">Displayed in [% terms.bugmail %] for new [% terms.bugs %]:</label>
         </th>
         <td><input type="checkbox" id="mailhead" name="mailhead" value="1" [%- ' checked="checked"' IF field.in_new_bugmail %] /></td>
       </tr>

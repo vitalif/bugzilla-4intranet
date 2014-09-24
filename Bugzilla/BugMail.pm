@@ -157,8 +157,6 @@ sub SendFlag
         my $message;
         $template->process("request/email.txt.tmpl", $email, \$message)
            || ThrowTemplateError($template->error());
-
-        Bugzilla->template_inner("");
         MessageToMTA($message);
 
         Bugzilla::Hook::process('flag-notify-post-send', { vars => $email });
@@ -184,7 +182,6 @@ sub SendVotesRemoved
         MessageToMTA($msg);
         push @to, $voter->login;
     }
-    Bugzilla->template_inner('');
 
     return { sent => \@to, excluded => [] };
 }
@@ -649,9 +646,8 @@ sub sendMail
 
     my $template = Bugzilla->template_inner($user->settings->{lang}->{value});
     Bugzilla::Hook::process('bugmail-pre_template', { tmpl => \$tmpl, vars => $vars });
-    $tmpl = "email/newchangedmail.txt.tmpl" unless $template->template_exists($tmpl);
-    $template->process($tmpl, $vars, \$msg) || ThrowTemplateError($template->error());
-    Bugzilla->template_inner("");
+    $template->process("email/newchangedmail.txt.tmpl", $vars, \$msg)
+        || ThrowTemplateError($template->error());
 
     logMail($vars);
     MessageToMTA($msg);

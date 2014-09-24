@@ -167,7 +167,7 @@ function divide_hours_click()
   var sum = bzParseTime(document.getElementById('divide_hours').value);
   if (!sum || sum != sum)
   {
-    alert('Нечего распределять! Введите число, время в формате HH:MM, или в днях 1d, 2d, 3d и т.п.');
+    alert('[% L('Нечего распределять! Введите число, время в формате HH:MM, или в днях 1d, 2d, 3d и т.п.') %]');
     return;
   }
   if (!period_times_sorted)

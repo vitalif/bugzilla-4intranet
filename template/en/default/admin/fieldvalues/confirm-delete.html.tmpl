@@ -19,8 +19,7 @@
   #%]
 
 [% title = BLOCK %]
-  Delete Value '[% value.name | html %]' from the 
-  '[% field.description | html %]' ([% field.name | html %]) field
+  [% L('Delete Value "$1" from the field "$2" ($3)', html(value.name), html(field.description), html(field.name)) %]
 [% END %]
 
 [% PROCESS global/header.html.tmpl

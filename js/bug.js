@@ -35,7 +35,7 @@ function showhide_comment(comment_id, show)
     var link = document.getElementById('comment_link_' + comment_id);
     var comment = document.getElementById('comment_text_' + comment_id);
     link.innerHTML = show ? "[-]" : "[+]";
-    link.title = (show ? "Collapse" : "Expand")+" the comment.";
+    link.title = L(show ? "Collapse the comment." : "Expand the comment.");
     if (show)
         removeClass(comment, 'collapsed');
     else
@@ -60,7 +60,7 @@ function showhide_comment_preview(comment_id)
         body.style.display = 'block';
         addClass(link, "shown");
     }
-    link.innerHTML = (!show ? "Hide" : "Show") + " full text";
+    link.innerHTML = L(!show ? "Hide full text" : "Show full text");
     return false;
 }
 
@@ -86,7 +86,7 @@ function addCollapseLink(id)
         ' <a href="#" class="bz_collapse_comment"'+
         ' id="comment_link_' + id +
         '" onclick="toggle_comment_display(' + id +
-        '); return false;" title="'+(c ? 'Collapse' : 'Expand')+' the comment.">['+
+        '); return false;" title="'+L(c ? 'Collapse the comment.' : 'Expand the comment.')+'">['+
         (c ? '-' : '+')+']<\/a> ';
 }
 
@@ -100,16 +100,16 @@ function addReplyLink(num, id)
     if (user_settings.quote_replies != 'off')
     {
         s += '<a href="#add_comment" onclick="replyToComment(' +
-            num + ', ' + id + '); return false;">reply<' + '/a>';
+            num + ', ' + id + '); return false;">'+L('reply')+'<' + '/a>';
     }
-    s += ', clone to <a href="enter_bug.cgi?cloned_bug_id='+bug_info.id+'&amp;cloned_comment='+num+'">other</a>';
-    s += '/<a href="enter_bug.cgi?cloned_bug_id='+bug_info.id+'&amp;product='+encodeURIComponent(bug_info.product)+'&amp;cloned_comment='+num+'">same</a>';
+    s += ', clone to <a href="enter_bug.cgi?cloned_bug_id='+bug_info.id+'&amp;cloned_comment='+num+'">'+L('other')+'</a>';
+    s += '/<a href="enter_bug.cgi?cloned_bug_id='+bug_info.id+'&amp;product='+encodeURIComponent(bug_info.product)+'&amp;cloned_comment='+num+'">'+L('same')+'</a>';
     // 4Intranet Bug 69514 - Clone to external product button
     if (bug_info.extprod)
-        s += '/<a href="enter_bug.cgi?cloned_bug_id='+bug_info.id+'&amp;product='+encodeURIComponent(bug_info.extprod)+'&amp;cloned_comment='+num+'">ext</a>';
+        s += '/<a href="enter_bug.cgi?cloned_bug_id='+bug_info.id+'&amp;product='+encodeURIComponent(bug_info.extprod)+'&amp;cloned_comment='+num+'">'+L('ext')+'</a>';
     else if (bug_info.intprod)
-        s += '/<a href="enter_bug.cgi?cloned_bug_id='+bug_info.id+'&amp;product='+encodeURIComponent(bug_info.intprod)+'&amp;cloned_comment='+num+'">int</a>';
-    s += ' product]';
+        s += '/<a href="enter_bug.cgi?cloned_bug_id='+bug_info.id+'&amp;product='+encodeURIComponent(bug_info.intprod)+'&amp;cloned_comment='+num+'">'+L('int')+'</a>';
+    s += L(' product')+']';
     e.innerHTML += s;
 }
 
@@ -172,7 +172,7 @@ function getText(element)
 /* Adds the reply text to the `comment' textarea */
 function replyToComment(num, id)
 {
-    var prefix = "(In reply to comment #" + num + ")\n";
+    var prefix = "(In reply to comment #"+num+")\n";
     var replytext = "";
     if (user_settings.quote_replies == 'quoted_reply')
     {
@@ -204,7 +204,7 @@ function replyToComment(num, id)
                 replytext += "\n";
             }
             else if (!prev_ist)
-                replytext += "> (table removed)\n";
+                replytext += "> "+L("(table removed)")+"\n";
             prev_ist = ist;
         }
 
@@ -273,7 +273,7 @@ function changeform_onsubmit()
         (wt === null || wt === undefined || wt != wt ||
         notimetracking && wt != 0 || !notimetracking && wt == 0))
     {
-        awt = prompt("Please, verify working time:", !wt || wt != wt ? "0" : wt);
+        awt = prompt(L("Please, verify working time:"), !wt || wt != wt ? "0" : wt);
         if (awt === null || awt === undefined || (""+awt).length <= 0)
         {
             wtInput.focus();
@@ -389,7 +389,7 @@ addListener(window, 'beforeunload', function(e)
     if (window.checkCommentOnUnload && ta && ta.value.trim() != '')
     {
         e = e || window.event;
-        return (e.returnValue = 'Your comment will be lost. Leave page?');
+        return (e.returnValue = L('Your comment will be lost. Leave page?'));
     }
 });
 
@@ -455,7 +455,7 @@ function showEditComment(comment_id)
                     but_wrapper.className = 'edit_comment_submit';
                     var submit_but = document.createElement('input');
                     submit_but.type = 'submit';
-                    submit_but.value = 'Save All Changes';
+                    submit_but.value = L('Save All Changes');
                     but_wrapper.appendChild(submit_but);
                     parent.appendChild(but_wrapper);
                     showhide_comment(key, false);
@@ -478,7 +478,7 @@ function toggle_obsolete_attachments(link)
     for (var i = 0; i < rs.length; i++)
         if (hasClass(rs[i], 'bz_tr_obsolete'))
             r0 = toggleClass(rs[i], 'bz_default_hidden');
-    link.innerHTML = r0 ? 'Show Obsolete' : 'Hide Obsolete';
+    link.innerHTML = r0 ? L('Show Obsolete') : L('Hide Obsolete');
 
     var newHeight = table.offsetHeight;
     // This scrolling makes the window appear to not move at all.

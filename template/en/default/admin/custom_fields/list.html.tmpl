@@ -44,8 +44,8 @@
      },
      {
        name => "mailhead"
-       heading => "${terms.Bug}mail",
-       hint => "Included in ${terms.bug}mail for new $terms.bugs"
+       heading => terms.Bugmail,
+       hint => "Included in $terms.bugmail for new $terms.bugs"
        content_values => { '0' => '', '1' => 'Yes' }
        align => 'center'
      },
@@ -76,10 +76,10 @@
 [%# We want to display the type name of fields, not their type ID. %]
 [% overrides.type = {} %]
 
-[% FOREACH field_type = field_types.keys %]
+[% FOREACH field_type = constants.FIELD_TYPE_NAMES.keys %]
   [% overrides.type.type.$field_type = {
        override_content => 1
-       content => field_types.$field_type
+       content => lc_messages.field_types.${constants.FIELD_TYPE_NAMES.$field_type}
      }
   %]
 [% END %]

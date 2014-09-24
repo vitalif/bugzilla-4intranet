@@ -11,12 +11,12 @@ function helpToggle(btn_id, div_id)
     var d = document.getElementById(div_id);
     if (d.style.display == 'none')
     {
-        b.value = 'Hide \u25B4';
+        b.value = L('Hide \u25B4');
         d.style.display = '';
     }
     else
     {
-        b.value = 'Show \u25BE';
+        b.value = L('Show \u25BE');
         d.style.display = 'none';
     }
 }
@@ -120,7 +120,7 @@ function deleteGroup(el_link, grp_id)
         el_othercontrol.setAttribute('disabled', true);
         clearSelectedOption(el_membercontrol);
         clearSelectedOption(el_othercontrol);
-        el_link.innerHTML = 'Undo delete';
+        el_link.innerHTML = L('Undo delete');
     }
     else
     {
@@ -131,7 +131,7 @@ function deleteGroup(el_link, grp_id)
         el_othercontrol.removeAttribute('disabled');
         clearSelectedOption(el_membercontrol);
         clearSelectedOption(el_othercontrol);
-        el_link.innerHTML = 'Delete';
+        el_link.innerHTML = L('Delete');
     }
     highlightButton();
 }
@@ -154,7 +154,7 @@ function addNewGroup()
     var cell_empty = row.insertCell(3);
     var cell_action = row.insertCell(4);
 
-    cell_action.innerHTML = '<a href="#" class="icon-delete" onclick="deleteGroup(this, ' + count_rows + '); return false;">Delete</a>';
+    cell_action.innerHTML = '<a href="#" class="icon-delete" onclick="deleteGroup(this, ' + count_rows + '); return false;">'+L('Delete')+'</a>';
     var etalon_group = document.getElementById('etalon_groups');
     var new_group = document.createElement('select');
     new_group.id = 'group_' + count_rows;
@@ -191,7 +191,7 @@ function deleteGroupCheckbox(el_id)
         added_li = document.createElement('li');
         added_li.id = 'li_' + params_arr[0] + '_empty';
         added_li.className = 'group_empty';
-        added_li.innerHTML = '&lt;no groups&gt;';
+        added_li.innerHTML = L('&lt;no groups&gt;');
         exsist_list.appendChild(added_li);
     }
     highlightButton();

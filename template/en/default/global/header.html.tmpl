@@ -217,8 +217,6 @@
     [% END %]
 
     <script src="[% 'js/util.js' | ts_url %]" type="text/javascript"></script>
-    <script src="[% 'js/global.js' | ts_url %]" type="text/javascript"></script>
-    <script src="[% 'js/hinter.js' | ts_url %]" type="text/javascript"></script>
     <script type="text/javascript">
     <!--
         [%# The language selector needs javascript to set its cookie,
@@ -226,7 +224,8 @@
           # If the browser can run javascript, it will then "unhide"
           # the language selector using the following code.
           #%]
-        function unhide_language_selector() {
+        function unhide_language_selector()
+        {
             removeClass('lang_links_container', 'bz_default_hidden');
         }
         addListener(window, 'load', unhide_language_selector);
@@ -238,17 +237,16 @@
         var BUGZILLA = {
             param: {
                 cookiepath: '[% Param('cookiepath') FILTER js %]'
-            },
-            string: {
-                attach_desc_required: 'You must enter a Description for this attachment.'
             }
         };
         [% IF javascript %]
-          [% javascript %]
+            [% javascript %]
         [% END %]
     // -->
     </script>
-
+    <script src="[% ('i18n/' _ LANGUAGE _ '/messages.js') | ts_url %]" type="text/javascript"></script>
+    <script src="[% 'js/global.js' | ts_url %]" type="text/javascript"></script>
+    <script src="[% 'js/hinter.js' | ts_url %]" type="text/javascript"></script>
     [% IF javascript_urls %]
       [% FOREACH javascript_url = javascript_urls %]
         <script src="[% javascript_url | ts_url | html %]" type="text/javascript"></script>
@@ -304,17 +302,17 @@
 </tr>
 </table>
 
-[% IF Bugzilla.languages.size > 1 %]
+[% IF Bugzilla.i18n.supported_languages.size > 1 %]
 <table id="lang_links_container" cellpadding="0" cellspacing="0"
        class="bz_default_hidden"><tr><td>
   <ul class="links">
-  [% FOREACH lang = Bugzilla.languages.sort %]
+  [% FOREACH lang = Bugzilla.i18n.supported_languages.sort %]
     <li>[% IF NOT loop.first %]<span class="separator"> | </span>[% END %]
-    [% IF lang == current_language %]
+    [% IF lang == LANGUAGE %]
       <span class="lang_current">[% lang FILTER html FILTER upper %]</span>
     [% ELSE %]
       <a href="#" onclick="set_language('[% lang FILTER none %]');">
-       [%- lang FILTER html FILTER upper %]</a>
+        [%- lang FILTER html FILTER upper %]</a>
     [% END %]
     </li>
   [% END %]

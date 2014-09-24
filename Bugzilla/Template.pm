@@ -37,7 +37,7 @@ use Bugzilla::Bug;
 use Bugzilla::Constants;
 use Bugzilla::Hook;
 use Bugzilla::Install::Requirements;
-use Bugzilla::Install::Util qw(install_string template_include_path include_languages);
+use Bugzilla::Install::Util qw(install_string template_include_path);
 use Bugzilla::Keyword;
 use Bugzilla::Util;
 use Bugzilla::User;
@@ -45,6 +45,7 @@ use Bugzilla::Error;
 use Bugzilla::Status;
 use Bugzilla::Token;
 use Bugzilla::Template::Plugin::Bugzilla;
+use Bugzilla::Template::Plugin::Hook;
 
 use Cwd qw(abs_path);
 use MIME::Base64;
@@ -59,6 +60,9 @@ use IO::Dir;
 use Scalar::Util qw(blessed);
 
 use base qw(Template);
+
+our $CURRENT_TEMPLATE;
+our $COMPILE_LANGUAGE;
 
 my ($custom_proto, $custom_proto_regex, $custom_proto_cached, $custom_wiki_urls, $custom_wiki_proto);
 
@@ -83,21 +87,6 @@ sub _load_constants
         }
     }
     return \%constants;
-}
-
-# Returns the path to the templates based on the Accept-Language
-# settings of the user and of the available languages
-# If no Accept-Language is present it uses the defined default
-# Templates may also be found in the extensions/ tree
-sub getTemplateIncludePath
-{
-    my $cache = Bugzilla->request_cache;
-    my $lang  = $cache->{language} || '';
-    $cache->{"template_include_path_$lang"} ||= template_include_path({
-        use_languages => Bugzilla->languages,
-        only_language => $lang,
-    });
-    return $cache->{"template_include_path_$lang"};
 }
 
 sub get_format
@@ -140,20 +129,6 @@ sub get_format
         'extension'   => $ctype,
         'ctype'       => Bugzilla::Constants::contenttypes->{$ctype}
     };
-}
-
-# check whether a template exists
-sub template_exists
-{
-    my $self = shift;
-    my $file = shift or return;
-    my $include_path = $self->context->load_templates->[0]->include_path;
-    return unless ref $include_path eq 'ARRAY';
-    foreach my $path (@$include_path)
-    {
-        return $path if -e "$path/$file";
-    }
-    return undef;
 }
 
 sub makeTables
@@ -533,10 +508,10 @@ sub get_bug_link
     $bug = blessed($bug) ? $bug : new Bugzilla::Bug($bug);
     return $link_text if !$bug;
 
-    my $title = get_text('get_status', { status => $bug->bug_status_obj->name });
+    my $title = $bug->bug_status_obj->name;
     if ($bug->resolution)
     {
-        $title .= ' ' . get_text('get_resolution', { resolution => $bug->resolution_obj->name });
+        $title .= ' ' . $bug->resolution_obj->name;
     }
     my $cansee = Bugzilla->user->can_see_bug($bug);
     if (Bugzilla->params->{unauth_bug_details} || $cansee)
@@ -569,12 +544,58 @@ sub get_bug_link
 use Template::Directive;
 use Template::Stash;
 use Template::Exception;
+no warnings 'redefine';
 
 # The Template Toolkit throws an error if a loop iterates >1000 times.
 # We want to raise that limit.
 # NOTE: If you change this number, you MUST RE-RUN checksetup.pl!!!
 # If you do not re-run checksetup.pl, the change you make will not apply
 $Template::Directive::WHILE_MAX = 1000000;
+
+# Override ident() to allow compile-time substitution of i18n strings
+our $old_ident;
+$old_ident ||= \&Template::Directive::ident;
+*Template::Directive::ident = sub
+{
+    my ($self, $ident) = @_;
+    if (@$ident == 2 && $ident->[0] eq "'L'" &&
+        $ident->[1] =~ /^\s*\[\s*\'((?:[^\\\']+|\\.)+)\'\s*(,.+)?\]\s*$/so)
+    {
+        my $id = $1;
+        my $params = $2;
+        $id =~ s/\\(.)/$1/gso;
+        my $msg = Bugzilla->i18n->template_messages($COMPILE_LANGUAGE)->{$CURRENT_TEMPLATE};
+        my $rtmsg;
+        $msg = $msg->{$id} || $id;
+        $msg =~ s/\$terms.(\w+)/$rtmsg ||= Bugzilla->i18n->runtime_messages($COMPILE_LANGUAGE); $rtmsg->{terms}->{$1}/ges;
+        $msg =~ s/\$constants.(\w+)/eval { Bugzilla::Constants->$1() || "<Unknown Constant>" }/ges;
+        $msg =~ s/([\\\'])/\\$1/gso;
+        $msg = "'$msg'";
+        if ($params)
+        {
+            $params =~ s/^[,\s]+//so;
+            $params =~ s/[,\s]+$//so;
+            my @a;
+            while ($params =~ s/^((?:
+                [^,\(\)\{\}\[\]\"\']+ |
+                \"(?:(?:[^\\\"]+|\\.)*)\" |
+                \'(?:(?:[^\\\']+|\\.)*)\' |
+                \((?:(?1),?)*\) |
+                \{(?:(?1),?)*\} |
+                \[(?:(?1),?)*\]
+            )+),?\s*//xiso)
+            {
+                push @a, $1;
+            }
+            if ($msg =~ s/\$(\d+)/"'.".$a[$1-1].".'"/ges)
+            {
+                $msg = "($msg)";
+            }
+        }
+        return $msg;
+    }
+    return &$old_ident($self, $ident);
+};
 
 # Allow keys to start with an underscore or a dot.
 $Template::Stash::PRIVATE = undef;
@@ -642,12 +663,16 @@ sub create
     my $class = shift;
     my %opts = @_;
 
+    $opts{language} ||= 'en';
+
+    my $lc_messages = Bugzilla->i18n->runtime_messages($opts{language});
+
     # IMPORTANT - If you make any FILTER changes here, make sure to
     # make them in t/004.template.t also, if required.
 
     my $config = {
         # Colon-separated list of directories containing templates.
-        INCLUDE_PATH => $opts{include_path} || getTemplateIncludePath(),
+        INCLUDE_PATH => $opts{include_path} || template_include_path(),
 
         # Remove white-space before template directives (PRE_CHOMP) and at the
         # beginning and end of templates and template blocks (TRIM) for better
@@ -664,10 +689,7 @@ sub create
         ABSOLUTE => 1,
         RELATIVE => $ENV{MOD_PERL} ? 0 : 1,
 
-        COMPILE_DIR => bz_locations()->{datadir} . "/template",
-
-        # Initialize templates (f.e. by loading plugins like Hook).
-        PRE_PROCESS => ["global/initialize.none.tmpl"],
+        COMPILE_DIR => bz_locations()->{datadir} . "/template/" . $opts{language},
 
         ENCODING => Bugzilla->params->{utf8} ? 'UTF-8' : undef,
 
@@ -944,14 +966,21 @@ sub create
 
         PLUGIN_BASE => 'Bugzilla::Template::Plugin',
 
-        CONSTANTS => _load_constants(),
-
         # Default variables for all templates
         VARIABLES => {
-            terms => Bugzilla->messages->{terms},
-            field_descs => Bugzilla->messages->{field_descs},
-            lc_messages => Bugzilla->messages,
+            LANGUAGE => $opts{language},
             Bugzilla => Bugzilla::Template::Plugin::Bugzilla->new,
+            constants => _load_constants(),
+
+            terms => $lc_messages->{terms},
+            field_descs => $lc_messages->{field_descs},
+            lc_messages => $lc_messages,
+
+            # All template messages should be substituted during compilation
+            L => sub { die "Non-constant message keys are not supported" },
+
+            # html_quote in the form of a function
+            html => \&html_quote,
 
             # html_quote in the form of a function
             html => \&html_quote,
@@ -1020,14 +1049,6 @@ sub create
             # If an sudo session is in progress, this is the user we're faking
             user => sub { return Bugzilla->user; },
 
-            # Currenly active language
-            # FIXME Eventually this should probably be replaced with something like Bugzilla->language.
-            current_language => sub
-            {
-                my ($language) = include_languages();
-                return $language;
-            },
-
             # If an sudo session is in progress, this is the user who
             # started the session.
             sudoer => sub { return Bugzilla->sudoer; },
@@ -1036,10 +1057,16 @@ sub create
             urlbase => sub { return Bugzilla::Util::correct_urlbase(); },
 
             # Allow templates to access docs url with users' preferred language
-            docs_urlbase => sub {
-                my ($language) = include_languages();
+            docs_urlbase => sub
+            {
                 my $docs_urlbase = Bugzilla->params->{docs_urlbase};
-                $docs_urlbase =~ s/\%lang\%/$language/;
+                my $lang = $opts{language};
+                # FIXME maybe use accept_languages?
+                if (!-d File::Spec->catfile(bz_locations()->{cgi_dir}, 'docs', $lang))
+                {
+                    $lang = 'en';
+                }
+                $docs_urlbase =~ s/\%lang\%/$lang/;
                 return $docs_urlbase;
             },
 
@@ -1089,15 +1116,18 @@ sub create
     };
 
     local $Template::Config::CONTEXT = 'Bugzilla::Template::Context';
+    local $Template::Config::PROVIDER = 'Bugzilla::Template::Provider';
 
     Bugzilla::Hook::process('template_before_create', { config => $config });
-    my $template = $class->new($config)
-        || die("Template creation failed: " . $class->error());
+    my $template = $class->new($config) || die("Template creation failed: " . $class->error());
+
+    $template->context->{CONFIG}->{VARIABLES}->{Hook} = Bugzilla::Template::Plugin::Hook->new($template->context);
+    $template->{bz_language} = $template->context->{bz_language} = $opts{language};
+
     return $template;
 }
 
 # Used as part of the two subroutines below.
-our %_templates_to_precompile;
 sub precompile_templates
 {
     my ($output) = @_;
@@ -1126,21 +1156,34 @@ sub precompile_templates
 
     print install_string('template_precompile') if $output;
 
-    my $paths = template_include_path({
-        use_languages => Bugzilla->languages,
-        only_language => Bugzilla->languages,
-    });
+    my $templates_to_precompile = {};
+    my $paths = template_include_path();
     foreach my $dir (@$paths)
     {
-        my $template = Bugzilla::Template->create(include_path => [$dir]);
-        %_templates_to_precompile = ();
         # Traverse the template hierarchy.
-        find({ wanted => \&_precompile_push, no_chdir => 1 }, $dir);
+        find({
+            wanted => sub
+            {
+                my $name = $File::Find::name;
+                return if -d $name;
+                return if $name =~ /\/(CVS|\.svn|\.git|\.hg|\.bzr)\//;
+                return if $name !~ /\.tmpl$/;
+                $templates_to_precompile->{substr($name, 1+length $dir)} = 1;
+            },
+            no_chdir => 1,
+        }, $dir);
+    }
+
+    # FIXME: Do not precompile ALL languages when we'll have more than several.
+    my $languages = Bugzilla->i18n->supported_languages;
+    foreach my $lang (@$languages)
+    {
+        my $template = Bugzilla::Template->create(language => $lang);
         # The sort isn't totally necessary, but it makes debugging easier
         # by making the templates always be compiled in the same order.
-        foreach my $file (sort keys %_templates_to_precompile)
+        foreach my $file (sort keys %$templates_to_precompile)
         {
-            $file =~ s{^\Q$dir\E/}{};
+            local $Bugzilla::Template::CURRENT_TEMPLATE = $file;
             # Compile the template but throw away the result. This has the side-
             # effect of writing the compiled version to disk.
             $template->context->template($file);
@@ -1164,16 +1207,6 @@ sub precompile_templates
     delete Bugzilla->request_cache->{template};
 
     print install_string('done') . "\n" if $output;
-}
-
-# Helper for precompile_templates
-sub _precompile_push
-{
-    my $name = $File::Find::name;
-    return if -d $name;
-    return if $name =~ /\/(CVS|\.svn|\.git|\.hg|\.bzr)\//;
-    return if $name !~ /\.tmpl$/;
-    $_templates_to_precompile{$name} = 1;
 }
 
 # Helper for precompile_templates

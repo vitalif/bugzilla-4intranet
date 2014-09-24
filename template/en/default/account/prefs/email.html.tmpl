@@ -58,8 +58,8 @@ function SetCheckboxes(setting) {
   }
 }
 
-document.write('<input type="button" value="Enable All Mail" onclick="SetCheckboxes(true); return false;" />\n');
-document.write('<input type="button" value="Disable All Mail" onclick="SetCheckboxes(false); return false;" />\n');
+document.write('<input type="button" value="[% L('Enable All Mail') %]" onclick="SetCheckboxes(true); return false;" />\n');
+document.write('<input type="button" value="[% L('Disable All Mail') %]" onclick="SetCheckboxes(false); return false;" />\n');
 // -->
 </script>
 
@@ -304,10 +304,10 @@ preferences for <u>their</u> relationship to the [% terms.bug %]
 [%-# FIXME: remove hardcoded i18n message, also from js/field.js::userAutocomplete() %]
 new SimpleAutocomplete("new_watchedusers",
   function(h) { userAutocomplete(h, null); },
-  { multipleDelimiter: ',', emptyText: 'No users found' });
+  { multipleDelimiter: ',', emptyText: '[% L('No users found') %]' });
 new SimpleAutocomplete("new_watchers",
   function(h) { userAutocomplete(h, null); },
-  { multipleDelimiter: ',', emptyText: 'No users found' });
+  { multipleDelimiter: ',', emptyText: '[% L('No users found') %]' });
 //-->
 </script>
 

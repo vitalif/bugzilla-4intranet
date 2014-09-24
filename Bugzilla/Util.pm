@@ -780,6 +780,7 @@ sub clean_text
 # from quoteUrls() for each comment. This leaded to TERRIBLE performance
 # on "long" bugs compared to Bugzilla 2.x!
 
+# FIXME: Rework it to just use Bugzilla::Language instead of calling templates.
 sub get_text
 {
     my ($name, $vars) = @_;

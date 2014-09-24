@@ -257,7 +257,7 @@
             [%-# These values are meaningful for custom fields only. %]
             [% IF item.custom %]
               <bz:type>[% item.type FILTER html %]</bz:type>
-              <bz:type_desc>[% field_types.${item.type} FILTER html %]</bz:type_desc>
+              <bz:type_desc>[% lc_messages.field_types.${constants.FIELD_TYPE_NAMES.${item.type}} FILTER html %]</bz:type_desc>
               <bz:enter_bug>[% item.enter_bug FILTER html %]</bz:enter_bug>
             [% END %]
           </bz:field>

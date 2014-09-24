@@ -27,7 +27,7 @@ function addfield()
     opt = sel.options[sel.selectedIndex];
     tr = document.createElement('TR');
     td = document.createElement('TD');
-    td.innerHTML = opt.text + ' for all bugs:&nbsp;';
+    td.innerHTML = opt.text + [% L(' for all bugs:') %] + '&nbsp;';
     tr.appendChild(td);
     td = document.createElement('TD');
     td.innerHTML = '<input type="text" name="f_' + opt.value + '" value="" />';
@@ -106,7 +106,7 @@ function checkColumns()
       break;
     }
   if (!chk)
-    alert('Для импорта не выбрано ни одного бага из списка!');
+    alert('[% L('No bugs selected for importing!') %]');
   return chk;
 }
 </script>

@@ -382,7 +382,7 @@ function keywordAutocomplete(hint)
 function addKeywordsAutocomplete()
 {
     new SimpleAutocomplete("keywords", keywordAutocomplete,
-        { emptyText: 'No keywords found', multipleDelimiter: "," });
+        { emptyText: L('No keywords found'), multipleDelimiter: "," });
 }
 
 // CustIS bug 66910 - check new keywords and requery description for it
@@ -421,7 +421,7 @@ function check_new_keywords(form)
             {
                 this_value = document.getElementById('kd_' + i).value;
             }
-            desc_html += "<div style='margin-top: 8px'><label>Describe new keyword <b>" + htmlspecialchars(non_exist_keywords[i]) +
+            desc_html += "<div style='margin-top: 8px'><label>"+L("Describe new keyword")+" <b>" + htmlspecialchars(non_exist_keywords[i]) +
                 "</b>:</label><br /><input type=\"text\" value=\"" + htmlspecialchars(this_value) + "\" class=\"text_input\" name=\"kd\" id=\"kd_" +
                 i + "\" data-key=\"" + htmlspecialchars(non_exist_keywords[i]) + "\" style=\"border: solid 1px red;\" /></div>";
         }

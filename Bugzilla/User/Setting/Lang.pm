@@ -1,5 +1,3 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -21,21 +19,20 @@
 package Bugzilla::User::Setting::Lang;
 
 use strict;
-
 use base qw(Bugzilla::User::Setting);
 
 use Bugzilla::Constants;
 
-sub legal_values {
+sub legal_values
+{
     my ($self) = @_;
 
-    return $self->{'legal_values'} if defined $self->{'legal_values'};
+    return $self->{legal_values} if defined $self->{legal_values};
 
-    return $self->{'legal_values'} = Bugzilla->languages;
+    return $self->{legal_values} = Bugzilla->i18n->supported_languages;
 }
 
 1;
-
 __END__
 
 =head1 NAME

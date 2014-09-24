@@ -22,6 +22,13 @@
   constants.CONTROLMAPMANDATORY,
 ] %]
 
+[% control_names = {};
+  control_names.${constants.CONTROLMAPNA} = 'NA';
+  control_names.${constants.CONTROLMAPSHOWN} = 'Shown';
+  control_names.${constants.CONTROLMAPDEFAULT} = 'Default';
+  control_names.${constants.CONTROLMAPMANDATORY} = 'Mandatory';
+%]
+
 [% all_groups = product.group_controls_full_data.values.sort("name") %]
 [% groups = product.group_controls.values.sort("name") %]
 
@@ -36,7 +43,7 @@
 [% BLOCK control_select %]
   <select name="[% id %]" id="[% id %]" data-lastvalue="0">
     [% FOR i = control_options %]
-    <option value="[% i %]" [% " selected=\"selected\"" IF control == i %]>[% lc_messages.control_options.$i %]</option>
+    <option value="[% i %]" [% " selected=\"selected\"" IF control == i %]>[% control_names.$i %]</option>
     [% END %]
   </select>
 [% END %]

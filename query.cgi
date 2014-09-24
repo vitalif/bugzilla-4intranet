@@ -183,7 +183,6 @@ $vars->{report_columns} = [
 ];
 
 # Boolean charts
-my $opdescs = Bugzilla->messages->{operator_descs};
 $vars->{chart_types} = Bugzilla::Search->CHART_OPERATORS_ORDER;
 $vars->{text_types} = Bugzilla::Search->TEXT_OPERATORS_ORDER;
 

@@ -43,14 +43,14 @@
     '?' => "requested"
   };
   titles = {
-    'bug'     => "Changes submitted for $link",
-    'dupe'    => "Duplicate notation added to $link",
-    'dep'     => "Checking for dependency changes on $link",
-    'votes'   => "$Link confirmed by number of votes",
-    'created' => "$Link has been added to the database",
-    'move'    => "$Link has been moved to another database",
-    'flag'    => "Flag $new_flag.name " _ statuses.${new_flag.status},
-    'votes-removed' => "Votes removed from $Link in accordance with new product settings",
+    'bug'     => "Changes submitted for " _ link,
+    'dupe'    => "Duplicate notation added to " _ link,
+    'dep'     => "Checking for dependency changes on " _ link,
+    'votes'   => Link _ " confirmed by number of votes",
+    'created' => Link _ " has been added to the database",
+    'move'    => Link _ " has been moved to another database",
+    'flag'    => "Flag " _ new_flag.name _ " " _ statuses.${new_flag.status},
+    'votes-removed' => "Votes removed from " _ Link _ " in accordance with new product settings",
   }
 %]
 

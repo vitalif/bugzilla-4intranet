@@ -21,7 +21,7 @@
     [% header = title _ header _ " (and $terms.bugs blocking it)" %]
     [% title = title _ "$terms.Bug $ids.0" %]
 [% ELSE %]
-    [% title = title _ "($ids.size $terms.bugs selected)" %]
+    [% title = title _ "(" _ ids.size _ " $terms.bugs selected)" %]
     [% header = title %]
 [% END %]
 

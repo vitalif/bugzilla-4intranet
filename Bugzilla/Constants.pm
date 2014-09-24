@@ -117,6 +117,8 @@ use Cwd qw(abs_path);
     SENDMAIL_EXE
     SENDMAIL_PATH
 
+    FIELD_TYPE_NAMES
+
     FIELD_TYPE_UNKNOWN
     FIELD_TYPE_FREETEXT
     FIELD_TYPE_SINGLE_SELECT
@@ -392,6 +394,21 @@ use constant FIELD_TYPE_KEYWORDS => 8;
 use constant FIELD_TYPE_NUMERIC => 30;
 use constant FIELD_TYPE_EXTURL => 31;
 use constant FIELD_TYPE_BUG_ID_REV => 32;
+
+use constant FIELD_TYPE_NAMES => {
+    FIELD_TYPE_UNKNOWN()        => 'UNKNOWN',
+    FIELD_TYPE_FREETEXT()       => 'FREETEXT',
+    FIELD_TYPE_SINGLE_SELECT()  => 'SINGLE_SELECT',
+    FIELD_TYPE_MULTI_SELECT()   => 'MULTI_SELECT',
+    FIELD_TYPE_TEXTAREA()       => 'TEXTAREA',
+    FIELD_TYPE_DATETIME()       => 'DATETIME',
+    FIELD_TYPE_BUG_ID()         => 'BUG_ID',
+    FIELD_TYPE_BUG_URLS()       => 'BUG_URLS',
+    FIELD_TYPE_KEYWORDS()       => 'KEYWORDS',
+    FIELD_TYPE_NUMERIC()        => 'NUMERIC',
+    FIELD_TYPE_EXTURL()         => 'EXTURL',
+    FIELD_TYPE_BUG_ID_REV()     => 'BUG_ID_REV',
+};
 
 use constant FLAG_VISIBLE => 0;
 use constant FLAG_NULLABLE => -1;

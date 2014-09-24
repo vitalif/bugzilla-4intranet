@@ -70,11 +70,11 @@
   </tr>
   [% END %]
   <tr>
-    <th><label for="disable_mail">[% terms.Bug %]mail Disabled:</label></th>
+    <th><label for="disable_mail">[% terms.Bugmail %] Disabled:</label></th>
     <td>
       <input type="checkbox" name="disable_mail" id="disable_mail" value="1" 
       [% IF otheruser.email_disabled %] checked="checked" [% END %] />
-      (This affects [% terms.bug %]mail and whinemail, not password-reset or other 
+      (This affects [% terms.bug %], flag and whine emails, not password-reset or other 
       non-[% terms.bug %]-related emails)
     </td>
   </tr>

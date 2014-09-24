@@ -28,7 +28,7 @@
 [% param_descs = {
   maintainer =>
     "The email address of the person who maintains this installation "
-    _ " of ${terms.Bugzilla}. The address need not be that of a valid Bugzilla account.",
+    _ " of $terms.Bugzilla" _ ". The address need not be that of a valid Bugzilla account.",
 
   error_log =>
     "Path to Bugzilla error log file or empty string if you don't want to write an error log. " _
@@ -52,7 +52,7 @@
     _ " documentation is available in that language).",
 
   utf8 =>
-    "Use UTF-8 (Unicode) encoding for all text in ${terms.Bugzilla}. New"
+    "Use UTF-8 (Unicode) encoding for all text in $terms.Bugzilla" _ ". New"
     _ " installations should set this to true to avoid character encoding"
     _ " problems. <strong>Existing databases should set this to true"
     _ " only after the data has been converted from existing legacy"

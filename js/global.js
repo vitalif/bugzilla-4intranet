@@ -104,7 +104,7 @@ function check_mini_login_fields(suffix)
     if (mini_login.value != "" && mini_password.value != "" &&
         mini_login.value != mini_login_constants.login)
         return true;
-    window.alert(mini_login_constants.warning);
+    window.alert(L("You must set the login and password before logging in."));
     return false;
 }
 
@@ -112,7 +112,7 @@ function set_language(value)
 {
     setCookie('LANG', value, {
         expires: new Date('January 1, 2038'),
-        path: BUGZILLA.param.cookie_path
+        path: BUGZILLA.param.cookiepath
     });
     window.location.reload();
 }
@@ -166,9 +166,9 @@ function userAutocomplete(hint, emptyOptions, loadAllOnEmpty)
             var data = convertUserList(r.users);
             // FIXME "3" constant, messages: remove hardcode, also in Bugzilla::User::match()
             if (data.length == 0 && hint.input.value.length < 3)
-                hint.emptyText = 'Type at least 3 letters';
+                hint.emptyText = L('Type at least 3 letters');
             else
-                hint.emptyText = 'No users found';
+                hint.emptyText = L('No users found');
             hint.replaceItems(data);
         }
     });

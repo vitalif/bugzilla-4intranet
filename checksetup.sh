@@ -1,2 +1,2 @@
 #!/bin/sh
-perl checksetup.pl --no-chmod --no-templates
+perl checksetup.pl --no-chmod --no-templates $*

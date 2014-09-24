@@ -222,13 +222,13 @@
               var patchviewerinstalled = 1;
               document.write('<iframe id="viewDiffFrame" style="height: 400px; width: 100%; display: none;"><\/iframe>');
 [% END %]
-              document.write('<button type="button" id="editButton" onclick="editAsComment(patchviewerinstalled);">Edit Attachment As Comment<\/button>');
-              document.write('<button type="button" id="undoEditButton" onclick="undoEditAsComment(patchviewerinstalled);" style="display: none;">Undo Edit As Comment<\/button>');
-              document.write('<button type="button" id="redoEditButton" onclick="redoEditAsComment(patchviewerinstalled);" style="display: none;">Redo Edit As Comment<\/button>');
+              document.write('<button type="button" id="editButton" onclick="editAsComment(patchviewerinstalled);">[% L('Edit Attachment As Comment') %]<\/button>');
+              document.write('<button type="button" id="undoEditButton" onclick="undoEditAsComment(patchviewerinstalled);" style="display: none;">[% L('Undo Edit As Comment') %]<\/button>');
+              document.write('<button type="button" id="redoEditButton" onclick="redoEditAsComment(patchviewerinstalled);" style="display: none;">[% L('Redo Edit As Comment') %]<\/button>');
 [% IF use_patchviewer %]
-              document.write('<button type="button" id="viewDiffButton" onclick="viewDiff(attachment_id, patchviewerinstalled);">View Attachment As Diff<\/button>');
+              document.write('<button type="button" id="viewDiffButton" onclick="viewDiff(attachment_id, patchviewerinstalled);">[% L('View Attachment As Diff') %]<\/button>');
 [% END %]
-              document.write('<button type="button" id="viewRawButton" onclick="viewRaw(patchviewerinstalled);" style="display: none;">View Attachment As Raw<\/button>');
+              document.write('<button type="button" id="viewRawButton" onclick="viewRaw(patchviewerinstalled);" style="display: none;">[% L('View Attachment As Raw') %]<\/button>');
             }
             //-->
           </script>

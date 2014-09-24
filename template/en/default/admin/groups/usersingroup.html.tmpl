@@ -3,7 +3,7 @@
   # Author(s): Vitaliy Filippov <vitalif@mail.ru>, Stas Fomin <stas-fomin@yandex.ru> %]
 
 [% PROCESS global/header.html.tmpl
-  title = "Add/remove users in group: $group.name"
+  title = "Add/remove users in group: " _ group.name
 %]
 
 <form method="POST" action="?">

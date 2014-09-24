@@ -11,10 +11,11 @@
  * </script>
  */
 var Calendar = {
-    month_names: ["January","February","March","April","May","June","July","August","September","October","November","December"],
-    weekdays: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
+    month_names: L("January February March April May June July August September October November December").split(' '),
+    weekdays: L("Mon Tue Wed Thu Fri Sat Sun").split(' '),
     sunday: 6,
     month_days: [31,28,31,30,31,30,31,31,30,31,30,31],
+    cancel_text: L('Cancel'),
     //Get today's date - year, month, day and date
     today : new Date(),
     opt : {},
@@ -144,7 +145,7 @@ var Calendar = {
             this.wrt("</tr>");
         }
         this.wrt("</table>");
-        this.wrt("<input type='button' value='Cancel' class='calendar-cancel' onclick='Calendar.hideCalendar();' />");
+        this.wrt("<input type='button' value='"+this.cancel_text+"' class='calendar-cancel' onclick='Calendar.hideCalendar();' />");
 
         document.getElementById(this.opt['calendar']).innerHTML = this.data.join("");
         this.data = [];

@@ -121,7 +121,7 @@
         </span>
       [% END %]
       <a href="attachment.cgi?bugid=[% bugid %]&amp;action=enter" onclick="return to_attachment_page(this);">Add an attachment</a>
-      <span id="att_multi_link">| <a href="javascript:void(0)" onclick="document.getElementById('att_multi_link').style.display='none';iframeajax('page.cgi?id=attach-multiple.html', {'bug_id' : [% bugid %]})">Add multiple</a></span>
+      <span id="att_multi_link">| <a href="javascript:void(0)" onclick="document.getElementById('att_multi_link').style.display='none';iframeajax('page.cgi?id=attach-multiple.html', {'bug_id' : [% bugid %]})">Add multiple</a> </span>
       (proposed patch, testcase, etc.)
     </td>
   </tr>

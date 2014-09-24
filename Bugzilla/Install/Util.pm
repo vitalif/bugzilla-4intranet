@@ -26,6 +26,7 @@ use strict;
 
 use Bugzilla::Constants;
 use Bugzilla::Extension;
+use Bugzilla::Language;
 
 use File::Basename;
 use POSIX qw(setlocale LC_CTYPE);
@@ -38,7 +39,6 @@ our @EXPORT_OK = qw(
     get_version_and_os
     indicate_progress
     install_string
-    include_languages
     template_include_path
     vers_cmp
     get_console_locale
@@ -97,21 +97,10 @@ sub indicate_progress
 sub install_string
 {
     my ($string_id, $vars) = @_;
-    _cache()->{install_string_path} ||= template_include_path();
-    my $path = _cache()->{install_string_path};
 
-    my $string_template;
-    # Find the first template that defines this string.
-    foreach my $dir (@$path)
-    {
-        my $base = "$dir/setup/strings";
-        if (!defined $string_template)
-        {
-            $string_template = _get_string_from_file($string_id, "$base.txt.pl");
-        }
-        last if defined $string_template;
-    }
+    my $lang = (_cache()->{language} ||= Bugzilla::Language->new());
 
+    my $string_template = $lang->runtime_messages->{install_strings}->{$string_id};
     if (!defined $string_template)
     {
         # Don't throw an error, it's a stupid way -- <vitalif@yourcmc.ru>
@@ -142,128 +131,27 @@ sub install_string
     return $string_template;
 }
 
-sub include_languages
-{
-    # If we are in CGI mode (not in checksetup.pl) and if the function has
-    # been called without any parameter, then we cache the result of this
-    # function in Bugzilla->request_cache. This is done to improve the
-    # performance of the template processing.
-    my $to_be_cached = 0;
-    if (not @_)
-    {
-        my $cache = _cache();
-        if (exists $cache->{include_languages})
-        {
-            return @{ $cache->{include_languages} };
-        }
-        $to_be_cached = 1;
-    }
-    my ($params) = @_;
-    $params ||= {};
-
-    # Basically, the way this works is that we have a list of languages
-    # that we *want*, and a list of languages that Bugzilla actually
-    # supports. The caller tells us what languages they want, by setting
-    # $ENV{HTTP_ACCEPT_LANGUAGE}, using the "LANG" cookie or  setting
-    # $params->{only_language}. The languages we support are those
-    # specified in $params->{use_languages}. Otherwise we support every
-    # language installed in the template/ directory.
-
-    my @wanted;
-    if ($params->{only_language})
-    {
-        # We can pass several languages at once as an arrayref
-        # or a single language.
-        if (ref $params->{only_language})
-        {
-            @wanted = @{ $params->{only_language} };
-        }
-        else
-        {
-            @wanted = ($params->{only_language});
-        }
-    }
-    else
-    {
-        @wanted = _sort_accept_language($ENV{HTTP_ACCEPT_LANGUAGE} || '');
-        # Don't use the cookie if we are in "checksetup.pl". The test
-        # with $ENV{SERVER_SOFTWARE} is the same as in
-        # Bugzilla:Util::i_am_cgi.
-        if (exists $ENV{SERVER_SOFTWARE} && defined (my $lang = Bugzilla->cookies->{LANG}))
-        {
-            unshift @wanted, $lang;
-        }
-    }
-
-    my @supported;
-    if (defined $params->{use_languages})
-    {
-        @supported = @{$params->{use_languages}};
-    }
-    else
-    {
-        my @dirs = glob(bz_locations()->{templatedir} . "/*");
-        @dirs = map(basename($_), @dirs);
-        @supported = grep($_ ne 'CVS', @dirs);
-    }
-
-    my @usedlanguages;
-    foreach my $wanted (@wanted)
-    {
-        # If we support the language we want, or *any version* of
-        # the language we want, it gets pushed into @usedlanguages.
-        #
-        # Per RFC 1766 and RFC 2616, things like 'en' match 'en-us' and
-        # 'en-uk', but not the other way around. (This is unfortunately
-        # not very clearly stated in those RFC; see comment just over 14.5
-        # in http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.4)
-        if (my @found = grep /^\Q$wanted\E(-.+)?$/i, @supported)
-        {
-            push (@usedlanguages, @found);
-        }
-    }
-
-    # We always include English at the bottom if it's not there, even if
-    # somebody removed it from use_languages.
-    if (!grep($_ eq 'en', @usedlanguages))
-    {
-        push(@usedlanguages, 'en');
-    }
-
-    # Cache the result if we are in CGI mode and called without parameter
-    # (see the comment at the top of this function).
-    if ($to_be_cached)
-    {
-        _cache()->{include_languages} = \@usedlanguages;
-    }
-
-    return @usedlanguages;
-}
-
 # Used by template_include_path
-sub _template_lang_directories
+sub _template_custom_directories
 {
-    my ($languages, $templatedir) = @_;
+    my ($templatedir) = @_;
     my @add = qw(custom default);
     my $project = bz_locations->{project};
-    unshift(@add, $project) if $project;
+    unshift @add, $project if $project;
     my @result;
-    foreach my $lang (@$languages)
+    foreach my $dir (@add)
     {
-        foreach my $dir (@add)
+        my $full_dir = "$templatedir/localized/$dir";
+        if (-d $full_dir)
         {
-            my $full_dir = "$templatedir/$lang/$dir";
-            if (-d $full_dir)
-            {
-                trick_taint($full_dir);
-                push(@result, $full_dir);
-            }
+            trick_taint($full_dir);
+            push(@result, $full_dir);
         }
     }
     return @result;
 }
 
-# Used by template_include_path.
+# Used by template_include_path
 sub _template_base_directories
 {
     my @template_dirs;
@@ -284,22 +172,21 @@ sub _template_base_directories
 sub template_include_path
 {
     my ($params) = @_;
-    my @used_languages = include_languages($params);
     # Now, we add template directories in the order they will be searched:
     my $template_dirs = _template_base_directories();
     my @include_path;
     foreach my $template_dir (@$template_dirs)
     {
-        my @lang_dirs = _template_lang_directories(\@used_languages, $template_dir);
+        my @dirs = _template_custom_directories($template_dir);
         # Hooks get each set of extension directories separately.
         if ($params->{hook})
         {
-            push @include_path, \@lang_dirs if @lang_dirs;
+            push @include_path, \@dirs if @dirs;
         }
         # Whereas everything else just gets a whole INCLUDE_PATH.
         else
         {
-            push @include_path, @lang_dirs;
+            push @include_path, @dirs;
         }
     }
     # Allow to fallback to full template path - not a security risk,
@@ -388,33 +275,6 @@ sub _get_string_from_file
     return $strings{$string_id};
 }
 
-# Make an ordered list out of a HTTP Accept-Language header (see RFC 2616, 14.4)
-# We ignore '*' and <language-range>;q=0
-# For languages with the same priority q the order remains unchanged.
-sub _sort_accept_language
-{
-    my $accept_language = $_[0];
-
-    # clean up string.
-    $accept_language =~ s/[^A-Za-z;q=0-9\.\-,]//g;
-    my @qlanguages;
-    my @languages;
-    foreach(split /,/, $accept_language)
-    {
-        if (m/([A-Za-z\-]+)(?:;q=(\d(?:\.\d+)))?/)
-        {
-            my $lang   = $1;
-            my $qvalue = $2;
-            $qvalue = 1 if not defined $qvalue;
-            next if $qvalue == 0;
-            $qvalue = 1 if $qvalue > 1;
-            push @qlanguages, { qvalue => $qvalue, language => $lang };
-        }
-    }
-
-    return map($_->{language}, (sort { $b->{qvalue} <=> $a->{qvalue} } @qlanguages));
-}
-
 sub get_console_locale
 {
     require Locale::Language;
@@ -498,22 +358,10 @@ sub _cache
 
 sub trick_taint
 {
-    require Carp;
-    Carp::confess("Undef to trick_taint") unless defined $_[0];
+    return undef unless defined $_[0];
     my $match = $_[0] =~ /^(.*)$/s;
     $_[0] = $match ? $1 : undef;
     return (defined($_[0]));
-}
-
-sub trim
-{
-    my ($str) = @_;
-    if ($str)
-    {
-        $str =~ s/^\s+//g;
-        $str =~ s/\s+$//g;
-    }
-    return $str;
 }
 
 1;
@@ -684,12 +532,6 @@ Each extension has its own directory.
 
 Note that languages are sorted by the user's preference (as specified
 in their browser, usually), and extensions are sorted alphabetically.
-
-=item C<include_languages>
-
-Used by L<Bugzilla::Template> to determine the languages' list which
-are compiled with the browser's I<Accept-Language> and the languages
-of installed templates.
 
 =item C<vers_cmp>
 

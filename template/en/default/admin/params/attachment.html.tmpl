@@ -53,8 +53,8 @@
     _ "<p>For added security, you can insert <tt>%bugid%</tt> into the URL,"
     _ " which will be replaced with the ID of the current $terms.bug that"
     _ " the attachment is on, when you access an attachment. This will limit"
-    _ " attachments to accessing only other attachments on the same"
-    _ " ${terms.bug}. Remember, though, that all those possible domain names "
+    _ " attachments to accessing only other attachments on the same $terms.bug"
+    _ ". Remember, though, that all those possible domain names "
     _ " (such as <tt>1234.your.domain.com</tt>) must point to this same"
     _ " $terms.Bugzilla instance.",
 
@@ -77,7 +77,7 @@
     "The maximum size (in kilobytes) of attachments <b>stored in the database</b>. " _
     "$terms.Bugzilla will not accept attachments greater than this number " _
     "of kilobytes in size. Setting this parameter to 0 will prevent " _
-    "attaching files to ${terms.bugs}.",
+    "attaching files to $terms.bugs" _ ".",
 
   force_attach_bigfile =>
     "If this option is on, all attachments will be stored as local files, not inside the database.",

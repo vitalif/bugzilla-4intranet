@@ -21,9 +21,9 @@
  *                 Marc Schumann <wurblzap@gmail.com>
  */
 
-var SUPA_JAVA_DISABLED_ERROR = 'You cannot paste images from clipboard because Java support'+
+var SUPA_JAVA_DISABLED_ERROR = L('You cannot paste images from clipboard because Java support'+
     ' is not enabled in your browser. Please download Java plugin'+
-    ' from http://java.com/';
+    ' from http://java.com/');
 
 function htmlspecialchars_decode(str)
 {
@@ -121,7 +121,7 @@ function validateAttachmentForm(theform)
     var desc = theform.description.value.replace(/^\s+|\s+$/, '');
     if (desc == '')
     {
-        alert(BUGZILLA.string.attach_desc_required);
+        alert(L('You must enter a Description for this attachment.'));
         return false;
     }
     if (!encodeSupaContent())

@@ -25,7 +25,7 @@ use strict;
 use base qw(Template::Plugin);
 
 use Bugzilla::Constants;
-use Bugzilla::Install::Util qw(include_languages template_include_path); 
+use Bugzilla::Install::Util qw(template_include_path);
 use Bugzilla::Util;
 use Bugzilla::Error;
 
@@ -66,15 +66,12 @@ sub process
     # Hooks are named like this:
     my $extension_template = "$path$template_name-$hook_name.$type.tmpl";
 
-    # Get the hooks out of the cache if they exist. Otherwise, read them
-    # from the disk.
+    # Get the hooks out of the cache if they exist. Otherwise, read them from the disk.
     my $cache = Bugzilla->request_cache->{template_plugin_hook_cache} ||= {};
     my $lang = Bugzilla->request_cache->{language} || '';
-    $cache->{"${lang}__$extension_template"} 
-        ||= $self->_get_hooks($extension_template);
+    $cache->{"${lang}__$extension_template"} ||= $self->_get_hooks($extension_template);
 
-    # process() accepts an arrayref of templates, so we just pass the whole
-    # arrayref.
+    # process() accepts an arrayref of templates, so we just pass the whole arrayref.
     $context->{bz_in_hook} = 1; # See Bugzilla::Template::Context
     return $context->process($cache->{"${lang}__$extension_template"});
 }
@@ -106,14 +103,8 @@ sub _get_hooks
 sub _template_hook_include_path
 {
     my $cache = Bugzilla->request_cache;
-    my $language = $cache->{language} || '';
-    my $cache_key = "template_plugin_hook_include_path_$language";
-    $cache->{$cache_key} ||= template_include_path({
-        use_languages => Bugzilla->languages,
-        only_language => $language,
-        hook          => 1,
-    });
-    return $cache->{$cache_key};
+    $cache->{template_hook_include_path} ||= template_include_path({ hook => 1 });
+    return $cache->{template_hook_include_path};
 }
 
 1;

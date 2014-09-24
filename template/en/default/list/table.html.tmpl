@@ -150,7 +150,7 @@
         addListener(window, 'load', function() {
             filter_[% id %] = new SimpleAutocomplete("usr_filter_[% id %]",
                 function(h) { fieldBuglistAutocomplete(h, "[% id %]", emptyOptions[% id %]); },
-                { emptyText: 'No keywords found', multipleDelimiter: "," }
+                { emptyText: '[% L('No values found') %]', multipleDelimiter: "," }
             );
         });
         //-->

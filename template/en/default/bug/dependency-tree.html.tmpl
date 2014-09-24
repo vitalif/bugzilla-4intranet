@@ -23,9 +23,8 @@
 
 [% filtered_desc = blocked_tree.$bugid.short_desc FILTER html %]
 [% PROCESS global/header.html.tmpl
-   title           = "Dependency tree for $terms.Bug $bugid"
-   header          = "Dependency tree for 
-                      <a href=\"show_bug.cgi?id=$bugid\">$terms.Bug $bugid</a>"
+   title           = "Dependency tree for $terms.Bug " _ bugid
+   header          = "Dependency tree for $terms.Bug " _ "<a href=\"show_bug.cgi?id=$bugid\">$bugid</a>"
    javascript_urls = ["js/expanding-tree.js"]
    style_urls      = ["skins/standard/dependency-tree.css"]
    subheader      = filtered_desc

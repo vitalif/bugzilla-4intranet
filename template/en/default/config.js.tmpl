@@ -115,7 +115,7 @@ var field = [
     [%-# These values are meaningful for custom fields only. %]
     [% IF x.custom %]
     type:        '[% x.type FILTER js %]',
-    type_desc:   '[% field_types.${x.type} FILTER js %]',
+    type_desc:   '[% lc_messages.field_types.${constants.FIELD_TYPE_NAMES.${x.type}} FILTER js %]',
     enter_bug:   '[% x.enter_bug FILTER js %]',
     [% END %]
   },

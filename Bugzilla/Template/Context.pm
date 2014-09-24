@@ -60,6 +60,12 @@ sub process
     return $result;
 }
 
+sub template {
+    my $self = shift;
+    local $Bugzilla::Template::COMPILE_LANGUAGE = $self->{bz_language};
+    return $self->SUPER::template(@_);
+}
+
 # This method is called by Template-Toolkit exactly once per template or
 # block (look at a compiled template) so this is an ideal place for us to
 # modify the variables before a template or block runs.

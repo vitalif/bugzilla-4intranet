@@ -34,7 +34,7 @@
       </font>
       <p style="margin-bottom: 0">
         You can either <a href="[% urlbase FILTER html %]attachment.cgi?bugid=[% bugid FILTER url_quote %]&action=enter">
-        create a new attachment</a> or [% "go back to $terms.bug $bugid" FILTER bug_link(bugid) FILTER none %].
+        create a new attachment</a> or [% "go back to $terms.bug " _ bugid FILTER bug_link(bugid) FILTER none %].
       </p>
     </td>
   </tr>

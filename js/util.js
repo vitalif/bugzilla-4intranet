@@ -4,6 +4,28 @@
  * Contributor(s): Vitaliy Filippov <vitalif@mail.ru>
  */
 
+// Add i18n messages
+function add_i18n(messages)
+{
+    if (!BUGZILLA.i18n)
+    {
+        BUGZILLA.i18n = messages;
+    }
+    else
+    {
+        for (var k in messages)
+        {
+            BUGZILLA.i18n[k] = messages[k];
+        }
+    }
+}
+
+// Get i18n string
+function L(str)
+{
+    return BUGZILLA.i18n && BUGZILLA.i18n[str] || str;
+}
+
 // Get the position of 'obj' from the page top
 // Returns [x, y], in pixels
 function findPos(obj)

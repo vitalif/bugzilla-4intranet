@@ -94,7 +94,7 @@ You have the following choices:
   [% END %]
   <li>
     Throw away my changes, and
-    [%+ "revisit $terms.bug $bug.id" FILTER bug_link(bug) FILTER none %]
+    [%+ "revisit $terms.bug " _ bug.id FILTER bug_link(bug) FILTER none %]
   </li>
 </ul>
 

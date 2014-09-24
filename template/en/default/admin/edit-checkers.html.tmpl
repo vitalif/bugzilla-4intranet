@@ -194,7 +194,7 @@ var except_field_index = 0;
 function showhide_allowdeny()
 {
   var chk = document.getElementById('deny_all').checked;
-  document.getElementById('except_fields_title').innerHTML = chk ? 'Но разрешать:' : '';
+  document.getElementById('except_fields_title').innerHTML = chk ? '[% L('Но разрешать:') %]' : '';
   document.getElementById('except_fields_tr').style.backgroundColor = chk ? '#E0FFE0' : '#FFE0E0';
 }
 function add_field(fld, val)
@@ -225,7 +225,7 @@ function check_trigger()
     cc.value = fl.value = '';
   else if (!cc.value && !fl.value)
   {
-    alert('Задайте действие триггера!');
+    alert('[% L('Задайте действие триггера!') %]');
     return false;
   }
   return true;

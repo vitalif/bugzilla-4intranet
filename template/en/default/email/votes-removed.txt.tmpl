@@ -20,7 +20,7 @@
 
 From: [% Param('mailfrom') %]
 To: [% to %]
-Subject: [% terms.Bug %] [%+ bugid %] Some or all of your votes have been removed.
+Subject: [% terms.Bug _ ' ' _ bugid _ " - Some or all of your votes have been removed." %]
 X-Bugzilla-Type: voteremoved
 
 Some or all of your votes have been removed from [% terms.bug %] [%+ bugid %].

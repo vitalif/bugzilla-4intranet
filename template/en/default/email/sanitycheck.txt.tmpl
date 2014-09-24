@@ -20,7 +20,7 @@
 
 From: [% Param('mailfrom') %]
 To: [% addressee %]
-Subject: [[% terms.Bugzilla %]] Sanity Check Results
+Subject: [% "[$terms.Bugzilla] Sanity Check Results" %]
 X-Bugzilla-Type: sanitycheck
 
 [%+ urlbase %]sanitycheck.cgi

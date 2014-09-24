@@ -90,7 +90,7 @@ function component_change()
     }
     else
     {
-        document.getElementById('comp_desc').innerHTML = 'Choose a component to see its description.';
+        document.getElementById('comp_desc').innerHTML = L('Choose a component to see its description.');
         document.getElementById('comp_desc').style.color = 'red';
     }
 }
@@ -141,7 +141,7 @@ function validateEntryForm(theform)
 
     if (theform.short_desc.value == '')
     {
-        alert('Please enter a summary sentence for this bug.');
+        alert(L('Please enter a summary sentence for this bug.'));
         return false;
     }
 
@@ -165,7 +165,7 @@ function validateEntryForm(theform)
             wt = 0;
         if (wantsReminder && (wt === null || noTimeTracking == (wt != 0)))
         {
-            wt = prompt("Please, verify working time:", "0");
+            wt = prompt(L("Please, verify working time:"), "0");
             if (wt == null || wt == undefined || (""+wt).length <= 0)
             {
                 theform.work_time.focus();

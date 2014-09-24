@@ -36,6 +36,7 @@ use Bugzilla::DB;
 use Bugzilla::Install::Localconfig qw(read_localconfig);
 use Bugzilla::Install::Requirements qw(OPTIONAL_MODULES);
 use Bugzilla::Install::Util;
+use Bugzilla::Language;
 use Bugzilla::Template;
 use Bugzilla::User;
 use Bugzilla::Error;
@@ -329,22 +330,40 @@ sub send_mail
     }
 }
 
+sub i18n
+{
+    my $class = shift;
+    my $cache = $class->request_cache;
+    if (!$cache->{i18n})
+    {
+        # First try to check language cookie, then user preference, then Accept-Language
+        # Accept-Language will be checked by Bugzilla::Language itself
+        my $user = $class->login(LOGIN_OPTIONAL);
+        my $lang = $class->cookies->{LANG} || ($user && $user->{settings}->{lang}->{value});
+        $cache->{i18n} = Bugzilla::Language->new({ selected_language => $lang });
+    }
+    return $cache->{i18n};
+}
+
+sub messages
+{
+    my $class = shift;
+    return $class->i18n->runtime_messages;
+}
+
 sub template
 {
     my $class = shift;
-    $class->request_cache->{language} = "";
-    $class->request_cache->{template} ||= Bugzilla::Template->create();
-    return $class->request_cache->{template};
+    my $lang = $class->i18n->language;
+    return $class->request_cache->{template}->{$lang} ||= Bugzilla::Template->create(language => $lang);
 }
 
 sub template_inner
 {
     my ($class, $lang) = @_;
-    $lang = defined($lang) ? $lang : ($class->request_cache->{language} || "");
-    $class->request_cache->{language} = $lang;
-    $class->request_cache->{"template_inner_$lang"}
-        ||= Bugzilla::Template->create();
-    return $class->request_cache->{"template_inner_$lang"};
+    $lang = $lang || $class->request_cache->{templater_inner_lang} || $class->i18n->language;
+    $class->request_cache->{template_inner_lang} = $lang;
+    return $class->request_cache->{template}->{$lang} ||= Bugzilla::Template->create(language => $lang);
 }
 
 sub session
@@ -397,7 +416,6 @@ sub save_session_data
     );
 }
 
-our $extension_packages;
 sub extensions
 {
     my ($class) = @_;
@@ -569,8 +587,7 @@ sub login
         $type = $class->params->{requirelogin} ? LOGIN_REQUIRED : LOGIN_NORMAL;
     }
 
-    # Allow templates to know that we're in a page that always requires
-    # login.
+    # Allow templates to know that we're in a page that always requires login.
     if ($type == LOGIN_REQUIRED)
     {
         $class->request_cache->{page_requires_login} = 1;
@@ -710,27 +727,6 @@ sub dbh_main
     return $class->request_cache->{dbh_main};
 }
 
-sub languages
-{
-    my $class = shift;
-    return $class->request_cache->{languages}
-        if $class->request_cache->{languages};
-
-    my @files = glob(catdir(bz_locations->{templatedir}, '*'));
-    my @languages;
-    foreach my $dir_entry (@files)
-    {
-        # It's a language directory only if it contains "default" or
-        # "custom". This auto-excludes CVS directories as well.
-        next unless (-d catdir($dir_entry, 'default') || -d catdir($dir_entry, 'custom'));
-        $dir_entry = basename($dir_entry);
-        # Check for language tag format conforming to RFC 1766.
-        next unless $dir_entry =~ /^[a-zA-Z]{1,8}(-[a-zA-Z]{1,8})?$/;
-        push(@languages, $dir_entry);
-    }
-    return $class->request_cache->{languages} = \@languages;
-}
-
 sub error_mode
 {
     my ($class, $newval) = @_;
@@ -838,23 +834,6 @@ sub switch_to_main_db
     my $class = shift;
     $class->request_cache->{dbh} = $class->dbh_main;
     return $class->dbh_main;
-}
-
-sub messages
-{
-    my $class = shift;
-    my $lc = $class->cookies->{LANG} || 'en';
-    $lc =~ s/\W+//so;
-    if (!$INC{'Bugzilla::Language::'.$lc})
-    {
-        eval { require 'Bugzilla/Language/'.$lc.'.pm' };
-        if ($@)
-        {
-            $lc = 'en';
-            require 'Bugzilla/Language/en.pm';
-        }
-    }
-    return $Bugzilla::messages->{$lc};
 }
 
 sub cache_fields

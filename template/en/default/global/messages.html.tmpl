@@ -47,7 +47,7 @@
 [% END %]
 
 [% BLOCK msg_changed_attachment %]
-  [% SET title = "Changes Submitted to Attachment $id of $terms.Bug $bug_id" %]
+  [% SET title = "Changes Submitted to Attachment " _ id _ " of $terms.Bug " _ bug_id %]
   <dl>
     <dt>Changes to <a href="attachment.cgi?id=[% id %]&amp;action=edit">attachment [% id %]</a>
       of [% "$terms.bug $bug_id" FILTER bug_link(bug_id) FILTER none %] submitted
@@ -177,7 +177,7 @@
   [% IF changed_fields.size
         + groups_added_to.size + groups_removed_from.size
         + groups_granted_rights_to_bless.size + groups_denied_rights_to_bless.size %]
-    [% title = "User $loginold updated" %]
+    [% title = "User " _ loginold _ " updated" %]
     The following changes have been made to the user account
     [%+ loginold | html %]:
     <ul>
@@ -230,14 +230,14 @@
       [% END %]
     </ul>
   [% ELSE %]
-    [% title = "User $otheruser.login not changed" %]
+    [% title = "User " _ otheruser.login _ " not changed" %]
     You didn't request any changes to the user's account
     [%+ otheruser.login | html %].
   [% END %]
 [% END %]
 
 [% BLOCK msg_account_deleted %]
-  [% title = "User $otheruser.login deleted" %]
+  [% title = "User " _ otheruser.login _ " deleted" %]
   The user account [% otheruser.login | html %] has been deleted
   successfully.
 [% END %]
@@ -496,18 +496,6 @@
   [% title = "Flag Creation Failure" %]
   An error occured while validating flags:
   [%+ flag_creation_error FILTER none %]
-[% END %]
-
-[% BLOCK msg_get_field_desc %]
-  [% field_descs.$field_name | html %]
-[% END %]
-
-[% BLOCK msg_get_resolution %]
-  [% resolution | html %]
-[% END %]
-
-[% BLOCK msg_get_status %]
-  [% status | html %]
 [% END %]
 
 [% BLOCK msg_group_created %]
