@@ -194,6 +194,8 @@ function deleteSelectedCards(cut)
       {
         var s = selectedcards[k+'_'+i+'_'+j];
         var e = document.getElementById('cardtd_'+k+'_'+i+'_'+j);
+        if (!e)
+          continue;
         if (s)
         {
           if (cut)
@@ -247,15 +249,24 @@ function doPasteCards(coord)
   var nx = cuttedids.length;
   if (nx <= 0)
     return;
+  if (!document.getElementById('cardtd_'+to_coord_id(coord)))
+  {
+    alert('Некуда вставлять');
+    return;
+  }
   var n = nr * nc * np;
   var from, to;
   for (var i = n-nx-1; i >= coord; i--)
   {
     from = to_coord_id(i);
     to = to_coord_id(i+nx);
-    document.getElementById('cardtd_'+to).innerHTML =
-      document.getElementById('cardtd_'+from).innerHTML;
-    idlist[i+nx] = idlist[i];
+    if (document.getElementById('cardtd_'+from) &&
+      document.getElementById('cardtd_'+to))
+    {
+      document.getElementById('cardtd_'+to).innerHTML =
+        document.getElementById('cardtd_'+from).innerHTML;
+      idlist[i+nx] = idlist[i];
+    }
   }
   for (var i = 0; i < nx; i++)
   {
@@ -421,10 +432,13 @@ for (var k = 0; k < np; k++)
     for (var j = 0; j < nc; j++)
     {
       var e = document.getElementById('cardtd_'+k+'_'+i+'_'+j);
-      addListener(e, 'mouseover', highlightCard);
-      addListener(e, 'mouseout', unlightCard);
-      new CardDragObject(e);
-      new CardDropTarget(e);
+      if (e)
+      {
+        addListener(e, 'mouseover', highlightCard);
+        addListener(e, 'mouseout', unlightCard);
+        new CardDragObject(e);
+        new CardDropTarget(e);
+      }
     }
   }
 }
