@@ -109,7 +109,7 @@ function handleControlledField(controlled_id, is_initial_editform)
     var controlled = document.getElementById(controlled_id);
     var vis;
     // Show/hide the field
-    if (m.visibility_field)
+    if (m.visibility_field && document.getElementById(m.visibility_field))
     {
         vis = checkValueVisibility(getSelectedIds(m.visibility_field), field_metadata[m.visibility_field]['fields'][controlled_id]);
         for (var i in { row: 1, container: 1, label: 1 })
@@ -132,14 +132,14 @@ function handleControlledField(controlled_id, is_initial_editform)
     else if (controlled.nodeName == 'SELECT')
     {
         // Change select options
-        if (m.value_field)
+        if (m.value_field && document.getElementById(m.value_field))
         {
             // It is more correct to match selected values on name, because a
             // target_milestone/version/component with the same name may exist for a different product
             var copt = getSelectedValues(controlled);
             bz_clearOptions(controlled);
             var nullable = m.nullable && !controlled.multiple;
-            if (m.null_field && nullable)
+            if (m.null_field && nullable && document.getElementById(m.null_field))
             {
                 nullable = checkValueVisibility(getSelectedIds(m.null_field), field_metadata[m.null_field]['null'][controlled_id]);
             }
@@ -164,7 +164,7 @@ function handleControlledField(controlled_id, is_initial_editform)
                 }
             }
         }
-        else if (m.nullable && !controlled.multiple && m.null_field)
+        else if (m.nullable && !controlled.multiple && m.null_field && document.getElementById(m.null_field))
         {
             // Just enable/disable empty value
             var nullable = checkValueVisibility(getSelectedIds(m.null_field), field_metadata[m.null_field]['null'][controlled_id]);
@@ -180,7 +180,7 @@ function handleControlledField(controlled_id, is_initial_editform)
         }
     }
     // Select and/or remember default value
-    if (m.default_field)
+    if (m.default_field && document.getElementById(m.default_field))
     {
         var diff = false;
         if (controlled._oldDefault)
