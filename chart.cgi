@@ -1,6 +1,4 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -62,7 +60,8 @@ my $dbh = Bugzilla->dbh;
 
 my $user = Bugzilla->login(LOGIN_REQUIRED);
 
-if (!Bugzilla->feature('new_charts')) {
+if (!Bugzilla->feature('new_charts'))
+{
     ThrowCodeError('feature_disabled', { feature => 'new_charts' });
 }
 
@@ -77,14 +76,15 @@ if (grep /^cmd-/, keys %$ARGS)
 
 my $action = $ARGS->{action};
 my $series_id = $ARGS->{series_id};
-$vars->{'doc_section'} = 'reporting.html#charts';
+$vars->{doc_section} = 'reporting.html#charts';
 
 # Because some actions are chosen by buttons, we can't encode them as the value
 # of the action param, because that value is localization-dependent. So, we
 # encode it in the name, as "action-<action>". Some params even contain the
 # series_id they apply to (e.g. subscribe, unsubscribe).
 my @actions = grep /^action-/, keys %$ARGS;
-if ($actions[0] && $actions[0] =~ /^action-([^\d]+)(\d*)$/) {
+if ($actions[0] && $actions[0] =~ /^action-([^\d]+)(\d*)$/)
+{
     $action = $1;
     $series_id = $2 if $2;
 }
@@ -92,26 +92,30 @@ if ($actions[0] && $actions[0] =~ /^action-([^\d]+)(\d*)$/) {
 $action ||= "assemble";
 
 # Go to buglist.cgi if we are doing a search.
-if ($action eq "search") {
+if ($action eq "search")
+{
     delete $ARGS->{$_} for qw(format ctype action);
     my $params = http_build_query($ARGS);
     print Bugzilla->cgi->redirect("buglist.cgi" . ($params ? "?$params" : ""));
     exit;
 }
 
-$user->in_group(Bugzilla->params->{"chartgroup"})
-  || ThrowUserError("auth_failure", {group  => Bugzilla->params->{"chartgroup"},
-                                     action => "use",
-                                     object => "charts"});
+$user->in_group(Bugzilla->params->{chartgroup}) || ThrowUserError("auth_failure", {
+    group  => Bugzilla->params->{chartgroup},
+    action => "use",
+    object => "charts",
+});
 
 # Only admins may create public queries
 $user->in_group('admin') || delete $ARGS->{public};
 
 # All these actions relate to chart construction.
-if ($action =~ /^(assemble|add|remove|sum|subscribe|unsubscribe)$/) {
+if ($action =~ /^(assemble|add|remove|sum|subscribe|unsubscribe)$/)
+{
     # These two need to be done before the creation of the Chart object, so
     # that the changes they make will be reflected in it.
-    if ($action =~ /^subscribe|unsubscribe$/) {
+    if ($action =~ /^subscribe|unsubscribe$/)
+    {
         detaint_natural($series_id) || ThrowCodeError("invalid_series_id");
         my $series = new Bugzilla::Series($series_id);
         $series->$action($user->id);
@@ -119,31 +123,38 @@ if ($action =~ /^(assemble|add|remove|sum|subscribe|unsubscribe)$/) {
 
     my $chart = new Bugzilla::Chart($ARGS);
 
-    if ($action =~ /^remove|sum$/) {
+    if ($action eq 'remove' || $action eq 'sum')
+    {
         $chart->$action(getSelectedLines());
     }
-    elsif ($action eq "add") {
+    elsif ($action eq "add")
+    {
         my @series_ids = getAndValidateSeriesIDs();
         $chart->add(@series_ids);
     }
 
     view($chart);
 }
-elsif ($action eq "plot") {
+elsif ($action eq "plot")
+{
     plot();
 }
-elsif ($action eq "wrap") {
+elsif ($action eq "wrap")
+{
     # For CSV "wrap", we go straight to "plot".
-    if ($ARGS->{ctype} && $ARGS->{ctype} eq "csv") {
+    if ($ARGS->{ctype} && $ARGS->{ctype} eq "csv")
+    {
         plot();
     }
-    else {
+    else
+    {
         wrap();
     }
 }
-elsif ($action eq "create") {
+elsif ($action eq "create")
+{
     assertCanCreate();
-    check_hash_token($ARGS->{token}, ['create-series']);
+    check_hash_token($ARGS->{token}, [ 'create-series' ]);
 
     my $q = { %$ARGS };
     delete $q->{$_} for qw(series_id category newcategory subcategory newsubcategory name frequency public);
@@ -156,21 +167,25 @@ elsif ($action eq "create") {
         query => http_build_query($q),
     });
 
-    ThrowUserError("series_already_exists", {'series' => $series})
+    # Check if another series with the same name exists
+    # FIXME: Should be done by validator
+    ThrowUserError("series_already_exists", { series => $series })
         if $series->existsInDatabase;
 
     $series->writeToDatabase();
-    $vars->{'message'} = "series_created";
-    $vars->{'series'} = $series;
+    $vars->{message} = "series_created";
+    $vars->{series} = $series;
 
     my $chart = new Bugzilla::Chart($ARGS);
     view($chart);
 }
-elsif ($action eq "edit") {
+elsif ($action eq "edit")
+{
     my $series = assertCanEdit($series_id);
     edit($series);
 }
-elsif ($action eq "alter") {
+elsif ($action eq "alter")
+{
     my $series = assertCanEdit($series_id);
     check_hash_token($ARGS->{token}, [ $series->id, $series->name ]);
 
@@ -188,22 +203,24 @@ elsif ($action eq "alter") {
     # the return value is us or some other series we need to avoid stomping
     # on.
     my $id_of_series_in_db = $series->existsInDatabase();
-    if (defined($id_of_series_in_db) && $id_of_series_in_db != $series->{'series_id'}) 
+    if (defined($id_of_series_in_db) && $id_of_series_in_db != $series->{series_id})
     {
         ThrowUserError("series_already_exists", {'series' => $series});
     }
 
     $series->writeToDatabase();
-    $vars->{'changes_saved'} = 1;
+    $vars->{changes_saved} = 1;
 
     edit($series);
 }
-elsif ($action eq "confirm-delete") {
-    $vars->{'series'} = assertCanEdit($series_id);
+elsif ($action eq "confirm-delete")
+{
+    $vars->{series} = assertCanEdit($series_id);
     $template->process("reports/delete-series.html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
+        || ThrowTemplateError($template->error());
 }
-elsif ($action eq "delete") {
+elsif ($action eq "delete")
+{
     my $series = assertCanEdit($series_id);
     check_hash_token($ARGS->{token}, [$series->id, $series->name]);
 
@@ -211,25 +228,30 @@ elsif ($action eq "delete") {
 
     $series->remove_from_db();
     # Remove (sub)categories which no longer have any series.
-    foreach my $cat (qw(category subcategory)) {
-        my $is_used = $dbh->selectrow_array("SELECT COUNT(*) FROM series WHERE $cat = ?",
-                                             undef, $series->{"${cat}_id"});
-        if (!$is_used) {
-            $dbh->do('DELETE FROM series_categories WHERE id = ?',
-                      undef, $series->{"${cat}_id"});
+    foreach my $cat (qw(category subcategory))
+    {
+        my $is_used = $dbh->selectrow_array(
+            "SELECT COUNT(*) FROM series WHERE $cat = ?",
+            undef, $series->{$cat.'_id'}
+        );
+        if (!$is_used)
+        {
+            $dbh->do('DELETE FROM series_categories WHERE id = ?', undef, $series->{$cat.'_id'});
         }
     }
     $dbh->bz_commit_transaction();
 
-    $vars->{'message'} = "series_deleted";
-    $vars->{'series'} = $series;
+    $vars->{message} = "series_deleted";
+    $vars->{series} = $series;
     view();
 }
-elsif ($action eq "convert_search") {
+elsif ($action eq "convert_search")
+{
     my $saved_search = $ARGS->{series_from_search} || '';
     my ($query) = grep { $_->name eq $saved_search } @{ $user->queries };
     my $url = '';
-    if ($query) {
+    if ($query)
+    {
         my $params = http_decode_query($query->query);
         # These two parameters conflict with the one below.
         delete $params->{$_} for ('format', 'query_format');
@@ -237,35 +259,37 @@ elsif ($action eq "convert_search") {
     }
     print Bugzilla->cgi->redirect(-location => correct_urlbase() . "query.cgi?format=create-series$url");
 }
-else {
+else
+{
     ThrowCodeError("unknown_action");
 }
 
 exit;
 
 # Find any selected series and return either the first or all of them.
-sub getAndValidateSeriesIDs {
-    my @series_ids = grep(/^\d+$/, list Bugzilla->input_params->{name});
-
+sub getAndValidateSeriesIDs
+{
+    my @series_ids = grep /^\d+$/, list Bugzilla->input_params->{name};
     return wantarray ? @series_ids : $series_ids[0];
 }
 
 # Return a list of IDs of all the lines selected in the UI.
-sub getSelectedLines {
-    my @ids = map { /^select(\d+)$/ ? $1 : () } keys %{ Bugzilla->input_params };
-
-    return @ids;
+sub getSelectedLines
+{
+    return map { /^select(\d+)$/ ? $1 : () } keys %{ Bugzilla->input_params };
 }
 
-# Check if the user is the owner of series_id or is an admin. 
-sub assertCanEdit {
+# Check if the user is the owner of series_id or is an admin.
+sub assertCanEdit
+{
     my $series_id = shift;
     my $user = Bugzilla->user;
 
     my $series = new Bugzilla::Series($series_id)
-      || ThrowCodeError('invalid_series_id');
+        || ThrowCodeError('invalid_series_id');
 
-    if (!$user->in_group('admin') && $series->{creator_id} != $user->id) {
+    if (!$user->in_group('admin') && $series->{creator_id} != $user->id)
+    {
         ThrowUserError('illegal_series_edit');
     }
 
@@ -273,104 +297,115 @@ sub assertCanEdit {
 }
 
 # Check if the user is permitted to create this series with these parameters.
-sub assertCanCreate {
+sub assertCanCreate
+{
     my $user = Bugzilla->user;
 
     $user->in_group("editbugs") || ThrowUserError("illegal_series_creation");
 
     # Check permission for frequency
     my $min_freq = 7;
-    if (Bugzilla->input_params->{frequency} < $min_freq && !$user->in_group("admin")) {
+    if (Bugzilla->input_params->{frequency} < $min_freq && !$user->in_group("admin"))
+    {
         ThrowUserError("illegal_frequency", { 'minimum' => $min_freq });
     }
 }
 
-sub validateWidthAndHeight {
-    $vars->{'width'} = Bugzilla->input_params->{width};
-    $vars->{'height'} = Bugzilla->input_params->{height};
+sub validateWidthAndHeight
+{
+    $vars->{width} = Bugzilla->input_params->{width};
+    $vars->{height} = Bugzilla->input_params->{height};
 
-    if (defined($vars->{'width'})) {
-       (detaint_natural($vars->{'width'}) && $vars->{'width'} > 0)
-         || ThrowCodeError("invalid_dimensions");
+    if (defined($vars->{width}))
+    {
+       (detaint_natural($vars->{width}) && $vars->{width} > 0)
+           || ThrowCodeError("invalid_dimensions");
     }
 
-    if (defined($vars->{'height'})) {
-       (detaint_natural($vars->{'height'}) && $vars->{'height'} > 0)
-         || ThrowCodeError("invalid_dimensions");
+    if (defined($vars->{height}))
+    {
+       (detaint_natural($vars->{height}) && $vars->{height} > 0)
+           || ThrowCodeError("invalid_dimensions");
     }
 
     # The equivalent of 2000 square seems like a very reasonable maximum size.
     # This is merely meant to prevent accidental or deliberate DOS, and should
     # have no effect in practice.
-    if ($vars->{'width'} && $vars->{'height'}) {
-       (($vars->{'width'} * $vars->{'height'}) <= 4000000)
-         || ThrowUserError("chart_too_large");
+    if ($vars->{width} && $vars->{height} && $vars->{width} * $vars->{height} > 4000000)
+    {
+        ThrowUserError("chart_too_large");
     }
 }
 
-sub edit {
+sub edit
+{
     my $series = shift;
 
-    $vars->{'category'} = Bugzilla::Chart::getVisibleSeries();
-    $vars->{'default'} = $series;
+    $vars->{category} = Bugzilla::Chart::getVisibleSeries();
+    $vars->{default} = $series;
 
     $template->process("reports/edit-series.html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
+        || ThrowTemplateError($template->error());
 }
 
-sub plot {
+sub plot
+{
     validateWidthAndHeight();
 
     my $ARGS = Bugzilla->input_params;
-    $vars->{'chart'} = new Bugzilla::Chart($ARGS);
+    $vars->{chart} = new Bugzilla::Chart($ARGS);
 
     my $format = $template->get_format("reports/chart", "", $ARGS->{ctype});
 
     # Debugging PNGs is a pain; we need to be able to see the error messages
-    if ($ARGS->{debug}) {
+    if ($ARGS->{debug})
+    {
         Bugzilla->cgi->send_header();
         $vars->{chart}->dump();
     }
 
-    Bugzilla->cgi->send_header($format->{'ctype'});
-    disable_utf8() if ($format->{'ctype'} =~ /^image\//);
+    Bugzilla->cgi->send_header($format->{ctype});
+    disable_utf8() if ($format->{ctype} =~ /^image\//);
 
-    $template->process($format->{'template'}, $vars)
-      || ThrowTemplateError($template->error());
+    $template->process($format->{template}, $vars)
+        || ThrowTemplateError($template->error());
 }
 
-sub wrap {
+sub wrap
+{
     validateWidthAndHeight();
-    
+
     my $chart = new Bugzilla::Chart(Bugzilla->input_params);
-    
-    $vars->{'time'} = localtime(time());
+
+    $vars->{time} = localtime(time());
 
     my $q = { %{ Bugzilla->input_params } };
     delete $q->{$_} for qw(action action-wrap ctype format width height);
-    $vars->{'imagebase'} = http_build_query($q);
+    $vars->{imagebase} = http_build_query($q);
 
     $template->process("reports/chart.html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
+        || ThrowTemplateError($template->error());
 }
 
-sub view {
+sub view
+{
     my $chart = shift;
 
     my $ARGS = Bugzilla->input_params;
     # Set defaults
-    foreach my $field ('category', 'subcategory', 'name', 'ctype') {
-        $vars->{'default'}{$field} = $ARGS->{$field} || 0;
+    foreach my $field ('category', 'subcategory', 'name', 'ctype')
+    {
+        $vars->{default}->{$field} = $ARGS->{$field} || 0;
     }
 
     # Pass the state object to the display UI.
-    $vars->{'chart'} = $chart;
-    $vars->{'category'} = Bugzilla::Chart::getVisibleSeries();
+    $vars->{chart} = $chart;
+    $vars->{category} = Bugzilla::Chart::getVisibleSeries();
 
     # If we have having problems with bad data, we can set debug=1 to dump
     # the data structure.
     $chart->dump() if $ARGS->{debug};
 
     $template->process("reports/create-chart.html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
+        || ThrowTemplateError($template->error());
 }

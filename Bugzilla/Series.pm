@@ -1,5 +1,3 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -24,7 +22,7 @@ use strict;
 
 # This module implements a series - a set of data to be plotted on a chart.
 #
-# This Series is in the database if and only if self->{'series_id'} is defined.
+# This Series is in the database if and only if self->{series_id} is defined.
 # Note that the series being in the database does not mean that the fields of
 # this object are the same as the DB entries, as the object may have been
 # altered.
@@ -33,6 +31,7 @@ package Bugzilla::Series;
 
 use Bugzilla::Error;
 use Bugzilla::Util;
+use Bugzilla::User;
 
 sub new
 {
@@ -108,47 +107,51 @@ sub set_all
     $self->{series_id} ||= $self->existsInDatabase();
 }
 
-sub writeToDatabase {
+sub writeToDatabase
+{
     my $self = shift;
 
     my $dbh = Bugzilla->dbh;
     $dbh->bz_start_transaction();
 
-    my $category_id = getCategoryID($self->{'category'});
-    my $subcategory_id = getCategoryID($self->{'subcategory'});
+    my $category_id = getCategoryID($self->{category});
+    my $subcategory_id = getCategoryID($self->{subcategory});
 
     my $exists;
-    if ($self->{'series_id'}) {
-        $exists =
-            $dbh->selectrow_array("SELECT series_id FROM series
-                                   WHERE series_id = $self->{'series_id'}");
+    if ($self->{series_id})
+    {
+        $exists = $dbh->selectrow_array(
+            "SELECT series_id FROM series WHERE series_id = ?",
+            undef, $self->{series_id}
+        );
     }
 
     # Is this already in the database?
-    if ($exists) {
+    if ($exists)
+    {
         # Update existing series
         my $dbh = Bugzilla->dbh;
-        $dbh->do("UPDATE series SET " .
-                 "category = ?, subcategory = ?," .
-                 "name = ?, frequency = ?, is_public = ?  " .
-                 "WHERE series_id = ?", undef,
-                 $category_id, $subcategory_id, $self->{'name'},
-                 $self->{'frequency'}, $self->{'public'},
-                 $self->{'series_id'});
+        $dbh->do(
+            "UPDATE series SET category = ?, subcategory = ?,".
+            " name = ?, frequency = ?, is_public = ? WHERE series_id = ?", undef,
+            $category_id, $subcategory_id, $self->{name},
+            $self->{frequency}, $self->{public}, $self->{series_id}
+        );
     }
-    else {
+    else
+    {
         # Insert the new series into the series table
-        $dbh->do("INSERT INTO series (creator, category, subcategory, " .
-                 "name, frequency, query, is_public) VALUES " .
-                 "(?, ?, ?, ?, ?, ?, ?)", undef,
-                 $self->{'creator_id'}, $category_id, $subcategory_id, $self->{'name'},
-                 $self->{'frequency'}, $self->{'query'}, $self->{'public'});
+        $dbh->do(
+            "INSERT INTO series (creator, category, subcategory, " .
+            "name, frequency, query, is_public) VALUES " .
+            "(?, ?, ?, ?, ?, ?, ?)", undef,
+            $self->{creator_id}, $category_id, $subcategory_id, $self->{name},
+            $self->{frequency}, $self->{query}, $self->{public}
+        );
 
         # Retrieve series_id
-        $self->{'series_id'} = $dbh->selectrow_array("SELECT MAX(series_id) " .
-                                                     "FROM series");
-        $self->{'series_id'}
-          || ThrowCodeError("missing_series_id", { 'series' => $self });
+        $self->{series_id} = $dbh->bz_last_key('series', 'series_id');
+        $self->{series_id} || ThrowCodeError("missing_series_id", { 'series' => $self });
     }
 
     $dbh->bz_commit_transaction();
@@ -156,63 +159,66 @@ sub writeToDatabase {
 
 # Check whether a series with this name, category and subcategory exists in
 # the DB and, if so, returns its series_id.
-sub existsInDatabase {
+sub existsInDatabase
+{
     my $self = shift;
     my $dbh = Bugzilla->dbh;
 
-    my $category_id = getCategoryID($self->{'category'});
-    my $subcategory_id = getCategoryID($self->{'subcategory'});
+    my $category_id = getCategoryID($self->{category});
+    my $subcategory_id = getCategoryID($self->{subcategory});
 
-    trick_taint($self->{'name'});
-    my $series_id = $dbh->selectrow_array("SELECT series_id " .
-                              "FROM series WHERE category = $category_id " .
-                              "AND subcategory = $subcategory_id AND name = " .
-                              $dbh->quote($self->{'name'}));
+    trick_taint($self->{name});
+    my ($series_id) = $dbh->selectrow_array(
+        "SELECT series_id FROM series WHERE category=? AND subcategory=? AND name=?",
+        undef, $category_id, $subcategory_id, $self->{name}
+    );
 
-    return($series_id);
+    return $series_id;
 }
 
 # Get a category or subcategory IDs, creating the category if it doesn't exist.
-sub getCategoryID {
+sub getCategoryID
+{
     my ($category) = @_;
     my $category_id;
     my $dbh = Bugzilla->dbh;
 
     # This seems for the best idiom for "Do A. Then maybe do B and A again."
-    while (1) {
+    while (1)
+    {
         # We are quoting this to put it in the DB, so we can remove taint
         trick_taint($category);
 
-        $category_id = $dbh->selectrow_array("SELECT id " .
-                                      "from series_categories " .
-                                      "WHERE name =" . $dbh->quote($category));
+        $category_id = $dbh->selectrow_array(
+            "SELECT id FROM series_categories WHERE name=?", undef, $category
+        );
+        last if defined $category_id;
 
-        last if defined($category_id);
-
-        $dbh->do("INSERT INTO series_categories (name) " .
-                 "VALUES (" . $dbh->quote($category) . ")");
+        $dbh->do("INSERT INTO series_categories (name) VALUES (?)", undef, $category);
     }
 
     return $category_id;
 }
 
-##########
-# Methods
-##########
-sub id   { return $_[0]->{'series_id'}; }
-sub name { return $_[0]->{'name'}; }
+###########
+# Methods #
+###########
 
-sub creator {
+sub id   { $_[0]->{series_id} }
+sub name { $_[0]->{name} }
+
+sub creator
+{
     my $self = shift;
-
-    if (!$self->{creator} && $self->{creator_id}) {
-        require Bugzilla::User;
+    if (!$self->{creator} && $self->{creator_id})
+    {
         $self->{creator} = new Bugzilla::User($self->{creator_id});
     }
     return $self->{creator};
 }
 
-sub remove_from_db {
+sub remove_from_db
+{
     my $self = shift;
     my $dbh = Bugzilla->dbh;
 
