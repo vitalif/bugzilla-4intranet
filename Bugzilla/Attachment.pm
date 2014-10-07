@@ -974,7 +974,7 @@ sub guess_content_type
 sub get_content_type
 {
     my $cgi = Bugzilla->cgi;
-    my $ARGS = $cgi->VarHash;
+    my $ARGS = Bugzilla->input_params;
 
     my $ispatch = $ARGS->{ispatch};
     if ($ispatch || $ARGS->{text_attachment} !~ /^\s*$/so)

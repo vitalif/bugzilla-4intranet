@@ -57,14 +57,6 @@ use Lingua::Translit;
 use Archive::Zip qw ( :ERROR_CODES :CONSTANTS );
 use Encode;
 
-# For most scripts we don't make $cgi and $template global variables. But
-# when preparing Bugzilla for mod_perl, this script used these
-# variables in so many subroutines that it was easier to just
-# make them globals.
-local our $cgi = Bugzilla->cgi;
-local our $template = Bugzilla->template;
-local our $vars = {};
-
 ################################################################################
 # Main Body Execution
 ################################################################################
@@ -75,14 +67,14 @@ local our $vars = {};
 # supplied, we default to 'view'.
 
 # Determine whether to use the action specified by the user or the default.
-my $action = $cgi->param('action') || 'view';
+my $action = Bugzilla->input_params->{action} || 'view';
 
 # You must use the appropriate urlbase/sslbase param when doing anything
 # but viewing an attachment.
 if ($action ne 'view') {
     do_ssl_redirect_if_required();
-    if ($cgi->url_is_attachment_base) {
-        $cgi->redirect_to_urlbase;
+    if (Bugzilla->cgi->url_is_attachment_base) {
+        Bugzilla->cgi->redirect_to_urlbase;
     }
     Bugzilla->login();
 }
@@ -161,25 +153,25 @@ exit;
 # Returns an attachment object.
 
 sub validateID {
-    my($param, $dont_validate_access) = @_;
+    my ($param, $dont_validate_access) = @_;
+    my $ARGS = Bugzilla->input_params;
+    my $vars = {};
     $param ||= 'id';
 
     # If we're not doing interdiffs, check if id wasn't specified and
     # prompt them with a page that allows them to choose an attachment.
     # Happens when calling plain attachment.cgi from the urlbar directly
-    if ($param eq 'id' && !$cgi->param('id')) {
-        $template->process("attachment/choose.html.tmpl", $vars) ||
-            ThrowTemplateError($template->error());
+    if ($param eq 'id' && !$ARGS->{id}) {
+        Bugzilla->template->process("attachment/choose.html.tmpl", $vars) ||
+            ThrowTemplateError(Bugzilla->template->error());
         exit;
     }
 
-    my $attach_id = $cgi->param($param);
+    my $attach_id = $ARGS->{$param};
 
     # Validate the specified attachment id. detaint kills $attach_id if
-    # non-natural, so use the original value from $cgi in our exception
-    # message here.
-    detaint_natural($attach_id)
-     || ThrowUserError("invalid_attach_id", { attach_id => $cgi->param($param) });
+    # non-natural, so use the original value in our exception message here.
+    detaint_natural($attach_id) || ThrowUserError("invalid_attach_id", { attach_id => $ARGS->{$param} });
 
     # Make sure the attachment exists in the database.
     my $attachment = new Bugzilla::Attachment($attach_id)
@@ -222,10 +214,10 @@ sub attachmentIsPublic {
 sub validateFormat
 {
     # receives a list of legal formats; first item is a default
-    my $format = $cgi->param('format') || $_[0];
+    my $format = Bugzilla->input_params->{format} || $_[0];
     if (!grep { $_ eq $format } @_)
     {
-        ThrowUserError("invalid_format", { format  => $format, formats => \@_ });
+        ThrowUserError("invalid_format", { format => $format, formats => \@_ });
     }
     return $format;
 }
@@ -234,10 +226,10 @@ sub validateFormat
 # is not number, "file" or "patch". Returns the validated, detainted context.
 sub validateContext
 {
-  my $context = $cgi->param('context') || "patch";
+  my $context = Bugzilla->input_params->{context} || "patch";
   if ($context ne "file" && $context ne "patch") {
     detaint_natural($context)
-      || ThrowUserError("invalid_context", { context => $cgi->param('context') });
+      || ThrowUserError("invalid_context", { context => Bugzilla->input_params->{context} });
   }
 
   return $context;
@@ -250,14 +242,16 @@ sub validateContext
 # Display an attachment.
 sub view {
     my $action = shift;
+    my $ARGS = Bugzilla->input_params;
+    my $cgi = Bugzilla->cgi;
     my $attachment;
 
     if (use_attachbase()) {
         $attachment = validateID(undef, 1);
         my $path = 'attachment.cgi?id=' . $attachment->id;
         # The user is allowed to override the content type of the attachment.
-        if (defined $cgi->param('content_type')) {
-            $path .= '&content_type=' . url_quote($cgi->param('content_type'));
+        if ($ARGS->{content_type}) {
+            $path .= '&content_type=' . url_quote($ARGS->{content_type});
         }
 
         # Make sure the attachment is served from the correct server.
@@ -266,14 +260,14 @@ sub view {
             # No need to validate the token for public attachments. We cannot request
             # credentials as we are on the alternate host.
             if (!attachmentIsPublic($attachment)) {
-                my $token = $cgi->param('t');
+                my $token = $ARGS->{t};
                 my ($userid, undef, $token_attach_id) = Bugzilla::Token::GetTokenData($token);
                 unless ($userid
                         && detaint_natural($token_attach_id)
                         && ($token_attach_id == $attachment->id))
                 {
                     # Not a valid token.
-                    print $cgi->redirect('-location' => correct_urlbase() . $path);
+                    print Bugzilla->cgi->redirect('-location' => correct_urlbase() . $path);
                     exit;
                 }
                 # Change current user without creating cookies.
@@ -299,14 +293,14 @@ sub view {
             $attachbase =~ s/\%bugid\%/$bug_id/;
             if (attachmentIsPublic($attachment)) {
                 # No need for a token; redirect to attachment base.
-                print $cgi->redirect(-location => $attachbase . $path);
+                print Bugzilla->cgi->redirect(-location => $attachbase . $path);
                 exit;
             } else {
                 # Make sure the user can view the attachment.
                 check_can_access($attachment);
                 # Create a token and redirect.
                 my $token = url_quote(issue_session_token($attachment->id));
-                print $cgi->redirect(-location => $attachbase . "$path&t=$token");
+                print Bugzilla->cgi->redirect(-location => $attachbase . "$path&t=$token");
                 exit;
             }
         }
@@ -321,10 +315,10 @@ sub view {
     my $contenttype = $attachment->contenttype;
     my $filename = $attachment->filename;
 
-    # Bug 111522: allow overriding content-type manually in the posted form
-    # params.
-    if (defined $cgi->param('content_type')) {
-        $contenttype = $attachment->_check_content_type($cgi->param('content_type'));
+    # Bug 111522: allow overriding content-type manually in the posted form params.
+    if ($ARGS->{content_type})
+    {
+        $contenttype = $attachment->_check_content_type($ARGS->{content_type});
     }
 
     # Return the appropriate HTTP response headers.
@@ -413,8 +407,10 @@ sub diff {
 # Display all attachments for a given bug in a series of IFRAMEs within one
 # HTML page.
 sub viewall {
+    my $ARGS = Bugzilla->input_params;
+    my $vars = {};
     # Retrieve and validate parameters
-    my $bug = Bugzilla::Bug->check(scalar $cgi->param('bugid'));
+    my $bug = Bugzilla::Bug->check($ARGS->{bugid});
     my $bugid = $bug->id;
 
     my $attachments = Bugzilla::Attachment->get_attachments_by_bug($bugid);
@@ -426,20 +422,22 @@ sub viewall {
     $vars->{'attachments'} = $attachments;
 
     my $format = "";
-    if ($cgi->param('format')) {
-        $format = "-".$cgi->param('format');
+    if ($ARGS->{format}) {
+        $format = "-".$ARGS->{format};
     }
-    $vars->{'show_obsolete'} = $cgi->param('show_obsolete');
+    $vars->{'show_obsolete'} = $ARGS->{show_obsolete};
 
     # Generate and return the UI (HTML page) from the appropriate template.
-    $template->process("attachment/show-multiple".$format.".html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
+    Bugzilla->template->process("attachment/show-multiple".$format.".html.tmpl", $vars)
+      || ThrowTemplateError(Bugzilla->template->error());
 }
 
 # Display a form for entering a new attachment.
 sub enter {
+    my $ARGS = Bugzilla->input_params;
+    my $vars = {};
     # Retrieve and validate parameters
-    my $bug = Bugzilla::Bug->check(scalar $cgi->param('bugid'));
+    my $bug = Bugzilla::Bug->check($ARGS->{bugid});
     my $bugid = $bug->id;
     Bugzilla::Attachment->_check_bug($bug);
     my $dbh = Bugzilla->dbh;
@@ -467,30 +465,32 @@ sub enter {
       grep { $_->is_requestable && $_->is_requesteeble } @$flag_types;
     $vars->{'token'} = issue_session_token('create_attachment:');
 
-    my $comment = $cgi->param('comment');
+    my $comment = $ARGS->{comment};
     $comment = '' unless defined $comment;
     $vars->{'commenttext'} = $comment;
 
     # Generate and return the UI (HTML page) from the appropriate template.
-    $template->process("attachment/create.html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
+    Bugzilla->template->process("attachment/create.html.tmpl", $vars)
+      || ThrowTemplateError(Bugzilla->template->error());
 }
 
 # Insert a new attachment into the database.
 sub insert
 {
+    my $ARGS = Bugzilla->input_params;
+    my $vars = {};
     my $dbh = Bugzilla->dbh;
     my $user = Bugzilla->user;
 
     $dbh->bz_start_transaction;
 
     # Retrieve and validate parameters
-    my $bug = Bugzilla::Bug->check(scalar $cgi->param('bugid'));
+    my $bug = Bugzilla::Bug->check($ARGS->{bugid});
     my $bugid = $bug->id;
     my ($timestamp) = $dbh->selectrow_array("SELECT NOW()");
 
     # Detect if the user already used the same form to submit an attachment
-    my $token = trim($cgi->param('token'));
+    my $token = trim($ARGS->{token});
     check_token_data($token, qr/^create_attachment:/s, "show_bug.cgi?id=$bugid");
 
     my (undef, undef, $old_attach_id) = Bugzilla::Token::GetTokenData($token);
@@ -498,28 +498,27 @@ sub insert
     if ($old_attach_id) {
         $vars->{'bugid'} = $bugid;
         $vars->{'attachid'} = $old_attach_id;
-        $template->process("attachment/cancel-create-dupe.html.tmpl", $vars)
-            || ThrowTemplateError($template->error());
+        Bugzilla->template->process("attachment/cancel-create-dupe.html.tmpl", $vars)
+            || ThrowTemplateError(Bugzilla->template->error());
         exit;
     }
 
     # Check attachments the user tries to mark as obsolete.
     my @obsolete_attachments;
-    if ($cgi->param('obsolete')) {
-        my @obsolete = $cgi->param('obsolete');
+    if ($ARGS->{obsolete}) {
+        my @obsolete = $ARGS->{obsolete};
         @obsolete_attachments = Bugzilla::Attachment->validate_obsolete($bug, \@obsolete);
     }
 
-    # Must be called before create() as it may alter $cgi->param('ispatch').
     my ($content_type, $ispatch) = Bugzilla::Attachment::get_content_type();
 
-    my $data = $cgi->upload('data');
+    my $data = Bugzilla->cgi->upload('data');
     my $filename = '';
-    $filename = scalar $cgi->upload('data') || $cgi->param('filename');
-    if (scalar $cgi->param('text_attachment') !~ /^\s*$/so)
+    $filename = scalar Bugzilla->cgi->upload('data') || $ARGS->{filename};
+    if ($ARGS->{text_attachment} !~ /^\s*$/so)
     {
-        $data = $cgi->param('text_attachment');
-        $filename = $cgi->param('description');
+        $data = $ARGS->{text_attachment};
+        $filename = $ARGS->{description};
     }
 
     if (Bugzilla->params->{utf8})
@@ -535,13 +534,13 @@ sub insert
         {bug           => $bug,
          creation_ts   => $timestamp,
          data          => $data,
-         description   => scalar $cgi->param('description'),
+         description   => $ARGS->{description},
          filename      => $filename,
          ispatch       => $ispatch,
-         isprivate     => scalar $cgi->param('isprivate'),
+         isprivate     => $ARGS->{isprivate},
          mimetype      => $content_type,
-         store_in_file => scalar $cgi->param('bigfile'),
-         base64_content => scalar $cgi->param('base64_content'),
+         store_in_file => $ARGS->{bigfile},
+         base64_content => $ARGS->{base64_content},
          });
 
     foreach my $obsolete_attachment (@obsolete_attachments) {
@@ -549,7 +548,7 @@ sub insert
         $obsolete_attachment->update($timestamp);
     }
 
-    my $comment = $cgi->param('comment');
+    my $comment = $ARGS->{comment};
     $comment = '' unless defined $comment;
 
     my ($flags, $new_flags) = Bugzilla::Flag->extract_flags_from_cgi(
@@ -561,13 +560,13 @@ sub insert
     # Insert a comment about the new attachment into the database.
     $bug->add_comment($comment, { isprivate => $attachment->isprivate,
                                   type => CMT_ATTACHMENT_CREATED,
-                                  work_time => scalar $cgi->param('work_time'),
+                                  work_time => $ARGS->{work_time},
                                   extra_data => $attachment->id });
 
     # When changing the bug status, we have to follow the workflow.
     # Custis Bug 131574 - Update bug status, bug resolution, bug duplicate
-    if (defined $cgi->param('bug_status')) {
-        my $bug_status = $cgi->param('bug_status');
+    if ($ARGS->{bug_status}) {
+        my $bug_status = $ARGS->{bug_status};
         ($bug_status) = grep { $_->name eq $bug_status } @{$bug->status->can_change_to};
 
         if ($bug_status->comment_required_on_change_from($bug->status) && !$comment)
@@ -576,13 +575,13 @@ sub insert
                                              new => $bug_status });
         }
 
-        $bug->set(bug_status => scalar $cgi->param('bug_status'));
-        $bug->set(resolution => scalar $cgi->param('resolution'));
-        $bug->set(dup_id => scalar $cgi->param('dup_id'));
+        $bug->set(bug_status => $ARGS->{bug_status});
+        $bug->set(resolution => $ARGS->{resolution});
+        $bug->set(dup_id => $ARGS->{dup_id});
     }
 
     # Assign the bug to the user, if they are allowed to take it
-    if ($cgi->param('takebug'))
+    if ($ARGS->{takebug})
     {
         $bug->set('assigned_to', $user);
     }
@@ -602,7 +601,7 @@ sub insert
     # since the object was created.
     $vars->{'bugs'} = [new Bugzilla::Bug($bugid)];
     $vars->{'header_done'} = 1;
-    $vars->{'contenttypemethod'} = $cgi->param('contenttypemethod');
+    $vars->{'contenttypemethod'} = $ARGS->{contenttypemethod};
 
     Bugzilla->send_mail;
 
@@ -620,7 +619,7 @@ sub insert
     # Save operation result into session and redirect (CustIS Bug 64562)
     my $title = "Attachment ".$attachment->id." added to ".Bugzilla->messages->{terms}->{Bug}." ".$attachment->bug_id;
     Bugzilla->save_session_data({ title => $title });
-    print $cgi->redirect(-location => 'show_bug.cgi?id='.$attachment->bug_id);
+    print Bugzilla->cgi->redirect(-location => 'show_bug.cgi?id='.$attachment->bug_id);
     exit;
 }
 
@@ -629,6 +628,7 @@ sub insert
 # is private and the user does not belong to the insider group.
 # Validations are done later when the user submits changes.
 sub edit {
+    my $vars = {};
     my $attachment = validateID();
 
     my $bugattachments =
@@ -646,16 +646,18 @@ sub edit {
     $vars->{'attachments'} = $bugattachments;
 
     # Generate and return the UI (HTML page) from the appropriate template.
-    $template->process("attachment/edit.html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
+    Bugzilla->template->process("attachment/edit.html.tmpl", $vars)
+      || ThrowTemplateError(Bugzilla->template->error());
 }
 
 # Updates an attachment record. Only users with "editbugs" privileges,
 # (or the original attachment's submitter) can edit the attachment.
 # Users cannot edit the content of the attachment itself.
 sub update {
+    my $ARGS = Bugzilla->input_params;
     my $user = Bugzilla->user;
     my $dbh = Bugzilla->dbh;
+    my $vars = {};
 
     # Start a transaction in preparation for updating the attachment.
     $dbh->bz_start_transaction();
@@ -667,33 +669,34 @@ sub update {
     my $can_edit = $attachment->validate_can_edit($bug->product_id);
 
     if ($can_edit) {
-        $attachment->set_description(scalar $cgi->param('description'));
-        $attachment->set_is_patch(scalar $cgi->param('ispatch'));
-        $attachment->set_content_type(scalar $cgi->param('contenttypeentry'));
-        $attachment->set_is_obsolete(scalar $cgi->param('isobsolete'));
-        $attachment->set_is_private(scalar $cgi->param('isprivate'));
-        $attachment->set_filename(scalar $cgi->param('filename'));
+        $attachment->set_description($ARGS->{description});
+        $attachment->set_is_patch($ARGS->{ispatch});
+        $attachment->set_content_type($ARGS->{contenttypeentry});
+        $attachment->set_is_obsolete($ARGS->{isobsolete});
+        $attachment->set_is_private($ARGS->{isprivate});
+        $attachment->set_filename($ARGS->{filename});
 
         # Now make sure the attachment has not been edited since we loaded the page.
-        if (defined $cgi->param('delta_ts')
-            && $cgi->param('delta_ts') ne $attachment->modification_time)
+        if (defined $ARGS->{delta_ts}
+            && $ARGS->{delta_ts} ne $attachment->modification_time)
         {
             ($vars->{'operations'}) =
-                Bugzilla::Bug::GetBugActivity($bug->id, $attachment->id, $cgi->param('delta_ts'));
+                Bugzilla::Bug::GetBugActivity($bug->id, $attachment->id, $ARGS->{delta_ts});
 
-            # The token contains the old modification_time. We need a new one.
-            $cgi->param('token', issue_hash_token([$attachment->id, $attachment->modification_time]));
+            # The token contains the old modification_time. We need a new one for global/hidden-fields.html.tmpl
+            $ARGS->{token} = issue_hash_token([$attachment->id, $attachment->modification_time]);
 
             # If the modification date changed but there is no entry in
             # the activity table, this means someone commented only.
             # In this case, there is no reason to midair.
             if (scalar(@{$vars->{'operations'}})) {
-                $cgi->param('delta_ts', $attachment->modification_time);
+                $ARGS->{delta_ts} = $attachment->modification_time;
                 $vars->{'attachment'} = $attachment;
+                $vars->{comment} = $ARGS->{comment};
 
                 # Warn the user about the mid-air collision and ask them what to do.
-                $template->process("attachment/midair.html.tmpl", $vars)
-                  || ThrowTemplateError($template->error());
+                Bugzilla->template->process("attachment/midair.html.tmpl", $vars)
+                  || ThrowTemplateError(Bugzilla->template->error());
                 exit;
             }
         }
@@ -701,16 +704,16 @@ sub update {
 
     # We couldn't do this check earlier as we first had to validate attachment ID
     # and display the mid-air collision page if modification_time changed.
-    my $token = $cgi->param('token');
+    my $token = $ARGS->{token};
     check_hash_token($token, [$attachment->id, $attachment->modification_time]);
 
     # If the user submitted a comment while editing the attachment,
     # add the comment to the bug. Do this after having validated isprivate!
-    my $comment = $cgi->param('comment');
+    my $comment = $ARGS->{comment};
     if (defined $comment && trim($comment) ne '') {
         $bug->add_comment($comment, { isprivate => $attachment->isprivate,
                                       type => CMT_ATTACHMENT_UPDATED,
-                                      work_time => scalar $cgi->param('work_time'),
+                                      work_time => $ARGS->{work_time},
                                       extra_data => $attachment->id });
     }
 
@@ -752,12 +755,14 @@ sub update {
 
     # Save operation result into session and redirect (CustIS Bug 64562)
     Bugzilla->save_session_data;
-    print $cgi->redirect(-location => 'show_bug.cgi?id='.$attachment->bug_id);
+    print Bugzilla->cgi->redirect(-location => 'show_bug.cgi?id='.$attachment->bug_id);
     exit;
 }
 
 # Only administrators can delete attachments.
 sub delete_attachment {
+    my $ARGS = Bugzilla->input_params;
+    my $vars = {};
     my $user = Bugzilla->login(LOGIN_REQUIRED);
     my $dbh = Bugzilla->dbh;
 
@@ -776,7 +781,7 @@ sub delete_attachment {
     $attachment->datasize || ThrowUserError('attachment_removed');
 
     # We don't want to let a malicious URL accidentally delete an attachment.
-    my $token = trim($cgi->param('token'));
+    my $token = trim($ARGS->{token});
     if ($token) {
         my ($creator_id, $date, $event) = Bugzilla::Token::GetTokenData($token);
         unless ($creator_id
@@ -793,10 +798,10 @@ sub delete_attachment {
         my $msg;
         $vars->{'attachment'} = $attachment;
         $vars->{'date'} = $date;
-        $vars->{'reason'} = clean_text($cgi->param('reason') || '');
+        $vars->{'reason'} = clean_text($ARGS->{reason} || '');
 
-        $template->process("attachment/delete_reason.txt.tmpl", $vars, \$msg)
-          || ThrowTemplateError($template->error());
+        Bugzilla->template->process("attachment/delete_reason.txt.tmpl", $vars, \$msg)
+          || ThrowTemplateError(Bugzilla->template->error());
 
         # Paste the reason provided by the admin into a comment.
         $bug->add_comment($msg);
@@ -827,7 +832,7 @@ sub delete_attachment {
             description => $attachment->description,
         });
         Bugzilla->save_session_data;
-        print $cgi->redirect(-location => 'show_bug.cgi?id='.$attachment->bug_id);
+        print Bugzilla->cgi->redirect(-location => 'show_bug.cgi?id='.$attachment->bug_id);
         exit;
     }
     else {
@@ -837,18 +842,19 @@ sub delete_attachment {
         $vars->{'a'} = $attachment;
         $vars->{'token'} = $token;
 
-        $template->process("attachment/confirm-delete.html.tmpl", $vars)
-          || ThrowTemplateError($template->error());
+        Bugzilla->template->process("attachment/confirm-delete.html.tmpl", $vars)
+          || ThrowTemplateError(Bugzilla->template->error());
     }
 }
 
 # CustIS Bug 129399 - download all attachments in a single ZIP archive
 sub all_attachments_in_zip
 {
+    my $ARGS = Bugzilla->input_params;
     my $user = Bugzilla->login(LOGIN_REQUIRED);
 
     # Retrieve and validate parameters
-    my $bug = Bugzilla::Bug->check(scalar $cgi->param('bugid'));
+    my $bug = Bugzilla::Bug->check($ARGS->{bugid});
     my $bugid = $bug->id;
 
     my $attachments = Bugzilla::Attachment->get_attachments_by_bug($bugid);
@@ -870,7 +876,7 @@ sub all_attachments_in_zip
     }
     # FIXME We don't send Content-Length - is it always OK?
     # We could use IO::Scalar for it.
-    $cgi->send_header(
+    Bugzilla->cgi->send_header(
         -type => "application/zip; name=\"$filename\"",
         -content_disposition => "attachment; filename=\"$filename\""
     );

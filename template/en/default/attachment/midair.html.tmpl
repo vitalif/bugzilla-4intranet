@@ -27,9 +27,6 @@
   # attachment: object; the attachment being changed.
   #%]
 
-[%# The global Bugzilla->cgi object is used to obtain form variable values. %]
-[% cgi = Bugzilla.cgi %]
-
 [% PROCESS global/header.html.tmpl title = "Mid-air collision!" %]
 <h1>Mid-air collision detected!</h1>
 
@@ -44,11 +41,11 @@
   [% PROCESS "bug/activity/table.html.tmpl" incomplete_data=0 %]
 </p>
 
-[% IF cgi.param("comment") %]
+[% IF comment %]
 <p>
   Your comment was:<br>
   <blockquote><div class="bz_comment_text">
-    [% cgi.param("comment") FILTER quoteUrls FILTER wrap_comment %]
+    [% comment FILTER quoteUrls FILTER wrap_comment %]
   </div></blockquote>
 </p>
 [% END %]
