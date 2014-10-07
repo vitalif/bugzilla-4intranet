@@ -34,7 +34,7 @@
 [% IF added_quip %]
   <p>
     <font color="red">
-      Your quip '<tt>[% added_quip FILTER html %]</tt>' has been added.
+      Your quip '<tt>[% added_quip | html %]</tt>' has been added.
       [% IF Param("quip_list_entry_control") == "moderated" AND !user.in_group('admin') %]
         It will be used as soon as it gets approved.
       [% END %]
@@ -45,7 +45,7 @@
 [% IF deleted_quip %]
   <p>
     <font color="red">
-      The quip '<tt>[% deleted_quip FILTER html %]</tt>' has been deleted.
+      The quip '<tt>[% deleted_quip | html %]</tt>' has been deleted.
     </font>
   </p>
 [% END %]
@@ -53,7 +53,6 @@
 [% IF approved or unapproved %]
   <p>[% approved.size %] quips approved and [% unapproved.size %] quips unapproved</p>
 [% END %]
-
 
 <p>
   [% terms.Bugzilla %] will pick a random quip for the headline on each 
@@ -72,7 +71,7 @@
   <form method="post" action="quips.cgi">
     <input type="hidden" name="action" value="add">
     <input type="hidden" name="token"
-           value="[% issue_hash_token(['create-quips']) FILTER html %]">
+           value="[% issue_hash_token(['create-quips']) | html %]">
     <input size="80" name="quip">
     <p>
       <input type="submit" id="add" value="Add This Quip">
@@ -91,7 +90,7 @@
     <ul>
       [% FOREACH quipid = quipids %]
         [% NEXT IF NOT quips.$quipid.approved %]
-        <li>[% quips.$quipid.quip FILTER html %]</li>
+        <li>[% quips.$quipid.quip | html %]</li>
       [% END %]
     </ul>
   [% ELSE %]
@@ -104,40 +103,37 @@
     <form name="editform" method="post" action="quips.cgi">
       <input type="hidden" name="action" value="approve">
       <input type="hidden" name="token"
-             value="[% issue_hash_token(['approve-quips']) FILTER html %]">
-      <table border="1">
+             value="[% issue_hash_token(['approve-quips']) | html %]">
+      <table class="admin_table">
         <thead><tr>
           <th>Quip</th>
           <th>Author</th>
           <th>Action</th>
           <th>Approved</th>
         </tr></thead><tbody>
-        [% FOREACH quipid = quipids %]
-          <tr>
-            <td>[% quips.$quipid.quip FILTER html %]</td>
+        [% FOREACH quipid = quips.keys.nsort %]
+          <tr class="[% loop.index % 2 ? 'odd_row' : 'even_row' %]">
+            <td>[% quips.$quipid.quip | html %]</td>
+            <td>[% quips.$quipid.login_name || "Unknown" | html %]</td>
             <td>
-              [% userid = quips.$quipid.userid  %]
-              [% users.$userid FILTER html      %]
-              [% "Unknown" IF NOT users.$userid %]
-            </td>
-            <td>
-              <a href="quips.cgi?action=delete&amp;quipid=[% quipid FILTER url_quote %]&amp;token=
-                 [%- issue_hash_token(['quips', quipid]) FILTER url_quote %]">
+              <a href="quips.cgi?action=delete&amp;quipid=[% quipid | url_quote %]&amp;token=
+                 [%- issue_hash_token(['quips', quipid]) | url_quote %]">
                 Delete
               </a>
             </td>
             <td>
-              <input type="hidden" name="defined_quipid_[% quipid FILTER html %]"
-                     id="defined_quipid_[% quipid FILTER html %]"
+              <input type="hidden" name="defined_quipid_[% quipid | html %]"
+                     id="defined_quipid_[% quipid | html %]"
                      value="1">
-              <input type="checkbox" name="quipid_[% quipid FILTER html %]"
-                     id="quipid_[% quipid FILTER html %]"
+              <input type="checkbox" name="quipid_[% quipid | html %]"
+                     id="quipid_[% quipid | html %]"
                      [%- ' checked="checked"' IF quips.$quipid.approved %]>
             </td>
           </tr>
         [% END %]
         </tbody>
       </table>
+      <p>
       <script type="text/javascript"><!--
         var numelements = document.forms.editform.elements.length;
         function SetCheckboxes(value) {
@@ -154,8 +150,9 @@
         //--></script>
 
       <input type="submit" id="update" value="Save Changes">
+      </p>
     </form>
-    <br>
+    <br />
   [% END %]
 [% ELSE %]
   <p>

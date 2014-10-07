@@ -42,108 +42,107 @@ my $vars = {};
 my $action = $ARGS->{action} || "";
 my $token = $ARGS->{token};
 
-if ($action eq "show") {
+if ($action eq "show")
+{
     # Read in the entire quip list
-    my $quipsref = $dbh->selectall_arrayref(
-                       "SELECT quipid, userid, quip, approved FROM quips");
-
-    my $quips;
-    my @quipids;
-    foreach my $quipref (@$quipsref) {
-        my ($quipid, $userid, $quip, $approved) = @$quipref;
-        $quips->{$quipid} = {'userid' => $userid, 'quip' => $quip, 
-                             'approved' => $approved};
-        push(@quipids, $quipid);
-    }
-
-    my $users;
-    my $sth = $dbh->prepare("SELECT login_name FROM profiles WHERE userid = ?");
-    foreach my $quipid (@quipids) {
-        my $userid = $quips->{$quipid}{'userid'};
-        if ($userid && not defined $users->{$userid}) {
-            ($users->{$userid}) = $dbh->selectrow_array($sth, undef, $userid);
-        }
-    }
-    $vars->{'quipids'} = \@quipids;
-    $vars->{'quips'} = $quips;
-    $vars->{'users'} = $users;
-    $vars->{'show_quips'} = 1;
+    my $quips = $dbh->selectall_hashref(
+        "SELECT q.quipid, q.userid, q.quip, q.approved, p.login_name".
+        " FROM quips q LEFT JOIN profiles p ON p.userid=q.userid", 'quipid'
+    );
+    $vars->{quips} = $quips;
+    $vars->{show_quips} = 1;
 }
 
-if ($action eq "add") {
-    (Bugzilla->params->{'quip_list_entry_control'} eq "closed") &&
-      ThrowUserError("no_new_quips");
+if ($action eq "add")
+{
+    if (Bugzilla->params->{quip_list_entry_control} eq "closed")
+    {
+        ThrowUserError("no_new_quips");
+    }
 
-    check_hash_token($token, ['create-quips']);
-    # Add the quip 
-    my $approved = (Bugzilla->params->{'quip_list_entry_control'} eq "open")
-                   || Bugzilla->user->in_group('admin') || 0;
+    check_hash_token($token, [ 'create-quips' ]);
+
+    # Add the quip
+    my $approved = (Bugzilla->params->{quip_list_entry_control} eq "open")
+        || Bugzilla->user->in_group('admin') || 0;
     my $comment = $ARGS->{quip};
     $comment || ThrowUserError("need_quip");
     trick_taint($comment); # Used in a placeholder below
 
-    $dbh->do("INSERT INTO quips (userid, quip, approved) VALUES (?, ?, ?)",
-             undef, ($user->id, $comment, $approved));
+    $dbh->do(
+        "INSERT INTO quips (userid, quip, approved) VALUES (?, ?, ?)",
+        undef, $user->id, $comment, $approved
+    );
 
-    $vars->{'added_quip'} = $comment;
+    $vars->{added_quip} = $comment;
 }
 
-if ($action eq 'approve') {
-    $user->in_group('admin')
-      || ThrowUserError("auth_failure", {group  => "admin",
-                                         action => "approve",
-                                         object => "quips"});
+if ($action eq 'approve')
+{
+    $user->in_group('admin') || ThrowUserError("auth_failure", {
+        group  => "admin",
+        action => "approve",
+        object => "quips",
+    });
 
-    check_hash_token($token, ['approve-quips']);
+    check_hash_token($token, [ 'approve-quips' ]);
+
     # Read in the entire quip list
     my $quipsref = $dbh->selectall_arrayref("SELECT quipid, approved FROM quips");
-    
     my %quips;
-    foreach my $quipref (@$quipsref) {
+    foreach my $quipref (@$quipsref)
+    {
         my ($quipid, $approved) = @$quipref;
         $quips{$quipid} = $approved;
     }
 
     my @approved;
     my @unapproved;
-    foreach my $quipid (keys %quips) {
+    foreach my $quipid (keys %quips)
+    {
         # Must check for each quipid being defined for concurrency and
         # automated usage where only one quipid might be defined.
         my $quip = $ARGS->{"quipid_$quipid"} ? 1 : 0;
-        if (defined $ARGS->{"defined_quipid_$quipid"}) {
-            if($quips{$quipid} != $quip) {
-                if($quip) { 
-                    push(@approved, $quipid); 
-                } else { 
-                    push(@unapproved, $quipid); 
+        if (defined $ARGS->{"defined_quipid_$quipid"})
+        {
+            if ($quips{$quipid} != $quip)
+            {
+                if ($quip)
+                {
+                    push @approved, $quipid;
+                }
+                else
+                {
+                    push @unapproved, $quipid;
                 }
             }
         }
     }
-    $dbh->do("UPDATE quips SET approved = 1 WHERE quipid IN (" .
-            join(",", @approved) . ")") if($#approved > -1);
-    $dbh->do("UPDATE quips SET approved = 0 WHERE quipid IN (" .
-            join(",", @unapproved) . ")") if($#unapproved > -1);
-    $vars->{ 'approved' }   = \@approved;
-    $vars->{ 'unapproved' } = \@unapproved;
+    $dbh->do("UPDATE quips SET approved = 1 WHERE quipid IN (" . join(",", @approved) . ")") if @approved;
+    $dbh->do("UPDATE quips SET approved = 0 WHERE quipid IN (" . join(",", @unapproved) . ")") if @unapproved;
+    $vars->{approved} = \@approved;
+    $vars->{unapproved} = \@unapproved;
 }
 
-if ($action eq "delete") {
-    Bugzilla->user->in_group("admin")
-      || ThrowUserError("auth_failure", {group  => "admin",
-                                         action => "delete",
-                                         object => "quips"});
-    my $quipid = $ARGS->{quipid};
-    ThrowCodeError("need_quipid") unless $quipid =~ /(\d+)/; 
-    $quipid = $1;
-    check_hash_token($token, ['quips', $quipid]);
+if ($action eq "delete")
+{
+    Bugzilla->user->in_group("admin") || ThrowUserError("auth_failure", {
+        group  => "admin",
+        action => "delete",
+        object => "quips",
+    });
 
-    ($vars->{'deleted_quip'}) = $dbh->selectrow_array(
-                                    "SELECT quip FROM quips WHERE quipid = ?",
-                                    undef, $quipid);
+    my $quipid = $ARGS->{quipid};
+    ThrowCodeError("need_quipid") unless $quipid =~ /(\d+)/;
+    $quipid = $1;
+    check_hash_token($token, [ 'quips', $quipid ]);
+
+    ($vars->{deleted_quip}) = $dbh->selectrow_array(
+        "SELECT quip FROM quips WHERE quipid = ?", undef, $quipid
+    );
     $dbh->do("DELETE FROM quips WHERE quipid = ?", undef, $quipid);
 }
 
 $template->process("list/quips.html.tmpl", $vars)
-  || ThrowTemplateError($template->error());
+    || ThrowTemplateError($template->error());
 exit;
