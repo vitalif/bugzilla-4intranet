@@ -29,4 +29,8 @@
 
 [% PROCESS "account/prefs/group-list.html.tmpl" show_member = 0 %]
 
+[% IF allow_edit %]
+<p><a href="editgroups.cgi?action=add">Add Group</a></p>
+[% END %]
+
 [% PROCESS global/footer.html.tmpl %]
