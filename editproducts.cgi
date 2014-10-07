@@ -178,7 +178,6 @@ if ($action eq 'new')
         entryheaderhtml  => scalar $cgi->param('entryheaderhtml'),
         version          => scalar $cgi->param('version'),
         isactive         => scalar $cgi->param('is_active'),
-        create_series    => scalar $cgi->param('createseries'),
         allows_unconfirmed => scalar $cgi->param('allows_unconfirmed'),
         wiki_url         => scalar $cgi->param('wiki_url'),
         notimetracking   => scalar $cgi->param('notimetracking'),
@@ -192,6 +191,10 @@ if ($action eq 'new')
         $create_params{votestoconfirm} = $cgi->param('votestoconfirm');
     }
     my $product = Bugzilla::Product->create(\%create_params);
+
+    # Create groups and series for the new product, if requested.
+    $product->_create_bug_group() if scalar $cgi->param('makeproductgroup');
+    $product->_create_series() if scalar $cgi->param('createseries');
 
     delete_token($token);
 

@@ -46,8 +46,17 @@
       </td>
     </tr>
     <tr>
-      <th align="left">Create chart datasets:</th>
-      <td><input type="checkbox" name="createseries" value="1"></td>
+      <td colspan="2">
+        <input type="checkbox" name="createseries" id="createseries" value="1" />
+        <b><label for="createseries">Create chart datasets for this product</label></b>
+      </td>
+    </tr>
+    <tr>
+      <td colspan="2">
+        <input type="checkbox" id="makeproductgroup" name="makeproductgroup" value="1"
+          [% ' checked' IF Param('makeproductgroups') %] />
+        <b><label for="makeproductgroup">Create access group for this product</label></b>
+      </td>
     </tr>
   </table>
 

@@ -45,7 +45,7 @@ sub get_param_list {
   {
    name => 'makeproductgroups',
    type => 'b',
-   default => 0
+   default => 1
   },
 
   {

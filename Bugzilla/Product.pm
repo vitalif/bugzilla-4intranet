@@ -83,7 +83,6 @@ use constant VALIDATORS => {
     votesperuser     => \&_check_votes_per_user,
     maxvotesperbug   => \&_check_votes_per_bug,
     votestoconfirm   => \&_check_votes_to_confirm,
-    create_series    => \&Bugzilla::Object::check_boolean,
     notimetracking   => \&Bugzilla::Object::check_boolean,
     extproduct       => \&_check_extproduct,
     # CustIS Bug 38616 - CC list restriction
@@ -111,7 +110,6 @@ sub create
         $params->{classification_id} = delete $params->{classification};
     }
     my $version = delete $params->{version};
-    my $create_series = delete $params->{create_series};
 
     my $field_values = $class->run_create_validators($params);
     my $product = $class->insert_create_data($field_values);
@@ -128,10 +126,6 @@ sub create
 
     # Fill visibility values
     $product->set_visibility_values([ $product->classification_id ]);
-
-    # Create groups and series for the new product, if requested.
-    $product->_create_bug_group() if Bugzilla->params->{makeproductgroups};
-    $product->_create_series() if $create_series;
 
     Bugzilla::Hook::process('product_end_of_create', { product => $product });
 
