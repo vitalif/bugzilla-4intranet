@@ -1,5 +1,7 @@
 #!/usr/bin/perl -wT
-# Bugzilla Unsubscribe page
+# Unsubscribe from bug CC list with 1 click
+# License: Dual-license GPL 3.0+ or MPL 1.1+
+# Author(s): Vitaliy Filippov <vitalif@mail.ru>
 
 use strict;
 
@@ -16,15 +18,12 @@ use Bugzilla::Error;
 
 my $user = Bugzilla->login(LOGIN_REQUIRED);
 
-my $cgi = Bugzilla->cgi;
 my $dbh = Bugzilla->dbh;
 my $template = Bugzilla->template;
 my $vars = {};
 
-my $bugid = $cgi->param('id');
-my $bug = Bugzilla::Bug->check($bugid);
+my $bug = Bugzilla::Bug->check(Bugzilla->input_params->{id});
 
-$cgi->param('id', $bugid);
 $vars->{bug} = $bug;
 
 if (grep { $_->id == $user->id } @{$bug->cc_users})
