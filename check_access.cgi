@@ -1,5 +1,5 @@
 #!/usr/bin/perl -wT
-# Page listing users who can access a bug
+# List users who can access a bug
 # License: Dual-license GPL 3.0+ or MPL 1.1+
 # Author(s): Andrey Krasilnikov, Vitaliy Filippov
 
@@ -19,14 +19,13 @@ exit;
 
 sub viewlist
 {
-    my $cgi = Bugzilla->cgi;
     my $template = Bugzilla->template;
     my $vars = {};
 
     my $user = Bugzilla->login();
 
     # Retrieve and validate parameters
-    my $bug = Bugzilla::Bug->check(scalar $cgi->param('id'));
+    my $bug = Bugzilla::Bug->check(Bugzilla->input_params->{id});
     my $bugid = $bug->id;
     my $user_list = $bug->get_access_user_list();
 
