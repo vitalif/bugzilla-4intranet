@@ -1,6 +1,4 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -36,13 +34,13 @@ use Bugzilla::Token;
 
 my $user = Bugzilla->login(LOGIN_REQUIRED);
 
-my $cgi = Bugzilla->cgi;
 my $dbh = Bugzilla->dbh;
 my $template = Bugzilla->template;
+my $ARGS = Bugzilla->input_params;
 my $vars = {};
 
-my $action = $cgi->param('action') || "";
-my $token = $cgi->param('token');
+my $action = $ARGS->{action} || "";
+my $token = $ARGS->{token};
 
 if ($action eq "show") {
     # Read in the entire quip list
@@ -80,7 +78,7 @@ if ($action eq "add") {
     # Add the quip 
     my $approved = (Bugzilla->params->{'quip_list_entry_control'} eq "open")
                    || Bugzilla->user->in_group('admin') || 0;
-    my $comment = $cgi->param("quip");
+    my $comment = $ARGS->{quip};
     $comment || ThrowUserError("need_quip");
     trick_taint($comment); # Used in a placeholder below
 
@@ -111,8 +109,8 @@ if ($action eq 'approve') {
     foreach my $quipid (keys %quips) {
         # Must check for each quipid being defined for concurrency and
         # automated usage where only one quipid might be defined.
-        my $quip = $cgi->param("quipid_$quipid") ? 1 : 0;
-        if(defined($cgi->param("defined_quipid_$quipid"))) {
+        my $quip = $ARGS->{"quipid_$quipid"} ? 1 : 0;
+        if (defined $ARGS->{"defined_quipid_$quipid"}) {
             if($quips{$quipid} != $quip) {
                 if($quip) { 
                     push(@approved, $quipid); 
@@ -135,7 +133,7 @@ if ($action eq "delete") {
       || ThrowUserError("auth_failure", {group  => "admin",
                                          action => "delete",
                                          object => "quips"});
-    my $quipid = $cgi->param("quipid");
+    my $quipid = $ARGS->{quipid};
     ThrowCodeError("need_quipid") unless $quipid =~ /(\d+)/; 
     $quipid = $1;
     check_hash_token($token, ['quips', $quipid]);
