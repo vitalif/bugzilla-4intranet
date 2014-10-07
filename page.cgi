@@ -1,6 +1,4 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -22,8 +20,8 @@
 #
 
 ###############################################################################
-# This CGI is a general template display engine. To display templates using it,
-# put them in the "pages" subdirectory of en/default, call them
+# This script is a general template display engine. To display templates
+# using it, put them in the "pages" subdirectory of en/default, call them
 # "foo.<ctype>.tmpl" and use the URL page.cgi?id=foo.<ctype> , where <ctype> is
 # a content-type, e.g. html.
 ###############################################################################
@@ -42,15 +40,17 @@ use Bugzilla::Search::Quicksearch;
 ###############
 
 # For quicksearch.html.
-sub quicksearch_field_names {
+sub quicksearch_field_names
+{
     my $fields = Bugzilla::Search::Quicksearch::FIELD_MAP;
     my %fields_reverse;
     # Put longer names before shorter names.
     my @nicknames = sort { length($b) <=> length($a) } (keys %$fields);
-    foreach my $nickname (@nicknames) {
+    foreach my $nickname (@nicknames)
+    {
         my $db_field = $fields->{$nickname};
         $fields_reverse{$db_field} ||= [];
-        push(@{ $fields_reverse{$db_field} }, $nickname);
+        push @{ $fields_reverse{$db_field} }, $nickname;
     }
     return \%fields_reverse;
 }
@@ -61,38 +61,36 @@ sub quicksearch_field_names {
 
 Bugzilla->login();
 
-my $cgi = Bugzilla->cgi;
 my $template = Bugzilla->template;
 
-my $id = $cgi->param('id');
-if ($id) {
+my $id = Bugzilla->input_params->{id};
+if ($id)
+{
     # Be careful not to allow directory traversal.
-    if ($id =~ /\.\./) {
-        # two dots in a row is bad
+    if ($id =~ /\.\./)
+    {
         ThrowCodeError("bad_page_cgi_id", { "page_id" => $id });
     }
     # Split into name and ctype.
     $id =~ /^([\w\-\/\.]+)\.(\w+)$/;
-    if (!$2) {
+    if (!$2)
+    {
         # if this regexp fails to match completely, something bad came in
         ThrowCodeError("bad_page_cgi_id", { "page_id" => $id });
     }
 
-    my %vars = (
-        quicksearch_field_names => \&quicksearch_field_names,
-    );
-    Bugzilla::Hook::process('page_before_template',
-                            { page_id => $id, vars => \%vars });
+    my %vars = (quicksearch_field_names => \&quicksearch_field_names);
+    Bugzilla::Hook::process('page_before_template', { page_id => $id, vars => \%vars });
 
     my $format = $template->get_format("pages/$1", undef, $2);
+    Bugzilla->input_params->{id} = $id;
+    Bugzilla->cgi->send_header($format->{ctype});
 
-    $cgi->param('id', $id);
-
-    $cgi->send_header($format->{'ctype'});
-
-    $template->process("$format->{'template'}", \%vars)
-      || ThrowTemplateError($template->error());
+    $template->process($format->{template}, \%vars)
+        || ThrowTemplateError($template->error());
+    exit;
 }
-else {
-    ThrowUserError("no_page_specified");
+else
+{
+    ThrowUserError('no_page_specified');
 }
