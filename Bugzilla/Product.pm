@@ -653,11 +653,14 @@ sub _create_series
 
     foreach my $sdata (@series)
     {
-        my $series = new Bugzilla::Series(
-            undef, $self->name, get_text('series_subcategory'),
-            $sdata->[0], Bugzilla->user->id, 1,
-            $sdata->[1] . "&product=" . url_quote($self->name), 1
-        );
+        my $series = new Bugzilla::Series({
+            category => $self->name,
+            subcategory => get_text('series_subcategory'),
+            name => $sdata->[0],
+            frequency => 1,
+            query => $sdata->[1] . "&product=" . url_quote($self->name),
+            public => 1,
+        });
         $series->writeToDatabase();
     }
 }

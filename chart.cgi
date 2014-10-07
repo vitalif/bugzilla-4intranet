@@ -48,7 +48,6 @@ use lib qw(. lib);
 
 use Bugzilla;
 use Bugzilla::Constants;
-use Bugzilla::CGI;
 use Bugzilla::Error;
 use Bugzilla::Util;
 use Bugzilla::Chart;
@@ -56,13 +55,9 @@ use Bugzilla::Series;
 use Bugzilla::User;
 use Bugzilla::Token;
 
-# For most scripts we don't make $cgi and $template global variables. But
-# when preparing Bugzilla for mod_perl, this script used these
-# variables in so many subroutines that it was easier to just
-# make them globals.
-local our $cgi = Bugzilla->cgi;
 local our $template = Bugzilla->template;
 local our $vars = {};
+my $ARGS = Bugzilla->input_params;
 my $dbh = Bugzilla->dbh;
 
 my $user = Bugzilla->login(LOGIN_REQUIRED);
@@ -72,22 +67,23 @@ if (!Bugzilla->feature('new_charts')) {
 }
 
 # Go back to query.cgi if we are adding a boolean chart parameter.
-if (grep(/^cmd-/, $cgi->param())) {
-    my $params = $cgi->canonicalise_query("format", "ctype", "action");
-    print $cgi->redirect("query.cgi?format=" . $cgi->param('query_format') .
-                                               ($params ? "&$params" : ""));
+if (grep /^cmd-/, keys %$ARGS)
+{
+    delete $ARGS->{$_} for qw(format ctype action);
+    $ARGS->{format} = $ARGS->{query_format};
+    print Bugzilla->cgi->redirect('query.cgi?' . http_build_query($ARGS));
     exit;
 }
 
-my $action = $cgi->param('action');
-my $series_id = $cgi->param('series_id');
+my $action = $ARGS->{action};
+my $series_id = $ARGS->{series_id};
 $vars->{'doc_section'} = 'reporting.html#charts';
 
 # Because some actions are chosen by buttons, we can't encode them as the value
 # of the action param, because that value is localization-dependent. So, we
 # encode it in the name, as "action-<action>". Some params even contain the
 # series_id they apply to (e.g. subscribe, unsubscribe).
-my @actions = grep(/^action-/, $cgi->param());
+my @actions = grep /^action-/, keys %$ARGS;
 if ($actions[0] && $actions[0] =~ /^action-([^\d]+)(\d*)$/) {
     $action = $1;
     $series_id = $2 if $2;
@@ -97,8 +93,9 @@ $action ||= "assemble";
 
 # Go to buglist.cgi if we are doing a search.
 if ($action eq "search") {
-    my $params = $cgi->canonicalise_query("format", "ctype", "action");
-    print $cgi->redirect("buglist.cgi" . ($params ? "?$params" : ""));
+    delete $ARGS->{$_} for qw(format ctype action);
+    my $params = http_build_query($ARGS);
+    print Bugzilla->cgi->redirect("buglist.cgi" . ($params ? "?$params" : ""));
     exit;
 }
 
@@ -108,7 +105,7 @@ $user->in_group(Bugzilla->params->{"chartgroup"})
                                      object => "charts"});
 
 # Only admins may create public queries
-$user->in_group('admin') || $cgi->delete('public');
+$user->in_group('admin') || delete $ARGS->{public};
 
 # All these actions relate to chart construction.
 if ($action =~ /^(assemble|add|remove|sum|subscribe|unsubscribe)$/) {
@@ -120,7 +117,7 @@ if ($action =~ /^(assemble|add|remove|sum|subscribe|unsubscribe)$/) {
         $series->$action($user->id);
     }
 
-    my $chart = new Bugzilla::Chart($cgi);
+    my $chart = new Bugzilla::Chart($ARGS);
 
     if ($action =~ /^remove|sum$/) {
         $chart->$action(getSelectedLines());
@@ -137,7 +134,7 @@ elsif ($action eq "plot") {
 }
 elsif ($action eq "wrap") {
     # For CSV "wrap", we go straight to "plot".
-    if ($cgi->param('ctype') && $cgi->param('ctype') eq "csv") {
+    if ($ARGS->{ctype} && $ARGS->{ctype} eq "csv") {
         plot();
     }
     else {
@@ -145,20 +142,28 @@ elsif ($action eq "wrap") {
     }
 }
 elsif ($action eq "create") {
-    assertCanCreate($cgi);
-    my $token = $cgi->param('token');
-    check_hash_token($token, ['create-series']);
-    
-    my $series = new Bugzilla::Series($cgi);
+    assertCanCreate();
+    check_hash_token($ARGS->{token}, ['create-series']);
+
+    my $q = { %$ARGS };
+    delete $q->{$_} for qw(series_id category newcategory subcategory newsubcategory name frequency public);
+    my $series = new Bugzilla::Series({
+        category => $ARGS->{category},
+        subcategory => $ARGS->{subcategory},
+        name => $ARGS->{name},
+        frequency => $ARGS->{frequency},
+        public => $ARGS->{public},
+        query => http_build_query($q),
+    });
 
     ThrowUserError("series_already_exists", {'series' => $series})
-      if $series->existsInDatabase;
+        if $series->existsInDatabase;
 
     $series->writeToDatabase();
     $vars->{'message'} = "series_created";
     $vars->{'series'} = $series;
 
-    my $chart = new Bugzilla::Chart($cgi);
+    my $chart = new Bugzilla::Chart($ARGS);
     view($chart);
 }
 elsif ($action eq "edit") {
@@ -167,25 +172,30 @@ elsif ($action eq "edit") {
 }
 elsif ($action eq "alter") {
     my $series = assertCanEdit($series_id);
-    my $token = $cgi->param('token');
-    check_hash_token($token, [$series->id, $series->name]);
-    # XXX - This should be replaced by $series->set_foo() methods.
-    $series = new Bugzilla::Series($cgi);
+    check_hash_token($ARGS->{token}, [ $series->id, $series->name ]);
+
+    $series = new Bugzilla::Series($series_id);
+    $series->set_all({
+        category => $ARGS->{newcategory},
+        subcategory => $ARGS->{newsubcategory},
+        name => $ARGS->{name},
+        frequency => $ARGS->{frequency},
+        public => $ARGS->{public},
+    });
 
     # We need to check if there is _another_ series in the database with
     # our (potentially new) name. So we call existsInDatabase() to see if
     # the return value is us or some other series we need to avoid stomping
     # on.
     my $id_of_series_in_db = $series->existsInDatabase();
-    if (defined($id_of_series_in_db) && 
-        $id_of_series_in_db != $series->{'series_id'}) 
+    if (defined($id_of_series_in_db) && $id_of_series_in_db != $series->{'series_id'}) 
     {
         ThrowUserError("series_already_exists", {'series' => $series});
     }
-    
+
     $series->writeToDatabase();
     $vars->{'changes_saved'} = 1;
-    
+
     edit($series);
 }
 elsif ($action eq "confirm-delete") {
@@ -195,8 +205,7 @@ elsif ($action eq "confirm-delete") {
 }
 elsif ($action eq "delete") {
     my $series = assertCanEdit($series_id);
-    my $token = $cgi->param('token');
-    check_hash_token($token, [$series->id, $series->name]);
+    check_hash_token($ARGS->{token}, [$series->id, $series->name]);
 
     $dbh->bz_start_transaction();
 
@@ -217,7 +226,7 @@ elsif ($action eq "delete") {
     view();
 }
 elsif ($action eq "convert_search") {
-    my $saved_search = $cgi->param('series_from_search') || '';
+    my $saved_search = $ARGS->{series_from_search} || '';
     my ($query) = grep { $_->name eq $saved_search } @{ $user->queries };
     my $url = '';
     if ($query) {
@@ -226,7 +235,7 @@ elsif ($action eq "convert_search") {
         delete $params->{$_} for ('format', 'query_format');
         $url = '&amp;' . html_quote(http_build_query($params));
     }
-    print $cgi->redirect(-location => correct_urlbase() . "query.cgi?format=create-series$url");
+    print Bugzilla->cgi->redirect(-location => correct_urlbase() . "query.cgi?format=create-series$url");
 }
 else {
     ThrowCodeError("unknown_action");
@@ -236,14 +245,14 @@ exit;
 
 # Find any selected series and return either the first or all of them.
 sub getAndValidateSeriesIDs {
-    my @series_ids = grep(/^\d+$/, $cgi->param("name"));
+    my @series_ids = grep(/^\d+$/, list Bugzilla->input_params->{name});
 
     return wantarray ? @series_ids : $series_ids[0];
 }
 
 # Return a list of IDs of all the lines selected in the UI.
 sub getSelectedLines {
-    my @ids = map { /^select(\d+)$/ ? $1 : () } $cgi->param();
+    my @ids = map { /^select(\d+)$/ ? $1 : () } keys %{ Bugzilla->input_params };
 
     return @ids;
 }
@@ -265,21 +274,20 @@ sub assertCanEdit {
 
 # Check if the user is permitted to create this series with these parameters.
 sub assertCanCreate {
-    my ($cgi) = shift;
     my $user = Bugzilla->user;
 
     $user->in_group("editbugs") || ThrowUserError("illegal_series_creation");
 
     # Check permission for frequency
     my $min_freq = 7;
-    if ($cgi->param('frequency') < $min_freq && !$user->in_group("admin")) {
+    if (Bugzilla->input_params->{frequency} < $min_freq && !$user->in_group("admin")) {
         ThrowUserError("illegal_frequency", { 'minimum' => $min_freq });
     }
 }
 
 sub validateWidthAndHeight {
-    $vars->{'width'} = $cgi->param('width');
-    $vars->{'height'} = $cgi->param('height');
+    $vars->{'width'} = Bugzilla->input_params->{width};
+    $vars->{'height'} = Bugzilla->input_params->{height};
 
     if (defined($vars->{'width'})) {
        (detaint_natural($vars->{'width'}) && $vars->{'width'} > 0)
@@ -312,17 +320,19 @@ sub edit {
 
 sub plot {
     validateWidthAndHeight();
-    $vars->{'chart'} = new Bugzilla::Chart($cgi);
 
-    my $format = $template->get_format("reports/chart", "", scalar($cgi->param('ctype')));
+    my $ARGS = Bugzilla->input_params;
+    $vars->{'chart'} = new Bugzilla::Chart($ARGS);
+
+    my $format = $template->get_format("reports/chart", "", $ARGS->{ctype});
 
     # Debugging PNGs is a pain; we need to be able to see the error messages
-    if ($cgi->param('debug')) {
-        $cgi->send_header();
-        $vars->{'chart'}->dump();
+    if ($ARGS->{debug}) {
+        Bugzilla->cgi->send_header();
+        $vars->{chart}->dump();
     }
 
-    $cgi->send_header($format->{'ctype'});
+    Bugzilla->cgi->send_header($format->{'ctype'});
     disable_utf8() if ($format->{'ctype'} =~ /^image\//);
 
     $template->process($format->{'template'}, $vars)
@@ -332,13 +342,13 @@ sub plot {
 sub wrap {
     validateWidthAndHeight();
     
-    # We create a Chart object so we can validate the parameters
-    my $chart = new Bugzilla::Chart($cgi);
+    my $chart = new Bugzilla::Chart(Bugzilla->input_params);
     
     $vars->{'time'} = localtime(time());
 
-    $vars->{'imagebase'} = $cgi->canonicalise_query(
-                "action", "action-wrap", "ctype", "format", "width", "height");
+    my $q = { %{ Bugzilla->input_params } };
+    delete $q->{$_} for qw(action action-wrap ctype format width height);
+    $vars->{'imagebase'} = http_build_query($q);
 
     $template->process("reports/chart.html.tmpl", $vars)
       || ThrowTemplateError($template->error());
@@ -347,9 +357,10 @@ sub wrap {
 sub view {
     my $chart = shift;
 
+    my $ARGS = Bugzilla->input_params;
     # Set defaults
     foreach my $field ('category', 'subcategory', 'name', 'ctype') {
-        $vars->{'default'}{$field} = $cgi->param($field) || 0;
+        $vars->{'default'}{$field} = $ARGS->{$field} || 0;
     }
 
     # Pass the state object to the display UI.
@@ -358,7 +369,7 @@ sub view {
 
     # If we have having problems with bad data, we can set debug=1 to dump
     # the data structure.
-    $chart->dump() if $cgi->param('debug');
+    $chart->dump() if $ARGS->{debug};
 
     $template->process("reports/create-chart.html.tmpl", $vars)
       || ThrowTemplateError($template->error());

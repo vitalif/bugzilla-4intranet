@@ -342,10 +342,14 @@ sub _create_series
 
     foreach my $sdata (@series)
     {
-        my $series = new Bugzilla::Series(
-            undef, $self->product->name, $self->name, $sdata->[0],
-            Bugzilla->user->id, 1, $sdata->[1], 1
-        );
+        my $series = new Bugzilla::Series({
+            category => $self->product->name,
+            subcategory => $self->name,
+            name => $sdata->[0],
+            frequency => 1,
+            query => $sdata->[1],
+            public => 1,
+        });
         $series->writeToDatabase();
     }
 }

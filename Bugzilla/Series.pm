@@ -34,137 +34,78 @@ package Bugzilla::Series;
 use Bugzilla::Error;
 use Bugzilla::Util;
 
-sub new {
+sub new
+{
     my $invocant = shift;
     my $class = ref($invocant) || $invocant;
+    my ($param) = @_;
 
-    # Create a ref to an empty hash and bless it
-    my $self = {};
-    bless($self, $class);
+    my $self = bless {}, $class;
 
-    my $arg_count = scalar(@_);
-
-    # new() can return undef if you pass in a series_id and the user doesn't
-    # have sufficient permissions. If you create a new series in this way,
-    # you need to check for an undef return, and act appropriately.
-    my $retval = $self;
-
-    # There are three ways of creating Series objects. Two (CGI and Parameters)
-    # are for use when creating a new series. One (Database) is for retrieving
-    # information on existing series.
-    if ($arg_count == 1) {
-        if (ref($_[0])) {
-            # We've been given a CGI object to create a new Series from.
-            # This series may already exist - external code needs to check
-            # before it calls writeToDatabase().
-            $self->initFromCGI($_[0]);
-        }
-        else {
-            # We've been given a series_id, which should represent an existing
-            # Series.
-            $retval = $self->initFromDatabase($_[0]);
-        }
+    if ($param =~ /^(\d+)$/so)
+    {
+        # We've been given a series_id, which should represent an existing Series.
+        $self = $self->initFromDatabase($1);
     }
-    elsif ($arg_count >= 6 && $arg_count <= 8) {
-        # We've been given a load of parameters to create a new Series from.
-        # Currently, undef is always passed as the first parameter; this allows
-        # you to call writeToDatabase() unconditionally.
-        # XXX - You cannot set category_id and subcategory_id from here.
-        $self->initFromParameters(@_);
-    }
-    else {
-        die("Bad parameters passed in - invalid number of args: $arg_count");
+    else
+    {
+        $self->set_all($param);
     }
 
-    return $retval;
+    return $self;
 }
 
-sub initFromDatabase {
+sub initFromDatabase
+{
     my ($self, $series_id) = @_;
     my $dbh = Bugzilla->dbh;
     my $user = Bugzilla->user;
 
-    detaint_natural($series_id)
-      || ThrowCodeError("invalid_series_id", { 'series_id' => $series_id });
+    detaint_natural($series_id) || ThrowCodeError("invalid_series_id", { series_id => $series_id });
 
     my $grouplist = $user->groups_as_string;
 
-    my @series = $dbh->selectrow_array("SELECT series.series_id, cc1.name, " .
-        "cc2.name, series.name, series.creator, series.frequency, " .
-        "series.query, series.is_public, series.category, series.subcategory " .
-        "FROM series " .
-        "INNER JOIN series_categories AS cc1 " .
-        "    ON series.category = cc1.id " .
-        "INNER JOIN series_categories AS cc2 " .
-        "    ON series.subcategory = cc2.id " .
-        "LEFT JOIN category_group_map AS cgm " .
-        "    ON series.category = cgm.category_id " .
-        "    AND cgm.group_id NOT IN($grouplist) " .
-        "WHERE series.series_id = ? " .
-        "    AND (creator = ? OR (is_public = 1 AND cgm.category_id IS NULL))",
-        undef, ($series_id, $user->id));
+    my $rows = $dbh->selectall_arrayref(
+        "SELECT s.series_id, cc1.name category, cc2.name subcategory, s.name," .
+        " s.creator creator_id, s.frequency, s.query, s.is_public public," .
+        " s.category category_id, s.subcategory subcategory_id" .
+        " FROM series s" .
+        " INNER JOIN series_categories cc1 ON s.category = cc1.id" .
+        " INNER JOIN series_categories cc2 ON s.subcategory = cc2.id" .
+        " LEFT JOIN category_group_map cgm ON s.category = cgm.category_id" .
+        " AND cgm.group_id NOT IN ($grouplist) " .
+        " WHERE s.series_id = ? AND (s.creator = ? OR (s.is_public = 1 AND cgm.category_id IS NULL))",
+        {Slice=>{}}, $series_id, $user->id
+    );
 
-    if (@series) {
-        $self->initFromParameters(@series);
+    if (@$rows)
+    {
+        %$self = %{$rows->[0]};
         return $self;
     }
-    else {
-        return undef;
-    }
+
+    return undef;
 }
 
-sub initFromParameters {
-    # Pass undef as the first parameter if you are creating a new series.
+sub set_all
+{
     my $self = shift;
+    my ($params) = @_;
 
-    ($self->{'series_id'}, $self->{'category'},  $self->{'subcategory'},
-     $self->{'name'}, $self->{'creator_id'}, $self->{'frequency'},
-     $self->{'query'}, $self->{'public'}, $self->{'category_id'},
-     $self->{'subcategory_id'}) = @_;
-
-    # If the first parameter is undefined, check if this series already
-    # exists and update it series_id accordingly
-    $self->{'series_id'} ||= $self->existsInDatabase();
-}
-
-sub initFromCGI {
-    my $self = shift;
-    my $cgi = shift;
-
-    $self->{'series_id'} = $cgi->param('series_id') || undef;
-    if (defined($self->{'series_id'})) {
-        detaint_natural($self->{'series_id'})
-          || ThrowCodeError("invalid_series_id",
-                               { 'series_id' => $self->{'series_id'} });
+    $self->{category} = $params->{category} || ThrowUserError("missing_category");
+    $self->{subcategory} = $params->{subcategory} || ThrowUserError("missing_subcategory");
+    $self->{name} = $params->{name} || ThrowUserError("missing_name");
+    $self->{creator_id} = Bugzilla->user->id || undef;
+    $self->{frequency} = $params->{frequency};
+    detaint_natural($self->{frequency}) || ThrowUserError("missing_frequency");
+    if (exists $params->{query})
+    {
+        $self->{query} = $params->{query};
+        trick_taint($self->{query});
     }
+    $self->{public} = 1 && $params->{public};
 
-    $self->{'category'} = $cgi->param('category')
-      || $cgi->param('newcategory')
-      || ThrowUserError("missing_category");
-
-    $self->{'subcategory'} = $cgi->param('subcategory')
-      || $cgi->param('newsubcategory')
-      || ThrowUserError("missing_subcategory");
-
-    $self->{'name'} = $cgi->param('name')
-      || ThrowUserError("missing_name");
-
-    $self->{'creator_id'} = Bugzilla->user->id;
-
-    $self->{'frequency'} = $cgi->param('frequency');
-    detaint_natural($self->{'frequency'})
-      || ThrowUserError("missing_frequency");
-
-    $self->{'query'} = $cgi->canonicalise_query("format", "ctype", "action",
-                                        "category", "subcategory", "name",
-                                        "frequency", "public", "query_format");
-    trick_taint($self->{'query'});
-
-    $self->{'public'} = $cgi->param('public') ? 1 : 0;
-
-    # Change 'admin' here and in series.html.tmpl, or remove the check
-    # completely, if you want to change who can make series public.
-    $self->{'public'} = 0 unless Bugzilla->user->in_group('admin');
+    $self->{series_id} ||= $self->existsInDatabase();
 }
 
 sub writeToDatabase {

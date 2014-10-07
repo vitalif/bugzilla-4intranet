@@ -2198,9 +2198,14 @@ sub _copy_old_charts_into_database {
 
             foreach my $field (@fields) {
                 # Create a Series for each field in this product.
-                my $series = new Bugzilla::Series(undef, $product, $all_name,
-                                                  $field, undef, 1,
-                                                  $queries{$field}, 1);
+                my $series = new Bugzilla::Series({
+                    category => $product,
+                    subcategory => $all_name,
+                    name => $field,
+                    frequency => 1,
+                    query => $queries{$field},
+                    public => 1,
+                });
                 $series->writeToDatabase();
                 $seriesids{$field} = $series->{'series_id'};
             }
@@ -2209,9 +2214,14 @@ sub _copy_old_charts_into_database {
             # the same set as new products (see editproducts.cgi.)
             my @openedstatuses = ("UNCONFIRMED", "NEW", "ASSIGNED", "REOPENED");
             my $query = join("&", map { "bug_status=$_" } @openedstatuses);
-            my $series = new Bugzilla::Series(undef, $product, $all_name,
-                                              $open_name, undef, 1,
-                                              $query_prod . $query, 1);
+            my $series = new Bugzilla::Series({
+                category => $product,
+                subcategory => $all_name,
+                name => $open_name,
+                frequency => 1,
+                query => $query_prod . $query,
+                public => 1,
+            });
             $series->writeToDatabase();
             $seriesids{$open_name} = $series->{'series_id'};
 

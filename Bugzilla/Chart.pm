@@ -42,25 +42,23 @@ use List::Util qw(max);
 sub new {
     my $invocant = shift;
     my $class = ref($invocant) || $invocant;
-  
-    # Create a ref to an empty hash and bless it
-    my $self = {};
-    bless($self, $class);
+    my ($params) = @_;
 
-    if ($#_ == 0) {
-        # Construct from a CGI object.
-        $self->init($_[0]);
-    } 
-    else {
-        die("CGI object not passed in - invalid number of args \($#_\)($_)");
+    # Create a ref to an empty hash and bless it
+    my $self = bless {}, $class;
+
+    if (!$params)
+    {
+        die(__PACKAGE__ . "->new: missing parameters");
     }
+    $self->init($params);
 
     return $self;
 }
 
 sub init {
     my $self = shift;
-    my $cgi = shift;
+    my ($params) = @_;
 
     # The data structure is a list of lists (lines) of Series objects. 
     # There is a separate list for the labels.
@@ -71,10 +69,10 @@ sub init {
     # &select0=1&select3=1...    
     # &cumulate=1&datefrom=2002-02-03&dateto=2002-04-04&ctype=html...
     # &gt=1&labelgt=Grand+Total    
-    foreach my $param ($cgi->param()) {
+    foreach my $param (keys %$params) {
         # Store all the lines
         if ($param =~ /^line(\d+)$/) {
-            foreach my $series_id ($cgi->param($param)) {
+            foreach my $series_id (list $params->{$param}) {
                 detaint_natural($series_id) 
                                      || ThrowCodeError("invalid_series_id");
                 my $series = new Bugzilla::Series($series_id);
@@ -84,16 +82,16 @@ sub init {
 
         # Store all the labels
         if ($param =~ /^label(\d+)$/) {
-            $self->{'labels'}[$1] = $cgi->param($param);
+            $self->{'labels'}[$1] = $params->{$param};
         }        
     }
     
     # Store the miscellaneous metadata
-    $self->{'cumulate'} = $cgi->param('cumulate') ? 1 : 0;
-    $self->{'gt'}       = $cgi->param('gt') ? 1 : 0;
-    $self->{'labelgt'}  = $cgi->param('labelgt');
-    $self->{'datefrom'} = $cgi->param('datefrom');
-    $self->{'dateto'}   = $cgi->param('dateto');
+    $self->{'cumulate'} = $params->{cumulate} ? 1 : 0;
+    $self->{'gt'}       = $params->{gt} ? 1 : 0;
+    $self->{'labelgt'}  = $params->{labelgt};
+    $self->{'datefrom'} = $params->{datefrom};
+    $self->{'dateto'}   = $params->{dateto};
     
     # If we are cumulating, a grand total makes no sense
     $self->{'gt'} = 0 if $self->{'cumulate'};
@@ -111,8 +109,8 @@ sub init {
         $self->{'datefrom'} > $self->{'dateto'}) 
     {
           ThrowUserError("misarranged_dates", 
-                                         {'datefrom' => $cgi->param('datefrom'),
-                                          'dateto' => $cgi->param('dateto')});
+                                         {'datefrom' => $params->{datefrom},
+                                          'dateto' => $params->{dateto}});
     }    
 }
 
