@@ -799,13 +799,19 @@ sub REPORT_COLUMNS
 # This is now used only by query.cgi
 sub CHANGEDFROMTO_FIELDS
 {
-    # creation_ts, longdesc, longdescs.isprivate, commenter
-    # are treated specially and always have has_activity
-    # (see install_update_fielddefs CustIS hook)
-    my @fields = grep { $_->{name} } Bugzilla->get_fields({ has_activity => 1 });
+    # creation_ts, longdesc, longdescs.isprivate, commenter are treated specially
+    my @fields = map { {
+        id => $_->{name},
+        name => $_->{description},
+    } } Bugzilla->get_fields({ has_activity => 1 });
+    @fields = grep { $_->{id} ne 'creation_ts' && $_->{id} ne 'longdesc' } @fields;
+    push @fields, map { {
+        id => $_,
+        name => Bugzilla->messages->{field_descs}->{$_},
+    } } ('creation_ts', 'longdesc', 'commenter', Bugzilla->user->is_insider ? 'longdescs.isprivate' : ());
     if (!Bugzilla->user->is_timetracker)
     {
-        @fields = grep { !TIMETRACKING_FIELDS->{$_->name} } @fields;
+        @fields = grep { !TIMETRACKING_FIELDS->{$_->{id}} } @fields;
     }
     return \@fields;
 }
