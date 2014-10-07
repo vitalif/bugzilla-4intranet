@@ -32,30 +32,37 @@
 %]
 
 <form method="post" action="editgroups.cgi">
-  <table border="1" cellpadding="4" cellspacing="0">
-  <tr>
-    <th>New Name</th>
-    <th>New Description</th>
-    <th>New User RegExp</th>
-    <th>Use For [% terms.Bugs %]</th>
+  <table class="admin_table">
+  <tr class="odd_row">
+    <th align="left"><label for="name">New Name:</label></th>
+    <td><input size="20" id="name" name="name" /></td>
   </tr>
-  <tr>
-    <td><input size="20" name="name" /></td>
-    <td><input size="40" name="desc" /></td>
-    <td><input size="30" name="regexp" /></td>
-    <td><input type="checkbox" name="isactive" value="1" checked="checked" /></td>
+  <tr class="even_row">
+    <th align="left"><label for="desc">New Description:</label></th>
+    <td><input size="40" id="desc" name="desc" /></td>
   </tr>
-  <tr>
-    <th>Icon URL:</th>
-    <td colspan="3"><input type="text" size="70" maxlength="255" id="icon_url" name="icon_url"></td>
+  <tr class="odd_row">
+    <th align="left"><label for="regexp">New User RegExp:</label></th>
+    <td><input size="30" id="regexp" name="regexp" /></td>
+  </tr>
+  <tr class="even_row">
+    <th align="left"><label for="isactive">Use For [% terms.Bugs %]:</label></th>
+    <td><input type="checkbox" id="isactive" name="isactive" value="1" checked="checked" /></td>
+  </tr>
+  <tr class="odd_row">
+    <th align="left"><label for="icon_url">Icon URL:</label></th>
+    <td><input type="text" size="70" maxlength="255" id="icon_url" name="icon_url"></td>
   </tr>
   [% Hook.process('field') %]
   </table>
 
+  <p>
+    <input type="checkbox" id="insertnew" name="insertnew" value="1" />
+    <label for="insertnew">Associate new group with ALL existing products</label>
+  </p>
+
   <hr />
 
-  <input type="checkbox" id="insertnew" name="insertnew" value="1" />
-  <label for="insertnew">Associate new group with ALL existing products</label>
   <p>
     <input type="submit" id="create" value="Add" />
     <input type="hidden" name="action" value="new" />
