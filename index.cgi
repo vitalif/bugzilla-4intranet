@@ -1,6 +1,4 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -28,7 +26,6 @@
 # Make it harder for us to do dangerous things in Perl.
 use strict;
 
-# Include the Bugzilla CGI and general utility library.
 use lib qw(. lib);
 
 use Bugzilla;
@@ -38,35 +35,38 @@ use Bugzilla::Update;
 
 # Check whether or not the user is logged in
 my $user = Bugzilla->login(LOGIN_OPTIONAL);
-my $cgi = Bugzilla->cgi;
 my $template = Bugzilla->template;
 my $vars = {};
 
 # And log out the user if requested. We do this first so that nothing
 # else accidentally relies on the current login.
-if ($cgi->param('logout')) {
+if (Bugzilla->input_params->{logout})
+{
     Bugzilla->logout();
     $user = Bugzilla->user;
-    $vars->{'message'} = "logged_out";
+    $vars->{message} = "logged_out";
     # Make sure that templates or other code doesn't get confused about this.
-    $cgi->delete('logout');
+    delete Bugzilla->input_params->{logout};
 }
 
 ###############################################################################
 # Main Body Execution
 ###############################################################################
 
-if ($user->in_group('admin')) {
+if ($user->in_group('admin'))
+{
     # If 'urlbase' is not set, display the Welcome page.
-    unless (Bugzilla->params->{'urlbase'}) {
+    unless (Bugzilla->params->{urlbase})
+    {
         $template->process('welcome-admin.html.tmpl')
-          || ThrowTemplateError($template->error());
+            || ThrowTemplateError($template->error());
         exit;
     }
     # Inform the administrator about new releases, if any.
-    $vars->{'release'} = Bugzilla::Update::get_notifications();
+    $vars->{release} = Bugzilla::Update::get_notifications();
 }
 
 # Generate and return the UI (HTML page) from the appropriate template.
 $template->process("index.html.tmpl", $vars)
-  || ThrowTemplateError($template->error());
+    || ThrowTemplateError($template->error());
+exit;
