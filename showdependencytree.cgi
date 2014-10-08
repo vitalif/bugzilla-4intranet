@@ -32,9 +32,8 @@ use Bugzilla::Bug;
 
 use List::Util qw(max);
 
-my $user = Bugzilla->login();
-
-my $cgi = Bugzilla->cgi;
+my $user = Bugzilla->login;
+my $ARGS = Bugzilla->input_params;
 my $template = Bugzilla->template;
 my $vars = {};
 # Connect to the shadow database if this installation is using one to improve performance.
@@ -42,11 +41,11 @@ my $dbh = Bugzilla->switch_to_shadow_db();
 
 # Make sure the bug ID is a positive integer representing an existing
 # bug that the user is authorized to access.
-my $bug = Bugzilla::Bug->check(scalar $cgi->param('id'));
+my $bug = Bugzilla::Bug->check($ARGS->{id});
 my $id = $bug->id;
 
-local our $hide_resolved = $cgi->param('hide_resolved') ? 1 : 0;
-local our $maxdepth = $cgi->param('maxdepth') || 0;
+local our $hide_resolved = $ARGS->{hide_resolved} ? 1 : 0;
+local our $maxdepth = $ARGS->{maxdepth} || 0;
 $maxdepth = 0 if $maxdepth !~ /^\d+$/;
 # Stores the greatest depth to which either tree goes.
 local our $realdepth = 0;
