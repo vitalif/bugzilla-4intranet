@@ -1,6 +1,4 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -25,12 +23,12 @@ use strict;
 use lib qw(. lib);
 use Bugzilla;
 
-my $cgi = Bugzilla->cgi;
+my $ARGS = Bugzilla->input_params;
 
 # Convert comma/space separated elements into separate params
-my $buglist = $cgi->param('buglist') || $cgi->param('bug_id') || $cgi->param('id');
-my @ids = split (/[\s,]+/, $buglist);
+my $buglist = $ARGS->{buglist} || $ARGS->{bug_id} || $ARGS->{id};
+my @ids = split /[\s,]+/, $buglist;
+my $ids = join '', map { $_ = "&id=" . $_ } @ids;
 
-my $ids = join('', map { $_ = "&id=" . $_ } @ids);
-
-print $cgi->redirect("show_bug.cgi?format=multiple$ids");
+print Bugzilla->cgi->redirect("show_bug.cgi?format=multiple$ids");
+exit;
