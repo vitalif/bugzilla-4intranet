@@ -39,7 +39,7 @@ use Bugzilla::Bug;
 use Bugzilla::Attachment;
 use Bugzilla::Token;
 
-local our $cgi = Bugzilla->cgi;
+local our $ARGS = Bugzilla->input_params;
 local our $template = Bugzilla->template;
 local our $vars = {};
 
@@ -63,11 +63,11 @@ $vars = get_products_and_components($vars);
 # that variable and runs the appropriate code.
 
 # Determine whether to use the action specified by the user or the default.
-my $action = $cgi->param('action') || 'list';
-my $token  = $cgi->param('token');
+my $action = $ARGS->{action} || 'list';
+my $token  = $ARGS->{token};
 my @categoryActions;
 
-if (@categoryActions = grep(/^categoryAction-.+/, $cgi->param()))
+if (@categoryActions = grep(/^categoryAction-.+/, keys %$ARGS))
 {
     $categoryActions[0] =~ s/^categoryAction-//;
     processCategoryChange($categoryActions[0], $token);
@@ -95,12 +95,12 @@ exit;
 
 sub get_prod_comp
 {
-    my $product = scalar $cgi->param('product') || undef;
+    my $product = $ARGS->{product} || undef;
     my $component;
     if ($product)
     {
         $product = Bugzilla::Product::check_product($product);
-        $component = scalar $cgi->param('component');
+        $component = $ARGS->{component} || undef;
         $component = Bugzilla::Component->check({ product => $product, name => $component }) if $component;
     }
     return ($product, $component);
@@ -111,11 +111,11 @@ sub ft_list
     my ($product, $component) = get_prod_comp();
     my $product_id = $product ? $product->id : 0;
     my $component_id = $component ? $component->id : 0;
-    my $show_flag_counts = (defined $cgi->param('show_flag_counts')) ? 1 : 0;
+    my $show_flag_counts = $ARGS->{show_flag_counts} && 1;
 
     # Define the variables and functions that will be passed to the UI template.
-    $vars->{selected_product} = $cgi->param('product');
-    $vars->{selected_component} = $cgi->param('component');
+    $vars->{selected_product} = $ARGS->{product};
+    $vars->{selected_component} = $ARGS->{component};
 
     my $bug_flagtypes;
     my $attach_flagtypes;
@@ -146,10 +146,10 @@ sub ft_list
     else
     {
         $bug_flagtypes = Bugzilla::FlagType::match({
-            target_type => 'bug', group => scalar $cgi->param('group')
+            target_type => 'bug', group => $ARGS->{group}
         });
         $attach_flagtypes = Bugzilla::FlagType::match({
-            target_type => 'attachment', group => scalar $cgi->param('group')
+            target_type => 'attachment', group => $ARGS->{group}
         });
     }
 
@@ -183,15 +183,15 @@ sub edit
     my $target_type;
     if ($action eq 'enter')
     {
-        $target_type = scalar $cgi->param('target_type') eq 'attachment' ? 'attachment' : 'bug';
+        $target_type = $ARGS->{target_type} eq 'attachment' ? 'attachment' : 'bug';
     }
     else
     {
         $flag_type = validateID();
     }
 
-    $vars->{last_action} = $cgi->param('action');
-    if ($cgi->param('action') eq 'enter' || $cgi->param('action') eq 'copy')
+    $vars->{last_action} = $ARGS->{action};
+    if ($ARGS->{action} eq 'enter' || $ARGS->{action} eq 'copy')
     {
         $vars->{action} = "insert";
         $vars->{token} = issue_session_token('add_flagtype');
@@ -203,7 +203,7 @@ sub edit
     }
 
     # If copying or editing an existing flag type, retrieve it.
-    if ($cgi->param('action') eq 'copy' || $cgi->param('action') eq 'edit')
+    if ($ARGS->{action} eq 'copy' || $ARGS->{action} eq 'edit')
     {
         $vars->{type} = $flag_type;
     }
@@ -232,8 +232,8 @@ sub processCategoryChange
 {
     my ($categoryAction, $token) = @_;
 
-    my @inclusions = $cgi->param('inclusions');
-    my @exclusions = $cgi->param('exclusions');
+    my @inclusions = $ARGS->{inclusions};
+    my @exclusions = $ARGS->{exclusions};
     if ($categoryAction eq 'include')
     {
         my ($product, $component) = get_prod_comp();
@@ -248,12 +248,12 @@ sub processCategoryChange
     }
     elsif ($categoryAction eq 'removeInclusion')
     {
-        my %rem = map { $_ => 1 } $cgi->param('inclusion_to_remove');
+        my %rem = map { $_ => 1 } list $ARGS->{inclusion_to_remove};
         @inclusions = grep { !$rem{$_} } @inclusions;
     }
     elsif ($categoryAction eq 'removeExclusion')
     {
-        my %rem = map { $_ => 1 } $cgi->param('exclusion_to_remove');
+        my %rem = map { $_ => 1 } list $ARGS->{exclusion_to_remove};
         @exclusions = grep { !$rem{$_} } @exclusions;
     }
 
@@ -264,19 +264,19 @@ sub processCategoryChange
 
     my @groups = Bugzilla::Group->get_all;
     $vars->{groups} = \@groups;
-    $vars->{action} = $cgi->param('action');
+    $vars->{action} = $ARGS->{action};
 
     my $type = {};
-    foreach my $key ($cgi->param())
+    foreach my $key (keys %$ARGS)
     {
-        $type->{$key} = $cgi->param($key);
+        $type->{$key} = $ARGS->{$key};
     }
     # That's what I call a big hack. The template expects to see a group object.
     # This script needs some rewrite anyway.
     $type->{grant_group} = {};
-    $type->{grant_group}->{name} = $cgi->param('grant_group');
+    $type->{grant_group}->{name} = $ARGS->{grant_group};
     $type->{request_group} = {};
-    $type->{request_group}->{name} = $cgi->param('request_group');
+    $type->{request_group}->{name} = $ARGS->{request_group};
 
     $type->{inclusions} = \%inclusions;
     $type->{exclusions} = \%exclusions;
@@ -325,7 +325,7 @@ sub insert
     Bugzilla->dbh->bz_start_transaction;
 
     my $ft = Bugzilla::FlagType->create({
-        map { ($_ => scalar $cgi->param($_)) } (Bugzilla::FlagType->UPDATE_COLUMNS, 'cc_list')
+        map { ($_ => $ARGS->{$_}) } (Bugzilla::FlagType->UPDATE_COLUMNS, 'cc_list')
     });
 
     # Populate the list of inclusions/exclusions for this flag type.
@@ -356,7 +356,7 @@ sub update
     my $flag_type = validateID();
     for (Bugzilla::FlagType->UPDATE_COLUMNS, 'cc_list')
     {
-        $flag_type->set($_, scalar $cgi->param($_));
+        $flag_type->set($_, $ARGS->{$_});
     }
     $flag_type->update;
 
@@ -498,7 +498,7 @@ sub get_products_and_components
 
 sub validateID
 {
-    my $id = $cgi->param('id');
+    my $id = $ARGS->{id};
     my $flag_type = new Bugzilla::FlagType($id)
         || ThrowCodeError('flag_type_nonexistent', { id => $id });
     return $flag_type;
@@ -523,7 +523,7 @@ sub validateAndSubmit
         );
 
         $dbh->do("DELETE FROM flag$category_type WHERE type_id = ?", undef, $id);
-        foreach my $category ($cgi->param($category_type))
+        foreach my $category (list $ARGS->{$category_type})
         {
             trick_taint($category);
             my ($product_id, $component_id) = split(":", $category);
@@ -551,9 +551,9 @@ sub validateAndSubmit
 sub filter_group
 {
     my $flag_types = shift;
-    return $flag_types unless Bugzilla->cgi->param('group');
+    return $flag_types unless $ARGS->{group};
 
-    my $gid = scalar $cgi->param('group');
+    my $gid = $ARGS->{group};
     my @flag_types = grep {
         $_->grant_group && $_->grant_group->id == $gid ||
         $_->request_group && $_->request_group->id == $gid
