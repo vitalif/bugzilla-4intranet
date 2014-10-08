@@ -1,6 +1,4 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil; cperl-indent-level: 4 -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -19,7 +17,6 @@
 #                 Max Kanat-Alexander <mkanat@bugzilla.org>
 #                 Frédéric Buclin <LpSolit@gmail.com>
 
-
 use strict;
 use lib qw(. lib);
 
@@ -33,22 +30,20 @@ use Bugzilla::Token;
 my $ARGS = Bugzilla->input_params;
 my $dbh = Bugzilla->dbh;
 my $template = Bugzilla->template;
-local our $vars = {};
 
-sub LoadTemplate {
+# There is currently only one section about classifications,
+# so all pages point to it. Let's define it here.
+local our $vars = { doc_section => 'classifications.html' };
+
+sub LoadTemplate
+{
     my $action = shift;
     my $template = Bugzilla->template;
 
-    $vars->{'classifications'} = [Bugzilla::Classification->get_all] if ($action eq 'select');
-    # There is currently only one section about classifications,
-    # so all pages point to it. Let's define it here.
-    $vars->{'doc_section'} = 'classifications.html';
+    $vars->{classifications} = [ Bugzilla::Classification->get_all ] if $action eq 'select' || $action eq 'reclassify';
 
-    $action =~ /(\w+)/;
-    $action = $1;
-    $action = 'edit' if $action eq 'add';
     $template->process("admin/classifications/$action.html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
+        || ThrowTemplateError($template->error());
     exit;
 }
 
@@ -58,10 +53,11 @@ sub LoadTemplate {
 
 Bugzilla->login(LOGIN_REQUIRED);
 
-Bugzilla->user->in_group('editclassifications')
-  || ThrowUserError("auth_failure", {group  => "editclassifications",
-                                     action => "edit",
-                                     object => "classifications"});
+Bugzilla->user->in_group('editclassifications') || ThrowUserError("auth_failure", {
+    group  => "editclassifications",
+    action => "edit",
+    object => "classifications",
+});
 
 ThrowUserError("auth_classification_not_enabled")
     unless Bugzilla->get_field('classification')->enabled;
@@ -83,30 +79,30 @@ LoadTemplate('select') unless $action;
 #
 # (next action will be 'new')
 #
-
-if ($action eq 'add') {
-    $vars->{'token'} = issue_session_token('add_classification');
+if ($action eq 'add')
+{
+    $vars->{token} = issue_session_token('add_classification');
     LoadTemplate($action);
 }
 
 #
 # action='new' -> add classification entered in the 'action=add' screen
 #
-
-if ($action eq 'new') {
+if ($action eq 'new')
+{
     check_token_data($token, 'add_classification');
 
-    my $classification =
-      Bugzilla::Classification->create({name        => $class_name,
-                                        description => $ARGS->{description},
-                                        sortkey     => $ARGS->{sortkey}});
+    my $classification = Bugzilla::Classification->create({
+        name        => $class_name,
+        description => $ARGS->{description},
+        sortkey     => $ARGS->{sortkey},
+    });
 
     delete_token($token);
 
-    $vars->{'message'} = 'classification_created';
-    $vars->{'classification'} = $classification;
-    $vars->{'classifications'} = [Bugzilla::Classification->get_all];
-    $vars->{'token'} = issue_session_token('reclassify_classifications');
+    $vars->{message} = 'classification_created';
+    $vars->{classification} = $classification;
+    $vars->{token} = issue_session_token('reclassify_classifications');
     LoadTemplate('reclassify');
 }
 
@@ -115,21 +111,21 @@ if ($action eq 'new') {
 #
 # (next action would be 'delete')
 #
-
-if ($action eq 'del') {
-
+if ($action eq 'del')
+{
     my $classification = Bugzilla::Classification->check($class_name);
 
-    if ($classification->id == 1) {
+    if ($classification->id == 1)
+    {
         ThrowUserError("classification_not_deletable");
     }
-
-    if ($classification->product_count()) {
+    if ($classification->product_count())
+    {
         ThrowUserError("classification_has_products");
     }
 
-    $vars->{'classification'} = $classification;
-    $vars->{'token'} = issue_session_token('delete_classification');
+    $vars->{classification} = $classification;
+    $vars->{token} = issue_session_token('delete_classification');
 
     LoadTemplate($action);
 }
@@ -137,16 +133,16 @@ if ($action eq 'del') {
 #
 # action='delete' -> really delete the classification
 #
-
-if ($action eq 'delete') {
+if ($action eq 'delete')
+{
     check_token_data($token, 'delete_classification');
 
     my $classification = Bugzilla::Classification->check($class_name);
     $classification->remove_from_db;
     delete_token($token);
 
-    $vars->{'message'} = 'classification_deleted';
-    $vars->{'classification'} = $classification;
+    $vars->{message} = 'classification_deleted';
+    $vars->{classification} = $classification;
     LoadTemplate('select');
 }
 
@@ -155,12 +151,12 @@ if ($action eq 'delete') {
 #
 # (next action would be 'update')
 #
-
-if ($action eq 'edit') {
+if ($action eq 'edit')
+{
     my $classification = Bugzilla::Classification->check($class_name);
 
-    $vars->{'classification'} = $classification;
-    $vars->{'token'} = issue_session_token('edit_classification');
+    $vars->{classification} = $classification;
+    $vars->{token} = issue_session_token('edit_classification');
 
     LoadTemplate($action);
 }
@@ -168,8 +164,8 @@ if ($action eq 'edit') {
 #
 # action='update' -> update the classification
 #
-
-if ($action eq 'update') {
+if ($action eq 'update')
+{
     check_token_data($token, 'edit_classification');
 
     my $class_old_name = trim($ARGS->{classificationold} || '');
@@ -182,33 +178,40 @@ if ($action eq 'update') {
     my $changes = $classification->update;
     delete_token($token);
 
-    $vars->{'message'} = 'classification_updated';
-    $vars->{'classification'} = $classification;
-    $vars->{'changes'} = $changes;
+    $vars->{message} = 'classification_updated';
+    $vars->{classification} = $classification;
+    $vars->{changes} = $changes;
     LoadTemplate('select');
 }
 
 #
 # action='reclassify' -> reclassify products for the classification
 #
-
-if ($action eq 'reclassify') {
+if ($action eq 'reclassify')
+{
     my $classification = Bugzilla::Classification->check($class_name);
 
-    if (defined $ARGS->{add_products}) {
+    if (defined $ARGS->{add_products})
+    {
         check_token_data($token, 'reclassify_classifications');
-        if (defined $ARGS->{prodlist}) {
-            foreach my $prod (list $ARGS->{prodlist}) {
+        if (defined $ARGS->{prodlist})
+        {
+            foreach my $prod (list $ARGS->{prodlist})
+            {
                 my $obj = Bugzilla::Product->check($prod);
                 $obj->set_classification($classification);
                 $obj->update;
             }
         }
         delete_token($token);
-    } elsif (defined $ARGS->{remove_products}) {
+    }
+    elsif (defined $ARGS->{remove_products})
+    {
         check_token_data($token, 'reclassify_classifications');
-        if (defined $ARGS->{myprodlist}) {
-            foreach my $prod (list $ARGS->{myprodlist}) {
+        if (defined $ARGS->{myprodlist})
+        {
+            foreach my $prod (list $ARGS->{myprodlist})
+            {
                 trick_taint($prod);
                 my $obj = Bugzilla::Product->check($prod);
                 $obj->set_classification('Unclassified');
@@ -218,9 +221,8 @@ if ($action eq 'reclassify') {
         delete_token($token);
     }
 
-    $vars->{'classifications'} = [Bugzilla::Classification->get_all];
-    $vars->{'classification'} = $classification;
-    $vars->{'token'} = issue_session_token('reclassify_classifications');
+    $vars->{classification} = $classification;
+    $vars->{token} = issue_session_token('reclassify_classifications');
 
     LoadTemplate($action);
 }
@@ -228,5 +230,4 @@ if ($action eq 'reclassify') {
 #
 # No valid action found
 #
-
 ThrowCodeError("action_unrecognized", {action => $action});
