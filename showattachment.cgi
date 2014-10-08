@@ -1,6 +1,4 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -28,13 +26,12 @@ use lib qw(. lib);
 use Bugzilla;
 use Bugzilla::Util;
 
-my $cgi = Bugzilla->cgi;
-
-my $id = $cgi->param('attach_id');
+my $id = Bugzilla->input_params->{attach_id};
 detaint_natural($id) if defined $id;
 $id ||= "";
 
-print $cgi->redirect(-location=>"attachment.cgi?id=$id",
-                     -status=>'301 Permanent Redirect');
-
+print Bugzilla->cgi->redirect(
+    -location => "attachment.cgi?id=$id",
+    -status => '301 Permanent Redirect',
+);
 exit;
