@@ -115,7 +115,7 @@
       [% IF f.is_select %]
         [% SET cur_default = f.default_value_hash_for(this_value.id) %]
         <select name="default_[% f.name | html %]" id="default_[% f.name | html %]"
-          [% IF f.type == constants.FIELD_TYPE_MULTI_SELECT %] multiple size="5"[% END %]>[%# FIXME array[] %]
+          [% IF f.type == constants.FIELD_TYPE_MULTI_SELECT %] multiple size="5"[% END %]>
           <option value="">---</option>
           [% SET vs = f.value_field_id == f.default_field_id ? f.restricted_legal_values(this_value.id) : f.legal_values %]
           [%# FIXME: component/target_milestone/version product_id is taken via hardcode here %]

@@ -73,7 +73,7 @@
       <td>[% u.user.realname | html %]</td>
       <td align="center">
         [% IF u.member_direct %]
-          explicit, <input type="checkbox" id="remove_[% u.user.id %]" name="remove[]"
+          explicit, <input type="checkbox" id="remove_[% u.user.id %]" name="remove"
             value="[% u.user.id %]" /><label title="remove [% u.user.login | html %] from [% group.name | html %]"
             for="remove_[% u.user.id %]">remove</label>
         [% ELSIF u.member_regexp %]
@@ -85,7 +85,7 @@
       <td align="center">
         [% IF u.bless_direct %]
           explicit
-          [%- IF allow_bless %], <input type="checkbox" id="unbless_[% u.user.id %]" name="unbless[]"
+          [%- IF allow_bless %], <input type="checkbox" id="unbless_[% u.user.id %]" name="unbless"
             value="[% u.user.id %]" /><label title="revoke [% group.name | html %] grant permission from [% u.user.login | html %]"
             for="unbless_[% u.user.id %]">revoke</label>
           [% END %]

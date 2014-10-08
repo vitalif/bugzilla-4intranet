@@ -46,22 +46,24 @@ use Bugzilla::Flag;
 
 my $user = Bugzilla->login(LOGIN_REQUIRED);
 
-my $cgi = Bugzilla->cgi;
 my $dbh = Bugzilla->dbh;
 my $template = Bugzilla->template;
 my $vars = {};
-my $ARGS = $cgi->VarHash({
-    cc => 1,
-    (map { ($_->name => 1) } Bugzilla->get_fields({ type => FIELD_TYPE_MULTI_SELECT })),
-});
-$ARGS->{cc} = join(', ', @{$ARGS->{cc}}) if $ARGS->{cc};
+my $ARGS = Bugzilla->input_params;
+
+$ARGS->{cc} = join(', ', list $ARGS->{cc}) if $ARGS->{cc};
+$ARGS->{$_->name} = [ list $ARGS->{$_->name} ] for Bugzilla->get_fields({ type => FIELD_TYPE_MULTI_SELECT });
 
 ######################################################################
 # Main Script
 ######################################################################
 
 # redirect to enter_bug if no field is passed.
-print $cgi->redirect(correct_urlbase() . 'enter_bug.cgi') unless $cgi->param;
+unless (keys %$ARGS)
+{
+    print Bugzilla->cgi->redirect(correct_urlbase() . 'enter_bug.cgi');
+    exit;
+}
 
 # Detect if the user already used the same form to submit a bug
 my $token = trim($ARGS->{token});
@@ -89,7 +91,12 @@ Bugzilla::User::match_field({
 
 if (defined $ARGS->{maketemplate})
 {
-    $vars->{url} = $cgi->canonicalise_query('token', 'cloned_bug_id', 'cloned_comment');
+    delete $ARGS->{$_} for qw(token cloned_bug_id cloned_comment);
+    for (keys %$ARGS)
+    {
+        delete $ARGS->{$_} if $ARGS->{$_} eq '';
+    }
+    $vars->{url} = http_build_query($ARGS);
     $vars->{short_desc} = $ARGS->{short_desc};
 
     $template->process("bug/create/make-template.html.tmpl", $vars)
@@ -193,7 +200,7 @@ my $timestamp = $bug->creation_ts;
 # a version on the page.
 if (defined $ARGS->{version} && $ARGS->{version} ne '' && $bug->version)
 {
-    $cgi->send_cookie(
+    Bugzilla->cgi->send_cookie(
         -name => "VERSION-" . $bug->product,
         -value => $bug->version_obj->name,
         -expires => "Fri, 01-Jan-2038 00:00:00 GMT"
@@ -210,7 +217,7 @@ for (keys %$ARGS)
 {
     if (/^attachmulti_(.*)_([^_]*)$/so)
     {
-        if ($1 eq 'data' && $cgi->upload($_))
+        if ($1 eq 'data' && Bugzilla->cgi->upload($_))
         {
             $is_multiple = 1;
         }
@@ -221,7 +228,7 @@ if ($is_multiple)
 {
     Bugzilla::Attachment::add_multiple($bug);
 }
-elsif (defined($cgi->upload('data')) || $ARGS->{attachurl} ||
+elsif (defined(Bugzilla->cgi->upload('data')) || $ARGS->{attachurl} ||
     $ARGS->{text_attachment} || $ARGS->{base64_content})
 {
     $ARGS->{isprivate} = $ARGS->{commentprivacy};
@@ -238,7 +245,7 @@ elsif (defined($cgi->upload('data')) || $ARGS->{attachurl} ||
     {
         my $data = $ARGS->{data};
         my $filename = '';
-        $filename = scalar($cgi->upload('data')) || $ARGS->{filename};
+        $filename = scalar(Bugzilla->cgi->upload('data')) || $ARGS->{filename};
         if ($ARGS->{text_attachment} !~ /^\s*$/so)
         {
             $data = $ARGS->{text_attachment};
@@ -299,7 +306,7 @@ if (Bugzilla->usage_mode != USAGE_MODE_EMAIL)
         title => Bugzilla->messages->{terms}->{Bug}.' '.$bug->id.' Submitted – '.$bug->short_desc,
         header => Bugzilla->messages->{terms}->{Bug}.' '.$bug->id.' Submitted',
     });
-    print $cgi->redirect(-location => 'show_bug.cgi?id='.$bug->id);
+    print Bugzilla->cgi->redirect(-location => 'show_bug.cgi?id='.$bug->id);
 }
 
 $vars;

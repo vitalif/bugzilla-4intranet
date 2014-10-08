@@ -496,34 +496,6 @@ sub cookie
     return new CGI::Cookie(@param);
 }
 
-# Request variables in PHP-like format:
-# - parameters without [] are always treated as scalars, except listed as keys of %$force_array
-# - parameters with [] are always treated as arrays
-sub VarHash
-{
-    my $self = shift;
-    return $self->{_VarHash} if $self->{_VarHash};
-    my ($force_array) = @_;
-    my $args = Bugzilla->input_params;
-    my $filtered = {};
-    for my $key (keys %$args)
-    {
-        if ($key =~ /\[\]$/so)
-        {
-            $filtered->{substr $key, 0, -2} = ref $args->{$key} eq 'ARRAY' ? $args->{$key} : [ $args->{$key} ];
-        }
-        elsif ($force_array->{$key})
-        {
-            $filtered->{$key} = ref $args->{$key} eq 'ARRAY' ? $args->{$key} : [ $args->{$key} ];
-        }
-        else
-        {
-            $filtered->{$key} = ref $args->{$key} eq 'ARRAY' ? $args->{$key}->[-1] : $args->{$key};
-        }
-    }
-    return $self->{_VarHash} = $filtered;
-}
-
 1;
 
 __END__

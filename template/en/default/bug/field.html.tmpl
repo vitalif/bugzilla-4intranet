@@ -150,7 +150,6 @@
         [% IF tabindex %] tabindex="[% tabindex | html %]"[% END %]
         name="[% field.name | html %]"
         [% IF field.type == constants.FIELD_TYPE_MULTI_SELECT %]
-          [% # FIXME array[] when $cgi->VarHash will be used everywhere %]
           [% SET field_size = 5 %]
           [% IF field.legal_values.size < 5 %]
             [% SET field_size = field.legal_values.size %]
@@ -219,7 +218,7 @@
           [% IF editable %]
             <label><input type="checkbox" value="[% url | html %]"
               [% IF tabindex %] tabindex="[% tabindex | html %]"[% END %]
-              name="remove_[% field.name | html %]" />Remove</label> [% # FIXME array[] when $cgi->VarHash will be used everywhere %]
+              name="remove_[% field.name | html %]" />Remove</label>
           [% END %]
         </li>
       [% END %]

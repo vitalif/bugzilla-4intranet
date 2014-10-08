@@ -57,13 +57,10 @@ my $user = Bugzilla->login(LOGIN_REQUIRED);
 my $cloned_bug;
 my $cloned_bug_id;
 
-my $cgi = Bugzilla->cgi;
 my $dbh = Bugzilla->dbh;
 my $template = Bugzilla->template;
 my $vars = {};
-my $ARGS = $cgi->VarHash({
-    (map { ($_->name => 1) } grep { $_->type == FIELD_TYPE_MULTI_SELECT } Bugzilla->active_custom_fields),
-});
+my $ARGS = Bugzilla->input_params;
 
 # All pages point to the same part of the documentation.
 $vars->{doc_section} = 'bugreports.html';
@@ -191,7 +188,7 @@ foreach my $field (Bugzilla->active_custom_fields)
     my $cf_value = $ARGS->{$cf_name};
     if (defined $cf_value)
     {
-        $default{$cf_name} = $cf_value;
+        $default{$cf_name} = $field->type == FIELD_TYPE_MULTI_SELECT ? [ list $cf_value ] : $cf_value;
     }
     elsif ($field->default_value && !$field->is_select)
     {
@@ -343,7 +340,7 @@ else
 #
 # Eventually maybe each product should have a "current version"
 # parameter.
-my $vercookie = $cgi->cookie('VERSION-' . $product->name);
+my $vercookie = Bugzilla->cookies->{'VERSION-' . $product->name};
 if ($cloned_bug_id && $product->name eq $cloned_bug->product)
 {
     $default{version} = $cloned_bug->version && $cloned_bug->version_obj->name;
@@ -457,7 +454,7 @@ $vars->{default} = \%default;
 
 my $format = $template->get_format('bug/create/create', $ARGS->{format}, $ARGS->{ctype});
 
-$cgi->send_header($format->{ctype});
+Bugzilla->cgi->send_header($format->{ctype});
 $template->process($format->{template}, $vars)
     || ThrowTemplateError($template->error());
 exit;

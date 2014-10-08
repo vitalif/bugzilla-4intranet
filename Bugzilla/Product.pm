@@ -1118,9 +1118,10 @@ sub choose_product
     ThrowUserError('no_products') unless @$products;
     return $products->[0] if @$products == 1;
 
-    delete $query_params->{classification};
-    $query_params = http_build_query($query_params);
-    $query_params .= '&' if length $query_params;
+    my $qp = { %$query_params };
+    delete $qp->{classification};
+    $qp = http_build_query($qp);
+    $qp .= '&' if length $qp;
     if (!$target)
     {
         $target = $ENV{REQUEST_URI};
@@ -1129,7 +1130,7 @@ sub choose_product
     }
     my $vars = {
         target => $target,
-        query_params => $query_params,
+        query_params => $qp,
     };
     if (Bugzilla->get_field('classification')->enabled)
     {

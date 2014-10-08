@@ -31,7 +31,7 @@ use Bugzilla::Bug;
 
 my $template = Bugzilla->template;
 my $vars = {};
-my $ARGS = Bugzilla->cgi->VarHash({ id => 1, excludefield => 1, field => 1, includefield => 1 });
+my $ARGS = Bugzilla->input_params;
 my $user = Bugzilla->login;
 
 # Editable, 'single' HTML bugs are treated slightly specially in a few places
@@ -58,7 +58,7 @@ Bugzilla->switch_to_shadow_db unless $user->id;
 
 if ($single)
 {
-    my ($id) = @{$ARGS->{id}};
+    my ($id) = list $ARGS->{id};
     push @bugs, Bugzilla::Bug->check($id);
     if (defined $ARGS->{mark})
     {
@@ -81,7 +81,7 @@ if ($single)
 else
 {
     my @errors;
-    foreach my $id (@{$ARGS->{id}})
+    foreach my $id (list $ARGS->{id})
     {
         # Be kind enough and accept URLs of the form: id=1,2,3.
         my @ids = split /,/, $id;
@@ -134,7 +134,7 @@ foreach (@fieldlist)
     $displayfields{$_} = 1;
 }
 
-foreach (@{$ARGS->{excludefield} || []})
+foreach (list $ARGS->{excludefield})
 {
     $displayfields{$_} = undef;
 }
@@ -142,7 +142,7 @@ foreach (@{$ARGS->{excludefield} || []})
 # CustIS Bug 70168
 if ($ARGS->{includefield} || $ARGS->{field})
 {
-    %displayfields = map { $_ => 1 } grep { $displayfields{$_} } @{$ARGS->{includefield} || $ARGS->{field}};
+    %displayfields = map { $_ => 1 } grep { $displayfields{$_} } list($ARGS->{includefield} || $ARGS->{field});
 }
 
 $vars->{displayfields} = \%displayfields;

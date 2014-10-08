@@ -70,7 +70,6 @@ my $dbh = Bugzilla->dbh;
 my $template = Bugzilla->template;
 my $vars = {};
 my $ARGS = Bugzilla->input_params;
-#my $ARGS = $cgi->VarHash; # FIXME (see lines with "FIXME array[]")
 
 ######################################################################
 # Begin Data/Security Validation
@@ -83,7 +82,7 @@ $dbh->bz_start_transaction();
 my @bug_objects;
 if ($ARGS->{id})
 {
-    ($ARGS->{id}) = @{$ARGS->{id}} if ref $ARGS->{id}; # FIXME array[]
+    ($ARGS->{id}) = @{$ARGS->{id}} if ref $ARGS->{id};
     my $bug = Bugzilla::Bug->check({ id => $ARGS->{id}, for_update => 1 });
     $ARGS->{id} = $bug->id;
     push @bug_objects, $bug;
@@ -128,8 +127,8 @@ if ($ARGS->{dontchange})
 # do a match on the fields if applicable
 Bugzilla::User::match_field({
     'qa_contact'  => { type => 'single' },
-    'newcc'       => { type => 'multi'  }, # FIXME array[]
-    'masscc'      => { type => 'multi'  }, # FIXME array[]
+    'newcc'       => { type => 'multi'  },
+    'masscc'      => { type => 'multi'  },
     'assigned_to' => { type => 'single' },
 });
 
@@ -436,7 +435,7 @@ foreach my $b (@bug_objects)
         my @see_also = split ',', $ARGS->{see_also};
         $b->add_see_also($_) foreach @see_also;
     }
-    if (defined $ARGS->{remove_see_also}) # FIXME array[]
+    if (defined $ARGS->{remove_see_also})
     {
         $b->remove_see_also($_) foreach ref $ARGS->{remove_see_also} ? @{$ARGS->{remove_see_also}} : $ARGS->{remove_see_also};
     }
@@ -445,7 +444,7 @@ foreach my $b (@bug_objects)
     foreach my $field (@custom_fields)
     {
         my $fname = $field->name;
-        if (defined $ARGS->{$fname} || defined $ARGS->{"defined_$fname"}) # FIXME array[] for multiselects
+        if (defined $ARGS->{$fname} || defined $ARGS->{"defined_$fname"})
         {
             $b->set($fname, $ARGS->{$fname});
         }
@@ -526,10 +525,10 @@ if ($ARGS->{newcc} || $ARGS->{addselfcc} || $ARGS->{removecc} || $ARGS->{masscc}
     }
     else
     {
-        $cc_add = ref $ARGS->{newcc} ? join(', ', @{$ARGS->{newcc}}) : $ARGS->{newcc}; # FIXME array[]
+        $cc_add = ref $ARGS->{newcc} ? join(', ', @{$ARGS->{newcc}}) : $ARGS->{newcc};
         # We came from bug_form which uses a select box to determine what cc's
         # need to be removed...
-        if (defined $ARGS->{removecc} && $ARGS->{cc}) # FIXME array[]
+        if (defined $ARGS->{removecc} && $ARGS->{cc})
         {
             $cc_remove = ref $ARGS->{cc} ? join(', ', @{$ARGS->{cc}}) : $ARGS->{cc};
         }

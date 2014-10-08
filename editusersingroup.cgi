@@ -14,7 +14,7 @@ use Bugzilla::User;
 use Bugzilla::Util;
 use Bugzilla::Token;
 
-my $ARGS = Bugzilla->cgi->VarHash;
+my $ARGS = Bugzilla->input_params;
 my $user = Bugzilla->login(LOGIN_REQUIRED);
 my $vars;
 
@@ -41,8 +41,8 @@ Bugzilla::User::match_field({
 
 my @add_members = split /[\s,]+/, $ARGS->{add_members};
 my @add_bless = $vars->{allow_bless} ? (split /[\s,]+/, $ARGS->{add_bless}) : ();
-my @rm_members = @{$ARGS->{remove} || []};
-my @rm_bless = $vars->{allow_bless} ? @{$ARGS->{unbless} || []} : ();
+my @rm_members = list $ARGS->{remove};
+my @rm_bless = $vars->{allow_bless} ? list $ARGS->{unbless} : ();
 
 if (@add_members || @add_bless || @rm_members || @rm_bless)
 {

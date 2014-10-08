@@ -225,7 +225,7 @@ sub url_quote_noslash
     return $toencode;
 }
 
-# http_build_query($hashref), like PHP's one
+# http_build_query($hashref) - transforms a parameter hash into URL-encoded query string
 sub http_build_query($)
 {
     my ($query) = @_;

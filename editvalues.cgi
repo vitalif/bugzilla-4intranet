@@ -29,9 +29,8 @@ use Bugzilla::Field::Choice;
 Bugzilla->login(LOGIN_REQUIRED);
 
 my $dbh      = Bugzilla->dbh;
-my $cgi      = Bugzilla->cgi;
 my $template = Bugzilla->template;
-my $ARGS     = $cgi->VarHash;
+my $ARGS     = Bugzilla->input_params;
 my $vars     = {};
 
 Bugzilla->user->in_group('editvalues')
@@ -101,7 +100,7 @@ if ($action eq 'new')
         map { $_ => $ARGS->{$_} }
         grep { defined $ARGS->{$_} } ($type->DB_COLUMNS, $type->REQUIRED_CREATE_FIELDS)
     });
-    $created_value->set_visibility_values($ARGS->{visibility_value_id});
+    $created_value->set_visibility_values([ list $ARGS->{visibility_value_id} ]);
 
     delete_token($token);
 
@@ -166,7 +165,7 @@ if ($action eq 'update')
     }
     if ($value->field->value_field)
     {
-        $vars->{changes}->{visibility_values} = $value->set_visibility_values($ARGS->{visibility_value_id});
+        $vars->{changes}->{visibility_values} = $value->set_visibility_values([ list $ARGS->{visibility_value_id} ]);
     }
     $vars->{changes}->{control_lists} = 1 if $field->update_control_lists($value->id, $ARGS);
     delete_token($token);
