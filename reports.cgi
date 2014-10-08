@@ -48,8 +48,8 @@ use Digest::MD5 qw(md5_hex);
 
 # If we're using bug groups for products, we should apply those restrictions
 # to viewing reports, as well.  Time to check the login in that case.
+my $ARGS = Bugzilla->input_params;
 my $user = Bugzilla->login;
-my $cgi = Bugzilla->cgi;
 my $template = Bugzilla->template;
 my $vars = {};
 
@@ -61,7 +61,7 @@ if (!Bugzilla->feature('old_charts'))
 my $dir       = bz_locations()->{datadir} . "/mining";
 my $graph_dir = bz_locations()->{graphsdir};
 my $graph_url = basename($graph_dir);
-my $product_name = $cgi->param('product') || '';
+my $product_name = $ARGS->{product} || '';
 
 Bugzilla->switch_to_shadow_db();
 
@@ -104,7 +104,7 @@ else
     my $prod_id = $product ? $product->id : 0;
 
     # Make sure there is something to plot.
-    my @datasets = $cgi->param('datasets');
+    my @datasets = $ARGS->{datasets};
     @datasets || ThrowUserError('missing_datasets');
 
     if (grep { $_ !~ /^[A-Za-z0-9:_-]+$/ } @datasets)
@@ -134,7 +134,7 @@ else
 
     $vars->{url_image} = "$graph_url/$image_file";
 
-    $cgi->send_header(-Content_Disposition => 'inline; filename=bugzilla_report.html');
+    Bugzilla->cgi->send_header(-Content_Disposition => 'inline; filename=bugzilla_report.html');
 }
 
 $template->process('reports/old-charts.html.tmpl', $vars)
