@@ -17,8 +17,8 @@ use Bugzilla::Status;
 use Bugzilla::Util;
 use Bugzilla::Constants;
 
-my $cgi = Bugzilla->cgi;
-my $id = $cgi->param('id');
+my $ARGS = Bugzilla->input_params;
+my $id = $ARGS->{id};
 
 # FIXME requirelogin=0: ugly hack :(
 Bugzilla->params->{requirelogin} = 0;
@@ -26,7 +26,7 @@ my $user = Bugzilla->login(LOGIN_NORMAL);
 
 my $bug = Bugzilla::Bug->new($id);
 my $str;
-my $format = lc $cgi->param('format') || 'short';
+my $format = lc $ARGS->{format} || 'short';
 if (!$bug)
 {
     $str = "Bug $id не существует";
@@ -58,7 +58,7 @@ else
 }
 
 # GD-говнокод
-my $size = $cgi->param('fontsize');
+my $size = $ARGS->{fontsize};
 my $qual = 1;
 $size = Bugzilla->params->{graph_font_size} || 9 if !$size || $size > 25;
 $size *= 2 if $qual;
@@ -103,7 +103,7 @@ if ($qual)
     $gdi = $i2;
 }
 
-$cgi->header('image/png');
+Bugzilla->cgi->header('image/png');
 binmode STDOUT;
 print $gdi->png;
 exit;
