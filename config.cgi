@@ -1,6 +1,4 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -22,11 +20,6 @@
 #                 Myk Melez <myk@mozilla.org>
 #                 Frank Becker <Frank@Frank-Becker.de>
 
-################################################################################
-# Script Initialization
-################################################################################
-
-# Make it harder for us to do dangerous things in Perl.
 use strict;
 
 use lib qw(. lib);
@@ -46,7 +39,8 @@ my $user = Bugzilla->login(LOGIN_OPTIONAL);
 
 # If the 'requirelogin' parameter is on and the user is not
 # authenticated, return empty fields.
-if (Bugzilla->params->{'requirelogin'} && !$user->id) {
+if (Bugzilla->params->{requirelogin} && !$user->id)
+{
     display_data();
 }
 
@@ -55,40 +49,46 @@ Bugzilla->switch_to_shadow_db;
 
 # Pass a bunch of Bugzilla configuration to the templates.
 my $vars = {};
-$vars->{'priority'}  = Bugzilla->get_field('priority')->legal_value_names;
-$vars->{'severity'}  = Bugzilla->get_field('bug_severity')->legal_value_names;
-$vars->{'platform'}  = Bugzilla->get_field('rep_platform')->legal_value_names if Bugzilla->get_field('rep_platform')->enabled;
-$vars->{'op_sys'}    = Bugzilla->get_field('op_sys')->legal_value_names if Bugzilla->get_field('op_sys')->enabled;
-$vars->{'keyword'}    = [map($_->name, Bugzilla::Keyword->get_all)];
-$vars->{'resolution'} = Bugzilla->get_field('resolution')->legal_value_names;
-$vars->{'status'}    = Bugzilla->get_field('bug_status')->legal_value_names;
-$vars->{'custom_fields'} =
-    [ grep {$_->is_select} Bugzilla->active_custom_fields ];
+$vars->{priority}   = Bugzilla->get_field('priority')->legal_value_names;
+$vars->{severity}   = Bugzilla->get_field('bug_severity')->legal_value_names;
+$vars->{platform}   = Bugzilla->get_field('rep_platform')->legal_value_names if Bugzilla->get_field('rep_platform')->enabled;
+$vars->{op_sys}     = Bugzilla->get_field('op_sys')->legal_value_names if Bugzilla->get_field('op_sys')->enabled;
+$vars->{keyword}    = [ map($_->name, Bugzilla::Keyword->get_all) ];
+$vars->{resolution} = Bugzilla->get_field('resolution')->legal_value_names;
+$vars->{status}     = Bugzilla->get_field('bug_status')->legal_value_names;
+$vars->{custom_fields} = [ grep { $_->is_select } Bugzilla->active_custom_fields ];
 
 # Include a list of product objects.
-if ($ARGS->{product}) {
-    foreach my $product_name (list $ARGS->{product}) {
+if ($ARGS->{product})
+{
+    foreach my $product_name (list $ARGS->{product})
+    {
         # We don't use check_product because config.cgi outputs mostly
         # in XML and JS and we don't want to display an HTML error
         # instead of that.
         my $product = new Bugzilla::Product({ name => $product_name });
-        if ($product && $user->can_see_product($product->name)) {
-            push (@{$vars->{'products'}}, $product);
+        if ($product && $user->can_see_product($product->name))
+        {
+            push @{$vars->{products}}, $product;
         }
     }
-} else {
-    $vars->{'products'} = $user->get_selectable_products;
+}
+else
+{
+    $vars->{products} = $user->get_selectable_products;
 }
 
-Bugzilla::Product::preload($vars->{'products'});
+Bugzilla::Product::preload($vars->{products});
 
 # Allow consumers to specify whether or not they want flag data.
-if (defined $ARGS->{flags}) {
-    $vars->{'show_flags'} = $ARGS->{flags} && 1;
+if (defined $ARGS->{flags})
+{
+    $vars->{show_flags} = $ARGS->{flags} && 1;
 }
-else {
+else
+{
     # We default to sending flag data.
-    $vars->{'show_flags'} = 1;
+    $vars->{show_flags} = 1;
 }
 
 # Create separate lists of open versus resolved statuses.
@@ -98,8 +98,8 @@ foreach my $status (@{ Bugzilla->get_field('bug_status')->legal_values })
 {
     $status->is_open ? push(@open_status, $status->name) : push(@closed_status, $status->name);
 }
-$vars->{'open_status'} = \@open_status;
-$vars->{'closed_status'} = \@closed_status;
+$vars->{open_status} = \@open_status;
+$vars->{closed_status} = \@closed_status;
 
 # Generate a list of fields that can be queried.
 my @fields = Bugzilla->get_fields({obsolete => 0});
@@ -108,12 +108,13 @@ if (!Bugzilla->user->is_timetracker)
 {
     @fields = grep { !TIMETRACKING_FIELDS->{$_->name} } @fields;
 }
-$vars->{'field'} = \@fields;
+$vars->{field} = \@fields;
 
 display_data($vars);
 exit;
 
-sub display_data {
+sub display_data
+{
     my $vars = shift;
 
     my $ARGS = Bugzilla->input_params;
@@ -125,8 +126,8 @@ sub display_data {
 
     # Generate the configuration data.
     my $output;
-    $template->process($format->{'template'}, $vars, \$output)
-      || ThrowTemplateError($template->error());
+    $template->process($format->{template}, $vars, \$output)
+        || ThrowTemplateError($template->error());
 
     # Wide characters cause md5_base64() to die.
     my $digest_data = $output;
@@ -136,27 +137,35 @@ sub display_data {
     # ETag support.
     my $if_none_match = Bugzilla->cgi->http('If-None-Match') || "";
     my $found304;
-    my @if_none = split(/[\s,]+/, $if_none_match);
-    foreach my $if_none (@if_none) {
+    my @if_none = split /[\s,]+/, $if_none_match;
+    foreach my $if_none (@if_none)
+    {
         # remove quotes from begin and end of the string
         $if_none =~ s/^\"//g;
         $if_none =~ s/\"$//g;
-        if ($if_none eq $digest or $if_none eq '*') {
+        if ($if_none eq $digest || $if_none eq '*')
+        {
             # leave the loop after the first match
             $found304 = $if_none;
             last;
         }
     }
 
-    if ($found304) {
-        Bugzilla->cgi->send_header(-type => 'text/html',
-                           -ETag => $found304,
-                           -status => '304 Not Modified');
+    if ($found304)
+    {
+        Bugzilla->cgi->send_header(
+            -type => 'text/html',
+            -ETag => $found304,
+            -status => '304 Not Modified',
+        );
     }
-    else {
+    else
+    {
         # Return HTTP headers.
-        Bugzilla->cgi->send_header (-ETag => $digest,
-                            -type => $format->{'ctype'});
+        Bugzilla->cgi->send_header(
+            -ETag => $digest,
+            -type => $format->{ctype},
+        );
         print $output;
     }
 }
