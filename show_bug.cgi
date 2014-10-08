@@ -26,6 +26,7 @@ use Bugzilla;
 use Bugzilla::Constants;
 use Bugzilla::Error;
 use Bugzilla::User;
+use Bugzilla::Util;
 use Bugzilla::Keyword;
 use Bugzilla::Bug;
 

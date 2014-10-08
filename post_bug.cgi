@@ -52,7 +52,6 @@ my $vars = {};
 my $ARGS = Bugzilla->input_params;
 
 $ARGS->{cc} = join(', ', list $ARGS->{cc}) if $ARGS->{cc};
-$ARGS->{$_->name} = [ list $ARGS->{$_->name} ] for Bugzilla->get_fields({ type => FIELD_TYPE_MULTI_SELECT });
 
 ######################################################################
 # Main Script
@@ -78,7 +77,7 @@ if ($old_bug_id)
     $vars->{new_token} = issue_session_token('createbug:');
 
     $template->process('bug/create/confirm-create-dupe.html.tmpl', $vars)
-       || ThrowTemplateError($template->error);
+        || ThrowTemplateError($template->error);
     exit;
 }
 
