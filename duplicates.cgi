@@ -1,6 +1,4 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -18,7 +16,7 @@
 # Copyright (C) 1998 Netscape Communications Corporation. All
 # Rights Reserved.
 #
-# Contributor(s): 
+# Contributor(s):
 #   Gervase Markham <gerv@gerv.net>
 #   Max Kanat-Alexander <mkanat@bugzilla.org>
 
@@ -60,22 +58,26 @@ use constant DEFAULTS => {
 # bug_id to another. We go through the duplicates map ($dups) and if one bug
 # in $count is a duplicate of another bug in $count, we add their counts
 # together under the target bug.
-sub add_indirect_dups {
+sub add_indirect_dups
+{
     my ($counts, $dups) = @_;
-
-    foreach my $add_from (keys %$dups) {
+    foreach my $add_from (keys %$dups)
+    {
         my $add_to     = walk_dup_chain($dups, $add_from);
         my $add_amount = delete $counts->{$add_from} || 0;
         $counts->{$add_to} += $add_amount;
     }
 }
 
-sub walk_dup_chain {
+sub walk_dup_chain
+{
     my ($dups, $from_id) = @_;
     my $to_id = $dups->{$from_id};
     my %seen;
-    while (my $bug_id = $dups->{$to_id}) {
-        if ($seen{$bug_id}) {
+    while (my $bug_id = $dups->{$to_id})
+    {
+        if ($seen{$bug_id})
+        {
             warn "Duplicate loop: $to_id -> $bug_id\n";
             last;
         }
@@ -87,15 +89,18 @@ sub walk_dup_chain {
     return $to_id;
 }
 
-sub sort_duplicates {
+sub sort_duplicates
+{
     my ($a, $b, $sort_by) = @_;
-    if ($sort_by eq 'count' or $sort_by eq 'delta') {
+    if ($sort_by eq 'count' or $sort_by eq 'delta')
+    {
         return $a->{$sort_by} <=> $b->{$sort_by};
     }
-    if ($sort_by =~ /^(bug_)?id$/) {
-        return $a->{'bug'}->$sort_by <=> $b->{'bug'}->$sort_by;
+    if ($sort_by =~ /^(bug_)?id$/)
+    {
+        return $a->{bug}->$sort_by <=> $b->{bug}->$sort_by;
     }
-    return $a->{'bug'}->$sort_by cmp $b->{'bug'}->$sort_by;
+    return $a->{bug}->$sort_by cmp $b->{bug}->$sort_by;
 }
 
 ###############
@@ -112,24 +117,22 @@ my $changedsince = $ARGS->{changedsince} || DEFAULTS->{changedsince};
 my $maxrows = $ARGS->{maxrows} || DEFAULTS->{maxrows};
 my $openonly = $ARGS->{openonly} || DEFAULTS->{openonly};
 my $sortby = $ARGS->{sortby} || DEFAULTS->{sortby};
-if (!grep(lc($_) eq lc($sortby), qw(count delta id))) {
+if (!grep(lc($_) eq lc($sortby), qw(count delta id)))
+{
     Bugzilla->get_field($sortby, THROW_ERROR);
 }
 my $reverse = $ARGS->{reverse} || DEFAULTS->{reverse};
 # Reverse count and delta by default.
-if (!defined $reverse) {
-    if ($sortby eq 'count' or $sortby eq 'delta') {
-        $reverse = 1;
-    }
-    else {
-        $reverse = 0;
-    }
+if (!defined $reverse)
+{
+    $reverse = $sortby eq 'count' || $sortby eq 'delta' ? 1 : 0;
 }
 my @query_products = $ARGS->{product};
 my $sortvisible = $ARGS->{sortvisible} || DEFAULTS->{sortvisible};
 my @bugs;
-if ($sortvisible) {
-    my @limit_to_ids = (split(/[:,]/, $ARGS->{bug_id} || ''));
+if ($sortvisible)
+{
+    my @limit_to_ids = split(/[:,]/, $ARGS->{bug_id} || '');
     @bugs = @{ Bugzilla::Bug->new_from_list(\@limit_to_ids) };
     @bugs = @{ $user->visible_bugs(\@bugs) };
 }
@@ -141,51 +144,50 @@ if ($sortvisible) {
 $sortby = "count" if $sortby eq "dup_count";
 
 my $origmaxrows = $maxrows;
-detaint_natural($maxrows)
-  || ThrowUserError("invalid_maxrows", { maxrows => $origmaxrows});
+detaint_natural($maxrows) || ThrowUserError("invalid_maxrows", { maxrows => $origmaxrows });
 
 my $origchangedsince = $changedsince;
-detaint_natural($changedsince)
-  || ThrowUserError("invalid_changedsince", 
-                    { changedsince => $origchangedsince });
+detaint_natural($changedsince) || ThrowUserError("invalid_changedsince", { changedsince => $origchangedsince });
 
 my %total_dups = @{$dbh->selectcol_arrayref(
-    "SELECT dupe_of, COUNT(dupe)
-       FROM duplicates
-   GROUP BY dupe_of", {Columns => [1,2]})};
+    "SELECT dupe_of, COUNT(dupe) FROM duplicates GROUP BY dupe_of",
+    {Columns => [1,2]}
+)};
 
 my %dupe_relation = @{$dbh->selectcol_arrayref(
-    "SELECT dupe, dupe_of FROM duplicates
-      WHERE dupe IN (SELECT dupe_of FROM duplicates)",
-    {Columns => [1,2]})};
+    "SELECT dupe, dupe_of FROM duplicates WHERE dupe IN (SELECT dupe_of FROM duplicates)",
+    {Columns => [1,2]}
+)};
 add_indirect_dups(\%total_dups, \%dupe_relation);
 
 my $reso_field_id = Bugzilla->get_field('resolution')->id;
 my %since_dups = @{$dbh->selectcol_arrayref(
-    "SELECT dupe_of, COUNT(dupe)
-       FROM duplicates INNER JOIN bugs_activity 
-                       ON bugs_activity.bug_id = duplicates.dupe 
-      WHERE added = ? AND fieldid = ? 
-            AND bug_when >= LOCALTIMESTAMP(0) - "
-                . $dbh->sql_interval('?', 'DAY') .
- " GROUP BY dupe_of", {Columns=>[1,2]},
+    "SELECT dupe_of, COUNT(dupe) FROM duplicates".
+    " INNER JOIN bugs_activity ON bugs_activity.bug_id = duplicates.dupe".
+    " WHERE added = ? AND fieldid = ? AND bug_when >= LOCALTIMESTAMP(0) - ".
+    $dbh->sql_interval('?', 'DAY') . " GROUP BY dupe_of", {Columns=>[1,2]},
     Bugzilla->params->{duplicate_resolution},
-    $reso_field_id, $changedsince)};
+    $reso_field_id, $changedsince
+)};
 add_indirect_dups(\%since_dups, \%dupe_relation);
 
 # Enforce the mostfreqthreshold parameter and the "bug_id" URL param.
-my $mostfreq = Bugzilla->params->{'mostfreqthreshold'};
-foreach my $id (keys %total_dups) {
-    if ($total_dups{$id} < $mostfreq) {
+my $mostfreq = Bugzilla->params->{mostfreqthreshold};
+foreach my $id (keys %total_dups)
+{
+    if ($total_dups{$id} < $mostfreq)
+    {
         delete $total_dups{$id};
         next;
     }
-    if ($sortvisible and !grep($_->id == $id, @bugs)) {
+    if ($sortvisible && !grep($_->id == $id, @bugs))
+    {
         delete $total_dups{$id};
     }
 }
 
-if (!@bugs) {
+if (!@bugs)
+{
     @bugs = @{ Bugzilla::Bug->new_from_list([keys %total_dups]) };
     @bugs = @{ $user->visible_bugs(\@bugs) };
 }
@@ -196,41 +198,47 @@ my @except_resolution = list($ARGS->{except_resolution} || DEFAULTS->{except_res
 
 # Filter bugs by criteria
 my @result_bugs;
-foreach my $bug (@bugs) {
+foreach my $bug (@bugs)
+{
     # It's possible, if somebody specified a bug ID that wasn't a dup
     # in the "buglist" parameter and specified $sortvisible that there
     # would be bugs in the list with 0 dups, so we want to avoid that.
     next if !$total_dups{$bug->id};
 
-    next if ($openonly and !$bug->isopened);
+    next if $openonly and !$bug->isopened;
     # If the bug has a status in @fully_exclude_status, we skip it,
     # no question.
     next if grep($_ eq $bug->bug_status_obj->name, @fully_exclude_status);
     # If the bug has a status in @partly_exclude_status, we skip it...
-    if (grep($_ eq $bug->bug_status_obj->name, @partly_exclude_status)) {
+    if (grep($_ eq $bug->bug_status_obj->name, @partly_exclude_status))
+    {
         # ...unless it has a resolution in @except_resolution.
         next if !grep($_ eq $bug->resolution_obj->name, @except_resolution);
     }
 
-    if (scalar @query_products) {
+    if (scalar @query_products)
+    {
         next if !grep($_->id == $bug->product_id, @query_products);
     }
 
     # Note: maximum row count is dealt with later.
-    push (@result_bugs, { bug => $bug,
-                          count => $total_dups{$bug->id},
-                          delta => $since_dups{$bug->id} || 0 });
+    push (@result_bugs, {
+        bug => $bug,
+        count => $total_dups{$bug->id},
+        delta => $since_dups{$bug->id} || 0,
+    });
 }
 @bugs = @result_bugs;
 @bugs = sort { sort_duplicates($a, $b, $sortby) } @bugs;
-if ($reverse) {
+if ($reverse)
+{
     @bugs = reverse @bugs;
 }
 @bugs = @bugs[0..$maxrows-1] if scalar(@bugs) > $maxrows;
 
 my %vars = (
     bugs     => \@bugs,
-    bug_ids  => [map { $_->{'bug'}->id } @bugs],
+    bug_ids  => [map { $_->{bug}->id } @bugs],
     sortby   => $sortby,
     openonly => $openonly,
     maxrows  => $maxrows,
@@ -241,8 +249,9 @@ my %vars = (
     changedsince => $changedsince,
 );
 
-my $format = $template->get_format("reports/duplicates", $vars{'format'});
+my $format = $template->get_format("reports/duplicates", $vars{format});
 
 # Generate and return the UI (HTML page) from the appropriate template.
-$template->process($format->{'template'}, \%vars)
-  || ThrowTemplateError($template->error());
+$template->process($format->{template}, \%vars)
+    || ThrowTemplateError($template->error());
+exit;
