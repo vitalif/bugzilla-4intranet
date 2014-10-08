@@ -435,6 +435,29 @@ sub url_is_attachment_base
     return ($self->self_url =~ $regex) ? 1 : 0;
 }
 
+sub get_cookies
+{
+    my ($self, @p) = CGI::self_or_default(@_);
+    unless ($self->{'.cookies'})
+    {
+        $self->{'.cookies'} = CGI::Cookie->fetch;
+        if (Bugzilla->params->{utf8})
+        {
+            my $v;
+            my @a;
+            for (keys %{$self->{'.cookies'}})
+            {
+                $v = $self->{'.cookies'}->{$_}->value;
+                Encode::_utf8_on($_) if /[\x{0080}-\x{FFFF}]/;
+                Encode::_utf8_on($v);
+                push @a, $_, $v;
+            }
+            $self->{'.cookies'} = { @a };
+        }
+    }
+    return $self->{'.cookies'};
+}
+
 # cookie() with UTF-8 support...
 sub cookie
 {
@@ -449,23 +472,7 @@ sub cookie
     # cookies in our state variables.
     unless (defined $value)
     {
-        unless ($self->{'.cookies'})
-        {
-            $self->{'.cookies'} = CGI::Cookie->fetch;
-            if (Bugzilla->params->{utf8})
-            {
-                my $v;
-                my @a;
-                for (keys %{$self->{'.cookies'}})
-                {
-                    $v = $self->{'.cookies'}->{$_}->value;
-                    Encode::_utf8_on($_) if /[\x{0080}-\x{FFFF}]/;
-                    Encode::_utf8_on($v);
-                    push @a, $_, $v;
-                }
-                $self->{'.cookies'} = { @a };
-            }
-        }
+        $self->get_cookies;
 
         # If no name is supplied, then retrieve the names of all our cookies.
         return () unless $self->{'.cookies'};

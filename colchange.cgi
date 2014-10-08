@@ -39,7 +39,7 @@ use Bugzilla::Keyword;
 
 Bugzilla->login();
 
-my $cgi = Bugzilla->cgi;
+my $ARGS = Bugzilla->input_params;
 my $template = Bugzilla->template;
 my $vars = {};
 
@@ -55,17 +55,17 @@ $vars->{masterlist} = \@masterlist;
 $vars->{COLUMNS} = Bugzilla::Search->COLUMNS;
 
 my @collist;
-if (defined $cgi->param('rememberedquery')) {
+if ($ARGS->{rememberedquery}) {
     my $splitheader = 0;
-    if (defined $cgi->param('resetit')) {
+    if ($ARGS->{resetit}) {
         @collist = DEFAULT_COLUMN_LIST;
     } else {
-        if (defined $cgi->param("selected_columns")) {
+        if ($ARGS->{selected_columns}) {
             my %legal_list = map { $_ => 1 } @masterlist;
-            @collist = grep { exists $legal_list{$_} } $cgi->param("selected_columns");
+            @collist = grep { exists $legal_list{$_} } list $ARGS->{selected_columns};
         }
-        if (defined $cgi->param('splitheader')) {
-            $splitheader = $cgi->param('splitheader')? 1: 0;
+        if (defined $ARGS->{splitheader}) {
+            $splitheader = $ARGS->{splitheader} ? 1 : 0;
         }
     }
     my $list = join(" ", @collist);
@@ -73,33 +73,32 @@ if (defined $cgi->param('rememberedquery')) {
     if ($list) {
         # Only set the cookie if this is not a saved search.
         # Saved searches have their own column list
-        if (!$cgi->param('save_columns_for_search')) {
-            $cgi->send_cookie(-name => 'COLUMNLIST',
+        if (!$ARGS->{save_columns_for_search}) {
+            Bugzilla->cgi->send_cookie(-name => 'COLUMNLIST',
                               -value => $list,
                               -expires => 'Fri, 01-Jan-2038 00:00:00 GMT');
         }
     }
     else {
-        $cgi->remove_cookie('COLUMNLIST');
+        Bugzilla->cgi->remove_cookie('COLUMNLIST');
     }
     if ($splitheader) {
-        $cgi->send_cookie(-name => 'SPLITHEADER',
+        Bugzilla->cgi->send_cookie(-name => 'SPLITHEADER',
                           -value => $splitheader,
                           -expires => 'Fri, 01-Jan-2038 00:00:00 GMT');
     }
     else {
-        $cgi->remove_cookie('SPLITHEADER');
+        Bugzilla->cgi->remove_cookie('SPLITHEADER');
     }
 
     $vars->{'message'} = "change_columns";
 
     my $search;
-    if (defined $cgi->param('saved_search')) {
-        $search = new Bugzilla::Search::Saved($cgi->param('saved_search'));
+    if ($ARGS->{saved_search}) {
+        $search = new Bugzilla::Search::Saved($ARGS->{saved_search});
     }
 
-    if ($cgi->param('save_columns_for_search')
-        && defined $search && $search->user->id == Bugzilla->user->id)
+    if ($ARGS->{save_columns_for_search} && defined $search && $search->user->id == Bugzilla->user->id)
     {
         my $params = http_decode_query($search->query);
         $params->{columnlist} = join(",", @collist);
@@ -107,7 +106,7 @@ if (defined $cgi->param('rememberedquery')) {
         $search->update();
     }
 
-    my $params = http_decode_query($cgi->param('rememberedquery'));
+    my $params = http_decode_query($ARGS->{rememberedquery});
     $params->{columnlist} = join(",", @collist);
     $vars->{redirect_url} = "buglist.cgi?".http_build_query($params);
 
@@ -120,11 +119,11 @@ if (defined $cgi->param('rememberedquery')) {
         || $ENV{'SERVER_SOFTWARE'} =~ /Microsoft-IIS/
         || $ENV{'SERVER_SOFTWARE'} =~ /Sun ONE Web/)
     {
-        $cgi->send_header(-type => "text/html",
+        Bugzilla->cgi->send_header(-type => "text/html",
                           -refresh => "0; URL=$vars->{'redirect_url'}");
     }
     else {
-        print $cgi->redirect($vars->{'redirect_url'});
+        print Bugzilla->cgi->redirect($vars->{'redirect_url'});
         exit;
     }
 
@@ -133,10 +132,10 @@ if (defined $cgi->param('rememberedquery')) {
     exit;
 }
 
-if (defined $cgi->param('columnlist')) {
-    @collist = split(/[ ,]+/, $cgi->param('columnlist'));
-} elsif (defined $cgi->cookie('COLUMNLIST')) {
-    @collist = split(/ /, $cgi->cookie('COLUMNLIST'));
+if ($ARGS->{columnlist}) {
+    @collist = split(/[ ,]+/, $ARGS->{columnlist});
+} elsif (defined Bugzilla->cookies->{COLUMNLIST}) {
+    @collist = split(/ /, Bugzilla->cookies->{COLUMNLIST});
 } else {
     @collist = DEFAULT_COLUMN_LIST;
 }
@@ -148,14 +147,14 @@ if (defined $cgi->param('columnlist')) {
 }
 
 $vars->{'collist'} = \@collist;
-$vars->{'splitheader'} = $cgi->cookie('SPLITHEADER') ? 1 : 0;
+$vars->{'splitheader'} = Bugzilla->cookies->{SPLITHEADER} ? 1 : 0;
 
-$vars->{'buffer'} = $cgi->query_string();
+$vars->{'buffer'} = http_build_query($ARGS);
 
 my $search;
-if (defined $cgi->param('query_based_on')) {
+if (defined $ARGS->{query_based_on}) {
     my $searches = Bugzilla->user->queries;
-    my ($search) = grep($_->name eq $cgi->param('query_based_on'), @$searches);
+    my ($search) = grep($_->name eq $ARGS->{query_based_on}, @$searches);
 
     if ($search) {
         $vars->{'saved_search'} = $search;

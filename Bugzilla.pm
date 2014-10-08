@@ -501,6 +501,12 @@ sub input_params
     return $cache->{input_params};
 }
 
+sub cookies
+{
+    my $class = shift;
+    return $class->cgi->get_cookies;
+}
+
 sub localconfig
 {
     my $class = shift;
