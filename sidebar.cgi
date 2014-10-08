@@ -1,6 +1,4 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -23,7 +21,6 @@ use Bugzilla;
 use Bugzilla::Error;
 
 Bugzilla->login();
-my $cgi = Bugzilla->cgi;
 my $template = Bugzilla->template;
 
 ###############################################################################
@@ -39,11 +36,15 @@ my $template = Bugzilla->template;
 # http://bugzilla.mozilla.org/show_bug.cgi?id=37339
 
 my $useragent = $ENV{HTTP_USER_AGENT};
-if ($useragent =~ m:Mozilla/([1-9][0-9]*):i && $1 >= 5 && $useragent !~ m/compatible/i) {
-    $cgi->send_header("application/vnd.mozilla.xul+xml");
+if ($useragent =~ m:Mozilla/([1-9][0-9]*):i && $1 >= 5 && $useragent !~ m/compatible/i)
+{
+    Bugzilla->cgi->send_header("application/vnd.mozilla.xul+xml");
     # Generate and return the XUL from the appropriate template.
     $template->process("sidebar.xul.tmpl")
-      || ThrowTemplateError($template->error());
-} else {
+        || ThrowTemplateError($template->error());
+}
+else
+{
     ThrowUserError("sidebar_supports_mozilla_only");
 }
+exit;
