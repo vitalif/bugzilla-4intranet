@@ -87,20 +87,6 @@ sub walk_dup_chain {
     return $to_id;
 }
 
-# Get params from URL
-sub formvalue {
-    my ($name) = (@_);
-    my $cgi = Bugzilla->cgi;
-    if (defined $cgi->param($name)) {
-        return $cgi->param($name);
-    }
-    elsif (exists DEFAULTS->{$name}) {
-        return ref DEFAULTS->{$name} ? @{ DEFAULTS->{$name} } 
-                                     : DEFAULTS->{$name};
-    }
-    return undef;
-}
-
 sub sort_duplicates {
     my ($a, $b, $sort_by) = @_;
     if ($sort_by eq 'count' or $sort_by eq 'delta') {
@@ -110,27 +96,26 @@ sub sort_duplicates {
         return $a->{'bug'}->$sort_by <=> $b->{'bug'}->$sort_by;
     }
     return $a->{'bug'}->$sort_by cmp $b->{'bug'}->$sort_by;
-    
 }
 
 ###############
 # Main Script #
 ###############
 
-my $cgi = Bugzilla->cgi;
+my $ARGS = Bugzilla->input_params;
 my $template = Bugzilla->template;
 my $user = Bugzilla->login();
 
 my $dbh = Bugzilla->switch_to_shadow_db();
 
-my $changedsince = formvalue("changedsince");
-my $maxrows = formvalue("maxrows");
-my $openonly = formvalue("openonly");
-my $sortby = formvalue("sortby");
+my $changedsince = $ARGS->{changedsince} || DEFAULTS->{changedsince};
+my $maxrows = $ARGS->{maxrows} || DEFAULTS->{maxrows};
+my $openonly = $ARGS->{openonly} || DEFAULTS->{openonly};
+my $sortby = $ARGS->{sortby} || DEFAULTS->{sortby};
 if (!grep(lc($_) eq lc($sortby), qw(count delta id))) {
     Bugzilla->get_field($sortby, THROW_ERROR);
 }
-my $reverse = formvalue("reverse");
+my $reverse = $ARGS->{reverse} || DEFAULTS->{reverse};
 # Reverse count and delta by default.
 if (!defined $reverse) {
     if ($sortby eq 'count' or $sortby eq 'delta') {
@@ -140,11 +125,11 @@ if (!defined $reverse) {
         $reverse = 0;
     }
 }
-my @query_products = $cgi->param('product');
-my $sortvisible = formvalue("sortvisible");
+my @query_products = $ARGS->{product};
+my $sortvisible = $ARGS->{sortvisible} || DEFAULTS->{sortvisible};
 my @bugs;
 if ($sortvisible) {
-    my @limit_to_ids = (split(/[:,]/, formvalue("bug_id") || ''));
+    my @limit_to_ids = (split(/[:,]/, $ARGS->{bug_id} || ''));
     @bugs = @{ Bugzilla::Bug->new_from_list(\@limit_to_ids) };
     @bugs = @{ $user->visible_bugs(\@bugs) };
 }
@@ -188,7 +173,7 @@ my %since_dups = @{$dbh->selectcol_arrayref(
     $reso_field_id, $changedsince)};
 add_indirect_dups(\%since_dups, \%dupe_relation);
 
-# Enforce the mostfreqthreshold parameter and the "bug_id" cgi param.
+# Enforce the mostfreqthreshold parameter and the "bug_id" URL param.
 my $mostfreq = Bugzilla->params->{'mostfreqthreshold'};
 foreach my $id (keys %total_dups) {
     if ($total_dups{$id} < $mostfreq) {
@@ -205,9 +190,9 @@ if (!@bugs) {
     @bugs = @{ $user->visible_bugs(\@bugs) };
 }
 
-my @fully_exclude_status = formvalue('fully_exclude_status');
-my @partly_exclude_status = formvalue('partly_exclude_status');
-my @except_resolution = formvalue('except_resolution');
+my @fully_exclude_status = list($ARGS->{fully_exclude_status} || DEFAULTS->{fully_exclude_status});
+my @partly_exclude_status = list($ARGS->{partly_exclude_status} || DEFAULTS->{partly_exclude_status});
+my @except_resolution = list($ARGS->{except_resolution} || DEFAULTS->{except_resolution});
 
 # Filter bugs by criteria
 my @result_bugs;
@@ -250,7 +235,7 @@ my %vars = (
     openonly => $openonly,
     maxrows  => $maxrows,
     reverse  => $reverse,
-    format   => scalar $cgi->param('format'),
+    format   => $ARGS->{format},
     product  => [map { $_->name } @query_products],
     sortvisible  => $sortvisible,
     changedsince => $changedsince,
