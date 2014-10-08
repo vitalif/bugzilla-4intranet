@@ -33,17 +33,16 @@ use Bugzilla::Util;
 use Date::Format;
 
 my $template = Bugzilla->template;
-my $cgi = Bugzilla->cgi;
-
-my $action = $cgi->param('action') || '';
-
+my $ARGS = Bugzilla->input_params;
 my $vars = {};
+
+my $action = $ARGS->{action} || '';
 my $target;
 
 if (!$action)
 {
     # redirect to index.cgi if no action is defined.
-    print $cgi->redirect(correct_urlbase() . 'index.cgi');
+    print Bugzilla->cgi->redirect(correct_urlbase() . 'index.cgi');
     exit;
 }
 # prepare-sudo: Display the sudo information & login page
@@ -71,8 +70,8 @@ elsif ($action eq 'prepare-sudo')
     $vars->{token} = issue_session_token('sudo_prepared');
 
     # Show the sudo page
-    $vars->{target_login_default} = $cgi->param('target_login');
-    $vars->{reason_default} = $cgi->param('reason');
+    $vars->{target_login_default} = $ARGS->{target_login};
+    $vars->{reason_default} = $ARGS->{reason};
     $target = 'admin/sudo.html.tmpl';
 }
 # begin-sudo: Confirm login and start sudo session
@@ -86,7 +85,7 @@ elsif ($action eq 'begin-sudo')
 
     # First, record if Bugzilla_login and Bugzilla_password were provided
     my $credentials_provided;
-    if (defined $cgi->param('Bugzilla_login') && defined $cgi->param('Bugzilla_password'))
+    if (defined $ARGS->{Bugzilla_login} && defined $ARGS->{Bugzilla_password})
     {
         $credentials_provided = 1;
     }
@@ -100,8 +99,8 @@ elsif ($action eq 'begin-sudo')
     if ($user->authorizer->can_login && !$credentials_provided)
     {
         ThrowUserError('sudo_password_required', {
-            target_login => scalar $cgi->param('target_login'),
-            reason => scalar $cgi->param('reason'),
+            target_login => $ARGS->{target_login},
+            reason => $ARGS->{reason},
         });
     }
 
@@ -123,22 +122,22 @@ elsif ($action eq 'begin-sudo')
 
     # Did the user actually go trough the 'sudo-prepare' action?  Do some
     # checks on the token the action should have left.
-    my ($token_user, $token_timestamp, $token_data) = Bugzilla::Token::GetTokenData(scalar $cgi->param('token'));
+    my ($token_user, $token_timestamp, $token_data) = Bugzilla::Token::GetTokenData($ARGS->{token});
     unless (defined($token_user) && defined($token_data) &&
         $token_user == $user->id && $token_data eq 'sudo_prepared')
     {
         ThrowUserError('sudo_preparation_required', {
-            target_login => scalar $cgi->param('target_login'),
-            reason => scalar $cgi->param('reason'),
+            target_login => $ARGS->{target_login},
+            reason => $ARGS->{reason},
         });
     }
-    delete_token(scalar $cgi->param('token'));
+    delete_token($ARGS->{token});
 
     # Get & verify the target user (the user who we will be impersonating)
-    my $target_user = new Bugzilla::User({ name => scalar $cgi->param('target_login') });
+    my $target_user = new Bugzilla::User({ name => $ARGS->{target_login} });
     unless (defined($target_user) && $target_user->id && $user->can_see_user($target_user))
     {
-        ThrowUserError('user_match_failed', { name => scalar $cgi->param('target_login') });
+        ThrowUserError('user_match_failed', { name => $ARGS->{target_login} });
     }
     if ($target_user->in_group('bz_sudo_protect'))
     {
@@ -146,7 +145,7 @@ elsif ($action eq 'begin-sudo')
     }
 
     # If we have a reason passed in, keep it under 200 characters
-    my $reason = $cgi->param('reason') || '';
+    my $reason = $ARGS->{reason} || '';
     $reason = substr($reason, 0, 200);
 
     # Calculate the session expiry time (T + 6 hours)
@@ -154,7 +153,7 @@ elsif ($action eq 'begin-sudo')
 
     # For future sessions, store the unique ID of the target user
     my $token = Bugzilla::Token::_create_token($user->id, 'sudo', $target_user->id);
-    $cgi->send_cookie(
+    Bugzilla->cgi->send_cookie(
         -name    => 'sudo',
         -expires => $time_string,
         -value   => $token
@@ -180,8 +179,8 @@ elsif ($action eq 'begin-sudo')
 elsif ($action eq 'end-sudo')
 {
     # Regardless of our state, delete the sudo cookie if it exists
-    my $token = $cgi->cookie('sudo');
-    $cgi->remove_cookie('sudo');
+    my $token = Bugzilla->cookies->{sudo};
+    Bugzilla->cgi->remove_cookie('sudo');
 
     # Are we in an sudo session?
     Bugzilla->login(LOGIN_OPTIONAL);
