@@ -27,7 +27,7 @@ use Bugzilla::Error;
 use Bugzilla::Token;
 use Bugzilla::Status;
 
-my $cgi = Bugzilla->cgi;
+my $ARGS = Bugzilla->input_params;
 my $dbh = Bugzilla->dbh;
 my $user = Bugzilla->login(LOGIN_REQUIRED);
 
@@ -37,8 +37,8 @@ $user->in_group('admin') || ThrowUserError('auth_failure', {
     object => 'workflow',
 });
 
-my $action = $cgi->param('action') || 'edit';
-my $token = $cgi->param('token');
+my $action = $ARGS->{action} || 'edit';
+my $token = $ARGS->{token};
 
 sub get_workflow
 {
@@ -88,7 +88,7 @@ elsif ($action eq 'update')
     foreach my $new (@$statuses)
     {
         if (($new->is_open || $new->name eq Bugzilla->params->{duplicate_or_move_bug_status}) &&
-            $cgi->param('w_0_' . $new->id))
+            $ARGS->{'w_0_'.$new->id})
         {
             $sth_insert->execute(undef, $new->id) unless defined $workflow->{0}->{$new->id};
         }
@@ -106,7 +106,7 @@ elsif ($action eq 'update')
             next if $old->id == $new->id;
 
             # All transitions to 'duplicate_or_move_bug_status' must be valid.
-            if ($cgi->param('w_' . $old->id . '_' . $new->id) ||
+            if ($ARGS->{'w_' . $old->id . '_' . $new->id} ||
                 $new->name eq Bugzilla->params->{duplicate_or_move_bug_status})
             {
                 $sth_insert->execute($old->id, $new->id) unless defined $workflow->{$old->id}->{$new->id};
@@ -144,7 +144,7 @@ elsif ($action eq 'update_comment')
         my $old_id_for_db = $old || undef;
         foreach my $new (keys %{$workflow->{$old}})
         {
-            my $comment_required = $cgi->param("c_${old}_$new") ? 1 : 0;
+            my $comment_required = $ARGS->{'c_'.$old.'_'.$new} ? 1 : 0;
             next if $workflow->{$old}->{$new} == $comment_required;
             if ($old_id_for_db)
             {
