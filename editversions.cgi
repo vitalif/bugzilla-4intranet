@@ -31,7 +31,6 @@ use Bugzilla::Error;
 use Bugzilla::Version;
 use Bugzilla::Token;
 
-my $cgi = Bugzilla->cgi;
 my $dbh = Bugzilla->dbh;
 my $template = Bugzilla->template;
 my $vars = {};
@@ -58,12 +57,12 @@ $user->in_group('editcomponents')
 #
 # often used variables
 #
-my $product_name = trim($cgi->param('product') || '');
-my $version_name = trim($cgi->param('version') || '');
-my $action       = trim($cgi->param('action')  || '');
-my $showbugcounts = defined $cgi->param('showbugcounts');
-my $token        = $cgi->param('token');
-my $isactive     = $cgi->param('isactive');
+my $product_name  = trim($ARGS->{product} || '');
+my $version_name  = trim($ARGS->{version} || '');
+my $action        = trim($ARGS->{action} || '');
+my $showbugcounts = defined $ARGS->{showbugcounts};
+my $token         = $ARGS->{token};
+my $isactive      = $ARGS->{isactive};
 
 #
 # product = '' -> Show nice list of products
@@ -192,7 +191,7 @@ if ($action eq 'edit')
 if ($action eq 'update')
 {
     check_token_data($token, 'edit_version');
-    my $version_old_name = trim($cgi->param('versionold') || '');
+    my $version_old_name = trim($ARGS->{versionold} || '');
     my $version = Bugzilla::Version->check({
         product => $product,
         name   => $version_old_name,
