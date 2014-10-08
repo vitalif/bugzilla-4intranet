@@ -41,8 +41,8 @@ use Bugzilla::Field;
 
 use Digest::MD5 qw(md5_base64);
 
+my $ARGS = Bugzilla->input_params;
 my $user = Bugzilla->login(LOGIN_OPTIONAL);
-my $cgi  = Bugzilla->cgi;
 
 # If the 'requirelogin' parameter is on and the user is not
 # authenticated, return empty fields.
@@ -66,9 +66,8 @@ $vars->{'custom_fields'} =
     [ grep {$_->is_select} Bugzilla->active_custom_fields ];
 
 # Include a list of product objects.
-if ($cgi->param('product')) {
-    my @products = $cgi->param('product');
-    foreach my $product_name (@products) {
+if ($ARGS->{product}) {
+    foreach my $product_name (list $ARGS->{product}) {
         # We don't use check_product because config.cgi outputs mostly
         # in XML and JS and we don't want to display an HTML error
         # instead of that.
@@ -84,8 +83,8 @@ if ($cgi->param('product')) {
 Bugzilla::Product::preload($vars->{'products'});
 
 # Allow consumers to specify whether or not they want flag data.
-if (defined $cgi->param('flags')) {
-    $vars->{'show_flags'} = $cgi->param('flags');
+if (defined $ARGS->{flags}) {
+    $vars->{'show_flags'} = $ARGS->{flags} && 1;
 }
 else {
     # We default to sending flag data.
@@ -112,18 +111,17 @@ if (!Bugzilla->user->is_timetracker)
 $vars->{'field'} = \@fields;
 
 display_data($vars);
-
+exit;
 
 sub display_data {
     my $vars = shift;
 
-    my $cgi      = Bugzilla->cgi;
+    my $ARGS = Bugzilla->input_params;
     my $template = Bugzilla->template;
 
     # Determine how the user would like to receive the output; 
     # default is JavaScript.
-    my $format = $template->get_format("config", scalar($cgi->param('format')),
-                                       scalar($cgi->param('ctype')) || "js");
+    my $format = $template->get_format("config", $ARGS->{format}, $ARGS->{ctype} || 'js');
 
     # Generate the configuration data.
     my $output;
@@ -136,7 +134,7 @@ sub display_data {
     my $digest = md5_base64($digest_data);
 
     # ETag support.
-    my $if_none_match = $cgi->http('If-None-Match') || "";
+    my $if_none_match = Bugzilla->cgi->http('If-None-Match') || "";
     my $found304;
     my @if_none = split(/[\s,]+/, $if_none_match);
     foreach my $if_none (@if_none) {
@@ -149,17 +147,16 @@ sub display_data {
             last;
         }
     }
- 
-   if ($found304) {
-        $cgi->send_header(-type => 'text/html',
+
+    if ($found304) {
+        Bugzilla->cgi->send_header(-type => 'text/html',
                            -ETag => $found304,
                            -status => '304 Not Modified');
     }
     else {
         # Return HTTP headers.
-        $cgi->send_header (-ETag => $digest,
+        Bugzilla->cgi->send_header (-ETag => $digest,
                             -type => $format->{'ctype'});
         print $output;
     }
-    exit;
 }
