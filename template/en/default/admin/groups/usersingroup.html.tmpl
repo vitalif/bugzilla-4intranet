@@ -11,21 +11,25 @@
   <input name="token" type="hidden" value="[% token | html %]">
 
   <table class="admin_table" cellpadding="4">
-    <tr>
+    <tr class="even_row">
       <th align="left">Group:</th>
       <td>[% group.name | html %]</td>
     </tr>
-    <tr>
+    <tr class="even_row">
       <th align="left">Description:</th>
       <td>[% group.description | html %]</td>
     </tr>
     [% IF group.regexp %]
-    <tr>
+    <tr class="even_row">
       <th align="left">Regexp:</th>
       <td>[% group.regexp | html %]</td>
     </tr>
     [% END %]
   </table>
+
+  [% IF Bugzilla.user.in_group('creategroups') %]
+  <p><a href="editgroups.cgi?action=changeform&group=[% group.id %]">Edit group parameters and inclusions</a></p>
+  [% END %]
 
   <p>Add users to this group:</p>
   <p>

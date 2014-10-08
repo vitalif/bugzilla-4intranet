@@ -110,7 +110,11 @@
       <td>
         [% IF product.group_controls.size %]
           [% FOREACH g = product.group_controls.values.sort("name") %]
-            <b>[% g.group.name FILTER html %]:</b>&nbsp;
+            [% IF Bugzilla.user.can_bless(g.group.id) %]
+              <b><a href="editusersingroup.cgi?group=[% g.group.id %]">[% g.group.name FILTER html %]</a>:</b>&nbsp;
+            [% ELSE %]
+              <b>[% g.group.name FILTER html %]:</b>&nbsp;
+            [% END %]
             [% IF g.group.isactive %]
               [% group_control.${g.membercontrol} FILTER html %]/
               [% group_control.${g.othercontrol} FILTER html %]
