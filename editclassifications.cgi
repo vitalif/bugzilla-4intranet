@@ -30,14 +30,13 @@ use Bugzilla::Error;
 use Bugzilla::Classification;
 use Bugzilla::Token;
 
+my $ARGS = Bugzilla->input_params;
 my $dbh = Bugzilla->dbh;
-my $cgi = Bugzilla->cgi;
 my $template = Bugzilla->template;
 local our $vars = {};
 
 sub LoadTemplate {
     my $action = shift;
-    my $cgi = Bugzilla->cgi;
     my $template = Bugzilla->template;
 
     $vars->{'classifications'} = [Bugzilla::Classification->get_all] if ($action eq 'select');
@@ -70,9 +69,9 @@ ThrowUserError("auth_classification_not_enabled")
 #
 # often used variables
 #
-my $action     = trim($cgi->param('action')         || '');
-my $class_name = trim($cgi->param('classification') || '');
-my $token      = $cgi->param('token');
+my $action = trim($ARGS->{action} || '');
+my $class_name = trim($ARGS->{classification} || '');
+my $token = $ARGS->{token};
 
 #
 # action='' -> Show nice list of classifications
@@ -99,8 +98,8 @@ if ($action eq 'new') {
 
     my $classification =
       Bugzilla::Classification->create({name        => $class_name,
-                                        description => scalar $cgi->param('description'),
-                                        sortkey     => scalar $cgi->param('sortkey')});
+                                        description => $ARGS->{description},
+                                        sortkey     => $ARGS->{sortkey}});
 
     delete_token($token);
 
@@ -173,12 +172,12 @@ if ($action eq 'edit') {
 if ($action eq 'update') {
     check_token_data($token, 'edit_classification');
 
-    my $class_old_name = trim($cgi->param('classificationold') || '');
+    my $class_old_name = trim($ARGS->{classificationold} || '');
     my $classification = Bugzilla::Classification->check($class_old_name);
 
     $classification->set_name($class_name);
-    $classification->set_description(scalar $cgi->param('description'));
-    $classification->set_sortkey(scalar $cgi->param('sortkey'));
+    $classification->set_description($ARGS->{description});
+    $classification->set_sortkey($ARGS->{sortkey});
 
     my $changes = $classification->update;
     delete_token($token);
@@ -196,20 +195,20 @@ if ($action eq 'update') {
 if ($action eq 'reclassify') {
     my $classification = Bugzilla::Classification->check($class_name);
 
-    if (defined $cgi->param('add_products')) {
+    if (defined $ARGS->{add_products}) {
         check_token_data($token, 'reclassify_classifications');
-        if (defined $cgi->param('prodlist')) {
-            foreach my $prod ($cgi->param("prodlist")) {
+        if (defined $ARGS->{prodlist}) {
+            foreach my $prod (list $ARGS->{prodlist}) {
                 my $obj = Bugzilla::Product->check($prod);
                 $obj->set_classification($classification);
                 $obj->update;
             }
         }
         delete_token($token);
-    } elsif (defined $cgi->param('remove_products')) {
+    } elsif (defined $ARGS->{remove_products}) {
         check_token_data($token, 'reclassify_classifications');
-        if (defined $cgi->param('myprodlist')) {
-            foreach my $prod ($cgi->param("myprodlist")) {
+        if (defined $ARGS->{myprodlist}) {
+            foreach my $prod (list $ARGS->{myprodlist}) {
                 trick_taint($prod);
                 my $obj = Bugzilla::Product->check($prod);
                 $obj->set_classification('Unclassified');
