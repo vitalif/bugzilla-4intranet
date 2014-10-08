@@ -27,7 +27,6 @@ use Bugzilla::Error;
 use Bugzilla::Milestone;
 use Bugzilla::Token;
 
-my $cgi = Bugzilla->cgi;
 my $dbh = Bugzilla->dbh;
 my $template = Bugzilla->template;
 my $vars = {};
@@ -54,13 +53,13 @@ $user->in_group('editcomponents')
 #
 # often used variables
 #
-my $product_name   = trim($cgi->param('product')   || '');
-my $milestone_name = trim($cgi->param('milestone') || '');
-my $sortkey        = trim($cgi->param('sortkey')   || 0);
-my $action         = trim($cgi->param('action')    || '');
-my $showbugcounts  = defined $cgi->param('showbugcounts');
-my $token          = $cgi->param('token');
-my $isactive       = $cgi->param('isactive');
+my $product_name   = trim($ARGS->{product}   || '');
+my $milestone_name = trim($ARGS->{milestone} || '');
+my $sortkey        = trim($ARGS->{sortkey}   || 0);
+my $action         = trim($ARGS->{action}    || '');
+my $showbugcounts  = defined $ARGS->{showbugcounts};
+my $token          = $ARGS->{token};
+my $isactive       = $ARGS->{isactive};
 
 #
 # product = '' -> Show nice list of products
@@ -201,7 +200,7 @@ if ($action eq 'edit')
 if ($action eq 'update')
 {
     check_token_data($token, 'edit_milestone');
-    my $milestone_old_name = trim($cgi->param('milestoneold') || '');
+    my $milestone_old_name = trim($ARGS->{milestoneold} || '');
     my $milestone = Bugzilla::Milestone->check({
         product => $product,
         name    => $milestone_old_name,
