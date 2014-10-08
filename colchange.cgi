@@ -1,6 +1,4 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -55,46 +53,62 @@ $vars->{masterlist} = \@masterlist;
 $vars->{COLUMNS} = Bugzilla::Search->COLUMNS;
 
 my @collist;
-if ($ARGS->{rememberedquery}) {
+if ($ARGS->{rememberedquery})
+{
     my $splitheader = 0;
-    if ($ARGS->{resetit}) {
+    if ($ARGS->{resetit})
+    {
         @collist = DEFAULT_COLUMN_LIST;
-    } else {
-        if ($ARGS->{selected_columns}) {
+    }
+    else
+    {
+        if ($ARGS->{selected_columns})
+        {
             my %legal_list = map { $_ => 1 } @masterlist;
             @collist = grep { exists $legal_list{$_} } list $ARGS->{selected_columns};
         }
-        if (defined $ARGS->{splitheader}) {
+        if (defined $ARGS->{splitheader})
+        {
             $splitheader = $ARGS->{splitheader} ? 1 : 0;
         }
     }
     my $list = join(" ", @collist);
 
-    if ($list) {
+    if ($list)
+    {
         # Only set the cookie if this is not a saved search.
         # Saved searches have their own column list
-        if (!$ARGS->{save_columns_for_search}) {
-            Bugzilla->cgi->send_cookie(-name => 'COLUMNLIST',
-                              -value => $list,
-                              -expires => 'Fri, 01-Jan-2038 00:00:00 GMT');
+        if (!$ARGS->{save_columns_for_search})
+        {
+            Bugzilla->cgi->send_cookie(
+                -name => 'COLUMNLIST',
+                -value => $list,
+                -expires => 'Fri, 01-Jan-2038 00:00:00 GMT',
+            );
         }
     }
-    else {
+    else
+    {
         Bugzilla->cgi->remove_cookie('COLUMNLIST');
     }
-    if ($splitheader) {
-        Bugzilla->cgi->send_cookie(-name => 'SPLITHEADER',
-                          -value => $splitheader,
-                          -expires => 'Fri, 01-Jan-2038 00:00:00 GMT');
+    if ($splitheader)
+    {
+        Bugzilla->cgi->send_cookie(
+            -name => 'SPLITHEADER',
+            -value => $splitheader,
+            -expires => 'Fri, 01-Jan-2038 00:00:00 GMT',
+        );
     }
-    else {
+    else
+    {
         Bugzilla->cgi->remove_cookie('SPLITHEADER');
     }
 
-    $vars->{'message'} = "change_columns";
+    $vars->{message} = "change_columns";
 
     my $search;
-    if ($ARGS->{saved_search}) {
+    if ($ARGS->{saved_search})
+    {
         $search = new Bugzilla::Search::Saved($ARGS->{saved_search});
     }
 
@@ -113,30 +127,36 @@ if ($ARGS->{rememberedquery}) {
     # If we're running on Microsoft IIS, $cgi->redirect discards
     # the Set-Cookie lines. In mod_perl, $cgi->redirect with cookies
     # causes the page to be rendered as text/plain.
-    # Workaround is to use the old-fashioned  redirection mechanism. 
+    # Workaround is to use the old-fashioned  redirection mechanism.
     # See bug 214466 and bug 376044 for details.
-    if ($ENV{'MOD_PERL'} 
-        || $ENV{'SERVER_SOFTWARE'} =~ /Microsoft-IIS/
-        || $ENV{'SERVER_SOFTWARE'} =~ /Sun ONE Web/)
+    if ($ENV{MOD_PERL} || $ENV{SERVER_SOFTWARE} =~ /Microsoft-IIS|Sun ONE Web/)
     {
-        Bugzilla->cgi->send_header(-type => "text/html",
-                          -refresh => "0; URL=$vars->{'redirect_url'}");
+        Bugzilla->cgi->send_header(
+            -type => "text/html",
+            -refresh => "0; URL=".$vars->{redirect_url},
+        );
     }
-    else {
+    else
+    {
         print Bugzilla->cgi->redirect($vars->{'redirect_url'});
         exit;
     }
 
     $template->process("global/message.html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
+        || ThrowTemplateError($template->error());
     exit;
 }
 
-if ($ARGS->{columnlist}) {
-    @collist = split(/[ ,]+/, $ARGS->{columnlist});
-} elsif (defined Bugzilla->cookies->{COLUMNLIST}) {
-    @collist = split(/ /, Bugzilla->cookies->{COLUMNLIST});
-} else {
+if ($ARGS->{columnlist})
+{
+    @collist = split /[ ,]+/, $ARGS->{columnlist};
+}
+elsif (defined Bugzilla->cookies->{COLUMNLIST})
+{
+    @collist = split / /, Bugzilla->cookies->{COLUMNLIST};
+}
+else
+{
     @collist = DEFAULT_COLUMN_LIST;
 }
 
@@ -146,21 +166,23 @@ if ($ARGS->{columnlist}) {
     $_ = $a->{$_} || $_ for @collist;
 }
 
-$vars->{'collist'} = \@collist;
-$vars->{'splitheader'} = Bugzilla->cookies->{SPLITHEADER} ? 1 : 0;
-
-$vars->{'buffer'} = http_build_query($ARGS);
+$vars->{collist} = \@collist;
+$vars->{splitheader} = Bugzilla->cookies->{SPLITHEADER} ? 1 : 0;
+$vars->{buffer} = http_build_query($ARGS);
 
 my $search;
-if (defined $ARGS->{query_based_on}) {
+if (defined $ARGS->{query_based_on})
+{
     my $searches = Bugzilla->user->queries;
     my ($search) = grep($_->name eq $ARGS->{query_based_on}, @$searches);
 
-    if ($search) {
-        $vars->{'saved_search'} = $search;
+    if ($search)
+    {
+        $vars->{saved_search} = $search;
     }
 }
 
 # Generate and return the UI (HTML page) from the appropriate template.
 $template->process("list/change-columns.html.tmpl", $vars)
-  || ThrowTemplateError($template->error());
+    || ThrowTemplateError($template->error());
+exit;
