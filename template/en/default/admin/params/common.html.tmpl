@@ -127,8 +127,8 @@
       </p>
       [% UNLESS param.no_reset %]
         <p>
-          <input type="checkbox" name="reset-[% param.name FILTER html %]"
-                 id="reset-[% param.name FILTER html %]">
+          <input type="checkbox" name="reset-[% param.name FILTER html %]" value="1"
+                 id="reset-[% param.name FILTER html %]" />
           <label for="reset-[% param.name FILTER html %]">Reset</label>
         </p>
       [% END %]

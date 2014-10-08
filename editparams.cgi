@@ -35,8 +35,8 @@ use Bugzilla::User;
 use Bugzilla::User::Setting;
 use Bugzilla::Status;
 
+my $ARGS = Bugzilla->input_params;
 my $user = Bugzilla->login(LOGIN_REQUIRED);
-my $cgi = Bugzilla->cgi;
 my $template = Bugzilla->template;
 my $vars = {};
 
@@ -46,9 +46,9 @@ $user->in_group('tweakparams') || ThrowUserError("auth_failure", {
     object => "parameters",
 });
 
-my $action = trim($cgi->param('action') || '');
-my $token  = $cgi->param('token');
-my $current_panel = $cgi->param('section') || 'core';
+my $action = trim($ARGS->{action} || '');
+my $token  = $ARGS->{token};
+my $current_panel = $ARGS->{section} || 'core';
 $current_panel =~ /^([A-Za-z0-9_-]+)$/;
 $current_panel = $1;
 
@@ -85,9 +85,9 @@ if ($action eq 'save' && $current_module)
     foreach my $i (@module_param_list)
     {
         my $name = $i->{name};
-        my $value = $cgi->param($name);
+        my $value = $ARGS->{$name};
 
-        if (defined $cgi->param("reset-$name") && !$i->{no_reset})
+        if ($ARGS->{"reset-$name"} && !$i->{no_reset})
         {
             $value = $i->{default};
         }
@@ -96,7 +96,7 @@ if ($action eq 'save' && $current_module)
             if ($i->{type} eq 'm')
             {
                 # This simplifies the code below
-                $value = [ $cgi->param($name) ];
+                $value = [ list $ARGS->{$name} ];
             }
             else
             {
