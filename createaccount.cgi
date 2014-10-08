@@ -1,6 +1,4 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -36,22 +34,24 @@ use Bugzilla::Error;
 # on an error message. The user is logged out just after the account is
 # actually created.
 my $user = Bugzilla->login(LOGIN_OPTIONAL);
-my $cgi = Bugzilla->cgi;
+my $ARGS = Bugzilla->input_params;
 my $template = Bugzilla->template;
 my $vars = { doc_section => 'myaccount.html' };
 
 $user->check_account_creation_enabled;
-my $login = $cgi->param('login');
+my $login = $ARGS->{login};
 
-if (defined($login)) {
+if (defined $login)
+{
     $user->check_and_send_account_creation_confirmation($login);
-    $vars->{'login'} = $login;
+    $vars->{login} = $login;
 
     $template->process("account/created.html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
+        || ThrowTemplateError($template->error());
     exit;
 }
 
 # Show the standard "would you like to create an account?" form.
 $template->process("account/create.html.tmpl", $vars)
-  || ThrowTemplateError($template->error());
+    || ThrowTemplateError($template->error());
+exit;
