@@ -203,7 +203,7 @@
       <td>
         the group allowed to grant/deny flags of this type
         (to allow all users to grant/deny these flags, select no group)<br>
-        [% PROCESS select selname = "grant_group" %]
+        [% PROCESS select selname = "grant_group_id" %]
       </td>
     </tr>
 
@@ -213,7 +213,7 @@
         if flags of this type are requestable, the group allowed to request them
         (to allow all users to request these flags, select no group)<br>
         Note that the request group alone has no effect if the grant group is not defined!<br>
-        [% PROCESS select selname = "request_group" %]
+        [% PROCESS select selname = "request_group_id" %]
       </td>
     </tr>
 

@@ -93,10 +93,22 @@ exit;
 # Functions
 ################################################################################
 
+sub get_prod_comp
+{
+    my $product = scalar $cgi->param('product') || undef;
+    my $component;
+    if ($product)
+    {
+        $product = Bugzilla::Product::check_product($product);
+        $component = scalar $cgi->param('component');
+        $component = Bugzilla::Component->check({ product => $product, name => $component }) if $component;
+    }
+    return ($product, $component);
+}
+
 sub ft_list
 {
-    my $product = validateProduct(scalar $cgi->param('product'));
-    my $component = validateComponent($product, scalar $cgi->param('component'));
+    my ($product, $component) = get_prod_comp();
     my $product_id = $product ? $product->id : 0;
     my $component_id = $component ? $component->id : 0;
     my $show_flag_counts = (defined $cgi->param('show_flag_counts')) ? 1 : 0;
@@ -168,9 +180,10 @@ sub edit
 {
     my ($action) = @_;
     my $flag_type;
+    my $target_type;
     if ($action eq 'enter')
     {
-        validateTargetType();
+        $target_type = scalar $cgi->param('target_type') eq 'attachment' ? 'attachment' : 'bug';
     }
     else
     {
@@ -202,7 +215,7 @@ sub edit
         my %inclusions;
         $inclusions{"__Any__:__Any__"} = "0:0";
         $vars->{type} = {
-            target_type => scalar $cgi->param('target_type'),
+            target_type => $target_type,
             inclusions  => \%inclusions,
         };
     }
@@ -218,24 +231,18 @@ sub edit
 sub processCategoryChange
 {
     my ($categoryAction, $token) = @_;
-    validateIsActive();
-    validateIsRequestable();
-    validateIsRequesteeble();
-    validateAllowMultiple();
 
     my @inclusions = $cgi->param('inclusions');
     my @exclusions = $cgi->param('exclusions');
     if ($categoryAction eq 'include')
     {
-        my $product = validateProduct(scalar $cgi->param('product'));
-        my $component = validateComponent($product, scalar $cgi->param('component'));
+        my ($product, $component) = get_prod_comp();
         my $category = ($product ? $product->id : 0) . ":" . ($component ? $component->id : 0);
         push(@inclusions, $category) unless grep($_ eq $category, @inclusions);
     }
     elsif ($categoryAction eq 'exclude')
     {
-        my $product = validateProduct(scalar $cgi->param('product'));
-        my $component = validateComponent($product, scalar $cgi->param('component'));
+        my ($product, $component) = get_prod_comp();
         my $category = ($product ? $product->id : 0) . ":" . ($component ? $component->id : 0);
         push(@exclusions, $category) unless grep($_ eq $category, @exclusions);
     }
@@ -314,43 +321,19 @@ sub insert
 {
     my $token = shift;
     check_token_data($token, 'add_flagtype');
-    my $name = validateName();
-    my $description = validateDescription();
-    validateTargetType();
-    validateSortKey();
-    validateIsActive();
-    validateIsRequestable();
-    validateIsRequesteeble();
-    validateAllowMultiple();
-    validateGroups();
 
-    my $dbh = Bugzilla->dbh;
+    Bugzilla->dbh->bz_start_transaction;
 
-    my $target_type = $cgi->param('target_type') eq "bug" ? "b" : "a";
-
-    $dbh->bz_start_transaction();
-
-    # Insert a record for the new flag type into the database.
-    $dbh->do(
-        'INSERT INTO flagtypes (name, description, target_type, sortkey, is_active, is_requestable,'.
-        ' is_requesteeble, is_multiplicable, grant_group_id, request_group_id)'.
-        ' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', undef,
-        $name, $description, $target_type,
-        scalar $cgi->param('sortkey'), scalar $cgi->param('is_active'),
-        scalar $cgi->param('is_requestable'), scalar $cgi->param('is_requesteeble'),
-        scalar $cgi->param('is_multiplicable'), scalar $cgi->param('grant_gid'),
-        scalar $cgi->param('request_gid')
-    );
-
-    # Get the ID of the new flag type.
-    my $id = $dbh->bz_last_key('flagtypes', 'id');
+    my $ft = Bugzilla::FlagType->create({
+        map { ($_ => scalar $cgi->param($_)) } (Bugzilla::FlagType->UPDATE_COLUMNS, 'cc_list')
+    });
 
     # Populate the list of inclusions/exclusions for this flag type.
-    validateAndSubmit($id);
+    validateAndSubmit($ft->id);
 
-    $dbh->bz_commit_transaction();
+    Bugzilla->dbh->bz_commit_transaction;
 
-    $vars->{name} = $name;
+    $vars->{name} = $ft->name;
     $vars->{message} = "flag_type_created";
     delete_token($token);
 
@@ -365,32 +348,20 @@ sub update
 {
     my $token = shift;
     check_token_data($token, 'edit_flagtype');
-    my $flag_type = validateID();
-    my $id = $flag_type->id;
-    my $name = validateName();
-    my $description = validateDescription();
-    validateTargetType();
-    validateSortKey();
-    validateIsActive();
-    validateIsRequestable();
-    validateIsRequesteeble();
-    validateAllowMultiple();
-    validateGroups();
 
     my $dbh = Bugzilla->dbh;
-    my $user = Bugzilla->user;
+
     $dbh->bz_start_transaction();
-    $dbh->do(
-        'UPDATE flagtypes SET name = ?, description = ?, sortkey = ?, is_active = ?, is_requestable = ?,'.
-        ' is_requesteeble = ?, is_multiplicable = ?, grant_group_id = ?, request_group_id = ?'.
-        ' WHERE id = ?', undef,
-        $name, $description, scalar $cgi->param('sortkey'), scalar $cgi->param('is_active'),
-        scalar $cgi->param('is_requestable'), scalar $cgi->param('is_requesteeble'), scalar $cgi->param('is_multiplicable'),
-        scalar $cgi->param('grant_gid'), scalar $cgi->param('request_gid'), $id
-    );
+
+    my $flag_type = validateID();
+    for (Bugzilla::FlagType->UPDATE_COLUMNS, 'cc_list')
+    {
+        $flag_type->set($_, scalar $cgi->param($_));
+    }
+    $flag_type->update;
 
     # Update the list of inclusions/exclusions for this flag type.
-    validateAndSubmit($id);
+    validateAndSubmit($flag_type->id);
 
     $dbh->bz_commit_transaction();
 
@@ -403,7 +374,7 @@ sub update
         ' AND (bugs.product_id = i.product_id OR i.product_id IS NULL)'.
         ' AND (bugs.component_id = i.component_id OR i.component_id IS NULL))'.
         ' WHERE flags.type_id = ? AND i.type_id IS NULL',
-        undef, $id
+        undef, $flag_type->id
     );
     Bugzilla::Flag->force_retarget($flag_ids);
 
@@ -414,23 +385,23 @@ sub update
         ' WHERE flags.type_id = ?'.
         ' AND (bugs.product_id = e.product_id OR e.product_id IS NULL)'.
         ' AND (bugs.component_id = e.component_id OR e.component_id IS NULL)',
-        undef, $id
+        undef, $flag_type->id
     );
     Bugzilla::Flag->force_retarget($flag_ids);
 
     # Now silently remove requestees from flags which are no longer
     # specifically requestable.
-    if (!$cgi->param('is_requesteeble'))
+    if (!$flag_type->is_requesteeble)
     {
-        $dbh->do('UPDATE flags SET requestee_id = NULL WHERE type_id = ?', undef, $id);
+        $dbh->do('UPDATE flags SET requestee_id = NULL WHERE type_id = ?', undef, $flag_type->id);
     }
 
-    $vars->{name} = $name;
+    $vars->{name} = $flag_type->name;
     $vars->{message} = "flag_type_changes_saved";
     delete_token($token);
 
-    $vars->{bug_types} = Bugzilla::FlagType::match({'target_type' => 'bug'});
-    $vars->{attachment_types} = Bugzilla::FlagType::match({'target_type' => 'attachment'});
+    $vars->{bug_types} = Bugzilla::FlagType::match({ target_type => 'bug' });
+    $vars->{attachment_types} = Bugzilla::FlagType::match({ target_type => 'attachment' });
 
     $template->process("admin/flag-type/list.html.tmpl", $vars)
         || ThrowTemplateError($template->error());
@@ -533,97 +504,6 @@ sub validateID
     return $flag_type;
 }
 
-sub validateName
-{
-    my $name = $cgi->param('name');
-    ($name && $name !~ /[ ,]/ && length($name) <= 50)
-        || ThrowUserError("flag_type_name_invalid", { name => $name });
-    trick_taint($name);
-    return $name;
-}
-
-sub validateDescription
-{
-    my $description = $cgi->param('description');
-    length($description) < 2**16-1
-        || ThrowUserError("flag_type_description_invalid");
-    trick_taint($description);
-    return $description;
-}
-
-sub validateProduct
-{
-    my $product_name = shift;
-    return unless $product_name;
-
-    my $product = Bugzilla::Product::check_product($product_name);
-    return $product;
-}
-
-sub validateComponent
-{
-    my ($product, $component_name) = @_;
-    return unless $component_name;
-
-    ($product && $product->id)
-        || ThrowUserError("flag_type_component_without_product");
-
-    my $component = Bugzilla::Component->check({ product => $product, name => $component_name });
-    return $component;
-}
-
-sub validateSortKey
-{
-    # $sortkey is destroyed if detaint_natural fails.
-    my $sortkey = $cgi->param('sortkey');
-    detaint_natural($sortkey)
-        || ThrowUserError("flag_type_sortkey_invalid", { sortkey => scalar $cgi->param('sortkey') });
-    $cgi->param('sortkey', $sortkey);
-}
-
-sub validateTargetType
-{
-    grep($cgi->param('target_type') eq $_, ("bug", "attachment"))
-        || ThrowCodeError("flag_type_target_type_invalid", { target_type => scalar $cgi->param('target_type') });
-}
-
-sub validateIsActive
-{
-    $cgi->param('is_active', $cgi->param('is_active') ? 1 : 0);
-}
-
-sub validateIsRequestable
-{
-    $cgi->param('is_requestable', $cgi->param('is_requestable') ? 1 : 0);
-}
-
-sub validateIsRequesteeble
-{
-    $cgi->param('is_requesteeble', $cgi->param('is_requesteeble') ? 1 : 0);
-}
-
-sub validateAllowMultiple
-{
-    $cgi->param('is_multiplicable', $cgi->param('is_multiplicable') ? 1 : 0);
-}
-
-sub validateGroups
-{
-    my $dbh = Bugzilla->dbh;
-    # Convert group names to group IDs
-    foreach my $col ('grant', 'request')
-    {
-        my $name = $cgi->param($col . '_group');
-        if ($name)
-        {
-            trick_taint($name);
-            my $gid = $dbh->selectrow_array('SELECT id FROM groups WHERE name = ?', undef, $name);
-            $gid || ThrowUserError("group_unknown", { name => $name });
-            $cgi->param($col . '_gid', $gid);
-        }
-    }
-}
-
 # At this point, values either come the DB itself or have been recently
 # added by the user and have passed all validation tests.
 # The only way to have invalid product/component combinations is to
@@ -665,16 +545,6 @@ sub validateAndSubmit
             $component_id ||= undef;
             $sth->execute($id, $product_id, $component_id);
         }
-    }
-
-    my $cc_list = Bugzilla::User->match({ login_name => [ split /[\s,]*,[\s,]*/, scalar $cgi->param('cc_list') ] });
-    $dbh->do("DELETE FROM flagtype_cc_list WHERE object_id=?", undef, $id);
-    if (@$cc_list)
-    {
-        $dbh->do(
-            "INSERT INTO flagtype_cc_list (object_id, value_id) VALUES ".
-            join(', ', map { "(?, ?)" } @$cc_list), undef, map { ($id, $_->id) } @$cc_list
-        );
     }
 }
 

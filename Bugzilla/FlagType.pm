@@ -30,6 +30,9 @@ use Bugzilla::Group;
 
 use base qw(Bugzilla::Object);
 
+use constant DB_TABLE => 'flagtypes';
+use constant LIST_ORDER => 'sortkey, name';
+
 use constant DB_COLUMNS => qw(
     id
     name
@@ -43,9 +46,22 @@ use constant DB_COLUMNS => qw(
     grant_group_id
     request_group_id
 );
+use constant UPDATE_COLUMNS => grep { $_ ne 'id' } DB_COLUMNS;
+use constant REQUIRED_CREATE_FIELDS => UPDATE_COLUMNS;
 
-use constant DB_TABLE => 'flagtypes';
-use constant LIST_ORDER => 'sortkey, name';
+use constant VALIDATORS => {
+    name => \&_check_name,
+    description => \&_check_description,
+    target_type => \&_check_target_type,
+    sortkey => \&_check_sortkey,
+    is_active => \&Bugzilla::Object::check_boolean,
+    is_requestable => \&Bugzilla::Object::check_boolean,
+    is_requesteeble => \&Bugzilla::Object::check_boolean,
+    is_multiplicable => \&Bugzilla::Object::check_boolean,
+    grant_group_id => \&_check_group,
+    request_group_id => \&_check_group,
+    cc_list => \&_check_cc_list,
+};
 
 =head1 NAME
 
@@ -164,7 +180,7 @@ sub cc_list_obj
 sub cc_list_str
 {
     my $self = shift;
-    return join(', ', map { $_->login } @{$self->cc_list});
+    return join(', ', map { $_->login } @{$self->cc_list_obj});
 }
 
 sub grant_group
@@ -232,6 +248,37 @@ Returns the total number of flag types matching the given criteria.
 
 =cut
 
+sub create
+{
+    my ($class, $params) = @_;
+    my $cc = $class->_check_cc_list(delete $params->{cc_list});
+    my $self = $class->SUPER::create($params);
+    $self->{cc_list} = $cc;
+    $self->save_cc_list;
+    return $self;
+}
+
+sub update
+{
+    my $self = shift;
+    my $ch = $self->SUPER::update(@_);
+    $self->save_cc_list;
+    return $ch;
+}
+
+sub save_cc_list
+{
+    my $self = shift;
+    Bugzilla->dbh->do("DELETE FROM flagtype_cc_list WHERE object_id=?", undef, $self->id);
+    if (@{$self->{cc_list}})
+    {
+        Bugzilla->dbh->do(
+            "INSERT INTO flagtype_cc_list (object_id, value_id) VALUES ".
+            join(', ', map { "(?, ?)" } @{$self->{cc_list}}), undef, map { ($self->id, $_->id) } @{$self->{cc_list}}
+        );
+    }
+}
+
 sub match
 {
     my ($criteria) = @_;
@@ -261,6 +308,72 @@ sub count
 
     my $count = $dbh->selectrow_array("SELECT COUNT(flagtypes.id) FROM $tables WHERE $criteria");
     return $count;
+}
+
+######################################################################
+# Validators
+######################################################################
+
+sub _check_name
+{
+    my ($invocant, $name) = @_;
+    ($name && $name !~ /[ ,]/ && length($name) <= 255)
+        || ThrowUserError("flag_type_name_invalid", { name => $name });
+    return $name;
+}
+
+sub _check_description
+{
+    my ($invocant, $description) = @_;
+    $description = trim($description);
+    length($description) < 2**16-1
+        || ThrowUserError("flag_type_description_invalid");
+    return $description;
+}
+
+sub _check_target_type
+{
+    my ($invocant, $type) = @_;
+    unless ($type eq 'bug' || $type eq 'attachment' || $type eq 'b' || $type eq 'a')
+    {
+        ThrowCodeError("flag_type_target_type_invalid", { target_type => $type });
+    }
+    return $type eq 'bug' || $type eq 'b' ? 'b' : 'a';
+}
+
+sub _check_sortkey
+{
+    my ($invocant, $sortkey) = @_;
+    my $k = $sortkey;
+    if (!detaint_natural($sortkey))
+    {
+        ThrowUserError("flag_type_sortkey_invalid", { sortkey => $k });
+    }
+    return $sortkey;
+}
+
+sub _check_group
+{
+    my ($invocant, $group, $field) = @_;
+    # Convert group names to group IDs
+    if ($group)
+    {
+        trick_taint($group);
+        my $gid = Bugzilla->dbh->selectrow_array('SELECT id FROM groups WHERE name=?', undef, $group);
+        $gid || ThrowUserError("group_unknown", { name => $group });
+        $group = $gid;
+    }
+    else
+    {
+        $group = undef;
+    }
+    return $group;
+}
+
+sub _check_cc_list
+{
+    my ($invocant, $cc_list) = @_;
+    return Bugzilla::User->match({ login_name => [ split /[\s,]*,[\s,]*/, $cc_list ] });
 }
 
 ######################################################################
