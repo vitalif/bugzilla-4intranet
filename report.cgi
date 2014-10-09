@@ -31,18 +31,17 @@ use Bugzilla::Search;
 use Bugzilla::Report;
 use Bugzilla::Token;
 
-my $cgi = Bugzilla->cgi;
+my $ARGS = Bugzilla->input_params;
 my $template = Bugzilla->template;
 my $vars = {};
-my $buffer = $cgi->query_string();
+my $buffer = http_build_query($ARGS);
 
 # Go straight back to query.cgi if we are adding a boolean chart.
-if (grep /^cmd-/, $cgi->param())
+if (grep /^cmd-/, keys %$ARGS)
 {
-    my $params = $cgi->canonicalise_query("format", "ctype");
-    my $location = "query.cgi?format=" . $cgi->param('query_format') .
-        ($params ? "&$params" : "");
-    print $cgi->redirect($location);
+    $ARGS->{format} = $ARGS->{query_format};
+    delete $ARGS->{ctype};
+    print Bugzilla->cgi->redirect("query.cgi?" . http_build_query($ARGS));
     exit;
 }
 
@@ -50,8 +49,8 @@ Bugzilla->login();
 
 my $dbh = Bugzilla->switch_to_shadow_db();
 
-my $action = $cgi->param('action') || 'menu';
-my $token  = $cgi->param('token');
+my $action = $ARGS->{action} || 'menu';
+my $token  = $ARGS->{token};
 
 if ($action eq "menu")
 {
@@ -65,8 +64,8 @@ elsif ($action eq 'add')
     my $user = Bugzilla->login(LOGIN_REQUIRED);
     check_hash_token($token, ['save_report']);
 
-    my $name = clean_text($cgi->param('name'));
-    my $query = $cgi->param('query');
+    my $name = clean_text($ARGS->{name});
+    my $query = $ARGS->{query};
 
     if (my ($report) = grep { lc($_->name) eq lc($name) } @{$user->reports})
     {
@@ -89,7 +88,7 @@ elsif ($action eq 'add')
 elsif ($action eq 'del')
 {
     my $user = Bugzilla->login(LOGIN_REQUIRED);
-    my $report_id = $cgi->param('saved_report_id');
+    my $report_id = $ARGS->{saved_report_id};
     check_hash_token($token, ['delete_report', $report_id]);
 
     my $report = Bugzilla::Report->check({id => $report_id});
@@ -110,7 +109,7 @@ my $valid_columns = Bugzilla::Search::REPORT_COLUMNS();
 my $field = {};
 for (qw(x y z))
 {
-    my $f = $cgi->param($_.'_axis_field') || '';
+    my $f = $ARGS->{$_.'_axis_field'} || '';
     trick_taint($f);
     if ($f)
     {
@@ -130,8 +129,8 @@ if (!keys %$field)
     ThrowUserError("no_axes_defined");
 }
 
-my $width = $cgi->param('width');
-my $height = $cgi->param('height');
+my $width = $ARGS->{width};
+my $height = $ARGS->{height};
 
 if (defined($width))
 {
@@ -150,7 +149,7 @@ if (defined($height))
 # These shenanigans are necessary to make sure that both vertical and
 # horizontal 1D tables convert to the correct dimension when you ask to
 # display them as some sort of chart.
-if (defined $cgi->param('format') && $cgi->param('format') =~ /^(table|simple)$/)
+if (defined $ARGS->{format} && $ARGS->{format} =~ /^(table|simple)$/)
 {
     if ($field->{x} && !$field->{y})
     {
@@ -182,7 +181,7 @@ my $measures = {
 # Trick Bugzilla::Search by adding '_count' column
 Bugzilla::Search->COLUMNS->{_count}->{name} = '1';
 
-my $measure = $cgi->param('measure');
+my $measure = $ARGS->{measure};
 $measure = 'count' unless $measures->{$measure};
 $vars->{measure} = $measure;
 
@@ -277,10 +276,10 @@ $vars->{row_names} = \@row_names;
 $vars->{tbl_names} = \@tbl_names;
 
 # Below a certain width, we don't see any bars, so there needs to be a minimum.
-if ($width && $cgi->param('format') eq "bar")
+if ($width && $ARGS->{format} eq "bar")
 {
     my $min_width = (scalar(@col_names) || 1) * 20;
-    if (!$cgi->param('cumulate'))
+    if (!$ARGS->{cumulate})
     {
         $min_width *= (scalar(@row_names) || 1);
     }
@@ -291,10 +290,10 @@ $vars->{width} = $width if $width;
 $vars->{height} = $height if $height;
 
 $vars->{query} = $query;
-$vars->{saved_report_id} = $cgi->param('saved_report_id');
-$vars->{debug} = $cgi->param('debug');
+$vars->{saved_report_id} = $ARGS->{saved_report_id};
+$vars->{debug} = $ARGS->{debug};
 
-my $formatparam = $cgi->param('format');
+my $formatparam = $ARGS->{format};
 
 if ($action eq "wrap")
 {
@@ -316,51 +315,49 @@ if ($action eq "wrap")
     $vars->{row_vals} = join("&", $buffer =~ /[&?]($field->{y}=[^&]+)/g);
     $vars->{tbl_vals} = join("&", $buffer =~ /[&?]($field->{z}=[^&]+)/g);
 
-    # We need a number of different variants of the base URL for different
-    # URLs in the HTML.
-    $vars->{buglistbase} = $cgi->canonicalise_query(
-        qw(x_axis_field y_axis_field z_axis_field ctype format query_format
-        measure), @axis_fields
-    );
-    $vars->{imagebase} = $cgi->canonicalise_query(
-        $field->{z}, qw(action ctype format width height),
-    );
-    $vars->{switchbase} = $cgi->canonicalise_query(
-        qw(query_format action ctype format width height measure)
-    );
+    # We need a number of different variants of the base URL for different URLs in the HTML.
+    my $a = { %$ARGS };
+    delete $a->{$_} for qw(x_axis_field y_axis_field z_axis_field ctype format query_format measure), @axis_fields;
+    $vars->{buglistbase} = http_build_query($a);
+    $a = { %$ARGS };
+    delete $a->{$_} for $field->{z}, qw(action ctype format width height);
+    $vars->{imagebase} = http_build_query($a);
+    $a = { %$ARGS };
+    delete $a->{$_} for qw(query_format action ctype format width height measure);
+    $vars->{switchbase} = http_build_query($a);
     $vars->{data} = \%data;
 }
 elsif ($action eq "plot")
 {
     # If action is "plot", we will be using a format as normal (pie, bar etc.)
     # and a ctype as normal (currently only png.)
-    $vars->{cumulate} = $cgi->param('cumulate') ? 1 : 0;
-    $vars->{x_labels_vertical} = $cgi->param('x_labels_vertical') ? 1 : 0;
+    $vars->{cumulate} = $ARGS->{cumulate} ? 1 : 0;
+    $vars->{x_labels_vertical} = $ARGS->{x_labels_vertical} ? 1 : 0;
     $vars->{data} = \@image_data;
 }
 else
 {
-    ThrowCodeError("unknown_action", {action => $cgi->param('action')});
+    ThrowCodeError("unknown_action", {action => $ARGS->{action}});
 }
 
-my $format = $template->get_format("reports/report", $formatparam, scalar($cgi->param('ctype')));
+my $format = $template->get_format("reports/report", $formatparam, $ARGS->{ctype});
 
 # If we get a template or CGI error, it comes out as HTML, which isn't valid
 # PNG data, and the browser just displays a "corrupt PNG" message. So, you can
 # set debug=1 to always get an HTML content-type, and view the error.
-$format->{ctype} = "text/html" if $cgi->param('debug');
+$format->{ctype} = "text/html" if $ARGS->{debug};
 
 my @time = localtime(time());
 my $date = sprintf "%04d-%02d-%02d", 1900+$time[5],$time[4]+1,$time[3];
 my $filename = "report-$date.$format->{extension}";
-$cgi->send_header(
+Bugzilla->cgi->send_header(
     -type => $format->{ctype},
     -content_disposition => "inline; filename=$filename",
 );
 
 # Problems with this CGI are often due to malformed data. Setting debug=1
 # prints out both data structures.
-if ($cgi->param('debug'))
+if ($ARGS->{debug})
 {
     require Data::Dumper;
     print "<pre>data hash:\n";
