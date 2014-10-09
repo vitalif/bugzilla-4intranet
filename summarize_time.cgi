@@ -1,6 +1,4 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -20,7 +18,7 @@
 use strict;
 
 use lib qw(. lib);
-
+use DateTime;
 use Date::Parse;         # strptime
 
 use Bugzilla;
@@ -43,72 +41,25 @@ sub restrict_my_activity
     return 0;
 }
 
-#
 # Date handling
-#
-
-sub date_adjust_down {
-   
+sub date_adjust_down
+{
     my ($year, $month, $day) = @_;
-
-    if ($day == 0) {
-        $month -= 1;
-        $day = 31;
-        # Proper day adjustment is done later.
-
-        if ($month == 0) {
-            $year -= 1;
-            $month = 12;
-        }
-    }
-
-    if (($month == 2) && ($day > 28)) {
-        if ($year % 4 == 0 && $year % 100 != 0) {
-            $day = 29;
-        } else {
-            $day = 28;
-        }
-    }
-
-    if (($month == 4 || $month == 6 || $month == 9 || $month == 11) &&
-        ($day == 31) ) 
-    {
-        $day = 30;
-    }
-    return ($year, $month, $day);
+    my $d = DateTime->new(year => $year, month => $month, day => $day);
+    $d->subtract(days => 1);
+    return ($d->year, $d->month, $d->day);
 }
 
-sub date_adjust_up {
+sub date_adjust_up
+{
     my ($year, $month, $day) = @_;
-
-    if ($day > 31) {
-        $month += 1;
-        $day    = 1;
-
-        if ($month == 13) {
-            $month = 1;
-            $year += 1;
-        }
-    }
-
-    if ($month == 2 && $day > 28) {
-        if ($year % 4 != 0 || $year % 100 == 0 || $day > 29) {
-            $month = 3;
-            $day = 1;
-        }
-    }
-
-    if (($month == 4 || $month == 6 || $month == 9 || $month == 11) &&
-        ($day == 31) )
-    {
-        $month += 1; 
-        $day    = 1;
-    }
-
-    return ($year, $month, $day);
+    my $d = DateTime->new(year => $year, month => $month, day => $day);
+    $d->add(days => 1);
+    return ($d->year, $d->month, $d->day);
 }
 
-sub split_by_month {
+sub split_by_month
+{
     # Takes start and end dates and splits them into a list of
     # monthly-spaced 2-lists of dates.
     my ($start_date, $end_date) = @_;
@@ -122,7 +73,8 @@ sub split_by_month {
     my $yd = $ey - $sy;
     my $md = 12 * $yd + $em - $sm;
     # If the end day is smaller than the start day, last interval is not a whole month.
-    if ($sd > $ed) {
+    if ($sd > $ed)
+    {
         $md -= 1;
     }
 
@@ -137,12 +89,14 @@ sub split_by_month {
     my $year_tmp = $year;
 
     # This section handles only the whole months.
-    for (my $i=0; $i < $md; $i++) {
+    for (my $i=0; $i < $md; $i++)
+    {
         # Start of interval is adjusted up: 31.2. -> 1.3.
         ($year_tmp, $month_tmp, $sd_tmp) = date_adjust_up($year, $month, $sd);
-        $sub_start = sprintf("%04d-%02d-%02d", $year_tmp, $month_tmp, $sd_tmp); 
+        $sub_start = sprintf("%04d-%02d-%02d", $year_tmp, $month_tmp, $sd_tmp);
         $month += 1;
-        if ($month == 13) {
+        if ($month == 13)
+        {
             $month = 1;
             $year += 1;
         }
@@ -151,8 +105,8 @@ sub split_by_month {
         $sub_end = sprintf("%04d-%02d-%02d", $year_tmp, $month_tmp, $sd_tmp);
         push @months, [$sub_start, $sub_end];
     }
-    
-    # This section handles the last (unfinished) month. 
+
+    # This section handles the last (unfinished) month.
     $sub_end = sprintf("%04d-%02d-%02d", $ey + 1900, $em + 1, $ed);
     ($year_tmp, $month_tmp, $sd_tmp) = date_adjust_up($year, $month, $sd);
     $sub_start = sprintf("%04d-%02d-%02d", $year_tmp, $month_tmp, $sd_tmp);
@@ -161,36 +115,40 @@ sub split_by_month {
     return @months;
 }
 
-sub sqlize_dates {
+sub sqlize_dates
+{
     my ($start_date, $end_date) = @_;
     my $date_bits = "";
     my @date_values;
-    if ($start_date) {
+    if ($start_date)
+    {
         # we've checked, trick_taint is fine
         trick_taint($start_date);
         $date_bits = " AND longdescs.bug_when > ?";
         push @date_values, $start_date;
-    } 
-    if ($end_date) {
+    }
+    if ($end_date)
+    {
         # we need to add one day to end_date to catch stuff done today
         # do not forget to adjust date if it was the last day of month
         my (undef, undef, undef, $ed, $em, $ey, undef) = strptime($end_date);
         ($ey, $em, $ed) = date_adjust_up($ey+1900, $em+1, $ed+1);
         $end_date = sprintf("%04d-%02d-%02d", $ey, $em, $ed);
-
-        $date_bits .= " AND longdescs.bug_when < ?"; 
+        $date_bits .= " AND longdescs.bug_when < ?";
         push @date_values, $end_date;
     }
     return ($date_bits, \@date_values);
 }
 
 # Return all blockers of the current bug, recursively.
-sub get_blocker_ids {
+sub get_blocker_ids
+{
     my ($bug_id, $unique) = @_;
     $unique ||= {$bug_id => 1};
     my $deps = Bugzilla::Bug::EmitDependList("blocked", "dependson", $bug_id);
     my @unseen = grep { !$unique->{$_}++ } @$deps;
-    foreach $bug_id (@unseen) {
+    foreach $bug_id (@unseen)
+    {
         get_blocker_ids($bug_id, $unique);
     }
     return keys %$unique;
@@ -200,7 +158,8 @@ sub get_blocker_ids {
 # and value is a hash of the form {bug ID, commenter, time spent}.
 # So you can either view it as the time spent by commenters on each bug
 # or the time spent in bugs by each commenter.
-sub get_list {
+sub get_list
+{
     my ($bugids, $start_date, $end_date, $keyname, $my_activity) = @_;
     my $dbh = Bugzilla->dbh;
 
@@ -212,56 +171,47 @@ sub get_list {
     my %list;
     if ($buglist)
     {
-    my $data = $dbh->selectall_arrayref(
-              "SELECT SUM(work_time) AS total_time, login_name, longdescs.bug_id
-                 FROM longdescs
-           INNER JOIN profiles
-                   ON longdescs.who = profiles.userid
-           INNER JOIN bugs
-                   ON bugs.bug_id = longdescs.bug_id
-                WHERE longdescs.bug_id IN ($buglist) $date_bits " .
-            $dbh->sql_group_by('longdescs.bug_id, login_name', 'longdescs.bug_when') .
-             " HAVING SUM(work_time) != 0", {Slice => {}}, @$date_values);
-    # What this loop does is to push data having the same key in an array.
-        push @{$list{ $_->{$keyname} }}, $_ foreach @$data;
+        my $data = $dbh->selectall_arrayref(
+            "SELECT SUM(work_time) AS total_time, login_name, longdescs.bug_id FROM longdescs".
+            " INNER JOIN profiles ON longdescs.who = profiles.userid".
+            " INNER JOIN bugs ON bugs.bug_id = longdescs.bug_id".
+            " WHERE longdescs.bug_id IN ($buglist) $date_bits".
+            " GROUP BY longdescs.bug_id, login_name, longdescs.bug_when" .
+            " HAVING SUM(work_time) != 0", {Slice => {}}, @$date_values
+        );
+        # What this loop does is to push data having the same key in an array.
+        push @{$list{$_->{$keyname}}}, $_ foreach @$data;
     }
     return \%list;
 }
 
 # Return bugs which had no activity (a.k.a work_time = 0) during the given time range.
-sub get_inactive_bugs {
+sub get_inactive_bugs
+{
     my ($bugids, $start_date, $end_date, $my_activity) = @_;
     my $dbh = Bugzilla->dbh;
     my ($date_bits, $date_values) = sqlize_dates($start_date, $end_date);
     restrict_my_activity($date_bits, $date_values) if $my_activity;
     return [] unless @$bugids;
     my $buglist = join(", ", @$bugids);
-
     my $bugs = $dbh->selectcol_arrayref(
-        "SELECT bug_id
-           FROM bugs
-          WHERE bugs.bug_id IN ($buglist)
-            AND NOT EXISTS (
-                SELECT 1
-                  FROM longdescs
-                 WHERE bugs.bug_id = longdescs.bug_id
-                   AND work_time != 0 $date_bits)",
-         undef, @$date_values);
-
+        "SELECT bug_id FROM bugs".
+        " WHERE bugs.bug_id IN ($buglist) AND NOT EXISTS".
+        " (SELECT 1 FROM longdescs WHERE bugs.bug_id = longdescs.bug_id".
+        " AND work_time != 0 $date_bits)", undef, @$date_values
+    );
     return $bugs;
 }
 
 # Return 1st day of the month of the earliest activity date for a given list of bugs.
-sub get_earliest_activity_date {
+sub get_earliest_activity_date
+{
     my ($bugids) = @_;
     my $dbh = Bugzilla->dbh;
-
     my ($date) = $dbh->selectrow_array(
-        'SELECT ' . $dbh->sql_date_format('MIN(bug_when)', '%Y-%m-01')
-       . ' FROM longdescs
-          WHERE ' . $dbh->sql_in('bug_id', $bugids)
-                  . ' AND work_time != 0');
-
+        'SELECT ' . $dbh->sql_date_format('MIN(bug_when)', '%Y-%m-01') .
+        ' FROM longdescs WHERE ' . $dbh->sql_in('bug_id', $bugids) . ' AND work_time != 0'
+    );
     return $date;
 }
 
@@ -271,29 +221,30 @@ sub get_earliest_activity_date {
 
 Bugzilla->login(LOGIN_REQUIRED);
 
-my $cgi = Bugzilla->cgi;
+my $ARGS = Bugzilla->input_params;
 my $user = Bugzilla->user;
 my $template = Bugzilla->template;
 my $vars = {};
 
 Bugzilla->switch_to_shadow_db();
 
-$user->is_timetracker
-    || ThrowUserError("auth_failure", {group  => "time-tracking",
-                                       action => "access",
-                                       object => "timetracking_summaries"});
+$user->is_timetracker || ThrowUserError("auth_failure", {
+    group  => "time-tracking",
+    action => "access",
+    object => "timetracking_summaries",
+});
 
-my @ids = split(",", $cgi->param('id'));
+my @ids = split(",", $ARGS->{id});
 @ids = map { Bugzilla::Bug->check($_)->id } @ids;
 
-my $group_by = $cgi->param('group_by') || "number";
-my $monthly = $cgi->param('monthly');
-my $detailed = $cgi->param('detailed');
-my $do_report = $cgi->param('do_report');
-my $inactive = $cgi->param('inactive');
-my $do_depends = $cgi->param('do_depends');
-my $ctype = scalar($cgi->param('ctype'));
-my $my_activity = $cgi->param('my_activity');
+my $group_by = $ARGS->{group_by} || "number";
+my $monthly = $ARGS->{monthly};
+my $detailed = $ARGS->{detailed};
+my $do_report = $ARGS->{do_report};
+my $inactive = $ARGS->{inactive};
+my $do_depends = $ARGS->{do_depends};
+my $ctype = $ARGS->{ctype};
+my $my_activity = $ARGS->{my_activity};
 
 $my_activity || scalar(@ids) || ThrowUserError('no_bugs_chosen', { action => 'view'});
 
@@ -303,11 +254,11 @@ if ($do_report)
     my @bugs = @ids;
 
     # Validate dates
-    $start_date = trim $cgi->param('start_date');
-    $end_date = trim $cgi->param('end_date');
+    $start_date = trim $ARGS->{start_date};
+    $end_date = trim $ARGS->{end_date};
 
     # Swap dates in case the user put an end_date before the start_date
-    if ($start_date && $end_date && 
+    if ($start_date && $end_date &&
         str2time($start_date) > str2time($end_date))
     {
         $vars->{warn_swap_dates} = 1;
@@ -364,8 +315,10 @@ if ($do_report)
 
     # Store dates in a session cookie so re-visiting the page
     # for other bugs keeps them around.
-    $cgi->send_cookie(-name => 'time-summary-dates',
-                      -value => join ";", ($start_date, $end_date));
+    Bugzilla->cgi->send_cookie(
+        -name => 'time-summary-dates',
+        -value => join ";", ($start_date, $end_date)
+    );
 
     my (@parts, $part_data, @part_list);
 
@@ -375,45 +328,50 @@ if ($do_report)
     {
         # Calculate the earliest activity date if the user doesn't
         # specify a start date.
-        if (!$start_date) {
+        if (!$start_date)
+        {
             $start_date = get_earliest_activity_date(\@bugs);
         }
         # Provide a default end date. Note that this differs in semantics
         # from the open-ended queries we use when start/end_date aren't
         # provided -- and clock skews will make this evident!
-        @parts = split_by_month($start_date, 
-                                $end_date || format_time(scalar localtime(time()), '%Y-%m-%d'));
+        @parts = split_by_month($start_date, $end_date || format_time(scalar localtime(time()), '%Y-%m-%d'));
     }
     else
     {
-        @parts = ([$start_date, $end_date]);
+        @parts = ([ $start_date, $end_date ]);
     }
 
     # For each of the separate divisions, grab the relevant data.
     my $keyname = ($group_by eq 'owner') ? 'login_name' : 'bug_id';
-    foreach my $part (@parts) {
+    foreach my $part (@parts)
+    {
         my ($sub_start, $sub_end) = @$part;
         $part_data = get_list(\@bugs, $sub_start, $sub_end, $keyname, $my_activity);
-        push(@part_list, $part_data);
+        push @part_list, $part_data;
     }
 
     # Do we want to see inactive bugs?
-    if ($inactive) {
+    if ($inactive)
+    {
         $vars->{null} = get_inactive_bugs(\@bugs, $start_date, $end_date, $my_activity);
-    } else {
+    }
+    else
+    {
         $vars->{null} = {};
     }
 
     # Convert bug IDs to bug objects.
-    @bugs = map {new Bugzilla::Bug($_)} @bugs;
+    @bugs = map { new Bugzilla::Bug($_) } @bugs;
 
     $vars->{part_list} = \@part_list;
     $vars->{parts} = \@parts;
     # We pass the list of bugs as a hashref.
     $vars->{bugs} = {map { $_->id => $_ } @bugs};
 }
-elsif ($cgi->cookie("time-summary-dates")) {
-    ($start_date, $end_date) = split ";", $cgi->cookie('time-summary-dates');
+elsif (Bugzilla->cookies->{'time-summary-dates'})
+{
+    ($start_date, $end_date) = split ";", Bugzilla->cookies->{'time-summary-dates'};
 }
 
 $vars->{ids} = \@ids;
@@ -430,6 +388,7 @@ $vars->{my_activity} = $my_activity;
 my $format = $template->get_format("bug/summarize-time", undef, $ctype);
 
 # Get the proper content-type
-$cgi->send_header(-type=> $format->{'ctype'});
-$template->process("$format->{'template'}", $vars)
-  || ThrowTemplateError($template->error());
+Bugzilla->cgi->send_header(-type => $format->{ctype});
+$template->process($format->{template}, $vars)
+    || ThrowTemplateError($template->error());
+exit;
