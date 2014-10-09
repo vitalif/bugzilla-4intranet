@@ -36,13 +36,13 @@ use Bugzilla::Whine::Query;
 # require the user to have logged in
 my $user = Bugzilla->login(LOGIN_REQUIRED);
 
-my $cgi      = Bugzilla->cgi;
+my $ARGS = Bugzilla->input_params;
 my $template = Bugzilla->template;
-my $vars     = {};
-my $dbh      = Bugzilla->dbh;
+my $vars = {};
+my $dbh = Bugzilla->dbh;
 
-my $userid   = $user->id;
-my $token    = $cgi->param('token');
+my $userid = $user->id;
+my $token = $ARGS->{token};
 
 # $events is a hash ref, keyed by event id, that stores the active user's
 # events.  It starts off with:
@@ -77,11 +77,11 @@ my $can_mail_others = Bugzilla->user->in_group('bz_canusewhineatothers');
 
 # If the form was submitted, we need to look for what needs to be added or
 # removed, then what was altered.
-if ($cgi->param('update'))
+if ($ARGS->{update})
 {
     check_token_data($token, 'edit_whine');
 
-    if ($cgi->param("add_event"))
+    if ($ARGS->{add_event})
     {
         # we create a new event
         $dbh->do("INSERT INTO whine_events (owner_userid) VALUES (?)", undef, $userid);
@@ -91,7 +91,7 @@ if ($cgi->param('update'))
         for my $eventid (keys %{$events})
         {
             # delete an entire event
-            if ($cgi->param("remove_event_$eventid"))
+            if ($ARGS->{"remove_event_$eventid"})
             {
                 # We need to make sure these belong to the same user,
                 # otherwise we could simply delete whatever matched that ID.
@@ -100,9 +100,9 @@ if ($cgi->param('update'))
             else
             {
                 # check the subject, body and mailifnobugs for changes
-                my $subject = ($cgi->param("event_${eventid}_subject") or '');
-                my $body    = ($cgi->param("event_${eventid}_body")    or '');
-                my $mailifnobugs = $cgi->param("event_${eventid}_mailifnobugs") ? 1 : 0;
+                my $subject = $ARGS->{"event_${eventid}_subject"} || '';
+                my $body    = $ARGS->{"event_${eventid}_body"} || '';
+                my $mailifnobugs = $ARGS->{"event_${eventid}_mailifnobugs"} ? 1 : 0;
 
                 trick_taint($subject) if $subject;
                 trick_taint($body)    if $body;
@@ -118,7 +118,7 @@ if ($cgi->param('update'))
                 }
 
                 # add a schedule
-                if ($cgi->param("add_schedule_$eventid"))
+                if ($ARGS->{"add_schedule_$eventid"})
                 {
                     # the schedule table must be locked before altering
                     $dbh->do(
@@ -128,7 +128,7 @@ if ($cgi->param('update'))
                     );
                 }
                 # add a query
-                elsif ($cgi->param("add_query_$eventid"))
+                elsif ($ARGS->{"add_query_$eventid"})
                 {
                     $dbh->do("INSERT INTO whine_queries (eventid) VALUES (?)", undef, $eventid);
                 }
@@ -150,11 +150,9 @@ if ($cgi->param('update'))
             my $arglist = {};   # args for match_field
             for my $sid (@scheduleids)
             {
-                if ($cgi->param("mailto_type_$sid") == MAILTO_USER)
+                if ($ARGS->{"mailto_type_$sid"} == MAILTO_USER)
                 {
-                    $arglist->{"mailto_$sid"} = {
-                        type => 'single',
-                    };
+                    $arglist->{"mailto_$sid"} = { type => 'single' };
                 }
             }
             if (scalar %{$arglist})
@@ -164,7 +162,7 @@ if ($cgi->param('update'))
 
             for my $sid (@scheduleids)
             {
-                if ($cgi->param("remove_schedule_$sid"))
+                if ($ARGS->{"remove_schedule_$sid"})
                 {
                     # having the assignee id in here is a security failsafe
                     $dbh->do(
@@ -175,14 +173,14 @@ if ($cgi->param('update'))
                 }
                 else
                 {
-                    my $o_day         = $cgi->param("orig_day_$sid") || '';
-                    my $day           = $cgi->param("day_$sid") || '';
-                    my $o_time        = $cgi->param("orig_time_$sid") || 0;
-                    my $time          = $cgi->param("time_$sid") || 0;
-                    my $o_mailto      = $cgi->param("orig_mailto_$sid") || '';
-                    my $mailto        = $cgi->param("mailto_$sid") || '';
-                    my $o_mailto_type = $cgi->param("orig_mailto_type_$sid") || 0;
-                    my $mailto_type   = $cgi->param("mailto_type_$sid") || 0;
+                    my $o_day         = $ARGS->{"orig_day_$sid"} || '';
+                    my $day           = $ARGS->{"day_$sid"} || '';
+                    my $o_time        = $ARGS->{"orig_time_$sid"} || 0;
+                    my $time          = $ARGS->{"time_$sid"} || 0;
+                    my $o_mailto      = $ARGS->{"orig_mailto_$sid"} || '';
+                    my $mailto        = $ARGS->{"mailto_$sid"} || '';
+                    my $o_mailto_type = $ARGS->{"orig_mailto_type_$sid"} || 0;
+                    my $mailto_type   = $ARGS->{"mailto_type_$sid"} || 0;
 
                     my $mailto_id = $userid;
 
@@ -231,7 +229,7 @@ if ($cgi->param('update'))
             for my $query (@$queries)
             {
                 my $qid = $query->id;
-                if ($cgi->param("remove_query_$qid"))
+                if ($ARGS->{"remove_query_$qid"})
                 {
                     $dbh->do(
                         "DELETE FROM whine_queries WHERE id=?".
@@ -241,14 +239,14 @@ if ($cgi->param('update'))
                 }
                 else
                 {
-                    my $o_sort      = $cgi->param("orig_query_sort_$qid") || 0;
-                    my $sort        = $cgi->param("query_sort_$qid") || 0;
-                    my $o_queryname = $cgi->param("orig_query_name_$qid") || '';
-                    my $queryname   = $cgi->param("query_name_$qid") || '';
-                    my $o_title     = $cgi->param("orig_query_title_$qid") || '';
-                    my $title       = $cgi->param("query_title_$qid") || '';
-                    my $o_onemailperbug = $cgi->param("orig_query_onemailperbug_$qid") || 0;
-                    my $onemailperbug   = $cgi->param("query_onemailperbug_$qid") ? 1 : 0;
+                    my $o_sort      = $ARGS->{"orig_query_sort_$qid"} || 0;
+                    my $sort        = $ARGS->{"query_sort_$qid"} || 0;
+                    my $o_queryname = $ARGS->{"orig_query_name_$qid"} || '';
+                    my $queryname   = $ARGS->{"query_name_$qid"} || '';
+                    my $o_title     = $ARGS->{"orig_query_title_$qid"} || '';
+                    my $title       = $ARGS->{"query_title_$qid"} || '';
+                    my $o_onemailperbug = $ARGS->{"orig_query_onemailperbug_$qid"} || 0;
+                    my $onemailperbug   = $ARGS->{"query_onemailperbug_$qid"} ? 1 : 0;
 
                     if ($o_sort != $sort || $o_queryname ne $queryname ||
                         $o_onemailperbug != $onemailperbug || $o_title ne $title)
