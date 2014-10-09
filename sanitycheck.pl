@@ -1,6 +1,4 @@
 #!/usr/bin/perl -w
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -36,9 +34,7 @@ my $verbose = 0; # Return all comments if true, else errors only.
 my $login = '';  # Login name of the user which is used to call sanitycheck.cgi.
 my $help = 0;    # Has user asked for help on this script?
 
-my $result = GetOptions('verbose'  => \$verbose,
-                        'login=s'  => \$login,
-                        'help|h|?' => \$help);
+my $result = GetOptions('verbose'  => \$verbose, 'login=s'  => \$login, 'help|h|?' => \$help);
 
 pod2usage({-verbose => 1, -exitval => 1}) if $help;
 
@@ -46,7 +42,7 @@ pod2usage({-verbose => 1, -exitval => 1}) if $help;
 $login || ThrowUserError('invalid_username');
 
 my $user = new Bugzilla::User({ name => $login })
-  || ThrowUserError('invalid_username', { name => $login });
+    || ThrowUserError('invalid_username', { name => $login });
 
 my $cgi = Bugzilla->cgi;
 my $template = Bugzilla->template;
@@ -60,19 +56,17 @@ $cgi->param('verbose', $verbose);
 require 'sanitycheck.cgi';
 
 # Now it's time to send an email to the user if there is something to notify.
-if ($cgi->param('output')) {
+if ($cgi->param('output'))
+{
     my $message;
     my $vars = {};
-    $vars->{'addressee'} = $user->email;
-    $vars->{'output'} = $cgi->param('output');
-    $vars->{'error_found'} = $cgi->param('error_found') ? 1 : 0;
-
+    $vars->{addressee} = $user->email;
+    $vars->{output} = $cgi->param('output');
+    $vars->{error_found} = $cgi->param('error_found') ? 1 : 0;
     $template->process('email/sanitycheck.txt.tmpl', $vars, \$message)
-      || ThrowTemplateError($template->error());
-
+        || ThrowTemplateError($template->error());
     MessageToMTA($message);
 }
-
 
 __END__
 
