@@ -248,7 +248,7 @@ for [% terms.bug %] restrictions.
     </tr>
     <tr>
       <td>
-        <select multiple="multiple" size="[% size FILTER html %]"
+        <select multiple="multiple" size="[% size FILTER html %]" style="min-width: 150px"
                 name="[% "${name}_add" FILTER html %]"
                 id="[% "${name}_add" FILTER html %]">
           [% FOREACH item = items_available %]
@@ -258,7 +258,7 @@ for [% terms.bug %] restrictions.
         </select>
       </td>
       <td>
-        <select multiple="multiple" size="[% size FILTER html %]"
+        <select multiple="multiple" size="[% size FILTER html %]" style="min-width: 150px"
                 name="[% "${name}_remove" FILTER html %]"
                 id="[% "${name}_remove" FILTER html %]">
           [% FOREACH item = items_current %]
