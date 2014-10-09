@@ -31,14 +31,12 @@ use Bugzilla::Error;
 use Bugzilla::Version;
 use Bugzilla::Token;
 
-my $dbh = Bugzilla->dbh;
+my $ARGS = Bugzilla->input_params;
 my $template = Bugzilla->template;
 my $vars = {};
 # There is only one section about versions in the documentation,
 # so all actions point to the same page.
 $vars->{doc_section} = 'versions.html';
-
-my $ARGS = Bugzilla->input_params;
 
 #
 # Preliminary checks:
@@ -197,7 +195,7 @@ if ($action eq 'update')
         name   => $version_old_name,
     });
 
-    $dbh->bz_start_transaction();
+    Bugzilla->dbh->bz_start_transaction();
 
     $version->set_name($version_name);
     $version->set_is_active($isactive);
@@ -205,7 +203,7 @@ if ($action eq 'update')
 
     $changes->{control_lists} = 1 if $version->field->update_control_lists($version->id, $ARGS);
 
-    $dbh->bz_commit_transaction();
+    Bugzilla->dbh->bz_commit_transaction();
     delete_token($token);
 
     $vars->{message} = 'version_updated';

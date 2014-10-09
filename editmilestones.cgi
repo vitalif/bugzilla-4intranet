@@ -27,14 +27,12 @@ use Bugzilla::Error;
 use Bugzilla::Milestone;
 use Bugzilla::Token;
 
-my $dbh = Bugzilla->dbh;
+my $ARGS = Bugzilla->input_params;
 my $template = Bugzilla->template;
 my $vars = {};
 # There is only one section about milestones in the documentation,
 # so all actions point to the same page.
 $vars->{doc_section} = 'milestones.html';
-
-my $ARGS = Bugzilla->input_params;
 
 #
 # Preliminary checks:

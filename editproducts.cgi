@@ -42,14 +42,12 @@ my $user = Bugzilla->login(LOGIN_REQUIRED);
 my $whoid = $user->id;
 
 my $dbh = Bugzilla->dbh;
-my $cgi = Bugzilla->cgi;
+my $ARGS = Bugzilla->input_params;
 my $template = Bugzilla->template;
 my $vars = {};
 # Remove this as soon as the documentation about products has been
 # improved and each action has its own section.
 $vars->{doc_section} = 'products.html';
-
-my $ARGS = Bugzilla->input_params;
 
 $user->in_group('editcomponents') ||
     scalar(@{$user->get_editable_products}) ||
@@ -62,10 +60,10 @@ $user->in_group('editcomponents') ||
 #
 # often used variables
 #
-my $classification_name = trim($cgi->param('classification') || '');
-my $product_name = trim($cgi->param('product') || '');
-my $action  = trim($cgi->param('action')  || '');
-my $token = $cgi->param('token');
+my $classification_name = trim($ARGS->{classification} || '');
+my $product_name = trim($ARGS->{product} || '');
+my $action  = trim($ARGS->{action}  || '');
+my $token = $ARGS->{token};
 my $useclassification = Bugzilla->get_field('classification')->enabled;
 
 #
@@ -117,7 +115,7 @@ if (!$action && !$product_name)
     }
 
     $vars->{products} = $products;
-    $vars->{showbugcounts} = $cgi->param('showbugcounts') ? 1 : 0;
+    $vars->{showbugcounts} = $ARGS->{showbugcounts} ? 1 : 0;
 
     $template->process('admin/products/list.html.tmpl', $vars)
         || ThrowTemplateError($template->error());
@@ -174,27 +172,27 @@ if ($action eq 'new')
     my %create_params = (
         classification   => $classification_name,
         name             => $product_name,
-        description      => scalar $cgi->param('description'),
-        entryheaderhtml  => scalar $cgi->param('entryheaderhtml'),
-        version          => scalar $cgi->param('version'),
-        isactive         => scalar $cgi->param('is_active'),
-        allows_unconfirmed => scalar $cgi->param('allows_unconfirmed'),
-        wiki_url         => scalar $cgi->param('wiki_url'),
-        notimetracking   => scalar $cgi->param('notimetracking'),
-        extproduct       => scalar $cgi->param('extproduct'),
-        cc_group         => scalar($cgi->param('cc_group')) || '',
+        description      => $ARGS->{description},
+        entryheaderhtml  => $ARGS->{entryheaderhtml},
+        version          => $ARGS->{version},
+        isactive         => $ARGS->{is_active},
+        allows_unconfirmed => $ARGS->{allows_unconfirmed},
+        wiki_url         => $ARGS->{wiki_url},
+        notimetracking   => $ARGS->{notimetracking},
+        extproduct       => $ARGS->{extproduct},
+        cc_group         => $ARGS->{cc_group} || '',
     );
     if (Bugzilla->get_field('votes')->enabled)
     {
-        $create_params{votesperuser}   = $cgi->param('votesperuser');
-        $create_params{maxvotesperbug} = $cgi->param('maxvotesperbug');
-        $create_params{votestoconfirm} = $cgi->param('votestoconfirm');
+        $create_params{votesperuser}   = $ARGS->{votesperuser};
+        $create_params{maxvotesperbug} = $ARGS->{maxvotesperbug};
+        $create_params{votestoconfirm} = $ARGS->{votestoconfirm};
     }
     my $product = Bugzilla::Product->create(\%create_params);
 
     # Create groups and series for the new product, if requested.
-    $product->_create_bug_group() if scalar $cgi->param('makeproductgroup');
-    $product->_create_series() if scalar $cgi->param('createseries');
+    $product->_create_bug_group() if $ARGS->{makeproductgroup};
+    $product->_create_series() if $ARGS->{createseries};
 
     delete_token($token);
 
@@ -244,7 +242,7 @@ if ($action eq 'delete')
     my $product = $user->check_can_admin_product($product_name);
     check_token_data($token, 'delete_product');
 
-    $product->remove_from_db({ delete_series => scalar $cgi->param('delete_series')});
+    $product->remove_from_db({ delete_series => $ARGS->{delete_series}});
     delete_token($token);
 
     $vars->{message} = 'product_deleted';
@@ -300,29 +298,29 @@ if ($action eq 'edit' || (!$action && $product_name))
 if ($action eq 'update')
 {
     check_token_data($token, 'edit_product');
-    my $product_old_name = trim($cgi->param('product_old_name') || '');
+    my $product_old_name = trim($ARGS->{product_old_name} || '');
     my $product = $user->check_can_admin_product($product_old_name);
 
     if ($useclassification)
     {
         $vars->{old_classification} = $product->classification_obj;
-        $product->set_classification(scalar $cgi->param('classification'));
+        $product->set_classification($ARGS->{classification});
     }
     $product->set_name($product_name);
-    $product->set_wiki_url(scalar $cgi->param('wiki_url'));
-    $product->set_notimetracking(scalar $cgi->param('notimetracking'));
-    $product->set_extproduct(scalar $cgi->param('extproduct'));
-    $product->set_cc_group(scalar $cgi->param('cc_group') || '');
-    $product->set_description(scalar $cgi->param('description'));
-    $product->set_entryheaderhtml(scalar $cgi->param('entryheaderhtml'));
-    $product->set_is_active(scalar $cgi->param('is_active'));
+    $product->set_wiki_url($ARGS->{wiki_url});
+    $product->set_notimetracking($ARGS->{notimetracking});
+    $product->set_extproduct($ARGS->{extproduct});
+    $product->set_cc_group($ARGS->{cc_group} || '');
+    $product->set_description($ARGS->{description});
+    $product->set_entryheaderhtml($ARGS->{entryheaderhtml});
+    $product->set_is_active($ARGS->{is_active});
     if (Bugzilla->get_field('votes')->enabled)
     {
-        $product->set_votes_per_user(scalar $cgi->param('votesperuser'));
-        $product->set_votes_per_bug(scalar $cgi->param('maxvotesperbug'));
-        $product->set_votes_to_confirm(scalar $cgi->param('votestoconfirm'));
+        $product->set_votes_per_user($ARGS->{votesperuser});
+        $product->set_votes_per_bug($ARGS->{maxvotesperbug});
+        $product->set_votes_to_confirm($ARGS->{votestoconfirm});
     }
-    $product->set_allows_unconfirmed(scalar $cgi->param('allows_unconfirmed'));
+    $product->set_allows_unconfirmed($ARGS->{allows_unconfirmed});
 
     my $changes = $product->update();
 
@@ -372,27 +370,27 @@ if ($action eq 'updategroupcontrols')
     my @now_mandatory = ();
     my %membercontrol_g;
     my %othercontrol_g;
-    foreach my $f ($cgi->param())
+    foreach my $f (keys %$ARGS)
     {
         if ($f =~ /^group_(\d+)$/)
         {
             my $count_id = $1;
-            my $id = $cgi->param($f);
+            my $id = $ARGS->{$f};
             trick_taint($id);
-            if ($cgi->param("membercontrol_$count_id") == CONTROLMAPNA)
+            if ($ARGS->{"membercontrol_$count_id"} == CONTROLMAPNA)
             {
                 push @now_na, $id;
             }
-            elsif ($cgi->param("membercontrol_$count_id") == CONTROLMAPMANDATORY)
+            elsif ($ARGS->{"membercontrol_$count_id"} == CONTROLMAPMANDATORY)
             {
                 push @now_mandatory, $id;
             }
-            $membercontrol_g{$id} = $cgi->param("membercontrol_$count_id");
-            $othercontrol_g{$id} = $cgi->param("othercontrol_$count_id");
+            $membercontrol_g{$id} = $ARGS->{"membercontrol_$count_id"};
+            $othercontrol_g{$id} = $ARGS->{"othercontrol_$count_id"};
         }
     }
 
-    if (!defined $cgi->param('confirmed'))
+    if (!defined $ARGS->{confirmed})
     {
         my $na_groups;
         if (@now_na)
@@ -444,13 +442,13 @@ if ($action eq 'updategroupcontrols')
     {
         my $group_id = $group->id;
         $product->set_group_controls($group, {
-            entry          => scalar $cgi->param("entry_$group_id") || 0,
-            membercontrol  => scalar $membercontrol_g{$group_id} || CONTROLMAPNA,
-            othercontrol   => scalar $othercontrol_g{$group_id} || CONTROLMAPNA,
-            canedit        => scalar $cgi->param("canedit_$group_id") || 0,
-            editcomponents => scalar $cgi->param("editcomponents_$group_id") || 0,
-            editbugs       => scalar $cgi->param("editbugs_$group_id") || 0,
-            canconfirm     => scalar $cgi->param("canconfirm_$group_id") || 0,
+            entry          => $ARGS->{"entry_$group_id"} || 0,
+            membercontrol  => $membercontrol_g{$group_id} || CONTROLMAPNA,
+            othercontrol   => $othercontrol_g{$group_id} || CONTROLMAPNA,
+            canedit        => $ARGS->{"canedit_$group_id"} || 0,
+            editcomponents => $ARGS->{"editcomponents_$group_id"} || 0,
+            editbugs       => $ARGS->{"editbugs_$group_id"} || 0,
+            canconfirm     => $ARGS->{"canconfirm_$group_id"} || 0,
         });
     }
     my $changes = $product->update;
