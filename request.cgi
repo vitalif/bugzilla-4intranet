@@ -34,17 +34,17 @@ use Bugzilla::Component;
 
 # Make sure the user is logged in.
 my $user = Bugzilla->login();
-my $cgi = Bugzilla->cgi;
+my $ARGS = Bugzilla->input_params;
 # Force the script to run against the shadow DB. We already validated credentials.
 Bugzilla->switch_to_shadow_db;
 my $template = Bugzilla->template;
-my $action = $cgi->param('action') || '';
+my $action = $ARGS->{action} || '';
 
 my $fields;
 $fields->{requester}->{type} = 'single';
 # If the user doesn't restrict his search to requests from the wind
 # (requestee ne '-'), include the requestee for completion.
-unless (defined $cgi->param('requestee') && $cgi->param('requestee') eq '-')
+unless (defined $ARGS->{requestee} && $ARGS->{requestee} eq '-')
 {
     $fields->{requestee}->{type} = 'single';
 }
@@ -82,15 +82,15 @@ exit;
 
 sub queue
 {
-    my $cgi = Bugzilla->cgi;
+    my $ARGS = Bugzilla->input_params;
     my $dbh = Bugzilla->dbh;
     my $template = Bugzilla->template;
     my $user = Bugzilla->user;
     my $userid = $user->id;
     my $vars = {};
 
-    my $status = validateStatus($cgi->param('status'));
-    my $form_group = validateGroup($cgi->param('group'));
+    my $status = validateStatus($ARGS->{status});
+    my $form_group = validateGroup($ARGS->{group});
 
     # Select columns describing each flag, the bug/attachment on which
     # it has been set, who set it, and of whom they are requesting it.
@@ -148,28 +148,28 @@ sub queue
         if ($status eq "+-")
         {
             push @criteria, "flags.status IN ('+', '-')";
-            push @excluded_columns, 'status' unless $cgi->param('do_union');
+            push @excluded_columns, 'status' unless $ARGS->{do_union};
         }
         elsif ($status ne "all")
         {
             push @criteria, "flags.status = '$status'";
-            push @excluded_columns, 'status' unless $cgi->param('do_union');
+            push @excluded_columns, 'status' unless $ARGS->{do_union};
         }
     }
 
     # Filter results by exact email address of requester or requestee.
-    if (defined $cgi->param('requester') && $cgi->param('requester') ne "")
+    if (defined $ARGS->{requester} && $ARGS->{requester} ne "")
     {
-        my $requester = $dbh->quote($cgi->param('requester'));
+        my $requester = $dbh->quote($ARGS->{requester});
         trick_taint($requester); # Quoted above
         push(@criteria, $dbh->sql_istrcmp('requesters.login_name', $requester));
-        push(@excluded_columns, 'requester') unless $cgi->param('do_union');
+        push(@excluded_columns, 'requester') unless $ARGS->{do_union};
     }
-    if (defined $cgi->param('requestee') && $cgi->param('requestee') ne "")
+    if (defined $ARGS->{requestee} && $ARGS->{requestee} ne "")
     {
-        if ($cgi->param('requestee') ne "-")
+        if ($ARGS->{requestee} ne "-")
         {
-            my $requestee = $dbh->quote($cgi->param('requestee'));
+            my $requestee = $dbh->quote($ARGS->{requestee});
             trick_taint($requestee); # Quoted above
             push @criteria, $dbh->sql_istrcmp('requestees.login_name', $requestee);
         }
@@ -177,27 +177,27 @@ sub queue
         {
             push @criteria, "flags.requestee_id IS NULL";
         }
-        push @excluded_columns, 'requestee' unless $cgi->param('do_union');
+        push @excluded_columns, 'requestee' unless $ARGS->{do_union};
     }
 
     # Filter results by exact product or component.
-    if (defined $cgi->param('product') && $cgi->param('product') ne "")
+    if (defined $ARGS->{product} && $ARGS->{product} ne "")
     {
-        my $product = Bugzilla::Product->check(scalar $cgi->param('product'));
+        my $product = Bugzilla::Product->check($ARGS->{product});
         push @criteria, "bugs.product_id = " . $product->id;
-        push @excluded_columns, 'product' unless $cgi->param('do_union');
-        if (defined $cgi->param('component') && $cgi->param('component') ne "")
+        push @excluded_columns, 'product' unless $ARGS->{do_union};
+        if (defined $ARGS->{component} && $ARGS->{component} ne "")
         {
             my $component = Bugzilla::Component->check({
-                product => $product, name => scalar $cgi->param('component')
+                product => $product, name => $ARGS->{component}
             });
             push @criteria, "bugs.component_id = " . $component->id;
-            push @excluded_columns, 'component' unless $cgi->param('do_union');
+            push @excluded_columns, 'component' unless $ARGS->{do_union};
         }
     }
 
     # Filter results by flag types.
-    my $form_type = $cgi->param('type');
+    my $form_type = $ARGS->{type};
     if (defined $form_type && !grep($form_type eq $_, ("", "all")))
     {
         # Check if any matching types are for attachments.  If not, don't show
@@ -212,13 +212,13 @@ sub queue
         my $quoted_form_type = $dbh->quote($form_type);
         trick_taint($quoted_form_type); # Already SQL quoted
         push @criteria, "flagtypes.name = " . $quoted_form_type;
-        push @excluded_columns, 'type' unless $cgi->param('do_union');
+        push @excluded_columns, 'type' unless $ARGS->{do_union};
     }
 
     # Add the criteria to the query.  We do an intersection by default
     # but do a union if the "do_union" URL parameter (for which there is no UI
     # because it's an advanced feature that people won't usually want) is true.
-    my $and_or = $cgi->param('do_union') ? " OR " : " AND ";
+    my $and_or = $ARGS->{do_union} ? " OR " : " AND ";
     $query .= " AND (" . join($and_or, @criteria) . ") " if scalar @criteria;
 
     # Group the records by flag ID so we don't get multiple rows of data
@@ -259,7 +259,7 @@ sub queue
 
     # Pass the query to the template for use when debugging this script.
     $vars->{query} = $query;
-    $vars->{debug} = $cgi->param('debug') ? 1 : 0;
+    $vars->{debug} = $ARGS->{debug} ? 1 : 0;
 
     my $results = $dbh->selectall_arrayref($query);
     my @requests = ();
@@ -291,12 +291,12 @@ sub queue
     $vars->{group_field} = $form_group;
     $vars->{requests} = \@requests;
     $vars->{types} = \@types;
-    $vars->{selected_requester} = $cgi->param('requester');
-    $vars->{selected_product} = $cgi->param('product');
-    $vars->{selected_component} = $cgi->param('component');
-    $vars->{selected_type} = $cgi->param('type');
-    $vars->{selected_status} = $cgi->param('status');
-    $vars->{selected_group} = $cgi->param('group');
+    $vars->{selected_requester} = $ARGS->{requester};
+    $vars->{selected_product} = $ARGS->{product};
+    $vars->{selected_component} = $ARGS->{component};
+    $vars->{selected_type} = $ARGS->{type};
+    $vars->{selected_status} = $ARGS->{status};
+    $vars->{selected_group} = $ARGS->{group};
 
     my %components;
     foreach my $prod (@{$user->get_selectable_products})
