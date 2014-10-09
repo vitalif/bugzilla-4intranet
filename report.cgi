@@ -1,6 +1,4 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -39,11 +37,11 @@ my $vars = {};
 my $buffer = $cgi->query_string();
 
 # Go straight back to query.cgi if we are adding a boolean chart.
-if (grep(/^cmd-/, $cgi->param())) {
+if (grep /^cmd-/, $cgi->param())
+{
     my $params = $cgi->canonicalise_query("format", "ctype");
     my $location = "query.cgi?format=" . $cgi->param('query_format') .
         ($params ? "&$params" : "");
-
     print $cgi->redirect($location);
     exit;
 }
@@ -55,38 +53,41 @@ my $dbh = Bugzilla->switch_to_shadow_db();
 my $action = $cgi->param('action') || 'menu';
 my $token  = $cgi->param('token');
 
-if ($action eq "menu") {
+if ($action eq "menu")
+{
     # No need to do any searching in this case, so bail out early.
     $template->process("reports/menu.html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
+        || ThrowTemplateError($template->error());
     exit;
-
 }
-elsif ($action eq 'add') {
+elsif ($action eq 'add')
+{
     my $user = Bugzilla->login(LOGIN_REQUIRED);
     check_hash_token($token, ['save_report']);
 
     my $name = clean_text($cgi->param('name'));
     my $query = $cgi->param('query');
 
-    if (my ($report) = grep{ lc($_->name) eq lc($name) } @{$user->reports}) {
+    if (my ($report) = grep { lc($_->name) eq lc($name) } @{$user->reports})
+    {
         $report->set_query($query);
         $report->update;
-        $vars->{'message'} = "report_updated";
-    } else {
-        my $report = Bugzilla::Report->create({name => $name, query => $query});
-        $vars->{'message'} = "report_created";
+        $vars->{message} = "report_updated";
     }
-
+    else
+    {
+        my $report = Bugzilla::Report->create({name => $name, query => $query});
+        $vars->{message} = "report_created";
+    }
     $user->flush_reports_cache;
-
-    $vars->{'reportname'} = $name;
+    $vars->{reportname} = $name;
 
     $template->process("global/message.html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
+        || ThrowTemplateError($template->error());
     exit;
 }
-elsif ($action eq 'del') {
+elsif ($action eq 'del')
+{
     my $user = Bugzilla->login(LOGIN_REQUIRED);
     my $report_id = $cgi->param('saved_report_id');
     check_hash_token($token, ['delete_report', $report_id]);
@@ -96,11 +97,11 @@ elsif ($action eq 'del') {
 
     $user->flush_reports_cache;
 
-    $vars->{'message'} = 'report_deleted';
-    $vars->{'reportname'} = $report->name;
+    $vars->{message} = 'report_deleted';
+    $vars->{reportname} = $report->name;
 
     $template->process("global/message.html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
+        || ThrowTemplateError($template->error());
     exit;
 }
 
@@ -124,41 +125,48 @@ for (qw(x y z))
     }
 }
 
-if (!keys %$field) {
+if (!keys %$field)
+{
     ThrowUserError("no_axes_defined");
 }
 
 my $width = $cgi->param('width');
 my $height = $cgi->param('height');
 
-if (defined($width)) {
+if (defined($width))
+{
     (detaint_natural($width) && $width > 0)
-      || ThrowCodeError("invalid_dimensions");
+        || ThrowCodeError("invalid_dimensions");
     $width <= 2000 || ThrowUserError("chart_too_large");
 }
 
-if (defined($height)) {
+if (defined($height))
+{
     (detaint_natural($height) && $height > 0)
-      || ThrowCodeError("invalid_dimensions");
+        || ThrowCodeError("invalid_dimensions");
     $height <= 2000 || ThrowUserError("chart_too_large");
 }
 
 # These shenanigans are necessary to make sure that both vertical and
 # horizontal 1D tables convert to the correct dimension when you ask to
 # display them as some sort of chart.
-if (defined $cgi->param('format') && $cgi->param('format') =~ /^(table|simple)$/) {
-    if ($field->{x} && !$field->{y}) {
+if (defined $cgi->param('format') && $cgi->param('format') =~ /^(table|simple)$/)
+{
+    if ($field->{x} && !$field->{y})
+    {
         # 1D *tables* should be displayed vertically (with a row_field only)
         $field->{y} = $field->{x};
         delete $field->{x};
     }
 }
-else {
-    if (!Bugzilla->feature('graphical_reports')) {
+else
+{
+    if (!Bugzilla->feature('graphical_reports'))
+    {
         ThrowCodeError('feature_disabled', { feature => 'graphical_reports' });
     }
-
-    if ($field->{y} && !$field->{x}) {
+    if ($field->{y} && !$field->{x})
+    {
         # 1D *charts* should be displayed horizontally (with an col_field only)
         $field->{x} = $field->{y};
         delete $field->{y};
@@ -231,18 +239,22 @@ my @row_names = @{get_names($names{y}, $isnumeric{y}, $field->{y})};
 # The GD::Graph package requires a particular format of data, so once we've
 # gathered everything into the hashes and made sure we know the size of the
 # data, we reformat it into an array of arrays of arrays of data.
-push(@tbl_names, "-total-") if (scalar(@tbl_names) > 1);
+push @tbl_names, "-total-" if scalar(@tbl_names) > 1;
 
 my @image_data;
-foreach my $tbl (@tbl_names) {
+foreach my $tbl (@tbl_names)
+{
     my @tbl_data;
-    push(@tbl_data, \@col_names);
-    foreach my $row (@row_names) {
+    push @tbl_data, \@col_names;
+    foreach my $row (@row_names)
+    {
         my @col_data;
-        foreach my $col (@col_names) {
+        foreach my $col (@col_names)
+        {
             $data{$tbl}{$col}{$row} = $data{$tbl}{$col}{$row} || 0;
-            push(@col_data, $data{$tbl}{$col}{$row});
-            if ($tbl ne "-total-") {
+            push @col_data, $data{$tbl}{$col}{$row};
+            if ($tbl ne "-total-")
+            {
                 # This is a bit sneaky. We spend every loop except the last
                 # building up the -total- data, and then last time round,
                 # we process it as another tbl, and push() the total values
@@ -250,43 +262,42 @@ foreach my $tbl (@tbl_names) {
                 $data{"-total-"}{$col}{$row} += $data{$tbl}{$col}{$row};
             }
         }
-
-        push(@tbl_data, \@col_data);
+        push @tbl_data, \@col_data;
     }
-
-    unshift(@image_data, \@tbl_data);
+    unshift @image_data, \@tbl_data;
 }
 
-$vars->{'tbl_field'} = $field->{z};
-$vars->{'col_field'} = $field->{x};
-$vars->{'row_field'} = $field->{y};
-$vars->{'time'} = localtime(time());
+$vars->{tbl_field} = $field->{z};
+$vars->{col_field} = $field->{x};
+$vars->{row_field} = $field->{y};
+$vars->{time} = localtime(time());
 
-$vars->{'col_names'} = \@col_names;
-$vars->{'row_names'} = \@row_names;
-$vars->{'tbl_names'} = \@tbl_names;
+$vars->{col_names} = \@col_names;
+$vars->{row_names} = \@row_names;
+$vars->{tbl_names} = \@tbl_names;
 
 # Below a certain width, we don't see any bars, so there needs to be a minimum.
-if ($width && $cgi->param('format') eq "bar") {
+if ($width && $cgi->param('format') eq "bar")
+{
     my $min_width = (scalar(@col_names) || 1) * 20;
-
-    if (!$cgi->param('cumulate')) {
+    if (!$cgi->param('cumulate'))
+    {
         $min_width *= (scalar(@row_names) || 1);
     }
-
-    $vars->{'min_width'} = $min_width;
+    $vars->{min_width} = $min_width;
 }
 
-$vars->{'width'} = $width if $width;
-$vars->{'height'} = $height if $height;
+$vars->{width} = $width if $width;
+$vars->{height} = $height if $height;
 
-$vars->{'query'} = $query;
-$vars->{'saved_report_id'} = $cgi->param('saved_report_id');
-$vars->{'debug'} = $cgi->param('debug');
+$vars->{query} = $query;
+$vars->{saved_report_id} = $cgi->param('saved_report_id');
+$vars->{debug} = $cgi->param('debug');
 
 my $formatparam = $cgi->param('format');
 
-if ($action eq "wrap") {
+if ($action eq "wrap")
+{
     # So which template are we using? If action is "wrap", we will be using
     # no format (it gets passed through to be the format of the actual data),
     # and either report.csv.tmpl (CSV), or report.html.tmpl (everything else).
@@ -295,15 +306,15 @@ if ($action eq "wrap") {
     # "plot".
     $formatparam =~ s/[^a-zA-Z\-]//g;
     trick_taint($formatparam);
-    $vars->{'format'} = $formatparam;
+    $vars->{format} = $formatparam;
     $formatparam = '' if $formatparam ne 'simple';
 
     # We need to keep track of the defined restrictions on each of the
     # axes, because buglistbase, below, throws them away. Without this, we
     # get buglistlinks wrong if there is a restriction on an axis field.
-    $vars->{'col_vals'} = join("&", $buffer =~ /[&?]($field->{x}=[^&]+)/g);
-    $vars->{'row_vals'} = join("&", $buffer =~ /[&?]($field->{y}=[^&]+)/g);
-    $vars->{'tbl_vals'} = join("&", $buffer =~ /[&?]($field->{z}=[^&]+)/g);
+    $vars->{col_vals} = join("&", $buffer =~ /[&?]($field->{x}=[^&]+)/g);
+    $vars->{row_vals} = join("&", $buffer =~ /[&?]($field->{y}=[^&]+)/g);
+    $vars->{tbl_vals} = join("&", $buffer =~ /[&?]($field->{z}=[^&]+)/g);
 
     # We need a number of different variants of the base URL for different
     # URLs in the HTML.
@@ -319,34 +330,38 @@ if ($action eq "wrap") {
     );
     $vars->{data} = \%data;
 }
-elsif ($action eq "plot") {
+elsif ($action eq "plot")
+{
     # If action is "plot", we will be using a format as normal (pie, bar etc.)
     # and a ctype as normal (currently only png.)
-    $vars->{'cumulate'} = $cgi->param('cumulate') ? 1 : 0;
-    $vars->{'x_labels_vertical'} = $cgi->param('x_labels_vertical') ? 1 : 0;
-    $vars->{'data'} = \@image_data;
+    $vars->{cumulate} = $cgi->param('cumulate') ? 1 : 0;
+    $vars->{x_labels_vertical} = $cgi->param('x_labels_vertical') ? 1 : 0;
+    $vars->{data} = \@image_data;
 }
-else {
+else
+{
     ThrowCodeError("unknown_action", {action => $cgi->param('action')});
 }
 
-my $format = $template->get_format("reports/report", $formatparam,
-                                   scalar($cgi->param('ctype')));
+my $format = $template->get_format("reports/report", $formatparam, scalar($cgi->param('ctype')));
 
 # If we get a template or CGI error, it comes out as HTML, which isn't valid
 # PNG data, and the browser just displays a "corrupt PNG" message. So, you can
 # set debug=1 to always get an HTML content-type, and view the error.
-$format->{'ctype'} = "text/html" if $cgi->param('debug');
+$format->{ctype} = "text/html" if $cgi->param('debug');
 
 my @time = localtime(time());
 my $date = sprintf "%04d-%02d-%02d", 1900+$time[5],$time[4]+1,$time[3];
 my $filename = "report-$date.$format->{extension}";
-$cgi->send_header(-type => $format->{'ctype'},
-                  -content_disposition => "inline; filename=$filename");
+$cgi->send_header(
+    -type => $format->{ctype},
+    -content_disposition => "inline; filename=$filename",
+);
 
 # Problems with this CGI are often due to malformed data. Setting debug=1
 # prints out both data structures.
-if ($cgi->param('debug')) {
+if ($cgi->param('debug'))
+{
     require Data::Dumper;
     print "<pre>data hash:\n";
     print html_quote(Data::Dumper::Dumper(%data)) . "\n\n";
@@ -355,12 +370,12 @@ if ($cgi->param('debug')) {
 }
 
 # All formats point to the same section of the documentation.
-$vars->{'doc_section'} = 'reporting.html#reports';
+$vars->{doc_section} = 'reporting.html#reports';
 
-disable_utf8() if ($format->{'ctype'} =~ /^image\//);
+disable_utf8() if ($format->{ctype} =~ /^image\//);
 
-$template->process("$format->{'template'}", $vars)
-  || ThrowTemplateError($template->error());
+$template->process($format->{template}, $vars)
+    || ThrowTemplateError($template->error());
 
 exit;
 
