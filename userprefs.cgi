@@ -1,6 +1,4 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -39,43 +37,45 @@ my $template = Bugzilla->template;
 local our $vars = {};
 
 ###############################################################################
-# Each panel has two functions - panel Foo has a DoFoo, to get the data 
-# necessary for displaying the panel, and a SaveFoo, to save the panel's 
-# contents from the form data (if appropriate). 
-# SaveFoo may be called before DoFoo.    
+# Each panel has two functions - panel Foo has a DoFoo, to get the data
+# necessary for displaying the panel, and a SaveFoo, to save the panel's
+# contents from the form data (if appropriate).
+# SaveFoo may be called before DoFoo.
 ###############################################################################
-sub DoAccount {
+sub DoAccount
+{
     my $dbh = Bugzilla->dbh;
     my $user = Bugzilla->user;
 
-    ($vars->{'realname'}) = $dbh->selectrow_array(
-        "SELECT realname FROM profiles WHERE userid = ?", undef, $user->id);
+    ($vars->{realname}) = $dbh->selectrow_array(
+        "SELECT realname FROM profiles WHERE userid = ?", undef, $user->id
+    );
 
-    if(Bugzilla->params->{'allowemailchange'} 
-       && Bugzilla->user->authorizer->can_change_email) {
-       # First delete old tokens.
-       Bugzilla::Token::CleanTokenTable();
-
+    if (Bugzilla->params->{allowemailchange} &&
+        Bugzilla->user->authorizer->can_change_email)
+    {
+        # First delete old tokens.
+        Bugzilla::Token::CleanTokenTable();
         my @token = $dbh->selectrow_array(
-            "SELECT tokentype, issuedate + " .
-                    $dbh->sql_interval(MAX_TOKEN_AGE, 'DAY') . ", eventdata
-               FROM tokens
-              WHERE userid = ?
-                AND tokentype LIKE 'email%'
-           ORDER BY tokentype ASC " . $dbh->sql_limit(1), undef, $user->id);
-        if (scalar(@token) > 0) {
+            "SELECT tokentype, issuedate + " . $dbh->sql_interval(MAX_TOKEN_AGE, 'DAY') . ", eventdata".
+            " FROM tokens WHERE userid = ? AND tokentype LIKE 'email%'".
+            " ORDER BY tokentype ASC " . $dbh->sql_limit(1), undef, $user->id
+        );
+        if (@token)
+        {
             my ($tokentype, $change_date, $eventdata) = @token;
-            $vars->{'login_change_date'} = $change_date;
-
-            if($tokentype eq 'emailnew') {
-                my ($oldemail,$newemail) = split(/:/,$eventdata);
-                $vars->{'new_login_name'} = $newemail;
+            $vars->{login_change_date} = $change_date;
+            if ($tokentype eq 'emailnew')
+            {
+                my ($oldemail,$newemail) = split /:/, $eventdata;
+                $vars->{new_login_name} = $newemail;
             }
         }
     }
 }
 
-sub SaveAccount {
+sub SaveAccount
+{
     my $cgi = Bugzilla->cgi;
     my $dbh = Bugzilla->dbh;
     my $user = Bugzilla->user;
@@ -87,109 +87,117 @@ sub SaveAccount {
     my $old_login_name = $user->login;
     my $new_login_name = trim($cgi->param('new_login_name'));
 
-    if ($user->authorizer->can_change_password
-        && ($oldpassword ne "" || $pwd1 ne "" || $pwd2 ne ""))
+    if ($user->authorizer->can_change_password && ($oldpassword ne "" || $pwd1 ne "" || $pwd2 ne ""))
     {
         my $oldcryptedpwd = $user->cryptpassword;
         $oldcryptedpwd || ThrowCodeError("unable_to_retrieve_password");
 
-        if (bz_crypt($oldpassword, $oldcryptedpwd) ne $oldcryptedpwd) {
+        if (bz_crypt($oldpassword, $oldcryptedpwd) ne $oldcryptedpwd)
+        {
             ThrowUserError("old_password_incorrect");
         }
 
-        if ($pwd1 ne "" || $pwd2 ne "") {
+        if ($pwd1 ne "" || $pwd2 ne "")
+        {
             $pwd1 || ThrowUserError("new_password_missing");
             validate_password($pwd1, $pwd2);
 
-            if ($oldpassword ne $pwd1) {
+            if ($oldpassword ne $pwd1)
+            {
                 my $cryptedpassword = bz_crypt($pwd1);
-                $dbh->do(q{UPDATE profiles
-                              SET cryptpassword = ?
-                            WHERE userid = ?},
-                         undef, ($cryptedpassword, $user->id));
-
+                $dbh->do(
+                    "UPDATE profiles SET cryptpassword = ? WHERE userid = ?",
+                    undef, $cryptedpassword, $user->id
+                );
                 # Invalidate all logins except for the current one
                 Bugzilla->logout(LOGOUT_KEEP_CURRENT);
             }
         }
     }
 
-    if ($user->authorizer->can_change_email
-        && Bugzilla->params->{"allowemailchange"}
-        && $new_login_name)
+    if ($user->authorizer->can_change_email && Bugzilla->params->{allowemailchange} && $new_login_name)
     {
-        if ($old_login_name ne $new_login_name) {
+        if ($old_login_name ne $new_login_name)
+        {
             $oldpassword || ThrowUserError("old_password_required");
 
             # Block multiple email changes for the same user.
-            if (Bugzilla::Token::HasEmailChangeToken($user->id)) {
+            if (Bugzilla::Token::HasEmailChangeToken($user->id))
+            {
                 ThrowUserError("email_change_in_progress");
             }
 
             # Before changing an email address, confirm one does not exist.
             validate_email_syntax($new_login_name)
-              || ThrowUserError('illegal_email_address', {addr => $new_login_name});
+                || ThrowUserError('illegal_email_address', { addr => $new_login_name });
             is_available_username($new_login_name)
-              || ThrowUserError("account_exists", {email => $new_login_name});
+                || ThrowUserError("account_exists", { email => $new_login_name });
 
-            Bugzilla::Token::IssueEmailChangeToken($user, $old_login_name,
-                                                   $new_login_name);
+            Bugzilla::Token::IssueEmailChangeToken($user, $old_login_name, $new_login_name);
 
-            $vars->{'email_changes_saved'} = 1;
+            $vars->{email_changes_saved} = 1;
         }
     }
 
     my $realname = trim($cgi->param('realname'));
     trick_taint($realname); # Only used in a placeholder
-    $dbh->do("UPDATE profiles SET realname = ? WHERE userid = ?",
-             undef, ($realname, $user->id));
+    $dbh->do("UPDATE profiles SET realname = ? WHERE userid = ?", undef, $realname, $user->id);
 }
 
-sub DoSettings {
+sub DoSettings
+{
     my $user = Bugzilla->user;
 
     my $settings = $user->settings;
-    $vars->{'settings'} = $settings;
+    $vars->{settings} = $settings;
 
     my $descs = Bugzilla->messages->{setting_descs};
     my @setting_list = sort { lc $descs->{$a} cmp lc $descs->{$b} } keys %$settings;
-    $vars->{'setting_names'} = \@setting_list;
+    $vars->{setting_names} = \@setting_list;
+    $vars->{has_settings_enabled} = 0;
 
-    $vars->{'has_settings_enabled'} = 0;
     # Is there at least one user setting enabled?
-    foreach my $setting_name (@setting_list) {
-        if ($settings->{"$setting_name"}->{'is_enabled'}) {
-            $vars->{'has_settings_enabled'} = 1;
+    foreach my $setting_name (@setting_list)
+    {
+        if ($settings->{"$setting_name"}->{is_enabled})
+        {
+            $vars->{has_settings_enabled} = 1;
             last;
         }
     }
-    $vars->{'dont_show_button'} = !$vars->{'has_settings_enabled'};
+
+    $vars->{dont_show_button} = !$vars->{has_settings_enabled};
 }
 
-sub SaveSettings {
+sub SaveSettings
+{
     my $cgi = Bugzilla->cgi;
     my $user = Bugzilla->user;
 
     my $settings = $user->settings;
     my @setting_list = keys %$settings;
 
-    foreach my $name (@setting_list) {
-        next if ! ($settings->{$name}->{'is_enabled'});
+    foreach my $name (@setting_list)
+    {
+        next if !$settings->{$name}->{is_enabled};
         my $value = $cgi->param($name);
         next unless defined $value;
         my $setting = new Bugzilla::User::Setting($name);
 
-        if ($value eq "${name}-isdefault" ) {
-            if (! $settings->{$name}->{'is_default'}) {
+        if ($value eq "${name}-isdefault")
+        {
+            if (!$settings->{$name}->{is_default})
+            {
                 $settings->{$name}->reset_to_default;
             }
         }
-        else {
+        else
+        {
             $setting->validate_value($value);
             $settings->{$name}->set($value);
         }
     }
-    $vars->{'settings'} = $user->settings(1);
+    $vars->{settings} = $user->settings(1);
 }
 
 sub DoEmail
@@ -231,14 +239,16 @@ sub DoEmail
     $sth->execute($user->id);
 
     my %mail;
-    while (my ($relationship, $event) = $sth->fetchrow_array()) {
+    while (my ($relationship, $event) = $sth->fetchrow_array())
+    {
         $mail{$relationship}{$event} = 1;
     }
 
-    $vars->{'mail'} = \%mail;
+    $vars->{mail} = \%mail;
 }
 
-sub SaveEmail {
+sub SaveEmail
+{
     my $dbh = Bugzilla->dbh;
     my $cgi = Bugzilla->cgi;
     my $user = Bugzilla->user;
@@ -253,45 +263,45 @@ sub SaveEmail {
     # Delete all the user's current preferences
     $dbh->do("DELETE FROM email_setting WHERE user_id = ?", undef, $user->id);
 
-    # Repopulate the table - first, with normal events in the 
+    # Repopulate the table - first, with normal events in the
     # relationship/event matrix.
-    # Note: the database holds only "off" email preferences, as can be implied 
+    # Note: the database holds only "off" email preferences, as can be implied
     # from the name of the table - profiles_nomail.
-    foreach my $rel (RELATIONSHIPS) {
+    foreach my $rel (RELATIONSHIPS)
+    {
         # Positive events: a ticked box means "send me mail."
-        foreach my $event (POS_EVENTS) {
-            if (defined($cgi->param("email-$rel-$event"))
-                && $cgi->param("email-$rel-$event") == 1)
+        foreach my $event (POS_EVENTS)
+        {
+            if ($cgi->param("email-$rel-$event"))
             {
-                $dbh->do("INSERT INTO email_setting " . 
-                         "(user_id, relationship, event) " . 
-                         "VALUES (?, ?, ?)",
-                         undef, ($user->id, $rel, $event));
+                $dbh->do(
+                    "INSERT INTO email_setting (user_id, relationship, event) VALUES (?, ?, ?)",
+                    undef, $user->id, $rel, $event
+                );
             }
         }
-        
         # Negative events: a ticked box means "don't send me mail."
-        foreach my $event (NEG_EVENTS) {
-            if (!defined($cgi->param("neg-email-$rel-$event")) ||
-                $cgi->param("neg-email-$rel-$event") != 1) 
+        foreach my $event (NEG_EVENTS)
+        {
+            if (!$cgi->param("neg-email-$rel-$event"))
             {
-                $dbh->do("INSERT INTO email_setting " . 
-                         "(user_id, relationship, event) " . 
-                         "VALUES (?, ?, ?)",
-                         undef, ($user->id, $rel, $event));
+                $dbh->do(
+                    "INSERT INTO email_setting (user_id, relationship, event) VALUES (?, ?, ?)",
+                    undef, $user->id, $rel, $event
+                );
             }
         }
     }
 
     # Global positive events: a ticked box means "send me mail."
-    foreach my $event (GLOBAL_EVENTS) {
-        if (defined($cgi->param("email-" . REL_ANY . "-$event"))
-            && $cgi->param("email-" . REL_ANY . "-$event") == 1)
+    foreach my $event (GLOBAL_EVENTS)
+    {
+        if ($cgi->param("email-" . REL_ANY . "-$event"))
         {
-            $dbh->do("INSERT INTO email_setting " . 
-                     "(user_id, relationship, event) " . 
-                     "VALUES (?, ?, ?)",
-                     undef, ($user->id, REL_ANY, $event));
+            $dbh->do(
+                "INSERT INTO email_setting (user_id, relationship, event) VALUES (?, ?, ?)",
+                undef, $user->id, REL_ANY, $event
+            );
         }
     }
 
@@ -327,7 +337,7 @@ sub SaveEmail {
             push @$del_wdwr,
                 map { [ login_to_id(trim($_), THROW_ERROR), $userid ] }
                 $cgi->param('watched_by_you');
-            }
+        }
 
         if ($cgi->param('remove_watchers'))
         {
@@ -335,7 +345,7 @@ sub SaveEmail {
             push @$del_wdwr,
                 map { [ $userid, login_to_id(trim($_), THROW_ERROR) ] }
                 $cgi->param('watchers');
-            }
+        }
 
         if (@$add_wdwr)
         {
@@ -369,11 +379,11 @@ sub DoPermissions
 
 # No SavePermissions() because this panel has no changeable fields.
 
-sub DoSavedSearches {
+sub DoSavedSearches
+{
     my $cgi = Bugzilla->cgi;
     my $dbh = Bugzilla->dbh;
     my $user = Bugzilla->user;
-
     # CustIS Bug 53697 - Bookmarks
     if ((my $name = trim($cgi->param('addbookmarkname'))) &&
         (my $url = $cgi->param('addbookmarkurl')))
@@ -382,16 +392,17 @@ sub DoSavedSearches {
         trick_taint($url);
         eval { $url = URI->new($url)->canonical->as_string; };
         ThrowCodeError("invalid_url", { url => $url }) if $@;
-        $dbh->do('INSERT INTO namedqueries (userid, name, query) VALUES (?, ?, ?)', undef,
-            $user->id, $name, $url);
+        $dbh->do(
+            'INSERT INTO namedqueries (userid, name, query) VALUES (?, ?, ?)',
+            undef, $user->id, $name, $url
+        );
         $dbh->commit;
     }
-
-    if ($user->queryshare_groups_as_string) {
-        $vars->{'queryshare_groups'} =
-            Bugzilla::Group->new_from_list($user->queryshare_groups);
+    if ($user->queryshare_groups_as_string)
+    {
+        $vars->{queryshare_groups} = Bugzilla::Group->new_from_list($user->queryshare_groups);
     }
-    $vars->{'bless_group_ids'} = [map { $_->id } @{$user->bless_groups}];
+    $vars->{bless_group_ids} = [ map { $_->id } @{$user->bless_groups} ];
 }
 
 sub SaveSavedSearches
@@ -403,14 +414,15 @@ sub SaveSavedSearches
     # We'll need this in a loop, so do the call once.
     my $user_id = $user->id;
 
-    my $sth_insert_ngm = $dbh->prepare('INSERT INTO namedquery_group_map
-                                        (namedquery_id, group_id)
-                                        VALUES (?, ?)');
-    my $sth_update_ngm = $dbh->prepare('UPDATE namedquery_group_map
-                                           SET group_id = ?
-                                         WHERE namedquery_id = ?');
-    my $sth_delete_ngm = $dbh->prepare('DELETE FROM namedquery_group_map
-                                              WHERE namedquery_id = ?');
+    my $sth_insert_ngm = $dbh->prepare(
+        'INSERT INTO namedquery_group_map (namedquery_id, group_id) VALUES (?, ?)'
+    );
+    my $sth_update_ngm = $dbh->prepare(
+        'UPDATE namedquery_group_map SET group_id = ? WHERE namedquery_id = ?'
+    );
+    my $sth_delete_ngm = $dbh->prepare(
+        'DELETE FROM namedquery_group_map WHERE namedquery_id = ?'
+    );
 
     # FIXME do batch updates
 
@@ -456,58 +468,59 @@ $cgi->delete('GoAheadAndLogIn');
 # First try to get credentials from cookies.
 Bugzilla->login(LOGIN_OPTIONAL);
 
-if (!Bugzilla->user->id) {
+if (!Bugzilla->user->id)
+{
     # Use credentials given in the form if login cookies are not available.
     $cgi->param('Bugzilla_login', $cgi->param('old_login'));
     $cgi->param('Bugzilla_password', $cgi->param('old_password'));
 }
 Bugzilla->login(LOGIN_REQUIRED);
 
-$vars->{'changes_saved'} = $cgi->param('dosave');
+$vars->{changes_saved} = $cgi->param('dosave');
 
 my $current_tab_name = $cgi->param('tab') || "settings";
 
 # The SWITCH below makes sure that this is valid
 trick_taint($current_tab_name);
 
-$vars->{'current_tab_name'} = $current_tab_name;
+$vars->{current_tab_name} = $current_tab_name;
 
 my $token = $cgi->param('token');
 check_token_data($token, 'edit_user_prefs') if $cgi->param('dosave');
 
-# Do any saving, and then display the current tab.
-SWITCH: for ($current_tab_name) {
-    /^account$/ && do {
-        SaveAccount() if $cgi->param('dosave');
-        DoAccount();
-        last SWITCH;
-    };
-    /^settings$/ && do {
-        SaveSettings() if $cgi->param('dosave');
-        DoSettings();
-        last SWITCH;
-    };
-    /^email$/ && do {
-        SaveEmail() if $cgi->param('dosave');
-        DoEmail();
-        last SWITCH;
-    };
-    /^permissions$/ && do {
-        DoPermissions();
-        last SWITCH;
-    };
-    /^saved-searches$/ && do {
-        SaveSavedSearches() if $cgi->param('dosave');
-        DoSavedSearches();
-        last SWITCH;
-    };
-    ThrowUserError("unknown_tab",
-                   { current_tab_name => $current_tab_name });
+if ($current_tab_name eq 'account')
+{
+    SaveAccount() if $cgi->param('dosave');
+    DoAccount();
+}
+elsif ($current_tab_name eq 'settings')
+{
+    SaveSettings() if $cgi->param('dosave');
+    DoSettings();
+}
+elsif ($current_tab_name eq 'email')
+{
+    SaveEmail() if $cgi->param('dosave');
+    DoEmail();
+}
+elsif ($current_tab_name eq 'permissions')
+{
+    DoPermissions();
+}
+elsif ($current_tab_name eq 'saved-searches')
+{
+    SaveSavedSearches() if $cgi->param('dosave');
+    DoSavedSearches();
+}
+else
+{
+    ThrowUserError("unknown_tab", { current_tab_name => $current_tab_name });
 }
 
 delete_token($token) if $cgi->param('dosave');
-if ($current_tab_name ne 'permissions') {
-    $vars->{'token'} = issue_session_token('edit_user_prefs');
+if ($current_tab_name ne 'permissions')
+{
+    $vars->{token} = issue_session_token('edit_user_prefs');
 }
 
 # Generate and return the UI (HTML page) from the appropriate template.
