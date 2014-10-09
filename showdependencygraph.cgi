@@ -20,13 +20,13 @@ use Bugzilla::Status;
 
 Bugzilla->login();
 
-my $cgi = Bugzilla->cgi;
+my $ARGS = Bugzilla->input_params;
 my $template = Bugzilla->template;
 my $vars = {};
 
 # Check params
-my $display = $cgi->param('display') || 'tree';
-if (!defined $cgi->param('id') && $display ne 'doall')
+my $display = $ARGS->{display} || 'tree';
+if (!defined $ARGS->{id} && $display ne 'doall')
 {
     ThrowCodeError("missing_bug_id");
 }
@@ -34,7 +34,7 @@ if (!defined $cgi->param('id') && $display ne 'doall')
 # Connect to the shadow database if this installation is using one to improve
 # performance.
 
-my ($seen, $edges, $baselist, $deps) = GetEdges($display, $cgi->param('id'));
+my ($seen, $edges, $baselist, $deps) = GetEdges($display, $ARGS->{id});
 my ($nodes, $bugtitles) = GetNodes($seen, $baselist, $deps, $vars);
 my ($clusters, $independent) = GetClusters($seen, $edges);
 my $graphs = [];
@@ -359,6 +359,7 @@ sub GetNodes
 {
     my ($seen, $baselist, $deps, $vars) = @_;
     return {} unless keys %$seen;
+    my $ARGS = Bugzilla->input_params;
     my $nodes = {};
     my $bugtitles = {};
     # Retrieve bug information from the database
@@ -397,7 +398,7 @@ GROUP BY t1.bug_id", {Slice=>{}}, keys %$seen) || {};
             $row->{short_desc} = substr($row->{short_desc}, 0, 32) . '...';
         }
         # Current bug
-        $vars->{short_desc} = $row->{short_desc} if $row->{bug_id} eq Bugzilla->cgi->param('id');
+        $vars->{short_desc} = $row->{short_desc} if $row->{bug_id} eq $ARGS->{id};
         Encode::_utf8_off($row->{$_}) for keys %$row;
 
         my $bgnodecolor = GetColorByState($row->{bug_status}, $row->{is_open}, 1);
