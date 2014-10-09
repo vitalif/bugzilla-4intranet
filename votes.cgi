@@ -37,7 +37,7 @@ use Bugzilla::Token;
 
 use List::Util qw(min);
 
-my $cgi = Bugzilla->cgi;
+my $ARGS = Bugzilla->input_params;
 local our $vars = {};
 
 # If the action is show_bug, you need a bug_id.
@@ -48,10 +48,10 @@ local our $vars = {};
 #
 # If no action is defined, we default to show_bug if a bug_id is given,
 # otherwise to show_user.
-my $bug_id = $cgi->param('bug_id');
-my $action = $cgi->param('action') || ($bug_id ? "show_bug" : "show_user");
+my $bug_id = $ARGS->{bug_id};
+my $action = $ARGS->{action} || ($bug_id ? "show_bug" : "show_user");
 
-if ($action eq "show_bug" || ($action eq "show_user" && defined $cgi->param('user_id')))
+if ($action eq "show_bug" || ($action eq "show_user" && defined $ARGS->{user_id}))
 {
     Bugzilla->login();
 }
@@ -100,7 +100,6 @@ exit;
 sub show_bug
 {
     my ($bug_id) = @_;
-    my $cgi = Bugzilla->cgi;
     my $dbh = Bugzilla->dbh;
     my $template = Bugzilla->template;
 
@@ -122,15 +121,15 @@ sub show_bug
 sub show_user
 {
     my ($bug_id) = @_;
-    my $cgi = Bugzilla->cgi;
     my $dbh = Bugzilla->dbh;
     my $user = Bugzilla->user;
     my $template = Bugzilla->template;
+    my $ARGS = Bugzilla->input_params;
 
     # If a bug_id is given, and we're editing, we'll add it to the votes list.
     $bug_id ||= "";
 
-    my $who_id = $cgi->param('user_id') || $user->id;
+    my $who_id = $ARGS->{user_id} || $user->id;
     my $who = Bugzilla::User->check({ id => $who_id });
 
     my $canedit = (Bugzilla->get_field('votes')->enabled && $user->id == $who->id) ? 1 : 0;
@@ -222,7 +221,7 @@ sub show_user
 # Update the user's votes in the database.
 sub record_votes
 {
-    my $cgi = Bugzilla->cgi;
+    my $ARGS = Bugzilla->input_params;
     my $dbh = Bugzilla->dbh;
     my $template = Bugzilla->template;
 
@@ -230,21 +229,21 @@ sub record_votes
     # are submitted in form fields in which the field names are the bug
     # IDs and the field values are the number of votes.
 
-    my @buglist = grep {/^[1-9][0-9]*$/} $cgi->param();
+    my @buglist = grep { /^[1-9][0-9]*$/ } keys %$ARGS;
 
     # If no bugs are in the buglist, let's make sure the user gets notified
     # that their votes will get nuked if they continue.
     if (!@buglist)
     {
-        if (!defined $cgi->param('delete_all_votes'))
+        if (!defined $ARGS->{delete_all_votes})
         {
             $template->process("bug/votes/delete-all.html.tmpl", $vars)
                 || ThrowTemplateError($template->error());
             exit;
         }
-        elsif ($cgi->param('delete_all_votes') == 0)
+        elsif ($ARGS->{delete_all_votes} == 0)
         {
-            print $cgi->redirect("votes.cgi");
+            print Bugzilla->cgi->redirect("votes.cgi");
             exit;
         }
     }
@@ -259,12 +258,11 @@ sub record_votes
     {
         my $bug = Bugzilla::Bug->check($id);
         $id = $bug->id;
-        $votes{$id} = $cgi->param($id);
-        detaint_natural($votes{$id})
-            || ThrowUserError("votes_must_be_nonnegative");
+        $votes{$id} = $ARGS->{$id};
+        detaint_natural($votes{$id}) || ThrowUserError("votes_must_be_nonnegative");
     }
 
-    my $token = $cgi->param('token');
+    my $token = $ARGS->{token};
     check_hash_token($token, ['vote']);
 
     ############################################################################
