@@ -184,6 +184,11 @@ use Cwd qw(abs_path);
 
     BUG_ID_ADD_TO_BLOCKED
     BUG_ID_ADD_TO_DEPENDSON
+
+    USER_MATCH_MULTIPLE
+    USER_MATCH_FAILED
+    USER_MATCH_SUCCESS
+    MATCH_SKIP_CONFIRM
 );
 
 @Bugzilla::Constants::EXPORT_OK = qw(contenttypes);
@@ -248,6 +253,11 @@ use constant AUTH_LOCKOUT => 6;
 
 # The minimum length a password must have.
 use constant USER_PASSWORD_MIN_LENGTH => 6;
+
+use constant USER_MATCH_MULTIPLE => -1;
+use constant USER_MATCH_FAILED   => 0;
+use constant USER_MATCH_SUCCESS  => 1;
+use constant MATCH_SKIP_CONFIRM  => 1;
 
 use constant LOGIN_OPTIONAL => 0;
 use constant LOGIN_NORMAL => 1;

@@ -40,6 +40,7 @@ BEGIN
 
 use CGI qw(-no_xhtml -oldstyle_urls :private_tempfiles :unique_headers SERVER_PUSH);
 use base qw(CGI);
+use CGI::Cookie;
 
 # We need to disable output buffering - see bug 179174
 $| = 1;

@@ -17,7 +17,6 @@
 package Bugzilla::Auth::Verify;
 
 use strict;
-use fields qw();
 
 use Bugzilla::Constants;
 use Bugzilla::Error;

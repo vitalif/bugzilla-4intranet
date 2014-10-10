@@ -17,7 +17,6 @@
 package Bugzilla::Auth::Login;
 
 use strict;
-use fields qw();
 
 # Determines whether or not a user can logout. It's really a subroutine,
 # but we implement it here as a constant. Override it in subclasses if

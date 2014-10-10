@@ -59,18 +59,11 @@ use base qw(Bugzilla::Object Exporter);
 # FIXME Remove procedural APIs
 @Bugzilla::User::EXPORT = qw(
     is_available_username login_to_id validate_password
-    USER_MATCH_MULTIPLE USER_MATCH_FAILED USER_MATCH_SUCCESS MATCH_SKIP_CONFIRM
 );
 
 #####################################################################
 # Constants
 #####################################################################
-
-use constant USER_MATCH_MULTIPLE => -1;
-use constant USER_MATCH_FAILED   => 0;
-use constant USER_MATCH_SUCCESS  => 1;
-
-use constant MATCH_SKIP_CONFIRM  => 1;
 
 use constant DEFAULT_USER => {
     'userid'         => 0,

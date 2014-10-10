@@ -532,12 +532,6 @@ sub get_bug_link
 # If you do not re-run checksetup.pl, the change you make will not apply
 $Template::Directive::WHILE_MAX = 1000000;
 
-# Use the Toolkit Template's Stash module to add utility pseudo-methods
-# to template variables.
-use Template::Stash::XS;
-
-$Template::Config::STASH = 'Template::Stash::XS';
-
 # Allow keys to start with an underscore or a dot.
 $Template::Stash::PRIVATE = undef;
 
@@ -553,30 +547,16 @@ $Template::Stash::LIST_OPS->{contains} = sub
 $Template::Stash::LIST_OPS->{containsany} = sub
 {
     my ($list, $items) = @_;
-    foreach my $item (@$items) {
+    foreach my $item (@$items)
+    {
         return 1 if grep($_ eq $item, @$list);
     }
     return 0;
 };
 
-# Clone the array reference to leave the original one unaltered.
-$Template::Stash::LIST_OPS->{clone} = sub
-{
-    my $list = shift;
-    return [@$list];
-};
-
 # Allow us to still get the scalar if we use the list operation ".0" on it,
 # as we often do for defaults in query.cgi and other places.
 $Template::Stash::SCALAR_OPS->{0} = sub { $_[0] };
-
-# Add a "substr" method to the Template Toolkit's "scalar" object
-# that returns a substring of a string.
-$Template::Stash::SCALAR_OPS->{substr} = sub
-{
-    my ($scalar, $offset, $length) = @_;
-    return substr($scalar, $offset, $length);
-};
 
 # Add a "truncate" method to the Template Toolkit's "scalar" object
 # that truncates a string to a certain length.

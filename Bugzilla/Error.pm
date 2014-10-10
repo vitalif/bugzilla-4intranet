@@ -23,7 +23,7 @@ use Data::Dumper;
 
 use overload '""' => sub { $_[0]->{message} };
 
-my $HAVE_DEVEL_STACKTRACE = eval { require Devel::StackTrace };
+our $HAVE_DEVEL_STACKTRACE = eval { require Devel::StackTrace };
 
 our $IN_EVAL = 0;
 
@@ -286,7 +286,8 @@ sub ThrowCodeError
 sub ThrowTemplateError
 {
     my ($template_err) = @_;
-    _throw_error('code', 'template_error', { template_error_msg => "$template_err" });
+    my ($msg, $stack) = split /\n{2,}/, "$template_err";
+    _throw_error('code', 'template_error', { template_error_msg => $msg, stack_trace => $stack });
 }
 
 1;
