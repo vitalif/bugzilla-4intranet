@@ -1,6 +1,4 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -24,20 +22,21 @@ use Bugzilla::Constants;
 
 Bugzilla->login();
 
-my $cgi = Bugzilla->cgi;
 my $template = Bugzilla->template;
 my $vars = {};
 
 # Return the appropriate HTTP response headers.
-$cgi->send_header('application/xml');
+Bugzilla->cgi->send_header('application/xml');
 
 # Get the contents of favicon.ico
-my $filename = bz_locations()->{'libpath'} . "/images/favicon.ico";
-if (open(IN, $filename)) {
+my $filename = bz_locations()->{libpath} . "/images/favicon.ico";
+if (open(IN, $filename))
+{
     local $/;
     binmode IN;
     $vars->{'favicon'} = <IN>;
     close IN;
 }
 $template->process("search/search-plugin.xml.tmpl", $vars)
-  || ThrowTemplateError($template->error());
+    || ThrowTemplateError($template->error());
+exit;

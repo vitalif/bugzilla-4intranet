@@ -1,6 +1,4 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -27,12 +25,12 @@ use Bugzilla;
 use Bugzilla::Constants;
 use Bugzilla::Error;
 
-my $cgi = Bugzilla->cgi;
 my $template = Bugzilla->template;
 my $user = Bugzilla->login(LOGIN_REQUIRED);
 
 $user->administration_visible
-  || ThrowUserError('auth_failure', {action => 'access', object => 'administrative_pages'});
+    || ThrowUserError('auth_failure', { action => 'access', object => 'administrative_pages' });
 
 $template->process('admin/admin.html.tmpl')
-  || ThrowTemplateError($template->error());
+    || ThrowTemplateError($template->error());
+exit;

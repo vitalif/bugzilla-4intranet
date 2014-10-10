@@ -1,6 +1,4 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -31,15 +29,15 @@ use Bugzilla::Keyword;
 
 Bugzilla->login();
 
-my $cgi = Bugzilla->cgi;
 my $template = Bugzilla->template;
 my $vars = {};
 
 # Run queries against the shadow DB.
 Bugzilla->switch_to_shadow_db;
 
-$vars->{'keywords'} = Bugzilla::Keyword->get_all_with_bug_count();
-$vars->{'caneditkeywords'} = Bugzilla->user->in_group("editkeywords");
+$vars->{keywords} = Bugzilla::Keyword->get_all_with_bug_count();
+$vars->{caneditkeywords} = Bugzilla->user->in_group("editkeywords");
 
 $template->process("reports/keywords.html.tmpl", $vars)
-  || ThrowTemplateError($template->error());
+    || ThrowTemplateError($template->error());
+exit;

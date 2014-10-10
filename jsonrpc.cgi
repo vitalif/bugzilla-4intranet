@@ -1,6 +1,4 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -17,7 +15,7 @@
 # University Foundation. Portions created by the Initial Developer 
 # are Copyright (C) 2008 the Initial Developer. All Rights Reserved.
 #
-# Contributor(s): 
+# Contributor(s):
 #   Max Kanat-Alexander <mkanat@bugzilla.org>
 
 use strict;
@@ -27,8 +25,10 @@ use Bugzilla;
 use Bugzilla::Constants;
 use Bugzilla::Error;
 use Bugzilla::WebService::Constants;
-BEGIN {
-    if (!Bugzilla->feature('jsonrpc')) {
+BEGIN
+{
+    if (!Bugzilla->feature('jsonrpc'))
+    {
         ThrowCodeError('feature_disabled', { feature => 'jsonrpc' });
     }
 }

@@ -1,6 +1,4 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -41,7 +39,6 @@ use Bugzilla::Keyword;
 use Bugzilla::Field;
 use Bugzilla::Install::Util qw(vers_cmp);
 
-my $cgi = Bugzilla->cgi;
 my $params = Bugzilla->input_params;
 my $dbh = Bugzilla->dbh;
 my $template = Bugzilla->template;
@@ -56,15 +53,18 @@ my $userid = $user->id;
 if ($userid)
 {
     my @oldquerycookies;
-    foreach my $i (keys %{Bugzilla->cookies}) {
-        if ($i =~ /^QUERY_(.*)$/) {
-            push @oldquerycookies, [$1, $i, Bugzilla->cookies->{$i}];
+    foreach my $i (keys %{Bugzilla->cookies})
+    {
+        if ($i =~ /^QUERY_(.*)$/)
+        {
+            push @oldquerycookies, [ $1, $i, Bugzilla->cookies->{$i} ];
         }
     }
     if (defined Bugzilla->cookies->{DEFAULTQUERY})
     {
-        push @oldquerycookies, [DEFAULT_QUERY_NAME, 'DEFAULTQUERY',
-                                Bugzilla->cookies->{DEFAULTQUERY}];
+        push @oldquerycookies, [
+            DEFAULT_QUERY_NAME, 'DEFAULTQUERY', Bugzilla->cookies->{DEFAULTQUERY},
+        ];
     }
     if (@oldquerycookies)
     {
@@ -92,7 +92,7 @@ if ($userid)
                 }
                 $dbh->bz_commit_transaction();
             }
-            $cgi->remove_cookie($cookiename);
+            Bugzilla->cgi->remove_cookie($cookiename);
         }
     }
 }
@@ -199,7 +199,8 @@ $vars->{chart_fields} = [
 unshift @{$vars->{chart_fields}}, { id => 'noop', name => '---' };
 
 # If we're not in the time-tracking group, exclude time-tracking fields.
-if (!Bugzilla->user->is_timetracker) {
+if (!Bugzilla->user->is_timetracker)
+{
     @{$vars->{chart_fields}} = grep { !TIMETRACKING_FIELDS->{$_} } @{$vars->{chart_fields}};
 }
 
@@ -292,7 +293,7 @@ if ($vars->{query_format} eq 'create-series')
 # Set cookie to current format as default.
 if ($vars->{query_format})
 {
-    $cgi->send_cookie(
+    Bugzilla->cgi->send_cookie(
         -name => 'DEFAULTFORMAT',
         -value => $vars->{query_format},
         -expires => "Fri, 01-Jan-2038 00:00:00 GMT"
@@ -304,7 +305,7 @@ if ($vars->{query_format})
 # preserve format information; hence query_format taking priority over format.
 my $format = $template->get_format("search/search", $vars->{query_format}, $params->{ctype});
 
-$cgi->send_header($format->{ctype});
+Bugzilla->cgi->send_header($format->{ctype});
 $template->process($format->{template}, $vars)
     || ThrowTemplateError($template->error());
 exit;
