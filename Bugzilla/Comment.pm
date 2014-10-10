@@ -66,7 +66,8 @@ use constant UPDATE_VALIDATORS => {
 # Database Manipulation #
 #########################
 
-sub update {
+sub update
+{
     my $self = shift;
     my $changes = $self->SUPER::update(@_);
     $self->bug->_sync_fulltext();
