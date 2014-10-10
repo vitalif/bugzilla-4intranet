@@ -1288,7 +1288,6 @@ sub match_field
 {
     my $fields       = shift;   # arguments as a hash
     my $data         = shift || Bugzilla->input_params; # hash to look up fields in
-    my $cgi          = $data eq Bugzilla->input_params ? Bugzilla->cgi : undef;
     my $behavior     = shift || 0; # A constant that tells us how to act
     my $matches      = {};      # the values sent to the template
     my $matchsuccess = 1;       # did the match fail?
@@ -1348,7 +1347,6 @@ sub match_field
                         # has been deleted (may occur in race conditions).
                         delete $expanded_fields->{$field_name};
                         delete $data->{$field_name};
-                        $cgi->delete($field_name) if $cgi;
                     }
                 }
             }
@@ -1382,7 +1380,6 @@ sub match_field
             # We will repopulate it later if a match is found, else it must
             # be set to an empty string so that the field remains defined.
             $data->{$field} = '';
-            $cgi->param($field, '') if $cgi;
         }
         elsif ($fields->{$field}->{type} eq 'multi')
         {
@@ -1390,7 +1387,6 @@ sub match_field
             # We will repopulate it later if a match is found, else it must
             # be undefined.
             delete $data->{$field};
-            $cgi->delete($field) if $cgi;
         }
         else
         {
@@ -1465,12 +1461,10 @@ sub match_field
         if ($fields->{$field}->{type} eq 'single')
         {
             $data->{$field} = $logins[0] || '';
-            $cgi->param($field, $logins[0] || '') if $cgi;
         }
         elsif (scalar @logins)
         {
             $data->{$field} = \@logins;
-            $cgi->param($field, @logins) if $cgi;
         }
     }
     my $retval;
@@ -1494,7 +1488,7 @@ sub match_field
     }
 
     my $vars = {};
-    $vars->{script}        = $cgi->url(-relative => 1); # for self-referencing URLs
+    $vars->{script}        = Bugzilla->cgi->url(-relative => 1); # for self-referencing URLs
     $vars->{fields}        = $fields; # fields being matched
     $vars->{matches}       = $matches; # matches that were made
     $vars->{matchsuccess}  = $matchsuccess; # continue or fail
@@ -1814,8 +1808,7 @@ sub create
 sub read_new_functionality
 {
     my ($self) = @_;
-    my $cgi = Bugzilla->cgi;
-    my $time = $cgi->cookie('read_new_functionality');
+    my $time = Bugzilla->cookies->{read_new_functionality};
     $time = 0 unless $time;
     my @lu = map { $_ - 0} Bugzilla->params->{new_functionality_tsp} =~ m/(\d+)/g;
     my $last_updated = POSIX::mktime($lu[5], $lu[4], $lu[3], $lu[2], $lu[1] - 1, $lu[0] - 1900);

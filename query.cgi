@@ -56,15 +56,15 @@ my $userid = $user->id;
 if ($userid)
 {
     my @oldquerycookies;
-    foreach my $i ($cgi->cookie()) {
+    foreach my $i (keys %{Bugzilla->cookies}) {
         if ($i =~ /^QUERY_(.*)$/) {
-            push @oldquerycookies, [$1, $i, $cgi->cookie($i)];
+            push @oldquerycookies, [$1, $i, Bugzilla->cookies->{$i}];
         }
     }
-    if (defined $cgi->cookie('DEFAULTQUERY'))
+    if (defined Bugzilla->cookies->{DEFAULTQUERY})
     {
         push @oldquerycookies, [DEFAULT_QUERY_NAME, 'DEFAULTQUERY',
-                                $cgi->cookie('DEFAULTQUERY')];
+                                Bugzilla->cookies->{DEFAULTQUERY}];
     }
     if (@oldquerycookies)
     {
@@ -247,7 +247,7 @@ if ($userid)
 my $deforder;
 my @orders = ('Bug Number', 'Importance', 'Assignee', 'Last Changed', 'relevance');
 
-if ($cgi->cookie('LASTORDER'))
+if (Bugzilla->cookies->{LASTORDER})
 {
     $deforder = "Reuse same sort as last time";
     unshift(@orders, $deforder);
@@ -282,7 +282,7 @@ $vars->{columnlist} = $params->{columnlist};
 $vars->{default} = $default;
 
 # Set default page to "advanced" if none provided
-$vars->{query_format} = $params->{query_format} || $params->{format} || $cgi->cookie('DEFAULTFORMAT') || 'advanced';
+$vars->{query_format} = $params->{query_format} || $params->{format} || Bugzilla->cookies->{DEFAULTFORMAT} || 'advanced';
 if ($vars->{query_format} eq 'create-series')
 {
     require Bugzilla::Chart;

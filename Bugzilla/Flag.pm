@@ -1109,7 +1109,7 @@ sub notify
     }
 
     # FIXME move "silent" indication out of cgi.commentsilent
-    if (Bugzilla->cgi->param('commentsilent') &&
+    if (Bugzilla->input_params->{commentsilent} &&
         Bugzilla->user->settings->{silent_affects_flags}->{value} eq 'do_not_send')
     {
         # Your changes are marked as Silent. No mail is sent.

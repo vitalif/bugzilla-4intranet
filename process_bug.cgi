@@ -279,9 +279,9 @@ if ($ARGS->{id})
     if ($action eq 'next_bug')
     {
         my @bug_list;
-        if ($cgi->cookie("BUGLIST")) # FIXME
+        if (Bugzilla->cookies->{BUGLIST}) # FIXME
         {
-            @bug_list = split /:/, $cgi->cookie("BUGLIST");
+            @bug_list = split /:/, Bugzilla->cookies->{BUGLIST};
         }
         my $cur = lsearch(\@bug_list, $ARGS->{id});
         if ($cur >= 0 && $cur < $#bug_list)
@@ -723,6 +723,7 @@ if (scalar(@bug_objects) == 1 && $action ne 'nothing' && Bugzilla->save_session_
 else
 {
     # End the response page.
+    $vars->{last_bug_list} = [ split /:/, Bugzilla->{cookies}->{BUGLIST} ];
     $template->process("global/header.html.tmpl", $vars)
         || ThrowTemplateError($template->error());
     $template->process("bug/navigate.html.tmpl", $vars)

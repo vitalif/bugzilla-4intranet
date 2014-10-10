@@ -44,25 +44,25 @@ $login || ThrowUserError('invalid_username');
 my $user = new Bugzilla::User({ name => $login })
     || ThrowUserError('invalid_username', { name => $login });
 
-my $cgi = Bugzilla->cgi;
+my $ARGS = Bugzilla->input_params;
 my $template = Bugzilla->template;
 
 # Authenticate using this user account.
 Bugzilla->set_user($user);
 
 # Pass this param to sanitycheck.cgi.
-$cgi->param('verbose', $verbose);
+$ARGS->{verbose} = $verbose;
 
 require 'sanitycheck.cgi';
 
 # Now it's time to send an email to the user if there is something to notify.
-if ($cgi->param('output'))
+if ($ARGS->{output})
 {
     my $message;
     my $vars = {};
     $vars->{addressee} = $user->email;
-    $vars->{output} = $cgi->param('output');
-    $vars->{error_found} = $cgi->param('error_found') ? 1 : 0;
+    $vars->{output} = $ARGS->{output};
+    $vars->{error_found} = $ARGS->{error_found} ? 1 : 0;
     $template->process('email/sanitycheck.txt.tmpl', $vars, \$message)
         || ThrowTemplateError($template->error());
     MessageToMTA($message);

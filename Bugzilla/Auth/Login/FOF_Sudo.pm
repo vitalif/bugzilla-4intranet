@@ -40,7 +40,7 @@ use constant requires_verification => 0;
 sub get_login_info {
     my ($self) = @_;
 
-    my $cookie = Bugzilla->cgi->cookie('fof_sudo_id');
+    my $cookie = Bugzilla->cookies->{fof_sudo_id};
     my $server = Bugzilla->params->{fof_sudo_server};
     return { failure => AUTH_NODATA } unless $cookie && $server;
 

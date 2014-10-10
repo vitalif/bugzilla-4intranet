@@ -55,7 +55,7 @@ use Email::Sender::Simple;
 sub MessageToMTA {
     my ($msg, $send_now) = (@_);
     my $method = Bugzilla->params->{'mail_delivery_method'};
-    $method = 'Test' if Bugzilla->cgi->param('MailDeliveryTest');
+    $method = 'Test' if Bugzilla->input_params->{MailDeliveryTest};
     return if $method eq 'None';
 
     if (Bugzilla->params->{'use_mailer_queue'} and !$send_now) {

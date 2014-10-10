@@ -303,7 +303,7 @@ sub init_page
         # Generate and return a message about the downtime, appropriately
         # for if we're a command-line script or a CGI script.
         my $extension;
-        if (i_am_cgi() && (!Bugzilla->cgi->param('ctype') || Bugzilla->cgi->param('ctype') eq 'html'))
+        if (i_am_cgi() && (!Bugzilla->input_params->{ctype} || Bugzilla->input_params->{ctype} eq 'html'))
         {
             $extension = 'html';
         }
@@ -491,13 +491,13 @@ sub input_params
     }
     return $cache->{input_params} if defined $cache->{input_params};
 
-    $cache->{input_params} = {};
     my $cgi = $class->cgi;
-    for ($cgi->param)
+    my $params = { %{$cgi->{param}} };
+    for (keys %$params)
     {
-        my @v = $cgi->param($_);
-        $cache->{input_params}->{$_} = @v <= 1 ? $v[0] : \@v;
+        ($params->{$_}) = @{$params->{$_}} if @{$params->{$_}} <= 1;
     }
+    $cache->{input_params} = $params;
     return $cache->{input_params};
 }
 
@@ -567,7 +567,7 @@ sub login
     return $class->user if $class->user->id;
 
     my $authorizer = new Bugzilla::Auth();
-    $type = LOGIN_REQUIRED if $class->cgi->param('GoAheadAndLogIn');
+    $type = LOGIN_REQUIRED if Bugzilla->input_params->{GoAheadAndLogIn};
 
     if (!defined $type || $type == LOGIN_NORMAL)
     {
@@ -591,7 +591,7 @@ sub login
     # 3: There must be a valid value in the 'sudo' cookie
     # 4: A Bugzilla::User object must exist for the given cookie value
     # 5: That user must NOT be in the 'bz_sudo_protect' group
-    my $token = $class->cgi->cookie('sudo');
+    my $token = $class->cookies->{sudo};
     if (defined $authenticated_user && $token)
     {
         my ($user_id, $date, $sudo_target_id) = Bugzilla::Token::GetTokenData($token);
@@ -675,6 +675,8 @@ sub logout_request
     my $class = shift;
     delete $class->request_cache->{user};
     delete $class->request_cache->{sudoer};
+    delete $class->cookies->{Bugzilla_login};
+    delete $class->cookies->{Bugzilla_logincokie};
     # We can't delete from $cgi->cookie, so logincookie data will remain
     # there. Don't rely on it: use Bugzilla->user->login instead!
 }
@@ -846,7 +848,7 @@ sub switch_to_main_db
 sub messages
 {
     my $class = shift;
-    my $lc = $class->cgi->cookie('LANG') || 'en';
+    my $lc = $class->cookies->{LANG} || 'en';
     $lc =~ s/\W+//so;
     if (!$INC{'Bugzilla::Language::'.$lc})
     {

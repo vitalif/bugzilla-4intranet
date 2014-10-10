@@ -95,7 +95,7 @@ sub alert
             push(@warn, $_);
         }
     }
-    my $force = 1 && Bugzilla->cgi->param('force_checkers');
+    my $force = 1 && Bugzilla->input_params->{force_checkers};
     if (!@fatal && (!@warn || $force))
     {
         # Either there are no errors or there are only non-fatal ones and the used clicked "DO WHAT I SAY"

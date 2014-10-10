@@ -94,8 +94,8 @@ sub send_results
     elsif ($vars->{message} eq 'bugmail')
     {
         $vars->{sent_bugmail} = Send($vars->{bug_id}, $vars->{mailrecipients}, $vars->{commentsilent});
-        # FIXME Don't take commentsilent from cgi here
-        $vars->{commentsilent} = Bugzilla->cgi->param('commentsilent') ? 1 : 0;
+        # FIXME Do not use input_params from Bugzilla::BugMail
+        $vars->{commentsilent} = Bugzilla->input_params->{commentsilent} ? 1 : 0;
     }
     return $vars;
 }

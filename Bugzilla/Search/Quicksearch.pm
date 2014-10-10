@@ -221,7 +221,7 @@ sub quicksearch
     delete $ARGS->{$_} for ('quicksearch', 'load', 'run');
 
     my $order;
-    if ($order = Bugzilla->cgi->cookie('LASTORDER'))
+    if ($order = Bugzilla->cookies->{LASTORDER})
     {
         $order =~ s/relevance(\s*(a|de)sc)?,|,relevance(\s*(a|de)sc)?//iso;
         $order = "relevance DESC,$order";

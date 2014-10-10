@@ -214,9 +214,8 @@ my $params;
 # storing the query string so that it looks like a query retrieving those bugs.
 if (defined $ARGS->{regetlastlist})
 {
-    $cgi->cookie('BUGLIST') || ThrowUserError('missing_cookie');
+    my $bug_id = Bugzilla->cookies->{BUGLIST} || ThrowUserError('missing_cookie');
     $order = 'reuse last sort' unless $order;
-    my $bug_id = $cgi->cookie('BUGLIST');
     $bug_id =~ s/:/,/g;
     # set up the params for this new query
     $params = {
@@ -544,9 +543,9 @@ if (defined $params->{columnlist} && $params->{columnlist} ne 'all')
 {
     @displaycolumns = split(/[ ,]+/, $params->{columnlist});
 }
-elsif (defined $cgi->cookie('COLUMNLIST'))
+elsif (defined Bugzilla->cookies->{COLUMNLIST})
 {
-    @displaycolumns = split(/ /, $cgi->cookie('COLUMNLIST'));
+    @displaycolumns = split(/ /, Bugzilla->cookies->{COLUMNLIST});
 }
 else
 {
@@ -684,9 +683,8 @@ if ($superworktime && !grep($_ eq 'product_notimetracking', @displaycolumns))
 # the order is not defined or its value is "reuse last sort"
 if (!$order || $order =~ /^reuse/i)
 {
-    if ($cgi->cookie('LASTORDER'))
+    if ($order = Bugzilla->cookies->{LASTORDER})
     {
-        $order = $cgi->cookie('LASTORDER');
         # Cookies from early versions of Specific Search included this text,
         # which is now invalid.
         $order =~ s/ LIMIT 200//;
@@ -1110,7 +1108,7 @@ if (scalar(@bugowners) > 1 && Bugzilla->user->in_group('editbugs'))
 
 # Whether or not to split the column titles across two rows to make
 # the list more compact.
-$vars->{splitheader} = $cgi->cookie('SPLITHEADER') ? 1 : 0;
+$vars->{splitheader} = Bugzilla->cookies->{SPLITHEADER} ? 1 : 0;
 
 $vars->{quip} = GetQuip();
 $vars->{currenttime} = localtime(time());

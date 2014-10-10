@@ -1047,15 +1047,6 @@ sub create {
             # FIXME find a better place for this function
             'use_keywords' => sub { return Bugzilla::Keyword->any_exist; },
 
-            'last_bug_list' => sub {
-                my @bug_list;
-                my $cgi = Bugzilla->cgi;
-                if ($cgi->cookie("BUGLIST")) {
-                    @bug_list = split(/:/, $cgi->cookie("BUGLIST"));
-                }
-                return \@bug_list;
-            },
-
             'feature_enabled' => sub { return Bugzilla->feature(@_); },
 
             'install_string' => \&Bugzilla::Install::Util::install_string,
@@ -1221,9 +1212,7 @@ Bugzilla::Template - Wrapper around the Template Toolkit C<Template> object
 =head1 SYNOPSIS
 
   my $template = Bugzilla::Template->create;
-  my $format = $template->get_format("foo/bar",
-                                     scalar($cgi->param('format')),
-                                     scalar($cgi->param('ctype')));
+  my $format = $template->get_format("foo/bar", $ARGS->{format}, $ARGS->{ctype});
 
 =head1 DESCRIPTION
 

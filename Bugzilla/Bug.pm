@@ -942,9 +942,9 @@ sub check_dependent_fields
     my $verify_bug_groups = undef;
     if ($self->id && $self->{_old_self}->product_id != $self->product_id)
     {
-        # FIXME Do not call CGI from Bugzilla::Bug!
-        if (!Bugzilla->cgi->param('verify_bug_groups') &&
-            Bugzilla->cgi->param('id'))
+        # FIXME Do not use input_params from Bugzilla::Bug
+        if (!Bugzilla->input_params->{verify_bug_groups} &&
+            Bugzilla->input_params->{id})
         {
             # Display group verification message only for single bug changes
             # Get the ID of groups which are no longer valid in the new product.
@@ -1487,8 +1487,8 @@ sub save_added_comments
     delete $self->{comments} if @{$self->{added_comments} || []};
     foreach my $comment (@{$self->{added_comments} || []})
     {
-        # FIXME Don't talk to CGI from here
-        if (Bugzilla->cgi->param('commentsilent'))
+        # FIXME Do not use input_params from Bugzilla::Bug
+        if (Bugzilla->input_params->{commentsilent})
         {
             # Log silent comments
             SilentLog($self->id, $comment->{thetext});
@@ -1963,10 +1963,9 @@ sub _set_dup_id
     # not adding the user, as the safest option.
     elsif (Bugzilla->usage_mode == USAGE_MODE_BROWSER)
     {
-        # FIXME Don't talk to CGI from Bugzilla::Bug
+        # FIXME Do not use input_params from Bugzilla::Bug
         # If we've already confirmed whether the user should be added...
-        my $cgi = Bugzilla->cgi;
-        my $add_confirmed = $cgi->param('confirm_add_duplicate');
+        my $add_confirmed = Bugzilla->input_params->{confirm_add_duplicate};
         if (defined $add_confirmed)
         {
             $add_dup_cc = $add_confirmed;
@@ -1985,7 +1984,6 @@ sub _set_dup_id
             $vars->{cclist_accessible} = $dupe_of_bug->cclist_accessible;
             $vars->{original_bug_id} = $dupe_of;
             $vars->{duplicate_bug_id} = $self->id;
-            $cgi->send_header();
             $template->process("bug/process/confirm-duplicate.html.tmpl", $vars)
                 || ThrowTemplateError($template->error);
             exit;

@@ -36,8 +36,8 @@ sub get_login_info {
     my $dbh = Bugzilla->dbh;
 
     my $ip_addr = remote_ip();
-    my $login_cookie = $cgi->cookie("Bugzilla_logincookie");
-    my $user_id = $cgi->cookie("Bugzilla_login");
+    my $login_cookie = Bugzilla->cookies->{Bugzilla_logincookie};
+    my $user_id = Bugzilla->cookies->{Bugzilla_login};
 
     # If cookies cannot be found, this could mean that they haven't
     # been made available yet. In this case, look at Bugzilla_cookie_list.

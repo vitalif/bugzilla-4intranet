@@ -396,7 +396,6 @@ sub check_token_data {
         unless ($creator_id) {
             $token = issue_session_token($expected_action);
             Bugzilla->input_params->{token} = $token;
-            $cgi->param('token', $token);
         }
 
         $cgi->send_header();

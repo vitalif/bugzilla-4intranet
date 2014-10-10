@@ -257,26 +257,25 @@ sub setup_patch_readers {
 
 sub setup_template_patch_reader {
     my ($last_reader, $format, $context, $vars) = @_;
-    my $cgi = Bugzilla->cgi;
     my $template = Bugzilla->template;
 
     require PatchReader::DiffPrinter::template;
 
     # Define the vars for templates.
-    if (defined $cgi->param('headers')) {
-        $vars->{'headers'} = $cgi->param('headers');
+    if (defined Bugzilla->input_params->{headers}) {
+        $vars->{'headers'} = Bugzilla->input_params->{headers};
     }
     else {
         $vars->{'headers'} = 1;
     }
 
-    $vars->{'collapsed'} = $cgi->param('collapsed');
+    $vars->{'collapsed'} = Bugzilla->input_params->{collapsed};
     $vars->{'context'} = $context;
     $vars->{'do_context'} = Bugzilla->localconfig->{cvsbin} 
                             && Bugzilla->params->{'cvsroot_get'} && !$vars->{'newid'};
 
     # Print everything out.
-    $cgi->send_header(-type => 'text/html',
+    Bugzilla->cgi->send_header(-type => 'text/html',
                        -expires => '+3M');
 
     $last_reader->sends_data_to(new PatchReader::DiffPrinter::template($template,

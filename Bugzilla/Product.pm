@@ -1118,7 +1118,7 @@ sub choose_product
     ThrowUserError('no_products') unless @$products;
     return $products->[0] if @$products == 1;
 
-    my $qp = { %$query_params };
+    my $qp = { %{ $query_params || Bugzilla->input_params } };
     delete $qp->{classification};
     $qp = http_build_query($qp);
     $qp .= '&' if length $qp;

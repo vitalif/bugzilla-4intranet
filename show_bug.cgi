@@ -111,6 +111,7 @@ else
 
 $vars->{bugs} = \@bugs;
 $vars->{marks} = \%marks;
+$vars->{last_bug_list} = [ split /:/, Bugzilla->cookies->{BUGLIST} ];
 
 my @bugids = map { $_->bug_id } grep { ref $_ } @bugs;
 $vars->{bugids} = join(', ', @bugids);

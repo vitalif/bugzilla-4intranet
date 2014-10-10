@@ -85,8 +85,7 @@ sub response {
             push(@header_args, "-$name", $value);
         }
     }
-    my $cgi = $self->cgi;
-    $cgi->send_header(-status => $response->code, @header_args);
+    Bugzilla->cgi->send_header(-status => $response->code, @header_args);
     print $response->content;
 }
 
@@ -100,14 +99,14 @@ sub response {
 # clients.
 sub retrieve_json_from_get {
     my $self = shift;
-    my $cgi = $self->cgi;
+    my $ARGS = Bugzilla->input_params;
 
     my %input;
 
     # Both version and id must be set before any errors are thrown.
-    if ($cgi->param('version')) {
-        $self->version(scalar $cgi->param('version'));
-        $input{version} = $cgi->param('version');
+    if ($ARGS->{version}) {
+        $self->version($ARGS->{version});
+        $input{version} = $ARGS->{version};
     }
     else {
         $self->version('1.0');
@@ -118,8 +117,8 @@ sub retrieve_json_from_get {
     # expect all clients to specify some id parameter just to get a response,
     # so we don't require it.
     my $id;
-    if (defined $cgi->param('id')) {
-        $id = $cgi->param('id');
+    if (defined $ARGS->{id}) {
+        $id = $ARGS->{id};
     }
     # However, JSON::RPC does require that an id exist in most cases, in
     # order to throw proper errors. We use the installation's urlbase as
@@ -133,22 +132,22 @@ sub retrieve_json_from_get {
 
     # _bz_callback can throw an error, so we have to set it here, after we're
     # ready to throw errors.
-    $self->_bz_callback(scalar $cgi->param('callback'));
+    $self->_bz_callback($ARGS->{callback});
 
-    if (!$cgi->param('method')) {
+    if (!$ARGS->{method}) {
         ThrowUserError('json_rpc_get_method_required');
     }
-    $input{method} = $cgi->param('method');
+    $input{method} = $ARGS->{method};
 
     my $params;
-    if (defined $cgi->param('params')) {
+    if (defined $ARGS->{params}) {
         local $@;
-        $params = eval { 
-            $self->json->decode(scalar $cgi->param('params')) 
+        $params = eval {
+            $self->json->decode($ARGS->{params})
         };
         if ($@) {
             ThrowUserError('json_rpc_invalid_params',
-                           { params => scalar $cgi->param('params'),
+                           { params => $ARGS->{params},
                              err_msg  => $@ });
         }
     }

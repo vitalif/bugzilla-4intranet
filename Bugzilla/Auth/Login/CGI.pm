@@ -55,16 +55,15 @@ sub get_login_info {
 
 sub fail_nodata {
     my ($self) = @_;
-    my $cgi = Bugzilla->cgi;
     my $template = Bugzilla->template;
 
     if (Bugzilla->usage_mode != USAGE_MODE_BROWSER) {
         ThrowUserError('login_required');
     }
 
-    my $format = $cgi->param('format') eq 'simple' ? '-simple' : '';
+    my $format = Bugzilla->input_params->{format} eq 'simple' ? '-simple' : '';
     $template->process("account/auth/login$format.html.tmpl",
-                       { 'target' => $cgi->url(-relative=>1) })
+                       { 'target' => Bugzilla->cgi->url(-relative=>1) })
         || ThrowTemplateError($template->error());
     exit;
 }

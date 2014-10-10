@@ -175,7 +175,7 @@ sub include_languages {
         # Bugzilla:Util::i_am_cgi.
         if (exists $ENV{'SERVER_SOFTWARE'}) {
             my $cgi = Bugzilla->cgi;
-            if (defined (my $lang = $cgi->cookie('LANG'))) {
+            if (defined (my $lang = Bugzilla->cookies->{LANG})) {
                 unshift @wanted, $lang;
             }
         }
