@@ -46,16 +46,7 @@ sub process
 
     if (!$template)
     {
-        $template = $context->stash->get([ 'component', 0, 'name', 0 ]);
-        if ($template !~ /\.tmpl$/s)
-        {
-            my @callers = @{ $context->stash->get([ 'component', 0 ])->{callers} };
-            do
-            {
-                return '' if !@callers;
-                $template = pop @callers;
-            } while ($template !~ /\.tmpl$/s);
-        }
+        $template = $Bugzilla::Template::CURRENT_TEMPLATE;
     }
 
     # sanity check:

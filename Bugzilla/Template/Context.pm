@@ -29,6 +29,8 @@ use Scalar::Util qw(blessed);
 
 sub process {
     my $self = shift;
+    my ($template) = @_;
+    local $Bugzilla::Template::CURRENT_TEMPLATE = $template =~ /\.tmpl$/ ? $template : $Bugzilla::Template::CURRENT_TEMPLATE;
     # We don't want to run the template_before_process hook for
     # template hooks (but we do want it to run if a hook calls
     # PROCESS inside itself). The problem is that the {component}->{name} of

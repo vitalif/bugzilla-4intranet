@@ -286,8 +286,7 @@ sub ThrowCodeError
 sub ThrowTemplateError
 {
     my ($template_err) = @_;
-    my ($msg, $stack) = split /\n{2,}/, "$template_err";
-    _throw_error('code', 'template_error', { template_error_msg => $msg, stack_trace => $stack });
+    _throw_error('code', 'template_error', { template_error_msg => $template_err->info, stack_trace => $template_err->[3] });
 }
 
 1;

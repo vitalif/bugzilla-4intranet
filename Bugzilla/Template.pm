@@ -526,6 +526,10 @@ sub get_bug_link
 ###############################################################################
 # Templatization Code
 
+use Template::Directive;
+use Template::Stash;
+use Template::Exception;
+
 # The Template Toolkit throws an error if a loop iterates >1000 times.
 # We want to raise that limit.
 # NOTE: If you change this number, you MUST RE-RUN checksetup.pl!!!
@@ -570,6 +574,16 @@ $Template::Stash::SCALAR_OPS->{truncate} = sub
     my $strlen = $length - length($ellipsis);
     my $newstr = substr($string, 0, $strlen) . $ellipsis;
     return $newstr;
+};
+
+# Install Template Toolkit error handler with stack traces
+*Template::Exception::new = sub
+{
+    my ($class, $type, $info, $textref) = @_;
+    bless [
+        $type, $info, $textref,
+        $Bugzilla::Error::HAVE_DEVEL_STACKTRACE ? Devel::StackTrace->new->as_string : ''
+    ], $class;
 };
 
 # Create the template object that processes templates and specify

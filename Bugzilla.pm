@@ -176,25 +176,6 @@ sub encode_mime_header($$;$) {
 }
 
 #####################################################################
-# Another hack: install Template Toolkit error handler with stack traces
-#####################################################################
-
-sub _tt_exc_new
-{
-    my ($class, $type, $info, $textref) = @_;
-    bless [ $type, $info, $textref, Devel::StackTrace->new->as_string ], $class;
-}
-
-sub _tt_exc_as_string
-{
-    my $self = shift;
-    return $self->[0] . ' error - ' . $self->[1] . "\n" . $self->[3];
-}
-
-*Template::Exception::new = *Bugzilla::_tt_exc_new;
-*Template::Exception::as_string = *Bugzilla::_tt_exc_as_string;
-
-#####################################################################
 # Hack for Template Toolkit (or maybe Perl) bug 67431
 # https://rt.cpan.org/Public/Bug/Display.html?id=67431
 #####################################################################
