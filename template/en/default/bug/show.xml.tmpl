@@ -122,7 +122,7 @@
 </bugzilla>
 
 [% BLOCK bug_field %]
-  [% SET field_obj = bug_fields.${field} %]
+  [% SET field_obj = Bugzilla.get_field(field) %]
   [% IF field_obj.type == constants.FIELD_TYPE_SINGLE_SELECT %]
     [% fn = field _ "_obj" %]
     <[% field %]>[% bug.$fn.name | xml %]</[% field %]>

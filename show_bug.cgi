@@ -149,6 +149,13 @@ if ($ARGS->{includefield} || $ARGS->{field})
 
 $vars->{displayfields} = \%displayfields;
 
+# Used by bug/comments.html.tmpl
+$vars->{comment_indexes} = sub
+{
+    my ($comments) = @_;
+    return [ map { [ $_->{count}, $_->{comment_id}, $_->{type} != CMT_WORKTIME && $_->{type} != CMT_BACKDATED_WORKTIME ? 1 : 0 ] } @$comments ];
+};
+
 Bugzilla->cgi->send_header($format->{ctype});
 $template->process($format->{template}, $vars)
     || ThrowTemplateError($template->error());

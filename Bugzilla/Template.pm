@@ -1,5 +1,3 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -39,8 +37,7 @@ use Bugzilla::Bug;
 use Bugzilla::Constants;
 use Bugzilla::Hook;
 use Bugzilla::Install::Requirements;
-use Bugzilla::Install::Util qw(install_string template_include_path
-                               include_languages);
+use Bugzilla::Install::Util qw(install_string template_include_path include_languages);
 use Bugzilla::Keyword;
 use Bugzilla::Util;
 use Bugzilla::User;
@@ -70,15 +67,17 @@ my ($custom_proto, $custom_proto_regex, $custom_proto_cached);
 # (which is like its "variables" namespace, but for constants).  To do so, we
 # traverse the arrays of exported and exportable symbols and ignoring the rest
 # (which, if Constants.pm exports only constants, as it should, will be nothing else).
-sub _load_constants {
+sub _load_constants
+{
     my %constants;
-    foreach my $constant (@Bugzilla::Constants::EXPORT,
-                          @Bugzilla::Constants::EXPORT_OK)
+    foreach my $constant (@Bugzilla::Constants::EXPORT, @Bugzilla::Constants::EXPORT_OK)
     {
-        if (ref Bugzilla::Constants->$constant) {
+        if (ref Bugzilla::Constants->$constant)
+        {
             $constants{$constant} = Bugzilla::Constants->$constant;
         }
-        else {
+        else
+        {
             my @list = (Bugzilla::Constants->$constant);
             $constants{$constant} = (scalar(@list) == 1) ? $list[0] : \@list;
         }
@@ -90,16 +89,19 @@ sub _load_constants {
 # settings of the user and of the available languages
 # If no Accept-Language is present it uses the defined default
 # Templates may also be found in the extensions/ tree
-sub getTemplateIncludePath {
+sub getTemplateIncludePath
+{
     my $cache = Bugzilla->request_cache;
-    my $lang  = $cache->{'language'} || '';
+    my $lang  = $cache->{language} || '';
     $cache->{"template_include_path_$lang"} ||= template_include_path({
         use_languages => Bugzilla->languages,
-        only_language => $lang });
+        only_language => $lang,
+    });
     return $cache->{"template_include_path_$lang"};
 }
 
-sub get_format {
+sub get_format
+{
     my $self = shift;
     my ($template, $format, $ctype) = @_;
 
@@ -118,16 +120,17 @@ sub get_format {
     # Now check that the template actually exists. We only want to check
     # if the template exists; any other errors (eg parse errors) will
     # end up being detected later.
-    eval {
+    eval
+    {
         $self->context->template($template);
     };
     # This parsing may seem fragile, but it's OK:
     # http://lists.template-toolkit.org/pipermail/templates/2003-March/004370.html
     # Even if it is wrong, any sort of error is going to cause a failure
     # eventually, so the only issue would be an incorrect error message
-    if ($@ && $@->info =~ /: not found$/) {
-        ThrowUserError('format_not_found', {'format' => $format,
-                                            'ctype'  => $ctype});
+    if ($@ && $@->info =~ /: not found$/)
+    {
+        ThrowUserError('format_not_found', { format => $format, ctype => $ctype });
     }
 
     # Else, just return the info
@@ -207,8 +210,8 @@ sub makeTables
 # expressions.
 # This has been rewritten to be faster, mainly by substituting 'as we go'.
 # If you want to modify this routine, read the comments carefully
-
-sub quoteUrls {
+sub quoteUrls
+{
     my ($text, $bug, $comment) = (@_);
     return $text unless $text;
 
@@ -240,44 +243,50 @@ sub quoteUrls {
     my $tmp;
 
     my @hook_regexes;
-    Bugzilla::Hook::process('bug_format_comment',
-        { text => \$text, bug => $bug, regexes => \@hook_regexes,
-          comment => $comment });
+    Bugzilla::Hook::process('bug_format_comment', {
+        text => \$text,
+        bug => $bug,
+        regexes => \@hook_regexes,
+        comment => $comment,
+    });
 
-    foreach my $re (@hook_regexes) {
+    foreach my $re (@hook_regexes)
+    {
         my ($match, $replace) = @$re{qw(match replace)};
-        if (ref($replace) eq 'CODE') {
-            $text =~ s/$match/($things[$count++] = $replace->({matches => [
-                                                               $1, $2, $3, $4,
-                                                               $5, $6, $7, $8,
-                                                               $9, $10]}))
-                               && ("\0\0" . ($count-1) . "\0\0")/egx;
+        if (ref($replace) eq 'CODE')
+        {
+            $text =~ s/$match/($things[$count++] = $replace->({ matches => [
+                $1, $2, $3, $4,
+                $5, $6, $7, $8,
+                $9, $10
+            ]})) && ("\0\0" . ($count-1) . "\0\0")/egx;
         }
-        else {
-            $text =~ s/$match/($things[$count++] = $replace)
-                              && ("\0\0" . ($count-1) . "\0\0")/egx;
+        else
+        {
+            $text =~ s/$match/($things[$count++] = $replace) && ("\0\0" . ($count-1) . "\0\0")/egx;
         }
     }
 
     # Provide tooltips for full bug links (Bug 74355)
-    my $urlbase_re = '(' . join('|',
-        map { qr/$_/ } grep($_, Bugzilla->params->{'urlbase'},
-                            Bugzilla->params->{'sslbase'})) . ')';
+    my $urlbase_re = '(' . join('|', map { qr/$_/ }
+        grep($_, Bugzilla->params->{urlbase}, Bugzilla->params->{sslbase})
+    ) . ')';
     $text =~ s~\b(${urlbase_re}\Qshow_bug.cgi?id=\E([0-9]+)(\#c([0-9]+))?)\b
-              ~($things[$count++] = get_bug_link($3, $1, { comment_num => $5 })) &&
-               ("\0\0" . ($count-1) . "\0\0")
-              ~egox;
+        ~($things[$count++] = get_bug_link($3, $1, { comment_num => $5 })) && ("\0\0" . ($count-1) . "\0\0")
+        ~egox;
 
     # non-mailto protocols
     my $safe_protocols = join('|', SAFE_PROTOCOLS);
 
-    $text =~ s~\b((?:$safe_protocols): # The protocol:
-                  [^\s<>\"]+       # Any non-whitespace
-                  [\w\/])          # so that we end in \w or /
-              ~($tmp = html_quote($1)) &&
-               ($things[$count++] = "<a href=\"$tmp\">$tmp</a>") &&
-               ("\0\0" . ($count-1) . "\0\0")
-              ~gesox;
+    $text =~ s~
+            \b((?:$safe_protocols): # The protocol:
+            [^\s<>\"]+       # Any non-whitespace
+            [\w\/])          # so that we end in \w or /
+        ~
+            ($tmp = html_quote($1)) &&
+            ($things[$count++] = "<a href=\"$tmp\">$tmp</a>") &&
+            ("\0\0" . ($count-1) . "\0\0")
+        ~gesox;
 
     if (!$custom_proto || $custom_proto_cached < Bugzilla->params_modified)
     {
@@ -341,13 +350,12 @@ sub quoteUrls {
 
     # mailto:
     $text =~ s~\b((mailto:)?)([\w\.\-\+\=]+\@[\w\-]+(?:\.[\w\-]+)+)\b
-              ~<a href=\"mailto:$3\">$1$3</a>~igx;
+        ~<a href=\"mailto:$3\">$1$3</a>~igx;
 
     # attachment links
     $text =~ s~\b(attachment\s*\#?\s*(\d+)(?:\s+\[details\])?)
-              ~($things[$count++] = get_attachment_link($2, $1, $comment)) &&
-               ("\0\0" . ($count-1) . "\0\0")
-              ~egsxi;
+        ~($things[$count++] = get_attachment_link($2, $1, $comment)) && ("\0\0" . ($count-1) . "\0\0")
+        ~egsxi;
 
     # Current bug ID this comment belongs to
     $bug = $bug->id if ref $bug;
@@ -360,18 +368,16 @@ sub quoteUrls {
     my $bug_word = Bugzilla->messages->{terms}->{bug};
     my $bug_re = qr/\Q$bug_word\E\s*\#?\s*(\d+)/i;
     my $comment_re = qr/comment\s*\#?\s*(\d+)/i;
-    $text =~ s~\b($bug_re(?:\s*,?\s*$comment_re)?|$comment_re)
-              ~ # We have several choices. $1 here is the link, and $2-4 are set
-                # depending on which part matched
-               (defined($2) ? get_bug_link($2, $1, { comment_num => $3 }) :
-                              "<a href=\"$current_bugurl#c$4\">$1</a>")
-              ~egsox;
+    $text =~ s~\b($bug_re(?:\s*,?\s*$comment_re)?|$comment_re)~
+        # We have several choices. $1 here is the link, and $2-4 are set
+        # depending on which part matched
+        (defined($2) ? get_bug_link($2, $1, { comment_num => $3 }) : "<a href=\"$current_bugurl#c$4\">$1</a>")
+        ~egsox;
 
     # Old duplicate markers. These don't use $bug_word because they are old
     # and were never customizable.
     $text =~ s~(^\*\*\*\ This\ bug\ has\ been\ marked\ as\ a\ duplicate\ of\ )(\d+)(\ \*\*\*\Z)
-              ~$1.get_bug_link($2, $2).$3
-              ~egmx;
+        ~$1.get_bug_link($2, $2).$3~egmx;
 
     # Now remove the encoding hacks
     $text =~ s/\0\0(\d+)\0\0/$things[$1]/eg;
@@ -404,19 +410,22 @@ sub process_wiki_url
 }
 
 # Creates a link to an attachment, including its title.
-sub get_attachment_link {
+sub get_attachment_link
+{
     my ($attachid, $link_text, $comment) = @_;
     my $dbh = Bugzilla->dbh;
 
     my $attachment = new Bugzilla::Attachment($attachid);
-
-    if ($attachment) {
+    if ($attachment)
+    {
         my $title = "";
         my $className = "";
-        if (Bugzilla->user->can_see_bug($attachment->bug_id)) {
+        if (Bugzilla->user->can_see_bug($attachment->bug_id))
+        {
             $title = $attachment->description;
         }
-        if ($attachment->isobsolete) {
+        if ($attachment->isobsolete)
+        {
             $className = "bz_obsolete";
         }
         # Prevent code injection in the title.
@@ -428,7 +437,8 @@ sub get_attachment_link {
         # If the attachment is a patch, try to link to the diff rather
         # than the text, by default.
         my $patchlink = "";
-        if ($attachment->ispatch and Bugzilla->feature('patch_viewer')) {
+        if ($attachment->ispatch && Bugzilla->feature('patch_viewer'))
+        {
             $patchlink = '&amp;action=diff';
         }
 
@@ -452,13 +462,13 @@ sub get_attachment_link {
         }
 
         # Whitespace matters here because these links are in <pre> tags.
-        return qq|<span class="$className">|
-               . qq|<a href="${linkval}${patchlink}" name="attach_${attachid}" title="$title" target="_blank">$link_text</a>|
-               . qq| <a href="${linkval}&amp;action=edit" title="$title" target="_blank">[details]</a>|
-               . qq| $attachment_view|
-               . qq|</span>|;
+        return "<span class=\"$className\">".
+            "<a href=\"${linkval}${patchlink}\" name=\"attach_${attachid}\" title=\"$title\" target=\"_blank\">$link_text</a>".
+            " <a href=\"${linkval}&amp;action=edit\" title=\"$title\" target=\"_blank\">[details]</a>".
+            " $attachment_view</span>";
     }
-    else {
+    else
+    {
         return qq{$link_text};
     }
 }
@@ -534,56 +544,53 @@ $Template::Stash::PRIVATE = undef;
 # Add "contains***" methods to list variables that search for one or more
 # items in a list and return boolean values representing whether or not
 # one/all/any item(s) were found.
-$Template::Stash::LIST_OPS->{ contains } =
-  sub {
-      my ($list, $item) = @_;
-      return grep($_ eq $item, @$list);
-  };
+$Template::Stash::LIST_OPS->{contains} = sub
+{
+    my ($list, $item) = @_;
+    return grep($_ eq $item, @$list);
+};
 
-$Template::Stash::LIST_OPS->{ containsany } =
-  sub {
-      my ($list, $items) = @_;
-      foreach my $item (@$items) {
-          return 1 if grep($_ eq $item, @$list);
-      }
-      return 0;
-  };
+$Template::Stash::LIST_OPS->{containsany} = sub
+{
+    my ($list, $items) = @_;
+    foreach my $item (@$items) {
+        return 1 if grep($_ eq $item, @$list);
+    }
+    return 0;
+};
 
 # Clone the array reference to leave the original one unaltered.
-$Template::Stash::LIST_OPS->{ clone } =
-  sub {
-      my $list = shift;
-      return [@$list];
-  };
+$Template::Stash::LIST_OPS->{clone} = sub
+{
+    my $list = shift;
+    return [@$list];
+};
 
 # Allow us to still get the scalar if we use the list operation ".0" on it,
 # as we often do for defaults in query.cgi and other places.
-$Template::Stash::SCALAR_OPS->{ 0 } =
-  sub {
-      return $_[0];
-  };
+$Template::Stash::SCALAR_OPS->{0} = sub { $_[0] };
 
 # Add a "substr" method to the Template Toolkit's "scalar" object
 # that returns a substring of a string.
-$Template::Stash::SCALAR_OPS->{ substr } =
-  sub {
-      my ($scalar, $offset, $length) = @_;
-      return substr($scalar, $offset, $length);
-  };
+$Template::Stash::SCALAR_OPS->{substr} = sub
+{
+    my ($scalar, $offset, $length) = @_;
+    return substr($scalar, $offset, $length);
+};
 
 # Add a "truncate" method to the Template Toolkit's "scalar" object
 # that truncates a string to a certain length.
-$Template::Stash::SCALAR_OPS->{ truncate } =
-  sub {
-      my ($string, $length, $ellipsis) = @_;
-      $ellipsis ||= "";
+$Template::Stash::SCALAR_OPS->{truncate} = sub
+{
+    my ($string, $length, $ellipsis) = @_;
+    $ellipsis ||= "";
 
-      return $string if !$length || length($string) <= $length;
+    return $string if !$length || length($string) <= $length;
 
-      my $strlen = $length - length($ellipsis);
-      my $newstr = substr($string, 0, $strlen) . $ellipsis;
-      return $newstr;
-  };
+    my $strlen = $length - length($ellipsis);
+    my $newstr = substr($string, 0, $strlen) . $ellipsis;
+    return $newstr;
+};
 
 # Create the template object that processes templates and specify
 # configuration parameters that apply to all templates.
@@ -595,7 +602,8 @@ $Template::Stash::SCALAR_OPS->{ truncate } =
 # Note that all of the failure cases here can't use templateable errors,
 # since we won't have a template to use...
 
-sub create {
+sub create
+{
     my $class = shift;
     my %opts = @_;
 
@@ -604,7 +612,7 @@ sub create {
 
     my $config = {
         # Colon-separated list of directories containing templates.
-        INCLUDE_PATH => $opts{'include_path'} || getTemplateIncludePath(),
+        INCLUDE_PATH => $opts{include_path} || getTemplateIncludePath(),
 
         # Remove white-space before template directives (PRE_CHOMP) and at the
         # beginning and end of templates and template blocks (TRIM) for better
@@ -621,50 +629,22 @@ sub create {
         ABSOLUTE => 1,
         RELATIVE => $ENV{MOD_PERL} ? 0 : 1,
 
-        COMPILE_DIR => bz_locations()->{'datadir'} . "/template",
+        COMPILE_DIR => bz_locations()->{datadir} . "/template",
 
         # Initialize templates (f.e. by loading plugins like Hook).
         PRE_PROCESS => ["global/initialize.none.tmpl"],
 
-        ENCODING => Bugzilla->params->{'utf8'} ? 'UTF-8' : undef,
+        ENCODING => Bugzilla->params->{utf8} ? 'UTF-8' : undef,
 
         # Functions for processing text within templates in various ways.
         # IMPORTANT!  When adding a filter here that does not override a
         # built-in filter, please also add a stub filter to t/004template.t.
         FILTERS => {
 
-            # Render text in required style.
-
-            inactive => [
-                sub {
-                    my($context, $isinactive) = @_;
-                    return sub {
-                        return $isinactive ? '<span class="bz_inactive">'.$_[0].'</span>' : $_[0];
-                    }
-                }, 1
-            ],
-
-            closed => [
-                sub {
-                    my($context, $isclosed) = @_;
-                    return sub {
-                        return $isclosed ? '<span class="bz_closed">'.$_[0].'</span>' : $_[0];
-                    }
-                }, 1
-            ],
-
-            obsolete => [
-                sub {
-                    my($context, $isobsolete) = @_;
-                    return sub {
-                        return $isobsolete ? '<span class="bz_obsolete">'.$_[0].'</span>' : $_[0];
-                    }
-                }, 1
-            ],
-
             # Returns the text with backslashes, single/double quotes,
             # and newlines/carriage returns escaped for use in JS strings.
-            js => sub {
+            js => sub
+            {
                 my ($var) = @_;
                 $var =~ s/([\\\'\"\/])/\\$1/g;
                 $var =~ s/\n/\\n/g;
@@ -675,13 +655,15 @@ sub create {
             },
 
             # Converts data to base64
-            base64 => sub {
+            base64 => sub
+            {
                 my ($data) = @_;
                 return encode_base64($data);
             },
 
             # Converts data to quoted-printable
-            quoted_printable => sub {
+            quoted_printable => sub
+            {
                 my ($data) = @_;
                 return encode_qp(encode("UTF-8", $data));
             },
@@ -690,7 +672,8 @@ sub create {
             # so form elements which may have whitespace (ie comments) need
             # to be encoded using &#013;
             # See bugs 4928, 22983 and 32000 for more details
-            html_linebreak => sub {
+            html_linebreak => sub
+            {
                 my ($var) = @_;
                 $var =~ s/\r\n/\&#013;/g;
                 $var =~ s/\n\r/\&#013;/g;
@@ -700,7 +683,8 @@ sub create {
             },
 
             # Prevents line break on hyphens and whitespaces.
-            no_break => sub {
+            no_break => sub
+            {
                 my ($var) = @_;
                 $var =~ s/ /\&nbsp;/g;
                 $var =~ s/-/\&#8209;/g;
@@ -724,40 +708,51 @@ sub create {
             # Removes control characters and trims extra whitespace.
             clean_text => \&Bugzilla::Util::clean_text,
 
-            quoteUrls => [ sub {
-                               my ($context, $bug, $comment) = @_;
-                               return sub {
-                                   my $text = shift;
-                                   return quoteUrls($text, $bug, $comment);
-                               };
-                           },
-                           1
-                         ],
+            quoteUrls => [
+                sub
+                {
+                    my ($context, $bug, $comment) = @_;
+                    return sub
+                    {
+                        my $text = shift;
+                        return quoteUrls($text, $bug, $comment);
+                    };
+                }, 1
+            ],
 
-            bug_link => [ sub {
-                              my ($context, $bug, $options) = @_;
-                              return sub {
-                                  my $text = shift;
-                                  return get_bug_link($bug, $text, $options);
-                              };
-                          },
-                          1
-                        ],
+            bug_link => [
+                sub
+                {
+                    my ($context, $bug, $options) = @_;
+                    return sub
+                    {
+                        my $text = shift;
+                        return get_bug_link($bug, $text, $options);
+                    };
+                }, 1
+            ],
 
             # "Dynamic" [% PROCESS ... %]
             # FYI "process" and "block_exists" are filters because only filters have access to context
             process => [ sub { my ($context, $vars) = @_; return sub { $context->process($_[0], $vars) } }, 1 ],
 
             # Check if a named block of the current template exists
-            block_exists => [ sub { my ($context) = @_; return sub {
-                my ($blk) = @_;
-                return 1 if $context->{BLOCKS}->{$blk};
-                for (@{$context->{BLKSTACK}})
+            block_exists => [
+                sub
                 {
-                    return 1 if $_->{$blk};
-                }
-                return 0;
-            } }, 1 ],
+                    my ($context) = @_;
+                    return sub
+                    {
+                        my ($blk) = @_;
+                        return 1 if $context->{BLOCKS}->{$blk};
+                        for (@{$context->{BLKSTACK}})
+                        {
+                            return 1 if $_->{$blk};
+                        }
+                        return 0;
+                    }
+                }, 1
+            ],
 
             bug_list_link => sub
             {
@@ -771,13 +766,15 @@ sub create {
             {
                 my ($var) = @_;
                 $var =~ s/\"/\"\"/g;
-                if ($var !~ /^-?(\d+\.)?\d*$/) {
+                if ($var !~ /^-?(\d+\.)?\d*$/)
+                {
                     $var = "\"$var\"";
                 }
                 return $var;
-            } ,
+            },
 
             # Format a filesize in bytes to a human readable value
+            # FIXME: i18n
             unitconvert => sub
             {
                 my ($data) = @_;
@@ -787,14 +784,17 @@ sub create {
                     'MB' => 1024 * 1024,
                     'GB' => 1024 * 1024 * 1024,
                 );
-
-                if ($data < 1024) {
+                if ($data < 1024)
+                {
                     return "$data bytes";
                 }
-                else {
+                else
+                {
                     my $u;
-                    foreach $u ('GB', 'MB', 'KB') {
-                        if ($data >= $units{$u}) {
+                    foreach $u ('GB', 'MB', 'KB')
+                    {
+                        if ($data >= $units{$u})
+                        {
                             return sprintf("%.2f %s", $data/$units{$u}, $u);
                         }
                     }
@@ -817,15 +817,17 @@ sub create {
             },
 
             # Format a time for display (more info in Bugzilla::Util)
-            time => [ sub {
-                          my ($context, $format, $timezone) = @_;
-                          return sub {
-                              my $time = shift;
-                              return format_time($time, $format, $timezone);
-                          };
-                      },
-                      1
-                    ],
+            time => [
+                sub
+                {
+                    my ($context, $format, $timezone) = @_;
+                    return sub
+                    {
+                        my $time = shift;
+                        return format_time($time, $format, $timezone);
+                    };
+                }, 1
+            ],
 
             html => \&Bugzilla::Util::html_quote,
 
@@ -834,34 +836,36 @@ sub create {
             email => \&Bugzilla::Util::email_filter,
 
             # iCalendar contentline filter
-            ics => [ sub {
-                         my ($context, @args) = @_;
-                         return sub {
-                             my ($var) = shift;
-                             my ($par) = shift @args;
-                             my ($output) = "";
-
-                             $var =~ s/[\r\n]/ /g;
-                             $var =~ s/([;\\\",])/\\$1/g;
-
-                             if ($par) {
-                                 $output = sprintf("%s:%s", $par, $var);
-                             } else {
-                                 $output = $var;
-                             }
-
-                             $output =~ s/(.{75,75})/$1\n /g;
-
-                             return $output;
-                         };
-                     },
-                     1
-                     ],
+            ics => [
+                sub
+                {
+                     my ($context, @args) = @_;
+                     return sub
+                     {
+                         my ($var) = shift;
+                         my ($par) = shift @args;
+                         my ($output) = "";
+                         $var =~ s/[\r\n]/ /g;
+                         $var =~ s/([;\\\",])/\\$1/g;
+                         if ($par)
+                         {
+                             $output = sprintf("%s:%s", $par, $var);
+                         }
+                         else
+                         {
+                             $output = $var;
+                         }
+                         $output =~ s/(.{75,75})/$1\n /g;
+                         return $output;
+                     };
+                }, 1
+            ],
 
             # Note that using this filter is even more dangerous than
             # using "none," and you should only use it when you're SURE
             # the output won't be displayed directly to a web browser.
-            txt => sub {
+            txt => sub
+            {
                 my ($var) = @_;
                 # Trivial HTML tag remover
                 $var =~ s/<[^>]*>//g;
@@ -879,29 +883,31 @@ sub create {
 
             # Wrap a displayed comment to the appropriate length
             wrap_comment => [
-                sub {
+                sub
+                {
                     my ($context, $cols) = @_;
                     return sub { wrap_comment($_[0], $cols) }
-                }, 1],
+                }, 1
+            ],
 
-            absolute_uris =>
-                sub {
-                    my $b = Bugzilla->params->{urlbase};
-                    $b =~ s/\/*$/\//so;
-                    $_[0] =~ s/(<a[^<>]*href\s*=\s*[\"\']\s*)(?![a-z]+:\/\/|mailto:)([^\"\'<>]+[\"\'][^<>]*>)/$1$b$2/giso;
-                    $_[0];
-                },
+            absolute_uris => sub
+            {
+                my $b = Bugzilla->params->{urlbase};
+                $b =~ s/\/*$/\//so;
+                $_[0] =~ s/(<a[^<>]*href\s*=\s*[\"\']\s*)(?![a-z]+:\/\/|mailto:)([^\"\'<>]+[\"\'][^<>]*>)/$1$b$2/giso;
+                $_[0];
+            },
 
-            timestamp =>
-                sub {
-                    $_[0] =~ s/\D+//gso;
-                    $_[0];
-                },
+            timestamp => sub
+            {
+                $_[0] =~ s/\D+//gso;
+                $_[0];
+            },
 
             # We force filtering of every variable in key security-critical
             # places; we have a none filter for people to use when they
             # really, really don't want a variable to be changed.
-            none => sub { return $_[0]; } ,
+            none => sub { return $_[0]; },
         },
 
         PLUGIN_BASE => 'Bugzilla::Template::Plugin',
@@ -968,49 +974,52 @@ sub create {
             blessed => \&Scalar::Util::blessed,
 
             # Function for retrieving global parameters.
-            'Param' => sub { return Bugzilla->params->{$_[0]}; },
+            Param => sub { return Bugzilla->params->{$_[0]}; },
 
             # Function to create date strings
-            'time2str' => \&Date::Format::time2str,
+            time2str => \&Date::Format::time2str,
 
             # Generic linear search function
-            'lsearch' => \&Bugzilla::Util::lsearch,
+            lsearch => \&Bugzilla::Util::lsearch,
 
             # Currently logged in user, if any
             # If an sudo session is in progress, this is the user we're faking
-            'user' => sub { return Bugzilla->user; },
+            user => sub { return Bugzilla->user; },
 
             # Currenly active language
             # FIXME Eventually this should probably be replaced with something like Bugzilla->language.
-            'current_language' => sub {
+            current_language => sub
+            {
                 my ($language) = include_languages();
                 return $language;
             },
 
             # If an sudo session is in progress, this is the user who
             # started the session.
-            'sudoer' => sub { return Bugzilla->sudoer; },
+            sudoer => sub { return Bugzilla->sudoer; },
 
             # StopBugMail - stops mail about a bug, modifying `lastdiffed`
-            'StopBugMail' => sub {
+            StopBugMail => sub
+            {
                 my ($id) = @_;
                 Bugzilla->dbh->do('UPDATE bugs SET lastdiffed=NOW() WHERE bug_id=?', undef, $id);
                 return '';
             },
 
             # Allow templates to access the "corect" URLBase value
-            'urlbase' => sub { return Bugzilla::Util::correct_urlbase(); },
+            urlbase => sub { return Bugzilla::Util::correct_urlbase(); },
 
             # Allow templates to access docs url with users' preferred language
-            'docs_urlbase' => sub {
+            docs_urlbase => sub {
                 my ($language) = include_languages();
-                my $docs_urlbase = Bugzilla->params->{'docs_urlbase'};
+                my $docs_urlbase = Bugzilla->params->{docs_urlbase};
                 $docs_urlbase =~ s/\%lang\%/$language/;
                 return $docs_urlbase;
             },
 
             # Check whether the URL is safe.
-            'is_safe_url' => sub {
+            is_safe_url => sub
+            {
                 my $url = shift;
                 return 0 unless $url;
 
@@ -1023,46 +1032,28 @@ sub create {
             },
 
             # Allow templates to generate a token themselves.
-            'issue_hash_token' => \&Bugzilla::Token::issue_hash_token,
+            issue_hash_token => \&Bugzilla::Token::issue_hash_token,
 
-            # A way for all templates to get at Field data, cached.
-            # FIXME maybe find a better name? maybe uppercase?
-            'bug_fields' => sub {
-                my $cache = Bugzilla->request_cache;
-                $cache->{template_bug_fields} ||=
-                    { map { $_->name => $_ } Bugzilla->get_fields() };
-                return $cache->{template_bug_fields};
-            },
+            json => \&Bugzilla::Util::bz_encode_json,
 
-            # Used by bug/comments.html.tmpl
-            # FIXME find a better place for this function
-            'comment_indexes' => sub {
-                my ($comments) = @_;
-                return [ map { [ $_->{count}, $_->{comment_id}, $_->{type} != CMT_WORKTIME && $_->{type} != CMT_BACKDATED_WORKTIME ? 1 : 0 ] } @$comments ];
-            },
+            feature_enabled => sub { return Bugzilla->feature(@_); },
 
-            'json' => \&Bugzilla::Util::bz_encode_json,
-
-            # Whether or not keywords are enabled, in this Bugzilla.
-            # FIXME find a better place for this function
-            'use_keywords' => sub { return Bugzilla::Keyword->any_exist; },
-
-            'feature_enabled' => sub { return Bugzilla->feature(@_); },
-
-            'install_string' => \&Bugzilla::Install::Util::install_string,
+            install_string => \&Bugzilla::Install::Util::install_string,
 
             # These don't work as normal constants.
             DB_MODULE        => \&Bugzilla::Constants::DB_MODULE,
-            REQUIRED_MODULES =>
-                \&Bugzilla::Install::Requirements::REQUIRED_MODULES,
-            OPTIONAL_MODULES => sub {
+            REQUIRED_MODULES => \&Bugzilla::Install::Requirements::REQUIRED_MODULES,
+            OPTIONAL_MODULES => sub
+            {
                 my @optional = @{OPTIONAL_MODULES()};
-                foreach my $item (@optional) {
+                foreach my $item (@optional)
+                {
                     my @features;
                     my $feat = $item->{feature};
                     ref $feat or $feat = [ $feat ];
-                    foreach my $feat_id (@$feat) {
-                        push(@features, install_string("feature_$feat_id"));
+                    foreach my $feat_id (@$feat)
+                    {
+                        push @features, install_string("feature_$feat_id");
                     }
                     $item->{feature} = \@features;
                 }
@@ -1081,12 +1072,14 @@ sub create {
 
 # Used as part of the two subroutines below.
 our %_templates_to_precompile;
-sub precompile_templates {
+sub precompile_templates
+{
     my ($output) = @_;
 
     # Remove the compiled templates.
-    my $datadir = bz_locations()->{'datadir'};
-    if (-e "$datadir/template") {
+    my $datadir = bz_locations()->{datadir};
+    if (-e "$datadir/template")
+    {
         print install_string('template_removing_dir') . "\n" if $output;
 
         # This frequently fails if the webserver made the files, because
@@ -1095,31 +1088,32 @@ sub precompile_templates {
 
         # Check that the directory was really removed, and if not, move it
         # into data/deleteme/.
-        if (-e "$datadir/template") {
-            print STDERR "\n\n",
-                install_string('template_removal_failed',
-                               { datadir => $datadir }), "\n\n";
+        if (-e "$datadir/template")
+        {
+            print STDERR "\n\n", install_string('template_removal_failed', { datadir => $datadir }), "\n\n";
             mkpath("$datadir/deleteme");
             my $random = generate_random_password();
             rename("$datadir/template", "$datadir/deleteme/$random")
-              or die "move failed: $!";
+                or die "move failed: $!";
         }
     }
 
     print install_string('template_precompile') if $output;
 
-    my $paths = template_include_path({ use_languages => Bugzilla->languages,
-                                        only_language => Bugzilla->languages });
-
-    foreach my $dir (@$paths) {
+    my $paths = template_include_path({
+        use_languages => Bugzilla->languages,
+        only_language => Bugzilla->languages,
+    });
+    foreach my $dir (@$paths)
+    {
         my $template = Bugzilla::Template->create(include_path => [$dir]);
-
         %_templates_to_precompile = ();
         # Traverse the template hierarchy.
         find({ wanted => \&_precompile_push, no_chdir => 1 }, $dir);
         # The sort isn't totally necessary, but it makes debugging easier
         # by making the templates always be compiled in the same order.
-        foreach my $file (sort keys %_templates_to_precompile) {
+        foreach my $file (sort keys %_templates_to_precompile)
+        {
             $file =~ s{^\Q$dir\E/}{};
             # Compile the template but throw away the result. This has the side-
             # effect of writing the compiled version to disk.
@@ -1133,10 +1127,11 @@ sub precompile_templates {
     # directory. (Like data/template/var/www/html/bugzilla/.) To avoid
     # re-compiling templates under mod_perl, we symlink to the
     # already-compiled templates. This doesn't work on Windows.
-    if (!ON_WINDOWS) {
+    if (!ON_WINDOWS)
+    {
         # We do these separately in case they're in different locations.
-        _do_template_symlink(bz_locations()->{'templatedir'});
-        _do_template_symlink(bz_locations()->{'extensionsdir'});
+        _do_template_symlink(bz_locations()->{templatedir});
+        _do_template_symlink(bz_locations()->{extensionsdir});
     }
 
     # If anything created a Template object before now, clear it out.
@@ -1146,16 +1141,18 @@ sub precompile_templates {
 }
 
 # Helper for precompile_templates
-sub _precompile_push {
+sub _precompile_push
+{
     my $name = $File::Find::name;
-    return if (-d $name);
-    return if ($name =~ /\/CVS\//);
-    return if ($name !~ /\.tmpl$/);
+    return if -d $name;
+    return if $name =~ /\/(CVS|\.svn|\.git|\.hg|\.bzr)\//;
+    return if $name !~ /\.tmpl$/;
     $_templates_to_precompile{$name} = 1;
 }
 
 # Helper for precompile_templates
-sub _do_template_symlink {
+sub _do_template_symlink
+{
     my $dir_to_symlink = shift;
 
     my $abs_path = abs_path($dir_to_symlink);
@@ -1167,13 +1164,14 @@ sub _do_template_symlink {
 
     my $abs_root  = dirname($abs_path);
     my $dir_name  = basename($abs_path);
-    my $datadir   = bz_locations()->{'datadir'};
+    my $datadir   = bz_locations()->{datadir};
     my $container = "$datadir/template$abs_root";
     mkpath($container);
     my $target = "$datadir/template/$dir_name";
     # Check if the directory exists, because if there are no extensions,
     # there won't be an "data/template/extensions" directory to link to.
-    if (-d $target) {
+    if (-d $target)
+    {
         # We use abs2rel so that the symlink will look like
         # "../../../../template" which works, while just
         # "data/template/template/" doesn't work.
@@ -1181,7 +1179,7 @@ sub _do_template_symlink {
 
         my $link_name = "$container/$dir_name";
         symlink($relative_target, $link_name)
-          or warn "Could not make $link_name a symlink to $relative_target: $!";
+            or warn "Could not make $link_name a symlink to $relative_target: $!";
     }
 }
 

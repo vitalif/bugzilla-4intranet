@@ -183,7 +183,7 @@ var close_status_array = [
     </td>
   </tr>
 
-  [% IF user.in_group('editbugs', product.id) && use_keywords %]
+  [% IF user.in_group('editbugs', product.id) && Bugzilla.has_keywords %]
     <tr>
       <th><a href="describekeywords.cgi">Keywords</a>:</th>
       <td>

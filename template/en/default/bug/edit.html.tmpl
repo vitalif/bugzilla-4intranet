@@ -490,7 +490,7 @@ document.changeform = document.[% cfname %];
     </div>
   [% END %]
 
-  [% IF use_keywords %]
+  [% IF Bugzilla.has_keywords %]
     [% val = bug.get_string('keywords') %]
     [% chg = bug.check_can_change_field('keywords', 0, 1) %]
     [% IF val != '' OR chg %]
@@ -754,7 +754,7 @@ document.changeform = document.[% cfname %];
 [% BLOCK section_see_also %]
   [% IF Bugzilla.get_field('see_also').enabled || bug.see_also.size %]
     [% INCLUDE bug/field.html.tmpl
-      field    = bug_fields.see_also
+      field    = Bugzilla.get_field('see_also')
       value    = bug.see_also
       editable = bug.check_can_change_field('see_also', 0, 1)
     %]

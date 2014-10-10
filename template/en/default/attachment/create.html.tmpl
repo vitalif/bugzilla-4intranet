@@ -97,7 +97,7 @@
         <span id="resolution_settings">
         [% PROCESS bug/field.html.tmpl
             no_tds = 1
-            field  = bug_fields.resolution
+            field  = Bugzilla.get_field('resolution')
             value  = bug.resolution
             editable = bug.check_can_change_field('resolution', bug.resolution, 1)
         %]

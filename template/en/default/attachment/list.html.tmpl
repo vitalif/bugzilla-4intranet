@@ -86,7 +86,11 @@ function to_attachment_page(link)
             <a name="a[% count %]" href="attachment.cgi?id=[% attachment.id %]"
                title="View the content of the attachment">
           [% END %]
-          <b>[% attachment.id %]: [% attachment.description FILTER html FILTER obsolete(attachment.isobsolete) %]</b>
+          <b>[% attachment.id %]:
+            [% IF attachment.isobsolete %]<span style="bz_obsolete">[% END %]
+            [% attachment.description FILTER html %]
+            [% IF attachment.isobsolete %]</span>[% END %]
+          </b>
           [% "</a>" IF attachment.datasize %]
 
           <span class="bz_attach_extra_info">

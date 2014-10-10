@@ -45,7 +45,9 @@
     </tr>
     <tr>
       <td valign="top">
-        [% a.description FILTER html FILTER obsolete(a.isobsolete) %]
+        [% IF a.isobsolete %]<span style="bz_obsolete">[% END %]
+        [% a.description FILTER html %]
+        [% IF a.isobsolete %]</span>[% END %]
       </td>
 
       <td valign="top">

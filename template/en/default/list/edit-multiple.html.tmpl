@@ -57,14 +57,14 @@ document.write(' <input type="button" name="check_all" value="Check All" onclick
   <tr>
 
     [% INCLUDE bug/field.html.tmpl
-        field = bug_fields.product
+        field = Bugzilla.get_field('product')
         editable = 1
         allow_dont_change = 1
         dontchange = dontchange
     %]
 
     [% INCLUDE bug/field.html.tmpl
-        field = bug_fields.version
+        field = Bugzilla.get_field('version')
         editable = 1
         allow_dont_change = 1
         dontchange = dontchange
@@ -75,7 +75,7 @@ document.write(' <input type="button" name="check_all" value="Check All" onclick
   <tr>
 
     [% INCLUDE bug/field.html.tmpl
-        field = bug_fields.component
+        field = Bugzilla.get_field('component')
         editable = 1
         allow_dont_change = 1
         dontchange = dontchange
@@ -83,7 +83,7 @@ document.write(' <input type="button" name="check_all" value="Check All" onclick
     %]
 
     [% INCLUDE bug/field.html.tmpl
-        field = bug_fields.priority
+        field = Bugzilla.get_field('priority')
         editable = 1
         allow_dont_change = 1
         dontchange = dontchange
@@ -95,7 +95,7 @@ document.write(' <input type="button" name="check_all" value="Check All" onclick
 
     [% IF Bugzilla.get_field('rep_platform').enabled %]
       [% INCLUDE bug/field.html.tmpl
-        field = bug_fields.rep_platform
+        field = Bugzilla.get_field('rep_platform')
         editable = 1
         allow_dont_change = 1
         dontchange = dontchange
@@ -104,7 +104,7 @@ document.write(' <input type="button" name="check_all" value="Check All" onclick
     [% END %]
 
     [% INCLUDE bug/field.html.tmpl
-        field = bug_fields.bug_severity
+        field = Bugzilla.get_field('bug_severity')
         editable = 1
         allow_dont_change = 1
         dontchange = dontchange
@@ -116,7 +116,7 @@ document.write(' <input type="button" name="check_all" value="Check All" onclick
   <tr>
     [% IF Bugzilla.get_field('op_sys').enabled %]
       [% INCLUDE bug/field.html.tmpl
-        field = bug_fields.op_sys
+        field = Bugzilla.get_field('op_sys')
         editable = 1
         allow_dont_change = 1
         dontchange = dontchange
@@ -126,7 +126,7 @@ document.write(' <input type="button" name="check_all" value="Check All" onclick
 
     [% IF Bugzilla.get_field('target_milestone').enabled %]
       [% INCLUDE bug/field.html.tmpl
-        field = bug_fields.target_milestone
+        field = Bugzilla.get_field('target_milestone')
         editable = 1
         allow_dont_change = 1
         dontchange = dontchange
@@ -208,7 +208,7 @@ document.write(' <input type="button" name="check_all" value="Check All" onclick
 
   </tr>
 
-  [% IF use_keywords %]
+  [% IF Bugzilla.has_keywords %]
     <tr>
       <th>
         <label for="keywords">
@@ -338,8 +338,9 @@ document.write(' <input type="button" name="check_all" value="Check All" onclick
       [% END %]
 
       <td>
-        [% SET inactive = !group.is_active %]
-        [% group.description FILTER html_light FILTER inactive(inactive) %]
+        [% IF !group.is_active %]<span class="bz_inactive">[% END %]
+        [% group.description FILTER html_light %]
+        [% IF !group.is_active %]</span>[% END %]
       </td>
 
     </tr>
@@ -348,8 +349,10 @@ document.write(' <input type="button" name="check_all" value="Check All" onclick
   </table>
 
   [% IF foundinactive %]
-    <p style="font-size:smaller">(Note: [% terms.Bugs %] may not be added to [% FILTER inactive %]inactive
-    groups[% END %], only removed.)</p>
+    <p style="font-size:smaller">
+      (Note: [% terms.Bugs %] may not be added to
+      <span class="bz_inactive">inactive groups</span>, only removed.)
+    </p>
   [% END %]
 
 [% END %]

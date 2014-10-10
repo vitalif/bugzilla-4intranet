@@ -83,7 +83,7 @@
                   <br/><a href="#" id="link_[% op_loop %]_[% loop.count %]" onclick="showFullComment('[% op_loop %]_[% loop.count %]'); return false;">Show full text</a>
                 [% END %]
               [% ELSE %]
-                [%+ field_descs.${change.fieldname} || bug_fields.${change.fieldname}.description FILTER html %]
+                [%+ field_descs.${change.fieldname} || Bugzilla.get_field(change.fieldname).description FILTER html %]
               [% END %]
             </td>
             [% IF change.lines %]

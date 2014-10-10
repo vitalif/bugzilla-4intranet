@@ -26,7 +26,7 @@
       no_tds = 1
       no_search_link = 1
       use_divs = 0
-      field  = bug_fields.bug_status
+      field  = Bugzilla.get_field('bug_status')
       value  = bug.bug_status
       override_legal_values = bug.statuses_available
       editable = bug.statuses_available.size > 1
@@ -41,7 +41,7 @@
       no_tds = 1
       no_search_link = 1
       use_divs = 0
-      field  = bug_fields.resolution
+      field  = Bugzilla.get_field('resolution')
       value  = bug.resolution
       editable = bug.check_can_change_field('resolution', bug.resolution, 1)
   %]

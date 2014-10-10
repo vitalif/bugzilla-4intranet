@@ -41,7 +41,7 @@
     [%+ terms.Bugzilla %] will search the 
     [%+ field_descs.product FILTER html %],
     [%+ field_descs.component FILTER html %], 
-    [%+ IF use_keywords %][%+ field_descs.keywords FILTER html %],[% END %]
+    [%+ IF Bugzilla.has_keywords %][%+ field_descs.keywords FILTER html %],[% END %]
     [%+ IF Bugzilla.get_field('alias').enabled %][% field_descs.alias FILTER html %],[% END %]
     [%+ field_descs.short_desc FILTER html %], 
     [%+ IF Bugzilla.get_field('status_whiteboard').enabled %][% field_descs.status_whiteboard FILTER html %],[% END %]
@@ -237,7 +237,7 @@
         [%+ field_descs.component FILTER html %]</td>
       <td class="field_nickname"><strong>:</strong><em>value</em></td>
     </tr>
-    [% IF use_keywords %]
+    [% IF Bugzilla.has_keywords %]
       <tr>
         <td class="field_name">[% field_descs.keywords FILTER html %]</td>
         <td class="field_nickname"><strong>!</strong><em>value</em></td>

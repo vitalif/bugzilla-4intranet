@@ -149,7 +149,7 @@
     </tr>
   [% END %]
 
-  [% IF use_keywords %]
+  [% IF Bugzilla.has_keywords %]
     <tr>
       <th align="right">
         <label for="keywords" accesskey="k"><a href="describekeywords.cgi"><u>K</u>eywords</a></label>:
@@ -402,11 +402,12 @@
 [%############################################################################%]
 
 [% BLOCK select %]
+  [% field_obj = Bugzilla.get_field(sel.name) %]
   <select name="[% sel.name | html %]" id="[% sel.name | html %]" multiple="multiple" size="[% sel.size %]">
-    [% IF bug_fields.${sel.name}.type == constants.FIELD_TYPE_SINGLE_SELECT && bug_fields.${sel.name}.nullable %]
+    [% IF field_obj.type == constants.FIELD_TYPE_SINGLE_SELECT && field_obj.nullable %]
       <option value="---"[% " selected" IF lsearch(default.${sel.name}, '---') != -1 %]>---</option>
     [% END %]
-    [% FOREACH value = bug_fields.${sel.name}.legal_value_names_with_ids %]
+    [% FOREACH value = field_obj.legal_value_names_with_ids %]
       <option value="[% value.name | html %]" id="qf_[% sel.name | html %]_[% value.ids.join('_') %]"
         [% " selected" IF lsearch(default.${sel.name}, value.name) != -1 %]>
         [%- value.name | html -%]

@@ -1029,6 +1029,11 @@ sub active_custom_fields
     return $class->get_fields($criteria);
 }
 
+sub has_keywords
+{
+    return Bugzilla::Keyword->any_exist;
+}
+
 sub has_flags
 {
     my $class = shift;

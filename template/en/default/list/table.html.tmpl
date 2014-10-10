@@ -120,7 +120,7 @@
 
 [% BLOCK columnheader %]
   [% i = lsearch(order_columns, id) %]
-  [% type = bug_fields.$id.type %]
+  [% type = Bugzilla.get_field(id).type %]
   <th colspan="[% splitheader ? 2 : 1 %]" class="sortable_column_[% key %]
     [%- IF i>=0 || type == constants.FIELD_TYPE_NUMERIC || type == constants.FIELD_TYPE_BUG_ID %] sorttable_numeric[% END %]
     [%- IF i>=0 %] sorted_[% i %] sorttable_sorted[% "_reverse" IF order_dir.$i %][% END %]">
@@ -137,7 +137,7 @@
 [% BLOCK columnheaderfilter %]
   [% i = lsearch(order_columns, id) %]
   [% idd = id %]
-  [% type = bug_fields.$id.type %]
+  [% type = Bugzilla.get_field(id).type %]
   [% IF id == "bug_severity" || id == "priority" || id == "bug_status" || id == "resolution" %]
   <td>
     <input type="text" value="[% list_params.$id.join(",") %]" id="usr_filter_[% id %]"
@@ -205,17 +205,18 @@
     </td>
 
     [% FOREACH column = displaycolumns %]
-    <td class="bz_[% column FILTER css_class_quote %]_column bz_f[% bug_fields.$column.type %]
+    [% field_obj = Bugzilla.get_field(column) %]
+    <td class="bz_[% column FILTER css_class_quote %]_column bz_f[% field_obj.type %]
         [%- IF COLUMNS.$column.subid %] bz_[% COLUMNS.$column.subid | css_class_quote %]_column[% END %]"
         [%- IF abbrev.$column.maxlength %] title="[%- bug.$column | html %]"[% END %]>
       [% IF abbrev.$column.format_value %]
         [%- bug.$column FILTER format(abbrev.$column.format_value) FILTER html -%]
-      [% ELSIF bug_fields.$column.type == constants.FIELD_TYPE_BUG_ID %]
+      [% ELSIF field_obj.type == constants.FIELD_TYPE_BUG_ID %]
         [% bug.$column FILTER bug_link(bug.$column) IF bug.$column %]
-      [% ELSIF bug_fields.$column.type == constants.FIELD_TYPE_EXTURL %]
+      [% ELSIF field_obj.type == constants.FIELD_TYPE_EXTURL %]
         [% IF bug.$column %]
           [% SET url_quoted = bug.$column | url_quote_ns %]
-          <a href="[% bug_fields.$column.url.replace('\$1', url_quoted) %]">[% bug.$column | html %]</a>
+          <a href="[% field_obj.url.replace('\$1', url_quoted) %]">[% bug.$column | html %]</a>
         [% END %]
       [% ELSIF column == 'work_time' ||
                column == 'remaining_time' ||
