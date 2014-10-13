@@ -154,6 +154,7 @@ sub diff
     $new_file->unlink_on_destroy(1);
 
     s/(.)/$1\n/gso for $old, $new;
+    Encode::_utf8_off($_) for $old, $new;
     print $old_file $old;
     print $new_file $new;
 
