@@ -1,5 +1,3 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -38,7 +36,7 @@ use base qw(Exporter);
     i_am_cgi correct_urlbase remote_ip lsearch
     do_ssl_redirect_if_required use_attachbase
     diff_arrays list
-    trim wrap_hard wrap_comment find_wrap_point makeCitations
+    trim wrap_hard wrap_comment makeCitations
     format_time format_time_decimal validate_date validate_time datetime_from
     file_mod_time is_7bit_clean
     bz_crypt generate_random_password
@@ -97,13 +95,15 @@ sub trick_taint_copy
     return $1;
 }
 
-sub detaint_natural {
+sub detaint_natural
+{
     my $match = $_[0] =~ /^(\d+)$/;
     $_[0] = $match ? int($1) : undef;
     return (defined($_[0]));
 }
 
-sub detaint_signed {
+sub detaint_signed
+{
     my $match = $_[0] =~ /^([-+]?\d+)$/;
     # The "int()" call removes any leading plus sign.
     $_[0] = $match ? int($1) : undef;
@@ -129,11 +129,13 @@ sub html_strip
 # Bug 120030: Override html filter to obscure the '@' in user
 #             visible strings.
 # Bug 319331: Handle BiDi disruptions.
-sub html_quote {
+sub html_quote
+{
     my ($var) = Template::Filters::html_filter(@_);
     # Obscure '@'.
     $var =~ s/\@/\&#64;/g;
-    if (Bugzilla->params->{'utf8'}) {
+    if (Bugzilla->params->{utf8})
+    {
         # Remove the following characters because they're
         # influencing BiDi:
         # --------------------------------------------------------
@@ -180,7 +182,8 @@ sub _skip_attrs
     return "<$tag".join("", map { " $_=".$new->{$_} } keys %$new).$enclosed.">";
 }
 
-sub html_light_quote {
+sub html_light_quote
+{
     my ($text) = @_;
     # List of allowed HTML elements having no attributes.
     my @allow = qw(
@@ -192,11 +195,14 @@ sub html_light_quote {
     return $text;
 }
 
-sub email_filter {
+sub email_filter
+{
     my ($toencode) = @_;
-    if (!Bugzilla->user->id) {
+    if (!Bugzilla->user->id)
+    {
         my @emails = Email::Address->parse($toencode);
-        if (scalar @emails) {
+        if (scalar @emails)
+        {
             my @hosts = map { quotemeta($_->host) } @emails;
             my $hosts_re = join('|', @hosts);
             $toencode =~ s/\@(?:$hosts_re)//g;
@@ -207,10 +213,11 @@ sub email_filter {
 }
 
 # This originally came from CGI.pm, by Lincoln D. Stein
-sub url_quote {
+sub url_quote
+{
     my ($toencode) = (@_);
     utf8::encode($toencode) # The below regex works only on bytes
-        if Bugzilla->params->{'utf8'} && utf8::is_utf8($toencode);
+        if Bugzilla->params->{utf8} && utf8::is_utf8($toencode);
     $toencode =~ s/([^a-zA-Z0-9_\-.])/uc sprintf("%%%02x",ord($1))/eg;
     return $toencode;
 }
@@ -258,21 +265,23 @@ sub http_decode_query($)
     return $h;
 }
 
-sub css_class_quote {
+sub css_class_quote
+{
     my ($toencode) = (@_);
     $toencode =~ s#[ /]#_#g;
     $toencode =~ s/([^a-zA-Z0-9_\-.])/uc sprintf("&#x%x;",ord($1))/eg;
     return $toencode;
 }
 
-sub xml_quote {
+sub xml_quote
+{
     my ($var) = (@_);
     $var =~ s/\&/\&amp;/g;
     $var =~ s/</\&lt;/g;
     $var =~ s/>/\&gt;/g;
     $var =~ s/\"/\&quot;/g;
     $var =~ s/\'/\&apos;/g;
-    
+
     # the following nukes characters disallowed by the XML 1.0
     # spec, Production 2.2. 1.0 declares that only the following 
     # are valid:
@@ -289,28 +298,31 @@ sub xml_quote {
 # the DB or the user in UTF-8 situations. The only thing you  can rely upon
 # it for is that if you url_decode a string, it will url_encode back to the 
 # exact same thing.
-sub url_decode {
+sub url_decode
+{
     my ($todecode) = (@_);
     $todecode =~ tr/+/ /;       # pluses become spaces
     $todecode =~ s/%([0-9a-fA-F]{2})/pack("C",hex($1))/ge;
     return $todecode;
 }
 
-sub i_am_cgi {
+sub i_am_cgi
+{
     # I use SERVER_SOFTWARE because it's required to be
     # defined for all requests in the CGI spec.
-    return exists $ENV{'SERVER_SOFTWARE'} ? 1 : 0;
+    return exists $ENV{SERVER_SOFTWARE} ? 1 : 0;
 }
 
 # This exists as a separate function from Bugzilla::CGI::redirect_to_https
 # because we don't want to create a CGI object during XML-RPC calls
 # (doing so can mess up XML-RPC).
-sub do_ssl_redirect_if_required {
+sub do_ssl_redirect_if_required
+{
     return if !i_am_cgi();
-    return if !Bugzilla->params->{'ssl_redirect'};
+    return if !Bugzilla->params->{ssl_redirect};
 
-    my $sslbase = Bugzilla->params->{'sslbase'};
-    
+    my $sslbase = Bugzilla->params->{sslbase};
+
     # If we're already running under SSL, never redirect.
     return if uc($ENV{HTTPS} || '') eq 'ON';
     # Never redirect if there isn't an sslbase.
@@ -318,44 +330,53 @@ sub do_ssl_redirect_if_required {
     Bugzilla->cgi->redirect_to_https();
 }
 
-sub correct_urlbase {
-    my $ssl = Bugzilla->params->{'ssl_redirect'};
-    my $urlbase = Bugzilla->params->{'urlbase'};
-    my $sslbase = Bugzilla->params->{'sslbase'};
-
-    if (!$sslbase) {
+sub correct_urlbase
+{
+    my $ssl = Bugzilla->params->{ssl_redirect};
+    my $urlbase = Bugzilla->params->{urlbase};
+    my $sslbase = Bugzilla->params->{sslbase};
+    if (!$sslbase)
+    {
         return $urlbase;
     }
-    elsif ($ssl) {
+    elsif ($ssl)
+    {
         return $sslbase;
     }
-    else {
+    else
+    {
         # Return what the user currently uses.
         return (uc($ENV{HTTPS} || '') eq 'ON') ? $sslbase : $urlbase;
     }
 }
 
-sub remote_ip {
-    my $ip = $ENV{'REMOTE_ADDR'} || '127.0.0.1';
-    my @proxies = ('127.0.0.1', split /[\s,]+/, Bugzilla->params->{'inbound_proxies'});
-    if (grep { $_ eq $ip } @proxies) {
-        $ip = $ENV{'HTTP_X_FORWARDED_FOR'} if $ENV{'HTTP_X_FORWARDED_FOR'};
+sub remote_ip
+{
+    my $ip = $ENV{REMOTE_ADDR} || '127.0.0.1';
+    my @proxies = ('127.0.0.1', split /[\s,]+/, Bugzilla->params->{inbound_proxies});
+    if (grep { $_ eq $ip } @proxies)
+    {
+        $ip = $ENV{HTTP_X_FORWARDED_FOR} if $ENV{HTTP_X_FORWARDED_FOR};
     }
     return $ip;
 }
 
-sub use_attachbase {
-    my $attachbase = Bugzilla->params->{'attachment_base'};
-    return ($attachbase ne ''
-            && $attachbase ne Bugzilla->params->{'urlbase'}
-            && $attachbase ne Bugzilla->params->{'sslbase'}) ? 1 : 0;
+sub use_attachbase
+{
+    my $attachbase = Bugzilla->params->{attachment_base};
+    return ($attachbase ne '' &&
+        $attachbase ne Bugzilla->params->{urlbase} &&
+        $attachbase ne Bugzilla->params->{sslbase}) ? 1 : 0;
 }
 
-sub lsearch {
+sub lsearch
+{
     my ($list,$item) = (@_);
     my $count = 0;
-    foreach my $i (@$list) {
-        if ($i eq $item) {
+    foreach my $i (@$list)
+    {
+        if ($i eq $item)
+        {
             return $count;
         }
         $count++;
@@ -363,7 +384,8 @@ sub lsearch {
     return -1;
 }
 
-sub diff_arrays {
+sub diff_arrays
+{
     my ($old_ref, $new_ref) = @_;
 
     my @old = @$old_ref;
@@ -372,10 +394,13 @@ sub diff_arrays {
     # For each pair of (old, new) entries:
     # If they're equal, set them to empty. When done, @old contains entries
     # that were removed; @new contains ones that got added.
-    foreach my $oldv (@old) {
-        foreach my $newv (@new) {
-            next if ($newv eq '');
-            if ($oldv eq $newv) {
+    foreach my $oldv (@old)
+    {
+        foreach my $newv (@new)
+        {
+            next if $newv eq '';
+            if ($oldv eq $newv)
+            {
                 $newv = $oldv = '';
             }
         }
@@ -386,9 +411,11 @@ sub diff_arrays {
     return (\@removed, \@added);
 }
 
-sub trim {
+sub trim
+{
     my ($str) = @_;
-    if ($str) {
+    if ($str)
+    {
         $str =~ s/^\s+//g;
         $str =~ s/\s+$//g;
     }
@@ -462,62 +489,49 @@ sub wrap_comment # makeParagraphs
     return $text;
 }
 
-sub find_wrap_point {
-    my ($string, $maxpos) = @_;
-    if (!$string) { return 0 }
-    if (length($string) < $maxpos) { return length($string) }
-    my $wrappoint = rindex($string, ",", $maxpos); # look for comma
-    if ($wrappoint < 0) {  # can't find comma
-        $wrappoint = rindex($string, " ", $maxpos); # look for space
-        if ($wrappoint < 0) {  # can't find space
-            $wrappoint = rindex($string, "-", $maxpos); # look for hyphen
-            if ($wrappoint < 0) {  # can't find hyphen
-                $wrappoint = $maxpos;  # just truncate it
-            } else {
-                $wrappoint++; # leave hyphen on the left side
-            }
-        }
-    }
-    return $wrappoint;
-}
-
-sub wrap_hard {
+sub wrap_hard
+{
     my ($string, $columns) = @_;
     local $Text::Wrap::columns = $columns;
     local $Text::Wrap::unexpand = 0;
     local $Text::Wrap::huge = 'wrap';
-    
+
     my $wrapped = wrap('', '', $string);
     chomp($wrapped);
     return $wrapped;
 }
 
-sub format_time {
+sub format_time
+{
     my ($date, $format, $timezone) = @_;
-
     # If $format is not set, try to guess the correct date format.
-    if (!$format) {
-        if (!ref $date
-            && $date =~ /^(\d{4})[-\.](\d{2})[-\.](\d{2}) (\d{2}):(\d{2})(:(\d{2}))?$/) 
+    if (!$format)
+    {
+        if (!ref $date && $date =~ /^(\d{4})[-\.](\d{2})[-\.](\d{2}) (\d{2}):(\d{2})(:(\d{2}))?$/)
         {
             my $sec = $7;
-            if (defined $sec) {
+            if (defined $sec)
+            {
                 $format = "%Y-%m-%d %T %Z";
-            } else {
+            }
+            else
+            {
                 $format = "%Y-%m-%d %R %Z";
             }
-        } else {
+        }
+        else
+        {
             # Default date format. See DateTime for other formats available.
             $format = "%Y-%m-%d %R %Z";
         }
     }
-
     my $dt = ref $date ? $date : datetime_from($date, $timezone);
     $date = defined $dt ? $dt->strftime($format) : '';
     return trim($date);
 }
 
-sub datetime_from {
+sub datetime_from
+{
     my ($date, $timezone) = @_;
 
     # In the database, this is the "0" date.
@@ -527,7 +541,8 @@ sub datetime_from {
     # date format.
     my @time = strptime($date);
 
-    unless (scalar @time) {
+    unless (scalar @time)
+    {
         # If an unknown timezone is passed (such as MSK, for Moskow),
         # strptime() is unable to parse the date. We try again, but we first
         # remove the timezone.
@@ -550,8 +565,7 @@ sub datetime_from {
         second => int($time[0] || 0),
         # If a timezone was specified, use it. Otherwise, use the
         # local timezone.
-        time_zone => Bugzilla->local_timezone->offset_as_string($time[6]) 
-                     || Bugzilla->local_timezone,
+        time_zone => Bugzilla->local_timezone->offset_as_string($time[6]) || Bugzilla->local_timezone,
     });
 
     # Now display the date using the given timezone,
@@ -560,31 +574,30 @@ sub datetime_from {
     return $dt;
 }
 
-sub format_time_decimal {
+sub format_time_decimal
+{
     my ($time) = (@_);
-
     my $newtime = sprintf("%.2f", $time);
-
-    if ($newtime =~ /0\Z/) {
+    if ($newtime =~ /0\Z/)
+    {
         $newtime = sprintf("%.1f", $time);
     }
-
     return $newtime;
 }
 
-sub file_mod_time {
+sub file_mod_time
+{
     my ($filename) = (@_);
-    my ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,
-        $atime,$mtime,$ctime,$blksize,$blocks)
-        = stat($filename);
-    return $mtime;
+    return [ stat $filename ]->[9];
 }
 
-sub bz_crypt {
+sub bz_crypt
+{
     my ($password, $salt) = @_;
 
     my $algorithm;
-    if (!defined $salt) {
+    if (!defined $salt)
+    {
         # If you don't use a salt, then people can create tables of
         # hashes that map to particular passwords, and then break your
         # hashing very easily if they have a large-enough table of common
@@ -596,31 +609,36 @@ sub bz_crypt {
     }
 
     # We append the algorithm used to the string. This is good because then
-    # we can change the algorithm being used, in the future, without 
+    # we can change the algorithm being used, in the future, without
     # disrupting the validation of existing passwords. Also, this tells
     # us if a password is using the old "crypt" method of hashing passwords,
     # because the algorithm will be missing from the string.
-    if ($salt =~ /{([^}]+)}$/) {
+    if ($salt =~ /{([^}]+)}$/)
+    {
         $algorithm = $1;
     }
 
     my $crypted_password;
-    if (!$algorithm) {
+    if (!$algorithm)
+    {
         # Wide characters cause crypt to die
-        if (Bugzilla->params->{'utf8'}) {
+        if (Bugzilla->params->{utf8})
+        {
             utf8::encode($password) if utf8::is_utf8($password);
         }
-    
+
         # Crypt the password.
         $crypted_password = crypt($password, $salt);
 
         # HACK: Perl has bug where returned crypted password is considered
         # tainted. See http://rt.perl.org/rt3/Public/Bug/Display.html?id=59998
-        unless(tainted($password) || tainted($salt)) {
+        unless (tainted($password) || tainted($salt))
+        {
             trick_taint($crypted_password);
-        } 
+        }
     }
-    else {
+    else
+    {
         my $hasher = Digest->new($algorithm);
         # We only want to use the first characters of the salt, no
         # matter how long of a salt we may have been passed.
@@ -639,18 +657,22 @@ sub bz_crypt {
 # So 8 characters is (2^6)^8 == 2^48 combinations. Just multiply 6
 # by the number of characters you generate, and that gets you the equivalent
 # strength of the string in bits.
-sub generate_random_password {
+sub generate_random_password
+{
     my $size = shift || 10; # default to 10 chars if nothing specified
     my $rand;
-    if (Bugzilla->feature('rand_security')) {
+    if (Bugzilla->feature('rand_security'))
+    {
         $rand = \&Math::Random::Secure::irand;
     }
-    else {
+    else
+    {
         # For details on why this block works the way it does, see bug 619594.
         # (Note that we don't do this if Math::Random::Secure is installed,
         # because we don't need to.)
         my $counter = 0;
-        $rand = sub {
+        $rand = sub
+        {
             # If we regenerate the seed every 5 characters, our seed is roughly
             # as strong (in terms of bit size) as our randomly-generated
             # string itself.
@@ -659,14 +681,16 @@ sub generate_random_password {
             return int(rand $_[0]);
         };
     }
-    return join("", map{ ('0'..'9','a'..'z','A'..'Z')[$rand->(62)] } 
-                       (1..$size));
+    my @chars = ('0'..'9', 'a'..'z', 'A'..'Z');
+    return join("", map { $chars[$rand->(62)] } (1..$size));
 }
 
-sub _do_srand {
+sub _do_srand
+{
     # On Windows, calling srand over and over in the same process produces
     # very bad results. We need a stronger seed.
-    if (ON_WINDOWS) {
+    if (ON_WINDOWS)
+    {
         require Win32;
         # GuidGen generates random data via Windows's CryptGenRandom
         # interface, which is documented as being cryptographically secure.
@@ -679,48 +703,51 @@ sub _do_srand {
         srand($seed);
         return;
     }
-
     # On *nix-like platforms, this uses /dev/urandom, so the seed changes
     # enough on every invocation.
     srand();
 }
 
-sub validate_email_syntax {
+sub validate_email_syntax
+{
     my ($addr) = @_;
-    my $match = Bugzilla->params->{'emailregexp'};
+    my $match = Bugzilla->params->{emailregexp};
     my $ret = ($addr =~ /$match/ && $addr !~ /[\\\(\)<>&,;:\"\[\] \t\r\n]/);
-    if ($ret) {
+    if ($ret)
+    {
         # We assume these checks to suffice to consider the address untainted.
         trick_taint($_[0]);
     }
     return $ret ? 1 : 0;
 }
 
-sub validate_date {
+sub validate_date
+{
     my ($date) = @_;
     my $date2;
-
     # $ts is undefined if the parser fails.
     my $ts = str2time($date);
-    if ($ts) {
+    if ($ts)
+    {
         $date2 = time2str("%Y-%m-%d", $ts);
-
-        $date =~ s/(\d+)-0*(\d+?)-0*(\d+?)/$1-$2-$3/; 
+        $date =~ s/(\d+)-0*(\d+?)-0*(\d+?)/$1-$2-$3/;
         $date2 =~ s/(\d+)-0*(\d+?)-0*(\d+?)/$1-$2-$3/;
     }
     my $ret = ($ts && $date eq $date2);
     return $ret ? 1 : 0;
 }
 
-sub validate_time {
+sub validate_time
+{
     my ($time) = @_;
     my $time2;
-
     # $ts is undefined if the parser fails.
     my $ts = str2time($time);
-    if ($ts) {
+    if ($ts)
+    {
         $time2 = time2str("%H:%M:%S", $ts);
-        if ($time =~ /^(\d{1,2}):(\d\d)(?::(\d\d))?$/) {
+        if ($time =~ /^(\d{1,2}):(\d\d)(?::(\d\d))?$/)
+        {
             $time = sprintf("%02d:%02d:%02d", $1, $2, $3 || 0);
         }
     }
@@ -728,13 +755,15 @@ sub validate_time {
     return $ret ? 1 : 0;
 }
 
-sub is_7bit_clean {
+sub is_7bit_clean
+{
     return $_[0] !~ /[^\x20-\x7E\x0A\x0D]/;
 }
 
-sub clean_text {
+sub clean_text
+{
     my ($dtext) = shift;
-    $dtext =~  s/[\x00-\x1F\x7F]+/ /g;   # change control characters into a space
+    $dtext =~ s/[\x00-\x1F\x7F]+/ /g; # change control characters into a space
     return trim($dtext);
 }
 
@@ -761,8 +790,10 @@ sub get_text
     return $message;
 }
 
-sub disable_utf8 {
-    if (Bugzilla->params->{'utf8'}) {
+sub disable_utf8
+{
+    if (Bugzilla->params->{utf8})
+    {
         binmode STDOUT, ':bytes'; # Turn off UTF8 encoding.
     }
 }
@@ -1176,14 +1207,14 @@ If the item is not in the list, returns -1.
 
 =item C<diff_arrays(\@old, \@new)>
 
- Description: Takes two arrayrefs, and will tell you what it takes to 
+ Description: Takes two arrayrefs, and will tell you what it takes to
               get from @old to @new.
  Params:      @old = array that you are changing from
               @new = array that you are changing to
- Returns:     A list of two arrayrefs. The first is a reference to an 
+ Returns:     A list of two arrayrefs. The first is a reference to an
               array containing items that were removed from @old. The
               second is a reference to an array containing items
-              that were added to @old. If both returned arrays are 
+              that were added to @old. If both returned arrays are
               empty, @old and @new contain the same values.
 
 =back
@@ -1211,12 +1242,6 @@ with ">" are assumed to be quotes, and they will not be wrapped.
 The intended use of this function is to wrap comments that are about to be
 displayed or emailed. Generally, wrapped text should not be stored in the
 database.
-
-=item C<find_wrap_point($string, $maxpos)>
-
-Search for a comma, a whitespace or a hyphen to split $string, within the first
-$maxpos characters. If none of them is found, just split $string at $maxpos.
-The search starts at $maxpos and goes back to the beginning of the string.
 
 =item C<is_7bit_clean($str)>
 
@@ -1277,7 +1302,7 @@ This routine is mainly called from templates to filter dates, see
 
 =item C<format_time_decimal($time)>
 
-Returns a number with 2 digit precision, unless the last digit is a 0. Then it 
+Returns a number with 2 digit precision, unless the last digit is a 0. Then it
 returns only 1 digit precision.
 
 =item C<datetime_from($time, $timezone)>
