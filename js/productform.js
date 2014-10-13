@@ -50,7 +50,8 @@
  * @global last_sel   Array that contains last list of products so we know what
  *                    has changed, and optimize for additions.
  */
-function selectProduct(product, component, version, milestone, anyval) {
+function selectProduct(product, component, version, milestone, anyval)
+{
     // This is to avoid handling events that occur before the form
     // itself is ready, which could happen in buggy browsers.
     if (!product)
@@ -63,7 +64,8 @@ function selectProduct(product, component, version, milestone, anyval) {
 
     // If this is the first load and nothing is selected, no need to
     // merge and sort all lists; they are created sorted.
-    if ((first_load) && (product.selectedIndex == -1)) {
+    if (first_load && product.selectedIndex == -1)
+    {
         first_load = false;
         return;
     }
@@ -87,27 +89,27 @@ function selectProduct(product, component, version, milestone, anyval) {
     // If nothing is selected, or the special "Any" option is selected
     // which represents all products, then pick all products so we show
     // all components.
-    var findall = (product.selectedIndex == -1
-                   || (anyval != null && product.options[0].selected));
+    var findall = (product.selectedIndex == -1 || (anyval != null && product.options[0].selected));
 
-    if (useclassification) {
+    if (useclassification)
+    {
         // Update index based on the complete product array.
         sel = get_selection(product, findall, true, anyval);
-        for (var i=0; i<sel.length; i++)
+        for (var i = 0; i < sel.length; i++)
            sel[i] = prods[sel[i]];
     }
-    else {
+    else
         sel = get_selection(product, findall, false, anyval);
-    }
-    if (!findall) {
+    if (!findall)
+    {
         // Save sel for the next invocation of selectProduct().
         var tmp = sel;
-
         // This is an optimization: if we have just added products to an
         // existing selection, no need to clear the form controls and add
         // everybody again; just merge the new ones with the existing
         // options.
-        if ((last_sel.length > 0) && (last_sel.length < sel.length)) {
+        if (last_sel.length > 0 && last_sel.length < sel.length)
+        {
             sel = fake_diff_array(sel, last_sel);
             merging = true;
         }
@@ -115,19 +117,22 @@ function selectProduct(product, component, version, milestone, anyval) {
     }
 
     // Do the actual fill/update.
-    if (component) {
+    if (component)
+    {
         var saved_cpts = get_selection(component, false, true, null);
         updateSelect(cpts, sel, component, merging, anyval);
         restoreSelection(component, saved_cpts);
     }
 
-    if (version) {
+    if (version)
+    {
         var saved_vers = get_selection(version, false, true, null);
         updateSelect(vers, sel, version, merging, anyval);
         restoreSelection(version, saved_vers);
     }
 
-    if (milestone) {
+    if (milestone)
+    {
         var saved_tms = get_selection(milestone, false, true, null);
         updateSelect(tms, sel, milestone, merging, anyval);
         restoreSelection(milestone, saved_tms);
@@ -160,16 +165,19 @@ function selectProduct(product, component, version, milestone, anyval) {
  *
  * This would clear compsel and add 'ComponentC' and 'ComponentD' to it.
  */
-function updateSelect(array, sel, target, merging, anyval) {
+function updateSelect(array, sel, target, merging, anyval)
+{
     var i, item;
 
     // If we have no versions/components/milestones.
-    if (array.length < 1) {
+    if (array.length < 1)
+    {
         target.options.length = 0;
         return false;
     }
 
-    if (merging) {
+    if (merging)
+    {
         // Array merging/sorting in the case of multiple selections
         // merge in the current options with the first selection.
         item = merge_arrays(array[sel[0]], target.options, 1);
@@ -178,7 +186,8 @@ function updateSelect(array, sel, target, merging, anyval) {
         for (i = 1 ; i < sel.length ; i++)
             item = merge_arrays(array[sel[i]], item, 0);
     }
-    else if (sel.length > 1) {
+    else if (sel.length > 1)
+    {
         // Here we micro-optimize for two arrays to avoid merging with a
         // null array.
         item = merge_arrays(array[sel[0]],array[sel[1]], 0);
@@ -187,7 +196,8 @@ function updateSelect(array, sel, target, merging, anyval) {
         for (i = 2; i < sel.length; i++)
             item = merge_arrays(item, array[sel[i]], 0);
     }
-    else {
+    else
+    {
         // Single item in selection, just get me the list.
         item = array[sel[0]];
     }
@@ -212,7 +222,8 @@ function updateSelect(array, sel, target, merging, anyval) {
  * @param control  Select element of which selected options are to be restored.
  * @param selnames Array of option names to select.
  */
-function restoreSelection(control, selnames) {
+function restoreSelection(control, selnames)
+{
     // Right. This sucks but I see no way to avoid going through the
     // list and comparing to the contents of the control.
     for (var j = 0; j < selnames.length; j++)
@@ -229,19 +240,19 @@ function restoreSelection(control, selnames) {
  * @param  b Second array to compare.
  * @return   Array of elements in a but not in b.
  */
-function fake_diff_array(a, b) {
+function fake_diff_array(a, b)
+{
     var newsel = new Array();
     var found = false;
 
     // Do a boring array diff to see who's new.
-    for (var ia in a) {
+    for (var ia in a)
+    {
         for (var ib in b)
             if (a[ia] == b[ib])
                 found = true;
-
         if (!found)
             newsel[newsel.length] = a[ia];
-
         found = false;
     }
 
@@ -259,7 +270,8 @@ function fake_diff_array(a, b) {
  *                     an array.
  * @return             Merged and sorted array.
  */
-function merge_arrays(a, b, b_is_select) {
+function merge_arrays(a, b, b_is_select)
+{
     var pos_a = 0;
     var pos_b = 0;
     var ret = new Array();
@@ -268,25 +280,29 @@ function merge_arrays(a, b, b_is_select) {
     // Iterate through both arrays and add the larger item to the return
     // list. Remove dupes, too. Use toLowerCase to provide
     // case-insensitivity.
-    while ((pos_a < a.length) && (pos_b < b.length)) {
+    while (pos_a < a.length && pos_b < b.length)
+    {
         aitem = a[pos_a];
         if (b_is_select)
             bitem = b[pos_b].value;
         else
             bitem = b[pos_b];
-
         // Smaller item in list a.
-        if (aitem.toLowerCase() < bitem.toLowerCase()) {
+        if (aitem.toLowerCase() < bitem.toLowerCase())
+        {
             ret[ret.length] = aitem;
             pos_a++;
         }
-        else {
+        else
+        {
             // Smaller item in list b.
-            if (aitem.toLowerCase() > bitem.toLowerCase()) {
+            if (aitem.toLowerCase() > bitem.toLowerCase())
+            {
                 ret[ret.length] = bitem;
                 pos_b++;
             }
-            else {
+            else
+            {
                 // List contents are equal, include both counters.
                 ret[ret.length] = aitem;
                 pos_a++;
@@ -297,11 +313,13 @@ function merge_arrays(a, b, b_is_select) {
 
     // Catch leftovers here. These sections are ugly code-copying.
     if (pos_a < a.length)
-        for (; pos_a < a.length ; pos_a++)
+        for (; pos_a < a.length; pos_a++)
             ret[ret.length] = a[pos_a];
 
-    if (pos_b < b.length) {
-        for (; pos_b < b.length; pos_b++) {
+    if (pos_b < b.length)
+    {
+        for (; pos_b < b.length; pos_b++)
+        {
             if (b_is_select)
                 bitem = b[pos_b].value;
             else
@@ -325,15 +343,13 @@ function merge_arrays(a, b, b_is_select) {
  *                     be null if not used.
  * @return             Array of all or selected indexes or values.
  */
-function get_selection(control, findall, want_values, anyval) {
+function get_selection(control, findall, want_values, anyval)
+{
     var ret = new Array();
-
-    if ((!findall) && (control.selectedIndex == -1))
+    if (!findall && control.selectedIndex == -1)
         return ret;
-
     for (var i = (anyval != null ? 1 : 0); i < control.length; i++)
         if (findall || control.options[i].selected)
             ret[ret.length] = want_values ? control.options[i].value : i;
-
     return ret;
 }

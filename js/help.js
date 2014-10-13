@@ -41,8 +41,7 @@ function generateHelp()
     // Create help controls (a div to hold help text and an iframe
     // to mask any and all controls under the popup)
     document.write('<div id="helpDiv" style="display: none;"><\/div>');
-    document.write('<iframe id="helpIframe" src="about:blank"');
-    document.write('        frameborder="0" scrolling="no"><\/iframe>');
+    document.write('<iframe id="helpIframe" src="about:blank" frameborder="0" scrolling="no"><\/iframe>');
 
     return true;
 }
@@ -61,13 +60,10 @@ function enableHelp()
 
     // MS decided to add fieldsets to the elements array; and
     // Mozilla decided to copy this brokenness. Grr.
-    for (var i = 0; i < document.forms.length; i++) {
-        for (var j = 0; j < document.forms[i].elements.length; j++) {
-            if (document.forms[i].elements[j].tagName != 'FIELDSET') {
+    for (var i = 0; i < document.forms.length; i++)
+        for (var j = 0; j < document.forms[i].elements.length; j++)
+            if (document.forms[i].elements[j].tagName != 'FIELDSET')
                 document.forms[i].elements[j].onmouseover = showHelp;
-            }
-        }
-    }
 
     document.body.onclick = hideHelp;
     return true;
@@ -76,7 +72,8 @@ function enableHelp()
 /**
  * Show the help popup for a form element.
  */
-function showHelp() {
+function showHelp()
+{
     if (!g_helpIframe || !g_helpDiv || !g_helpTexts[this.name])
         return;
 
@@ -101,9 +98,9 @@ function showHelp() {
 /**
  * Hide the help popup.
  */
-function hideHelp() {
+function hideHelp()
+{
     if (!g_helpIframe || !g_helpDiv)
         return;
-
     g_helpIframe.style.display = g_helpDiv.style.display = 'none';
 }

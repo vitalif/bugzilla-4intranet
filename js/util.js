@@ -190,7 +190,8 @@ function ctrlEnter(event, formElem)
     return true;
 }
 
-if (typeof Node == 'undefined') {
+if (typeof Node == 'undefined')
+{
     /* MSIE doesn't define Node, so provide a compatibility object */
     window.Node = {
         TEXT_NODE: 3,

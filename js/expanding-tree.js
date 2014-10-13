@@ -20,32 +20,36 @@
  *                 André Batosti <batosti@async.com.br>
  */
 
-if (!Node) {
+if (!Node)
+{
     // MSIE doesn't define Node, so provide a compatibility object
     var Node = { TEXT_NODE: 3 }
 }
 
-if (!highlighted) {
+if (!highlighted)
+{
     var highlighted = 0;
     var highlightedclass = "";
     var highlightedover = 0;
 }
 
-function doToggle(node, event) {
+function doToggle(node, event)
+{
     var deep = event.altKey || event.ctrlKey;
-
     if (node.nodeType == Node.TEXT_NODE)
         node = node.parentNode;
-
     var toggle = node.nextSibling;
     while (toggle && toggle.tagName != "UL")
         toggle = toggle.nextSibling;
-
-    if (toggle) {
-        if (deep) {
+    if (toggle)
+    {
+        if (deep)
+        {
             var direction = toggleDisplay(toggle, node);
             changeChildren(toggle, direction);
-        } else {
+        }
+        else
+        {
             toggleDisplay(toggle, node);
         }
     }
@@ -56,9 +60,11 @@ function doToggle(node, event) {
     return false;
 }
 
-function changeChildren(node, direction) {
+function changeChildren(node, direction)
+{
     var item = node.firstChild;
-    while (item) {
+    while (item)
+    {
         /* find the LI inside the UL I got */
         while (item && item.tagName != "LI")
             item = item.nextSibling;
@@ -69,38 +75,40 @@ function changeChildren(node, direction) {
         var child = item.firstChild;
         while (child && child.tagName != "A")
             child = child.nextSibling;
-        if (!child) {
+        if (!child)
             return
-        }
         var bullet = child;
 
         /* and check if it has its own sublist */
         var sublist = item.firstChild;
         while (sublist && sublist.tagName != "UL")
             sublist = sublist.nextSibling;
-        if (sublist) {
-            if (direction && isClosed(sublist)) {
+        if (sublist)
+        {
+            if (direction && isClosed(sublist))
                 openNode(sublist, bullet);
-            } else if (!direction && !isClosed(sublist)) {
+            else if (!direction && !isClosed(sublist))
                 closeNode(sublist, bullet);
-            }
             changeChildren(sublist, direction)
         }
         item = item.nextSibling;
     }
 }
 
-function openNode(node, bullet) {
+function openNode(node, bullet)
+{
     node.style.display = "block";
     bullet.className = "b b_open";
 }
 
-function closeNode(node, bullet) {
+function closeNode(node, bullet)
+{
     node.style.display = "none";
     bullet.className = "b b_closed";
 }
 
-function isClosed(node) {
+function isClosed(node)
+{
     /* XXX we should in fact check our *computed* style, not the display
      * attribute of the current node, which may be inherited and not
      * set. However, this really only matters when changing the default
@@ -108,25 +116,27 @@ function isClosed(node) {
     return node.style.display == "none";
 }
 
-function toggleDisplay(node, bullet) {
-    if (isClosed(node)) {
+function toggleDisplay(node, bullet)
+{
+    if (isClosed(node))
+    {
         openNode(node, bullet);
         return true;
     }
-
     closeNode(node, bullet);
     return false;
 }
 
-function duplicated(element) {
-    var allsumm= document.getElementsByTagName("span");
-    if (highlighted) {
-        for (i = 0;i < allsumm.length; i++) {
-            if (allsumm.item(i).id == highlighted) {
+function duplicated(element)
+{
+    var allsumm = document.getElementsByTagName("span");
+    if (highlighted)
+    {
+        for (var i = 0; i < allsumm.length; i++)
+            if (allsumm.item(i).id == highlighted)
                 allsumm.item(i).className = highlightedclass;
-            }
-        }
-        if (highlighted == element) {
+        if (highlighted == element)
+        {
             highlighted = 0;
             return;
         }
@@ -134,24 +144,25 @@ function duplicated(element) {
     highlighted = element;
     var elem = document.getElementById(element);
     highlightedclass = elem.className;
-    for (var i = 0;i < allsumm.length; i++) {
-        if (allsumm.item(i).id == element) {
+    for (var i = 0;i < allsumm.length; i++)
+        if (allsumm.item(i).id == element)
             allsumm.item(i).className = "summ_h";
-        }
-    }
 }
 
-function duplicatedover(element) {
-    if (!highlighted) {
+function duplicatedover(element)
+{
+    if (!highlighted)
+    {
         highlightedover = 1;
         duplicated(element);
     }
 }
 
-function duplicatedout(element) {
-    if (highlighted == element && highlightedover) {
+function duplicatedout(element)
+{
+    if (highlighted == element && highlightedover)
+    {
         highlightedover = 0;
         duplicated(element);
     }
 }
-

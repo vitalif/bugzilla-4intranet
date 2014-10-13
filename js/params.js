@@ -17,7 +17,8 @@
  * Contributor(s): Marc Schumann <wurblzap@gmail.com>
  */
 
-function sortedList_moveItem(paramName, direction, separator) {
+function sortedList_moveItem(paramName, direction, separator)
+{
     var select = document.getElementById('select_' + paramName);
     var inputField = document.getElementById('input_' + paramName);
     var currentIndex = select.selectedIndex;
@@ -26,11 +27,14 @@ function sortedList_moveItem(paramName, direction, separator) {
     var optionNewIndex;
 
     /* Return if no selection */
-    if (currentIndex < 0) return;
+    if (currentIndex < 0)
+        return;
     /* Return if trying to move upward out of list */
-    if (newIndex < 0) return;
+    if (newIndex < 0)
+        return;
     /* Return if trying to move downward out of list */
-    if (newIndex >= select.length) return;
+    if (newIndex >= select.length)
+        return;
 
     /* Move selection */
     optionNewIndex = select.options[newIndex];
@@ -44,17 +48,16 @@ function sortedList_moveItem(paramName, direction, separator) {
     populateInputField(select, inputField, separator);
 }
 
-function populateInputField(select, inputField, separator) {
+function populateInputField(select, inputField, separator)
+{
     var i;
     var stringRepresentation = '';
-
-    for (i = 0; i < select.length; i++) {
-        if (select.options[i].value == separator) {
+    for (i = 0; i < select.length; i++)
+    {
+        if (select.options[i].value == separator)
             break;
-        }
-        if (stringRepresentation != '') {
+        if (stringRepresentation != '')
             stringRepresentation += ',';
-        }
         stringRepresentation += select.options[i].value;
     }
     inputField.value = stringRepresentation;

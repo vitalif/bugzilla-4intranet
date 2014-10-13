@@ -17,7 +17,7 @@
 
 var mini_login_constants;
 
-function show_mini_login_form( suffix )
+function show_mini_login_form(suffix)
 {
     var login_link = document.getElementById('login_link' + suffix);
     var login_form = document.getElementById('mini_login' + suffix);
@@ -29,7 +29,7 @@ function show_mini_login_form( suffix )
     return false;
 }
 
-function hide_mini_login_form( suffix )
+function hide_mini_login_form(suffix)
 {
     var login_link = document.getElementById('login_link' + suffix);
     var login_form = document.getElementById('mini_login' + suffix);
@@ -40,7 +40,7 @@ function hide_mini_login_form( suffix )
     return false;
 }
 
-function show_forgot_form( suffix )
+function show_forgot_form(suffix)
 {
     var forgot_link = document.getElementById('forgot_link' + suffix);
     var forgot_form = document.getElementById('forgot_form' + suffix);
@@ -51,7 +51,7 @@ function show_forgot_form( suffix )
     return false;
 }
 
-function hide_forgot_form( suffix )
+function hide_forgot_form(suffix)
 {
     var forgot_link = document.getElementById('forgot_link' + suffix);
     var forgot_form = document.getElementById('forgot_form' + suffix);
@@ -62,7 +62,7 @@ function hide_forgot_form( suffix )
     return false;
 }
 
-function init_mini_login_form( suffix )
+function init_mini_login_form(suffix)
 {
     var mini_login = document.getElementById('Bugzilla_login' +  suffix );
     var mini_password = document.getElementById('Bugzilla_password' +  suffix );

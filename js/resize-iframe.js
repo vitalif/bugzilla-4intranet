@@ -11,17 +11,17 @@
 
 resizeParentIframe = function()
 {
-  if ((/resize/.exec(window.location.hash) ||
-    /[&\?]_resize=1/.exec(window.location.href)) && 'postMessage' in parent)
-  {
-    var w = document.body.scrollWidth;
-    var h = document.body.scrollHeight;
-    parent.postMessage('resize(w='+w+';h='+h+')', '*');
-  }
-  return true;
+    if ((/resize/.exec(window.location.hash) ||
+      /[&\?]_resize=1/.exec(window.location.href)) && 'postMessage' in parent)
+    {
+        var w = document.body.scrollWidth;
+        var h = document.body.scrollHeight;
+        parent.postMessage('resize(w='+w+';h='+h+')', '*');
+    }
+    return true;
 };
 
 if (window.addEventListener)
-  window.addEventListener('load', resizeParentIframe, false);
+    window.addEventListener('load', resizeParentIframe, false);
 else if (window.attachEvent)
-  window.attachEvent('onload', resizeParentIframe);
+    window.attachEvent('onload', resizeParentIframe);

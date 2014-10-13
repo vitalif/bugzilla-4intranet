@@ -78,25 +78,25 @@ function showEditableField(e, ContainerInputArray)
  * var ContainerInputArray[3]: the original value from the page loading.
  *
  */
-function checkForChangedFieldValues(e, ContainerInputArray ) {
+function checkForChangedFieldValues(e, ContainerInputArray)
+{
     var el = document.getElementById(ContainerInputArray[2]);
     var unhide = false;
-    if ( el ) {
-        if ( el.value != ContainerInputArray[3] ||
-            ( el.value == "" && el.id != "alias") ) {
+    if (el)
+    {
+        if (el.value != ContainerInputArray[3] ||
+            el.value == "" && el.id != "alias")
+        {
             unhide = true;
         }
-        else {
-            var set_default = document.getElementById("set_default_" +
-                                                      ContainerInputArray[2]);
-            if ( set_default ) {
-                if(set_default.checked){
-                    unhide = true;
-                }
-            }
+        else
+        {
+            var set_default = document.getElementById("set_default_" + ContainerInputArray[2]);
+            if (set_default && set_default.checked)
+                unhide = true;
         }
     }
-    if(unhide)
+    if (unhide)
     {
         addClass(ContainerInputArray[0], 'bz_default_hidden');
         removeClass(ContainerInputArray[1], 'bz_default_hidden');
@@ -243,7 +243,8 @@ function setResolutionToDuplicate(duplicate_or_move_bug_status)
     bz_fireEvent(status, 'change');
     resolution.value = "DUPLICATE";
     bz_fireEvent(resolution, 'change');
-    if (e.preventDefault) e.preventDefault();
+    if (e.preventDefault)
+        e.preventDefault();
     return false;
 }
 

@@ -153,17 +153,16 @@ function DataFieldHandler()
     }
 }
 
-function clearAttachmentFields() {
+function clearAttachmentFields()
+{
     var element;
-
     document.getElementById('data').value = '';
     DataFieldHandler();
     if ((element = document.getElementById('bigfile')))
         element.checked = '';
     document.getElementById('description').value = '';
     /* Fire onchange so that the disabled state of the content-type
-     * radio buttons are also reset 
-     */
+     * radio buttons are also reset */
     element = document.getElementById('ispatch');
     element.checked = '';
     bz_fireEvent(element, 'change');
@@ -173,12 +172,16 @@ function clearAttachmentFields() {
 
 /* Functions used when viewing patches in Diff mode. */
 
-function collapse_all() {
+function collapse_all()
+{
     var elem = document.checkboxform.firstChild;
-    while (elem != null) {
-        if (elem.firstChild != null) {
+    while (elem != null)
+    {
+        if (elem.firstChild != null)
+        {
             var tbody = elem.firstChild.nextSibling;
-            if (tbody.className == 'file') {
+            if (tbody.className == 'file')
+            {
                 tbody.className = 'file_collapse';
                 twisty = get_twisty_from_tbody(tbody);
                 twisty.firstChild.nodeValue = '(+)';
@@ -190,12 +193,16 @@ function collapse_all() {
     return false;
 }
 
-function expand_all() {
+function expand_all()
+{
     var elem = document.checkboxform.firstChild;
-    while (elem != null) {
-        if (elem.firstChild != null) {
+    while (elem != null)
+    {
+        if (elem.firstChild != null)
+        {
             var tbody = elem.firstChild.nextSibling;
-            if (tbody.className == 'file_collapse') {
+            if (tbody.className == 'file_collapse')
+            {
                 tbody.className = 'file';
                 twisty = get_twisty_from_tbody(tbody);
                 twisty.firstChild.nodeValue = '(-)';
@@ -209,53 +216,71 @@ function expand_all() {
 
 var current_restore_elem;
 
-function restore_all() {
+function restore_all()
+{
     current_restore_elem = null;
     incremental_restore();
 }
 
-function incremental_restore() {
-    if (!document.checkboxform.restore_indicator.checked) {
+function incremental_restore()
+{
+    if (!document.checkboxform.restore_indicator.checked)
+    {
         return;
     }
     var next_restore_elem;
-    if (current_restore_elem) {
+    if (current_restore_elem)
+    {
         next_restore_elem = current_restore_elem.nextSibling;
-    } else {
+    }
+    else
+    {
         next_restore_elem = document.checkboxform.firstChild;
     }
-    while (next_restore_elem != null) {
+    while (next_restore_elem != null)
+    {
         current_restore_elem = next_restore_elem;
-        if (current_restore_elem.firstChild != null) {
+        if (current_restore_elem.firstChild != null)
+        {
             restore_elem(current_restore_elem.firstChild.nextSibling);
         }
         next_restore_elem = current_restore_elem.nextSibling;
     }
 }
 
-function restore_elem(elem, alertme) {
-    if (elem.className == 'file_collapse') {
+function restore_elem(elem, alertme)
+{
+    if (elem.className == 'file_collapse')
+    {
         twisty = get_twisty_from_tbody(elem);
-        if (twisty.nextSibling.checked) {
+        if (twisty.nextSibling.checked)
+        {
             elem.className = 'file';
             twisty.firstChild.nodeValue = '(-)';
         }
-    } else if (elem.className == 'file') {
+    }
+    else if (elem.className == 'file')
+    {
         twisty = get_twisty_from_tbody(elem);
-        if (!twisty.nextSibling.checked) {
+        if (!twisty.nextSibling.checked)
+        {
             elem.className = 'file_collapse';
             twisty.firstChild.nodeValue = '(+)';
         }
     }
 }
 
-function twisty_click(twisty) {
+function twisty_click(twisty)
+{
     tbody = get_tbody_from_twisty(twisty);
-    if (tbody.className == 'file') {
+    if (tbody.className == 'file')
+    {
         tbody.className = 'file_collapse';
         twisty.firstChild.nodeValue = '(+)';
         twisty.nextSibling.checked = false;
-    } else {
+    }
+    else
+    {
         tbody.className = 'file';
         twisty.firstChild.nodeValue = '(-)';
         twisty.nextSibling.checked = true;
@@ -263,10 +288,12 @@ function twisty_click(twisty) {
     return false;
 }
 
-function get_tbody_from_twisty(twisty) {
+function get_tbody_from_twisty(twisty)
+{
     return twisty.parentNode.parentNode.parentNode.nextSibling;
 }
-function get_twisty_from_tbody(tbody) {
+function get_twisty_from_tbody(tbody)
+{
     return tbody.previousSibling.firstChild.nextSibling.firstChild.firstChild;
 }
 
@@ -291,12 +318,11 @@ function redoEditAsComment(patchviewerinstalled)
 function viewDiff(attachment_id, patchviewerinstalled)
 {
     switchToMode('diff', patchviewerinstalled);
-
     // If we have not viewed as diff before, set the view diff frame URL
-    if (!has_viewed_as_diff) {
+    if (!has_viewed_as_diff)
+    {
         var viewDiffFrame = document.getElementById('viewDiffFrame');
-        viewDiffFrame.src =
-                'attachment.cgi?id=' + attachment_id + '&action=diff&headers=0';
+        viewDiffFrame.src = 'attachment.cgi?id=' + attachment_id + '&action=diff&headers=0';
         has_viewed_as_diff = 1;
     }
 }
@@ -315,38 +341,46 @@ function switchToMode(mode, patchviewerinstalled)
     }
 
     // Switch out of current mode
-    if (current_mode == 'edit') {
+    if (current_mode == 'edit')
+    {
         hideElementById('editFrame');
         hideElementById('undoEditButton');
-    } else if (current_mode == 'raw') {
+    }
+    else if (current_mode == 'raw')
+    {
         hideElementById('viewFrame');
         if (patchviewerinstalled)
-                hideElementById('viewDiffButton');
+            hideElementById('viewDiffButton');
         hideElementById(has_edited ? 'redoEditButton' : 'editButton');
         hideElementById('smallCommentFrame');
-    } else if (current_mode == 'diff') {
+    }
+    else if (current_mode == 'diff')
+    {
         if (patchviewerinstalled)
-                hideElementById('viewDiffFrame');
+            hideElementById('viewDiffFrame');
         hideElementById('viewRawButton');
         hideElementById(has_edited ? 'redoEditButton' : 'editButton');
         hideElementById('smallCommentFrame');
     }
 
     // Switch into new mode
-    if (mode == 'edit') {
+    if (mode == 'edit')
+    {
         showElementById('editFrame');
         showElementById('undoEditButton');
-    } else if (mode == 'raw') {
+    }
+    else if (mode == 'raw')
+    {
         showElementById('viewFrame');
-        if (patchviewerinstalled) 
-                showElementById('viewDiffButton');
-
+        if (patchviewerinstalled)
+            showElementById('viewDiffButton');
         showElementById(has_edited ? 'redoEditButton' : 'editButton');
         showElementById('smallCommentFrame');
-    } else if (mode == 'diff') {
-        if (patchviewerinstalled) 
+    }
+    else if (mode == 'diff')
+    {
+        if (patchviewerinstalled)
             showElementById('viewDiffFrame');
-
         showElementById('viewRawButton');
         showElementById(has_edited ? 'redoEditButton' : 'editButton');
         showElementById('smallCommentFrame');
@@ -359,16 +393,17 @@ function switchToMode(mode, patchviewerinstalled)
 function hideElementById(id)
 {
     var elm = document.getElementById(id);
-    if (elm) {
+    if (elm)
         elm.style.display = 'none';
-    }
 }
 
 function showElementById(id, val)
 {
     var elm = document.getElementById(id);
-    if (elm) {
-        if (!val) val = 'inline';
+    if (elm)
+    {
+        if (!val)
+            val = 'inline';
         elm.style.display = val;
     }
 }
@@ -377,14 +412,13 @@ function normalizeComments()
 {
     // Remove the unused comment field from the document so its contents
     // do not get transmitted back to the server.
-
     var small = document.getElementById('smallCommentFrame');
     var big = document.getElementById('editFrame');
-    if ( (small) && (small.style.display == 'none') )
+    if (small && small.style.display == 'none')
     {
         small.parentNode.removeChild(small);
     }
-    if ( (big) && (big.style.display == 'none') )
+    if (big && big.style.display == 'none')
     {
         big.parentNode.removeChild(big);
     }
