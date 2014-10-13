@@ -123,7 +123,7 @@ sub check_credentials {
             # Cycle through the adresses and check if they're Bugzilla logins.
             # Use the first one that returns a valid id. 
             foreach my $email (@emails) {
-                if ( login_to_id($email) ) {
+                if ( Bugzilla::User::login_to_id($email) ) {
                     $params->{bz_username} = $email;
                     last;
                 }

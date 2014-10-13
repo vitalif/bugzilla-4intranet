@@ -55,7 +55,7 @@ use DateTime::TimeZone;
 use Scalar::Util qw(blessed);
 use Storable qw(dclone);
 
-use base qw(Bugzilla::Object Exporter);
+use base qw(Bugzilla::Object);
 # FIXME Remove procedural APIs
 @Bugzilla::User::EXPORT = qw(
     is_available_username login_to_id validate_password

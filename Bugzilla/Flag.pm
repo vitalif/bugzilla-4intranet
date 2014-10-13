@@ -1028,7 +1028,7 @@ sub show_flag_reminders
                         $flag = Bugzilla::Flag->new({ id => $2 });
                         $flag->{status} = $ARGS->{$_};
                         if (($login = trim($ARGS->{"requestee-".$flag->{id}})) &&
-                            ($login = login_to_id($login)))
+                            ($login = Bugzilla::User::login_to_id($login)))
                         {
                             $flag->{requestee_id} = $login;
                         }

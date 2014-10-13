@@ -48,7 +48,7 @@ sub create_or_update_user {
     # A passed-in user_id always overrides anything else, for determining
     # what account we should return.
     if (!$user_id) {
-        my $username_user_id = login_to_id($username || '');
+        my $username_user_id = Bugzilla::User::login_to_id($username || '');
         my $extern_user_id;
         if ($extern_id) {
             trick_taint($extern_id);

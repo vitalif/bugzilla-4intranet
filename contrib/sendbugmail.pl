@@ -56,7 +56,7 @@ if ($changer !~ /$match/) {
     print STDERR "Changer \"$changer\" doesn't match email regular expression.\n";
     usage();
 }
-if(!login_to_id($changer)) {
+if(!Bugzilla::User::login_to_id($changer)) {
     print STDERR "\"$changer\" is not a login ID.\n";
     usage();
 }

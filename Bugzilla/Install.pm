@@ -285,8 +285,7 @@ sub make_admin {
     my ($user) = @_;
     my $dbh = Bugzilla->dbh;
 
-    $user = ref($user) ? $user 
-            : new Bugzilla::User(login_to_id($user, THROW_ERROR));
+    $user = ref($user) ? $user : Bugzilla::User->check($user);
 
     my $admin_group = new Bugzilla::Group({ name => 'admin' });
 

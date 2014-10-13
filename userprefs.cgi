@@ -100,7 +100,7 @@ sub SaveAccount
         if ($pwd1 ne "" || $pwd2 ne "")
         {
             $pwd1 || ThrowUserError("new_password_missing");
-            validate_password($pwd1, $pwd2);
+            Bugzilla::User::validate_password($pwd1, $pwd2);
 
             if ($oldpassword ne $pwd1)
             {
@@ -130,7 +130,7 @@ sub SaveAccount
             # Before changing an email address, confirm one does not exist.
             validate_email_syntax($new_login_name)
                 || ThrowUserError('illegal_email_address', { addr => $new_login_name });
-            is_available_username($new_login_name)
+            Bugzilla::User::is_available_username($new_login_name)
                 || ThrowUserError("account_exists", { email => $new_login_name });
 
             Bugzilla::Token::IssueEmailChangeToken($user, $old_login_name, $new_login_name);
@@ -321,13 +321,13 @@ sub SaveEmail
 
         # New watched users
         push @$add_wdwr,
-            map { [ login_to_id(trim($_), THROW_ERROR), $userid ] }
+            map { [ Bugzilla::User::login_to_id(trim($_), THROW_ERROR), $userid ] }
             split /[,\s]+/,
             join(',', $ARGS->{new_watchedusers}) || '';
 
         # New watchers
         push @$add_wdwr,
-            map { [ $userid, login_to_id(trim($_), THROW_ERROR) ] }
+            map { [ $userid, Bugzilla::User::login_to_id(trim($_), THROW_ERROR) ] }
             split /[,\s]+/,
             join(',', $ARGS->{new_watchers}) || '';
 
@@ -335,7 +335,7 @@ sub SaveEmail
         {
             # User wants to remove selected watched users
             push @$del_wdwr,
-                map { [ login_to_id(trim($_), THROW_ERROR), $userid ] }
+                map { [ Bugzilla::User::login_to_id(trim($_), THROW_ERROR), $userid ] }
                 $ARGS->{watched_by_you};
         }
 
@@ -343,7 +343,7 @@ sub SaveEmail
         {
             # User wants to remove selected watchers
             push @$del_wdwr,
-                map { [ $userid, login_to_id(trim($_), THROW_ERROR) ] }
+                map { [ $userid, Bugzilla::User::login_to_id(trim($_), THROW_ERROR) ] }
                 $ARGS->{watchers};
         }
 

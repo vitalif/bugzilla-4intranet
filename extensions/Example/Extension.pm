@@ -254,7 +254,7 @@ sub email_in_after_parse {
     my $dbh = Bugzilla->dbh;
 
     # No other check needed if this is a valid regular user.
-    return if login_to_id($reporter);
+    return if Bugzilla::User::login_to_id($reporter);
 
     # The reporter is not a regular user. We create an account for him,
     # but he can only comment on existing bugs.

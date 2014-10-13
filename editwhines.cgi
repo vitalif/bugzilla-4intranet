@@ -189,7 +189,7 @@ if ($ARGS->{update})
                     {
                         if ($mailto_type == MAILTO_USER)
                         {
-                            $mailto_id = login_to_id($mailto);
+                            $mailto_id = Bugzilla::User::login_to_id($mailto);
                         }
                         elsif ($mailto_type == MAILTO_GROUP)
                         {

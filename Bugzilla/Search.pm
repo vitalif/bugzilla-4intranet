@@ -1251,7 +1251,7 @@ sub init
             foreach my $name (@guessed)
             {
                 $name = trim($name);
-                if ($name && lc $name ne '%user%' && !login_to_id($name))
+                if ($name && lc $name ne '%user%' && !Bugzilla::User::login_to_id($name))
                 {
                     # Do a match on user login or name
                     my $u = Bugzilla::User::match_name($name, 1)->[0];
@@ -2296,7 +2296,7 @@ sub _cc_nonchanged
 sub _long_desc_changedby
 {
     my $self = shift;
-    my $id = login_to_id($self->{value}, THROW_ERROR);
+    my $id = Bugzilla::User::login_to_id($self->{value}, THROW_ERROR);
     my @priv = $self->{user}->is_insider ? () : "longdescs.isprivate=0";
     $self->{term} = {
         base_table => "longdescs",
@@ -2494,7 +2494,7 @@ sub _longdescs_isprivate
 sub _work_time_changedby
 {
     my $self = shift;
-    my $id = login_to_id($self->{value}, THROW_ERROR);
+    my $id = Bugzilla::User::login_to_id($self->{value}, THROW_ERROR);
     my @priv = $self->{user}->is_insider ? () : "longdescs.isprivate=0";
     $self->{term} = {
         base_table => "longdescs",
@@ -3034,7 +3034,7 @@ sub _changedby
         ThrowUserError("invalid_activity_field", { field => $self->{field} });
     }
     $fieldid = $fieldid->id;
-    my $id = login_to_id($self->{value}, THROW_ERROR);
+    my $id = Bugzilla::User::login_to_id($self->{value}, THROW_ERROR);
     $self->{term} = {
         base_table => 'bugs_activity',
         where => [ "bugs_activity.fieldid = $fieldid",
@@ -3053,7 +3053,7 @@ sub _in_search_results
     {
         # Allow to match on shared searches via 'SearchName <user@domain.com>' syntax
         $v = $1;
-        $sharer = login_to_id(trim($2), THROW_ERROR);
+        $sharer = Bugzilla::User::login_to_id(trim($2), THROW_ERROR);
     }
     my $query = Bugzilla::Search::Saved->check({
         name => trim($v),

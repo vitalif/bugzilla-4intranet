@@ -151,7 +151,7 @@ if ($action eq 'save' && $current_module)
                 # can not use Bugzilla::User
                 foreach my $watcher (split(/[,\s]+/, $value))
                 {
-                    unless (login_to_id($watcher))
+                    unless (Bugzilla::User::login_to_id($watcher))
                     {
                         ThrowUserError('invalid_parameter', { name => $name, err => "no such user $watcher" });
                     }

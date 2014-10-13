@@ -201,7 +201,7 @@ sub changePassword
     my $password = delete $ARGS->{password};
     my $matchpassword = delete $ARGS->{matchpassword};
     defined $password && defined $matchpassword || ThrowUserError('require_new_password');
-    validate_password($password, $matchpassword);
+    Bugzilla::User::validate_password($password, $matchpassword);
 
     my $dbh = Bugzilla->dbh;
 
@@ -250,7 +250,7 @@ sub changeEmail
     }
     # The new email address should be available as this was
     # confirmed initially so cancel token if it is not still available
-    if (!is_available_username($new_email, $old_email))
+    if (!Bugzilla::User::is_available_username($new_email, $old_email))
     {
         $vars->{email} = $new_email; # Needed for Bugzilla::Token::Cancel's mail
         Bugzilla::Token::Cancel($token, "account_exists", $vars);
@@ -349,7 +349,7 @@ sub confirm_create_account
     my (undef, undef, $login_name) = Bugzilla::Token::GetTokenData($token);
 
     my $password = delete $ARGS->{passwd1} || '';
-    validate_password($password, delete $ARGS->{passwd2} || '');
+    Bugzilla::User::validate_password($password, delete $ARGS->{passwd2} || '');
 
     my $otheruser = Bugzilla::User->create({
         login_name => $login_name,

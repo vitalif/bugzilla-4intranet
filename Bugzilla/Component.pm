@@ -289,7 +289,7 @@ sub _check_cc_list
     my %cc_ids;
     foreach my $cc (@$cc_list)
     {
-        my $id = login_to_id($cc, THROW_ERROR);
+        my $id = Bugzilla::User::login_to_id($cc, THROW_ERROR);
         $cc_ids{$id} = 1;
     }
     return [ keys %cc_ids ];

@@ -235,19 +235,19 @@ sub Send
     my $changer = $forced->{changer};
     if ($forced->{owner})
     {
-        push @assignees, login_to_id($forced->{owner}, THROW_ERROR);
+        push @assignees, Bugzilla::User::login_to_id($forced->{owner}, THROW_ERROR);
     }
 
     if ($forced->{qacontact})
     {
-        push @qa_contacts, login_to_id($forced->{qacontact}, THROW_ERROR);
+        push @qa_contacts, Bugzilla::User::login_to_id($forced->{qacontact}, THROW_ERROR);
     }
 
     if ($forced->{cc})
     {
         foreach my $cc (@{$forced->{cc}})
         {
-            push @ccs, login_to_id($cc, THROW_ERROR);
+            push @ccs, Bugzilla::User::login_to_id($cc, THROW_ERROR);
         }
     }
 
@@ -429,18 +429,18 @@ sub Send
             {
                 foreach my $cc_user (split(/[\s,]+/, $diff->{removed}))
                 {
-                    my $uid = login_to_id($cc_user);
+                    my $uid = Bugzilla::User::login_to_id($cc_user);
                     $recipients{$uid}->{+REL_CC} = BIT_DIRECT if $uid;
                 }
             }
             elsif ($diff->{fielddesc} eq "QAContact")
             {
-                my $uid = login_to_id($diff->{removed});
+                my $uid = Bugzilla::User::login_to_id($diff->{removed});
                 $recipients{$uid}->{+REL_QA} = BIT_DIRECT if $uid;
             }
             elsif ($diff->{fielddesc} eq "AssignedTo")
             {
-                my $uid = login_to_id($diff->{removed});
+                my $uid = Bugzilla::User::login_to_id($diff->{removed});
                 $recipients{$uid}->{+REL_ASSIGNEE} = BIT_DIRECT if $uid;
             }
         }
@@ -470,7 +470,7 @@ sub Send
     my @watchers = split(/[,\s]+/, Bugzilla->params->{globalwatchers});
     foreach (@watchers)
     {
-        my $watcher_id = login_to_id($_);
+        my $watcher_id = Bugzilla::User::login_to_id($_);
         next unless $watcher_id;
         $recipients{$watcher_id}->{+REL_GLOBAL_WATCHER} = BIT_DIRECT;
     }
