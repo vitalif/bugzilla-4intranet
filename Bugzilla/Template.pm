@@ -992,14 +992,6 @@ sub create
             # started the session.
             sudoer => sub { return Bugzilla->sudoer; },
 
-            # StopBugMail - stops mail about a bug, modifying `lastdiffed`
-            StopBugMail => sub
-            {
-                my ($id) = @_;
-                Bugzilla->dbh->do('UPDATE bugs SET lastdiffed=NOW() WHERE bug_id=?', undef, $id);
-                return '';
-            },
-
             # Allow templates to access the "corect" URLBase value
             urlbase => sub { return Bugzilla::Util::correct_urlbase(); },
 
