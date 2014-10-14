@@ -1,5 +1,3 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -47,7 +45,8 @@ our @EXPORT_OK = qw(
     init_console
 );
 
-sub bin_loc {
+sub bin_loc
+{
     my ($bin) = @_;
     return '' if ON_WINDOWS;
     # Don't print any errors from "which"
@@ -62,48 +61,57 @@ sub bin_loc {
     return $loc;
 }
 
-sub get_version_and_os {
+sub get_version_and_os
+{
     # Display version information
     my @os_details = POSIX::uname;
     # 0 is the name of the OS, 2 is the major version,
     my $os_name = $os_details[0] . ' ' . $os_details[2];
-    if (ON_WINDOWS) {
+    if (ON_WINDOWS)
+    {
         require Win32;
         $os_name = Win32::GetOSName();
     }
     # $os_details[3] is the minor version.
-    return { bz_ver   => BUGZILLA_VERSION,
-             perl_ver => sprintf('%vd', $^V),
-             os_name  => $os_name,
-             os_ver   => $os_details[3] };
+    return {
+        bz_ver   => BUGZILLA_VERSION,
+        perl_ver => sprintf('%vd', $^V),
+        os_name  => $os_name,
+        os_ver   => $os_details[3],
+    };
 }
 
-sub indicate_progress {
+sub indicate_progress
+{
     my ($params) = @_;
     my $current = $params->{current};
     my $total   = $params->{total};
     my $every   = $params->{every} || 1;
-
     print "." if !($current % $every);
-    if ($current == $total || $current % ($every * 60) == 0) {
+    if ($current == $total || $current % ($every * 60) == 0)
+    {
         print "$current/$total (" . int($current * 100 / $total) . "%)\n";
     }
 }
 
-sub install_string {
+sub install_string
+{
     my ($string_id, $vars) = @_;
     _cache()->{install_string_path} ||= template_include_path();
     my $path = _cache()->{install_string_path};
-    
+
     my $string_template;
     # Find the first template that defines this string.
-    foreach my $dir (@$path) {
+    foreach my $dir (@$path)
+    {
         my $base = "$dir/setup/strings";
-        $string_template = _get_string_from_file($string_id, "$base.txt.pl")
-            if !defined $string_template;
+        if (!defined $string_template)
+        {
+            $string_template = _get_string_from_file($string_id, "$base.txt.pl");
+        }
         last if defined $string_template;
     }
-    
+
     if (!defined $string_template)
     {
         # Don't throw an error, it's a stupid way -- <vitalif@yourcmc.ru>
@@ -115,16 +123,17 @@ sub install_string {
 
     $vars ||= {};
     my @replace_keys = keys %$vars;
-    foreach my $key (@replace_keys) {
+    foreach my $key (@replace_keys)
+    {
         my $replacement = $vars->{$key};
-        die "'$key' in '$string_id' is tainted: '$replacement'"
-            if tainted($replacement);
+        die "'$key' in '$string_id' is tainted: '$replacement'" if tainted($replacement);
         # We don't want people to start getting clever and inserting
         # ##variable## into their values. So we check if any other
         # key is listed in the *replacement* string, before doing
         # the replacement. This is mostly to protect programmers from
         # making mistakes.
-        if (grep($replacement =~ /##$key##/, @replace_keys)) {
+        if (grep($replacement =~ /##$key##/, @replace_keys))
+        {
             die "Unsafe replacement for '$key' in '$string_id': '$replacement'";
         }
         $string_template =~ s/\Q##$key##\E/$replacement/g;
@@ -133,15 +142,18 @@ sub install_string {
     return $string_template;
 }
 
-sub include_languages {
+sub include_languages
+{
     # If we are in CGI mode (not in checksetup.pl) and if the function has
     # been called without any parameter, then we cache the result of this
     # function in Bugzilla->request_cache. This is done to improve the
     # performance of the template processing.
     my $to_be_cached = 0;
-    if (not @_) {
+    if (not @_)
+    {
         my $cache = _cache();
-        if (exists $cache->{include_languages}) {
+        if (exists $cache->{include_languages})
+        {
             return @{ $cache->{include_languages} };
         }
         $to_be_cached = 1;
@@ -156,43 +168,48 @@ sub include_languages {
     # $params->{only_language}. The languages we support are those
     # specified in $params->{use_languages}. Otherwise we support every
     # language installed in the template/ directory.
-    
+
     my @wanted;
-    if ($params->{only_language}) {
+    if ($params->{only_language})
+    {
         # We can pass several languages at once as an arrayref
         # or a single language.
-        if (ref $params->{only_language}) {
+        if (ref $params->{only_language})
+        {
             @wanted = @{ $params->{only_language} };
         }
-        else {
+        else
+        {
             @wanted = ($params->{only_language});
         }
     }
-    else {
-        @wanted = _sort_accept_language($ENV{'HTTP_ACCEPT_LANGUAGE'} || '');
+    else
+    {
+        @wanted = _sort_accept_language($ENV{HTTP_ACCEPT_LANGUAGE} || '');
         # Don't use the cookie if we are in "checksetup.pl". The test
-        # with $ENV{'SERVER_SOFTWARE'} is the same as in
+        # with $ENV{SERVER_SOFTWARE} is the same as in
         # Bugzilla:Util::i_am_cgi.
-        if (exists $ENV{'SERVER_SOFTWARE'}) {
-            my $cgi = Bugzilla->cgi;
-            if (defined (my $lang = Bugzilla->cookies->{LANG})) {
-                unshift @wanted, $lang;
-            }
+        if (exists $ENV{SERVER_SOFTWARE} && defined (my $lang = Bugzilla->cookies->{LANG}))
+        {
+            unshift @wanted, $lang;
         }
     }
-    
+
     my @supported;
-    if (defined $params->{use_languages}) {
+    if (defined $params->{use_languages})
+    {
         @supported = @{$params->{use_languages}};
     }
-    else {
-        my @dirs = glob(bz_locations()->{'templatedir'} . "/*");
+    else
+    {
+        my @dirs = glob(bz_locations()->{templatedir} . "/*");
         @dirs = map(basename($_), @dirs);
         @supported = grep($_ ne 'CVS', @dirs);
     }
-    
+
     my @usedlanguages;
-    foreach my $wanted (@wanted) {
+    foreach my $wanted (@wanted)
+    {
         # If we support the language we want, or *any version* of
         # the language we want, it gets pushed into @usedlanguages.
         #
@@ -200,20 +217,23 @@ sub include_languages {
         # 'en-uk', but not the other way around. (This is unfortunately
         # not very clearly stated in those RFC; see comment just over 14.5
         # in http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.4)
-        if(my @found = grep /^\Q$wanted\E(-.+)?$/i, @supported) {
+        if (my @found = grep /^\Q$wanted\E(-.+)?$/i, @supported)
+        {
             push (@usedlanguages, @found);
         }
     }
 
     # We always include English at the bottom if it's not there, even if
     # somebody removed it from use_languages.
-    if (!grep($_ eq 'en', @usedlanguages)) {
+    if (!grep($_ eq 'en', @usedlanguages))
+    {
         push(@usedlanguages, 'en');
     }
 
     # Cache the result if we are in CGI mode and called without parameter
     # (see the comment at the top of this function).
-    if ($to_be_cached) {
+    if ($to_be_cached)
+    {
         _cache()->{include_languages} = \@usedlanguages;
     }
 
@@ -221,18 +241,20 @@ sub include_languages {
 }
 
 # Used by template_include_path
-sub _template_lang_directories {
+sub _template_lang_directories
+{
     my ($languages, $templatedir) = @_;
-
     my @add = qw(custom default);
-    my $project = bz_locations->{'project'};
+    my $project = bz_locations->{project};
     unshift(@add, $project) if $project;
-
     my @result;
-    foreach my $lang (@$languages) {
-        foreach my $dir (@add) {
+    foreach my $lang (@$languages)
+    {
+        foreach my $dir (@add)
+        {
             my $full_dir = "$templatedir/$lang/$dir";
-            if (-d $full_dir) {
+            if (-d $full_dir)
+            {
                 trick_taint($full_dir);
                 push(@result, $full_dir);
             }
@@ -245,7 +267,6 @@ sub _template_lang_directories {
 sub _template_base_directories
 {
     my @template_dirs;
-
     Bugzilla::Extension::load_all();
     my $dir;
     foreach (Bugzilla::Extension::loaded())
@@ -256,8 +277,7 @@ sub _template_base_directories
             push @template_dirs, $dir;
         }
     }
-
-    push(@template_dirs, bz_locations()->{'templatedir'});
+    push @template_dirs, bz_locations()->{templatedir};
     return \@template_dirs;
 }
 
@@ -267,18 +287,19 @@ sub template_include_path
     my @used_languages = include_languages($params);
     # Now, we add template directories in the order they will be searched:
     my $template_dirs = _template_base_directories();
-
     my @include_path;
-    foreach my $template_dir (@$template_dirs) {
-        my @lang_dirs = _template_lang_directories(\@used_languages,
-                                                   $template_dir);
+    foreach my $template_dir (@$template_dirs)
+    {
+        my @lang_dirs = _template_lang_directories(\@used_languages, $template_dir);
         # Hooks get each set of extension directories separately.
-        if ($params->{hook}) {
-            push(@include_path, \@lang_dirs) if @lang_dirs;
+        if ($params->{hook})
+        {
+            push @include_path, \@lang_dirs if @lang_dirs;
         }
         # Whereas everything else just gets a whole INCLUDE_PATH.
-        else {
-            push(@include_path, @lang_dirs);
+        else
+        {
+            push @include_path, @lang_dirs;
         }
     }
     # Allow to fallback to full template path - not a security risk,
@@ -289,7 +310,8 @@ sub template_include_path
 
 # This is taken straight from Sort::Versions 1.5, which is not included
 # with perl by default.
-sub vers_cmp {
+sub vers_cmp
+{
     my ($a, $b) = @_;
     $a = '' if !defined $a;
     $b = '' if !defined $b;
@@ -302,28 +324,47 @@ sub vers_cmp {
     my @B = ($b =~ /([-.]|\d+|[^-.\d]+)/g);
 
     my ($A, $B);
-    while (@A and @B) {
+    while (@A && @B)
+    {
         $A = shift @A;
         $B = shift @B;
-        if ($A eq '-' and $B eq '-') {
+        if ($A eq '-' && $B eq '-')
+        {
             next;
-        } elsif ( $A eq '-' ) {
+        }
+        elsif ($A eq '-')
+        {
             return -1;
-        } elsif ( $B eq '-') {
+        }
+        elsif ($B eq '-')
+        {
             return 1;
-        } elsif ($A eq '.' and $B eq '.') {
+        }
+        elsif ($A eq '.' && $B eq '.')
+        {
             next;
-        } elsif ( $A eq '.' ) {
+        }
+        elsif ($A eq '.')
+        {
             return -1;
-        } elsif ( $B eq '.' ) {
+        }
+        elsif ($B eq '.')
+        {
             return 1;
-        } elsif ($A =~ /^\d+$/ and $B =~ /^\d+$/) {
-            if ($A =~ /^0/ || $B =~ /^0/) {
+        }
+        elsif ($A =~ /^\d+$/ && $B =~ /^\d+$/)
+        {
+            if ($A =~ /^0/ || $B =~ /^0/)
+            {
                 return $A cmp $B if $A cmp $B;
-            } else {
+            }
+            else
+            {
                 return $A <=> $B if $A <=> $B;
             }
-        } else {
+        }
+        else
+        {
             $A = uc $A;
             $B = uc $B;
             return $A cmp $B if $A cmp $B;
@@ -337,9 +378,9 @@ sub vers_cmp {
 ######################
 
 # Used by install_string
-sub _get_string_from_file {
+sub _get_string_from_file
+{
     my ($string_id, $file) = @_;
-    
     return undef if !-e $file;
     my $safe = new Safe;
     $safe->rdo($file);
@@ -350,80 +391,87 @@ sub _get_string_from_file {
 # Make an ordered list out of a HTTP Accept-Language header (see RFC 2616, 14.4)
 # We ignore '*' and <language-range>;q=0
 # For languages with the same priority q the order remains unchanged.
-sub _sort_accept_language {
-    sub sortQvalue { $b->{'qvalue'} <=> $a->{'qvalue'} }
+sub _sort_accept_language
+{
     my $accept_language = $_[0];
 
     # clean up string.
     $accept_language =~ s/[^A-Za-z;q=0-9\.\-,]//g;
     my @qlanguages;
     my @languages;
-    foreach(split /,/, $accept_language) {
-        if (m/([A-Za-z\-]+)(?:;q=(\d(?:\.\d+)))?/) {
+    foreach(split /,/, $accept_language)
+    {
+        if (m/([A-Za-z\-]+)(?:;q=(\d(?:\.\d+)))?/)
+        {
             my $lang   = $1;
             my $qvalue = $2;
             $qvalue = 1 if not defined $qvalue;
             next if $qvalue == 0;
             $qvalue = 1 if $qvalue > 1;
-            push(@qlanguages, {'qvalue' => $qvalue, 'language' => $lang});
+            push @qlanguages, { qvalue => $qvalue, language => $lang };
         }
     }
 
-    return map($_->{'language'}, (sort sortQvalue @qlanguages));
+    return map($_->{language}, (sort { $b->{qvalue} <=> $a->{qvalue} } @qlanguages));
 }
 
-sub get_console_locale {
+sub get_console_locale
+{
     require Locale::Language;
     my $locale = setlocale(LC_CTYPE);
     my $language;
     # Some distros set e.g. LC_CTYPE = fr_CH.UTF-8. We clean it up.
-    if ($locale =~ /^([^\.]+)/) {
+    if ($locale =~ /^([^\.]+)/)
+    {
         $locale = $1;
     }
     $locale =~ s/_/-/;
     # It's pretty sure that there is no language pack of the form fr-CH
     # installed, so we also include fr as a wanted language.
-    if ($locale =~ /^(\S+)\-/) {
+    if ($locale =~ /^(\S+)\-/)
+    {
         $language = $1;
         $locale .= ",$language";
     }
-    else {
+    else
+    {
         $language = $locale;
     }
-
     # Some OSs or distributions may have setlocale return a string of the form
     # German_Germany.1252 (this example taken from a Windows XP system), which
     # is unsuitable for our needs because Bugzilla works on language codes.
     # We try and convert them here.
-    if ($language = Locale::Language::language2code($language)) {
+    if ($language = Locale::Language::language2code($language))
+    {
         $locale .= ",$language";
     }
-
     return $locale;
 }
 
-sub init_console {
+sub init_console
+{
     eval { ON_WINDOWS && require Win32::Console::ANSI; };
-    $ENV{'ANSI_COLORS_DISABLED'} = 1 if ($@ || !-t *STDOUT);
-    $ENV{'HTTP_ACCEPT_LANGUAGE'} ||= get_console_locale();
+    $ENV{ANSI_COLORS_DISABLED} = 1 if ($@ || !-t *STDOUT);
+    $ENV{HTTP_ACCEPT_LANGUAGE} ||= get_console_locale();
     prevent_windows_dialog_boxes();
 }
 
-sub prevent_windows_dialog_boxes {
+sub prevent_windows_dialog_boxes
+{
     # This code comes from http://bugs.activestate.com/show_bug.cgi?id=82183
     # and prevents Perl modules from popping up dialog boxes, particularly
     # during checksetup (since loading DBD::Oracle during checksetup when
     # Oracle isn't installed causes a scary popup and pauses checksetup).
     #
-    # Win32::API ships with ActiveState by default, though there could 
+    # Win32::API ships with ActiveState by default, though there could
     # theoretically be a Windows installation without it, I suppose.
-    if (ON_WINDOWS and eval { require Win32::API }) {
+    if (ON_WINDOWS and eval { require Win32::API })
+    {
         # Call kernel32.SetErrorMode with arguments that mean:
         # "The system does not display the critical-error-handler message box.
         # Instead, the system sends the error to the calling process." and
         # "A child process inherits the error mode of its parent process."
-        my $SetErrorMode = Win32::API->new('kernel32', 'SetErrorMode', 
-                                           'I', 'I');
+        my $SetErrorMode = Win32::API->new('kernel32', 'SetErrorMode', 'I', 'I');
         my $SEM_FAILCRITICALERRORS = 0x0001;
         my $SEM_NOGPFAULTERRORBOX  = 0x0002;
         $SetErrorMode->Call($SEM_FAILCRITICALERRORS | $SEM_NOGPFAULTERRORBOX);
@@ -433,10 +481,12 @@ sub prevent_windows_dialog_boxes {
 # This is like request_cache, but it's used only by installation code
 # for checksetup.pl and things like that.
 our $_cache = {};
-sub _cache {
+sub _cache
+{
     # If the normal request_cache is available (which happens any time
     # after the requirements phase) then we should use that.
-    if (eval { Bugzilla->request_cache; }) {
+    if (eval { Bugzilla->request_cache; })
+    {
         return Bugzilla->request_cache;
     }
     return $_cache;
@@ -446,7 +496,8 @@ sub _cache {
 # Copied from Bugzilla::Util #
 ##############################
 
-sub trick_taint {
+sub trick_taint
+{
     require Carp;
     Carp::confess("Undef to trick_taint") unless defined $_[0];
     my $match = $_[0] =~ /^(.*)$/s;
@@ -454,15 +505,18 @@ sub trick_taint {
     return (defined($_[0]));
 }
 
-sub trim {
+sub trim
+{
     my ($str) = @_;
-    if ($str) {
-      $str =~ s/^\s+//g;
-      $str =~ s/\s+$//g;
+    if ($str)
+    {
+        $str =~ s/^\s+//g;
+        $str =~ s/\s+$//g;
     }
     return $str;
 }
 
+1;
 __END__
 
 =head1 NAME
@@ -633,8 +687,8 @@ in their browser, usually), and extensions are sorted alphabetically.
 
 =item C<include_languages>
 
-Used by L<Bugzilla::Template> to determine the languages' list which 
-are compiled with the browser's I<Accept-Language> and the languages 
+Used by L<Bugzilla::Template> to determine the languages' list which
+are compiled with the browser's I<Accept-Language> and the languages
 of installed templates.
 
 =item C<vers_cmp>
