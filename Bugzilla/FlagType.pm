@@ -401,7 +401,7 @@ sub _get_clusions
         $product_name ||= "__Any__";
         $component_id ||= 0;
         $component_name ||= "__Any__";
-        $clusions{"$product_name:$component_name"} = "$product_id:$component_id";
+        $clusions{"$product_id:$component_id"} = "$product_name:$component_name";
     }
     return \%clusions;
 }

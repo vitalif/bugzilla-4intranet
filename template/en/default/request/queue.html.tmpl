@@ -91,10 +91,7 @@ to some group are shown by default.
       </td>
       <th align="right">Flag:</th>
       <td>
-        [% PROCESS "global/select-menu.html.tmpl"
-                    name="type"
-                    options=types
-                    default=selected_type %]
+        [% html_select('type', selected_type, types) %]
       </td>
 
     </tr>
@@ -115,19 +112,16 @@ to some group are shown by default.
       <th align="right">Group By:</th>
       <td>
         [% groups = {
-            "Requester" => 'requester' ,
-            "Requestee" => 'requestee',
-            "Flag" => 'type' ,
-            "Product/Component" => 'category'
+            'requester' => "Requester",
+            'requestee' => "Requestee",
+            'type' => "Flag",
+            'category' => "Product/Component",
           } %]
-        [% PROCESS "global/select-menu.html.tmpl" name="group" options=groups default=selected_group %]
+        [% html_select('group', selected_group, groups) %]
       </td>
       <th align="right">Status:</th>
       <td>
-        [% PROCESS "global/select-menu.html.tmpl"
-                    name="status"
-                    options=["all", "?", "+-", "+", "-"]
-                    default=selected_status %]
+        [% html_select('status', selected_status, ["all", "?", "+-", "+", "-"]) %]
       </td>
       <td><input type="submit" id="filter" value="Filter" /></td>
     </tr>

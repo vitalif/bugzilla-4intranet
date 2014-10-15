@@ -916,13 +916,12 @@ sub create
             Bugzilla => Bugzilla::Template::Plugin::Bugzilla->new,
 
             # HTML <select>
-            # html_select(name, { <attr> => <value> }, <selected value>, (
+            # html_select(name, <selected value>, <values>, [<value names>], [<attr_hash>])
+            #   <values> may be one of:
             #     [ { id => <option value>, name => <option text> }, ... ]
-            #     OR
             #     { <option value> => <option text>, ... } # will be sorted on text
-            #     OR
-            #     [ <option value>, ... ], { <option value> => <option text>, ... }
-            # ))
+            #     [ <option value>, ... ]
+            #   in the last case, <value names> may be { <option value> => <option text>, ... }
             html_select => sub
             {
                 my ($name, $selected, $values, $valuenames, $attrs) = @_;
@@ -949,7 +948,7 @@ sub create
                     {
                         $html .= '<option value="'.html_quote($_).'"';
                         $html .= ' selected="selected"' if $selected->{$_};
-                        $html .= '>'.html_quote($valuenames->{$_}).'</option>';
+                        $html .= '>'.html_quote($valuenames && $valuenames->{$_} || $_).'</option>';
                     }
                 }
                 else

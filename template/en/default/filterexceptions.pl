@@ -207,11 +207,6 @@
   'series.frequency * 2',
 ],
 
-'global/select-menu.html.tmpl' => [
-  'options',
-  'size',
-],
-
 'global/tabs.html.tmpl' => [
   'content',
 ],

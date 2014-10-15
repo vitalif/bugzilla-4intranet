@@ -55,11 +55,11 @@
   <input type="hidden" name="id" value="[% type.id %]">
   <input type="hidden" name="token" value="[% token FILTER html %]">
   <input type="hidden" name="target_type" value="[% type.target_type %]">
-  [% FOREACH category = type.inclusions %]
-    <input type="hidden" name="inclusions" value="[% category.value FILTER html %]">
+  [% FOREACH category = type.inclusions.keys %]
+    <input type="hidden" name="inclusions" value="[% category FILTER html %]">
   [% END %]
-  [% FOREACH category = type.exclusions %]
-    <input type="hidden" name="exclusions" value="[% category.value FILTER html %]">
+  [% FOREACH category = type.exclusions.keys %]
+    <input type="hidden" name="exclusions" value="[% category FILTER html %]">
   [% END %]
 
   [%# Add a hidden button at the top of the form so that the user pressing "return"
@@ -121,12 +121,12 @@
             </td>
             <td style="vertical-align: top;">
               <b>Inclusions:</b><br>
-              [% PROCESS "global/select-menu.html.tmpl" name="inclusion_to_remove" multiple="1" size="7" options=type.inclusions %]<br>
+              [% html_select('inclusion_to_remove', '', type.inclusions, '', { multiple => '1', size => '7' }) %]
               <input type="submit" name="categoryAction-removeInclusion" value="Remove Inclusion">
             </td>
             <td style="vertical-align: top;">
               <b>Exclusions:</b><br>
-              [% PROCESS "global/select-menu.html.tmpl" name="exclusion_to_remove" multiple="1" size="7" options=type.exclusions %]<br>
+              [% html_select('exclusion_to_remove', '', type.exclusions, '', { multiple => '1', size => '7' }) %]
               <input type="submit" name="categoryAction-removeExclusion" value="Remove Exclusion">
             </td>
           </tr>

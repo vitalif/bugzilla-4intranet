@@ -25,13 +25,7 @@
     [% FOR f = incorrect_fields %]
     <td>
       <b>[% f.field.description | html %]:</b><br />
-      [% PROCESS "global/select-menu.html.tmpl"
-        name = f.field.name
-        options = f.options
-        default = f.options.0
-        size = 10
-        multiple = f.field.type == constants.FIELD_TYPE_MULTI_SELECT
-      %]
+      [% html_select(f.field.name, f.options.0, f.options, '', { size => 10, multiple => (f.field.type == constants.FIELD_TYPE_MULTI_SELECT) }) %]
     </td>
     [% END %]
   </tr>

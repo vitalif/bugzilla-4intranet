@@ -213,7 +213,7 @@ sub edit
     else
     {
         my %inclusions;
-        $inclusions{"__Any__:__Any__"} = "0:0";
+        $inclusions{"0:0"} = "__Any__:__Any__";
         $vars->{type} = {
             target_type => $target_type,
             inclusions  => \%inclusions,
@@ -232,8 +232,8 @@ sub processCategoryChange
 {
     my ($categoryAction, $token) = @_;
 
-    my @inclusions = $ARGS->{inclusions};
-    my @exclusions = $ARGS->{exclusions};
+    my @inclusions = list $ARGS->{inclusions};
+    my @exclusions = list $ARGS->{exclusions};
     if ($categoryAction eq 'include')
     {
         my ($product, $component) = get_prod_comp();
@@ -258,7 +258,7 @@ sub processCategoryChange
     }
 
     # Convert the array @clusions('prod_ID:comp_ID') back to a hash of
-    # the form %clusions{'prod_name:comp_name'} = 'prod_ID:comp_ID'
+    # the form %clusions{'prod_ID:comp_ID'} = 'prod_name:comp_name'
     my %inclusions = clusion_array_to_hash(\@inclusions);
     my %exclusions = clusion_array_to_hash(\@exclusions);
 
@@ -289,7 +289,7 @@ sub processCategoryChange
 }
 
 # Convert the array @clusions('prod_ID:comp_ID') back to a hash of
-# the form %clusions{'prod_name:comp_name'} = 'prod_ID:comp_ID'
+# the form %clusions{'prod_ID:comp_ID'} = 'prod_name:comp_name'
 sub clusion_array_to_hash
 {
     my $array = shift;
@@ -312,7 +312,7 @@ sub clusion_array_to_hash
             $components{$component_id} ||= new Bugzilla::Component($component_id);
             $component_name = $components{$component_id}->name if $components{$component_id};
         }
-        $hash{"$product_name:$component_name"} = $ids;
+        $hash{$ids} = "$product_name:$component_name";
     }
     return %hash;
 }
