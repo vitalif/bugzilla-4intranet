@@ -471,11 +471,14 @@ sub input_params
         $cache->{input_params} = $params;
     }
     return $cache->{input_params} if defined $cache->{input_params};
-
-    my $cgi = $class->cgi;
-    my $params = { %{$cgi->{param}} };
+    $params = { %{$class->cgi->{param}} };
+    my $utf8 = Bugzilla->params->{utf8};
     for (keys %$params)
     {
+        if ($utf8)
+        {
+            utf8::decode($_) for @{$params->{$_}};
+        }
         ($params->{$_}) = @{$params->{$_}} if @{$params->{$_}} <= 1;
     }
     $cache->{input_params} = $params;
