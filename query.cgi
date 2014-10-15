@@ -246,14 +246,15 @@ if ($userid)
 
 # Sort order
 my $deforder;
-my @orders = ('Bug Number', 'Importance', 'Assignee', 'Last Changed', 'relevance');
+my $order_name_to_key = { 'Bug Number' => 'bug_id', 'Importance' => 'importance', 'Assignee' => 'assignee', 'Last Changed' => 'last_changed' };
+my @orders = ('bug_id', 'importance', 'assignee', 'last_changed', 'relevance');
 
 if (Bugzilla->cookies->{LASTORDER})
 {
-    $deforder = "Reuse same sort as last time";
-    unshift(@orders, $deforder);
+    unshift(@orders, $deforder = 'reuse');
 }
 
+$params->{order} = $order_name_to_key->{$params->{order}} || $params->{order};
 if ($params->{order} && !grep { $_ eq $params->{order} } @orders)
 {
     unshift @orders, $params->{order};
@@ -261,7 +262,7 @@ if ($params->{order} && !grep { $_ eq $params->{order} } @orders)
 
 $vars->{userdefaultquery} = $userdefaultquery;
 $vars->{orders} = \@orders;
-$default->{order} = [$deforder || 'Importance'];
+$default->{order} = $deforder || 'importance';
 
 # CustIS Bug 58300 - Add custom fields to search filters
 # This logic is moved from search/form.html.tmpl

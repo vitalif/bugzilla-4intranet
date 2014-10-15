@@ -30,11 +30,11 @@
 
 [%# This is not necessary for English templates, but useful for localizers. %]
 [% ordersdesc = {
-   "Reuse same sort as last time" => "Reuse same sort as last time",
-   "Bug Number"   => "$terms.Bug Number",
-   "Importance"   => "Importance",
-   "Assignee"     => "Assignee",
-   "Last Changed" => "Last Changed",
+   "reuse"        => "Reuse same sort as last time",
+   "bug_id"       => "$terms.Bug Number",
+   "importance"   => "Importance",
+   "assignee"     => "Assignee",
+   "last_changed" => "Last Changed",
    "relevance"    => "Relevance to full-text search",
 } %]
 
@@ -45,7 +45,7 @@
   <select name="order" id="order">
   [% FOREACH order = orders %]
     <option value="[% order FILTER html %]"
-      [% " selected='selected'" IF default.order.0 == order %]>
+      [% " selected='selected'" IF default.order == order %]>
          [% (ordersdesc.$order || "Custom: " _ order) FILTER html %]</option>
   [% END %]
   </select>

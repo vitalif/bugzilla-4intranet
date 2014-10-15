@@ -1066,7 +1066,8 @@ sub clean_search_params
     }
 
     # "Reuse same sort as last time" is actually the default, so we don't need it in the URL.
-    if (($params->{order} || '') eq 'Reuse same sort as last time')
+    if (($params->{order} || '') eq 'Reuse same sort as last time' ||
+        ($params->{order} || '') eq '_reuse')
     {
         delete $params->{order};
     }
