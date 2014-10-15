@@ -115,6 +115,7 @@ $Bugzilla::messages->{en} = {
         newcc                     => 'CC',
         op_sys                    => 'OS',
         owner_idle_time           => 'Time Since Assignee Touched',
+        days_elapsed              => 'Days since bug changed',
         percentage_complete       => '% Complete',
         priority                  => 'Priority',
         product_id                => 'Product ID',
