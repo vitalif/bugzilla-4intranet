@@ -471,7 +471,16 @@ sub input_params
         $cache->{input_params} = $params;
     }
     return $cache->{input_params} if defined $cache->{input_params};
-    $params = { %{$class->cgi->{param}} };
+    my $cgi = $class->cgi;
+    if (($cgi->request_method || 'GET') eq 'POST')
+    {
+        $cgi->url_param;
+        $params = { %{$cgi->{'.url_param'}}, %{$cgi->{param}} };
+    }
+    else
+    {
+        $params = { %{$cgi->{param}} };
+    }
     my $utf8 = Bugzilla->params->{utf8};
     for (keys %$params)
     {
