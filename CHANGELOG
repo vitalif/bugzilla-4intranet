@@ -1,0 +1,306 @@
+== UNRELEASED: beta ==
+
+UI improvements:
+* Redesign of bug entry form - now it has 2 columns, one with "bigger" fields
+  like description and "textarea" custom fields, and another with "smaller"
+  selectbox, user, and text edit fields.
+* Redesign of bug change form - now fields are displayed in 4 columns,
+  and editboxes are under their labels instead of being in the next column.
+  4 columns degrades to 2 and then to 1 using media queries (responsive layout).
+* Separate localisation layer - now it's possible to translate Bugzilla UI
+  without copying templates!
+* More cute Mozilla skin integrated and used by default.
+* Gravatar support.
+* General various style improvements.
+
+Backports from original Bugzilla 4.4:
+* Upgrade compatibility: allow to upgrade original Bugzilla 4.4
+  to Bugzilla4Intranet.
+* Allow to disable old versions/milestones.
+* Saved reports.
+* Add user "last seen date".
+
+Bug field improvements:
+* "Reverse BUG_ID relationship" field type.
+* Replace "unspecified" versions with NULL.
+* Dependent default values for all custom and some standard fields.
+* Dependent nullability, i.e. allow or deny empty values dependent on the
+  value of another select field.
+* Dependent cloneability, i.e. allow to select whether to clone custom fields
+  dependent on the value of another select field.
+* Allow to enable fields or values for the empty value of their controller.
+* UI to enable/disable dependent fields from the controlling value page (i.e. for example from the product page).
+* Remove "Bug Fields" parameters (defaultXXX, useXXX) - now all fields are edited using "Fields" UI.
+* For standard fields, show the exact parameters that you're allowed to tweak.
+* Sort fields in bugmail and history by their sortkey.
+* Do not treat empty visibility value sets as "visible for all" anymore.
+* Allow to delete custom fields with change history.
+* Allow to configure default milestones and versions based on other fields (for example, based on components).
+* Allow keywords to depend on other fields (for example on product).
+
+Other new features:
+* Link to "Add/remove users in this group" from product page.
+* Better 'makeproductgroups' handling - do not insert group into all products
+  by default when it is on, always allow to choose whether to create access
+  group for new products.
+* Rewrite group control help text.
+* Allow to use shared searches in "matched by saved search" operator (with
+  'SearchName <user@domain.com>' syntax), allow to run shared searches that
+  use other shared searches (they crashed previously).
+* Improved Boolean Charts UI: negation is now also added as a fieldset
+  (this looks more intuitive).
+* Reflow custom fields on query forms to form 4-field rows on dynamic hide/show.
+* Use "DOM ready" event instead of window.onload to speedup bug/query form loading.
+* Allow to use LEVENSHTEIN() user search with PostgreSQL.
+* HTTPServerSimple.pl: prevent possible path traversal.
+* Do not require HTML::Scrubber to correctly strip unsafe tags.
+* Allow to change product classification from product page.
+* Move OS and Platform guessing regexps into DB and allow to edit them.
+* Allow to use field names in incoming email.
+* Flash comment when going to its anchor link.
+* Detect changes for multi-selects during mid-air collisions.
+
+Bugfixes:
+* More correct select field population on bug and query forms.
+* Fix read-only display of bug fields to work again.
+* sanitycheck.cgi fixed and works again.
+* Make "Clear flag requests when closing bugs" preference actually work.
+
+Refactoring:
+* Remove CGI.pm usage for getting query parameters and cookies from everywhere.
+  *.cgi scripts now use Bugzilla->input_params and Bugzilla->cookies hashrefs.
+  Bugzilla::Search, Search::Saved, Report, Chart and similar now use plain hashrefs
+  instead of CGI object for passing params.
+  This is faster, looks much more readable, and automatically avoids
+  vulnerabilities like CVE-2014-1572 (found recently in original Bugzilla).
+* Refactor result reporting, move the rest of bug-related code into Bugzilla::Bug.
+  This allows to not call process_bug.cgi from importxls.cgi and email_in.pl anymore.
+* All CUSTIS-specific features moved into 'custishacks' extension; all non-specific
+  features moved from 'custis' extension into core.
+* Merge create/edit templates for milestones, versions, field values, keywords, classifications.
+* Remove JOB_MAP hardcode that didn't allow to add custom job classes without
+  modifying the core code.
+* Remove various procedural and/or unused APIs from Bugzilla modules,
+  (like is_open_state, BUG_STATE_OPEN, closed_bug_statuses, LookupNamedQuery...)
+* Remove some unused functions and filters from Bugzilla::Template.
+* Remove some never-used obsolete field definitions from the DB.
+* Remove "additional scrum estimates" (was mostly unused).
+* Move some DB interaction code from editflagtypes.cgi to Bugzilla::FlagType.
+* Make products.cc_group and flagtypes.cc_list also store ID.
+* Change the rest of integer fields to be INT4 during upgrade.
+* Convert Keywords into a standard multi-select field.
+* Update code style for all *.cgi, for all *.js and for most Bugzilla modules.
+
+== 2014.08.2: 2014-10-07, commit 4a695e3e71555bb2981e9f5851881f6a714944de ==
+
+Features:
+* Show detailed group information in group editing and user permission list UI.
+* Truncated versions of assigned_to/reporter/qa fields in search.
+
+Bugfixes:
+* Fix midair collision change detection.
+* Several other bugfixes.
+
+== 2014.08.1: 2014-08-07, commit 549c8bb08977119b61b9327eae1706468a51edae ==
+
+Features:
+* Support non-nullable custom fields.
+* Remove bug_status hardcode (statuses can now be renamed; the single hardcode left is in css styles).
+* Remove see_also URL template hardcode (not it's possible to configure them in params).
+* Slightly redesign product edit page.
+* Slightly redesign choose classification and choose product pages.
+* Slightly redesign (and merge) field create/edit templates.
+* Improve "Add/remove users in this group": now it shows all members and grantors, even indirect ones.
+* Add flag requestee into cc if he cannot see the bug.
+
+Refactoring:
+* A major rework of the database structure:
+  * Change almost all integer fields to 32-bit INT4 instead of various INT2/3 types.
+  * Change almost all varchar fields to varchar(255).
+  * Change all select fields to store values IDs instead of names and NULL instead of a surrogate "---" value.
+* Refactor Bugzilla::Bug ORM code. Now the code is cleaner and works more correctly and reliably.
+* Remove user combobox support, always use autocomplete.
+* Remove CGI usage in some scripts:
+  editvalues.cgi, show_bug.cgi, enter_bug.cgi, request/email, request/queue template.
+* Remove Testopia.
+* Move big javascript away from bug creation template.
+* Remove obsolete APIs: get_legal_field_values(), bug.choices().
+* Refactor BugMail (use ORM instead of direct DB queries).
+* Move some CustIS-specific code to custishacks, some non-specific - back to core.
+* Merge create/edit templates for components.
+
+== 2014.05.1: 2014-05-16, commit 7f53f7a7fd3eb103389b1f086445fc7248179287 ==
+
+Searching and reporting:
+* Allow interval_time in reports.
+* Sphinx full-text search support (http://sphinxsearch.com).
+* Allow to create bugs based on search parameters from the buglist page.
+* Add "search" links to most fields on the bug change form.
+* Expand search form select fields on hover.
+* In all buglists, link products/components to lists of OPEN bugs in them,
+  and users to their assigned/reported bug lists.
+
+UI improvements:
+* Autocomplete for keywords.
+* Comment formatting based on HTML paragraphs instead of hard-coded text wrapping.
+* Allow to show comments in the full screen width (user preference).
+* Show attached images directly inside comments.
+* "Online view" of attached office documents using LibreOffice HTML conversion.
+* Editable comments.
+* Show diffs in comment and "textarea" custom field changes.
+* Preserve entered comment when going to "add an attachment" page.
+* "List users who can access this bug" (check_access.cgi)
+* Add the ability to download all attachments in ZIP.
+* Simple attachment list template:
+  attachment.cgi?bugid=<bugid>&action=viewall&format=simple&show_obsolete=1|0
+* Remove "Show Advanced fields" on the bug creation form as it only confuses
+  users ("where is my field XXX?")
+* Better "Browse" styles.
+* Redesign product group control page.
+
+Bug field improvements:
+* Initial (buggy) support for dependent default values of custom fields.
+* Initial UI for enabling/disabling custom field values for a single value of
+  the controlling field (editvisibility.cgi).
+* Experimental "Internal bug" pseudo-field in excel import (hardcoded to BUG_ID cf_extbug field).
+* Allow whitespace in keyword names.
+* Add js Calendar to all date fields.
+
+Refactoring:
+* Add standalone pure-perl HTTP server implementation: HTTP::Server::Simple
+  (RECOMMENDED to use instead of mod_perl).
+* Do not send flag mail in case of transaction abort (for example on validator failure).
+* Use Email::Sender instead of outdated Email::Send.
+
+== 2012.05.1: 2012-05-03, commit 33ad4caee03ba4ccb4c433ec7b4b4b9edbaee294 ==
+
+Searching and reporting:
+* Biggest feature: Bugzilla::Search optimisation. It is rewritten using UNIONs
+  and nested queries which allows DBMS (even MySQL) execute queries optimally,
+  even on big databases.
+* "Last comment", "Last comment time" columns in search.
+* Use Lingua::Stem::Snowball instead of hardcoded russian stemmer.
+* PostgreSQL fulltext search support.
+* Simple report format (for embedding reports).
+* Allow more columns in reports.
+
+UI improvements:
+* Autocomplete for users.
+* Multiple attachment upload from the bug edit form.
+* Worktime-only comments.
+* Redirect after editing attachments.
+* SUPA: Screenshot upload support with SUPA Java applet.
+* Ability to print SCRUM-like cards for bugs.
+* unauth_bug_details setting allowing to show products of inaccessible bugs
+  in the "access denied" error message.
+
+Bug field improvements:
+* New "External URL based on template" custom field type.
+* CC list triggers in bug validators, allowing to auto-add someone to CC of some bugs.
+* Remove remaining traces of OS and Platform fields when they're disabled.
+
+Refactoring:
+* Remove explicit send_header() from scripts. $template->process sends headers automatically.
+* Replace overlong IF-ELSE with named blocks in code-error.html.tmpl and user-error.html.tmpl.
+* Move MediaWiki URL templates to the single parameter.
+
+Other features:
+* Merge WebServices from Bugzilla 4.0.1.
+* Fix several vulnerabilities, like in original Bugzilla.
+
+== 2011.03.1: 2011-03-25, commit d50f1d10c165d60bc3313752c7643e11a25e0c82 ==
+
+* Based on Bugzilla 3.6.4.
+* Bug change validators ("Checkers").
+* "SuperWorkTime" page for entering working time for many bugs at once.
+* Excel import can now update bugs + add character set and separator settings for CSV import.
+* New simple API, taking query parameters as input and returning XML or JSON;
+  able to handle ALL errors, not only ones with hardcoded numeric codes, like standard *RPC.
+
+Development improvements:
+* "KittenError": show a page with cute ASCII kitten on internal errors and send
+  email to the maintainer.
+* Show stack traces in template errors.
+* $Bugzilla::RELOAD_MODULES; $^P |= 0x10; support for reloading modules (in debug purposes).
+* Original extension system from Bugzilla 3.6 removed and replaced with
+  our brand new one, which is also compatible with older extensions.
+* Use wrapper around 'print $cgi->header': $cgi->send_header().
+
+UI improvements:
+* Comment preview.
+* Submit forms on Ctrl-Enter.
+* Redirect after adding attachments and after entering/changing bugs.
+  This is a "natural" protection against double form submit, and also
+  allows to press F5 after saving bug changes.
+* Guess charset of text attachments, and try to display them with correct header.
+* Removed YAHOO UI javascript library.
+* Internal-external product relationship, clone bug links.
+* Support Levenshtein distance for user login matching (needs MySQL UDF).
+
+Searching and reporting:
+* Allow to measure working/remaining/estimated time in reports; add empty values to reports.
+* Add custom fields to search filters.
+* JavaScript buglist table sorting (like on bugzilla.mozilla.org).
+* "First comment", "Duplicate of" columns in search.
+* "Period Worktime" column in search allowing to sum working time for the time
+  interval selected in "Only bugs changed between..." block.
+* Support for auto-sizing iframe with HTML5 postMessage when a simple buglist is embedded in it.
+
+Bug field improvements:
+* Unified dependent field value checking, client-side caching of field/value dependencies;
+  do not require bug access rights on dependent bugs if you don't change them.
+* Numeric custom field type.
+* "Cloneability": setting allowing to choose whether to copy custom field value when cloning bugs.
+* Option allowing to automatically add BUG_ID custom fields into bug dependencies.
+* Online creation of custom fields without giving errors to users.
+* Allow to disable old components ("close them for bug entry", like products).
+* Lock bug rows in the DB during update (SELECT FOR UPDATE) to avoid deadlocks.
+* Some API functions for custom field values.
+
+== 2010.05.1: 2010-05-13, commit bb684a5f909660a69701694ae2bf76eca7d9907a ==
+
+* Based on Bugzilla 3.4.6.
+* Allow to make auto-refreshable MySQL Views from bug lists.
+* Excel import: mass bug posting from Excel or CSV files.
+* Slightly simplified Testopia 2.3 with test MediaWiki plan sync support.
+
+Bug field improvements:
+* Multiple visibility values for fields and values.
+* User comboboxes (no autocomplete) for flag requestees.
+* Allow to disable OS and Platform fields.
+* CC list display like on bugzilla.mozilla.org :).
+* Expanded limit for custom field values to 255.
+* Editable default CC for components.
+* 'Default version' for components.
+* "Submit my changes anyway" doesn't overwrite values which you didn't change.
+
+UI improvements:
+* Redesign of dependency graphs (SVG+PNG and bug clustering).
+* HTML+plaintext multipart/alternative bugmail.
+* [DD:]HH:MM[.SS] syntax for working time.
+* Configurable position of "fat footer" - top, bottom or both.
+* ASCII pseudographic formatting of tab-separated tables in bug comments.
+* Force bug form refresh on page reload, even in Firefox.
+* Simplified Quick Search syntax (it was slightly insane in original version).
+* email_in.pl (incoming email handler) improvements: multiple attachments, HTML stripping.
+
+Other improvements:
+* Guess MIME types for uploads, guess file descriptions from names.
+* Allow to set "prefer no time tracking" flag for products and warn when
+  entering worktime in them.
+* Replace overlong IF-ELSE from messages.html.tmpl with named blocks.
+* Some bug cloning changes.
+* Various minor changes.
+
+== 2009.07.1: 2009-07-28, commit 1867a99935bd5f3795e4fcce962dda7a4c91cadf ==
+
+* Based on 3.2.4.
+* Store all attachments in FS instead of DB by default.
+* Template Toolkit related performance fixes.
+* Per-product "CC list restriction group" - even if someone who is in this group
+  adds someone who's not in it into CC, Assignee or QA bug fields, Bugzilla
+  disallows this change.
+* Single-click "unsubscribe from bug" page.
+* RSS activity and comment feed for each bug.
+* Russian stemming for MySQL fulltext search.
+* Some other initial Bugzilla4Intranet improvements.
