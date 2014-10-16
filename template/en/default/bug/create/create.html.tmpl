@@ -77,9 +77,9 @@ var close_status_array = [
 [%# Note: in original Bugzilla, this was customised by editing 'bug/create/user-message.html.tmpl' template %]
 [% product.entryheaderhtml || Param('entryheaderhtml') | html_light %]
 
-<table width="100%"><tr><td width="100%">
+<table width="100%" class="flatten_table"><tr><td>
 
-<table cellspacing="4" cellpadding="2" border="0" width="100%">
+<table cellspacing="4" cellpadding="2" border="0" width="100%" class="flatten_table">
 <tbody>
   <tr>
     <th rowspan="2" style="width: 10em; white-space: normal; word-wrap: break-word">
@@ -187,7 +187,7 @@ var close_status_array = [
     <tr>
       <th><a href="describekeywords.cgi">Keywords</a>:</th>
       <td>
-        <input id="keywords" name="keywords" size="60" value="[% default.keywords | html %]">
+        <input id="keywords" name="keywords" size="40" style="width: 100%" value="[% default.keywords | html %]" />
         <script type="text/javascript">
         addKeywordsAutocomplete();
         </script>
@@ -199,7 +199,7 @@ var close_status_array = [
     <tr>
       <th>Whiteboard:</th>
       <td colspan="3">
-        <input id="status_whiteboard" name="status_whiteboard" size="60" value="[% default.status_whiteboard | html %]">
+        <input id="status_whiteboard" name="status_whiteboard" size="40" style="width: 100%" value="[% default.status_whiteboard | html %]" />
       </td>
     </tr>
   [% END %]
@@ -213,7 +213,6 @@ var close_status_array = [
       <br />
       [%# Group checkboxes %]
       [% FOREACH g = group %]
-        &nbsp;&nbsp;&nbsp;&nbsp;
         <input type="checkbox" id="bit-[% g.bit %]"
           name="bit-[% g.bit %]" value="1"
           [% " checked=\"checked\"" IF g.checked %]>
@@ -233,7 +232,7 @@ var close_status_array = [
 
 </td><td>
 
-<table cellspacing="4" cellpadding="2" border="0">
+<table cellspacing="4" cellpadding="2" border="0" style="width: 100%">
   [% IF Bugzilla.get_field('version').enabled %]
   <tr>
     [% INCLUDE bug/field.html.tmpl
@@ -251,15 +250,18 @@ var close_status_array = [
   [% IF Bugzilla.get_field('bug_severity').enabled %]
   <tr>
     <th><label for="bug_severity"><a href="page.cgi?id=fields.html#bug_severity">Severity:</a></label></th>
-    <td>
+    <td style="width: 100%">
       [% INCLUDE bug/field.html.tmpl
         bug = default, field = select_fields.bug_severity, editable = 1, no_tds = 1,
         value_name = default.bug_severity %]
+      <span style="padding: 0 0 0 10%"></span>
       [% IF Param('letsubmitterchoosepriority') %]
-        <label for="priority" style="margin-left: 30px"><b><a href="page.cgi?id=fields.html#priority">Priority:</a></b> </label>
+      <span style="white-space: nowrap">
+        <label for="priority"><b><a href="page.cgi?id=fields.html#priority">Priority:</a></b> </label>
         [% INCLUDE bug/field.html.tmpl
           bug = default, field = select_fields.priority, editable = 1, no_tds = 1,
           value_name = default.priority %]
+      </span>
       [% END %]
     </td>
   </tr>
@@ -273,7 +275,7 @@ var close_status_array = [
   [% IF Bugzilla.get_field('bug_file_loc').enabled %]
   <tr>
     <th>URL:</th>
-    <td colspan="2"><input name="bug_file_loc" size="40" value="[% default.bug_file_loc | html %]"></td>
+    <td colspan="2"><input name="bug_file_loc" size="20" style="width: 100%" value="[% default.bug_file_loc | html %]" /></td>
   </tr>
   [% END %]
   [% IF Bugzilla.get_field('rep_platform').enabled %]
@@ -314,7 +316,7 @@ var close_status_array = [
       name => "assigned_to"
       value => default.assigned_to
       disabled => assigned_to_disabled
-      size => 30
+      size => 20
       style => 'width: 100%'
       emptyok => 1
     %]
@@ -328,7 +330,7 @@ var close_status_array = [
         name => "qa_contact"
         value => default.qa_contact
         disabled => qa_contact_disabled
-        size => 30
+        size => 20
         style => 'width: 100%'
         emptyok => 1
       %]
@@ -343,7 +345,7 @@ var close_status_array = [
         name => "cc"
         value => cc
         disabled => cc_disabled
-        size => 30
+        size => 20
         style => 'width: 100%'
         multiple => 5
       %]
@@ -413,8 +415,10 @@ var close_status_array = [
     <th>Estimated Hours:</th>
     <td>
       <input name="estimated_time" size="6" maxlength="6" value="[% default.estimated_time | html %]">&nbsp;
-      <b>Hours Worked:</b>
-      <input name="work_time" id="work_time" value="[% default.work_time | html %]" size="6" maxlength="6" onchange="checkWorktime(this)" onkeyup="checkWorktime(this)"" />
+      <span style="white-space: nowrap">
+        <b>Hours Worked:</b>
+        <input name="work_time" id="work_time" value="[% default.work_time | html %]" size="6" maxlength="6" onchange="checkWorktime(this)" onkeyup="checkWorktime(this)" />
+      </span>
     </td>
   </tr>
   <tr>
@@ -433,9 +437,9 @@ var close_status_array = [
   <tr><td colspan="2"><hr /></td></tr>
   [% END %]
 
-  [% PROCESS custom_fields style = "width: 27em"
+  [% PROCESS custom_fields style = "width: 100%"
     cf = Bugzilla.active_custom_fields({ 'type' => [ constants.FIELD_TYPE_SINGLE_SELECT, constants.FIELD_TYPE_FREETEXT ] }) %]
-  [% PROCESS custom_fields style = "width: 27em"
+  [% PROCESS custom_fields style = "width: 100%"
     cf = Bugzilla.active_custom_fields({ 'type' => [ constants.FIELD_TYPE_DATETIME, constants.FIELD_TYPE_NUMERIC, constants.FIELD_TYPE_BUG_ID, constants.FIELD_TYPE_EXTURL ] }) %]
 </table>
 
