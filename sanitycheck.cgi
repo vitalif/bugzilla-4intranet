@@ -54,7 +54,7 @@ sub Status
     {
         my $linebreak = $alert ? "\nALERT: " : "\n";
         $ARGS->{error_found} = 1 if $alert;
-        $ARGS->{output} = ($ARGS->{output} || '') . $linebreak . get_string($san_tag, $vars));
+        $ARGS->{output} = ($ARGS->{output} || '') . $linebreak . get_string($san_tag, $vars);
         print $linebreak . get_string($san_tag, $vars);
     }
     else
@@ -720,8 +720,7 @@ BugCheck(
 # Checks for values that are invalid OR
 # not among the 9 valid combinations
 Status('bug_check_control_values');
-my $groups = join(", ", (CONTROLMAPNA, CONTROLMAPSHOWN, CONTROLMAPDEFAULT,
-CONTROLMAPMANDATORY));
+my $groups = join(", ", (CONTROLMAPNA, CONTROLMAPSHOWN, CONTROLMAPDEFAULT, CONTROLMAPMANDATORY));
 my $query = "SELECT COUNT(product_id) FROM group_control_map".
     " WHERE membercontrol NOT IN ($groups)".
     " OR othercontrol NOT IN ($groups) OR ((membercontrol != othercontrol)".
