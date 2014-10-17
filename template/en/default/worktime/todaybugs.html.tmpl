@@ -1,4 +1,7 @@
-[%# 1.0@bugzilla.org %]
+[%# "Old" Today Worktime page
+  # License: Dual-license GPL 3.0+ or MPL 1.1+
+  # Author: Vitaliy Filippov <vitalif@mail.ru>
+  #%]
 
 [% title = "Today Worktime" %]
 
@@ -11,7 +14,7 @@
 
 <style>
 .worktime { border-collapse: collapse; }
-.worktime td { font-family: "Lucida Console", monospace; font-size: 9pt; }
+.worktime td { font-family: Consolas, monospace; font-size: 9pt; }
 .worktime textarea { font-family: monospace; font-size: 10pt; }
 .worktime .rowP1 { background-color: rgb(250,240,240); }
 .worktime .rowP2 { background-color: rgb(240,240,240); }
@@ -126,10 +129,6 @@
 <input value="Commit" type="submit">
 </td></tr></table>
 </form>
-
-[%############################################################################%]
-[%# Page Footer                                                              #%]
-[%############################################################################%]
 
 [% PROCESS global/footer.html.tmpl %]
 
