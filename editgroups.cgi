@@ -429,7 +429,7 @@ sub _do_add
         $current = $group->grant_direct($type);
     }
 
-    my $add_items = Bugzilla::Group->new_from_list([ list Bugzilla->input_params->{$field} ]);
+    my $add_items = Bugzilla::Group->new_from_list([ list(Bugzilla->input_params->{$field}) ]);
 
     foreach my $add (@$add_items)
     {
@@ -450,7 +450,7 @@ sub _do_add
 sub _do_remove
 {
     my ($group, $changes, $sth_delete, $field, $type, $reverse) = @_;
-    my $remove_items = Bugzilla::Group->new_from_list([ list Bugzilla->input_params->{$field} ]);
+    my $remove_items = Bugzilla::Group->new_from_list([ list(Bugzilla->input_params->{$field}) ]);
 
     foreach my $remove (@$remove_items)
     {

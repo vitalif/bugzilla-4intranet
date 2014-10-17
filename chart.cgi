@@ -269,7 +269,7 @@ exit;
 # Find any selected series and return either the first or all of them.
 sub getAndValidateSeriesIDs
 {
-    my @series_ids = grep /^\d+$/, list Bugzilla->input_params->{name};
+    my @series_ids = grep /^\d+$/, list(Bugzilla->input_params->{name});
     return wantarray ? @series_ids : $series_ids[0];
 }
 

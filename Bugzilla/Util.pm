@@ -949,8 +949,15 @@ sub bz_encode_json
     return $var;
 }
 
+# Return empty list for undef or expand an arrayref
 sub list($)
 {
+    # If you write "list Package->method->{something}", for example "list Bugzilla->input_params->{arg}",
+    # Perl parses it as "(list Package)->method->{something}". But most Bugzilla modules use Bugzilla::Util
+    # and thus have list() imported in their namespace, so (list Package) gets happily executed and you
+    # just get "Package->method->{something}" without list().
+    # Trry to fight it by checking if the calling context wants a list.
+    wantarray or die "Possible bug: Bugzilla::Util::list() called without wantarray. Do not write 'list Package->method->...'";
     my ($array) = @_;
     return () unless defined $array;
     return ($array) if ref $array ne 'ARRAY';

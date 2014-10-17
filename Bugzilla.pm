@@ -83,7 +83,6 @@ sub _die_error
         {
             if ($msg =~ /lock wait|deadlock found/i)
             {
-                use Data::Dumper;
                 # Log active InnoDB locks
                 my $locks = Bugzilla->dbh->selectall_arrayref('SELECT * FROM information_schema.innodb_locks', {Slice=>{}});
                 $msg = "InnoDB locks:\n".Dumper($locks)."\n".$msg;

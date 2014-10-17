@@ -173,7 +173,7 @@ sub new_from_list
     foreach my $id (@$id_list)
     {
         detaint_natural($id) || ThrowCodeError('param_must_be_numeric', {function => $class . '::new_from_list'});
-        # Too large integers make PostgreSQL crash.
+        # Too large integers make PostgreSQL crash (FIXME: That's very STRANGE?!!)
         next if $id > MAX_INT_32;
         push(@detainted_ids, $id);
     }
